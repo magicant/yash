@@ -64,6 +64,7 @@ char **straryclone(char **ary);
 char *skipwhites(const char *s);
 char *stripwhites(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
+char *read_all(int fd);
 
 #define MAX(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
@@ -73,37 +74,60 @@ char *strjoin(int argc, char *const *argv, const char *padding);
 
 /* -- 一回のプロンプト入力の解析結果 -- */
 
-/* リダイレクトを表す */
-typedef struct {
-	int rd_flags;   /* リダイレクトするファイルの開き方 (open の第 2 引数) */
-	int rd_fd;      /* リダイレクトするファイルディスクリプタ */
-	char *rd_file;  /* リダイレクト先のファイル名 (NULL なら閉じる) */
-} REDIR;
+struct _redirect;
+struct _process;
+struct _pipeline;
+struct _statement;
+typedef struct _redirect  REDIR;
+typedef struct _process   PROCESS;
+typedef struct _pipeline  PIPELINE;
+typedef struct _statement STATEMENT;
 
-/* リダイレクトを含めたコマンド */
-typedef struct _single_command {
-	enum {        /* このコマンドの種類 */
-		CT_END,   /* コマンドの終わり (フォアグラウンド) (';') */
-		CT_BG,    /* コマンドの終わり (バックグラウンド) ('&') */
-		CT_PIPED, /* このコマンドを次のコマンドにパイプする ('|') */
-		CT_AND,   /* このコマンドの結果が 0 なら次のを実行する ('&&') */
-		CT_OR,    /* このコマンドの結果が非 0 なら次のを実行する ('||') */
-	} c_type;
-	int c_argc;
-	struct _single_command *c_subcmds;  /* サブシェルで実行するコマンドの配列 */
-	char **c_argv;        /* コマンドライン引数の解析結果 */
-	size_t c_redircnt;    /* c_redir にふくまれる REDIR の数 */
-	REDIR *c_redir;       /* リダイレクトのリスト */
-	char *c_name;         /* 表示用のコマンド名 (NULL かもしれない) */
-} SCMD;
-/* c_subcmds と c_argv の一方が NULL でもう一方が非 NULL である。
- * c_subcmds はコマンドラインで括弧 ( ) で示される、サブシェルで実行する一連の
- * コマンドの列である。この配列は NULL 終端とは限らない。
- * c_argv は実行する一つのコマンドとその引数である。この配列は NULL 終端である。
- * c_argc は c_subcmds/c_argv に含まれる要素の個数を示す。 */
-/* コマンド全体は SCMD のリストとして表される。
- * c_type に CT_PIPED を持つ SCMD は次の SCMD とパイプされる。
- * 各 SCMD のリダイレクトはパイプを繋げた後 行う。 */
+/* リダイレクトを表す */
+struct _redirect {
+	REDIR *next;
+	int    rd_fd;      /* リダイレクトするファイルディスクリプタ */
+	int    rd_destfd;  /* リダイレクト先のファイルディスクリプタ */
+	char  *rd_file;    /* リダイレクト先のファイル名 (NULL なら閉じる) */
+	int    rd_flags;   /* リダイレクト先のファイルの開き方 (open の第 2 引数) */
+};
+/* rd_destfd が負のときのみ rd_{file|flags} が使用される。
+ * 例えば '2>&1' では、rd_fd = 2, rd_destfd = 1 となる。 */
+
+/* パイプラインに含まれる一つのプロセス */
+struct _process {
+	PROCESS   *next;       /* パイプライン内の次のプロセス */
+	enum {
+		PT_NORMAL,    /* 普通のコマンド */
+		PT_GROUP,     /* 現在のシェルで実行するコマンド群: { ... } */
+		PT_SUBSHELL,  /* サブシェルで実行するコマンド群: ( ... ) */
+	}          p_type;
+	char      *p_body;
+	STATEMENT *p_subcmds;  /* プロセスに含まれる文の内容 */
+	REDIR     *p_redirs;   /* このプロセスでの最初のリダイレクト */
+	char      *p_name;     /* 画面表示用のコマンド名 */
+};
+/* p_argv と p_subcmds の一方が NULL でもう一方が非 NULL である。
+ * p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
+ * p_subcmds に入る。
+ * p_body はコマンドの内容である。 */
+
+/* 一つのパイプライン */
+struct _pipeline {
+	PIPELINE *next;     /* コマンドリスト内の次のパイプライン */
+	PROCESS  *pl_proc;  /* パイプラインの最初のプロセス */
+	bool      pl_loop;  /* パイプラインが環状かどうか */
+	bool      pl_next_cond;
+};
+/* pl_next_cond は next を実行する条件。
+ * true は '&&' を、false は '||' を意味する */
+
+/* 一つの文 */
+struct _statement {
+	STATEMENT *next;        /* ソース内の次の文 */
+	PIPELINE  *s_pipeline;  /* 文の中の最初のパイプライン */
+	bool       s_bg;        /* バックグラウンドかどうか */
+};
 
 
 /* -- readline/history -- */
@@ -121,9 +145,12 @@ int yash_readline(char **result);
 
 /* -- パーサ -- */
 
-ssize_t parse_line(const char *line, SCMD **result);
-void redirsfree(REDIR *redirs, size_t count);
-void scmdsfree(SCMD *scmds, size_t count);
+STATEMENT *parse_all(const char *src, bool *more);
+char **expand_pipe(const char *pipesrc);
+void redirsfree(REDIR *redirs);
+void procsfree(PROCESS *processes);
+void pipesfree(PIPELINE *pipelines);
+void statementsfree(STATEMENT *statements);
 
 
 /* -- path -- */
@@ -166,12 +193,6 @@ extern size_t currentjobnumber;
 
 extern volatile bool cancel_wait;
 
-enum {   /* print_[all_]job_status でつかうオプション */
-	PJS_ALL,     /* 全部表示する */
-	PJS_CHONLY,  /* 変化があったもののみ表示する */
-	PJS_SILENT,  /* 何も表示しない */
-};
-
 int exitcode_from_status(int status);
 unsigned job_count(void);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
@@ -181,7 +202,7 @@ void wait_all(int blockedjob);
 void send_sighup_to_all_jobs(void);
 void sig_hup(int signal);
 void sig_chld(int signal);
-void exec_list(SCMD *scmds, size_t count);
+void exec_statements(STATEMENT *statements);
 
 
 /* -- 組込みコマンド -- */

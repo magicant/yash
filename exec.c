@@ -29,7 +29,7 @@ typedef struct {
 } PIPES;
 
 int exitcode_from_status(int status);
-static char *make_job_name(SCMD *scmds);
+//static char *make_job_name(SCMD *scmds);
 unsigned job_count(void);
 static int add_job(void);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
@@ -41,13 +41,15 @@ void sig_hup(int signal);
 void sig_chld(int signal);
 static int (*create_pipes(size_t count))[2];
 static void close_pipes(PIPES pipes);
-void exec_list(SCMD *scmds, size_t count);
-static size_t exec_pipe(SCMD *scmds);
-static pid_t exec_single(
-		SCMD *scmd, pid_t pgid, bool fg, PIPES pipes, ssize_t pindex);
-static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex);
-static int open_redirections(REDIR *redirs, size_t count);
-static void builtin_exec(SCMD *scmd);
+void exec_statements(STATEMENT *statements);
+static void exec_pipelines(PIPELINE *pipelines, bool bg);
+static void exec_processes(PROCESS *processes, bool pipe_loop);
+//static size_t exec_pipe(SCMD *scmds);
+//static pid_t exec_single(
+		//SCMD *scmd, pid_t pgid, bool fg, PIPES pipes, ssize_t pindex);
+//static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex);
+static int open_redirections(REDIR *redirs);
+//static void builtin_exec(SCMD *scmd);
 
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;
@@ -72,7 +74,7 @@ size_t joblistlen;
 size_t currentjobnumber = 0;
 
 /* アクティブジョブの SCMD (の配列) へのポインタ。 */
-static SCMD *activejobscmd = NULL;
+//static SCMD *activejobscmd = NULL;
 
 /* enum jstatus の文字列表現 */
 const char * const jstatusstr[] = {
@@ -91,37 +93,37 @@ int exitcode_from_status(int status)
 		return -1;
 }
 
-/* ジョブ名を作成する。
- * scmds:  パイプの先頭のコマンド
- * 戻り値: パイプのジョブ名を表す、新しく malloc した文字列。
- *         エラー時は NULL。 */
-static char *make_job_name(SCMD *scmds)
-{
-	size_t size = 0, index = 0;
-	char *name, *result;
-	
-	do {
-		if (scmds[index].c_name)
-			size += strlen(scmds[index].c_name) + 2;
-	} while (scmds[index++].c_type == CT_PIPED);
-	result = xmalloc(size);
-	size = 0;
-	index = 0;
-	while (scmds[index].c_type == CT_PIPED) {
-		name = scmds[index].c_name;
-		if (name) {
-			strcpy(result + size, name);
-			size += strlen(name);
-			strcpy(result + size, "| ");
-			size += 2;
-		}
-		index++;
-	}
-	name = scmds[index].c_name;
-	if (name)
-		strcpy(result + size, name);
-	return result;
-}
+///* ジョブ名を作成する。
+// * scmds:  パイプの先頭のコマンド
+// * 戻り値: パイプのジョブ名を表す、新しく malloc した文字列。
+// *         エラー時は NULL。 */
+//static char *make_job_name(SCMD *scmds)
+//{
+//	size_t size = 0, index = 0;
+//	char *name, *result;
+//	
+//	do {
+//		if (scmds[index].c_name)
+//			size += strlen(scmds[index].c_name) + 2;
+//	} while (scmds[index++].c_type == CT_PIPED);
+//	result = xmalloc(size);
+//	size = 0;
+//	index = 0;
+//	while (scmds[index].c_type == CT_PIPED) {
+//		name = scmds[index].c_name;
+//		if (name) {
+//			strcpy(result + size, name);
+//			size += strlen(name);
+//			strcpy(result + size, "| ");
+//			size += 2;
+//		}
+//		index++;
+//	}
+//	name = scmds[index].c_name;
+//	if (name)
+//		strcpy(result + size, name);
+//	return result;
+//}
 
 /* 現在のジョブリスト内のジョブの個数を数える (アクティブジョブを除く) */
 unsigned job_count(void)
@@ -174,11 +176,11 @@ static int add_job(void)
 		}
 	}
 	assert(joblist[jobnumber].j_pgid == 0);
-	if (activejobscmd)
-		joblist[0].j_name = make_job_name(activejobscmd);
+//	if (activejobscmd)
+//		joblist[0].j_name = make_job_name(activejobscmd);
 	joblist[jobnumber] = joblist[0];
 	memset(&joblist[0], 0, sizeof joblist[0]);
-	activejobscmd = NULL;
+//	activejobscmd = NULL;
 	currentjobnumber = jobnumber;
 
 end:
@@ -506,88 +508,171 @@ static void close_pipes(PIPES pipes)
 	free(pipes.p_pipes);
 }
 
-/* コマンド入力全体を受け取って、コマンドを実行する。 */
-void exec_list(SCMD *scmds, size_t count)
-{
-	size_t i = 0;
-	int skip = 0;
+#define DEBUG_PRINT
 
-	while (i < count) {
-		if (scmds[i].c_argc == 0) {
-			i++;
-			continue;
-		}
-		if (i) {
-			switch (scmds[i - 1].c_type) {
-				case CT_AND:
-					skip = !!laststatus;
-					break;
-				case CT_OR:
-					skip = !laststatus;
-					break;
-				default:
-					skip = 0;
-					break;
-			}
-		}
-		if (skip) {
-			while (scmds[i++].c_type == CT_PIPED);
-		} else {
-			i += exec_pipe(scmds + i);
-		}
+#ifdef DEBUG_PRINT
+
+/* コマンド入力全体を受け取って、全コマンドを実行する。 */
+void exec_statements(STATEMENT *s)
+{
+	while (s) {
+		exec_pipelines(s->s_pipeline, s->s_bg);
+		s = s->next;
 	}
 }
+
+/* 一つの文を実行する。 */
+static void exec_pipelines(PIPELINE *p, bool bg)
+{
+	// XXX: DEBUG
+	while (p) {
+		exec_processes(p->pl_proc, p->pl_loop);
+		if (p->next)
+			printf("%s", p->pl_next_cond ? "&& " : "|| ");
+		p = p->next;
+	}
+	printf("%s", bg ? "& " : "; ");
+}
+
+/* 一つのパイプラインを実行する */
+static void exec_processes(PROCESS *p, bool loop)
+{
+	// XXX: DEBUG
+	while (p) {
+		switch (p->p_type) {
+			case PT_NORMAL:
+				printf("%s ", p->p_body);
+				break;
+			case PT_GROUP:
+				printf("{ ");
+				exec_statements(p->p_subcmds);
+				printf("} ");
+				break;
+			case PT_SUBSHELL:
+				printf("( ");
+				exec_statements(p->p_subcmds);
+				printf(") ");
+				break;
+			default:
+				assert(false);
+		}
+
+		REDIR *r = p->p_redirs;
+		while (r) {
+			printf("%d", r->rd_fd);
+			if (r->rd_destfd < 0 && !r->rd_file) {
+				printf(">< ");
+			} else {
+				switch (r->rd_flags) {
+					case O_RDONLY:
+						printf("<");
+						break;
+					case O_WRONLY | O_CREAT | O_TRUNC:
+						printf(">");
+						break;
+					case O_WRONLY | O_CREAT | O_APPEND:
+						printf(">>");
+						break;
+					case O_RDWR | O_CREAT:
+						printf("<>");
+						break;
+				}
+				if (r->rd_destfd >= 0)
+					printf("&%d ", r->rd_destfd);
+				else
+					printf("%s ", r->rd_file);
+			}
+		}
+
+		p = p->next;
+	}
+}
+
+#else
+#endif
+
+/* コマンド入力全体を受け取って、コマンドを実行する。 */
+//void exec_list(SCMD *scmds, size_t count)
+//{
+//	size_t i = 0;
+//	int skip = 0;
+//
+//	while (i < count) {
+//		if (scmds[i].c_argc == 0) {
+//			i++;
+//			continue;
+//		}
+//		if (i) {
+//			switch (scmds[i - 1].c_type) {
+//				case CT_AND:
+//					skip = !!laststatus;
+//					break;
+//				case CT_OR:
+//					skip = !laststatus;
+//					break;
+//				default:
+//					skip = 0;
+//					break;
+//			}
+//		}
+//		if (skip) {
+//			while (scmds[i++].c_type == CT_PIPED);
+//		} else {
+//			i += exec_pipe(scmds + i);
+//		}
+//	}
+//}
 
 /* 一つのパイプライン全体を実行する。
  * パイプラインの種類が CT_END ならば、子プロセスを wait する。
  * 戻り値: 実行した SCMD の個数。 */
-static size_t exec_pipe(SCMD *scmds)
-{
-	volatile JOB *job = &joblist[0];
-	size_t count = 0;
-	pid_t pgid;
-	bool fg;
-	PIPES pipes;
-
-	while (scmds[count++].c_type == CT_PIPED);
-	switch (scmds[count - 1].c_type) {
-		case CT_END:  case CT_AND:  case CT_OR:
-			fg = 1;
-			break;
-		default:
-			fg = 0;
-			break;
-	}
-	pipes.p_count = count - 1;
-	pipes.p_pipes = create_pipes(pipes.p_count);
-	if (pipes.p_count && !pipes.p_pipes)
-		goto end;
-	job->j_pids = xcalloc(count + 1, sizeof(pid_t));
-	assert(!job->j_pgid);
-	/* job->j_pgid はこの最初の exec_single の中で設定される (fork した場合) */
-	pgid = job->j_pids[0] =
-		exec_single(scmds, 0, fg, pipes, scmds[pipes.p_count].c_argc ? 0 : -1);
-	if (pgid >= 0)
-		for (int i = 1; i < count; i++)
-			job->j_pids[i] = exec_single(scmds + i, pgid, fg, pipes, i);
-	close_pipes(pipes);
-	if (pgid > 0) {
-		job->j_status = JS_RUNNING;
-		job->j_statuschanged = true;
-		job->j_flags = 0;
-		job->j_exitstatus = 0;
-		job->j_name = NULL;
-		activejobscmd = scmds;
-		laststatus = 0;
-		if (fg) {
-			wait_all(0);
-		} else {
-			add_job();
-		}
-	}
-end:
-	return count;
-}
+//static size_t exec_pipe(SCMD *scmds)
+//{
+//	volatile JOB *job = &joblist[0];
+//	size_t count = 0;
+//	pid_t pgid;
+//	bool fg;
+//	PIPES pipes;
+//
+//	while (scmds[count++].c_type == CT_PIPED);
+//	switch (scmds[count - 1].c_type) {
+//		case CT_END:  case CT_AND:  case CT_OR:
+//			fg = 1;
+//			break;
+//		default:
+//			fg = 0;
+//			break;
+//	}
+//	pipes.p_count = count - 1;
+//	pipes.p_pipes = create_pipes(pipes.p_count);
+//	if (pipes.p_count && !pipes.p_pipes)
+//		goto end;
+//	job->j_pids = xcalloc(count + 1, sizeof(pid_t));
+//	assert(!job->j_pgid);
+//	/* job->j_pgid はこの最初の exec_single の中で設定される (fork した場合) */
+//	pgid = job->j_pids[0] =
+//		exec_single(scmds, 0, fg, pipes, scmds[pipes.p_count].c_argc ? 0 : -1);
+//	if (pgid >= 0)
+//		for (int i = 1; i < count; i++)
+//			job->j_pids[i] = exec_single(scmds + i, pgid, fg, pipes, i);
+//	close_pipes(pipes);
+//	if (pgid > 0) {
+//		job->j_status = JS_RUNNING;
+//		job->j_statuschanged = true;
+//		job->j_flags = 0;
+//		job->j_exitstatus = 0;
+//		job->j_name = NULL;
+//		activejobscmd = scmds;
+//		laststatus = 0;
+//		if (fg) {
+//			wait_all(0);
+//		} else {
+//			add_job();
+//		}
+//	}
+//end:
+//	return count;
+//}
 
 /* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
  * fork/exec し、リダイレクトなどを設定する。
@@ -600,147 +685,153 @@ end:
  * pindex:  パイプ全体における子プロセスのインデックス。
  *          環状パイプを作る場合は 0 の代わりに -1。
  * 戻り値:  子プロセスの PID。fork/exec しなかった場合は 0。エラーなら -1。 */
-static pid_t exec_single(
-		SCMD *scmd, pid_t pgid, bool fg, PIPES pipes, ssize_t pindex)
-{
-	cbody body;
-	pid_t cpid;
-	sigset_t sigset, oldsigset;
-
-	if (!scmd->c_argc)
-		return 0;
-	if (scmd->c_argv && strcmp(scmd->c_argv[0], "exec") == 0) {
-		/* exec 組込みコマンドを実行 */
-		if (pipes.p_count) {
-			error(0, 0, "exec command cannot be piped");
-			return -1;
-		}
-		builtin_exec(scmd);
-		return -1;  /* ここに来たということはエラーである */
-	}
-	if (fg && scmd->c_argv && !pipes.p_count && !scmd->c_redircnt) {
-		body = assoc_builtin(scmd->c_argv[0]).b_body;
-		if (body) {  /* 組込みコマンドを実行 */
-			laststatus = body(scmd->c_argc, scmd->c_argv);
-			return 0;
-		}
-	}
-
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGHUP);
-	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask before fork");
-	cpid = fork();
-	if (cpid < 0) {  /* fork 失敗 */
-		error(0, errno, "%s: fork", scmd->c_argv[0]);
-		return -1;
-	} else if (cpid) {  /* 親プロセスの処理 */
-		if (is_interactive) {
-			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
-				error(0, errno, "%s: setpgid (parent)", scmd->c_argv[0]);
-			/* if (fg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
-					&& errno != EPERM)
-				error(0, errno, "%s: tcsetpgrp (parent)", scmd->c_argv[0]); */
-		}
-		if (!pgid)  /* シグナルをブロックしている間に PGID を設定する */
-			joblist[0].j_pgid = cpid;
-		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-			error(0, errno, "sigprocmask (parent)");
-		return cpid;
-	} else {  /* 子プロセスの処理 */
-		if (is_interactive) {
-			if (setpgid(0, pgid) < 0)
-				error(0, errno, "%s: setpgid (child)", scmd->c_argv[0]);
-			if (fg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
-				error(0, errno, "%s: tcsetpgrp (child)", scmd->c_argv[0]);
-		}
-		is_loginshell = is_interactive = false;
-		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-			error(0, errno, "sigprocmask (child)");
-		get_ready_and_exec(scmd, pipes, pindex);
-	}
-	assert(0);  /* ここには来ないはず */
-	return 0;
-}
+//static pid_t exec_single(
+//		SCMD *scmd, pid_t pgid, bool fg, PIPES pipes, ssize_t pindex)
+//{
+//	cbody body;
+//	pid_t cpid;
+//	sigset_t sigset, oldsigset;
+//
+//	if (!scmd->c_argc)
+//		return 0;
+//	if (scmd->c_argv && strcmp(scmd->c_argv[0], "exec") == 0) {
+//		/* exec 組込みコマンドを実行 */
+//		if (pipes.p_count) {
+//			error(0, 0, "exec command cannot be piped");
+//			return -1;
+//		}
+//		builtin_exec(scmd);
+//		return -1;  /* ここに来たということはエラーである */
+//	}
+//	if (fg && scmd->c_argv && !pipes.p_count && !scmd->c_redircnt) {
+//		body = assoc_builtin(scmd->c_argv[0]).b_body;
+//		if (body) {  /* 組込みコマンドを実行 */
+//			laststatus = body(scmd->c_argc, scmd->c_argv);
+//			return 0;
+//		}
+//	}
+//
+//	sigemptyset(&sigset);
+//	sigaddset(&sigset, SIGHUP);
+//	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
+//		error(EXIT_FAILURE, errno, "sigprocmask before fork");
+//	cpid = fork();
+//	if (cpid < 0) {  /* fork 失敗 */
+//		error(0, errno, "%s: fork", scmd->c_argv[0]);
+//		return -1;
+//	} else if (cpid) {  /* 親プロセスの処理 */
+//		if (is_interactive) {
+//			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
+//				error(0, errno, "%s: setpgid (parent)", scmd->c_argv[0]);
+//			/* if (fg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
+//					&& errno != EPERM)
+//				error(0, errno, "%s: tcsetpgrp (parent)", scmd->c_argv[0]); */
+//		}
+//		if (!pgid)  /* シグナルをブロックしている間に PGID を設定する */
+//			joblist[0].j_pgid = cpid;
+//		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
+//			error(0, errno, "sigprocmask (parent)");
+//		return cpid;
+//	} else {  /* 子プロセスの処理 */
+//		if (is_interactive) {
+//			if (setpgid(0, pgid) < 0)
+//				error(0, errno, "%s: setpgid (child)", scmd->c_argv[0]);
+//			if (fg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
+//				error(0, errno, "%s: tcsetpgrp (child)", scmd->c_argv[0]);
+//		}
+//		is_loginshell = is_interactive = false;
+//		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
+//			error(0, errno, "sigprocmask (child)");
+//		get_ready_and_exec(scmd, pipes, pindex);
+//	}
+//	assert(0);  /* ここには来ないはず */
+//	return 0;
+//}
 
 /* 子プロセスでパイプやリダイレクトを処理し、exec する。
  * scmd:    実行するコマンド
  * pipes:   パイプの配列。
  * pindex:  パイプ全体における子プロセスのインデックス。
  *          環状パイプを作る場合は 0 の代わりに -1。 */
-static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex)
-{
-	char **argv = scmd->c_argv;
-
-	if (pipes.p_count) {
-		if (pindex) {
-			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
-			if (dup2(pipes.p_pipes[index][0], STDIN_FILENO) < 0)
-				error(0, errno, "%s: cannot connect pipe to stdin", argv[0]);
-		}
-		if (pindex < (ssize_t) pipes.p_count) {
-			size_t index = (pindex >= 0) ? (size_t) pindex : 0;
-			if (dup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
-				error(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
-		}
-		close_pipes(pipes);
-	}
-	resetsigaction();
-	if (open_redirections(scmd->c_redir, scmd->c_redircnt) < 0)
-		exit(EXIT_FAILURE);
-
-	if (scmd->c_subcmds) {
-		memset(joblist, 0, joblistlen * sizeof(JOB));
-		laststatus = 0;
-		exec_list(scmd->c_subcmds, scmd->c_argc);
-		exit(laststatus);
-	} else {
-		cbody body = assoc_builtin(argv[0]).b_body;
-		if (body)  /* 組込みコマンドを実行 */
-			exit(body(scmd->c_argc, argv));
-
-		char *command = which(argv[0], getenv(ENV_PATH));
-		if (!command)
-			error(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
-		execve(command, argv, environ);
-		/* execvp(argv[0], argv); */
-		error(EXIT_NOEXEC, errno, "%s", argv[0]);
-	}
-	assert(0);  /* ここには来ないはず */
-	return;
-}
+//static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex)
+//{
+//	char **argv = scmd->c_argv;
+//
+//	if (pipes.p_count) {
+//		if (pindex) {
+//			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
+//			if (dup2(pipes.p_pipes[index][0], STDIN_FILENO) < 0)
+//				error(0, errno, "%s: cannot connect pipe to stdin", argv[0]);
+//		}
+//		if (pindex < (ssize_t) pipes.p_count) {
+//			size_t index = (pindex >= 0) ? (size_t) pindex : 0;
+//			if (dup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
+//				error(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
+//		}
+//		close_pipes(pipes);
+//	}
+//	resetsigaction();
+//	if (open_redirections(scmd->c_redir, scmd->c_redircnt) < 0)
+//		exit(EXIT_FAILURE);
+//
+//	if (scmd->c_subcmds) {
+//		memset(joblist, 0, joblistlen * sizeof(JOB));
+//		laststatus = 0;
+//		exec_list(scmd->c_subcmds, scmd->c_argc);
+//		exit(laststatus);
+//	} else {
+//		cbody body = assoc_builtin(argv[0]).b_body;
+//		if (body)  /* 組込みコマンドを実行 */
+//			exit(body(scmd->c_argc, argv));
+//
+//		char *command = which(argv[0], getenv(ENV_PATH));
+//		if (!command)
+//			error(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
+//		execve(command, argv, environ);
+//		/* execvp(argv[0], argv); */
+//		error(EXIT_NOEXEC, errno, "%s", argv[0]);
+//	}
+//	assert(0);  /* ここには来ないはず */
+//	return;
+//}
 
 /* リダイレクトを開く。
  * 戻り値: OK なら 0、エラーなら -1。 */
-static int open_redirections(REDIR *redirs, size_t count)
+static int open_redirections(REDIR *r)
 {
-	REDIR redir;
+	while (r) {
+		int fd;
 
-	for (size_t i = 0; i < count; i++) {
-		redir = redirs[i];
-		if (!redir.rd_file) {
-			if (close(redir.rd_fd) < 0)
-				goto error;
-		} else {
-			int fd = open(redir.rd_file, redir.rd_flags, 0666);
-
-			if (fd < 0)
-				goto error;
-			if (fd != redir.rd_fd) {
-				if (close(redir.rd_fd) < 0)
-					if (errno != EBADF)
-						goto error;
-				if (dup2(fd, redir.rd_fd) < 0)
-					goto error;
-				if (close(fd) < 0)
-					goto error;
+		if (r->rd_destfd >= 0) {
+			fd = r->rd_destfd;
+		} else if (!r->rd_file) {
+			if (close(r->rd_fd) < 0) {
+				error(0, errno,
+						"redirection: closing file descriptor %d", r->rd_fd);
+				return -1;
 			}
+			continue;
+		} else {
+			fd = open(r->rd_file, r->rd_flags, 0666);
+			if (fd < 0)
+				goto onerror;
 		}
+		if (fd != r->rd_fd) {
+			if (close(r->rd_fd) < 0)
+				if (errno != EBADF)
+					goto onerror;
+			if (dup2(fd, r->rd_fd) < 0)
+				goto onerror;
+			if (r->rd_destfd < 0 && close(fd) < 0)
+				goto onerror;
+		}
+
+		r = r->next;
 	}
 	return 0;
 
-error:
-	error(0, errno, "redirection: %s", redir.rd_file);
+onerror:
+	error(0, errno, "redirection: %s", r->rd_file);
 	return -1;
 }
 
@@ -750,83 +841,83 @@ error:
  * -f:       未了のジョブがあっても execve する。
  * -l:       ログインコマンドとして新しいコマンドを execve する。
  * -a name:  execve するとき argv[0] として name を渡す。 */
-static void builtin_exec(SCMD *scmd)
-{
-	int opt;
-	bool clearenv = false, forceexec = false, login = false;
-	char **argv = scmd->c_argv;
-	char *argv0 = NULL;
-
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(scmd->c_argc, argv, "+cfla:")) >= 0) {
-		switch (opt) {
-			case 'c':
-				clearenv = true;
-				break;
-			case 'f':
-				forceexec = true;
-				break;
-			case 'l':
-				login = true;
-				break;
-			case 'a':
-				argv0 = optarg;
-				break;
-			default:
-				printf("Usage:  exec [-cfl] [-a name] command [args...]\n");
-				laststatus = EXIT_FAILURE;
-				return;
-		}
-	}
-
-	if (!forceexec) {
-		wait_all(-2 /* non-blocking */);
-		print_all_job_status(true /* changed only */, false /* not verbose */);
-		if (job_count()) {
-			error(0, 0, "There are undone jobs!"
-					"  Use `-f' option to exec anyway.");
-			laststatus = EXIT_FAILURE;
-			return;
-		}
-	}
-	if (open_redirections(scmd->c_redir, scmd->c_redircnt) < 0) {
-		laststatus = EXIT_FAILURE;
-		return;
-	}
-	if (scmd->c_argc <= optind) {
-		laststatus = EXIT_SUCCESS;
-		return;
-	}
-
-	char *oldargv0 = argv[optind];
-	char *newargv0;
-	char *command = which(oldargv0, getenv(ENV_PATH));
-	if (!command) {
-		error(0, 0, "%s: command not found", argv[0]);
-		goto error;
-	}
-	newargv0 = argv0 ? : oldargv0;
-	if (login) {
-		char *newnewargv0 = xmalloc(strlen(newargv0) + 2);
-		newnewargv0[0] = '-';
-		strcpy(newnewargv0 + 1, newargv0);
-		newargv0 = newnewargv0;
-	} else {
-		newargv0 = xstrdup(newargv0);
-	}
-	argv[optind] = newargv0;
-
-	finalize_interactive();
-	resetsigaction();
-	execve(command, argv + optind, clearenv ? NULL : environ);
-	setsigaction();
-	init_interactive();
-
-	error(0, errno, "%s", argv[0]);
-	argv[optind] = oldargv0;
-	free(newargv0);
-	free(command);
-error:
-	laststatus = EXIT_NOEXEC;
-}
+//static void builtin_exec(SCMD *scmd)
+//{
+//	int opt;
+//	bool clearenv = false, forceexec = false, login = false;
+//	char **argv = scmd->c_argv;
+//	char *argv0 = NULL;
+//
+//	optind = 0;
+//	opterr = 1;
+//	while ((opt = getopt(scmd->c_argc, argv, "+cfla:")) >= 0) {
+//		switch (opt) {
+//			case 'c':
+//				clearenv = true;
+//				break;
+//			case 'f':
+//				forceexec = true;
+//				break;
+//			case 'l':
+//				login = true;
+//				break;
+//			case 'a':
+//				argv0 = optarg;
+//				break;
+//			default:
+//				printf("Usage:  exec [-cfl] [-a name] command [args...]\n");
+//				laststatus = EXIT_FAILURE;
+//				return;
+//		}
+//	}
+//
+//	if (!forceexec) {
+//		wait_all(-2 /* non-blocking */);
+//		print_all_job_status(true /* changed only */, false /* not verbose */);
+//		if (job_count()) {
+//			error(0, 0, "There are undone jobs!"
+//					"  Use `-f' option to exec anyway.");
+//			laststatus = EXIT_FAILURE;
+//			return;
+//		}
+//	}
+//	if (open_redirections(scmd->c_redir, scmd->c_redircnt) < 0) {
+//		laststatus = EXIT_FAILURE;
+//		return;
+//	}
+//	if (scmd->c_argc <= optind) {
+//		laststatus = EXIT_SUCCESS;
+//		return;
+//	}
+//
+//	char *oldargv0 = argv[optind];
+//	char *newargv0;
+//	char *command = which(oldargv0, getenv(ENV_PATH));
+//	if (!command) {
+//		error(0, 0, "%s: command not found", argv[0]);
+//		goto error;
+//	}
+//	newargv0 = argv0 ? : oldargv0;
+//	if (login) {
+//		char *newnewargv0 = xmalloc(strlen(newargv0) + 2);
+//		newnewargv0[0] = '-';
+//		strcpy(newnewargv0 + 1, newargv0);
+//		newargv0 = newnewargv0;
+//	} else {
+//		newargv0 = xstrdup(newargv0);
+//	}
+//	argv[optind] = newargv0;
+//
+//	finalize_interactive();
+//	resetsigaction();
+//	execve(command, argv + optind, clearenv ? NULL : environ);
+//	setsigaction();
+//	init_interactive();
+//
+//	error(0, errno, "%s", argv[0]);
+//	argv[optind] = oldargv0;
+//	free(newargv0);
+//	free(command);
+//error:
+//	laststatus = EXIT_NOEXEC;
+//}

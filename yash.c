@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <error.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <locale.h>
 #include <signal.h>
 #include <stdio.h>
@@ -21,6 +22,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include "yash.h"
 #include <assert.h>
 
@@ -42,10 +44,6 @@ int main(int argc, char **argv);
 void print_help(void);
 void print_version(void);
 void yash_exit(int exitcode);
-
-#ifndef NDEBUG
-void print_scmds(SCMD *scmds, int count, int indent);
-#endif
 
 /* このプロセスがログインシェルなら非 0 */
 bool is_loginshell;
@@ -119,31 +117,27 @@ void resetsigaction(void)
  * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない */
 void exec_file(const char *path, bool suppresserror)
 {
-	FILE *file = fopen(path, "r");
-	char *line = NULL;
-	size_t len = 0;
-	ssize_t size;
+	int fd = open(path, O_RDONLY);
 
-	if (!file) {
+	if (fd < 0) {
 		if (!suppresserror)
 			error(0, errno, "%s", path);
 		return;
 	}
-	while ((size = getline(&line, &len, file)) >= 0) {
-		SCMD *scmds;
-		ssize_t count;
-		
-		if (line[size - 1] == '\n')
-			line[size - 1] = '\0';
-		count = parse_line(line, &scmds);
-		if (count < 0)
-			continue;
-		exec_list(scmds, count);
-		scmdsfree(scmds, count);
-		free(scmds);
+
+	char *src = read_all(fd);
+	close(fd);
+	if (!src) {
+		if (!suppresserror)
+			error(0, errno, "%s", path);
+		return;
 	}
-	free(line);
-	fclose(file);
+
+	STATEMENT *statements = parse_all(src, NULL);
+	if (statements)
+		exec_statements(statements);
+	statementsfree(statements);
+	free(src);
 }
 
 /* ファイルをシェルスクリプトとして実行する。
@@ -240,8 +234,7 @@ void finalize_interactive(void)
 void interactive_loop(void)
 {
 	char *line;
-	SCMD *scmds;
-	ssize_t count;
+	STATEMENT *statements;
 
 	assert(is_interactive);
 	for (;;) {
@@ -263,67 +256,19 @@ void interactive_loop(void)
 				break;
 		}
 		/* printf("parsing \"%s\"\n", line); */
-		count = parse_line(line, &scmds);
-		if (count < 0)
+		statements = parse_all(line, NULL); /* XXX 複数行対応 */
+		if (!statements)
 			continue;
 
 		/* printf("count=%d\n", count); */
 		/* print_scmds(scmds, count, 0); */
-		exec_list(scmds, count);
-		scmdsfree(scmds, count);
-		free(scmds);
+		exec_statements(statements);
+		statementsfree(statements);
 		free(line);
 	}
 exit:
 	yash_exit(laststatus);
 }
-
-#ifndef NDEBUG
-
-void print_scmds(SCMD *scmds, int count, int indent)
-{
-	void print_indent(int i) {
-		printf("%*s", i, "");
-	}
-	int i, j;
-
-	for (i = 0; i < count; i++) {
-		print_indent(indent);
-		printf("SCMD[%d] : ", i);
-		switch (scmds[i].c_type) {
-			case CT_END:   printf("END\n");   break;
-			case CT_PIPED: printf("PIPED\n"); break;
-			case CT_BG:    printf("BG\n");    break;
-			case CT_AND:   printf("AND\n");   break;
-			case CT_OR:    printf("OR\n");    break;
-		}
-		if (scmds[i].c_argv)
-			for (j = 0; j < scmds[i].c_argc; j++) {
-				print_indent(indent);
-				printf("  Arg   %d : %s\n", j, scmds[i].c_argv[j]);
-			}
-
-		for (j = 0; j < scmds[i].c_redircnt; j++) {
-			print_indent(indent);
-			printf("  Redir %d : fd=%d file=\"%s\" ", j,
-					scmds[i].c_redir[j].rd_fd, scmds[i].c_redir[j].rd_file);
-			if (scmds[i].c_redir[j].rd_flags & O_RDWR)        printf("RDWR");
-			else if (scmds[i].c_redir[j].rd_flags & O_WRONLY) printf("WRONLY");
-			else                                               printf("RDONLY");
-			if (scmds[i].c_redir[j].rd_flags & O_CREAT)  printf(" CREAT");
-			if (scmds[i].c_redir[j].rd_flags & O_APPEND) printf(" APPEND");
-			if (scmds[i].c_redir[j].rd_flags & O_TRUNC)  printf(" TRUNC");
-			printf("\n");
-		}
-		print_indent(indent);
-		printf("  Name    : %s\n", scmds[i].c_name);
-		
-		if (scmds[i].c_subcmds)
-			print_scmds(scmds[i].c_subcmds, scmds[i].c_argc, indent + 8);
-	}
-}
-
-#endif
 
 static struct option long_opts[] = {
 	{ "help", 0, NULL, '?', },
@@ -395,16 +340,17 @@ int main(int argc, char **argv)
 	init_env();
 
 	if (directcommand) {
-		SCMD *scmds;
-		ssize_t count;
-		
-		is_interactive = 0;
-		count = parse_line(directcommand, &scmds);
-		if (count < 0)
-			return EXIT_SUCCESS;
-		exec_list(scmds, count);
-		scmdsfree(scmds, count);
-		free(scmds);
+		//FIXME
+//		SCMD *scmds;
+//		ssize_t count;
+//		
+//		is_interactive = 0;
+//		count = parse_line(directcommand, &scmds);
+//		if (count < 0)
+//			return EXIT_SUCCESS;
+//		exec_list(scmds, count);
+//		scmdsfree(scmds, count);
+//		free(scmds);
 		return laststatus;
 	}
 

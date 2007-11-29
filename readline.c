@@ -103,15 +103,12 @@ int yash_readline(char **result)
 	}
 	
 	if (prompt_command) {
-		SCMD *scmds;
-		ssize_t scmdscnt = parse_line(prompt_command, &scmds);
+		STATEMENT *ss = parse_all(prompt_command, NULL);
 
-		if (scmdscnt >= 0) {
+		if (ss) {
 			int tmpstatus = laststatus;
-
-			exec_list(scmds, scmdscnt);
-			scmdsfree(scmds, scmdscnt);
-			free(scmds);
+			exec_statements(ss);
+			statementsfree(ss);
 			laststatus = tmpstatus;
 		}
 	}

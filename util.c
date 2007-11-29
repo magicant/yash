@@ -16,6 +16,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "yash.h"
 #include <assert.h>
 
@@ -28,12 +30,15 @@ char **straryclone(char **ary);
 char *skipwhites(const char *s);
 char *stripwhites(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
+char *read_all(int fd);
 
 
 /* calloc を試みる。失敗したらプログラムを強制終了する。
  * 戻り値: calloc の結果 */
 void *xcalloc(size_t nmemb, size_t size)
 {
+	assert(nmemb > 0 && size > 0);
+
 	void *result = calloc(nmemb, size);
 	if (!result)
 		error(2, ENOMEM, NULL);
@@ -44,6 +49,8 @@ void *xcalloc(size_t nmemb, size_t size)
  * 戻り値: malloc の結果 */
 void *xmalloc(size_t size)
 {
+	assert(size > 0);
+
 	void *result = malloc(size);
 	if (!result)
 		error(2, ENOMEM, NULL);
@@ -148,4 +155,46 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 		resultlen += strlen(argv[i]);
 	}
 	return result;
+}
+
+/* 指定したファイルディスクリプタからデータを全部読み込み、
+ * 一つの文字列として返す。
+ * ファイルディスクリプタは現在位置から最後まで読み込まれるが、close はしない。
+ * 戻り値: 成功すれば、新しく malloc した文字列。失敗すれば errno を更新して
+ * NULL を返す。*/
+char *read_all(int fd)
+{
+	off_t oldoff = lseek(fd, 0, SEEK_CUR);
+	if (oldoff < 0) {
+		if (errno == EBADF)
+			return NULL;
+	}
+	off_t initsize = lseek(fd, 0, SEEK_END);
+	if (initsize < 0)
+		initsize = 256;
+	lseek(fd, oldoff, SEEK_SET);
+
+	size_t max = initsize, offset = 0;
+	char *buf = xmalloc(max + 1);
+	ssize_t count;
+
+	for (;;) {
+		if (offset >= max) {
+			max *= 2;
+			buf = xrealloc(buf, max + 1);
+		}
+		count = read(fd, buf + offset, max - offset);
+		if (count < 0 && errno != EINTR)
+			goto onerror;
+		if (count == 0)
+			break;
+		offset += count;
+	}
+	xrealloc(buf, offset + 1);
+	buf[offset] = '\0';
+	return buf;
+
+onerror:
+	free(buf);
+	return NULL;
 }
