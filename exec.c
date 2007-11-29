@@ -556,34 +556,6 @@ static void exec_processes(PROCESS *p, bool loop)
 			default:
 				assert(false);
 		}
-
-		REDIR *r = p->p_redirs;
-		while (r) {
-			printf("%d", r->rd_fd);
-			if (r->rd_destfd < 0 && !r->rd_file) {
-				printf(">< ");
-			} else {
-				switch (r->rd_flags) {
-					case O_RDONLY:
-						printf("<");
-						break;
-					case O_WRONLY | O_CREAT | O_TRUNC:
-						printf(">");
-						break;
-					case O_WRONLY | O_CREAT | O_APPEND:
-						printf(">>");
-						break;
-					case O_RDWR | O_CREAT:
-						printf("<>");
-						break;
-				}
-				if (r->rd_destfd >= 0)
-					printf("&%d ", r->rd_destfd);
-				else
-					printf("%s ", r->rd_file);
-			}
-		}
-
 		p = p->next;
 	}
 }

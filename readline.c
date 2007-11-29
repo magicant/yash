@@ -145,7 +145,7 @@ int yash_readline(char **result)
 	if (!line)
 		return -2;
 
-	stripwhites(line);
+	stripspaces(line);
 	if (*line) {
 		switch (history_expand(line, &eline)) {
 			case 1:  /* expansion successful */

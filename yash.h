@@ -61,8 +61,10 @@ void *xrealloc(void *ptr, size_t size);
 char *xstrdup(const char *s);
 char *xstrndup(const char *s, size_t len);
 char **straryclone(char **ary);
+char *skipblanks(const char *s);
+char *skipspaces(const char *s);
 char *skipwhites(const char *s);
-char *stripwhites(char *s);
+char *stripspaces(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *read_all(int fd);
 
@@ -72,7 +74,20 @@ char *read_all(int fd);
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
 
 
-/* -- 一回のプロンプト入力の解析結果 -- */
+/* -- readline/history -- */
+
+extern char *history_filename;
+extern int history_filesize;
+extern int history_histsize;
+extern char *readline_prompt1;
+extern char *prompt_command;
+
+void initialize_readline(void);
+void finalize_readline(void);
+int yash_readline(char **result);
+
+
+/* -- パーサ -- */
 
 struct _redirect;
 struct _process;
@@ -104,7 +119,6 @@ struct _process {
 	}          p_type;
 	char      *p_body;
 	STATEMENT *p_subcmds;  /* プロセスに含まれる文の内容 */
-	REDIR     *p_redirs;   /* このプロセスでの最初のリダイレクト */
 	char      *p_name;     /* 画面表示用のコマンド名 */
 };
 /* p_argv と p_subcmds の一方が NULL でもう一方が非 NULL である。
@@ -129,24 +143,8 @@ struct _statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-
-/* -- readline/history -- */
-
-extern char *history_filename;
-extern int history_filesize;
-extern int history_histsize;
-extern char *readline_prompt1;
-extern char *prompt_command;
-
-void initialize_readline(void);
-void finalize_readline(void);
-int yash_readline(char **result);
-
-
-/* -- パーサ -- */
-
 STATEMENT *parse_all(const char *src, bool *more);
-char **expand_pipe(const char *pipesrc);
+char **expand_pipe(const char *pipesrc, REDIR **redirs);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);

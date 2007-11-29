@@ -27,8 +27,10 @@ void *xrealloc(void *ptr, size_t size);
 char *xstrdup(const char *s);
 char *xstrndup(const char *s, size_t len);
 char **straryclone(char **ary);
+char *skipblanks(const char *s);
+char *skipspaces(const char *s);
 char *skipwhites(const char *s);
-char *stripwhites(char *s);
+char *stripspaces(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *read_all(int fd);
 
@@ -103,16 +105,39 @@ char **straryclone(char **ary)
 	return result;
 }
 
-/* 文字列の先頭にある空白を飛ばして、空白でない最初の文字のアドレスを返す。 */
-char *skipwhites(const char *s)
+/* 文字列の先頭にある空白文字 (スペースまたはタブ) を飛ばして、
+ * 空白文字でない最初の文字のアドレスを返す。 */
+char *skipblanks(const char *s)
+{
+	while (isblank(*s)) s++;
+	return (char *) s;
+}
+
+/* 文字列の先頭にある空白類文字 (スペースや改行) を飛ばして、
+ * 空白類文字でない最初の文字のアドレスを返す。 */
+char *skipspaces(const char *s)
 {
 	while (isspace(*s)) s++;
 	return (char *) s;
 }
 
-/* 文字列の先頭にある空白を削除する。
+/* 文字列の先頭にある空白類文字やコメントを飛ばして、
+ * 最初のトークンの文字のアドレスを返す。 */
+char *skipwhites(const char *s)
+{
+	for (;;) {
+		s = skipspaces(s);
+		if (*s != '#')
+			return (char *) s;
+		s++;
+		while (*s != '\0' && *s != '\n' && *s != '\r')
+			s++;
+	}
+}
+
+/* 文字列の先頭にある空白類文字 (スペースや改行) を削除する。
  * 文字列を直接書き換えた後、その文字列へのポインタ s を返す。 */
-char *stripwhites(char *s)
+char *stripspaces(char *s)
 {
 	size_t i = 0;
 

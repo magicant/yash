@@ -21,23 +21,153 @@
 
 
 STATEMENT *parse_all(const char *src, bool *more);
-char **expand_pipe(const char *pipesrc);
+static STATEMENT *parse_statements(const char **src);
+static PIPELINE *parse_pipelines(const char **src);
+static PROCESS *parse_processes(const char **src, bool *loop);
+char **expand_pipe(const char *pipesrc, REDIR **redirs);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
 
+static bool *internal_more;
+static bool internal_error;
 
-/* コマンド入力を解析する。
+/* コマンド入力を解析するエントリポイント。
  * src:    ソースコード
  * more:   NULL でなければ、ソースに更なる入力が必要かどうかが入る。
  *         NULL ならば、更なる入力が必要なときは解析エラーである。
  * 戻り値: 成功したら結果が返される。失敗なら NULL。 */
 STATEMENT *parse_all(const char *src, bool *more)
 {
-	if (more)
-		*more = false;
-	return NULL;
+	internal_more = more;
+	internal_error = false;
+	src = skipwhites(src);
+
+	STATEMENT *result = parse_statements(&src);
+	if (*src) {
+		error(0, 0, "syntax error: invalid character: `%c'", *src);
+		statementsfree(result);
+		return NULL;
+	}
+	if (internal_error) {
+		statementsfree(result);
+		return NULL;
+	}
+	return result;
+}
+
+/* コマンド入力を解析する。
+ * src:    解析するソースへのポインタ。
+ *         解析成功なら解析し終わった後の位置まで進む。
+ * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
+static STATEMENT *parse_statements(const char **src)
+{
+	STATEMENT *first = NULL, **lastp = &first;
+
+	while (**src) {
+		if (**src == ';' || **src == '&') {
+			error(0, 0, "syntax error: unexpected `%c'", **src);
+			internal_error = true;
+			goto end;
+		}
+
+		STATEMENT *temp = xmalloc(sizeof *temp);
+		temp->next = NULL;
+		temp->s_pipeline = parse_pipelines(src);
+		switch (**src) {
+			case ';':
+				temp->s_bg = false;
+				++*src;
+				*src = skipwhites(*src);
+				break;
+			case '&':
+				temp->s_bg = true;
+				++*src;
+				*src = skipwhites(*src);
+				break;
+			default:
+				temp->s_bg = false;
+				break;
+		}
+		*lastp = temp;
+		lastp = &temp->next;
+	}
+end:
+	return first;
+}
+
+/* 一つの文を解析する。
+ * src:    解析するソースへのポインタ。
+ *         解析成功なら解析し終わった後の位置まで進む。
+ * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
+static PIPELINE *parse_pipelines(const char **src)
+{
+	PIPELINE *first = NULL, **lastp = &first;
+
+	while (**src) {
+		if (**src == '|' || **src == '&') {
+			error(0, 0, "syntax error: unexpected `%c'", **src);
+			internal_error = true;
+			goto end;
+		}
+
+		PIPELINE *temp = xmalloc(sizeof *temp);
+		bool last = false;
+
+		temp->next = NULL;
+		temp->pl_proc = parse_processes(src, &temp->pl_loop);
+		if (strncmp(*src, "||", 2) == 0) {
+			temp->pl_next_cond = false;
+			*src = skipwhites(*src + 2);
+		} else if (strncmp(*src, "&&", 2) == 0) {
+			temp->pl_next_cond = true;
+			*src = skipwhites(*src + 2);
+		} else {
+			last = true;
+		}
+		*lastp = temp;
+		lastp = &temp->next;
+		if (last)
+			goto end;
+	}
+end:
+	return first;
+}
+
+/* 一つのパイプラインを解析する。
+ * src:    解析するソースへのポインタ。
+ *         解析成功なら解析し終わった後の位置まで進む。
+ * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
+static PROCESS *parse_processes(const char **src, bool *loop)
+{
+	PROCESS *first = NULL, **lastp = &first;
+
+	while (**src) {
+		if (**src == '|') {
+			error(0, 0, "syntax error: unexpected `%c'", **src);
+			internal_error = true;
+			goto end;
+		}
+
+		PROCESS *temp = xmalloc(sizeof *temp);
+		temp->next = NULL;
+		temp->p_type = PT_NORMAL; //XXX
+		{
+			//FIXME
+		}
+		temp->p_subcmds = NULL;
+		temp->p_name = xstrdup(temp->p_body);
+
+		if ((*src)[0] == '|' && (*src)[1] != '|') {
+			*loop = true;
+			++*src;
+			*src = skipwhites(*src);
+		}
+		//FIXME
+	}
+end:
+	return first;
 }
 
 ///* コマンド入力を解析する
@@ -611,39 +741,6 @@ STATEMENT *parse_all(const char *src, bool *more)
 //	return xstrndup(s, len);
 //}
 //
-///* 指定した配列にある各 REDIR の内部のメモリを解放する。
-// * 配列そのものは解放しない。
-// * redirs: REDIR の配列へのポインタ
-// * count:  配列の要素数 */
-//void redirsfree(REDIR *redirs, size_t count)
-//{
-//	for (size_t i = 0; i < count; i++)
-//		free(redirs[i].rd_file);
-//}
-//
-///* 指定した配列にある各 SCMD の内部のメモリを解放する。
-// * 配列そのものは解放しない。
-// * scmds: SCMD の配列へのポインタ
-// * count: 配列の要素数 */
-//void scmdsfree(SCMD *scmds, size_t count)
-//{
-//	for (ssize_t i = 0; i < count; i++) {
-//		SCMD *scmd = scmds + i;
-//		char **argv = scmd->c_argv;
-//
-//		if (argv) {
-//			for (char **a = argv; *a; a++)
-//				free(*a);
-//			free(argv);
-//		} else {
-//			scmdsfree(scmd->c_subcmds, scmd->c_argc);
-//		}
-//		redirsfree(scmd->c_redir, scmd->c_redircnt);
-//		free(scmd->c_name);
-//	}
-//}
-//
-
 void redirsfree(REDIR *r)
 {
 	while (r) {
@@ -659,7 +756,6 @@ void procsfree(PROCESS *p)
 	while (p) {
 		free(p->p_body);
 		statementsfree(p->p_subcmds);
-		redirsfree(p->p_redirs);
 		free(p->p_name);
 
 		PROCESS *pp = p->next;
