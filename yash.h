@@ -18,7 +18,7 @@
 
 /* -- Misc -- */
 
-#define YASH_VERSION   "0.11"
+#define YASH_VERSION   "1.0"
 #define YASH_COPYRIGHT "Copyright (C) 2007 magicant"
 
 #define ENV_USER     "USER"
@@ -220,7 +220,7 @@ typedef struct alias_t {
 
 int set_alias(const char *name, const char *value);
 int remove_alias(const char *name);
-void remove_all_alias(void);
+void remove_all_aliases(void);
 const char *get_alias(const char *name);
 const ALIAS *get_all_aliases(void);
 int for_all_aliases(int (*func)(const char *name, const char *value));

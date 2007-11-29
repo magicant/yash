@@ -1040,7 +1040,7 @@ int builtin_unalias(int argc, char *const *argv)
 		}
 	}
 	if (removeall) {
-		remove_all_alias();
+		remove_all_aliases();
 		return EXIT_SUCCESS;
 	}
 	for (; optind < argc; optind++) {

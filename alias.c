@@ -16,7 +16,7 @@
 
 int set_alias(const char *name, const char *value);
 int remove_alias(const char *name);
-void remove_all_alias(void);
+void remove_all_aliases(void);
 const char *get_alias(const char *name);
 const ALIAS *get_all_aliases(void);
 int for_all_aliases(int (*func)(const char *name, const char *value));
@@ -87,7 +87,7 @@ int remove_alias(const char *name)
 }
 
 /* 全エイリアスを削除する。 */
-void remove_all_alias(void)
+void remove_all_aliases(void)
 {
 	ALIAS *a = aliases;
 
