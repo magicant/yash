@@ -662,7 +662,7 @@ loop:
 			check:
 				if (len < 0) {
 					append_char('?');
-				} else if (len >= rem) {
+				} else if ((size_t) len >= rem) {
 					ensure_rem(len + 1);
 					goto loop;
 				} else {

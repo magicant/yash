@@ -9,7 +9,7 @@
 
 
 CC=gcc
-CFLAGS=-O2 -ggdb -Wall -std=gnu99
+CFLAGS=-O3 -ggdb -Wall -Wextra -Wno-unused-parameter -std=gnu99
 LDFLAGS=-lreadline -ltermcap
 OBJS=util.o readline.o parser.o exec.o path.o builtin.o alias.o
 

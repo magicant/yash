@@ -266,7 +266,7 @@ void print_all_job_status(bool changedonly, bool printpids)
  *         子プロセスが既に終了している場合、見付からない。 */
 int get_jobnumber_from_pid(pid_t pid)
 {
-	for (int i = 0; i < joblistlen; i++)
+	for (unsigned i = 0; i < joblistlen; i++)
 		if (joblist[i].j_pgid)
 			for (pid_t *pids = joblist[i].j_pids; *pids; pids++)
 				if (*pids == pid)
@@ -347,7 +347,7 @@ startwaiting:
 	enum jstatus oldstatus;
 
 	/* jobnumber と、JOB の j_pids 内の PID の位置を探す */
-	for (jobnumber = 0; jobnumber < joblistlen; jobnumber++)
+	for (jobnumber = 0; jobnumber < (ssize_t) joblistlen; jobnumber++)
 		if (joblist[jobnumber].j_pgid)
 			for (pidp = joblist[jobnumber].j_pids; *pidp; pidp++)
 				if (pid == *pidp)
@@ -356,7 +356,7 @@ startwaiting:
 	goto start;
 
 outofloop:
-	assert(jobnumber < joblistlen);
+	assert(jobnumber < (ssize_t) joblistlen);
 	job = joblist + jobnumber;
 	oldstatus = job->j_status;
 	if (WIFEXITED(status) || WIFSIGNALED(status)) {

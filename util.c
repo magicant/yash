@@ -319,7 +319,7 @@ void strbuf_append(struct strbuf *buf, const char *s)
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 {
-	size_t rest = buf->maxlength - buf->length + 1;
+	ssize_t rest = buf->maxlength - buf->length + 1;
 	int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
 
 	if (result >= rest) {  /* バッファが足りない */

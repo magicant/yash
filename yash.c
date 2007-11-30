@@ -39,7 +39,7 @@ static void set_shlvl(int change);
 static void init_env(void);
 void init_interactive(void);
 void finalize_interactive(void);
-void interactive_loop(void);
+static void interactive_loop(void) __attribute__ ((noreturn));
 int main(int argc, char **argv);
 void print_help(void);
 void print_version(void);
@@ -231,7 +231,7 @@ void finalize_interactive(void)
 }
 
 /* 対話的動作を行う。この関数は返らない。 */
-void interactive_loop(void)
+static void interactive_loop(void)
 {
 	char *line;
 	STATEMENT *statements;

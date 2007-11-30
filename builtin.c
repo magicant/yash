@@ -105,7 +105,7 @@ int parse_jobspec(const char *str, bool forcePercent)
 	if (errno)
 		return -2;
 	if (str != strend && !strend[0] && 0 < jobnumber) {
-		if (jobnumber < joblistlen && joblist[jobnumber].j_pgid)
+		if (jobnumber < (ssize_t) joblistlen && joblist[jobnumber].j_pgid)
 			return jobnumber;
 		else
 			return -2;
@@ -113,7 +113,7 @@ int parse_jobspec(const char *str, bool forcePercent)
 
 	size_t len = strlen(str);
 	jobnumber = 0;
-	for (int i = 1; i < joblistlen; i++) {
+	for (int i = 1; i < (ssize_t) joblistlen; i++) {
 		if (joblist[i].j_pgid && strncmp(str, joblist[i].j_name, len) == 0) {
 			if (!jobnumber)
 				jobnumber = i;
@@ -544,7 +544,7 @@ int builtin_disown(int argc, char *const *argv)
 	int opt;
 	bool all = false, runningonly = false, nohup = false, err = false;
 	JOB *job;
-	size_t jobnumber = currentjobnumber;
+	ssize_t jobnumber = currentjobnumber;
 	sigset_t sigset, oldsigset;
 
 	optind = 0;
@@ -641,7 +641,7 @@ int builtin_fg(int argc, char *const *argv)
 		return EXIT_FAILURE;
 	if (argc < 2) {
 		jobnumber = currentjobnumber;
-		if (jobnumber < 1 || jobnumber >= joblistlen
+		if (jobnumber < 1 || (size_t) jobnumber >= joblistlen
 				|| !(pgid = joblist[jobnumber].j_pgid)) {
 			/* カレントジョブなし: 番号の一番大きいジョブを選ぶ */
 			jobnumber = joblistlen;
@@ -710,7 +710,7 @@ int builtin_fg(int argc, char *const *argv)
 	if (err)
 		return EXIT_FAILURE;
 	if (fg) {
-		assert(0 < jobnumber && jobnumber < joblistlen);
+		assert(0 < jobnumber && (size_t) jobnumber < joblistlen);
 		wait_all(jobnumber);
 		return job->j_status == JS_DONE
 			? exitcode_from_status(job->j_exitstatus) : 0;

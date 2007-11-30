@@ -51,17 +51,23 @@ void finalize_interactive(void);
 void exec_file(const char *path, bool suppresserror);
 void exec_file_exp(const char *path, bool suppresserror);
 
-void yash_exit(int exitcode);
+void yash_exit(int exitcode)
+	__attribute__ ((noreturn));
 
 
 /* -- utilities -- */
 
-void *xcalloc(size_t nmemb, size_t size);
-void *xmalloc(size_t size);
+void *xcalloc(size_t nmemb, size_t size)
+	__attribute__ ((malloc));
+void *xmalloc(size_t size)
+	__attribute__ ((malloc));
 void *xrealloc(void *ptr, size_t size);
-char *xstrdup(const char *s);
-char *xstrndup(const char *s, size_t len);
-char **straryclone(char **ary);
+char *xstrdup(const char *s)
+	__attribute__ ((malloc));
+char *xstrndup(const char *s, size_t len)
+	__attribute__ ((malloc));
+char **straryclone(char **ary)
+	__attribute__ ((malloc));
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
 char *skipwhites(const char *s);
@@ -89,8 +95,10 @@ void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
 void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
 void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
 void strbuf_append(struct strbuf *buf, const char *s);
-int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap);
-int strbuf_printf(struct strbuf *buf, const char *format, ...);
+int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
+	__attribute__ ((format (printf, 2, 0)));
+int strbuf_printf(struct strbuf *buf, const char *format, ...)
+	__attribute__ ((format (printf, 2, 3)));
 
 
 /* -- readline/history -- */
