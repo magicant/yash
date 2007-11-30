@@ -13,7 +13,10 @@
 #include <errno.h>
 #include <error.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -33,6 +36,17 @@ char *skipwhites(const char *s);
 char *stripspaces(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *read_all(int fd);
+
+void strbuf_init(struct strbuf *buf);
+void strbuf_destroy(struct strbuf *buf);
+void strbuf_setmax(struct strbuf *buf, size_t newmax);
+void strbuf_trim(struct strbuf *buf);
+void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
+void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
+void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
+void strbuf_append(struct strbuf *buf, const char *s);
+int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap);
+int strbuf_printf(struct strbuf *buf, const char *format, ...);
 
 
 /* calloc を試みる。失敗したらプログラムを強制終了する。
@@ -222,4 +236,112 @@ char *read_all(int fd)
 onerror:
 	free(buf);
 	return NULL;
+}
+
+
+/********** 文字列バッファ **********/
+
+/* 未初期化の文字列バッファを初期化する。 */
+void strbuf_init(struct strbuf *buf)
+{
+	buf->contents = xmalloc(STRBUF_INITSIZE + 1);
+	buf->contents[0] = '\0';
+	buf->length = 0;
+	buf->maxlength = STRBUF_INITSIZE;
+}
+
+/* 初期化済の文字列バッファの内容を削除し、未初期化状態に戻す。 */
+void strbuf_destroy(struct strbuf *buf)
+{
+	free(buf->contents);
+	*buf = (struct strbuf) {
+		.contents = NULL,
+		.length = 0,
+		.maxlength = 0,
+	};
+}
+
+/* 文字列バッファの maxlength を変更する。短くしすぎると文字列の末尾が消える */
+void strbuf_setmax(struct strbuf *buf, size_t newmax)
+{
+	buf->maxlength = newmax;
+	buf->contents = xrealloc(buf->contents, newmax + 1);
+	buf->contents[newmax] = '\0';
+}
+
+/* 文字列バッファの大きさを実際の内容ぎりぎりにする。 */
+void strbuf_trim(struct strbuf *buf)
+{
+	buf->maxlength = buf->length;
+	buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
+}
+
+/* 文字列バッファ内の前から i 文字目に文字列 s の最初の n 文字を挿入する。
+ * s が n 文字に満たなければ s 全体を挿入する。
+ * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
+void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
+{
+	if (s) {
+		size_t len = strlen(s);
+		len = MIN(len, n);
+		i = MIN(i, buf->length);
+		if (len + buf->length > buf->maxlength) {
+			do buf->maxlength *= 2; while (len + buf->length > buf->maxlength);
+			buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
+		}
+		memmove(buf->contents + i + len, buf->contents + i, buf->length - i);
+		memcpy(buf->contents + i, s, len);
+		buf->length += len;
+		buf->contents[buf->length] = '\0';
+	}
+}
+
+/* 文字列バッファ内の前から i 文字目に文字列 s を挿入する。
+ * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
+void strbuf_insert(struct strbuf *buf, size_t i, const char *s)
+{
+	return strbuf_ninsert(buf, i, s, SIZE_MAX);
+}
+
+/* 文字列バッファ内の文字列の末尾に文字列 s の最初の n 文字を付け加える。
+ * s が n 文字に満たなければ s 全体を付け加える。 */
+void strbuf_nappend(struct strbuf *buf, const char *s, size_t n)
+{
+	return strbuf_ninsert(buf, SIZE_MAX, s, n);
+}
+
+/* 文字列バッファ内の文字列の末尾に文字列 s を付け加える。 */
+void strbuf_append(struct strbuf *buf, const char *s)
+{
+	return strbuf_nappend(buf, s, SIZE_MAX);
+}
+
+/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
+int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
+{
+	size_t rest = buf->maxlength - buf->length + 1;
+	int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
+
+	if (result >= rest) {  /* バッファが足りない */
+		do buf->maxlength *= 2; while (result + buf->length > buf->maxlength);
+		buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
+		rest = buf->maxlength - buf->length + 1;
+		result = vsnprintf(buf->contents + buf->length, rest, format, ap);
+	}
+	if (result >= 0)
+		buf->length += result;
+	buf->contents[buf->length] = '\0';  /* just in case */
+	return result;
+}
+
+/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
+int strbuf_printf(struct strbuf *buf, const char *format, ...)
+{
+	va_list ap;
+	int result;
+
+	va_start(ap, format);
+	result = strbuf_vprintf(buf, format, ap);
+	va_end(ap);
+	return result;
 }

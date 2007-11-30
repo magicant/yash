@@ -11,6 +11,7 @@
 #ifndef YASH_H
 #define YASH_H
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <sys/types.h>
 #include <wordexp.h>
@@ -72,6 +73,24 @@ char *read_all(int fd);
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
 #define MIN(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
+
+#define STRBUF_INITSIZE 16
+struct strbuf {
+	char *contents;
+	size_t length;
+	size_t maxlength;
+};
+
+void strbuf_init(struct strbuf *buf);
+void strbuf_destroy(struct strbuf *buf);
+void strbuf_setmax(struct strbuf *buf, size_t newmax);
+void strbuf_trim(struct strbuf *buf);
+void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
+void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
+void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
+void strbuf_append(struct strbuf *buf, const char *s);
+int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap);
+int strbuf_printf(struct strbuf *buf, const char *format, ...);
 
 
 /* -- readline/history -- */
