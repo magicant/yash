@@ -13,8 +13,6 @@ CFLAGS=-O3 -ggdb -Wall -Wextra -Wno-unused-parameter -std=gnu99
 LDFLAGS=-lreadline -ltermcap
 OBJS=util.o readline.o parser.o exec.o path.o builtin.o alias.o
 
-all: yash
-
 yash: $(OBJS)
 
 $(OBJS): yash.h

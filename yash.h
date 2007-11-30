@@ -14,7 +14,10 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/types.h>
-#include <wordexp.h>
+
+#ifndef __GNUC__
+# define __attribute__(attr)
+#endif  /* __GNUC__ */
 
 
 /* -- Misc -- */
@@ -89,6 +92,7 @@ struct strbuf {
 
 void strbuf_init(struct strbuf *buf);
 void strbuf_destroy(struct strbuf *buf);
+char *strbuf_tostr(struct strbuf *buf);
 void strbuf_setmax(struct strbuf *buf, size_t newmax);
 void strbuf_trim(struct strbuf *buf);
 void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
@@ -146,7 +150,6 @@ struct _process {
 	}          p_type;
 	char      *p_body;
 	STATEMENT *p_subcmds;  /* プロセスに含まれる文の内容 */
-	char      *p_name;     /* 画面表示用のコマンド名 */
 };
 /* p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
  * p_subcmds に入る。p_body はコマンドの内容である。
@@ -168,6 +171,7 @@ struct _statement {
 	STATEMENT *next;        /* ソース内の次の文 */
 	PIPELINE  *s_pipeline;  /* 文の中の最初のパイプライン */
 	bool       s_bg;        /* バックグラウンドかどうか */
+	char      *s_name;      /* 画面表示用のコマンド名 */
 };
 
 STATEMENT *parse_all(const char *src, bool *more);

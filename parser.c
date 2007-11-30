@@ -25,7 +25,11 @@ static STATEMENT *parse_statements(const char **src);
 static PIPELINE *parse_pipelines(const char **src);
 static PROCESS *parse_processes(const char **src, bool *neg, bool *loop);
 static bool parse_words(const char **src, PROCESS *process);
-static char *make_process_name(PROCESS *p);
+static char *make_statement_name(PIPELINE *pipelines);
+static void print_statements(struct strbuf *b, STATEMENT *s);
+static void print_pipelines(struct strbuf *b, PIPELINE *pl);
+static void print_processes(struct strbuf *b, PROCESS *p);
+static void print_process(struct strbuf *b, PROCESS *p);
 char **expand_pipe(const char *pipesrc, REDIR **redirs);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
@@ -84,6 +88,7 @@ static STATEMENT *parse_statements(const char **src)
 			free(temp);
 			goto end;
 		}
+		temp->s_name = make_statement_name(temp->s_pipeline);
 		switch (**src) {
 			case ';':
 				if ((*src)[1] == ';')
@@ -121,7 +126,7 @@ static PIPELINE *parse_pipelines(const char **src)
 {
 	PIPELINE *first = NULL, **lastp = &first;
 
-	while (**src) {
+	for (;;) {
 		if (**src == '|' || **src == '&') {
 			error(0, 0, "syntax error: unexpected `%c'", **src);
 			++*src;
@@ -136,6 +141,14 @@ static PIPELINE *parse_pipelines(const char **src)
 		temp->pl_proc = parse_processes(src, &temp->pl_neg, &temp->pl_loop);
 		if (!temp->pl_proc) {
 			free(temp);
+			if (first) {
+				if (!**src && internal_more) {
+					*internal_more = true;
+				} else {
+					error(0, 0, "syntax error: no command after `&&' or `||'");
+					internal_error = true;
+				}
+			}
 			goto end;
 		}
 		if (strncmp(*src, "||", 2) == 0) {
@@ -188,7 +201,6 @@ static PROCESS *parse_processes(const char **src, bool *neg, bool *loop)
 			free(temp);
 			goto end;
 		}
-		temp->p_name = make_process_name(temp);
 
 		if ((*src)[0] == '|' && (*src)[1] != '|') {
 			*loop = true;
@@ -273,16 +285,76 @@ static bool parse_words(const char **src, PROCESS *p)
 	return initpos != *src;
 }
 
-/* プロセスの p_type, p_body, p_subcmds からプロセス名を生成する。
- * 戻り値: 新しく malloc した p のプロセス名。 */
-static char *make_process_name(PROCESS *p)
+/* パイプラインを元に STATEMENT の s_name を生成する。
+ * 戻り値: 新しく malloc した s の表示名。
+ *         表示名には '&' も ';' も含まれない。 */
+static char *make_statement_name(PIPELINE *p)
+{
+	struct strbuf buf;
+
+	strbuf_init(&buf);
+	print_pipelines(&buf, p);
+	return strbuf_tostr(&buf);
+}
+
+/* 各文を文字列に変換して文字列バッファに追加する。 */
+static void print_statements(struct strbuf *b, STATEMENT *s)
+{
+	while (s) {
+		print_pipelines(b, s->s_pipeline);
+		strbuf_append(b, s->s_bg ? "&" : ";");
+		s = s->next;
+		if (s)
+			strbuf_append(b, " ");
+	}
+}
+
+/* 各パイプラインを文字列に変換して文字列バッファに追加する。 */
+static void print_pipelines(struct strbuf *b, PIPELINE *p)
+{
+	while (p) {
+		if (p->pl_neg)
+			strbuf_append(b, "! ");
+		print_processes(b, p->pl_proc);
+		if (p->pl_loop)
+			strbuf_append(b, " |");
+		if (p->next)
+			strbuf_append(b, p->pl_next_cond ? " && " : " || ");
+		p = p->next;
+	}
+}
+
+/* 各プロセスを文字列に変換して文字列バッファに追加する。 */
+static void print_processes(struct strbuf *b, PROCESS *p)
+{
+	while (p) {
+		print_process(b, p);
+		p = p->next;
+		if (p)
+			strbuf_append(b, " | ");
+	}
+}
+
+/* 一つのプロセスを文字列に変換して文字列バッファに追加する。 */
+static void print_process(struct strbuf *b, PROCESS *p)
 {
 	switch (p->p_type) {
 		case PT_NORMAL:
-			return xstrdup(p->p_body);
+			break;
+		case PT_GROUP:
+			strbuf_append(b, "{ ");
+			print_statements(b, p->p_subcmds);
+			strbuf_append(b, " }");
+			break;
+		case PT_SUBSHELL:
+			strbuf_append(b, "( ");
+			print_statements(b, p->p_subcmds);
+			strbuf_append(b, " )");
+			break;
 		default:
-			return xstrdup("?"); // TODO
+			assert(false);
 	}
+	strbuf_append(b, p->p_body);
 }
 
 ///* コマンド入力を解析する
@@ -871,7 +943,6 @@ void procsfree(PROCESS *p)
 	while (p) {
 		free(p->p_body);
 		statementsfree(p->p_subcmds);
-		free(p->p_name);
 
 		PROCESS *pp = p->next;
 		free(p);
@@ -896,6 +967,7 @@ void statementsfree(STATEMENT *s)
 {
 	while (s) {
 		pipesfree(s->s_pipeline);
+		free(s->s_name);
 
 		STATEMENT *ss = s->next;
 		free(s);

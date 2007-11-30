@@ -516,7 +516,8 @@ static void close_pipes(PIPES pipes)
 void exec_statements(STATEMENT *s)
 {
 	while (s) {
-		exec_pipelines(s->s_pipeline, s->s_bg);
+		//exec_pipelines(s->s_pipeline, s->s_bg);
+		printf("%s%s\n", s->s_name, s->s_bg ? " &" : "");
 		s = s->next;
 	}
 }
@@ -539,23 +540,6 @@ static void exec_pipelines(PIPELINE *p, bool bg)
 static void exec_processes(PROCESS *p, bool loop)
 {
 	while (p) {
-		switch (p->p_type) {
-			case PT_NORMAL:
-				break;
-			case PT_GROUP:
-				printf("{ ");
-				exec_statements(p->p_subcmds);
-				printf("} ");
-				break;
-			case PT_SUBSHELL:
-				printf("( ");
-				exec_statements(p->p_subcmds);
-				printf(") ");
-				break;
-			default:
-				assert(false);
-		}
-		printf("%s ", p->p_body);
 		p = p->next;
 		if (p)
 			printf("| ");
