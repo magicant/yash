@@ -517,7 +517,6 @@ void exec_statements(STATEMENT *s)
 {
 	while (s) {
 		exec_pipelines(s->s_pipeline, s->s_bg);
-		printf("\n");
 		s = s->next;
 	}
 }
@@ -526,12 +525,14 @@ void exec_statements(STATEMENT *s)
 static void exec_pipelines(PIPELINE *p, bool bg)
 {
 	while (p) {
+		if (p->pl_neg)
+			printf("! ");
 		exec_processes(p->pl_proc, p->pl_loop);
 		if (p->next)
 			printf("%s", p->pl_next_cond ? "&& " : "|| ");
 		p = p->next;
 	}
-	printf("%s", bg ? "& " : "; ");
+	printf("%s", bg ? "&\n" : ";\n");
 }
 
 /* 一つのパイプラインを実行する */
@@ -540,7 +541,6 @@ static void exec_processes(PROCESS *p, bool loop)
 	while (p) {
 		switch (p->p_type) {
 			case PT_NORMAL:
-				printf("%s ", p->p_body);
 				break;
 			case PT_GROUP:
 				printf("{ ");
@@ -555,6 +555,7 @@ static void exec_processes(PROCESS *p, bool loop)
 			default:
 				assert(false);
 		}
+		printf("%s ", p->p_body);
 		p = p->next;
 		if (p)
 			printf("| ");

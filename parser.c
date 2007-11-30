@@ -76,10 +76,20 @@ static STATEMENT *parse_statements(const char **src)
 		}
 
 		STATEMENT *temp = xmalloc(sizeof *temp);
+		bool last = false;
+
 		temp->next = NULL;
 		temp->s_pipeline = parse_pipelines(src);
+		if (!temp->s_pipeline) {
+			free(temp);
+			goto end;
+		}
 		switch (**src) {
 			case ';':
+				if ((*src)[1] == ';')
+					goto default_case;
+				/* falls thru! */
+			case '\n':  case '\r':
 				temp->s_bg = false;
 				++*src;
 				*src = skipwhites(*src);
@@ -89,12 +99,15 @@ static STATEMENT *parse_statements(const char **src)
 				++*src;
 				*src = skipwhites(*src);
 				break;
-			default:
+			default:  default_case:
 				temp->s_bg = false;
+				last = true;
 				break;
 		}
 		*lastp = temp;
 		lastp = &temp->next;
+		if (last)
+			goto end;
 	}
 end:
 	return first;
@@ -103,7 +116,7 @@ end:
 /* 一つの文を解析する。
  * src:    解析するソースへのポインタ。
  *         解析成功なら解析し終わった後の位置まで進む。
- * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
+ * 戻り値: 成功したらその結果。失敗したら途中結果または NULL。 */
 static PIPELINE *parse_pipelines(const char **src)
 {
 	PIPELINE *first = NULL, **lastp = &first;
@@ -121,6 +134,10 @@ static PIPELINE *parse_pipelines(const char **src)
 
 		temp->next = NULL;
 		temp->pl_proc = parse_processes(src, &temp->pl_neg, &temp->pl_loop);
+		if (!temp->pl_proc) {
+			free(temp);
+			goto end;
+		}
 		if (strncmp(*src, "||", 2) == 0) {
 			temp->pl_next_cond = false;
 			*src = skipwhites(*src + 2);
@@ -145,7 +162,7 @@ end:
  * neg:    パイプラインの終了ステータスを反転するかどうかが
  *         このポインタが指す先に入る。
  * loop:   パイプラインが環状であるかどうかがこのポインタの指す先に入る。
- * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
+ * 戻り値: 成功したらその結果。失敗したら途中結果または NULL。 */
 static PROCESS *parse_processes(const char **src, bool *neg, bool *loop)
 {
 	PROCESS *first = NULL, **lastp = &first;
@@ -189,23 +206,71 @@ end:
 }
 
 /* 一つのコマンドを解析し、結果を p のアドレスに入れる。
- * この関数は p の p_type と p_body と p_subcmds を書き換える。
+ * この関数は解析に成功すれば p の p_type と p_body と p_subcmds を書き換える。
  * src:    解析するソースへのポインタ。
  *         解析成功なら解析し終わった後の位置まで進む。
- * 戻り値: コマンドを解析したら true、コマンドがなければ false。 */
+ * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。 */
 static bool parse_words(const char **src, PROCESS *p)
 {
-	size_t len = strcspn(*src, ";&|");
+	const char *initpos = *src;
 
-	if (len) {
-		p->p_type = PT_NORMAL;
-		p->p_body = xstrndup(*src, len);
-		p->p_subcmds = NULL;
-		*src += len;
-		return true;
-	} else {
-		return false;
+	switch (**src) {
+		case '(':
+			++*src;
+			*src = skipwhites(*src);
+			p->p_type = PT_SUBSHELL;
+			p->p_body = NULL;
+			p->p_subcmds = parse_statements(src);
+			if (**src != ')') {
+				if (!**src && internal_more) {
+					*internal_more = true;
+				} else {
+					error(0, 0, "syntax error: missing `)'");
+					internal_error = true;
+				}
+				return true;
+			}
+			++*src;
+			*src = skipwhites(*src);
+			break;
+		case '{':
+			/* TODO: "{" はそれ自体はトークンではないので、"{abc" のような場合を
+			 * 除外しないといけない。 */
+			++*src;
+			*src = skipwhites(*src);
+			p->p_type = PT_GROUP;
+			p->p_body = NULL;
+			p->p_subcmds = parse_statements(src);
+			if (**src != '}') {
+				if (!**src && internal_more) {
+					*internal_more = true;
+				} else {
+					error(0, 0, "syntax error: missing `}'");
+					internal_error = true;
+				}
+				return true;
+			}
+			++*src;
+			*src = skipwhites(*src);
+			break;
+		case ')':
+		case '}':
+			return false;
+		default:
+			p->p_type = PT_NORMAL;
+			p->p_subcmds = NULL;
+			break;
 	}
+
+	size_t len = strcspn(*src, ";&|()\n\r");
+
+	p->p_body = xstrndup(*src, len);
+	*src += len;
+	if (**src == '(') {
+		error(0, 0, "syntax error: `(' is not allowed here");
+		internal_error = true;
+	}
+	return initpos != *src;
 }
 
 /* プロセスの p_type, p_body, p_subcmds からプロセス名を生成する。
@@ -216,7 +281,7 @@ static char *make_process_name(PROCESS *p)
 		case PT_NORMAL:
 			return xstrdup(p->p_body);
 		default:
-			return xstrdup("?");
+			return xstrdup("?"); // TODO
 	}
 }
 

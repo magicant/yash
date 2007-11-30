@@ -121,10 +121,9 @@ struct _process {
 	STATEMENT *p_subcmds;  /* プロセスに含まれる文の内容 */
 	char      *p_name;     /* 画面表示用のコマンド名 */
 };
-/* p_argv と p_subcmds の一方が NULL でもう一方が非 NULL である。
- * p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
- * p_subcmds に入る。
- * p_body はコマンドの内容である。 */
+/* p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
+ * p_subcmds に入る。p_body はコマンドの内容である。
+ * p_subcmds が非 NULL のとき、p_body にはリダイレクト関連の記述が入る。 */
 
 /* 一つのパイプライン */
 struct _pipeline {
