@@ -130,6 +130,7 @@ struct _process {
 struct _pipeline {
 	PIPELINE *next;     /* コマンドリスト内の次のパイプライン */
 	PROCESS  *pl_proc;  /* パイプラインの最初のプロセス */
+	bool      pl_neg;   /* パイプラインの終了ステータスを反転するかどうか */
 	bool      pl_loop;  /* パイプラインが環状かどうか */
 	bool      pl_next_cond;
 };

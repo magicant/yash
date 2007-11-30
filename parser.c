@@ -23,7 +23,9 @@
 STATEMENT *parse_all(const char *src, bool *more);
 static STATEMENT *parse_statements(const char **src);
 static PIPELINE *parse_pipelines(const char **src);
-static PROCESS *parse_processes(const char **src, bool *loop);
+static PROCESS *parse_processes(const char **src, bool *neg, bool *loop);
+static bool parse_words(const char **src, PROCESS *process);
+static char *make_process_name(PROCESS *p);
 char **expand_pipe(const char *pipesrc, REDIR **redirs);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
@@ -68,6 +70,7 @@ static STATEMENT *parse_statements(const char **src)
 	while (**src) {
 		if (**src == ';' || **src == '&') {
 			error(0, 0, "syntax error: unexpected `%c'", **src);
+			++*src;
 			internal_error = true;
 			goto end;
 		}
@@ -108,6 +111,7 @@ static PIPELINE *parse_pipelines(const char **src)
 	while (**src) {
 		if (**src == '|' || **src == '&') {
 			error(0, 0, "syntax error: unexpected `%c'", **src);
+			++*src;
 			internal_error = true;
 			goto end;
 		}
@@ -116,7 +120,7 @@ static PIPELINE *parse_pipelines(const char **src)
 		bool last = false;
 
 		temp->next = NULL;
-		temp->pl_proc = parse_processes(src, &temp->pl_loop);
+		temp->pl_proc = parse_processes(src, &temp->pl_neg, &temp->pl_loop);
 		if (strncmp(*src, "||", 2) == 0) {
 			temp->pl_next_cond = false;
 			*src = skipwhites(*src + 2);
@@ -138,36 +142,82 @@ end:
 /* 一つのパイプラインを解析する。
  * src:    解析するソースへのポインタ。
  *         解析成功なら解析し終わった後の位置まで進む。
+ * neg:    パイプラインの終了ステータスを反転するかどうかが
+ *         このポインタが指す先に入る。
+ * loop:   パイプラインが環状であるかどうかがこのポインタの指す先に入る。
  * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
-static PROCESS *parse_processes(const char **src, bool *loop)
+static PROCESS *parse_processes(const char **src, bool *neg, bool *loop)
 {
 	PROCESS *first = NULL, **lastp = &first;
 
+	if (**src == '!') {
+		*neg = true;
+		++*src;
+		*src = skipwhites(*src);
+	} else {
+		*neg = false;
+	}
 	while (**src) {
-		if (**src == '|') {
+		if ((*src)[0] == '|' && (*src)[1] != '|') {
 			error(0, 0, "syntax error: unexpected `%c'", **src);
+			++*src;
 			internal_error = true;
 			goto end;
 		}
 
 		PROCESS *temp = xmalloc(sizeof *temp);
 		temp->next = NULL;
-		temp->p_type = PT_NORMAL; //XXX
-		{
-			//FIXME
+		if (!parse_words(src, temp)) {
+			free(temp);
+			goto end;
 		}
-		temp->p_subcmds = NULL;
-		temp->p_name = xstrdup(temp->p_body);
+		temp->p_name = make_process_name(temp);
 
 		if ((*src)[0] == '|' && (*src)[1] != '|') {
 			*loop = true;
 			++*src;
 			*src = skipwhites(*src);
+		} else {
+			*loop = false;
 		}
-		//FIXME
+
+		*lastp = temp;
+		lastp = &temp->next;
 	}
 end:
 	return first;
+}
+
+/* 一つのコマンドを解析し、結果を p のアドレスに入れる。
+ * この関数は p の p_type と p_body と p_subcmds を書き換える。
+ * src:    解析するソースへのポインタ。
+ *         解析成功なら解析し終わった後の位置まで進む。
+ * 戻り値: コマンドを解析したら true、コマンドがなければ false。 */
+static bool parse_words(const char **src, PROCESS *p)
+{
+	size_t len = strcspn(*src, ";&|");
+
+	if (len) {
+		p->p_type = PT_NORMAL;
+		p->p_body = xstrndup(*src, len);
+		p->p_subcmds = NULL;
+		*src += len;
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/* プロセスの p_type, p_body, p_subcmds からプロセス名を生成する。
+ * 戻り値: 新しく malloc した p のプロセス名。 */
+static char *make_process_name(PROCESS *p)
+{
+	switch (p->p_type) {
+		case PT_NORMAL:
+			return xstrdup(p->p_body);
+		default:
+			return xstrdup("?");
+	}
 }
 
 ///* コマンド入力を解析する

@@ -517,6 +517,7 @@ void exec_statements(STATEMENT *s)
 {
 	while (s) {
 		exec_pipelines(s->s_pipeline, s->s_bg);
+		printf("\n");
 		s = s->next;
 	}
 }
@@ -524,7 +525,6 @@ void exec_statements(STATEMENT *s)
 /* 一つの文を実行する。 */
 static void exec_pipelines(PIPELINE *p, bool bg)
 {
-	// XXX: DEBUG
 	while (p) {
 		exec_processes(p->pl_proc, p->pl_loop);
 		if (p->next)
@@ -537,7 +537,6 @@ static void exec_pipelines(PIPELINE *p, bool bg)
 /* 一つのパイプラインを実行する */
 static void exec_processes(PROCESS *p, bool loop)
 {
-	// XXX: DEBUG
 	while (p) {
 		switch (p->p_type) {
 			case PT_NORMAL:
@@ -557,7 +556,11 @@ static void exec_processes(PROCESS *p, bool loop)
 				assert(false);
 		}
 		p = p->next;
+		if (p)
+			printf("| ");
 	}
+	if (loop)
+		printf("| ");
 }
 
 #else
@@ -770,7 +773,7 @@ static void exec_processes(PROCESS *p, bool loop)
 /* リダイレクトを開く。
  * 戻り値: OK なら 0、エラーなら -1。 */
 static int open_redirections(REDIR *r)
-{
+{//XXX : not tested
 	while (r) {
 		int fd;
 
