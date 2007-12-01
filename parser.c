@@ -25,6 +25,8 @@ static STATEMENT *parse_statements(const char **src);
 static PIPELINE *parse_pipelines(const char **src);
 static PROCESS *parse_processes(const char **src, bool *neg, bool *loop);
 static bool parse_words(const char **src, PROCESS *process);
+static char *skip_token(const char *s);
+//static inline char *skipifs(const char *s);
 static char *make_statement_name(PIPELINE *pipelines);
 static void print_statements(struct strbuf *b, STATEMENT *s);
 static void print_pipelines(struct strbuf *b, PIPELINE *pl);
@@ -38,6 +40,8 @@ void statementsfree(STATEMENT *statements);
 
 static bool *internal_more;
 static bool internal_error;
+
+static char *ifs;
 
 /* コマンド入力を解析するエントリポイント。
  * src:    ソースコード
@@ -97,18 +101,17 @@ static STATEMENT *parse_statements(const char **src)
 			case '\n':  case '\r':
 				temp->s_bg = false;
 				++*src;
-				*src = skipwhites(*src);
 				break;
 			case '&':
 				temp->s_bg = true;
 				++*src;
-				*src = skipwhites(*src);
 				break;
 			default:  default_case:
 				temp->s_bg = false;
 				last = true;
 				break;
 		}
+		*src = skipwhites(*src);
 		*lastp = temp;
 		lastp = &temp->next;
 		if (last)
@@ -153,10 +156,10 @@ static PIPELINE *parse_pipelines(const char **src)
 		}
 		if (strncmp(*src, "||", 2) == 0) {
 			temp->pl_next_cond = false;
-			*src = skipwhites(*src + 2);
+			*src = skipblanks(*src + 2);
 		} else if (strncmp(*src, "&&", 2) == 0) {
 			temp->pl_next_cond = true;
-			*src = skipwhites(*src + 2);
+			*src = skipblanks(*src + 2);
 		} else {
 			last = true;
 		}
@@ -183,7 +186,7 @@ static PROCESS *parse_processes(const char **src, bool *neg, bool *loop)
 	if (**src == '!') {
 		*neg = true;
 		++*src;
-		*src = skipwhites(*src);
+		*src = skipblanks(*src);
 	} else {
 		*neg = false;
 	}
@@ -205,7 +208,7 @@ static PROCESS *parse_processes(const char **src, bool *neg, bool *loop)
 		if ((*src)[0] == '|' && (*src)[1] != '|') {
 			*loop = true;
 			++*src;
-			*src = skipwhites(*src);
+			*src = skipblanks(*src);
 		} else {
 			*loop = false;
 		}
@@ -243,7 +246,7 @@ static bool parse_words(const char **src, PROCESS *p)
 				return true;
 			}
 			++*src;
-			*src = skipwhites(*src);
+			*src = skipblanks(*src);
 			break;
 		case '{':
 			/* TODO: "{" はそれ自体はトークンではないので、"{abc" のような場合を
@@ -263,7 +266,7 @@ static bool parse_words(const char **src, PROCESS *p)
 				return true;
 			}
 			++*src;
-			*src = skipwhites(*src);
+			*src = skipblanks(*src);
 			break;
 		case ')':
 		case '}':
@@ -274,7 +277,7 @@ static bool parse_words(const char **src, PROCESS *p)
 			break;
 	}
 
-	size_t len = strcspn(*src, ";&|()\n\r");
+	size_t len = strcspn(*src, ";&|()#\n\r");
 
 	p->p_body = xstrndup(*src, len);
 	*src += len;
@@ -284,6 +287,19 @@ static bool parse_words(const char **src, PROCESS *p)
 	}
 	return initpos != *src;
 }
+
+/* 引数をトークンの開始位置とみなして、次のトークンの先頭位置を返す。
+ * すなわち、0 個以上の非空白文字と 1 個以上の空白文字を飛ばす。
+ * 非空白文字ではバックスラッシュや引用符を認識する。
+ * 改行は空白文字とはみなさない。 */
+static char *skip_token(const char *s);
+
+/* 文字列の先頭にある IFS を飛ばして、
+ * IFS でない最初の文字のアドレスを返す。 */
+//static inline char *skipifs(const char *s)
+//{
+//	return (char *) (s + strcspn(s, ifs));
+//}
 
 /* パイプラインを元に STATEMENT の s_name を生成する。
  * 戻り値: 新しく malloc した s の表示名。
