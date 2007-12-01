@@ -109,17 +109,7 @@ int yash_readline(int ptype, char **result)
 				break;
 			case SIGINT:
 				interrupted = true;
-				/*
-				rl_line_buffer[0] = '\0';
-				rl_point = rl_end = 0;
-				rl_crlf();
-				rl_on_new_line();
-				rl_redisplay();
-				*/
-				/*
-				rl_done = true;
-				rl_forced_update_display();
-				*/
+				/* XXX */
 				break;
 		}
 	}

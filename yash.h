@@ -15,10 +15,6 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#ifndef __GNUC__
-# define __attribute__(attr)
-#endif  /* __GNUC__ */
-
 
 /* -- Misc -- */
 
