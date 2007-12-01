@@ -41,6 +41,8 @@
 extern bool is_loginshell;
 extern bool is_interactive;
 
+extern char *prompt_command;
+
 void setsigaction(void);
 void resetsigaction(void);
 
@@ -108,7 +110,7 @@ extern char *history_filename;
 extern int history_filesize;
 extern int history_histsize;
 extern char *readline_prompt1;
-extern char *prompt_command;
+extern char *readline_prompt2;
 
 void initialize_readline(void);
 void finalize_readline(void);
