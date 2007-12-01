@@ -95,6 +95,7 @@ void strbuf_destroy(struct strbuf *buf);
 char *strbuf_tostr(struct strbuf *buf);
 void strbuf_setmax(struct strbuf *buf, size_t newmax);
 void strbuf_trim(struct strbuf *buf);
+void strbuf_clear(struct strbuf *buf);
 void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
 void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
 void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
@@ -115,7 +116,7 @@ extern char *prompt_command;
 
 void initialize_readline(void);
 void finalize_readline(void);
-int yash_readline(char **result);
+int yash_readline(int ptype, char **result);
 
 
 /* -- パーサ -- */

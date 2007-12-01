@@ -42,6 +42,7 @@ void strbuf_destroy(struct strbuf *buf);
 char *strbuf_tostr(struct strbuf *buf);
 void strbuf_setmax(struct strbuf *buf, size_t newmax);
 void strbuf_trim(struct strbuf *buf);
+void strbuf_clear(struct strbuf *buf);
 void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
 void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
 void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
@@ -291,6 +292,13 @@ void strbuf_trim(struct strbuf *buf)
 {
 	buf->maxlength = buf->length;
 	buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
+}
+
+/* 文字列バッファを空にする。maxlength は変わらない。 */
+void strbuf_clear(struct strbuf *buf)
+{
+	buf->length = 0;
+	buf->contents[buf->length] = '\0';
 }
 
 /* 文字列バッファ内の前から i 文字目に文字列 s の最初の n 文字を挿入する。

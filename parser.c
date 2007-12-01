@@ -10,7 +10,6 @@
 
 #include <errno.h>
 #include <error.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,21 +45,27 @@ static char *ifs;
 /* コマンド入力を解析するエントリポイント。
  * src:    ソースコード
  * more:   NULL でなければ、ソースに更なる入力が必要かどうかが入る。
- *         NULL ならば、更なる入力が必要なときは解析エラーである。
+ *         (更なる入力が必要でもエラーを出さない。)
+ *         NULL ならば、更なる入力が必要なときは解析エラーとする。
  * 戻り値: 成功したら結果が返される。失敗なら NULL。 */
+/* この関数はリエントラントではない */
 STATEMENT *parse_all(const char *src, bool *more)
 {
+	/* *internal_more が true なら internal_error は false のまま */
 	internal_more = more;
+	if (internal_more)
+		*internal_more = false;
 	internal_error = false;
 	src = skipwhites(src);
 
 	STATEMENT *result = parse_statements(&src);
 	if (*src) {
 		error(0, 0, "syntax error: invalid character: `%c'", *src);
-		statementsfree(result);
-		return NULL;
+		internal_error = true;
 	}
-	if (internal_error) {
+	if (internal_error && internal_more)
+		*internal_more = false;
+	if (internal_error || (internal_more && *internal_more)) {
 		statementsfree(result);
 		return NULL;
 	}

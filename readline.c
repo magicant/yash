@@ -31,7 +31,7 @@
 
 void initialize_readline(void);
 void finalize_readline(void);
-int yash_readline(char **result);
+int yash_readline(int ptype, char **result);
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
@@ -50,8 +50,7 @@ int history_filesize = 500;
 int history_histsize = 500;
 /* プロンプトとして表示する文字列。 */
 char *readline_prompt1 = NULL;
-/* プライマリプロンプトの前に実行するコマンド */
-char *prompt_command = NULL;
+char *readline_prompt2 = NULL;
 
 /* ファイル名補完で、非実行可能ファイルを候補に入れるかどうか。 */
 static bool executable_only;
@@ -85,68 +84,101 @@ void finalize_readline(void)
 		stifle_history(history_filesize);
 		write_history(history_filename);
 	}
-	rl_deprep_terminal();
 }
 
-/* プロンプトを表示してコマンドを読み取る。履歴展開を行い、履歴に追加する。
+/* プロンプトを表示して行を読み取る。
+ * ptype が 1 か 2 なら履歴展開を行い、履歴に追加する。
+ * ptype:  プロンプトの種類。1~2。(PS1~PS2 に対応)
  * result: これに結果が代入される。(戻り値が 0 の時のみ)
  * 戻り値: 0:  OK。コマンドを実行せよ。
  *         -1: エラーまたは展開結果が不実行。ただちに次の readline に移れ。
- *         -2: EOF が入力された。 */
-int yash_readline(char **result)
+ *         -2: EOF が入力された。
+ *         -4: ptype が不正。 */
+int yash_readline(int ptype, char **result)
 {
 	char *prompt, *actualprompt;
 	char *line, *eline;
-	struct sigaction action, oldaction;
-	void readline_sigchld_handler(int signal) {
-		wait_all(-2 /* non-blocking */);
+	bool interrupted = false;
+	bool terminal_info_valid = false;
+	struct termios old_terminal_info, new_terminal_info;
+	struct sigaction action, oldchldaction, oldintaction;
+	void readline_signal_handler(int signal) {
+		switch (signal) {
+			case SIGCHLD:
+				wait_all(-2 /* non-blocking */);
+				break;
+			case SIGINT:
+				interrupted = true;
+				/*
+				rl_line_buffer[0] = '\0';
+				rl_point = rl_end = 0;
+				rl_crlf();
+				rl_on_new_line();
+				rl_redisplay();
+				*/
+				/*
+				rl_done = true;
+				rl_forced_update_display();
+				*/
+				break;
+		}
 	}
 	
-	if (prompt_command) {
-		STATEMENT *ss = parse_all(prompt_command, NULL);
-
-		if (ss) {
-			int tmpstatus = laststatus;
-			exec_statements(ss);
-			statementsfree(ss);
-			laststatus = tmpstatus;
-		}
+	switch (ptype) {
+		case 1:
+			prompt = readline_prompt1 ? : "\\s-\\v\\$ ";
+			break;
+		case 2:
+			prompt = readline_prompt2 ? : "> ";
+			break;
+		default:
+			return -4;
 	}
 
 	if (tcsetpgrp(STDIN_FILENO, getpgrp()) < 0)
 		error(0, errno, "tcsetpgrp before readline");
 
-	struct termios terminal_info;
-	if (tcgetattr(STDIN_FILENO, &terminal_info) == 0) {
-		terminal_info.c_iflag &= ~(INLCR | IGNCR);
-		terminal_info.c_iflag |= ICRNL;
-		terminal_info.c_lflag |= ICANON | ECHO | ECHOE | ECHOK;
-		tcsetattr(STDIN_FILENO, TCSADRAIN, &terminal_info);
+	if (tcgetattr(STDIN_FILENO, &old_terminal_info) == 0) {
+		terminal_info_valid = true;
+		new_terminal_info = old_terminal_info;
+		new_terminal_info.c_iflag &= ~(INLCR | IGNCR);
+		new_terminal_info.c_iflag |= ICRNL;
+		new_terminal_info.c_lflag |= ICANON | ECHO | ECHOE | ECHOK;
+		tcsetattr(STDIN_FILENO, TCSADRAIN, &new_terminal_info);
 	}
 
 	sigemptyset(&action.sa_mask);
-	action.sa_handler = readline_sigchld_handler;
+	action.sa_handler = readline_signal_handler;
 	action.sa_flags = 0;
-	if (sigaction(SIGCHLD, &action, &oldaction) < 0)
+	if (sigaction(SIGCHLD, &action, &oldchldaction) < 0)
+		error(EXIT_FAILURE, errno, "sigaction before readline");
+	if (sigaction(SIGINT, &action, &oldintaction) < 0)
 		error(EXIT_FAILURE, errno, "sigaction before readline");
 
 	wait_all(-2 /* non-blocking */);
 	print_all_job_status(true /* changed only */, false /* not verbose */);
 
-	prompt = readline_prompt1 ? : "\\s-\\v\\$ ";
 	actualprompt = expand_prompt(prompt);
-
 	line = readline(actualprompt);
 
-	if (sigaction(SIGCHLD, &oldaction, NULL) < 0)
+	if (sigaction(SIGINT, &oldintaction, NULL) < 0)
+		error(EXIT_FAILURE, errno, "sigaction after readline");
+	if (sigaction(SIGCHLD, &oldchldaction, NULL) < 0)
 		error(EXIT_FAILURE, errno, "sigaction after readline");
 
 	free(actualprompt);
+
+	if (terminal_info_valid)
+		tcsetattr(STDIN_FILENO, TCSADRAIN, &old_terminal_info);
+
 	if (!line)
 		return -2;
+	if (!*skipspaces(line)) {
+		free(line);
+		return -1;
+	}
 
-	stripspaces(line);
-	if (*line) {
+	if (ptype == 1 || ptype == 2) {
 		switch (history_expand(line, &eline)) {
 			case 1:  /* expansion successful */
 				printf("%s\n", eline);
@@ -170,7 +202,8 @@ int yash_readline(char **result)
 				return -1;
 		}
 	} else {
-		return -1;
+		*result = line;
+		return 0;
 	}
 }
 

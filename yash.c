@@ -39,6 +39,7 @@ static void set_shlvl(int change);
 static void init_env(void);
 void init_interactive(void);
 void finalize_interactive(void);
+static int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__ ((noreturn));
 int main(int argc, char **argv);
 void print_help(void);
@@ -50,7 +51,10 @@ bool is_loginshell;
 /* 対話的シェルなら非 0 */
 bool is_interactive;
 
-/* 対話的シェルで無視するシグナルのリスト */
+/* プライマリプロンプトの前に実行するコマンド */
+char *prompt_command = NULL;
+
+/* シェルで無視するシグナルのリスト */
 const int ignsignals[] = {
 	SIGINT, SIGTERM, SIGTSTP, SIGTTIN, SIGTTOU, 0,
 };
@@ -230,43 +234,94 @@ void finalize_interactive(void)
 	}
 }
 
+/* PROMPT_COMMAND を実行する。
+ * 戻り値: 実行したコマンドの終了ステータス */
+static int exec_promptcommand(void)
+{
+	int resultstatus = 0;
+
+	if (prompt_command) {
+		STATEMENT *ss = parse_all(prompt_command, NULL);
+
+		if (ss) {
+			int tmpstatus = laststatus;
+			laststatus = 0;
+			exec_statements(ss);
+			statementsfree(ss);
+			resultstatus = laststatus;
+			laststatus = tmpstatus;
+		}
+	}
+	return resultstatus;
+}
+
 /* 対話的動作を行う。この関数は返らない。 */
 static void interactive_loop(void)
 {
+	bool more;
 	char *line;
+	struct strbuf linebuf;
 	STATEMENT *statements;
 
 	assert(is_interactive);
+	strbuf_init(&linebuf);
 	for (;;) {
-		switch (yash_readline(&line)) {
+		int ptype;
+
+		if (linebuf.length == 0) {
+			ptype = 1;
+			exec_promptcommand();
+		} else {
+			ptype = 2;
+		}
+		switch (yash_readline(ptype, &line)) {
 			case -2:  /* EOF */
 				printf("\n");
-				wait_all(-2 /* non-blocking */);
-				print_all_job_status(
-						true /* changed only */, false /* not verbose */);
-				if (job_count()) {
-					error(0, 0, "There are undone jobs!"
-							"  Use `exit -f' to exit forcibly.");
-					continue;
+				if (linebuf.length == 0) {
+					wait_all(-2 /* non-blocking */);
+					print_all_job_status(
+							true /* changed only */, false /* not verbose */);
+					if (job_count()) {
+						error(0, 0, "There are undone jobs!"
+								"  Use `exit -f' to exit forcibly.");
+						continue;
+					}
+					goto exit;
+				} else {
+					line = NULL;
+					break;
 				}
-				goto exit;
 			case -1:
 				continue;
-			case 0:  default:
+			case 0:
 				break;
+			default:
+				error(2, 0, "internal error: yash_readline result");
 		}
-		/* printf("parsing \"%s\"\n", line); */
-		statements = parse_all(line, NULL); /* XXX 複数行対応 */
-		if (!statements)
-			continue;
-
-		/* printf("count=%d\n", count); */
-		/* print_scmds(scmds, count, 0); */
-		exec_statements(statements);
-		statementsfree(statements);
+		if (line == NULL) {
+			statements = parse_all(linebuf.contents, NULL);
+			strbuf_clear(&linebuf);
+		} else if (linebuf.length == 0) {
+			statements = parse_all(line, &more);
+			if (more) {
+				strbuf_append(&linebuf, line);
+				strbuf_append(&linebuf, "\n");
+			}
+		} else {
+			strbuf_append(&linebuf, line);
+			strbuf_append(&linebuf, "\n");
+			statements = parse_all(linebuf.contents, &more);
+			if (!more)
+				strbuf_clear(&linebuf);
+		}
 		free(line);
+		if (statements) {
+			exec_statements(statements);
+			statementsfree(statements);
+		}
 	}
 exit:
+	strbuf_destroy(&linebuf);
 	yash_exit(laststatus);
 }
 
