@@ -112,8 +112,10 @@ static STATEMENT *parse_statements(const char **src)
 				++*src;
 				break;
 			default:  default_case:
-				temp->s_bg = false;
 				last = true;
+				/* falls thru! */
+			case '#':
+				temp->s_bg = false;
 				break;
 		}
 		*src = skipwhites(*src);
@@ -226,7 +228,7 @@ end:
 }
 
 /* 一つのコマンドを解析し、結果を p のアドレスに入れる。
- * この関数は解析に成功すれば p の p_type と p_body と p_subcmds を書き換える。
+ * この関数は解析に成功すれば p の p_type と p_args と p_subcmds を書き換える。
  * src:    解析するソースへのポインタ。
  *         解析成功なら解析し終わった後の位置まで進む。
  * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。 */
@@ -239,7 +241,7 @@ static bool parse_words(const char **src, PROCESS *p)
 			++*src;
 			*src = skipwhites(*src);
 			p->p_type = PT_SUBSHELL;
-			p->p_body = NULL;
+			p->p_args = NULL;
 			p->p_subcmds = parse_statements(src);
 			if (**src != ')') {
 				if (!**src && internal_more) {
@@ -259,7 +261,7 @@ static bool parse_words(const char **src, PROCESS *p)
 			++*src;
 			*src = skipwhites(*src);
 			p->p_type = PT_GROUP;
-			p->p_body = NULL;
+			p->p_args = NULL;
 			p->p_subcmds = parse_statements(src);
 			if (**src != '}') {
 				if (!**src && internal_more) {
@@ -282,10 +284,18 @@ static bool parse_words(const char **src, PROCESS *p)
 			break;
 	}
 
-	const char *end = skip_with_quote(*src, ";&|()#\n\r", true);
+	struct plist args;
+	plist_init(&args);
+	for (;;) {
+		const char *start = *src;
+		const char *end = skip_with_quote(start, " \t;&|()#\n\r", true);
+		if (start == end) break;
 
-	p->p_body = strchomp(xstrndup(*src, end - *src));
-	*src = end;
+		plist_append(&args, xstrndup(start, end - start));
+		*src = skipblanks(end);
+	}
+
+	p->p_args = (char **) plist_toary(&args);
 	if (**src == '(') {
 		error(0, 0, "syntax error: `(' is not allowed here");
 		internal_error = true;
@@ -449,6 +459,8 @@ static void print_processes(struct strbuf *b, PROCESS *p)
 /* 一つのプロセスを文字列に変換して文字列バッファに追加する。 */
 static void print_process(struct strbuf *b, PROCESS *p)
 {
+	bool f = false;
+
 	switch (p->p_type) {
 		case PT_NORMAL:
 			break;
@@ -456,16 +468,26 @@ static void print_process(struct strbuf *b, PROCESS *p)
 			strbuf_append(b, "{ ");
 			print_statements(b, p->p_subcmds);
 			strbuf_append(b, " }");
+			f = true;
 			break;
 		case PT_SUBSHELL:
 			strbuf_append(b, "( ");
 			print_statements(b, p->p_subcmds);
 			strbuf_append(b, " )");
+			f = true;
 			break;
 		default:
 			assert(false);
 	}
-	strbuf_append(b, p->p_body);
+	if (p->p_args) {
+		char **args = p->p_args;
+		while (*args) {
+			if (f) strbuf_append(b, " ");
+			strbuf_append(b, *args);
+			f = true;
+			args++;
+		}
+	}
 }
 
 ///* 文字列に含まれる数値の先頭位置を返す。
@@ -709,7 +731,10 @@ void redirsfree(REDIR *r)
 void procsfree(PROCESS *p)
 {
 	while (p) {
-		free(p->p_body);
+		if (p->p_args) {
+			for (char **args = p->p_args; *args; args++) free(*args);
+			free(p->p_args);
+		}
 		statementsfree(p->p_subcmds);
 
 		PROCESS *pp = p->next;

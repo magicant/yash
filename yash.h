@@ -157,18 +157,19 @@ struct _redirect {
 
 /* パイプラインに含まれる一つのプロセス */
 struct _process {
-	PROCESS   *next;       /* パイプライン内の次のプロセス */
+	PROCESS    *next;       /* パイプライン内の次のプロセス */
 	enum {
 		PT_NORMAL,    /* 普通のコマンド */
 		PT_GROUP,     /* 現在のシェルで実行するコマンド群: { ... } */
 		PT_SUBSHELL,  /* サブシェルで実行するコマンド群: ( ... ) */
-	}          p_type;
-	char      *p_body;
-	STATEMENT *p_subcmds;  /* プロセスに含まれる文の内容 */
+	}           p_type;
+	char      **p_args;
+	STATEMENT  *p_subcmds;  /* プロセスに含まれる文の内容 */
 };
 /* p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
- * p_subcmds に入る。p_body はコマンドの内容である。
- * p_subcmds が非 NULL のとき、p_body にはリダイレクト関連の記述が入る。 */
+ * p_subcmds に入る。p_args はコマンドの内容である。(空白ごとに分けただけで、
+ * パラメータの展開などは一切行っていない)
+ * p_subcmds が非 NULL のとき、p_args にはリダイレクト関連の記述が入る。 */
 
 /* 一つのパイプライン */
 struct _pipeline {

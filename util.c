@@ -409,7 +409,8 @@ void plist_init(struct plist *list)
 	list->maxlength = PLIST_INITSIZE;
 }
 
-/* 初期化済のポインタリストの内容を削除し、未初期化状態に戻す。 */
+/* 初期化済のポインタリストの内容を削除し、未初期化状態に戻す。
+ * 配列内の各要素は開放されないので注意。 */
 void plist_destroy(struct plist *list)
 {
 	free(list->contents);
