@@ -395,17 +395,14 @@ int main(int argc, char **argv)
 	init_env();
 
 	if (directcommand) {
-		//FIXME
-//		SCMD *scmds;
-//		ssize_t count;
-//		
-//		is_interactive = 0;
-//		count = parse_line(directcommand, &scmds);
-//		if (count < 0)
-//			return EXIT_SUCCESS;
-//		exec_list(scmds, count);
-//		scmdsfree(scmds, count);
-//		free(scmds);
+		directcommand = skipwhites(directcommand);
+		if (!*directcommand) return EXIT_SUCCESS;
+
+		STATEMENT *statements = parse_all(directcommand, NULL);
+		
+		is_interactive = 0;
+		if (!statements) return 2;  /* syntax error */
+		exec_statements(statements);
 		return laststatus;
 	}
 
