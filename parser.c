@@ -32,7 +32,6 @@ static void print_statements(struct strbuf *b, STATEMENT *s);
 static void print_pipelines(struct strbuf *b, PIPELINE *pl);
 static void print_processes(struct strbuf *b, PROCESS *p);
 static void print_process(struct strbuf *b, PROCESS *p);
-//char **expand_pipe(const char *pipesrc, REDIR **redirs);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);

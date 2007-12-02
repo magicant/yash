@@ -51,6 +51,15 @@ void strbuf_append(struct strbuf *buf, const char *s);
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap);
 int strbuf_printf(struct strbuf *buf, const char *format, ...);
 
+void plist_init(struct plist *list);
+void plist_destroy(struct plist *list);
+void **plist_toary(struct plist *list);
+void plist_setmax(struct plist *list, size_t newmax);
+void plist_trim(struct plist *list);
+void plist_clear(struct plist *list);
+void plist_insert(struct plist *list, size_t i, void *e);
+void plist_append(struct plist *list, void *e);
+
 
 /* calloc を試みる。失敗したらプログラムを強制終了する。
  * 戻り値: calloc の結果 */
@@ -324,7 +333,9 @@ void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
 		len = MIN(len, n);
 		i = MIN(i, buf->length);
 		if (len + buf->length > buf->maxlength) {
-			do buf->maxlength *= 2; while (len + buf->length > buf->maxlength);
+			do
+				buf->maxlength = buf->maxlength * 2 + 1;
+			while (len + buf->length > buf->maxlength);
 			buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
 		}
 		memmove(buf->contents + i + len, buf->contents + i, buf->length - i);
@@ -361,7 +372,9 @@ int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 	int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
 
 	if (result >= rest) {  /* バッファが足りない */
-		do buf->maxlength *= 2; while (result + buf->length > buf->maxlength);
+		do
+			buf->maxlength = buf->maxlength * 2 + 1;
+		while (result + buf->length > buf->maxlength);
 		buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
 		rest = buf->maxlength - buf->length + 1;
 		result = vsnprintf(buf->contents + buf->length, rest, format, ap);
@@ -382,4 +395,86 @@ int strbuf_printf(struct strbuf *buf, const char *format, ...)
 	result = strbuf_vprintf(buf, format, ap);
 	va_end(ap);
 	return result;
+}
+
+
+/********** ポインタリスト **********/
+
+/* 未初期化のポインタリストを初期化する。 */
+void plist_init(struct plist *list)
+{
+	list->contents = xmalloc((PLIST_INITSIZE + 1) * sizeof(void *));
+	list->contents[0] = NULL;
+	list->length = 0;
+	list->maxlength = PLIST_INITSIZE;
+}
+
+/* 初期化済のポインタリストの内容を削除し、未初期化状態に戻す。 */
+void plist_destroy(struct plist *list)
+{
+	free(list->contents);
+	*list = (struct plist) {
+		.contents = NULL,
+		.length = 0,
+		.maxlength = 0,
+	};
+}
+
+/* ポインタリストを開放し、内容を返す。ポインタリストは未初期化状態になる。
+ * 戻り値: ポインタリストに入っていた配列。この配列は呼び出し元で free
+ *         すべし。 */
+void **plist_toary(struct plist *list)
+{
+	plist_trim(list);
+
+	void **result = list->contents;
+	*list = (struct plist) {
+		.contents = NULL,
+		.length = 0,
+		.maxlength = 0,
+	};
+	return result;
+}
+
+/* ポインタリストの maxlength を変更する。短くしすぎると配列の末尾が消える */
+void plist_setmax(struct plist *list, size_t newmax)
+{
+	list->maxlength = newmax;
+	list->contents = xrealloc(list->contents, (newmax + 1) * sizeof(void *));
+	list->contents[newmax] = NULL;
+}
+
+/* ポインタリストの大きさを実際の内容ぎりぎりにする。 */
+void plist_trim(struct plist *list)
+{
+	list->maxlength = list->length;
+	list->contents = xrealloc(list->contents,
+			(list->maxlength + 1) * sizeof(void *));
+}
+
+/* ポインタリストを空にする。maxlength は変わらない。 */
+void plist_clear(struct plist *list)
+{
+	list->length = 0;
+	list->contents[list->length] = NULL;
+}
+
+/* ポインタリスト内の前から i 要素目に要素 e を挿入する。
+ * i が大きすぎて配列の末尾を越えていれば、配列の末尾に e を付け加える。 */
+void plist_insert(struct plist *list, size_t i, void *e)
+{
+	i = MIN(i, list->length);
+	if (list->length == list->maxlength) {
+		plist_setmax(list, list->maxlength * 2 + 1);
+	}
+	assert(list->length < list->maxlength);
+	list->contents[list->length] = e;
+	list->length++;
+	list->contents[list->length] = NULL;
+}
+
+/* ポインタリスト内の配列の末尾に要素 e を付け加える。 */
+void plist_append(struct plist *list, void *e)
+{
+	return plist_insert(list, SIZE_MAX, e);
 }

@@ -104,6 +104,21 @@ int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 int strbuf_printf(struct strbuf *buf, const char *format, ...)
 	__attribute__ ((format (printf, 2, 3)));
 
+#define PLIST_INITSIZE 8
+struct plist {
+	void **contents;
+	size_t length;
+	size_t maxlength;
+};
+void plist_init(struct plist *list);
+void plist_destroy(struct plist *list);
+void **plist_toary(struct plist *list);
+void plist_setmax(struct plist *list, size_t newmax);
+void plist_trim(struct plist *list);
+void plist_clear(struct plist *list);
+void plist_insert(struct plist *list, size_t i, void *e);
+void plist_append(struct plist *list, void *e);
+
 
 /* -- readline/history -- */
 
