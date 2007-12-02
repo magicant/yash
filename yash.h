@@ -72,7 +72,8 @@ char **straryclone(char **ary)
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
 char *skipwhites(const char *s);
-char *stripspaces(char *s);
+char *strchug(char *s);
+char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *read_all(int fd);
 

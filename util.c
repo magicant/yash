@@ -33,7 +33,8 @@ char **straryclone(char **ary);
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
 char *skipwhites(const char *s);
-char *stripspaces(char *s);
+char *strchug(char *s);
+char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *read_all(int fd);
 
@@ -101,7 +102,7 @@ char *xstrdup(const char *s)
  *      len をいくら大きくしても strlen(s) より長い文字列にはならない。 */
 char *xstrndup(const char *s, size_t len)
 {
-	char *result = strndup(s, len);
+	char *result = strndup(s, len);  // _GNU_SOURCE
 	if (!result)
 		error(2, ENOMEM, NULL);
 	return result;
@@ -153,7 +154,7 @@ char *skipwhites(const char *s)
 
 /* 文字列の先頭にある空白類文字 (スペースや改行) を削除する。
  * 文字列を直接書き換えた後、その文字列へのポインタ s を返す。 */
-char *stripspaces(char *s)
+char *strchug(char *s)
 {
 	size_t i = 0;
 
@@ -162,6 +163,18 @@ char *stripspaces(char *s)
 	if (i)
 		memmove(s, s + i, strlen(s + i) + 1);
 	return s;
+}
+
+/* 文字列の末尾にある空白類文字 (スペースや改行) を削除する。
+ * 文字列を直接書き換えた後、その文字列へのポインタ s を返す。 */
+char *strchomp(char *s)
+{
+	char *ss = s;
+
+	while (*s) s++;                    /* 文字列の末尾に移動 */
+	while (--s >= ss && isspace(*s));  /* 空白の分だけ戻る */
+	*++s = '\0';
+	return ss;
 }
 
 /* 配列に含まれる文字列を全て順に連結し、新しく malloc した文字列として返す。

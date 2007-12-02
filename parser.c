@@ -24,14 +24,15 @@ static STATEMENT *parse_statements(const char **src);
 static PIPELINE *parse_pipelines(const char **src);
 static PROCESS *parse_processes(const char **src, bool *neg, bool *loop);
 static bool parse_words(const char **src, PROCESS *process);
-static char *skip_token(const char *s);
+static char *skip_with_quote(const char *s, const char *delim, bool singquote);
+static char *skip_without_quote(const char *s, const char *delim);
 //static inline char *skipifs(const char *s);
 static char *make_statement_name(PIPELINE *pipelines);
 static void print_statements(struct strbuf *b, STATEMENT *s);
 static void print_pipelines(struct strbuf *b, PIPELINE *pl);
 static void print_processes(struct strbuf *b, PROCESS *p);
 static void print_process(struct strbuf *b, PROCESS *p);
-char **expand_pipe(const char *pipesrc, REDIR **redirs);
+//char **expand_pipe(const char *pipesrc, REDIR **redirs);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
@@ -282,10 +283,10 @@ static bool parse_words(const char **src, PROCESS *p)
 			break;
 	}
 
-	size_t len = strcspn(*src, ";&|()#\n\r");
+	const char *end = skip_with_quote(*src, ";&|()#\n\r", true);
 
-	p->p_body = xstrndup(*src, len);
-	*src += len;
+	p->p_body = strchomp(xstrndup(*src, end - *src));
+	*src = end;
 	if (**src == '(') {
 		error(0, 0, "syntax error: `(' is not allowed here");
 		internal_error = true;
@@ -293,11 +294,101 @@ static bool parse_words(const char **src, PROCESS *p)
 	return initpos != *src;
 }
 
-/* 引数をトークンの開始位置とみなして、次のトークンの先頭位置を返す。
- * すなわち、0 個以上の非空白文字と 1 個以上の空白文字を飛ばす。
- * 非空白文字ではバックスラッシュや引用符を認識する。
- * 改行は空白文字とはみなさない。 */
-static char *skip_token(const char *s);
+/* 引用符 (' と " と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが
+ * 現れるまで飛ばす。すなわち、delim に含まれない 0 個以上の文字を飛ばす。 */
+static char *skip_with_quote(const char *s, const char *delim, bool singquote)
+{
+	while (*s && !strchr(delim, *s)) {
+		switch (*s) {
+			case '\\':
+				if (s[1] == '\0') {
+					if (internal_more)
+						*internal_more = true;
+				} else {
+					s += 2;
+					continue;
+				}
+				break;
+			case '$':
+				switch (s[1]) {
+					case '{':
+						s = skip_with_quote(s + 2, "}", true);
+						if (*s != '}') {
+							if (!*s && internal_more) {
+								*internal_more = true;
+							} else {
+								error(0, 0, "syntax error: missing `}'");
+								internal_error = true;
+							}
+							goto end;
+						}
+						break;
+					case '(':
+						//if (s[2] == '(') {} // TODO 算術式展開
+						s = skipwhites(s + 2);
+						statementsfree(parse_statements(&s));
+						if (*s != ')') {
+							if (!*s && internal_more) {
+								*internal_more = true;
+							} else {
+								error(0, 0, "syntax error: missing `)'");
+								internal_error = true;
+							}
+							goto end;
+						}
+						break;
+				}
+				break;
+			case '\'':
+				s = skip_without_quote(s + 1, "'");
+				if (*s != '\'') {
+					if (!*s && internal_more) {
+						*internal_more = true;
+					} else {
+						error(0, 0, "syntax error: missing \"'\"'");
+						internal_error = true;
+					}
+					goto end;
+				}
+				break;
+			case '"':
+				s = skip_with_quote(s + 1, "\"", false);
+				if (*s != '"') {
+					if (!*s && internal_more) {
+						*internal_more = true;
+					} else {
+						error(0, 0, "syntax error: missing `\"'");
+						internal_error = true;
+					}
+					goto end;
+				}
+				break;
+			case '`':
+				s = skip_with_quote(s + 1, "`", true);
+				if (*s != '`') {
+					if (!*s && internal_more) {
+						*internal_more = true;
+					} else {
+						error(0, 0, "syntax error: missing '`'");
+						internal_error = true;
+					}
+					goto end;
+				}
+				break;
+		}
+		s++;
+	}
+end:
+	return (char *) s;
+}
+
+/* delim 内の文字のどれかが現れるまで飛ばす。すなわち、delim に含まれない 0
+ * 個以上の文字を飛ばす。s に含まれるエスケープなどは一切解釈しない。 */
+static char *skip_without_quote(const char *s, const char *delim)
+{
+	while (*s && !strchr(delim, *s)) s++;
+	return (char *) s;
+}
 
 /* 文字列の先頭にある IFS を飛ばして、
  * IFS でない最初の文字のアドレスを返す。 */
@@ -378,349 +469,6 @@ static void print_process(struct strbuf *b, PROCESS *p)
 	strbuf_append(b, p->p_body);
 }
 
-///* コマンド入力を解析する
-// * line:   コマンド入力。
-// * result: 解析成功なら結果を含む新しい SCMD の配列へのポインタが代入される
-// * 戻り値: 成功なら SCMD の個数、失敗なら -1 */
-//ssize_t parse_line(const char *line, SCMD **result) {
-//	ssize_t r = parse_commands(&line, result);
-//
-//	if (r < 0)
-//		return r;
-//	if (*line) {
-//		error(0, 0, "unsupported syntax");
-//		return -1;
-//	}
-//	return r;
-//}
-//
-///* & や | や ; で区切られた一連のコマンドを解析する。
-// * s:      解析する文字列へのポインタ。
-// *         解析成功なら解析が終わったところへのポインタに書き換えられる。
-// * result: 解析成功なら結果を含む新しい SCMD の配列へのポインタが代入される
-// * 戻り値: 成功なら SCMD の個数、失敗なら -1 */
-//ssize_t parse_commands(const char **s, SCMD **result) {
-//	SCMD *scmds = xmalloc(sizeof(SCMD));
-//	ssize_t arylen = 1;
-//	ssize_t count = 0;
-//	const char *ss = *s;
-//
-//	ss = parse_scmd(ss, scmds + count);
-//	if (!ss)
-//		goto error;
-//	count++;
-//
-//	for (;;) {
-//		switch (*ss) {
-//			default:
-//			case '\n':  case '(':  case '{':  case '}':
-//				error(0, 0, "unsupported syntax");
-//				goto error;
-//			case '#':
-//				ss += strlen(ss);
-//				/* falls thru! */
-//			case '\0':  case ')':
-//				if (check_parse_result(scmds, count))
-//					goto error;
-//				*result = scmds;
-//				*s = ss;
-//				return count;
-//			case ';':
-//				scmds[count - 1].c_type = CT_END;
-//				ss++;
-//				goto next;
-//			case '&':
-//				if (*++ss == '&') {
-//					ss++;
-//					scmds[count - 1].c_type = CT_AND;
-//				} else {
-//					scmds[count - 1].c_type = CT_BG;
-//				}
-//				goto next;
-//			case '|':
-//				if (*++ss == '|') {
-//					ss++;
-//					scmds[count - 1].c_type = CT_OR;
-//				} else {
-//					scmds[count - 1].c_type = CT_PIPED;
-//				}
-//				/* falls thru! */
-//			next:
-//				if (count == arylen) {
-//					assert(arylen > 0);
-//					arylen *= 2;
-//					scmds = xrealloc(scmds, arylen * sizeof(SCMD));
-//				}
-//				ss = parse_scmd(ss, scmds + count);
-//				if (!ss)
-//					goto error;
-//				count++;
-//				break;
-//		}
-//	}
-//
-//error:
-//	scmdsfree(scmds, count);
-//	free(scmds);
-//	return -1;
-//}
-//
-///* 解析結果が正しいかどうか検証する。
-// * 戻り値: 結果が正しければ、0。結果が不正なら -1。 */
-//static int check_parse_result(SCMD *scmds, ssize_t count)
-//{
-//	assert(count > 0);
-//	for (ssize_t i = 0; i < count; i++) {
-//		assert((!!scmds[i].c_argv) != (!!scmds[i].c_subcmds));
-//		if (scmds[i].c_argv && scmds[i].c_argc == 0) {
-//			/* if (i + 1 != count)
-//				goto error;
-//			if (i > 0 && scmds[i-1].c_type == CT_PIPED)
-//				goto error; */
-//			if (!i && count >= 2)
-//				goto error;
-//			switch (scmds[i].c_type) {
-//				case CT_PIPED:
-//					goto error;
-//				case CT_END:
-//					if (i + 1 == count)
-//						break;
-//					/* falls thru */
-//				case CT_BG:
-//					if (scmds[i-1].c_type != CT_PIPED)
-//						goto error;
-//					break;
-//				default:
-//					break;
-//			}
-//			switch (scmds[i-1].c_type) {
-//				case CT_AND:  case CT_OR:
-//					goto error;
-//				default:
-//					break;
-//			}
-//		}
-//	}
-//	return 0;
-//
-//error:
-//	error(0, 0, "syntax error");
-//	return -1;
-//}
-//
-///* コマンド入力から一つの SCMD を解析する。
-// * s: コマンド入力
-// * scmd: 結果がこれに入る
-// * 戻り値: 成功ならつぎに解析すべき文字へのポインタ、失敗なら NULL。 */
-//static const char *parse_scmd(const char *s, SCMD *scmd)
-//{
-//	wordexp_t we;
-//	REDIR *redirs = NULL;
-//	size_t redircnt = 0, redirsize = 0;
-//	char *olds = NULL;
-//
-//	s = skipwhites(s);
-//	if (*s == '(')
-//		return parse_subexp(s, scmd);
-//	s = olds = expand_alias(s);
-//	s = try_wordexp(s, &we, 0);
-//	if (!s)
-//		goto error;
-//
-//	for (;;) {
-//		switch (*s) {
-//			case '\n':  case ';':  case '(':  case ')':  case '{':  case '}':
-//			case '\0':  case '#':  case '|':  case '&':
-//				scmd->c_type = CT_END;
-//				scmd->c_argc = we.we_wordc;
-//				scmd->c_argv = straryclone(we.we_wordv);
-//				scmd->c_subcmds = NULL;
-//				scmd->c_redir = redirs;
-//				scmd->c_redircnt = redircnt;
-//				scmd->c_name = xstrndup(olds, s - olds);
-//				wordfree(&we);
-//				return s;
-//			case '<':  case '>':  case '0':  case '1':  case '2':  case '3':
-//			case '4':  case '5':  case '6':  case '7':  case '8':  case '9':
-//				if (!redirs) {
-//					redirs = xmalloc(sizeof(REDIR));
-//					redirsize = 1;
-//				} else if (redircnt == redirsize) {
-//					assert(redirsize > 0);
-//					redirsize *= 2;
-//					redirs = xrealloc(redirs, redirsize * sizeof(REDIR));
-//				}
-//				s = parse_redir(s, &redirs[redircnt]);
-//				if (!s)
-//					goto error;
-//				redircnt++;
-//				break;
-//			default:
-//				assert(0);
-//		}
-//		s = try_wordexp(s, &we, WRDE_APPEND);
-//		if (!s) goto error;
-//	}
-//
-//error:
-//	if (olds)
-//		free(olds);
-//	if (redirs) {
-//		redirsfree(redirs, redircnt);
-//		free(redirs);
-//	}
-//	return NULL;
-//}
-//
-///* wordexp を試みる。
-// * 失敗すると、wordfree を行って NULL を返す。
-// * s:      コマンド入力。文字列の内容は (見掛け上) 変更されない。
-// * p:      これに結果が入れられる
-// * flags:  wordexp するときのフラグ
-// * 戻り値: 成功したら、find_end_of_command_body の結果の値。失敗したら NULL */
-//static const char *try_wordexp(const char *s, wordexp_t *p, int flags)
-//{
-//	char *eoc = (char *) find_end_of_command_body(s);
-//	char temp;
-//	int wordexpresult;
-//
-//	if (!eoc)
-//		return NULL;
-//	if (!(flags & (WRDE_APPEND | WRDE_REUSE)))
-//		p->we_wordv = NULL;
-//	temp = *eoc;
-//	*eoc = '\0';
-//	wordexpresult = wordexp(s, p, flags);
-//	*eoc = temp;
-//	switch (wordexpresult) {
-//		case 0:  /* success */
-//			return eoc;
-//		case WRDE_BADCHAR:
-//			error(0, 0, "unsupported syntax");
-//			break;
-//		case WRDE_BADVAL:
-//			error(0, 0, "undefined variable");
-//			break;
-//		case WRDE_CMDSUB:
-//			error(0, 0, "command substitution disabled");
-//			break;
-//		case WRDE_NOSPACE:
-//			error(0, 0, "memory shortage");
-//			break;
-//		case WRDE_SYNTAX:
-//			error(0, 0, "syntax error");
-//			break;
-//		default:
-//			assert(0);
-//	}
-//	if (p->we_wordv)
-//		wordfree(p);
-//	return NULL;  /* error */
-//}
-//
-///* コマンドのうち、wordexp に渡す部分の直後の位置のアドレスを返す。
-// * コマンドを全部 wordexp に渡せるならば s の終端の \0 のアドレスを返す。
-// * コマンドの書式が不正・未対応だと分かったときはエラーを出力して NULL を返す。
-// * s:      コマンドライン入力 */
-//static const char *find_end_of_command_body(const char *s)
-//{
-//	const char *olds = s;
-//
-//	for (;;) {
-//		s += strcspn(s, "$\"'\\|&;()<>\n#");
-//		switch (*s) {
-//			case '$':
-//				if (*++s == '(') {
-//					SCMD *inner;
-//					ssize_t innercount;
-//
-//					s++;
-//					innercount = parse_commands(&s, &inner);
-//					if (innercount < 0)
-//						return NULL;
-//					if (*s++ != ')') {
-//						error(0, 0, "invalid syntax: missing ')'");
-//						return NULL;
-//					}
-//					scmdsfree(inner, innercount);
-//					free(inner);
-//				}
-//				break;
-//			case '"':
-//				s = find_end_of_dquote(s + 1);
-//				if (!s)
-//					return NULL;
-//				break;
-//			case '\'':
-//				s = strchr(s + 1, '\'');
-//				if (!s) {
-//					error(0, 0, "unclosed string");
-//					return NULL;
-//				}
-//				s++;
-//				break;
-//			case '\\':
-//				if (!*++s) {
-//					error(0, 0, "invalid use of '\\'");
-//					return NULL;
-//				}
-//				s++;
-//				break;
-//			case '\n':
-//				error(0, 0, "invalid newline in command");
-//				return NULL;
-//			case '<':  case '>':
-//				return find_start_of_number(olds, s);
-//			default:
-//				return s;
-//		}
-//	}
-//}
-//
-///* " で囲まれた文字列の終わりのアドレスを返す
-// * 文字列を閉じる " が見付からない場合は NULL を返す。
-// * s:      文字列の始まりの " の次の文字のアドレス
-// * 戻り値: 文字列を閉じる " の次の文字のアドレス、または NULL */
-//static const char *find_end_of_dquote(const char *s)
-//{
-//	for (;;) {
-//		s += strcspn(s, "$\\\"");
-//		switch (*s) {
-//			case '$':
-//				if (*++s == '(') {
-//					SCMD *inner;
-//					ssize_t innercount;
-//
-//					s++;
-//					innercount = parse_commands(&s, &inner);
-//					if (innercount < 0)
-//						return NULL;
-//					if (*s++ != ')') {
-//						error(0, 0, "invalid syntax: missing ')'");
-//						return NULL;
-//					}
-//					scmdsfree(inner, innercount);
-//					free(inner);
-//				}
-//				break;
-//			case '\\':
-//				if (!*++s) {
-//					error(0, 0, "invalid use of '\\'");
-//					return NULL;
-//				}
-//				s++;
-//				break;
-//			case '"':
-//				return s + 1;
-//			case '\0':
-//				error(0, 0, "unclosed string");
-//				return NULL;
-//			default:
-//				assert(0);
-//		}
-//	}
-//}
-//
 ///* 文字列に含まれる数値の先頭位置を返す。
 // * s: 文字列全体の先頭のアドレス
 // * t: 文字列のうち、数値 (0~9 のみからなる部分文字列) の次の文字のアドレス。
@@ -948,7 +696,7 @@ static void print_process(struct strbuf *b, PROCESS *p)
 //		return NULL;
 //	return xstrndup(s, len);
 //}
-//
+
 void redirsfree(REDIR *r)
 {
 	while (r) {
