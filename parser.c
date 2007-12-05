@@ -20,10 +20,10 @@
 
 
 STATEMENT *parse_all(const char *src, bool *more);
-static STATEMENT *parse_statements(const char **src);
-static PIPELINE *parse_pipelines(const char **src);
-static PROCESS *parse_processes(const char **src, bool *neg, bool *loop);
-static bool parse_words(const char **src, PROCESS *process);
+static STATEMENT *parse_statements();
+static PIPELINE *parse_pipelines();
+static PROCESS *parse_processes(bool *neg, bool *loop);
+static bool parse_words(PROCESS *process);
 static char *skip_with_quote(const char *s, const char *delim, bool singquote);
 static char *skip_without_quote(const char *s, const char *delim);
 //static inline char *skipifs(const char *s);
@@ -37,10 +37,12 @@ void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
 
-static bool *internal_more;
-static bool internal_error;
+static bool *i_more;
+static bool i_error;
+static struct strbuf i_src;
+static char *i_sp;
 
-static char *ifs;
+//static char *ifs;
 
 /* コマンド入力を解析するエントリポイント。
  * src:    ソースコード
@@ -51,24 +53,28 @@ static char *ifs;
 /* この関数はリエントラントではない */
 STATEMENT *parse_all(const char *src, bool *more)
 {
-	/* *internal_more が true なら internal_error は false のまま */
-	internal_more = more;
-	if (internal_more)
-		*internal_more = false;
-	internal_error = false;
-	src = skipwhites(src);
+	/* *i_more が true なら i_error は false のまま */
+	i_more = more;
+	if (i_more)
+		*i_more = false;
+	i_error = false;
+	strbuf_init(&i_src);
+	strbuf_append(&i_src, src);
+	i_sp = i_src.contents;
+	i_sp = skipwhites(i_sp);
 
-	STATEMENT *result = parse_statements(&src);
-	if (*src) {
-		error(0, 0, "syntax error: invalid character: `%c'", *src);
-		internal_error = true;
+	STATEMENT *result = parse_statements();
+	if (*i_sp) {
+		error(0, 0, "syntax error: invalid character: `%c'", *i_sp);
+		i_error = true;
 	}
-	if (internal_error && internal_more)
-		*internal_more = false;
-	if (internal_error || (internal_more && *internal_more)) {
+	if (i_error && i_more)
+		*i_more = false;
+	if (i_error || (i_more && *i_more)) {
 		statementsfree(result);
-		return NULL;
+		result = NULL;
 	}
+	strbuf_destroy(&i_src);
 	return result;
 }
 
@@ -76,15 +82,15 @@ STATEMENT *parse_all(const char *src, bool *more)
  * src:    解析するソースへのポインタ。
  *         解析成功なら解析し終わった後の位置まで進む。
  * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
-static STATEMENT *parse_statements(const char **src)
+static STATEMENT *parse_statements()
 {
 	STATEMENT *first = NULL, **lastp = &first;
 
-	while (**src) {
-		if (**src == ';' || **src == '&') {
-			error(0, 0, "syntax error: unexpected `%c'", **src);
-			++*src;
-			internal_error = true;
+	while (*i_sp) {
+		if (*i_sp == ';' || *i_sp == '&') {
+			error(0, 0, "syntax error: unexpected `%c'", *i_sp);
+			i_sp++;
+			i_error = true;
 			goto end;
 		}
 
@@ -92,24 +98,24 @@ static STATEMENT *parse_statements(const char **src)
 		bool last = false;
 
 		temp->next = NULL;
-		temp->s_pipeline = parse_pipelines(src);
+		temp->s_pipeline = parse_pipelines();
 		if (!temp->s_pipeline) {
 			free(temp);
 			goto end;
 		}
 		temp->s_name = make_statement_name(temp->s_pipeline);
-		switch (**src) {
+		switch (*i_sp) {
 			case ';':
-				if ((*src)[1] == ';')
+				if ((i_sp)[1] == ';')
 					goto default_case;
 				/* falls thru! */
 			case '\n':  case '\r':
 				temp->s_bg = false;
-				++*src;
+				i_sp++;
 				break;
 			case '&':
 				temp->s_bg = true;
-				++*src;
+				i_sp++;
 				break;
 			default:  default_case:
 				last = true;
@@ -118,7 +124,7 @@ static STATEMENT *parse_statements(const char **src)
 				temp->s_bg = false;
 				break;
 		}
-		*src = skipwhites(*src);
+		i_sp = skipwhites(i_sp);
 		*lastp = temp;
 		lastp = &temp->next;
 		if (last)
@@ -132,15 +138,15 @@ end:
  * src:    解析するソースへのポインタ。
  *         解析成功なら解析し終わった後の位置まで進む。
  * 戻り値: 成功したらその結果。失敗したら途中結果または NULL。 */
-static PIPELINE *parse_pipelines(const char **src)
+static PIPELINE *parse_pipelines()
 {
 	PIPELINE *first = NULL, **lastp = &first;
 
 	for (;;) {
-		if (**src == '|' || **src == '&') {
-			error(0, 0, "syntax error: unexpected `%c'", **src);
-			++*src;
-			internal_error = true;
+		if (*i_sp == '|' || *i_sp == '&') {
+			error(0, 0, "syntax error: unexpected `%c'", *i_sp);
+			i_sp++;
+			i_error = true;
 			goto end;
 		}
 
@@ -148,25 +154,25 @@ static PIPELINE *parse_pipelines(const char **src)
 		bool last = false;
 
 		temp->next = NULL;
-		temp->pl_proc = parse_processes(src, &temp->pl_neg, &temp->pl_loop);
+		temp->pl_proc = parse_processes(&temp->pl_neg, &temp->pl_loop);
 		if (!temp->pl_proc) {
 			free(temp);
 			if (first) {
-				if (!**src && internal_more) {
-					*internal_more = true;
+				if (!*i_sp && i_more) {
+					*i_more = true;
 				} else {
 					error(0, 0, "syntax error: no command after `&&' or `||'");
-					internal_error = true;
+					i_error = true;
 				}
 			}
 			goto end;
 		}
-		if (strncmp(*src, "||", 2) == 0) {
+		if (strncmp(i_sp, "||", 2) == 0) {
 			temp->pl_next_cond = false;
-			*src = skipblanks(*src + 2);
-		} else if (strncmp(*src, "&&", 2) == 0) {
+			i_sp = skipblanks(i_sp + 2);
+		} else if (strncmp(i_sp, "&&", 2) == 0) {
 			temp->pl_next_cond = true;
-			*src = skipblanks(*src + 2);
+			i_sp = skipblanks(i_sp + 2);
 		} else {
 			last = true;
 		}
@@ -186,36 +192,36 @@ end:
  *         このポインタが指す先に入る。
  * loop:   パイプラインが環状であるかどうかがこのポインタの指す先に入る。
  * 戻り値: 成功したらその結果。失敗したら途中結果または NULL。 */
-static PROCESS *parse_processes(const char **src, bool *neg, bool *loop)
+static PROCESS *parse_processes(bool *neg, bool *loop)
 {
 	PROCESS *first = NULL, **lastp = &first;
 
-	if (**src == '!') {
+	if (*i_sp == '!') {
 		*neg = true;
-		++*src;
-		*src = skipblanks(*src);
+		i_sp++;
+		i_sp = skipblanks(i_sp);
 	} else {
 		*neg = false;
 	}
-	while (**src) {
-		if ((*src)[0] == '|' && (*src)[1] != '|') {
-			error(0, 0, "syntax error: unexpected `%c'", **src);
-			++*src;
-			internal_error = true;
+	while (*i_sp) {
+		if (i_sp[0] == '|' && i_sp[1] != '|') {
+			error(0, 0, "syntax error: unexpected `%c'", *i_sp);
+			i_sp++;
+			i_error = true;
 			goto end;
 		}
 
 		PROCESS *temp = xmalloc(sizeof *temp);
 		temp->next = NULL;
-		if (!parse_words(src, temp)) {
+		if (!parse_words(temp)) {
 			free(temp);
 			goto end;
 		}
 
-		if ((*src)[0] == '|' && (*src)[1] != '|') {
+		if (i_sp[0] == '|' && i_sp[1] != '|') {
 			*loop = true;
-			++*src;
-			*src = skipblanks(*src);
+			i_sp++;
+			i_sp = skipblanks(i_sp);
 		} else {
 			*loop = false;
 		}
@@ -232,52 +238,57 @@ end:
  * src:    解析するソースへのポインタ。
  *         解析成功なら解析し終わった後の位置まで進む。
  * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。 */
-static bool parse_words(const char **src, PROCESS *p)
+static bool parse_words(PROCESS *p)
 {
-	const char *initpos = *src;
+	char *initpos = i_sp;
+	bool result;
 
-	switch (**src) {
+	//expand_alias();
+	switch (*i_sp) {
 		case '(':
-			++*src;
-			*src = skipwhites(*src);
+			i_sp++;
+			i_sp = skipwhites(i_sp);
 			p->p_type = PT_SUBSHELL;
 			p->p_args = NULL;
-			p->p_subcmds = parse_statements(src);
-			if (**src != ')') {
-				if (!**src && internal_more) {
-					*internal_more = true;
+			p->p_subcmds = parse_statements();
+			if (*i_sp != ')') {
+				if (!*i_sp && i_more) {
+					*i_more = true;
 				} else {
 					error(0, 0, "syntax error: missing `)'");
-					internal_error = true;
+					i_error = true;
 				}
-				return true;
+				result = true;
+				goto end;
 			}
-			++*src;
-			*src = skipblanks(*src);
+			i_sp++;
+			i_sp = skipblanks(i_sp);
 			break;
 		case '{':
 			/* TODO: "{" はそれ自体はトークンではないので、"{abc" のような場合を
 			 * 除外しないといけない。 */
-			++*src;
-			*src = skipwhites(*src);
+			i_sp++;
+			i_sp = skipwhites(i_sp);
 			p->p_type = PT_GROUP;
 			p->p_args = NULL;
-			p->p_subcmds = parse_statements(src);
-			if (**src != '}') {
-				if (!**src && internal_more) {
-					*internal_more = true;
+			p->p_subcmds = parse_statements();
+			if (*i_sp != '}') {
+				if (!*i_sp && i_more) {
+					*i_more = true;
 				} else {
 					error(0, 0, "syntax error: missing `}'");
-					internal_error = true;
+					i_error = true;
 				}
-				return true;
+				result = true;
+				goto end;
 			}
-			++*src;
-			*src = skipblanks(*src);
+			i_sp++;
+			i_sp = skipblanks(i_sp);
 			break;
 		case ')':
 		case '}':
-			return false;
+			result = false;
+			goto end;
 		default:
 			p->p_type = PT_NORMAL;
 			p->p_subcmds = NULL;
@@ -287,20 +298,21 @@ static bool parse_words(const char **src, PROCESS *p)
 	struct plist args;
 	plist_init(&args);
 	for (;;) {
-		const char *start = *src;
-		const char *end = skip_with_quote(start, " \t;&|()#\n\r", true);
-		if (start == end) break;
+		char *end = skip_with_quote(i_sp, " \t;&|()#\n\r", true);
+		if (i_sp == end) break;
 
-		plist_append(&args, xstrndup(start, end - start));
-		*src = skipblanks(end);
+		plist_append(&args, xstrndup(i_sp, end - i_sp));
+		i_sp = skipblanks(end);
 	}
 
 	p->p_args = (char **) plist_toary(&args);
-	if (**src == '(') {
+	if (*i_sp == '(') {
 		error(0, 0, "syntax error: `(' is not allowed here");
-		internal_error = true;
+		i_error = true;
 	}
-	return initpos != *src;
+	result = (initpos != i_sp);
+end:
+	return result;
 }
 
 /* 引用符 (' と " と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが
@@ -311,8 +323,8 @@ static char *skip_with_quote(const char *s, const char *delim, bool singquote)
 		switch (*s) {
 			case '\\':
 				if (s[1] == '\0') {
-					if (internal_more)
-						*internal_more = true;
+					if (i_more)
+						*i_more = true;
 				} else {
 					s += 2;
 					continue;
@@ -323,11 +335,11 @@ static char *skip_with_quote(const char *s, const char *delim, bool singquote)
 					case '{':
 						s = skip_with_quote(s + 2, "}", true);
 						if (*s != '}') {
-							if (!*s && internal_more) {
-								*internal_more = true;
+							if (!*s && i_more) {
+								*i_more = true;
 							} else {
 								error(0, 0, "syntax error: missing `}'");
-								internal_error = true;
+								i_error = true;
 							}
 							goto end;
 						}
@@ -337,11 +349,11 @@ static char *skip_with_quote(const char *s, const char *delim, bool singquote)
 						s = skipwhites(s + 2);
 						statementsfree(parse_statements(&s));
 						if (*s != ')') {
-							if (!*s && internal_more) {
-								*internal_more = true;
+							if (!*s && i_more) {
+								*i_more = true;
 							} else {
 								error(0, 0, "syntax error: missing `)'");
-								internal_error = true;
+								i_error = true;
 							}
 							goto end;
 						}
@@ -351,11 +363,11 @@ static char *skip_with_quote(const char *s, const char *delim, bool singquote)
 			case '\'':
 				s = skip_without_quote(s + 1, "'");
 				if (*s != '\'') {
-					if (!*s && internal_more) {
-						*internal_more = true;
+					if (!*s && i_more) {
+						*i_more = true;
 					} else {
 						error(0, 0, "syntax error: missing \"'\"'");
-						internal_error = true;
+						i_error = true;
 					}
 					goto end;
 				}
@@ -363,11 +375,11 @@ static char *skip_with_quote(const char *s, const char *delim, bool singquote)
 			case '"':
 				s = skip_with_quote(s + 1, "\"", false);
 				if (*s != '"') {
-					if (!*s && internal_more) {
-						*internal_more = true;
+					if (!*s && i_more) {
+						*i_more = true;
 					} else {
 						error(0, 0, "syntax error: missing `\"'");
-						internal_error = true;
+						i_error = true;
 					}
 					goto end;
 				}
@@ -375,11 +387,11 @@ static char *skip_with_quote(const char *s, const char *delim, bool singquote)
 			case '`':
 				s = skip_with_quote(s + 1, "`", true);
 				if (*s != '`') {
-					if (!*s && internal_more) {
-						*internal_more = true;
+					if (!*s && i_more) {
+						*i_more = true;
 					} else {
 						error(0, 0, "syntax error: missing '`'");
-						internal_error = true;
+						i_error = true;
 					}
 					goto end;
 				}
@@ -731,10 +743,7 @@ void redirsfree(REDIR *r)
 void procsfree(PROCESS *p)
 {
 	while (p) {
-		if (p->p_args) {
-			for (char **args = p->p_args; *args; args++) free(*args);
-			free(p->p_args);
-		}
+		recfree((void **) p->p_args);
 		statementsfree(p->p_subcmds);
 
 		PROCESS *pp = p->next;

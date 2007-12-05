@@ -26,10 +26,6 @@
 #include "yash.h"
 #include <assert.h>
 
-#ifndef NDEBUG
-#include <fcntl.h>
-#endif
-
 
 void setsigaction(void);
 void resetsigaction(void);

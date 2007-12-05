@@ -20,7 +20,7 @@ void remove_all_aliases(void);
 const char *get_alias(const char *name);
 const ALIAS *get_all_aliases(void);
 int for_all_aliases(int (*func)(const char *name, const char *value));
-char *expand_alias(const char *s);
+//char *expand_alias(const char *s);
 
 
 /* エイリアスの配列。
@@ -145,32 +145,32 @@ int for_all_aliases(int (*func)(const char *name, const char *value))
 	return 0;
 }
 
-/* エイリアスを展開する。
- * 文字列の先頭にあるトークンに一致するエイリアスの名前があれば、
- * そのトークンをエイリアスの値に置き換える。
- * 戻り値: エイリアスが見付かったかどうかにかかわらず、新しく malloc
- *         した文字列が返る。エイリアスが見付からなかったら、文字列の内容は元の
- *         s に等しい。何かエラーが発生したら、NULL が返る。 */
-char *expand_alias(const char *s)
-{
-	size_t stokenlen = strcspn(s, " \t\"'\\|&;<>(){}\n#");
-	char *aliasname;
-	const char *aliasvalue;
-	char *result;
-	size_t resultlen;
-
-	if (!stokenlen)
-		goto notfound;
-	aliasname = xstrndup(s, stokenlen);
-	aliasvalue = get_alias(aliasname);
-	if (!aliasvalue)
-		goto notfound;
-	resultlen = strlen(aliasvalue) + strlen(s + stokenlen);
-	result = xmalloc(resultlen + 1);
-	strcpy(result, aliasvalue);
-	strcat(result, s + stokenlen);
-	return result;
-
-notfound:
-	return xstrdup(s);
-}
+///* エイリアスを展開する。
+// * 文字列の先頭にあるトークンに一致するエイリアスの名前があれば、
+// * そのトークンをエイリアスの値に置き換える。
+// * 戻り値: エイリアスが見付かったかどうかにかかわらず、新しく malloc
+// *         した文字列が返る。エイリアスが見付からなかったら、文字列の内容は元の
+// *         s に等しい。何かエラーが発生したら、NULL が返る。 */
+//char *expand_alias(const char *s)
+//{
+//	size_t stokenlen = strcspn(s, " \t\"'\\|&;<>()\n\r#");
+//	char *aliasname;
+//	const char *aliasvalue;
+//	char *result;
+//	size_t resultlen;
+//
+//	if (!stokenlen || s[stokenlen] == '\\')
+//		goto notfound;
+//	aliasname = xstrndup(s, stokenlen);
+//	aliasvalue = get_alias(aliasname);
+//	if (!aliasvalue)
+//		goto notfound;
+//	resultlen = strlen(aliasvalue) + strlen(s + stokenlen);
+//	result = xmalloc(resultlen + 1);
+//	strcpy(result, aliasvalue);
+//	strcat(result, s + stokenlen);
+//	return result;
+//
+//notfound:
+//	return xstrdup(s);
+//}

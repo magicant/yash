@@ -30,6 +30,7 @@ void *xrealloc(void *ptr, size_t size);
 char *xstrdup(const char *s);
 char *xstrndup(const char *s, size_t len);
 char **straryclone(char **ary);
+void recfree(void **ary);
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
 char *skipwhites(const char *s);
@@ -59,6 +60,16 @@ void plist_trim(struct plist *list);
 void plist_clear(struct plist *list);
 void plist_insert(struct plist *list, size_t i, void *e);
 void plist_append(struct plist *list, void *e);
+
+void ht_init(struct hasht *ht);
+void ht_destroy(struct hasht *ht);
+void ht_ensurecap(struct hasht *ht, size_t newcap);
+void ht_trim(struct hasht *ht);
+void ht_clear(struct hasht *ht);
+void *ht_set(struct hasht *ht, const char *key, void *value);
+void *ht_get(struct hasht *ht, const char *key);
+void *ht_remove(struct hasht *ht, const char *key);
+int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
 
 
 /* calloc を試みる。失敗したらプログラムを強制終了する。
@@ -129,6 +140,15 @@ char **straryclone(char **ary)
 	for (size_t i = 0; i < count; i++)
 		result[i] = xstrdup(ary[i]);
 	return result;
+}
+
+/* NULL 終端のポインタの配列を、その要素も含めて開放する。 */
+void recfree(void **ary)
+{
+	if (ary) {
+		for (void **a = ary; *a; a++) free(*a);
+		free(ary);
+	}
 }
 
 /* 文字列の先頭にある空白文字 (スペースまたはタブ) を飛ばして、
@@ -479,3 +499,16 @@ void plist_append(struct plist *list, void *e)
 {
 	return plist_insert(list, SIZE_MAX, e);
 }
+
+
+/********** Hashtable **********/
+
+void ht_init(struct hasht *ht);
+void ht_destroy(struct hasht *ht);
+void ht_ensurecap(struct hasht *ht, size_t newcap);
+void ht_trim(struct hasht *ht);
+void ht_clear(struct hasht *ht);
+void *ht_set(struct hasht *ht, const char *key, void *value);
+void *ht_get(struct hasht *ht, const char *key);
+void *ht_remove(struct hasht *ht, const char *key);
+int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
