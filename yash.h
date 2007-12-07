@@ -100,6 +100,7 @@ void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
 void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
 void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
 void strbuf_append(struct strbuf *buf, const char *s);
+void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 	__attribute__ ((format (printf, 2, 0)));
 int strbuf_printf(struct strbuf *buf, const char *format, ...)
@@ -299,22 +300,22 @@ BUILTIN assoc_builtin(const char *name);
 
 /* -- エイリアス -- */
 
-/* エイリアスのエントリ。
- * ALIAS データは連鎖リストとして定義される */
-/* エイリアスの name と value の領域は一度に malloc される:
- * エイリアスを削除するときは name のみを free し、value を free してはならない
- */
-typedef struct alias_t {
-	const char *name, *value;
-	struct alias_t *next;
+/* エイリアスのエントリ。 */
+/* inhibit_len はエイリアスを展開する際に使う。 */
+typedef struct alias {
+	char   *value;
+	bool    global;
+	size_t  valid_len;
 } ALIAS;
 
-int set_alias(const char *name, const char *value);
+void init_alias(void);
+void set_alias(const char *name, const char *value, bool global);
 int remove_alias(const char *name);
 void remove_all_aliases(void);
-const char *get_alias(const char *name);
-const ALIAS *get_all_aliases(void);
-int for_all_aliases(int (*func)(const char *name, const char *value));
+ALIAS *get_alias(const char *name);
+int for_all_aliases(int (*func)(const char *name, ALIAS *alias));
+void alias_reset(void);
+void expand_alias(struct strbuf *buf, size_t i, bool global);
 
 
 #endif  /* YASH_H */

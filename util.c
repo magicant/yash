@@ -49,6 +49,7 @@ void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
 void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
 void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
 void strbuf_append(struct strbuf *buf, const char *s);
+void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap);
 int strbuf_printf(struct strbuf *buf, const char *format, ...);
 
@@ -387,6 +388,27 @@ void strbuf_append(struct strbuf *buf, const char *s)
 	return strbuf_nappend(buf, s, SIZE_MAX);
 }
 
+/* 文字列バッファの i 文字目から n 文字を s に置き換える。
+ * s は buf->contents の一部であってはならない。 */
+void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
+{
+	size_t slen = strlen(s);
+	n = MIN(n, buf->length - i);
+	if (n >= slen) {
+		memcpy(buf->contents + i, s, slen);
+		if (n > slen) {
+			/* contents が短くなる場合 */
+			memmove(buf->contents + i + slen, buf->contents + i + n,
+					buf->length - i - n + 1);
+			buf->length -= n - slen;
+		}
+	} else {
+		/* contents が長くなる場合 */
+		memcpy(buf->contents + i, s, n);
+		strbuf_insert(buf, i + n, s + n);
+	}
+}
+
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 {
@@ -511,8 +533,10 @@ void plist_append(struct plist *list, void *e)
 static unsigned ht_hashstr(const char *s)
 {
 	unsigned h = 0;
-	while (*s)
-		h = (h * 31 + (unsigned) s) ^ 0x55555555u;
+	while (*s) {
+		h = (h * 31 + (unsigned) *s) ^ 0x55555555u;
+		s++;
+	}
 	return h;
 }
 

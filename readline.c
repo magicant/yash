@@ -367,7 +367,7 @@ static char *path_completion_function(const char *text, int state)
 	static int (*comparer)(const char *a, const char *b, size_t n);
 	static ssize_t builtin;
 	static size_t textlen;
-	static const ALIAS *alias;
+	//static const ALIAS *alias;
 	static DIR *dir;
 	static int dfd;
 	static char *savepath, *path;
@@ -376,7 +376,7 @@ static char *path_completion_function(const char *text, int state)
 
 	if (!state) {
 		builtin = 0;
-		alias = get_all_aliases();
+		//alias = get_all_aliases();
 		dir = NULL;
 		savepath = path = xstrdup(searchpath ? : "");
 		textlen = strlen(text);
@@ -391,12 +391,12 @@ static char *path_completion_function(const char *text, int state)
 		}
 		builtin = -1;
 	}
-	while (alias) {
-		const char *aliasname = alias->name;
-		alias = alias->next;
-		if (comparer(aliasname, text, textlen) == 0)
-			return xstrdup(aliasname);
-	}
+//	while (alias) {
+//		const char *aliasname = alias->name;
+//		alias = alias->next;
+//		if (comparer(aliasname, text, textlen) == 0)
+//			return xstrdup(aliasname);
+//	}
 	do {
 next:
 		while (!dir || !(dent = readdir(dir))) {

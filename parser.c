@@ -40,9 +40,12 @@ void statementsfree(STATEMENT *statements);
 static bool *i_more;
 static bool i_error;
 static struct strbuf i_src;
-static char *i_sp;
+static size_t i_index;
 
 //static char *ifs;
+
+#define fromi(x) (i_src.contents + (x))
+#define toi(x)   ((x) - i_src.contents)
 
 /* コマンド入力を解析するエントリポイント。
  * src:    ソースコード
@@ -60,12 +63,12 @@ STATEMENT *parse_all(const char *src, bool *more)
 	i_error = false;
 	strbuf_init(&i_src);
 	strbuf_append(&i_src, src);
-	i_sp = i_src.contents;
-	i_sp = skipwhites(i_sp);
+	i_index = toi(skipwhites(fromi(0)));
+	alias_reset();
 
 	STATEMENT *result = parse_statements();
-	if (*i_sp) {
-		error(0, 0, "syntax error: invalid character: `%c'", *i_sp);
+	if (*fromi(i_index)) {
+		error(0, 0, "syntax error: invalid character: `%c'", *fromi(i_index));
 		i_error = true;
 	}
 	if (i_error && i_more)
@@ -85,11 +88,12 @@ STATEMENT *parse_all(const char *src, bool *more)
 static STATEMENT *parse_statements()
 {
 	STATEMENT *first = NULL, **lastp = &first;
+	char c;
 
-	while (*i_sp) {
-		if (*i_sp == ';' || *i_sp == '&') {
-			error(0, 0, "syntax error: unexpected `%c'", *i_sp);
-			i_sp++;
+	while ((c = *fromi(i_index))) {
+		if (c == ';' || c == '&') {
+			error(0, 0, "syntax error: unexpected `%c'", c);
+			i_index++;
 			i_error = true;
 			goto end;
 		}
@@ -104,18 +108,18 @@ static STATEMENT *parse_statements()
 			goto end;
 		}
 		temp->s_name = make_statement_name(temp->s_pipeline);
-		switch (*i_sp) {
+		switch (*fromi(i_index)) {
 			case ';':
-				if ((i_sp)[1] == ';')
+				if (fromi(i_index)[1] == ';')
 					goto default_case;
 				/* falls thru! */
 			case '\n':  case '\r':
 				temp->s_bg = false;
-				i_sp++;
+				i_index++;
 				break;
 			case '&':
 				temp->s_bg = true;
-				i_sp++;
+				i_index++;
 				break;
 			default:  default_case:
 				last = true;
@@ -124,7 +128,7 @@ static STATEMENT *parse_statements()
 				temp->s_bg = false;
 				break;
 		}
-		i_sp = skipwhites(i_sp);
+		i_index = toi(skipwhites(fromi(i_index)));
 		*lastp = temp;
 		lastp = &temp->next;
 		if (last)
@@ -143,9 +147,10 @@ static PIPELINE *parse_pipelines()
 	PIPELINE *first = NULL, **lastp = &first;
 
 	for (;;) {
-		if (*i_sp == '|' || *i_sp == '&') {
-			error(0, 0, "syntax error: unexpected `%c'", *i_sp);
-			i_sp++;
+		char c = *fromi(i_index);
+		if (c == '|' || c == '&') {
+			error(0, 0, "syntax error: unexpected `%c'", c);
+			i_index++;
 			i_error = true;
 			goto end;
 		}
@@ -158,7 +163,7 @@ static PIPELINE *parse_pipelines()
 		if (!temp->pl_proc) {
 			free(temp);
 			if (first) {
-				if (!*i_sp && i_more) {
+				if (!*fromi(i_index) && i_more) {
 					*i_more = true;
 				} else {
 					error(0, 0, "syntax error: no command after `&&' or `||'");
@@ -167,12 +172,12 @@ static PIPELINE *parse_pipelines()
 			}
 			goto end;
 		}
-		if (strncmp(i_sp, "||", 2) == 0) {
+		if (strncmp(fromi(i_index), "||", 2) == 0) {
 			temp->pl_next_cond = false;
-			i_sp = skipblanks(i_sp + 2);
-		} else if (strncmp(i_sp, "&&", 2) == 0) {
+			i_index = toi(skipblanks(fromi(i_index + 2)));
+		} else if (strncmp(fromi(i_index), "&&", 2) == 0) {
 			temp->pl_next_cond = true;
-			i_sp = skipblanks(i_sp + 2);
+			i_index = toi(skipblanks(fromi(i_index + 2)));
 		} else {
 			last = true;
 		}
@@ -196,17 +201,19 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 {
 	PROCESS *first = NULL, **lastp = &first;
 
-	if (*i_sp == '!') {
+	if (*fromi(i_index) == '!') {
 		*neg = true;
-		i_sp++;
-		i_sp = skipblanks(i_sp);
+		i_index++;
+		i_index = toi(skipblanks(fromi(i_index)));
 	} else {
 		*neg = false;
 	}
-	while (*i_sp) {
-		if (i_sp[0] == '|' && i_sp[1] != '|') {
-			error(0, 0, "syntax error: unexpected `%c'", *i_sp);
-			i_sp++;
+
+	char c;
+	while ((c = *fromi(i_index))) {
+		if (c == '|' && *fromi(i_index + 1) != '|') {
+			error(0, 0, "syntax error: unexpected `%c'", c);
+			i_index++;
 			i_error = true;
 			goto end;
 		}
@@ -218,10 +225,10 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 			goto end;
 		}
 
-		if (i_sp[0] == '|' && i_sp[1] != '|') {
+		if (*fromi(i_index) == '|' && *fromi(i_index + 1) != '|') {
 			*loop = true;
-			i_sp++;
-			i_sp = skipblanks(i_sp);
+			i_index++;
+			i_index = toi(skipblanks(fromi(i_index)));
 		} else {
 			*loop = false;
 		}
@@ -240,19 +247,18 @@ end:
  * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。 */
 static bool parse_words(PROCESS *p)
 {
-	char *initpos = i_sp;
+	size_t initindex = i_index;
 	bool result;
 
-	//expand_alias();
-	switch (*i_sp) {
+	expand_alias(&i_src, i_index, false);
+	switch (*fromi(i_index)) {
 		case '(':
-			i_sp++;
-			i_sp = skipwhites(i_sp);
+			i_index = toi(skipwhites(fromi(i_index + 1)));
 			p->p_type = PT_SUBSHELL;
 			p->p_args = NULL;
 			p->p_subcmds = parse_statements();
-			if (*i_sp != ')') {
-				if (!*i_sp && i_more) {
+			if (*fromi(i_index) != ')') {
+				if (!*fromi(i_index) && i_more) {
 					*i_more = true;
 				} else {
 					error(0, 0, "syntax error: missing `)'");
@@ -261,19 +267,17 @@ static bool parse_words(PROCESS *p)
 				result = true;
 				goto end;
 			}
-			i_sp++;
-			i_sp = skipblanks(i_sp);
+			i_index = toi(skipblanks(fromi(i_index + 1)));
 			break;
 		case '{':
 			/* TODO: "{" はそれ自体はトークンではないので、"{abc" のような場合を
 			 * 除外しないといけない。 */
-			i_sp++;
-			i_sp = skipwhites(i_sp);
+			i_index = toi(skipwhites(fromi(i_index + 1)));
 			p->p_type = PT_GROUP;
 			p->p_args = NULL;
 			p->p_subcmds = parse_statements();
-			if (*i_sp != '}') {
-				if (!*i_sp && i_more) {
+			if (*fromi(i_index) != '}') {
+				if (!*fromi(i_index) && i_more) {
 					*i_more = true;
 				} else {
 					error(0, 0, "syntax error: missing `}'");
@@ -282,8 +286,7 @@ static bool parse_words(PROCESS *p)
 				result = true;
 				goto end;
 			}
-			i_sp++;
-			i_sp = skipblanks(i_sp);
+			i_index = toi(skipblanks(fromi(i_index + 1)));
 			break;
 		case ')':
 		case '}':
@@ -298,19 +301,22 @@ static bool parse_words(PROCESS *p)
 	struct plist args;
 	plist_init(&args);
 	for (;;) {
-		char *end = skip_with_quote(i_sp, " \t;&|()#\n\r", true);
-		if (i_sp == end) break;
+		size_t endindex = toi(
+				skip_with_quote(fromi(i_index), " \t;&|()#\n\r", true));
+		if (i_index == endindex) break;
 
-		plist_append(&args, xstrndup(i_sp, end - i_sp));
-		i_sp = skipblanks(end);
+		plist_append(&args, xstrndup(fromi(i_index), endindex - i_index));
+		i_index = toi(skipblanks(fromi(endindex)));
+		expand_alias(&i_src, i_index, true);
 	}
 
 	p->p_args = (char **) plist_toary(&args);
-	if (*i_sp == '(') {
+	if (*fromi(i_index) == '(') {
+		// XXX function
 		error(0, 0, "syntax error: `(' is not allowed here");
 		i_error = true;
 	}
-	result = (initpos != i_sp);
+	result = (initindex != i_index);
 end:
 	return result;
 }

@@ -966,22 +966,28 @@ usage:
 
 /* alias 組込みコマンド
  * 引数なし or -p オプションありだと全てのエイリアスを出力する。
- * 引数があると、そのエイリアスを設定 or 出力する。 */
+ * 引数があると、そのエイリアスを設定 or 出力する。
+ * -g を指定するとグローバルエイリアスになる。 */
 int builtin_alias(int argc, char *const *argv)
 {
-	int print_alias(const char *name, const char *value) {
-		printf("%s=%s\n", name, value);
+	int print_alias(const char *name, ALIAS *alias) {
+		printf("%s=%s\n", name, alias->value);
+		// XXX
 		return 0;
 	}
 
 	bool printall = argc <= 1;
+	bool global = false;
 	bool err = false;
 	int opt;
 
 	optind = 0;
 	opterr = 1;
-	while ((opt = getopt(argc, argv, "p")) >= 0) {
+	while ((opt = getopt(argc, argv, "gp")) >= 0) {
 		switch (opt) {
+			case 'g':
+				global = true;
+				break;
 			case 'p':
 				printall = true;
 				break;
@@ -998,13 +1004,12 @@ int builtin_alias(int argc, char *const *argv)
 			err = true;
 		} else if (c[namelen] == '=') {
 			c[namelen] = '\0';
-			if (set_alias(c, c + namelen + 1) < 0)
-				err = true;
+			set_alias(c, c + namelen + 1, global);
 			c[namelen] = '=';
 		} else {
-			const char *v = get_alias(c);
-			if (v) {
-				print_alias(c, v);
+			ALIAS *a = get_alias(c);
+			if (a) {
+				print_alias(c, a);
 			} else {
 				error(0, 0, "%s: %s: no such alias", argv[0], c);
 				err = true;
@@ -1016,7 +1021,7 @@ int builtin_alias(int argc, char *const *argv)
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  alias [-p] [name[=value] ... ]\n");
+	printf("Usage:  alias [-gp] [name[=value] ... ]\n");
 	return EXIT_FAILURE;
 }
 

@@ -389,6 +389,7 @@ int main(int argc, char **argv)
 
 	setsigaction();
 	init_env();
+	init_alias();
 
 	if (directcommand) {
 		directcommand = skipwhites(directcommand);
