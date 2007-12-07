@@ -739,7 +739,7 @@ void redirsfree(REDIR *r)
 	}
 }
 
-/* 指定したプロセスのリストを開放する */
+/* 指定したプロセスのリストを解放する */
 void procsfree(PROCESS *p)
 {
 	while (p) {
@@ -752,7 +752,7 @@ void procsfree(PROCESS *p)
 	}
 }
 
-/* 指定したパイプラインのリストを開放する */
+/* 指定したパイプラインのリストを解放する */
 void pipesfree(PIPELINE *p)
 {
 	while (p) {
@@ -764,7 +764,7 @@ void pipesfree(PIPELINE *p)
 	}
 }
 
-/* 指定した文のリストを開放する */
+/* 指定した文のリストを解放する */
 void statementsfree(STATEMENT *s)
 {
 	while (s) {

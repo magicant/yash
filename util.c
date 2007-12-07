@@ -61,13 +61,15 @@ void plist_clear(struct plist *list);
 void plist_insert(struct plist *list, size_t i, void *e);
 void plist_append(struct plist *list, void *e);
 
+static unsigned ht_hashstr(const char *s);
 void ht_init(struct hasht *ht);
 void ht_destroy(struct hasht *ht);
+static void ht_rehash(struct hasht *ht, size_t newcap);
 void ht_ensurecap(struct hasht *ht, size_t newcap);
 void ht_trim(struct hasht *ht);
 void ht_clear(struct hasht *ht);
-void *ht_set(struct hasht *ht, const char *key, void *value);
 void *ht_get(struct hasht *ht, const char *key);
+void *ht_set(struct hasht *ht, const char *key, void *value);
 void *ht_remove(struct hasht *ht, const char *key);
 int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
 
@@ -142,7 +144,7 @@ char **straryclone(char **ary)
 	return result;
 }
 
-/* NULL 終端のポインタの配列を、その要素も含めて開放する。 */
+/* NULL 終端のポインタの配列を、その要素も含めて解放する。 */
 void recfree(void **ary)
 {
 	if (ary) {
@@ -305,7 +307,7 @@ void strbuf_destroy(struct strbuf *buf)
 	};
 }
 
-/* 文字列バッファを開放し、文字列を返す。文字列バッファは未初期化状態になる。
+/* 文字列バッファを解放し、文字列を返す。文字列バッファは未初期化状態になる。
  * 戻り値: 文字列バッファに入っていた文字列。この文字列は呼び出し元で free
  *         すべし。 */
 char *strbuf_tostr(struct strbuf *buf)
@@ -430,7 +432,7 @@ void plist_init(struct plist *list)
 }
 
 /* 初期化済のポインタリストの内容を削除し、未初期化状態に戻す。
- * 配列内の各要素は開放されないので注意。 */
+ * 配列内の各要素は解放されないので注意。 */
 void plist_destroy(struct plist *list)
 {
 	free(list->contents);
@@ -441,7 +443,7 @@ void plist_destroy(struct plist *list)
 	};
 }
 
-/* ポインタリストを開放し、内容を返す。ポインタリストは未初期化状態になる。
+/* ポインタリストを解放し、内容を返す。ポインタリストは未初期化状態になる。
  * 戻り値: ポインタリストに入っていた配列。この配列は呼び出し元で free
  *         すべし。 */
 void **plist_toary(struct plist *list)
@@ -503,12 +505,237 @@ void plist_append(struct plist *list, void *e)
 
 /********** Hashtable **********/
 
-void ht_init(struct hasht *ht);
-void ht_destroy(struct hasht *ht);
-void ht_ensurecap(struct hasht *ht, size_t newcap);
-void ht_trim(struct hasht *ht);
-void ht_clear(struct hasht *ht);
-void *ht_set(struct hasht *ht, const char *key, void *value);
-void *ht_get(struct hasht *ht, const char *key);
-void *ht_remove(struct hasht *ht, const char *key);
-int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
+#define NOTHING ((ssize_t) -1)
+
+/* ハッシュ関数 */
+static unsigned ht_hashstr(const char *s)
+{
+	unsigned h = 0;
+	while (*s)
+		h = (h * 31 + (unsigned) s) ^ 0x55555555u;
+	return h;
+}
+
+/* 未初期化のハッシュテーブルを初期化する。 */
+void ht_init(struct hasht *ht)
+{
+	ht->capacity = HASHT_INITSIZE;
+	ht->indices = xmalloc(HASHT_INITSIZE * sizeof(ssize_t));
+	ht->entries = xmalloc(HASHT_INITSIZE * sizeof(struct hash_entry));
+
+	ht_clear(ht);
+}
+
+/* ハッシュテーブルを解放する。各エントリーは解放されないので、
+ * 必要に応じてあらかじめ ht_each などを利用して解放しておくこと。 */
+void ht_destroy(struct hasht *ht)
+{
+	for (size_t i = 0, len = ht->capacity; i < len; i++)
+		free(ht->entries[i].key);
+	free(ht->indices);
+	free(ht->entries);
+	*ht = (struct hasht) {
+		.capacity = 0,
+		.count = 0,
+		.nullindex = NOTHING,
+		.tailindex = 0,
+		.indices = NULL,
+		.entries = NULL,
+	};
+}
+
+/* ハッシュテーブルの容量を変更する。 */
+static void ht_rehash(struct hasht *ht, size_t newcap)
+{
+	assert(newcap > 0 && newcap >= ht->count);
+
+	size_t oldcap = ht->capacity;
+	ssize_t *oldindices = ht->indices;
+	struct hash_entry *oldentries = ht->entries;
+	ssize_t *newindices = xmalloc(newcap * sizeof(ssize_t));
+	struct hash_entry *newentries = xmalloc(newcap * sizeof(struct hash_entry));
+	ssize_t tail = 0;
+
+	for (size_t i = 0; i < newcap; i++) {
+		newindices[i] = NOTHING;
+		newentries[i] = (struct hash_entry) {
+			.next = NOTHING,
+			.hash = 0,
+			.key = NULL,
+			.value = NULL,
+		};
+	}
+	for (size_t i = 0; i < oldcap; i++) {
+		char *key = oldentries[i].key;
+		if (key) {
+			unsigned hash = oldentries[i].hash;
+			int newindex = hash % newcap;
+			newentries[tail] = (struct hash_entry) {
+				.next = newindices[newindex],
+				.hash = hash,
+				.key = key,
+				.value = oldentries[i].value,
+			};
+			newindices[newindex] = tail;
+			tail++;
+		}
+	}
+
+	free(oldindices);
+	free(oldentries);
+	ht->capacity = newcap;
+	ht->tailindex = tail;
+	ht->indices = newindices;
+	ht->entries = newentries;
+}
+
+/* ハッシュテーブルが少なくとも cap 以上の容量を持つようにする。 */
+void ht_ensurecap(struct hasht *ht, size_t cap)
+{
+	size_t newcap = ht->capacity;
+	while (newcap < cap)
+		newcap = newcap * 2 + 1;
+	ht_rehash(ht, newcap);
+}
+
+/* ハッシュテーブルの容量を要素の個数ぎりぎりに縮小する */
+void ht_trim(struct hasht *ht)
+{
+	ht_rehash(ht, ht->count);
+}
+
+/* ハッシュテーブルを空にする。各エントリーの値は解放されないので、
+ * 必要に応じてあらかじめ ht_each などを利用して解放しておくこと。
+ * 容量は変わらない。 */
+void ht_clear(struct hasht *ht)
+{
+	ht->count = 0;
+	ht->nullindex = NOTHING;
+	ht->tailindex = 0;
+
+	for (size_t i = 0, len = ht->capacity; i < len; i++) {
+		free(ht->entries[i].key);
+		ht->indices[i] = NOTHING;
+		ht->entries[i] = (struct hash_entry) {
+			.next = NOTHING,
+			.hash = 0,
+			.key = NULL,
+			.value = NULL,
+		};
+	}
+}
+
+/* ハッシュテーブルの値を取得する。対応する要素がない場合は NULL を返す。
+ * また、key が NULL のときも NULL を返す。 */
+void *ht_get(struct hasht *ht, const char *key)
+{
+	if (!key)
+		return NULL;
+
+	unsigned hash = ht_hashstr(key);
+	ssize_t index = ht->indices[hash % ht->capacity];
+	while (index >= 0) {
+		struct hash_entry *entry = &ht->entries[index];
+		if (entry->hash == hash && strcmp(entry->key, key) == 0)
+			return entry->value;
+		index = entry->next;
+	}
+	return NULL;
+}
+
+/* ハッシュテーブルに値を設定する。key は内部で strdup される。
+ * key が NULL なら何もしないで NULL を返す。
+ * 戻り値: もともと key に設定されていた値 */
+void *ht_set(struct hasht *ht, const char *key, void *value)
+{
+	if (!key)
+		return NULL;
+
+	/* まず、既存のエントリがあるならそれを置き換える。 */
+	unsigned hash = ht_hashstr(key);
+	size_t ii = hash % ht->capacity;
+	ssize_t index = ht->indices[ii];
+	while (index >= 0) {
+		struct hash_entry *entry = &ht->entries[index];
+		if (entry->hash == hash && strcmp(entry->key, key) == 0) {
+			void *oldvalue = entry->value;
+			entry->value = value;
+			return oldvalue;
+		}
+		index = entry->next;
+	}
+
+	ht->count++;
+
+	/* null entry があればそこに追加する。 */
+	if (ht->nullindex >= 0) {
+		struct hash_entry *entry = &ht->entries[index = ht->nullindex];
+		ht->nullindex = entry->next;
+		*entry = (struct hash_entry) {
+			.next = ht->indices[ii],
+			.hash = hash,
+			.key = xstrdup(key),
+			.value = value,
+		};
+		ht->indices[ii] = index;
+		return NULL;
+	}
+
+	/* null entry がなければ tail entry に追加する。 */
+	ht_ensurecap(ht, ht->count + 1);
+	ii = hash % ht->capacity;
+	ht->entries[ht->tailindex] = (struct hash_entry) {
+		.next = ht->indices[ii],
+		.hash = hash,
+		.key = xstrdup(key),
+		.value = value,
+	};
+	ht->indices[ii] = ht->tailindex;
+	ht->tailindex++;
+	return NULL;
+}
+
+/* ハッシュテーブルからエントリを削除する。
+ * 戻り値は削除したエントリに入っていた値。 */
+void *ht_remove(struct hasht *ht, const char *key)
+{
+	if (!key)
+		return NULL;
+
+	unsigned hash = ht_hashstr(key);
+	ssize_t *indexp = &ht->indices[hash % ht->capacity];
+	while (*indexp >= 0) {
+		struct hash_entry *entry = &ht->entries[*indexp];
+		if (entry->hash == hash && strcmp(entry->key, key) == 0) {
+			void *oldvalue = entry->value;
+			ssize_t index = *indexp;
+			*indexp = entry->next;
+			entry->next = ht->nullindex;
+			ht->nullindex = index;
+			free(entry->key);
+			entry->hash = 0;
+			entry->key = NULL;
+			entry->value = NULL;
+			ht->count--;
+			return oldvalue;
+		}
+		indexp = &entry->next;
+	}
+	return NULL;
+}
+
+/* ハッシュテーブル内の全エントリに対して関数 f を呼び出す。
+ * f の結果が非 0 ならば、この関数はただちにその値を返す。
+ * 全ての f の呼び出しが 0 を返せば、この関数も 0 を返す。
+ * この関数の実行中に ht の要素を追加・削除してはならない。 */
+int ht_each(struct hasht *ht, int (*f)(const char *key, void *value))
+{
+	for (size_t i = 0, len = ht->capacity; i < len; i++) {
+		struct hash_entry *entry = &ht->entries[i];
+		if (entry->key) {
+			int r = f(entry->key, entry->value);
+			if (r) return r;
+		}
+	}
+	return 0;
+}

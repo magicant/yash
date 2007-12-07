@@ -120,16 +120,18 @@ void plist_clear(struct plist *list);
 void plist_insert(struct plist *list, size_t i, void *e);
 void plist_append(struct plist *list, void *e);
 
-#define HASHT_INITSIZE 4
+#define HASHT_INITSIZE 5
 struct hasht {
 	size_t   capacity;
 	size_t   count;
 	ssize_t *indices;
+	ssize_t  nullindex;
+	ssize_t  tailindex;
 	struct hash_entry {
-		ssize_t    *next;
-		int         hash;
-		const char *key;
-		void       *value;
+		ssize_t   next;
+		unsigned  hash;
+		char     *key;
+		void     *value;
 	}       *entries;
 };
 void ht_init(struct hasht *ht);
@@ -137,8 +139,8 @@ void ht_destroy(struct hasht *ht);
 void ht_ensurecap(struct hasht *ht, size_t newcap);
 void ht_trim(struct hasht *ht);
 void ht_clear(struct hasht *ht);
-void *ht_set(struct hasht *ht, const char *key, void *value);
 void *ht_get(struct hasht *ht, const char *key);
+void *ht_set(struct hasht *ht, const char *key, void *value);
 void *ht_remove(struct hasht *ht, const char *key);
 int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
 
