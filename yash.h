@@ -242,7 +242,7 @@ enum jstatus { JS_NULL, JS_RUNNING, JS_DONE, JS_STOPPED, };
 extern const char * const jstatusstr[];
 /* jstatusstr のインデックスとして jstatus の値を使用している */
 
-#define MAX_JOB 256
+#define MAX_JOB 10000
 
 typedef struct {
 	pid_t j_pgid;           /* プロセスグループの ID */
@@ -256,17 +256,18 @@ typedef struct {
 	bool j_exitcodeneg;     /* ジョブの exitcode を反転するかどうか */
 	char *j_name;           /* 表示用ジョブ名 */
 } JOB;
-/* j_pgid が 0 の JOB は、JOB そのものが無効な値 (null) であることを示す。 */
 /* j_pids は 0 終端である。終了したプロセスは値が反数になる。 */
 
-extern JOB *joblist;
-extern size_t joblistlen;
+extern struct plist joblist;
 extern size_t currentjobnumber;
 
 extern volatile bool cancel_wait;
 
+void init_exec(void);
 int exitcode_from_status(int status);
+JOB *get_job(size_t jobnumber);
 unsigned job_count(void);
+bool remove_job(size_t jobnumber);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
 void print_all_job_status(bool changedonly, bool printpids);
 int get_jobnumber_from_pid(pid_t pid);

@@ -94,10 +94,17 @@ int parse_jobspec(const char *str, bool forcePercent)
 	int jobnumber;
 	char *strend;
 
-	if (str[0] == '%')
+	if (str[0] == '%') {
 		str++;
-	else if (forcePercent)
+		if (!*str) {  /* カレントジョブを探す */
+			if (get_job(currentjobnumber))
+				return currentjobnumber;
+			else
+				return -2;
+		}
+	} else if (forcePercent) {
 		return -1;
+	}
 	if (!*str)
 		return -1;
 	errno = 0;
@@ -105,7 +112,7 @@ int parse_jobspec(const char *str, bool forcePercent)
 	if (errno)
 		return -2;
 	if (str != strend && !strend[0] && 0 < jobnumber) {
-		if (jobnumber < (ssize_t) joblistlen && joblist[jobnumber].j_pgid)
+		if (get_job(jobnumber))
 			return jobnumber;
 		else
 			return -2;
@@ -113,8 +120,9 @@ int parse_jobspec(const char *str, bool forcePercent)
 
 	size_t len = strlen(str);
 	jobnumber = 0;
-	for (int i = 1; i < (ssize_t) joblistlen; i++) {
-		if (joblist[i].j_pgid && strncmp(str, joblist[i].j_name, len) == 0) {
+	for (int i = 1; i < (ssize_t) joblist.length; i++) {
+		JOB *job = get_job(i);
+		if (job && strncmp(str, job->j_name, len) == 0) {
 			if (!jobnumber)
 				jobnumber = i;
 			else
@@ -310,7 +318,7 @@ int builtin_kill(int argc, char *const *argv)
 					err = true;
 					continue;
 			}
-			targetpid = -joblist[targetnum].j_pgid;
+			targetpid = -(get_job(targetnum)->j_pgid);
 		} else {
 			errno = 0;
 			if (*target)
@@ -467,6 +475,7 @@ usage:
 int builtin_jobs(int argc, char *const *argv)
 {
 	bool changedonly = false, printpids = false;
+	bool err = false;
 	int opt;
 
 	optind = 0;
@@ -496,8 +505,13 @@ int builtin_jobs(int argc, char *const *argv)
 
 		// parse_jobspec を使わずに自前でやる
 		// (ambiguous のときエラーにせず全部表示するため)
-		if (jobstr[0] == '%')
+		if (jobstr[0] == '%') {
 			jobstr++;
+			if (!jobstr[0]) {  /* カレントジョブを表示 */
+				jobnumber = currentjobnumber;
+				goto singlespec;
+			}
+		}
 		errno = 0;
 		if (!*jobstr)
 			goto invalidspec;
@@ -505,30 +519,36 @@ int builtin_jobs(int argc, char *const *argv)
 		jobnumber = strtol(jobstr, &jobstr, 10);
 		if (errno) {
 invalidspec:
-			error(0, 0, "%s %s: invalid jobspec", argv[0], argv[optind]);
-			return EXIT_FAILURE;
+			error(0, 0, "%s: %s: invalid jobspec", argv[0], argv[optind]);
+			err = true;
+			continue;
 		}
 		if (jobstr != jobstro && !*jobstr && 0 < jobnumber) {
-			if (jobnumber < joblistlen && joblist[jobnumber].j_pgid)
+singlespec:
+			if (get_job(jobnumber)) {
 				print_job_status(jobnumber, changedonly, printpids);
-			else
-				error(0, 0, "%%%zu: no such job", jobnumber);
+			} else {
+				error(0, 0, "%s: %s: no such job", argv[0], argv[optind]);
+				err = true;
+			}
 			continue;
 		}
 
 		size_t len = strlen(jobstro);
 		bool done = false;
-		for (jobnumber = 1; jobnumber < joblistlen; jobnumber++) {
-			if (joblist[jobnumber].j_pgid &&
-					strncmp(jobstro, joblist[jobnumber].j_name, len) == 0) {
+		for (jobnumber = 1; jobnumber < joblist.length; jobnumber++) {
+			JOB *job = get_job(jobnumber);
+			if (job && strncmp(jobstro, job->j_name, len) == 0) {
 				print_job_status(jobnumber, changedonly, printpids);
 				done = true;
 			}
 		}
-		if (!done)
-			error(0, 0, "%s: no such job", argv[optind]);
+		if (!done) {
+			error(0, 0, "%s: %s: no such job", argv[0], argv[optind]);
+			err = true;
+		}
 	}
-	return EXIT_SUCCESS;
+	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
 	printf("Usage:  jobs [-ln] [jobspecs]\n");
@@ -574,17 +594,14 @@ int builtin_disown(int argc, char *const *argv)
 		error(EXIT_FAILURE, errno, "sigprocmask");
 
 	if (all) {
-		for (size_t i = joblistlen; i > 0; i--) {
-			job = joblist + i;
-			if (!job->j_pgid ||
-					(runningonly && job->j_status != JS_RUNNING))
+		for (size_t i = joblist.length; i > 0; i--) {
+			job = get_job(i);
+			if (!job || (runningonly && job->j_status != JS_RUNNING))
 				continue;
 			if (nohup) {
 				job->j_flags |= JF_NOHUP;
 			} else {
-				free(job->j_pids);
-				free(job->j_name);
-				memset(job, 0, sizeof *job);
+				remove_job(i);
 			}
 		}
 	} else {
@@ -606,16 +623,13 @@ int builtin_disown(int argc, char *const *argv)
 					err = true;
 					continue;
 			}
-			job = joblist + jobnumber;
-			if (!job->j_pgid ||
-					(runningonly && job->j_status != JS_RUNNING))
+			job = get_job(jobnumber);
+			if (!job || (runningonly && job->j_status != JS_RUNNING))
 				continue;
 			if (nohup) {
 				job->j_flags |= JF_NOHUP;
 			} else {
-				free(job->j_pids);
-				free(job->j_name);
-				memset(job, 0, sizeof *job);
+				remove_job(jobnumber);
 			}
 		}
 	}
@@ -641,21 +655,21 @@ int builtin_fg(int argc, char *const *argv)
 		return EXIT_FAILURE;
 	if (argc < 2) {
 		jobnumber = currentjobnumber;
-		if (jobnumber < 1 || (size_t) jobnumber >= joblistlen
-				|| !(pgid = joblist[jobnumber].j_pgid)) {
+		if (jobnumber < 1 || !(job = get_job(jobnumber))) {
 			/* カレントジョブなし: 番号の一番大きいジョブを選ぶ */
-			jobnumber = joblistlen;
-			while (--jobnumber > 0 && !(pgid = joblist[jobnumber].j_pgid));
+			jobnumber = joblist.length;
+			while (--jobnumber > 0 && !get_job(jobnumber));
 			if (!jobnumber) {
 				error(0, 0, "%s: there is no job", argv[0]);
 				return EXIT_FAILURE;
 			}
 			currentjobnumber = jobnumber;
+			job = get_job(jobnumber);
 		}
-		job = joblist + jobnumber;
-		printf("[%zd]+ %5ld              %s\n",
+		pgid = job->j_pgid;
+		printf("[%zd]+ %5ld              %s%s\n",
 				jobnumber, (long) pgid,
-				job->j_name ? : "<<job>>");
+				job->j_name ? : "<< unknown job >>", fg ? "" : " &");
 		if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
 			error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
 			err = true;
@@ -689,11 +703,11 @@ int builtin_fg(int argc, char *const *argv)
 					continue;
 			}
 			currentjobnumber = jobnumber;
-			job = joblist + jobnumber;
+			job = get_job(jobnumber);
 			pgid = job->j_pgid;
-			printf("[%zd]+ %5ld              %s\n",
+			printf("[%zd]+ %5ld              %s%s\n",
 					jobnumber, (long) pgid,
-					job->j_name ? : "<<job>>");
+					job->j_name ? : "<< unknown job >>", fg ? "" : " &");
 			if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
 				error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
 				err = true;
@@ -710,12 +724,10 @@ int builtin_fg(int argc, char *const *argv)
 	if (err)
 		return EXIT_FAILURE;
 	if (fg) {
-		assert(0 < jobnumber && (size_t) jobnumber < joblistlen);
+		assert(0 < jobnumber && (size_t) jobnumber < joblist.length);
 		wait_all(jobnumber);
-		if (job->j_status == JS_DONE) {
-			int exitcode = exitcode_from_status(job->j_exitstatus);
-			return job->j_exitcodeneg ? !exitcode : exitcode;
-		}
+		if (job->j_status == JS_DONE)
+			return exitcode_from_status(job->j_exitstatus);
 	}
 	return EXIT_SUCCESS;
 

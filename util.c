@@ -444,6 +444,10 @@ int strbuf_printf(struct strbuf *buf, const char *format, ...)
 
 /********** ポインタリスト **********/
 
+/* ポインタリストはポインタを要素とする可変長配列である。
+ * struct plist list に対して、list.contents[list.length] は常に NULL である。
+ * しかし、これはリストの要素に NULL ポインタを含めることを妨げない。 */
+
 /* 未初期化のポインタリストを初期化する。 */
 void plist_init(struct plist *list)
 {

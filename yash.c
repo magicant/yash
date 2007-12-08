@@ -341,8 +341,6 @@ int main(int argc, char **argv)
 
 	is_loginshell = argv[0][0] == '-';
 	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
-	joblistlen = 2;
-	joblist = xcalloc(joblistlen, sizeof(JOB));
 	setlocale(LC_ALL, "");
 
 	optind = 0;
@@ -388,6 +386,7 @@ int main(int argc, char **argv)
 	}
 
 	setsigaction();
+	init_exec();
 	init_env();
 	init_alias();
 
