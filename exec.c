@@ -29,7 +29,6 @@ typedef struct {
 } PIPES;
 
 int exitcode_from_status(int status);
-//static char *make_job_name(SCMD *scmds);
 unsigned job_count(void);
 static int add_job(void);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
@@ -42,8 +41,8 @@ void sig_chld(int signal);
 static int (*create_pipes(size_t count))[2];
 static void close_pipes(PIPES pipes);
 void exec_statements(STATEMENT *statements);
-static void exec_pipelines(PIPELINE *pipelines, bool bg);
-static void exec_processes(PROCESS *processes, bool pipe_loop);
+static void exec_pipelines(PIPELINE *pipelines);
+static void exec_processes(PROCESS *processes, bool neg_status, bool pipe_loop);
 //static size_t exec_pipe(SCMD *scmds);
 //static pid_t exec_single(
 		//SCMD *scmd, pid_t pgid, bool fg, PIPES pipes, ssize_t pindex);
@@ -92,38 +91,6 @@ int exitcode_from_status(int status)
 	else
 		return -1;
 }
-
-///* ジョブ名を作成する。
-// * scmds:  パイプの先頭のコマンド
-// * 戻り値: パイプのジョブ名を表す、新しく malloc した文字列。
-// *         エラー時は NULL。 */
-//static char *make_job_name(SCMD *scmds)
-//{
-//	size_t size = 0, index = 0;
-//	char *name, *result;
-//	
-//	do {
-//		if (scmds[index].c_name)
-//			size += strlen(scmds[index].c_name) + 2;
-//	} while (scmds[index++].c_type == CT_PIPED);
-//	result = xmalloc(size);
-//	size = 0;
-//	index = 0;
-//	while (scmds[index].c_type == CT_PIPED) {
-//		name = scmds[index].c_name;
-//		if (name) {
-//			strcpy(result + size, name);
-//			size += strlen(name);
-//			strcpy(result + size, "| ");
-//			size += 2;
-//		}
-//		index++;
-//	}
-//	name = scmds[index].c_name;
-//	if (name)
-//		strcpy(result + size, name);
-//	return result;
-//}
 
 /* 現在のジョブリスト内のジョブの個数を数える (アクティブジョブを除く) */
 unsigned job_count(void)
@@ -217,12 +184,12 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 				printf("[%zu]%c %5d  Exit:%-3d    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, WEXITSTATUS(estatus),
-						job->j_name ? : "<<job>>");
+						job->j_name ? : "<< unknown job >>");
 			else if (WIFSIGNALED(job->j_exitstatus))
 				printf("[%zu]%c %5d  %-8s    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, strsignal(WTERMSIG(estatus)),
-						job->j_name ? : "<<job>>");
+						job->j_name ? : "<< unknown job >>");
 			else
 				goto normal;
 		} else {
@@ -230,7 +197,7 @@ normal:
 			printf("[%zu]%c %5d  %-8s    %s\n",
 					jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 					(int) job->j_pgid, jstatusstr[job->j_status],
-					job->j_name ? : "<<job>>");
+					job->j_name ? : "<< unknown job >>");
 		}
 		if (printpids) {
 			pid_t *pidp = job->j_pids;
@@ -411,6 +378,8 @@ stillrunning:
 				break;
 			case JS_DONE:
 				laststatus = exitcode_from_status(job->j_exitstatus);
+				if (job->j_exitcodeneg)
+					laststatus = !laststatus;
 				free(job->j_pids);
 				free(job->j_name);
 				memset(job, 0, sizeof *job);
@@ -508,48 +477,40 @@ static void close_pipes(PIPES pipes)
 	free(pipes.p_pipes);
 }
 
-#define DEBUG_PRINT
-
-#ifdef DEBUG_PRINT
-
 /* コマンド入力全体を受け取って、全コマンドを実行する。 */
 void exec_statements(STATEMENT *s)
 {
 	while (s) {
-		//exec_pipelines(s->s_pipeline, s->s_bg);
 		printf("%s%s\n", s->s_name, s->s_bg ? " &" : "");
+		if (!s->s_bg)
+			exec_pipelines(s->s_pipeline);
+		else
+			error(0, 0, "background not supported");  // TODO
 		s = s->next;
 	}
 }
 
 /* 一つの文を実行する。 */
-static void exec_pipelines(PIPELINE *p, bool bg)
+static void exec_pipelines(PIPELINE *p)
 {
-	while (p) {
-		if (p->pl_neg)
-			printf("! ");
-		exec_processes(p->pl_proc, p->pl_loop);
-		if (p->next)
-			printf("%s", p->pl_next_cond ? "&& " : "|| ");
+	if (!p) return;
+
+	bool nextcond = true;
+	laststatus = 0;
+	while (p && (nextcond == !laststatus)) {
+		exec_processes(p->pl_proc, p->pl_neg, p->pl_loop);
+		nextcond = p->pl_next_cond;
 		p = p->next;
 	}
-	printf("%s", bg ? "&\n" : ";\n");
 }
 
-/* 一つのパイプラインを実行する */
-static void exec_processes(PROCESS *p, bool loop)
+/* 一つのパイプラインを実行し、終了または停止を待つ。
+ * neg ならばパイプラインの終了コードを反転。
+ * loop ならば環状のパイプラインを作成。 */
+static void exec_processes(PROCESS *p, bool neg, bool loop)
 {
-	while (p) {
-		p = p->next;
-		if (p)
-			printf("| ");
-	}
-	if (loop)
-		printf("| ");
+	//TODO exec_processes
 }
-
-#else
-#endif
 
 /* コマンド入力全体を受け取って、コマンドを実行する。 */
 //void exec_list(SCMD *scmds, size_t count)
@@ -758,7 +719,7 @@ static void exec_processes(PROCESS *p, bool loop)
 /* リダイレクトを開く。
  * 戻り値: OK なら 0、エラーなら -1。 */
 static int open_redirections(REDIR *r)
-{//XXX : not tested
+{//XXX : open_redirections not tested
 	while (r) {
 		int fd;
 

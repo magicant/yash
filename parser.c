@@ -312,7 +312,7 @@ static bool parse_words(PROCESS *p)
 
 	p->p_args = (char **) plist_toary(&args);
 	if (*fromi(i_index) == '(') {
-		// XXX function
+		// XXX function parsing
 		error(0, 0, "syntax error: `(' is not allowed here");
 		i_error = true;
 	}

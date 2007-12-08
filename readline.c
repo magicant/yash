@@ -109,7 +109,7 @@ int yash_readline(int ptype, char **result)
 				break;
 			case SIGINT:
 				interrupted = true;
-				/* XXX */
+				/* XXX readline interrupt */
 				break;
 		}
 	}

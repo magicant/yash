@@ -712,11 +712,12 @@ int builtin_fg(int argc, char *const *argv)
 	if (fg) {
 		assert(0 < jobnumber && (size_t) jobnumber < joblistlen);
 		wait_all(jobnumber);
-		return job->j_status == JS_DONE
-			? exitcode_from_status(job->j_exitstatus) : 0;
-	} else {
-		return EXIT_SUCCESS;
+		if (job->j_status == JS_DONE) {
+			int exitcode = exitcode_from_status(job->j_exitstatus);
+			return job->j_exitcodeneg ? !exitcode : exitcode;
+		}
 	}
+	return EXIT_SUCCESS;
 
 usage:
 	if (fg)
@@ -873,7 +874,7 @@ int builtin_source(int argc, char *const *argv)
  * -d n:     履歴番号 n を削除
  * -r file:  file から履歴を読み込む (今の履歴に追加)
  * -w file:  file に履歴を保存する (上書き)
- * -s xxx:   xxx を履歴に追加 */
+ * -s X:     X を履歴に追加 */
 int builtin_history(int argc, char *const *argv)
 {
 	int ierrno;
@@ -972,7 +973,7 @@ int builtin_alias(int argc, char *const *argv)
 {
 	int print_alias(const char *name, ALIAS *alias) {
 		printf("%s=%s\n", name, alias->value);
-		// XXX
+		// XXX alias 出力形式
 		return 0;
 	}
 

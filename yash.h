@@ -248,11 +248,12 @@ typedef struct {
 	pid_t j_pgid;           /* プロセスグループの ID */
 	pid_t *j_pids;          /* 子プロセスの ID の配列 */
 	enum jstatus j_status;  /* 最後に確認したジョブの状態 */
-	bool j_statuschanged;    /* まだ状態変化を報告していないなら true */
+	bool j_statuschanged;   /* まだ状態変化を報告していないなら true */
 	enum {
 		JF_NOHUP = 1
 	} j_flags;
 	int j_exitstatus;       /* ジョブの終了ステータス */
+	bool j_exitcodeneg;     /* ジョブの exitcode を反転するかどうか */
 	char *j_name;           /* 表示用ジョブ名 */
 } JOB;
 /* j_pgid が 0 の JOB は、JOB そのものが無効な値 (null) であることを示す。 */
