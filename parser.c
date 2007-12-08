@@ -27,6 +27,7 @@ static bool parse_words(PROCESS *process);
 static char *skip_with_quote(const char *s, const char *delim, bool singquote);
 static char *skip_without_quote(const char *s, const char *delim);
 //static inline char *skipifs(const char *s);
+char *make_statement_name(PIPELINE *pipelines);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 static void print_statements(struct strbuf *b, STATEMENT *s);
 static void print_pipelines(struct strbuf *b, PIPELINE *pl);
@@ -422,6 +423,18 @@ static char *skip_without_quote(const char *s, const char *delim)
 //{
 //	return (char *) (s + strcspn(s, ifs));
 //}
+
+/* 文中のパイプラインを元に STATEMENT の s_name を生成する。
+ * 戻り値: 新しく malloc した p の表示名。
+ *         表示名には '&' も ';' も含まれない。 */
+char *make_statement_name(PIPELINE *p)
+{
+	struct strbuf buf;
+
+	strbuf_init(&buf);
+	print_pipelines(&buf, p);
+	return strbuf_tostr(&buf);
+}
 
 /* パイプラインに含まれるプロセスを元に PIPELINE の表示名を生成する。
  * 戻り値: 新しく malloc した p の表示名。これには neg や loop に応じて

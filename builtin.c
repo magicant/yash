@@ -188,7 +188,7 @@ int builtin_exit(int argc, char *const *argv)
 	}
 
 	yash_exit(status);
-	assert(0);
+	assert(false);
 	return EXIT_FAILURE;
 
 usage:

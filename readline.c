@@ -249,7 +249,7 @@ static char **yash_completion(const char *text, int start, int end)
 			completer = env_completion_function;
 			break;
 		default:
-			assert(0);
+			assert(false);
 	}
 	matches = rl_completion_matches(text, completer);
 	rl_attempted_completion_over = 1;

@@ -11,7 +11,7 @@
 CC=gcc
 CFLAGS=-O1 -ggdb -Wall -Wextra -Wno-unused-parameter -std=gnu99
 LDFLAGS=-lreadline -ltermcap
-OBJS=util.o readline.o parser.o exec.o path.o builtin.o alias.o
+OBJS=util.o readline.o parser.o expand.o exec.o path.o builtin.o alias.o
 
 yash: $(OBJS)
 

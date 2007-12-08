@@ -188,13 +188,14 @@ struct _process {
 		PT_NORMAL,    /* 普通のコマンド */
 		PT_GROUP,     /* 現在のシェルで実行するコマンド群: { ... } */
 		PT_SUBSHELL,  /* サブシェルで実行するコマンド群: ( ... ) */
+		PT_X_PIPE,    /* サブシェル内部で仕様する特殊な値 */
 	}           p_type;
 	char      **p_args;
 	STATEMENT  *p_subcmds;  /* プロセスに含まれる文の内容 */
 };
 /* p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
- * p_subcmds に入る。p_args はコマンドの内容である。(空白ごとに分けただけで、
- * パラメータの展開などは一切行っていない)
+ * p_subcmds に入る。p_args はコマンドの内容である。(空白ごとに分けて
+ * エイリアスを展開しただけで、それ以上パラメータの展開などは行っていない)
  * p_subcmds が非 NULL のとき、p_args にはリダイレクト関連の記述が入る。 */
 
 /* 一つのパイプライン */
@@ -216,11 +217,17 @@ struct _statement {
 };
 
 STATEMENT *parse_all(const char *src, bool *more);
+char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
+
+
+/* -- コマンドライン展開 (expand) -- */
+
+int expand_line(char **args, int *argc, char ***argv, REDIR **redirs);
 
 
 /* -- path -- */

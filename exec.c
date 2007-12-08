@@ -28,6 +28,13 @@ typedef struct {
 	int (*p_pipes)[2];  /* パイプの fd ペアの配列へのポインタ */
 } PIPES;
 
+/* コマンドをどのように実行するか */
+typedef enum {
+	FOREGROUND,         /* フォアグラウンドで実行 */
+	BACKGROUND,         /* バックグラウンドで実行 */
+	SELF,               /* このシェル自身を exec して実行 */
+} exec_t;
+
 void init_exec(void);
 static void joblist_reinit(void);
 int exitcode_from_status(int status);
@@ -45,12 +52,15 @@ void sig_chld(int signal);
 static int (*create_pipes(size_t count))[2];
 static void close_pipes(PIPES pipes);
 void exec_statements(STATEMENT *statements);
-void exec_statements_and_exit(STATEMENT *statements);
+void exec_statements_and_exit(STATEMENT *statements)
+	__attribute__((noreturn));
 static void exec_pipelines(PIPELINE *pipelines);
+static void exec_pipelines_and_exit(PIPELINE *pipelines)
+	__attribute__((noreturn));
 static void exec_processes(PROCESS *processes, const char *jobname,
 		bool neg_status, bool pipe_loop, bool background);
 static pid_t exec_single(
-		PROCESS *p, ssize_t pindex, pid_t pgid, bool bg, PIPES pipes);
+		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
 //static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex);
 static int open_redirections(REDIR *redirs);
 //static void builtin_exec(SCMD *scmd);
@@ -392,7 +402,7 @@ stillrunning:
 		switch (job->j_status) {
 			case JS_NULL:
 			default:
-				assert(0);
+				assert(false);
 			case JS_RUNNING:
 				break;
 			case JS_STOPPED:
@@ -418,7 +428,7 @@ stillrunning:
 		switch (job->j_status) {
 			default:
 			case JS_NULL:
-				assert(0);
+				assert(false);
 			case JS_RUNNING:
 				break;
 			case JS_DONE:
@@ -536,7 +546,15 @@ void exec_statements(STATEMENT *s)
 				exec_processes(p->pl_proc, name, p->pl_neg, p->pl_loop, true);
 				free(name);
 			} else {
-				error(0, 0, "background not supported");  // TODO
+				PROCESS proc = {
+					.next = NULL,
+					.p_type = PT_X_PIPE,
+					.p_args = NULL,
+					.p_subcmds = s,
+				};
+				char *name = make_statement_name(p);
+				exec_processes(&proc, name, false, false, true);
+				free(name);
 			}
 		}
 		s = s->next;
@@ -544,14 +562,16 @@ void exec_statements(STATEMENT *s)
 }
 
 /* コマンド入力全体を受け取って、全コマンドを実行し、そのまま終了する。 */
-void exec_statements_and_exit(STATEMENT *statements)
+void exec_statements_and_exit(STATEMENT *s)
 {
-	// XXX 不要な fork を抑止
-	exec_statements(statements);
+	if (s && !s->next && !s->s_bg)
+		exec_pipelines_and_exit(s->s_pipeline);
+
+	exec_statements(s);
 	exit(laststatus);
 }
 
-/* 一つの文を実行する。 */
+/* 一つの文の各パイプラインを実行する。 */
 static void exec_pipelines(PIPELINE *p)
 {
 	if (!p) return;
@@ -565,6 +585,29 @@ static void exec_pipelines(PIPELINE *p)
 		nextcond = p->pl_next_cond;
 		p = p->next;
 	}
+}
+
+/* 一つの文の各パイプラインを実行し、そのまま終了する。 */
+static void exec_pipelines_and_exit(PIPELINE *p)
+{
+	if (p && !is_interactive && !p->next && !p->pl_neg && !p->pl_loop) {
+		PROCESS *proc = p->pl_proc;
+		if (!proc->next) switch (proc->p_type) {
+			case PT_NORMAL:
+				exec_single(proc, 0, 0, SELF,
+						(PIPES) { .p_count = 0, .p_pipes = NULL, });
+				assert(false);
+			case PT_GROUP:  case PT_SUBSHELL:
+				exec_statements_and_exit(proc->p_subcmds);
+				assert(false);
+			case PT_X_PIPE:
+				exec_pipelines_and_exit(proc->p_subcmds->s_pipeline);
+				assert(false);
+		}
+	}
+
+	exec_pipelines(p);
+	exit(laststatus);
 }
 
 /* 一つのパイプラインを実行し、wait する。
@@ -600,6 +643,8 @@ static void exec_processes(
 	if (pgid >= 0)
 		for (size_t i = 1; i < pcount; i++)
 			pids[i] = exec_single(p = p->next, i, pgid, bg, pipes);
+	else
+		laststatus = EXIT_FAILURE;
 	close_pipes(pipes);
 	if (pgid > 0) {
 		JOB *job = xmalloc(sizeof *job);
@@ -613,7 +658,6 @@ static void exec_processes(
 			.j_exitcodeneg = neg,
 			.j_name = xstrdup(name),
 		};
-		laststatus = 0;
 		assert(!joblist.contents[0]);
 		joblist.contents[0] = job;
 		if (!bg) {
@@ -715,40 +759,46 @@ static void exec_processes(
  * pgid:    子プロセスに設定するプロセスグループ ID。
  *          子プロセスのプロセス ID をそのままプロセスグループ ID にする時は 0。
  *          サブシェルではプロセスグループを設定しないので pgid は無視。
- * bg:      このプロセスの実行がバックグラウンドかどうか。
- *          フォアグラウンドでは、組込みコマンドなどは fork しないことがある。
+ * etype:   このプロセスの実行方式。
+ *          FOREGROUND では、組込みコマンドなどは fork しないことがある。
+ *          SELF は、非対話状態でのみ使える。
  * pipes:   パイプの配列。
  * 戻り値:  子プロセスの PID。fork/exec しなかった場合は 0。エラーなら -1。 */
 static pid_t exec_single(
-		PROCESS *p, ssize_t pindex, pid_t pgid, bool bg, PIPES pipes)
+		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes)
 {
-	int argc = 0;
-	char **argv = p->p_args;  // TODO expand
-	REDIR *redirs = NULL;
+	bool expanded = false;
+	int argc;
+	char **argv;
+	REDIR *redirs;
 	sigset_t sigset, oldsigset;
 
-	if (argv)
-		for (char **a = argv; *a; a++) argc++;  // TODO expand
-
-	if (p->p_type != PT_NORMAL && *argv) {
-		error(0, 0, "redirection syntax error");
-		return -1;
-	}
-
+	if (etype == SELF)
+		goto directexec;
+	
+	if (etype == FOREGROUND && pipes.p_count == 0) {
+		expanded = true;
+		if (expand_line(p->p_args, &argc, &argv, &redirs) < 0)
+			return -1;
+		if (p->p_type != PT_NORMAL && *argv) {
+			error(0, 0, "redirection syntax error");
+			return -1;
+		}
+		if (p->p_type == PT_NORMAL) {
 	// TODO 組込み exec コマンド
 	
-	if (!bg && pipes.p_count == 0) {
-		if (p->p_type == PT_NORMAL) {
 			cbody body = assoc_builtin(argv[0]).b_body;
 			if (body) {  /* fork せずに組込みコマンドを実行 */
 				//TODO ここで組込みコマンド用のリダイレクトを処理
 				laststatus = body(argc, argv);
-				//TODO recfree(argv);
+				recfree((void **) argv);
 				redirsfree(redirs);
 				return 0;
 			}
 		} else if (p->p_type == PT_GROUP && !redirs) {
 			exec_statements(p->p_subcmds);
+			recfree((void **) argv);
+			redirsfree(redirs);
 			return 0;
 		}
 	}
@@ -761,19 +811,20 @@ static pid_t exec_single(
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
 		error(0, errno, "%s: fork", argv[0]);
+		if (expanded) { recfree((void **) argv); redirsfree(redirs); }
 		return -1;
 	} else if (cpid) {  /* 親プロセス */
 		if (is_interactive) {
 			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
 				error(0, errno, "%s: setpgid (parent)", argv[0]);
-			/* if (!bg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
+			/* if (etype == FOREGROUND
+					&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
 					&& errno != EPERM)
 				error(0, errno, "%s: tcsetpgrp (parent)", argv[0]); */
 		}
 		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
 			error(0, errno, "sigprocmask (parent) after fork");
-		//TODO recfree(argv);
-		redirsfree(redirs);
+		if (expanded) { recfree((void **) argv); redirsfree(redirs); }
 		return cpid;
 	}
 	
@@ -781,13 +832,16 @@ static pid_t exec_single(
 	if (is_interactive) {
 		if (setpgid(0, pgid) < 0)
 			error(0, errno, "%s: setpgid (child)", argv[0]);
-		if (!bg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
+		if (etype == FOREGROUND
+				&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
 			error(0, errno, "%s: tcsetpgrp (child)", argv[0]);
 	}
 	is_loginshell = is_interactive = false;
 	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
 		error(0, errno, "sigprocmask (child) after fork");
 
+directexec:
+	assert(!is_interactive);
 	if (pipes.p_count > 0) {
 		if (pindex) {
 			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
@@ -802,6 +856,15 @@ static pid_t exec_single(
 		close_pipes(pipes);
 	}
 	resetsigaction();
+
+	if (!expanded) {
+		if (expand_line(p->p_args, &argc, &argv, &redirs) < 0)
+			exit(EXIT_FAILURE);
+		if (p->p_type != PT_NORMAL && *argv) {
+			error(0, 0, "redirection syntax error");
+			return -1;
+		}
+	}
 	if (open_redirections(redirs) < 0)
 		exit(EXIT_FAILURE);
 
@@ -822,11 +885,13 @@ static pid_t exec_single(
 			/* execvp(argv[0], argv); */
 			error(EXIT_NOEXEC, errno, "%s", argv[0]);
 		case PT_GROUP:  case PT_SUBSHELL:
-			laststatus = 0;
 			joblist_reinit();
 			exec_statements_and_exit(p->p_subcmds);
+		case PT_X_PIPE:
+			joblist_reinit();
+			exec_pipelines_and_exit(p->p_subcmds->s_pipeline);
 	}
-	assert(0);  /* ここには来ないはず */
+	assert(false);  /* ここには来ないはず */
 }
 
 /* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
@@ -899,7 +964,7 @@ static pid_t exec_single(
 //			error(0, errno, "sigprocmask (child)");
 //		get_ready_and_exec(scmd, pipes, pindex);
 //	}
-//	assert(0);  /* ここには来ないはず */
+//	assert(false);  /* ここには来ないはず */
 //	return 0;
 //}
 
@@ -946,7 +1011,7 @@ static pid_t exec_single(
 //		/* execvp(argv[0], argv); */
 //		error(EXIT_NOEXEC, errno, "%s", argv[0]);
 //	}
-//	assert(0);  /* ここには来ないはず */
+//	assert(false);  /* ここには来ないはず */
 //	return;
 //}
 
