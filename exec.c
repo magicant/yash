@@ -232,9 +232,10 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 			bool iscurrent, isbg;
 normal:
 			iscurrent = (currentjobnumber == jobnumber);
-			isbg = (job->j_status == JS_RUNNING) && !iscurrent;
+			isbg = (job->j_status == JS_RUNNING);
 			printf("[%zu]%c %5d  %-8s    %s%s\n",
-					jobnumber, iscurrent ? '+' : ' ',
+					jobnumber,
+					iscurrent ? '+' : ' ',
 					(int) job->j_pgid, jstatusstr[job->j_status],
 					job->j_name ? : "<< unknown job >>",
 					isbg ? " &" : "");
@@ -528,7 +529,15 @@ void exec_statements(STATEMENT *s)
 		if (!s->s_bg) {
 			exec_pipelines(s->s_pipeline);
 		} else {
-			error(0, 0, "background not supported");  // TODO
+			PIPELINE *p = s->s_pipeline;
+			if (p && !p->next) {
+				char *name = make_pipeline_name(
+						p->pl_proc, p->pl_neg, p->pl_loop);
+				exec_processes(p->pl_proc, name, p->pl_neg, p->pl_loop, true);
+				free(name);
+			} else {
+				error(0, 0, "background not supported");  // TODO
+			}
 		}
 		s = s->next;
 	}
@@ -601,7 +610,7 @@ static void exec_processes(
 			.j_statuschanged = true,
 			.j_flags = 0,
 			.j_exitstatus = 0,
-			.j_exitcodeneg = 0,
+			.j_exitcodeneg = neg,
 			.j_name = xstrdup(name),
 		};
 		laststatus = 0;
