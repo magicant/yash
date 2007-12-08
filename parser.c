@@ -27,7 +27,7 @@ static bool parse_words(PROCESS *process);
 static char *skip_with_quote(const char *s, const char *delim, bool singquote);
 static char *skip_without_quote(const char *s, const char *delim);
 //static inline char *skipifs(const char *s);
-static char *make_statement_name(PIPELINE *pipelines);
+char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 static void print_statements(struct strbuf *b, STATEMENT *s);
 static void print_pipelines(struct strbuf *b, PIPELINE *pl);
 static void print_processes(struct strbuf *b, PROCESS *p);
@@ -107,7 +107,6 @@ static STATEMENT *parse_statements()
 			free(temp);
 			goto end;
 		}
-		temp->s_name = make_statement_name(temp->s_pipeline);
 		switch (*fromi(i_index)) {
 			case ';':
 				if (fromi(i_index)[1] == ';')
@@ -424,15 +423,19 @@ static char *skip_without_quote(const char *s, const char *delim)
 //	return (char *) (s + strcspn(s, ifs));
 //}
 
-/* パイプラインを元に STATEMENT の s_name を生成する。
- * 戻り値: 新しく malloc した s の表示名。
- *         表示名には '&' も ';' も含まれない。 */
-static char *make_statement_name(PIPELINE *p)
+/* パイプラインに含まれるプロセスを元に PIPELINE の表示名を生成する。
+ * 戻り値: 新しく malloc した p の表示名。これには neg や loop に応じて
+ *         先頭に "!"、末尾に "|" が付く。 */
+char *make_pipeline_name(PROCESS *p, bool neg, bool loop)
 {
 	struct strbuf buf;
 
 	strbuf_init(&buf);
-	print_pipelines(&buf, p);
+	if (neg)
+		strbuf_append(&buf, "! ");
+	print_processes(&buf, p);
+	if (loop)
+		strbuf_append(&buf, " |");
 	return strbuf_tostr(&buf);
 }
 
@@ -775,7 +778,6 @@ void statementsfree(STATEMENT *s)
 {
 	while (s) {
 		pipesfree(s->s_pipeline);
-		free(s->s_name);
 
 		STATEMENT *ss = s->next;
 		free(s);

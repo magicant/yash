@@ -213,11 +213,10 @@ struct _statement {
 	STATEMENT *next;        /* ソース内の次の文 */
 	PIPELINE  *s_pipeline;  /* 文の中の最初のパイプライン */
 	bool       s_bg;        /* バックグラウンドかどうか */
-	char      *s_name;      /* 画面表示用のコマンド名 */
 };
 
 STATEMENT *parse_all(const char *src, bool *more);
-char **expand_pipe(const char *pipesrc, REDIR **redirs);
+char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
@@ -276,6 +275,8 @@ void send_sighup_to_all_jobs(void);
 void sig_hup(int signal);
 void sig_chld(int signal);
 void exec_statements(STATEMENT *statements);
+void exec_statements_and_exit(STATEMENT *statements)
+	__attribute__ ((noreturn));
 
 
 /* -- 組込みコマンド -- */

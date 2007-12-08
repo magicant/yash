@@ -24,11 +24,12 @@
 
 /* パイプの集合 */
 typedef struct {
-	size_t p_count;     /* パイプのペアの数 */
-	int (*p_pipes)[2];  /* パイプのペアの配列へのポインタ */
+	size_t p_count;     /* パイプの fd ペアの数 */
+	int (*p_pipes)[2];  /* パイプの fd ペアの配列へのポインタ */
 } PIPES;
 
 void init_exec(void);
+static void joblist_reinit(void);
 int exitcode_from_status(int status);
 JOB *get_job(size_t jobnumber);
 unsigned job_count(void);
@@ -44,11 +45,12 @@ void sig_chld(int signal);
 static int (*create_pipes(size_t count))[2];
 static void close_pipes(PIPES pipes);
 void exec_statements(STATEMENT *statements);
+void exec_statements_and_exit(STATEMENT *statements);
 static void exec_pipelines(PIPELINE *pipelines);
-static void exec_processes(PROCESS *processes, bool neg_status, bool pipe_loop);
-//static size_t exec_pipe(SCMD *scmds);
-//static pid_t exec_single(
-		//SCMD *scmd, pid_t pgid, bool fg, PIPES pipes, ssize_t pindex);
+static void exec_processes(PROCESS *processes, const char *jobname,
+		bool neg_status, bool pipe_loop, bool background);
+static pid_t exec_single(
+		PROCESS *p, ssize_t pindex, pid_t pgid, bool bg, PIPES pipes);
 //static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex);
 static int open_redirections(REDIR *redirs);
 //static void builtin_exec(SCMD *scmd);
@@ -84,6 +86,17 @@ void init_exec(void)
 {
 	plist_init(&joblist);
 	plist_append(&joblist, NULL);
+}
+
+/* joblist を再初期化する */
+static void joblist_reinit(void)
+{
+	for (size_t i = 0; i < joblist.length; i++)
+		remove_job(i);
+	/*
+	plist_clear(&joblist);
+	plist_append(&joblist, NULL);
+	*/
 }
 
 /* waitpid が返す status から終了コードを得る。
@@ -204,7 +217,7 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 		int estatus = job->j_exitstatus;
 		if (job->j_status == JS_DONE) {
 			if (WIFEXITED(estatus) && WEXITSTATUS(estatus))
-				printf("[%zu]%c %5d  Exit:%-3d    %s\n",
+				printf("[%zu]%c %5d  Exit %-3d    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, WEXITSTATUS(estatus),
 						job->j_name ? : "<< unknown job >>");
@@ -372,6 +385,8 @@ outofloop:
 stillrunning:
 	if (job->j_status != oldstatus)
 		job->j_statuschanged = true;
+
+	/* ブロック対象のジョブが変化した場合 */
 	if ((int) jobnumber == blockedjob) {
 		switch (job->j_status) {
 			case JS_NULL:
@@ -412,8 +427,10 @@ stillrunning:
 				remove_job(jobnumber);
 				break;
 			case JS_STOPPED:
-				if (is_interactive)
+				if (is_interactive) {
+					laststatus = exitcode_from_status(job->j_exitstatus);
 					add_job();
+				}
 				break;
 		}
 	}
@@ -508,13 +525,21 @@ static void close_pipes(PIPES pipes)
 void exec_statements(STATEMENT *s)
 {
 	while (s) {
-		printf("%s%s\n", s->s_name, s->s_bg ? " &" : "");
-		if (!s->s_bg)
+		if (!s->s_bg) {
 			exec_pipelines(s->s_pipeline);
-		else
+		} else {
 			error(0, 0, "background not supported");  // TODO
+		}
 		s = s->next;
 	}
+}
+
+/* コマンド入力全体を受け取って、全コマンドを実行し、そのまま終了する。 */
+void exec_statements_and_exit(STATEMENT *statements)
+{
+	// XXX 不要な fork を抑止
+	exec_statements(statements);
+	exit(laststatus);
 }
 
 /* 一つの文を実行する。 */
@@ -525,18 +550,69 @@ static void exec_pipelines(PIPELINE *p)
 	bool nextcond = true;
 	laststatus = 0;
 	while (p && (nextcond == !laststatus)) {
-		exec_processes(p->pl_proc, p->pl_neg, p->pl_loop);
+		char *name = make_pipeline_name(p->pl_proc, p->pl_neg, p->pl_loop);
+		exec_processes(p->pl_proc, name, p->pl_neg, p->pl_loop, false);
+		free(name);
 		nextcond = p->pl_next_cond;
 		p = p->next;
 	}
 }
 
-/* 一つのパイプラインを実行し、終了または停止を待つ。
+/* 一つのパイプラインを実行し、wait する。
+ * name はパイプラインのジョブ名。
  * neg ならばパイプラインの終了コードを反転。
- * loop ならば環状のパイプラインを作成。 */
-static void exec_processes(PROCESS *p, bool neg, bool loop)
+ * loop ならば環状のパイプラインを作成。
+ * bg ならばバックグラウンドでジョブを実行。
+ * すなわち wait せずに新しいジョブを追加して戻る。
+ * bg でなければフォアグラウンドでジョブを実行。
+ * すなわち wait し、停止した場合のみ新しいジョブを追加して戻る。 */
+static void exec_processes(
+		PROCESS *p, const char *name, bool neg, bool loop, bool bg)
 {
-	//TODO exec_processes
+	size_t pcount;
+	pid_t pgid;
+	pid_t *pids;
+	PIPES pipes;
+
+	/* パイプライン内のプロセス数を数える */
+	pcount = 0;
+	for (PROCESS *pp = p; pp; pcount++, pp = pp->next);
+
+	/* 必要な数のパイプを作成する */
+	pipes.p_count = loop ? pcount : pcount - 1;
+	pipes.p_pipes = create_pipes(pipes.p_count);
+	if (pipes.p_count > 0 && !pipes.p_pipes) {
+		laststatus = 2;
+		return;
+	}
+
+	pids = xcalloc(pcount + 1, sizeof(pid_t));
+	pgid = pids[0] = exec_single(p, loop ? -1 : 0, 0, bg, pipes);
+	if (pgid >= 0)
+		for (size_t i = 1; i < pcount; i++)
+			pids[i] = exec_single(p = p->next, i, pgid, bg, pipes);
+	close_pipes(pipes);
+	if (pgid > 0) {
+		JOB *job = xmalloc(sizeof *job);
+		*job = (JOB) {
+			.j_pgid = pgid,
+			.j_pids = pids,
+			.j_status = JS_RUNNING,
+			.j_statuschanged = true,
+			.j_flags = 0,
+			.j_exitstatus = 0,
+			.j_exitcodeneg = 0,
+			.j_name = xstrdup(name),
+		};
+		laststatus = 0;
+		assert(!joblist.contents[0]);
+		joblist.contents[0] = job;
+		if (!bg) {
+			wait_all(0);
+		} else {
+			add_job();
+		}
+	}
 }
 
 /* コマンド入力全体を受け取って、コマンドを実行する。 */
@@ -621,6 +697,128 @@ static void exec_processes(PROCESS *p, bool neg, bool loop)
 //end:
 //	return count;
 //}
+
+/* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
+ * fork/exec し、リダイレクトなどを設定する。
+ * p:       実行するコマンド
+ * pindex:  パイプ全体における子プロセスのインデックス。
+ *          環状パイプを作る場合は 0 の代わりに -1。
+ * pgid:    子プロセスに設定するプロセスグループ ID。
+ *          子プロセスのプロセス ID をそのままプロセスグループ ID にする時は 0。
+ *          サブシェルではプロセスグループを設定しないので pgid は無視。
+ * bg:      このプロセスの実行がバックグラウンドかどうか。
+ *          フォアグラウンドでは、組込みコマンドなどは fork しないことがある。
+ * pipes:   パイプの配列。
+ * 戻り値:  子プロセスの PID。fork/exec しなかった場合は 0。エラーなら -1。 */
+static pid_t exec_single(
+		PROCESS *p, ssize_t pindex, pid_t pgid, bool bg, PIPES pipes)
+{
+	int argc = 0;
+	char **argv = p->p_args;  // TODO expand
+	REDIR *redirs = NULL;
+	sigset_t sigset, oldsigset;
+
+	if (argv)
+		for (char **a = argv; *a; a++) argc++;  // TODO expand
+
+	if (p->p_type != PT_NORMAL && *argv) {
+		error(0, 0, "redirection syntax error");
+		return -1;
+	}
+
+	// TODO 組込み exec コマンド
+	
+	if (!bg && pipes.p_count == 0) {
+		if (p->p_type == PT_NORMAL) {
+			cbody body = assoc_builtin(argv[0]).b_body;
+			if (body) {  /* fork せずに組込みコマンドを実行 */
+				//TODO ここで組込みコマンド用のリダイレクトを処理
+				laststatus = body(argc, argv);
+				//TODO recfree(argv);
+				redirsfree(redirs);
+				return 0;
+			}
+		} else if (p->p_type == PT_GROUP && !redirs) {
+			exec_statements(p->p_subcmds);
+			return 0;
+		}
+	}
+
+	sigemptyset(&sigset);
+	sigaddset(&sigset, SIGHUP);
+	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
+		error(EXIT_FAILURE, errno, "sigprocmask before fork");
+
+	pid_t cpid = fork();
+	if (cpid < 0) {  /* fork 失敗 */
+		error(0, errno, "%s: fork", argv[0]);
+		return -1;
+	} else if (cpid) {  /* 親プロセス */
+		if (is_interactive) {
+			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
+				error(0, errno, "%s: setpgid (parent)", argv[0]);
+			/* if (!bg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
+					&& errno != EPERM)
+				error(0, errno, "%s: tcsetpgrp (parent)", argv[0]); */
+		}
+		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
+			error(0, errno, "sigprocmask (parent) after fork");
+		//TODO recfree(argv);
+		redirsfree(redirs);
+		return cpid;
+	}
+	
+	/* 子プロセス */
+	if (is_interactive) {
+		if (setpgid(0, pgid) < 0)
+			error(0, errno, "%s: setpgid (child)", argv[0]);
+		if (!bg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
+			error(0, errno, "%s: tcsetpgrp (child)", argv[0]);
+	}
+	is_loginshell = is_interactive = false;
+	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
+		error(0, errno, "sigprocmask (child) after fork");
+
+	if (pipes.p_count > 0) {
+		if (pindex) {
+			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
+			if (dup2(pipes.p_pipes[index][0], STDIN_FILENO) < 0)
+				error(0, errno, "%s: cannot connect pipe to stdin", argv[0]);
+		}
+		if (pindex < (ssize_t) pipes.p_count) {
+			size_t index = (pindex >= 0) ? (size_t) pindex : 0;
+			if (dup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
+				error(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
+		}
+		close_pipes(pipes);
+	}
+	resetsigaction();
+	if (open_redirections(redirs) < 0)
+		exit(EXIT_FAILURE);
+
+	switch (p->p_type) {
+		cbody body;
+		case PT_NORMAL:
+			body = assoc_builtin(argv[0]).b_body;
+			if (body) {  /* 組込みコマンドを実行 */
+				//TODO ここで組込みコマンド用のリダイレクトを処理
+				exit(body(argc, argv));
+			}
+
+			char *command = which(argv[0],
+					strchr(argv[0], '/') ? "." : getenv(ENV_PATH));
+			if (!command)
+				error(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
+			execve(command, argv, environ);
+			/* execvp(argv[0], argv); */
+			error(EXIT_NOEXEC, errno, "%s", argv[0]);
+		case PT_GROUP:  case PT_SUBSHELL:
+			laststatus = 0;
+			joblist_reinit();
+			exec_statements_and_exit(p->p_subcmds);
+	}
+	assert(0);  /* ここには来ないはず */
+}
 
 /* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
  * fork/exec し、リダイレクトなどを設定する。

@@ -651,8 +651,10 @@ int builtin_fg(int argc, char *const *argv)
 	ssize_t jobnumber = 0;
 	pid_t pgid = 0;
 
-	if (!is_interactive)
+	if (!is_interactive) {
+		error(0, 0, "%s: no job control", argv[0]);
 		return EXIT_FAILURE;
+	}
 	if (argc < 2) {
 		jobnumber = currentjobnumber;
 		if (jobnumber < 1 || !(job = get_job(jobnumber))) {

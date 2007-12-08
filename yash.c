@@ -398,8 +398,7 @@ int main(int argc, char **argv)
 		
 		is_interactive = 0;
 		if (!statements) return 2;  /* syntax error */
-		exec_statements(statements);
-		return laststatus;
+		exec_statements_and_exit(statements);
 	}
 
 	if (is_interactive) {
