@@ -49,6 +49,7 @@ void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
 void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
 void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
 void strbuf_append(struct strbuf *buf, const char *s);
+void strbuf_cappend(struct strbuf *buf, char c);
 void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap);
 int strbuf_printf(struct strbuf *buf, const char *format, ...);
@@ -386,6 +387,17 @@ void strbuf_nappend(struct strbuf *buf, const char *s, size_t n)
 void strbuf_append(struct strbuf *buf, const char *s)
 {
 	return strbuf_nappend(buf, s, SIZE_MAX);
+}
+
+/* 文字列バッファの末尾に一文字追加する。 */
+void strbuf_cappend(struct strbuf *buf, char c)
+{
+	if (buf->length == buf->maxlength) {
+		buf->maxlength = buf->maxlength * 2 + 1;
+		buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
+	}
+	buf->contents[buf->length++] = c;
+	buf->contents[buf->length] = '\0';
 }
 
 /* 文字列バッファの i 文字目から n 文字を s に置き換える。

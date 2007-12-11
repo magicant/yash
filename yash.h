@@ -100,6 +100,7 @@ void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
 void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
 void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
 void strbuf_append(struct strbuf *buf, const char *s);
+void strbuf_cappend(struct strbuf *buf, char c);
 void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 	__attribute__ ((format (printf, 2, 0)));
@@ -227,7 +228,9 @@ void statementsfree(STATEMENT *statements);
 
 /* -- コマンドライン展開 (expand) -- */
 
-int expand_line(char **args, int *argc, char ***argv, REDIR **redirs);
+bool expand_line(char **args, int *argc, char ***argv, REDIR **redirs);
+void escape_sq(const char *s, struct strbuf *buf);
+void escape_dq(const char *s, struct strbuf *buf);
 
 
 /* -- path -- */

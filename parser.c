@@ -24,6 +24,7 @@ static STATEMENT *parse_statements();
 static PIPELINE *parse_pipelines();
 static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
+static char *skip_redirection(const char *s);
 static char *skip_with_quote(const char *s, const char *delim, bool singquote);
 static char *skip_without_quote(const char *s, const char *delim);
 //static inline char *skipifs(const char *s);
@@ -301,8 +302,8 @@ static bool parse_words(PROCESS *p)
 	struct plist args;
 	plist_init(&args);
 	for (;;) {
-		size_t endindex = toi(
-				skip_with_quote(fromi(i_index), " \t;&|()#\n\r", true));
+		size_t endindex = toi(skip_with_quote(
+					skip_redirection(fromi(i_index)), " \t;&|<>()#\n\r", true));
 		if (i_index == endindex) break;
 
 		plist_append(&args, xstrndup(fromi(i_index), endindex - i_index));
@@ -319,6 +320,28 @@ static bool parse_words(PROCESS *p)
 	result = (initindex != i_index);
 end:
 	return result;
+}
+
+/* 文字列の先頭にあるリダイレクトの記号を飛ばす。すなわち、0 個以上の数字と
+ * < > <> >< >> >& <& を飛ばす。 */
+static char *skip_redirection(const char *s)
+{
+	const char *init = s;
+
+	s += strspn(s, "0123456789");
+	switch (*s) {
+		default:
+			return (char *) init;
+		case '<':  case '>':
+			s++;
+			switch (*s) {
+				default:
+					return (char *) s;
+				case '<':  case '>':  case '&':
+					s++;
+					return (char *) s;
+			}
+	}
 }
 
 /* 引用符 (' と " と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが

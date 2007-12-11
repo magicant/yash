@@ -986,8 +986,13 @@ usage:
 int builtin_alias(int argc, char *const *argv)
 {
 	int print_alias(const char *name, ALIAS *alias) {
-		printf("%s=%s\n", name, alias->value);
-		// XXX alias 出力形式
+		struct strbuf buf;
+		strbuf_init(&buf);
+		strbuf_printf(&buf, "alias %s%s=", alias->global ? "-g " : "", name);
+		escape_sq(alias->value, &buf);
+		strbuf_append(&buf, "\n");
+		printf("%s", buf.contents);
+		strbuf_destroy(&buf);
 		return 0;
 	}
 
