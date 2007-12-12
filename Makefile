@@ -9,15 +9,16 @@
 
 
 CC=gcc
-CFLAGS=-O1 -ggdb -Wall -Wextra -Wno-unused-parameter -std=gnu99
+CFLAGS=-O3 -ggdb -Wall -Wextra -Wno-unused-parameter -std=gnu99
 LDFLAGS=-lreadline -ltermcap
 OBJS=util.o readline.o parser.o expand.o exec.o path.o builtin.o alias.o
+TARGET=yash
 
-yash: $(OBJS)
+$(TARGET): $(OBJS)
 
 $(OBJS): yash.h
 
 clean:
-	rm -f $(OBJS) yash
+	rm -f $(OBJS) $(TARGET)
 
-.PHONY: all clean
+.PHONY: clean
