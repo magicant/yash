@@ -785,14 +785,16 @@ static pid_t exec_single(
 	
 	if (etype == FOREGROUND && pipes.p_count == 0) {
 		expanded = true;
-		if (expand_line(p->p_args, &argc, &argv, &redirs) < 0)
+		if (!expand_line(p->p_args, &argc, &argv, &redirs))
 			return -1;
-		if (p->p_type != PT_NORMAL && *argv) {
+		if (p->p_type == PT_NORMAL && argc == 0)
+			return 0;  // XXX リダイレクトがあるなら特殊操作
+		if (p->p_type != PT_NORMAL && argc > 0) {
 			error(0, 0, "redirection syntax error");
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL) {
-	// TODO 組込み exec コマンド
+			// TODO 組込み exec コマンド
 	
 			cbody body = assoc_builtin(argv[0]).b_body;
 			if (body) {  /* fork せずに組込みコマンドを実行 */
@@ -865,11 +867,12 @@ directexec:
 	resetsigaction();
 
 	if (!expanded) {
-		if (expand_line(p->p_args, &argc, &argv, &redirs) < 0)
+		if (!expand_line(p->p_args, &argc, &argv, &redirs))
 			exit(EXIT_FAILURE);
+		if (p->p_type == PT_NORMAL && argc == 0)
+			exit(EXIT_SUCCESS);  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && *argv) {
-			error(0, 0, "redirection syntax error");
-			return -1;
+			error(EXIT_FAILURE, 0, "redirection syntax error");
 		}
 	}
 	if (open_redirections(redirs) < 0)
@@ -1032,12 +1035,12 @@ static int open_redirections(REDIR *r)
 		if (r->rd_destfd >= 0) {
 			fd = r->rd_destfd;
 		} else if (!r->rd_file) {
-			if (close(r->rd_fd) < 0) {
+			if (close(r->rd_fd) < 0 && errno != EBADF) {
 				error(0, errno,
-						"redirection: closing file descriptor %d", r->rd_fd);
+						"redirect: closing file descriptor %d", r->rd_fd);
 				return -1;
 			}
-			continue;
+			goto next;
 		} else {
 			fd = open(r->rd_file, r->rd_flags, 0666);
 			if (fd < 0)
@@ -1053,12 +1056,13 @@ static int open_redirections(REDIR *r)
 				goto onerror;
 		}
 
+next:
 		r = r->next;
 	}
 	return 0;
 
 onerror:
-	error(0, errno, "redirection: %s", r->rd_file);
+	error(0, errno, "redirect: %s", r->rd_file);
 	return -1;
 }
 

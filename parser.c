@@ -785,6 +785,8 @@ static void print_process(struct strbuf *b, PROCESS *p)
 void redirsfree(REDIR *r)
 {
 	while (r) {
+		free(r->rd_file);
+
 		REDIR *rr = r->next;
 		free(r);
 		r = rr;

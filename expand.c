@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "yash.h"
 #include <assert.h>
@@ -53,21 +54,17 @@ void escape_dq(const char *s, struct strbuf *buf);
 bool expand_line(char **args, int *argc, char ***argv, REDIR **redirs)
 {
 	struct plist alist;
-	REDIR *firstr = NULL;
-	//REDIR **lastrp = &firstr;
+	bool result = true;
 
 	plist_init(&alist);
 	if (!args) goto end;
 
-	// TODO
-	for (char **a = args; *a; a++)
-		plist_append(&alist, xstrdup(*a));
+	result = expand_redirections(args, &alist, redirs);
 
 end:
 	*argc = alist.length;
 	*argv = (char **) plist_toary(&alist);
-	*redirs = firstr;
-	return 0;
+	return result;
 }
 
 /* args の中からリダイレクトを分離し、リダイレクト以外のものは argv に入れて、
@@ -83,7 +80,7 @@ static bool expand_redirections(char **args, struct plist *argv, REDIR **redirs)
 
 	plist_init(&etemp);
 	while ((a = *args)) {
-		int fd;
+		int fd = -1;
 		char *s;
 		bool usedest = false;
 		int flags = 0;
@@ -134,25 +131,60 @@ static bool expand_redirections(char **args, struct plist *argv, REDIR **redirs)
 				result &= expand_arg(a, argv);
 				goto next;
 		}
-		if (!*s)
-			a = s = *++args;
+		if (!*s) {
+			if (!(a = s = *++args)) {
+				error(0, 0, "redirect argument not given");
+				result = false;
+				break;
+			}
+		}
 		if (!expand_arg(s, &etemp)) {
 			result = false;
 			goto next;
 		} else if (etemp.length == 0) {
 			error(0, 0, "%s: invalid redirect: "
-					"argument expanded to null string", s);
+					"argument expanded to null string", a);
 			result = false;
 			goto next;
 		} else if (etemp.length > 1) {
 			error(0, 0, "%s: invalid redirect: "
-					"argument expanded to mulitple strings", s);
+					"argument expanded to mulitple strings", a);
 			result = false;
 			goto next;
 		} else {
+			REDIR *redir = xmalloc(sizeof *redir);
 			assert(etemp.length == 1);
-			//TODO
+			s = etemp.contents[0];
 			plist_clear(&etemp);
+
+			redir->next = NULL;
+			redir->rd_fd = fd;
+			redir->rd_flags = flags;
+			if (usedest) {
+				redir->rd_file = NULL;
+				if (strcmp(s, "-") == 0) {
+					redir->rd_destfd = -1;
+				} else {
+					char *end;
+					fd = strtol(s, &end, 10);
+					if (!*s || *end) {
+						error(0, 0, "%s: redirect syntax error", a);
+						result = false;
+						free(redir);
+						redir = NULL;
+					} else {
+						redir->rd_destfd = fd;
+					}
+				}
+				free(s);
+			} else {
+				redir->rd_destfd = -1;
+				redir->rd_file = s;
+			}
+			if (redir) {
+				*lastp = redir;
+				lastp = &redir->next;
+			}
 		}
 
 next:
@@ -160,6 +192,7 @@ next:
 	}
 
 	recfree(plist_toary(&etemp));
+	*redirs = first;
 	return result;
 }
 
@@ -167,7 +200,12 @@ next:
  * 一つの引数が単語分割によって複数の単語に分かれることがあるので、argv
  * に加わる要素は一つとは限らない。
  * 成功すると 0 を返し、失敗すると -1 を返す。失敗時はエラーを出力する。 */
-static bool expand_arg(const char *s, struct plist *argv);
+static bool expand_arg(const char *s, struct plist *argv)
+{
+	//TODO
+	plist_append(argv, xstrdup(s));
+	return true;
+}
 
 /* 文字列 s を引用符 ' で囲む。ただし、文字列に ' 自身が含まれる場合は
  * \ でエスケープする。結果は buf に追加する。
