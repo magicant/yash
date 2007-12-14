@@ -202,7 +202,7 @@ next:
  * 成功すると 0 を返し、失敗すると -1 を返す。失敗時はエラーを出力する。 */
 static bool expand_arg(const char *s, struct plist *argv)
 {
-	//TODO
+	//TODO expand_arg
 	plist_append(argv, xstrdup(s));
 	return true;
 }

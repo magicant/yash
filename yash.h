@@ -46,11 +46,15 @@ extern char *prompt_command;
 void setsigaction(void);
 void resetsigaction(void);
 
+int exec_file(const char *path, bool suppresserror);
+int exec_file_exp(const char *path, bool suppresserror);
+int exec_source(const char *code);
+void exec_source_and_exit(const char *code)
+	__attribute__((noreturn));
+
 void init_interactive(void);
 void finalize_interactive(void);
-
-void exec_file(const char *path, bool suppresserror);
-void exec_file_exp(const char *path, bool suppresserror);
+int exec_promptcommand(void);
 
 void yash_exit(int exitcode)
 	__attribute__ ((noreturn));
@@ -76,7 +80,6 @@ char *skipwhites(const char *s);
 char *strchug(char *s);
 char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
-char *read_all(int fd);
 
 #define MAX(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
@@ -223,7 +226,7 @@ struct _statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-int parse_all(readline_t *input, STATEMENT **result);
+int read_and_parse(readline_t *input, STATEMENT **result);
 char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);

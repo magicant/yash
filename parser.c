@@ -26,7 +26,7 @@
 #include <assert.h>
 
 
-int parse_all(readline_t *input, STATEMENT **result);
+int read_and_parse(readline_t *input, STATEMENT **result);
 static bool read_next_line(bool insertnl);
 static STATEMENT *parse_statements(char stop);
 static PIPELINE *parse_pipelines();
@@ -64,7 +64,7 @@ static size_t i_index;
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
  *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
 /* この関数はリエントラントではない */
-int parse_all(readline_t *input, STATEMENT **result)
+int read_and_parse(readline_t *input, STATEMENT **result)
 {
 	char *src;
 
@@ -99,7 +99,7 @@ int parse_all(readline_t *input, STATEMENT **result)
  * 戻り値:   読み込めたら true、エラーや EOF なら false。 */
 static bool read_next_line(bool insertnl)
 {
-	char *line = i_input(2);
+	char *line = (*i_input)(2);
 
 	if (!line) {
 		i_error = true;
@@ -405,7 +405,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 						}
 						break;
 					case '(':
-						//if (s[2] == '(') {} // TODO 算術式展開
+						//if (s[2] == '(') {} // XXX 算術式展開
 						i_index = toi(skipwhites(fromi(i_index + 2)));
 						statementsfree(parse_statements(')'));
 						if (*fromi(i_index) != ')') {

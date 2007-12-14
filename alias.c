@@ -112,7 +112,7 @@ int for_all_aliases(int (*func)(const char *name, ALIAS *alias))
 }
 
 /* エイリアスの展開を行う前に状態をリセットする。
- * この関数は一度の parse_all につき一度呼び出される。 */
+ * この関数は一度の read_and_parse につき一度呼び出される。 */
 void alias_reset(void)
 {
 	int reset(const char *name, ALIAS *alias) {

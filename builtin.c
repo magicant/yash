@@ -196,7 +196,6 @@ int builtin_exit(int argc, char *const *argv)
 
 	yash_exit(status);
 	assert(false);
-	return EXIT_FAILURE;
 
 usage:
 	printf("Usage:  exit/logout [-f] [exitcode]\n");

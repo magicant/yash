@@ -36,13 +36,15 @@
 
 void setsigaction(void);
 void resetsigaction(void);
-void exec_file(const char *path, bool suppresserror);
-void exec_file_exp(const char *path, bool suppresserror);
+int exec_file(const char *path, bool suppresserror);
+int exec_file_exp(const char *path, bool suppresserror);
+int exec_source(const char *code);
+void exec_source_and_exit(const char *code);
 static void set_shlvl(int change);
 static void init_env(void);
 void init_interactive(void);
 void finalize_interactive(void);
-static int exec_promptcommand(void);
+int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__ ((noreturn));
 int main(int argc, char **argv);
 void print_help(void);
@@ -120,47 +122,128 @@ void resetsigaction(void)
 		error(0, errno, "sigaction: signal=SIGHUP");
 }
 
-/* 指定したファイルをシェルスクリプトとして実行する
- * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない */
-void exec_file(const char *path, bool suppresserror)
+/* 指定したファイルをシェルスクリプトとしてこのシェルの中で実行する
+ * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない
+ * 戻り値: エラーがなければ 0、エラーなら非 0。 */
+int exec_file(const char *path, bool suppresserror)
 {
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		if (!suppresserror)
-			error(0, errno, "%s", path);
-		return;
+	FILE *f = fopen(path, "r");
+	char *mygetline(int ptype) {
+		char *line = NULL;
+		size_t size = 0;
+		ssize_t len = getline(&line, &size, f);
+		if (len < 0) return NULL;
+		if (line[size - 1] == '\n')
+			line[size - 1] = '\0';
+		return line;
 	}
 
-	char *src = read_all(fd);
-	close(fd);
-	if (!src) {
+	if (!f) {
 		if (!suppresserror)
 			error(0, errno, "%s", path);
-		return;
+		return EOF;
 	}
 
-//	STATEMENT *statements = parse_all(src, NULL);
-//	if (statements)
-//		exec_statements(statements);
-//	statementsfree(statements);
-//	free(src);
-//	TODO
+	int result;
+	for (;;) {
+		STATEMENT *statements;
+		switch (read_and_parse(&mygetline, &statements)) {
+			case 0:  /* OK */
+				if (statements) {
+					exec_statements(statements);
+					statementsfree(statements);
+				}
+				break;
+			case EOF:
+				result = 0;
+				goto end;
+			case 1:  /* syntax error */
+			default:
+				result = -1;
+				goto end;
+		}
+	}
+end:
+	if (fclose(f) != 0)
+		error(0, errno, "%s", path);
+	return result;
 }
 
 /* ファイルをシェルスクリプトとして実行する。
  * path: ファイルのパス。'~' で始まるならホームディレクトリを展開して
- *       ファイルを探す。 */
-void exec_file_exp(const char *path, bool suppresserror)
+ *       ファイルを探す。
+ * 戻り値: エラーがなければ 0、エラーなら非 0。 */
+int exec_file_exp(const char *path, bool suppresserror)
 {
 	if (path[0] == '~') {
 		char *newpath = expand_tilde(path);
 		if (!newpath)
-			return;
-		exec_file(newpath, suppresserror);
+			return -1;
+		int result = exec_file(newpath, suppresserror);
 		free(newpath);
+		return result;
 	} else {
-		exec_file(path, suppresserror);
+		return exec_file(path, suppresserror);
+	}
+}
+
+/* code をシェルスクリプトのソースコードとして解析し、このシェル内で実行する。
+ * code:   実行するコード。NULL なら何も行わない。
+ * 戻り値: エラーがなければ 0、エラーなら非 0。 */
+int exec_source(const char *code)
+{
+	size_t index = 0;
+	char *mygetline(int ptype) {
+		size_t len = strcspn(&code[index], "\n\r");
+		if (!len) return NULL;
+
+		char *result = xstrndup(&code[index], len);
+		index += len;
+		index += strspn(&code[index], "\n\r");
+		return result;
+	}
+
+	if (!code)
+		return 0;
+	for (;;) {
+		STATEMENT *statements;
+		switch (read_and_parse(&mygetline, &statements)) {
+			case 0:  /* OK */
+				if (statements) {
+					exec_statements(statements);
+					statementsfree(statements);
+				}
+				break;
+			case EOF:
+				return 0;
+			case 1:  /* syntax error */
+			default:
+				return -1;
+		}
+	}
+}
+
+/* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
+ * そのまま終了する。
+ * code: 実行するコード。NULL なら何も実行せず終了する。 */
+void exec_source_and_exit(const char *code)
+{
+	char *mygetline(int ptype) {
+		if (ptype == 1) return xstrdup(code);
+		else            return NULL;
+	}
+
+	if (strpbrk(code, "\n\r")) {
+		exec_source(code);
+		exit(laststatus);
+	}
+
+	STATEMENT *statements;
+	switch (read_and_parse(&mygetline, &statements)) {
+		case 0:  /* OK */
+			exec_statements_and_exit(statements);
+		default:  /* error */
+			exit(2);
 	}
 }
 
@@ -240,22 +323,14 @@ void finalize_interactive(void)
 
 /* PROMPT_COMMAND を実行する。
  * 戻り値: 実行したコマンドの終了ステータス */
-static int exec_promptcommand(void)
+int exec_promptcommand(void)
 {
 	int resultstatus = 0;
-
-	if (prompt_command) {
-		STATEMENT *ss = NULL;// TODO parse_all(prompt_command, NULL);
-
-		if (ss) {
-			int tmpstatus = laststatus;
-			laststatus = 0;
-			exec_statements(ss);
-			statementsfree(ss);
-			resultstatus = laststatus;
-			laststatus = tmpstatus;
-		}
-	}
+	int savestatus = laststatus;
+	laststatus = 0;
+	exec_source(prompt_command);
+	resultstatus = laststatus;
+	laststatus = savestatus;
 	return resultstatus;
 }
 
@@ -266,7 +341,7 @@ static void interactive_loop(void)
 	for (;;) {
 		STATEMENT *statements;
 
-		switch (parse_all(yash_readline, &statements)) {
+		switch (read_and_parse(&yash_readline, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					exec_statements(statements);
@@ -374,7 +449,7 @@ int main(int argc, char **argv)
 
 		directcommand = skipwhites(directcommand);
 		if (!*directcommand) return EXIT_SUCCESS;
-		switch (parse_all(readcommand, &statements)) {
+		switch (read_and_parse(&readcommand, &statements)) {
 			case 0:  /* OK */
 				exec_statements_and_exit(statements);
 			case 1:  /* syntax error */
