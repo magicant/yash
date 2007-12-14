@@ -64,10 +64,12 @@ const int ignsignals[] = {
 	SIGINT, SIGTERM, SIGTSTP, SIGTTIN, SIGTTOU, 0,
 };
 
-void debug_sig(int signal)
+#if 0
+static void debug_sig(int signal)
 {
 	error(0, 0, "DEBUG: received signal %d. pid=%ld", signal, (long) getpid());
 }
+#endif
 
 /* シグナルハンドラを初期化する */
 void setsigaction(void)
@@ -292,6 +294,7 @@ void init_interactive(void)
 	static bool initialized = false;
 
 	if (is_interactive) {
+		setsigaction();
 		orig_pgrp = getpgrp();
 		setpgrp();   /* シェル自身は独立した pgrp に属する */
 		set_shlvl(1);
@@ -318,6 +321,7 @@ void finalize_interactive(void)
 			error(0, errno, "cannot reset foreground process group");
 		if (orig_pgrp > 0 && setpgid(0, orig_pgrp) < 0 && errno != EPERM)
 			error(0, errno, "cannot reset process group");
+		resetsigaction();
 	}
 }
 
@@ -430,36 +434,14 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	setsigaction();
 	init_exec();
 	init_env();
 	init_alias();
 
 	if (directcommand) {
-		STATEMENT *statements;
-		char *readcommand(int ptype) {
-			// TODO directcommand の中に改行がある場合
-			switch (ptype) {
-				case 1:
-					return xstrdup(directcommand);
-				default:
-					return NULL;
-			}
-		}
-
-		directcommand = skipwhites(directcommand);
-		if (!*directcommand) return EXIT_SUCCESS;
-		switch (read_and_parse(&readcommand, &statements)) {
-			case 0:  /* OK */
-				exec_statements_and_exit(statements);
-			case 1:  /* syntax error */
-				return 2;
-			default:
-			case EOF:
-				assert(false);
-		}
+		is_interactive = false;
+		exec_source_and_exit(directcommand);
 	}
-
 	if (is_interactive) {
 		init_interactive();
 		interactive_loop();

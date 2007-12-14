@@ -597,7 +597,7 @@ static void exec_pipelines(PIPELINE *p)
 /* 一つの文の各パイプラインを実行し、そのまま終了する。 */
 static void exec_pipelines_and_exit(PIPELINE *p)
 {
-	if (p && !is_interactive && !p->next && !p->pl_neg && !p->pl_loop) {
+	if (p && !p->next && !p->pl_neg && !p->pl_loop) {
 		PROCESS *proc = p->pl_proc;
 		if (!proc->next) switch (proc->p_type) {
 			case PT_NORMAL:
@@ -606,10 +606,8 @@ static void exec_pipelines_and_exit(PIPELINE *p)
 				assert(false);
 			case PT_GROUP:  case PT_SUBSHELL:
 				exec_statements_and_exit(proc->p_subcmds);
-				assert(false);
 			case PT_X_PIPE:
 				exec_pipelines_and_exit(proc->p_subcmds->s_pipeline);
-				assert(false);
 		}
 	}
 
@@ -674,6 +672,9 @@ static void exec_processes(
 		}
 	}
 }
+
+// TODO: ジョブを起動している最中に SIGHUP を受け取ったとき、起動中のジョブにも
+//       huponexit が正しく適用されるようにする
 
 /* コマンド入力全体を受け取って、コマンドを実行する。 */
 //void exec_list(SCMD *scmds, size_t count)
@@ -1140,9 +1141,7 @@ onerror:
 //	argv[optind] = newargv0;
 //
 //	finalize_interactive();
-//	resetsigaction();
 //	execve(command, argv + optind, clearenv ? NULL : environ);
-//	setsigaction();
 //	init_interactive();
 //
 //	error(0, errno, "%s", argv[0]);
