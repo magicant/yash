@@ -38,7 +38,7 @@
 
 void initialize_readline(void);
 void finalize_readline(void);
-int yash_readline(int ptype, char **result);
+char *yash_readline(int ptype);
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
@@ -96,12 +96,9 @@ void finalize_readline(void)
 /* プロンプトを表示して行を読み取る。
  * ptype が 1 か 2 なら履歴展開を行い、履歴に追加する。
  * ptype:  プロンプトの種類。1~2。(PS1~PS2 に対応)
- * result: これに結果が代入される。(戻り値が 0 の時のみ)
- * 戻り値: 0:  OK。コマンドを実行せよ。
- *         -1: エラーまたは展開結果が不実行。ただちに次の readline に移れ。
- *         -2: EOF が入力された。
- *         -4: ptype が不正。 */
-int yash_readline(int ptype, char **result)
+ * 戻り値: 読み取った行。(新しく malloc した文字列)
+ *         EOF が入力されたときは NULL。 */
+char *yash_readline(int ptype)
 {
 	char *prompt, *actualprompt;
 	char *line, *eline;
@@ -121,15 +118,18 @@ int yash_readline(int ptype, char **result)
 		}
 	}
 	
+yash_readline_start:
 	switch (ptype) {
 		case 1:
 			prompt = readline_prompt1 ? : "\\s-\\v\\$ ";
+			// TODO exec_promptcommand
 			break;
 		case 2:
 			prompt = readline_prompt2 ? : "> ";
 			break;
 		default:
-			return -4;
+			error(2, 0, "internal error: yash_readline_start ptype=%d", ptype);
+			assert(false);
 	}
 
 	if (tcsetpgrp(STDIN_FILENO, getpgrp()) < 0)
@@ -168,11 +168,14 @@ int yash_readline(int ptype, char **result)
 	if (terminal_info_valid)
 		tcsetattr(STDIN_FILENO, TCSADRAIN, &old_terminal_info);
 
-	if (!line)
-		return -2;
+	if (!line) {
+		if (ptype == 1)      printf("exit\n");
+		else if (ptype == 2) printf("\n");
+		return NULL;
+	}
 	if (!*skipspaces(line)) {
 		free(line);
-		return -1;
+		goto yash_readline_start;
 	}
 
 	if (ptype == 1 || ptype == 2) {
@@ -184,23 +187,21 @@ int yash_readline(int ptype, char **result)
 			default:
 				free(line);
 				add_history(eline);
-				*result = eline;
-				return 0;
+				return eline;
 			case -1:  /* Error */
 				free(line);
 				error(0, 0, "%s", eline);
 				free(eline);
-				return -1;
+				goto yash_readline_start;
 			case 2:   /* No execution */
 				free(line);
 				printf("%s\n", eline);
 				add_history(eline);
 				free(eline);
-				return -1;
+				goto yash_readline_start;
 		}
 	} else {
-		*result = line;
-		return 0;
+		return line;
 	}
 }
 

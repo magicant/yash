@@ -140,11 +140,12 @@ void exec_file(const char *path, bool suppresserror)
 		return;
 	}
 
-	STATEMENT *statements = parse_all(src, NULL);
-	if (statements)
-		exec_statements(statements);
-	statementsfree(statements);
-	free(src);
+//	STATEMENT *statements = parse_all(src, NULL);
+//	if (statements)
+//		exec_statements(statements);
+//	statementsfree(statements);
+//	free(src);
+//	TODO
 }
 
 /* ファイルをシェルスクリプトとして実行する。
@@ -244,7 +245,7 @@ static int exec_promptcommand(void)
 	int resultstatus = 0;
 
 	if (prompt_command) {
-		STATEMENT *ss = parse_all(prompt_command, NULL);
+		STATEMENT *ss = NULL;// TODO parse_all(prompt_command, NULL);
 
 		if (ss) {
 			int tmpstatus = laststatus;
@@ -261,70 +262,32 @@ static int exec_promptcommand(void)
 /* 対話的動作を行う。この関数は返らない。 */
 static void interactive_loop(void)
 {
-	bool more;
-	char *line;
-	struct strbuf linebuf;
-	STATEMENT *statements;
-
 	assert(is_interactive);
-	strbuf_init(&linebuf);
 	for (;;) {
-		int ptype;
+		STATEMENT *statements;
 
-		if (linebuf.length == 0) {
-			ptype = 1;
-			exec_promptcommand();
-		} else {
-			ptype = 2;
-		}
-		switch (yash_readline(ptype, &line)) {
-			case -2:  /* EOF */
-				printf("\n");
-				if (linebuf.length == 0) {
-					wait_all(-2 /* non-blocking */);
-					print_all_job_status(
-							true /* changed only */, false /* not verbose */);
-					if (job_count()) {
-						error(0, 0, "There are undone jobs!"
-								"  Use `exit -f' to exit forcibly.");
-						continue;
-					}
-					goto exit;
-				} else {
-					line = NULL;
+		switch (parse_all(yash_readline, &statements)) {
+			case 0:  /* OK */
+				if (statements) {
+					exec_statements(statements);
+					statementsfree(statements);
+				}
+				break;
+			case 1:  /* syntax error */
+				break;
+			case EOF:
+				wait_all(-2 /* non-blocking */);
+				print_all_job_status(
+						true /* changed only */, false /* not verbose */);
+				if (job_count()) {
+					error(0, 0, "There are undone jobs!"
+							"  Use `exit -f' to exit forcibly.");
 					break;
 				}
-			case -1:
-				continue;
-			case 0:
-				break;
-			default:
-				error(2, 0, "internal error: yash_readline result");
-		}
-		if (line == NULL) {
-			statements = parse_all(linebuf.contents, NULL);
-			strbuf_clear(&linebuf);
-		} else if (linebuf.length == 0) {
-			statements = parse_all(line, &more);
-			if (more) {
-				strbuf_append(&linebuf, line);
-				strbuf_append(&linebuf, "\n");
-			}
-		} else {
-			strbuf_append(&linebuf, line);
-			strbuf_append(&linebuf, "\n");
-			statements = parse_all(linebuf.contents, &more);
-			if (!more)
-				strbuf_clear(&linebuf);
-		}
-		free(line);
-		if (statements) {
-			exec_statements(statements);
-			statementsfree(statements);
+				goto exit;
 		}
 	}
 exit:
-	strbuf_destroy(&linebuf);
 	yash_exit(laststatus);
 }
 
@@ -398,14 +361,28 @@ int main(int argc, char **argv)
 	init_alias();
 
 	if (directcommand) {
+		STATEMENT *statements;
+		char *readcommand(int ptype) {
+			// TODO directcommand の中に改行がある場合
+			switch (ptype) {
+				case 1:
+					return xstrdup(directcommand);
+				default:
+					return NULL;
+			}
+		}
+
 		directcommand = skipwhites(directcommand);
 		if (!*directcommand) return EXIT_SUCCESS;
-
-		STATEMENT *statements = parse_all(directcommand, NULL);
-		
-		is_interactive = 0;
-		if (!statements) return 2;  /* syntax error */
-		exec_statements_and_exit(statements);
+		switch (parse_all(readcommand, &statements)) {
+			case 0:  /* OK */
+				exec_statements_and_exit(statements);
+			case 1:  /* syntax error */
+				return 2;
+			default:
+			case EOF:
+				assert(false);
+		}
 	}
 
 	if (is_interactive) {

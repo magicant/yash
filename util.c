@@ -187,8 +187,7 @@ char *skipwhites(const char *s)
 		if (*s != '#')
 			return (char *) s;
 		s++;
-		while (*s != '\0' && *s != '\n' && *s != '\r')
-			s++;
+		s += strcspn(s, "\n\r");
 	}
 }
 

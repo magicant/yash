@@ -149,6 +149,12 @@ int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
 
 /* -- readline/history -- */
 
+/* ソースを一行読み込んで返す関数。
+ * ptype:  現在の状況。新しい文を読み始めるときは 1、文の途中で続きを読むときは
+ *         2。(この引数はプロンプトの種類を変えたりするのに使う)
+ * 戻り値: 読み込んだソース。末尾の改行はない。EOF に達したときは NULL。 */
+typedef char *readline_t(int ptype);
+
 extern char *history_filename;
 extern int history_filesize;
 extern int history_histsize;
@@ -157,7 +163,7 @@ extern char *readline_prompt2;
 
 void initialize_readline(void);
 void finalize_readline(void);
-int yash_readline(int ptype, char **result);
+readline_t yash_readline;
 
 
 /* -- パーサ -- */
@@ -217,7 +223,7 @@ struct _statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-STATEMENT *parse_all(const char *src, bool *more);
+int parse_all(readline_t *input, STATEMENT **result);
 char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);

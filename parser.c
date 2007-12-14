@@ -26,13 +26,14 @@
 #include <assert.h>
 
 
-STATEMENT *parse_all(const char *src, bool *more);
-static STATEMENT *parse_statements();
+int parse_all(readline_t *input, STATEMENT **result);
+static bool read_next_line(bool insertnl);
+static STATEMENT *parse_statements(char stop);
 static PIPELINE *parse_pipelines();
 static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
 static char *skip_redirection(const char *s);
-static char *skip_with_quote(const char *s, const char *delim, bool singquote);
+static void skip_with_quote(const char *delim, bool singquote);
 static char *skip_without_quote(const char *s, const char *delim);
 //static inline char *skipifs(const char *s);
 char *make_statement_name(PIPELINE *pipelines);
@@ -46,7 +47,7 @@ void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
 
-static bool *i_more;
+static readline_t *i_input;
 static bool i_error;
 static struct strbuf i_src;
 static size_t i_index;
@@ -57,53 +58,84 @@ static size_t i_index;
 #define toi(x)   ((x) - i_src.contents)
 
 /* コマンド入力を解析するエントリポイント。
- * src:    ソースコード
- * more:   NULL でなければ、ソースに更なる入力が必要かどうかが入る。
- *         (更なる入力が必要でもエラーを出さない。)
- *         NULL ならば、更なる入力が必要なときは解析エラーとする。
- * 戻り値: 成功したら結果が返される。失敗なら NULL。 */
+ * input:  呼び出す度にソースを一行読み込んで返す関数。
+ * result: これに結果が入る。(戻り値が 0 の場合のみ)
+ *         ソースに文が含まれなければ、結果は NULL となる。
+ * 戻り値: 成功したら *result に結果を入れて 0 を返す。
+ *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
 /* この関数はリエントラントではない */
-STATEMENT *parse_all(const char *src, bool *more)
+int parse_all(readline_t *input, STATEMENT **result)
 {
-	/* *i_more が true なら i_error は false のまま */
-	i_more = more;
-	if (i_more)
-		*i_more = false;
+	char *src;
+
+	i_input = input;
 	i_error = false;
+	i_index = 0;
+	src = input(1);
+	if (!src)
+		return EOF;
+
 	strbuf_init(&i_src);
 	strbuf_append(&i_src, src);
-	i_index = toi(skipwhites(fromi(0)));
+	free(src);
 	alias_reset();
 
-	STATEMENT *result = parse_statements();
+	STATEMENT *statements = parse_statements('\0');
 	if (*fromi(i_index)) {
 		error(0, 0, "syntax error: invalid character: `%c'", *fromi(i_index));
 		i_error = true;
 	}
-	if (i_error && i_more)
-		*i_more = false;
-	if (i_error || (i_more && *i_more)) {
-		statementsfree(result);
-		result = NULL;
-	}
 	strbuf_destroy(&i_src);
-	return result;
+	if (i_error) {
+		statementsfree(statements);
+		return 1;
+	}
+	*result = statements;
+	return 0;
+}
+
+/* 更なる一行を読み込んで i_src に継ぎ足す。
+ * insertnl: true なら新しく継ぎ足す行の前に改行を挿入する。
+ * 戻り値:   読み込めたら true、エラーや EOF なら false。 */
+static bool read_next_line(bool insertnl)
+{
+	char *line = i_input(2);
+
+	if (!line) {
+		i_error = true;
+		return false;
+	}
+	if (insertnl)
+		strbuf_cappend(&i_src, '\n');
+	strbuf_append(&i_src, line);
+	free(line);
+	return true;
 }
 
 /* コマンド入力を解析する。
- * src:    解析するソースへのポインタ。
- *         解析成功なら解析し終わった後の位置まで進む。
+ * stop:   この文字が現れるまで解析を続ける。(エラーの場合を除く)
+ *         ただし stop = ';' なら ";;" が現れるまで解析を続ける。
  * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
-static STATEMENT *parse_statements()
+static STATEMENT *parse_statements(char stop)
 {
 	STATEMENT *first = NULL, **lastp = &first;
 	char c;
 
-	while ((c = *fromi(i_index))) {
-		if (c == ';' || c == '&') {
+	i_index = toi(skipwhites(fromi(i_index)));
+	while ((c = *fromi(i_index)) != stop
+			&& (stop != ';' || *fromi(i_index + 1) == ';')) {
+		if (c == '\0') {
+			if (!read_next_line(false)) {
+				error(0, 0, "syntax error: missing `%c'", stop);
+				i_error = true;
+				goto end;
+			}
+			i_index = toi(skipwhites(fromi(i_index)));
+			continue;
+		} else if (c == ';' || c == '&') {
 			error(0, 0, "syntax error: unexpected `%c'", c);
-			i_index++;
 			i_error = true;
+			i_index++;
 			goto end;
 		}
 
@@ -118,8 +150,10 @@ static STATEMENT *parse_statements()
 		}
 		switch (*fromi(i_index)) {
 			case ';':
-				if (fromi(i_index)[1] == ';')
+				if (stop == ';' && *fromi(i_index + 1) == ';') {
+					last = true;
 					goto default_case;
+				}
 				/* falls thru! */
 			case '\n':  case '\r':
 				temp->s_bg = false;
@@ -129,10 +163,7 @@ static STATEMENT *parse_statements()
 				temp->s_bg = true;
 				i_index++;
 				break;
-			default:  default_case:
-				last = true;
-				/* falls thru! */
-			case '#':
+			default:  default_case:  case '#':
 				temp->s_bg = false;
 				break;
 		}
@@ -162,6 +193,16 @@ static PIPELINE *parse_pipelines()
 			i_error = true;
 			goto end;
 		}
+		if (first) {
+			while (!*fromi(i_index)) {
+				if (!read_next_line(false)) {
+					error(0, 0, "syntax error: no command after `&&' or `||'");
+					i_error = true;
+					goto end;
+				}
+				i_index = toi(skipwhites(fromi(i_index)));
+			}
+		}
 
 		PIPELINE *temp = xmalloc(sizeof *temp);
 		bool last = false;
@@ -170,22 +211,15 @@ static PIPELINE *parse_pipelines()
 		temp->pl_proc = parse_processes(&temp->pl_neg, &temp->pl_loop);
 		if (!temp->pl_proc) {
 			free(temp);
-			if (first) {
-				if (!*fromi(i_index) && i_more) {
-					*i_more = true;
-				} else {
-					error(0, 0, "syntax error: no command after `&&' or `||'");
-					i_error = true;
-				}
-			}
+			i_error = true;
 			goto end;
 		}
 		if (strncmp(fromi(i_index), "||", 2) == 0) {
 			temp->pl_next_cond = false;
-			i_index = toi(skipblanks(fromi(i_index + 2)));
+			i_index = toi(skipwhites(fromi(i_index + 2)));
 		} else if (strncmp(fromi(i_index), "&&", 2) == 0) {
 			temp->pl_next_cond = true;
-			i_index = toi(skipblanks(fromi(i_index + 2)));
+			i_index = toi(skipwhites(fromi(i_index + 2)));
 		} else {
 			last = true;
 		}
@@ -261,17 +295,11 @@ static bool parse_words(PROCESS *p)
 	expand_alias(&i_src, i_index, false);
 	switch (*fromi(i_index)) {
 		case '(':
-			i_index = toi(skipwhites(fromi(i_index + 1)));
+			i_index++;
 			p->p_type = PT_SUBSHELL;
 			p->p_args = NULL;
-			p->p_subcmds = parse_statements();
+			p->p_subcmds = parse_statements(')');
 			if (*fromi(i_index) != ')') {
-				if (!*fromi(i_index) && i_more) {
-					*i_more = true;
-				} else {
-					error(0, 0, "syntax error: missing `)'");
-					i_error = true;
-				}
 				result = true;
 				goto end;
 			}
@@ -280,17 +308,11 @@ static bool parse_words(PROCESS *p)
 		case '{':
 			/* TODO: "{" はそれ自体はトークンではないので、"{abc" のような場合を
 			 * 除外しないといけない。 */
-			i_index = toi(skipwhites(fromi(i_index + 1)));
+			i_index++;
 			p->p_type = PT_GROUP;
 			p->p_args = NULL;
-			p->p_subcmds = parse_statements();
+			p->p_subcmds = parse_statements('}');
 			if (*fromi(i_index) != '}') {
-				if (!*fromi(i_index) && i_more) {
-					*i_more = true;
-				} else {
-					error(0, 0, "syntax error: missing `}'");
-					i_error = true;
-				}
 				result = true;
 				goto end;
 			}
@@ -309,12 +331,12 @@ static bool parse_words(PROCESS *p)
 	struct plist args;
 	plist_init(&args);
 	for (;;) {
-		size_t endindex = toi(skip_with_quote(
-					skip_redirection(fromi(i_index)), " \t;&|<>()#\n\r", true));
-		if (i_index == endindex) break;
+		size_t startindex = i_index;
+		skip_with_quote(" \t;&|()#\n\r", true); // TODO redirect
+		if (i_index == startindex) break;
 
-		plist_append(&args, xstrndup(fromi(i_index), endindex - i_index));
-		i_index = toi(skipblanks(fromi(endindex)));
+		plist_append(&args, xstrndup(fromi(startindex), i_index - startindex));
+		i_index = toi(skipblanks(fromi(i_index)));
 		expand_alias(&i_src, i_index, true);
 	}
 
@@ -323,6 +345,7 @@ static bool parse_words(PROCESS *p)
 		// XXX function parsing
 		error(0, 0, "syntax error: `(' is not allowed here");
 		i_error = true;
+		i_index++;
 	}
 	result = (initindex != i_index);
 end:
@@ -351,92 +374,90 @@ static char *skip_redirection(const char *s)
 	}
 }
 
-/* 引用符 (' と " と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが
- * 現れるまで飛ばす。すなわち、delim に含まれない 0 個以上の文字を飛ばす。 */
-static char *skip_with_quote(const char *s, const char *delim, bool singquote)
+/* 引用符 (" と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが
+ * 現れるまで飛ばす。すなわち、delim に含まれない 0 個以上の文字を飛ばす。
+ * singquote が true なら単一引用符 (') も解釈する。 */
+static void skip_with_quote(const char *delim, bool singquote)
 {
-	while (*s && !strchr(delim, *s)) {
-		switch (*s) {
+	while (*fromi(i_index) && !strchr(delim, *fromi(i_index))) {
+		switch (*fromi(i_index)) {
 			case '\\':
-				if (s[1] == '\0') {
-					if (i_more)
-						*i_more = true;
+				if (*fromi(i_index + 1) == '\0') {
+					i_src.length = i_index;
+					i_src.contents[i_index] = '\0';
+					read_next_line(false);
 				} else {
-					s += 2;
-					continue;
+					i_index += 2;
 				}
-				break;
+				continue;
 			case '$':
-				switch (s[1]) {
+				switch (*fromi(i_index + 1)) {
 					case '{':
-						s = skip_with_quote(s + 2, "}", true);
-						if (*s != '}') {
-							if (!*s && i_more) {
-								*i_more = true;
-							} else {
+						i_index += 2;
+						for (;;) {
+							skip_with_quote("}", true);
+							if (*fromi(i_index) == '}') break;
+							if (!*fromi(i_index) && !read_next_line(true)) {
 								error(0, 0, "syntax error: missing `}'");
 								i_error = true;
+								goto end;
 							}
-							goto end;
 						}
 						break;
 					case '(':
 						//if (s[2] == '(') {} // TODO 算術式展開
-						s = skipwhites(s + 2);
-						statementsfree(parse_statements(&s));
-						if (*s != ')') {
-							if (!*s && i_more) {
-								*i_more = true;
-							} else {
-								error(0, 0, "syntax error: missing `)'");
-								i_error = true;
-							}
+						i_index = toi(skipwhites(fromi(i_index + 2)));
+						statementsfree(parse_statements(')'));
+						if (*fromi(i_index) != ')') {
+							error(0, 0, "syntax error: missing `)'");
+							i_error = true;
 							goto end;
 						}
 						break;
 				}
 				break;
 			case '\'':
-				s = skip_without_quote(s + 1, "'");
-				if (*s != '\'') {
-					if (!*s && i_more) {
-						*i_more = true;
-					} else {
-						error(0, 0, "syntax error: missing \"'\"'");
+				if (!singquote) break;
+				i_index++;
+				for (;;) {
+					i_index = toi(skip_without_quote(fromi(i_index), "'"));
+					if (*fromi(i_index) == '\'') break;
+					if (!*fromi(i_index) && !read_next_line(true)) {
+						error(0, 0, "syntax error: missing \"'\"");
 						i_error = true;
+						goto end;
 					}
-					goto end;
 				}
 				break;
 			case '"':
-				s = skip_with_quote(s + 1, "\"", false);
-				if (*s != '"') {
-					if (!*s && i_more) {
-						*i_more = true;
-					} else {
+				i_index++;
+				for (;;) {
+					skip_with_quote("\"", false);
+					if (*fromi(i_index) == '"') break;
+					if (!*fromi(i_index) && !read_next_line(true)) {
 						error(0, 0, "syntax error: missing `\"'");
 						i_error = true;
+						goto end;
 					}
-					goto end;
 				}
 				break;
 			case '`':
-				s = skip_with_quote(s + 1, "`", true);
-				if (*s != '`') {
-					if (!*s && i_more) {
-						*i_more = true;
-					} else {
-						error(0, 0, "syntax error: missing '`'");
+				i_index++;
+				for (;;) {
+					skip_with_quote("`", false);
+					if (*fromi(i_index) == '`') break;
+					if (!*fromi(i_index) && !read_next_line(true)) {
+						error(0, 0, "syntax error: missing ``'");
 						i_error = true;
+						goto end;
 					}
-					goto end;
 				}
 				break;
 		}
-		s++;
+		i_index++;
 	}
 end:
-	return (char *) s;
+	;
 }
 
 /* delim 内の文字のどれかが現れるまで飛ばす。すなわち、delim に含まれない 0
