@@ -15,8 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#define _GNU_SOURCE
 #include <errno.h>
 #include <error.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,8 +28,10 @@
 #include <assert.h>
 
 
-int read_and_parse(readline_t *input, STATEMENT **result);
+int read_and_parse(const char *filename, getline_t *input, STATEMENT **result);
 static bool read_next_line(bool insertnl);
+static void serror(const char *format, ...)
+	__attribute__((format (printf, 1, 2)));
 static STATEMENT *parse_statements(char stop);
 static PIPELINE *parse_pipelines();
 static PROCESS *parse_processes(bool *neg, bool *loop);
@@ -47,7 +51,9 @@ void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
 
-static readline_t *i_input;
+static const char *i_filename;
+static unsigned i_linenum;
+static getline_t *i_input;
 static bool i_error;
 static struct strbuf i_src;
 static size_t i_index;
@@ -58,20 +64,24 @@ static size_t i_index;
 #define toi(x)   ((x) - i_src.contents)
 
 /* コマンド入力を解析するエントリポイント。
+ * filename: 入力元ファイル名。これはエラーメッセージでファイル名を表示する為
+ *         だけに使う。NULL でもよい。
  * input:  呼び出す度にソースを一行読み込んで返す関数。
  * result: これに結果が入る。(戻り値が 0 の場合のみ)
  *         ソースに文が含まれなければ、結果は NULL となる。
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
  *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
 /* この関数はリエントラントではない */
-int read_and_parse(readline_t *input, STATEMENT **result)
+int read_and_parse(const char *filename, getline_t *input, STATEMENT **result)
 {
 	char *src;
 
+	i_filename = filename;
+	i_linenum = 1;
 	i_input = input;
 	i_error = false;
 	i_index = 0;
-	src = input(1);
+	src = (*input)(1);
 	if (!src)
 		return EOF;
 
@@ -81,10 +91,8 @@ int read_and_parse(readline_t *input, STATEMENT **result)
 	alias_reset();
 
 	STATEMENT *statements = parse_statements('\0');
-	if (*fromi(i_index)) {
-		error(0, 0, "syntax error: invalid character: `%c'", *fromi(i_index));
-		i_error = true;
-	}
+	if (*fromi(i_index))
+		serror("invalid character: `%c'", *fromi(i_index));
 	strbuf_destroy(&i_src);
 	if (i_error) {
 		statementsfree(statements);
@@ -99,17 +107,44 @@ int read_and_parse(readline_t *input, STATEMENT **result)
  * 戻り値:   読み込めたら true、エラーや EOF なら false。 */
 static bool read_next_line(bool insertnl)
 {
-	char *line = (*i_input)(2);
+	char *line = i_input ? (*i_input)(2) : NULL;
 
 	if (!line) {
-		i_error = true;
+		i_input = NULL;
 		return false;
 	}
 	if (insertnl)
 		strbuf_cappend(&i_src, '\n');
 	strbuf_append(&i_src, line);
 	free(line);
+	i_linenum++;
 	return true;
+}
+
+/* 構文エラー発生時にエラーメッセージを stderr に出力する。
+ * エラーメッセージには改行を入れておかなくてよい。 */
+static void serror(const char *format, ...)
+{
+	va_list ap;
+	struct strbuf s;
+
+	va_start(ap, format);
+	strbuf_init(&s);
+
+	if (i_filename)
+		strbuf_printf(&s, "%s:%u: syntax error: ", i_filename, i_linenum);
+	else
+		strbuf_printf(&s, "%s: syntax error: ", program_invocation_name);
+	if (format)
+		strbuf_vprintf(&s, format, ap);
+	else
+		strbuf_append(&s, "unknown error");
+	strbuf_cappend(&s, '\n');
+	fputs(s.contents, stderr);
+	i_error = true;
+
+	strbuf_destroy(&s);
+	va_end(ap);
 }
 
 /* コマンド入力を解析する。
@@ -126,15 +161,13 @@ static STATEMENT *parse_statements(char stop)
 			&& (stop != ';' || *fromi(i_index + 1) == ';')) {
 		if (c == '\0') {
 			if (!read_next_line(false)) {
-				error(0, 0, "syntax error: missing `%c'", stop);
-				i_error = true;
+				serror("missing `%c'", stop);
 				goto end;
 			}
 			i_index = toi(skipwhites(fromi(i_index)));
 			continue;
 		} else if (c == ';' || c == '&') {
-			error(0, 0, "syntax error: unexpected `%c'", c);
-			i_error = true;
+			serror("unexpected `%c'", c);
 			i_index++;
 			goto end;
 		}
@@ -188,16 +221,14 @@ static PIPELINE *parse_pipelines()
 	for (;;) {
 		char c = *fromi(i_index);
 		if (c == '|' || c == '&') {
-			error(0, 0, "syntax error: unexpected `%c'", c);
+			serror("unexpected `%c'", c);
 			i_index++;
-			i_error = true;
 			goto end;
 		}
 		if (first) {
 			while (!*fromi(i_index)) {
 				if (!read_next_line(false)) {
-					error(0, 0, "syntax error: no command after `&&' or `||'");
-					i_error = true;
+					serror("no command after `&&' or `||'");
 					goto end;
 				}
 				i_index = toi(skipwhites(fromi(i_index)));
@@ -254,9 +285,8 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 	char c;
 	while ((c = *fromi(i_index))) {
 		if (c == '|' && *fromi(i_index + 1) != '|') {
-			error(0, 0, "syntax error: unexpected `%c'", c);
+			serror("unexpected `%c", c);
 			i_index++;
-			i_error = true;
 			goto end;
 		}
 
@@ -343,8 +373,7 @@ static bool parse_words(PROCESS *p)
 	p->p_args = (char **) plist_toary(&args);
 	if (*fromi(i_index) == '(') {
 		// XXX function parsing
-		error(0, 0, "syntax error: `(' is not allowed here");
-		i_error = true;
+		serror("`(' is not allowed here");
 		i_index++;
 	}
 	result = (initindex != i_index);
@@ -398,8 +427,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 							skip_with_quote("}", true);
 							if (*fromi(i_index) == '}') break;
 							if (!*fromi(i_index) && !read_next_line(true)) {
-								error(0, 0, "syntax error: missing `}'");
-								i_error = true;
+								serror("missing `%c'", '}');
 								goto end;
 							}
 						}
@@ -409,8 +437,6 @@ static void skip_with_quote(const char *delim, bool singquote)
 						i_index = toi(skipwhites(fromi(i_index + 2)));
 						statementsfree(parse_statements(')'));
 						if (*fromi(i_index) != ')') {
-							error(0, 0, "syntax error: missing `)'");
-							i_error = true;
 							goto end;
 						}
 						break;
@@ -423,8 +449,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 					i_index = toi(skip_without_quote(fromi(i_index), "'"));
 					if (*fromi(i_index) == '\'') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
-						error(0, 0, "syntax error: missing \"'\"");
-						i_error = true;
+						serror("missing \"'\"");
 						goto end;
 					}
 				}
@@ -435,8 +460,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 					skip_with_quote("\"", false);
 					if (*fromi(i_index) == '"') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
-						error(0, 0, "syntax error: missing `\"'");
-						i_error = true;
+						serror("missing `%c'", '"');
 						goto end;
 					}
 				}
@@ -447,8 +471,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 					skip_with_quote("`", false);
 					if (*fromi(i_index) == '`') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
-						error(0, 0, "syntax error: missing ``'");
-						i_error = true;
+						serror("missing \"`\"");
 						goto end;
 					}
 				}

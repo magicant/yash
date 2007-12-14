@@ -122,7 +122,6 @@ yash_readline_start:
 	switch (ptype) {
 		case 1:
 			prompt = readline_prompt1 ? : "\\s-\\v\\$ ";
-			exec_promptcommand();
 			break;
 		case 2:
 			prompt = readline_prompt2 ? : "> ";

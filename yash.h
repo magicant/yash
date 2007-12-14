@@ -48,13 +48,12 @@ void resetsigaction(void);
 
 int exec_file(const char *path, bool suppresserror);
 int exec_file_exp(const char *path, bool suppresserror);
-int exec_source(const char *code);
-void exec_source_and_exit(const char *code)
+int exec_source(const char *name, const char *code);
+void exec_source_and_exit(const char *name, const char *code)
 	__attribute__((noreturn));
 
 void init_interactive(void);
 void finalize_interactive(void);
-int exec_promptcommand(void);
 
 void yash_exit(int exitcode)
 	__attribute__ ((noreturn));
@@ -156,7 +155,7 @@ int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
  * ptype:  現在の状況。新しい文を読み始めるときは 1、文の途中で続きを読むときは
  *         2。(この引数はプロンプトの種類を変えたりするのに使う)
  * 戻り値: 読み込んだソース。末尾の改行はない。EOF に達したときは NULL。 */
-typedef char *readline_t(int ptype);
+typedef char *getline_t(int ptype);
 
 extern char *history_filename;
 extern int history_filesize;
@@ -166,7 +165,7 @@ extern char *readline_prompt2;
 
 void initialize_readline(void);
 void finalize_readline(void);
-readline_t yash_readline;
+getline_t yash_readline;
 
 
 /* -- パーサ -- */
@@ -226,7 +225,7 @@ struct _statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-int read_and_parse(readline_t *input, STATEMENT **result);
+int read_and_parse(const char *filename, getline_t *input, STATEMENT **result);
 char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);

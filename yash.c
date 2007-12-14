@@ -38,13 +38,13 @@ void setsigaction(void);
 void resetsigaction(void);
 int exec_file(const char *path, bool suppresserror);
 int exec_file_exp(const char *path, bool suppresserror);
-int exec_source(const char *code);
-void exec_source_and_exit(const char *code);
+int exec_source(const char *name, const char *code);
+void exec_source_and_exit(const char *name, const char *code);
 static void set_shlvl(int change);
 static void init_env(void);
 void init_interactive(void);
 void finalize_interactive(void);
-int exec_promptcommand(void);
+static int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__ ((noreturn));
 int main(int argc, char **argv);
 void print_help(void);
@@ -149,7 +149,7 @@ int exec_file(const char *path, bool suppresserror)
 	int result;
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(&mygetline, &statements)) {
+		switch (read_and_parse(path, &mygetline, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					exec_statements(statements);
@@ -190,9 +190,10 @@ int exec_file_exp(const char *path, bool suppresserror)
 }
 
 /* code をシェルスクリプトのソースコードとして解析し、このシェル内で実行する。
+ * name:   構文エラー時に表示するコード名。
  * code:   実行するコード。NULL なら何も行わない。
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
-int exec_source(const char *code)
+int exec_source(const char *name, const char *code)
 {
 	size_t index = 0;
 	char *mygetline(int ptype) {
@@ -209,7 +210,7 @@ int exec_source(const char *code)
 		return 0;
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(&mygetline, &statements)) {
+		switch (read_and_parse(name, &mygetline, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					exec_statements(statements);
@@ -227,8 +228,9 @@ int exec_source(const char *code)
 
 /* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
  * そのまま終了する。
+ * name:   構文エラー時に表示するコード名。
  * code: 実行するコード。NULL なら何も実行せず終了する。 */
-void exec_source_and_exit(const char *code)
+void exec_source_and_exit(const char *name, const char *code)
 {
 	char *mygetline(int ptype) {
 		if (ptype == 1) return xstrdup(code);
@@ -236,12 +238,12 @@ void exec_source_and_exit(const char *code)
 	}
 
 	if (strpbrk(code, "\n\r")) {
-		exec_source(code);
+		exec_source(name, code);
 		exit(laststatus);
 	}
 
 	STATEMENT *statements;
-	switch (read_and_parse(&mygetline, &statements)) {
+	switch (read_and_parse(name, &mygetline, &statements)) {
 		case 0:  /* OK */
 			exec_statements_and_exit(statements);
 		default:  /* error */
@@ -327,12 +329,12 @@ void finalize_interactive(void)
 
 /* PROMPT_COMMAND を実行する。
  * 戻り値: 実行したコマンドの終了ステータス */
-int exec_promptcommand(void)
+static int exec_promptcommand(void)
 {
 	int resultstatus = 0;
 	int savestatus = laststatus;
 	laststatus = 0;
-	exec_source(prompt_command);
+	exec_source("prompt command", prompt_command);
 	resultstatus = laststatus;
 	laststatus = savestatus;
 	return resultstatus;
@@ -345,7 +347,8 @@ static void interactive_loop(void)
 	for (;;) {
 		STATEMENT *statements;
 
-		switch (read_and_parse(&yash_readline, &statements)) {
+		exec_promptcommand();
+		switch (read_and_parse(NULL, &yash_readline, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					exec_statements(statements);
@@ -440,7 +443,7 @@ int main(int argc, char **argv)
 
 	if (directcommand) {
 		is_interactive = false;
-		exec_source_and_exit(directcommand);
+		exec_source_and_exit("yash -c", directcommand);
 	}
 	if (is_interactive) {
 		init_interactive();
