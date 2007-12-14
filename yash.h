@@ -226,6 +226,8 @@ struct _statement {
 };
 
 int read_and_parse(const char *filename, getline_t *input, STATEMENT **result);
+unsigned get_line_number(void);
+void set_line_number(unsigned num);
 char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);

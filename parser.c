@@ -29,6 +29,8 @@
 
 
 int read_and_parse(const char *filename, getline_t *input, STATEMENT **result);
+unsigned get_line_number(void);
+void set_line_number(unsigned num);
 static bool read_next_line(bool insertnl);
 static void serror(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
@@ -77,7 +79,7 @@ int read_and_parse(const char *filename, getline_t *input, STATEMENT **result)
 	char *src;
 
 	i_filename = filename;
-	i_linenum = 1;
+	i_linenum++;
 	i_input = input;
 	i_error = false;
 	i_index = 0;
@@ -100,6 +102,19 @@ int read_and_parse(const char *filename, getline_t *input, STATEMENT **result)
 	}
 	*result = statements;
 	return 0;
+}
+
+/* 解析中の行番号を取得する。 */
+unsigned get_line_number(void)
+{
+	return i_linenum;
+}
+
+/* 解析中の行番号を再設定する。
+ * 新しくファイルを解析し始めるときは 0 に再設定すること。 */
+void set_line_number(unsigned num)
+{
+	i_linenum = num;
 }
 
 /* 更なる一行を読み込んで i_src に継ぎ足す。

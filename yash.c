@@ -147,13 +147,16 @@ int exec_file(const char *path, bool suppresserror)
 	}
 
 	int result;
+	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
 		switch (read_and_parse(path, &mygetline, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
+					unsigned savelinenum = get_line_number();
 					exec_statements(statements);
 					statementsfree(statements);
+					set_line_number(savelinenum);
 				}
 				break;
 			case EOF:
@@ -208,13 +211,17 @@ int exec_source(const char *name, const char *code)
 
 	if (!code)
 		return 0;
+
+	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
 		switch (read_and_parse(name, &mygetline, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
+					unsigned savelinenum = get_line_number();
 					exec_statements(statements);
 					statementsfree(statements);
+					set_line_number(savelinenum);
 				}
 				break;
 			case EOF:
@@ -243,6 +250,7 @@ void exec_source_and_exit(const char *name, const char *code)
 	}
 
 	STATEMENT *statements;
+	set_line_number(0);
 	switch (read_and_parse(name, &mygetline, &statements)) {
 		case 0:  /* OK */
 			exec_statements_and_exit(statements);
@@ -348,6 +356,7 @@ static void interactive_loop(void)
 		STATEMENT *statements;
 
 		exec_promptcommand();
+		set_line_number(0);
 		switch (read_and_parse(NULL, &yash_readline, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
