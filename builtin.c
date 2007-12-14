@@ -33,7 +33,8 @@
 #include <assert.h>
 
 
-BUILTIN assoc_builtin(const char *name);
+void init_builtin(void);
+cbody *get_builtin(const char *name);
 int parse_jobspec(const char *str, bool forcePercent);
 int builtin_null(int argc, char *const *argv);
 int builtin_exit(int argc, char *const *argv);
@@ -59,38 +60,39 @@ int builtin_option(int argc, char *const *argv);
  * 組込みコマンドは、argv の内容を変更してはならない。 */
 /* 次のコマンドは exec.c の中で特殊な方法で処理する: exec */
 
-const BUILTIN const builtins[] = {
-	{ ":", builtin_null, },
-	{ "exit", builtin_exit, },
-	{ "logout", builtin_exit, },
-	{ "suspend", builtin_suspend, },
-	{ "jobs", builtin_jobs, },
-	{ "disown", builtin_disown, },
-	{ "fg", builtin_fg, },
-	{ "bg", builtin_fg, },
-	{ "cd", builtin_cd, },
-	{ "umask", builtin_umask, },
-	{ "kill", builtin_kill, },
-	{ "wait", builtin_wait, },
-	{ "export", builtin_export, },
-	{ "source", builtin_source, },
-	{ ".", builtin_source, },
-	{ "history", builtin_history, },
-	{ "alias", builtin_alias, },
-	{ "unalias", builtin_unalias, },
-	{ "option", builtin_option, },
-	{ NULL, NULL, },
-};
+struct hasht builtins;
 
-/* コマンド名に対応する BUILTIN を返す。
- * コマンドが見付からなければ { NULL, NULL } を返す。 */
-BUILTIN assoc_builtin(const char *name)
+/* 組込みコマンドに関するデータを初期化する。 */
+void init_builtin(void)
 {
-	const BUILTIN *b = builtins;
+	ht_init(&builtins);
+	ht_ensurecap(&builtins, 30);
+	ht_set(&builtins, ":",       &builtin_null);
+	ht_set(&builtins, "exit",    &builtin_exit);
+	ht_set(&builtins, "logout",  &builtin_exit);
+	ht_set(&builtins, "kill",    &builtin_kill);
+	ht_set(&builtins, "wait",    &builtin_wait);
+	ht_set(&builtins, "suspend", &builtin_suspend);
+	ht_set(&builtins, "jobs",    &builtin_jobs);
+	ht_set(&builtins, "disown",  &builtin_disown);
+	ht_set(&builtins, "fg",      &builtin_fg);
+	ht_set(&builtins, "bg",      &builtin_fg);
+	ht_set(&builtins, "cd",      &builtin_cd);
+	ht_set(&builtins, "umask",   &builtin_umask);
+	ht_set(&builtins, "export",  &builtin_export);
+	ht_set(&builtins, ".",       &builtin_source);
+	ht_set(&builtins, "source",  &builtin_source);
+	ht_set(&builtins, "history", &builtin_history);
+	ht_set(&builtins, "alias",   &builtin_alias);
+	ht_set(&builtins, "unalias", &builtin_unalias);
+	ht_set(&builtins, "option",  &builtin_option);
+}
 
-	while (b->b_name && strcmp(b->b_name, name) != 0)
-		b++;
-	return *b;
+/* 指定した名前に対応する組込みコマンド関数を取得する。
+ * 対応するものがなければ NULL を返す。 */
+cbody *get_builtin(const char *name)
+{
+	return ht_get(&builtins, name);
 }
 
 /* jobspec を解析する。

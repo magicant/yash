@@ -301,16 +301,10 @@ void exec_statements_and_exit(STATEMENT *statements)
 
 /* -- 組込みコマンド -- */
 
-typedef int (*cbody)(int argc, char *const *argv);
+typedef int cbody(int argc, char *const *argv);
 
-typedef struct {
-	const char *b_name;  /* コマンド名 */
-	cbody b_body;        /* コマンド本体 */
-} BUILTIN;
-
-extern const BUILTIN const builtins[];
-
-BUILTIN assoc_builtin(const char *name);
+void init_builtin(void);
+cbody *get_builtin(const char *name);
 
 #define OPT_HISTSIZE      "histsize"
 #define OPT_HISTFILE      "histfile"

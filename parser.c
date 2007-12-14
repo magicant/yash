@@ -122,7 +122,7 @@ void set_line_number(unsigned num)
  * 戻り値:   読み込めたら true、エラーや EOF なら false。 */
 static bool read_next_line(bool insertnl)
 {
-	char *line = i_input ? (*i_input)(2) : NULL;
+	char *line = i_input ? i_input(2) : NULL;
 
 	if (!line) {
 		i_input = NULL;

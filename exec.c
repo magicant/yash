@@ -797,7 +797,7 @@ static pid_t exec_single(
 		if (p->p_type == PT_NORMAL) {
 			// TODO 組込み exec コマンド
 	
-			cbody body = assoc_builtin(argv[0]).b_body;
+			cbody *body = get_builtin(argv[0]);
 			if (body) {  /* fork せずに組込みコマンドを実行 */
 				//TODO ここで組込みコマンド用のリダイレクトを処理
 				laststatus = body(argc, argv);
@@ -880,9 +880,9 @@ directexec:
 		exit(EXIT_FAILURE);
 
 	switch (p->p_type) {
-		cbody body;
+		cbody *body;
 		case PT_NORMAL:
-			body = assoc_builtin(argv[0]).b_body;
+			body = get_builtin(argv[0]);
 			if (body) {  /* 組込みコマンドを実行 */
 				//TODO ここで組込みコマンド用のリダイレクトを処理
 				exit(body(argc, argv));

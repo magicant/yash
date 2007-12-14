@@ -390,12 +390,12 @@ static char *path_completion_function(const char *text, int state)
 		comparer = completion_ignorecase ? strncasecmp : strncmp;
 	}
 	if (builtin >= 0) {
-		const char *bname;
+//		const char *bname;
 
-		while ((bname = builtins[builtin++].b_name)) {
-			if (comparer(bname, text, textlen) == 0)
-				return xstrdup(bname);
-		}
+//		while ((bname = builtins[builtin++].b_name)) {
+//			if (comparer(bname, text, textlen) == 0)
+//				return xstrdup(bname);
+//		}
 		builtin = -1;
 	}
 //	while (alias) {

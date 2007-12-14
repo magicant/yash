@@ -449,6 +449,7 @@ int main(int argc, char **argv)
 	init_exec();
 	init_env();
 	init_alias();
+	init_builtin();
 
 	if (directcommand) {
 		is_interactive = false;
