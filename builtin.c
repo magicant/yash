@@ -67,25 +67,25 @@ void init_builtin(void)
 {
 	ht_init(&builtins);
 	ht_ensurecap(&builtins, 30);
-	ht_set(&builtins, ":",       &builtin_null);
-	ht_set(&builtins, "exit",    &builtin_exit);
-	ht_set(&builtins, "logout",  &builtin_exit);
-	ht_set(&builtins, "kill",    &builtin_kill);
-	ht_set(&builtins, "wait",    &builtin_wait);
-	ht_set(&builtins, "suspend", &builtin_suspend);
-	ht_set(&builtins, "jobs",    &builtin_jobs);
-	ht_set(&builtins, "disown",  &builtin_disown);
-	ht_set(&builtins, "fg",      &builtin_fg);
-	ht_set(&builtins, "bg",      &builtin_fg);
-	ht_set(&builtins, "cd",      &builtin_cd);
-	ht_set(&builtins, "umask",   &builtin_umask);
-	ht_set(&builtins, "export",  &builtin_export);
-	ht_set(&builtins, ".",       &builtin_source);
-	ht_set(&builtins, "source",  &builtin_source);
-	ht_set(&builtins, "history", &builtin_history);
-	ht_set(&builtins, "alias",   &builtin_alias);
-	ht_set(&builtins, "unalias", &builtin_unalias);
-	ht_set(&builtins, "option",  &builtin_option);
+	ht_set(&builtins, ":",       builtin_null);
+	ht_set(&builtins, "exit",    builtin_exit);
+	ht_set(&builtins, "logout",  builtin_exit);
+	ht_set(&builtins, "kill",    builtin_kill);
+	ht_set(&builtins, "wait",    builtin_wait);
+	ht_set(&builtins, "suspend", builtin_suspend);
+	ht_set(&builtins, "jobs",    builtin_jobs);
+	ht_set(&builtins, "disown",  builtin_disown);
+	ht_set(&builtins, "fg",      builtin_fg);
+	ht_set(&builtins, "bg",      builtin_fg);
+	ht_set(&builtins, "cd",      builtin_cd);
+	ht_set(&builtins, "umask",   builtin_umask);
+	ht_set(&builtins, "export",  builtin_export);
+	ht_set(&builtins, ".",       builtin_source);
+	ht_set(&builtins, "source",  builtin_source);
+	ht_set(&builtins, "history", builtin_history);
+	ht_set(&builtins, "alias",   builtin_alias);
+	ht_set(&builtins, "unalias", builtin_unalias);
+	ht_set(&builtins, "option",  builtin_option);
 }
 
 /* 指定した名前に対応する組込みコマンド関数を取得する。

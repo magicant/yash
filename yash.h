@@ -13,6 +13,7 @@
 
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <sys/types.h>
 
 
@@ -56,22 +57,22 @@ void init_interactive(void);
 void finalize_interactive(void);
 
 void yash_exit(int exitcode)
-	__attribute__ ((noreturn));
+	__attribute__((noreturn));
 
 
 /* -- utilities -- */
 
 void *xcalloc(size_t nmemb, size_t size)
-	__attribute__ ((malloc));
+	__attribute__((malloc));
 void *xmalloc(size_t size)
-	__attribute__ ((malloc));
+	__attribute__((malloc));
 void *xrealloc(void *ptr, size_t size);
 char *xstrdup(const char *s)
-	__attribute__ ((malloc));
+	__attribute__((malloc));
 char *xstrndup(const char *s, size_t len)
-	__attribute__ ((malloc));
+	__attribute__((malloc));
 char **straryclone(char **ary)
-	__attribute__ ((malloc));
+	__attribute__((malloc));
 void recfree(void **ary);
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
@@ -105,9 +106,9 @@ void strbuf_append(struct strbuf *buf, const char *s);
 void strbuf_cappend(struct strbuf *buf, char c);
 void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
 int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
-	__attribute__ ((format (printf, 2, 0)));
+	__attribute__((format (printf, 2, 0)));
 int strbuf_printf(struct strbuf *buf, const char *format, ...)
-	__attribute__ ((format (printf, 2, 3)));
+	__attribute__((format (printf, 2, 3)));
 
 #define PLIST_INITSIZE 8
 struct plist {
@@ -182,7 +183,7 @@ struct _redirect {
 		RT_INPUT, RT_OUTPUT, RT_APPEND, RT_INOUT, RT_DUP,
 	}      rd_type;
 	int    rd_fd;      /* リダイレクトするファイルディスクリプタ */
-	char  *rd_file;    /* リダイレクト先のファイル名 */
+	char  *rd_file;    /* リダイレクト先のファイル名 (常に非 NULL) */
 };
 /* rd_destfd が負のときのみ rd_{file|flags} が使用される。
  * 例えば '2>&1' では、rd_fd = 2, rd_destfd = 1 となる。 */
@@ -238,7 +239,7 @@ void statementsfree(STATEMENT *statements);
 /* -- コマンドライン展開 (expand) -- */
 
 bool expand_line(char **args, int *argc, char ***argv);
-bool expand_redirections(REDIR **redirs);
+char *expand_single(const char *arg);
 void escape_sq(const char *s, struct strbuf *buf);
 void escape_dq(const char *s, struct strbuf *buf);
 
@@ -257,6 +258,13 @@ char *collapse_homedir(const char *path);
 extern bool huponexit;
 extern int laststatus;
 
+struct save_redirect {
+	struct save_redirect *next;
+	int   sr_origfd; /* 元のファイルディスクリプタ */
+	int   sr_copyfd; /* 新しくコピーしたファイルディスクリプタ */
+	FILE *sr_file;   /* 元のストリーム */
+};
+
 enum jstatus { JS_NULL, JS_RUNNING, JS_DONE, JS_STOPPED, };
 extern const char * const jstatusstr[];
 /* jstatusstr のインデックスとして jstatus の値を使用している */
@@ -264,16 +272,16 @@ extern const char * const jstatusstr[];
 #define MAX_JOB 10000
 
 typedef struct {
-	pid_t j_pgid;           /* プロセスグループの ID */
-	pid_t *j_pids;          /* 子プロセスの ID の配列 */
-	enum jstatus j_status;  /* 最後に確認したジョブの状態 */
-	bool j_statuschanged;   /* まだ状態変化を報告していないなら true */
+	pid_t  j_pgid;           /* プロセスグループの ID */
+	pid_t *j_pids;           /* 子プロセスの ID の配列 */
+	enum jstatus j_status;   /* 最後に確認したジョブの状態 */
+	bool   j_statuschanged;  /* まだ状態変化を報告していないなら true */
 	enum {
 		JF_NOHUP = 1
-	} j_flags;
-	int j_exitstatus;       /* ジョブの終了ステータス */
-	bool j_exitcodeneg;     /* ジョブの exitcode を反転するかどうか */
-	char *j_name;           /* 表示用ジョブ名 */
+	}      j_flags;
+	int    j_exitstatus;     /* ジョブの終了ステータス */
+	bool   j_exitcodeneg;    /* ジョブの exitcode を反転するかどうか */
+	char  *j_name;           /* 表示用ジョブ名 */
 } JOB;
 /* j_pids は 0 終端である。終了したプロセスは値が反数になる。 */
 
@@ -296,7 +304,7 @@ void sig_hup(int signal);
 void sig_chld(int signal);
 void exec_statements(STATEMENT *statements);
 void exec_statements_and_exit(STATEMENT *statements)
-	__attribute__ ((noreturn));
+	__attribute__((noreturn));
 
 
 /* -- 組込みコマンド -- */

@@ -68,8 +68,8 @@ static void exec_processes(PROCESS *processes, const char *jobname,
 		bool neg_status, bool pipe_loop, bool background);
 static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
-//static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex);
-static int open_redirections(REDIR *redirs);
+static bool open_redirections(REDIR *redirs, struct save_redirect **save);
+static void undo_redirections(struct save_redirect *save);
 //static void builtin_exec(SCMD *scmd);
 
 /* 最後に実行したコマンドの終了コード */
@@ -676,89 +676,6 @@ static void exec_processes(
 // TODO: ジョブを起動している最中に SIGHUP を受け取ったとき、起動中のジョブにも
 //       huponexit が正しく適用されるようにする
 
-/* コマンド入力全体を受け取って、コマンドを実行する。 */
-//void exec_list(SCMD *scmds, size_t count)
-//{
-//	size_t i = 0;
-//	int skip = 0;
-//
-//	while (i < count) {
-//		if (scmds[i].c_argc == 0) {
-//			i++;
-//			continue;
-//		}
-//		if (i) {
-//			switch (scmds[i - 1].c_type) {
-//				case CT_AND:
-//					skip = !!laststatus;
-//					break;
-//				case CT_OR:
-//					skip = !laststatus;
-//					break;
-//				default:
-//					skip = 0;
-//					break;
-//			}
-//		}
-//		if (skip) {
-//			while (scmds[i++].c_type == CT_PIPED);
-//		} else {
-//			i += exec_pipe(scmds + i);
-//		}
-//	}
-//}
-
-/* 一つのパイプライン全体を実行する。
- * パイプラインの種類が CT_END ならば、子プロセスを wait する。
- * 戻り値: 実行した SCMD の個数。 */
-//static size_t exec_pipe(SCMD *scmds)
-//{
-//	volatile JOB *job = &joblist[0];
-//	size_t count = 0;
-//	pid_t pgid;
-//	bool fg;
-//	PIPES pipes;
-//
-//	while (scmds[count++].c_type == CT_PIPED);
-//	switch (scmds[count - 1].c_type) {
-//		case CT_END:  case CT_AND:  case CT_OR:
-//			fg = 1;
-//			break;
-//		default:
-//			fg = 0;
-//			break;
-//	}
-//	pipes.p_count = count - 1;
-//	pipes.p_pipes = create_pipes(pipes.p_count);
-//	if (pipes.p_count && !pipes.p_pipes)
-//		goto end;
-//	job->j_pids = xcalloc(count + 1, sizeof(pid_t));
-//	assert(!job->j_pgid);
-//	/* job->j_pgid はこの最初の exec_single の中で設定される (fork した場合) */
-//	pgid = job->j_pids[0] =
-//		exec_single(scmds, 0, fg, pipes, scmds[pipes.p_count].c_argc ? 0 : -1);
-//	if (pgid >= 0)
-//		for (int i = 1; i < count; i++)
-//			job->j_pids[i] = exec_single(scmds + i, pgid, fg, pipes, i);
-//	close_pipes(pipes);
-//	if (pgid > 0) {
-//		job->j_status = JS_RUNNING;
-//		job->j_statuschanged = true;
-//		job->j_flags = 0;
-//		job->j_exitstatus = 0;
-//		job->j_name = NULL;
-//		activejobscmd = scmds;
-//		laststatus = 0;
-//		if (fg) {
-//			wait_all(0);
-//		} else {
-//			add_job();
-//		}
-//	}
-//end:
-//	return count;
-//}
-
 /* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
  * fork/exec し、リダイレクトなどを設定する。
  * p:       実行するコマンド
@@ -778,7 +695,6 @@ static pid_t exec_single(
 	bool expanded = false;
 	int argc;
 	char **argv;
-	REDIR *redirs = p->p_redirs;
 	sigset_t sigset, oldsigset;
 
 	if (etype == SELF)
@@ -790,15 +706,10 @@ static pid_t exec_single(
 			recfree((void **) argv);
 			return -1;
 		}
-		if (!expand_redirections(&redirs)) {
-			recfree((void **) argv);
-			redirsfree(redirs);
-			return -1;
-		}
 		if (p->p_type == PT_NORMAL && argc == 0)
 			return 0;  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && argc > 0) {
-			error(0, 0, "redirection syntax error");
+			error(0, 0, "redirect syntax error");
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL) {
@@ -806,16 +717,18 @@ static pid_t exec_single(
 	
 			cbody *body = get_builtin(argv[0]);
 			if (body) {  /* fork せずに組込みコマンドを実行 */
-				//TODO ここで組込みコマンド用のリダイレクトを処理
-				laststatus = body(argc, argv);
+				struct save_redirect *saver;
+				if (open_redirections(p->p_redirs, &saver))
+					laststatus = body(argc, argv);
+				else
+					laststatus = EXIT_FAILURE;
+				undo_redirections(saver);
 				recfree((void **) argv);
-				redirsfree(redirs);
 				return 0;
 			}
-		} else if (p->p_type == PT_GROUP && !redirs) {
-			exec_statements(p->p_subcmds);
+		} else if (p->p_type == PT_GROUP && !p->p_redirs) {
 			recfree((void **) argv);
-			redirsfree(redirs);
+			exec_statements(p->p_subcmds);
 			return 0;
 		}
 	}
@@ -828,7 +741,7 @@ static pid_t exec_single(
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
 		error(0, errno, "%s: fork", argv[0]);
-		if (expanded) { recfree((void **) argv); redirsfree(redirs); }
+		if (expanded) { recfree((void **) argv); }
 		return -1;
 	} else if (cpid) {  /* 親プロセス */
 		if (is_interactive) {
@@ -841,7 +754,7 @@ static pid_t exec_single(
 		}
 		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
 			error(0, errno, "sigprocmask (parent) after fork");
-		if (expanded) { recfree((void **) argv); redirsfree(redirs); }
+		if (expanded) { recfree((void **) argv); }
 		return cpid;
 	}
 	
@@ -877,15 +790,13 @@ directexec:
 	if (!expanded) {
 		if (!expand_line(p->p_args, &argc, &argv))
 			exit(EXIT_FAILURE);
-		if (!expand_redirections(&redirs))
-			exit(EXIT_FAILURE);
 		if (p->p_type == PT_NORMAL && argc == 0)
 			exit(EXIT_SUCCESS);  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && *argv) {
 			error(EXIT_FAILURE, 0, "redirection syntax error");
 		}
 	}
-	if (open_redirections(redirs) < 0)
+	if (!open_redirections(p->p_redirs, NULL))
 		exit(EXIT_FAILURE);
 
 	switch (p->p_type) {
@@ -914,134 +825,55 @@ directexec:
 	assert(false);  /* ここには来ないはず */
 }
 
-/* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
- * fork/exec し、リダイレクトなどを設定する。
- * scmd:    実行するコマンド
- * pgid:    子プロセスに設定するプロセスグループ ID。
- *          子プロセスのプロセス ID をそのままプロセスグループ ID にする時は 0。
- *          サブシェルではプロセスグループを設定しないので pgid は無視。
- * fg:      フォアグラウンドジョブにするかどうか。
- * pipes:   パイプの配列。
- * pindex:  パイプ全体における子プロセスのインデックス。
- *          環状パイプを作る場合は 0 の代わりに -1。
- * 戻り値:  子プロセスの PID。fork/exec しなかった場合は 0。エラーなら -1。 */
-//static pid_t exec_single(
-//		SCMD *scmd, pid_t pgid, bool fg, PIPES pipes, ssize_t pindex)
-//{
-//	cbody body;
-//	pid_t cpid;
-//	sigset_t sigset, oldsigset;
-//
-//	if (!scmd->c_argc)
-//		return 0;
-//	if (scmd->c_argv && strcmp(scmd->c_argv[0], "exec") == 0) {
-//		/* exec 組込みコマンドを実行 */
-//		if (pipes.p_count) {
-//			error(0, 0, "exec command cannot be piped");
-//			return -1;
-//		}
-//		builtin_exec(scmd);
-//		return -1;  /* ここに来たということはエラーである */
-//	}
-//	if (fg && scmd->c_argv && !pipes.p_count && !scmd->c_redircnt) {
-//		body = assoc_builtin(scmd->c_argv[0]).b_body;
-//		if (body) {  /* 組込みコマンドを実行 */
-//			laststatus = body(scmd->c_argc, scmd->c_argv);
-//			return 0;
-//		}
-//	}
-//
-//	sigemptyset(&sigset);
-//	sigaddset(&sigset, SIGHUP);
-//	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-//		error(EXIT_FAILURE, errno, "sigprocmask before fork");
-//	cpid = fork();
-//	if (cpid < 0) {  /* fork 失敗 */
-//		error(0, errno, "%s: fork", scmd->c_argv[0]);
-//		return -1;
-//	} else if (cpid) {  /* 親プロセスの処理 */
-//		if (is_interactive) {
-//			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
-//				error(0, errno, "%s: setpgid (parent)", scmd->c_argv[0]);
-//			/* if (fg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
-//					&& errno != EPERM)
-//				error(0, errno, "%s: tcsetpgrp (parent)", scmd->c_argv[0]); */
-//		}
-//		if (!pgid)  /* シグナルをブロックしている間に PGID を設定する */
-//			joblist[0].j_pgid = cpid;
-//		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-//			error(0, errno, "sigprocmask (parent)");
-//		return cpid;
-//	} else {  /* 子プロセスの処理 */
-//		if (is_interactive) {
-//			if (setpgid(0, pgid) < 0)
-//				error(0, errno, "%s: setpgid (child)", scmd->c_argv[0]);
-//			if (fg && tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
-//				error(0, errno, "%s: tcsetpgrp (child)", scmd->c_argv[0]);
-//		}
-//		is_loginshell = is_interactive = false;
-//		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-//			error(0, errno, "sigprocmask (child)");
-//		get_ready_and_exec(scmd, pipes, pindex);
-//	}
-//	assert(false);  /* ここには来ないはず */
-//	return 0;
-//}
-
-/* 子プロセスでパイプやリダイレクトを処理し、exec する。
- * scmd:    実行するコマンド
- * pipes:   パイプの配列。
- * pindex:  パイプ全体における子プロセスのインデックス。
- *          環状パイプを作る場合は 0 の代わりに -1。 */
-//static void get_ready_and_exec(SCMD *scmd, PIPES pipes, ssize_t pindex)
-//{
-//	char **argv = scmd->c_argv;
-//
-//	if (pipes.p_count) {
-//		if (pindex) {
-//			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
-//			if (dup2(pipes.p_pipes[index][0], STDIN_FILENO) < 0)
-//				error(0, errno, "%s: cannot connect pipe to stdin", argv[0]);
-//		}
-//		if (pindex < (ssize_t) pipes.p_count) {
-//			size_t index = (pindex >= 0) ? (size_t) pindex : 0;
-//			if (dup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
-//				error(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
-//		}
-//		close_pipes(pipes);
-//	}
-//	resetsigaction();
-//	if (open_redirections(scmd->c_redir, scmd->c_redircnt) < 0)
-//		exit(EXIT_FAILURE);
-//
-//	if (scmd->c_subcmds) {
-//		memset(joblist, 0, joblistlen * sizeof(JOB));
-//		laststatus = 0;
-//		exec_list(scmd->c_subcmds, scmd->c_argc);
-//		exit(laststatus);
-//	} else {
-//		cbody body = assoc_builtin(argv[0]).b_body;
-//		if (body)  /* 組込みコマンドを実行 */
-//			exit(body(scmd->c_argc, argv));
-//
-//		char *command = which(argv[0], getenv(ENV_PATH));
-//		if (!command)
-//			error(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
-//		execve(command, argv, environ);
-//		/* execvp(argv[0], argv); */
-//		error(EXIT_NOEXEC, errno, "%s", argv[0]);
-//	}
-//	assert(false);  /* ここには来ないはず */
-//	return;
-//}
-
 /* リダイレクトを開く。
- * 戻り値: OK なら 0、エラーなら -1。 */
-static int open_redirections(REDIR *r)
+ * 各 r の rd_file に対する各種展開もここで行う。
+ * save:   非 NULL なら、元の FD をセーブしつつリダイレクトを処理し、*save
+ *         にセーブデータへのポインタが入る。
+ * 戻り値: OK なら true、エラーがあれば false。
+ * エラーがあっても *save にはそれまでにセーブした FD のデータが入る。 */
+static bool open_redirections(REDIR *r, struct save_redirect **save)
 {
+	struct save_redirect *s = NULL;
+	char *exp;
+
 	while (r) {
 		int fd, flags;
 
+		/* rd_file を展開する */
+		exp = expand_single(r->rd_file);
+		if (!exp) {
+			error(0, 0, "redirect: invalid word expansion: %s", r->rd_file);
+			goto next;
+		}
+
+		/* リダイレクトをセーブする */
+		if (save) {
+			int copyfd = dup(r->rd_fd);
+			if (copyfd < 0) {
+				if (errno != EBADF)
+					error(0, errno, "redirect: can't save file descriptor %d",
+							r->rd_fd);
+			} else if (fcntl(copyfd, F_SETFD, FD_CLOEXEC) < 0) {
+				error(0, errno, "redirect: fcntl(%d,SETFD,CLOEXEC)", r->rd_fd);
+				close(r->rd_fd);
+			} else {
+				struct save_redirect *ss = xmalloc(sizeof *ss);
+				ss->next = s;
+				ss->sr_origfd = r->rd_fd;
+				ss->sr_copyfd = copyfd;
+				switch (r->rd_fd) {
+					case STDIN_FILENO:   ss->sr_file = stdin;  break;
+					case STDOUT_FILENO:  ss->sr_file = stdout; break;
+					case STDERR_FILENO:  ss->sr_file = stderr; break;
+					default:             ss->sr_file = NULL;   break;
+				}
+				if (ss->sr_file)
+					fflush(ss->sr_file);
+				s = ss;
+			}
+		}
+
+		/* 実際に rd_type に応じてリダイレクトを行う */
 		switch (r->rd_type) {
 			case RT_INPUT:
 				flags = O_RDONLY;
@@ -1056,7 +888,7 @@ static int open_redirections(REDIR *r)
 				flags = O_RDWR | O_CREAT;
 				break;
 			case RT_DUP:
-				if (strcmp(r->rd_file, "-") == 0) {
+				if (strcmp(exp, "-") == 0) {
 					/* r->rd_fd を閉じる */
 					if (close(r->rd_fd) < 0 && errno != EBADF)
 						error(0, errno,
@@ -1066,11 +898,13 @@ static int open_redirections(REDIR *r)
 				} else {
 					char *end;
 					errno = 0;
-					fd = strtol(r->rd_file, &end, 10);
+					fd = strtol(exp, &end, 10);
 					if (errno) goto onerror;
-					if (r->rd_file[0] == '\0' || end[0] != '\0') {
+					if (exp[0] == '\0' || end[0] != '\0') {
 						error(0, 0, "redirect syntax error");
-						return -1;
+						free(exp);
+						if (save) *save = s;
+						return false;
 					}
 					if (fd < 0) {
 						errno = ERANGE;
@@ -1088,7 +922,7 @@ static int open_redirections(REDIR *r)
 			default:
 				assert(false);
 		}
-		fd = open(r->rd_file, flags, 0666);
+		fd = open(exp, flags, 0666);
 		if (fd < 0) goto onerror;
 		if (fd != r->rd_fd) {
 			if (close(r->rd_fd) < 0)
@@ -1101,13 +935,38 @@ static int open_redirections(REDIR *r)
 		}
 
 next:
+		free(exp);
 		r = r->next;
 	}
-	return 0;
+	if (save) *save = s;
+	return true;
 
 onerror:
 	error(0, errno, "redirect: %s", r->rd_file);
-	return -1;
+	free(exp);
+	if (save) *save = s;
+	return false;
+}
+
+/* セーブしたリダイレクトを元に戻し、さらに引数リスト save を free する。 */
+static void undo_redirections(struct save_redirect *save)
+{
+	while (save) {
+		struct save_redirect *next = save->next;
+		if (save->sr_file)
+			fflush(save->sr_file);
+		if (close(save->sr_origfd) < 0 && errno != EBADF)
+			error(0, errno, "closing file descriptor %d",
+					save->sr_origfd);
+		if (dup2(save->sr_copyfd, save->sr_origfd) < 0)
+			error(0, errno, "can't restore file descriptor %d from %d",
+					save->sr_origfd, save->sr_copyfd);
+		if (close(save->sr_copyfd) < 0)
+			error(0, errno, "closing copied file descriptor %d",
+					save->sr_copyfd);
+		free(save);
+		save = next;
+	}
 }
 
 /* exec 組込みコマンド
