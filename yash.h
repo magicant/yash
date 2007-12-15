@@ -170,10 +170,6 @@ getline_t yash_readline;
 
 /* -- パーサ -- */
 
-struct _redirect;
-struct _process;
-struct _pipeline;
-struct _statement;
 typedef struct _redirect  REDIR;
 typedef struct _process   PROCESS;
 typedef struct _pipeline  PIPELINE;
@@ -182,10 +178,11 @@ typedef struct _statement STATEMENT;
 /* リダイレクトを表す */
 struct _redirect {
 	REDIR *next;
+	enum redirect_type {
+		RT_INPUT, RT_OUTPUT, RT_APPEND, RT_INOUT, RT_DUP,
+	}      rd_type;
 	int    rd_fd;      /* リダイレクトするファイルディスクリプタ */
-	int    rd_destfd;  /* リダイレクト先のファイルディスクリプタ */
-	char  *rd_file;    /* リダイレクト先のファイル名 (NULL なら閉じる) */
-	int    rd_flags;   /* リダイレクト先のファイルの開き方 (open の第 2 引数) */
+	char  *rd_file;    /* リダイレクト先のファイル名 */
 };
 /* rd_destfd が負のときのみ rd_{file|flags} が使用される。
  * 例えば '2>&1' では、rd_fd = 2, rd_destfd = 1 となる。 */
@@ -201,11 +198,13 @@ struct _process {
 	}           p_type;
 	char      **p_args;
 	STATEMENT  *p_subcmds;  /* プロセスに含まれる文の内容 */
+	REDIR      *p_redirs;   /* プロセスに対するリダイレクト */
 };
 /* p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
- * p_subcmds に入る。p_args はコマンドの内容である。(空白ごとに分けて
- * エイリアスを展開しただけで、それ以上パラメータの展開などは行っていない)
- * p_subcmds が非 NULL のとき、p_args にはリダイレクト関連の記述が入る。 */
+ * p_subcmds に入る。p_args はリダイレクトを除くコマンドの内容である。
+ * (空白ごとに分けてエイリアスを展開しただけで、
+ * それ以上パラメータの展開などは行っていない)
+ * p_redirs はリダイレクトのデータを表す。(こちらも展開していない) */
 
 /* 一つのパイプライン */
 struct _pipeline {
@@ -238,7 +237,8 @@ void statementsfree(STATEMENT *statements);
 
 /* -- コマンドライン展開 (expand) -- */
 
-bool expand_line(char **args, int *argc, char ***argv, REDIR **redirs);
+bool expand_line(char **args, int *argc, char ***argv);
+bool expand_redirections(REDIR **redirs);
 void escape_sq(const char *s, struct strbuf *buf);
 void escape_dq(const char *s, struct strbuf *buf);
 

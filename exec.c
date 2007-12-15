@@ -778,7 +778,7 @@ static pid_t exec_single(
 	bool expanded = false;
 	int argc;
 	char **argv;
-	REDIR *redirs;
+	REDIR *redirs = p->p_redirs;
 	sigset_t sigset, oldsigset;
 
 	if (etype == SELF)
@@ -786,8 +786,15 @@ static pid_t exec_single(
 	
 	if (etype == FOREGROUND && pipes.p_count == 0) {
 		expanded = true;
-		if (!expand_line(p->p_args, &argc, &argv, &redirs))
+		if (!expand_line(p->p_args, &argc, &argv)) {
+			recfree((void **) argv);
 			return -1;
+		}
+		if (!expand_redirections(&redirs)) {
+			recfree((void **) argv);
+			redirsfree(redirs);
+			return -1;
+		}
 		if (p->p_type == PT_NORMAL && argc == 0)
 			return 0;  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && argc > 0) {
@@ -868,7 +875,9 @@ directexec:
 	resetsigaction();
 
 	if (!expanded) {
-		if (!expand_line(p->p_args, &argc, &argv, &redirs))
+		if (!expand_line(p->p_args, &argc, &argv))
+			exit(EXIT_FAILURE);
+		if (!expand_redirections(&redirs))
 			exit(EXIT_FAILURE);
 		if (p->p_type == PT_NORMAL && argc == 0)
 			exit(EXIT_SUCCESS);  // XXX リダイレクトがあるなら特殊操作
@@ -1029,31 +1038,65 @@ directexec:
 /* リダイレクトを開く。
  * 戻り値: OK なら 0、エラーなら -1。 */
 static int open_redirections(REDIR *r)
-{//XXX : open_redirections not tested
+{
 	while (r) {
-		int fd;
+		int fd, flags;
 
-		if (r->rd_destfd >= 0) {
-			fd = r->rd_destfd;
-		} else if (!r->rd_file) {
-			if (close(r->rd_fd) < 0 && errno != EBADF) {
-				error(0, errno,
-						"redirect: closing file descriptor %d", r->rd_fd);
-				return -1;
-			}
-			goto next;
-		} else {
-			fd = open(r->rd_file, r->rd_flags, 0666);
-			if (fd < 0)
-				goto onerror;
+		switch (r->rd_type) {
+			case RT_INPUT:
+				flags = O_RDONLY;
+				break;
+			case RT_OUTPUT:
+				flags = O_WRONLY | O_CREAT | O_TRUNC;
+				break;
+			case RT_APPEND:
+				flags = O_WRONLY | O_CREAT | O_APPEND;
+				break;
+			case RT_INOUT:
+				flags = O_RDWR | O_CREAT;
+				break;
+			case RT_DUP:
+				if (strcmp(r->rd_file, "-") == 0) {
+					/* r->rd_fd を閉じる */
+					if (close(r->rd_fd) < 0 && errno != EBADF)
+						error(0, errno,
+								"redirect: error on closing file descriptor %d",
+								r->rd_fd);
+					goto next;
+				} else {
+					char *end;
+					errno = 0;
+					fd = strtol(r->rd_file, &end, 10);
+					if (errno) goto onerror;
+					if (r->rd_file[0] == '\0' || end[0] != '\0') {
+						error(0, 0, "redirect syntax error");
+						return -1;
+					}
+					if (fd < 0) {
+						errno = ERANGE;
+						goto onerror;
+					}
+					if (fd != r->rd_fd) {
+						if (close(r->rd_fd) < 0)
+							if (errno != EBADF)
+								goto onerror;
+						if (dup2(fd, r->rd_fd) < 0)
+							goto onerror;
+					}
+				}
+				goto next;
+			default:
+				assert(false);
 		}
+		fd = open(r->rd_file, flags, 0666);
+		if (fd < 0) goto onerror;
 		if (fd != r->rd_fd) {
 			if (close(r->rd_fd) < 0)
 				if (errno != EBADF)
 					goto onerror;
 			if (dup2(fd, r->rd_fd) < 0)
 				goto onerror;
-			if (r->rd_destfd < 0 && close(fd) < 0)
+			if (close(fd) < 0)
 				goto onerror;
 		}
 

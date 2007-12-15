@@ -38,7 +38,7 @@ static STATEMENT *parse_statements(char stop);
 static PIPELINE *parse_pipelines();
 static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
-static char *skip_redirection(const char *s);
+static REDIR *tryparse_redir(void);
 static void skip_with_quote(const char *delim, bool singquote);
 static char *skip_without_quote(const char *s, const char *delim);
 //static inline char *skipifs(const char *s);
@@ -226,8 +226,6 @@ end:
 }
 
 /* 一つの文を解析する。
- * src:    解析するソースへのポインタ。
- *         解析成功なら解析し終わった後の位置まで進む。
  * 戻り値: 成功したらその結果。失敗したら途中結果または NULL。 */
 static PIPELINE *parse_pipelines()
 {
@@ -279,8 +277,6 @@ end:
 }
 
 /* 一つのパイプラインを解析する。
- * src:    解析するソースへのポインタ。
- *         解析成功なら解析し終わった後の位置まで進む。
  * neg:    パイプラインの終了ステータスを反転するかどうかが
  *         このポインタが指す先に入る。
  * loop:   パイプラインが環状であるかどうかがこのポインタの指す先に入る。
@@ -306,10 +302,17 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 		}
 
 		PROCESS *temp = xmalloc(sizeof *temp);
-		temp->next = NULL;
+		*temp = (PROCESS) {
+			.next = NULL,
+			.p_args = NULL,
+			.p_subcmds = NULL,
+			.p_redirs = NULL,
+		};
 		if (!parse_words(temp)) {
-			free(temp);
+			procsfree(temp);
 			goto end;
+		} else if (temp->p_type != PT_NORMAL && temp->p_args[0]) {
+			serror("unexpected token: %s", temp->p_args[0]);
 		}
 
 		if (*fromi(i_index) == '|' && *fromi(i_index + 1) != '|') {
@@ -328,14 +331,14 @@ end:
 }
 
 /* 一つのコマンドを解析し、結果を p のアドレスに入れる。
- * この関数は解析に成功すれば p の p_type と p_args と p_subcmds を書き換える。
- * src:    解析するソースへのポインタ。
- *         解析成功なら解析し終わった後の位置まで進む。
- * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。 */
+ * この関数は p の p_type, p_args, p_subcmds, p_redirsを書き換える。
+ * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。
+ * 戻り値が false でも p の内容は変わっているかもしれない。 */
 static bool parse_words(PROCESS *p)
 {
 	size_t initindex = i_index;
 	bool result;
+	REDIR *rfirst = NULL, **rlastp = &rfirst;
 
 	expand_alias(&i_src, i_index, false);
 	switch (*fromi(i_index)) {
@@ -349,6 +352,7 @@ static bool parse_words(PROCESS *p)
 				goto end;
 			}
 			i_index = toi(skipblanks(fromi(i_index + 1)));
+			expand_alias(&i_src, i_index, true);
 			break;
 		case '{':
 			/* TODO: "{" はそれ自体はトークンではないので、"{abc" のような場合を
@@ -362,6 +366,7 @@ static bool parse_words(PROCESS *p)
 				goto end;
 			}
 			i_index = toi(skipblanks(fromi(i_index + 1)));
+			expand_alias(&i_src, i_index, true);
 			break;
 		case ')':
 		case '}':
@@ -376,11 +381,17 @@ static bool parse_words(PROCESS *p)
 	struct plist args;
 	plist_init(&args);
 	for (;;) {
-		size_t startindex = i_index;
-		skip_with_quote(" \t;&|()#\n\r", true); // TODO redirect
-		if (i_index == startindex) break;
-
-		plist_append(&args, xstrndup(fromi(startindex), i_index - startindex));
+		REDIR *rd = tryparse_redir();
+		if (rd) {
+			*rlastp = rd;
+			rlastp = &rd->next;
+		} else {
+			size_t startindex = i_index;
+			skip_with_quote(" \t;&|()#\n\r", true);
+			if (i_index == startindex) break;
+			plist_append(&args,
+					xstrndup(fromi(startindex), i_index - startindex));
+		}
 		i_index = toi(skipblanks(fromi(i_index)));
 		expand_alias(&i_src, i_index, true);
 	}
@@ -393,29 +404,89 @@ static bool parse_words(PROCESS *p)
 	}
 	result = (initindex != i_index);
 end:
+	p->p_redirs = rfirst;
 	return result;
 }
 
-/* 文字列の先頭にあるリダイレクトの記号を飛ばす。すなわち、0 個以上の数字と
- * < > <> >< >> >& <& を飛ばす。 */
-static char *skip_redirection(const char *s)
+/* 現在位置にあるリダイレクトを解釈する。
+ * リダイレクトがなければ何もしないで NULL を返す。
+ * リダイレクトを解釈できたらそれを返す。(i_index は解釈した部分の直後まで進む)
+ * エラーの場合も NULL を返すが、i_index は進んでいるかもしれない。 */
+static REDIR *tryparse_redir(void)
 {
-	const char *init = s;
+	REDIR *rd;
+	char *init = fromi(i_index);
+	char *symbol = init + strspn(init, "0123456789");
+	char *symbol2;
+	char *start, *end;
+	int fd;
+	enum redirect_type type;
 
-	s += strspn(s, "0123456789");
-	switch (*s) {
-		default:
-			return (char *) init;
-		case '<':  case '>':
-			s++;
-			switch (*s) {
-				default:
-					return (char *) s;
-				case '<':  case '>':  case '&':
-					s++;
-					return (char *) s;
-			}
+	if (init == symbol) {
+		fd = -1;
+	} else {
+		errno = 0;
+		fd = strtol(init, &symbol2, 10);
+		if (errno || fd < 0) fd = -2;
+		if (symbol != symbol2) return NULL;
 	}
+	switch (symbol[0]) {
+		case '<':
+			if (fd == -1) fd = STDIN_FILENO;
+			switch (symbol[1]) {
+				case '<':
+					return NULL;  // XXX here document not supported
+				case '>':
+					type = RT_INOUT;
+					start = &symbol[2];
+					break;
+				case '&':
+					type = RT_DUP;
+					start = &symbol[2];
+					break;
+				default:
+					type = RT_INPUT;
+					start = &symbol[1];
+					break;
+			}
+			break;
+		case '>':
+			if (fd == -1) fd = STDOUT_FILENO;
+			switch (symbol[1]) {
+				case '>':
+					type = RT_APPEND;
+					start = &symbol[2];
+					break;
+				case '&':
+					type = RT_DUP;
+					start = &symbol[2];
+					break;
+				default:
+					type = RT_OUTPUT;
+					start = &symbol[1];
+					break;
+			}
+			break;
+		default:
+			return NULL;
+	}
+	start += strspn(start, " \t");
+	i_index = toi(start);
+	expand_alias(&i_src, i_index, true);
+	skip_with_quote(" \t;&|()#\n\r", true);
+	end = fromi(i_index);
+	if (start == end) {
+		serror("redirect target not specified");
+		return NULL;
+	}
+	rd = xmalloc(sizeof *rd);
+	*rd = (REDIR) {
+		.next = NULL,
+		.rd_type = type,
+		.rd_fd = fd,
+		.rd_file = xstrndup(start, end - start),
+	};
+	return rd;
 }
 
 /* 引用符 (" と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが

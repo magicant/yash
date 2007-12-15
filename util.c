@@ -518,7 +518,8 @@ void plist_trim(struct plist *list)
 			(list->maxlength + 1) * sizeof(void *));
 }
 
-/* ポインタリストを空にする。maxlength は変わらない。 */
+/* ポインタリストを空にする。maxlength は変わらない。
+ * 配列内の各要素は解放されないので注意。 */
 void plist_clear(struct plist *list)
 {
 	list->length = 0;
