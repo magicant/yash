@@ -46,6 +46,7 @@ int builtin_suspend(int argc, char *const *argv);
 int builtin_jobs(int argc, char *const *argv);
 int builtin_disown(int argc, char *const *argv);
 int builtin_fg(int argc, char *const *argv);
+int builtin_exec(int argc, char *const *argv);
 int builtin_cd(int argc, char *const *argv);
 int builtin_umask(int argc, char *const *argv);
 int builtin_export(int argc, char *const *argv);
@@ -77,6 +78,7 @@ void init_builtin(void)
 	ht_set(&builtins, "disown",  builtin_disown);
 	ht_set(&builtins, "fg",      builtin_fg);
 	ht_set(&builtins, "bg",      builtin_fg);
+	ht_set(&builtins, "exec",    builtin_exec);
 	ht_set(&builtins, "cd",      builtin_cd);
 	ht_set(&builtins, "umask",   builtin_umask);
 	ht_set(&builtins, "export",  builtin_export);
@@ -747,6 +749,89 @@ usage:
 	else
 		printf("Usage:  bg [jobspecs]\n");
 	return EXIT_FAILURE;
+}
+
+/* exec 組込みコマンド
+ * この関数が返るのはエラーが起きた時だけである。
+ * -c:       環境変数なしで execve する。
+ * -f:       対話的シェルで未了のジョブがあっても execve する。
+ * -l:       ログインコマンドとして新しいコマンドを execve する。
+ * -a name:  execve するとき argv[0] として name を渡す。 */
+int builtin_exec(int argc, char *const *argv)
+{
+	int opt;
+	bool clearenv = false, forceexec = false, login = false;
+	char *argv0 = NULL;
+
+	optind = 0;
+	opterr = 1;
+	while ((opt = getopt(argc, argv, "+cfla:")) >= 0) {
+		switch (opt) {
+			case 'c':
+				clearenv = true;
+				break;
+			case 'f':
+				forceexec = true;
+				break;
+			case 'l':
+				login = true;
+				break;
+			case 'a':
+				argv0 = optarg;
+				break;
+			default:
+				printf("Usage:  exec [-cfl] [-a name] command [args...]\n");
+				return EXIT_FAILURE;
+		}
+	}
+
+	if (!forceexec && is_interactive) {
+		wait_all(-2 /* non-blocking */);
+		print_all_job_status(true /* changed only */, false /* not verbose */);
+		if (job_count()) {
+			error(0, 0, "There are undone jobs!"
+					"  Use `-f' option to exec anyway.");
+			return EXIT_FAILURE;
+		}
+	}
+	if (argc <= optind)
+		return EXIT_SUCCESS;
+	if (!argv0)
+		argv0 = argv[optind];
+
+	char *command = which(argv[optind],
+			strchr(argv[optind], '/') ? "." : getenv(ENV_PATH));
+	if (!command) {
+		error(0, 0, "%s: %s: command not found", argv[0], argv[optind]);
+		if (!is_interactive) {
+			//XXX shopt execfail
+			exit(EXIT_NOTFOUND);
+		}
+		return EXIT_NOTFOUND;
+	}
+
+	struct plist args;
+	plist_init(&args);
+	if (login) {
+		char *newargv0 = xmalloc(strlen(argv0) + 2);
+		newargv0[0] = '-';
+		strcpy(newargv0 + 1, argv0);
+		plist_append(&args, newargv0);
+	} else {
+		plist_append(&args, xstrdup(argv0));
+	}
+	for (int i = optind + 1; i < argc; i++)
+		plist_append(&args, argv[i]);
+
+	finalize_interactive();
+	execve(command, (char **) args.contents, clearenv ? NULL : environ);
+	init_interactive();
+
+	error(0, errno, "%s: %s", argv[0], argv[optind]);
+	free(args.contents[0]);
+	free(command);
+	plist_destroy(&args);
+	return EXIT_NOEXEC;
 }
 
 /* cd 組込みコマンド */

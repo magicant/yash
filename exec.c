@@ -70,7 +70,7 @@ static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
-//static void builtin_exec(SCMD *scmd);
+static void savesfree(struct save_redirect *save);
 
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;
@@ -713,8 +713,6 @@ static pid_t exec_single(
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL) {
-			// TODO 組込み exec コマンド
-	
 			cbody *body = get_builtin(argv[0]);
 			if (body) {  /* fork せずに組込みコマンドを実行 */
 				struct save_redirect *saver;
@@ -722,7 +720,10 @@ static pid_t exec_single(
 					laststatus = body(argc, argv);
 				else
 					laststatus = EXIT_FAILURE;
-				undo_redirections(saver);
+				if (body != builtin_exec || laststatus != EXIT_SUCCESS)
+					undo_redirections(saver);
+				else
+					savesfree(saver);
 				recfree((void **) argv);
 				return 0;
 			}
@@ -803,10 +804,8 @@ directexec:
 		cbody *body;
 		case PT_NORMAL:
 			body = get_builtin(argv[0]);
-			if (body) {  /* 組込みコマンドを実行 */
-				//TODO ここで組込みコマンド用のリダイレクトを処理
+			if (body)  /* 組込みコマンドを実行 */
 				exit(body(argc, argv));
-			}
 
 			char *command = which(argv[0],
 					strchr(argv[0], '/') ? "." : getenv(ENV_PATH));
@@ -849,11 +848,10 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		/* リダイレクトをセーブする */
 		if (save) {
 			int copyfd = dup(r->rd_fd);
-			if (copyfd < 0) {
-				if (errno != EBADF)
-					error(0, errno, "redirect: can't save file descriptor %d",
-							r->rd_fd);
-			} else if (fcntl(copyfd, F_SETFD, FD_CLOEXEC) < 0) {
+			if (copyfd < 0 && errno != EBADF) {
+				error(0, errno, "redirect: can't save file descriptor %d",
+						r->rd_fd);
+			} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) < 0) {
 				error(0, errno, "redirect: fcntl(%d,SETFD,CLOEXEC)", r->rd_fd);
 				close(r->rd_fd);
 			} else {
@@ -958,98 +956,25 @@ static void undo_redirections(struct save_redirect *save)
 		if (close(save->sr_origfd) < 0 && errno != EBADF)
 			error(0, errno, "closing file descriptor %d",
 					save->sr_origfd);
-		if (dup2(save->sr_copyfd, save->sr_origfd) < 0)
-			error(0, errno, "can't restore file descriptor %d from %d",
-					save->sr_origfd, save->sr_copyfd);
-		if (close(save->sr_copyfd) < 0)
-			error(0, errno, "closing copied file descriptor %d",
-					save->sr_copyfd);
+		if (save->sr_copyfd >= 0) {
+			if (dup2(save->sr_copyfd, save->sr_origfd) < 0)
+				error(0, errno, "can't restore file descriptor %d from %d",
+						save->sr_origfd, save->sr_copyfd);
+			if (close(save->sr_copyfd) < 0)
+				error(0, errno, "closing copied file descriptor %d",
+						save->sr_copyfd);
+		}
 		free(save);
 		save = next;
 	}
 }
 
-/* exec 組込みコマンド
- * この関数が返るのはエラーが起きた時だけである。
- * -c:       環境変数なしで execve する。
- * -f:       未了のジョブがあっても execve する。
- * -l:       ログインコマンドとして新しいコマンドを execve する。
- * -a name:  execve するとき argv[0] として name を渡す。 */
-//static void builtin_exec(SCMD *scmd)
-//{
-//	int opt;
-//	bool clearenv = false, forceexec = false, login = false;
-//	char **argv = scmd->c_argv;
-//	char *argv0 = NULL;
-//
-//	optind = 0;
-//	opterr = 1;
-//	while ((opt = getopt(scmd->c_argc, argv, "+cfla:")) >= 0) {
-//		switch (opt) {
-//			case 'c':
-//				clearenv = true;
-//				break;
-//			case 'f':
-//				forceexec = true;
-//				break;
-//			case 'l':
-//				login = true;
-//				break;
-//			case 'a':
-//				argv0 = optarg;
-//				break;
-//			default:
-//				printf("Usage:  exec [-cfl] [-a name] command [args...]\n");
-//				laststatus = EXIT_FAILURE;
-//				return;
-//		}
-//	}
-//
-//	if (!forceexec) {
-//		wait_all(-2 /* non-blocking */);
-//		print_all_job_status(true /* changed only */, false /* not verbose */);
-//		if (job_count()) {
-//			error(0, 0, "There are undone jobs!"
-//					"  Use `-f' option to exec anyway.");
-//			laststatus = EXIT_FAILURE;
-//			return;
-//		}
-//	}
-//	if (open_redirections(scmd->c_redir, scmd->c_redircnt) < 0) {
-//		laststatus = EXIT_FAILURE;
-//		return;
-//	}
-//	if (scmd->c_argc <= optind) {
-//		laststatus = EXIT_SUCCESS;
-//		return;
-//	}
-//
-//	char *oldargv0 = argv[optind];
-//	char *newargv0;
-//	char *command = which(oldargv0, getenv(ENV_PATH));
-//	if (!command) {
-//		error(0, 0, "%s: command not found", argv[0]);
-//		goto error;
-//	}
-//	newargv0 = argv0 ? : oldargv0;
-//	if (login) {
-//		char *newnewargv0 = xmalloc(strlen(newargv0) + 2);
-//		newnewargv0[0] = '-';
-//		strcpy(newnewargv0 + 1, newargv0);
-//		newargv0 = newnewargv0;
-//	} else {
-//		newargv0 = xstrdup(newargv0);
-//	}
-//	argv[optind] = newargv0;
-//
-//	finalize_interactive();
-//	execve(command, argv + optind, clearenv ? NULL : environ);
-//	init_interactive();
-//
-//	error(0, errno, "%s", argv[0]);
-//	argv[optind] = oldargv0;
-//	free(newargv0);
-//	free(command);
-//error:
-//	laststatus = EXIT_NOEXEC;
-//}
+/* save_redirect のリストを解放する */
+static void savesfree(struct save_redirect *save)
+{
+	while (save) {
+		struct save_redirect *next = save->next;
+		free(save);
+		save = next;
+	}
+}
