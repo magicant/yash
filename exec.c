@@ -312,7 +312,7 @@ int get_jobnumber_from_pid(pid_t pid)
  * アクティブジョブが終了した場合、アクティブジョブを削除する。
  * wait 中のシグナルハンドラ実行後 (waitpid が EINTR を返した後)、
  * cancel_wait の値が true なら (値を false に戻して) 直ちに返る。 */
-/* この関数は内部で SIGHUP/SIGCHLD をブロックする。
+/* この関数は内部で SIGCHLD をブロックする。
  * この関数をシグナルハンドラから呼出すときは必ず blockedjob を -2 にすること。
  * */
 void wait_all(int blockedjob)
@@ -323,7 +323,6 @@ void wait_all(int blockedjob)
 	sigset_t sigset, oldsigset;
 
 	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGHUP);
 	sigaddset(&sigset, SIGCHLD);
 	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
 		error(EXIT_FAILURE, errno, "sigprocmask before wait");
