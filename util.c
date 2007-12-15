@@ -307,11 +307,13 @@ void strbuf_init(struct strbuf *buf)
 void strbuf_destroy(struct strbuf *buf)
 {
 	free(buf->contents);
+#ifndef NDEBUG
 	*buf = (struct strbuf) {
 		.contents = NULL,
 		.length = 0,
 		.maxlength = 0,
 	};
+#endif
 }
 
 /* 文字列バッファを解放し、文字列を返す。文字列バッファは未初期化状態になる。
@@ -479,11 +481,13 @@ void plist_init(struct plist *list)
 void plist_destroy(struct plist *list)
 {
 	free(list->contents);
+#ifndef NDEBUG
 	*list = (struct plist) {
 		.contents = NULL,
 		.length = 0,
 		.maxlength = 0,
 	};
+#endif
 }
 
 /* ポインタリストを解放し、内容を返す。ポインタリストは未初期化状態になる。
@@ -580,6 +584,7 @@ void ht_destroy(struct hasht *ht)
 		free(ht->entries[i].key);
 	free(ht->indices);
 	free(ht->entries);
+#ifndef NDEBUG
 	*ht = (struct hasht) {
 		.capacity = 0,
 		.count = 0,
@@ -588,6 +593,7 @@ void ht_destroy(struct hasht *ht)
 		.indices = NULL,
 		.entries = NULL,
 	};
+#endif
 }
 
 /* ハッシュテーブルの容量を変更する。 */

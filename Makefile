@@ -16,7 +16,10 @@
 
 
 CC=gcc
-CFLAGS=-O3 -ggdb -Wall -Wextra -Wno-unused-parameter -std=gnu99
+CFLAGS=-O3 -ggdb -std=gnu99
+ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
+CFLAGS+=-Wall -Wextra
+endif
 LDFLAGS=-lreadline -ltermcap
 OBJS=util.o readline.o parser.o expand.o exec.o path.o builtin.o alias.o
 TARGET=yash

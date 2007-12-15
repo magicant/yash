@@ -86,7 +86,7 @@ int remove_alias(const char *name)
 /* 全エイリアスを削除する。 */
 void remove_all_aliases(void)
 {
-	int freer(const char *name, ALIAS *a) {
+	int freer(const char *name UNUSED, ALIAS *a) {
 		aliasfree(a);
 		return 0;
 	}
@@ -115,7 +115,7 @@ int for_all_aliases(int (*func)(const char *name, ALIAS *alias))
  * この関数は一度の read_and_parse につき一度呼び出される。 */
 void alias_reset(void)
 {
-	int reset(const char *name, ALIAS *alias) {
+	int reset(const char *name UNUSED, ALIAS *alias) {
 		alias->valid_len = SIZE_MAX;
 		return 0;
 	}

@@ -223,7 +223,7 @@ static char *unquote_filename(char *text, int quotechar)
 #endif
 
 /* コマンド補完を行う。ライブラリから呼び出される。 */
-static char **yash_completion(const char *text, int start, int end)
+static char **yash_completion(const char *text, int start, int end UNUSED)
 {
 	char **matches = NULL;
 	rl_compentry_func_t *completer;

@@ -130,7 +130,7 @@ void resetsigaction(void)
 int exec_file(const char *path, bool suppresserror)
 {
 	FILE *f = fopen(path, "r");
-	char *mygetline(int ptype) {
+	char *mygetline(int ptype UNUSED) {
 		char *line = NULL;
 		size_t size = 0;
 		ssize_t len = getline(&line, &size, f);
@@ -199,7 +199,7 @@ int exec_file_exp(const char *path, bool suppresserror)
 int exec_source(const char *name, const char *code)
 {
 	size_t index = 0;
-	char *mygetline(int ptype) {
+	char *mygetline(int ptype UNUSED) {
 		size_t len = strcspn(&code[index], "\n\r");
 		if (!len) return NULL;
 

@@ -17,6 +17,9 @@
 #include <sys/types.h>
 
 
+#define UNUSED __attribute__((__unused__))
+
+
 /* -- Misc -- */
 
 #define YASH_VERSION   "1.0"

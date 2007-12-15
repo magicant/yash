@@ -147,7 +147,7 @@ int parse_jobspec(const char *str, bool forcePercent)
 }
 
 /* : 組込みコマンド */
-int builtin_null(int argc, char *const *argv)
+int builtin_null(int argc UNUSED, char *const *argv UNUSED)
 {
 	return EXIT_SUCCESS;
 }
@@ -380,7 +380,7 @@ usage:
 /* wait 組込みコマンド */
 int builtin_wait(int argc, char *const *argv)
 {
-	void int_handler(int signal) { cancel_wait = true; }
+	void int_handler(int signal UNUSED) { cancel_wait = true; }
 	struct sigaction action, oldaction;
 	int jobnumber = -1;
 

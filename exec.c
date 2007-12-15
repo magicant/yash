@@ -483,7 +483,7 @@ void send_sighup_to_all_jobs(void)
 /* SIGHUP シグナルのハンドラ。
  * 全てのジョブに SIGHUP を送ってから自分にもう一度 SIGHUP を送って自滅する。
  * (このハンドラは一度シグナルを受け取ると無効になるようになっている) */
-void sig_hup(int signal)
+void sig_hup(int signal UNUSED)
 {
 	send_sighup_to_all_jobs();
 	finalize_readline();
