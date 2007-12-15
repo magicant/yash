@@ -455,6 +455,11 @@ int main(int argc, char **argv)
 		is_interactive = false;
 		exec_source_and_exit("yash -c", directcommand);
 	}
+	if (argv[optind]) {
+		is_interactive = false;
+		exec_file(argv[optind], false /* don't suppress error */);
+		exit(laststatus);
+	}
 	if (is_interactive) {
 		init_interactive();
 		interactive_loop();
