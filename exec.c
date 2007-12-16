@@ -651,19 +651,15 @@ static void exec_processes(
 		laststatus = EXIT_FAILURE;
 	close_pipes(pipes);
 	if (pgid > 0) {
-		JOB *job = xmalloc(sizeof *job);
-		*job = (JOB) {
-			.j_pgid = pgid,
-			.j_pids = pids,
-			.j_status = JS_RUNNING,
-			.j_statuschanged = true,
-			.j_flags = 0,
-			.j_exitstatus = 0,
-			.j_exitcodeneg = neg,
-			.j_name = xstrdup(name),
-		};
-		assert(!joblist.contents[0]);
-		joblist.contents[0] = job;
+		JOB *job = joblist.contents[0];
+		assert(job);
+		job->j_pids = pids;
+		job->j_status = JS_RUNNING;
+		job->j_statuschanged = true;
+		job->j_flags = 0;
+		job->j_exitstatus = 0;
+		job->j_exitcodeneg = neg;
+		job->j_name = xstrdup(name);
 		if (!bg) {
 			wait_all(0);
 		} else {
@@ -672,11 +668,10 @@ static void exec_processes(
 	}
 }
 
-// TODO: ジョブを起動している最中に SIGHUP を受け取ったとき、起動中のジョブにも
-//       huponexit が正しく適用されるようにする
-
 /* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
  * fork/exec し、リダイレクトなどを設定する。
+ * pgid = 0 で fork した場合、親プロセスでは新しくアクティブジョブを
+ * joblist.contents[0] に作成し、j_pgid メンバの値を設定する。
  * p:       実行するコマンド
  * pindex:  パイプ全体における子プロセスのインデックス。
  *          環状パイプを作る場合は 0 の代わりに -1。
@@ -752,6 +747,13 @@ static pid_t exec_single(
 					&& errno != EPERM)
 				error(0, errno, "%s: tcsetpgrp (parent)", argv[0]); */
 		}
+		if (!pgid) {
+			/* SIGHUP をブロックしている内にアクティブジョブに pgid を設定する*/
+			JOB *job = xmalloc(sizeof *job);
+			*job = (JOB) { .j_pgid = cpid, };
+			assert(!joblist.contents[0]);
+			joblist.contents[0] = job;
+		}
 		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
 			error(0, errno, "sigprocmask (parent) after fork");
 		if (expanded) { recfree((void **) argv); }
@@ -766,6 +768,7 @@ static pid_t exec_single(
 				&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
 			error(0, errno, "%s: tcsetpgrp (child)", argv[0]);
 	}
+	remove_job(0);
 	is_loginshell = is_interactive = false;
 	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
 		error(0, errno, "sigprocmask (child) after fork");
