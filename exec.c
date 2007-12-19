@@ -768,7 +768,7 @@ static pid_t exec_single(
 				&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
 			error(0, errno, "%s: tcsetpgrp (child)", argv[0]);
 	}
-	remove_job(0);
+	joblist_reinit();
 	is_loginshell = is_interactive = false;
 	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
 		error(0, errno, "sigprocmask (child) after fork");
@@ -817,10 +817,8 @@ directexec:
 			/* execvp(argv[0], argv); */
 			error(EXIT_NOEXEC, errno, "%s", argv[0]);
 		case PT_GROUP:  case PT_SUBSHELL:
-			joblist_reinit();
 			exec_statements_and_exit(p->p_subcmds);
 		case PT_X_PIPE:
-			joblist_reinit();
 			exec_pipelines_and_exit(p->p_subcmds->s_pipeline);
 	}
 	assert(false);  /* ここには来ないはず */
