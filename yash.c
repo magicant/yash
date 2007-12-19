@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* yash.c: basic functions of the shell */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -31,6 +32,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "yash.h"
+#include "util.h"
+#include "parser.h"
+#include "exec.h"
+#include "path.h"
+#include "builtin.h"
+#include "alias.h"
 #include <assert.h>
 
 
@@ -130,7 +137,7 @@ void resetsigaction(void)
 int exec_file(const char *path, bool suppresserror)
 {
 	FILE *f = fopen(path, "r");
-	char *mygetline(int ptype UNUSED) {
+	char *mygetline(int ptype __UNUSED__) {
 		char *line = NULL;
 		size_t size = 0;
 		ssize_t len = getline(&line, &size, f);
@@ -199,7 +206,7 @@ int exec_file_exp(const char *path, bool suppresserror)
 int exec_source(const char *name, const char *code)
 {
 	size_t index = 0;
-	char *mygetline(int ptype UNUSED) {
+	char *mygetline(int ptype __UNUSED__) {
 		size_t len = strcspn(&code[index], "\n\r");
 		if (!len) return NULL;
 

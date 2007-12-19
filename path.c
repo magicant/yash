@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* path.c: path manipulaiton utilities */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -25,6 +26,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "yash.h"
+#include "util.h"
+#include "path.h"
 #include <assert.h>
 
 

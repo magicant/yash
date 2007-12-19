@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* readline.c: interface to readline library */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -33,6 +34,10 @@
 #include <readline/history.h>
 #include <sys/stat.h>
 #include "yash.h"
+#include "util.h"
+#include "readline.h"
+#include "exec.h"
+#include "path.h"
 #include <assert.h>
 
 
@@ -223,7 +228,7 @@ static char *unquote_filename(char *text, int quotechar)
 #endif
 
 /* コマンド補完を行う。ライブラリから呼び出される。 */
-static char **yash_completion(const char *text, int start, int end UNUSED)
+static char **yash_completion(const char *text, int start, int end __UNUSED__)
 {
 	char **matches = NULL;
 	rl_compentry_func_t *completer;

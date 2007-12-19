@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* alias.c: alias functionality */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -19,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "yash.h"
+#include "alias.h"
 #include <assert.h>
 
 
@@ -86,7 +88,7 @@ int remove_alias(const char *name)
 /* 全エイリアスを削除する。 */
 void remove_all_aliases(void)
 {
-	int freer(const char *name UNUSED, ALIAS *a) {
+	int freer(const char *name __UNUSED__, ALIAS *a) {
 		aliasfree(a);
 		return 0;
 	}
@@ -115,7 +117,7 @@ int for_all_aliases(int (*func)(const char *name, ALIAS *alias))
  * この関数は一度の read_and_parse につき一度呼び出される。 */
 void alias_reset(void)
 {
-	int reset(const char *name UNUSED, ALIAS *alias) {
+	int reset(const char *name __UNUSED__, ALIAS *alias) {
 		alias->valid_len = SIZE_MAX;
 		return 0;
 	}

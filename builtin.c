@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* builtin.c: shell builtin commands */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -30,6 +31,12 @@
 #include <unistd.h>
 #include <readline/history.h>
 #include "yash.h"
+#include "util.h"
+#include "expand.h"
+#include "exec.h"
+#include "path.h"
+#include "builtin.h"
+#include "alias.h"
 #include <assert.h>
 
 
@@ -61,7 +68,7 @@ int builtin_option(int argc, char *const *argv);
  * 組込みコマンドは、argv の内容を変更してはならない。 */
 /* 次のコマンドは exec.c の中で特殊な方法で処理する: exec */
 
-struct hasht builtins;
+static struct hasht builtins;
 
 /* 組込みコマンドに関するデータを初期化する。 */
 void init_builtin(void)
@@ -147,7 +154,7 @@ int parse_jobspec(const char *str, bool forcePercent)
 }
 
 /* : 組込みコマンド */
-int builtin_null(int argc UNUSED, char *const *argv UNUSED)
+int builtin_null(int argc __UNUSED__, char *const *argv __UNUSED__)
 {
 	return EXIT_SUCCESS;
 }
@@ -380,7 +387,7 @@ usage:
 /* wait 組込みコマンド */
 int builtin_wait(int argc, char *const *argv)
 {
-	void int_handler(int signal UNUSED) { cancel_wait = true; }
+	void int_handler(int signal __UNUSED__) { cancel_wait = true; }
 	struct sigaction action, oldaction;
 	int jobnumber = -1;
 

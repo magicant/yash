@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* exec.c: command execution and job control */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -26,6 +27,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "yash.h"
+#include "util.h"
+#include "expand.h"
+#include "exec.h"
+#include "path.h"
+#include "builtin.h"
 #include <assert.h>
 
 
@@ -483,7 +489,7 @@ void send_sighup_to_all_jobs(void)
 /* SIGHUP シグナルのハンドラ。
  * 全てのジョブに SIGHUP を送ってから自分にもう一度 SIGHUP を送って自滅する。
  * (このハンドラは一度シグナルを受け取ると無効になるようになっている) */
-void sig_hup(int signal UNUSED)
+void sig_hup(int signal __UNUSED__)
 {
 	send_sighup_to_all_jobs();
 	finalize_readline();

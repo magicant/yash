@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* parser.c: command line/shell script parser */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -25,6 +26,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "yash.h"
+#include "parser.h"
+#include "alias.h"
 #include <assert.h>
 
 

@@ -1,4 +1,5 @@
 /* Yash: yet another shell */
+/* util.c: miscellaneous utility functions */
 /* © 2007 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -29,6 +30,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "yash.h"
+#include "util.h"
 #include <assert.h>
 
 void *xcalloc(size_t nmemb, size_t size);
