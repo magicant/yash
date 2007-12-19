@@ -303,6 +303,24 @@ void strbuf_init(struct strbuf *buf)
 	buf->maxlength = STRBUF_INITSIZE;
 }
 
+/* 文字列バッファを解放し、文字列を返す。文字列バッファは未初期化状態になる。
+ * 戻り値: 文字列バッファに入っていた文字列。この文字列は呼び出し元で free
+ *         すべし。 */
+char *strbuf_tostr(struct strbuf *buf)
+{
+	strbuf_trim(buf);
+
+	char *result = buf->contents;
+#ifndef NDEBUG
+	*buf = (struct strbuf) {
+		.contents = NULL,
+		.length = 0,
+		.maxlength = 0,
+	};
+#endif
+	return result;
+}
+
 /* 初期化済の文字列バッファの内容を削除し、未初期化状態に戻す。 */
 void strbuf_destroy(struct strbuf *buf)
 {
@@ -314,22 +332,6 @@ void strbuf_destroy(struct strbuf *buf)
 		.maxlength = 0,
 	};
 #endif
-}
-
-/* 文字列バッファを解放し、文字列を返す。文字列バッファは未初期化状態になる。
- * 戻り値: 文字列バッファに入っていた文字列。この文字列は呼び出し元で free
- *         すべし。 */
-char *strbuf_tostr(struct strbuf *buf)
-{
-	strbuf_trim(buf);
-
-	char *result = buf->contents;
-	*buf = (struct strbuf) {
-		.contents = NULL,
-		.length = 0,
-		.maxlength = 0,
-	};
-	return result;
 }
 
 /* 文字列バッファの maxlength を変更する。短くしすぎると文字列の末尾が消える */

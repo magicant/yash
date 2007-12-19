@@ -89,7 +89,7 @@ char *strjoin(int argc, char *const *argv, const char *padding);
 #define MIN(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
 
-#define STRBUF_INITSIZE 16
+#define STRBUF_INITSIZE 15
 struct strbuf {
 	char *contents;
 	size_t length;
@@ -113,7 +113,7 @@ int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 int strbuf_printf(struct strbuf *buf, const char *format, ...)
 	__attribute__((format (printf, 2, 3)));
 
-#define PLIST_INITSIZE 8
+#define PLIST_INITSIZE 7
 struct plist {
 	void **contents;
 	size_t length;
@@ -231,6 +231,8 @@ struct _statement {
 int read_and_parse(const char *filename, getline_t *input, STATEMENT **result);
 unsigned get_line_number(void);
 void set_line_number(unsigned num);
+char *skip_with_quote(const char *s, const char *delim);
+char *skip_without_quote(const char *s, const char *delim);
 char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);

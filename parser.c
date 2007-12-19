@@ -39,9 +39,9 @@ static PIPELINE *parse_pipelines();
 static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
 static REDIR *tryparse_redir(void);
-static void skip_with_quote(const char *delim, bool singquote);
-static char *skip_without_quote(const char *s, const char *delim);
-//static inline char *skipifs(const char *s);
+static void skip_with_quote_i(const char *delim, bool singquote);
+char *skip_with_quote(const char *s, const char *delim);
+char *skip_without_quote(const char *s, const char *delim);
 char *make_statement_name(PIPELINE *pipelines);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 static void print_statements(struct strbuf *b, STATEMENT *s);
@@ -387,7 +387,7 @@ static bool parse_words(PROCESS *p)
 			rlastp = &rd->next;
 		} else {
 			size_t startindex = i_index;
-			skip_with_quote(" \t;&|()#\n\r", true);
+			skip_with_quote_i(" \t;&|()#\n\r", true);
 			if (i_index == startindex) break;
 			plist_append(&args,
 					xstrndup(fromi(startindex), i_index - startindex));
@@ -473,7 +473,7 @@ static REDIR *tryparse_redir(void)
 	start += strspn(start, " \t");
 	i_index = toi(start);
 	expand_alias(&i_src, i_index, true);
-	skip_with_quote(" \t;&|()#\n\r", true);
+	skip_with_quote_i(" \t;&|()#\n\r", true);
 	end = fromi(i_index);
 	if (start == end) {
 		serror("redirect target not specified");
@@ -492,7 +492,7 @@ static REDIR *tryparse_redir(void)
 /* 引用符 (" と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが
  * 現れるまで飛ばす。すなわち、delim に含まれない 0 個以上の文字を飛ばす。
  * singquote が true なら単一引用符 (') も解釈する。 */
-static void skip_with_quote(const char *delim, bool singquote)
+static void skip_with_quote_i(const char *delim, bool singquote)
 {
 	while (*fromi(i_index) && !strchr(delim, *fromi(i_index))) {
 		switch (*fromi(i_index)) {
@@ -510,7 +510,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 					case '{':
 						i_index += 2;
 						for (;;) {
-							skip_with_quote("}", true);
+							skip_with_quote_i("}", true);
 							if (*fromi(i_index) == '}') break;
 							if (!*fromi(i_index) && !read_next_line(true)) {
 								serror("missing `%c'", '}');
@@ -543,7 +543,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 			case '"':
 				i_index++;
 				for (;;) {
-					skip_with_quote("\"", false);
+					skip_with_quote_i("\"", false);
 					if (*fromi(i_index) == '"') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
 						serror("missing `%c'", '"');
@@ -554,7 +554,7 @@ static void skip_with_quote(const char *delim, bool singquote)
 			case '`':
 				i_index++;
 				for (;;) {
-					skip_with_quote("`", false);
+					skip_with_quote_i("`", false);
 					if (*fromi(i_index) == '`') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
 						serror("missing \"`\"");
@@ -569,20 +569,48 @@ end:
 	;
 }
 
+/* 引用符などを考慮しつつ、delim 内の文字のどれかが現れるまで飛ばす。
+ * すなわち、delim に含まれない 0 個以上の文字を飛ばす。 */
+char *skip_with_quote(const char *s, const char *delim)
+{
+	while (*s && !strchr(delim, *s)) {
+		switch (*s) {
+			case '\\':
+				s++;
+				break;
+			case '$':
+				switch (*(s + 1)) {
+					case '{':
+						s = skip_with_quote(s + 2, "}");
+						break;
+					case '(':
+						// XXX 算術式展開
+						s = skip_with_quote(s + 2, ")");
+						break;
+				}
+				break;
+			case '\'':
+				s = skip_without_quote(s + 1, "'");
+				break;
+			case '"':
+				s = skip_with_quote(s + 1, "\"");
+				break;
+			case '`':
+				s = skip_with_quote(s + 1, "`");
+				break;
+		}
+		if (*s) s++;
+	}
+	return (char *) s;
+}
+
 /* delim 内の文字のどれかが現れるまで飛ばす。すなわち、delim に含まれない 0
  * 個以上の文字を飛ばす。s に含まれるエスケープなどは一切解釈しない。 */
-static char *skip_without_quote(const char *s, const char *delim)
+char *skip_without_quote(const char *s, const char *delim)
 {
 	while (*s && !strchr(delim, *s)) s++;
 	return (char *) s;
 }
-
-/* 文字列の先頭にある IFS を飛ばして、
- * IFS でない最初の文字のアドレスを返す。 */
-//static inline char *skipifs(const char *s)
-//{
-//	return (char *) (s + strcspn(s, ifs));
-//}
 
 /* 文中のパイプラインを元に STATEMENT の s_name を生成する。
  * 戻り値: 新しく malloc した p の表示名。

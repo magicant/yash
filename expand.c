@@ -39,6 +39,7 @@
 bool expand_line(char **args, int *argc, char ***argv);
 char *expand_single(const char *arg);
 static bool expand_arg(const char *s, struct plist *argv);
+static bool expand_brace(char *s, struct plist *result);
 void escape_sq(const char *s, struct strbuf *buf);
 void escape_dq(const char *s, struct strbuf *buf);
 
@@ -95,7 +96,71 @@ char *expand_single(const char *arg)
 static bool expand_arg(const char *s, struct plist *argv)
 {
 	//TODO expand_arg
-	plist_append(argv, xstrdup(s));
+	//plist_append(argv, xstrdup(s));
+	expand_brace(xstrdup(s), argv);
+	return true;
+}
+
+/* ブレース展開を行い、結果を result に追加する。
+ * 展開を行ったならば、展開結果は複数の文字列になる (各展開結果を新しく malloc
+ * した文字列として result に追加する)。展開がなければ、元の s がそのまま
+ * result に入る。
+ * s:      展開を行う、free 可能な文字列へのポインタ。
+ *         展開を行った場合、s は expand_brace 内で free される。
+ *         展開がなければ、s は result に追加される。
+ * 戻り値: 展開を行ったら true、展開がなければ false。 */
+static bool expand_brace(char *s, struct plist *result)
+{
+	struct plist ps;
+	char *t;
+	int count = 0;
+	size_t headlen, tailidx;
+
+	t = skip_with_quote(s, "{");
+	if (*t != '{' || *++t == '\0') {
+		plist_append(result, s);
+		return false;
+	}
+	plist_init(&ps);
+	plist_append(&ps, t);
+	for (;;) {
+		t = skip_with_quote(t, "{,}");
+		switch (*t++) {
+			case '{':
+				count++;
+				break;
+			case ',':
+				if (count == 0)
+					plist_append(&ps, t);
+				break;
+			case '}':
+				if (--count >= 0)
+					break;
+				if (ps.length >= 2) {
+					plist_append(&ps, t);
+					goto done;
+				}
+				/* falls thru! */
+			default:
+				plist_destroy(&ps);
+				plist_append(result, s);
+				return false;
+		}
+	}
+done:
+	tailidx = ps.length - 1;
+	headlen = (char *) ps.contents[0] - s - 1;
+	for (size_t i = 0, l = ps.length - 1; i < l; i++) {
+		struct strbuf buf;
+		strbuf_init(&buf);
+		strbuf_nappend(&buf, s, headlen);
+		strbuf_nappend(&buf, ps.contents[i],
+				(char *) ps.contents[i+1] - (char *) ps.contents[i] - 1);
+		strbuf_append(&buf, ps.contents[tailidx]);
+		expand_brace(strbuf_tostr(&buf), result);
+	}
+	plist_destroy(&ps);
+	free(s);
 	return true;
 }
 
