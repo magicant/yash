@@ -81,6 +81,7 @@ static void debug_sig(int signal)
 /* シグナルハンドラを初期化する */
 void setsigaction(void)
 {
+	void sig_quit(int signum __UNUSED__) { }
 	struct sigaction action;
 	const int *signals;
 
@@ -94,8 +95,6 @@ void setsigaction(void)
 #endif
 
 	action.sa_handler = SIG_IGN;
-	if (sigaction(SIGQUIT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGQUIT");
 	if (is_interactive) {
 		for (signals = ignsignals; *signals; signals++)
 			if (sigaction(*signals, &action, NULL) < 0)
@@ -105,6 +104,12 @@ void setsigaction(void)
 	action.sa_handler = SIG_DFL;
 	if (sigaction(SIGCHLD, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGCHLD");
+
+	/* sig_quit は何もしないシグナルハンドラなので、シグナル受信時の挙動は
+	 * SIG_IGN と同じだが、exec の実行時にデフォルトに戻される点が異なる。 */
+	action.sa_handler = sig_quit;
+	if (sigaction(SIGQUIT, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGQUIT");
 
 	action.sa_handler = sig_hup;
 	action.sa_flags = SA_RESETHAND;
@@ -122,8 +127,6 @@ void resetsigaction(void)
 	action.sa_flags = 0;
 	action.sa_handler = SIG_DFL;
 
-	if (sigaction(SIGQUIT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGQUIT");
 	for (signals = ignsignals; *signals; signals++)
 		if (sigaction(*signals, &action, NULL) < 0)
 			error(0, errno, "sigaction: signal=%d", *signals);
