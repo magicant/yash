@@ -43,7 +43,8 @@
 void init_builtin(void);
 cbody *get_builtin(const char *name);
 int parse_jobspec(const char *str, bool forcePercent);
-int builtin_null(int argc, char *const *argv);
+int builtin_true(int argc, char *const *argv);
+int builtin_false(int argc, char *const *argv);
 int builtin_exit(int argc, char *const *argv);
 static int get_signal(const char *name);
 static const char *get_signal_name(int signal);
@@ -75,7 +76,9 @@ void init_builtin(void)
 {
 	ht_init(&builtins);
 	ht_ensurecap(&builtins, 30);
-	ht_set(&builtins, ":",       builtin_null);
+	ht_set(&builtins, ":",       builtin_true);
+	ht_set(&builtins, "true",    builtin_true);
+	ht_set(&builtins, "false",   builtin_false);
 	ht_set(&builtins, "exit",    builtin_exit);
 	ht_set(&builtins, "logout",  builtin_exit);
 	ht_set(&builtins, "kill",    builtin_kill);
@@ -153,10 +156,16 @@ int parse_jobspec(const char *str, bool forcePercent)
 		return jobnumber;
 }
 
-/* : 組込みコマンド */
-int builtin_null(int argc __UNUSED__, char *const *argv __UNUSED__)
+/* :/true 組込みコマンド */
+int builtin_true(int argc __UNUSED__, char *const *argv __UNUSED__)
 {
 	return EXIT_SUCCESS;
+}
+
+/* false 組込みコマンド */
+int builtin_false(int argc __UNUSED__, char *const *argv __UNUSED__)
+{
+	return EXIT_FAILURE;
 }
 
 /* exit/logout 組込みコマンド
