@@ -47,7 +47,10 @@ char *expand_single(const char *arg)
 static bool expand_arg(const char *s, struct plist *argv);
 static bool expand_brace(char *s, struct plist *result);
 static bool expand_param(char *s, struct plist *result);
+static bool do_glob(char **ss, struct plist *result);
 static char *unescape_for_glob(const char *s)
+	__attribute__((malloc, nonnull));
+static char *unescape(char *s)
 	__attribute__((malloc, nonnull));
 void escape_sq(const char *s, struct strbuf *buf);
 void escape_dq(const char *s, struct strbuf *buf);
@@ -130,28 +133,7 @@ static bool expand_arg(const char *s, struct plist *argv)
 	pl_clear(&temp2);
 
 	/* 最後に glob */
-	if (temp1.length > 0) {
-		glob_t gbuf;
-		char *s1 = unescape_for_glob(temp1.contents[0]);
-		if (glob(s1, GLOB_NOCHECK, NULL, &gbuf) != 0)
-			error(0, 0, "%s: glob error", (char *) temp1.contents[0]);
-		free(s1);
-		for (size_t i = 1; i < temp1.length; i++) {
-			s1 = unescape_for_glob(temp1.contents[i]);
-			if (glob(s1, GLOB_NOCHECK | GLOB_APPEND, NULL, &gbuf) != 0)
-				error(0, 0, "%s: glob error", (char *) temp1.contents[i]);
-			free(s1);
-		}
-#if 1
-		for (size_t i = 0; i < gbuf.gl_pathc; i++)
-			pl_append(argv, xstrdup(gbuf.gl_pathv[i]));
-		globfree(&gbuf);
-#else
-		pl_anappend(argv, gbuf.gl_pathv, gbuf.gl_pathc);
-		free(gbuf.gl_pathv);
-#endif
-		free(temp1.contents[0]);
-	}
+	ok &= do_glob((char **) temp1.contents, argv);
 
 	pl_destroy(&temp1);
 	pl_destroy(&temp2);
@@ -229,6 +211,8 @@ done:
  * エラー時はエラーメッセージを出力して false を返す。
  * ただし、エラーの場合でも途中結果が result に入っているかもしれない。
  * s は (展開や分割の結果が元と同じ時) *result に追加されるか、free される。 */
+/* IFS による単語分割は、パラメータ展開の結果内においてのみ実行する。
+ * これはセキュリティ上の理由による。 */
 static bool expand_param(char *s, struct plist *result)
 {
 	//bool indq = false;  /* 引用符 " の中かどうか */
@@ -241,13 +225,145 @@ static bool expand_param(char *s, struct plist *result)
 	return true;
 }
 
+/* glob を配列 *ss の各文字列に対して行い、全ての結果を *result に入れる。
+ * *ss の各文字列は free されるか *result に入る。
+ * ss:     free 可能な文字列の NULL 終端配列へのポインタ。
+ * 戻り値: エラーがなければ true、エラーがあれば (エラーを表示して) false。 */
+static bool do_glob(char **ss, struct plist *result)
+{
+	glob_t gbuf;
+	bool ok = true;
+	while (*ss) {
+		char *s = unescape_for_glob(*ss);
+		switch (glob(s, 0, NULL, &gbuf)) {
+			case GLOB_NOSPACE:  case GLOB_ABORTED:  default:
+				error(0, 0, "%s: glob error", *ss);
+				free(*ss);
+				ok = false;
+				break;
+			case GLOB_NOMATCH:
+				assert(gbuf.gl_pathc == 0);
+				pl_append(result, unescape(*ss));
+				break;
+			case 0:
+				free(*ss);
+				break;
+		}
+		free(s);
+#if 1
+		for (size_t i = 0; i < gbuf.gl_pathc; i++)
+			pl_append(result, xstrdup(gbuf.gl_pathv[i]));
+		globfree(&gbuf);
+#else
+		/* This is dangerous because gbuf.gl_pathv might not be 'free'able. */
+		if (gbuf.gl_pathc > 0)
+			pl_anappend(result, gbuf.gl_pathv, gbuf.gl_pathc);
+		free(gbuf.gl_pathv);
+#endif
+		ss++;
+	}
+	return ok;
+}
+
 /* 引用符を削除し、通常の文字列に戻す。
  * バックスラッシュエスケープはそのまま残る。引用符の中にあった * や [ は、
  * glob で解釈されないようにバックスラッシュでエスケープする。
  * 戻り値: 新しく malloc した、s の展開結果。 */
 static char *unescape_for_glob(const char *s)
 {
-	return xstrdup(s); // TODO unescape_for_glob
+	enum { NORM, INSQ, INDQ, } state = NORM;
+	struct strbuf buf;
+
+	sb_init(&buf);
+	while (*s) {
+		switch (*s) {
+			case '"':
+				switch (state) {
+					case NORM:  state = INDQ;  break;
+					case INDQ:  state = NORM;  break;
+					case INSQ:  goto default_case;
+				}
+				break;
+			case '\'':
+				switch (state) {
+					case NORM:  state = INSQ;  break;
+					case INSQ:  state = NORM;  break;
+					case INDQ:  goto default_case;
+				}
+				break;
+			case '\\':
+				if (state == INSQ) {
+					goto default_case;
+				} else if (!*++s) {
+					sb_cappend(&buf, '\\');
+					break;
+				} else if (state == NORM || *s == '\\') {
+					sb_cappend(&buf, '\\');
+					sb_cappend(&buf, *s);
+					break;
+				} else if (*s == '"' || *s == '`' || *s == '$') {
+					sb_cappend(&buf, *s);
+					break;
+				}
+				goto default_case;
+			case '*':  case '?':  case '[':
+				if (state != NORM)
+					sb_cappend(&buf, '\\');
+				goto default_case;
+			default:  default_case:
+				sb_cappend(&buf, *s);
+				break;
+		}
+		if (*s) s++;
+	}
+	return sb_tostr(&buf);
+}
+
+/* 引用符とバックスラッシュエスケープを削除する。
+ * s:      free 可能な文字列。
+ * 戻り値: 引用符とエスケープを削除した結果。
+ * s は unescape 内で free され、新しく malloc した文字列で結果が返る。 */
+static char *unescape(char *const s)
+{
+	char *ss = strpbrk(s, "\"'\\");
+	bool indq = false;
+	struct strbuf buf;
+
+	if (!ss) return s;
+	sb_init(&buf);
+	sb_nappend(&buf, s, ss - s);
+	while (*ss) {
+		switch (*ss) {
+			case '"':
+				indq = !indq;
+				break;
+			case '\'':
+				if (!indq) {
+					char *end = skip_without_quote(++ss, "'");
+					sb_nappend(&buf, ss, end - ss);
+					ss = end;
+				} else {
+					goto default_case;
+				}
+				break;
+			case '\\':
+				if (!*++ss) {
+					sb_cappend(&buf, '\\');
+					break;
+				} else if (indq && *ss != '\\'
+						&& *ss != '"' && *ss != '`' && *ss != '$') {
+					sb_cappend(&buf, '\\');
+					goto default_case;
+				}
+				goto default_case;
+			default:  default_case:
+				sb_cappend(&buf, *ss);
+				break;
+		}
+		ss++;
+	}
+	free(s);
+	return sb_tostr(&buf);
 }
 
 /* 文字列 s を引用符 ' で囲む。ただし、文字列に ' 自身が含まれる場合は
@@ -255,17 +371,15 @@ static char *unescape_for_glob(const char *s)
  *   例)  abc"def'ghi  ->  'abcdef'\''ghi'  */
 void escape_sq(const char *s, struct strbuf *buf)
 {
-	if (s) {
-		sb_cappend(buf, '\'');
-		while (*s) {
-			if (*s == '\'')
-				sb_append(buf, "'\\''");
-			else
-				sb_cappend(buf, *s);
-			s++;
-		}
-		sb_cappend(buf, '\'');
+	sb_cappend(buf, '\'');
+	while (*s) {
+		if (*s == '\'')
+			sb_append(buf, "'\\''");
+		else
+			sb_cappend(buf, *s);
+		s++;
 	}
+	sb_cappend(buf, '\'');
 }
 
 /* 文字列 s に含まれる " ` \ $ を \ でエスケープしつつ buf に追加する。
@@ -273,17 +387,15 @@ void escape_sq(const char *s, struct strbuf *buf)
  *   例)  abc"def'ghi`jkl\mno  ->  abc\"def'ghi\`jkl\\mno  */
 void escape_dq(const char *s, struct strbuf *buf)
 {
-	if (s) {
-		while (*s) {
-			switch (*s) {
-				case '"':  case '`':  case '$':  case '\\':
-					sb_cappend(buf, '\\');
-					/* falls thru! */
-				default:
-					sb_cappend(buf, *s);
-					break;
-			}
-			s++;
+	while (*s) {
+		switch (*s) {
+			case '"':  case '`':  case '$':  case '\\':
+				sb_cappend(buf, '\\');
+				/* falls thru! */
+			default:
+				sb_cappend(buf, *s);
+				break;
 		}
+		s++;
 	}
 }
