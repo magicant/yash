@@ -26,6 +26,7 @@
 #include "yash.h"
 #include "parser.h"
 #include "expand.h"
+#include "path.h"
 #include <assert.h>
 
 
@@ -101,10 +102,24 @@ static bool expand_arg(const char *s, struct plist *argv)
 	struct plist temp1, temp2;
 
 	pl_init(&temp1);
-	expand_brace(xstrdup(s), &temp1);
+	expand_brace(xstrdup(s), &temp1);  /* まずブレース展開 */
+
+	pl_init(&temp2);
+	for (size_t i = 0; i < temp1.length; i++) {  /* 続いてチルダ展開 */
+		char *s1 = temp1.contents[i];
+		char *s2;
+		if (s1[0] == '~' && (s2 = expand_tilde(s1))) {
+			pl_append(&temp2, s2);
+			free(s1);
+		} else {
+			pl_append(&temp2, s1);
+		}
+	}
+	pl_destroy(&temp1);
+
 	//TODO expand_arg
-	//pl_append(argv, xstrdup(s));
-	expand_brace(xstrdup(s), argv);
+	pl_aappend(argv, temp2.contents);
+	pl_destroy(&temp2);
 	return true;
 }
 

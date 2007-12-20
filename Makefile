@@ -36,7 +36,7 @@ yash.o: yash.h util.h parser.h exec.h path.h builtin.h alias.h
 util.o: yash.h util.h
 readline.o: yash.h util.h readline.h exec.h path.h
 parser.o: yash.h parser.h alias.h
-expand.o: yash.h parser.h expand.h
+expand.o: yash.h parser.h expand.h path.h
 exec.o: yash.h util.h expand.h exec.h path.h builtin.h
 path.o: yash.h util.h path.h
 builtin.o: yash.h util.h expand.h exec.h path.h builtin.h alias.h
