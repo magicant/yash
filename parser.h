@@ -76,11 +76,14 @@ struct _statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-int read_and_parse(const char *filename, getline_t *input, STATEMENT **result);
+int read_and_parse(const char *filename, getline_t *input, STATEMENT **result)
+	__attribute__((nonnull(2,3)));
 unsigned get_line_number(void);
 void set_line_number(unsigned num);
-char *skip_with_quote(const char *s, const char *delim);
-char *skip_without_quote(const char *s, const char *delim);
+char *skip_with_quote(const char *s, const char *delim)
+	__attribute__((nonnull));
+char *skip_without_quote(const char *s, const char *delim)
+	__attribute__((nonnull));
 char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 void redirsfree(REDIR *redirs);

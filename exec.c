@@ -107,8 +107,8 @@ const char * const jstatusstr[] = {
 /* 実行環境を初期化する */
 void init_exec(void)
 {
-	plist_init(&joblist);
-	plist_append(&joblist, NULL);
+	pl_init(&joblist);
+	pl_append(&joblist, NULL);
 }
 
 /* joblist を再初期化する */
@@ -117,8 +117,8 @@ static void joblist_reinit(void)
 	for (size_t i = 0; i < joblist.length; i++)
 		remove_job(i);
 	/*
-	plist_clear(&joblist);
-	plist_append(&joblist, NULL);
+	pl_clear(&joblist);
+	pl_append(&joblist, NULL);
 	*/
 }
 
@@ -184,7 +184,7 @@ static int add_job(void)
 			jobnumber = -1;
 			goto end;
 		} else {
-			plist_append(&joblist, job);
+			pl_append(&joblist, job);
 		}
 	} else {  /* 空きがあったらそこに入れる */
 		assert(!joblist.contents[jobnumber]);

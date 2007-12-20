@@ -38,7 +38,8 @@ void remove_all_aliases(void);
 ALIAS *get_alias(const char *name);
 int for_all_aliases(int (*func)(const char *name, ALIAS *alias));
 void alias_reset(void);
-void expand_alias(struct strbuf *buf, size_t i, bool global);
+void expand_alias(struct strbuf *buf, size_t i, bool global)
+	__attribute__((nonnull));
 
 
 #endif /* ALIAS_H */

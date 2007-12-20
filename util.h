@@ -25,23 +25,32 @@
 /* General functions */
 
 void *xcalloc(size_t nmemb, size_t size)
-	__attribute__((malloc));
+	__attribute__((malloc, warn_unused_result));
 void *xmalloc(size_t size)
-	__attribute__((malloc));
-void *xrealloc(void *ptr, size_t size);
+	__attribute__((malloc, warn_unused_result));
+void *xrealloc(void *ptr, size_t size)
+	__attribute__((malloc, warn_unused_result));
 char *xstrdup(const char *s)
-	__attribute__((malloc));
+	__attribute__((malloc, warn_unused_result, nonnull));
 char *xstrndup(const char *s, size_t len)
-	__attribute__((malloc));
-char **straryclone(char **ary)
-	__attribute__((malloc));
+	__attribute__((malloc, warn_unused_result, nonnull));
+char **strarydup(char **ary)
+	__attribute__((malloc, warn_unused_result, nonnull));
+size_t parylen(void *const *ary)
+	__attribute__((nonnull));
 void recfree(void **ary);
-char *skipblanks(const char *s);
-char *skipspaces(const char *s);
-char *skipwhites(const char *s);
-char *strchug(char *s);
-char *strchomp(char *s);
-char *strjoin(int argc, char *const *argv, const char *padding);
+char *skipblanks(const char *s)
+	__attribute__((nonnull));
+char *skipspaces(const char *s)
+	__attribute__((nonnull));
+char *skipwhites(const char *s)
+	__attribute__((nonnull));
+char *strchug(char *s)
+	__attribute__((nonnull));
+char *strchomp(char *s)
+	__attribute__((nonnull));
+char *strjoin(int argc, char *const *argv, const char *padding)
+	__attribute__((nonnull(2)));
 
 #define MAX(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
@@ -58,22 +67,34 @@ struct strbuf {
 	size_t maxlength;
 };
 
-void strbuf_init(struct strbuf *buf);
-void strbuf_destroy(struct strbuf *buf);
-char *strbuf_tostr(struct strbuf *buf);
-void strbuf_setmax(struct strbuf *buf, size_t newmax);
-void strbuf_trim(struct strbuf *buf);
-void strbuf_clear(struct strbuf *buf);
-void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
-void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
-void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
-void strbuf_append(struct strbuf *buf, const char *s);
-void strbuf_cappend(struct strbuf *buf, char c);
-void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
-int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
-	__attribute__((format (printf, 2, 0)));
-int strbuf_printf(struct strbuf *buf, const char *format, ...)
-	__attribute__((format (printf, 2, 3)));
+void sb_init(struct strbuf *buf)
+	__attribute__((nonnull));
+void sb_destroy(struct strbuf *buf)
+	__attribute__((nonnull));
+char *sb_tostr(struct strbuf *buf)
+	__attribute__((nonnull));
+void sb_setmax(struct strbuf *buf, size_t newmax)
+	__attribute__((nonnull));
+void sb_trim(struct strbuf *buf)
+	__attribute__((nonnull));
+void sb_clear(struct strbuf *buf)
+	__attribute__((nonnull));
+void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
+	__attribute__((nonnull));
+void sb_insert(struct strbuf *buf, size_t i, const char *s)
+	__attribute__((nonnull));
+void sb_nappend(struct strbuf *buf, const char *s, size_t n)
+	__attribute__((nonnull));
+void sb_append(struct strbuf *buf, const char *s)
+	__attribute__((nonnull));
+void sb_cappend(struct strbuf *buf, char c)
+	__attribute__((nonnull));
+void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
+	__attribute__((nonnull));
+int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
+	__attribute__((nonnull, format(printf, 2, 0)));
+int sb_printf(struct strbuf *buf, const char *format, ...)
+	__attribute__((nonnull, format(printf, 2, 3)));
 
 
 /* Pointer lists */
@@ -84,14 +105,30 @@ struct plist {
 	size_t length;
 	size_t maxlength;
 };
-void plist_init(struct plist *list);
-void plist_destroy(struct plist *list);
-void **plist_toary(struct plist *list);
-void plist_setmax(struct plist *list, size_t newmax);
-void plist_trim(struct plist *list);
-void plist_clear(struct plist *list);
-void plist_insert(struct plist *list, size_t i, void *e);
-void plist_append(struct plist *list, void *e);
+void pl_init(struct plist *list)
+	__attribute__((nonnull));
+void pl_destroy(struct plist *list)
+	__attribute__((nonnull));
+void **pl_toary(struct plist *list)
+	__attribute__((nonnull));
+void pl_setmax(struct plist *list, size_t newmax)
+	__attribute__((nonnull));
+void pl_trim(struct plist *list)
+	__attribute__((nonnull));
+void pl_clear(struct plist *list)
+	__attribute__((nonnull));
+void pl_insert(struct plist *list, size_t i, void *e)
+	__attribute__((nonnull(1)));
+void pl_append(struct plist *list, void *e)
+	__attribute__((nonnull(1)));
+void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
+	__attribute__((nonnull));
+void pl_anappend(struct plist *list, void **ps, size_t n)
+	__attribute__((nonnull));
+void pl_ainsert(struct plist *list, size_t i, void **ps)
+	__attribute__((nonnull));
+void pl_aappend(struct plist *list, void **ps)
+	__attribute__((nonnull));
 
 
 /* Hashtables */
@@ -110,15 +147,24 @@ struct hasht {
 		void     *value;
 	}       *entries;
 };
-void ht_init(struct hasht *ht);
-void ht_destroy(struct hasht *ht);
-void ht_ensurecap(struct hasht *ht, size_t newcap);
-void ht_trim(struct hasht *ht);
-void ht_clear(struct hasht *ht);
-void *ht_get(struct hasht *ht, const char *key);
-void *ht_set(struct hasht *ht, const char *key, void *value);
-void *ht_remove(struct hasht *ht, const char *key);
-int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
+void ht_init(struct hasht *ht)
+	__attribute__((nonnull));
+void ht_destroy(struct hasht *ht)
+	__attribute__((nonnull));
+void ht_ensurecap(struct hasht *ht, size_t newcap)
+	__attribute__((nonnull));
+void ht_trim(struct hasht *ht)
+	__attribute__((nonnull));
+void ht_clear(struct hasht *ht)
+	__attribute__((nonnull));
+void *ht_get(struct hasht *ht, const char *key)
+	__attribute__((nonnull(1)));
+void *ht_set(struct hasht *ht, const char *key, void *value)
+	__attribute__((nonnull(1)));
+void *ht_remove(struct hasht *ht, const char *key)
+	__attribute__((nonnull(1)));
+int ht_each(struct hasht *ht, int (*func)(const char *key, void *value))
+	__attribute__((nonnull));
 
 
 #endif /* UTIL_H */

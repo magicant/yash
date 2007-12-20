@@ -38,7 +38,8 @@ void *xmalloc(size_t size);
 void *xrealloc(void *ptr, size_t size);
 char *xstrdup(const char *s);
 char *xstrndup(const char *s, size_t len);
-char **straryclone(char **ary);
+char **strarydup(char **ary);
+size_t parylen(void *const *ary);
 void recfree(void **ary);
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
@@ -47,29 +48,33 @@ char *strchug(char *s);
 char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 
-void strbuf_init(struct strbuf *buf);
-void strbuf_destroy(struct strbuf *buf);
-char *strbuf_tostr(struct strbuf *buf);
-void strbuf_setmax(struct strbuf *buf, size_t newmax);
-void strbuf_trim(struct strbuf *buf);
-void strbuf_clear(struct strbuf *buf);
-void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
-void strbuf_insert(struct strbuf *buf, size_t i, const char *s);
-void strbuf_nappend(struct strbuf *buf, const char *s, size_t n);
-void strbuf_append(struct strbuf *buf, const char *s);
-void strbuf_cappend(struct strbuf *buf, char c);
-void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
-int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap);
-int strbuf_printf(struct strbuf *buf, const char *format, ...);
+void sb_init(struct strbuf *buf);
+void sb_destroy(struct strbuf *buf);
+char *sb_tostr(struct strbuf *buf);
+void sb_setmax(struct strbuf *buf, size_t newmax);
+void sb_trim(struct strbuf *buf);
+void sb_clear(struct strbuf *buf);
+void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
+void sb_insert(struct strbuf *buf, size_t i, const char *s);
+void sb_nappend(struct strbuf *buf, const char *s, size_t n);
+void sb_append(struct strbuf *buf, const char *s);
+void sb_cappend(struct strbuf *buf, char c);
+void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
+int sb_vprintf(struct strbuf *buf, const char *format, va_list ap);
+int sb_printf(struct strbuf *buf, const char *format, ...);
 
-void plist_init(struct plist *list);
-void plist_destroy(struct plist *list);
-void **plist_toary(struct plist *list);
-void plist_setmax(struct plist *list, size_t newmax);
-void plist_trim(struct plist *list);
-void plist_clear(struct plist *list);
-void plist_insert(struct plist *list, size_t i, void *e);
-void plist_append(struct plist *list, void *e);
+void pl_init(struct plist *list);
+void pl_destroy(struct plist *list);
+void **pl_toary(struct plist *list);
+void pl_setmax(struct plist *list, size_t newmax);
+void pl_trim(struct plist *list);
+void pl_clear(struct plist *list);
+void pl_insert(struct plist *list, size_t i, void *e);
+void pl_append(struct plist *list, void *e);
+void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n);
+void pl_anappend(struct plist *list, void **ps, size_t n);
+void pl_ainsert(struct plist *list, size_t i, void **ps);
+void pl_aappend(struct plist *list, void **ps);
 
 static unsigned ht_hashstr(const char *s);
 void ht_init(struct hasht *ht);
@@ -141,17 +146,25 @@ char *xstrndup(const char *s, size_t len)
 }
 
 /* 文字列の配列のディープコピーを作る。失敗するとプログラムを強制終了する。 */
-char **straryclone(char **ary)
+char **strarydup(char **ary)
 {
 	size_t count;
 	char **result;
 
 	assert(ary);
 	for (count = 0; ary[count]; count++) ;
-	result = xcalloc(count + 1, sizeof(char *));
+	result = xcalloc(count + 1, sizeof *ary);
 	for (size_t i = 0; i < count; i++)
 		result[i] = xstrdup(ary[i]);
 	return result;
+}
+
+/* NULL 終端のポインタの配列の長さを求める。 */
+size_t parylen(void *const *ary)
+{
+	size_t count = 0;
+	while (*ary++) count++;
+	return count;
 }
 
 /* NULL 終端のポインタの配列を、その要素も含めて解放する。 */
@@ -297,7 +310,7 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 /********** 文字列バッファ **********/
 
 /* 未初期化の文字列バッファを初期化する。 */
-void strbuf_init(struct strbuf *buf)
+void sb_init(struct strbuf *buf)
 {
 	buf->contents = xmalloc(STRBUF_INITSIZE + 1);
 	buf->contents[0] = '\0';
@@ -308,9 +321,9 @@ void strbuf_init(struct strbuf *buf)
 /* 文字列バッファを解放し、文字列を返す。文字列バッファは未初期化状態になる。
  * 戻り値: 文字列バッファに入っていた文字列。この文字列は呼び出し元で free
  *         すべし。 */
-char *strbuf_tostr(struct strbuf *buf)
+char *sb_tostr(struct strbuf *buf)
 {
-	strbuf_trim(buf);
+	sb_trim(buf);
 
 	char *result = buf->contents;
 #ifndef NDEBUG
@@ -324,7 +337,7 @@ char *strbuf_tostr(struct strbuf *buf)
 }
 
 /* 初期化済の文字列バッファの内容を削除し、未初期化状態に戻す。 */
-void strbuf_destroy(struct strbuf *buf)
+void sb_destroy(struct strbuf *buf)
 {
 	free(buf->contents);
 #ifndef NDEBUG
@@ -337,7 +350,7 @@ void strbuf_destroy(struct strbuf *buf)
 }
 
 /* 文字列バッファの maxlength を変更する。短くしすぎると文字列の末尾が消える */
-void strbuf_setmax(struct strbuf *buf, size_t newmax)
+void sb_setmax(struct strbuf *buf, size_t newmax)
 {
 	buf->maxlength = newmax;
 	buf->contents = xrealloc(buf->contents, newmax + 1);
@@ -345,14 +358,14 @@ void strbuf_setmax(struct strbuf *buf, size_t newmax)
 }
 
 /* 文字列バッファの大きさを実際の内容ぎりぎりにする。 */
-void strbuf_trim(struct strbuf *buf)
+void sb_trim(struct strbuf *buf)
 {
 	buf->maxlength = buf->length;
 	buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
 }
 
 /* 文字列バッファを空にする。maxlength は変わらない。 */
-void strbuf_clear(struct strbuf *buf)
+void sb_clear(struct strbuf *buf)
 {
 	buf->length = 0;
 	buf->contents[buf->length] = '\0';
@@ -361,47 +374,45 @@ void strbuf_clear(struct strbuf *buf)
 /* 文字列バッファ内の前から i 文字目に文字列 s の最初の n 文字を挿入する。
  * s が n 文字に満たなければ s 全体を挿入する。
  * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
-void strbuf_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
+void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
 {
-	if (s) {
-		size_t len = strlen(s);
-		len = MIN(len, n);
-		i = MIN(i, buf->length);
-		if (len + buf->length > buf->maxlength) {
-			do
-				buf->maxlength = buf->maxlength * 2 + 1;
-			while (len + buf->length > buf->maxlength);
-			buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
-		}
-		memmove(buf->contents + i + len, buf->contents + i, buf->length - i);
-		memcpy(buf->contents + i, s, len);
-		buf->length += len;
-		buf->contents[buf->length] = '\0';
+	size_t len = strlen(s);
+	len = MIN(len, n);
+	i = MIN(i, buf->length);
+	if (len + buf->length > buf->maxlength) {
+		do
+			buf->maxlength = buf->maxlength * 2 + 1;
+		while (len + buf->length > buf->maxlength);
+		buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
 	}
+	memmove(buf->contents + i + len, buf->contents + i, buf->length - i);
+	memcpy(buf->contents + i, s, len);
+	buf->length += len;
+	buf->contents[buf->length] = '\0';
 }
 
 /* 文字列バッファ内の前から i 文字目に文字列 s を挿入する。
  * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
-void strbuf_insert(struct strbuf *buf, size_t i, const char *s)
+void sb_insert(struct strbuf *buf, size_t i, const char *s)
 {
-	return strbuf_ninsert(buf, i, s, SIZE_MAX);
+	return sb_ninsert(buf, i, s, SIZE_MAX);
 }
 
 /* 文字列バッファ内の文字列の末尾に文字列 s の最初の n 文字を付け加える。
  * s が n 文字に満たなければ s 全体を付け加える。 */
-void strbuf_nappend(struct strbuf *buf, const char *s, size_t n)
+void sb_nappend(struct strbuf *buf, const char *s, size_t n)
 {
-	return strbuf_ninsert(buf, SIZE_MAX, s, n);
+	return sb_ninsert(buf, SIZE_MAX, s, n);
 }
 
 /* 文字列バッファ内の文字列の末尾に文字列 s を付け加える。 */
-void strbuf_append(struct strbuf *buf, const char *s)
+void sb_append(struct strbuf *buf, const char *s)
 {
-	return strbuf_nappend(buf, s, SIZE_MAX);
+	return sb_nappend(buf, s, SIZE_MAX);
 }
 
 /* 文字列バッファの末尾に一文字追加する。 */
-void strbuf_cappend(struct strbuf *buf, char c)
+void sb_cappend(struct strbuf *buf, char c)
 {
 	if (buf->length == buf->maxlength) {
 		buf->maxlength = buf->maxlength * 2 + 1;
@@ -413,7 +424,7 @@ void strbuf_cappend(struct strbuf *buf, char c)
 
 /* 文字列バッファの i 文字目から n 文字を s に置き換える。
  * s は buf->contents の一部であってはならない。 */
-void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
+void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
 {
 	size_t slen = strlen(s);
 	n = MIN(n, buf->length - i);
@@ -428,12 +439,12 @@ void strbuf_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
 	} else {
 		/* contents が長くなる場合 */
 		memcpy(buf->contents + i, s, n);
-		strbuf_insert(buf, i + n, s + n);
+		sb_insert(buf, i + n, s + n);
 	}
 }
 
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
-int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
+int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
 {
 	ssize_t rest = buf->maxlength - buf->length + 1;
 	int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
@@ -453,13 +464,13 @@ int strbuf_vprintf(struct strbuf *buf, const char *format, va_list ap)
 }
 
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
-int strbuf_printf(struct strbuf *buf, const char *format, ...)
+int sb_printf(struct strbuf *buf, const char *format, ...)
 {
 	va_list ap;
 	int result;
 
 	va_start(ap, format);
-	result = strbuf_vprintf(buf, format, ap);
+	result = sb_vprintf(buf, format, ap);
 	va_end(ap);
 	return result;
 }
@@ -472,7 +483,7 @@ int strbuf_printf(struct strbuf *buf, const char *format, ...)
  * しかし、これはリストの要素に NULL ポインタを含めることを妨げない。 */
 
 /* 未初期化のポインタリストを初期化する。 */
-void plist_init(struct plist *list)
+void pl_init(struct plist *list)
 {
 	list->contents = xmalloc((PLIST_INITSIZE + 1) * sizeof(void *));
 	list->contents[0] = NULL;
@@ -482,7 +493,7 @@ void plist_init(struct plist *list)
 
 /* 初期化済のポインタリストの内容を削除し、未初期化状態に戻す。
  * 配列内の各要素は解放されないので注意。 */
-void plist_destroy(struct plist *list)
+void pl_destroy(struct plist *list)
 {
 	free(list->contents);
 #ifndef NDEBUG
@@ -497,9 +508,9 @@ void plist_destroy(struct plist *list)
 /* ポインタリストを解放し、内容を返す。ポインタリストは未初期化状態になる。
  * 戻り値: ポインタリストに入っていた配列。この配列は呼び出し元で free
  *         すべし。 */
-void **plist_toary(struct plist *list)
+void **pl_toary(struct plist *list)
 {
-	plist_trim(list);
+	pl_trim(list);
 
 	void **result = list->contents;
 	*list = (struct plist) {
@@ -511,7 +522,7 @@ void **plist_toary(struct plist *list)
 }
 
 /* ポインタリストの maxlength を変更する。短くしすぎると配列の末尾が消える */
-void plist_setmax(struct plist *list, size_t newmax)
+void pl_setmax(struct plist *list, size_t newmax)
 {
 	list->maxlength = newmax;
 	list->contents = xrealloc(list->contents, (newmax + 1) * sizeof(void *));
@@ -519,7 +530,7 @@ void plist_setmax(struct plist *list, size_t newmax)
 }
 
 /* ポインタリストの大きさを実際の内容ぎりぎりにする。 */
-void plist_trim(struct plist *list)
+void pl_trim(struct plist *list)
 {
 	list->maxlength = list->length;
 	list->contents = xrealloc(list->contents,
@@ -528,7 +539,7 @@ void plist_trim(struct plist *list)
 
 /* ポインタリストを空にする。maxlength は変わらない。
  * 配列内の各要素は解放されないので注意。 */
-void plist_clear(struct plist *list)
+void pl_clear(struct plist *list)
 {
 	list->length = 0;
 	list->contents[list->length] = NULL;
@@ -536,22 +547,68 @@ void plist_clear(struct plist *list)
 
 /* ポインタリスト内の前から i 要素目に要素 e を挿入する。
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に e を付け加える。 */
-void plist_insert(struct plist *list, size_t i, void *e)
+void pl_insert(struct plist *list, size_t i, void *e)
 {
 	i = MIN(i, list->length);
 	if (list->length == list->maxlength) {
-		plist_setmax(list, list->maxlength * 2 + 1);
+		pl_setmax(list, list->maxlength * 2 + 1);
 	}
 	assert(list->length < list->maxlength);
-	list->contents[list->length] = e;
+	memmove(list->contents + i + 1, list->contents + i,
+			sizeof(void *) * (list->length - i));
+	list->contents[i] = e;
 	list->length++;
 	list->contents[list->length] = NULL;
 }
 
 /* ポインタリスト内の配列の末尾に要素 e を付け加える。 */
-void plist_append(struct plist *list, void *e)
+void pl_append(struct plist *list, void *e)
 {
-	return plist_insert(list, SIZE_MAX, e);
+	return pl_insert(list, SIZE_MAX, e);
+}
+
+/* ポインタリスト内の前から i 要素目に、配列 *ps の最初の n 個の要素を挿入する。
+ * i が大きすぎて配列の末尾を越えていれば、配列の末尾に要素を付け加える。
+ * 配列 *ps は、必ず n 個の要素がなければならない
+ * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。*/
+void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
+{
+	if (n + list->length > list->maxlength) {
+		do
+			list->maxlength = list->maxlength * 2 + 1;
+		while (n + list->length > list->maxlength);
+		list->contents = xrealloc(list->contents, 
+				(list->maxlength + 1) * sizeof(void *));
+	}
+	i = MIN(i, list->length);
+	memmove(list->contents + i + n, list->contents + i,
+			sizeof(void *) * (list->length - i));
+	memcpy(list->contents + i, ps, sizeof(void *) * n);
+	list->length += n;
+	list->contents[list->length] = NULL;
+}
+
+/* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
+ * 配列 *ps は、必ず n 個の要素がなければならない
+ * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。*/
+void pl_anappend(struct plist *list, void **ps, size_t n)
+{
+	return pl_aninsert(list, SIZE_MAX, ps, n);
+}
+
+/* ポインタリスト内の前から i 要素目に、配列 *ps の要素を挿入する。
+ * i が大きすぎて配列の末尾を越えていれば、配列の末尾に要素を付け加える。
+ * 配列 *ps は、NULL 要素終端でなければならない。 */
+void pl_ainsert(struct plist *list, size_t i, void **ps)
+{
+	return pl_aninsert(list, i, ps, parylen(ps));
+}
+
+/* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
+ * 配列 *ps は、NULL 要素終端でなければならない。 */
+void pl_aappend(struct plist *list, void **ps)
+{
+	return pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
 }
 
 

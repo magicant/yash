@@ -90,15 +90,15 @@ int read_and_parse(const char *filename, getline_t *input, STATEMENT **result)
 	if (!src)
 		return EOF;
 
-	strbuf_init(&i_src);
-	strbuf_append(&i_src, src);
+	sb_init(&i_src);
+	sb_append(&i_src, src);
 	free(src);
 	alias_reset();
 
 	STATEMENT *statements = parse_statements('\0');
 	if (*fromi(i_index))
 		serror("invalid character: `%c'", *fromi(i_index));
-	strbuf_destroy(&i_src);
+	sb_destroy(&i_src);
 	if (i_error) {
 		statementsfree(statements);
 		return 1;
@@ -132,8 +132,8 @@ static bool read_next_line(bool insertnl)
 		return false;
 	}
 	if (insertnl)
-		strbuf_cappend(&i_src, '\n');
-	strbuf_append(&i_src, line);
+		sb_cappend(&i_src, '\n');
+	sb_append(&i_src, line);
 	free(line);
 	i_linenum++;
 	return true;
@@ -147,21 +147,21 @@ static void serror(const char *format, ...)
 	struct strbuf s;
 
 	va_start(ap, format);
-	strbuf_init(&s);
+	sb_init(&s);
 
 	if (i_filename)
-		strbuf_printf(&s, "%s:%u: syntax error: ", i_filename, i_linenum);
+		sb_printf(&s, "%s:%u: syntax error: ", i_filename, i_linenum);
 	else
-		strbuf_printf(&s, "%s: syntax error: ", program_invocation_name);
+		sb_printf(&s, "%s: syntax error: ", program_invocation_name);
 	if (format)
-		strbuf_vprintf(&s, format, ap);
+		sb_vprintf(&s, format, ap);
 	else
-		strbuf_append(&s, "unknown error");
-	strbuf_cappend(&s, '\n');
+		sb_append(&s, "unknown error");
+	sb_cappend(&s, '\n');
 	fputs(s.contents, stderr);
 	i_error = true;
 
-	strbuf_destroy(&s);
+	sb_destroy(&s);
 	va_end(ap);
 }
 
@@ -382,7 +382,7 @@ static bool parse_words(PROCESS *p)
 	}
 
 	struct plist args;
-	plist_init(&args);
+	pl_init(&args);
 	for (;;) {
 		REDIR *rd = tryparse_redir();
 		if (rd) {
@@ -392,14 +392,13 @@ static bool parse_words(PROCESS *p)
 			size_t startindex = i_index;
 			skip_with_quote_i(" \t;&|()#\n\r", true);
 			if (i_index == startindex) break;
-			plist_append(&args,
-					xstrndup(fromi(startindex), i_index - startindex));
+			pl_append(&args, xstrndup(fromi(startindex), i_index - startindex));
 		}
 		i_index = toi(skipblanks(fromi(i_index)));
 		expand_alias(&i_src, i_index, true);
 	}
 
-	p->p_args = (char **) plist_toary(&args);
+	p->p_args = (char **) pl_toary(&args);
 	if (*fromi(i_index) == '(') {
 		// XXX function parsing
 		serror("`(' is not allowed here");
@@ -622,9 +621,9 @@ char *make_statement_name(PIPELINE *p)
 {
 	struct strbuf buf;
 
-	strbuf_init(&buf);
+	sb_init(&buf);
 	print_pipelines(&buf, p);
-	return strbuf_tostr(&buf);
+	return sb_tostr(&buf);
 }
 
 /* パイプラインに含まれるプロセスを元に PIPELINE の表示名を生成する。
@@ -634,13 +633,13 @@ char *make_pipeline_name(PROCESS *p, bool neg, bool loop)
 {
 	struct strbuf buf;
 
-	strbuf_init(&buf);
+	sb_init(&buf);
 	if (neg)
-		strbuf_append(&buf, "! ");
+		sb_append(&buf, "! ");
 	print_processes(&buf, p);
 	if (loop)
-		strbuf_append(&buf, " |");
-	return strbuf_tostr(&buf);
+		sb_append(&buf, " |");
+	return sb_tostr(&buf);
 }
 
 /* 各文を文字列に変換して文字列バッファに追加する。 */
@@ -648,10 +647,10 @@ static void print_statements(struct strbuf *b, STATEMENT *s)
 {
 	while (s) {
 		print_pipelines(b, s->s_pipeline);
-		strbuf_append(b, s->s_bg ? "&" : ";");
+		sb_append(b, s->s_bg ? "&" : ";");
 		s = s->next;
 		if (s)
-			strbuf_append(b, " ");
+			sb_append(b, " ");
 	}
 }
 
@@ -660,12 +659,12 @@ static void print_pipelines(struct strbuf *b, PIPELINE *p)
 {
 	while (p) {
 		if (p->pl_neg)
-			strbuf_append(b, "! ");
+			sb_append(b, "! ");
 		print_processes(b, p->pl_proc);
 		if (p->pl_loop)
-			strbuf_append(b, " |");
+			sb_append(b, " |");
 		if (p->next)
-			strbuf_append(b, p->pl_next_cond ? " && " : " || ");
+			sb_append(b, p->pl_next_cond ? " && " : " || ");
 		p = p->next;
 	}
 }
@@ -677,7 +676,7 @@ static void print_processes(struct strbuf *b, PROCESS *p)
 		print_process(b, p);
 		p = p->next;
 		if (p)
-			strbuf_append(b, " | ");
+			sb_append(b, " | ");
 	}
 }
 
@@ -690,15 +689,15 @@ static void print_process(struct strbuf *b, PROCESS *p)
 		case PT_NORMAL:
 			break;
 		case PT_GROUP:
-			strbuf_append(b, "{ ");
+			sb_append(b, "{ ");
 			print_statements(b, p->p_subcmds);
-			strbuf_append(b, " }");
+			sb_append(b, " }");
 			f = true;
 			break;
 		case PT_SUBSHELL:
-			strbuf_append(b, "( ");
+			sb_append(b, "( ");
 			print_statements(b, p->p_subcmds);
-			strbuf_append(b, " )");
+			sb_append(b, " )");
 			f = true;
 			break;
 		default:
@@ -707,8 +706,8 @@ static void print_process(struct strbuf *b, PROCESS *p)
 	if (p->p_args) {
 		char **args = p->p_args;
 		while (*args) {
-			if (f) strbuf_append(b, " ");
-			strbuf_append(b, *args);
+			if (f) sb_append(b, " ");
+			sb_append(b, *args);
 			f = true;
 			args++;
 		}

@@ -59,7 +59,7 @@ bool expand_line(char **args, int *argc, char ***argv)
 	struct plist alist;
 	bool result = true;
 
-	plist_init(&alist);
+	pl_init(&alist);
 	if (!args) goto end;
 
 	while (*args) {
@@ -69,7 +69,7 @@ bool expand_line(char **args, int *argc, char ***argv)
 
 end:
 	*argc = alist.length;
-	*argv = (char **) plist_toary(&alist);
+	*argv = (char **) pl_toary(&alist);
 	return result;
 }
 
@@ -80,14 +80,14 @@ end:
 char *expand_single(const char *arg)
 {
 	struct plist alist;
-	plist_init(&alist);
+	pl_init(&alist);
 	if (!expand_arg(arg, &alist) || alist.length != 1) {
-		recfree(plist_toary(&alist));
+		recfree(pl_toary(&alist));
 		return NULL;
 	}
 
 	char *result = alist.contents[0];
-	plist_destroy(&alist);
+	pl_destroy(&alist);
 	return result;
 }
 
@@ -98,8 +98,12 @@ char *expand_single(const char *arg)
  * 失敗しても途中結果が argv に追加されること場合もある。 */
 static bool expand_arg(const char *s, struct plist *argv)
 {
+	struct plist temp1, temp2;
+
+	pl_init(&temp1);
+	expand_brace(xstrdup(s), &temp1);
 	//TODO expand_arg
-	//plist_append(argv, xstrdup(s));
+	//pl_append(argv, xstrdup(s));
 	expand_brace(xstrdup(s), argv);
 	return true;
 }
@@ -111,6 +115,7 @@ static bool expand_arg(const char *s, struct plist *argv)
  * s:      展開を行う、free 可能な文字列へのポインタ。
  *         展開を行った場合、s は expand_brace 内で free される。
  *         展開がなければ、s は result に追加される。
+ * result: 初期化済の plist へのポインタ
  * 戻り値: 展開を行ったら true、展開がなければ false。 */
 static bool expand_brace(char *s, struct plist *result)
 {
@@ -121,11 +126,11 @@ static bool expand_brace(char *s, struct plist *result)
 
 	t = skip_with_quote(s, "{");
 	if (*t != '{' || *++t == '\0') {
-		plist_append(result, s);
+		pl_append(result, s);
 		return false;
 	}
-	plist_init(&ps);
-	plist_append(&ps, t);
+	pl_init(&ps);
+	pl_append(&ps, t);
 	for (;;) {
 		t = skip_with_quote(t, "{,}");
 		switch (*t++) {
@@ -134,19 +139,19 @@ static bool expand_brace(char *s, struct plist *result)
 				break;
 			case ',':
 				if (count == 0)
-					plist_append(&ps, t);
+					pl_append(&ps, t);
 				break;
 			case '}':
 				if (--count >= 0)
 					break;
 				if (ps.length >= 2) {
-					plist_append(&ps, t);
+					pl_append(&ps, t);
 					goto done;
 				}
 				/* falls thru! */
 			default:
-				plist_destroy(&ps);
-				plist_append(result, s);
+				pl_destroy(&ps);
+				pl_append(result, s);
 				return false;
 		}
 	}
@@ -155,37 +160,38 @@ done:
 	headlen = (char *) ps.contents[0] - s - 1;
 	for (size_t i = 0, l = ps.length - 1; i < l; i++) {
 		struct strbuf buf;
-		strbuf_init(&buf);
-		strbuf_nappend(&buf, s, headlen);
-		strbuf_nappend(&buf, ps.contents[i],
+		sb_init(&buf);
+		sb_nappend(&buf, s, headlen);
+		sb_nappend(&buf, ps.contents[i],
 				(char *) ps.contents[i+1] - (char *) ps.contents[i] - 1);
-		strbuf_append(&buf, ps.contents[tailidx]);
-		expand_brace(strbuf_tostr(&buf), result);
+		sb_append(&buf, ps.contents[tailidx]);
+		expand_brace(sb_tostr(&buf), result);
 	}
-	plist_destroy(&ps);
+	pl_destroy(&ps);
 	free(s);
 	return true;
 }
 
 /* 文字列 s を引用符 ' で囲む。ただし、文字列に ' 自身が含まれる場合は
- * \ でエスケープする。結果は buf に追加する。
+ * \ でエスケープする。結果は buf に追加する。buf は初期化してから渡すこと。
  *   例)  abc"def'ghi  ->  'abcdef'\''ghi'  */
 void escape_sq(const char *s, struct strbuf *buf)
 {
 	if (s) {
-		strbuf_cappend(buf, '\'');
+		sb_cappend(buf, '\'');
 		while (*s) {
 			if (*s == '\'')
-				strbuf_append(buf, "'\\''");
+				sb_append(buf, "'\\''");
 			else
-				strbuf_cappend(buf, *s);
+				sb_cappend(buf, *s);
 			s++;
 		}
-		strbuf_cappend(buf, '\'');
+		sb_cappend(buf, '\'');
 	}
 }
 
 /* 文字列 s に含まれる " ` \ $ を \ でエスケープしつつ buf に追加する。
+ * buf は初期化してから渡すこと。
  *   例)  abc"def'ghi`jkl\mno  ->  abc\"def'ghi\`jkl\\mno  */
 void escape_dq(const char *s, struct strbuf *buf)
 {
@@ -193,10 +199,10 @@ void escape_dq(const char *s, struct strbuf *buf)
 		while (*s) {
 			switch (*s) {
 				case '"':  case '`':  case '$':  case '\\':
-					strbuf_cappend(buf, '\\');
+					sb_cappend(buf, '\\');
 					/* falls thru! */
 				default:
-					strbuf_cappend(buf, *s);
+					sb_cappend(buf, *s);
 					break;
 			}
 			s++;

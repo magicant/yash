@@ -827,17 +827,17 @@ int builtin_exec(int argc, char *const *argv)
 	}
 
 	struct plist args;
-	plist_init(&args);
+	pl_init(&args);
 	if (login) {
 		char *newargv0 = xmalloc(strlen(argv0) + 2);
 		newargv0[0] = '-';
 		strcpy(newargv0 + 1, argv0);
-		plist_append(&args, newargv0);
+		pl_append(&args, newargv0);
 	} else {
-		plist_append(&args, xstrdup(argv0));
+		pl_append(&args, xstrdup(argv0));
 	}
 	for (int i = optind + 1; i < argc; i++)
-		plist_append(&args, argv[i]);
+		pl_append(&args, argv[i]);
 
 	finalize_interactive();
 	execve(command, (char **) args.contents, clearenv ? NULL : environ);
@@ -846,7 +846,7 @@ int builtin_exec(int argc, char *const *argv)
 	error(0, errno, "%s: %s", argv[0], argv[optind]);
 	free(args.contents[0]);
 	free(command);
-	plist_destroy(&args);
+	pl_destroy(&args);
 	return EXIT_NOEXEC;
 }
 
@@ -1096,12 +1096,12 @@ int builtin_alias(int argc, char *const *argv)
 {
 	int print_alias(const char *name, ALIAS *alias) {
 		struct strbuf buf;
-		strbuf_init(&buf);
-		strbuf_printf(&buf, "alias %s%s=", alias->global ? "-g " : "", name);
+		sb_init(&buf);
+		sb_printf(&buf, "alias %s%s=", alias->global ? "-g " : "", name);
 		escape_sq(alias->value, &buf);
-		strbuf_append(&buf, "\n");
+		sb_append(&buf, "\n");
 		printf("%s", buf.contents);
-		strbuf_destroy(&buf);
+		sb_destroy(&buf);
 		return 0;
 	}
 

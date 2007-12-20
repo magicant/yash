@@ -146,7 +146,7 @@ start:
 		s[tokenlen] = savechar;
 		if (alias && remlen <= alias->valid_len && (!global || alias->global)) {
 			alias->valid_len = remlen - tokenlen;
-			strbuf_replace(buf, i, tokenlen, alias->value);
+			sb_replace(buf, i, tokenlen, alias->value);
 			if (++count <= ALIAS_EXPAND_MAX)
 				goto start;
 		}

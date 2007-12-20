@@ -22,10 +22,14 @@
 #include "util.h"
 
 
-bool expand_line(char **args, int *argc, char ***argv);
-char *expand_single(const char *arg);
-void escape_sq(const char *s, struct strbuf *buf);
-void escape_dq(const char *s, struct strbuf *buf);
+bool expand_line(char **args, int *argc, char ***argv)
+	__attribute__((nonnull(2,3)));
+char *expand_single(const char *arg)
+	__attribute__((nonnull));
+void escape_sq(const char *s, struct strbuf *buf)
+	__attribute__((nonnull(2)));
+void escape_dq(const char *s, struct strbuf *buf)
+	__attribute__((nonnull(2)));
 
 
 #endif /* EXPAND_H */

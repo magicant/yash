@@ -20,11 +20,14 @@
 #define PATH_H
 
 
-char *which(const char *name, const char *path);
+char *which(const char *name, const char *path)
+	__attribute__((malloc));
 bool isexecutable(const char *path);
-char *expand_tilde(const char *path);
+char *expand_tilde(const char *path)
+	__attribute__((malloc, nonnull));
 char *skip_homedir(const char *path);
-char *collapse_homedir(const char *path);
+char *collapse_homedir(const char *path)
+	__attribute__((malloc));
 
 
 #endif /* PATH_H */
