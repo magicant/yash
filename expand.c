@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <error.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,9 +42,13 @@
  */
 
 bool expand_line(char **args, int *argc, char ***argv);
-char *expand_single(const char *arg);
+char *expand_single(const char *arg)
+	__attribute__((malloc, nonnull));
 static bool expand_arg(const char *s, struct plist *argv);
 static bool expand_brace(char *s, struct plist *result);
+static bool expand_param(char *s, struct plist *result);
+static char *unescape_for_glob(const char *s)
+	__attribute__((malloc, nonnull));
 void escape_sq(const char *s, struct strbuf *buf);
 void escape_dq(const char *s, struct strbuf *buf);
 
@@ -100,11 +105,13 @@ char *expand_single(const char *arg)
 static bool expand_arg(const char *s, struct plist *argv)
 {
 	struct plist temp1, temp2;
+	bool ok = true;
 
 	pl_init(&temp1);
+	pl_init(&temp2);
+
 	expand_brace(xstrdup(s), &temp1);  /* まずブレース展開 */
 
-	pl_init(&temp2);
 	for (size_t i = 0; i < temp1.length; i++) {  /* 続いてチルダ展開 */
 		char *s1 = temp1.contents[i];
 		char *s2;
@@ -115,12 +122,40 @@ static bool expand_arg(const char *s, struct plist *argv)
 			pl_append(&temp2, s1);
 		}
 	}
-	pl_destroy(&temp1);
+	pl_clear(&temp1);
 
-	//TODO expand_arg
-	pl_aappend(argv, temp2.contents);
+	for (size_t i = 0; i < temp2.length; i++) {  /* そしてパラメータ展開 */
+		ok &= expand_param(temp2.contents[i], &temp1);
+	}
+	pl_clear(&temp2);
+
+	/* 最後に glob */
+	if (temp1.length > 0) {
+		glob_t gbuf;
+		char *s1 = unescape_for_glob(temp1.contents[0]);
+		if (glob(s1, GLOB_NOCHECK, NULL, &gbuf) != 0)
+			error(0, 0, "%s: glob error", (char *) temp1.contents[0]);
+		free(s1);
+		for (size_t i = 1; i < temp1.length; i++) {
+			s1 = unescape_for_glob(temp1.contents[i]);
+			if (glob(s1, GLOB_NOCHECK | GLOB_APPEND, NULL, &gbuf) != 0)
+				error(0, 0, "%s: glob error", (char *) temp1.contents[i]);
+			free(s1);
+		}
+#if 1
+		for (size_t i = 0; i < gbuf.gl_pathc; i++)
+			pl_append(argv, xstrdup(gbuf.gl_pathv[i]));
+		globfree(&gbuf);
+#else
+		pl_anappend(argv, gbuf.gl_pathv, gbuf.gl_pathc);
+		free(gbuf.gl_pathv);
+#endif
+		free(temp1.contents[0]);
+	}
+
+	pl_destroy(&temp1);
 	pl_destroy(&temp2);
-	return true;
+	return ok;
 }
 
 /* ブレース展開を行い、結果を result に追加する。
@@ -185,6 +220,34 @@ done:
 	pl_destroy(&ps);
 	free(s);
 	return true;
+}
+
+/* パラメータ展開・コマンド置換、そして単語分割を行い、結果を *result
+ * に追加する。
+ * 引用符 (" と ') はそのまま展開結果に残る。
+ * s:      free 可能な、展開・分割を行う対象の文字列。
+ * エラー時はエラーメッセージを出力して false を返す。
+ * ただし、エラーの場合でも途中結果が result に入っているかもしれない。
+ * s は (展開や分割の結果が元と同じ時) *result に追加されるか、free される。 */
+static bool expand_param(char *s, struct plist *result)
+{
+	//bool indq = false;  /* 引用符 " の中かどうか */
+
+//	while (*s) {
+//	}
+	//TODO expand_param
+	pl_append(result, xstrdup(s));
+	free(s);
+	return true;
+}
+
+/* 引用符を削除し、通常の文字列に戻す。
+ * バックスラッシュエスケープはそのまま残る。引用符の中にあった * や [ は、
+ * glob で解釈されないようにバックスラッシュでエスケープする。
+ * 戻り値: 新しく malloc した、s の展開結果。 */
+static char *unescape_for_glob(const char *s)
+{
+	return xstrdup(s); // TODO unescape_for_glob
 }
 
 /* 文字列 s を引用符 ' で囲む。ただし、文字列に ' 自身が含まれる場合は
