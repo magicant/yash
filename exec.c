@@ -857,7 +857,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 			if (copyfd < 0 && errno != EBADF) {
 				error(0, errno, "redirect: can't save file descriptor %d",
 						r->rd_fd);
-			} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) < 0) {
+			} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
 				error(0, errno, "redirect: fcntl(%d,SETFD,CLOEXEC)", r->rd_fd);
 				close(r->rd_fd);
 			} else {
