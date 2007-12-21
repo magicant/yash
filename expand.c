@@ -418,6 +418,7 @@ static char *unescape_for_glob(const char *s)
 				break;
 			case '\\':
 				if (state == INSQ) {
+					sb_cappend(&buf, '\\');
 					goto default_case;
 				} else if (!*++s) {
 					sb_cappend(&buf, '\\');
