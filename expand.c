@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#include <ctype.h>
 #include <errno.h>
 #include <error.h>
 #include <fcntl.h>
@@ -25,6 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "yash.h"
+#include "util.h"
 #include "parser.h"
 #include "expand.h"
 #include "path.h"
@@ -46,7 +48,8 @@ char *expand_single(const char *arg)
 	__attribute__((malloc, nonnull));
 static bool expand_arg(const char *s, struct plist *argv);
 static bool expand_brace(char *s, struct plist *result);
-static bool expand_param(char *s, struct plist *result);
+static bool expand_subst(char *s, struct plist *result);
+static char *expand_param(char **src);
 static bool do_glob(char **ss, struct plist *result);
 static char *unescape_for_glob(const char *s)
 	__attribute__((malloc, nonnull));
@@ -128,7 +131,7 @@ static bool expand_arg(const char *s, struct plist *argv)
 	pl_clear(&temp1);
 
 	for (size_t i = 0; i < temp2.length; i++) {  /* そしてパラメータ展開 */
-		ok &= expand_param(temp2.contents[i], &temp1);
+		ok &= expand_subst(temp2.contents[i], &temp1);
 	}
 	pl_clear(&temp2);
 
@@ -206,23 +209,145 @@ done:
 
 /* パラメータ展開・コマンド置換、そして単語分割を行い、結果を *result
  * に追加する。
- * 引用符 (" と ') はそのまま展開結果に残る。
+ * 引用符 (" と ') やバックスラッシュエスケープはそのまま展開結果に残る。
  * s:      free 可能な、展開・分割を行う対象の文字列。
  * エラー時はエラーメッセージを出力して false を返す。
  * ただし、エラーの場合でも途中結果が result に入っているかもしれない。
  * s は (展開や分割の結果が元と同じ時) *result に追加されるか、free される。 */
 /* IFS による単語分割は、パラメータ展開の結果内においてのみ実行する。
  * これはセキュリティ上の理由による。 */
-static bool expand_param(char *s, struct plist *result)
+static bool expand_subst(char *const s, struct plist *result)
 {
-	//bool indq = false;  /* 引用符 " の中かどうか */
+	bool ok = true;
+	bool indq = false;  /* 引用符 " の中かどうか */
+	char *s1 = s, *s2 = strpbrk(s, "\"'\\$`");
+	struct strbuf buf;
 
-//	while (*s) {
-//	}
-	//TODO expand_param
-	pl_append(result, xstrdup(s));
+	if (!s2) {
+		pl_append(result, s);
+		return ok;
+	}
+	sb_init(&buf);
+	for (;;) {
+		sb_nappend(&buf, s1, s2 - s1);
+		s1 = s2;
+		switch (*s1) {
+			case '"':
+				indq = !indq;
+				goto default_case;
+			case '\'':
+				s1 = skip_without_quote(s1 + 1, "'");
+				sb_nappend(&buf, s2, s1 - s2);
+				goto default_case;
+			case '\\':
+				sb_cappend(&buf, '\\');
+				if (*++s1)
+					goto default_case;
+				else
+					break;
+			case '$':
+				s1++;
+				s2 = expand_param(&s1);
+				if (s2) {
+					if (!indq) {  /* 単語分割をしつつ追加 */
+						const char *ifs = getenv("IFS");  //XXX
+						const char *s3 = s2;
+						if (!ifs)
+							ifs = " \t\n";
+						for (;;) {
+							size_t len = strspn(s3, ifs);
+							if (len > 0) {
+								if (buf.length > 0) {
+									pl_append(result, sb_tostr(&buf));
+									sb_init(&buf);
+								} else {
+									sb_clear(&buf);
+								}
+							}
+							s3 += len;
+							if (!*s3)
+								break;
+
+							len = strcspn(s3, ifs);
+							sb_nappend(&buf, s3, len);
+							s3 += len;
+						}
+					} else {  /* そのまま追加 */
+						sb_append(&buf, s2);
+					}
+				} else {
+					ok = false;
+				}
+				free(s2);
+				break;
+			case '`':
+				//TODO コマンド置換
+			default:  default_case:
+				sb_cappend(&buf, *s1);
+				break;
+		}
+		if (*s1) s1++;
+		s2 = strpbrk(s1, "\"'\\$`");
+		if (!s2) {
+			sb_append(&buf, s1);
+			break;
+		}
+	}
+	if (indq)
+		error(0, 0, "%s: unclosed quotation", s);
+	if (buf.length > 0) {
+		pl_append(result, sb_tostr(&buf));
+	} else {
+		sb_destroy(&buf);
+	}
 	free(s);
-	return true;
+	return ok;
+}
+
+/* '$' で始まるパラメータ・コマンド置換を解釈し、展開結果を返す。
+ * src:    パラメータ置換を表す '$' の次の文字へのポインタのポインタ。
+ *         置換が成功すると、*s は置換すべき部分文字列の最後の文字を指す。
+ * 戻り値: 新しく malloc したパラメータ置換の結果の文字列。エラーなら NULL。 */
+static char *expand_param(char **src)
+{
+	char *s = *src;
+	char *ss, *result;
+	char temp[2] = "$";
+
+	assert(s[-1] == '$');
+	switch (*s) {
+		case '{':
+			ss = skip_with_quote(s + 1, "}");
+			if (*ss != '}') {
+				error(0, 0, "$%s: missing `}'", s);
+				*src = ss - 1;
+				return NULL;
+			}
+			s++;
+			*src = ss;
+			//TODO { } 内の特殊構文
+			ss = xstrndup(s, ss - s);
+			result = getenv(ss);  // XXX
+			free(ss);
+			return xstrdup(result ? result : "");
+		case '(':
+			//TODO コマンド置換
+
+			//TODO ? や _ などの一文字のパラメータ
+		case '\0':
+		default:
+			if (isalpha(*s)) {
+				ss = s;
+				while (isalpha(*++ss) || *ss == '_');
+				*src = ss - 1;
+				ss = xstrndup(s, ss - s);
+				result = getenv(ss);  // XXX
+				free(ss);
+				return xstrdup(result ? result : "");
+			}
+			*src = s - 1;
+			return xstrdup(temp);
+	}
 }
 
 /* glob を配列 *ss の各文字列に対して行い、全ての結果を *result に入れる。
