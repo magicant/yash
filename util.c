@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define _GNU_SOURCE
 #include <ctype.h>
 #include <errno.h>
 #include <error.h>
@@ -47,6 +46,7 @@ char *skipwhites(const char *s);
 char *strchug(char *s);
 char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
+char *read_all(int fd);
 
 void sb_init(struct strbuf *buf);
 void sb_destroy(struct strbuf *buf);
@@ -127,10 +127,14 @@ void *xrealloc(void *ptr, size_t size)
  * malloc に失敗するとプログラムを強制終了する。 */
 char *xstrdup(const char *s)
 {
+#if 1
+	return xstrndup(s, SIZE_MAX);
+#else
 	char *result = strdup(s);
 	if (!result)
 		error(2, ENOMEM, NULL);
 	return result;
+#endif
 }
 
 /* 文字列を新しく malloc した領域に複製する。
@@ -139,10 +143,13 @@ char *xstrdup(const char *s)
  *      len をいくら大きくしても strlen(s) より長い文字列にはならない。 */
 char *xstrndup(const char *s, size_t len)
 {
-	char *result = strndup(s, len);  // _GNU_SOURCE
-	if (!result)
-		error(2, ENOMEM, NULL);
-	return result;
+	size_t reallen = strlen(s);
+	if (reallen < len)
+		len = reallen;
+
+	char *result = xmalloc(len + 1);
+	result[len] = '\0';
+	return strncpy(result, s, len);
 }
 
 /* 文字列の配列のディープコピーを作る。失敗するとプログラムを強制終了する。 */
@@ -207,28 +214,28 @@ char *skipwhites(const char *s)
 
 /* 文字列の先頭にある空白類文字 (スペースや改行) を削除する。
  * 文字列を直接書き換えた後、その文字列へのポインタ s を返す。 */
-char *strchug(char *s)
-{
-	size_t i = 0;
-
-	assert(s != NULL);
-	while (isspace(s[i])) i++;
-	if (i)
-		memmove(s, s + i, strlen(s + i) + 1);
-	return s;
-}
+//char *strchug(char *s)
+//{
+//	size_t i = 0;
+//
+//	assert(s != NULL);
+//	while (isspace(s[i])) i++;
+//	if (i)
+//		memmove(s, s + i, strlen(s + i) + 1);
+//	return s;
+//}
 
 /* 文字列の末尾にある空白類文字 (スペースや改行) を削除する。
  * 文字列を直接書き換えた後、その文字列へのポインタ s を返す。 */
-char *strchomp(char *s)
-{
-	char *ss = s;
-
-	while (*s) s++;                    /* 文字列の末尾に移動 */
-	while (--s >= ss && isspace(*s));  /* 空白の分だけ戻る */
-	*++s = '\0';
-	return ss;
-}
+//char *strchomp(char *s)
+//{
+//	char *ss = s;
+//
+//	while (*s) s++;                    /* 文字列の末尾に移動 */
+//	while (--s >= ss && isspace(*s));  /* 空白の分だけ戻る */
+//	*++s = '\0';
+//	return ss;
+//}
 
 /* 配列に含まれる文字列を全て順に連結し、新しく malloc した文字列として返す。
  * argc: argv から取り出す文字列の数。全て取り出すなら負数。

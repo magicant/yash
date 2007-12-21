@@ -51,6 +51,8 @@ char *strchomp(char *s)
 	__attribute__((nonnull));
 char *strjoin(int argc, char *const *argv, const char *padding)
 	__attribute__((nonnull(2)));
+char *read_all(int fd)
+	__attribute__((malloc));
 
 #define MAX(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
