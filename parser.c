@@ -26,6 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "yash.h"
+#include "util.h"
 #include "parser.h"
 #include "alias.h"
 #include <assert.h>

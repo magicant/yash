@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "yash.h"
+#include "util.h"
 #include "alias.h"
 #include <assert.h>
 

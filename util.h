@@ -30,10 +30,21 @@ void *xmalloc(size_t size)
 	__attribute__((malloc, warn_unused_result));
 void *xrealloc(void *ptr, size_t size)
 	__attribute__((malloc, warn_unused_result));
-char *xstrdup(const char *s)
-	__attribute__((malloc, warn_unused_result, nonnull));
 char *xstrndup(const char *s, size_t len)
 	__attribute__((malloc, warn_unused_result, nonnull));
+
+#ifdef NINLINE
+char *xstrdup(const char *s)
+	__attribute__((malloc, warn_unused_result, nonnull));
+#else
+# include <stdint.h>
+static inline __attribute__((malloc, warn_unused_result, nonnull))
+char *xstrdup(const char *s)
+{
+	return xstrndup(s, SIZE_MAX);
+}
+#endif /* !NINLINE */
+
 char **strarydup(char **ary)
 	__attribute__((malloc, warn_unused_result, nonnull));
 size_t parylen(void *const *ary)
@@ -83,12 +94,32 @@ void sb_clear(struct strbuf *buf)
 	__attribute__((nonnull));
 void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
 	__attribute__((nonnull));
+
+#ifdef NINLINE
 void sb_insert(struct strbuf *buf, size_t i, const char *s)
 	__attribute__((nonnull));
 void sb_nappend(struct strbuf *buf, const char *s, size_t n)
 	__attribute__((nonnull));
 void sb_append(struct strbuf *buf, const char *s)
 	__attribute__((nonnull));
+#else
+static inline __attribute__((nonnull))
+void sb_insert(struct strbuf *buf, size_t i, const char *s)
+{
+	return sb_ninsert(buf, i, s, SIZE_MAX);
+}
+static inline __attribute__((nonnull))
+void sb_nappend(struct strbuf *buf, const char *s, size_t n)
+{
+	return sb_ninsert(buf, SIZE_MAX, s, n);
+}
+static inline __attribute__((nonnull))
+void sb_append(struct strbuf *buf, const char *s)
+{
+	return sb_nappend(buf, s, SIZE_MAX);
+}
+#endif /* !NINLINE */
+
 void sb_cappend(struct strbuf *buf, char c)
 	__attribute__((nonnull));
 void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
@@ -121,16 +152,40 @@ void pl_clear(struct plist *list)
 	__attribute__((nonnull));
 void pl_insert(struct plist *list, size_t i, void *e)
 	__attribute__((nonnull(1)));
-void pl_append(struct plist *list, void *e)
-	__attribute__((nonnull(1)));
 void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
 	__attribute__((nonnull));
+
+#ifdef NINLINE
+void pl_append(struct plist *list, void *e)
+	__attribute__((nonnull(1)));
 void pl_anappend(struct plist *list, void **ps, size_t n)
 	__attribute__((nonnull));
 void pl_ainsert(struct plist *list, size_t i, void **ps)
 	__attribute__((nonnull));
 void pl_aappend(struct plist *list, void **ps)
 	__attribute__((nonnull));
+#else
+static inline __attribute__((nonnull(1)))
+void pl_append(struct plist *list, void *e)
+{
+	return pl_insert(list, SIZE_MAX, e);
+}
+static inline __attribute__((nonnull))
+void pl_anappend(struct plist *list, void **ps, size_t n)
+{
+	return pl_aninsert(list, SIZE_MAX, ps, n);
+}
+static inline __attribute__((nonnull))
+void pl_ainsert(struct plist *list, size_t i, void **ps)
+{
+	return pl_aninsert(list, i, ps, parylen(ps));
+}
+static inline __attribute__((nonnull))
+void pl_aappend(struct plist *list, void **ps)
+{
+	return pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
+}
+#endif /* !NINLINE */
 
 
 /* Hashtables */

@@ -124,20 +124,6 @@ void *xrealloc(void *ptr, size_t size)
 }
 
 /* 文字列を新しく malloc した領域に複製する。
- * malloc に失敗するとプログラムを強制終了する。 */
-char *xstrdup(const char *s)
-{
-#if 1
-	return xstrndup(s, SIZE_MAX);
-#else
-	char *result = strdup(s);
-	if (!result)
-		error(2, ENOMEM, NULL);
-	return result;
-#endif
-}
-
-/* 文字列を新しく malloc した領域に複製する。
  * malloc に失敗するとプログラムを強制終了する。
  * len: 複製する文字列の長さ ('\0' を含まない)。
  *      len をいくら大きくしても strlen(s) より長い文字列にはならない。 */
@@ -151,6 +137,18 @@ char *xstrndup(const char *s, size_t len)
 	result[len] = '\0';
 	return strncpy(result, s, len);
 }
+
+#ifdef NINLINE
+/* 文字列を新しく malloc した領域に複製する。
+ * malloc に失敗するとプログラムを強制終了する。 */
+char *xstrdup(const char *s)
+{
+	char *result = strdup(s);
+	if (!result)
+		error(2, ENOMEM, NULL);
+	return result;
+}
+#endif /* NINLINE */
 
 /* 文字列の配列のディープコピーを作る。失敗するとプログラムを強制終了する。 */
 char **strarydup(char **ary)
@@ -398,6 +396,7 @@ void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
 	buf->contents[buf->length] = '\0';
 }
 
+#ifdef NINLINE
 /* 文字列バッファ内の前から i 文字目に文字列 s を挿入する。
  * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
 void sb_insert(struct strbuf *buf, size_t i, const char *s)
@@ -417,6 +416,7 @@ void sb_append(struct strbuf *buf, const char *s)
 {
 	return sb_nappend(buf, s, SIZE_MAX);
 }
+#endif /* NINLINE */
 
 /* 文字列バッファの末尾に一文字追加する。 */
 void sb_cappend(struct strbuf *buf, char c)
@@ -568,12 +568,6 @@ void pl_insert(struct plist *list, size_t i, void *e)
 	list->contents[list->length] = NULL;
 }
 
-/* ポインタリスト内の配列の末尾に要素 e を付け加える。 */
-void pl_append(struct plist *list, void *e)
-{
-	return pl_insert(list, SIZE_MAX, e);
-}
-
 /* ポインタリスト内の前から i 要素目に、配列 *ps の最初の n 個の要素を挿入する。
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に要素を付け加える。
  * 配列 *ps は、必ず n 個の要素がなければならない
@@ -593,6 +587,13 @@ void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
 	memcpy(list->contents + i, ps, sizeof(void *) * n);
 	list->length += n;
 	list->contents[list->length] = NULL;
+}
+
+#ifdef NINLINE
+/* ポインタリスト内の配列の末尾に要素 e を付け加える。 */
+void pl_append(struct plist *list, void *e)
+{
+	return pl_insert(list, SIZE_MAX, e);
 }
 
 /* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
@@ -617,6 +618,7 @@ void pl_aappend(struct plist *list, void **ps)
 {
 	return pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
 }
+#endif /* NINLINE */
 
 
 /********** Hashtable **********/
