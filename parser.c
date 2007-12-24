@@ -404,14 +404,14 @@ static bool parse_words(PROCESS *p)
 
 	struct plist args;
 	pl_init(&args);
-	for (;;) {
+	while (*fromi(i_index) != '#') {
 		REDIR *rd = tryparse_redir();
 		if (rd) {
 			*rlastp = rd;
 			rlastp = &rd->next;
 		} else {
 			size_t startindex = i_index;
-			skip_with_quote_i(" \t;&|()#\n\r", true);
+			skip_with_quote_i(" \t;&|()\n\r", true);
 			if (i_index == startindex) break;
 			pl_append(&args, xstrndup(fromi(startindex), i_index - startindex));
 		}
@@ -496,7 +496,7 @@ static REDIR *tryparse_redir(void)
 	start += strspn(start, " \t");
 	i_index = toi(start);
 	expand_alias(&i_src, i_index, true);
-	skip_with_quote_i(" \t;&|()#\n\r", true);
+	skip_with_quote_i(" \t;&|()\n\r", true);
 	end = fromi(i_index);
 	if (start == end) {
 		serror("redirect target not specified");
