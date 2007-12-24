@@ -496,7 +496,7 @@ void sig_hup(int signal __attribute__((unused)))
 	raise(SIGHUP);
 }
 
-/* count 個のパイプのペアを作り、その配列へのポインタを返す。
+/* count 組のパイプを作り、その (新しく malloc した) 配列へのポインタを返す。
  * count が 0 なら何もせずに NULL を返す。
  * エラー時も NULL を返す。 */
 static int (*create_pipes(size_t count))[2]
@@ -563,6 +563,7 @@ void exec_statements(STATEMENT *s)
 					.p_type = PT_X_PIPE,
 					.p_args = NULL,
 					.p_subcmds = s,
+					.p_redirs = NULL,
 				};
 				char *name = make_statement_name(p);
 				exec_processes(&proc, name, false, false, true);
@@ -984,3 +985,22 @@ static void savesfree(struct save_redirect *save)
 		save = next;
 	}
 }
+
+/* 指定したコマンドを実行し、その標準出力の内容を返す。
+ * 出力結果の末尾にある改行は削除する。
+ * この関数はコマンドの実行が終わるまで返らない。
+ * 戻り値: 新しく malloc した、statements の実行結果。
+ *         エラーや、statements が中止された場合は NULL。 */
+//char *subst_command(STATEMENT *statements)
+//{
+//	int pipefd[2];
+//
+//	if (!statements)
+//		return xstrdup("");
+//
+//	/* コマンドの出力を受け取るためのパイプを開く */
+//	if (pipe(pipefd) < 0) {
+//		error(0, errno, "can't open pipe for command substitution");
+//		return NULL;
+//	}
+//}
