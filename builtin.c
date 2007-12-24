@@ -901,7 +901,7 @@ int builtin_cd(int argc, char *const *argv)
 }
 
 /* umask 組込みコマンド */
-/* TODO: 数字だけでなく文字列での指定に対応 */
+/* XXX: 数字だけでなく文字列での指定に対応 */
 int builtin_umask(int argc, char *const *argv)
 {
 	if (argc < 2) {

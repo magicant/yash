@@ -32,7 +32,8 @@
 #include <assert.h>
 
 
-//STATEMENT *parse_string(const char **src, char end, const char *filename);
+int read_and_parse_partial(
+		getline_t *input, const char *filename, char *rem, STATEMENT **result);
 int read_and_parse(getline_t *input, const char *filename, STATEMENT **result);
 unsigned get_line_number(void);
 void set_line_number(unsigned num);
@@ -68,61 +69,20 @@ static size_t i_index;
 #define fromi(x) (i_src.contents + (x))
 #define toi(x)   ((x) - i_src.contents)
 
-/* 文字列をコマンドとして解析して、その結果を返す。
- * 行番号は自動的にリセットされる。
- * src:    解析する文字列へのポインタ。解析が成功すると、解析が終わった後の
- *         文字へのポインタが *src に代入される。エラーがあると、NULL が *src
- *         に代入される。
- * end:    この文字が現れたところで解析を終了する。
- * filename: 入力元ファイル名。これはエラーメッセージでファイル名を表示する為
- *         だけに使う。NULL でもよい。
- * 戻り値: 解析が成功すると、その結果。エラーがあれば NULL。エラーがなくても
- *         ソースにコマンドが含まれていなければ結果は NULL となることに注意。 */
-/* この関数はリエントラントではない */
-//STATEMENT *parse_string(const char **src, char end, const char *filename)
-//{
-//	const char *s = *src;
-//	size_t index;
-//	char *parse_string_input(int ptype __attribute__((unused))) {
-//		if (!s[++index]) return NULL;
-//		size_t len = strcspn(s + index, "\n\r");
-//		char *result = xstrndup(s + index, len);
-//		index += len;
-//		return result;
-//	}
-//
-//	i_filename = filename;
-//	i_linenum = 1;
-//	i_input = parse_string_input;
-//	i_error = false;
-//	i_index = 0;
-//
-//	sb_init(&i_src);
-//	index = strcspn(s, "\n\r");
-//	sb_nappend(&i_src, s, index);
-//	alias_reset();
-//
-//	STATEMENT *statements = parse_statements(end);
-//	sb_destroy(&i_src);
-//	if (i_error) {
-//		statementsfree(statements);
-//		*src = NULL;
-//		return NULL;
-//	}
-//	*src = s + i_index;
-//	return statements;
-//}
-
 /* コマンド入力を解析するエントリポイント。
  * filename: 入力元ファイル名。これはエラーメッセージでファイル名を表示する為
  *         だけに使う。NULL でもよい。
  * input:  呼び出す度にソースを一行読み込んで返す関数。
+ * rem:    非 NULL なら、ソースが余った場合に余った最初の文字が *rem に入る。
+ *         余らなければ null 文字が *rem に入る。
+ *         NULL なら、ソースが余った場合にエラーを出力する。
  * result: これに結果が入る。(戻り値が 0 の場合のみ)
  *         ソースに文が含まれなければ、結果は NULL となる。
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
  *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
 /* この関数はリエントラントではない */
-int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
+int read_and_parse_partial(
+		getline_t *input, const char *filename, char *rem, STATEMENT **result)
 {
 	char *src;
 
@@ -141,7 +101,9 @@ int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
 	alias_reset();
 
 	STATEMENT *statements = parse_statements('\0');
-	if (*fromi(i_index))
+	if (rem)
+		*rem = *fromi(i_index);
+	if (!rem && *fromi(i_index))
 		serror("invalid character: `%c'", *fromi(i_index));
 	sb_destroy(&i_src);
 	if (i_error) {
@@ -150,6 +112,20 @@ int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
 	}
 	*result = statements;
 	return 0;
+}
+
+/* コマンド入力を解析するエントリポイント。
+ * filename: 入力元ファイル名。これはエラーメッセージでファイル名を表示する為
+ *         だけに使う。NULL でもよい。
+ * input:  呼び出す度にソースを一行読み込んで返す関数。
+ * result: これに結果が入る。(戻り値が 0 の場合のみ)
+ *         ソースに文が含まれなければ、結果は NULL となる。
+ * 戻り値: 成功したら *result に結果を入れて 0 を返す。
+ *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
+/* この関数はリエントラントではない */
+int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
+{
+	return read_and_parse_partial(input, filename, NULL, result);
 }
 
 /* 解析中の行番号を取得する。 */
@@ -403,7 +379,7 @@ static bool parse_words(PROCESS *p)
 			expand_alias(&i_src, i_index, true);
 			break;
 		case '{':
-			/* TODO: "{" はそれ自体はトークンではないので、"{abc" のような場合を
+			/* XXX: "{" はそれ自体はトークンではないので、"{abc" のような場合を
 			 * 除外しないといけない。 */
 			i_index++;
 			p->p_type = PT_GROUP;

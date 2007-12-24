@@ -78,9 +78,9 @@ void initialize_readline(void)
 	rl_readline_name = "yash";
 	rl_attempted_completion_function = yash_completion;
 	rl_filename_quote_characters = rl_basic_word_break_characters;
-	/* rl_char_is_quoted_p = TODO */
-	/* rl_filename_quoting_function = TODO */
-	/* rl_filename_dequoting_function = TODO */
+	/* rl_char_is_quoted_p = XXX */
+	/* rl_filename_quoting_function = XXX */
+	/* rl_filename_dequoting_function = XXX */
 
 	history_comment_char = '#';
 
@@ -213,17 +213,17 @@ yash_readline_start:
 /* text[index] がクォートされているかどうか判定する。 */
 static int char_is_quoted_p(char *text, int index)
 {
-	return 0;  /*TODO*/
+	return 0;  /*XXX*/
 }
 
 static char *quote_filename(char *text, int matchtype, char *quotepointer)
 {
-	return 0;  /*TODO*/
+	return 0;  /*XXX*/
 }
 
 static char *unquote_filename(char *text, int quotechar)
 {
-	return 0; /*TODO*/
+	return 0; /*XXX*/
 }
 #endif
 

@@ -76,8 +76,9 @@ struct x_statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-//STATEMENT *parse_string(const char **src, char end, const char *filename)
-//	__attribute__((nonnull(1)));
+int read_and_parse_partial(
+		getline_t *input, const char *filename, char *rem, STATEMENT **result)
+	__attribute__((nonnull(1,4)));
 int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
 	__attribute__((nonnull(1,3)));
 unsigned get_line_number(void);

@@ -51,11 +51,14 @@ extern char *prompt_command;
 void setsigaction(void);
 void resetsigaction(void);
 
-int exec_file(const char *path, bool suppresserror);
-int exec_file_exp(const char *path, bool suppresserror);
-int exec_source(const char *name, const char *code);
-void exec_source_and_exit(const char *name, const char *code)
-	__attribute__((noreturn));
+int exec_file(const char *path, bool suppresserror)
+	__attribute__((nonnull));
+int exec_file_exp(const char *path, bool suppresserror)
+	__attribute__((nonnull));
+int exec_source(const char *code, const char *end, const char *name)
+	__attribute__((nonnull(1)));
+void exec_source_and_exit(const char *code, const char *end, const char *name)
+	__attribute__((nonnull(1),noreturn));
 
 void init_interactive(void);
 void finalize_interactive(void);
