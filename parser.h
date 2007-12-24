@@ -22,13 +22,13 @@
 #include "readline.h"
 
 
-typedef struct _redirect  REDIR;
-typedef struct _process   PROCESS;
-typedef struct _pipeline  PIPELINE;
-typedef struct _statement STATEMENT;
+typedef struct x_redirect  REDIR;
+typedef struct x_process   PROCESS;
+typedef struct x_pipeline  PIPELINE;
+typedef struct x_statement STATEMENT;
 
 /* リダイレクトを表す */
-struct _redirect {
+struct x_redirect {
 	REDIR *next;
 	enum redirect_type {
 		RT_INPUT, RT_OUTPUT, RT_APPEND, RT_INOUT, RT_DUP,
@@ -40,7 +40,7 @@ struct _redirect {
  * 例えば '2>&1' では、rd_fd = 2, rd_destfd = 1 となる。 */
 
 /* パイプラインに含まれる一つのプロセス */
-struct _process {
+struct x_process {
 	PROCESS    *next;       /* パイプライン内の次のプロセス */
 	enum {
 		PT_NORMAL,    /* 普通のコマンド */
@@ -59,7 +59,7 @@ struct _process {
  * p_redirs はリダイレクトのデータを表す。(こちらも展開していない) */
 
 /* 一つのパイプライン */
-struct _pipeline {
+struct x_pipeline {
 	PIPELINE *next;     /* コマンドリスト内の次のパイプライン */
 	PROCESS  *pl_proc;  /* パイプラインの最初のプロセス */
 	bool      pl_neg;   /* パイプラインの終了ステータスを反転するかどうか */
@@ -70,14 +70,16 @@ struct _pipeline {
  * true は '&&' を、false は '||' を意味する */
 
 /* 一つの文 */
-struct _statement {
+struct x_statement {
 	STATEMENT *next;        /* ソース内の次の文 */
 	PIPELINE  *s_pipeline;  /* 文の中の最初のパイプライン */
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-int read_and_parse(const char *filename, getline_t *input, STATEMENT **result)
-	__attribute__((nonnull(2,3)));
+//STATEMENT *parse_string(const char **src, char end, const char *filename)
+//	__attribute__((nonnull(1)));
+int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
+	__attribute__((nonnull(1,3)));
 unsigned get_line_number(void);
 void set_line_number(unsigned num);
 char *skip_with_quote(const char *s, const char *delim)

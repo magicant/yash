@@ -19,6 +19,7 @@
 #ifndef EXEC_H
 #define EXEC_H
 
+#include <signal.h>
 #include <sys/types.h>
 #include "parser.h"
 
@@ -58,7 +59,7 @@ typedef struct {
 extern struct plist joblist;
 extern size_t currentjobnumber;
 
-extern volatile bool cancel_wait;
+extern volatile sig_atomic_t cancel_wait;
 
 void init_exec(void);
 int exitcode_from_status(int status);

@@ -52,7 +52,7 @@ static void init_env(void);
 void init_interactive(void);
 void finalize_interactive(void);
 static int exec_promptcommand(void);
-static void interactive_loop(void) __attribute__ ((noreturn));
+static void interactive_loop(void) __attribute__((noreturn));
 int main(int argc, char **argv);
 void print_help(void);
 void print_version(void);
@@ -81,7 +81,7 @@ static void debug_sig(int signal)
 /* シグナルハンドラを初期化する */
 void setsigaction(void)
 {
-	void sig_quit(int signum __UNUSED__) { }
+	void sig_quit(int signum __attribute__((unused))) { }
 	struct sigaction action;
 	const int *signals;
 
@@ -140,7 +140,7 @@ void resetsigaction(void)
 int exec_file(const char *path, bool suppresserror)
 {
 	FILE *f = fopen(path, "r");
-	char *mygetline(int ptype __UNUSED__) {
+	char *mygetline(int ptype __attribute__((unused))) {
 		char *line = NULL;
 		size_t size = 0;
 		ssize_t len = getline(&line, &size, f);
@@ -160,7 +160,7 @@ int exec_file(const char *path, bool suppresserror)
 	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(path, &mygetline, &statements)) {
+		switch (read_and_parse(mygetline, path, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					unsigned savelinenum = get_line_number();
@@ -209,7 +209,7 @@ int exec_file_exp(const char *path, bool suppresserror)
 int exec_source(const char *name, const char *code)
 {
 	size_t index = 0;
-	char *mygetline(int ptype __UNUSED__) {
+	char *mygetline(int ptype __attribute__((unused))) {
 		size_t len = strcspn(&code[index], "\n\r");
 		if (!len) return NULL;
 
@@ -225,7 +225,7 @@ int exec_source(const char *name, const char *code)
 	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(name, &mygetline, &statements)) {
+		switch (read_and_parse(mygetline, name, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					unsigned savelinenum = get_line_number();
@@ -261,7 +261,7 @@ void exec_source_and_exit(const char *name, const char *code)
 
 	STATEMENT *statements;
 	set_line_number(0);
-	switch (read_and_parse(name, &mygetline, &statements)) {
+	switch (read_and_parse(mygetline, name, &statements)) {
 		case 0:  /* OK */
 			exec_statements_and_exit(statements);
 		default:  /* error */
@@ -367,7 +367,7 @@ static void interactive_loop(void)
 
 		exec_promptcommand();
 		set_line_number(0);
-		switch (read_and_parse(NULL, &yash_readline, &statements)) {
+		switch (read_and_parse(yash_readline, NULL, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					exec_statements(statements);

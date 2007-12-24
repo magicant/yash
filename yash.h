@@ -25,9 +25,6 @@
 #include <sys/types.h>
 
 
-#define __UNUSED__ __attribute__((__unused__))
-
-
 #define YASH_VERSION   "1.0"
 #define YASH_COPYRIGHT "Copyright (C) 2007 magicant"
 

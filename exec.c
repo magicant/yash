@@ -85,7 +85,7 @@ int laststatus = 0;
 bool huponexit = false;
 
 /* wait_all 中のシグナルハンドラでこれを非 0 にすると wait を止める */
-volatile bool cancel_wait = false;
+volatile sig_atomic_t cancel_wait = false;
 
 /* ジョブのリスト。リストの要素は JOB へのポインタ。
  * リストの中の「空き」は、NULL ポインタによって示す。 */
@@ -489,7 +489,7 @@ void send_sighup_to_all_jobs(void)
 /* SIGHUP シグナルのハンドラ。
  * 全てのジョブに SIGHUP を送ってから自分にもう一度 SIGHUP を送って自滅する。
  * (このハンドラは一度シグナルを受け取ると無効になるようになっている) */
-void sig_hup(int signal __UNUSED__)
+void sig_hup(int signal __attribute__((unused)))
 {
 	send_sighup_to_all_jobs();
 	finalize_readline();

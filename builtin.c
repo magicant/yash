@@ -157,13 +157,15 @@ int parse_jobspec(const char *str, bool forcePercent)
 }
 
 /* :/true 組込みコマンド */
-int builtin_true(int argc __UNUSED__, char *const *argv __UNUSED__)
+int builtin_true(int argc __attribute__((unused)),
+		char *const *argv __attribute__((unused)))
 {
 	return EXIT_SUCCESS;
 }
 
 /* false 組込みコマンド */
-int builtin_false(int argc __UNUSED__, char *const *argv __UNUSED__)
+int builtin_false(int argc __attribute__((unused)),
+		char *const *argv __attribute__((unused)))
 {
 	return EXIT_FAILURE;
 }
@@ -396,7 +398,7 @@ usage:
 /* wait 組込みコマンド */
 int builtin_wait(int argc, char *const *argv)
 {
-	void int_handler(int signal __UNUSED__) { cancel_wait = true; }
+	void int_handler(int signal __attribute__((unused))) { cancel_wait = true; }
 	struct sigaction action, oldaction;
 	int jobnumber = -1;
 
