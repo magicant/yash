@@ -267,13 +267,16 @@ static bool expand_subst(char *const s, struct plist *result)
 							s3 += len;
 							if (!*s3)
 								break;
-
 							len = strcspn(s3, ifs);
-							sb_nappend(&buf, s3, len);
+
+							char s4[len + 1];
+							strncpy(s4, s3, len);
+							s4[len] = '\0';
+							escape_sq(s4, &buf);
 							s3 += len;
 						}
 					} else {  /* そのまま追加 */
-						sb_append(&buf, s2);
+						escape_dq(s2, &buf);
 					}
 				} else {
 					ok = false;
