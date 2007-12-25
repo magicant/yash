@@ -485,13 +485,26 @@ int builtin_suspend(int argc, char *const *argv)
 	}
 	if (is_loginshell && !force) {
 		error(0, 0, "%s: cannot suspend a login shell;"
-				"  Use `-f' option to suspend forcibly.", argv[0]);
+				"  Use `-f' option to suspend anyway.", argv[0]);
 		return EXIT_FAILURE;
 	}
+
+	/* このシェルがサブシェルで、親シェルがこのシェルをジョブ制御している場合、
+	 * このシェルのプロセスグループ ID を元に戻してやらないと、このシェルが
+	 * サスペンドしたことを親シェルが正しく認識できないかもしれない。
+	 * また、元のプロセスグループにこのシェル以外のプロセスがあった場合、
+	 * それらも一緒にサスペンドしないと、親シェルを混乱させるかもしれない。 */
+	restore_pgid();
+#if 1
+	if (killpg(getpgrp(), SIGSTOP) < 0) {
+#else
 	if (raise(SIGSTOP) < 0) {
+#endif
+		set_unique_pgid();
 		error(0, errno, "%s", argv[0]);
 		return EXIT_FAILURE;
 	}
+	set_unique_pgid();
 	return EXIT_SUCCESS;
 
 usage:

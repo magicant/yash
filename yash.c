@@ -53,6 +53,8 @@ void unset_signals(void);
 void set_sigmasks(void);
 void unset_sigmasks(void);
 void wait_for_signal(void);
+void set_unique_pgid(void);
+void restore_pgid(void);
 void set_shell_env(void);
 void unset_shell_env(void);
 static int exec_promptcommand(void);
@@ -520,7 +522,7 @@ static void interactive_loop(void)
 						true /* changed only */, false /* not verbose */);
 				if (job_count()) {
 					error(0, 0, "There are undone jobs!"
-							"  Use `exit -f' to exit forcibly.");
+							"  Use `exit -f' to exit anyway.");
 					break;
 				}
 				goto exit;

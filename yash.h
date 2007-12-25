@@ -50,11 +50,6 @@ extern bool sigint_received;
 
 extern char *prompt_command;
 
-void set_signals(void);
-void unset_signals(void);
-void set_sigmasks(void);
-void unset_sigmasks(void);
-
 int exec_file(const char *path, bool suppresserror)
 	__attribute__((nonnull));
 int exec_file_exp(const char *path, bool suppresserror)
@@ -64,6 +59,12 @@ int exec_source(const char *code, const char *end, const char *name)
 void exec_source_and_exit(const char *code, const char *end, const char *name)
 	__attribute__((nonnull(1),noreturn));
 
+void set_signals(void);
+void unset_signals(void);
+void set_sigmasks(void);
+void unset_sigmasks(void);
+void set_unique_pgid(void);
+void restore_pgid(void);
 void set_shell_env(void);
 void unset_shell_env(void);
 
