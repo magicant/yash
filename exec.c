@@ -77,8 +77,8 @@ static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
 static void savesfree(struct save_redirect *save);
 
-/* 最後に実行したコマンドの wait ステータス・終了コード */
-int lastwaitstatus = 0, laststatus = 0;
+/* 最後に実行したコマンドの終了コード */
+int laststatus = 0;
 
 /* true なら終了時に未了のジョブに SIGHUP を送る */
 bool huponexit = false;
@@ -86,7 +86,7 @@ bool huponexit = false;
 /* ジョブのリスト。リストの要素は JOB へのポインタ。
  * リストの中の「空き」は、NULL ポインタによって示す。 */
 /* これらの値はシェルの起動時に初期化される */
-/* ジョブ番号が 0 のジョブはアクティブジョブ (論理的にはまだジョブリストにない
+/* ジョブ番号が 0 のジョブはアクティブジョブ (形式的にはまだジョブリストにない
  * ジョブ) である。 */
 struct plist joblist;
 
@@ -96,8 +96,8 @@ struct plist joblist;
 size_t currentjobnumber = 0;
 
 /* enum jstatus の文字列表現 */
-const char * const jstatusstr[] = {
-	"NULL", "Running", "Done", "Stopped",
+const char *const jstatusstr[] = {
+	"Running", "Done", "Stopped",
 };
 
 /* 実行環境を初期化する */
@@ -158,7 +158,6 @@ static int add_job(void)
 
 	if (!(job = get_job(0)))
 		return -1;
-	assert(job->j_status > JS_NULL && job->j_status <= JS_STOPPED);
 
 	/* リストの空いているインデックスを探す */
 	for (jobnumber = 1; jobnumber < joblist.length; jobnumber++)
@@ -187,7 +186,7 @@ bool remove_job(size_t jobnumber)
 	JOB *job = get_job(jobnumber);
 	if (job) {
 		joblist.contents[jobnumber] = NULL;
-		free(job->j_pids);
+		free(job->j_procv);
 		free(job->j_name);
 		free(job);
 		return true;
@@ -213,12 +212,12 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 		int estatus = job->j_exitstatus;
 		if (job->j_status == JS_DONE) {
 			if (WIFEXITED(estatus) && WEXITSTATUS(estatus))
-				printf("[%zu]%c %5d  Exit %-3d    %s\n",
+				fprintf(stderr, "[%zu]%c %5d  Exit %-3d    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, WEXITSTATUS(estatus),
 						job->j_name ? : "<< unknown job >>");
 			else if (WIFSIGNALED(job->j_exitstatus))
-				printf("[%zu]%c %5d  %-8s    %s\n",
+				fprintf(stderr, "[%zu]%c %5d  %-8s    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, strsignal(WTERMSIG(estatus)),
 						job->j_name ? : "<< unknown job >>");
@@ -229,7 +228,7 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 normal:
 			iscurrent = (currentjobnumber == jobnumber);
 			isbg = (job->j_status == JS_RUNNING);
-			printf("[%zu]%c %5d  %-8s    %s%s\n",
+			fprintf(stderr, "[%zu]%c %5d  %-8s    %s%s\n",
 					jobnumber,
 					iscurrent ? '+' : ' ',
 					(int) job->j_pgid, jstatusstr[job->j_status],
@@ -237,11 +236,10 @@ normal:
 					isbg ? " &" : "");
 		}
 		if (printpids) {
-			pid_t *pidp = job->j_pids;
-			printf("\tPID: %ld", (long) *pidp);
-			while (*++pidp)
-				printf(", %ld", (long) *pidp);
-			printf("\n");
+			struct jproc *ps = job->j_procv;
+			for (size_t i = 0; i < job->j_procc; i++)
+				fprintf(stderr, "\t* %5d  %-8s\n",
+						ps[i].jp_pid, jstatusstr[ps[i].jp_status]);
 		}
 		job->j_statuschanged = false;
 	}
@@ -259,25 +257,22 @@ void print_all_job_status(bool changedonly, bool printpids)
 }
 
 /* 子プロセスの ID からジョブ番号を得る。
- * 戻り値: ジョブ番号 (>= 0) または -1 (見付からなかった場合)。
- *         子プロセスが既に終了している場合、見付からない。 */
+ * 戻り値: ジョブ番号 (>= 0) または -1 (見付からなかった場合)。 */
 int get_jobnumber_from_pid(pid_t pid)
 {
 	JOB *job;
 
-	for (unsigned i = 0; i < joblist.length; i++)
-		if ((job = get_job(i)))
-			for (pid_t *pids = job->j_pids; *pids; pids++)
-				if (*pids == pid)
+	for (size_t i = 0; i < joblist.length; i++)
+		if ((job = joblist.contents[i]))
+			for (size_t i = 0; i < job->j_procc; i++)
+				if (job->j_procv[i].jp_pid == pid)
 					return i;
 	return -1;
 }
 
 /* 全ての子プロセスを対象に wait する。
  * Wait するだけでジョブの状態変化の報告はしない。
- * この関数はブロックしない。
- * アクティブジョブが停止した場合、対話的シェルなら add_job を行う。
- * アクティブジョブが終了した場合、アクティブジョブを削除する。 */
+ * この関数はブロックしない。 */
 void wait_chld(void)
 {
 	int waitpidopt;
@@ -285,7 +280,7 @@ void wait_chld(void)
 	pid_t pid;
 
 start:
-	waitpidopt = WUNTRACED | WNOHANG;
+	waitpidopt = WUNTRACED | WCONTINUED | WNOHANG;
 	pid = waitpid(-1 /* any child process */, &status, waitpidopt);
 	if (pid < 0) {
 		if (errno == EINTR)
@@ -299,63 +294,47 @@ start:
 
 	size_t jobnumber;
 	JOB *job;
-	pid_t *pidp;
+	size_t proci;
 	enum jstatus oldstatus;
 
 	/* jobnumber と、JOB の j_pids 内の PID の位置を探す */
 	for (jobnumber = 0; jobnumber < joblist.length; jobnumber++)
 		if ((job = joblist.contents[jobnumber]))
-			for (pidp = job->j_pids; *pidp; pidp++)
-				if (pid == *pidp)
+			for (proci = 0; proci < job->j_procc; proci++)
+				if (job->j_procv[proci].jp_pid == pid)
 					goto outofloop;
 	/*error(0, 0, "unexpected waitpid result: %ld", (long) pid);*/
 	goto start;
 
 outofloop:
-	oldstatus = job->j_status;
 	if (WIFEXITED(status) || WIFSIGNALED(status)) {
-		*pidp = -pid;
-		if (!pidp[1])  /* この子プロセスがパイプの最後のプロセスの場合 */
-			job->j_exitstatus = status;
+		job->j_procv[proci].jp_status = JS_DONE;
 	} else if (WIFSTOPPED(status)) {
-		job->j_status = JS_STOPPED;
+		job->j_procv[proci].jp_status = JS_STOPPED;
+	} else if (WIFCONTINUED(status)) {
+		job->j_procv[proci].jp_status = JS_RUNNING;
 	}
+	if (proci + 1 == job->j_procc)
+		job->j_exitstatus = status;
 
-	/* ジョブの全プロセスが終了したかどうか調べる */
-	for (pidp = job->j_pids; *pidp; pidp++)
-		if (*pidp > 0)
-			goto stillrunning;
-	job->j_status = JS_DONE;
-stillrunning:
-	if (job->j_status != oldstatus)
-		job->j_statuschanged = true;
-
-	/* アクティブジョブが変化した場合 */
-	if (jobnumber == 0) {
-		switch (job->j_status) {
-			default:
-			case JS_NULL:
-				assert(false);
+	bool anyrunning = false, anystopped = false;
+	/* ジョブの全プロセスが停止・終了したかどうか調べる */
+	for (size_t i = 0; i < job->j_procc; i++) {
+		switch (job->j_procv[i].jp_status) {
 			case JS_RUNNING:
-				break;
-			case JS_DONE:
-				lastwaitstatus = job->j_exitstatus;
-				laststatus = exitcode_from_status(job->j_exitstatus);
-				if (job->j_exitcodeneg)
-					laststatus = !laststatus;
-				remove_job(jobnumber);
-				break;
+				anyrunning = true;
+				continue;
 			case JS_STOPPED:
-				if (is_interactive) {
-					lastwaitstatus = status;
-					laststatus = exitcode_from_status(status);
-					if (job->j_exitcodeneg)
-						laststatus = !laststatus;
-					add_job();
-				}
-				break;
+				anystopped = true;
+				continue;
+			case JS_DONE:
+				continue;
 		}
 	}
+	oldstatus = job->j_status;
+	job->j_status = anyrunning ? JS_RUNNING : anystopped ? JS_STOPPED : JS_DONE;
+	if (job->j_status != oldstatus)
+		job->j_statuschanged = true;
 
 	goto start;
 }
@@ -519,7 +498,7 @@ static void exec_processes(
 {
 	size_t pcount;
 	pid_t pgid;
-	pid_t *pids;
+	struct jproc *ps;
 	PIPES pipes;
 
 	/* パイプライン内のプロセス数を数える */
@@ -534,37 +513,49 @@ static void exec_processes(
 		return;
 	}
 
-	pids = xcalloc(pcount + 1, sizeof(pid_t));
-	pgid = pids[0] = exec_single(p, loop ? -1 : 0, 0, bg, pipes);
+	ps = xmalloc(pcount * sizeof *ps);
+	ps[0].jp_status = JS_RUNNING;
+	pgid = ps[0].jp_pid = exec_single(p, loop ? -1 : 0, 0, bg, pipes);
 	if (pgid >= 0)
 		for (size_t i = 1; i < pcount; i++)
-			pids[i] = exec_single(p = p->next, i, pgid, bg, pipes);
+			ps[i] = (struct jproc) {
+				.jp_pid = exec_single(p = p->next, i, pgid, bg, pipes),
+				.jp_status = JS_RUNNING,
+			};
 	else
 		laststatus = EXIT_FAILURE;
 	close_pipes(pipes);
 	if (pgid > 0) {
 		JOB *job = joblist.contents[0];
 		assert(job);
-		job->j_pids = pids;
 		job->j_status = JS_RUNNING;
 		job->j_statuschanged = true;
+		job->j_procc = pcount;
+		job->j_procv = ps;
 		job->j_flags = 0;
 		job->j_exitstatus = 0;
-		job->j_exitcodeneg = neg;
 		job->j_name = xstrdup(name);
 		if (!bg) {
 			do {
 				wait_for_signal();
-			} while (joblist.contents[0]);
-			if (WIFSIGNALED(lastwaitstatus)) {
-				int sig = WTERMSIG(lastwaitstatus);
+			} while (job->j_status == JS_RUNNING ||
+					(!is_interactive && job->j_status == JS_STOPPED));
+			if (WIFSIGNALED(job->j_exitstatus)) {
+				int sig = WTERMSIG(job->j_exitstatus);
 				if (sig != SIGINT && sig != SIGPIPE)
 					psignal(sig, NULL);  /* XXX : not POSIX */
-			} else if (WIFSTOPPED(lastwaitstatus)) {
+			} else if (WIFSTOPPED(job->j_exitstatus)) {
 				fflush(stdout);
 				fputs("\n", stderr);
 				fflush(stderr);
 			}
+			laststatus = exitcode_from_status(job->j_exitstatus);
+			if (neg)
+				laststatus = !laststatus;
+			if (job->j_status == JS_DONE)
+				remove_job(0);
+			else
+				add_job();
 		} else {
 			add_job();
 		}

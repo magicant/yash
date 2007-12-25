@@ -25,7 +25,7 @@
 
 
 extern bool huponexit;
-extern int lastwaitstatus, laststatus;
+extern int laststatus;
 
 /* 設定したリダイレクトを後で元に戻すためのデータ */
 struct save_redirect {
@@ -35,8 +35,8 @@ struct save_redirect {
 	FILE *sr_file;   /* 元のストリーム */
 };
 
-enum jstatus { JS_NULL, JS_RUNNING, JS_DONE, JS_STOPPED, };
-extern const char * const jstatusstr[];
+enum jstatus { JS_RUNNING, JS_DONE, JS_STOPPED, };
+extern const char *const jstatusstr[];
 /* jstatusstr のインデックスとして jstatus の値を使用している */
 
 #define MAX_JOB 10000
@@ -44,17 +44,19 @@ extern const char * const jstatusstr[];
 /* ジョブの情報 */
 typedef struct {
 	pid_t  j_pgid;           /* プロセスグループの ID */
-	pid_t *j_pids;           /* 子プロセスの ID の配列 */
 	enum jstatus j_status;   /* 最後に確認したジョブの状態 */
 	bool   j_statuschanged;  /* まだ状態変化を報告していないなら true */
+	size_t j_procc;          /* 子プロセスの数 */
+	struct jproc {
+		pid_t        jp_pid;
+		enum jstatus jp_status;
+	}     *j_procv;          /* 各子プロセスの情報の配列へのポインタ */
 	enum {
 		JF_NOHUP = 1
 	}      j_flags;
 	int    j_exitstatus;     /* ジョブの終了ステータス */
-	bool   j_exitcodeneg;    /* ジョブの exitcode を反転するかどうか */
 	char  *j_name;           /* 表示用ジョブ名 */
 } JOB;
-/* j_pids は 0 終端である。終了したプロセスは値が反数になる。 */
 
 extern struct plist joblist;
 extern size_t currentjobnumber;
