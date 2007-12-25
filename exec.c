@@ -95,6 +95,9 @@ struct plist joblist;
  * カレントジョブは存在しない。 */
 size_t currentjobnumber = 0;
 
+/* 一時的な作業用の子プロセスの情報。普段は .jp_pid = 0。 */
+static struct jproc temp_chld = { .jp_pid = 0, };
+
 /* enum jstatus の文字列表現 */
 const char *const jstatusstr[] = {
 	"Running", "Done", "Stopped",
@@ -295,25 +298,35 @@ start:
 	size_t jobnumber;
 	JOB *job;
 	size_t proci;
+	struct jproc *proc;
 	enum jstatus oldstatus;
 
 	/* jobnumber と、JOB の j_pids 内の PID の位置を探す */
 	for (jobnumber = 0; jobnumber < joblist.length; jobnumber++)
 		if ((job = joblist.contents[jobnumber]))
 			for (proci = 0; proci < job->j_procc; proci++)
-				if (job->j_procv[proci].jp_pid == pid)
-					goto outofloop;
+				if ((*(proc = job->j_procv + proci)).jp_pid == pid)
+					goto pfound;
+	if (temp_chld.jp_pid == pid) {
+		job = NULL;
+		proci = 0;
+		proc = &temp_chld;
+		goto pfound;
+	}
 	/*error(0, 0, "unexpected waitpid result: %ld", (long) pid);*/
 	goto start;
 
-outofloop:
+pfound:
 	if (WIFEXITED(status) || WIFSIGNALED(status)) {
-		job->j_procv[proci].jp_status = JS_DONE;
+		proc->jp_status = JS_DONE;
 	} else if (WIFSTOPPED(status)) {
-		job->j_procv[proci].jp_status = JS_STOPPED;
+		proc->jp_status = JS_STOPPED;
 	} else if (WIFCONTINUED(status)) {
-		job->j_procv[proci].jp_status = JS_RUNNING;
+		proc->jp_status = JS_RUNNING;
 	}
+	if (proc == &temp_chld)
+		goto start;
+
 	if (proci + 1 == job->j_procc)
 		job->j_exitstatus = status;
 
@@ -343,16 +356,20 @@ outofloop:
  * 停止しているジョブには SIGCONT も送る。 */
 void send_sighup_to_all_jobs(void)
 {
-	size_t i;
-
 	if (is_interactive) {
-		for (i = 0; i < joblist.length; i++) {
+		if (temp_chld.jp_pid) {
+			kill(temp_chld.jp_pid, SIGHUP);
+			if (temp_chld.jp_status == JS_STOPPED)
+				kill(temp_chld.jp_pid, SIGCONT);
+		}
+		for (size_t i = 0; i < joblist.length; i++) {
 			JOB *job = joblist.contents[i];
 
 			if (job && !(job->j_flags & JF_NOHUP)) {
 				killpg(job->j_pgid, SIGHUP);
-				if (job->j_status == JS_STOPPED)
-					killpg(job->j_pgid, SIGCONT);
+				for (size_t j = 0; j < job->j_procc; j++)
+					if (job->j_procv[i].jp_status == JS_STOPPED)
+						kill(job->j_procv[i].jp_pid, SIGCONT);
 			}
 		}
 	} else {
@@ -526,15 +543,18 @@ static void exec_processes(
 		laststatus = EXIT_FAILURE;
 	close_pipes(pipes);
 	if (pgid > 0) {
-		JOB *job = joblist.contents[0];
-		assert(job);
-		job->j_status = JS_RUNNING;
-		job->j_statuschanged = true;
-		job->j_procc = pcount;
-		job->j_procv = ps;
-		job->j_flags = 0;
-		job->j_exitstatus = 0;
-		job->j_name = xstrdup(name);
+		JOB *job = xmalloc(sizeof *job);
+		joblist.contents[0] = job;
+		*job = (JOB) {
+			.j_pgid = pgid,
+			.j_status = JS_RUNNING,
+			.j_statuschanged = true,
+			.j_procc = pcount,
+			.j_procv = ps,
+			.j_flags = 0,
+			.j_exitstatus = 0,
+			.j_name = xstrdup(name),
+		};
 		if (!bg) {
 			do {
 				wait_for_signal();
@@ -542,7 +562,7 @@ static void exec_processes(
 					(!is_interactive && job->j_status == JS_STOPPED));
 			if (WIFSIGNALED(job->j_exitstatus)) {
 				int sig = WTERMSIG(job->j_exitstatus);
-				if (sig != SIGINT && sig != SIGPIPE)
+				if (is_interactive && sig != SIGINT && sig != SIGPIPE)
 					psignal(sig, NULL);  /* XXX : not POSIX */
 			} else if (WIFSTOPPED(job->j_exitstatus)) {
 				fflush(stdout);
@@ -564,8 +584,6 @@ static void exec_processes(
 
 /* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
  * fork/exec し、リダイレクトなどを設定する。
- * pgid = 0 で fork した場合、親プロセスでは新しくアクティブジョブを
- * joblist.contents[0] に作成し、j_pgid メンバの値を設定する。
  * p:       実行するコマンド
  * pindex:  パイプ全体における子プロセスのインデックス。
  *          環状パイプを作る場合は 0 の代わりに -1。
@@ -634,12 +652,6 @@ static pid_t exec_single(
 					&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
 					&& errno != EPERM)
 				error(0, errno, "%s: tcsetpgrp (parent)", argv[0]); */
-		}
-		if (!pgid) {
-			JOB *job = xmalloc(sizeof *job);
-			*job = (JOB) { .j_pgid = cpid, };
-			assert(!joblist.contents[0]);
-			joblist.contents[0] = job;
 		}
 		if (expanded) { recfree((void **) argv); }
 		return cpid;

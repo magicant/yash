@@ -272,7 +272,9 @@ static void init_env(void)
  * シェルの状態にかかわらず、SIGHUP, SIGCHLD, SIGINT は常にブロックしておき、
  * wait_for_signal 関数の中でのみ受信する。
  * また SIGQUIT は常に無視する。
- * 対話的シェルでは、ignsignals に含まれるシグナルも無視する。 */
+ * 対話的シェルでは、ignsignals に含まれるシグナルも無視する。
+ * 例外的に、readline での入力待機中は SIGHUP/CHLD/INT をブロックせず、
+ * シグナルハンドラを使う。 */
 
 /* シェルで無視するシグナルのリスト */
 static const int ignsignals[] = {

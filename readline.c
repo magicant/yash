@@ -111,7 +111,7 @@ char *yash_readline(int ptype)
 	bool terminal_info_valid = false;
 	struct termios old_terminal_info, new_terminal_info;
 	struct sigaction action, oldchldaction, oldintaction;
-	void readline_signal_handler(int signal) {
+	void readline_signal_handler(int signal) { //TODO readline_signal_handler
 		switch (signal) {
 			case SIGCHLD:
 				wait_chld();
