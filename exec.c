@@ -58,10 +58,9 @@ bool remove_job(size_t jobnumber);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
 void print_all_job_status(bool changedonly, bool printpids);
 int get_jobnumber_from_pid(pid_t pid);
-void wait_all(int blockedjob);
+void wait_chld(void);
+void wait_for_job(size_t jobnumber);
 void send_sighup_to_all_jobs(void);
-void sig_hup(int signal);
-void sig_chld(int signal);
 static int (*create_pipes(size_t count))[2];
 static void close_pipes(PIPES pipes);
 void exec_statements(STATEMENT *statements);
@@ -78,14 +77,11 @@ static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
 static void savesfree(struct save_redirect *save);
 
-/* 最後に実行したコマンドの終了コード */
-int laststatus = 0;
+/* 最後に実行したコマンドの wait ステータス・終了コード */
+int lastwaitstatus = 0, laststatus = 0;
 
 /* true なら終了時に未了のジョブに SIGHUP を送る */
 bool huponexit = false;
-
-/* wait_all 中のシグナルハンドラでこれを非 0 にすると wait を止める */
-volatile sig_atomic_t cancel_wait = false;
 
 /* ジョブのリスト。リストの要素は JOB へのポインタ。
  * リストの中の「空き」は、NULL ポインタによって示す。 */
@@ -155,23 +151,13 @@ unsigned job_count(void)
 /* アクティブジョブ (ジョブ番号 0 のジョブ) をジョブリストに移動し、
  * そのジョブをカレントジョブにする。
  * 戻り値: 成功したら新しいジョブ番号 (>0)、失敗したら -1。*/
-/* この関数は内部で SIGHUP/SIGCHLD をブロックする */
 static int add_job(void)
 {
 	size_t jobnumber;
 	JOB *job;
-	sigset_t sigset, oldsigset;
 
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGHUP);
-	sigaddset(&sigset, SIGCHLD);
-	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
-
-	if (!(job = get_job(0))) {
-		jobnumber = -1;
-		goto end;
-	}
+	if (!(job = get_job(0)))
+		return -1;
 	assert(job->j_status > JS_NULL && job->j_status <= JS_STOPPED);
 
 	/* リストの空いているインデックスを探す */
@@ -181,8 +167,7 @@ static int add_job(void)
 	if (jobnumber == joblist.length) {  /* 空きがなかったらリストを大きくする */
 		if (joblist.length == MAX_JOB) {
 			error(0, 0, "too many jobs");
-			jobnumber = -1;
-			goto end;
+			return -1;
 		} else {
 			pl_append(&joblist, job);
 		}
@@ -192,10 +177,6 @@ static int add_job(void)
 	}
 	joblist.contents[0] = NULL;
 	currentjobnumber = jobnumber;
-
-end:
-	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
 	return jobnumber;
 }
 
@@ -221,20 +202,12 @@ bool remove_job(size_t jobnumber)
  *              使用されていないジョブ番号を指定した場合、何もしない。
  * changedonly: true なら変化があった場合だけ表示する。
  * printpids:   true なら PGID のみならず各子プロセスの PID も表示する */
-/* この関数は内部で SIGHUP/SIGCHLD をブロックする */
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 {
 	JOB *job;
-	sigset_t sigset, oldsigset;
-
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGHUP);
-	sigaddset(&sigset, SIGCHLD);
-	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
 
 	if (!(job = get_job(jobnumber)))
-		goto end;
+		return;
 
 	if (!changedonly || job->j_statuschanged) {
 		int estatus = job->j_exitstatus;
@@ -274,10 +247,6 @@ normal:
 	}
 	if (job->j_status == JS_DONE)
 		remove_job(jobnumber);
-
-end:
-	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
 }
 
 /* (アクティブジョブを除く) 全てのジョブの状態を画面に出力する。
@@ -306,72 +275,26 @@ int get_jobnumber_from_pid(pid_t pid)
 
 /* 全ての子プロセスを対象に wait する。
  * Wait するだけでジョブの状態変化の報告はしない。
- * blockedjob: 0 以上ならその番号のジョブが終了または停止するまでブロックする。
- *         -1 なら全てのジョブが終了または停止するまでブロックする。
- *         -2 以下ならブロックしない。その番号のジョブがない時もブロックしない。
- * ただし、対話的シェルでは終了または停止するまでブロックするが、
- * 非対話的シェルでは終了するまでブロックする。
- * blockedjob で指定したジョブが停止した場合、対話的シェルなら改行を出力する。
- * blockedjob で指定したジョブが終了した場合、j_statuschanged は false になり、
- * 終了の原因が INT/PIPE 以外のシグナルならそれを報告する。
+ * この関数はブロックしない。
  * アクティブジョブが停止した場合、対話的シェルなら add_job を行う。
- * アクティブジョブが終了した場合、アクティブジョブを削除する。
- * wait 中のシグナルハンドラ実行後 (waitpid が EINTR を返した後)、
- * cancel_wait の値が true なら (値を false に戻して) 直ちに返る。 */
-/* この関数は内部で SIGCHLD をブロックする。
- * この関数をシグナルハンドラから呼出すときは必ず blockedjob を -2 にすること。
- * */
-void wait_all(int blockedjob)
+ * アクティブジョブが終了した場合、アクティブジョブを削除する。 */
+void wait_chld(void)
 {
 	int waitpidopt;
 	int status;
 	pid_t pid;
-	sigset_t sigset, oldsigset;
 
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGCHLD);
-	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask before wait");
-	
-	if (blockedjob >= 0 && !get_job(blockedjob))
-		blockedjob = -2;
 start:
-	if (cancel_wait) {
-		cancel_wait = false;
-		goto end;
-	}
-
-	/* 全ジョブが終了したかどうか調べる。 */
-	if (blockedjob == -1) {
-		for (size_t i = 0; i < joblist.length; i++) {
-			JOB *job;
-			if ((job = joblist.contents[i])) {
-				switch (job->j_status) {
-					case JS_STOPPED:
-						if (!is_interactive)
-							goto startwaiting;
-						/* falls thru! */
-					case JS_DONE:
-						break;
-					default:
-						goto startwaiting;
-				}
-			}
-		}
-		blockedjob = -2;
-	}
-
-startwaiting:
-	waitpidopt = WSTOPPED | WCONTINUED | (blockedjob >= -1 ? 0 : WNOHANG);
+	waitpidopt = WUNTRACED | WNOHANG;
 	pid = waitpid(-1 /* any child process */, &status, waitpidopt);
 	if (pid < 0) {
 		if (errno == EINTR)
 			goto start;
 		if (errno != ECHILD)
 			error(0, errno, "waitpid");
-		goto end;
-	} else if (pid == 0) {  /* non-blocking && no status change */
-		goto end;
+		return;
+	} else if (pid == 0) {  /* no status changees */
+		return;
 	}
 
 	size_t jobnumber;
@@ -396,8 +319,6 @@ outofloop:
 			job->j_exitstatus = status;
 	} else if (WIFSTOPPED(status)) {
 		job->j_status = JS_STOPPED;
-	} else if (WIFCONTINUED(status)) {
-		job->j_status = JS_RUNNING;
 	}
 
 	/* ジョブの全プロセスが終了したかどうか調べる */
@@ -409,32 +330,6 @@ stillrunning:
 	if (job->j_status != oldstatus)
 		job->j_statuschanged = true;
 
-	/* ブロック対象のジョブが変化した場合 */
-	if ((int) jobnumber == blockedjob) {
-		switch (job->j_status) {
-			case JS_NULL:
-			default:
-				assert(false);
-			case JS_RUNNING:
-				break;
-			case JS_STOPPED:
-				if (is_interactive) {
-					printf("\n");
-					blockedjob = -2;
-				}
-				break;
-			case JS_DONE:
-				job->j_statuschanged = false;
-				if (WIFSIGNALED(status)) {
-					int signal = WTERMSIG(status);
-					if (signal != SIGINT && signal != SIGPIPE)
-						psignal(signal, NULL);
-				}
-				blockedjob = -2;
-				break;
-		}
-	}
-
 	/* アクティブジョブが変化した場合 */
 	if (jobnumber == 0) {
 		switch (job->j_status) {
@@ -444,6 +339,7 @@ stillrunning:
 			case JS_RUNNING:
 				break;
 			case JS_DONE:
+				lastwaitstatus = job->j_exitstatus;
 				laststatus = exitcode_from_status(job->j_exitstatus);
 				if (job->j_exitcodeneg)
 					laststatus = !laststatus;
@@ -451,7 +347,10 @@ stillrunning:
 				break;
 			case JS_STOPPED:
 				if (is_interactive) {
-					laststatus = exitcode_from_status(job->j_exitstatus);
+					lastwaitstatus = status;
+					laststatus = exitcode_from_status(status);
+					if (job->j_exitcodeneg)
+						laststatus = !laststatus;
 					add_job();
 				}
 				break;
@@ -459,10 +358,6 @@ stillrunning:
 	}
 
 	goto start;
-
-end:
-	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask after wait");
 }
 
 /* Nohup を設定していない全てのジョブに SIGHUP を送る。
@@ -484,16 +379,6 @@ void send_sighup_to_all_jobs(void)
 	} else {
 		killpg(0, SIGHUP);
 	}
-}
-
-/* SIGHUP シグナルのハンドラ。
- * 全てのジョブに SIGHUP を送ってから自分にもう一度 SIGHUP を送って自滅する。
- * (このハンドラは一度シグナルを受け取ると無効になるようになっている) */
-void sig_hup(int signal __attribute__((unused)))
-{
-	send_sighup_to_all_jobs();
-	finalize_readline();
-	raise(SIGHUP);
 }
 
 /* count 組のパイプを作り、その (新しく malloc した) 配列へのポインタを返す。
@@ -668,7 +553,18 @@ static void exec_processes(
 		job->j_exitcodeneg = neg;
 		job->j_name = xstrdup(name);
 		if (!bg) {
-			wait_all(0);
+			do {
+				wait_for_signal();
+			} while (joblist.contents[0]);
+			if (WIFSIGNALED(lastwaitstatus)) {
+				int sig = WTERMSIG(lastwaitstatus);
+				if (sig != SIGINT && sig != SIGPIPE)
+					psignal(sig, NULL);  /* XXX : not POSIX */
+			} else if (WIFSTOPPED(lastwaitstatus)) {
+				fflush(stdout);
+				fputs("\n", stderr);
+				fflush(stderr);
+			}
 		} else {
 			add_job();
 		}
@@ -696,7 +592,6 @@ static pid_t exec_single(
 	bool expanded = false;
 	int argc;
 	char **argv;
-	sigset_t sigset, oldsigset;
 
 	if (etype == SELF)
 		goto directexec;
@@ -735,11 +630,6 @@ static pid_t exec_single(
 		}
 	}
 
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGHUP);
-	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask before fork");
-
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
 		error(0, errno, "%s: fork", argv[0]);
@@ -755,14 +645,11 @@ static pid_t exec_single(
 				error(0, errno, "%s: tcsetpgrp (parent)", argv[0]); */
 		}
 		if (!pgid) {
-			/* SIGHUP をブロックしている内にアクティブジョブに pgid を設定する*/
 			JOB *job = xmalloc(sizeof *job);
 			*job = (JOB) { .j_pgid = cpid, };
 			assert(!joblist.contents[0]);
 			joblist.contents[0] = job;
 		}
-		if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-			error(0, errno, "sigprocmask (parent) after fork");
 		if (expanded) { recfree((void **) argv); }
 		return cpid;
 	}
@@ -777,10 +664,10 @@ static pid_t exec_single(
 	}
 	joblist_reinit();
 	is_loginshell = is_interactive = false;
-	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-		error(0, errno, "sigprocmask (child) after fork");
 
 directexec:
+	unset_signals();
+	unset_sigmasks();
 	assert(!is_interactive);
 	if (pipes.p_count > 0) {
 		if (pindex) {
@@ -795,7 +682,6 @@ directexec:
 		}
 		close_pipes(pipes);
 	}
-	resetsigaction();
 
 	if (!expanded) {
 		if (!expand_line(p->p_args, &argc, &argv))

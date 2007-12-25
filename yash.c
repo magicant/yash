@@ -41,16 +41,20 @@
 #include <assert.h>
 
 
-void setsigaction(void);
-void resetsigaction(void);
 int exec_file(const char *path, bool suppresserror);
 int exec_file_exp(const char *path, bool suppresserror);
 int exec_source(const char *code, const char *end, const char *name);
 void exec_source_and_exit(const char *code, const char *end, const char *name);
 static void set_shlvl(int change);
 static void init_env(void);
-void init_interactive(void);
-void finalize_interactive(void);
+static void init_signal(void);
+void set_signals(void);
+void unset_signals(void);
+void set_sigmasks(void);
+void unset_sigmasks(void);
+void wait_for_signal(void);
+void set_shell_env(void);
+void unset_shell_env(void);
 static int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__((noreturn));
 int main(int argc, char **argv);
@@ -63,76 +67,11 @@ bool is_loginshell;
 /* 対話的シェルなら非 0 */
 bool is_interactive;
 
+/* SIGINT を受け取ると非 0 になる。 */
+bool sigint_received = false;
+
 /* プライマリプロンプトの前に実行するコマンド */
 char *prompt_command = NULL;
-
-/* シェルで無視するシグナルのリスト */
-const int ignsignals[] = {
-	SIGINT, SIGTERM, SIGTSTP, SIGTTIN, SIGTTOU, 0,
-};
-
-#if 0
-static void debug_sig(int signal)
-{
-	error(0, 0, "DEBUG: received signal %d. pid=%ld", signal, (long) getpid());
-}
-#endif
-
-/* シグナルハンドラを初期化する */
-void setsigaction(void)
-{
-	void sig_quit(int signum __attribute__((unused))) { }
-	struct sigaction action;
-	const int *signals;
-
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-#if 0
-	action.sa_handler = debug_sig;
-	fprintf(stderr, "DEBUG: setting all sigaction\n");
-	for (int i = 1; i < 32; i++)
-		if (sigaction(i, &action, NULL) < 0) ;
-#endif
-
-	action.sa_handler = SIG_IGN;
-	if (is_interactive) {
-		for (signals = ignsignals; *signals; signals++)
-			if (sigaction(*signals, &action, NULL) < 0)
-				error(0, errno, "sigaction: signal=%d", *signals);
-	}
-
-	action.sa_handler = SIG_DFL;
-	if (sigaction(SIGCHLD, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGCHLD");
-
-	/* sig_quit は何もしないシグナルハンドラなので、シグナル受信時の挙動は
-	 * SIG_IGN と同じだが、exec の実行時にデフォルトに戻される点が異なる。 */
-	action.sa_handler = sig_quit;
-	if (sigaction(SIGQUIT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGQUIT");
-
-	action.sa_handler = sig_hup;
-	action.sa_flags = SA_RESETHAND;
-	if (sigaction(SIGHUP, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGHUP");
-}
-
-/* シグナルハンドラを元に戻す */
-void resetsigaction(void)
-{
-	struct sigaction action;
-	const int *signals;
-
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-	action.sa_handler = SIG_DFL;
-
-	for (signals = ignsignals; *signals; signals++)
-		if (sigaction(*signals, &action, NULL) < 0)
-			error(0, errno, "sigaction: signal=%d", *signals);
-	if (sigaction(SIGHUP, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGHUP");
-}
 
 /* 指定したファイルをシェルスクリプトとしてこのシェルの中で実行する
  * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない
@@ -324,19 +263,200 @@ static void init_env(void)
 	}
 }
 
+
+/********** シグナルハンドリング **********/
+
+/* yash のシグナルハンドリングに付いて:
+ * シェルの状態にかかわらず、SIGHUP, SIGCHLD, SIGINT は常にブロックしておき、
+ * wait_for_signal 関数の中でのみ受信する。
+ * また SIGQUIT は常に無視する。
+ * 対話的シェルでは、ignsignals に含まれるシグナルも無視する。 */
+
+/* シェルで無視するシグナルのリスト */
+static const int ignsignals[] = {
+	SIGTERM, SIGTSTP, SIGTTIN, SIGTTOU, 0,
+};
+
+#if 0
+static void debug_sig(int signal)
+{
+	error(0, 0, "DEBUG: received signal %d. pid=%ld", signal, (long) getpid());
+}
+#endif
+
+/* 何もしないシグナルハンドラ */
+static void do_nothing(int signum __attribute__((unused))) { }
+
+/* シグナルマスク・シグナルハンドラを初期化する。
+ * この関数は main で一度だけ呼ばれる。 */
+static void init_signal(void)
+{
+	struct sigaction action;
+
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+
+	action.sa_handler = SIG_DFL;
+	if (sigaction(SIGHUP, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGHUP");
+	if (sigaction(SIGCHLD, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGCHLD");
+	if (sigaction(SIGINT, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGINT");
+
+	action.sa_handler = do_nothing;
+	if (sigaction(SIGQUIT, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGQUIT");
+	/* do_nothing は何もしないシグナルハンドラなので、シグナル受信時の挙動は
+	 * SIG_IGN と同じだが、exec の実行時にデフォルトに戻される点が異なる。 */
+
+#if 0
+	action.sa_handler = debug_sig;
+	fprintf(stderr, "DEBUG: setting all sigaction\n");
+	for (int i = 1; i < 32; i++)
+		if (sigaction(i, &action, NULL) < 0) ;
+#endif
+
+#if SIGWAIT_WORKAROUND
+	/* SIGCHLD に何らかのシグナルハンドラを設定しておかないと、
+	 * sigwait がうまく動かないことへの対処
+	 * cf. http://bugzilla.kernel.org/show_bug.cgi?id=9347 */
+	action.sa_handler = do_nothing;
+	if (sigaction(SIGCHLD, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGCHLD");
+#endif
+}
+
+/* 対話的シェル用シグナルハンドラを初期化する。
+ * この関数は unset_signals の後再び呼び直されることがある。 */
+void set_signals(void)
+{
+	struct sigaction action;
+	const int *signals;
+
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+	action.sa_handler = SIG_IGN;
+	for (signals = ignsignals; *signals; signals++)
+		if (sigaction(*signals, &action, NULL) < 0)
+			error(0, errno, "sigaction: signal=%d", *signals);
+}
+
+/* 対話的シェル用シグナルハンドラを元に戻す */
+void unset_signals(void)
+{
+	struct sigaction action;
+	const int *signals;
+
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+	action.sa_handler = SIG_DFL;
+
+	for (signals = ignsignals; *signals; signals++)
+		if (sigaction(*signals, &action, NULL) < 0)
+			error(0, errno, "sigaction: signal=%d", *signals);
+}
+
+static sigset_t orig_sigprocmask;
+
+/* シグナルマスクを初期化する。
+ * この関数は unset_sigmasks の後再び呼び直されることがある。 */
+void set_sigmasks(void)
+{
+	sigset_t mask;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGHUP);
+	sigaddset(&mask, SIGCHLD);
+	sigaddset(&mask, SIGINT);
+	if (sigprocmask(SIG_SETMASK, &mask, &orig_sigprocmask) < 0)
+		error(0, errno, "sigprocmask");
+}
+
+/* シグナルマスクを元に戻す */
+void unset_sigmasks(void)
+{
+	if (sigprocmask(SIG_SETMASK, &orig_sigprocmask, NULL) < 0)
+		error(0, errno, "sigprocmask");
+}
+
+/* sigwait でシグナルを待ち、受け取ったシグナルに対して処理を行う。
+ * この関数で待つシグナルは、SIGHUP と SIGCHLD と SIGINT である。
+ * これらのシグナルは予め sigprocmask でブロックしておかなければならない。
+ * SIGHUP を受け取ると、シェルは終了するのでこの関数は返らない。*/
+void wait_for_signal(void)
+{
+	int signo, waitresult;
+	sigset_t ss;
+
+	sigemptyset(&ss);
+	sigaddset(&ss, SIGHUP);
+	sigaddset(&ss, SIGCHLD);
+	sigaddset(&ss, SIGINT);
+	waitresult = sigwait(&ss, &signo);
+	if (waitresult != 0) {
+		if (waitresult == EINTR)
+			return;
+		error(2, waitresult, "sigwait");
+	}
+	switch (signo) {
+		case SIGHUP:
+			send_sighup_to_all_jobs();
+			finalize_readline();
+			sigemptyset(&ss);
+			sigaddset(&ss, SIGHUP);
+			if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
+				error(2, errno, "sigprocmask before raising SIGHUP");
+			raise(SIGHUP);
+			assert(false);
+		case SIGCHLD:
+			wait_chld();
+			break;
+		case SIGINT:
+			sigint_received = true;
+			break;
+		default:
+			assert(false);
+	}
+}
+
 static pid_t orig_pgrp = 0;
+
+/* このシェル自身が独立したプロセスグループに属するように、
+ * このシェルのプロセスグループ ID をこのシェルのプロセス ID に変更する。 */
+void set_unique_pgid(void)
+{
+	if (is_interactive) {
+		orig_pgrp = getpgrp();
+		setpgrp();
+	}
+}
+
+/* このシェルのプロセスグループ ID を、set_unique_pgid を実行する前のものに
+ * 戻す。 */
+void restore_pgid(void)
+{
+	if (orig_pgrp > 0) {
+		if (setpgid(0, orig_pgrp) < 0 && errno != EPERM)
+			error(0, errno, "cannot restore process group");
+		if (tcsetpgrp(STDIN_FILENO, orig_pgrp) < 0)
+			error(0, errno, "cannot restore foreground process group");
+		orig_pgrp = 0;
+	}
+}
+
 static bool noprofile = false, norc = false; 
 static char *rcfile = "~/.yashrc";
 
-/* 対話モードの初期化を行う */
-void init_interactive(void)
+/* シェルのシグナルハンドラなどの初期化を行う */
+void set_shell_env(void)
 {
 	static bool initialized = false;
 
+	set_sigmasks();
 	if (is_interactive) {
-		setsigaction();
-		orig_pgrp = getpgrp();
-		setpgrp();   /* シェル自身は独立した pgrp に属する */
+		set_signals();
+		set_unique_pgid();
 		set_shlvl(1);
 		if (!initialized) {
 			if (is_loginshell) {
@@ -351,18 +471,16 @@ void init_interactive(void)
 	}
 }
 
-/* 対話モードの終了処理を行う */
-void finalize_interactive(void)
+/* シェルのシグナルハンドラなどを元に戻す */
+void unset_shell_env(void)
 {
 	if (is_interactive) {
 		finalize_readline();
 		set_shlvl(-1);
-		if (orig_pgrp > 0 && tcsetpgrp(STDIN_FILENO, orig_pgrp) < 0)
-			error(0, errno, "cannot reset foreground process group");
-		if (orig_pgrp > 0 && setpgid(0, orig_pgrp) < 0 && errno != EPERM)
-			error(0, errno, "cannot reset process group");
-		resetsigaction();
+		restore_pgid();
+		unset_signals();
 	}
+	unset_sigmasks();
 }
 
 /* PROMPT_COMMAND を実行する。
@@ -397,7 +515,7 @@ static void interactive_loop(void)
 			case 1:  /* syntax error */
 				break;
 			case EOF:
-				wait_all(-2 /* non-blocking */);
+				wait_chld();
 				print_all_job_status(
 						true /* changed only */, false /* not verbose */);
 				if (job_count()) {
@@ -476,6 +594,7 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
+	init_signal();
 	init_exec();
 	init_env();
 	init_alias();
@@ -483,15 +602,17 @@ int main(int argc, char **argv)
 
 	if (directcommand) {
 		is_interactive = false;
+		set_shell_env();
 		exec_source_and_exit(directcommand, NULL, "yash -c");
 	}
 	if (argv[optind]) {
 		is_interactive = false;
+		set_shell_env();
 		exec_file(argv[optind], false /* don't suppress error */);
 		exit(laststatus);
 	}
 	if (is_interactive) {
-		init_interactive();
+		set_shell_env();
 		interactive_loop();
 	}
 	return EXIT_SUCCESS;
@@ -514,11 +635,11 @@ void print_version(void)
 
 /* 終了前の手続きを行って、終了する。*/
 void yash_exit(int exitcode) {
-	wait_all(-2 /* non-blocking */);
+	wait_chld();
 	print_all_job_status(false /* all jobs */, false /* not verbose */);
 	if (is_loginshell)
 		exec_file("~/.yash_logout", true /* suppress error */);
-	finalize_interactive();
+	unset_shell_env();
 	if (huponexit)
 		send_sighup_to_all_jobs();
 	exit(exitcode);

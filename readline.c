@@ -114,7 +114,7 @@ char *yash_readline(int ptype)
 	void readline_signal_handler(int signal) {
 		switch (signal) {
 			case SIGCHLD:
-				wait_all(-2 /* non-blocking */);
+				wait_chld();
 				break;
 			case SIGINT:
 				interrupted = true;
@@ -156,7 +156,7 @@ yash_readline_start:
 	if (sigaction(SIGINT, &action, &oldintaction) < 0)
 		error(EXIT_FAILURE, errno, "sigaction before readline");
 
-	wait_all(-2 /* non-blocking */);
+	wait_chld();
 	print_all_job_status(true /* changed only */, false /* not verbose */);
 
 	actualprompt = expand_prompt(prompt);

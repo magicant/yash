@@ -28,6 +28,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <readline/history.h>
 #include "yash.h"
@@ -207,7 +208,7 @@ int builtin_exit(int argc, char *const *argv)
 		}
 	}
 	if (!forceexit) {
-		wait_all(-2 /* non-blocking */);
+		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
 		if (job_count()) {
 			error(0, 0, "There are undone jobs!"
@@ -398,63 +399,64 @@ usage:
 /* wait 組込みコマンド */
 int builtin_wait(int argc, char *const *argv)
 {
-	void int_handler(int signal __attribute__((unused))) { cancel_wait = true; }
-	struct sigaction action, oldaction;
-	int jobnumber = -1;
-
-	if (argc == 2) {
-		char *target = argv[1];
-		bool isjob = target[0] == '%';
-
-		if (isjob) {
-			jobnumber = parse_jobspec(target, true);
-			if (jobnumber < 0) switch (jobnumber) {
-				case -1:
-				default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], argv[1]);
-					return EXIT_NOTFOUND;
-				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], argv[1]);
-					return EXIT_NOTFOUND;
-				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0],argv[1]);
-					return EXIT_NOTFOUND;
-			}
-		} else {
-			errno = 0;
-			if (*target)
-				jobnumber = strtol(target, &target, 10);
-			if (errno || *target) {
-				error(0, 0, "%s: %s: invalid target", argv[0], argv[1]);
-				return EXIT_FAILURE;
-			}
-			jobnumber = get_jobnumber_from_pid(jobnumber);
-			if (jobnumber < 0) {
-				error(0, 0, "%s: %s: not a child of this shell",
-						argv[0], argv[1]);
-				return EXIT_NOTFOUND;
-			}
-		}
-	} else if (argc > 2) {
-		goto usage;
-	}
-
-	cancel_wait = false;
-	action.sa_handler = int_handler;
-	action.sa_flags = 0;
-	sigemptyset(&action.sa_mask);
-	if (sigaction(SIGINT, &action, &oldaction) < 0)
-		error(EXIT_FAILURE, errno, "sigaction before wait");
-
-	wait_all(jobnumber);
-
-	if (sigaction(SIGINT, &oldaction, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigaction after wait");
-	cancel_wait = false;
-
-	return EXIT_SUCCESS;
+//	void int_handler(int signal __attribute__((unused))) { cancel_wait = true; }
+//	struct sigaction action, oldaction;
+//	int jobnumber = -1;
+//
+//	if (argc == 2) {
+//		char *target = argv[1];
+//		bool isjob = target[0] == '%';
+//
+//		if (isjob) {
+//			jobnumber = parse_jobspec(target, true);
+//			if (jobnumber < 0) switch (jobnumber) {
+//				case -1:
+//				default:
+//					error(0, 0, "%s: %s: invalid job spec", argv[0], argv[1]);
+//					return EXIT_NOTFOUND;
+//				case -2:
+//					error(0, 0, "%s: %s: no such job", argv[0], argv[1]);
+//					return EXIT_NOTFOUND;
+//				case -3:
+//					error(0, 0, "%s: %s: ambiguous job spec", argv[0],argv[1]);
+//					return EXIT_NOTFOUND;
+//			}
+//		} else {
+//			errno = 0;
+//			if (*target)
+//				jobnumber = strtol(target, &target, 10);
+//			if (errno || *target) {
+//				error(0, 0, "%s: %s: invalid target", argv[0], argv[1]);
+//				return EXIT_FAILURE;
+//			}
+//			jobnumber = get_jobnumber_from_pid(jobnumber);
+//			if (jobnumber < 0) {
+//				error(0, 0, "%s: %s: not a child of this shell",
+//						argv[0], argv[1]);
+//				return EXIT_NOTFOUND;
+//			}
+//		}
+//	} else if (argc > 2) {
+//		goto usage;
+//	}
+//
+//	cancel_wait = false;
+//	action.sa_handler = int_handler;
+//	action.sa_flags = 0;
+//	sigemptyset(&action.sa_mask);
+//	if (sigaction(SIGINT, &action, &oldaction) < 0)
+//		error(EXIT_FAILURE, errno, "sigaction before wait");
+//
+//	wait_all(jobnumber);
+//
+//	if (sigaction(SIGINT, &oldaction, NULL) < 0)
+//		error(EXIT_FAILURE, errno, "sigaction after wait");
+//	cancel_wait = false;
+//
+//	return EXIT_SUCCESS;
 
 usage:
+	error(0, 0, "NOT IMPLEMENTED");  /* TODO */
 	printf("Usage:  wait [jobspec/pid]\n");
 	return EXIT_FAILURE;
 }
@@ -521,7 +523,7 @@ int builtin_jobs(int argc, char *const *argv)
 		}
 	}
 
-	wait_all(-2 /* non-blocking */);
+	wait_chld();
 	
 	if (optind >= argc) {  /* jobspec なし: 全てのジョブを報告 */
 		print_all_job_status(changedonly, printpids);
@@ -593,7 +595,6 @@ int builtin_disown(int argc, char *const *argv)
 	bool all = false, runningonly = false, nohup = false, err = false;
 	JOB *job;
 	ssize_t jobnumber = currentjobnumber;
-	sigset_t sigset, oldsigset;
 
 	optind = 0;
 	opterr = 1;
@@ -614,12 +615,6 @@ int builtin_disown(int argc, char *const *argv)
 	}
 	if (optind == argc)
 		all = true;
-
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGHUP);
-	sigaddset(&sigset, SIGCHLD);
-	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
 
 	if (all) {
 		for (size_t i = joblist.length; i > 0; i--) {
@@ -661,8 +656,6 @@ int builtin_disown(int argc, char *const *argv)
 			}
 		}
 	}
-	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
@@ -755,9 +748,22 @@ int builtin_fg(int argc, char *const *argv)
 		return EXIT_FAILURE;
 	if (fg) {
 		assert(0 < jobnumber && (size_t) jobnumber < joblist.length);
-		wait_all(jobnumber);
-		if (job->j_status == JS_DONE)
-			return exitcode_from_status(job->j_exitstatus);
+		while (job->j_status == JS_RUNNING)
+			wait_for_signal();
+		if (job->j_status == JS_DONE) {
+			int r = exitcode_from_status(job->j_exitstatus);
+			if (WIFSIGNALED(job->j_exitstatus)) {
+				int sig = WTERMSIG(job->j_exitstatus);
+				if (sig != SIGINT && sig != SIGPIPE)
+					psignal(sig, NULL);  /* XXX : not POSIX */
+			}
+			remove_job((size_t) jobnumber);
+			return r;
+		} else if (job->j_status == JS_STOPPED) {
+			fflush(stdout);
+			fputs("\n", stderr);
+			fflush(stderr);
+		}
 	}
 	return EXIT_SUCCESS;
 
@@ -804,7 +810,7 @@ int builtin_exec(int argc, char *const *argv)
 	}
 
 	if (!forceexec && is_interactive) {
-		wait_all(-2 /* non-blocking */);
+		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
 		if (job_count()) {
 			error(0, 0, "There are undone jobs!"
@@ -841,9 +847,9 @@ int builtin_exec(int argc, char *const *argv)
 	for (int i = optind + 1; i < argc; i++)
 		pl_append(&args, argv[i]);
 
-	finalize_interactive();
+	unset_shell_env();
 	execve(command, (char **) args.contents, clearenv ? NULL : environ);
-	init_interactive();
+	set_shell_env();
 
 	error(0, errno, "%s: %s", argv[0], argv[optind]);
 	free(args.contents[0]);

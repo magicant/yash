@@ -46,10 +46,14 @@
 extern bool is_loginshell;
 extern bool is_interactive;
 
+extern bool sigint_received;
+
 extern char *prompt_command;
 
-void setsigaction(void);
-void resetsigaction(void);
+void set_signals(void);
+void unset_signals(void);
+void set_sigmasks(void);
+void unset_sigmasks(void);
 
 int exec_file(const char *path, bool suppresserror)
 	__attribute__((nonnull));
@@ -60,8 +64,8 @@ int exec_source(const char *code, const char *end, const char *name)
 void exec_source_and_exit(const char *code, const char *end, const char *name)
 	__attribute__((nonnull(1),noreturn));
 
-void init_interactive(void);
-void finalize_interactive(void);
+void set_shell_env(void);
+void unset_shell_env(void);
 
 void yash_exit(int exitcode)
 	__attribute__((noreturn));

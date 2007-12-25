@@ -25,7 +25,7 @@
 
 
 extern bool huponexit;
-extern int laststatus;
+extern int lastwaitstatus, laststatus;
 
 /* 設定したリダイレクトを後で元に戻すためのデータ */
 struct save_redirect {
@@ -59,8 +59,6 @@ typedef struct {
 extern struct plist joblist;
 extern size_t currentjobnumber;
 
-extern volatile sig_atomic_t cancel_wait;
-
 void init_exec(void);
 int exitcode_from_status(int status);
 JOB *get_job(size_t jobnumber);
@@ -69,10 +67,9 @@ bool remove_job(size_t jobnumber);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
 void print_all_job_status(bool changedonly, bool printpids);
 int get_jobnumber_from_pid(pid_t pid);
-void wait_all(int blockedjob);
+void wait_chld(void);
+void wait_for_signal(void);
 void send_sighup_to_all_jobs(void);
-void sig_hup(int signal);
-void sig_chld(int signal);
 void exec_statements(STATEMENT *statements);
 void exec_statements_and_exit(STATEMENT *statements)
 	__attribute__((noreturn));
