@@ -1001,6 +1001,7 @@ char *subst_command(const char *code)
 		buf = xmalloc(max + 1);
 		for (;;) {
 			handle_signals();
+			//TODO 子がサスペンドしたら直ちに再開させる
 			count = read(pipefd[0], buf + len, max - len);
 			if (count < 0) {
 				if (errno == EINTR) {
@@ -1032,6 +1033,10 @@ char *subst_command(const char *code)
 
 		return buf;
 	} else {  /* 子プロセス */
+		forget_orig_pgrp();
+		joblist_reinit();
+		is_loginshell = is_interactive = false;
+
 		close(pipefd[0]);
 		if (pipefd[1] != STDOUT_FILENO) {
 			/* ↑ この条件が成り立たないことは普通考えられないが…… */

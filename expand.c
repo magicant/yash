@@ -29,6 +29,7 @@
 #include "util.h"
 #include "parser.h"
 #include "expand.h"
+#include "exec.h"
 #include "path.h"
 #include <assert.h>
 
@@ -50,6 +51,8 @@ static bool expand_arg(const char *s, struct plist *argv);
 static bool expand_brace(char *s, struct plist *result);
 static bool expand_subst(char *s, struct plist *result);
 static char *expand_param(char **src);
+static char *get_comsub_code_p(char **src);
+static char *get_comsub_code_bq(char **src);
 static bool do_glob(char **ss, struct plist *result);
 static char *unescape_for_glob(const char *s)
 	__attribute__((malloc, nonnull));
@@ -334,7 +337,10 @@ static char *expand_param(char **src)
 			free(ss);
 			return xstrdup(result ? result : "");
 		case '(':
-			//TODO コマンド置換
+			ss = get_comsub_code_p(src);
+			result = subst_command(ss);
+			free(ss);
+			return result;
 
 			//TODO ? や _ などの一文字のパラメータ
 		case '\0':
@@ -352,6 +358,44 @@ static char *expand_param(char **src)
 			return xstrdup(temp);
 	}
 }
+
+/* 括弧 ( ) で囲んだコマンドの閉じ括弧を探す。
+ * src:    開き括弧で始まる文字列へのポインタのポインタ。
+ *         関数が返るとき、*src に閉じ括弧へのポインタが入る。
+ * 戻り値: 新しく malloc した、括弧の間にあるコマンドの文字列。 */
+static char *get_comsub_code_p(char **src)
+{
+	char *s = *src;
+	char *init;
+	int count = 0;
+
+	assert(*s == '(');
+	s++;
+	init = s;
+	while (*s) {
+		s = skip_with_quote(s, "()");
+		switch (*s) {
+			case ')':
+				if (--count < 0)
+					goto end;
+				break;
+			case '(':
+				count++;
+				break;
+		}
+		s++;
+	}
+end:
+	*src = s;
+	return xstrndup(init, s - init);
+}
+
+/* ` ` で囲んだコマンドの閉じ ` を探す。
+ * src:    開き ` で始まる文字列へのポインタのポインタ。
+ *         関数が返るとき、*src に閉じ ` へのポインタが入る。
+ * 戻り値: 新しく malloc した、` の間にあるコマンドの文字列。
+ *         バックスラッシュエスケープは取り除いてある。 */
+static char *get_comsub_code_bq(char **src);
 
 /* glob を配列 *ss の各文字列に対して行い、全ての結果を *result に入れる。
  * *ss の各文字列は free されるか *result に入る。
