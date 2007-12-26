@@ -43,8 +43,8 @@
 
 int exec_file(const char *path, bool suppresserror);
 int exec_file_exp(const char *path, bool suppresserror);
-int exec_source(const char *code, const char *end, const char *name);
-void exec_source_and_exit(const char *code, const char *end, const char *name);
+int exec_source(const char *code, const char *name);
+void exec_source_and_exit(const char *code, const char *name);
 static void set_shlvl(int change);
 static void init_env(void);
 static void init_signal(void);
@@ -144,12 +144,9 @@ int exec_file_exp(const char *path, bool suppresserror)
 
 /* code をシェルスクリプトのソースコードとして解析し、このシェル内で実行する。
  * code:   実行するコード。NULL なら何も行わない。
- * end:    NULL なら、ソースコードが余った場合はエラーになる。
- *         非 NULL なら、ソースコードが余ってもその余りの最初の文字が
- *         文字列 end に含まれていればエラーにしない。
  * name:   構文エラー時に表示するコード名。
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
-int exec_source(const char *code, const char *end, const char *name)
+int exec_source(const char *code, const char *name)
 {
 	size_t index = 0;
 	char *mygetline(int ptype __attribute__((unused))) {
@@ -168,22 +165,14 @@ int exec_source(const char *code, const char *end, const char *name)
 	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
-		char rem = '\0';
-		switch (read_and_parse_partial(
-					mygetline, name, end ? &rem : NULL, &statements)) {
+		switch (read_and_parse(mygetline, name, &statements)) {
 			case 0:  /* OK */
-				if (rem && !strchr(end, rem)) {
-					error(0, 0, "syntax error: invalid character `%c'", rem);
-					return -1;
-				}
 				if (statements) {
 					unsigned savelinenum = get_line_number();
 					exec_statements(statements);
 					statementsfree(statements);
 					set_line_number(savelinenum);
 				}
-				if (rem)
-					return 0;
 				break;
 			case EOF:
 				return 0;
@@ -197,11 +186,8 @@ int exec_source(const char *code, const char *end, const char *name)
 /* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
  * そのまま終了する。
  * code: 実行するコード。NULL なら何も実行せず終了する。
- * end:  NULL なら、ソースコードが余った場合はエラーになる。
- *       非 NULL なら、ソースコードが余ってもその余りの最初の文字が
- *       文字列 end に含まれていればエラーにしない。
  * name: 構文エラー時に表示するコード名。 */
-void exec_source_and_exit(const char *code, const char *end, const char *name)
+void exec_source_and_exit(const char *code, const char *name)
 {
 	char *mygetline(int ptype) {
 		if (ptype == 1) return xstrdup(code);
@@ -210,19 +196,14 @@ void exec_source_and_exit(const char *code, const char *end, const char *name)
 
 	/* 改行を含むコードは一度に解析できないので、普通に exec_source を使う */
 	if (strpbrk(code, "\n\r")) {
-		exec_source(code, end, name);
+		exec_source(code, name);
 		exit(laststatus);
 	}
 
 	STATEMENT *statements;
-	char rem = '\0';
 	set_line_number(0);
-	switch (read_and_parse_partial(
-				mygetline, name, end ? &rem : NULL, &statements)) {
+	switch (read_and_parse(mygetline, name, &statements)) {
 		case 0:  /* OK */
-			if (rem && !strchr(end, rem)) {
-				error(2, 0, "syntax error: invalid character `%c'", rem);
-			}
 			exec_statements_and_exit(statements);
 		default:  /* error */
 			exit(2);
@@ -517,7 +498,7 @@ static int exec_promptcommand(void)
 	int resultstatus = 0;
 	int savestatus = laststatus;
 	laststatus = 0;
-	exec_source(prompt_command, NULL, "prompt command");
+	exec_source(prompt_command, "prompt command");
 	resultstatus = laststatus;
 	laststatus = savestatus;
 	return resultstatus;
@@ -624,7 +605,7 @@ int main(int argc, char **argv)
 	if (directcommand) {
 		is_interactive = false;
 		set_shell_env();
-		exec_source_and_exit(directcommand, NULL, "yash -c");
+		exec_source_and_exit(directcommand, "yash -c");
 	}
 	if (argv[optind]) {
 		is_interactive = false;

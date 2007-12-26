@@ -82,7 +82,7 @@ static pid_t exec_single(
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
 static void savesfree(struct save_redirect *save);
-char *subst_command(const char *code, const char *end);
+char *subst_command(const char *code);
 
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;
@@ -964,10 +964,9 @@ static void savesfree(struct save_redirect *save)
  * 出力結果の末尾にある改行は削除する。
  * この関数はコマンドの実行が終わるまで返らない。
  * code:   実行するコマンド
- * end:    exec_source_and_exit 参照
  * 戻り値: 新しく malloc した、statements の実行結果。
  *         エラーや、statements が中止された場合は NULL。 */
-char *subst_command(const char *code, const char *end)
+char *subst_command(const char *code)
 {
 	int pipefd[2];
 	pid_t cpid;
@@ -1043,6 +1042,6 @@ char *subst_command(const char *code, const char *end)
 			if (close(pipefd[1]) < 0)
 				error(0, errno, "command substitution");
 		}
-		exec_source_and_exit(code, end, "command substitution");
+		exec_source_and_exit(code, "command substitution");
 	}
 }

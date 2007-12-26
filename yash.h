@@ -57,9 +57,9 @@ int exec_file(const char *path, bool suppresserror)
 	__attribute__((nonnull));
 int exec_file_exp(const char *path, bool suppresserror)
 	__attribute__((nonnull));
-int exec_source(const char *code, const char *end, const char *name)
+int exec_source(const char *code, const char *name)
 	__attribute__((nonnull(1)));
-void exec_source_and_exit(const char *code, const char *end, const char *name)
+void exec_source_and_exit(const char *code, const char *name)
 	__attribute__((nonnull(1),noreturn));
 
 void set_signals(void);

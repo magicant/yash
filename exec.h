@@ -78,7 +78,7 @@ void send_sighup_to_all_jobs(void);
 void exec_statements(STATEMENT *statements);
 void exec_statements_and_exit(STATEMENT *statements)
 	__attribute__((noreturn));
-char *subst_command(const char *code, const char *end);
+char *subst_command(const char *code);
 
 
 #endif /* EXEC_H */

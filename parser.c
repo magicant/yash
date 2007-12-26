@@ -32,8 +32,6 @@
 #include <assert.h>
 
 
-int read_and_parse_partial(
-		getline_t *input, const char *filename, char *rem, STATEMENT **result);
 int read_and_parse(getline_t *input, const char *filename, STATEMENT **result);
 unsigned get_line_number(void);
 void set_line_number(unsigned num);
@@ -73,16 +71,12 @@ static size_t i_index;
  * filename: 入力元ファイル名。これはエラーメッセージでファイル名を表示する為
  *         だけに使う。NULL でもよい。
  * input:  呼び出す度にソースを一行読み込んで返す関数。
- * rem:    非 NULL なら、ソースが余った場合に余った最初の文字が *rem に入る。
- *         余らなければ null 文字が *rem に入る。
- *         NULL なら、ソースが余った場合にエラーを出力する。
  * result: これに結果が入る。(戻り値が 0 の場合のみ)
  *         ソースに文が含まれなければ、結果は NULL となる。
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
  *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
 /* この関数はリエントラントではない */
-int read_and_parse_partial(
-		getline_t *input, const char *filename, char *rem, STATEMENT **result)
+int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
 {
 	char *src;
 
@@ -101,9 +95,7 @@ int read_and_parse_partial(
 	alias_reset();
 
 	STATEMENT *statements = parse_statements('\0');
-	if (rem)
-		*rem = *fromi(i_index);
-	if (!rem && *fromi(i_index))
+	if (*fromi(i_index))
 		serror("invalid character: `%c'", *fromi(i_index));
 	sb_destroy(&i_src);
 	if (i_error) {
@@ -112,20 +104,6 @@ int read_and_parse_partial(
 	}
 	*result = statements;
 	return 0;
-}
-
-/* コマンド入力を解析するエントリポイント。
- * filename: 入力元ファイル名。これはエラーメッセージでファイル名を表示する為
- *         だけに使う。NULL でもよい。
- * input:  呼び出す度にソースを一行読み込んで返す関数。
- * result: これに結果が入る。(戻り値が 0 の場合のみ)
- *         ソースに文が含まれなければ、結果は NULL となる。
- * 戻り値: 成功したら *result に結果を入れて 0 を返す。
- *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
-/* この関数はリエントラントではない */
-int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
-{
-	return read_and_parse_partial(input, filename, NULL, result);
 }
 
 /* 解析中の行番号を取得する。 */
