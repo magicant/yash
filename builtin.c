@@ -281,6 +281,7 @@ static const char *get_signal_name(int signal)
 {
 	const SIGDATA *sd;
 
+	signal &= 0x3F;
 	for (sd = sigdata; sd->s_signal; sd++)
 		if (sd->s_signal == signal)
 			return sd->s_name;
@@ -288,7 +289,8 @@ static const char *get_signal_name(int signal)
 }
 
 /* kill 組込みコマンド
- * -s signal: シグナルの指定。デフォルトは TERM。*/
+ * -s signal:   シグナルの指定。デフォルトは TERM。
+ * -l [signal]: シグナル番号とシグナル名を相互変換する。 */
 int builtin_kill(int argc, char *const *argv)
 {
 	int sig = SIGTERM;
@@ -368,12 +370,19 @@ int builtin_kill(int argc, char *const *argv)
 
 list:
 	if (argc <= 2) {  /* no args: list all */
-		for (size_t i = 0; sigdata[i].s_signal; i++) {
-			printf("%2d: %-8s    ", sigdata[i].s_signal, sigdata[i].s_name);
-			if (i % 4 == 3)
-				printf("\n");
+		if (posixly_correct) {
+			for (size_t i = 0; sigdata[i].s_signal; i++) {
+				printf("%s%c", sigdata[i].s_name,
+						i % 10 == 9 || !sigdata[i+1].s_signal ? '\n' : ' ');
+			}
+		} else {
+			for (size_t i = 0; sigdata[i].s_signal; i++) {
+				printf("%2d: %-8s    ", sigdata[i].s_signal, sigdata[i].s_name);
+				if (i % 4 == 3)
+					printf("\n");
+			}
+			printf("\n");
 		}
-		printf("\n");
 	} else {
 		for (i = 2; i < argc; i++) {
 			const char *name;
@@ -382,9 +391,12 @@ list:
 			name = get_signal_name(sig);
 			if (!sig || !name) {
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[i]);
-				err = 1;
+				err = true;
 			} else {
-				printf("%2d: %s\n", sig, get_signal_name(sig));
+				if (isdigit(argv[i][0]))
+					printf("%s\n", name);
+				else
+					printf("%d\n", sig);
 			}
 		}
 	}
