@@ -251,6 +251,15 @@ static bool expand_subst(char *const s, struct plist *result)
 			case '$':
 				s1++;
 				s2 = expand_param(&s1);
+				goto append_s2;
+			case '`':
+				{
+					char *code = get_comsub_code_bq(&s1);
+					s2 = subst_command(code);
+					free(code);
+				}
+				goto append_s2;
+append_s2:
 				if (s2) {
 					if (!indq) {  /* 単語分割をしつつ追加 */
 						const char *ifs = getenv("IFS");  //XXX
@@ -286,8 +295,6 @@ static bool expand_subst(char *const s, struct plist *result)
 				}
 				free(s2);
 				break;
-			case '`':
-				//TODO コマンド置換
 			default:  default_case:
 				sb_cappend(&buf, *s1);
 				break;
@@ -395,7 +402,24 @@ end:
  *         関数が返るとき、*src に閉じ ` へのポインタが入る。
  * 戻り値: 新しく malloc した、` の間にあるコマンドの文字列。
  *         バックスラッシュエスケープは取り除いてある。 */
-static char *get_comsub_code_bq(char **src);
+static char *get_comsub_code_bq(char **src)
+{
+	struct strbuf buf;
+	char *s = *src;
+
+	assert(*s == '`');
+	s++;
+	sb_init(&buf);
+	while (*s && *s != '`') {
+		if (*s == '\\')
+			s++;
+		if (*s)
+			sb_cappend(&buf, *s);
+		s++;
+	}
+	*src = s;
+	return sb_tostr(&buf);
+}
 
 /* glob を配列 *ss の各文字列に対して行い、全ての結果を *result に入れる。
  * *ss の各文字列は free されるか *result に入る。

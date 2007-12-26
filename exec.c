@@ -960,6 +960,14 @@ static void savesfree(struct save_redirect *save)
 	}
 }
 
+/* subst_command で使う SIGTSTP シグナルハンドラ。
+ * 自分 (親プロセス) に SIGTSTP が来たということは、子プロセスはサスペンド
+ * している可能性が高いので、直ちに SIGCONT を送って復活させる */
+static void kill_cont_temp()
+{
+	killpg(getpgrp(), SIGCONT);
+}
+
 /* 指定したコマンドを実行し、その標準出力の内容を返す。
  * 出力結果の末尾にある改行は削除する。
  * この関数はコマンドの実行が終わるまで返らない。
@@ -992,6 +1000,7 @@ char *subst_command(const char *code)
 		char *buf;
 		size_t len, max;
 		ssize_t count;
+		struct sigaction action, oldaction;
 
 		close(pipefd[1]);
 
@@ -999,9 +1008,15 @@ char *subst_command(const char *code)
 		len = 0;
 		max = 100;
 		buf = xmalloc(max + 1);
+
+		action.sa_flags = 0;
+		action.sa_handler = kill_cont_temp;
+		sigemptyset(&action.sa_mask);
+		if (sigaction(SIGTSTP, &action, &oldaction) < 0)
+			error(2, errno, "command substitution");
+
 		for (;;) {
 			handle_signals();
-			//TODO 子がサスペンドしたら直ちに再開させる
 			count = read(pipefd[0], buf + len, max - len);
 			if (count < 0) {
 				if (errno == EINTR) {
@@ -1022,6 +1037,9 @@ char *subst_command(const char *code)
 		while (temp_chld.jp_status != JS_DONE)
 			wait_for_signal();
 		temp_chld.jp_pid = 0;
+
+		if (sigaction(SIGTSTP, &oldaction, NULL) < 0)
+			error(0, errno, "command substitution");
 
 		/* 末尾の改行を削る */
 		while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))

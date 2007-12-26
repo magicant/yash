@@ -317,12 +317,8 @@ static void init_signal(void)
 #endif
 
 	sigemptyset(&action.sa_mask);
-	sigaddset(&action.sa_mask, SIGHUP);
-	sigaddset(&action.sa_mask, SIGCHLD);
-	sigaddset(&action.sa_mask, SIGINT);
-	sigaddset(&action.sa_mask, SIGQUIT);
-	if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) < 0)
-		error(0, errno, "sigprocmask(UNBLOCK, HUP|CHLD|INT|QUIT");
+	if (sigprocmask(SIG_SETMASK, &action.sa_mask, NULL) < 0)
+		error(0, errno, "sigprocmask(SETMASK, nothing)");
 }
 
 /* 対話的シェル用シグナルハンドラを初期化する。
