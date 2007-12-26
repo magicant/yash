@@ -23,10 +23,10 @@
 #include <error.h>
 #include <errno.h>
 #include <libgen.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>

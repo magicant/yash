@@ -20,7 +20,7 @@ CFLAGS = -O3 -ggdb -std=gnu99
 ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
 CFLAGS += -Wall -Wextra
 endif
-LDFLAGS = -lreadline -ltermcap
+LDFLAGS = -lc -lreadline -ltermcap
 OBJS = yash.o util.o readline.o parser.o expand.o exec.o path.o builtin.o alias.o
 TARGET = yash
 
