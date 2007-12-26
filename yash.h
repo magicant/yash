@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <signal.h>
 #include <sys/types.h>
 
 
@@ -46,7 +47,7 @@
 extern bool is_loginshell;
 extern bool is_interactive;
 
-extern bool sigint_received;
+extern volatile sig_atomic_t sigint_received;
 
 extern char *prompt_command;
 
@@ -61,8 +62,8 @@ void exec_source_and_exit(const char *code, const char *end, const char *name)
 
 void set_signals(void);
 void unset_signals(void);
-void set_sigmasks(void);
-void unset_sigmasks(void);
+void wait_for_signal(void);
+void handle_signals(void);
 void set_unique_pgid(void);
 void restore_pgid(void);
 void set_shell_env(void);

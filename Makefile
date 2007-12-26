@@ -16,7 +16,6 @@
 
 
 CC = gcc
-CPPFLAGS += -DSIGWAIT_WORKAROUND=1  # XXX
 CFLAGS = -O3 -ggdb -std=gnu99
 ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
 CFLAGS += -Wall -Wextra

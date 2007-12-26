@@ -76,6 +76,7 @@ static pid_t exec_single(
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
 static void savesfree(struct save_redirect *save);
+char *subst_command(const char *code, const char *end);
 
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;
@@ -276,22 +277,32 @@ int get_jobnumber_from_pid(pid_t pid)
 /* 全ての子プロセスを対象に wait する。
  * Wait するだけでジョブの状態変化の報告はしない。
  * この関数はブロックしない。 */
+/* この関数は内部で SIGCHLD をブロックする。 */
 void wait_chld(void)
 {
 	int waitpidopt;
 	int status;
 	pid_t pid;
+	sigset_t newset, oldset;
+
+	sigemptyset(&newset);
+	sigaddset(&newset, SIGCHLD);
+	sigemptyset(&oldset);
+	if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0)
+		error(0, errno, "sigprocmask before wait");
 
 start:
 	waitpidopt = WUNTRACED | WCONTINUED | WNOHANG;
 	pid = waitpid(-1 /* any child process */, &status, waitpidopt);
-	if (pid < 0) {
-		if (errno == EINTR)
-			goto start;
-		if (errno != ECHILD)
-			error(0, errno, "waitpid");
-		return;
-	} else if (pid == 0) {  /* no status changees */
+	if (pid <= 0) {
+		if (pid < 0) {
+			if (errno == EINTR)
+				goto start;
+			if (errno != ECHILD)
+				error(0, errno, "waitpid");
+		}
+		if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
+			error(0, errno, "sigprocmask after wait");
 		return;
 	}
 
@@ -670,7 +681,6 @@ static pid_t exec_single(
 
 directexec:
 	unset_signals();
-	unset_sigmasks();
 	assert(!is_interactive);
 	if (pipes.p_count > 0) {
 		if (pindex) {
@@ -880,7 +890,7 @@ static void savesfree(struct save_redirect *save)
  * この関数はコマンドの実行が終わるまで返らない。
  * 戻り値: 新しく malloc した、statements の実行結果。
  *         エラーや、statements が中止された場合は NULL。 */
-//char *subst_command(STATEMENT *statements)
+//char *subst_command(const char *code, const char *end)
 //{
 //	int pipefd[2];
 //

@@ -50,16 +50,15 @@ static void init_env(void);
 static void init_signal(void);
 void set_signals(void);
 void unset_signals(void);
-void set_sigmasks(void);
-void unset_sigmasks(void);
 void wait_for_signal(void);
+void handle_signals(void);
 void set_unique_pgid(void);
 void restore_pgid(void);
 void set_shell_env(void);
 void unset_shell_env(void);
 static int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__((noreturn));
-int main(int argc, char **argv);
+/* int main(int argc, char **argv); */
 void print_help(void);
 void print_version(void);
 void yash_exit(int exitcode);
@@ -68,9 +67,6 @@ void yash_exit(int exitcode);
 bool is_loginshell;
 /* 対話的シェルなら非 0 */
 bool is_interactive;
-
-/* SIGINT を受け取ると非 0 になる。 */
-bool sigint_received = false;
 
 /* プライマリプロンプトの前に実行するコマンド */
 char *prompt_command = NULL;
@@ -269,12 +265,12 @@ static void init_env(void)
 /********** シグナルハンドリング **********/
 
 /* yash のシグナルハンドリングに付いて:
- * シェルの状態にかかわらず、SIGHUP, SIGCHLD, SIGINT は常にブロックしておき、
- * wait_for_signal 関数の中でのみ受信する。
- * また SIGQUIT は常に無視する。
- * 対話的シェルでは、ignsignals に含まれるシグナルも無視する。
- * 例外的に、readline での入力待機中は SIGHUP/CHLD/INT をブロックせず、
- * シグナルハンドラを使う。 */
+ * シェルの状態にかかわらず、SIGHUP, SIGCHLD, SIGINT は常に sig_handler
+ * シグナルハンドラで受信する。sig_handler はシグナルを受信したことを示す
+ * フラグを立てるだけで、実際にシグナルに対する処理を行うのは handle_signals
+ * である。
+ * SIGQUIT は常に無視する。
+ * 対話的シェルでは、ignsignals に含まれるシグナルも無視する。 */
 
 /* シェルで無視するシグナルのリスト */
 static const int ignsignals[] = {
@@ -288,8 +284,29 @@ static void debug_sig(int signal)
 }
 #endif
 
-/* 何もしないシグナルハンドラ */
-static void do_nothing(int signum __attribute__((unused))) { }
+static volatile sig_atomic_t sighup_received = false;
+static volatile sig_atomic_t sigchld_received = false;
+       volatile sig_atomic_t sigint_received = false;
+
+/* SIGHUP, SIGCHLD, SIGINT, SIGQUIT のハンドラ */
+static void sig_handler(int sig)
+{
+	switch (sig) {
+		case SIGHUP:
+			sighup_received = true;
+			break;
+		case SIGCHLD:
+#if 1  //XXX
+			sigchld_received = true;
+#else
+			wait_chld();
+#endif
+			break;
+		case SIGINT:
+			sigint_received = true;
+			break;
+	}
+}
 
 /* シグナルマスク・シグナルハンドラを初期化する。
  * この関数は main で一度だけ呼ばれる。 */
@@ -300,18 +317,16 @@ static void init_signal(void)
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 
-	action.sa_handler = SIG_DFL;
+	action.sa_handler = sig_handler;
 	if (sigaction(SIGHUP, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGHUP");
 	if (sigaction(SIGCHLD, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGCHLD");
 	if (sigaction(SIGINT, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGINT");
-
-	action.sa_handler = do_nothing;
 	if (sigaction(SIGQUIT, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGQUIT");
-	/* do_nothing は何もしないシグナルハンドラなので、シグナル受信時の挙動は
+	/* sig_handler は何もしないシグナルハンドラなので、シグナル受信時の挙動は
 	 * SIG_IGN と同じだが、exec の実行時にデフォルトに戻される点が異なる。 */
 
 #if 0
@@ -321,14 +336,13 @@ static void init_signal(void)
 		if (sigaction(i, &action, NULL) < 0) ;
 #endif
 
-#if SIGWAIT_WORKAROUND
-	/* SIGCHLD に何らかのシグナルハンドラを設定しておかないと、
-	 * sigwait がうまく動かないことへの対処
-	 * cf. http://bugzilla.kernel.org/show_bug.cgi?id=9347 */
-	action.sa_handler = do_nothing;
-	if (sigaction(SIGCHLD, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGCHLD");
-#endif
+	sigemptyset(&action.sa_mask);
+	sigaddset(&action.sa_mask, SIGHUP);
+	sigaddset(&action.sa_mask, SIGCHLD);
+	sigaddset(&action.sa_mask, SIGINT);
+	sigaddset(&action.sa_mask, SIGQUIT);
+	if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) < 0)
+		error(0, errno, "sigprocmask(UNBLOCK, HUP|CHLD|INT|QUIT");
 }
 
 /* 対話的シェル用シグナルハンドラを初期化する。
@@ -361,67 +375,68 @@ void unset_signals(void)
 			error(0, errno, "sigaction: signal=%d", *signals);
 }
 
-static sigset_t orig_sigprocmask;
-
-/* シグナルマスクを初期化する。
- * この関数は unset_sigmasks の後再び呼び直されることがある。 */
-void set_sigmasks(void)
-{
-	sigset_t mask;
-
-	sigemptyset(&mask);
-	sigaddset(&mask, SIGHUP);
-	sigaddset(&mask, SIGCHLD);
-	sigaddset(&mask, SIGINT);
-	if (sigprocmask(SIG_SETMASK, &mask, &orig_sigprocmask) < 0)
-		error(0, errno, "sigprocmask");
-}
-
-/* シグナルマスクを元に戻す */
-void unset_sigmasks(void)
-{
-	if (sigprocmask(SIG_SETMASK, &orig_sigprocmask, NULL) < 0)
-		error(0, errno, "sigprocmask");
-}
-
-/* sigwait でシグナルを待ち、受け取ったシグナルに対して処理を行う。
+/* sigsuspend でシグナルを待ち、受け取ったシグナルに対して処理を行う。
  * この関数で待つシグナルは、SIGHUP と SIGCHLD と SIGINT である。
- * これらのシグナルは予め sigprocmask でブロックしておかなければならない。
  * SIGHUP を受け取ると、シェルは終了するのでこの関数は返らない。*/
 void wait_for_signal(void)
 {
-	int signo, waitresult;
-	sigset_t ss;
+	sigset_t ss, oldss;
 
 	sigemptyset(&ss);
 	sigaddset(&ss, SIGHUP);
 	sigaddset(&ss, SIGCHLD);
 	sigaddset(&ss, SIGINT);
-	waitresult = sigwait(&ss, &signo);
-	if (waitresult != 0) {
-		if (waitresult == EINTR)
-			return;
-		error(2, waitresult, "sigwait");
-	}
-	switch (signo) {
-		case SIGHUP:
-			send_sighup_to_all_jobs();
-			finalize_readline();
-			sigemptyset(&ss);
-			sigaddset(&ss, SIGHUP);
-			if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
-				error(2, errno, "sigprocmask before raising SIGHUP");
-			raise(SIGHUP);
-			assert(false);
-		case SIGCHLD:
-			wait_chld();
+	sigemptyset(&oldss);
+	if (sigprocmask(SIG_BLOCK, &ss, &oldss) < 0)
+		error(2, errno, "sigprocmask before sigsuspend");
+
+	ss = oldss;
+	sigdelset(&ss, SIGHUP);
+	sigdelset(&ss, SIGCHLD);
+	sigdelset(&ss, SIGINT);
+	for (;;) {
+		bool received = sighup_received || sigchld_received || sigint_received;
+		handle_signals();
+		if (received)
 			break;
-		case SIGINT:
-			sigint_received = true;
-			break;
-		default:
-			assert(false);
+		if (sigsuspend(&ss) < 0 && errno != EINTR)
+			error(0, errno, "sigsuspend");
 	}
+
+	if (sigprocmask(SIG_SETMASK, &oldss, NULL) < 0)
+		error(2, errno, "sigprocmask after sigsuspend");
+}
+
+/* 受け取ったシグナルがあればそれに対して処理を行い、フラグをリセットする。
+ * SIGHUP を受け取ると、シェルは終了するのでこの関数は返らない。 */
+void handle_signals(void)
+{
+	if (sighup_received) {
+		struct sigaction action;
+		sigset_t ss;
+
+		action.sa_flags = 0;
+		action.sa_handler = SIG_DFL;
+		sigemptyset(&action.sa_mask);
+		if (sigaction(SIGHUP, &action, NULL) < 0)
+			error(2, errno, "sigaction(SIGHUP)");
+
+		send_sighup_to_all_jobs();
+		finalize_readline();
+
+		sigemptyset(&ss);
+		sigaddset(&ss, SIGHUP);
+		if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
+			error(2, errno, "sigprocmask before raising SIGHUP");
+
+		raise(SIGHUP);
+		assert(false);
+	}
+	if (sigchld_received) {
+		wait_chld();
+		sigchld_received = 0;
+	}
+	/* 注: SIGINT は wait 組込みコマンドが扱うので、ここでは扱わない。 */
 }
 
 static pid_t orig_pgrp = 0;
@@ -457,7 +472,6 @@ void set_shell_env(void)
 {
 	static bool initialized = false;
 
-	set_sigmasks();
 	if (is_interactive) {
 		set_signals();
 		set_unique_pgid();
@@ -484,7 +498,6 @@ void unset_shell_env(void)
 		restore_pgid();
 		unset_signals();
 	}
-	unset_sigmasks();
 }
 
 /* PROMPT_COMMAND を実行する。
