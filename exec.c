@@ -381,6 +381,14 @@ pfound:
  * 停止しているジョブには SIGCONT も送る。 */
 void send_sighup_to_all_jobs(void)
 {
+	sigset_t ss, oldss;
+
+	sigemptyset(&ss);
+	sigaddset(&ss, SIGCHLD);
+	sigemptyset(&oldss);
+	if (sigprocmask(SIG_BLOCK, &ss, &oldss) < 0)
+		error(0, errno, "sigprocmask(BLOCK, CHLD)");
+
 	if (is_interactive) {
 		if (temp_chld.jp_pid) {
 			kill(temp_chld.jp_pid, SIGHUP);
@@ -400,6 +408,9 @@ void send_sighup_to_all_jobs(void)
 	} else {
 		killpg(0, SIGHUP);
 	}
+
+	if (sigprocmask(SIG_SETMASK, &oldss, NULL) < 0)
+		error(0, errno, "sigprocmask");
 }
 
 /* count 組のパイプを作り、その (新しく malloc した) 配列へのポインタを返す。
