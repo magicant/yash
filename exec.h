@@ -65,6 +65,7 @@ void init_exec(void);
 int exitcode_from_status(int status);
 JOB *get_job(size_t jobnumber);
 unsigned job_count(void);
+unsigned stopped_job_count(void);
 bool remove_job(size_t jobnumber);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
 void print_all_job_status(bool changedonly, bool printpids);

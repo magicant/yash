@@ -53,6 +53,7 @@ static void joblist_reinit(void);
 int exitcode_from_status(int status);
 JOB *get_job(size_t jobnumber);
 unsigned job_count(void);
+unsigned stopped_job_count(void);
 static int add_job(void);
 bool remove_job(size_t jobnumber);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
@@ -148,6 +149,19 @@ unsigned job_count(void)
 	assert(joblist.length > 0);
 	for (size_t index = joblist.length; --index > 0; )
 		if (joblist.contents[index])
+			result++;
+	return result;
+}
+
+/* 現在のジョブリスト内の停止しているジョブの個数を数える */
+unsigned stopped_job_count(void)
+{
+	unsigned result = 0;
+	JOB *job;
+
+	assert(joblist.length > 0);
+	for (size_t index = joblist.length; --index > 0; )
+		if ((job = joblist.contents[index]) && job->j_status == JS_STOPPED)
 			result++;
 	return result;
 }

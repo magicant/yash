@@ -207,11 +207,11 @@ int builtin_exit(int argc, char *const *argv)
 			goto usage;
 		}
 	}
-	if (!forceexit) {
+	if (is_interactive && !forceexit) {
 		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
-		if (job_count()) {
-			error(0, 0, "There are undone jobs!"
+		if (stopped_job_count()) {
+			error(0, 0, "There are stopped jobs!"
 					"  Use `-f' option to exit anyway.");
 			return EXIT_FAILURE;
 		}
@@ -822,11 +822,11 @@ int builtin_exec(int argc, char *const *argv)
 		}
 	}
 
-	if (!forceexec && is_interactive) {
+	if (is_interactive && !forceexec) {
 		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
-		if (job_count()) {
-			error(0, 0, "There are undone jobs!"
+		if (stopped_job_count()) {
+			error(0, 0, "There are stopped jobs!"
 					"  Use `-f' option to exec anyway.");
 			return EXIT_FAILURE;
 		}

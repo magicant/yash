@@ -25,6 +25,7 @@ typedef int cbody(int argc, char *const *argv);
 void init_builtin(void);
 cbody *get_builtin(const char *name);
 
+int builtin_exit(int argc, char *const *argv);
 int builtin_exec(int argc, char *const *argv);
 
 #define OPT_HISTSIZE      "histsize"

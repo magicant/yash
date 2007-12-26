@@ -516,6 +516,8 @@ static int exec_promptcommand(void)
 /* 対話的動作を行う。この関数は返らない。 */
 static void interactive_loop(void)
 {
+	const char *exitargv[] = { "exit", NULL, };
+
 	assert(is_interactive);
 	for (;;) {
 		STATEMENT *statements;
@@ -532,19 +534,10 @@ static void interactive_loop(void)
 			case 1:  /* syntax error */
 				break;
 			case EOF:
-				wait_chld();
-				print_all_job_status(
-						true /* changed only */, false /* not verbose */);
-				if (job_count()) {
-					error(0, 0, "There are undone jobs!"
-							"  Use `exit -f' to exit anyway.");
-					break;
-				}
-				goto exit;
+				laststatus = builtin_exit(1, (char **) exitargv);
+				break;
 		}
 	}
-exit:
-	yash_exit(laststatus);
 }
 
 static struct option long_opts[] = {
@@ -652,8 +645,8 @@ void print_version(void)
 
 /* 終了前の手続きを行って、終了する。*/
 void yash_exit(int exitcode) {
-	wait_chld();
-	print_all_job_status(false /* all jobs */, false /* not verbose */);
+	//wait_chld();
+	//print_all_job_status(false /* all jobs */, false /* not verbose */);
 	if (is_loginshell)
 		exec_file("~/.yash_logout", true /* suppress error */);
 	unset_shell_env();
