@@ -416,7 +416,6 @@ int builtin_wait(int argc, char *const *argv)
 	int resultstatus = 0;
 
 	sigemptyset(&newset);
-	sigaddset(&newset, SIGCHLD);
 	sigaddset(&newset, SIGINT);
 	sigemptyset(&oldset);
 	if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0)

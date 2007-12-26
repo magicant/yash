@@ -68,6 +68,7 @@ void wait_for_job(size_t jobnumber);
 void send_sighup_to_all_jobs(void);
 static int (*create_pipes(size_t count))[2];
 static void close_pipes(PIPES pipes);
+static inline int xdup2(int oldfd, int newfd);
 void exec_statements(STATEMENT *statements);
 void exec_statements_and_exit(STATEMENT *statements)
 	__attribute__((noreturn));
@@ -494,6 +495,15 @@ static void close_pipes(PIPES pipes)
 	free(pipes.p_pipes);
 }
 
+/* dup2 を確実に行う。(dup2 が EINTR を返したら、やり直す) */
+static inline int xdup2(int oldfd, int newfd)
+{
+	int result;
+
+	while ((result = dup2(oldfd, newfd)) < 0 && errno == EINTR);
+	return result;
+}
+
 /* コマンド入力全体を受け取って、全コマンドを実行する。 */
 void exec_statements(STATEMENT *s)
 {
@@ -750,12 +760,12 @@ directexec:
 	if (pipes.p_count > 0) {
 		if (pindex) {
 			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
-			if (dup2(pipes.p_pipes[index][0], STDIN_FILENO) < 0)
+			if (xdup2(pipes.p_pipes[index][0], STDIN_FILENO) < 0)
 				error(0, errno, "%s: cannot connect pipe to stdin", argv[0]);
 		}
 		if (pindex < (ssize_t) pipes.p_count) {
 			size_t index = (pindex >= 0) ? (size_t) pindex : 0;
-			if (dup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
+			if (xdup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
 				error(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
 		}
 		close_pipes(pipes);
@@ -883,7 +893,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 						if (close(r->rd_fd) < 0)
 							if (errno != EBADF)
 								goto onerror;
-						if (dup2(fd, r->rd_fd) < 0)
+						if (xdup2(fd, r->rd_fd) < 0)
 							goto onerror;
 					}
 				}
@@ -897,7 +907,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 			if (close(r->rd_fd) < 0)
 				if (errno != EBADF)
 					goto onerror;
-			if (dup2(fd, r->rd_fd) < 0)
+			if (xdup2(fd, r->rd_fd) < 0)
 				goto onerror;
 			if (close(fd) < 0)
 				goto onerror;
@@ -928,7 +938,7 @@ static void undo_redirections(struct save_redirect *save)
 			error(0, errno, "closing file descriptor %d",
 					save->sr_origfd);
 		if (save->sr_copyfd >= 0) {
-			if (dup2(save->sr_copyfd, save->sr_origfd) < 0)
+			if (xdup2(save->sr_copyfd, save->sr_origfd) < 0)
 				error(0, errno, "can't restore file descriptor %d from %d",
 						save->sr_origfd, save->sr_copyfd);
 			if (close(save->sr_copyfd) < 0)
@@ -957,16 +967,82 @@ static void savesfree(struct save_redirect *save)
  * end:    exec_source_and_exit 参照
  * 戻り値: 新しく malloc した、statements の実行結果。
  *         エラーや、statements が中止された場合は NULL。 */
-//char *subst_command(const char *code, const char *end)
-//{
-//	int pipefd[2];
-//
-//	if (!statements)
-//		return xstrdup("");
-//
-//	/* コマンドの出力を受け取るためのパイプを開く */
-//	if (pipe(pipefd) < 0) {
-//		error(0, errno, "can't open pipe for command substitution");
-//		return NULL;
-//	}
-//}
+char *subst_command(const char *code, const char *end)
+{
+	int pipefd[2];
+	pid_t cpid;
+
+	if (!code || !code[0])
+		return xstrdup("");
+
+	/* コマンドの出力を受け取るためのパイプを開く */
+	if (pipe(pipefd) < 0) {
+		error(0, errno, "can't open pipe for command substitution");
+		return NULL;
+	}
+	fflush(stdout);
+
+	assert(!temp_chld.jp_pid);
+	cpid = fork();
+	if (cpid < 0) {  /* fork 失敗 */
+		error(0, errno, "command substitution: fork");
+		close(pipefd[0]);
+		close(pipefd[1]);
+		return NULL;
+	} else if (cpid) {  /* 親プロセス */
+		char *buf;
+		size_t len, max;
+		ssize_t count;
+
+		close(pipefd[1]);
+
+		temp_chld = (struct jproc) { .jp_pid = cpid, .jp_status = JS_RUNNING, };
+		len = 0;
+		max = 100;
+		buf = xmalloc(max + 1);
+		for (;;) {
+			handle_signals();
+			count = read(pipefd[0], buf + len, max - len);
+			if (count < 0) {
+				if (errno == EINTR) {
+					continue;
+				} else {
+					error(0, errno, "command substitution");
+					break;
+				}
+			} else if (count == 0) {
+				break;
+			}
+			len += count;
+			if (len >= max) {
+				max *= 2;
+				buf = xrealloc(buf, max + 1);
+			}
+		}
+		while (temp_chld.jp_status != JS_DONE)
+			wait_for_signal();
+		temp_chld.jp_pid = 0;
+
+		/* 末尾の改行を削る */
+		while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
+			len--;
+		buf = xrealloc(buf, len + 1);
+		buf[len] = '\0';
+
+		close(pipefd[0]);
+
+		return buf;
+	} else {  /* 子プロセス */
+		close(pipefd[0]);
+		if (pipefd[1] != STDOUT_FILENO) {
+			/* ↑ この条件が成り立たないことは普通考えられないが…… */
+			if (close(STDOUT_FILENO) < 0)
+				error(0, errno, "command substitution");
+			if (xdup2(pipefd[1], STDOUT_FILENO) < 0)
+				error(2, errno, "command substitution");
+			if (close(pipefd[1]) < 0)
+				error(0, errno, "command substitution");
+		}
+		exec_source_and_exit(code, end, "command substitution");
+	}
+}
