@@ -399,65 +399,110 @@ usage:
 /* wait 組込みコマンド */
 int builtin_wait(int argc, char *const *argv)
 {
-//	void int_handler(int signal __attribute__((unused))) { cancel_wait = true; }
-//	struct sigaction action, oldaction;
-//	int jobnumber = -1;
-//
-//	if (argc == 2) {
-//		char *target = argv[1];
-//		bool isjob = target[0] == '%';
-//
-//		if (isjob) {
-//			jobnumber = parse_jobspec(target, true);
-//			if (jobnumber < 0) switch (jobnumber) {
-//				case -1:
-//				default:
-//					error(0, 0, "%s: %s: invalid job spec", argv[0], argv[1]);
-//					return EXIT_NOTFOUND;
-//				case -2:
-//					error(0, 0, "%s: %s: no such job", argv[0], argv[1]);
-//					return EXIT_NOTFOUND;
-//				case -3:
-//					error(0, 0, "%s: %s: ambiguous job spec", argv[0],argv[1]);
-//					return EXIT_NOTFOUND;
-//			}
-//		} else {
-//			errno = 0;
-//			if (*target)
-//				jobnumber = strtol(target, &target, 10);
-//			if (errno || *target) {
-//				error(0, 0, "%s: %s: invalid target", argv[0], argv[1]);
-//				return EXIT_FAILURE;
-//			}
-//			jobnumber = get_jobnumber_from_pid(jobnumber);
-//			if (jobnumber < 0) {
-//				error(0, 0, "%s: %s: not a child of this shell",
-//						argv[0], argv[1]);
-//				return EXIT_NOTFOUND;
-//			}
-//		}
-//	} else if (argc > 2) {
-//		goto usage;
-//	}
-//
-//	cancel_wait = false;
-//	action.sa_handler = int_handler;
-//	action.sa_flags = 0;
-//	sigemptyset(&action.sa_mask);
-//	if (sigaction(SIGINT, &action, &oldaction) < 0)
-//		error(EXIT_FAILURE, errno, "sigaction before wait");
-//
-//	wait_all(jobnumber);
-//
-//	if (sigaction(SIGINT, &oldaction, NULL) < 0)
-//		error(EXIT_FAILURE, errno, "sigaction after wait");
-//	cancel_wait = false;
-//
-//	return EXIT_SUCCESS;
+	sigset_t newset, oldset;
+	bool interrupted = false;
+	int resultstatus = 0;
+
+	sigemptyset(&newset);
+	sigaddset(&newset, SIGCHLD);
+	sigaddset(&newset, SIGINT);
+	sigemptyset(&oldset);
+	if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0)
+		error(0, errno, "sigprocmask before wait");
+	sigint_received = false;
+
+	if (argc < 2) {  /* 引数無し: 全ジョブを待つ */
+		for (;;) {
+			if (is_interactive && !posixly_correct)
+				print_all_job_status(true /* changed only */, false);
+			if (is_interactive ? !running_job_count() : !undone_job_count())
+				break;
+			wait_for_signal();
+			if (sigint_received) {
+				interrupted = true;
+				break;
+			}
+		}
+		if (!is_interactive)
+			remove_exited_jobs();
+	} else {  /* 引数で指定されたジョブを待つ */
+		for (int i = 1; !interrupted && i < argc; i++) {
+			int jobnumber = 0;
+			char *target = argv[i];
+			bool isjob = target[0] == '%';
+
+			if (target[0] == '-') {
+				error(0, 0, "%s: %s: illegal option",
+						argv[0], target);
+				goto usage;
+			} else if (isjob) {
+				jobnumber = parse_jobspec(target, true);
+				if (jobnumber < 0) switch (jobnumber) {
+					case -1:
+					default:
+						error(0, 0, "%s: %s: invalid job spec",
+								argv[0], target);
+						return EXIT_NOTFOUND;
+					case -2:
+						error(0, 0, "%s: %s: no such job",
+								argv[0], target);
+						return EXIT_NOTFOUND;
+					case -3:
+						error(0, 0, "%s: %s: ambiguous job spec",
+								argv[0], target);
+						return EXIT_NOTFOUND;
+				}
+			} else {
+				errno = 0;
+				if (*target)
+					jobnumber = strtol(target, &target, 10);
+				if (errno || *target) {
+					error(0, 0, "%s: %s: invalid target", argv[0], target);
+					return EXIT_FAILURE;
+				}
+				jobnumber = get_jobnumber_from_pid(jobnumber);
+				if (jobnumber < 0) {
+					error(0, 0, "%s: %s: not a child of this shell",
+							argv[0], target);
+					return EXIT_NOTFOUND;
+				}
+			}
+
+			JOB *job = joblist.contents[jobnumber];
+			for (;;) {
+				if (is_interactive && !posixly_correct)
+					print_all_job_status(true /* changed only */, false);
+				if (job->j_status == JS_DONE
+						|| (is_interactive && job->j_status == JS_STOPPED))
+					break;
+				wait_for_signal();
+				if (sigint_received) {
+					interrupted = true;
+					break;
+				}
+			}
+			resultstatus = exitcode_from_status(job->j_exitstatus);
+			if (!is_interactive) {
+				assert(job->j_status == JS_DONE);
+				remove_job(jobnumber);
+			}
+			/* POSIX は、最後の引数に対応するジョブの終了コードを wait
+			 * コマンドの終了コードにすることを定めている。
+			 * 他の引数のジョブを待っている間に最後の引数のジョブが終了した場合
+			 * print_all_job_status をするとジョブ情報がなくなってしまうので
+			 * 正しい終了コードが得られない。 */
+		}
+	}
+
+	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
+		error(0, errno, "sigprocmask after wait");
+
+	return interrupted ? 128 + SIGINT : resultstatus;
 
 usage:
-	error(0, 0, "NOT IMPLEMENTED");  /* TODO */
-	printf("Usage:  wait [jobspec/pid]\n");
+	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
+		error(0, errno, "sigprocmask after wait");
+	printf("Usage:  wait [jobspec/pid]...\n");
 	return EXIT_FAILURE;
 }
 
@@ -703,7 +748,7 @@ int builtin_fg(int argc, char *const *argv)
 			job = get_job(jobnumber);
 		}
 		pgid = job->j_pgid;
-		printf("[%zd]+ %5ld              %s%s\n",
+		fprintf(stderr, "[%zd]+ %5ld              %s%s\n",
 				jobnumber, (long) pgid,
 				job->j_name ? : "<< unknown job >>", fg ? "" : " &");
 		if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
@@ -741,7 +786,7 @@ int builtin_fg(int argc, char *const *argv)
 			currentjobnumber = jobnumber;
 			job = get_job(jobnumber);
 			pgid = job->j_pgid;
-			printf("[%zd]+ %5ld              %s%s\n",
+			fprintf(stderr, "[%zd]+ %5ld              %s%s\n",
 					jobnumber, (long) pgid,
 					job->j_name ? : "<< unknown job >>", fg ? "" : " &");
 			if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {

@@ -29,16 +29,17 @@
 #define YASH_VERSION   "1.0"
 #define YASH_COPYRIGHT "Copyright (C) 2007 magicant"
 
-#define ENV_USER     "USER"
-#define ENV_LOGNAME  "LOGNAME"
-#define ENV_HOME     "HOME"
-#define ENV_LANG     "LANG"
-#define ENV_PATH     "PATH"
-#define ENV_PWD      "PWD"
-#define ENV_SPWD     "SPWD"
-#define ENV_OLDPWD   "OLDPWD"
-#define ENV_SHLVL    "SHLVL"
-#define ENV_HOSTNAME "HOSTNAME"
+#define ENV_USER            "USER"
+#define ENV_LOGNAME         "LOGNAME"
+#define ENV_HOME            "HOME"
+#define ENV_LANG            "LANG"
+#define ENV_PATH            "PATH"
+#define ENV_PWD             "PWD"
+#define ENV_SPWD            "SPWD"
+#define ENV_OLDPWD          "OLDPWD"
+#define ENV_SHLVL           "SHLVL"
+#define ENV_HOSTNAME        "HOSTNAME"
+#define ENV_POSIXLY_CORRECT "POSIXLY_CORRECT"
 
 #define EXIT_NOEXEC   126
 #define EXIT_NOTFOUND 127
@@ -46,6 +47,7 @@
 
 extern bool is_loginshell;
 extern bool is_interactive;
+extern bool posixly_correct;
 
 extern volatile sig_atomic_t sigint_received;
 
@@ -66,6 +68,7 @@ void wait_for_signal(void);
 void handle_signals(void);
 void set_unique_pgid(void);
 void restore_pgid(void);
+void forget_orig_pgrp(void);
 void set_shell_env(void);
 void unset_shell_env(void);
 

@@ -54,6 +54,7 @@ void wait_for_signal(void);
 void handle_signals(void);
 void set_unique_pgid(void);
 void restore_pgid(void);
+void forget_orig_pgrp(void);
 void set_shell_env(void);
 void unset_shell_env(void);
 static int exec_promptcommand(void);
@@ -67,6 +68,8 @@ void yash_exit(int exitcode);
 bool is_loginshell;
 /* 対話的シェルなら非 0 */
 bool is_interactive;
+/* POSIX の規定に厳密に従うなら非 0 */
+bool posixly_correct;
 
 /* プライマリプロンプトの前に実行するコマンド */
 char *prompt_command = NULL;
@@ -265,10 +268,10 @@ static void init_env(void)
 /********** シグナルハンドリング **********/
 
 /* yash のシグナルハンドリングに付いて:
- * シェルの状態にかかわらず、SIGHUP, SIGCHLD, SIGINT は常に sig_handler
+ * シェルの状態にかかわらず、SIGHUP と SIGCHLD は常に sig_handler
  * シグナルハンドラで受信する。sig_handler はシグナルを受信したことを示す
  * フラグを立てるだけで、実際にシグナルに対する処理を行うのは handle_signals
- * である。
+ * である。対話的シェルでは SIGINT も sig_handler で受信する。
  * SIGQUIT は常に無視する。
  * 対話的シェルでは、ignsignals に含まれるシグナルも無視する。 */
 
@@ -305,6 +308,8 @@ static void sig_handler(int sig)
 		case SIGINT:
 			sigint_received = true;
 			break;
+		case SIGQUIT:
+			break;
 	}
 }
 
@@ -322,8 +327,6 @@ static void init_signal(void)
 		error(0, errno, "sigaction: signal=SIGHUP");
 	if (sigaction(SIGCHLD, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGCHLD");
-	if (sigaction(SIGINT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGINT");
 	if (sigaction(SIGQUIT, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGQUIT");
 	/* sig_handler は何もしないシグナルハンドラなので、シグナル受信時の挙動は
@@ -358,6 +361,10 @@ void set_signals(void)
 	for (signals = ignsignals; *signals; signals++)
 		if (sigaction(*signals, &action, NULL) < 0)
 			error(0, errno, "sigaction: signal=%d", *signals);
+
+	action.sa_handler = sig_handler;
+	if (sigaction(SIGINT, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGINT");
 }
 
 /* 対話的シェル用シグナルハンドラを元に戻す */
@@ -369,10 +376,11 @@ void unset_signals(void)
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 	action.sa_handler = SIG_DFL;
-
 	for (signals = ignsignals; *signals; signals++)
 		if (sigaction(*signals, &action, NULL) < 0)
 			error(0, errno, "sigaction: signal=%d", *signals);
+	if (sigaction(SIGINT, &action, NULL) < 0)
+		error(0, errno, "sigaction: signal=SIGINT");
 }
 
 /* sigsuspend でシグナルを待ち、受け取ったシグナルに対して処理を行う。
@@ -462,6 +470,12 @@ void restore_pgid(void)
 			error(0, errno, "cannot restore foreground process group");
 		orig_pgrp = 0;
 	}
+}
+
+/* orig_pgrp をリセットする */
+void forget_orig_pgrp(void)
+{
+	orig_pgrp = 0;
 }
 
 static bool noprofile = false, norc = false; 
@@ -560,6 +574,7 @@ int main(int argc, char **argv)
 
 	is_loginshell = argv[0][0] == '-';
 	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
+	posixly_correct = getenv(ENV_POSIXLY_CORRECT);
 	setlocale(LC_ALL, "");
 
 	optind = 0;

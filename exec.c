@@ -53,9 +53,13 @@ static void joblist_reinit(void);
 int exitcode_from_status(int status);
 JOB *get_job(size_t jobnumber);
 unsigned job_count(void);
+unsigned running_job_count(void);
 unsigned stopped_job_count(void);
+unsigned undone_job_count(void);
+unsigned unfinished_job_count(void);
 static int add_job(void);
 bool remove_job(size_t jobnumber);
+void remove_exited_jobs(void);
 void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
 void print_all_job_status(bool changedonly, bool printpids);
 int get_jobnumber_from_pid(pid_t pid);
@@ -153,7 +157,20 @@ unsigned job_count(void)
 	return result;
 }
 
-/* 現在のジョブリスト内の停止しているジョブの個数を数える */
+/* 現在のジョブリスト内の実行中のジョブの個数を数える(アクティブジョブを除く) */
+unsigned running_job_count(void)
+{
+	unsigned result = 0;
+	JOB *job;
+
+	assert(joblist.length > 0);
+	for (size_t index = joblist.length; --index > 0; )
+		if ((job = joblist.contents[index]) && job->j_status == JS_RUNNING)
+			result++;
+	return result;
+}
+
+/* 現在のジョブリスト内の停止中のジョブの個数を数える(アクティブジョブを除く) */
 unsigned stopped_job_count(void)
 {
 	unsigned result = 0;
@@ -166,8 +183,22 @@ unsigned stopped_job_count(void)
 	return result;
 }
 
+/* 現在のジョブリスト内の未終了ジョブの数を数える (アクティブジョブを除く) */
+unsigned undone_job_count(void)
+{
+	unsigned result = 0;
+	JOB *job;
+
+	assert(joblist.length > 0);
+	for (size_t index = joblist.length; --index > 0; )
+		if ((job = joblist.contents[index]) && job->j_status != JS_DONE)
+			result++;
+	return result;
+}
+
 /* アクティブジョブ (ジョブ番号 0 のジョブ) をジョブリストに移動し、
  * そのジョブをカレントジョブにする。
+ * 対話的シェルでは print_job_status を行う。
  * 戻り値: 成功したら新しいジョブ番号 (>0)、失敗したら -1。*/
 static int add_job(void)
 {
@@ -194,6 +225,8 @@ static int add_job(void)
 	}
 	joblist.contents[0] = NULL;
 	currentjobnumber = jobnumber;
+	if (is_interactive)
+		print_job_status(jobnumber, true, false);
 	return jobnumber;
 }
 
@@ -211,6 +244,17 @@ bool remove_job(size_t jobnumber)
 	} else {
 		return false;
 	}
+}
+
+/* 既に終了したジョブを削除する。(アクティブジョブを除く) */
+void remove_exited_jobs(void)
+{
+	JOB *job;
+
+	assert(joblist.length > 0);
+	for (size_t index = joblist.length; --index > 0; )
+		if ((job = joblist.contents[index]) && job->j_status == JS_DONE)
+			remove_job(index);
 }
 
 /* ジョブの状態を表示する。
@@ -700,6 +744,7 @@ static pid_t exec_single(
 	}
 	
 	/* 子プロセス */
+	forget_orig_pgrp();
 	if (is_interactive) {
 		if (setpgid(0, pgid) < 0)
 			error(0, errno, "%s: setpgid (child)", argv[0]);
