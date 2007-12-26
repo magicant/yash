@@ -425,14 +425,6 @@ pfound:
  * 停止しているジョブには SIGCONT も送る。 */
 void send_sighup_to_all_jobs(void)
 {
-	sigset_t ss, oldss;
-
-	sigemptyset(&ss);
-	sigaddset(&ss, SIGCHLD);
-	sigemptyset(&oldss);
-	if (sigprocmask(SIG_BLOCK, &ss, &oldss) < 0)
-		error(0, errno, "sigprocmask(BLOCK, CHLD)");
-
 	if (is_interactive) {
 		if (temp_chld.jp_pid) {
 			kill(temp_chld.jp_pid, SIGHUP);
@@ -452,9 +444,6 @@ void send_sighup_to_all_jobs(void)
 	} else {
 		killpg(0, SIGHUP);
 	}
-
-	if (sigprocmask(SIG_SETMASK, &oldss, NULL) < 0)
-		error(0, errno, "sigprocmask");
 }
 
 /* count 組のパイプを作り、その (新しく malloc した) 配列へのポインタを返す。
@@ -964,6 +953,8 @@ static void savesfree(struct save_redirect *save)
 /* 指定したコマンドを実行し、その標準出力の内容を返す。
  * 出力結果の末尾にある改行は削除する。
  * この関数はコマンドの実行が終わるまで返らない。
+ * code:   実行するコマンド
+ * end:    exec_source_and_exit 参照
  * 戻り値: 新しく malloc した、statements の実行結果。
  *         エラーや、statements が中止された場合は NULL。 */
 //char *subst_command(const char *code, const char *end)

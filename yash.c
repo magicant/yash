@@ -299,11 +299,7 @@ static void sig_handler(int sig)
 			sighup_received = true;
 			break;
 		case SIGCHLD:
-#if 1  //XXX
 			sigchld_received = true;
-#else
-			wait_chld();
-#endif
 			break;
 		case SIGINT:
 			sigint_received = true;

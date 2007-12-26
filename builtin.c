@@ -760,16 +760,28 @@ int builtin_fg(int argc, char *const *argv)
 			job = get_job(jobnumber);
 		}
 		pgid = job->j_pgid;
-		fprintf(stderr, "[%zd]+ %5ld              %s%s\n",
-				jobnumber, (long) pgid,
-				job->j_name ? : "<< unknown job >>", fg ? "" : " &");
+		if (posixly_correct)
+			printf(fg ? "%s\n" : "[%2$zd] %1$s &\n", job->j_name, jobnumber);
+		else
+			printf("[%zd]+ %5ld              %s%s\n",
+					jobnumber, (long) pgid, job->j_name, fg ? "" : " &");
 		if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
-			error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
-			err = true;
+			if (errno == EPERM || errno == ESRCH) {
+				error(0, 0, "%s %%%zd: job has terminated", argv[0], jobnumber);
+				return EXIT_FAILURE;
+			} else {
+				error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
+				err = true;
+			}
 		}
 		if (killpg(pgid, SIGCONT) < 0) {
-			error(0, errno, "%s %%%zd: kill SIGCONT", argv[0], jobnumber);
-			err = true;
+			if (errno == ESRCH) {
+				error(0, 0, "%s %%%zd: job has terminated", argv[0], jobnumber);
+				return EXIT_FAILURE;
+			} else {
+				error(0, errno, "%s %%%zd: kill SIGCONT", argv[0], jobnumber);
+				err = true;
+			}
 		}
 		job->j_status = JS_RUNNING;
 	} else {
@@ -798,16 +810,31 @@ int builtin_fg(int argc, char *const *argv)
 			currentjobnumber = jobnumber;
 			job = get_job(jobnumber);
 			pgid = job->j_pgid;
-			fprintf(stderr, "[%zd]+ %5ld              %s%s\n",
-					jobnumber, (long) pgid,
-					job->j_name ? : "<< unknown job >>", fg ? "" : " &");
+			if (posixly_correct)
+				printf(fg ? "%s\n" : "[%2$zd] %1$s &\n",
+						job->j_name, jobnumber);
+			else
+				printf("[%zd]+ %5ld              %s%s\n",
+						jobnumber, (long) pgid, job->j_name, fg ? "" : " &");
 			if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
-				error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
+				if (errno == EPERM || errno == ESRCH) {
+					error(0, 0, "%s %%%zd: job has terminated",
+							argv[0], jobnumber);
+				} else {
+					error(0, errno, "%s %%%zd: tcsetpgrp",
+							argv[0], jobnumber);
+				}
 				err = true;
 				continue;
 			}
 			if (killpg(pgid, SIGCONT) < 0) {
-				error(0, errno, "%s %%%zd: kill SIGCONT", argv[0], jobnumber);
+				if (errno == EPERM || errno == ESRCH) {
+					error(0, 0, "%s %%%zd: job has terminated",
+							argv[0], jobnumber);
+				} else {
+					error(0, errno, "%s %%%zd: kill SIGCONT",
+							argv[0], jobnumber);
+				}
 				err = true;
 				continue;
 			}
