@@ -41,11 +41,15 @@
 #include <assert.h>
 
 
+#define ADDITIONAL_BUILTIN //XXX
+
 void init_builtin(void);
 cbody *get_builtin(const char *name);
 int parse_jobspec(const char *str, bool forcePercent);
 int builtin_true(int argc, char *const *argv);
+#ifdef ADDITIONAL_BUILTIN
 int builtin_false(int argc, char *const *argv);
+#endif
 int builtin_exit(int argc, char *const *argv);
 static int get_signal(const char *name);
 static const char *get_signal_name(int signal);
@@ -67,7 +71,8 @@ int builtin_option(int argc, char *const *argv);
 
 /* 組込みコマンド一般仕様:
  * argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
- * 組込みコマンドは、argv の内容を変更してはならない。 */
+ * 組込みコマンドは、argv の内容を変更してはならない。
+ * ただし、getopt によって argv の順番を並べ替えるのはよい。 */
 
 static struct hasht builtins;
 
@@ -77,8 +82,10 @@ void init_builtin(void)
 	ht_init(&builtins);
 	ht_ensurecap(&builtins, 30);
 	ht_set(&builtins, ":",       builtin_true);
+#ifdef ADDITIONAL_BUILTIN
 	ht_set(&builtins, "true",    builtin_true);
 	ht_set(&builtins, "false",   builtin_false);
+#endif
 	ht_set(&builtins, "exit",    builtin_exit);
 	ht_set(&builtins, "logout",  builtin_exit);
 	ht_set(&builtins, "kill",    builtin_kill);
@@ -230,19 +237,72 @@ typedef struct {
 } SIGDATA;
 
 static const SIGDATA const sigdata[] = {
+	/* POSIX.1-1990 signals */
 	{ SIGHUP, "HUP", }, { SIGINT, "INT", }, { SIGQUIT, "QUIT", },
 	{ SIGILL, "ILL", }, { SIGABRT, "ABRT", }, { SIGFPE, "FPE", },
 	{ SIGKILL, "KILL", }, { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", },
 	{ SIGALRM, "ALRM", }, { SIGTERM, "TERM", }, { SIGUSR1, "USR1", },
 	{ SIGUSR2, "USR2", }, { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", },
 	{ SIGSTOP, "STOP", }, { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", },
-	{ SIGTTOU, "TTOU", }, { SIGBUS, "BUS", }, { SIGPOLL, "POLL", },
-	{ SIGPROF, "PROF", }, { SIGSYS, "SYS", }, { SIGTRAP, "TRAP", },
-	{ SIGURG, "URG", }, { SIGVTALRM, "VTALRM", }, { SIGXCPU, "XCPU", },
-	{ SIGXFSZ, "XFSZ", }, { SIGIOT, "IOT", }, { SIGSTKFLT, "STKFLT", },
-	{ SIGIO, "IO", }, { SIGCLD, "CLD", }, { SIGPWR, "PWR", },
-	{ SIGWINCH, "WINCH", }, { SIGUNUSED, "UNUSED", },
+	{ SIGTTOU, "TTOU", },
+	/* SUSv2 & POSIX.1-2001 (SUSv3) signals */
+	{ SIGBUS, "BUS", }, { SIGPOLL, "POLL", }, { SIGPROF, "PROF", },
+	{ SIGSYS, "SYS", }, { SIGTRAP, "TRAP", }, { SIGURG, "URG", },
+	{ SIGVTALRM, "VTALRM", }, { SIGXCPU, "XCPU", }, { SIGXFSZ, "XFSZ", },
+	/* Other signals */
+#ifdef SIGIOT
+	{ SIGIOT, "IOT", },
+#endif
+#ifdef SIGEMT
+	{ SIGEMT, "EMT", },
+#endif
+#ifdef SIGSTKFLT
+	{ SIGSTKFLT, "STKFLT", },
+#endif
+#ifdef SIGIO
+	{ SIGIO, "IO", },
+#endif
+#ifdef SIGCLD
+	{ SIGCLD, "CLD", },
+#endif
+#ifdef SIGPWR
+	{ SIGPWR, "PWR", },
+#endif
+#ifdef SIGINFO
+	{ SIGINFO, "INFO", },
+#endif
+#ifdef SIGLOST
+	{ SIGLOST, "LOST", },
+#endif
+#ifdef SIGWINCH
+	{ SIGWINCH, "WINCH", },
+#endif
+#ifdef SIGMSG
+	{ SIGMSG, "MSG", },
+#endif
+#ifdef SIGDANGER
+	{ SIGDANGER, "DANGER", },
+#endif
+#ifdef SIGMIGRATE
+	{ SIGMIGRATE, "MIGRATE", },
+#endif
+#ifdef SIGPRE
+	{ SIGPRE, "PRE", },
+#endif
+#ifdef SIGGRANT
+	{ SIGGRANT, "GRANT", },
+#endif
+#ifdef SIGRETRACT
+	{ SIGRETRACT, "RETRACT", },
+#endif
+#ifdef SIGSOUND
+	{ SIGSOUND, "SOUND", },
+#endif
+#ifdef SIGUNUSED
+	{ SIGUNUSED, "UNUSED", },
+#endif
 	{ 0, NULL, },
+	/* 番号 0 のシグナルは存在しない (C99 7.14) */
 };
 
 /* シグナル名に対応するシグナルの番号を返す。
@@ -252,38 +312,75 @@ static int get_signal(const char *name)
 	const SIGDATA *sd = sigdata;
 
 	assert(name != NULL);
-	if ('0' <= name[0] && name[0] <= '9') {  /* name は番号 */
-		char *c;
-		int result = 0;
+	if (isdigit((unsigned char) name[0])) {  /* name は番号 */
+		char *end;
+		int num;
 
 		errno = 0;
-		if (*name)
-			result = strtol(name, &c, 10);
-		if (errno || *c)
-			return 0;
-		return result;
+		num = strtol(name, &end, 10);
+		if (!errno && name[0] && !end[0])
+			return num;
 	} else {  /* name は名前 */
-		if (strncmp(name, "SIG", 3) == 0)
+		if (strncmp(name, "SIG", 3) == 0 && name[3])
 			name += 3;
+#if defined(SIGRTMAX) && defined(SIGRTMIN)
+		if (strcmp(name, "RTMIN") == 0) {
+			return SIGRTMIN;
+		} else if (strcmp(name, "RTMAX") == 0) {
+			return SIGRTMAX;
+		} else if (strncmp(name, "RTMIN+", 6) == 0) {
+			char *end;
+			int num;
+			name += 6;
+			errno = 0;
+			num = strtol(name, &end, 10);
+			if (!errno && name[0] && !end[0]) {
+				num += SIGRTMIN;
+				if (SIGRTMIN <= num && num <= SIGRTMAX)
+					return num;
+			}
+		} else if (strncmp(name, "RTMAX-", 6) == 0) {
+			char *end;
+			int num;
+			name += 6;
+			errno = 0;
+			num = strtol(name, &end, 10);
+			if (!errno && name[0] && !end[0]) {
+				num = SIGRTMAX - num;
+				if (SIGRTMIN <= num && num <= SIGRTMAX)
+					return num;
+			}
+		}
+#endif
 		while (sd->s_name) {
 			if (strcmp(name, sd->s_name) == 0)
 				return sd->s_signal;
 			sd++;
 		}
-		return 0;
 	}
+	return 0;
 }
 
 /* シグナル番号からシグナル名を得る。
- * シグナル名が得られないときは NULL を返す。 */
+ * シグナル名が得られないときは NULL を返す。
+ * 戻り値は静的記憶域へのポインタであり、次にこの関数を呼ぶまで有効である。 */
 static const char *get_signal_name(int signal)
 {
 	const SIGDATA *sd;
+	static char rtminname[16];
 
-	signal &= 0x3F;
+	if (signal >= 128)
+		signal -= 128;
 	for (sd = sigdata; sd->s_signal; sd++)
 		if (sd->s_signal == signal)
 			return sd->s_name;
+#if defined(SIGRTMIN) && defined(SIGRTMAX)
+	int min = SIGRTMIN, max = SIGRTMAX;
+	if (min <= signal && signal <= max) {
+		snprintf(rtminname, sizeof rtminname, "RTMIN+%d", signal - min);
+		return rtminname;
+	}
+#endif
 	return NULL;
 }
 
@@ -374,13 +471,25 @@ list:
 				printf("%s%c", sigdata[i].s_name,
 						i % 10 == 9 || !sigdata[i+1].s_signal ? '\n' : ' ');
 			}
+#if defined(SIGRTMIN) && defined(SIGRTMAX)
+			int min = SIGRTMIN, max = SIGRTMAX;
+			for (int num = SIGRTMIN; num <= max; num++) {
+				printf("RTMIN+%d%c", num - min,
+						(num - min) % 8 == 7 || num == max ? '\n' : ' ');
+			}
+#endif
 		} else {
 			for (size_t i = 0; sigdata[i].s_signal; i++) {
-				printf("%2d: %-8s    ", sigdata[i].s_signal, sigdata[i].s_name);
-				if (i % 4 == 3)
-					printf("\n");
+				printf("%2d: %-10s%s", sigdata[i].s_signal, sigdata[i].s_name,
+						i % 4 == 3 || !sigdata[i+1].s_signal ? "\n" : "    ");
 			}
-			printf("\n");
+#if defined(SIGRTMIN) && defined(SIGRTMAX)
+			int min = SIGRTMIN, max = SIGRTMAX;
+			for (int num = SIGRTMIN; num <= max; num++) {
+				printf("%2d: RTMIN+%-4d%s", num, num - min,
+						(num - min) % 4 == 3 || num == max ? "\n" : "    ");
+			}
+#endif
 		}
 	} else {
 		for (i = 2; i < argc; i++) {
