@@ -529,37 +529,38 @@ static void interactive_loop(void)
 	}
 }
 
-static struct option long_opts[] = {
-	{ "help", 0, NULL, '?', },
-	{ "version", 0, NULL, 'v' + 256, },
-	{ "rcfile", 1, NULL, 'r', },
-	{ "noprofile", 0, NULL, 'N' + 256, },
-	{ "norc", 0, NULL, 'n' + 256, },
-	{ "login", 0, NULL, 'l', },
-	{ "interactive", 0, NULL, 'i', },
+static struct xoption long_opts[] = {
+	{ "help", xno_argument, NULL, '?', },
+	{ "version", xno_argument, NULL, 'v' + 256, },
+	{ "rcfile", xrequired_argument, NULL, 'r', },
+	{ "noprofile", xno_argument, NULL, 'N' + 256, },
+	{ "norc", xno_argument, NULL, 'n' + 256, },
+	{ "login", xno_argument, NULL, 'l', },
+	{ "interactive", xno_argument, NULL, 'i', },
+	{ "posix", xno_argument, NULL, 'p' + 256, },
 	{ NULL, 0, NULL, 0, },
 };
 
-int main(int argc, char **argv)
+int main(int argc __attribute__((unused)), char **argv)
 {
 	bool help = false, version = false;
-	int opt, index;
+	int opt;
 	char *directcommand = NULL;
-	static const char *short_opts = "c:il";
+	const char *short_opts = "c:il";
 
 	is_loginshell = argv[0][0] == '-';
 	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
 	posixly_correct = getenv(ENV_POSIXLY_CORRECT);
 	setlocale(LC_ALL, "");
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt_long(argc, argv, short_opts, long_opts, &index)) >= 0){
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt_long(argv, short_opts, long_opts, NULL)) >= 0){
 		switch (opt) {
 			case 0:
 				break;
 			case 'c':
-				directcommand = optarg;
+				directcommand = xoptarg;
 				break;
 			case 'i':
 				is_interactive = true;
@@ -573,8 +574,11 @@ int main(int argc, char **argv)
 			case 'N' + 256:
 				noprofile = true;
 				break;
+			case 'p' + 256:
+				posixly_correct = true;
+				break;
 			case 'r':
-				rcfile = optarg;
+				rcfile = xoptarg;
 				break;
 			case 'v' + 256:
 				version = true;
@@ -583,6 +587,7 @@ int main(int argc, char **argv)
 				help = true;
 				break;
 			default:
+				assert(false);
 				return EXIT_FAILURE;
 		}
 	}
@@ -605,10 +610,10 @@ int main(int argc, char **argv)
 		set_shell_env();
 		exec_source_and_exit(directcommand, "yash -c");
 	}
-	if (argv[optind]) {
+	if (argv[xoptind]) {
 		is_interactive = false;
 		set_shell_env();
-		exec_file(argv[optind], false /* don't suppress error */);
+		exec_file(argv[xoptind], false /* don't suppress error */);
 		exit(laststatus);
 	}
 	if (is_interactive) {

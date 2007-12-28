@@ -56,6 +56,8 @@ char *skipspaces(const char *s)
 	__attribute__((nonnull));
 char *skipwhites(const char *s)
 	__attribute__((nonnull));
+int hasprefix(const char *s, const char *prefix)
+	__attribute__((nonnull));
 char *strchug(char *s)
 	__attribute__((nonnull));
 char *strchomp(char *s)
@@ -64,6 +66,21 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 	__attribute__((nonnull(2)));
 char *read_all(int fd)
 	__attribute__((malloc));
+
+extern char *xoptarg;
+extern int xoptind, xoptopt;
+extern bool xopterr;
+
+struct xoption {
+	const char *name;
+	enum { xno_argument = 0, xrequired_argument, xoptional_argument, } has_arg;
+	int *flag;
+	int val;
+};
+
+int xgetopt_long(char **argv, const char *optstring,
+		const struct xoption *longopts, int *longindex)
+	__attribute__((nonnull(1,2)));
 
 #define MAX(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })

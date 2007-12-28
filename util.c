@@ -43,10 +43,13 @@ void recfree(void **ary);
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
 char *skipwhites(const char *s);
+int hasprefix(const char *s, const char *prefix);
 char *strchug(char *s);
 char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *read_all(int fd);
+int xgetopt_long(char **argv, const char *optstring,
+		const struct xoption *longopts, int *longindex);
 
 void sb_init(struct strbuf *buf);
 void sb_destroy(struct strbuf *buf);
@@ -210,6 +213,22 @@ char *skipwhites(const char *s)
 	}
 }
 
+/* 文字列 s が prefix で始まるかどうか調べる
+ * 戻り値: 0 -> s は prefix で始まらない
+ *         1 -> s は prefix で始まる
+ *         2 -> s は prefix に等しい */
+int hasprefix(const char *s, const char *prefix)
+{
+	assert(s && prefix);
+	while (*prefix) {
+		if (*prefix != *s)
+			return 0;
+		prefix++;
+		s++;
+	}
+	return *s ? 1 : 2;
+}
+
 /* 文字列の先頭にある空白類文字 (スペースや改行) を削除する。
  * 文字列を直接書き換えた後、その文字列へのポインタ s を返す。 */
 //char *strchug(char *s)
@@ -310,6 +329,212 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 //	free(buf);
 //	return NULL;
 //}
+
+
+/********** getopt **********/
+
+char *xoptarg;
+int xoptind = 1, xoptopt;
+bool xopterr;
+
+/* xgetopt_long で使う補助関数。argv[from] を argv[to] に持ってくる。 */
+static void argshift(char **argv, int from, int to /* <= from */)
+{
+	char *s = argv[from];
+
+	assert(from >= to);
+	for (int i = from; i > to; i--)
+		argv[i] = argv[i - 1];
+	argv[to] = s;
+}
+
+/* GNU ライブラリにある getopt_long の自前の実装。
+ * argv 内の各文字列をコマンドライン引数とみなし、オプションを取り出す。
+ * この関数を呼び出すごとに、オプションを一つづつ取り出して返してゆく。詳細は
+ * http://www.linux.or.jp/JM/html/LDP_man-pages/man3/getopt.3.html
+ * 等も参照のこと。
+ * argv:      解析する文字列の配列の先頭へのポインタ。
+ *            配列の中の文字列は関数の中で並び変わることがある。
+ *            配列の最後の要素の後には NULL ポインタが入っている必要がある。
+ * optstring: 認識すべき一文字のオプションを指定する文字列へのポインタ。
+ *            例えば -a, -d, -w の三種類のオプションを認識すべきなら、
+ *            "ad:w" となる。'd' の後の ':' は -d が引数を取ることを示す。
+ *            ':' を二つにすると下記の xoptional_argument のようになる。
+ *            英数字以外のオプション文字は正しく動作しない。
+ * longopts:  認識すべき長いオプションを指定する struct xoption 配列への
+ *            ポインタ。配列の最後は { 0, 0, 0, 0, } とすること。
+ *            長いオプションを一切使わない場合は NULL でもよい。
+ *            posixly_correct ならば、長いオプションは一切解析しない。
+ * longindex: 長いオプションを認識したとき、longindex が非 NULL なら、
+ *            そのオプションを表す struct xoption が longopts 内の何番目の要素
+ *            であるかを示すインデックスが *longindex に入る。
+ * 戻り値:    一文字のオプションを認識したときは、その一文字。
+ *            長いオプションを認識したときは、下記説明を参照。
+ *            optstring や longopts に無いオプションが出たときは '?'。
+ *            もうオプションがない時は、-1。
+ * posixly_correct || optstring[0] == '+' の時を除いて、argv の中の文字列は
+ * オプションとそれ以外の引数が混ざっていてもよい。この場合、全てのオプションを
+ * 認識し終えて -1 を返した時点で、全てのオプションがそれ以外の引数よりも前に
+ * 来るように argv の中の文字列は並び変わっている。(認識できないオプションが
+ * あった場合を除く)
+ * posixly_correct || optstring[0] == '+' の時は、オプションでない引数が一つでも
+ * 出た時点で認識は終了する。(よって、argv は並び変わらない)
+ * いづれの場合も、-1 を返した時点で、argv[xoptind] はオプションでない最初の
+ * 引数である。-1 が返ったら、それ以上 xgetopt_long を呼んではいけない。
+ * それまでは、毎回同じ引数で xgetopt_long を呼ぶこと。とくに、途中で
+ * argv や xoptind を外から書き換えてはいけない。
+ * struct xoption のメンバの意味は以下の通り:
+ * name:     長いオプションの名前。("--" より後の部分)
+ *           引数ありのオプションの名前に '=' が入っているとうまく動かない。
+ * has_arg:  オプションが引数を取るかどうか。xno_argument, xrequired_argument,
+ *           xoptional_argument のどれかを指定する。xoptional_argument なら、
+ *           オプションに対する引数は --opt arg のように分けることはできない。
+ *           xrequired_argument では、--opt arg のように分けてもよいし、
+ *           --opt=arg のように繋げてもよい。
+ * flag,val: 長いオプションを認識したときの動作を決める。flag が非 NULL なら、
+ *           *flag に val を代入して xgetopt_long は 0 を返す。flag が NULL
+ *           なら、単に xgetopt_long は val を返す。
+ * 外部結合変数 xoptind, xoptarg, xoptopt, xopterr の意味は以下の通り:
+ * xoptind: argv 内で次に解析すべき文字列のインデックス。始めは 1 になっていて、
+ *          解析が進むにつれて増える。新しい argv に対する解析を始める前には、
+ *          1 (または 0) に値を設定し直すこと。
+ * xoptarg: 引数のあるオプションを認識したとき、その引数の最初の文字への
+ *          ポインタが xoptarg に入る。xoptional_argument で引数がない場合、
+ *          NULL ポインタが入る。
+ * xoptopt: optstring に無い一文字のオプションがあると、その文字が xoptopt に
+ *          入る。
+ * xopterr: true なら、optstring や longopts に無いオプションが出たときに
+ *          エラーメッセージを stderr に出力する。
+ */
+/* この実装は GNU 版の getopt_long や POSIX の定める getopt 関数と
+ * 完全に互換性がある訳ではない。
+ * getopt の実装によっては、新しい解析を始める前に argreset に 1 を代入する
+ * ことで解析器をリセットするようになっているものもある。この実装では、argreset
+ * を使わずに、xoptind を 1 (または 0) に戻すことでリセットする。 */
+int xgetopt_long(char **argv, const char *optstring,
+		const struct xoption *longopts, int *longindex)
+{
+	if (xoptind < 1)
+		xoptind = 1;
+
+	int initind = xoptind;
+	char *arg;
+
+	while ((arg = argv[xoptind])) {
+		if (arg[0] != '-' || !arg[1]) {
+			if (posixly_correct || optstring[0] == '+')
+				break;
+			xoptind++;
+			continue;
+		}
+		if (arg[1] == '-') {  /* arg は "--" で始まる */
+			char *arg2 = arg + 2;
+			size_t len = strcspn(arg2, "=");
+			if (!len) {  /* arg == "--" */
+				argshift(argv, xoptind, initind);
+				xoptind = initind + 1;
+				return -1;
+			}
+			if (posixly_correct || !longopts)
+				goto nosuchopt;
+
+			int matchidx = -1;
+			for (int i = 0; longopts[i].name; i++) {
+				if (strncmp(longopts[i].name, arg2, len) != 0) {  /* 一致せず */
+					continue;
+				} else if (longopts[i].name[len]) {  /* 部分一致 */
+					if (matchidx < 0) {
+						matchidx = i;
+						continue;
+					} else {
+						arg = arg2;
+						goto ambig;
+					}
+				} else {  /* 完全一致 */
+					matchidx = i;
+					goto long_found;
+				}
+			}
+			if (matchidx < 0)  /* そんな長いオプションは無い */
+				goto nosuchopt;
+long_found:
+			if (longindex)
+				*longindex = matchidx;
+			if (longopts[matchidx].has_arg) {
+				char *eq = strchr(arg2, '=');
+				if (!eq && longopts[matchidx].has_arg == xrequired_argument) {
+					xoptarg = argv[xoptind + 1];
+					argshift(argv, xoptind, initind);
+					argshift(argv, xoptind + 1, initind + 1);
+					xoptind = initind + 2;
+				} else {
+					xoptarg = eq + 1;
+					argshift(argv, xoptind, initind);
+					xoptind = initind + 1;
+				}
+			} else {
+				argshift(argv, xoptind, initind);
+				xoptind = initind + 1;
+			}
+			if (longopts[matchidx].flag) {
+				*longopts[matchidx].flag = longopts[matchidx].val;
+				return 0;
+			} else {
+				return longopts[matchidx].val;
+			}
+		} else {  /* 一文字のオプションを解析 */
+			static int aindex = 1;
+			char argchar = arg[aindex];
+			optstring = strchr(optstring, argchar);
+			if (!optstring) {
+				xoptopt = argchar;
+				goto nosuchopt;
+			}
+			if (optstring[1] == ':') {  /* 引数ありのオプション */
+				xoptarg = &arg[aindex + 1];
+				aindex = 1;
+				if (!*xoptarg && optstring[2] != ':') {
+					xoptarg = argv[xoptind + 1];
+					argshift(argv, xoptind, initind);
+					argshift(argv, xoptind + 1, initind + 1);
+					xoptind = initind + 2;
+				} else {
+					argshift(argv, xoptind, initind);
+					xoptind = initind + 1;
+				}
+			} else {
+				if (arg[aindex + 1]) {
+					aindex++;
+					argshift(argv, xoptind, initind);
+					xoptind = initind;
+				} else {
+					argshift(argv, xoptind, initind);
+					xoptind = initind + 1;
+				}
+			}
+			return argchar;
+		}
+	}
+	xoptind = initind;
+	return -1;
+
+ambig:
+	if (xopterr) {
+		error(0, 0, "%s: --%s: ambiguous option", argv[0], arg);
+#if 0
+		for (int i = 0; longopts[i].name; i++)
+			if (hasprefix(longopts[i].name, arg))
+				fprintf(stderr, "\t--%s\n", longopts[i].name);
+#endif
+	}
+	xoptind++;
+	return '?';
+nosuchopt:
+	if (xopterr)
+		error(0, 0, "%s: %s: invalid option", argv[0], argv[xoptind]);
+	xoptind++;
+	return '?';
+}
 
 
 /********** 文字列バッファ **********/

@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define  _GNU_SOURCE
 #include <ctype.h>
 #include <error.h>
 #include <errno.h>
@@ -40,6 +39,8 @@
 #include "alias.h"
 #include <assert.h>
 
+/* unistd.h をインクルードしても environ は宣言されない */
+extern char **environ;
 
 #define ADDITIONAL_BUILTIN //XXX
 
