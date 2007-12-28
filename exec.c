@@ -611,11 +611,13 @@ static void exec_processes(
 
 	ps = xmalloc(pcount * sizeof *ps);
 	ps[0].jp_status = JS_RUNNING;
-	pgid = ps[0].jp_pid = exec_single(p, loop ? -1 : 0, 0, bg, pipes);
+	pgid = ps[0].jp_pid = exec_single(p, loop ? -1 : 0, 0,
+			bg ? BACKGROUND : FOREGROUND, pipes);
 	if (pgid >= 0)
 		for (size_t i = 1; i < pcount; i++)
 			ps[i] = (struct jproc) {
-				.jp_pid = exec_single(p = p->next, i, pgid, bg, pipes),
+				.jp_pid = exec_single(p = p->next, i, pgid,
+						bg ? BACKGROUND : FOREGROUND, pipes),
 				.jp_status = JS_RUNNING,
 			};
 	else
@@ -693,7 +695,7 @@ static pid_t exec_single(
 		if (p->p_type == PT_NORMAL && argc == 0)
 			return 0;  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && argc > 0) {
-			error(0, 0, "redirect syntax error");
+			error(0, 0, "syntax error");
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL) {
