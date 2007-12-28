@@ -68,7 +68,6 @@ int builtin_option(int argc, char *const *argv);
 /* 組込みコマンド一般仕様:
  * argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
  * 組込みコマンドは、argv の内容を変更してはならない。 */
-/* 次のコマンドは exec.c の中で特殊な方法で処理する: exec */
 
 static struct hasht builtins;
 
@@ -311,7 +310,7 @@ int builtin_kill(int argc, char *const *argv)
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 2);
 				return EXIT_FAILURE;
 			}
-		} else if (isupper(argv[1][1])) {
+		} else if (isupper((unsigned char) argv[1][1])) {
 			sig = get_signal(argv[1] + 1);
 			if (!sig) {
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 1);
@@ -393,7 +392,7 @@ list:
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[i]);
 				err = true;
 			} else {
-				if (isdigit(argv[i][0]))
+				if (isdigit((unsigned char) argv[i][0]))
 					printf("%s\n", name);
 				else
 					printf("%d\n", sig);
@@ -944,7 +943,8 @@ int builtin_exec(int argc, char *const *argv)
 		pl_append(&args, argv[i]);
 
 	unset_shell_env();
-	execve(command, (char **) args.contents, clearenv ? NULL : environ);
+	execve(command, (char **) args.contents,
+			clearenv ? (char *[]) { NULL, } : environ);
 	set_shell_env();
 
 	error(0, errno, "%s: %s", argv[0], argv[optind]);

@@ -306,8 +306,9 @@ static void init_signal(void)
 		error(0, errno, "sigaction: signal=SIGCHLD");
 	if (sigaction(SIGQUIT, &action, NULL) < 0)
 		error(0, errno, "sigaction: signal=SIGQUIT");
-	/* sig_handler は何もしないシグナルハンドラなので、シグナル受信時の挙動は
-	 * SIG_IGN と同じだが、exec の実行時にデフォルトに戻される点が異なる。 */
+	/* SIGQUIT にとって、sig_handler は何もしないシグナルハンドラなので、
+	 * シグナル受信時の挙動は SIG_IGN と同じだが、exec の実行時に
+	 * デフォルトの挙動に戻される点が異なる。 */
 
 #if 0
 	action.sa_handler = debug_sig;
@@ -316,6 +317,7 @@ static void init_signal(void)
 		if (sigaction(i, &action, NULL) < 0) ;
 #endif
 
+	/* 全てのシグナルマスクをクリアする */
 	sigemptyset(&action.sa_mask);
 	if (sigprocmask(SIG_SETMASK, &action.sa_mask, NULL) < 0)
 		error(0, errno, "sigprocmask(SETMASK, nothing)");

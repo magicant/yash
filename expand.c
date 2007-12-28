@@ -255,7 +255,7 @@ static bool expand_subst(char *const s, struct plist *result)
 			case '`':
 				{
 					char *code = get_comsub_code_bq(&s1);
-					s2 = subst_command(code);
+					s2 = exec_and_read(code, true);
 					free(code);
 				}
 				goto append_s2;
@@ -345,16 +345,16 @@ static char *expand_param(char **src)
 			return xstrdup(result ? result : "");
 		case '(':
 			ss = get_comsub_code_p(src);
-			result = subst_command(ss);
+			result = exec_and_read(ss, true);
 			free(ss);
 			return result;
 
 			//TODO ? や _ などの一文字のパラメータ
 		case '\0':
 		default:
-			if (isalpha(*s)) {
+			if (isalpha((unsigned char) *s)) {
 				ss = s;
-				while (isalpha(*++ss) || *ss == '_');
+				while (isalpha((unsigned char) *++ss) || *ss == '_');
 				*src = ss - 1;
 				ss = xstrndup(s, ss - s);
 				result = getenv(ss);  // XXX

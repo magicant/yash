@@ -82,7 +82,7 @@ static pid_t exec_single(
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
 static void savesfree(struct save_redirect *save);
-char *subst_command(const char *code);
+char *exec_and_read(const char *code, bool trimend);
 
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;
@@ -794,8 +794,7 @@ directexec:
 					strchr(argv[0], '/') ? "." : getenv(ENV_PATH));
 			if (!command)
 				error(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
-			execve(command, argv, environ);
-			/* execvp(argv[0], argv); */
+			execvp(command, argv);
 			error(EXIT_NOEXEC, errno, "%s", argv[0]);
 		case PT_GROUP:  case PT_SUBSHELL:
 			exec_statements_and_exit(p->p_subcmds);
@@ -960,21 +959,14 @@ static void savesfree(struct save_redirect *save)
 	}
 }
 
-/* subst_command で使う SIGTSTP シグナルハンドラ。
- * 自分 (親プロセス) に SIGTSTP が来たということは、子プロセスはサスペンド
- * している可能性が高いので、直ちに SIGCONT を送って復活させる */
-static void kill_cont_temp()
-{
-	killpg(getpgrp(), SIGCONT);
-}
-
 /* 指定したコマンドを実行し、その標準出力の内容を返す。
  * 出力結果の末尾にある改行は削除する。
  * この関数はコマンドの実行が終わるまで返らない。
- * code:   実行するコマンド
- * 戻り値: 新しく malloc した、statements の実行結果。
- *         エラーや、statements が中止された場合は NULL。 */
-char *subst_command(const char *code)
+ * code:    実行するコマンド
+ * trimend: true なら戻り値の末尾の改行を削除してから返す。
+ * 戻り値:  新しく malloc した、statements の実行結果。
+ *          エラーや、statements が中止された場合は NULL。 */
+char *exec_and_read(const char *code, bool trimend)
 {
 	int pipefd[2];
 	pid_t cpid;
@@ -1000,7 +992,6 @@ char *subst_command(const char *code)
 		char *buf;
 		size_t len, max;
 		ssize_t count;
-		struct sigaction action, oldaction;
 
 		close(pipefd[1]);
 
@@ -1008,12 +999,6 @@ char *subst_command(const char *code)
 		len = 0;
 		max = 100;
 		buf = xmalloc(max + 1);
-
-		action.sa_flags = 0;
-		action.sa_handler = kill_cont_temp;
-		sigemptyset(&action.sa_mask);
-		if (sigaction(SIGTSTP, &action, &oldaction) < 0)
-			error(2, errno, "command substitution");
 
 		for (;;) {
 			handle_signals();
@@ -1038,12 +1023,9 @@ char *subst_command(const char *code)
 			wait_for_signal();
 		temp_chld.jp_pid = 0;
 
-		if (sigaction(SIGTSTP, &oldaction, NULL) < 0)
-			error(0, errno, "command substitution");
-
-		/* 末尾の改行を削る */
-		while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
-			len--;
+		if (trimend)
+			while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
+				len--;
 		buf = xrealloc(buf, len + 1);
 		buf[len] = '\0';
 
@@ -1051,6 +1033,15 @@ char *subst_command(const char *code)
 
 		return buf;
 	} else {  /* 子プロセス */
+		sigset_t ss;
+
+		if (is_interactive) {
+			/* TODO : 説明 */
+			sigemptyset(&ss);
+			sigaddset(&ss, SIGTSTP);
+			sigprocmask(SIG_BLOCK, &ss, NULL);
+		}
+
 		forget_orig_pgrp();
 		joblist_reinit();
 		is_loginshell = is_interactive = false;

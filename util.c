@@ -185,7 +185,7 @@ void recfree(void **ary)
  * 空白文字でない最初の文字のアドレスを返す。 */
 char *skipblanks(const char *s)
 {
-	while (isblank(*s)) s++;
+	while (isblank((unsigned char) *s)) s++;
 	return (char *) s;
 }
 
@@ -193,7 +193,7 @@ char *skipblanks(const char *s)
  * 空白類文字でない最初の文字のアドレスを返す。 */
 char *skipspaces(const char *s)
 {
-	while (isspace(*s)) s++;
+	while (isspace((unsigned char) *s)) s++;
 	return (char *) s;
 }
 
@@ -217,7 +217,7 @@ char *skipwhites(const char *s)
 //	size_t i = 0;
 //
 //	assert(s != NULL);
-//	while (isspace(s[i])) i++;
+//	while (isspace((unsigned char) s[i])) i++;
 //	if (i)
 //		memmove(s, s + i, strlen(s + i) + 1);
 //	return s;
@@ -229,8 +229,8 @@ char *skipwhites(const char *s)
 //{
 //	char *ss = s;
 //
-//	while (*s) s++;                    /* 文字列の末尾に移動 */
-//	while (--s >= ss && isspace(*s));  /* 空白の分だけ戻る */
+//	while (*s) s++;                                    /* 文字列の末尾に移動 */
+//	while (--s >= ss && isspace((unsigned char) *s));  /* 空白の分だけ戻る */
 //	*++s = '\0';
 //	return ss;
 //}
@@ -401,20 +401,20 @@ void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
  * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
 void sb_insert(struct strbuf *buf, size_t i, const char *s)
 {
-	return sb_ninsert(buf, i, s, SIZE_MAX);
+	sb_ninsert(buf, i, s, SIZE_MAX);
 }
 
 /* 文字列バッファ内の文字列の末尾に文字列 s の最初の n 文字を付け加える。
  * s が n 文字に満たなければ s 全体を付け加える。 */
 void sb_nappend(struct strbuf *buf, const char *s, size_t n)
 {
-	return sb_ninsert(buf, SIZE_MAX, s, n);
+	sb_ninsert(buf, SIZE_MAX, s, n);
 }
 
 /* 文字列バッファ内の文字列の末尾に文字列 s を付け加える。 */
 void sb_append(struct strbuf *buf, const char *s)
 {
-	return sb_nappend(buf, s, SIZE_MAX);
+	sb_nappend(buf, s, SIZE_MAX);
 }
 #endif /* NINLINE */
 
@@ -593,7 +593,7 @@ void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
 /* ポインタリスト内の配列の末尾に要素 e を付け加える。 */
 void pl_append(struct plist *list, void *e)
 {
-	return pl_insert(list, SIZE_MAX, e);
+	pl_insert(list, SIZE_MAX, e);
 }
 
 /* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
@@ -601,7 +601,7 @@ void pl_append(struct plist *list, void *e)
  * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。*/
 void pl_anappend(struct plist *list, void **ps, size_t n)
 {
-	return pl_aninsert(list, SIZE_MAX, ps, n);
+	pl_aninsert(list, SIZE_MAX, ps, n);
 }
 
 /* ポインタリスト内の前から i 要素目に、配列 *ps の要素を挿入する。
@@ -609,14 +609,14 @@ void pl_anappend(struct plist *list, void **ps, size_t n)
  * 配列 *ps は、NULL 要素終端でなければならない。 */
 void pl_ainsert(struct plist *list, size_t i, void **ps)
 {
-	return pl_aninsert(list, i, ps, parylen(ps));
+	pl_aninsert(list, i, ps, parylen(ps));
 }
 
 /* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
  * 配列 *ps は、NULL 要素終端でなければならない。 */
 void pl_aappend(struct plist *list, void **ps)
 {
-	return pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
+	pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
 }
 #endif /* NINLINE */
 

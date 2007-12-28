@@ -106,17 +106,17 @@ void sb_append(struct strbuf *buf, const char *s)
 static inline __attribute__((nonnull))
 void sb_insert(struct strbuf *buf, size_t i, const char *s)
 {
-	return sb_ninsert(buf, i, s, SIZE_MAX);
+	sb_ninsert(buf, i, s, SIZE_MAX);
 }
 static inline __attribute__((nonnull))
 void sb_nappend(struct strbuf *buf, const char *s, size_t n)
 {
-	return sb_ninsert(buf, SIZE_MAX, s, n);
+	sb_ninsert(buf, SIZE_MAX, s, n);
 }
 static inline __attribute__((nonnull))
 void sb_append(struct strbuf *buf, const char *s)
 {
-	return sb_nappend(buf, s, SIZE_MAX);
+	sb_nappend(buf, s, SIZE_MAX);
 }
 #endif /* !NINLINE */
 
@@ -168,22 +168,22 @@ void pl_aappend(struct plist *list, void **ps)
 static inline __attribute__((nonnull(1)))
 void pl_append(struct plist *list, void *e)
 {
-	return pl_insert(list, SIZE_MAX, e);
+	pl_insert(list, SIZE_MAX, e);
 }
 static inline __attribute__((nonnull))
 void pl_anappend(struct plist *list, void **ps, size_t n)
 {
-	return pl_aninsert(list, SIZE_MAX, ps, n);
+	pl_aninsert(list, SIZE_MAX, ps, n);
 }
 static inline __attribute__((nonnull))
 void pl_ainsert(struct plist *list, size_t i, void **ps)
 {
-	return pl_aninsert(list, i, ps, parylen(ps));
+	pl_aninsert(list, i, ps, parylen(ps));
 }
 static inline __attribute__((nonnull))
 void pl_aappend(struct plist *list, void **ps)
 {
-	return pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
+	pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
 }
 #endif /* !NINLINE */
 
