@@ -188,7 +188,7 @@ void recfree(void **ary)
  * 空白文字でない最初の文字のアドレスを返す。 */
 char *skipblanks(const char *s)
 {
-	while (isblank((unsigned char) *s)) s++;
+	while (xisblank(*s)) s++;
 	return (char *) s;
 }
 
@@ -196,7 +196,7 @@ char *skipblanks(const char *s)
  * 空白類文字でない最初の文字のアドレスを返す。 */
 char *skipspaces(const char *s)
 {
-	while (isspace((unsigned char) *s)) s++;
+	while (xisspace(*s)) s++;  // XXX 非ロケール依存
 	return (char *) s;
 }
 
@@ -236,7 +236,7 @@ int hasprefix(const char *s, const char *prefix)
 //	size_t i = 0;
 //
 //	assert(s != NULL);
-//	while (isspace((unsigned char) s[i])) i++;
+//	while (xisspace(s[i])) i++;
 //	if (i)
 //		memmove(s, s + i, strlen(s + i) + 1);
 //	return s;
@@ -248,8 +248,8 @@ int hasprefix(const char *s, const char *prefix)
 //{
 //	char *ss = s;
 //
-//	while (*s) s++;                                    /* 文字列の末尾に移動 */
-//	while (--s >= ss && isspace((unsigned char) *s));  /* 空白の分だけ戻る */
+//	while (*s) s++;                     /* 文字列の末尾に移動 */
+//	while (--s >= ss && xisspace(*s));  /* 空白の分だけ戻る */
 //	*++s = '\0';
 //	return ss;
 //}

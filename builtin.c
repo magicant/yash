@@ -312,7 +312,7 @@ static int get_signal(const char *name)
 	const SIGDATA *sd = sigdata;
 
 	assert(name != NULL);
-	if (isdigit((unsigned char) name[0])) {  /* name は番号 */
+	if (xisdigit(name[0])) {  /* name は番号 */
 		char *end;
 		int num;
 
@@ -407,7 +407,7 @@ int builtin_kill(int argc, char *const *argv)
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 2);
 				return EXIT_FAILURE;
 			}
-		} else if (isupper((unsigned char) argv[1][1])) {
+		} else if (xisupper(argv[1][1])) {
 			sig = get_signal(argv[1] + 1);
 			if (!sig) {
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 1);
@@ -501,7 +501,7 @@ list:
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[i]);
 				err = true;
 			} else {
-				if (isdigit((unsigned char) argv[i][0]))
+				if (xisdigit(argv[i][0]))
 					printf("%s\n", name);
 				else
 					printf("%d\n", sig);

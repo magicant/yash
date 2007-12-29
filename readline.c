@@ -83,7 +83,9 @@ void initialize_readline(void)
 	/* rl_filename_dequoting_function = XXX */
 
 	history_comment_char = '#';
-
+	history_quotes_inhibit_expansion = true;
+	/* history_inhibit_expansion_function = XXX */
+	// ${ の直後や } の直前の ! を展開しない
 	stifle_history(history_histsize);
 	if (history_filename)
 		read_history(history_filename);

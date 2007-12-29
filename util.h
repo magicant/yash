@@ -23,6 +23,7 @@
 # define NO_UTIL_INLINE
 #endif
 
+#include <ctype.h>
 #include <sys/types.h>
 #ifndef NO_UTIL_INLINE
 # include <stddef.h>
@@ -68,6 +69,28 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 char *read_all(int fd)
 	__attribute__((malloc));
 
+#define MAX(X,Y) \
+	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
+#define MIN(X,Y) \
+	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
+
+#define xisascii(c)  (isascii((unsigned char) (c)))
+#define xisalnum(c)  (xisascii(c) && isalnum((unsigned char) (c)))
+#define xisalpha(c)  (xisascii(c) && isalpha((unsigned char) (c)))
+#define xisblank(c)  (xisascii(c) && isblank((unsigned char) (c)))
+#define xiscntrl(c)  (xisascii(c) && iscntrl((unsigned char) (c)))
+#define xisdigit(c)  (xisascii(c) && isdigit((unsigned char) (c)))
+#define xisgraph(c)  (xisascii(c) && isgragh((unsigned char) (c)))
+#define xislower(c)  (xisascii(c) && islower((unsigned char) (c)))
+#define xisprint(c)  (xisascii(c) && isprint((unsigned char) (c)))
+#define xispunct(c)  (xisascii(c) && ispunct((unsigned char) (c)))
+#define xisspace(c)  (xisascii(c) && isspace((unsigned char) (c)))
+#define xisupper(c)  (xisascii(c) && isupper((unsigned char) (c)))
+#define xisxdigit(c) (xisascii(c) && isxdigit((unsigned char) (c)))
+
+
+/* xgetopt */
+
 extern char *xoptarg;
 extern int xoptind, xoptopt;
 extern bool xopterr;
@@ -87,11 +110,6 @@ int xgetopt(char *const *argv, const char *optstring)
 #ifndef NO_UTIL_INLINE
 # define xgetopt(argv,optstring) xgetopt_long(argv, optstring, NULL, NULL)
 #endif
-
-#define MAX(X,Y) \
-	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
-#define MIN(X,Y) \
-	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
 
 
 /* String buffers */
