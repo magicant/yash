@@ -19,7 +19,15 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#ifdef NINLINE
+# define NO_UTIL_INLINE
+#endif
+
 #include <sys/types.h>
+#ifndef NO_UTIL_INLINE
+# include <stddef.h>
+# include <stdint.h>
+#endif
 
 
 /* General functions */
@@ -32,18 +40,11 @@ void *xrealloc(void *ptr, size_t size)
 	__attribute__((malloc, warn_unused_result));
 char *xstrndup(const char *s, size_t len)
 	__attribute__((malloc, warn_unused_result, nonnull));
-
-#ifdef NINLINE
 char *xstrdup(const char *s)
 	__attribute__((malloc, warn_unused_result, nonnull));
-#else
-# include <stdint.h>
-static inline __attribute__((malloc, warn_unused_result, nonnull))
-char *xstrdup(const char *s)
-{
-	return xstrndup(s, SIZE_MAX);
-}
-#endif /* !NINLINE */
+#ifndef NO_UTIL_INLINE
+# define xstrdup(s) xstrndup(s, SIZE_MAX)
+#endif
 
 char **strarydup(char **ary)
 	__attribute__((malloc, warn_unused_result, nonnull));
@@ -81,17 +82,11 @@ struct xoption {
 int xgetopt_long(char *const *argv, const char *optstring,
 		const struct xoption *longopts, int *longindex)
 	__attribute__((nonnull(1,2)));
-
-#ifdef NINLINE
 int xgetopt(char *const *argv, const char *optstring)
 	__attribute__((nonnull));
-#else
-static inline __attribute__((nonnull))
-int xgetopt(char *const *argv, const char *optstring)
-{
-	return xgetopt_long(argv, optstring, NULL, NULL);
-}
-#endif /* !NINLINE */
+#ifndef NO_UTIL_INLINE
+# define xgetopt(argv,optstring) xgetopt_long(argv, optstring, NULL, NULL)
+#endif
 
 #define MAX(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
@@ -122,31 +117,17 @@ void sb_clear(struct strbuf *buf)
 	__attribute__((nonnull));
 void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
 	__attribute__((nonnull));
-
-#ifdef NINLINE
 void sb_insert(struct strbuf *buf, size_t i, const char *s)
 	__attribute__((nonnull));
 void sb_nappend(struct strbuf *buf, const char *s, size_t n)
 	__attribute__((nonnull));
 void sb_append(struct strbuf *buf, const char *s)
 	__attribute__((nonnull));
-#else
-static inline __attribute__((nonnull))
-void sb_insert(struct strbuf *buf, size_t i, const char *s)
-{
-	sb_ninsert(buf, i, s, SIZE_MAX);
-}
-static inline __attribute__((nonnull))
-void sb_nappend(struct strbuf *buf, const char *s, size_t n)
-{
-	sb_ninsert(buf, SIZE_MAX, s, n);
-}
-static inline __attribute__((nonnull))
-void sb_append(struct strbuf *buf, const char *s)
-{
-	sb_nappend(buf, s, SIZE_MAX);
-}
-#endif /* !NINLINE */
+#ifndef NO_UTIL_INLINE
+# define sb_insert(buf,i,s)  sb_ninsert(buf, i, s, SIZE_MAX)
+# define sb_nappend(buf,s,n) sb_ninsert(buf, SIZE_MAX, s, n)
+# define sb_append(buf,s)    sb_nappend(buf, s, SIZE_MAX)
+#endif
 
 void sb_cappend(struct strbuf *buf, char c)
 	__attribute__((nonnull));
@@ -182,8 +163,6 @@ void pl_insert(struct plist *list, size_t i, void *e)
 	__attribute__((nonnull(1)));
 void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
 	__attribute__((nonnull));
-
-#ifdef NINLINE
 void pl_append(struct plist *list, void *e)
 	__attribute__((nonnull(1)));
 void pl_anappend(struct plist *list, void **ps, size_t n)
@@ -192,28 +171,12 @@ void pl_ainsert(struct plist *list, size_t i, void **ps)
 	__attribute__((nonnull));
 void pl_aappend(struct plist *list, void **ps)
 	__attribute__((nonnull));
-#else
-static inline __attribute__((nonnull(1)))
-void pl_append(struct plist *list, void *e)
-{
-	pl_insert(list, SIZE_MAX, e);
-}
-static inline __attribute__((nonnull))
-void pl_anappend(struct plist *list, void **ps, size_t n)
-{
-	pl_aninsert(list, SIZE_MAX, ps, n);
-}
-static inline __attribute__((nonnull))
-void pl_ainsert(struct plist *list, size_t i, void **ps)
-{
-	pl_aninsert(list, i, ps, parylen(ps));
-}
-static inline __attribute__((nonnull))
-void pl_aappend(struct plist *list, void **ps)
-{
-	pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
-}
-#endif /* !NINLINE */
+#ifndef NO_UTIL_INLINE
+# define pl_append(list,e)      pl_insert(list, SIZE_MAX, e)
+# define pl_anappend(list,ps,n) pl_aninsert(list, SIZE_MAX, ps, n)
+# define pl_ainsert(list,i,ps)  pl_aninsert(list, i, ps, parylen(ps))
+# define pl_aappend(list,ps)    pl_ainsert(list, SIZE_MAX, ps)
+#endif
 
 
 /* Hashtables */

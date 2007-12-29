@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#define  NO_UTIL_INLINE
 #include <ctype.h>
 #include <errno.h>
 #include <error.h>
@@ -142,7 +143,6 @@ char *xstrndup(const char *s, size_t len)
 	return strncpy(result, s, len);
 }
 
-#ifdef NINLINE
 /* 文字列を新しく malloc した領域に複製する。
  * malloc に失敗するとプログラムを強制終了する。 */
 char *xstrdup(const char *s)
@@ -152,7 +152,6 @@ char *xstrdup(const char *s)
 		error(2, ENOMEM, NULL);
 	return result;
 }
-#endif /* NINLINE */
 
 /* 文字列の配列のディープコピーを作る。失敗するとプログラムを強制終了する。 */
 char **strarydup(char **ary)
@@ -540,13 +539,11 @@ nosuchopt:
 	return '?';
 }
 
-#ifdef NINLINE
 /* 長いオプションがない getopt */
 int xgetopt(char *const *argv, const char *optstring)
 {
 	return xgetopt_long(argv, optstring, NULL, NULL);
 }
-#endif
 
 
 /********** 文字列バッファ **********/
@@ -633,7 +630,6 @@ void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
 	buf->contents[buf->length] = '\0';
 }
 
-#ifdef NINLINE
 /* 文字列バッファ内の前から i 文字目に文字列 s を挿入する。
  * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
 void sb_insert(struct strbuf *buf, size_t i, const char *s)
@@ -653,7 +649,6 @@ void sb_append(struct strbuf *buf, const char *s)
 {
 	sb_nappend(buf, s, SIZE_MAX);
 }
-#endif /* NINLINE */
 
 /* 文字列バッファの末尾に一文字追加する。 */
 void sb_cappend(struct strbuf *buf, char c)
@@ -826,7 +821,6 @@ void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
 	list->contents[list->length] = NULL;
 }
 
-#ifdef NINLINE
 /* ポインタリスト内の配列の末尾に要素 e を付け加える。 */
 void pl_append(struct plist *list, void *e)
 {
@@ -855,7 +849,6 @@ void pl_aappend(struct plist *list, void **ps)
 {
 	pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
 }
-#endif /* NINLINE */
 
 
 /********** Hashtable **********/
