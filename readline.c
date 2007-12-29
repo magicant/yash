@@ -248,9 +248,8 @@ static char **yash_completion(
 					? rl_username_completion_function
 					: normal_file_completion_function;
 				rl_filename_completion_desired = 1;
-			} else if (!executable_only || strncmp(text, "/", 1) == 0
-					|| strncmp(text, "./", 2) == 0
-					|| strncmp(text, "../", 3) == 0) {
+			} else if (!executable_only || hasprefix(text, "/")
+					|| hasprefix(text, "./") || hasprefix(text, "../")) {
 				completer = normal_file_completion_function;
 				rl_filename_completion_desired = 1;
 			} else {

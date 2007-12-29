@@ -48,8 +48,9 @@ char *strchug(char *s);
 char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *read_all(int fd);
-int xgetopt_long(char **argv, const char *optstring,
+int xgetopt_long(char *const *argv, const char *optstring,
 		const struct xoption *longopts, int *longindex);
+int xgetopt(char *const *argv, const char *optstring);
 
 void sb_init(struct strbuf *buf);
 void sb_destroy(struct strbuf *buf);
@@ -215,7 +216,7 @@ char *skipwhites(const char *s)
 
 /* 文字列 s が prefix で始まるかどうか調べる
  * 戻り値: 0 -> s は prefix で始まらない
- *         1 -> s は prefix で始まる
+ *         1 -> s は prefix で始まり prefix よりも長い
  *         2 -> s は prefix に等しい */
 int hasprefix(const char *s, const char *prefix)
 {
@@ -334,18 +335,19 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 /********** getopt **********/
 
 char *xoptarg;
-int xoptind = 1, xoptopt;
-bool xopterr;
+int xoptind = 0, xoptopt;
+bool xopterr = true;
 
 /* xgetopt_long で使う補助関数。argv[from] を argv[to] に持ってくる。 */
-static void argshift(char **argv, int from, int to /* <= from */)
+static void argshift(char *const *argv, int from, int to /* <= from */)
 {
-	char *s = argv[from];
+	char **ncargv = (char **) argv;
+	char *s = ncargv[from];
 
 	assert(from >= to);
 	for (int i = from; i > to; i--)
-		argv[i] = argv[i - 1];
-	argv[to] = s;
+		ncargv[i] = ncargv[i - 1];
+	ncargv[to] = s;
 }
 
 /* GNU ライブラリにある getopt_long の自前の実装。
@@ -353,7 +355,7 @@ static void argshift(char **argv, int from, int to /* <= from */)
  * この関数を呼び出すごとに、オプションを一つづつ取り出して返してゆく。詳細は
  * http://www.linux.or.jp/JM/html/LDP_man-pages/man3/getopt.3.html
  * 等も参照のこと。
- * argv:      解析する文字列の配列の先頭へのポインタ。
+ * argv:      解析する文字列の配列の先頭へのポインタ。const になっているが、
  *            配列の中の文字列は関数の中で並び変わることがある。
  *            配列の最後の要素の後には NULL ポインタが入っている必要がある。
  * optstring: 認識すべき一文字のオプションを指定する文字列へのポインタ。
@@ -395,9 +397,9 @@ static void argshift(char **argv, int from, int to /* <= from */)
  *           *flag に val を代入して xgetopt_long は 0 を返す。flag が NULL
  *           なら、単に xgetopt_long は val を返す。
  * 外部結合変数 xoptind, xoptarg, xoptopt, xopterr の意味は以下の通り:
- * xoptind: argv 内で次に解析すべき文字列のインデックス。始めは 1 になっていて、
+ * xoptind: argv 内で次に解析すべき文字列のインデックス。始めは 0 になっていて、
  *          解析が進むにつれて増える。新しい argv に対する解析を始める前には、
- *          1 (または 0) に値を設定し直すこと。
+ *          0 に値を設定し直すこと。
  * xoptarg: 引数のあるオプションを認識したとき、その引数の最初の文字への
  *          ポインタが xoptarg に入る。xoptional_argument で引数がない場合、
  *          NULL ポインタが入る。
@@ -410,16 +412,19 @@ static void argshift(char **argv, int from, int to /* <= from */)
  * 完全に互換性がある訳ではない。
  * getopt の実装によっては、新しい解析を始める前に argreset に 1 を代入する
  * ことで解析器をリセットするようになっているものもある。この実装では、argreset
- * を使わずに、xoptind を 1 (または 0) に戻すことでリセットする。 */
-int xgetopt_long(char **argv, const char *optstring,
+ * を使わずに、xoptind を 0 に戻すことでリセットする。 */
+int xgetopt_long(char *const *argv, const char *optstring,
 		const struct xoption *longopts, int *longindex)
 {
-	if (xoptind < 1)
-		xoptind = 1;
-
-	int initind = xoptind;
+	int initind;
 	char *arg;
+	static int aindex;
 
+	if (xoptind == 0) {
+		aindex = 1;
+		xoptind = 1;
+	}
+	initind = xoptind;
 	while ((arg = argv[xoptind])) {
 		if (arg[0] != '-' || !arg[1]) {
 			if (posixly_correct || optstring[0] == '+')
@@ -429,8 +434,7 @@ int xgetopt_long(char **argv, const char *optstring,
 		}
 		if (arg[1] == '-') {  /* arg は "--" で始まる */
 			char *arg2 = arg + 2;
-			size_t len = strcspn(arg2, "=");
-			if (!len) {  /* arg == "--" */
+			if (!*arg2) {  /* arg == "--" */
 				argshift(argv, xoptind, initind);
 				xoptind = initind + 1;
 				return -1;
@@ -439,6 +443,7 @@ int xgetopt_long(char **argv, const char *optstring,
 				goto nosuchopt;
 
 			int matchidx = -1;
+			size_t len = strcspn(arg2, "=");
 			for (int i = 0; longopts[i].name; i++) {
 				if (strncmp(longopts[i].name, arg2, len) != 0) {  /* 一致せず */
 					continue;
@@ -455,7 +460,7 @@ int xgetopt_long(char **argv, const char *optstring,
 					goto long_found;
 				}
 			}
-			if (matchidx < 0)  /* そんな長いオプションは無い */
+			if (matchidx < 0)  /* どれにも一致しなかった */
 				goto nosuchopt;
 long_found:
 			if (longindex)
@@ -483,7 +488,6 @@ long_found:
 				return longopts[matchidx].val;
 			}
 		} else {  /* 一文字のオプションを解析 */
-			static int aindex = 1;
 			char argchar = arg[aindex];
 			optstring = strchr(optstring, argchar);
 			if (!optstring) {
@@ -535,6 +539,14 @@ nosuchopt:
 	xoptind++;
 	return '?';
 }
+
+#ifdef NINLINE
+/* 長いオプションがない getopt */
+int xgetopt(char *const *argv, const char *optstring)
+{
+	return xgetopt_long(argv, optstring, NULL, NULL);
+}
+#endif
 
 
 /********** 文字列バッファ **********/

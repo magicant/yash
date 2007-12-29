@@ -54,8 +54,7 @@ char *which(const char *name, const char *path)
 		return NULL;
 	if (!path)
 		path = "";
-	if (strncmp(name, "/", 1) == 0
-			|| strncmp(name, "./", 2) == 0 || strncmp(name, "../", 3) == 0)
+	if (hasprefix(name, "/") || hasprefix(name, "./") || hasprefix(name, "../"))
 		return isexecutable(name) ? xstrdup(name) : NULL;
 
 	namelen = strlen(name);

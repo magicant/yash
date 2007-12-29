@@ -260,10 +260,10 @@ static PIPELINE *parse_pipelines()
 			i_error = true;
 			goto end;
 		}
-		if (strncmp(fromi(i_index), "||", 2) == 0) {
+		if (hasprefix(fromi(i_index), "||")) {
 			temp->pl_next_cond = false;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
-		} else if (strncmp(fromi(i_index), "&&", 2) == 0) {
+		} else if (hasprefix(fromi(i_index), "&&")) {
 			temp->pl_next_cond = true;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
 		} else {

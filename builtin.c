@@ -147,11 +147,10 @@ int parse_jobspec(const char *str, bool forcePercent)
 			return -2;
 	}
 
-	size_t len = strlen(str);
 	jobnumber = 0;
 	for (int i = 1; i < (ssize_t) joblist.length; i++) {
 		JOB *job = get_job(i);
-		if (job && strncmp(str, job->j_name, len) == 0) {
+		if (job && hasprefix(job->j_name, str)) {
 			if (!jobnumber)
 				jobnumber = i;
 			else
@@ -192,9 +191,9 @@ int builtin_exit(int argc, char *const *argv)
 		return EXIT_FAILURE;
 	}
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "f")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "f")) >= 0) {
 		switch (opt) {
 			case 'f':
 				forceexit = true;
@@ -203,8 +202,8 @@ int builtin_exit(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	if (optind < argc) {
-		char *c = argv[optind];
+	if (xoptind < argc) {
+		char *c = argv[xoptind];
 
 		errno = 0;
 		if (*c)
@@ -322,14 +321,14 @@ static int get_signal(const char *name)
 		if (!errno && name[0] && !end[0])
 			return num;
 	} else {  /* name は名前 */
-		if (strncmp(name, "SIG", 3) == 0 && name[3])
+		if (hasprefix(name, "SIG") == 2)
 			name += 3;
 #if defined(SIGRTMAX) && defined(SIGRTMIN)
 		if (strcmp(name, "RTMIN") == 0) {
 			return SIGRTMIN;
 		} else if (strcmp(name, "RTMAX") == 0) {
 			return SIGRTMAX;
-		} else if (strncmp(name, "RTMIN+", 6) == 0) {
+		} else if (hasprefix(name, "RTMIN+")) {
 			char *end;
 			int num;
 			name += 6;
@@ -340,7 +339,7 @@ static int get_signal(const char *name)
 				if (SIGRTMIN <= num && num <= SIGRTMAX)
 					return num;
 			}
-		} else if (strncmp(name, "RTMAX-", 6) == 0) {
+		} else if (hasprefix(name, "RTMAX-")) {
 			char *end;
 			int num;
 			name += 6;
@@ -633,9 +632,9 @@ int builtin_suspend(int argc, char *const *argv)
 	bool force = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "f")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "f")) >= 0) {
 		switch (opt) {
 			case 'f':
 				force = true;
@@ -644,7 +643,7 @@ int builtin_suspend(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	if (optind < argc) {
+	if (xoptind < argc) {
 		error(0, 0, "%s: invalid argument", argv[0]);
 		goto usage;
 	}
@@ -678,6 +677,7 @@ usage:
 }
 
 /* jobs 組込みコマンド
+ * -l: 全てのプロセス番号を表示する。
  * -n: 変化があったジョブのみ報告する
  * args: ジョブ番号の指定 */
 int builtin_jobs(int argc, char *const *argv)
@@ -686,9 +686,9 @@ int builtin_jobs(int argc, char *const *argv)
 	bool err = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "ln")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "ln")) >= 0) {
 		switch (opt) {
 			case 'l':
 				printpids = true;
@@ -703,12 +703,12 @@ int builtin_jobs(int argc, char *const *argv)
 
 	wait_chld();
 	
-	if (optind >= argc) {  /* jobspec なし: 全てのジョブを報告 */
+	if (xoptind >= argc) {  /* jobspec なし: 全てのジョブを報告 */
 		print_all_job_status(changedonly, printpids);
 		return EXIT_SUCCESS;
 	}
-	for (; optind < argc; optind++) {
-		char *jobstr = argv[optind], *jobstro;
+	for (; xoptind < argc; xoptind++) {
+		char *jobstr = argv[xoptind], *jobstro;
 		size_t jobnumber = 0;
 
 		// parse_jobspec を使わずに自前でやる
@@ -727,7 +727,7 @@ int builtin_jobs(int argc, char *const *argv)
 		jobnumber = strtol(jobstr, &jobstr, 10);
 		if (errno) {
 invalidspec:
-			error(0, 0, "%s: %s: invalid jobspec", argv[0], argv[optind]);
+			error(0, 0, "%s: %s: invalid jobspec", argv[0], argv[xoptind]);
 			err = true;
 			continue;
 		}
@@ -736,23 +736,22 @@ singlespec:
 			if (get_job(jobnumber)) {
 				print_job_status(jobnumber, changedonly, printpids);
 			} else {
-				error(0, 0, "%s: %s: no such job", argv[0], argv[optind]);
+				error(0, 0, "%s: %s: no such job", argv[0], argv[xoptind]);
 				err = true;
 			}
 			continue;
 		}
 
-		size_t len = strlen(jobstro);
 		bool done = false;
 		for (jobnumber = 1; jobnumber < joblist.length; jobnumber++) {
 			JOB *job = get_job(jobnumber);
-			if (job && strncmp(jobstro, job->j_name, len) == 0) {
+			if (job && hasprefix(job->j_name, jobstro)) {
 				print_job_status(jobnumber, changedonly, printpids);
 				done = true;
 			}
 		}
 		if (!done) {
-			error(0, 0, "%s: %s: no such job", argv[0], argv[optind]);
+			error(0, 0, "%s: %s: no such job", argv[0], argv[xoptind]);
 			err = true;
 		}
 	}
@@ -774,9 +773,9 @@ int builtin_disown(int argc, char *const *argv)
 	JOB *job;
 	ssize_t jobnumber = currentjobnumber;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "arh")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "arh")) >= 0) {
 		switch (opt) {
 			case 'a':
 				all = true;
@@ -791,7 +790,7 @@ int builtin_disown(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	if (optind == argc)
+	if (xoptind == argc)
 		all = true;
 
 	if (all) {
@@ -806,8 +805,8 @@ int builtin_disown(int argc, char *const *argv)
 			}
 		}
 	} else {
-		for (; optind < argc; optind++) {
-			char *target = argv[optind];
+		for (; xoptind < argc; xoptind++) {
+			char *target = argv[xoptind];
 
 			jobnumber = parse_jobspec(target, false);
 			if (jobnumber < 0) switch (jobnumber) {
@@ -992,9 +991,9 @@ int builtin_exec(int argc, char *const *argv)
 	bool clearenv = false, forceexec = false, login = false;
 	char *argv0 = NULL;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "+cfla:")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "+cfla:")) >= 0) {
 		switch (opt) {
 			case 'c':
 				clearenv = true;
@@ -1006,7 +1005,7 @@ int builtin_exec(int argc, char *const *argv)
 				login = true;
 				break;
 			case 'a':
-				argv0 = optarg;
+				argv0 = xoptarg;
 				break;
 			default:
 				printf("Usage:  exec [-cfl] [-a name] command [args...]\n");
@@ -1023,15 +1022,15 @@ int builtin_exec(int argc, char *const *argv)
 			return EXIT_FAILURE;
 		}
 	}
-	if (argc <= optind)
+	if (argc <= xoptind)
 		return EXIT_SUCCESS;
 	if (!argv0)
-		argv0 = argv[optind];
+		argv0 = argv[xoptind];
 
-	char *command = which(argv[optind],
-			strchr(argv[optind], '/') ? "." : getenv(ENV_PATH));
+	char *command = which(argv[xoptind],
+			strchr(argv[xoptind], '/') ? "." : getenv(ENV_PATH));
 	if (!command) {
-		error(0, 0, "%s: %s: command not found", argv[0], argv[optind]);
+		error(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);
 		if (!is_interactive) {
 			//XXX shopt execfail
 			exit(EXIT_NOTFOUND);
@@ -1049,7 +1048,7 @@ int builtin_exec(int argc, char *const *argv)
 	} else {
 		pl_append(&args, xstrdup(argv0));
 	}
-	for (int i = optind + 1; i < argc; i++)
+	for (int i = xoptind + 1; i < argc; i++)
 		pl_append(&args, argv[i]);
 
 	unset_shell_env();
@@ -1057,7 +1056,7 @@ int builtin_exec(int argc, char *const *argv)
 			clearenv ? (char *[]) { NULL, } : environ);
 	set_shell_env();
 
-	error(0, errno, "%s: %s", argv[0], argv[optind]);
+	error(0, errno, "%s: %s", argv[0], argv[xoptind]);
 	free(args.contents[0]);
 	free(command);
 	pl_destroy(&args);
@@ -1155,9 +1154,9 @@ int builtin_export(int argc, char *const *argv)
 
 	if (argc == 1)
 		goto usage;
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "n")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "n")) >= 0) {
 		switch (opt) {
 			case 'n':
 				remove = true;
@@ -1166,8 +1165,8 @@ int builtin_export(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	for (; optind < argc; optind++) {
-		char *c = argv[optind];
+	for (; xoptind < argc; xoptind++) {
+		char *c = argv[xoptind];
 
 		if (remove) {
 			if (unsetenv(c) < 0)
@@ -1199,9 +1198,16 @@ usage:
 /* source/. 組込みコマンド */
 int builtin_source(int argc, char *const *argv)
 {
-	for (int i = 1; i < argc; i++)
-		exec_file(argv[i], false /* don't supress errors */);
+	if (argc < 2) {
+		error(0, 0, "%s: filename not given", argv[0]);
+		goto usage;
+	}
+	exec_file(argv[1], false /* don't supress errors */);
 	return laststatus;
+
+usage:
+	fprintf(stderr, "Usage:  %s filename\n", argv[0]);
+	return EXIT_FAILURE;
 }
 
 /* history 組込みコマンド
@@ -1324,9 +1330,9 @@ int builtin_alias(int argc, char *const *argv)
 	bool err = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "gp")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "gp")) >= 0) {
 		switch (opt) {
 			case 'g':
 				global = true;
@@ -1338,8 +1344,8 @@ int builtin_alias(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	for (; optind < argc; optind++) {
-		char *c = argv[optind];
+	for (; xoptind < argc; xoptind++) {
+		char *c = argv[xoptind];
 		size_t namelen = strcspn(c, "=");
 
 		if (!namelen) {
@@ -1376,9 +1382,11 @@ int builtin_unalias(int argc, char *const *argv)
 	bool err = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "a")) >= 0) {
+	if (argc < 2)
+		goto usage;
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "a")) >= 0) {
 		switch (opt) {
 			case 'a':
 				removeall = true;
@@ -1391,10 +1399,10 @@ int builtin_unalias(int argc, char *const *argv)
 		remove_all_aliases();
 		return EXIT_SUCCESS;
 	}
-	for (; optind < argc; optind++) {
-		if (remove_alias(argv[optind]) < 0) {
+	for (; xoptind < argc; xoptind++) {
+		if (remove_alias(argv[xoptind]) < 0) {
 			err = true;
-			error(0, 0, "%s: %s: no such alias", argv[0], argv[optind]);
+			error(0, 0, "%s: %s: no such alias", argv[0], argv[xoptind]);
 		}
 	}
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
@@ -1428,9 +1436,9 @@ int builtin_option(int argc, char *const *argv)
 	bool def = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "d")) >= 0) {
+	xoptind = 0;
+	xopterr = 1;
+	while ((opt = xgetopt(argv, "+d")) >= 0) {
 		switch (opt) {
 			case 'd':
 				def = true;
@@ -1439,19 +1447,19 @@ int builtin_option(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	if (optind < argc) {
-		name = argv[optind++];
+	if (xoptind < argc) {
+		name = argv[xoptind++];
 	} else {
 		goto usage;  /* nothing to do */
 	}
-	if (optind < argc) {
+	if (xoptind < argc) {
 		char *ve;
 
 		if (def) {
 			error(0, 0, "%s: invalid argument", argv[0]);
 			goto usage;
 		}
-		value = argv[optind++];
+		value = argv[xoptind++];
 		errno = 0;
 		valuenum = strtol(value, &ve, 10);
 		valuenumvalid = *value && !*ve;

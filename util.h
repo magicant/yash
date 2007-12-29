@@ -78,9 +78,20 @@ struct xoption {
 	int val;
 };
 
-int xgetopt_long(char **argv, const char *optstring,
+int xgetopt_long(char *const *argv, const char *optstring,
 		const struct xoption *longopts, int *longindex)
 	__attribute__((nonnull(1,2)));
+
+#ifdef NINLINE
+int xgetopt(char *const *argv, const char *optstring)
+	__attribute__((nonnull));
+#else
+static inline __attribute__((nonnull))
+int xgetopt(char *const *argv, const char *optstring)
+{
+	return xgetopt_long(argv, optstring, NULL, NULL);
+}
+#endif /* !NINLINE */
 
 #define MAX(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
