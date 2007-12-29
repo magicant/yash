@@ -383,7 +383,8 @@ start:
 		proc = &temp_chld;
 		goto pfound;
 	}
-	/*error(0, 0, "unexpected waitpid result: %ld", (long) pid);*/
+	/* 未知のプロセス番号を受け取ったとき (これはジョブを disown したとき等に
+	 * 起こりうる) は、単に無視して start に戻る */
 	goto start;
 
 pfound:
