@@ -31,8 +31,8 @@
 #include <assert.h>
 
 
-char *which(const char *name, const char *path);
-bool isexecutable(const char *path);
+char *which(const char *name, const char *path, bool (*cond)(struct stat *st));
+bool is_executable(struct stat *st);
 char *expand_tilde(const char *path);
 char *skip_homedir(const char *path);
 char *collapse_homedir(const char *path);
@@ -43,59 +43,78 @@ char *collapse_homedir(const char *path);
  * name:   探すファイル名
  * path:   PATH 環境変数のような、":" で区切ったディレクトリ名のリスト。
  *         NULL ならカレントディレクトリから探す。
+ * cond:   struct stat の内容を見て、ファイルが条件に合致しているかどうかを
+ *         判断する関数へのポインタ。cond が true を返した場合のみその結果が
+ *         返る。cond が NULL なら無条件でその結果が返る。
  * 戻り値: 新しく malloc した、name のフルパス。見付からなかったら NULL。
  *         ただし path に相対パスが含まれていた場合、戻り値も相対パスになる。 */
-char *which(const char *name, const char *path)
+char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 {
-	size_t namelen, pathlen, fullpathlen;
-	char *fullpath;
-
 	if (!name || !*name)
 		return NULL;
 	if (!path)
 		path = "";
-	if (hasprefix(name, "/") || hasprefix(name, "./") || hasprefix(name, "../"))
-		return isexecutable(name) ? xstrdup(name) : NULL;
-
-	namelen = strlen(name);
-	fullpathlen = strlen(name) + 30;
-	fullpath = xmalloc(fullpathlen);
-	while (*path) {
-		if (*path == ':' && !*++path)
-			break;
-		pathlen = strcspn(path, ":");
-		while (fullpathlen < pathlen + namelen + 2) {
-			fullpathlen *= 2;
-			fullpath = xrealloc(fullpath, fullpathlen);
+#if 0
+	if (hasprefix(name, "/") || hasprefix(name, "./") || hasprefix(name, "../")
+			|| strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+#else
+	if (name[0] == '/' ||
+			(name[0] == '.' && (name[1] == '\0' || name[1] == '/' ||
+				 (name[1] == '.' && (name[2] == '\0' || name[2] == '/')))))
+#endif
+	{
+		struct stat st;
+		if (stat(name, &st) == 0) {
+			if (!cond || cond(&st))
+				return xstrdup(name);
+		} else switch (errno) {
+			case EACCES:  case ELOOP:  case ENOENT:  case ENOTDIR:
+			case ENAMETOOLONG:
+				break;
+			default:
+				error(0, errno, "cannot stat %s", name);
+				return NULL;
 		}
-		strncpy(fullpath, path, pathlen);
-		if (pathlen)
-			fullpath[pathlen] = '/';
-		strcpy(fullpath + pathlen + 1, name);
-		if (isexecutable(fullpath))
-			return fullpath;
+		return NULL;
+	}
+
+	size_t namelen = strlen(name);
+	for (;;) {
+		struct stat st;
+		size_t pathlen = strcspn(path, ":");
+		char searchname[pathlen + namelen + 3];
+		if (pathlen) {
+			strncpy(searchname, path, pathlen);
+			searchname[pathlen] = '/';
+			searchname[pathlen + 1] = '\0';
+		} else {
+			searchname[0] = '.';
+			searchname[1] = '/';
+			searchname[2] = '\0';
+		}
+		strcat(searchname, name);
+		if (stat(searchname, &st) == 0) {
+			if (!cond || cond(&st))
+				return xstrdup(searchname);
+		} else switch (errno) {
+			case EACCES:  case ELOOP:  case ENOENT:  case ENOTDIR:
+			case ENAMETOOLONG:
+				break;
+			default:
+				error(0, errno, "cannot stat %s", searchname);
+				return NULL;
+		}
 		path += pathlen;
-		assert(*path == ':' || !*path);
+		if (!*path)
+			break;
+		path++;
 	}
 	return NULL;
 }
 
-/* path で示されるファイルが実行可能かどうか調べる。 */
-bool isexecutable(const char *path)
+bool is_executable(struct stat *st)
 {
-	struct stat st;
-
-	assert(path);
-	if (stat(path, &st) < 0) {
-		switch (errno) {
-			default:
-				error(0, errno, "%s", path);
-				/* falls thru! */
-			case ENOENT:  case ENOTDIR:  case EACCES:  case ELOOP:
-				return false;
-		}
-	}
-	return S_ISREG(st.st_mode) && !!(st.st_mode & S_IXUSR);
+	return S_ISREG(st->st_mode) && !!(st->st_mode & S_IXUSR);
 }
 
 /* '~' で始まるパスを実際のホームディレクトリに展開する。

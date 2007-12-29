@@ -794,7 +794,8 @@ directexec:
 				exit(body(argc, argv));
 
 			char *command = which(argv[0],
-					strchr(argv[0], '/') ? "." : getenv(ENV_PATH));
+					strchr(argv[0], '/') ? "." : getenv(ENV_PATH),
+					is_executable);
 			if (!command)
 				error(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
 			execvp(command, argv);

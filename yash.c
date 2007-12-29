@@ -553,7 +553,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	setlocale(LC_ALL, "");
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt_long(argv, short_opts, long_opts, NULL)) >= 0){
 		switch (opt) {
 			case 0:

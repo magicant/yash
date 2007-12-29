@@ -192,7 +192,7 @@ int builtin_exit(int argc, char *const *argv)
 	}
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "f")) >= 0) {
 		switch (opt) {
 			case 'f':
@@ -227,7 +227,7 @@ int builtin_exit(int argc, char *const *argv)
 	assert(false);
 
 usage:
-	printf("Usage:  exit/logout [-f] [exitcode]\n");
+	fprintf(stderr, "Usage:  exit/logout [-f] [exitcode]\n");
 	return EXIT_FAILURE;
 }
 
@@ -511,8 +511,8 @@ list:
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  kill [-s signal] pid/jobspec ...\n");
-	printf("    or  kill -l [signals]\n");
+	fprintf(stderr, "Usage:  kill [-s signal] pid/jobspec ...\n");
+	fprintf(stderr, "    or  kill -l [signals]\n");
 	return EXIT_FAILURE;
 }
 
@@ -621,7 +621,7 @@ int builtin_wait(int argc, char *const *argv)
 usage:
 	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
 		error(0, errno, "sigprocmask after wait");
-	printf("Usage:  wait [jobspec/pid]...\n");
+	fprintf(stderr, "Usage:  wait [jobspec/pid]...\n");
 	return EXIT_FAILURE;
 }
 
@@ -633,7 +633,7 @@ int builtin_suspend(int argc, char *const *argv)
 	int opt;
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "f")) >= 0) {
 		switch (opt) {
 			case 'f':
@@ -672,7 +672,7 @@ int builtin_suspend(int argc, char *const *argv)
 	return EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  suspend [-f]\n");
+	fprintf(stderr, "Usage:  suspend [-f]\n");
 	return EXIT_FAILURE;
 }
 
@@ -687,7 +687,7 @@ int builtin_jobs(int argc, char *const *argv)
 	int opt;
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "ln")) >= 0) {
 		switch (opt) {
 			case 'l':
@@ -758,7 +758,7 @@ singlespec:
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  jobs [-ln] [jobspecs]\n");
+	fprintf(stderr, "Usage:  jobs [-ln] [jobspecs]\n");
 	return EXIT_FAILURE;
 }
 
@@ -774,7 +774,7 @@ int builtin_disown(int argc, char *const *argv)
 	ssize_t jobnumber = currentjobnumber;
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "arh")) >= 0) {
 		switch (opt) {
 			case 'a':
@@ -836,7 +836,7 @@ int builtin_disown(int argc, char *const *argv)
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  disown [-ar] [-h] [jobspecs...]\n");
+	fprintf(stderr, "Usage:  disown [-ar] [-h] [jobspecs...]\n");
 	return EXIT_FAILURE;
 }
 
@@ -973,9 +973,9 @@ int builtin_fg(int argc, char *const *argv)
 
 usage:
 	if (fg)
-		printf("Usage:  fg [jobspec]\n");
+		fprintf(stderr, "Usage:  fg [jobspec]\n");
 	else
-		printf("Usage:  bg [jobspecs]\n");
+		fprintf(stderr, "Usage:  bg [jobspecs]\n");
 	return EXIT_FAILURE;
 }
 
@@ -992,7 +992,7 @@ int builtin_exec(int argc, char *const *argv)
 	char *argv0 = NULL;
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "+cfla:")) >= 0) {
 		switch (opt) {
 			case 'c':
@@ -1008,8 +1008,7 @@ int builtin_exec(int argc, char *const *argv)
 				argv0 = xoptarg;
 				break;
 			default:
-				printf("Usage:  exec [-cfl] [-a name] command [args...]\n");
-				return EXIT_FAILURE;
+				goto usage;
 		}
 	}
 
@@ -1028,7 +1027,8 @@ int builtin_exec(int argc, char *const *argv)
 		argv0 = argv[xoptind];
 
 	char *command = which(argv[xoptind],
-			strchr(argv[xoptind], '/') ? "." : getenv(ENV_PATH));
+			strchr(argv[xoptind], '/') ? "." : getenv(ENV_PATH),
+			is_executable);
 	if (!command) {
 		error(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);
 		if (!is_interactive) {
@@ -1061,6 +1061,10 @@ int builtin_exec(int argc, char *const *argv)
 	free(command);
 	pl_destroy(&args);
 	return EXIT_NOEXEC;
+
+usage:
+	fprintf(stderr, "Usage:  exec [-cfl] [-a name] command [args...]\n");
+	return EXIT_FAILURE;
 }
 
 /* cd 組込みコマンド */
@@ -1141,7 +1145,7 @@ int builtin_umask(int argc, char *const *argv)
 	return EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  umask [newumask]\n");
+	fprintf(stderr, "Usage:  umask [newumask]\n");
 	return EXIT_FAILURE;
 }
 
@@ -1155,7 +1159,7 @@ int builtin_export(int argc, char *const *argv)
 	if (argc == 1)
 		goto usage;
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "n")) >= 0) {
 		switch (opt) {
 			case 'n':
@@ -1190,8 +1194,8 @@ int builtin_export(int argc, char *const *argv)
 	return EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  export NAME=VALUE ...\n");
-	printf("    or  export -n NAME ...\n");
+	fprintf(stderr, "Usage:  export NAME=VALUE ...\n");
+	fprintf(stderr, "    or  export -n NAME ...\n");
 	return EXIT_FAILURE;
 }
 
@@ -1301,10 +1305,10 @@ int builtin_history(int argc, char *const *argv)
 	return EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  history [n]\n");
-	printf("    or  history -d n\n");
-	printf("    or  history -rw file\n");
-	printf("    or  history -s arg\n");
+	fprintf(stderr, "Usage:  history [n]\n");
+	fprintf(stderr, "    or  history -d n\n");
+	fprintf(stderr, "    or  history -rw file\n");
+	fprintf(stderr, "    or  history -s arg\n");
 	return EXIT_FAILURE;
 }
 
@@ -1331,7 +1335,7 @@ int builtin_alias(int argc, char *const *argv)
 	int opt;
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "gp")) >= 0) {
 		switch (opt) {
 			case 'g':
@@ -1370,7 +1374,7 @@ int builtin_alias(int argc, char *const *argv)
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  alias [-gp] [name[=value] ... ]\n");
+	fprintf(stderr, "Usage:  alias [-gp] [name[=value] ... ]\n");
 	return EXIT_FAILURE;
 }
 
@@ -1385,7 +1389,7 @@ int builtin_unalias(int argc, char *const *argv)
 	if (argc < 2)
 		goto usage;
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "a")) >= 0) {
 		switch (opt) {
 			case 'a':
@@ -1408,7 +1412,7 @@ int builtin_unalias(int argc, char *const *argv)
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  unalias [-a] name [...]\n");
+	fprintf(stderr, "Usage:  unalias [-a] name [...]\n");
 	return EXIT_FAILURE;
 }
 
@@ -1437,7 +1441,7 @@ int builtin_option(int argc, char *const *argv)
 	int opt;
 
 	xoptind = 0;
-	xopterr = 1;
+	xopterr = true;
 	while ((opt = xgetopt(argv, "+d")) >= 0) {
 		switch (opt) {
 			case 'd':
@@ -1545,10 +1549,10 @@ valueyesnoinvalid:
 	return EXIT_FAILURE;
 
 usage:
-	printf("Usage:  option NAME [VALUE]\n");
-	printf("    or  option -d NAME\n");
-	printf("Available options:\n");
+	fprintf(stderr, "Usage:  option NAME [VALUE]\n");
+	fprintf(stderr, "    or  option -d NAME\n");
+	fprintf(stderr, "Available options:\n");
 	for (const char **optname = option_names; *optname; optname++)
-		printf("\t%s\n", *optname);
+		fprintf(stderr, "\t%s\n", *optname);
 	return EXIT_FAILURE;
 }

@@ -19,10 +19,12 @@
 #ifndef PATH_H
 #define PATH_H
 
+#include <sys/stat.h>
 
-char *which(const char *name, const char *path)
+
+char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 	__attribute__((malloc));
-bool isexecutable(const char *path);
+bool is_executable(struct stat *st);
 char *expand_tilde(const char *path)
 	__attribute__((malloc, nonnull));
 char *skip_homedir(const char *path);
