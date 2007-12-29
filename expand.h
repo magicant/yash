@@ -26,6 +26,9 @@ bool expand_line(char **args, int *argc, char ***argv)
 	__attribute__((nonnull(2,3)));
 char *expand_single(const char *arg)
 	__attribute__((nonnull));
+void add_splitting(const char *str,
+		struct strbuf *buf, struct plist *list, const char *ifs)
+	__attribute__((nonnull));
 void escape_sq(const char *s, struct strbuf *buf)
 	__attribute__((nonnull));
 void escape_dq(const char *s, struct strbuf *buf)

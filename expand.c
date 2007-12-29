@@ -53,6 +53,8 @@ static bool expand_subst(char *s, struct plist *result);
 static char *expand_param(char **src);
 static char *get_comsub_code_p(char **src);
 static char *get_comsub_code_bq(char **src);
+void add_splitting(const char *str,
+		struct strbuf *buf, struct plist *list, const char *ifs);
 static bool do_glob(char **ss, struct plist *result);
 static char *unescape_for_glob(const char *s)
 	__attribute__((malloc, nonnull));
@@ -262,31 +264,10 @@ static bool expand_subst(char *const s, struct plist *result)
 append_s2:
 				if (s2) {
 					if (!indq) {  /* 単語分割をしつつ追加 */
-						const char *ifs = getenv("IFS");  //XXX
-						const char *s3 = s2;
+						const char *ifs = getenv("IFS");
 						if (!ifs)
 							ifs = " \t\n";
-						for (;;) {
-							size_t len = strspn(s3, ifs);
-							if (len > 0) {
-								if (buf.length > 0) {
-									pl_append(result, sb_tostr(&buf));
-									sb_init(&buf);
-								} else {
-									sb_clear(&buf);
-								}
-							}
-							s3 += len;
-							if (!*s3)
-								break;
-							len = strcspn(s3, ifs);
-
-							char s4[len + 1];
-							strncpy(s4, s3, len);
-							s4[len] = '\0';
-							escape_sq(s4, &buf);
-							s3 += len;
-						}
+						add_splitting(s2, &buf, result, ifs);
 					} else {  /* そのまま追加 */
 						escape_dq(s2, &buf);
 					}
@@ -419,6 +400,37 @@ static char *get_comsub_code_bq(char **src)
 	}
 	*src = s;
 	return sb_tostr(&buf);
+}
+
+/* ifs に基づいて str を単語分割し、結果を buf, list にいれる。
+ * buf, list は予め初期化しておく必要がある (空である必要は無い)。
+ * 単語を分割する度に pl_append(list, sb_tostr(buf)) を行い buf を再初期化する。
+ * 最後の単語以外の単語は free 可能な文字列として list に入る。
+ * 最後の単語は buf に入ったままになる。 */
+void add_splitting(const char *str,
+		struct strbuf *buf, struct plist *list, const char *ifs)
+{
+	for (;;) {
+		size_t len = strspn(str, ifs);
+		if (len > 0) {
+			if (buf->length > 0) {
+				pl_append(list, sb_tostr(buf));
+				sb_init(buf);
+			} else {
+				sb_clear(buf);
+			}
+		}
+		str += len;
+		if (!*str)
+			break;
+		len = strcspn(str, ifs);
+
+		char ss[len + 1];
+		strncpy(ss, str, len);
+		ss[len] = '\0';
+		escape_sq(ss, buf);
+		str += len;
+	}
 }
 
 /* glob を配列 *ss の各文字列に対して行い、全ての結果を *result に入れる。
