@@ -199,6 +199,8 @@ void pl_ainsert(struct plist *list, size_t i, void **ps)
 	__attribute__((nonnull));
 void pl_aappend(struct plist *list, void **ps)
 	__attribute__((nonnull));
+void pl_remove(struct plist *list, size_t i, size_t count)
+	__attribute__((nonnull));
 #ifndef NO_UTIL_INLINE
 # define pl_append(list,e)      pl_insert(list, SIZE_MAX, e)
 # define pl_anappend(list,ps,n) pl_aninsert(list, SIZE_MAX, ps, n)

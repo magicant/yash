@@ -30,6 +30,8 @@ char *expand_tilde(const char *path)
 char *skip_homedir(const char *path);
 char *collapse_homedir(const char *path)
 	__attribute__((malloc));
+char *canonicalize_path(const char *path)
+	__attribute__((malloc));
 
 
 #endif /* PATH_H */

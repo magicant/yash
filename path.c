@@ -36,6 +36,7 @@ bool is_executable(struct stat *st);
 char *expand_tilde(const char *path);
 char *skip_homedir(const char *path);
 char *collapse_homedir(const char *path);
+char *canonicalize_path(const char *path);
 
 
 /* path に含まれるディレクトリを走査し、ファイル名 name のフルパスを得る。
@@ -205,5 +206,94 @@ char *collapse_homedir(const char *path)
 	result = xmalloc(strlen(aftertilde) + 2);
 	result[0] = '~';
 	strcpy(result + 1, aftertilde);
+	return result;
+}
+
+/* パスを正規化する。これは単なる文字列の操作であり、実際にパスにファイルが
+ * 存在するかどうかなどは関係ない。
+ * path:   正規化するパス。
+ * 戻り値: 新しく malloc した文字列で、path を正規化した結果。 */
+char *canonicalize_path(const char *path)
+{
+	if (!path)    return NULL;
+	if (!path[0]) return xstrdup(path);
+
+	/* path の先頭に三つ以上のスラッシュがある場合、それらを一つのスラッシュに
+	 * まとめることができる。この場合、単にスラッシュを無視すればよい。 */
+	if (path[0] == '/' && path[1] == '/' && path[2] == '/') {
+		while (*path == '/') path++;
+		path--;
+	}
+
+	struct plist list;
+	char save[strlen(path) + 1];  /* path を save にコピー */
+	strcpy(save, path);
+	pl_init(&list);
+
+	/* save 内の '/' を全て '\0' に置き換え、パスの各構成要素ごとの文字列に
+	 * 分解し、list に入れる。 */
+	pl_append(&list, save);
+	for (char *s = save; *s; s++) {
+		if (*s == '/') {
+			*s = '\0';
+			pl_append(&list, s + 1);
+		}
+	}
+
+	char **entries = (char **) list.contents;
+	size_t i;
+
+	/* まず、"" と "." を削除する。ただし……
+	 * - リストの最初の構成要素が "" の場合、それはパスが絶対パスであることを
+	 *   示している。よってこれは削除してはいけない。これを削除してしまうと、
+	 *   例えば /usr/bin が usr/bin になってしまう。また、さらに二つ目の構成
+	 *   要素も "" の場合、それも削除してはいけない。この場合は path が "//"
+	 *   で始まっている訳だが、これはシステムによっては特殊な意味を持つので
+	 *   勝手にスラッシュを一つにしてはいけない。スラッシュが三つ以上ある場合は
+	 *   スラッシュを一つにまとめることができるが、これは既に関数の最初で
+	 *   処理してある。
+	 *   もちろん、path の先頭でない "" は自由に削除できる。
+	 * - "." が唯一の構成要素なら、削除してはいけない。 */
+	if (entries[0][0] || !entries[1])
+		i = 0;  /* 相対パス */
+	else if (entries[1][0])
+		i = 1;  /* "/xxx" */
+	else if (!entries[2])
+		i = 2;  /* "/" */
+	else if (entries[2][0])
+		i = 2;  /* "//xxx" */
+	else if (!entries[3])
+		i = 3;  /* "//" */
+	else 
+		assert(false);
+	while (entries[i]) {
+		if (!entries[i][0] ||
+				(strcmp(entries[i], ".") == 0 && (i > 0 || list.length >= 2))) {
+			pl_remove(&list, i, 1);
+		} else {
+			i++;
+		}
+	}
+	assert(list.length == i);
+
+	/* 続いて、".." とその親要素を削除する。ただし……
+	 * - ".." の手前がルートまたは ".." なら削除してはいけない。消してもよい ""
+	 *   は既に消してあるので、".." の手前が "" か ".." なら消してはいけない、
+	 *   ということになる。 */
+	i = 1;
+	while (i < list.length) {
+		if (strcmp(entries[i], "..") == 0
+				&& entries[i - 1][0] && strcmp(entries[i - 1], "..") != 0) {
+			i--;
+			pl_remove(&list, i, 2);
+			if (i == 0)
+				i = 1;
+		} else {
+			i++;
+		}
+	}
+
+	char *result = strjoin(-1, entries, "/");
+	pl_destroy(&list);
 	return result;
 }

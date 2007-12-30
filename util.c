@@ -82,6 +82,7 @@ void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n);
 void pl_anappend(struct plist *list, void **ps, size_t n);
 void pl_ainsert(struct plist *list, size_t i, void **ps);
 void pl_aappend(struct plist *list, void **ps);
+void pl_remove(struct plist *list, size_t i, size_t count);
 
 static unsigned ht_hashstr(const char *s);
 void ht_init(struct hasht *ht);
@@ -878,6 +879,23 @@ void pl_ainsert(struct plist *list, size_t i, void **ps)
 void pl_aappend(struct plist *list, void **ps)
 {
 	pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
+}
+
+/* ポインタリストの i 要素目から count 個の要素を削除する。
+ * 要素そのものは free しないので注意。 */
+void pl_remove(struct plist *list, size_t i, size_t count)
+{
+	if (i < list->length) {
+		if (i + count >= list->length) {
+			list->contents[i] = NULL;
+			list->length = i;
+		} else {
+			size_t rest = list->length - i - count;
+			memmove(list->contents + i, list->contents + i + count,
+					(rest + 1) * sizeof *list->contents);
+			list->length -= count;
+		}
+	}
 }
 
 
