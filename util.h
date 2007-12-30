@@ -66,6 +66,8 @@ char *strchomp(char *s)
 	__attribute__((nonnull));
 char *strjoin(int argc, char *const *argv, const char *padding)
 	__attribute__((nonnull(2)));
+char *mprintf(const char *format, ...)
+	__attribute__((malloc, nonnull(1), format(printf,1,2)));
 char *read_all(int fd)
 	__attribute__((malloc));
 
@@ -152,9 +154,9 @@ void sb_cappend(struct strbuf *buf, char c)
 void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
 	__attribute__((nonnull));
 int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
-	__attribute__((nonnull, format(printf, 2, 0)));
+	__attribute__((nonnull, format(printf,2,0)));
 int sb_printf(struct strbuf *buf, const char *format, ...)
-	__attribute__((nonnull, format(printf, 2, 3)));
+	__attribute__((nonnull, format(printf,2,3)));
 
 
 /* Pointer lists */

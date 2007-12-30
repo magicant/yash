@@ -28,12 +28,12 @@ char *expand_single(const char *arg)
 	__attribute__((nonnull));
 char *expand_word(const char *s)
 	__attribute__((nonnull));
-void add_splitting(const char *str,
-		struct strbuf *buf, struct plist *list, const char *ifs, bool esc)
-	__attribute__((nonnull));
+void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
+		const char *ifs, const char *q)
+	__attribute__((nonnull(1,2,3,4)));
 void escape_sq(const char *s, struct strbuf *buf)
 	__attribute__((nonnull));
-void escape_dq(const char *s, struct strbuf *buf)
+void escape_bs(const char *s, const char *q, struct strbuf *buf)
 	__attribute__((nonnull));
 
 

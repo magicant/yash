@@ -75,8 +75,8 @@ static char *get_comsub_code_p(char **src)
 	__attribute__((nonnull));
 static char *get_comsub_code_bq(char **src)
 	__attribute__((nonnull));
-void add_splitting(const char *str,
-		struct strbuf *buf, struct plist *list, const char *ifs, bool esc);
+void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
+		const char *ifs, const char *q);
 static bool do_glob(char **ss, struct plist *result)
 	__attribute__((nonnull));
 static char *unescape_for_glob(const char *s)
@@ -84,7 +84,7 @@ static char *unescape_for_glob(const char *s)
 static char *unescape(char *s)
 	__attribute__((malloc, nonnull));
 void escape_sq(const char *s, struct strbuf *buf);
-void escape_dq(const char *s, struct strbuf *buf);
+void escape_bs(const char *s, const char *q, struct strbuf *buf);
 
 
 /* コマンドライン上の各種展開を行う。
@@ -304,26 +304,23 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 					char *code = get_comsub_code_bq(&s1);
 					s2 = exec_and_read(code, true);
 					free(code);
-					escaped = false;
+					escaped = true;
 				}
 				goto append_s2;
 append_s2:
 				if (s2) {
-					error(0, 0, "DEBUG: %d %d appending %s",
-							(int) (split && !indq), (int) escaped, s2);
+//					error(0, 0, "DEBUG: %d %d appending %s",
+//							(int) (split && !indq), (int) escaped, s2);
 					if (split && !indq) {  /* 単語分割をしつつ追加 */
 						const char *ifs = getenv("IFS");
 						if (!ifs)
 							ifs = " \t\n";
-						add_splitting(s2, &buf, result, ifs, !escaped);
+						add_splitting(s2, &buf, result, ifs, "\"'\\");
 						/* ↑ ここでの escaped は「エスケープしてあるとみなすか
 						 * どうか」と言う意味であって、実際にはエスケープ文字が
 						 * 入っていてはいけない。(正しく単語分割できない) */
 					} else {  /* そのまま追加 */
-						if (escaped)
-							sb_append(&buf, s2);
-						else
-							escape_dq(s2, &buf);
+						escape_bs(s2, "\"\\", &buf);
 					}
 				} else {
 					ok = false;
@@ -383,13 +380,13 @@ static char *expand_param(char **src, bool *escaped)
 			ss = get_comsub_code_p(src);
 			result = exec_and_read(ss, true);
 			free(ss);
-			*escaped = false;
+			*escaped = true;
 			return result;
 
 			//TODO ? や _ などの一文字のパラメータ
 		case '\0':
 		default:
-			*escaped = false;
+			*escaped = true;
 			if (xisalpha(*s)) {
 				ss = s + 1;
 				while (xisalnum(*ss) || *ss == '_') ss++;
@@ -446,8 +443,10 @@ static char *expand_param(char **src, bool *escaped)
 static char *expand_param2(const char *s, bool *escaped)
 {
 	const char *start = s;
-	bool indir, colon;
+	bool count, indir, colon;
 
+	count = (*s == '#');
+	if (count) s++;
 	indir = (*s == '!');
 	if (indir) s++;
 	
@@ -462,8 +461,15 @@ static char *expand_param2(const char *s, bool *escaped)
 	char *result = getenv(param);
 	char *word1, *word2;
 
+	// TODO ${!prefix*} パタン
 	if (result && indir)
 		result = getenv(result);
+	if (count) {
+		if (*s)
+			goto err;
+		*escaped = true;
+		return mprintf("%zu", strlen(result ? result : ""));
+	}
 	colon = (*s == ':');
 	if (colon) s++;
 	switch (*s++) {
@@ -517,7 +523,7 @@ err:
 			error(0, 0, "${%s}: bad substitution", start);
 			return NULL;
 	}
-	*escaped = false;
+	*escaped = true;
 	return xstrdup(result ? result : "");
 }
 
@@ -581,9 +587,9 @@ static char *get_comsub_code_bq(char **src)
  * 単語を分割する度に pl_append(list, sb_tostr(buf)) を行い buf を再初期化する。
  * 最後の単語以外の単語は free 可能な文字列として list に入る。
  * 最後の単語は buf に入ったままになる。
- * esc が true なら、結果をエスケープする。 */
-void add_splitting(const char *str,
-		struct strbuf *buf, struct plist *list, const char *ifs, bool esc)
+ * q が非 NULL なら、q に入っている文字を escape_bs でエスケープする。 */
+void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
+		const char *ifs, const char *q)
 {
 	for (;;) {
 		size_t len = strspn(str, ifs);
@@ -603,8 +609,8 @@ void add_splitting(const char *str,
 		char ss[len + 1];
 		strncpy(ss, str, len);
 		ss[len] = '\0';
-		if (esc)
-			escape_sq(ss, buf);
+		if (q)
+			escape_bs(ss, q, buf);
 		else
 			sb_append(buf, ss);
 		str += len;
@@ -621,7 +627,7 @@ static bool do_glob(char **ss, struct plist *result)
 	bool ok = true;
 	while (*ss) {
 		char *s = unescape_for_glob(*ss);
-		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
+//		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
 		switch (glob(s, 0, NULL, &gbuf)) {
 			case GLOB_NOSPACE:  case GLOB_ABORTED:  default:
 				error(0, 0, "%s: glob error", *ss);
@@ -689,9 +695,9 @@ static char *unescape_for_glob(const char *s)
 					sb_cappend(&buf, '\\');
 					sb_cappend(&buf, *s);
 					break;
-				} else if (*s == '"' || *s == '`' || *s == '$') {
-					sb_cappend(&buf, *s);
-					break;
+				} else if (*s != '"' && *s != '`' && *s != '$') {
+					sb_cappend(&buf, '\\');
+					sb_cappend(&buf, '\\');
 				}
 				goto default_case;
 			case '*':  case '?':  case '[':
@@ -770,20 +776,16 @@ void escape_sq(const char *s, struct strbuf *buf)
 	sb_cappend(buf, '\'');
 }
 
-/* 文字列 s に含まれる " ` \ $ を \ でエスケープしつつ buf に追加する。
+/* 文字列 s を \ でエスケープしつつ buf に追加する。
+ * 文字列 s の文字のうち、文字列 q に含まれている文字をエスケープする。
  * buf は初期化してから渡すこと。
- *   例)  abc"def'ghi`jkl\mno  ->  abc\"def'ghi\`jkl\\mno  */
-void escape_dq(const char *s, struct strbuf *buf)
+ *   例) escape_bs("$%&'()", "$'", buf)  ->  "\$%&\'()"   */
+void escape_bs(const char *s, const char *q, struct strbuf *buf)
 {
 	while (*s) {
-		switch (*s) {
-			case '"':  case '`':  case '$':  case '\\':
-				sb_cappend(buf, '\\');
-				/* falls thru! */
-			default:
-				sb_cappend(buf, *s);
-				break;
-		}
+		if (strchr(q, *s))
+			sb_cappend(buf, '\\');
+		sb_cappend(buf, *s);
 		s++;
 	}
 }

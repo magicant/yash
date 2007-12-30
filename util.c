@@ -48,7 +48,9 @@ int hasprefix(const char *s, const char *prefix);
 char *strchug(char *s);
 char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
+char *mprintf(const char *format, ...);
 char *read_all(int fd);
+
 int xgetopt_long(char *const *argv, const char *optstring,
 		const struct xoption *longopts, int *longindex);
 int xgetopt(char *const *argv, const char *optstring);
@@ -285,6 +287,31 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 		strcpy(result + resultlen, argv[i]);
 		resultlen += strlen(argv[i]);
 	}
+	return result;
+}
+
+/* printf の結果を新しく malloc した文字列として返す。 */
+char *mprintf(const char *format, ...)
+{
+	va_list ap, ap2;
+	int count;
+	char temp[16];
+	char *result;
+
+	va_start(ap, format);
+	va_copy(ap2, ap);
+
+	count = vsnprintf(temp, sizeof temp, format, ap);
+	if (count < 0) {
+		result = NULL;
+	} else if ((unsigned) count < sizeof temp) {
+		result = xstrdup(temp);
+	} else {
+		result = xmalloc((unsigned) count + 1);
+		vsprintf(result, format, ap2);
+	}
+
+	va_end(ap);
 	return result;
 }
 
@@ -685,6 +712,9 @@ void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
 int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
 {
+	va_list ap2;
+	va_copy(ap2, ap);
+
 	ssize_t rest = buf->maxlength - buf->length + 1;
 	int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
 
@@ -694,7 +724,7 @@ int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
 		while (result + buf->length > buf->maxlength);
 		buf->contents = xrealloc(buf->contents, buf->maxlength + 1);
 		rest = buf->maxlength - buf->length + 1;
-		result = vsnprintf(buf->contents + buf->length, rest, format, ap);
+		result = vsnprintf(buf->contents + buf->length, rest, format, ap2);
 	}
 	if (result >= 0)
 		buf->length += result;
