@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <error.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <glob.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -71,6 +72,10 @@ static char *expand_param(char **src, bool indq)
 	__attribute__((nonnull));
 static char *expand_param2(const char *s, bool indq)
 	__attribute__((nonnull));
+static char *matchhead(const char *s, char *pat, bool matchlong)
+	__attribute__((nonnull));
+static char *matchtail(const char *s, char *pat, bool matchlong)
+	__attribute__((nonnull));
 static char *get_comsub_code_p(char **src)
 	__attribute__((nonnull));
 static char *get_comsub_code_bq(char **src)
@@ -80,7 +85,7 @@ void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
 static bool do_glob(char **ss, struct plist *result)
 	__attribute__((nonnull));
 static char *unescape_for_glob(const char *s)
-	__attribute__((malloc, nonnull));
+	__attribute__((malloc));
 static char *unescape(char *s)
 	__attribute__((malloc));
 void escape_sq(const char *s, struct strbuf *buf);
@@ -145,7 +150,7 @@ char *expand_word(const char *s)
 		recfree(pl_toary(&list));
 		return NULL;
 	}
-	assert(list.length == 1);
+	assert(list.length <= 1);
 	s2 = list.contents[0];
 	pl_destroy(&list);
 	return s2;
@@ -311,8 +316,8 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 				goto append_s2;
 append_s2:
 				if (s2) {
-					error(0, 0, "DEBUG: %d %d appending %s",
-							(int) (split && !indq), (int) noescape, s2);
+//					error(0, 0, "DEBUG: %d %d appending %s",
+//							(int) (split && !indq), (int) noescape, s2);
 					if (split && !indq) {  /* 単語分割をしつつ追加 */
 						const char *ifs = getenv("IFS");
 						if (!ifs)
@@ -374,7 +379,6 @@ static char *expand_param(char **src, bool indq)
 			}
 			s++;
 			*src = ss;
-			//TODO { } 内の特殊構文
 			ss = xstrndup(s, ss - s);
 			result = expand_param2(ss, indq);
 			free(ss);
@@ -425,7 +429,7 @@ static char *expand_param(char **src, bool indq)
  *    ${param%%word}  同様にマッチさせ、一致部分を削除して返す。(最長一致)
  *  各 word は、使う前にチルダ展開・パラメータ/数式展開・コマンド置換を行う。
  *  word を使わない場合は展開・置換は行わない。
- *  以下は、POSIX にない書式である (基本的に bash とおなじ):
+ *  以下は、POSIX にない書式である (基本的に bash とおなじ):  XXX 未実装
  *    ${prefix*}      名前が prefix で始まる全ての変数に展開する。
  *                    各変数は IFS の最初の文字で区切る。
  *    ${!prefix*}     同上
@@ -444,7 +448,7 @@ static char *expand_param(char **src, bool indq)
 static char *expand_param2(const char *s, bool indq)
 {
 	const char *start = s;
-	bool count, indir, colon;
+	bool count, indir, colon, matchlong;
 
 	count = (*s == '#');
 	if (count) s++;
@@ -514,6 +518,20 @@ static char *expand_param2(const char *s, bool indq)
 				return NULL;
 			}
 			break;
+		case '#':
+			matchlong = (*s == '#');
+			if (matchlong) s++;
+			word1 = expand_word(s);
+			word2 = unescape_for_glob(word1);
+			if (!word2) return NULL;
+			return matchhead(result, word2, matchlong);
+		case '%':
+			matchlong = (*s == '%');
+			if (matchlong) s++;
+			word1 = expand_word(s);
+			word2 = unescape_for_glob(word1);
+			if (!word2) return NULL;
+			return matchtail(result, word2, matchlong);
 		default:
 err:
 			error(0, 0, "${%s}: bad substitution", start);
@@ -527,6 +545,110 @@ expand_escape_return:
 	if (!noescape)
 		result = unescape(result);
 	return result;
+}
+
+/* pat を s の先頭部分にマッチさせ、一致した部分を取り除いた文字列を返す。
+ * pat:       マッチさせる glob パタン。matchhead 内で free する。
+ * matchlong: true なら最長一致、false なら最短一致。
+ * 戻り値:    新しく malloc した、s の部分文字列。エラーなら NULL。 */
+static char *matchhead(const char *s, char *pat, bool matchlong)
+{
+	size_t len = strlen(s);
+	size_t i;
+	char buf[len + 1];
+
+	errno = 0;
+	if (matchlong) {
+		i = len;
+		strcpy(buf, s);
+		for (;;) {
+			switch (fnmatch(pat, buf, 0)) {
+				case 0:  /* 一致した */
+					goto end;
+				case FNM_NOMATCH:  /* 一致しなかった */
+					break;
+				default:  /* エラー */
+					error(0, errno, "unexpected fnmatch error");
+					free(pat);
+					return NULL;
+			}
+			if (!i)
+				goto end;
+			buf[--i] = '\0';  /* buf の末尾の一文字を削る */
+		}
+	} else {
+		i = 0;
+		for (;;) {
+			buf[i] = '\0';
+			switch (fnmatch(pat, buf, 0)) {
+				case 0:  /* 一致した */
+					goto end;
+				case FNM_NOMATCH:  /* 一致しなかった */
+					break;
+				default:  /* エラー */
+					error(0, errno, "unexpected fnmatch error");
+					free(pat);
+					return NULL;
+			}
+			if (i == len) {
+				i = 0;
+				goto end;
+			}
+			buf[i] = s[i];
+			i++;
+		}
+	}
+end:
+	free(pat);
+	return xstrdup(s + i);
+}
+
+/* pat を s の末尾部分にマッチさせ、一致した部分を取り除いた文字列を返す。
+ * pat:       マッチさせる glob パタン。matchtail 内で free する。
+ * matchlong: true なら最長一致、false なら最短一致。
+ * 戻り値:    新しく malloc した、s の部分文字列。エラーなら NULL。 */
+static char *matchtail(const char *const s, char *pat, bool matchlong)
+{
+	size_t i;
+
+	if (matchlong) {
+		i = 0;
+		while (s[i]) {
+			switch (fnmatch(pat, s + i, 0)) {
+				case 0:  /* 一致した */
+					goto end;
+				case FNM_NOMATCH:  /* 一致しなかった */
+					break;
+				default:  /* エラー */
+					error(0, errno, "unexpected fnmatch error");
+					free(pat);
+					return NULL;
+			}
+			i++;
+		}
+	} else {
+		i = strlen(s);
+		for (;;) {
+			switch (fnmatch(pat, s + i, 0)) {
+				case 0:  /* 一致した */
+					goto end;
+				case FNM_NOMATCH:  /* 一致しなかった */
+					break;
+				default:  /* エラー */
+					error(0, errno, "unexpected fnmatch error");
+					free(pat);
+					return NULL;
+			}
+			if (!i) {
+				i = SIZE_MAX;
+				goto end;
+			}
+			i--;
+		}
+	}
+end:
+	free(pat);
+	return xstrndup(s, i);
 }
 
 /* 括弧 ( ) で囲んだコマンドの閉じ括弧を探す。
@@ -629,7 +751,7 @@ static bool do_glob(char **ss, struct plist *result)
 	bool ok = true;
 	while (*ss) {
 		char *s = unescape_for_glob(*ss);
-		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
+//		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
 		switch (glob(s, 0, NULL, &gbuf)) {
 			case GLOB_NOSPACE:  case GLOB_ABORTED:  default:
 				error(0, 0, "%s: glob error", *ss);
@@ -669,6 +791,7 @@ static char *unescape_for_glob(const char *s)
 	enum { NORM, INSQ, INDQ, } state = NORM;
 	struct strbuf buf;
 
+	if (!s) return NULL;
 	sb_init(&buf);
 	while (*s) {
 		switch (*s) {
