@@ -529,14 +529,14 @@ static void interactive_loop(void)
 }
 
 static struct xoption long_opts[] = {
-	{ "help", xno_argument, NULL, '?', },
-	{ "version", xno_argument, NULL, 'v' + 256, },
-	{ "rcfile", xrequired_argument, NULL, 'r', },
-	{ "noprofile", xno_argument, NULL, 'N' + 256, },
-	{ "norc", xno_argument, NULL, 'n' + 256, },
-	{ "login", xno_argument, NULL, 'l', },
-	{ "interactive", xno_argument, NULL, 'i', },
-	{ "posix", xno_argument, NULL, 'p' + 256, },
+	{ "help",        xno_argument,       NULL, '?', },
+	{ "version",     xno_argument,       NULL, 'V', },
+	{ "rcfile",      xrequired_argument, NULL, 'r', },
+	{ "noprofile",   xno_argument,       NULL, 'E', },
+	{ "norc",        xno_argument,       NULL, 'O', },
+	{ "login",       xno_argument,       NULL, 'l', },
+	{ "interactive", xno_argument,       NULL, 'i', },
+	{ "posix",       xno_argument,       NULL, 'X', },
 	{ NULL, 0, NULL, 0, },
 };
 
@@ -567,19 +567,19 @@ int main(int argc __attribute__((unused)), char **argv)
 			case 'l':
 				is_loginshell = true;
 				break;
-			case 'n' + 256:
+			case 'O':
 				norc = 1;
 				break;
-			case 'N' + 256:
+			case 'E':
 				noprofile = true;
 				break;
-			case 'p' + 256:
+			case 'X':
 				posixly_correct = true;
 				break;
 			case 'r':
 				rcfile = xoptarg;
 				break;
-			case 'v' + 256:
+			case 'V':
 				version = true;
 				break;
 			case '?':
