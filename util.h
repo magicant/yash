@@ -81,8 +81,8 @@ static inline bool xisascii(int c) {
 	return isascii((unsigned char) c);
 }
 #define DEF_xis(type)                                                         \
-	static inline bool xis##type (int c) {                                    \
-		return isascii((unsigned char) c) && is##type ((unsigned char) c);  \
+	static inline bool xis##type (char c) {                                   \
+		return isascii((unsigned char) c) && is##type ((unsigned char) c);    \
 	}
 DEF_xis(alnum)
 DEF_xis(alpha)
