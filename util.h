@@ -76,19 +76,27 @@ char *read_all(int fd)
 #define MIN(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
 
-#define xisascii(c)  (isascii((unsigned char) (c)))
-#define xisalnum(c)  (xisascii(c) && isalnum((unsigned char) (c)))
-#define xisalpha(c)  (xisascii(c) && isalpha((unsigned char) (c)))
-#define xisblank(c)  (xisascii(c) && isblank((unsigned char) (c)))
-#define xiscntrl(c)  (xisascii(c) && iscntrl((unsigned char) (c)))
-#define xisdigit(c)  (xisascii(c) && isdigit((unsigned char) (c)))
-#define xisgraph(c)  (xisascii(c) && isgragh((unsigned char) (c)))
-#define xislower(c)  (xisascii(c) && islower((unsigned char) (c)))
-#define xisprint(c)  (xisascii(c) && isprint((unsigned char) (c)))
-#define xispunct(c)  (xisascii(c) && ispunct((unsigned char) (c)))
-#define xisspace(c)  (xisascii(c) && isspace((unsigned char) (c)))
-#define xisupper(c)  (xisascii(c) && isupper((unsigned char) (c)))
-#define xisxdigit(c) (xisascii(c) && isxdigit((unsigned char) (c)))
+/* ここで xisascii や xisalpha を定義 */
+static inline bool xisascii(int c) {
+	return isascii((unsigned char) c);
+}
+#define DEF_xis(type)                                                         \
+	static inline bool xis##type (int c) {                                    \
+		return isascii((unsigned char) c) && is##type ((unsigned char) c);  \
+	}
+DEF_xis(alnum)
+DEF_xis(alpha)
+DEF_xis(blank)
+DEF_xis(cntrl)
+DEF_xis(digit)
+DEF_xis(graph)
+DEF_xis(lower)
+DEF_xis(print)
+DEF_xis(punct)
+DEF_xis(space)
+DEF_xis(upper)
+DEF_xis(xdigit)
+#undef DEF_xis
 
 
 /* xgetopt */
