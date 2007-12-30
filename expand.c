@@ -67,9 +67,9 @@ static bool expand_brace(char *s, struct plist *result)
 	__attribute__((nonnull));
 static bool expand_subst(char *s, struct plist *result, bool split)
 	__attribute__((nonnull));
-static char *expand_param(char **src, bool *escaped)
+static char *expand_param(char **src, bool indq)
 	__attribute__((nonnull));
-static char *expand_param2(const char *s, bool *escaped)
+static char *expand_param2(const char *s, bool indq)
 	__attribute__((nonnull));
 static char *get_comsub_code_p(char **src)
 	__attribute__((nonnull));
@@ -82,7 +82,7 @@ static bool do_glob(char **ss, struct plist *result)
 static char *unescape_for_glob(const char *s)
 	__attribute__((malloc, nonnull));
 static char *unescape(char *s)
-	__attribute__((malloc, nonnull));
+	__attribute__((malloc));
 void escape_sq(const char *s, struct strbuf *buf);
 void escape_bs(const char *s, const char *q, struct strbuf *buf);
 
@@ -255,6 +255,8 @@ done:
 	return true;
 }
 
+static bool noescape;
+
 /* パラメータ展開・コマンド置換、そして split が true なら単語分割を行い、
  * 結果を result に追加する。
  * 引用符 (" と ') やバックスラッシュエスケープはそのまま展開結果に残る。
@@ -269,7 +271,6 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 {
 	bool ok = true;
 	bool indq = false;  /* 引用符 " の中かどうか */
-	bool escaped;
 	char *s1 = s, *s2 = strpbrk(s, "\"'\\$`");
 	struct strbuf buf;
 
@@ -297,30 +298,32 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 					break;
 			case '$':
 				s1++;
-				s2 = expand_param(&s1, &escaped);
+				noescape = false;
+				s2 = expand_param(&s1, indq);
 				goto append_s2;
 			case '`':
 				{
 					char *code = get_comsub_code_bq(&s1);
 					s2 = exec_and_read(code, true);
 					free(code);
-					escaped = true;
+					noescape = false;
 				}
 				goto append_s2;
 append_s2:
 				if (s2) {
-//					error(0, 0, "DEBUG: %d %d appending %s",
-//							(int) (split && !indq), (int) escaped, s2);
+					error(0, 0, "DEBUG: %d %d appending %s",
+							(int) (split && !indq), (int) noescape, s2);
 					if (split && !indq) {  /* 単語分割をしつつ追加 */
 						const char *ifs = getenv("IFS");
 						if (!ifs)
 							ifs = " \t\n";
-						add_splitting(s2, &buf, result, ifs, "\"'\\");
-						/* ↑ ここでの escaped は「エスケープしてあるとみなすか
-						 * どうか」と言う意味であって、実際にはエスケープ文字が
-						 * 入っていてはいけない。(正しく単語分割できない) */
+						add_splitting(s2, &buf, result, ifs,
+								noescape ? NULL : "\"'\\");
 					} else {  /* そのまま追加 */
-						escape_bs(s2, "\"\\", &buf);
+						if (noescape)
+							sb_append(&buf, s2);
+						else
+							escape_bs(s2, "\"\\", &buf);
 					}
 				} else {
 					ok = false;
@@ -352,9 +355,9 @@ append_s2:
 /* '$' で始まるパラメータ・コマンド置換を解釈し、展開結果を返す。
  * src:    パラメータ置換を表す '$' の次の文字へのポインタのポインタ。
  *         置換が成功すると、*s は置換すべき部分文字列の最後の文字を指す。
- * escaped: 戻り値が既にエスケープ済かどうかが *escaped に入る。
+ * indq:   このコマンド置換が " 引用符の中にあるかどうか。
  * 戻り値: 新しく malloc したパラメータ置換の結果の文字列。エラーなら NULL。 */
-static char *expand_param(char **src, bool *escaped)
+static char *expand_param(char **src, bool indq)
 {
 	char *s = *src;
 	char *ss, *result;
@@ -373,20 +376,18 @@ static char *expand_param(char **src, bool *escaped)
 			*src = ss;
 			//TODO { } 内の特殊構文
 			ss = xstrndup(s, ss - s);
-			result = expand_param2(ss, escaped);
+			result = expand_param2(ss, indq);
 			free(ss);
 			return result;
 		case '(':
 			ss = get_comsub_code_p(src);
 			result = exec_and_read(ss, true);
 			free(ss);
-			*escaped = true;
 			return result;
 
 			//TODO ? や _ などの一文字のパラメータ
 		case '\0':
 		default:
-			*escaped = true;
 			if (xisalpha(*s)) {
 				ss = s + 1;
 				while (xisalnum(*ss) || *ss == '_') ss++;
@@ -402,9 +403,9 @@ static char *expand_param(char **src, bool *escaped)
 }
 
 /* 括弧 ${ } で囲んだパラメータの内容を展開する
- * s:       ${ と } の間の文字列。
- * escaped: 戻り値が既にエスケープ済かどうかが *escaped に入る。
- * 戻り値:  新しく malloc した、パラメータの展開結果。エラーなら NULL。 */
+ * s:      ${ と } の間の文字列。
+ * indq:   このコマンド置換が " 引用符の中にあるかどうか。
+ * 戻り値: 新しく malloc した、パラメータの展開結果。エラーなら NULL。 */
 /* 書式:
  *    ${param-word}   param が未定義なら代わりに word を返す。
  *    ${param+word}   param が未定義でなければ代わりに word を返す。
@@ -440,7 +441,7 @@ static char *expand_param(char **src, bool *escaped)
  *  param を名前とする変数の内容を名前とする変数の内容を用いる。ただし、
  *  ${!prefix*} は例外である。
  */
-static char *expand_param2(const char *s, bool *escaped)
+static char *expand_param2(const char *s, bool indq)
 {
 	const char *start = s;
 	bool count, indir, colon;
@@ -467,7 +468,6 @@ static char *expand_param2(const char *s, bool *escaped)
 	if (count) {
 		if (*s)
 			goto err;
-		*escaped = true;
 		return mprintf("%zu", strlen(result ? result : ""));
 	}
 	colon = (*s == ':');
@@ -478,16 +478,12 @@ static char *expand_param2(const char *s, bool *escaped)
 				goto err;
 			break;
 		case '-':
-			if (!result || (colon && !*result)) {
-				*escaped = true;
-				return unescape(expand_word(s));
-			}
+			if (!result || (colon && !*result))
+				goto expand_escape_return;
 			break;
 		case '+':
-			if (result && (!colon || *result)) {
-				*escaped = true;
-				return unescape(expand_word(s));
-			}
+			if (result && (!colon || *result))
+				goto expand_escape_return;
 			break;
 		case '=':
 			if (!result || (colon && !*result)) {
@@ -523,8 +519,14 @@ err:
 			error(0, 0, "${%s}: bad substitution", start);
 			return NULL;
 	}
-	*escaped = true;
 	return xstrdup(result ? result : "");
+
+expand_escape_return:
+	noescape = !indq || posixly_correct;
+	result = expand_word(s);
+	if (!noescape)
+		result = unescape(result);
+	return result;
 }
 
 /* 括弧 ( ) で囲んだコマンドの閉じ括弧を探す。
@@ -627,7 +629,7 @@ static bool do_glob(char **ss, struct plist *result)
 	bool ok = true;
 	while (*ss) {
 		char *s = unescape_for_glob(*ss);
-//		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
+		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
 		switch (glob(s, 0, NULL, &gbuf)) {
 			case GLOB_NOSPACE:  case GLOB_ABORTED:  default:
 				error(0, 0, "%s: glob error", *ss);
@@ -719,10 +721,12 @@ static char *unescape_for_glob(const char *s)
  * s は unescape 内で free され、新しく malloc した文字列で結果が返る。 */
 static char *unescape(char *const s)
 {
-	char *ss = strpbrk(s, "\"'\\");
+	char *ss;
 	bool indq = false;
 	struct strbuf buf;
 
+	if (!s) return NULL;
+	ss = strpbrk(s, "\"'\\");
 	if (!ss) return s;
 	sb_init(&buf);
 	sb_nappend(&buf, s, ss - s);
