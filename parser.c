@@ -92,7 +92,6 @@ int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
 	sb_init(&i_src);
 	sb_append(&i_src, src);
 	free(src);
-	alias_reset();
 
 	STATEMENT *statements = parse_statements('\0');
 	if (*fromi(i_index))
@@ -342,7 +341,13 @@ static bool parse_words(PROCESS *p)
 	bool result;
 	REDIR *rfirst = NULL, **rlastp = &rfirst;
 
-	expand_alias(&i_src, i_index, false);
+	if (posixly_correct) {
+		/* parse_reserved_word(....) */
+		subst_alias(&i_src, i_index, false);
+	} else {
+		subst_alias(&i_src, i_index, false);
+		/* parse_reserved_word(....) */
+	}
 	switch (*fromi(i_index)) {
 		case '(':
 			i_index++;
@@ -354,7 +359,7 @@ static bool parse_words(PROCESS *p)
 				goto end;
 			}
 			i_index = toi(skipblanks(fromi(i_index + 1)));
-			expand_alias(&i_src, i_index, true);
+			subst_alias(&i_src, i_index, true);
 			break;
 		case '{':
 			/* XXX: "{" はそれ自体はトークンではないので、"{abc" のような場合を
@@ -368,7 +373,7 @@ static bool parse_words(PROCESS *p)
 				goto end;
 			}
 			i_index = toi(skipblanks(fromi(i_index + 1)));
-			expand_alias(&i_src, i_index, true);
+			subst_alias(&i_src, i_index, true);
 			break;
 		case ')':
 		case '}':
@@ -394,7 +399,7 @@ static bool parse_words(PROCESS *p)
 			pl_append(&args, xstrndup(fromi(startindex), i_index - startindex));
 		}
 		i_index = toi(skipblanks(fromi(i_index)));
-		expand_alias(&i_src, i_index, true);
+		subst_alias(&i_src, i_index, true);
 	}
 
 	p->p_args = (char **) pl_toary(&args);
@@ -473,7 +478,7 @@ static REDIR *tryparse_redir(void)
 	}
 	start += strspn(start, " \t");
 	i_index = toi(start);
-	expand_alias(&i_src, i_index, true);
+	subst_alias(&i_src, i_index, true);
 	skip_with_quote_i(" \t;&|()\n\r", true);
 	end = fromi(i_index);
 	if (start == end) {
@@ -495,6 +500,9 @@ static REDIR *tryparse_redir(void)
  * singquote が true なら単一引用符 (') も解釈する。 */
 static void skip_with_quote_i(const char *delim, bool singquote)
 {
+	bool saveenablealias = enable_alias;
+	enable_alias = false;
+
 	while (*fromi(i_index) && !strchr(delim, *fromi(i_index))) {
 		switch (*fromi(i_index)) {
 			case '\\':
@@ -567,7 +575,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 		i_index++;
 	}
 end:
-	;
+	enable_alias = saveenablealias;
 }
 
 /* 引用符などを考慮しつつ、delim 内の文字のどれかが現れるまで飛ばす。

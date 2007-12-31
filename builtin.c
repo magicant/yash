@@ -1321,10 +1321,11 @@ int builtin_alias(int argc, char *const *argv)
 	int print_alias(const char *name, ALIAS *alias) {
 		struct strbuf buf;
 		sb_init(&buf);
-		sb_printf(&buf, "alias %s%s=", alias->global ? "-g " : "", name);
+		if (!posixly_correct)
+			sb_append(&buf, "alias ");
+		sb_printf(&buf, "%-3s%s=", alias->global ? "-g" : "", name);
 		escape_sq(alias->value, &buf);
-		sb_append(&buf, "\n");
-		printf("%s", buf.contents);
+		puts(buf.contents);
 		sb_destroy(&buf);
 		return 0;
 	}

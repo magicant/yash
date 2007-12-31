@@ -200,7 +200,7 @@ char *skipblanks(const char *s)
  * 空白類文字でない最初の文字のアドレスを返す。 */
 char *skipspaces(const char *s)
 {
-	while (xisspace(*s)) s++;  // XXX 非ロケール依存
+	while (xisspace(*s)) s++;
 	return (char *) s;
 }
 

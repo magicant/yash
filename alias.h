@@ -19,16 +19,18 @@
 #ifndef ALIAS_H
 #define ALIAS_H
 
-#include <sys/types.h>
-#include "util.h"
+#include <stddef.h>
 
+
+extern bool enable_alias;
 
 /* エイリアスのエントリ。 */
-/* valid_len はエイリアスを展開する際に使う。 */
+/* processing はエイリアスを展開する際に使う。 */
 typedef struct alias {
 	char   *value;
-	bool    global;
-	size_t  valid_len;
+	bool    endblank; /* value の末尾が blank かどうか */
+	bool    global;   /* グローバルエイリアスかどうか */
+	bool    processing;
 } ALIAS;
 
 void init_alias(void);
@@ -37,8 +39,7 @@ int remove_alias(const char *name);
 void remove_all_aliases(void);
 ALIAS *get_alias(const char *name);
 int for_all_aliases(int (*func)(const char *name, ALIAS *alias));
-void alias_reset(void);
-void expand_alias(struct strbuf *buf, size_t i, bool global)
+void subst_alias(struct strbuf *buf, size_t i, bool global)
 	__attribute__((nonnull));
 
 

@@ -32,13 +32,15 @@ int remove_alias(const char *name);
 void remove_all_aliases(void);
 ALIAS *get_alias(const char *name);
 int for_all_aliases(int (*func)(const char *name, ALIAS *alias));
-void alias_reset(void);
-void expand_alias(struct strbuf *buf, size_t i, bool global);
+void subst_alias(struct strbuf *buf, size_t i, bool global);
 
 #ifndef ALIAS_EXPAND_MAX
 # define ALIAS_EXPAND_MAX 16
 #endif
 
+
+/* エイリアス置換を行うかどうか。 */
+bool enable_alias = true;
 
 /* エイリアスの集合。エイリアス名から ALIAS へのポインタへのハッシュテーブル */
 struct hasht aliases;
@@ -67,8 +69,9 @@ void set_alias(const char *name, const char *value, bool global)
 	ALIAS *a = xmalloc(sizeof *a);
 	*a = (ALIAS) {
 		.value = xstrdup(value),
+		.endblank = value[0] && xisblank(value[strlen(value) - 1]),
 		.global = global,
-		.valid_len = SIZE_MAX,
+		.processing = false,
 	};
 	aliasfree(ht_set(&aliases, name, a));
 }
@@ -114,42 +117,41 @@ int for_all_aliases(int (*func)(const char *name, ALIAS *alias))
 	return ht_each(&aliases, (int (*)(const char *, void *)) func);
 }
 
-/* エイリアスの展開を行う前に状態をリセットする。
- * この関数は一度の read_and_parse につき一度呼び出される。 */
-void alias_reset(void)
-{
-	int reset(const char *name __attribute__((unused)), ALIAS *alias) {
-		alias->valid_len = SIZE_MAX;
-		return 0;
-	}
-	for_all_aliases(reset);
-}
-
-/* エイリアスを展開する。
+/* エイリアスを置換する。
  * 文字列バッファの指定した位置にあるトークンにエイリアスが設定されていれば、
  * そのトークンをエイリアスに置き換える。
  * global が true ならばグローバルエイリアスのみ展開する。 */
-void expand_alias(struct strbuf *buf, size_t i, bool global)
+void subst_alias(struct strbuf *buf, size_t i, bool global)
 {
+	static unsigned recur = 0;
 	char *s;
 	size_t tokenlen, remlen;
-	int count = 0;
 	ALIAS *alias;
 
-start:
+	if (!enable_alias || recur == ALIAS_EXPAND_MAX)
+		return;
+	recur++;
+
 	s = buf->contents + i;
 	remlen = buf->length - i;
 	tokenlen = strcspn(s, " \t$<>\\'\"`;&|()#\n\r");
-	if (tokenlen) {
+	if (tokenlen > 0 && (!s[tokenlen] || !strchr("$\\'\"`", s[tokenlen]))) {
 		char savechar = s[tokenlen];
 		s[tokenlen] = '\0';
 		alias = get_alias(s);
 		s[tokenlen] = savechar;
-		if (alias && remlen <= alias->valid_len && (!global || alias->global)) {
-			alias->valid_len = remlen - tokenlen;
+		if (alias && !alias->processing && (!global || alias->global)) {
 			sb_replace(buf, i, tokenlen, alias->value);
-			if (++count <= ALIAS_EXPAND_MAX)
-				goto start;
+			if (alias->endblank) {
+				/* endblank なら次のトークンも置換 */
+				size_t ii = buf->length - (remlen - tokenlen);
+				ii = skipblanks(buf->contents + ii) - buf->contents;
+				subst_alias(buf, ii, global);
+			}
+			alias->processing = true;
+			subst_alias(buf, i, global);
+			alias->processing = false;
 		}
 	}
+	recur--;
 }
