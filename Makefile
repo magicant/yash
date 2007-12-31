@@ -21,7 +21,7 @@ ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
 CFLAGS += -Wall -Wextra
 endif
 LDFLAGS = -lc -lreadline -ltermcap
-OBJS = yash.o util.o readline.o parser.o expand.o exec.o path.o builtin.o alias.o
+OBJS = yash.o util.o signal.o readline.o parser.o expand.o exec.o path.o builtin.o alias.o
 TARGET = yash
 
 $(TARGET): $(OBJS)
@@ -34,6 +34,7 @@ clean:
 # Dependencies
 yash.o: yash.h util.h parser.h exec.h path.h builtin.h alias.h
 util.o: yash.h util.h
+signal.o: util.h
 readline.o: yash.h util.h readline.h exec.h path.h
 parser.o: yash.h util.h parser.h alias.h
 expand.o: yash.h util.h parser.h expand.h path.h

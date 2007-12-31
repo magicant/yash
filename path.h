@@ -19,6 +19,7 @@
 #ifndef PATH_H
 #define PATH_H
 
+#include <stdbool.h>
 #include <sys/stat.h>
 
 

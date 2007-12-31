@@ -19,6 +19,7 @@
 #ifndef ALIAS_H
 #define ALIAS_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 

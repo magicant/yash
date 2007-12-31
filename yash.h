@@ -19,7 +19,6 @@
 #ifndef YASH_H
 #define YASH_H
 
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <signal.h>

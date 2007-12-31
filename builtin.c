@@ -32,15 +32,13 @@
 #include <readline/history.h>
 #include "yash.h"
 #include "util.h"
+#include "signal.h"
 #include "expand.h"
 #include "exec.h"
 #include "path.h"
 #include "builtin.h"
 #include "alias.h"
 #include <assert.h>
-
-/* unistd.h をインクルードしても environ は宣言されない */
-extern char **environ;
 
 #define ADDITIONAL_BUILTIN //XXX
 
@@ -52,8 +50,6 @@ int builtin_true(int argc, char *const *argv);
 int builtin_false(int argc, char *const *argv);
 #endif
 int builtin_exit(int argc, char *const *argv);
-static int get_signal(const char *name);
-static const char *get_signal_name(int signal);
 int builtin_kill(int argc, char *const *argv);
 int builtin_wait(int argc, char *const *argv);
 int builtin_suspend(int argc, char *const *argv);
@@ -229,159 +225,6 @@ int builtin_exit(int argc, char *const *argv)
 usage:
 	fprintf(stderr, "Usage:  exit/logout [-f] [exitcode]\n");
 	return EXIT_FAILURE;
-}
-
-typedef struct {
-	int s_signal;
-	const char *s_name;
-} SIGDATA;
-
-static const SIGDATA const sigdata[] = {
-	/* POSIX.1-1990 signals */
-	{ SIGHUP, "HUP", }, { SIGINT, "INT", }, { SIGQUIT, "QUIT", },
-	{ SIGILL, "ILL", }, { SIGABRT, "ABRT", }, { SIGFPE, "FPE", },
-	{ SIGKILL, "KILL", }, { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", },
-	{ SIGALRM, "ALRM", }, { SIGTERM, "TERM", }, { SIGUSR1, "USR1", },
-	{ SIGUSR2, "USR2", }, { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", },
-	{ SIGSTOP, "STOP", }, { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", },
-	{ SIGTTOU, "TTOU", },
-	/* SUSv2 & POSIX.1-2001 (SUSv3) signals */
-	{ SIGBUS, "BUS", }, { SIGPOLL, "POLL", }, { SIGPROF, "PROF", },
-	{ SIGSYS, "SYS", }, { SIGTRAP, "TRAP", }, { SIGURG, "URG", },
-	{ SIGVTALRM, "VTALRM", }, { SIGXCPU, "XCPU", }, { SIGXFSZ, "XFSZ", },
-	/* Other signals */
-#ifdef SIGIOT
-	{ SIGIOT, "IOT", },
-#endif
-#ifdef SIGEMT
-	{ SIGEMT, "EMT", },
-#endif
-#ifdef SIGSTKFLT
-	{ SIGSTKFLT, "STKFLT", },
-#endif
-#ifdef SIGIO
-	{ SIGIO, "IO", },
-#endif
-#ifdef SIGCLD
-	{ SIGCLD, "CLD", },
-#endif
-#ifdef SIGPWR
-	{ SIGPWR, "PWR", },
-#endif
-#ifdef SIGINFO
-	{ SIGINFO, "INFO", },
-#endif
-#ifdef SIGLOST
-	{ SIGLOST, "LOST", },
-#endif
-#ifdef SIGWINCH
-	{ SIGWINCH, "WINCH", },
-#endif
-#ifdef SIGMSG
-	{ SIGMSG, "MSG", },
-#endif
-#ifdef SIGDANGER
-	{ SIGDANGER, "DANGER", },
-#endif
-#ifdef SIGMIGRATE
-	{ SIGMIGRATE, "MIGRATE", },
-#endif
-#ifdef SIGPRE
-	{ SIGPRE, "PRE", },
-#endif
-#ifdef SIGGRANT
-	{ SIGGRANT, "GRANT", },
-#endif
-#ifdef SIGRETRACT
-	{ SIGRETRACT, "RETRACT", },
-#endif
-#ifdef SIGSOUND
-	{ SIGSOUND, "SOUND", },
-#endif
-#ifdef SIGUNUSED
-	{ SIGUNUSED, "UNUSED", },
-#endif
-	{ 0, NULL, },
-	/* 番号 0 のシグナルは存在しない (C99 7.14) */
-};
-
-/* シグナル名に対応するシグナルの番号を返す。
- * シグナルが見付からないときは 0 を返す。 */
-static int get_signal(const char *name)
-{
-	const SIGDATA *sd = sigdata;
-
-	assert(name != NULL);
-	if (xisdigit(name[0])) {  /* name は番号 */
-		char *end;
-		int num;
-
-		errno = 0;
-		num = strtol(name, &end, 10);
-		if (!errno && name[0] && !end[0])
-			return num;
-	} else {  /* name は名前 */
-		if (hasprefix(name, "SIG") == 2)
-			name += 3;
-#if defined(SIGRTMAX) && defined(SIGRTMIN)
-		if (strcmp(name, "RTMIN") == 0) {
-			return SIGRTMIN;
-		} else if (strcmp(name, "RTMAX") == 0) {
-			return SIGRTMAX;
-		} else if (hasprefix(name, "RTMIN+")) {
-			char *end;
-			int num;
-			name += 6;
-			errno = 0;
-			num = strtol(name, &end, 10);
-			if (!errno && name[0] && !end[0]) {
-				num += SIGRTMIN;
-				if (SIGRTMIN <= num && num <= SIGRTMAX)
-					return num;
-			}
-		} else if (hasprefix(name, "RTMAX-")) {
-			char *end;
-			int num;
-			name += 6;
-			errno = 0;
-			num = strtol(name, &end, 10);
-			if (!errno && name[0] && !end[0]) {
-				num = SIGRTMAX - num;
-				if (SIGRTMIN <= num && num <= SIGRTMAX)
-					return num;
-			}
-		}
-#endif
-		while (sd->s_name) {
-			if (strcmp(name, sd->s_name) == 0)
-				return sd->s_signal;
-			sd++;
-		}
-	}
-	return 0;
-}
-
-/* シグナル番号からシグナル名を得る。
- * シグナル名が得られないときは NULL を返す。
- * 戻り値は静的記憶域へのポインタであり、次にこの関数を呼ぶまで有効である。 */
-static const char *get_signal_name(int signal)
-{
-	const SIGDATA *sd;
-	static char rtminname[16];
-
-	if (signal >= 128)
-		signal -= 128;
-	for (sd = sigdata; sd->s_signal; sd++)
-		if (sd->s_signal == signal)
-			return sd->s_name;
-#if defined(SIGRTMIN) && defined(SIGRTMAX)
-	int min = SIGRTMIN, max = SIGRTMAX;
-	if (min <= signal && signal <= max) {
-		snprintf(rtminname, sizeof rtminname, "RTMIN+%d", signal - min);
-		return rtminname;
-	}
-#endif
-	return NULL;
 }
 
 /* kill 組込みコマンド

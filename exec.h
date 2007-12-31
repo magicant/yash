@@ -20,6 +20,7 @@
 #define EXEC_H
 
 #include <signal.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include "parser.h"
 

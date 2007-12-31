@@ -19,6 +19,7 @@
 #ifndef EXPAND_H
 #define EXPAND_H
 
+#include <stdbool.h>
 #include "util.h"
 
 

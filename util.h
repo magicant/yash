@@ -24,11 +24,16 @@
 #endif
 
 #include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #ifndef NO_UTIL_INLINE
 # include <stddef.h>
 # include <stdint.h>
 #endif
+
+
+extern char **environ;
 
 
 /* General functions */
