@@ -47,7 +47,7 @@ char *xstrdup(const char *s)
 # define xstrdup(s) xstrndup(s, SIZE_MAX)
 #endif
 
-char **strarydup(char **ary)
+char **strarydup(char *const *ary)
 	__attribute__((malloc, warn_unused_result, nonnull));
 size_t parylen(void *const *ary)
 	__attribute__((nonnull));

@@ -38,7 +38,7 @@ void *xmalloc(size_t size);
 void *xrealloc(void *ptr, size_t size);
 char *xstrdup(const char *s);
 char *xstrndup(const char *s, size_t len);
-char **strarydup(char **ary);
+char **strarydup(char *const *ary);
 size_t parylen(void *const *ary);
 void recfree(void **ary);
 char *skipblanks(const char *s);
@@ -157,7 +157,7 @@ char *xstrdup(const char *s)
 }
 
 /* 文字列の配列のディープコピーを作る。失敗するとプログラムを強制終了する。 */
-char **strarydup(char **ary)
+char **strarydup(char *const *ary)
 {
 	size_t count;
 	char **result;
@@ -783,11 +783,13 @@ void **pl_toary(struct plist *list)
 	pl_trim(list);
 
 	void **result = list->contents;
+#ifndef NDEBUG
 	*list = (struct plist) {
 		.contents = NULL,
 		.length = 0,
 		.maxlength = 0,
 	};
+#endif
 	return result;
 }
 

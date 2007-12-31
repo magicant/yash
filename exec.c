@@ -1040,7 +1040,9 @@ char *exec_and_read(const char *code, bool trimend)
 		sigset_t ss;
 
 		if (is_interactive) {
-			/* TODO : 説明 */
+			/* 子プロセスが SIGTSTP で停止してしまうと、親プロセスである
+			 * 対話的なシェルに制御が戻らなくなってしまう。よって、SIGTSTP を
+			 * 受け取っても停止しないようにブロックしておく。 */
 			sigemptyset(&ss);
 			sigaddset(&ss, SIGTSTP);
 			sigprocmask(SIG_BLOCK, &ss, NULL);
