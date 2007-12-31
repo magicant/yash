@@ -591,7 +591,7 @@ void sb_init(struct strbuf *buf)
  *         すべし。 */
 char *sb_tostr(struct strbuf *buf)
 {
-	if (buf->length + 32 > buf->maxlength)
+	if (buf->length + 30 < buf->maxlength)
 		sb_trim(buf);
 
 	char *result = buf->contents;
@@ -782,7 +782,7 @@ void pl_destroy(struct plist *list)
  *         すべし。 */
 void **pl_toary(struct plist *list)
 {
-	if (list->length + 10 > list->maxlength)
+	if (list->length + 10 < list->maxlength)
 		pl_trim(list);
 
 	void **result = list->contents;

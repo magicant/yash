@@ -600,7 +600,7 @@ int builtin_wait(int argc, char *const *argv)
 					break;
 				}
 			}
-			resultstatus = exitcode_from_status(job->j_exitstatus);
+			resultstatus = exitcode_from_status(job->j_waitstatus);
 			if (!is_interactive) {
 				assert(job->j_status == JS_DONE);
 				remove_job(jobnumber);
@@ -955,9 +955,9 @@ int builtin_fg(int argc, char *const *argv)
 		while (job->j_status == JS_RUNNING)
 			wait_for_signal();
 		if (job->j_status == JS_DONE) {
-			int r = exitcode_from_status(job->j_exitstatus);
-			if (WIFSIGNALED(job->j_exitstatus)) {
-				int sig = WTERMSIG(job->j_exitstatus);
+			int r = exitcode_from_status(job->j_waitstatus);
+			if (WIFSIGNALED(job->j_waitstatus)) {
+				int sig = WTERMSIG(job->j_waitstatus);
 				if (sig != SIGINT && sig != SIGPIPE)
 					psignal(sig, NULL);  /* XXX : not POSIX */
 			}

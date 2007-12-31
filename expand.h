@@ -22,7 +22,7 @@
 #include "util.h"
 
 
-bool expand_line(char **args, int *argc, char ***argv)
+bool expand_line(char *const *args, int *argc, char ***argv)
 	__attribute__((nonnull(2,3)));
 char *expand_single(const char *arg)
 	__attribute__((nonnull));

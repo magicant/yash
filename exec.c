@@ -272,14 +272,14 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 		return;
 
 	if (!changedonly || job->j_statuschanged) {
-		int estatus = job->j_exitstatus;
+		int estatus = job->j_waitstatus;
 		if (job->j_status == JS_DONE) {
 			if (WIFEXITED(estatus) && WEXITSTATUS(estatus))
 				fprintf(stderr, "[%zu]%c %5d  Exit %-3d    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, WEXITSTATUS(estatus),
 						job->j_name ? : "<< unknown job >>");
-			else if (WIFSIGNALED(job->j_exitstatus))
+			else if (WIFSIGNALED(job->j_waitstatus))
 				fprintf(stderr, "[%zu]%c %5d  %-8s    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, strsignal(WTERMSIG(estatus)),
@@ -395,11 +395,12 @@ pfound:
 	} else if (WIFCONTINUED(status)) {
 		proc->jp_status = JS_RUNNING;
 	}
+	proc->jp_waitstatus = status;
 	if (proc == &temp_chld)
 		goto start;
 
 	if (proci + 1 == job->j_procc)
-		job->j_exitstatus = status;
+		job->j_waitstatus = status;
 
 	bool anyrunning = false, anystopped = false;
 	/* ジョブの全プロセスが停止・終了したかどうか調べる */
@@ -614,6 +615,7 @@ static void exec_processes(
 	ps[0].jp_status = JS_RUNNING;
 	pgid = ps[0].jp_pid = exec_single(p, loop ? -1 : 0, 0,
 			bg ? BACKGROUND : FOREGROUND, pipes);
+	ps[0].jp_waitstatus = 0;
 	if (pgid >= 0)
 		for (size_t i = 1; i < pcount; i++)
 			ps[i] = (struct jproc) {
@@ -632,23 +634,23 @@ static void exec_processes(
 		job->j_procc = pcount;
 		job->j_procv = ps;
 		job->j_flags = 0;
-		job->j_exitstatus = 0;
+		job->j_waitstatus = 0;
 		job->j_name = xstrdup(name);
 		if (!bg) {
 			do {
 				wait_for_signal();
 			} while (job->j_status == JS_RUNNING ||
 					(!is_interactive && job->j_status == JS_STOPPED));
-			if (WIFSIGNALED(job->j_exitstatus)) {
-				int sig = WTERMSIG(job->j_exitstatus);
+			if (WIFSIGNALED(job->j_waitstatus)) {
+				int sig = WTERMSIG(job->j_waitstatus);
 				if (is_interactive && sig != SIGINT && sig != SIGPIPE)
 					psignal(sig, NULL);  /* XXX : not POSIX */
-			} else if (WIFSTOPPED(job->j_exitstatus)) {
+			} else if (WIFSTOPPED(job->j_waitstatus)) {
 				fflush(stdout);
 				fputs("\n", stderr);
 				fflush(stderr);
 			}
-			laststatus = exitcode_from_status(job->j_exitstatus);
+			laststatus = exitcode_from_status(job->j_waitstatus);
 			if (neg)
 				laststatus = !laststatus;
 			if (job->j_status == JS_DONE)
@@ -999,6 +1001,7 @@ char *exec_and_read(const char *code, bool trimend)
 
 		close(pipefd[1]);
 
+		sigint_received = false;
 		temp_chld = (struct jproc) { .jp_pid = cpid, .jp_status = JS_RUNNING, };
 		len = 0;
 		max = 100;
@@ -1018,22 +1021,27 @@ char *exec_and_read(const char *code, bool trimend)
 				break;
 			}
 			len += count;
-			if (len >= max) {
+			if (len + 30 >= max) {
 				max *= 2;
 				buf = xrealloc(buf, max + 1);
 			}
 		}
+		close(pipefd[0]);
 		while (temp_chld.jp_status != JS_DONE)
 			wait_for_signal();
 		temp_chld.jp_pid = 0;
+		if (WIFSIGNALED(temp_chld.jp_waitstatus)
+				&& WTERMSIG(temp_chld.jp_waitstatus) == SIGINT) {
+			free(buf);
+			return NULL;
+		}
 
 		if (trimend)
 			while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
 				len--;
-		buf = xrealloc(buf, len + 1);
+		if (len + 30 < max)
+			buf = xrealloc(buf, len + 1);
 		buf[len] = '\0';
-
-		close(pipefd[0]);
 
 		return buf;
 	} else {  /* 子プロセス */

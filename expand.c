@@ -59,7 +59,7 @@
  *           \_ unescape_for_glob
  */
 
-bool expand_line(char **args, int *argc, char ***argv);
+bool expand_line(char *const *args, int *argc, char ***argv);
 char *expand_single(const char *arg);
 char *expand_word(const char *s);
 static bool expand_arg(const char *s, struct plist *argv)
@@ -99,23 +99,23 @@ void escape_bs(const char *s, const char *q, struct strbuf *buf);
  * *argv は新しく malloc した文字列への新しく malloc した配列である。
  * args の内容は一切変更しない。
  * 成功すると true 、失敗すると false を返す。失敗時はエラーを出力する。 */
-bool expand_line(char **args, int *argc, char ***argv)
+bool expand_line(char *const *args, int *argc, char ***argv)
 {
 	struct plist alist;
-	bool result = true;
+	bool ok = true;
 
 	pl_init(&alist);
 	if (!args) goto end;
 
-	while (*args) {
-		result &= expand_arg(*args, &alist);
+	while (ok && *args) {
+		ok = expand_arg(*args, &alist);
 		args++;
 	}
 
 end:
 	*argc = alist.length;
 	*argv = (char **) pl_toary(&alist);
-	return result;
+	return ok;
 }
 
 /* 一つの引数に対して各種展開を行う。
@@ -183,8 +183,8 @@ static bool expand_arg(const char *s, struct plist *argv)
 	}
 	pl_clear(&temp1);
 
-	for (size_t i = 0; i < temp2.length; i++) {  /* そしてパラメータ展開 */
-		ok &= expand_subst(temp2.contents[i], &temp1, true);
+	for (size_t i = 0; ok && i < temp2.length; i++) { /* そしてパラメータ展開 */
+		ok = expand_subst(temp2.contents[i], &temp1, true);
 	}
 	pl_clear(&temp2);
 
@@ -309,7 +309,7 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 			case '`':
 				{
 					char *code = get_comsub_code_bq(&s1);
-					s2 = exec_and_read(code, true);
+					s2 = ok ? exec_and_read(code, true) : NULL;
 					free(code);
 					noescape = false;
 				}

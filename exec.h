@@ -50,11 +50,12 @@ typedef struct {
 	struct jproc {
 		pid_t        jp_pid;
 		enum jstatus jp_status;
+		int          jp_waitstatus;
 	}     *j_procv;          /* 各子プロセスの情報の配列へのポインタ */
 	enum {
 		JF_NOHUP = 1
 	}      j_flags;
-	int    j_exitstatus;     /* ジョブの終了ステータス */
+	int    j_waitstatus;     /* ジョブの終了ステータス */
 	char  *j_name;           /* 表示用ジョブ名 */
 } JOB;
 
