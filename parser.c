@@ -956,7 +956,7 @@ void redirsfree(REDIR *r)
 void procsfree(PROCESS *p)
 {
 	while (p) {
-		recfree((void **) p->p_args);
+		recfree((void **) p->p_args, free);
 		statementsfree(p->p_subcmds);
 
 		PROCESS *pp = p->next;

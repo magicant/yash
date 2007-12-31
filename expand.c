@@ -127,7 +127,7 @@ char *expand_single(const char *arg)
 	struct plist alist;
 	pl_init(&alist);
 	if (!expand_arg(arg, &alist) || alist.length != 1) {
-		recfree(pl_toary(&alist));
+		recfree(pl_toary(&alist), free);
 		return NULL;
 	}
 
@@ -147,7 +147,7 @@ char *expand_word(const char *s)
 		s2 = xstrdup(s);
 	pl_init(&list);
 	if (!expand_subst(s2, &list, false)) {
-		recfree(pl_toary(&list));
+		recfree(pl_toary(&list), free);
 		return NULL;
 	}
 	assert(list.length <= 1);

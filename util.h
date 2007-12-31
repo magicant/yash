@@ -51,7 +51,7 @@ char **strarydup(char *const *ary)
 	__attribute__((malloc, warn_unused_result, nonnull));
 size_t parylen(void *const *ary)
 	__attribute__((nonnull));
-void recfree(void **ary);
+void recfree(void **ary, void (*freer)(void *elem));
 char *skipblanks(const char *s)
 	__attribute__((nonnull));
 char *skipspaces(const char *s)

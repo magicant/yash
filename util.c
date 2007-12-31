@@ -40,7 +40,7 @@ char *xstrdup(const char *s);
 char *xstrndup(const char *s, size_t len);
 char **strarydup(char *const *ary);
 size_t parylen(void *const *ary);
-void recfree(void **ary);
+void recfree(void **ary, void (*freer)(void *elem));
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
 char *skipwhites(const char *s);
@@ -178,11 +178,12 @@ size_t parylen(void *const *ary)
 	return count;
 }
 
-/* NULL 終端のポインタの配列を、その要素も含めて解放する。 */
-void recfree(void **ary)
+/* NULL 終端のポインタの配列を、その要素も含めて解放する。
+ * freer:  ary の各要素に対して呼び出す free 用関数。 */
+void recfree(void **ary, void (*freer)(void *elem))
 {
 	if (ary) {
-		for (void **a = ary; *a; a++) free(*a);
+		for (void **a = ary; *a; a++) freer(*a);
 		free(ary);
 	}
 }
@@ -590,7 +591,8 @@ void sb_init(struct strbuf *buf)
  *         すべし。 */
 char *sb_tostr(struct strbuf *buf)
 {
-	sb_trim(buf);
+	if (buf->length + 32 > buf->maxlength)
+		sb_trim(buf);
 
 	char *result = buf->contents;
 #ifndef NDEBUG
@@ -780,7 +782,8 @@ void pl_destroy(struct plist *list)
  *         すべし。 */
 void **pl_toary(struct plist *list)
 {
-	pl_trim(list);
+	if (list->length + 10 > list->maxlength)
+		pl_trim(list);
 
 	void **result = list->contents;
 #ifndef NDEBUG

@@ -690,7 +690,7 @@ static pid_t exec_single(
 	if (etype == FOREGROUND && pipes.p_count == 0) {
 		expanded = true;
 		if (!expand_line(p->p_args, &argc, &argv)) {
-			recfree((void **) argv);
+			recfree((void **) argv, free);
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL && argc == 0)
@@ -711,11 +711,11 @@ static pid_t exec_single(
 					undo_redirections(saver);
 				else
 					savesfree(saver);
-				recfree((void **) argv);
+				recfree((void **) argv, free);
 				return 0;
 			}
 		} else if (p->p_type == PT_GROUP && !p->p_redirs) {
-			recfree((void **) argv);
+			recfree((void **) argv, free);
 			exec_statements(p->p_subcmds);
 			return 0;
 		}
@@ -724,7 +724,7 @@ static pid_t exec_single(
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
 		error(0, errno, "%s: fork", argv[0]);
-		if (expanded) { recfree((void **) argv); }
+		if (expanded) { recfree((void **) argv, free); }
 		return -1;
 	} else if (cpid) {  /* 親プロセス */
 		if (is_interactive) {
@@ -741,7 +741,7 @@ static pid_t exec_single(
 			assert(!joblist.contents[0]);
 			joblist.contents[0] = job;
 		}
-		if (expanded) { recfree((void **) argv); }
+		if (expanded) { recfree((void **) argv, free); }
 		return cpid;
 	}
 	
