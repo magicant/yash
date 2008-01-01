@@ -17,7 +17,6 @@
 
 
 #define  NO_UTIL_INLINE
-#include <ctype.h>
 #include <errno.h>
 #include <error.h>
 #include <limits.h>

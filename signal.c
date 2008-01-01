@@ -25,7 +25,6 @@
 #include "util.h"
 #include "signal.h"
 #include "exec.h"
-#include "readline.h"
 #include <assert.h>
 
 int get_signal(const char *name);

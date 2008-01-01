@@ -25,8 +25,24 @@ typedef int cbody(int argc, char *const *argv);
 void init_builtin(void);
 cbody *get_builtin(const char *name);
 
+int builtin_true(int argc, char *const *argv);
+int builtin_false(int argc, char *const *argv);
 int builtin_exit(int argc, char *const *argv);
+int builtin_kill(int argc, char *const *argv);
+int builtin_wait(int argc, char *const *argv);
+int builtin_suspend(int argc, char *const *argv);
+int builtin_jobs(int argc, char *const *argv);
+int builtin_disown(int argc, char *const *argv);
+int builtin_fg(int argc, char *const *argv);
 int builtin_exec(int argc, char *const *argv);
+int builtin_cd(int argc, char *const *argv);
+int builtin_umask(int argc, char *const *argv);
+int builtin_export(int argc, char *const *argv);
+int builtin_source(int argc, char *const *argv);
+int builtin_history(int argc, char *const *argv);
+int builtin_alias(int argc, char *const *argv);
+int builtin_unalias(int argc, char *const *argv);
+int builtin_option(int argc, char *const *argv);
 
 #define OPT_HISTSIZE      "histsize"
 #define OPT_HISTFILE      "histfile"
