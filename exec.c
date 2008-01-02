@@ -439,9 +439,12 @@ void send_sighup_to_all_jobs(void)
 
 			if (job && !(job->j_flags & JF_NOHUP)) {
 				killpg(job->j_pgid, SIGHUP);
-				for (size_t j = 0; j < job->j_procc; j++)
-					if (job->j_procv[i].jp_status == JS_STOPPED)
-						kill(job->j_procv[i].jp_pid, SIGCONT);
+				for (size_t j = 0; j < job->j_procc; j++) {
+					if (job->j_procv[i].jp_status == JS_STOPPED) {
+						killpg(job->j_pgid, SIGCONT);
+						break;
+					}
+				}
 			}
 		}
 	} else {
@@ -722,6 +725,7 @@ static pid_t exec_single(
 			return 0;
 		}
 	}
+	fflush(NULL);
 
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */

@@ -25,7 +25,7 @@
 #include <sys/types.h>
 
 
-#define YASH_VERSION   "1.0"
+#define YASH_VERSION   "1.0 beta0"
 #define YASH_COPYRIGHT "Copyright (C) 2007 magicant"
 
 #define ENV_USER            "USER"
