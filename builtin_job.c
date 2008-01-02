@@ -168,7 +168,7 @@ int builtin_kill(int argc, char *const *argv)
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 2);
 				return EXIT_FAILURE;
 			}
-		} else if (xisupper(argv[1][1])) {
+		} else if (xisupper(argv[1][1]) || xisdigit(argv[1][1])) {
 			sig = get_signal(argv[1] + 1);
 			if (!sig) {
 				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 1);
@@ -176,7 +176,7 @@ int builtin_kill(int argc, char *const *argv)
 			}
 		} else if (argv[1][1] == 'l') {
 			list = true;
-		} else {
+		} else if (argv[1][1] != '-') {
 			goto usage;
 		}
 	} else {
@@ -190,6 +190,8 @@ int builtin_kill(int argc, char *const *argv)
 		int targetnum = 0;
 		pid_t targetpid;
 
+		if (strcmp(target, "--") == 0)
+			continue;
 		if (isjob) {
 			targetnum = parse_jobspec(target, true);
 			if (targetnum < 0) switch (targetnum) {
@@ -256,6 +258,8 @@ list:
 		for (i = 2; i < argc; i++) {
 			const char *name;
 
+			if (strcmp(argv[i], "--") == 0)
+				continue;
 			sig = get_signal(argv[i]);
 			name = get_signal_name(sig);
 			if (!sig || !name) {

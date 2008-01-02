@@ -29,7 +29,15 @@ $(TARGET): $(OBJS)
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-.PHONY: clean
+DISTCONTENTS = *.[ch] README.html COPYING Makefile TODO
+PACKAGENAME = yash-1.0b0
+dist:
+	mkdir -p $(PACKAGENAME)
+	-ln -f $(DISTCONTENTS) $(PACKAGENAME) && \
+		tar -c $(PACKAGENAME) | gzip > $(PACKAGENAME).tar.gz
+	rm -rf $(PACKAGENAME)
+
+.PHONY: clean dist
 
 # Dependencies
 yash.o: yash.h util.h signal.h parser.h exec.h path.h builtin.h alias.h
