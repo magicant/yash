@@ -221,7 +221,8 @@ char *canonicalize_path(const char *path)
 	if (!path[0]) return xstrdup(path);
 
 	/* path の先頭に三つ以上のスラッシュがある場合、それらを一つのスラッシュに
-	 * まとめることができる。この場合、単にスラッシュを無視すればよい。 */
+	 * まとめることができる。この場合、単にスラッシュを無視すればよい。
+	 *   例) "///dir/file" -> "/dir/file"  */
 	if (path[0] == '/' && path[1] == '/' && path[2] == '/') {
 		while (*path == '/') path++;
 		path--;
@@ -281,17 +282,32 @@ char *canonicalize_path(const char *path)
 	/* 続いて、".." とその親要素を削除する。ただし……
 	 * - ".." の手前がルートまたは ".." なら削除してはいけない。消してもよい ""
 	 *   は既に消してあるので、".." の手前が "" か ".." なら消してはいけない、
-	 *   ということになる。 */
+	 *   ということになる。
+	 * ……というのが POSIX の定めである。しかし非 posixly_correct のときは、
+	 * ".." の手前が "" の場合には ".." のみを削除する。 */
 	i = 1;
 	while (i < list.length) {
-		if (strcmp(entries[i], "..") == 0
-				&& entries[i - 1][0] && strcmp(entries[i - 1], "..") != 0) {
-			i--;
-			pl_remove(&list, i, 2);
-			if (i == 0)
-				i = 1;
-		} else {
-			i++;
+		if (strcmp(entries[i], "..") == 0) {
+			if (!entries[i - 1][0]) {  /* 手前が "" の場合 */
+				if (!posixly_correct) {
+					pl_remove(&list, i, 1);
+					goto next;
+				}
+			} else if (strcmp(entries[i - 1], "..") != 0) {
+				i--;
+				pl_remove(&list, i, 2);
+				if (i == 0)
+					i = 1;
+				goto next;
+			}
+		}
+		i++;
+		continue;
+next:
+		/* 最後の要素が "" になったら、'/' の数を合わせるために "" を追加 */
+		if (i == list.length && i > 0 && !entries[i - 1][0]) {
+			pl_append(&list, entries[0]);
+			break;
 		}
 	}
 
