@@ -256,7 +256,7 @@ static char **yash_completion(
 				completer = normal_file_completion_function;
 				rl_filename_completion_desired = 1;
 			} else {
-				searchpath = getenv(VAR_PATH);
+				searchpath = getvar(VAR_PATH);
 				completer = path_completion_function;
 			}
 			break;
@@ -589,7 +589,7 @@ loop:
 				break;
 			case 'h':
 				{
-					char *host = getenv(VAR_HOSTNAME);
+					const char *host = getvar(VAR_HOSTNAME);
 					if (host) {
 						size_t len = strcspn(host, ".");
 						if (ensure_rem(len + 1) >= 0) {
@@ -600,7 +600,7 @@ loop:
 				}
 				break;
 			case 'H':
-				append_str(getenv(VAR_HOSTNAME));
+				append_str(getvar(VAR_HOSTNAME));
 				break;
 			case 'j':
 				len = snprintf(result + rindex, rem, "%u", job_count());
@@ -649,14 +649,14 @@ loop:
 				append_str(YASH_VERSION);
 				break;
 			case 'w':
-				sav = collapse_homedir(getenv(VAR_PWD));
+				sav = collapse_homedir(getvar(VAR_PWD));
 				if (sav) {
 					append_str(sav);
 					free(sav);
 				}
 				break;
 			case 'W':
-				sav = collapse_homedir(getenv(VAR_PWD));
+				sav = collapse_homedir(getvar(VAR_PWD));
 				if (sav) {
 					append_str(basename(sav));
 					free(sav);

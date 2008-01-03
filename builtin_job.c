@@ -793,7 +793,7 @@ int builtin_exec(int argc, char *const *argv)
 		argv0 = argv[xoptind];
 
 	char *command = which(argv[xoptind],
-			strchr(argv[xoptind], '/') ? "." : getenv(VAR_PATH),
+			strchr(argv[xoptind], '/') ? "." : getvar(VAR_PATH),
 			is_executable);
 	if (!command) {
 		error(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);

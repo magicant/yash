@@ -111,7 +111,7 @@ void init_var(void)
 /* 環境変数 SHLVL に change を加える */
 void set_shlvl(int change)
 {
-	char *shlvl = getenv(VAR_SHLVL);
+	const char *shlvl = getvar(VAR_SHLVL);
 	int level = shlvl ? atoi(shlvl) : 0;
 	char newshlvl[16];
 

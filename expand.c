@@ -31,6 +31,7 @@
 #include "expand.h"
 #include "exec.h"
 #include "path.h"
+#include "variable.h"
 #include <assert.h>
 
 
@@ -318,7 +319,7 @@ append_s2:
 //					error(0, 0, "DEBUG: %d %d appending %s",
 //							(int) (split && !indq), (int) noescape, s2);
 					if (split && !indq) {  /* 単語分割をしつつ追加 */
-						const char *ifs = getenv("IFS");
+						const char *ifs = getvar("IFS");
 						if (!ifs)
 							ifs = " \t\n";
 						add_splitting(s2, &buf, result, ifs,
@@ -397,9 +398,9 @@ static char *expand_param(char **src, bool indq)
 				while (xisalnum(*ss) || *ss == '_') ss++;
 				*src = ss - 1;
 				ss = xstrndup(s, ss - s);
-				result = getenv(ss);  // XXX
+				const char *r = getvar(ss);
 				free(ss);
-				return xstrdup(result ? result : "");
+				return xstrdup(r ? r : "");
 			}
 			*src = s - 1;
 			return xstrdup(temp);
@@ -463,12 +464,12 @@ static char *expand_param2(const char *s, bool indq)
 	strncpy(param, pstart, s - pstart);
 	param[s - pstart] = '\0';
 
-	char *result = getenv(param);
+	const char *result = getvar(param);
 	char *word1, *word2;
 
 	// TODO ${!prefix*} パタン
 	if (result && indir)
-		result = getenv(result);
+		result = getvar(result);
 	if (count) {
 		if (*s)
 			goto err;
@@ -498,7 +499,7 @@ static char *expand_param2(const char *s, bool indq)
 						free(word1);
 						return NULL;
 					}
-					result = getenv(param);
+					result = getvar(param);
 				}
 			}
 			break;
@@ -541,10 +542,10 @@ err:
 
 expand_escape_return:
 	noescape = !indq || posixly_correct;
-	result = expand_word(s);
+	char *r = expand_word(s);
 	if (!noescape)
-		result = unescape(result);
-	return result;
+		r = unescape(r);
+	return r;
 }
 
 /* pat を s の先頭部分にマッチさせ、一致した部分を取り除いた文字列を返す。

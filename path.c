@@ -128,25 +128,26 @@ bool is_executable(struct stat *st)
  *         失敗なら NULL。 */
 char *expand_tilde(const char *path)
 {
-	char *home, *result;
+	const char *home;
+	char *result;
 	struct passwd *pwd;
 
 	assert(path && path[0] == '~');
 	if (path[1] == '\0' || path[1] == '/') {
 		path += 1;
-		if ((home = getenv(VAR_HOME)))
+		if ((home = getvar(VAR_HOME)))
 			goto returnresult;
 		errno = 0;
 		if (!(pwd = getpwuid(getuid())))
 			return NULL;
 	} else if (path[1] == '+' && (path[2] == '\0' || path[2] == '/')) {
 		path += 2;
-		if ((home = getenv(VAR_PWD)))
+		if ((home = getvar(VAR_PWD)))
 			goto returnresult;
 		return NULL;
 	} else if (path[1] == '-' && (path[2] == '\0' || path[2] == '/')) {
 		path += 2;
-		if ((home = getenv(VAR_OLDPWD)))
+		if ((home = getvar(VAR_OLDPWD)))
 			goto returnresult;
 		return NULL;
 	} else {
@@ -181,7 +182,7 @@ char *skip_homedir(const char *path)
 	const char *home;
 	size_t homelen; 
 
-	if (!path || !(home = getenv(VAR_HOME)))
+	if (!path || !(home = getvar(VAR_HOME)))
 		return NULL;
 	homelen = strlen(home);
 	if (strncmp(home, path, homelen) == 0)

@@ -119,35 +119,35 @@ int builtin_false(int argc __attribute__((unused)),
 /* cd 組込みコマンド */
 int builtin_cd(int argc, char *const *argv)
 {
-	char *path, *oldpwd;
+	const char *newpwd, *oldpwd;
+	char *path;
 
 	if (argc < 2) {
-		path = getenv(VAR_HOME);
-		if (!path) {
+		newpwd = getvar(VAR_HOME);
+		if (!newpwd) {
 			error(0, 0, "%s: HOME directory not specified", argv[0]);
 			return EXIT_FAILURE;
 		}
 	} else {
-		path = argv[1];
-		if (strcmp(path, "-") == 0) {
-			path = getenv(VAR_OLDPWD);
-			if (!path) {
+		newpwd = argv[1];
+		if (strcmp(newpwd, "-") == 0) {
+			newpwd = getvar(VAR_OLDPWD);
+			if (!newpwd) {
 				error(0, 0, "%s: OLDPWD directory not specified", argv[0]);
 				return EXIT_FAILURE;
 			} else {
-				printf("%s\n", path);
+				printf("%s\n", newpwd);
 			}
 		}
 	}
-	oldpwd = xgetcwd();
-	if (chdir(path) < 0) {
-		error(0, errno, "%s: %s", argv[0], path);
+	oldpwd = getvar(VAR_PWD);
+	if (chdir(newpwd) < 0) {
+		error(0, errno, "%s: %s", argv[0], newpwd);
 		return EXIT_FAILURE;
 	}
 	if (oldpwd) {
 		if (setenv(VAR_OLDPWD, oldpwd, 1 /* overwrite */) < 0)
 			error(0, 0, "%s: failed to set env OLDPWD", argv[0]);
-		free(oldpwd);
 	}
 	if ((path = xgetcwd())) {
 		if (setenv(VAR_PWD, path, 1 /* overwrite */) < 0)
