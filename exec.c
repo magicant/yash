@@ -661,6 +661,7 @@ static void exec_processes(
 			else
 				add_job();
 		} else {
+			laststatus = EXIT_SUCCESS;
 			add_job();
 		}
 	}
@@ -759,6 +760,17 @@ static pid_t exec_single(
 		if (etype == FOREGROUND
 				&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
 			error(0, errno, "%s: tcsetpgrp (child)", argv[0]);
+	} else {
+		if (etype == BACKGROUND && pindex <= 0) {
+			REDIR *r = xmalloc(sizeof *r);
+			*r = (REDIR) {
+				.next = p->p_redirs,
+				.rd_type = RT_INOUT,
+				.rd_fd = STDIN_FILENO,
+				.rd_file = xstrdup("/dev/null"),
+			};
+			p->p_redirs = r;
+		}
 	}
 	joblist_reinit();
 	is_loginshell = is_interactive = false;

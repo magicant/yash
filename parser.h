@@ -37,8 +37,7 @@ struct x_redirect {
 	int    rd_fd;      /* リダイレクトするファイルディスクリプタ */
 	char  *rd_file;    /* リダイレクト先のファイル名 (常に非 NULL) */
 };
-/* rd_destfd が負のときのみ rd_{file|flags} が使用される。
- * 例えば '2>&1' では、rd_fd = 2, rd_destfd = 1 となる。 */
+/* 例えば '2>&1' では、rd_fd = 2, rd_file = "1" となる。 */
 
 /* パイプラインに含まれる一つのプロセス */
 struct x_process {
