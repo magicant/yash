@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.h: miscellaneous items */
-/* © 2007 magicant */
+/* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 
 
 #define YASH_VERSION   "1.0 beta0"
-#define YASH_COPYRIGHT "Copyright (C) 2007 magicant"
+#define YASH_COPYRIGHT "Copyright (C) 2007-2008 magicant"
 
 #define ENV_USER            "USER"
 #define ENV_LOGNAME         "LOGNAME"

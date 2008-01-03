@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin_job.c: implements shell builtin commands for job control */
-/* © 2007 magicant */
+/* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

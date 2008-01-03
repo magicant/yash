@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.h: interface to shell builtin commands */
-/* © 2007 magicant */
+/* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
