@@ -18,16 +18,16 @@
 
 extern char **environ;
 
-#define ENV_USER            "USER"
-#define ENV_LOGNAME         "LOGNAME"
-#define ENV_HOME            "HOME"
-#define ENV_LANG            "LANG"
-#define ENV_PATH            "PATH"
-#define ENV_PWD             "PWD"
-#define ENV_OLDPWD          "OLDPWD"
-#define ENV_SHLVL           "SHLVL"
-#define ENV_HOSTNAME        "HOSTNAME"
-#define ENV_POSIXLY_CORRECT "POSIXLY_CORRECT"
+#define VAR_USER            "USER"
+#define VAR_LOGNAME         "LOGNAME"
+#define VAR_HOME            "HOME"
+#define VAR_LANG            "LANG"
+#define VAR_PATH            "PATH"
+#define VAR_PWD             "PWD"
+#define VAR_OLDPWD          "OLDPWD"
+#define VAR_SHLVL           "SHLVL"
+#define VAR_HOSTNAME        "HOSTNAME"
+#define VAR_POSIXLY_CORRECT "POSIXLY_CORRECT"
 
 char *xgetcwd(void);
 void init_var(void);

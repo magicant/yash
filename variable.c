@@ -103,7 +103,7 @@ void init_var(void)
 	/* PWD 環境変数を設定する */
 	char *pwd = xgetcwd();
 	if (pwd) {
-		setvar(ENV_PWD, pwd, true);
+		setvar(VAR_PWD, pwd, true);
 		free(pwd);
 	}
 }
@@ -111,7 +111,7 @@ void init_var(void)
 /* 環境変数 SHLVL に change を加える */
 void set_shlvl(int change)
 {
-	char *shlvl = getenv(ENV_SHLVL);
+	char *shlvl = getenv(VAR_SHLVL);
 	int level = shlvl ? atoi(shlvl) : 0;
 	char newshlvl[16];
 
@@ -119,7 +119,7 @@ void set_shlvl(int change)
 	if (level < 0)
 		level = 0;
 	if (snprintf(newshlvl, sizeof newshlvl, "%d", level) >= 0) {
-		if (!setvar(ENV_SHLVL, newshlvl, true))
+		if (!setvar(VAR_SHLVL, newshlvl, true))
 			error(0, 0, "failed to set env SHLVL");
 	}
 }

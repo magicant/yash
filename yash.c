@@ -330,7 +330,7 @@ int main(int argc __attribute__((unused)), char **argv)
 
 	is_loginshell = argv[0][0] == '-';
 	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
-	posixly_correct = getenv(ENV_POSIXLY_CORRECT);
+	posixly_correct = getenv(VAR_POSIXLY_CORRECT);
 	setlocale(LC_ALL, "");
 
 	xoptind = 0;
