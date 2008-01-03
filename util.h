@@ -81,27 +81,18 @@ char *read_all(int fd)
 #define MIN(X,Y) \
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
 
-/* ここで xisascii や xisalpha を定義 */
-static inline bool xisascii(int c) {
-	return isascii((unsigned char) c);
-}
-#define DEF_xis(type)                                                         \
-	static inline bool xis##type (char c) {                                   \
-		return isascii((unsigned char) c) && is##type ((unsigned char) c);    \
-	}
-DEF_xis(alnum)
-DEF_xis(alpha)
-DEF_xis(blank)
-DEF_xis(cntrl)
-DEF_xis(digit)
-DEF_xis(graph)
-DEF_xis(lower)
-DEF_xis(print)
-DEF_xis(punct)
-DEF_xis(space)
-DEF_xis(upper)
-DEF_xis(xdigit)
-#undef DEF_xis
+#define xisalnum(c)  (isalnum((unsigned char) (c)))
+#define xisalpha(c)  (isalpha((unsigned char) (c)))
+#define xisblank(c)  (isblank((unsigned char) (c)))
+#define xiscntrl(c)  (iscntrl((unsigned char) (c)))
+#define xisdigit(c)  (isdigit((unsigned char) (c)))
+#define xisgraph(c)  (isgraph((unsigned char) (c)))
+#define xislower(c)  (islower((unsigned char) (c)))
+#define xisprint(c)  (isprint((unsigned char) (c)))
+#define xispunct(c)  (ispunct((unsigned char) (c)))
+#define xisspace(c)  (isspace((unsigned char) (c)))
+#define xisupper(c)  (isupper((unsigned char) (c)))
+#define xisxdigit(c) (isxdigit((unsigned char) (c)))
 
 
 /* xgetopt */
