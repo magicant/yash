@@ -28,18 +28,6 @@
 #define YASH_VERSION   "1.0 beta0"
 #define YASH_COPYRIGHT "Copyright (C) 2007-2008 magicant"
 
-#define ENV_USER            "USER"
-#define ENV_LOGNAME         "LOGNAME"
-#define ENV_HOME            "HOME"
-#define ENV_LANG            "LANG"
-#define ENV_PATH            "PATH"
-#define ENV_PWD             "PWD"
-#define ENV_SPWD            "SPWD"
-#define ENV_OLDPWD          "OLDPWD"
-#define ENV_SHLVL           "SHLVL"
-#define ENV_HOSTNAME        "HOSTNAME"
-#define ENV_POSIXLY_CORRECT "POSIXLY_CORRECT"
-
 #define EXIT_NOEXEC   126
 #define EXIT_NOTFOUND 127
 

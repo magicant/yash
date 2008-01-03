@@ -925,7 +925,19 @@ void ht_init(struct hasht *ht)
 	ht->indices = xmalloc(HASHT_INITSIZE * sizeof(ssize_t));
 	ht->entries = xmalloc(HASHT_INITSIZE * sizeof(struct hash_entry));
 
-	ht_clear(ht);
+	ht->count = 0;
+	ht->nullindex = NOTHING;
+	ht->tailindex = 0;
+
+	for (size_t i = 0, len = ht->capacity; i < len; i++) {
+		ht->indices[i] = NOTHING;
+		ht->entries[i] = (struct hash_entry) {
+			.next = NOTHING,
+			.hash = 0,
+			.key = NULL,
+			.value = NULL,
+		};
+	}
 }
 
 /* ハッシュテーブルを解放する。各エントリーは解放されないので、

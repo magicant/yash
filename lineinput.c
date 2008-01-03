@@ -38,6 +38,7 @@
 #include "lineinput.h"
 #include "exec.h"
 #include "path.h"
+#include "variable.h"
 #include <assert.h>
 
 

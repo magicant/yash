@@ -33,9 +33,6 @@
 #endif
 
 
-extern char **environ;
-
-
 /* General functions */
 
 void *xcalloc(size_t nmemb, size_t size)

@@ -32,6 +32,7 @@
 #include "exec.h"
 #include "path.h"
 #include "builtin.h"
+#include "variable.h"
 #include <assert.h>
 
 

@@ -30,6 +30,7 @@
 #include "exec.h"
 #include "path.h"
 #include "builtin.h"
+#include "variable.h"
 #include <assert.h>
 
 int parse_jobspec(const char *str, bool forcePercent);

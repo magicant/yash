@@ -28,6 +28,7 @@
 #include "yash.h"
 #include "util.h"
 #include "path.h"
+#include "variable.h"
 #include <assert.h>
 
 

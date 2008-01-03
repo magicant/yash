@@ -35,6 +35,7 @@
 #include "path.h"
 #include "builtin.h"
 #include "alias.h"
+#include "variable.h"
 #include <assert.h>
 
 
@@ -42,8 +43,6 @@ int exec_file(const char *path, bool suppresserror);
 int exec_file_exp(const char *path, bool suppresserror);
 int exec_source(const char *code, const char *name);
 void exec_source_and_exit(const char *code, const char *name);
-static void set_shlvl(int change);
-static void init_env(void);
 void set_unique_pgid(void);
 void restore_pgid(void);
 void forget_orig_pgrp(void);
@@ -199,41 +198,6 @@ void exec_source_and_exit(const char *code, const char *name)
 			exec_statements_and_exit(statements);
 		default:  /* error */
 			exit(2);
-	}
-}
-
-/* 環境変数 SHLVL に change を加える */
-static void set_shlvl(int change)
-{
-	char *shlvl = getenv(ENV_SHLVL);
-	int level = shlvl ? atoi(shlvl) : 0;
-	char newshlvl[16];
-
-	level += change;
-	if (level < 0)
-		level = 0;
-	if (snprintf(newshlvl, sizeof newshlvl, "%d", level) >= 0) {
-		if (setenv(ENV_SHLVL, newshlvl, true /* overwrite */) < 0)
-			error(0, 0, "failed to set env SHLVL");
-	}
-}
-
-/* 実行環境を初期化する */
-static void init_env(void)
-{
-	char *path = getcwd(NULL, 0);
-
-	if (path) {
-		char *spwd = collapse_homedir(path);
-
-		if (setenv(ENV_PWD, path, true /* overwrite */) < 0)
-			error(0, 0, "failed to set env PWD");
-		if (spwd) {
-			if (setenv(ENV_SPWD, spwd, true /* overwrite */) < 0)
-				error(0, 0, "failed to set env SPWD");
-			free(spwd);
-		}
-		free(path);
 	}
 }
 
@@ -417,7 +381,7 @@ int main(int argc __attribute__((unused)), char **argv)
 
 	init_signal();
 	init_exec();
-	init_env();
+	init_var();
 	init_alias();
 	init_builtin();
 

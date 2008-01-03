@@ -37,6 +37,7 @@
 #include "path.h"
 #include "builtin.h"
 #include "alias.h"
+#include "variable.h"
 #include <assert.h>
 
 #define ADDITIONAL_BUILTIN //XXX
@@ -138,7 +139,7 @@ int builtin_cd(int argc, char *const *argv)
 			}
 		}
 	}
-	oldpwd = getcwd(NULL, 0);
+	oldpwd = xgetcwd();
 	if (chdir(path) < 0) {
 		error(0, errno, "%s: %s", argv[0], path);
 		return EXIT_FAILURE;
@@ -148,16 +149,9 @@ int builtin_cd(int argc, char *const *argv)
 			error(0, 0, "%s: failed to set env OLDPWD", argv[0]);
 		free(oldpwd);
 	}
-	if ((path = getcwd(NULL, 0))) {
-		char *spwd = collapse_homedir(path);
-
+	if ((path = xgetcwd())) {
 		if (setenv(ENV_PWD, path, 1 /* overwrite */) < 0)
 			error(0, 0, "%s: failed to set env PWD", argv[0]);
-		if (spwd) {
-			if (setenv(ENV_SPWD, spwd, 1 /* overwrite */) < 0)
-				error(0, 0, "%s: failed to set env SPWD", argv[0]);
-			free(spwd);
-		}
 		free(path);
 	}
 	return EXIT_SUCCESS;

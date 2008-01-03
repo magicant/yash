@@ -1,3 +1,4 @@
+canonicalize_path: path resolution
 数式展開
 コマンドのパスをハッシュに記憶する
 % で直接 fg, bg を行う
