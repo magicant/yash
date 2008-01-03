@@ -20,7 +20,7 @@
 #define PARSER_H
 
 #include <stdbool.h>
-#include "readline.h"
+#include "lineinput.h"
 
 
 typedef struct x_redirect  REDIR;

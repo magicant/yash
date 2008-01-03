@@ -393,6 +393,7 @@ static char *expand_param(char **src, bool indq)
 		default:
 			if (xisalpha(*s)) {
 				ss = s + 1;
+				// TODO 変数として利用可能な文字の判定を正確に
 				while (xisalnum(*ss) || *ss == '_') ss++;
 				*src = ss - 1;
 				ss = xstrndup(s, ss - s);

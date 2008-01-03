@@ -21,7 +21,7 @@ ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
 CFLAGS += -Wall -Wextra
 endif
 LDFLAGS = -lc -lreadline -ltermcap
-OBJS = yash.o util.o signal.o readline.o parser.o expand.o exec.o path.o builtin.o builtin_job.o alias.o
+OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o path.o builtin.o builtin_job.o alias.o
 TARGET = yash
 
 $(TARGET): $(OBJS)
@@ -40,14 +40,14 @@ dist:
 .PHONY: clean dist
 
 # Dependencies
-yash.o: yash.h util.h signal.h parser.h exec.h path.h builtin.h alias.h
+yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h
 util.o: yash.h util.h
-signal.o: util.h signal.h exec.h
-readline.o: yash.h util.h readline.h exec.h path.h
+sig.o: util.h sig.h lineinput.h exec.h
+lineinput.o: yash.h util.h lineinput.h exec.h path.h
 parser.o: yash.h util.h parser.h alias.h
 expand.o: yash.h util.h parser.h expand.h exec.h path.h
 exec.o: yash.h util.h expand.h exec.h path.h builtin.h
 path.o: yash.h util.h path.h
-builtin.o: yash.h util.h signal.h expand.h exec.h path.h builtin.h alias.h
-builtin_job.o: yash.h util.h signal.h exec.h path.h builtin.h
+builtin.o: yash.h util.h sig.h lineinput.h expand.h exec.h path.h builtin.h alias.h
+builtin_job.o: yash.h util.h sig.h exec.h path.h builtin.h
 alias.o: yash.h util.h alias.h

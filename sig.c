@@ -23,7 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "util.h"
-#include "signal.h"
+#include "sig.h"
+#include "lineinput.h"
 #include "exec.h"
 #include <assert.h>
 

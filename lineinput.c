@@ -35,7 +35,7 @@
 #include <sys/stat.h>
 #include "yash.h"
 #include "util.h"
-#include "readline.h"
+#include "lineinput.h"
 #include "exec.h"
 #include "path.h"
 #include <assert.h>

@@ -28,7 +28,8 @@
 #include <sys/types.h>
 #include "yash.h"
 #include "util.h"
-#include "signal.h"
+#include "sig.h"
+#include "lineinput.h"
 #include "parser.h"
 #include "exec.h"
 #include "path.h"
