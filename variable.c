@@ -62,12 +62,15 @@ struct environment {
 	struct hasht variables;      /* 普通の変数のハッシュテーブル */
 	struct plist positionals;    /* 位置パラメータのリスト */
 };
+/* variables の要素は struct variable へのポインタ、positionals の要素は
+ * char へのポインタである。 */
 /* $0 は位置パラメータではない。故に positionals.contents[0] は NULL である。 */
 
 
 char *xgetcwd(void);
 void init_var(void);
 void set_shlvl(int change);
+void set_positionals(char *const *values);
 static struct variable *get_variable(const char *name);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
@@ -110,6 +113,7 @@ void init_var(void)
 	current_env->parent = NULL;
 	ht_init(&current_env->variables);
 	pl_init(&current_env->positionals);
+	pl_append(&current_env->positionals, NULL);
 
 	/* まず current_env->variables に全ての環境変数を設定する。 */
 	for (char **e = environ; *e; e++) {
@@ -154,6 +158,26 @@ void init_var(void)
 	}
 }
 
+/* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
+ * values[0] が $1 に、values[1] が $2 に、という風になる。values[x] が NULL
+ * になったら終わり。 */
+void set_positionals(char *const *values)
+{
+	struct plist *pos = &current_env->positionals;
+
+	/* まず古いのを消す。 */
+	for (size_t i = 1; i < pos->length; i++)
+		free(pos->contents[i]);
+	pl_remove(pos, 1, SIZE_MAX);
+
+	/* 新しいのを追加する。 */
+	assert(pos->length == 1);
+	while (*values) {
+		pl_append(pos, xstrdup(*values));
+		values++;
+	}
+}
+
 /* 環境変数 SHLVL に change を加える */
 void set_shlvl(int change)
 {
@@ -170,7 +194,8 @@ void set_shlvl(int change)
 	}
 }
 
-/* 現在の変数環境や親変数環境から指定した変数を捜し出す。 */
+/* 現在の変数環境や親変数環境から指定した変数を捜し出す。
+ * 位置パラメータは取得できない。 */
 static struct variable *get_variable(const char *name)
 {
 	struct environment *env = current_env;
@@ -187,7 +212,7 @@ static struct variable *get_variable(const char *name)
  * 変数が存在しないときは NULL を返す。 */
 const char *getvar(const char *name)
 {
-	struct variable *var = get_variable(name);
+	struct variable *var = get_variable(name);  /* 普通の変数を探す */
 	if (var) {
 		if (var->getter)
 			return var->getter(var);
@@ -195,14 +220,26 @@ const char *getvar(const char *name)
 			return var->value;
 		return getenv(name);
 	}
+	if (xisdigit(name[0])) {  /* 位置パラメータを探す */
+		char *end;
+		errno = 0;
+		size_t posindex = strtoul(name, &end, 10);
+		if (*end || errno)
+			return NULL;
+		if (0 < posindex && current_env->positionals.length)
+			return current_env->positionals.contents[posindex];
+	}
 	return NULL;
 }
 
 /* シェル変数の値を設定する。変数が存在しない場合、基底変数環境に追加する。
+ * この関数では位置パラメータは設定できない (しようとしてはいけない)。
  * export: true ならその変数を export 対象にする。false ならそのまま。
  * 戻り値: 成功なら true、エラーならメッセージを出して false。 */
 bool setvar(const char *name, const char *value, bool export)
 {
+	assert(!xisdigit(name[0]));
+
 	struct variable *var = get_variable(name);
 	if (!var) {
 		struct environment *env = current_env;

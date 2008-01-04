@@ -491,18 +491,22 @@ static char *expand_param2(const char *s, bool indq)
 				goto expand_escape_return;
 			break;
 		case '+':
-			if (result && (!colon || *result))
+			if (!(!result || (colon && !*result)))
 				goto expand_escape_return;
 			break;
 		case '=':
 			if (!result || (colon && !*result)) {
 				if (!indir && xisalpha(*start)) {
 					word1 = unescape(expand_word(s));
-					if (!setvar(param, word1, true)) {
+					if (!setvar(param, word1, false)) {
 						free(word1);
 						return NULL;
 					}
 					result = getvar(param);
+				} else {
+					error(0, 0, "%s: parameter cannot be assigned in this way",
+							start);
+					return NULL;
 				}
 			}
 			break;

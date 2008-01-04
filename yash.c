@@ -396,6 +396,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		set_shell_env();
 		if (argv[xoptind]) {
 			command_name = argv[xoptind];
+			set_positionals(argv + xoptind + 1);
 		}
 		exec_source_and_exit(directcommand, "yash -c");
 	}
@@ -403,6 +404,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		is_interactive = false;
 		set_shell_env();
 		command_name = argv[xoptind];
+		set_positionals(argv + xoptind + 1);
 		exec_file(command_name, false /* don't suppress error */);
 		exit(laststatus);
 	}

@@ -32,6 +32,7 @@ extern char **environ;
 char *xgetcwd(void);
 void init_var(void);
 void set_shlvl(int change);
+void set_positionals(char *const *values);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 bool is_exported(const char *name);
