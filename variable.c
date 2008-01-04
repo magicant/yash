@@ -76,6 +76,7 @@ const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
+static const char *count_getter(struct variable *var);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
 static const char *zero_getter(struct variable *var);
@@ -130,6 +131,12 @@ void init_var(void)
 	}
 
 	/* 特殊パラメータを設定する。 */
+	var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = count_getter,
+	};
+	ht_set(&current_env->variables, "#", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
@@ -283,6 +290,17 @@ bool is_exported(const char *name)
 bool is_special_parameter_char(char c)
 {
 	return strchr("@*#?-$!_", c) != NULL;
+}
+
+/* 特殊パラメータ $# のゲッター。位置パラメータの数を返す。 */
+static const char *count_getter(
+		struct variable *var __attribute__((unused)))
+{
+	static char result[INT_STRLEN_BOUND(size_t) + 1];
+	if (snprintf(result, sizeof result, "%zd",
+				current_env->positionals.length - 1) >= 0)
+		return result;
+	return NULL;
 }
 
 /* 特殊パラメータ $? のゲッター。laststatus の値を返す。 */

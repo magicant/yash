@@ -95,7 +95,7 @@ char *read_all(int fd)
 	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
 
 /* 整数型 type が符号付きかどうか */
-#define IS_TYPE_SIGNED(type) ((type) 0 > (type) -1)
+#define IS_TYPE_SIGNED(type) ((type) 1 > (type) -1)
 
 /* 整数型 type を文字列に変換した場合の最大長。
  * CHAR_MAX の為に limits.h が必要。 */
