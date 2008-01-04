@@ -63,6 +63,8 @@ typedef struct {
 extern struct plist joblist;
 extern size_t currentjobnumber;
 
+extern pid_t last_bg_pid;
+
 void init_exec(void);
 int exitcode_from_status(int status);
 JOB *get_job(size_t jobnumber);

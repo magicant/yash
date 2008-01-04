@@ -106,6 +106,11 @@ size_t currentjobnumber = 0;
 /* 一時的な作業用の子プロセスの情報。普段は .jp_pid = 0。 */
 static struct jproc temp_chld = { .jp_pid = 0, };
 
+/* 最後に起動したバックグラウンドジョブのプロセス ID。
+ * ジョブがパイプラインになっている場合は、パイプ内の最後のプロセスの ID。
+ * この値は特殊パラメータ $! の値となる。 */
+pid_t last_bg_pid;
+
 /* enum jstatus の文字列表現 */
 const char *const jstatusstr[] = {
 	"Running", "Done", "Stopped",
@@ -328,8 +333,8 @@ int get_jobnumber_from_pid(pid_t pid)
 
 	for (size_t i = 0; i < joblist.length; i++)
 		if ((job = joblist.contents[i]))
-			for (size_t i = 0; i < job->j_procc; i++)
-				if (job->j_procv[i].jp_pid == pid)
+			for (size_t j = 0; j < job->j_procc; j++)
+				if (job->j_procv[j].jp_pid == pid)
 					return i;
 	return -1;
 }
@@ -660,6 +665,7 @@ static void exec_processes(
 				add_job();
 		} else {
 			laststatus = EXIT_SUCCESS;
+			last_bg_pid = ps[pcount - 1].jp_pid;
 			add_job();
 		}
 	}

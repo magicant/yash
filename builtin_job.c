@@ -327,15 +327,18 @@ int builtin_wait(int argc, char *const *argv)
 					default:
 						error(0, 0, "%s: %s: invalid job spec",
 								argv[0], target);
-						return EXIT_NOTFOUND;
+						resultstatus = EXIT_NOTFOUND;
+						goto end;
 					case -2:
 						error(0, 0, "%s: %s: no such job",
 								argv[0], target);
-						return EXIT_NOTFOUND;
+						resultstatus = EXIT_NOTFOUND;
+						goto end;
 					case -3:
 						error(0, 0, "%s: %s: ambiguous job spec",
 								argv[0], target);
-						return EXIT_NOTFOUND;
+						resultstatus = EXIT_NOTFOUND;
+						goto end;
 				}
 			} else {
 				errno = 0;
@@ -343,13 +346,15 @@ int builtin_wait(int argc, char *const *argv)
 					jobnumber = strtol(target, &target, 10);
 				if (errno || *target) {
 					error(0, 0, "%s: %s: invalid target", argv[0], target);
-					return EXIT_FAILURE;
+					resultstatus = EXIT_FAILURE;
+					goto end;
 				}
 				jobnumber = get_jobnumber_from_pid(jobnumber);
 				if (jobnumber < 0) {
 					error(0, 0, "%s: %s: not a child of this shell",
 							argv[0], target);
-					return EXIT_NOTFOUND;
+					resultstatus = EXIT_NOTFOUND;
+					goto end;
 				}
 			}
 
@@ -379,6 +384,7 @@ int builtin_wait(int argc, char *const *argv)
 		}
 	}
 
+end:
 	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
 		error(0, errno, "sigprocmask after wait");
 

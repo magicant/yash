@@ -79,6 +79,7 @@ bool is_special_parameter_char(char c);
 static const char *count_getter(struct variable *var);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
+static const char *last_bg_pid_getter(struct variable *var);
 static const char *zero_getter(struct variable *var);
 
 
@@ -149,6 +150,12 @@ void init_var(void)
 		.getter = pid_getter,
 	};
 	ht_set(&current_env->variables, "$", var);
+	var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = last_bg_pid_getter,
+	};
+	ht_set(&current_env->variables, "!", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
@@ -319,6 +326,16 @@ static const char *pid_getter(
 {
 	static char result[INT_STRLEN_BOUND(pid_t) + 1];
 	if (snprintf(result, sizeof result, "%jd", (intmax_t) shell_pid) >= 0)
+		return result;
+	return NULL;
+}
+
+/* 特殊パラメータ $! のゲッター。最後に起動したバックグラウンドジョブの PID。 */
+static const char *last_bg_pid_getter(
+		struct variable *var __attribute__((unused)))
+{
+	static char result[INT_STRLEN_BOUND(pid_t) + 1];
+	if (snprintf(result, sizeof result, "%.0jd", (intmax_t) last_bg_pid) >= 0)
 		return result;
 	return NULL;
 }
