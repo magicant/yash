@@ -57,10 +57,18 @@ struct variable {
  * セッターは、variable 構造体の value メンバを書き換える等、変数を設定するのに
  * 必要な動作を全て行う。セッターが NULL ならデフォルトの動作をする。 */
 
+struct environment {
+	struct environment *parent;  /* 親環境 */
+	struct hasht variables;      /* 普通の変数のハッシュテーブル */
+	struct plist positionals;    /* 位置パラメータのリスト */
+};
+/* $0 は位置パラメータではない。故に positionals.contents[0] は NULL である。 */
+
 
 char *xgetcwd(void);
 void init_var(void);
 void set_shlvl(int change);
+static struct variable *get_variable(const char *name);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 bool is_exported(const char *name);
@@ -70,7 +78,7 @@ static const char *pid_getter(struct variable *var);
 static const char *zero_getter(struct variable *var);
 
 
-static struct hasht variables;
+static struct environment *current_env;
 
 
 /* getcwd(3) の結果を新しく malloc した文字列で返す。
@@ -98,8 +106,12 @@ void init_var(void)
 {
 	struct variable *var;
 
-	/* まず variables に全ての環境変数を設定する。 */
-	ht_init(&variables);
+	current_env = xmalloc(sizeof *current_env);
+	current_env->parent = NULL;
+	ht_init(&current_env->variables);
+	pl_init(&current_env->positionals);
+
+	/* まず current_env->variables に全ての環境変数を設定する。 */
 	for (char **e = environ; *e; e++) {
 		size_t namelen = strcspn(*e, "=");
 		char name[namelen + 1];
@@ -110,7 +122,7 @@ void init_var(void)
 
 		struct variable *var = xmalloc(sizeof *var);
 		*var = (struct variable) { .value = NULL, };
-		ht_set(&variables, name, var);
+		ht_set(&current_env->variables, name, var);
 	}
 
 	/* 特殊パラメータを設定する。 */
@@ -119,19 +131,19 @@ void init_var(void)
 		.value = "",
 		.getter = laststatus_getter,
 	};
-	ht_set(&variables, "?", var);
+	ht_set(&current_env->variables, "?", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
 		.getter = pid_getter,
 	};
-	ht_set(&variables, "$", var);
+	ht_set(&current_env->variables, "$", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
 		.getter = zero_getter,
 	};
-	ht_set(&variables, "0", var);
+	ht_set(&current_env->variables, "0", var);
 	//TODO 他のパラメータ
 
 	/* PWD 環境変数を設定する */
@@ -158,27 +170,45 @@ void set_shlvl(int change)
 	}
 }
 
+/* 現在の変数環境や親変数環境から指定した変数を捜し出す。 */
+static struct variable *get_variable(const char *name)
+{
+	struct environment *env = current_env;
+	while (env) {
+		struct variable *var = ht_get(&env->variables, name);
+		if (var)
+			return var;
+		env = env->parent;
+	}
+	return NULL;
+}
+
 /* 指定した名前のシェル変数を取得する。
  * 変数が存在しないときは NULL を返す。 */
 const char *getvar(const char *name)
 {
-	struct variable *var = ht_get(&variables, name);
-	if (!var)
-		return NULL;
-	if (var->getter)
-		return var->getter(var);
-	if (var->value)
-		return var->value;
-	return getenv(name);
+	struct variable *var = get_variable(name);
+	if (var) {
+		if (var->getter)
+			return var->getter(var);
+		if (var->value)
+			return var->value;
+		return getenv(name);
+	}
+	return NULL;
 }
 
-/* シェル変数の値を設定する。
+/* シェル変数の値を設定する。変数が存在しない場合、基底変数環境に追加する。
  * export: true ならその変数を export 対象にする。false ならそのまま。
  * 戻り値: 成功なら true、エラーなら false。 */
 bool setvar(const char *name, const char *value, bool export)
 {
-	struct variable *var = ht_get(&variables, name);
+	struct variable *var = get_variable(name);
+	error(0, 0, "DEBUG: name=%s var=%p", name, var);
 	if (!var) {
+		struct environment *env = current_env;
+		while (env->parent)
+			env = env->parent;
 		var = xmalloc(sizeof *var);
 		*var = (struct variable) {
 			.value = NULL,
@@ -186,11 +216,12 @@ bool setvar(const char *name, const char *value, bool export)
 			.getter = NULL,
 			.setter = NULL,
 		};
-		ht_set(&variables, name, var);
+		ht_set(&env->variables, name, var);
 	}
 	if (var->setter) {
 		return var->setter(var, value, export);
 	} else {
+		//TODO readonly
 		free(var->value);
 		if (export) {
 			var->value = NULL;
@@ -205,7 +236,7 @@ bool setvar(const char *name, const char *value, bool export)
 /* 指定した名前のシェル変数が存在しかつ export 対象かどうかを返す。 */
 bool is_exported(const char *name)
 {
-	struct variable *var = ht_get(&variables, name);
+	struct variable *var = get_variable(name);
 	return var && !var->value;
 }
 
