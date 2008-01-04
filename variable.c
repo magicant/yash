@@ -257,7 +257,10 @@ bool setvar(const char *name, const char *value, bool export)
 	if (var->setter) {
 		return var->setter(var, value, export);
 	} else {
-		//TODO readonly
+		if (var->flags & VF_READONLY) {
+			error(0, 0, "%s: readonly variable cannot be assigned to", name);
+			return false;
+		}
 		free(var->value);
 		if (export) {
 			var->value = NULL;

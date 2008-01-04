@@ -504,7 +504,8 @@ static char *expand_param2(const char *s, bool indq)
 					}
 					result = getvar(param);
 				} else {
-					error(0, 0, "%s: parameter cannot be assigned in this way",
+					error(0, 0,
+							"%s: parameter cannot be assigned to in this way",
 							start);
 					return NULL;
 				}
