@@ -890,7 +890,7 @@ void pl_aappend(struct plist *list, void **ps)
 void pl_remove(struct plist *list, size_t i, size_t count)
 {
 	if (i < list->length) {
-		if (i + count >= list->length) {
+		if (count >= list->length - i) {
 			list->contents[i] = NULL;
 			list->length = i;
 		} else {
