@@ -62,6 +62,9 @@ bool is_interactive;
 /* POSIX の規定に厳密に従うなら非 0 */
 bool posixly_correct;
 
+/* シェルのプロセス ID。サブシェルでも変わらない。 */
+pid_t shell_pid;
+
 /* プライマリプロンプトの前に実行するコマンド */
 char *prompt_command = NULL;
 
@@ -275,7 +278,6 @@ static int exec_promptcommand(void)
 {
 	int resultstatus = 0;
 	int savestatus = laststatus;
-	laststatus = 0;
 	exec_source(prompt_command, "prompt command");
 	resultstatus = laststatus;
 	laststatus = savestatus;
@@ -379,6 +381,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		return EXIT_SUCCESS;
 	}
 
+	shell_pid = getpid();
 	init_signal();
 	init_exec();
 	init_var();

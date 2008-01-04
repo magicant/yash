@@ -35,3 +35,4 @@ void set_shlvl(int change);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 bool is_exported(const char *name);
+bool is_special_parameter_char(char c);

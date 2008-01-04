@@ -73,11 +73,6 @@ char *mprintf(const char *format, ...)
 char *read_all(int fd)
 	__attribute__((malloc));
 
-#define MAX(X,Y) \
-	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
-#define MIN(X,Y) \
-	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
-
 #define xisalnum(c)  (isalnum((unsigned char) (c)))
 #define xisalpha(c)  (isalpha((unsigned char) (c)))
 #define xisblank(c)  (isblank((unsigned char) (c)))
@@ -90,6 +85,23 @@ char *read_all(int fd)
 #define xisspace(c)  (isspace((unsigned char) (c)))
 #define xisupper(c)  (isupper((unsigned char) (c)))
 #define xisxdigit(c) (isxdigit((unsigned char) (c)))
+
+
+/* Arithmetic Utilities */
+
+#define MAX(X,Y) \
+	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
+#define MIN(X,Y) \
+	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
+
+/* 整数型 type が符号付きかどうか */
+#define IS_TYPE_SIGNED(type) ((type) 0 > (type) -1)
+
+/* 整数型 type を文字列に変換した場合の最大長。
+ * CHAR_MAX の為に limits.h が必要。 */
+#define INT_STRLEN_BOUND(type) \
+	((sizeof(type) * CHAR_MAX - IS_TYPE_SIGNED(type)) * 31 / 100 \
+	 + 1 + IS_TYPE_SIGNED(type))
 
 
 /* xgetopt */

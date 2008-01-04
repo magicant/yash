@@ -1,7 +1,7 @@
-canonicalize_path: path resolution
 数式展開
 コマンドのパスをハッシュに記憶する
 % で直接 fg, bg を行う
+ジョブ単位で名前を付けるのではなくジョブの各プロセスごとにプロセス名を付ける
 POSIX にしたがって stdout/stderr を使い分ける
 readline 補完
 PROCESS などを連鎖リストではなく plist に

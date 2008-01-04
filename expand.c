@@ -359,8 +359,8 @@ append_s2:
 
 /* '$' で始まるパラメータ・コマンド置換を解釈し、展開結果を返す。
  * src:    パラメータ置換を表す '$' の次の文字へのポインタのポインタ。
- *         置換が成功すると、*s は置換すべき部分文字列の最後の文字を指す。
- * indq:   このコマンド置換が " 引用符の中にあるかどうか。
+ *         置換が成功すると、*src は置換すべき部分文字列の最後の文字を指す。
+ * indq:   このコマンド置換が引用符 " の中にあるかどうか。
  * 戻り値: 新しく malloc したパラメータ置換の結果の文字列。エラーなら NULL。 */
 static char *expand_param(char **src, bool indq)
 {
@@ -392,7 +392,11 @@ static char *expand_param(char **src, bool indq)
 			//TODO ? や _ などの一文字のパラメータ
 		case '\0':
 		default:
-			if (xisalpha(*s)) {
+			if (is_special_parameter_char(*s)) {
+				char name[2] = { *s, '\0' };
+				const char *r = getvar(name);
+				return xstrdup(r ? r : "");
+			} else if (xisalpha(*s)) {
 				ss = s + 1;
 				// TODO 変数として利用可能な文字の判定を正確に
 				while (xisalnum(*ss) || *ss == '_') ss++;

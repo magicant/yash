@@ -18,22 +18,19 @@
 
 #include <error.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include "yash.h"
 #include "util.h"
+#include "exec.h"
 #include "variable.h"
 #include <assert.h>
-
-
-char *xgetcwd(void);
-void init_var(void);
-void set_shlvl(int change);
-const char *getvar(const char *name);
-bool setvar(const char *name, const char *value, bool export);
-bool is_exported(const char *name);
 
 
 struct variable {
@@ -55,8 +52,21 @@ struct variable {
 /* getter/setter は変数のゲッター・セッターである。
  * 非 NULL なら、値を取得・設定する際にフィルタとして使用する。
  * ゲッター・セッターの戻り値はそのまま getvar/setvar の戻り値になる。
+ * ゲッターが非 NULL のとき、value は NULL (export 対象のとき) またはダミーの
+ * 空文字列 (非 export 対象のとき) である。
  * セッターは、variable 構造体の value メンバを書き換える等、変数を設定するのに
  * 必要な動作を全て行う。セッターが NULL ならデフォルトの動作をする。 */
+
+
+char *xgetcwd(void);
+void init_var(void);
+void set_shlvl(int change);
+const char *getvar(const char *name);
+bool setvar(const char *name, const char *value, bool export);
+bool is_exported(const char *name);
+bool is_special_parameter_char(char c);
+static const char *laststatus_getter(struct variable *var);
+static const char *pid_getter(struct variable *var);
 
 
 static struct hasht variables;
@@ -85,6 +95,8 @@ char *xgetcwd(void)
 /* 環境変数などを初期化する。 */
 void init_var(void)
 {
+	struct variable *var;
+
 	/* まず variables に全ての環境変数を設定する。 */
 	ht_init(&variables);
 	for (char **e = environ; *e; e++) {
@@ -99,6 +111,21 @@ void init_var(void)
 		*var = (struct variable) { .value = NULL, };
 		ht_set(&variables, name, var);
 	}
+
+	/* 特殊パラメータを設定する。 */
+	var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = laststatus_getter,
+	};
+	ht_set(&variables, "?", var);
+	var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = pid_getter,
+	};
+	ht_set(&variables, "$", var);
+	//TODO 他のパラメータ
 
 	/* PWD 環境変数を設定する */
 	char *pwd = xgetcwd();
@@ -131,6 +158,8 @@ const char *getvar(const char *name)
 	struct variable *var = ht_get(&variables, name);
 	if (!var)
 		return NULL;
+	if (var->getter)
+		return var->getter(var);
 	if (var->value)
 		return var->value;
 	return getenv(name);
@@ -172,3 +201,30 @@ bool is_exported(const char *name)
 	struct variable *var = ht_get(&variables, name);
 	return var && !var->value;
 }
+
+/* 引数 c が特殊パラメータ・位置パラメータを名前であるかどうか判定する */
+bool is_special_parameter_char(char c)
+{
+	return strchr("@*#?-$!_0123456789", c) != NULL;
+}
+
+/* 特殊パラメータ $? のゲッター。laststatus の値を返す。 */
+static const char *laststatus_getter(
+		struct variable *var __attribute__((unused)))
+{
+	static char result[INT_STRLEN_BOUND(int) + 1];
+	if (snprintf(result, sizeof result, "%d", laststatus) >= 0)
+		return result;
+	return NULL;
+}
+
+/* 特殊パラメータ $$ のゲッター。シェルのプロセス ID の値を返す。 */
+static const char *pid_getter(
+		struct variable *var __attribute__((unused)))
+{
+	static char result[INT_STRLEN_BOUND(pid_t) + 1];
+	if (snprintf(result, sizeof result, "%jd", (intmax_t) shell_pid) >= 0)
+		return result;
+	return NULL;
+}
+

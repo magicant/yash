@@ -553,15 +553,12 @@ void exec_statements_and_exit(STATEMENT *s)
 /* 一つの文の各パイプラインを実行する。 */
 static void exec_pipelines(PIPELINE *p)
 {
-	if (!p) return;
-
-	bool nextcond = true;
-	laststatus = 0;
-	while (p && (nextcond == !laststatus)) {
+	while (p) {
 		char *name = make_pipeline_name(p->pl_proc, p->pl_neg, p->pl_loop);
 		exec_processes(p->pl_proc, name, p->pl_neg, p->pl_loop, false);
 		free(name);
-		nextcond = p->pl_next_cond;
+		if (!p->pl_next_cond == !laststatus)
+			break;
 		p = p->next;
 	}
 }
