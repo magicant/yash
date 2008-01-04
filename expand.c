@@ -366,7 +366,6 @@ static char *expand_param(char **src, bool indq)
 {
 	char *s = *src;
 	char *ss, *result;
-	char temp[2] = "$";
 
 	assert(s[-1] == '$');
 	switch (*s) {
@@ -388,8 +387,6 @@ static char *expand_param(char **src, bool indq)
 			result = exec_and_read(ss, true);
 			free(ss);
 			return result;
-
-			//TODO ? や _ などの一文字のパラメータ
 		case '\0':
 		default:
 			if (is_special_parameter_char(*s)) {
@@ -407,7 +404,7 @@ static char *expand_param(char **src, bool indq)
 				return xstrdup(r ? r : "");
 			}
 			*src = s - 1;
-			return xstrdup(temp);
+			return xstrdup("$");
 	}
 }
 
@@ -461,8 +458,11 @@ static char *expand_param2(const char *s, bool indq)
 	if (indir) s++;
 	
 	const char *pstart = s;
-	// TODO 一文字の記号のパラメータ
-	while (xisalnum(*s) || *s == '_') s++;
+	if (is_special_parameter_char(*s) && !xisdigit(*s)) {
+		s++;
+	} else {
+		while (xisalnum(*s) || *s == '_') s++;
+	}
 
 	char param[s - pstart + 1];
 	strncpy(param, pstart, s - pstart);
