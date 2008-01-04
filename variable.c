@@ -67,6 +67,7 @@ bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
+static const char *zero_getter(struct variable *var);
 
 
 static struct hasht variables;
@@ -125,6 +126,12 @@ void init_var(void)
 		.getter = pid_getter,
 	};
 	ht_set(&variables, "$", var);
+	var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = zero_getter,
+	};
+	ht_set(&variables, "0", var);
 	//TODO 他のパラメータ
 
 	/* PWD 環境変数を設定する */
@@ -202,10 +209,10 @@ bool is_exported(const char *name)
 	return var && !var->value;
 }
 
-/* 引数 c が特殊パラメータ・位置パラメータを名前であるかどうか判定する */
+/* 引数 c が特殊パラメータを名前であるかどうか判定する */
 bool is_special_parameter_char(char c)
 {
-	return strchr("@*#?-$!_0123456789", c) != NULL;
+	return strchr("@*#?-$!_", c) != NULL;
 }
 
 /* 特殊パラメータ $? のゲッター。laststatus の値を返す。 */
@@ -228,3 +235,9 @@ static const char *pid_getter(
 	return NULL;
 }
 
+/* 特殊パラメータ $0 のゲッター。実行中のシェル(スクリプト)名を返す。 */
+static const char *zero_getter(
+		struct variable *var __attribute__((unused)))
+{
+	return command_name;
+}

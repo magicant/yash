@@ -389,7 +389,7 @@ static char *expand_param(char **src, bool indq)
 			return result;
 		case '\0':
 		default:
-			if (is_special_parameter_char(*s)) {
+			if (is_special_parameter_char(*s) || xisdigit(*s)) {
 				char name[2] = { *s, '\0' };
 				const char *r = getvar(name);
 				return xstrdup(r ? r : "");
@@ -458,7 +458,7 @@ static char *expand_param2(const char *s, bool indq)
 	if (indir) s++;
 	
 	const char *pstart = s;
-	if (is_special_parameter_char(*s) && !xisdigit(*s)) {
+	if (is_special_parameter_char(*s)) {
 		s++;
 	} else {
 		while (xisalnum(*s) || *s == '_') s++;

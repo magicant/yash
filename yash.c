@@ -62,6 +62,8 @@ bool is_interactive;
 /* POSIX の規定に厳密に従うなら非 0 */
 bool posixly_correct;
 
+/* コマンド名。特殊パラメータ $0 の値。 */
+const char *command_name;
 /* シェルのプロセス ID。サブシェルでも変わらない。 */
 pid_t shell_pid;
 
@@ -330,6 +332,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	char *directcommand = NULL;
 	const char *short_opts = "c:il";
 
+	command_name = argv[0];
 	is_loginshell = argv[0][0] == '-';
 	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
 	posixly_correct = getenv(VAR_POSIXLY_CORRECT) != NULL;
@@ -391,12 +394,16 @@ int main(int argc __attribute__((unused)), char **argv)
 	if (directcommand) {
 		is_interactive = false;
 		set_shell_env();
+		if (argv[xoptind]) {
+			command_name = argv[xoptind];
+		}
 		exec_source_and_exit(directcommand, "yash -c");
 	}
 	if (argv[xoptind]) {
 		is_interactive = false;
 		set_shell_env();
-		exec_file(argv[xoptind], false /* don't suppress error */);
+		command_name = argv[xoptind];
+		exec_file(command_name, false /* don't suppress error */);
 		exit(laststatus);
 	}
 	if (is_interactive) {

@@ -36,6 +36,7 @@ extern bool is_loginshell;
 extern bool is_interactive;
 extern bool posixly_correct;
 
+extern const char *command_name;
 extern pid_t shell_pid;
 
 extern volatile sig_atomic_t sigint_received;
