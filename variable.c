@@ -200,11 +200,10 @@ const char *getvar(const char *name)
 
 /* シェル変数の値を設定する。変数が存在しない場合、基底変数環境に追加する。
  * export: true ならその変数を export 対象にする。false ならそのまま。
- * 戻り値: 成功なら true、エラーなら false。 */
+ * 戻り値: 成功なら true、エラーならメッセージを出して false。 */
 bool setvar(const char *name, const char *value, bool export)
 {
 	struct variable *var = get_variable(name);
-	error(0, 0, "DEBUG: name=%s var=%p", name, var);
 	if (!var) {
 		struct environment *env = current_env;
 		while (env->parent)

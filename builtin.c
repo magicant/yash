@@ -146,12 +146,10 @@ int builtin_cd(int argc, char *const *argv)
 		return EXIT_FAILURE;
 	}
 	if (oldpwd) {
-		if (setenv(VAR_OLDPWD, oldpwd, 1 /* overwrite */) < 0)
-			error(0, 0, "%s: failed to set env OLDPWD", argv[0]);
+		setvar(VAR_OLDPWD, oldpwd, true);
 	}
 	if ((path = xgetcwd())) {
-		if (setenv(VAR_PWD, path, 1 /* overwrite */) < 0)
-			error(0, 0, "%s: failed to set env PWD", argv[0]);
+		setvar(VAR_PWD, path, true);
 		free(path);
 	}
 	return EXIT_SUCCESS;
@@ -221,8 +219,7 @@ int builtin_export(int argc, char *const *argv)
 			size_t namelen = strcspn(c, "=");
 			if (c[namelen] == '=') {
 				c[namelen] = '\0';
-				if (setenv(c, c + namelen + 1, 1) < 0) {
-					error(0, 0, "%s: memory shortage", argv[0]);
+				if (!setvar(c, c + namelen + 1, true)) {
 					c[namelen] = '=';
 					return EXIT_FAILURE;
 				}

@@ -498,8 +498,7 @@ static char *expand_param2(const char *s, bool indq)
 			if (!result || (colon && !*result)) {
 				if (!indir && xisalpha(*start)) {
 					word1 = unescape(expand_word(s));
-					if (setenv(param, word1, true) < 0) {
-						error(0, 0, "${%s}: assignment failed", start);
+					if (!setvar(param, word1, true)) {
 						free(word1);
 						return NULL;
 					}
