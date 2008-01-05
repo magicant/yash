@@ -132,6 +132,18 @@ void init_var(void)
 	}
 
 	/* 特殊パラメータを設定する。 */
+	/*var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = TODO $@ parameter,
+	};
+	ht_set(&current_env->variables, "@", var);*/
+	/*var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = TODO $* parameter,
+	};
+	ht_set(&current_env->variables, "*", var);*/
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
@@ -144,6 +156,12 @@ void init_var(void)
 		.getter = laststatus_getter,
 	};
 	ht_set(&current_env->variables, "?", var);
+	/*var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = "",
+		.getter = TODO $- parameter,
+	};
+	ht_set(&current_env->variables, "-", var);*/
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
@@ -162,7 +180,6 @@ void init_var(void)
 		.getter = zero_getter,
 	};
 	ht_set(&current_env->variables, "0", var);
-	//TODO 他のパラメータ
 
 	/* PWD 環境変数を設定する */
 	char *pwd = xgetcwd();
@@ -253,6 +270,7 @@ const char *getvar(const char *name)
 bool setvar(const char *name, const char *value, bool export)
 {
 	assert(!xisdigit(name[0]));
+	assert(!is_special_parameter_char(name[0]));
 
 	struct variable *var = get_variable(name);
 	if (!var) {
@@ -286,6 +304,17 @@ bool setvar(const char *name, const char *value, bool export)
 	}
 }
 
+/* 指定した名前の配列変数の内容を取得する。
+ * name が NULL なら位置パラメータリストを取得する。
+ * 配列変数が見付からなければ NULL を返す。 */
+/* 位置パラメータのインデックスは 0 ではなく 1 から始まることに注意 */
+struct plist *getarray(const char *name)
+{
+	if (!name)
+		return &current_env->positionals;
+	return NULL; //XXX 配列は未実装
+}
+
 /* 指定した名前のシェル変数が存在しかつ export 対象かどうかを返す。 */
 bool is_exported(const char *name)
 {
@@ -293,11 +322,17 @@ bool is_exported(const char *name)
 	return var && !var->value;
 }
 
-/* 引数 c が特殊パラメータを名前であるかどうか判定する */
+/* 引数 c が特殊パラメータの名前であるかどうか判定する */
 bool is_special_parameter_char(char c)
 {
-	return strchr("@*#?-$!_", c) != NULL;
+	return strchr("@*#?-$!_0", c) != NULL;
 }
+
+/* 特殊パラメータ $@/$* のゲッター。全ての位置パラメータを連結して返す。 */
+//static const char *count_getter(
+//		struct variable *var __attribute__((unused)))
+//{
+//}
 
 /* 特殊パラメータ $# のゲッター。位置パラメータの数を返す。 */
 static const char *count_getter(
