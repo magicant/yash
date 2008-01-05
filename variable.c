@@ -76,6 +76,7 @@ const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
+static const char *positional_getter(struct variable *var);
 static const char *count_getter(struct variable *var);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
@@ -132,18 +133,13 @@ void init_var(void)
 	}
 
 	/* 特殊パラメータを設定する。 */
-	/*var = xmalloc(sizeof *var);
+	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
-		.value = "",
-		.getter = TODO $@ parameter,
+		.value = xstrdup(""),
+		.getter = positional_getter,
 	};
-	ht_set(&current_env->variables, "@", var);*/
-	/*var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = "",
-		.getter = TODO $* parameter,
-	};
-	ht_set(&current_env->variables, "*", var);*/
+	ht_set(&current_env->variables, "@", var);
+	ht_set(&current_env->variables, "*", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
@@ -330,10 +326,17 @@ bool is_special_parameter_char(char c)
 }
 
 /* 特殊パラメータ $@/$* のゲッター。全ての位置パラメータを連結して返す。 */
-//static const char *count_getter(
-//		struct variable *var __attribute__((unused)))
-//{
-//}
+static const char *positional_getter(struct variable *var)
+{
+	const char *ifs = getvar(VAR_IFS);
+	char separator[2] = { ifs ? ifs[0] : ' ', '\0' };
+	/* ifs が "" なら separator も "" となる。これは正しい動作である。 */
+	
+	free(var->value);
+	var->value = strjoin(-1,
+			(char **) current_env->positionals.contents + 1, separator);
+	return var->value;
+}
 
 /* 特殊パラメータ $# のゲッター。位置パラメータの数を返す。 */
 static const char *count_getter(

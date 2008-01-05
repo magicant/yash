@@ -319,7 +319,7 @@ append_s2:
 //					error(0, 0, "DEBUG: %d %d appending %s",
 //							(int) (split && !indq), (int) noescape, s2);
 					if (split && !indq) {  /* 単語分割をしつつ追加 */
-						const char *ifs = getvar("IFS");
+						const char *ifs = getvar(VAR_IFS);
 						if (!ifs)
 							ifs = " \t\n";
 						add_splitting(s2, &buf, result, ifs,
