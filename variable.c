@@ -322,10 +322,11 @@ bool is_exported(const char *name)
 	return var && !var->value;
 }
 
-/* 引数 c が特殊パラメータの名前であるかどうか判定する */
+/* 引数 c が特殊パラメータの名前であるかどうか判定する。
+ * 例外的に、'0' はこの関数では false を返す。 */
 bool is_special_parameter_char(char c)
 {
-	return strchr("@*#?-$!_0", c) != NULL;
+	return strchr("@*#?-$!_", c) != NULL;
 }
 
 /* 特殊パラメータ $@/$* のゲッター。全ての位置パラメータを連結して返す。 */
