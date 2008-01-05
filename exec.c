@@ -1050,6 +1050,7 @@ char *exec_and_read(const char *code, bool trimend)
 		while (temp_chld.jp_status != JS_DONE)
 			wait_for_signal();
 		temp_chld.jp_pid = 0;
+		laststatus = exitcode_from_status(temp_chld.jp_waitstatus);
 		if (WIFSIGNALED(temp_chld.jp_waitstatus)
 				&& WTERMSIG(temp_chld.jp_waitstatus) == SIGINT) {
 			free(buf);
