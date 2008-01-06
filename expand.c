@@ -519,6 +519,14 @@ static char *expand_param2(const char *s, bool indq)
 			return NULL;
 		}
 	}
+	switch (*s) {
+		case '\0': case '+':  case '-':  case '=':  case '?':
+		case '#':  case '%':
+			break;
+		default:
+			error(0, 0, "${%s}: bad substitution", info.full);
+			return NULL;
+	}
 	info.format = s;
 
 	// TODO ${!prefix*} パタン, 配列
