@@ -39,3 +39,5 @@ bool setvar(const char *name, const char *value, bool export);
 struct plist *getarray(const char *name);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
+bool is_name_char(char c);
+bool is_name(const char *c);

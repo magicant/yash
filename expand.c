@@ -434,8 +434,7 @@ static char *expand_param(char **src, bool indq)
 				return expand_param2(name, indq);
 			} else if (xisalpha(*s)) {
 				ss = s + 1;
-				// TODO 変数として利用可能な文字の判定を正確に
-				while (xisalnum(*ss) || *ss == '_') ss++;
+				while (is_name_char(*ss)) ss++;
 				*src = ss - 1;
 				char inside[ss - s + 1];
 				strncpy(inside, s, ss - s);
@@ -590,8 +589,8 @@ static char *expand_param2(const char *s, bool indq)
 			break;
 		case '=':
 			if (isempty) {
-				// TODO 代入可能な変数名の判定を厳密に
-				if (singlevalue && !info.indirect && xisalpha(info.full[0])) {
+				if (singlevalue && !info.indirect
+						&& xisalpha(info.full[0]) && is_name(info.param)) {
 					char *word1 = unescape(expand_word(info.format + 1));
 					recfree((void **) rvalues, free);
 					if (!setvar(info.param, word1, false)) {

@@ -33,6 +33,7 @@
 #include <assert.h>
 
 
+/* 変数を表す構造体 */
 struct variable {
 	char *value;
 	/*union {
@@ -57,6 +58,7 @@ struct variable {
  * セッターは、variable 構造体の value メンバを書き換える等、変数を設定するのに
  * 必要な動作を全て行う。セッターが NULL ならデフォルトの動作をする。 */
 
+/* 変数環境を表す構造体 */
 struct environment {
 	struct environment *parent;  /* 親環境 */
 	struct hasht variables;      /* 普通の変数のハッシュテーブル */
@@ -77,7 +79,8 @@ bool setvar(const char *name, const char *value, bool export);
 struct plist *getarray(const char *name);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
-static const char *positional_getter(struct variable *var);
+bool is_name_char(char c);
+bool is_name(const char *c);
 static const char *count_getter(struct variable *var);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
@@ -134,13 +137,6 @@ void init_var(void)
 	}
 
 	/* 特殊パラメータを設定する。 */
-	var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = xstrdup(""),
-		.getter = positional_getter,
-	};
-	ht_set(&current_env->variables, "@", var);
-	ht_set(&current_env->variables, "*", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
 		.value = "",
@@ -237,6 +233,7 @@ static struct variable *get_variable(const char *name)
 }
 
 /* 指定した名前のシェル変数を取得する。
+ * 特殊パラメータ $* および $@ は得られない。
  * 変数が存在しないときは NULL を返す。 */
 const char *getvar(const char *name)
 {
@@ -261,7 +258,8 @@ const char *getvar(const char *name)
 }
 
 /* シェル変数の値を設定する。変数が存在しない場合、基底変数環境に追加する。
- * この関数では位置パラメータは設定できない (しようとしてはいけない)。
+ * この関数では位置パラメータおよび $*, $@ は設定できない (してはいけない)。
+ * name:   正しい変数名。
  * export: true ならその変数を export 対象にする。false ならそのまま。
  * 戻り値: 成功なら true、エラーならメッセージを出して false。 */
 // TODO 配列も代入可能に
@@ -327,17 +325,34 @@ bool is_special_parameter_char(char c)
 	return strchr("@*#?-$!_", c) != NULL;
 }
 
-/* 特殊パラメータ $@/$* のゲッター。全ての位置パラメータを連結して返す。 */
-static const char *positional_getter(struct variable *var)
+/* 文字が変数名に使えるかどうか判定する。 */
+bool is_name_char(char c)
 {
-	const char *ifs = getvar(VAR_IFS);
-	char separator[2] = { ifs ? ifs[0] : ' ', '\0' };
-	/* ifs が "" なら separator も "" となる。これは正しい動作である。 */
-	
-	free(var->value);
-	var->value = strjoin(-1,
-			(char **) current_env->positionals.contents + 1, separator);
-	return var->value;
+	switch (c) {
+		case 'a':  case 'b':  case 'c':  case 'd':  case 'e':  case 'f':
+		case 'g':  case 'h':  case 'i':  case 'j':  case 'k':  case 'l':
+		case 'm':  case 'n':  case 'o':  case 'p':  case 'q':  case 'r':
+		case 's':  case 't':  case 'u':  case 'v':  case 'w':  case 'x':
+		case 'y':  case 'z':  case '_':
+		case 'A':  case 'B':  case 'C':  case 'D':  case 'E':  case 'F':
+		case 'G':  case 'H':  case 'I':  case 'J':  case 'K':  case 'L':
+		case 'M':  case 'N':  case 'O':  case 'P':  case 'Q':  case 'R':
+		case 'S':  case 'T':  case 'U':  case 'V':  case 'W':  case 'X':
+		case 'Y':  case 'Z':  case '0':  case '1':  case '2':  case '3':
+		case '4':  case '5':  case '6':  case '7':  case '8':  case '9':
+			return true;
+		default:
+			return false;
+	}
+}
+
+/* 文字列が変数名として正しいかどうか判定する。 */
+bool is_name(const char *s)
+{
+	if ('0' <= *s && *s <= '9')
+		return false;
+	while (is_name_char(*s)) s++;
+	return !*s;
 }
 
 /* 特殊パラメータ $# のゲッター。位置パラメータの数を返す。 */
