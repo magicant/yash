@@ -36,6 +36,8 @@ void escape_sq(const char *s, struct strbuf *buf)
 	__attribute__((nonnull));
 void escape_bs(const char *s, const char *q, struct strbuf *buf)
 	__attribute__((nonnull));
+char *escape(char *s, const char *q)
+	__attribute__((nonnull));
 
 
 #endif /* EXPAND_H */

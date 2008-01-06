@@ -74,6 +74,7 @@ void set_positionals(char *const *values);
 static struct variable *get_variable(const char *name);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
+struct plist *getarray(const char *name);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
 static const char *positional_getter(struct variable *var);
@@ -263,6 +264,7 @@ const char *getvar(const char *name)
  * この関数では位置パラメータは設定できない (しようとしてはいけない)。
  * export: true ならその変数を export 対象にする。false ならそのまま。
  * 戻り値: 成功なら true、エラーならメッセージを出して false。 */
+// TODO 配列も代入可能に
 bool setvar(const char *name, const char *value, bool export)
 {
 	assert(!xisdigit(name[0]));

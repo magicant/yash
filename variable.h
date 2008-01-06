@@ -36,5 +36,6 @@ void set_shlvl(int change);
 void set_positionals(char *const *values);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
+struct plist *getarray(const char *name);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
