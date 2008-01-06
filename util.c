@@ -294,25 +294,24 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 /* printf の結果を新しく malloc した文字列として返す。 */
 char *mprintf(const char *format, ...)
 {
-	va_list ap, ap2;
+	va_list ap;
 	int count;
 	char temp[16];
 	char *result;
 
 	va_start(ap, format);
-	va_copy(ap2, ap);
-
 	count = vsnprintf(temp, sizeof temp, format, ap);
+	va_end(ap);
 	if (count < 0) {
 		result = NULL;
 	} else if ((unsigned) count < sizeof temp) {
 		result = xstrdup(temp);
 	} else {
 		result = xmalloc((unsigned) count + 1);
-		vsprintf(result, format, ap2);
+		va_start(ap, format);
+		vsprintf(result, format, ap);
+		va_end(ap);
 	}
-
-	va_end(ap);
 	return result;
 }
 
@@ -731,6 +730,7 @@ int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
 	if (result >= 0)
 		buf->length += result;
 	buf->contents[buf->length] = '\0';  /* just in case */
+	va_end(ap2);
 	return result;
 }
 
