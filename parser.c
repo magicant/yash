@@ -394,7 +394,7 @@ static bool parse_words(PROCESS *p)
 			rlastp = &rd->next;
 		} else {
 			size_t startindex = i_index;
-			skip_with_quote_i(" \t;&|()\n\r", true);
+			skip_with_quote_i(" \t;&|<>()\n\r", true);
 			if (i_index == startindex) break;
 			pl_append(&args, xstrndup(fromi(startindex), i_index - startindex));
 		}
