@@ -273,6 +273,14 @@ char *canonicalize_path(const char *path)
 		if (!entries[i][0] ||
 				(strcmp(entries[i], ".") == 0 && (i > 0 || list.length >= 2))) {
 			pl_remove(&list, i, 1);
+
+			/* 末尾の要素を消したとき、その親がルートなら '/' の数を合わせる
+			 * ために "" を追加する。 */
+			if (i == list.length && i > 0 && !entries[i - 1][0]) {
+				pl_append(&list, entries[0]);
+				i++;
+				break;
+			}
 		} else {
 			i++;
 		}
@@ -283,8 +291,9 @@ char *canonicalize_path(const char *path)
 	 * - ".." の手前がルートまたは ".." なら削除してはいけない。消してもよい ""
 	 *   は既に消してあるので、".." の手前が "" か ".." なら消してはいけない、
 	 *   ということになる。
-	 * ……というのが POSIX の定めである。しかし非 posixly_correct のときは、
-	 * ".." の手前が "" の場合には ".." のみを削除する。 */
+	 * ……というのが POSIX の定めである。しかし "/../" が "/" にならないのは
+	 * やはり変なので、非 posixly_correct のときは、
+	 * ".." の手前が "" の場合には ".." を削除する。 */
 	i = 1;
 	while (i < list.length) {
 		if (strcmp(entries[i], "..") == 0) {
@@ -304,7 +313,8 @@ char *canonicalize_path(const char *path)
 		i++;
 		continue;
 next:
-		/* 最後の要素が "" になったら、'/' の数を合わせるために "" を追加 */
+		/* 末尾の要素を消したとき、その親がルートなら '/' の数を合わせる
+		 * ために "" を追加する。 */
 		if (i == list.length && i > 0 && !entries[i - 1][0]) {
 			pl_append(&list, entries[0]);
 			break;
