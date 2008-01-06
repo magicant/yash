@@ -1,214 +1,254 @@
 /* Yash: yet another shell */
-/* © 2007 magicant */
+/* yash.c: basic functions of the shell */
+/* © 2007-2008 magicant */
 
-/* This software can be redistributed and/or modified under the terms of
- * GNU General Public License, version 2 or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRENTY. */
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
 #define _GNU_SOURCE
-#include <ctype.h>
 #include <error.h>
 #include <errno.h>
 #include <locale.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <getopt.h>
 #include <sys/types.h>
 #include "yash.h"
+#include "util.h"
+#include "sig.h"
+#include "lineinput.h"
+#include "parser.h"
+#include "exec.h"
+#include "path.h"
+#include "builtin.h"
+#include "alias.h"
+#include "variable.h"
 #include <assert.h>
 
-#ifndef NDEBUG
-#include <fcntl.h>
-#endif
 
-
-void setsigaction(void);
-void resetsigaction(void);
-void exec_file(const char *path, bool suppresserror);
-void exec_file_exp(const char *path, bool suppresserror);
-static void set_shlvl(int change);
-static void init_env(void);
-void init_interactive(void);
-void finalize_interactive(void);
-void interactive_loop(void);
-int main(int argc, char **argv);
+int exec_file(const char *path, bool suppresserror);
+int exec_file_exp(const char *path, bool suppresserror);
+int exec_source(const char *code, const char *name);
+void exec_source_and_exit(const char *code, const char *name);
+void set_unique_pgid(void);
+void restore_pgid(void);
+void forget_orig_pgrp(void);
+void set_shell_env(void);
+void unset_shell_env(void);
+static int exec_promptcommand(void);
+static void interactive_loop(void) __attribute__((noreturn));
+/* int main(int argc, char **argv); */
 void print_help(void);
 void print_version(void);
 void yash_exit(int exitcode);
-
-#ifndef NDEBUG
-void print_scmds(SCMD *scmds, int count, int indent);
-#endif
 
 /* このプロセスがログインシェルなら非 0 */
 bool is_loginshell;
 /* 対話的シェルなら非 0 */
 bool is_interactive;
+/* POSIX の規定に厳密に従うなら非 0 */
+bool posixly_correct;
 
-/* 対話的シェルで無視するシグナルのリスト */
-const int ignsignals[] = {
-	SIGINT, SIGTERM, SIGTSTP, SIGTTIN, SIGTTOU, 0,
-};
+/* コマンド名。特殊パラメータ $0 の値。 */
+const char *command_name;
+/* シェルのプロセス ID。サブシェルでも変わらない。 */
+pid_t shell_pid;
 
-void debug_sig(int signal)
+/* プライマリプロンプトの前に実行するコマンド */
+char *prompt_command = NULL;
+
+/* 指定したファイルをシェルスクリプトとしてこのシェルの中で実行する
+ * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない
+ * 戻り値: エラーがなければ 0、エラーなら非 0。 */
+int exec_file(const char *path, bool suppresserror)
 {
-	error(0, 0, "DEBUG: received signal %d. pid=%ld", signal, (long) getpid());
-}
-
-/* シグナルハンドラを初期化する */
-void setsigaction(void)
-{
-	struct sigaction action;
-	const int *signals;
-
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-#if 0
-	action.sa_handler = debug_sig;
-	fprintf(stderr, "DEBUG: setting all sigaction\n");
-	for (int i = 1; i < 32; i++)
-		if (sigaction(i, &action, NULL) < 0) ;
-#endif
-
-	action.sa_handler = SIG_IGN;
-	if (sigaction(SIGQUIT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGQUIT");
-	if (is_interactive) {
-		for (signals = ignsignals; *signals; signals++)
-			if (sigaction(*signals, &action, NULL) < 0)
-				error(0, errno, "sigaction: signal=%d", *signals);
-	}
-
-	action.sa_handler = SIG_DFL;
-	if (sigaction(SIGCHLD, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGCHLD");
-
-	action.sa_handler = sig_hup;
-	action.sa_flags = SA_RESETHAND;
-	if (sigaction(SIGHUP, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGHUP");
-}
-
-/* シグナルハンドラを元に戻す */
-void resetsigaction(void)
-{
-	struct sigaction action;
-	const int *signals;
-
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-	action.sa_handler = SIG_DFL;
-
-	if (sigaction(SIGQUIT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGQUIT");
-	for (signals = ignsignals; *signals; signals++)
-		if (sigaction(*signals, &action, NULL) < 0)
-			error(0, errno, "sigaction: signal=%d", *signals);
-	if (sigaction(SIGHUP, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGHUP");
-}
-
-/* 指定したファイルをシェルスクリプトとして実行する
- * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない */
-void exec_file(const char *path, bool suppresserror)
-{
-	FILE *file = fopen(path, "r");
-	char *line = NULL;
-	size_t len = 0;
-	ssize_t size;
-
-	if (!file) {
-		if (!suppresserror)
-			error(0, errno, "%s", path);
-		return;
-	}
-	while ((size = getline(&line, &len, file)) >= 0) {
-		SCMD *scmds;
-		ssize_t count;
-		
+	FILE *f = fopen(path, "r");
+	char *mygetline(int ptype __attribute__((unused))) {
+		char *line = NULL;
+		size_t size = 0;
+		ssize_t len = getline(&line, &size, f);
+		if (len < 0) return NULL;
 		if (line[size - 1] == '\n')
 			line[size - 1] = '\0';
-		count = parse_line(line, &scmds);
-		if (count < 0)
-			continue;
-		exec_list(scmds, count);
-		scmdsfree(scmds, count);
-		free(scmds);
+		return line;
 	}
-	free(line);
-	fclose(file);
+
+	if (!f) {
+		if (!suppresserror)
+			error(0, errno, "%s", path);
+		return EOF;
+	}
+
+	int result;
+	set_line_number(0);
+	for (;;) {
+		STATEMENT *statements;
+		switch (read_and_parse(mygetline, path, &statements)) {
+			case 0:  /* OK */
+				if (statements) {
+					unsigned savelinenum = get_line_number();
+					exec_statements(statements);
+					statementsfree(statements);
+					set_line_number(savelinenum);
+				}
+				break;
+			case EOF:
+				result = 0;
+				goto end;
+			case 1:  /* syntax error */
+			default:
+				result = -1;
+				goto end;
+		}
+	}
+end:
+	if (fclose(f) != 0)
+		error(0, errno, "%s", path);
+	return result;
 }
 
 /* ファイルをシェルスクリプトとして実行する。
  * path: ファイルのパス。'~' で始まるならホームディレクトリを展開して
- *       ファイルを探す。 */
-void exec_file_exp(const char *path, bool suppresserror)
+ *       ファイルを探す。
+ * 戻り値: エラーがなければ 0、エラーなら非 0。 */
+int exec_file_exp(const char *path, bool suppresserror)
 {
 	if (path[0] == '~') {
 		char *newpath = expand_tilde(path);
 		if (!newpath)
-			return;
-		exec_file(newpath, suppresserror);
+			return -1;
+		int result = exec_file(newpath, suppresserror);
 		free(newpath);
+		return result;
 	} else {
-		exec_file(path, suppresserror);
+		return exec_file(path, suppresserror);
 	}
 }
 
-/* 環境変数 SHLVL に change を加える */
-static void set_shlvl(int change)
+/* code をシェルスクリプトのソースコードとして解析し、このシェル内で実行する。
+ * code:   実行するコード。NULL なら何も行わない。
+ * name:   構文エラー時に表示するコード名。
+ * 戻り値: エラーがなければ 0、エラーなら非 0。 */
+int exec_source(const char *code, const char *name)
 {
-	char *shlvl = getenv(ENV_SHLVL);
-	int level = shlvl ? atoi(shlvl) : 0;
-	char newshlvl[16];
+	size_t index = 0;
+	char *mygetline(int ptype __attribute__((unused))) {
+		size_t len = strcspn(&code[index], "\n\r");
+		if (!len) return NULL;
 
-	level += change;
-	if (level < 0)
-		level = 0;
-	if (snprintf(newshlvl, sizeof newshlvl, "%d", level) >= 0) {
-		if (setenv(ENV_SHLVL, newshlvl, true /* overwrite */) < 0)
-			error(0, 0, "failed to set env SHLVL");
+		char *result = xstrndup(&code[index], len);
+		index += len;
+		index += strspn(&code[index], "\n\r");
+		return result;
 	}
-}
 
-/* 実行環境を初期化する */
-static void init_env(void)
-{
-	char *path = getcwd(NULL, 0);
+	if (!code)
+		return 0;
 
-	if (path) {
-		char *spwd = collapse_homedir(path);
-
-		if (setenv(ENV_PWD, path, true /* overwrite */) < 0)
-			error(0, 0, "failed to set env PWD");
-		if (spwd) {
-			if (setenv(ENV_SPWD, spwd, true /* overwrite */) < 0)
-				error(0, 0, "failed to set env SPWD");
-			free(spwd);
+	set_line_number(0);
+	for (;;) {
+		STATEMENT *statements;
+		switch (read_and_parse(mygetline, name, &statements)) {
+			case 0:  /* OK */
+				if (statements) {
+					unsigned savelinenum = get_line_number();
+					exec_statements(statements);
+					statementsfree(statements);
+					set_line_number(savelinenum);
+				}
+				break;
+			case EOF:
+				return 0;
+			case 1:  /* syntax error */
+			default:
+				return -1;
 		}
-		free(path);
 	}
 }
+
+/* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
+ * そのまま終了する。
+ * code: 実行するコード。NULL なら何も実行せず終了する。
+ * name: 構文エラー時に表示するコード名。 */
+void exec_source_and_exit(const char *code, const char *name)
+{
+	char *mygetline(int ptype) {
+		if (ptype == 1) return xstrdup(code);
+		else            return NULL;
+	}
+
+	/* 改行を含むコードは一度に解析できないので、普通に exec_source を使う */
+	if (strpbrk(code, "\n\r")) {
+		exec_source(code, name);
+		exit(laststatus);
+	}
+
+	STATEMENT *statements;
+	set_line_number(0);
+	switch (read_and_parse(mygetline, name, &statements)) {
+		case 0:  /* OK */
+			exec_statements_and_exit(statements);
+		default:  /* error */
+			exit(2);
+	}
+}
+
 
 static pid_t orig_pgrp = 0;
+
+/* このシェル自身が独立したプロセスグループに属するように、
+ * このシェルのプロセスグループ ID をこのシェルのプロセス ID に変更する。 */
+void set_unique_pgid(void)
+{
+	if (is_interactive) {
+		orig_pgrp = getpgrp();
+		setpgrp();
+	}
+}
+
+/* このシェルのプロセスグループ ID を、set_unique_pgid を実行する前のものに
+ * 戻す。 */
+void restore_pgid(void)
+{
+	if (orig_pgrp > 0) {
+		if (setpgid(0, orig_pgrp) < 0 && errno != EPERM)
+			error(0, errno, "cannot restore process group");
+		if (tcsetpgrp(STDIN_FILENO, orig_pgrp) < 0)
+			error(0, errno, "cannot restore foreground process group");
+		orig_pgrp = 0;
+	}
+}
+
+/* orig_pgrp をリセットする */
+void forget_orig_pgrp(void)
+{
+	orig_pgrp = 0;
+}
+
 static bool noprofile = false, norc = false; 
 static char *rcfile = "~/.yashrc";
 
-/* 対話モードの初期化を行う */
-void init_interactive(void)
+/* シェルのシグナルハンドラなどの初期化を行う */
+void set_shell_env(void)
 {
 	static bool initialized = false;
 
 	if (is_interactive) {
-		orig_pgrp = getpgrp();
-		setpgrp();   /* シェル自身は独立した pgrp に属する */
+		set_signals();
+		set_unique_pgid();
 		set_shlvl(1);
 		if (!initialized) {
 			if (is_loginshell) {
@@ -223,140 +263,89 @@ void init_interactive(void)
 	}
 }
 
-/* 対話モードの終了処理を行う */
-void finalize_interactive(void)
+/* シェルのシグナルハンドラなどを元に戻す */
+void unset_shell_env(void)
 {
 	if (is_interactive) {
 		finalize_readline();
 		set_shlvl(-1);
-		if (orig_pgrp > 0 && tcsetpgrp(STDIN_FILENO, orig_pgrp) < 0)
-			error(0, errno, "cannot reset foreground process group");
-		if (orig_pgrp > 0 && setpgid(0, orig_pgrp) < 0 && errno != EPERM)
-			error(0, errno, "cannot reset process group");
+		restore_pgid();
+		unset_signals();
 	}
+}
+
+/* PROMPT_COMMAND を実行する。
+ * 戻り値: 実行したコマンドの終了ステータス */
+static int exec_promptcommand(void)
+{
+	int resultstatus = 0;
+	int savestatus = laststatus;
+	exec_source(prompt_command, "prompt command");
+	resultstatus = laststatus;
+	laststatus = savestatus;
+	return resultstatus;
 }
 
 /* 対話的動作を行う。この関数は返らない。 */
-void interactive_loop(void)
+static void interactive_loop(void)
 {
-	char *line;
-	SCMD *scmds;
-	ssize_t count;
+	const char *exitargv[] = { "exit", NULL, };
 
 	assert(is_interactive);
 	for (;;) {
-		switch (yash_readline(&line)) {
-			case -2:  /* EOF */
-				printf("\n");
-				wait_all(-2 /* non-blocking */);
-				print_all_job_status(
-						true /* changed only */, false /* not verbose */);
-				if (job_count()) {
-					error(0, 0, "There are undone jobs!"
-							"  Use `exit -f' to exit forcibly.");
-					continue;
+		STATEMENT *statements;
+
+		exec_promptcommand();
+		set_line_number(0);
+		switch (read_and_parse(yash_readline, NULL, &statements)) {
+			case 0:  /* OK */
+				if (statements) {
+					exec_statements(statements);
+					statementsfree(statements);
 				}
-				goto exit;
-			case -1:
-				continue;
-			case 0:  default:
+				break;
+			case 1:  /* syntax error */
+				break;
+			case EOF:
+				laststatus = builtin_exit(1, (char **) exitargv);
 				break;
 		}
-		/* printf("parsing \"%s\"\n", line); */
-		count = parse_line(line, &scmds);
-		if (count < 0)
-			continue;
-
-		/* printf("count=%d\n", count); */
-		/* print_scmds(scmds, count, 0); */
-		exec_list(scmds, count);
-		scmdsfree(scmds, count);
-		free(scmds);
-		free(line);
-	}
-exit:
-	yash_exit(laststatus);
-}
-
-#ifndef NDEBUG
-
-void print_scmds(SCMD *scmds, int count, int indent)
-{
-	void print_indent(int i) {
-		printf("%*s", i, "");
-	}
-	int i, j;
-
-	for (i = 0; i < count; i++) {
-		print_indent(indent);
-		printf("SCMD[%d] : ", i);
-		switch (scmds[i].c_type) {
-			case CT_END:   printf("END\n");   break;
-			case CT_PIPED: printf("PIPED\n"); break;
-			case CT_BG:    printf("BG\n");    break;
-			case CT_AND:   printf("AND\n");   break;
-			case CT_OR:    printf("OR\n");    break;
-		}
-		if (scmds[i].c_argv)
-			for (j = 0; j < scmds[i].c_argc; j++) {
-				print_indent(indent);
-				printf("  Arg   %d : %s\n", j, scmds[i].c_argv[j]);
-			}
-
-		for (j = 0; j < scmds[i].c_redircnt; j++) {
-			print_indent(indent);
-			printf("  Redir %d : fd=%d file=\"%s\" ", j,
-					scmds[i].c_redir[j].rd_fd, scmds[i].c_redir[j].rd_file);
-			if (scmds[i].c_redir[j].rd_flags & O_RDWR)        printf("RDWR");
-			else if (scmds[i].c_redir[j].rd_flags & O_WRONLY) printf("WRONLY");
-			else                                               printf("RDONLY");
-			if (scmds[i].c_redir[j].rd_flags & O_CREAT)  printf(" CREAT");
-			if (scmds[i].c_redir[j].rd_flags & O_APPEND) printf(" APPEND");
-			if (scmds[i].c_redir[j].rd_flags & O_TRUNC)  printf(" TRUNC");
-			printf("\n");
-		}
-		print_indent(indent);
-		printf("  Name    : %s\n", scmds[i].c_name);
-		
-		if (scmds[i].c_subcmds)
-			print_scmds(scmds[i].c_subcmds, scmds[i].c_argc, indent + 8);
 	}
 }
 
-#endif
-
-static struct option long_opts[] = {
-	{ "help", 0, NULL, '?', },
-	{ "version", 0, NULL, 'v' + 256, },
-	{ "rcfile", 1, NULL, 'r', },
-	{ "noprofile", 0, NULL, 'N' + 256, },
-	{ "norc", 0, NULL, 'n' + 256, },
-	{ "login", 0, NULL, 'l', },
-	{ "interactive", 0, NULL, 'i', },
+static struct xoption long_opts[] = {
+	{ "help",        xno_argument,       NULL, '?', },
+	{ "version",     xno_argument,       NULL, 'V', },
+	{ "rcfile",      xrequired_argument, NULL, 'r', },
+	{ "noprofile",   xno_argument,       NULL, 'E', },
+	{ "norc",        xno_argument,       NULL, 'O', },
+	{ "login",       xno_argument,       NULL, 'l', },
+	{ "interactive", xno_argument,       NULL, 'i', },
+	{ "posix",       xno_argument,       NULL, 'X', },
 	{ NULL, 0, NULL, 0, },
 };
 
-int main(int argc, char **argv)
+int main(int argc __attribute__((unused)), char **argv)
 {
 	bool help = false, version = false;
-	int opt, index;
+	int opt;
 	char *directcommand = NULL;
-	static const char *short_opts = "c:il";
+	const char *short_opts = "c:il";
 
+	command_name = argv[0];
 	is_loginshell = argv[0][0] == '-';
 	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
-	joblistlen = 2;
-	joblist = xcalloc(joblistlen, sizeof(JOB));
+	posixly_correct = getenv(VAR_POSIXLY_CORRECT) != NULL;
 	setlocale(LC_ALL, "");
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt_long(argc, argv, short_opts, long_opts, &index)) >= 0){
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt_long(argv, short_opts, long_opts, NULL)) >= 0){
 		switch (opt) {
 			case 0:
 				break;
 			case 'c':
-				directcommand = optarg;
+				directcommand = xoptarg;
 				break;
 			case 'i':
 				is_interactive = true;
@@ -364,22 +353,26 @@ int main(int argc, char **argv)
 			case 'l':
 				is_loginshell = true;
 				break;
-			case 'n' + 256:
+			case 'O':
 				norc = 1;
 				break;
-			case 'N' + 256:
+			case 'E':
 				noprofile = true;
 				break;
-			case 'r':
-				rcfile = optarg;
+			case 'X':
+				posixly_correct = true;
 				break;
-			case 'v' + 256:
+			case 'r':
+				rcfile = xoptarg;
+				break;
+			case 'V':
 				version = true;
 				break;
 			case '?':
 				help = true;
 				break;
 			default:
+				assert(false);
 				return EXIT_FAILURE;
 		}
 	}
@@ -391,25 +384,32 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	setsigaction();
-	init_env();
+	shell_pid = getpid();
+	init_signal();
+	init_exec();
+	init_var();
+	init_alias();
+	init_builtin();
 
 	if (directcommand) {
-		SCMD *scmds;
-		ssize_t count;
-		
-		is_interactive = 0;
-		count = parse_line(directcommand, &scmds);
-		if (count < 0)
-			return EXIT_SUCCESS;
-		exec_list(scmds, count);
-		scmdsfree(scmds, count);
-		free(scmds);
-		return laststatus;
+		is_interactive = false;
+		set_shell_env();
+		if (argv[xoptind]) {
+			command_name = argv[xoptind];
+			set_positionals(argv + xoptind + 1);
+		}
+		exec_source_and_exit(directcommand, "yash -c");
 	}
-
+	if (argv[xoptind]) {
+		is_interactive = false;
+		set_shell_env();
+		command_name = argv[xoptind];
+		set_positionals(argv + xoptind + 1);
+		exec_file(command_name, false /* don't suppress error */);
+		exit(laststatus);
+	}
 	if (is_interactive) {
-		init_interactive();
+		set_shell_env();
 		interactive_loop();
 	}
 	return EXIT_SUCCESS;
@@ -432,11 +432,11 @@ void print_version(void)
 
 /* 終了前の手続きを行って、終了する。*/
 void yash_exit(int exitcode) {
-	wait_all(-2 /* non-blocking */);
-	print_all_job_status(false /* all jobs */, false /* not verbose */);
+	//wait_chld();
+	//print_all_job_status(false /* all jobs */, false /* not verbose */);
 	if (is_loginshell)
 		exec_file("~/.yash_logout", true /* suppress error */);
-	finalize_interactive();
+	unset_shell_env();
 	if (huponexit)
 		send_sighup_to_all_jobs();
 	exit(exitcode);

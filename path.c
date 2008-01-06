@@ -1,11 +1,19 @@
 /* Yash: yet another shell */
-/* © 2007 magicant */
+/* path.c: path manipulaiton utilities */
+/* © 2007-2008 magicant */
 
-/* This software can be redistributed and/or modified under the terms of
- * GNU General Public License, version 2 or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRENTY. */
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
 #include <errno.h>
@@ -18,14 +26,18 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "yash.h"
+#include "util.h"
+#include "path.h"
+#include "variable.h"
 #include <assert.h>
 
 
-char *which(const char *name, const char *path);
-bool isexecutable(const char *path);
+char *which(const char *name, const char *path, bool (*cond)(struct stat *st));
+bool is_executable(struct stat *st);
 char *expand_tilde(const char *path);
 char *skip_homedir(const char *path);
 char *collapse_homedir(const char *path);
+char *canonicalize_path(const char *path);
 
 
 /* path に含まれるディレクトリを走査し、ファイル名 name のフルパスを得る。
@@ -33,60 +45,78 @@ char *collapse_homedir(const char *path);
  * name:   探すファイル名
  * path:   PATH 環境変数のような、":" で区切ったディレクトリ名のリスト。
  *         NULL ならカレントディレクトリから探す。
+ * cond:   struct stat の内容を見て、ファイルが条件に合致しているかどうかを
+ *         判断する関数へのポインタ。cond が true を返した場合のみその結果が
+ *         返る。cond が NULL なら無条件でその結果が返る。
  * 戻り値: 新しく malloc した、name のフルパス。見付からなかったら NULL。
  *         ただし path に相対パスが含まれていた場合、戻り値も相対パスになる。 */
-char *which(const char *name, const char *path)
+char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 {
-	size_t namelen, pathlen, fullpathlen;
-	char *fullpath;
-
 	if (!name || !*name)
 		return NULL;
 	if (!path)
 		path = "";
-	if (strncmp(name, "/", 1) == 0
-			|| strncmp(name, "./", 2) == 0 || strncmp(name, "../", 3) == 0)
-		return isexecutable(name) ? xstrdup(name) : NULL;
-
-	namelen = strlen(name);
-	fullpathlen = strlen(name) + 30;
-	fullpath = xmalloc(fullpathlen);
-	while (*path) {
-		if (*path == ':' && !*++path)
-			break;
-		pathlen = strcspn(path, ":");
-		while (fullpathlen < pathlen + namelen + 2) {
-			fullpathlen *= 2;
-			fullpath = xrealloc(fullpath, fullpathlen);
+#if 0
+	if (hasprefix(name, "/") || hasprefix(name, "./") || hasprefix(name, "../")
+			|| strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+#else
+	if (name[0] == '/' ||
+			(name[0] == '.' && (name[1] == '\0' || name[1] == '/' ||
+				 (name[1] == '.' && (name[2] == '\0' || name[2] == '/')))))
+#endif
+	{
+		struct stat st;
+		if (stat(name, &st) == 0) {
+			if (!cond || cond(&st))
+				return xstrdup(name);
+		} else switch (errno) {
+			case EACCES:  case ELOOP:  case ENOENT:  case ENOTDIR:
+			case ENAMETOOLONG:
+				break;
+			default:
+				error(0, errno, "cannot stat %s", name);
+				return NULL;
 		}
-		strncpy(fullpath, path, pathlen);
-		if (pathlen)
-			fullpath[pathlen] = '/';
-		strcpy(fullpath + pathlen + 1, name);
-		if (isexecutable(fullpath))
-			return fullpath;
+		return NULL;
+	}
+
+	size_t namelen = strlen(name);
+	for (;;) {
+		struct stat st;
+		size_t pathlen = strcspn(path, ":");
+		char searchname[pathlen + namelen + 3];
+		if (pathlen) {
+			strncpy(searchname, path, pathlen);
+			searchname[pathlen] = '/';
+			searchname[pathlen + 1] = '\0';
+		} else {
+			searchname[0] = '.';
+			searchname[1] = '/';
+			searchname[2] = '\0';
+		}
+		strcat(searchname, name);
+		if (stat(searchname, &st) == 0) {
+			if (!cond || cond(&st))
+				return xstrdup(searchname);
+		} else switch (errno) {
+			case EACCES:  case ELOOP:  case ENOENT:  case ENOTDIR:
+			case ENAMETOOLONG:
+				break;
+			default:
+				error(0, errno, "cannot stat %s", searchname);
+				return NULL;
+		}
 		path += pathlen;
-		assert(*path == ':' || !*path);
+		if (!*path)
+			break;
+		path++;
 	}
 	return NULL;
 }
 
-/* path で示されるファイルが実行可能かどうか調べる。 */
-bool isexecutable(const char *path)
+bool is_executable(struct stat *st)
 {
-	struct stat st;
-
-	assert(path);
-	if (stat(path, &st) < 0) {
-		switch (errno) {
-			default:
-				error(0, errno, "%s", path);
-				/* falls thru! */
-			case ENOENT:  case ENOTDIR:  case EACCES:  case ELOOP:
-				return false;
-		}
-	}
-	return S_ISREG(st.st_mode) && !!(st.st_mode & S_IXUSR);
+	return S_ISREG(st->st_mode) && !!(st->st_mode & S_IXUSR);
 }
 
 /* '~' で始まるパスを実際のホームディレクトリに展開する。
@@ -98,25 +128,26 @@ bool isexecutable(const char *path)
  *         失敗なら NULL。 */
 char *expand_tilde(const char *path)
 {
-	char *home, *result;
+	const char *home;
+	char *result;
 	struct passwd *pwd;
 
 	assert(path && path[0] == '~');
 	if (path[1] == '\0' || path[1] == '/') {
 		path += 1;
-		if ((home = getenv(ENV_HOME)))
+		if ((home = getvar(VAR_HOME)))
 			goto returnresult;
 		errno = 0;
 		if (!(pwd = getpwuid(getuid())))
 			return NULL;
 	} else if (path[1] == '+' && (path[2] == '\0' || path[2] == '/')) {
 		path += 2;
-		if ((home = getenv(ENV_PWD)))
+		if ((home = getvar(VAR_PWD)))
 			goto returnresult;
 		return NULL;
 	} else if (path[1] == '-' && (path[2] == '\0' || path[2] == '/')) {
 		path += 2;
-		if ((home = getenv(ENV_OLDPWD)))
+		if ((home = getvar(VAR_OLDPWD)))
 			goto returnresult;
 		return NULL;
 	} else {
@@ -151,7 +182,7 @@ char *skip_homedir(const char *path)
 	const char *home;
 	size_t homelen; 
 
-	if (!path || !(home = getenv(ENV_HOME)))
+	if (!path || !(home = getvar(VAR_HOME)))
 		return NULL;
 	homelen = strlen(home);
 	if (strncmp(home, path, homelen) == 0)
@@ -177,5 +208,120 @@ char *collapse_homedir(const char *path)
 	result = xmalloc(strlen(aftertilde) + 2);
 	result[0] = '~';
 	strcpy(result + 1, aftertilde);
+	return result;
+}
+
+/* パスを正規化する。これは単なる文字列の操作であり、実際にパスにファイルが
+ * 存在するかどうかなどは関係ない。
+ * path:   正規化するパス。
+ * 戻り値: 新しく malloc した文字列で、path を正規化した結果。 */
+char *canonicalize_path(const char *path)
+{
+	if (!path)    return NULL;
+	if (!path[0]) return xstrdup(path);
+
+	/* path の先頭に三つ以上のスラッシュがある場合、それらを一つのスラッシュに
+	 * まとめることができる。この場合、単にスラッシュを無視すればよい。
+	 *   例) "///dir/file" -> "/dir/file"  */
+	if (path[0] == '/' && path[1] == '/' && path[2] == '/') {
+		while (*path == '/') path++;
+		path--;
+	}
+
+	struct plist list;
+	char save[strlen(path) + 1];  /* path を save にコピー */
+	strcpy(save, path);
+	pl_init(&list);
+
+	/* save 内の '/' を全て '\0' に置き換え、パスの各構成要素ごとの文字列に
+	 * 分解し、list に入れる。 */
+	pl_append(&list, save);
+	for (char *s = save; *s; s++) {
+		if (*s == '/') {
+			*s = '\0';
+			pl_append(&list, s + 1);
+		}
+	}
+
+	char **entries = (char **) list.contents;
+	size_t i;
+
+	/* まず、"" と "." を削除する。ただし……
+	 * - リストの最初の構成要素が "" の場合、それはパスが絶対パスであることを
+	 *   示している。よってこれは削除してはいけない。これを削除してしまうと、
+	 *   例えば /usr/bin が usr/bin になってしまう。また、さらに二つ目の構成
+	 *   要素も "" の場合、それも削除してはいけない。この場合は path が "//"
+	 *   で始まっている訳だが、これはシステムによっては特殊な意味を持つので
+	 *   勝手にスラッシュを一つにしてはいけない。スラッシュが三つ以上ある場合は
+	 *   スラッシュを一つにまとめることができるが、これは既に関数の最初で
+	 *   処理してある。
+	 *   もちろん、path の先頭でない "" は自由に削除できる。
+	 * - "." が唯一の構成要素なら、削除してはいけない。 */
+	if (entries[0][0] || !entries[1])
+		i = 0;  /* 相対パス */
+	else if (entries[1][0])
+		i = 1;  /* "/xxx" */
+	else if (!entries[2])
+		i = 2;  /* "/" */
+	else if (entries[2][0])
+		i = 2;  /* "//xxx" */
+	else if (!entries[3])
+		i = 3;  /* "//" */
+	else 
+		assert(false);
+	while (entries[i]) {
+		if (!entries[i][0] ||
+				(strcmp(entries[i], ".") == 0 && (i > 0 || list.length >= 2))) {
+			pl_remove(&list, i, 1);
+
+			/* 末尾の要素を消したとき、その親がルートなら '/' の数を合わせる
+			 * ために "" を追加する。 */
+			if (i == list.length && i > 0 && !entries[i - 1][0]) {
+				pl_append(&list, entries[0]);
+				i++;
+				break;
+			}
+		} else {
+			i++;
+		}
+	}
+	assert(list.length == i);
+
+	/* 続いて、".." とその親要素を削除する。ただし……
+	 * - ".." の手前がルートまたは ".." なら削除してはいけない。消してもよい ""
+	 *   は既に消してあるので、".." の手前が "" か ".." なら消してはいけない、
+	 *   ということになる。
+	 * ……というのが POSIX の定めである。しかし "/../" が "/" にならないのは
+	 * やはり変なので、非 posixly_correct のときは、
+	 * ".." の手前が "" の場合には ".." を削除する。 */
+	i = 1;
+	while (i < list.length) {
+		if (strcmp(entries[i], "..") == 0) {
+			if (!entries[i - 1][0]) {  /* 手前が "" の場合 */
+				if (!posixly_correct) {
+					pl_remove(&list, i, 1);
+					goto next;
+				}
+			} else if (strcmp(entries[i - 1], "..") != 0) {
+				i--;
+				pl_remove(&list, i, 2);
+				if (i == 0)
+					i = 1;
+				goto next;
+			}
+		}
+		i++;
+		continue;
+next:
+		/* 末尾の要素を消したとき、その親がルートなら '/' の数を合わせる
+		 * ために "" を追加する。 */
+		if (i == list.length && i > 0 && !entries[i - 1][0]) {
+			pl_append(&list, entries[0]);
+			break;
+		}
+	}
+
+	char *result = strjoin(-1, entries, "/");
+	pl_destroy(&list);
 	return result;
 }

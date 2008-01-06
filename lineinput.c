@@ -1,11 +1,19 @@
 /* Yash: yet another shell */
-/* © 2007 magicant */
+/* readline.c: interface to readline library */
+/* © 2007-2008 magicant */
 
-/* This software can be redistributed and/or modified under the terms of
- * GNU General Public License, version 2 or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRENTY. */
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
 #define _GNU_SOURCE
@@ -15,10 +23,10 @@
 #include <error.h>
 #include <errno.h>
 #include <libgen.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -26,12 +34,17 @@
 #include <readline/history.h>
 #include <sys/stat.h>
 #include "yash.h"
+#include "util.h"
+#include "lineinput.h"
+#include "exec.h"
+#include "path.h"
+#include "variable.h"
 #include <assert.h>
 
 
 void initialize_readline(void);
 void finalize_readline(void);
-int yash_readline(char **result);
+char *yash_readline(int ptype);
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
@@ -50,8 +63,7 @@ int history_filesize = 500;
 int history_histsize = 500;
 /* プロンプトとして表示する文字列。 */
 char *readline_prompt1 = NULL;
-/* プライマリプロンプトの前に実行するコマンド */
-char *prompt_command = NULL;
+char *readline_prompt2 = NULL;
 
 /* ファイル名補完で、非実行可能ファイルを候補に入れるかどうか。 */
 static bool executable_only;
@@ -67,12 +79,14 @@ void initialize_readline(void)
 	rl_readline_name = "yash";
 	rl_attempted_completion_function = yash_completion;
 	rl_filename_quote_characters = rl_basic_word_break_characters;
-	/* rl_char_is_quoted_p = TODO */
-	/* rl_filename_quoting_function = TODO */
-	/* rl_filename_dequoting_function = TODO */
+	/* rl_char_is_quoted_p = XXX */
+	/* rl_filename_quoting_function = XXX */
+	/* rl_filename_dequoting_function = XXX */
 
 	history_comment_char = '#';
-
+	history_quotes_inhibit_expansion = true;
+	/* history_inhibit_expansion_function = XXX */
+	// ${ の直後や } の直前の ! を展開しない
 	stifle_history(history_histsize);
 	if (history_filename)
 		read_history(history_filename);
@@ -85,71 +99,93 @@ void finalize_readline(void)
 		stifle_history(history_filesize);
 		write_history(history_filename);
 	}
-	rl_deprep_terminal();
 }
 
-/* プロンプトを表示してコマンドを読み取る。履歴展開を行い、履歴に追加する。
- * result: これに結果が代入される。(戻り値が 0 の時のみ)
- * 戻り値: 0:  OK。コマンドを実行せよ。
- *         -1: エラーまたは展開結果が不実行。ただちに次の readline に移れ。
- *         -2: EOF が入力された。 */
-int yash_readline(char **result)
+/* プロンプトを表示して行を読み取る。
+ * ptype が 1 か 2 なら履歴展開を行い、履歴に追加する。
+ * ptype:  プロンプトの種類。1~2。(PS1~PS2 に対応)
+ * 戻り値: 読み取った行。(新しく malloc した文字列)
+ *         EOF が入力されたときは NULL。 */
+char *yash_readline(int ptype)
 {
 	char *prompt, *actualprompt;
 	char *line, *eline;
-	struct sigaction action, oldaction;
-	void readline_sigchld_handler(int signal) {
-		wait_all(-2 /* non-blocking */);
+	bool interrupted = false;
+	bool terminal_info_valid = false;
+	struct termios old_terminal_info, new_terminal_info;
+	struct sigaction action, oldchldaction, oldintaction;
+	void readline_signal_handler(int signal) { //TODO readline_signal_handler
+		switch (signal) {
+			case SIGCHLD:
+				wait_chld();
+				break;
+			case SIGINT:
+				interrupted = true;
+				/* XXX readline interrupt */
+				break;
+		}
 	}
 	
-	if (prompt_command) {
-		SCMD *scmds;
-		ssize_t scmdscnt = parse_line(prompt_command, &scmds);
-
-		if (scmdscnt >= 0) {
-			int tmpstatus = laststatus;
-
-			exec_list(scmds, scmdscnt);
-			scmdsfree(scmds, scmdscnt);
-			free(scmds);
-			laststatus = tmpstatus;
-		}
+yash_readline_start:
+	switch (ptype) {
+		case 1:
+			prompt = readline_prompt1 ? : "\\s-\\v\\$ ";
+			break;
+		case 2:
+			prompt = readline_prompt2 ? : "> ";
+			break;
+		default:
+			error(2, 0, "internal error: yash_readline_start ptype=%d", ptype);
+			assert(false);
 	}
 
 	if (tcsetpgrp(STDIN_FILENO, getpgrp()) < 0)
 		error(0, errno, "tcsetpgrp before readline");
 
-	struct termios terminal_info;
-	if (tcgetattr(STDIN_FILENO, &terminal_info) == 0) {
-		terminal_info.c_iflag &= ~(INLCR | IGNCR);
-		terminal_info.c_iflag |= ICRNL;
-		terminal_info.c_lflag |= ICANON | ECHO | ECHOE | ECHOK;
-		tcsetattr(STDIN_FILENO, TCSADRAIN, &terminal_info);
+	if (tcgetattr(STDIN_FILENO, &old_terminal_info) == 0) {
+		terminal_info_valid = true;
+		new_terminal_info = old_terminal_info;
+		new_terminal_info.c_iflag &= ~(INLCR | IGNCR);
+		new_terminal_info.c_iflag |= ICRNL;
+		new_terminal_info.c_lflag |= ICANON | ECHO | ECHOE | ECHOK;
+		tcsetattr(STDIN_FILENO, TCSADRAIN, &new_terminal_info);
 	}
 
 	sigemptyset(&action.sa_mask);
-	action.sa_handler = readline_sigchld_handler;
+	action.sa_handler = readline_signal_handler;
 	action.sa_flags = 0;
-	if (sigaction(SIGCHLD, &action, &oldaction) < 0)
+	if (sigaction(SIGCHLD, &action, &oldchldaction) < 0)
+		error(EXIT_FAILURE, errno, "sigaction before readline");
+	if (sigaction(SIGINT, &action, &oldintaction) < 0)
 		error(EXIT_FAILURE, errno, "sigaction before readline");
 
-	wait_all(-2 /* non-blocking */);
+	wait_chld();
 	print_all_job_status(true /* changed only */, false /* not verbose */);
 
-	prompt = readline_prompt1 ? : "\\s-\\v\\$ ";
 	actualprompt = expand_prompt(prompt);
-
 	line = readline(actualprompt);
 
-	if (sigaction(SIGCHLD, &oldaction, NULL) < 0)
+	if (sigaction(SIGINT, &oldintaction, NULL) < 0)
+		error(EXIT_FAILURE, errno, "sigaction after readline");
+	if (sigaction(SIGCHLD, &oldchldaction, NULL) < 0)
 		error(EXIT_FAILURE, errno, "sigaction after readline");
 
 	free(actualprompt);
-	if (!line)
-		return -2;
 
-	stripwhites(line);
-	if (*line) {
+	if (terminal_info_valid)
+		tcsetattr(STDIN_FILENO, TCSADRAIN, &old_terminal_info);
+
+	if (!line) {
+		if (ptype == 1)      printf("exit\n");
+		else if (ptype == 2) printf("\n");
+		return NULL;
+	}
+	if (!*skipspaces(line)) {
+		free(line);
+		goto yash_readline_start;
+	}
+
+	if (ptype == 1 || ptype == 2) {
 		switch (history_expand(line, &eline)) {
 			case 1:  /* expansion successful */
 				printf("%s\n", eline);
@@ -158,22 +194,21 @@ int yash_readline(char **result)
 			default:
 				free(line);
 				add_history(eline);
-				*result = eline;
-				return 0;
+				return eline;
 			case -1:  /* Error */
 				free(line);
 				error(0, 0, "%s", eline);
 				free(eline);
-				return -1;
+				goto yash_readline_start;
 			case 2:   /* No execution */
 				free(line);
 				printf("%s\n", eline);
 				add_history(eline);
 				free(eline);
-				return -1;
+				goto yash_readline_start;
 		}
 	} else {
-		return -1;
+		return line;
 	}
 }
 
@@ -181,22 +216,23 @@ int yash_readline(char **result)
 /* text[index] がクォートされているかどうか判定する。 */
 static int char_is_quoted_p(char *text, int index)
 {
-	return 0;  /*TODO*/
+	return 0;  /*XXX*/
 }
 
 static char *quote_filename(char *text, int matchtype, char *quotepointer)
 {
-	return 0;  /*TODO*/
+	return 0;  /*XXX*/
 }
 
 static char *unquote_filename(char *text, int quotechar)
 {
-	return 0; /*TODO*/
+	return 0; /*XXX*/
 }
 #endif
 
 /* コマンド補完を行う。ライブラリから呼び出される。 */
-static char **yash_completion(const char *text, int start, int end)
+static char **yash_completion(
+		const char *text, int start, int end __attribute__((unused)))
 {
 	char **matches = NULL;
 	rl_compentry_func_t *completer;
@@ -215,13 +251,12 @@ static char **yash_completion(const char *text, int start, int end)
 					? rl_username_completion_function
 					: normal_file_completion_function;
 				rl_filename_completion_desired = 1;
-			} else if (!executable_only || strncmp(text, "/", 1) == 0
-					|| strncmp(text, "./", 2) == 0
-					|| strncmp(text, "../", 3) == 0) {
+			} else if (!executable_only || hasprefix(text, "/")
+					|| hasprefix(text, "./") || hasprefix(text, "../")) {
 				completer = normal_file_completion_function;
 				rl_filename_completion_desired = 1;
 			} else {
-				searchpath = getenv(ENV_PATH);
+				searchpath = getvar(VAR_PATH);
 				completer = path_completion_function;
 			}
 			break;
@@ -229,7 +264,7 @@ static char **yash_completion(const char *text, int start, int end)
 			completer = env_completion_function;
 			break;
 		default:
-			assert(0);
+			assert(false);
 	}
 	matches = rl_completion_matches(text, completer);
 	rl_attempted_completion_over = 1;
@@ -347,7 +382,7 @@ static char *path_completion_function(const char *text, int state)
 	static int (*comparer)(const char *a, const char *b, size_t n);
 	static ssize_t builtin;
 	static size_t textlen;
-	static const ALIAS *alias;
+	//static const ALIAS *alias;
 	static DIR *dir;
 	static int dfd;
 	static char *savepath, *path;
@@ -356,27 +391,27 @@ static char *path_completion_function(const char *text, int state)
 
 	if (!state) {
 		builtin = 0;
-		alias = get_all_aliases();
+		//alias = get_all_aliases();
 		dir = NULL;
 		savepath = path = xstrdup(searchpath ? : "");
 		textlen = strlen(text);
 		comparer = completion_ignorecase ? strncasecmp : strncmp;
 	}
 	if (builtin >= 0) {
-		const char *bname;
+//		const char *bname;
 
-		while ((bname = builtins[builtin++].b_name)) {
-			if (comparer(bname, text, textlen) == 0)
-				return xstrdup(bname);
-		}
+//		while ((bname = builtins[builtin++].b_name)) {
+//			if (comparer(bname, text, textlen) == 0)
+//				return xstrdup(bname);
+//		}
 		builtin = -1;
 	}
-	while (alias) {
-		const char *aliasname = alias->name;
-		alias = alias->next;
-		if (comparer(aliasname, text, textlen) == 0)
-			return xstrdup(aliasname);
-	}
+//	while (alias) {
+//		const char *aliasname = alias->name;
+//		alias = alias->next;
+//		if (comparer(aliasname, text, textlen) == 0)
+//			return xstrdup(aliasname);
+//	}
 	do {
 next:
 		while (!dir || !(dent = readdir(dir))) {
@@ -554,7 +589,7 @@ loop:
 				break;
 			case 'h':
 				{
-					char *host = getenv(ENV_HOSTNAME);
+					const char *host = getvar(VAR_HOSTNAME);
 					if (host) {
 						size_t len = strcspn(host, ".");
 						if (ensure_rem(len + 1) >= 0) {
@@ -565,7 +600,7 @@ loop:
 				}
 				break;
 			case 'H':
-				append_str(getenv(ENV_HOSTNAME));
+				append_str(getvar(VAR_HOSTNAME));
 				break;
 			case 'j':
 				len = snprintf(result + rindex, rem, "%u", job_count());
@@ -614,14 +649,14 @@ loop:
 				append_str(YASH_VERSION);
 				break;
 			case 'w':
-				sav = collapse_homedir(getenv(ENV_PWD));
+				sav = collapse_homedir(getvar(VAR_PWD));
 				if (sav) {
 					append_str(sav);
 					free(sav);
 				}
 				break;
 			case 'W':
-				sav = collapse_homedir(getenv(ENV_PWD));
+				sav = collapse_homedir(getvar(VAR_PWD));
 				if (sav) {
 					append_str(basename(sav));
 					free(sav);
@@ -665,7 +700,7 @@ loop:
 			check:
 				if (len < 0) {
 					append_char('?');
-				} else if (len >= rem) {
+				} else if ((size_t) len >= rem) {
 					ensure_rem(len + 1);
 					goto loop;
 				} else {

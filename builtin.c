@@ -1,43 +1,53 @@
 /* Yash: yet another shell */
-/* © 2007 magicant */
+/* builtin.c: shell builtin commands */
+/* © 2007-2008 magicant */
 
-/* This software can be redistributed and/or modified under the terms of
- * GNU General Public License, version 2 or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRENTY. */
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define  _GNU_SOURCE
-#include <ctype.h>
 #include <error.h>
 #include <errno.h>
 #include <limits.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <readline/history.h>
 #include "yash.h"
+#include "util.h"
+#include "sig.h"
+#include "lineinput.h"
+#include "expand.h"
+#include "exec.h"
+#include "path.h"
+#include "builtin.h"
+#include "alias.h"
+#include "variable.h"
 #include <assert.h>
 
+#define ADDITIONAL_BUILTIN //XXX
 
-BUILTIN assoc_builtin(const char *name);
-int parse_jobspec(const char *str, bool forcePercent);
-int builtin_null(int argc, char *const *argv);
-int builtin_exit(int argc, char *const *argv);
-static int get_signal(const char *name);
-static const char *get_signal_name(int signal);
-int builtin_kill(int argc, char *const *argv);
-int builtin_wait(int argc, char *const *argv);
-int builtin_suspend(int argc, char *const *argv);
-int builtin_jobs(int argc, char *const *argv);
-int builtin_disown(int argc, char *const *argv);
-int builtin_fg(int argc, char *const *argv);
+void init_builtin(void);
+cbody *get_builtin(const char *name);
+int builtin_true(int argc, char *const *argv);
+#ifdef ADDITIONAL_BUILTIN
+int builtin_false(int argc, char *const *argv);
+#endif
 int builtin_cd(int argc, char *const *argv);
 int builtin_umask(int argc, char *const *argv);
 int builtin_export(int argc, char *const *argv);
@@ -49,733 +59,104 @@ int builtin_option(int argc, char *const *argv);
 
 /* 組込みコマンド一般仕様:
  * argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
- * 組込みコマンドは、argv の内容を変更してはならない。 */
-/* 次のコマンドは exec.c の中で特殊な方法で処理する: exec */
+ * 組込みコマンドは、argv の内容を変更してはならない。
+ * ただし、getopt によって argv の順番を並べ替えるのはよい。 */
 
-const BUILTIN const builtins[] = {
-	{ ":", builtin_null, },
-	{ "exit", builtin_exit, },
-	{ "logout", builtin_exit, },
-	{ "suspend", builtin_suspend, },
-	{ "jobs", builtin_jobs, },
-	{ "disown", builtin_disown, },
-	{ "fg", builtin_fg, },
-	{ "bg", builtin_fg, },
-	{ "cd", builtin_cd, },
-	{ "umask", builtin_umask, },
-	{ "kill", builtin_kill, },
-	{ "wait", builtin_wait, },
-	{ "export", builtin_export, },
-	{ "source", builtin_source, },
-	{ ".", builtin_source, },
-	{ "history", builtin_history, },
-	{ "alias", builtin_alias, },
-	{ "unalias", builtin_unalias, },
-	{ "option", builtin_option, },
-	{ NULL, NULL, },
-};
+static struct hasht builtins;
 
-/* コマンド名に対応する BUILTIN を返す。
- * コマンドが見付からなければ { NULL, NULL } を返す。 */
-BUILTIN assoc_builtin(const char *name)
+/* 組込みコマンドに関するデータを初期化する。 */
+void init_builtin(void)
 {
-	const BUILTIN *b = builtins;
-
-	while (b->b_name && strcmp(b->b_name, name) != 0)
-		b++;
-	return *b;
+	ht_init(&builtins);
+	ht_ensurecap(&builtins, 30);
+	ht_set(&builtins, ":",       builtin_true);
+#ifdef ADDITIONAL_BUILTIN
+	ht_set(&builtins, "true",    builtin_true);
+	ht_set(&builtins, "false",   builtin_false);
+#endif
+	ht_set(&builtins, "exit",    builtin_exit);
+	ht_set(&builtins, "logout",  builtin_exit);
+	ht_set(&builtins, "kill",    builtin_kill);
+	ht_set(&builtins, "wait",    builtin_wait);
+	ht_set(&builtins, "suspend", builtin_suspend);
+	ht_set(&builtins, "jobs",    builtin_jobs);
+	ht_set(&builtins, "disown",  builtin_disown);
+	ht_set(&builtins, "fg",      builtin_fg);
+	ht_set(&builtins, "bg",      builtin_fg);
+	ht_set(&builtins, "exec",    builtin_exec);
+	ht_set(&builtins, "cd",      builtin_cd);
+	ht_set(&builtins, "umask",   builtin_umask);
+	ht_set(&builtins, "export",  builtin_export);
+	ht_set(&builtins, ".",       builtin_source);
+	ht_set(&builtins, "source",  builtin_source);
+	ht_set(&builtins, "history", builtin_history);
+	ht_set(&builtins, "alias",   builtin_alias);
+	ht_set(&builtins, "unalias", builtin_unalias);
+	ht_set(&builtins, "option",  builtin_option);
 }
 
-/* jobspec を解析する。
- * 戻り値: str の jobnumber。無効な結果ならば負数。
- *         -1: 不正な書式   -2: ジョブが存在しない   -3: 指定が曖昧 */
-int parse_jobspec(const char *str, bool forcePercent)
+/* 指定した名前に対応する組込みコマンド関数を取得する。
+ * 対応するものがなければ NULL を返す。 */
+cbody *get_builtin(const char *name)
 {
-	int jobnumber;
-	char *strend;
-
-	if (str[0] == '%')
-		str++;
-	else if (forcePercent)
-		return -1;
-	if (!*str)
-		return -1;
-	errno = 0;
-	jobnumber = strtol(str, &strend, 10);
-	if (errno)
-		return -2;
-	if (str != strend && !strend[0] && 0 < jobnumber) {
-		if (jobnumber < joblistlen && joblist[jobnumber].j_pgid)
-			return jobnumber;
-		else
-			return -2;
-	}
-
-	size_t len = strlen(str);
-	jobnumber = 0;
-	for (int i = 1; i < joblistlen; i++) {
-		if (joblist[i].j_pgid && strncmp(str, joblist[i].j_name, len) == 0) {
-			if (!jobnumber)
-				jobnumber = i;
-			else
-				return -3;
-		}
-	}
-	if (!jobnumber)
-		return -2;
-	else
-		return jobnumber;
+	return ht_get(&builtins, name);
 }
 
-/* : 組込みコマンド */
-int builtin_null(int argc, char *const *argv)
+/* :/true 組込みコマンド */
+int builtin_true(int argc __attribute__((unused)),
+		char *const *argv __attribute__((unused)))
 {
 	return EXIT_SUCCESS;
 }
 
-/* exit/logout 組込みコマンド
- * logout では、ログインシェルでないときにエラーを出す。
- * -f: ジョブが残っていても exit する。 */
-int builtin_exit(int argc, char *const *argv)
+/* false 組込みコマンド */
+int builtin_false(int argc __attribute__((unused)),
+		char *const *argv __attribute__((unused)))
 {
-	bool forceexit = false;
-	int opt;
-	int status = laststatus;
-
-	if (strcmp(argv[0], "logout") == 0 && !is_loginshell) {
-		error(0, 0, "%s: not login shell: use `exit'", argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "f")) >= 0) {
-		switch (opt) {
-			case 'f':
-				forceexit = true;
-				break;
-			default:
-				goto usage;
-		}
-	}
-	if (optind < argc) {
-		char *c = argv[optind];
-
-		errno = 0;
-		if (*c)
-			status = strtol(c, &c, 0);
-		if (errno || *c) {
-			error(0, 0, "%s: invalid argument", argv[0]);
-			goto usage;
-		}
-	}
-	if (!forceexit) {
-		wait_all(-2 /* non-blocking */);
-		print_all_job_status(true /* changed only */, false /* not verbose */);
-		if (job_count()) {
-			error(0, 0, "There are undone jobs!"
-					"  Use `-f' option to exit anyway.");
-			return EXIT_FAILURE;
-		}
-	}
-
-	yash_exit(status);
-	assert(0);
-	return EXIT_FAILURE;
-
-usage:
-	printf("Usage:  exit/logout [-f] [exitcode]\n");
-	return EXIT_FAILURE;
-}
-
-typedef struct {
-	int s_signal;
-	const char *s_name;
-} SIGDATA;
-
-static const SIGDATA const sigdata[] = {
-	{ SIGHUP, "HUP", }, { SIGINT, "INT", }, { SIGQUIT, "QUIT", },
-	{ SIGILL, "ILL", }, { SIGABRT, "ABRT", }, { SIGFPE, "FPE", },
-	{ SIGKILL, "KILL", }, { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", },
-	{ SIGALRM, "ALRM", }, { SIGTERM, "TERM", }, { SIGUSR1, "USR1", },
-	{ SIGUSR2, "USR2", }, { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", },
-	{ SIGSTOP, "STOP", }, { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", },
-	{ SIGTTOU, "TTOU", }, { SIGBUS, "BUS", }, { SIGPOLL, "POLL", },
-	{ SIGPROF, "PROF", }, { SIGSYS, "SYS", }, { SIGTRAP, "TRAP", },
-	{ SIGURG, "URG", }, { SIGVTALRM, "VTALRM", }, { SIGXCPU, "XCPU", },
-	{ SIGXFSZ, "XFSZ", }, { SIGIOT, "IOT", }, { SIGSTKFLT, "STKFLT", },
-	{ SIGIO, "IO", }, { SIGCLD, "CLD", }, { SIGPWR, "PWR", },
-	{ SIGWINCH, "WINCH", }, { SIGUNUSED, "UNUSED", },
-	{ 0, NULL, },
-};
-
-/* シグナル名に対応するシグナルの番号を返す。
- * シグナルが見付からないときは 0 を返す。 */
-static int get_signal(const char *name)
-{
-	const SIGDATA *sd = sigdata;
-
-	assert(name != NULL);
-	if ('0' <= name[0] && name[0] <= '9') {  /* name は番号 */
-		char *c;
-		int result = 0;
-
-		errno = 0;
-		if (*name)
-			result = strtol(name, &c, 10);
-		if (errno || *c)
-			return 0;
-		return result;
-	} else {  /* name は名前 */
-		if (strncmp(name, "SIG", 3) == 0)
-			name += 3;
-		while (sd->s_name) {
-			if (strcmp(name, sd->s_name) == 0)
-				return sd->s_signal;
-			sd++;
-		}
-		return 0;
-	}
-}
-
-/* シグナル番号からシグナル名を得る。
- * シグナル名が得られないときは NULL を返す。 */
-static const char *get_signal_name(int signal)
-{
-	const SIGDATA *sd;
-
-	for (sd = sigdata; sd->s_signal; sd++)
-		if (sd->s_signal == signal)
-			return sd->s_name;
-	return NULL;
-}
-
-/* kill 組込みコマンド
- * -s signal: シグナルの指定。デフォルトは TERM。*/
-int builtin_kill(int argc, char *const *argv)
-{
-	int sig = SIGTERM;
-	bool err = false, list = false;
-	int i = 1;
-
-	if (argc == 1)
-		goto usage;
-	if (argv[1][0] == '-') {
-		if (argv[1][1] == 's') {
-			if (argv[1][2]) {
-				sig = get_signal(argv[1] + 2);
-			} else {
-				sig = get_signal(argv[2]);
-				i = 2;
-			}
-			if (!sig) {
-				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 2);
-				return EXIT_FAILURE;
-			}
-		} else if (isupper(argv[1][1])) {
-			sig = get_signal(argv[1] + 1);
-			if (!sig) {
-				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 1);
-				return EXIT_FAILURE;
-			}
-		} else if (argv[1][1] == 'l') {
-			list = true;
-		} else {
-			goto usage;
-		}
-	} else {
-		i = 0;
-	}
-	if (list)
-		goto list;
-	while (++i < argc) {
-		char *target = argv[i];
-		bool isjob = target[0] == '%';
-		int targetnum = 0;
-		pid_t targetpid;
-
-		if (isjob) {
-			targetnum = parse_jobspec(target, true);
-			if (targetnum < 0) switch (targetnum) {
-				case -1:  default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], argv[i]);
-					err = true;
-					continue;
-				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], argv[i]);
-					err = true;
-					continue;
-				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0],argv[i]);
-					err = true;
-					continue;
-			}
-			targetpid = -joblist[targetnum].j_pgid;
-		} else {
-			errno = 0;
-			if (*target)
-				targetnum = strtol(target, &target, 10);
-			if (errno || *target) {
-				error(0, 0, "%s: %s: invalid target", argv[0], argv[i]);
-				err = true;
-				continue;
-			}
-			targetpid = (pid_t) targetnum;
-		}
-		if (kill(targetpid, sig) < 0) {
-			error(0, errno, "%s: %s", argv[0], argv[i]);
-			err = true;
-		}
-	}
-	return err ? EXIT_FAILURE : EXIT_SUCCESS;
-
-list:
-	if (argc <= 2) {  /* no args: list all */
-		for (size_t i = 0; sigdata[i].s_signal; i++) {
-			printf("%2d: %-8s    ", sigdata[i].s_signal, sigdata[i].s_name);
-			if (i % 4 == 3)
-				printf("\n");
-		}
-		printf("\n");
-	} else {
-		for (i = 2; i < argc; i++) {
-			const char *name;
-
-			sig = get_signal(argv[i]);
-			name = get_signal_name(sig);
-			if (!sig || !name) {
-				error(0, 0, "%s: %s: invalid signal", argv[0], argv[i]);
-				err = 1;
-			} else {
-				printf("%2d: %s\n", sig, get_signal_name(sig));
-			}
-		}
-	}
-	return err ? EXIT_FAILURE : EXIT_SUCCESS;
-
-usage:
-	printf("Usage:  kill [-s signal] pid/jobspec ...\n");
-	printf("    or  kill -l [signals]\n");
-	return EXIT_FAILURE;
-}
-
-/* wait 組込みコマンド */
-int builtin_wait(int argc, char *const *argv)
-{
-	void int_handler(int signal) { cancel_wait = true; }
-	struct sigaction action, oldaction;
-	int jobnumber = -1;
-
-	if (argc == 2) {
-		char *target = argv[1];
-		bool isjob = target[0] == '%';
-
-		if (isjob) {
-			jobnumber = parse_jobspec(target, true);
-			if (jobnumber < 0) switch (jobnumber) {
-				case -1:
-				default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], argv[1]);
-					return EXIT_NOTFOUND;
-				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], argv[1]);
-					return EXIT_NOTFOUND;
-				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0],argv[1]);
-					return EXIT_NOTFOUND;
-			}
-		} else {
-			errno = 0;
-			if (*target)
-				jobnumber = strtol(target, &target, 10);
-			if (errno || *target) {
-				error(0, 0, "%s: %s: invalid target", argv[0], argv[1]);
-				return EXIT_FAILURE;
-			}
-			jobnumber = get_jobnumber_from_pid(jobnumber);
-			if (jobnumber < 0) {
-				error(0, 0, "%s: %s: not a child of this shell",
-						argv[0], argv[1]);
-				return EXIT_NOTFOUND;
-			}
-		}
-	} else if (argc > 2) {
-		goto usage;
-	}
-
-	cancel_wait = false;
-	action.sa_handler = int_handler;
-	action.sa_flags = 0;
-	sigemptyset(&action.sa_mask);
-	if (sigaction(SIGINT, &action, &oldaction) < 0)
-		error(EXIT_FAILURE, errno, "sigaction before wait");
-
-	wait_all(jobnumber);
-
-	if (sigaction(SIGINT, &oldaction, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigaction after wait");
-	cancel_wait = false;
-
-	return EXIT_SUCCESS;
-
-usage:
-	printf("Usage:  wait [jobspec/pid]\n");
-	return EXIT_FAILURE;
-}
-
-/* suspend 組込みコマンド
- * -f: ログインシェルでも警告しない */
-int builtin_suspend(int argc, char *const *argv)
-{
-	bool force = false;
-	int opt;
-
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "f")) >= 0) {
-		switch (opt) {
-			case 'f':
-				force = true;
-				break;
-			default:
-				goto usage;
-		}
-	}
-	if (optind < argc) {
-		error(0, 0, "%s: invalid argument", argv[0]);
-		goto usage;
-	}
-	if (is_loginshell && !force) {
-		error(0, 0, "%s: cannot suspend a login shell;"
-				"  Use `-f' option to suspend forcibly.", argv[0]);
-		return EXIT_FAILURE;
-	}
-	if (raise(SIGSTOP) < 0) {
-		error(0, errno, "%s", argv[0]);
-		return EXIT_FAILURE;
-	}
-	return EXIT_SUCCESS;
-
-usage:
-	printf("Usage:  suspend [-f]\n");
-	return EXIT_FAILURE;
-}
-
-/* jobs 組込みコマンド
- * -n: 変化があったジョブのみ報告する
- * args: ジョブ番号の指定 */
-int builtin_jobs(int argc, char *const *argv)
-{
-	bool changedonly = false, printpids = false;
-	int opt;
-
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "ln")) >= 0) {
-		switch (opt) {
-			case 'l':
-				printpids = true;
-				break;
-			case 'n':
-				changedonly = true;
-				break;
-			default:
-				goto usage;
-		}
-	}
-
-	wait_all(-2 /* non-blocking */);
-	
-	if (optind >= argc) {  /* jobspec なし: 全てのジョブを報告 */
-		print_all_job_status(changedonly, printpids);
-		return EXIT_SUCCESS;
-	}
-	for (; optind < argc; optind++) {
-		char *jobstr = argv[optind], *jobstro;
-		size_t jobnumber = 0;
-
-		// parse_jobspec を使わずに自前でやる
-		// (ambiguous のときエラーにせず全部表示するため)
-		if (jobstr[0] == '%')
-			jobstr++;
-		errno = 0;
-		if (!*jobstr)
-			goto invalidspec;
-		jobstro = jobstr;
-		jobnumber = strtol(jobstr, &jobstr, 10);
-		if (errno) {
-invalidspec:
-			error(0, 0, "%s %s: invalid jobspec", argv[0], argv[optind]);
-			return EXIT_FAILURE;
-		}
-		if (jobstr != jobstro && !*jobstr && 0 < jobnumber) {
-			if (jobnumber < joblistlen && joblist[jobnumber].j_pgid)
-				print_job_status(jobnumber, changedonly, printpids);
-			else
-				error(0, 0, "%%%zu: no such job", jobnumber);
-			continue;
-		}
-
-		size_t len = strlen(jobstro);
-		bool done = false;
-		for (jobnumber = 1; jobnumber < joblistlen; jobnumber++) {
-			if (joblist[jobnumber].j_pgid &&
-					strncmp(jobstro, joblist[jobnumber].j_name, len) == 0) {
-				print_job_status(jobnumber, changedonly, printpids);
-				done = true;
-			}
-		}
-		if (!done)
-			error(0, 0, "%s: no such job", argv[optind]);
-	}
-	return EXIT_SUCCESS;
-
-usage:
-	printf("Usage:  jobs [-ln] [jobspecs]\n");
-	return EXIT_FAILURE;
-}
-
-/* disown 組込みコマンド
- * -a:  all
- * -r:  running only
- * -h:  本当に disown するのではなく、終了時に SIGHUP を送らないようにする。 */
-int builtin_disown(int argc, char *const *argv)
-{
-	int opt;
-	bool all = false, runningonly = false, nohup = false, err = false;
-	JOB *job;
-	size_t jobnumber = currentjobnumber;
-	sigset_t sigset, oldsigset;
-
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "arh")) >= 0) {
-		switch (opt) {
-			case 'a':
-				all = true;
-				break;
-			case 'r':
-				runningonly = true;
-				break;
-			case 'h':
-				nohup = true;
-				break;
-			default:
-				goto usage;
-		}
-	}
-	if (optind == argc)
-		all = true;
-
-	sigemptyset(&sigset);
-	sigaddset(&sigset, SIGHUP);
-	sigaddset(&sigset, SIGCHLD);
-	if (sigprocmask(SIG_BLOCK, &sigset, &oldsigset) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
-
-	if (all) {
-		for (size_t i = joblistlen; i > 0; i--) {
-			job = joblist + i;
-			if (!job->j_pgid ||
-					(runningonly && job->j_status != JS_RUNNING))
-				continue;
-			if (nohup) {
-				job->j_flags |= JF_NOHUP;
-			} else {
-				free(job->j_pids);
-				free(job->j_name);
-				memset(job, 0, sizeof *job);
-			}
-		}
-	} else {
-		for (; optind < argc; optind++) {
-			char *target = argv[optind];
-
-			jobnumber = parse_jobspec(target, false);
-			if (jobnumber < 0) switch (jobnumber) {
-				case -1:  default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], target);
-					err = true;
-					continue;
-				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], target);
-					err = true;
-					continue;
-				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0], target);
-					err = true;
-					continue;
-			}
-			job = joblist + jobnumber;
-			if (!job->j_pgid ||
-					(runningonly && job->j_status != JS_RUNNING))
-				continue;
-			if (nohup) {
-				job->j_flags |= JF_NOHUP;
-			} else {
-				free(job->j_pids);
-				free(job->j_name);
-				memset(job, 0, sizeof *job);
-			}
-		}
-	}
-	if (sigprocmask(SIG_SETMASK, &oldsigset, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigprocmask");
-	return err ? EXIT_FAILURE : EXIT_SUCCESS;
-
-usage:
-	printf("Usage:  disown [-ar] [-h] [jobspecs...]\n");
-	return EXIT_FAILURE;
-}
-
-/* fg/bg 組込みコマンド */
-int builtin_fg(int argc, char *const *argv)
-{
-	bool fg = strcmp(argv[0], "fg") == 0;
-	bool err = false;
-	JOB *job = NULL;
-	ssize_t jobnumber = 0;
-	pid_t pgid = 0;
-
-	if (!is_interactive)
-		return EXIT_FAILURE;
-	if (argc < 2) {
-		jobnumber = currentjobnumber;
-		if (jobnumber < 1 || jobnumber >= joblistlen
-				|| !(pgid = joblist[jobnumber].j_pgid)) {
-			/* カレントジョブなし: 番号の一番大きいジョブを選ぶ */
-			jobnumber = joblistlen;
-			while (--jobnumber > 0 && !(pgid = joblist[jobnumber].j_pgid));
-			if (!jobnumber) {
-				error(0, 0, "%s: there is no job", argv[0]);
-				return EXIT_FAILURE;
-			}
-			currentjobnumber = jobnumber;
-		}
-		job = joblist + jobnumber;
-		printf("[%zd]+ %5ld              %s\n",
-				jobnumber, (long) pgid,
-				job->j_name ? : "<<job>>");
-		if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
-			error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
-			err = true;
-		}
-		if (killpg(pgid, SIGCONT) < 0) {
-			error(0, errno, "%s %%%zd: kill SIGCONT", argv[0], jobnumber);
-			err = true;
-		}
-		job->j_status = JS_RUNNING;
-	} else {
-		if (fg && argc > 2) {
-			error(0, 0, "%s: too many jobspecs", argv[0]);
-			goto usage;
-		}
-		for (int i = 1; i < argc; i++) {
-			char *jobstr = argv[i];
-
-			jobnumber = parse_jobspec(jobstr, false);
-			if (jobnumber < 0) switch (jobnumber) {
-				case -1:  default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], jobstr);
-					err = true;
-					continue;
-				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], jobstr);
-					err = true;
-					continue;
-				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0], jobstr);
-					err = true;
-					continue;
-			}
-			currentjobnumber = jobnumber;
-			job = joblist + jobnumber;
-			pgid = job->j_pgid;
-			printf("[%zd]+ %5ld              %s\n",
-					jobnumber, (long) pgid,
-					job->j_name ? : "<<job>>");
-			if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
-				error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
-				err = true;
-				continue;
-			}
-			if (killpg(pgid, SIGCONT) < 0) {
-				error(0, errno, "%s %%%zd: kill SIGCONT", argv[0], jobnumber);
-				err = true;
-				continue;
-			}
-			job->j_status = JS_RUNNING;
-		}
-	}
-	if (err)
-		return EXIT_FAILURE;
-	if (fg) {
-		assert(0 < jobnumber && jobnumber < joblistlen);
-		wait_all(jobnumber);
-		return job->j_status == JS_DONE
-			? exitcode_from_status(job->j_exitstatus) : 0;
-	} else {
-		return EXIT_SUCCESS;
-	}
-
-usage:
-	if (fg)
-		printf("Usage:  fg [jobspec]\n");
-	else
-		printf("Usage:  bg [jobspecs]\n");
 	return EXIT_FAILURE;
 }
 
 /* cd 組込みコマンド */
 int builtin_cd(int argc, char *const *argv)
 {
-	char *path, *oldpwd;
+	const char *newpwd, *oldpwd;
+	char *path;
 
 	if (argc < 2) {
-		path = getenv(ENV_HOME);
-		if (!path) {
+		newpwd = getvar(VAR_HOME);
+		if (!newpwd) {
 			error(0, 0, "%s: HOME directory not specified", argv[0]);
 			return EXIT_FAILURE;
 		}
 	} else {
-		path = argv[1];
-		if (strcmp(path, "-") == 0) {
-			path = getenv(ENV_OLDPWD);
-			if (!path) {
+		newpwd = argv[1];
+		if (strcmp(newpwd, "-") == 0) {
+			newpwd = getvar(VAR_OLDPWD);
+			if (!newpwd) {
 				error(0, 0, "%s: OLDPWD directory not specified", argv[0]);
 				return EXIT_FAILURE;
 			} else {
-				printf("%s\n", path);
+				printf("%s\n", newpwd);
 			}
 		}
 	}
-	oldpwd = getcwd(NULL, 0);
-	if (chdir(path) < 0) {
-		error(0, errno, "%s: %s", argv[0], path);
+	oldpwd = getvar(VAR_PWD);
+	if (chdir(newpwd) < 0) {
+		error(0, errno, "%s: %s", argv[0], newpwd);
 		return EXIT_FAILURE;
 	}
 	if (oldpwd) {
-		if (setenv(ENV_OLDPWD, oldpwd, 1 /* overwrite */) < 0)
-			error(0, 0, "%s: failed to set env OLDPWD", argv[0]);
-		free(oldpwd);
+		setvar(VAR_OLDPWD, oldpwd, true);
 	}
-	if ((path = getcwd(NULL, 0))) {
-		char *spwd = collapse_homedir(path);
-
-		if (setenv(ENV_PWD, path, 1 /* overwrite */) < 0)
-			error(0, 0, "%s: failed to set env PWD", argv[0]);
-		if (spwd) {
-			if (setenv(ENV_SPWD, spwd, 1 /* overwrite */) < 0)
-				error(0, 0, "%s: failed to set env SPWD", argv[0]);
-			free(spwd);
-		}
+	if ((path = xgetcwd())) {
+		setvar(VAR_PWD, path, true);
 		free(path);
 	}
 	return EXIT_SUCCESS;
 }
 
 /* umask 組込みコマンド */
-/* TODO: 数字だけでなく文字列での指定に対応 */
+/* XXX: 数字だけでなく文字列での指定に対応 */
 int builtin_umask(int argc, char *const *argv)
 {
 	if (argc < 2) {
@@ -804,7 +185,7 @@ int builtin_umask(int argc, char *const *argv)
 	return EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  umask [newumask]\n");
+	fprintf(stderr, "Usage:  umask [newumask]\n");
 	return EXIT_FAILURE;
 }
 
@@ -817,9 +198,9 @@ int builtin_export(int argc, char *const *argv)
 
 	if (argc == 1)
 		goto usage;
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "n")) >= 0) {
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "n")) >= 0) {
 		switch (opt) {
 			case 'n':
 				remove = true;
@@ -828,8 +209,8 @@ int builtin_export(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	for (; optind < argc; optind++) {
-		char *c = argv[optind];
+	for (; xoptind < argc; xoptind++) {
+		char *c = argv[xoptind];
 
 		if (remove) {
 			if (unsetenv(c) < 0)
@@ -838,8 +219,7 @@ int builtin_export(int argc, char *const *argv)
 			size_t namelen = strcspn(c, "=");
 			if (c[namelen] == '=') {
 				c[namelen] = '\0';
-				if (setenv(c, c + namelen + 1, 1) < 0) {
-					error(0, 0, "%s: memory shortage", argv[0]);
+				if (!setvar(c, c + namelen + 1, true)) {
 					c[namelen] = '=';
 					return EXIT_FAILURE;
 				}
@@ -853,17 +233,24 @@ int builtin_export(int argc, char *const *argv)
 	return EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  export NAME=VALUE ...\n");
-	printf("    or  export -n NAME ...\n");
+	fprintf(stderr, "Usage:  export NAME=VALUE ...\n");
+	fprintf(stderr, "    or  export -n NAME ...\n");
 	return EXIT_FAILURE;
 }
 
 /* source/. 組込みコマンド */
 int builtin_source(int argc, char *const *argv)
 {
-	for (int i = 1; i < argc; i++)
-		exec_file(argv[i], false /* don't supress errors */);
+	if (argc < 2) {
+		error(0, 0, "%s: filename not given", argv[0]);
+		goto usage;
+	}
+	exec_file(argv[1], false /* don't supress errors */);
 	return laststatus;
+
+usage:
+	fprintf(stderr, "Usage:  %s filename\n", argv[0]);
+	return EXIT_FAILURE;
 }
 
 /* history 組込みコマンド
@@ -873,7 +260,7 @@ int builtin_source(int argc, char *const *argv)
  * -d n:     履歴番号 n を削除
  * -r file:  file から履歴を読み込む (今の履歴に追加)
  * -w file:  file に履歴を保存する (上書き)
- * -s xxx:   xxx を履歴に追加 */
+ * -s X:     X を履歴に追加 */
 int builtin_history(int argc, char *const *argv)
 {
 	int ierrno;
@@ -957,31 +344,43 @@ int builtin_history(int argc, char *const *argv)
 	return EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  history [n]\n");
-	printf("    or  history -d n\n");
-	printf("    or  history -rw file\n");
-	printf("    or  history -s arg\n");
+	fprintf(stderr, "Usage:  history [n]\n");
+	fprintf(stderr, "    or  history -d n\n");
+	fprintf(stderr, "    or  history -rw file\n");
+	fprintf(stderr, "    or  history -s arg\n");
 	return EXIT_FAILURE;
 }
 
 /* alias 組込みコマンド
  * 引数なし or -p オプションありだと全てのエイリアスを出力する。
- * 引数があると、そのエイリアスを設定 or 出力する。 */
+ * 引数があると、そのエイリアスを設定 or 出力する。
+ * -g を指定するとグローバルエイリアスになる。 */
 int builtin_alias(int argc, char *const *argv)
 {
-	int print_alias(const char *name, const char *value) {
-		printf("%s=%s\n", name, value);
+	int print_alias(const char *name, ALIAS *alias) {
+		struct strbuf buf;
+		sb_init(&buf);
+		if (!posixly_correct)
+			sb_append(&buf, "alias ");
+		sb_printf(&buf, "%-3s%s=", alias->global ? "-g" : "", name);
+		escape_sq(alias->value, &buf);
+		puts(buf.contents);
+		sb_destroy(&buf);
 		return 0;
 	}
 
 	bool printall = argc <= 1;
+	bool global = false;
 	bool err = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "p")) >= 0) {
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "gp")) >= 0) {
 		switch (opt) {
+			case 'g':
+				global = true;
+				break;
 			case 'p':
 				printall = true;
 				break;
@@ -989,8 +388,8 @@ int builtin_alias(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	for (; optind < argc; optind++) {
-		char *c = argv[optind];
+	for (; xoptind < argc; xoptind++) {
+		char *c = argv[xoptind];
 		size_t namelen = strcspn(c, "=");
 
 		if (!namelen) {
@@ -998,13 +397,12 @@ int builtin_alias(int argc, char *const *argv)
 			err = true;
 		} else if (c[namelen] == '=') {
 			c[namelen] = '\0';
-			if (set_alias(c, c + namelen + 1) < 0)
-				err = true;
+			set_alias(c, c + namelen + 1, global);
 			c[namelen] = '=';
 		} else {
-			const char *v = get_alias(c);
-			if (v) {
-				print_alias(c, v);
+			ALIAS *a = get_alias(c);
+			if (a) {
+				print_alias(c, a);
 			} else {
 				error(0, 0, "%s: %s: no such alias", argv[0], c);
 				err = true;
@@ -1016,7 +414,7 @@ int builtin_alias(int argc, char *const *argv)
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  alias [-p] [name[=value] ... ]\n");
+	fprintf(stderr, "Usage:  alias [-gp] [name[=value] ... ]\n");
 	return EXIT_FAILURE;
 }
 
@@ -1028,9 +426,11 @@ int builtin_unalias(int argc, char *const *argv)
 	bool err = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "a")) >= 0) {
+	if (argc < 2)
+		goto usage;
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "a")) >= 0) {
 		switch (opt) {
 			case 'a':
 				removeall = true;
@@ -1040,19 +440,19 @@ int builtin_unalias(int argc, char *const *argv)
 		}
 	}
 	if (removeall) {
-		remove_all_alias();
+		remove_all_aliases();
 		return EXIT_SUCCESS;
 	}
-	for (; optind < argc; optind++) {
-		if (remove_alias(argv[optind]) < 0) {
+	for (; xoptind < argc; xoptind++) {
+		if (remove_alias(argv[xoptind]) < 0) {
 			err = true;
-			error(0, 0, "%s: %s: no such alias", argv[0], argv[optind]);
+			error(0, 0, "%s: %s: no such alias", argv[0], argv[xoptind]);
 		}
 	}
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
 
 usage:
-	printf("Usage:  unalias [-a] name [...]\n");
+	fprintf(stderr, "Usage:  unalias [-a] name [...]\n");
 	return EXIT_FAILURE;
 }
 
@@ -1080,9 +480,9 @@ int builtin_option(int argc, char *const *argv)
 	bool def = false;
 	int opt;
 
-	optind = 0;
-	opterr = 1;
-	while ((opt = getopt(argc, argv, "d")) >= 0) {
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "+d")) >= 0) {
 		switch (opt) {
 			case 'd':
 				def = true;
@@ -1091,19 +491,19 @@ int builtin_option(int argc, char *const *argv)
 				goto usage;
 		}
 	}
-	if (optind < argc) {
-		name = argv[optind++];
+	if (xoptind < argc) {
+		name = argv[xoptind++];
 	} else {
 		goto usage;  /* nothing to do */
 	}
-	if (optind < argc) {
+	if (xoptind < argc) {
 		char *ve;
 
 		if (def) {
 			error(0, 0, "%s: invalid argument", argv[0]);
 			goto usage;
 		}
-		value = argv[optind++];
+		value = argv[xoptind++];
 		errno = 0;
 		valuenum = strtol(value, &ve, 10);
 		valuenumvalid = *value && !*ve;
@@ -1189,10 +589,10 @@ valueyesnoinvalid:
 	return EXIT_FAILURE;
 
 usage:
-	printf("Usage:  option NAME [VALUE]\n");
-	printf("    or  option -d NAME\n");
-	printf("Available options:\n");
+	fprintf(stderr, "Usage:  option NAME [VALUE]\n");
+	fprintf(stderr, "    or  option -d NAME\n");
+	fprintf(stderr, "Available options:\n");
 	for (const char **optname = option_names; *optname; optname++)
-		printf("\t%s\n", *optname);
+		fprintf(stderr, "\t%s\n", *optname);
 	return EXIT_FAILURE;
 }
