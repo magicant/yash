@@ -194,7 +194,9 @@ const char *get_signal_name(int signal)
 	const SIGDATA *sd;
 	static char rtminname[16];
 
-	if (signal >= 128)
+	if (signal >= TERMSIGOFFSET)
+		signal -= TERMSIGOFFSET;
+	else if (signal >= 128)
 		signal -= 128;
 	for (sd = sigdata; sd->s_signal; sd++)
 		if (sd->s_signal == signal)

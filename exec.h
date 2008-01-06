@@ -28,6 +28,11 @@
 extern bool huponexit;
 extern int laststatus;
 
+/* プロセスがシグナルによって終了した場合は、シグナル番号に TERMSIGOFFSET を
+ * 加えたものがそのプロセスの終了コードになる。
+ * bash/zsh では 128、ksh では 256。 */
+#define TERMSIGOFFSET 384
+
 /* 設定したリダイレクトを後で元に戻すためのデータ */
 struct save_redirect {
 	struct save_redirect *next;

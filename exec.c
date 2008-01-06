@@ -141,7 +141,7 @@ int exitcode_from_status(int status)
 	if (WIFEXITED(status))
 		return WEXITSTATUS(status);
 	else if (WIFSIGNALED(status))
-		return WTERMSIG(status) + 128;
+		return WTERMSIG(status) + 384;
 	else
 		return -1;
 }
@@ -647,16 +647,19 @@ static void exec_processes(
 				wait_for_signal();
 			} while (job->j_status == JS_RUNNING ||
 					(!is_interactive && job->j_status == JS_STOPPED));
-			if (WIFSIGNALED(job->j_waitstatus)) {
-				int sig = WTERMSIG(job->j_waitstatus);
-				if (is_interactive && sig != SIGINT && sig != SIGPIPE)
-					psignal(sig, NULL);  /* XXX : not POSIX */
-			} else if (WIFSTOPPED(job->j_waitstatus)) {
+			if (WIFSTOPPED(job->j_waitstatus)) {
+				laststatus = TERMSIGOFFSET + SIGTSTP;
 				fflush(stdout);
 				fputs("\n", stderr);
 				fflush(stderr);
+			} else {
+				laststatus = exitcode_from_status(job->j_waitstatus);
+				if (WIFSIGNALED(job->j_waitstatus)) {
+					int sig = WTERMSIG(job->j_waitstatus);
+					if (is_interactive && sig != SIGINT && sig != SIGPIPE)
+						psignal(sig, NULL);  /* XXX : not POSIX */
+				}
 			}
-			laststatus = exitcode_from_status(job->j_waitstatus);
 			if (neg)
 				laststatus = !laststatus;
 			if (job->j_status == JS_DONE)
