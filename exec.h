@@ -33,14 +33,6 @@ extern int laststatus;
  * bash/zsh では 128、ksh では 256。 */
 #define TERMSIGOFFSET 384
 
-/* 設定したリダイレクトを後で元に戻すためのデータ */
-struct save_redirect {
-	struct save_redirect *next;
-	int   sr_origfd; /* 元のファイルディスクリプタ */
-	int   sr_copyfd; /* 新しくコピーしたファイルディスクリプタ */
-	FILE *sr_file;   /* 元のストリーム */
-};
-
 enum jstatus { JS_RUNNING, JS_DONE, JS_STOPPED, };
 extern const char *const jstatusstr[];
 /* jstatusstr のインデックスとして jstatus の値を使用している */

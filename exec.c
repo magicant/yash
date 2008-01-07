@@ -49,6 +49,14 @@ typedef enum {
 	SELF,               /* このシェル自身を exec して実行 */
 } exec_t;
 
+/* 設定したリダイレクトを後で元に戻すためのデータ */
+struct save_redirect {
+	struct save_redirect *next;
+	int   sr_origfd; /* 元のファイルディスクリプタ */
+	int   sr_copyfd; /* 新しくコピーしたファイルディスクリプタ */
+	FILE *sr_file;   /* 元のストリーム */
+};
+
 void init_exec(void);
 static void joblist_reinit(void);
 int exitcode_from_status(int status);

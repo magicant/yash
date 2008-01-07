@@ -33,11 +33,20 @@ extern char **environ;
 char *xgetcwd(void);
 void init_var(void);
 void set_shlvl(int change);
-void set_positionals(char *const *values);
-const char *getvar(const char *name);
-bool setvar(const char *name, const char *value, bool export);
+void set_positionals(char *const *values)
+	__attribute__((nonnull));
+const char *getvar(const char *name)
+	__attribute__((nonnull));
+bool setvar(const char *name, const char *value, bool export)
+	__attribute__((nonnull));
 struct plist *getarray(const char *name);
-bool is_exported(const char *name);
+bool unsetvar(const char *name)
+	__attribute__((nonnull));
+void unexport(const char *name)
+	__attribute__((nonnull));
+bool is_exported(const char *name)
+	__attribute__((nonnull));
 bool is_special_parameter_char(char c);
 bool is_name_char(char c);
-bool is_name(const char *c);
+bool is_name(const char *c)
+	__attribute__((nonnull));

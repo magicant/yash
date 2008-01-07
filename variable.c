@@ -77,6 +77,8 @@ static struct variable *get_variable(const char *name);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 struct plist *getarray(const char *name);
+bool unsetvar(const char *name);
+void unexport(const char *name);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
 bool is_name_char(char c);
@@ -219,7 +221,7 @@ void set_shlvl(int change)
 }
 
 /* 現在の変数環境や親変数環境から指定した変数を捜し出す。
- * 位置パラメータは取得できない。 */
+ * 位置パラメータ、$*, $@ は取得できない。 */
 static struct variable *get_variable(const char *name)
 {
 	struct environment *env = current_env;
@@ -258,7 +260,7 @@ const char *getvar(const char *name)
 }
 
 /* シェル変数の値を設定する。変数が存在しない場合、基底変数環境に追加する。
- * この関数では位置パラメータおよび $*, $@ は設定できない (してはいけない)。
+ * この関数では位置・特殊パラメータは設定できない (してはいけない)。
  * name:   正しい変数名。
  * export: true ならその変数を export 対象にする。false ならそのまま。
  * 戻り値: 成功なら true、エラーならメッセージを出して false。 */
@@ -289,12 +291,16 @@ bool setvar(const char *name, const char *value, bool export)
 			error(0, 0, "%s: readonly variable cannot be assigned to", name);
 			return false;
 		}
-		free(var->value);
-		if (export) {
+		if (export || !var->value) {
+			bool ok = (setenv(name, value, true) == 0);
+			free(var->value);
 			var->value = NULL;
-			return setenv(name, value, true) == 0;
+			return ok;
 		} else {
-			var->value = xstrdup(value);
+			if (var->value != value) {
+				free(var->value);
+				var->value = xstrdup(value);
+			}
 			return true;
 		}
 	}
@@ -309,6 +315,40 @@ struct plist *getarray(const char *name)
 	if (!name)
 		return &current_env->positionals;
 	return NULL; //XXX 配列は未実装
+}
+
+/* シェル変数を削除する
+ * 戻り値: エラーがなければ true、変数を削除できなければ false。
+ *         変数が存在しなかったら true。 */
+bool unsetvar(const char *name)
+{
+	struct environment *env = current_env;
+	while (env) {
+		struct variable *var = ht_remove(&env->variables, name);
+		if (var) {
+			if (var->flags & VF_READONLY) {
+				ht_set(&env->variables, name, var);
+				return false;
+			}
+			free(var->value);
+			unsetenv(name);
+			return true;
+		}
+		env = env->parent;
+	}
+	return true;
+}
+
+/* 変数を非 export 対象にする。 */
+void unexport(const char *name)
+{
+	struct variable *var = get_variable(name);
+	if (var && !var->value) {
+		const char *value = getenv(name);
+		if (value)
+			var->value = xstrdup(value);
+		unsetenv(name);
+	}
 }
 
 /* 指定した名前のシェル変数が存在しかつ export 対象かどうかを返す。 */

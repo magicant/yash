@@ -225,8 +225,7 @@ int builtin_export(int argc, char *const *argv)
 		char *c = argv[xoptind];
 
 		if (remove) {
-			if (unsetenv(c) < 0)
-				error(0, 0, "%s: invalid name", argv[0]);
+			unexport(c);
 		} else {
 			size_t namelen = strcspn(c, "=");
 			if (c[namelen] == '=') {
