@@ -33,7 +33,7 @@
 
 
 extern bool is_loginshell;
-extern bool is_interactive;
+extern bool is_interactive, is_interactive_now;
 extern bool posixly_correct;
 
 extern const char *command_name;

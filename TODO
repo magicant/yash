@@ -1,5 +1,4 @@
 コマンド名の先頭に name=value 形式を付けて env コマンド無しで環境を拡張
-is_interactive を is_interactive{,_now} にわける
 配列の実装
 数式展開
 コマンドのパスをハッシュに記憶する

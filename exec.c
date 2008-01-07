@@ -232,7 +232,7 @@ static int add_job(void)
 	}
 	joblist.contents[0] = NULL;
 	currentjobnumber = jobnumber;
-	if (is_interactive)
+	if (is_interactive_now)
 		print_job_status(jobnumber, true, false);
 	return jobnumber;
 }
@@ -434,7 +434,7 @@ pfound:
  * 停止しているジョブには SIGCONT も送る。 */
 void send_sighup_to_all_jobs(void)
 {
-	if (is_interactive) {
+	if (is_interactive_now) {
 		if (temp_chld.jp_pid) {
 			kill(temp_chld.jp_pid, SIGHUP);
 			if (temp_chld.jp_status == JS_STOPPED)
@@ -646,7 +646,7 @@ static void exec_processes(
 			do {
 				wait_for_signal();
 			} while (job->j_status == JS_RUNNING ||
-					(!is_interactive && job->j_status == JS_STOPPED));
+					(!is_interactive_now && job->j_status == JS_STOPPED));
 			if (WIFSTOPPED(job->j_waitstatus)) {
 				laststatus = TERMSIGOFFSET + SIGTSTP;
 				fflush(stdout);
@@ -656,7 +656,7 @@ static void exec_processes(
 				laststatus = exitcode_from_status(job->j_waitstatus);
 				if (WIFSIGNALED(job->j_waitstatus)) {
 					int sig = WTERMSIG(job->j_waitstatus);
-					if (is_interactive && sig != SIGINT && sig != SIGPIPE)
+					if (is_interactive_now && sig != SIGINT && sig != SIGPIPE)
 						psignal(sig, NULL);  /* XXX : not POSIX */
 				}
 			}
@@ -709,7 +709,7 @@ static pid_t exec_single(
 		if (p->p_type == PT_NORMAL && argc == 0)
 			return 0;  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && argc > 0) {
-			error(is_interactive ? 0 : EXIT_FAILURE, 0, "syntax error");
+			error(is_interactive_now ? 0 : EXIT_FAILURE, 0, "syntax error");
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL) {
@@ -719,7 +719,7 @@ static pid_t exec_single(
 				if (open_redirections(p->p_redirs, &saver))
 					laststatus = builtin->main(argc, argv);
 				else if (posixly_correct
-						&& !is_interactive && builtin->is_special)
+						&& !is_interactive_now && builtin->is_special)
 					exit(EXIT_FAILURE);
 				else
 					laststatus = EXIT_FAILURE;
@@ -744,7 +744,7 @@ static pid_t exec_single(
 		if (expanded) { recfree((void **) argv, free); }
 		return -1;
 	} else if (cpid) {  /* 親プロセス */
-		if (is_interactive) {
+		if (is_interactive_now) {
 			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
 				error(0, errno, "%s: setpgid (parent)", argv[0]);
 			/* if (etype == FOREGROUND
@@ -764,13 +764,13 @@ static pid_t exec_single(
 	
 	/* 子プロセス */
 	forget_orig_pgrp();
-	if (is_interactive) {
+	if (is_interactive_now) {
 		if (setpgid(0, pgid) < 0)
 			error(0, errno, "%s: setpgid (child)", argv[0]);
 		if (etype == FOREGROUND
 				&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
 			error(0, errno, "%s: tcsetpgrp (child)", argv[0]);
-	} else {
+	} else if (!is_interactive) {
 		if (etype == BACKGROUND && pindex <= 0) {
 			REDIR *r = xmalloc(sizeof *r);
 			*r = (REDIR) {
@@ -783,11 +783,11 @@ static pid_t exec_single(
 		}
 	}
 	joblist_reinit();
-	is_loginshell = is_interactive = false;
+	is_interactive_now = false;
 
 directexec:
 	unset_signals();
-	assert(!is_interactive);
+	assert(!is_interactive_now);
 	if (pipes.p_count > 0) {
 		if (pindex) {
 			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
@@ -1075,7 +1075,7 @@ char *exec_and_read(const char *code, bool trimend)
 	} else {  /* 子プロセス */
 		sigset_t ss;
 
-		if (is_interactive) {
+		if (is_interactive_now) {
 			/* 子プロセスが SIGTSTP で停止してしまうと、親プロセスである
 			 * 対話的なシェルに制御が戻らなくなってしまう。よって、SIGTSTP を
 			 * 受け取っても停止しないようにブロックしておく。 */
@@ -1086,7 +1086,7 @@ char *exec_and_read(const char *code, bool trimend)
 
 		forget_orig_pgrp();
 		joblist_reinit();
-		is_loginshell = is_interactive = false;
+		is_interactive_now = false;
 
 		close(pipefd[0]);
 		if (pipefd[1] != STDOUT_FILENO) {

@@ -605,11 +605,11 @@ static char *expand_param2(const char *s, bool indq)
 			if (isempty) {
 				if (info.format[1]) {
 					char *word1 = unescape(expand_word(info.format + 1));
-					error(is_interactive ? 0 : EXIT_FAILURE,
+					error(is_interactive_now ? 0 : EXIT_FAILURE,
 							0, "%s: %s", param, word1);
 					free(word1);
 				} else {
-					error(is_interactive ? 0 : EXIT_FAILURE,
+					error(is_interactive_now ? 0 : EXIT_FAILURE,
 							0,
 							values[0] ? "%s: parameter null"
 							          : "%s: parameter not set",
@@ -642,7 +642,7 @@ static char *expand_param2(const char *s, bool indq)
 	}
 
 syntax_error:
-	error(is_interactive ? 0 : EXIT_FAILURE,
+	error(is_interactive_now ? 0 : EXIT_FAILURE,
 			0, "${%s}: bad substitution", info.full);
 	return NULL;
 }

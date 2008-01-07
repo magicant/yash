@@ -55,11 +55,13 @@ void print_help(void);
 void print_version(void);
 void yash_exit(int exitcode);
 
-/* このプロセスがログインシェルなら非 0 */
+/* このプロセスがログインシェルかどうか */
 bool is_loginshell;
-/* 対話的シェルなら非 0 */
-bool is_interactive;
-/* POSIX の規定に厳密に従うなら非 0 */
+/* 対話的シェルかどうか
+ * is_loginshell, is_interactive の値はサブシェルでも変わらない。
+ * is_interactive_now はサブシェルでは常に false である。 */
+bool is_interactive, is_interactive_now;
+/* POSIX の規定に厳密に従うかどうか */
 bool posixly_correct;
 
 /* コマンド名。特殊パラメータ $0 の値。 */
@@ -213,7 +215,7 @@ static pid_t orig_pgrp = 0;
  * このシェルのプロセスグループ ID をこのシェルのプロセス ID に変更する。 */
 void set_unique_pgid(void)
 {
-	if (is_interactive) {
+	if (is_interactive_now) {
 		orig_pgrp = getpgrp();
 		setpgrp();
 	}
@@ -246,7 +248,7 @@ void set_shell_env(void)
 {
 	static bool initialized = false;
 
-	if (is_interactive) {
+	if (is_interactive_now) {
 		set_signals();
 		set_unique_pgid();
 		set_shlvl(1);
@@ -266,7 +268,7 @@ void set_shell_env(void)
 /* シェルのシグナルハンドラなどを元に戻す */
 void unset_shell_env(void)
 {
-	if (is_interactive) {
+	if (is_interactive_now) {
 		finalize_readline();
 		set_shlvl(-1);
 		restore_pgid();
@@ -291,7 +293,7 @@ static void interactive_loop(void)
 {
 	const char *exitargv[] = { "exit", NULL, };
 
-	assert(is_interactive);
+	assert(is_interactive && is_interactive_now);
 	for (;;) {
 		STATEMENT *statements;
 
@@ -392,7 +394,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	init_builtin();
 
 	if (directcommand) {
-		is_interactive = false;
+		is_interactive = is_interactive_now = false;
 		set_shell_env();
 		if (argv[xoptind]) {
 			command_name = argv[xoptind];
@@ -401,7 +403,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		exec_source_and_exit(directcommand, "yash -c");
 	}
 	if (argv[xoptind]) {
-		is_interactive = false;
+		is_interactive = is_interactive_now = false;
 		set_shell_env();
 		command_name = argv[xoptind];
 		set_positionals(argv + xoptind + 1);
@@ -409,6 +411,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		exit(laststatus);
 	}
 	if (is_interactive) {
+		is_interactive_now = true;
 		set_shell_env();
 		interactive_loop();
 	}
@@ -434,7 +437,7 @@ void print_version(void)
 void yash_exit(int exitcode) {
 	//wait_chld();
 	//print_all_job_status(false /* all jobs */, false /* not verbose */);
-	if (is_loginshell)
+	if (is_interactive_now && is_loginshell)
 		exec_file("~/.yash_logout", true /* suppress error */);
 	unset_shell_env();
 	if (huponexit)

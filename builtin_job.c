@@ -128,7 +128,7 @@ int builtin_exit(int argc, char *const *argv)
 			goto usage;
 		}
 	}
-	if (is_interactive && !forceexit) {
+	if (is_interactive_now && !forceexit) {
 		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
 		if (stopped_job_count()) {
@@ -298,9 +298,9 @@ int builtin_wait(int argc, char *const *argv)
 
 	if (argc < 2) {  /* 引数無し: 全ジョブを待つ */
 		for (;;) {
-			if (is_interactive && !posixly_correct)
+			if (is_interactive_now && !posixly_correct)
 				print_all_job_status(true /* changed only */, false);
-			if (is_interactive ? !running_job_count() : !undone_job_count())
+			if (is_interactive_now ? !running_job_count() : !undone_job_count())
 				break;
 			wait_for_signal();
 			if (sigint_received) {
@@ -308,7 +308,7 @@ int builtin_wait(int argc, char *const *argv)
 				break;
 			}
 		}
-		if (!is_interactive)
+		if (!is_interactive_now)
 			remove_exited_jobs();
 	} else {  /* 引数で指定されたジョブを待つ */
 		for (int i = 1; !interrupted && i < argc; i++) {
@@ -360,10 +360,10 @@ int builtin_wait(int argc, char *const *argv)
 
 			JOB *job = joblist.contents[jobnumber];
 			for (;;) {
-				if (is_interactive && !posixly_correct)
+				if (is_interactive_now && !posixly_correct)
 					print_all_job_status(true /* changed only */, false);
 				if (job->j_status == JS_DONE
-						|| (is_interactive && job->j_status == JS_STOPPED))
+						|| (is_interactive_now && job->j_status == JS_STOPPED))
 					break;
 				wait_for_signal();
 				if (sigint_received) {
@@ -372,7 +372,7 @@ int builtin_wait(int argc, char *const *argv)
 				}
 			}
 			resultstatus = exitcode_from_status(job->j_waitstatus);
-			if (!is_interactive) {
+			if (!is_interactive_now) {
 				assert(job->j_status == JS_DONE);
 				remove_job(jobnumber);
 			}
@@ -419,7 +419,7 @@ int builtin_suspend(int argc, char *const *argv)
 		error(0, 0, "%s: invalid argument", argv[0]);
 		goto usage;
 	}
-	if (is_loginshell && !force) {
+	if (is_interactive_now && is_loginshell && !force) {
 		error(0, 0, "%s: cannot suspend a login shell;"
 				"  Use `-f' option to suspend anyway.", argv[0]);
 		return EXIT_FAILURE;
@@ -621,7 +621,7 @@ int builtin_fg(int argc, char *const *argv)
 	ssize_t jobnumber = 0;
 	pid_t pgid = 0;
 
-	if (!is_interactive) {
+	if (!is_interactive_now) {
 		error(0, 0, "%s: no job control", argv[0]);
 		return EXIT_FAILURE;
 	}
@@ -784,7 +784,7 @@ int builtin_exec(int argc, char *const *argv)
 		}
 	}
 
-	if (is_interactive && !forceexec) {
+	if (is_interactive_now && !forceexec) {
 		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
 		if (stopped_job_count()) {
@@ -803,7 +803,7 @@ int builtin_exec(int argc, char *const *argv)
 			is_executable);
 	if (!command) {
 		error(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);
-		if (!is_interactive) {
+		if (!is_interactive_now) {
 			//XXX shopt execfail
 			exit(EXIT_NOTFOUND);
 		}
