@@ -344,15 +344,19 @@ bool unsetvar(const char *name)
 	while (env) {
 		struct variable *var = ht_remove(&env->variables, name);
 		if (var) {
+			bool oldvarexport = var->flags & VF_EXPORT;
 			if (var->flags & VF_READONLY) {
 				ht_set(&env->variables, name, var);
 				return false;
 			}
 			free(var->value);
+			free(var);
 
 			var = get_variable(name);
 			if (!var || !(var->flags & VF_EXPORT))
 				unsetenv(name);
+			else if (!getenv(name) && oldvarexport)
+				setenv(name, var->value, true);
 			return true;
 		}
 		env = env->parent;
