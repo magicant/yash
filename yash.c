@@ -89,7 +89,7 @@ int exec_file(const char *path, bool suppresserror)
 	if (!f) {
 		if (!suppresserror)
 			error(0, errno, "%s", path);
-		return EOF;
+		return EXIT_FAILURE;
 	}
 
 	int result;

@@ -709,18 +709,21 @@ static pid_t exec_single(
 		if (p->p_type == PT_NORMAL && argc == 0)
 			return 0;  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && argc > 0) {
-			error(0, 0, "syntax error");
+			error(is_interactive ? 0 : EXIT_FAILURE, 0, "syntax error");
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL) {
-			cbody *body = get_builtin(argv[0]);
-			if (body) {  /* fork せずに組込みコマンドを実行 */
+			BUILTIN *builtin = get_builtin(argv[0]);
+			if (builtin) {  /* fork せずに組込みコマンドを実行 */
 				struct save_redirect *saver;
 				if (open_redirections(p->p_redirs, &saver))
-					laststatus = body(argc, argv);
+					laststatus = builtin->main(argc, argv);
+				else if (posixly_correct
+						&& !is_interactive && builtin->is_special)
+					exit(EXIT_FAILURE);
 				else
 					laststatus = EXIT_FAILURE;
-				if (body != builtin_exec || laststatus != EXIT_SUCCESS)
+				if (builtin->main != builtin_exec || laststatus != EXIT_SUCCESS)
 					undo_redirections(saver);
 				else
 					savesfree(saver);
@@ -812,11 +815,11 @@ directexec:
 		exit(EXIT_FAILURE);
 
 	switch (p->p_type) {
-		cbody *body;
+		BUILTIN *builtin;
 		case PT_NORMAL:
-			body = get_builtin(argv[0]);
-			if (body)  /* 組込みコマンドを実行 */
-				exit(body(argc, argv));
+			builtin = get_builtin(argv[0]);
+			if (builtin)  /* 組込みコマンドを実行 */
+				exit(builtin->main(argc, argv));
 
 			char *command = which(argv[0],
 					strchr(argv[0], '/') ? "." : getvar(VAR_PATH),
@@ -848,17 +851,19 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		int fd, flags;
 
 		/* rd_file を展開する */
-		exp = expand_single(r->rd_file);
+		exp = is_interactive
+			? expand_single(r->rd_file)
+			: unescape(expand_word(r->rd_file));
 		if (!exp) {
 			error(0, 0, "redirect: invalid word expansion: %s", r->rd_file);
-			goto next;
+			goto returnfalse;
 		}
 
 		/* リダイレクトをセーブする */
 		if (save) {
 			int copyfd = dup(r->rd_fd);
 			if (copyfd < 0 && errno != EBADF) {
-				error(0, errno, "redirect: can't save file descriptor %d",
+				error(0, errno, "redirect: cannot save file descriptor %d",
 						r->rd_fd);
 			} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
 				error(0, errno, "redirect: fcntl(%d,SETFD,CLOEXEC)", r->rd_fd);
@@ -909,9 +914,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 					if (errno) goto onerror;
 					if (exp[0] == '\0' || end[0] != '\0') {
 						error(0, 0, "redirect syntax error");
-						free(exp);
-						if (save) *save = s;
-						return false;
+						goto returnfalse;
 					}
 					if (fd < 0) {
 						errno = ERANGE;
@@ -950,6 +953,7 @@ next:
 
 onerror:
 	error(0, errno, "redirect: %s", r->rd_file);
+returnfalse:
 	free(exp);
 	if (save) *save = s;
 	return false;

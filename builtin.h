@@ -20,10 +20,13 @@
 #define BUILTIN_H
 
 
-typedef int cbody(int argc, char *const *argv);
+typedef struct {
+	int (*main)(int argc, char *const *argv);
+	bool is_special;
+} BUILTIN;
 
 void init_builtin(void);
-cbody *get_builtin(const char *name);
+BUILTIN *get_builtin(const char *name);
 
 int builtin_true(int argc, char *const *argv);
 int builtin_false(int argc, char *const *argv);

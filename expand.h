@@ -32,6 +32,8 @@ char *expand_word(const char *s)
 void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
 		const char *ifs, const char *q)
 	__attribute__((nonnull(1,2,3,4)));
+char *unescape(char *s)
+	__attribute__((malloc));
 void escape_sq(const char *s, struct strbuf *buf)
 	__attribute__((nonnull));
 void escape_bs(const char *s, const char *q, struct strbuf *buf)

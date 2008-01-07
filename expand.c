@@ -93,8 +93,7 @@ static bool do_glob(char **ss, struct plist *result)
 	__attribute__((nonnull));
 static char *unescape_for_glob(const char *s)
 	__attribute__((malloc));
-static char *unescape(char *s)
-	__attribute__((malloc));
+char *unescape(char *s);
 void escape_sq(const char *s, struct strbuf *buf);
 void escape_bs(const char *s, const char *q, struct strbuf *buf);
 char *escape(char *s, const char *q);
@@ -145,6 +144,7 @@ char *expand_single(const char *arg)
 }
 
 /* 一つのフィールドに対してチルダ展開・パラメータ/数式展開・コマンド置換を行う。
+ * パス名展開・引用符除去は行わない。
  * 戻り値: 新しく malloc した、展開の結果。エラーなら NULL。 */
 char *expand_word(const char *s)
 {
@@ -513,18 +513,15 @@ static char *expand_param2(const char *s, bool indq)
 	info.formatcolon = (*s == ':');
 	if (info.formatcolon) {
 		s++;
-		if (!*s) {
-			error(0, 0, "${%s}: bad substitution", info.full);
-			return NULL;
-		}
+		if (!*s)
+			goto syntax_error;
 	}
 	switch (*s) {
 		case '\0': case '+':  case '-':  case '=':  case '?':
 		case '#':  case '%':
 			break;
 		default:
-			error(0, 0, "${%s}: bad substitution", info.full);
-			return NULL;
+			goto syntax_error;
 	}
 	info.format = s;
 
@@ -551,10 +548,8 @@ static char *expand_param2(const char *s, bool indq)
 	assert(values != NULL);
 
 	if (info.count) {
-		if (info.format[0]) {
-			error(0, 0, "${%s}: bad substitution", info.full);
-			return NULL;
-		}
+		if (info.format[0])
+			goto syntax_error;
 		return mprintf("%zu",
 				singlevalue
 					? (values[0] ? strlen(values[0]) : 0)
@@ -645,6 +640,11 @@ static char *expand_param2(const char *s, bool indq)
 		recfree((void **) rvalues, free);
 		return result;
 	}
+
+syntax_error:
+	error(is_interactive ? 0 : EXIT_FAILURE,
+			0, "${%s}: bad substitution", info.full);
+	return NULL;
 }
 
 /* パラメータの値を操作する書式を適用する。
@@ -972,7 +972,7 @@ static char *unescape_for_glob(const char *s)
  * s:      free 可能な文字列。
  * 戻り値: 引用符とエスケープを削除した結果。
  * s は unescape 内で free され、新しく malloc した文字列で結果が返る。 */
-static char *unescape(char *const s)
+char *unescape(char *const s)
 {
 	char *ss;
 	bool indq = false;
