@@ -34,6 +34,8 @@ extern char **environ;
 #define VAR_LC_CTYPE        "LC_CTYPE"
 #define VAR_LC_MESSAGES     "LC_MESSAGES"
 
+struct save_assignment;
+
 char *xgetcwd(void);
 void init_var(void);
 void set_shlvl(int change);
@@ -56,3 +58,6 @@ bool is_special_parameter_char(char c);
 bool is_name_char(char c);
 bool is_name(const char *c)
 	__attribute__((nonnull));
+bool assign_variables(char **assigns, struct save_assignment **save)
+	__attribute__((nonnull(1)));
+void undo_assignments(struct save_assignment *save, bool undoall);

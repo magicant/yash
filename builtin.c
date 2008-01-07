@@ -229,12 +229,12 @@ int builtin_export(int argc, char *const *argv)
 		} else {
 			size_t namelen = strcspn(c, "=");
 			if (c[namelen] == '=') {
-				c[namelen] = '\0';
-				if (!setvar(c, c + namelen + 1, true)) {
-					c[namelen] = '=';
+				char name[namelen + 1];
+				strncpy(name, c, namelen);
+				name[namelen] = '\0';
+				if (!setvar(name, c + namelen + 1, true)) {
 					return EXIT_FAILURE;
 				}
-				c[namelen] = '=';
 			} else {
 				export(c);
 			}

@@ -51,4 +51,4 @@ path.o: yash.h util.h parser.h path.h variable.h
 builtin.o: yash.h util.h sig.h lineinput.h expand.h exec.h path.h builtin.h alias.h variable.h
 builtin_job.o: yash.h util.h sig.h exec.h path.h builtin.h variable.h
 alias.o: yash.h util.h alias.h
-variable.o: yash.h util.h exec.h variable.h
+variable.o: yash.h util.h expand.h exec.h variable.h

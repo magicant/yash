@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include "yash.h"
 #include "util.h"
+#include "expand.h"
 #include "exec.h"
 #include "variable.h"
 #include <assert.h>
@@ -67,6 +68,14 @@ struct environment {
  * char へのポインタである。 */
 /* $0 は位置パラメータではない。故に positionals.contents[0] は NULL である。 */
 
+/* 一時的に設定した変数を後で戻すためのデータ */
+struct save_assignment {
+	struct save_assignment *next;
+	char *name;
+	struct variable old;
+	/* old が元の値。元の変数がない場合は old.value == NULL。 */
+};
+
 
 char *xgetcwd(void);
 void init_var(void);
@@ -83,6 +92,8 @@ bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
 bool is_name_char(char c);
 bool is_name(const char *c);
+bool assign_variables(char **assigns, struct save_assignment **save);
+void undo_assignments(struct save_assignment *save, bool undoall);
 static const char *count_getter(struct variable *var);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
@@ -230,7 +241,7 @@ void set_shlvl(int change)
 	if (level < 0)
 		level = 0;
 	if (snprintf(newshlvl, sizeof newshlvl, "%d", level) >= 0) {
-		if (!setvar(VAR_SHLVL, newshlvl, true))
+		if (!setvar(VAR_SHLVL, newshlvl, false))
 			error(0, 0, "failed to set env SHLVL");
 	}
 }
@@ -299,15 +310,17 @@ bool setvar(const char *name, const char *value, bool export)
 		};
 		ht_set(&env->variables, name, var);
 	}
+
+	bool ok;
 	if (var->setter) {
-		return var->setter(var, value, export);
+		ok = var->setter(var, value, export);
 	} else {
 		if (var->flags & VF_READONLY) {
 			error(0, 0, "%s: readonly variable cannot be assigned to", name);
 			return false;
 		}
 
-		bool ok = true;
+		ok = true;
 		if (export)
 			var->flags |= VF_EXPORT;
 		if (var->flags & VF_EXPORT) {
@@ -320,8 +333,9 @@ bool setvar(const char *name, const char *value, bool export)
 			free(var->value);
 			var->value = xstrdup(value);
 		}
-		return ok;
 	}
+	assert(var->value != NULL);
+	return ok;
 }
 
 /* 指定した名前の配列変数の内容を取得する。
@@ -440,6 +454,66 @@ bool is_name(const char *s)
 	while (is_name_char(*s)) s++;
 	return !*s;
 }
+
+/* 変数代入を行う。
+ * assigns: 代入する "変数=値" の配列へのポインタ。
+ * save:    非 NULL なら、元に戻すためのデータへのポインタが *save に入る。
+ * 戻り値:  成功すれば true、エラーなら false。
+ * ここで代入する変数は全て export 対象になる。
+ * エラーになっても途中結果を元に戻す為のデータが *save に入る。 */
+bool assign_variables(char **assigns, struct save_assignment **save)
+{
+	struct save_assignment *s = NULL;
+	char *assign;
+
+	while ((assign = *assigns)) {
+		//XXX 配列の代入は未対応
+		size_t namelen = strcspn(assign, "=");
+		char name[namelen + 1];
+		strncpy(name, assign, namelen);
+		name[namelen] = '\0';
+		assert(namelen > 0 && assign[namelen] == '=');
+
+		if (save) {
+			struct variable *var = get_variable(name);
+			struct save_assignment *ss = xmalloc(sizeof *ss);
+			*ss = (struct save_assignment) {
+				.next = s,
+				.name = xstrdup(name),
+			};
+			if (var)
+				ss->old = *var;
+			else
+				ss->old.value = NULL;
+			s = ss;
+		}
+
+		char *value = expand_word(assign + namelen + 1, true);
+		if (!value) {
+			goto returnfalse;
+		}
+		if (!setvar(name, value, true)) {
+			free(value);
+			goto returnfalse;
+		}
+		assigns++;
+	}
+	if (save)
+		*save = s;
+	return true;
+
+returnfalse:
+	if (save)
+		*save = s;
+	return false;
+}
+
+/* assign_variables で代入した変数を元に戻す。
+ * save:    元に戻す為のデータ (この関数内で free する) へのポインタ。
+ * undoall: true なら全部戻す。false なら export フラグだけ戻す。 */
+void undo_assignments(struct save_assignment *save, bool undoall);
+//TODO undo_assignments;
+//XXX readonly 変数は戻さない
 
 /* 特殊パラメータ $# のゲッター。位置パラメータの数を返す。 */
 static const char *count_getter(
