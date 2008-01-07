@@ -305,6 +305,7 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 		PROCESS *temp = xmalloc(sizeof *temp);
 		*temp = (PROCESS) {
 			.next = NULL,
+			.p_assigns = NULL,
 			.p_args = NULL,
 			.p_subcmds = NULL,
 			.p_redirs = NULL,
@@ -332,7 +333,7 @@ end:
 }
 
 /* 一つのコマンドを解析し、結果を p のアドレスに入れる。
- * この関数は p の p_type, p_args, p_subcmds, p_redirsを書き換える。
+ * この関数は p の p_type, p_assigns, p_args, p_subcmds, p_redirsを書き換える。
  * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。
  * 戻り値が false でも p の内容は変わっているかもしれない。 */
 static bool parse_words(PROCESS *p)
@@ -447,7 +448,7 @@ static REDIR *tryparse_redir(void)
 					start = &symbol[2];
 					break;
 				case '&':
-					type = RT_DUP;
+					type = RT_DUPIN;
 					start = &symbol[2];
 					break;
 				default:
@@ -464,7 +465,7 @@ static REDIR *tryparse_redir(void)
 					start = &symbol[2];
 					break;
 				case '&':
-					type = RT_DUP;
+					type = RT_DUPOUT;
 					start = &symbol[2];
 					break;
 				default:
@@ -692,16 +693,27 @@ static void print_process(struct strbuf *b, PROCESS *p)
 {
 	bool f = false;
 
+	if (p->p_assigns) {
+		char **assigns = p->p_assigns;
+		while (*assigns) {
+			if (f) sb_append(b, " ");
+			sb_append(b, *assigns);
+			f = true;
+			assigns++;
+		}
+	}
 	switch (p->p_type) {
 		case PT_NORMAL:
 			break;
 		case PT_GROUP:
+			if (f) sb_append(b, " ");
 			sb_append(b, "{ ");
 			print_statements(b, p->p_subcmds);
 			sb_append(b, " }");
 			f = true;
 			break;
 		case PT_SUBSHELL:
+			if (f) sb_append(b, " ");
 			sb_append(b, "( ");
 			print_statements(b, p->p_subcmds);
 			sb_append(b, " )");
@@ -717,6 +729,24 @@ static void print_process(struct strbuf *b, PROCESS *p)
 			sb_append(b, *args);
 			f = true;
 			args++;
+		}
+	}
+	if (p->p_redirs) {
+		REDIR *redir = p->p_redirs;
+		while (redir) {
+			if (f) sb_append(b, " ");
+			sb_printf(b, "%d", redir->rd_fd);
+			switch (redir->rd_type) {
+				case RT_INPUT:   sb_append(b, "<");   break;
+				case RT_OUTPUT:  sb_append(b, ">");   break;
+				case RT_APPEND:  sb_append(b, ">>");  break;
+				case RT_INOUT:   sb_append(b, "<>");  break;
+				case RT_DUPIN:   sb_append(b, "<&");  break;
+				case RT_DUPOUT:  sb_append(b, ">&");  break;
+			}
+			sb_append(b, redir->rd_file);
+			f = true;
+			redir = redir->next;
 		}
 	}
 }
@@ -964,7 +994,9 @@ void redirsfree(REDIR *r)
 void procsfree(PROCESS *p)
 {
 	while (p) {
+		recfree((void **) p->p_assigns, free);
 		recfree((void **) p->p_args, free);
+		redirsfree(p->p_redirs);
 		statementsfree(p->p_subcmds);
 
 		PROCESS *pp = p->next;

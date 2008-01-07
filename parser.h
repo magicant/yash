@@ -32,7 +32,7 @@ typedef struct x_statement STATEMENT;
 struct x_redirect {
 	REDIR *next;
 	enum redirect_type {
-		RT_INPUT, RT_OUTPUT, RT_APPEND, RT_INOUT, RT_DUP,
+		RT_INPUT, RT_OUTPUT, RT_APPEND, RT_INOUT, RT_DUPIN, RT_DUPOUT,
 	}      rd_type;
 	int    rd_fd;      /* リダイレクトするファイルディスクリプタ */
 	char  *rd_file;    /* リダイレクト先のファイル名 (常に非 NULL) */
@@ -48,12 +48,13 @@ struct x_process {
 		PT_SUBSHELL,  /* サブシェルで実行するコマンド群: ( ... ) */
 		PT_X_PIPE,    /* サブシェル内部で仕様する特殊な値 */
 	}           p_type;
-	char      **p_args;
-	STATEMENT  *p_subcmds;  /* プロセスに含まれる文の内容 */
+	char      **p_assigns;  /* 変数代入 */
+	char      **p_args;     /* コマンド名と引数 */
 	REDIR      *p_redirs;   /* プロセスに対するリダイレクト */
+	STATEMENT  *p_subcmds;  /* プロセスに含まれる文の内容 */
 };
 /* p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
- * p_subcmds に入る。p_args はリダイレクトを除くコマンドの内容である。
+ * p_subcmds に入る。p_args は変数代入とリダイレクトを除くコマンドの内容である。
  * (空白ごとに分けてエイリアスを展開しただけで、
  * それ以上パラメータの展開などは行っていない)
  * p_redirs はリダイレクトのデータを表す。(こちらも展開していない) */

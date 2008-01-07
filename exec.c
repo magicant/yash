@@ -532,6 +532,7 @@ void exec_statements(STATEMENT *s)
 				PROCESS proc = {
 					.next = NULL,
 					.p_type = PT_X_PIPE,
+					.p_assigns = NULL,
 					.p_args = NULL,
 					.p_subcmds = s,
 					.p_redirs = NULL,
@@ -897,7 +898,8 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 			case RT_INOUT:
 				flags = O_RDWR | O_CREAT;
 				break;
-			case RT_DUP:
+			case RT_DUPIN:
+			case RT_DUPOUT:
 				if (strcmp(exp, "-") == 0) {
 					/* r->rd_fd を閉じる */
 					if (close(r->rd_fd) < 0 && errno != EBADF)
@@ -911,12 +913,29 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 					fd = strtol(exp, &end, 10);
 					if (errno) goto onerror;
 					if (exp[0] == '\0' || end[0] != '\0') {
-						error(0, 0, "redirect syntax error");
+						error(0, 0, "%s: redirect syntax error", exp);
 						goto returnfalse;
 					}
 					if (fd < 0) {
 						errno = ERANGE;
 						goto onerror;
+					}
+					if (posixly_correct) {
+						int flags = fcntl(fd, F_GETFL);
+						if (flags >= 0) {
+							if (r->rd_type == RT_DUPIN
+									&& (flags & O_ACCMODE) == O_WRONLY) {
+								error(0, 0, "%d<&%d: file descriptor "
+										"not writable", r->rd_fd, fd);
+								goto returnfalse;
+							}
+							if (r->rd_type == RT_DUPOUT
+									&& (flags & O_ACCMODE) == O_RDONLY) {
+								error(0, 0, "%d>&%d: file descriptor "
+										"not readable", r->rd_fd, fd);
+								goto returnfalse;
+							}
+						}
 					}
 					if (fd != r->rd_fd) {
 						if (close(r->rd_fd) < 0)
