@@ -41,15 +41,14 @@ struct variable {
 		double as_double;
 	} avalue;*/
 	enum {
-		VF_READONLY = 1 << 0,
+		VF_EXPORT   = 1 << 0,
+		VF_READONLY = 1 << 1,
 	} flags;
 	const char *(*getter)(struct variable *var);
 	bool (*setter)(struct variable *var, const char *value, bool export);
 };
-/* value が NULL なら、それは export 対象の環境変数であり、値は environ にある。
- * environ の中にもなければ、export 対象だが設定されていない変数である。
- * value が非 NULL なら、それは free 可能な文字列を指していて、変数は非 export
- * 対象である。変数の値が value と environ の両方に入っていることはない。 */
+/* VF_EXPORT フラグが立っている変数は、export 対象であり、value メンバの内容
+ * よりも environ に入っている内容を優先する */
 /* getter/setter は変数のゲッター・セッターである。
  * 非 NULL なら、値を取得・設定する際にフィルタとして使用する。
  * ゲッター・セッターの戻り値はそのまま getvar/setvar の戻り値になる。
@@ -78,6 +77,7 @@ const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 struct plist *getarray(const char *name);
 bool unsetvar(const char *name);
+bool export(const char *name);
 void unexport(const char *name);
 bool is_exported(const char *name);
 bool is_special_parameter_char(char c);
@@ -134,7 +134,10 @@ void init_var(void)
 			continue;
 
 		struct variable *var = xmalloc(sizeof *var);
-		*var = (struct variable) { .value = NULL, };
+		*var = (struct variable) {
+			.value = xstrdup(*e + namelen + 1),
+			.flags = VF_EXPORT,
+		};
 		ht_set(&current_env->variables, name, var);
 	}
 
@@ -175,6 +178,18 @@ void init_var(void)
 		.getter = zero_getter,
 	};
 	ht_set(&current_env->variables, "0", var);
+
+	/* デフォルトの export を設定する。 */
+	export(VAR_HOME);
+	export(VAR_LANG);
+	export(VAR_LC_ALL);
+	export(VAR_LC_COLLATE);
+	export(VAR_LC_CTYPE);
+	export(VAR_LC_MESSAGES);
+	export(VAR_PATH);
+	export(VAR_PWD);
+	export(VAR_OLDPWD);
+	export(VAR_SHLVL);
 
 	/* PWD 環境変数を設定する */
 	char *pwd = xgetcwd();
@@ -243,9 +258,9 @@ const char *getvar(const char *name)
 	if (var) {
 		if (var->getter)
 			return var->getter(var);
-		if (var->value)
-			return var->value;
-		return getenv(name);
+		if (var->flags & VF_EXPORT)
+			return getenv(name);
+		return var->value;
 	}
 	if (xisdigit(name[0])) {  /* 位置パラメータを探す */
 		char *end;
@@ -291,18 +306,21 @@ bool setvar(const char *name, const char *value, bool export)
 			error(0, 0, "%s: readonly variable cannot be assigned to", name);
 			return false;
 		}
-		if (export || !var->value) {
-			bool ok = (setenv(name, value, true) == 0);
-			free(var->value);
-			var->value = NULL;
-			return ok;
-		} else {
-			if (var->value != value) {
-				free(var->value);
-				var->value = xstrdup(value);
+
+		bool ok = true;
+		if (export)
+			var->flags |= VF_EXPORT;
+		if (var->flags & VF_EXPORT) {
+			if (setenv(name, value, true) < 0) {
+				error(0, errno, "%s=%s", name, value);
+				ok = false;
 			}
-			return true;
 		}
+		if (var->value != value) {
+			free(var->value);
+			var->value = xstrdup(value);
+		}
+		return ok;
 	}
 }
 
@@ -331,10 +349,37 @@ bool unsetvar(const char *name)
 				return false;
 			}
 			free(var->value);
-			unsetenv(name);
+
+			var = get_variable(name);
+			if (!var || !(var->flags & VF_EXPORT))
+				unsetenv(name);
 			return true;
 		}
 		env = env->parent;
+	}
+	return true;
+}
+
+/* 変数を export 対象にする。
+ * 戻り値: 成功したかどうか */
+bool export(const char *name)
+{
+	struct variable *var = get_variable(name);
+	if (var) {
+		if (setenv(name, var->value, false) < 0) {
+			error(0, errno, "cannot export `%s'", name);
+			return false;
+		}
+	} else {
+		struct environment *env = current_env;
+		while (env->parent)
+			env = env->parent;
+		var = xmalloc(sizeof *var);
+		*var = (struct variable) {
+			.value = NULL,
+			.flags = VF_EXPORT,
+		};
+		ht_set(&env->variables, name, var);
 	}
 	return true;
 }
@@ -343,19 +388,16 @@ bool unsetvar(const char *name)
 void unexport(const char *name)
 {
 	struct variable *var = get_variable(name);
-	if (var && !var->value) {
-		const char *value = getenv(name);
-		if (value)
-			var->value = xstrdup(value);
-		unsetenv(name);
-	}
+	if (var)
+		var->flags &= ~VF_EXPORT;
+	unsetenv(name);
 }
 
 /* 指定した名前のシェル変数が存在しかつ export 対象かどうかを返す。 */
 bool is_exported(const char *name)
 {
 	struct variable *var = get_variable(name);
-	return var && !var->value;
+	return var && (var->flags & VF_EXPORT);
 }
 
 /* 引数 c が特殊パラメータの名前であるかどうか判定する。

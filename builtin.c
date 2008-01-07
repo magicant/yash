@@ -158,10 +158,10 @@ int builtin_cd(int argc, char *const *argv)
 		return EXIT_FAILURE;
 	}
 	if (oldpwd) {
-		setvar(VAR_OLDPWD, oldpwd, true);
+		setvar(VAR_OLDPWD, oldpwd, false);
 	}
 	if ((path = xgetcwd())) {
-		setvar(VAR_PWD, path, true);
+		setvar(VAR_PWD, path, false);
 		free(path);
 	}
 	return EXIT_SUCCESS;
@@ -236,8 +236,7 @@ int builtin_export(int argc, char *const *argv)
 				}
 				c[namelen] = '=';
 			} else {
-				error(0, 0, "%s: %s: invalid export format", argv[0], c);
-				goto usage;
+				export(c);
 			}
 		}
 	}

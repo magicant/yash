@@ -29,6 +29,10 @@ extern char **environ;
 #define VAR_SHLVL           "SHLVL"
 #define VAR_HOSTNAME        "HOSTNAME"
 #define VAR_POSIXLY_CORRECT "POSIXLY_CORRECT"
+#define VAR_LC_ALL          "LC_ALL"
+#define VAR_LC_COLLATE      "LC_COLLATE"
+#define VAR_LC_CTYPE        "LC_CTYPE"
+#define VAR_LC_MESSAGES     "LC_MESSAGES"
 
 char *xgetcwd(void);
 void init_var(void);
@@ -41,6 +45,8 @@ bool setvar(const char *name, const char *value, bool export)
 	__attribute__((nonnull));
 struct plist *getarray(const char *name);
 bool unsetvar(const char *name)
+	__attribute__((nonnull));
+bool export(const char *name)
 	__attribute__((nonnull));
 void unexport(const char *name)
 	__attribute__((nonnull));
