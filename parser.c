@@ -29,6 +29,7 @@
 #include "util.h"
 #include "parser.h"
 #include "alias.h"
+#include "variable.h"
 #include <assert.h>
 
 
@@ -386,7 +387,9 @@ static bool parse_words(PROCESS *p)
 			break;
 	}
 
-	struct plist args;
+	bool assignment_acceptable = true;
+	struct plist assigns, args;
+	pl_init(&assigns);
 	pl_init(&args);
 	while (*fromi(i_index) != '#') {
 		REDIR *rd = tryparse_redir();
@@ -397,12 +400,29 @@ static bool parse_words(PROCESS *p)
 			size_t startindex = i_index;
 			skip_with_quote_i(" \t;&|<>()\n\r", true);
 			if (i_index == startindex) break;
-			pl_append(&args, xstrndup(fromi(startindex), i_index - startindex));
+			if (assignment_acceptable) {
+				char *eq = fromi(startindex);
+				while (is_name_char(*eq)) eq++;
+				// TODO 配列の添字
+				if (eq != fromi(startindex)
+						&& !xisdigit(*fromi(startindex)) && *eq == '=') {
+					// TODO () で囲んだ配列
+					pl_append(&assigns,
+							xstrndup(fromi(startindex), i_index - startindex));
+				} else {
+					assignment_acceptable = false;
+				}
+			}
+			if (!assignment_acceptable) {
+				pl_append(&args,
+						xstrndup(fromi(startindex), i_index - startindex));
+			}
 		}
 		i_index = toi(skipblanks(fromi(i_index)));
 		subst_alias(&i_src, i_index, true);
 	}
 
+	p->p_assigns = (char **) pl_toary(&assigns);
 	p->p_args = (char **) pl_toary(&args);
 	if (*fromi(i_index) == '(') {
 		// XXX function parsing

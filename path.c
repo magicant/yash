@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include "yash.h"
 #include "util.h"
+#include "parser.h"
 #include "path.h"
 #include "variable.h"
 #include <assert.h>
@@ -34,7 +35,10 @@
 
 char *which(const char *name, const char *path, bool (*cond)(struct stat *st));
 bool is_executable(struct stat *st);
+static const char *get_tilde_dir(const char *name)
+	__attribute__((nonnull));
 char *expand_tilde(const char *path);
+char *expand_tilde_multiple(const char *paths);
 char *skip_homedir(const char *path);
 char *collapse_homedir(const char *path);
 char *canonicalize_path(const char *path);
@@ -119,56 +123,90 @@ bool is_executable(struct stat *st)
 	return S_ISREG(st->st_mode) && !!(st->st_mode & S_IXUSR);
 }
 
+/* 指定した名前のユーザのホームディレクトリを得る。
+ * name が空文字列なら HOME 環境変数を返す。また name が "+", "-" のときは
+ * それぞれ PWD, OLDPWD 環境変数を返す。
+ * 戻り値: データが見付からなければ NULL。 */
+static const char *get_tilde_dir(const char *name)
+{
+	if (!name[0]) {
+		const char *home = getvar(VAR_HOME);
+		if (home)
+			return home;
+		struct passwd *pwd = getpwuid(geteuid());
+		if (pwd)
+			return pwd->pw_dir;
+	} else if (strcmp(name, "+") == 0) {
+		const char *pwd = getvar(VAR_PWD);
+		if (pwd)
+			return pwd;
+	} else if (strcmp(name, "-") == 0) {
+		const char *oldpwd = getvar(VAR_OLDPWD);
+		if (oldpwd)
+			return oldpwd;
+	} else {
+		struct passwd *pwd = getpwnam(name);
+		if (pwd)
+			return pwd->pw_dir;
+	}
+	return NULL;
+}
+
 /* '~' で始まるパスを実際のホームディレクトリに展開する。
- * 展開先が自分のホームディレクトリを指しているときは、HOME 環境変数を優先して
- * 使用する。HOME 環境変数がないか、自分以外のホームディレクトリならば、
- * getpwnam 関数を使う。
+ *   例)  "~user/dir"  ->  "/home/user/dir"
  * path:   '~' で始まる文字列
  * 戻り値: 成功したら新しく malloc した文字列にパスを展開したもの。
- *         失敗なら NULL。 */
+ *         失敗 (データが見付からない場合を含む) なら NULL。 */
 char *expand_tilde(const char *path)
 {
-	const char *home;
-	char *result;
-	struct passwd *pwd;
-
 	assert(path && path[0] == '~');
-	if (path[1] == '\0' || path[1] == '/') {
-		path += 1;
-		if ((home = getvar(VAR_HOME)))
-			goto returnresult;
-		errno = 0;
-		if (!(pwd = getpwuid(getuid())))
-			return NULL;
-	} else if (path[1] == '+' && (path[2] == '\0' || path[2] == '/')) {
-		path += 2;
-		if ((home = getvar(VAR_PWD)))
-			goto returnresult;
-		return NULL;
-	} else if (path[1] == '-' && (path[2] == '\0' || path[2] == '/')) {
-		path += 2;
-		if ((home = getvar(VAR_OLDPWD)))
-			goto returnresult;
-		return NULL;
-	} else {
-		size_t usernamelen = strcspn(path + 1, "/");
-		char *username = xstrndup(path + 1, usernamelen);
+	path++;
 
-		path += usernamelen + 1;
-		errno = 0;
-		pwd = getpwnam(username);
-		free(username);
-		if (!pwd)
-			return NULL;
-		home = pwd->pw_dir;
-		goto returnresult;
-	}
+	size_t len = strcspn(path, "/");
+	char name[len + 1];
+	strncpy(name, path, len);
+	name[len] = '\0';
 
-returnresult:
-	result = xmalloc(strlen(home) + strlen(path) + 1);
+	const char *home = get_tilde_dir(name);
+	if (!home)
+		return NULL;
+
+	char *result = xmalloc(strlen(home) + strlen(path + len) + 1);
 	strcpy(result, home);
 	strcat(result, path);
 	return result;
+}
+
+/* ':' で区切った複数のパスのそれぞれに対してチルダ展開を行う。
+ * 文字列内の引用符・エスケープは適切に飛ばす。
+ * 戻り値: 新しく malloc した文字列に paths を展開したもの。 */
+/* この関数は、変数代入の右辺値のチルダ展開で使う。 */
+char *expand_tilde_multiple(const char *paths)
+{
+	struct strbuf buf;
+	sb_init(&buf);
+
+	while (*paths) {
+		if (*paths == '~') {
+			const char *end = skip_with_quote(paths, "/:");
+			size_t len = end - (paths + 1);
+			char name[len + 1];
+			strncpy(name, paths + 1, len);
+			name[len] = '\0';
+
+			const char *home = get_tilde_dir(name);
+			if (home) {
+				sb_append(&buf, home);
+				paths = end;
+			}
+		}
+		const char *colon = skip_with_quote(paths, ":");
+		if (*colon == ':')
+			colon++;
+		sb_nappend(&buf, paths, colon - paths);
+		paths = colon;
+	}
+	return sb_tostr(&buf);
 }
 
 /* 指定したパスがホームディレクトリで始まるなら、それ以降の部分を返す。

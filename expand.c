@@ -68,7 +68,7 @@ struct expand_info {
 
 bool expand_line(char *const *args, int *argc, char ***argv);
 char *expand_single(const char *arg);
-char *expand_word(const char *s);
+char *expand_word(const char *s, bool multitilde);
 static bool expand_arg(const char *s, struct plist *argv)
 	__attribute__((nonnull));
 static bool expand_brace(char *s, struct plist *result)
@@ -153,14 +153,19 @@ char *expand_single(const char *arg)
 
 /* 一つのフィールドに対してチルダ展開・パラメータ/数式展開・コマンド置換を行う。
  * パス名展開・引用符除去は行わない。
+ * multitilde: true なら変数代入用のチルダ展開を行う。false なら普通に展開する。
  * 戻り値: 新しく malloc した、展開の結果。エラーなら NULL。 */
-char *expand_word(const char *s)
+char *expand_word(const char *s, bool multitilde)
 {
 	char *s2;
 	struct plist list;
 
-	if (s[0] != '~' || !(s2 = expand_tilde(s)))
-		s2 = xstrdup(s);
+	if (!multitilde) {
+		if (s[0] != '~' || !(s2 = expand_tilde(s)))
+			s2 = xstrdup(s);
+	} else {
+		s2 = expand_tilde_multiple(s);
+	}
 	pl_init(&list);
 	if (!expand_subst(s2, &list, false)) {
 		recfree(pl_toary(&list), free);
@@ -583,7 +588,7 @@ static char *expand_param2(const char *s, bool indq)
 		case '-':  case '+':
 			if (isempty == (info.format[0] == '-')) {
 				noescape = !info.indq || posixly_correct;
-				char *r = expand_word(info.format + 1);
+				char *r = expand_word(info.format + 1, false);
 				if (!noescape)
 					r = unescape(r);
 				recfree((void **) rvalues, free);
@@ -594,7 +599,7 @@ static char *expand_param2(const char *s, bool indq)
 			if (isempty) {
 				if (singlevalue && !info.indirect
 						&& xisalpha(info.full[0]) && is_name(info.param)) {
-					char *word1 = unescape(expand_word(info.format + 1));
+					char *word1 = unescape(expand_word(info.format + 1, false));
 					recfree((void **) rvalues, free);
 					if (!setvar(info.param, word1, false)) {
 						free(word1);
@@ -612,7 +617,7 @@ static char *expand_param2(const char *s, bool indq)
 		case '?':
 			if (isempty) {
 				if (info.format[1]) {
-					char *word1 = unescape(expand_word(info.format + 1));
+					char *word1 = unescape(expand_word(info.format + 1, false));
 					error(is_interactive_now ? 0 : EXIT_FAILURE,
 							0, "%s: %s", param, word1);
 					free(word1);
@@ -670,14 +675,14 @@ static char *expand_param3(struct expand_info *info, const char *value)
 		case '#':
 			matchlong = (format[0] == '#');
 			if (matchlong) format++;
-			word1 = expand_word(format);
+			word1 = expand_word(format, false);
 			word2 = unescape_for_glob(word1);
 			if (!word2) return NULL;
 			return matchhead(value, word2, matchlong);
 		case '%':
 			matchlong = (format[0] == '%');
 			if (matchlong) format++;
-			word1 = expand_word(format);
+			word1 = expand_word(format, false);
 			word2 = unescape_for_glob(word1);
 			if (!word2) return NULL;
 			return matchtail(value, word2, matchlong);

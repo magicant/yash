@@ -27,7 +27,7 @@ bool expand_line(char *const *args, int *argc, char ***argv)
 	__attribute__((nonnull(2,3)));
 char *expand_single(const char *arg)
 	__attribute__((nonnull));
-char *expand_word(const char *s)
+char *expand_word(const char *s, bool multitilde)
 	__attribute__((nonnull));
 void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
 		const char *ifs, const char *q)

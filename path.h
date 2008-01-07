@@ -28,6 +28,8 @@ char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 bool is_executable(struct stat *st);
 char *expand_tilde(const char *path)
 	__attribute__((malloc, nonnull));
+char *expand_tilde_multiple(const char *paths)
+	__attribute__((malloc, nonnull));
 char *skip_homedir(const char *path);
 char *collapse_homedir(const char *path)
 	__attribute__((malloc));

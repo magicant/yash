@@ -854,7 +854,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		/* rd_file を展開する */
 		exp = is_interactive
 			? expand_single(r->rd_file)
-			: unescape(expand_word(r->rd_file));
+			: unescape(expand_word(r->rd_file, false));
 		if (!exp)
 			goto returnfalse;
 
