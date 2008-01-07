@@ -854,10 +854,8 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		exp = is_interactive
 			? expand_single(r->rd_file)
 			: unescape(expand_word(r->rd_file));
-		if (!exp) {
-			error(0, 0, "redirect: invalid word expansion: %s", r->rd_file);
+		if (!exp)
 			goto returnfalse;
-		}
 
 		/* リダイレクトをセーブする */
 		if (save) {

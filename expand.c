@@ -57,6 +57,8 @@
  *       |   \_ escape_dq
  *       \_ do_glob
  *           \_ unescape_for_glob
+ *
+ * 非対話的シェルにおいて展開時にエラーが発生したら、シェルはそのまま終了する
  */
 
 struct expand_info {
@@ -133,7 +135,13 @@ char *expand_single(const char *arg)
 {
 	struct plist alist;
 	pl_init(&alist);
-	if (!expand_arg(arg, &alist) || alist.length != 1) {
+	if (!expand_arg(arg, &alist)) {
+		recfree(pl_toary(&alist), free);
+		return NULL;
+	}
+	if (alist.length != 1) {
+		error(is_interactive_now ? 0 : EXIT_FAILURE,
+				0, "%s: parameter expanded to multiple words", arg);
 		recfree(pl_toary(&alist), free);
 		return NULL;
 	}
