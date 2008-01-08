@@ -53,8 +53,7 @@ struct variable {
 /* getter/setter は変数のゲッター・セッターである。
  * 非 NULL なら、値を取得・設定する際にフィルタとして使用する。
  * ゲッター・セッターの戻り値はそのまま getvar/setvar の戻り値になる。
- * ゲッターが非 NULL のとき、value は NULL (export 対象のとき) またはダミーの
- * 空文字列 (非 export 対象のとき) である。
+ * ゲッターが非 NULL のとき、value は NULL である。
  * セッターは、variable 構造体の value メンバを書き換える等、変数を設定するのに
  * 必要な動作を全て行う。セッターが NULL ならデフォルトの動作をする。 */
 
@@ -68,20 +67,12 @@ struct environment {
  * char へのポインタである。 */
 /* $0 は位置パラメータではない。故に positionals.contents[0] は NULL である。 */
 
-/* 一時的に設定した変数を後で戻すためのデータ */
-struct save_assignment {
-	struct save_assignment *next;
-	char *name;
-	struct variable old;
-	/* old が元の値。元の変数がない場合は old.value == NULL。 */
-};
-
 
 char *xgetcwd(void);
 void init_var(void);
 void set_shlvl(int change);
 void set_positionals(char *const *values);
-static struct variable *get_variable(const char *name);
+static struct variable *get_variable(const char *name, bool temp);
 const char *getvar(const char *name);
 bool setvar(const char *name, const char *value, bool export);
 struct plist *getarray(const char *name);
@@ -89,11 +80,11 @@ bool unsetvar(const char *name);
 bool export(const char *name);
 void unexport(const char *name);
 bool is_exported(const char *name);
+bool assign_variables(char **assigns, bool temp, bool export);
+void unset_temporary(const char *name);
 bool is_special_parameter_char(char c);
 bool is_name_char(char c);
 bool is_name(const char *c);
-bool assign_variables(char **assigns, struct save_assignment **save);
-void undo_assignments(struct save_assignment *save, bool undoall);
 static const char *count_getter(struct variable *var);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
@@ -101,7 +92,10 @@ static const char *last_bg_pid_getter(struct variable *var);
 static const char *zero_getter(struct variable *var);
 
 
+/* 変数を保存する環境 */
 static struct environment *current_env;
+/* 一時的変数を保存するハッシュテーブル */
+static struct hasht temp_variables;
 
 
 /* getcwd(3) の結果を新しく malloc した文字列で返す。
@@ -135,6 +129,8 @@ void init_var(void)
 	pl_init(&current_env->positionals);
 	pl_append(&current_env->positionals, NULL);
 
+	ht_init(&temp_variables);
+
 	/* まず current_env->variables に全ての環境変数を設定する。 */
 	for (char **e = environ; *e; e++) {
 		size_t namelen = strcspn(*e, "=");
@@ -155,37 +151,37 @@ void init_var(void)
 	/* 特殊パラメータを設定する。 */
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
-		.value = "",
+		.value = NULL,
 		.getter = count_getter,
 	};
 	ht_set(&current_env->variables, "#", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
-		.value = "",
+		.value = NULL,
 		.getter = laststatus_getter,
 	};
 	ht_set(&current_env->variables, "?", var);
 	/*var = xmalloc(sizeof *var);
 	*var = (struct variable) {
-		.value = "",
+		.value = NULL,
 		.getter = TODO $- parameter,
 	};
 	ht_set(&current_env->variables, "-", var);*/
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
-		.value = "",
+		.value = NULL,
 		.getter = pid_getter,
 	};
 	ht_set(&current_env->variables, "$", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
-		.value = "",
+		.value = NULL,
 		.getter = last_bg_pid_getter,
 	};
 	ht_set(&current_env->variables, "!", var);
 	var = xmalloc(sizeof *var);
 	*var = (struct variable) {
-		.value = "",
+		.value = NULL,
 		.getter = zero_getter,
 	};
 	ht_set(&current_env->variables, "0", var);
@@ -251,10 +247,17 @@ void set_shlvl(int change)
 	}
 }
 
-/* 現在の変数環境や親変数環境から指定した変数を捜し出す。
- * 位置パラメータ、$*, $@ は取得できない。 */
-static struct variable *get_variable(const char *name)
+/* 現在の変数環境や親変数環境・一時的変数から指定した変数を捜し出す。
+ * 位置パラメータ、$*, $@ は取得できない。
+ * temp: 一時的変数からも探すかどうか。 */
+static struct variable *get_variable(const char *name, bool temp)
 {
+	if (temp) {
+		struct variable *var = ht_get(&temp_variables, name);
+		if (var)
+			return var;
+	}
+
 	struct environment *env = current_env;
 	while (env) {
 		struct variable *var = ht_get(&env->variables, name);
@@ -270,7 +273,7 @@ static struct variable *get_variable(const char *name)
  * 変数が存在しないときは NULL を返す。 */
 const char *getvar(const char *name)
 {
-	struct variable *var = get_variable(name);  /* 普通の変数を探す */
+	struct variable *var = get_variable(name, true);  /* 普通の変数を探す */
 	if (var) {
 		if (var->getter)
 			return var->getter(var);
@@ -292,6 +295,7 @@ const char *getvar(const char *name)
 
 /* シェル変数の値を設定する。変数が存在しない場合、基底変数環境に追加する。
  * この関数では位置・特殊パラメータは設定できない (してはいけない)。
+ * 同名の一時的変数があれば、一時的変数を削除してから普通に変数を設定する。
  * name:   正しい変数名。
  * export: true ならその変数を export 対象にする。false ならそのまま。
  * 戻り値: 成功なら true、エラーならメッセージを出して false。 */
@@ -301,7 +305,9 @@ bool setvar(const char *name, const char *value, bool export)
 	assert(!xisdigit(name[0]));
 	assert(!is_special_parameter_char(name[0]));
 
-	struct variable *var = get_variable(name);
+	unset_temporary(name);
+
+	struct variable *var = get_variable(name, false);
 	if (!var) {
 		struct environment *env = current_env;
 		while (env->parent)
@@ -358,6 +364,8 @@ struct plist *getarray(const char *name)
  *         変数が存在しなかったら true。 */
 bool unsetvar(const char *name)
 {
+	unset_temporary(name);
+
 	struct environment *env = current_env;
 	while (env) {
 		struct variable *var = ht_remove(&env->variables, name);
@@ -372,7 +380,7 @@ bool unsetvar(const char *name)
 			free(var);
 
 			/* 親環境に同名の変数があれば、environ の内容をそれに合わせる */
-			var = get_variable(name);
+			var = get_variable(name, false);
 			if (!var || !(var->flags & VF_EXPORT))
 				unsetenv(name);
 			else if (!getenv(name) && oldvarexport)
@@ -388,7 +396,9 @@ bool unsetvar(const char *name)
  * 戻り値: 成功したかどうか */
 bool export(const char *name)
 {
-	struct variable *var = get_variable(name);
+	unset_temporary(name);
+
+	struct variable *var = get_variable(name, false);
 	if (var) {
 		if (setenv(name, var->value, false) < 0) {
 			error(0, errno, "export %s=%s", name, var->value);
@@ -411,17 +421,89 @@ bool export(const char *name)
 /* 変数を非 export 対象にする。 */
 void unexport(const char *name)
 {
-	struct variable *var = get_variable(name);
+	unset_temporary(name);
+
+	struct variable *var = get_variable(name, false);
 	if (var)
 		var->flags &= ~VF_EXPORT;
 	unsetenv(name);
 }
 
-/* 指定した名前のシェル変数が存在しかつ export 対象かどうかを返す。 */
+/* 指定した名前のシェル変数が存在しかつ export 対象かどうかを返す。
+ * 一時的変数は考慮しない。 */
 bool is_exported(const char *name)
 {
-	struct variable *var = get_variable(name);
+	struct variable *var = get_variable(name, false);
 	return var && (var->flags & VF_EXPORT);
+}
+
+/* 変数代入を行う。
+ * assigns: 代入する "変数=値" の配列へのポインタ。
+ * temp:    true なら一時的変数として代入する。false なら普通に代入する。
+ * export:  代入する変数を export 対象にするかどうか。
+ * 戻り値:  成功すれば true、エラーなら false。
+ * temp と export を両方 true にしてはいけない。
+ * エラーになっても途中結果を元に戻す為のデータが *save に入る。 */
+bool assign_variables(char **assigns, bool temp, bool export)
+{
+	assert(!temp || !export);
+
+	char *assign;
+	while ((assign = *assigns)) {
+		//XXX 配列の代入は未対応
+		size_t namelen = strcspn(assign, "=");
+		char name[namelen + 1];
+		strncpy(name, assign, namelen);
+		name[namelen] = '\0';
+		assert(namelen > 0 && assign[namelen] == '=');
+
+		char *value = expand_word(assign + namelen + 1, true);
+		if (!value) {
+			return false;
+		}
+		if (temp) {
+			struct variable *var = xmalloc(sizeof *var);
+			*var = (struct variable) { .value = value, .flags = 0, };
+			var = ht_set(&temp_variables, name, var);
+			if (var) {
+				free(var->value);
+				free(var);
+			}
+		} else {
+			if (!setvar(name, value, export)) {
+				free(value);
+				return false;
+			}
+		}
+		assigns++;
+	}
+	return true;
+}
+
+/* unset_temporary で使う内部関数 */
+static int free_tempvar(const char *name __attribute__((unused)), void *value)
+{
+	struct variable *var = value;
+	assert(var != NULL);
+	free(var->value);
+	free(var);
+	return 0;
+}
+
+/* 一時的変数を削除する。
+ * name: 削除する一時的変数の名前。NULL なら全部の一時的変数を削除する。 */
+void unset_temporary(const char *name)
+{
+	if (name) {
+		struct variable *var = ht_remove(&temp_variables, name);
+		if (var) {
+			free(var->value);
+			free(var);
+		}
+	} else {
+		ht_each(&temp_variables, free_tempvar);
+		ht_clear(&temp_variables);
+	}
 }
 
 /* 引数 c が特殊パラメータの名前であるかどうか判定する。
@@ -460,66 +542,6 @@ bool is_name(const char *s)
 	while (is_name_char(*s)) s++;
 	return !*s;
 }
-
-/* 変数代入を行う。
- * assigns: 代入する "変数=値" の配列へのポインタ。
- * save:    非 NULL なら、元に戻すためのデータへのポインタが *save に入る。
- * 戻り値:  成功すれば true、エラーなら false。
- * ここで代入する変数は全て export 対象になる。
- * エラーになっても途中結果を元に戻す為のデータが *save に入る。 */
-bool assign_variables(char **assigns, struct save_assignment **save)
-{
-	struct save_assignment *s = NULL;
-	char *assign;
-
-	while ((assign = *assigns)) {
-		//XXX 配列の代入は未対応
-		size_t namelen = strcspn(assign, "=");
-		char name[namelen + 1];
-		strncpy(name, assign, namelen);
-		name[namelen] = '\0';
-		assert(namelen > 0 && assign[namelen] == '=');
-
-		if (save) {
-			struct variable *var = get_variable(name);
-			struct save_assignment *ss = xmalloc(sizeof *ss);
-			*ss = (struct save_assignment) {
-				.next = s,
-				.name = xstrdup(name),
-			};
-			if (var)
-				ss->old = *var;
-			else
-				ss->old.value = NULL;
-			s = ss;
-		}
-
-		char *value = expand_word(assign + namelen + 1, true);
-		if (!value) {
-			goto returnfalse;
-		}
-		if (!setvar(name, value, true)) {
-			free(value);
-			goto returnfalse;
-		}
-		assigns++;
-	}
-	if (save)
-		*save = s;
-	return true;
-
-returnfalse:
-	if (save)
-		*save = s;
-	return false;
-}
-
-/* assign_variables で代入した変数を元に戻す。
- * save:    元に戻す為のデータ (この関数内で free する) へのポインタ。
- * undoall: true なら全部戻す。false なら export フラグだけ戻す。 */
-void undo_assignments(struct save_assignment *save, bool undoall);
-//TODO undo_assignments;
-//XXX readonly 変数は戻さない
 
 /* 特殊パラメータ $# のゲッター。位置パラメータの数を返す。 */
 static const char *count_getter(

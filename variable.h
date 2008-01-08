@@ -59,10 +59,10 @@ void unexport(const char *name)
 	__attribute__((nonnull));
 bool is_exported(const char *name)
 	__attribute__((nonnull));
+bool assign_variables(char **assigns, bool temp, bool export)
+	__attribute__((nonnull));
+void unset_temporary(const char *name);
 bool is_special_parameter_char(char c);
 bool is_name_char(char c);
 bool is_name(const char *c)
 	__attribute__((nonnull));
-bool assign_variables(char **assigns, struct save_assignment **save)
-	__attribute__((nonnull(1)));
-void undo_assignments(struct save_assignment *save, bool undoall);
