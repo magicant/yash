@@ -728,13 +728,14 @@ static pid_t exec_single(
 				return 0;
 			} else {
 				BUILTIN *builtin = get_builtin(argv[0]);
-				struct save_redirect *saver;
 				if (builtin) {  /* 組込みコマンドを fork せずに実行 */
+					struct save_redirect *saver;
 					if (open_redirections(p->p_redirs, &saver)) {
-						if (assign_variables(p->p_assigns,
-									!builtin->is_special, builtin->is_special)){
+						bool temp = !builtin->is_special;
+						bool export = builtin->is_special;
+						if (assign_variables(p->p_assigns, temp, export)){
 							laststatus = builtin->main(argc, argv);
-							if (!builtin->is_special)
+							if (temp)
 								unset_temporary(NULL);
 							if (builtin->main == builtin_exec
 									&& laststatus == EXIT_SUCCESS)
@@ -744,8 +745,7 @@ static pid_t exec_single(
 							recfree((void **) argv, free);
 							return 0;
 						}
-						if (!builtin->is_special)
-							unset_temporary(NULL);
+						unset_temporary(NULL);
 					}
 					laststatus = EXIT_FAILURE;
 					if (posixly_correct &&
