@@ -58,9 +58,8 @@ int builtin_unalias(int argc, char *const *argv);
 int builtin_option(int argc, char *const *argv);
 
 /* 組込みコマンド一般仕様:
- * argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
- * 組込みコマンドは、argv の内容を変更してはならない。
- * ただし、getopt によって argv の順番を並べ替えるのはよい。 */
+ * - argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
+ * - argv 内の文字列の内容を変更したり、引数の順番を並び替えたりしてもよい。 */
 
 static struct hasht builtins;
 
@@ -229,12 +228,12 @@ int builtin_export(int argc, char *const *argv)
 		} else {
 			size_t namelen = strcspn(c, "=");
 			if (c[namelen] == '=') {
-				char name[namelen + 1];
-				strncpy(name, c, namelen);
-				name[namelen] = '\0';
-				if (!setvar(name, c + namelen + 1, true)) {
+				c[namelen] = '\0';
+				if (!setvar(c, c + namelen + 1, true)) {
+					c[namelen] = '=';
 					return EXIT_FAILURE;
 				}
+				c[namelen] = '=';
 			} else {
 				export(c);
 			}
