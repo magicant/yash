@@ -41,22 +41,27 @@ struct x_redirect {
 
 /* パイプラインに含まれる一つのプロセス */
 struct x_process {
-	PROCESS    *next;       /* パイプライン内の次のプロセス */
+	PROCESS       *next;       /* パイプライン内の次のプロセス */
 	enum {
 		PT_NORMAL,    /* 普通のコマンド */
 		PT_GROUP,     /* 現在のシェルで実行するコマンド群: { ... } */
 		PT_SUBSHELL,  /* サブシェルで実行するコマンド群: ( ... ) */
 		PT_X_PIPE,    /* サブシェル内部で仕様する特殊な値 */
-	}           p_type;
-	char      **p_assigns;  /* 変数代入 */
-	char      **p_args;     /* コマンド名と引数 */
-	REDIR      *p_redirs;   /* プロセスに対するリダイレクト */
-	STATEMENT  *p_subcmds;  /* プロセスに含まれる文の内容 */
+	}              p_type;
+	char         **p_assigns;  /* 変数代入 */
+	union {
+		char     **p_args;     /* コマンド名と引数 */
+		STATEMENT *p_subcmds;  /* プロセスに含まれる文の内容 */
+	} p_content_;
+	REDIR         *p_redirs;   /* プロセスに対するリダイレクト */
 };
-/* p_type が非 PT_NORMAL のとき、プロセスに含まれるサブステートメントが
- * p_subcmds に入る。p_args は変数代入とリダイレクトを除くコマンドの内容である。
- * (空白ごとに分けてエイリアスを展開しただけで、
+#define p_args    p_content_.p_args
+#define p_subcmds p_content_.p_subcmds
+/* p_type が PT_NORMAL のとき、p_args にコマンドの内容 (変数代入やリダイレクトを
+ * 除く) が入る。(空白ごとに分けてエイリアスを展開しただけで、
  * それ以上パラメータの展開などは行っていない)
+ * p_type が非 PT_NORMAL のときは、プロセスに含まれるサブステートメントが
+ * p_subcmds に入る。
  * p_redirs はリダイレクトのデータを表す。(こちらも展開していない) */
 
 /* 一つのパイプライン */

@@ -304,18 +304,10 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 		}
 
 		PROCESS *temp = xmalloc(sizeof *temp);
-		*temp = (PROCESS) {
-			.next = NULL,
-			.p_assigns = NULL,
-			.p_args = NULL,
-			.p_subcmds = NULL,
-			.p_redirs = NULL,
-		};
+		*temp = (PROCESS) { .next = NULL, };
 		if (!parse_words(temp)) {
 			procsfree(temp);
 			goto end;
-		} else if (temp->p_type != PT_NORMAL && temp->p_args[0]) {
-			serror("unexpected token: %s", temp->p_args[0]);
 		}
 
 		if (*fromi(i_index) == '|' && *fromi(i_index + 1) != '|') {
@@ -354,7 +346,6 @@ static bool parse_words(PROCESS *p)
 		case '(':
 			i_index++;
 			p->p_type = PT_SUBSHELL;
-			p->p_args = NULL;
 			p->p_subcmds = parse_statements(')');
 			if (*fromi(i_index) != ')') {
 				result = true;
@@ -368,7 +359,6 @@ static bool parse_words(PROCESS *p)
 			 * 除外しないといけない。 */
 			i_index++;
 			p->p_type = PT_GROUP;
-			p->p_args = NULL;
 			p->p_subcmds = parse_statements('}');
 			if (*fromi(i_index) != '}') {
 				result = true;
@@ -383,7 +373,6 @@ static bool parse_words(PROCESS *p)
 			goto end;
 		default:
 			p->p_type = PT_NORMAL;
-			p->p_subcmds = NULL;
 			break;
 	}
 
@@ -423,7 +412,13 @@ static bool parse_words(PROCESS *p)
 	}
 
 	p->p_assigns = (char **) pl_toary(&assigns);
-	p->p_args = (char **) pl_toary(&args);
+	if (p->p_type == PT_NORMAL) {
+		p->p_args = (char **) pl_toary(&args);
+	} else {
+		if (args.length > 0)
+			serror("invalid token `%s'", (char *) args.contents[0]);
+		recfree((void **) pl_toary(&args), free);
+	}
 	if (*fromi(i_index) == '(') {
 		// XXX function parsing
 		serror("`(' is not allowed here");
@@ -724,6 +719,15 @@ static void print_process(struct strbuf *b, PROCESS *p)
 	}
 	switch (p->p_type) {
 		case PT_NORMAL:
+			if (p->p_args) {
+				char **args = p->p_args;
+				while (*args) {
+					if (f) sb_append(b, " ");
+					sb_append(b, *args);
+					f = true;
+					args++;
+				}
+			}
 			break;
 		case PT_GROUP:
 			if (f) sb_append(b, " ");
@@ -741,15 +745,6 @@ static void print_process(struct strbuf *b, PROCESS *p)
 			break;
 		default:
 			assert(false);
-	}
-	if (p->p_args) {
-		char **args = p->p_args;
-		while (*args) {
-			if (f) sb_append(b, " ");
-			sb_append(b, *args);
-			f = true;
-			args++;
-		}
 	}
 	if (p->p_redirs) {
 		REDIR *redir = p->p_redirs;
@@ -1015,9 +1010,11 @@ void procsfree(PROCESS *p)
 {
 	while (p) {
 		recfree((void **) p->p_assigns, free);
-		recfree((void **) p->p_args, free);
+		if (p->p_type == PT_NORMAL)
+			recfree((void **) p->p_args, free);
+		else
+			statementsfree(p->p_subcmds);
 		redirsfree(p->p_redirs);
-		statementsfree(p->p_subcmds);
 
 		PROCESS *pp = p->next;
 		free(p);

@@ -541,7 +541,6 @@ void exec_statements(STATEMENT *s)
 					.next = NULL,
 					.p_type = PT_X_PIPE,
 					.p_assigns = NULL,
-					.p_args = NULL,
 					.p_subcmds = s,
 					.p_redirs = NULL,
 				};
@@ -710,19 +709,15 @@ static pid_t exec_single(
 		goto directexec;
 	
 	if (etype == FOREGROUND && pipes.p_count == 0) {
-		expanded = true;
-		if (!expand_line(p->p_args, &argc, &argv)) {
-			recfree((void **) argv, free);
-			return -1;
-		}
-		if (p->p_type == PT_NORMAL && argc == 0)
-			return 0;  // XXX リダイレクトがあるなら特殊操作
-		if (p->p_type != PT_NORMAL && argc > 0) {
-			error(is_interactive_now ? 0 : EXIT_FAILURE, 0, "syntax error");
-			recfree((void **) argv, free);
-			return -1;
-		}
 		if (p->p_type == PT_NORMAL) {
+			expanded = true;
+			if (!expand_line(p->p_args, &argc, &argv)) {
+				recfree((void **) argv, free);
+				return -1;
+			}
+			if (!argc)
+				return 0;  // XXX リダイレクトや代入がある場合
+
 			BUILTIN *builtin = get_builtin(argv[0]);
 			if (builtin) {  /* fork せずに組込みコマンドを実行 */
 				struct save_redirect *saver;
@@ -741,7 +736,6 @@ static pid_t exec_single(
 				return 0;
 			}
 		} else if (p->p_type == PT_GROUP && !p->p_redirs) {
-			recfree((void **) argv, free);
 			exec_statements(p->p_subcmds);
 			return 0;
 		}
@@ -812,14 +806,9 @@ directexec:
 		close_pipes(pipes);
 	}
 
-	if (!expanded) {
+	if (p->p_type == PT_NORMAL && !expanded) {
 		if (!expand_line(p->p_args, &argc, &argv))
 			exit(EXIT_FAILURE);
-		if (p->p_type == PT_NORMAL && argc == 0)
-			exit(EXIT_SUCCESS);  // XXX リダイレクトがあるなら特殊操作
-		if (p->p_type != PT_NORMAL && *argv) {
-			error(EXIT_FAILURE, 0, "redirection syntax error");
-		}
 	}
 	if (!open_redirections(p->p_redirs, NULL))
 		exit(EXIT_FAILURE);
@@ -827,6 +816,9 @@ directexec:
 	switch (p->p_type) {
 		BUILTIN *builtin;
 		case PT_NORMAL:
+			if (!argc)
+				exit(EXIT_SUCCESS);
+
 			builtin = get_builtin(argv[0]);
 			if (builtin)  /* 組込みコマンドを実行 */
 				exit(builtin->main(argc, argv));
