@@ -192,17 +192,17 @@ void pl_trim(struct plist *list)
 	__attribute__((nonnull));
 void pl_clear(struct plist *list)
 	__attribute__((nonnull));
-void pl_insert(struct plist *list, size_t i, void *e)
+void pl_insert(struct plist *list, size_t i, const void *e)
 	__attribute__((nonnull(1)));
-void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
+void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n)
 	__attribute__((nonnull));
-void pl_append(struct plist *list, void *e)
+void pl_append(struct plist *list, const void *e)
 	__attribute__((nonnull(1)));
-void pl_anappend(struct plist *list, void **ps, size_t n)
+void pl_anappend(struct plist *list, void *const *ps, size_t n)
 	__attribute__((nonnull));
-void pl_ainsert(struct plist *list, size_t i, void **ps)
+void pl_ainsert(struct plist *list, size_t i, void *const *ps)
 	__attribute__((nonnull));
-void pl_aappend(struct plist *list, void **ps)
+void pl_aappend(struct plist *list, void *const *ps)
 	__attribute__((nonnull));
 void pl_remove(struct plist *list, size_t i, size_t count)
 	__attribute__((nonnull));
@@ -242,7 +242,7 @@ void ht_clear(struct hasht *ht)
 	__attribute__((nonnull));
 void *ht_get(struct hasht *ht, const char *key)
 	__attribute__((nonnull(1)));
-void *ht_set(struct hasht *ht, const char *key, void *value)
+void *ht_set(struct hasht *ht, const char *key, const void *value)
 	__attribute__((nonnull(1)));
 void *ht_remove(struct hasht *ht, const char *key)
 	__attribute__((nonnull(1)));

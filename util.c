@@ -75,12 +75,12 @@ void **pl_toary(struct plist *list);
 void pl_setmax(struct plist *list, size_t newmax);
 void pl_trim(struct plist *list);
 void pl_clear(struct plist *list);
-void pl_insert(struct plist *list, size_t i, void *e);
-void pl_append(struct plist *list, void *e);
-void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n);
-void pl_anappend(struct plist *list, void **ps, size_t n);
-void pl_ainsert(struct plist *list, size_t i, void **ps);
-void pl_aappend(struct plist *list, void **ps);
+void pl_insert(struct plist *list, size_t i, const void *e);
+void pl_append(struct plist *list, const void *e);
+void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n);
+void pl_anappend(struct plist *list, void *const *ps, size_t n);
+void pl_ainsert(struct plist *list, size_t i, void *const *ps);
+void pl_aappend(struct plist *list, void *const *ps);
 void pl_remove(struct plist *list, size_t i, size_t count);
 
 static unsigned ht_hashstr(const char *s);
@@ -91,7 +91,7 @@ void ht_ensurecap(struct hasht *ht, size_t newcap);
 void ht_trim(struct hasht *ht);
 void ht_clear(struct hasht *ht);
 void *ht_get(struct hasht *ht, const char *key);
-void *ht_set(struct hasht *ht, const char *key, void *value);
+void *ht_set(struct hasht *ht, const char *key, const void *value);
 void *ht_remove(struct hasht *ht, const char *key);
 int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
 
@@ -821,7 +821,7 @@ void pl_clear(struct plist *list)
 
 /* ポインタリスト内の前から i 要素目に要素 e を挿入する。
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に e を付け加える。 */
-void pl_insert(struct plist *list, size_t i, void *e)
+void pl_insert(struct plist *list, size_t i, const void *e)
 {
 	i = MIN(i, list->length);
 	if (list->length == list->maxlength) {
@@ -830,7 +830,7 @@ void pl_insert(struct plist *list, size_t i, void *e)
 	assert(list->length < list->maxlength);
 	memmove(list->contents + i + 1, list->contents + i,
 			sizeof(void *) * (list->length - i));
-	list->contents[i] = e;
+	list->contents[i] = (void *) e;
 	list->length++;
 	list->contents[list->length] = NULL;
 }
@@ -839,7 +839,7 @@ void pl_insert(struct plist *list, size_t i, void *e)
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に要素を付け加える。
  * 配列 *ps は、必ず n 個の要素がなければならない
  * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。*/
-void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
+void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n)
 {
 	if (n + list->length > list->maxlength) {
 		do
@@ -857,7 +857,7 @@ void pl_aninsert(struct plist *list, size_t i, void **ps, size_t n)
 }
 
 /* ポインタリスト内の配列の末尾に要素 e を付け加える。 */
-void pl_append(struct plist *list, void *e)
+void pl_append(struct plist *list, const void *e)
 {
 	pl_insert(list, SIZE_MAX, e);
 }
@@ -865,7 +865,7 @@ void pl_append(struct plist *list, void *e)
 /* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
  * 配列 *ps は、必ず n 個の要素がなければならない
  * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。*/
-void pl_anappend(struct plist *list, void **ps, size_t n)
+void pl_anappend(struct plist *list, void *const *ps, size_t n)
 {
 	pl_aninsert(list, SIZE_MAX, ps, n);
 }
@@ -873,14 +873,14 @@ void pl_anappend(struct plist *list, void **ps, size_t n)
 /* ポインタリスト内の前から i 要素目に、配列 *ps の要素を挿入する。
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に要素を付け加える。
  * 配列 *ps は、NULL 要素終端でなければならない。 */
-void pl_ainsert(struct plist *list, size_t i, void **ps)
+void pl_ainsert(struct plist *list, size_t i, void *const *ps)
 {
 	pl_aninsert(list, i, ps, parylen(ps));
 }
 
 /* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
  * 配列 *ps は、NULL 要素終端でなければならない。 */
-void pl_aappend(struct plist *list, void **ps)
+void pl_aappend(struct plist *list, void *const *ps)
 {
 	pl_aninsert(list, SIZE_MAX, ps, parylen(ps));
 }
@@ -1062,7 +1062,7 @@ void *ht_get(struct hasht *ht, const char *key)
 /* ハッシュテーブルに値を設定する。key は内部で strdup される。
  * key が NULL なら何もしないで NULL を返す。
  * 戻り値: もともと key に設定されていた値 */
-void *ht_set(struct hasht *ht, const char *key, void *value)
+void *ht_set(struct hasht *ht, const char *key, const void *value)
 {
 	if (!key)
 		return NULL;
@@ -1075,7 +1075,7 @@ void *ht_set(struct hasht *ht, const char *key, void *value)
 		struct hash_entry *entry = &ht->entries[index];
 		if (entry->hash == hash && strcmp(entry->key, key) == 0) {
 			void *oldvalue = entry->value;
-			entry->value = value;
+			entry->value = (void *) value;
 			return oldvalue;
 		}
 		index = entry->next;
@@ -1091,7 +1091,7 @@ void *ht_set(struct hasht *ht, const char *key, void *value)
 			.next = ht->indices[ii],
 			.hash = hash,
 			.key = xstrdup(key),
-			.value = value,
+			.value = (void *) value,
 		};
 		ht->indices[ii] = index;
 		return NULL;
@@ -1104,7 +1104,7 @@ void *ht_set(struct hasht *ht, const char *key, void *value)
 		.next = ht->indices[ii],
 		.hash = hash,
 		.key = xstrdup(key),
-		.value = value,
+		.value = (void *) value,
 	};
 	ht->indices[ii] = ht->tailindex;
 	ht->tailindex++;

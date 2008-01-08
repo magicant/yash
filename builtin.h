@@ -21,8 +21,8 @@
 
 
 typedef struct {
-	int (*main)(int argc, char **argv);
-	bool is_special;
+	int (*const main)(int argc, char **argv);
+	const bool is_special;
 } BUILTIN;
 
 void init_builtin(void);

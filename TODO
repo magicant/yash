@@ -1,6 +1,3 @@
-コマンド名の先頭に name=value 形式を付けて env コマンド無しで環境を拡張
-hasht ht_set の引数を const に
-builtin.h: const
 配列の実装
 数式展開
 コマンドのパスをハッシュに記憶する
