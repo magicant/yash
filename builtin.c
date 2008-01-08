@@ -44,22 +44,24 @@
 
 void init_builtin(void);
 BUILTIN *get_builtin(const char *name);
-int builtin_true(int argc, char *const *argv);
+int builtin_true(int argc, char **argv);
 #ifdef ADDITIONAL_BUILTIN
-int builtin_false(int argc, char *const *argv);
+int builtin_false(int argc, char **argv);
 #endif
-int builtin_cd(int argc, char *const *argv);
-int builtin_umask(int argc, char *const *argv);
-int builtin_export(int argc, char *const *argv);
-int builtin_source(int argc, char *const *argv);
-int builtin_history(int argc, char *const *argv);
-int builtin_alias(int argc, char *const *argv);
-int builtin_unalias(int argc, char *const *argv);
-int builtin_option(int argc, char *const *argv);
+int builtin_cd(int argc, char **argv);
+int builtin_umask(int argc, char **argv);
+int builtin_export(int argc, char **argv);
+int builtin_source(int argc, char **argv);
+int builtin_history(int argc, char **argv);
+int builtin_alias(int argc, char **argv);
+int builtin_unalias(int argc, char **argv);
+int builtin_option(int argc, char **argv);
 
 /* 組込みコマンド一般仕様:
  * - argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
- * - argv 内の文字列の内容を変更したり、引数の順番を並び替えたりしてもよい。 */
+ * - argv 内の文字列の内容を変更したり、引数の順番を並び替えたりしてもよい。
+ * - 特殊組込みコマンドでない組込みコマンドは中で exec_single を
+ *   呼んではいけない。一コマンド分しか一時的変数を記憶できないからである。 */
 
 static struct hasht builtins;
 
@@ -115,20 +117,20 @@ BUILTIN *get_builtin(const char *name)
 
 /* :/true 組込みコマンド */
 int builtin_true(int argc __attribute__((unused)),
-		char *const *argv __attribute__((unused)))
+		char **argv __attribute__((unused)))
 {
 	return EXIT_SUCCESS;
 }
 
 /* false 組込みコマンド */
 int builtin_false(int argc __attribute__((unused)),
-		char *const *argv __attribute__((unused)))
+		char **argv __attribute__((unused)))
 {
 	return EXIT_FAILURE;
 }
 
 /* cd 組込みコマンド */
-int builtin_cd(int argc, char *const *argv)
+int builtin_cd(int argc, char **argv)
 {
 	const char *newpwd, *oldpwd;
 	char *path;
@@ -168,7 +170,7 @@ int builtin_cd(int argc, char *const *argv)
 
 /* umask 組込みコマンド */
 /* XXX: 数字だけでなく文字列での指定に対応 */
-int builtin_umask(int argc, char *const *argv)
+int builtin_umask(int argc, char **argv)
 {
 	if (argc < 2) {
 		mode_t current = umask(0);
@@ -202,7 +204,7 @@ usage:
 
 /* export 組込みコマンド
  * -n: 環境変数を削除する */
-int builtin_export(int argc, char *const *argv)
+int builtin_export(int argc, char **argv)
 {
 	bool remove = false;
 	int opt;
@@ -248,7 +250,7 @@ usage:
 }
 
 /* source/. 組込みコマンド */
-int builtin_source(int argc, char *const *argv)
+int builtin_source(int argc, char **argv)
 {
 	if (argc < 2) {
 		error(0, 0, "%s: filename not given", argv[0]);
@@ -270,7 +272,7 @@ usage:
  * -r file:  file から履歴を読み込む (今の履歴に追加)
  * -w file:  file に履歴を保存する (上書き)
  * -s X:     X を履歴に追加 */
-int builtin_history(int argc, char *const *argv)
+int builtin_history(int argc, char **argv)
 {
 	int ierrno;
 
@@ -364,7 +366,7 @@ usage:
  * 引数なし or -p オプションありだと全てのエイリアスを出力する。
  * 引数があると、そのエイリアスを設定 or 出力する。
  * -g を指定するとグローバルエイリアスになる。 */
-int builtin_alias(int argc, char *const *argv)
+int builtin_alias(int argc, char **argv)
 {
 	int print_alias(const char *name, ALIAS *alias) {
 		struct strbuf buf;
@@ -429,7 +431,7 @@ usage:
 
 /* unalias 組込みコマンド。指定した名前のエイリアスを消す。
  * -a オプションで全て消す。 */
-int builtin_unalias(int argc, char *const *argv)
+int builtin_unalias(int argc, char **argv)
 {
 	bool removeall = false;
 	bool err = false;
@@ -482,7 +484,7 @@ static const char *option_names[] = {
  *        ps1: プロンプト文字列
  *        promptcommand: プロンプト前に実行するコマンド
  *        huponexit: 終了時に未了のジョブに SIGHUP を送る */
-int builtin_option(int argc, char *const *argv)
+int builtin_option(int argc, char **argv)
 {
 	char *name, *value = NULL;
 	int valuenum = 0, valuenumvalid = 0;

@@ -34,14 +34,14 @@
 #include <assert.h>
 
 int parse_jobspec(const char *str, bool forcePercent);
-int builtin_exit(int argc, char *const *argv);
-int builtin_kill(int argc, char *const *argv);
-int builtin_wait(int argc, char *const *argv);
-int builtin_suspend(int argc, char *const *argv);
-int builtin_jobs(int argc, char *const *argv);
-int builtin_disown(int argc, char *const *argv);
-int builtin_fg(int argc, char *const *argv);
-int builtin_exec(int argc, char *const *argv);
+int builtin_exit(int argc, char **argv);
+int builtin_kill(int argc, char **argv);
+int builtin_wait(int argc, char **argv);
+int builtin_suspend(int argc, char **argv);
+int builtin_jobs(int argc, char **argv);
+int builtin_disown(int argc, char **argv);
+int builtin_fg(int argc, char **argv);
+int builtin_exec(int argc, char **argv);
 
 
 /* jobspec を解析する。
@@ -95,7 +95,7 @@ int parse_jobspec(const char *str, bool forcePercent)
 /* exit/logout 組込みコマンド
  * logout では、ログインシェルでないときにエラーを出す。
  * -f: ジョブが残っていても exit する。 */
-int builtin_exit(int argc, char *const *argv)
+int builtin_exit(int argc, char **argv)
 {
 	bool forceexit = false;
 	int opt;
@@ -149,7 +149,7 @@ usage:
 /* kill 組込みコマンド
  * -s signal:   シグナルの指定。デフォルトは TERM。
  * -l [signal]: シグナル番号とシグナル名を相互変換する。 */
-int builtin_kill(int argc, char *const *argv)
+int builtin_kill(int argc, char **argv)
 {
 	int sig = SIGTERM;
 	bool err = false, list = false;
@@ -283,7 +283,7 @@ usage:
 }
 
 /* wait 組込みコマンド */
-int builtin_wait(int argc, char *const *argv)
+int builtin_wait(int argc, char **argv)
 {
 	sigset_t newset, oldset;
 	bool interrupted = false;
@@ -399,7 +399,7 @@ usage:
 
 /* suspend 組込みコマンド
  * -f: ログインシェルでも警告しない */
-int builtin_suspend(int argc, char *const *argv)
+int builtin_suspend(int argc, char **argv)
 {
 	bool force = false;
 	int opt;
@@ -452,7 +452,7 @@ usage:
  * -l: 全てのプロセス番号を表示する。
  * -n: 変化があったジョブのみ報告する
  * args: ジョブ番号の指定 */
-int builtin_jobs(int argc, char *const *argv)
+int builtin_jobs(int argc, char **argv)
 {
 	bool changedonly = false, printpids = false;
 	bool err = false;
@@ -538,7 +538,7 @@ usage:
  * -a:  all
  * -r:  running only
  * -h:  本当に disown するのではなく、終了時に SIGHUP を送らないようにする。 */
-int builtin_disown(int argc, char *const *argv)
+int builtin_disown(int argc, char **argv)
 {
 	int opt;
 	bool all = false, runningonly = false, nohup = false, err = false;
@@ -613,7 +613,7 @@ usage:
 }
 
 /* fg/bg 組込みコマンド */
-int builtin_fg(int argc, char *const *argv)
+int builtin_fg(int argc, char **argv)
 {
 	bool fg = strcmp(argv[0], "fg") == 0;
 	bool err = false;
@@ -757,7 +757,7 @@ usage:
  * -f:       対話的シェルで未了のジョブがあっても execve する。
  * -l:       ログインコマンドとして新しいコマンドを execve する。
  * -a name:  execve するとき argv[0] として name を渡す。 */
-int builtin_exec(int argc, char *const *argv)
+int builtin_exec(int argc, char **argv)
 {
 	int opt;
 	bool clearenv = false, forceexec = false, login = false;

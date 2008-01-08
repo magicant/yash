@@ -719,6 +719,7 @@ static pid_t exec_single(
 			return 0;  // XXX リダイレクトがあるなら特殊操作
 		if (p->p_type != PT_NORMAL && argc > 0) {
 			error(is_interactive_now ? 0 : EXIT_FAILURE, 0, "syntax error");
+			recfree((void **) argv, free);
 			return -1;
 		}
 		if (p->p_type == PT_NORMAL) {
