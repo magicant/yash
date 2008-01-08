@@ -197,10 +197,15 @@ void init_var(void)
 	export(VAR_LC_COLLATE);
 	export(VAR_LC_CTYPE);
 	export(VAR_LC_MESSAGES);
+	export(VAR_LC_MONETARY);
+	export(VAR_LC_NUMERIC);
+	export(VAR_LC_TIME);
 	export(VAR_PATH);
 	export(VAR_PWD);
 	export(VAR_OLDPWD);
 	export(VAR_SHLVL);
+	export(VAR_LINES);
+	export(VAR_COLUMNS);
 
 	/* PWD 環境変数を設定する */
 	char *pwd = xgetcwd();
@@ -310,22 +315,21 @@ bool setvar(const char *name, const char *value, bool export)
 		};
 		ht_set(&env->variables, name, var);
 	}
+	if (var->flags & VF_READONLY) {
+		error(0, 0, "%s: readonly variable cannot be assigned to", name);
+		return false;
+	}
 
 	bool ok;
 	if (var->setter) {
 		ok = var->setter(var, value, export);
 	} else {
-		if (var->flags & VF_READONLY) {
-			error(0, 0, "%s: readonly variable cannot be assigned to", name);
-			return false;
-		}
-
 		ok = true;
 		if (export)
 			var->flags |= VF_EXPORT;
 		if (var->flags & VF_EXPORT) {
 			if (setenv(name, value, true) < 0) {
-				error(0, errno, "%s=%s", name, value);
+				error(0, errno, "export %s=%s", name, value);
 				ok = false;
 			}
 		}
@@ -361,11 +365,13 @@ bool unsetvar(const char *name)
 			bool oldvarexport = var->flags & VF_EXPORT;
 			if (var->flags & VF_READONLY) {
 				ht_set(&env->variables, name, var);
+				error(0, 0, "cannot unset readonly variable %s", name);
 				return false;
 			}
 			free(var->value);
 			free(var);
 
+			/* 親環境に同名の変数があれば、environ の内容をそれに合わせる */
 			var = get_variable(name);
 			if (!var || !(var->flags & VF_EXPORT))
 				unsetenv(name);
@@ -385,7 +391,7 @@ bool export(const char *name)
 	struct variable *var = get_variable(name);
 	if (var) {
 		if (setenv(name, var->value, false) < 0) {
-			error(0, errno, "cannot export `%s'", name);
+			error(0, errno, "export %s=%s", name, var->value);
 			return false;
 		}
 	} else {
