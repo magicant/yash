@@ -443,7 +443,7 @@ bool is_exported(const char *name)
  * export:  代入する変数を export 対象にするかどうか。
  * 戻り値:  成功すれば true、エラーなら false。
  * temp と export を両方 true にしてはいけない。
- * エラーになっても途中結果を元に戻す為のデータが *save に入る。 */
+ * エラーの場合でも途中までは代入が完了していることがある。 */
 bool assign_variables(char **assigns, bool temp, bool export)
 {
 	assert(!temp || !export);
@@ -457,7 +457,7 @@ bool assign_variables(char **assigns, bool temp, bool export)
 		name[namelen] = '\0';
 		assert(namelen > 0 && assign[namelen] == '=');
 
-		char *value = expand_word(assign + namelen + 1, true);
+		char *value = unescape(expand_word(assign + namelen + 1, true));
 		if (!value) {
 			return false;
 		}

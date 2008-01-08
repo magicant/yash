@@ -708,6 +708,7 @@ static pid_t exec_single(
 	if (etype == SELF)
 		goto directexec;
 	
+	/* fork せずに実行できる場合を処理する */
 	if (etype == FOREGROUND && pipes.p_count == 0) {
 		if (p->p_type == PT_NORMAL) {
 			expanded = true;
@@ -715,31 +716,54 @@ static pid_t exec_single(
 				recfree((void **) argv, free);
 				return -1;
 			}
-			if (!argc)
-				return 0;  // XXX リダイレクトや代入がある場合
-
-			BUILTIN *builtin = get_builtin(argv[0]);
-			if (builtin) {  /* fork せずに組込みコマンドを実行 */
-				struct save_redirect *saver;
-				if (open_redirections(p->p_redirs, &saver))
-					laststatus = builtin->main(argc, argv);
-				else if (posixly_correct
-						&& !is_interactive_now && builtin->is_special)
-					exit(EXIT_FAILURE);
-				else
-					laststatus = EXIT_FAILURE;
-				if (builtin->main != builtin_exec || laststatus != EXIT_SUCCESS)
+			if (!argc) {
+				if (p->p_assigns) {
+					assign_variables(p->p_assigns, false, true);
+				}
+				if (p->p_redirs) {
+					struct save_redirect *saver;
+					open_redirections(p->p_redirs, &saver);
 					undo_redirections(saver);
-				else
-					savesfree(saver);
-				recfree((void **) argv, free);
+				}
 				return 0;
+			} else {
+				BUILTIN *builtin = get_builtin(argv[0]);
+				struct save_redirect *saver;
+				if (builtin) {  /* 組込みコマンドを fork せずに実行 */
+					if (open_redirections(p->p_redirs, &saver)) {
+						if (assign_variables(p->p_assigns,
+									!builtin->is_special, builtin->is_special)){
+							laststatus = builtin->main(argc, argv);
+							if (!builtin->is_special)
+								unset_temporary(NULL);
+							if (builtin->main == builtin_exec
+									&& laststatus == EXIT_SUCCESS)
+								savesfree(saver);
+							else
+								undo_redirections(saver);
+							recfree((void **) argv, free);
+							return 0;
+						}
+						if (!builtin->is_special)
+							unset_temporary(NULL);
+					}
+					laststatus = EXIT_FAILURE;
+					if (posixly_correct &&
+							builtin->is_special && !is_interactive_now)
+						exit(EXIT_FAILURE);
+					undo_redirections(saver);
+					recfree((void **) argv, free);
+					return -1;
+				}
 			}
 		} else if (p->p_type == PT_GROUP && !p->p_redirs) {
 			exec_statements(p->p_subcmds);
 			return 0;
 		}
 	}
+
+	/* fork する前にバッファを空にする
+	 * (親と子で同じものを二回書き出すのを防ぐため) */
 	fflush(NULL);
 
 	pid_t cpid = fork();
@@ -812,6 +836,7 @@ directexec:
 	}
 	if (!open_redirections(p->p_redirs, NULL))
 		exit(EXIT_FAILURE);
+	assign_variables(p->p_assigns, false, true);
 
 	switch (p->p_type) {
 		BUILTIN *builtin;
