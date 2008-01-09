@@ -315,13 +315,16 @@ int builtin_alias(int argc, char **argv)
 {
 	int print_alias(const char *name, ALIAS *alias) {
 		struct strbuf buf;
-		sb_init(&buf);
-		if (!posixly_correct)
-			sb_append(&buf, "alias ");
-		sb_printf(&buf, "%-3s%s=", alias->global ? "-g" : "", name);
-		escape_sq(alias->value, &buf);
-		puts(buf.contents);
-		sb_destroy(&buf);
+		if (!posixly_correct || !alias->global) {
+			sb_init(&buf);
+			if (!posixly_correct)
+				sb_printf(&buf, "alias %-3s", alias->global ? "-g" : "");
+			sb_append(&buf, name);
+			sb_cappend(&buf, '=');
+			escape_sq(alias->value, &buf);
+			puts(buf.contents);
+			sb_destroy(&buf);
+		}
 		return 0;
 	}
 

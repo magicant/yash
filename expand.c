@@ -711,8 +711,7 @@ static char *expand_param3(struct expand_info *info, const char *value)
 			if (format[patlen] != '/') {
 				word2 = NULL;
 			} else {
-				word2 = unescape_for_glob(expand_word(
-							format + patlen + 1, false));
+				word2 = unescape(expand_word(format + patlen + 1, false));
 				if (!word2) {
 					free(word1);
 					return NULL;
