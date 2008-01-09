@@ -84,9 +84,9 @@ static char *expand_param2(const char *s, bool indq)
 	__attribute__((nonnull, malloc));
 static char *expand_param3(struct expand_info *info, const char *value)
 	__attribute__((nonnull, malloc));
-static char *matchhead(const char *s, char *pat, bool matchlong)
+static char *matchhead(const char *s, char *pat)
 	__attribute__((nonnull, malloc));
-static char *matchtail(const char *s, char *pat, bool matchlong)
+static char *matchtail(const char *s, char *pat)
 	__attribute__((nonnull, malloc));
 static char *matchandsubst(
 		const char *s, char *pat, char *str, enum substtype type)
@@ -687,13 +687,15 @@ static char *expand_param3(struct expand_info *info, const char *value)
 			if (matchlong) format++;
 			word1 = unescape_for_glob(expand_word(format, false));
 			if (!word1) return NULL;
-			return matchhead(value, word1, matchlong);
+			return matchlong ? matchandsubst(value, word1, NULL, substhead)
+			                 : matchhead(value, word1);
 		case '%':
 			matchlong = (format[0] == '%');
 			if (matchlong) format++;
 			word1 = unescape_for_glob(expand_word(format, false));
 			if (!word1) return NULL;
-			return matchtail(value, word1, matchlong);
+			return matchlong ? matchandsubst(value, word1, NULL, substtail)
+			                 : matchtail(value, word1);
 		case '/':;
 			bool sall = (format[0] == '/');
 			if (sall) format++;
@@ -726,104 +728,61 @@ static char *expand_param3(struct expand_info *info, const char *value)
 	return xstrdup(value ? value : "");
 }
 
-/* pat を s の先頭部分にマッチさせ、一致した部分を取り除いた文字列を返す。
+/* pat を s の先頭部分にマッチさせ、最短で一致した部分を取り除いた文字列を返す。
  * pat:       マッチさせる glob パタン。matchhead 内で free する。
- * matchlong: true なら最長一致、false なら最短一致。
  * 戻り値:    新しく malloc した、s の部分文字列。エラーなら NULL。 */
-static char *matchhead(const char *s, char *pat, bool matchlong)
+static char *matchhead(const char *s, char *pat)
 {
 	size_t len = strlen(s);
-	size_t i;
+	size_t i = 0;
 	char buf[len + 1];
 
-	errno = 0;
-	if (matchlong) {
-		i = len;
-		strcpy(buf, s);
-		for (;;) {
-			switch (fnmatch(pat, buf, 0)) {
-				case 0:  /* 一致した */
-					goto end;
-				case FNM_NOMATCH:  /* 一致しなかった */
-					break;
-				default:  /* エラー */
-					error(0, 0, "unexpected fnmatch error");
-					free(pat);
-					return NULL;
-			}
-			if (!i)
+	for (;;) {
+		buf[i] = '\0';
+		switch (fnmatch(pat, buf, 0)) {
+			case 0:  /* 一致した */
 				goto end;
-			buf[--i] = '\0';  /* buf の末尾の一文字を削る */
+			case FNM_NOMATCH:  /* 一致しなかった */
+				break;
+			default:  /* エラー */
+				error(0, 0, "unexpected fnmatch error");
+				free(pat);
+				return NULL;
 		}
-	} else {
-		i = 0;
-		for (;;) {
-			buf[i] = '\0';
-			switch (fnmatch(pat, buf, 0)) {
-				case 0:  /* 一致した */
-					goto end;
-				case FNM_NOMATCH:  /* 一致しなかった */
-					break;
-				default:  /* エラー */
-					error(0, 0, "unexpected fnmatch error");
-					free(pat);
-					return NULL;
-			}
-			if (i == len) {
-				i = 0;
-				goto end;
-			}
-			buf[i] = s[i];
-			i++;
+		if (i == len) {
+			i = 0;
+			goto end;
 		}
+		buf[i] = s[i];
+		i++;
 	}
 end:
 	free(pat);
 	return xstrdup(s + i);
 }
 
-/* pat を s の末尾部分にマッチさせ、一致した部分を取り除いた文字列を返す。
+/* pat を s の末尾部分にマッチさせ、最短で一致した部分を取り除いた文字列を返す。
  * pat:       マッチさせる glob パタン。matchtail 内で free する。
- * matchlong: true なら最長一致、false なら最短一致。
  * 戻り値:    新しく malloc した、s の部分文字列。エラーなら NULL。 */
-static char *matchtail(const char *const s, char *pat, bool matchlong)
+static char *matchtail(const char *const s, char *pat)
 {
-	size_t i;
-
-	if (matchlong) {
-		i = 0;
-		while (s[i]) {
-			switch (fnmatch(pat, s + i, 0)) {
-				case 0:  /* 一致した */
-					goto end;
-				case FNM_NOMATCH:  /* 一致しなかった */
-					break;
-				default:  /* エラー */
-					error(0, 0, "unexpected fnmatch error");
-					free(pat);
-					return NULL;
-			}
-			i++;
-		}
-	} else {
-		i = strlen(s);
-		for (;;) {
-			switch (fnmatch(pat, s + i, 0)) {
-				case 0:  /* 一致した */
-					goto end;
-				case FNM_NOMATCH:  /* 一致しなかった */
-					break;
-				default:  /* エラー */
-					error(0, 0, "unexpected fnmatch error");
-					free(pat);
-					return NULL;
-			}
-			if (!i) {
-				i = SIZE_MAX;
+	size_t i = strlen(s);
+	for (;;) {
+		switch (fnmatch(pat, s + i, 0)) {
+			case 0:  /* 一致した */
 				goto end;
-			}
-			i--;
+			case FNM_NOMATCH:  /* 一致しなかった */
+				break;
+			default:  /* エラー */
+				error(0, 0, "unexpected fnmatch error");
+				free(pat);
+				return NULL;
 		}
+		if (!i) {
+			i = SIZE_MAX;
+			goto end;
+		}
+		i--;
 	}
 end:
 	free(pat);
