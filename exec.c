@@ -641,15 +641,18 @@ static void exec_processes(
 		laststatus = EXIT_FAILURE;
 	close_pipes(pipes);
 	if (pgid > 0) {
-		JOB *job = joblist.contents[0];
-		assert(job);
-		job->j_status = JS_RUNNING;
-		job->j_statuschanged = true;
-		job->j_procc = pcount;
-		job->j_procv = ps;
-		job->j_flags = 0;
-		job->j_waitstatus = 0;
-		job->j_name = xstrdup(name);
+		JOB *job = xmalloc(sizeof *job);
+		assert(!joblist.contents[0]);
+		joblist.contents[0] = job;
+		*job = (JOB) {
+			.j_pgid = pgid,
+			.j_status = JS_RUNNING,
+			.j_statuschanged = true,
+			.j_procc = pcount,
+			.j_procv = ps,
+			.j_flags = 0,
+			.j_name = xstrdup(name),
+		};
 		if (!bg) {
 			do {
 				wait_for_signal();
@@ -687,8 +690,6 @@ static void exec_processes(
 
 /* 一つのコマンドを実行する。内部で処理できる組込みコマンドでなければ
  * fork/exec し、リダイレクトなどを設定する。
- * pgid = 0 で fork した場合、親プロセスでは新しくアクティブジョブを
- * joblist.contents[0] に作成し、j_pgid メンバの値を設定する。
  * p:       実行するコマンド
  * pindex:  パイプ全体における子プロセスのインデックス。
  *          環状パイプを作る場合は 0 の代わりに -1。
@@ -786,12 +787,6 @@ static pid_t exec_single(
 					&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
 					&& errno != EPERM)
 				error(0, errno, "%s: tcsetpgrp (parent)", argv[0]); */
-		}
-		if (!pgid) {
-			JOB *job = xmalloc(sizeof *job);
-			*job = (JOB) { .j_pgid = cpid, };
-			assert(!joblist.contents[0]);
-			joblist.contents[0] = job;
 		}
 		if (expanded) { recfree((void **) argv, free); }
 		return cpid;
