@@ -65,6 +65,9 @@ struct expand_info {
 	bool indq, count, indirect, formatcolon;
 	const char *full, *param, *format;
 };
+enum substtype {
+	substonce, substhead, substtail, substwhole, substall
+};
 
 bool expand_line(char *const *args, int *argc, char ***argv);
 char *expand_single(const char *arg);
@@ -76,19 +79,22 @@ static bool expand_brace(char *s, struct plist *result)
 static bool expand_subst(char *s, struct plist *result, bool split)
 	__attribute__((nonnull));
 static char *expand_param(char **src, bool indq)
-	__attribute__((nonnull));
+	__attribute__((nonnull, malloc));
 static char *expand_param2(const char *s, bool indq)
-	__attribute__((nonnull));
+	__attribute__((nonnull, malloc));
 static char *expand_param3(struct expand_info *info, const char *value)
-	__attribute__((nonnull));
+	__attribute__((nonnull, malloc));
 static char *matchhead(const char *s, char *pat, bool matchlong)
-	__attribute__((nonnull));
+	__attribute__((nonnull, malloc));
 static char *matchtail(const char *s, char *pat, bool matchlong)
-	__attribute__((nonnull));
+	__attribute__((nonnull, malloc));
+static char *matchandsubst(
+		const char *s, char *pat, char *str, enum substtype type)
+	__attribute__((nonnull(1,2), malloc));
 static char *get_comsub_code_p(char **src)
-	__attribute__((nonnull));
+	__attribute__((nonnull, malloc));
 static char *get_comsub_code_bq(char **src)
-	__attribute__((nonnull));
+	__attribute__((nonnull, malloc));
 void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
 		const char *ifs, const char *q);
 static bool do_glob(char **ss, struct plist *result)
@@ -481,21 +487,25 @@ static char *expand_param(char **src, bool indq)
  *    ${param##word}  同様にマッチさせ、一致部分を削除して返す。(最長一致)
  *    ${param%word}   先頭ではなく末尾にマッチさせ、削除して返す。(最短一致)
  *    ${param%%word}  同様にマッチさせ、一致部分を削除して返す。(最長一致)
- *  これら四つは、param が * か @ なら各要素に対して一致を行う。
+ *  これら四つは、param が * か @ か配列全体なら各要素に対して一致を行う。
  *  各 word は、使う前にチルダ展開・パラメータ/数式展開・コマンド置換を行う。
  *  word を使わない場合は展開・置換は行わない。
- *  以下は、POSIX にない書式である (基本的に bash とおなじ):  XXX 未実装
+ *  以下は、POSIX にない書式である (基本的に bash とおなじ):
  *    ${prefix*}      名前が prefix で始まる全ての変数に展開する。
  *                    各変数は IFS の最初の文字で区切る。
  *    ${!prefix*}     同上
  *    ${param:off:len}  param の内容の off 文字目から最大 len 文字を返す。
- *                    off, len は数式展開する。len は省略可能。param が @ なら、
- *                    XXX
+ *                    off, len は数式展開する。len は省略可能。param が @ か
+ *                    配列全体なら、部分配列を取り出す。
+ *                    XXX 未実装
  *    ${param/pat/str}  pat を glob パタンとみなして param の内容にマッチさせ、
  *                    最初に一致した部分を str に置換して返す。pat の直前に #
  *                    があれば先頭部分のみ、% があれば末尾部分のみマッチさせる。
  *                    pat, str は word と同じように展開する。str は省略可能。
- *                    param が * か @ なら、XXX
+ *                    param が * か @ か配列全体なら、各要素ごとに置換する。
+ *                    一致は常に最長一致とする。
+ *    ${param//pat/str}  最初だけでなく全ての一致を同様に置換する。
+ *    ${param:/pat/str}  pat が param の内容全体に一致するときのみ置換する。
  *  param の直前に ! がある場合、param を名前とする変数の内容ではなくて、
  *  param を名前とする変数の内容を名前とする変数の内容を用いる。ただし、
  *  ${!prefix*} は例外である。またこの記法は配列に対しては使えない。
@@ -531,7 +541,7 @@ static char *expand_param2(const char *s, bool indq)
 	}
 	switch (*s) {
 		case '\0': case '+':  case '-':  case '=':  case '?':
-		case '#':  case '%':
+		case '#':  case '%':  case '/':
 			break;
 		default:
 			goto syntax_error;
@@ -670,22 +680,48 @@ static char *expand_param3(struct expand_info *info, const char *value)
 	char *word1, *word2;
 	bool matchlong;
 
-	switch (format++[0]) {
+	switch (*format++) {
 		/* '+', '-', '=', '?' の各記号は expand_param2 で処理する */
 		case '#':
 			matchlong = (format[0] == '#');
 			if (matchlong) format++;
-			word1 = expand_word(format, false);
-			word2 = unescape_for_glob(word1);
-			if (!word2) return NULL;
-			return matchhead(value, word2, matchlong);
+			word1 = unescape_for_glob(expand_word(format, false));
+			if (!word1) return NULL;
+			return matchhead(value, word1, matchlong);
 		case '%':
 			matchlong = (format[0] == '%');
 			if (matchlong) format++;
-			word1 = expand_word(format, false);
-			word2 = unescape_for_glob(word1);
-			if (!word2) return NULL;
-			return matchtail(value, word2, matchlong);
+			word1 = unescape_for_glob(expand_word(format, false));
+			if (!word1) return NULL;
+			return matchtail(value, word1, matchlong);
+		case '/':;
+			bool sall = (format[0] == '/');
+			if (sall) format++;
+			bool headonly = (format[0] == '#'), tailonly = (format[0] == '%');
+			if (headonly || tailonly) format++;
+
+			size_t patlen = skip_with_quote(format, "/") - format;
+			char pat[patlen + 1];
+			strncpy(pat, format, patlen);
+			pat[patlen] = '\0';
+			word1 = unescape_for_glob(expand_word(pat, false));
+			if (!word1) return NULL;
+			if (format[patlen] != '/') {
+				word2 = NULL;
+			} else {
+				word2 = unescape_for_glob(expand_word(
+							format + patlen + 1, false));
+				if (!word2) {
+					free(word1);
+					return NULL;
+				}
+			}
+			return matchandsubst(value, word1, word2,
+					info->formatcolon ? substwhole :
+					sall              ? substall :
+					headonly          ? substhead :
+					tailonly          ? substtail :
+					                    substonce);
 	}
 	return xstrdup(value ? value : "");
 }
@@ -711,7 +747,7 @@ static char *matchhead(const char *s, char *pat, bool matchlong)
 				case FNM_NOMATCH:  /* 一致しなかった */
 					break;
 				default:  /* エラー */
-					error(0, errno, "unexpected fnmatch error");
+					error(0, 0, "unexpected fnmatch error");
 					free(pat);
 					return NULL;
 			}
@@ -729,7 +765,7 @@ static char *matchhead(const char *s, char *pat, bool matchlong)
 				case FNM_NOMATCH:  /* 一致しなかった */
 					break;
 				default:  /* エラー */
-					error(0, errno, "unexpected fnmatch error");
+					error(0, 0, "unexpected fnmatch error");
 					free(pat);
 					return NULL;
 			}
@@ -763,7 +799,7 @@ static char *matchtail(const char *const s, char *pat, bool matchlong)
 				case FNM_NOMATCH:  /* 一致しなかった */
 					break;
 				default:  /* エラー */
-					error(0, errno, "unexpected fnmatch error");
+					error(0, 0, "unexpected fnmatch error");
 					free(pat);
 					return NULL;
 			}
@@ -778,7 +814,7 @@ static char *matchtail(const char *const s, char *pat, bool matchlong)
 				case FNM_NOMATCH:  /* 一致しなかった */
 					break;
 				default:  /* エラー */
-					error(0, errno, "unexpected fnmatch error");
+					error(0, 0, "unexpected fnmatch error");
 					free(pat);
 					return NULL;
 			}
@@ -792,6 +828,126 @@ static char *matchtail(const char *const s, char *pat, bool matchlong)
 end:
 	free(pat);
 	return xstrndup(s, i);
+}
+
+/* pat を s にマッチさせ、一致した部分を str に置換して返す。
+ * pat:    マッチさせる glob パタン。この関数内で free する。
+ * str:    置換する文字列。この関数内で free する。NULL なら空文字列に置換。
+ * type:   置換のしかた。
+ *           substonce  = 最初の一致だけ置換。
+ *           substhead  = s の先頭部分の最初の一致だけ置換。
+ *           substtail  = s の末尾部分の最初の一致だけ置換。
+ *           substwhole = s 全体に一致した場合だけ置換。
+ *           substall   = 一致した部分を全て置換。
+ * 戻り値: 新しく malloc した、置換結果。エラーなら NULL。 */
+static char *matchandsubst(
+		const char *s, char *pat, char *str, enum substtype type)
+{
+	if (type == substwhole) {
+		switch (fnmatch(pat, s, 0)) {
+			case 0:  /* 一致した */
+				free(pat);
+				return str ? str : xstrdup("");
+			case FNM_NOMATCH:  /* 一致しなかった */
+				goto nomatch;
+			default:  /* エラー */
+				goto err;
+		}
+	} else if (type == substtail) {
+		size_t i = 0;
+		while (s[i]) {
+			switch (fnmatch(pat, s + i, 0)) {
+				case 0:  /* 一致した */
+					free(pat);
+					size_t slen = str ? strlen(str) : 0;
+					char *result = xmalloc(i + slen + 1);
+					strncpy(result, s, i);
+					strcpy(result + i, str ? str : "");
+					free(str);
+					return result;
+				case FNM_NOMATCH:  /* 一致しなかった */
+					break;
+				default:  /* エラー */
+					goto err;
+			}
+			i++;
+		}
+		goto nomatch;
+	} else if (type == substonce || type == substhead) {
+		size_t len = strlen(s);
+		char buf[len + 1];
+		for (size_t i = 0; i <= len; i++) {
+			size_t l = len - i;
+			strcpy(buf, s + i);
+			for (;;) {
+				switch (fnmatch(pat, buf, 0)) {
+					case 0:  /* 一致した */
+						free(pat);
+						size_t slen = str ? strlen(str) : 0;
+						char *result = xmalloc(len - l + slen + 1);
+						strncpy(result, s, i);
+						if (str) {
+							strcpy(result + i, str);
+							free(str);
+						}
+						strcpy(result + i + slen, s + i + l);
+						return result;
+					case FNM_NOMATCH:  /* 一致しなかった */
+						break;
+					default:  /* エラー */
+						goto err;
+				}
+				if (!l)
+					break;
+				buf[--l] = '\0';  /* buf の末尾の一文字を削る */
+			}
+			if (type == substhead)
+				goto nomatch;
+		}
+		goto nomatch;
+	} else {
+		assert(type == substall);
+
+		size_t len = strlen(s);
+		char buf[len + 1];
+		struct strbuf result;
+		sb_init(&result);
+		for (size_t i = 0; i <= len; ) {
+			size_t l = len - i;
+			strcpy(buf, s + i);
+			for (;;) {
+				switch (fnmatch(pat, buf, 0)) {
+					case 0:  /* 一致した */
+						if (str)
+							sb_append(&result, str);
+						i += l;
+						goto cont;
+					case FNM_NOMATCH:  /* 一致しなかった */
+						break;
+					default:  /* エラー */
+						goto err;
+				}
+				if (!l)
+					break;
+				buf[--l] = '\0';  /* buf の末尾の一文字を削る */
+			}
+			sb_cappend(&result, s[i++]);
+cont:;
+		}
+		free(pat);
+		free(str);
+		return sb_tostr(&result);
+	}
+
+nomatch:
+	free(pat);
+	free(str);
+	return xstrdup(s);
+err:
+	error(0, 0, "unexpected fnmatch error");
+	free(pat);
+	free(str);
+	return NULL;
 }
 
 /* 括弧 ( ) で囲んだコマンドの閉じ括弧を探す。
@@ -928,7 +1084,7 @@ static bool do_glob(char **ss, struct plist *result)
 /* 引用符を削除し、通常の文字列に戻す。
  * バックスラッシュエスケープはそのまま残る。引用符の中にあった * や [ は、
  * glob で解釈されないようにバックスラッシュでエスケープする。
- * 戻り値: 新しく malloc した、s の展開結果。 */
+ * 戻り値: 新しく malloc した、s の展開結果。s が NULL なら NULL。 */
 static char *unescape_for_glob(const char *s)
 {
 	enum { NORM, INSQ, INDQ, } state = NORM;

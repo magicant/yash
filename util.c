@@ -43,7 +43,7 @@ void recfree(void **ary, void (*freer)(void *elem));
 char *skipblanks(const char *s);
 char *skipspaces(const char *s);
 char *skipwhites(const char *s);
-int hasprefix(const char *s, const char *prefix);
+int hasprefix(const char *restrict s, const char *restrict prefix);
 char *strchug(char *s);
 char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
@@ -60,10 +60,10 @@ char *sb_tostr(struct strbuf *buf);
 void sb_setmax(struct strbuf *buf, size_t newmax);
 void sb_trim(struct strbuf *buf);
 void sb_clear(struct strbuf *buf);
-void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n);
-void sb_insert(struct strbuf *buf, size_t i, const char *s);
-void sb_nappend(struct strbuf *buf, const char *s, size_t n);
-void sb_append(struct strbuf *buf, const char *s);
+void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n);
+void sb_insert(struct strbuf *buf, size_t i, const char *restrict s);
+void sb_nappend(struct strbuf *buf, const char *restrict s, size_t n);
+void sb_append(struct strbuf *buf, const char *restrict s);
 void sb_cappend(struct strbuf *buf, char c);
 void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
 int sb_vprintf(struct strbuf *buf, const char *format, va_list ap);
@@ -77,13 +77,14 @@ void pl_trim(struct plist *list);
 void pl_clear(struct plist *list);
 void pl_insert(struct plist *list, size_t i, const void *e);
 void pl_append(struct plist *list, const void *e);
-void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n);
+void pl_aninsert(struct plist *list, size_t i,
+		void *const *restrict ps, size_t n);
 void pl_anappend(struct plist *list, void *const *ps, size_t n);
 void pl_ainsert(struct plist *list, size_t i, void *const *ps);
 void pl_aappend(struct plist *list, void *const *ps);
 void pl_remove(struct plist *list, size_t i, size_t count);
 
-static unsigned ht_hashstr(const char *s);
+static unsigned ht_hashstr(const char *s) __attribute__((pure));
 void ht_init(struct hasht *ht);
 void ht_destroy(struct hasht *ht);
 static void ht_rehash(struct hasht *ht, size_t newcap);
@@ -220,7 +221,7 @@ char *skipwhites(const char *s)
  * 戻り値: 0 -> s は prefix で始まらない
  *         1 -> s は prefix で始まり prefix よりも長い
  *         2 -> s は prefix に等しい */
-int hasprefix(const char *s, const char *prefix)
+int hasprefix(const char *restrict s, const char *restrict prefix)
 {
 	assert(s && prefix);
 	while (*prefix) {
@@ -640,8 +641,9 @@ void sb_clear(struct strbuf *buf)
 
 /* 文字列バッファ内の前から i 文字目に文字列 s の最初の n 文字を挿入する。
  * s が n 文字に満たなければ s 全体を挿入する。
- * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
-void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
+ * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。
+ * s は buf->contents の一部であってはならない。 */
+void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n)
 {
 	size_t len = strlen(s);
 	len = MIN(len, n);
@@ -659,21 +661,24 @@ void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
 }
 
 /* 文字列バッファ内の前から i 文字目に文字列 s を挿入する。
- * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。 */
-void sb_insert(struct strbuf *buf, size_t i, const char *s)
+ * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。
+ * s は buf->contents の一部であってはならない。 */
+void sb_insert(struct strbuf *buf, size_t i, const char *restrict s)
 {
 	sb_ninsert(buf, i, s, SIZE_MAX);
 }
 
 /* 文字列バッファ内の文字列の末尾に文字列 s の最初の n 文字を付け加える。
- * s が n 文字に満たなければ s 全体を付け加える。 */
-void sb_nappend(struct strbuf *buf, const char *s, size_t n)
+ * s が n 文字に満たなければ s 全体を付け加える。
+ * s は buf->contents の一部であってはならない。 */
+void sb_nappend(struct strbuf *buf, const char *restrict s, size_t n)
 {
 	sb_ninsert(buf, SIZE_MAX, s, n);
 }
 
-/* 文字列バッファ内の文字列の末尾に文字列 s を付け加える。 */
-void sb_append(struct strbuf *buf, const char *s)
+/* 文字列バッファ内の文字列の末尾に文字列 s を付け加える。
+ * s は buf->contents の一部であってはならない。 */
+void sb_append(struct strbuf *buf, const char *restrict s)
 {
 	sb_nappend(buf, s, SIZE_MAX);
 }
@@ -691,7 +696,7 @@ void sb_cappend(struct strbuf *buf, char c)
 
 /* 文字列バッファの i 文字目から n 文字を s に置き換える。
  * s は buf->contents の一部であってはならない。 */
-void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
+void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *restrict s)
 {
 	size_t slen = strlen(s);
 	n = MIN(n, buf->length - i);
@@ -838,8 +843,10 @@ void pl_insert(struct plist *list, size_t i, const void *e)
 /* ポインタリスト内の前から i 要素目に、配列 *ps の最初の n 個の要素を挿入する。
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に要素を付け加える。
  * 配列 *ps は、必ず n 個の要素がなければならない
- * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。*/
-void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n)
+ * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。
+ * ps は list->contents の一部であってはならない。 */
+void pl_aninsert(struct plist *list, size_t i,
+		void *const *restrict ps, size_t n)
 {
 	if (n + list->length > list->maxlength) {
 		do
@@ -872,14 +879,16 @@ void pl_anappend(struct plist *list, void *const *ps, size_t n)
 
 /* ポインタリスト内の前から i 要素目に、配列 *ps の要素を挿入する。
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に要素を付け加える。
- * 配列 *ps は、NULL 要素終端でなければならない。 */
+ * 配列 *ps は、NULL 要素終端でなければならない。
+ * ps は list->contents の一部であってはならない。 */
 void pl_ainsert(struct plist *list, size_t i, void *const *ps)
 {
 	pl_aninsert(list, i, ps, parylen(ps));
 }
 
 /* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
- * 配列 *ps は、NULL 要素終端でなければならない。 */
+ * 配列 *ps は、NULL 要素終端でなければならない。
+ * ps は list->contents の一部であってはならない。 */
 void pl_aappend(struct plist *list, void *const *ps)
 {
 	pl_aninsert(list, SIZE_MAX, ps, parylen(ps));

@@ -60,7 +60,7 @@ char *skipspaces(const char *s)
 	__attribute__((nonnull));
 char *skipwhites(const char *s)
 	__attribute__((nonnull));
-int hasprefix(const char *s, const char *prefix)
+int hasprefix(const char *restrict s, const char *restrict prefix)
 	__attribute__((nonnull));
 char *strchug(char *s)
 	__attribute__((nonnull));
@@ -148,13 +148,13 @@ void sb_trim(struct strbuf *buf)
 	__attribute__((nonnull));
 void sb_clear(struct strbuf *buf)
 	__attribute__((nonnull));
-void sb_ninsert(struct strbuf *buf, size_t i, const char *s, size_t n)
+void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n)
 	__attribute__((nonnull));
-void sb_insert(struct strbuf *buf, size_t i, const char *s)
+void sb_insert(struct strbuf *buf, size_t i, const char *restrict s)
 	__attribute__((nonnull));
-void sb_nappend(struct strbuf *buf, const char *s, size_t n)
+void sb_nappend(struct strbuf *buf, const char *restrict s, size_t n)
 	__attribute__((nonnull));
-void sb_append(struct strbuf *buf, const char *s)
+void sb_append(struct strbuf *buf, const char *restrict s)
 	__attribute__((nonnull));
 #ifndef NO_UTIL_INLINE
 # define sb_insert(buf,i,s)  sb_ninsert(buf, i, s, SIZE_MAX)
@@ -164,7 +164,7 @@ void sb_append(struct strbuf *buf, const char *s)
 
 void sb_cappend(struct strbuf *buf, char c)
 	__attribute__((nonnull));
-void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s)
+void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *restrict s)
 	__attribute__((nonnull));
 int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
 	__attribute__((nonnull, format(printf,2,0)));
@@ -194,7 +194,8 @@ void pl_clear(struct plist *list)
 	__attribute__((nonnull));
 void pl_insert(struct plist *list, size_t i, const void *e)
 	__attribute__((nonnull(1)));
-void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n)
+void pl_aninsert(struct plist *list, size_t i,
+		void *const *restrict ps, size_t n)
 	__attribute__((nonnull));
 void pl_append(struct plist *list, const void *e)
 	__attribute__((nonnull(1)));

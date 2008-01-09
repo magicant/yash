@@ -77,24 +77,24 @@ icrnl icanon echo echoe echok</code> の実行と同様にして端末がリセ�
 <h2 id=commandsyntax>コマンドの文法</h2>
 <p>コマンドの書式も大体 bash と同じであり、以下の記法 (記号) が使える:
 <dl>
-	<dt><var>n</var>><var>file</var>
+	<dt><code><var>n</var>><var>file</var></code>
 	<dd>ファイルディスクリプタ <var>n</var> に、ファイル <var>file</var>
 	に書き込むためのリダイレクトを生成する。<var>n</var>
 	を省略すると標準出力をリダイレクトする。
-	<dt><var>n</var>&lt;<var>file</var>
+	<dt><code><var>n</var>&lt;<var>file</var></code>
 	<dd>ファイルディスクリプタ <var>n</var> に、ファイル <var>file</var>
 	から読み込むためのリダイレクトを生成する。<var>n</var>
 	を省略すると標準入力をリダイレクトする。
-	<dt><var>n</var>&lt;><var>file</var>
+	<dt><code><var>n</var>&lt;><var>file</var></code>
 	<dd>ファイルディスクリプタ <var>n</var> に、ファイル <var>file</var>
 	に対する読み書き両用のリダイレクトを生成する。<var>n</var>
 	を省略すると標準入力をリダイレクトする。
-	<dt><var>n</var>&lt;&amp;<var>m</var>
+	<dt><code><var>n</var>&lt;&amp;<var>m</var></code>
 	<dd>ファイルディスクリプタ <var>m</var> をファイルディスクリプタ
 	<var>n</var> にコピーする。<var>n</var> を省略すると標準入力にコピーする。
 	<dd><var>m</var> が <code>-</code> ならば、ファイルディスクリプタ
 	<var>n</var> を閉じる。<var>n</var> を省略すると標準入力を閉じる。
-	<dt><var>n</var>>&amp;<var>m</var>
+	<dt><code><var>n</var>>&amp;<var>m</var></code>
 	<dd>ファイルディスクリプタ <var>m</var> をファイルディスクリプタ
 	<var>n</var> にコピーする。<var>n</var> を省略すると標準出力にコピーする。
 	<dd><var>m</var> が <code>-</code> ならば、ファイルディスクリプタ
@@ -128,8 +128,18 @@ icrnl icanon echo echoe echok</code> の実行と同様にして端末がリセ�
 ループ状のパイプラインができる。
 <p>括弧 <code>( )</code> で囲まれたコマンドはサブシェル (元のシェルから分岐した
 子プロセス) で実行される。
-<p>変数は、環境変数のみ利用できる。パラメータ展開やコマンド置換などは
-ある程度利用できる。現在、$@ や $? などの特殊なパラメータは未実装である。
+<p>コマンドの始めに <code><var>name</var>=<var>value</var></code> の形式で
+変数への代入を行うことができる。このとき変数は環境変数としてコマンドに渡される。
+コマンドを指定せずに変数の代入だけ行うと、シェル変数に代入したことになる。
+シェル変数は代入しただけでは環境変数としてコマンドには渡されない。
+シェル変数を環境変数としてコマンドに渡すには、export 組込みコマンドを使う。
+シェルが起動するときに起動元から渡された環境変数は、最初から export が適用された
+シェル変数となる。
+<p>特殊組込みコマンドを実行するときに変数代入を行うと、その変数は自動的に
+export され、元のシェル環境に残る。従って例えば <code>HOME=/ . script.sh</code>
+というコマンドは <code>export HOME=/</code> してから <code>. script.sh</code>
+を実行するのと同じである。これ以外のコマンドでは、変数はコマンドに環境変数として
+渡されるものの、元のシェルの変数は変わらない。
 
 <h2 id=parameters>パラメータ</h2>
 <p>コマンドライン中の <code>$</code> はパラメータ・変数の展開に使える。
@@ -174,6 +184,22 @@ icrnl icanon echo echoe echok</code> の実行と同様にして端末がリセ�
 	<dd>${<var>name</var>#<var>pat</var>}, ${<var>name</var>##<var>pat</var>}
 	とほぼ同じで、変数の内容の始めの部分ではなく末尾の部分を削除する点だけが
 	異なる。
+	<dt>${<var>name</var>/<var>pat</var>/<var>sub</var>}
+	<dd>変数 <var>name</var> の内容で最初に <var>pat</var> に当てはまる部分を
+	<var>sub</var> に置き換えたものに置換する。当てはまる部分はできるだけ長く
+	なるようにする。<var>sub</var> が空文字列なら、<var>sub</var> の直前の /
+	は省略できる。
+	<dt>${<var>name</var>/#<var>pat</var>/<var>sub</var>}
+	<dt>${<var>name</var>/%<var>pat</var>/<var>sub</var>}
+	<dd>${<var>name</var>/<var>pat</var>/<var>sub</var>} とほぼ同じで、
+	それぞれ変数の内容の始めの部分・末尾の部分だけを置換する点だけが異なる。
+	<dt>${<var>name</var>//<var>pat</var>/<var>sub</var>}
+	<dd>${<var>name</var>/<var>pat</var>/<var>sub</var>} とほぼ同じで、
+	最初に <var>pat</var> に当てはまる部分だけではなくて当てはまる部分全てを
+	<var>sub</var> に置き換える点だけが異なる。
+	<dt>${<var>name</var>:/<var>pat</var>/<var>sub</var>}
+	<dd>変数 <var>name</var> の内容全体が <var>pat</var> に当てはまるなら
+	<var>sub</var> に置換する。
 </dl>
 <p>以下の名前の特殊パラメータが実装済である。
 <dl>
@@ -217,14 +243,15 @@ icrnl icanon echo echoe echok</code> の実行と同様にして端末がリセ�
 コマンドが実行され、ジョブの状態に変化があれば報告する。
 
 <h2 id=builtincommands>組込みコマンド</h2>
-<p>組込みコマンドは以下の通り:
+<p>組込みコマンドは以下の通り。<q>(特殊)</q>
+と書いてあるものは特殊組込みコマンドである。
 <dl>
 	<dt>:
 	<dt>true
 	<dd>何もしない。(終了ステータスは 0)
 	<dt>false
 	<dd>何もしない。(終了ステータスは 1)
-	<dt>exit
+	<dt>exit (特殊)
 	<dd>シェルを終了する。-f オプションを付けない場合、
 	未了のジョブが残っていれば警告を表示し、終了しない。
 	<dt>logout
@@ -270,7 +297,7 @@ icrnl icanon echo echoe echok</code> の実行と同様にして端末がリセ�
 	で実行を再開する。ジョブ番号を引数として指定する。
 	省略すると最後に使ったジョブ (カレントジョブ) を再開する。
 	カレントジョブがないときはジョブ番号が最も大きいジョブを選択する。
-	<dt>exec
+	<dt>exec (特殊)
 	<dd>このシェルのプロセスを引数として指定したコマンドで置き換える。-f
 	オプションを付けない場合、未了のジョブが残っていれば警告を表示し、
 	プロセスは置き換えない。
@@ -292,15 +319,18 @@ icrnl icanon echo echoe echok</code> の実行と同様にして端末がリセ�
 	<dt>umask
 	<dd>umask を表示・変更する。引数なしだと umask を表示する。
 	引数に八進数を指定するとそれに umask を変更する。
-	<dt>export
-	<dd>環境変数を設定する。引数に、<var>NAME</var>=<var>VALUE</var>
-	の形式で環境変数の名前と値を指定する。-n
-	オプションを付けて環境変数の名前だけ指定すると、その環境変数を削除する。
-	<dd>このコマンドには環境変数を表示する機能はない。適宜 printenv
+	<dt>export (特殊)
+	<dd>環境変数を設定する。引数にシェル変数名を指定すると、そのシェル変数が
+	それ以降起動するコマンドに環境変数として渡されるようになる。引数に、<var
+	>NAME</var>=<var>VALUE</var> の形式を指定すると同時に変数の値を代入できる。
+	-n オプションを付けて環境変数の名前だけ指定すると、その変数をそれ以降
+	起動するコマンドに環境変数として渡さないようにする。
+	<dd>このコマンドには環境変数を表示する機能はない。適宜 env
 	外部コマンドなどを使用すること。
-	<dd>なお、このシェルにはシェル変数は存在しない。
-	<dt>.
-	<dt>source
+	<dt>unset
+	<dd>シェル変数を削除する。引数としてシェル変数名を指定する。
+	<dt>. (特殊)
+	<dt>source (特殊)
 	<dd>引数に指定されたファイル名のファイルを読み込んで、
 	中に書いてあるコマンドを実行する。
 	<dt>history
