@@ -359,7 +359,8 @@ struct plist *getarray(const char *name)
 	return NULL; //XXX 配列は未実装
 }
 
-/* シェル変数を削除する
+/* シェル変数を削除する。
+ * 特殊パラメータなどを削除しようとしてはいけない。
  * 戻り値: エラーがなければ true、変数を削除できなければ false。
  *         変数が存在しなかったら true。 */
 bool unsetvar(const char *name)
@@ -373,7 +374,7 @@ bool unsetvar(const char *name)
 			bool oldvarexport = var->flags & VF_EXPORT;
 			if (var->flags & VF_READONLY) {
 				ht_set(&env->variables, name, var);
-				error(0, 0, "cannot unset readonly variable %s", name);
+				error(0, 0, "cannot unset readonly variable `%s'", name);
 				return false;
 			}
 			free(var->value);

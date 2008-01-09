@@ -21,7 +21,7 @@ ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
 CFLAGS += -Wall -Wextra
 endif
 LDFLAGS = -lc -lreadline -ltermcap
-OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o path.o builtin.o builtin_job.o alias.o variable.o
+OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o path.o builtin.o builtin_job.o builtin_var.o alias.o variable.o
 TARGET = yash
 
 $(TARGET): $(OBJS)
@@ -50,5 +50,6 @@ exec.o: yash.h util.h expand.h exec.h path.h builtin.h variable.h
 path.o: yash.h util.h parser.h path.h variable.h
 builtin.o: yash.h util.h sig.h lineinput.h expand.h exec.h path.h builtin.h alias.h variable.h
 builtin_job.o: yash.h util.h sig.h exec.h path.h builtin.h variable.h
+builtin_var.o: util.h builtin.h variable.h
 alias.o: yash.h util.h alias.h
 variable.o: yash.h util.h expand.h exec.h variable.h

@@ -42,6 +42,7 @@ int builtin_jobs(int argc, char **argv);
 int builtin_disown(int argc, char **argv);
 int builtin_fg(int argc, char **argv);
 int builtin_exec(int argc, char **argv);
+int builtin_source(int argc, char **argv);
 
 
 /* jobspec を解析する。
@@ -836,5 +837,20 @@ int builtin_exec(int argc, char **argv)
 
 usage:
 	fprintf(stderr, "Usage:  exec [-cfl] [-a name] command [args...]\n");
+	return EXIT_FAILURE;
+}
+
+/* source/. 組込みコマンド */
+int builtin_source(int argc, char **argv)
+{
+	if (argc < 2) {
+		error(0, 0, "%s: filename not given", argv[0]);
+		goto usage;
+	}
+	exec_file(argv[1], false /* don't supress errors */);
+	return laststatus;
+
+usage:
+	fprintf(stderr, "Usage:  %s filename\n", argv[0]);
 	return EXIT_FAILURE;
 }

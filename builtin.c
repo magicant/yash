@@ -45,13 +45,9 @@
 void init_builtin(void);
 BUILTIN *get_builtin(const char *name);
 int builtin_true(int argc, char **argv);
-#ifdef ADDITIONAL_BUILTIN
 int builtin_false(int argc, char **argv);
-#endif
 int builtin_cd(int argc, char **argv);
 int builtin_umask(int argc, char **argv);
-int builtin_export(int argc, char **argv);
-int builtin_source(int argc, char **argv);
 int builtin_history(int argc, char **argv);
 int builtin_alias(int argc, char **argv);
 int builtin_unalias(int argc, char **argv);
@@ -62,7 +58,8 @@ int builtin_option(int argc, char **argv);
  * - argv 内の文字列の内容を変更したり、引数の順番を並び替えたりしてもよい。
  * - 特殊組込みコマンドでない組込みコマンドは中で exec_single を
  *   呼んではいけない。一コマンド分しか一時的変数を記憶できないからである。
- *   また、fork してもならない。一時的変数が export されないからである。 */
+ *   また、fork してもならない。一時的変数が export されないからである。
+ *   特殊組込みコマンドでは一時的変数は存在しない。 */
 
 static struct hasht builtins;
 
@@ -70,11 +67,21 @@ static struct builtin_info {
 	const char *name;
 	BUILTIN builtin;
 } builtins_array[] = {
+
+	/* builtin.c の組込みコマンド */
 	{ ":",       { builtin_true,    true  }},
 #ifdef ADDITIONAL_BUILTIN
 	{ "true",    { builtin_true,    false }},
 	{ "false",   { builtin_false,   false }},
 #endif
+	{ "cd",      { builtin_cd,      false }},
+	{ "umask",   { builtin_umask,   false }},
+	{ "history", { builtin_history, false }},
+	{ "alias",   { builtin_alias,   false }},
+	{ "unalias", { builtin_unalias, false }},
+	{ "option",  { builtin_option,  false }},
+
+	/* builtin_job.c の組込みコマンド */
 	{ "exit",    { builtin_exit,    true  }},
 	{ "logout",  { builtin_exit,    false }},
 	{ "kill",    { builtin_kill,    false }},
@@ -85,16 +92,15 @@ static struct builtin_info {
 	{ "fg",      { builtin_fg,      false }},
 	{ "bg",      { builtin_fg,      false }},
 	{ "exec",    { builtin_exec,    true  }},
-	{ "cd",      { builtin_cd,      false }},
-	{ "umask",   { builtin_umask,   false }},
-	{ "export",  { builtin_export,  true  }},
 	{ ".",       { builtin_source,  true  }},
-	{ "source",  { builtin_source,  false }},
-	{ "history", { builtin_history, false }},
-	{ "alias",   { builtin_alias,   false }},
-	{ "unalias", { builtin_unalias, false }},
-	{ "option",  { builtin_option,  false }},
+	{ "source",  { builtin_source,  true  }},
+
+	/* builtin_var.c の組込みコマンド */
+	{ "export",  { builtin_export,  true  }},
+	{ "unset",   { builtin_unset,   true  }},
+
 	{ NULL,      { NULL,            false }},
+
 };
 
 /* 組込みコマンドに関するデータを初期化する。 */
@@ -200,68 +206,6 @@ int builtin_umask(int argc, char **argv)
 
 usage:
 	fprintf(stderr, "Usage:  umask [newumask]\n");
-	return EXIT_FAILURE;
-}
-
-/* export 組込みコマンド
- * -n: 環境変数を削除する */
-int builtin_export(int argc, char **argv)
-{
-	bool remove = false;
-	int opt;
-
-	if (argc == 1)
-		goto usage;
-	xoptind = 0;
-	xopterr = true;
-	while ((opt = xgetopt(argv, "n")) >= 0) {
-		switch (opt) {
-			case 'n':
-				remove = true;
-				break;
-			default:
-				goto usage;
-		}
-	}
-	for (; xoptind < argc; xoptind++) {
-		char *c = argv[xoptind];
-
-		if (remove) {
-			unexport(c);
-		} else {
-			size_t namelen = strcspn(c, "=");
-			if (c[namelen] == '=') {
-				c[namelen] = '\0';
-				if (!setvar(c, c + namelen + 1, true)) {
-					c[namelen] = '=';
-					return EXIT_FAILURE;
-				}
-				c[namelen] = '=';
-			} else {
-				export(c);
-			}
-		}
-	}
-	return EXIT_SUCCESS;
-
-usage:
-	fprintf(stderr, "Usage:  export NAME=VALUE ...\n");
-	fprintf(stderr, "    or  export -n NAME ...\n");
-	return EXIT_FAILURE;
-}
-
-/* source/. 組込みコマンド */
-int builtin_source(int argc, char **argv)
-{
-	if (argc < 2) {
-		error(0, 0, "%s: filename not given", argv[0]);
-		goto usage;
-	}
-	exec_file(argv[1], false /* don't supress errors */);
-	return laststatus;
-
-usage:
-	fprintf(stderr, "Usage:  %s filename\n", argv[0]);
 	return EXIT_FAILURE;
 }
 

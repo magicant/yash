@@ -679,6 +679,8 @@ static void exec_processes(
 			last_bg_pid = ps[pcount - 1].jp_pid;
 			add_job();
 		}
+	} else {
+		free(ps);
 	}
 	assert(!joblist.contents[0]);
 }
@@ -698,6 +700,9 @@ static void exec_processes(
  *          SELF は、非対話状態でのみ使える。
  * pipes:   パイプの配列。
  * 戻り値:  子プロセスの PID。fork/exec しなかった場合は 0。エラーなら -1。 */
+/* fork しないで 0 を返すことがあるのは、etype == FOREGROUND で
+ * pipes.p_count == 0 の場合に限る。
+ * 0 または -1 を返す場合、laststatus に値が入る。 */
 static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes)
 {
@@ -717,14 +722,16 @@ static pid_t exec_single(
 				return -1;
 			}
 			if (!argc) {
-				if (p->p_assigns) {
-					assign_variables(p->p_assigns, false, true);
+				bool ok = true;
+				if (ok && p->p_assigns) {
+					ok &= assign_variables(p->p_assigns, false, false);
 				}
-				if (p->p_redirs) {
+				if (ok && p->p_redirs) {
 					struct save_redirect *saver;
-					open_redirections(p->p_redirs, &saver);
+					ok &= open_redirections(p->p_redirs, &saver);
 					undo_redirections(saver);
 				}
+				laststatus = ok ? EXIT_SUCCESS : EXIT_FAILURE;
 				return 0;
 			} else {
 				BUILTIN *builtin = get_builtin(argv[0]);
