@@ -20,7 +20,6 @@
 #define _ATFILE_SOURCE
 #include <ctype.h>
 #include <dirent.h>
-#include <error.h>
 #include <errno.h>
 #include <libgen.h>
 #include <signal.h>
@@ -135,12 +134,12 @@ yash_readline_start:
 			prompt = readline_prompt2 ? : "> ";
 			break;
 		default:
-			error(2, 0, "internal error: yash_readline_start ptype=%d", ptype);
+			xerror(2, 0, "internal error: yash_readline_start ptype=%d", ptype);
 			assert(false);
 	}
 
 	if (tcsetpgrp(STDIN_FILENO, getpgrp()) < 0)
-		error(0, errno, "tcsetpgrp before readline");
+		xerror(0, errno, "tcsetpgrp before readline");
 
 	if (tcgetattr(STDIN_FILENO, &old_terminal_info) == 0) {
 		terminal_info_valid = true;
@@ -155,9 +154,9 @@ yash_readline_start:
 	action.sa_handler = readline_signal_handler;
 	action.sa_flags = 0;
 	if (sigaction(SIGCHLD, &action, &oldchldaction) < 0)
-		error(EXIT_FAILURE, errno, "sigaction before readline");
+		xerror(EXIT_FAILURE, errno, "sigaction before readline");
 	if (sigaction(SIGINT, &action, &oldintaction) < 0)
-		error(EXIT_FAILURE, errno, "sigaction before readline");
+		xerror(EXIT_FAILURE, errno, "sigaction before readline");
 
 	wait_chld();
 	print_all_job_status(true /* changed only */, false /* not verbose */);
@@ -166,9 +165,9 @@ yash_readline_start:
 	line = readline(actualprompt);
 
 	if (sigaction(SIGINT, &oldintaction, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigaction after readline");
+		xerror(EXIT_FAILURE, errno, "sigaction after readline");
 	if (sigaction(SIGCHLD, &oldchldaction, NULL) < 0)
-		error(EXIT_FAILURE, errno, "sigaction after readline");
+		xerror(EXIT_FAILURE, errno, "sigaction after readline");
 
 	free(actualprompt);
 
@@ -197,7 +196,7 @@ yash_readline_start:
 				return eline;
 			case -1:  /* Error */
 				free(line);
-				error(0, 0, "%s", eline);
+				xerror(0, 0, "%s", eline);
 				free(eline);
 				goto yash_readline_start;
 			case 2:   /* No execution */
@@ -619,7 +618,7 @@ loop:
 				append_char('\r');
 				break;
 			case 's':
-				append_str(program_invocation_short_name);
+				append_str(yash_program_invocation_short_name);
 				break;
 			case 't':
 				if (get_time() < 0) {

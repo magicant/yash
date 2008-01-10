@@ -18,7 +18,6 @@
 
 #define  NO_UTIL_INLINE
 #include <errno.h>
-#include <error.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -49,6 +48,8 @@ char *strchomp(char *s);
 char *strjoin(int argc, char *const *argv, const char *padding);
 char *mprintf(const char *format, ...);
 char *read_all(int fd);
+
+void xerror(int status, int errno_, const char *restrict format, ...);
 
 int xgetopt_long(char *const *argv, const char *optstring,
 		const struct xoption *longopts, int *longindex);
@@ -105,7 +106,7 @@ void *xcalloc(size_t nmemb, size_t size)
 
 	void *result = calloc(nmemb, size);
 	if (!result)
-		error(2, ENOMEM, NULL);
+		xerror(2, ENOMEM, NULL);
 	return result;
 }
 
@@ -117,7 +118,7 @@ void *xmalloc(size_t size)
 
 	void *result = malloc(size);
 	if (!result)
-		error(2, ENOMEM, NULL);
+		xerror(2, ENOMEM, NULL);
 	return result;
 }
 
@@ -127,7 +128,7 @@ void *xrealloc(void *ptr, size_t size)
 {
 	void *result = realloc(ptr, size);
 	if (!result)
-		error(2, ENOMEM, NULL);
+		xerror(2, ENOMEM, NULL);
 	return result;
 }
 
@@ -152,7 +153,7 @@ char *xstrdup(const char *s)
 {
 	char *result = strdup(s);
 	if (!result)
-		error(2, ENOMEM, NULL);
+		xerror(2, ENOMEM, NULL);
 	return result;
 }
 
@@ -359,6 +360,43 @@ char *mprintf(const char *format, ...)
 //}
 
 
+/********** Error utilities **********/
+
+unsigned yash_error_message_count = 0;
+
+/* glibc の error 関数の独自の実装。エラーメッセージを stderr に出力する。
+ * status: 非 0 ならメッセージを出した後 exit(status) を呼んで終了する。
+ * errno_: 非 0 なら format メッセージに続けて errno に対応するメッセージを出す
+ * format: エラーメッセージ。printf 用のフォーマット文字列。
+ * 出力内容は以下の通り:
+ *   - "%s: ", yash_program_invocation_name
+ *   - format, ... の内容        (format が非 NULL の場合のみ)
+ *   - ": %s", strerror(errno)   (errno が非 0 の場合のみ)
+ *   - "\n"
+ * format == NULL && errno_ == 0 なら、"unknown error" を出力する。 */
+void xerror(int status, int errno_, const char *restrict format, ...)
+{
+	va_list ap;
+
+	yash_error_message_count++;
+	fflush(stdout);
+	fprintf(stderr, "%s: ", yash_program_invocation_name);
+	if (format) {
+		va_start(ap, format);
+		vfprintf(stderr, format, ap);
+		va_end(ap);
+	}
+	if (errno_)
+		fprintf(stderr, ": %s", strerror(errno_));
+	if (!format && !errno_)
+		fputs("unknown error", stderr);
+	fputc('\n', stderr);
+	fflush(stderr);
+	if (status)
+		exit(status);
+}
+
+
 /********** getopt **********/
 
 char *xoptarg;
@@ -551,7 +589,7 @@ long_found:
 
 ambig:
 	if (xopterr) {
-		error(0, 0, "%s: --%s: ambiguous option", argv[0], arg);
+		xerror(0, 0, "%s: --%s: ambiguous option", argv[0], arg);
 #if 0
 		for (int i = 0; longopts[i].name; i++)
 			if (hasprefix(longopts[i].name, arg))
@@ -562,7 +600,7 @@ ambig:
 	return '?';
 nosuchopt:
 	if (xopterr)
-		error(0, 0, "%s: %s: invalid option", argv[0], argv[xoptind]);
+		xerror(0, 0, "%s: %s: invalid option", argv[0], argv[xoptind]);
 	xoptind++;
 	return '?';
 }

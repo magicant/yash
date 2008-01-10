@@ -17,7 +17,6 @@
 
 
 #include <errno.h>
-#include <error.h>
 #include <fcntl.h>
 #include <fnmatch.h>
 #include <glob.h>
@@ -146,7 +145,7 @@ char *expand_single(const char *arg)
 		return NULL;
 	}
 	if (alist.length != 1) {
-		error(is_interactive_now ? 0 : EXIT_FAILURE,
+		xerror(is_interactive_now ? 0 : EXIT_FAILURE,
 				0, "%s: parameter expanded to multiple words", arg);
 		recfree(pl_toary(&alist), free);
 		return NULL;
@@ -404,7 +403,7 @@ append_s2:
 		}
 	}
 	if (indq)
-		error(0, 0, "%s: unclosed quotation", s);
+		xerror(0, 0, "%s: unclosed quotation", s);
 	if (buf.length > 0) {
 		pl_append(result, sb_tostr(&buf));
 	} else {
@@ -429,7 +428,7 @@ static char *expand_param(char **src, bool indq)
 		case '{':
 			ss = skip_with_quote(s + 1, "}");
 			if (*ss != '}') {
-				error(0, 0, "$%s: missing `}'", s);
+				xerror(0, 0, "$%s: missing `}'", s);
 				*src = ss - 1;
 				return NULL;
 			}
@@ -617,7 +616,7 @@ static char *expand_param2(const char *s, bool indq)
 					}
 					return word1;
 				} else {  /* 配列などは代入できない */
-					error(0, 0, "${%s}: parameter cannot be "
+					xerror(0, 0, "${%s}: parameter cannot be "
 							"assigned to in this way", info.full);
 					recfree((void **) rvalues, free);
 					return NULL;
@@ -628,11 +627,11 @@ static char *expand_param2(const char *s, bool indq)
 			if (isempty) {
 				if (info.format[1]) {
 					char *word1 = unescape(expand_word(info.format + 1, false));
-					error(is_interactive_now ? 0 : EXIT_FAILURE,
+					xerror(is_interactive_now ? 0 : EXIT_FAILURE,
 							0, "%s: %s", param, word1);
 					free(word1);
 				} else {
-					error(is_interactive_now ? 0 : EXIT_FAILURE,
+					xerror(is_interactive_now ? 0 : EXIT_FAILURE,
 							0,
 							values[0] ? "%s: parameter null"
 							          : "%s: parameter not set",
@@ -665,7 +664,7 @@ static char *expand_param2(const char *s, bool indq)
 	}
 
 syntax_error:
-	error(is_interactive_now ? 0 : EXIT_FAILURE,
+	xerror(is_interactive_now ? 0 : EXIT_FAILURE,
 			0, "${%s}: bad substitution", info.full);
 	return NULL;
 }
@@ -744,7 +743,7 @@ static char *matchhead(const char *s, char *pat)
 			case FNM_NOMATCH:  /* 一致しなかった */
 				break;
 			default:  /* エラー */
-				error(0, 0, "unexpected fnmatch error");
+				xerror(0, 0, "unexpected fnmatch error");
 				free(pat);
 				return NULL;
 		}
@@ -773,7 +772,7 @@ static char *matchtail(const char *const s, char *pat)
 			case FNM_NOMATCH:  /* 一致しなかった */
 				break;
 			default:  /* エラー */
-				error(0, 0, "unexpected fnmatch error");
+				xerror(0, 0, "unexpected fnmatch error");
 				free(pat);
 				return NULL;
 		}
@@ -902,7 +901,7 @@ nomatch:
 	free(str);
 	return xstrdup(s);
 err:
-	error(0, 0, "unexpected fnmatch error");
+	xerror(0, 0, "unexpected fnmatch error");
 	free(pat);
 	free(str);
 	return NULL;
@@ -1011,7 +1010,7 @@ static bool do_glob(char **ss, struct plist *result)
 //		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
 		switch (glob(s, 0, NULL, &gbuf)) {
 			case GLOB_NOSPACE:  case GLOB_ABORTED:  default:
-				error(0, 0, "%s: glob error", *ss);
+				xerror(0, 0, "%s: glob error", *ss);
 				free(*ss);
 				ok = false;
 				break;

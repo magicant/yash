@@ -17,7 +17,6 @@
 
 
 #include <errno.h>
-#include <error.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,7 +52,7 @@ static const int ignsignals[] = {
 #if 0
 static void debug_sig(int signal)
 {
-	error(0, 0, "DEBUG: received signal %d. pid=%ld", signal, (long) getpid());
+	xerror(0, 0, "DEBUG: received signal %d. pid=%ld", signal, (long) getpid());
 }
 #endif
 
@@ -240,11 +239,11 @@ void init_signal(void)
 
 	action.sa_handler = sig_handler;
 	if (sigaction(SIGHUP, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGHUP");
+		xerror(0, errno, "sigaction: signal=SIGHUP");
 	if (sigaction(SIGCHLD, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGCHLD");
+		xerror(0, errno, "sigaction: signal=SIGCHLD");
 	if (sigaction(SIGQUIT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGQUIT");
+		xerror(0, errno, "sigaction: signal=SIGQUIT");
 	/* SIGQUIT にとって、sig_handler は何もしないシグナルハンドラなので、
 	 * シグナル受信時の挙動は SIG_IGN と同じだが、exec の実行時に
 	 * デフォルトの挙動に戻される点が異なる。 */
@@ -259,7 +258,7 @@ void init_signal(void)
 	/* 全てのシグナルマスクをクリアする */
 	sigemptyset(&action.sa_mask);
 	if (sigprocmask(SIG_SETMASK, &action.sa_mask, NULL) < 0)
-		error(0, errno, "sigprocmask(SETMASK, nothing)");
+		xerror(0, errno, "sigprocmask(SETMASK, nothing)");
 }
 
 /* 対話的シェル用シグナルハンドラを初期化する。
@@ -274,11 +273,11 @@ void set_signals(void)
 	action.sa_handler = SIG_IGN;
 	for (signals = ignsignals; *signals; signals++)
 		if (sigaction(*signals, &action, NULL) < 0)
-			error(0, errno, "sigaction: signal=%d", *signals);
+			xerror(0, errno, "sigaction: signal=%d", *signals);
 
 	action.sa_handler = sig_handler;
 	if (sigaction(SIGINT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGINT");
+		xerror(0, errno, "sigaction: signal=SIGINT");
 }
 
 /* 対話的シェル用シグナルハンドラを元に戻す */
@@ -292,9 +291,9 @@ void unset_signals(void)
 	action.sa_handler = SIG_DFL;
 	for (signals = ignsignals; *signals; signals++)
 		if (sigaction(*signals, &action, NULL) < 0)
-			error(0, errno, "sigaction: signal=%d", *signals);
+			xerror(0, errno, "sigaction: signal=%d", *signals);
 	if (sigaction(SIGINT, &action, NULL) < 0)
-		error(0, errno, "sigaction: signal=SIGINT");
+		xerror(0, errno, "sigaction: signal=SIGINT");
 }
 
 /* sigsuspend でシグナルを待ち、受け取ったシグナルに対して処理を行う。
@@ -310,7 +309,7 @@ void wait_for_signal(void)
 	sigaddset(&ss, SIGINT);
 	sigemptyset(&oldss);
 	if (sigprocmask(SIG_BLOCK, &ss, &oldss) < 0)
-		error(2, errno, "sigprocmask before sigsuspend");
+		xerror(2, errno, "sigprocmask before sigsuspend");
 
 	ss = oldss;
 	sigdelset(&ss, SIGHUP);
@@ -322,11 +321,11 @@ void wait_for_signal(void)
 		if (received)
 			break;
 		if (sigsuspend(&ss) < 0 && errno != EINTR)
-			error(0, errno, "sigsuspend");
+			xerror(0, errno, "sigsuspend");
 	}
 
 	if (sigprocmask(SIG_SETMASK, &oldss, NULL) < 0)
-		error(2, errno, "sigprocmask after sigsuspend");
+		xerror(2, errno, "sigprocmask after sigsuspend");
 }
 
 /* 受け取ったシグナルがあればそれに対して処理を行い、フラグをリセットする。
@@ -341,7 +340,7 @@ void handle_signals(void)
 		action.sa_handler = SIG_DFL;
 		sigemptyset(&action.sa_mask);
 		if (sigaction(SIGHUP, &action, NULL) < 0)
-			error(2, errno, "sigaction(SIGHUP)");
+			xerror(2, errno, "sigaction(SIGHUP)");
 
 		send_sighup_to_all_jobs();
 		finalize_readline();
@@ -349,7 +348,7 @@ void handle_signals(void)
 		sigemptyset(&ss);
 		sigaddset(&ss, SIGHUP);
 		if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
-			error(2, errno, "sigprocmask before raising SIGHUP");
+			xerror(2, errno, "sigprocmask before raising SIGHUP");
 
 		raise(SIGHUP);
 		assert(false);

@@ -23,6 +23,8 @@ typedef struct {
 
 extern const SIGDATA const sigdata[];
 
+extern volatile sig_atomic_t sigint_received;
+
 int get_signal(const char *name);
 const char *get_signal_name(int signal);
 void init_signal(void);

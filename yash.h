@@ -25,21 +25,21 @@
 #include <sys/types.h>
 
 
-#define YASH_VERSION   "1.0 beta2"
+#define YASH_VERSION   "1.0 beta3"
 #define YASH_COPYRIGHT "Copyright (C) 2007-2008 magicant"
 
 #define EXIT_NOEXEC   126
 #define EXIT_NOTFOUND 127
 
 
-extern bool is_loginshell;
-extern bool is_interactive, is_interactive_now;
-extern bool posixly_correct;
-
+extern const char *yash_program_invocation_name;
+extern const char *yash_program_invocation_short_name;
 extern const char *command_name;
 extern pid_t shell_pid;
 
-extern volatile sig_atomic_t sigint_received;
+extern bool is_loginshell;
+extern bool is_interactive, is_interactive_now;
+extern bool posixly_correct;
 
 extern char *prompt_command;
 

@@ -17,7 +17,6 @@
 
 
 #define _GNU_SOURCE
-#include <error.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -28,6 +27,7 @@
 #include <unistd.h>
 #include "yash.h"
 #include "util.h"
+#include "sig.h"
 #include "expand.h"
 #include "exec.h"
 #include "path.h"
@@ -229,7 +229,7 @@ static int add_job(void)
 			break;
 	if (jobnumber == joblist.length) {  /* 空きがなかったらリストを大きくする */
 		if (joblist.length == MAX_JOB) {
-			error(0, 0, "too many jobs");
+			xerror(0, 0, "too many jobs");
 			return -1;
 		} else {
 			pl_append(&joblist, job);
@@ -362,7 +362,7 @@ void wait_chld(void)
 	sigaddset(&newset, SIGCHLD);
 	sigemptyset(&oldset);
 	if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0)
-		error(0, errno, "sigprocmask before wait");
+		xerror(0, errno, "sigprocmask before wait");
 
 start:
 	waitpidopt = WUNTRACED | WCONTINUED | WNOHANG;
@@ -372,10 +372,10 @@ start:
 			if (errno == EINTR)
 				goto start;
 			if (errno != ECHILD)
-				error(0, errno, "waitpid");
+				xerror(0, errno, "waitpid");
 		}
 		if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
-			error(0, errno, "sigprocmask after wait");
+			xerror(0, errno, "sigprocmask after wait");
 		return;
 	}
 
@@ -473,25 +473,42 @@ static int (*create_pipes(size_t count))[2]
 {
 	size_t i, j;
 	int (*pipes)[2];
+	int dummypipe[2];
 
 	if (!count)
 		return NULL;
+
+	/* ファイルディスクリプタ 0 番または 1 番が未使用の場合は、ダミーのパイプを
+	 * 開くことで実際のパイプのファイルディスクリプタを 2 以上にする。
+	 * こうしないと、後でパイプを標準入出力に繋ぎ変える時に他のパイプを
+	 * 上書きしてしまう。 */
+	bool usedummy = (fcntl(STDIN_FILENO,  F_GETFD) == -1 && errno == EBADF)
+	             || (fcntl(STDOUT_FILENO, F_GETFD) == -1 && errno == EBADF);
+	if (usedummy) {
+		if (pipe(dummypipe) < 0) {
+			xerror(0, errno, "pipe");
+			return NULL;
+		}
+	}
+
 	pipes = xmalloc(count * sizeof(int[2]));
 	for (i = 0; i < count; i++) {
 		if (pipe(pipes[i]) < 0) {
-			error(0, errno, "pipe");
+			xerror(0, errno, "pipe");
 			goto failed;
 		}
 	}
+	if (usedummy) { close(dummypipe[0]); close(dummypipe[1]); }
 	return pipes;
 
 failed:
 	for (j = 0; j < i; j++) {
 		if (close(pipes[i][0]) < 0)
-			error(0, errno, "pipe close");
+			xerror(0, errno, "pipe close");
 		if (close(pipes[i][1]) < 0)
-			error(0, errno, "pipe close");
+			xerror(0, errno, "pipe close");
 	}
+	if (usedummy) { close(dummypipe[0]); close(dummypipe[1]); }
 	free(pipes);
 	return NULL;
 }
@@ -507,9 +524,9 @@ static void close_pipes(PIPES pipes)
 		return;
 	for (i = 0; i < pipes.p_count; i++) {
 		if (close(pipes.p_pipes[i][0]) < 0)
-			error(0, errno, "pipe close");
+			xerror(0, errno, "pipe close");
 		if (close(pipes.p_pipes[i][1]) < 0)
-			error(0, errno, "pipe close");
+			xerror(0, errno, "pipe close");
 	}
 	free(pipes.p_pipes);
 }
@@ -776,13 +793,13 @@ static pid_t exec_single(
 
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
-		error(0, errno, "%s: fork", argv[0]);
+		xerror(0, errno, "%s: fork", argv[0]);
 		if (expanded) { recfree((void **) argv, free); }
 		return -1;
 	} else if (cpid) {  /* 親プロセス */
 		if (is_interactive_now) {
 			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
-				error(0, errno, "%s: setpgid (parent)", argv[0]);
+				xerror(0, errno, "%s: setpgid (parent)", argv[0]);
 			/* if (etype == FOREGROUND
 					&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
 					&& errno != EPERM)
@@ -796,10 +813,10 @@ static pid_t exec_single(
 	forget_orig_pgrp();
 	if (is_interactive_now) {
 		if (setpgid(0, pgid) < 0)
-			error(0, errno, "%s: setpgid (child)", argv[0]);
+			xerror(0, errno, "%s: setpgid (child)", argv[0]);
 		if (etype == FOREGROUND
 				&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : getpid()) < 0)
-			error(0, errno, "%s: tcsetpgrp (child)", argv[0]);
+			xerror(0, errno, "%s: tcsetpgrp (child)", argv[0]);
 	} else if (!is_interactive) {
 		if (etype == BACKGROUND && pindex <= 0) {
 			REDIR *r = xmalloc(sizeof *r);
@@ -822,12 +839,12 @@ directexec:
 		if (pindex) {
 			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
 			if (xdup2(pipes.p_pipes[index][0], STDIN_FILENO) < 0)
-				error(0, errno, "%s: cannot connect pipe to stdin", argv[0]);
+				xerror(0, errno, "%s: cannot connect pipe to stdin", argv[0]);
 		}
 		if (pindex < (ssize_t) pipes.p_count) {
 			size_t index = (pindex >= 0) ? (size_t) pindex : 0;
 			if (xdup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
-				error(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
+				xerror(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
 		}
 		close_pipes(pipes);
 	}
@@ -854,9 +871,9 @@ directexec:
 					strchr(argv[0], '/') ? "." : getvar(VAR_PATH),
 					is_executable);
 			if (!command)
-				error(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
+				xerror(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
 			execvp(command, argv);
-			error(EXIT_NOEXEC, errno, "%s", argv[0]);
+			xerror(EXIT_NOEXEC, errno, "%s", argv[0]);
 		case PT_GROUP:  case PT_SUBSHELL:
 			exec_statements_and_exit(p->p_subcmds);
 		case PT_X_PIPE:
@@ -890,10 +907,10 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		if (save) {
 			int copyfd = dup(r->rd_fd);
 			if (copyfd < 0 && errno != EBADF) {
-				error(0, errno, "redirect: cannot save file descriptor %d",
+				xerror(0, errno, "redirect: cannot save file descriptor %d",
 						r->rd_fd);
 			} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
-				error(0, errno, "redirect: fcntl(%d,SETFD,CLOEXEC)", r->rd_fd);
+				xerror(0, errno, "redirect: fcntl(%d,SETFD,CLOEXEC)", r->rd_fd);
 				close(r->rd_fd);
 			} else {
 				struct save_redirect *ss = xmalloc(sizeof *ss);
@@ -931,7 +948,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 				if (strcmp(exp, "-") == 0) {
 					/* r->rd_fd を閉じる */
 					if (close(r->rd_fd) < 0 && errno != EBADF)
-						error(0, errno,
+						xerror(0, errno,
 								"redirect: error on closing file descriptor %d",
 								r->rd_fd);
 					goto next;
@@ -941,7 +958,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 					fd = strtol(exp, &end, 10);
 					if (errno) goto onerror;
 					if (exp[0] == '\0' || end[0] != '\0') {
-						error(0, 0, "%s: redirect syntax error", exp);
+						xerror(0, 0, "%s: redirect syntax error", exp);
 						goto returnfalse;
 					}
 					if (fd < 0) {
@@ -953,13 +970,13 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 						if (flags >= 0) {
 							if (r->rd_type == RT_DUPIN
 									&& (flags & O_ACCMODE) == O_WRONLY) {
-								error(0, 0, "%d<&%d: file descriptor "
+								xerror(0, 0, "%d<&%d: file descriptor "
 										"not writable", r->rd_fd, fd);
 								goto returnfalse;
 							}
 							if (r->rd_type == RT_DUPOUT
 									&& (flags & O_ACCMODE) == O_RDONLY) {
-								error(0, 0, "%d>&%d: file descriptor "
+								xerror(0, 0, "%d>&%d: file descriptor "
 										"not readable", r->rd_fd, fd);
 								goto returnfalse;
 							}
@@ -997,7 +1014,7 @@ next:
 	return true;
 
 onerror:
-	error(0, errno, "redirect: %s", r->rd_file);
+	xerror(0, errno, "redirect: %s", r->rd_file);
 returnfalse:
 	free(exp);
 	if (save) *save = s;
@@ -1012,14 +1029,13 @@ static void undo_redirections(struct save_redirect *save)
 		if (save->sr_file)
 			fflush(save->sr_file);
 		if (close(save->sr_origfd) < 0 && errno != EBADF)
-			error(0, errno, "closing file descriptor %d",
-					save->sr_origfd);
+			xerror(0, errno, "closing file descriptor %d", save->sr_origfd);
 		if (save->sr_copyfd >= 0) {
 			if (xdup2(save->sr_copyfd, save->sr_origfd) < 0)
-				error(0, errno, "can't restore file descriptor %d from %d",
+				xerror(0, errno, "can't restore file descriptor %d from %d",
 						save->sr_origfd, save->sr_copyfd);
 			if (close(save->sr_copyfd) < 0)
-				error(0, errno, "closing copied file descriptor %d",
+				xerror(0, errno, "closing copied file descriptor %d",
 						save->sr_copyfd);
 		}
 		free(save);
@@ -1054,7 +1070,7 @@ char *exec_and_read(const char *code, bool trimend)
 
 	/* コマンドの出力を受け取るためのパイプを開く */
 	if (pipe(pipefd) < 0) {
-		error(0, errno, "can't open pipe for command substitution");
+		xerror(0, errno, "can't open pipe for command substitution");
 		return NULL;
 	}
 	fflush(stdout);
@@ -1062,7 +1078,7 @@ char *exec_and_read(const char *code, bool trimend)
 	assert(!temp_chld.jp_pid);
 	cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
-		error(0, errno, "command substitution: fork");
+		xerror(0, errno, "command substitution: fork");
 		close(pipefd[0]);
 		close(pipefd[1]);
 		return NULL;
@@ -1086,7 +1102,7 @@ char *exec_and_read(const char *code, bool trimend)
 				if (errno == EINTR) {
 					continue;
 				} else {
-					error(0, errno, "command substitution");
+					xerror(0, errno, "command substitution");
 					break;
 				}
 			} else if (count == 0) {
@@ -1137,11 +1153,11 @@ char *exec_and_read(const char *code, bool trimend)
 		if (pipefd[1] != STDOUT_FILENO) {
 			/* ↑ この条件が成り立たないことは普通考えられないが…… */
 			if (close(STDOUT_FILENO) < 0)
-				error(0, errno, "command substitution");
+				xerror(0, errno, "command substitution");
 			if (xdup2(pipefd[1], STDOUT_FILENO) < 0)
-				error(2, errno, "command substitution");
+				xerror(2, errno, "command substitution");
 			if (close(pipefd[1]) < 0)
-				error(0, errno, "command substitution");
+				xerror(0, errno, "command substitution");
 		}
 		exec_source_and_exit(code, "command substitution");
 	}

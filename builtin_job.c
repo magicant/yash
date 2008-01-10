@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#include <error.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -103,7 +102,7 @@ int builtin_exit(int argc, char **argv)
 	int status = laststatus;
 
 	if (strcmp(argv[0], "logout") == 0 && !is_loginshell) {
-		error(0, 0, "%s: not login shell: use `exit'", argv[0]);
+		xerror(0, 0, "%s: not login shell: use `exit'", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -125,7 +124,7 @@ int builtin_exit(int argc, char **argv)
 		if (*c)
 			status = strtol(c, &c, 0);
 		if (errno || *c) {
-			error(0, 0, "%s: invalid argument", argv[0]);
+			xerror(0, 0, "%s: invalid argument", argv[0]);
 			goto usage;
 		}
 	}
@@ -133,7 +132,7 @@ int builtin_exit(int argc, char **argv)
 		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
 		if (stopped_job_count()) {
-			error(0, 0, "There are stopped jobs!"
+			xerror(0, 0, "There are stopped jobs!"
 					"  Use `-f' option to exit anyway.");
 			return EXIT_FAILURE;
 		}
@@ -167,13 +166,13 @@ int builtin_kill(int argc, char **argv)
 				i = 2;
 			}
 			if (!sig) {
-				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 2);
+				xerror(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 2);
 				return EXIT_FAILURE;
 			}
 		} else if (xisupper(argv[1][1]) || xisdigit(argv[1][1])) {
 			sig = get_signal(argv[1] + 1);
 			if (!sig) {
-				error(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 1);
+				xerror(0, 0, "%s: %s: invalid signal", argv[0], argv[1] + 1);
 				return EXIT_FAILURE;
 			}
 		} else if (argv[1][1] == 'l') {
@@ -198,15 +197,15 @@ int builtin_kill(int argc, char **argv)
 			targetnum = parse_jobspec(target, true);
 			if (targetnum < 0) switch (targetnum) {
 				case -1:  default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], argv[i]);
+					xerror(0, 0, "%s: %s: invalid job spec", argv[0], argv[i]);
 					err = true;
 					continue;
 				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], argv[i]);
+					xerror(0, 0, "%s: %s: no such job", argv[0], argv[i]);
 					err = true;
 					continue;
 				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0],argv[i]);
+					xerror(0, 0, "%s: %s: ambiguous job spec", argv[0],argv[i]);
 					err = true;
 					continue;
 			}
@@ -216,14 +215,14 @@ int builtin_kill(int argc, char **argv)
 			if (*target)
 				targetnum = strtol(target, &target, 10);
 			if (errno || *target) {
-				error(0, 0, "%s: %s: invalid target", argv[0], argv[i]);
+				xerror(0, 0, "%s: %s: invalid target", argv[0], argv[i]);
 				err = true;
 				continue;
 			}
 			targetpid = (pid_t) targetnum;
 		}
 		if (kill(targetpid, sig) < 0) {
-			error(0, errno, "%s: %s", argv[0], argv[i]);
+			xerror(0, errno, "%s: %s", argv[0], argv[i]);
 			err = true;
 		}
 	}
@@ -265,7 +264,7 @@ list:
 			sig = get_signal(argv[i]);
 			name = get_signal_name(sig);
 			if (!sig || !name) {
-				error(0, 0, "%s: %s: invalid signal", argv[0], argv[i]);
+				xerror(0, 0, "%s: %s: invalid signal", argv[0], argv[i]);
 				err = true;
 			} else {
 				if (xisdigit(argv[i][0]))
@@ -294,7 +293,7 @@ int builtin_wait(int argc, char **argv)
 	sigaddset(&newset, SIGINT);
 	sigemptyset(&oldset);
 	if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0)
-		error(0, errno, "sigprocmask before wait");
+		xerror(0, errno, "sigprocmask before wait");
 	sigint_received = false;
 
 	if (argc < 2) {  /* 引数無し: 全ジョブを待つ */
@@ -318,7 +317,7 @@ int builtin_wait(int argc, char **argv)
 			bool isjob = target[0] == '%';
 
 			if (target[0] == '-') {
-				error(0, 0, "%s: %s: illegal option",
+				xerror(0, 0, "%s: %s: illegal option",
 						argv[0], target);
 				goto usage;
 			} else if (isjob) {
@@ -326,17 +325,17 @@ int builtin_wait(int argc, char **argv)
 				if (jobnumber < 0) switch (jobnumber) {
 					case -1:
 					default:
-						error(0, 0, "%s: %s: invalid job spec",
+						xerror(0, 0, "%s: %s: invalid job spec",
 								argv[0], target);
 						resultstatus = EXIT_NOTFOUND;
 						goto end;
 					case -2:
-						error(0, 0, "%s: %s: no such job",
+						xerror(0, 0, "%s: %s: no such job",
 								argv[0], target);
 						resultstatus = EXIT_NOTFOUND;
 						goto end;
 					case -3:
-						error(0, 0, "%s: %s: ambiguous job spec",
+						xerror(0, 0, "%s: %s: ambiguous job spec",
 								argv[0], target);
 						resultstatus = EXIT_NOTFOUND;
 						goto end;
@@ -346,13 +345,13 @@ int builtin_wait(int argc, char **argv)
 				if (*target)
 					jobnumber = strtol(target, &target, 10);
 				if (errno || *target) {
-					error(0, 0, "%s: %s: invalid target", argv[0], target);
+					xerror(0, 0, "%s: %s: invalid target", argv[0], target);
 					resultstatus = EXIT_FAILURE;
 					goto end;
 				}
 				jobnumber = get_jobnumber_from_pid(jobnumber);
 				if (jobnumber < 0) {
-					error(0, 0, "%s: %s: not a child of this shell",
+					xerror(0, 0, "%s: %s: not a child of this shell",
 							argv[0], target);
 					resultstatus = EXIT_NOTFOUND;
 					goto end;
@@ -387,13 +386,13 @@ int builtin_wait(int argc, char **argv)
 
 end:
 	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
-		error(0, errno, "sigprocmask after wait");
+		xerror(0, errno, "sigprocmask after wait");
 
 	return interrupted ? 128 + SIGINT : resultstatus;
 
 usage:
 	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
-		error(0, errno, "sigprocmask after wait");
+		xerror(0, errno, "sigprocmask after wait");
 	fprintf(stderr, "Usage:  wait [jobspec/pid]...\n");
 	return EXIT_FAILURE;
 }
@@ -417,11 +416,11 @@ int builtin_suspend(int argc, char **argv)
 		}
 	}
 	if (xoptind < argc) {
-		error(0, 0, "%s: invalid argument", argv[0]);
+		xerror(0, 0, "%s: invalid argument", argv[0]);
 		goto usage;
 	}
 	if (is_interactive_now && is_loginshell && !force) {
-		error(0, 0, "%s: cannot suspend a login shell;"
+		xerror(0, 0, "%s: cannot suspend a login shell;"
 				"  Use `-f' option to suspend anyway.", argv[0]);
 		return EXIT_FAILURE;
 	}
@@ -438,7 +437,7 @@ int builtin_suspend(int argc, char **argv)
 	if (raise(SIGSTOP) < 0) {
 #endif
 		set_unique_pgid();
-		error(0, errno, "%s", argv[0]);
+		xerror(0, errno, "%s", argv[0]);
 		return EXIT_FAILURE;
 	}
 	set_unique_pgid();
@@ -500,7 +499,7 @@ int builtin_jobs(int argc, char **argv)
 		jobnumber = strtol(jobstr, &jobstr, 10);
 		if (errno) {
 invalidspec:
-			error(0, 0, "%s: %s: invalid jobspec", argv[0], argv[xoptind]);
+			xerror(0, 0, "%s: %s: invalid jobspec", argv[0], argv[xoptind]);
 			err = true;
 			continue;
 		}
@@ -509,7 +508,7 @@ singlespec:
 			if (get_job(jobnumber)) {
 				print_job_status(jobnumber, changedonly, printpids);
 			} else {
-				error(0, 0, "%s: %s: no such job", argv[0], argv[xoptind]);
+				xerror(0, 0, "%s: %s: no such job", argv[0], argv[xoptind]);
 				err = true;
 			}
 			continue;
@@ -524,7 +523,7 @@ singlespec:
 			}
 		}
 		if (!done) {
-			error(0, 0, "%s: %s: no such job", argv[0], argv[xoptind]);
+			xerror(0, 0, "%s: %s: no such job", argv[0], argv[xoptind]);
 			err = true;
 		}
 	}
@@ -584,15 +583,15 @@ int builtin_disown(int argc, char **argv)
 			jobnumber = parse_jobspec(target, false);
 			if (jobnumber < 0) switch (jobnumber) {
 				case -1:  default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], target);
+					xerror(0, 0, "%s: %s: invalid job spec", argv[0], target);
 					err = true;
 					continue;
 				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], target);
+					xerror(0, 0, "%s: %s: no such job", argv[0], target);
 					err = true;
 					continue;
 				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0], target);
+					xerror(0, 0, "%s: %s: ambiguous job spec", argv[0], target);
 					err = true;
 					continue;
 			}
@@ -623,7 +622,7 @@ int builtin_fg(int argc, char **argv)
 	pid_t pgid = 0;
 
 	if (!is_interactive_now) {
-		error(0, 0, "%s: no job control", argv[0]);
+		xerror(0, 0, "%s: no job control", argv[0]);
 		return EXIT_FAILURE;
 	}
 	if (argc < 2) {
@@ -633,7 +632,7 @@ int builtin_fg(int argc, char **argv)
 			jobnumber = joblist.length;
 			while (--jobnumber > 0 && !get_job(jobnumber));
 			if (!jobnumber) {
-				error(0, 0, "%s: there is no job", argv[0]);
+				xerror(0, 0, "%s: there is no job", argv[0]);
 				return EXIT_FAILURE;
 			}
 			currentjobnumber = jobnumber;
@@ -647,26 +646,26 @@ int builtin_fg(int argc, char **argv)
 					jobnumber, (long) pgid, job->j_name, fg ? "" : " &");
 		if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
 			if (errno == EPERM || errno == ESRCH) {
-				error(0, 0, "%s %%%zd: job has terminated", argv[0], jobnumber);
+				xerror(0, 0, "%s %%%zd: job has terminated", argv[0],jobnumber);
 				return EXIT_FAILURE;
 			} else {
-				error(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
+				xerror(0, errno, "%s %%%zd: tcsetpgrp", argv[0], jobnumber);
 				err = true;
 			}
 		}
 		if (killpg(pgid, SIGCONT) < 0) {
 			if (errno == ESRCH) {
-				error(0, 0, "%s %%%zd: job has terminated", argv[0], jobnumber);
+				xerror(0, 0, "%s %%%zd: job has terminated", argv[0],jobnumber);
 				return EXIT_FAILURE;
 			} else {
-				error(0, errno, "%s %%%zd: kill SIGCONT", argv[0], jobnumber);
+				xerror(0, errno, "%s %%%zd: kill SIGCONT", argv[0], jobnumber);
 				err = true;
 			}
 		}
 		job->j_status = JS_RUNNING;
 	} else {
 		if (fg && argc > 2) {
-			error(0, 0, "%s: too many jobspecs", argv[0]);
+			xerror(0, 0, "%s: too many jobspecs", argv[0]);
 			goto usage;
 		}
 		for (int i = 1; i < argc; i++) {
@@ -675,15 +674,15 @@ int builtin_fg(int argc, char **argv)
 			jobnumber = parse_jobspec(jobstr, false);
 			if (jobnumber < 0) switch (jobnumber) {
 				case -1:  default:
-					error(0, 0, "%s: %s: invalid job spec", argv[0], jobstr);
+					xerror(0, 0, "%s: %s: invalid job spec", argv[0], jobstr);
 					err = true;
 					continue;
 				case -2:
-					error(0, 0, "%s: %s: no such job", argv[0], jobstr);
+					xerror(0, 0, "%s: %s: no such job", argv[0], jobstr);
 					err = true;
 					continue;
 				case -3:
-					error(0, 0, "%s: %s: ambiguous job spec", argv[0], jobstr);
+					xerror(0, 0, "%s: %s: ambiguous job spec", argv[0], jobstr);
 					err = true;
 					continue;
 			}
@@ -698,10 +697,10 @@ int builtin_fg(int argc, char **argv)
 						jobnumber, (long) pgid, job->j_name, fg ? "" : " &");
 			if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
 				if (errno == EPERM || errno == ESRCH) {
-					error(0, 0, "%s %%%zd: job has terminated",
+					xerror(0, 0, "%s %%%zd: job has terminated",
 							argv[0], jobnumber);
 				} else {
-					error(0, errno, "%s %%%zd: tcsetpgrp",
+					xerror(0, errno, "%s %%%zd: tcsetpgrp",
 							argv[0], jobnumber);
 				}
 				err = true;
@@ -709,10 +708,10 @@ int builtin_fg(int argc, char **argv)
 			}
 			if (killpg(pgid, SIGCONT) < 0) {
 				if (errno == EPERM || errno == ESRCH) {
-					error(0, 0, "%s %%%zd: job has terminated",
+					xerror(0, 0, "%s %%%zd: job has terminated",
 							argv[0], jobnumber);
 				} else {
-					error(0, errno, "%s %%%zd: kill SIGCONT",
+					xerror(0, errno, "%s %%%zd: kill SIGCONT",
 							argv[0], jobnumber);
 				}
 				err = true;
@@ -789,7 +788,7 @@ int builtin_exec(int argc, char **argv)
 		wait_chld();
 		print_all_job_status(true /* changed only */, false /* not verbose */);
 		if (stopped_job_count()) {
-			error(0, 0, "There are stopped jobs!"
+			xerror(0, 0, "There are stopped jobs!"
 					"  Use `-f' option to exec anyway.");
 			return EXIT_FAILURE;
 		}
@@ -803,7 +802,7 @@ int builtin_exec(int argc, char **argv)
 			strchr(argv[xoptind], '/') ? "." : getvar(VAR_PATH),
 			is_executable);
 	if (!command) {
-		error(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);
+		xerror(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);
 		if (!is_interactive_now) {
 			//XXX shopt execfail
 			exit(EXIT_NOTFOUND);
@@ -829,7 +828,7 @@ int builtin_exec(int argc, char **argv)
 			clearenv ? (char *[]) { NULL, } : environ);
 	set_shell_env();
 
-	error(0, errno, "%s: %s", argv[0], argv[xoptind]);
+	xerror(0, errno, "%s: %s", argv[0], argv[xoptind]);
 	free(args.contents[0]);
 	free(command);
 	pl_destroy(&args);
@@ -844,7 +843,7 @@ usage:
 int builtin_source(int argc, char **argv)
 {
 	if (argc < 2) {
-		error(0, 0, "%s: filename not given", argv[0]);
+		xerror(0, 0, "%s: filename not given", argv[0]);
 		goto usage;
 	}
 	exec_file(argv[1], false /* don't supress errors */);

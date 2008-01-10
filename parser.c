@@ -18,7 +18,6 @@
 
 #define _GNU_SOURCE
 #include <errno.h>
-#include <error.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -151,7 +150,7 @@ static void serror(const char *format, ...)
 	if (i_filename)
 		sb_printf(&s, "%s:%u: syntax error: ", i_filename, i_linenum);
 	else
-		sb_printf(&s, "%s: syntax error: ", program_invocation_name);
+		sb_printf(&s, "%s: syntax error: ", yash_program_invocation_name);
 	if (format)
 		sb_vprintf(&s, format, ap);
 	else

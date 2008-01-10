@@ -17,7 +17,6 @@
 
 
 #define _GNU_SOURCE
-#include <error.h>
 #include <errno.h>
 #include <locale.h>
 #include <stdio.h>
@@ -50,10 +49,17 @@ void set_shell_env(void);
 void unset_shell_env(void);
 static int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__((noreturn));
-/* int main(int argc, char **argv); */
+int main(int argc, char **argv);
 void print_help(void);
 void print_version(void);
 void yash_exit(int exitcode);
+
+/* main に渡された argv[0] の値。 */
+const char *yash_program_invocation_name, *yash_program_invocation_short_name;
+/* コマンド名。特殊パラメータ $0 の値。 */
+const char *command_name;
+/* シェルのプロセス ID。サブシェルでも変わらない。 */
+pid_t shell_pid;
 
 /* このプロセスがログインシェルかどうか */
 bool is_loginshell;
@@ -63,11 +69,6 @@ bool is_loginshell;
 bool is_interactive, is_interactive_now;
 /* POSIX の規定に厳密に従うかどうか */
 bool posixly_correct;
-
-/* コマンド名。特殊パラメータ $0 の値。 */
-const char *command_name;
-/* シェルのプロセス ID。サブシェルでも変わらない。 */
-pid_t shell_pid;
 
 /* プライマリプロンプトの前に実行するコマンド */
 char *prompt_command = NULL;
@@ -90,7 +91,7 @@ int exec_file(const char *path, bool suppresserror)
 
 	if (!f) {
 		if (!suppresserror)
-			error(0, errno, "%s", path);
+			xerror(0, errno, "%s", path);
 		return EXIT_FAILURE;
 	}
 
@@ -118,7 +119,7 @@ int exec_file(const char *path, bool suppresserror)
 	}
 end:
 	if (fclose(f) != 0)
-		error(0, errno, "%s", path);
+		xerror(0, errno, "%s", path);
 	return result;
 }
 
@@ -227,9 +228,9 @@ void restore_pgid(void)
 {
 	if (orig_pgrp > 0) {
 		if (setpgid(0, orig_pgrp) < 0 && errno != EPERM)
-			error(0, errno, "cannot restore process group");
+			xerror(0, errno, "cannot restore process group");
 		if (tcsetpgrp(STDIN_FILENO, orig_pgrp) < 0)
-			error(0, errno, "cannot restore foreground process group");
+			xerror(0, errno, "cannot restore foreground process group");
 		orig_pgrp = 0;
 	}
 }
@@ -334,8 +335,16 @@ int main(int argc __attribute__((unused)), char **argv)
 	char *directcommand = NULL;
 	const char *short_opts = "c:il";
 
-	command_name = argv[0];
-	is_loginshell = argv[0][0] == '-';
+	yash_program_invocation_name = argv[0] ? argv[0] : "";
+	yash_program_invocation_short_name
+		= strrchr(yash_program_invocation_name, '/');
+	if (yash_program_invocation_short_name)
+		yash_program_invocation_short_name++;
+	else
+		yash_program_invocation_short_name = yash_program_invocation_name;
+
+	command_name = yash_program_invocation_name;
+	is_loginshell = yash_program_invocation_name[0] == '-';
 	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
 	posixly_correct = getenv(VAR_POSIXLY_CORRECT) != NULL;
 	setlocale(LC_ALL, "");

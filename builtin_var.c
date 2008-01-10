@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#include <error.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -106,7 +105,7 @@ int builtin_unset(int argc __attribute__((unused)), char **argv)
 
 	while (argv[xoptind]) {
 		if (!is_name(argv[xoptind])) {
-			error(0, 0, "%s: %s: invalid name", argv[0], argv[xoptind]);
+			xerror(0, 0, "%s: %s: invalid name", argv[0], argv[xoptind]);
 			ok = false;
 		} else {
 			if (!unfunction) {  /* 変数を削除する */

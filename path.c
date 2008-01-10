@@ -17,7 +17,6 @@
 
 
 #include <errno.h>
-#include <error.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -78,7 +77,7 @@ char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 			case ENAMETOOLONG:
 				break;
 			default:
-				error(0, errno, "cannot stat %s", name);
+				xerror(0, errno, "cannot stat %s", name);
 				return NULL;
 		}
 		return NULL;
@@ -107,7 +106,7 @@ char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 			case ENAMETOOLONG:
 				break;
 			default:
-				error(0, errno, "cannot stat %s", searchname);
+				xerror(0, errno, "cannot stat %s", searchname);
 				return NULL;
 		}
 		path += pathlen;

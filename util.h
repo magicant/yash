@@ -104,6 +104,14 @@ char *read_all(int fd)
 	 + 1 + IS_TYPE_SIGNED(type))
 
 
+/* Error Utilities */
+
+extern unsigned yash_error_message_count;
+
+void xerror(int status, int errno_, const char *restrict format, ...)
+	__attribute__((format(printf,3,4)));
+
+
 /* xgetopt */
 
 extern char *xoptarg;
@@ -167,9 +175,9 @@ void sb_cappend(struct strbuf *buf, char c)
 void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *restrict s)
 	__attribute__((nonnull));
 int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
-	__attribute__((nonnull, format(printf,2,0)));
+	__attribute__((nonnull(1,2),format(printf,2,0)));
 int sb_printf(struct strbuf *buf, const char *format, ...)
-	__attribute__((nonnull, format(printf,2,3)));
+	__attribute__((nonnull(1,2),format(printf,2,3)));
 
 
 /* Pointer lists */

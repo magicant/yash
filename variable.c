@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#include <error.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -243,7 +242,7 @@ void set_shlvl(int change)
 		level = 0;
 	if (snprintf(newshlvl, sizeof newshlvl, "%d", level) >= 0) {
 		if (!setvar(VAR_SHLVL, newshlvl, false))
-			error(0, 0, "failed to set env SHLVL");
+			xerror(0, 0, "failed to set env SHLVL");
 	}
 }
 
@@ -322,7 +321,7 @@ bool setvar(const char *name, const char *value, bool export)
 		ht_set(&env->variables, name, var);
 	}
 	if (var->flags & VF_READONLY) {
-		error(0, 0, "%s: readonly variable cannot be assigned to", name);
+		xerror(0, 0, "%s: readonly variable cannot be assigned to", name);
 		return false;
 	}
 
@@ -335,7 +334,7 @@ bool setvar(const char *name, const char *value, bool export)
 			var->flags |= VF_EXPORT;
 		if (var->flags & VF_EXPORT) {
 			if (setenv(name, value, true) < 0) {
-				error(0, errno, "export %s=%s", name, value);
+				xerror(0, errno, "export %s=%s", name, value);
 				ok = false;
 			}
 		}
@@ -374,7 +373,7 @@ bool unsetvar(const char *name)
 			bool oldvarexport = var->flags & VF_EXPORT;
 			if (var->flags & VF_READONLY) {
 				ht_set(&env->variables, name, var);
-				error(0, 0, "cannot unset readonly variable `%s'", name);
+				xerror(0, 0, "cannot unset readonly variable `%s'", name);
 				return false;
 			}
 			free(var->value);
@@ -402,7 +401,7 @@ bool export(const char *name)
 	struct variable *var = get_variable(name, false);
 	if (var) {
 		if (setenv(name, var->value, false) < 0) {
-			error(0, errno, "export %s=%s", name, var->value);
+			xerror(0, errno, "export %s=%s", name, var->value);
 			return false;
 		}
 	} else {

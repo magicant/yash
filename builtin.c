@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#include <error.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -145,7 +144,7 @@ int builtin_cd(int argc, char **argv)
 	if (argc < 2) {
 		newpwd = getvar(VAR_HOME);
 		if (!newpwd) {
-			error(0, 0, "%s: HOME directory not specified", argv[0]);
+			xerror(0, 0, "%s: HOME directory not specified", argv[0]);
 			return EXIT_FAILURE;
 		}
 	} else {
@@ -153,7 +152,7 @@ int builtin_cd(int argc, char **argv)
 		if (strcmp(newpwd, "-") == 0) {
 			newpwd = getvar(VAR_OLDPWD);
 			if (!newpwd) {
-				error(0, 0, "%s: OLDPWD directory not specified", argv[0]);
+				xerror(0, 0, "%s: OLDPWD directory not specified", argv[0]);
 				return EXIT_FAILURE;
 			} else {
 				printf("%s\n", newpwd);
@@ -162,7 +161,7 @@ int builtin_cd(int argc, char **argv)
 	}
 	oldpwd = getvar(VAR_PWD);
 	if (chdir(newpwd) < 0) {
-		error(0, errno, "%s: %s", argv[0], newpwd);
+		xerror(0, errno, "%s: %s", argv[0], newpwd);
 		return EXIT_FAILURE;
 	}
 	if (oldpwd) {
@@ -191,10 +190,10 @@ int builtin_umask(int argc, char **argv)
 		if (*c)
 			newmask = strtol(c, &c, 8);
 		if (errno) {
-			error(0, errno, "%s", argv[0]);
+			xerror(0, errno, "%s", argv[0]);
 			goto usage;
 		} else if (*c) {
-			error(0, 0, "%s: invalid argument", argv[0]);
+			xerror(0, 0, "%s: invalid argument", argv[0]);
 			goto usage;
 		} else {
 			umask(newmask);
@@ -229,10 +228,10 @@ int builtin_history(int argc, char **argv)
 				return EXIT_SUCCESS;
 			case 'd':
 				if (argc < 3) {
-					error(0, 0, "%s: -d: missing argument", argv[0]);
+					xerror(0, 0, "%s: -d: missing argument", argv[0]);
 					return EXIT_FAILURE;
 				} else if (argc > 3) {
-					error(0, 0, "%s: -d: too many arguments", argv[0]);
+					xerror(0, 0, "%s: -d: too many arguments", argv[0]);
 					return EXIT_FAILURE;
 				} else {
 					int pos = 0;
@@ -254,14 +253,14 @@ int builtin_history(int argc, char **argv)
 			case 'r':
 				ierrno = read_history(argv[2] ? : history_filename);
 				if (ierrno) {
-					error(0, ierrno, "%s", argv[0]);
+					xerror(0, ierrno, "%s", argv[0]);
 					return EXIT_FAILURE;
 				}
 				return EXIT_SUCCESS;
 			case 'w':
 				ierrno = write_history(argv[2] ? : history_filename);
 				if (ierrno) {
-					error(0, ierrno, "%s", argv[0]);
+					xerror(0, ierrno, "%s", argv[0]);
 					return EXIT_FAILURE;
 				}
 				return EXIT_SUCCESS;
@@ -276,7 +275,7 @@ int builtin_history(int argc, char **argv)
 				}
 				return EXIT_SUCCESS;
 			default:
-				error(0, 0, "%s: invalid argument", argv[0]);
+				xerror(0, 0, "%s: invalid argument", argv[0]);
 				goto usage;
 		}
 	}
@@ -352,7 +351,7 @@ int builtin_alias(int argc, char **argv)
 		size_t namelen = strcspn(c, "=");
 
 		if (!namelen) {
-			error(0, 0, "%s: %s: invalid argument", argv[0], c);
+			xerror(0, 0, "%s: %s: invalid argument", argv[0], c);
 			err = true;
 		} else if (c[namelen] == '=') {
 			c[namelen] = '\0';
@@ -363,7 +362,7 @@ int builtin_alias(int argc, char **argv)
 			if (a) {
 				print_alias(c, a);
 			} else {
-				error(0, 0, "%s: %s: no such alias", argv[0], c);
+				xerror(0, 0, "%s: %s: no such alias", argv[0], c);
 				err = true;
 			}
 		}
@@ -405,7 +404,7 @@ int builtin_unalias(int argc, char **argv)
 	for (; xoptind < argc; xoptind++) {
 		if (remove_alias(argv[xoptind]) < 0) {
 			err = true;
-			error(0, 0, "%s: %s: no such alias", argv[0], argv[xoptind]);
+			xerror(0, 0, "%s: %s: no such alias", argv[0], argv[xoptind]);
 		}
 	}
 	return err ? EXIT_FAILURE : EXIT_SUCCESS;
@@ -459,7 +458,7 @@ int builtin_option(int argc, char **argv)
 		char *ve;
 
 		if (def) {
-			error(0, 0, "%s: invalid argument", argv[0]);
+			xerror(0, 0, "%s: invalid argument", argv[0]);
 			goto usage;
 		}
 		value = argv[xoptind++];
@@ -535,16 +534,16 @@ int builtin_option(int argc, char **argv)
 			printf("%s: %s\n", name, huponexit ? "yes" : "no");
 		}
 	} else {
-		error(0, 0, "%s: %s: unknown option", argv[0], name);
+		xerror(0, 0, "%s: %s: unknown option", argv[0], name);
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
 	
 valuenuminvalid:
-	error(0, 0, "%s: value of `%s' must be a number", argv[0], name);
+	xerror(0, 0, "%s: value of `%s' must be a number", argv[0], name);
 	return EXIT_FAILURE;
 valueyesnoinvalid:
-	error(0, 0, "%s: value of `%s' must be `yes' or `no'", argv[0], name);
+	xerror(0, 0, "%s: value of `%s' must be `yes' or `no'", argv[0], name);
 	return EXIT_FAILURE;
 
 usage:
