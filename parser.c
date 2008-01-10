@@ -31,9 +31,8 @@
 #include <assert.h>
 
 
-int read_and_parse(getline_t *input, const char *filename, STATEMENT **result);
-unsigned get_line_number(void);
-void set_line_number(unsigned num);
+int read_and_parse(
+		struct parse_info *restrict info, STATEMENT **restrict result);
 static bool read_next_line(bool insertnl);
 static void serror(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
@@ -43,23 +42,21 @@ static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
 static REDIR *tryparse_redir(void);
 static void skip_with_quote_i(const char *delim, bool singquote);
-char *skip_with_quote(const char *s, const char *delim);
-char *skip_without_quote(const char *s, const char *delim);
+char *skip_with_quote(const char *restrict s, const char *restrict delim);
+char *skip_without_quote(const char *restrict s, const char *restrict delim);
 char *make_statement_name(PIPELINE *pipelines);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
-static void print_statements(struct strbuf *b, STATEMENT *s);
-static void print_pipelines(struct strbuf *b, PIPELINE *pl);
-static void print_processes(struct strbuf *b, PROCESS *p);
-static void print_process(struct strbuf *b, PROCESS *p);
+static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s);
+static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict pl);
+static void print_processes(struct strbuf *restrict b, PROCESS *restrict p);
+static void print_process(struct strbuf *restrict b, PROCESS *restrict p);
 void redirsfree(REDIR *redirs);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
 
-static const char *i_filename;
-static unsigned i_linenum;
-static getline_t *i_input;
-static bool i_error;
+static struct parse_info *i_info;
+static bool i_finish, i_error;
 static struct strbuf i_src;
 static size_t i_index;
 
@@ -67,24 +64,23 @@ static size_t i_index;
 #define toi(x)   ((x) - i_src.contents)
 
 /* コマンド入力を解析するエントリポイント。
- * filename: 入力元ファイル名。これはエラーメッセージでファイル名を表示する為
- *         だけに使う。NULL でもよい。
- * input:  呼び出す度にソースを一行読み込んで返す関数。
- * result: これに結果が入る。(戻り値が 0 の場合のみ)
+ * info:   解析情報へのポインタ。全ての値を初期化しておくこと。
+ * result: 成功したら *result に結果が入る。
  *         ソースに文が含まれなければ、結果は NULL となる。
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
  *         構文エラーなら 1 を、EOF に達したときは EOF を返す。 */
 /* この関数はリエントラントではない */
-int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
+int read_and_parse(
+		struct parse_info *restrict info, STATEMENT **restrict result)
 {
 	char *src;
 
-	i_filename = filename;
-	i_linenum++;
-	i_input = input;
+	i_info = info;
+	i_finish = false;
 	i_error = false;
 	i_index = 0;
-	src = (*input)(1);
+	src = info->input(1, info->inputinfo);
+	info->lineno++;
 	if (!src)
 		return EOF;
 
@@ -104,35 +100,22 @@ int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
 	return 0;
 }
 
-/* 解析中の行番号を取得する。 */
-unsigned get_line_number(void)
-{
-	return i_linenum;
-}
-
-/* 解析中の行番号を再設定する。
- * 新しくファイルを解析し始めるときは 0 に再設定すること。 */
-void set_line_number(unsigned num)
-{
-	i_linenum = num;
-}
-
 /* 更なる一行を読み込んで i_src に継ぎ足す。
  * insertnl: true なら新しく継ぎ足す行の前に改行を挿入する。
  * 戻り値:   読み込めたら true、エラーや EOF なら false。 */
 static bool read_next_line(bool insertnl)
 {
-	char *line = i_input ? i_input(2) : NULL;
+	char *line = i_finish ? NULL : i_info->input(2, i_info->inputinfo);
 
 	if (!line) {
-		i_input = NULL;
+		i_finish = true;
 		return false;
 	}
 	if (insertnl)
 		sb_cappend(&i_src, '\n');
 	sb_append(&i_src, line);
 	free(line);
-	i_linenum++;
+	i_info->lineno++;
 	return true;
 }
 
@@ -141,24 +124,23 @@ static bool read_next_line(bool insertnl)
 static void serror(const char *format, ...)
 {
 	va_list ap;
-	struct strbuf s;
 
 	va_start(ap, format);
-	sb_init(&s);
 
-	if (i_filename)
-		sb_printf(&s, "%s:%u: syntax error: ", i_filename, i_linenum);
+	fflush(stdout);
+	if (i_info->filename)
+		fprintf(stderr, "%s:%u: syntax error: ",
+				i_info->filename, i_info->lineno);
 	else
-		sb_printf(&s, "%s: syntax error: ", yash_program_invocation_name);
+		fprintf(stderr, "%s: syntax error: ", yash_program_invocation_name);
 	if (format)
-		sb_vprintf(&s, format, ap);
+		vfprintf(stderr, format, ap);
 	else
-		sb_append(&s, "unknown error");
-	sb_cappend(&s, '\n');
-	fputs(s.contents, stderr);
+		fprintf(stderr, "unknown error");
+	fputc('\n', stderr);
+	fflush(stderr);
 	i_error = true;
 
-	sb_destroy(&s);
 	va_end(ap);
 }
 
@@ -594,7 +576,7 @@ end:
 
 /* 引用符などを考慮しつつ、delim 内の文字のどれかが現れるまで飛ばす。
  * すなわち、delim に含まれない 0 個以上の文字を飛ばす。 */
-char *skip_with_quote(const char *s, const char *delim)
+char *skip_with_quote(const char *restrict s, const char *restrict delim)
 {
 	while (*s && !strchr(delim, *s)) {
 		switch (*s) {
@@ -629,7 +611,7 @@ char *skip_with_quote(const char *s, const char *delim)
 
 /* delim 内の文字のどれかが現れるまで飛ばす。すなわち、delim に含まれない 0
  * 個以上の文字を飛ばす。s に含まれるエスケープなどは一切解釈しない。 */
-char *skip_without_quote(const char *s, const char *delim)
+char *skip_without_quote(const char *restrict s, const char *restrict delim)
 {
 	while (*s && !strchr(delim, *s)) s++;
 	return (char *) s;
@@ -664,7 +646,7 @@ char *make_pipeline_name(PROCESS *p, bool neg, bool loop)
 }
 
 /* 各文を文字列に変換して文字列バッファに追加する。 */
-static void print_statements(struct strbuf *b, STATEMENT *s)
+static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s)
 {
 	while (s) {
 		print_pipelines(b, s->s_pipeline);
@@ -676,7 +658,7 @@ static void print_statements(struct strbuf *b, STATEMENT *s)
 }
 
 /* 各パイプラインを文字列に変換して文字列バッファに追加する。 */
-static void print_pipelines(struct strbuf *b, PIPELINE *p)
+static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict p)
 {
 	while (p) {
 		if (p->pl_neg)
@@ -691,7 +673,7 @@ static void print_pipelines(struct strbuf *b, PIPELINE *p)
 }
 
 /* 各プロセスを文字列に変換して文字列バッファに追加する。 */
-static void print_processes(struct strbuf *b, PROCESS *p)
+static void print_processes(struct strbuf *restrict b, PROCESS *restrict p)
 {
 	while (p) {
 		print_process(b, p);
@@ -702,7 +684,7 @@ static void print_processes(struct strbuf *b, PROCESS *p)
 }
 
 /* 一つのプロセスを文字列に変換して文字列バッファに追加する。 */
-static void print_process(struct strbuf *b, PROCESS *p)
+static void print_process(struct strbuf *restrict b, PROCESS *restrict p)
 {
 	bool f = false;
 
@@ -763,234 +745,6 @@ static void print_process(struct strbuf *b, PROCESS *p)
 		}
 	}
 }
-
-///* 文字列に含まれる数値の先頭位置を返す。
-// * s: 文字列全体の先頭のアドレス
-// * t: 文字列のうち、数値 (0~9 のみからなる部分文字列) の次の文字のアドレス。
-// * 戻り値: t の直前にある数値のうち最初の文字のアドレス。数値がなければ t。 */
-//static const char *find_start_of_number(const char *s, const char *t)
-//{
-//	const char *oldt = t;
-//
-//	assert(s <= t);
-//	while (s < t) {
-//		char c = *--t;
-//		if (c == ' ')
-//			return t + 1;
-//		if (c < '0' || '9' < c)
-//			return oldt;
-//	}
-//	return t;
-//}
-//
-///* リダイレクトを解析する。
-// * s:      解析するコマンド入力。
-// * redir:  これに結果が入る。(成功した場合)
-// * 戻り値: 成功したら次に解析すべき文字へのポインタ、失敗したら NULL */
-//static const char *parse_redir(const char *s, REDIR *redir)
-//{
-//	int fd = -1;
-//	int flags = 0;
-//	bool isfdcopy = false;
-//	char *file;
-//	ssize_t len;
-//
-//	if ('0' <= *s && *s <= '9') {
-//		errno = 0;
-//		fd = (int) strtol(s, (char **) &s, 10);
-//		if (errno) {
-//			error(0, errno, "invalid file descriptor");
-//			return NULL;
-//		}
-//		assert(fd >= 0);
-//	}
-//	switch (*s) {
-//		case '<':
-//			if (fd < 0)
-//				fd = STDIN_FILENO;
-//			flags = O_RDONLY;
-//			s++;
-//			if (*s == '>') {
-//				flags = O_RDWR | O_CREAT;
-//				s++;
-//			}
-//			if (*s == '&') {
-//				isfdcopy = true;
-//				s++;
-//			}
-//			break;
-//		case '>':
-//			if (fd < 0)
-//				fd = STDOUT_FILENO;
-//			flags = O_WRONLY | O_CREAT;
-//			s++;
-//			if (*s == '>') {
-//				flags |= O_APPEND;
-//				s++;
-//			} else if (*s == '<') {
-//				/* FD を閉じることを示す特殊なリダイレクト */
-//				redir->rd_flags = 0;
-//				redir->rd_fd = fd;
-//				redir->rd_file = NULL;
-//				return s + 1;
-//			} else if (*s == '&') {
-//				isfdcopy = 1;
-//				s++;
-//			} else {
-//				flags |= O_TRUNC;
-//			}
-//			break;
-//		default:
-//			error(0, 0, "invalid redirection");
-//			return NULL;
-//	}
-//	while (*s == ' ')
-//		s++;
-//	file = get_token(s);
-//	if (!file) {
-//		error(0, 0, "invalid redirection (no file specified)");
-//		return NULL;
-//	}
-//	len = strlen(file);
-//	switch (file[0]) {
-//		case '"':  case '\'':
-//			assert(file[len - 1] == '"' || file[len - 1] == '\'');
-//			memmove(file, file + 1, len - 2);
-//			file[len - 2] = '\0';
-//			break;
-//	}
-//	if (isfdcopy) {
-//		/* ファイル名の先頭に "/dev/fd/" を挿入する */
-//		int len2;
-//		char *file2 = file;
-//		while (*file2 == '0') file2++;
-//		len2 = strlen(file2);
-//		if (len2 == 0) {
-//			len2++;
-//			file2--;
-//			assert(*file2 == '0');
-//		}
-//		file = xrealloc(file, len2 + 9);
-//		memmove(file + 8, file2, len2 + 1);
-//		strncpy(file, "/dev/fd/", 8);
-//		flags &= ~O_CREAT;
-//	}
-//	if (file[0] == '~') {
-//		char *newfile = expand_tilde(file);
-//		if (newfile) {
-//			free(file);
-//			file = newfile;
-//		}
-//	}
-//	redir->rd_flags = flags;
-//	redir->rd_fd = fd;
-//	redir->rd_file = file;
-//	return s + len;
-//}
-//
-///* 括弧 ( ) で囲まれた、サブシェルで実行されるコマンドと
-// * それに続くリダイレクトを解析します。
-// * s:    括弧 ( で始まる文字列。
-// * scmd: これに結果が入る。
-// * 戻り値: 成功すると、次に解析すべき文字のポインタを返す。失敗すると NULL。 */
-//static const char *parse_subexp(const char *s, SCMD *scmd)
-//{
-//	SCMD *innerscmds;
-//	ssize_t innercount;
-//	REDIR *redirs = NULL;
-//	size_t redircnt = 0, redirsize = 0;
-//	const char *olds = s;
-//
-//	assert(s && *s == '(');
-//	s++;
-//	innercount = parse_commands(&s, &innerscmds);
-//	if (innercount < 0)
-//		return NULL;
-//	if (*s != ')') {
-//		error(0, 0, "invalid syntax: missing ')'");
-//		return NULL;
-//	}
-//	s++;
-//	for (;;) {
-//		s = skipwhites(s);
-//		switch (*s) {
-//			default:
-//				scmd->c_type = CT_END;
-//				scmd->c_argc = innercount;
-//				scmd->c_argv = NULL;
-//				scmd->c_subcmds = innerscmds;
-//				scmd->c_redir = redirs;
-//				scmd->c_redircnt = redircnt;
-//				scmd->c_name = xstrndup(olds, strlen(olds) - strlen(s));
-//				return s;
-//			case '<':  case '>':  case '0':  case '1':  case '2':  case '3':
-//			case '4':  case '5':  case '6':  case '7':  case '8':  case '9':
-//				if (!redirs) {
-//					redirs = xmalloc(sizeof(REDIR));
-//					redirsize = 1;
-//				} else if (redircnt == redirsize) {
-//					assert(redirsize > 0);
-//					redirsize *= 2;
-//					redirs = xrealloc(redirs, redirsize * sizeof(REDIR));
-//				}
-//				s = parse_redir(s, &redirs[redircnt]);
-//				if (!s)
-//					goto error;
-//				redircnt++;
-//				break;
-//		}
-//	}
-//
-//error:
-//	if (redirs) {
-//		redirsfree(redirs, redircnt);
-//		free(redirs);
-//	}
-//	scmdsfree(innerscmds, innercount);
-//	free(innerscmds);
-//	return NULL;
-//}
-//
-///* 指定した文字列からトークンを取得する。
-// * s の先頭に空白があってはならない。
-// * 戻り値: 新しく malloc した、s にあるトークンのコピー。
-// *         トークンがなければ/エラーが起きたら NULL。 */
-//static char *get_token(const char *s)
-//{
-//	const char *end;
-//	ssize_t len;
-//
-//	assert(s);
-//	assert(*s != ' ');
-//	if (!*s)
-//		return NULL;
-//	switch (*s) {
-//		case '"':
-//			end = strchr(s + 1, '"');
-//			if (!end) {
-//				error(0, 0, "unclosed string");
-//				return NULL;
-//			}
-//			end += 1;
-//			break;
-//		case '\'':
-//			end = strchr(s + 1, '\'');
-//			if (!end) {
-//				error(0, 0, "unclosed string");
-//				return NULL;
-//			}
-//			end += 1;
-//			break;
-//		default:
-//			end = s + strcspn(s, " \"'\\|&;<>(){}\n#");
-//			break;
-//	}
-//	
-//	len = end - s;
-//	if (!len)
-//		return NULL;
-//	return xstrndup(s, len);
-//}
 
 void redirsfree(REDIR *r)
 {

@@ -23,8 +23,9 @@
 /* ソースを一行読み込んで返す関数。
  * ptype:  現在の状況。新しい文を読み始めるときは 1、文の途中で続きを読むときは
  *         2。(この引数はプロンプトの種類を変えたりするのに使う)
+ * info:   struct parse_info の inputinfo。
  * 戻り値: 読み込んだソース。末尾の改行はない。EOF に達したときは NULL。 */
-typedef char *getline_t(int ptype);
+typedef char *getline_t(int ptype, void *info);
 
 extern char *history_filename;
 extern int history_filesize;
@@ -32,15 +33,17 @@ extern int history_histsize;
 extern char *readline_prompt1;
 extern char *readline_prompt2;
 
-extern FILE *yash_fgetline_input;
-extern const char *yash_sgetline_src;
-extern size_t yash_sgetline_offset;
-
 void initialize_readline(void);
 void finalize_readline(void);
 getline_t yash_fgetline;
 getline_t yash_sgetline;
 getline_t yash_readline;
+
+/* yash_sgetline の第二引数として与える構造体。 */
+struct sgetline_info {
+	const char *src;   /* 読み取るソースコード */
+	size_t offset;     /* 次に読み取る位置。最初は 0。 */
+};
 
 
 #endif /* READLINE_H */

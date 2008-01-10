@@ -43,9 +43,9 @@
 
 void initialize_readline(void);
 void finalize_readline(void);
-char *yash_fgetline(int ptype);
-char *yash_sgetline(int ptype);
-char *yash_readline(int ptype);
+char *yash_fgetline(int ptype, void *info);
+char *yash_sgetline(int ptype, void *info);
+char *yash_readline(int ptype, void *info);
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
@@ -102,17 +102,16 @@ void finalize_readline(void)
 	}
 }
 
-FILE *yash_fgetline_input;
-
 /* プロンプトを出さずに yash_getline_input から行を読み取る。
+ * input:  読み取る FILE へのポインタ。
  * 戻り値: 読み取った行。(新しく malloc した文字列)
  *         EOF が入力されたときは NULL。 */
-char *yash_fgetline(int ptype __attribute__((unused)))
+char *yash_fgetline(int ptype __attribute__((unused)), void *input)
 {
 	size_t len = 0, size = 80;
 	char *line = xmalloc(size);
 
-	while (fgets(line + len, size - len, yash_fgetline_input)) {
+	while (fgets(line + len, size - len, input)) {
 		char *newline = line + len;
 		while (*newline && *newline != '\n') newline++;
 		if (*newline == '\n') {
@@ -133,25 +132,25 @@ char *yash_fgetline(int ptype __attribute__((unused)))
 	}
 }
 
-const char *yash_sgetline_src;
-size_t yash_sgetline_offset;
-
 /* 文字列 yash_sgetline_src の yash_sgetline_offset 文字目から行を読み取る。
+ * info:   struct sgetline_info へのポインタ。
+ *         読み取った文字数だけ offset が増える。
  * 戻り値: 読み取った行。(新しく malloc した文字列)
  *         文字列の終端に達したときは NULL。 */
-char *yash_sgetline(int ptype __attribute__((unused)))
+char *yash_sgetline(int ptype __attribute__((unused)), void *info)
 {
-	const char *start = yash_sgetline_src + yash_sgetline_offset;
+	struct sgetline_info *i = info;
+	const char *start = i->src + i->offset;
 	const char *newline = start;
 	if (!*start) return NULL;
 	while (*newline && *newline != '\n') newline++;
 	size_t len = newline - start;
 	if (*newline == '\n') {
 		char *result = xstrndup(start, len);
-		yash_sgetline_offset += len + 1;
+		i->offset += len + 1;
 		return result;
 	}
-	yash_sgetline_offset += len;
+	i->offset += len;
 	return xstrdup(start);
 }
 
@@ -160,7 +159,7 @@ char *yash_sgetline(int ptype __attribute__((unused)))
  * ptype:  プロンプトの種類。1~2。(PS1~PS2 に対応)
  * 戻り値: 読み取った行。(新しく malloc した文字列)
  *         EOF が入力されたときは NULL。 */
-char *yash_readline(int ptype)
+char *yash_readline(int ptype, void *info __attribute__((unused)))
 {
 	char *prompt, *actualprompt;
 	char *line, *eline;

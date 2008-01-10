@@ -23,6 +23,17 @@
 #include "lineinput.h"
 
 
+/* 解析中のソースコードに関する情報を表す */
+struct parse_info {
+	const char *filename;
+	unsigned lineno;
+	getline_t *input;
+	void *inputinfo;
+};
+/* filename はソースコードのファイル名。エラー表示で使う。NULL でもよい。
+ * lineno は行番号。解析が進むにつれて増える。最初は 0。
+ * input は入力関数。 */
+
 typedef struct x_redirect  REDIR;
 typedef struct x_process   PROCESS;
 typedef struct x_pipeline  PIPELINE;
@@ -82,13 +93,12 @@ struct x_statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
-int read_and_parse(getline_t *input, const char *filename, STATEMENT **result)
-	__attribute__((nonnull(1,3)));
-unsigned get_line_number(void);
-void set_line_number(unsigned num);
-char *skip_with_quote(const char *s, const char *delim)
+int read_and_parse(
+		struct parse_info *restrict info, STATEMENT **restrict result)
 	__attribute__((nonnull));
-char *skip_without_quote(const char *s, const char *delim)
+char *skip_with_quote(const char *restrict s, const char *restrict delim)
+	__attribute__((nonnull));
+char *skip_without_quote(const char *restrict s, const char *restrict delim)
 	__attribute__((nonnull));
 char *make_statement_name(PIPELINE *p);
 char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);

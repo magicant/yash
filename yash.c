@@ -78,7 +78,6 @@ char *prompt_command = NULL;
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
 int exec_file(const char *path, bool suppresserror)
 {
-	FILE *save_fgetline_input = yash_fgetline_input;
 	FILE *f = fopen(path, "r");
 	if (!f) {
 		if (!suppresserror)
@@ -86,18 +85,20 @@ int exec_file(const char *path, bool suppresserror)
 		return EXIT_FAILURE;
 	}
 
+	struct parse_info info = {
+		.filename = path,
+		.lineno = 0,
+		.input = yash_fgetline,
+		.inputinfo = f,
+	};
 	int result;
-	yash_fgetline_input = f;
-	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(yash_fgetline, path, &statements)) {
+		switch (read_and_parse(&info, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
-					unsigned savelinenum = get_line_number();
 					exec_statements(statements);
 					statementsfree(statements);
-					set_line_number(savelinenum);
 				}
 				break;
 			case EOF:
@@ -112,7 +113,6 @@ int exec_file(const char *path, bool suppresserror)
 end:
 	if (fclose(f) != 0)
 		xerror(0, errno, "%s", path);
-	yash_fgetline_input = save_fgetline_input;
 	return result;
 }
 
@@ -143,36 +143,32 @@ int exec_source(const char *code, const char *name)
 	if (!code)
 		return 0;
 
-	int result;
-	const char *save_sgetline_src = yash_sgetline_src;
-	size_t save_sgetline_offset = yash_sgetline_offset;
-	yash_sgetline_src = code;
-	yash_sgetline_offset = 0;
-	set_line_number(0);
+	struct sgetline_info sinfo = {
+		.src = code,
+		.offset = 0,
+	};
+	struct parse_info pinfo = {
+		.filename = name,
+		.lineno = 0,
+		.input = yash_sgetline,
+		.inputinfo = &sinfo,
+	};
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(yash_sgetline, name, &statements)) {
+		switch (read_and_parse(&pinfo, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
-					unsigned savelinenum = get_line_number();
 					exec_statements(statements);
 					statementsfree(statements);
-					set_line_number(savelinenum);
 				}
 				break;
 			case EOF:
-				result = 0;
-				goto end;
+				return 0;
 			case 1:  /* syntax error */
 			default:
-				result = -1;
-				goto end;
+				return -1;
 		}
 	}
-end:
-	yash_sgetline_src = save_sgetline_src;
-	yash_sgetline_offset = save_sgetline_offset;
-	return result;
 }
 
 /* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
@@ -181,7 +177,7 @@ end:
  * name: 構文エラー時に表示するコード名。 */
 void exec_source_and_exit(const char *code, const char *name)
 {
-	char *mygetline(int ptype) {
+	char *mygetline(int ptype, void *info __attribute__((unused))) {  // TODO
 		if (ptype == 1) return xstrdup(code);
 		else            return NULL;
 	}
@@ -192,9 +188,13 @@ void exec_source_and_exit(const char *code, const char *name)
 		exit(laststatus);
 	}
 
+	struct parse_info info = {
+		.filename = name,
+		.lineno = 0,
+		.input = mygetline,
+	};
 	STATEMENT *statements;
-	set_line_number(0);
-	switch (read_and_parse(mygetline, name, &statements)) {
+	switch (read_and_parse(&info, &statements)) {
 		case 0:  /* OK */
 			exec_statements_and_exit(statements);
 		default:  /* error */
@@ -286,14 +286,14 @@ static int exec_promptcommand(void)
 static void interactive_loop(void)
 {
 	const char *exitargv[] = { "exit", NULL, };
+	struct parse_info info = { .input = yash_readline };
 
 	assert(is_interactive && is_interactive_now);
 	for (;;) {
 		STATEMENT *statements;
 
 		exec_promptcommand();
-		set_line_number(0);
-		switch (read_and_parse(yash_readline, NULL, &statements)) {
+		switch (read_and_parse(&info, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					exec_statements(statements);
