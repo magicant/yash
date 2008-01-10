@@ -56,7 +56,7 @@ void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
 
 static struct parse_info *i_info;
-static bool i_finish, i_error;
+static bool i_raw, i_finish, i_error;
 static struct strbuf i_src;
 static size_t i_index;
 
@@ -76,6 +76,7 @@ int read_and_parse(
 	char *src;
 
 	i_info = info;
+	i_raw = false;
 	i_finish = false;
 	i_error = false;
 	i_index = 0;
@@ -111,7 +112,7 @@ static bool read_next_line(bool insertnl)
 		i_finish = true;
 		return false;
 	}
-	if (insertnl)
+	if (i_raw || insertnl)
 		sb_cappend(&i_src, '\n');
 	sb_append(&i_src, line);
 	free(line);
@@ -526,7 +527,10 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 					case '(':
 						//if (s[2] == '(') {} // XXX 算術式展開
 						i_index = toi(skipwhites(fromi(i_index + 2)));
+						bool saveraw = i_raw;
+						i_raw = true;
 						statementsfree(parse_statements(')'));
+						i_raw = saveraw;
 						if (*fromi(i_index) != ')') {
 							goto end;
 						}
