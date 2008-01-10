@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#define  _POSIX_C_SOURCE 200112L
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -251,14 +252,14 @@ int builtin_history(int argc, char **argv)
 				}
 				return EXIT_SUCCESS;
 			case 'r':
-				ierrno = read_history(argv[2] ? : history_filename);
+				ierrno = read_history(argv[2] ? argv[2] : history_filename);
 				if (ierrno) {
 					xerror(0, ierrno, "%s", argv[0]);
 					return EXIT_FAILURE;
 				}
 				return EXIT_SUCCESS;
 			case 'w':
-				ierrno = write_history(argv[2] ? : history_filename);
+				ierrno = write_history(argv[2] ? argv[2] : history_filename);
 				if (ierrno) {
 					xerror(0, ierrno, "%s", argv[0]);
 					return EXIT_FAILURE;
@@ -290,7 +291,7 @@ int builtin_history(int argc, char **argv)
 		if (errno || *numstr)
 			return EXIT_FAILURE;
 	}
-	for (int offset = MAX(0, history_length - count);
+	for (int offset = (history_length > count ? history_length - count : 0);
 			offset < history_length; offset++) {
 		HIST_ENTRY *entry = history_get(history_base + offset);
 		if (entry)
@@ -522,9 +523,9 @@ int builtin_option(int argc, char **argv)
 		}
 	} else if (strcmp(name, OPT_HUPONEXIT) == 0) {
 		if (value) {
-			if (strcasecmp(value, "yes") == 0)
+			if (strcmp(value, "yes") == 0)
 				huponexit = true;
-			else if (strcasecmp(value, "no") == 0)
+			else if (strcmp(value, "no") == 0)
 				huponexit = false;
 			else
 				goto valueyesnoinvalid;

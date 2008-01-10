@@ -17,6 +17,7 @@
 
 
 #define  NO_UTIL_INLINE
+#define  _POSIX_C_SOURCE 200112L
 #include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -151,10 +152,7 @@ char *xstrndup(const char *s, size_t len)
  * malloc に失敗するとプログラムを強制終了する。 */
 char *xstrdup(const char *s)
 {
-	char *result = strdup(s);
-	if (!result)
-		xerror(2, ENOMEM, NULL);
-	return result;
+	return xstrndup(s, SIZE_MAX);
 }
 
 /* 文字列の配列のディープコピーを作る。失敗するとプログラムを強制終了する。 */
@@ -684,8 +682,10 @@ void sb_clear(struct strbuf *buf)
 void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n)
 {
 	size_t len = strlen(s);
-	len = MIN(len, n);
-	i = MIN(i, buf->length);
+	if (len > n)
+		len = n;
+	if (i > buf->length)
+		i = buf->length;
 	if (len + buf->length > buf->maxlength) {
 		do
 			buf->maxlength = buf->maxlength * 2 + 1;
@@ -737,7 +737,10 @@ void sb_cappend(struct strbuf *buf, char c)
 void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *restrict s)
 {
 	size_t slen = strlen(s);
-	n = MIN(n, buf->length - i);
+	if (i > buf->length)
+		i = buf->length;
+	if (n > buf->length - i)
+		n = buf->length - i;
 	if (n >= slen) {
 		memcpy(buf->contents + i, s, slen);
 		if (n > slen) {
@@ -866,10 +869,10 @@ void pl_clear(struct plist *list)
  * i が大きすぎて配列の末尾を越えていれば、配列の末尾に e を付け加える。 */
 void pl_insert(struct plist *list, size_t i, const void *e)
 {
-	i = MIN(i, list->length);
-	if (list->length == list->maxlength) {
+	if (i > list->length)
+		i = list->length;
+	if (list->length == list->maxlength)
 		pl_setmax(list, list->maxlength * 2 + 1);
-	}
 	assert(list->length < list->maxlength);
 	memmove(list->contents + i + 1, list->contents + i,
 			sizeof(void *) * (list->length - i));
@@ -893,7 +896,8 @@ void pl_aninsert(struct plist *list, size_t i,
 		list->contents = xrealloc(list->contents, 
 				(list->maxlength + 1) * sizeof(void *));
 	}
-	i = MIN(i, list->length);
+	if (i > list->length)
+		i = list->length;
 	memmove(list->contents + i + n, list->contents + i,
 			sizeof(void *) * (list->length - i));
 	memcpy(list->contents + i, ps, sizeof(void *) * n);

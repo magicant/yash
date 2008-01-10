@@ -16,7 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#define  _POSIX_C_SOURCE 200112L
 #include <errno.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -432,7 +434,7 @@ int builtin_suspend(int argc, char **argv)
 	 * それらも一緒にサスペンドしないと、親シェルを混乱させるかもしれない。 */
 	restore_pgid();
 #if 1
-	if (killpg(getpgrp(), SIGSTOP) < 0) {
+	if (kill(0, SIGSTOP) < 0) {
 #else
 	if (raise(SIGSTOP) < 0) {
 #endif
@@ -653,7 +655,7 @@ int builtin_fg(int argc, char **argv)
 				err = true;
 			}
 		}
-		if (killpg(pgid, SIGCONT) < 0) {
+		if (kill(-pgid, SIGCONT) < 0) {
 			if (errno == ESRCH) {
 				xerror(0, 0, "%s %%%zd: job has terminated", argv[0],jobnumber);
 				return EXIT_FAILURE;
@@ -706,7 +708,7 @@ int builtin_fg(int argc, char **argv)
 				err = true;
 				continue;
 			}
-			if (killpg(pgid, SIGCONT) < 0) {
+			if (kill(-pgid, SIGCONT) < 0) {
 				if (errno == EPERM || errno == ESRCH) {
 					xerror(0, 0, "%s %%%zd: job has terminated",
 							argv[0], jobnumber);

@@ -89,11 +89,6 @@ char *read_all(int fd)
 
 /* Arithmetic Utilities */
 
-#define MAX(X,Y) \
-	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X > _Y ? _X : _Y; })
-#define MIN(X,Y) \
-	({ typeof(X) _X = (X); typeof(Y) _Y = (Y); _X < _Y ? _X : _Y; })
-
 /* 整数型 type が符号付きかどうか */
 #define IS_TYPE_SIGNED(type) ((type) 1 > (type) -1)
 

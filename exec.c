@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define _POSIX_C_SOURCE 200112L
+#define  _POSIX_C_SOURCE 200112L
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -293,12 +293,12 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 				fprintf(stderr, "[%zu]%c %5d  Exit %-3d    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, WEXITSTATUS(estatus),
-						job->j_name ? : "<< unknown job >>");
+						job->j_name ? job->j_name : "<< unknown job >>");
 			else if (WIFSIGNALED(job->j_waitstatus))
 				fprintf(stderr, "[%zu]%c %5d  %-8s    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
 						(int) job->j_pgid, xstrsignal(WTERMSIG(estatus)),
-						job->j_name ? : "<< unknown job >>");
+						job->j_name ? job->j_name : "<< unknown job >>");
 			else
 				goto normal;
 		} else {
@@ -310,7 +310,7 @@ normal:
 					jobnumber,
 					iscurrent ? '+' : ' ',
 					(int) job->j_pgid, jstatusstr[job->j_status],
-					job->j_name ? : "<< unknown job >>",
+					job->j_name ? job->j_name : "<< unknown job >>",
 					isbg ? " &" : "");
 		}
 		if (printpids) {

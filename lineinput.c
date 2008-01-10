@@ -182,10 +182,10 @@ char *yash_readline(int ptype, void *info __attribute__((unused)))
 yash_readline_start:
 	switch (ptype) {
 		case 1:
-			prompt = readline_prompt1 ? : "\\s-\\v\\$ ";
+			prompt = readline_prompt1 ? readline_prompt1 : "\\s-\\v\\$ ";
 			break;
 		case 2:
-			prompt = readline_prompt2 ? : "> ";
+			prompt = readline_prompt2 ? readline_prompt2 : "> ";
 			break;
 		default:
 			xerror(2, 0, "internal error: yash_readline_start ptype=%d", ptype);
