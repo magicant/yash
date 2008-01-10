@@ -731,7 +731,7 @@ int builtin_fg(int argc, char **argv)
 			if (WIFSIGNALED(job->j_waitstatus)) {
 				int sig = WTERMSIG(job->j_waitstatus);
 				if (sig != SIGINT && sig != SIGPIPE)
-					psignal(sig, NULL);  /* XXX : not POSIX */
+					fprintf(stderr, "%s\n", xstrsignal(sig));
 			}
 			remove_job((size_t) jobnumber);
 			return r;

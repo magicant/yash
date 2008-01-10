@@ -29,6 +29,7 @@
 
 int get_signal(const char *name);
 const char *get_signal_name(int signal);
+const char *xstrsignal(int signal);
 void init_signal(void);
 void set_signals(void);
 void unset_signals(void);
@@ -191,7 +192,6 @@ int get_signal(const char *name)
 const char *get_signal_name(int signal)
 {
 	const SIGDATA *sd;
-	static char rtminname[16];
 
 	if (signal >= TERMSIGOFFSET)
 		signal -= TERMSIGOFFSET;
@@ -201,6 +201,7 @@ const char *get_signal_name(int signal)
 		if (sd->s_signal == signal)
 			return sd->s_name;
 #if defined(SIGRTMIN) && defined(SIGRTMAX)
+	static char rtminname[16];
 	int min = SIGRTMIN, max = SIGRTMAX;
 	if (min <= signal && signal <= max) {
 		snprintf(rtminname, sizeof rtminname, "RTMIN+%d", signal - min);
@@ -208,6 +209,20 @@ const char *get_signal_name(int signal)
 	}
 #endif
 	return NULL;
+}
+
+/* シグナルを説明する文字列を返す。
+ * 戻り値は静的記憶域へのポインタであり、次にこの関数を呼ぶまで有効である。 */
+const char *xstrsignal(int signal)
+{
+#ifdef HAVE_STRSIGNAL
+	return strsignal(signal);
+#else
+	static char str[20] = "SIG";   // XXX 名前の長さに注意
+	const char *name = get_signal_name(signal);
+	strcpy(str + 3, name ? name : "???");
+	return str;
+#endif
 }
 
 /* SIGHUP, SIGCHLD, SIGINT, SIGQUIT のハンドラ */

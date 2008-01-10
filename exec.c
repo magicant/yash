@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -296,7 +295,7 @@ void print_job_status(size_t jobnumber, bool changedonly, bool printpids)
 			else if (WIFSIGNALED(job->j_waitstatus))
 				fprintf(stderr, "[%zu]%c %5d  %-8s    %s\n",
 						jobnumber, currentjobnumber == jobnumber ? '+' : ' ',
-						(int) job->j_pgid, strsignal(WTERMSIG(estatus)),
+						(int) job->j_pgid, xstrsignal(WTERMSIG(estatus)),
 						job->j_name ? : "<< unknown job >>");
 			else
 				goto normal;
@@ -685,7 +684,7 @@ static void exec_processes(
 				if (WIFSIGNALED(job->j_waitstatus)) {
 					int sig = WTERMSIG(job->j_waitstatus);
 					if (is_interactive_now && sig != SIGINT && sig != SIGPIPE)
-						psignal(sig, NULL);  /* XXX : not POSIX */
+						fprintf(stderr, "%s\n", xstrsignal(sig));
 				}
 			}
 			if (neg)

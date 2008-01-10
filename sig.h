@@ -27,6 +27,7 @@ extern volatile sig_atomic_t sigint_received;
 
 int get_signal(const char *name);
 const char *get_signal_name(int signal);
+const char *xstrsignal(int signal);
 void init_signal(void);
 void set_signals(void);
 void unset_signals(void);
