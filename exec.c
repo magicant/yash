@@ -16,8 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#define _POSIX_C_SOURCE 200112L
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -451,17 +453,17 @@ void send_sighup_to_all_jobs(void)
 			JOB *job = joblist.contents[i];
 
 			if (job && !(job->j_flags & JF_NOHUP)) {
-				killpg(job->j_pgid, SIGHUP);
+				kill(-job->j_pgid, SIGHUP);
 				for (size_t j = 0; j < job->j_procc; j++) {
 					if (job->j_procv[i].jp_status == JS_STOPPED) {
-						killpg(job->j_pgid, SIGCONT);
+						kill(-job->j_pgid, SIGCONT);
 						break;
 					}
 				}
 			}
 		}
 	} else {
-		killpg(0, SIGHUP);
+		kill(0, SIGHUP);
 	}
 }
 

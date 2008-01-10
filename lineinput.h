@@ -32,8 +32,14 @@ extern int history_histsize;
 extern char *readline_prompt1;
 extern char *readline_prompt2;
 
+extern FILE *yash_fgetline_input;
+extern const char *yash_sgetline_src;
+extern size_t yash_sgetline_offset;
+
 void initialize_readline(void);
 void finalize_readline(void);
+getline_t yash_fgetline;
+getline_t yash_sgetline;
 getline_t yash_readline;
 
 

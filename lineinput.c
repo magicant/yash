@@ -43,6 +43,8 @@
 
 void initialize_readline(void);
 void finalize_readline(void);
+char *yash_fgetline(int ptype);
+char *yash_sgetline(int ptype);
 char *yash_readline(int ptype);
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
@@ -98,6 +100,59 @@ void finalize_readline(void)
 		stifle_history(history_filesize);
 		write_history(history_filename);
 	}
+}
+
+FILE *yash_fgetline_input;
+
+/* プロンプトを出さずに yash_getline_input から行を読み取る。
+ * 戻り値: 読み取った行。(新しく malloc した文字列)
+ *         EOF が入力されたときは NULL。 */
+char *yash_fgetline(int ptype __attribute__((unused)))
+{
+	size_t len = 0, size = 80;
+	char *line = xmalloc(size);
+
+	while (fgets(line + len, size - len, yash_fgetline_input)) {
+		char *newline = line + len;
+		while (*newline && *newline != '\n') newline++;
+		if (*newline == '\n') {
+			*newline = '\0';
+			return line;
+		}
+		len = newline - line;
+		if (size - len <= 20) {
+			size *= 2;
+			line = xrealloc(line, size);
+		}
+	}
+	if (len) {
+		return line;
+	} else {
+		free(line);
+		return NULL;
+	}
+}
+
+const char *yash_sgetline_src;
+size_t yash_sgetline_offset;
+
+/* 文字列 yash_sgetline_src の yash_sgetline_offset 文字目から行を読み取る。
+ * 戻り値: 読み取った行。(新しく malloc した文字列)
+ *         文字列の終端に達したときは NULL。 */
+char *yash_sgetline(int ptype __attribute__((unused)))
+{
+	const char *start = yash_sgetline_src + yash_sgetline_offset;
+	const char *newline = start;
+	if (!*start) return NULL;
+	while (*newline && *newline != '\n') newline++;
+	size_t len = newline - start;
+	if (*newline == '\n') {
+		char *result = xstrndup(start, len);
+		yash_sgetline_offset += len + 1;
+		return result;
+	}
+	yash_sgetline_offset += len;
+	return xstrdup(start);
 }
 
 /* プロンプトを表示して行を読み取る。

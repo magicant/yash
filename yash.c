@@ -78,17 +78,8 @@ char *prompt_command = NULL;
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
 int exec_file(const char *path, bool suppresserror)
 {
+	FILE *save_fgetline_input = yash_fgetline_input;
 	FILE *f = fopen(path, "r");
-	char *mygetline(int ptype __attribute__((unused))) {
-		char *line = NULL;
-		size_t size = 0;
-		ssize_t len = getline(&line, &size, f);
-		if (len < 0) return NULL;
-		if (line[size - 1] == '\n')
-			line[size - 1] = '\0';
-		return line;
-	}
-
 	if (!f) {
 		if (!suppresserror)
 			xerror(0, errno, "%s", path);
@@ -96,10 +87,11 @@ int exec_file(const char *path, bool suppresserror)
 	}
 
 	int result;
+	yash_fgetline_input = f;
 	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(mygetline, path, &statements)) {
+		switch (read_and_parse(yash_fgetline, path, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					unsigned savelinenum = get_line_number();
@@ -120,6 +112,7 @@ int exec_file(const char *path, bool suppresserror)
 end:
 	if (fclose(f) != 0)
 		xerror(0, errno, "%s", path);
+	yash_fgetline_input = save_fgetline_input;
 	return result;
 }
 
@@ -147,24 +140,18 @@ int exec_file_exp(const char *path, bool suppresserror)
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
 int exec_source(const char *code, const char *name)
 {
-	size_t index = 0;
-	char *mygetline(int ptype __attribute__((unused))) {
-		size_t len = strcspn(&code[index], "\n\r");
-		if (!len) return NULL;
-
-		char *result = xstrndup(&code[index], len);
-		index += len;
-		index += strspn(&code[index], "\n\r");
-		return result;
-	}
-
 	if (!code)
 		return 0;
 
+	int result;
+	const char *save_sgetline_src = yash_sgetline_src;
+	size_t save_sgetline_offset = yash_sgetline_offset;
+	yash_sgetline_src = code;
+	yash_sgetline_offset = 0;
 	set_line_number(0);
 	for (;;) {
 		STATEMENT *statements;
-		switch (read_and_parse(mygetline, name, &statements)) {
+		switch (read_and_parse(yash_sgetline, name, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
 					unsigned savelinenum = get_line_number();
@@ -174,12 +161,18 @@ int exec_source(const char *code, const char *name)
 				}
 				break;
 			case EOF:
-				return 0;
+				result = 0;
+				goto end;
 			case 1:  /* syntax error */
 			default:
-				return -1;
+				result = -1;
+				goto end;
 		}
 	}
+end:
+	yash_sgetline_src = save_sgetline_src;
+	yash_sgetline_offset = save_sgetline_offset;
+	return result;
 }
 
 /* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
