@@ -350,32 +350,40 @@ append_s2:
 							escape_bs(s2, "\"\\", &buf);
 					}
 				} else if (arrayelems) {
-					/* 位置パラメータ・配列の内容を一つずつ単語分割して追加 */
-					char **ary = arrayelems;
-					if (ary[0]) {
-						if (buf.length > 0) {
-							escape_bs(ary[0], "\"\\", &buf);
+					if (split) {
+						/* 配列の内容を一つずつ単語分割して追加 */
+						char **ary = arrayelems;
+						if (ary[0]) {
+							if (buf.length > 0) {
+								escape_bs(ary[0], "\"\\", &buf);
+								if (indq)
+									sb_cappend(&buf, '"');
+								free(ary[0]);
+								if (ary[1]) {
+									pl_append(result, sb_tostr(&buf));
+									sb_init(&buf);
+								}
+								ary++;
+							}
+							while (ary[0] && ary[1]) {
+								pl_append(result, escape(ary[0], "\"\\'"));
+								ary++;
+							}
 							if (indq)
 								sb_cappend(&buf, '"');
-							free(ary[0]);
-							if (ary[1]) {
-								pl_append(result, sb_tostr(&buf));
-								sb_init(&buf);
+							if (ary[0]) {
+								escape_bs(ary[0], "\"\\", &buf);
+								free(ary[0]);
 							}
-							ary++;
 						}
-						while (ary[0] && ary[1]) {
-							pl_append(result, escape(ary[0], "\"\\'"));
-							ary++;
-						}
-						if (indq)
-							sb_cappend(&buf, '"');
-						if (ary[0]) {
-							escape_bs(ary[0], "\"\\", &buf);
-							free(ary[0]);
-						}
+						free(arrayelems);
+					} else {
+						const char *ifs = getvar(VAR_IFS);
+						if (!ifs) ifs = " \t\n";
+						sb_append(&buf, strjoin(-1, arrayelems,
+									(char[]) { ifs[0], '\0' }));
+						recfree((void **) arrayelems, free);
 					}
-					free(arrayelems);
 					arrayelems = NULL;
 				} else {
 					ok = false;

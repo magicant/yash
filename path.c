@@ -89,7 +89,9 @@ char *which(const char *name, const char *path, bool (*cond)(const char *name))
 /* path が実行可能な通常のファイルであるか判定する */
 bool is_executable(const char *path)
 {
-	return access(path, X_OK) == 0;
+	struct stat st;
+	return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
+		&& access(path, X_OK) == 0;
 }
 
 /* path がディレクトリであるか判定する。 */
