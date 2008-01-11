@@ -29,6 +29,7 @@
 #include "util.h"
 #include "expand.h"
 #include "exec.h"
+#include "path.h"
 #include "variable.h"
 #include <assert.h>
 
@@ -43,18 +44,17 @@ struct variable {
 	enum {
 		VF_EXPORT   = 1 << 0,
 		VF_READONLY = 1 << 1,
+		VF_NODELETE = 1 << 2,
 	} flags;
 	const char *(*getter)(struct variable *var);
-	bool (*setter)(struct variable *var, const char *value, bool export);
+	bool (*setter)(struct variable *var);
 };
 /* VF_EXPORT フラグが立っている変数は、export 対象であり、value メンバの内容
  * よりも environ に入っている内容を優先する */
-/* getter/setter は変数のゲッター・セッターである。
+/* getter/setter/deleter は変数のゲッター・セッター・削除関数である。
  * 非 NULL なら、値を取得・設定する際にフィルタとして使用する。
  * ゲッター・セッターの戻り値はそのまま getvar/setvar の戻り値になる。
- * ゲッターが非 NULL のとき、value は NULL である。
- * セッターは、variable 構造体の value メンバを書き換える等、変数を設定するのに
- * 必要な動作を全て行う。セッターが NULL ならデフォルトの動作をする。 */
+ * セッターは unsetvar でも value = NULL で呼ばれる。 */
 
 /* 変数環境を表す構造体 */
 struct environment {
@@ -89,6 +89,7 @@ static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
 static const char *last_bg_pid_getter(struct variable *var);
 static const char *zero_getter(struct variable *var);
+static bool path_setter(struct variable *var);
 
 
 /* 変数を保存する環境 */
@@ -208,6 +209,10 @@ void init_var(void)
 		setvar(VAR_PWD, pwd, true);
 		free(pwd);
 	}
+
+	/* PATH 環境変数にセッターを設定する。 */
+	var = get_variable(VAR_PATH, false);
+	var->setter = path_setter;
 }
 
 /* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
@@ -315,8 +320,6 @@ bool setvar(const char *name, const char *value, bool export)
 		*var = (struct variable) {
 			.value = NULL,
 			.flags = 0,
-			.getter = NULL,
-			.setter = NULL,
 		};
 		ht_set(&env->variables, name, var);
 	}
@@ -325,24 +328,21 @@ bool setvar(const char *name, const char *value, bool export)
 		return false;
 	}
 
-	bool ok;
-	if (var->setter) {
-		ok = var->setter(var, value, export);
-	} else {
-		ok = true;
-		if (export)
-			var->flags |= VF_EXPORT;
-		if (var->flags & VF_EXPORT) {
-			if (setenv(name, value, true) < 0) {
-				xerror(0, errno, "export %s=%s", name, value);
-				ok = false;
-			}
-		}
-		if (var->value != value) {
-			free(var->value);
-			var->value = xstrdup(value);
+	bool ok = true;
+	if (export)
+		var->flags |= VF_EXPORT;
+	if (var->flags & VF_EXPORT) {
+		if (setenv(name, value, true) < 0) {
+			xerror(0, errno, "export %s=%s", name, value);
+			ok = false;
 		}
 	}
+	if (var->value != value) {
+		free(var->value);
+		var->value = xstrdup(value);
+	}
+	if (var->setter)
+		ok = var->setter(var);
 	assert(var->value != NULL);
 	return ok;
 }
@@ -375,13 +375,20 @@ bool unsetvar(const char *name)
 				ht_set(&env->variables, name, var);
 				xerror(0, 0, "cannot unset readonly variable `%s'", name);
 				return false;
+			} else if (var->setter) {
+				free(var->value);
+				var->value = NULL;
+				var->flags &= ~VF_EXPORT;
+				var->setter(var);
+				ht_set(&env->variables, name, var);
+			} else {
+				free(var->value);
+				free(var);
 			}
-			free(var->value);
-			free(var);
 
 			/* 親環境に同名の変数があれば、environ の内容をそれに合わせる */
 			var = get_variable(name, false);
-			if (!var || !(var->flags & VF_EXPORT))
+			if (!var || !var->value || !(var->flags & VF_EXPORT))
 				unsetenv(name);
 			else if (!getenv(name) && oldvarexport)
 				setenv(name, var->value, true);
@@ -589,4 +596,11 @@ static const char *zero_getter(
 		struct variable *var __attribute__((unused)))
 {
 	return command_name;
+}
+
+/* PATH 環境変数のセッター。 */
+static bool path_setter(struct variable *var __attribute__((unused)))
+{
+	clear_cmdhash();
+	return true;
 }

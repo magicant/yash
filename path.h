@@ -23,9 +23,10 @@
 #include <sys/stat.h>
 
 
-char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
+char *which(const char *name, const char *path, bool (*cond)(const char *name))
 	__attribute__((malloc));
-bool is_executable(struct stat *st);
+bool is_executable(const char *path);
+bool is_directory(const char *path);
 char *expand_tilde(const char *path)
 	__attribute__((malloc, nonnull));
 char *expand_tilde_multiple(const char *paths)
@@ -35,6 +36,12 @@ char *collapse_homedir(const char *path)
 	__attribute__((malloc));
 char *canonicalize_path(const char *path)
 	__attribute__((malloc));
+
+void init_cmdhash(void);
+void clear_cmdhash(void);
+void fill_cmdhash(void);
+const char *get_command_fullpath(const char *name, bool forcelookup)
+	__attribute__((nonnull));
 
 
 #endif /* PATH_H */

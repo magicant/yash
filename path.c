@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#include <dirent.h>
 #include <errno.h>
 #include <pwd.h>
 #include <stdbool.h>
@@ -32,16 +33,17 @@
 
 
 /* path に含まれるディレクトリを走査し、ファイル名 name のフルパスを得る。
- * name が "/" か "./" か "../" で始まるなら、path の走査は行わない。
+ * name が "/" か "./" か "../" で始まるなら、無条件で name のコピーを返す。
  * name:   探すファイル名
  * path:   PATH 環境変数のような、":" で区切ったディレクトリ名のリスト。
  *         NULL ならカレントディレクトリから探す。
- * cond:   struct stat の内容を見て、ファイルが条件に合致しているかどうかを
+ * cond:   ファイル名を受け取り、ファイルが条件に合致しているかどうかを
  *         判断する関数へのポインタ。cond が true を返した場合のみその結果が
- *         返る。cond が NULL なら無条件でその結果が返る。
+ *         返る。cond が NULL ならファイルが存在すれば無条件でその結果が返る。
+ *         cond の引数には、存在しないファイルの名前が渡ることがあるので注意。
  * 戻り値: 新しく malloc した、name のフルパス。見付からなかったら NULL。
  *         ただし path に相対パスが含まれていた場合、戻り値も相対パスになる。 */
-char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
+char *which(const char *name, const char *path, bool (*cond)(const char *name))
 {
 	if (!name || !*name)
 		return NULL;
@@ -56,24 +58,11 @@ char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 				 (name[1] == '.' && (name[2] == '\0' || name[2] == '/')))))
 #endif
 	{
-		struct stat st;
-		if (stat(name, &st) == 0) {
-			if (!cond || cond(&st))
-				return xstrdup(name);
-		} else switch (errno) {
-			case EACCES:  case ELOOP:  case ENOENT:  case ENOTDIR:
-			case ENAMETOOLONG:
-				break;
-			default:
-				xerror(0, errno, "cannot stat %s", name);
-				return NULL;
-		}
-		return NULL;
+		return xstrdup(name);
 	}
 
 	size_t namelen = strlen(name);
 	for (;;) {
-		struct stat st;
 		size_t pathlen = strcspn(path, ":");
 		char searchname[pathlen + namelen + 3];
 		if (pathlen) {
@@ -86,17 +75,8 @@ char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 			searchname[2] = '\0';
 		}
 		strcat(searchname, name);
-		if (stat(searchname, &st) == 0) {
-			if (!cond || cond(&st))
-				return xstrdup(searchname);
-		} else switch (errno) {
-			case EACCES:  case ELOOP:  case ENOENT:  case ENOTDIR:
-			case ENAMETOOLONG:
-				break;
-			default:
-				xerror(0, errno, "cannot stat %s", searchname);
-				return NULL;
-		}
+		if (cond ? cond(searchname) : (access(searchname, F_OK) == 0))
+			return xstrdup(searchname);
 		path += pathlen;
 		if (!*path)
 			break;
@@ -105,9 +85,17 @@ char *which(const char *name, const char *path, bool (*cond)(struct stat *st))
 	return NULL;
 }
 
-bool is_executable(struct stat *st)
+/* path が実行可能な通常のファイルであるか判定する */
+bool is_executable(const char *path)
 {
-	return S_ISREG(st->st_mode) && !!(st->st_mode & S_IXUSR);
+	return access(path, X_OK) == 0;
+}
+
+/* path がディレクトリであるか判定する。 */
+bool is_directory(const char *path)
+{
+	struct stat st;
+	return (stat(path, &st) == 0) && S_ISDIR(st.st_mode);
 }
 
 /* 指定した名前のユーザのホームディレクトリを得る。
@@ -349,4 +337,108 @@ next:
 	char *result = strjoin(-1, entries, "/");
 	pl_destroy(&list);
 	return result;
+}
+
+
+/********** コマンド名ハッシュ **********/
+
+/* コマンド名からコマンドのフルパスへのハッシュテーブル */
+static struct hasht cmdhash;
+
+/* コマンド名ハッシュを初期化する */
+void init_cmdhash(void)
+{
+	ht_init(&cmdhash);
+}
+
+/* clear_cmdhash で使う内部関数 */
+static int clear_cmdhash_free(
+		const char *name __attribute__((unused)), void *path)
+{
+	free(path);
+	return 0;
+}
+
+/* コマンド名ハッシュを空にする。 */
+void clear_cmdhash(void)
+{
+	ht_each(&cmdhash, clear_cmdhash_free);
+}
+
+/* ハッシュテーブルが空ならば、PATH を走査してハッシュテーブルを埋める。
+ * 既にハッシュテーブルに一つでもデータがあれば、何もしない。
+ * PATH 環境変数がない場合も何もしない。 */
+void fill_cmdhash(void)
+{
+	if (cmdhash.count) return;
+
+	const char *path = getvar(VAR_PATH);
+	if (!path) return;
+
+	/* path の先頭の方にあるものを優先するため、path の後ろから検索し、
+	 * 重複して見付かったものは上書きする */
+
+	/* リストに path の各要素の先頭アドレスを入れる。 */
+	const char *p = path;
+	struct plist list;
+	pl_init(&list);
+	pl_append(&list, p);
+	while (*p) {
+		if (*p == ':') pl_append(&list, p + 1);
+		p++;
+	}
+
+	/* リストを後ろからたどって各パスを調べる */
+	size_t lindex = list.length - 1;
+	do {
+		p = list.contents[lindex];
+		if (p[0] == '/') {  /* '/' で始まる絶対パスのみ探す */
+			size_t dirlen = (lindex + 1 < list.length)
+				? (size_t) ((const char *) list.contents[lindex + 1] - p) - 1
+				: strlen(p);
+			char dirname[dirlen + 1];
+			strncpy(dirname, p, dirlen);
+			dirname[dirlen] = '\0';
+			DIR *dir = opendir(dirname);
+			if (dir) {//TODO statat
+				struct dirent *de;
+				while ((de = readdir(dir))) {
+					size_t namelen = strlen(de->d_name);
+					char *fullpath = xmalloc(dirlen + namelen + 2);
+					strcpy(fullpath, dirname);
+					fullpath[dirlen] = '/';
+					strcpy(fullpath + dirlen + 1, de->d_name);
+					if (is_executable(fullpath))
+						free(ht_set(&cmdhash, de->d_name, fullpath));
+					else
+						free(fullpath);
+				}
+				closedir(dir);
+			}
+		}
+	} while (lindex-- > 0);
+	pl_destroy(&list);
+}
+
+/* 指定したコマンドを PATH から探しだし、フルパスを返す。forcelookup が false
+ * でハッシュにパスが登録されていればそれを返す。さもなくば PATH を一つずつ
+ * 調べてハッシュに登録し直し、それを返す。
+ * 戻り値: 見付かったらそのフルパス。見付からなければ NULL。
+ *         フルパスが返ったらそれを変更したりしないこと。 */
+const char *get_command_fullpath(const char *name, bool forcelookup)
+{
+	const char *fullpath;
+	if (!forcelookup) {
+		fullpath = ht_get(&cmdhash, name);
+		if (fullpath)
+			return fullpath;
+	}
+
+	fullpath = which(name, getvar(VAR_PATH), is_executable);
+	if (fullpath) {
+		free(ht_set(&cmdhash, name, fullpath));
+		return fullpath;
+	}
+
+	return NULL;
 }

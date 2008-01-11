@@ -794,9 +794,8 @@ int builtin_exec(int argc, char **argv)
 	if (!argv0)
 		argv0 = argv[xoptind];
 
-	char *command = which(argv[xoptind],
-			strchr(argv[xoptind], '/') ? "." : getvar(VAR_PATH),
-			is_executable);
+	const char *command = strchr(argv[xoptind], '/')
+		? argv[xoptind] : get_command_fullpath(argv[xoptind], false);
 	if (!command) {
 		xerror(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);
 		if (!is_interactive_now) {
@@ -826,7 +825,6 @@ int builtin_exec(int argc, char **argv)
 
 	xerror(0, errno, "%s: %s", argv[0], argv[xoptind]);
 	free(args.contents[0]);
-	free(command);
 	pl_destroy(&args);
 	return EXIT_NOEXEC;
 

@@ -847,9 +847,8 @@ directexec:
 			if (builtin)  /* 組込みコマンドを実行 */
 				exit(builtin->main(argc, argv));
 
-			char *command = which(argv[0],
-					strchr(argv[0], '/') ? "." : getvar(VAR_PATH),
-					is_executable);
+			const char *command = strchr(argv[0], '/')
+				? argv[0] : get_command_fullpath(argv[0], false);
 			if (!command)
 				xerror(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
 			execvp(command, argv);

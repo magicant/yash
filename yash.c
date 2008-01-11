@@ -394,6 +394,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	init_var();
 	init_alias();
 	init_builtin();
+	init_cmdhash();
 
 	if (directcommand) {
 		is_interactive = is_interactive_now = false;
