@@ -510,7 +510,7 @@ void unset_temporary(const char *name)
  * 例外的に、'0' はこの関数では false を返す。 */
 bool is_special_parameter_char(char c)
 {
-	return strchr("@*#?-$!_", c) != NULL;
+	return c != '\0' && strchr("@*#?-$!", c) != NULL;
 }
 
 /* 文字が変数名に使えるかどうか判定する。 */

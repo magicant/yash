@@ -631,7 +631,10 @@ int builtin_fg(int argc, char **argv)
 		}
 		pgid = job->j_pgid;
 		if (posixly_correct)
-			printf(fg ? "%s\n" : "[%2$zd] %1$s &\n", job->j_name, jobnumber);
+			if (fg)
+				printf("%s\n", job->j_name);
+			else
+				printf("[%zd] %s &\n", jobnumber, job->j_name);
 		else
 			printf("[%zd]+ %5ld              %s%s\n",
 					jobnumber, (long) pgid, job->j_name, fg ? "" : " &");
@@ -681,8 +684,10 @@ int builtin_fg(int argc, char **argv)
 			job = get_job(jobnumber);
 			pgid = job->j_pgid;
 			if (posixly_correct)
-				printf(fg ? "%s\n" : "[%2$zd] %1$s &\n",
-						job->j_name, jobnumber);
+				if (fg)
+					printf("%s\n", job->j_name);
+				else
+					printf("[%zd] %s &\n", jobnumber, job->j_name);
 			else
 				printf("[%zd]+ %5ld              %s%s\n",
 						jobnumber, (long) pgid, job->j_name, fg ? "" : " &");

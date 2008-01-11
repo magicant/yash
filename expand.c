@@ -517,6 +517,12 @@ static char *expand_param2(const char *s, bool indq)
 	} else {
 		while (xisalnum(*s) || *s == '_') s++;
 	}
+	if (pstart == s && info.indirect) {
+		/* この場合 '!' は indirect のしるしではなく変数名そのもの */
+		pstart--;
+		info.indirect = false;
+		assert(*pstart == '!');
+	}
 
 	char param[s - pstart + 1];
 	strncpy(param, pstart, s - pstart);

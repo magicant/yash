@@ -295,27 +295,28 @@ usage:
 	return EXIT_FAILURE;
 }
 
+/* builtin_alias 内で各エイリアスを出力する内部関数 */
+static int print_alias(const char *name, ALIAS *alias) {
+	struct strbuf buf;
+	if (!posixly_correct || !alias->global) {
+		sb_init(&buf);
+		if (!posixly_correct)
+			sb_printf(&buf, "alias %-3s", alias->global ? "-g" : "");
+		sb_append(&buf, name);
+		sb_cappend(&buf, '=');
+		escape_sq(alias->value, &buf);
+		puts(buf.contents);
+		sb_destroy(&buf);
+	}
+	return 0;
+}
+
 /* alias 組込みコマンド
  * 引数なし or -p オプションありだと全てのエイリアスを出力する。
  * 引数があると、そのエイリアスを設定 or 出力する。
  * -g を指定するとグローバルエイリアスになる。 */
 int builtin_alias(int argc, char **argv)
 {
-	int print_alias(const char *name, ALIAS *alias) {
-		struct strbuf buf;
-		if (!posixly_correct || !alias->global) {
-			sb_init(&buf);
-			if (!posixly_correct)
-				sb_printf(&buf, "alias %-3s", alias->global ? "-g" : "");
-			sb_append(&buf, name);
-			sb_cappend(&buf, '=');
-			escape_sq(alias->value, &buf);
-			puts(buf.contents);
-			sb_destroy(&buf);
-		}
-		return 0;
-	}
-
 	bool printall = argc <= 1;
 	bool global = false;
 	bool err = false;

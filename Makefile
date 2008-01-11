@@ -18,7 +18,7 @@
 CC = gcc
 CFLAGS = -O3 -ggdb -std=c99
 ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
-CFLAGS += -Wall -Wextra
+CFLAGS += -Wall -Wextra -pedantic
 endif
 LDFLAGS = -lc -lreadline -ltermcap
 OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o path.o builtin.o builtin_job.o builtin_var.o alias.o variable.o

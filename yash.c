@@ -169,17 +169,18 @@ int exec_source(const char *code, const char *name)
 	}
 }
 
+/* exec_source_and_exit でつかう getline_t 関数 */
+static char *exec_source_and_exit_getline(int ptype, void *code) {
+	if (ptype == 1) return xstrdup(code);
+	else            return NULL;
+}
+
 /* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
  * そのまま終了する。
  * code: 実行するコード。NULL なら何も実行せず終了する。
  * name: 構文エラー時に表示するコード名。 */
 void exec_source_and_exit(const char *code, const char *name)
 {
-	char *mygetline(int ptype, void *info __attribute__((unused))) {  // TODO
-		if (ptype == 1) return xstrdup(code);
-		else            return NULL;
-	}
-
 	/* 改行を含むコードは一度に解析できないので、普通に exec_source を使う */
 	if (strpbrk(code, "\n\r")) {
 		exec_source(code, name);
@@ -189,7 +190,8 @@ void exec_source_and_exit(const char *code, const char *name)
 	struct parse_info info = {
 		.filename = name,
 		.lineno = 0,
-		.input = mygetline,
+		.input = exec_source_and_exit_getline,
+		.inputinfo = (void *) code,
 	};
 	STATEMENT *statements;
 	switch (read_and_parse(&info, &statements)) {
