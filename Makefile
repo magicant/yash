@@ -16,7 +16,7 @@
 
 
 CC = gcc
-CFLAGS = -O3 -ggdb -std=gnu99
+CFLAGS = -O3 -ggdb -std=c99
 ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
 CFLAGS += -Wall -Wextra
 endif

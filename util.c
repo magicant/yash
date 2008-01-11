@@ -26,8 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include "yash.h"
 #include "util.h"
 #include <assert.h>
@@ -252,48 +250,6 @@ char *mprintf(const char *restrict format, ...)
 	}
 	return result;
 }
-
-///* 指定したファイルディスクリプタからデータを全部読み込み、
-// * 一つの文字列として返す。
-// * ファイルディスクリプタは現在位置から最後まで読み込まれるが、close はしない。
-// * 戻り値: 成功すれば、新しく malloc した文字列。失敗すれば errno を更新して
-// * NULL を返す。*/
-//char *read_all(int fd)
-//{
-//	off_t oldoff = lseek(fd, 0, SEEK_CUR);
-//	if (oldoff < 0) {
-//		if (errno == EBADF)
-//			return NULL;
-//	}
-//	off_t initsize = lseek(fd, 0, SEEK_END);
-//	if (initsize < 0)
-//		initsize = 256;
-//	lseek(fd, oldoff, SEEK_SET);
-//
-//	size_t max = initsize, offset = 0;
-//	char *buf = xmalloc(max + 1);
-//	ssize_t count;
-//
-//	for (;;) {
-//		if (offset >= max) {
-//			max *= 2;
-//			buf = xrealloc(buf, max + 1);
-//		}
-//		count = read(fd, buf + offset, max - offset);
-//		if (count < 0 && errno != EINTR)
-//			goto onerror;
-//		if (count == 0)
-//			break;
-//		offset += count;
-//	}
-//	xrealloc(buf, offset + 1);
-//	buf[offset] = '\0';
-//	return buf;
-//
-//onerror:
-//	free(buf);
-//	return NULL;
-//}
 
 
 /********** Error utilities **********/
