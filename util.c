@@ -32,71 +32,8 @@
 #include "util.h"
 #include <assert.h>
 
-void *xcalloc(size_t nmemb, size_t size);
-void *xmalloc(size_t size);
-void *xrealloc(void *ptr, size_t size);
-char *xstrdup(const char *s);
-char *xstrndup(const char *s, size_t len);
-char **strarydup(char *const *ary);
-size_t parylen(void *const *ary);
-void recfree(void **ary, void (*freer)(void *elem));
-char *skipblanks(const char *s);
-char *skipspaces(const char *s);
-char *skipwhites(const char *s);
-int hasprefix(const char *restrict s, const char *restrict prefix);
-char *strchug(char *s);
-char *strchomp(char *s);
-char *strjoin(int argc, char *const *argv, const char *padding);
-char *mprintf(const char *format, ...);
-char *read_all(int fd);
-
-void xerror(int status, int errno_, const char *restrict format, ...);
-
-int xgetopt_long(char *const *argv, const char *optstring,
-		const struct xoption *longopts, int *longindex);
-int xgetopt(char *const *argv, const char *optstring);
-
-void sb_init(struct strbuf *buf);
-void sb_destroy(struct strbuf *buf);
-char *sb_tostr(struct strbuf *buf);
-void sb_setmax(struct strbuf *buf, size_t newmax);
-void sb_trim(struct strbuf *buf);
-void sb_clear(struct strbuf *buf);
-void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n);
-void sb_insert(struct strbuf *buf, size_t i, const char *restrict s);
-void sb_nappend(struct strbuf *buf, const char *restrict s, size_t n);
-void sb_append(struct strbuf *buf, const char *restrict s);
-void sb_cappend(struct strbuf *buf, char c);
-void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *s);
-int sb_vprintf(struct strbuf *buf, const char *format, va_list ap);
-int sb_printf(struct strbuf *buf, const char *format, ...);
-
-void pl_init(struct plist *list);
-void pl_destroy(struct plist *list);
-void **pl_toary(struct plist *list);
-void pl_setmax(struct plist *list, size_t newmax);
-void pl_trim(struct plist *list);
-void pl_clear(struct plist *list);
-void pl_insert(struct plist *list, size_t i, const void *e);
-void pl_append(struct plist *list, const void *e);
-void pl_aninsert(struct plist *list, size_t i,
-		void *const *restrict ps, size_t n);
-void pl_anappend(struct plist *list, void *const *ps, size_t n);
-void pl_ainsert(struct plist *list, size_t i, void *const *ps);
-void pl_aappend(struct plist *list, void *const *ps);
-void pl_remove(struct plist *list, size_t i, size_t count);
-
 static unsigned ht_hashstr(const char *s) __attribute__((pure));
-void ht_init(struct hasht *ht);
-void ht_destroy(struct hasht *ht);
 static void ht_rehash(struct hasht *ht, size_t newcap);
-void ht_ensurecap(struct hasht *ht, size_t newcap);
-void ht_trim(struct hasht *ht);
-void ht_clear(struct hasht *ht);
-void *ht_get(struct hasht *ht, const char *key);
-void *ht_set(struct hasht *ht, const char *key, const void *value);
-void *ht_remove(struct hasht *ht, const char *key);
-int ht_each(struct hasht *ht, int (*func)(const char *key, void *value));
 
 
 /* calloc を試みる。失敗したらプログラムを強制終了する。
@@ -220,7 +157,7 @@ char *skipwhites(const char *s)
  * 戻り値: 0 -> s は prefix で始まらない
  *         1 -> s は prefix で始まり prefix よりも長い
  *         2 -> s は prefix に等しい */
-int hasprefix(const char *restrict s, const char *restrict prefix)
+int hasprefix(const char *s, const char *prefix)
 {
 	assert(s && prefix);
 	while (*prefix) {
@@ -261,7 +198,8 @@ int hasprefix(const char *restrict s, const char *restrict prefix)
  * argc: argv から取り出す文字列の数。全て取り出すなら負数。
  * argv: この配列に含まれる文字列が連結される。
  * padding: 連結される各文字列の間に挟まれる文字列。NULL なら何も挟まない。 */
-char *strjoin(int argc, char *const *argv, const char *padding)
+char *strjoin(
+		int argc, char *const *restrict argv, const char *restrict padding)
 {
 	assert(argv != NULL);
 	if (!padding)
@@ -278,7 +216,7 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 		return xstrdup("");
 	resultlen += paddinglen * (strcount - 1);
 
-	char *result = xmalloc(resultlen + 1);
+	char *restrict result = xmalloc(resultlen + 1);
 	resultlen = 0;
 	for (int i = 0; i < strcount; i++) {
 		if (i) {
@@ -292,7 +230,7 @@ char *strjoin(int argc, char *const *argv, const char *padding)
 }
 
 /* printf の結果を新しく malloc した文字列として返す。 */
-char *mprintf(const char *format, ...)
+char *mprintf(const char *restrict format, ...)
 {
 	va_list ap;
 	int count;
@@ -476,8 +414,8 @@ static void argshift(char *const *argv, int from, int to /* <= from */)
  * getopt の実装によっては、新しい解析を始める前に argreset に 1 を代入する
  * ことで解析器をリセットするようになっているものもある。この実装では、argreset
  * を使わずに、xoptind を 0 に戻すことでリセットする。 */
-int xgetopt_long(char *const *argv, const char *optstring,
-		const struct xoption *longopts, int *longindex)
+int xgetopt_long(char *const *restrict argv, const char *restrict optstring,
+		const struct xoption *restrict longopts, int *restrict longindex)
 {
 	int initind;
 	char *arg;
@@ -604,7 +542,7 @@ nosuchopt:
 }
 
 /* 長いオプションがない getopt */
-int xgetopt(char *const *argv, const char *optstring)
+int xgetopt(char *const *restrict argv, const char *restrict optstring)
 {
 	return xgetopt_long(argv, optstring, NULL, NULL);
 }
@@ -679,7 +617,8 @@ void sb_clear(struct strbuf *buf)
  * s が n 文字に満たなければ s 全体を挿入する。
  * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。
  * s は buf->contents の一部であってはならない。 */
-void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n)
+void sb_ninsert(struct strbuf *restrict buf,
+		size_t i, const char *restrict s, size_t n)
 {
 	size_t len = strlen(s);
 	if (len > n)
@@ -701,7 +640,7 @@ void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n)
 /* 文字列バッファ内の前から i 文字目に文字列 s を挿入する。
  * i が大きすぎて文字列の末尾を越えていれば、文字列の末尾に s を付け加える。
  * s は buf->contents の一部であってはならない。 */
-void sb_insert(struct strbuf *buf, size_t i, const char *restrict s)
+void sb_insert(struct strbuf *restrict buf, size_t i, const char *restrict s)
 {
 	sb_ninsert(buf, i, s, SIZE_MAX);
 }
@@ -709,14 +648,14 @@ void sb_insert(struct strbuf *buf, size_t i, const char *restrict s)
 /* 文字列バッファ内の文字列の末尾に文字列 s の最初の n 文字を付け加える。
  * s が n 文字に満たなければ s 全体を付け加える。
  * s は buf->contents の一部であってはならない。 */
-void sb_nappend(struct strbuf *buf, const char *restrict s, size_t n)
+void sb_nappend(struct strbuf *restrict buf, const char *restrict s, size_t n)
 {
 	sb_ninsert(buf, SIZE_MAX, s, n);
 }
 
 /* 文字列バッファ内の文字列の末尾に文字列 s を付け加える。
  * s は buf->contents の一部であってはならない。 */
-void sb_append(struct strbuf *buf, const char *restrict s)
+void sb_append(struct strbuf *restrict buf, const char *restrict s)
 {
 	sb_nappend(buf, s, SIZE_MAX);
 }
@@ -734,7 +673,8 @@ void sb_cappend(struct strbuf *buf, char c)
 
 /* 文字列バッファの i 文字目から n 文字を s に置き換える。
  * s は buf->contents の一部であってはならない。 */
-void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *restrict s)
+void sb_replace(struct strbuf *restrict buf,
+		size_t i, size_t n, const char *restrict s)
 {
 	size_t slen = strlen(s);
 	if (i > buf->length)
@@ -756,8 +696,10 @@ void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *restrict s)
 	}
 }
 
-/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
-int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
+/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
+ * format や ap 内の引数が buf->contents の一部であってはならない。 */
+int sb_vprintf(struct strbuf *restrict buf,
+		const char *restrict format, va_list ap)
 {
 	va_list ap2;
 	va_copy(ap2, ap);
@@ -780,8 +722,9 @@ int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
 	return result;
 }
 
-/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。 */
-int sb_printf(struct strbuf *buf, const char *format, ...)
+/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
+ * format やその他の引数が buf->contents の一部であってはならない。 */
+int sb_printf(struct strbuf *restrict buf, const char *restrict format, ...)
 {
 	va_list ap;
 	int result;
@@ -886,8 +829,7 @@ void pl_insert(struct plist *list, size_t i, const void *e)
  * 配列 *ps は、必ず n 個の要素がなければならない
  * (途中で NULL 要素が出たらそこで挿入が終わるということはない)。
  * ps は list->contents の一部であってはならない。 */
-void pl_aninsert(struct plist *list, size_t i,
-		void *const *restrict ps, size_t n)
+void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n)
 {
 	if (n + list->length > list->maxlength) {
 		do

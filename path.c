@@ -32,17 +32,6 @@
 #include <assert.h>
 
 
-char *which(const char *name, const char *path, bool (*cond)(struct stat *st));
-bool is_executable(struct stat *st);
-static const char *get_tilde_dir(const char *name)
-	__attribute__((nonnull));
-char *expand_tilde(const char *path);
-char *expand_tilde_multiple(const char *paths);
-char *skip_homedir(const char *path);
-char *collapse_homedir(const char *path);
-char *canonicalize_path(const char *path);
-
-
 /* path に含まれるディレクトリを走査し、ファイル名 name のフルパスを得る。
  * name が "/" か "./" か "../" で始まるなら、path の走査は行わない。
  * name:   探すファイル名

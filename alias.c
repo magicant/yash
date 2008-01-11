@@ -26,15 +26,6 @@
 #include <assert.h>
 
 
-static void aliasfree(ALIAS *a);
-void init_alias(void);
-void set_alias(const char *name, const char *value, bool global);
-int remove_alias(const char *name);
-void remove_all_aliases(void);
-ALIAS *get_alias(const char *name);
-int for_all_aliases(int (*func)(const char *name, ALIAS *alias));
-void subst_alias(struct strbuf *buf, size_t i, bool global);
-
 #ifndef ALIAS_EXPAND_MAX
 # define ALIAS_EXPAND_MAX 16
 #endif
@@ -44,7 +35,7 @@ void subst_alias(struct strbuf *buf, size_t i, bool global);
 bool enable_alias = true;
 
 /* エイリアスの集合。エイリアス名から ALIAS へのポインタへのハッシュテーブル */
-struct hasht aliases;
+static struct hasht aliases;
 
 
 static void aliasfree(ALIAS *a)
@@ -90,14 +81,18 @@ int remove_alias(const char *name)
 	}
 }
 
+/* remove_all_aliases で使う内部関数 */
+static int remove_all_aliases_freer(
+		const char *name __attribute__((unused)), void *a)
+{
+	aliasfree(a);
+	return 0;
+}
+
 /* 全エイリアスを削除する。 */
 void remove_all_aliases(void)
 {
-	int freer(const char *name __attribute__((unused)), ALIAS *a) {
-		aliasfree(a);
-		return 0;
-	}
-	ht_each(&aliases, (int (*)(const char *, void *)) freer);
+	ht_each(&aliases, remove_all_aliases_freer);
 }
 
 /* エイリアスを取得する

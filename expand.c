@@ -68,9 +68,6 @@ enum substtype {
 	substonce, substhead, substtail, substwhole, substall
 };
 
-bool expand_line(char *const *args, int *argc, char ***argv);
-char *expand_single(const char *arg);
-char *expand_word(const char *s, bool multitilde);
 static bool expand_arg(const char *s, struct plist *argv)
 	__attribute__((nonnull));
 static bool expand_brace(char *s, struct plist *result)
@@ -94,16 +91,10 @@ static char *get_comsub_code_p(char **src)
 	__attribute__((nonnull, malloc));
 static char *get_comsub_code_bq(char **src)
 	__attribute__((nonnull, malloc));
-void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
-		const char *ifs, const char *q);
 static bool do_glob(char **ss, struct plist *result)
 	__attribute__((nonnull));
 static char *unescape_for_glob(const char *s)
 	__attribute__((malloc));
-char *unescape(char *s);
-void escape_sq(const char *s, struct strbuf *buf);
-void escape_bs(const char *s, const char *q, struct strbuf *buf);
-char *escape(char *s, const char *q);
 
 
 /* コマンドライン上の各種展開を行う。

@@ -32,8 +32,6 @@
 #include <assert.h>
 
 
-int read_and_parse(
-		struct parse_info *restrict info, STATEMENT **restrict result);
 static bool read_next_line(bool insertnl);
 static void serror(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
@@ -43,18 +41,10 @@ static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
 static REDIR *tryparse_redir(void);
 static void skip_with_quote_i(const char *delim, bool singquote);
-char *skip_with_quote(const char *restrict s, const char *restrict delim);
-char *skip_without_quote(const char *restrict s, const char *restrict delim);
-char *make_statement_name(PIPELINE *pipelines);
-char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
 static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s);
 static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict pl);
 static void print_processes(struct strbuf *restrict b, PROCESS *restrict p);
 static void print_process(struct strbuf *restrict b, PROCESS *restrict p);
-void redirsfree(REDIR *redirs);
-void procsfree(PROCESS *processes);
-void pipesfree(PIPELINE *pipelines);
-void statementsfree(STATEMENT *statements);
 
 static struct parse_info *i_info;
 static bool i_raw, i_finish, i_error;

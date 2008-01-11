@@ -58,30 +58,11 @@ struct save_redirect {
 	FILE *sr_file;   /* 元のストリーム */
 };
 
-void init_exec(void);
 static void joblist_reinit(void);
-int exitcode_from_status(int status);
-JOB *get_job(size_t jobnumber);
-unsigned job_count(void);
-unsigned running_job_count(void);
-unsigned stopped_job_count(void);
-unsigned undone_job_count(void);
-unsigned unfinished_job_count(void);
 static int add_job(void);
-bool remove_job(size_t jobnumber);
-void remove_exited_jobs(void);
-void print_job_status(size_t jobnumber, bool changedonly, bool printpids);
-void print_all_job_status(bool changedonly, bool printpids);
-int get_jobnumber_from_pid(pid_t pid);
-void wait_chld(void);
-void wait_for_job(size_t jobnumber);
-void send_sighup_to_all_jobs(void);
 static int (*create_pipes(size_t count))[2];
 static void close_pipes(PIPES pipes);
 static inline int xdup2(int oldfd, int newfd);
-void exec_statements(STATEMENT *statements);
-void exec_statements_and_exit(STATEMENT *statements)
-	__attribute__((noreturn));
 static void exec_pipelines(PIPELINE *pipelines);
 static void exec_pipelines_and_exit(PIPELINE *pipelines)
 	__attribute__((noreturn));
@@ -92,7 +73,6 @@ static pid_t exec_single(
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
 static void savesfree(struct save_redirect *save);
-char *exec_and_read(const char *code, bool trimend);
 
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;

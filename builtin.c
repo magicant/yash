@@ -42,17 +42,6 @@
 
 #define ADDITIONAL_BUILTIN //XXX
 
-void init_builtin(void);
-BUILTIN *get_builtin(const char *name);
-int builtin_true(int argc, char **argv);
-int builtin_false(int argc, char **argv);
-int builtin_cd(int argc, char **argv);
-int builtin_umask(int argc, char **argv);
-int builtin_history(int argc, char **argv);
-int builtin_alias(int argc, char **argv);
-int builtin_unalias(int argc, char **argv);
-int builtin_option(int argc, char **argv);
-
 /* 組込みコマンド一般仕様:
  * - argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
  * - argv 内の文字列の内容を変更したり、引数の順番を並び替えたりしてもよい。

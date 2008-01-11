@@ -27,9 +27,6 @@
 #include "variable.h"
 #include <assert.h>
 
-int builtin_export(int argc, char **argv);
-int builtin_unset(int argc, char **argv);
-
 
 /* export 組込みコマンド
  * -n: 環境変数を削除する */

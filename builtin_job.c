@@ -34,17 +34,6 @@
 #include "variable.h"
 #include <assert.h>
 
-int parse_jobspec(const char *str, bool forcePercent);
-int builtin_exit(int argc, char **argv);
-int builtin_kill(int argc, char **argv);
-int builtin_wait(int argc, char **argv);
-int builtin_suspend(int argc, char **argv);
-int builtin_jobs(int argc, char **argv);
-int builtin_disown(int argc, char **argv);
-int builtin_fg(int argc, char **argv);
-int builtin_exec(int argc, char **argv);
-int builtin_source(int argc, char **argv);
-
 
 /* jobspec を解析する。
  * 戻り値: str の jobnumber。無効な結果ならば負数。

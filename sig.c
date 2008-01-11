@@ -28,15 +28,6 @@
 #include "exec.h"
 #include <assert.h>
 
-int get_signal(const char *name);
-const char *get_signal_name(int signal);
-const char *xstrsignal(int signal);
-void init_signal(void);
-void set_signals(void);
-void unset_signals(void);
-void wait_for_signal(void);
-void handle_signals(void);
-
 
 /* yash のシグナルハンドリングに付いて:
  * シェルの状態にかかわらず、SIGHUP と SIGCHLD は常に sig_handler

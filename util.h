@@ -60,15 +60,16 @@ char *skipspaces(const char *s)
 	__attribute__((nonnull));
 char *skipwhites(const char *s)
 	__attribute__((nonnull));
-int hasprefix(const char *restrict s, const char *restrict prefix)
+int hasprefix(const char *s, const char *prefix)
 	__attribute__((nonnull));
 char *strchug(char *s)
 	__attribute__((nonnull));
 char *strchomp(char *s)
 	__attribute__((nonnull));
-char *strjoin(int argc, char *const *argv, const char *padding)
+char *strjoin(
+		int argc, char *const *restrict argv, const char *restrict padding)
 	__attribute__((nonnull(2)));
-char *mprintf(const char *format, ...)
+char *mprintf(const char *restrict format, ...)
 	__attribute__((malloc, nonnull(1), format(printf,1,2)));
 char *read_all(int fd)
 	__attribute__((malloc));
@@ -120,11 +121,11 @@ struct xoption {
 	int val;
 };
 
-int xgetopt_long(char *const *argv, const char *optstring,
-		const struct xoption *longopts, int *longindex)
+int xgetopt_long(char *const *restrict argv, const char *restrict optstring,
+		const struct xoption *restrict longopts, int *restrict longindex)
 	__attribute__((nonnull(1,2)));
-int xgetopt(char *const *argv, const char *optstring)
-	__attribute__((nonnull));
+int xgetopt(char *const *restrict argv, const char *restrict optstring)
+	__attribute__((nonnull(1,2)));
 #ifndef NO_UTIL_INLINE
 # define xgetopt(argv,optstring) xgetopt_long(argv, optstring, NULL, NULL)
 #endif
@@ -151,13 +152,14 @@ void sb_trim(struct strbuf *buf)
 	__attribute__((nonnull));
 void sb_clear(struct strbuf *buf)
 	__attribute__((nonnull));
-void sb_ninsert(struct strbuf *buf, size_t i, const char *restrict s, size_t n)
+void sb_ninsert(struct strbuf *restrict buf,
+		size_t i, const char *restrict s, size_t n)
 	__attribute__((nonnull));
-void sb_insert(struct strbuf *buf, size_t i, const char *restrict s)
+void sb_insert(struct strbuf *restrict buf, size_t i, const char *restrict s)
 	__attribute__((nonnull));
-void sb_nappend(struct strbuf *buf, const char *restrict s, size_t n)
+void sb_nappend(struct strbuf *restrict buf, const char *restrict s, size_t n)
 	__attribute__((nonnull));
-void sb_append(struct strbuf *buf, const char *restrict s)
+void sb_append(struct strbuf *restrict buf, const char *restrict s)
 	__attribute__((nonnull));
 #ifndef NO_UTIL_INLINE
 # define sb_insert(buf,i,s)  sb_ninsert(buf, i, s, SIZE_MAX)
@@ -167,11 +169,13 @@ void sb_append(struct strbuf *buf, const char *restrict s)
 
 void sb_cappend(struct strbuf *buf, char c)
 	__attribute__((nonnull));
-void sb_replace(struct strbuf *buf, size_t i, size_t n, const char *restrict s)
+void sb_replace(struct strbuf *restrict buf,
+		size_t i, size_t n, const char *restrict s)
 	__attribute__((nonnull));
-int sb_vprintf(struct strbuf *buf, const char *format, va_list ap)
+int sb_vprintf(struct strbuf *restrict buf,
+		const char *restrict format, va_list ap)
 	__attribute__((nonnull(1,2),format(printf,2,0)));
-int sb_printf(struct strbuf *buf, const char *format, ...)
+int sb_printf(struct strbuf *restrict buf, const char *restrict format, ...)
 	__attribute__((nonnull(1,2),format(printf,2,3)));
 
 
@@ -197,8 +201,7 @@ void pl_clear(struct plist *list)
 	__attribute__((nonnull));
 void pl_insert(struct plist *list, size_t i, const void *e)
 	__attribute__((nonnull(1)));
-void pl_aninsert(struct plist *list, size_t i,
-		void *const *restrict ps, size_t n)
+void pl_aninsert(struct plist *list, size_t i, void *const *ps, size_t n)
 	__attribute__((nonnull));
 void pl_append(struct plist *list, const void *e)
 	__attribute__((nonnull(1)));
