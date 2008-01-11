@@ -81,18 +81,10 @@ int remove_alias(const char *name)
 	}
 }
 
-/* remove_all_aliases で使う内部関数 */
-static int remove_all_aliases_freer(
-		const char *name __attribute__((unused)), void *a)
-{
-	aliasfree(a);
-	return 0;
-}
-
 /* 全エイリアスを削除する。 */
 void remove_all_aliases(void)
 {
-	ht_each(&aliases, remove_all_aliases_freer);
+	ht_freeclear(&aliases, (void (*)(void *)) aliasfree);
 }
 
 /* エイリアスを取得する

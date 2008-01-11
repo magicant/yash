@@ -488,13 +488,12 @@ bool assign_variables(char **assigns, bool temp, bool export)
 }
 
 /* unset_temporary で使う内部関数 */
-static int free_tempvar(const char *name __attribute__((unused)), void *value)
+static void free_tempvar(void *value)
 {
 	struct variable *var = value;
 	assert(var != NULL);
 	free(var->value);
 	free(var);
-	return 0;
 }
 
 /* 一時的変数を削除する。
@@ -508,8 +507,7 @@ void unset_temporary(const char *name)
 			free(var);
 		}
 	} else {
-		ht_each(&temp_variables, free_tempvar);
-		ht_clear(&temp_variables);
+		ht_freeclear(&temp_variables, free_tempvar);
 	}
 }
 

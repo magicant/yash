@@ -245,6 +245,8 @@ void ht_ensurecap(struct hasht *ht, size_t newcap)
 	__attribute__((nonnull));
 void ht_trim(struct hasht *ht)
 	__attribute__((nonnull));
+void ht_freeclear(struct hasht *ht, void (*freer)(void *value))
+	__attribute__((nonnull(1)));
 void ht_clear(struct hasht *ht)
 	__attribute__((nonnull));
 void *ht_get(struct hasht *ht, const char *key)
@@ -255,6 +257,9 @@ void *ht_remove(struct hasht *ht, const char *key)
 	__attribute__((nonnull(1)));
 int ht_each(struct hasht *ht, int (*func)(const char *key, void *value))
 	__attribute__((nonnull));
+#ifndef NO_UTIL_INLINE
+# define ht_clear(ht) ht_freeclear(ht, NULL)
+#endif
 
 
 #endif /* UTIL_H */

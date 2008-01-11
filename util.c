@@ -969,16 +969,17 @@ void ht_trim(struct hasht *ht)
 	ht_rehash(ht, ht->count);
 }
 
-/* ハッシュテーブルを空にする。各エントリーの値は解放されないので、
- * 必要に応じてあらかじめ ht_each などを利用して解放しておくこと。
- * 容量は変わらない。 */
-void ht_clear(struct hasht *ht)
+/* 各エントリに freer を適用し全てのエントリを削除する。容量は変わらない。
+ * freer が NULL なら ht_clear に同じ。 */
+void ht_freeclear(struct hasht *ht, void (*freer)(void *value))
 {
 	ht->count = 0;
 	ht->nullindex = NOTHING;
 	ht->tailindex = 0;
 
 	for (size_t i = 0, len = ht->capacity; i < len; i++) {
+		if (freer && ht->entries[i].key)
+			freer(ht->entries[i].value);
 		free(ht->entries[i].key);
 		ht->indices[i] = NOTHING;
 		ht->entries[i] = (struct hash_entry) {
@@ -988,6 +989,14 @@ void ht_clear(struct hasht *ht)
 			.value = NULL,
 		};
 	}
+}
+
+/* ハッシュテーブルを空にする。各エントリーの値は解放されないので、
+ * 必要に応じてあらかじめ ht_each などを利用して解放しておくこと。
+ * 容量は変わらない。 */
+void ht_clear(struct hasht *ht)
+{
+	ht_freeclear(ht, NULL);
 }
 
 /* ハッシュテーブルの値を取得する。対応する要素がない場合は NULL を返す。

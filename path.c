@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#define  _POSIX_C_SOURCE 200112L
 #include <dirent.h>
 #include <errno.h>
 #include <pwd.h>
@@ -351,18 +352,10 @@ void init_cmdhash(void)
 	ht_init(&cmdhash);
 }
 
-/* clear_cmdhash で使う内部関数 */
-static int clear_cmdhash_free(
-		const char *name __attribute__((unused)), void *path)
-{
-	free(path);
-	return 0;
-}
-
 /* コマンド名ハッシュを空にする。 */
 void clear_cmdhash(void)
 {
-	ht_each(&cmdhash, clear_cmdhash_free);
+	ht_freeclear(&cmdhash, free);
 }
 
 /* ハッシュテーブルが空ならば、PATH を走査してハッシュテーブルを埋める。
@@ -400,7 +393,7 @@ void fill_cmdhash(void)
 			strncpy(dirname, p, dirlen);
 			dirname[dirlen] = '\0';
 			DIR *dir = opendir(dirname);
-			if (dir) {//TODO statat
+			if (dir) {
 				struct dirent *de;
 				while ((de = readdir(dir))) {
 					size_t namelen = strlen(de->d_name);
