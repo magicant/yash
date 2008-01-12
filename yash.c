@@ -18,6 +18,7 @@
 
 #define  _POSIX_C_SOURCE 200112L
 #include <errno.h>
+#include <fcntl.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -77,18 +78,21 @@ char *prompt_command = NULL;
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
 int exec_file(const char *path, bool suppresserror)
 {
-	FILE *f = fopen(path, "r");
-	if (!f) {
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) {
 		if (!suppresserror)
 			xerror(0, errno, "%s", path);
 		return EXIT_FAILURE;
 	}
 
+	struct fgetline_info finfo = {
+		.fd = fd,
+	};
 	struct parse_info info = {
 		.filename = path,
 		.lineno = 0,
 		.input = yash_fgetline,
-		.inputinfo = f,
+		.inputinfo = &finfo,
 	};
 	int result;
 	for (;;) {
@@ -110,7 +114,7 @@ int exec_file(const char *path, bool suppresserror)
 		}
 	}
 end:
-	if (fclose(f) != 0)
+	if (close(fd) != 0)
 		xerror(0, errno, "%s", path);
 	return result;
 }
@@ -442,7 +446,7 @@ void yash_exit(int exitcode) {
 	//wait_chld();
 	//print_all_job_status(false /* all jobs */, false /* not verbose */);
 	if (is_interactive_now && is_loginshell)
-		exec_file("~/.yash_logout", true /* suppress error */);
+		exec_file_exp("~/.yash_logout", true /* suppress error */);
 	unset_shell_env();
 	if (huponexit)
 		send_sighup_to_all_jobs();

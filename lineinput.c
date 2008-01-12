@@ -21,16 +21,19 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <sys/select.h>
 #include <sys/stat.h>
 #include "yash.h"
 #include "util.h"
@@ -41,11 +44,6 @@
 #include <assert.h>
 
 
-void initialize_readline(void);
-void finalize_readline(void);
-char *yash_fgetline(int ptype, void *info);
-char *yash_sgetline(int ptype, void *info);
-char *yash_readline(int ptype, void *info);
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
@@ -78,6 +76,8 @@ static bool completion_ignorecase;
 void initialize_readline(void)
 {
 	rl_readline_name = "yash";
+	rl_outstream = stderr;
+	rl_getc_function = yash_getc;
 	rl_attempted_completion_function = yash_completion;
 	rl_filename_quote_characters = rl_basic_word_break_characters;
 	/* rl_char_is_quoted_p = XXX */
@@ -102,34 +102,146 @@ void finalize_readline(void)
 	}
 }
 
+/* fgetc のラッパー。シグナルを正しく処理する。rl_getc_function として使う。 */
+int yash_getc(FILE *stream)
+{
+	sigset_t newset, oldset;
+	fd_set readset, errset;
+	int fd = fileno(stream);
+	int result;
+
+	sigfillset(&newset);
+	sigemptyset(&oldset);
+	if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0) {
+		xerror(0, errno, NULL);
+		return EOF;
+	}
+	for (;;) {
+		handle_signals();
+		FD_ZERO(&readset);
+		FD_SET(fd, &readset);
+		FD_ZERO(&errset);
+		FD_SET(fd, &errset);
+		if (pselect(fd + 1, &readset, NULL, &errset, NULL, &oldset) < 0) {
+			switch (errno) {
+				case EINTR:
+					continue;
+				default:
+#if defined(RL_ISSTATE) && defined(RL_STATE_READCMD) && defined(READERR)
+					result = RL_ISSTATE(RL_STATE_READCMD) ? READERR : EOF;
+#else
+					result = EOF;
+#endif
+					goto end;
+			}
+		}
+		if (FD_ISSET(fd, &errset)) {
+			result = EOF;
+			goto end;
+		}
+		if (FD_ISSET(fd, &readset)) {
+			unsigned char c;
+			ssize_t r = read(fd, &c, sizeof c);
+			if (r == sizeof c) {
+				result = c;
+				goto end;
+			} else if (r == 0) {
+				result = EOF;
+				goto end;
+			} else switch (errno) {
+				case EINTR:
+					continue;
+				default:
+					result = EOF;
+					goto end;
+			}
+		}
+	}
+end:
+	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
+		xerror(0, errno, NULL);
+	return result;
+}
+
 /* プロンプトを出さずに yash_getline_input から行を読み取る。
- * input:  読み取る FILE へのポインタ。
+ * info:   struct fgetline_info へのポインタ。
  * 戻り値: 読み取った行。(新しく malloc した文字列)
  *         EOF が入力されたときは NULL。 */
-char *yash_fgetline(int ptype __attribute__((unused)), void *input)
+char *yash_fgetline(int ptype __attribute__((unused)), void *info)
 {
-	size_t len = 0, size = 80;
-	char *line = xmalloc(size);
+	struct fgetline_info *finfo = info;
+	char *bufstart = finfo->buffer + finfo->bufoff;
+	sigset_t newset, oldset;
+	fd_set readset, errset;
+	struct strbuf buf;
+	char *result;
 
-	while (fgets(line + len, size - len, input)) {
-		char *newline = line + len;
-		while (*newline && *newline != '\n') newline++;
-		if (*newline == '\n') {
-			*newline = '\0';
-			return line;
-		}
-		len = newline - line;
-		if (size - len <= 20) {
-			size *= 2;
-			line = xrealloc(line, size);
-		}
+	/* まず info 内のバッファに既に一行文のデータがないか調べる */
+	char *end = memchr(bufstart, '\n', finfo->buflen);
+	if (end) {
+		result = xstrndup(bufstart, end - bufstart);
+		finfo->buflen -= end - bufstart + 1;
+		finfo->bufoff += end - bufstart + 1;
+		return result;
 	}
-	if (len) {
-		return line;
-	} else {
-		free(line);
+
+	/* 駄目だったら実際にファイルから読み込む */
+	sigfillset(&newset);
+	sigemptyset(&oldset);
+	if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0) {
+		xerror(0, errno, NULL);
 		return NULL;
 	}
+	sb_init(&buf);
+	sb_nappend(&buf, bufstart, finfo->buflen);
+	for (;;) {
+		handle_signals();
+		FD_ZERO(&readset);
+		FD_SET(finfo->fd, &readset);
+		FD_ZERO(&errset);
+		FD_SET(finfo->fd, &errset);
+		if (pselect(finfo->fd + 1, &readset, NULL, &errset, NULL, &oldset) < 0){
+			switch (errno) {
+				case EINTR:
+					continue;
+				default:
+					result = NULL;
+					goto end;
+			}
+		}
+		if (FD_ISSET(finfo->fd, &errset)) {
+			result = NULL;
+			goto end;
+		}
+		if (FD_ISSET(finfo->fd, &readset)) {
+			ssize_t r = read(finfo->fd, finfo->buffer, sizeof finfo->buffer);
+			if (r < 0) switch (errno) {
+				case EINTR:
+					continue;
+				default:
+					result = NULL;
+					goto end;
+			} else if (r == 0) {
+				result = NULL;
+				goto end;
+			} else {
+				end = memchr(finfo->buffer, '\n', r);
+				if (end) {
+					sb_nappend(&buf, finfo->buffer, end - finfo->buffer);
+					finfo->bufoff = end - finfo->buffer + 1;
+					finfo->buflen = r - finfo->bufoff;
+					result = sb_tostr(&buf);
+					goto end;
+				} else {
+					sb_nappend(&buf, finfo->buffer, sizeof finfo->buffer);
+				}
+			}
+		}
+	}
+end:
+	if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
+		xerror(0, errno, NULL);
+	return result;
 }
 
 /* 文字列 yash_sgetline_src の yash_sgetline_offset 文字目から行を読み取る。
@@ -163,21 +275,8 @@ char *yash_readline(int ptype, void *info __attribute__((unused)))
 {
 	char *prompt, *actualprompt;
 	char *line, *eline;
-	bool interrupted = false;
 	bool terminal_info_valid = false;
 	struct termios old_terminal_info, new_terminal_info;
-	struct sigaction action, oldchldaction, oldintaction;
-	void readline_signal_handler(int signal) { //TODO readline_signal_handler
-		switch (signal) {
-			case SIGCHLD:
-				wait_chld();
-				break;
-			case SIGINT:
-				interrupted = true;
-				/* XXX readline interrupt */
-				break;
-		}
-	}
 	
 yash_readline_start:
 	switch (ptype) {
@@ -204,32 +303,18 @@ yash_readline_start:
 		tcsetattr(STDIN_FILENO, TCSADRAIN, &new_terminal_info);
 	}
 
-	sigemptyset(&action.sa_mask);
-	action.sa_handler = readline_signal_handler;
-	action.sa_flags = 0;
-	if (sigaction(SIGCHLD, &action, &oldchldaction) < 0)
-		xerror(EXIT_FAILURE, errno, "sigaction before readline");
-	if (sigaction(SIGINT, &action, &oldintaction) < 0)
-		xerror(EXIT_FAILURE, errno, "sigaction before readline");
-
 	wait_chld();
 	print_all_job_status(true /* changed only */, false /* not verbose */);
 
 	actualprompt = expand_prompt(prompt);
 	line = readline(actualprompt);
-
-	if (sigaction(SIGINT, &oldintaction, NULL) < 0)
-		xerror(EXIT_FAILURE, errno, "sigaction after readline");
-	if (sigaction(SIGCHLD, &oldchldaction, NULL) < 0)
-		xerror(EXIT_FAILURE, errno, "sigaction after readline");
-
 	free(actualprompt);
 
 	if (terminal_info_valid)
 		tcsetattr(STDIN_FILENO, TCSADRAIN, &old_terminal_info);
 
 	if (!line) {
-		if (ptype == 1)      printf("exit\n");
+		if (ptype == 1)      printf(is_loginshell ? "logout\n" : "exit\n");
 		else if (ptype == 2) printf("\n");
 		return NULL;
 	}

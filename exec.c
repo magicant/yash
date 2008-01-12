@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "yash.h"
@@ -1062,11 +1063,20 @@ char *exec_and_read(const char *code, bool trimend)
 		close(pipefd[1]);
 		return NULL;
 	} else if (cpid) {  /* 親プロセス */
+		sigset_t newset, oldset;
+		fd_set readset, errset;
 		char *buf;
 		size_t len, max;
 		ssize_t count;
 
 		close(pipefd[1]);
+
+		sigfillset(&newset);
+		sigemptyset(&oldset);
+		if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0) {
+			xerror(0, errno, "sigprocmask");
+			return NULL;
+		}
 
 		sigint_received = false;
 		temp_chld = (struct jproc) { .jp_pid = cpid, .jp_status = JS_RUNNING, };
@@ -1076,23 +1086,41 @@ char *exec_and_read(const char *code, bool trimend)
 
 		for (;;) {
 			handle_signals();
-			count = read(pipefd[0], buf + len, max - len);
-			if (count < 0) {
+			FD_ZERO(&readset);
+			FD_SET(pipefd[0], &readset);
+			FD_ZERO(&errset);
+			FD_SET(pipefd[0], &errset);
+			if (pselect(pipefd[0] + 1, &readset, NULL,&errset,NULL,&oldset)<0) {
 				if (errno == EINTR) {
 					continue;
 				} else {
 					xerror(0, errno, "command substitution");
 					break;
 				}
-			} else if (count == 0) {
-				break;
 			}
-			len += count;
-			if (len + 30 >= max) {
-				max *= 2;
-				buf = xrealloc(buf, max + 1);
+			if (FD_ISSET(pipefd[0], &errset))
+				break;
+			if (FD_ISSET(pipefd[0], &readset)) {
+				count = read(pipefd[0], buf + len, max - len);
+				if (count < 0) {
+					if (errno == EINTR) {
+						continue;
+					} else {
+						xerror(0, errno, "command substitution");
+						break;
+					}
+				} else if (count == 0) {
+					break;
+				}
+				len += count;
+				if (len + 30 >= max) {
+					max *= 2;
+					buf = xrealloc(buf, max + 1);
+				}
 			}
 		}
+		if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
+			xerror(0, errno, "command substitution");
 		close(pipefd[0]);
 		while (temp_chld.jp_status != JS_DONE)
 			wait_for_signal();

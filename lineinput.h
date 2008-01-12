@@ -19,6 +19,8 @@
 #ifndef READLINE_H
 #define READLINE_H
 
+#include <stddef.h>
+
 
 /* ソースを一行読み込んで返す関数。
  * ptype:  現在の状況。新しい文を読み始めるときは 1、文の途中で続きを読むときは
@@ -35,10 +37,18 @@ extern char *readline_prompt2;
 
 void initialize_readline(void);
 void finalize_readline(void);
+int yash_getc(FILE *stream);
 getline_t yash_fgetline;
 getline_t yash_sgetline;
 getline_t yash_readline;
 
+/* yash_fgetline の第二引数として与える構造体。 */
+struct fgetline_info {
+	int fd;            /* 読み取るファイルディスクリプタ */
+	char buffer[2000]; /* 読み取った内容を溜めるバッファ */
+	size_t bufoff;     /* バッファ内の有効な文字の開始インデックス */
+	size_t buflen;     /* バッファ内の有効な文字数 */
+};
 /* yash_sgetline の第二引数として与える構造体。 */
 struct sgetline_info {
 	const char *src;   /* 読み取るソースコード */

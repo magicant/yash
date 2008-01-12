@@ -1043,7 +1043,6 @@ static bool do_glob(char **ss, struct plist *result)
 	bool ok = true;
 	while (*ss) {
 		char *s = unescape_for_glob(*ss);
-//		error(0, 0, "DEBUG: glob(%s)(%s)", *ss, s);
 		switch (glob(s, 0, NULL, &gbuf)) {
 			case GLOB_NOSPACE:  case GLOB_ABORTED:  default:
 				xerror(0, 0, "%s: glob error", *ss);
