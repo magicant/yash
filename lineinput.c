@@ -52,7 +52,8 @@ static int check_completion_type(int index);
 static char *normal_file_completion_function(const char *text, int state);
 static char *path_completion_function(const char *text, int state);
 static char *env_completion_function(const char *text, int state);
-static char *expand_prompt(const char *s);
+static char *expand_prompt(const char *s)
+	__attribute__((nonnull));
 
 /* 履歴を保存するファイルのパス。NULL なら履歴は保存されない。 */
 char *history_filename = NULL;
@@ -79,7 +80,7 @@ void initialize_readline(void)
 	rl_outstream = stderr;
 	rl_getc_function = yash_getc;
 	rl_attempted_completion_function = yash_completion;
-	rl_filename_quote_characters = rl_basic_word_break_characters;
+	rl_filename_quote_characters = " \t\n\\\"'<>|;&()#$`?*[!{";
 	/* rl_char_is_quoted_p = XXX */
 	/* rl_filename_quoting_function = XXX */
 	/* rl_filename_dequoting_function = XXX */
@@ -281,6 +282,8 @@ char *yash_readline(int ptype, void *info __attribute__((unused)))
 yash_readline_start:
 	switch (ptype) {
 		case 1:
+			wait_chld();
+			print_all_job_status(true /* changed only */, false);
 			prompt = readline_prompt1 ? readline_prompt1 : "\\s-\\v\\$ ";
 			break;
 		case 2:
@@ -302,9 +305,6 @@ yash_readline_start:
 		new_terminal_info.c_lflag |= ICANON | ECHO | ECHOE | ECHOK;
 		tcsetattr(STDIN_FILENO, TCSADRAIN, &new_terminal_info);
 	}
-
-	wait_chld();
-	print_all_job_status(true /* changed only */, false /* not verbose */);
 
 	actualprompt = expand_prompt(prompt);
 	line = readline(actualprompt);
@@ -621,13 +621,14 @@ static char *env_completion_function(const char *text, int state)
 }
 
 
-const char *weekdaynames[] = {
-	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
-};
-const char *monthnames[] = {
-	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-};
+static struct tm *get_time(void)
+{
+	time_t timeval = time(NULL);
+	if (timeval != (time_t) -1) {
+		return localtime(&timeval);
+	}
+	return NULL;
+}
 
 /* 文字列に含まれる '\a' や '\n' をプロンプト用に展開する。
  * 戻り値: s を展開した結果 (新しく malloc された文字列)。失敗したら NULL。 */
@@ -642,6 +643,7 @@ const char *monthnames[] = {
  * \n    改行
  * \r    復帰
  * \s    シェルのベース名 (< 起動時の argv[0])
+ * \S    シェルの名前     (< 起動時の argv[0])
  * \t    時刻 (標準形式)
  * \T    HH:MM:SS 形式の時刻 (12 時間制)
  * \@    HH:MM am/pm 形式の時刻
@@ -657,196 +659,158 @@ const char *monthnames[] = {
  * \]    RL_PROMPT_END_IGNORE */
 static char *expand_prompt(const char *s)
 {
-	char *result;
-	size_t sindex, rindex, rem;
-	time_t timeval = 0;
-	struct tm tm;
-	int ensure_rem(size_t size) {  /* rem が size 以上になるよう拡張する */
-		if (rem < size) {
-			rem = size + 10;
-			result = xrealloc(result, rindex + rem);
-			return 0;
-		}
-		return 0;
-	}
-	int append_char(char c) {  /* 文字を result に追加する */
-		if (ensure_rem(2) < 0)
-			return -1;
-		result[rindex++] = c;
-		result[rindex] = '\0';
-		return 0;
-	}
-	int append_str(const char *s) {  /* 文字列を result に追加する */
-		size_t len;
+	struct strbuf result;
+	struct tm *tm = NULL;
 
-		if (!s)
-			return 0;
-		len = strlen(s);
-		if (ensure_rem(len + 1) < 0)
-			return -1;
-		strcpy(result + rindex, s);
-		rindex += len;
-		return 0;
-	}
-	int get_time(void) {  /* tmtime に時刻を入れる */
-		if (!timeval) {
-			timeval = time(NULL);
-			if (!localtime_r(&timeval, &tm))
-				return -1;
-		}
-		return 0;
-	}
-
-	assert(s);
-	rem = strlen(s) + 30;
-	result = xmalloc(rem);
-	rindex = sindex = 0;
-	result[0] = '\0';
-
-	/* エラーの時は result を NULL にするとループを抜ける */
-loop:
-	while (result && *s) {
-		int len;
-		char *sav;
-
+	sb_init(&result);
+	while (*s) {
 		if (*s != '\\') {
-			append_char(*s);
+			sb_cappend(&result, *s);
 		} else switch (*++s) {
 			case 'a':
-				append_char('\a');
+				sb_cappend(&result, '\a');
 				break;
 			case 'd':
-				if (get_time() < 0) {
-					append_char('?');
-				} else if (ensure_rem(15) >= 0) {
-					rindex += strftime(result + rindex, rem, "%x", &tm);
-				}
+				if (!tm)
+					tm = get_time();
+				if (tm)
+					sb_strftime(&result, "%x", tm);
 				break;
 			case 'e':
-				append_char('\033');
+				sb_cappend(&result, '\033');
 				break;
 			case 'h':
 				{
 					const char *host = getvar(VAR_HOSTNAME);
-					if (host) {
-						size_t len = strcspn(host, ".");
-						if (ensure_rem(len + 1) >= 0) {
-							strcpy(result + rindex, host);
-							rindex += len;
-						}
-					}
+					if (host)
+						sb_nappend(&result, host, strcspn(host, "."));
 				}
 				break;
 			case 'H':
-				append_str(getvar(VAR_HOSTNAME));
+				{
+					const char *host = getvar(VAR_HOSTNAME);
+					if (host)
+						sb_append(&result, host);
+				}
 				break;
 			case 'j':
-				len = snprintf(result + rindex, rem, "%u", job_count());
-				goto check;
+				sb_printf(&result, "%u", job_count());
+				break;
 			case 'l':
-				append_str(basename(ttyname(STDIN_FILENO)));
-				/* ↑ basename が ttyname の戻り値を書き換えるかもしれない */
+				{
+					char *name = ttyname(STDIN_FILENO);
+					if (name) {
+						char bn[strlen(name) + 1];
+						strcpy(bn, name);
+						name = basename(bn);
+						if (name)
+							sb_append(&result, name);
+					}
+				}
 				break;
 			case 'L':
-				append_str(ttyname(STDIN_FILENO));
+				{
+					char *name = ttyname(STDIN_FILENO);
+					if (name)
+						sb_append(&result, name);
+				}
 				break;
 			case 'n':
-				append_char('\n');
+				sb_cappend(&result, '\n');
 				break;
 			case 'r':
-				append_char('\r');
+				sb_cappend(&result, '\r');
 				break;
 			case 's':
-				append_str(yash_program_invocation_short_name);
+				sb_append(&result, yash_program_invocation_short_name);
+				break;
+			case 'S':
+				sb_append(&result, yash_program_invocation_name);
 				break;
 			case 't':
-				if (get_time() < 0) {
-					append_char('?');
-				} else if (ensure_rem(15) >= 0) {
-					rindex += strftime(result + rindex, rem, "%X", &tm);
-				}
+				if (!tm)
+					tm = get_time();
+				if (tm)
+					sb_strftime(&result, "%X", tm);
 				break;
 			case 'T':
-				if (get_time() < 0) {
-					append_char('?');
-				} else if (ensure_rem(15) >= 0) {
-					rindex += strftime(result + rindex, rem, "%I:%M:%S", &tm);
-				}
+				if (!tm)
+					tm = get_time();
+				if (tm)
+					sb_strftime(&result, "%I:%M:%S", tm);
 				break;
 			case '@':
-				if (get_time() < 0) {
-					append_char('?');
-				} else if (ensure_rem(15) >= 0) {
-					rindex += strftime(result + rindex, rem, "%I:%M %p", &tm);
-				}
+				if (!tm)
+					tm = get_time();
+				if (tm)
+					sb_strftime(&result, "%I:%M %p", tm);
 				break;
 			case 'u':
-				append_str(cuserid(NULL));
+				{
+					const char *user = getvar(VAR_USER);
+					if (!user)
+						user = getvar(VAR_LOGNAME);
+					if (user)
+						sb_append(&result, user);
+				}
 				break;
 			case 'v':
-				append_str(YASH_VERSION);
+				sb_append(&result, YASH_VERSION);
 				break;
 			case 'w':
-				sav = collapse_homedir(getvar(VAR_PWD));
-				if (sav) {
-					append_str(sav);
-					free(sav);
+				{
+					char *dir = collapse_homedir(getvar(VAR_PWD));
+					if (dir) {
+						sb_append(&result, dir);
+						free(dir);
+					}
 				}
 				break;
 			case 'W':
-				sav = collapse_homedir(getvar(VAR_PWD));
-				if (sav) {
-					append_str(basename(sav));
-					free(sav);
+				{
+					char *dir = collapse_homedir(getvar(VAR_PWD));
+					if (dir) {
+						const char *dir2 = basename(dir);
+						if (dir2)
+							sb_append(&result, dir2);
+						free(dir);
+					}
 				}
 				break;
 			case '!':
 				using_history();
-				len = snprintf(result + rindex, rem, "%d",
-						history_base + where_history());
-				goto check;
-			case '$':
-				append_char(geteuid() ? '$' : '#');
+				sb_printf(&result, "%d", history_base + where_history());
 				break;
-			/* case '\\': */   /* 不要: default で処理 */
+			case '$':
+				sb_cappend(&result, geteuid() ? '$' : '#');
+				break;
 			case '0':  case '1':  case '2':  case '3':
 			case '4':  case '5':  case '6':  case '7':
 				if ('0' <= s[1] && s[1] <= '7' && '0' <= s[2] && s[2] <= '7') {
-					append_char(
+					sb_cappend(&result,
 							((((s[0] - '0') << 3)
 							  + s[1] - '0') << 3)
 							  + s[2] - '0');
 					s += 2;
 				} else {
-					goto ldefault;
+					goto default_case;
 				}
 				break;
 			case '[':
-				append_char(RL_PROMPT_START_IGNORE);
+				sb_cappend(&result, RL_PROMPT_START_IGNORE);
 				break;
 			case ']':
-				append_char(RL_PROMPT_END_IGNORE);
+				sb_cappend(&result, RL_PROMPT_END_IGNORE);
 				break;
 			case '\0':
-				append_char('\\');
+				sb_cappend(&result, '\\');
 				continue;
-			default:
-			ldefault:
-				append_char('\\');
-				append_char(*s);
-				break;
-			check:
-				if (len < 0) {
-					append_char('?');
-				} else if ((size_t) len >= rem) {
-					ensure_rem(len + 1);
-					goto loop;
-				} else {
-					rindex += len;
-				}
+			default:  default_case:
+				sb_cappend(&result, '\\');
+				sb_cappend(&result, *s);
 				break;
 		}
 		s++;
 	}
-	return result;
+	return sb_tostr(&result);
 }

@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "yash.h"
 #include "util.h"
 #include <assert.h>
@@ -689,6 +690,18 @@ int sb_printf(struct strbuf *restrict buf, const char *restrict format, ...)
 	result = sb_vprintf(buf, format, ap);
 	va_end(ap);
 	return result;
+}
+
+/* strftime の結果を文字列に付け足す。
+ * ただし結果が 100 文字以上なら何も付け足されない。
+ * 戻り値: 増えた文字数 */
+size_t sb_strftime(struct strbuf *restrict buf,
+		const char *restrict format, const struct tm *restrict tm)
+{
+	char result[100];
+	size_t count = strftime(result, sizeof result, format, tm);
+	sb_append(buf, result);
+	return count;
 }
 
 

@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <time.h>
 #ifndef NO_UTIL_INLINE
 # include <stddef.h>
 # include <stdint.h>
@@ -177,6 +178,9 @@ int sb_vprintf(struct strbuf *restrict buf,
 	__attribute__((nonnull(1,2),format(printf,2,0)));
 int sb_printf(struct strbuf *restrict buf, const char *restrict format, ...)
 	__attribute__((nonnull(1,2),format(printf,2,3)));
+size_t sb_strftime(struct strbuf *restrict buf,
+		const char *restrict format, const struct tm *restrict tm)
+	__attribute__((nonnull,format(strftime,2,0)));
 
 
 /* Pointer lists */

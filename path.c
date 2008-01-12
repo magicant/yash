@@ -219,7 +219,9 @@ char *collapse_homedir(const char *path)
 	const char *aftertilde = skip_homedir(path);
 	char *result;
 
-	if (!path || !aftertilde)
+	if (!path)
+		return NULL;
+	if (!aftertilde)
 		return xstrdup(path);
 	result = xmalloc(strlen(aftertilde) + 2);
 	result[0] = '~';
