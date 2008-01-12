@@ -29,7 +29,7 @@ char *expand_single(const char *arg)
 	__attribute__((nonnull));
 char *expand_word(const char *s, bool multitilde)
 	__attribute__((nonnull));
-void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
+void append_splitting(const char *str, struct strbuf *buf, struct plist *list,
 		const char *ifs, const char *q)
 	__attribute__((nonnull(1,2,3,4)));
 char *unescape(char *s)

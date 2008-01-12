@@ -46,22 +46,31 @@
  *
  * 各関数の呼出しツリー:
  *  expand_line/expand_single
- *   \_ expand_arg
+ *   \_ expand_word/expand_word_splitting/expand_arg
  *       \_ expand_brace
- *       \_ expand_tilde
+ *       \_ expand_tilde  (in path.c)
  *       \_ expand_subst
- *       |   \_ expand_param
- *       |   |   \_ expand_param2
+ *       |   \_ expand_dollar
+ *       |   |   \_ expand_param
+ *       |   |   |  \_ expand_param2
+ *       |   |   |     \_ matchhead/matchtail/matchandsubst
  *       |   |   \_ get_comsub_code_p
- *       |   \_ add_splitting
- *       |   \_ escape_dq
+ *       |   \_ get_comsub_code_bq
+ *       |   \_ append_maybe_splitting
+ *       |      \_ append_splitting
  *       \_ do_glob
  *           \_ unescape_for_glob
  *
  * 非対話的シェルにおいて展開時にエラーが発生したら、シェルはそのまま終了する
  */
 
-struct expand_info {
+struct expand {
+	struct strbuf *current;
+	struct plist  *fields;
+	bool           indq;
+	bool           split;
+};
+struct expand_args {
 	bool indq, count, indirect, formatcolon;
 	const char *full, *param, *format;
 };
@@ -69,33 +78,72 @@ enum substtype {
 	substonce, substhead, substtail, substwhole, substall
 };
 
+static inline const char *get_ifs(void);
+static inline bool append_maybe_splitting(
+		char *result, struct expand *info, bool escape)
+	__attribute__((nonnull(2)));
+static char **expand_word_splitting(const char *s)
+	__attribute__((nonnull,malloc));
 static bool expand_arg(const char *s, struct plist *argv)
 	__attribute__((nonnull));
 static bool expand_brace(char *s, struct plist *result)
 	__attribute__((nonnull));
 static bool expand_subst(char *s, struct plist *result, bool split)
 	__attribute__((nonnull));
-static char *expand_param(char **src, bool indq)
-	__attribute__((nonnull, malloc));
-static char *expand_param2(const char *s, bool indq)
-	__attribute__((nonnull, malloc));
-static char *expand_param3(struct expand_info *info, const char *value)
-	__attribute__((nonnull, malloc));
+static bool expand_dollar(char **srcp, struct expand *restrict info)
+	__attribute__((nonnull));
+static bool expand_param(const char *s, struct expand *restrict info)
+	__attribute__((nonnull));
+static char *expand_param2(struct expand_args *args, const char *value)
+	__attribute__((nonnull,malloc));
 static char *matchhead(const char *s, char *pat)
-	__attribute__((nonnull, malloc));
+	__attribute__((nonnull,malloc));
 static char *matchtail(const char *s, char *pat)
-	__attribute__((nonnull, malloc));
+	__attribute__((nonnull,malloc));
 static char *matchandsubst(
 		const char *s, char *pat, char *str, enum substtype type)
-	__attribute__((nonnull(1,2), malloc));
+	__attribute__((nonnull(1,2),malloc));
 static char *get_comsub_code_p(char **src)
-	__attribute__((nonnull, malloc));
+	__attribute__((nonnull,malloc));
 static char *get_comsub_code_bq(char **src)
-	__attribute__((nonnull, malloc));
+	__attribute__((nonnull,malloc));
 static bool do_glob(char **ss, struct plist *result)
 	__attribute__((nonnull));
 static char *unescape_for_glob(const char *s)
 	__attribute__((malloc));
+
+
+/* IFS 環境変数を取得する。環境変数がなければ " \t\n" を返す。 */
+static inline const char *get_ifs(void)
+{
+	const char *ifs = getvar(VAR_IFS);
+	if (!ifs) ifs = " \t\n";
+	return ifs;
+}
+
+/* expand_subst 内で使う補助関数。result が非 NULL ならそれを info の current
+ * に追加する。場合によっては単語分割をする。result はこの関数内で free する。
+ * escape: 単語を追加するときにエスケープするかどうか。
+ * 戻り値: result が非 NULL だったかどうか。 */
+static inline bool append_maybe_splitting(
+		char *result, struct expand *info, bool escape)
+{
+	if (result) {
+		if (info->split && !info->indq) { /* 単語分割しつつ追加 */
+			append_splitting(result, info->current, info->fields,
+					get_ifs(), escape ? "\"'\\" : NULL);
+		} else {  /* そのまま追加 */
+			if (escape)
+				escape_bs(result, "\"\\", info->current);
+			else
+				sb_append(info->current, result);
+		}
+		free(result);
+		return true;
+	} else {
+		return false;
+	}
+}
 
 
 /* コマンドライン上の各種展開を行う。
@@ -172,6 +220,23 @@ char *expand_word(const char *s, bool multitilde)
 	s2 = list.contents[0];
 	pl_destroy(&list);
 	return s2;
+}
+
+/* 一つの引数に対してチルダ展開とパラメータ展開を行い結果を配列で返す。
+ * 一つの引数が単語分割によって複数の単語に分かれたり 0 個になったりすることが
+ * ある。
+ * 成功すると結果の配列を、失敗すると NULL を返す。失敗時はエラーを出力する。 */
+static char **expand_word_splitting(const char *s)
+{
+	char *temp = (s[0] == '~') ? expand_tilde(s) : xstrdup(s);
+	struct plist results;
+	pl_init(&results);
+	if (expand_subst(temp, &results, true)) {
+		return (char **) pl_toary(&results);
+	} else {
+		recfree(pl_toary(&results), free);
+		return NULL;
+	}
 }
 
 /* 一つの引数に対してブレース展開以降の全ての展開を行い結果を argv に追加する。
@@ -278,10 +343,6 @@ done:
 	return true;
 }
 
-/* expand_param* 関数が結果を返すのに使う変数 */
-static bool noescape;
-static char **arrayelems;
-
 /* パラメータ展開・コマンド置換、そして split が true なら単語分割を行い、
  * 結果を result に追加する。
  * 引用符 (" と ') やバックスラッシュエスケープはそのまま展開結果に残る。
@@ -295,9 +356,14 @@ static char **arrayelems;
 static bool expand_subst(char *const s, struct plist *result, bool split)
 {
 	bool ok = true;
-	bool indq = false;  /* 引用符 " の中かどうか */
 	char *s1 = s, *s2 = strpbrk(s, "\"'\\$`");
 	struct strbuf buf;
+	struct expand info = {
+		.current = &buf,
+		.fields = result,
+		.indq = false,
+		.split = split,
+	};
 
 	if (!s2) {
 		pl_append(result, s);
@@ -309,7 +375,7 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 		s1 = s2;
 		switch (*s1) {
 			case '"':
-				indq = !indq;
+				info.indq = !info.indq;
 				goto default_case;
 			case '\'':
 				s1 = skip_without_quote(s1 + 1, "'");
@@ -323,73 +389,15 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 					break;
 			case '$':
 				s1++;
-				noescape = false;
-				s2 = expand_param(&s1, indq);
-				goto append_s2;
+				ok &= expand_dollar(&s1, &info);
+				break;
 			case '`':
 				{
 					char *code = get_comsub_code_bq(&s1);
 					s2 = ok ? exec_and_read(code, true) : NULL;
 					free(code);
-					noescape = false;
+					ok &= append_maybe_splitting(s2, &info, true);
 				}
-				goto append_s2;
-append_s2:
-				if (s2) {
-//					error(0, 0, "DEBUG: %d %d appending %s",
-//							(int) (split && !indq), (int) noescape, s2);
-					if (split && !indq) {  /* 単語分割をしつつ追加 */
-						const char *ifs = getvar(VAR_IFS);
-						if (!ifs)
-							ifs = " \t\n";
-						add_splitting(s2, &buf, result, ifs,
-								noescape ? NULL : "\"'\\");
-					} else {  /* そのまま追加 */
-						if (noescape)
-							sb_append(&buf, s2);
-						else
-							escape_bs(s2, "\"\\", &buf);
-					}
-				} else if (arrayelems) {
-					if (split) {
-						/* 配列の内容を一つずつ単語分割して追加 */
-						char **ary = arrayelems;
-						if (ary[0]) {
-							if (buf.length > 0) {
-								escape_bs(ary[0], "\"\\", &buf);
-								if (indq)
-									sb_cappend(&buf, '"');
-								free(ary[0]);
-								if (ary[1]) {
-									pl_append(result, sb_tostr(&buf));
-									sb_init(&buf);
-								}
-								ary++;
-							}
-							while (ary[0] && ary[1]) {
-								pl_append(result, escape(ary[0], "\"\\'"));
-								ary++;
-							}
-							if (indq)
-								sb_cappend(&buf, '"');
-							if (ary[0]) {
-								escape_bs(ary[0], "\"\\", &buf);
-								free(ary[0]);
-							}
-						}
-						free(arrayelems);
-					} else {
-						const char *ifs = getvar(VAR_IFS);
-						if (!ifs) ifs = " \t\n";
-						sb_append(&buf, strjoin(-1, arrayelems,
-									(char[]) { ifs[0], '\0' }));
-						recfree((void **) arrayelems, free);
-					}
-					arrayelems = NULL;
-				} else {
-					ok = false;
-				}
-				free(s2);
 				break;
 			default:  default_case:
 				sb_cappend(&buf, *s1);
@@ -402,7 +410,7 @@ append_s2:
 			break;
 		}
 	}
-	if (indq)
+	if (info.indq)
 		xerror(0, 0, "%s: unclosed quotation", s);
 	if (buf.length > 0) {
 		pl_append(result, sb_tostr(&buf));
@@ -413,14 +421,13 @@ append_s2:
 	return ok;
 }
 
-/* '$' で始まるパラメータ・コマンド置換を解釈し、展開結果を返す。
- * src:    パラメータ置換を表す '$' の次の文字へのポインタのポインタ。
- *         置換が成功すると、*src は置換すべき部分文字列の最後の文字を指す。
- * indq:   このコマンド置換が引用符 " の中にあるかどうか。
- * 戻り値: 新しく malloc したパラメータ置換の結果の文字列。エラーなら NULL。 */
-static char *expand_param(char **src, bool indq)
+/* '$' で始まるパラメータ展開・コマンド置換を解釈し、結果を info に入れる。
+ * srcp:   展開する '$' の次の文字へのポインタのポインタ。
+ *         成功すると、*srcp は置換すべき部分文字列の最後の文字を指す。
+ * 戻り値: 成功なら true、エラーなら NULL。 */
+static bool expand_dollar(char **srcp, struct expand *restrict info)
 {
-	char *s = *src;
+	char *s = *srcp;
 	char *ss, *result;
 
 	assert(s[-1] == '$');
@@ -428,47 +435,46 @@ static char *expand_param(char **src, bool indq)
 		case '{':
 			ss = skip_with_quote(s + 1, "}");
 			if (*ss != '}') {
-				xerror(0, 0, "$%s: missing `}'", s);
-				*src = ss - 1;
-				return NULL;
-			}
-			s++;
-			*src = ss;
-			{
+				xerror(0, 0, "$%s: missing `%c'", s, '}');
+				*srcp = ss - 1;
+				return false;
+			} else {
+				s++;
+				*srcp = ss;
 				char inside[ss - s + 1];
 				strncpy(inside, s, ss - s);
 				inside[ss - s] = '\0';
-				return expand_param2(inside, indq);
+				return expand_param(inside, info);
 			}
 		case '(':
-			ss = get_comsub_code_p(src);
+			ss = get_comsub_code_p(srcp);
 			result = exec_and_read(ss, true);
 			free(ss);
-			return result;
+			return append_maybe_splitting(result, info, true);
 		case '\0':
 		default:
 			if (is_special_parameter_char(*s) || xisdigit(*s)) {
-				char name[2] = { *s, '\0' };
-				return expand_param2(name, indq);
-			} else if (xisalpha(*s)) {
+				char name[] = { *s, '\0' };
+				return expand_param(name, info);
+			} else if (is_name_char(*s)) {
 				ss = s + 1;
 				while (is_name_char(*ss)) ss++;
-				*src = ss - 1;
-				char inside[ss - s + 1];
-				strncpy(inside, s, ss - s);
-				inside[ss - s] = '\0';
-				return expand_param2(inside, indq);
+				*srcp = ss - 1;
+				char name[ss - s + 1];
+				strncpy(name, s, ss - s);
+				name[ss - s] = '\0';
+				return expand_param(name, info);
+			} else {
+				*srcp = s - 1;
+				return xstrdup("$");
 			}
-			*src = s - 1;
-			return xstrdup("$");
 	}
 }
 
 /* 括弧 ${ } で囲んだパラメータの内容を展開する
  * s:      ${ と } の間の文字列。
- * indq:   このコマンド置換が " 引用符の中にあるかどうか。
- * 戻り値: 新しく malloc した、パラメータの展開結果。
- *         エラーまたは arrayelems で結果を返す場合は NULL。 */
+ * info:   展開に関する情報へのポインタ。
+ * 戻り値: 成功なら true、エラーなら false。 */
 /* 書式:
  *    ${param-word}   param が未定義なら代わりに word を返す。
  *    ${param+word}   param が未定義でなければ代わりに word を返す。
@@ -509,16 +515,16 @@ static char *expand_param(char **src, bool indq)
  *  param を名前とする変数の内容を名前とする変数の内容を用いる。ただし、
  *  ${!prefix*} は例外である。またこの記法は配列に対しては使えない。
  */
-static char *expand_param2(const char *s, bool indq)
+static bool expand_param(const char *s, struct expand *restrict info)
 {
-	struct expand_info info;
-	info.full = s;
-	info.indq = indq;
+	struct expand_args args;
+	args.full = s;
+	args.indq = info->indq;
 
-	info.count = (s[0] == '#' && s[1]);
-	if (info.count) s++;
-	info.indirect = (s[0] == '!');
-	if (info.indirect) s++;
+	args.count = (s[0] == '#' && s[1]);
+	if (args.count) s++;
+	args.indirect = (s[0] == '!');
+	if (args.indirect) s++;
 	
 	const char *pstart = s;
 	if (is_special_parameter_char(*s)) {
@@ -526,20 +532,20 @@ static char *expand_param2(const char *s, bool indq)
 	} else {
 		while (xisalnum(*s) || *s == '_') s++;
 	}
-	if (pstart == s && info.indirect) {
+	if (pstart == s && args.indirect) {
 		/* この場合 '!' は indirect のしるしではなく変数名そのもの */
 		pstart--;
-		info.indirect = false;
+		args.indirect = false;
 		assert(*pstart == '!');
 	}
 
 	char param[s - pstart + 1];
 	strncpy(param, pstart, s - pstart);
 	param[s - pstart] = '\0';
-	info.param = param;
+	args.param = param;
 
-	info.formatcolon = (*s == ':');
-	if (info.formatcolon) {
+	args.formatcolon = (*s == ':');
+	if (args.formatcolon) {
 		s++;
 		if (!*s)
 			goto syntax_error;
@@ -551,142 +557,166 @@ static char *expand_param2(const char *s, bool indq)
 		default:
 			goto syntax_error;
 	}
-	info.format = s;
+	args.format = s;
 
 	// TODO ${!prefix*} パタン, 配列
 	bool separate = false, singlevalue;
 	const char *const *values;
 	const char *singlevalues[2];
-	if (info.param[0] == '@' || info.param[0] == '*') {
+	if (args.param[0] == '@' || args.param[0] == '*') {
 		struct plist *list = getarray(NULL);
 		values = (const char **) list->contents + 1;
-		separate = (info.indq && info.param[0] == '@');
+		separate = (args.indq && args.param[0] == '@');
 		singlevalue = false;
 	} else {
 		/* 配列でない変数は、要素が一つの配列のように扱う。 */
-		singlevalues[0] = getvar(info.param);
+		singlevalues[0] = getvar(args.param);
 		singlevalues[1] = NULL;
 		values = singlevalues;
 		separate = false;
 		singlevalue = true;
 
-		if (info.indirect && singlevalues[0])
+		if (args.indirect && singlevalues[0])
 			singlevalues[0] = getvar(singlevalues[0]);
 	}
 	assert(values != NULL);
 
-	if (info.count) {
-		if (info.format[0])
+	if (args.count) {
+		if (args.format[0])
 			goto syntax_error;
-		return mprintf("%zu",
+		sb_printf(info->current, "%zu",
 				singlevalue
-					? (values[0] ? strlen(values[0]) : 0)
+					? (values[0] ? strlen(values[0]) : (size_t) 0)
 					: parylen((void **) values));
+		return true;
 	}
 
 	struct plist rlist;
 	char **rvalues;
 	pl_init(&rlist);
 	for (size_t i = 0; values[i]; i++) {
-		char *evalue = expand_param3(&info, values[i]);
+		char *evalue = expand_param2(&args, values[i]);
 		if (!evalue) {
 			recfree(pl_toary(&rlist), free);
-			return NULL;
+			return false;
 		}
 		pl_append(&rlist, evalue);
 	}
 	rvalues = (char **) pl_toary(&rlist);
 
+	bool raw = false;
 	bool isempty =
-		!values[0] || (info.formatcolon && !values[0][0] && !values[1]); 
-	switch (info.format[0]) {
+		!values[0] || (args.formatcolon && !values[0][0] && !values[1]); 
+	switch (args.format[0]) {
 		case '-':  case '+':
-			if (isempty == (info.format[0] == '-')) {
-				noescape = !info.indq || posixly_correct;
-				char *r = expand_word(info.format + 1, false);
-				if (!noescape)
-					r = unescape(r);
+			if (isempty == (args.format[0] == '-')) {
 				recfree((void **) rvalues, free);
-				return r;
+				rvalues = expand_word_splitting(args.format + 1);
+				if (!rvalues)
+					return NULL;
+				separate = false;
+				raw = !args.indq || posixly_correct;
+				if (!raw)
+					for (size_t i = 0; rvalues[i]; i++)
+						rvalues[i] = unescape(rvalues[i]);
 			}
 			break;
 		case '=':
 			if (isempty) {
-				if (singlevalue && !info.indirect
-						&& xisalpha(info.full[0]) && is_name(info.param)) {
-					char *word1 = unescape(expand_word(info.format + 1, false));
+				if (singlevalue && !args.indirect
+						&& xisalpha(args.full[0]) && is_name(args.param)) {
+					char *word1 = unescape(expand_word(args.format + 1, false));
 					recfree((void **) rvalues, free);
-					if (!setvar(info.param, word1, false)) {
+					if (word1 && !setvar(args.param, word1, false)) {
 						free(word1);
-						return NULL;
+						return false;
 					}
 					return word1;
 				} else {  /* 配列などは代入できない */
 					xerror(0, 0, "${%s}: parameter cannot be "
-							"assigned to in this way", info.full);
+							"assigned to in this way", args.full);
 					recfree((void **) rvalues, free);
-					return NULL;
+					return false;
 				}
 			}
 			break;
 		case '?':
 			if (isempty) {
-				if (info.format[1]) {
-					char *word1 = unescape(expand_word(info.format + 1, false));
-					xerror(is_interactive_now ? 0 : EXIT_FAILURE,
-							0, "%s: %s", param, word1);
-					free(word1);
+				if (args.format[1]) {
+					char *word1 = unescape(expand_word(args.format + 1, false));
+					if (word1) {
+						xerror(is_interactive_now ? 0 : EXIT_FAILURE,
+								0, "%s: %s", param, word1);
+						free(word1);
+					}
 				} else {
 					xerror(is_interactive_now ? 0 : EXIT_FAILURE,
 							0,
 							values[0] ? "%s: parameter null"
 							          : "%s: parameter not set",
-							info.param);
+							args.param);
 				}
 				recfree((void **) rvalues, free);
-				return NULL;
+				return false;
 			}
 			break;
 	}
 
-	if (separate) {
-		assert(!arrayelems);
-		arrayelems = rvalues;
-		return NULL;
+	if (info->split && (separate || raw)) {
+		/* 配列の要素ごとに単語分割して追加 */
+		char **rv = rvalues;
+		if (*rv) {
+			for (;;) {
+				if (raw)
+					sb_append(info->current, *rv);
+				else
+					escape_bs(*rv, args.indq ? "\"\\" : "\"\\'", info->current);
+				free(*rv);
+				rv++;
+				if (!*rv) break;
+				if (args.indq) sb_cappend(info->current, '"');
+				pl_append(info->fields, sb_tostr(info->current));
+				sb_init(info->current);
+				if (args.indq) sb_cappend(info->current, '"');
+			}
+		}
+		free(rvalues);
+		return true;
 	} else if (!rvalues[0]) {
 		free(rvalues);
-		return xstrdup("");
-	} else if (!rvalues[1]) {
-		char *result = rvalues[0];
-		free(rvalues);
-		return result;
+		return true;
 	} else {
-		const char *ifs = getvar(VAR_IFS);
-		char sep[2] = { ifs ? ifs[0] : ' ', '\0' };
-		/* ifs が "" なら sep も "" となる。これは正しい動作である。 */
-		char *result = strjoin(-1, rvalues, sep);
-		recfree((void **) rvalues, free);
-		return result;
+		char *result;
+		if (!rvalues[1]) {
+			result = rvalues[0];
+			free(rvalues);
+		} else {
+			char sep[2] = { get_ifs()[0], '\0' };
+			/* IFS が "" なら sep も "" となる。これは正しい動作である。 */
+			result = strjoin(-1, rvalues, sep);
+			recfree((void **) rvalues, free);
+		}
+		return append_maybe_splitting(result, info, !raw);
 	}
 
 syntax_error:
 	xerror(is_interactive_now ? 0 : EXIT_FAILURE,
-			0, "${%s}: bad substitution", info.full);
-	return NULL;
+			0, "${%s}: bad substitution", args.full);
+	return false;
 }
 
 /* パラメータの値を操作する書式を適用する。
- * info:   全ての値を設定してある struct expand_info。
+ * info:   全ての値を設定してある struct expand_args。
  * 戻り値: 新しく malloc した、書式の適用結果。エラーなら NULL。 */
-/* 書式の詳細は expand_param2 の説明を参照 */
-static char *expand_param3(struct expand_info *info, const char *value)
+/* 書式の詳細は expand_param の説明を参照 */
+static char *expand_param2(struct expand_args *args, const char *value)
 {
-	const char *format = info->format;
+	const char *format = args->format;
 	char *word1, *word2;
 	bool matchlong;
 
 	switch (*format++) {
-		/* '+', '-', '=', '?' の各記号は expand_param2 で処理する */
+		/* '+', '-', '=', '?' の各記号は expand_param で処理する */
 		case '#':
 			matchlong = (format[0] == '#');
 			if (matchlong) format++;
@@ -723,7 +753,7 @@ static char *expand_param3(struct expand_info *info, const char *value)
 				}
 			}
 			return matchandsubst(value, word1, word2,
-					info->formatcolon ? substwhole :
+					args->formatcolon ? substwhole :
 					sall              ? substall :
 					headonly          ? substhead :
 					tailonly          ? substtail :
@@ -974,7 +1004,7 @@ static char *get_comsub_code_bq(char **src)
  * 最後の単語以外の単語は free 可能な文字列として list に入る。
  * 最後の単語は buf に入ったままになる。
  * q が非 NULL なら、q に入っている文字を escape_bs でエスケープする。 */
-void add_splitting(const char *str, struct strbuf *buf, struct plist *list,
+void append_splitting(const char *str, struct strbuf *buf, struct plist *list,
 		const char *ifs, const char *q)
 {
 	for (;;) {
