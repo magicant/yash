@@ -1064,7 +1064,7 @@ char *exec_and_read(const char *code, bool trimend)
 		return NULL;
 	} else if (cpid) {  /* 親プロセス */
 		sigset_t newset, oldset;
-		fd_set readset, errset;
+		fd_set fds;
 		char *buf;
 		size_t len, max;
 		ssize_t count;
@@ -1086,11 +1086,9 @@ char *exec_and_read(const char *code, bool trimend)
 
 		for (;;) {
 			handle_signals();
-			FD_ZERO(&readset);
-			FD_SET(pipefd[0], &readset);
-			FD_ZERO(&errset);
-			FD_SET(pipefd[0], &errset);
-			if (pselect(pipefd[0] + 1, &readset, NULL,&errset,NULL,&oldset)<0) {
+			FD_ZERO(&fds);
+			FD_SET(pipefd[0], &fds);
+			if (pselect(pipefd[0] + 1, &fds, NULL, NULL, NULL, &oldset) < 0) {
 				if (errno == EINTR) {
 					continue;
 				} else {
@@ -1098,9 +1096,7 @@ char *exec_and_read(const char *code, bool trimend)
 					break;
 				}
 			}
-			if (FD_ISSET(pipefd[0], &errset))
-				break;
-			if (FD_ISSET(pipefd[0], &readset)) {
+			if (FD_ISSET(pipefd[0], &fds)) {
 				count = read(pipefd[0], buf + len, max - len);
 				if (count < 0) {
 					if (errno == EINTR) {

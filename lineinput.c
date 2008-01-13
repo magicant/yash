@@ -44,9 +44,11 @@
 #include <assert.h>
 
 
+static bool unset_nonblocking(int fd);
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
+static int check_inhibit_expansion(char *str, int index);
 static char **yash_completion(const char *text, int start, int end);
 static int check_completion_type(int index);
 static char *normal_file_completion_function(const char *text, int state);
@@ -86,9 +88,9 @@ void initialize_readline(void)
 	/* rl_filename_dequoting_function = XXX */
 
 	history_comment_char = '#';
+	history_no_expand_chars = " \t\n\r={}|";
 	history_quotes_inhibit_expansion = true;
-	/* history_inhibit_expansion_function = XXX */
-	// ${ の直後や } の直前の ! を展開しない
+	history_inhibit_expansion_function = check_inhibit_expansion;
 	stifle_history(history_histsize);
 	if (history_filename)
 		read_history(history_filename);
@@ -103,11 +105,26 @@ void finalize_readline(void)
 	}
 }
 
+/* 指定したファイルディスクリプタを非ブロッキングモードにする。
+ * 戻り値: 成功なら true、エラーなら errno を設定して false。 */
+static bool unset_nonblocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL);
+	if (flags >= 0) {
+		if (flags & O_NONBLOCK) {
+			return fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) != -1;
+		} else {
+			return true;
+		}
+	}
+	return false;
+}
+
 /* fgetc のラッパー。シグナルを正しく処理する。rl_getc_function として使う。 */
 int yash_getc(FILE *stream)
 {
 	sigset_t newset, oldset;
-	fd_set readset, errset;
+	fd_set fds;
 	int fd = fileno(stream);
 	int result;
 
@@ -119,11 +136,9 @@ int yash_getc(FILE *stream)
 	}
 	for (;;) {
 		handle_signals();
-		FD_ZERO(&readset);
-		FD_SET(fd, &readset);
-		FD_ZERO(&errset);
-		FD_SET(fd, &errset);
-		if (pselect(fd + 1, &readset, NULL, &errset, NULL, &oldset) < 0) {
+		FD_ZERO(&fds);
+		FD_SET(fd, &fds);
+		if (pselect(fd + 1, &fds, NULL, NULL, NULL, &oldset) < 0) {
 			switch (errno) {
 				case EINTR:
 					continue;
@@ -136,11 +151,7 @@ int yash_getc(FILE *stream)
 					goto end;
 			}
 		}
-		if (FD_ISSET(fd, &errset)) {
-			result = EOF;
-			goto end;
-		}
-		if (FD_ISSET(fd, &readset)) {
+		if (FD_ISSET(fd, &fds)) {
 			unsigned char c;
 			ssize_t r = read(fd, &c, sizeof c);
 			if (r == sizeof c) {
@@ -149,12 +160,18 @@ int yash_getc(FILE *stream)
 			} else if (r == 0) {
 				result = EOF;
 				goto end;
-			} else switch (errno) {
-				case EINTR:
+			} else if (errno == EINTR) {
+				continue;
+			} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				if (unset_nonblocking(fd)) {
 					continue;
-				default:
+				} else {
 					result = EOF;
 					goto end;
+				}
+			} else {
+				result = EOF;
+				goto end;
 			}
 		}
 	}
@@ -173,7 +190,7 @@ char *yash_fgetline(int ptype __attribute__((unused)), void *info)
 	struct fgetline_info *finfo = info;
 	char *bufstart = finfo->buffer + finfo->bufoff;
 	sigset_t newset, oldset;
-	fd_set readset, errset;
+	fd_set fds;
 	struct strbuf buf;
 	char *result;
 
@@ -197,31 +214,32 @@ char *yash_fgetline(int ptype __attribute__((unused)), void *info)
 	sb_nappend(&buf, bufstart, finfo->buflen);
 	for (;;) {
 		handle_signals();
-		FD_ZERO(&readset);
-		FD_SET(finfo->fd, &readset);
-		FD_ZERO(&errset);
-		FD_SET(finfo->fd, &errset);
-		if (pselect(finfo->fd + 1, &readset, NULL, &errset, NULL, &oldset) < 0){
-			switch (errno) {
-				case EINTR:
-					continue;
-				default:
-					result = NULL;
-					goto end;
+		FD_ZERO(&fds);
+		FD_SET(finfo->fd, &fds);
+		if (pselect(finfo->fd + 1, &fds, NULL, NULL, NULL, &oldset) < 0){
+			if (errno == EINTR) {
+				continue;
+			} else {
+				result = NULL;
+				goto end;
 			}
 		}
-		if (FD_ISSET(finfo->fd, &errset)) {
-			result = NULL;
-			goto end;
-		}
-		if (FD_ISSET(finfo->fd, &readset)) {
+		if (FD_ISSET(finfo->fd, &fds)) {
 			ssize_t r = read(finfo->fd, finfo->buffer, sizeof finfo->buffer);
-			if (r < 0) switch (errno) {
-				case EINTR:
+			if (r < 0) {
+				if (errno == EINTR) {
 					continue;
-				default:
+				} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					if (unset_nonblocking(finfo->fd)) {
+						continue;
+					} else {
+						result = NULL;
+						goto end;
+					}
+				} else {
 					result = NULL;
 					goto end;
+				}
 			} else if (r == 0) {
 				result = NULL;
 				goto end;
@@ -367,6 +385,14 @@ static char *unquote_filename(char *text, int quotechar)
 	return 0; /*XXX*/
 }
 #endif
+
+/* str の index 文字目で行う予定の履歴展開を抑止すべきかどうかを判定する。 */
+static int check_inhibit_expansion(char *str, int index)
+{
+	if (index > 0 && str[index - 1] == '{')
+		return true;
+	return false;
+}
 
 /* コマンド補完を行う。ライブラリから呼び出される。 */
 static char **yash_completion(
