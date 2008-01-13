@@ -745,6 +745,7 @@ static char *yash_filename_completion(const char *text, int noinit)
 				|| (!(currentinfo->type & CT_DIR) == !S_ISDIR(st.st_mode)))
 			return result;
 		free(result);
+		noinit = true;
 	}
 }
 
@@ -772,14 +773,29 @@ static char *yash_builtin_completion(const char *text, int noinit)
 /* 外部コマンド名の補完候補を挙げる補完エントリ関数。 */
 static char *yash_external_command_completion(const char *text, int noinit)
 {
+	static bool slash;
 	const char *name;
 	if (!noinit) {
 		comp_iter_index = 0;
-		fill_cmdhash();
+		slash = (strchr(text, '/') != NULL);
+		if (!slash)
+			fill_cmdhash();
 	}
-	while ((name = ht_next(&cmdhash, &comp_iter_index).key)) {
-		if (comp_prefix(text, name))
-			return xstrdup(name);
+	/* text に '/' が入っているなら通常のファイル名補完候補のうち実行可能な
+	 * もののみを返す。入っていなければ PATH から全ての候補を探す。 */
+	if (!slash) {
+		while ((name = ht_next(&cmdhash, &comp_iter_index).key)) {
+			if (comp_prefix(text, name))
+				return xstrdup(name);
+		}
+	} else {
+		for (;;) {
+			char *result = rl_filename_completion_function(text, noinit);
+			if (!result || access(result, X_OK) == 0)
+				return result;
+			free(result);
+			noinit = true;
+		}
 	}
 	return NULL;
 }

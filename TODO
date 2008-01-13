@@ -1,5 +1,6 @@
 hash, rehash, type builtin
 readline 補完
+builtin_dir.c
 配列の実装
 数式展開
 % で直接 fg, bg を行う
