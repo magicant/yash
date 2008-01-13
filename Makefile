@@ -30,7 +30,7 @@ clean:
 	rm -rf $(OBJS) $(TARGET) $(PACKAGENAME) $(PACKAGENAME).tar.gz
 
 DISTCONTENTS = *.[ch] README.html COPYING Makefile TODO
-PACKAGENAME = yash-1.0b3
+PACKAGENAME = yash-1.0
 dist:
 	mkdir -p $(PACKAGENAME)
 	-ln -f $(DISTCONTENTS) $(PACKAGENAME) && \
