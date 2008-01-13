@@ -56,4 +56,28 @@ struct sgetline_info {
 };
 
 
+/***** Readline 補完 *****/
+
+/* 補完する候補の種類を定義する。 */
+enum comptypes {
+	CT_FILE    = 1 <<  0,     /* ディレクトリでないファイル */
+	CT_DIR     = 1 <<  1,     /* ディレクトリ */
+	CT_KEYWORD = 1 <<  2,     /* シェルの予約語 */
+	CT_BUILTIN = 1 <<  3,     /* シェル組込みコマンド */
+	CT_EXTERN  = 1 <<  4,     /* 外部コマンド */
+	CT_ALIAS   = 1 <<  5,     /* 非グローバルエイリアス */
+	CT_GALIAS  = 1 <<  6,     /* グローバルエイリアス */
+	CT_EXPORT  = 1 <<  7,     /* export 対象の環境変数名 */
+	CT_VAR     = 1 <<  8,     /* export しないシェル変数名 */
+	CT_FUNC    = 1 <<  9,     /* シェル関数 */
+	CT_RUNNING = 1 << 10,     /* 実行中のジョブ名 */
+	CT_STOPPED = 1 << 11,     /* 停止中のジョブ名 */
+};
+
+/* 補完動作の定義 */
+struct compinfo {
+	enum comptypes type;
+};
+
+
 #endif /* READLINE_H */

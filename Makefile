@@ -43,7 +43,7 @@ dist:
 yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h
 util.o: yash.h util.h
 sig.o: util.h sig.h lineinput.h exec.h
-lineinput.o: yash.h util.h lineinput.h exec.h path.h variable.h
+lineinput.o: yash.h util.h lineinput.h exec.h path.h builtin.h alias.h variable.h
 parser.o: yash.h util.h parser.h alias.h variable.h
 expand.o: yash.h util.h parser.h expand.h exec.h path.h variable.h
 exec.o: yash.h util.h sig.h expand.h exec.h path.h builtin.h variable.h

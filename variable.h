@@ -39,6 +39,29 @@ extern char **environ;
 #define VAR_LINES           "LINES"
 #define VAR_COLUMNS         "COLUMNS"
 
+/* 変数を表す構造体 */
+struct variable {
+	char *value;
+	/*union {
+		int    as_int;
+		double as_double;
+	} avalue;*/
+	enum {
+		VF_EXPORT   = 1 << 0,
+		VF_READONLY = 1 << 1,
+		VF_NODELETE = 1 << 2,
+	} flags;
+	const char *(*getter)(struct variable *var);
+	bool (*setter)(struct variable *var);
+};
+/* VF_EXPORT フラグが立っている変数は、export 対象であり、value メンバの内容
+ * よりも environ に入っている内容を優先する */
+/* getter/setter/deleter は変数のゲッター・セッター・削除関数である。
+ * 非 NULL なら、値を取得・設定する際にフィルタとして使用する。
+ * ゲッター・セッターの戻り値はそのまま getvar/setvar の戻り値になる。
+ * セッターは unsetvar でも value = NULL で呼ばれる。 */
+
+/* 変数代入を元に戻すためのデータ */
 struct save_assignment;
 
 char *xgetcwd(void);
@@ -50,6 +73,7 @@ const char *getvar(const char *name)
 	__attribute__((nonnull));
 bool setvar(const char *name, const char *value, bool export)
 	__attribute__((nonnull));
+struct hasht *get_variable_table(void);
 struct plist *getarray(const char *name);
 bool unsetvar(const char *name)
 	__attribute__((nonnull));

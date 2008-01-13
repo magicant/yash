@@ -37,6 +37,8 @@ char *collapse_homedir(const char *path)
 char *canonicalize_path(const char *path)
 	__attribute__((malloc));
 
+extern struct hasht cmdhash;
+
 void init_cmdhash(void);
 void clear_cmdhash(void);
 void fill_cmdhash(void);

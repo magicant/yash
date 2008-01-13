@@ -87,6 +87,8 @@ char *read_all(int fd)
 #define xisspace(c)  (isspace((unsigned char) (c)))
 #define xisupper(c)  (isupper((unsigned char) (c)))
 #define xisxdigit(c) (isxdigit((unsigned char) (c)))
+#define xtoupper(c)  (toupper((unsigned char) (c)))
+#define xtolower(c)  (tolower((unsigned char) (c)))
 
 
 /* Arithmetic Utilities */
@@ -191,6 +193,7 @@ struct plist {
 	size_t length;
 	size_t maxlength;
 };
+
 void pl_init(struct plist *list)
 	__attribute__((nonnull));
 void pl_destroy(struct plist *list)
@@ -241,6 +244,11 @@ struct hasht {
 		void     *value;
 	}       *entries;
 };
+struct keyvaluepair {
+	const char *key;
+	void       *value;
+};
+
 void ht_init(struct hasht *ht)
 	__attribute__((nonnull));
 void ht_destroy(struct hasht *ht)
@@ -260,6 +268,8 @@ void *ht_set(struct hasht *ht, const char *key, const void *value)
 void *ht_remove(struct hasht *ht, const char *key)
 	__attribute__((nonnull(1)));
 int ht_each(struct hasht *ht, int (*func)(const char *key, void *value))
+	__attribute__((nonnull));
+struct keyvaluepair ht_next(struct hasht *ht, size_t *indexp)
 	__attribute__((nonnull));
 #ifndef NO_UTIL_INLINE
 # define ht_clear(ht) ht_freeclear(ht, NULL)

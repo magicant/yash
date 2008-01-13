@@ -25,6 +25,8 @@ typedef struct {
 	const bool is_special;
 } BUILTIN;
 
+extern struct hasht builtins;
+
 void init_builtin(void);
 BUILTIN *get_builtin(const char *name);
 

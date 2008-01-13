@@ -49,7 +49,7 @@
  *   また、fork してもならない。一時的変数が export されないからである。
  *   特殊組込みコマンドでは一時的変数は存在しない。 */
 
-static struct hasht builtins;
+struct hasht builtins;
 
 static struct builtin_info {
 	const char *name;

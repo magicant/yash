@@ -18,7 +18,6 @@
 
 #define  _POSIX_C_SOURCE 200112L
 #include <ctype.h>
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
@@ -39,6 +38,8 @@
 #include "lineinput.h"
 #include "exec.h"
 #include "path.h"
+#include "builtin.h"
+#include "alias.h"
 #include "variable.h"
 #include <assert.h>
 
@@ -50,6 +51,8 @@ static bool unset_nonblocking(int fd);
 static int check_inhibit_expansion(char *str, int index);
 static char *expand_prompt(const char *s)
 	__attribute__((nonnull));
+static rl_completion_func_t yash_attempted_completion;
+static rl_compentry_func_t yash_completion_entry;
 
 
 /* 履歴を保存するファイルのパス。NULL なら履歴は保存されない。 */
@@ -70,7 +73,8 @@ void initialize_readline(void)
 	rl_readline_name = "yash";
 	rl_outstream = stderr;
 	rl_getc_function = yash_getc;
-//	rl_attempted_completion_function = yash_completion;
+	rl_attempted_completion_function = yash_attempted_completion;
+	//rl_completion_entry_function = yash_completion_entry;
 	rl_filename_quote_characters = " \t\n\\\"'<>|;&()#$`?*[!{";
 	/* rl_char_is_quoted_p = XXX */
 	/* rl_filename_quoting_function = XXX */
@@ -577,4 +581,280 @@ static char *expand_prompt(const char *s)
 		s++;
 	}
 	return sb_tostr(&result);
+}
+
+
+/********** Readline 補完ルーチン **********/
+
+static char **yash_attempted_completion(const char *text, int start, int end);
+static struct compinfo *define_completion(int start, int end);
+static char *yash_completion_entry(const char *text, int noinit);
+static char *yash_filename_completion(const char *text, int noinit);
+static char *yash_keyword_completion(const char *text, int noinit);
+static char *yash_builtin_completion(const char *text, int noinit);
+static char *yash_external_command_completion(const char *text, int noinit);
+static char *yash_alias_completion(const char *text, int noinit);
+static char *yash_variable_completion(const char *text, int noinit);
+static char *yash_function_completion(const char *text, int noinit);
+static char *yash_job_completion(const char *text, int noinit);
+static bool comp_prefix(const char *text, const char *candidate);
+
+static struct compinfo *currentinfo;
+static bool ignorecase;
+static size_t comp_iter_index;
+
+/* 補完候補を生成する。Readline ライブラリから呼び出される。
+ * text: 補完する文字列
+ * start, end: rl_line_buffer における text の位置
+ * 戻り値: 補完候補への NULL 終端配列。 */
+static char **yash_attempted_completion(const char *text, int start, int end)
+{
+	const char *vv = rl_variable_value("completion-ignore-case");
+	ignorecase = vv && (strcmp(vv, "on") == 0);
+
+	currentinfo = define_completion(start, end);
+	rl_attempted_completion_over = 1;
+	return rl_completion_matches(text, yash_completion_entry);
+}
+
+/* これからどのような補完を行うべきか、補完動作の内容を決める。 */
+static struct compinfo *define_completion(
+		int start, int end __attribute__((unused)))
+{
+	static struct compinfo tempinfo;
+	int index = start;
+
+	if ((index > 0 && rl_line_buffer[index - 1] == '$')
+			|| (index > 1 && rl_line_buffer[index - 1] == '{'
+			              && rl_line_buffer[index - 2] == '$')) {
+		/* シェル変数名の補完 */
+		tempinfo = (struct compinfo) {
+			.type = CT_EXPORT | CT_VAR | CT_FUNC
+		};
+		return &tempinfo;
+	}
+	while (--index >= 0 && xisblank(rl_line_buffer[index]));
+	if (index < 0)
+		goto command_completion;
+	switch (rl_line_buffer[index]) {
+		case '|':  case '&':  case ';':  case '(':
+command_completion:
+			/* コマンド名の補完 */
+			tempinfo = (struct compinfo) {
+				.type = CT_KEYWORD | CT_BUILTIN | CT_EXTERN | CT_ALIAS
+					| CT_GALIAS | CT_FUNC | CT_RUNNING | CT_STOPPED
+			};
+			return &tempinfo;
+	}
+
+	//XXX コマンド名を見て info を変える */
+
+	/* ファイル名の補完 */
+	tempinfo = (struct compinfo) {
+		.type = CT_FILE | CT_DIR | CT_GALIAS
+	};
+	return &tempinfo;
+}
+
+/* 呼ばれる度に補完候補を一つずつ返す補完エントリ関数。
+ * text: 補完する文字列
+ * noinit: 新しく補完候補の列挙を開始するときは 0、2 回目以降に呼ばれるときは
+ *         非 0。 */
+static char *yash_completion_entry(const char *text, int noinit)
+{
+	static enum {
+		compfile, compkeyword, compbuiltin, compextcom, compalias,
+		compvariable, compfunction, compjob,
+	} currenttype;
+	static bool inoinit;
+	
+	/* まず最初に状態を初期化 */
+	if (!noinit) {
+		currenttype = 0;
+		inoinit = false;
+	}
+
+	for (;;) {
+		rl_compentry_func_t *compfunc;
+		switch (currenttype) {
+			case compfile:
+				if (currentinfo->type & (CT_FILE | CT_DIR)) {
+					compfunc = yash_filename_completion;
+					break;
+				}
+			case compkeyword:
+				if (currentinfo->type & CT_KEYWORD) {
+					compfunc = yash_keyword_completion;
+					break;
+				}
+			case compbuiltin:
+				if (currentinfo->type & CT_BUILTIN) {
+					compfunc = yash_builtin_completion;
+					break;
+				}
+			case compextcom:
+				if (currentinfo->type & CT_EXTERN) {
+					compfunc = yash_external_command_completion;
+					break;
+				}
+			case compalias:
+				if (currentinfo->type & (CT_ALIAS | CT_GALIAS)) {
+					compfunc = yash_alias_completion;
+					break;
+				}
+			case compvariable:
+				if (currentinfo->type & (CT_EXPORT | CT_VAR)) {
+					compfunc = yash_variable_completion;
+					break;
+				}
+			case compfunction:
+				if (currentinfo->type & CT_FUNC) {
+					compfunc = yash_function_completion;
+					break;
+				}
+			case compjob:
+				if (currentinfo->type & (CT_RUNNING | CT_STOPPED)) {
+					compfunc = yash_job_completion;
+					break;
+				}
+			default:
+				return NULL;
+		}
+		char *result = compfunc(text, inoinit);
+		inoinit = true;
+		if (result)
+			return result;
+
+		currenttype++;
+		inoinit = false;
+	}
+}
+
+/* ファイル名の補完候補を挙げる補完エントリ関数。 */
+static char *yash_filename_completion(const char *text, int noinit)
+{
+	enum comptypes CT_BOTH = CT_FILE | CT_DIR;
+	for (;;) {
+		char *result = rl_filename_completion_function(text, noinit);
+		if (!result || ((currentinfo->type & CT_BOTH) == CT_BOTH))
+			return result;
+
+		/*ディレクトリのみまたはディレクトリ以外のみを返す場合はここで取捨する*/
+		struct stat st;
+		if ((stat(result, &st) < 0)
+				|| (!(currentinfo->type & CT_DIR) == !S_ISDIR(st.st_mode)))
+			return result;
+		free(result);
+	}
+}
+
+/* キーワードの補完候補を挙げる補完エントリ関数。 */
+static char *yash_keyword_completion(const char *text, int noinit)
+{
+	(void) text, (void) noinit;
+	//XXX yash_keyword_completion: 未実装
+	return NULL;
+}
+
+/* 組込みコマンド名の補完候補を挙げる補完エントリ関数。 */
+static char *yash_builtin_completion(const char *text, int noinit)
+{
+	const char *name;
+	if (!noinit)
+		comp_iter_index = 0;
+	while ((name = ht_next(&builtins, &comp_iter_index).key)) {
+		if (comp_prefix(text, name))
+			return xstrdup(name);
+	}
+	return NULL;
+}
+
+/* 外部コマンド名の補完候補を挙げる補完エントリ関数。 */
+static char *yash_external_command_completion(const char *text, int noinit)
+{
+	const char *name;
+	if (!noinit) {
+		comp_iter_index = 0;
+		fill_cmdhash();
+	}
+	while ((name = ht_next(&cmdhash, &comp_iter_index).key)) {
+		if (comp_prefix(text, name))
+			return xstrdup(name);
+	}
+	return NULL;
+}
+
+/* エイリアスの補完候補を挙げる補完エントリ関数。 */
+static char *yash_alias_completion(const char *text, int noinit)
+{
+	struct keyvaluepair kv;
+	if (!noinit)
+		comp_iter_index = 0;
+	while ((kv = ht_next(&aliases, &comp_iter_index)).key) {
+		if (comp_prefix(text, kv.key)) {
+			if ((currentinfo->type & CT_ALIAS) && !((ALIAS *) kv.value)->global)
+				return xstrdup(kv.key);
+			if ((currentinfo->type & CT_GALIAS) && ((ALIAS *) kv.value)->global)
+				return xstrdup(kv.key);
+		}
+	}
+	return NULL;
+}
+
+/* シェル変数名の補完候補を挙げる補完エントリ関数。 */
+static char *yash_variable_completion(const char *text, int noinit)
+{
+	static struct hasht *vars = NULL;
+	struct keyvaluepair kv;
+	if (!noinit) {
+		comp_iter_index = 0;
+		if (!vars)
+			vars = get_variable_table();
+	}
+	while ((kv = ht_next(vars, &comp_iter_index)).key) {
+		if (comp_prefix(text, kv.key)) {
+			if ((currentinfo->type & CT_EXPORT)
+					&& (((struct variable *) kv.value)->flags & VF_EXPORT))
+				return xstrdup(kv.key);
+			if ((currentinfo->type & CT_VAR)
+					&& !(((struct variable *) kv.value)->flags & VF_EXPORT))
+				return xstrdup(kv.key);
+		}
+	}
+	return NULL;
+}
+
+/* シェル関数名の補完候補を挙げる補完エントリ関数。 */
+static char *yash_function_completion(const char *text, int noinit)
+{
+	(void) text, (void) noinit;
+	return NULL;
+	//XXX yash_function_completion: 未実装
+}
+
+/* ジョブ名の補完候補を挙げる補完エントリ関数。 */
+static char *yash_job_completion(const char *text, int noinit)
+{
+	(void) text, (void) noinit;
+	return NULL;
+	//XXX yash_function_completion: 未実装
+}
+
+/* 指定した文字列が補完候補として妥当かどうか調べる。
+ * text: 補完する文字列
+ * candidate: 補完候補の候補 */
+static bool comp_prefix(const char *text, const char *candidate)
+{
+	if (!ignorecase)
+		return hasprefix(candidate, text);
+
+	while (*text) {
+		if (!*candidate)
+			return false;
+		if (xtoupper(*text) != xtoupper(*candidate))
+			return false;
+		text++;
+		candidate++;
+	}
+	return true;
 }

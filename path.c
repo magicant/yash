@@ -348,7 +348,7 @@ next:
 /********** コマンド名ハッシュ **********/
 
 /* コマンド名からコマンドのフルパスへのハッシュテーブル */
-static struct hasht cmdhash;
+struct hasht cmdhash;
 
 /* コマンド名ハッシュを初期化する */
 void init_cmdhash(void)
@@ -362,13 +362,10 @@ void clear_cmdhash(void)
 	ht_freeclear(&cmdhash, free);
 }
 
-/* ハッシュテーブルが空ならば、PATH を走査してハッシュテーブルを埋める。
- * 既にハッシュテーブルに一つでもデータがあれば、何もしない。
- * PATH 環境変数がない場合も何もしない。 */
+/* PATH を走査してハッシュテーブルを埋める。
+ * PATH 環境変数がない場合は何もしない。 */
 void fill_cmdhash(void)
 {
-	if (cmdhash.count) return;
-
 	const char *path = getvar(VAR_PATH);
 	if (!path) return;
 

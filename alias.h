@@ -24,6 +24,7 @@
 
 
 extern bool enable_alias;
+extern struct hasht aliases;
 
 /* エイリアスのエントリ。 */
 /* processing はエイリアスを展開する際に使う。 */

@@ -35,7 +35,7 @@
 bool enable_alias = true;
 
 /* エイリアスの集合。エイリアス名から ALIAS へのポインタへのハッシュテーブル */
-static struct hasht aliases;
+struct hasht aliases;
 
 
 static void aliasfree(ALIAS *a)

@@ -34,28 +34,6 @@
 #include <assert.h>
 
 
-/* 変数を表す構造体 */
-struct variable {
-	char *value;
-	/*union {
-		int    as_int;
-		double as_double;
-	} avalue;*/
-	enum {
-		VF_EXPORT   = 1 << 0,
-		VF_READONLY = 1 << 1,
-		VF_NODELETE = 1 << 2,
-	} flags;
-	const char *(*getter)(struct variable *var);
-	bool (*setter)(struct variable *var);
-};
-/* VF_EXPORT フラグが立っている変数は、export 対象であり、value メンバの内容
- * よりも environ に入っている内容を優先する */
-/* getter/setter/deleter は変数のゲッター・セッター・削除関数である。
- * 非 NULL なら、値を取得・設定する際にフィルタとして使用する。
- * ゲッター・セッターの戻り値はそのまま getvar/setvar の戻り値になる。
- * セッターは unsetvar でも value = NULL で呼ばれる。 */
-
 /* 変数環境を表す構造体 */
 struct environment {
 	struct environment *parent;  /* 親環境 */
@@ -67,23 +45,7 @@ struct environment {
 /* $0 は位置パラメータではない。故に positionals.contents[0] は NULL である。 */
 
 
-char *xgetcwd(void);
-void init_var(void);
-void set_shlvl(int change);
-void set_positionals(char *const *values);
 static struct variable *get_variable(const char *name, bool temp);
-const char *getvar(const char *name);
-bool setvar(const char *name, const char *value, bool export);
-struct plist *getarray(const char *name);
-bool unsetvar(const char *name);
-bool export(const char *name);
-void unexport(const char *name);
-bool is_exported(const char *name);
-bool assign_variables(char **assigns, bool temp, bool export);
-void unset_temporary(const char *name);
-bool is_special_parameter_char(char c);
-bool is_name_char(char c);
-bool is_name(const char *c);
 static const char *count_getter(struct variable *var);
 static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
@@ -345,6 +307,15 @@ bool setvar(const char *name, const char *value, bool export)
 		ok = var->setter(var);
 	assert(var->value != NULL);
 	return ok;
+}
+
+/* メインの変数テーブルを取得する。テーブルの内容を変えてはいけない。 */
+struct hasht *get_variable_table(void)
+{
+	struct environment *env = current_env;
+	while (env->parent)
+		env = env->parent;
+	return &env->variables;
 }
 
 /* 指定した名前の配列変数の内容を取得する。

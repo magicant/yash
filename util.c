@@ -1126,3 +1126,25 @@ int ht_each(struct hasht *ht, int (*f)(const char *key, void *value))
 	}
 	return 0;
 }
+
+/* ハッシュテーブルの内容を列挙する。
+ * 最初に列挙を開始する前に、size_t 変数を 0 に初期化しておく。
+ * その後 struct hasht と size_t へのポインタをこの関数に渡す度にキーと値の
+ * ペアが返される。size_t 変数は列挙がどこまで進んだかを覚えておくために
+ * この関数が書き換える。列挙の途中でこの関数の外から size_t 変数の値を
+ * 変えてはならない。また、列挙の途中でハッシュテーブルの値を追加・削除しては
+ * ならない。
+ * 全ての列挙が終わると key が NULL の keyvaluepair が返る。 */
+struct keyvaluepair ht_next(struct hasht *ht, size_t *indexp)
+{
+	while (*indexp < ht->capacity) {
+		struct keyvaluepair kv = {
+			.key   = ht->entries[*indexp].key,
+			.value = ht->entries[*indexp].value,
+		};
+		(*indexp)++;
+		if (kv.key)
+			return kv;
+	}
+	return (struct keyvaluepair) { .key = NULL };
+}
