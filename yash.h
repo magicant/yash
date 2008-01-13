@@ -25,7 +25,7 @@
 #include <sys/types.h>
 
 
-#define YASH_VERSION   "1.0"
+#define YASH_VERSION   "1.1"
 #define YASH_COPYRIGHT "Copyright (C) 2007-2008 magicant"
 
 #define EXIT_NOEXEC   126

@@ -1,4 +1,3 @@
-hash, rehash, type builtin
 readline 補完
 builtin_path.c
 配列の実装
