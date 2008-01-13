@@ -39,7 +39,6 @@
 #include "variable.h"
 #include <assert.h>
 
-#define ADDITIONAL_BUILTIN //XXX
 
 /* 組込みコマンド一般仕様:
  * - argc は少なくとも 1 で、argv[0] は呼び出されたコマンドの名前である。
@@ -58,16 +57,17 @@ static struct builtin_info {
 
 	/* builtin.c の組込みコマンド */
 	{ ":",       { builtin_true,    true  }},
-#ifdef ADDITIONAL_BUILTIN
 	{ "true",    { builtin_true,    false }},
 	{ "false",   { builtin_false,   false }},
-#endif
 	{ "cd",      { builtin_cd,      false }},
+	{ "type",    { builtin_type,    false }},
 	{ "umask",   { builtin_umask,   false }},
 	{ "history", { builtin_history, false }},
 	{ "alias",   { builtin_alias,   false }},
 	{ "unalias", { builtin_unalias, false }},
 	{ "option",  { builtin_option,  false }},
+	{ "hash",    { builtin_hash,    false }},
+	{ "rehash",  { builtin_hash,    false }},
 
 	/* builtin_job.c の組込みコマンド */
 	{ "exit",    { builtin_exit,    true  }},
@@ -161,6 +161,51 @@ int builtin_cd(int argc, char **argv)
 		free(path);
 	}
 	return EXIT_SUCCESS;
+}
+
+/* type 組込みコマンド */
+int builtin_type(int argc, char **argv)
+{
+	if (argc <= 1)
+		goto usage;
+	for (int i = 1; i < argc; i++) {
+		if (strchr(argv[i], '/') == NULL) {
+			ALIAS *alias = get_alias(argv[i]);
+			if (alias && !alias->global) {
+				printf("%s is aliased to `%s'\n", argv[i], alias->value);
+			}
+			BUILTIN *builtin = get_builtin(argv[i]);
+			if (builtin) {
+				printf("%s is a built-in command\n", argv[i]);
+				continue;
+			}
+			const char *ext = ht_get(&cmdhash, argv[i]);
+			if (ext) {
+				printf("%s is in hashtable (%s)\n", argv[i], ext);
+			} else {
+				char *path = which(argv[i], getvar(VAR_PATH), is_executable);
+				if (path) {
+					printf("%s is %s\n", argv[i], path);
+					free(path);
+				} else {
+					if (!alias)
+						printf("%s: not found\n", argv[i]);
+				}
+			}
+		} else {
+			if (is_executable(argv[i]))
+				printf("%s is executable\n", argv[i]);
+			else if (access(argv[i], F_OK) == 0)
+				printf("%s is not executable\n", argv[i]);
+			else
+				printf("%s: not found\n", argv[i]);
+		}
+	}
+	return EXIT_SUCCESS;
+
+usage:
+	fprintf(stderr, "Usage:  type args...\n");
+	return EXIT_FAILURE;
 }
 
 /* umask 組込みコマンド */
@@ -542,5 +587,56 @@ usage:
 	fprintf(stderr, "Available options:\n");
 	for (const char **optname = option_names; *optname; optname++)
 		fprintf(stderr, "\t%s\n", *optname);
+	return EXIT_FAILURE;
+}
+
+/* hash/rehash 組込みコマンド
+ * -r: ハッシュテーブルを空にする */
+int builtin_hash(int argc, char **argv)
+{
+	bool rehash = (strcmp(argv[0], "rehash") == 0);
+	bool err = false;
+	int opt;
+
+	/* 引数・オプションがなければ、ハッシュテーブルの内容を表示する。 */
+	if (argc == 1 && !rehash) {
+		size_t index = 0;
+		struct keyvaluepair kv;
+		while ((kv = ht_next(&cmdhash, &index)).key && kv.value) {
+			printf("%s\n", (char *) kv.value);
+		}
+		return EXIT_SUCCESS;
+	}
+
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "r")) >= 0) {
+		switch (opt) {
+			case 'r':
+				rehash = true;
+				break;
+			default:
+				goto usage;
+		}
+	}
+
+	if (rehash) {
+		clear_cmdhash();
+	}
+	while (xoptind < argc) {
+		if (strchr(argv[xoptind], '/') != NULL) {
+			xerror(0, 0, "%s: %s: contains `/'", argv[0], argv[xoptind]);
+			err = true;
+		} else if (!get_command_fullpath(argv[xoptind], true)) {
+			xerror(0, 0, "%s: %s: not found", argv[0], argv[xoptind]);
+			err = true;
+		}
+		xoptind++;
+	}
+	return err ? EXIT_FAILURE : EXIT_SUCCESS;
+
+usage:
+	fprintf(stderr, "Usage:  hash [-r] [name...]\n");
+	fprintf(stderr, "        `rehash' is equivalent to `hash -r'\n");
 	return EXIT_FAILURE;
 }

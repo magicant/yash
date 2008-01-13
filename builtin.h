@@ -33,11 +33,13 @@ BUILTIN *get_builtin(const char *name);
 int builtin_true(int argc, char **argv);
 int builtin_false(int argc, char **argv);
 int builtin_cd(int argc, char **argv);
+int builtin_type(int argc, char **argv);
 int builtin_umask(int argc, char **argv);
 int builtin_history(int argc, char **argv);
 int builtin_alias(int argc, char **argv);
 int builtin_unalias(int argc, char **argv);
 int builtin_option(int argc, char **argv);
+int builtin_hash(int argc, char **argv);
 
 int builtin_exit(int argc, char **argv);
 int builtin_kill(int argc, char **argv);
