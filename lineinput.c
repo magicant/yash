@@ -16,8 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define _GNU_SOURCE
-#define _ATFILE_SOURCE
+#define  _POSIX_C_SOURCE 200112L
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -49,13 +48,9 @@ static bool unset_nonblocking(int fd);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
 static int check_inhibit_expansion(char *str, int index);
-static char **yash_completion(const char *text, int start, int end);
-static int check_completion_type(int index);
-static char *normal_file_completion_function(const char *text, int state);
-static char *path_completion_function(const char *text, int state);
-static char *env_completion_function(const char *text, int state);
 static char *expand_prompt(const char *s)
 	__attribute__((nonnull));
+
 
 /* 履歴を保存するファイルのパス。NULL なら履歴は保存されない。 */
 char *history_filename = NULL;
@@ -67,12 +62,6 @@ int history_histsize = 500;
 char *readline_prompt1 = NULL;
 char *readline_prompt2 = NULL;
 
-/* ファイル名補完で、非実行可能ファイルを候補に入れるかどうか。 */
-static bool executable_only;
-/* ファイル名補完で、対象を検索するパス。path_completion_function が使う。 */
-static const char *searchpath;
-/* ファイル名補完で、大文字小文字の区別の有無 */
-static bool completion_ignorecase;
 
 /* readline を初期化する。
  * これは .yashrc の実行が終わった「後」に呼出す。 */
@@ -81,7 +70,7 @@ void initialize_readline(void)
 	rl_readline_name = "yash";
 	rl_outstream = stderr;
 	rl_getc_function = yash_getc;
-	rl_attempted_completion_function = yash_completion;
+//	rl_attempted_completion_function = yash_completion;
 	rl_filename_quote_characters = " \t\n\\\"'<>|;&()#$`?*[!{";
 	/* rl_char_is_quoted_p = XXX */
 	/* rl_filename_quoting_function = XXX */
@@ -394,257 +383,6 @@ static int check_inhibit_expansion(char *str, int index)
 	return false;
 }
 
-/* コマンド補完を行う。ライブラリから呼び出される。 */
-static char **yash_completion(
-		const char *text, int start, int end __attribute__((unused)))
-{
-	char **matches = NULL;
-	rl_compentry_func_t *completer;
-
-	completion_ignorecase = strcmp(
-			rl_variable_value("completion-ignore-case"), "on") == 0;
-	rl_filename_quoting_desired = 1;
-
-	switch (check_completion_type(start)) {
-		case 0:  /* 通常の補完 */
-			if (!executable_only)
-				rl_filename_completion_desired = 1;
-
-			if (text[0] == '~') {
-				completer = !strchr(text, '/')
-					? rl_username_completion_function
-					: normal_file_completion_function;
-				rl_filename_completion_desired = 1;
-			} else if (!executable_only || hasprefix(text, "/")
-					|| hasprefix(text, "./") || hasprefix(text, "../")) {
-				completer = normal_file_completion_function;
-				rl_filename_completion_desired = 1;
-			} else {
-				searchpath = getvar(VAR_PATH);
-				completer = path_completion_function;
-			}
-			break;
-		case 1:  /* 環境変数名の補完 */
-			completer = env_completion_function;
-			break;
-		default:
-			assert(false);
-	}
-	matches = rl_completion_matches(text, completer);
-	rl_attempted_completion_over = 1;
-
-	return matches;
-}
-
-/* rl_line_buffer の index 直前の文字を見て、補完の種類を決める。
- * executable_only 変数を変更する。
- * 戻り値: 0: 通常の補完
- *         1: 環境変数名の補完 */
-/* この関数は rl_line_buffer の index 以降の文字は見ない。それらの文字を見て
- * 補完の種類を決めるのは呼び出し元の責任である。 */
-static int check_completion_type(int index)
-{
-	while (--index >= 0 && rl_line_buffer[index] == ' ');
-	if (index < 0)
-		goto command_completion;  /* Caution!  Dangerous goto */
-	switch (rl_line_buffer[index]) {
-		case '|':  case '&':  case ';':  case '(':
-		command_completion:
-			executable_only = true;
-			return 0;
-		case '$':
-			executable_only = false;
-			return 1;
-		default:
-			executable_only = false;
-			return 0;
-	}
-}
-
-/* 作業ディレクトリを相対パスの起点として、ファイル名に基づき補完候補を挙げる。
- * text が '/' で始まるなら絶対パスとみなす。 */
-static char *normal_file_completion_function(const char *text, int state)
-{
-	/* getbasename: path の中の最後の '/' の直後の文字の位置を返す。
-	 * '/' がなければ NULL を返す。 */
-	char *getbasename(const char *path) {
-		char *result = strrchr(path, '/');
-		return result ? result + 1 : NULL;
-	}
-	static int (*comparer)(const char *a, const char *b, size_t n);
-	static DIR *dir = NULL;
-	static char *ldname = NULL, *bname = NULL;
-	static size_t ldnamelen, bnamelen;
-	static int dfd;
-	struct dirent *dent;
-	struct stat st;
-
-	assert(text);
-	if (!state) {  /* 初期化: 新たな補完を開始 */
-		ldname = xstrdup(text);
-		if (!*ldname) {
-			dir = opendir(".");
-		} else {
-			char *dname = (text[0] == '~')
-				? expand_tilde(ldname) : xstrdup(ldname);
-			char *dnameend = getbasename(dname);
-
-			if (dnameend) {
-				*dnameend = '\0';
-				dir = opendir(dname);
-			} else {
-				dir = opendir(".");
-			}
-			free(dname);
-		}
-		if (!dir)
-			goto end;
-		dfd = dirfd(dir);
-		if (dfd < 0)
-			goto end;
-		bname = xstrdup(getbasename(text) ? : text);
-		bnamelen = strlen(bname);
-		*(getbasename(ldname) ? : ldname) = '\0';
-		ldnamelen = strlen(ldname);
-		comparer = completion_ignorecase ? strncasecmp : strncmp;
-	}
-	do {
-		do {
-			if (!(dent = readdir(dir)))
-				goto end;
-		} while (comparer(bname, dent->d_name, bnamelen) != 0
-				|| strcmp(".", dent->d_name) == 0
-				|| strcmp("..", dent->d_name) == 0);
-		if (fstatat(dfd, dent->d_name, &st, 0) < 0)
-			goto end;
-	} while(executable_only && !(st.st_mode & S_IXUSR) && !S_ISDIR(st.st_mode));
-
-	char *result = xmalloc(ldnamelen + strlen(dent->d_name) + 1);
-	strcpy(result, ldname);
-	strcpy(result + ldnamelen, dent->d_name);
-	return result;
-
-end:
-	if (dir) {
-		closedir(dir);
-		dir = NULL;
-	}
-	free(ldname);
-	ldname = NULL;
-	free(bname);
-	bname = NULL;
-	return NULL;
-}
-
-/* コマンド名を生成する。コマンド補完でライブラリから呼び出される。 */
-/* searchpath 内にあるファイルで該当するものを挙げる。
- * executable_only ならば組込みコマンド・エイリアスも候補に入れる。 */
-static char *path_completion_function(const char *text, int state)
-{
-	/* builtin: 次に調べる組込みコマンドのインデックス。
-	 *          全部調べ終わったら -1。 */
-	static int (*comparer)(const char *a, const char *b, size_t n);
-	static ssize_t builtin;
-	static size_t textlen;
-	//static const ALIAS *alias;
-	static DIR *dir;
-	static int dfd;
-	static char *savepath, *path;
-	struct dirent *dent;
-	struct stat st;
-
-	if (!state) {
-		builtin = 0;
-		//alias = get_all_aliases();
-		dir = NULL;
-		savepath = path = xstrdup(searchpath ? : "");
-		textlen = strlen(text);
-		comparer = completion_ignorecase ? strncasecmp : strncmp;
-	}
-	if (builtin >= 0) {
-//		const char *bname;
-
-//		while ((bname = builtins[builtin++].b_name)) {
-//			if (comparer(bname, text, textlen) == 0)
-//				return xstrdup(bname);
-//		}
-		builtin = -1;
-	}
-//	while (alias) {
-//		const char *aliasname = alias->name;
-//		alias = alias->next;
-//		if (comparer(aliasname, text, textlen) == 0)
-//			return xstrdup(aliasname);
-//	}
-	do {
-next:
-		while (!dir || !(dent = readdir(dir))) {
-			/* 次のディレクトリに進む */
-			size_t len;
-			char oldend;
-
-			if (!path)
-				goto end;
-			if (dir)
-				closedir(dir);
-			len = strcspn(path, ":");
-			if (len) {
-				oldend = path[len];
-				path[len] = '\0';
-				dir = opendir(path);
-				path[len] = oldend;
-				path += len;
-			} else {
-				dir = opendir(".");
-			}
-			if (dir)
-				dfd = dirfd(dir);
-			if (*path == '\0')
-				path = NULL;
-			else if (*path == ':')
-				path++;
-		}
-		if (comparer(dent->d_name, text, textlen) != 0)
-			goto next;
-		if (dfd < 0 || fstatat(dfd, dent->d_name, &st, 0) < 0) {
-			goto end;
-		}
-	} while(executable_only && !(st.st_mode & S_IXUSR) && !S_ISDIR(st.st_mode));
-
-	return xstrdup(dent->d_name);
-
-end:
-	if (dir) {
-		closedir(dir);
-		dir = NULL;
-	}
-	free(savepath);
-	return NULL;
-}
-
-/* 環境変数名の補完候補を挙げる。補完でライブラリから呼び出される。 */
-static char *env_completion_function(const char *text, int state)
-{
-	static int (*comparer)(const char *a, const char *b, size_t n);
-	static char **env;
-	static size_t textlen;
-	const char *envent;
-
-	if (!state) {
-		env = environ;
-		if (!env)
-			return NULL;
-		textlen = strlen(text);
-		comparer = completion_ignorecase ? strncasecmp : strncmp;
-	}
-	while ((envent = *env++)) {
-		if (comparer(envent, text, textlen) == 0) {
-			return xstrndup(envent, strcspn(envent, "="));
-		}
-	}
-	env = NULL;
-	return NULL;
-}
 
 
 static struct tm *get_time(void)
