@@ -41,7 +41,7 @@ extern struct hasht cmdhash;
 
 void init_cmdhash(void);
 void clear_cmdhash(void);
-void fill_cmdhash(void);
+void fill_cmdhash(const char *prefix);
 const char *get_command_fullpath(const char *name, bool forcelookup)
 	__attribute__((nonnull));
 

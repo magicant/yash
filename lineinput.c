@@ -597,7 +597,6 @@ static char *yash_alias_completion(const char *text, int noinit);
 static char *yash_variable_completion(const char *text, int noinit);
 static char *yash_function_completion(const char *text, int noinit);
 static char *yash_job_completion(const char *text, int noinit);
-static bool comp_prefix(const char *text, const char *candidate);
 
 static struct compinfo *currentinfo;
 static bool ignorecase;
@@ -779,7 +778,7 @@ static char *yash_external_command_completion(const char *text, int noinit)
 		comp_iter_index = 0;
 		slash = (strchr(text, '/') != NULL);
 		if (!slash)
-			fill_cmdhash();
+			fill_cmdhash(text);
 	}
 	/* text に '/' が入っているなら通常のファイル名補完候補のうち実行可能な
 	 * もののみを返す。入っていなければ PATH から全ての候補を探す。 */
@@ -859,7 +858,7 @@ static char *yash_job_completion(const char *text, int noinit)
 /* 指定した文字列が補完候補として妥当かどうか調べる。
  * text: 補完する文字列
  * candidate: 補完候補の候補 */
-static bool comp_prefix(const char *text, const char *candidate)
+bool comp_prefix(const char *text, const char *candidate)
 {
 	if (!ignorecase)
 		return hasprefix(candidate, text);

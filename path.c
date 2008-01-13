@@ -363,8 +363,11 @@ void clear_cmdhash(void)
 }
 
 /* PATH を走査してハッシュテーブルを埋める。
- * PATH 環境変数がない場合は何もしない。 */
-void fill_cmdhash(void)
+ * PATH 環境変数がない場合は何もしない。
+ * prefix: この文字列で始まるコマンドだけハッシュテーブルに入れる。
+ *         条件の判定には comp_prefix を使う。
+ *         NULL なら全てのコマンドをハッシュテーブルに入れる。(遅い!) */
+void fill_cmdhash(const char *prefix)
 {
 	const char *path = getvar(VAR_PATH);
 	if (!path) return;
@@ -402,7 +405,8 @@ void fill_cmdhash(void)
 					strcpy(fullpath, dirname);
 					fullpath[dirlen] = '/';
 					strcpy(fullpath + dirlen + 1, de->d_name);
-					if (is_executable(fullpath))
+					if (is_executable(fullpath)
+							&& (!prefix || comp_prefix(prefix, de->d_name)))
 						free(ht_set(&cmdhash, de->d_name, fullpath));
 					else
 						free(fullpath);

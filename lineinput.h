@@ -79,5 +79,7 @@ struct compinfo {
 	enum comptypes type;
 };
 
+bool comp_prefix(const char *text, const char *candidate);
+
 
 #endif /* READLINE_H */
