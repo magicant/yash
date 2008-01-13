@@ -701,13 +701,14 @@ static void exec_processes(
  * 戻り値:  子プロセスの PID。fork/exec しなかった場合は 0。エラーなら -1。 */
 /* fork しないで 0 を返すことがあるのは、etype == FOREGROUND で
  * pipes.p_count == 0 の場合に限る。
- * 0 または -1 を返す場合、laststatus に値が入る。 */
+ * 0 を返す場合、laststatus に値が入る。 */
 static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes)
 {
 	bool expanded = false;
 	int argc;
 	char **argv;
+	const char *commandpath = NULL;
 
 	if (etype == SELF)
 		goto directexec;
@@ -753,13 +754,20 @@ static pid_t exec_single(
 						}
 						unset_temporary(NULL);
 					}
-					laststatus = EXIT_FAILURE;
 					if (posixly_correct &&
 							builtin->is_special && !is_interactive_now)
 						exit(EXIT_FAILURE);
 					undo_redirections(saver);
 					recfree((void **) argv, free);
 					return -1;
+				} else {
+					commandpath = strchr(argv[0], '/')
+						? argv[0] : get_command_fullpath(argv[0], false);
+					if (!commandpath) {
+						xerror(0, 0, "%s: command not found", argv[0]);
+						laststatus = EXIT_NOTFOUND;
+						return 0;
+					}
 				}
 			}
 		} else if (p->p_type == PT_GROUP && !p->p_redirs) {
@@ -848,11 +856,12 @@ directexec:
 			if (builtin)  /* 組込みコマンドを実行 */
 				exit(builtin->main(argc, argv));
 
-			const char *command = strchr(argv[0], '/')
-				? argv[0] : get_command_fullpath(argv[0], false);
-			if (!command)
+			if (!commandpath)
+				commandpath = strchr(argv[0], '/')
+					? argv[0] : get_command_fullpath(argv[0], false);
+			if (!commandpath)
 				xerror(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
-			execvp(command, argv);
+			execvp(commandpath, argv);
 			xerror(EXIT_NOEXEC, errno, "%s", argv[0]);
 		case PT_GROUP:  case PT_SUBSHELL:
 			exec_statements_and_exit(p->p_subcmds);
