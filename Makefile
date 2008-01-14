@@ -20,7 +20,10 @@ CFLAGS = -O3 -ggdb -std=c99
 ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
 CFLAGS += -Wall -Wextra -pedantic
 endif
-LDFLAGS = -lc -lreadline -ltermcap
+LDFLAGS = -lc
+ifneq (,$(findstring -DUSE_READLINE,$(CPPFLAGS)))
+LDFLAGS += -lreadline -ltermcap
+endif
 OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o path.o builtin.o builtin_job.o builtin_var.o alias.o variable.o
 TARGET = yash
 
@@ -47,7 +50,7 @@ lineinput.o: yash.h util.h lineinput.h exec.h path.h builtin.h alias.h variable.
 parser.o: yash.h util.h parser.h alias.h variable.h
 expand.o: yash.h util.h parser.h expand.h exec.h path.h variable.h
 exec.o: yash.h util.h sig.h expand.h exec.h path.h builtin.h variable.h
-path.o: yash.h util.h parser.h path.h variable.h
+path.o: yash.h util.h lineinput.h parser.h path.h variable.h
 builtin.o: yash.h util.h sig.h lineinput.h expand.h exec.h path.h builtin.h alias.h variable.h
 builtin_job.o: yash.h util.h sig.h exec.h path.h builtin.h variable.h
 builtin_var.o: util.h builtin.h variable.h

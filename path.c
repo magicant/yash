@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include "yash.h"
 #include "util.h"
+#include "lineinput.h"
 #include "parser.h"
 #include "path.h"
 #include "variable.h"

@@ -26,7 +26,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <readline/history.h>
+#ifdef USE_READLINE
+# include <readline/history.h>
+#endif
 #include "yash.h"
 #include "util.h"
 #include "sig.h"
@@ -252,6 +254,7 @@ usage:
  * -s X:     X を履歴に追加 */
 int builtin_history(int argc, char **argv)
 {
+#ifdef USE_READLINE
 	int ierrno;
 
 	using_history();
@@ -338,6 +341,11 @@ usage:
 	fprintf(stderr, "    or  history -rw file\n");
 	fprintf(stderr, "    or  history -s arg\n");
 	return EXIT_FAILURE;
+#else
+	(void) argc;
+	fprintf(stderr, "%s: readline/history unavailable\n", argv[0]);
+	return EXIT_FAILURE;
+#endif /* !USE_READLINE */
 }
 
 /* builtin_alias 内で各エイリアスを出力する内部関数 */

@@ -29,8 +29,10 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
-#include <readline/readline.h>
-#include <readline/history.h>
+#ifdef USE_READLINE
+# include <readline/readline.h>
+# include <readline/history.h>
+#endif
 #include <sys/select.h>
 #include <sys/stat.h>
 #include "yash.h"
@@ -45,14 +47,18 @@
 
 
 static bool unset_nonblocking(int fd);
+#ifdef USE_READLINE
 //static int char_is_quoted_p(char *text, int index);
 //static char *quote_filename(char *text, int matchtype, char *quotepointer);
 //static char *unquote_filename(char *text, int quotechar);
 static int check_inhibit_expansion(char *str, int index);
+#endif
 static char *expand_prompt(const char *s)
 	__attribute__((nonnull));
+#ifdef USE_READLINE
 static rl_completion_func_t yash_attempted_completion;
 static rl_compentry_func_t yash_completion_entry;
+#endif
 
 
 /* 履歴を保存するファイルのパス。NULL なら履歴は保存されない。 */
@@ -70,6 +76,7 @@ char *readline_prompt2 = NULL;
  * これは .yashrc の実行が終わった「後」に呼出す。 */
 void initialize_readline(void)
 {
+#ifdef USE_READLINE
 	rl_readline_name = "yash";
 	rl_outstream = stderr;
 	rl_getc_function = yash_getc;
@@ -87,15 +94,18 @@ void initialize_readline(void)
 	stifle_history(history_histsize);
 	if (history_filename)
 		read_history(history_filename);
+#endif /* USE_READLINE */
 }
 
 /* readline を終了する */
 void finalize_readline(void)
 {
+#ifdef USE_READLINE
 	if (history_filename) {
 		stifle_history(history_filesize);
 		write_history(history_filename);
 	}
+#endif /* USE_READLINE */
 }
 
 /* 指定したファイルディスクリプタを非ブロッキングモードにする。
@@ -187,7 +197,7 @@ char *yash_fgetline(int ptype __attribute__((unused)), void *info)
 	struct strbuf buf;
 	char *result;
 
-	/* まず info 内のバッファに既に一行文のデータがないか調べる */
+	/* まず info 内のバッファに既に一行分のデータがないか調べる */
 	char *end = memchr(bufstart, '\n', finfo->buflen);
 	if (end) {
 		result = xstrndup(bufstart, end - bufstart);
@@ -286,9 +296,12 @@ char *yash_sgetline(int ptype __attribute__((unused)), void *info)
 char *yash_readline(int ptype, void *info __attribute__((unused)))
 {
 	char *prompt, *actualprompt;
-	char *line, *eline;
+	char *line;
 	bool terminal_info_valid = false;
 	struct termios old_terminal_info, new_terminal_info;
+#ifndef USE_READLINE
+	static struct fgetline_info glinfo = { .fd = STDIN_FILENO };
+#endif
 	
 yash_readline_start:
 	switch (ptype) {
@@ -301,7 +314,6 @@ yash_readline_start:
 			prompt = readline_prompt2 ? readline_prompt2 : "> ";
 			break;
 		default:
-			xerror(2, 0, "internal error: yash_readline_start ptype=%d", ptype);
 			assert(false);
 	}
 
@@ -318,7 +330,14 @@ yash_readline_start:
 	}
 
 	actualprompt = expand_prompt(prompt);
+#ifdef USE_READLINE
 	line = readline(actualprompt);
+#else
+	fflush(stdout);
+	fputs(actualprompt, stderr);
+	fflush(stderr);
+	line = yash_fgetline(ptype, &glinfo);
+#endif
 	free(actualprompt);
 
 	if (terminal_info_valid)
@@ -334,6 +353,8 @@ yash_readline_start:
 		goto yash_readline_start;
 	}
 
+#ifdef USE_READLINE
+	char *eline;
 	if (ptype == 1 || ptype == 2) {
 		switch (history_expand(line, &eline)) {
 			case 1:  /* expansion successful */
@@ -357,9 +378,14 @@ yash_readline_start:
 				goto yash_readline_start;
 		}
 	} else {
+#endif /* USE_READLINE */
 		return line;
+#ifdef USE_READLINE
 	}
+#endif /* USE_READLINE */
 }
+
+#ifdef USE_READLINE
 
 #if 0
 /* text[index] がクォートされているかどうか判定する。 */
@@ -387,6 +413,7 @@ static int check_inhibit_expansion(char *str, int index)
 	return false;
 }
 
+#endif /* USE_READLINE */
 
 
 static struct tm *get_time(void)
@@ -546,8 +573,10 @@ static char *expand_prompt(const char *s)
 				}
 				break;
 			case '!':
+#ifdef USE_READLINE
 				using_history();
 				sb_printf(&result, "%d", history_base + where_history());
+#endif
 				break;
 			case '$':
 				sb_cappend(&result, geteuid() ? '$' : '#');
@@ -565,10 +594,14 @@ static char *expand_prompt(const char *s)
 				}
 				break;
 			case '[':
+#ifdef USE_READLINE
 				sb_cappend(&result, RL_PROMPT_START_IGNORE);
+#endif
 				break;
 			case ']':
+#ifdef USE_READLINE
 				sb_cappend(&result, RL_PROMPT_END_IGNORE);
+#endif
 				break;
 			case '\0':
 				sb_cappend(&result, '\\');
@@ -585,6 +618,8 @@ static char *expand_prompt(const char *s)
 
 
 /********** Readline 補完ルーチン **********/
+
+#ifdef USE_READLINE
 
 static char **yash_attempted_completion(const char *text, int start, int end);
 static struct compinfo *define_completion(int start, int end);
@@ -855,11 +890,14 @@ static char *yash_job_completion(const char *text, int noinit)
 	//XXX yash_function_completion: 未実装
 }
 
+#endif /* USE_READLINE */
+
 /* 指定した文字列が補完候補として妥当かどうか調べる。
  * text: 補完する文字列
  * candidate: 補完候補の候補 */
 bool comp_prefix(const char *text, const char *candidate)
 {
+#ifdef USE_READLINE
 	if (!ignorecase)
 		return hasprefix(candidate, text);
 
@@ -872,4 +910,7 @@ bool comp_prefix(const char *text, const char *candidate)
 		candidate++;
 	}
 	return true;
+#else
+	return hasprefix(candidate, text);
+#endif
 }
