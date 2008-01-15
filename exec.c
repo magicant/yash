@@ -72,7 +72,7 @@ static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
 static void undo_redirections(struct save_redirect *save);
-static void savesfree(struct save_redirect *save);
+static void clear_save_redirect(struct save_redirect *save);
 
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;
@@ -746,7 +746,7 @@ static pid_t exec_single(
 								unset_temporary(NULL);
 							if (builtin->main == builtin_exec
 									&& laststatus == EXIT_SUCCESS)
-								savesfree(saver);
+								clear_save_redirect(saver);
 							else
 								undo_redirections(saver);
 							recfree((void **) argv, free);
@@ -1032,10 +1032,22 @@ static void undo_redirections(struct save_redirect *save)
 	}
 }
 
-/* save_redirect のリストを解放する */
-static void savesfree(struct save_redirect *save)
+/* セーブしたリダイレクトを削除し、元に戻せないようにする。
+ * さらに引数リスト save を free する。 */
+static void clear_save_redirect(struct save_redirect *save)
 {
+	fd_set leave;  /* 残しておく FD の集合 */
+	FD_ZERO(&leave);
 	while (save) {
+		if (!FD_ISSET(save->sr_copyfd, &leave)) {
+			if (close(save->sr_copyfd) < 0 && errno != EBADF)
+				xerror(0, errno, "closing copied file descriptor %d",
+						save->sr_copyfd);
+		}
+		/* leave には「生きている」FD のみを入れられる。 */
+		if (fcntl(save->sr_origfd, F_GETFD) >= 0)
+			FD_SET(save->sr_origfd, &leave);
+
 		struct save_redirect *next = save->next;
 		free(save);
 		save = next;
