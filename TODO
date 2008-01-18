@@ -2,6 +2,7 @@ readline 補完
 builtin_path.c
 配列の実装
 数式展開
+print_job_status を POSIX 書式に
 % で直接 fg, bg を行う
 ジョブ単位で名前を付けるのではなくジョブの各プロセスごとにプロセス名を付ける
 POSIX にしたがって stdout/stderr を使い分ける
@@ -10,3 +11,48 @@ PROCESS などを連鎖リストではなく plist に
 jobspec で %+, %- をサポート
 機能テスト用スクリプトを書く
 ワイド文字対応
+
+未実装構文要素 (+: 未実装、-: 不完全)
++ >| リダイレクト
+- { ... } 
++ for
++ case
++ if
++ while
++ until
++ break
++ continue
++ return
++ function
+組込みコマンド (+: 未実装、-: 不完全)
++ bind
++ builtin
+- cd
++ command
++ compgen
++ complete
++ declare/typeset/let/local
++ dirs
+- disown
++ echo
++ eval
+- export
++ fc
+- fg
++ getopts
++ help
+- history
++ newgrp
++ popd
++ pushd
++ pwd
++ read
++ readonly
++ set
++ shift
++ shopt
+- ./source
++ times
++ trap
++ ulimit
+- umask

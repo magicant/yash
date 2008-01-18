@@ -18,7 +18,7 @@
 CC = gcc
 CFLAGS = -O3 -ggdb -std=c99
 ifeq (,$(findstring -DNDEBUG,$(CPPFLAGS)))
-CFLAGS += -Wall -Wextra -pedantic
+CFLAGS += -Wall -Wextra
 endif
 LDFLAGS = -lc
 ifneq (,$(findstring -DUSE_READLINE,$(CPPFLAGS)))
