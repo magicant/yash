@@ -31,26 +31,29 @@ $(TARGET): $(OBJS)
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = $(PACKAGE)-$(VERSION)
+DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
 DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in install-sh
 # Only pax and compress comform to POSIX.
+dist-tarZ: $(DISTDIR).tar.Z
+	rm -rf $(DISTDIR)
 dist dist-gzip: $(DISTDIR).tar.gz
 	rm -rf $(DISTDIR)
 dist-bzip2: $(DISTDIR).tar.bz2
 	rm -rf $(DISTDIR)
-dist-tarZ: $(DISTDIR).tar.Z
+dist-shar: $(DISTDIR).shar.gz
 	rm -rf $(DISTDIR)
 dist-zip: $(DISTDIR).zip
 	rm -rf $(DISTDIR)
-dist-all: $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.Z $(DISTDIR).zip
+dist-all: $(DISTS)
 	rm -rf $(DISTDIR)
+$(DISTDIR).tar.Z: $(DISTDIR)
+	pax -w -x ustar $(DISTDIR) | compress -c > $@
 $(DISTDIR).tar.gz: $(DISTDIR)
 	tar -c $(DISTDIR) | gzip -c > $@
 $(DISTDIR).tar.bz2: $(DISTDIR)
 	tar -c $(DISTDIR) | bzip2 -9 -c > $@
-	rm -rf $(DISTDIR)
-$(DISTDIR).tar.Z: $(DISTDIR)
-	pax -w -x ustar $(DISTDIR) | compress -c > $@
-	rm -rf $(DISTDIR)
+$(DISTDIR).shar.gz: $(DISTDIR)
+	shar -q -T $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
 $(DISTDIR): $(DISTCONTENTS)
@@ -80,7 +83,7 @@ cscope.out:
 mostlyclean:
 	rm -rf $(OBJS) $(DISTDIR)
 clean: mostlyclean
-	rm -rf $(TARGET) $(DISTDIR).tar.gz
+	rm -rf $(TARGET) $(DISTS)
 distclean: clean
 	rm -rf Makefile config.log config.h version.h
 maintainer-clean:
@@ -89,7 +92,7 @@ maintainer-clean:
 	@$(MAKE) distclean
 	rm -rf tags TAGS cscope.out
 
-.PHONY: dist dist-gzip dist-bzip2 dist-tarZ dist-zip dist-all install install-strip installdirs uninstall cscope mostlyclean clean distclean maintainer-clean
+.PHONY: dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all install install-strip installdirs uninstall cscope mostlyclean clean distclean maintainer-clean
 
 # Dependencies
 yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h version.h
