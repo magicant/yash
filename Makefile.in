@@ -28,6 +28,17 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 
+BINDIR = @BINDIR@
+install: $(BINDIR) $(TARGET)
+	$(INSTALL_PROGRAM) -c $(TARGET) '$(BINDIR)/$(TARGET)'
+install-strip: $(BINDIR) $(TARGET)
+	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(BINDIR)/$(TARGET)'
+installdirs: $(BINDIR)
+$(BINDIR):
+	$(INSTALL_PROGRAM) -d $@
+uninstall:
+	rm -f '$(BINDIR)/$(TARGET)'
+
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = $(PACKAGE)-$(VERSION)
@@ -60,17 +71,6 @@ $(DISTDIR): $(DISTCONTENTS)
 	mkdir -p $@
 	ln -f $(DISTCONTENTS) $@
 
-BINDIR = @BINDIR@
-install: $(BINDIR) $(TARGET)
-	$(INSTALL_PROGRAM) -c $(TARGET) '$(BINDIR)/$(TARGET)'
-install-strip: $(BINDIR) $(TARGET)
-	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(BINDIR)/$(TARGET)'
-installdirs: $(BINDIR)
-$(BINDIR):
-	$(INSTALL_PROGRAM) -d $@
-uninstall:
-	rm -f '$(BINDIR)/$(TARGET)'
-
 # ctags conforms to POSIX, but etags and cscope do not.
 tags: $(SOURCES)
 	ctags $(SOURCES)
@@ -85,14 +85,13 @@ mostlyclean:
 clean: mostlyclean
 	rm -rf $(TARGET) $(DISTS)
 distclean: clean
-	rm -rf Makefile config.log config.h version.h
+	rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
 	@$(MAKE) distclean
-	rm -rf tags TAGS cscope.out
 
-.PHONY: dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all install install-strip installdirs uninstall cscope mostlyclean clean distclean maintainer-clean
+.PHONY: all install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
 
 # Dependencies
 yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h version.h
