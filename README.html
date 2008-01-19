@@ -1,6 +1,6 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"> 
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Yash 1.0 説明書</title>
+<title>Yash 1.2 説明書</title>
 
 <h1>Yash: yet another shell</h1>
 
@@ -10,8 +10,8 @@
 シェルを目指して作ったものではない。機能は少なくシェルスクリプトすら未対応で、
 バグも多いと思われる。しかし<q>シェルのソースを見てみたいが bash
 のソースは複雑過ぎて読めない</q>というような人にとっては参考になるかもしれない。
-<p>不具合の報告や機能改善の提案などは一応受け付けるが、期待しないこと。
-<strong>筆者はこのプログラムの動作に関して保証をしないし、
+<p>このシェルは POSIX.1-2001 準拠シェルとなることを目指して開発中である。
+<p><strong>筆者はこのプログラムの動作に関して保証をしないし、
 一切責任をとらない。もし使いたいのであればそれを承知の上で
 すべて自己責任で使うこと。</strong>
 <p>このプログラムは <a href="http://www.gnu.org/licenses/gpl.html">GNU General
@@ -20,25 +20,9 @@ Public License</a> (Version 2) の元で自由に再配布・変更などがで�
 <p>なお、yash という名前のシェルは他にも存在すると思われるが、特に関係はない。
 
 <h2 id=requirements>要件</h2>
-<p>プログラムの中核部分は多くの Unix システムに共通のコードであるが、
-付随的機能の実装に Linux 特有の機能を使用している。従って、このシェルを
-コンパイル・実行できるのは Linux だけだろう。
-<p>このプログラムをコンパイル・実行するには以下のものが必要である:
-<ul>
-	<li>Linux 2.6.16 以降
-	<li>GNU make
-	<li>GNU Complier Collection (GCC)
-	<li>GNU Readline Library
-</ul>
-
-<h2 id=compilation>コンパイル</h2>
-<p>yash をコンパイルするには単に make を実行するだけである。
-添付の Makefile には install ルールは定義していないので、
-もしインストールする場合は /usr/local/bin 辺りに手動でコピーすること。
-<p>Readline ライブラリのリンクに関するエラーが出る場合は、Makefile の LDFLAGS
-変数の設定で -ltermcap を -lncurses や -lcurses に変えてやってみると
-うまくゆくかもしれない。環境によっては -ltermcap
-がなくてもうまくいくかもしれない。
+<p>このシェルは任意の POSIX.1-2001 準拠システムでビルド・実行できるはずである。
+ビルド・インストールのしかたの詳細は <a href=INSTALL>INSTALL</a>
+ファイルを参照の事。
 
 <h2 id=firststep>基本的な動作</h2>
 <p>プログラムを引数なしで起動すると、端末から一行ずつコマンドを読み取って

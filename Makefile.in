@@ -1,0 +1,90 @@
+# Makefile for yash: yet another shell
+# © 2007-2008 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.POSIX:
+
+CC = @CC@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+SOURCES = alias.c alias.h builtin.c builtin.h builtin_job.c builtin_var.c common.h exec.c exec.h expand.c expand.h lineinput.c lineinput.h parser.c parser.h path.c path.h sig.c sig.h util.c util.h variable.c variable.h yash.c yash.h
+OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o path.o builtin.o builtin_job.o builtin_var.o alias.o variable.o
+TARGET = @TARGET@
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+
+PACKAGE = @PACKAGE@
+VERSION = @VERSION@
+DISTDIR = $(PACKAGE)-$(VERSION)
+DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in install-sh
+dist: $(DISTDIR).tar.gz
+$(DISTDIR).tar.gz: $(DISTDIR)
+	tar -c $(DISTDIR) | gzip > $@
+	rm -rf $(DISTDIR)
+$(DISTDIR): $(DISTCONTENTS)
+	mkdir -p $@
+	ln -f $(DISTCONTENTS) $@
+
+BINDIR = @BINDIR@
+install: $(BINDIR) $(TARGET)
+	$(INSTALL_PROGRAM) -c $(TARGET) '$(BINDIR)/$(TARGET)'
+install-strip: $(BINDIR) $(TARGET)
+	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(BINDIR)/$(TARGET)'
+installdirs: $(BINDIR)
+$(BINDIR):
+	$(INSTALL_PROGRAM) -d $@
+uninstall:
+	rm -f '$(BINDIR)/$(TARGET)'
+
+# ctags conforms to POSIX, but etags and cscope do not.
+tags: $(SOURCES)
+	ctags $(SOURCES)
+TAGS: $(SOURCES)
+	etags $(SOURCES)
+cscope: cscope.out
+cscope.out:
+	cscope -b
+
+mostlyclean:
+	rm -rf $(OBJS) $(DISTDIR).tar.gz
+clean: mostlyclean
+	rm -rf $(TARGET) $(DISTDIR)
+distclean: clean
+	rm -rf Makefile config.log config.h version.h
+maintainer-clean:
+	@echo 'This command is intended for maintainers to use;'
+	@echo 'it deletes files that may need special tools to rebuild.'
+	@$(MAKE) distclean
+	rm -rf tags TAGS cscope.out
+
+.PHONY: dist install install-strip installdirs uninstall cscope mostlyclean clean distclean maintainer-clean
+
+# Dependencies
+yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h version.h
+util.o: yash.h util.h
+sig.o: util.h sig.h lineinput.h exec.h
+lineinput.o: yash.h util.h lineinput.h exec.h path.h builtin.h alias.h variable.h version.h
+parser.o: yash.h util.h parser.h alias.h variable.h
+expand.o: yash.h util.h parser.h expand.h exec.h path.h variable.h
+exec.o: yash.h util.h sig.h expand.h exec.h path.h builtin.h variable.h
+path.o: yash.h util.h lineinput.h parser.h path.h variable.h
+builtin.o: yash.h util.h sig.h lineinput.h expand.h exec.h path.h builtin.h alias.h variable.h
+builtin_job.o: yash.h util.h sig.h exec.h path.h builtin.h variable.h
+builtin_var.o: util.h builtin.h variable.h
+alias.o: yash.h util.h alias.h
+variable.o: yash.h util.h expand.h exec.h path.h variable.h

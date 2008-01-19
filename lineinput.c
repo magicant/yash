@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define  _POSIX_C_SOURCE 200112L
+#include "common.h"
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -30,8 +30,13 @@
 #include <time.h>
 #include <unistd.h>
 #ifdef USE_READLINE
-# include <readline/readline.h>
-# include <readline/history.h>
+# ifdef HAVE_LIBREADLINE
+#  include <readline/readline.h>
+#  include <readline/history.h>
+# else
+#  include "readline.h"
+#  include "history.h"
+# endif
 #endif
 #include <sys/select.h>
 #include <sys/stat.h>
@@ -43,6 +48,7 @@
 #include "builtin.h"
 #include "alias.h"
 #include "variable.h"
+#include "version.h"
 #include <assert.h>
 
 
@@ -550,7 +556,7 @@ static char *expand_prompt(const char *s)
 				}
 				break;
 			case 'v':
-				sb_append(&result, YASH_VERSION);
+				sb_append(&result, PACKAGE_VERSION);
 				break;
 			case 'w':
 				{

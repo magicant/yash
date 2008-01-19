@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define  _POSIX_C_SOURCE 200112L
+#include "common.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
@@ -35,6 +35,7 @@
 #include "builtin.h"
 #include "alias.h"
 #include "variable.h"
+#include "version.h"
 #include <assert.h>
 
 
@@ -436,9 +437,9 @@ void print_help(void)
 
 void print_version(void)
 {
-	printf("Yet another shell, version " YASH_VERSION
+	printf("Yet another shell, version " PACKAGE_VERSION
 			" (compiled " __DATE__ " " __TIME__ ")\n"
-			YASH_COPYRIGHT "\n");
+			PACKAGE_COPYRIGHT "\n");
 }
 
 /* 終了前の手続きを行って、終了する。*/

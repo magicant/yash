@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define  _POSIX_C_SOURCE 200112L
+#include "common.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -27,7 +27,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #ifdef USE_READLINE
-# include <readline/history.h>
+# ifdef HAVE_LIBREADLINE
+#  include <readline/history.h>
+# else
+#  include "history.h"
+# endif
 #endif
 #include "yash.h"
 #include "util.h"
