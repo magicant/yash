@@ -886,9 +886,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		int fd, flags;
 
 		/* rd_file を展開する */
-		exp = is_interactive
-			? expand_single(r->rd_file)
-			: unescape(expand_word(r->rd_file, false));
+		exp = expand_single(r->rd_file, is_interactive);
 		if (!exp)
 			goto returnfalse;
 
@@ -1039,10 +1037,12 @@ static void clear_save_redirect(struct save_redirect *save)
 	fd_set leave;  /* 残しておく FD の集合 */
 	FD_ZERO(&leave);
 	while (save) {
-		if (!FD_ISSET(save->sr_copyfd, &leave)) {
-			if (close(save->sr_copyfd) < 0 && errno != EBADF)
-				xerror(0, errno, "closing copied file descriptor %d",
-						save->sr_copyfd);
+		if (save->sr_copyfd >= 0) {
+			if (!FD_ISSET(save->sr_copyfd, &leave)) {
+				if (close(save->sr_copyfd) < 0 && errno != EBADF)
+					xerror(0, errno, "closing copied file descriptor %d",
+							save->sr_copyfd);
+			}
 		}
 		/* leave には「生きている」FD のみを入れられる。 */
 		if (fcntl(save->sr_origfd, F_GETFD) >= 0)

@@ -28,6 +28,9 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 
+test tests check: $(TARGET)
+	cd tests && $(SHELL) ./run-all.sh
+
 BINDIR = @BINDIR@
 install: $(BINDIR) $(TARGET)
 	$(INSTALL_PROGRAM) -c $(TARGET) '$(BINDIR)/$(TARGET)'
@@ -91,7 +94,7 @@ maintainer-clean:
 	@echo 'it deletes files that may need special tools to rebuild.'
 	@$(MAKE) distclean
 
-.PHONY: all install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
+.PHONY: all test tests check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
 
 # Dependencies
 yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h version.h

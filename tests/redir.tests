@@ -1,0 +1,65 @@
+tmp=/tmp/yash-redir-test
+
+echo abc > ${tmp}1
+cat ${tmp}1
+
+echo def >> ${tmp}1
+cat < ${tmp}1
+
+rm -f ${tmp}1
+echo "Point 1"
+
+# should be an error
+wp="a b"
+cat < $wp
+echo "Point 2"
+
+exec 3> ${tmp}2
+exec 4> ${tmp}3
+echo 123 1>&3
+echo 456 1>&4
+cat ${tmp}2 ${tmp}3
+rm -f ${tmp}2 ${tmp}3
+echo "Point 3"
+
+exec 9>&-
+echo "Point 4"
+
+exec 5<>${tmp}4
+echo 789 >&5
+cat <&5
+echo "Point 5"
+cat ${tmp}4
+exec 5<&-
+rm -f ${tmp}4
+echo "Point 6"
+
+## various forms of null redirection
+#test1 () {
+#	if [ -f "$1" ]
+#	then
+#		rm -f "$1"
+#	else
+#		echo "$1" not found
+#	fi
+#}
+#
+#> /tmp/yash-null-redir-1
+#test1 /tmp/yash-null-redir-1
+#
+#unset var
+#$var > /tmp/yash-null-redir-2
+#test1 /tmp/yash-null-redir-2
+#
+#( > /tmp/yash-null-redir-3 )
+#test1 /tmp/yash-null-redir-3
+#
+#> /tmp/yash-null-redir-4 &
+#wait
+#test1 /tmp/yash-null-redir-4
+#
+## async command get /dev/null as stdin
+#cat > /tmp/yash-null-redir-5 &
+#wait
+#test1 /tmp/yash-null-redir-5
+

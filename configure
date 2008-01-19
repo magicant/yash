@@ -228,7 +228,7 @@ CFLAGS="${CFLAGS-${cflags}} ${CADDS}"
 LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS} ${LIBS}"
 PACKAGE="${package}"
 VERSION="${version}"
-INSTALL_PROGRAM="${INSTALL_PROGRAM-./install-sh}"
+INSTALL_PROGRAM="${INSTALL_PROGRAM-sh ./install-sh}"
 PREFIX="${prefix-/usr/local}"
 EPREFIX="${eprefix-${PREFIX}}"
 if [ x"${PREFIX}" = x"/" ]; then PREFIX=""; fi

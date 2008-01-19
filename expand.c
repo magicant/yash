@@ -84,7 +84,7 @@ static inline bool append_maybe_splitting(
 	__attribute__((nonnull(2)));
 static char **expand_word_splitting(const char *s)
 	__attribute__((nonnull,malloc));
-static bool expand_arg(const char *s, struct plist *argv)
+static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
 	__attribute__((nonnull));
 static bool expand_brace(char *s, struct plist *result)
 	__attribute__((nonnull));
@@ -162,7 +162,7 @@ bool expand_line(char *const *args, int *argc, char ***argv)
 	if (!args) goto end;
 
 	while (ok && *args) {
-		ok = expand_arg(*args, &alist);
+		ok = expand_arg(*args, &alist, true);
 		args++;
 	}
 
@@ -172,15 +172,16 @@ end:
 	return ok;
 }
 
-/* 一つの引数に対して各種展開を行う。
+/* 一つのフィールドに対してチルダ展開・パラメータ/数式展開・コマンド置換・
+ * 引用符除去を行う。pathexp が true ならパス名展開も行う。
  * 成功すると展開結果を新しく malloc した文字列として返す。エラーがあったら
  * (stderr に出力して) NULL を返す。結果が単語分割で複数 or 0 個になった場合も
  * エラーである。 */
-char *expand_single(const char *arg)
+char *expand_single(const char *arg, bool pathexp)
 {
 	struct plist alist;
 	pl_init(&alist);
-	if (!expand_arg(arg, &alist)) {
+	if (!expand_arg(arg, &alist, pathexp)) {
 		recfree(pl_toary(&alist), free);
 		return NULL;
 	}
@@ -243,8 +244,9 @@ static char **expand_word_splitting(const char *s)
  * 一つの引数が単語分割によって複数の単語に分かれることがあるので、argv
  * に加わる要素は一つとは限らない。(分割結果が 0 個になることもある)
  * 成功すると true を、失敗すると false を返す。失敗時はエラーを出力する。
- * 失敗しても途中結果が argv に追加されること場合もある。 */
-static bool expand_arg(const char *s, struct plist *argv)
+ * 失敗しても途中結果が argv に追加されること場合もある。
+ * pathexp: false ならパス名展開を飛ばす。 */
+static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
 {
 	struct plist temp1, temp2;
 	bool ok = true;
@@ -269,13 +271,15 @@ static bool expand_arg(const char *s, struct plist *argv)
 	for (size_t i = 0; ok && i < temp2.length; i++) { /* そしてパラメータ展開 */
 		ok = expand_subst(temp2.contents[i], &temp1, true);
 	}
-	pl_clear(&temp2);
-
-	/* 最後に glob */
-	ok &= do_glob((char **) temp1.contents, argv);
-
-	pl_destroy(&temp1);
 	pl_destroy(&temp2);
+
+	if (pathexp) {
+		/* 最後に glob */
+		ok &= do_glob((char **) temp1.contents, argv);
+	} else {
+		pl_anappend(argv, temp1.contents, temp1.length);
+	}
+	pl_destroy(&temp1);
 	return ok;
 }
 

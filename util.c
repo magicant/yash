@@ -839,7 +839,7 @@ void pl_ainsert(struct plist *list, size_t i, void *const *ps)
 	pl_aninsert(list, i, ps, parylen(ps));
 }
 
-/* ポインタリストの末尾に、配列 *ps の最初の n 個の要素を挿入する。
+/* ポインタリストの末尾に、配列 *ps の要素を挿入する。
  * 配列 *ps は、NULL 要素終端でなければならない。
  * ps は list->contents の一部であってはならない。 */
 void pl_aappend(struct plist *list, void *const *ps)

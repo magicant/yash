@@ -25,7 +25,7 @@
 
 bool expand_line(char *const *args, int *argc, char ***argv)
 	__attribute__((nonnull(2,3)));
-char *expand_single(const char *arg)
+char *expand_single(const char *arg, bool pathexp)
 	__attribute__((nonnull));
 char *expand_word(const char *s, bool multitilde)
 	__attribute__((nonnull));
