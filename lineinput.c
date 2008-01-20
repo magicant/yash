@@ -383,12 +383,11 @@ yash_readline_start:
 				free(eline);
 				goto yash_readline_start;
 		}
-	} else {
+	} else
 #endif /* USE_READLINE */
+	{
 		return line;
-#ifdef USE_READLINE
 	}
-#endif /* USE_READLINE */
 }
 
 #ifdef USE_READLINE
