@@ -280,7 +280,7 @@ void xerror(int status, int errno_, const char *restrict format, ...)
 		va_end(ap);
 	}
 	if (errno_)
-		fprintf(stderr, ": %s", strerror(errno_));
+		fprintf(stderr, format ? ": %s" : "%s", strerror(errno_));
 	if (!format && !errno_)
 		fputs("unknown error", stderr);
 	fputc('\n', stderr);

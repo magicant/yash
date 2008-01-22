@@ -1,4 +1,4 @@
-# Makefile for yash: yet another shell
+# Makefile.in for yash: yet another shell
 # © 2007-2008 magicant
 #
 # This program is free software: you can redistribute it and/or modify
@@ -80,7 +80,7 @@ tags: $(SOURCES)
 TAGS: $(SOURCES)
 	etags $(SOURCES)
 cscope: cscope.out
-cscope.out:
+cscope.out: $(SOURCES)
 	cscope -b
 
 mostlyclean:

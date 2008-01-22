@@ -10,7 +10,10 @@ Yash のビルドとインストールの方法
 
   3. `make' を起動して yash をビルドする。
 
-  4. `make install' を実行して yash をインストールする。
+  4. `make test' を起動して、ビルドした yash が正しく動作するかチェックする。
+     (このチェックは飛ばしてもよい)
+
+  5. `make install' を実行して yash をインストールする。
      デフォルトのインストール先は /usr/local/bin/yash である。
 
 configure は、GCC コンパイラが利用可能ならそれを用いる。GCC が使えなければ

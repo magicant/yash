@@ -960,7 +960,7 @@ static char *get_comsub_code_p(char **src)
 	assert(*s == '(');
 	s++;
 	init = s;
-	while (*s) {
+	while (*s) {  // TODO
 		s = skip_with_quote(s, "()");
 		switch (*s) {
 			case ')':

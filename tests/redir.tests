@@ -6,6 +6,8 @@ cat ${tmp}1
 echo def >> ${tmp}1
 cat < ${tmp}1
 
+1>&1 echo ghi
+
 rm -f ${tmp}1
 echo "Point 1"
 
