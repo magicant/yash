@@ -43,8 +43,9 @@ static REDIR *tryparse_redir(void);
 static void skip_with_quote_i(const char *delim, bool singquote);
 static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s);
 static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict pl);
-static void print_processes(struct strbuf *restrict b, PROCESS *restrict p);
+static void print_pipeline(struct strbuf *restrict b, PIPELINE *restrict p);
 static void print_process(struct strbuf *restrict b, PROCESS *restrict p);
+static void redirsfree(REDIR *r);
 
 static struct parse_info *i_info;
 static bool i_raw, i_finish, i_error;
@@ -612,7 +613,7 @@ char *skip_without_quote(const char *restrict s, const char *restrict delim)
 	return (char *) s;
 }
 
-/* 文中のパイプラインを元に STATEMENT の s_name を生成する。
+/* 文中の各パイプラインを元に STATEMENT の s_name を生成する。
  * 戻り値: 新しく malloc した p の表示名。
  *         表示名には '&' も ';' も含まれない。 */
 char *make_statement_name(PIPELINE *p)
@@ -624,19 +625,14 @@ char *make_statement_name(PIPELINE *p)
 	return sb_tostr(&buf);
 }
 
-/* パイプラインに含まれるプロセスを元に PIPELINE の表示名を生成する。
- * 戻り値: 新しく malloc した p の表示名。これには neg や loop に応じて
- *         先頭に "!"、末尾に "|" が付く。 */
-char *make_pipeline_name(PROCESS *p, bool neg, bool loop)
+/* 一つのパイプラインの表示名を生成する。
+ * 戻り値: 新しく malloc した p の表示名。 */
+char *make_pipeline_name(PIPELINE *p)
 {
 	struct strbuf buf;
 
 	sb_init(&buf);
-	if (neg)
-		sb_append(&buf, "! ");
-	print_processes(&buf, p);
-	if (loop)
-		sb_append(&buf, " |");
+	print_pipeline(&buf, p);
 	return sb_tostr(&buf);
 }
 
@@ -656,24 +652,25 @@ static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s)
 static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict p)
 {
 	while (p) {
-		if (p->pl_neg)
-			sb_append(b, "! ");
-		print_processes(b, p->pl_proc);
-		if (p->pl_loop)
-			sb_append(b, " |");
+		print_pipeline(b, p);
 		if (p->next)
 			sb_append(b, p->pl_next_cond ? " && " : " || ");
 		p = p->next;
 	}
 }
 
-/* 各プロセスを文字列に変換して文字列バッファに追加する。 */
-static void print_processes(struct strbuf *restrict b, PROCESS *restrict p)
+/* 一つのパイプラインの内容を文字列に変換して文字列バッファに追加する。 */
+static void print_pipeline(struct strbuf *restrict b, PIPELINE *restrict p)
 {
-	while (p) {
-		print_process(b, p);
-		p = p->next;
-		if (p)
+	PROCESS *pr = p->pl_proc;
+	if (p->pl_neg)
+		sb_append(b, "! ");
+	if (p->pl_loop)
+		sb_append(b, "| ");
+	while (pr) {
+		print_process(b, pr);
+		pr = pr->next;
+		if (pr)
 			sb_append(b, " | ");
 	}
 }
@@ -741,7 +738,7 @@ static void print_process(struct strbuf *restrict b, PROCESS *restrict p)
 	}
 }
 
-void redirsfree(REDIR *r)
+static void redirsfree(REDIR *r)
 {
 	while (r) {
 		free(r->rd_file);

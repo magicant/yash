@@ -29,6 +29,7 @@
 #include "yash.h"
 #include "util.h"
 #include "sig.h"
+#include "parser.h"
 #include "expand.h"
 #include "exec.h"
 #include "path.h"
@@ -66,8 +67,7 @@ static inline int xdup2(int oldfd, int newfd);
 static void exec_pipelines(PIPELINE *pipelines);
 static void exec_pipelines_and_exit(PIPELINE *pipelines)
 	__attribute__((noreturn));
-static void exec_processes(PROCESS *processes, const char *jobname,
-		bool neg_status, bool pipe_loop, bool background);
+static void exec_processes(PIPELINE *pl, bool background, char *jobname);
 static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
@@ -199,10 +199,9 @@ unsigned undone_job_count(void)
 static int add_job(void)
 {
 	size_t jobnumber;
-	JOB *job;
+	JOB *job = get_job(0);
 
-	if (!(job = get_job(0)))
-		return -1;
+	assert(job);
 
 	/* リストの空いているインデックスを探す */
 	for (jobnumber = 1; jobnumber < joblist.length; jobnumber++)
@@ -525,26 +524,39 @@ static inline int xdup2(int oldfd, int newfd)
 void exec_statements(STATEMENT *s)
 {
 	while (s) {
-		if (!s->s_bg) {
-			exec_pipelines(s->s_pipeline);
-		} else {
-			PIPELINE *p = s->s_pipeline;
-			if (p && !p->next) {
-				char *name = make_pipeline_name(
-						p->pl_proc, p->pl_neg, p->pl_loop);
-				exec_processes(p->pl_proc, name, p->pl_neg, p->pl_loop, true);
-				free(name);
+		PIPELINE *p = s->s_pipeline;
+		if (p) {
+			if (!s->s_bg) {
+				/* フォアグラウンド */
+				exec_pipelines(p);
 			} else {
-				PROCESS proc = {
-					.next = NULL,
-					.p_type = PT_X_PIPE,
-					.p_assigns = NULL,
-					.p_subcmds = s,
-					.p_redirs = NULL,
-				};
-				char *name = make_statement_name(p);
-				exec_processes(&proc, name, false, false, true);
-				free(name);
+				/* バックグラウンド */
+				if (!p->next) {
+					/* パイプが一つしかない場合 */
+					exec_processes(p, true, NULL);
+				} else {
+					/* パイプが複数ある場合 (&& か || がある場合) */
+					STATEMENT s2 = {
+						.next = NULL,
+						.s_pipeline = p,
+						.s_bg = false,
+					};
+					PROCESS proc = {
+						.next = NULL,
+						.p_type = PT_GROUP,
+						.p_assigns = NULL,
+						.p_subcmds = &s2,
+						.p_redirs = NULL,
+					};
+					PIPELINE pipe = {
+						.next = NULL,
+						.pl_proc = &proc,
+						.pl_neg = false,
+						.pl_loop = false,
+					};
+					char *name = make_statement_name(p);
+					exec_processes(&pipe, true, name);
+				}
 			}
 		}
 		s = s->next;
@@ -565,9 +577,7 @@ void exec_statements_and_exit(STATEMENT *s)
 static void exec_pipelines(PIPELINE *p)
 {
 	while (p) {
-		char *name = make_pipeline_name(p->pl_proc, p->pl_neg, p->pl_loop);
-		exec_processes(p->pl_proc, name, p->pl_neg, p->pl_loop, false);
-		free(name);
+		exec_processes(p, false, NULL);
 		if (!p->pl_next_cond == !laststatus)
 			break;
 		p = p->next;
@@ -577,6 +587,7 @@ static void exec_pipelines(PIPELINE *p)
 /* 一つの文の各パイプラインを実行し、そのまま終了する。 */
 static void exec_pipelines_and_exit(PIPELINE *p)
 {
+	/* コマンドが一つだけならこのプロセスで直接実行する。 */
 	if (p && !p->next && !p->pl_neg && !p->pl_loop) {
 		PROCESS *proc = p->pl_proc;
 		if (!proc->next) switch (proc->p_type) {
@@ -586,8 +597,6 @@ static void exec_pipelines_and_exit(PIPELINE *p)
 				assert(false);
 			case PT_GROUP:  case PT_SUBSHELL:
 				exec_statements_and_exit(proc->p_subcmds);
-			case PT_X_PIPE:
-				exec_pipelines_and_exit(proc->p_subcmds->s_pipeline);
 		}
 	}
 
@@ -596,47 +605,51 @@ static void exec_pipelines_and_exit(PIPELINE *p)
 }
 
 /* 一つのパイプラインを実行し、wait する。
- * name はパイプラインのジョブ名。
- * neg ならばパイプラインの終了コードを反転。
- * loop ならば環状のパイプラインを作成。
+ * pl:      実行するパイプライン
+ * jobname: パイプラインのジョブ名。この関数内で free する。NULL を指定すると
+ *          この関数内でジョブ名を作成する。
  * bg ならばバックグラウンドでジョブを実行。
  * すなわち wait せずに新しいジョブを追加して戻る。
  * bg でなければフォアグラウンドでジョブを実行。
  * すなわち wait し、停止した場合のみ新しいジョブを追加して戻る。 */
-static void exec_processes(
-		PROCESS *p, const char *name, bool neg, bool loop, bool bg)
+static void exec_processes(PIPELINE *pl, bool bg, char *jobname)
 {
 	size_t pcount;
 	pid_t pgid;
 	struct jproc *ps;
 	PIPES pipes;
+	PROCESS *p = pl->pl_proc;
 
 	/* パイプライン内のプロセス数を数える */
 	pcount = 0;
 	for (PROCESS *pp = p; pp; pcount++, pp = pp->next);
 
 	/* 必要な数のパイプを作成する */
-	pipes.p_count = loop ? pcount : pcount - 1;
+	pipes.p_count = pl->pl_loop ? pcount : pcount - 1;
 	pipes.p_pipes = create_pipes(pipes.p_count);
 	if (pipes.p_count > 0 && !pipes.p_pipes) {
 		laststatus = 2;
+		free(jobname);
 		return;
 	}
 
 	ps = xmalloc(pcount * sizeof *ps);
 	ps[0].jp_status = JS_RUNNING;
-	pgid = ps[0].jp_pid = exec_single(p, loop ? -1 : 0, 0,
+	pgid = ps[0].jp_pid = exec_single(p, pl->pl_loop ? -1 : 0, 0,
 			bg ? BACKGROUND : FOREGROUND, pipes);
 	ps[0].jp_waitstatus = 0;
-	if (pgid >= 0)
-		for (size_t i = 1; i < pcount; i++)
+	if (pgid >= 0) {
+		for (size_t i = 1; i < pcount; i++) {
+			p = p->next;
 			ps[i] = (struct jproc) {
-				.jp_pid = exec_single(p = p->next, i, pgid,
+				.jp_pid = exec_single(p, i, pgid,
 						bg ? BACKGROUND : FOREGROUND, pipes),
 				.jp_status = JS_RUNNING,
 			};
-	else
+		}
+	} else {
 		laststatus = EXIT_FAILURE;
+	}
 	close_pipes(pipes);
 	if (pgid > 0) {
 		JOB *job = xmalloc(sizeof *job);
@@ -649,7 +662,7 @@ static void exec_processes(
 			.j_procc = pcount,
 			.j_procv = ps,
 			.j_flags = 0,
-			.j_name = xstrdup(name),
+			.j_name = NULL,
 		};
 		if (!bg) {
 			do {
@@ -669,19 +682,23 @@ static void exec_processes(
 						fprintf(stderr, "%s\n", xstrsignal(sig));
 				}
 			}
-			if (neg)
+			if (pl->pl_neg)
 				laststatus = !laststatus;
-			if (job->j_status == JS_DONE)
+			if (job->j_status == JS_DONE) {
 				remove_job(0);
-			else
+			} else {
+				job->j_name = jobname ? jobname : make_pipeline_name(pl);
 				add_job();
+			}
 		} else {
 			laststatus = EXIT_SUCCESS;
 			last_bg_pid = ps[pcount - 1].jp_pid;
+			job->j_name = jobname ? jobname : make_pipeline_name(pl);
 			add_job();
 		}
 	} else {
 		free(ps);
+		free(jobname);
 	}
 	assert(!joblist.contents[0]);
 }
@@ -865,8 +882,6 @@ directexec:
 			xerror(EXIT_NOEXEC, errno, "%s", argv[0]);
 		case PT_GROUP:  case PT_SUBSHELL:
 			exec_statements_and_exit(p->p_subcmds);
-		case PT_X_PIPE:
-			exec_pipelines_and_exit(p->p_subcmds->s_pipeline);
 	}
 	assert(false);  /* ここには来ないはず */
 }

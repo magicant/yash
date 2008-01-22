@@ -427,6 +427,8 @@ bool assign_variables(char **assigns, bool temp, bool export)
 	assert(!temp || !export);
 
 	char *assign;
+	if (!assigns)
+		return true;
 	while ((assign = *assigns)) {
 		//XXX 配列の代入は未対応
 		size_t namelen = strcspn(assign, "=");

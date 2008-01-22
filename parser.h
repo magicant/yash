@@ -57,7 +57,6 @@ struct x_process {
 		PT_NORMAL,    /* 普通のコマンド */
 		PT_GROUP,     /* 現在のシェルで実行するコマンド群: { ... } */
 		PT_SUBSHELL,  /* サブシェルで実行するコマンド群: ( ... ) */
-		PT_X_PIPE,    /* サブシェル内部で仕様する特殊な値 */
 	}              p_type;
 	char         **p_assigns;  /* 変数代入 */
 	union {
@@ -101,8 +100,7 @@ char *skip_with_quote(const char *restrict s, const char *restrict delim)
 char *skip_without_quote(const char *restrict s, const char *restrict delim)
 	__attribute__((nonnull));
 char *make_statement_name(PIPELINE *p);
-char *make_pipeline_name(PROCESS *processes, bool neg, bool loop);
-void redirsfree(REDIR *redirs);
+char *make_pipeline_name(PIPELINE *p);
 void procsfree(PROCESS *processes);
 void pipesfree(PIPELINE *pipelines);
 void statementsfree(STATEMENT *statements);
