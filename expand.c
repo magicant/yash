@@ -277,7 +277,9 @@ static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
 		/* 最後に glob */
 		ok &= do_glob((char **) temp1.contents, argv);
 	} else {
-		pl_anappend(argv, temp1.contents, temp1.length);
+		/* glob せずに引用符除去 */
+		for (size_t i = 0; i < temp1.length; i++)
+			pl_append(argv, unescape(temp1.contents[i]));
 	}
 	pl_destroy(&temp1);
 	return ok;

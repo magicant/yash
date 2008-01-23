@@ -327,8 +327,10 @@ void wait_for_signal(void)
 		handle_signals();
 		if (received)
 			break;
-		if (sigsuspend(&ss) < 0 && errno != EINTR)
+		if (sigsuspend(&ss) < 0 && errno != EINTR) {
 			xerror(0, errno, "sigsuspend");
+			break;
+		}
 	}
 
 	if (sigprocmask(SIG_SETMASK, &oldss, NULL) < 0)

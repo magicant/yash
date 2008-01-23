@@ -221,6 +221,7 @@ char *yash_fgetline(int ptype __attribute__((unused)), void *info)
 	}
 	sb_init(&buf);
 	sb_nappend(&buf, bufstart, finfo->buflen);
+	finfo->bufoff = finfo->buflen = 0;
 	for (;;) {
 		handle_signals();
 		FD_ZERO(&fds);
@@ -229,6 +230,7 @@ char *yash_fgetline(int ptype __attribute__((unused)), void *info)
 			if (errno == EINTR) {
 				continue;
 			} else {
+				sb_destroy(&buf);
 				result = NULL;
 				goto end;
 			}
@@ -238,19 +240,23 @@ char *yash_fgetline(int ptype __attribute__((unused)), void *info)
 			if (r < 0) {
 				if (errno == EINTR) {
 					continue;
-				} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					if (unset_nonblocking(finfo->fd)) {
-						continue;
-					} else {
-						result = NULL;
-						goto end;
-					}
+				} else if ((errno == EAGAIN || errno == EWOULDBLOCK)
+						&& unset_nonblocking(finfo->fd)) {
+					continue;
 				} else {
+					sb_destroy(&buf);
 					result = NULL;
 					goto end;
 				}
 			} else if (r == 0) {
-				result = NULL;
+				/* ファイルの終端に達した場合、バッファに何文字か入っていれば
+				 * それを返し、バッファが空なら NULL を返す。 */
+				if (buf.length) {
+					result = sb_tostr(&buf);
+				} else {
+					sb_destroy(&buf);
+					result = NULL;
+				}
 				goto end;
 			} else {
 				end = memchr(finfo->buffer, '\n', r);

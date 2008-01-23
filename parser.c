@@ -35,13 +35,14 @@
 static bool read_next_line(bool insertnl);
 static void serror(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
-static STATEMENT *parse_statements(char stop);
+static STATEMENT *parse_statements(const char *expect);
 static PIPELINE *parse_pipelines();
 static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
 static REDIR *tryparse_redir(void);
 static void skip_with_quote_i(const char *delim, bool singquote);
 static bool is_token_at(const char *token, size_t index);
+static bool is_closing_token_at(size_t index);
 static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s);
 static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict pl);
 static void print_pipeline(struct strbuf *restrict b, PIPELINE *restrict p);
@@ -84,7 +85,7 @@ int read_and_parse(
 	sb_append(&i_src, src);
 	free(src);
 
-	STATEMENT *statements = parse_statements('\0');
+	STATEMENT *statements = parse_statements(NULL);
 	if (*fromi(i_index))
 		serror("invalid character: `%c'", *fromi(i_index));
 	sb_destroy(&i_src);
@@ -141,28 +142,33 @@ static void serror(const char *format, ...)
 }
 
 /* 複数の文を解析する。
- * stop:   この文字が現れるまで解析を続ける。(エラーの場合を除く)
- *         ただし stop = ';' なら ";;" が現れるまで解析を続ける。
+ * expect: NULL なら一行だけ解析する。非 NULL なら ) や } が出るまで解析する。
+ *         予期せぬ EOF が出たときは "expect がない" とメッセージを出す。
  * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
-static STATEMENT *parse_statements(char stop)
+static STATEMENT *parse_statements(const char *expect)
 {
 	STATEMENT *first = NULL, **lastp = &first;
-	char c;
 
 	i_index = toi(skipwhites(fromi(i_index)));
-	while ((c = *fromi(i_index)) != stop
-			&& (stop != ';' || *fromi(i_index + 1) == ';')) {
+	for (;;) {
+		char c = *fromi(i_index);
 		if (c == '\0') {
+			if (!expect)
+				goto end;
 			if (!read_next_line(false)) {
-				serror("missing `%c'", stop);
+				serror("missing `%s'", expect);
 				goto end;
 			}
 			i_index = toi(skipwhites(fromi(i_index)));
 			continue;
 		} else if (c == ';' || c == '&') {
-			serror("unexpected `%c'", c);
+			char cc[2] = { c, '\0' };
+			serror("unexpected `%s'", cc);
 			i_index++;
 			goto end;
+		} else if (expect) {
+			if (is_closing_token_at(i_index))
+				goto end;
 		}
 
 		STATEMENT *temp = xmalloc(sizeof *temp);
@@ -175,13 +181,7 @@ static STATEMENT *parse_statements(char stop)
 			goto end;
 		}
 		switch (*fromi(i_index)) {
-			case ';':
-				if (stop == ';' && *fromi(i_index + 1) == ';') {
-					last = true;
-					goto default_case;
-				}
-				/* falls thru! */
-			case '\n':
+			case ';':  case '\n':
 				temp->s_bg = false;
 				i_index++;
 				break;
@@ -189,7 +189,7 @@ static STATEMENT *parse_statements(char stop)
 				temp->s_bg = true;
 				i_index++;
 				break;
-			default:  default_case:  case '#':
+			default:  case '#':
 				temp->s_bg = false;
 				break;
 		}
@@ -335,7 +335,7 @@ static bool parse_words(PROCESS *p)
 		case '(':
 			i_index++;
 			p->p_type = PT_SUBSHELL;
-			p->p_subcmds = parse_statements(')');
+			p->p_subcmds = parse_statements(")");
 			if (*fromi(i_index) != ')') {
 				result = true;
 				goto end;
@@ -343,26 +343,28 @@ static bool parse_words(PROCESS *p)
 			i_index = toi(skipblanks(fromi(i_index + 1)));
 			subst_alias(&i_src, i_index, true);
 			break;
-		case '{':
-			/* XXX: "{" はそれ自体はトークンではないので、"{abc" のような場合を
-			 * 除外しないといけない。 */
-			i_index++;
-			p->p_type = PT_GROUP;
-			p->p_subcmds = parse_statements('}');
-			if (*fromi(i_index) != '}') {
-				result = true;
-				goto end;
-			}
-			i_index = toi(skipblanks(fromi(i_index + 1)));
-			subst_alias(&i_src, i_index, true);
-			break;
 		case ')':
-		case '}':
 			result = false;
 			goto end;
 		default:
-			p->p_type = PT_NORMAL;
-			break;
+			if (is_token_at("{", i_index)) {
+				i_index++;
+				p->p_type = PT_GROUP;
+				p->p_subcmds = parse_statements("}");
+				if (*fromi(i_index) != '}') {
+					result = true;
+					goto end;
+				}
+				i_index = toi(skipblanks(fromi(i_index + 1)));
+				subst_alias(&i_src, i_index, true);
+				break;
+			} else if (is_token_at("}", i_index)) {
+				result = false;
+				goto end;
+			} else {
+				p->p_type = PT_NORMAL;
+				break;
+			}
 	}
 
 	bool assignment_acceptable = true;
@@ -537,7 +539,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 						i_index = toi(skipwhites(fromi(i_index + 2)));
 						bool saveraw = i_raw;
 						i_raw = true;
-						statementsfree(parse_statements(')'));
+						statementsfree(parse_statements(")"));
 						i_raw = saveraw;
 						if (*fromi(i_index) != ')') {
 							goto end;
@@ -593,6 +595,17 @@ static bool is_token_at(const char *token, size_t index)
 {
 	char *c = matchprefix(fromi(index), token);
 	return c && strchr(TOKENSEPARATOR, *c);
+}
+
+/* i_src の位置 index に ) や } や fi などのブロック終了トークンがあるかどうか
+ * 調べる。 */
+static bool is_closing_token_at(size_t index)
+{
+	return (*(fromi(index)) == ')')
+		|| is_token_at("}", index)
+		|| is_token_at("fi", index)
+		|| is_token_at("done", index)
+		|| is_token_at("esac", index);
 }
 
 /* 引用符などを考慮しつつ、delim 内の文字のどれかが現れるまで飛ばす。

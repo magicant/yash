@@ -83,7 +83,19 @@ int exec_file(const char *path, bool suppresserror)
 	if (fd < 0) {
 		if (!suppresserror)
 			xerror(0, errno, "%s", path);
-		return EXIT_FAILURE;
+		return -1;
+	}
+	/* SHELLFD 以上のファイルディスクリプタで開くことを保証する。 */
+	if (fd < SHELLFD) {
+		int newfd = fcntl(fd, F_DUPFD, SHELLFD);
+		int olderrno = errno;
+		if (close(fd) != 0)
+			xerror(0, errno, "%s", path);
+		if (newfd < 0) {
+			xerror(0, olderrno, "%s", path);
+			return -1;
+		}
+		fd = newfd;
 	}
 
 	struct fgetline_info finfo = {
