@@ -1,5 +1,6 @@
 既知のバグ・未実装機能・その他やるべきことの一覧
 
+hasprefix 廃止
 README.html を本来の README とマニュアルに分離
 パーサを書き直す
 '!' が laststatus に与える影響を厳密に

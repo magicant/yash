@@ -41,6 +41,7 @@ static PROCESS *parse_processes(bool *neg, bool *loop);
 static bool parse_words(PROCESS *process);
 static REDIR *tryparse_redir(void);
 static void skip_with_quote_i(const char *delim, bool singquote);
+static bool is_token_at(const char *token, size_t index);
 static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s);
 static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict pl);
 static void print_pipeline(struct strbuf *restrict b, PIPELINE *restrict p);
@@ -258,13 +259,15 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 {
 	PROCESS *first = NULL, **lastp = &first;
 
-	if (*fromi(i_index) == '!' && strchr(TOKENSEPARATOR, *fromi(i_index + 1))) {
+	if (is_token_at("!", i_index)) {
 		*neg = true;
 		i_index = toi(skipblanks(fromi(i_index + 1)));
 	} else {
 		*neg = false;
 	}
 	if (*fromi(i_index) == '|') {
+		if (posixly_correct)
+			serror("loop pipe not allowed in posix mode");
 		*loop = true;
 		i_index = toi(skipblanks(fromi(i_index + 1)));
 	} else {
@@ -581,6 +584,15 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 	}
 end:
 	enable_alias = saveenablealias;
+}
+
+/* i_src の位置 index に token トークンがあるかどうか調べる。
+ * token: 調べる非演算子トークン
+ * index: i_src 内のインデクス */
+static bool is_token_at(const char *token, size_t index)
+{
+	char *c = matchprefix(fromi(index), token);
+	return c && strchr(TOKENSEPARATOR, *c);
 }
 
 /* 引用符などを考慮しつつ、delim 内の文字のどれかが現れるまで飛ばす。
