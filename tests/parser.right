@@ -4,3 +4,13 @@ abc abc
 Point 1
 pipe
 loop pipe
+Point 2
+true true
+false false
+ok
+0
+Point 3
+block
+another
+block
+parser.tests:41: syntax error: no command after `|'

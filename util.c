@@ -143,13 +143,12 @@ char *skipspaces(const char *s)
  * 最初のトークンの文字のアドレスを返す。 */
 char *skipwhites(const char *s)
 {
-	for (;;) {
-		s = skipspaces(s);
-		if (*s != '#')
-			return (char *) s;
+	s = skipspaces(s);
+	if (*s == '#') {
 		s++;
 		s += strcspn(s, "\n");
 	}
+	return (char *) s;
 }
 
 /* 文字列 s が prefix で始まるなら、文字列 s 内の prefix を飛ばした最初の文字
