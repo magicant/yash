@@ -47,6 +47,8 @@ static void print_pipeline(struct strbuf *restrict b, PIPELINE *restrict p);
 static void print_process(struct strbuf *restrict b, PROCESS *restrict p);
 static void redirsfree(REDIR *r);
 
+#define TOKENSEPARATOR " \t\n;&|<>()"
+
 static struct parse_info *i_info;
 static bool i_raw, i_finish, i_error;
 static struct strbuf i_src;
@@ -137,7 +139,7 @@ static void serror(const char *format, ...)
 	va_end(ap);
 }
 
-/* コマンド入力を解析する。
+/* 複数の文を解析する。
  * stop:   この文字が現れるまで解析を続ける。(エラーの場合を除く)
  *         ただし stop = ';' なら ";;" が現れるまで解析を続ける。
  * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
@@ -178,7 +180,7 @@ static STATEMENT *parse_statements(char stop)
 					goto default_case;
 				}
 				/* falls thru! */
-			case '\n':  case '\r':
+			case '\n':
 				temp->s_bg = false;
 				i_index++;
 				break;
@@ -208,15 +210,15 @@ static PIPELINE *parse_pipelines()
 
 	for (;;) {
 		char c = *fromi(i_index);
-		if (c == '|' || c == '&') {
+		if (c == '&') {
 			serror("unexpected `%c'", c);
 			i_index++;
 			goto end;
 		}
-		if (first) {
+		if (first != NULL) {
 			while (!*fromi(i_index)) {
 				if (!read_next_line(false)) {
-					serror("no command after `&&' or `||'");
+					serror("no command after `%s'", "&&/||");
 					goto end;
 				}
 				i_index = toi(skipwhites(fromi(i_index)));
@@ -224,8 +226,6 @@ static PIPELINE *parse_pipelines()
 		}
 
 		PIPELINE *temp = xmalloc(sizeof *temp);
-		bool last = false;
-
 		temp->next = NULL;
 		temp->pl_proc = parse_processes(&temp->pl_neg, &temp->pl_loop);
 		if (!temp->pl_proc) {
@@ -233,6 +233,8 @@ static PIPELINE *parse_pipelines()
 			i_error = true;
 			goto end;
 		}
+		*lastp = temp;
+		lastp = &temp->next;
 		if (hasprefix(fromi(i_index), "||")) {
 			temp->pl_next_cond = false;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
@@ -240,12 +242,8 @@ static PIPELINE *parse_pipelines()
 			temp->pl_next_cond = true;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
 		} else {
-			last = true;
-		}
-		*lastp = temp;
-		lastp = &temp->next;
-		if (last)
 			goto end;
+		}
 	}
 end:
 	return first;
@@ -260,39 +258,54 @@ static PROCESS *parse_processes(bool *neg, bool *loop)
 {
 	PROCESS *first = NULL, **lastp = &first;
 
-	if (*fromi(i_index) == '!') {
+	if (*fromi(i_index) == '!' && strchr(TOKENSEPARATOR, *fromi(i_index + 1))) {
 		*neg = true;
-		i_index++;
-		i_index = toi(skipblanks(fromi(i_index)));
+		i_index = toi(skipblanks(fromi(i_index + 1)));
 	} else {
 		*neg = false;
 	}
+	if (*fromi(i_index) == '|') {
+		*loop = true;
+		i_index = toi(skipblanks(fromi(i_index + 1)));
+	} else {
+		*loop = false;
+	}
 
-	char c;
-	while ((c = *fromi(i_index))) {
-		if (c == '|' && *fromi(i_index + 1) != '|') {
-			serror("unexpected `%c", c);
+	if (!*fromi(i_index)) {
+		if (*neg || *loop)
+			serror("no command after `%s'", *loop ? "|" : "!");
+		goto end;
+	}
+	for (;;) {
+		if (*fromi(i_index) == '|' && *fromi(i_index + 1) != '|') {
+			serror("unexpected `%s'", "|");
 			i_index++;
 			goto end;
 		}
+		if (first != NULL) {
+			while (!*fromi(i_index)) {
+				if (!read_next_line(false)) {
+					serror("no command after `%s'", "|");
+					goto end;
+				}
+				i_index = toi(skipwhites(fromi(i_index)));
+			}
+		}
 
-		PROCESS *temp = xmalloc(sizeof *temp);
-		*temp = (PROCESS) { .next = NULL, };
-		if (!parse_words(temp)) {
-			procsfree(temp);
+		PROCESS *proc = xmalloc(sizeof *proc);
+		*proc = (PROCESS) { .next = NULL, };
+		if (!parse_words(proc)) {
+			procsfree(proc);
 			goto end;
 		}
+		*lastp = proc;
+		lastp = &proc->next;
 
 		if (*fromi(i_index) == '|' && *fromi(i_index + 1) != '|') {
-			*loop = true;
-			i_index++;
-			i_index = toi(skipblanks(fromi(i_index)));
+			i_index = toi(skipwhites(fromi(i_index + 1)));
 		} else {
-			*loop = false;
+			goto end;
 		}
-
-		*lastp = temp;
-		lastp = &temp->next;
 	}
 end:
 	return first;
@@ -360,7 +373,7 @@ static bool parse_words(PROCESS *p)
 			rlastp = &rd->next;
 		} else {
 			size_t startindex = i_index;
-			skip_with_quote_i(" \t;&|<>()\n\r", true);
+			skip_with_quote_i(TOKENSEPARATOR, true);
 			if (i_index == startindex) break;
 			if (assignment_acceptable) {
 				char *eq = fromi(startindex);
@@ -468,7 +481,7 @@ static REDIR *tryparse_redir(void)
 	start += strspn(start, " \t");
 	i_index = toi(start);
 	subst_alias(&i_src, i_index, true);
-	skip_with_quote_i(" \t;&|()\n\r", true);
+	skip_with_quote_i(TOKENSEPARATOR, true);
 	end = fromi(i_index);
 	if (start == end) {
 		serror("redirect target not specified");

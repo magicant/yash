@@ -188,7 +188,7 @@ static char *exec_source_and_exit_getline(int ptype, void *code) {
 void exec_source_and_exit(const char *code, const char *name)
 {
 	/* 改行を含むコードは一度に解析できないので、普通に exec_source を使う */
-	if (strpbrk(code, "\n\r")) {
+	if (strchr(code, '\n')) {
 		exec_source(code, name);
 		exit(laststatus);
 	}

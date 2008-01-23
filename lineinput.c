@@ -94,7 +94,7 @@ void initialize_readline(void)
 	/* rl_filename_dequoting_function = XXX */
 
 	history_comment_char = '#';
-	history_no_expand_chars = " \t\n\r={}|";
+	history_no_expand_chars = " \t\n={}|";
 	history_quotes_inhibit_expansion = true;
 	history_inhibit_expansion_function = check_inhibit_expansion;
 	stifle_history(history_histsize);
