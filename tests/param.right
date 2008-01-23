@@ -1,0 +1,46 @@
+/tmp/yash-param-test
+ok
+/tmp/yash-param-test
+
+
+ok
+
+ok
+
+Point 1
+/tmp/yash-param-test
+ok
+/tmp/yash-param-test
+
+
+ok
+
+
+ok
+Point 2
+20
+tmp/yash-param-test
+yash-param-test
+/tmp/yash-param
+/tmp/yash
+Point 3
+13
+456-123-123-123-123 123-123-123-123-123
+123-123-123-123-456 123-123-123-123-123
+1-3-1-3-1-3-1-3-1-3
+ok 123-123-123-123-123
+Point 4
+1 2 3
+1 2 3
+1 2  3
+1 2  3
+12  3
+1 2  3
+Point 5
+5
+1
+2
+3
+KILL
+param.tests
+../yash: unset: ok
