@@ -35,7 +35,7 @@
 static bool read_next_line(bool insertnl);
 static void serror(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
-static STATEMENT *parse_statements(const char *expect);
+static STATEMENT *parse_statements(bool oneline);
 static PIPELINE *parse_pipelines();
 static PIPELINE *parse_pipeline(void);
 static PROCESS *parse_process(void);
@@ -85,7 +85,7 @@ int read_and_parse(
 	sb_append(&i_src, src);
 	free(src);
 
-	STATEMENT *statements = parse_statements(NULL);
+	STATEMENT *statements = parse_statements(true);
 	if (*fromi(i_index))
 		serror("invalid character: `%c'", *fromi(i_index));
 	sb_destroy(&i_src);
@@ -142,10 +142,9 @@ static void serror(const char *format, ...)
 }
 
 /* 複数の文を解析する。
- * expect: NULL なら一行だけ解析する。非 NULL なら ) や } が出るまで解析する。
- *         予期せぬ EOF が出たときは "expect がない" とメッセージを出す。
- * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
-static STATEMENT *parse_statements(const char *expect)
+ * oneline: true なら行末まで解析する。false なら ) や } が出るまで解析する。
+ * 戻り値:  成功したらその結果。失敗したら NULL かもしれない。 */
+static STATEMENT *parse_statements(bool oneline)
 {
 	STATEMENT *first = NULL, **lastp = &first;
 
@@ -153,12 +152,10 @@ static STATEMENT *parse_statements(const char *expect)
 	for (;;) {
 		char c = *fromi(i_index);
 		if (c == '\0') {
-			if (!expect)
+			if (oneline)
 				goto end;
-			if (!read_next_line(false)) {
-				serror("missing `%s'", expect);
+			if (!read_next_line(false))
 				goto end;
-			}
 			i_index = toi(skipwhites(fromi(i_index)));
 			continue;
 		} else if (c == ';' || c == '&') {
@@ -334,9 +331,11 @@ static PROCESS *parse_process(void)
 		case '(':
 			i_index++;
 			result->p_type = PT_SUBSHELL;
-			result->p_subcmds = parse_statements(")");
-			if (*fromi(i_index) != ')')
+			result->p_subcmds = parse_statements(false);
+			if (*fromi(i_index) != ')') {
+				serror("missing `%s'", ")");
 				goto returnnull;
+			}
 			i_index = toi(skipblanks(fromi(i_index + 1)));
 			subst_alias(&i_src, i_index, true);
 			break;
@@ -346,9 +345,11 @@ static PROCESS *parse_process(void)
 			if (is_token_at("{", i_index)) {
 				i_index++;
 				result->p_type = PT_GROUP;
-				result->p_subcmds = parse_statements("}");
-				if (*fromi(i_index) != '}')
+				result->p_subcmds = parse_statements(false);
+				if (!is_token_at("}", i_index)) {
+					serror("missing `%s'", "}");
 					goto returnnull;
+				}
 				i_index = toi(skipblanks(fromi(i_index + 1)));
 				subst_alias(&i_src, i_index, true);
 				break;
@@ -523,7 +524,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 							skip_with_quote_i("}", true);
 							if (*fromi(i_index) == '}') break;
 							if (!*fromi(i_index) && !read_next_line(true)) {
-								serror("missing `%c'", '}');
+								serror("missing `%s'", "}");
 								goto end;
 							}
 						}
@@ -533,9 +534,10 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 						i_index = toi(skipwhites(fromi(i_index + 2)));
 						bool saveraw = i_raw;
 						i_raw = true;
-						statementsfree(parse_statements(")"));
+						statementsfree(parse_statements(false));
 						i_raw = saveraw;
-						if (*fromi(i_index) != ')') {
+						if (!is_token_at(")", i_index)) {
+							serror("missing `%s'", ")");
 							goto end;
 						}
 						break;
@@ -559,7 +561,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 					skip_with_quote_i("\"", false);
 					if (*fromi(i_index) == '"') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
-						serror("missing `%c'", '"');
+						serror("missing `%s'", "\"");
 						goto end;
 					}
 				}
