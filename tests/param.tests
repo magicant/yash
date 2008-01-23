@@ -54,7 +54,7 @@ ${TESTEE} -c 'echo $#' x 1 2 3 4 5
 (exit 1); echo $?
 (exit 2); echo $?
 (exit 3); echo $?
-${TESTEE} -c 'kill -KILL $$'&; wait $!; kill -l $?
+${TESTEE} -c 'kill -KILL $$'& wait $!; kill -l $?
 echo $0
 
 echo ${unset?ok}
