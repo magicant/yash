@@ -138,30 +138,29 @@ int get_signal(const char *name)
 		if (!errno && name[0] && !end[0])
 			return num;
 	} else {  /* name は名前 */
-		if (hasprefix(name, "SIG") == 2)
-			name += 3;
+		char *name2;
+		if ((name2 = matchprefix(name, "SIG")) && *name2)
+			name = name2;
 #if defined(SIGRTMAX) && defined(SIGRTMIN)
 		if (strcmp(name, "RTMIN") == 0) {
 			return SIGRTMIN;
 		} else if (strcmp(name, "RTMAX") == 0) {
 			return SIGRTMAX;
-		} else if (hasprefix(name, "RTMIN+")) {
+		} else if ((name2 = matchprefix(name, "RTMIN+"))) {
 			char *end;
 			int num;
-			name += 6;
 			errno = 0;
-			num = strtol(name, &end, 10);
+			num = strtol(name2, &end, 10);
 			if (!errno && name[0] && !end[0]) {
 				num += SIGRTMIN;
 				if (SIGRTMIN <= num && num <= SIGRTMAX)
 					return num;
 			}
-		} else if (hasprefix(name, "RTMAX-")) {
+		} else if ((name2 = matchprefix(name, "RTMAX-"))) {
 			char *end;
 			int num;
-			name += 6;
 			errno = 0;
-			num = strtol(name, &end, 10);
+			num = strtol(name2, &end, 10);
 			if (!errno && name[0] && !end[0]) {
 				num = SIGRTMAX - num;
 				if (SIGRTMIN <= num && num <= SIGRTMAX)

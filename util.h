@@ -63,8 +63,6 @@ char *skipwhites(const char *s)
 	__attribute__((nonnull));
 char *matchprefix(const char *s, const char *prefix)
 	__attribute__((nonnull));
-int hasprefix(const char *s, const char *prefix)
-	__attribute__((nonnull));
 char *strchug(char *s)
 	__attribute__((nonnull));
 char *strchomp(char *s)

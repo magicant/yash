@@ -52,7 +52,8 @@ char *which(const char *name, const char *path, bool (*cond)(const char *name))
 	if (!path)
 		path = "";
 #if 0
-	if (hasprefix(name, "/") || hasprefix(name, "./") || hasprefix(name, "../")
+	if (matchprefix(name, "/") || matchprefix(name, "./")
+			|| matchprefix(name, "../")
 			|| strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
 #else
 	if (name[0] == '/' ||

@@ -910,7 +910,7 @@ bool comp_prefix(const char *text, const char *candidate)
 {
 #ifdef USE_READLINE
 	if (!ignorecase)
-		return hasprefix(candidate, text);
+		return matchprefix(candidate, text);
 
 	while (*text) {
 		if (!*candidate)
@@ -922,6 +922,6 @@ bool comp_prefix(const char *text, const char *candidate)
 	}
 	return true;
 #else
-	return hasprefix(candidate, text);
+	return matchprefix(candidate, text);
 #endif
 }

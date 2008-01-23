@@ -232,10 +232,10 @@ static PIPELINE *parse_pipelines()
 		}
 		*lastp = pipe;
 		lastp = &pipe->next;
-		if (hasprefix(fromi(i_index), "||")) {
+		if (matchprefix(fromi(i_index), "||")) {
 			pipe->pl_next_cond = false;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
-		} else if (hasprefix(fromi(i_index), "&&")) {
+		} else if (matchprefix(fromi(i_index), "&&")) {
 			pipe->pl_next_cond = true;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
 		} else {

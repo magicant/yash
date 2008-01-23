@@ -165,16 +165,6 @@ char *matchprefix(const char *s, const char *prefix)
 	return (char *) s;
 }
 
-/* 文字列 s が prefix で始まるかどうか調べる
- * 戻り値: 0 -> s は prefix で始まらない
- *         1 -> s は prefix で始まり prefix よりも長い
- *         2 -> s は prefix に等しい */
-int hasprefix(const char *s, const char *prefix)
-{
-	s = matchprefix(s, prefix);
-	return !s ? 0 : *s ? 1 : 2;
-}
-
 /* 文字列の先頭にある空白類文字 (スペースや改行) を削除する。
  * 文字列を直接書き換えた後、その文字列へのポインタ s を返す。 */
 //char *strchug(char *s)
