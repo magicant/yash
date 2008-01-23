@@ -522,13 +522,6 @@ char *sb_tostr(struct strbuf *buf)
 		sb_trim(buf);
 
 	char *result = buf->contents;
-#ifndef NDEBUG
-	*buf = (struct strbuf) {
-		.contents = NULL,
-		.length = 0,
-		.maxlength = 0,
-	};
-#endif
 	return result;
 }
 
@@ -536,13 +529,6 @@ char *sb_tostr(struct strbuf *buf)
 void sb_destroy(struct strbuf *buf)
 {
 	free(buf->contents);
-#ifndef NDEBUG
-	*buf = (struct strbuf) {
-		.contents = NULL,
-		.length = 0,
-		.maxlength = 0,
-	};
-#endif
 }
 
 /* 文字列バッファの maxlength を変更する。短くしすぎると文字列の末尾が消える */
@@ -722,13 +708,6 @@ void pl_init(struct plist *list)
 void pl_destroy(struct plist *list)
 {
 	free(list->contents);
-#ifndef NDEBUG
-	*list = (struct plist) {
-		.contents = NULL,
-		.length = 0,
-		.maxlength = 0,
-	};
-#endif
 }
 
 /* ポインタリストを解放し、内容を返す。ポインタリストは未初期化状態になる。
@@ -740,13 +719,6 @@ void **pl_toary(struct plist *list)
 		pl_trim(list);
 
 	void **result = list->contents;
-#ifndef NDEBUG
-	*list = (struct plist) {
-		.contents = NULL,
-		.length = 0,
-		.maxlength = 0,
-	};
-#endif
 	return result;
 }
 
@@ -907,16 +879,6 @@ void ht_destroy(struct hasht *ht)
 		free(ht->entries[i].key);
 	free(ht->indices);
 	free(ht->entries);
-#ifndef NDEBUG
-	*ht = (struct hasht) {
-		.capacity = 0,
-		.count = 0,
-		.nullindex = NOTHING,
-		.tailindex = 0,
-		.indices = NULL,
-		.entries = NULL,
-	};
-#endif
 }
 
 /* ハッシュテーブルの容量を変更する。 */
