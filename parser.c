@@ -35,17 +35,21 @@
 static bool read_next_line(bool insertnl);
 static void serror(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
-static STATEMENT *parse_statements(char stop);
+static STATEMENT *parse_statements(const char *expect);
 static PIPELINE *parse_pipelines();
-static PROCESS *parse_processes(bool *neg, bool *loop);
-static bool parse_words(PROCESS *process);
+static PIPELINE *parse_pipeline(void);
+static PROCESS *parse_process(void);
 static REDIR *tryparse_redir(void);
 static void skip_with_quote_i(const char *delim, bool singquote);
+static bool is_token_at(const char *token, size_t index);
+static bool is_closing_token_at(size_t index);
 static void print_statements(struct strbuf *restrict b, STATEMENT *restrict s);
 static void print_pipelines(struct strbuf *restrict b, PIPELINE *restrict pl);
 static void print_pipeline(struct strbuf *restrict b, PIPELINE *restrict p);
 static void print_process(struct strbuf *restrict b, PROCESS *restrict p);
 static void redirsfree(REDIR *r);
+
+#define TOKENSEPARATOR " \t\n;&|<>()"
 
 static struct parse_info *i_info;
 static bool i_raw, i_finish, i_error;
@@ -81,7 +85,7 @@ int read_and_parse(
 	sb_append(&i_src, src);
 	free(src);
 
-	STATEMENT *statements = parse_statements('\0');
+	STATEMENT *statements = parse_statements(NULL);
 	if (*fromi(i_index))
 		serror("invalid character: `%c'", *fromi(i_index));
 	sb_destroy(&i_src);
@@ -137,28 +141,32 @@ static void serror(const char *format, ...)
 	va_end(ap);
 }
 
-/* コマンド入力を解析する。
- * stop:   この文字が現れるまで解析を続ける。(エラーの場合を除く)
- *         ただし stop = ';' なら ";;" が現れるまで解析を続ける。
+/* 複数の文を解析する。
+ * expect: NULL なら一行だけ解析する。非 NULL なら ) や } が出るまで解析する。
+ *         予期せぬ EOF が出たときは "expect がない" とメッセージを出す。
  * 戻り値: 成功したらその結果。失敗したら NULL かもしれない。 */
-static STATEMENT *parse_statements(char stop)
+static STATEMENT *parse_statements(const char *expect)
 {
 	STATEMENT *first = NULL, **lastp = &first;
-	char c;
 
 	i_index = toi(skipwhites(fromi(i_index)));
-	while ((c = *fromi(i_index)) != stop
-			&& (stop != ';' || *fromi(i_index + 1) == ';')) {
+	for (;;) {
+		char c = *fromi(i_index);
 		if (c == '\0') {
+			if (!expect)
+				goto end;
 			if (!read_next_line(false)) {
-				serror("missing `%c'", stop);
+				serror("missing `%s'", expect);
 				goto end;
 			}
 			i_index = toi(skipwhites(fromi(i_index)));
 			continue;
 		} else if (c == ';' || c == '&') {
-			serror("unexpected `%c'", c);
+			char cc[2] = { c, '\0' };
+			serror("unexpected `%s'", cc);
 			i_index++;
+			goto end;
+		} else if (is_closing_token_at(i_index)) {
 			goto end;
 		}
 
@@ -172,13 +180,7 @@ static STATEMENT *parse_statements(char stop)
 			goto end;
 		}
 		switch (*fromi(i_index)) {
-			case ';':
-				if (stop == ';' && *fromi(i_index + 1) == ';') {
-					last = true;
-					goto default_case;
-				}
-				/* falls thru! */
-			case '\n':  case '\r':
+			case ';':  case '\n':
 				temp->s_bg = false;
 				i_index++;
 				break;
@@ -186,7 +188,7 @@ static STATEMENT *parse_statements(char stop)
 				temp->s_bg = true;
 				i_index++;
 				break;
-			default:  default_case:  case '#':
+			default:  case '#':
 				temp->s_bg = false;
 				break;
 		}
@@ -200,113 +202,126 @@ end:
 	return first;
 }
 
-/* 一つの文を解析する。
- * 戻り値: 成功したらその結果。失敗したら途中結果または NULL。 */
+/* 一つの文に含まれる一つ以上のパイプラインを解析する。
+ * 戻り値: パイプラインの解析に成功したらその結果、さもなくば NULL。
+ *         パイプラインが存在しない場合なども NULL を返す。 */
 static PIPELINE *parse_pipelines()
 {
 	PIPELINE *first = NULL, **lastp = &first;
 
 	for (;;) {
-		char c = *fromi(i_index);
-		if (c == '|' || c == '&') {
-			serror("unexpected `%c'", c);
+		if (*fromi(i_index) == '&') {
+			serror("unexpected `%s'", "&");
 			i_index++;
 			goto end;
 		}
-		if (first) {
+		if (first != NULL) {
 			while (!*fromi(i_index)) {
 				if (!read_next_line(false)) {
-					serror("no command after `&&' or `||'");
+					serror("no command after `%s'", "&&/||");
 					goto end;
 				}
 				i_index = toi(skipwhites(fromi(i_index)));
 			}
 		}
 
-		PIPELINE *temp = xmalloc(sizeof *temp);
-		bool last = false;
-
-		temp->next = NULL;
-		temp->pl_proc = parse_processes(&temp->pl_neg, &temp->pl_loop);
-		if (!temp->pl_proc) {
-			free(temp);
+		PIPELINE *pipe = parse_pipeline();
+		if (!pipe) {
 			i_error = true;
 			goto end;
 		}
-		if (hasprefix(fromi(i_index), "||")) {
-			temp->pl_next_cond = false;
+		*lastp = pipe;
+		lastp = &pipe->next;
+		if (matchprefix(fromi(i_index), "||")) {
+			pipe->pl_next_cond = false;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
-		} else if (hasprefix(fromi(i_index), "&&")) {
-			temp->pl_next_cond = true;
+		} else if (matchprefix(fromi(i_index), "&&")) {
+			pipe->pl_next_cond = true;
 			i_index = toi(skipwhites(fromi(i_index + 2)));
 		} else {
-			last = true;
-		}
-		*lastp = temp;
-		lastp = &temp->next;
-		if (last)
 			goto end;
+		}
 	}
 end:
 	return first;
 }
 
 /* 一つのパイプラインを解析する。
- * neg:    パイプラインの終了ステータスを反転するかどうかが
- *         このポインタが指す先に入る。
- * loop:   パイプラインが環状であるかどうかがこのポインタの指す先に入る。
- * 戻り値: 成功したらその結果。失敗したら途中結果または NULL。 */
-static PROCESS *parse_processes(bool *neg, bool *loop)
+ * 戻り値: パイプラインの解析に成功したらその結果、さもなくば NULL。
+ *         パイプラインが存在しない場合なども NULL を返す。 */
+/* この関数内では '&&' と '||' は解析しない:
+ * 戻り値の pl_next_cond は false となる */
+static PIPELINE *parse_pipeline(void)
 {
-	PROCESS *first = NULL, **lastp = &first;
+	PIPELINE *result = xmalloc(sizeof *result);
+	PROCESS **lastp = &result->pl_proc;
 
-	if (*fromi(i_index) == '!') {
-		*neg = true;
-		i_index++;
-		i_index = toi(skipblanks(fromi(i_index)));
+	*result = (PIPELINE) { .next = NULL };
+
+	if (is_token_at("!", i_index)) {
+		result->pl_neg = true;
+		i_index = toi(skipwhites(fromi(i_index + 1)));
 	} else {
-		*neg = false;
+		result->pl_neg = false;
+	}
+	if (*fromi(i_index) == '|') {
+		if (posixly_correct)
+			serror("loop pipe not allowed in posix mode");
+		result->pl_loop = true;
+		i_index = toi(skipwhites(fromi(i_index + 1)));
+	} else {
+		result->pl_loop = false;
 	}
 
-	char c;
-	while ((c = *fromi(i_index))) {
-		if (c == '|' && *fromi(i_index + 1) != '|') {
-			serror("unexpected `%c", c);
+	for (;;) {
+		if (*fromi(i_index) == '|' && *fromi(i_index + 1) != '|') {
+			serror("unexpected `%s'", "|");
 			i_index++;
-			goto end;
+			goto returnnull;
+		}
+		if (result->pl_proc != NULL) {
+			while (!*fromi(i_index)) {
+				if (!read_next_line(false)) {
+					serror("no command after `%s'", "|");
+					goto returnnull;
+				}
+				i_index = toi(skipwhites(fromi(i_index)));
+			}
 		}
 
-		PROCESS *temp = xmalloc(sizeof *temp);
-		*temp = (PROCESS) { .next = NULL, };
-		if (!parse_words(temp)) {
-			procsfree(temp);
-			goto end;
+		PROCESS *proc = parse_process();
+		if (!proc) {
+			if (!i_error && (result->pl_neg || result->pl_loop))
+				serror("no command after `%s'", result->pl_loop ? "|" : "!");
+			if (!i_error && result->pl_proc != NULL)
+				serror("no command after `%s'", "|");
+			goto returnnull;
 		}
+		*lastp = proc;
+		lastp = &proc->next;
 
 		if (*fromi(i_index) == '|' && *fromi(i_index + 1) != '|') {
-			*loop = true;
-			i_index++;
-			i_index = toi(skipblanks(fromi(i_index)));
+			i_index = toi(skipwhites(fromi(i_index + 1)));
 		} else {
-			*loop = false;
+			break;
 		}
-
-		*lastp = temp;
-		lastp = &temp->next;
 	}
-end:
-	return first;
+	return result;
+returnnull:
+	free(result);
+	return NULL;
 }
 
-/* 一つのコマンドを解析し、結果を p のアドレスに入れる。
- * この関数は p の p_type, p_assigns, p_args, p_subcmds, p_redirsを書き換える。
- * 戻り値: コマンドの解析に成功したら true、コマンドがなければ false。
- * 戻り値が false でも p の内容は変わっているかもしれない。 */
-static bool parse_words(PROCESS *p)
+/* 一つのコマンドを解析する。
+ * 戻り値: コマンドの解析に成功したらその結果、さもなくば NULL。
+ *         コマンドが存在しない場合なども NULL を返す。 */
+static PROCESS *parse_process(void)
 {
+	PROCESS *result = xmalloc(sizeof *result);
+	REDIR **rlastp = &result->p_redirs;
 	size_t initindex = i_index;
-	bool result;
-	REDIR *rfirst = NULL, **rlastp = &rfirst;
+
+	*result = (PROCESS) { .next = NULL };
 
 	if (posixly_correct) {
 		/* parse_reserved_word(....) */
@@ -318,35 +333,31 @@ static bool parse_words(PROCESS *p)
 	switch (*fromi(i_index)) {
 		case '(':
 			i_index++;
-			p->p_type = PT_SUBSHELL;
-			p->p_subcmds = parse_statements(')');
-			if (*fromi(i_index) != ')') {
-				result = true;
-				goto end;
-			}
-			i_index = toi(skipblanks(fromi(i_index + 1)));
-			subst_alias(&i_src, i_index, true);
-			break;
-		case '{':
-			/* XXX: "{" はそれ自体はトークンではないので、"{abc" のような場合を
-			 * 除外しないといけない。 */
-			i_index++;
-			p->p_type = PT_GROUP;
-			p->p_subcmds = parse_statements('}');
-			if (*fromi(i_index) != '}') {
-				result = true;
-				goto end;
-			}
+			result->p_type = PT_SUBSHELL;
+			result->p_subcmds = parse_statements(")");
+			if (*fromi(i_index) != ')')
+				goto returnnull;
 			i_index = toi(skipblanks(fromi(i_index + 1)));
 			subst_alias(&i_src, i_index, true);
 			break;
 		case ')':
-		case '}':
-			result = false;
-			goto end;
+			goto returnnull;
 		default:
-			p->p_type = PT_NORMAL;
-			break;
+			if (is_token_at("{", i_index)) {
+				i_index++;
+				result->p_type = PT_GROUP;
+				result->p_subcmds = parse_statements("}");
+				if (*fromi(i_index) != '}')
+					goto returnnull;
+				i_index = toi(skipblanks(fromi(i_index + 1)));
+				subst_alias(&i_src, i_index, true);
+				break;
+			} else if (is_token_at("}", i_index)) {
+				goto returnnull;
+			} else {
+				result->p_type = PT_NORMAL;
+				break;
+			}
 	}
 
 	bool assignment_acceptable = true;
@@ -360,7 +371,7 @@ static bool parse_words(PROCESS *p)
 			rlastp = &rd->next;
 		} else {
 			size_t startindex = i_index;
-			skip_with_quote_i(" \t;&|<>()\n\r", true);
+			skip_with_quote_i(TOKENSEPARATOR, true);
 			if (i_index == startindex) break;
 			if (assignment_acceptable) {
 				char *eq = fromi(startindex);
@@ -384,9 +395,9 @@ static bool parse_words(PROCESS *p)
 		subst_alias(&i_src, i_index, true);
 	}
 
-	p->p_assigns = (char **) pl_toary(&assigns);
-	if (p->p_type == PT_NORMAL) {
-		p->p_args = (char **) pl_toary(&args);
+	result->p_assigns = (char **) pl_toary(&assigns);
+	if (result->p_type == PT_NORMAL) {
+		result->p_args = (char **) pl_toary(&args);
 	} else {
 		if (args.length > 0)
 			serror("invalid token `%s'", (char *) args.contents[0]);
@@ -397,10 +408,11 @@ static bool parse_words(PROCESS *p)
 		serror("`(' is not allowed here");
 		i_index++;
 	}
-	result = (initindex != i_index);
-end:
-	p->p_redirs = rfirst;
-	return result;
+	if (initindex != i_index)
+		return result;
+returnnull:
+	procsfree(result);
+	return NULL;
 }
 
 /* 現在位置にあるリダイレクトを解釈する。
@@ -468,7 +480,7 @@ static REDIR *tryparse_redir(void)
 	start += strspn(start, " \t");
 	i_index = toi(start);
 	subst_alias(&i_src, i_index, true);
-	skip_with_quote_i(" \t;&|()\n\r", true);
+	skip_with_quote_i(TOKENSEPARATOR, true);
 	end = fromi(i_index);
 	if (start == end) {
 		serror("redirect target not specified");
@@ -521,7 +533,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 						i_index = toi(skipwhites(fromi(i_index + 2)));
 						bool saveraw = i_raw;
 						i_raw = true;
-						statementsfree(parse_statements(')'));
+						statementsfree(parse_statements(")"));
 						i_raw = saveraw;
 						if (*fromi(i_index) != ')') {
 							goto end;
@@ -568,6 +580,26 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 	}
 end:
 	enable_alias = saveenablealias;
+}
+
+/* i_src の位置 index に token トークンがあるかどうか調べる。
+ * token: 調べる非演算子トークン
+ * index: i_src 内のインデクス */
+static bool is_token_at(const char *token, size_t index)
+{
+	char *c = matchprefix(fromi(index), token);
+	return c && strchr(TOKENSEPARATOR, *c);
+}
+
+/* i_src の位置 index に ) や } や fi などのブロック終了トークンがあるかどうか
+ * 調べる。 */
+static bool is_closing_token_at(size_t index)
+{
+	return (*(fromi(index)) == ')')
+		|| is_token_at("}", index)
+		|| is_token_at("fi", index)
+		|| is_token_at("done", index)
+		|| is_token_at("esac", index);
 }
 
 /* 引用符などを考慮しつつ、delim 内の文字のどれかが現れるまで飛ばす。

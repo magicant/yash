@@ -70,7 +70,7 @@ int parse_jobspec(const char *str, bool forcePercent)
 	jobnumber = 0;
 	for (int i = 1; i < (ssize_t) joblist.length; i++) {
 		JOB *job = get_job(i);
-		if (job && hasprefix(job->j_name, str)) {
+		if (job && matchprefix(job->j_name, str)) {
 			if (!jobnumber)
 				jobnumber = i;
 			else
@@ -508,7 +508,7 @@ singlespec:
 		bool done = false;
 		for (jobnumber = 1; jobnumber < joblist.length; jobnumber++) {
 			JOB *job = get_job(jobnumber);
-			if (job && hasprefix(job->j_name, jobstro)) {
+			if (job && matchprefix(job->j_name, jobstro)) {
 				print_job_status(jobnumber, changedonly, printpids);
 				done = true;
 			}

@@ -1,0 +1,41 @@
+tmp=/tmp/yash-parser-test
+
+var=abc
+echo 123 456  	"789" '"$var\ ' \>
+5>&1 var=def echo \<@ z$v\
+ar-${var+#\}} <> \/dev/null
+echo ${v\
+ar} "${v\
+ar}"
+
+alias c=cat
+alias -g P=')|c'
+echo "Point 1"
+
+echo "pipe" | (c|(c|
+(c|c P)|c)
+
+exec 3>&1
+| cat 1>&3 | echo loop pipe | cat # >/dev/null
+echo "Point 2"
+
+true && echo true true
+false && echo false true
+true || echo true false
+false || echo false false
+
+true &&
+false ||
+echo ok & wait $!; echo $?;
+
+true &
+wait $!
+echo "Point 3"
+
+echo block | {
+	cat |
+	cat
+} 3>&1 1>&3
+{ echo another; echo block& wait $!; }
+
+| #error

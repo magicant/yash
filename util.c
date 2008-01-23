@@ -143,29 +143,26 @@ char *skipspaces(const char *s)
  * 最初のトークンの文字のアドレスを返す。 */
 char *skipwhites(const char *s)
 {
-	for (;;) {
-		s = skipspaces(s);
-		if (*s != '#')
-			return (char *) s;
+	s = skipspaces(s);
+	if (*s == '#') {
 		s++;
-		s += strcspn(s, "\n\r");
+		s += strcspn(s, "\n");
 	}
+	return (char *) s;
 }
 
-/* 文字列 s が prefix で始まるかどうか調べる
- * 戻り値: 0 -> s は prefix で始まらない
- *         1 -> s は prefix で始まり prefix よりも長い
- *         2 -> s は prefix に等しい */
-int hasprefix(const char *s, const char *prefix)
+/* 文字列 s が prefix で始まるなら、文字列 s 内の prefix を飛ばした最初の文字
+ * へのポインタを返す。文字列 s が prefix で始まらなければ NULL を返す。 */
+char *matchprefix(const char *s, const char *prefix)
 {
 	assert(s && prefix);
 	while (*prefix) {
 		if (*prefix != *s)
-			return 0;
+			return NULL;
 		prefix++;
 		s++;
 	}
-	return *s ? 1 : 2;
+	return (char *) s;
 }
 
 /* 文字列の先頭にある空白類文字 (スペースや改行) を削除する。

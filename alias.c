@@ -122,7 +122,7 @@ void subst_alias(struct strbuf *buf, size_t i, bool global)
 
 	s = buf->contents + i;
 	remlen = buf->length - i;
-	tokenlen = strcspn(s, " \t$<>\\'\"`;&|()#\n\r");
+	tokenlen = strcspn(s, " \t$<>\\'\"`;&|()#\n");
 	if (tokenlen > 0 && (!s[tokenlen] || !strchr("$\\'\"`", s[tokenlen]))) {
 		char savechar = s[tokenlen];
 		s[tokenlen] = '\0';

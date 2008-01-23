@@ -1,6 +1,6 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"> 
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Yash 1.2 説明書</title>
+<title>Yash 1.3 説明書</title>
 
 <h1>Yash: yet another shell</h1>
 
@@ -105,9 +105,8 @@ EOL (Ctrl-D) を入力すると、(未了のジョブがなければ) シェル�
 <p>演算子の優先順位は、<code>|</code> が最も高く、続いて <code>&amp;&amp;</code>
 と <code>||</code>、そして最も低いのが <code>&amp;</code> と <code>;</code>
 である。括弧 <code>( )</code> は演算子の優先順位を変更するのにも使える。
-<p><code>|</code> でつないだパイプラインにおいて、最後のコマンドの後にも
-<code>|</code> を指定すると (別のいい方をすると、最後の <code>|</code> の後に
-コマンドを書かないと)、最後のコマンドの出力が最初のコマンドの入力に繋がれ、
+<p><code>|</code> でつないだパイプラインにおいて、最初のコマンドの前にも <code
+>|</code> を指定すると、最後のコマンドの出力が最初のコマンドの入力に繋がれ、
 ループ状のパイプラインができる。
 <p>括弧 <code>( )</code> で囲まれたコマンドはサブシェル (元のシェルから分岐した
 子プロセス) で実行される。
@@ -144,7 +143,7 @@ export され、元のシェル環境に残る。従って例えば <code>HOME=/
 	<dd>変数 <var>name</var> が未定義なら、空文字列の代わりに <code>word</code>
 	に置換する。
 	<dt>${<var>name</var>+<var>word</var>}
-	<dd>変数 <var>name</var> が定義済なら、空文字列の代わりに <code>word</code>
+	<dd>変数 <var>name</var> が定義済なら、その値の代わりに <code>word</code>
 	に置換する。
 	<dt>${<var>name</var>=<var>word</var>}
 	<dd>変数 <var>name</var> が未定義なら、<code>word</code> をその変数に

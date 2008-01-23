@@ -83,7 +83,19 @@ int exec_file(const char *path, bool suppresserror)
 	if (fd < 0) {
 		if (!suppresserror)
 			xerror(0, errno, "%s", path);
-		return EXIT_FAILURE;
+		return -1;
+	}
+	/* SHELLFD 以上のファイルディスクリプタで開くことを保証する。 */
+	if (fd < SHELLFD) {
+		int newfd = fcntl(fd, F_DUPFD, SHELLFD);
+		int olderrno = errno;
+		if (close(fd) != 0)
+			xerror(0, errno, "%s", path);
+		if (newfd < 0) {
+			xerror(0, olderrno, "%s", path);
+			return -1;
+		}
+		fd = newfd;
 	}
 
 	struct fgetline_info finfo = {
@@ -188,7 +200,7 @@ static char *exec_source_and_exit_getline(int ptype, void *code) {
 void exec_source_and_exit(const char *code, const char *name)
 {
 	/* 改行を含むコードは一度に解析できないので、普通に exec_source を使う */
-	if (strpbrk(code, "\n\r")) {
+	if (strchr(code, '\n')) {
 		exec_source(code, name);
 		exit(laststatus);
 	}

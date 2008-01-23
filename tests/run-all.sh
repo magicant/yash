@@ -1,7 +1,7 @@
 #!/bin/sh
 
 TESTEE=${1:-../yash}
-export LC_ALL=C LANG=C
+export LC_ALL=C LANG=C TESTEE
 
 echo "Testing ${TESTEE}"
 echo "Any output from any test indicates a possible malfunction"

@@ -28,8 +28,8 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 
-test tests check: $(TARGET)
-	cd tests && $(SHELL) ./run-all.sh
+test check: $(TARGET)
+	cd tests && exec $(SHELL) ./run-all.sh
 
 BINDIR = @BINDIR@
 install: $(BINDIR) $(TARGET)
@@ -46,7 +46,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = $(PACKAGE)-$(VERSION)
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in install-sh
+DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in install-sh tests
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	rm -rf $(DISTDIR)
@@ -72,7 +72,7 @@ $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
 $(DISTDIR): $(DISTCONTENTS)
 	mkdir -p $@
-	ln -f $(DISTCONTENTS) $@
+	for i in $(DISTCONTENTS); do cp -fRL $$i $@; done
 
 # ctags conforms to POSIX, but etags and cscope do not.
 tags: $(SOURCES)
@@ -94,7 +94,7 @@ maintainer-clean:
 	@echo 'it deletes files that may need special tools to rebuild.'
 	@$(MAKE) distclean
 
-.PHONY: all test tests check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
+.PHONY: all test check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
 
 # Dependencies
 yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h version.h

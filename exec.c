@@ -1165,7 +1165,7 @@ char *exec_and_read(const char *code, bool trimend)
 		}
 
 		if (trimend)
-			while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
+			while (len > 0 && (buf[len - 1] == '\n'))
 				len--;
 		if (len + 30 < max)
 			buf = xrealloc(buf, len + 1);
