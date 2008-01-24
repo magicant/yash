@@ -360,10 +360,6 @@ yash_readline_start:
 		else if (ptype == 2) printf("\n");
 		return NULL;
 	}
-	if (!*skipspaces(line)) {
-		free(line);
-		goto yash_readline_start;
-	}
 
 #ifdef USE_READLINE
 	char *eline;

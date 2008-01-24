@@ -505,12 +505,12 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 	bool saveenablealias = enable_alias;
 	enable_alias = false;
 
-	while (*fromi(i_index) && !strchr(delim, *fromi(i_index))) {
+	while (/* *fromi(i_index) && */ !strchr(delim, *fromi(i_index))) {
 		switch (*fromi(i_index)) {
 			case '\\':
 				if (*fromi(i_index + 1) == '\0') {
-					i_src.length = i_index;
-					i_src.contents[i_index] = '\0';
+					if (!i_raw)
+						sb_replace(&i_src, i_index, SIZE_MAX, "");
 					read_next_line(false);
 				} else {
 					i_index += 2;
@@ -536,7 +536,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 						i_raw = true;
 						statementsfree(parse_statements(false));
 						i_raw = saveraw;
-						if (!is_token_at(")", i_index)) {
+						if (*fromi(i_index) != ')') {
 							serror("missing `%s'", ")");
 							goto end;
 						}
@@ -587,6 +587,8 @@ end:
 /* i_src の位置 index に token トークンがあるかどうか調べる。
  * token: 調べる非演算子トークン
  * index: i_src 内のインデクス */
+/* token には、他の演算子トークンの真の部分文字列であるような文字列を
+ * 指定してはならない。 */
 static bool is_token_at(const char *token, size_t index)
 {
 	char *c = matchprefix(fromi(index), token);
@@ -749,8 +751,6 @@ static void print_process(struct strbuf *restrict b, PROCESS *restrict p)
 			sb_append(b, " )");
 			f = true;
 			break;
-		default:
-			assert(false);
 	}
 	if (p->p_redirs) {
 		REDIR *redir = p->p_redirs;
