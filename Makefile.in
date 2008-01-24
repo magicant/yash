@@ -97,6 +97,7 @@ maintainer-clean:
 .PHONY: all test check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
 
 # Dependencies
+$(OBJS): common.h
 yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h version.h
 util.o: yash.h util.h
 sig.o: util.h sig.h lineinput.h exec.h
