@@ -44,6 +44,7 @@
 #include "util.h"
 #include "lineinput.h"
 #include "exec.h"
+#include "job.h"
 #include "path.h"
 #include "builtin.h"
 #include "alias.h"

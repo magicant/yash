@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#ifndef SIG_H
+#define SIG_H
+
+
 typedef struct {
 	int s_signal;
 	const char *s_name;
@@ -33,3 +37,6 @@ void set_signals(void);
 void unset_signals(void);
 void wait_for_signal(void);
 void handle_signals(void);
+
+
+#endif /* SIG_H */

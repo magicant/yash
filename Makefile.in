@@ -20,8 +20,8 @@ CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
-SOURCES = alias.c alias.h builtin.c builtin.h builtin_job.c builtin_var.c common.h exec.c exec.h expand.c expand.h lineinput.c lineinput.h parser.c parser.h path.c path.h sig.c sig.h util.c util.h variable.c variable.h yash.c yash.h
-OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o path.o builtin.o builtin_job.o builtin_var.o alias.o variable.o
+SOURCES = alias.c alias.h builtin.c builtin.h builtin_job.c builtin_var.c common.h exec.c exec.h expand.c expand.h job.c job.h lineinput.c lineinput.h parser.c parser.h path.c path.h sig.c sig.h util.c util.h variable.c variable.h yash.c yash.h
+OBJS = yash.o util.o sig.o lineinput.o parser.o expand.o exec.o job.o path.o builtin.o builtin_job.o builtin_var.o alias.o variable.o
 TARGET = @TARGET@
 
 all: $(TARGET)
@@ -98,16 +98,17 @@ maintainer-clean:
 
 # Dependencies
 $(OBJS): common.h
-yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h path.h builtin.h alias.h variable.h version.h
+yash.o: yash.h util.h sig.h lineinput.h parser.h exec.h job.h path.h builtin.h alias.h variable.h version.h
 util.o: yash.h util.h
-sig.o: util.h sig.h lineinput.h exec.h
-lineinput.o: yash.h util.h lineinput.h exec.h path.h builtin.h alias.h variable.h version.h
+sig.o: util.h sig.h lineinput.h job.h
+lineinput.o: yash.h util.h lineinput.h exec.h job.h path.h builtin.h alias.h variable.h version.h
 parser.o: yash.h util.h parser.h alias.h variable.h
 expand.o: yash.h util.h parser.h expand.h exec.h path.h variable.h
-exec.o: yash.h util.h sig.h parser.h expand.h exec.h path.h builtin.h variable.h
+exec.o: yash.h util.h sig.h parser.h expand.h exec.h job.h path.h builtin.h variable.h
+job.o: yash.h util.h sig.h job.h
 path.o: yash.h util.h lineinput.h parser.h path.h variable.h
-builtin.o: yash.h util.h sig.h lineinput.h expand.h exec.h path.h builtin.h alias.h variable.h
-builtin_job.o: yash.h util.h sig.h exec.h path.h builtin.h variable.h
+builtin.o: yash.h util.h sig.h lineinput.h expand.h exec.h job.h path.h builtin.h alias.h variable.h
+builtin_job.o: yash.h util.h sig.h exec.h job.h path.h builtin.h variable.h
 builtin_var.o: util.h builtin.h variable.h
 alias.o: yash.h util.h alias.h
-variable.o: yash.h util.h expand.h exec.h path.h variable.h
+variable.o: yash.h util.h expand.h exec.h job.h path.h variable.h

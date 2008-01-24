@@ -31,6 +31,7 @@
 #include "lineinput.h"
 #include "parser.h"
 #include "exec.h"
+#include "job.h"
 #include "path.h"
 #include "builtin.h"
 #include "alias.h"
@@ -408,7 +409,7 @@ int main(int argc __attribute__((unused)), char **argv)
 
 	shell_pid = getpid();
 	init_signal();
-	init_exec();
+	init_jobcontrol();
 	init_var();
 	init_alias();
 	init_builtin();

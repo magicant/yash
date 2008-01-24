@@ -39,6 +39,7 @@
 #include "lineinput.h"
 #include "expand.h"
 #include "exec.h"
+#include "job.h"
 #include "path.h"
 #include "builtin.h"
 #include "alias.h"
