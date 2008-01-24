@@ -335,6 +335,8 @@ static PROCESS *parse_process(void)
 			if (*fromi(i_index) != ')') {
 				serror("missing `%s'", ")");
 				goto returnnull;
+			} else if (!result->p_subcmds) {
+				serror("no commands in ( )");
 			}
 			i_index = toi(skipblanks(fromi(i_index + 1)));
 			subst_alias(&i_src, i_index, true);
@@ -349,6 +351,8 @@ static PROCESS *parse_process(void)
 				if (!is_token_at("}", i_index)) {
 					serror("missing `%s'", "}");
 					goto returnnull;
+				} else if (!result->p_subcmds) {
+					serror("no commands in { }");
 				}
 				i_index = toi(skipblanks(fromi(i_index + 1)));
 				subst_alias(&i_src, i_index, true);
