@@ -25,7 +25,7 @@
 #include "util.h"
 #include "sig.h"
 #include "lineinput.h"
-#include "exec.h"
+#include "job.h"
 #include <assert.h>
 
 

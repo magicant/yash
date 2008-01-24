@@ -29,6 +29,7 @@
 #include "util.h"
 #include "sig.h"
 #include "exec.h"
+#include "job.h"
 #include "path.h"
 #include "builtin.h"
 #include "variable.h"

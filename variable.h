@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#ifndef VARIABLE_H
+#define VARIABLE_H
+
+
 extern char **environ;
 
 #define VAR_USER            "USER"
@@ -89,3 +93,6 @@ bool is_special_parameter_char(char c);
 bool is_name_char(char c);
 bool is_name(const char *c)
 	__attribute__((nonnull));
+
+
+#endif /* VARIABLE_H */

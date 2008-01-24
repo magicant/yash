@@ -29,6 +29,7 @@
 #include "util.h"
 #include "expand.h"
 #include "exec.h"
+#include "job.h"
 #include "path.h"
 #include "variable.h"
 #include <assert.h>

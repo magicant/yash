@@ -23,6 +23,10 @@
 
 #define _POSIX_C_SOURCE 200112
 
+#ifndef __GNUC__
+# define __attribute__(ignore)
+#endif
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
