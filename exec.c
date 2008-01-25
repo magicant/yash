@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "yash.h"
@@ -626,7 +627,8 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 			default:
 				assert(false);
 		}
-		fd = open(exp, flags, 0666);
+		fd = open(exp, flags,
+				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if (fd < 0) goto onerror;
 		if (fd != r->rd_fd) {
 			if (close(r->rd_fd) < 0)

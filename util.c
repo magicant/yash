@@ -19,6 +19,7 @@
 #include "common.h"
 #define  NO_UTIL_INLINE
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -26,7 +27,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 #include "yash.h"
 #include "util.h"
 #include <assert.h>
@@ -499,6 +502,63 @@ nosuchopt:
 int xgetopt(char *const *restrict argv, const char *restrict optstring)
 {
 	return xgetopt_long(argv, optstring, NULL, NULL);
+}
+
+
+/********** 一時ファイル作成 **********/
+
+/* 一時ファイルを作成し、それを開いたファイルディスクリプタを返す。
+ * tempname: XXXXXX で終わるファイル名の候補となる文字列。XXXXXX を適当な
+ *           文字列に置き換えて、それを一時ファイルの名前とする。
+ * 戻り値:   一時ファイルを開いたファイルディスクリプタ。エラーなら負数。
+ * エラーの場合でも errno の値は信用できない。
+ * 作成した一時ファイルを削除するのは呼び出し元の責任である。 */
+int xmkstemp(char *tempname)
+{
+	int resultfd;
+	mode_t oldumask = umask(S_IXUSR | S_IRWXG | S_IRWXO);
+
+#ifdef HAVE_MKSTEMP
+	resultfd = mkstemp(tempname);
+#else /* HAVE_MKSTEMP : mkstemp がなければ自前の実装を使う */
+	char *s = tempname;
+	while (*s) s++;
+	s -= 6;
+	if (s < tempname || strcmp(s, "XXXXXX") != 0) {
+		errno = EINVAL;
+		resultfd = -1;
+		goto end;
+	}
+
+	/* v は不定値となる。(GCC の警告をなくすために自分自身を代入している) */
+	uint32_t v = v;
+	v ^= time(NULL);
+	v ^= getpid() * 101;
+
+	int trycount = 0;
+	do {
+		static const char letters[61] =
+			"1234567890abcdefghijklmnopqrtsuvwxyzABCDEFGHIJKLMNPQRTSUVWXYZ";
+		v = (v * 123456789) ^ shell_pid;
+		s[0] = letters[v % 61];
+		v /= 61;
+		s[1] = letters[v % 61];
+		v /= 61;
+		s[2] = letters[v % 61];
+		v /= 61;
+		s[3] = letters[v % 61];
+		v /= 61;
+		s[4] = letters[v % 61];
+		v /= 61;
+		s[5] = letters[v % 61];
+
+		resultfd = open(tempname, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+	} while (resultfd < 0 && errno == EEXIST && ++trycount < 100);
+#endif /* HAVE_MKSTEMP */
+
+end:
+	umask(oldumask);
+	return resultfd;
 }
 
 

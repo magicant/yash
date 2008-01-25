@@ -72,8 +72,6 @@ char *strjoin(
 	__attribute__((nonnull(2)));
 char *mprintf(const char *restrict format, ...)
 	__attribute__((malloc, nonnull(1), format(printf,1,2)));
-char *read_all(int fd)
-	__attribute__((malloc));
 
 #define xisalnum(c)  (isalnum((unsigned char) (c)))
 #define xisalpha(c)  (isalpha((unsigned char) (c)))
@@ -132,6 +130,12 @@ int xgetopt(char *const *restrict argv, const char *restrict optstring)
 #ifndef NO_UTIL_INLINE
 # define xgetopt(argv,optstring) xgetopt_long(argv, optstring, NULL, NULL)
 #endif
+
+
+/* Temporary file maker */
+
+int xmkstemp(char *tempname)
+	__attribute__((nonnull));
 
 
 /* String buffers */

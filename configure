@@ -22,7 +22,6 @@ configlog="config.log"
 configh="config.h"
 versionh="version.h"
 tempsrc=".temp.c"
-tempout=".temp.o"
 
 cc="c99"
 cflags="-O1 -g"
@@ -121,10 +120,8 @@ checkby () {
 	"$@" >&5 2>&1
 }
 trycompile () {
-	echo "%" ${cc} ${cflags} ${ldflags} "$@" -o "${tempout}" "${tempsrc}" >&5
-	${cc} ${cflags} ${ldflags} "$@" -o "${tempout}" "${tempsrc}" >&5 2>&1 ||
-	(rm -f "${tempout}"; exit 1) &&
-	(rm -f "${tempout}"; exit 0)
+	echo "%" ${cc} ${cflags} ${ldflags} "$@" -o /dev/null "${tempsrc}" >&5
+	${cc} ${cflags} ${ldflags} "$@" -o /dev/null "${tempsrc}" >&5 2>&1
 }
 checked () {
 	echo "$1"
@@ -201,6 +198,22 @@ END
 	fi
 fi
 
+# check for mkstemp
+checking "for mkstemp"
+cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE 200112L
+#define _XOPEN_SOURCE   600
+#include <stdlib.h>
+int main() { return mkstemp((char []) { "" }); }
+END
+if trycompile
+then
+	checked "yes"
+	defconfigh "HAVE_MKSTEMP"
+else
+	checked "no"
+fi
+
 # check for strsignal
 checking "for strsingal"
 cat >"${tempsrc}" <<END
@@ -274,4 +287,4 @@ cat >"${versionh}" <<END
 END
 
 
-rm -f "${tempsrc}" "${tempout}"
+rm -f "${tempsrc}"
