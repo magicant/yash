@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* common.h: defines macros common to all sources. */
+/* common.h: defines symbols common to all sources. */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define _POSIX_C_SOURCE 200112
+#define _POSIX_C_SOURCE 200112L
+#define _XOPEN_SOURCE   600
 
 #ifndef __GNUC__
 # define __attribute__(ignore)
@@ -34,6 +35,11 @@
 #ifdef HAVE_LIBREADLINE
 # define USE_READLINE
 #endif
+
+/* _POSIX_C_SOURCE 機能検査マクロを定義してから各種ヘッダファイルを
+ * インクルードすることで POSIX で定められた定数や関数が宣言されるが、
+ * POSIX にない拡張機能は宣言されない (はずである)。
+ * 以下に、configure で利用可能と判断したものについて手動で宣言を行う */
 
 #ifdef HAVE_STRSIGNAL
 extern char *strsignal(int);

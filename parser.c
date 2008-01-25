@@ -333,9 +333,9 @@ static PROCESS *parse_process(void)
 			result->p_type = PT_SUBSHELL;
 			result->p_subcmds = parse_statements(false);
 			if (*fromi(i_index) != ')') {
-				serror("missing `%s'", ")");
+				serror("`%s' missing", ")");
 				goto returnnull;
-			} else if (!result->p_subcmds) {
+			} else if (posixly_correct && !result->p_subcmds) {
 				serror("no commands in ( )");
 			}
 			i_index = toi(skipblanks(fromi(i_index + 1)));
@@ -349,9 +349,9 @@ static PROCESS *parse_process(void)
 				result->p_type = PT_GROUP;
 				result->p_subcmds = parse_statements(false);
 				if (!is_token_at("}", i_index)) {
-					serror("missing `%s'", "}");
+					serror("`%s' missing", "}");
 					goto returnnull;
-				} else if (!result->p_subcmds) {
+				} else if (posixly_correct && !result->p_subcmds) {
 					serror("no commands in { }");
 				}
 				i_index = toi(skipblanks(fromi(i_index + 1)));
@@ -528,7 +528,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 							skip_with_quote_i("}", true);
 							if (*fromi(i_index) == '}') break;
 							if (!*fromi(i_index) && !read_next_line(true)) {
-								serror("missing `%s'", "}");
+								serror("`%s' missing", "}");
 								goto end;
 							}
 						}
@@ -541,7 +541,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 						statementsfree(parse_statements(false));
 						i_raw = saveraw;
 						if (*fromi(i_index) != ')') {
-							serror("missing `%s'", ")");
+							serror("`%s' missing", ")");
 							goto end;
 						}
 						break;
@@ -554,7 +554,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 					i_index = toi(skip_without_quote(fromi(i_index), "'"));
 					if (*fromi(i_index) == '\'') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
-						serror("missing \"'\"");
+						serror("\"'\" missing");
 						goto end;
 					}
 				}
@@ -565,7 +565,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 					skip_with_quote_i("\"", false);
 					if (*fromi(i_index) == '"') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
-						serror("missing `%s'", "\"");
+						serror("`%s' missing", "\"");
 						goto end;
 					}
 				}
@@ -576,7 +576,7 @@ static void skip_with_quote_i(const char *delim, bool singquote)
 					skip_with_quote_i("`", false);
 					if (*fromi(i_index) == '`') break;
 					if (!*fromi(i_index) && !read_next_line(true)) {
-						serror("missing \"`\"");
+						serror("\"`\" missing");
 						goto end;
 					}
 				}

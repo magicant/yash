@@ -3,9 +3,11 @@
 README.html を本来の README とマニュアルに分離
 async コマンドの stdin は /dev/null よりリダイレクトを優先
 readline 補完の充実
+configure での readline の詳細なバージョン判別
 builtin_path.c
 配列の実装
 数式展開
+{1..10} のような連番のブレース展開
 print_job_status を POSIX 書式に
 % で直接 fg, bg を行う
 ジョブ単位で名前を付けるのではなくジョブの各プロセスごとにプロセス名を付ける
