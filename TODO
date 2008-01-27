@@ -1,5 +1,6 @@
 既知のバグ・未実装機能・その他やるべきことの一覧
 
+Makefile の依存関係部分を自動生成
 README.html を本来の README とマニュアルに分離
 async コマンドの stdin は /dev/null よりリダイレクトを優先
 readline 補完の充実

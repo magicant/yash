@@ -34,8 +34,8 @@
 #  include <readline/readline.h>
 #  include <readline/history.h>
 # else
-#  include "readline.h"
-#  include "history.h"
+#  include <readline.h>
+#  include <history.h>
 # endif
 #endif
 #include <sys/select.h>
@@ -302,20 +302,27 @@ char *yash_sgetline(int ptype __attribute__((unused)), void *info)
 }
 
 /* プロンプトを表示して行を読み取る。
- * ptype が 1 か 2 なら履歴展開を行い、履歴に追加する。
- * ptype:  プロンプトの種類。1~2。(PS1~PS2 に対応)
+ * ptype が正数なら履歴展開を行い、履歴に追加する。
+ * ptype:  プロンプトの種類。1~2 またはその負数。(PS1~PS2 に対応)
  * 戻り値: 読み取った行。(新しく malloc した文字列)
  *         EOF が入力されたときは NULL。 */
 char *yash_readline(int ptype, void *info __attribute__((unused)))
 {
 	char *prompt, *actualprompt;
 	char *line;
+	bool hist;
 	bool terminal_info_valid = false;
 	struct termios old_terminal_info, new_terminal_info;
 #ifndef USE_READLINE
 	static struct fgetline_info glinfo = { .fd = STDIN_FILENO };
 #endif
 	
+	if (ptype >= 0) {
+		hist = true;
+	} else {
+		hist = false;
+		ptype = -ptype;
+	}
 yash_readline_start:
 	switch (ptype) {
 		case 1:
@@ -364,7 +371,7 @@ yash_readline_start:
 
 #ifdef USE_READLINE
 	char *eline;
-	if (ptype == 1 || ptype == 2) {
+	if (hist) {
 		switch (history_expand(line, &eline)) {
 			case 1:  /* expansion successful */
 				printf("%s\n", eline);

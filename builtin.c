@@ -30,7 +30,7 @@
 # ifdef HAVE_LIBREADLINE
 #  include <readline/history.h>
 # else
-#  include "history.h"
+#  include <history.h>
 # endif
 #endif
 #include "yash.h"

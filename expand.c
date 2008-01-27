@@ -88,7 +88,8 @@ static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
 	__attribute__((nonnull));
 static bool expand_brace(char *s, struct plist *result)
 	__attribute__((nonnull));
-static bool expand_subst(char *s, struct plist *result, bool split)
+static bool expand_subst(char *s, struct plist *result,
+		bool split, bool alwaysindq)
 	__attribute__((nonnull));
 static bool expand_dollar(char **srcp, struct expand *restrict info)
 	__attribute__((nonnull));
@@ -199,21 +200,31 @@ char *expand_single(const char *arg, bool pathexp)
 
 /* 一つのフィールドに対してチルダ展開・パラメータ/数式展開・コマンド置換を行う。
  * パス名展開・引用符除去は行わない。
- * multitilde: true なら変数代入用のチルダ展開を行う。false なら普通に展開する。
+ * tildeexpandtype: チルダ展開の種類。
+ * alwaysindq: true なら " を引用符として扱わず、常に " で囲まれているとみなす。
  * 戻り値: 新しく malloc した、展開の結果。エラーなら NULL。 */
-char *expand_word(const char *s, bool multitilde)
+char *expand_word(const char *s, enum tildeexpandtype tetype, bool alwaysindq)
 {
 	char *s2;
 	struct plist list;
 
-	if (!multitilde) {
-		if (s[0] != '~' || !(s2 = expand_tilde(s)))
+	switch (tetype) {
+		case te_single:
+			if (s[0] == '~' && (s2 = expand_tilde(s)))
+				break;
+			/* falls thru! */
+		case te_none:
 			s2 = xstrdup(s);
-	} else {
-		s2 = expand_tilde_multiple(s);
+			break;
+		case te_multi:
+			s2 = expand_tilde_multiple(s);
+			break;
+		default:
+			assert(false);
 	}
+
 	pl_init(&list);
-	if (!expand_subst(s2, &list, false)) {
+	if (!expand_subst(s2, &list, false, alwaysindq)) {
 		recfree(pl_toary(&list), free);
 		return NULL;
 	}
@@ -232,7 +243,7 @@ static char **expand_word_splitting(const char *s)
 	char *temp = (s[0] == '~') ? expand_tilde(s) : xstrdup(s);
 	struct plist results;
 	pl_init(&results);
-	if (expand_subst(temp, &results, true)) {
+	if (expand_subst(temp, &results, true, false)) {
 		return (char **) pl_toary(&results);
 	} else {
 		recfree(pl_toary(&results), free);
@@ -269,7 +280,7 @@ static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
 	pl_clear(&temp1);
 
 	for (size_t i = 0; ok && i < temp2.length; i++) { /* そしてパラメータ展開 */
-		ok = expand_subst(temp2.contents[i], &temp1, true);
+		ok = expand_subst(temp2.contents[i], &temp1, true, false);
 	}
 	pl_destroy(&temp2);
 
@@ -352,14 +363,16 @@ done:
 /* パラメータ展開・コマンド置換、そして split が true なら単語分割を行い、
  * 結果を result に追加する。
  * 引用符 (" と ') やバックスラッシュエスケープはそのまま展開結果に残る。
- * s:      free 可能な、展開・分割を行う対象の文字列。
- * split:  単語分割を行うかどうか。
+ * s:          free 可能な、展開・分割を行う対象の文字列。
+ * split:      単語分割を行うかどうか。
+ * alwaysindq: true なら " を認識しないで常に " の中とみなす。
  * エラー時はエラーメッセージを出力して false を返す。
  * ただし、エラーの場合でも途中結果が result に入っているかもしれない。
  * s は (展開や分割の結果が元と同じ時) *result に追加されるか、free される。 */
 /* IFS による単語分割は、パラメータ展開の結果内においてのみ実行する。
  * これはセキュリティ上の理由による。 */
-static bool expand_subst(char *const s, struct plist *result, bool split)
+static bool expand_subst(char *const s, struct plist *result,
+		bool split, bool alwaysindq)
 {
 	bool ok = true;
 	char *s1 = s, *s2 = strpbrk(s, "\"'\\$`");
@@ -367,7 +380,7 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 	struct expand info = {
 		.current = &buf,
 		.fields = result,
-		.indq = false,
+		.indq = alwaysindq,
 		.split = split,
 	};
 
@@ -381,7 +394,7 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 		s1 = s2;
 		switch (*s1) {
 			case '"':
-				info.indq = !info.indq;
+				info.indq = !info.indq || alwaysindq;
 				goto default_case;
 			case '\'':
 				s1 = skip_without_quote(s1 + 1, "'");
@@ -416,7 +429,7 @@ static bool expand_subst(char *const s, struct plist *result, bool split)
 			break;
 		}
 	}
-	if (info.indq)
+	if (info.indq && !alwaysindq)
 		xerror(0, 0, "%s: unclosed quotation", s);
 	if (buf.length > 0) {
 		pl_append(result, sb_tostr(&buf));
@@ -631,7 +644,8 @@ static bool expand_param(const char *s, struct expand *restrict info)
 			if (isempty) {
 				if (singlevalue && !args.indirect
 						&& xisalpha(args.full[0]) && is_name(args.param)) {
-					char *word1 = unescape(expand_word(args.format + 1, false));
+					char *word1 = unescape(
+							expand_word(args.format + 1, te_single, false));
 					recfree((void **) rvalues, free);
 					if (word1 && !setvar(args.param, word1, false)) {
 						free(word1);
@@ -649,7 +663,8 @@ static bool expand_param(const char *s, struct expand *restrict info)
 		case '?':
 			if (isempty) {
 				if (args.format[1]) {
-					char *word1 = unescape(expand_word(args.format + 1, false));
+					char *word1 = unescape(
+							expand_word(args.format + 1, te_single, false));
 					if (word1) {
 						xerror(is_interactive_now ? 0 : EXIT_FAILURE,
 								0, "%s: %s", param, word1);
@@ -726,14 +741,14 @@ static char *expand_param2(struct expand_args *args, const char *value)
 		case '#':
 			matchlong = (format[0] == '#');
 			if (matchlong) format++;
-			word1 = unescape_for_glob(expand_word(format, false));
+			word1 = unescape_for_glob(expand_word(format, te_single, false));
 			if (!word1) return NULL;
 			return matchlong ? matchandsubst(value, word1, NULL, substhead)
 			                 : matchhead(value, word1);
 		case '%':
 			matchlong = (format[0] == '%');
 			if (matchlong) format++;
-			word1 = unescape_for_glob(expand_word(format, false));
+			word1 = unescape_for_glob(expand_word(format, te_single, false));
 			if (!word1) return NULL;
 			return matchlong ? matchandsubst(value, word1, NULL, substtail)
 			                 : matchtail(value, word1);
@@ -747,12 +762,13 @@ static char *expand_param2(struct expand_args *args, const char *value)
 			char pat[patlen + 1];
 			strncpy(pat, format, patlen);
 			pat[patlen] = '\0';
-			word1 = unescape_for_glob(expand_word(pat, false));
+			word1 = unescape_for_glob(expand_word(pat, te_single, false));
 			if (!word1) return NULL;
 			if (format[patlen] != '/') {
 				word2 = NULL;
 			} else {
-				word2 = unescape(expand_word(format + patlen + 1, false));
+				word2 = unescape(expand_word(
+							format + patlen + 1, te_single, false));
 				if (!word2) {
 					free(word1);
 					return NULL;
@@ -1167,9 +1183,9 @@ char *unescape(char *const s)
 			case '\\':
 				if (!*++ss) {
 					sb_cappend(&buf, '\\');
-					break;
-				} else if (indq && *ss != '\\'
-						&& *ss != '"' && *ss != '`' && *ss != '$') {
+					goto out;
+				} else if (indq && *ss != '\\' && *ss != '"'
+						&& *ss != '`' && *ss != '$' && *ss != '\n') {
 					sb_cappend(&buf, '\\');
 					goto default_case;
 				}
@@ -1178,6 +1194,37 @@ char *unescape(char *const s)
 				sb_cappend(&buf, *ss);
 				break;
 		}
+		ss++;
+	}
+out:
+	free(s);
+	return sb_tostr(&buf);
+}
+
+/* ヒアドキュメント内のバックスラッシュエスケープを削除する。
+ * s:      free 可能な文字列。
+ * 戻り値: エスケープを削除した結果。
+ * s は unescape 内で free され、新しく malloc した文字列で結果が返る。 */
+char *unescape_here_document(char *const s)
+{
+	char *ss;
+	struct strbuf buf;
+
+	if (!s) return NULL;
+	ss = strpbrk(s, "\"'\\");
+	if (!ss) return s;
+	sb_init(&buf);
+	sb_nappend(&buf, s, ss - s);
+	while (*ss) {
+		if (*ss == '\\') {
+			if (!*++ss) {
+				sb_cappend(&buf, '\\');
+				break;
+			} else if (*ss != '\\' && *ss != '`' && *ss != '$' && *ss != '\n') {
+				sb_cappend(&buf, '\\');
+			}
+		}
+		sb_cappend(&buf, *ss);
 		ss++;
 	}
 	free(s);

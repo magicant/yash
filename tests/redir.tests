@@ -36,6 +36,24 @@ exec 5<&-
 rm -f ${tmp}4
 echo "Point 6"
 
+cat <<DUMMY <<END
+	DUMMY
+DUMMY
+	here document "abc" \a\"\\\'\$ ${tmp} \
+END
+
+cat <<- "END"''
+	here document "abc" \a\"\\\'\$ ${tmp} \
+	END
+echo "Point 7"
+
+(echo <<DUMMY "Point 8"
+DUMMY
+)
+{ echo <<DUMMY "Point 9"; }
+DUMMY
+
+
 ## various forms of null redirection
 #test1 () {
 #	if [ -f "$1" ]

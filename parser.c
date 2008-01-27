@@ -27,6 +27,7 @@
 #include "yash.h"
 #include "util.h"
 #include "parser.h"
+#include "expand.h"
 #include "alias.h"
 #include "variable.h"
 #include <assert.h>
@@ -36,10 +37,11 @@ static bool read_next_line(bool insertnl);
 static void serror(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
 static STATEMENT *parse_statements(bool oneline);
-static PIPELINE *parse_pipelines();
+static PIPELINE *parse_pipelines(void);
 static PIPELINE *parse_pipeline(void);
 static PROCESS *parse_process(void);
 static REDIR *tryparse_redir(void);
+static void read_here_document(REDIR *rd);
 static void skip_with_quote_i(const char *delim, bool singquote);
 static bool is_token_at(const char *token, size_t index);
 static bool is_closing_token_at(size_t index);
@@ -202,7 +204,7 @@ end:
 /* 一つの文に含まれる一つ以上のパイプラインを解析する。
  * 戻り値: パイプラインの解析に成功したらその結果、さもなくば NULL。
  *         パイプラインが存在しない場合なども NULL を返す。 */
-static PIPELINE *parse_pipelines()
+static PIPELINE *parse_pipelines(void)
 {
 	PIPELINE *first = NULL, **lastp = &first;
 
@@ -447,7 +449,14 @@ static REDIR *tryparse_redir(void)
 			if (fd == -1) fd = STDIN_FILENO;
 			switch (symbol[1]) {
 				case '<':
-					return NULL;  // XXX here document not supported
+					if (symbol[2] == '-') {
+						type = RT_HERERT;
+						start = &symbol[3];
+					} else {
+						type = RT_HERE;
+						start = &symbol[2];
+					}
+					break;
 				case '>':
 					type = RT_INOUT;
 					start = &symbol[2];
@@ -496,9 +505,43 @@ static REDIR *tryparse_redir(void)
 		.next = NULL,
 		.rd_type = type,
 		.rd_fd = fd,
-		.rd_file = xstrndup(start, end - start),
+		.rd_value = xstrndup(start, end - start),
+		.rd_herecontent = NULL,
 	};
+	if (type == RT_HERE || type == RT_HERERT) {
+		read_here_document(rd);
+	}
 	return rd;
+}
+
+/* ヒアドキュメントを読み込む。 */
+static void read_here_document(REDIR *rd)
+{
+	assert(rd->rd_type == RT_HERE || rd->rd_type == RT_HERERT);
+
+	bool removetab = (rd->rd_type == RT_HERERT);
+	char *delim = unescape(xstrdup(rd->rd_value));
+	struct strbuf doc;
+	sb_init(&doc);
+	for (;;) {
+		char *rawline = i_info->input(-2, i_info->inputinfo);
+		if (!rawline)
+			break;
+
+		char *line = rawline;
+		if (removetab)
+			while (*line == '\t') line++;
+		if (strcmp(line, delim) != 0) {
+			sb_append(&doc, line);
+			sb_cappend(&doc, '\n');
+			free(rawline);
+		} else {
+			free(rawline);
+			break;
+		}
+	}
+	free(delim);
+	rd->rd_herecontent = sb_tostr(&doc);
 }
 
 /* 引用符 (" と `) とパラメータ ($) を解釈しつつ、delim 内の文字のどれかが
@@ -764,12 +807,15 @@ static void print_process(struct strbuf *restrict b, PROCESS *restrict p)
 			switch (redir->rd_type) {
 				case RT_INPUT:   sb_append(b, "<");   break;
 				case RT_OUTPUT:  sb_append(b, ">");   break;
+				case RT_OUTCLOB: sb_append(b, ">|");  break;
 				case RT_APPEND:  sb_append(b, ">>");  break;
 				case RT_INOUT:   sb_append(b, "<>");  break;
 				case RT_DUPIN:   sb_append(b, "<&");  break;
 				case RT_DUPOUT:  sb_append(b, ">&");  break;
+				case RT_HERE:    sb_append(b, "<<");  break;
+				case RT_HERERT:  sb_append(b, "<<-"); break;
 			}
-			sb_append(b, redir->rd_file);
+			sb_append(b, redir->rd_value);
 			f = true;
 			redir = redir->next;
 		}
@@ -779,7 +825,8 @@ static void print_process(struct strbuf *restrict b, PROCESS *restrict p)
 static void redirsfree(REDIR *r)
 {
 	while (r) {
-		free(r->rd_file);
+		free(r->rd_value);
+		free(r->rd_herecontent);
 
 		REDIR *rr = r->next;
 		free(r);

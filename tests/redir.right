@@ -12,3 +12,8 @@ Point 4
 Point 5
 789
 Point 6
+	here document "abc" \a\"\\'$ /tmp/yash-redir-test 
+here document "abc" \a\"\\\'\$ ${tmp} \
+Point 7
+Point 8
+Point 9

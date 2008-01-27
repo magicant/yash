@@ -520,6 +520,7 @@ int xmkstemp(char *tempname)
 
 #ifdef HAVE_MKSTEMP
 	resultfd = mkstemp(tempname);
+	goto end;
 #else /* HAVE_MKSTEMP : mkstemp がなければ自前の実装を使う */
 	char *s = tempname;
 	while (*s) s++;

@@ -23,16 +23,20 @@
 #include "util.h"
 
 
+enum tildeexpandtype { te_none, te_single, te_multi };
+
 bool expand_line(char *const *args, int *argc, char ***argv)
 	__attribute__((nonnull(2,3)));
 char *expand_single(const char *arg, bool pathexp)
 	__attribute__((nonnull));
-char *expand_word(const char *s, bool multitilde)
+char *expand_word(const char *s, enum tildeexpandtype type, bool alwaysindq)
 	__attribute__((nonnull));
 void append_splitting(const char *str, struct strbuf *buf, struct plist *list,
 		const char *ifs, const char *q)
 	__attribute__((nonnull(1,2,3,4)));
 char *unescape(char *s)
+	__attribute__((malloc));
+char *unescape_here_document(char *s)
 	__attribute__((malloc));
 void escape_sq(const char *s, struct strbuf *buf)
 	__attribute__((nonnull));

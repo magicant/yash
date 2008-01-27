@@ -438,7 +438,8 @@ bool assign_variables(char **assigns, bool temp, bool export)
 		name[namelen] = '\0';
 		assert(namelen > 0 && assign[namelen] == '=');
 
-		char *value = unescape(expand_word(assign + namelen + 1, true));
+		char *value = unescape(
+				expand_word(assign + namelen + 1, te_multi, false));
 		if (!value) {
 			return false;
 		}

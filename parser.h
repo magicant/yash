@@ -43,12 +43,16 @@ typedef struct x_statement STATEMENT;
 struct x_redirect {
 	REDIR *next;
 	enum redirect_type {
-		RT_INPUT, RT_OUTPUT, RT_APPEND, RT_INOUT, RT_DUPIN, RT_DUPOUT,
+		RT_INPUT, RT_OUTPUT, RT_OUTCLOB, RT_APPEND, RT_INOUT,
+		RT_DUPIN, RT_DUPOUT, RT_HERE,    RT_HERERT,
 	}      rd_type;
-	int    rd_fd;      /* リダイレクトするファイルディスクリプタ */
-	char  *rd_file;    /* リダイレクト先のファイル名 (常に非 NULL) */
+	int    rd_fd;           /* リダイレクトするファイルディスクリプタ */
+	char  *rd_value;        /* リダイレクトの引数 (常に非 NULL) */
+	char  *rd_herecontent;  /* ヒアドキュメントの内容 */
 };
-/* 例えば '2>&1' では、rd_fd = 2, rd_file = "1" となる。 */
+/* 例えば '2>&1' では、rd_fd = 2, rd_value = "1" となる。 */
+/* rd_herecontent は実際のヒアドキュメントの内容。RT_HERERT では、内容を
+ * 読み取った段階で予め行頭のタブを除いておく。 */
 
 /* パイプラインに含まれる一つのプロセス */
 struct x_process {

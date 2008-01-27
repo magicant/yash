@@ -19,6 +19,7 @@
 #include "common.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -461,7 +462,7 @@ static pid_t exec_single(
 				.next = p->p_redirs,
 				.rd_type = RT_INOUT,
 				.rd_fd = STDIN_FILENO,
-				.rd_file = xstrdup("/dev/null"),
+				.rd_value = xstrdup("/dev/null"),
 			};
 			p->p_redirs = r;
 		}
@@ -532,9 +533,13 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		int fd, flags;
 
 		/* rd_file を展開する */
-		exp = expand_single(r->rd_file, is_interactive);
-		if (!exp)
-			goto returnfalse;
+		if (r->rd_type != RT_HERE && r->rd_type != RT_HERERT) {
+			exp = expand_single(r->rd_value, is_interactive);
+			if (!exp)
+				goto returnfalse;
+		} else {
+			exp = NULL;
+		}
 
 		/* リダイレクトをセーブする */
 		if (save) {
@@ -566,15 +571,26 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		switch (r->rd_type) {
 			case RT_INPUT:
 				flags = O_RDONLY;
-				break;
+				goto openwithflags;
 			case RT_OUTPUT:
+				if (false) {  // TODO noclobber
+					flags = O_WRONLY | O_CREAT | O_EXCL;
+					goto openwithflags;
+				}
+				/* falls thru! */
+			case RT_OUTCLOB:
 				flags = O_WRONLY | O_CREAT | O_TRUNC;
-				break;
+				goto openwithflags;
 			case RT_APPEND:
 				flags = O_WRONLY | O_CREAT | O_APPEND;
-				break;
+				goto openwithflags;
 			case RT_INOUT:
 				flags = O_RDWR | O_CREAT;
+openwithflags:
+				fd = open(exp, flags, S_IRUSR | S_IWUSR | S_IRGRP
+						| S_IWGRP | S_IROTH | S_IWOTH);
+				if (fd < 0)
+					goto onerror;
 				break;
 			case RT_DUPIN:
 			case RT_DUPOUT:
@@ -624,16 +640,87 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 					}
 				}
 				goto next;
+			case RT_HERE:
+			case RT_HERERT:;
+				char *content;
+				if (strpbrk(r->rd_value, "\"'\\"))
+					content = r->rd_herecontent;
+				else
+					content = unescape_here_document(
+							expand_word(r->rd_herecontent, te_none, true));
+				
+				size_t len = strlen(content);
+				if (len <= PIPE_BUF) {
+					/* ヒアドキュメントの内容をパイプを使って渡す */
+					int pipefd[2];
+					if (pipe(pipefd) < 0) {
+						if (content != r->rd_herecontent)
+							free(content);
+						goto onerror;
+					}
+					ssize_t wr = write(pipefd[1], content, len);
+					if (wr < 0) {
+						int saveerrno = errno;
+						close(pipefd[0]);
+						close(pipefd[1]);
+						errno = saveerrno;
+						if (content != r->rd_herecontent)
+							free(content);
+						goto onerror;
+					}
+					/* パイプへの PIPE_BUF バイト以内の書き込みは、必ず全て
+					 * 書き込めることが保証されている */
+					assert((size_t) wr == len);
+					close(pipefd[1]);
+					fd = pipefd[0];
+				} else {
+					/* ヒアドキュメントの内容を一時ファイルを使って渡す */
+					errno = 0;
+					char tempfile[] = "/tmp/yash-XXXXXX";
+					fd = xmkstemp(tempfile);
+					if (fd < 0) {
+						if (content != r->rd_herecontent)
+							free(content);
+						goto onerror;
+					}
+					if (unlink(tempfile) < 0) {
+						xerror(0, errno,
+								"failed to remove temporary file `%s'",
+								tempfile);
+						close(fd);
+						if (content != r->rd_herecontent)
+							free(content);
+						goto returnfalse;
+					}
+					/* 一時ファイルにヒアドキュメントを書き出す */
+					size_t off = 0;
+					while (off < len) {
+						size_t rem = len - off;
+						if (rem > SSIZE_MAX)
+							rem = SSIZE_MAX;
+						ssize_t count = write(fd, content + off, rem);
+						if (count < 0) {
+							xerror(0, errno, "redirect: %s: "
+									"failed to write temporary file",
+									r->rd_value);
+							break;
+						}
+						off += count;
+					}
+					/* ファイルディスクリプタを先頭に戻す */
+					if (lseek(fd, 0, SEEK_SET) == (off_t) -1)
+						xerror(0, errno, "redirect :%s", r->rd_value);
+					/* XXX: ファイルディスクリプタを読み取り専用にすべき? */
+				}
+				if (content != r->rd_herecontent)
+					free(content);
+				break;
 			default:
 				assert(false);
 		}
-		fd = open(exp, flags,
-				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		if (fd < 0) goto onerror;
 		if (fd != r->rd_fd) {
-			if (close(r->rd_fd) < 0)
-				if (errno != EBADF)
-					goto onerror;
+			if (close(r->rd_fd) < 0 && errno != EBADF)
+				xerror(0, errno, "redirect: %s", r->rd_value);
 			if (xdup2(fd, r->rd_fd) < 0)
 				goto onerror;
 			if (close(fd) < 0)
@@ -648,7 +735,7 @@ next:
 	return true;
 
 onerror:
-	xerror(0, errno, "redirect: %s", r->rd_file);
+	xerror(0, errno, "redirect: %s", r->rd_value);
 returnfalse:
 	free(exp);
 	if (save) *save = s;
