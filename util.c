@@ -406,7 +406,7 @@ int xgetopt_long(char *const *restrict argv, const char *restrict optstring,
 			xoptind++;
 			continue;
 		}
-		if (arg[0] == '=' && arg[1] == '-') {  /* arg は "--" で始まる */
+		if (arg[0] == '-' && arg[1] == '-') {  /* arg は "--" で始まる */
 			char *arg2 = arg + 2;
 			if (!*arg2) {  /* arg == "--" */
 				argshift(argv, xoptind, initind);
