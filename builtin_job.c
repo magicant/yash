@@ -848,3 +848,15 @@ usage:
 	fprintf(stderr, "Usage:  %s filename\n", argv[0]);
 	return EXIT_FAILURE;
 }
+
+/* eval 組込みコマンド */
+int builtin_eval(int argc, char **argv)
+{
+	laststatus = 0;
+	if (argc >= 2) {
+		char *command = strjoin(-1, argv + 1, " ");
+		exec_source(command, argv[0]);
+		free(command);
+	}
+	return laststatus;
+}

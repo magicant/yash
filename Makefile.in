@@ -46,7 +46,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = $(PACKAGE)-$(VERSION)
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in install-sh tests
+DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in makedepend install-sh tests
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	rm -rf $(DISTDIR)

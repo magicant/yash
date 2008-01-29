@@ -1,6 +1,5 @@
 既知のバグ・未実装機能・その他やるべきことの一覧
 
-Makefile の依存関係部分を自動生成
 README.html を本来の README とマニュアルに分離
 async コマンドの stdin は /dev/null よりリダイレクトを優先
 readline 補完の充実
@@ -20,7 +19,6 @@ jobspec で %+, %- をサポート
 
 未実装構文要素 (+: 未実装、-: 不完全)
 + >| リダイレクト
-+ ヒアドキュメント
 - { ... } 
    * リダイレクトがあってもサブシェルで実行しない。
      * 要 save_redirect 方式修正
@@ -38,7 +36,6 @@ jobspec で %+, %- をサポート
 組込みコマンド (+: 未実装、-: 不完全)
 + bind
 + builtin
-- cd
 + command
 + compgen
 + complete
@@ -46,7 +43,6 @@ jobspec で %+, %- をサポート
 + dirs
 - disown
 + echo
-+ eval
 - export
 + fc
 - fg
@@ -56,7 +52,6 @@ jobspec で %+, %- をサポート
 + newgrp
 + popd
 + pushd
-+ pwd
 + read
 + readonly
 + set

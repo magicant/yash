@@ -35,7 +35,7 @@
 
 
 /* path に含まれるディレクトリを走査し、ファイル名 name のフルパスを得る。
- * name が "/" か "./" か "../" で始まるなら、無条件で name のコピーを返す。
+ * name が "/" で始まるなら、無条件で name のコピーを返す。
  * name:   探すファイル名
  * path:   PATH 環境変数のような、":" で区切ったディレクトリ名のリスト。
  *         NULL ならカレントディレクトリから探す。
@@ -51,18 +51,8 @@ char *which(const char *name, const char *path, bool (*cond)(const char *name))
 		return NULL;
 	if (!path)
 		path = "";
-#if 0
-	if (matchprefix(name, "/") || matchprefix(name, "./")
-			|| matchprefix(name, "../")
-			|| strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
-#else
-	if (name[0] == '/' ||
-			(name[0] == '.' && (name[1] == '\0' || name[1] == '/' ||
-				 (name[1] == '.' && (name[2] == '\0' || name[2] == '/')))))
-#endif
-	{
+	if (name[0] == '/')
 		return xstrdup(name);
-	}
 
 	size_t namelen = strlen(name);
 	for (;;) {

@@ -33,6 +33,7 @@ BUILTIN *get_builtin(const char *name);
 int builtin_true(int argc, char **argv);
 int builtin_false(int argc, char **argv);
 int builtin_cd(int argc, char **argv);
+int builtin_pwd(int argc, char **argv);
 int builtin_type(int argc, char **argv);
 int builtin_umask(int argc, char **argv);
 int builtin_history(int argc, char **argv);
@@ -50,6 +51,7 @@ int builtin_disown(int argc, char **argv);
 int builtin_fg(int argc, char **argv);
 int builtin_exec(int argc, char **argv);
 int builtin_source(int argc, char **argv);
+int builtin_eval(int argc, char **argv);
 
 int builtin_export(int argc, char **argv);
 int builtin_unset(int argc, char **argv);

@@ -67,6 +67,7 @@ static struct builtin_info {
 	{ "true",    { builtin_true,    false }},
 	{ "false",   { builtin_false,   false }},
 	{ "cd",      { builtin_cd,      false }},
+	{ "pwd",     { builtin_pwd,     false }},
 	{ "type",    { builtin_type,    false }},
 	{ "umask",   { builtin_umask,   false }},
 	{ "history", { builtin_history, false }},
@@ -89,6 +90,7 @@ static struct builtin_info {
 	{ "exec",    { builtin_exec,    true  }},
 	{ ".",       { builtin_source,  true  }},
 	{ "source",  { builtin_source,  true  }},
+	{ "eval",    { builtin_eval,    true  }},
 
 	/* builtin_var.c の組込みコマンド */
 	{ "export",  { builtin_export,  true  }},
@@ -134,40 +136,152 @@ int builtin_false(int argc __attribute__((unused)),
 /* cd 組込みコマンド */
 int builtin_cd(int argc, char **argv)
 {
+	bool logical = true, print = false;
 	const char *newpwd, *oldpwd;
 	char *path;
+	int opt;
 
-	if (argc < 2) {
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "LP")) >= 0) {
+		switch (opt) {
+			case 'L':
+				logical = true;
+				break;
+			case 'P':
+				logical = false;
+				break;
+			default:
+				goto usage;
+		}
+	}
+
+	oldpwd = getvar(VAR_PWD);
+	if (!oldpwd || !*oldpwd) {
+		char *path = xgetcwd();
+		if (!path) {
+			xerror(0, errno, "%s: cannot identify current directory", argv[0]);
+			return EXIT_FAILURE;
+		}
+		setvar(VAR_PWD, path, false);
+		oldpwd = getvar(VAR_PWD);
+		assert(oldpwd);
+	}
+
+	if (xoptind >= argc) {
 		newpwd = getvar(VAR_HOME);
 		if (!newpwd) {
 			xerror(0, 0, "%s: HOME directory not specified", argv[0]);
 			return EXIT_FAILURE;
 		}
 	} else {
-		newpwd = argv[1];
+		newpwd = argv[xoptind];
 		if (strcmp(newpwd, "-") == 0) {
 			newpwd = getvar(VAR_OLDPWD);
+			print = true;
 			if (!newpwd) {
 				xerror(0, 0, "%s: OLDPWD directory not specified", argv[0]);
 				return EXIT_FAILURE;
-			} else {
-				printf("%s\n", newpwd);
 			}
 		}
 	}
-	oldpwd = getvar(VAR_PWD);
-	if (chdir(newpwd) < 0) {
-		xerror(0, errno, "%s: %s", argv[0], newpwd);
-		return EXIT_FAILURE;
+
+#if 0
+	if (matchprefix(newpwd, "./") || matchprefix(newpwd, "../")
+			|| strcmp(newpwd, ".") == 0 || strcmp(newpwd, "..") == 0)
+#else
+	if ((newpwd[0] == '.' && (newpwd[1] == '\0' || newpwd[1] == '/' ||
+			 (newpwd[1] == '.' && (newpwd[2] == '\0' || newpwd[2] == '/')))))
+#endif
+		path = NULL;
+	else
+		path = which(newpwd, getvar(VAR_CDPATH), is_directory);
+	if (!path) {
+		struct strbuf buf;
+		sb_init(&buf);
+		sb_append(&buf, oldpwd);
+		sb_cappend(&buf, '/');
+		sb_append(&buf, newpwd);
+		path = sb_tostr(&buf);
 	}
-	if (oldpwd) {
-		setvar(VAR_OLDPWD, oldpwd, false);
-	}
-	if ((path = xgetcwd())) {
-		setvar(VAR_PWD, path, false);
+	if (logical) {
+		char *curpath = canonicalize_path(path);
 		free(path);
+		if (chdir(curpath) < 0) {
+			xerror(0, errno, "%s: %s", argv[0], curpath);
+			free(curpath);
+			return EXIT_FAILURE;
+		}
+		setvar(VAR_OLDPWD, oldpwd, false);
+		setvar(VAR_PWD, curpath, false);
+		if (print)
+			printf("%s\n", curpath);
+		free(curpath);
+	} else {
+		if (chdir(path) < 0) {
+			xerror(0, errno, "%s: %s", argv[0], path);
+			free(path);
+			return EXIT_FAILURE;
+		}
+		free(path);
+		setvar(VAR_OLDPWD, oldpwd, false);
+		if ((path = xgetcwd())) {
+			setvar(VAR_PWD, path, false);
+			if (print)
+				printf("%s\n", path);
+			free(path);
+		}
 	}
 	return EXIT_SUCCESS;
+
+usage:
+	fprintf(stderr, "Usage:  cd [-L|-P] dir\n");
+	return EXIT_FAILURE;
+}
+
+/* pwd 組込みコマンド */
+int builtin_pwd(int argc __attribute__((unused)), char **argv)
+{
+	bool logical = true;
+	int opt;
+
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "LP")) >= 0) {
+		switch (opt) {
+			case 'L':
+				logical = true;
+				break;
+			case 'P':
+				logical = false;
+				break;
+			default:
+				goto usage;
+		}
+	}
+
+	if (logical) {
+		const char *pwd = getvar(VAR_PWD);
+		if (!pwd)
+			goto notlogical;
+		printf("%s\n", pwd);
+	} else {
+notlogical:;
+		char *pwd = xgetcwd();
+		if (!pwd) {
+			xerror(0, errno, "%s", argv[0]);
+			return EXIT_FAILURE;
+		}
+		if (posixly_correct)
+			setvar(VAR_PWD, pwd, false);
+		printf("%s\n", pwd);
+		free(pwd);
+	}
+	return EXIT_SUCCESS;
+
+usage:
+	fprintf(stderr, "Usage:  pwd [-L|-P]\n");
+	return EXIT_FAILURE;
 }
 
 /* type 組込みコマンド */
