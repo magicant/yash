@@ -332,17 +332,21 @@ static void argshift(char *const *argv, int from, int to /* <= from */)
  *            長いオプションを認識したときは、下記説明を参照。
  *            optstring や longopts に無いオプションが出たときは '?'。
  *            もうオプションがない時は、-1。
- * posixly_correct || optstring[0] == '+' の時を除いて、argv の中の文字列は
+ * posixly_correct || '+' フラグありの時を除いて、argv の中の文字列は
  * オプションとそれ以外の引数が混ざっていてもよい。この場合、全てのオプションを
  * 認識し終えて -1 を返した時点で、全てのオプションがそれ以外の引数よりも前に
  * 来るように argv の中の文字列は並び変わっている。(認識できないオプションが
  * あった場合を除く)
- * posixly_correct || optstring[0] == '+' の時は、オプションでない引数が一つでも
+ * posixly_correct || '+' フラグありの時は、オプションでない引数が一つでも
  * 出た時点で認識は終了する。(よって、argv は並び変わらない)
  * いづれの場合も、-1 を返した時点で、argv[xoptind] はオプションでない最初の
  * 引数である。-1 が返ったら、それ以上 xgetopt_long を呼んではいけない。
  * それまでは、毎回同じ引数で xgetopt_long を呼ぶこと。とくに、途中で
  * argv や xoptind を外から書き換えてはいけない。
+ * '*' フラグありの時は、'+' で始まる一文字のオプションも認識する。
+ * '+' で始まるオプションを認識すると、xoptopt が '+' になる。
+ * '+'/'*' フラグは optstring の先頭に付ける。
+ * '+' フラグは '*' より先に指定する。
  * struct xoption のメンバの意味は以下の通り:
  * name:     長いオプションの名前。("--" より後の部分)
  *           引数ありのオプションの名前に '=' が入っているとうまく動かない。
@@ -362,7 +366,9 @@ static void argshift(char *const *argv, int from, int to /* <= from */)
  *          ポインタが xoptarg に入る。xoptional_argument で引数がない場合、
  *          NULL ポインタが入る。
  * xoptopt: optstring に無い一文字のオプションがあると、その文字が xoptopt に
- *          入る。
+ *          入る。optstring にある一文字のオプションを認識したとき、オプションが
+ *          '-' で始まるか '+' で始まるかによって '-' と '+' のどちらかが入る。
+ *          長いオプションを認識したときは '-' になる。
  * xopterr: true なら、optstring や longopts に無いオプションが出たときに
  *          エラーメッセージを stderr に出力する。
  */
@@ -377,20 +383,30 @@ int xgetopt_long(char *const *restrict argv, const char *restrict optstring,
 	int initind;
 	char *arg;
 	static int aindex;
+	bool optionsfirst = posixly_correct, plus = false;
 
 	if (xoptind == 0) {
 		aindex = 1;
 		xoptind = 1;
 	}
+	if (optstring[0] == '+') {
+		optionsfirst = true;
+		optstring++;
+	}
+	if (optstring[0] == '*') {
+		plus = true;
+		optstring++;
+	}
+
 	initind = xoptind;
 	while ((arg = argv[xoptind])) {
-		if (arg[0] != '-' || !arg[1]) {
-			if (posixly_correct || optstring[0] == '+')
+		if ((arg[0] != '-' && (!plus || (arg[0] != '+'))) || !arg[1]) {
+			if (optionsfirst)
 				break;
 			xoptind++;
 			continue;
 		}
-		if (arg[1] == '-') {  /* arg は "--" で始まる */
+		if (arg[0] == '=' && arg[1] == '-') {  /* arg は "--" で始まる */
 			char *arg2 = arg + 2;
 			if (!*arg2) {  /* arg == "--" */
 				argshift(argv, xoptind, initind);
@@ -423,6 +439,7 @@ int xgetopt_long(char *const *restrict argv, const char *restrict optstring,
 long_found:
 			if (longindex)
 				*longindex = matchidx;
+			xoptopt = '-';
 			if (longopts[matchidx].has_arg) {
 				char *eq = strchr(arg2, '=');
 				if (!eq && longopts[matchidx].has_arg == xrequired_argument) {
@@ -447,6 +464,7 @@ long_found:
 			}
 		} else {  /* 一文字のオプションを解析 */
 			char argchar = arg[aindex];
+			xoptopt = arg[0];
 			optstring = strchr(optstring, argchar);
 			if (!optstring) {
 				xoptopt = argchar;

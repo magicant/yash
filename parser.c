@@ -482,6 +482,10 @@ static REDIR *tryparse_redir(void)
 					type = RT_DUPOUT;
 					start = &symbol[2];
 					break;
+				case '|':
+					type = RT_OUTCLOB;
+					start = &symbol[2];
+					break;
 				default:
 					type = RT_OUTPUT;
 					start = &symbol[1];

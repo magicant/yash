@@ -41,7 +41,6 @@ jobspec で %+, %- をサポート
 + complete
 + declare/typeset/let/local
 + dirs
-- disown
 + echo
 - export
 + fc

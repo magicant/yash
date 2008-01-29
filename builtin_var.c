@@ -28,6 +28,63 @@
 #include <assert.h>
 
 
+/* declare/export 組込みコマンド
+ * -x: 変数を export 対象にする
+ * -n: 変数を非 export 対象にする
+ * -p: 変数を一覧表示する。 */
+/* TODO
+int builtin_declare(int argc, char **argv)
+{
+	bool exp = false, unexp = false, print = false;
+	int opt;
+
+	if (argc <= 1)
+		print = true;
+	if (strcmp(argv[0], "export") == 0)
+		exp = true;
+	xoptind = 0;
+	xopterr = true;
+	while ((opt = xgetopt(argv, "+*xnp")) >= 0) {
+		if (xoptopt != '+') switch (opt) {
+			case 'x':
+				exp = true;
+				unexp = false;
+				break;
+			case 'n':
+				exp = false;
+				unexp = true;
+				break;
+			case 'p':
+				print = true;
+				break;
+			default:
+				goto usage:
+		} else switch (opt) {
+			case 'n':
+				exp = true;
+				unexp = false;
+				break;
+			case 'x':
+				exp = false;
+				unexp = true;
+				break;
+			default:
+				goto usage:
+		}
+	}
+
+	if (print) {
+
+	}
+
+usage:
+	fprintf(stderr, "Usage:  %s [-p]\n", argv[0]);
+	fprintf(stderr, "    or  %s [-nx] name[=value]...\n", argv[0]);
+	return EXIT_FAILURE;
+}
+*/
+
+
 /* export 組込みコマンド
  * -n: 環境変数を削除する */
 int builtin_export(int argc, char **argv)

@@ -686,7 +686,11 @@ static struct compinfo *define_completion(
 	if (index < 0)
 		goto command_completion;
 	switch (rl_line_buffer[index]) {
-		case '|':  case '&':  case ';':  case '(':
+		case '|':
+			if (index > 0 && rl_line_buffer[index - 1] == '>')
+				goto filename_completion;
+			/* falls thru! */
+		case '&':  case ';':  case '(':
 command_completion:
 			/* コマンド名の補完 */
 			tempinfo = (struct compinfo) {
@@ -694,11 +698,14 @@ command_completion:
 					| CT_GALIAS | CT_FUNC | CT_RUNNING | CT_STOPPED
 			};
 			return &tempinfo;
+		case '>':  case '<':
+			goto filename_completion;
 	}
 
 	//XXX コマンド名を見て info を変える */
 
 	/* ファイル名の補完 */
+filename_completion:
 	tempinfo = (struct compinfo) {
 		.type = CT_FILE | CT_DIR | CT_GALIAS
 	};
