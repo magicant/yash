@@ -371,6 +371,53 @@ bool unsetvar(const char *name)
 	return true;
 }
 
+/* 変数環境を拡張する。 */
+void extend_environment(void)
+{
+	struct environment *newenv = xmalloc(sizeof *newenv);
+	newenv->parent = current_env;
+	ht_init(&newenv->variables);
+	pl_init(&newenv->positionals);
+	pl_append(&newenv->positionals, NULL);
+	current_env = newenv;
+}
+
+/* unextend_environment で使う内部関数。変数を解放する。 */
+int delete_variable(const char *name __attribute__((unused)), void *v)
+{
+	struct variable *var = v;
+	bool oldvarexport = var->flags & VF_EXPORT;
+	free(var->value);
+	free(var);
+
+	/* 親環境に同名の変数があれば、environ の内容をそれに合わせる */
+	var = get_variable(name, false);
+	if (!var || !var->value || !(var->flags & VF_EXPORT))
+		unsetenv(name);
+	else if (!getenv(name) && oldvarexport)
+		setenv(name, var->value, true);
+	return 0;
+}
+
+/* 変数環境を閉じる */
+void unextend_environment(void)
+{
+	struct environment *env = current_env;
+	current_env = env->parent;
+
+	struct plist *pos = &env->positionals;
+	for (size_t i = 1; i < pos->length; i++)
+		free(pos->contents[i]);
+	pl_destroy(pos);
+
+	struct hasht *vars = &env->variables;
+	ht_each(vars, delete_variable);
+	ht_destroy(vars);
+	free(env);
+
+	assert(current_env);
+}
+
 /* 変数を export 対象にする。
  * 戻り値: 成功したかどうか */
 bool export(const char *name)

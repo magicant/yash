@@ -82,6 +82,8 @@ struct hasht *get_variable_table(void);
 struct plist *getarray(const char *name);
 bool unsetvar(const char *name)
 	__attribute__((nonnull));
+void extend_environment(void);
+void unextend_environment(void);
 bool export(const char *name)
 	__attribute__((nonnull));
 void unexport(const char *name)

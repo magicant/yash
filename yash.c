@@ -40,15 +40,6 @@
 #include <assert.h>
 
 
-int exec_file(const char *path, bool suppresserror);
-int exec_file_exp(const char *path, bool suppresserror);
-int exec_source(const char *code, const char *name);
-void exec_source_and_exit(const char *code, const char *name);
-void set_unique_pgid(void);
-void restore_pgid(void);
-void forget_orig_pgrp(void);
-void set_shell_env(void);
-void unset_shell_env(void);
 static int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__((noreturn));
 int main(int argc, char **argv);
@@ -78,7 +69,7 @@ char *prompt_command = NULL;
 /* 指定したファイルをシェルスクリプトとしてこのシェルの中で実行する
  * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
-int exec_file(const char *path, bool suppresserror)
+int exec_file(const char *path, char *const *positionals, bool suppresserror)
 {
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
@@ -109,6 +100,9 @@ int exec_file(const char *path, bool suppresserror)
 		.inputinfo = &finfo,
 	};
 	int result;
+	extend_environment();
+	if (positionals)
+		set_positionals(positionals);
 	for (;;) {
 		STATEMENT *statements;
 		switch (read_and_parse(&info, &statements)) {
@@ -128,6 +122,7 @@ int exec_file(const char *path, bool suppresserror)
 		}
 	}
 end:
+	unextend_environment();
 	if (close(fd) != 0)
 		xerror(0, errno, "%s", path);
 	return result;
@@ -143,11 +138,11 @@ int exec_file_exp(const char *path, bool suppresserror)
 		char *newpath = expand_tilde(path);
 		if (!newpath)
 			return -1;
-		int result = exec_file(newpath, suppresserror);
+		int result = exec_file(newpath, NULL, suppresserror);
 		free(newpath);
 		return result;
 	} else {
-		return exec_file(path, suppresserror);
+		return exec_file(path, NULL, suppresserror);
 	}
 }
 
@@ -428,8 +423,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		is_interactive = is_interactive_now = false;
 		set_shell_env();
 		command_name = argv[xoptind];
-		set_positionals(argv + xoptind + 1);
-		exec_file(command_name, false /* don't suppress error */);
+		exec_file(command_name, argv + xoptind + 1, false);
 		exit(laststatus);
 	}
 	if (is_interactive) {

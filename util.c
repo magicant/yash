@@ -475,6 +475,8 @@ long_found:
 				aindex = 1;
 				if (!*xoptarg && optstring[2] != ':') {
 					xoptarg = argv[xoptind + 1];
+					if (!xoptarg)
+						goto missingarg;
 					argshift(argv, xoptind, initind);
 					argshift(argv, xoptind + 1, initind + 1);
 					xoptind = initind + 2;
@@ -512,6 +514,11 @@ ambig:
 nosuchopt:
 	if (xopterr)
 		xerror(0, 0, "%s: %s: invalid option", argv[0], argv[xoptind]);
+	xoptind++;
+	return '?';
+missingarg:
+	if (xopterr)
+		xerror(0, 0, "%s: %s: argument missing", argv[0], argv[xoptind]);
 	xoptind++;
 	return '?';
 }
