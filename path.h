@@ -25,6 +25,7 @@
 
 char *which(const char *name, const char *path, bool (*cond)(const char *name))
 	__attribute__((malloc));
+bool is_readable(const char *path);
 bool is_executable(const char *path);
 bool is_directory(const char *path);
 char *expand_tilde(const char *path)

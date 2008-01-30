@@ -67,14 +67,28 @@ bool posixly_correct;
 char *prompt_command = NULL;
 
 /* 指定したファイルをシェルスクリプトとしてこのシェルの中で実行する
+ * path:   実行するファイル名。'/' を含まなければ、PATH から探索する。
  * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない
+ *         false なら、非対話的シェルでファイルが読み込めなければ終了する。
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
 int exec_file(const char *path, char *const *positionals, bool suppresserror)
 {
-	int fd = open(path, O_RDONLY);
+	char *rpath = NULL;
+	if (strchr(path, '/') == NULL) {
+		rpath = which(path, getenv(VAR_PATH), is_readable);
+		if (!rpath) {
+			if (!suppresserror)
+				xerror(is_interactive_now ? 0 : EXIT_FAILURE,
+						ENOENT, "%s", path);
+			return -1;
+		}
+	}
+
+	int fd = open(rpath ? rpath : path, O_RDONLY);
+	free(rpath);
 	if (fd < 0) {
 		if (!suppresserror)
-			xerror(0, errno, "%s", path);
+			xerror(is_interactive_now ? 0 : EXIT_FAILURE, errno, "%s", path);
 		return -1;
 	}
 	/* SHELLFD 以上のファイルディスクリプタで開くことを保証する。 */
@@ -90,6 +104,7 @@ int exec_file(const char *path, char *const *positionals, bool suppresserror)
 		fd = newfd;
 	}
 
+	bool executed = false;
 	struct fgetline_info finfo = {
 		.fd = fd,
 	};
@@ -110,14 +125,18 @@ int exec_file(const char *path, char *const *positionals, bool suppresserror)
 				if (statements) {
 					exec_statements(statements);
 					statementsfree(statements);
+					executed = true;
 				}
 				break;
 			case EOF:
 				result = 0;
+				if (!executed)
+					laststatus = EXIT_SUCCESS;
 				goto end;
 			case 1:  /* syntax error */
 			default:
 				result = -1;
+				laststatus = 2;
 				goto end;
 		}
 	}
@@ -130,7 +149,7 @@ end:
 
 /* ファイルをシェルスクリプトとして実行する。
  * path: ファイルのパス。'~' で始まるならホームディレクトリを展開して
- *       ファイルを探す。
+ *       ファイルを探す。'/' を含まなければ、PATH から探索する。
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
 int exec_file_exp(const char *path, bool suppresserror)
 {
@@ -155,6 +174,7 @@ int exec_source(const char *code, const char *name)
 	if (!code)
 		return 0;
 
+	bool executed = false;
 	struct sgetline_info sinfo = {
 		.src = code,
 		.offset = 0,
@@ -172,12 +192,16 @@ int exec_source(const char *code, const char *name)
 				if (statements) {
 					exec_statements(statements);
 					statementsfree(statements);
+					executed = true;
 				}
 				break;
 			case EOF:
+				if (!executed)
+					laststatus = EXIT_SUCCESS;
 				return 0;
 			case 1:  /* syntax error */
 			default:
+				laststatus = 2;
 				return -1;
 		}
 	}
@@ -265,7 +289,15 @@ void set_shell_env(void)
 				if (!noprofile)
 					exec_file_exp("~/.yash_profile", true /* suppress error */);
 			} else if (!norc) {
-				exec_file_exp(rcfile, true /* suppress error */);
+				if (rcfile[0] == '/' || rcfile[0] == '~') {
+					exec_file_exp(rcfile, true /* suppress error */);
+				} else {
+					char rcfile2[strlen(rcfile) + 3];
+					rcfile2[0] = '.';
+					rcfile2[1] = '/';
+					strcpy(rcfile2 + 2, rcfile);
+					exec_file_exp(rcfile2, true /* suppress error */);
+				}
 			}
 			initialized = true;
 		}

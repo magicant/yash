@@ -78,6 +78,14 @@ char *which(const char *name, const char *path, bool (*cond)(const char *name))
 	return NULL;
 }
 
+/* path が読み込み可能な通常のファイルであるか判定する */
+bool is_readable(const char *path)
+{
+	struct stat st;
+	return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
+		&& access(path, R_OK) == 0;
+}
+
 /* path が実行可能な通常のファイルであるか判定する */
 bool is_executable(const char *path)
 {
