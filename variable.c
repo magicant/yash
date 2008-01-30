@@ -175,6 +175,13 @@ void init_var(void)
 		}
 	}
 
+	/* PPID 変数を設定する */
+	{
+		char s[INT_STRLEN_BOUND(pid_t) + 1];
+		if (sprintf(s, "%jd", (intmax_t) getppid()) >= 0)
+			setvar(VAR_PPID, s, false);
+	}
+
 	/* PATH 環境変数にセッターを設定する。 */
 	var = get_variable(VAR_PATH, false);
 	var->setter = path_setter;

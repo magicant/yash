@@ -32,6 +32,7 @@ extern char **environ;
 #define VAR_CDPATH          "CDPATH"
 #define VAR_IFS             "IFS"
 #define VAR_SHLVL           "SHLVL"
+#define VAR_PPID            "PPID"
 #define VAR_HOSTNAME        "HOSTNAME"
 #define VAR_POSIXLY_CORRECT "POSIXLY_CORRECT"
 #define VAR_LC_ALL          "LC_ALL"
