@@ -167,10 +167,12 @@ void init_var(void)
 	export(VAR_COLUMNS);
 
 	/* PWD 環境変数を設定する */
-	char *pwd = xgetcwd();
-	if (pwd) {
-		setvar(VAR_PWD, pwd, true);
-		free(pwd);
+	if (posixly_correct || !getvar(VAR_PWD)) {
+		char *pwd = xgetcwd();
+		if (pwd) {
+			setvar(VAR_PWD, pwd, true);
+			free(pwd);
+		}
 	}
 
 	/* PATH 環境変数にセッターを設定する。 */

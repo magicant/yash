@@ -205,6 +205,21 @@ int builtin_cd(int argc, char **argv)
 		path = sb_tostr(&buf);
 	}
 	if (logical) {
+		if (!posixly_correct && path[0] != '/') {
+			/* path が絶対パスでなければ oldpwd を前置して絶対パスに直す。
+			 * POSIX 仕様に厳密に従う動作をするため、posixly_correct が false
+			 * の時のみこれを行う。しかしこれはどちらかというと POSIX 仕様が
+			 * 間違っているのではないかという気もする。
+			 * なおここで path を絶対パスに直さない場合、PWD 環境変数に path が
+			 * 相対パスのまま入る。 */
+			struct strbuf buf;
+			sb_init(&buf);
+			sb_append(&buf, oldpwd);
+			sb_cappend(&buf, '/');
+			sb_append(&buf, path);
+			free(path);
+			path = sb_tostr(&buf);
+		}
 		char *curpath = canonicalize_path(path);
 		free(path);
 		if (chdir(curpath) < 0) {
@@ -262,7 +277,7 @@ int builtin_pwd(int argc __attribute__((unused)), char **argv)
 
 	if (logical) {
 		const char *pwd = getvar(VAR_PWD);
-		if (!pwd)
+		if (!pwd || pwd[0] != '/')
 			goto notlogical;
 		printf("%s\n", pwd);
 	} else {
