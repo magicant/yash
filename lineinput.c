@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#define NO_LINEINPUT_INLINE
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -63,8 +64,13 @@ static int check_inhibit_expansion(char *str, int index);
 static char *expand_prompt(const char *s)
 	__attribute__((nonnull));
 #ifdef USE_READLINE
+# if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION >= 0x0402
 static rl_completion_func_t yash_attempted_completion;
 static rl_compentry_func_t yash_completion_entry;
+# else
+static char **yash_attempted_completion(const char *text, int start, int end);
+static char *yash_completion_entry(const char *text, int noinit);
+# endif
 #endif
 
 
@@ -609,12 +615,12 @@ static char *expand_prompt(const char *s)
 				}
 				break;
 			case '[':
-#ifdef USE_READLINE
+#ifdef RL_PROMPT_START_IGNORE
 				sb_cappend(&result, RL_PROMPT_START_IGNORE);
 #endif
 				break;
 			case ']':
-#ifdef USE_READLINE
+#ifdef RL_PROMPT_END_IGNORE
 				sb_cappend(&result, RL_PROMPT_END_IGNORE);
 #endif
 				break;
@@ -630,6 +636,29 @@ static char *expand_prompt(const char *s)
 	}
 	return sb_tostr(&result);
 }
+
+
+/********** Readline 用補助関数 **********/
+
+#ifdef USE_READLINE
+
+/* 履歴のエントリを解放する */
+void *yash_free_history_entry(HIST_ENTRY *entry)
+{
+# if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION >= 0x0500
+	return free_history_entry(entry);
+# else
+	if (!entry)
+		return NULL;
+
+	void *result = entry->data;
+	free(entry->line);
+	free(entry);
+	return result;
+# endif
+}
+
+#endif /* USE_READLINE */
 
 
 /********** Readline 補完ルーチン **********/
@@ -658,7 +687,10 @@ static size_t comp_iter_index;
  * 戻り値: 補完候補への NULL 終端配列。 */
 static char **yash_attempted_completion(const char *text, int start, int end)
 {
-	const char *vv = rl_variable_value("completion-ignore-case");
+	const char *vv = NULL;
+#if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION >= 0x0501
+	vv = rl_variable_value("completion-ignore-case");
+#endif
 	ignorecase = vv && (strcmp(vv, "on") == 0);
 
 	currentinfo = define_completion(start, end);
@@ -731,7 +763,11 @@ static char *yash_completion_entry(const char *text, int noinit)
 	}
 
 	for (;;) {
+# if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION >= 0x0402
 		rl_compentry_func_t *compfunc;
+# else
+		char *(*compfunc)(const char *, int);
+# endif
 		switch (currenttype) {
 			case compfile:
 				if (currentinfo->type & (CT_FILE | CT_DIR)) {

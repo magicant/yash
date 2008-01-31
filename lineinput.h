@@ -20,10 +20,15 @@
 #define READLINE_H
 
 #include <stddef.h>
-
-
-/* シェルが自由に使えるファイルディスクリプタの最小値 */
-#define SHELLFD 10
+#ifdef USE_READLINE
+# ifdef HAVE_LIBREADLINE
+#  include <readline/readline.h>
+#  include <readline/history.h>
+# else
+#  include <readline.h>
+#  include <history.h>
+# endif
+#endif
 
 
 /* ソースを一行読み込んで返す関数。
@@ -61,6 +66,18 @@ struct sgetline_info {
 	const char *src;   /* 読み取るソースコード */
 	size_t offset;     /* 次に読み取る位置。最初は 0。 */
 };
+
+
+/***** Readline 用補助関数 *****/
+
+#ifdef USE_READLINE
+# ifndef NO_LINEINPUT_INLINE
+#  if defined(RL_READLINE_VERSION) && RL_READLINE_VERSION >= 0x0500
+#   define yash_free_history_entry(entry) free_history_entry(entry)
+#  endif
+# endif
+void *yash_free_history_entry(HIST_ENTRY *entry);
+#endif
 
 
 /***** Readline 補完 *****/

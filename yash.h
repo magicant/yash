@@ -29,6 +29,10 @@
 #define EXIT_NOTFOUND 127
 
 
+/* シェルが自由に使えるファイルディスクリプタの最小値 */
+#define SHELLFD 10
+
+
 extern const char *yash_program_invocation_name;
 extern const char *yash_program_invocation_short_name;
 extern const char *command_name;

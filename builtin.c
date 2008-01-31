@@ -418,7 +418,7 @@ int builtin_history(int argc, char **argv)
 					if (!entry)
 						return EXIT_FAILURE;
 					else
-						free_history_entry(entry);
+						free(yash_free_history_entry(entry));
 				}
 				return EXIT_SUCCESS;
 			case 'r':
@@ -441,7 +441,7 @@ int builtin_history(int argc, char **argv)
 					HIST_ENTRY *oldentry = replace_history_entry(
 							where_history() - 1, line, NULL);
 					if (oldentry)
-						free_history_entry(oldentry);
+						free(yash_free_history_entry(oldentry));
 					free(line);
 				}
 				return EXIT_SUCCESS;

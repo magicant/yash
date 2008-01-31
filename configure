@@ -22,6 +22,7 @@ configlog="config.log"
 configh="config.h"
 versionh="version.h"
 tempsrc=".temp.c"
+tempout=".temp.o"
 
 cc="c99"
 cflags="-O1 -g"
@@ -123,8 +124,8 @@ checkby () {
 	"$@" >&5 2>&1
 }
 trycompile () {
-	echo "%" ${cc} ${cflags} ${ldflags} "$@" -o /dev/null "${tempsrc}" >&5
-	${cc} ${cflags} ${ldflags} "$@" -o /dev/null "${tempsrc}" >&5 2>&1
+	echo "%" ${cc} ${cflags} ${ldflags} "$@" -o "${tempout}" "${tempsrc}" >&5
+	${cc} ${cflags} ${ldflags} "$@" -o "${tempout}" "${tempsrc}" >&5 2>&1
 }
 checked () {
 	echo "$1"
@@ -173,6 +174,8 @@ then
 	cat >"${tempsrc}" <<END
 #include <stdio.h>
 #include <readline/readline.h>
+void *x = &rl_filename_completion_function;  /* 古い libedit を除外する */
+void *y = &rl_attempted_completion_over;
 int main() { readline(""); return 0; }
 END
 	if trycompile -lreadline
@@ -313,4 +316,4 @@ cat >"${versionh}" <<END
 END
 
 
-rm -f "${tempsrc}"
+rm -f "${tempsrc}" "${tempout}"

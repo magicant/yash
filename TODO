@@ -1,6 +1,5 @@
 既知のバグ・未実装機能・その他やるべきことの一覧
 
-builtin_history を xgetopt で書き換え
 README.html を本来の README とマニュアルに分離
 async コマンドの stdin は /dev/null よりリダイレクトを優先
 readline 補完の充実
@@ -19,7 +18,6 @@ jobspec で %+, %- をサポート
 ワイド文字対応
 
 未実装構文要素 (+: 未実装、-: 不完全)
-+ >| リダイレクト
 - { ... } 
    * リダイレクトがあってもサブシェルで実行しない。
      * 要 save_redirect 方式修正
@@ -49,6 +47,7 @@ jobspec で %+, %- をサポート
 + getopts
 + help
 - history
+  xgetopt を使うように書き換え
 + newgrp
 + popd
 + pushd
@@ -57,7 +56,6 @@ jobspec で %+, %- をサポート
 + set
 + shift
 + shopt
-- ./source
 + times
 + trap
 + ulimit

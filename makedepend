@@ -24,13 +24,13 @@ do
 		*.c)
 		{
 			echo "${source%.c}.o:";
-			sed -f - "${source}" <<-END
-			/^#[[:blank:]]*include[[:blank:]]*"/ {
-				s/^#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
-				p
-			}
-			d
-			END
+			sed -e '
+				/^#[[:blank:]]*include[[:blank:]]*"/ {
+					s/^#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
+					p
+				}
+				d
+				' "${source}"
 		} | xargs
 	esac
 done
