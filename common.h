@@ -41,6 +41,11 @@
  * POSIX にない拡張機能は宣言されない (はずである)。
  * 以下に、configure で利用可能と判断したものについて手動で宣言を行う */
 
+#ifdef HAVE_STRNLEN
+#include <stddef.h>
+extern size_t strnlen(const char *, size_t);
+#endif
+
 #ifdef HAVE_STRSIGNAL
 extern char *strsignal(int);
 #endif

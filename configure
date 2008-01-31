@@ -201,6 +201,21 @@ END
 	fi
 fi
 
+# check for strnlen
+checking "for strnlen"
+cat >"${tempsrc}" <<END
+#include <stddef.h>
+size_t strnlen(const char*, size_t);
+int main() { return (int) strnlen("", 1); }
+END
+if trycompile
+then
+	checked "yes"
+	defconfigh "HAVE_STRNLEN"
+else
+	checked "no"
+fi
+
 # check for mkstemp
 checking "for mkstemp"
 cat >"${tempsrc}" <<END

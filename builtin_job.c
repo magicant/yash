@@ -841,7 +841,7 @@ int builtin_source(int argc, char **argv)
 		xerror(0, 0, "%s: filename not given", argv[0]);
 		goto usage;
 	}
-	exec_file(argv[1], argv + 2, false /* don't supress errors */);
+	exec_file(argv[1], argv + 2, true, false);
 	return laststatus;
 
 usage:

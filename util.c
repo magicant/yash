@@ -72,15 +72,26 @@ void *xrealloc(void *ptr, size_t size)
 	return result;
 }
 
+/* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
+ * つまり、長さが maxlen 以上なら maxlen を返す。 */
+size_t xstrnlen(const char *s, size_t maxlen)
+{
+#ifdef HAVE_STRNLEN
+	return strnlen(s, maxlen);
+#else
+	size_t result = 0;
+	while (result < maxlen && s[result]) result++;
+	return result;
+#endif
+}
+
 /* 文字列を新しく malloc した領域に複製する。
  * malloc に失敗するとプログラムを強制終了する。
  * len: 複製する文字列の長さ ('\0' を含まない)。
  *      len をいくら大きくしても strlen(s) より長い文字列にはならない。 */
 char *xstrndup(const char *s, size_t len)
 {
-	size_t reallen = strlen(s);
-	if (reallen < len)
-		len = reallen;
+	len = xstrnlen(s, len);
 
 	char *result = xmalloc(len + 1);
 	result[len] = '\0';
@@ -95,6 +106,7 @@ char *xstrdup(const char *s)
 }
 
 /* 文字列の配列のディープコピーを作る。失敗するとプログラムを強制終了する。 */
+/*
 char **strarydup(char *const *ary)
 {
 	size_t count;
@@ -107,6 +119,7 @@ char **strarydup(char *const *ary)
 		result[i] = xstrdup(ary[i]);
 	return result;
 }
+*/
 
 /* NULL 終端のポインタの配列の長さを求める。 */
 size_t parylen(void *const *ary)

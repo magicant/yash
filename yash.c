@@ -67,14 +67,16 @@ bool posixly_correct;
 char *prompt_command = NULL;
 
 /* 指定したファイルをシェルスクリプトとしてこのシェルの中で実行する
- * path:   実行するファイル名。'/' を含まなければ、PATH から探索する。
+ * path:   実行するファイル名。
+ * pathsearch: true なら path が相対パスのとき PATH から検索する。
  * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない
  *         false なら、非対話的シェルでファイルが読み込めなければ終了する。
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
-int exec_file(const char *path, char *const *positionals, bool suppresserror)
+int exec_file(const char *path, char *const *positionals,
+		bool pathsearch, bool suppresserror)
 {
 	char *rpath = NULL;
-	if (strchr(path, '/') == NULL) {
+	if (pathsearch && strchr(path, '/') == NULL) {
 		rpath = which(path, getenv(VAR_PATH), is_readable);
 		if (!rpath) {
 			if (!suppresserror)
@@ -149,7 +151,7 @@ end:
 
 /* ファイルをシェルスクリプトとして実行する。
  * path: ファイルのパス。'~' で始まるならホームディレクトリを展開して
- *       ファイルを探す。'/' を含まなければ、PATH から探索する。
+ *       ファイルを探す。
  * 戻り値: エラーがなければ 0、エラーなら非 0。 */
 int exec_file_exp(const char *path, bool suppresserror)
 {
@@ -157,11 +159,11 @@ int exec_file_exp(const char *path, bool suppresserror)
 		char *newpath = expand_tilde(path);
 		if (!newpath)
 			return -1;
-		int result = exec_file(newpath, NULL, suppresserror);
+		int result = exec_file(newpath, NULL, false, suppresserror);
 		free(newpath);
 		return result;
 	} else {
-		return exec_file(path, NULL, suppresserror);
+		return exec_file(path, NULL, false, suppresserror);
 	}
 }
 
@@ -455,7 +457,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		is_interactive = is_interactive_now = false;
 		set_shell_env();
 		command_name = argv[xoptind];
-		exec_file(command_name, argv + xoptind + 1, false);
+		exec_file(command_name, argv + xoptind + 1, false, false);
 		exit(laststatus);
 	}
 	if (is_interactive) {

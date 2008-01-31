@@ -40,7 +40,8 @@ extern bool posixly_correct;
 
 extern char *prompt_command;
 
-int exec_file(const char *path, char *const *positionals, bool suppresserror)
+int exec_file(const char *path, char *const *positionals,
+		bool pathsearch, bool suppresserror)
 	__attribute__((nonnull(1)));
 int exec_file_exp(const char *path, bool suppresserror)
 	__attribute__((nonnull));

@@ -42,11 +42,16 @@ void *xmalloc(size_t size)
 	__attribute__((malloc, warn_unused_result));
 void *xrealloc(void *ptr, size_t size)
 	__attribute__((malloc, warn_unused_result));
+size_t xstrnlen(const char *s, size_t maxlen)
+	__attribute__((nonnull));
 char *xstrndup(const char *s, size_t len)
 	__attribute__((malloc, warn_unused_result, nonnull));
 char *xstrdup(const char *s)
 	__attribute__((malloc, warn_unused_result, nonnull));
 #ifndef NO_UTIL_INLINE
+# ifdef HAVE_STRNLEN
+#  define xstrnlen(s,maxlen) strnlen(s,maxlen)
+# endif
 # define xstrdup(s) xstrndup(s, SIZE_MAX)
 #endif
 
