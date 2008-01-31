@@ -167,11 +167,17 @@ void init_var(void)
 	export(VAR_COLUMNS);
 
 	/* PWD 環境変数を設定する */
-	if (posixly_correct || !getvar(VAR_PWD)) {
-		char *pwd = xgetcwd();
-		if (pwd) {
-			setvar(VAR_PWD, pwd, true);
-			free(pwd);
+	{
+		const char *pwd;
+		char *newpwd;
+		if (posixly_correct || !(pwd = getvar(VAR_PWD)) || pwd[0] != '/') {
+			newpwd = xgetcwd();
+		} else {
+			newpwd = canonicalize_path(pwd);
+		}
+		if (newpwd) {
+			setvar(VAR_PWD, newpwd, true);
+			free(newpwd);
 		}
 	}
 
