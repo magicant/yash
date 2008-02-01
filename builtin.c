@@ -196,7 +196,9 @@ int builtin_cd(int argc, char **argv)
 		path = NULL;
 	else
 		path = which(newpwd, getvar(VAR_CDPATH), is_directory);
-	if (!path) {
+	if (path) {
+		print |= which_found_in_path;
+	} else {
 		struct strbuf buf;
 		sb_init(&buf);
 		sb_append(&buf, oldpwd);

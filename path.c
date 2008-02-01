@@ -34,6 +34,10 @@
 #include <assert.h>
 
 
+/* which が非 NULL を返した直後、この値が true なら which の戻り値は
+ * 非カレントディレクトリから得られたことを表す。 */
+bool which_found_in_path;
+
 /* path に含まれるディレクトリを走査し、ファイル名 name のフルパスを得る。
  * name が "/" で始まるなら、無条件で name のコピーを返す。
  * name:   探すファイル名
@@ -47,6 +51,7 @@
  *         ただし path に相対パスが含まれていた場合、戻り値も相対パスになる。 */
 char *which(const char *name, const char *path, bool (*cond)(const char *name))
 {
+	which_found_in_path = false;
 	if (!name || !*name)
 		return NULL;
 	if (!path)
@@ -68,8 +73,10 @@ char *which(const char *name, const char *path, bool (*cond)(const char *name))
 			searchname[2] = '\0';
 		}
 		strcat(searchname, name);
-		if (cond ? cond(searchname) : (access(searchname, F_OK) == 0))
+		if (cond ? cond(searchname) : (access(searchname, F_OK) == 0)) {
+			which_found_in_path = pathlen;
 			return xstrdup(searchname);
+		}
 		path += pathlen;
 		if (!*path)
 			break;
