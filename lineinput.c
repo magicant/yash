@@ -385,7 +385,8 @@ yash_readline_start:
 			case 0:  /* expansion successful without changes */
 			default:
 				free(line);
-				add_history(eline);
+				if (*skipspaces(eline))
+					add_history(eline);
 				return eline;
 			case -1:  /* Error */
 				free(line);
@@ -395,7 +396,8 @@ yash_readline_start:
 			case 2:   /* No execution */
 				free(line);
 				printf("%s\n", eline);
-				add_history(eline);
+				if (*skipspaces(eline))
+					add_history(eline);
 				free(eline);
 				goto yash_readline_start;
 		}
