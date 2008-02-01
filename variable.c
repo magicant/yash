@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include "yash.h"
 #include "util.h"
+#include "parser.h"
 #include "expand.h"
 #include "exec.h"
 #include "job.h"
@@ -52,6 +53,7 @@ static const char *laststatus_getter(struct variable *var);
 static const char *pid_getter(struct variable *var);
 static const char *last_bg_pid_getter(struct variable *var);
 static const char *zero_getter(struct variable *var);
+static const char *lineno_getter(struct variable *var);
 static bool path_setter(struct variable *var);
 
 
@@ -186,6 +188,18 @@ void init_var(void)
 		char s[INT_STRLEN_BOUND(pid_t) + 1];
 		if (sprintf(s, "%jd", (intmax_t) getppid()) >= 0)
 			setvar(VAR_PPID, s, false);
+	}
+
+	/* LINENO 変数を設定する */
+	var = xmalloc(sizeof *var);
+	*var = (struct variable) {
+		.value = NULL,
+		.getter = lineno_getter,
+	};
+	var = ht_set(&current_env->variables, VAR_LINENO, var);
+	if (var) {
+		free(var->value);
+		free(var);
 	}
 
 	/* PATH 環境変数にセッターを設定する。 */
@@ -631,6 +645,17 @@ static const char *zero_getter(
 		struct variable *var __attribute__((unused)))
 {
 	return command_name;
+}
+
+/* LINENO 変数のゲッター。 */
+static const char *lineno_getter(struct variable *var)
+{
+	if (var->value)
+		return var->value;
+	static char result[INT_STRLEN_BOUND(unsigned) + 1];
+	if (snprintf(result, sizeof result, "%u", lineno) >= 0)
+		return result;
+	return NULL;
 }
 
 /* PATH 環境変数のセッター。 */

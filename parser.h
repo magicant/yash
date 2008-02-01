@@ -96,6 +96,9 @@ struct x_statement {
 	bool       s_bg;        /* バックグラウンドかどうか */
 };
 
+
+extern unsigned lineno;
+
 int read_and_parse(
 		struct parse_info *restrict info, STATEMENT **restrict result)
 	__attribute__((nonnull));

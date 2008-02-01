@@ -31,6 +31,7 @@ extern char **environ;
 #define VAR_OLDPWD          "OLDPWD"
 #define VAR_CDPATH          "CDPATH"
 #define VAR_IFS             "IFS"
+#define VAR_LINENO          "LINENO"
 #define VAR_SHLVL           "SHLVL"
 #define VAR_PPID            "PPID"
 #define VAR_HOSTNAME        "HOSTNAME"

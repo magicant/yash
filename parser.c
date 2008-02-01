@@ -58,6 +58,9 @@ static bool i_raw, i_finish, i_error;
 static struct strbuf i_src;
 static size_t i_index;
 
+/* 最後に解析した行番号 */
+unsigned lineno;
+
 #define fromi(x) (i_src.contents + (x))
 #define toi(x)   ((x) - i_src.contents)
 
@@ -96,6 +99,7 @@ int read_and_parse(
 		return 1;
 	}
 	*result = statements;
+	lineno = info->lineno;
 	return 0;
 }
 
