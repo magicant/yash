@@ -210,7 +210,8 @@ char *expand_word(const char *s, enum tildeexpandtype tetype, bool alwaysindq)
 
 	switch (tetype) {
 		case te_single:
-			if (s[0] == '~' && (s2 = expand_tilde(s)))
+			s2 = expand_tilde(s);
+			if (s2)
 				break;
 			/* falls thru! */
 		case te_none:
@@ -269,8 +270,8 @@ static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
 
 	for (size_t i = 0; i < temp1.length; i++) {  /* 続いてチルダ展開 */
 		char *s1 = temp1.contents[i];
-		char *s2;
-		if (s1[0] == '~' && (s2 = expand_tilde(s1))) {
+		char *s2 = expand_tilde(s1);
+		if (s2) {
 			pl_append(&temp2, s2);
 			free(s1);
 		} else {

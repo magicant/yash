@@ -114,11 +114,11 @@ static const char *get_tilde_dir(const char *name)
 		struct passwd *pwd = getpwuid(geteuid());
 		if (pwd)
 			return pwd->pw_dir;
-	} else if (strcmp(name, "+") == 0) {
+	} else if (!posixly_correct && strcmp(name, "+") == 0) {
 		const char *pwd = getvar(VAR_PWD);
 		if (pwd)
 			return pwd;
-	} else if (strcmp(name, "-") == 0) {
+	} else if (!posixly_correct && strcmp(name, "-") == 0) {
 		const char *oldpwd = getvar(VAR_OLDPWD);
 		if (oldpwd)
 			return oldpwd;
@@ -132,12 +132,15 @@ static const char *get_tilde_dir(const char *name)
 
 /* '~' で始まるパスを実際のホームディレクトリに展開する。
  *   例)  "~user/dir"  ->  "/home/user/dir"
- * path:   '~' で始まる文字列
+ * path:   展開する文字列。
  * 戻り値: 成功したら新しく malloc した文字列にパスを展開したもの。
- *         失敗 (データが見付からない場合を含む) なら NULL。 */
+ *         失敗 (path が '~' で始まらない場合やデータが見付からない場合を含む)
+ *         なら NULL。 */
 char *expand_tilde(const char *path)
 {
-	assert(path && path[0] == '~');
+	assert(path);
+	if (path[0] != '~')
+		return NULL;
 	path++;
 
 	size_t len = strcspn(path, "/");
@@ -151,7 +154,7 @@ char *expand_tilde(const char *path)
 
 	char *result = xmalloc(strlen(home) + strlen(path + len) + 1);
 	strcpy(result, home);
-	strcat(result, path);
+	strcat(result, path + len);
 	return result;
 }
 
@@ -273,7 +276,7 @@ char *canonicalize_path(const char *path)
 	 *   勝手にスラッシュを一つにしてはいけない。スラッシュが三つ以上ある場合は
 	 *   スラッシュを一つにまとめることができるが、これは既に関数の最初で
 	 *   処理してある。
-	 *   もちろん、path の先頭でない "" は自由に削除できる。
+	 *   もちろん、これら以外の "" は自由に削除できる。
 	 * - "." が唯一の構成要素なら、削除してはいけない。 */
 	if (entries[0][0] || !entries[1])
 		i = 0;  /* 相対パス */

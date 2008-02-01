@@ -209,6 +209,9 @@ int builtin_cd(int argc, char **argv)
 			/* path が絶対パスでなければ oldpwd を前置して絶対パスに直す。
 			 * POSIX 仕様にはこの操作の規定はないが、ここで path を絶対パスに
 			 * 直さないと、PWD 環境変数に path が相対パスのまま入ってしまう。 */
+			/* oldpwd も絶対パスでなければ、-P オプションと同様に扱う */
+			if (oldpwd[0] != '/')
+				goto phisical;
 			struct strbuf buf;
 			sb_init(&buf);
 			sb_append(&buf, oldpwd);
@@ -230,6 +233,7 @@ int builtin_cd(int argc, char **argv)
 			printf("%s\n", curpath);
 		free(curpath);
 	} else {
+phisical:
 		if (chdir(path) < 0) {
 			xerror(0, errno, "%s: %s", argv[0], path);
 			free(path);
