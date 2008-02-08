@@ -207,6 +207,38 @@ void init_var(void)
 	var->setter = path_setter;
 }
 
+/* finalize_var で使う内部関数。変数を解放する。 */
+static int delete_variable_export(
+		const char *name __attribute__((unused)), void *v)
+{
+	struct variable *var = v;
+	free(var->value);
+	free(var);
+	return 0;
+}
+
+/* 変数環境を終了する */
+void finalize_var(void)
+{
+	struct environment *env;
+	while ((env = current_env)) {
+		current_env = env->parent;
+
+		struct plist *pos = &env->positionals;
+		for (size_t i = 1; i < pos->length; i++)
+			free(pos->contents[i]);
+		pl_destroy(pos);
+
+		struct hasht *vars = &env->variables;
+		ht_each(vars, delete_variable_export);
+		ht_destroy(vars);
+		free(env);
+	}
+
+	ht_each(&temp_variables, delete_variable_export);
+	ht_destroy(&temp_variables);
+}
+
 /* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
  * values[0] が $1 に、values[1] が $2 に、という風になる。values[x] が NULL
  * になったら終わり。 */
@@ -266,7 +298,8 @@ static struct variable *get_variable(const char *name, bool temp)
 
 /* 指定した名前のシェル変数を取得する。
  * 特殊パラメータ $* および $@ は得られない。
- * 変数が存在しないときは NULL を返す。 */
+ * 変数が存在しないときは NULL を返す。
+ * 得られた変数値はこの変数を (un)setvar するまでは有効である。 */
 const char *getvar(const char *name)
 {
 	struct variable *var = get_variable(name, true);  /* 普通の変数を探す */
@@ -412,7 +445,7 @@ void extend_environment(void)
 }
 
 /* unextend_environment で使う内部関数。変数を解放する。 */
-int delete_variable(const char *name __attribute__((unused)), void *v)
+static int delete_variable(const char *name __attribute__((unused)), void *v)
 {
 	struct variable *var = v;
 	bool oldvarexport = var->flags & VF_EXPORT;

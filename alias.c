@@ -52,6 +52,14 @@ void init_alias(void)
 	ht_init(&aliases);
 }
 
+/* エイリアスモジュールを終了する。 */
+void finalize_alias(void)
+{
+	remove_all_aliases();
+	ht_destroy(&aliases);
+	enable_alias = true;
+}
+
 /* エイリアスを追加/変更する。
  * エイリアスの名前 name は 1 文字以上でなければならない。 */
 void set_alias(const char *name, const char *value, bool global)

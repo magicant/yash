@@ -431,7 +431,7 @@ static char *unquote_filename(char *text, int quotechar)
 /* str の index 文字目で行う予定の履歴展開を抑止すべきかどうかを判定する。 */
 static int check_inhibit_expansion(char *str, int index)
 {
-	if (index > 0 && str[index - 1] == '{')
+	if (index > 0 && (str[index - 1] == '{' || str[index - 1] == '$'))
 		return true;
 	return false;
 }

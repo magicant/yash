@@ -39,6 +39,8 @@ char *collapse_homedir(const char *path)
 	__attribute__((malloc));
 char *canonicalize_path(const char *path)
 	__attribute__((malloc));
+bool is_same_file(const char *path1, const char *path2)
+	__attribute__((nonnull));
 
 extern struct hasht cmdhash;
 

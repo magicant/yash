@@ -36,6 +36,7 @@ typedef struct alias {
 } ALIAS;
 
 void init_alias(void);
+void finalize_alias(void);
 void set_alias(const char *name, const char *value, bool global);
 int remove_alias(const char *name);
 void remove_all_aliases(void);

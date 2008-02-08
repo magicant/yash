@@ -49,9 +49,9 @@ static void debug_sig(int signal)
 }
 #endif
 
-static volatile sig_atomic_t sighup_received = false;
-static volatile sig_atomic_t sigchld_received = false;
-       volatile sig_atomic_t sigint_received = false;
+static volatile sig_atomic_t sighup_received;
+static volatile sig_atomic_t sigchld_received;
+       volatile sig_atomic_t sigint_received;
 
 const SIGDATA const sigdata[] = {
 	/* POSIX.1-1990 signals */
@@ -239,6 +239,10 @@ static void sig_handler(int sig)
 void init_signal(void)
 {
 	struct sigaction action;
+
+	sighup_received = false;
+	sigchld_received = false;
+	sigint_received = false;
 
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;

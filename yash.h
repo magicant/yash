@@ -66,6 +66,8 @@ void unset_shell_env(void);
 
 void yash_exit(int exitcode)
 	__attribute__((noreturn));
+void selfexec(const char *commandpath, char **argv)
+	__attribute__((nonnull, noreturn));
 
 
 #endif  /* YASH_H */

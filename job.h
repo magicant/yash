@@ -59,6 +59,7 @@ extern pid_t last_bg_pid;
 
 void joblist_reinit(void);
 void init_jobcontrol(void);
+void finalize_jobcontrol(void);
 int exitcode_from_status(int status);
 JOB *get_job(size_t jobnumber);
 unsigned job_count(void);

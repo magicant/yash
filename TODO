@@ -1,5 +1,12 @@
 既知のバグ・未実装機能・その他やるべきことの一覧
 
+execv を execve に戻す / ENOEXEC ならシェルスクリプトして実行する
+   regular builtin を実行する前に which する
+PWD をより正確に: 起動時に PWD の内容が本当に合っているかチェック
+configure: -l オプション: 引数との間に空白入れる (-lc -> -l c)
+   trycompile に CC や LDFLAGS を反映
+   gcc かどうかを gcc --version | grep -i gcc で判定
+canonicalize_path: "./." が "" になる?
 README.html を本来の README とマニュアルに分離
 async コマンドの stdin は /dev/null よりリダイレクトを優先
 readline 補完の充実

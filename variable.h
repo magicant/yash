@@ -73,6 +73,7 @@ struct save_assignment;
 
 char *xgetcwd(void);
 void init_var(void);
+void finalize_var(void);
 void set_shlvl(int change);
 void set_positionals(char *const *values)
 	__attribute__((nonnull));

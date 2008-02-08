@@ -797,14 +797,8 @@ int builtin_exec(int argc, char **argv)
 
 	const char *command = strchr(argv[xoptind], '/')
 		? argv[xoptind] : get_command_fullpath(argv[xoptind], false);
-	if (!command) {
-		xerror(0, 0, "%s: %s: command not found", argv[0], argv[xoptind]);
-		if (!is_interactive_now) {
-			//XXX shopt execfail
-			exit(EXIT_NOTFOUND);
-		}
-		return EXIT_NOTFOUND;
-	}
+	if (!command)
+		xerror(EXIT_NOTFOUND, 0, "%s: command not found", argv[xoptind]);
 
 	struct plist args;
 	pl_init(&args);
@@ -822,15 +816,15 @@ int builtin_exec(int argc, char **argv)
 	unset_shell_env();
 	execve(command, (char **) args.contents,
 			clearenv ? (char *[]) { NULL, } : environ);
-	set_shell_env();
-
-	xerror(0, errno, "%s: %s", argv[0], argv[xoptind]);
-	free(args.contents[0]);
-	pl_destroy(&args);
-	return EXIT_NOEXEC;
+	if (errno != ENOEXEC) {
+		if (errno == EACCES && is_directory(command))
+			errno = EISDIR;
+		xerror(EXIT_NOEXEC, errno, "%s", argv[xoptind]);
+	}
+	selfexec(command, (char **) args.contents);
 
 usage:
-	fprintf(stderr, "Usage:  exec [-cfl] [-a name] command [args...]\n");
+	fprintf(stderr, "Usage:  exec [-cfl] [-a name] [command [args...]]\n");
 	return EXIT_FAILURE;
 }
 

@@ -96,7 +96,7 @@ static struct builtin_info {
 	{ "export",  { builtin_export,  true  }},
 	{ "unset",   { builtin_unset,   true  }},
 
-	{ NULL,      { NULL,            false }},
+	{ NULL,      { 0,               false }},
 
 };
 
@@ -110,6 +110,12 @@ void init_builtin(void)
 		ht_set(&builtins, b->name, &b->builtin);
 		b++;
 	}
+}
+
+/* init_builtin で初期化した内容を消す */
+void finalize_builtin(void)
+{
+	ht_destroy(&builtins);
 }
 
 /* 指定した名前に対応する組込みコマンド関数を取得する。

@@ -67,11 +67,21 @@ void joblist_reinit(void)
 	*/
 }
 
-/* 実行環境を初期化する */
+/* ジョブ制御を初期化する */
 void init_jobcontrol(void)
 {
 	pl_init(&joblist);
 	pl_append(&joblist, NULL);
+}
+
+/* ジョブ制御を終了する */
+void finalize_jobcontrol(void)
+{
+	joblist_reinit();
+	pl_destroy(&joblist);
+	huponexit = false;
+	currentjobnumber = 0;
+	last_bg_pid = 0;
 }
 
 /* waitpid が返す status から終了コードを得る。

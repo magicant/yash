@@ -354,8 +354,19 @@ next:
 	return result;
 }
 
+/* 二つのファイルが同じファイルであるか調べる。
+ * stat に失敗した場合も false を返す。 */
+bool is_same_file(const char *path1, const char *path2)
+{
+	struct stat stat1, stat2;
+	return stat(path1, &stat1) == 0 && stat(path2, &stat2) == 0
+		&& stat1.st_dev == stat2.st_dev && stat1.st_ino == stat2.st_ino;
+}
+
 
 /********** コマンド名ハッシュ **********/
+
+static bool cmdhash_initialized = false;
 
 /* コマンド名からコマンドのフルパスへのハッシュテーブル */
 struct hasht cmdhash;
@@ -363,7 +374,10 @@ struct hasht cmdhash;
 /* コマンド名ハッシュを初期化する */
 void init_cmdhash(void)
 {
-	ht_init(&cmdhash);
+	if (!cmdhash_initialized) {
+		ht_init(&cmdhash);
+		cmdhash_initialized = true;
+	}
 }
 
 /* コマンド名ハッシュを空にする。 */

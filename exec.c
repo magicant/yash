@@ -500,18 +500,28 @@ directexec:
 		case PT_NORMAL:
 			if (!argc)
 				exit(EXIT_SUCCESS);
+			if (!strchr(argv[0], '/')) {
+				builtin = get_builtin(argv[0]);
+				if (builtin)  /* 組込みコマンドを実行 */
+					// TODO 準特殊コマンド
+					exit(builtin->main(argc, argv));
 
-			builtin = get_builtin(argv[0]);
-			if (builtin)  /* 組込みコマンドを実行 */
-				exit(builtin->main(argc, argv));
-
-			if (!commandpath)
-				commandpath = strchr(argv[0], '/')
-					? argv[0] : get_command_fullpath(argv[0], false);
-			if (!commandpath)
-				xerror(EXIT_NOTFOUND, 0, "%s: command not found", argv[0]);
-			execvp(commandpath, argv);
-			xerror(EXIT_NOEXEC, errno, "%s", argv[0]);
+				if (!commandpath) {
+					commandpath = get_command_fullpath(argv[0], false);
+					if (!commandpath)
+						xerror(EXIT_NOTFOUND, 0,
+								"%s: command not found", argv[0]);
+				}
+			} else {
+				commandpath = argv[0];
+			}
+			execve(commandpath, argv, environ);
+			if (errno != ENOEXEC) {
+				if (errno == EACCES && is_directory(commandpath))
+					errno = EISDIR;
+				xerror(EXIT_NOEXEC, errno, "%s", argv[0]);
+			}
+			selfexec(commandpath, argv);
 		case PT_GROUP:  case PT_SUBSHELL:
 			exec_statements_and_exit(p->p_subcmds);
 	}

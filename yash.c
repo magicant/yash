@@ -42,7 +42,7 @@
 
 static int exec_promptcommand(void);
 static void interactive_loop(void) __attribute__((noreturn));
-int main(int argc, char **argv);
+int main(int argc, char **argv) __attribute__((nonnull));
 void print_help(void);
 void print_version(void);
 void yash_exit(int exitcode);
@@ -493,4 +493,25 @@ void yash_exit(int exitcode) {
 	if (huponexit)
 		send_sighup_to_all_jobs();
 	exit(exitcode);
+}
+
+/* 自分自身に exec する。
+ * argv をコマンドラインとして実行されたかのように、commandpath を
+ * シェルスクリプトとして実行する。
+ * この関数はシェルの状態を完全に初期状態に戻した後、main を実行する。 */
+void selfexec(const char *commandpath, char **argv)
+{
+	unset_shell_env();
+	finalize_jobcontrol();
+	finalize_var();
+	finalize_alias();
+	finalize_builtin();
+	laststatus = 0;
+
+	struct plist newargs;
+	pl_init(&newargs);
+	pl_append(&newargs, argv[0]);
+	pl_append(&newargs, commandpath);
+	pl_aappend(&newargs, (void **) (argv + 1));
+	exit(main(newargs.length, (char **) newargs.contents));
 }
