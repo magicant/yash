@@ -358,6 +358,7 @@ static pid_t exec_single(
 	int argc;
 	char **argv;
 	const char *commandpath = NULL;
+	BUILTIN *builtin = NULL;
 
 	if (etype == SELF)
 		goto directexec;
@@ -370,7 +371,7 @@ static pid_t exec_single(
 				recfree((void **) argv, free);
 				return -1;
 			}
-			if (!argc) {
+			if (!argc) {   /* リダイレクトや変数代入しかない場合 */
 				bool ok = true;
 				if (ok && p->p_assigns) {
 					ok &= assign_variables(p->p_assigns, false, false);
@@ -382,41 +383,47 @@ static pid_t exec_single(
 				}
 				laststatus = ok ? EXIT_SUCCESS : EXIT_FAILURE;
 				return 0;
-			} else {
-				BUILTIN *builtin = get_builtin(argv[0]);
-				if (builtin) {  /* 組込みコマンドを fork せずに実行 */
-					struct save_redirect *saver;
-					if (open_redirections(p->p_redirs, &saver)) {
-						bool temp = !builtin->is_special;
-						bool export = builtin->is_special;
-						if (assign_variables(p->p_assigns, temp, export)){
-							laststatus = builtin->main(argc, argv);
-							if (temp)
-								unset_temporary(NULL);
-							if (builtin->main == builtin_exec
-									&& laststatus == EXIT_SUCCESS)
-								clear_save_redirect(saver);
-							else
-								undo_redirections(saver);
-							recfree((void **) argv, free);
+			} else {   /* 具体的なコマンドがある場合 */
+				if (!strchr(argv[0], '/')) {
+					builtin = get_builtin(argv[0]);
+					enum biflags flags = (BI_SPECIAL | BI_SEMISPECIAL);
+					if (!builtin
+							|| (posixly_correct && !(builtin->flags & flags))) {
+						commandpath = get_command_fullpath(argv[0], false);
+						if (!commandpath) {
+							xerror(0, 0, "%s: command not found", argv[0]);
+							laststatus = EXIT_NOTFOUND;
 							return 0;
 						}
-						unset_temporary(NULL);
 					}
-					if (posixly_correct &&
-							builtin->is_special && !is_interactive_now)
-						exit(EXIT_FAILURE);
-					undo_redirections(saver);
-					recfree((void **) argv, free);
-					return -1;
+					if (builtin) {  /* 組込みコマンドを fork せずに実行 */
+						struct save_redirect *saver;
+						if (open_redirections(p->p_redirs, &saver)) {
+							bool temp = !(builtin->flags & BI_SPECIAL);
+							bool export = (builtin->flags & BI_SPECIAL);
+							if (assign_variables(p->p_assigns, temp, export)){
+								laststatus = builtin->main(argc, argv);
+								if (temp)
+									unset_temporary(NULL);
+								if (builtin->main == builtin_exec
+										&& laststatus == EXIT_SUCCESS)
+									clear_save_redirect(saver);
+								else
+									undo_redirections(saver);
+								recfree((void **) argv, free);
+								return 0;
+							}
+							unset_temporary(NULL);
+						}
+						if (posixly_correct && (builtin->flags & BI_SPECIAL)
+								&& !is_interactive_now)
+							exit(EXIT_FAILURE);
+						undo_redirections(saver);
+						recfree((void **) argv, free);
+						return -1;
+					}
 				} else {
-					commandpath = strchr(argv[0], '/')
-						? argv[0] : get_command_fullpath(argv[0], false);
-					if (!commandpath) {
-						xerror(0, 0, "%s: command not found", argv[0]);
-						laststatus = EXIT_NOTFOUND;
-						return 0;
-					}
+					commandpath = argv[0];
 				}
 			}
 		} else if (p->p_type == PT_GROUP && !p->p_redirs) {
@@ -496,14 +503,16 @@ directexec:
 	assign_variables(p->p_assigns, false, true);
 
 	switch (p->p_type) {
-		BUILTIN *builtin;
 		case PT_NORMAL:
 			if (!argc)
 				exit(EXIT_SUCCESS);
 			if (!strchr(argv[0], '/')) {
-				builtin = get_builtin(argv[0]);
-				if (builtin)  /* 組込みコマンドを実行 */
-					// TODO 準特殊コマンド
+				if (!builtin && !commandpath)
+					builtin = get_builtin(argv[0]);
+				if (builtin && (builtin->flags & BI_SPECIAL))
+					exit(builtin->main(argc, argv));
+				if (builtin &&
+						((builtin->flags & BI_SEMISPECIAL) || !posixly_correct))
 					exit(builtin->main(argc, argv));
 
 				if (!commandpath) {
@@ -512,6 +521,9 @@ directexec:
 						xerror(EXIT_NOTFOUND, 0,
 								"%s: command not found", argv[0]);
 				}
+
+				if (builtin)
+					exit(builtin->main(argc, argv));
 			} else {
 				commandpath = argv[0];
 			}

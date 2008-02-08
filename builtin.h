@@ -22,8 +22,14 @@
 
 typedef struct {
 	int (*const main)(int argc, char **argv);
-	const bool is_special;
+	const enum biflags {
+		BI_SPECIAL     = 1 << 0,  /* 特殊組込みコマンド */
+		BI_SEMISPECIAL = 1 << 1,  /* 準特殊組込みコマンド */
+	} flags;
 } BUILTIN;
+/* (準)特殊組込みコマンドは、PATH になくても常に実行する。
+ * posixly_correct のとき、それ以外の組込みコマンドは、
+ * PATH に同等のコマンドがなければ実行しない。 */
 
 extern struct hasht builtins;
 

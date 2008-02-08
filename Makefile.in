@@ -29,7 +29,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 
 test check: $(TARGET)
-	cd tests && exec $(SHELL) ./run-all.sh
+	@cd tests && exec $(SHELL) ./run-all.sh
 
 BINDIR = @BINDIR@
 install: $(BINDIR) $(TARGET)
