@@ -286,7 +286,7 @@ int builtin_pwd(int argc __attribute__((unused)), char **argv)
 
 	if (logical) {
 		const char *pwd = getvar(VAR_PWD);
-		if (!pwd || pwd[0] != '/')
+		if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
 			goto notlogical;
 		printf("%s\n", pwd);
 	} else {

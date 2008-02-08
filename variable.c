@@ -63,26 +63,6 @@ static struct environment *current_env;
 static struct hasht temp_variables;
 
 
-/* getcwd(3) の結果を新しく malloc した文字列で返す。
- * エラー時は NULL を返し、errno を設定する。 */
-char *xgetcwd(void)
-{
-	size_t pwdlen = 40;
-	char *pwd = xmalloc(pwdlen);
-	while (getcwd(pwd, pwdlen) == NULL) {
-		if (errno == ERANGE) {
-			pwdlen *= 2;
-			pwd = xrealloc(pwd, pwdlen);
-		} else {
-			free(pwd);
-			pwd = NULL;
-			break;
-		}
-	}
-	return pwd;
-}
-
-
 /* 環境変数などを初期化する。 */
 void init_var(void)
 {
@@ -172,7 +152,8 @@ void init_var(void)
 	{
 		const char *pwd;
 		char *newpwd;
-		if (posixly_correct || !(pwd = getvar(VAR_PWD)) || pwd[0] != '/') {
+		if (posixly_correct || !(pwd = getvar(VAR_PWD))
+				|| pwd[0] != '/' || !is_same_file(pwd, ".")) {
 			newpwd = xgetcwd();
 		} else {
 			newpwd = canonicalize_path(pwd);

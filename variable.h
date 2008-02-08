@@ -71,7 +71,6 @@ struct variable {
 /* 変数代入を元に戻すためのデータ */
 struct save_assignment;
 
-char *xgetcwd(void);
 void init_var(void);
 void finalize_var(void);
 void set_shlvl(int change);
