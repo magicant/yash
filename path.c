@@ -251,7 +251,7 @@ char *canonicalize_path(const char *path)
 	/* path の先頭に三つ以上のスラッシュがある場合、それらを一つのスラッシュに
 	 * まとめることができる。この場合、単にスラッシュを無視すればよい。
 	 *   例) "///dir/file" -> "/dir/file"  */
-	if (path[0] == '/' && path[1] == '/' && path[2] == '/') {
+	if (matchprefix(path, "///")) {
 		while (*path == '/') path++;
 		path--;
 	}
@@ -283,8 +283,7 @@ char *canonicalize_path(const char *path)
 	 *   勝手にスラッシュを一つにしてはいけない。スラッシュが三つ以上ある場合は
 	 *   スラッシュを一つにまとめることができるが、これは既に関数の最初で
 	 *   処理してある。
-	 *   もちろん、これら以外の "" は自由に削除できる。
-	 * - "." が唯一の構成要素なら、削除してはいけない。 */
+	 *   もちろん、これら以外の "" は自由に削除できる。 */
 	if (entries[0][0] || !entries[1])
 		i = 0;  /* 相対パス */
 	else if (entries[1][0])
@@ -298,8 +297,7 @@ char *canonicalize_path(const char *path)
 	else 
 		assert(false);
 	while (entries[i]) {
-		if (!entries[i][0] ||
-				(strcmp(entries[i], ".") == 0 && (i > 0 || list.length >= 2))) {
+		if (!entries[i][0] || (strcmp(entries[i], ".") == 0)) {
 			pl_remove(&list, i, 1);
 
 			/* 末尾の要素を消したとき、その親がルートなら '/' の数を合わせる
@@ -314,6 +312,11 @@ char *canonicalize_path(const char *path)
 		}
 	}
 	assert(list.length == i);
+	if (!list.length) {
+		/* リストが空になったら、元の path は "." や "./." だったということ。
+		 * "." を返す。 */
+		return xstrdup(".");
+	}
 
 	/* 続いて、".." とその親要素を削除する。ただし……
 	 * - ".." の手前がルートまたは ".." なら削除してはいけない。消してもよい ""

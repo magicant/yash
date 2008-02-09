@@ -1,6 +1,5 @@
 既知のバグ・未実装機能・その他やるべきことの一覧
 
-canonicalize_path: "./." が "" になる?
 configure: -l オプション: 引数との間に空白入れる (-lc -> -l c)
    trycompile に CC や LDFLAGS を反映
    gcc かどうかを gcc --version | grep -i gcc で判定
