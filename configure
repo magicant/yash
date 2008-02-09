@@ -24,9 +24,9 @@ versionh="version.h"
 tempsrc=".temp.c"
 tempout=".temp.o"
 
-cc="c99"
-cflags="-O1 -g"
-ldflags="-lc"
+cc="${CC-c99}"
+cflags="${CFLAGS--O1 -g}"
+ldflags="${LDFLAGS--l c}"
 target="yash"
 package="yash"
 version="1.5"
@@ -39,7 +39,7 @@ help="no"
 gcc=""
 debug="no"
 readline="check"
-rlldflagcand="-ltermcap -ltinfo -lcurses -lncurses"
+rlldflagcand="termcap tinfo curses ncurses"
 unset prefix eprefix bindir
 
 # parse options
@@ -121,7 +121,7 @@ checking () {
 }
 checkby () {
 	echo "%" "$@" >&5
-	"$@" >&5 2>&1
+	eval "$@" '>&5 2>&1'
 }
 trycompile () {
 	echo "%" ${cc} ${cflags} ${ldflags} "$@" -o "${tempout}" "${tempsrc}" >&5
@@ -138,15 +138,15 @@ defconfigh () {
 
 # check whether GCC is available
 checking "whether GCC is available"
-if checkby gcc --version
+if checkby "${CC:-gcc} --version | grep -i gcc"
 then gcc="yes"
 else gcc="no"
 fi
-checked ${gcc}
+checked "${gcc}"
 
 if [ x"${gcc}" = x"yes" ]
 then
-	cc="gcc"
+	cc="${CC:-gcc}"
 	if [ x"${debug}" = x"yes" ]
 	then
 		cflags="-std=c99 -O1 -ggdb -Wall -Wextra"
@@ -174,22 +174,23 @@ then
 	cat >"${tempsrc}" <<END
 #include <stdio.h>
 #include <readline/readline.h>
-void *x = &rl_filename_completion_function;  /* 古い libedit を除外する */
+/* check some features to exclude old libedit */
+char *(*x)() = rl_filename_completion_function;
 void *y = &rl_attempted_completion_over;
 int main() { readline(""); return 0; }
 END
-	if trycompile -lreadline
+	if trycompile -l readline
 	then
 		checked "yes"
-		ldflags="${ldflags} -lreadline"
+		ldflags="${ldflags} -l readline"
 		readline="ok"
 	else
 		for i in ${rlldflagcand}
 		do
-			if trycompile $i -lreadline
+			if trycompile -l $i -l readline
 			then
-				checked "with $i"
-				ldflags="${ldflags} $i -lreadline"
+				checked "with $i library"
+				ldflags="${ldflags} -l $i -l readline"
 				readline="ok"
 				break
 			fi
@@ -222,7 +223,7 @@ fi
 # check for mkstemp
 checking "for mkstemp"
 cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200112
 #define _XOPEN_SOURCE   600
 #include <stdlib.h>
 int main() { return mkstemp((char []) { "" }); }
