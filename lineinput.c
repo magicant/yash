@@ -683,6 +683,44 @@ static struct compinfo *currentinfo;
 static bool ignorecase;
 static size_t comp_iter_index;
 
+/* path にチルダ展開を行ってから access(3p) する。 */
+static int access_tilde(const char *path, int amode)
+{
+	if (path[0] != '~')
+		return access(path, amode);
+
+	char *newpath = expand_tilde(path);
+	if (!newpath) {
+		errno = ENOENT;
+		return -1;
+	}
+
+	int result = access(newpath, amode);
+	int saveerrno = errno;
+	free(newpath);
+	errno = saveerrno;
+	return result;
+}
+
+/* path にチルダ展開を行ってから stat(3p) する。 */
+static int stat_tilde(const char *restrict path, struct stat *restrict buf)
+{
+	if (path[0] != '~')
+		return stat(path, buf);
+
+	char *newpath = expand_tilde(path);
+	if (!newpath) {
+		errno = ENOENT;
+		return -1;
+	}
+
+	int result = stat(newpath, buf);
+	int saveerrno = errno;
+	free(newpath);
+	errno = saveerrno;
+	return result;
+}
+
 /* 補完候補を生成する。Readline ライブラリから呼び出される。
  * text: 補完する文字列
  * start, end: rl_line_buffer における text の位置
@@ -827,7 +865,9 @@ static char *yash_completion_entry(const char *text, int noinit)
 /* ファイル名の補完候補を挙げる補完エントリ関数。 */
 static char *yash_filename_completion(const char *text, int noinit)
 {
-	enum comptypes CT_BOTH = CT_FILE | CT_DIR;
+	const enum comptypes CT_BOTH = CT_FILE | CT_DIR;
+	if (text[0] == '~' && !strchr(text, '/'))
+		return rl_username_completion_function(text, noinit);
 	for (;;) {
 		char *result = rl_filename_completion_function(text, noinit);
 		if (!result || ((currentinfo->type & CT_BOTH) == CT_BOTH))
@@ -835,7 +875,7 @@ static char *yash_filename_completion(const char *text, int noinit)
 
 		/*ディレクトリのみまたはディレクトリ以外のみを返す場合はここで取捨する*/
 		struct stat st;
-		if ((stat(result, &st) < 0)
+		if ((stat_tilde(result, &st) < 0)
 				|| (!(currentinfo->type & CT_DIR) == !S_ISDIR(st.st_mode)))
 			return result;
 		free(result);
@@ -867,29 +907,40 @@ static char *yash_builtin_completion(const char *text, int noinit)
 /* 外部コマンド名の補完候補を挙げる補完エントリ関数。 */
 static char *yash_external_command_completion(const char *text, int noinit)
 {
-	static bool slash;
+	static enum { normal, slash, tilde } type;
 	const char *name;
 	if (!noinit) {
 		comp_iter_index = 0;
-		slash = (strchr(text, '/') != NULL);
-		if (!slash)
+		if (strchr(text, '/')) {
+			type = slash;
+		} else if (text[0] == '~') {
+			type = tilde;
+		} else {
+			type = normal;
 			fill_cmdhash(text);
+		}
 	}
-	/* text に '/' が入っているなら通常のファイル名補完候補のうち実行可能な
-	 * もののみを返す。入っていなければ PATH から全ての候補を探す。 */
-	if (!slash) {
-		while ((name = ht_next(&cmdhash, &comp_iter_index).key)) {
-			if (comp_prefix(text, name))
-				return xstrdup(name);
-		}
-	} else {
-		for (;;) {
-			char *result = rl_filename_completion_function(text, noinit);
-			if (!result || access(result, X_OK) == 0)
-				return result;
-			free(result);
-			noinit = true;
-		}
+	/* text が '/' を含んでいるか '~' で始まるなら
+	 * 通常のファイル名補完候補のうち実行可能なもののみを返す。
+	 * 入っていなければ PATH から全ての候補を探す。 */
+	switch (type) {
+		case normal:
+			while ((name = ht_next(&cmdhash, &comp_iter_index).key)) {
+				if (comp_prefix(text, name))
+					return xstrdup(name);
+			}
+			break;
+		case slash:
+			for (;;) {
+				char *result = rl_filename_completion_function(text, noinit);
+				if (!result || access_tilde(result, X_OK) == 0)
+					return result;
+				free(result);
+				noinit = true;
+			}
+			break;
+		case tilde:
+			return rl_username_completion_function(text, noinit);
 	}
 	return NULL;
 }

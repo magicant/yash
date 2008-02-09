@@ -384,7 +384,9 @@ static pid_t exec_single(
 				laststatus = ok ? EXIT_SUCCESS : EXIT_FAILURE;
 				return 0;
 			} else {   /* 具体的なコマンドがある場合 */
-				if (!strchr(argv[0], '/')) {
+				if (strchr(argv[0], '/')) {
+					commandpath = argv[0];
+				} else {
 					builtin = get_builtin(argv[0]);
 					enum biflags flags = (BI_SPECIAL | BI_SEMISPECIAL);
 					if (!builtin
@@ -422,8 +424,6 @@ static pid_t exec_single(
 						recfree((void **) argv, free);
 						return -1;
 					}
-				} else {
-					commandpath = argv[0];
 				}
 			}
 		} else if (p->p_type == PT_GROUP && !p->p_redirs) {
@@ -436,6 +436,8 @@ static pid_t exec_single(
 	 * (親と子で同じものを二回書き出すのを防ぐため) */
 	fflush(NULL);
 
+	// FIXME: !expanded でエラー発生時 argv[0] を出力しようとする
+
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
 		xerror(0, errno, "%s: fork", argv[0]);
@@ -445,10 +447,6 @@ static pid_t exec_single(
 		if (is_interactive_now) {
 			if (setpgid(cpid, pgid) < 0 && errno != EACCES && errno != ESRCH)
 				xerror(0, errno, "%s: setpgid (parent)", argv[0]);
-			/* if (etype == FOREGROUND
-					&& tcsetpgrp(STDIN_FILENO, pgid ? pgid : cpid) < 0
-					&& errno != EPERM)
-				error(0, errno, "%s: tcsetpgrp (parent)", argv[0]); */
 		}
 		if (expanded) { recfree((void **) argv, free); }
 		return cpid;
@@ -480,6 +478,8 @@ static pid_t exec_single(
 directexec:
 	unset_signals();
 	assert(!is_interactive_now);
+
+	/* パイプを繋ぐ */
 	if (pipes.p_count > 0) {
 		if (pindex) {
 			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
@@ -491,11 +491,11 @@ directexec:
 			if (xdup2(pipes.p_pipes[index][1], STDOUT_FILENO) < 0)
 				xerror(0, errno, "%s: cannot connect pipe to stdout", argv[0]);
 		}
-		close_pipes(pipes);
+		close_pipes(pipes);  /* 余ったパイプを閉じる */
 	}
 
 	if (p->p_type == PT_NORMAL && !expanded) {
-		if (!expand_line(p->p_args, &argc, &argv))
+		if (!expand_line(p->p_args, &argc, &argv))  /* パラメータの展開 */
 			exit(EXIT_FAILURE);
 	}
 	if (!open_redirections(p->p_redirs, NULL))
@@ -511,6 +511,7 @@ directexec:
 					builtin = get_builtin(argv[0]);
 				if (builtin && (builtin->flags & BI_SPECIAL))
 					exit(builtin->main(argc, argv));
+				// XXX 関数の実行
 				if (builtin &&
 						((builtin->flags & BI_SEMISPECIAL) || !posixly_correct))
 					exit(builtin->main(argc, argv));

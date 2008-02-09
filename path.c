@@ -45,7 +45,7 @@ bool which_found_in_path;
  *         NULL ならカレントディレクトリから探す。
  * cond:   ファイル名を受け取り、ファイルが条件に合致しているかどうかを
  *         判断する関数へのポインタ。cond が true を返した場合のみその結果が
- *         返る。cond が NULL ならファイルが存在すれば無条件でその結果が返る。
+ *         返る。cond が 0 ならファイルが存在すれば無条件でその結果が返る。
  *         cond の引数には、存在しないファイルの名前が渡ることがあるので注意。
  * 戻り値: 新しく malloc した、name のフルパス。見付からなかったら NULL。
  *         ただし path に相対パスが含まれていた場合、戻り値も相対パスになる。 */
@@ -141,13 +141,13 @@ static const char *get_tilde_dir(const char *name)
  *   例)  "~user/dir"  ->  "/home/user/dir"
  * path:   展開する文字列。
  * 戻り値: 成功したら新しく malloc した文字列にパスを展開したもの。
- *         失敗 (path が '~' で始まらない場合やデータが見付からない場合を含む)
- *         なら NULL。 */
+ *         失敗 (データが見付からない場合など) なら NULL。
+ *         path が '~' で始まらなければ path のコピーを返す。 */
 char *expand_tilde(const char *path)
 {
 	assert(path);
 	if (path[0] != '~')
-		return NULL;
+		return xstrdup(path);
 	path++;
 
 	size_t len = strcspn(path, "/");

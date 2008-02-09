@@ -172,6 +172,7 @@ int builtin_cd(int argc, char **argv)
 		setvar(VAR_PWD, path, false);
 		oldpwd = getvar(VAR_PWD);
 		assert(oldpwd);
+		free(path);
 	}
 
 	if (xoptind >= argc) {
@@ -184,11 +185,11 @@ int builtin_cd(int argc, char **argv)
 		newpwd = argv[xoptind];
 		if (strcmp(newpwd, "-") == 0) {
 			newpwd = getvar(VAR_OLDPWD);
-			print = true;
 			if (!newpwd) {
 				xerror(0, 0, "%s: OLDPWD directory not specified", argv[0]);
 				return EXIT_FAILURE;
 			}
+			print = true;
 		}
 	}
 
@@ -259,7 +260,7 @@ phisical:
 	return EXIT_SUCCESS;
 
 usage:
-	fprintf(stderr, "Usage:  cd [-L|-P] dir\n");
+	fprintf(stderr, "Usage:  cd [-L|-P] [dir]\n");
 	return EXIT_FAILURE;
 }
 

@@ -241,8 +241,10 @@ char *expand_word(const char *s, enum tildeexpandtype tetype, bool alwaysindq)
  * 成功すると結果の配列を、失敗すると NULL を返す。失敗時はエラーを出力する。 */
 static char **expand_word_splitting(const char *s)
 {
-	char *temp = (s[0] == '~') ? expand_tilde(s) : xstrdup(s);
+	char *temp = expand_tilde(s);
 	struct plist results;
+	if (!temp)
+		return NULL;
 	pl_init(&results);
 	if (expand_subst(temp, &results, true, false)) {
 		return (char **) pl_toary(&results);
