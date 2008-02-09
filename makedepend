@@ -25,9 +25,9 @@ do
 		{
 			echo "${source%.c}.o:";
 			sed -e '
-				/^#[[:blank:]]*include[[:blank:]]*"/ {
-					s/^#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
-					p
+				/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"/ {
+				  s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
+				  p
 				}
 				d
 				' "${source}"
