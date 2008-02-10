@@ -22,6 +22,7 @@
 
 extern char **environ;
 
+#define VAR_YASH_VERSION    "YASH_VERSION"
 #define VAR_USER            "USER"
 #define VAR_LOGNAME         "LOGNAME"
 #define VAR_HOME            "HOME"

@@ -32,9 +32,9 @@ test check: $(TARGET)
 	@cd tests && exec $(SHELL) ./run-all.sh
 
 BINDIR = @BINDIR@
-install: $(BINDIR) $(TARGET)
+install: $(TARGET) $(BINDIR)
 	$(INSTALL_PROGRAM) -c $(TARGET) '$(BINDIR)/$(TARGET)'
-install-strip: $(BINDIR) $(TARGET)
+install-strip: $(TARGET) $(BINDIR)
 	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(BINDIR)/$(TARGET)'
 installdirs: $(BINDIR)
 $(BINDIR):

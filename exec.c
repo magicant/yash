@@ -436,7 +436,7 @@ static pid_t exec_single(
 	 * (親と子で同じものを二回書き出すのを防ぐため) */
 	fflush(NULL);
 
-	// FIXME: !expanded でエラー発生時 argv[0] を出力しようとする
+	// TODO FIXME: !expanded でエラー発生時 argv[0] を出力しようとする
 
 	pid_t cpid = fork();
 	if (cpid < 0) {  /* fork 失敗 */
@@ -812,7 +812,6 @@ static void clear_save_redirect(struct save_redirect *save)
 }
 
 /* 指定したコマンドを実行し、その標準出力の内容を返す。
- * 出力結果の末尾にある改行は削除する。
  * この関数はコマンドの実行が終わるまで返らない。
  * code:    実行するコマンド
  * trimend: true なら戻り値の末尾の改行を削除してから返す。
@@ -862,6 +861,7 @@ char *exec_and_read(const char *code, bool trimend)
 		max = 100;
 		buf = xmalloc(max + 1);
 
+		/* 子プロセスからの出力を受け取る */
 		for (;;) {
 			handle_signals();
 			FD_ZERO(&fds);
@@ -896,6 +896,8 @@ char *exec_and_read(const char *code, bool trimend)
 		if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
 			xerror(0, errno, "command substitution");
 		close(pipefd[0]);
+
+		/* 子プロセスの終了を待つ */
 		while (temp_chld.jp_status != JS_DONE)
 			wait_for_signal();
 		temp_chld.jp_pid = 0;

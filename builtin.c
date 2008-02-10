@@ -96,7 +96,7 @@ static struct builtin_info {
 	{ "export",  { builtin_export,  BI_SPECIAL }},
 	{ "unset",   { builtin_unset,   BI_SPECIAL }},
 
-	{ NULL,      { 0,               0 }},
+	{ NULL,      { NULL,            0 }},
 
 };
 

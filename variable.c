@@ -33,6 +33,7 @@
 #include "job.h"
 #include "path.h"
 #include "variable.h"
+#include "version.h"
 #include <assert.h>
 
 
@@ -182,6 +183,9 @@ void init_var(void)
 		free(var->value);
 		free(var);
 	}
+
+	/* YASH_VERSION 変数を設定する。 */
+	setvar(VAR_YASH_VERSION, PACKAGE_VERSION, false);
 
 	/* PATH 環境変数にセッターを設定する。 */
 	var = get_variable(VAR_PATH, false);
