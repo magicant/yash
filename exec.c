@@ -566,7 +566,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 
 		/* リダイレクトをセーブする */
 		if (save) {
-			int copyfd = dup(r->rd_fd);
+			int copyfd = fcntl(r->rd_fd, F_DUPFD, SHELLFD);
 			if (copyfd < 0 && errno != EBADF) {
 				xerror(0, errno, "redirect: cannot save file descriptor %d",
 						r->rd_fd);

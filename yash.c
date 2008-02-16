@@ -333,7 +333,7 @@ static int exec_promptcommand(void)
 /* 対話的動作を行う。この関数は返らない。 */
 static void interactive_loop(void)
 {
-	const char *exitargv[] = { "exit", NULL, };
+	static const char *exitargv[] = { "exit", NULL, };
 	struct parse_info info = { .input = yash_readline };
 
 	assert(is_interactive && is_interactive_now);
@@ -374,7 +374,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	bool help = false, version = false;
 	int opt;
 	char *directcommand = NULL;
-	const char *short_opts = "c:il";
+	const char *short_opts = "+c:il";
 
 	yash_program_invocation_name = argv[0] ? argv[0] : "";
 	yash_program_invocation_short_name
@@ -505,7 +505,6 @@ void selfexec(const char *commandpath, char **argv)
 	finalize_jobcontrol();
 	finalize_var();
 	finalize_alias();
-	finalize_builtin();
 	laststatus = 0;
 
 	struct plist newargs;

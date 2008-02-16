@@ -112,12 +112,6 @@ void init_builtin(void)
 	}
 }
 
-/* init_builtin で初期化した内容を消す */
-void finalize_builtin(void)
-{
-	ht_destroy(&builtins);
-}
-
 /* 指定した名前に対応する組込みコマンド関数を取得する。
  * 対応するものがなければ NULL を返す。 */
 BUILTIN *get_builtin(const char *name)

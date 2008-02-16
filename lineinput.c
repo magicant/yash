@@ -324,7 +324,7 @@ char *yash_readline(int ptype, void *info __attribute__((unused)))
 #endif
 	
 	if (ptype >= 0) {
-		hist = true;
+		hist = !posixly_correct;
 	} else {
 		hist = false;
 		ptype = -ptype;

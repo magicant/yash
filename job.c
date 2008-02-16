@@ -70,15 +70,20 @@ void joblist_reinit(void)
 /* ジョブ制御を初期化する */
 void init_jobcontrol(void)
 {
-	pl_init(&joblist);
-	pl_append(&joblist, NULL);
+	static bool initialized = false;
+	if (!initialized) {
+		initialized = true;
+		pl_init(&joblist);
+	}
+	if (!joblist.length) {
+		pl_append(&joblist, NULL);
+	}
 }
 
 /* ジョブ制御を終了する */
 void finalize_jobcontrol(void)
 {
 	joblist_reinit();
-	pl_destroy(&joblist);
 	huponexit = false;
 	currentjobnumber = 0;
 	last_bg_pid = 0;

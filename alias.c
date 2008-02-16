@@ -49,14 +49,17 @@ static void aliasfree(ALIAS *a)
 /* エイリアスモジュールを初期化する */
 void init_alias(void)
 {
-	ht_init(&aliases);
+	static bool initialized = false;
+	if (!initialized) {
+		initialized = true;
+		ht_init(&aliases);
+	}
 }
 
 /* エイリアスモジュールを終了する。 */
 void finalize_alias(void)
 {
 	remove_all_aliases();
-	ht_destroy(&aliases);
 	enable_alias = true;
 }
 

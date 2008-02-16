@@ -34,7 +34,6 @@ typedef struct {
 extern struct hasht builtins;
 
 void init_builtin(void);
-void finalize_builtin(void);
 BUILTIN *get_builtin(const char *name);
 
 int builtin_true(int argc, char **argv);
