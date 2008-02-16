@@ -139,6 +139,7 @@ int xgetopt(char *const *restrict argv, const char *restrict optstring)
 
 /* Temporary file maker */
 
+#define XMKSTEMP_NAME "/tmp/yash-XXXXXX"
 int xmkstemp(char *tempname)
 	__attribute__((nonnull));
 

@@ -72,6 +72,7 @@ static void exec_processes(PIPELINE *pl, bool background, char *jobname);
 static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
+static int open_heredocument(bool expand, const char *content);
 static void undo_redirections(struct save_redirect *save);
 static void clear_save_redirect(struct save_redirect *save);
 
@@ -654,100 +655,27 @@ openwithflags:
 							}
 						}
 					}
-					if (fd != r->rd_fd) {
-						if (close(r->rd_fd) < 0)
-							if (errno != EBADF)
-								goto onerror;
-						if (xdup2(fd, r->rd_fd) < 0)
-							goto onerror;
-					}
 				}
-				goto next;
+				break;
 			case RT_HERE:
-			case RT_HERERT:;
-				char *content;
-				if (strpbrk(r->rd_value, "\"'\\"))
-					content = r->rd_herecontent;
-				else
-					content = unescape_here_document(
-							expand_word(r->rd_herecontent, te_none, true));
-				
-				size_t len = strlen(content);
-				if (len <= PIPE_BUF) {
-					/* ヒアドキュメントの内容をパイプを使って渡す */
-					int pipefd[2];
-					if (pipe(pipefd) < 0) {
-						if (content != r->rd_herecontent)
-							free(content);
-						goto onerror;
-					}
-					ssize_t wr = write(pipefd[1], content, len);
-					if (wr < 0) {
-						int saveerrno = errno;
-						close(pipefd[0]);
-						close(pipefd[1]);
-						errno = saveerrno;
-						if (content != r->rd_herecontent)
-							free(content);
-						goto onerror;
-					}
-					/* パイプへの PIPE_BUF バイト以内の書き込みは、必ず全て
-					 * 書き込めることが保証されている */
-					assert((size_t) wr == len);
-					close(pipefd[1]);
-					fd = pipefd[0];
-				} else {
-					/* ヒアドキュメントの内容を一時ファイルを使って渡す */
-					errno = 0;
-					char tempfile[] = "/tmp/yash-XXXXXX";
-					fd = xmkstemp(tempfile);
-					if (fd < 0) {
-						if (content != r->rd_herecontent)
-							free(content);
-						goto onerror;
-					}
-					if (unlink(tempfile) < 0) {
-						xerror(0, errno,
-								"failed to remove temporary file `%s'",
-								tempfile);
-						close(fd);
-						if (content != r->rd_herecontent)
-							free(content);
-						goto returnfalse;
-					}
-					/* 一時ファイルにヒアドキュメントを書き出す */
-					size_t off = 0;
-					while (off < len) {
-						size_t rem = len - off;
-						if (rem > SSIZE_MAX)
-							rem = SSIZE_MAX;
-						ssize_t count = write(fd, content + off, rem);
-						if (count < 0) {
-							xerror(0, errno, "redirect: %s: "
-									"failed to write temporary file",
-									r->rd_value);
-							break;
-						}
-						off += count;
-					}
-					/* ファイルディスクリプタを先頭に戻す */
-					if (lseek(fd, 0, SEEK_SET) == (off_t) -1)
-						xerror(0, errno, "redirect :%s", r->rd_value);
-					/* XXX: ファイルディスクリプタを読み取り専用にすべき? */
-				}
-				if (content != r->rd_herecontent)
-					free(content);
+			case RT_HERERT:
+				fd = open_heredocument(
+						!strpbrk(r->rd_value, "\"'\\"), r->rd_herecontent);
+				if (fd < 0)
+					goto onerror;
 				break;
 			default:
 				assert(false);
 		}
 		if (fd != r->rd_fd) {
-			if (close(r->rd_fd) < 0 && errno != EBADF)
-				xerror(0, errno, "redirect: %s", r->rd_value);
+			if (close(r->rd_fd) < 0)
+				if (errno != EBADF)
+					xerror(0, errno, "redirect: %s", r->rd_value);
 			if (xdup2(fd, r->rd_fd) < 0)
 				goto onerror;
-			if (close(fd) < 0)
-				goto onerror;
+			if (r->rd_type != RT_DUPIN && r->rd_type != RT_DUPOUT)
+				if (close(fd) < 0)
+					goto onerror;
 		}
 
 next:
@@ -763,6 +691,51 @@ returnfalse:
 	free(exp);
 	if (save) *save = s;
 	return false;
+}
+
+/* ヒアドキュメントの内容を一時ファイルに書き出し、そのファイルへの
+ * ファイルディスクリプタを返す。一時ファイルは削除 (unlink) 済である。
+ * 返すファイルディスクリプタは、ファイルの先頭から読み込み可能になっている。
+ * 失敗すると負数を返す。 */
+static int open_heredocument(bool expand, const char *content)
+{
+	char *expandedcontent = NULL;
+
+	/* 一時ファイルを作る */
+	errno = 0;
+	char tempfile[] = XMKSTEMP_NAME;
+	int fd = xmkstemp(tempfile);
+	if (fd < 0)
+		return -1;
+	if (unlink(tempfile) < 0) {
+		close(fd);
+		return -1;
+	}
+
+	/* 一時ファイルにヒアドキュメントを書き出す */
+	if (expand)
+		content = expandedcontent =
+			unescape_here_document(expand_word(content, te_none, true));
+	size_t len = strlen(content), off = 0;
+	while (off < len) {
+		size_t rem = len - off;
+		if (rem > SSIZE_MAX)
+			rem = SSIZE_MAX;
+		ssize_t count = write(fd, content + off, rem);
+		if (count < 0) {
+			free(expandedcontent);
+			return -1;
+		}
+		off += count;
+	}
+	free(expandedcontent);
+
+	/* ファイルディスクリプタを先頭に戻す */
+	if (lseek(fd, 0, SEEK_SET) == (off_t) -1)
+		return -1;
+	/* XXX: ファイルディスクリプタを読み取り専用にすべき? */
+
+	return fd;
 }
 
 /* セーブしたリダイレクトを元に戻し、さらに引数リスト save を free する。 */
