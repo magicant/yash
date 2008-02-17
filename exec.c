@@ -72,6 +72,7 @@ static void exec_processes(PIPELINE *pl, bool background, char *jobname);
 static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
+static void save_redirect(struct save_redirect **save, REDIR *r);
 static int open_heredocument(bool expand, const char *content);
 static void undo_redirections(struct save_redirect *save);
 static void clear_save_redirect(struct save_redirect *save);
@@ -566,30 +567,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		}
 
 		/* リダイレクトをセーブする */
-		if (save) {
-			int copyfd = fcntl(r->rd_fd, F_DUPFD, SHELLFD);
-			if (copyfd < 0 && errno != EBADF) {
-				xerror(0, errno, "redirect: cannot save file descriptor %d",
-						r->rd_fd);
-			} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
-				xerror(0, errno, "redirect: fcntl(%d,SETFD,CLOEXEC)", r->rd_fd);
-				close(r->rd_fd);
-			} else {
-				struct save_redirect *ss = xmalloc(sizeof *ss);
-				ss->next = s;
-				ss->sr_origfd = r->rd_fd;
-				ss->sr_copyfd = copyfd;
-				switch (r->rd_fd) {
-					case STDIN_FILENO:   ss->sr_file = stdin;  break;
-					case STDOUT_FILENO:  ss->sr_file = stdout; break;
-					case STDERR_FILENO:  ss->sr_file = stderr; break;
-					default:             ss->sr_file = NULL;   break;
-				}
-				if (ss->sr_file)
-					fflush(ss->sr_file);
-				s = ss;
-			}
-		}
+		save_redirect(save, r);
 
 		/* 実際に rd_type に応じてリダイレクトを行う */
 		switch (r->rd_type) {
@@ -640,17 +618,19 @@ openwithflags:
 					}
 					if (posixly_correct) {
 						int flags = fcntl(fd, F_GETFL);
-						if (flags >= 0) {
+						if (flags == -1) {
+							goto onerror;
+						} else {
 							if (r->rd_type == RT_DUPIN
 									&& (flags & O_ACCMODE) == O_WRONLY) {
 								xerror(0, 0, "%d<&%d: file descriptor "
-										"not writable", r->rd_fd, fd);
+										"not readable", r->rd_fd, fd);
 								goto returnfalse;
 							}
 							if (r->rd_type == RT_DUPOUT
 									&& (flags & O_ACCMODE) == O_RDONLY) {
 								xerror(0, 0, "%d>&%d: file descriptor "
-										"not readable", r->rd_fd, fd);
+										"not writable", r->rd_fd, fd);
 								goto returnfalse;
 							}
 						}
@@ -667,6 +647,8 @@ openwithflags:
 			default:
 				assert(false);
 		}
+
+		/* fd が目的のファイルディスクリプタとは異なる場合は移動する。 */
 		if (fd != r->rd_fd) {
 			if (close(r->rd_fd) < 0)
 				if (errno != EBADF)
@@ -691,6 +673,36 @@ returnfalse:
 	free(exp);
 	if (save) *save = s;
 	return false;
+}
+
+/* リダイレクトをセーブする */
+static void save_redirect(struct save_redirect **save, REDIR *r)
+{
+	if (save) {
+		int copyfd = fcntl(r->rd_fd, F_DUPFD, SHELLFD);
+		if (copyfd < 0 && errno != EBADF) {
+			xerror(0, errno, "redirect: cannot save file descriptor %d",
+					r->rd_fd);
+		} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
+			xerror(0, errno, "redirect: cannot save file descriptor %d",
+					r->rd_fd);
+			close(copyfd);
+		} else {
+			struct save_redirect *ss = xmalloc(sizeof *ss);
+			ss->next = *save;
+			ss->sr_origfd = r->rd_fd;
+			ss->sr_copyfd = copyfd;
+			switch (r->rd_fd) {
+				case STDIN_FILENO:   ss->sr_file = stdin;  break;
+				case STDOUT_FILENO:  ss->sr_file = stdout; break;
+				case STDERR_FILENO:  ss->sr_file = stderr; break;
+				default:             ss->sr_file = NULL;   break;
+			}
+			if (ss->sr_file)
+				fflush(ss->sr_file);
+			*save = ss;
+		}
+	}
 }
 
 /* ヒアドキュメントの内容を一時ファイルに書き出し、そのファイルへの
