@@ -36,6 +36,11 @@
 # define USE_READLINE
 #endif
 
+/* shellfdmin の最大値 */
+#ifndef SHELLFDMINMAX
+# define SHELLFDMINMAX 100
+#endif
+
 /* _POSIX_C_SOURCE 機能検査マクロを定義してから各種ヘッダファイルを
  * インクルードすることで POSIX で定められた定数や関数が宣言されるが、
  * POSIX にない拡張機能は宣言されない (はずである)。

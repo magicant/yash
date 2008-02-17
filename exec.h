@@ -22,11 +22,16 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <sys/select.h>
 #include "parser.h"
 
 
 extern int laststatus;
+extern fd_set shellfds;
+extern int shellfdmin;
 
+void init_exec(void);
+void reset_shellfdmin(void);
 void exec_statements(STATEMENT *statements);
 void exec_statements_and_exit(STATEMENT *statements)
 	__attribute__((noreturn));

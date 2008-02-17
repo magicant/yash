@@ -81,6 +81,37 @@ static void clear_save_redirect(struct save_redirect *save);
 /* 最後に実行したコマンドの終了コード */
 int laststatus = 0;
 
+/* シェルがセーブ等に使用中のファイルディスクリプタの集合。
+ * これらのファイルディスクリプタはユーザが使うことはできない。 */
+fd_set shellfds;
+/* シェルが自由に使えるファイルディスクリプタの最小値。 */
+int shellfdmin;
+
+/* exec モジュールを初期化する */
+void init_exec(void)
+{
+	FD_ZERO(&shellfds);
+	reset_shellfdmin();
+}
+
+void reset_shellfdmin(void)
+{
+	errno = 0;
+	shellfdmin = sysconf(_SC_OPEN_MAX);
+	if (shellfdmin == -1) {
+		if (errno)
+			shellfdmin = 10;
+		else
+			shellfdmin = SHELLFDMINMAX;
+	} else {
+		shellfdmin /= 2;
+		if (shellfdmin > SHELLFDMINMAX)
+			shellfdmin = SHELLFDMINMAX;
+		else if (shellfdmin < 10)
+			shellfdmin = 10;
+	}
+}
+
 /* count 組のパイプを作り、その (新しく malloc した) 配列へのポインタを返す。
  * count が 0 なら何もせずに NULL を返す。
  * エラー時も NULL を返す。 */
@@ -269,10 +300,14 @@ static void exec_processes(PIPELINE *pl, bool bg, char *jobname)
 	}
 
 	ps = xmalloc(pcount * sizeof *ps);
+
+	/* パイプの最初のコマンドを実行 */
 	ps[0].jp_status = JS_RUNNING;
 	pgid = ps[0].jp_pid = exec_single(p, pl->pl_loop ? -1 : 0, 0,
 			bg ? BACKGROUND : FOREGROUND, pipes);
 	ps[0].jp_waitstatus = 0;
+
+	/* パイプの二つ目以降のコマンドを実行 */
 	if (pgid >= 0) {
 		for (size_t i = 1; i < pcount; i++) {
 			p = p->next;
@@ -285,6 +320,7 @@ static void exec_processes(PIPELINE *pl, bool bg, char *jobname)
 	} else {
 		laststatus = EXIT_FAILURE;
 	}
+
 	close_pipes(pipes);
 	if (pgid > 0) {
 		JOB *job = xmalloc(sizeof *job);
@@ -560,6 +596,13 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 	while (r) {
 		int fd, flags;
 
+		if (r->rd_fd < 0 || FD_SETSIZE <= r->rd_fd
+				|| FD_ISSET(r->rd_fd, &shellfds)) {
+			xerror(0, 0, "redirect: file descriptor %d unavailable", r->rd_fd);
+			exp = NULL;
+			goto returnfalse;
+		}
+
 		/* rd_file を展開する */
 		if (r->rd_type != RT_HERE && r->rd_type != RT_HERERT) {
 			exp = expand_single(r->rd_value, is_interactive);
@@ -655,8 +698,9 @@ returnfalse:
  * fd:   セーブする元のファイルディスクリプタ */
 static void save_redirect(struct save_redirect **save, int fd)
 {
+	assert(0 <= fd && fd < FD_SETSIZE);
 	if (save) {
-		int copyfd = fcntl(fd, F_DUPFD, SHELLFD);
+		int copyfd = fcntl(fd, F_DUPFD, shellfdmin);
 		if (copyfd < 0 && errno != EBADF) {
 			xerror(0, errno, "redirect: cannot save file descriptor %d", fd);
 		} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
@@ -668,6 +712,8 @@ static void save_redirect(struct save_redirect **save, int fd)
 			ss->sr_origfd = fd;
 			ss->sr_copyfd = copyfd;
 			/* 註: オリジナルが存在しなければ copyfd == -1 */
+			if (0 <= copyfd && copyfd < FD_SETSIZE)
+				FD_SET(copyfd, &shellfds);
 			switch (fd) {
 				case STDIN_FILENO:   ss->sr_file = stdin;  break;
 				case STDOUT_FILENO:  ss->sr_file = stdout; break;
@@ -773,12 +819,13 @@ static int open_heredocument(bool expand, const char *content)
 static void undo_redirections(struct save_redirect *save)
 {
 	while (save) {
-		struct save_redirect *next = save->next;
 		if (save->sr_file)
 			fflush(save->sr_file);
 		if (close(save->sr_origfd) < 0 && errno != EBADF)
 			xerror(0, errno, "closing file descriptor %d", save->sr_origfd);
 		if (save->sr_copyfd >= 0) {
+			if (save->sr_copyfd < FD_SETSIZE)
+				FD_CLR(save->sr_copyfd, &shellfds);
 			if (xdup2(save->sr_copyfd, save->sr_origfd) < 0)
 				xerror(0, errno, "can't restore file descriptor %d from %d",
 						save->sr_origfd, save->sr_copyfd);
@@ -786,6 +833,8 @@ static void undo_redirections(struct save_redirect *save)
 				xerror(0, errno, "closing copied file descriptor %d",
 						save->sr_copyfd);
 		}
+
+		struct save_redirect *next = save->next;
 		free(save);
 		save = next;
 	}
@@ -795,19 +844,14 @@ static void undo_redirections(struct save_redirect *save)
  * さらに引数リスト save を free する。 */
 static void clear_save_redirect(struct save_redirect *save)
 {
-	fd_set leave;  /* 残しておく FD の集合 */
-	FD_ZERO(&leave);
 	while (save) {
 		if (save->sr_copyfd >= 0) {
-			if (!FD_ISSET(save->sr_copyfd, &leave)) {
-				if (close(save->sr_copyfd) < 0 && errno != EBADF)
-					xerror(0, errno, "closing copied file descriptor %d",
-							save->sr_copyfd);
-			}
+			if (save->sr_copyfd < FD_SETSIZE)
+				FD_CLR(save->sr_copyfd, &shellfds);
+			if (close(save->sr_copyfd) < 0 && errno != EBADF)
+				xerror(0, errno, "closing copied file descriptor %d",
+						save->sr_copyfd);
 		}
-		/* leave には「生きている」FD のみを入れられる。 */
-		if (fcntl(save->sr_origfd, F_GETFD) >= 0)
-			FD_SET(save->sr_origfd, &leave);
 
 		struct save_redirect *next = save->next;
 		free(save);

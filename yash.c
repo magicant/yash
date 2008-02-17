@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/select.h>  /* for FD_*** */
 #include "yash.h"
 #include "util.h"
 #include "sig.h"
@@ -93,11 +94,11 @@ int exec_file(const char *path, char *const *positionals,
 			xerror(is_interactive_now ? 0 : EXIT_FAILURE, errno, "%s", path);
 		return -1;
 	}
-	/* SHELLFD 以上のファイルディスクリプタで開くことを保証する。 */
-	if (fd < SHELLFD) {
-		int newfd = fcntl(fd, F_DUPFD, SHELLFD);
+	/* shellfdmin 以上のファイルディスクリプタで開くことを保証する。 */
+	if (fd < shellfdmin) {
+		int newfd = fcntl(fd, F_DUPFD, shellfdmin);
 		int olderrno = errno;
-		if (close(fd) != 0)
+		if (close(fd) < 0)
 			xerror(0, errno, "%s", path);
 		if (newfd < 0) {
 			xerror(0, olderrno, "%s", path);
@@ -105,6 +106,7 @@ int exec_file(const char *path, char *const *positionals,
 		}
 		fd = newfd;
 	}
+	FD_SET(fd, &shellfds);
 
 	bool executed = false;
 	struct fgetline_info finfo = {
@@ -144,6 +146,7 @@ int exec_file(const char *path, char *const *positionals,
 	}
 end:
 	unextend_environment();
+	FD_CLR(fd, &shellfds);
 	if (close(fd) != 0)
 		xerror(0, errno, "%s", path);
 	return result;
@@ -438,6 +441,7 @@ int main(int argc __attribute__((unused)), char **argv)
 
 	shell_pid = getpid();
 	init_signal();
+	init_exec();
 	init_jobcontrol();
 	init_var();
 	init_alias();
