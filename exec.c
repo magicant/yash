@@ -72,7 +72,8 @@ static void exec_processes(PIPELINE *pl, bool background, char *jobname);
 static pid_t exec_single(
 		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
 static bool open_redirections(REDIR *redirs, struct save_redirect **save);
-static void save_redirect(struct save_redirect **save, REDIR *r);
+static void save_redirect(struct save_redirect **save, int fd);
+static int parse_dupfd(const char *exp, enum redirect_type type);
 static int open_heredocument(bool expand, const char *content);
 static void undo_redirections(struct save_redirect *save);
 static void clear_save_redirect(struct save_redirect *save);
@@ -405,7 +406,7 @@ static pid_t exec_single(
 						if (open_redirections(p->p_redirs, &saver)) {
 							bool temp = !(builtin->flags & BI_SPECIAL);
 							bool export = (builtin->flags & BI_SPECIAL);
-							if (assign_variables(p->p_assigns, temp, export)){
+							if (assign_variables(p->p_assigns, temp, export)) {
 								laststatus = builtin->main(argc, argv);
 								if (temp)
 									unset_temporary(NULL);
@@ -551,8 +552,10 @@ directexec:
  * エラーがあっても *save にはそれまでにセーブした FD のデータが入る。 */
 static bool open_redirections(REDIR *r, struct save_redirect **save)
 {
-	struct save_redirect *s = NULL;
 	char *exp;
+
+	if (save)
+		*save = NULL;
 
 	while (r) {
 		int fd, flags;
@@ -567,7 +570,7 @@ static bool open_redirections(REDIR *r, struct save_redirect **save)
 		}
 
 		/* リダイレクトをセーブする */
-		save_redirect(save, r);
+		save_redirect(save, r->rd_fd);
 
 		/* 実際に rd_type に応じてリダイレクトを行う */
 		switch (r->rd_type) {
@@ -604,36 +607,10 @@ openwithflags:
 								r->rd_fd);
 					goto next;
 				} else {
-					char *end;
-					errno = 0;
-					fd = strtol(exp, &end, 10);
-					if (errno) goto onerror;
-					if (exp[0] == '\0' || end[0] != '\0') {
-						xerror(0, 0, "%s: redirect syntax error", exp);
-						goto returnfalse;
-					}
-					if (fd < 0) {
-						errno = ERANGE;
-						goto onerror;
-					}
-					if (posixly_correct) {
-						int flags = fcntl(fd, F_GETFL);
-						if (flags == -1) {
-							goto onerror;
-						} else {
-							if (r->rd_type == RT_DUPIN
-									&& (flags & O_ACCMODE) == O_WRONLY) {
-								xerror(0, 0, "%d<&%d: file descriptor "
-										"not readable", r->rd_fd, fd);
-								goto returnfalse;
-							}
-							if (r->rd_type == RT_DUPOUT
-									&& (flags & O_ACCMODE) == O_RDONLY) {
-								xerror(0, 0, "%d>&%d: file descriptor "
-										"not writable", r->rd_fd, fd);
-								goto returnfalse;
-							}
-						}
+					fd = parse_dupfd(exp, r->rd_type);
+					switch (fd) {
+						case -1:  goto onerror;
+						case -2:  goto returnfalse;
 					}
 				}
 				break;
@@ -664,35 +641,34 @@ next:
 		free(exp);
 		r = r->next;
 	}
-	if (save) *save = s;
 	return true;
 
 onerror:
 	xerror(0, errno, "redirect: %s", r->rd_value);
 returnfalse:
 	free(exp);
-	if (save) *save = s;
 	return false;
 }
 
-/* リダイレクトをセーブする */
-static void save_redirect(struct save_redirect **save, REDIR *r)
+/* リダイレクトをセーブする
+ * save: セーブ情報の保存先へのポインタ (NULL ならセーブしない)
+ * fd:   セーブする元のファイルディスクリプタ */
+static void save_redirect(struct save_redirect **save, int fd)
 {
 	if (save) {
-		int copyfd = fcntl(r->rd_fd, F_DUPFD, SHELLFD);
+		int copyfd = fcntl(fd, F_DUPFD, SHELLFD);
 		if (copyfd < 0 && errno != EBADF) {
-			xerror(0, errno, "redirect: cannot save file descriptor %d",
-					r->rd_fd);
+			xerror(0, errno, "redirect: cannot save file descriptor %d", fd);
 		} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
-			xerror(0, errno, "redirect: cannot save file descriptor %d",
-					r->rd_fd);
+			xerror(0, errno, "redirect: cannot save file descriptor %d", fd);
 			close(copyfd);
 		} else {
 			struct save_redirect *ss = xmalloc(sizeof *ss);
 			ss->next = *save;
-			ss->sr_origfd = r->rd_fd;
+			ss->sr_origfd = fd;
 			ss->sr_copyfd = copyfd;
-			switch (r->rd_fd) {
+			/* 註: オリジナルが存在しなければ copyfd == -1 */
+			switch (fd) {
 				case STDIN_FILENO:   ss->sr_file = stdin;  break;
 				case STDOUT_FILENO:  ss->sr_file = stdout; break;
 				case STDERR_FILENO:  ss->sr_file = stderr; break;
@@ -703,6 +679,49 @@ static void save_redirect(struct save_redirect **save, REDIR *r)
 			*save = ss;
 		}
 	}
+}
+
+/* DUPIN/DUPOUT のリダイレクトの値を解析する。
+ * exp が有効なファイルディスクリプタを表す文字列で、type に適合するなら
+ * その番号を返す。エラー時は -1 or -2 を返す。-1 なら呼び出し元で errno に
+ * 対応するエラーを出力すべし。-2 ならエラーはこの関数内で出力済。
+ * この関数は exp が有効な数字でなければエラーとする。 exp が "-" かどうかは
+ * 予め判定しておくこと。 */
+static int parse_dupfd(const char *exp, enum redirect_type type)
+{
+	char *end;
+	int fd;
+
+	assert(type == RT_DUPIN || type == RT_DUPOUT);
+	errno = 0;
+	fd = strtol(exp, &end, 10);
+	if (errno)
+		return -1;
+	if (exp[0] == '\0' || end[0] != '\0') {
+		xerror(0, 0, "%s: redirect syntax error", exp);
+		return -2;
+	}
+	if (fd < 0) {
+		errno = ERANGE;
+		return -1;
+	}
+	if (posixly_correct) {
+		int flags = fcntl(fd, F_GETFL);
+		if (flags == -1) {
+			return -1;
+		} else {
+			if (type == RT_DUPIN && (flags & O_ACCMODE) == O_WRONLY) {
+				xerror(0, 0, "redirect: %d: file descriptor not readable", fd);
+				return -2;
+			}
+			if (type == RT_DUPOUT && (flags & O_ACCMODE) == O_RDONLY) {
+				xerror(0, 0, "redirect: %d: file descriptor not writable", fd);
+				return -2;
+			}
+		}
+	}
+	assert(fd >= 0);
+	return fd;
 }
 
 /* ヒアドキュメントの内容を一時ファイルに書き出し、そのファイルへの
