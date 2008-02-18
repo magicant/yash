@@ -137,6 +137,11 @@ int xgetopt(char *const *restrict argv, const char *restrict optstring)
 #endif
 
 
+/* IO Utility */
+
+int xclose(int fd);
+
+
 /* Temporary file maker */
 
 #define XMKSTEMP_NAME "/tmp/yash-XXXXXX"

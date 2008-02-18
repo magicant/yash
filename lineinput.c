@@ -370,8 +370,10 @@ yash_readline_start:
 		tcsetattr(STDIN_FILENO, TCSADRAIN, &old_terminal_info);
 
 	if (!line) {
-		if (ptype == 1)      printf(is_loginshell ? "logout\n" : "exit\n");
-		else if (ptype == 2) printf("\n");
+		if (ptype == 1)
+			fputs(is_loginshell ? "logout\n" : "exit\n", stderr);
+		else if (ptype == 2)
+			fputs("\n", stderr);
 		return NULL;
 	}
 
@@ -380,7 +382,7 @@ yash_readline_start:
 	if (hist) {
 		switch (history_expand(line, &eline)) {
 			case 1:  /* expansion successful */
-				printf("%s\n", eline);
+				fprintf(stderr, "%s\n", eline);
 				/* falls thru! */
 			case 0:  /* expansion successful without changes */
 			default:
@@ -395,7 +397,7 @@ yash_readline_start:
 				goto yash_readline_start;
 			case 2:   /* No execution */
 				free(line);
-				printf("%s\n", eline);
+				fprintf(stderr, "%s\n", eline);
 				if (*skipspaces(eline))
 					add_history(eline);
 				free(eline);

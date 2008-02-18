@@ -543,6 +543,27 @@ int xgetopt(char *const *restrict argv, const char *restrict optstring)
 }
 
 
+/********** IO ユーティリティ **********/
+
+/* 指定したファイルディスクリプタを閉じようとする。
+ * うまく閉じられなかった場合はエラーを出す。 */
+int xclose(int fd)
+{
+	while (close(fd) < 0) {
+		switch (errno) {
+			case EINTR:
+				continue;
+			case EBADF:
+				return 0;
+			default:
+				xerror(0, errno, "error in closing file descriptor %d", fd);
+				return -1;
+		}
+	}
+	return 0;
+}
+
+
 /********** 一時ファイル作成 **********/
 
 /* 一時ファイルを作成し、それを開いたファイルディスクリプタを返す。

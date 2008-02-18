@@ -35,9 +35,8 @@ void remove_shellfd(int fd);
 bool is_shellfd(int fd);
 void clear_shellfds(void);
 void reset_shellfdmin(void);
-void exec_statements(STATEMENT *statements);
-void exec_statements_and_exit(STATEMENT *statements)
-	__attribute__((noreturn));
+void exec_statements(STATEMENT *statements, bool finally_exit);
+void reset_after_fork(void);
 char *exec_and_read(const char *code, bool trimend);
 
 

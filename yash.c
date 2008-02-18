@@ -67,7 +67,7 @@ bool posixly_correct;
 
 /* 端末へのファイルディスクリプタ。対話的シェルでのみ有効。
  * 対話的シェルでも、端末を開けなかった場合は負数。 */
-int ttyfd = STDIN_FILENO;
+int ttyfd = -1;
 
 /* プライマリプロンプトの前に実行するコマンド */
 char *prompt_command = NULL;
@@ -103,8 +103,7 @@ int exec_file(const char *path, char *const *positionals,
 	if (fd < shellfdmin) {
 		int newfd = fcntl(fd, F_DUPFD, shellfdmin);
 		int olderrno = errno;
-		if (close(fd) < 0)
-			xerror(0, errno, "%s", path);
+		xclose(fd);
 		if (newfd < 0) {
 			xerror(0, olderrno, "%s", path);
 			return -1;
@@ -132,7 +131,7 @@ int exec_file(const char *path, char *const *positionals,
 		switch (read_and_parse(&info, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
-					exec_statements(statements);
+					exec_statements(statements, false);
 					statementsfree(statements);
 					executed = true;
 				}
@@ -152,8 +151,7 @@ int exec_file(const char *path, char *const *positionals,
 end:
 	unextend_environment();
 	remove_shellfd(fd);
-	if (close(fd) != 0)
-		xerror(0, errno, "%s", path);
+	xclose(fd);
 	return result;
 }
 
@@ -200,7 +198,7 @@ int exec_source(const char *code, const char *name)
 		switch (read_and_parse(&pinfo, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
-					exec_statements(statements);
+					exec_statements(statements, false);
 					statementsfree(statements);
 					executed = true;
 				}
@@ -244,7 +242,7 @@ void exec_source_and_exit(const char *code, const char *name)
 	STATEMENT *statements;
 	switch (read_and_parse(&info, &statements)) {
 		case 0:  /* OK */
-			exec_statements_and_exit(statements);
+			exec_statements(statements, true);
 		default:  /* error */
 			exit(2);
 	}
@@ -352,7 +350,7 @@ static void interactive_loop(void)
 		switch (read_and_parse(&info, &statements)) {
 			case 0:  /* OK */
 				if (statements) {
-					exec_statements(statements);
+					exec_statements(statements, false);
 					statementsfree(statements);
 				}
 				break;
@@ -471,7 +469,9 @@ int main(int argc __attribute__((unused)), char **argv)
 
 	bool stdinistty = isatty(STDIN_FILENO);
 	if (is_interactive || (stdinistty && isatty(STDERR_FILENO))) {
-		if (!stdinistty) {
+		if (stdinistty) {
+			ttyfd = STDIN_FILENO;
+		} else {
 			ttyfd = open("/dev/tty", O_RDONLY);
 			if (0 <= ttyfd && ttyfd < shellfdmin) {
 				int newttyfd = fcntl(ttyfd, F_DUPFD, shellfdmin);
