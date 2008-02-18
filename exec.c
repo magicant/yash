@@ -289,13 +289,10 @@ static void exec_pipelines(PIPELINE *p, bool finally_exit)
 		if (finally_exit && !p->next && !p->pl_neg && !p->pl_loop) {
 			/* 最後なのでこのプロセスで直接実行する。 */
 			PROCESS *proc = p->pl_proc;
-			if (!proc->next) switch (proc->p_type) {
-				case PT_NORMAL:
-					exec_single(proc, 0, 0, SELF,
-							(PIPES) { .p_count = 0, .p_pipes = NULL, });
-					assert(false);
-				case PT_GROUP:  case PT_SUBSHELL:
-					exec_statements(proc->p_subcmds, true);
+			if (!proc->next) {
+				exec_single(proc, 0, 0, SELF,
+						(PIPES) { .p_count = 0, .p_pipes = NULL, });
+				assert(false);
 			}
 		}
 
@@ -696,6 +693,9 @@ openwithflags:
 			}
 		}
 
+		if (r->rd_fd == STDIN_FILENO)
+			is_stdin_redirected = true;
+
 		free(exp);
 		r = r->next;
 	}
@@ -726,6 +726,7 @@ static void save_redirect(struct save_redirect **save, int fd)
 			ss->next = *save;
 			ss->sr_origfd = fd;
 			ss->sr_copyfd = copyfd;
+			ss->sr_stdin_redirected = is_stdin_redirected;
 			/* 註: オリジナルが存在しなければ copyfd == -1 */
 			if (0 <= copyfd)
 				add_shellfd(copyfd);
@@ -737,10 +738,6 @@ static void save_redirect(struct save_redirect **save, int fd)
 			}
 			if (ss->sr_file)
 				fflush(ss->sr_file);
-			if (fd == STDIN_FILENO) {
-				ss->sr_stdin_redirected = is_stdin_redirected;
-				is_stdin_redirected = true;
-			}
 			*save = ss;
 
 			if (ttyfd >= 0 && ttyfd == fd)
