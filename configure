@@ -29,7 +29,7 @@ cflags="${CFLAGS--O1 -g}"
 ldflags="${LDFLAGS--l c}"
 target="yash"
 package="yash"
-version="1.5b0"
+version="1.5"
 copyrightyear="2007-2008"
 
 sources="alias.c alias.h builtin.c builtin.h builtin_job.c builtin_var.c common.h exec.c exec.h expand.c expand.h job.c job.h lineinput.c lineinput.h parser.c parser.h path.c path.h sig.c sig.h util.c util.h variable.c variable.h yash.c yash.h"
