@@ -27,10 +27,13 @@
 
 
 extern int laststatus;
-extern fd_set shellfds;
 extern int shellfdmin;
 
 void init_exec(void);
+void add_shellfd(int fd);
+void remove_shellfd(int fd);
+bool is_shellfd(int fd);
+void clear_shellfds(void);
 void reset_shellfdmin(void);
 void exec_statements(STATEMENT *statements);
 void exec_statements_and_exit(STATEMENT *statements)

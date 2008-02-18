@@ -37,6 +37,7 @@ extern pid_t shell_pid;
 extern bool is_loginshell;
 extern bool is_interactive, is_interactive_now;
 extern bool posixly_correct;
+extern int ttyfd;
 
 extern char *prompt_command;
 

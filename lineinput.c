@@ -343,7 +343,7 @@ yash_readline_start:
 			assert(false);
 	}
 
-	if (tcsetpgrp(STDIN_FILENO, getpgrp()) < 0)
+	if (ttyfd >= 0 && tcsetpgrp(ttyfd, getpgrp()) < 0)
 		xerror(0, errno, "tcsetpgrp before readline");
 
 	if (tcgetattr(STDIN_FILENO, &old_terminal_info) == 0) {

@@ -3,6 +3,8 @@
 PIPE_BUF などの定数を pathconf 関数経由で得る
 README.html を本来の README とマニュアルに分離
 async コマンドの stdin は /dev/null よりリダイレクトを優先
+	`{ command; } </dev/null` で tcsetpgrp エラー
+exec_statements_and_exit で etype==SELF が働いてない?
 reset_after_fork 関数に fork 後にすべき操作をまとめる
 readline 補完の充実
 configure での readline の詳細なバージョン判別

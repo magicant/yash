@@ -639,7 +639,7 @@ int builtin_fg(int argc, char **argv)
 		else
 			printf("[%zd]+ %5ld              %s%s\n",
 					jobnumber, (long) pgid, job->j_name, fg ? "" : " &");
-		if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
+		if (fg && ttyfd >= 0 && tcsetpgrp(ttyfd, pgid) < 0) {
 			if (errno == EPERM || errno == ESRCH) {
 				xerror(0, 0, "%s %%%zd: job has terminated", argv[0],jobnumber);
 				return EXIT_FAILURE;
@@ -692,7 +692,7 @@ int builtin_fg(int argc, char **argv)
 			else
 				printf("[%zd]+ %5ld              %s%s\n",
 						jobnumber, (long) pgid, job->j_name, fg ? "" : " &");
-			if (fg && tcsetpgrp(STDIN_FILENO, pgid) < 0) {
+			if (fg && ttyfd >= 0 && tcsetpgrp(ttyfd, pgid) < 0) {
 				if (errno == EPERM || errno == ESRCH) {
 					xerror(0, 0, "%s %%%zd: job has terminated",
 							argv[0], jobnumber);

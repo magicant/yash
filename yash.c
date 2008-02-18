@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -57,12 +58,16 @@ pid_t shell_pid;
 
 /* このプロセスがログインシェルかどうか */
 bool is_loginshell;
-/* 対話的シェルかどうか
- * is_loginshell, is_interactive の値はサブシェルでも変わらない。
- * is_interactive_now はサブシェルでは常に false である。 */
+/* 対話的シェルかどうか */
 bool is_interactive, is_interactive_now;
+/* is_loginshell, is_interactive の値はサブシェルでも変わらない。
+ * is_interactive_now はサブシェルでは常に false である。 */
 /* POSIX の規定に厳密に従うかどうか */
 bool posixly_correct;
+
+/* 端末へのファイルディスクリプタ。対話的シェルでのみ有効。
+ * 対話的シェルでも、端末を開けなかった場合は負数。 */
+int ttyfd = STDIN_FILENO;
 
 /* プライマリプロンプトの前に実行するコマンド */
 char *prompt_command = NULL;
@@ -106,7 +111,7 @@ int exec_file(const char *path, char *const *positionals,
 		}
 		fd = newfd;
 	}
-	FD_SET(fd, &shellfds);
+	add_shellfd(fd);
 
 	bool executed = false;
 	struct fgetline_info finfo = {
@@ -146,7 +151,7 @@ int exec_file(const char *path, char *const *positionals,
 	}
 end:
 	unextend_environment();
-	FD_CLR(fd, &shellfds);
+	remove_shellfd(fd);
 	if (close(fd) != 0)
 		xerror(0, errno, "%s", path);
 	return result;
@@ -265,7 +270,7 @@ void restore_pgid(void)
 	if (orig_pgrp > 0) {
 		if (setpgid(0, orig_pgrp) < 0 && errno != EPERM)
 			xerror(0, errno, "cannot restore process group");
-		if (tcsetpgrp(STDIN_FILENO, orig_pgrp) < 0)
+		if (ttyfd >= 0 && tcsetpgrp(ttyfd, orig_pgrp) < 0)
 			xerror(0, errno, "cannot restore foreground process group");
 		orig_pgrp = 0;
 	}
@@ -389,7 +394,6 @@ int main(int argc __attribute__((unused)), char **argv)
 
 	command_name = yash_program_invocation_name;
 	is_loginshell = yash_program_invocation_name[0] == '-';
-	is_interactive = isatty(STDIN_FILENO) && isatty(STDOUT_FILENO);
 	posixly_correct = getenv(VAR_POSIXLY_CORRECT) != NULL;
 	setlocale(LC_ALL, "");
 
@@ -464,8 +468,25 @@ int main(int argc __attribute__((unused)), char **argv)
 		exec_file(command_name, argv + xoptind + 1, false, false);
 		exit(laststatus);
 	}
-	if (is_interactive) {
-		is_interactive_now = true;
+
+	bool stdinistty = isatty(STDIN_FILENO);
+	if (is_interactive || (stdinistty && isatty(STDERR_FILENO))) {
+		if (!stdinistty) {
+			ttyfd = open("/dev/tty", O_RDONLY);
+			if (0 <= ttyfd && ttyfd < shellfdmin) {
+				int newttyfd = fcntl(ttyfd, F_DUPFD, shellfdmin);
+				if (newttyfd < 0)
+					xerror(EXIT_FAILURE, errno, "file descriptor unavailable");
+				if (close(ttyfd) < 0)
+					xerror(0, errno, "closing file descriptor %d", ttyfd);
+				ttyfd = newttyfd;
+			}
+			if (ttyfd >= shellfdmin)
+				add_shellfd(ttyfd);
+		}
+		while (ttyfd >= 0 && tcgetpgrp(ttyfd) != getpgrp())
+			raise(SIGTTIN);
+		is_interactive = is_interactive_now = true;
 		set_shell_env();
 		interactive_loop();
 	}

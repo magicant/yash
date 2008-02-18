@@ -69,9 +69,6 @@ struct variable {
  * ゲッター・セッターの戻り値はそのまま getvar/setvar の戻り値になる。
  * セッターは unsetvar でも value = NULL で呼ばれる。 */
 
-/* 変数代入を元に戻すためのデータ */
-struct save_assignment;
-
 void init_var(void);
 void finalize_var(void);
 void set_shlvl(int change);
