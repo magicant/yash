@@ -44,7 +44,7 @@ uninstall:
 
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
-DISTDIR = $(PACKAGE)-$(VERSION)
+DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
 DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in makedepend install-sh tests
 # Only pax and compress comform to POSIX.

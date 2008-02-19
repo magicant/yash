@@ -29,7 +29,7 @@ cflags="${CFLAGS--O1 -g}"
 ldflags="${LDFLAGS--l c}"
 target="yash"
 package="yash"
-version="1.5"
+version="1.6 WIP"
 copyrightyear="2007-2008"
 
 sources="alias.c alias.h builtin.c builtin.h builtin_job.c builtin_var.c common.h exec.c exec.h expand.c expand.h job.c job.h lineinput.c lineinput.h parser.c parser.h path.c path.h sig.c sig.h util.c util.h variable.c variable.h yash.c yash.h"
@@ -272,6 +272,7 @@ EPREFIX="${eprefix-${PREFIX}}"
 if [ x"${PREFIX}" = x"/" ]; then PREFIX=""; fi
 if [ x"${EPREFIX}" = x"/" ]; then EPREFIX=""; fi
 BINDIR="${bindir-${EPREFIX}/bin}"
+DISTDIR=`echo $PACKAGE $VERSION | sed -e 's/[[:space:]]/-/g'`
 
 # create Makefile from Makefile.in
 echo "creating ${makefile}"
@@ -289,6 +290,7 @@ sed -e "
     s!@PREFIX@!${PREFIX}!g
     s!@EPREFIX@!${EPREFIX}!g
     s!@BINDIR@!${BINDIR}!g
+    s!@DISTDIR@!${DISTDIR}!g
     " "${makefilein}" >> "${makefile}"
 sh ./makedepend ${sources} >> "${makefile}"
 
@@ -306,6 +308,7 @@ echo INSTALL_PROGRAM="'${INSTALL_PROGRAM}'" >&5
 echo PREFIX="'${PREFIX}'" >&5
 echo EPREFIX="'${EPREFIX}'" >&5
 echo BINDIR="'${BINDIR}'" >&5
+echo DISTDIR="'${DISTDIR}'" >&5
 
 
 # create version.h
