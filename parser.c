@@ -530,18 +530,27 @@ static void read_here_document(REDIR *rd)
 	bool removetab = (rd->rd_type == RT_HERERT);
 	char *delim = unescape(xstrdup(rd->rd_value));
 	struct strbuf doc;
+
 	sb_init(&doc);
-	for (;;) {
+	while (!i_finish) {
 		char *rawline = i_info->input(-2, i_info->inputinfo);
-		if (!rawline)
+		if (!rawline) {
+			i_finish = true;
 			break;
+		}
+		i_info->lineno++;
 
 		char *line = rawline;
 		if (removetab)
 			while (*line == '\t') line++;
 		if (strcmp(line, delim) != 0) {
-			sb_append(&doc, line);
-			sb_cappend(&doc, '\n');
+			if (!i_raw) {
+				sb_append(&doc, line);
+				sb_cappend(&doc, '\n');
+			} else {
+				sb_cappend(&i_src, '\n');
+				sb_append(&i_src, line);
+			}
 			free(rawline);
 		} else {
 			free(rawline);
