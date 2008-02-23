@@ -337,14 +337,14 @@ int builtin_wait(int argc, char **argv)
 				if (*target)
 					jobnumber = strtol(target, &target, 10);
 				if (errno || *target) {
-					xerror(0, 0, "%s: %s: invalid target", argv[0], target);
+					xerror(0, 0, "%s: %s: invalid target", argv[0], argv[i]);
 					resultstatus = EXIT_FAILURE;
 					goto end;
 				}
 				jobnumber = get_jobnumber_from_pid(jobnumber);
 				if (jobnumber < 0) {
 					xerror(0, 0, "%s: %s: not a child of this shell",
-							argv[0], target);
+							argv[0], argv[i]);
 					resultstatus = EXIT_NOTFOUND;
 					goto end;
 				}

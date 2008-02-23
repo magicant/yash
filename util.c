@@ -34,9 +34,6 @@
 #include "util.h"
 #include <assert.h>
 
-static unsigned ht_hashstr(const char *s) __attribute__((pure));
-static void ht_rehash(struct hasht *ht, size_t newcap);
-
 
 /* calloc を試みる。失敗したらプログラムを強制終了する。
  * 戻り値: calloc の結果 */
@@ -957,6 +954,9 @@ void pl_remove(struct plist *list, size_t i, size_t count)
 /********** Hashtable **********/
 
 #define NOTHING ((ssize_t) -1)
+
+static unsigned ht_hashstr(const char *s) __attribute__((pure));
+static void ht_rehash(struct hasht *ht, size_t newcap);
 
 /* ハッシュ関数 */
 static unsigned ht_hashstr(const char *s)

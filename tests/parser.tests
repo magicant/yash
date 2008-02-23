@@ -38,4 +38,9 @@ echo block | {
 } 3>&1 1>&3
 { echo another; echo block& wait $!; }
 
+echo "Point 4"
+echo '\$x'
+echo `echo '\$x'`
+echo $(echo '\$x')
+
 | #error

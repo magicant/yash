@@ -13,4 +13,8 @@ Point 3
 block
 another
 block
-parser.tests:41: syntax error: no command after `|'
+Point 4
+\$x
+$x
+\$x
+parser.tests:46: syntax error: no command after `|'
