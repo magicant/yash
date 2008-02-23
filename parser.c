@@ -543,14 +543,13 @@ static void read_here_document(REDIR *rd)
 		char *line = rawline;
 		if (removetab)
 			while (*line == '\t') line++;
+		if (i_raw) {
+			sb_cappend(&i_src, '\n');
+			sb_append(&i_src, line);
+		}
 		if (strcmp(line, delim) != 0) {
-			if (!i_raw) {
-				sb_append(&doc, line);
-				sb_cappend(&doc, '\n');
-			} else {
-				sb_cappend(&i_src, '\n');
-				sb_append(&i_src, line);
-			}
+			sb_append(&doc, line);
+			sb_cappend(&doc, '\n');
 			free(rawline);
 		} else {
 			free(rawline);
