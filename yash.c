@@ -17,31 +17,166 @@
 
 
 #include "common.h"
-#include "version.h"
+#include <assert.h>
 #include <locale.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#include "yash.h"
+#include "util.h"
+#include "version.h"
 
 
 int main(int argc, char **argv) __attribute__((nonnull));
-void print_version(void);
+static void print_help(void);
+static void print_version(void);
+
+/* true なら POSIX に厳密に従う */
+bool posixly_correct;
+/* 対話的シェルかどうか。is_interactive_now はサブシェルでは false になる。 */
+bool is_interactive, is_interactive_now;
+/* ログインシェルかどうか。 */
+bool is_login_shell;
+/* コマンド名。特殊パラメータ $0 の値。 */
+const char *command_name;
+/* シェル本体のプロセス ID。 */
+pid_t shell_pid;
 
 
-int main(int argc, char **argv)
+static struct xoption long_options[] = {
+	{ "interactive", xno_argument, NULL, 'i', },
+	{ "login",       xno_argument, NULL, 'l', },
+	{ "posix",       xno_argument, NULL, 'X', },
+	{ "help",        xno_argument, NULL, '?', },
+	{ "version",     xno_argument, NULL, 'V', },
+	{ NULL,          0,            NULL, 0,   },
+};
+
+int main(int argc __attribute__((unused)), char **argv)
 {
+	bool help = false, version = false;
+	bool exec_first_arg = false, read_stdin = false;
+	int opt;
+	const char *shortest_name;
+
+	yash_program_invocation_name = argv[0] ? argv[0] : "";
+	yash_program_invocation_short_name
+		= strrchr(yash_program_invocation_name, '/');
+	if (yash_program_invocation_short_name)
+		yash_program_invocation_short_name++;
+	else
+		yash_program_invocation_short_name = yash_program_invocation_name;
+	command_name = yash_program_invocation_name;
+	is_login_shell = (yash_program_invocation_name[0] == '-');
+	shortest_name = yash_program_invocation_short_name;
+	if (shortest_name[0] == '-')
+		shortest_name++;
+	if (strcmp(shortest_name, "sh") == 0)
+		posixly_correct = true;
+
 	setlocale(LC_ALL, "");
 #if HAVE_GETTEXT
 	bindtextdomain(PACKAGE_NAME, LOCALEDIR);
 	textdomain(PACKAGE_NAME);
 #endif
 
-	print_version();
-	return 0;
+	/* オプションを解釈する */
+	xoptind = 0;
+	xopterr = true;
+	// TODO yash:main: unimplemented options: -abCefhimnuvx -o
+	while ((opt = xgetopt_long(argv, "+cisV?", long_options, NULL)) >= 0) {
+		switch (opt) {
+		case 0:
+			break;
+		case 'c':
+			exec_first_arg = (xoptopt == '-');
+			break;
+		case 'i':
+			is_interactive = (xoptopt == '-');
+			break;
+		case 'l':
+			is_login_shell = (xoptopt == '-');
+			break;
+		case 's':
+			read_stdin = (xoptopt == '-');
+			break;
+		case 'X':
+			posixly_correct = true;
+			break;
+		case 'V':
+			version = true;
+			break;
+		case '?':
+			help = true;
+			break;
+		}
+	}
+
+	/* 最初の引数が "-" なら無視する */
+	if (argv[xoptind] && strcmp(argv[xoptind], "-") == 0)
+		xoptind++;
+
+	if (version)
+		print_version();
+	if (help)
+		print_help();
+	if (version || help)
+		return EXIT_SUCCESS;
+
+	shell_pid = getpid();
+
+	if (exec_first_arg && read_stdin) {
+		xerror(2, 0, gt("both -c and -s options cannot be specified"));
+	}
+	if (exec_first_arg) {
+		char *command = argv[xoptind++];
+		if (!command)
+			xerror(2, 0, gt("-c option requires an operand"));
+		if (argv[xoptind])
+			command_name = argv[xoptind++];
+		is_interactive_now = is_interactive;
+		// TODO yash:main:exec_first_arg
+		xerror(2, 0, "-c %s: NOT IMPLEMENTED", command);
+	} else {
+		FILE *input;
+		if (read_stdin || !argv[xoptind]) {
+			input = stdin;
+			if (!argv[xoptind] && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
+				is_interactive = true;
+		} else {
+			command_name = argv[xoptind];
+			input = fopen(argv[xoptind], "r");
+		}
+		is_interactive_now = is_interactive;
+		//TODO yash:main: read file and exec commands
+		xerror(2, 0, "executing %s: NOT IMPLEMENTED", command_name);
+	}
+	assert(false);
 }
 
-void print_version(void)
+static void print_help(void)
+{
+	if (posixly_correct) {
+		printf(gt("Usage:  sh [options] [filename [args...]]\n"
+		          "        sh [options] -c command [command_name [args...]]\n"
+				  "        sh [options] -s [args...]\n"));
+		printf(gt("Options: -il\n"));
+	} else {
+		printf(gt("Usage:  yash [options] [filename [args...]]\n"
+		          "        yash [options] -c command [args...]\n"
+				  "        yash [options] -s [args...]\n"));
+		printf(gt("Short options: -ilV?\n"));
+		printf(gt("Long options:\n"));
+		for (size_t i = 0; long_options[i].name; i++)
+			printf("\t--%s\n", long_options[i].name);
+	}
+}
+
+static void print_version(void)
 {
 	printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
 	printf(PACKAGE_COPYRIGHT "\n");
