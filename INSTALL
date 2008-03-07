@@ -1,0 +1,61 @@
+How to Build and Install Yash
+
+
+A normal way to build and install Yash is:
+
+  1. In your shell, `cd' to the directory containing this file.
+
+  2. Type `sh configure' to run the configuration script. This script
+     checks which features are available on your system and creates
+	 files to build Yash.
+
+  3. Type `make' to build Yash.
+
+  4. Optionally, type `make test' to check if Yash works right.
+
+  5. Type `make install' to install yash. By default, Yash is installed
+     at /usr/local/bin/yash.
+
+The `configure' script chooses a compiler to compile Yash. GCC is
+preferred if available. If GCC is unavailable, `c99' is used, which is
+defined by POSIX.
+
+The `configure' script accepts following options, which affect the
+way Yash is built and installed:
+
+  --debug
+          Lower the optimization level of the compiler to make it easy
+		  to debug Yash. Only valid for GCC.
+  --with-readline
+          Enable line editing with GNU Readline Library even if
+		  `configure' script cannot find the correct linker option.
+		  You need to define the correct linker option yourself.
+  --without-readline
+          Disable line editing with GNU Readline Library.
+
+  --bindir=DIR
+          Install Yash in DIR, rather than /usr/local/bin.
+
+Following environment variables override `configure' script's choices:
+
+  CC
+          The name of Compiler/linker.
+  CFLAGS
+          Options given to the compiler.
+  LDFLAGS
+          Options given to the linker.
+  INSTALL_PROGRAM
+          The name of the installer.
+
+Following environment variables affect `configure' script's choices:
+
+  CADDS
+          Additional options given to the compiler.
+  LDADDS, LIBS
+          Additional options given to the linker.
+
+
+Typing `make uninstall' uninstalls the program.
+Typing `make clean' deletes object files and executables.
+Typing `make distclean' deletes any files that are made by `configure'
+or during build.

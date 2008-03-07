@@ -1,0 +1,98 @@
+# Makefile.in for yash: yet another shell
+# © 2007-2008 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.POSIX:
+
+CC = @CC@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+SOURCES = @SOURCES@
+OBJS = @OBJS@
+TARGET = @TARGET@
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+
+test check: $(TARGET)
+	@cd tests && exec $(SHELL) ./run-all.sh
+
+BINDIR = @BINDIR@
+install: $(TARGET) $(BINDIR)
+	$(INSTALL_PROGRAM) -c $(TARGET) '$(BINDIR)/$(TARGET)'
+install-strip: $(TARGET) $(BINDIR)
+	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(BINDIR)/$(TARGET)'
+installdirs: $(BINDIR)
+$(BINDIR):
+	$(INSTALL_PROGRAM) -d $@
+uninstall:
+	rm -f '$(BINDIR)/$(TARGET)'
+
+PACKAGE = @PACKAGE@
+VERSION = @VERSION@
+DISTDIR = @DISTDIR@
+DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
+DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh tests
+# Only pax and compress comform to POSIX.
+dist-tarZ: $(DISTDIR).tar.Z
+	rm -rf $(DISTDIR)
+dist dist-gzip: $(DISTDIR).tar.gz
+	rm -rf $(DISTDIR)
+dist-bzip2: $(DISTDIR).tar.bz2
+	rm -rf $(DISTDIR)
+dist-shar: $(DISTDIR).shar.gz
+	rm -rf $(DISTDIR)
+dist-zip: $(DISTDIR).zip
+	rm -rf $(DISTDIR)
+dist-all: $(DISTS)
+	rm -rf $(DISTDIR)
+$(DISTDIR).tar.Z: $(DISTDIR)
+	pax -w -x ustar $(DISTDIR) | compress -c > $@
+$(DISTDIR).tar.gz: $(DISTDIR)
+	tar -c $(DISTDIR) | gzip -c > $@
+$(DISTDIR).tar.bz2: $(DISTDIR)
+	tar -c $(DISTDIR) | bzip2 -9 -c > $@
+$(DISTDIR).shar.gz: $(DISTDIR)
+	shar -q -T $(DISTDIR) | gzip -c > $@
+$(DISTDIR).zip: $(DISTDIR)
+	zip -rq $@ $(DISTDIR)
+$(DISTDIR): $(DISTCONTENTS)
+	mkdir -p $@
+	for i in $(DISTCONTENTS); do cp -fRL $$i $@; done
+
+# ctags conforms to POSIX, but etags and cscope do not.
+tags: $(SOURCES)
+	ctags $(SOURCES)
+TAGS: $(SOURCES)
+	etags $(SOURCES)
+cscope: cscope.out
+cscope.out: $(SOURCES)
+	cscope -b
+
+mostlyclean:
+	rm -rf $(OBJS) $(DISTDIR)
+clean: mostlyclean
+	rm -rf $(TARGET) $(DISTS)
+distclean: clean
+	rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
+maintainer-clean:
+	@echo 'This command is intended for maintainers to use;'
+	@echo 'it deletes files that may need special tools to rebuild.'
+	@$(MAKE) distclean
+
+.PHONY: all test check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
+

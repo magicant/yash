@@ -1,0 +1,18 @@
+Yash: yet another shell
+=======================
+
+
+Yash は Magicant が個人的に開発している Bourne シェルの実装である。
+POSIX.1-2001 準拠を目指して鋭意開発中である。
+
+
+Yash は GPL の元で配布されるフリーソフトウェアである。詳細は
+COPYING ファイルを参照のこと。
+
+Yash をビルドしインストールする方法は INSTALL.ja ファイルを参照。
+
+申し訳ないが現在 Yash にはマニュアルがない。
+
+
+======================
+Magicant <magicant.starmen@nifty.com>
