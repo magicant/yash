@@ -49,7 +49,7 @@ bool which_found_in_path;
  *         cond の引数には、存在しないファイルの名前が渡ることがあるので注意。
  * 戻り値: 新しく malloc した、name のフルパス。見付からなかったら NULL。
  *         ただし path に相対パスが含まれていた場合、戻り値も相対パスになる。 */
-char *which(const char *name, const char *path, bool (*cond)(const char *name))
+char *which(const char *name, const char *path, bool cond(const char *name))
 {
 	which_found_in_path = false;
 	if (!name || !*name)

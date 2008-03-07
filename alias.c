@@ -111,7 +111,7 @@ ALIAS *get_alias(const char *name)
  * func が最後まで全て 0 を返すと、0 を返す。
  * 関数 func の中で name や value を変更したり、
  * add_alias や remove_alias を呼び出したりしてはならない。 */
-int for_all_aliases(int (*func)(const char *name, ALIAS *alias))
+int for_all_aliases(int func(const char *name, ALIAS *alias))
 {
 	return ht_each(&aliases, (int (*)(const char *, void *)) func);
 }

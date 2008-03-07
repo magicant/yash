@@ -41,7 +41,7 @@ void set_alias(const char *name, const char *value, bool global);
 int remove_alias(const char *name);
 void remove_all_aliases(void);
 ALIAS *get_alias(const char *name);
-int for_all_aliases(int (*func)(const char *name, ALIAS *alias));
+int for_all_aliases(int func(const char *name, ALIAS *alias));
 void subst_alias(struct strbuf *buf, size_t i, bool global)
 	__attribute__((nonnull));
 

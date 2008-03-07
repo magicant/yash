@@ -128,7 +128,7 @@ size_t parylen(void *const *ary)
 
 /* NULL 終端のポインタの配列を、その要素も含めて解放する。
  * freer:  ary の各要素に対して呼び出す free 用関数。 */
-void recfree(void **ary, void (*freer)(void *elem))
+void recfree(void **ary, void freer(void *elem))
 {
 	if (ary) {
 		for (void **a = ary; *a; a++) freer(*a);
@@ -1063,7 +1063,7 @@ void ht_trim(struct hasht *ht)
 
 /* 各エントリに freer を適用し全てのエントリを削除する。容量は変わらない。
  * freer が NULL なら ht_clear に同じ。 */
-void ht_freeclear(struct hasht *ht, void (*freer)(void *value))
+void ht_freeclear(struct hasht *ht, void freer(void *value))
 {
 	ht->count = 0;
 	ht->nullindex = NOTHING;
@@ -1194,7 +1194,7 @@ void *ht_remove(struct hasht *ht, const char *key)
  * f の結果が非 0 ならば、この関数はただちにその値を返す。
  * 全ての f の呼び出しが 0 を返せば、この関数も 0 を返す。
  * この関数の実行中に ht の要素を追加・削除してはならない。 */
-int ht_each(struct hasht *ht, int (*f)(const char *key, void *value))
+int ht_each(struct hasht *ht, int f(const char *key, void *value))
 {
 	for (size_t i = 0, len = ht->capacity; i < len; i++) {
 		struct hash_entry *entry = &ht->entries[i];

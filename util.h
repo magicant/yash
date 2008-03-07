@@ -59,7 +59,7 @@ char **strarydup(char *const *ary)
 	__attribute__((malloc, warn_unused_result, nonnull));
 size_t parylen(void *const *ary)
 	__attribute__((nonnull));
-void recfree(void **ary, void (*freer)(void *elem));
+void recfree(void **ary, void freer(void *elem));
 char *skipblanks(const char *s)
 	__attribute__((nonnull));
 char *skipspaces(const char *s)
@@ -272,7 +272,7 @@ void ht_ensurecap(struct hasht *ht, size_t newcap)
 	__attribute__((nonnull));
 void ht_trim(struct hasht *ht)
 	__attribute__((nonnull));
-void ht_freeclear(struct hasht *ht, void (*freer)(void *value))
+void ht_freeclear(struct hasht *ht, void freer(void *value))
 	__attribute__((nonnull(1)));
 void ht_clear(struct hasht *ht)
 	__attribute__((nonnull));
@@ -282,7 +282,7 @@ void *ht_set(struct hasht *ht, const char *key, const void *value)
 	__attribute__((nonnull(1)));
 void *ht_remove(struct hasht *ht, const char *key)
 	__attribute__((nonnull(1)));
-int ht_each(struct hasht *ht, int (*func)(const char *key, void *value))
+int ht_each(struct hasht *ht, int func(const char *key, void *value))
 	__attribute__((nonnull));
 struct keyvaluepair ht_next(struct hasht *ht, size_t *indexp)
 	__attribute__((nonnull));

@@ -25,7 +25,7 @@
 
 extern bool which_found_in_path;
 
-char *which(const char *name, const char *path, bool (*cond)(const char *name))
+char *which(const char *name, const char *path, bool cond(const char *name))
 	__attribute__((malloc));
 bool is_readable(const char *path);
 bool is_executable(const char *path);

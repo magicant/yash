@@ -243,6 +243,7 @@ void exec_source_and_exit(const char *code, const char *name)
 	switch (read_and_parse(&info, &statements)) {
 		case 0:  /* OK */
 			exec_statements(statements, true);
+			/* not reached */
 		default:  /* error */
 			exit(2);
 	}
@@ -339,7 +340,8 @@ static int exec_promptcommand(void)
 /* 対話的動作を行う。この関数は返らない。 */
 static void interactive_loop(void)
 {
-	static const char *exitargv[] = { "exit", NULL, };
+	static char exitarg0[] = "exit";
+	static char *exitargv[] = { exitarg0, NULL, };
 	struct parse_info info = { .input = yash_readline };
 
 	assert(is_interactive && is_interactive_now);
@@ -357,7 +359,7 @@ static void interactive_loop(void)
 			case 1:  /* syntax error */
 				break;
 			case EOF:
-				laststatus = builtin_exit(1, (char **) exitargv);
+				laststatus = builtin_exit(1, exitargv);
 				break;
 		}
 	}
