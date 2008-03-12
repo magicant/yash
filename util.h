@@ -19,14 +19,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "common.h"
 #include <stdbool.h>
 #include <stdint.h>
-#ifdef HAVE_STRNLEN
-# include <string.h>
-#endif
-#ifdef HAVE_WCSNLEN
-# include <wchar.h>
-#endif
 
 
 /********** General functions **********/
