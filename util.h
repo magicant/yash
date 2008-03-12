@@ -19,12 +19,14 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#ifdef NINLINE
-# define NO_UTIL_INLINE
-#endif
-
 #include <stdbool.h>
-#include <stddef.h>
+#include <stdint.h>
+#ifdef HAVE_STRNLEN
+# include <string.h>
+#endif
+#ifdef HAVE_WCSNLEN
+# include <wchar.h>
+#endif
 
 
 /********** General functions **********/
@@ -39,34 +41,61 @@ extern void *xrealloc(void *ptr, size_t size)
 
 /********** String utilities **********/
 
-extern size_t xstrnlen(const char *s, size_t maxlen)
+static inline size_t xstrnlen(const char *s, size_t maxlen)
 	__attribute__((nonnull));
 extern char *xstrndup(const char *s, size_t maxlen)
 	__attribute__((malloc,warn_unused_result,nonnull));
-extern char *xstrdup(const char *s)
+static inline char *xstrdup(const char *s)
 	__attribute__((malloc,warn_unused_result,nonnull));
-extern size_t xwcsnlen(const wchar_t *s, size_t maxlen)
+static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 	__attribute__((nonnull));
 extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen)
 	__attribute__((malloc,warn_unused_result,nonnull));
-extern wchar_t *xwcsdup(const wchar_t *s)
+static inline wchar_t *xwcsdup(const wchar_t *s)
 	__attribute__((malloc,warn_unused_result,nonnull));
-#ifndef NO_UTIL_INLINE
-# ifdef HAVE_STRNLEN
-#  include <string.h>
-#  define xstrnlen(s, maxlen) strnlen(s, maxlen)
-# endif
-# ifdef HAVE_WCSNLEN
-#  include <wchar.h>
-#  define xwcsnlen(s, maxlen) wcsnlen(s, maxlen)
-# endif
-# include <stdint.h>
-# define xstrdup(s) xstrndup(s, SIZE_MAX)
-# define xwcsdup(s) xwcsndup(s, SIZE_MAX)
-#endif
-
 extern char *matchstrprefix(const char *s, const char *prefix)
 	__attribute__((nonnull));
+
+/* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
+ * つまり、長さが maxlen 以上なら maxlen を返す。 */
+static inline size_t xstrnlen(const char *s, size_t maxlen)
+{
+#ifdef HAVE_STRNLEN
+	return strnlen(s, maxlen);
+#else
+	size_t result = 0;
+	while (result < maxlen && s[result]) result++;
+	return result;
+#endif
+}
+
+/* 文字列を新しく malloc した領域に複製する。
+ * malloc に失敗するとプログラムを強制終了する。 */
+static inline char *xstrdup(const char *s)
+{
+	return xstrndup(s, SIZE_MAX);
+}
+
+/* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
+ * つまり、長さが maxlen 以上なら maxlen を返す。 */
+static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
+{
+#ifdef HAVE_WCSNLEN
+	return wcsnlen(s, maxlen);
+#else
+	size_t result = 0;
+	while (result < maxlen && s[result]) result++;
+	return result;
+#endif
+}
+
+/* 文字列を新しく malloc した領域に複製する。
+ * malloc に失敗するとプログラムを強制終了する。 */
+static inline wchar_t *xwcsdup(const wchar_t *s)
+{
+	return xwcsndup(s, SIZE_MAX);
+}
+
 
 /* 引数を正しくキャストするためのマクロ */
 #define xisalnum(c)  (isalnum((unsigned char) (c)))
@@ -126,13 +155,16 @@ extern int xgetopt_long(
 		const struct xoption *restrict longopts,
 		int *restrict longindex)
 	__attribute__((nonnull(1,2)));
-extern int xgetopt(
+static inline int xgetopt(
 		char **restrict argv,
 		const char *restrict optstring)
 	__attribute__((nonnull(1,2)));
-#ifndef NO_UTIL_INLINE
-# define xgetopt(argv, optstring) xgetopt_long(argv, optstring, NULL, NULL)
-#endif
+
+/* 長いオプションがない xgetopt */
+static inline int xgetopt(char **restrict argv, const char *restrict optstring)
+{
+	return xgetopt_long(argv, optstring, NULL, NULL);
+}
 
 
 #endif /* UTIL_H */

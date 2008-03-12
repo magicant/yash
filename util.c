@@ -17,7 +17,6 @@
 
 
 #include "common.h"
-#define  NO_UTIL_INLINE
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -68,19 +67,6 @@ void *xrealloc(void *ptr, size_t size)
 
 /********** String utilities **********/
 
-/* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
- * つまり、長さが maxlen 以上なら maxlen を返す。 */
-size_t xstrnlen(const char *s, size_t maxlen)
-{
-#ifdef HAVE_STRNLEN
-	return strnlen(s, maxlen);
-#else
-	size_t result = 0;
-	while (result < maxlen && s[result]) result++;
-	return result;
-#endif
-}
-
 /* 文字列を新しく malloc した領域に複製する。
  * malloc に失敗するとプログラムを強制終了する。
  * len: 複製する文字列の長さ ('\0' を含まない)。
@@ -95,26 +81,6 @@ char *xstrndup(const char *s, size_t len)
 }
 
 /* 文字列を新しく malloc した領域に複製する。
- * malloc に失敗するとプログラムを強制終了する。 */
-char *xstrdup(const char *s)
-{
-	return xstrndup(s, SIZE_MAX);
-}
-
-/* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
- * つまり、長さが maxlen 以上なら maxlen を返す。 */
-size_t xwcsnlen(const wchar_t *s, size_t maxlen)
-{
-#ifdef HAVE_WCSNLEN
-	return wcsnlen(s, maxlen);
-#else
-	size_t result = 0;
-	while (result < maxlen && s[result]) result++;
-	return result;
-#endif
-}
-
-/* 文字列を新しく malloc した領域に複製する。
  * malloc に失敗するとプログラムを強制終了する。
  * len: 複製する文字列の長さ ('\0' を含まない)。
  *      len が s の実際の長さより大きければ s 全体を複製する */
@@ -125,13 +91,6 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
 	wchar_t *result = xmalloc((len + 1) * sizeof(wchar_t));
 	result[len] = L'\0';
 	return wmemcpy(result, s, len);
-}
-
-/* 文字列を新しく malloc した領域に複製する。
- * malloc に失敗するとプログラムを強制終了する。 */
-wchar_t *xwcsdup(const wchar_t *s)
-{
-	return xwcsndup(s, SIZE_MAX);
 }
 
 /* 文字列 s が prefix で始まるなら、s 内の prefix を飛ばした最初の文字への
@@ -470,10 +429,4 @@ argumentmissing:
 	}
 	xoptind++;
 	return '?';
-}
-
-/* 長いオプションがない xgetopt */
-int xgetopt(char **restrict argv, const char *restrict optstring)
-{
-	return xgetopt_long(argv, optstring, NULL, NULL);
 }
