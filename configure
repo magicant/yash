@@ -222,6 +222,21 @@ else
 	checked "no"
 fi
 
+# check for wcsnlen
+checking "for wcsnlen"
+cat >"${tempsrc}" <<END
+#include <stddef.h>
+size_t wcsnlen(const wchar_t*, size_t);
+int main() { return (int) wcsnlen(L"", 1); }
+END
+if trycompile
+then
+	checked "yes"
+	defconfigh "HAVE_WCSNLEN"
+else
+	checked "no"
+fi
+
 # check for mkstemp
 checking "for mkstemp"
 cat >"${tempsrc}" <<END

@@ -51,6 +51,11 @@
 extern size_t strnlen(const char *, size_t);
 #endif
 
+#ifdef HAVE_WCSNLEN
+#include <stddef.h>
+extern size_t wcsnlen(const wchar_t *, size_t);
+#endif
+
 #ifdef HAVE_STRSIGNAL
 extern char *strsignal(int);
 #endif
