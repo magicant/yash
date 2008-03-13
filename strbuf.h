@@ -116,6 +116,12 @@ extern xwcsbuf_t *wb_wccat(xwcsbuf_t *buf, wchar_t c)
 	__attribute__((nonnull));
 extern char *wb_mbscat(xwcsbuf_t *restrict buf, const char *restrict s)
 	__attribute__((nonnull));
+extern int wb_vprintf(
+		xwcsbuf_t *restrict buf, const wchar_t *restrict format, va_list ap)
+	__attribute__((nonnull(1,2)));
+extern int wb_printf(
+		xwcsbuf_t *restrict buf, const wchar_t *restrict format, ...)
+	__attribute__((nonnull(1,2)));
 
 
 /* マルチバイト文字列 s の最初の n バイトを

@@ -371,3 +371,51 @@ char *wb_mbscat(xwcsbuf_t *restrict buf, const char *restrict s)
 	buf->contents[buf->length] = L'\0';
 	return (char *) s;
 }
+
+/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
+ * format やそれ以降の引数が buf->contents の一部であってはならない。
+ * format やそれ以降の引数と戻り値の意味は vswprintf に準じる。 */
+int wb_vprintf(
+		xwcsbuf_t *restrict buf, const wchar_t *restrict format, va_list ap)
+{
+	va_list saveap;
+	va_copy(saveap, ap);
+
+	ssize_t rest;
+	int result;
+
+	for (int i = 0; i < 10; i++) {
+		rest = buf->maxlength - buf->length + 1;
+		result = vswprintf(buf->contents + buf->length, rest, format, ap);
+
+		if (0 <= result && result < rest)
+			break;
+
+		/* バッファが足りなかった場合、規格上負数が返ってくるはずなのだが、
+		 * (vsprintf と同様に) 必要なバッファの文字数を返すシステムもある。
+		 * (実際のところ、プログラマとしてはその方が嬉しかったりする) */
+		wb_ensuremax(buf, buf->length + (result < 0 ? 2 * rest : result));
+		va_end(ap);
+		va_copy(ap, saveap);
+	}
+	if (result >= 0)
+		buf->length += result;
+	assert(buf->contents[buf->length] == L'\0');
+	va_end(ap);
+	va_end(saveap);
+	return result;
+}
+
+/* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
+ * format やそれ以降の引数が buf->contents の一部であってはならない。
+ * format やそれ以降の引数と戻り値の意味は swprintf に準じる。 */
+int wb_printf(xwcsbuf_t *restrict buf, const wchar_t *restrict format, ...)
+{
+	va_list ap;
+	int result;
+
+	va_start(ap, format);
+	result = wb_vprintf(buf, format, ap);
+	va_end(ap);
+	return result;
+}
