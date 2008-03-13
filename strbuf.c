@@ -86,7 +86,7 @@ xstrbuf_t *sb_setmax(xstrbuf_t *buf, size_t newmax)
 inline xstrbuf_t *sb_ensuremax(xstrbuf_t *buf, size_t max)
 {
 	if (buf->maxlength < max) {
-		size_t newmax = max;
+		size_t newmax = buf->maxlength;
 		do
 			newmax = newmax * 2 + 1;
 		while (newmax < max);
@@ -302,7 +302,7 @@ xwcsbuf_t *wb_clear(xwcsbuf_t *buf)
 static inline xwcsbuf_t *wb_ensuremax(xwcsbuf_t *buf, size_t max)
 {
 	if (buf->maxlength < max) {
-		size_t newmax = max;
+		size_t newmax = buf->maxlength;
 		do
 			newmax = newmax * 2 + 1;
 		while (newmax < max);

@@ -102,7 +102,7 @@ plist_t *pl_setmax(plist_t *list, size_t newmax)
 inline plist_t *pl_ensuremax(plist_t *list, size_t max)
 {
 	if (list->maxlength < max) {
-		size_t newmax = max;
+		size_t newmax = list->maxlength;
 		do
 			newmax = newmax * 2 + 1;
 		while (newmax < max);
