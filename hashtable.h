@@ -23,7 +23,7 @@
 
 typedef unsigned long hashfunc_t(const void *key);
 typedef int keycmp_t(const void *key1, const void *key2);
-typedef struct {
+typedef struct hashtable_t {
 	size_t count, capacity;
 	hashfunc_t *hashfunc;
 	keycmp_t *keycmp;
@@ -31,7 +31,7 @@ typedef struct {
 	size_t *indices;
 	struct hash_entry *entries;
 } hashtable_t;
-typedef struct {
+typedef struct kvpair_t {
 	void *key, *value;
 } kvpair_t;
 

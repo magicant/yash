@@ -20,14 +20,15 @@
 #define STRBUF_H
 
 #include <stddef.h>
+#include <stdarg.h>
 #include <stdint.h>
 
 
-typedef struct {
+typedef struct xstrbuf_t {
 	char *contents;
 	size_t length, maxlength;
 } xstrbuf_t;
-typedef struct {
+typedef struct xwcsbuf_t {
 	wchar_t *contents;
 	size_t length, maxlength;
 } xwcsbuf_t;
@@ -70,14 +71,14 @@ extern wchar_t *sb_wcscat(
 	__attribute__((nonnull(1)));
 extern int sb_vprintf(
 		xstrbuf_t *restrict buf, const char *restrict format, va_list ap)
-	__attribute__((nonnull(1,2)));
+	__attribute__((nonnull(1,2),format(printf,2,0)));
 extern int sb_printf(
 		xstrbuf_t *restrict buf, const char *restrict format, ...)
-	__attribute__((nonnull(1,2)));
+	__attribute__((nonnull(1,2),format(printf,2,3)));
 extern size_t sb_strftime(
 		xstrbuf_t *restrict buf,
 		const char *restrict format, const struct tm *restrict tm)
-	__attribute__((nonnull));
+	__attribute__((nonnull,format(strftime,2,0)));
 
 extern xwcsbuf_t *wb_init(xwcsbuf_t *buf)
 	__attribute__((nonnull));

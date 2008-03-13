@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <errno.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -48,7 +49,7 @@ const char *command_name;
 pid_t shell_pid;
 
 
-static struct xoption long_options[] = {
+static const struct xoption long_options[] = {
 	{ "interactive", xno_argument, NULL, 'i', },
 	{ "login",       xno_argument, NULL, 'l', },
 	{ "posix",       xno_argument, NULL, 'X', },
@@ -149,8 +150,12 @@ int main(int argc __attribute__((unused)), char **argv)
 			if (!argv[xoptind] && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
 				is_interactive = true;
 		} else {
-			command_name = argv[xoptind];
-			input = fopen(argv[xoptind], "r");
+			command_name = argv[xoptind++];
+			input = fopen(command_name, "r");
+			// TODO yash:main: fd を shellfd 以上に移す
+			if (!input)
+				xerror(errno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC, errno,
+						gt("cannot open file `%s'"), command_name);
 		}
 		is_interactive_now = is_interactive;
 		//TODO yash:main: read file and exec commands

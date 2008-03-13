@@ -22,7 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct {
+typedef struct plist_t {
 	void **contents;
 	size_t length, maxlength;
 } plist_t;
