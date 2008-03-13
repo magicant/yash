@@ -82,15 +82,8 @@ xstrbuf_t *sb_setmax(xstrbuf_t *buf, size_t newmax)
 	return buf;
 }
 
-/* マルチバイト文字列バッファを空にする。buf->maxlength は変わらない。 */
-xstrbuf_t *sb_clear(xstrbuf_t *buf)
-{
-	buf->contents[buf->length = 0] = '\0';
-	return buf;
-}
-
 /* buf->maxlength が max 未満なら、max 以上になるようにメモリを再確保する。 */
-static inline xstrbuf_t *sb_ensuremax(xstrbuf_t *buf, size_t max)
+inline xstrbuf_t *sb_ensuremax(xstrbuf_t *buf, size_t max)
 {
 	if (buf->maxlength < max) {
 		size_t newmax = max;
@@ -101,6 +94,13 @@ static inline xstrbuf_t *sb_ensuremax(xstrbuf_t *buf, size_t max)
 	} else {
 		return buf;
 	}
+}
+
+/* マルチバイト文字列バッファを空にする。buf->maxlength は変わらない。 */
+xstrbuf_t *sb_clear(xstrbuf_t *buf)
+{
+	buf->contents[buf->length = 0] = '\0';
+	return buf;
 }
 
 /* マルチバイト文字列バッファの i バイト目から bn バイトを
@@ -119,11 +119,12 @@ xstrbuf_t *sb_replace(
 	if (bn > buf->length - i)
 		bn = buf->length - i;
 
-	buf->length = buf->length - bn + sn;
-	sb_ensuremax(buf, buf->length);
+	size_t newlength = buf->length - bn + sn;
+	sb_ensuremax(buf, newlength);
 	memmove(buf->contents + i + sn, buf->contents + i + bn,
 			buf->length - (i + bn) + 1);
 	memcpy(buf->contents + i, s, sn);
+	buf->length = newlength;
 	return buf;
 }
 
@@ -326,11 +327,12 @@ xwcsbuf_t *wb_replace(
 	if (bn > buf->length - i)
 		bn = buf->length - i;
 
-	buf->length = buf->length - bn + sn;
-	wb_ensuremax(buf, buf->length);
+	size_t newlength = buf->length - bn + sn;
+	wb_ensuremax(buf, newlength);
 	wmemmove(buf->contents + i + sn, buf->contents + i + bn,
 			buf->length - (i + bn) + 1);
 	wmemcpy(buf->contents + i, s, sn);
+	buf->length = newlength;
 	return buf;
 }
 

@@ -32,8 +32,8 @@ package="yash"
 version="2.0 WIP"
 copyrightyear="2007-2008"
 
-sources="common.h strbuf.c strbuf.h util.c util.h yash.h yash.c" 
-objs="yash.o util.o strbuf.o"
+sources="common.h plist.c plist.h strbuf.c strbuf.h util.c util.h yash.h yash.c" 
+objs="yash.o util.o strbuf.o plist.o"
 
 help="no"
 gcc=""

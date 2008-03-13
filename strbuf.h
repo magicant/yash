@@ -42,6 +42,8 @@ extern char *sb_tostr(xstrbuf_t *buf)
 	__attribute__((nonnull));
 extern xstrbuf_t *sb_setmax(xstrbuf_t *buf, size_t newmax)
 	__attribute__((nonnull));
+extern inline xstrbuf_t *sb_ensuremax(xstrbuf_t *buf, size_t max)
+	__attribute__((nonnull));
 extern xstrbuf_t *sb_clear(xstrbuf_t *buf)
 	__attribute__((nonnull));
 extern xstrbuf_t *sb_replace(
