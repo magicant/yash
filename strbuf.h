@@ -63,6 +63,8 @@ static inline xstrbuf_t *sb_ncat(
 static inline xstrbuf_t *sb_cat(
 		xstrbuf_t *restrict buf, const char *restrict s)
 	__attribute__((nonnull));
+static inline xstrbuf_t *sb_remove(xstrbuf_t *buf, size_t i, size_t n)
+	__attribute__((nonnull));
 extern xstrbuf_t *sb_ccat(xstrbuf_t *buf, char c)
 	__attribute__((nonnull));
 extern wchar_t *sb_wcscat(
@@ -108,6 +110,8 @@ static inline xwcsbuf_t *wb_ncat(
 static inline xwcsbuf_t *wb_cat(
 		xwcsbuf_t *restrict buf, const wchar_t *restrict s)
 	__attribute__((nonnull));
+static inline xwcsbuf_t *wb_remove(xwcsbuf_t *buf, size_t i, size_t n)
+	__attribute__((nonnull));
 extern xwcsbuf_t *wb_wccat(xwcsbuf_t *buf, wchar_t c)
 	__attribute__((nonnull));
 extern char *wb_mbscat(xwcsbuf_t *restrict buf, const char *restrict s)
@@ -151,6 +155,14 @@ static inline xstrbuf_t *sb_cat(
 	return sb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
 
+/* マルチバイト文字列バッファの i バイト目から n バイトを削除する。
+ * buf->length <= i ならば何もしない。
+ * buf->length <= i + n ならば i バイト目以降全てを削除する。 */
+static inline xstrbuf_t *sb_remove(xstrbuf_t *buf, size_t i, size_t n)
+{
+	return sb_replace(buf, i, n, "", 0);
+}
+
 
 /* ワイド文字列 s の最初の n 文字をバッファの i 文字目の手前に挿入する。
  * wcslen(s) < n ならば s 全体を挿入する。
@@ -186,6 +198,14 @@ static inline xwcsbuf_t *wb_cat(
 		xwcsbuf_t *restrict buf, const wchar_t *restrict s)
 {
 	return wb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
+}
+
+/* ワイド文字列バッファの i 文字目から n 文字を削除する。
+ * buf->length <= i ならば何もしない。
+ * buf->length <= i + n ならば i 文字目以降全てを削除する。 */
+static inline xwcsbuf_t *wb_remove(xwcsbuf_t *buf, size_t i, size_t n)
+{
+	return wb_replace(buf, i, n, L"", 0);
 }
 
 
