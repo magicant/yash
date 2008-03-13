@@ -24,9 +24,10 @@
 #define PARSER_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 
-/********** 解析したソースコードの構文木を構成する構造体の定義 **********/
+/********** 解析したソースコードの構文木を構成する構造体の宣言 **********/
 
 /* 基本的に、構文木の各要素は連鎖リスト形式になっている。
  * 構造体の next メンバが次の構文要素を表す。 */
@@ -84,9 +85,9 @@ typedef struct wordunit_t {
 	struct wordunit_t *next;
 	wordunittype_t     wu_type;
 	union {
-		char              *string;  /* 文字列部分 */
+		wchar_t           *string;  /* 文字列部分 */
 		struct paramexp_t *param;   /* パラメータ展開の内容 */
-		char              *cmdsub;  /* コマンド置換で実行するコマンド */
+		wchar_t           *cmdsub;  /* コマンド置換で実行するコマンド */
 		//struct arithexp_t *arith;   /* 数式展開の内容 */
 	} wu_value;
 } wordunit_t;
@@ -135,9 +136,9 @@ typedef enum {
  * PT_NONE でのみ有効。 */
 
 /* パラメータ展開を表す */
-typedef struct {
+typedef struct paramexp_t {
 	paramexptype_t pe_type;
-	char *pe_name;
+	wchar_t *pe_name;
 	struct wordunit_t *pe_match, *pe_subst;
 } paramexp_t;
 /* pe_name は変数名。
@@ -147,7 +148,7 @@ typedef struct {
 /* 代入を表す */
 typedef struct assign_t {
 	struct assign_t *next;
-	char *name;                /* 代入する変数名 */
+	wchar_t *name;             /* 代入する変数名 */
 	struct wordunit_t *value;  /* 代入する値 */
 } assign_t;
 
@@ -172,7 +173,7 @@ typedef struct redir_t {
 	union {
 		struct wordunit_t *filename;
 		struct {
-			char *hereend;  /* ヒアドキュメントの終わりを示すトークン */
+			wchar_t *hereend;  /* ヒアドキュメントの終わりを示すトークン */
 			struct wordunit_t *herecontent;  /* ヒアドキュメントの内容 */
 		} heredoc;
 	} rd_value;
@@ -187,7 +188,7 @@ typedef struct redir_t {
  * word_unit になる。 */
 
 
-/********** パーサへのインタフェース定義 **********/
+/********** 構文解析ルーチンへのインタフェース宣言 **********/
 
 struct xwcsbuf_t;
 
@@ -210,6 +211,12 @@ typedef struct parseinfo_t {
 extern int read_and_parse(
 		parseinfo_t *restrict info, and_or_t **restrict result)
 	__attribute__((nonnull));
+
+
+/********** 構文木を文字列に戻すルーチン **********/
+
+extern wchar_t *commands_to_wcstring(const and_or_t *commands)
+	__attribute__((malloc));
 
 
 #endif /* PARSER_H */
