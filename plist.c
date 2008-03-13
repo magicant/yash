@@ -78,7 +78,9 @@ void pl_destroy(plist_t *list)
 
 /* ポインタリストを解放し、内容を返す。ポインタリストを未初期化状態になる。
  * 戻り値は、void へのポインタの配列へのポインタである。この配列は呼出し元が
- * free すること。 */
+ * free すること。
+ * 戻り値は char へのポインタの配列へのポインタとみなして char ** 型にキャスト
+ * することができる。 */
 void **pl_toary(plist_t *list)
 {
 	if (list->maxlength - list->length > 10)
