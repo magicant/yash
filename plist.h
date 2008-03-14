@@ -22,46 +22,46 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct plist_t {
+typedef struct plist_T {
 	void **contents;
 	size_t length, maxlength;
-} plist_t;
+} plist_T;
 
 extern size_t plcount(void *const *list)
 	__attribute__((nonnull));
 extern void recfree(void **ary, void freer(void *elem));
 
-extern plist_t *pl_init(plist_t *list)
+extern plist_T *pl_init(plist_T *list)
 	__attribute__((nonnull));
-extern void pl_destroy(plist_t *list)
+extern void pl_destroy(plist_T *list)
 	__attribute__((nonnull));
-extern void **pl_toary(plist_t *list)
+extern void **pl_toary(plist_T *list)
 	__attribute__((nonnull));
-extern plist_t *pl_setmax(plist_t *list, size_t newmax)
+extern plist_T *pl_setmax(plist_T *list, size_t newmax)
 	__attribute__((nonnull));
-extern plist_t *pl_ensuremax(plist_t *list, size_t max)
+extern plist_T *pl_ensuremax(plist_T *list, size_t max)
 	__attribute__((nonnull));
-extern plist_t *pl_clear(plist_t *list)
+extern plist_T *pl_clear(plist_T *list)
 	__attribute__((nonnull));
-extern plist_t *pl_replace(
-		plist_t *restrict list, size_t i, size_t ln,
+extern plist_T *pl_replace(
+		plist_T *restrict list, size_t i, size_t ln,
 		void *const *restrict a, size_t an)
 	__attribute__((nonnull));
-static inline plist_t *pl_ninsert(
-		plist_t *restrict list, size_t i, void *const *restrict a, size_t n)
+static inline plist_T *pl_ninsert(
+		plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
 	__attribute__((nonnull));
-static inline plist_t *pl_insert(
-		plist_t *restrict list, size_t i, void *const *restrict a)
+static inline plist_T *pl_insert(
+		plist_T *restrict list, size_t i, void *const *restrict a)
 	__attribute__((nonnull));
-static inline plist_t *pl_ncat(
-		plist_t *restrict list, void *const *restrict a, size_t n)
+static inline plist_T *pl_ncat(
+		plist_T *restrict list, void *const *restrict a, size_t n)
 	__attribute__((nonnull));
-static inline plist_t *pl_cat(
-		plist_t *restrict list, void *const *restrict a)
+static inline plist_T *pl_cat(
+		plist_T *restrict list, void *const *restrict a)
 	__attribute__((nonnull));
-static inline plist_t *pl_remove(plist_t *list, size_t i, size_t n)
+static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n)
 	__attribute__((nonnull));
-extern plist_t *pl_add(plist_t *list, void *p)
+extern plist_T *pl_add(plist_T *list, void *p)
 	__attribute__((nonnull(1)));
 
 
@@ -69,8 +69,8 @@ extern plist_t *pl_add(plist_t *list, void *p)
  * a の要素に NULL があってもそれは特別扱いしない。
  * list->length <= i ならばリストの末尾に追加する。
  * a は list->contents の一部であってはならない。 */
-static inline plist_t *pl_ninsert(
-		plist_t *restrict list, size_t i, void *const *restrict a, size_t n)
+static inline plist_T *pl_ninsert(
+		plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
 {
 	return pl_replace(list, i, 0, a, n);
 }
@@ -79,8 +79,8 @@ static inline plist_t *pl_ninsert(
  * 挿入するのは、a 内の NULL の手前までの要素である。
  * list->length <= i ならばリストの末尾に追加する。
  * a は list->contents の一部であってはならない。 */
-static inline plist_t *pl_insert(
-		plist_t *restrict list, size_t i, void *const *restrict a)
+static inline plist_T *pl_insert(
+		plist_T *restrict list, size_t i, void *const *restrict a)
 {
 	return pl_replace(list, i, 0, a, plcount(a));
 }
@@ -88,8 +88,8 @@ static inline plist_t *pl_insert(
 /* ポインタの配列 a の最初の n 要素をポインタリストの末尾に追加する。
  * a の要素に NULL があってもそれは特別扱いしない。
  * a は list->contents の一部であってはならない。 */
-static inline plist_t *pl_ncat(
-		plist_t *restrict list, void *const *restrict a, size_t n)
+static inline plist_T *pl_ncat(
+		plist_T *restrict list, void *const *restrict a, size_t n)
 {
 	return pl_replace(list, SIZE_MAX, 0, a, n);
 }
@@ -97,15 +97,15 @@ static inline plist_t *pl_ncat(
 /* ポインタの配列 a の要素をポインタリストの末尾に追加する。
  * 挿入するのは、a 内の NULL の手前までの要素である。
  * a は list->contents の一部であってはならない。 */
-static inline plist_t *pl_cat(
-		plist_t *restrict list, void *const *restrict a)
+static inline plist_T *pl_cat(
+		plist_T *restrict list, void *const *restrict a)
 {
 	return pl_replace(list, SIZE_MAX, 0, a, plcount(a));
 }
 
 /* リストの i 要素目から n 個の要素を削除する。
  * 消される要素は勝手には解放されないので注意。 */
-static inline plist_t *pl_remove(plist_t *list, size_t i, size_t n)
+static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n)
 {
 	return pl_replace(list, i, n, (void *[]) { NULL, }, 0);
 }

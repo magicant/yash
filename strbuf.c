@@ -37,7 +37,7 @@
 /********** マルチバイト文字列バッファ **********/
 
 /* 未初期化のマルチバイト文字列バッファ *buf を空文字列で初期化する。*/
-xstrbuf_t *sb_init(xstrbuf_t *buf)
+xstrbuf_T *sb_init(xstrbuf_T *buf)
 {
 	buf->contents = xmalloc((XSTRBUF_INITSIZE + 1) * sizeof (char));
 	buf->contents[0] = '\0';
@@ -49,7 +49,7 @@ xstrbuf_t *sb_init(xstrbuf_t *buf)
 /* 未初期化の文字列バッファ *buf をマルチバイト文字列 *s で初期化する。
  * s は free 可能な文字列へのポインタであり、この関数の呼出しの後は完全に
  * この関数で初期化するバッファの所有物となる。 */
-xstrbuf_t *sb_initwith(xstrbuf_t *restrict buf, char *restrict s)
+xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
 {
 	buf->contents = s;
 	buf->length = buf->maxlength = strlen(s);
@@ -57,14 +57,14 @@ xstrbuf_t *sb_initwith(xstrbuf_t *restrict buf, char *restrict s)
 }
 
 /* マルチバイト文字列バッファ *buf を解放し、未初期化状態に戻す。 */
-void sb_destroy(xstrbuf_t *buf)
+void sb_destroy(xstrbuf_T *buf)
 {
 	free(buf->contents);
 }
 
 /* マルチバイト文字列バッファ *buf を解放し、バッファの内容だった文字列を返す。
  * *buf は未初期化状態になる。戻り値は呼出し元が free すること。 */
-char *sb_tostr(xstrbuf_t *buf)
+char *sb_tostr(xstrbuf_T *buf)
 {
 	if (buf->maxlength - buf->length > 20)
 		sb_setmax(buf, buf->length);
@@ -72,7 +72,7 @@ char *sb_tostr(xstrbuf_t *buf)
 }
 
 /* buf->maxlength を変更する。newmax < buf->length ならば末尾が消える。 */
-xstrbuf_t *sb_setmax(xstrbuf_t *buf, size_t newmax)
+xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
 {
 	buf->contents = xrealloc(buf->contents, (newmax + 1) * sizeof (char));
 	buf->maxlength = newmax;
@@ -83,7 +83,7 @@ xstrbuf_t *sb_setmax(xstrbuf_t *buf, size_t newmax)
 }
 
 /* buf->maxlength が max 未満なら、max 以上になるようにメモリを再確保する。 */
-inline xstrbuf_t *sb_ensuremax(xstrbuf_t *buf, size_t max)
+inline xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
 {
 	if (buf->maxlength < max) {
 		size_t newmax = buf->maxlength;
@@ -97,7 +97,7 @@ inline xstrbuf_t *sb_ensuremax(xstrbuf_t *buf, size_t max)
 }
 
 /* マルチバイト文字列バッファを空にする。buf->maxlength は変わらない。 */
-xstrbuf_t *sb_clear(xstrbuf_t *buf)
+xstrbuf_T *sb_clear(xstrbuf_T *buf)
 {
 	buf->contents[buf->length = 0] = '\0';
 	return buf;
@@ -109,8 +109,8 @@ xstrbuf_t *sb_clear(xstrbuf_t *buf)
  * buf->length < i + sn ならばバッファの i バイト目以降を全て置換する。
  * 特に、buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
-xstrbuf_t *sb_replace(
-		xstrbuf_t *restrict buf, size_t i, size_t bn,
+xstrbuf_T *sb_replace(
+		xstrbuf_T *restrict buf, size_t i, size_t bn,
 		const char *restrict s, size_t sn)
 {
 	sn = xstrnlen(s, sn);
@@ -129,7 +129,7 @@ xstrbuf_t *sb_replace(
 }
 
 /* バッファの末尾にバイト c を追加する。 */
-xstrbuf_t *sb_ccat(xstrbuf_t *buf, char c)
+xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
 {
 	sb_ensuremax(buf, buf->length + 1);
 	buf->contents[buf->length++] = c;
@@ -143,7 +143,7 @@ xstrbuf_t *sb_ccat(xstrbuf_t *buf, char c)
  *         エラーがあったら、最後に変換できた文字の次の文字へのポインタ。
  * エラーがあった場合でも、途中までは buf->contents に文字列が書き込まれる。
  * s が NULL なら、シフト状態を初期状態に戻す文字列を追加する。 */
-wchar_t *sb_wcscat(xstrbuf_t *restrict buf,
+wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 		const wchar_t *restrict s, mbstate_t *restrict ps)
 {
 	size_t count;
@@ -179,7 +179,7 @@ wchar_t *sb_wcscat(xstrbuf_t *restrict buf,
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
  * format や ap 内の引数が buf->contents の一部であってはならない。
  * format, ap 引数と戻り値の意味は vsprintf に準じる。 */
-int sb_vprintf(xstrbuf_t *restrict buf, const char *restrict format, va_list ap)
+int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
 {
 	va_list saveap;
 	va_copy(saveap, ap);
@@ -204,7 +204,7 @@ int sb_vprintf(xstrbuf_t *restrict buf, const char *restrict format, va_list ap)
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
  * format やそれ以降の引数が buf->contents の一部であってはならない。
  * format やそれ以降の引数と戻り値の意味は sprintf に準じる。 */
-int sb_printf(xstrbuf_t *restrict buf, const char *restrict format, ...)
+int sb_printf(xstrbuf_T *restrict buf, const char *restrict format, ...)
 {
 	va_list ap;
 	int result;
@@ -218,7 +218,7 @@ int sb_printf(xstrbuf_t *restrict buf, const char *restrict format, ...)
 /* strftime の結果を文字列バッファの末尾に付け加える。
  * format は、フォーマット結果が 0 文字となるようなものであってはならない。
  * 戻り値: 増えた文字数 */
-size_t sb_strftime(xstrbuf_t *restrict buf,
+size_t sb_strftime(xstrbuf_T *restrict buf,
 		const char *restrict format, const struct tm *restrict tm)
 {
 	/* まず 40 バイトのバッファで変換できるか試す */
@@ -246,7 +246,7 @@ size_t sb_strftime(xstrbuf_t *restrict buf,
 /********** ワイド文字列バッファ **********/
 
 /* 未初期化のワイド文字列バッファ *buf を空文字列で初期化する。*/
-xwcsbuf_t *wb_init(xwcsbuf_t *buf)
+xwcsbuf_T *wb_init(xwcsbuf_T *buf)
 {
 	buf->contents = xmalloc((XWCSBUF_INITSIZE + 1) * sizeof (wchar_t));
 	buf->contents[0] = L'\0';
@@ -258,7 +258,7 @@ xwcsbuf_t *wb_init(xwcsbuf_t *buf)
 /* 未初期化のワイド文字列バッファ *buf をワイド文字列 *s で初期化する。
  * s は free 可能なワイド文字列へのポインタであり、この関数の呼出しの後は完全に
  * この関数で初期化するバッファの所有物となる。 */
-xwcsbuf_t *wb_initwith(xwcsbuf_t *restrict buf, wchar_t *restrict s)
+xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
 {
 	buf->contents = s;
 	buf->length = buf->maxlength = wcslen(s);
@@ -266,14 +266,14 @@ xwcsbuf_t *wb_initwith(xwcsbuf_t *restrict buf, wchar_t *restrict s)
 }
 
 /* ワイド文字列バッファ *buf を解放し、未初期化状態に戻す。 */
-void wb_destroy(xwcsbuf_t *buf)
+void wb_destroy(xwcsbuf_T *buf)
 {
 	free(buf->contents);
 }
 
 /* ワイド文字列バッファ *buf を解放し、バッファの内容だった文字列を返す。
  * *buf は未初期化状態になる。戻り値は呼出し元が free すること。 */
-wchar_t *wb_towcs(xwcsbuf_t *buf)
+wchar_t *wb_towcs(xwcsbuf_T *buf)
 {
 	if (buf->maxlength - buf->length > 20)
 		wb_setmax(buf, buf->length);
@@ -281,7 +281,7 @@ wchar_t *wb_towcs(xwcsbuf_t *buf)
 }
 
 /* buf->maxlength を変更する。newmax < buf->length ならば末尾が消える。 */
-xwcsbuf_t *wb_setmax(xwcsbuf_t *buf, size_t newmax)
+xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 {
 	buf->contents = xrealloc(buf->contents, (newmax + 1) * sizeof (wchar_t));
 	buf->maxlength = newmax;
@@ -292,14 +292,14 @@ xwcsbuf_t *wb_setmax(xwcsbuf_t *buf, size_t newmax)
 }
 
 /* ワイド文字列バッファを空にする。buf->maxlength は変わらない。 */
-xwcsbuf_t *wb_clear(xwcsbuf_t *buf)
+xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
 {
 	buf->contents[buf->length = 0] = L'\0';
 	return buf;
 }
 
 /* buf->maxlength が max 未満なら、max 以上になるようにメモリを再確保する。 */
-static inline xwcsbuf_t *wb_ensuremax(xwcsbuf_t *buf, size_t max)
+static inline xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
 {
 	if (buf->maxlength < max) {
 		size_t newmax = buf->maxlength;
@@ -317,8 +317,8 @@ static inline xwcsbuf_t *wb_ensuremax(xwcsbuf_t *buf, size_t max)
  * buf->length < i + sn ならばバッファの i 文字目以降を全て置換する。
  * 特に、buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
-xwcsbuf_t *wb_replace(
-		xwcsbuf_t *restrict buf, size_t i, size_t bn,
+xwcsbuf_T *wb_replace(
+		xwcsbuf_T *restrict buf, size_t i, size_t bn,
 		const wchar_t *restrict s, size_t sn)
 {
 	sn = xwcsnlen(s, sn);
@@ -337,7 +337,7 @@ xwcsbuf_t *wb_replace(
 }
 
 /* バッファの末尾にワイド文字 c を追加する。 */
-xwcsbuf_t *wb_wccat(xwcsbuf_t *buf, wchar_t c)
+xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
 {
 	wb_ensuremax(buf, buf->length + 1);
 	buf->contents[buf->length++] = c;
@@ -350,7 +350,7 @@ xwcsbuf_t *wb_wccat(xwcsbuf_t *buf, wchar_t c)
  * 戻り値: マルチバイト文字列が全て正しく変換されたら NULL、
  *         エラーがあったら、最後に変換できた文字の次の文字へのポインタ
  * エラーがあった場合でも、途中までは buf->contents に文字列が書き込まれる。 */
-char *wb_mbscat(xwcsbuf_t *restrict buf, const char *restrict s)
+char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
 {
 	mbstate_t state;
 	size_t count;
@@ -376,7 +376,7 @@ char *wb_mbscat(xwcsbuf_t *restrict buf, const char *restrict s)
  * format やそれ以降の引数が buf->contents の一部であってはならない。
  * format やそれ以降の引数と戻り値の意味は vswprintf に準じる。 */
 int wb_vprintf(
-		xwcsbuf_t *restrict buf, const wchar_t *restrict format, va_list ap)
+		xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
 {
 	va_list saveap;
 	va_copy(saveap, ap);
@@ -409,7 +409,7 @@ int wb_vprintf(
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
  * format やそれ以降の引数が buf->contents の一部であってはならない。
  * format やそれ以降の引数と戻り値の意味は swprintf に準じる。 */
-int wb_printf(xwcsbuf_t *restrict buf, const wchar_t *restrict format, ...)
+int wb_printf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 {
 	va_list ap;
 	int result;

@@ -19,6 +19,8 @@
 #include "common.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
 #include "util.h"
 #include "hashtable.h"
 
@@ -38,7 +40,7 @@
 struct hash_entry {
 	size_t next;
 	unsigned long hash;
-	kvpair_t kv;
+	kvpair_T kv;
 };
 /* ハッシュエントリが有効かどうかは、kv.key が NULL でないかどうかで判別する。
  * kv.key が NULL のとき、struct hash_entry 内の他のメンバは全て不定である。 */
@@ -48,8 +50,8 @@ struct hash_entry {
  * hashfunc はキーのハッシュ値を求めるハッシュ関数へのポインタ、
  * keycmp は二つのキーを比較する比較関数へのポインタである。
  * 比較関数は、二つのキーが等しいとき 0 を、異なるときに非 0 を返す。 */
-hashtable_t *ht_initwithcapacity(
-		hashtable_t *ht, hashfunc_t *hashfunc, keycmp_t *keycmp,
+hashtable_T *ht_initwithcapacity(
+		hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
 		size_t capacity)
 {
 	if (capacity == 0)
@@ -74,14 +76,14 @@ hashtable_t *ht_initwithcapacity(
 
 /* 初期化済みのハッシュテーブルを解放する。
  * ハッシュテーブルに含まれる各キー・各値の解放は予め行っておくこと。 */
-void ht_destroy(hashtable_t *ht)
+void ht_destroy(hashtable_T *ht)
 {
 	free(ht->indices);
 	free(ht->entries);
 }
 
 /* ハッシュテーブルの容量を変更する。 */
-static hashtable_t *ht_rehash(hashtable_t *ht, size_t newcapacity)
+static hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
 {
 	assert(newcapacity > 0 && newcapacity >= ht->count);
 
@@ -124,7 +126,7 @@ static hashtable_t *ht_rehash(hashtable_t *ht, size_t newcapacity)
 }
 
 /* ハッシュテーブルが少なくとも capacity 以上の容量を持つように拡張する。 */
-inline hashtable_t *ht_ensurecapacity(hashtable_t *ht, size_t capacity)
+inline hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
 {
 	if (ht->capacity < capacity) {
 		size_t newcapacity = ht->capacity;
@@ -140,7 +142,7 @@ inline hashtable_t *ht_ensurecapacity(hashtable_t *ht, size_t capacity)
 /* ハッシュテーブルの全エントリを削除する。freer が NULL でなければ、
  * 各エントリに対して freer を一回ずつ呼出す。
  * ハッシュテーブルの容量は変わらない。 */
-hashtable_t *ht_clear(hashtable_t *ht, void freer(kvpair_t kv))
+hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 {
 	size_t *indices = ht->indices;
 	struct hash_entry *entries = ht->entries;
@@ -162,7 +164,7 @@ hashtable_t *ht_clear(hashtable_t *ht, void freer(kvpair_t kv))
 
 /* ハッシュテーブルの値を取得する。
  * key が NULL であるか、key に対応する要素がなければ { NULL, NULL } を返す。 */
-kvpair_t ht_get(hashtable_t *ht, const void *key)
+kvpair_T ht_get(hashtable_T *ht, const void *key)
 {
 	if (key) {
 		unsigned long hash = ht->hashfunc(key);
@@ -174,17 +176,17 @@ kvpair_t ht_get(hashtable_t *ht, const void *key)
 			index = entry->next;
 		}
 	}
-	return (kvpair_t) { NULL, NULL, };
+	return (kvpair_T) { NULL, NULL, };
 }
 
 /* ハッシュテーブルにエントリを設定する。
  * 戻り値は、これまでに設定されていた key に等しいキーとそれに対応する値である。
  * これまでに key に等しいキーを持つエントリがなかった場合は { NULL, NULL }
  * を返す。key が NULL ならば何もせずに { NULL, NULL } を返す。 */
-kvpair_t ht_set(hashtable_t *ht, const void *key, const void *value)
+kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 {
 	if (!key)
-		return (kvpair_t) { NULL, NULL, };
+		return (kvpair_T) { NULL, NULL, };
 
 	/* まず、key に等しいキーの既存のエントリがあるならそれを置き換える */
 	unsigned long hash = ht->hashfunc(key);
@@ -193,8 +195,8 @@ kvpair_t ht_set(hashtable_t *ht, const void *key, const void *value)
 	while (index != NOTHING) {
 		struct hash_entry *entry = &ht->entries[index];
 		if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
-			kvpair_t oldkv = entry->kv;
-			entry->kv = (kvpair_t) { (void *) key, (void *) value, };
+			kvpair_T oldkv = entry->kv;
+			entry->kv = (kvpair_T) { (void *) key, (void *) value, };
 			return oldkv;
 		}
 		index = entry->next;
@@ -209,7 +211,7 @@ kvpair_t ht_set(hashtable_t *ht, const void *key, const void *value)
 		*entry = (struct hash_entry) {
 			.next = ht->indices[mhash],
 			.hash = hash,
-			.kv = (kvpair_t) { (void *) key, (void *) value, },
+			.kv = (kvpair_T) { (void *) key, (void *) value, },
 		};
 		ht->indices[mhash] = index;
 	} else {
@@ -220,19 +222,19 @@ kvpair_t ht_set(hashtable_t *ht, const void *key, const void *value)
 		ht->entries[index] = (struct hash_entry) {
 			.next = ht->indices[mhash],
 			.hash = hash,
-			.kv = (kvpair_t) { (void *) key, (void *) value, },
+			.kv = (kvpair_T) { (void *) key, (void *) value, },
 		};
 		ht->indices[mhash] = index;
 		ht->tailindex++;
 	}
 	ht->count++;
-	return (kvpair_t) { NULL, NULL, };
+	return (kvpair_T) { NULL, NULL, };
 }
 
 /* ハッシュテーブルから key に等しいキーのエントリを削除する。
  * 戻り値は、削除したエントリのキーと値。key に等しいエントリがなかった場合は
  * { NULL, NULL } を返す。 */
-kvpair_t ht_remove(hashtable_t *ht, const void *key)
+kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
 	if (key) {
 		unsigned long hash = ht->hashfunc(key);
@@ -241,7 +243,7 @@ kvpair_t ht_remove(hashtable_t *ht, const void *key)
 			size_t index = *indexp;
 			struct hash_entry *entry = &ht->entries[index];
 			if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
-				kvpair_t oldkv = entry->kv;
+				kvpair_T oldkv = entry->kv;
 				*indexp = entry->next;
 				entry->next = ht->emptyindex;
 				ht->emptyindex = index;
@@ -252,7 +254,7 @@ kvpair_t ht_remove(hashtable_t *ht, const void *key)
 			indexp = &entry->next;
 		}
 	}
-	return (kvpair_t) { NULL, NULL, };
+	return (kvpair_T) { NULL, NULL, };
 }
 
 /* ハッシュテーブルの各エントリに対して、関数 f を一回ずつ呼び出す。
@@ -261,12 +263,12 @@ kvpair_t ht_remove(hashtable_t *ht, const void *key)
  * は呼び出さず、ht_each はただちに f が返したその非 0 値を返す。
  * 全てのエントリに対して f が 0 を返した場合、ht_each も 0 を返す。
  * この関数の実行中に ht のエントリを追加・削除してはならない。 */
-int ht_each(hashtable_t *ht, int f(kvpair_t kv))
+int ht_each(hashtable_T *ht, int f(kvpair_T kv))
 {
 	struct hash_entry *entries = ht->entries;
 
 	for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
-		kvpair_t kv = entries[i].kv;
+		kvpair_T kv = entries[i].kv;
 		if (kv.key) {
 			int r = f(kv);
 			if (r)
@@ -284,13 +286,58 @@ int ht_each(hashtable_t *ht, int f(kvpair_t kv))
  * また、列挙の途中でハッシュテーブルのエントリを追加・削除してはならない。
  * この関数は各エントリを一度ずつ返すが、その順番は不定である。
  * 全ての列挙が終わると { NULL, NULL } が返る。 */
-kvpair_t ht_next(hashtable_t *ht, size_t *indexp)
+kvpair_T ht_next(hashtable_T *ht, size_t *indexp)
 {
 	while (*indexp < ht->capacity) {
-		kvpair_t kv = ht->entries[*indexp].kv;
+		kvpair_T kv = ht->entries[*indexp].kv;
 		(*indexp)++;
 		if (kv.key)
 			return kv;
 	}
-	return (kvpair_t) { NULL, NULL, };
+	return (kvpair_T) { NULL, NULL, };
+}
+
+
+/* マルチバイト文字列に対するハッシュ関数。引数は const char * にキャストされ、
+ * そのポインタが指す文字列に対するハッシュ値を返す。
+ * この関数はマルチバイト文字列をキーとするハッシュテーブルのハッシュ関数として
+ * 使える。比較関数には strcmp を使うと良い。 */
+unsigned long hashstr(const void *s)
+{
+	const char *c = s;
+	unsigned long h = 0;
+	while (*c)
+		h = (h * 0x15uL + (unsigned long) *c++) ^ 0x55555555uL;
+	return h;
+}
+
+/* マルチバイト文字列の比較関数。引数を const char * にキャストし、strcmp 関数で
+ * 比較した結果が返る。
+ * この関数はマルチバイト文字列をキーとするハッシュテーブルの比較関数として
+ * 使える。ハッシュ関数には hashstr を使うと良い。 */
+int htstrcmp(const void *s1, const void *s2)
+{
+	return strcmp((const char *) s1, (const char *) s2);
+}
+
+/* ワイド文字列に対するハッシュ関数。引数は const wchar_t * にキャストされ、
+ * そのポインタが指す文字列に対するハッシュ値を返す。
+ * この関数はワイド文字列をキーとするハッシュテーブルのハッシュ関数として
+ * 使える。比較関数には htwcscmp を使うと良い。 */
+unsigned long hashwcs(const void *s)
+{
+	const wchar_t *c = s;
+	unsigned long h = 0;
+	while (*c)
+		h = (h * 0x155uL + (unsigned long) *c++) ^ 0x55555555uL;
+	return h;
+}
+
+/* ワイド文字列の比較関数。引数を const wchar_t * にキャストし、wcscmp 関数で
+ * 比較した結果が返る。
+ * この関数はワイド文字列をキーとするハッシュテーブルの比較関数として使える。
+ * ハッシュ関数には hashwcs を使うと良い。 */
+int htwcscmp(const void *s1, const void *s2)
+{
+	return wcscmp((const wchar_t *) s1, (const wchar_t *) s2);
 }

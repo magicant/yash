@@ -33,70 +33,70 @@
  * 構造体の next メンバが次の構文要素を表す。 */
 
 /* and/or リストを表す */
-typedef struct and_or_t {
-	struct and_or_t   *next;
-	struct pipeline_t *ao_pipelines;  /* リストを構成するパイプラインたち */
+typedef struct and_or_T {
+	struct and_or_T   *next;
+	struct pipeline_T *ao_pipelines;  /* リストを構成するパイプラインたち */
 	bool               ao_async;      /* この and/or リストを非同期実行するか */
 	unsigned long      ao_lineno;     /* このコマンドの行番号 */
-} and_or_t;
+} and_or_T;
 
 /* パイプラインを表す */
-typedef struct pipeline_t {
-	struct pipeline_t *next;
-	struct command_t  *pl_commands;  /* パイプラインを構成するコマンドたち */
+typedef struct pipeline_T {
+	struct pipeline_T *next;
+	struct command_T  *pl_commands;  /* パイプラインを構成するコマンドたち */
 	bool               pl_neg, pl_loop, pl_next_cond;
-} pipeline_t;
+} pipeline_T;
 /* pl_neg はパイプラインの終了ステータスを反転するかどうか。
  * pl_loop はパイプラインが環状かどうか。
  * pl_next_cond は next を実行する条件で、'&&' なら true、'||' なら false。 */
 
-/* command_t の種類を表す */
+/* command_T の種類を表す */
 typedef enum {
 	CT_SIMPLE,     /* シンプルコマンド */
 	CT_GROUP,      /* { } で囲んだコマンドグループ */
 	CT_SUBSHELL,   /* ( ) で囲んだサブシェルコマンドグループ */
-} commandtype_t;
+} commandtype_T;
 
 /* パイプラインを構成する一つのコマンドを表す */
-typedef struct command_t {
-	struct command_t *next;
-	commandtype_t     c_type;
-	struct assign_t  *c_assigns;  /* このコマンドで行う変数代入 */
-	struct redir_t   *c_redirs;   /* このコマンドで行うリダイレクト */
+typedef struct command_T {
+	struct command_T *next;
+	commandtype_T     c_type;
+	struct assign_T  *c_assigns;  /* このコマンドで行う変数代入 */
+	struct redir_T   *c_redirs;   /* このコマンドで行うリダイレクト */
 	union {
 		void           **words;   /* コマンド名と引数 */
-		struct and_or_t *subcmds; /* このコマンドに含まれるサブコマンド */
+		struct and_or_T *subcmds; /* このコマンドに含まれるサブコマンド */
 	} c_content;
-} command_t;
+} command_T;
 #define c_words   c_content.words
 #define c_subcmds c_content.subcmds
-/* c_words は、wordunit_t へのポインタの NULL 終端配列へのポインタ */
+/* c_words は、wordunit_T へのポインタの NULL 終端配列へのポインタ */
 
-/* wordunit_t の種類を表す */
+/* wordunit_T の種類を表す */
 typedef enum {
 	WT_STRING,  /* 文字列部分 (引用符を含む) */
 	WT_PARAM,   /* パラメータ展開 */
 	WT_CMDSUB,  /* コマンド置換 */
 	//WT_ARITH,   /* 数式展開 */
-} wordunittype_t;
+} wordunittype_T;
 
 /* 単語展開の対象となる単語の構成要素を表す */
-typedef struct wordunit_t {
-	struct wordunit_t *next;
-	wordunittype_t     wu_type;
+typedef struct wordunit_T {
+	struct wordunit_T *next;
+	wordunittype_T     wu_type;
 	union {
 		wchar_t           *string;  /* 文字列部分 */
-		struct paramexp_t *param;   /* パラメータ展開の内容 */
+		struct paramexp_T *param;   /* パラメータ展開の内容 */
 		wchar_t           *cmdsub;  /* コマンド置換で実行するコマンド */
-		//struct arithexp_t *arith;   /* 数式展開の内容 */
+		//struct arithexp_T *arith;   /* 数式展開の内容 */
 	} wu_value;
-} wordunit_t;
+} wordunit_T;
 #define wu_string wu_value.string
 #define wu_param  wu_value.param
 #define wu_cmdsub wu_value.cmdsub
 #define wu_arith  wu_value.arith
 
-/* paramexp_t の種類を表す */
+/* paramexp_T の種類を表す */
 typedef enum {
 	PT_NONE,                   /* 通常 */
 	PT_MINUS,                  /* ${name-subst} */
@@ -111,7 +111,7 @@ typedef enum {
 	PT_MATCHTAIL    = 1 << 6,  /* 末尾のみにマッチ */
 	PT_MATCHLONGEST = 1 << 7,  /* できるだけ長くマッチ */
 	PT_SUBSTALL     = 1 << 8,  /* マッチしたもの全て置換 */
-} paramexptype_t;
+} paramexptype_T;
 #define PT_MASK ((1 << 3) - 1)
 /*            type   COLON  MATCHH MATCHT MATCHL SUBSTA
  * ${n-s}     MINUS   no
@@ -136,21 +136,21 @@ typedef enum {
  * PT_NONE でのみ有効。 */
 
 /* パラメータ展開を表す */
-typedef struct paramexp_t {
-	paramexptype_t pe_type;
+typedef struct paramexp_T {
+	paramexptype_T pe_type;
 	wchar_t *pe_name;
-	struct wordunit_t *pe_match, *pe_subst;
-} paramexp_t;
+	struct wordunit_T *pe_match, *pe_subst;
+} paramexp_T;
 /* pe_name は変数名。
  * pe_match は変数の内容とマッチさせる単語で、PT_MATCH, PT_SUBST でつかう。
  * pe_subst は変数の内容を置換する単語で、PT_NONE, PT_MATCH 以外で使う。 */
 
 /* 代入を表す */
-typedef struct assign_t {
-	struct assign_t *next;
+typedef struct assign_T {
+	struct assign_T *next;
 	wchar_t *name;             /* 代入する変数名 */
-	struct wordunit_t *value;  /* 代入する値 */
-} assign_t;
+	struct wordunit_T *value;  /* 代入する値 */
+} assign_T;
 
 /* リダイレクトの種類を表す */
 typedef enum {
@@ -163,21 +163,21 @@ typedef enum {
 	RT_DUPOUT,   /* >&fd */
 	RT_HERE,     /* <<END */
 	RT_HERERT,   /* <<-END */
-} redirtype_t;
+} redirtype_T;
 
 /* リダイレクトを表す */
-typedef struct redir_t {
-	struct redir_t *next;
-	redirtype_t rd_type;
+typedef struct redir_T {
+	struct redir_T *next;
+	redirtype_T rd_type;
 	int rd_fd;  /* リダイレクトするファイル記述子 */
 	union {
-		struct wordunit_t *filename;
+		struct wordunit_T *filename;
 		struct {
 			wchar_t *hereend;  /* ヒアドキュメントの終わりを示すトークン */
-			struct wordunit_t *herecontent;  /* ヒアドキュメントの内容 */
+			struct wordunit_T *herecontent;  /* ヒアドキュメントの内容 */
 		} heredoc;
 	} rd_value;
-} redir_t;
+} redir_T;
 #define rd_filename    rd_value.filename
 #define rd_hereend     rd_value.heredoc.hereend
 #define rd_herecontent rd_value.heredoc.herecontent
@@ -190,7 +190,7 @@ typedef struct redir_t {
 
 /********** 構文解析ルーチンへのインタフェース宣言 **********/
 
-struct xwcsbuf_t;
+struct xwcsbuf_T;
 
 /* 入力を読み取ってバッファに追加する関数。
  * 入力は基本的に行単位だが、一行が長い場合などは行の途中までしか読み込まない
@@ -199,29 +199,29 @@ struct xwcsbuf_t;
  * 戻り値: 0:   何らかの入力があった。
  *         1:   対話モードで SIGINT を受けた。(buf の内容は不定)
  *         EOF: EOF に達したか、エラーがあった。(buf の内容は不定) */
-typedef int inputfunc_t(struct xwcsbuf_t *buf, void *inputinfo);
+typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
-typedef struct parseinfo_t {
+typedef struct parseinfo_T {
 	const char *filename; /* エラー表示で使うファイル名。NULL でも良い。 */
 	unsigned long lineno; /* 行番号。最初は 0 にしておく。 */
-	inputfunc_t *input;   /* 入力関数 */
+	inputfunc_T *input;   /* 入力関数 */
 	void *inputinfo;      /* 入力関数に渡す情報 */
-} parseinfo_t;
+} parseinfo_T;
 
 extern int read_and_parse(
-		parseinfo_t *restrict info, and_or_t **restrict result)
+		parseinfo_T *restrict info, and_or_T **restrict result)
 	__attribute__((nonnull));
 
 
 /********** 構文木を文字列に戻すルーチン **********/
 
-extern wchar_t *commands_to_wcstring(const and_or_t *commands)
+extern wchar_t *commands_to_wcstring(const and_or_T *commands)
 	__attribute__((malloc));
 
 
 /********** 構文木データを解放するルーチン **********/
 
-extern void andorsfree(and_or_t *a);
+extern void andorsfree(and_or_T *a);
 
 
 #endif /* PARSER_H */

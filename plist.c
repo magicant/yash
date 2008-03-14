@@ -49,7 +49,7 @@ void recfree(void **ary, void freer(void *elem))
 
 
 /* ポインタリストは void へのポインタを要素とする可変長配列である。
- * plist_t 型の list について、list.contents[list.length] は常に NULL である。
+ * plist_T 型の list について、list.contents[list.length] は常に NULL である。
  * しかし、これはリストの要素に NULL を含めることを妨げない。
  * また、リストの要素としてリストそのものへのポインタを入れることもできる。 */
 
@@ -60,7 +60,7 @@ void recfree(void **ary, void freer(void *elem))
 
 
 /* 未初期化のポインタリストを初期化する。 */
-plist_t *pl_init(plist_t *list)
+plist_T *pl_init(plist_T *list)
 {
 	list->contents = xmalloc((PLIST_INITSIZE + 1) * sizeof (void *));
 	list->contents[0] = NULL;
@@ -71,7 +71,7 @@ plist_t *pl_init(plist_t *list)
 
 /* 初期化済みのポインタリストの内容を削除し、未初期化状態に戻す。
  * 配列の各要素は解放しないので注意。 */
-void pl_destroy(plist_t *list)
+void pl_destroy(plist_T *list)
 {
 	free(list->contents);
 }
@@ -81,7 +81,7 @@ void pl_destroy(plist_t *list)
  * free すること。
  * 戻り値は char へのポインタの配列へのポインタとみなして char ** 型にキャスト
  * することができる。 */
-void **pl_toary(plist_t *list)
+void **pl_toary(plist_T *list)
 {
 	if (list->maxlength - list->length > 10)
 		pl_setmax(list, list->length);
@@ -90,7 +90,7 @@ void **pl_toary(plist_t *list)
 
 /* ポインタリストのサイズ (list->maxlength) を変更する。
  * 短くしすぎると、配列の末尾の要素はリストから消えてなくなる。 */
-plist_t *pl_setmax(plist_t *list, size_t newmax)
+plist_T *pl_setmax(plist_T *list, size_t newmax)
 {
 	list->contents = xrealloc(list->contents, (newmax + 1) * sizeof (void *));
 	list->maxlength = newmax;
@@ -101,7 +101,7 @@ plist_t *pl_setmax(plist_t *list, size_t newmax)
 }
 
 /* list->maxlength が max 未満なら、max 以上になるようにメモリを再確保する。 */
-inline plist_t *pl_ensuremax(plist_t *list, size_t max)
+inline plist_T *pl_ensuremax(plist_T *list, size_t max)
 {
 	if (list->maxlength < max) {
 		size_t newmax = list->maxlength;
@@ -116,7 +116,7 @@ inline plist_t *pl_ensuremax(plist_t *list, size_t max)
 
 /* ポインタリストの内容を空にする。リストの容量は変化しない。
  * リストの各要素は解放しないので注意。 */
-plist_t *pl_clear(plist_t *list)
+plist_T *pl_clear(plist_T *list)
 {
 	list->contents[list->length = 0] = NULL;
 	return list;
@@ -128,8 +128,8 @@ plist_t *pl_clear(plist_t *list)
  * list->length < i + ln ならばリストの i 要素目以降を全て置換する。
  * 特に、list->length <= i ならばリストの末尾に追加する。
  * a は list->contents の一部であってはならない。 */
-plist_t *pl_replace(
-		plist_t *restrict list, size_t i, size_t ln,
+plist_T *pl_replace(
+		plist_T *restrict list, size_t i, size_t ln,
 		void *const *restrict a, size_t an)
 {
 	if (i > list->length)
@@ -148,7 +148,7 @@ plist_t *pl_replace(
 
 /* ポインタリストの末尾に要素として p を追加する。
  * p は NULL でも list そのものでも良い。 */
-plist_t *pl_add(plist_t *list, void *p)
+plist_T *pl_add(plist_T *list, void *p)
 {
 	pl_ensuremax(list, list->length + 1);
 	list->contents[list->length++] = p;

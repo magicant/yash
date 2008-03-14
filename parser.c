@@ -38,7 +38,7 @@
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
  *         構文エラーならエラーメッセージを出して 1 を返す。
  *         EOF に達したか入力エラーなら EOF を返す。 */
-int read_and_parse(parseinfo_t *restrict info, and_or_t **restrict result)
+int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 {
 	(void) info, (void) result;
 	//TODO parser.c: read_and_parse
@@ -49,37 +49,37 @@ int read_and_parse(parseinfo_t *restrict info, and_or_t **restrict result)
 /********** 構文木を文字列に戻すルーチン **********/
 
 static void print_and_or_lists(
-		xwcsbuf_t *restrict buf, const and_or_t *restrict andors)
+		xwcsbuf_T *restrict buf, const and_or_T *restrict andors)
 	__attribute__((nonnull(1)));
 static void print_pipelines(
-		xwcsbuf_t *restrict buf, const pipeline_t *restrict pipelines)
+		xwcsbuf_T *restrict buf, const pipeline_T *restrict pipelines)
 	__attribute__((nonnull(1)));
 static void print_commands(
-		xwcsbuf_t *restrict buf, const command_t *restrict commands)
+		xwcsbuf_T *restrict buf, const command_T *restrict commands)
 	__attribute__((nonnull(1)));
 static void print_assigns(
-		xwcsbuf_t *restrict buf, const assign_t *restrict assigns)
+		xwcsbuf_T *restrict buf, const assign_T *restrict assigns)
 	__attribute__((nonnull(1)));
 static void print_command_content(
-		xwcsbuf_t *restrict buf, const command_t *restrict command)
+		xwcsbuf_T *restrict buf, const command_T *restrict command)
 	__attribute__((nonnull));
 static void print_redirs(
-		xwcsbuf_t *restrict buf, const redir_t *restrict redirs)
+		xwcsbuf_T *restrict buf, const redir_T *restrict redirs)
 	__attribute__((nonnull(1)));
 static void print_word(
-		xwcsbuf_t *restrict buf, const wordunit_t *restrict word)
+		xwcsbuf_T *restrict buf, const wordunit_T *restrict word)
 	__attribute__((nonnull(1)));
 static void print_paramexp(
-		xwcsbuf_t *restrict buf, const paramexp_t *restrict param)
+		xwcsbuf_T *restrict buf, const paramexp_T *restrict param)
 	__attribute__((nonnull));
-static void trim_end_of_buffer(xwcsbuf_t *buf)
+static void trim_end_of_buffer(xwcsbuf_T *buf)
 	__attribute__((nonnull));
 
 /* 構文木をワイド文字列に変換して返す。
  * 戻り値は free 可能なワイド文字列へのポインタ。 */
-wchar_t *commands_to_wcstring(const and_or_t *commands)
+wchar_t *commands_to_wcstring(const and_or_T *commands)
 {
-	xwcsbuf_t buf;
+	xwcsbuf_T buf;
 
 	wb_init(&buf);
 	print_and_or_lists(&buf, commands);
@@ -88,7 +88,7 @@ wchar_t *commands_to_wcstring(const and_or_t *commands)
 }
 
 static void print_and_or_lists(
-		xwcsbuf_t *restrict buf, const and_or_t *restrict c)
+		xwcsbuf_T *restrict buf, const and_or_T *restrict c)
 {
 	while (c) {
 		print_pipelines(buf, c->ao_pipelines);
@@ -102,7 +102,7 @@ static void print_and_or_lists(
 }
 
 static void print_pipelines(
-		xwcsbuf_t *restrict buf, const pipeline_t *restrict p)
+		xwcsbuf_T *restrict buf, const pipeline_T *restrict p)
 {
 	while (p) {
 		if (p->pl_neg)
@@ -117,7 +117,7 @@ static void print_pipelines(
 }
 
 static void print_commands(
-		xwcsbuf_t *restrict buf, const command_t *restrict c)
+		xwcsbuf_T *restrict buf, const command_T *restrict c)
 {
 	while (c) {
 		print_assigns(buf, c->c_assigns);
@@ -130,7 +130,7 @@ static void print_commands(
 }
 
 static void print_assigns(
-		xwcsbuf_t *restrict buf, const assign_t *restrict a)
+		xwcsbuf_T *restrict buf, const assign_T *restrict a)
 {
 	while (a) {
 		wb_cat(buf, a->name);
@@ -142,7 +142,7 @@ static void print_assigns(
 }
 
 static void print_command_content(
-		xwcsbuf_t *restrict buf, const command_t *restrict c)
+		xwcsbuf_T *restrict buf, const command_T *restrict c)
 {
 	switch (c->c_type) {
 	case CT_SIMPLE:
@@ -165,7 +165,7 @@ static void print_command_content(
 }
 
 static void print_redirs(
-		xwcsbuf_t *restrict buf, const redir_t *restrict r)
+		xwcsbuf_T *restrict buf, const redir_T *restrict r)
 {
 	while (r) {
 		const wchar_t *s;
@@ -194,7 +194,7 @@ static void print_redirs(
 }
 
 static void print_word(
-		xwcsbuf_t *restrict buf, const wordunit_t *restrict w)
+		xwcsbuf_T *restrict buf, const wordunit_T *restrict w)
 {
 	while (w) {
 		switch (w->wu_type) {
@@ -214,7 +214,7 @@ static void print_word(
 }
 
 static void print_paramexp(
-		xwcsbuf_t *restrict buf, const paramexp_t *restrict p)
+		xwcsbuf_T *restrict buf, const paramexp_T *restrict p)
 {
 	wchar_t c;
 
@@ -267,7 +267,7 @@ append_subst:
 	wb_wccat(buf, L'}');
 }
 
-static void trim_end_of_buffer(xwcsbuf_t *buf)
+static void trim_end_of_buffer(xwcsbuf_T *buf)
 {
 	size_t i = buf->length;
 	while (i > 0 && iswblank(buf->contents[--i]));
@@ -277,37 +277,37 @@ static void trim_end_of_buffer(xwcsbuf_t *buf)
 
 /********** 構文木データを解放するルーチン **********/
 
-static void pipesfree(pipeline_t *p);
-static void comsfree(command_t *c);
-static void wordfree(wordunit_t *w);
+static void pipesfree(pipeline_T *p);
+static void comsfree(command_T *c);
+static void wordfree(wordunit_T *w);
 static void wordfree_vp(void *w);
-static void paramfree(paramexp_t *p);
-static void assignsfree(assign_t *a);
-static void redirsfree(redir_t *r);
+static void paramfree(paramexp_T *p);
+static void assignsfree(assign_T *a);
+static void redirsfree(redir_T *r);
 
-void andorsfree(and_or_t *a)
+void andorsfree(and_or_T *a)
 {
 	while (a) {
 		pipesfree(a->ao_pipelines);
 
-		and_or_t *next = a->next;
+		and_or_T *next = a->next;
 		free(a);
 		a = next;
 	}
 }
 
-static void pipesfree(pipeline_t *p)
+static void pipesfree(pipeline_T *p)
 {
 	while (p) {
 		comsfree(p->pl_commands);
 
-		pipeline_t *next = p->next;
+		pipeline_T *next = p->next;
 		free(p);
 		p = next;
 	}
 }
 
-static void comsfree(command_t *c)
+static void comsfree(command_T *c)
 {
 	while (c) {
 		assignsfree(c->c_assigns);
@@ -322,13 +322,13 @@ static void comsfree(command_t *c)
 				break;
 		}
 
-		command_t *next = c->next;
+		command_T *next = c->next;
 		free(c);
 		c = next;
 	}
 }
 
-static void wordfree(wordunit_t *w)
+static void wordfree(wordunit_T *w)
 {
 	while (w) {
 		switch (w->wu_type) {
@@ -343,7 +343,7 @@ static void wordfree(wordunit_t *w)
 				break;
 		}
 
-		wordunit_t *next = w->next;
+		wordunit_T *next = w->next;
 		free(w);
 		w = next;
 	}
@@ -351,10 +351,10 @@ static void wordfree(wordunit_t *w)
 
 static void wordfree_vp(void *w)
 {
-	wordfree((wordunit_t *) w);
+	wordfree((wordunit_T *) w);
 }
 
-static void paramfree(paramexp_t *p)
+static void paramfree(paramexp_T *p)
 {
 	if (p) {
 		free(p->pe_name);
@@ -363,19 +363,19 @@ static void paramfree(paramexp_t *p)
 	}
 }
 
-static void assignsfree(assign_t *a)
+static void assignsfree(assign_T *a)
 {
 	while (a) {
 		free(a->name);
 		wordfree(a->value);
 
-		assign_t *next = a->next;
+		assign_T *next = a->next;
 		free(a);
 		a = next;
 	}
 }
 
-static void redirsfree(redir_t *r)
+static void redirsfree(redir_T *r)
 {
 	while (r) {
 		switch (r->rd_type) {
@@ -389,7 +389,7 @@ static void redirsfree(redir_t *r)
 				break;
 		}
 
-		redir_t *next = r->next;
+		redir_T *next = r->next;
 		free(r);
 		r = next;
 	}
