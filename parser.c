@@ -21,10 +21,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
 #include "strbuf.h"
 #include "parser.h"
+#include "plist.h"
 
 
 /********** 構文解析ルーチン **********/
@@ -270,4 +272,125 @@ static void trim_end_of_buffer(xwcsbuf_t *buf)
 	size_t i = buf->length;
 	while (i > 0 && iswblank(buf->contents[--i]));
 	wb_remove(buf, i, SIZE_MAX);
+}
+
+
+/********** 構文木データを解放するルーチン **********/
+
+static void pipesfree(pipeline_t *p);
+static void comsfree(command_t *c);
+static void wordfree(wordunit_t *w);
+static void wordfree_vp(void *w);
+static void paramfree(paramexp_t *p);
+static void assignsfree(assign_t *a);
+static void redirsfree(redir_t *r);
+
+void andorsfree(and_or_t *a)
+{
+	while (a) {
+		pipesfree(a->ao_pipelines);
+
+		and_or_t *next = a->next;
+		free(a);
+		a = next;
+	}
+}
+
+static void pipesfree(pipeline_t *p)
+{
+	while (p) {
+		comsfree(p->pl_commands);
+
+		pipeline_t *next = p->next;
+		free(p);
+		p = next;
+	}
+}
+
+static void comsfree(command_t *c)
+{
+	while (c) {
+		assignsfree(c->c_assigns);
+		redirsfree(c->c_redirs);
+		switch (c->c_type) {
+			case CT_SIMPLE:
+				recfree(c->c_words, wordfree_vp);
+				break;
+			case CT_GROUP:
+			case CT_SUBSHELL:
+				andorsfree(c->c_subcmds);
+				break;
+		}
+
+		command_t *next = c->next;
+		free(c);
+		c = next;
+	}
+}
+
+static void wordfree(wordunit_t *w)
+{
+	while (w) {
+		switch (w->wu_type) {
+			case WT_STRING:
+				free(w->wu_string);
+				break;
+			case WT_PARAM:
+				paramfree(w->wu_param);
+				break;
+			case WT_CMDSUB:
+				free(w->wu_cmdsub);
+				break;
+		}
+
+		wordunit_t *next = w->next;
+		free(w);
+		w = next;
+	}
+}
+
+static void wordfree_vp(void *w)
+{
+	wordfree((wordunit_t *) w);
+}
+
+static void paramfree(paramexp_t *p)
+{
+	if (p) {
+		free(p->pe_name);
+		wordfree(p->pe_match);
+		wordfree(p->pe_subst);
+	}
+}
+
+static void assignsfree(assign_t *a)
+{
+	while (a) {
+		free(a->name);
+		wordfree(a->value);
+
+		assign_t *next = a->next;
+		free(a);
+		a = next;
+	}
+}
+
+static void redirsfree(redir_t *r)
+{
+	while (r) {
+		switch (r->rd_type) {
+			case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
+			case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
+				wordfree(r->rd_filename);
+				break;
+			case RT_HERE:  case RT_HERERT:
+				free(r->rd_hereend);
+				wordfree(r->rd_herecontent);
+				break;
+		}
+
+		redir_t *next = r->next;
+		free(r);
+		r = next;
+	}
 }

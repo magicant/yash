@@ -219,4 +219,9 @@ extern wchar_t *commands_to_wcstring(const and_or_t *commands)
 	__attribute__((malloc));
 
 
+/********** 構文木データを解放するルーチン **********/
+
+extern void andorsfree(and_or_t *a);
+
+
 #endif /* PARSER_H */
