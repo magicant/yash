@@ -30,6 +30,9 @@
 #endif
 #include "yash.h"
 #include "util.h"
+#include "lineinput.h"
+#include "parser.h"
+#include "exec.h"
 #include "version.h"
 
 
@@ -132,7 +135,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	shell_pid = getpid();
 
 	if (exec_first_arg && read_stdin) {
-		xerror(2, 0, gt("both -c and -s options cannot be specified"));
+		xerror(2, 0, gt("both -c and -s options cannot be given"));
 	}
 	if (exec_first_arg) {
 		char *command = argv[xoptind++];
@@ -141,8 +144,8 @@ int main(int argc __attribute__((unused)), char **argv)
 		if (argv[xoptind])
 			command_name = argv[xoptind++];
 		is_interactive_now = is_interactive;
-		// TODO yash:main:exec_first_arg
-		xerror(2, 0, "-c %s: NOT IMPLEMENTED", command);
+		// TODO yash:main:exec_first_arg シェル環境設定・位置パラメータ
+		exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
 	} else {
 		FILE *input;
 		if (read_stdin || !argv[xoptind]) {
@@ -186,4 +189,53 @@ static void print_version(void)
 {
 	printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
 	printf(PACKAGE_COPYRIGHT "\n");
+}
+
+
+/********** コードを実行する関数 **********/
+
+/* マルチバイト文字列をソースコードとしてコマンドを実行する。
+ * code: 実行するコード (初期シフト状態で始まる)
+ * name: 構文エラーで表示するコード名。NULL でも良い。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool exec_mbs(const char *code, const char *name, bool finally_exit)
+{
+	bool executed = false;
+	struct input_mbs_info iinfo = {
+		.src = code,
+	};
+	struct parseinfo_T pinfo = {
+		.filename = name,
+		.lineno = 0,
+		.input = input_mbs,
+		.inputinfo = &iinfo,
+	};
+	memset(&iinfo.state, 0, sizeof iinfo.state);  // state を初期状態にする
+
+	for (;;) {
+		and_or_T *commands;
+		switch (read_and_parse(&pinfo, &commands)) {
+			case 0:  // OK
+				if (commands) {
+					exec_and_or_lists(commands, finally_exit && !iinfo.src);
+					andorsfree(commands);
+					executed = true;
+				}
+				break;
+			case EOF:
+				if (!executed)
+					laststatus = EXIT_SUCCESS;
+				if (finally_exit)
+					exit(laststatus);
+				else
+					return true;
+			case 1:  // 構文エラー
+				laststatus = 2;
+				if (finally_exit)
+					exit(laststatus);
+				else
+					return false;
+		}
+	}
 }

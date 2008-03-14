@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* yash.h: basic functions of the shell and miscellanies */
+/* exec.h: command execution */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -16,24 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef YASH_H
-#define YASH_H
+#ifndef EXEC_H
+#define EXEC_H
 
 #include <stdbool.h>
-#include <sys/types.h>
 
 
-#define EXIT_NOEXEC   126
-#define EXIT_NOTFOUND 127
+extern int laststatus;
+
+struct and_or_T;
+extern void exec_and_or_lists(struct and_or_T *a, bool finally_exit);
 
 
-extern bool posixly_correct;
-extern bool is_login_shell, is_interactive, is_interactive_now;
-extern const char *command_name;
-extern pid_t shell_pid;
-
-extern bool exec_mbs(const char *code, const char *name, bool finally_exit)
-	__attribute__((nonnull(1)));
-
-
-#endif /* YASH_H */
+#endif /* EXEC_H */

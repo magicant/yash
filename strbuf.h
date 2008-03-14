@@ -92,6 +92,8 @@ extern wchar_t *wb_towcs(xwcsbuf_T *buf)
 	__attribute__((nonnull));
 extern xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 	__attribute__((nonnull));
+extern xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
+	__attribute__((nonnull));
 extern xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
 	__attribute__((nonnull));
 extern xwcsbuf_T *wb_replace(

@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* yash.h: basic functions of the shell and miscellanies */
+/* exec.c: command execution */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -16,24 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef YASH_H
-#define YASH_H
-
+#include "common.h"
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <wchar.h>
+#include "parser.h"
+#include "exec.h"
 
 
-#define EXIT_NOEXEC   126
-#define EXIT_NOTFOUND 127
+/* 最後に実行したコマンドの終了ステータス */
+int laststatus;
 
 
-extern bool posixly_correct;
-extern bool is_login_shell, is_interactive, is_interactive_now;
-extern const char *command_name;
-extern pid_t shell_pid;
-
-extern bool exec_mbs(const char *code, const char *name, bool finally_exit)
-	__attribute__((nonnull(1)));
-
-
-#endif /* YASH_H */
+/* コマンドを実行する。
+ * finally_exit: true なら実行後そのまま終了する。 */
+void exec_and_or_lists(and_or_T *a, bool finally_exit)
+{
+	// TODO exec.c: exec_and_or_lists
+	wchar_t *s = commands_to_wcstring(a);
+	fprintf(stderr, "DEBUG: <%ls>\n", s);
+	if (finally_exit)
+		exit(laststatus);
+}

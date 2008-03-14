@@ -299,7 +299,7 @@ xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
 }
 
 /* buf->maxlength が max 未満なら、max 以上になるようにメモリを再確保する。 */
-static inline xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
+inline xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
 {
 	if (buf->maxlength < max) {
 		size_t newmax = buf->maxlength;

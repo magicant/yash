@@ -143,7 +143,7 @@ void xerror(int status, int errno_, const char *restrict format, ...)
 	if (format || errno_) {
 		fputc('\n', stderr);
 	} else {
-		fputs(gt("Unknown error\n"), stderr);
+		fputs(gt("unknown error\n"), stderr);
 	}
 	fflush(stderr);
 	if (status)

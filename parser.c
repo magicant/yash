@@ -18,12 +18,17 @@
 
 #include "common.h"
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
+#include "util.h"
 #include "strbuf.h"
 #include "parser.h"
 #include "plist.h"
@@ -31,18 +36,57 @@
 
 /********** 構文解析ルーチン **********/
 
+static void serror(const char *restrict format, ...)
+	__attribute__((nonnull(1),format(printf,1,2)));
+
+/* 解析中のソースのデータ */
+static parseinfo_T *cinfo;
+/* 現在の解析でエラーが発生しているなら true */
+static bool cerror;
+/* 解析するソースを取り込むバッファ */
+static xwcsbuf_T cbuf;
+/* 現在解析している箇所の cbuf におけるインデックス */
+static size_t cindex;
+
 /* 少なくとも一行の入力を読み取り、解析する。
  * info: 解析情報へのポインタ。全ての値を初期化しておくこと。
  * result: 成功したら *result に解析結果が入る。
  *         コマンドがなければ *result は NULL になる。
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
- *         構文エラーならエラーメッセージを出して 1 を返す。
- *         EOF に達したか入力エラーなら EOF を返す。 */
+ *         構文エラーか入力エラーならエラーメッセージを出して 1 を返す。
+ *         入力が最後に達したら EOF を返す。
+ * この関数は再入不可能である。 */
 int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 {
-	(void) info, (void) result;
+	cinfo = info;
+	cerror = false;
+	cindex = 0;
+	wb_init(&cbuf);
+
 	//TODO parser.c: read_and_parse
-	return EOF;
+	serror("PARSER: NOT IMPLEMENTED");
+	(void) result;
+
+	wb_destroy(&cbuf);
+	return 1;
+}
+
+/* 構文エラーメッセージを stderr に出力する。
+ * format はこの関数内で gettext に通す。format の最後に改行は不要。 */
+static void serror(const char *restrict format, ...)
+{
+	va_list ap;
+
+	fflush(stdout);
+	fprintf(stderr, gt("%s:%lu: syntax error: "),
+			cinfo->filename ? cinfo->filename : yash_program_invocation_name,
+			cinfo->lineno);
+	va_start(ap, format);
+	vfprintf(stderr, gt(format), ap);
+	va_end(ap);
+	fputc('\n', stderr);
+	fflush(stderr);
+	cerror = true;
 }
 
 
