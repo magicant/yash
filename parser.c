@@ -580,8 +580,6 @@ static void print_paramexp(
 	__attribute__((nonnull));
 static void trim_end_of_buffer(xwcsbuf_T *buf)
 	__attribute__((nonnull));
-static bool is_simgle_if(const and_or_T *command)
-	__attribute__((nonnull));
 
 /* 構文木をワイド文字列に変換して返す。
  * 戻り値は free 可能なワイド文字列へのポインタ。 */
@@ -659,17 +657,19 @@ static void print_command_content(
 		break;
 	case CT_IF:
 		wb_cat(buf, L"if ");
-		print_and_or_lists(buf, c->c_ifcond, true);
-		wb_cat(buf, L"then ");
-		print_and_or_lists(buf, c->c_ifthen, true);
-		if (c->c_ifelse) {
-			if (is_simgle_if(c->c_ifelse)) {
-				wb_cat(buf, L"el");
-				print_and_or_lists(buf, c->c_ifelse, true);
+		for (ifcommand_T *ic = c->c_ifcmds;;) {
+			print_and_or_lists(buf, ic->ic_condition, true);
+			wb_cat(buf, L"then ");
+			print_and_or_lists(buf, ic->ic_commands, true);
+			ic = ic->next;
+			if (!ic) {
+				break;
+			} else if (!ic->ic_condition) {
+				wb_cat(buf, L"else ");
+				print_and_or_lists(buf, ic->ic_commands, true);
 				break;
 			} else {
-				wb_cat(buf, L"else ");
-				print_and_or_lists(buf, c->c_ifelse, true);
+				wb_cat(buf, L"elif ");
 			}
 		}
 		wb_cat(buf, L"fi ");
@@ -852,24 +852,12 @@ static void trim_end_of_buffer(xwcsbuf_T *buf)
 	wb_remove(buf, i + 1, SIZE_MAX);
 }
 
-static bool is_simgle_if(const and_or_T *a)
-{
-	if (a->next || a->ao_async)
-		return false;
-
-	const pipeline_T *p = a->ao_pipelines;
-	if (p->next || p->pl_neg || p->pl_loop)
-		return false;
-
-	const command_T *c = p->pl_commands;
-	return c->c_type == CT_IF;
-}
-
 
 /********** 構文木データを解放するルーチン **********/
 
 static void pipesfree(pipeline_T *p);
 static void comsfree(command_T *c);
+static void ifcmdsfree(ifcommand_T *i);
 static void caseitemsfree(caseitem_T *i);
 static void wordfree(wordunit_T *w);
 static void wordfree_vp(void *w);
@@ -913,9 +901,7 @@ static void comsfree(command_T *c)
 				andorsfree(c->c_subcmds);
 				break;
 			case CT_IF:
-				andorsfree(c->c_ifcond);
-				andorsfree(c->c_ifthen);
-				andorsfree(c->c_ifelse);
+				ifcmdsfree(c->c_ifcmds);
 				break;
 			case CT_FOR:
 				free(c->c_forname);
@@ -935,6 +921,18 @@ static void comsfree(command_T *c)
 		command_T *next = c->next;
 		free(c);
 		c = next;
+	}
+}
+
+static void ifcmdsfree(ifcommand_T *i)
+{
+	while (i) {
+		andorsfree(i->ic_condition);
+		andorsfree(i->ic_commands);
+
+		ifcommand_T *next = i->next;
+		free(i);
+		i = next;
 	}
 }
 

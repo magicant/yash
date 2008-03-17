@@ -72,11 +72,7 @@ typedef struct command_T {
 			void           **words;    /* コマンド名と引数 */
 		} simplecontent;
 		struct and_or_T     *subcmds;  /* CT_GROUP, CT_SUBSHELL の内容 */
-		struct {
-			struct and_or_T *ifcond;   /* if の条件 */
-			struct and_or_T *ifthen;   /* if で条件が真のとき実行するコマンド */
-			struct and_or_T *ifelse;   /* if で条件が偽のとき実行するコマンド */
-		} ifcontent;
+		struct ifcommand_T  *ifcmds;   /* if の内容 */
 		struct {
 			wchar_t         *forname;  /* for で回す変数名 */
 			void           **forwords; /* 代入する word のリスト */
@@ -96,9 +92,7 @@ typedef struct command_T {
 #define c_assigns  c_content.simplecontent.assigns
 #define c_words    c_content.simplecontent.words
 #define c_subcmds  c_content.subcmds
-#define c_ifcond   c_content.ifcontent.ifcond
-#define c_ifthen   c_content.ifcontent.ifthen
-#define c_ifelse   c_content.ifcontent.ifelse
+#define c_ifcmds   c_content.ifcmds
 #define c_forname  c_content.forcontent.forname
 #define c_forwords c_content.forcontent.forwords
 #define c_forcmds  c_content.forcontent.forcmds
@@ -108,6 +102,14 @@ typedef struct command_T {
 #define c_casword  c_content.casecontent.casword
 #define c_casitems c_content.casecontent.casitems
 /* c_words, c_forwords は wordunit_T へのポインタの NULL 終端配列へのポインタ */
+
+/* if コマンドの条件とその条件が成り立つとき実行するコマンドを表す */
+typedef struct ifcommand_T {
+	struct ifcommand_T *next;
+	struct and_or_T    *ic_condition;  /* 条件 */
+	struct and_or_T    *ic_commands;   /* 実行するコマンド */
+} ifcommand_T;
+/* else は next と ic_condition が NULL の ifcommand_T で表す。 */
 
 /* case コマンドの一つの項目を表す */
 typedef struct caseitem_T {
