@@ -37,7 +37,6 @@ typedef struct and_or_T {
 	struct and_or_T   *next;
 	struct pipeline_T *ao_pipelines;  /* リストを構成するパイプラインたち */
 	bool               ao_async;      /* この and/or リストを非同期実行するか */
-	unsigned long      ao_lineno;     /* このコマンドの行番号 */
 } and_or_T;
 
 /* パイプラインを表す */
@@ -55,29 +54,75 @@ typedef enum {
 	CT_SIMPLE,     /* シンプルコマンド */
 	CT_GROUP,      /* { } で囲んだコマンドグループ */
 	CT_SUBSHELL,   /* ( ) で囲んだサブシェルコマンドグループ */
+	CT_IF,         /* if コマンド */
+	CT_FOR,        /* for コマンド */
+	CT_WHILE,      /* while/until コマンド */
+	CT_CASE,       /* case コマンド */
 } commandtype_T;
 
 /* パイプラインを構成する一つのコマンドを表す */
 typedef struct command_T {
 	struct command_T *next;
 	commandtype_T     c_type;
-	struct assign_T  *c_assigns;  /* このコマンドで行う変数代入 */
+	unsigned long     c_lineno;   /* このコマンドの行番号 */
 	struct redir_T   *c_redirs;   /* このコマンドで行うリダイレクト */
 	union {
-		void           **words;   /* コマンド名と引数 */
-		struct and_or_T *subcmds; /* このコマンドに含まれるサブコマンド */
+		struct {
+			struct assign_T *assigns;  /* このコマンドで行う変数代入 */
+			void           **words;    /* コマンド名と引数 */
+		} simplecontent;
+		struct and_or_T     *subcmds;  /* CT_GROUP, CT_SUBSHELL の内容 */
+		struct {
+			struct and_or_T *ifcond;   /* if の条件 */
+			struct and_or_T *ifthen;   /* if で条件が真のとき実行するコマンド */
+			struct and_or_T *ifelse;   /* if で条件が偽のとき実行するコマンド */
+		} ifcontent;
+		struct {
+			wchar_t         *forname;  /* for で回す変数名 */
+			void           **forwords; /* 代入する word のリスト */
+			struct and_or_T *forcmds;  /* for で実行するコマンド */
+		} forcontent;
+		struct {
+			bool             whltype;  /* while なら 1、until なら 0 */
+			struct and_or_T *whlcond;  /* while/until の条件 */
+			struct and_or_T *whlcmds;  /* while/until で実行するコマンド */
+		} whilecontent;
+		struct {
+			struct wordunit_T *casword;   /* case で検索する word */
+			struct caseitem_T *casitems;  /* case の各項目 */
+		} casecontent;
 	} c_content;
 } command_T;
-#define c_words   c_content.words
-#define c_subcmds c_content.subcmds
-/* c_words は、wordunit_T へのポインタの NULL 終端配列へのポインタ */
+#define c_assigns  c_content.simplecontent.assigns
+#define c_words    c_content.simplecontent.words
+#define c_subcmds  c_content.subcmds
+#define c_ifcond   c_content.ifcontent.ifcond
+#define c_ifthen   c_content.ifcontent.ifthen
+#define c_ifelse   c_content.ifcontent.ifelse
+#define c_forname  c_content.forcontent.forname
+#define c_forwords c_content.forcontent.forwords
+#define c_forcmds  c_content.forcontent.forcmds
+#define c_whltype  c_content.whilecontent.whltype
+#define c_whlcond  c_content.whilecontent.whlcond
+#define c_whlcmds  c_content.whilecontent.whlcmds
+#define c_casword  c_content.casecontent.casword
+#define c_casitems c_content.casecontent.casitems
+/* c_words, c_forwords は wordunit_T へのポインタの NULL 終端配列へのポインタ */
+
+/* case コマンドの一つの項目を表す */
+typedef struct caseitem_T {
+	struct caseitem_T *next;
+	void             **ci_patterns;  /* 一致するか調べるパタンの配列 */
+	struct and_or_T   *ci_commands;  /* 一致したときに実行するコマンド */
+} caseitem_T;
+/* ci_patterns は wordunit_T へのポインタの NULL 終端配列へのポインタ */
 
 /* wordunit_T の種類を表す */
 typedef enum {
 	WT_STRING,  /* 文字列部分 (引用符を含む) */
 	WT_PARAM,   /* パラメータ展開 */
 	WT_CMDSUB,  /* コマンド置換 */
-	//WT_ARITH,   /* 数式展開 */
+	WT_ARITH,   /* 数式展開 */
 } wordunittype_T;
 
 /* 単語展開の対象となる単語の構成要素を表す */
@@ -88,7 +133,7 @@ typedef struct wordunit_T {
 		wchar_t           *string;  /* 文字列部分 */
 		struct paramexp_T *param;   /* パラメータ展開の内容 */
 		wchar_t           *cmdsub;  /* コマンド置換で実行するコマンド */
-		//struct arithexp_T *arith;   /* 数式展開の内容 */
+		struct wordunit_T *arith;   /* 数式展開の内容 */
 	} wu_value;
 } wordunit_T;
 #define wu_string wu_value.string
@@ -194,9 +239,9 @@ struct xwcsbuf_T;
 
 /* 入力を読み取ってバッファに追加する関数。
  * 入力は基本的に行単位だが、一行が長い場合などは行の途中までしか読み込まない
- * 場合もある。しかし、入力元がファイルやパイプの場合は一度に (改行を越えて)
- * 複数行を読み込むことはない。
+ * 場合もある。しかし、一度に (改行を越えて) 複数行を読み込むことはない。
  * inputinfo は、read_and_parse 関数の第 2 引数で与えられたポインタである。
+ * エラーのときは、エラーメッセージを出して EOF を返す。
  * 戻り値: 0:   何らかの入力があった。
  *         1:   対話モードで SIGINT を受けた。(buf の内容は不定)
  *         EOF: EOF に達したか、エラーがあった。(buf の内容は不定) */
@@ -204,7 +249,7 @@ typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 typedef struct parseinfo_T {
 	const char *filename; /* エラー表示で使うファイル名。NULL でも良い。 */
-	unsigned long lineno; /* 行番号。最初は 0 にしておく。 */
+	unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
 	inputfunc_T *input;   /* 入力関数 */
 	void *inputinfo;      /* 入力関数に渡す情報 */
 } parseinfo_T;

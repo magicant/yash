@@ -34,18 +34,45 @@
  * この関数は、inputinfo として input_mbs_info 構造体へのポインタを受け取る。
  * そしてそれに入っているマルチバイト文字列をワイド文字列に変換してバッファ buf
  * に入れる。input_mbs_info 構造体の state メンバは予め適当なシフト状態を表して
- * いる必要がある。解析が進むにつれ src および state メンバは変わる。
+ * いる必要がある。解析が進むにつれ src, srclen, state メンバは変わる。
  * 文字列の途中まで読み取ったとき、src/state メンバは次に読み取る最初のバイトと
  * そのシフト状態を示す。最後まで読み取ると、src は NULL になり state は初期状態
  * を示す。 */
 int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 {
 	struct input_mbs_info *info = inputinfo;
+	size_t initbuflen = buf->length;
 	size_t count;
 
 	if (!info->src)
 		return EOF;
 
+	while (info->srclen > 0) {
+		wb_ensuremax(buf, buf->length + 1);
+		count = mbrtowc(buf->contents + buf->length,
+				info->src, info->srclen, &info->state);
+		switch (count) {
+			case 0:  // L'\0' を読み取った
+				info->src = NULL;
+				info->srclen = 0;
+				return (buf->length == initbuflen) ? EOF : 0;
+			default:  // L'\0' 以外の文字を読み取った
+				info->src += count;
+				info->srclen -= count;
+				if (buf->contents[buf->length++] == '\n')
+					return 0;
+				break;
+			case (size_t) -2:  // バイト列が途中で終わっている
+			case (size_t) -1:  // 不正なバイト列である
+				goto err;
+		}
+	}
+err:
+	xerror(0, errno,
+			gt("cannot convert multibyte character to wide character"));
+	return EOF;
+
+	/*
 	wb_ensuremax(buf, buf->length + 120);
 	count = mbsrtowcs(buf->contents + buf->length, &info->src,
 			buf->maxlength - buf->length + 1, &info->state);
@@ -56,4 +83,5 @@ int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 	}
 	buf->length += count;
 	return 0;
+	*/
 }

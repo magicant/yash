@@ -108,6 +108,19 @@ char *matchstrprefix(const char *s, const char *prefix)
 }
 */
 
+/* 文字列 s が prefix で始まるなら、s 内の prefix を飛ばした最初の文字への
+ * ポインタを返し、さもなくば NULL を返す。 */
+wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
+{
+	while (*prefix) {
+		if (*prefix != *s)
+			return NULL;
+		prefix++;
+		s++;
+	}
+	return (wchar_t *) s;
+}
+
 
 /********** Error utilities **********/
 

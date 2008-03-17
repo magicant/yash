@@ -204,10 +204,11 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
 	bool executed = false;
 	struct input_mbs_info iinfo = {
 		.src = code,
+		.srclen = strlen(code) + 1,
 	};
 	struct parseinfo_T pinfo = {
 		.filename = name,
-		.lineno = 0,
+		.lineno = 1,
 		.input = input_mbs,
 		.inputinfo = &iinfo,
 	};

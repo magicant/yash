@@ -50,6 +50,8 @@ static inline wchar_t *xwcsdup(const wchar_t *s)
 	__attribute__((malloc,warn_unused_result,nonnull));
 extern char *matchstrprefix(const char *s, const char *prefix)
 	__attribute__((nonnull));
+extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
+	__attribute__((nonnull));
 
 /* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
  * つまり、長さが maxlen 以上なら maxlen を返す。 */

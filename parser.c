@@ -28,6 +28,7 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#include "yash.h"
 #include "util.h"
 #include "strbuf.h"
 #include "parser.h"
@@ -38,6 +39,42 @@
 
 static void serror(const char *restrict format, ...)
 	__attribute__((nonnull(1),format(printf,1,2)));
+static inline int read_more_input(void);
+static inline int ensure_buffer(size_t n);
+static void skip_blanks_and_comment(void);
+static void skip_to_next_token(void);
+static void next_line(void);
+static bool is_token_delimiter_char(wchar_t c);
+static bool is_command_delimiter_char(wchar_t c);
+static bool is_token_at(const wchar_t *token, size_t index)
+	__attribute__((nonnull));
+static const wchar_t *check_opening_token_at(size_t index);
+static const wchar_t *check_closing_token_at(size_t index);
+static and_or_T *parse_command_list(void)
+	__attribute__((malloc));
+static and_or_T *parse_and_or_list(void)
+	__attribute__((malloc));
+static pipeline_T *parse_pipelines_in_and_or(void)
+	__attribute__((malloc));
+static pipeline_T *parse_pipeline(void)
+	__attribute__((malloc));
+static command_T *parse_commands_in_pipeline(void)
+	__attribute__((malloc));
+static command_T *parse_command(void)
+	__attribute__((malloc));
+static redir_T **parse_assignments_and_redirects(command_T *c)
+	__attribute__((malloc,nonnull));
+static void **parse_words_and_redirects(redir_T **redirlastp)
+	__attribute__((malloc,nonnull));
+static assign_T *tryparse_assignment(void)
+	__attribute__((malloc));
+static redir_T *tryparse_redirect(void)
+	__attribute__((malloc));
+static wordunit_T *parse_word(void)
+	__attribute__((malloc));
+static const char *get_errmsg_unexpected_token(const wchar_t *token)
+	__attribute__((nonnull));
+
 
 /* 解析中のソースのデータ */
 static parseinfo_T *cinfo;
@@ -47,14 +84,26 @@ static bool cerror;
 static xwcsbuf_T cbuf;
 /* 現在解析している箇所の cbuf におけるインデックス */
 static size_t cindex;
+/* 最後の read_more_input の結果 */
+static int lastinputresult;
+
+
+/* 以下の解析関数は、エラーが発生しても NULL を返すとは限らない。
+ * エラーが発生したかどうかは cerror によって判断する。cerror は serror を
+ * 呼び出すと true になる。 */
+/* parse_ で始まる各関数は、自分が解析すべき部分の後の次のトークンの最初の文字
+ * まで cindex を進めてから返る。(入力が EOF でない限り) このとき
+ * cbuf.contents[cindex] は非 null である。 */
+
 
 /* 少なくとも一行の入力を読み取り、解析する。
  * info: 解析情報へのポインタ。全ての値を初期化しておくこと。
  * result: 成功したら *result に解析結果が入る。
  *         コマンドがなければ *result は NULL になる。
  * 戻り値: 成功したら *result に結果を入れて 0 を返す。
- *         構文エラーか入力エラーならエラーメッセージを出して 1 を返す。
+ *         構文エラーならエラーメッセージを出して 1 を返す。
  *         入力が最後に達したら EOF を返す。
+ *         入力エラーならエラーメッセージを出して EOF を返す。
  * この関数は再入不可能である。 */
 int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 {
@@ -62,13 +111,26 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 	cerror = false;
 	cindex = 0;
 	wb_init(&cbuf);
+	lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+	if (lastinputresult == EOF) {
+		return EOF;
+	} else if (lastinputresult == 1) {
+		*result = NULL;
+		return 0;
+	}
 
-	//TODO parser.c: read_and_parse
-	serror("PARSER: NOT IMPLEMENTED");
-	(void) result;
+	and_or_T *r = parse_command_list();
 
 	wb_destroy(&cbuf);
-	return 1;
+
+	if (!cerror) {
+		assert(cindex == cbuf.length);
+		*result = r;
+		return 0;
+	} else {
+		andorsfree(r);
+		return 1;
+	}
 }
 
 /* 構文エラーメッセージを stderr に出力する。
@@ -89,11 +151,408 @@ static void serror(const char *restrict format, ...)
 	cerror = true;
 }
 
+/* 更なる入力を読み込む
+ * 戻り値: 0:   何らかの入力があった。
+ *         1:   対話モードで SIGINT を受けた。(buf の内容は不定)
+ *         EOF: EOF に達したか、エラーがあった。(buf の内容は不定) */
+static inline int read_more_input(void)
+{
+	if (lastinputresult == 0)
+		lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+	return lastinputresult;
+}
+
+/* cbuf.length >= cindex + n となるように、必要に応じて read_more_input する。
+ * ただし、改行を越えては読み込まない。
+ * 戻り値: lastinputresult */
+static inline int ensure_buffer(size_t n)
+{
+	int lir = lastinputresult;
+	while (lir == 0 && cbuf.length < cindex + n) {
+		if (cbuf.length > 0 && cbuf.contents[cbuf.length - 1] == L'\n')
+			break;
+		lir = read_more_input();
+	}
+	return lir;
+}
+
+/* cindex を増やして blank 文字およびコメントを飛ばす。必要に応じて
+ * read_more_input する。cindex は次の非 blank 文字を指す。コメントを飛ばした
+ * 場合はコメントの直後の文字 (普通は改行文字) を指す。
+ * 戻り値: lastinputresult */
+static void skip_blanks_and_comment(void)
+{
+skipblanks:
+	while (iswblank(cbuf.contents[cindex]))
+		cindex++;
+	if (cbuf.contents[cindex] == L'\0' && read_more_input() == 0)
+		goto skipblanks;
+
+skiptonewline:
+	if (cbuf.contents[cindex] == L'#') {
+		do {
+			cindex++;
+		} while (cbuf.contents[cindex] != L'\n'
+				&& cbuf.contents[cindex] != L'\0');
+	}
+	if (cbuf.contents[cindex] == L'\0' && read_more_input() == 0)
+		goto skiptonewline;
+}
+
+/* 次のトークンに達するまで cindex を増やして blank 文字・改行文字・コメントを
+ * 飛ばす。必要に応じて read_more_input する。
+ * 戻り値: lastinputresult */
+static void skip_to_next_token(void)
+{
+	skip_blanks_and_comment();
+	while (lastinputresult == 0 && cbuf.contents[cindex] == L'\n') {
+		next_line();
+		skip_blanks_and_comment();
+	}
+}
+
+/* 現在位置が改行文字のとき、次の行に進む。
+ * ヒアドキュメントの読み込みを控えているならそれも行う。 */
+static void next_line(void)
+{
+	assert(cbuf.contents[cindex] == L'\n');
+	cindex++;
+	cinfo->lineno++;
+	assert(cbuf.contents[cindex] == L'\0');
+
+	// TODO parser: to_next_line: ヒアドキュメントの読み込み
+}
+
+/* 指定した文字がトークン区切り文字かどうかを調べる */
+static bool is_token_delimiter_char(wchar_t c)
+{
+	return iswblank(c) || c == L'\0' || c == L'\n'
+		|| c == L';' || c == L'&' || c == L'|'
+		|| c == L'<' || c == L'>' || c == L'(' || c == L')';
+}
+
+/* 指定した文字が単純コマンドを区切る文字かどうかを調べる */
+static bool is_command_delimiter_char(wchar_t c)
+{
+	return c == L'\0' || c == L'\n'
+		|| c == L';' || c == L'&' || c == L'|' || c == L'(' || c == L')';
+}
+
+/* cbuf の指定したインデックスにトークン token があるか調べる。
+ * token: 調べる非演算子トークン
+ * index: cbuf へのインデックス (cbuf.length 以下) */
+/* token には、他の演算子トークンの真の部分文字列であるような文字列を
+ * 指定してはならない。 */
+static bool is_token_at(const wchar_t *token, size_t index)
+{
+	wchar_t *c = matchwcsprefix(cbuf.contents + index, token);
+	return c && is_token_delimiter_char(*c);
+}
+
+/* cbuf の指定したインデックスに ( や { や if などの「開く」トークンがあるか
+ * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。 */
+static const wchar_t *check_opening_token_at(size_t index)
+{
+	ensure_buffer(6);
+	if (cbuf.contents[index] == L'(') return L"(";
+	if (is_token_at(L"{",     index)) return L"{";
+	if (is_token_at(L"if",    index)) return L"if";
+	if (is_token_at(L"for",   index)) return L"for";
+	if (is_token_at(L"while", index)) return L"while";
+	if (is_token_at(L"until", index)) return L"until";
+	if (is_token_at(L"case",  index)) return L"case";
+	return NULL;
+}
+
+/* cbuf の指定したインデックスに ) や } や fi などの「閉じる」トークンがあるか
+ * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。 */
+static const wchar_t *check_closing_token_at(size_t index)
+{
+	ensure_buffer(5);
+	if (cbuf.contents[index] == L')') return L")";
+	if (is_token_at(L"}",    index))  return L"}";
+	if (is_token_at(L";;",   index))  return L";;";
+	if (is_token_at(L"fi",   index))  return L"fi";
+	if (is_token_at(L"done", index))  return L"done";
+	if (is_token_at(L"esac", index))  return L"esac";
+	return NULL;
+}
+
+/* 区切りの良いところまで解析を進める。すなわち、少くとも一行の入力を読み取り、
+ * 複合コマンドなどの内部でない改行の直後まで解析する。 */
+static and_or_T *parse_command_list(void)
+{
+	and_or_T *first = NULL, **lastp = &first;
+
+	while (!cerror) {
+		skip_blanks_and_comment();
+		if (cbuf.contents[cindex] == L'\0') {
+			break;
+		} else if (cbuf.contents[cindex] == L'\n') {
+			next_line();
+			break;
+		}
+
+		and_or_T *ao = parse_and_or_list();
+		if (ao) {
+			*lastp = ao;
+			lastp = &ao->next;
+		}
+	}
+	return first;
+}
+
+/* 一つの and/or リストを (末尾の '&' または ';' も含めて) 解析する。 */
+static and_or_T *parse_and_or_list(void)
+{
+	and_or_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->ao_pipelines = parse_pipelines_in_and_or();
+	result->ao_async = false;
+
+	switch (cbuf.contents[cindex]) {
+		case L'&':
+			result->ao_async = true;
+			/* falls thru! */
+		case L';':
+			cindex++;
+			skip_blanks_and_comment();
+			break;
+	}
+	return result;
+}
+
+/* and/or リスト内の全てのパイプラインを解析する。 */
+static pipeline_T *parse_pipelines_in_and_or(void)
+{
+	pipeline_T *first = NULL, **lastp = &first;
+
+	for (;;) {
+		pipeline_T *p = parse_pipeline();
+		if (p) {
+			*lastp = p;
+			lastp = &p->next;
+		}
+
+		ensure_buffer(2);
+		if (cbuf.contents[cindex] == L'&'
+				&& cbuf.contents[cindex+1] == L'&') {
+			p->pl_next_cond = true;
+		} else if (cbuf.contents[cindex] == L'|'
+				&& cbuf.contents[cindex+1] == L'|') {
+			p->pl_next_cond = false;
+		} else {
+			break;
+		}
+		cindex += 2;
+		skip_to_next_token();
+	}
+	return first;
+}
+
+/* 一つのパイプライン ('|' で繋がった一つ以上のコマンド) を解析する。 */
+static pipeline_T *parse_pipeline(void)
+{
+	pipeline_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->pl_next_cond = false;
+
+	ensure_buffer(2);
+	if (is_token_at(L"!", cindex)) {
+		result->pl_neg = true;
+		cindex++;
+		skip_blanks_and_comment();
+	} else {
+		result->pl_neg = false;
+	}
+
+	ensure_buffer(2);
+	if (!posixly_correct && cbuf.contents[cindex    ] == L'|'
+		                 && cbuf.contents[cindex + 1] != L'|') {
+		result->pl_loop = true;
+		cindex++;
+		skip_blanks_and_comment();
+	} else {
+		result->pl_loop = false;
+	}
+
+	result->pl_commands = parse_commands_in_pipeline();
+	return result;
+}
+
+/* パイプラインの本体 (間を '|' で繋いた一つ以上のコマンド) を解析する。 */
+static command_T *parse_commands_in_pipeline(void)
+{
+	command_T *first = NULL, **lastp = &first;
+
+	for (;;) {
+		command_T *c = parse_command();
+		if (c) {
+			*lastp = c;
+			lastp = &c->next;
+		}
+
+		ensure_buffer(2);
+		if (cbuf.contents[cindex] == L'|' && cbuf.contents[cindex+1] != L'|') {
+			cindex++;
+			skip_to_next_token();
+		} else {
+			break;
+		}
+	}
+	return first;
+}
+
+/* 一つのコマンドを解析する。 */
+static command_T *parse_command(void)
+{
+	/* Note: check_closing_token_at は ensure_buffer(5) を含む */
+	const wchar_t *t = check_closing_token_at(cindex);
+	if (t) {
+		serror(get_errmsg_unexpected_token(t));
+		return NULL;
+	} else if (is_command_delimiter_char(cbuf.contents[cindex])) {
+		if (cbuf.contents[cindex] == L'\0')
+			serror(Ngt("command missing at end of input"));
+		else
+			serror(Ngt("command missing before `%lc'"),
+					(wint_t) cbuf.contents[cindex]);
+		return NULL;
+	}
+
+	command_T *result = xmalloc(sizeof *result);
+	redir_T **redirlastp = &result->c_redirs;
+
+	result->c_lineno = cinfo->lineno;
+
+	t = check_opening_token_at(cindex);
+	if (t) {
+		// TODO parser.c: parse_command: ( や { や if
+		serror("%ls: NOT IMPLEMENTED", t);
+		free(result);
+		return NULL;
+	}
+
+	/* 普通の単純なコマンドを解析 */
+	redirlastp = parse_assignments_and_redirects(result);
+	result->c_words = parse_words_and_redirects(redirlastp);
+
+	return result; // TODO parse_command
+}
+
+/* 変数代入とリダイレクトを解析する。
+ * 結果を c->c_assigns と c->c_redirs に代入し、新しい redirlastp を返す。 */
+static redir_T **parse_assignments_and_redirects(command_T *c)
+{
+	assign_T **assgnlastp = &c->c_assigns;
+	redir_T **redirlastp = &c->c_redirs;
+	assign_T *assgn;
+	redir_T *redir;
+
+	c->c_assigns = NULL;
+	c->c_redirs = NULL;
+	ensure_buffer(1);
+	while (!is_command_delimiter_char(cbuf.contents[cindex])) {
+		if ((redir = tryparse_redirect())) {
+			*redirlastp = redir;
+			redirlastp = &redir->next;
+		} else if ((assgn = tryparse_assignment())) {
+			*assgnlastp = assgn;
+			assgnlastp = &assgn->next;
+		} else {
+			break;
+		}
+		ensure_buffer(1);
+	}
+	return redirlastp;
+}
+
+/* ワードとリダイレクトを解析する。
+ * リダイレクトの解析結果は *redirlastp に入る。
+ * ワードの解析結果は wordunit_T * を void * に変換したものの配列への
+ * ポインタとして返す。 */
+static void **parse_words_and_redirects(redir_T **redirlastp)
+{
+	plist_T wordlist;
+	redir_T *redir;
+	wordunit_T *word;
+
+	pl_init(&wordlist);
+	ensure_buffer(1);
+	while (!is_command_delimiter_char(cbuf.contents[cindex])) {
+		if ((redir = tryparse_redirect())) {
+			*redirlastp = redir;
+			redirlastp = &redir->next;
+		} else if ((word = parse_word())) {
+			pl_add(&wordlist, word);
+		} else {
+			break;
+		}
+		ensure_buffer(1);
+	}
+	return pl_toary(&wordlist);
+}
+
+/* 現在位置に変数代入があれば、それを解析して結果を返す。
+ * なければ、何もせず NULL を返す。 */
+static assign_T *tryparse_assignment(void)
+{
+	// TODO parser.c: tryparse_assignment
+	return NULL;
+}
+
+/* 現在位置にリダイレクトがあれば、それを解析して結果を返す。
+ * なければ、何もせず NULL を返す。 */
+static redir_T *tryparse_redirect(void)
+{
+	// TODO parser.c: tryparse_redirect
+	return NULL;
+}
+
+/* 現在位置のエイリアスを展開し、ワードを解析する。 */
+static wordunit_T *parse_word(void)
+{
+	size_t startindex = cindex;
+
+	ensure_buffer(1);
+	while (!is_token_delimiter_char(cbuf.contents[cindex])) {
+		cindex++;
+		ensure_buffer(1);
+	}
+
+	wordunit_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->wu_type = WT_STRING;
+	result->wu_string = xwcsndup(
+			cbuf.contents + startindex, cindex - startindex);
+	skip_blanks_and_comment();
+	return result;
+	// TODO parser.c: parse_word: 暫定実装: 正確なワードの解析
+	// TODO parser.c: parse_word: エイリアス
+}
+
+
+/***** エラーメッセージを返す関数 *****/
+
+static const char *get_errmsg_unexpected_token(const wchar_t *token)
+{
+	switch (token[0]) {
+		case L')': return Ngt("`)' without matching `('");
+		case L'}': return Ngt("`}' without matching `{'");
+		case L';': return Ngt("`;;' used outside `case'");
+		case L'f': return Ngt("`fi' without matching `if'");
+		case L'd': return Ngt("`done' without matching `do'");
+		case L'e': return Ngt("`esac' without matching `case'");
+		default:   assert(false);
+	}
+}
+
 
 /********** 構文木を文字列に戻すルーチン **********/
 
 static void print_and_or_lists(
-		xwcsbuf_T *restrict buf, const and_or_T *restrict andors)
+		xwcsbuf_T *restrict buf, const and_or_T *restrict andors,
+		bool omit_last_semicolon)
 	__attribute__((nonnull(1)));
 static void print_pipelines(
 		xwcsbuf_T *restrict buf, const pipeline_T *restrict pipelines)
@@ -101,12 +560,15 @@ static void print_pipelines(
 static void print_commands(
 		xwcsbuf_T *restrict buf, const command_T *restrict commands)
 	__attribute__((nonnull(1)));
-static void print_assigns(
-		xwcsbuf_T *restrict buf, const assign_T *restrict assigns)
-	__attribute__((nonnull(1)));
 static void print_command_content(
 		xwcsbuf_T *restrict buf, const command_T *restrict command)
 	__attribute__((nonnull));
+static void print_caseitems(
+		xwcsbuf_T *restrict buf, const caseitem_T *restrict caseitems)
+	__attribute__((nonnull(1)));
+static void print_assigns(
+		xwcsbuf_T *restrict buf, const assign_T *restrict assigns)
+	__attribute__((nonnull(1)));
 static void print_redirs(
 		xwcsbuf_T *restrict buf, const redir_T *restrict redirs)
 	__attribute__((nonnull(1)));
@@ -118,6 +580,8 @@ static void print_paramexp(
 	__attribute__((nonnull));
 static void trim_end_of_buffer(xwcsbuf_T *buf)
 	__attribute__((nonnull));
+static bool is_simgle_if(const and_or_T *command)
+	__attribute__((nonnull));
 
 /* 構文木をワイド文字列に変換して返す。
  * 戻り値は free 可能なワイド文字列へのポインタ。 */
@@ -126,20 +590,20 @@ wchar_t *commands_to_wcstring(const and_or_T *commands)
 	xwcsbuf_T buf;
 
 	wb_init(&buf);
-	print_and_or_lists(&buf, commands);
+	print_and_or_lists(&buf, commands, true);
 	trim_end_of_buffer(&buf);
 	return wb_towcs(&buf);
 }
 
 static void print_and_or_lists(
-		xwcsbuf_T *restrict buf, const and_or_T *restrict c)
+		xwcsbuf_T *restrict buf, const and_or_T *restrict c, bool omitsemicolon)
 {
 	while (c) {
 		print_pipelines(buf, c->ao_pipelines);
 		assert(iswblank(buf->contents[buf->length - 1]));
 		if (c->ao_async)
 			wb_insert(buf, buf->length - 1, L"&");
-		else if (c->next)
+		else if (!omitsemicolon || c->next)
 			wb_insert(buf, buf->length - 1, L";");
 		c = c->next;
 	}
@@ -164,12 +628,99 @@ static void print_commands(
 		xwcsbuf_T *restrict buf, const command_T *restrict c)
 {
 	while (c) {
-		print_assigns(buf, c->c_assigns);
 		print_command_content(buf, c);
 		print_redirs(buf, c->c_redirs);
 		if (c->next)
 			wb_cat(buf, L"| ");
 		c = c->next;
+	}
+}
+
+static void print_command_content(
+		xwcsbuf_T *restrict buf, const command_T *restrict c)
+{
+	switch (c->c_type) {
+	case CT_SIMPLE:
+		print_assigns(buf, c->c_assigns);
+		for (void **w = c->c_words; *w; w++) {
+			print_word(buf, *w);
+			wb_wccat(buf, L' ');
+		}
+		break;
+	case CT_GROUP:
+		wb_cat(buf, L"{ ");
+		print_and_or_lists(buf, c->c_subcmds, false);
+		wb_cat(buf, L"} ");
+		break;
+	case CT_SUBSHELL:
+		wb_cat(buf, L"( ");
+		print_and_or_lists(buf, c->c_subcmds, true);
+		wb_cat(buf, L") ");
+		break;
+	case CT_IF:
+		wb_cat(buf, L"if ");
+		print_and_or_lists(buf, c->c_ifcond, true);
+		wb_cat(buf, L"then ");
+		print_and_or_lists(buf, c->c_ifthen, true);
+		if (c->c_ifelse) {
+			if (is_simgle_if(c->c_ifelse)) {
+				wb_cat(buf, L"el");
+				print_and_or_lists(buf, c->c_ifelse, true);
+				break;
+			} else {
+				wb_cat(buf, L"else ");
+				print_and_or_lists(buf, c->c_ifelse, true);
+			}
+		}
+		wb_cat(buf, L"fi ");
+		break;
+	case CT_FOR:
+		wb_cat(buf, L"for ");
+		wb_cat(buf, c->c_forname);
+		wb_cat(buf, L" in");
+		for (void **w = c->c_forwords; *w; w++) {
+			wb_wccat(buf, L' ');
+			print_word(buf, *w);
+		}
+		wb_cat(buf, L"; do ");
+		print_and_or_lists(buf, c->c_forcmds, true);
+		wb_cat(buf, L"done ");
+		break;
+	case CT_WHILE:
+		wb_cat(buf, c->c_whltype ? L"while " : L"until ");
+		print_and_or_lists(buf, c->c_whlcond, true);
+		wb_cat(buf, L"do ");
+		print_and_or_lists(buf, c->c_whlcmds, true);
+		wb_cat(buf, L"done ");
+		break;
+	case CT_CASE:
+		wb_cat(buf, L"case ");
+		print_word(buf, c->c_casword);
+		wb_cat(buf, L"in ");
+		print_caseitems(buf, c->c_casitems);
+		wb_cat(buf, L"esac ");
+		break;
+	}
+}
+
+static void print_caseitems(
+		xwcsbuf_T *restrict buf, const caseitem_T *restrict i)
+{
+	while (i) {
+		bool first = true;
+
+		wb_wccat(buf, L'(');
+		for (void **w = i->ci_patterns; *w; w++) {
+			if (first)
+				wb_wccat(buf, L'|');
+			print_word(buf, *w);
+			first = false;
+		}
+		wb_cat(buf, L") ");
+		print_and_or_lists(buf, i->ci_commands, false);
+		wb_cat(buf, L";; ");
+
+		i = i->next;
 	}
 }
 
@@ -182,29 +733,6 @@ static void print_assigns(
 		print_word(buf, a->value);
 		wb_wccat(buf, L' ');
 		a = a->next;
-	}
-}
-
-static void print_command_content(
-		xwcsbuf_T *restrict buf, const command_T *restrict c)
-{
-	switch (c->c_type) {
-	case CT_SIMPLE:
-		for (void **w = c->c_words; *w; w++) {
-			print_word(buf, *w);
-			wb_wccat(buf, L' ');
-		}
-		break;
-	case CT_GROUP:
-		wb_cat(buf, L"{ ");
-		print_and_or_lists(buf, c->c_subcmds);
-		wb_cat(buf, L"} ");
-		break;
-	case CT_SUBSHELL:
-		wb_cat(buf, L"( ");
-		print_and_or_lists(buf, c->c_subcmds);
-		wb_cat(buf, L") ");
-		break;
 	}
 }
 
@@ -252,6 +780,12 @@ static void print_word(
 			wb_cat(buf, L"$(");
 			wb_cat(buf, w->wu_cmdsub);
 			wb_cat(buf, L")");
+			break;
+		case WT_ARITH:
+			wb_cat(buf, L"$((");
+			print_word(buf, w->wu_arith);
+			wb_cat(buf, L"))");
+			break;
 		}
 		w = w->next;
 	}
@@ -315,7 +849,20 @@ static void trim_end_of_buffer(xwcsbuf_T *buf)
 {
 	size_t i = buf->length;
 	while (i > 0 && iswblank(buf->contents[--i]));
-	wb_remove(buf, i, SIZE_MAX);
+	wb_remove(buf, i + 1, SIZE_MAX);
+}
+
+static bool is_simgle_if(const and_or_T *a)
+{
+	if (a->next || a->ao_async)
+		return false;
+
+	const pipeline_T *p = a->ao_pipelines;
+	if (p->next || p->pl_neg || p->pl_loop)
+		return false;
+
+	const command_T *c = p->pl_commands;
+	return c->c_type == CT_IF;
 }
 
 
@@ -323,6 +870,7 @@ static void trim_end_of_buffer(xwcsbuf_T *buf)
 
 static void pipesfree(pipeline_T *p);
 static void comsfree(command_T *c);
+static void caseitemsfree(caseitem_T *i);
 static void wordfree(wordunit_T *w);
 static void wordfree_vp(void *w);
 static void paramfree(paramexp_T *p);
@@ -354,21 +902,51 @@ static void pipesfree(pipeline_T *p)
 static void comsfree(command_T *c)
 {
 	while (c) {
-		assignsfree(c->c_assigns);
 		redirsfree(c->c_redirs);
 		switch (c->c_type) {
 			case CT_SIMPLE:
+				assignsfree(c->c_assigns);
 				recfree(c->c_words, wordfree_vp);
 				break;
 			case CT_GROUP:
 			case CT_SUBSHELL:
 				andorsfree(c->c_subcmds);
 				break;
+			case CT_IF:
+				andorsfree(c->c_ifcond);
+				andorsfree(c->c_ifthen);
+				andorsfree(c->c_ifelse);
+				break;
+			case CT_FOR:
+				free(c->c_forname);
+				recfree(c->c_forwords, wordfree_vp);
+				andorsfree(c->c_forcmds);
+				break;
+			case CT_WHILE:
+				andorsfree(c->c_whlcond);
+				andorsfree(c->c_whlcmds);
+				break;
+			case CT_CASE:
+				wordfree(c->c_casword);
+				caseitemsfree(c->c_casitems);
+				break;
 		}
 
 		command_T *next = c->next;
 		free(c);
 		c = next;
+	}
+}
+
+static void caseitemsfree(caseitem_T *i)
+{
+	while (i) {
+		recfree(i->ci_patterns, wordfree_vp);
+		andorsfree(i->ci_commands);
+
+		caseitem_T *next = i->next;
+		free(i);
+		i = next;
 	}
 }
 
@@ -384,6 +962,9 @@ static void wordfree(wordunit_T *w)
 				break;
 			case WT_CMDSUB:
 				free(w->wu_cmdsub);
+				break;
+			case WT_ARITH:
+				wordfree(w->wu_arith);
 				break;
 		}
 
