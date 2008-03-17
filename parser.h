@@ -250,6 +250,7 @@ struct xwcsbuf_T;
 typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 typedef struct parseinfo_T {
+	bool print_errmsg;    /* エラーメッセージを出力するかどうか */
 	const char *filename; /* エラー表示で使うファイル名。NULL でも良い。 */
 	unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
 	inputfunc_T *input;   /* 入力関数 */

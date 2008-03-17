@@ -207,6 +207,7 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
 		.srclen = strlen(code) + 1,
 	};
 	struct parseinfo_T pinfo = {
+		.print_errmsg = true,
 		.filename = name,
 		.lineno = 1,
 		.input = input_mbs,

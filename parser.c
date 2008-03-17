@@ -146,15 +146,18 @@ static void serror(const char *restrict format, ...)
 {
 	va_list ap;
 
-	fflush(stdout);
-	fprintf(stderr, gt("%s:%lu: syntax error: "),
-			cinfo->filename ? cinfo->filename : yash_program_invocation_name,
-			cinfo->lineno);
-	va_start(ap, format);
-	vfprintf(stderr, gt(format), ap);
-	va_end(ap);
-	fputc('\n', stderr);
-	fflush(stderr);
+	if (cinfo->print_errmsg) {
+		fflush(stdout);
+		fprintf(stderr, gt("%s:%lu: syntax error: "),
+				cinfo->filename ? cinfo->filename
+				                : yash_program_invocation_name,
+				cinfo->lineno);
+		va_start(ap, format);
+		vfprintf(stderr, gt(format), ap);
+		va_end(ap);
+		fputc('\n', stderr);
+		fflush(stderr);
+	}
 	cerror = true;
 }
 
@@ -447,6 +450,10 @@ static command_T *parse_command(void)
 	result->c_type = CT_SIMPLE;
 	redirlastp = parse_assignments_and_redirects(result);
 	result->c_words = parse_words_and_redirects(redirlastp);
+
+	ensure_buffer(1);
+	if (cbuf.contents[cindex] == L'(' || cbuf.contents[cindex] == L')')
+		serror(Ngt("invalid use of `%lc'"), (wint_t) cbuf.contents[cindex]);
 	return result;
 }
 
