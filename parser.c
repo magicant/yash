@@ -18,11 +18,13 @@
 
 #include "common.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
 #if HAVE_GETTEXT
@@ -31,8 +33,8 @@
 #include "yash.h"
 #include "util.h"
 #include "strbuf.h"
-#include "parser.h"
 #include "plist.h"
+#include "parser.h"
 
 
 /********** 構文解析ルーチン **********/
@@ -70,8 +72,9 @@ static assign_T *tryparse_assignment(void)
 	__attribute__((malloc));
 static redir_T *tryparse_redirect(void)
 	__attribute__((malloc));
-static wordunit_T *parse_word(void)
+static wordunit_T *parse_word(bool global_alias_only)
 	__attribute__((malloc));
+static void read_heredoc_contents(redir_T *redir);
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
 	__attribute__((nonnull));
 
@@ -86,6 +89,8 @@ static xwcsbuf_T cbuf;
 static size_t cindex;
 /* 最後の read_more_input の結果 */
 static int lastinputresult;
+/* 読み込みを控えているヒアドキュメントのリスト */
+static plist_T pending_heredocs;
 
 
 /* 以下の解析関数は、エラーが発生しても NULL を返すとは限らない。
@@ -111,6 +116,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 	cerror = false;
 	cindex = 0;
 	wb_init(&cbuf);
+	pl_init(&pending_heredocs);
 	lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
 	if (lastinputresult == EOF) {
 		return EOF;
@@ -122,6 +128,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 	and_or_T *r = parse_command_list();
 
 	wb_destroy(&cbuf);
+	pl_destroy(&pending_heredocs);
 
 	if (!cerror) {
 		assert(cindex == cbuf.length);
@@ -178,8 +185,7 @@ static inline int ensure_buffer(size_t n)
 
 /* cindex を増やして blank 文字およびコメントを飛ばす。必要に応じて
  * read_more_input する。cindex は次の非 blank 文字を指す。コメントを飛ばした
- * 場合はコメントの直後の文字 (普通は改行文字) を指す。
- * 戻り値: lastinputresult */
+ * 場合はコメントの直後の文字 (普通は改行文字) を指す。 */
 static void skip_blanks_and_comment(void)
 {
 skipblanks:
@@ -200,8 +206,7 @@ skiptonewline:
 }
 
 /* 次のトークンに達するまで cindex を増やして blank 文字・改行文字・コメントを
- * 飛ばす。必要に応じて read_more_input する。
- * 戻り値: lastinputresult */
+ * 飛ばす。必要に応じて read_more_input する。 */
 static void skip_to_next_token(void)
 {
 	skip_blanks_and_comment();
@@ -220,7 +225,9 @@ static void next_line(void)
 	cinfo->lineno++;
 	assert(cbuf.contents[cindex] == L'\0');
 
-	// TODO parser: to_next_line: ヒアドキュメントの読み込み
+	for (size_t i = 0; i < pending_heredocs.length; i++)
+		read_heredoc_contents(pending_heredocs.contents[i]);
+	pl_clear(&pending_heredocs);
 }
 
 /* 指定した文字がトークン区切り文字かどうかを調べる */
@@ -476,6 +483,7 @@ static void **parse_words_and_redirects(redir_T **redirlastp)
 	plist_T wordlist;
 	redir_T *redir;
 	wordunit_T *word;
+	bool first = true;
 
 	pl_init(&wordlist);
 	ensure_buffer(1);
@@ -483,8 +491,9 @@ static void **parse_words_and_redirects(redir_T **redirlastp)
 		if ((redir = tryparse_redirect())) {
 			*redirlastp = redir;
 			redirlastp = &redir->next;
-		} else if ((word = parse_word())) {
+		} else if ((word = parse_word(!first))) {
 			pl_add(&wordlist, word);
+			first = false;
 		} else {
 			break;
 		}
@@ -501,16 +510,98 @@ static assign_T *tryparse_assignment(void)
 	return NULL;
 }
 
+static void wordfree(wordunit_T *w);
+
 /* 現在位置にリダイレクトがあれば、それを解析して結果を返す。
  * なければ、何もせず NULL を返す。 */
 static redir_T *tryparse_redirect(void)
 {
-	// TODO parser.c: tryparse_redirect
-	return NULL;
+	int fd;
+
+	ensure_buffer(2);
+	if (iswdigit(cbuf.contents[cindex])) {
+		wchar_t *endptr;
+
+reparse:
+		errno = 0;
+		fd = wcstol(cbuf.contents + cindex, &endptr, 10);
+		if (errno)
+			fd = -1;  /* 無効な値 */
+		if (!is_token_delimiter_char(*endptr)) {
+			if (*endptr == L'\0' && read_more_input() == 0)
+				goto reparse;
+			else
+				return NULL;
+		} else if (*endptr != L'<' && *endptr != L'>') {
+			return NULL;
+		}
+		cindex = endptr - cbuf.contents;
+	} else if (cbuf.contents[cindex] == L'<') {
+		fd = STDIN_FILENO;
+	} else if (cbuf.contents[cindex] == L'>') {
+		fd = STDOUT_FILENO;
+	} else {
+		return NULL;
+	}
+
+	redir_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->rd_fd = fd;
+	ensure_buffer(3);
+	assert(cbuf.contents[cindex] == L'<' || cbuf.contents[cindex] == L'>');
+	if (cbuf.contents[cindex] == L'<') {
+		switch (cbuf.contents[cindex + 1]) {
+		case L'<':
+			if (cbuf.contents[cindex + 2] == L'-') {
+				result->rd_type = RT_HERERT; cindex += 3;
+			} else {
+				result->rd_type = RT_HERE;   cindex += 2;
+			}
+			break;
+		case L'>':  result->rd_type = RT_INOUT;  cindex += 2;  break;
+		case L'&':  result->rd_type = RT_DUPIN;  cindex += 2;  break;
+		default:    result->rd_type = RT_INPUT;  cindex += 1;  break;
+		}
+	} else {
+		switch (cbuf.contents[cindex + 1]) {
+		case L'>':  result->rd_type = RT_APPEND;  cindex += 2;  break;
+		case L'|':  result->rd_type = RT_CLOBBER; cindex += 2;  break;
+		case L'&':  result->rd_type = RT_DUPOUT;  cindex += 2;  break;
+		default:    result->rd_type = RT_OUTPUT;  cindex += 1;  break;
+		}
+	}
+	skip_blanks_and_comment();
+	if (is_command_delimiter_char(cbuf.contents[cindex])) {
+		serror(Ngt("redirect target not specified"));
+		free(result);
+		return NULL;
+	}
+	if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
+		result->rd_filename = parse_word(true);
+	} else {
+		unsigned long lineno = cinfo->lineno;
+		size_t index = cindex;
+		wordfree(parse_word(true));
+		assert(index != cindex);
+		if (lineno != cinfo->lineno)
+			serror(Ngt("end-of-heredoc indicator containing newline"));
+
+		/* 元のインデックスと現在のインデックスの間にあるワードを取り出す */
+		wchar_t *endofheredoc = xwcsndup(cbuf.contents + index, cindex - index);
+		/* ワード末尾の空白を除去 */
+		index = cindex - index;
+		while (index > 0 && iswblank(endofheredoc[--index]));
+		endofheredoc[++index] = L'\0';
+		result->rd_hereend = endofheredoc;
+		result->rd_herecontent = NULL;
+	}
+	return result;
 }
 
-/* 現在位置のエイリアスを展開し、ワードを解析する。 */
-static wordunit_T *parse_word(void)
+/* 現在位置のエイリアスを展開し、ワードを解析する。
+ * global_alias_only: true ならグローバルエイリアスしか展開しない。false なら
+ *         全てのエイリアスを展開の対象にする。 */
+static wordunit_T *parse_word(bool global_alias_only)
 {
 	size_t startindex = cindex;
 
@@ -526,9 +617,21 @@ static wordunit_T *parse_word(void)
 	result->wu_string = xwcsndup(
 			cbuf.contents + startindex, cindex - startindex);
 	skip_blanks_and_comment();
+	(void) global_alias_only;
 	return result;
 	// TODO parser.c: parse_word: 暫定実装: 正確なワードの解析
 	// TODO parser.c: parse_word: エイリアス
+}
+
+/* ヒアドキュメントの内容を読み込む。 */
+static void read_heredoc_contents(redir_T *redir)
+{
+	wordunit_T *wu = xmalloc(sizeof *wu);
+	wu->next = NULL;
+	wu->wu_type = WT_STRING;
+	wu->wu_string = xwcsdup(L"");
+	redir->rd_herecontent = wu;
+	// TODO parser.c: read_heredoc_contents
 }
 
 
@@ -760,6 +863,7 @@ static void print_redirs(
 			print_word(buf, r->rd_filename);
 		else
 			wb_cat(buf, r->rd_hereend);
+		wb_wccat(buf, L' ');
 
 		r = r->next;
 	}
