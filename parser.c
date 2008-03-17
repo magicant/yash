@@ -282,7 +282,11 @@ static const wchar_t *check_closing_token_at(size_t index)
 	if (cbuf.contents[index] == L')') return L")";
 	if (is_token_at(L"}",    index))  return L"}";
 	if (is_token_at(L";;",   index))  return L";;";
+	if (is_token_at(L"then", index))  return L"then";
+	if (is_token_at(L"else", index))  return L"else";
+	if (is_token_at(L"elif", index))  return L"elif";
 	if (is_token_at(L"fi",   index))  return L"fi";
+	if (is_token_at(L"do",   index))  return L"do";
 	if (is_token_at(L"done", index))  return L"done";
 	if (is_token_at(L"esac", index))  return L"esac";
 	return NULL;
@@ -654,8 +658,20 @@ static const char *get_errmsg_unexpected_token(const wchar_t *token)
 		case L'}': return Ngt("`}' without matching `{'");
 		case L';': return Ngt("`;;' used outside `case'");
 		case L'f': return Ngt("`fi' without matching `if'");
-		case L'd': return Ngt("`done' without matching `do'");
-		case L'e': return Ngt("`esac' without matching `case'");
+		case L'd':
+			assert(token[1] == L'o');
+			if (token[2] == L'\0')
+				return Ngt("`do' used without `for', `while', or `until'");
+			else
+				return Ngt("`done' without matching `do'");
+		case L'e':
+			if (token[1] == L's')
+				return Ngt("`esac' without matching `case'");
+			else
+				if (token[2] == L's')
+					return Ngt("`else' used without `if'");
+				else
+					return Ngt("`elif' used without `if'");
 		default:   assert(false);
 	}
 }
