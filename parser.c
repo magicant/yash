@@ -430,6 +430,7 @@ static command_T *parse_command(void)
 	command_T *result = xmalloc(sizeof *result);
 	redir_T **redirlastp = &result->c_redirs;
 
+	result->next = NULL;
 	result->c_lineno = cinfo->lineno;
 
 	t = check_opening_token_at(cindex);
@@ -440,11 +441,13 @@ static command_T *parse_command(void)
 		return NULL;
 	}
 
+	// TODO parser.c: parse_command: 関数の解析
+
 	/* 普通の単純なコマンドを解析 */
+	result->c_type = CT_SIMPLE;
 	redirlastp = parse_assignments_and_redirects(result);
 	result->c_words = parse_words_and_redirects(redirlastp);
-
-	return result; // TODO parse_command
+	return result;
 }
 
 /* 変数代入とリダイレクトを解析する。
@@ -506,7 +509,7 @@ static void **parse_words_and_redirects(redir_T **redirlastp)
  * なければ、何もせず NULL を返す。 */
 static assign_T *tryparse_assignment(void)
 {
-	// TODO parser.c: tryparse_assignment
+	// TODO parser.c: tryparse_assignment: 未実装
 	return NULL;
 }
 
@@ -631,7 +634,7 @@ static void read_heredoc_contents(redir_T *redir)
 	wu->wu_type = WT_STRING;
 	wu->wu_string = xwcsdup(L"");
 	redir->rd_herecontent = wu;
-	// TODO parser.c: read_heredoc_contents
+	// TODO parser.c: read_heredoc_contents: 未実装
 }
 
 
@@ -756,20 +759,21 @@ static void print_command_content(
 	case CT_SUBSHELL:
 		wb_cat(buf, L"( ");
 		print_and_or_lists(buf, c->c_subcmds, true);
-		wb_cat(buf, L") ");
+		assert(iswblank(buf->contents[buf->length - 1]));
+		wb_insert(buf, buf->length - 1, L")");
 		break;
 	case CT_IF:
 		wb_cat(buf, L"if ");
 		for (ifcommand_T *ic = c->c_ifcmds;;) {
-			print_and_or_lists(buf, ic->ic_condition, true);
+			print_and_or_lists(buf, ic->ic_condition, false);
 			wb_cat(buf, L"then ");
-			print_and_or_lists(buf, ic->ic_commands, true);
+			print_and_or_lists(buf, ic->ic_commands, false);
 			ic = ic->next;
 			if (!ic) {
 				break;
 			} else if (!ic->ic_condition) {
 				wb_cat(buf, L"else ");
-				print_and_or_lists(buf, ic->ic_commands, true);
+				print_and_or_lists(buf, ic->ic_commands, false);
 				break;
 			} else {
 				wb_cat(buf, L"elif ");
@@ -786,14 +790,14 @@ static void print_command_content(
 			print_word(buf, *w);
 		}
 		wb_cat(buf, L"; do ");
-		print_and_or_lists(buf, c->c_forcmds, true);
+		print_and_or_lists(buf, c->c_forcmds, false);
 		wb_cat(buf, L"done ");
 		break;
 	case CT_WHILE:
 		wb_cat(buf, c->c_whltype ? L"while " : L"until ");
-		print_and_or_lists(buf, c->c_whlcond, true);
+		print_and_or_lists(buf, c->c_whlcond, false);
 		wb_cat(buf, L"do ");
-		print_and_or_lists(buf, c->c_whlcmds, true);
+		print_and_or_lists(buf, c->c_whlcmds, false);
 		wb_cat(buf, L"done ");
 		break;
 	case CT_CASE:
@@ -820,7 +824,7 @@ static void print_caseitems(
 			first = false;
 		}
 		wb_cat(buf, L") ");
-		print_and_or_lists(buf, i->ci_commands, false);
+		print_and_or_lists(buf, i->ci_commands, true);
 		wb_cat(buf, L";; ");
 
 		i = i->next;

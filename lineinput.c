@@ -59,8 +59,10 @@ int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 			default:  // L'\0' 以外の文字を読み取った
 				info->src += count;
 				info->srclen -= count;
-				if (buf->contents[buf->length++] == '\n')
+				if (buf->contents[buf->length++] == '\n') {
+					buf->contents[buf->length] = L'\0';
 					return 0;
+				}
 				break;
 			case (size_t) -2:  // バイト列が途中で終わっている
 			case (size_t) -1:  // 不正なバイト列である
