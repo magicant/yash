@@ -256,6 +256,12 @@ static command_T *parse_for(void)
 	__attribute__((malloc));
 static command_T *parse_while(bool whltype)
 	__attribute__((malloc));
+static command_T *parse_case(void)
+	__attribute__((malloc));
+static caseitem_T *parse_case_list(void)
+	__attribute__((malloc));
+static void **parse_case_patterns(void)
+	__attribute__((malloc));
 static void read_heredoc_contents(redir_T *redir);
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
 	__attribute__((nonnull));
@@ -446,10 +452,11 @@ static bool is_command_delimiter_char(wchar_t c)
 }
 
 /* cbuf の指定したインデックスにトークン token があるか調べる。
- * token: 調べる非演算子トークン
+ * token: 調べるトークン
  * index: cbuf へのインデックス (cbuf.length 以下) */
 /* token には、他の演算子トークンの真の部分文字列であるような文字列を
  * 指定してはならない。 */
+/* 予め ensure_buffer(wcslen(token)) を行っておくこと。 */
 static bool is_token_at(const wchar_t *token, size_t index)
 {
 	wchar_t *c = matchwcsprefix(cbuf.contents + index, token);
@@ -478,8 +485,9 @@ static const wchar_t *check_closing_token_at(size_t index)
 {
 	ensure_buffer(5);
 	if (cbuf.contents[index] == L')') return L")";
+	if (cbuf.contents[index] == L';' && cbuf.contents[index + 1] == L';')
+	                                  return L";;";
 	if (is_token_at(L"}",    index))  return L"}";
-	if (is_token_at(L";;",   index))  return L";;";
 	if (is_token_at(L"then", index))  return L"then";
 	if (is_token_at(L"else", index))  return L"else";
 	if (is_token_at(L"elif", index))  return L"elif";
@@ -921,9 +929,8 @@ static command_T *parse_compound_command(const wchar_t *command)
 		result = parse_while(false);
 		break;
 	case L'c':
-		serror("NOT IMPLEMENTED");
-		// TODO parser: parse_compound_command
-		return NULL;
+		result = parse_case();
+		break;
 	default:
 		assert(false);
 	}
@@ -1097,6 +1104,97 @@ static command_T *parse_while(bool whltype)
 	else
 		print_errmsg_token_missing(L"done", cindex);
 	return result;
+}
+
+/* case コマンドを解析する */
+static command_T *parse_case(void)
+{
+	assert(is_token_at(L"case", cindex));
+	cindex += 4;
+	skip_blanks_and_comment();
+
+	command_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->c_type = CT_CASE;
+	result->c_lineno = cinfo->lineno;
+	result->c_redirs = NULL;
+	result->c_casword = parse_word(true);
+	if (!result->c_casword)
+		serror(Ngt("no word after `%ls'"), L"case");
+	skip_to_next_token();
+	ensure_buffer(3);
+	if (is_token_at(L"in", cindex))
+		cindex += 2;
+	else
+		print_errmsg_token_missing(L"in", cindex);
+	result->c_casitems = parse_case_list();
+	ensure_buffer(5);
+	if (is_token_at(L"esac", cindex))
+		cindex += 4;
+	else
+		print_errmsg_token_missing(L"esac", cindex);
+	return result;
+}
+
+/* case コマンドの本体 (`in' と `esac' の間) を解析する。
+ * この関数を呼ぶ前に skip_to_next_token は不要。 */
+static caseitem_T *parse_case_list(void)
+{
+	caseitem_T *first = NULL, **lastp = &first;
+
+	while (!cerror) {
+		skip_to_next_token();
+		ensure_buffer(5);
+		if (is_token_at(L"esac", cindex))
+			break;
+
+		caseitem_T *ci = xmalloc(sizeof *ci);
+		*lastp = ci;
+		lastp = &ci->next;
+		ci->next = NULL;
+		ci->ci_patterns = parse_case_patterns();
+		ci->ci_commands = parse_compound_list();
+		/* for や while とは異なり、ci_commands は NULL でも良い。 */
+		ensure_buffer(2);
+		if (cbuf.contents[cindex] == L';' && cbuf.contents[cindex+1] == L';') {
+			cindex += 2;
+		} else {
+			break;
+		}
+	}
+	return first;
+}
+
+/* case 項目のパタン部分を解析する。
+ * cindex は ')' の次の文字 (not トークン) まで進む。
+ * 予め ensure_buffer(1), skip_blanks_and_comment しておくこと。 */
+static void **parse_case_patterns(void)
+{
+	plist_T wordlist;
+
+	pl_init(&wordlist);
+	if (cbuf.contents[cindex] == L'(') {  /* 最初の '(' は無視 */
+		cindex++;
+		skip_blanks_and_comment();
+	}
+	while (!cerror) {
+		if (is_token_delimiter_char(cbuf.contents[cindex]))
+			serror(Ngt("invalid character `%lc' in case pattern"),
+					(wint_t) cbuf.contents[cindex]);
+		pl_add(&wordlist, parse_word(true));
+		ensure_buffer(1);
+		if (cbuf.contents[cindex] == L'|') {
+			cindex++;
+		} else if (cbuf.contents[cindex] == L')') {
+			cindex++;
+			break;
+		} else {
+			serror(Ngt("`%ls' missing"), L")");
+			break;
+		}
+		skip_blanks_and_comment();
+	}
+	return pl_toary(&wordlist);
 }
 
 /* ヒアドキュメントの内容を読み込む。 */
@@ -1303,7 +1401,7 @@ static void print_command_content(
 	case CT_CASE:
 		wb_cat(buf, L"case ");
 		print_word(buf, c->c_casword);
-		wb_cat(buf, L"in ");
+		wb_cat(buf, L" in ");
 		print_caseitems(buf, c->c_casitems);
 		wb_cat(buf, L"esac ");
 		break;
@@ -1318,7 +1416,7 @@ static void print_caseitems(
 
 		wb_wccat(buf, L'(');
 		for (void **w = i->ci_patterns; *w; w++) {
-			if (first)
+			if (!first)
 				wb_wccat(buf, L'|');
 			print_word(buf, *w);
 			first = false;

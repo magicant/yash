@@ -35,7 +35,7 @@ void exec_and_or_lists(and_or_T *a, bool finally_exit)
 {
 	// TODO exec.c: exec_and_or_lists: 未実装
 	wchar_t *s = commands_to_wcstring(a);
-	fprintf(stderr, "DEBUG: <%ls>\n", s);
+	fprintf(stderr, "DEBUG(%s:%u): <%ls>\n", __FILE__, __LINE__, s);
 	free(s);
 	if (finally_exit)
 		exit(laststatus);
