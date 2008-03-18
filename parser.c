@@ -254,6 +254,8 @@ static command_T *parse_if(void)
 	__attribute__((malloc));
 static command_T *parse_for(void)
 	__attribute__((malloc));
+static command_T *parse_while(bool whltype)
+	__attribute__((malloc));
 static void read_heredoc_contents(redir_T *redir);
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
 	__attribute__((nonnull));
@@ -913,7 +915,11 @@ static command_T *parse_compound_command(const wchar_t *command)
 		result = parse_for();
 		break;
 	case L'w':
+		result = parse_while(true);
+		break;
 	case L'u':
+		result = parse_while(false);
+		break;
 	case L'c':
 		serror("NOT IMPLEMENTED");
 		// TODO parser: parse_compound_command
@@ -1053,6 +1059,37 @@ static command_T *parse_for(void)
 		print_errmsg_token_missing(L"do", cindex);
 	result->c_forcmds = parse_compound_list();
 	if (!result->c_forcmds)
+		serror(Ngt("no commands between `do' and `done'"));
+	ensure_buffer(5);
+	if (is_token_at(L"done", cindex))
+		cindex += 4;
+	else
+		print_errmsg_token_missing(L"done", cindex);
+	return result;
+}
+
+/* while/until コマンドを解析する */
+static command_T *parse_while(bool whltype)
+{
+	assert(is_token_at(whltype ? L"while" : L"until", cindex));
+	cindex += 5;
+
+	command_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->c_type = CT_WHILE;
+	result->c_lineno = cinfo->lineno;
+	result->c_redirs = NULL;
+	result->c_whltype = whltype;
+	result->c_whlcond = parse_compound_list();
+	if (!result->c_whlcond)
+		serror(Ngt("no commands after `%ls'"), whltype ? L"while" : L"until");
+	ensure_buffer(3);
+	if (is_token_at(L"do", cindex))
+		cindex += 2;
+	else
+		print_errmsg_token_missing(L"do", cindex);
+	result->c_whlcmds = parse_compound_list();
+	if (!result->c_whlcmds)
 		serror(Ngt("no commands between `do' and `done'"));
 	ensure_buffer(5);
 	if (is_token_at(L"done", cindex))
