@@ -102,6 +102,8 @@ typedef struct command_T {
 #define c_casword  c_content.casecontent.casword
 #define c_casitems c_content.casecontent.casitems
 /* c_words, c_forwords は wordunit_T へのポインタの NULL 終端配列へのポインタ */
+/* c_forwords が NULL のとき、for に in 節はない。
+ * c_forwords[0] が NULL のとき、for の in 節は空。 */
 
 /* if コマンドの条件とその条件が成り立つとき実行するコマンドを表す */
 typedef struct ifcommand_T {
