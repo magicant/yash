@@ -248,8 +248,12 @@ static command_T *parse_compound_command(const wchar_t *command)
 	__attribute__((nonnull,malloc));
 static command_T *parse_group(commandtype_T type)
 	__attribute__((malloc));
+static command_T *parse_if(void)
+	__attribute__((malloc));
 static void read_heredoc_contents(redir_T *redir);
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
+	__attribute__((nonnull));
+static void print_errmsg_token_missing(const wchar_t *token, size_t index)
 	__attribute__((nonnull));
 
 
@@ -481,7 +485,8 @@ static const wchar_t *check_closing_token_at(size_t index)
 }
 
 /* 区切りの良いところまで解析を進める。すなわち、少くとも一行の入力を読み取り、
- * 複合コマンドなどの内部でない改行の直後まで解析する。 */
+ * 複合コマンドなどの内部でない改行の直後まで解析する。
+ * この関数を呼ぶ前に skip_blanks_and_comment をする必要はない。 */
 static and_or_T *parse_command_list(void)
 {
 	and_or_T *first = NULL, **lastp = &first;
@@ -500,20 +505,27 @@ static and_or_T *parse_command_list(void)
 			*lastp = ao;
 			lastp = &ao->next;
 		}
-		if (cbuf.contents[cindex] == L'&' || cbuf.contents[cindex] == L';')
+
+		ensure_buffer(2);
+		if (cbuf.contents[cindex] == L'&'
+				|| (cbuf.contents[cindex] == L';'
+					&& cbuf.contents[cindex + 1] != L';'))
 			cindex++;
 	}
 	return first;
 }
 
-/* 「閉じる」トークンが現れるまでコマンドを解析する */
+/* 「閉じる」トークンが現れるまでコマンドを解析する。
+ * この関数を呼ぶ前に skip_to_next_token をする必要はない。 */
 static and_or_T *parse_compound_list(void)
 {
 	and_or_T *first = NULL, **lastp = &first;
+	bool savecerror = cerror;
 	bool separator = true;
 	/* 二つ目以降のトークンを解析するにはセパレータ ('&', ';', または一つ以上の
 	 * 改行) が必要となる。 */
 
+	cerror = false;
 	while (!cerror) {
 		separator |= skip_to_next_token();
 		if (!separator
@@ -528,11 +540,15 @@ static and_or_T *parse_compound_list(void)
 		}
 
 		separator = false;
-		if (cbuf.contents[cindex] == L'&' || cbuf.contents[cindex] == L';') {
+		ensure_buffer(2);
+		if (cbuf.contents[cindex] == L'&'
+				|| (cbuf.contents[cindex] == L';'
+					&& cbuf.contents[cindex + 1] != L';')) {
 			cindex++;
 			separator = true;
 		}
 	}
+	cerror |= savecerror;
 	return first;
 }
 
@@ -864,23 +880,34 @@ static wordunit_T *parse_word(bool global_alias_only)
 }
 
 /* 複合コマンドを解析する。command はコマンド名。 */
+/* parse_group, parse_if などの複合コマンド解析関数は、skip_blanks_and_comment
+ * の呼出しおよびリダイレクトの解析をせずに戻る。 */
 static command_T *parse_compound_command(const wchar_t *command)
 {
+	command_T *result;
 	switch (command[0]) {
 	case L'(':
-		return parse_group(CT_SUBSHELL);
+		result = parse_group(CT_SUBSHELL);
+		break;
 	case L'{':
-		return parse_group(CT_GROUP);
+		result = parse_group(CT_GROUP);
+		break;
 	case L'i':
+		result = parse_if();
+		break;
 	case L'f':
 	case L'w':
 	case L'u':
 	case L'c':
 		serror("NOT IMPLEMENTED");
+		// TODO parser: parse_compound_command
 		return NULL;
 	default:
 		assert(false);
 	}
+	skip_blanks_and_comment();
+	parse_redirect_list(&result->c_redirs);
+	return result;
 }
 
 /* グループコマンドを解析する。type は CT_GROUP か CT_SUBSHELL。 */
@@ -908,10 +935,67 @@ static command_T *parse_group(commandtype_T type)
 	if (!result->c_subcmds)
 		serror(Ngt("no commands in command group"));
 	if (cbuf.contents[cindex] != terminator[0])
-		serror(Ngt("`%ls' missing"), terminator);
+		print_errmsg_token_missing(terminator, cindex);
 	cindex++;
-	skip_blanks_and_comment();
-	parse_redirect_list(&result->c_redirs);
+	return result;
+}
+
+/* if コマンドを解析する */
+static command_T *parse_if(void)
+{
+	assert(is_token_at(L"if", cindex));
+	cindex += 2;
+
+	ifcommand_T *first = NULL, **lastp = &first;
+	command_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->c_type = CT_IF;
+	result->c_lineno = cinfo->lineno;
+	result->c_redirs = NULL;
+
+	bool els = false;
+	while (!cerror) {
+		ifcommand_T *ic = xmalloc(sizeof *ic);
+		*lastp = ic;
+		lastp = &ic->next;
+		ic->next = NULL;
+		if (!els) {
+			ic->ic_condition = parse_compound_list();
+			if (!ic->ic_condition)
+				serror(Ngt("no commands between `if' and `then'"));
+			ensure_buffer(5);
+			if (is_token_at(L"then", cindex))
+				cindex += 4;
+			else
+				print_errmsg_token_missing(L"then", cindex);
+		} else {
+			ic->ic_condition = NULL;
+		}
+		ic->ic_commands = parse_compound_list();
+		if (!ic->ic_commands)
+			serror(Ngt("no commands after `then'"));
+		ensure_buffer(5);
+		if (!els) {
+			if (is_token_at(L"else", cindex)) {
+				cindex += 4;
+				els = true;
+			} else if (is_token_at(L"elif", cindex)) {
+				cindex += 4;
+			} else if (is_token_at(L"fi", cindex)) {
+				cindex += 2;
+				break;
+			} else {
+				print_errmsg_token_missing(L"fi", cindex);
+			}
+		} else {
+			if (is_token_at(L"fi", cindex))
+				cindex += 2;
+			else
+				print_errmsg_token_missing(L"fi", cindex);
+			break;
+		}
+	}
+	result->c_ifcmds = first;
 	return result;
 }
 
@@ -927,7 +1011,7 @@ static void read_heredoc_contents(redir_T *redir)
 }
 
 
-/***** エラーメッセージを返す関数 *****/
+/***** エラーメッセージ関連 *****/
 
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
 {
@@ -956,6 +1040,15 @@ static const char *get_errmsg_unexpected_token(const wchar_t *token)
 		default:
 			assert(false);
 	}
+}
+
+static void print_errmsg_token_missing(const wchar_t *token, size_t index)
+{
+	const wchar_t *atoken = check_closing_token_at(index);
+	if (atoken)
+		serror(get_errmsg_unexpected_token(atoken), atoken);
+	else
+		serror(Ngt("`%ls' missing"), token);
 }
 
 
