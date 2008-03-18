@@ -203,6 +203,23 @@ static void redirsfree(redir_T *r)
 }
 
 
+/********** 構文解析に関する補助ルーチン **********/
+
+static wchar_t *skip_name(const wchar_t *s)
+	__attribute__((nonnull));
+
+
+/* s の先頭にある、識別子として正しい部分を飛ばして、残りの部分へのポインタを
+ * 返す。 */
+static wchar_t *skip_name(const wchar_t *s)
+{
+	if (!iswdigit(*s))
+		while (iswalnum(*s) || *s == L'_')
+			s++;
+	return (wchar_t *) s;
+}
+
+
 /********** 構文解析ルーチン **********/
 
 static void serror(const char *restrict format, ...)
@@ -863,7 +880,7 @@ reparse:
 /* 現在位置のエイリアスを展開し、ワードを解析する。
  * is_first_word: true ならコマンドの最初のワードとして扱う。すなわち、
  *     グローバルエイリアスでない普通のエイリアスも展開する。
- * 戻り値: 解析したワード。ワードが存在しなければ NULL。 */
+ * ワードがなくてもエラーを出さない。 */
 static wordunit_T *parse_word(bool is_first_word)
 {
 	size_t startindex = cindex;
@@ -873,6 +890,8 @@ static wordunit_T *parse_word(bool is_first_word)
 		cindex++;
 		ensure_buffer(1);
 	}
+	if (startindex == cindex)
+		return NULL;
 
 	wordunit_T *result = xmalloc(sizeof *result);
 	result->next = NULL;
@@ -1042,7 +1061,8 @@ static command_T *parse_for(void)
 	result->c_lineno = cinfo->lineno;
 	result->c_redirs = NULL;
 	result->c_forname = parse_word_as_wcs();
-	//TODO parser.c: parse_for: forname が正しい名前かどうか確認
+	if (result->c_forname[0] == L'\0' || *skip_name(result->c_forname) != L'\0')
+		serror(Ngt("`%ls' is not valid identifier"), result->c_forname);
 	skip_to_next_token();
 	ensure_buffer(3);
 	if (is_token_at(L"in", cindex)) {
