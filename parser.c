@@ -37,6 +37,172 @@
 #include "parser.h"
 
 
+/********** 解析した構文木データを解放するルーチン **********/
+
+static void pipesfree(pipeline_T *p);
+static void comsfree(command_T *c);
+static void ifcmdsfree(ifcommand_T *i);
+static void caseitemsfree(caseitem_T *i);
+static void wordfree(wordunit_T *w);
+static void wordfree_vp(void *w);
+static void paramfree(paramexp_T *p);
+static void assignsfree(assign_T *a);
+static void redirsfree(redir_T *r);
+
+void andorsfree(and_or_T *a)
+{
+	while (a) {
+		pipesfree(a->ao_pipelines);
+
+		and_or_T *next = a->next;
+		free(a);
+		a = next;
+	}
+}
+
+static void pipesfree(pipeline_T *p)
+{
+	while (p) {
+		comsfree(p->pl_commands);
+
+		pipeline_T *next = p->next;
+		free(p);
+		p = next;
+	}
+}
+
+static void comsfree(command_T *c)
+{
+	while (c) {
+		redirsfree(c->c_redirs);
+		switch (c->c_type) {
+			case CT_SIMPLE:
+				assignsfree(c->c_assigns);
+				recfree(c->c_words, wordfree_vp);
+				break;
+			case CT_GROUP:
+			case CT_SUBSHELL:
+				andorsfree(c->c_subcmds);
+				break;
+			case CT_IF:
+				ifcmdsfree(c->c_ifcmds);
+				break;
+			case CT_FOR:
+				free(c->c_forname);
+				recfree(c->c_forwords, wordfree_vp);
+				andorsfree(c->c_forcmds);
+				break;
+			case CT_WHILE:
+				andorsfree(c->c_whlcond);
+				andorsfree(c->c_whlcmds);
+				break;
+			case CT_CASE:
+				wordfree(c->c_casword);
+				caseitemsfree(c->c_casitems);
+				break;
+		}
+
+		command_T *next = c->next;
+		free(c);
+		c = next;
+	}
+}
+
+static void ifcmdsfree(ifcommand_T *i)
+{
+	while (i) {
+		andorsfree(i->ic_condition);
+		andorsfree(i->ic_commands);
+
+		ifcommand_T *next = i->next;
+		free(i);
+		i = next;
+	}
+}
+
+static void caseitemsfree(caseitem_T *i)
+{
+	while (i) {
+		recfree(i->ci_patterns, wordfree_vp);
+		andorsfree(i->ci_commands);
+
+		caseitem_T *next = i->next;
+		free(i);
+		i = next;
+	}
+}
+
+static void wordfree(wordunit_T *w)
+{
+	while (w) {
+		switch (w->wu_type) {
+			case WT_STRING:
+				free(w->wu_string);
+				break;
+			case WT_PARAM:
+				paramfree(w->wu_param);
+				break;
+			case WT_CMDSUB:
+				free(w->wu_cmdsub);
+				break;
+			case WT_ARITH:
+				wordfree(w->wu_arith);
+				break;
+		}
+
+		wordunit_T *next = w->next;
+		free(w);
+		w = next;
+	}
+}
+
+static void wordfree_vp(void *w)
+{
+	wordfree((wordunit_T *) w);
+}
+
+static void paramfree(paramexp_T *p)
+{
+	if (p) {
+		free(p->pe_name);
+		wordfree(p->pe_match);
+		wordfree(p->pe_subst);
+	}
+}
+
+static void assignsfree(assign_T *a)
+{
+	while (a) {
+		free(a->name);
+		wordfree(a->value);
+
+		assign_T *next = a->next;
+		free(a);
+		a = next;
+	}
+}
+
+static void redirsfree(redir_T *r)
+{
+	while (r) {
+		switch (r->rd_type) {
+			case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
+			case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
+				wordfree(r->rd_filename);
+				break;
+			case RT_HERE:  case RT_HERERT:
+				free(r->rd_hereend);
+				wordfree(r->rd_herecontent);
+				break;
+		}
+
+		redir_T *next = r->next;
+		free(r);
+		r = next;
+	}
+}
+
+
 /********** 構文解析ルーチン **********/
 
 static void serror(const char *restrict format, ...)
@@ -44,7 +210,7 @@ static void serror(const char *restrict format, ...)
 static inline int read_more_input(void);
 static inline int ensure_buffer(size_t n);
 static void skip_blanks_and_comment(void);
-static void skip_to_next_token(void);
+static bool skip_to_next_token(void);
 static void next_line(void);
 static bool is_token_delimiter_char(wchar_t c);
 static bool is_command_delimiter_char(wchar_t c);
@@ -53,6 +219,8 @@ static bool is_token_at(const wchar_t *token, size_t index)
 static const wchar_t *check_opening_token_at(size_t index);
 static const wchar_t *check_closing_token_at(size_t index);
 static and_or_T *parse_command_list(void)
+	__attribute__((malloc));
+static and_or_T *parse_compound_list(void)
 	__attribute__((malloc));
 static and_or_T *parse_and_or_list(void)
 	__attribute__((malloc));
@@ -68,11 +236,17 @@ static redir_T **parse_assignments_and_redirects(command_T *c)
 	__attribute__((malloc,nonnull));
 static void **parse_words_and_redirects(redir_T **redirlastp)
 	__attribute__((malloc,nonnull));
+static void parse_redirect_list(redir_T **lastp)
+	__attribute__((nonnull));
 static assign_T *tryparse_assignment(void)
 	__attribute__((malloc));
 static redir_T *tryparse_redirect(void)
 	__attribute__((malloc));
 static wordunit_T *parse_word(bool global_alias_only)
+	__attribute__((malloc));
+static command_T *parse_compound_command(const wchar_t *command)
+	__attribute__((nonnull,malloc));
+static command_T *parse_group(commandtype_T type)
 	__attribute__((malloc));
 static void read_heredoc_contents(redir_T *redir);
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
@@ -186,18 +360,18 @@ static inline int ensure_buffer(size_t n)
 	return lir;
 }
 
-/* cindex を増やして blank 文字およびコメントを飛ばす。必要に応じて
+/* cindex を増やして blank・コメント・行連結を飛ばす。必要に応じて
  * read_more_input する。cindex は次の非 blank 文字を指す。コメントを飛ばした
  * 場合はコメントの直後の文字 (普通は改行文字) を指す。 */
 static void skip_blanks_and_comment(void)
 {
-skipblanks:
+skipblanks:  /* blank を飛ばす */
 	while (iswblank(cbuf.contents[cindex]))
 		cindex++;
 	if (cbuf.contents[cindex] == L'\0' && read_more_input() == 0)
 		goto skipblanks;
 
-skiptonewline:
+skiptonewline:  /* コメントを飛ばす */
 	if (cbuf.contents[cindex] == L'#') {
 		do {
 			cindex++;
@@ -206,20 +380,33 @@ skiptonewline:
 	}
 	if (cbuf.contents[cindex] == L'\0' && read_more_input() == 0)
 		goto skiptonewline;
-}
 
-/* 次のトークンに達するまで cindex を増やして blank 文字・改行文字・コメントを
- * 飛ばす。必要に応じて read_more_input する。 */
-static void skip_to_next_token(void)
-{
-	skip_blanks_and_comment();
-	while (lastinputresult == 0 && cbuf.contents[cindex] == L'\n') {
-		next_line();
-		skip_blanks_and_comment();
+	/* 行連結を飛ばす */
+	ensure_buffer(2);
+	if (cbuf.contents[cindex] == L'\\' && cbuf.contents[cindex + 1] == L'\n') {
+		cindex += 2;
+		cinfo->lineno++;
+		goto skipblanks;
 	}
 }
 
-/* 現在位置が改行文字のとき、次の行に進む。
+/* 次のトークンに達するまで cindex を増やして blank 文字・改行文字・コメントを
+ * 飛ばす。必要に応じて read_more_input する。
+ * 戻り値: 一つ以上の NEWLINE トークンを飛ばしたかどうか */
+static bool skip_to_next_token(void)
+{
+	bool newline = false;
+
+	skip_blanks_and_comment();
+	while (lastinputresult == 0 && cbuf.contents[cindex] == L'\n') {
+		newline = true;
+		next_line();
+		skip_blanks_and_comment();
+	}
+	return newline;
+}
+
+/* 現在位置が改行文字のとき、NEWLINE トークンとして解釈して次の行に進む。
  * ヒアドキュメントの読み込みを控えているならそれも行う。 */
 static void next_line(void)
 {
@@ -313,27 +500,51 @@ static and_or_T *parse_command_list(void)
 			*lastp = ao;
 			lastp = &ao->next;
 		}
+		if (cbuf.contents[cindex] == L'&' || cbuf.contents[cindex] == L';')
+			cindex++;
 	}
 	return first;
 }
 
-/* 一つの and/or リストを (末尾の '&' または ';' も含めて) 解析する。 */
+/* 「閉じる」トークンが現れるまでコマンドを解析する */
+static and_or_T *parse_compound_list(void)
+{
+	and_or_T *first = NULL, **lastp = &first;
+	bool separator = true;
+	/* 二つ目以降のトークンを解析するにはセパレータ ('&', ';', または一つ以上の
+	 * 改行) が必要となる。 */
+
+	while (!cerror) {
+		separator |= skip_to_next_token();
+		if (!separator
+				|| cbuf.contents[cindex] == L'\0'
+				|| check_closing_token_at(cindex))
+			break;
+
+		and_or_T *ao = parse_and_or_list();
+		if (ao) {
+			*lastp = ao;
+			lastp = &ao->next;
+		}
+
+		separator = false;
+		if (cbuf.contents[cindex] == L'&' || cbuf.contents[cindex] == L';') {
+			cindex++;
+			separator = true;
+		}
+	}
+	return first;
+}
+
+/* 一つの and/or リストを解析する。
+ * 末尾の '&' または ';' は解析結果には反映するが、cindex は '&'/';' の後では
+ * なく '&'/';' そのもののインデックスを指した状態で返る。 */
 static and_or_T *parse_and_or_list(void)
 {
 	and_or_T *result = xmalloc(sizeof *result);
 	result->next = NULL;
 	result->ao_pipelines = parse_pipelines_in_and_or();
-	result->ao_async = false;
-
-	switch (cbuf.contents[cindex]) {
-		case L'&':
-			result->ao_async = true;
-			/* falls thru! */
-		case L';':
-			cindex++;
-			skip_blanks_and_comment();
-			break;
-	}
+	result->ao_async = (cbuf.contents[cindex] == L'&');
 	return result;
 }
 
@@ -432,6 +643,8 @@ static command_T *parse_command(void)
 	} else if (is_token_at(L"in", cindex)) {
 		serror(get_errmsg_unexpected_token(L"in"), L"in");
 		return NULL;
+	} else if (cbuf.contents[cindex] == L'(') {
+		return parse_group(CT_SUBSHELL);
 	} else if (is_command_delimiter_char(cbuf.contents[cindex])) {
 		if (cbuf.contents[cindex] == L'\0')
 			serror(Ngt("command missing at end of input"));
@@ -441,29 +654,24 @@ static command_T *parse_command(void)
 		return NULL;
 	}
 
-	command_T *result = xmalloc(sizeof *result);
-	redir_T **redirlastp = &result->c_redirs;
-
-	result->next = NULL;
-	result->c_lineno = cinfo->lineno;
-
 	t = check_opening_token_at(cindex);
-	if (t) {
-		// TODO parser.c: parse_command: ( や { や if
-		serror("%ls: NOT IMPLEMENTED", t);
-		free(result);
-		return NULL;
-	}
+	if (t)
+		return parse_compound_command(t);
 
 	// TODO parser.c: parse_command: 関数の解析
 
 	/* 普通の単純なコマンドを解析 */
+	command_T *result = xmalloc(sizeof *result);
+	redir_T **redirlastp;
+
+	result->next = NULL;
+	result->c_lineno = cinfo->lineno;
 	result->c_type = CT_SIMPLE;
 	redirlastp = parse_assignments_and_redirects(result);
 	result->c_words = parse_words_and_redirects(redirlastp);
 
 	ensure_buffer(1);
-	if (cbuf.contents[cindex] == L'(' || cbuf.contents[cindex] == L')')
+	if (cbuf.contents[cindex] == L'(')
 		serror(Ngt("invalid use of `%lc'"), (wint_t) cbuf.contents[cindex]);
 	return result;
 }
@@ -498,7 +706,8 @@ static redir_T **parse_assignments_and_redirects(command_T *c)
 /* ワードとリダイレクトを解析する。
  * リダイレクトの解析結果は *redirlastp に入る。
  * ワードの解析結果は wordunit_T * を void * に変換したものの配列への
- * ポインタとして返す。 */
+ * ポインタとして返す。
+ * *redirlastp は予め NULL を代入しておくこと。 */
 static void **parse_words_and_redirects(redir_T **redirlastp)
 {
 	plist_T wordlist;
@@ -523,6 +732,18 @@ static void **parse_words_and_redirects(redir_T **redirlastp)
 	return pl_toary(&wordlist);
 }
 
+/* 0 個以上のリダイレクトを解析する。解析結果は *redirlastp に入る。
+ * *redirlastp は予め NULL を代入しておくこと。 */
+static void parse_redirect_list(redir_T **lastp)
+{
+	redir_T *redir;
+
+	while ((redir = tryparse_redirect())) {
+		*lastp = redir;
+		lastp = &redir->next;
+	}
+}
+
 /* 現在位置に変数代入があれば、それを解析して結果を返す。
  * なければ、何もせず NULL を返す。 */
 static assign_T *tryparse_assignment(void)
@@ -530,8 +751,6 @@ static assign_T *tryparse_assignment(void)
 	// TODO parser.c: tryparse_assignment: 未実装
 	return NULL;
 }
-
-static void wordfree(wordunit_T *w);
 
 /* 現在位置にリダイレクトがあれば、それを解析して結果を返す。
  * なければ、何もせず NULL を返す。 */
@@ -644,6 +863,58 @@ static wordunit_T *parse_word(bool global_alias_only)
 	// TODO parser.c: parse_word: エイリアス
 }
 
+/* 複合コマンドを解析する。command はコマンド名。 */
+static command_T *parse_compound_command(const wchar_t *command)
+{
+	switch (command[0]) {
+	case L'(':
+		return parse_group(CT_SUBSHELL);
+	case L'{':
+		return parse_group(CT_GROUP);
+	case L'i':
+	case L'f':
+	case L'w':
+	case L'u':
+	case L'c':
+		serror("NOT IMPLEMENTED");
+		return NULL;
+	default:
+		assert(false);
+	}
+}
+
+/* グループコマンドを解析する。type は CT_GROUP か CT_SUBSHELL。 */
+static command_T *parse_group(commandtype_T type)
+{
+	const wchar_t *terminator;
+
+	if (type == CT_GROUP) {
+		assert(cbuf.contents[cindex] == L'{');
+		terminator = L"}";
+	} else if (type == CT_SUBSHELL) {
+		assert(cbuf.contents[cindex] == L'(');
+		terminator = L")";
+	} else {
+		assert(false);
+	}
+	cindex++;
+
+	command_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->c_type = type;
+	result->c_lineno = cinfo->lineno;
+	result->c_redirs = NULL;
+	result->c_subcmds = parse_compound_list();
+	if (!result->c_subcmds)
+		serror(Ngt("no commands in command group"));
+	if (cbuf.contents[cindex] != terminator[0])
+		serror(Ngt("`%ls' missing"), terminator);
+	cindex++;
+	skip_blanks_and_comment();
+	parse_redirect_list(&result->c_redirs);
+	return result;
+}
+
 /* ヒアドキュメントの内容を読み込む。 */
 static void read_heredoc_contents(redir_T *redir)
 {
@@ -682,7 +953,8 @@ static const char *get_errmsg_unexpected_token(const wchar_t *token)
 					return Ngt("`%ls' used without `if'");
 				else
 					return Ngt("`%ls' used without `if'");
-		default:   assert(false);
+		default:
+			assert(false);
 	}
 }
 
@@ -790,7 +1062,7 @@ static void print_command_content(
 		wb_cat(buf, L"} ");
 		break;
 	case CT_SUBSHELL:
-		wb_cat(buf, L"( ");
+		wb_wccat(buf, L'(');
 		print_and_or_lists(buf, c->c_subcmds, true);
 		assert(iswblank(buf->contents[buf->length - 1]));
 		wb_insert(buf, buf->length - 1, L")");
@@ -991,170 +1263,4 @@ static void trim_end_of_buffer(xwcsbuf_T *buf)
 	size_t i = buf->length;
 	while (i > 0 && iswblank(buf->contents[--i]));
 	wb_remove(buf, i + 1, SIZE_MAX);
-}
-
-
-/********** 構文木データを解放するルーチン **********/
-
-static void pipesfree(pipeline_T *p);
-static void comsfree(command_T *c);
-static void ifcmdsfree(ifcommand_T *i);
-static void caseitemsfree(caseitem_T *i);
-static void wordfree(wordunit_T *w);
-static void wordfree_vp(void *w);
-static void paramfree(paramexp_T *p);
-static void assignsfree(assign_T *a);
-static void redirsfree(redir_T *r);
-
-void andorsfree(and_or_T *a)
-{
-	while (a) {
-		pipesfree(a->ao_pipelines);
-
-		and_or_T *next = a->next;
-		free(a);
-		a = next;
-	}
-}
-
-static void pipesfree(pipeline_T *p)
-{
-	while (p) {
-		comsfree(p->pl_commands);
-
-		pipeline_T *next = p->next;
-		free(p);
-		p = next;
-	}
-}
-
-static void comsfree(command_T *c)
-{
-	while (c) {
-		redirsfree(c->c_redirs);
-		switch (c->c_type) {
-			case CT_SIMPLE:
-				assignsfree(c->c_assigns);
-				recfree(c->c_words, wordfree_vp);
-				break;
-			case CT_GROUP:
-			case CT_SUBSHELL:
-				andorsfree(c->c_subcmds);
-				break;
-			case CT_IF:
-				ifcmdsfree(c->c_ifcmds);
-				break;
-			case CT_FOR:
-				free(c->c_forname);
-				recfree(c->c_forwords, wordfree_vp);
-				andorsfree(c->c_forcmds);
-				break;
-			case CT_WHILE:
-				andorsfree(c->c_whlcond);
-				andorsfree(c->c_whlcmds);
-				break;
-			case CT_CASE:
-				wordfree(c->c_casword);
-				caseitemsfree(c->c_casitems);
-				break;
-		}
-
-		command_T *next = c->next;
-		free(c);
-		c = next;
-	}
-}
-
-static void ifcmdsfree(ifcommand_T *i)
-{
-	while (i) {
-		andorsfree(i->ic_condition);
-		andorsfree(i->ic_commands);
-
-		ifcommand_T *next = i->next;
-		free(i);
-		i = next;
-	}
-}
-
-static void caseitemsfree(caseitem_T *i)
-{
-	while (i) {
-		recfree(i->ci_patterns, wordfree_vp);
-		andorsfree(i->ci_commands);
-
-		caseitem_T *next = i->next;
-		free(i);
-		i = next;
-	}
-}
-
-static void wordfree(wordunit_T *w)
-{
-	while (w) {
-		switch (w->wu_type) {
-			case WT_STRING:
-				free(w->wu_string);
-				break;
-			case WT_PARAM:
-				paramfree(w->wu_param);
-				break;
-			case WT_CMDSUB:
-				free(w->wu_cmdsub);
-				break;
-			case WT_ARITH:
-				wordfree(w->wu_arith);
-				break;
-		}
-
-		wordunit_T *next = w->next;
-		free(w);
-		w = next;
-	}
-}
-
-static void wordfree_vp(void *w)
-{
-	wordfree((wordunit_T *) w);
-}
-
-static void paramfree(paramexp_T *p)
-{
-	if (p) {
-		free(p->pe_name);
-		wordfree(p->pe_match);
-		wordfree(p->pe_subst);
-	}
-}
-
-static void assignsfree(assign_T *a)
-{
-	while (a) {
-		free(a->name);
-		wordfree(a->value);
-
-		assign_T *next = a->next;
-		free(a);
-		a = next;
-	}
-}
-
-static void redirsfree(redir_T *r)
-{
-	while (r) {
-		switch (r->rd_type) {
-			case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
-			case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
-				wordfree(r->rd_filename);
-				break;
-			case RT_HERE:  case RT_HERERT:
-				free(r->rd_hereend);
-				wordfree(r->rd_herecontent);
-				break;
-		}
-
-		redir_T *next = r->next;
-		free(r);
-		r = next;
-	}
 }
