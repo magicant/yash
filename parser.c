@@ -242,7 +242,7 @@ static assign_T *tryparse_assignment(void)
 	__attribute__((malloc));
 static redir_T *tryparse_redirect(void)
 	__attribute__((malloc));
-static wordunit_T *parse_word(bool global_alias_only)
+static wordunit_T *parse_word(bool is_first_word)
 	__attribute__((malloc));
 static wchar_t *parse_word_as_wcs(void)
 	__attribute__((malloc));
@@ -751,7 +751,7 @@ static void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 		if ((redir = tryparse_redirect())) {
 			*redirlastp = redir;
 			redirlastp = &redir->next;
-		} else if ((word = parse_word(!first))) {
+		} else if ((word = parse_word(first))) {
 			pl_add(&wordlist, word);
 			first = false;
 		} else {
@@ -847,7 +847,7 @@ reparse:
 		return NULL;
 	}
 	if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
-		result->rd_filename = parse_word(true);
+		result->rd_filename = parse_word(false);
 	} else {
 		size_t index = cindex;
 		wchar_t *endofheredoc = parse_word_as_wcs();
@@ -861,9 +861,10 @@ reparse:
 }
 
 /* 現在位置のエイリアスを展開し、ワードを解析する。
- * global_alias_only: true ならグローバルエイリアスしか展開しない。false なら
- *         全てのエイリアスを展開の対象にする。 */
-static wordunit_T *parse_word(bool global_alias_only)
+ * is_first_word: true ならコマンドの最初のワードとして扱う。すなわち、
+ *     グローバルエイリアスでない普通のエイリアスも展開する。
+ * 戻り値: 解析したワード。ワードが存在しなければ NULL。 */
+static wordunit_T *parse_word(bool is_first_word)
 {
 	size_t startindex = cindex;
 
@@ -879,7 +880,7 @@ static wordunit_T *parse_word(bool global_alias_only)
 	result->wu_string = xwcsndup(
 			cbuf.contents + startindex, cindex - startindex);
 	skip_blanks_and_comment();
-	(void) global_alias_only;
+	(void) is_first_word;
 	return result;
 	// TODO parser.c: parse_word: 暫定実装: 正確なワードの解析
 	// TODO parser.c: parse_word: エイリアス
@@ -891,7 +892,7 @@ static wordunit_T *parse_word(bool global_alias_only)
 static wchar_t *parse_word_as_wcs(void)
 {
 	size_t index = cindex;
-	wordfree(parse_word(true));
+	wordfree(parse_word(false));
 
 	/* 元のインデックスと現在のインデックスの間にあるワードを取り出す */
 	wchar_t *result = xwcsndup(cbuf.contents + index, cindex - index);
@@ -1118,7 +1119,7 @@ static command_T *parse_case(void)
 	result->c_type = CT_CASE;
 	result->c_lineno = cinfo->lineno;
 	result->c_redirs = NULL;
-	result->c_casword = parse_word(true);
+	result->c_casword = parse_word(false);
 	if (!result->c_casword)
 		serror(Ngt("no word after `%ls'"), L"case");
 	skip_to_next_token();
@@ -1181,7 +1182,7 @@ static void **parse_case_patterns(void)
 		if (is_token_delimiter_char(cbuf.contents[cindex]))
 			serror(Ngt("invalid character `%lc' in case pattern"),
 					(wint_t) cbuf.contents[cindex]);
-		pl_add(&wordlist, parse_word(true));
+		pl_add(&wordlist, parse_word(false));
 		ensure_buffer(1);
 		if (cbuf.contents[cindex] == L'|') {
 			cindex++;
