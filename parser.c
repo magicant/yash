@@ -275,7 +275,8 @@ static const wchar_t *check_opening_token_at(size_t index)
 }
 
 /* cbuf の指定したインデックスに ) や } や fi などの「閉じる」トークンがあるか
- * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。 */
+ * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。
+ * 「閉じる」トークンというのは、and/or リストを終わらせる印になるものである。*/
 static const wchar_t *check_closing_token_at(size_t index)
 {
 	ensure_buffer(5);
@@ -423,7 +424,13 @@ static command_T *parse_command(void)
 	/* Note: check_closing_token_at は ensure_buffer(5) を含む */
 	const wchar_t *t = check_closing_token_at(cindex);
 	if (t) {
-		serror(get_errmsg_unexpected_token(t));
+		serror(get_errmsg_unexpected_token(t), t);
+		return NULL;
+	} else if (is_token_at(L"!", cindex)) {
+		serror(get_errmsg_unexpected_token(L"!"), L"!");
+		return NULL;
+	} else if (is_token_at(L"in", cindex)) {
+		serror(get_errmsg_unexpected_token(L"in"), L"in");
 		return NULL;
 	} else if (is_command_delimiter_char(cbuf.contents[cindex])) {
 		if (cbuf.contents[cindex] == L'\0')
@@ -654,24 +661,27 @@ static void read_heredoc_contents(redir_T *redir)
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
 {
 	switch (token[0]) {
-		case L')': return Ngt("`)' without matching `('");
-		case L'}': return Ngt("`}' without matching `{'");
-		case L';': return Ngt("`;;' used outside `case'");
-		case L'f': return Ngt("`fi' without matching `if'");
+		case L')': return Ngt("`%ls' without matching `('");
+		case L'}': return Ngt("`%ls' without matching `{'");
+		case L';': return Ngt("`%ls' used outside `case'");
+		case L'!': return Ngt("`%ls' cannot be used as command name");
+		case L'i': return Ngt("`%ls' cannot be used as command name");
+		case L'f': return Ngt("`%ls' without matching `if'");
+		case L't': return Ngt("`%ls' used without `if'");
 		case L'd':
 			assert(token[1] == L'o');
 			if (token[2] == L'\0')
-				return Ngt("`do' used without `for', `while', or `until'");
+				return Ngt("`%ls' used without `for', `while', or `until'");
 			else
-				return Ngt("`done' without matching `do'");
+				return Ngt("`%ls' without matching `do'");
 		case L'e':
 			if (token[1] == L's')
-				return Ngt("`esac' without matching `case'");
+				return Ngt("`%ls' without matching `case'");
 			else
 				if (token[2] == L's')
-					return Ngt("`else' used without `if'");
+					return Ngt("`%ls' used without `if'");
 				else
-					return Ngt("`elif' used without `if'");
+					return Ngt("`%ls' used without `if'");
 		default:   assert(false);
 	}
 }
