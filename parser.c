@@ -222,6 +222,8 @@ static wchar_t *skip_name(const wchar_t *s)
 
 /********** 構文解析ルーチン **********/
 
+typedef enum { noalias, globalonly, anyalias, } aliastype_T;
+
 static void serror(const char *restrict format, ...)
 	__attribute__((nonnull(1),format(printf,1,2)));
 static inline int read_more_input(void);
@@ -259,7 +261,7 @@ static assign_T *tryparse_assignment(void)
 	__attribute__((malloc));
 static redir_T *tryparse_redirect(void)
 	__attribute__((malloc));
-static wordunit_T *parse_word(bool is_first_word)
+static wordunit_T *parse_word(aliastype_T type)
 	__attribute__((malloc));
 static wchar_t *parse_word_as_wcs(void)
 	__attribute__((malloc));
@@ -778,7 +780,7 @@ static void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 		if ((redir = tryparse_redirect())) {
 			*redirlastp = redir;
 			redirlastp = &redir->next;
-		} else if ((word = parse_word(first))) {
+		} else if ((word = parse_word(first ? anyalias : globalonly))) {
 			pl_add(&wordlist, word);
 			first = false;
 		} else {
@@ -805,8 +807,29 @@ static void parse_redirect_list(redir_T **lastp)
  * なければ、何もせず NULL を返す。 */
 static assign_T *tryparse_assignment(void)
 {
-	// TODO parser.c: tryparse_assignment: 未実装
-	return NULL;
+	const wchar_t *namestart = cbuf.contents + cindex;
+	size_t namelen;
+
+	do
+		namelen = skip_name(namestart) - namestart;
+	while (namestart[namelen] == L'\0' && read_more_input() == 0);
+	if (namelen == 0 || namestart[namelen] != L'=')
+		return NULL;
+
+	assign_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->name = malloc_wcstombs(namestart, namelen);
+	cindex += namelen + 1;
+
+	ensure_buffer(1);
+	if (is_token_delimiter_char(cbuf.contents[cindex])) {
+		/* '=' の後は空文字列 */
+		result->value = NULL;
+		skip_blanks_and_comment();
+	} else {
+		result->value = parse_word(noalias);
+	}
+	return result;
 }
 
 /* 現在位置にリダイレクトがあれば、それを解析して結果を返す。
@@ -874,7 +897,7 @@ reparse:
 		return NULL;
 	}
 	if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
-		result->rd_filename = parse_word(false);
+		result->rd_filename = parse_word(globalonly);
 	} else {
 		size_t index = cindex;
 		wchar_t *endofheredoc = parse_word_as_wcs();
@@ -891,7 +914,7 @@ reparse:
  * is_first_word: true ならコマンドの最初のワードとして扱う。すなわち、
  *     グローバルエイリアスでない普通のエイリアスも展開する。
  * ワードがなくてもエラーを出さない。 */
-static wordunit_T *parse_word(bool is_first_word)
+static wordunit_T *parse_word(aliastype_T type)
 {
 	size_t startindex = cindex;
 
@@ -909,7 +932,7 @@ static wordunit_T *parse_word(bool is_first_word)
 	result->wu_string = xwcsndup(
 			cbuf.contents + startindex, cindex - startindex);
 	skip_blanks_and_comment();
-	(void) is_first_word;
+	(void) type;
 	return result;
 	// TODO parser.c: parse_word: 暫定実装: 正確なワードの解析
 	// TODO parser.c: parse_word: エイリアス
@@ -921,7 +944,7 @@ static wordunit_T *parse_word(bool is_first_word)
 static wchar_t *parse_word_as_wcs(void)
 {
 	size_t index = cindex;
-	wordfree(parse_word(false));
+	wordfree(parse_word(globalonly));
 
 	/* 元のインデックスと現在のインデックスの間にあるワードを取り出す */
 	wchar_t *result = xwcsndup(cbuf.contents + index, cindex - index);
@@ -1148,7 +1171,7 @@ static command_T *parse_case(void)
 	result->c_type = CT_CASE;
 	result->c_lineno = cinfo->lineno;
 	result->c_redirs = NULL;
-	result->c_casword = parse_word(false);
+	result->c_casword = parse_word(globalonly);
 	if (!result->c_casword)
 		serror(Ngt("no word after `%ls'"), L"case");
 	skip_to_next_token();
@@ -1211,7 +1234,7 @@ static void **parse_case_patterns(void)
 		if (is_token_delimiter_char(cbuf.contents[cindex]))
 			serror(Ngt("invalid character `%lc' in case pattern"),
 					(wint_t) cbuf.contents[cindex]);
-		pl_add(&wordlist, parse_word(false));
+		pl_add(&wordlist, parse_word(globalonly));
 		ensure_buffer(1);
 		if (cbuf.contents[cindex] == L'|') {
 			cindex++;
@@ -1463,7 +1486,7 @@ static void print_assigns(
 		xwcsbuf_T *restrict buf, const assign_T *restrict a)
 {
 	while (a) {
-		wb_cat(buf, a->name);
+		wb_mbscat(buf, a->name);
 		wb_wccat(buf, L'=');
 		print_word(buf, a->value);
 		wb_wccat(buf, L' ');
@@ -1535,7 +1558,7 @@ static void print_paramexp(
 	wb_cat(buf, L"${");
 	if (p->pe_type & PT_NUMBER)
 		wb_wccat(buf, L'#');
-	wb_cat(buf, p->pe_name);
+	wb_mbscat(buf, p->pe_name);
 	if (p->pe_type & PT_COLON)
 		wb_wccat(buf, L':');
 	switch (p->pe_type & PT_MASK) {

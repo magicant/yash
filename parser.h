@@ -144,6 +144,8 @@ typedef struct wordunit_T {
 #define wu_param  wu_value.param
 #define wu_cmdsub wu_value.cmdsub
 #define wu_arith  wu_value.arith
+/* 数式展開では、$(( )) 内を数式として解釈する前にパラメータ展開を行う。
+ * よって、wu_arith の型は wordunit_T * である。 */
 
 /* paramexp_T の種類を表す */
 typedef enum {
@@ -187,19 +189,21 @@ typedef enum {
 /* パラメータ展開を表す */
 typedef struct paramexp_T {
 	paramexptype_T pe_type;
-	wchar_t *pe_name;
+	char *pe_name;
 	struct wordunit_T *pe_match, *pe_subst;
 } paramexp_T;
 /* pe_name は変数名。
- * pe_match は変数の内容とマッチさせる単語で、PT_MATCH, PT_SUBST でつかう。
+ * pe_match は変数の内容とマッチさせる単語で、PT_MATCH, PT_SUBST で使う。
  * pe_subst は変数の内容を置換する単語で、PT_NONE, PT_MATCH 以外で使う。 */
+/* pe_match, pe_subst が NULL のとき、それは空文字列を表す。 */
 
 /* 代入を表す */
 typedef struct assign_T {
 	struct assign_T *next;
-	wchar_t *name;             /* 代入する変数名 */
+	char *name;                /* 代入する変数名 */
 	struct wordunit_T *value;  /* 代入する値 */
 } assign_T;
+/* value が NULL のとき、それは空文字列を表す。 */
 
 /* リダイレクトの種類を表す */
 typedef enum {

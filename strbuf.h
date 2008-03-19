@@ -125,6 +125,11 @@ extern int wb_printf(
 		xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 	__attribute__((nonnull(1,2)));
 
+extern char *malloc_wcstombs(const wchar_t *s, size_t n)
+	__attribute__((nonnull,malloc));
+extern wchar_t *malloc_mbstowcs(const char *s, size_t n)
+	__attribute__((nonnull,malloc));
+
 
 /* マルチバイト文字列 s の最初の n バイトを
  * バッファの i バイト目の手前に挿入する。

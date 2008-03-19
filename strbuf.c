@@ -419,3 +419,58 @@ int wb_printf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 	va_end(ap);
 	return result;
 }
+
+
+
+/********** 文字列関連ユーティリティ **********/
+
+/* ワイド文字列 s の先頭最大 n 文字をマルチバイト文字列に変換し、
+ * 新しく malloc した文字列として返す。
+ * 変換の際にエラーがあると NULL を返す。 */
+char *malloc_wcstombs(const wchar_t *s, size_t n)
+{
+	xstrbuf_T buf;
+	mbstate_t state;
+	wchar_t ss[n + 1];
+	size_t nn = xwcsnlen(s, n);
+
+	if (s[nn] != L'\0') {
+		wcsncpy(ss, s, nn);
+		ss[nn] = L'\0';
+		s = ss;
+	}
+
+	sb_init(&buf);
+	memset(&state, 0, sizeof state);  /* 状態を初期状態で初期化 */
+	if (sb_wcscat(&buf, s, &state) == NULL
+			&& sb_wcscat(&buf, NULL, &state) == NULL) {
+		return sb_tostr(&buf);
+	} else {
+		sb_destroy(&buf);
+		return NULL;
+	}
+}
+
+/* マルチバイト文字列 s の先頭最大 n 文字をワイド文字列に変換し、
+ * 新しく malloc した文字列として返す。
+ * 変換の際にエラーがあると NULL を返す。 */
+wchar_t *malloc_mbstowcs(const char *s, size_t n)
+{
+	xwcsbuf_T buf;
+	char ss[n + 1];
+	size_t nn = xstrnlen(s, n);
+
+	if (s[nn] != '\0') {
+		strncpy(ss, s, nn);
+		ss[nn] = '\0';
+		s = ss;
+	}
+
+	wb_init(&buf);
+	if (wb_mbscat(&buf, s) == NULL) {
+		return wb_towcs(&buf);
+	} else {
+		wb_destroy(&buf);
+		return NULL;
+	}
+}
