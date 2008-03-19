@@ -20,9 +20,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <wchar.h>
-#ifdef HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "util.h"
 #include "strbuf.h"
 #include "lineinput.h"
@@ -71,7 +68,7 @@ int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 	}
 err:
 	xerror(0, errno,
-			gt("cannot convert multibyte character to wide character"));
+			Ngt("cannot convert multibyte character to wide character"));
 	return EOF;
 
 	/*
@@ -80,7 +77,7 @@ err:
 			buf->maxlength - buf->length + 1, &info->state);
 	if (count == (size_t) -1) {
 		xerror(0, errno,
-				gt("cannot convert multibyte character to wide character"));
+				Ngt("cannot convert multibyte character to wide character"));
 		return EOF;
 	}
 	buf->length += count;

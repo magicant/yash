@@ -132,6 +132,7 @@ unsigned yash_error_message_count = 0;
  * status: 非 0 ならメッセージを出した後 exit(status) を呼んで終了する。
  * errno_: 非 0 なら format メッセージに続けて errno に対応するメッセージを出す
  * format: エラーメッセージ。printf 用のフォーマット文字列。
+ *         xerror 内で gettext する。
  * 出力内容は以下の通り:
  *   - "%s: ", yash_program_invocation_name
  *   - format, ... の内容        (format が非 NULL の場合のみ)
@@ -147,7 +148,7 @@ void xerror(int status, int errno_, const char *restrict format, ...)
 	fprintf(stderr, "%s: ", yash_program_invocation_name);
 	if (format) {
 		va_start(ap, format);
-		vfprintf(stderr, format, ap);
+		vfprintf(stderr, gt(format), ap);
 		va_end(ap);
 	}
 	if (errno_) {

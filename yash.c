@@ -25,9 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "yash.h"
 #include "util.h"
 #include "lineinput.h"
@@ -135,12 +132,12 @@ int main(int argc __attribute__((unused)), char **argv)
 	shell_pid = getpid();
 
 	if (exec_first_arg && read_stdin) {
-		xerror(2, 0, gt("both -c and -s options cannot be given"));
+		xerror(2, 0, Ngt("both -c and -s options cannot be given"));
 	}
 	if (exec_first_arg) {
 		char *command = argv[xoptind++];
 		if (!command)
-			xerror(2, 0, gt("-c option requires an operand"));
+			xerror(2, 0, Ngt("-c option requires an operand"));
 		if (argv[xoptind])
 			command_name = argv[xoptind++];
 		is_interactive_now = is_interactive;
@@ -158,7 +155,7 @@ int main(int argc __attribute__((unused)), char **argv)
 			// TODO yash:main: fd を shellfd 以上に移す
 			if (!input)
 				xerror(errno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC, errno,
-						gt("cannot open file `%s'"), command_name);
+						Ngt("cannot open file `%s'"), command_name);
 		}
 		is_interactive_now = is_interactive;
 		//TODO yash:main: read file and exec commands
