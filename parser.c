@@ -287,6 +287,9 @@ static redir_T *tryparse_redirect(void)
 	__attribute__((malloc));
 static wordunit_T *parse_word(aliastype_T type)
 	__attribute__((malloc));
+static void skip_to_next_single_quote(void);
+static wordunit_T *parse_special_word_unit(void)
+	__attribute__((malloc));
 static wchar_t *parse_word_as_wcs(void)
 	__attribute__((malloc));
 static command_T *parse_compound_command(const wchar_t *command)
@@ -939,26 +942,113 @@ reparse:
  * ワードがなくてもエラーを出さない。 */
 static wordunit_T *parse_word(aliastype_T type)
 {
+	wordunit_T *first = NULL, **lastp = &first, *wu;
+	bool indq = false;  /* 二重引用符 " の中かどうか */
 	size_t startindex = cindex;
 
-	ensure_buffer(1);
-	while (!is_token_delimiter_char(cbuf.contents[cindex])) {
-		cindex++;
-		ensure_buffer(1);
-	}
-	if (startindex == cindex)
-		return NULL;
-
-	wordunit_T *result = xmalloc(sizeof *result);
-	result->next = NULL;
-	result->wu_type = WT_STRING;
-	result->wu_string = xwcsndup(
-			cbuf.contents + startindex, cindex - startindex);
-	skip_blanks_and_comment();
+	// TODO parser.c: parse_word: エイリアス展開
 	(void) type;
-	return result;
-	// TODO parser.c: parse_word: 暫定実装: 正確なワードの解析
-	// TODO parser.c: parse_word: エイリアス
+
+/* startindex から cindex の手前までの文字列を *lastp に追加する。 */
+#define MAKE_WORDUNIT_STRING                                                 \
+    do {                                                                     \
+        if (startindex != cindex) {                                          \
+            wordunit_T *w = xmalloc(sizeof *w);                              \
+            w->next = NULL;                                                  \
+            w->wu_type = WT_STRING;                                          \
+            w->wu_string = xwcsndup(                                         \
+                    cbuf.contents + startindex, cindex - startindex);        \
+            *lastp = w;                                                      \
+            lastp = &w->next;                                                \
+        }                                                                    \
+    } while (0)
+
+	while (ensure_buffer(1),
+			indq ? cbuf.contents[cindex] != L'\0'
+			     : !is_token_delimiter_char(cbuf.contents[cindex])) {
+
+		switch (cbuf.contents[cindex]) {
+		case L'\\':
+			ensure_buffer(2);
+			if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
+				wb_remove(&cbuf, cindex, 2);
+				cinfo->lineno++;
+				continue;
+			} else if (cbuf.contents[cindex + 1] != L'\0') {
+				cindex += 2;
+				continue;
+			}
+			break;
+		case L'$':
+		case L'`':
+			MAKE_WORDUNIT_STRING;
+			wu = parse_special_word_unit();
+			if (wu) {
+				*lastp = wu;
+				lastp = &wu->next;
+			}
+			startindex = cindex;
+			continue;
+		case L'\'':
+			if (!indq) {
+				cindex++;
+				skip_to_next_single_quote();
+			}
+			break;
+		case L'"':
+			indq = !indq;
+			/* falls thru! */
+		default:
+			break;
+		}
+		cindex++;
+	}
+	MAKE_WORDUNIT_STRING;
+
+#undef MAKE_WORDUNIT_STRING
+
+	if (indq)
+		serror(Ngt("double-quote not closed"));
+
+	skip_blanks_and_comment();
+	return first;
+}
+
+/* 次の単一引用符 ' が現れるまで cindex を増やして飛ばす。
+ * cindex は見付かった ' を指した状態で返る。
+ * よって cindex が最初から ' を指している場合は何もしない。
+ * ' が見付からずに EOF に達したらエラーを出す。 */
+static void skip_to_next_single_quote(void)
+{
+	for (;;) {
+		ensure_buffer(1);
+		switch (cbuf.contents[cindex]) {
+		case L'\'':
+			return;
+		case L'\0':
+			if (read_more_input() != 0) {
+				serror(Ngt("single-quote not closed"));
+				return;
+			}
+			break;
+		case L'\n':
+			cinfo->lineno++;
+			/* falls thru! */
+		default:
+			break;
+		}
+		cindex++;
+	}
+}
+
+/* '$' または '`' で始まる単語展開やコマンド置換を解析する。
+ * cindex は '$' か '`' を指した状態で呼び出され、解析した部分の直後の文字を
+ * 指した状態で返る。すなわち、cindex は少なくとも 1 以上増える。 */
+static wordunit_T *parse_special_word_unit(void)
+{
+	// TODO parser.c: parse_special_word_unit: 未実装
+	cindex++;
+	return NULL;
 }
 
 /* 現在位置にある WORD トークンを取り出す。
