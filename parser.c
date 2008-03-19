@@ -290,6 +290,14 @@ static wordunit_T *parse_word(aliastype_T type)
 static void skip_to_next_single_quote(void);
 static wordunit_T *parse_special_word_unit(void)
 	__attribute__((malloc));
+static wordunit_T *parse_paramexp_in_brace(void)
+	__attribute__((malloc));
+static wordunit_T *parse_cmdsubst_in_paren(void)
+	__attribute__((malloc));
+static wordunit_T *parse_cmdsubst_in_backquote(void)
+	__attribute__((malloc));
+static wordunit_T *tryparse_arith(void)
+	__attribute__((malloc));
 static wchar_t *parse_word_as_wcs(void)
 	__attribute__((malloc));
 static command_T *parse_compound_command(const wchar_t *command)
@@ -983,12 +991,15 @@ static wordunit_T *parse_word(aliastype_T type)
 		case L'`':
 			MAKE_WORDUNIT_STRING;
 			wu = parse_special_word_unit();
+			startindex = cindex;
 			if (wu) {
 				*lastp = wu;
 				lastp = &wu->next;
+				continue;
+			} else if (cbuf.contents[cindex] == L'\0') {
+				continue;
 			}
-			startindex = cindex;
-			continue;
+			break;
 		case L'\'':
 			if (!indq) {
 				cindex++;
@@ -1041,13 +1052,87 @@ static void skip_to_next_single_quote(void)
 	}
 }
 
-/* '$' または '`' で始まる単語展開やコマンド置換を解析する。
+/* '$' または '`' で始まるパラメータ展開やコマンド置換を解析する。
  * cindex は '$' か '`' を指した状態で呼び出され、解析した部分の直後の文字を
- * 指した状態で返る。すなわち、cindex は少なくとも 1 以上増える。 */
+ * 指した状態で返る。'$' の後にパラメータ展開などがなければ、cindex は最初の
+ * まま返る。さもなくば、cindex は少なくとも 1 以上増える。 */
 static wordunit_T *parse_special_word_unit(void)
 {
-	// TODO parser.c: parse_special_word_unit: 未実装
-	cindex++;
+	switch (cbuf.contents[cindex++]) {
+	case L'$':
+		ensure_buffer(2);
+		switch (cbuf.contents[cindex]) {
+		case L'{':
+			return parse_paramexp_in_brace();
+		case L'(':
+			if (cbuf.contents[cindex + 1] == L'(') {
+				wordunit_T *wu = tryparse_arith();
+				if (wu)
+					return wu;
+			}
+			return parse_cmdsubst_in_paren();
+		default:
+			cindex--;
+			return NULL;
+		}
+	case L'`':
+		return parse_cmdsubst_in_backquote();
+	default:
+		assert(false);
+	}
+}
+
+/* "${" で始まるパラメータ展開を解析する。
+ * cindex は '{' を指した状態で呼ばれ、対応する '}' の直後の文字を
+ * 指した状態で返る。 */
+static wordunit_T *parse_paramexp_in_brace(void)
+{
+	//TODO parser.c: parse_paramexp_in_brace: 未実装
+	return NULL;
+}
+
+/* "$(" で始まるコマンド置換を解析する。
+ * cindex は '(' を指した状態で呼ばれ、対応する ')' の直後の文字を指した状態で
+ * 返る。 */
+static wordunit_T *parse_cmdsubst_in_paren(void)
+{
+	// TODO parser: parse_cmdsubst_in_paren: エイリアスを一時的に無効にする
+	assert(cbuf.contents[cindex] == L'(');
+
+	size_t startindex = ++cindex;
+	andorsfree(parse_compound_list());
+	assert(startindex <= cindex);
+
+	wordunit_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->wu_type = WT_CMDSUB;
+	result->wu_cmdsub = xwcsndup(
+			cbuf.contents + startindex, cindex - startindex);
+
+	ensure_buffer(1);
+	if (cbuf.contents[cindex] == L')')
+		cindex++;
+	else
+		serror(Ngt("`%ls' missing"), L")");
+	return result;
+}
+
+/* '`' で始まるコマンド置換を解析する。
+ * cindex は '`' の直後の文字を指した状態で呼ばれ、対応する '`' の直後の文字を
+ * 指した状態で返る。 */
+static wordunit_T *parse_cmdsubst_in_backquote(void)
+{
+	// TODO parser.c: parse_cmdsubst_in_backquote: 未実装
+	return NULL;
+}
+
+/* "$((" で始まる数式展開を解析する。
+ * cindex は '$' の直後の '(' を指した状態で呼ばれ、成功すれば対応する "))" の
+ * 直後の文字を指した状態で返る。数式展開に失敗すれば、cindex は元のままで
+ * NULL を返す。 */
+static wordunit_T *tryparse_arith(void)
+{
+	//TODO parser.c: tryparse_arith: 未実装
 	return NULL;
 }
 
