@@ -911,8 +911,7 @@ reparse:
 }
 
 /* 現在位置のエイリアスを展開し、ワードを解析する。
- * is_first_word: true ならコマンドの最初のワードとして扱う。すなわち、
- *     グローバルエイリアスでない普通のエイリアスも展開する。
+ * type: 展開するエイリアスの種類
  * ワードがなくてもエラーを出さない。 */
 static wordunit_T *parse_word(aliastype_T type)
 {
