@@ -205,16 +205,40 @@ static void redirsfree(redir_T *r)
 
 /********** 構文解析に関する補助ルーチン **********/
 
+static inline bool is_name_char(wchar_t c)
+	__attribute__((const));
 static wchar_t *skip_name(const wchar_t *s)
 	__attribute__((nonnull));
 
+
+/* 引数が名前構成文字であるかどうか調べる */
+static inline bool is_name_char(wchar_t c)
+{
+	switch (c) {
+	case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
+	case L'5':  case L'6':  case L'7':  case L'8':  case L'9':
+	case L'a':  case L'b':  case L'c':  case L'd':  case L'e':  case L'f':
+	case L'g':  case L'h':  case L'i':  case L'j':  case L'k':  case L'l':
+	case L'm':  case L'n':  case L'o':  case L'p':  case L'q':  case L'r':
+	case L's':  case L't':  case L'u':  case L'v':  case L'w':  case L'x':
+	case L'y':  case L'z':
+	case L'A':  case L'B':  case L'C':  case L'D':  case L'E':  case L'F':
+	case L'G':  case L'H':  case L'I':  case L'J':  case L'K':  case L'L':
+	case L'M':  case L'N':  case L'O':  case L'P':  case L'Q':  case L'R':
+	case L'S':  case L'T':  case L'U':  case L'V':  case L'W':  case L'X':
+	case L'Y':  case L'Z':  case L'_':
+		return true;
+	default:
+		return false;
+	}
+}
 
 /* s の先頭にある、識別子として正しい部分を飛ばして、残りの部分へのポインタを
  * 返す。 */
 static wchar_t *skip_name(const wchar_t *s)
 {
 	if (!iswdigit(*s))
-		while (iswalnum(*s) || *s == L'_')
+		while (is_name_char(*s))
 			s++;
 	return (wchar_t *) s;
 }
