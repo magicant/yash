@@ -395,7 +395,8 @@ static inline int ensure_buffer(size_t n)
 
 /* cindex を増やして blank・コメント・行連結を飛ばす。必要に応じて
  * read_more_input する。cindex は次の非 blank 文字を指す。コメントを飛ばした
- * 場合はコメントの直後の文字 (普通は改行文字) を指す。 */
+ * 場合はコメントの直後の文字 (普通は改行文字) を指す。行連結は、飛ばすと
+ * いうよりは "\\\n" をバッファから削除する。 */
 static void skip_blanks_and_comment(void)
 {
 skipblanks:  /* blank を飛ばす */
@@ -414,10 +415,10 @@ skiptonewline:  /* コメントを飛ばす */
 	if (cbuf.contents[cindex] == L'\0' && read_more_input() == 0)
 		goto skiptonewline;
 
-	/* 行連結を飛ばす */
+	/* 行連結を削除する */
 	ensure_buffer(2);
 	if (cbuf.contents[cindex] == L'\\' && cbuf.contents[cindex + 1] == L'\n') {
-		cindex += 2;
+		wb_remove(&cbuf, cindex, 2);
 		cinfo->lineno++;
 		goto skipblanks;
 	}
@@ -521,6 +522,9 @@ static const wchar_t *check_closing_token_at(size_t index)
 static and_or_T *parse_command_list(void)
 {
 	and_or_T *first = NULL, **lastp = &first;
+	bool separator = true;
+	/* 二つ目以降のトークンを解析するにはセパレータ ('&', ';', または一つ以上の
+	 * 改行) が必要となる。 */
 
 	while (!cerror) {
 		skip_blanks_and_comment();
@@ -528,6 +532,9 @@ static and_or_T *parse_command_list(void)
 			break;
 		} else if (cbuf.contents[cindex] == L'\n') {
 			next_line();
+			break;
+		} else if (!separator) {
+			serror(Ngt("`;' or `&' missing"));
 			break;
 		}
 
@@ -537,11 +544,14 @@ static and_or_T *parse_command_list(void)
 			lastp = &ao->next;
 		}
 
+		separator = false;
 		ensure_buffer(2);
 		if (cbuf.contents[cindex] == L'&'
 				|| (cbuf.contents[cindex] == L';'
-					&& cbuf.contents[cindex + 1] != L';'))
+					&& cbuf.contents[cindex + 1] != L';')) {
 			cindex++;
+			separator = true;
+		}
 	}
 	return first;
 }
@@ -920,7 +930,6 @@ static wchar_t *parse_word_as_wcs(void)
 	while (index-- > 0 && iswblank(result[index]));
 	result[++index] = L'\0';
 	return result;
-	// TODO parser.c: parse_word_as_wcs: 行連結の削除
 }
 
 /* 複合コマンドを解析する。command はコマンド名。 */
