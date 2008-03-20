@@ -1122,8 +1122,47 @@ static wordunit_T *parse_cmdsubst_in_paren(void)
  * 指した状態で返る。 */
 static wordunit_T *parse_cmdsubst_in_backquote(void)
 {
-	// TODO parser.c: parse_cmdsubst_in_backquote: 未実装
-	return NULL;
+	xwcsbuf_T buf;
+	wordunit_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->wu_type = WT_CMDSUB;
+
+	assert(cbuf.contents[cindex - 1] == L'`');
+	wb_init(&buf);
+	for (;;) {
+		ensure_buffer(1);
+		switch (cbuf.contents[cindex]) {
+		case L'`':
+			cindex++;
+			goto end;
+		case L'\0':
+			if (read_more_input() != 0) {
+				serror(Ngt("backquoted command substitution not closed"));
+				goto end;
+			}
+			break;
+		case L'\\':
+			cindex++;
+			ensure_buffer(1);
+			switch (cbuf.contents[cindex]) {
+				case L'$':  case L'`':  case L'\\':
+					goto default_;
+				default:
+					wb_wccat(&buf, L'\\');
+					continue;
+			}
+		case L'\n':
+			cinfo->lineno++;
+			/* falls thru! */
+		default:  default_:
+			wb_wccat(&buf, cbuf.contents[cindex]);
+			cindex++;
+			break;
+		}
+	}
+end:
+	result->wu_cmdsub = wb_towcs(&buf);
+	return result;
 }
 
 /* "$((" で始まる数式展開を解析する。

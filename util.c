@@ -26,6 +26,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "yash.h"
 #include "util.h"
 

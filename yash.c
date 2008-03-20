@@ -25,6 +25,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "yash.h"
 #include "util.h"
 #include "lineinput.h"
@@ -90,7 +93,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	xoptind = 0;
 	xopterr = true;
 	// TODO yash:main: unimplemented options: -abCefhimnuvx -o
-	while ((opt = xgetopt_long(argv, "+cisV?", long_options, NULL)) >= 0) {
+	while ((opt = xgetopt_long(argv, "+cilsV?", long_options, NULL)) >= 0) {
 		switch (opt) {
 		case 0:
 			break;
