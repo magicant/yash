@@ -503,6 +503,7 @@ static void next_line(void)
 	for (size_t i = 0; i < pending_heredocs.length; i++)
 		read_heredoc_contents(pending_heredocs.contents[i]);
 	pl_clear(&pending_heredocs);
+	read_more_input();
 }
 
 /* 指定した文字がトークン区切り文字かどうかを調べる */
@@ -1012,6 +1013,10 @@ static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 				cindex += 2;
 				continue;
 			}
+			break;
+		case L'\n':
+			cinfo->lineno++;
+			read_more_input();
 			break;
 		case L'$':
 		case L'`':
