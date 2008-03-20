@@ -1016,8 +1016,6 @@ static wordunit_T *parse_word(aliastype_T type)
 	}
 	MAKE_WORDUNIT_STRING;
 
-#undef MAKE_WORDUNIT_STRING
-
 	if (indq)
 		serror(Ngt("double-quote not closed"));
 
@@ -1171,7 +1169,72 @@ end:
  * NULL を返す。 */
 static wordunit_T *tryparse_arith(void)
 {
-	//TODO parser.c: tryparse_arith: 未実装
+	size_t savecindex = cindex;
+	assert(cbuf.contents[cindex] == L'(' && cbuf.contents[cindex + 1] == L'(');
+	cindex += 2;
+
+	wordunit_T *first = NULL, **lastp = &first, *wu;
+	size_t startindex = cindex;
+	int nestparen = 0;
+
+	for (;;) {
+		ensure_buffer(1);
+		switch (cbuf.contents[cindex]) {
+		case L'\\':
+			ensure_buffer(2);
+			if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
+				wb_remove(&cbuf, cindex, 2);
+				cinfo->lineno++;
+				continue;
+			} else if (cbuf.contents[cindex + 1] != L'\0') {
+				cindex += 2;
+				continue;
+			}
+			break;
+		case L'$':
+		case L'`':
+			MAKE_WORDUNIT_STRING;
+			wu = parse_special_word_unit();
+			startindex = cindex;
+			if (wu) {
+				*lastp = wu;
+				lastp = &wu->next;
+				continue;
+			} else if (cbuf.contents[cindex] == L'\0') {
+				continue;
+			}
+			break;
+		case L'(':
+			nestparen++;
+			break;
+		case L')':
+			nestparen--;
+			if (nestparen < 0) {
+				ensure_buffer(2);
+				if (cbuf.contents[cindex + 1] == L')')
+					goto end;
+				else
+					goto fail;
+			}
+			break;
+		default:
+			break;
+		}
+		cindex++;
+	}
+end:
+	MAKE_WORDUNIT_STRING;
+	cindex += 2;
+
+	wordunit_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->wu_type = WT_ARITH;
+	result->wu_arith = first;
+	return result;
+
+fail:
+	wordfree(first);
+	cindex = savecindex;
 	return NULL;
 }
 
