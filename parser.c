@@ -290,6 +290,8 @@ static wordunit_T *parse_word(aliastype_T type)
 static void skip_to_next_single_quote(void);
 static wordunit_T *parse_special_word_unit(void)
 	__attribute__((malloc));
+static wordunit_T *parse_paramexp_raw(void)
+	__attribute__((malloc));
 static wordunit_T *parse_paramexp_in_brace(void)
 	__attribute__((malloc));
 static wordunit_T *parse_cmdsubst_in_paren(void)
@@ -1070,14 +1072,55 @@ static wordunit_T *parse_special_word_unit(void)
 			}
 			return parse_cmdsubst_in_paren();
 		default:
-			cindex--;
-			return NULL;
+			return parse_paramexp_raw();
 		}
 	case L'`':
 		return parse_cmdsubst_in_backquote();
 	default:
 		assert(false);
 	}
+}
+
+/* { } で囲んでいないパラメータを解析する。
+ * cindex は '$' の直後の文字を指した状態で呼ばれ、変数名部分の直後の文字を
+ * 指した状態で返る。正しいパラメータがなければ、cindex を元より 1 少なくして
+ * NULL を返す。 */
+static wordunit_T *parse_paramexp_raw(void)
+{
+	const wchar_t *namestart = cbuf.contents + cindex;
+	paramexp_T *pe;
+	size_t namelen;
+
+	ensure_buffer(1);
+	switch (namestart[0]) {
+		case L'@':  case L'*':  case L'#':  case L'?':
+		case L'-':  case L'$':  case L'!':
+			namelen = 1;
+			goto success;
+	}
+	if (is_name_char(namestart[0])) {
+		do
+			namelen = skip_name(namestart) - namestart;
+		while (namestart[namelen] == L'\0' && read_more_input() == 0);
+		if (namelen == 0) {
+			assert(L'0' <= namestart[0] && namestart[0] <= L'9');
+			namelen++;
+		}
+success:
+		pe = xmalloc(sizeof *pe);
+		pe->pe_type = PT_NONE;
+		pe->pe_name = malloc_wcstombs(namestart, namelen);
+		pe->pe_match = pe->pe_subst = NULL;
+
+		wordunit_T *result = xmalloc(sizeof *result);
+		result->next = NULL;
+		result->wu_type = WT_PARAM;
+		result->wu_param = pe;
+		cindex += namelen;
+		return result;
+	}
+	cindex--;
+	return NULL;
 }
 
 /* "${" で始まるパラメータ展開を解析する。
