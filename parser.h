@@ -184,7 +184,8 @@ typedef enum {
  * ${n:/m/s}  SUBST   yes    yes    yes
  *
  * PT_NUMBER は、変数の内容ではなく変数の内容の文字数に置換するフラグで、
- * PT_NONE でのみ有効。 */
+ * PT_NONE でのみ有効。(${#n})
+ * PT_SUBST は POSIX 規格にはない。 */
 
 /* パラメータ展開を表す */
 typedef struct paramexp_T {

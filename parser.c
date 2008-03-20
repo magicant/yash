@@ -256,7 +256,12 @@ static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
 static bool is_token_delimiter_char(wchar_t c);
-static bool is_command_delimiter_char(wchar_t c);
+static bool is_command_delimiter_char(wchar_t c)
+	__attribute__((const));
+static bool is_slash_or_closing_brace(wchar_t c)
+	__attribute__((const));
+static bool is_closing_brace(wchar_t c)
+	__attribute__((const));
 static bool is_token_at(const wchar_t *token, size_t index)
 	__attribute__((nonnull));
 static const wchar_t *check_opening_token_at(size_t index);
@@ -285,7 +290,9 @@ static assign_T *tryparse_assignment(void)
 	__attribute__((malloc));
 static redir_T *tryparse_redirect(void)
 	__attribute__((malloc));
-static wordunit_T *parse_word(aliastype_T type)
+static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
+	__attribute__((malloc,nonnull));
+static inline wordunit_T *parse_word(aliastype_T type)
 	__attribute__((malloc));
 static void skip_to_next_single_quote(void);
 static wordunit_T *parse_special_word_unit(void)
@@ -323,6 +330,11 @@ static const char *get_errmsg_unexpected_token(const wchar_t *token)
 	__attribute__((nonnull));
 static void print_errmsg_token_missing(const wchar_t *token, size_t index)
 	__attribute__((nonnull));
+
+static inline wordunit_T *parse_word(aliastype_T type)
+{
+	return parse_word_to(type, is_token_delimiter_char);
+}
 
 
 /* 解析中のソースのデータ */
@@ -506,6 +518,16 @@ static bool is_command_delimiter_char(wchar_t c)
 {
 	return c == L'\0' || c == L'\n'
 		|| c == L';' || c == L'&' || c == L'|' || c == L'(' || c == L')';
+}
+
+static bool is_slash_or_closing_brace(wchar_t c)
+{
+	return c == L'/' || c == L'}' || c == L'\0';
+}
+
+static bool is_closing_brace(wchar_t c)
+{
+	return c == L'}' || c == L'\0';
 }
 
 /* cbuf の指定したインデックスにトークン token があるか調べる。
@@ -844,18 +866,17 @@ static void parse_redirect_list(redir_T **lastp)
  * なければ、何もせず NULL を返す。 */
 static assign_T *tryparse_assignment(void)
 {
-	const wchar_t *namestart = cbuf.contents + cindex;
 	size_t namelen;
 
 	do
-		namelen = skip_name(namestart) - namestart;
-	while (namestart[namelen] == L'\0' && read_more_input() == 0);
-	if (namelen == 0 || namestart[namelen] != L'=')
+		namelen = skip_name(cbuf.contents + cindex) - (cbuf.contents + cindex);
+	while (cbuf.contents[cindex + namelen] == L'\0' && read_more_input() == 0);
+	if (namelen == 0 || cbuf.contents[cindex + namelen] != L'=')
 		return NULL;
 
 	assign_T *result = xmalloc(sizeof *result);
 	result->next = NULL;
-	result->name = malloc_wcstombs(namestart, namelen);
+	result->name = malloc_wcstombs(cbuf.contents + cindex, namelen);
 	cindex += namelen + 1;
 
 	ensure_buffer(1);
@@ -949,8 +970,11 @@ reparse:
 
 /* 現在位置のエイリアスを展開し、ワードを解析する。
  * type: 展開するエイリアスの種類
+ * testfunc: ワード区切り文字かどうかを判別する関数
+ *       解析は、エスケープされていなくて testfunc が false を返す文字まで進む。
+ *       testfunc は、NULL 文字に対して true を返さねばならない。
  * ワードがなくてもエラーを出さない。 */
-static wordunit_T *parse_word(aliastype_T type)
+static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
 	wordunit_T *first = NULL, **lastp = &first, *wu;
 	bool indq = false;  /* 二重引用符 " の中かどうか */
@@ -975,7 +999,7 @@ static wordunit_T *parse_word(aliastype_T type)
 
 	while (ensure_buffer(1),
 			indq ? cbuf.contents[cindex] != L'\0'
-			     : !is_token_delimiter_char(cbuf.contents[cindex])) {
+			     : !testfunc(cbuf.contents[cindex])) {
 
 		switch (cbuf.contents[cindex]) {
 		case L'\\':
@@ -1087,38 +1111,40 @@ static wordunit_T *parse_special_word_unit(void)
  * NULL を返す。 */
 static wordunit_T *parse_paramexp_raw(void)
 {
-	const wchar_t *namestart = cbuf.contents + cindex;
 	paramexp_T *pe;
-	size_t namelen;
+	size_t namelen;  /* 変数名の長さ */
 
 	ensure_buffer(1);
-	switch (namestart[0]) {
+	switch (cbuf.contents[cindex]) {
 		case L'@':  case L'*':  case L'#':  case L'?':
 		case L'-':  case L'$':  case L'!':
 			namelen = 1;
 			goto success;
 	}
-	if (is_name_char(namestart[0])) {
-		do
-			namelen = skip_name(namestart) - namestart;
-		while (namestart[namelen] == L'\0' && read_more_input() == 0);
-		if (namelen == 0) {
-			assert(L'0' <= namestart[0] && namestart[0] <= L'9');
-			namelen++;
-		}
-success:
-		pe = xmalloc(sizeof *pe);
-		pe->pe_type = PT_NONE;
-		pe->pe_name = malloc_wcstombs(namestart, namelen);
-		pe->pe_match = pe->pe_subst = NULL;
+	if (!is_name_char(cbuf.contents[cindex]))
+		goto fail;
 
-		wordunit_T *result = xmalloc(sizeof *result);
-		result->next = NULL;
-		result->wu_type = WT_PARAM;
-		result->wu_param = pe;
-		cindex += namelen;
-		return result;
+	do
+		namelen = skip_name(cbuf.contents + cindex) - (cbuf.contents + cindex);
+	while (cbuf.contents[cindex + namelen] == L'\0' && read_more_input() == 0);
+	if (namelen == 0) {
+		assert(L'0' <= cbuf.contents[cindex] && cbuf.contents[cindex] <= L'9');
+		namelen++;
 	}
+success:
+	pe = xmalloc(sizeof *pe);
+	pe->pe_type = PT_NONE;
+	pe->pe_name = malloc_wcstombs(cbuf.contents + cindex, namelen);
+	pe->pe_match = pe->pe_subst = NULL;
+
+	wordunit_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->wu_type = WT_PARAM;
+	result->wu_param = pe;
+	cindex += namelen;
+	return result;
+
+fail:
 	cindex--;
 	return NULL;
 }
@@ -1128,8 +1154,129 @@ success:
  * 指した状態で返る。 */
 static wordunit_T *parse_paramexp_in_brace(void)
 {
-	//TODO parser.c: parse_paramexp_in_brace: 未実装
-	return NULL;
+	paramexp_T *pe = xmalloc(sizeof *pe);
+	pe->pe_type = 0;
+	pe->pe_name = NULL;
+	pe->pe_match = pe->pe_subst = NULL;
+
+	wordunit_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->wu_type = WT_PARAM;
+	result->wu_param = pe;
+
+	assert(cbuf.contents[cindex] == L'{');
+	cindex++;
+
+	/* PT_NUMBER を解析 */
+	ensure_buffer(3);
+	if (cbuf.contents[cindex] == L'#'
+			&& cbuf.contents[cindex + 1] != L'}'
+			&& (cbuf.contents[cindex + 1] != L'#'
+				|| (cbuf.contents[cindex + 1] != L'\0'
+					&& cbuf.contents[cindex + 2] == L'}'))) {
+		pe->pe_type |= PT_NUMBER;
+		cindex++;
+	}
+
+	/* 変数名を取り出す */
+	size_t namestartindex = cindex;
+	switch (cbuf.contents[cindex]) {
+		case L'@':  case L'*':  case L'#':  case L'?':
+		case L'-':  case L'$':  case L'!':
+			cindex++;
+			goto make_name;
+	}
+	do
+		while (is_name_char(cbuf.contents[cindex]))
+			cindex++;
+	while (cbuf.contents[cindex] == L'\0' && read_more_input == 0);
+	if (namestartindex == cindex) {
+		serror(Ngt("parameter name missing"));
+		goto fail;
+	}
+make_name:
+	pe->pe_name = malloc_wcstombs(
+			cbuf.contents + namestartindex, cindex - namestartindex);
+
+	/* PT_COLON を解析 */
+	ensure_buffer(3);
+	if (cbuf.contents[cindex] == L':') {
+		pe->pe_type |= PT_COLON;
+		cindex++;
+	}
+
+	/* '-' とか '+' とか '#' とかを解析 */
+	switch (cbuf.contents[cindex]) {
+	case L'-':   pe->pe_type |= PT_MINUS;                    goto parse_subst;
+	case L'+':   pe->pe_type |= PT_PLUS;                     goto parse_subst;
+	case L'=':   pe->pe_type |= PT_ASSIGN;                   goto parse_subst;
+	case L'?':   pe->pe_type |= PT_ERROR;                    goto parse_subst;
+	case L'#':   pe->pe_type |= PT_MATCH | PT_MATCHHEAD;     goto parse_match;
+	case L'%':   pe->pe_type |= PT_MATCH | PT_MATCHTAIL;     goto parse_match;
+	case L'/':   pe->pe_type |= PT_SUBST | PT_MATCHLONGEST;  goto parse_match;
+	case L'}':
+		pe->pe_type |= PT_NONE;
+		if (pe->pe_type & PT_COLON)
+			serror(Ngt("invalid use of `:' in parameter expansion"));
+		goto check_closing_paren_and_finish;
+	case L'\0':  case L'\n':
+		serror(Ngt("`%ls' missing"), L"}");
+		goto fail;
+	default:
+		serror(Ngt("invalid character `%lc' in parameter expansion"),
+				(wint_t) cbuf.contents[cindex]);
+		goto fail;
+	}
+
+parse_match:
+	if (pe->pe_type & PT_COLON) {
+		if ((pe->pe_type & PT_MASK) != PT_SUBST)
+			serror(Ngt("invalid use of `:' in parameter expansion"));
+		cindex += 1;
+	} else if (cbuf.contents[cindex] == cbuf.contents[cindex + 1]) {
+		if ((pe->pe_type & PT_MASK) == PT_MATCH)
+			pe->pe_type |= PT_MATCHLONGEST;
+		else
+			pe->pe_type |= PT_SUBSTALL;
+		cindex += 2;
+	} else if (cbuf.contents[cindex] == L'/') {
+		if (cbuf.contents[cindex + 1] == L'#') {
+			pe->pe_type |= PT_MATCHHEAD;
+			cindex += 2;
+		} else if (cbuf.contents[cindex + 1] == L'%') {
+			pe->pe_type |= PT_MATCHTAIL;
+			cindex += 2;
+		} else {
+			cindex += 1;
+		}
+	} else {
+		cindex += 1;
+	}
+	if ((pe->pe_type & PT_MASK) == PT_MATCH) {
+		pe->pe_match = parse_word_to(noalias, is_closing_brace);
+		goto check_closing_paren_and_finish;
+	} else {
+		pe->pe_match = parse_word_to(noalias, is_slash_or_closing_brace);
+	}
+
+	/* ensure_buffer(1); */
+	if (cbuf.contents[cindex] != L'/')
+		goto check_closing_paren_and_finish;
+parse_subst:
+	cindex++;
+	pe->pe_subst = parse_word_to(noalias, is_closing_brace);
+
+check_closing_paren_and_finish:
+	/* ensure_buffer(1); */
+	if (cbuf.contents[cindex] == L'}')
+		cindex++;
+	else
+		serror(Ngt("`%ls' missing"), L"}");
+	if ((pe->pe_type & PT_NUMBER) && (pe->pe_type & PT_MASK) != PT_NONE)
+		serror(Ngt("invalid use of `#' flag in parameter expansion"));
+
+fail:
+	return result;
 }
 
 /* "$(" で始まるコマンド置換を解析する。
