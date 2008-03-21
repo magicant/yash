@@ -36,6 +36,9 @@ way Yash is built and installed:
   --bindir=DIR
           Install Yash in DIR, rather than /usr/local/bin.
 
+To static-link GNU Readline Library, copy a pre-compiled `libreadline.a`
+file into this directory and then do `configure'.
+
 Following environment variables override `configure' script's choices:
 
   CC

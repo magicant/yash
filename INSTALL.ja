@@ -35,6 +35,9 @@ configure スクリプトを実行する際に以下のオプションを与え�
   --bindir=DIR
           デフォルトの /usr/local/bin ではなく、指定した DIR にインストールする
 
+GNU Readline ライブラリを静的にリンクさせたい場合は、予めコンパイルした
+libreadline.a をこのディレクトリ内にコピーしてから、configure を実行する。
+
 configure スクリプトは環境変数によって設定内容を変更する。
 以下の環境変数は configure スクリプトが行った通常の設定を上書きする:
 

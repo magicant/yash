@@ -22,18 +22,19 @@ configlog="config.log"
 configh="config.h"
 versionh="version.h"
 tempsrc=".temp.c"
-tempout=".temp.o"
+tempout=".temp.out"
 
 cc="${CC-c99}"
 cflags="${CFLAGS--O1 -g}"
-ldflags="${LDFLAGS--l c}"
+ldflags="${LDFLAGS}"
+ldlibs="${LDLIBS--l c}"
 target="yash"
 package="yash"
 version="2.0 WIP"
 copyrightyear="2007-2008"
 
 sources="common.h exec.c exec.h hashtable.c hashtable.h lineinput.c lineinput.h parser.c parser.h plist.c plist.h strbuf.c strbuf.h util.c util.h yash.h yash.c" 
-objs="yash.o util.o strbuf.o plist.o hashtable.o lineinput.o parser.o exec.o"
+objs="util.o strbuf.o plist.o hashtable.o lineinput.o parser.o exec.o yash.o"
 
 help="no"
 gcc=""
@@ -86,7 +87,7 @@ Installation options:
   --bindir=DIR           install executable in DIR [EPREFIX/bin]
 
 Influential environment variables:
-  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LIBS, INSTALL_PROGRAM
+  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, INSTALL_PROGRAM
 END
 	exit 0
 fi
@@ -124,10 +125,10 @@ checkby () {
 	eval "$@" '>&5 2>&1'
 }
 trycompile () {
-	echo "%" ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} ${LIBS} \
-		"$@" -o "${tempout}" "${tempsrc}" >&5
-	${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} ${LIBS} \
-		"$@" -o "${tempout}" "${tempsrc}" >&5 2>&1
+	echo "%" ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
+		"${tempsrc}" "$@" ${ldlibs} >&5
+	${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
+		"${tempsrc}" "$@" ${ldlibs} >&5 2>&1
 }
 checked () {
 	echo "$1"
@@ -181,18 +182,24 @@ char *(*x)() = rl_filename_completion_function;
 void *y = &rl_attempted_completion_over;
 int main() { readline(""); return 0; }
 END
-	if trycompile -l readline
+	if [ -r libreadline.a ]
+	then
+		rllib="libreadline.a"
+	else
+		rllib="-l readline"
+	fi
+	if trycompile ${rllib}
 	then
 		checked "yes"
-		ldflags="${ldflags} -l readline"
+		ldlibs="${rllib} ${ldlibs}"
 		readline="ok"
 	else
 		for i in ${rlldflagcand}
 		do
-			if trycompile -l $i -l readline
+			if trycompile ${rllib} -l $i
 			then
 				checked "with $i library"
-				ldflags="${ldflags} -l $i -l readline"
+				ldlibs="${rllib} -l $i ${ldlibs}"
 				readline="ok"
 				break
 			fi
@@ -275,7 +282,8 @@ cflags="${cflags} -D HAVE_CONFIG_H"
 
 CC="${CC-${cc}}"
 CFLAGS="${CFLAGS-${cflags}} ${CADDS}"
-LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS} ${LIBS}"
+LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS}"
+LDLIBS="${LDLIBS-${ldlibs}}"
 SOURCES="${sources}"
 OBJS="${objs}"
 PACKAGE="${package}"
@@ -296,6 +304,7 @@ sed -e "
     s!@CC@!${CC}!g
     s!@CFLAGS@!${CFLAGS}!g
     s!@LDFLAGS@!${LDFLAGS}!g
+    s!@LDLIBS@!${LDLIBS}!g
     s!@SOURCES@!${SOURCES}!g
     s!@OBJS@!${OBJS}!g
     s!@PACKAGE@!${PACKAGE}!g
@@ -314,6 +323,7 @@ echo "===== Output variables =====" >&5
 echo CC="'${CC}'" >&5
 echo CFLAGS="'${CFLAGS}'" >&5
 echo LDFLAGS="'${LDFLAGS}'" >&5
+echo LDLIBS="'${LDLIBS}'" >&5
 echo SOURCES="'${SOURCES}'" >&5
 echo OBJS="'${OBJS}'" >&5
 echo PACKAGE="'${PACKAGE}'" >&5

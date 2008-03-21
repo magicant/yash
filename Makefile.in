@@ -19,6 +19,7 @@
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
+LDLIBS = @LDLIBS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 SOURCES = @SOURCES@
 OBJS = @OBJS@
@@ -27,6 +28,7 @@ TARGET = @TARGET@
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
 test check: $(TARGET)
 	@cd tests && exec $(SHELL) ./run-all.sh

@@ -2,8 +2,8 @@ Yash: yet another shell
 =======================
 
 
-Yash is a implementation of Bourne shell, personally developed by
-Magicant. It is under development aiming at complete comformance to
+Yash is a implementation of command line shell, personally developed
+by Magicant. It is under development aiming at complete comformance to
 POSIX.1-2001.
 
 
