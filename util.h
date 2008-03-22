@@ -100,9 +100,9 @@ char *mprintf(const char *restrict format, ...)
 #define IS_TYPE_SIGNED(type) ((type) 1 > (type) -1)
 
 /* 整数型 type を文字列に変換した場合の最大長。
- * CHAR_MAX の為に limits.h が必要。 */
+ * CHAR_BIT の為に limits.h が必要。 */
 #define INT_STRLEN_BOUND(type) \
-	((sizeof(type) * CHAR_MAX - IS_TYPE_SIGNED(type)) * 31 / 100 \
+	((sizeof(type) * CHAR_BIT - IS_TYPE_SIGNED(type)) * 31 / 100 \
 	 + 1 + IS_TYPE_SIGNED(type))
 
 

@@ -366,8 +366,8 @@ void handle_signals(void)
 		assert(false);
 	}
 	if (sigchld_received) {
-		wait_chld();
 		sigchld_received = 0;
+		wait_chld();
 	}
 	/* 注: SIGINT は wait 組込みコマンドが扱うので、ここでは扱わない。 */
 }
