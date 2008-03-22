@@ -1831,6 +1831,7 @@ static void print_paramexp(
 static void trim_end_of_buffer(xwcsbuf_T *buf)
 	__attribute__((nonnull));
 
+#if 0
 /* 構文木をワイド文字列に変換して返す。
  * 戻り値は free 可能なワイド文字列へのポインタ。 */
 wchar_t *commands_to_wcstring(const and_or_T *commands)
@@ -1839,6 +1840,19 @@ wchar_t *commands_to_wcstring(const and_or_T *commands)
 
 	wb_init(&buf);
 	print_and_or_lists(&buf, commands, true);
+	trim_end_of_buffer(&buf);
+	return wb_towcs(&buf);
+}
+#endif
+
+/* 一つのコマンドをワイド文字列に変換して返す。
+ * 戻り値は free 可能なワイド文字列へのポインタ。 */
+wchar_t *command_to_wcs(const command_T *command)
+{
+	xwcsbuf_T buf;
+
+	wb_init(&buf);
+	print_command_content(&buf, command);
 	trim_end_of_buffer(&buf);
 	return wb_towcs(&buf);
 }

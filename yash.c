@@ -32,6 +32,7 @@
 #include "util.h"
 #include "lineinput.h"
 #include "parser.h"
+#include "job.h"
 #include "exec.h"
 #include "version.h"
 
@@ -143,7 +144,7 @@ int main(int argc __attribute__((unused)), char **argv)
 			xerror(2, 0, Ngt("-c option requires an operand"));
 		if (argv[xoptind])
 			command_name = argv[xoptind++];
-		is_interactive_now = is_interactive;
+		do_job_control = is_interactive_now = is_interactive;
 		// TODO yash:main:exec_first_arg シェル環境設定・位置パラメータ
 		exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
 	} else {
@@ -160,7 +161,7 @@ int main(int argc __attribute__((unused)), char **argv)
 				xerror(errno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC, errno,
 						Ngt("cannot open file `%s'"), command_name);
 		}
-		is_interactive_now = is_interactive;
+		do_job_control = is_interactive_now = is_interactive;
 		//TODO yash:main: read file and exec commands
 		xerror(2, 0, "executing %s: NOT IMPLEMENTED", command_name);
 	}
@@ -240,4 +241,7 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
 					return false;
 		}
 	}
+	/* コマンドを一つも実行しなかった場合のみ後から laststatus を 0 にする。
+	 * 最初に laststatus を 0 にしてしまうと、コマンドを実行する際に $? の値が
+	 * 変わってしまう。 */
 }

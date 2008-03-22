@@ -271,7 +271,7 @@ extern int read_and_parse(
 
 /********** 構文木を文字列に戻すルーチン **********/
 
-extern wchar_t *commands_to_wcstring(const and_or_T *commands)
+extern wchar_t *command_to_wcs(const command_T *command)
 	__attribute__((malloc));
 
 

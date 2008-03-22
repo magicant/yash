@@ -15,5 +15,16 @@ See the file INSTALL to find how to build and install Yash.
 Currently there is no manpage for yash. Sorry.
 
 
+===== Limitations =====
+
+ * In C, a null character represents the end of string. If input from
+   a file or a string in itself contains a null character, the
+   following characters will be neglected.
+ * The GCC extension keyword `__attribute__' is used in source codes.
+   When not compiled with GCC, this keyword is removed by preprocessor,
+   so generally there is no harm. But if your compiler uses this
+   keyword for another purpose, compilation may fail.
+
+
 ======================
 Magicant <magicant.starmen@nifty.com>
