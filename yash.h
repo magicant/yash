@@ -32,8 +32,8 @@ extern bool is_login_shell, is_interactive, is_interactive_now;
 extern const char *command_name;
 extern pid_t shell_pid;
 
-extern bool exec_mbs(const char *code, const char *name, bool finally_exit)
-	__attribute__((nonnull(1)));
+__attribute__((nonnull(1)))
+extern bool exec_mbs(const char *code, const char *name, bool finally_exit);
 
 
 #endif /* YASH_H */

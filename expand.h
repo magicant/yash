@@ -21,9 +21,11 @@
 
 #include <stdbool.h>
 
-bool expand_line(void *const *restrict args,
-		int *restrict argcp, void ***restrict argvp)
-	__attribute__((nonnull));
+__attribute__((nonnull))
+bool expand_line(
+		void *const *restrict args,
+		int *restrict argcp,
+		void ***restrict argvp);
 
 
 #endif /* EXPAND_H */

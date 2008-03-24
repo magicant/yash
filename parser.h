@@ -264,15 +264,15 @@ typedef struct parseinfo_T {
 	void *inputinfo;      /* 入力関数に渡す情報 */
 } parseinfo_T;
 
+__attribute__((nonnull))
 extern int read_and_parse(
-		parseinfo_T *restrict info, and_or_T **restrict result)
-	__attribute__((nonnull));
+		parseinfo_T *restrict info, and_or_T **restrict result);
 
 
 /********** 構文木を文字列に戻すルーチン **********/
 
-extern wchar_t *command_to_wcs(const command_T *command)
-	__attribute__((malloc));
+__attribute__((malloc,warn_unused_result))
+extern wchar_t *command_to_wcs(const command_T *command);
 
 
 /********** 構文木データを解放するルーチン **********/

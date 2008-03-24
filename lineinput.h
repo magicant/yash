@@ -25,8 +25,8 @@
 #  include <readline/readline.h>
 #  include <readline/history.h>
 # else
-#  include "readline.h"
-#  include "history.h"
+#  include "readline.h"  /* should be manually prepared */
+#  include "history.h"   /* should be manually prepared */
 # endif
 #endif
 
