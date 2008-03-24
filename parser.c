@@ -1857,6 +1857,16 @@ wchar_t *command_to_wcs(const command_T *command)
 	return wb_towcs(&buf);
 }
 
+// TODO DEBUG parser.c: word_to_wcs
+wchar_t *word_to_wcs(const wordunit_T *word)
+{
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	print_word(&buf, word);
+	trim_end_of_buffer(&buf);
+	return wb_towcs(&buf);
+}
+
 static void print_and_or_lists(
 		xwcsbuf_T *restrict buf, const and_or_T *restrict c, bool omitsemicolon)
 {
