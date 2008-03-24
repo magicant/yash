@@ -57,6 +57,7 @@ pid_t shell_pid;
 
 static const struct xoption long_options[] = {
     { "interactive", xno_argument, NULL, 'i', },
+    { "job-control", xno_argument, NULL, 'm', },
     { "login",       xno_argument, NULL, 'l', },
     { "posix",       xno_argument, NULL, 'X', },
     { "help",        xno_argument, NULL, '?', },
@@ -68,6 +69,7 @@ int main(int argc __attribute__((unused)), char **argv)
 {
     bool help = false, version = false;
     bool exec_first_arg = false, read_stdin = false;
+    bool do_job_control_set = false;
     int opt;
     const char *shortest_name;
 
@@ -96,7 +98,7 @@ int main(int argc __attribute__((unused)), char **argv)
     xoptind = 0;
     xopterr = true;
     // TODO yash:main: unimplemented options: -abCefhimnuvx -o
-    while ((opt = xgetopt_long(argv, "+cilsV?", long_options, NULL)) >= 0) {
+    while ((opt = xgetopt_long(argv, "+cimlsV?", long_options, NULL)) >= 0) {
 	switch (opt) {
 	case 0:
 	    break;
@@ -105,6 +107,10 @@ int main(int argc __attribute__((unused)), char **argv)
 	    break;
 	case 'i':
 	    is_interactive = (xoptopt == '-');
+	    break;
+	case 'm':
+	    do_job_control = (xoptopt == '-');
+	    do_job_control_set = true;
 	    break;
 	case 'l':
 	    is_login_shell = (xoptopt == '-');
@@ -148,7 +154,9 @@ int main(int argc __attribute__((unused)), char **argv)
 	    xerror(2, 0, Ngt("-c option requires an operand"));
 	if (argv[xoptind])
 	    command_name = argv[xoptind++];
-	do_job_control = is_interactive_now = is_interactive;
+	is_interactive_now = is_interactive;
+	if (!do_job_control_set)
+	    do_job_control = is_interactive;
 	// TODO yash:main:exec_first_arg シェル環境設定・位置パラメータ
 	set_signals();
 	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
@@ -166,7 +174,9 @@ int main(int argc __attribute__((unused)), char **argv)
 		xerror(errno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC, errno,
 			Ngt("cannot open file `%s'"), command_name);
 	}
-	do_job_control = is_interactive_now = is_interactive;
+	is_interactive_now = is_interactive;
+	if (!do_job_control_set)
+	    do_job_control = is_interactive;
 	set_signals();
 	//TODO yash:main: read file and exec commands
 	xerror(2, 0, "executing %s: NOT IMPLEMENTED", command_name);
