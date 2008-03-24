@@ -25,7 +25,7 @@
 extern int laststatus;
 
 struct and_or_T;
-extern void exec_and_or_lists(struct and_or_T *a, bool finally_exit);
+extern void exec_and_or_lists(const struct and_or_T *a, bool finally_exit);
 
 
 #endif /* EXEC_H */

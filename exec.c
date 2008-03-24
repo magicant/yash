@@ -52,22 +52,22 @@ typedef struct pipeinfo_T {
 #define PIDX_OUT 1   /* パイプの書き込み側の FD のインデックス */
 #define PIPEINFO_INIT { -1, { -1, -1 }, -1 }  /* pipeinfo_T の初期化用 */
 
-static void exec_pipelines(pipeline_T *p, bool finally_exit);
-static void exec_pipelines_async(pipeline_T *p);
+static void exec_pipelines(const pipeline_T *p, bool finally_exit);
+static void exec_pipelines_async(const pipeline_T *p);
 __attribute__((nonnull))
-static void exec_if(command_T *c, bool finally_exit);
+static void exec_if(const command_T *c, bool finally_exit);
 __attribute__((nonnull))
-static void exec_for(command_T *c, bool finally_exit);
+static void exec_for(const command_T *c, bool finally_exit);
 __attribute__((nonnull))
-static void exec_while(command_T *c, bool finally_exit);
+static void exec_while(const command_T *c, bool finally_exit);
 __attribute__((nonnull))
-static void exec_case(command_T *c, bool finally_exit);
+static void exec_case(const command_T *c, bool finally_exit);
 __attribute__((nonnull))
 static inline void next_pipe(pipeinfo_T *pi, bool next);
-static void exec_commands(command_T *c, exec_T type, bool looppipe);
+static void exec_commands(const command_T *c, exec_T type, bool looppipe);
 __attribute__((nonnull))
 static pid_t exec_process(
-	command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid);
+	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid);
 static pid_t fork_and_reset(pid_t pgid, bool fg);
 
 
@@ -77,7 +77,7 @@ int laststatus = EXIT_SUCCESS;
 
 /* コマンドを実行する。
  * finally_exit: true なら実行後そのまま終了する。 */
-void exec_and_or_lists(and_or_T *a, bool finally_exit)
+void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 {
     while (a) {
 	if (!a->ao_async)
@@ -92,7 +92,7 @@ void exec_and_or_lists(and_or_T *a, bool finally_exit)
 }
 
 /* パイプラインたちを実行する。 */
-static void exec_pipelines(pipeline_T *p, bool finally_exit)
+static void exec_pipelines(const pipeline_T *p, bool finally_exit)
 {
     while (p) {
 	exec_commands(p->pl_commands,
@@ -110,7 +110,7 @@ static void exec_pipelines(pipeline_T *p, bool finally_exit)
 }
 
 /* パイプラインたちを非同期的に実行する。 */
-static void exec_pipelines_async(pipeline_T *p)
+static void exec_pipelines_async(const pipeline_T *p)
 {
     (void) p;
     xerror(0,0,"%s: NOT IMPLEMENTED", __func__);
@@ -118,7 +118,7 @@ static void exec_pipelines_async(pipeline_T *p)
 }
 
 /* if コマンドを実行する */
-static void exec_if(command_T *c, bool finally_exit)
+static void exec_if(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_if: 未実装
     (void) c;
@@ -128,7 +128,7 @@ static void exec_if(command_T *c, bool finally_exit)
 }
 
 /* for コマンドを実行する */
-static void exec_for(command_T *c, bool finally_exit)
+static void exec_for(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_for: 未実装
     (void) c;
@@ -138,7 +138,7 @@ static void exec_for(command_T *c, bool finally_exit)
 }
 
 /* while コマンドを実行する */
-static void exec_while(command_T *c, bool finally_exit)
+static void exec_while(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_while: 未実装
     (void) c;
@@ -148,7 +148,7 @@ static void exec_while(command_T *c, bool finally_exit)
 }
 
 /* case コマンドを実行する */
-static void exec_case(command_T *c, bool finally_exit)
+static void exec_case(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_case: 未実装
     (void) c;
@@ -205,11 +205,11 @@ fail:
  * c:        実行する一つ以上のコマンド
  * type:     実行のしかた
  * looppipe: パイプをループ状にするかどうか */
-static void exec_commands(command_T *c, exec_T type, bool looppipe)
+static void exec_commands(const command_T *c, exec_T type, bool looppipe)
 {
     size_t count;
     pid_t pgid;
-    command_T *cc;
+    const command_T *cc;
     job_T *job;
     process_T *ps;
     pipeinfo_T pinfo = PIPEINFO_INIT;
@@ -317,7 +317,8 @@ fail:
  *         できた場合は 0。重大なエラーが生じたら -1。
  * 0 を返すとき、exec_process 内で laststatus を設定する。
  * パイプを一方でも繋いだら、必ず fork する。この時 type == execself は不可。 */
-static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+static pid_t exec_process(
+	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
     bool need_fork;    /* fork するかどうか */
     bool finally_exit; /* true なら最後に exit してこの関数から返らない */
