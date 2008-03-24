@@ -32,6 +32,7 @@
 #include "util.h"
 #include "lineinput.h"
 #include "parser.h"
+#include "sig.h"
 #include "job.h"
 #include "exec.h"
 #include "version.h"
@@ -134,6 +135,8 @@ int main(int argc __attribute__((unused)), char **argv)
 		return EXIT_SUCCESS;
 
 	shell_pid = getpid();
+	init_signal();
+	init_job();
 
 	if (exec_first_arg && read_stdin) {
 		xerror(2, 0, Ngt("both -c and -s options cannot be given"));
@@ -146,6 +149,7 @@ int main(int argc __attribute__((unused)), char **argv)
 			command_name = argv[xoptind++];
 		do_job_control = is_interactive_now = is_interactive;
 		// TODO yash:main:exec_first_arg シェル環境設定・位置パラメータ
+		set_signals();
 		exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
 	} else {
 		FILE *input;
@@ -162,6 +166,7 @@ int main(int argc __attribute__((unused)), char **argv)
 						Ngt("cannot open file `%s'"), command_name);
 		}
 		do_job_control = is_interactive_now = is_interactive;
+		set_signals();
 		//TODO yash:main: read file and exec commands
 		xerror(2, 0, "executing %s: NOT IMPLEMENTED", command_name);
 	}

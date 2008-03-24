@@ -25,10 +25,16 @@ SOURCES = @SOURCES@
 OBJS = @OBJS@
 TARGET = @TARGET@
 
+SUBSOURCES = mksignum.c
+BYPRODUCTS = mksignum signum.h
+
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+mksignum: mksignum.c
+signum.h: mksignum
+	./mksignum > $@
 
 test check: $(TARGET)
 	@cd tests && exec $(SHELL) ./run-all.sh
@@ -48,7 +54,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh tests
+DISTCONTENTS = $(SOURCES) $(SUBSOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh tests
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	rm -rf $(DISTDIR)
@@ -86,7 +92,7 @@ cscope.out: $(SOURCES)
 	cscope -b
 
 mostlyclean:
-	rm -rf $(OBJS) $(DISTDIR)
+	rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
 clean: mostlyclean
 	rm -rf $(TARGET) $(DISTS)
 distclean: clean

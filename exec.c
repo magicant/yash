@@ -28,8 +28,10 @@
 #include "util.h"
 #include "parser.h"
 #include "redir.h"
+#include "sig.h"
 #include "job.h"
 #include "exec.h"
+#include "yash.h"
 
 
 /* コマンドの実行のしかたを表す */
@@ -52,11 +54,20 @@ typedef struct pipeinfo_T {
 
 static void exec_pipelines(pipeline_T *p, bool finally_exit);
 static void exec_pipelines_async(pipeline_T *p);
+static void exec_if(command_T *c, bool finally_exit)
+	__attribute__((nonnull));
+static void exec_for(command_T *c, bool finally_exit)
+	__attribute__((nonnull));
+static void exec_while(command_T *c, bool finally_exit)
+	__attribute__((nonnull));
+static void exec_case(command_T *c, bool finally_exit)
+	__attribute__((nonnull));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
 	__attribute__((nonnull));
 static void exec_commands(command_T *c, exec_T type, bool looppipe);
 static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	__attribute__((nonnull));
+static pid_t fork_and_reset(pid_t pgid, bool fg);
 
 
 /* 最後に実行したコマンドの終了ステータス */
@@ -103,6 +114,42 @@ static void exec_pipelines_async(pipeline_T *p)
 	(void) p;
 	xerror(0,0,"%s: NOT IMPLEMENTED", __func__);
 	// TODO exec.c: exec_pipelines_async
+}
+
+/* if コマンドを実行する */
+static void exec_if(command_T *c, bool finally_exit)
+{
+	// TODO exec.c: exec_if: 未実装
+	laststatus = 0;
+	if (finally_exit)
+		exit(laststatus);
+}
+
+/* for コマンドを実行する */
+static void exec_for(command_T *c, bool finally_exit)
+{
+	// TODO exec.c: exec_for: 未実装
+	laststatus = 0;
+	if (finally_exit)
+		exit(laststatus);
+}
+
+/* while コマンドを実行する */
+static void exec_while(command_T *c, bool finally_exit)
+{
+	// TODO exec.c: exec_while: 未実装
+	laststatus = 0;
+	if (finally_exit)
+		exit(laststatus);
+}
+
+/* case コマンドを実行する */
+static void exec_case(command_T *c, bool finally_exit)
+{
+	// TODO exec.c: exec_case: 未実装
+	laststatus = 0;
+	if (finally_exit)
+		exit(laststatus);
 }
 
 /* exec_commands 関数で使うサブルーチン */
@@ -223,10 +270,13 @@ static void exec_commands(command_T *c, exec_T type, bool looppipe)
 		job->j_loop = looppipe;
 		job->j_pcount = count;
 		wait_for_job(ACTIVE_JOBNO, do_job_control);
+		laststatus = calc_status_of_job(job);
 		if (job->j_status == JS_DONE) {
 			remove_job(ACTIVE_JOBNO);
 			return;
 		}
+	} else {
+		laststatus = EXIT_SUCCESS;
 	}
 
 	/* バックグラウンドジョブをジョブリストに追加する */
@@ -263,10 +313,122 @@ fail:
  * パイプを一方でも繋いだら、必ず fork する。この時 type == execself は不可。 */
 static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
-	wchar_t *name = command_to_wcs(c);
-	fprintf(stderr, "DEBUG(%s:%d) <%ls>\n", __func__, __LINE__, name);
-	free(name);
-	(void) type, (void) pi, (void) pgid;
-	// TODO exec.c: exec_process
-	return -1;
+	bool need_fork;    /* fork するかどうか */
+	bool finally_exit; /* true なら最後に exit してこの関数から返らない */
+
+	switch (c->c_type) {
+	case CT_SIMPLE:
+		// exec.c: exec_process: CT_SIMPLE の実行
+		need_fork = finally_exit = false;
+		break;
+	case CT_SUBSHELL:
+		need_fork = finally_exit = true;
+		break;
+	default:
+		need_fork = finally_exit = false;
+		break;
+	}
+
+	if (type == execself) {
+		need_fork = false;  finally_exit = true;
+		assert(!is_interactive_now);
+	} else if (type == execasync
+			|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0) {
+		/* 非同期実行またはパイプを繋ぐ場合は必ず fork */
+		need_fork = finally_exit = true;
+	}
+
+	assert(!need_fork || finally_exit);  /* fork すれば必ず子プロセスは exit */
+	if (need_fork) {
+		pid_t cpid = fork_and_reset(pgid, type == execnormal);
+		if (cpid != 0)
+			return cpid;
+	}
+	if (finally_exit)
+		reset_signals(!do_job_control && type == execasync);
+
+	/* パイプを繋ぐ */
+	if (pi->pi_fromprevfd >= 0) {
+		xdup2(pi->pi_fromprevfd, STDIN_FILENO);
+		xclose(pi->pi_fromprevfd);
+	}
+	if (pi->pi_tonextfds[PIDX_OUT] >= 0) {
+		xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);
+		xclose(pi->pi_tonextfds[PIDX_OUT]);
+	}
+
+	/* リダイレクトを開く */
+	// TODO exec.c: exec_process: redirect
+	
+	/* 非対話的シェルで非同期実行する場合は stdin を /dev/null にリダイレクト */
+	if (type == execasync && !is_interactive && pi->pi_fromprevfd < 0
+			/* TODO exec.c:  && !is_stdin_redirected */) {
+	}
+
+	/* 変数を代入する */
+	// TODO exec.c: exec_process: assignment
+
+	/* コマンドを実行する */
+	switch (c->c_type) {
+	case CT_SIMPLE:
+		// TODO exec.c: exec_process: 単純コマンドの実行
+	case CT_SUBSHELL:
+	case CT_GROUP:
+		exec_and_or_lists(c->c_subcmds, finally_exit);
+		break;
+	case CT_IF:
+		exec_if(c, finally_exit);
+		break;
+	case CT_FOR:
+		exec_for(c, finally_exit);
+		break;
+	case CT_WHILE:
+		exec_while(c, finally_exit);
+		break;
+	case CT_CASE:
+		exec_case(c, finally_exit);
+		break;
+	}
+	if (finally_exit)
+		exit(laststatus);
+
+	fflush(NULL);
+	// TODO exec.c: exec_process: 変数の一時代入を削除
+	// TODO exec.c: exec_process: セーブしたリダイレクトを戻す
+	return 0;
+}
+
+/* fork して、いろいろ必要な設定を行う。
+ * pgid:   ジョブ制御有効時、fork 後に子プロセスに設定するプロセスグループ ID。
+ *         子プロセスのプロセス ID をプロセスグループ ID にする場合は 0。
+ *         ジョブ制御が有効でもプロセスグループを変えない場合は負数。
+ * fg:     プロセスグループ設定後、子プロセスをフォアグラウンドにするかどうか。
+ * 戻り値: fork の戻り値 */
+static pid_t fork_and_reset(pid_t pgid, bool fg)
+{
+	fflush(NULL);
+
+	pid_t cpid = fork();
+
+	if (cpid < 0) {
+		/* fork 失敗 */
+		xerror(0, errno, Ngt("fork: cannot make child process"));
+	} else if (cpid > 0) {
+		/* 親プロセス */
+		if (do_job_control && pgid >= 0)
+			setpgid(cpid, pgid);
+	} else {
+		/* 子プロセス */
+		if (do_job_control && pgid >= 0) {
+			setpgid(0, pgid);
+			if (fg)
+				(void) 0; // TODO exec: fork_and_reset: tcsetpgrp
+		}
+		// TODO exec: fork_and_reset: forget_original_pgrp
+		remove_all_jobs();
+		clear_traps();
+		// TODO exec: fork_and_reset: clear_shellfds
+		do_job_control = is_interactive_now = false;
+	}
+	return cpid;
 }

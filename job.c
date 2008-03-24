@@ -25,7 +25,12 @@
 #include <sys/wait.h>
 #include "util.h"
 #include "plist.h"
+#include "sig.h"
 #include "job.h"
+
+
+static int calc_status(int status)
+	__attribute__((const));
 
 
 /* ジョブ制御が有効かどうか。シェルの -m オプションに対応 */
@@ -88,6 +93,18 @@ void remove_job(size_t jobnumber)
 	for (size_t i = 0; i < job->j_pcount; i++)
 		free(job->j_procs[i].pr_name);
 	free(job);
+}
+
+/* 全てのジョブを無条件で削除する */
+void remove_all_jobs(void)
+{
+	for (size_t i = 0; i < joblist.length; i++)
+		if (joblist.contents[i])
+			remove_job(i);
+	/*
+	pl_clear(&joblist);
+	pl_add(&joblist, NULL);
+	*/
 }
 
 
@@ -156,6 +173,14 @@ found:
 		pr->pr_status = JS_RUNNING;
 #endif
 
+	/* ジョブの各プロセスの状態を元に、ジョブ全体の状態を決める。
+	 * 少なくとも一つのプロセスが JS_RUNNING
+	 *     -> ジョブ全体も JS_RUNNING
+	 * JS_RUNNING のプロセスはないが、JS_STOPPED のプロセスはある
+	 *     -> ジョブ全体も JS_STOPPED
+	 * 全てのプロセスが JS_DONE
+	 *     -> ジョブ全体も JS_DONE
+	 */
 	jobstatus_T oldstatus = job->j_status;
 	bool anyrunning = false, anystopped = false;
 	/* job 内に一つでも実行中・停止中のプロセスが残っているかどうか調べる */
@@ -181,6 +206,50 @@ out_of_loop:
  * ジョブが既に終了 (または停止) していれば、待たずにすぐに返る。 */
 void wait_for_job(size_t jobnumber, bool return_on_stop)
 {
-	(void) jobnumber, (void) return_on_stop;
-	//TODO job.c: wait_for_job: 未実装
+	job_T *job = joblist.contents[jobnumber];
+
+	block_signals();
+	for (;;) {
+		do_wait();
+		if (job->j_status == JS_DONE)
+			break;
+		if (return_on_stop && job->j_status == JS_STOPPED)
+			break;
+		wait_for_sigchld();
+	}
+	unblock_signals();
+}
+
+/* waitpid が返したステータスから終了コードを算出する。 */
+static int calc_status(int status)
+{
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	if (WIFSIGNALED(status))
+		return WTERMSIG(status);
+	if (WIFSTOPPED(status))
+		return WSTOPSIG(status);
+#ifdef WIFCONTINUED
+	if (WIFCONTINUED(status))
+		return 0;
+#endif
+	assert(false);
+}
+
+/* 指定したジョブの終了コードを求める。
+ * 状態が JS_RUNNING なジョブを指定しないこと。 */
+int calc_status_of_job(job_T *job)
+{
+	switch (job->j_status) {
+	case JS_DONE:
+		return calc_status(job->j_procs[job->j_pcount - 1].pr_waitstatus);
+	case JS_STOPPED:
+		for (int i = job->j_pcount; --i >= 0; ) {
+			if (job->j_procs[i].pr_status == JS_STOPPED)
+				return calc_status(job->j_procs[i].pr_waitstatus);
+		}
+		/* falls thru! */
+	default:
+		assert(false);
+	}
 }
