@@ -1800,36 +1800,36 @@ static void print_errmsg_token_missing(const wchar_t *token, size_t index)
 
 /********** 構文木を文字列に戻すルーチン **********/
 
+__attribute__((nonnull(1)))
 static void print_and_or_lists(
 		xwcsbuf_T *restrict buf, const and_or_T *restrict andors,
-		bool omit_last_semicolon)
-	__attribute__((nonnull(1)));
+		bool omit_last_semicolon);
+__attribute__((nonnull(1)))
 static void print_pipelines(
-		xwcsbuf_T *restrict buf, const pipeline_T *restrict pipelines)
-	__attribute__((nonnull(1)));
+		xwcsbuf_T *restrict buf, const pipeline_T *restrict pipelines);
+__attribute__((nonnull(1)))
 static void print_commands(
-		xwcsbuf_T *restrict buf, const command_T *restrict commands)
-	__attribute__((nonnull(1)));
+		xwcsbuf_T *restrict buf, const command_T *restrict commands);
+__attribute__((nonnull))
 static void print_command_content(
-		xwcsbuf_T *restrict buf, const command_T *restrict command)
-	__attribute__((nonnull));
+		xwcsbuf_T *restrict buf, const command_T *restrict command);
+__attribute__((nonnull(1)))
 static void print_caseitems(
-		xwcsbuf_T *restrict buf, const caseitem_T *restrict caseitems)
-	__attribute__((nonnull(1)));
+		xwcsbuf_T *restrict buf, const caseitem_T *restrict caseitems);
+__attribute__((nonnull(1)))
 static void print_assigns(
-		xwcsbuf_T *restrict buf, const assign_T *restrict assigns)
-	__attribute__((nonnull(1)));
+		xwcsbuf_T *restrict buf, const assign_T *restrict assigns);
+__attribute__((nonnull(1)))
 static void print_redirs(
-		xwcsbuf_T *restrict buf, const redir_T *restrict redirs)
-	__attribute__((nonnull(1)));
+		xwcsbuf_T *restrict buf, const redir_T *restrict redirs);
+__attribute__((nonnull(1)))
 static void print_word(
-		xwcsbuf_T *restrict buf, const wordunit_T *restrict word)
-	__attribute__((nonnull(1)));
+		xwcsbuf_T *restrict buf, const wordunit_T *restrict word);
+__attribute__((nonnull))
 static void print_paramexp(
-		xwcsbuf_T *restrict buf, const paramexp_T *restrict param)
-	__attribute__((nonnull));
-static void trim_end_of_buffer(xwcsbuf_T *buf)
-	__attribute__((nonnull));
+		xwcsbuf_T *restrict buf, const paramexp_T *restrict param);
+__attribute__((nonnull))
+static void trim_end_of_buffer(xwcsbuf_T *buf);
 
 #if 0
 /* 構文木をワイド文字列に変換して返す。
