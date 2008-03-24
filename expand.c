@@ -31,19 +31,25 @@
  *       要素は NULL である。
  * args で与えられる内容は変更されない。
  * 戻り値: 成功すると true、エラーがあると false。
- * エラーがあった場合でも、途中結果が *argcp, *argvp に返される。 */
+ * エラーがあった場合、*argcp, *argvp の値は不定である */
 bool expand_line(void *const *restrict args,
-	int *restrict argcp, void ***restrict argvp)
+    int *restrict argcp, void ***restrict argvp)
 {
     plist_T list;
 
-    // TODO expand.c: expand_line: 未実装
-    (void) args;
-
     pl_init(&list);
+
+    // TODO expand.c: expand_line: 暫定実装
+    struct wordunit_T;
+    wchar_t *word_to_wcs(struct wordunit_T *);
+    while (*args) {
+	pl_add(&list, word_to_wcs(*args));
+	args++;
+    }
+
     *argcp = list.length;
     *argvp = pl_toary(&list);
-    return false;
+    return true;
 }
 
 

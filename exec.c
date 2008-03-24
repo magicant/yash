@@ -26,8 +26,10 @@
 #include <unistd.h>
 #include <wchar.h>
 #include "util.h"
+#include "plist.h"
 #include "parser.h"
 #include "redir.h"
+#include "expand.h"
 #include "sig.h"
 #include "job.h"
 #include "exec.h"
@@ -52,6 +54,28 @@ typedef struct pipeinfo_T {
 #define PIDX_OUT 1   /* パイプの書き込み側の FD のインデックス */
 #define PIPEINFO_INIT { -1, { -1, -1 }, -1 }  /* pipeinfo_T の初期化用 */
 
+/* TODO exec.c: main_T: should be moved to builtin.h */
+typedef int main_T(int argc, char **argv);
+
+/* 実行するコマンドの情報 */
+typedef struct commandinfo_T {
+    enum {                  /* コマンドの種類 */
+	externalprogram,      /* 外部コマンド */
+	normalbuiltin,        /* 普通の組込みコマンド */
+	semispecialbuiltin,   /* 準特殊組込みコマンド */
+	specialbuiltin,       /* 特殊組込みコマンド */
+	function,             /* 関数 */
+    } type;
+    union {
+	const char *path;     /* コマンドのパス (externalprogram 用) */
+	main_T *builtin;      /* 組込みコマンドの本体 */
+	command_T *function;  /* 関数の本体 */
+    } value;
+} commandinfo_T;
+#define ci_path     value.path
+#define ci_builtin  value.builtin
+#define ci_function value.function
+
 static void exec_pipelines(const pipeline_T *p, bool finally_exit);
 static void exec_pipelines_async(const pipeline_T *p);
 __attribute__((nonnull))
@@ -69,6 +93,13 @@ __attribute__((nonnull))
 static pid_t exec_process(
 	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid);
 static pid_t fork_and_reset(pid_t pgid, bool fg);
+static bool search_command(
+	const wchar_t *restrict name, commandinfo_T *restrict ci);
+__attribute__((nonnull))
+static void exec_nonsimple_command(const command_T *c, bool finally_exit);
+__attribute__((nonnull))
+static void exec_simple_command(
+	const commandinfo_T *ci, int argc, void **argv, bool finally_exit);
 
 
 /* 最後に実行したコマンドの終了ステータス */
@@ -242,12 +273,18 @@ static void exec_commands(const command_T *c, exec_T type, bool looppipe)
 	next_pipe(&pinfo, i < count - 1);
 	pid = exec_process(cc,
 		(type == execself && i < count - 1) ? execnormal : type,
-		&pinfo, pgid);
+		&pinfo,
+		pgid);
 	if (pid < 0)
 	    goto fail;
 	ps[i].pr_pid = pid;
-	ps[i].pr_status = JS_RUNNING;
-	ps[i].pr_waitstatus = 0;
+	if (pid) {
+	    ps[i].pr_status = JS_RUNNING;
+	    ps[i].pr_statuscode = 0;
+	} else {
+	    ps[i].pr_status = JS_DONE;
+	    ps[i].pr_statuscode = laststatus;
+	}
 	ps[i].pr_name = NULL;   /* 最初は名無し: 名前は後で付ける */
 	if (pgid == 0)
 	    pgid = pid;
@@ -315,18 +352,38 @@ fail:
  *         子プロセスのプロセス ID をプロセスグループ ID にする場合は 0。
  * 戻り値: fork した場合、子プロセスのプロセス ID。fork せずにコマンドを実行
  *         できた場合は 0。重大なエラーが生じたら -1。
- * 0 を返すとき、exec_process 内で laststatus を設定する。
- * パイプを一方でも繋いだら、必ず fork する。この時 type == execself は不可。 */
+ * 0 を返すとき、exec_process 内で laststatus を設定する。 */
+// TODO exec.c: exec_process: 本当に -1 を返す場合があるか考え直す
 static pid_t exec_process(
 	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
     bool need_fork;    /* fork するかどうか */
     bool finally_exit; /* true なら最後に exit してこの関数から返らない */
+    int argc;
+    void **argv;
+    commandinfo_T cmdinfo;
 
     switch (c->c_type) {
     case CT_SIMPLE:
-	// exec.c: exec_process: CT_SIMPLE の実行
-	need_fork = finally_exit = false;
+	if (!expand_line(c->c_words, &argc, &argv)) {
+	    laststatus = 1;
+	    goto done;
+	}
+	if (argc == 0) {
+	    need_fork = finally_exit = false;
+#ifndef NDEBUG  /* GCC の警告を黙らせる小細工 */
+	    cmdinfo.type = normalbuiltin;
+#endif
+	} else {
+	    if (!search_command(argv[0], &cmdinfo)) {
+		xerror(0, 0, Ngt("%ls: command not found"),
+			(wchar_t *) argv[0]);
+		laststatus = EXIT_NOTFOUND;
+		goto done;
+	    }
+	    /* 外部コマンドは fork し、組込みコマンドや関数は fork しない。 */
+	    need_fork = finally_exit = (cmdinfo.type == externalprogram);
+	}
 	break;
     case CT_SUBSHELL:
 	need_fork = finally_exit = true;
@@ -335,17 +392,19 @@ static pid_t exec_process(
 	need_fork = finally_exit = false;
 	break;
     }
+    /* argc, argv, cmdinfo は CT_SIMPLE でしか使わない */
 
     if (type == execself) {
+	/* execself は絶対に fork しないで自分で実行して終了 */
 	need_fork = false;  finally_exit = true;
 	assert(!is_interactive_now);
     } else if (type == execasync
 	    || pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0) {
-	/* 非同期実行またはパイプを繋ぐ場合は必ず fork */
+	/* 非同期実行またはパイプを繋ぐ場合は fork */
 	need_fork = finally_exit = true;
     }
 
-    assert(!need_fork || finally_exit);  /* fork すれば必ず子プロセスは exit */
+    assert(!need_fork || finally_exit);  /* fork すれば子プロセスは必ず exit */
     if (need_fork) {
 	pid_t cpid = fork_and_reset(pgid, type == execnormal);
 	if (cpid != 0)
@@ -380,26 +439,11 @@ static pid_t exec_process(
     // TODO exec.c: exec_process: assignment
 
     /* コマンドを実行する */
-    switch (c->c_type) {
-    case CT_SIMPLE:
-	break;
-	// TODO exec.c: exec_process: 単純コマンドの実行
-    case CT_SUBSHELL:
-    case CT_GROUP:
-	exec_and_or_lists(c->c_subcmds, finally_exit);
-	break;
-    case CT_IF:
-	exec_if(c, finally_exit);
-	break;
-    case CT_FOR:
-	exec_for(c, finally_exit);
-	break;
-    case CT_WHILE:
-	exec_while(c, finally_exit);
-	break;
-    case CT_CASE:
-	exec_case(c, finally_exit);
-	break;
+    if (c->c_type == CT_SIMPLE) {
+	if (argc != 0)
+	    exec_simple_command(&cmdinfo, argc, argv, finally_exit);
+    } else {
+	exec_nonsimple_command(c, finally_exit);
     }
     if (finally_exit)
 	exit(laststatus);
@@ -407,6 +451,11 @@ static pid_t exec_process(
     fflush(NULL);
     // TODO exec.c: exec_process: 変数の一時代入を削除
     // TODO exec.c: exec_process: セーブしたリダイレクトを戻す
+    return 0;
+
+done:
+    if (type == execself)
+	exit(laststatus);
     return 0;
 }
 
@@ -446,6 +495,79 @@ static pid_t fork_and_reset(pid_t pgid, bool fg)
 	xerror(0,0,"DEBUG: forked (child:%d)", (int) getpid());
     }
     return cpid;
+}
+
+/* コマンドの種類を特定し、コマンドのありかを探す。
+ * コマンドが見付かれば結果を *ci に入れて true を返す。
+ * 見付からなければ false を返し、*ci は不定 */
+static bool search_command(
+	const wchar_t *restrict name, commandinfo_T *restrict ci)
+{
+    (void) name, (void) ci;
+    // TODO exec.c: find_command: 未実装
+    return false;
+}
+
+/* CT_SIMPLE でない一つのコマンドを実行する。 */
+static void exec_nonsimple_command(const command_T *c, bool finally_exit)
+{
+    switch (c->c_type) {
+    case CT_SIMPLE:
+	assert(false);
+    case CT_SUBSHELL:
+    case CT_GROUP:
+	exec_and_or_lists(c->c_subcmds, finally_exit);
+	break;
+    case CT_IF:
+	exec_if(c, finally_exit);
+	break;
+    case CT_FOR:
+	exec_for(c, finally_exit);
+	break;
+    case CT_WHILE:
+	exec_while(c, finally_exit);
+	break;
+    case CT_CASE:
+	exec_case(c, finally_exit);
+	break;
+    }
+}
+
+/* 単純コマンドを実行する
+ * ci:   実行するコマンドの情報
+ * argv: コマンド名と引数。void * にキャストしたワイド文字列へのポインタの
+ *       配列へのポインタ。この配列とその要素はこの関数内で free する。 */
+static void exec_simple_command(
+	const commandinfo_T *ci, int argc, void **argv, bool finally_exit)
+{
+    /* argv の各要素をワイド文字列からマルチバイト文字列に変換する */
+    // TODO exec.c: exec_simple_command: マルチバイト文字列への変換
+
+    switch (ci->type) {
+    case externalprogram:
+	execv(ci->ci_path, (char **) argv);
+	if (errno != ENOEXEC) {
+	    // TODO exec.c: exec_simple_command: is_directory
+	    //if (errno == EACCES && is_directory(ci->ci_path))
+	    //	errno = EISDIR;
+	    xerror(EXIT_NOEXEC, errno, Ngt("cannot execute `%s' (%s)"),
+		    (char *) argv[0], ci->ci_path);
+	}
+	// TODO exec.c: exec_simple_command: コマンドをシェルスクリプトとして実行
+	break;
+    case normalbuiltin:
+    case semispecialbuiltin:
+    case specialbuiltin:
+	laststatus = ci->ci_builtin(argc, (char **) argv);
+	break;
+    case function:
+	exec_nonsimple_command(ci->ci_function, finally_exit);
+	break;
+    }
+    if (finally_exit)
+	exit(laststatus);
+
+    recfree(argv, free);
 }
 
 

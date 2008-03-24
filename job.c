@@ -163,7 +163,7 @@ start:
     goto start;
 
 found:
-    pr->pr_waitstatus = status;
+    pr->pr_statuscode = status;
     if (WIFEXITED(status) || WIFSIGNALED(status))
 	pr->pr_status = JS_DONE;
     else if (WIFSTOPPED(status))
@@ -242,11 +242,14 @@ int calc_status_of_job(job_T *job)
 {
     switch (job->j_status) {
     case JS_DONE:
-	return calc_status(job->j_procs[job->j_pcount - 1].pr_waitstatus);
+	if (job->j_procs[job->j_pcount - 1].pr_pid)
+	    return calc_status(job->j_procs[job->j_pcount - 1].pr_statuscode);
+	else
+	    return job->j_procs[job->j_pcount - 1].pr_statuscode;
     case JS_STOPPED:
 	for (int i = job->j_pcount; --i >= 0; ) {
 	    if (job->j_procs[i].pr_status == JS_STOPPED)
-		return calc_status(job->j_procs[i].pr_waitstatus);
+		return calc_status(job->j_procs[i].pr_statuscode);
 	}
 	/* falls thru! */
     default:

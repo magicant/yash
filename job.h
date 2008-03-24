@@ -33,9 +33,13 @@ typedef enum jobstatus_T {
 typedef struct process_T {
     pid_t             pr_pid;          /* プロセス ID */
     enum jobstatus_T  pr_status;       /* プロセスの状態 */
-    int               pr_waitstatus;   /* 最後の wait の結果 */
+    int               pr_statuscode;
     wchar_t          *pr_name;         /* 表示用のプロセス名 */
 } process_T;
+/* pr_pid が 0 のとき、そのプロセスは fork せずに実行できたことを示す。このとき
+ * そのコマンドの終了コードが pr_statuscode に入る。
+ * pr_pid が正数のとき、それはプロセス ID である。このときの pr_statuscode は
+ * waitpid が返した status の値である。 */
 
 /* ジョブの情報 */
 typedef struct job_T {
