@@ -276,6 +276,7 @@ static void exec_commands(command_T *c, exec_T type, bool looppipe)
 		job->j_pcount = count;
 		wait_for_job(ACTIVE_JOBNO, do_job_control);
 		laststatus = calc_status_of_job(job);
+		handle_traps();
 		if (job->j_status == JS_DONE) {
 			remove_job(ACTIVE_JOBNO);
 			return;
