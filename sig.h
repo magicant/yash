@@ -19,6 +19,8 @@
 #ifndef SIG_H
 #define SIG_H
 
+#include <stdbool.h>
+
 
 extern void init_signal(void);
 extern void set_signals(void);
