@@ -39,32 +39,32 @@
 /* Unused function
 void *xcalloc(size_t nmemb, size_t size)
 {
-	void *result = calloc(nmemb, size);
-	if (result)
-		return result;
-	xerror(2, ENOMEM, NULL);
-	assert(false);
+    void *result = calloc(nmemb, size);
+    if (result)
+	return result;
+    xerror(2, ENOMEM, NULL);
+    assert(false);
 }
 */
 
 /* malloc を試みる。失敗したらプログラムを強制終了する。 */
 void *xmalloc(size_t size)
 {
-	void *result = malloc(size);
-	if (result)
-		return result;
-	xerror(2, ENOMEM, NULL);
-	assert(false);
+    void *result = malloc(size);
+    if (result)
+	return result;
+    xerror(2, ENOMEM, NULL);
+    assert(false);
 }
 
 /* realloc を試みる。失敗したらプログラムを強制終了する。 */
 void *xrealloc(void *ptr, size_t size)
 {
-	void *result = realloc(ptr, size);
-	if (result)
-		return result;
-	xerror(2, ENOMEM, NULL);
-	assert(false);
+    void *result = realloc(ptr, size);
+    if (result)
+	return result;
+    xerror(2, ENOMEM, NULL);
+    assert(false);
 }
 
 
@@ -76,11 +76,11 @@ void *xrealloc(void *ptr, size_t size)
  *      len が s の実際の長さより大きければ s 全体を複製する */
 char *xstrndup(const char *s, size_t len)
 {
-	len = xstrnlen(s, len);
+    len = xstrnlen(s, len);
 
-	char *result = xmalloc(len + 1);
-	result[len] = '\0';
-	return memcpy(result, s, len);
+    char *result = xmalloc(len + 1);
+    result[len] = '\0';
+    return memcpy(result, s, len);
 }
 
 /* 文字列を新しく malloc した領域に複製する。
@@ -89,11 +89,11 @@ char *xstrndup(const char *s, size_t len)
  *      len が s の実際の長さより大きければ s 全体を複製する */
 wchar_t *xwcsndup(const wchar_t *s, size_t len)
 {
-	len = xwcsnlen(s, len);
+    len = xwcsnlen(s, len);
 
-	wchar_t *result = xmalloc((len + 1) * sizeof(wchar_t));
-	result[len] = L'\0';
-	return wmemcpy(result, s, len);
+    wchar_t *result = xmalloc((len + 1) * sizeof(wchar_t));
+    result[len] = L'\0';
+    return wmemcpy(result, s, len);
 }
 
 /* 文字列 s が prefix で始まるなら、s 内の prefix を飛ばした最初の文字への
@@ -101,13 +101,13 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
 /* Unused function 
 char *matchstrprefix(const char *s, const char *prefix)
 {
-	while (*prefix) {
-		if (*prefix != *s)
-			return NULL;
-		prefix++;
-		s++;
-	}
-	return (char *) s;
+    while (*prefix) {
+	if (*prefix != *s)
+	    return NULL;
+	prefix++;
+	s++;
+    }
+    return (char *) s;
 }
 */
 
@@ -115,13 +115,13 @@ char *matchstrprefix(const char *s, const char *prefix)
  * ポインタを返し、さもなくば NULL を返す。 */
 wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 {
-	while (*prefix) {
-		if (*prefix != *s)
-			return NULL;
-		prefix++;
-		s++;
-	}
-	return (wchar_t *) s;
+    while (*prefix) {
+	if (*prefix != *s)
+	    return NULL;
+	prefix++;
+	s++;
+    }
+    return (wchar_t *) s;
 }
 
 
@@ -144,27 +144,27 @@ unsigned yash_error_message_count = 0;
  * format == NULL && errno_ == 0 なら、"unknown error" を出力する。 */
 void xerror(int status, int errno_, const char *restrict format, ...)
 {
-	va_list ap;
+    va_list ap;
 
-	yash_error_message_count++;
-	fflush(stdout);
-	fprintf(stderr, "%s: ", yash_program_invocation_name);
-	if (format) {
-		va_start(ap, format);
-		vfprintf(stderr, gt(format), ap);
-		va_end(ap);
-	}
-	if (errno_) {
-		fprintf(stderr, format ? ": %s" : "%s", strerror(errno_));
-	}
-	if (format || errno_) {
-		fputc('\n', stderr);
-	} else {
-		fputs(gt("unknown error\n"), stderr);
-	}
-	fflush(stderr);
-	if (status)
-		exit(status);
+    yash_error_message_count++;
+    fflush(stdout);
+    fprintf(stderr, "%s: ", yash_program_invocation_name);
+    if (format) {
+	va_start(ap, format);
+	vfprintf(stderr, gt(format), ap);
+	va_end(ap);
+    }
+    if (errno_) {
+	fprintf(stderr, format ? ": %s" : "%s", strerror(errno_));
+    }
+    if (format || errno_) {
+	fputc('\n', stderr);
+    } else {
+	fputs(gt("unknown error\n"), stderr);
+    }
+    fflush(stderr);
+    if (status)
+	exit(status);
 }
 
 
@@ -178,12 +178,12 @@ bool xopterr = true;
 /* xgetopt_long で使う補助関数。argv[from] を argv[to] に持ってくる。 */
 static void argshift(char **argv, int from, int to /* <= from */)
 {
-	char *s = argv[from];
+    char *s = argv[from];
 
-	assert(from >= to);
-	for (int i = from; i > to; i--)
-		argv[i] = argv[i - 1];
-	argv[to] = s;
+    assert(from >= to);
+    for (int i = from; i > to; i--)
+	argv[i] = argv[i - 1];
+    argv[to] = s;
 }
 
 /* GNU ライブラリにある getopt_long の自前の実装。
@@ -259,191 +259,194 @@ static void argshift(char **argv, int from, int to /* <= from */)
  * この実装はマルチバイト文字には完全には対応していない。解析の対象となる文字は
  * すべて初期シフト状態で解釈する。 */
 int xgetopt_long(
-		char **restrict argv,
-		const char *restrict optstring,
-		const struct xoption *restrict longopts,
-		int *restrict longindex)
+	char **restrict argv,
+	const char *restrict optstring,
+	const struct xoption *restrict longopts,
+	int *restrict longindex)
 {
-	int initind;
-	char *arg, *arg2, argchar;
-	static int aindex;
-	bool optionsfirst = posixly_correct, plusoptions = false;
+    int initind;
+    char *arg, *arg2, argchar;
+    static int aindex;
+    bool optionsfirst = posixly_correct, plusoptions = false;
 
-	if (xoptind == 0) {  /* 新しい解析を始めるためにリセット */
-		aindex = 1;
-		xoptind = 1;
-	}
-	if (*optstring == '+') {
-		optionsfirst = true;
-		optstring++;
-	}
-	if (*optstring == '*') {
-		plusoptions = true;
-		optstring++;
+    if (xoptind == 0) {  /* 新しい解析を始めるためにリセット */
+	aindex = 1;
+	xoptind = 1;
+    }
+    if (*optstring == '+') {
+	optionsfirst = true;
+	optstring++;
+    }
+    if (*optstring == '*') {
+	plusoptions = true;
+	optstring++;
+    }
+
+    initind = xoptind;
+    while ((arg = argv[xoptind])) {
+	if ((arg[0] != '-' && (!plusoptions || (arg[0] != '+'))) || !arg[1]) {
+	    /* arg はオプションではない */
+	    if (optionsfirst)
+		break;
+	    xoptind++;
+	    continue;
 	}
 
-	initind = xoptind;
-	while ((arg = argv[xoptind])) {
-		if ((arg[0] != '-' && (!plusoptions || (arg[0] != '+'))) || !arg[1]) {
-			/* arg はオプションではない */
-			if (optionsfirst)
-				break;
-			xoptind++;
-			continue;
-		}
-
-		if (arg[0] == '-' && arg[1] == '-') {
-			/* arg は "--" で始まる */
-			goto tryparselongoption;
-		} else {
-			/* 一文字のオプションを解析 */
-			goto tryparseshortoption;
-		}
+	if (arg[0] == '-' && arg[1] == '-') {
+	    /* arg は "--" で始まる */
+	    goto tryparselongoption;
+	} else {
+	    /* 一文字のオプションを解析 */
+	    goto tryparseshortoption;
 	}
-	xoptind = initind;
-	return -1;
+    }
+    xoptind = initind;
+    return -1;
 
 tryparseshortoption:
-	argchar = arg[aindex];
-	xoptopt = arg[0];
-	optstring = strchr(optstring, argchar);
-	if (!optstring) {
-		xoptopt = argchar;
-		goto nosuchoption;
-	}
+    argchar = arg[aindex];
+    xoptopt = arg[0];
+    optstring = strchr(optstring, argchar);
+    if (!optstring) {
+	xoptopt = argchar;
+	goto nosuchoption;
+    }
 
-	/* 有効なオプションが見付かった */
-	if (optstring[1] == ':') {
-		/* 引数を取るオプション */
-		xoptarg = &arg[aindex + 1];
-		aindex = 1;
-		if (!*xoptarg && optstring[2] != ':') {
-			/* -x arg のように分かれている場合 */
-			xoptarg = argv[xoptind + 1];
-			if (!xoptarg)
-				goto argumentmissing;
-			argshift(argv, xoptind, initind);
-			argshift(argv, xoptind + 1, initind + 1);
-			xoptind = initind + 2;
-		} else {
-			/* 引数が省略された場合 */
-			argshift(argv, xoptind, initind);
-			xoptind = initind + 1;
-		}
+    /* 有効なオプションが見付かった */
+    if (optstring[1] == ':') {
+	/* 引数を取るオプション */
+	xoptarg = &arg[aindex + 1];
+	aindex = 1;
+	if (!*xoptarg && optstring[2] != ':') {
+	    /* -x arg のように分かれている場合 */
+	    xoptarg = argv[xoptind + 1];
+	    if (!xoptarg)
+		goto argumentmissing;
+	    argshift(argv, xoptind, initind);
+	    argshift(argv, xoptind + 1, initind + 1);
+	    xoptind = initind + 2;
 	} else {
-		/* 引数を取らないオプション */
-		if (arg[aindex + 1]) {
-			aindex++;
-			argshift(argv, xoptind, initind);
-			xoptind = initind;
-		} else {
-			argshift(argv, xoptind, initind);
-			xoptind = initind + 1;
-		}
+	    /* 引数が省略された場合 */
+	    argshift(argv, xoptind, initind);
+	    xoptind = initind + 1;
 	}
-	return argchar;
+    } else {
+	/* 引数を取らないオプション */
+	if (arg[aindex + 1]) {
+	    aindex++;
+	    argshift(argv, xoptind, initind);
+	    xoptind = initind;
+	} else {
+	    argshift(argv, xoptind, initind);
+	    xoptind = initind + 1;
+	}
+    }
+    return argchar;
 
 tryparselongoption:
-	arg2 = &arg[2];
-	if (!arg2[0]) {
-		/* arg == "--" */
-		argshift(argv, xoptind, initind);
-		xoptind = initind + 1;
-		return -1;
-	}
-	if (posixly_correct || !longopts)
-		goto nosuchoption;
+    arg2 = &arg[2];
+    if (!arg2[0]) {
+	/* arg == "--" */
+	argshift(argv, xoptind, initind);
+	xoptind = initind + 1;
+	return -1;
+    }
+    if (posixly_correct || !longopts)
+	goto nosuchoption;
 
-	/* 一致する長いオプションを探す */
-	int matchindex = -1;
-	size_t len = strcspn(arg2, "=");
-	for (int i = 0; longopts[i].name; i++) {
-		if (strncmp(longopts[i].name, arg2, len) == 0) {
-			if (longopts[i].name[len]) {
-				/* 部分一致 */
-				if (matchindex < 0) {
-					/* 初めての一致 */
-					matchindex = i;
-					continue;
-				} else {
-					/* すでに他にも一致したものがある */
-					arg = arg2;
-					goto ambiguousmatch;
-				}
-			} else {
-				/* 完全一致 */
-				matchindex = i;
-				break;
-			}
-		}
-	}
-	if (matchindex < 0)
-		goto nosuchoption;
-
-	/* 長いオプションが見付かった */
-	if (longindex)
-		*longindex = matchindex;
-	xoptopt = '-';
-	if (longopts[matchindex].has_arg) {
-		char *eq = strchr(arg2, '=');
-		if (!eq) {
-			/* --option arg のように分かれている場合 */
-			xoptarg = argv[xoptind + 1];
-			if (!xoptarg) {
-				if (longopts[matchindex].has_arg == xrequired_argument)
-					goto argumentmissing;
-				argshift(argv, xoptind, initind);
-				xoptind = initind + 1;
-			} else {
-				argshift(argv, xoptind, initind);
-				argshift(argv, xoptind + 1, initind + 1);
-				xoptind = initind + 2;
-			}
+    /* 一致する長いオプションを探す */
+    int matchindex = -1;
+    size_t len = strcspn(arg2, "=");
+    for (int i = 0; longopts[i].name; i++) {
+	if (strncmp(longopts[i].name, arg2, len) == 0) {
+	    if (longopts[i].name[len]) {
+		/* 部分一致 */
+		if (matchindex < 0) {
+		    /* 初めての一致 */
+		    matchindex = i;
+		    continue;
 		} else {
-			/* --option=arg のように '=' で引数を指定している場合 */
-			xoptarg = eq + 1;
-			argshift(argv, xoptind, initind);
-			xoptind = initind + 1;
+		    /* すでに他にも一致したものがある */
+		    arg = arg2;
+		    goto ambiguousmatch;
 		}
-	} else {
-		/* 引数を取らないオプション */
+	    } else {
+		/* 完全一致 */
+		matchindex = i;
+		break;
+	    }
+	}
+    }
+    if (matchindex < 0)
+	goto nosuchoption;
+
+    /* 長いオプションが見付かった */
+    if (longindex)
+	*longindex = matchindex;
+    xoptopt = '-';
+    if (longopts[matchindex].has_arg) {
+	char *eq = strchr(arg2, '=');
+	if (!eq) {
+	    /* --option arg のように分かれている場合 */
+	    xoptarg = argv[xoptind + 1];
+	    if (!xoptarg) {
+		if (longopts[matchindex].has_arg == xrequired_argument)
+		    goto argumentmissing;
 		argshift(argv, xoptind, initind);
 		xoptind = initind + 1;
-	}
-	if (longopts[matchindex].flag) {
-		*longopts[matchindex].flag = longopts[matchindex].val;
-		return 0;
+	    } else {
+		argshift(argv, xoptind, initind);
+		argshift(argv, xoptind + 1, initind + 1);
+		xoptind = initind + 2;
+	    }
 	} else {
-		return longopts[matchindex].val;
+	    /* --option=arg のように '=' で引数を指定している場合 */
+	    xoptarg = eq + 1;
+	    argshift(argv, xoptind, initind);
+	    xoptind = initind + 1;
 	}
+    } else {
+	/* 引数を取らないオプション */
+	argshift(argv, xoptind, initind);
+	xoptind = initind + 1;
+    }
+    if (longopts[matchindex].flag) {
+	*longopts[matchindex].flag = longopts[matchindex].val;
+	return 0;
+    } else {
+	return longopts[matchindex].val;
+    }
 
 ambiguousmatch:
-	if (xopterr) {
-		fflush(stdout);
-		fprintf(stderr, gt("%s: --%s: ambiguous option\n"), argv[0], arg);
+    if (xopterr) {
+	fflush(stdout);
+	fprintf(stderr, gt("%s: --%s: ambiguous option\n"), argv[0], arg);
 #if 0
-		for (int i = 0; longopts[i].name; i++)
-			if (matchstrprefix(longopts[i].name, arg))
-				fprintf(stderr, "\t--%s\n", longopts[i].name);
+	for (int i = 0; longopts[i].name; i++)
+	    if (matchstrprefix(longopts[i].name, arg))
+		fprintf(stderr, "\t--%s\n", longopts[i].name);
 #endif
-		fflush(stderr);
-	}
-	xoptind++;
-	return '?';
+	fflush(stderr);
+    }
+    xoptind++;
+    return '?';
 nosuchoption:
-	if (xopterr) {
-		fflush(stdout);
-		fprintf(stderr, gt("%s: %s: invalid option\n"), argv[0], argv[xoptind]);
-		fflush(stderr);
-	}
-	xoptind++;
-	return '?';
+    if (xopterr) {
+	fflush(stdout);
+	fprintf(stderr, gt("%s: %s: invalid option\n"), argv[0], argv[xoptind]);
+	fflush(stderr);
+    }
+    xoptind++;
+    return '?';
 argumentmissing:
-	if (xopterr) {
-		fflush(stdout);
-		fprintf(stderr, gt("%s: %s: argument missing\n"), argv[0], argv[xoptind]);
-		fflush(stderr);
-	}
-	xoptind++;
-	return '?';
+    if (xopterr) {
+	fflush(stdout);
+	fprintf(stderr, gt("%s: %s: argument missing\n"), argv[0], argv[xoptind]);
+	fflush(stderr);
+    }
+    xoptind++;
+    return '?';
 }
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

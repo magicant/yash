@@ -58,11 +58,11 @@ extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix);
 static inline size_t xstrnlen(const char *s, size_t maxlen)
 {
 #ifdef HAVE_STRNLEN
-	return strnlen(s, maxlen);
+    return strnlen(s, maxlen);
 #else
-	size_t result = 0;
-	while (result < maxlen && s[result]) result++;
-	return result;
+    size_t result = 0;
+    while (result < maxlen && s[result]) result++;
+    return result;
 #endif
 }
 
@@ -70,7 +70,7 @@ static inline size_t xstrnlen(const char *s, size_t maxlen)
  * malloc に失敗するとプログラムを強制終了する。 */
 static inline char *xstrdup(const char *s)
 {
-	return xstrndup(s, SIZE_MAX);
+    return xstrndup(s, SIZE_MAX);
 }
 
 /* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
@@ -78,11 +78,11 @@ static inline char *xstrdup(const char *s)
 static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 {
 #ifdef HAVE_WCSNLEN
-	return wcsnlen(s, maxlen);
+    return wcsnlen(s, maxlen);
 #else
-	size_t result = 0;
-	while (result < maxlen && s[result]) result++;
-	return result;
+    size_t result = 0;
+    while (result < maxlen && s[result]) result++;
+    return result;
 #endif
 }
 
@@ -90,7 +90,7 @@ static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
  * malloc に失敗するとプログラムを強制終了する。 */
 static inline wchar_t *xwcsdup(const wchar_t *s)
 {
-	return xwcsndup(s, SIZE_MAX);
+    return xwcsndup(s, SIZE_MAX);
 }
 
 
@@ -120,8 +120,8 @@ static inline wchar_t *xwcsdup(const wchar_t *s)
 /* 整数型 type を文字列に変換した場合の最大長。
  * CHAR_BIT の為に limits.h が必要。 */
 #define INT_STRLEN_BOUND(type) \
-	((sizeof(type) * CHAR_BIT - IS_TYPE_SIGNED(type)) * 31 / 100 \
-	 + 1 + IS_TYPE_SIGNED(type))
+    ((sizeof(type) * CHAR_BIT - IS_TYPE_SIGNED(type)) * 31 / 100 \
+     + 1 + IS_TYPE_SIGNED(type))
 
 
 /********** Error utilities **********/
@@ -140,28 +140,31 @@ extern int xoptind, xoptopt;
 extern bool xopterr;
 
 struct xoption {
-	const char *name;
-	enum { xno_argument = 0, xrequired_argument, xoptional_argument, } has_arg;
-	int *flag;
-	int val;
+    const char *name;
+    enum { xno_argument = 0, xrequired_argument, xoptional_argument, } has_arg;
+    int *flag;
+    int val;
 };
 
 __attribute__((nonnull(1,2)))
 extern int xgetopt_long(
-		char **restrict argv,
-		const char *restrict optstring,
-		const struct xoption *restrict longopts,
-		int *restrict longindex);
+	char **restrict argv,
+	const char *restrict optstring,
+	const struct xoption *restrict longopts,
+	int *restrict longindex);
 __attribute__((nonnull(1,2)))
 static inline int xgetopt(
-		char **restrict argv,
-		const char *restrict optstring);
+	char **restrict argv,
+	const char *restrict optstring);
 
 /* 長いオプションがない xgetopt */
 static inline int xgetopt(char **restrict argv, const char *restrict optstring)
 {
-	return xgetopt_long(argv, optstring, NULL, NULL);
+    return xgetopt_long(argv, optstring, NULL, NULL);
 }
 
 
 #endif /* UTIL_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

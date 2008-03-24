@@ -29,3 +29,6 @@ extern void exec_and_or_lists(struct and_or_T *a, bool finally_exit);
 
 
 #endif /* EXEC_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

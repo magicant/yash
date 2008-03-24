@@ -69,3 +69,6 @@ extern char *strsignal(int);
 #endif
 
 #endif /* COMMON_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

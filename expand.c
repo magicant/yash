@@ -33,15 +33,18 @@
  * 戻り値: 成功すると true、エラーがあると false。
  * エラーがあった場合でも、途中結果が *argcp, *argvp に返される。 */
 bool expand_line(void *const *restrict args,
-		int *restrict argcp, void ***restrict argvp)
+	int *restrict argcp, void ***restrict argvp)
 {
-	plist_T list;
+    plist_T list;
 
-	// TODO expand.c: expand_line: 未実装
-	(void) args;
+    // TODO expand.c: expand_line: 未実装
+    (void) args;
 
-	pl_init(&list);
-	*argcp = list.length;
-	*argvp = pl_toary(&list);
-	return false;
+    pl_init(&list);
+    *argcp = list.length;
+    *argvp = pl_toary(&list);
+    return false;
 }
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

@@ -23,9 +23,12 @@
 
 __attribute__((nonnull))
 bool expand_line(
-		void *const *restrict args,
-		int *restrict argcp,
-		void ***restrict argvp);
+	void *const *restrict args,
+	int *restrict argcp,
+	void ***restrict argvp);
 
 
 #endif /* EXPAND_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

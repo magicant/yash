@@ -34,3 +34,6 @@ extern void clear_traps(void);
 
 
 #endif /* SIG_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

@@ -40,10 +40,13 @@ extern int input_readline(struct xwcsbuf_T *buf, void *inputinfo);
 
 /* input_mbs の inputinfo として使う構造体 */
 struct input_mbs_info {
-	const char *src;   /* 入力として返すソースコード */
-	size_t srclen;     /* 末尾の '\0' を含む src のバイト数 */
-	mbstate_t state;   /* ワイド文字列への変換の為のシフト状態 */
+    const char *src;   /* 入力として返すソースコード */
+    size_t srclen;     /* 末尾の '\0' を含む src のバイト数 */
+    mbstate_t state;   /* ワイド文字列への変換の為のシフト状態 */
 };
 
 
 #endif /* LINEINPUT_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

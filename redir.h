@@ -25,3 +25,6 @@ extern int xdup2(int oldfd, int newfd);
 
 
 #endif /* REDIR_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

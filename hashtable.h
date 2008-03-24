@@ -24,24 +24,24 @@
 typedef unsigned long hashfunc_T(const void *key);
 typedef int keycmp_T(const void *key1, const void *key2);
 typedef struct hashtable_T {
-	size_t count, capacity;
-	hashfunc_T *hashfunc;
-	keycmp_T *keycmp;
-	size_t emptyindex, tailindex;
-	size_t *indices;
-	struct hash_entry *entries;
+    size_t count, capacity;
+    hashfunc_T *hashfunc;
+    keycmp_T *keycmp;
+    size_t emptyindex, tailindex;
+    size_t *indices;
+    struct hash_entry *entries;
 } hashtable_T;
 typedef struct kvpair_T {
-	void *key, *value;
+    void *key, *value;
 } kvpair_T;
 
 __attribute__((nonnull))
 static inline hashtable_T *ht_init(
-		hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp);
+	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp);
 __attribute__((nonnull))
 extern hashtable_T *ht_initwithcapacity(
-		hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
-		size_t capacity);
+	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
+	size_t capacity);
 __attribute__((nonnull))
 extern void ht_destroy(hashtable_T *ht);
 __attribute__((nonnull))
@@ -72,11 +72,14 @@ extern int htwcscmp(const void *s1, const void *s2);
  * keycmp は二つのキーを比較する比較関数へのポインタである。
  * 比較関数は、二つのキーが等しいとき 0 を、異なるときに非 0 を返す。 */
 static inline hashtable_T *ht_init(
-		hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
+	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
 {
-	return ht_initwithcapacity(
-			ht, hashfunc, keycmp, HASHTABLE_DEFAULT_INIT_CAPACITY);
+    return ht_initwithcapacity(
+	    ht, hashfunc, keycmp, HASHTABLE_DEFAULT_INIT_CAPACITY);
 }
 
 
 #endif /* HASHTABLE_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

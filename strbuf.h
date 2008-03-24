@@ -25,12 +25,12 @@
 
 
 typedef struct xstrbuf_T {
-	char *contents;
-	size_t length, maxlength;
+    char *contents;
+    size_t length, maxlength;
 } xstrbuf_T;
 typedef struct xwcsbuf_T {
-	wchar_t *contents;
-	size_t length, maxlength;
+    wchar_t *contents;
+    size_t length, maxlength;
 } xwcsbuf_T;
 
 __attribute__((nonnull))
@@ -49,38 +49,38 @@ __attribute__((nonnull))
 extern xstrbuf_T *sb_clear(xstrbuf_T *buf);
 __attribute__((nonnull))
 extern xstrbuf_T *sb_replace(
-		xstrbuf_T *restrict buf, size_t i, size_t bn,
-		const char *restrict s, size_t sn);
+	xstrbuf_T *restrict buf, size_t i, size_t bn,
+	const char *restrict s, size_t sn);
 __attribute__((nonnull))
 static inline xstrbuf_T *sb_ninsert(
-		xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n);
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n);
 __attribute__((nonnull))
 static inline xstrbuf_T *sb_insert(
-		xstrbuf_T *restrict buf, size_t i, const char *restrict s);
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s);
 __attribute__((nonnull))
 static inline xstrbuf_T *sb_ncat(
-		xstrbuf_T *restrict buf, const char *restrict s, size_t n);
+	xstrbuf_T *restrict buf, const char *restrict s, size_t n);
 __attribute__((nonnull))
 static inline xstrbuf_T *sb_cat(
-		xstrbuf_T *restrict buf, const char *restrict s);
+	xstrbuf_T *restrict buf, const char *restrict s);
 __attribute__((nonnull))
 static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n);
 __attribute__((nonnull))
 extern xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c);
 __attribute__((nonnull(1)))
 extern wchar_t *sb_wcscat(
-		xstrbuf_T *restrict buf,
-		const wchar_t *restrict s, mbstate_t *restrict ps);
+	xstrbuf_T *restrict buf,
+	const wchar_t *restrict s, mbstate_t *restrict ps);
 __attribute__((nonnull(1,2),format(printf,2,0)))
 extern int sb_vprintf(
-		xstrbuf_T *restrict buf, const char *restrict format, va_list ap);
+	xstrbuf_T *restrict buf, const char *restrict format, va_list ap);
 __attribute__((nonnull(1,2),format(printf,2,3)))
 extern int sb_printf(
-		xstrbuf_T *restrict buf, const char *restrict format, ...);
+	xstrbuf_T *restrict buf, const char *restrict format, ...);
 __attribute__((nonnull,format(strftime,2,0)))
 extern size_t sb_strftime(
-		xstrbuf_T *restrict buf,
-		const char *restrict format, const struct tm *restrict tm);
+	xstrbuf_T *restrict buf,
+	const char *restrict format, const struct tm *restrict tm);
 
 __attribute__((nonnull))
 extern xwcsbuf_T *wb_init(xwcsbuf_T *buf);
@@ -98,20 +98,20 @@ __attribute__((nonnull))
 extern xwcsbuf_T *wb_clear(xwcsbuf_T *buf);
 __attribute__((nonnull))
 extern xwcsbuf_T *wb_replace(
-		xwcsbuf_T *restrict buf, size_t i, size_t bn,
-		const wchar_t *restrict s, size_t sn);
+	xwcsbuf_T *restrict buf, size_t i, size_t bn,
+	const wchar_t *restrict s, size_t sn);
 __attribute__((nonnull))
 static inline xwcsbuf_T *wb_ninsert(
-		xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n);
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n);
 __attribute__((nonnull))
 static inline xwcsbuf_T *wb_insert(
-		xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s);
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s);
 __attribute__((nonnull))
 static inline xwcsbuf_T *wb_ncat(
-		xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n);
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n);
 __attribute__((nonnull))
 static inline xwcsbuf_T *wb_cat(
-		xwcsbuf_T *restrict buf, const wchar_t *restrict s);
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s);
 __attribute__((nonnull))
 static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n);
 __attribute__((nonnull))
@@ -120,10 +120,10 @@ __attribute__((nonnull))
 extern char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s);
 __attribute__((nonnull(1,2)))
 extern int wb_vprintf(
-		xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap);
+	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap);
 __attribute__((nonnull(1,2)))
 extern int wb_printf(
-		xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...);
+	xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...);
 
 __attribute__((nonnull,malloc,warn_unused_result))
 extern char *malloc_wcstombs(const wchar_t *s, size_t n);
@@ -137,35 +137,35 @@ extern wchar_t *malloc_mbstowcs(const char *s, size_t n);
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xstrbuf_T *sb_ninsert(
-		xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
 {
-	return sb_replace(buf, i, 0, s, n);
+    return sb_replace(buf, i, 0, s, n);
 }
 
 /* マルチバイト文字列 s をバッファの i バイト目の手前に挿入する。
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xstrbuf_T *sb_insert(
-		xstrbuf_T *restrict buf, size_t i, const char *restrict s)
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s)
 {
-	return sb_replace(buf, i, 0, s, SIZE_MAX);
+    return sb_replace(buf, i, 0, s, SIZE_MAX);
 }
 
 /* マルチバイト文字列 s の最初の n バイトを文字列バッファに追加する。
  * strlen(s) < n ならば s 全体を追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xstrbuf_T *sb_ncat(
-		xstrbuf_T *restrict buf, const char *restrict s, size_t n)
+	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
 {
-	return sb_replace(buf, SIZE_MAX, 0, s, n);
+    return sb_replace(buf, SIZE_MAX, 0, s, n);
 }
 
 /* マルチバイト文字列 s を文字列バッファに追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xstrbuf_T *sb_cat(
-		xstrbuf_T *restrict buf, const char *restrict s)
+	xstrbuf_T *restrict buf, const char *restrict s)
 {
-	return sb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
+    return sb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
 
 /* マルチバイト文字列バッファの i バイト目から n バイトを削除する。
@@ -173,7 +173,7 @@ static inline xstrbuf_T *sb_cat(
  * buf->length <= i + n ならば i バイト目以降全てを削除する。 */
 static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
 {
-	return sb_replace(buf, i, n, "", 0);
+    return sb_replace(buf, i, n, "", 0);
 }
 
 
@@ -182,35 +182,35 @@ static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xwcsbuf_T *wb_ninsert(
-		xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
 {
-	return wb_replace(buf, i, 0, s, n);
+    return wb_replace(buf, i, 0, s, n);
 }
 
 /* ワイド文字列 s をバッファの i 文字目の手前に挿入する。
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xwcsbuf_T *wb_insert(
-		xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
 {
-	return wb_replace(buf, i, 0, s, SIZE_MAX);
+    return wb_replace(buf, i, 0, s, SIZE_MAX);
 }
 
 /* ワイド文字列 s の最初の n 文字を文字列バッファに追加する。
  * wcslen(s) < n ならば s 全体を追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xwcsbuf_T *wb_ncat(
-		xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
 {
-	return wb_replace(buf, SIZE_MAX, 0, s, n);
+    return wb_replace(buf, SIZE_MAX, 0, s, n);
 }
 
 /* ワイド文字列 s を文字列バッファに追加する。
  * s は buf->contents の一部であってはならない。 */
 static inline xwcsbuf_T *wb_cat(
-		xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s)
 {
-	return wb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
+    return wb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
 
 /* ワイド文字列バッファの i 文字目から n 文字を削除する。
@@ -218,8 +218,11 @@ static inline xwcsbuf_T *wb_cat(
  * buf->length <= i + n ならば i 文字目以降全てを削除する。 */
 static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
 {
-	return wb_replace(buf, i, n, L"", 0);
+    return wb_replace(buf, i, n, L"", 0);
 }
 
 
 #endif /* STRBUF_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

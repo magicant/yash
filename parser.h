@@ -34,16 +34,16 @@
 
 /* and/or リストを表す */
 typedef struct and_or_T {
-	struct and_or_T   *next;
-	struct pipeline_T *ao_pipelines;  /* リストを構成するパイプラインたち */
-	bool               ao_async;      /* この and/or リストを非同期実行するか */
+    struct and_or_T   *next;
+    struct pipeline_T *ao_pipelines;  /* リストを構成するパイプラインたち */
+    bool               ao_async;      /* この and/or リストを非同期実行するか */
 } and_or_T;
 
 /* パイプラインを表す */
 typedef struct pipeline_T {
-	struct pipeline_T *next;
-	struct command_T  *pl_commands;  /* パイプラインを構成するコマンドたち */
-	bool               pl_neg, pl_loop, pl_next_cond;
+    struct pipeline_T *next;
+    struct command_T  *pl_commands;  /* パイプラインを構成するコマンドたち */
+    bool               pl_neg, pl_loop, pl_next_cond;
 } pipeline_T;
 /* pl_neg はパイプラインの終了ステータスを反転するかどうか。
  * pl_loop はパイプラインが環状かどうか。
@@ -51,43 +51,43 @@ typedef struct pipeline_T {
 
 /* command_T の種類を表す */
 typedef enum {
-	CT_SIMPLE,     /* シンプルコマンド */
-	CT_GROUP,      /* { } で囲んだコマンドグループ */
-	CT_SUBSHELL,   /* ( ) で囲んだサブシェルコマンドグループ */
-	CT_IF,         /* if コマンド */
-	CT_FOR,        /* for コマンド */
-	CT_WHILE,      /* while/until コマンド */
-	CT_CASE,       /* case コマンド */
+    CT_SIMPLE,     /* シンプルコマンド */
+    CT_GROUP,      /* { } で囲んだコマンドグループ */
+    CT_SUBSHELL,   /* ( ) で囲んだサブシェルコマンドグループ */
+    CT_IF,         /* if コマンド */
+    CT_FOR,        /* for コマンド */
+    CT_WHILE,      /* while/until コマンド */
+    CT_CASE,       /* case コマンド */
 } commandtype_T;
 
 /* パイプラインを構成する一つのコマンドを表す */
 typedef struct command_T {
-	struct command_T *next;
-	commandtype_T     c_type;
-	unsigned long     c_lineno;   /* このコマンドの行番号 */
-	struct redir_T   *c_redirs;   /* このコマンドで行うリダイレクト */
-	union {
-		struct {
-			struct assign_T *assigns;  /* このコマンドで行う変数代入 */
-			void           **words;    /* コマンド名と引数 */
-		} simplecontent;
-		struct and_or_T     *subcmds;  /* CT_GROUP, CT_SUBSHELL の内容 */
-		struct ifcommand_T  *ifcmds;   /* if の内容 */
-		struct {
-			wchar_t         *forname;  /* for で回す変数名 */
-			void           **forwords; /* 代入する word のリスト */
-			struct and_or_T *forcmds;  /* for で実行するコマンド */
-		} forcontent;
-		struct {
-			bool             whltype;  /* while なら 1、until なら 0 */
-			struct and_or_T *whlcond;  /* while/until の条件 */
-			struct and_or_T *whlcmds;  /* while/until で実行するコマンド */
-		} whilecontent;
-		struct {
-			struct wordunit_T *casword;   /* case で検索する word */
-			struct caseitem_T *casitems;  /* case の各項目 */
-		} casecontent;
-	} c_content;
+    struct command_T *next;
+    commandtype_T     c_type;
+    unsigned long     c_lineno;   /* このコマンドの行番号 */
+    struct redir_T   *c_redirs;   /* このコマンドで行うリダイレクト */
+    union {
+	struct {
+	    struct assign_T *assigns;  /* このコマンドで行う変数代入 */
+	    void           **words;    /* コマンド名と引数 */
+	} simplecontent;
+	struct and_or_T     *subcmds;  /* CT_GROUP, CT_SUBSHELL の内容 */
+	struct ifcommand_T  *ifcmds;   /* if の内容 */
+	struct {
+	    wchar_t         *forname;  /* for で回す変数名 */
+	    void           **forwords; /* 代入する word のリスト */
+	    struct and_or_T *forcmds;  /* for で実行するコマンド */
+	} forcontent;
+	struct {
+	    bool             whltype;  /* while なら 1、until なら 0 */
+	    struct and_or_T *whlcond;  /* while/until の条件 */
+	    struct and_or_T *whlcmds;  /* while/until で実行するコマンド */
+	} whilecontent;
+	struct {
+	    struct wordunit_T *casword;   /* case で検索する word */
+	    struct caseitem_T *casitems;  /* case の各項目 */
+	} casecontent;
+    } c_content;
 } command_T;
 #define c_assigns  c_content.simplecontent.assigns
 #define c_words    c_content.simplecontent.words
@@ -107,38 +107,38 @@ typedef struct command_T {
 
 /* if コマンドの条件とその条件が成り立つとき実行するコマンドを表す */
 typedef struct ifcommand_T {
-	struct ifcommand_T *next;
-	struct and_or_T    *ic_condition;  /* 条件 */
-	struct and_or_T    *ic_commands;   /* 実行するコマンド */
+    struct ifcommand_T *next;
+    struct and_or_T    *ic_condition;  /* 条件 */
+    struct and_or_T    *ic_commands;   /* 実行するコマンド */
 } ifcommand_T;
 /* else は next と ic_condition が NULL の ifcommand_T で表す。 */
 
 /* case コマンドの一つの項目を表す */
 typedef struct caseitem_T {
-	struct caseitem_T *next;
-	void             **ci_patterns;  /* 一致するか調べるパタンの配列 */
-	struct and_or_T   *ci_commands;  /* 一致したときに実行するコマンド */
+    struct caseitem_T *next;
+    void             **ci_patterns;  /* 一致するか調べるパタンの配列 */
+    struct and_or_T   *ci_commands;  /* 一致したときに実行するコマンド */
 } caseitem_T;
 /* ci_patterns は wordunit_T へのポインタの NULL 終端配列へのポインタ */
 
 /* wordunit_T の種類を表す */
 typedef enum {
-	WT_STRING,  /* 文字列部分 (引用符を含む) */
-	WT_PARAM,   /* パラメータ展開 */
-	WT_CMDSUB,  /* コマンド置換 */
-	WT_ARITH,   /* 数式展開 */
+    WT_STRING,  /* 文字列部分 (引用符を含む) */
+    WT_PARAM,   /* パラメータ展開 */
+    WT_CMDSUB,  /* コマンド置換 */
+    WT_ARITH,   /* 数式展開 */
 } wordunittype_T;
 
 /* 単語展開の対象となる単語の構成要素を表す */
 typedef struct wordunit_T {
-	struct wordunit_T *next;
-	wordunittype_T     wu_type;
-	union {
-		wchar_t           *string;  /* 文字列部分 */
-		struct paramexp_T *param;   /* パラメータ展開の内容 */
-		wchar_t           *cmdsub;  /* コマンド置換で実行するコマンド */
-		struct wordunit_T *arith;   /* 数式展開の内容 */
-	} wu_value;
+    struct wordunit_T *next;
+    wordunittype_T     wu_type;
+    union {
+	wchar_t           *string;  /* 文字列部分 */
+	struct paramexp_T *param;   /* パラメータ展開の内容 */
+	wchar_t           *cmdsub;  /* コマンド置換で実行するコマンド */
+	struct wordunit_T *arith;   /* 数式展開の内容 */
+    } wu_value;
 } wordunit_T;
 #define wu_string wu_value.string
 #define wu_param  wu_value.param
@@ -149,19 +149,19 @@ typedef struct wordunit_T {
 
 /* paramexp_T の種類を表す */
 typedef enum {
-	PT_NONE,                   /* 通常 */
-	PT_MINUS,                  /* ${name-subst} */
-	PT_PLUS,                   /* ${name+subst} */
-	PT_ASSIGN,                 /* ${name=subst} */
-	PT_ERROR,                  /* ${name?subst} */
-	PT_MATCH,                  /* ${name#match}, ${name%match} */
-	PT_SUBST,                  /* ${name/match/subst} */
-	PT_NUMBER       = 1 << 3,  /* ${#name} */
-	PT_COLON        = 1 << 4,  /* ${name:-subst}, ${name:+subst}, etc. */
-	PT_MATCHHEAD    = 1 << 5,  /* 先頭のみにマッチ */
-	PT_MATCHTAIL    = 1 << 6,  /* 末尾のみにマッチ */
-	PT_MATCHLONGEST = 1 << 7,  /* できるだけ長くマッチ */
-	PT_SUBSTALL     = 1 << 8,  /* マッチしたもの全て置換 */
+    PT_NONE,                   /* 通常 */
+    PT_MINUS,                  /* ${name-subst} */
+    PT_PLUS,                   /* ${name+subst} */
+    PT_ASSIGN,                 /* ${name=subst} */
+    PT_ERROR,                  /* ${name?subst} */
+    PT_MATCH,                  /* ${name#match}, ${name%match} */
+    PT_SUBST,                  /* ${name/match/subst} */
+    PT_NUMBER       = 1 << 3,  /* ${#name} */
+    PT_COLON        = 1 << 4,  /* ${name:-subst}, ${name:+subst}, etc. */
+    PT_MATCHHEAD    = 1 << 5,  /* 先頭のみにマッチ */
+    PT_MATCHTAIL    = 1 << 6,  /* 末尾のみにマッチ */
+    PT_MATCHLONGEST = 1 << 7,  /* できるだけ長くマッチ */
+    PT_SUBSTALL     = 1 << 8,  /* マッチしたもの全て置換 */
 } paramexptype_T;
 #define PT_MASK ((1 << 3) - 1)
 /*            type   COLON  MATCHH MATCHT MATCHL SUBSTA
@@ -189,9 +189,9 @@ typedef enum {
 
 /* パラメータ展開を表す */
 typedef struct paramexp_T {
-	paramexptype_T pe_type;
-	char *pe_name;
-	struct wordunit_T *pe_match, *pe_subst;
+    paramexptype_T pe_type;
+    char *pe_name;
+    struct wordunit_T *pe_match, *pe_subst;
 } paramexp_T;
 /* pe_name は変数名。
  * pe_match は変数の内容とマッチさせる単語で、PT_MATCH, PT_SUBST で使う。
@@ -200,37 +200,37 @@ typedef struct paramexp_T {
 
 /* 代入を表す */
 typedef struct assign_T {
-	struct assign_T *next;
-	char *name;                /* 代入する変数名 */
-	struct wordunit_T *value;  /* 代入する値 */
+    struct assign_T *next;
+    char *name;                /* 代入する変数名 */
+    struct wordunit_T *value;  /* 代入する値 */
 } assign_T;
 /* value が NULL のとき、それは空文字列を表す。 */
 
 /* リダイレクトの種類を表す */
 typedef enum {
-	RT_INPUT,    /* <file */
-	RT_OUTPUT,   /* >file */
-	RT_CLOBBER,  /* >|file */
-	RT_APPEND,   /* >>file */
-	RT_INOUT,    /* <>file */
-	RT_DUPIN,    /* <&fd */
-	RT_DUPOUT,   /* >&fd */
-	RT_HERE,     /* <<END */
-	RT_HERERT,   /* <<-END */
+    RT_INPUT,    /* <file */
+    RT_OUTPUT,   /* >file */
+    RT_CLOBBER,  /* >|file */
+    RT_APPEND,   /* >>file */
+    RT_INOUT,    /* <>file */
+    RT_DUPIN,    /* <&fd */
+    RT_DUPOUT,   /* >&fd */
+    RT_HERE,     /* <<END */
+    RT_HERERT,   /* <<-END */
 } redirtype_T;
 
 /* リダイレクトを表す */
 typedef struct redir_T {
-	struct redir_T *next;
-	redirtype_T rd_type;
-	int rd_fd;  /* リダイレクトするファイル記述子 */
-	union {
-		struct wordunit_T *filename;
-		struct {
-			wchar_t *hereend;  /* ヒアドキュメントの終わりを示すトークン */
-			struct wordunit_T *herecontent;  /* ヒアドキュメントの内容 */
-		} heredoc;
-	} rd_value;
+    struct redir_T *next;
+    redirtype_T rd_type;
+    int rd_fd;  /* リダイレクトするファイル記述子 */
+    union {
+	struct wordunit_T *filename;
+	struct {
+	    wchar_t *hereend;  /* ヒアドキュメントの終わりを示すトークン */
+	    struct wordunit_T *herecontent;  /* ヒアドキュメントの内容 */
+	} heredoc;
+    } rd_value;
 } redir_T;
 #define rd_filename    rd_value.filename
 #define rd_hereend     rd_value.heredoc.hereend
@@ -257,16 +257,16 @@ struct xwcsbuf_T;
 typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 typedef struct parseinfo_T {
-	bool print_errmsg;    /* エラーメッセージを出力するかどうか */
-	const char *filename; /* エラー表示で使うファイル名。NULL でも良い。 */
-	unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
-	inputfunc_T *input;   /* 入力関数 */
-	void *inputinfo;      /* 入力関数に渡す情報 */
+    bool print_errmsg;    /* エラーメッセージを出力するかどうか */
+    const char *filename; /* エラー表示で使うファイル名。NULL でも良い。 */
+    unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
+    inputfunc_T *input;   /* 入力関数 */
+    void *inputinfo;      /* 入力関数に渡す情報 */
 } parseinfo_T;
 
 __attribute__((nonnull))
 extern int read_and_parse(
-		parseinfo_T *restrict info, and_or_T **restrict result);
+	parseinfo_T *restrict info, and_or_T **restrict result);
 
 
 /********** 構文木を文字列に戻すルーチン **********/
@@ -284,3 +284,6 @@ extern void andorsfree(and_or_T *a);
 
 
 #endif /* PARSER_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

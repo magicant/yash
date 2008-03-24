@@ -26,25 +26,25 @@
 
 /* ジョブ／プロセスの状態 */
 typedef enum jobstatus_T {
-	JS_RUNNING, JS_STOPPED, JS_DONE,
+    JS_RUNNING, JS_STOPPED, JS_DONE,
 } jobstatus_T;
 
 /* ジョブを構成するプロセスの情報 */
 typedef struct process_T {
-	pid_t             pr_pid;          /* プロセス ID */
-	enum jobstatus_T  pr_status;       /* プロセスの状態 */
-	int               pr_waitstatus;   /* 最後の wait の結果 */
-	wchar_t          *pr_name;         /* 表示用のプロセス名 */
+    pid_t             pr_pid;          /* プロセス ID */
+    enum jobstatus_T  pr_status;       /* プロセスの状態 */
+    int               pr_waitstatus;   /* 最後の wait の結果 */
+    wchar_t          *pr_name;         /* 表示用のプロセス名 */
 } process_T;
 
 /* ジョブの情報 */
 typedef struct job_T {
-	pid_t             j_pgid;          /* プロセスグループ ID */
-	enum jobstatus_T  j_status;        /* ジョブの状態 */
-	bool              j_statuschanged; /* 状態変化を報告していないなら true */
-	bool              j_loop;          /* ループパイプかどうか */
-	size_t            j_pcount;        /* j_procs の要素数 */
-	struct process_T  j_procs[];       /* 各プロセスの情報 */
+    pid_t             j_pgid;          /* プロセスグループ ID */
+    enum jobstatus_T  j_status;        /* ジョブの状態 */
+    bool              j_statuschanged; /* 状態変化を報告していないなら true */
+    bool              j_loop;          /* ループパイプかどうか */
+    size_t            j_pcount;        /* j_procs の要素数 */
+    struct process_T  j_procs[];       /* 各プロセスの情報 */
 } job_T;
 /* ジョブ制御無効時、ジョブのプロセスグループ ID はシェルと同じになるので、
  * j_pgid は 0 となる。 */
@@ -70,3 +70,6 @@ extern int calc_status_of_job(job_T *job);
 
 
 #endif /* JOB_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

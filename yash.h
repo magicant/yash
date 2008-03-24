@@ -37,3 +37,6 @@ extern bool exec_mbs(const char *code, const char *name, bool finally_exit);
 
 
 #endif /* YASH_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

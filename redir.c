@@ -29,18 +29,18 @@
  * close が EINTR/EBADF 以外のエラーを返したら、エラーメッセージを出す。 */
 int xclose(int fd)
 {
-	while (close(fd) < 0) {
-		switch (errno) {
-		case EINTR:
-			continue;
-		case EBADF:
-			return 0;
-		default:
-			xerror(0, errno, Ngt("error in closing file descriptor %d"), fd);
-			return -1;
-		}
+    while (close(fd) < 0) {
+	switch (errno) {
+	case EINTR:
+	    continue;
+	case EBADF:
+	    return 0;
+	default:
+	    xerror(0, errno, Ngt("error in closing file descriptor %d"), fd);
+	    return -1;
 	}
-	return 0;
+    }
+    return 0;
 }
 
 /* dup2 を確実に行う。(dup2 が EINTR を返したら、やり直す)
@@ -48,17 +48,20 @@ int xclose(int fd)
  * この関数は事前に xclose(newfd) を行う。 */
 int xdup2(int oldfd, int newfd)
 {
-	xclose(newfd);
-	while (dup2(oldfd, newfd) < 0) {
-		switch (errno) {
-		case EINTR:
-			continue;
-		default:
-			xerror(0, errno,
-					Ngt("error in copying file descriptor %d to %d"),
-					oldfd, newfd);
-			return -1;
-		}
+    xclose(newfd);
+    while (dup2(oldfd, newfd) < 0) {
+	switch (errno) {
+	case EINTR:
+	    continue;
+	default:
+	    xerror(0, errno,
+		    Ngt("error in copying file descriptor %d to %d"),
+		    oldfd, newfd);
+	    return -1;
 	}
-	return newfd;
+    }
+    return newfd;
 }
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

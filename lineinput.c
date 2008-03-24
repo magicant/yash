@@ -37,50 +37,53 @@
  * を示す。 */
 int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 {
-	struct input_mbs_info *info = inputinfo;
-	size_t initbuflen = buf->length;
-	size_t count;
+    struct input_mbs_info *info = inputinfo;
+    size_t initbuflen = buf->length;
+    size_t count;
 
-	if (!info->src)
-		return EOF;
-
-	while (info->srclen > 0) {
-		wb_ensuremax(buf, buf->length + 1);
-		count = mbrtowc(buf->contents + buf->length,
-				info->src, info->srclen, &info->state);
-		switch (count) {
-			case 0:  // L'\0' を読み取った
-				info->src = NULL;
-				info->srclen = 0;
-				return (buf->length == initbuflen) ? EOF : 0;
-			default:  // L'\0' 以外の文字を読み取った
-				info->src += count;
-				info->srclen -= count;
-				if (buf->contents[buf->length++] == '\n') {
-					buf->contents[buf->length] = L'\0';
-					return 0;
-				}
-				break;
-			case (size_t) -2:  // バイト列が途中で終わっている
-			case (size_t) -1:  // 不正なバイト列である
-				goto err;
-		}
-	}
-err:
-	xerror(0, errno,
-			Ngt("cannot convert multibyte character to wide character"));
+    if (!info->src)
 	return EOF;
 
-	/*
-	wb_ensuremax(buf, buf->length + 120);
-	count = mbsrtowcs(buf->contents + buf->length, &info->src,
-			buf->maxlength - buf->length + 1, &info->state);
-	if (count == (size_t) -1) {
-		xerror(0, errno,
-				Ngt("cannot convert multibyte character to wide character"));
-		return EOF;
+    while (info->srclen > 0) {
+	wb_ensuremax(buf, buf->length + 1);
+	count = mbrtowc(buf->contents + buf->length,
+		info->src, info->srclen, &info->state);
+	switch (count) {
+	    case 0:  // L'\0' を読み取った
+		info->src = NULL;
+		info->srclen = 0;
+		return (buf->length == initbuflen) ? EOF : 0;
+	    default:  // L'\0' 以外の文字を読み取った
+		info->src += count;
+		info->srclen -= count;
+		if (buf->contents[buf->length++] == '\n') {
+		    buf->contents[buf->length] = L'\0';
+		    return 0;
+		}
+		break;
+	    case (size_t) -2:  // バイト列が途中で終わっている
+	    case (size_t) -1:  // 不正なバイト列である
+		goto err;
 	}
-	buf->length += count;
-	return 0;
-	*/
+    }
+err:
+    xerror(0, errno,
+	    Ngt("cannot convert multibyte character to wide character"));
+    return EOF;
+
+    /*
+    wb_ensuremax(buf, buf->length + 120);
+    count = mbsrtowcs(buf->contents + buf->length, &info->src,
+	    buf->maxlength - buf->length + 1, &info->state);
+    if (count == (size_t) -1) {
+	xerror(0, errno,
+		Ngt("cannot convert multibyte character to wide character"));
+	return EOF;
+    }
+    buf->length += count;
+    return 0;
+    */
 }
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */
