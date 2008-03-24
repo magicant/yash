@@ -120,6 +120,7 @@ static void exec_pipelines_async(pipeline_T *p)
 static void exec_if(command_T *c, bool finally_exit)
 {
 	// TODO exec.c: exec_if: 未実装
+	(void) c;
 	laststatus = 0;
 	if (finally_exit)
 		exit(laststatus);
@@ -129,6 +130,7 @@ static void exec_if(command_T *c, bool finally_exit)
 static void exec_for(command_T *c, bool finally_exit)
 {
 	// TODO exec.c: exec_for: 未実装
+	(void) c;
 	laststatus = 0;
 	if (finally_exit)
 		exit(laststatus);
@@ -138,6 +140,7 @@ static void exec_for(command_T *c, bool finally_exit)
 static void exec_while(command_T *c, bool finally_exit)
 {
 	// TODO exec.c: exec_while: 未実装
+	(void) c;
 	laststatus = 0;
 	if (finally_exit)
 		exit(laststatus);
@@ -147,6 +150,7 @@ static void exec_while(command_T *c, bool finally_exit)
 static void exec_case(command_T *c, bool finally_exit)
 {
 	// TODO exec.c: exec_case: 未実装
+	(void) c;
 	laststatus = 0;
 	if (finally_exit)
 		exit(laststatus);
@@ -234,7 +238,7 @@ static void exec_commands(command_T *c, exec_T type, bool looppipe)
 	for (size_t i = 0; i < count; i++) {
 		pid_t pid;
 
-		next_pipe(&pinfo, i == count - 1);
+		next_pipe(&pinfo, i < count - 1);
 		pid = exec_process(cc,
 				(type == execself && i < count - 1) ? execnormal : type,
 				&pinfo, pgid);
@@ -347,7 +351,7 @@ static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	if (finally_exit)
 		reset_signals(!do_job_control && type == execasync);
 
-	/* パイプを繋ぐ */
+	/* パイプを繋ぎ、余ったパイプを閉じる */
 	if (pi->pi_fromprevfd >= 0) {
 		xdup2(pi->pi_fromprevfd, STDIN_FILENO);
 		xclose(pi->pi_fromprevfd);
@@ -356,6 +360,10 @@ static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 		xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);
 		xclose(pi->pi_tonextfds[PIDX_OUT]);
 	}
+	if (pi->pi_tonextfds[PIDX_IN] >= 0)
+		xclose(pi->pi_tonextfds[PIDX_IN]);
+	if (pi->pi_loopoutfd >= 0)
+		xclose(pi->pi_loopoutfd);
 
 	/* リダイレクトを開く */
 	// TODO exec.c: exec_process: redirect
@@ -371,6 +379,7 @@ static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	/* コマンドを実行する */
 	switch (c->c_type) {
 	case CT_SIMPLE:
+		break;
 		// TODO exec.c: exec_process: 単純コマンドの実行
 	case CT_SUBSHELL:
 	case CT_GROUP:
@@ -407,6 +416,7 @@ static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 static pid_t fork_and_reset(pid_t pgid, bool fg)
 {
 	fflush(NULL);
+	xerror(0,0,"DEBUG: forking... (parent:%d)", (int) getpid());
 
 	pid_t cpid = fork();
 
@@ -429,6 +439,8 @@ static pid_t fork_and_reset(pid_t pgid, bool fg)
 		clear_traps();
 		// TODO exec: fork_and_reset: clear_shellfds
 		do_job_control = is_interactive_now = false;
+
+		xerror(0,0,"DEBUG: forked (child:%d)", (int) getpid());
 	}
 	return cpid;
 }
