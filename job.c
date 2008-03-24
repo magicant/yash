@@ -29,8 +29,8 @@
 #include "job.h"
 
 
-static int calc_status(int status)
-	__attribute__((const));
+__attribute__((const))
+static int calc_status(int status);
 
 
 /* ジョブ制御が有効かどうか。シェルの -m オプションに対応 */

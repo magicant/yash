@@ -38,7 +38,8 @@
 #include "version.h"
 
 
-int main(int argc, char **argv) __attribute__((nonnull));
+__attribute__((nonnull))
+int main(int argc, char **argv);
 static void print_help(void);
 static void print_version(void);
 

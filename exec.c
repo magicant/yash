@@ -54,19 +54,20 @@ typedef struct pipeinfo_T {
 
 static void exec_pipelines(pipeline_T *p, bool finally_exit);
 static void exec_pipelines_async(pipeline_T *p);
-static void exec_if(command_T *c, bool finally_exit)
-	__attribute__((nonnull));
-static void exec_for(command_T *c, bool finally_exit)
-	__attribute__((nonnull));
-static void exec_while(command_T *c, bool finally_exit)
-	__attribute__((nonnull));
-static void exec_case(command_T *c, bool finally_exit)
-	__attribute__((nonnull));
-static inline void next_pipe(pipeinfo_T *pi, bool next)
-	__attribute__((nonnull));
+__attribute__((nonnull))
+static void exec_if(command_T *c, bool finally_exit);
+__attribute__((nonnull))
+static void exec_for(command_T *c, bool finally_exit);
+__attribute__((nonnull))
+static void exec_while(command_T *c, bool finally_exit);
+__attribute__((nonnull))
+static void exec_case(command_T *c, bool finally_exit);
+__attribute__((nonnull))
+static inline void next_pipe(pipeinfo_T *pi, bool next);
 static void exec_commands(command_T *c, exec_T type, bool looppipe);
-static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
-	__attribute__((nonnull));
+__attribute__((nonnull))
+static pid_t exec_process(
+		command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid);
 static pid_t fork_and_reset(pid_t pgid, bool fg);
 
 

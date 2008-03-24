@@ -205,10 +205,10 @@ static void redirsfree(redir_T *r)
 
 /********** 構文解析に関する補助ルーチン **********/
 
-static inline bool is_name_char(wchar_t c)
-	__attribute__((const));
-static wchar_t *skip_name(const wchar_t *s)
-	__attribute__((nonnull));
+__attribute__((const))
+static inline bool is_name_char(wchar_t c);
+__attribute__((nonnull))
+static wchar_t *skip_name(const wchar_t *s);
 
 
 /* 引数が名前構成文字であるかどうか調べる */
@@ -248,88 +248,88 @@ static wchar_t *skip_name(const wchar_t *s)
 
 typedef enum { noalias, globalonly, anyalias, } aliastype_T;
 
-static void serror(const char *restrict format, ...)
-	__attribute__((nonnull(1),format(printf,1,2)));
+__attribute__((nonnull(1),format(printf,1,2)))
+static void serror(const char *restrict format, ...);
 static inline int read_more_input(void);
 static inline int ensure_buffer(size_t n);
 static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
 static bool is_token_delimiter_char(wchar_t c);
-static bool is_command_delimiter_char(wchar_t c)
-	__attribute__((const));
-static bool is_slash_or_closing_brace(wchar_t c)
-	__attribute__((const));
-static bool is_closing_brace(wchar_t c)
-	__attribute__((const));
-static bool is_token_at(const wchar_t *token, size_t index)
-	__attribute__((nonnull));
+__attribute__((const))
+static bool is_command_delimiter_char(wchar_t c);
+__attribute__((const))
+static bool is_slash_or_closing_brace(wchar_t c);
+__attribute__((const))
+static bool is_closing_brace(wchar_t c);
+__attribute__((nonnull))
+static bool is_token_at(const wchar_t *token, size_t index);
 static const wchar_t *check_opening_token_at(size_t index);
 static const wchar_t *check_closing_token_at(size_t index);
-static and_or_T *parse_command_list(void)
-	__attribute__((malloc));
-static and_or_T *parse_compound_list(void)
-	__attribute__((malloc));
-static and_or_T *parse_and_or_list(void)
-	__attribute__((malloc));
-static pipeline_T *parse_pipelines_in_and_or(void)
-	__attribute__((malloc));
-static pipeline_T *parse_pipeline(void)
-	__attribute__((malloc));
-static command_T *parse_commands_in_pipeline(void)
-	__attribute__((malloc));
-static command_T *parse_command(void)
-	__attribute__((malloc));
-static redir_T **parse_assignments_and_redirects(command_T *c)
-	__attribute__((malloc,nonnull));
-static void **parse_words_and_redirects(redir_T **redirlastp, bool first)
-	__attribute__((malloc,nonnull));
-static void parse_redirect_list(redir_T **lastp)
-	__attribute__((nonnull));
-static assign_T *tryparse_assignment(void)
-	__attribute__((malloc));
-static redir_T *tryparse_redirect(void)
-	__attribute__((malloc));
-static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
-	__attribute__((malloc,nonnull));
-static inline wordunit_T *parse_word(aliastype_T type)
-	__attribute__((malloc));
+__attribute__((malloc,warn_unused_result))
+static and_or_T *parse_command_list(void);
+__attribute__((malloc,warn_unused_result))
+static and_or_T *parse_compound_list(void);
+__attribute__((malloc,warn_unused_result))
+static and_or_T *parse_and_or_list(void);
+__attribute__((malloc,warn_unused_result))
+static pipeline_T *parse_pipelines_in_and_or(void);
+__attribute__((malloc,warn_unused_result))
+static pipeline_T *parse_pipeline(void);
+__attribute__((malloc,warn_unused_result))
+static command_T *parse_commands_in_pipeline(void);
+__attribute__((malloc,warn_unused_result))
+static command_T *parse_command(void);
+__attribute__((malloc,warn_unused_result,nonnull))
+static redir_T **parse_assignments_and_redirects(command_T *c);
+__attribute__((malloc,warn_unused_result,nonnull))
+static void **parse_words_and_redirects(redir_T **redirlastp, bool first);
+__attribute__((nonnull))
+static void parse_redirect_list(redir_T **lastp);
+__attribute__((malloc,warn_unused_result))
+static assign_T *tryparse_assignment(void);
+__attribute__((malloc,warn_unused_result))
+static redir_T *tryparse_redirect(void);
+__attribute__((malloc,warn_unused_result,nonnull))
+static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c));
+__attribute__((malloc,warn_unused_result))
+static inline wordunit_T *parse_word(aliastype_T type);
 static void skip_to_next_single_quote(void);
-static wordunit_T *parse_special_word_unit(void)
-	__attribute__((malloc));
-static wordunit_T *parse_paramexp_raw(void)
-	__attribute__((malloc));
-static wordunit_T *parse_paramexp_in_brace(void)
-	__attribute__((malloc));
-static wordunit_T *parse_cmdsubst_in_paren(void)
-	__attribute__((malloc));
-static wordunit_T *parse_cmdsubst_in_backquote(void)
-	__attribute__((malloc));
-static wordunit_T *tryparse_arith(void)
-	__attribute__((malloc));
-static wchar_t *parse_word_as_wcs(void)
-	__attribute__((malloc));
-static command_T *parse_compound_command(const wchar_t *command)
-	__attribute__((nonnull,malloc));
-static command_T *parse_group(commandtype_T type)
-	__attribute__((malloc));
-static command_T *parse_if(void)
-	__attribute__((malloc));
-static command_T *parse_for(void)
-	__attribute__((malloc));
-static command_T *parse_while(bool whltype)
-	__attribute__((malloc));
-static command_T *parse_case(void)
-	__attribute__((malloc));
-static caseitem_T *parse_case_list(void)
-	__attribute__((malloc));
-static void **parse_case_patterns(void)
-	__attribute__((malloc));
+__attribute__((malloc,warn_unused_result))
+static wordunit_T *parse_special_word_unit(void);
+__attribute__((malloc,warn_unused_result))
+static wordunit_T *parse_paramexp_raw(void);
+__attribute__((malloc,warn_unused_result))
+static wordunit_T *parse_paramexp_in_brace(void);
+__attribute__((malloc,warn_unused_result))
+static wordunit_T *parse_cmdsubst_in_paren(void);
+__attribute__((malloc,warn_unused_result))
+static wordunit_T *parse_cmdsubst_in_backquote(void);
+__attribute__((malloc,warn_unused_result))
+static wordunit_T *tryparse_arith(void);
+__attribute__((malloc,warn_unused_result))
+static wchar_t *parse_word_as_wcs(void);
+__attribute__((malloc,warn_unused_result,nonnull))
+static command_T *parse_compound_command(const wchar_t *command);
+__attribute__((malloc,warn_unused_result))
+static command_T *parse_group(commandtype_T type) __attribute__((malloc));
+__attribute__((malloc,warn_unused_result))
+static command_T *parse_if(void);
+__attribute__((malloc,warn_unused_result))
+static command_T *parse_for(void);
+__attribute__((malloc,warn_unused_result))
+static command_T *parse_while(bool whltype);
+__attribute__((malloc,warn_unused_result))
+static command_T *parse_case(void);
+__attribute__((malloc,warn_unused_result))
+static caseitem_T *parse_case_list(void);
+__attribute__((malloc,warn_unused_result))
+static void **parse_case_patterns(void);
 static void read_heredoc_contents(redir_T *redir);
-static const char *get_errmsg_unexpected_token(const wchar_t *token)
-	__attribute__((nonnull));
-static void print_errmsg_token_missing(const wchar_t *token, size_t index)
-	__attribute__((nonnull));
+__attribute__((nonnull))
+static const char *get_errmsg_unexpected_token(const wchar_t *token);
+__attribute__((nonnull))
+static void print_errmsg_token_missing(const wchar_t *token, size_t index);
 
 static inline wordunit_T *parse_word(aliastype_T type)
 {
