@@ -22,12 +22,13 @@ configlog="config.log"
 configh="config.h"
 versionh="version.h"
 tempsrc=".temp.c"
+tempo=".temp.o"
 tempout=".temp.out"
 
 cc="${CC-c99}"
 cflags="${CFLAGS--O1 -g}"
 ldflags="${LDFLAGS}"
-ldlibs="${LDLIBS--l c}"
+ldlibs="${LDLIBS}"
 target="yash"
 package="yash"
 version="2.0 WIP"
@@ -124,19 +125,29 @@ checkby () {
     echo "%" "$@" >&5
     eval "$@" '>&5 2>&1'
 }
-trycompile () {
+trymake () {
     echo "%" ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
 	"${tempsrc}" "$@" ${ldlibs} >&5
     ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
 	"${tempsrc}" "$@" ${ldlibs} >&5 2>&1
+}
+trycompile () {
+    echo "%" ${cc} ${cflags} ${CADDS} -c -o "${tempo}" "${tempsrc}" "$@" >&5
+    ${cc} ${cflags} ${CADDS} -c -o "${tempo}" "${tempsrc}" "$@" >&5 2>&1
+}
+trylink () {
+    echo "%" ${cc} ${ldflags} ${LDADDS} -o "${tempout}" \
+	"${tempo}" "$@" ${ldlibs} >&5
+    ${cc} ${ldflags} ${LDADDS} -o "${tempout}" \
+	"${tempo}" "$@" ${ldlibs} >&5 2>&1
 }
 checked () {
     echo "$1"
     echo "# result: $1" >&5
 }
 defconfigh () {
-    echo "#define" $1 ${2:-1} >&6
-    echo "# defining $1=${2:-1} in ${configh}" >&5
+    echo "#define" $1 ${2} >&6
+    echo "# defining $1='${2}' in ${configh}" >&5
 }
 
 # check whether GCC is available
@@ -177,38 +188,57 @@ then
     cat >"${tempsrc}" <<END
 #include <stdio.h>
 #include <readline/readline.h>
+#include <readline/history.h>
 /* check some features to exclude old libedit */
 char *(*x)() = rl_filename_completion_function;
 void *y = &rl_attempted_completion_over;
 int main() { readline(""); return 0; }
 END
-    if [ -r libreadline.a ]
-    then
-	rllib="libreadline.a"
-    else
-	rllib="-l readline"
-    fi
-    if trycompile ${rllib}
-    then
-	checked "yes"
-	ldlibs="${rllib} ${ldlibs}"
-	readline="ok"
-    else
-	for i in ${rlldflagcand}
-	do
-	    if trycompile ${rllib} -l $i
-	    then
-		checked "with $i library"
-		ldlibs="${rllib} -l $i ${ldlibs}"
-		readline="ok"
-		break
-	    fi
-	done
-    fi
-    if [ x"${readline}" = x"ok" ]
+    if trycompile
     then
 	defconfigh "HAVE_LIBREADLINE"
+	compilation="ok"
     else
+	cat >"${tempsrc}" <<END
+#include <stdio.h>
+#include "readline.h"
+#include "history.h"
+/* check some features to exclude old libedit */
+char *(*x)() = rl_filename_completion_function;
+void *y = &rl_attempted_completion_over;
+int main() { readline(""); return 0; }
+END
+	if trycompile
+	then compilation="ok"
+	else compilation="no"
+	fi
+    fi
+    if [ x"${compilation}" = x"ok" ]
+    then
+	if [ -r libreadline.a ]
+	then rllib="libreadline.a"
+	else rllib="-l readline"
+	fi
+	if trylink ${rllib}
+	then
+	    checked "yes"
+	    ldlibs="${rllib} ${ldlibs}"
+	    readline="ok"
+	else
+	    for i in ${rlldflagcand}
+	    do
+		if trylink ${rllib} -l $i
+		then
+		    checked "with $i library"
+		    ldlibs="${rllib} -l $i ${ldlibs}"
+		    readline="ok"
+		    break
+		fi
+	    done
+	fi
+    fi
+    if [ x"${readline}" != x"ok" ]
+    then
 	checked "no"
 	readline="no"
     fi
@@ -221,7 +251,7 @@ cat >"${tempsrc}" <<END
 size_t strnlen(const char*, size_t);
 int main() { return (int) strnlen("", 1); }
 END
-if trycompile
+if trymake
 then
     checked "yes"
     defconfigh "HAVE_STRNLEN"
@@ -236,7 +266,7 @@ cat >"${tempsrc}" <<END
 size_t wcsnlen(const wchar_t*, size_t);
 int main() { return (int) wcsnlen(L"", 1); }
 END
-if trycompile
+if trymake
 then
     checked "yes"
     defconfigh "HAVE_WCSNLEN"
@@ -252,7 +282,7 @@ cat >"${tempsrc}" <<END
 #include <stdlib.h>
 int main() { return mkstemp((char []) { "" }); }
 END
-if trycompile
+if trymake
 then
     checked "yes"
     defconfigh "HAVE_MKSTEMP"
@@ -269,7 +299,7 @@ cat >"${tempsrc}" <<END
 extern char *strsignal(int);
 int main() { printf("%s\n", strsignal(SIGKILL)); return 0; }
 END
-if trycompile
+if trymake
 then
     checked "yes"
     defconfigh "HAVE_STRSIGNAL"
@@ -347,7 +377,7 @@ cat >"${versionh}" <<END
 END
 
 
-rm -f "${tempsrc}" "${tempout}"
+rm -f "${tempsrc}" "${tempo}" "${tempout}"
 
 
 # vim: set ts=8 sts=4 sw=4 noet:

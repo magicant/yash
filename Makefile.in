@@ -26,7 +26,7 @@ OBJS = @OBJS@
 TARGET = @TARGET@
 
 SUBSOURCES = mksignum.c
-BYPRODUCTS = mksignum signum.h
+BYPRODUCTS = mksignum.o mksignum signum.h
 
 all: $(TARGET)
 

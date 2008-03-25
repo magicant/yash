@@ -543,7 +543,8 @@ bool search_command(const char *restrict name, commandinfo_T *restrict ci)
     return ci->ci_path != NULL;
 }
 
-/* CT_SIMPLE でない一つのコマンドを実行する。 */
+/* CT_SIMPLE でない一つのコマンドを実行する。
+ * c->c_redirs は実行しない */
 void exec_nonsimple_command(const command_T *c, bool finally_exit)
 {
     switch (c->c_type) {
@@ -591,6 +592,7 @@ void exec_simple_command(
 	laststatus = ci->ci_builtin(argc, (char **) argv);
 	break;
     case function:
+	// TODO exec.c: exec_simple_command: 関数のリダイレクト
 	exec_nonsimple_command(ci->ci_function, finally_exit);
 	break;
     }
