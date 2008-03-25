@@ -128,7 +128,11 @@ extern int wb_printf(
 __attribute__((nonnull,malloc,warn_unused_result))
 extern char *malloc_wcstombs(const wchar_t *s, size_t n);
 __attribute__((nonnull,malloc,warn_unused_result))
+static inline char *realloc_wcstombs(wchar_t *s);
+__attribute__((nonnull,malloc,warn_unused_result))
 extern wchar_t *malloc_mbstowcs(const char *s, size_t n);
+__attribute__((nonnull,malloc,warn_unused_result))
+static inline wchar_t *realloc_mbstowcs(char *s);
 
 
 /* マルチバイト文字列 s の最初の n バイトを
@@ -219,6 +223,28 @@ static inline xwcsbuf_T *wb_cat(
 static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
 {
     return wb_replace(buf, i, n, L"", 0);
+}
+
+/* ワイド文字列を直接マルチバイト文字列に変換する。
+ * 引数で与えた領域は適切に realloc される。
+ * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
+static inline char *realloc_wcstombs(wchar_t *s)
+{
+    void free(void *);
+    char *result = malloc_wcstombs(s, SIZE_MAX);
+    free(s);
+    return result;
+}
+
+/* マルチバイト文字列を直接ワイド文字列に変換する。
+ * 引数で与えた領域は適切に realloc される。
+ * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
+static inline wchar_t *realloc_mbstowcs(char *s)
+{
+    void free(void *);
+    wchar_t *result = malloc_mbstowcs(s, SIZE_MAX);
+    free(s);
+    return result;
 }
 
 

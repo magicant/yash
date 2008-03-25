@@ -581,16 +581,13 @@ static void exec_simple_command(
 {
     /* argv の各要素をワイド文字列からマルチバイト文字列に変換する */
     for (int i = 0; i < argc; i++) {
-	wchar_t *wcs = argv[i];
-	char *mbs = malloc_wcstombs(wcs, SIZE_MAX);
-	if (!mbs) {
-	    mbs = xstrdup("");
+	argv[i] = realloc_wcstombs(argv[i]);
+	if (!argv[i]) {
+	    argv[i] = xstrdup("");
 	    xerror(0,0, Ngt("command argument contains wide characters that "
 		    "cannot be converted to multibyte characters in current "
 		    "locale; null string is passed to command instead"));
 	}
-	argv[i] = mbs;
-	free(wcs);
     }
     assert(argv[argc] == NULL);
 
