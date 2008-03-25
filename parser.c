@@ -503,7 +503,6 @@ static void next_line(void)
     for (size_t i = 0; i < pending_heredocs.length; i++)
 	read_heredoc_contents(pending_heredocs.contents[i]);
     pl_clear(&pending_heredocs);
-    read_more_input();
 }
 
 /* 指定した文字がトークン区切り文字かどうかを調べる */
