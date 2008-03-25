@@ -23,10 +23,6 @@
 #include <sys/types.h>
 
 
-#define EXIT_NOEXEC   126
-#define EXIT_NOTFOUND 127
-
-
 extern bool posixly_correct;
 extern bool is_login_shell, is_interactive, is_interactive_now;
 extern const char *command_name;

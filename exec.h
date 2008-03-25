@@ -22,6 +22,9 @@
 #include <stdbool.h>
 
 
+#define EXIT_NOEXEC   126
+#define EXIT_NOTFOUND 127
+
 extern int laststatus;
 
 struct and_or_T;

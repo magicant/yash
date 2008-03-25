@@ -20,12 +20,14 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <wchar.h>
 #include "util.h"
+#include "strbuf.h"
 #include "plist.h"
 #include "parser.h"
 #include "redir.h"
@@ -61,15 +63,13 @@ typedef int main_T(int argc, char **argv);
 typedef struct commandinfo_T {
     enum {                  /* コマンドの種類 */
 	externalprogram,      /* 外部コマンド */
-	normalbuiltin,        /* 普通の組込みコマンド */
-	semispecialbuiltin,   /* 準特殊組込みコマンド */
-	specialbuiltin,       /* 特殊組込みコマンド */
+	builtin,              /* 組込みコマンド */
 	function,             /* 関数 */
     } type;
     union {
-	const char *path;     /* コマンドのパス (externalprogram 用) */
-	main_T *builtin;      /* 組込みコマンドの本体 */
-	command_T *function;  /* 関数の本体 */
+	const char *path;           /* コマンドのパス (externalprogram 用) */
+	const main_T *builtin;      /* 組込みコマンドの本体 */
+	const command_T *function;  /* 関数の本体 */
     } value;
 } commandinfo_T;
 #define ci_path     value.path
@@ -360,7 +360,7 @@ static pid_t exec_process(
     bool need_fork;    /* fork するかどうか */
     bool finally_exit; /* true なら最後に exit してこの関数から返らない */
     int argc;
-    void **argv;
+    void **argv = NULL;
     commandinfo_T cmdinfo;
 
     switch (c->c_type) {
@@ -372,13 +372,14 @@ static pid_t exec_process(
 	if (argc == 0) {
 	    need_fork = finally_exit = false;
 #ifndef NDEBUG  /* GCC の警告を黙らせる小細工 */
-	    cmdinfo.type = normalbuiltin;
+	    cmdinfo.type = externalprogram;
 #endif
 	} else {
 	    if (!search_command(argv[0], &cmdinfo)) {
 		xerror(0, 0, Ngt("%ls: command not found"),
 			(wchar_t *) argv[0]);
 		laststatus = EXIT_NOTFOUND;
+		recfree(argv, free);
 		goto done;
 	    }
 	    /* 外部コマンドは fork し、組込みコマンドや関数は fork しない。 */
@@ -407,8 +408,10 @@ static pid_t exec_process(
     assert(!need_fork || finally_exit);  /* fork すれば子プロセスは必ず exit */
     if (need_fork) {
 	pid_t cpid = fork_and_reset(pgid, type == execnormal);
-	if (cpid != 0)
+	if (cpid != 0) {
+	    recfree(argv, free);
 	    return cpid;
+	}
     }
     if (finally_exit)
 	reset_signals(!do_job_control && type == execasync);
@@ -448,7 +451,6 @@ static pid_t exec_process(
     if (finally_exit)
 	exit(laststatus);
 
-    fflush(NULL);
     // TODO exec.c: exec_process: 変数の一時代入を削除
     // TODO exec.c: exec_process: セーブしたリダイレクトを戻す
     return 0;
@@ -503,9 +505,11 @@ static pid_t fork_and_reset(pid_t pgid, bool fg)
 static bool search_command(
 	const wchar_t *restrict name, commandinfo_T *restrict ci)
 {
-    (void) name, (void) ci;
-    // TODO exec.c: find_command: 未実装
-    return false;
+    // TODO exec.c: find_command: 暫定実装
+    (void) name;
+    ci->type = externalprogram;
+    ci->ci_path = "/bin/cat";
+    return true;
 }
 
 /* CT_SIMPLE でない一つのコマンドを実行する。 */
@@ -541,7 +545,19 @@ static void exec_simple_command(
 	const commandinfo_T *ci, int argc, void **argv, bool finally_exit)
 {
     /* argv の各要素をワイド文字列からマルチバイト文字列に変換する */
-    // TODO exec.c: exec_simple_command: マルチバイト文字列への変換
+    for (int i = 0; i < argc; i++) {
+	wchar_t *wcs = argv[i];
+	char *mbs = malloc_wcstombs(wcs, SIZE_MAX);
+	if (!mbs) {
+	    mbs = xstrdup("");
+	    xerror(0,0, Ngt("command argument contains wide characters that "
+		    "cannot be converted to multibyte characters in current "
+		    "locale; null string is passed to command instead"));
+	}
+	argv[i] = mbs;
+	free(wcs);
+    }
+    assert(argv[argc] == NULL);
 
     switch (ci->type) {
     case externalprogram:
@@ -555,9 +571,7 @@ static void exec_simple_command(
 	}
 	// TODO exec.c: exec_simple_command: コマンドをシェルスクリプトとして実行
 	break;
-    case normalbuiltin:
-    case semispecialbuiltin:
-    case specialbuiltin:
+    case builtin:
 	laststatus = ci->ci_builtin(argc, (char **) argv);
 	break;
     case function:
