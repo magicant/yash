@@ -30,6 +30,7 @@
 #endif
 #include "yash.h"
 #include "util.h"
+#include "path.h"
 #include "lineinput.h"
 #include "parser.h"
 #include "sig.h"
@@ -142,6 +143,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	return EXIT_SUCCESS;
 
     shell_pid = getpid();
+    init_cmdhash();
     init_signal();
     init_job();
 

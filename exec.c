@@ -29,6 +29,7 @@
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
+#include "path.h"
 #include "parser.h"
 #include "redir.h"
 #include "expand.h"
@@ -586,7 +587,7 @@ static void exec_simple_command(
 	    argv[i] = xstrdup("");
 	    xerror(0,0, Ngt("command argument contains wide characters that "
 		    "cannot be converted to multibyte characters in current "
-		    "locale; null string is passed to command instead"));
+		    "locale: null string is passed to command instead"));
 	}
     }
     assert(argv[argc] == NULL);
@@ -595,9 +596,8 @@ static void exec_simple_command(
     case externalprogram:
 	execv(ci->ci_path, (char **) argv);
 	if (errno != ENOEXEC) {
-	    // TODO exec.c: exec_simple_command: is_directory
-	    //if (errno == EACCES && is_directory(ci->ci_path))
-	    //	errno = EISDIR;
+	    if (errno == EACCES && is_directory(ci->ci_path))
+		errno = EISDIR;
 	    xerror(EXIT_NOEXEC, errno, Ngt("cannot execute `%s' (%s)"),
 		    (char *) argv[0], ci->ci_path);
 	}

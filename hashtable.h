@@ -63,6 +63,9 @@ extern unsigned long hashstr(const void *s);
 extern int htstrcmp(const void *s1, const void *s2);
 extern unsigned long hashwcs(const void *s);
 extern int htwcscmp(const void *s1, const void *s2);
+extern void kfree(kvpair_T kv);
+extern void vfree(kvpair_T kv);
+extern void kvfree(kvpair_T kv);
 
 
 #define HASHTABLE_DEFAULT_INIT_CAPACITY 5

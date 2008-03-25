@@ -342,5 +342,24 @@ int htwcscmp(const void *s1, const void *s2)
     return wcscmp((const wchar_t *) s1, (const wchar_t *) s2);
 }
 
+/* free(kv.key) を行うだけの関数。ht_clear の第二引数用。 */
+void kfree(kvpair_T kv)
+{
+    free(kv.key);
+}
+
+/* free(kv.value) を行うだけの関数。ht_clear の第二引数用。 */
+void vfree(kvpair_T kv)
+{
+    free(kv.value);
+}
+
+/* free(kv.key) と free(kv.value) を行うだけの関数。ht_clear の第二引数用。 */
+void kvfree(kvpair_T kv)
+{
+    free(kv.key);
+    free(kv.value);
+}
+
 
 /* vim: set ts=8 sts=4 sw=4 noet: */
