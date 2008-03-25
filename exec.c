@@ -96,12 +96,12 @@ static pid_t exec_process(
 	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid);
 static pid_t fork_and_reset(pid_t pgid, bool fg);
 static bool search_command(
-	const wchar_t *restrict name, commandinfo_T *restrict ci);
+	const char *restrict name, commandinfo_T *restrict ci);
 __attribute__((nonnull))
 static void exec_nonsimple_command(const command_T *c, bool finally_exit);
 __attribute__((nonnull))
-static void exec_simple_command(
-	const commandinfo_T *ci, int argc, void **argv, bool finally_exit);
+static void exec_simple_command(const commandinfo_T *ci,
+	int argc, char *const *argv, bool finally_exit);
 
 
 /* 最後に実行したコマンドの終了ステータス */
@@ -393,7 +393,7 @@ static pid_t exec_process(
     bool need_fork;    /* fork するかどうか */
     bool finally_exit; /* true なら最後に exit してこの関数から返らない */
     int argc;
-    void **argv = NULL;
+    char **argv = NULL;
     commandinfo_T cmdinfo;
 
     switch (c->c_type) {
@@ -409,10 +409,9 @@ static pid_t exec_process(
 #endif
 	} else {
 	    if (!search_command(argv[0], &cmdinfo)) {
-		xerror(0, 0, Ngt("%ls: command not found"),
-			(wchar_t *) argv[0]);
+		xerror(0, 0, Ngt("%s: command not found"), argv[0]);
 		laststatus = EXIT_NOTFOUND;
-		recfree(argv, free);
+		recfree((void **) argv, free);
 		goto done;
 	    }
 	    /* 外部コマンドは fork し、組込みコマンドや関数は fork しない。 */
@@ -442,7 +441,7 @@ static pid_t exec_process(
     if (need_fork) {
 	pid_t cpid = fork_and_reset(pgid, type == execnormal);
 	if (cpid != 0) {
-	    recfree(argv, free);
+	    recfree((void **) argv, free);
 	    return cpid;
 	}
     }
@@ -481,6 +480,7 @@ static pid_t exec_process(
     if (c->c_type == CT_SIMPLE) {
 	if (argc != 0)
 	    exec_simple_command(&cmdinfo, argc, argv, finally_exit);
+	recfree((void **) argv, free);
     } else {
 	exec_nonsimple_command(c, finally_exit);
     }
@@ -506,7 +506,6 @@ done:
 static pid_t fork_and_reset(pid_t pgid, bool fg)
 {
     fflush(NULL);
-    xerror(0,0,"DEBUG: forking... (parent:%d)", (int) getpid());
 
     pid_t cpid = fork();
 
@@ -529,8 +528,6 @@ static pid_t fork_and_reset(pid_t pgid, bool fg)
 	clear_traps();
 	// TODO exec: fork_and_reset: clear_shellfds
 	do_job_control = is_interactive_now = false;
-
-	xerror(0,0,"DEBUG: forked (child:%d)", (int) getpid());
     }
     return cpid;
 }
@@ -539,13 +536,13 @@ static pid_t fork_and_reset(pid_t pgid, bool fg)
  * コマンドが見付かれば結果を *ci に入れて true を返す。
  * 見付からなければ false を返し、*ci は不定 */
 static bool search_command(
-	const wchar_t *restrict name, commandinfo_T *restrict ci)
+	const char *restrict name, commandinfo_T *restrict ci)
 {
     // TODO exec.c: find_command: 暫定実装
     (void) name;
     ci->type = externalprogram;
-    ci->ci_path = "/bin/cat";
-    return true;
+    ci->ci_path = get_command_path(name, false);
+    return ci->ci_path != NULL;
 }
 
 /* CT_SIMPLE でない一つのコマンドを実行する。 */
@@ -575,21 +572,10 @@ static void exec_nonsimple_command(const command_T *c, bool finally_exit)
 
 /* 単純コマンドを実行する
  * ci:   実行するコマンドの情報
- * argv: コマンド名と引数。void * にキャストしたワイド文字列へのポインタの
- *       配列へのポインタ。この配列とその要素はこの関数内で free する。 */
+ * argv: コマンド名と引数。マルチバイト文字列へのポインタの配列へのポインタ。 */
 static void exec_simple_command(
-	const commandinfo_T *ci, int argc, void **argv, bool finally_exit)
+	const commandinfo_T *ci, int argc, char *const *argv, bool finally_exit)
 {
-    /* argv の各要素をワイド文字列からマルチバイト文字列に変換する */
-    for (int i = 0; i < argc; i++) {
-	argv[i] = realloc_wcstombs(argv[i]);
-	if (!argv[i]) {
-	    argv[i] = xstrdup("");
-	    xerror(0,0, Ngt("command argument contains wide characters that "
-		    "cannot be converted to multibyte characters in current "
-		    "locale: null string is passed to command instead"));
-	}
-    }
     assert(argv[argc] == NULL);
 
     switch (ci->type) {
@@ -612,8 +598,6 @@ static void exec_simple_command(
     }
     if (finally_exit)
 	exit(laststatus);
-
-    recfree(argv, free);
 }
 
 

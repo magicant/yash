@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <wchar.h>
 
 
 typedef struct xstrbuf_T {

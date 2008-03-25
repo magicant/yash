@@ -236,10 +236,13 @@ char *which(
 static char **patharray = NULL;
 
 /* 新しい PATH 環境変数に合わせて patharray の内容を更新する
- * newpath: 新しい PATH の値 */
+ * newpath: 新しい PATH の値。NULL でもよい。 */
 void reset_path(const char *newpath)
 {
     recfree((void **) patharray, free);
+
+    if (!newpath)
+	newpath = "";
 
     wchar_t *wpath = malloc_mbstowcs(newpath);
     if (!wpath) {
@@ -290,6 +293,9 @@ void init_cmdhash(void)
     if (!initialized) {
 	initialized = true;
 	ht_init(&cmdhash, hashstr, htstrcmp);
+
+	//TODO path.c: init_cmdhash: variable.c に移動すべし
+	reset_path(getenv("PATH"));
     }
 }
 

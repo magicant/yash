@@ -25,7 +25,7 @@ __attribute__((nonnull))
 bool expand_line(
 	void *const *restrict args,
 	int *restrict argcp,
-	void ***restrict argvp);
+	char ***restrict argvp);
 
 
 #endif /* EXPAND_H */

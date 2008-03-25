@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <stdbool.h>
+#include "strbuf.h"
 #include "plist.h"
 #include "expand.h"
 
@@ -26,14 +27,13 @@
  * args: void * にキャストした wordunit_T へのポインタの配列。配列内の各ワードが
  *       展開される。配列の最後の要素は NULL でなければならない。
  * argcp: このポインタが指すところに展開結果の個数が入る。
- * argvp: このポインタが指すところに展開結果が入る。結果は、void * にキャスト
- *       したワイド文字列へのポインタの配列へのポインタであり、配列の最後の
- *       要素は NULL である。
+ * argvp: このポインタが指すところに展開結果が入る。結果は、マルチバイト文字列
+ *       へのポインタの配列へのポインタであり、配列の最後の要素は NULL である。
  * args で与えられる内容は変更されない。
  * 戻り値: 成功すると true、エラーがあると false。
  * エラーがあった場合、*argcp, *argvp の値は不定である */
 bool expand_line(void *const *restrict args,
-    int *restrict argcp, void ***restrict argvp)
+    int *restrict argcp, char ***restrict argvp)
 {
     plist_T list;
 
@@ -46,9 +46,12 @@ bool expand_line(void *const *restrict args,
 	pl_add(&list, word_to_wcs(*args));
 	args++;
     }
+    for (size_t i = 0; i < list.length; i++) {
+	list.contents[i] = realloc_wcstombs(list.contents[i]);
+    }
 
     *argcp = list.length;
-    *argvp = pl_toary(&list);
+    *argvp = (char **) pl_toary(&list);
     return true;
 }
 

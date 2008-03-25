@@ -28,10 +28,10 @@ __attribute__((nonnull))
 extern bool is_directory(const char *path);
 
 __attribute__((nonnull))
-bool is_same_file(const char *path1, const char *path2);
+extern bool is_same_file(const char *path1, const char *path2);
 
 __attribute__((nonnull,malloc,warn_unused_result))
-wchar_t *canonicalize_path(const wchar_t *path);
+extern wchar_t *canonicalize_path(const wchar_t *path);
 
 extern bool which_found_in_path;
 
@@ -46,6 +46,7 @@ extern void reset_path(const char *newpath);
 
 
 extern void init_cmdhash(void);
+extern const char *get_command_path(const char *name, bool forcelookup);
 
 
 #endif /* PATH_H */
