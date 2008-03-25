@@ -69,8 +69,7 @@ extern plist_T *pl_add(plist_T *list, void *p);
  * a の要素に NULL があってもそれは特別扱いしない。
  * list->length <= i ならばリストの末尾に追加する。
  * a は list->contents の一部であってはならない。 */
-static inline plist_T *pl_ninsert(
-	plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
+plist_T *pl_ninsert(plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
 {
     return pl_replace(list, i, 0, a, n);
 }
@@ -79,8 +78,7 @@ static inline plist_T *pl_ninsert(
  * 挿入するのは、a 内の NULL の手前までの要素である。
  * list->length <= i ならばリストの末尾に追加する。
  * a は list->contents の一部であってはならない。 */
-static inline plist_T *pl_insert(
-	plist_T *restrict list, size_t i, void *const *restrict a)
+plist_T *pl_insert(plist_T *restrict list, size_t i, void *const *restrict a)
 {
     return pl_replace(list, i, 0, a, plcount(a));
 }
@@ -88,8 +86,7 @@ static inline plist_T *pl_insert(
 /* ポインタの配列 a の最初の n 要素をポインタリストの末尾に追加する。
  * a の要素に NULL があってもそれは特別扱いしない。
  * a は list->contents の一部であってはならない。 */
-static inline plist_T *pl_ncat(
-	plist_T *restrict list, void *const *restrict a, size_t n)
+plist_T *pl_ncat(plist_T *restrict list, void *const *restrict a, size_t n)
 {
     return pl_replace(list, SIZE_MAX, 0, a, n);
 }
@@ -97,15 +94,14 @@ static inline plist_T *pl_ncat(
 /* ポインタの配列 a の要素をポインタリストの末尾に追加する。
  * 挿入するのは、a 内の NULL の手前までの要素である。
  * a は list->contents の一部であってはならない。 */
-static inline plist_T *pl_cat(
-	plist_T *restrict list, void *const *restrict a)
+plist_T *pl_cat(plist_T *restrict list, void *const *restrict a)
 {
     return pl_replace(list, SIZE_MAX, 0, a, plcount(a));
 }
 
 /* リストの i 要素目から n 個の要素を削除する。
  * 消される要素は勝手には解放されないので注意。 */
-static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n)
+plist_T *pl_remove(plist_T *list, size_t i, size_t n)
 {
     return pl_replace(list, i, n, (void *[]) { NULL, }, 0);
 }

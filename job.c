@@ -221,7 +221,7 @@ void wait_for_job(size_t jobnumber, bool return_on_stop)
 }
 
 /* waitpid が返したステータスから終了コードを算出する。 */
-static int calc_status(int status)
+int calc_status(int status)
 {
     if (WIFEXITED(status))
 	return WEXITSTATUS(status);

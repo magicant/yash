@@ -45,6 +45,8 @@ struct hash_entry {
 /* ハッシュエントリが有効かどうかは、kv.key が NULL でないかどうかで判別する。
  * kv.key が NULL のとき、struct hash_entry 内の他のメンバは全て不定である。 */
 
+static hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity);
+
 
 /* 未初期化のハッシュテーブルを、指定した初期容量で初期化する。
  * hashfunc はキーのハッシュ値を求めるハッシュ関数へのポインタ、
@@ -83,7 +85,7 @@ void ht_destroy(hashtable_T *ht)
 }
 
 /* ハッシュテーブルの容量を変更する。 */
-static hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
+hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
 {
     assert(newcapacity > 0 && newcapacity >= ht->count);
 

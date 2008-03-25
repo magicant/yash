@@ -186,7 +186,7 @@ int main(int argc __attribute__((unused)), char **argv)
     assert(false);
 }
 
-static void print_help(void)
+void print_help(void)
 {
     if (posixly_correct) {
 	printf(gt("Usage:  sh [options] [filename [args...]]\n"
@@ -204,7 +204,7 @@ static void print_help(void)
     }
 }
 
-static void print_version(void)
+void print_version(void)
 {
     printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
     printf(PACKAGE_COPYRIGHT "\n");

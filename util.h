@@ -55,7 +55,7 @@ extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix);
 
 /* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
  * つまり、長さが maxlen 以上なら maxlen を返す。 */
-static inline size_t xstrnlen(const char *s, size_t maxlen)
+size_t xstrnlen(const char *s, size_t maxlen)
 {
 #ifdef HAVE_STRNLEN
     return strnlen(s, maxlen);
@@ -68,14 +68,14 @@ static inline size_t xstrnlen(const char *s, size_t maxlen)
 
 /* 文字列を新しく malloc した領域に複製する。
  * malloc に失敗するとプログラムを強制終了する。 */
-static inline char *xstrdup(const char *s)
+char *xstrdup(const char *s)
 {
     return xstrndup(s, SIZE_MAX);
 }
 
 /* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
  * つまり、長さが maxlen 以上なら maxlen を返す。 */
-static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
+size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 {
 #ifdef HAVE_WCSNLEN
     return wcsnlen(s, maxlen);
@@ -88,7 +88,7 @@ static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 
 /* 文字列を新しく malloc した領域に複製する。
  * malloc に失敗するとプログラムを強制終了する。 */
-static inline wchar_t *xwcsdup(const wchar_t *s)
+wchar_t *xwcsdup(const wchar_t *s)
 {
     return xwcsndup(s, SIZE_MAX);
 }
@@ -158,7 +158,7 @@ static inline int xgetopt(
 	const char *restrict optstring);
 
 /* 長いオプションがない xgetopt */
-static inline int xgetopt(char **restrict argv, const char *restrict optstring)
+int xgetopt(char **restrict argv, const char *restrict optstring)
 {
     return xgetopt_long(argv, optstring, NULL, NULL);
 }

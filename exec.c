@@ -69,7 +69,7 @@ typedef struct commandinfo_T {
     } type;
     union {
 	const char *path;           /* コマンドのパス (externalprogram 用) */
-	const main_T *builtin;      /* 組込みコマンドの本体 */
+	main_T *builtin;            /* 組込みコマンドの本体 */
 	const command_T *function;  /* 関数の本体 */
     } value;
 } commandinfo_T;
@@ -125,7 +125,7 @@ void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 }
 
 /* パイプラインたちを実行する。 */
-static void exec_pipelines(const pipeline_T *p, bool finally_exit)
+void exec_pipelines(const pipeline_T *p, bool finally_exit)
 {
     while (p) {
 	exec_commands(p->pl_commands,
@@ -143,7 +143,7 @@ static void exec_pipelines(const pipeline_T *p, bool finally_exit)
 }
 
 /* 一つ以上のパイプラインを非同期的に実行する。 */
-static void exec_pipelines_async(const pipeline_T *p)
+void exec_pipelines_async(const pipeline_T *p)
 {
     if (!p->next && !p->pl_neg) {
 	exec_commands(p->pl_commands, execasync, p->pl_loop);
@@ -182,7 +182,7 @@ static void exec_pipelines_async(const pipeline_T *p)
 }
 
 /* if コマンドを実行する */
-static void exec_if(const command_T *c, bool finally_exit)
+void exec_if(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_if: 未実装
     (void) c;
@@ -192,7 +192,7 @@ static void exec_if(const command_T *c, bool finally_exit)
 }
 
 /* for コマンドを実行する */
-static void exec_for(const command_T *c, bool finally_exit)
+void exec_for(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_for: 未実装
     (void) c;
@@ -202,7 +202,7 @@ static void exec_for(const command_T *c, bool finally_exit)
 }
 
 /* while コマンドを実行する */
-static void exec_while(const command_T *c, bool finally_exit)
+void exec_while(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_while: 未実装
     (void) c;
@@ -212,7 +212,7 @@ static void exec_while(const command_T *c, bool finally_exit)
 }
 
 /* case コマンドを実行する */
-static void exec_case(const command_T *c, bool finally_exit)
+void exec_case(const command_T *c, bool finally_exit)
 {
     // TODO exec.c: exec_case: 未実装
     (void) c;
@@ -229,7 +229,7 @@ static void exec_case(const command_T *c, bool finally_exit)
  * next が false なら pi->pi_loopoutfd を pi->pi_tonextfds[PIDX_OUT] に移し、
  * pi->pi_loopoutfd と pi->pi_tonextfds[PIDX_IN] を -1 にする。
  * 成功すると true、エラーがあると false を返す。 */
-static inline void next_pipe(pipeinfo_T *pi, bool next)
+inline void next_pipe(pipeinfo_T *pi, bool next)
 {
     if (pi->pi_fromprevfd >= 0)
 	xclose(pi->pi_fromprevfd);
@@ -269,7 +269,7 @@ fail:
  * c:        実行する一つ以上のコマンド
  * type:     実行のしかた
  * looppipe: パイプをループ状にするかどうか */
-static void exec_commands(const command_T *c, exec_T type, bool looppipe)
+void exec_commands(const command_T *c, exec_T type, bool looppipe)
 {
     size_t count;
     pid_t pgid;
@@ -387,8 +387,7 @@ fail:
  *         できた場合は 0。重大なエラーが生じたら -1。
  * 0 を返すとき、exec_process 内で laststatus を設定する。 */
 // TODO exec.c: exec_process: 本当に -1 を返す場合があるか考え直す
-static pid_t exec_process(
-	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
     bool need_fork;    /* fork するかどうか */
     bool finally_exit; /* true なら最後に exit してこの関数から返らない */
@@ -503,7 +502,7 @@ done:
  *         ジョブ制御が有効でもプロセスグループを変えない場合は負数。
  * fg:     プロセスグループ設定後、子プロセスをフォアグラウンドにするかどうか。
  * 戻り値: fork の戻り値 */
-static pid_t fork_and_reset(pid_t pgid, bool fg)
+pid_t fork_and_reset(pid_t pgid, bool fg)
 {
     fflush(NULL);
 
@@ -535,8 +534,7 @@ static pid_t fork_and_reset(pid_t pgid, bool fg)
 /* コマンドの種類を特定し、コマンドのありかを探す。
  * コマンドが見付かれば結果を *ci に入れて true を返す。
  * 見付からなければ false を返し、*ci は不定 */
-static bool search_command(
-	const char *restrict name, commandinfo_T *restrict ci)
+bool search_command(const char *restrict name, commandinfo_T *restrict ci)
 {
     // TODO exec.c: find_command: 暫定実装
     (void) name;
@@ -546,7 +544,7 @@ static bool search_command(
 }
 
 /* CT_SIMPLE でない一つのコマンドを実行する。 */
-static void exec_nonsimple_command(const command_T *c, bool finally_exit)
+void exec_nonsimple_command(const command_T *c, bool finally_exit)
 {
     switch (c->c_type) {
     case CT_SIMPLE:
@@ -573,7 +571,7 @@ static void exec_nonsimple_command(const command_T *c, bool finally_exit)
 /* 単純コマンドを実行する
  * ci:   実行するコマンドの情報
  * argv: コマンド名と引数。マルチバイト文字列へのポインタの配列へのポインタ。 */
-static void exec_simple_command(
+void exec_simple_command(
 	const commandinfo_T *ci, int argc, char *const *argv, bool finally_exit)
 {
     assert(argv[argc] == NULL);

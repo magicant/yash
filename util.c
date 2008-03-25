@@ -170,13 +170,15 @@ void xerror(int status, int errno_, const char *restrict format, ...)
 
 /********** xgetopt **********/
 
+static void argshift(char **argv, int from, int to);
+
 char *xoptarg;
 int xoptind = 0;
 int xoptopt;
 bool xopterr = true;
 
 /* xgetopt_long で使う補助関数。argv[from] を argv[to] に持ってくる。 */
-static void argshift(char **argv, int from, int to /* <= from */)
+void argshift(char **argv, int from, int to /* <= from */)
 {
     char *s = argv[from];
 

@@ -145,7 +145,7 @@ static inline wchar_t *realloc_mbstowcs(char *s);
  * strlen(s) < n ならば s 全体を挿入する。
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xstrbuf_T *sb_ninsert(
+xstrbuf_T *sb_ninsert(
 	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
 {
     return sb_replace(buf, i, 0, s, n);
@@ -154,8 +154,7 @@ static inline xstrbuf_T *sb_ninsert(
 /* マルチバイト文字列 s をバッファの i バイト目の手前に挿入する。
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xstrbuf_T *sb_insert(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s)
+xstrbuf_T *sb_insert(xstrbuf_T *restrict buf, size_t i, const char *restrict s)
 {
     return sb_replace(buf, i, 0, s, SIZE_MAX);
 }
@@ -163,16 +162,14 @@ static inline xstrbuf_T *sb_insert(
 /* マルチバイト文字列 s の最初の n バイトを文字列バッファに追加する。
  * strlen(s) < n ならば s 全体を追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xstrbuf_T *sb_ncat(
-	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
+xstrbuf_T *sb_ncat(xstrbuf_T *restrict buf, const char *restrict s, size_t n)
 {
     return sb_replace(buf, SIZE_MAX, 0, s, n);
 }
 
 /* マルチバイト文字列 s を文字列バッファに追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xstrbuf_T *sb_cat(
-	xstrbuf_T *restrict buf, const char *restrict s)
+xstrbuf_T *sb_cat(xstrbuf_T *restrict buf, const char *restrict s)
 {
     return sb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
@@ -180,7 +177,7 @@ static inline xstrbuf_T *sb_cat(
 /* マルチバイト文字列バッファの i バイト目から n バイトを削除する。
  * buf->length <= i ならば何もしない。
  * buf->length <= i + n ならば i バイト目以降全てを削除する。 */
-static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
+xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
 {
     return sb_replace(buf, i, n, "", 0);
 }
@@ -190,7 +187,7 @@ static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
  * wcslen(s) < n ならば s 全体を挿入する。
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xwcsbuf_T *wb_ninsert(
+xwcsbuf_T *wb_ninsert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
 {
     return wb_replace(buf, i, 0, s, n);
@@ -199,7 +196,7 @@ static inline xwcsbuf_T *wb_ninsert(
 /* ワイド文字列 s をバッファの i 文字目の手前に挿入する。
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xwcsbuf_T *wb_insert(
+xwcsbuf_T *wb_insert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
 {
     return wb_replace(buf, i, 0, s, SIZE_MAX);
@@ -208,16 +205,14 @@ static inline xwcsbuf_T *wb_insert(
 /* ワイド文字列 s の最初の n 文字を文字列バッファに追加する。
  * wcslen(s) < n ならば s 全体を追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xwcsbuf_T *wb_ncat(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
+xwcsbuf_T *wb_ncat(xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
 {
     return wb_replace(buf, SIZE_MAX, 0, s, n);
 }
 
 /* ワイド文字列 s を文字列バッファに追加する。
  * s は buf->contents の一部であってはならない。 */
-static inline xwcsbuf_T *wb_cat(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+xwcsbuf_T *wb_cat(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
 {
     return wb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
@@ -225,7 +220,7 @@ static inline xwcsbuf_T *wb_cat(
 /* ワイド文字列バッファの i 文字目から n 文字を削除する。
  * buf->length <= i ならば何もしない。
  * buf->length <= i + n ならば i 文字目以降全てを削除する。 */
-static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
+xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
 {
     return wb_replace(buf, i, n, L"", 0);
 }
@@ -233,7 +228,7 @@ static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
 /* ワイド文字列 s をマルチバイト文字列に変換し、
  * 新しく malloc した文字列として返す。
  * 変換の際にエラーがあると NULL を返す。 */
-static inline char *malloc_wcstombs(const wchar_t *s)
+char *malloc_wcstombs(const wchar_t *s)
 {
     return malloc_wcsntombs(s, SIZE_MAX);
 }
@@ -241,7 +236,7 @@ static inline char *malloc_wcstombs(const wchar_t *s)
 /* ワイド文字列を直接マルチバイト文字列に変換する。
  * 引数で与えた領域は適切に realloc される。
  * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
-static inline char *realloc_wcstombs(wchar_t *s)
+char *realloc_wcstombs(wchar_t *s)
 {
     void free(void *);
     char *result = malloc_wcstombs(s);
@@ -252,7 +247,7 @@ static inline char *realloc_wcstombs(wchar_t *s)
 /* マルチバイト文字列 s をワイド文字列に変換し、
  * 新しく malloc した文字列として返す。
  * 変換の際にエラーがあると NULL を返す。 */
-static inline wchar_t *malloc_mbstowcs(const char *s)
+wchar_t *malloc_mbstowcs(const char *s)
 {
     return malloc_mbsntowcs(s, SIZE_MAX);
 }
@@ -260,7 +255,7 @@ static inline wchar_t *malloc_mbstowcs(const char *s)
 /* マルチバイト文字列を直接ワイド文字列に変換する。
  * 引数で与えた領域は適切に realloc される。
  * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
-static inline wchar_t *realloc_mbstowcs(char *s)
+wchar_t *realloc_mbstowcs(char *s)
 {
     void free(void *);
     wchar_t *result = malloc_mbstowcs(s);

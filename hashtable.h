@@ -74,8 +74,7 @@ extern void kvfree(kvpair_T kv);
  * hashfunc はキーのハッシュ値を求めるハッシュ関数へのポインタ、
  * keycmp は二つのキーを比較する比較関数へのポインタである。
  * 比較関数は、二つのキーが等しいとき 0 を、異なるときに非 0 を返す。 */
-static inline hashtable_T *ht_init(
-	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
+hashtable_T *ht_init(hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
 {
     return ht_initwithcapacity(
 	    ht, hashfunc, keycmp, HASHTABLE_DEFAULT_INIT_CAPACITY);

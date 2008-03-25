@@ -256,7 +256,7 @@ void block_sigquit_and_sigint(void)
 }
 
 /* 汎用のシグナルハンドラ */
-static void sig_handler(int signum)
+void sig_handler(int signum)
 {
 #if defined SIGRTMIN && defined SIGRTMAX
     if (SIGRTMIN <= signum && signum <= SIGRTMAX) {
