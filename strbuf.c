@@ -427,7 +427,7 @@ int wb_printf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 /* ワイド文字列 s の先頭最大 n 文字をマルチバイト文字列に変換し、
  * 新しく malloc した文字列として返す。
  * 変換の際にエラーがあると NULL を返す。 */
-char *malloc_wcstombs(const wchar_t *s, size_t n)
+char *malloc_wcsntombs(const wchar_t *s, size_t n)
 {
     xstrbuf_T buf;
     mbstate_t state;
@@ -454,7 +454,7 @@ char *malloc_wcstombs(const wchar_t *s, size_t n)
 /* マルチバイト文字列 s の先頭最大 n 文字をワイド文字列に変換し、
  * 新しく malloc した文字列として返す。
  * 変換の際にエラーがあると NULL を返す。 */
-wchar_t *malloc_mbstowcs(const char *s, size_t n)
+wchar_t *malloc_mbsntowcs(const char *s, size_t n)
 {
     xwcsbuf_T buf;
     char ss[n + 1];

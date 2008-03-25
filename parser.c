@@ -876,7 +876,7 @@ static assign_T *tryparse_assignment(void)
 
     assign_T *result = xmalloc(sizeof *result);
     result->next = NULL;
-    result->name = malloc_wcstombs(cbuf.contents + cindex, namelen);
+    result->name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
     cindex += namelen + 1;
 
     ensure_buffer(1);
@@ -1138,7 +1138,7 @@ static wordunit_T *parse_paramexp_raw(void)
 success:
     pe = xmalloc(sizeof *pe);
     pe->pe_type = PT_NONE;
-    pe->pe_name = malloc_wcstombs(cbuf.contents + cindex, namelen);
+    pe->pe_name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
     pe->pe_match = pe->pe_subst = NULL;
 
     wordunit_T *result = xmalloc(sizeof *result);
@@ -1199,7 +1199,7 @@ static wordunit_T *parse_paramexp_in_brace(void)
 	goto fail;
     }
 make_name:
-    pe->pe_name = malloc_wcstombs(
+    pe->pe_name = malloc_wcsntombs(
 	    cbuf.contents + namestartindex, cindex - namestartindex);
 
     /* PT_COLON を解析 */

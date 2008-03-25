@@ -126,11 +126,15 @@ extern int wb_printf(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...);
 
 __attribute__((nonnull,malloc,warn_unused_result))
-extern char *malloc_wcstombs(const wchar_t *s, size_t n);
+extern char *malloc_wcsntombs(const wchar_t *s, size_t n);
+__attribute__((nonnull,malloc,warn_unused_result))
+static inline char *malloc_wcstombs(const wchar_t *s);
 __attribute__((nonnull,malloc,warn_unused_result))
 static inline char *realloc_wcstombs(wchar_t *s);
 __attribute__((nonnull,malloc,warn_unused_result))
-extern wchar_t *malloc_mbstowcs(const char *s, size_t n);
+extern wchar_t *malloc_mbsntowcs(const char *s, size_t n);
+__attribute__((nonnull,malloc,warn_unused_result))
+static inline wchar_t *malloc_mbstowcs(const char *s);
 __attribute__((nonnull,malloc,warn_unused_result))
 static inline wchar_t *realloc_mbstowcs(char *s);
 
@@ -225,15 +229,31 @@ static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
     return wb_replace(buf, i, n, L"", 0);
 }
 
+/* ワイド文字列 s をマルチバイト文字列に変換し、
+ * 新しく malloc した文字列として返す。
+ * 変換の際にエラーがあると NULL を返す。 */
+static inline char *malloc_wcstombs(const wchar_t *s)
+{
+    return malloc_wcsntombs(s, SIZE_MAX);
+}
+
 /* ワイド文字列を直接マルチバイト文字列に変換する。
  * 引数で与えた領域は適切に realloc される。
  * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
 static inline char *realloc_wcstombs(wchar_t *s)
 {
     void free(void *);
-    char *result = malloc_wcstombs(s, SIZE_MAX);
+    char *result = malloc_wcstombs(s);
     free(s);
     return result;
+}
+
+/* マルチバイト文字列 s をワイド文字列に変換し、
+ * 新しく malloc した文字列として返す。
+ * 変換の際にエラーがあると NULL を返す。 */
+static inline wchar_t *malloc_mbstowcs(const char *s)
+{
+    return malloc_mbsntowcs(s, SIZE_MAX);
 }
 
 /* マルチバイト文字列を直接ワイド文字列に変換する。
@@ -242,7 +262,7 @@ static inline char *realloc_wcstombs(wchar_t *s)
 static inline wchar_t *realloc_mbstowcs(char *s)
 {
     void free(void *);
-    wchar_t *result = malloc_mbstowcs(s, SIZE_MAX);
+    wchar_t *result = malloc_mbstowcs(s);
     free(s);
     return result;
 }

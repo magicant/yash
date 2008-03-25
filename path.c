@@ -241,7 +241,7 @@ void reset_path(const char *newpath)
 {
     recfree((void **) patharray, free);
 
-    wchar_t *wpath = malloc_mbstowcs(newpath, SIZE_MAX);
+    wchar_t *wpath = malloc_mbstowcs(newpath);
     if (!wpath) {
 	xerror(0, 0, Ngt("PATH variable contains characters that cannot be "
 		    "converted to wide characters: command path search will "
@@ -263,7 +263,7 @@ void reset_path(const char *newpath)
 
     /* list の各要素をマルチバイト文字列に戻す */
     for (size_t i = 0; i < list.length; i++) {
-	list.contents[i] = malloc_wcstombs(list.contents[i], SIZE_MAX);
+	list.contents[i] = malloc_wcstombs(list.contents[i]);
 	if (!list.contents[i])
 	    /* まさかここで変換エラーが起きることはないと思うが…… */
 	    list.contents[i] = xstrdup("");
