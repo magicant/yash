@@ -272,6 +272,8 @@ extern int read_and_parse(
 /********** 構文木を文字列に戻すルーチン **********/
 
 __attribute__((malloc,warn_unused_result))
+wchar_t *pipelines_to_wcs(const pipeline_T *pipelines);
+__attribute__((malloc,warn_unused_result))
 extern wchar_t *command_to_wcs(const command_T *command);
 // TODO DEBUG parser.h: word_to_wcs
 __attribute__((malloc,warn_unused_result))

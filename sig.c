@@ -220,7 +220,7 @@ void set_signals(void)
 
 /* シグナルハンドラを初期設定に戻す。
  * qiignore: true なら、SIGQUIT と SIGINT はブロックしたままにする。 */
-void reset_signals(bool qiignore)
+void reset_signals(void)
 {
     if (initialized) {
 	if (sigaction(SIGCHLD, &initsigchldaction, NULL) < 0)
@@ -242,14 +242,17 @@ void reset_signals(bool qiignore)
 	if (sigaction(SIGTERM, &initsigtermaction, NULL) < 0)
 	    xerror(0, errno, "sigaction(SIGTERM)");
     }
-    if (qiignore) {
-	sigset_t ss;
-	sigemptyset(&ss);
-	sigaddset(&ss, SIGQUIT);
-	sigaddset(&ss, SIGINT);
-	if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0)
-	    xerror(0, errno, "sigprocmask(SETMASK, QUIT|INT)");
-    }
+}
+
+/* SIGQUIT と SIGINT をブロックする */
+void block_sigquit_and_sigint(void)
+{
+    sigset_t ss;
+    sigemptyset(&ss);
+    sigaddset(&ss, SIGQUIT);
+    sigaddset(&ss, SIGINT);
+    if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0)
+	xerror(0, errno, "sigprocmask(SETMASK, QUIT|INT)");
 }
 
 /* 汎用のシグナルハンドラ */

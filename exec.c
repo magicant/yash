@@ -77,6 +77,7 @@ typedef struct commandinfo_T {
 #define ci_function value.function
 
 static void exec_pipelines(const pipeline_T *p, bool finally_exit);
+__attribute__((nonnull))
 static void exec_pipelines_async(const pipeline_T *p);
 __attribute__((nonnull))
 static void exec_if(const command_T *c, bool finally_exit);
@@ -140,12 +141,43 @@ static void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	exit(laststatus);
 }
 
-/* パイプラインたちを非同期的に実行する。 */
+/* 一つ以上のパイプラインを非同期的に実行する。 */
 static void exec_pipelines_async(const pipeline_T *p)
 {
-    (void) p;
-    xerror(0,0,"%s: NOT IMPLEMENTED", __func__);
-    // TODO exec.c: exec_pipelines_async
+    if (!p->next && !p->pl_neg) {
+	exec_commands(p->pl_commands, execasync, p->pl_loop);
+    } else {
+	pid_t cpid = fork_and_reset(0, false);
+	
+	if (cpid > 0) {
+	    /* 親プロセス: 新しいジョブを登録する */
+	    job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+	    process_T *ps = job->j_procs;
+
+	    ps->pr_pid = cpid;
+	    ps->pr_status = JS_RUNNING;
+	    ps->pr_statuscode = 0;
+	    ps->pr_name = pipelines_to_wcs(p);
+
+	    job->j_pgid = do_job_control ? cpid : 0;
+	    job->j_status = JS_RUNNING;
+	    job->j_statuschanged = true;
+	    job->j_loop = false;
+	    job->j_pcount = 1;
+
+	    set_active_job(job);
+	    add_job();
+	    laststatus = EXIT_SUCCESS;
+	} else if (cpid == 0) {
+	    /* 子プロセス: コマンドを実行して終了 */
+	    block_sigquit_and_sigint();
+	    //if (!is_stdin_redirected)
+	    //	(void) 0;
+		// TODO exec.c: exec_pipelines_async: stdin を /dev/null に
+	    exec_pipelines(p, true);
+	    assert(false);
+	}
+    }
 }
 
 /* if コマンドを実行する */
@@ -413,8 +445,11 @@ static pid_t exec_process(
 	    return cpid;
 	}
     }
-    if (finally_exit)
-	reset_signals(!do_job_control && type == execasync);
+    if (finally_exit) {
+	if (!do_job_control && type == execasync)
+	    block_sigquit_and_sigint();
+	reset_signals();
+    }
 
     /* パイプを繋ぎ、余ったパイプを閉じる */
     if (pi->pi_fromprevfd >= 0) {

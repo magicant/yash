@@ -1844,6 +1844,18 @@ wchar_t *commands_to_wcstring(const and_or_T *commands)
 }
 #endif
 
+/* 一つ以上のパイプラインをワイド文字列に変換して返す。
+ * 戻り値は free 可能なワイド文字列へのポインタ。 */
+wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
+{
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    print_pipelines(&buf, pipelines);
+    trim_end_of_buffer(&buf);
+    return wb_towcs(&buf);
+}
+
 /* 一つのコマンドをワイド文字列に変換して返す。
  * 戻り値は free 可能なワイド文字列へのポインタ。 */
 wchar_t *command_to_wcs(const command_T *command)

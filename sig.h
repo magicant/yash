@@ -24,7 +24,8 @@
 
 extern void init_signal(void);
 extern void set_signals(void);
-extern void reset_signals(bool keep_sigquit_and_sigint_ignored);
+extern void reset_signals(void);
+extern void block_sigquit_and_sigint(void);
 
 extern void block_signals(void);
 extern void unblock_signals(void);
