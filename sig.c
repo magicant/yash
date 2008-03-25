@@ -277,7 +277,7 @@ static void sig_handler(int signum)
 
 /* wait_for_sigchld を呼ぶ前にこの関数を呼んで、
  * SIGCHLD と SIGHUP をブロックする。 */
-void block_signals(void)
+void block_sigchld_and_sighup(void)
 {
     sigset_t ss;
 
@@ -290,7 +290,7 @@ void block_signals(void)
 
 /* wait_for_sigchld を呼んだ後にこの関数を呼んで、
  * SIGCHLD と SIGHUP のブロックを解除する。 */
-void unblock_signals(void)
+void unblock_sigchld_and_sighup(void)
 {
     sigset_t ss;
 
