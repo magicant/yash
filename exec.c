@@ -184,8 +184,17 @@ void exec_pipelines_async(const pipeline_T *p)
 /* if コマンドを実行する */
 void exec_if(const command_T *c, bool finally_exit)
 {
-    // TODO exec.c: exec_if: 未実装
-    (void) c;
+    assert(c->c_type == CT_IF);
+
+    for (const ifcommand_T *cmds = c->c_ifcmds; cmds; cmds = cmds->next) {
+	if (cmds->ic_condition) {
+	    exec_and_or_lists(cmds->ic_condition, false);
+	    if (laststatus != EXIT_SUCCESS)
+		continue;
+	}
+	exec_and_or_lists(cmds->ic_commands, finally_exit);
+	return;
+    }
     laststatus = 0;
     if (finally_exit)
 	exit(laststatus);
