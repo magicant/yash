@@ -70,7 +70,7 @@ int main(int argc __attribute__((unused)), char **argv)
 {
     bool help = false, version = false;
     bool exec_first_arg = false, read_stdin = false;
-    bool do_job_control_set = false;
+    bool do_job_control_set = false, is_interactive_set = false;
     int opt;
     const char *shortest_name;
 
@@ -108,6 +108,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	    break;
 	case 'i':
 	    is_interactive = (xoptopt == '-');
+	    is_interactive_set = true;
 	    break;
 	case 'm':
 	    do_job_control = (xoptopt == '-');
@@ -164,13 +165,17 @@ int main(int argc __attribute__((unused)), char **argv)
 	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
 	FILE *input;
+	const char *inputname;
 	if (read_stdin || !argv[xoptind]) {
 	    input = stdin;
+	    inputname = "<stdin>";
 	    if (!argv[xoptind] && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
-		is_interactive = true;
+		if (!is_interactive_set)
+		    is_interactive = true;
 	} else {
 	    command_name = argv[xoptind++];
 	    input = fopen(command_name, "r");
+	    inputname = command_name;
 	    // TODO yash:main: fd を shellfd 以上に移す
 	    if (!input)
 		xerror(errno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC, errno,
@@ -180,8 +185,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	if (!do_job_control_set)
 	    do_job_control = is_interactive;
 	set_signals();
-	//TODO yash:main: read file and exec commands
-	xerror(2, 0, "executing %s: NOT IMPLEMENTED", command_name);
+	exec_input(input, inputname, true);
     }
     assert(false);
 }
@@ -257,6 +261,24 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.inputinfo = &iinfo,
     };
 
+    return parse_and_exec(&pinfo, finally_exit);
+}
+
+/* 入力ストリームを読み取ってコマンドを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * f: 入力元のストリーム
+ * name: 構文エラーで表示するコード名。NULL でも良い。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool exec_input(FILE *f, const char *name, bool finally_exit)
+{
+    struct parseinfo_T pinfo = {
+	.print_errmsg = true,
+	.filename = name,
+	.lineno = 1,
+	.input = input_file,
+	.inputinfo = f,
+    };
     return parse_and_exec(&pinfo, finally_exit);
 }
 

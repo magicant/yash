@@ -17,15 +17,22 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <wchar.h>
 #include "util.h"
 #include "strbuf.h"
 #include "lineinput.h"
+#include "sig.h"
+#include "job.h"
 
 
 /********** 入力関数 **********/
+
+static bool unset_nonblocking(int fd);
 
 /* マルチバイト文字列をソースとして読み取る入力用関数。
  * この関数は、inputinfo として input_mbs_info 構造体へのポインタを受け取る。
@@ -90,7 +97,7 @@ err:
  * そしてそれに入っているワイド文字列を一行ずつバッファ buf に入れる。
  * 文字列の途中まで読み取ったとき、src メンバは次に読み取る最初の文字を示す。
  * 最後まで読み取ると、src は NULL になる。 */
-extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
+int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_wcs_info *info = inputinfo;
     const wchar_t *src = info->src;
@@ -109,6 +116,63 @@ extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 	info->src = src + count;
 	return 0;
     }
+}
+
+/* ファイルストリームからワイド文字列をソースとして読み取る入力用関数。
+ * この関数は、inputinfo として FILE へのポインタを受け取り、fgetws によって
+ * 入力を読み取って buf に追加する。 */
+int input_file(struct xwcsbuf_T *buf, void *inputinfo)
+{
+    FILE *f = inputinfo;
+
+start:
+    wb_ensuremax(buf, buf->length + 100);
+    if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
+	// XXX fflush を入れるとセグフォる。glibc のバグ?
+	//fflush(f);
+	buf->length += wcslen(buf->contents + buf->length);
+	return 0;
+    } else {
+	//fflush(f);
+	if (feof(f))
+	    return EOF;
+	assert(ferror(f));
+	switch (errno) {
+	    case EINTR:
+		do_wait();
+		handle_traps();
+		// TODO lineinput: input_file: SIGINT 対処
+		clearerr(f);
+		goto start;
+	    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+	    case EWOULDBLOCK:
+#endif
+		if (unset_nonblocking(fileno(f))) {
+		    clearerr(f);
+		    goto start;
+		}
+		/* falls thru! */
+	    default:
+		xerror(0, errno, Ngt("cannot read input"));
+		return EOF;
+	}
+    }
+}
+
+/* 指定したファイルディスクリプタの O_NONBLOCK フラグを解除する。
+ * fd が負なら何もしない。
+ * 戻り値: 成功なら true、エラーなら errno を設定して false。 */
+bool unset_nonblocking(int fd)
+{
+    if (fd >= 0) {
+	int flags = fcntl(fd, F_GETFL);
+	if (flags < 0)
+	    return false;
+	if (flags & O_NONBLOCK)
+	    return fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) != -1;
+    }
+    return true;
 }
 
 
