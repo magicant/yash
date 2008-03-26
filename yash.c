@@ -214,13 +214,13 @@ void print_version(void)
 /********** コードを実行する関数 **********/
 
 /* マルチバイト文字列をソースコードとしてコマンドを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
  * code: 実行するコード (初期シフト状態で始まる)
  * name: 構文エラーで表示するコード名。NULL でも良い。
  * finally_exit: true なら実行後にそのままシェルを終了する。
  * 戻り値: 構文エラー・入力エラーがなければ true */
 bool exec_mbs(const char *code, const char *name, bool finally_exit)
 {
-    bool executed = false;
     struct input_mbs_info iinfo = {
 	.src = code,
 	.srclen = strlen(code) + 1,
@@ -231,15 +231,50 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
 	.lineno = 1,
 	.input = input_mbs,
 	.inputinfo = &iinfo,
+	.lastinputresult = 0,
     };
     memset(&iinfo.state, 0, sizeof iinfo.state);  // state を初期状態にする
 
+    return parse_and_exec(&pinfo, finally_exit);
+}
+
+/* ワイド文字列をソースコードとしてコマンドを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * code: 実行するコード
+ * name: 構文エラーで表示するコード名。NULL でも良い。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
+{
+    struct input_wcs_info iinfo = {
+	.src = code,
+    };
+    struct parseinfo_T pinfo = {
+	.print_errmsg = true,
+	.filename = name,
+	.lineno = 1,
+	.input = input_wcs,
+	.inputinfo = &iinfo,
+    };
+
+    return parse_and_exec(&pinfo, finally_exit);
+}
+
+/* 指定した parseinfo_T に基づいてソースを読み込み、それを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
+{
+    bool executed = false;
+
     for (;;) {
 	and_or_T *commands;
-	switch (read_and_parse(&pinfo, &commands)) {
+	switch (read_and_parse(pinfo, &commands)) {
 	    case 0:  // OK
 		if (commands) {
-		    exec_and_or_lists(commands, finally_exit && !iinfo.src);
+		    exec_and_or_lists(commands,
+			    finally_exit && pinfo->lastinputresult == EOF);
 		    andorsfree(commands);
 		    executed = true;
 		}

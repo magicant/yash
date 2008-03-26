@@ -262,6 +262,7 @@ typedef struct parseinfo_T {
     unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
     inputfunc_T *input;   /* 入力関数 */
     void *inputinfo;      /* 入力関数に渡す情報 */
+    int lastinputresult;  /* 最後の input の戻り値。最初は 0 にしておく。 */
 } parseinfo_T;
 
 __attribute__((nonnull))

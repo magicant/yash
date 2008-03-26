@@ -28,8 +28,14 @@ extern bool is_login_shell, is_interactive, is_interactive_now;
 extern const char *command_name;
 extern pid_t shell_pid;
 
+struct parseinfo_T;
+
 __attribute__((nonnull(1)))
 extern bool exec_mbs(const char *code, const char *name, bool finally_exit);
+__attribute__((nonnull(1)))
+extern bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit);
+__attribute__((nonnull(1)))
+bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit);
 
 
 #endif /* YASH_H */

@@ -85,5 +85,31 @@ err:
     */
 }
 
+/* ワイド文字列をソースとして読み取る入力用関数。
+ * この関数は、inputinfo として input_wcs_info 構造体へのポインタを受け取る。
+ * そしてそれに入っているワイド文字列を一行ずつバッファ buf に入れる。
+ * 文字列の途中まで読み取ったとき、src メンバは次に読み取る最初の文字を示す。
+ * 最後まで読み取ると、src は NULL になる。 */
+extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
+{
+    struct input_wcs_info *info = inputinfo;
+    const wchar_t *src = info->src;
+    size_t count = 0;
+
+    if (!src)
+	return EOF;
+
+    while (src[count] != L'\0' && src[count++] != L'\n');
+
+    if (count == 0) {
+	info->src = NULL;
+	return EOF;
+    } else {
+	wb_ncat(buf, src, count);
+	info->src = src + count;
+	return 0;
+    }
+}
+
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

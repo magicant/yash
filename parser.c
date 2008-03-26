@@ -345,8 +345,6 @@ static bool cerror;
 static xwcsbuf_T cbuf;
 /* 現在解析している箇所の cbuf におけるインデックス */
 static size_t cindex;
-/* 最後の read_more_input の結果 */
-static int lastinputresult;
 /* 読み込みを控えているヒアドキュメントのリスト */
 static plist_T pending_heredocs;
 
@@ -375,10 +373,11 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     cindex = 0;
     wb_init(&cbuf);
     pl_init(&pending_heredocs);
-    lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
-    if (lastinputresult == EOF) {
+    if (cinfo->lastinputresult == 0)
+	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+    if (cinfo->lastinputresult == EOF) {
 	return EOF;
-    } else if (lastinputresult == 1) {
+    } else if (cinfo->lastinputresult == 1) {
 	*result = NULL;
 	return 0;
     }
@@ -425,17 +424,17 @@ void serror(const char *restrict format, ...)
  *         EOF: EOF に達したか、エラーがあった。(buf の内容は不定) */
 int read_more_input(void)
 {
-    if (lastinputresult == 0)
-	lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
-    return lastinputresult;
+    if (cinfo->lastinputresult == 0)
+	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+    return cinfo->lastinputresult;
 }
 
 /* cbuf.length >= cindex + n となるように、必要に応じて read_more_input する。
  * ただし、改行を越えては読み込まない。
- * 戻り値: lastinputresult */
+ * 戻り値: cinfo->lastinputresult */
 int ensure_buffer(size_t n)
 {
-    int lir = lastinputresult;
+    int lir = cinfo->lastinputresult;
     while (lir == 0 && cbuf.length < cindex + n) {
 	if (cbuf.length > 0 && cbuf.contents[cbuf.length - 1] == L'\n')
 	    break;
@@ -483,7 +482,7 @@ bool skip_to_next_token(void)
     bool newline = false;
 
     skip_blanks_and_comment();
-    while (lastinputresult == 0 && cbuf.contents[cindex] == L'\n') {
+    while (cinfo->lastinputresult == 0 && cbuf.contents[cindex] == L'\n') {
 	newline = true;
 	next_line();
 	skip_blanks_and_comment();

@@ -34,8 +34,13 @@
 struct xwcsbuf_T;
 
 /* inputfunc_T に適合する入力関数の宣言 */
+__attribute__((nonnull))
 extern int input_mbs(struct xwcsbuf_T *buf, void *inputinfo);
+__attribute__((nonnull))
+extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo);
+__attribute__((nonnull))
 extern int input_file(struct xwcsbuf_T *buf, void *inputinfo);
+__attribute__((nonnull))
 extern int input_readline(struct xwcsbuf_T *buf, void *inputinfo);
 
 /* input_mbs の inputinfo として使う構造体 */
@@ -43,6 +48,11 @@ struct input_mbs_info {
     const char *src;   /* 入力として返すソースコード */
     size_t srclen;     /* 末尾の '\0' を含む src のバイト数 */
     mbstate_t state;   /* ワイド文字列への変換の為のシフト状態 */
+};
+
+/* input_wcs の inputinfo として使う構造体 */
+struct input_wcs_info {
+    const wchar_t *src;  /* 入力として返すソースコード */
 };
 
 
