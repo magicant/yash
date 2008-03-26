@@ -387,13 +387,17 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     wb_destroy(&cbuf);
     pl_destroy(&pending_heredocs);
 
-    if (!cerror) {
+    if (cinfo->lastinputresult == 1) {
+	andorsfree(r);
+	*result = NULL;
+	return 0;
+    } else if (cerror) {
+	andorsfree(r);
+	return 1;
+    } else {
 	assert(cindex == cbuf.length);
 	*result = r;
 	return 0;
-    } else {
-	andorsfree(r);
-	return 1;
     }
 }
 
