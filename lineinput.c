@@ -133,7 +133,6 @@ start:
 	buf->length += wcslen(buf->contents + buf->length);
 	return 0;
     } else {
-	//fflush(f);
 	if (feof(f))
 	    return EOF;
 	assert(ferror(f));
@@ -154,6 +153,7 @@ start:
 		}
 		/* falls thru! */
 	    default:
+		//fflush(f); XXX
 		xerror(0, errno, Ngt("cannot read input"));
 		return EOF;
 	}

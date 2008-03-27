@@ -227,13 +227,15 @@ xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
 
 /* ワイド文字列 s をマルチバイト文字列に変換し、
  * 新しく malloc した文字列として返す。
- * 変換の際にエラーがあると NULL を返す。 */
+ * 変換の際にエラーがあると NULL を返す。
+ * 返すマルチバイト文字列は、初期シフト状態で始まり、終わる。 */
 char *malloc_wcstombs(const wchar_t *s)
 {
     return malloc_wcsntombs(s, SIZE_MAX);
 }
 
 /* ワイド文字列を直接マルチバイト文字列に変換する。
+ * 返すマルチバイト文字列は、初期シフト状態で始まり、終わる。
  * 引数で与えた領域は適切に realloc される。
  * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
 char *realloc_wcstombs(wchar_t *s)

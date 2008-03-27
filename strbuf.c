@@ -426,7 +426,8 @@ int wb_printf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 
 /* ワイド文字列 s の先頭最大 n 文字をマルチバイト文字列に変換し、
  * 新しく malloc した文字列として返す。
- * 変換の際にエラーがあると NULL を返す。 */
+ * 変換の際にエラーがあると NULL を返す。
+ * 返すマルチバイト文字列は、初期シフト状態で始まり、終わる。 */
 char *malloc_wcsntombs(const wchar_t *s, size_t n)
 {
     xstrbuf_T buf;
