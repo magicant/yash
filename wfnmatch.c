@@ -54,12 +54,15 @@ static wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match);
  *         WFNM_NOESCAPE: バックスラッシュをエスケープとして扱わない
  *         WFNM_PATHNAME: L'/' を L"*" や L"?" にマッチさせない。
  *         WFNM_PERIOD: 先頭の L'.' を L"*" や L"?" にマッチさせない。
+ *         WFNM_CASEFOLD: 大文字小文字を区別しない。
  * type:   マッチ結果の長さの優先順位を指定する値。
  *         WFNM_WHOLE なら pat が str 全体にマッチする場合のみ成功とする。
  *         WFNM_LONGEST なら str の先頭部分にできるだけ長くマッチさせる。
  *         WFNM_SHORTEST なら str の先頭部分にできるだけ短くマッチさせる。
  * 戻り値: マッチしたら、その str の先頭部分の文字数。
- *         マッチしなかったら WFNM_NOMATCH、えらーなら WFNM_ERROR。 */
+ *         マッチしなかったら WFNM_NOMATCH、エラーなら WFNM_ERROR。
+ * エラーが返るのは基本的にパターンが不正な場合だが、パターンが不正でも常に
+ * エラーを返すわけではない。 */
 size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
 	enum wfnmflags flags, enum wfnmtype type)
 {
@@ -77,6 +80,20 @@ size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
     if (strlen < minlen)
 	return WFNM_NOMATCH;
 
+    if (type == WFNM_WHOLE) {
+	/* パターンの末尾が一致するか、一文字だけチェック */
+	size_t patlen = wcslen(pat);
+	if (patlen > 0 && strlen > 0) {
+	    switch (pat[patlen-1]) {
+		case L']':  case L'?':  case L'*':  case L'\\':
+		    break;
+		default:
+		    if (pat[patlen-1] != str[strlen-1])
+			return WFNM_NOMATCH;
+	    }
+	}
+    }
+
     size_t r = wfnmatchn(pat, str, strlen - minlen, flags, type);
     if (r == WFNM_NOMATCH || r == WFNM_ERROR)
 	return r;
@@ -90,14 +107,17 @@ size_t minmatchlen(const wchar_t *pat, enum wfnmflags flags)
     size_t count = 0;
 
     for (;;) {
+	const wchar_t *p;
 	switch (*pat) {
 	    case L'\0':  eop:
 		return count;
 	    case L'*':
 		break;
 	    case L'[':
-		pat = skip_bracket(pat, flags);
-		count++;
+		p = skip_bracket(pat, flags);
+		if (pat != p)
+		    count++;
+		pat = p;
 		break;
 	    case L'\\':
 		if (!NOESCAPE) {
@@ -192,27 +212,22 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 		}
 	    }
 	    /* L'*' に何文字分マッチするかを変えながら、パターンの残りを試す */
-	    if (type == WFNM_SHORTEST) {
-		/* L'*' にマッチする部分を段々長くする。 */
-		do {
-		    size_t r = wfnmatchn(p, s, lendiff, flags, type);
-		    if (r == WFNM_ERROR)              return WFNM_ERROR;
-		    if (r != WFNM_NOMATCH)            return r + (s - saves);
-		    if (PATHNAME && FOLD(*s) == L'/') return WFNM_NOMATCH;
-		    s++;
-		} while (lendiff-- != 0);  /* lendiff が負になったらやめる */
-	    } else {
-		/* L'*' にマッチする部分を段々短くする。 */
-		s += lendiff;
-		for (size_t i = 0; i <= lendiff; i++) {
-		    size_t r = wfnmatchn(p, s, i, flags, type);
-		    if (r == WFNM_ERROR)              return WFNM_ERROR;
-		    if (r != WFNM_NOMATCH)            return r + (s - saves);
-		    if (PATHNAME && FOLD(*s) == L'/') return WFNM_NOMATCH;
-		    s--;
+	    size_t submatchlen = WFNM_NOMATCH;
+	    do {
+		size_t r = wfnmatchn(p, s, lendiff, flags, type);
+		if (r == WFNM_ERROR)
+		    return WFNM_ERROR;
+		if (r != WFNM_NOMATCH) {
+		    if (type == WFNM_SHORTEST)
+			return r + (s - saves);
+		    else
+			submatchlen = r + (s - saves);
 		}
-	    }
-	    return WFNM_NOMATCH;
+		if (PATHNAME && FOLD(*s) == L'/')
+		    break;
+		s++;
+	    } while (lendiff-- != 0);  /* lendiff が負になったらやめる */
+	    return submatchlen;
 	case L'?':
 	    if ((PATHNAME && FOLD(*s) == L'/') || (*s == L'\0'))
 		return WFNM_NOMATCH;
