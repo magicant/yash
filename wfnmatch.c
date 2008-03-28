@@ -115,10 +115,12 @@ size_t minmatchlen(const wchar_t *pat, enum wfnmflags flags)
 		break;
 	    case L'[':
 		p = skip_bracket(pat, flags);
-		if (pat != p)
+		if (pat != p) {
 		    count++;
-		pat = p;
-		break;
+		    pat = p;
+		    continue;
+		}
+		goto default_case;
 	    case L'\\':
 		if (!NOESCAPE) {
 		    pat++;
@@ -126,11 +128,40 @@ size_t minmatchlen(const wchar_t *pat, enum wfnmflags flags)
 			goto eop;
 		}
 		/* falls thru! */
-	    default:  case L'?':
+	    default:  case L'?':  default_case:
 		count++;
 		break;
 	}
 	pat++;
+    }
+}
+
+/* WFNM_PATHNAME が有効な状態においてパターン内に L'/' が最初に現れるまでの
+ * 文字数を返す。
+ * 例えば count_pattern_length_before_slash(L"[abc]/def") は 5 となる。
+ * パターン内に L'/' がなければ文字列の長さを返す。 */
+size_t count_pattern_length_before_slash(const wchar_t *pat)
+{
+    size_t count = 0;
+
+    for (;;) {
+	const wchar_t *p;
+	switch (pat[count]) {
+	    case L'\0':
+	    case L'/':
+		return count;
+	    case L'[':
+		p = skip_bracket(pat + count, WFNM_PATHNAME);
+		size_t diff = p - (pat + count);
+		if (diff) {
+		    count += diff;
+		    continue;
+		}
+		/* falls thru! */
+	    default:
+		break;
+	}
+	count++;
     }
 }
 
@@ -237,8 +268,11 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 		size_t r = match_bracket(&p, s, flags);
 		if (r == WFNM_ERROR || r == WFNM_NOMATCH) return r;
 		s += r;
+		if (r)
+		    continue;
+		else
+		    goto default_case;
 	    }
-	    continue;
 	case L'\\':
 	    if (!NOESCAPE) {
 		p++;
@@ -246,7 +280,7 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 		    goto eop;
 	    }
 	    /* falls thru! */
-	default:
+	default:  default_case:
 	    sc = FOLD(*s);
 	    if (FOLD(*p) != sc)
 		return WFNM_NOMATCH;
@@ -256,8 +290,6 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 		    if (*(p+1) != L'.') return WFNM_NOMATCH;
 		    p += 2;  s += 2;
 		    continue;
-		} else if (sc == L'.') {
-		    return WFNM_NOMATCH;
 		}
 	    }
 	    break;
