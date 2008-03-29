@@ -460,8 +460,8 @@ size_t count_pattern_length_before_slash(const wchar_t *pat)
 /* WFNM_PATHNAME が有効な状態においてパターン内に L"/" または L"**" が
  * 最初に現れるまでの文字数を返す。ただし返す文字数は最初の L'*' も含む。
  * 例えば count_pattern_length_before_double_stars(L"abc**def") は 4 となる。
- * パターン内に L"/" や L"**" がなければ 0 を返す。L"**" より L"/" が先に
- * 見付かった場合は、結果は count_pattern_length_before_slash に等しい。 */
+ * パターン内に L"/" や L"**" がなければ pat の長さを返す。L"**" より L"/" が
+ * 先に見付かった場合は、結果は count_pattern_length_before_slash に等しい。 */
 size_t count_pattern_length_before_double_stars(const wchar_t *pat)
 {
     size_t count = 0;
@@ -470,7 +470,6 @@ size_t count_pattern_length_before_double_stars(const wchar_t *pat)
 	const wchar_t *p;
 	switch (pat[count]) {
 	    case L'\0':
-		return 0;
 	    case L'/':
 		return count;
 	    case L'*':
