@@ -178,7 +178,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	if (!do_job_control_set)
 	    do_job_control = is_interactive;
 	set_signals();
-	exec_input(input, inputname, true);
+	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
 }
@@ -232,7 +232,7 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
     };
     memset(&iinfo.state, 0, sizeof iinfo.state);  // state を初期状態にする
 
-    return parse_and_exec(&pinfo, finally_exit);
+    return parse_and_exec(&pinfo, false, finally_exit);
 }
 
 /* ワイド文字列をソースコードとしてコマンドを実行する。
@@ -254,16 +254,18 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.inputinfo = &iinfo,
     };
 
-    return parse_and_exec(&pinfo, finally_exit);
+    return parse_and_exec(&pinfo, false, finally_exit);
 }
 
 /* 入力ストリームを読み取ってコマンドを実行する。
  * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
  * f: 入力元のストリーム
+ * ignore_synerr: 構文エラーが出てもコマンドの実行を中止せずに続ける。
  * name: 構文エラーで表示するコード名。NULL でも良い。
  * finally_exit: true なら実行後にそのままシェルを終了する。
  * 戻り値: 構文エラー・入力エラーがなければ true */
-bool exec_input(FILE *f, const char *name, bool finally_exit)
+bool exec_input(FILE *f, const char *name,
+	bool ignore_synerr, bool finally_exit)
 {
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
@@ -272,14 +274,15 @@ bool exec_input(FILE *f, const char *name, bool finally_exit)
 	.input = input_file,
 	.inputinfo = f,
     };
-    return parse_and_exec(&pinfo, finally_exit);
+    return parse_and_exec(&pinfo, ignore_synerr, finally_exit);
 }
 
 /* 指定した parseinfo_T に基づいてソースを読み込み、それを実行する。
  * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * ignore_synerr: 構文エラーが出てもコマンドの実行を中止せずに続ける。
  * finally_exit: true なら実行後にそのままシェルを終了する。
  * 戻り値: 構文エラー・入力エラーがなければ true */
-bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
+bool parse_and_exec(parseinfo_T *pinfo, bool ignore_synerr, bool finally_exit)
 {
     bool executed = false;
 
@@ -302,6 +305,8 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		else
 		    return true;
 	    case 1:  // 構文エラー
+		if (ignore_synerr)
+		    break;
 		laststatus = 2;
 		if (finally_exit)
 		    exit(laststatus);
