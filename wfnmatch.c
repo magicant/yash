@@ -34,8 +34,6 @@
 #define FOLD(c) (CASEFOLD ? towlower(c) : (wint_t) (c))
 
 __attribute__((nonnull))
-static size_t minmatchlen(const wchar_t *pat, enum wfnmflags flags);
-__attribute__((nonnull))
 static wchar_t *skip_bracket(const wchar_t *pat, enum wfnmflags flags);
 __attribute__((nonnull))
 static size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
@@ -66,6 +64,29 @@ static wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match);
 size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
 	enum wfnmflags flags, enum wfnmtype type)
 {
+    return wfnmatchl(pat, str, flags, type, shortest_match_length(pat, flags));
+}
+
+/* ワイド文字列に対するパターンマッチを行う。
+ * pat:    マッチさせるパターン。
+ * str:    マッチの対象となる文字列。
+ * flags:  マッチの種類を指定するフラグ。以下の値のビットごとの OR。
+ *         WFNM_NOESCAPE: バックスラッシュをエスケープとして扱わない
+ *         WFNM_PATHNAME: L'/' を L"*" や L"?" にマッチさせない。
+ *         WFNM_PERIOD: 先頭の L'.' を L"*" や L"?" にマッチさせない。
+ *         WFNM_CASEFOLD: 大文字小文字を区別しない。
+ * type:   マッチ結果の長さの優先順位を指定する値。
+ *         WFNM_WHOLE なら pat が str 全体にマッチする場合のみ成功とする。
+ *         WFNM_LONGEST なら str の先頭部分にできるだけ長くマッチさせる。
+ *         WFNM_SHORTEST なら str の先頭部分にできるだけ短くマッチさせる。
+ * minlen: 予め計算した shortest_match_length(pat, flags) の値。
+ * 戻り値: マッチしたら、その str の先頭部分の文字数。
+ *         マッチしなかったら WFNM_NOMATCH、エラーなら WFNM_ERROR。
+ * エラーが返るのは基本的にパターンが不正な場合だが、パターンが不正でも常に
+ * エラーを返すわけではない。 */
+size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
+	enum wfnmflags flags, enum wfnmtype type, size_t minlen)
+{
     const wchar_t *const savestr = str;
 
     if (!*pat)
@@ -76,7 +97,6 @@ size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
 	return WFNM_NOMATCH;
 
     size_t strlen = wcslen(str);
-    size_t minlen = minmatchlen(pat, flags);
     if (strlen < minlen)
 	return WFNM_NOMATCH;
 
@@ -102,7 +122,7 @@ size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
 }
 
 /* 指定したパターンがマッチする最小の文字数をカウントする。 */
-size_t minmatchlen(const wchar_t *pat, enum wfnmflags flags)
+size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
 {
     size_t count = 0;
 
@@ -188,7 +208,7 @@ fail:
 }
 
 /* 実際にマッチングを行う。
- * lendiff: wcslen(s) - minmatchlen(p, flags)
+ * lendiff: wcslen(s) - shortest_match_length(p, flags)
  * 他の引数、戻り値は wfnmatch に準ずる。 */
 size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 	enum wfnmflags flags, enum wfnmtype type)
