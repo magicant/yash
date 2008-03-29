@@ -165,6 +165,38 @@ size_t count_pattern_length_before_slash(const wchar_t *pat)
     }
 }
 
+/* WFNM_PATHNAME が有効な状態においてパターン内に L"**" が最初に現れるまでの
+ * 文字数を返す。ただし返す文字数は最初の L'*' も含む。
+ * 例えば count_pattern_length_before_double_stars(L"abc**def") は 4 となる。
+ * パターン内に L"**" がなければ 0 を返す。 */
+size_t count_pattern_length_before_double_stars(const wchar_t *pat)
+{
+    size_t count = 0;
+
+    for (;;) {
+	const wchar_t *p;
+	switch (pat[count]) {
+	    case L'\0':
+		return 0;
+	    case L'*':
+		if (pat[count + 1] == L'*')
+		    return count + 1;
+		break;
+	    case L'[':
+		p = skip_bracket(pat + count, WFNM_PATHNAME);
+		size_t diff = p - (pat + count);
+		if (diff) {
+		    count += diff;
+		    continue;
+		}
+		/* falls thru! */
+	    default:
+		break;
+	}
+	count++;
+    }
+}
+
 /* L'[' で始まるパターンブラケット式を飛ばして L']' の次の文字へのポインタを
  * 返す。対応する L']' がなければ pat をそのまま返す。 */
 wchar_t *skip_bracket(const wchar_t *pat, enum wfnmflags flags)
