@@ -18,6 +18,8 @@
 
 #include "common.h"
 #include <assert.h>
+#include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -174,10 +176,6 @@ char *xgetcwd(void)
 }
 
 
-/* which が非 NULL を返した直後、この値が true なら which の戻り値は
- * 非カレントディレクトリから得られたことを表す。 */
-bool which_found_in_path;
-
 /* 与えられた各ディレクトリの中から指定された名前のエントリを探し、最初に
  * 見付かったもののパスを返す。
  * name:   探すエントリの名前。これが絶対パスなら、検索を行わずにそのまま
@@ -198,7 +196,6 @@ char *which(
 	char *const *restrict dirs,
 	bool cond(const char *path))
 {
-    which_found_in_path = false;
     if (!name[0])
 	return NULL;
     if (!dirs)
@@ -216,11 +213,9 @@ char *which(
 	    strcpy(path, dir);
 	    path[dirlen] = '/';
 	    strcpy(path + dirlen + 1, name);
-	    which_found_in_path = true;
 	} else {
 	    /* dir が空文字列ならカレントディレクトリとして扱う */
 	    strcpy(path, name);
-	    which_found_in_path = false;
 	}
 	if (cond ? cond(path) : (access(path, F_OK) == 0))
 	    return xstrdup(path);
@@ -232,12 +227,13 @@ char *which(
 /********** patharray **********/
 
 /* PATH 環境変数を ':' ごとに区切った各文字列へのポインタの配列へのポインタ。
- * 主に which の第二引数として使う。PATH 環境変数が変わるたびにリセットされる */
+ * 主に which の第二引数として使う。PATH 環境変数が変わるたびにリセットされる。
+ * 各文字列は初期シフト状態で始まり、終わる。 */
 static char **patharray = NULL;
 
 /* 新しい PATH 環境変数に合わせて patharray の内容を更新する
  * newpath: 新しい PATH の値。NULL でもよい。 */
-void reset_path(const char *newpath)
+void reset_patharray(const char *newpath)
 {
     recfree((void **) patharray, free);
 
@@ -263,6 +259,12 @@ void reset_path(const char *newpath)
 	    pl_add(&list, w + 1);
 	}
     }
+
+    /* list 内の重複要素を削除する */
+    for (size_t i = 0; i < list.length; i++)
+	for (size_t j = list.length; --j > i; )
+	    if (wcscmp(list.contents[i], list.contents[j]) == 0)
+		pl_remove(&list, j, 1);
 
     /* list の各要素をマルチバイト文字列に戻す */
     for (size_t i = 0; i < list.length; i++) {
@@ -295,7 +297,7 @@ void init_cmdhash(void)
 	ht_init(&cmdhash, hashstr, htstrcmp);
 
 	//TODO path.c: init_cmdhash: variable.c に移動すべし
-	reset_path(getenv("PATH"));
+	reset_patharray(getenv("PATH"));
     }
 }
 
@@ -328,6 +330,73 @@ const char *get_command_path(const char *name, bool forcelookup)
 	vfree(ht_set(&cmdhash, pathname, path));
     }
     return path;
+}
+
+/* prefix で始まるコマンド名を対象に patharray を検索して、コマンド名ハッシュを
+ * 埋める。patharray が NULL なら何もしない。また patharray に相対パスが入って
+ * いる場合は無視する。prefix が NULL または空文字列なら、全てのコマンドを
+ * 対象とする。ignorecase が true ならコマンド名の大文字小文字を区別
+ * しない。
+ * この関数はエラーメッセージを出さない。
+ * 処理を早くするため、この関数はマルチバイト文字の大文字小文字の区別を正確には
+ * 処理しない。*/
+void fill_cmdhash(const char *prefix, bool ignorecase)
+{
+    char *const *pa = patharray;
+    if (!pa)
+	return;
+
+    if (!prefix)
+	prefix = "";
+    size_t plen = strlen(prefix);
+    char pfx[plen + 1];
+    if (ignorecase) {
+	/* prefix を小文字にして pfx にコピー */
+	for (size_t i = 0; i < plen; i++)
+	    pfx[i] = tolower(prefix[i]);
+	pfx[plen] = '\0';
+    }
+
+    /* patharray の中で前にあるパスを優先するため、配列の後ろの方から検索し、
+     * 対象が重複して見付かったら後から見付かったもので上書きする。 */
+    for (size_t i = plcount((void **) pa); i-- > 0; ) {
+	const char *dirpath = pa[i];
+	if (dirpath[0] != '/')
+	    continue;  /* 絶対パスでなければ無視 */
+
+	DIR *dir = opendir(dirpath);
+	if (!dir)
+	    continue;
+
+	size_t dirpathlen = strlen(dirpath);
+	struct dirent *de;
+	while ((de = readdir(dir))) {
+	    /* 名前が prefix に当てはまらなければ飛ばす */
+	    if (!ignorecase) {
+		if (strncmp(prefix, de->d_name, plen) != 0)
+		    goto next;
+	    } else {
+		for (size_t j = 0; j < plen; j++)
+		    if (tolower(de->d_name[j]) != pfx[j])
+			goto next;
+	    }
+
+	    /* フルパスを生成する */
+	    char *path = xmalloc(dirpathlen + strlen(de->d_name) + 2);
+	    strncpy(path, dirpath, dirpathlen);
+	    path[dirpathlen] = '/';
+	    strcpy(path + dirpathlen + 1, de->d_name);
+
+	    /* ファイルが実行可能ならハッシュに追加する */
+	    if (is_executable(path))
+		vfree(ht_set(&cmdhash, path + dirpathlen + 1, path));
+	    else
+		free(path);
+next:;
+	}
+
+	closedir(dir);
+    }
 }
 
 

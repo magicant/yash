@@ -33,8 +33,6 @@ extern bool is_same_file(const char *path1, const char *path2);
 __attribute__((nonnull,malloc,warn_unused_result))
 extern wchar_t *canonicalize_path(const wchar_t *path);
 
-extern bool which_found_in_path;
-
 __attribute__((nonnull(1),malloc,warn_unused_result))
 extern char *which(
 	const char *restrict name,
@@ -42,11 +40,20 @@ extern char *which(
 	bool cond(const char *path));
 
 
-extern void reset_path(const char *newpath);
+/********** patharray **********/
 
+extern void reset_patharray(const char *newpath);
+
+
+/********** コマンド名ハッシュ **********/
 
 extern void init_cmdhash(void);
+__attribute__((nonnull))
 extern const char *get_command_path(const char *name, bool forcelookup);
+extern void fill_cmdhash(const char *prefix, bool ignorecase);
+
+
+/********** glob **********/
 
 
 #endif /* PATH_H */
