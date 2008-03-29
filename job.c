@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "option.h"
 #include "util.h"
 #include "plist.h"
 #include "sig.h"
@@ -32,9 +33,6 @@
 __attribute__((const))
 static int calc_status(int status);
 
-
-/* ジョブ制御が有効かどうか。シェルの -m オプションに対応 */
-bool do_job_control;
 
 /* ジョブリスト。
  * joblist.contents[0] はアクティブジョブで、起動直後でまだジョブリストに

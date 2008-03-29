@@ -21,11 +21,10 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <signal.h>
+#include "option.h"
 #include "util.h"
 #include "sig.h"
 #include "signum.h"
-#include "job.h"
-#include "yash.h"
 
 
 /* このシェルのシグナルの扱いについて:

@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <wchar.h>
+#include "option.h"
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
@@ -36,7 +37,6 @@
 #include "sig.h"
 #include "job.h"
 #include "exec.h"
-#include "yash.h"
 
 
 /* コマンドの実行のしかたを表す */

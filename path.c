@@ -25,12 +25,12 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <sys/stat.h>
+#include "option.h"
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
 #include "hashtable.h"
 #include "path.h"
-#include "yash.h"
 
 
 /* path が読み込み可能な普通のファイルかどうか判定する */

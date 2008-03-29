@@ -54,11 +54,9 @@ typedef struct job_T {
  * j_pgid は 0 となる。 */
 
 
-extern bool do_job_control;
+#define ACTIVE_JOBNO 0
 
 extern void init_job(void);
-
-#define ACTIVE_JOBNO 0
 
 __attribute__((nonnull))
 extern void set_active_job(job_T *job);

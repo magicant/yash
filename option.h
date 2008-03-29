@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* yash.h: basic functions of the shell and miscellanies */
+/* option.h: option settings */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -16,29 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef YASH_H
-#define YASH_H
+#ifndef OPTION_H
+#define OPTION_H
 
 #include <stdbool.h>
-#include <stdio.h>
-#include <sys/types.h>
 
 
-extern pid_t shell_pid;
+extern bool posixly_correct;
+extern bool is_login_shell;
+extern bool is_interactive, is_interactive_now;
+extern bool do_job_control;
+extern const char *command_name;
 
-struct parseinfo_T;
+#define SHELLSET_OPTIONS "m"
 
-__attribute__((nonnull(1)))
-extern bool exec_mbs(const char *code, const char *name, bool finally_exit);
-__attribute__((nonnull(1)))
-extern bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit);
-__attribute__((nonnull(1)))
-bool exec_input(FILE *f, const char *name, bool finally_exit);
-__attribute__((nonnull(1)))
-bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit);
+extern const struct xoption *const shell_long_options, *const set_long_options;
+
+extern void set_option(char c);
 
 
-#endif /* YASH_H */
+#endif /* OPTION_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

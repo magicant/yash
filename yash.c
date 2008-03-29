@@ -28,7 +28,7 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "yash.h"
+#include "option.h"
 #include "util.h"
 #include "path.h"
 #include "lineinput.h"
@@ -36,6 +36,7 @@
 #include "sig.h"
 #include "job.h"
 #include "exec.h"
+#include "yash.h"
 #include "version.h"
 
 
@@ -44,27 +45,9 @@ int main(int argc, char **argv);
 static void print_help(void);
 static void print_version(void);
 
-/* true なら POSIX に厳密に従う */
-bool posixly_correct;
-/* 対話的シェルかどうか。is_interactive_now はサブシェルでは false になる。 */
-bool is_interactive, is_interactive_now;
-/* ログインシェルかどうか。 */
-bool is_login_shell;
-/* コマンド名。特殊パラメータ $0 の値。 */
-const char *command_name;
 /* シェル本体のプロセス ID。 */
 pid_t shell_pid;
 
-
-static const struct xoption long_options[] = {
-    { "interactive", xno_argument, NULL, 'i', },
-    { "job-control", xno_argument, NULL, 'm', },
-    { "login",       xno_argument, NULL, 'l', },
-    { "posix",       xno_argument, NULL, 'X', },
-    { "help",        xno_argument, NULL, '?', },
-    { "version",     xno_argument, NULL, 'V', },
-    { NULL,          0,            NULL, 0,   },
-};
 
 int main(int argc __attribute__((unused)), char **argv)
 {
@@ -98,36 +81,46 @@ int main(int argc __attribute__((unused)), char **argv)
     /* オプションを解釈する */
     xoptind = 0;
     xopterr = true;
-    // TODO yash:main: unimplemented options: -abCefhimnuvx -o
-    while ((opt = xgetopt_long(argv, "+cimlsV?", long_options, NULL)) >= 0) {
+    while ((opt = xgetopt_long(argv,
+		    "+*cilsV?" SHELLSET_OPTIONS,
+		    shell_long_options,
+		    NULL))
+	    >= 0) {
 	switch (opt) {
 	case 0:
 	    break;
 	case 'c':
-	    exec_first_arg = (xoptopt == '-');
+	    if (xoptopt != '-') {
+		xerror(0, 0, Ngt("+c: invalid option"));
+		help = true;
+	    }
+	    exec_first_arg = true;
 	    break;
 	case 'i':
 	    is_interactive = (xoptopt == '-');
 	    is_interactive_set = true;
 	    break;
-	case 'm':
-	    do_job_control = (xoptopt == '-');
-	    do_job_control_set = true;
-	    break;
 	case 'l':
 	    is_login_shell = (xoptopt == '-');
 	    break;
 	case 's':
-	    read_stdin = (xoptopt == '-');
-	    break;
-	case 'X':
-	    posixly_correct = true;
+	    if (xoptopt != '-') {
+		xerror(0, 0, Ngt("+s: invalid option"));
+		help = true;
+	    }
+	    read_stdin = true;
 	    break;
 	case 'V':
 	    version = true;
 	    break;
 	case '?':
 	    help = true;
+	    break;
+	case 'm':
+	    do_job_control_set = true;
+	    /* falls thru! */
+	default:
+	    set_option(opt);
 	    break;
 	}
     }
@@ -149,7 +142,7 @@ int main(int argc __attribute__((unused)), char **argv)
     init_job();
 
     if (exec_first_arg && read_stdin) {
-	xerror(2, 0, Ngt("both -c and -s options cannot be given"));
+	xerror(2, 0, Ngt("both -c and -s options cannot be given at once"));
     }
     if (exec_first_arg) {
 	char *command = argv[xoptind++];
@@ -196,15 +189,15 @@ void print_help(void)
 	printf(gt("Usage:  sh [options] [filename [args...]]\n"
 		  "        sh [options] -c command [command_name [args...]]\n"
 		  "        sh [options] -s [args...]\n"));
-	printf(gt("Options: -il\n"));
+	printf(gt("Options: -il%s\n"), SHELLSET_OPTIONS);
     } else {
 	printf(gt("Usage:  yash [options] [filename [args...]]\n"
 		  "        yash [options] -c command [args...]\n"
 		  "        yash [options] -s [args...]\n"));
-	printf(gt("Short options: -ilV?\n"));
+	printf(gt("Short options: -il%sV?\n"), SHELLSET_OPTIONS);
 	printf(gt("Long options:\n"));
-	for (size_t i = 0; long_options[i].name; i++)
-	    printf("\t--%s\n", long_options[i].name);
+	for (size_t i = 0; shell_long_options[i].name; i++)
+	    printf("\t--%s\n", shell_long_options[i].name);
     }
 }
 

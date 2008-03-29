@@ -30,7 +30,7 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "yash.h"
+#include "option.h"
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
