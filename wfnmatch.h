@@ -20,6 +20,7 @@
 #define STRMATCH_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 /* wfnmatch の flags 引数の値 */
 enum wfnmflags {
@@ -43,6 +44,8 @@ __attribute__((nonnull))
 extern size_t count_pattern_length_before_slash(const wchar_t *pat);
 __attribute__((nonnull))
 extern size_t count_pattern_length_before_double_stars(const wchar_t *pat);
+__attribute__((nonnull))
+extern bool pattern_with_special_char(const wchar_t *pat);
 
 
 #endif /* STRMATCH_H */
