@@ -32,6 +32,7 @@
 #include "strbuf.h"
 #include "plist.h"
 #include "hashtable.h"
+#include "wfnmatch.h"
 #include "path.h"
 
 
@@ -223,6 +224,15 @@ char *which(
     return NULL;
 }
 
+/* ディレクトリを確実に閉じる。
+ * closedir が EINTR を返したらやり直す。 */
+int xclosedir(DIR *dir)
+{
+    int result;
+    while ((result = closedir(dir)) < 0 && errno == EINTR);
+    return result;
+}
+
 
 /********** patharray **********/
 
@@ -395,8 +405,200 @@ void fill_cmdhash(const char *prefix, bool ignorecase)
 next:;
 	}
 
-	closedir(dir);
+	xclosedir(dir);
     }
+}
+
+
+/********** wglob **********/
+
+__attribute__((nonnull))
+static int wglob_sortcmp(const void *v1, const void *v2);
+__attribute__((nonnull))
+static bool wglob_search(const wchar_t *pattern, enum wglbflags flags,
+	xstrbuf_T *dirname, xwcsbuf_T *wdirname, plist_T *list);
+
+/* ワイド文字列に対する glob の実装。
+ * 指定したパターンに一致するファイルのパスをリストに追加する。
+ * pattern: 検索するパターン
+ * flags:   マッチングの種類を指定するフラグ。以下の値のビットごとの OR。
+ *          WGLB_ERR: エラーが発生したらすぐに中止する
+ *          WGLB_MARK: ディレクトリについてはパス名の最後に L'/' を付けて返す
+ *          WGLB_NOESCAPE: パターンでバックスラッシュエスケープを無効にする
+ *          WGLB_CASEFOLD: 大文字小文字を区別しない
+ *          WGLB_NOSORT: 検索結果をソートしない
+ *          WGLB_RECDIR: L"**" パターンでディレクトリを再帰的に検索する
+ * list:    検索結果を追加するリスト。見付かったファイルパスが
+ *          新しく malloc したワイド文字列へのポインタとしてこれに入る。
+ * 戻り値:  エラーがなければ true。
+ * パターンが不正な場合はすぐに false を返す。ファイル探索のための
+ * パーミッションがない場合などは、できるだけエラーとはみなさない。
+ * エラーがあっても list に途中結果が入るかもしれない。 */
+//TODO path: wglob: WGLB_ERR は本当に必要?
+bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
+	plist_T *restrict list)
+{
+    size_t listbase = list->length;
+    xstrbuf_T dir;
+    xwcsbuf_T wdir;
+
+    if (!pattern[0])
+	return true;
+
+    sb_init(&dir);
+    wb_init(&wdir);
+    while (pattern[0] == L'/') {
+	sb_ccat(&dir, '/');
+	wb_wccat(&wdir, L'/');
+	pattern++;
+    }
+
+    bool succ = wglob_search(pattern, flags, &dir, &wdir, list);
+    sb_destroy(&dir);
+    wb_destroy(&wdir);
+    if (!succ)
+	return false;
+
+    if (!(flags & WGLB_NOSORT)) {
+	/* 結果をソートして…… */
+	size_t count = list->length - listbase;  /* 実際に追加した個数 */
+	if (count > 0) {
+	    qsort(list->contents + listbase, count, sizeof (void *),
+		    wglob_sortcmp);
+	    /* 重複を除く */
+	    for (size_t i = list->length; --i > listbase; ) {
+		if (wcscmp(list->contents[i], list->contents[i-1]) == 0) {
+		    free(list->contents[i]);
+		    pl_remove(list, i, 1);
+		}
+	    }
+	}
+    }
+    return true;
+}
+
+/* 結果を並べ替えるために qsort が呼ぶ関数。
+ * 二つの引数はそれぞれ wchar_t * を void * にキャストしたものへのポインタ
+ * である。二つのワイド文字列を wcscmp で比較した結果を返す。 */
+int wglob_sortcmp(const void *v1, const void *v2)
+{
+    return wcscmp(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
+}
+
+/* 指定したディレクトリを探索してパターンにマッチするファイルをリストに追加する
+ * dirname:  最後に '/' がついた、検索するディレクトリ名。または空文字列。
+ * wdirname: dirname のワイド文字列版
+ * 他の引数や戻り値は wglob に準ずる。ただし例外として flags にはいくつかの
+ * 追加のフラグを指定できる:
+ *   WGLB_recdir: ディレクトリ dirname の全ての子ディレクトリに対して同じ
+ *           pattern で再帰的に検索する。
+ *   WGLB_followlk: 再帰検索の際にシンボリックリンクを追う
+ * pattern の先頭に L'/' があってはならない。
+ * ルートディレクトリを検索するには、dirname に "/" を指定する。
+ * dirname と wdirname は同じ内容で、空文字列でない限り最後は '/' で
+ * 終わっている必要がある。空文字列はカレントディレクトリを表す。
+ * dirname, wdirname は関数内で書き換えるかもしれないが、関数が返るときには
+ * 内容は呼出し時のものに戻っている。 */
+bool wglob_search(
+	const wchar_t *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict const dirname,
+	xwcsbuf_T *restrict const wdirname,
+	plist_T *list)
+{
+    const size_t savedirlen = dirname->length;
+    const size_t savewdirlen = wdirname->length;
+#define RESTORE_DIRNAME \
+    ((void) (dirname->contents[dirname->length = savedirlen] = '\0'))
+#define RESTORE_WDIRNAME \
+    ((void) (wdirname->contents[wdirname->length = savewdirlen] = L'\0'))
+
+
+    if (!pattern[0]) {
+	/* パターンが空文字列なら dirname そのものを追加する */
+	assert(wdirname->length > 0);
+	if (is_directory(dirname->contents))
+	    pl_add(list, xwcsdup(wdirname->contents));
+	return true;
+    }
+
+    DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
+    if (!dir)
+	return true;
+
+    size_t patlen = wcscspn(pattern, L"/");
+    bool isleaf = (pattern[patlen] == L'\0');
+    wchar_t pat[patlen + 1];
+    wcsncpy(pat, pattern, patlen);
+    pat[patlen] = L'\0';
+
+    enum wfnmflags wfnmflags;
+    size_t sml;
+    bool noliteral = pattern_with_special_char(pat);
+    /* noliteral が true なら wfnmatchl で普通にマッチングする。
+     * noliteral が false なら単純な文字列比較で済ませる。 */
+    if (noliteral) {
+	wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
+	if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;
+	if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
+	sml = shortest_match_length(pat, wfnmflags);
+    } else {
+	wfnmflags = 0;  /* どうせ使わないダミーの値 */
+	sml = 0;
+    }
+
+    struct dirent *de;
+    while ((de = readdir(dir))) {
+	wchar_t *wentname = malloc_mbstowcs(de->d_name);
+	if (!wentname)
+	    continue;
+	size_t match = noliteral
+	    ? wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml)
+	    : ((wcscmp(pat, wentname) == 0) ? 1 : WFNM_NOMATCH);
+	if (match == WFNM_ERROR) {
+	    free(wentname);
+	    return false;
+	}
+	if (match != WFNM_NOMATCH) {
+	    /* マッチした! */
+	    if (isleaf) {
+		wb_cat(wdirname, wentname);
+		if (flags & WGLB_MARK) {
+		    sb_cat(dirname, de->d_name);
+		    if (is_directory(dirname->contents))
+			wb_wccat(wdirname, L'/');
+		    RESTORE_DIRNAME;
+		}
+		pl_add(list, xwcsdup(wdirname->contents));
+		RESTORE_WDIRNAME;
+	    } else {
+		/* サブディレクトリを検索 */
+		assert(pattern[patlen] == L'/');
+		sb_cat(dirname, de->d_name);
+		sb_ccat(dirname, '/');
+		wb_cat(wdirname, wentname);
+		wb_wccat(wdirname, L'/');
+		const wchar_t *subpat = pattern + patlen + 1;
+		while (subpat[0] == L'/') {
+		    sb_ccat(dirname, '/');
+		    wb_wccat(wdirname, L'/');
+		    subpat++;
+		}
+		bool sub = wglob_search(subpat, flags, dirname, wdirname, list);
+		RESTORE_DIRNAME;
+		RESTORE_WDIRNAME;
+		if (!sub)
+		    break;
+	    }
+	}
+	free(wentname);
+    }
+
+    xclosedir(dir);
+    return true;
+
+#undef RESTORE_DIRNAME
+#undef RESTORE_WDIRNAME
 }
 
 

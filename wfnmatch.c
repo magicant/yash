@@ -428,72 +428,9 @@ wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
     return (wchar_t *) end + 2;
 }
 
-/* WFNM_PATHNAME が有効な状態においてパターン内に L'/' が最初に現れるまでの
- * 文字数を返す。
- * 例えば count_pattern_length_before_slash(L"[abc]/def") は 5 となる。
- * パターン内に L'/' がなければ文字列の長さを返す。 */
-size_t count_pattern_length_before_slash(const wchar_t *pat)
-{
-    size_t count = 0;
-
-    for (;;) {
-	const wchar_t *p;
-	switch (pat[count]) {
-	    case L'\0':
-	    case L'/':
-		return count;
-	    case L'[':
-		p = skip_bracket(pat + count, WFNM_PATHNAME);
-		size_t diff = p - (pat + count);
-		if (diff) {
-		    count += diff;
-		    continue;
-		}
-		/* falls thru! */
-	    default:
-		break;
-	}
-	count++;
-    }
-}
-
-/* WFNM_PATHNAME が有効な状態においてパターン内に L"/" または L"**" が
- * 最初に現れるまでの文字数を返す。ただし返す文字数は最初の L'*' も含む。
- * 例えば count_pattern_length_before_double_stars(L"abc**def") は 4 となる。
- * パターン内に L"/" や L"**" がなければ pat の長さを返す。L"**" より L"/" が
- * 先に見付かった場合は、結果は count_pattern_length_before_slash に等しい。 */
-size_t count_pattern_length_before_double_stars(const wchar_t *pat)
-{
-    size_t count = 0;
-
-    for (;;) {
-	const wchar_t *p;
-	switch (pat[count]) {
-	    case L'\0':
-	    case L'/':
-		return count;
-	    case L'*':
-		if (pat[count + 1] == L'*')
-		    return count + 1;
-		break;
-	    case L'[':
-		p = skip_bracket(pat + count, WFNM_PATHNAME);
-		size_t diff = p - (pat + count);
-		if (diff) {
-		    count += diff;
-		    continue;
-		}
-		/* falls thru! */
-	    default:
-		break;
-	}
-	count++;
-    }
-}
-
 /* パターン内に L'*' や L'?' などの特殊文字があるかどうか調べる。
  * 結果が false ならば、pat にマッチする文字列は pat それ自身のみである。 */
-extern bool pattern_with_special_char(const wchar_t *pat)
+bool pattern_with_special_char(const wchar_t *pat)
 {
     return wcspbrk(pat, L"*?[\\") != NULL;
 }

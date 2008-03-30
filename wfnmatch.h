@@ -46,10 +46,6 @@ extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
 __attribute__((nonnull))
 extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags);
 __attribute__((nonnull))
-extern size_t count_pattern_length_before_slash(const wchar_t *pat);
-__attribute__((nonnull))
-extern size_t count_pattern_length_before_double_stars(const wchar_t *pat);
-__attribute__((nonnull))
 extern bool pattern_with_special_char(const wchar_t *pat);
 
 

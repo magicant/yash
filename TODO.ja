@@ -1,1 +1,2 @@
+wfnmatch や wglob を SIGINT で止められるように
 gettext 対応
