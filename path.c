@@ -513,7 +513,7 @@ bool wglob_search(
 #define RESTORE_WDIRNAME \
     ((void) (wdirname->contents[wdirname->length = savewdirlen] = L'\0'))
 
-
+    assert(pattern[0] != L'/');
     if (!pattern[0]) {
 	/* パターンが空文字列なら dirname そのものを追加する */
 	assert(wdirname->length > 0);
@@ -532,19 +532,16 @@ bool wglob_search(
     wcsncpy(pat, pattern, patlen);
     pat[patlen] = L'\0';
 
-    enum wfnmflags wfnmflags;
-    size_t sml;
-    bool noliteral = pattern_with_special_char(pat);
-    /* noliteral が true なら wfnmatchl で普通にマッチングする。
-     * noliteral が false なら単純な文字列比較で済ませる。 */
-    if (noliteral) {
+    enum wfnmflags wfnmflags = wfnmflags;
+    size_t sml = sml;  /* GCC の警告を黙らせるために自分自身を代入する */
+    /* domatch が true なら wfnmatchl で普通にマッチングする。
+     * domatch が false なら単純な文字列比較で済ませる。 */
+    bool domatch = pattern_with_special_char(pat);
+    if (domatch) {
 	wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
 	if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;
 	if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
 	sml = shortest_match_length(pat, wfnmflags);
-    } else {
-	wfnmflags = 0;  /* どうせ使わないダミーの値 */
-	sml = 0;
     }
 
     struct dirent *de;
@@ -552,7 +549,7 @@ bool wglob_search(
 	wchar_t *wentname = malloc_mbstowcs(de->d_name);
 	if (!wentname)
 	    continue;
-	size_t match = noliteral
+	size_t match = domatch
 	    ? wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml)
 	    : ((wcscmp(pat, wentname) == 0) ? 1 : WFNM_NOMATCH);
 	if (match == WFNM_ERROR) {
@@ -562,6 +559,7 @@ bool wglob_search(
 	if (match != WFNM_NOMATCH) {
 	    /* マッチした! */
 	    if (isleaf) {
+		/* マッチしたファイル名をリストに追加 */
 		wb_cat(wdirname, wentname);
 		if (flags & WGLB_MARK) {
 		    sb_cat(dirname, de->d_name);
