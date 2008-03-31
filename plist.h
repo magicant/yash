@@ -63,6 +63,8 @@ __attribute__((nonnull))
 static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n);
 __attribute__((nonnull(1)))
 extern plist_T *pl_add(plist_T *list, void *p);
+__attribute__((nonnull))
+extern void *pl_pop(plist_T *list);
 
 
 /* ポインタの配列 a の最初の n 要素をポインタリストの i 要素目の手前に挿入する。

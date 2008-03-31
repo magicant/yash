@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include "util.h"
@@ -154,6 +155,16 @@ plist_T *pl_add(plist_T *list, void *p)
     list->contents[list->length++] = p;
     list->contents[list->length] = NULL;
     return list;
+}
+
+/* ポインタリストの末尾の要素一つをリストから削除し、それを返す。
+ * list->length は 0 であってはならない。 */
+void *pl_pop(plist_T *list)
+{
+    assert(list->length > 0);
+    void *result = list->contents[--list->length];
+    list->contents[list->length] = NULL;
+    return result;
 }
 
 
