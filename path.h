@@ -69,8 +69,6 @@ enum wglbflags {
     WGLB_CASEFOLD = 1 << 3,
     WGLB_NOSORT   = 1 << 4,
     WGLB_RECDIR   = 1 << 5,
-    WGLB_recdir   = 1 << 6,
-    WGLB_followlk = 1 << 7,
 };
 
 struct plist_T;
