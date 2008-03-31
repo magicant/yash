@@ -422,12 +422,19 @@ static int wglob_sortcmp(const void *v1, const void *v2);
 __attribute__((nonnull))
 static bool wglob_search(const wchar_t *restrict pattern, enum wglbflags flags,
 	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict list);
+	plist_T *restrict dirstack, plist_T *restrict list);
 __attribute__((nonnull))
-static bool wglob_search_recursive(const wchar_t *restrict pattern,
+static bool wglob_start_recursive_search(const wchar_t *restrict pattern,
 	enum wglbflags flags, enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict list);
+	plist_T *restrict dirstack, plist_T *restrict list);
+__attribute__((nonnull))
+static bool wglob_recursive_search(const wchar_t *restrict pattern,
+	enum wglbflags flags, enum wglbrflags rflags,
+	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
+	plist_T *restrict dirstack, plist_T *restrict list);
+__attribute__((nonnull))
+static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack);
 
 /* ワイド文字列に対する glob の実装。
  * 指定したパターンに一致するファイルのパスをリストに追加する。
@@ -452,21 +459,26 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
     size_t listbase = list->length;
     xstrbuf_T dir;
     xwcsbuf_T wdir;
+    plist_T dirstack;
 
     if (!pattern[0])
 	return true;
 
     sb_init(&dir);
     wb_init(&wdir);
+    if (flags & WGLB_RECDIR)
+	pl_init(&dirstack);
     while (pattern[0] == L'/') {
 	sb_ccat(&dir, '/');
 	wb_wccat(&wdir, L'/');
 	pattern++;
     }
 
-    bool succ = wglob_search(pattern, flags, &dir, &wdir, list);
+    bool succ = wglob_search(pattern, flags, &dir, &wdir, &dirstack, list);
     sb_destroy(&dir);
     wb_destroy(&wdir);
+    if (flags & WGLB_RECDIR)
+	pl_destroy(&dirstack);
     if (!succ)
 	return false;
 
@@ -511,6 +523,7 @@ bool wglob_search(
 	enum wglbflags flags,
 	xstrbuf_T *restrict const dirname,
 	xwcsbuf_T *restrict const wdirname,
+	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
     const size_t savedirlen = dirname->length;
@@ -539,14 +552,14 @@ bool wglob_search(
 	if (wcsncmp(p, L"**/", 3) == 0) {
 	    p += 3;
 	    while (p[0] == L'/') p++;
-	    return wglob_search_recursive(
-		    p, flags, rflags, dirname, wdirname, list);
+	    return wglob_start_recursive_search(
+		    p, flags, rflags, dirname, wdirname, dirstack, list);
 	} else if (wcsncmp(p, L"***/", 4) == 0) {
 	    rflags |= WGLB_followlink;
 	    p += 4;
 	    while (p[0] == L'/') p++;
-	    return wglob_search_recursive(
-		    p, flags, rflags, dirname, wdirname, list);
+	    return wglob_start_recursive_search(
+		    p, flags, rflags, dirname, wdirname, dirstack, list);
 	}
     }
 
@@ -610,7 +623,8 @@ bool wglob_search(
 		    wb_wccat(wdirname, L'/');
 		    subpat++;
 		}
-		ok = wglob_search(subpat, flags, dirname, wdirname, list);
+		ok = wglob_search(
+			subpat, flags, dirname, wdirname, dirstack, list);
 		RESTORE_DIRNAME;
 		RESTORE_WDIRNAME;
 	    }
@@ -622,24 +636,49 @@ bool wglob_search(
     return ok;
 }
 
-/* 指定したディレクトリに対する再帰的な検索を行う。
+/* 指定したディレクトリに対する再帰的な検索を開始する。
  * rflags: 動作を指定するフラグ。以下の値のビットごとの OR。
  *         WGLB_followlink: シンボリックリンクの先のディレクトリも検索する
  *         WGLB_period: ピリオドで始まる名前のディレクトリも検索する
  * 他の引数や戻り値は wglob_search に準ずる。 */
-bool wglob_search_recursive(
+bool wglob_start_recursive_search(
 	const wchar_t *restrict pattern,
 	enum wglbflags flags,
 	enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname,
 	xwcsbuf_T *restrict const wdirname,
+	plist_T *restrict dirstack,
+	plist_T *restrict list)
+{
+    char *dir = dirname->contents[0] ? dirname->contents : ".";
+    bool followlink = rflags & WGLB_followlink;
+    bool ok = true;
+    struct stat st;
+    if ((followlink ? stat : lstat)(dir, &st) >= 0
+	    && S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
+	pl_add(dirstack, &st);
+	ok = wglob_recursive_search(
+		pattern, flags, rflags, dirname, wdirname, dirstack, list);
+	pl_pop(dirstack);
+    }
+    return ok;
+}
+
+/* 指定したディレクトリに対する再帰的な検索を実際に行う。 */
+bool wglob_recursive_search(
+	const wchar_t *restrict pattern,
+	enum wglbflags flags,
+	enum wglbrflags rflags,
+	xstrbuf_T *restrict const dirname,
+	xwcsbuf_T *restrict const wdirname,
+	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
     const size_t savedirlen = dirname->length;
     const size_t savewdirlen = wdirname->length;
 
     /* Step 1: まず dirname を検索 */
-    if (!wglob_search(pattern, flags, dirname, wdirname, list))
+    if (!wglob_search(pattern, flags, dirname, wdirname, dirstack, list))
 	return false;
 
     assert(dirname->length == savedirlen);
@@ -662,7 +701,7 @@ bool wglob_search_recursive(
 	struct stat st;
 	sb_cat(dirname, de->d_name);
 	if ((followlink ? stat : lstat)(dirname->contents, &st) >= 0
-		&& S_ISDIR(st.st_mode)) {
+		&& S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
 	    /* ディレクトリなら再帰する */
 	    wchar_t *wentname = malloc_mbstowcs(de->d_name);
 	    if (wentname) {
@@ -670,8 +709,10 @@ bool wglob_search_recursive(
 		wb_cat(wdirname, wentname);
 		wb_wccat(wdirname, L'/');
 		free(wentname);
-		ok = wglob_search_recursive(
-			pattern, flags, followlink, dirname, wdirname, list);
+		pl_add(dirstack, &st);
+		ok = wglob_recursive_search(pattern, flags, rflags,
+			dirname, wdirname, dirstack, list);
+		pl_pop(dirstack);
 		RESTORE_WDIRNAME;
 	    }
 	}
@@ -680,6 +721,17 @@ bool wglob_search_recursive(
 
     xclosedir(dir);
     return ok;
+}
+
+/* 指定した stat 情報と同じ inode の stat 情報がリスト内にあるかどうか調べる */
+bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack)
+{
+    for (size_t i = 0; i < dirstack->length; i++) {
+	struct stat *st2 = dirstack->contents[i];
+	if (st->st_dev == st2->st_dev && st->st_ino == st2->st_ino)
+	    return true;
+    }
+    return false;
 }
 
 
