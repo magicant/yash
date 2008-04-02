@@ -194,14 +194,14 @@ typedef struct paramexp_T {
     paramexptype_T pe_type;
     union {
 	char              *name;
-	struct paramexp_T *nest;
+	struct wordunit_T *nest;
     } pe_value;
     struct wordunit_T *pe_match, *pe_subst;
 } paramexp_T;
 #define pe_name pe_value.name
 #define pe_nest pe_value.nest
 /* pe_name は変数名。
- * pe_nest は変数名の代わりに与えられる入れ子のパラメータ展開。
+ * pe_nest は変数名の代わりに与えられる入れ子の展開要素。
  * pe_match は変数の内容とマッチさせる単語で、PT_MATCH, PT_SUBST で使う。
  * pe_subst は変数の内容を置換する単語で、PT_NONE, PT_MATCH 以外で使う。 */
 /* pe_match, pe_subst が NULL のとき、それは空文字列を表す。 */

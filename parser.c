@@ -165,7 +165,7 @@ void paramfree(paramexp_T *p)
 {
     if (p) {
 	if (p->pe_type & PT_NEST)
-	    paramfree(p->pe_nest);
+	    wordfree(p->pe_nest);
 	else
 	    free(p->pe_name);
 	wordfree(p->pe_match);
@@ -302,11 +302,9 @@ static void skip_to_next_single_quote(void);
 __attribute__((malloc,warn_unused_result))
 static wordunit_T *parse_special_word_unit(void);
 __attribute__((malloc,warn_unused_result))
-static wordunit_T *parse_paramexp_raw(void);
+static wordunit_T *tryparse_paramexp_raw(void);
 __attribute__((malloc,warn_unused_result))
-static wordunit_T *parse_paramexp_in_brase_as_wordunit(void);
-__attribute__((malloc,warn_unused_result))
-static paramexp_T *parse_paramexp_in_brase(void);
+static wordunit_T *parse_paramexp_in_brase(void);
 __attribute__((malloc,warn_unused_result))
 static wordunit_T *parse_cmdsubst_in_paren(void);
 __attribute__((malloc,warn_unused_result))
@@ -1100,7 +1098,7 @@ wordunit_T *parse_special_word_unit(void)
 	ensure_buffer(2);
 	switch (cbuf.contents[cindex]) {
 	case L'{':
-	    return parse_paramexp_in_brase_as_wordunit();
+	    return parse_paramexp_in_brase();
 	case L'(':
 	    if (cbuf.contents[cindex + 1] == L'(') {
 		wordunit_T *wu = tryparse_arith();
@@ -1109,7 +1107,7 @@ wordunit_T *parse_special_word_unit(void)
 	    }
 	    return parse_cmdsubst_in_paren();
 	default:
-	    return parse_paramexp_raw();
+	    return tryparse_paramexp_raw();
 	}
     case L'`':
 	return parse_cmdsubst_in_backquote();
@@ -1122,7 +1120,7 @@ wordunit_T *parse_special_word_unit(void)
  * cindex は '$' の直後の文字を指した状態で呼ばれ、変数名部分の直後の文字を
  * 指した状態で返る。正しいパラメータがなければ、cindex を元より 1 少なくして
  * NULL を返す。 */
-wordunit_T *parse_paramexp_raw(void)
+wordunit_T *tryparse_paramexp_raw(void)
 {
     paramexp_T *pe;
     size_t namelen;  /* 変数名の長さ */
@@ -1162,22 +1160,10 @@ fail:
     return NULL;
 }
 
-/* "${" で始まるパラメータ展開を解析し、wordunit_T に入れて返す。
- * cindex は '{' を指した状態で呼ばれ、対応する '}' の直後の文字を
- * 指した状態で返る。 */
-wordunit_T *parse_paramexp_in_brase_as_wordunit(void)
-{
-    wordunit_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->wu_type = WT_PARAM;
-    result->wu_param = parse_paramexp_in_brase();
-    return result;
-}
-
 /* "${" で始まるパラメータ展開を解析する。
  * cindex は '{' を指した状態で呼ばれ、対応する '}' の直後の文字を
  * 指した状態で返る。 */
-paramexp_T *parse_paramexp_in_brase(void)
+wordunit_T *parse_paramexp_in_brase(void)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
     pe->pe_type = 0;
@@ -1202,12 +1188,16 @@ paramexp_T *parse_paramexp_in_brase(void)
     if (!posixly_correct && cbuf.contents[cindex] == L'{') {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = parse_paramexp_in_brase();
-    } else if (!posixly_correct && cbuf.contents[cindex] == L'$'
-	    && cbuf.contents[cindex + 1] == L'{') {
-	cindex++;
-	pe->pe_type |= PT_NEST;
-	pe->pe_nest = parse_paramexp_in_brase();
+    } else if (!posixly_correct &&
+	    (cbuf.contents[cindex] == L'$' || cbuf.contents[cindex] == L'`')) {
+	size_t neststartindex = cindex;
+	pe->pe_nest = parse_special_word_unit();
+	if (cindex != neststartindex)
+	    pe->pe_type |= PT_NEST;
+	else
+	    goto parse_name;
     } else {
+parse_name:;
 	/* 入れ子でなければ、普通に変数名を取り出す */
 	size_t namestartindex = cindex;
 	switch (cbuf.contents[cindex]) {
@@ -1306,8 +1296,15 @@ check_closing_paren_and_finish:
     if ((pe->pe_type & PT_NUMBER) && (pe->pe_type & PT_MASK) != PT_NONE)
 	serror(Ngt("invalid use of `#' flag in parameter expansion"));
 
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_PARAM;
+    result->wu_param = pe;
+    return result;
+
 fail:
-    return pe;
+    paramfree(pe);
+    return NULL;
 }
 
 /* "$(" で始まるコマンド置換を解析する。
@@ -2108,7 +2105,7 @@ void print_paramexp(xwcsbuf_T *restrict buf, const paramexp_T *restrict p)
     if (p->pe_type & PT_NUMBER)
 	wb_wccat(buf, L'#');
     if (p->pe_type & PT_NEST)
-	print_paramexp(buf, p->pe_nest);
+	print_word(buf, p->pe_nest);
     else
 	wb_mbscat(buf, p->pe_name);
     if (p->pe_type & PT_COLON)
