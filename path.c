@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* path.c: path manipulation utilities and command path hashtable */
+/* path.c: filename-related utilities */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <pwd.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -294,8 +295,8 @@ void reset_patharray(const char *newpath)
 /* コマンド名からそのフルパスへのハッシュテーブル。
  * キーはコマンド名を表すマルチバイト文字列へのポインタで、
  * 値はコマンドのフルパスを表すマルチバイト文字列へのポインタである。
- * 各値は、malloc で確保した領域を指している。各キーは、その値であるフルパスの
- * 最後のスラッシュの直後の文字を指している。 */
+ * キーと値を入れる領域はまとめて malloc され、値を free するとキーも一緒に
+ * 解放されるようになっている必要がある。 */
 static hashtable_T cmdhash;
 
 /* コマンド名ハッシュを初期化する */
@@ -407,6 +408,83 @@ next:;
 
 	xclosedir(dir);
     }
+}
+
+
+/********** ホームディレクトリキャッシュ **********/
+
+/* getpwnam を確実に行う。getpwnam が EINTR を返したら、やり直す。 */
+struct passwd *xgetpwnam(const char *name)
+{
+    struct passwd *pw;
+    do {
+	errno = 0;
+	pw = getpwnam(name);
+    } while (!pw && errno == EINTR);
+    return pw;
+}
+
+/* ユーザ名からそのユーザのホームディレクトリのフルパスへのハッシュテーブル。
+ * キーはユーザのログイン名を表すワイド文字列へのポインタで、
+ * 値はホームディレクトリを表すワイド文字列へのポインタである。
+ * キーと値を入れる領域はまとめて malloc され、値を free するとキーも一緒に
+ * 解放されるようになっている必要がある。 */
+static hashtable_T homedirhash;
+
+/* ホームディレクトリハッシュを初期化する */
+void init_homedirhash(void)
+{
+    static bool initialized = false;
+    if (!initialized) {
+	initialized = true;
+	ht_init(&homedirhash, hashwcs, htwcscmp);
+    }
+}
+
+/* ホームディレクトリハッシュを空にする */
+void clear_homedirhash(void)
+{
+    ht_clear(&homedirhash, vfree);
+}
+
+/* 指定したログイン名のユーザのホームディレクトリ (初期作業ディレクトリ) を
+ * 探し、フルパスを返す。
+ * forcelookup が false でハッシュにパスが登録されていればそれを返す。
+ * さもなくば getpwnam を呼んで検索し、結果をハッシュに登録してから返す。
+ * 戻り値: 見付かったらそのフルパス。見付からなければ NULL。
+ *         戻り値を変更したり free したりしないこと。 */
+const wchar_t *get_home_directory(const wchar_t *username, bool forcelookup)
+{
+    const wchar_t *path;
+
+    if (!forcelookup) {
+	path = ht_get(&homedirhash, username).value;
+	if (path)
+	    return path;
+    }
+
+    char *mbsusername = malloc_wcstombs(username);
+    if (!mbsusername)
+	return NULL;
+
+    struct passwd *pw = xgetpwnam(mbsusername);
+    free(mbsusername);
+    if (!pw)
+	return NULL;
+
+    /* 得られた情報をハッシュに登録して返す */
+    xwcsbuf_T dir;
+    wb_init(&dir);
+    if (wb_mbscat(&dir, pw->pw_dir) != NULL) {
+	wb_destroy(&dir);
+	return NULL;
+    }
+    wb_wccat(&dir, L'\0');
+    size_t usernameindex = dir.length;
+    wb_cat(&dir, username);
+    wchar_t *dirname = wb_towcs(&dir);
+    vfree(ht_set(&homedirhash, dirname + usernameindex, dirname));
+    return dirname;
 }
 
 

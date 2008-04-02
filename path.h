@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* path.h: path manipulation utilities and command path hashtable */
+/* path.h: filename-related utilities */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -58,6 +58,17 @@ extern void init_cmdhash(void);
 __attribute__((nonnull))
 extern const char *get_command_path(const char *name, bool forcelookup);
 extern void fill_cmdhash(const char *prefix, bool ignorecase);
+
+
+/********** ホームディレクトリキャッシュ **********/
+
+__attribute__((nonnull))
+extern struct passwd *xgetpwnam(const char *name);
+extern void init_homedirhash(void);
+extern void clear_homedirhash(void);
+__attribute__((nonnull))
+extern const wchar_t *get_home_directory(
+	const wchar_t *username, bool forcelookup);
 
 
 /********** wglob **********/
