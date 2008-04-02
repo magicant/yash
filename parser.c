@@ -164,9 +164,13 @@ void wordfree_vp(void *w)
 void paramfree(paramexp_T *p)
 {
     if (p) {
-	free(p->pe_name);
+	if (p->pe_type & PT_NEST)
+	    paramfree(p->pe_nest);
+	else
+	    free(p->pe_name);
 	wordfree(p->pe_match);
 	wordfree(p->pe_subst);
+	free(p);
     }
 }
 
@@ -300,7 +304,9 @@ static wordunit_T *parse_special_word_unit(void);
 __attribute__((malloc,warn_unused_result))
 static wordunit_T *parse_paramexp_raw(void);
 __attribute__((malloc,warn_unused_result))
-static wordunit_T *parse_paramexp_in_brace(void);
+static wordunit_T *parse_paramexp_in_brase_as_wordunit(void);
+__attribute__((malloc,warn_unused_result))
+static paramexp_T *parse_paramexp_in_brase(void);
 __attribute__((malloc,warn_unused_result))
 static wordunit_T *parse_cmdsubst_in_paren(void);
 __attribute__((malloc,warn_unused_result))
@@ -1094,7 +1100,7 @@ wordunit_T *parse_special_word_unit(void)
 	ensure_buffer(2);
 	switch (cbuf.contents[cindex]) {
 	case L'{':
-	    return parse_paramexp_in_brace();
+	    return parse_paramexp_in_brase_as_wordunit();
 	case L'(':
 	    if (cbuf.contents[cindex + 1] == L'(') {
 		wordunit_T *wu = tryparse_arith();
@@ -1156,20 +1162,27 @@ fail:
     return NULL;
 }
 
+/* "${" で始まるパラメータ展開を解析し、wordunit_T に入れて返す。
+ * cindex は '{' を指した状態で呼ばれ、対応する '}' の直後の文字を
+ * 指した状態で返る。 */
+wordunit_T *parse_paramexp_in_brase_as_wordunit(void)
+{
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_PARAM;
+    result->wu_param = parse_paramexp_in_brase();
+    return result;
+}
+
 /* "${" で始まるパラメータ展開を解析する。
  * cindex は '{' を指した状態で呼ばれ、対応する '}' の直後の文字を
  * 指した状態で返る。 */
-wordunit_T *parse_paramexp_in_brace(void)
+paramexp_T *parse_paramexp_in_brase(void)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
     pe->pe_type = 0;
     pe->pe_name = NULL;
     pe->pe_match = pe->pe_subst = NULL;
-
-    wordunit_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->wu_type = WT_PARAM;
-    result->wu_param = pe;
 
     assert(cbuf.contents[cindex] == L'{');
     cindex++;
@@ -1185,25 +1198,36 @@ wordunit_T *parse_paramexp_in_brace(void)
 	cindex++;
     }
 
-    /* 変数名を取り出す */
-    size_t namestartindex = cindex;
-    switch (cbuf.contents[cindex]) {
-	case L'@':  case L'*':  case L'#':  case L'?':
-	case L'-':  case L'$':  case L'!':
-	    cindex++;
-	    goto make_name;
-    }
-    do
-	while (is_name_char(cbuf.contents[cindex]))
-	    cindex++;
-    while (cbuf.contents[cindex] == L'\0' && read_more_input == 0);
-    if (namestartindex == cindex) {
-	serror(Ngt("parameter name missing"));
-	goto fail;
-    }
+    /* 入れ子のパラメータ展開を解析 */
+    if (!posixly_correct && cbuf.contents[cindex] == L'{') {
+	pe->pe_type |= PT_NEST;
+	pe->pe_nest = parse_paramexp_in_brase();
+    } else if (!posixly_correct && cbuf.contents[cindex] == L'$'
+	    && cbuf.contents[cindex + 1] == L'{') {
+	cindex++;
+	pe->pe_type |= PT_NEST;
+	pe->pe_nest = parse_paramexp_in_brase();
+    } else {
+	/* 入れ子でなければ、普通に変数名を取り出す */
+	size_t namestartindex = cindex;
+	switch (cbuf.contents[cindex]) {
+	    case L'@':  case L'*':  case L'#':  case L'?':
+	    case L'-':  case L'$':  case L'!':
+		cindex++;
+		goto make_name;
+	}
+	do
+	    while (is_name_char(cbuf.contents[cindex]))
+		cindex++;
+	while (cbuf.contents[cindex] == L'\0' && read_more_input == 0);
+	if (namestartindex == cindex) {
+	    serror(Ngt("parameter name missing or invalid"));
+	    goto fail;
+	}
 make_name:
-    pe->pe_name = malloc_wcsntombs(
-	    cbuf.contents + namestartindex, cindex - namestartindex);
+	pe->pe_name = malloc_wcsntombs(
+		cbuf.contents + namestartindex, cindex - namestartindex);
+    }
 
     /* PT_COLON を解析 */
     ensure_buffer(3);
@@ -1283,7 +1307,7 @@ check_closing_paren_and_finish:
 	serror(Ngt("invalid use of `#' flag in parameter expansion"));
 
 fail:
-    return result;
+    return pe;
 }
 
 /* "$(" で始まるコマンド置換を解析する。
@@ -2083,7 +2107,10 @@ void print_paramexp(xwcsbuf_T *restrict buf, const paramexp_T *restrict p)
     wb_cat(buf, L"${");
     if (p->pe_type & PT_NUMBER)
 	wb_wccat(buf, L'#');
-    wb_mbscat(buf, p->pe_name);
+    if (p->pe_type & PT_NEST)
+	print_paramexp(buf, p->pe_nest);
+    else
+	wb_mbscat(buf, p->pe_name);
     if (p->pe_type & PT_COLON)
 	wb_wccat(buf, L':');
     switch (p->pe_type & PT_MASK) {

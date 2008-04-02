@@ -162,6 +162,7 @@ typedef enum {
     PT_MATCHTAIL    = 1 << 6,  /* 末尾のみにマッチ */
     PT_MATCHLONGEST = 1 << 7,  /* できるだけ長くマッチ */
     PT_SUBSTALL     = 1 << 8,  /* マッチしたもの全て置換 */
+    PT_NEST         = 1 << 9,  /* パラメータ展開の入れ子 */
 } paramexptype_T;
 #define PT_MASK ((1 << 3) - 1)
 /*            type   COLON  MATCHH MATCHT MATCHL SUBSTA
@@ -185,15 +186,22 @@ typedef enum {
  *
  * PT_NUMBER は、変数の内容ではなく変数の内容の文字数に置換するフラグで、
  * PT_NONE でのみ有効。(${#n})
- * PT_SUBST は POSIX 規格にはない。 */
+ * ${${VAR#foo}%bar} のような入れ子では、PT_NEST フラグが立つ。
+ * PT_SUBST, PT_NEST は POSIX 規格にはない。 */
 
 /* パラメータ展開を表す */
 typedef struct paramexp_T {
     paramexptype_T pe_type;
-    char *pe_name;
+    union {
+	char              *name;
+	struct paramexp_T *nest;
+    } pe_value;
     struct wordunit_T *pe_match, *pe_subst;
 } paramexp_T;
+#define pe_name pe_value.name
+#define pe_nest pe_value.nest
 /* pe_name は変数名。
+ * pe_nest は変数名の代わりに与えられる入れ子のパラメータ展開。
  * pe_match は変数の内容とマッチさせる単語で、PT_MATCH, PT_SUBST で使う。
  * pe_subst は変数の内容を置換する単語で、PT_NONE, PT_MATCH 以外で使う。 */
 /* pe_match, pe_subst が NULL のとき、それは空文字列を表す。 */
