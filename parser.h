@@ -101,7 +101,8 @@ typedef struct command_T {
 #define c_whlcmds  c_content.whilecontent.whlcmds
 #define c_casword  c_content.casecontent.casword
 #define c_casitems c_content.casecontent.casitems
-/* c_words, c_forwords は wordunit_T へのポインタの NULL 終端配列へのポインタ */
+/* c_words, c_forwords は void * にキャストした wordunit_T * の
+ * NULL 終端配列へのポインタ */
 /* c_forwords が NULL のとき、for に in 節はない。
  * c_forwords[0] が NULL のとき、for の in 節は空。 */
 
@@ -119,7 +120,8 @@ typedef struct caseitem_T {
     void             **ci_patterns;  /* 一致するか調べるパタンの配列 */
     struct and_or_T   *ci_commands;  /* 一致したときに実行するコマンド */
 } caseitem_T;
-/* ci_patterns は wordunit_T へのポインタの NULL 終端配列へのポインタ */
+/* ci_patterns は void * にキャストした wordunit_T * の
+ * NULL 終端配列へのポインタ */
 
 /* wordunit_T の種類を表す */
 typedef enum {
