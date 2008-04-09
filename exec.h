@@ -20,12 +20,14 @@
 #define EXEC_H
 
 #include <stdbool.h>
+#include <sys/types.h>
 
 
 #define EXIT_NOEXEC   126
 #define EXIT_NOTFOUND 127
 
 extern int laststatus;
+extern pid_t lastasyncpid;
 
 struct and_or_T;
 extern void exec_and_or_lists(const struct and_or_T *a, bool finally_exit);

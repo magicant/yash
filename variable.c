@@ -219,7 +219,9 @@ void **get_variable(const char *name, bool *concat)
 	    case '$':
 		value = malloc_wprintf(L"%jd", (intmax_t) shell_pid);
 		goto return_single;
-	    case '!':  // TODO variable:get_variable: 特殊パラメータ '!'
+	    case '!':
+		value = malloc_wprintf(L"%jd", (intmax_t) lastasyncpid);
+		goto return_single;
 	    case '0':
 		value = malloc_mbstowcs(command_name);
 		goto return_single;

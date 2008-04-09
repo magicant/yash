@@ -106,6 +106,8 @@ static void exec_simple_command(const commandinfo_T *ci,
 
 /* 最後に実行したコマンドの終了ステータス */
 int laststatus = EXIT_SUCCESS;
+/* 最後に起動した非同期実行リストのプロセス ID */
+pid_t lastasyncpid;
 
 
 /* コマンドを実行する。
@@ -169,6 +171,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    set_active_job(job);
 	    add_job();
 	    laststatus = EXIT_SUCCESS;
+	    lastasyncpid = cpid;
 	} else if (cpid == 0) {
 	    /* 子プロセス: コマンドを実行して終了 */
 	    block_sigquit_and_sigint();
