@@ -496,17 +496,17 @@ __attribute__((nonnull))
 static int wglob_sortcmp(const void *v1, const void *v2);
 __attribute__((nonnull))
 static bool wglob_search(const wchar_t *restrict pattern, enum wglbflags flags,
-	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
+	xstrbuf_T *restrict const dirname,
 	plist_T *restrict dirstack, plist_T *restrict list);
 __attribute__((nonnull))
 static bool wglob_start_recursive_search(const wchar_t *restrict pattern,
 	enum wglbflags flags, enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
+	xstrbuf_T *restrict const dirname,
 	plist_T *restrict dirstack, plist_T *restrict list);
 __attribute__((nonnull))
 static bool wglob_recursive_search(const wchar_t *restrict pattern,
 	enum wglbflags flags, enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
+	xstrbuf_T *restrict const dirname,
 	plist_T *restrict dirstack, plist_T *restrict list);
 __attribute__((nonnull))
 static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack);
@@ -522,7 +522,7 @@ static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack);
  *          WGLB_NOSORT: 検索結果をソートしない
  *          WGLB_RECDIR: L"**" パターンでディレクトリを再帰的に検索する
  * list:    検索結果を追加するリスト。見付かったファイルパスが
- *          新しく malloc したワイド文字列へのポインタとしてこれに入る。
+ *          新しく malloc したマルチバイト文字列へのポインタとしてこれに入る。
  * 戻り値:  エラーがなければ true。
  * パターンが不正な場合はすぐに false を返す。ファイル探索のための
  * パーミッションがない場合などは、できるだけエラーとはみなさない。
@@ -533,25 +533,21 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 {
     size_t listbase = list->length;
     xstrbuf_T dir;
-    xwcsbuf_T wdir;
     plist_T dirstack;
 
     if (!pattern[0])
 	return true;
 
     sb_init(&dir);
-    wb_init(&wdir);
     if (flags & WGLB_RECDIR)
 	pl_init(&dirstack);
     while (pattern[0] == L'/') {
 	sb_ccat(&dir, '/');
-	wb_wccat(&wdir, L'/');
 	pattern++;
     }
 
-    bool succ = wglob_search(pattern, flags, &dir, &wdir, &dirstack, list);
+    bool succ = wglob_search(pattern, flags, &dir, &dirstack, list);
     sb_destroy(&dir);
-    wb_destroy(&wdir);
     if (flags & WGLB_RECDIR)
 	pl_destroy(&dirstack);
     if (!succ)
@@ -565,7 +561,7 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 		    wglob_sortcmp);
 	    /* 重複を除く */
 	    for (size_t i = list->length; --i > listbase; ) {
-		if (wcscmp(list->contents[i], list->contents[i-1]) == 0) {
+		if (strcmp(list->contents[i], list->contents[i-1]) == 0) {
 		    free(list->contents[i]);
 		    pl_remove(list, i, 1);
 		}
@@ -576,37 +572,32 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 }
 
 /* 結果を並べ替えるために qsort が呼ぶ関数。
- * 二つの引数はそれぞれ wchar_t * を void * にキャストしたものへのポインタ
- * である。二つのワイド文字列を wcscmp で比較した結果を返す。 */
+ * 二つの引数はそれぞれ char * を void * にキャストしたものへのポインタ
+ * である。二つのマルチバイト文字列を strcmp で比較した結果を返す。 */
 int wglob_sortcmp(const void *v1, const void *v2)
 {
-    return wcscoll(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
+    return strcoll(*(const char *const *) v1, *(const char *const *) v2);
 }
 
 /* 指定したディレクトリを探索してパターンにマッチするファイルをリストに追加する
  * dirname:  最後に '/' がついた、検索するディレクトリ名。または空文字列。
- * wdirname: dirname のワイド文字列版
  * 他の引数や戻り値は wglob に準ずる。
  * pattern の先頭に L'/' があってはならない。
  * ルートディレクトリを検索するには、dirname に "/" を指定する。
- * dirname と wdirname は同じ内容で、空文字列でない限り最後は '/' で
- * 終わっている必要がある。空文字列はカレントディレクトリを表す。
- * dirname, wdirname は関数内で書き換えるかもしれないが、関数が返るときには
+ * dirname は、空文字列でない限り最後は '/' で終わっている必要がある。
+ * 空文字列はカレントディレクトリを表す。
+ * dirname は関数内で書き換えるかもしれないが、関数が返るときには
  * 内容は呼出し時のものに戻っている。 */
 bool wglob_search(
 	const wchar_t *restrict pattern,
 	enum wglbflags flags,
 	xstrbuf_T *restrict const dirname,
-	xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
     const size_t savedirlen = dirname->length;
-    const size_t savewdirlen = wdirname->length;
 #define RESTORE_DIRNAME \
     ((void) (dirname->contents[dirname->length = savedirlen] = '\0'))
-#define RESTORE_WDIRNAME \
-    ((void) (wdirname->contents[wdirname->length = savewdirlen] = L'\0'))
 
     assert(pattern[0] != L'/');
     if (!pattern[0]) {
@@ -614,7 +605,7 @@ bool wglob_search(
 	 * ただし dirname も空文字列の場合を除く。
 	 * (dirname が空文字列なら is_directory は false を返す) */
 	if (is_directory(dirname->contents))
-	    pl_add(list, xwcsdup(wdirname->contents));
+	    pl_add(list, xstrdup(dirname->contents));
 	return true;
     } else if (flags & WGLB_RECDIR) {
 	/* 再帰検索パターンかどうかチェックする */
@@ -628,13 +619,13 @@ bool wglob_search(
 	    p += 3;
 	    while (p[0] == L'/') p++;
 	    return wglob_start_recursive_search(
-		    p, flags, rflags, dirname, wdirname, dirstack, list);
+		    p, flags, rflags, dirname, dirstack, list);
 	} else if (wcsncmp(p, L"***/", 4) == 0) {
 	    rflags |= WGLB_followlink;
 	    p += 4;
 	    while (p[0] == L'/') p++;
 	    return wglob_start_recursive_search(
-		    p, flags, rflags, dirname, wdirname, dirstack, list);
+		    p, flags, rflags, dirname, dirstack, list);
 	}
     }
 
@@ -670,41 +661,33 @@ bool wglob_search(
 	size_t match = domatch
 	    ? wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml)
 	    : ((wcscmp(pat, wentname) == 0) ? 1 : WFNM_NOMATCH);
+	free(wentname);
 	if (match == WFNM_ERROR) {
 	    ok = false;
 	} else if (match != WFNM_NOMATCH) {
 	    /* マッチした! */
 	    if (isleaf) {
 		/* マッチしたファイル名をリストに追加 */
-		wb_cat(wdirname, wentname);
-		if (flags & WGLB_MARK) {
-		    sb_cat(dirname, de->d_name);
-		    if (is_directory(dirname->contents))
-			wb_wccat(wdirname, L'/');
-		    RESTORE_DIRNAME;
-		}
-		pl_add(list, xwcsdup(wdirname->contents));
-		RESTORE_WDIRNAME;
+		sb_cat(dirname, de->d_name);
+		if ((flags & WGLB_MARK) && is_directory(dirname->contents))
+		    sb_ccat(dirname, '/');
+		pl_add(list, xstrdup(dirname->contents));
+		RESTORE_DIRNAME;
 	    } else {
 		/* サブディレクトリを検索 */
 		assert(pattern[patlen] == L'/');
 		sb_cat(dirname, de->d_name);
 		sb_ccat(dirname, '/');
-		wb_cat(wdirname, wentname);
-		wb_wccat(wdirname, L'/');
 		const wchar_t *subpat = pattern + patlen + 1;
 		while (subpat[0] == L'/') {
 		    sb_ccat(dirname, '/');
-		    wb_wccat(wdirname, L'/');
 		    subpat++;
 		}
 		ok = wglob_search(
-			subpat, flags, dirname, wdirname, dirstack, list);
+			subpat, flags, dirname, dirstack, list);
 		RESTORE_DIRNAME;
-		RESTORE_WDIRNAME;
 	    }
 	}
-	free(wentname);
     }
 
     xclosedir(dir);
@@ -721,7 +704,6 @@ bool wglob_start_recursive_search(
 	enum wglbflags flags,
 	enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname,
-	xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
@@ -733,7 +715,7 @@ bool wglob_start_recursive_search(
 	    && S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
 	pl_add(dirstack, &st);
 	ok = wglob_recursive_search(
-		pattern, flags, rflags, dirname, wdirname, dirstack, list);
+		pattern, flags, rflags, dirname, dirstack, list);
 	pl_pop(dirstack);
     }
     return ok;
@@ -745,19 +727,16 @@ bool wglob_recursive_search(
 	enum wglbflags flags,
 	enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname,
-	xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
     const size_t savedirlen = dirname->length;
-    const size_t savewdirlen = wdirname->length;
 
     /* Step 1: まず dirname を検索 */
-    if (!wglob_search(pattern, flags, dirname, wdirname, dirstack, list))
+    if (!wglob_search(pattern, flags, dirname, dirstack, list))
 	return false;
 
     assert(dirname->length == savedirlen);
-    assert(wdirname->length == savewdirlen);
 
     /* Step 2: 続いて dirname のサブディレクトリを再帰的に検索 */
     DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
@@ -778,18 +757,11 @@ bool wglob_recursive_search(
 	if ((followlink ? stat : lstat)(dirname->contents, &st) >= 0
 		&& S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
 	    /* ディレクトリなら再帰する */
-	    wchar_t *wentname = malloc_mbstowcs(de->d_name);
-	    if (wentname) {
-		sb_ccat(dirname, '/');
-		wb_cat(wdirname, wentname);
-		wb_wccat(wdirname, L'/');
-		free(wentname);
-		pl_add(dirstack, &st);
-		ok = wglob_recursive_search(pattern, flags, rflags,
-			dirname, wdirname, dirstack, list);
-		pl_pop(dirstack);
-		RESTORE_WDIRNAME;
-	    }
+	    sb_ccat(dirname, '/');
+	    pl_add(dirstack, &st);
+	    ok = wglob_recursive_search(pattern, flags, rflags,
+		    dirname, dirstack, list);
+	    pl_pop(dirstack);
 	}
 	RESTORE_DIRNAME;
     }
