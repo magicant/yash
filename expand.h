@@ -21,11 +21,16 @@
 
 #include <stdbool.h>
 
+/* チルダ展開の種類 */
+typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
+
 __attribute__((nonnull))
-bool expand_line(
+extern bool expand_line(
 	void *const *restrict args,
 	int *restrict argcp,
 	char ***restrict argvp);
+__attribute__((nonnull,malloc,warn_unused_result))
+extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t);
 
 
 #endif /* EXPAND_H */
