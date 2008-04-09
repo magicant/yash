@@ -365,6 +365,7 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
 	}
     } else {
 	laststatus = EXIT_SUCCESS;
+	lastasyncpid = ps[count - 1].pr_pid;
     }
 
     /* バックグラウンドジョブをジョブリストに追加する */
