@@ -306,9 +306,6 @@ void init_cmdhash(void)
     if (!initialized) {
 	initialized = true;
 	ht_init(&cmdhash, hashstr, htstrcmp);
-
-	//TODO path.c: init_cmdhash: variable.c に移動すべし
-	reset_patharray(getenv("PATH"));
     }
 }
 

@@ -19,7 +19,6 @@
 #ifndef STRBUF_H
 #define STRBUF_H
 
-#include <stddef.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <wchar.h>
@@ -138,6 +137,10 @@ __attribute__((nonnull,malloc,warn_unused_result))
 static inline wchar_t *malloc_mbstowcs(const char *s);
 __attribute__((nonnull,malloc,warn_unused_result))
 static inline wchar_t *realloc_mbstowcs(char *s);
+__attribute__((nonnull,malloc,warn_unused_result))
+static inline wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap);
+__attribute__((nonnull,malloc,warn_unused_result))
+static inline wchar_t *malloc_wprintf(const wchar_t *format, ...);
 
 
 /* マルチバイト文字列 s の最初の n バイトを
@@ -262,6 +265,26 @@ wchar_t *realloc_mbstowcs(char *s)
     void free(void *);
     wchar_t *result = malloc_mbstowcs(s);
     free(s);
+    return result;
+}
+
+/* vwprintf の結果を新しく malloc した文字列として返す。 */
+wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    wb_vprintf(&buf, format, ap);
+    return wb_towcs(&buf);
+}
+
+/* wprintf の結果を新しく malloc した文字列として返す。 */
+wchar_t *malloc_wprintf(const wchar_t *format, ...)
+{
+    va_list ap;
+    wchar_t *result;
+    va_start(ap, format);
+    result = malloc_vwprintf(format, ap);
+    va_end(ap);
     return result;
 }
 

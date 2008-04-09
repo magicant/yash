@@ -96,6 +96,24 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
     return wmemcpy(result, s, len);
 }
 
+/* void * にキャストしたワイド文字列へのポインタの NULL 終端配列を、
+ * 内容も含めてコピーする。 */
+void **dupwcsarray(void *const *array)
+{
+    if (!array)
+	return NULL;
+
+    size_t count = 0;
+    for (void *const *a = array; *a; a++)
+	count++;
+
+    void **result = xmalloc((count + 1) * sizeof *result);
+    for (size_t i = 0; i < count; i++)
+	result[i] = xwcsdup(array[i]);
+    result[count] = NULL;
+    return result;
+}
+
 /* 文字列 s が prefix で始まるなら、s 内の prefix を飛ばした最初の文字への
  * ポインタを返し、さもなくば NULL を返す。 */
 /* Unused function 

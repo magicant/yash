@@ -34,8 +34,8 @@ package="yash"
 version="2.0 WIP"
 copyrightyear="2007-2008"
 
-sources="common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h lineinput.c lineinput.h option.c option.h parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h strbuf.c strbuf.h util.c util.h wfnmatch.c wfnmatch.h yash.h yash.c" 
-objs="option.o util.o strbuf.o plist.o hashtable.o wfnmatch.o path.o lineinput.o parser.o sig.o redir.o expand.o job.o exec.o yash.o"
+sources="common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h lineinput.c lineinput.h option.c option.h parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
+objs="option.o util.o strbuf.o plist.o hashtable.o wfnmatch.o path.o lineinput.o variable.o parser.o sig.o expand.o redir.o job.o exec.o yash.o"
 
 help="no"
 gcc=""

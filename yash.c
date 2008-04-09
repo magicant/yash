@@ -32,6 +32,7 @@
 #include "util.h"
 #include "path.h"
 #include "lineinput.h"
+#include "variable.h"
 #include "parser.h"
 #include "sig.h"
 #include "job.h"
@@ -138,6 +139,7 @@ int main(int argc __attribute__((unused)), char **argv)
 
     shell_pid = getpid();
     init_cmdhash();
+    init_variables();
     init_signal();
     init_job();
 
@@ -153,8 +155,9 @@ int main(int argc __attribute__((unused)), char **argv)
 	is_interactive_now = is_interactive;
 	if (!do_job_control_set)
 	    do_job_control = is_interactive;
-	// TODO yash:main:exec_first_arg シェル環境設定・位置パラメータ
+	// TODO yash:main:exec_first_arg シェル環境設定
 	set_signals();
+	set_positional_parameters(argv + xoptind);
 	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
 	FILE *input;
@@ -178,6 +181,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	if (!do_job_control_set)
 	    do_job_control = is_interactive;
 	set_signals();
+	set_positional_parameters(argv + xoptind);
 	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
