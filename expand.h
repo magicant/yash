@@ -31,6 +31,8 @@ extern bool expand_line(
 	char ***restrict argvp);
 __attribute__((nonnull,malloc,warn_unused_result))
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t);
+__attribute__((nonnull,malloc,warn_unused_result))
+wchar_t *unescape(const wchar_t *s);
 
 
 #endif /* EXPAND_H */

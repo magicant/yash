@@ -23,6 +23,7 @@
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
+#include "path.h"
 #include "parser.h"
 #include "variable.h"
 #include "expand.h"
@@ -63,18 +64,32 @@ bool expand_line(void *const *restrict args,
 
     pl_init(&list1);
 
-    // TODO expand.c: expand_line: 暫定実装
+    /* 各種展開をする */
     while (*args) {
 	expand_word(*args, tt_single, ifs, &list1);
 	args++;
     }
-    for (size_t i = 0; i < list1.length; i++) {
-	list1.contents[i] = realloc_wcstombs(list1.contents[i]);
-	(void) list2;
+
+    /* glob する */
+    if (false) {  // TODO expand: expand_line: no_glob オプション
+	for (size_t i = 0; i < list1.length; i++)
+	    list1.contents[i] = realloc_wcstombs(list1.contents[i]);
+	list2 = list1;
+    } else {
+	enum wglbflags flags = 0;
+	pl_init(&list2);
+	// TODO expand: expand_line: wglob のフラグオプション
+	for (size_t i = 0; i < list1.length; i++) {
+	    size_t oldlen = list2.length;
+	    wglob(list1.contents[i], flags, &list2);
+	    if (oldlen == list2.length)
+		pl_add(&list2, unescape(list1.contents[i]));
+	    free(list1.contents[i]);
+	}
     }
 
-    *argcp = list1.length;
-    *argvp = (char **) pl_toary(&list1);
+    *argcp = list2.length;
+    *argvp = (char **) pl_toary(&list2);
     return true;
 }
 
@@ -286,6 +301,21 @@ wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     while (*s) {
 	if (wcschr(t, *s))
 	    wb_wccat(&buf, L'\\');
+	wb_wccat(&buf, *s);
+	s++;
+    }
+    return wb_towcs(&buf);
+}
+
+/* バックスラッシュエスケープを削除する
+ * 戻り値: 新しく malloc したワイド文字列 */
+wchar_t *unescape(const wchar_t *s)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    while (*s) {
+	if (s[0] == L'\\' && s[1] != L'\0')
+	    s++;
 	wb_wccat(&buf, *s);
 	s++;
     }
