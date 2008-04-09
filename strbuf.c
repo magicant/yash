@@ -375,7 +375,7 @@ char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
  * format やそれ以降の引数が buf->contents の一部であってはならない。
  * format やそれ以降の引数と戻り値の意味は vswprintf に準じる。 */
-int wb_vprintf(
+int wb_vwprintf(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
 {
     va_list saveap;
@@ -409,13 +409,13 @@ int wb_vprintf(
 /* 文字列をフォーマットして、文字列バッファの末尾に付け加える。
  * format やそれ以降の引数が buf->contents の一部であってはならない。
  * format やそれ以降の引数と戻り値の意味は swprintf に準じる。 */
-int wb_printf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
+int wb_wprintf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 {
     va_list ap;
     int result;
 
     va_start(ap, format);
-    result = wb_vprintf(buf, format, ap);
+    result = wb_vwprintf(buf, format, ap);
     va_end(ap);
     return result;
 }

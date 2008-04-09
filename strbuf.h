@@ -119,10 +119,10 @@ extern xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c);
 __attribute__((nonnull))
 extern char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s);
 __attribute__((nonnull(1,2)))
-extern int wb_vprintf(
+extern int wb_vwprintf(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap);
 __attribute__((nonnull(1,2)))
-extern int wb_printf(
+extern int wb_wprintf(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...);
 
 __attribute__((nonnull,malloc,warn_unused_result))
@@ -273,7 +273,7 @@ wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
 {
     xwcsbuf_T buf;
     wb_init(&buf);
-    wb_vprintf(&buf, format, ap);
+    wb_vwprintf(&buf, format, ap);
     return wb_towcs(&buf);
 }
 

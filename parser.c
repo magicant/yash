@@ -2061,7 +2061,7 @@ void print_redirs(xwcsbuf_T *restrict buf, const redir_T *restrict r)
 	    case RT_HERERT:   s = L"<<-";  ishere = true;   break;
 	    default: assert(false);
 	}
-	wb_printf(buf, L"%d%ls", r->rd_fd, s);
+	wb_wprintf(buf, L"%d%ls", r->rd_fd, s);
 	if (!ishere)
 	    print_word(buf, r->rd_filename);
 	else
