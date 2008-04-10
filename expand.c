@@ -66,30 +66,40 @@ bool expand_line(void *const *restrict args,
 
     /* 各種展開をする */
     while (*args) {
-	expand_word(*args, tt_single, ifs, &list1);
+	if (!expand_word(*args, tt_single, ifs, &list1)) {
+	    recfree(pl_toary(&list1), free);
+	    return false;
+	}
 	args++;
+    }
+
+    /* ブレース展開する */
+    if (false) {  // TODO expand: expand_line: ブレース展開
+    } else {
+	list2 = list1;
     }
 
     /* glob する */
     if (false) {  // TODO expand: expand_line: no_glob オプション
 	for (size_t i = 0; i < list1.length; i++)
-	    list1.contents[i] = realloc_wcstombs(list1.contents[i]);
-	list2 = list1;
+	    list1.contents[i] = realloc_wcstombs(list2.contents[i]);
+	list1 = list2;
     } else {
 	enum wglbflags flags = 0;
-	pl_init(&list2);
+	pl_init(&list1);
 	// TODO expand: expand_line: wglob のフラグオプション
-	for (size_t i = 0; i < list1.length; i++) {
-	    size_t oldlen = list2.length;
-	    wglob(list1.contents[i], flags, &list2);
-	    if (oldlen == list2.length)
-		pl_add(&list2, unescape(list1.contents[i]));
-	    free(list1.contents[i]);
+	for (size_t i = 0; i < list2.length; i++) {
+	    size_t oldlen = list1.length;
+	    wglob(list2.contents[i], flags, &list1);
+	    if (oldlen == list1.length)
+		pl_add(&list1, realloc_wcstombs(unescape(list2.contents[i])));
+	    free(list2.contents[i]);
 	}
+	pl_destroy(&list2);
     }
 
-    *argcp = list2.length;
-    *argvp = (char **) pl_toary(&list2);
+    *argcp = list1.length;
+    *argvp = (char **) pl_toary(&list1);
     return true;
 }
 
@@ -156,7 +166,7 @@ bool expand_word(const wordunit_T *w,
 			wb_wccat(&buf, *str++);
 		    continue;
 		case L':':
-		    if (tilde == tt_multi) {
+		    if (!indq && tilde == tt_multi) {
 			wb_wccat(&buf, L':');
 			str++;
 			add_splitting(expand_tilde(&str), list, &buf, ifs);
@@ -164,6 +174,8 @@ bool expand_word(const wordunit_T *w,
 		    }
 		    /* falls thru! */
 		default:  default_case:
+		    if (indq)
+			wb_wccat(&buf, L'\\');
 		    wb_wccat(&buf, *str);
 		    break;
 		}
@@ -307,15 +319,18 @@ wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     return wb_towcs(&buf);
 }
 
-/* バックスラッシュエスケープを削除する
- * 戻り値: 新しく malloc したワイド文字列 */
+/* バックスラッシュエスケープを削除して新しく malloc した文字列として返す。 */
 wchar_t *unescape(const wchar_t *s)
 {
     xwcsbuf_T buf;
     wb_init(&buf);
     while (*s) {
-	if (s[0] == L'\\' && s[1] != L'\0')
-	    s++;
+	if (*s == L'\\') {
+	    if (*(s+1) == L'\0')
+		break;
+	    else
+		s++;
+	}
 	wb_wccat(&buf, *s);
 	s++;
     }
