@@ -250,8 +250,18 @@ void block_sigquit_and_sigint(void)
     sigemptyset(&ss);
     sigaddset(&ss, SIGQUIT);
     sigaddset(&ss, SIGINT);
-    if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0)
-	xerror(0, errno, "sigprocmask(SETMASK, QUIT|INT)");
+    if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
+	xerror(0, errno, "sigprocmask(BLOCK, QUIT|INT)");
+}
+
+/* SIGTSTP をブロックする */
+void block_sigtstp(void)
+{
+    sigset_t ss;
+    sigemptyset(&ss);
+    sigaddset(&ss, SIGTSTP);
+    if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
+	xerror(0, errno, "sigprocmask(BLOCK, TSTP)");
 }
 
 /* 汎用のシグナルハンドラ */

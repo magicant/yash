@@ -286,9 +286,6 @@ __attribute__((malloc,warn_unused_result))
 wchar_t *pipelines_to_wcs(const pipeline_T *pipelines);
 __attribute__((malloc,warn_unused_result))
 extern wchar_t *command_to_wcs(const command_T *command);
-// TODO DEBUG parser.h: word_to_wcs
-__attribute__((malloc,warn_unused_result))
-extern wchar_t *word_to_wcs(const wordunit_T *word);
 
 
 /********** 構文木データを解放するルーチン **********/

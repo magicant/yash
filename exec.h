@@ -31,6 +31,8 @@ extern pid_t lastasyncpid;
 
 struct and_or_T;
 extern void exec_and_or_lists(const struct and_or_T *a, bool finally_exit);
+__attribute__((nonnull,malloc,warn_unused_result))
+extern wchar_t *exec_command_substitution(const wchar_t *code);
 
 
 #endif /* EXEC_H */

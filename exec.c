@@ -26,6 +26,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <wchar.h>
+#ifdef HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
@@ -37,6 +40,7 @@
 #include "sig.h"
 #include "job.h"
 #include "exec.h"
+#include "yash.h"
 
 
 /* コマンドの実行のしかたを表す */
@@ -350,12 +354,12 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
     }
 
     set_active_job(job);
+    job->j_pgid = do_job_control ? pgid : 0;
+    job->j_status = JS_RUNNING;
+    job->j_statuschanged = true;
+    job->j_loop = looppipe;
+    job->j_pcount = count;
     if (type == execnormal) {   /* ジョブの終了を待つ */
-	job->j_pgid = do_job_control ? pgid : 0;
-	job->j_status = JS_RUNNING;
-	job->j_statuschanged = true;
-	job->j_loop = looppipe;
-	job->j_pcount = count;
 	wait_for_job(ACTIVE_JOBNO, do_job_control);
 	laststatus = calc_status_of_job(job);
 	handle_traps();
@@ -611,6 +615,98 @@ void exec_simple_command(
     }
     if (finally_exit)
 	exit(laststatus);
+}
+
+/* コマンド置換を実行する。
+ * 指定したコードを実行し、その標準出力を返す。
+ * この関数はコマンドの実行が終わるまで返らない。
+ * 戻り値: 新しく malloc したコマンドの出力した文字列。末尾の改行は除いてある。
+ *         エラーや、中止した場合は NULL。 */
+wchar_t *exec_command_substitution(const wchar_t *code)
+{
+    int pipefd[2];
+    pid_t cpid;
+
+    if (!code[0])
+	return xwcsdup(L"");
+
+    /* コマンドの出力を受け取るためのパイプを開く */
+    if (pipe(pipefd) < 0) {
+	xerror(0, errno, Ngt("cannot open pipe for command substitution"));
+	return NULL;
+    }
+
+    cpid = fork_and_reset(-1, false);
+    if (cpid < 0) {
+	/* fork 失敗 */
+	xclose(pipefd[PIDX_IN]);
+	xclose(pipefd[PIDX_OUT]);
+	return NULL;
+    } else if (cpid) {
+	/* 親プロセス */
+	FILE *f;
+
+	xclose(pipefd[PIDX_OUT]);
+	f = fdopen(pipefd[PIDX_IN], "r");
+	if (!f) {
+	    xerror(0, errno, Ngt("cannot open pipe for command substitution"));
+	    xclose(pipefd[PIDX_IN]);
+	    return NULL;
+	}
+
+	/* 子プロセスの出力を読む */
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	for (;;) {
+	    wint_t c = fgetwc(f);
+	    if (c == WEOF) {
+		if (feof(f) || errno != EINTR)
+		    break;
+	    } else {
+		wb_wccat(&buf, c);
+	    }
+	}
+	fclose(f);
+
+	/* 子プロセスの終了を待つ */
+	job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+	job->j_pgid = 0;
+	job->j_status = JS_RUNNING;
+	job->j_statuschanged = false;
+	job->j_loop = false;
+	job->j_pcount = 1;
+	job->j_procs[0].pr_pid = cpid;
+	job->j_procs[0].pr_status = JS_RUNNING;
+	job->j_procs[0].pr_statuscode = 0;
+	job->j_procs[0].pr_name = NULL;
+	set_active_job(job);
+	wait_for_job(ACTIVE_JOBNO, false);
+	laststatus = calc_status_of_job(job);
+	remove_job(ACTIVE_JOBNO);
+
+	/* 末尾の改行を削って返す */
+	while (buf.length > 0 && buf.contents[buf.length - 1] == L'\n')
+	    wb_remove(&buf, buf.length - 1, 1);
+	return wb_towcs(&buf);
+    } else {
+	/* 子プロセス */
+
+	/* 子プロセスが SIGTSTP で停止してしまうと、親プロセスである
+	 * 対話的なシェルに制御が戻らなくなってしまう。よって、SIGTSTP を
+	 * 受け取っても停止しないようにブロックしておく。 */
+	if (is_interactive_now)
+	    block_sigtstp();
+	reset_signals();
+
+	xclose(pipefd[PIDX_IN]);
+	if (pipefd[PIDX_OUT] != STDOUT_FILENO) {  /* パイプを繋ぐ */
+	    xdup2(pipefd[PIDX_OUT], STDOUT_FILENO);
+	    xclose(pipefd[PIDX_OUT]);
+	}
+
+	exec_wcs(code, gt("command substitution"), true);
+	assert(false);
+    }
 }
 
 

@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <wctype.h>
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
@@ -27,6 +28,7 @@
 #include "parser.h"
 #include "variable.h"
 #include "expand.h"
+#include "exec.h"
 
 
 #define ESCAPED_CHARS L"*?[{"  /* ブレース展開・glob で特殊な意味を持つ文字 */
@@ -38,8 +40,6 @@ __attribute__((nonnull,malloc,warn_unused_result))
 static wchar_t *expand_tilde(const wchar_t **ss);
 __attribute__((nonnull,malloc,warn_unused_result))
 static void **expand_param(const paramexp_T *p, bool indq, const wchar_t *ifs);
-__attribute__((nonnull))
-static wchar_t *command_substitution(const wchar_t *code);
 __attribute__((nonnull))
 static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf);
 __attribute__((nonnull(2,3)))
@@ -62,6 +62,8 @@ bool expand_line(void *const *restrict args,
     plist_T list1, list2;
     const wchar_t *ifs = getvar(VAR_IFS);
 
+    if (!ifs)
+	ifs = L" \t\n";
     pl_init(&list1);
 
     /* 各種展開をする */
@@ -189,15 +191,18 @@ out:
 		if (!*array) {
 		    suppress = true;
 		} else {
-		    const wchar_t *iifs = indq ? L"" : ifs;
 		    for (void **a = array; ; ) {
-			add_splitting(*a, list, &buf, iifs);
-			if (!*++a)
-			    break;
-			if (!iifs || buf.length > 0) {
-			    pl_add(list, wb_towcs(&buf));
-			    wb_init(&buf);
+			if (indq) {
+			    wb_cat(&buf, *a);
+			    free(*a);
+			} else {
+			    add_splitting(*a, list, &buf, ifs);
 			}
+			a++;
+			if (!*a)
+			    break;
+			pl_add(list, wb_towcs(&buf));
+			wb_init(&buf);
 		    }
 		}
 		free(array);
@@ -206,11 +211,16 @@ out:
 	    }
 	    break;
 	case WT_CMDSUB:
-	    s = command_substitution(w->wu_cmdsub);
+	    s = exec_command_substitution(w->wu_cmdsub);
 	    if (s) {
-		add_splitting(escape(s, ESCAPED_CHARS), list, &buf,
-			indq ? L"" : ifs);
-		free(s);
+		if (indq) {
+		    wchar_t *ss = escape(s, ESCAPED_CHARS);
+		    free(s);
+		    wb_cat(&buf, ss);
+		    free(ss);
+		} else {
+		    add_splitting(s, list, &buf, ifs);
+		}
 	    } else {
 		ok = false;
 	    }
@@ -271,7 +281,7 @@ wchar_t *expand_tilde(const wchar_t **ss)
  * 戻り値: 展開結果。void * にキャストしたワイド文字列へのポインタの NULL 終端
  *         配列。配列および要素は新しく malloc したものである。
  *         エラーのときは NULL。
- * 返す各要素は、ESCAPED_CHARS をエスケープ済みである。
+ * 返す各要素は、ESCAPED_CHARS をエスケープ済みである。(indq が true の場合)
  * "@" または配列以外の展開結果は、必ず要素数 1 である。
  * "*" の展開結果は、ifs に従って結合済みである。 */
 void **expand_param(const paramexp_T *p, bool indq, const wchar_t *ifs)
@@ -281,26 +291,40 @@ void **expand_param(const paramexp_T *p, bool indq, const wchar_t *ifs)
     return NULL;
 }
 
-/* コマンド置換を行い、結果を返す。
- * 戻り値: 新しく malloc した、置換結果の文字列。エラーなら NULL。 */
-wchar_t *command_substitution(const wchar_t *code)
-{
-    (void) code;
-    // TODO expand:command_substitution
-    return NULL;
-}
-
 /* 単語をバッファに追加する。
  * s:    追加する単語。この関数内で free する。NULL なら何もしない。
  * list: 単語分割した場合に結果を追加するリスト
  * buf:  s を追加するバッファ
  * ifs:  非 NULL なら s を追加する際にこれに従って単語分割する。 */
-void add_splitting(wchar_t *s,
+void add_splitting(wchar_t *const s,
 	plist_T *list, xwcsbuf_T *buf, const wchar_t *ifs)
 {
+    if (!s)
+	return;
+
+    for (wchar_t *ss = s; *ss; ss++) {
+	if (ifs && wcschr(ifs, *ss)) {
+	    /* ifs に含まれる文字なので分割する */
+	    bool split = false;
+	    while (wcschr(ifs, *ss)) {
+		if (!iswspace(*ss)) {
+		    pl_add(list, wb_towcs(buf));
+		    wb_init(buf);
+		    split = true;
+		}
+		ss++;
+	    }
+	    if (!split) {
+		pl_add(list, wb_towcs(buf));
+		wb_init(buf);
+	    }
+	    if (*ss)
+		wb_wccat(buf, *ss);
+	} else {
+	    wb_wccat(buf, *ss);
+	}
+    }
     free(s);
-    // TODO expand:add_splitting
-    (void) list, (void) buf, (void) ifs;
 }
 
 /* s の文字のうち、t に含まれるものをバックスラッシュエスケープして、
