@@ -253,7 +253,7 @@ void reset_patharray(const char *newpath)
 
     wchar_t *wpath = malloc_mbstowcs(newpath);
     if (!wpath) {
-	xerror(0, 0, Ngt("PATH variable contains characters that cannot be "
+	xerror(0, Ngt("PATH variable contains characters that cannot be "
 		    "converted to wide characters: command path search will "
 		    "be abandoned"));
 	return;

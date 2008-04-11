@@ -92,7 +92,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	    break;
 	case 'c':
 	    if (xoptopt != '-') {
-		xerror(0, 0, Ngt("+c: invalid option"));
+		xerror(0, Ngt("+c: invalid option"));
 		help = true;
 	    }
 	    exec_first_arg = true;
@@ -106,7 +106,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	    break;
 	case 's':
 	    if (xoptopt != '-') {
-		xerror(0, 0, Ngt("+s: invalid option"));
+		xerror(0, Ngt("+s: invalid option"));
 		help = true;
 	    }
 	    read_stdin = true;
@@ -144,12 +144,15 @@ int main(int argc __attribute__((unused)), char **argv)
     init_job();
 
     if (exec_first_arg && read_stdin) {
-	xerror(2, 0, Ngt("both -c and -s options cannot be given at once"));
+	xerror(0, Ngt("both -c and -s options cannot be given at once"));
+	exit(2);
     }
     if (exec_first_arg) {
 	char *command = argv[xoptind++];
-	if (!command)
-	    xerror(2, 0, Ngt("-c option requires an operand"));
+	if (!command) {
+	    xerror(0, Ngt("-c option requires an operand"));
+	    exit(2);
+	}
 	if (argv[xoptind])
 	    command_name = argv[xoptind++];
 	is_interactive_now = is_interactive;
@@ -173,9 +176,11 @@ int main(int argc __attribute__((unused)), char **argv)
 	    input = fopen(command_name, "r");
 	    inputname = command_name;
 	    // TODO yash:main: fd を shellfd 以上に移す
-	    if (!input)
-		xerror(errno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC, errno,
-			Ngt("cannot open file `%s'"), command_name);
+	    if (!input) {
+		int saveerrno = errno;
+		xerror(errno, Ngt("cannot open file `%s'"), command_name);
+		exit(saveerrno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
+	    }
 	}
 	is_interactive_now = is_interactive;
 	if (!do_job_control_set)

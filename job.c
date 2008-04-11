@@ -137,7 +137,7 @@ start:
 #endif
 		/* falls thru! */
 	    default:
-		xerror(0, errno, "waitpid");
+		xerror(errno, "waitpid");
 		return;
 	}
     } else if (pid == 0) {

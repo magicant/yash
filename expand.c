@@ -163,10 +163,14 @@ bool expand_word(const wordunit_T *w,
 		    add_sq(&str, &buf);
 		    break;
 		case L'\\':
-		    wb_wccat(&buf, L'\\');
-		    if (*++str)
-			wb_wccat(&buf, *str++);
-		    continue;
+		    if (indq && !wcschr(L"$`\"\\", str[1])) {
+			goto default_case;
+		    } else {
+			wb_wccat(&buf, L'\\');
+			if (*++str)
+			    wb_wccat(&buf, *str++);
+			continue;
+		    }
 		case L':':
 		    if (!indq && tilde == tt_multi) {
 			wb_wccat(&buf, L':');
@@ -227,7 +231,7 @@ out:
 	    break;
 	case WT_ARITH:
 	    ok = false;  // TODO expand: expand_word: 数式展開の実装
-	    xerror(0, 0, "arithmetic expansion not implemented");
+	    xerror(0, "arithmetic expansion not implemented");
 	    break;
 	}
 	w = w->next;

@@ -176,15 +176,15 @@ void init_signal(void)
 	action.sa_flags = 0;
 	action.sa_handler = sig_handler;
 	if (sigaction(SIGCHLD, &action, &initsigchldaction) < 0)
-	    xerror(0, errno, "sigaction(SIGCHLD)");
+	    xerror(errno, "sigaction(SIGCHLD)");
 	if (sigaction(SIGHUP, &action, &initsighupaction) < 0)
-	    xerror(0, errno, "sigaction(SIGHUP)");
+	    xerror(errno, "sigaction(SIGHUP)");
 	if (sigaction(SIGQUIT, &action, &initsigquitaction) < 0)
-	    xerror(0, errno, "sigaction(SIGQUIT)");
+	    xerror(errno, "sigaction(SIGQUIT)");
 
 	sigemptyset(&ss);
 	if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0)
-	    xerror(0, errno, "sigprocmask(SETMASK, nothing)");
+	    xerror(errno, "sigprocmask(SETMASK, nothing)");
     }
 }
 
@@ -200,9 +200,9 @@ void set_signals(void)
 	action.sa_flags = 0;
 	action.sa_handler = sig_handler;
 	if (sigaction(SIGTTOU, &action, &initsigttouaction) < 0)
-	    xerror(0, errno, "sigaction(SIGTTOU)");
+	    xerror(errno, "sigaction(SIGTTOU)");
 	if (sigaction(SIGTSTP, &action, &initsigtstpaction) < 0)
-	    xerror(0, errno, "sigaction(SIGTSTP)");
+	    xerror(errno, "sigaction(SIGTSTP)");
     }
     if (is_interactive_now && !interactive_initialized) {
 	interactive_initialized = true;
@@ -211,9 +211,9 @@ void set_signals(void)
 	action.sa_flags = 0;
 	action.sa_handler = sig_handler;
 	if (sigaction(SIGINT, &action, &initsigintaction) < 0)
-	    xerror(0, errno, "sigaction(SIGINT)");
+	    xerror(errno, "sigaction(SIGINT)");
 	if (sigaction(SIGTERM, &action, &initsigtermaction) < 0)
-	    xerror(0, errno, "sigaction(SIGTERM)");
+	    xerror(errno, "sigaction(SIGTERM)");
     }
 }
 
@@ -223,23 +223,23 @@ void reset_signals(void)
 {
     if (initialized) {
 	if (sigaction(SIGCHLD, &initsigchldaction, NULL) < 0)
-	    xerror(0, errno, "sigaction(SIGCHLD)");
+	    xerror(errno, "sigaction(SIGCHLD)");
 	if (sigaction(SIGHUP, &initsighupaction, NULL) < 0)
-	    xerror(0, errno, "sigaction(SIGHUP)");
+	    xerror(errno, "sigaction(SIGHUP)");
 	if (sigaction(SIGQUIT, &initsigquitaction, NULL) < 0)
-	    xerror(0, errno, "sigaction(SIGQUIT)");
+	    xerror(errno, "sigaction(SIGQUIT)");
     }
     if (job_initialized) {
 	if (sigaction(SIGTTOU, &initsigttouaction, NULL) < 0)
-	    xerror(0, errno, "sigaction(SIGTTOU)");
+	    xerror(errno, "sigaction(SIGTTOU)");
 	if (sigaction(SIGTSTP, &initsigtstpaction, NULL) < 0)
-	    xerror(0, errno, "sigaction(SIGTSTP)");
+	    xerror(errno, "sigaction(SIGTSTP)");
     }
     if (interactive_initialized) {
 	if (sigaction(SIGINT, &initsigintaction, NULL) < 0)
-	    xerror(0, errno, "sigaction(SIGINT)");
+	    xerror(errno, "sigaction(SIGINT)");
 	if (sigaction(SIGTERM, &initsigtermaction, NULL) < 0)
-	    xerror(0, errno, "sigaction(SIGTERM)");
+	    xerror(errno, "sigaction(SIGTERM)");
     }
 }
 
@@ -251,7 +251,7 @@ void block_sigquit_and_sigint(void)
     sigaddset(&ss, SIGQUIT);
     sigaddset(&ss, SIGINT);
     if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
-	xerror(0, errno, "sigprocmask(BLOCK, QUIT|INT)");
+	xerror(errno, "sigprocmask(BLOCK, QUIT|INT)");
 }
 
 /* SIGTSTP をブロックする */
@@ -261,7 +261,7 @@ void block_sigtstp(void)
     sigemptyset(&ss);
     sigaddset(&ss, SIGTSTP);
     if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
-	xerror(0, errno, "sigprocmask(BLOCK, TSTP)");
+	xerror(errno, "sigprocmask(BLOCK, TSTP)");
 }
 
 /* 汎用のシグナルハンドラ */
@@ -294,7 +294,7 @@ void block_sigchld_and_sighup(void)
     sigaddset(&ss, SIGCHLD);
     sigaddset(&ss, SIGHUP);
     if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
-	xerror(0, errno, "sigprocmask(BLOCK, CHLD|HUP)");
+	xerror(errno, "sigprocmask(BLOCK, CHLD|HUP)");
 }
 
 /* wait_for_sigchld を呼んだ後にこの関数を呼んで、
@@ -307,7 +307,7 @@ void unblock_sigchld_and_sighup(void)
     sigaddset(&ss, SIGCHLD);
     sigaddset(&ss, SIGHUP);
     if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
-	xerror(0, errno, "sigprocmask(UNBLOCK, CHLD|HUP)");
+	xerror(errno, "sigprocmask(UNBLOCK, CHLD|HUP)");
 }
 
 /* SIGCHLD を受信するまで待機する。
@@ -326,7 +326,7 @@ void wait_for_sigchld(void)
 	if (sigchld_received)
 	    break;
 	if (sigsuspend(&ss) < 0 && errno != EINTR) {
-	    xerror(0, errno, "sigsuspend");
+	    xerror(errno, "sigsuspend");
 	    break;
 	}
     }

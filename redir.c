@@ -36,7 +36,7 @@ int xclose(int fd)
 	case EBADF:
 	    return 0;
 	default:
-	    xerror(0, errno, Ngt("error in closing file descriptor %d"), fd);
+	    xerror(errno, Ngt("error in closing file descriptor %d"), fd);
 	    return -1;
 	}
     }
@@ -54,7 +54,7 @@ int xdup2(int oldfd, int newfd)
 	case EINTR:
 	    continue;
 	default:
-	    xerror(0, errno,
+	    xerror(errno,
 		    Ngt("error in copying file descriptor %d to %d"),
 		    oldfd, newfd);
 	    return -1;

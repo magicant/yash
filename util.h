@@ -131,8 +131,8 @@ wchar_t *xwcsdup(const wchar_t *s)
 extern const char *yash_program_invocation_name;
 extern const char *yash_program_invocation_short_name;
 extern unsigned yash_error_message_count;
-__attribute__((format(printf,3,4)))
-extern void xerror(int status, int errno_, const char *restrict format, ...);
+__attribute__((format(printf,2,3)))
+extern void xerror(int errno_, const char *restrict format, ...);
 
 
 /********** xgetopt **********/

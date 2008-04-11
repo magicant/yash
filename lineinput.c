@@ -74,8 +74,7 @@ int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 	}
     }
 err:
-    xerror(0, errno,
-	    Ngt("cannot convert multibyte character to wide character"));
+    xerror(errno, Ngt("cannot convert multibyte character to wide character"));
     return EOF;
 
     /*
@@ -83,7 +82,7 @@ err:
     count = mbsrtowcs(buf->contents + buf->length, &info->src,
 	    buf->maxlength - buf->length + 1, &info->state);
     if (count == (size_t) -1) {
-	xerror(0, errno,
+	xerror(errno,
 		Ngt("cannot convert multibyte character to wide character"));
 	return EOF;
     }
@@ -154,7 +153,7 @@ start:
 		/* falls thru! */
 	    default:
 		//fflush(f); XXX
-		xerror(0, errno, Ngt("cannot read input"));
+		xerror(errno, Ngt("cannot read input"));
 		return EOF;
 	}
     }

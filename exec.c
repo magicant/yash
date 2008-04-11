@@ -278,7 +278,7 @@ inline void next_pipe(pipeinfo_T *pi, bool next)
 
 fail:
     pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
-    xerror(0, errno, Ngt("cannot open pipe"));
+    xerror(errno, Ngt("cannot open pipe"));
 }
 
 /* 一つのパイプラインを構成する各コマンドを実行する
@@ -303,7 +303,7 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
     if (looppipe) {  /* 最初と最後を繋ぐパイプを用意する */
 	int fds[2];
 	if (pipe(fds) < 0) {
-	    xerror(0, errno, Ngt("cannot open pipe"));
+	    xerror(errno, Ngt("cannot open pipe"));
 	} else {
 	    pinfo.pi_tonextfds[PIDX_IN] = fds[PIDX_IN];
 	    pinfo.pi_loopoutfd = fds[PIDX_OUT];
@@ -425,7 +425,7 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 #endif
 	} else {
 	    if (!search_command(argv[0], &cmdinfo)) {
-		xerror(0, 0, Ngt("%s: command not found"), argv[0]);
+		xerror(0, Ngt("%s: command not found"), argv[0]);
 		laststatus = EXIT_NOTFOUND;
 		recfree((void **) argv, free);
 		goto done;
@@ -527,7 +527,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 
     if (cpid < 0) {
 	/* fork 失敗 */
-	xerror(0, errno, Ngt("fork: cannot make child process"));
+	xerror(errno, Ngt("fork: cannot make child process"));
     } else if (cpid > 0) {
 	/* 親プロセス */
 	if (do_job_control && pgid >= 0)
@@ -600,8 +600,9 @@ void exec_simple_command(
 	if (errno != ENOEXEC) {
 	    if (errno == EACCES && is_directory(ci->ci_path))
 		errno = EISDIR;
-	    xerror(EXIT_NOEXEC, errno, Ngt("cannot execute `%s' (%s)"),
+	    xerror(errno, Ngt("cannot execute `%s' (%s)"),
 		    (char *) argv[0], ci->ci_path);
+	    exit(EXIT_NOEXEC);
 	}
 	// TODO exec.c: exec_simple_command: コマンドをシェルスクリプトとして実行
 	break;
@@ -632,7 +633,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 
     /* コマンドの出力を受け取るためのパイプを開く */
     if (pipe(pipefd) < 0) {
-	xerror(0, errno, Ngt("cannot open pipe for command substitution"));
+	xerror(errno, Ngt("cannot open pipe for command substitution"));
 	return NULL;
     }
 
@@ -649,7 +650,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	xclose(pipefd[PIDX_OUT]);
 	f = fdopen(pipefd[PIDX_IN], "r");
 	if (!f) {
-	    xerror(0, errno, Ngt("cannot open pipe for command substitution"));
+	    xerror(errno, Ngt("cannot open pipe for command substitution"));
 	    xclose(pipefd[PIDX_IN]);
 	    return NULL;
 	}

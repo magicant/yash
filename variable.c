@@ -112,7 +112,7 @@ void init_variables(void)
 	if (v->v_value) {
 	    varkvfree(ht_set(&current_env->contents, name, v));
 	} else {
-	    xerror(0, 0, Ngt("value of environment variable `%s' cannot be "
+	    xerror(0, Ngt("value of environment variable `%s' cannot be "
 		    "converted to wide-character string"),
 		    name);
 	    free(name);

@@ -42,8 +42,8 @@ void *xcalloc(size_t nmemb, size_t size)
     void *result = calloc(nmemb, size);
     if (result)
 	return result;
-    xerror(2, ENOMEM, NULL);
-    assert(false);
+    xerror(ENOMEM, NULL);
+    exit(2);
 }
 */
 
@@ -53,8 +53,8 @@ void *xmalloc(size_t size)
     void *result = malloc(size);
     if (result)
 	return result;
-    xerror(2, ENOMEM, NULL);
-    assert(false);
+    xerror(ENOMEM, NULL);
+    exit(2);
 }
 
 /* realloc を試みる。失敗したらプログラムを強制終了する。 */
@@ -63,8 +63,8 @@ void *xrealloc(void *ptr, size_t size)
     void *result = realloc(ptr, size);
     if (result)
 	return result;
-    xerror(2, ENOMEM, NULL);
-    assert(false);
+    xerror(ENOMEM, NULL);
+    exit(2);
 }
 
 
@@ -150,7 +150,6 @@ const char *yash_program_invocation_short_name;
 unsigned yash_error_message_count = 0;
 
 /* glibc の error 関数の独自の実装。エラーメッセージを stderr に出力する。
- * status: 非 0 ならメッセージを出した後 exit(status) を呼んで終了する。
  * errno_: 非 0 なら format メッセージに続けて errno に対応するメッセージを出す
  * format: エラーメッセージ。printf 用のフォーマット文字列。
  *         xerror 内で gettext する。
@@ -160,7 +159,7 @@ unsigned yash_error_message_count = 0;
  *   - ": %s", strerror(errno)   (errno が非 0 の場合のみ)
  *   - "\n"
  * format == NULL && errno_ == 0 なら、"unknown error" を出力する。 */
-void xerror(int status, int errno_, const char *restrict format, ...)
+void xerror(int errno_, const char *restrict format, ...)
 {
     va_list ap;
 
@@ -181,8 +180,6 @@ void xerror(int status, int errno_, const char *restrict format, ...)
 	fputs(gt("unknown error\n"), stderr);
     }
     fflush(stderr);
-    if (status)
-	exit(status);
 }
 
 
