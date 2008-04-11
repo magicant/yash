@@ -769,7 +769,7 @@ command_T *parse_command(void)
 	serror(get_errmsg_unexpected_token(L"in"), L"in");
 	return NULL;
     } else if (cbuf.contents[cindex] == L'(') {
-	return parse_group(CT_SUBSHELL);
+	return parse_compound_command(L"(");
     } else if (is_command_delimiter_char(cbuf.contents[cindex])) {
 	if (cbuf.contents[cindex] == L'\0')
 	    serror(Ngt("command missing at end of input"));
