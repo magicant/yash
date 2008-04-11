@@ -233,7 +233,7 @@ void **get_variable(const char *name, bool *concat)
     if (var) {
 	switch (var->v_type & VF_MASK) {
 	    case VF_NORMAL:
-		value = var->v_value;
+		value = xwcsdup(var->v_value);
 		goto return_single;
 	    case VF_ARRAY:
 		result = var->v_vals;
@@ -246,7 +246,8 @@ return_single:  /* 一つの値を要素数 1 の配列で返す。 */
     if (!value)
 	return NULL;
     result = xmalloc(2 * sizeof *result);
-    *result = (void *[]) { value, NULL, };
+    result[0] = value;
+    result[1] = NULL;
     return result;
 
 return_array:  /* 配列をコピーして返す */

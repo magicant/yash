@@ -20,6 +20,7 @@
 #define EXPAND_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 /* チルダ展開の種類 */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
@@ -32,7 +33,35 @@ extern bool expand_line(
 __attribute__((nonnull,malloc,warn_unused_result))
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t);
 __attribute__((nonnull,malloc,warn_unused_result))
-wchar_t *unescape(const wchar_t *s);
+static inline wchar_t *escapefree(
+	wchar_t *restrict s, const wchar_t *restrict t);
+__attribute__((nonnull,malloc,warn_unused_result))
+extern wchar_t *unescape(const wchar_t *s);
+__attribute__((nonnull,malloc,warn_unused_result))
+static inline wchar_t *unescapefree(wchar_t *s);
+
+
+/* escape と同じだが、第 1 引数を free する。
+ * s の文字のうち、t に含まれる文字をバックスラッシュエスケープして返す。 */
+static inline wchar_t *escapefree(
+	wchar_t *restrict s, const wchar_t *restrict t)
+{
+    wchar_t *result = escape(s, t);
+    free(s);
+    return result;
+}
+
+/* unescape と同じだが、引数を free する。 */
+wchar_t *unescapefree(wchar_t *s)
+{
+    wchar_t *wcschr(const wchar_t *ws, wchar_t wc);
+    if (!wcschr(s, L'\\'))
+	return s;
+
+    wchar_t *result = unescape(s);
+    free(s);
+    return result;
+}
 
 
 #endif /* EXPAND_H */

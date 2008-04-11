@@ -38,8 +38,9 @@ static bool expand_word(const wordunit_T *arg,
 	tildetype_T tilde, const wchar_t *ifs, plist_T *list);
 __attribute__((nonnull,malloc,warn_unused_result))
 static wchar_t *expand_tilde(const wchar_t **ss);
-__attribute__((nonnull,malloc,warn_unused_result))
-static void **expand_param(const paramexp_T *p, bool indq, const wchar_t *ifs);
+__attribute__((nonnull(1),malloc,warn_unused_result))
+static void **expand_param(
+	const paramexp_T *p, bool indq, tildetype_T tilde, const wchar_t *ifs);
 __attribute__((nonnull))
 static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf);
 __attribute__((nonnull(2,3)))
@@ -106,7 +107,7 @@ bool expand_line(void *const *restrict args,
 }
 
 /* 一つの単語を展開する。
- * 各種展開と引用符除去を行う。フィールド分割はしない。
+ * 各種展開と引用符除去・エスケープ解除を行う。フィールド分割はしない。
  * glob が true ならファイル名展開も行うが、結果が一つでない場合は……
  *   - posixly_correct が true ならファイル名展開前のパターンを返し、
  *   - posixly_correct が false ならエラーとする。
@@ -190,9 +191,9 @@ bool expand_word(const wordunit_T *w,
 out:
 	    break;
 	case WT_PARAM:
-	    array = expand_param(w->wu_param, indq, ifs);
+	    array = expand_param(w->wu_param, indq, tilde, ifs);
 	    if (array) {
-		if (!*array) {
+		if (!array[0]) {
 		    suppress = true;
 		} else {
 		    for (void **a = array; ; ) {
@@ -218,8 +219,7 @@ out:
 	    s = exec_command_substitution(w->wu_cmdsub);
 	    if (s) {
 		if (indq) {
-		    wchar_t *ss = escape(s, ESCAPED_CHARS);
-		    free(s);
+		    wchar_t *ss = escapefree(s, ESCAPED_CHARS);
 		    wb_cat(&buf, ss);
 		    free(ss);
 		} else {
@@ -238,12 +238,17 @@ out:
 	first = false;
     }
 
+    /* "" や '' のような空の単語はここで追加する。
+     * 引用符が出た段階で force が true になり、単語を追加すべきことを示す。
+     * 例外として、"$@" は (引用符があるが) 内容が空なら追加しない。これは
+     * suppress によって示す。 */
     if (!ifs || buf.length > 0
 	    || (initlen == list->length && force && !suppress))
 	pl_add(list, wb_towcs(&buf));
     else
 	wb_destroy(&buf);
 
+    assert(ifs || list->length - initlen == 1);
     return ok;
 }
 
@@ -282,17 +287,80 @@ wchar_t *expand_tilde(const wchar_t **ss)
 }
 
 /* パラメータ展開を行い、結果を返す。
+ * tilde:  入れ子の展開で行うチルダ展開
  * 戻り値: 展開結果。void * にキャストしたワイド文字列へのポインタの NULL 終端
  *         配列。配列および要素は新しく malloc したものである。
  *         エラーのときは NULL。
  * 返す各要素は、ESCAPED_CHARS をエスケープ済みである。(indq が true の場合)
  * "@" または配列以外の展開結果は、必ず要素数 1 である。
  * "*" の展開結果は、ifs に従って結合済みである。 */
-void **expand_param(const paramexp_T *p, bool indq, const wchar_t *ifs)
+void **expand_param(
+	const paramexp_T *p, bool indq, tildetype_T tilde, const wchar_t *ifs)
 {
-    (void) p, (void) indq, (void) ifs;
-    // TODO expand:expand_param
-    return NULL;
+    void **list;  /* void * にキャストした wchar_t * の配列 */
+    bool concat;  /* true なら配列の内容を IFS の最初の文字で繋ぐ */
+    bool unset;   /* 指定した変数が存在しなかった場合 true */
+
+    if (p->pe_type & PT_NEST) {
+	plist_T plist;
+	pl_init(&plist);
+	if (!expand_word(p->pe_nest, tilde, NULL, &plist)) {
+	    recfree(pl_toary(&plist), free);
+	    return NULL;
+	}
+	list = pl_toary(&plist);
+	concat = unset = false;
+	assert(list[0] && !list[1]);  /* 要素数は 1 */
+	list[0] = unescapefree(list[0]);
+    } else {
+	list = get_variable(p->pe_name, &concat);
+	if (list) {
+	    unset = false;
+	} else {
+	    /* 指定した名前の変数が存在しなければ、空文字列を返す */
+	    plist_T plist;
+	    list = pl_toary(pl_add(pl_init(&plist), xwcsdup(L"")));
+	    unset = true;
+	}
+    }
+
+    /* この時点で、list の内容はバックスラッシュエスケープしていない
+     * 生の文字列である。 */
+
+    /* PT_COLON フラグが立っているなら、変数の値が空文字列の場合も
+     * 変数が存在しないとみなす。 */
+    if ((p->pe_type & PT_COLON)
+	    && (!list[0] || (!((char *) list[0])[0] && !list[1])))
+	unset = true;
+
+    /* PT_MINUS や PT_PLUS を処理する */
+    /* TODO expand: expand_param: PT_MINUS などの処理: expand_single 待ち
+    switch (p->pe_type & PT_MASK) {
+    case PT_MINUS:
+
+    }
+    */
+
+    if (concat) {
+	wchar_t joiner = ifs ? ifs[0] : L' ';
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	for (size_t i = 0; list[i]; i++) {
+	    wb_cat(&buf, list[i]);
+	    free(list[i]);
+	    if (joiner != L'\0' && list[i + 1])
+		wb_wccat(&buf, joiner);
+	}
+	list = xrealloc(list, 2 * sizeof *list);
+	list[0] = wb_towcs(&buf);
+	list[1] = NULL;
+    }
+    if (indq) {
+	for (size_t i = 0; list[i]; i++)
+	    list[i] = escapefree(list[i], ESCAPED_CHARS);
+    }
+
+    return list;
 }
 
 /* 単語をバッファに追加する。
