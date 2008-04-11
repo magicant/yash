@@ -74,10 +74,10 @@ extern const wchar_t *get_home_directory(
 /********** wglob **********/
 
 enum wglbflags {
-    WGLB_ERR      = 1 << 0,
-    WGLB_MARK     = 1 << 1,
-    WGLB_NOESCAPE = 1 << 2,
-    WGLB_CASEFOLD = 1 << 3,
+    WGLB_MARK     = 1 << 0,
+    WGLB_NOESCAPE = 1 << 1,
+    WGLB_CASEFOLD = 1 << 2,
+    WGLB_PERIOD   = 1 << 3,
     WGLB_NOSORT   = 1 << 4,
     WGLB_RECDIR   = 1 << 5,
 };

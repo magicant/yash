@@ -27,8 +27,10 @@ extern bool is_login_shell;
 extern bool is_interactive, is_interactive_now;
 extern bool do_job_control;
 extern const char *command_name;
+extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
+       shopt_extendedglob, shopt_nullglob;
 
-#define SHELLSET_OPTIONS "m"
+#define SHELLSET_OPTIONS "fm"
 
 extern const struct xoption *const shell_long_options, *const set_long_options;
 

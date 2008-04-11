@@ -49,6 +49,8 @@ static void print_subst_as_error(const paramexp_T *p);
 __attribute__((nonnull(2,3)))
 static void add_splitting(wchar_t *s,
 	plist_T *list, xwcsbuf_T *buf, const wchar_t *ifs);
+__attribute__((pure))
+static enum wglbflags get_wglbflags(void);
 
 
 /* コマンドライン上の各種展開を行う。
@@ -86,7 +88,7 @@ bool expand_line(void *const *restrict args,
     }
 
     /* glob する */
-    if (false) {  // TODO expand: expand_line: no_glob オプション
+    if (shopt_noglob) {
 	for (size_t i = 0; i < list1.length; i++) {
 	    char *v = realloc_wcstombs(list2.contents[i]);
 	    if (!v) {
@@ -99,13 +101,12 @@ bool expand_line(void *const *restrict args,
 	}
 	list1 = list2;
     } else {
-	enum wglbflags flags = 0;
+	enum wglbflags flags = get_wglbflags();
 	pl_init(&list1);
-	// TODO expand: expand_line: wglob のフラグオプション
 	for (size_t i = 0; i < list2.length; i++) {
 	    size_t oldlen = list1.length;
 	    wglob(list2.contents[i], flags, &list1);
-	    if (oldlen == list1.length) {
+	    if (!shopt_nullglob && oldlen == list1.length) {
 		char *v = realloc_wcstombs(unescape(list2.contents[i]));
 		if (!v) {
 		    xerror(0, Ngt("expanded word contains characters that "
@@ -149,8 +150,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde, bool glob)
 
     /* glob する */
     if (glob) {
-	enum wglbflags flags = 0;
-	// TODO expand: expand_line: wglob のフラグオプション
+	enum wglbflags flags = get_wglbflags();
 	pl_init(&list);
 	wglob(result, flags, &list);
 	if (list.length == 1) {
@@ -543,6 +543,17 @@ wchar_t *unescape(const wchar_t *s)
 	s++;
     }
     return wb_towcs(&buf);
+}
+
+/* 現在のシェルの設定から、wglob のオプションフラグの値を得る */
+enum wglbflags get_wglbflags(void)
+{
+    enum wglbflags flags = 0;
+    if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;
+    if (shopt_dotglob)      flags |= WGLB_PERIOD;
+    if (shopt_markdirs)     flags |= WGLB_MARK;
+    if (shopt_extendedglob) flags |= WGLB_RECDIR;
+    return flags;
 }
 
 

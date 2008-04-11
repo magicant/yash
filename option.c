@@ -38,17 +38,30 @@ bool do_job_control;
 /* コマンド名。特殊パラメータ $0 の値。 */
 const char *command_name;
 
+/* パス名展開を行わないかどうか。-f オプションに対応。 */
+bool shopt_noglob;
+/* それぞれ WGLB_CASEFOLD, WGLB_PERIOD, WGLB_MARK, WGLB_RECDIR に対応 */
+bool shopt_nocaseglob, shopt_dotglob, shopt_markdirs, shopt_extendedglob;
+/* パス名展開に一致するファイル名が一つもないとき、元のパターンを返さない。 */
+bool shopt_nullglob;
+
 
 /* シェルと set コマンドの長いオプション。 */
 static const struct xoption long_options[] = {
-    { "interactive", xno_argument, NULL, 'i', },
-    { "help",        xno_argument, NULL, '?', },
-    { "version",     xno_argument, NULL, 'V', },
-    { "login",       xno_argument, NULL, 'l', },
+    { "interactive",  xno_argument, NULL, 'i', },
+    { "help",         xno_argument, NULL, '?', },
+    { "version",      xno_argument, NULL, 'V', },
+    { "login",        xno_argument, NULL, 'l', },
     /* ↑ 以上のオプションは set コマンドでは使えない。 */
-    { "job-control", xno_argument, NULL, 'm', },
-    { "posix",       xno_argument, NULL, 'X', },
-    { NULL,          0,            NULL, 0,   },
+    { "noglob",       xno_argument, NULL, 'f', },
+    { "nocaseglob",   xno_argument, NULL, 'c', },
+    { "dotglob",      xno_argument, NULL, 'D', },
+    { "markdirs",     xno_argument, NULL, 'M', },
+    { "extendedglob", xno_argument, NULL, 'E', },
+    { "nullglob",     xno_argument, NULL, 'N', },
+    { "jobcontrol",   xno_argument, NULL, 'm', },
+    { "posix",        xno_argument, NULL, 'X', },
+    { NULL,           0,            NULL, 0,   },
 };
 
 const struct xoption *const shell_long_options = long_options;
@@ -63,6 +76,24 @@ void set_option(char c)
 {
     bool value = (xoptopt == '-');
     switch (c) {
+	case 'f':
+	    shopt_noglob = value;
+	    break;
+	case 'c':
+	    shopt_nocaseglob = value;
+	    break;
+	case 'D':
+	    shopt_dotglob = value;
+	    break;
+	case 'M':
+	    shopt_markdirs = value;
+	    break;
+	case 'E':
+	    shopt_extendedglob = value;
+	    break;
+	case 'N':
+	    shopt_nullglob = value;
+	    break;
 	case 'm':
 	    do_job_control = value;
 	    break;

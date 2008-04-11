@@ -515,10 +515,10 @@ static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack);
  * 指定したパターンに一致するファイルのパスをリストに追加する。
  * pattern: 検索するパターン
  * flags:   マッチングの種類を指定するフラグ。以下の値のビットごとの OR。
- *          WGLB_ERR: エラーが発生したらすぐに中止する
  *          WGLB_MARK: ディレクトリについてはパス名の最後に L'/' を付けて返す
  *          WGLB_NOESCAPE: パターンでバックスラッシュエスケープを無効にする
  *          WGLB_CASEFOLD: 大文字小文字を区別しない
+ *          WGLB_PERIOD: L'*' や L'?' を先頭のピリオドにもマッチさせる
  *          WGLB_NOSORT: 検索結果をソートしない
  *          WGLB_RECDIR: L"**" パターンでディレクトリを再帰的に検索する
  * list:    検索結果を追加するリスト。見付かったファイルパスが
@@ -527,7 +527,7 @@ static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack);
  * パターンが不正な場合はすぐに false を返す。ファイル探索のための
  * パーミッションがない場合などは、できるだけエラーとはみなさない。
  * エラーがあっても list に途中結果が入るかもしれない。 */
-//TODO path: wglob: WGLB_ERR は本当に必要?
+//TODO path: wglob: WGLB_PERIOD
 bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	plist_T *restrict list)
 {
@@ -648,12 +648,16 @@ bool wglob_search(
 	wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
 	if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;
 	if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
+	if (flags & WGLB_PERIOD)   wfnmflags &= ~WFNM_PERIOD;
 	sml = shortest_match_length(pat, wfnmflags);
     }
 
     struct dirent *de;
     bool ok = true;
     while (ok && (de = readdir(dir))) {
+	if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    continue;
+
 	wchar_t *wentname = malloc_mbstowcs(de->d_name);
 	if (!wentname)
 	    continue;
