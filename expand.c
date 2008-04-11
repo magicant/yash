@@ -32,18 +32,20 @@
 #include "exec.h"
 
 
-#define ESCAPED_CHARS L"*?[{"  /* ブレース展開・glob で特殊な意味を持つ文字 */
+#define ESCAPED_CHARS L"\\*?[{"  /* ブレース展開・glob で特殊な意味を持つ文字 */
 
 __attribute__((nonnull(4)))
 static bool expand_word(const wordunit_T *arg,
 	tildetype_T tilde, const wchar_t *ifs, plist_T *list);
+__attribute__((nonnull))
+static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf);
 __attribute__((nonnull,malloc,warn_unused_result))
 static wchar_t *expand_tilde(const wchar_t **ss);
 __attribute__((nonnull(1),malloc,warn_unused_result))
 static void **expand_param(
 	const paramexp_T *p, bool indq, tildetype_T tilde, const wchar_t *ifs);
 __attribute__((nonnull))
-static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf);
+static void print_subst_as_error(const paramexp_T *p);
 __attribute__((nonnull(2,3)))
 static void add_splitting(wchar_t *s,
 	plist_T *list, xwcsbuf_T *buf, const wchar_t *ifs);
@@ -343,7 +345,9 @@ void **expand_param(
     void **list;  /* void * にキャストした wchar_t * の配列 */
     bool concat;  /* true なら配列の内容を IFS の最初の文字で繋ぐ */
     bool unset;   /* 指定した変数が存在しなかった場合 true */
+    wchar_t *match, *subst;
 
+    /* 変数またはネストした展開の内容を取得する */
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
 	pl_init(&plist);
@@ -376,14 +380,40 @@ void **expand_param(
 	    && (!list[0] || (!((char *) list[0])[0] && !list[1])))
 	unset = true;
 
-    /* PT_MINUS や PT_PLUS を処理する */
-    /* TODO expand: expand_param: PT_MINUS などの処理: expand_single 待ち
+    /* PT_MINUS, PT_PLUS, PT_ASSIGN, PT_ERROR を処理する */
     switch (p->pe_type & PT_MASK) {
+    case PT_PLUS:
+	if (!unset)
+	    goto subst;
+	break;
     case PT_MINUS:
-
+	if (unset) {
+subst:
+	    recfree(list, free);
+	    subst = expand_single(p->pe_subst, tt_single, false);
+	    if (!subst)
+		return NULL;
+	    list = xmalloc(2 * sizeof *list);
+	    list[0] = subst;
+	    list[1] = NULL;
+	}
+	break;
+    case PT_ASSIGN:
+	// TODO expand: expand_param: PT_ASSIGN
+	break;
+    case PT_ERROR:
+	if (unset) {
+	    recfree(list, free);
+	    print_subst_as_error(p);
+	    return NULL;
+	}
+	break;
     }
-    */
 
+    // TODO PT_MATCH などの処理
+    (void) match;
+
+    /* 配列の要素を連結する */
     if (concat) {
 	wchar_t joiner = ifs ? ifs[0] : L' ';
 	xwcsbuf_T buf;
@@ -398,12 +428,35 @@ void **expand_param(
 	list[0] = wb_towcs(&buf);
 	list[1] = NULL;
     }
-    if (indq) {
-	for (size_t i = 0; list[i]; i++)
-	    list[i] = escapefree(list[i], ESCAPED_CHARS);
-    }
+
+    /* 戻り値をエスケープする */
+    for (size_t i = 0; list[i]; i++)
+	list[i] = escapefree(list[i], indq ? ESCAPED_CHARS : L"\\");
 
     return list;
+}
+
+/* p->pe_subst を展開して、それをエラーメッセージとして表示する */
+void print_subst_as_error(const paramexp_T *p)
+{
+    if (p->pe_subst) {
+	wchar_t *subst = expand_single(p->pe_subst, tt_single, false);
+	if (subst) {
+	    if (p->pe_type & PT_NEST)
+		xerror(0, "%ls", subst);
+	    else
+		xerror(0, "%s: %ls", p->pe_name, subst);
+	    free(subst);
+	}
+    } else {
+	if (p->pe_type & PT_NEST)
+	    xerror(0, Ngt("parameter null"));
+	else
+	    xerror(0, (p->pe_type & PT_COLON)
+		    ? Ngt("%s: parameter null or not set")
+		    : Ngt("%s: parameter not set"),
+		    p->pe_name);
+    }
 }
 
 /* 単語をバッファに追加する。

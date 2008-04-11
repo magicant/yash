@@ -48,6 +48,10 @@ static inline wchar_t *unescapefree(wchar_t *s);
 static inline wchar_t *escapefree(
 	wchar_t *restrict s, const wchar_t *restrict t)
 {
+    wchar_t *wcspbrk(const wchar_t *ws1, const wchar_t *ws2);
+    if (!wcspbrk(s, t))
+	return s;
+
     wchar_t *result = escape(s, t);
     free(s);
     return result;
