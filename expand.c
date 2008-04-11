@@ -87,8 +87,16 @@ bool expand_line(void *const *restrict args,
 
     /* glob する */
     if (false) {  // TODO expand: expand_line: no_glob オプション
-	for (size_t i = 0; i < list1.length; i++)
-	    list1.contents[i] = realloc_wcstombs(list2.contents[i]);
+	for (size_t i = 0; i < list1.length; i++) {
+	    char *v = realloc_wcstombs(list2.contents[i]);
+	    if (!v) {
+		xerror(0, Ngt("expanded word contains characters that "
+			    "cannot be converted to wide characters and "
+			    "is replaced with null string"));
+		v = xstrdup("");
+	    }
+	    list1.contents[i] = v;
+	}
 	list1 = list2;
     } else {
 	enum wglbflags flags = 0;
@@ -97,8 +105,16 @@ bool expand_line(void *const *restrict args,
 	for (size_t i = 0; i < list2.length; i++) {
 	    size_t oldlen = list1.length;
 	    wglob(list2.contents[i], flags, &list1);
-	    if (oldlen == list1.length)
-		pl_add(&list1, realloc_wcstombs(unescape(list2.contents[i])));
+	    if (oldlen == list1.length) {
+		char *v = realloc_wcstombs(unescape(list2.contents[i]));
+		if (!v) {
+		    xerror(0, Ngt("expanded word contains characters that "
+				"cannot be converted to wide characters and "
+				"is replaced with null string"));
+		    v = xstrdup("");
+		}
+		pl_add(&list1, v);
+	    }
 	    free(list2.contents[i]);
 	}
 	pl_destroy(&list2);

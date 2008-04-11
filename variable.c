@@ -18,6 +18,8 @@
 
 #include "common.h"
 #include <assert.h>
+#include <ctype.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -228,6 +230,20 @@ void **get_variable(const char *name, bool *concat)
 	}
     }
 
+    if (xisdigit(name[0])) {  /* 名前の先頭が数字なので、位置パラメータである */
+	char *nameend;
+	errno = 0;
+	long v = strtol(name, &nameend, 10);
+	if (errno || *nameend != '\0')
+	    return NULL;  /* 数値ではない or オーバーフロー */
+	var = search_variable(VAR_positional, false);
+	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+	if (v <= 0 || (uintmax_t) var->v_valc < (uintmax_t) v)
+	    return NULL;  /* インデックスが範囲外 */
+	value = xwcsdup(var->v_vals[v - 1]);
+	goto return_single;
+    }
+
     /* 普通の変数を探す */
     var = search_variable(name, true);
     if (var) {
@@ -258,8 +274,32 @@ return_array:  /* 配列をコピーして返す */
  * values[0] が $1、values[1] が $2、というようになる。 */
 void set_positional_parameters(char *const *values)
 {
-    (void) values;
-    // TODO variable: set_positional_parameters: 未実装
+    variable_T *var = ht_get(&current_env->contents, VAR_positional).value;
+    if (!var) {
+	var = xmalloc(sizeof *var);
+	var->v_type = VF_ARRAY | VF_NODELETE;
+	var->v_valc = 0;
+	var->v_vals = NULL;
+	ht_set(&current_env->contents, xstrdup(VAR_positional), var);
+    }
+    recfree(var->v_vals, free);
+
+    plist_T list;
+    pl_init(&list);
+    while (*values) {
+	wchar_t *wv = malloc_mbstowcs(*values);
+	if (!wv) {
+	    xerror(0, Ngt("new positional parameter $%zu contains characters "
+			"that cannot be converted to wide characters and "
+			"is replaced with null string"),
+		    list.length + 1);
+	    wv = xwcsdup(L"");
+	}
+	pl_add(&list, wv);
+	values++;
+    }
+    var->v_valc = list.length;
+    var->v_vals = pl_toary(&list);
 }
 
 /* SHLVL 変数の値に change を加える。 */

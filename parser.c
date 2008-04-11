@@ -884,6 +884,7 @@ assign_T *tryparse_assignment(void)
     assign_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
+    assert(result->name != NULL);
     cindex += namelen + 1;
 
     ensure_buffer(1);
@@ -1146,6 +1147,7 @@ success:
     pe = xmalloc(sizeof *pe);
     pe->pe_type = PT_NONE;
     pe->pe_name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
+    assert(pe->pe_name != NULL);
     pe->pe_match = pe->pe_subst = NULL;
 
     wordunit_T *result = xmalloc(sizeof *result);
@@ -1217,6 +1219,7 @@ parse_name:;
 make_name:
 	pe->pe_name = malloc_wcsntombs(
 		cbuf.contents + namestartindex, cindex - namestartindex);
+	assert(pe->pe_name != NULL);
     }
 
     /* PT_COLON を解析 */
