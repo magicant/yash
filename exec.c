@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <wchar.h>
 #ifdef HAVE_GETTEXT
@@ -553,8 +554,16 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
  * 見付からなければ false を返し、*ci は不定 */
 bool search_command(const char *restrict name, commandinfo_T *restrict ci)
 {
+    wchar_t *wname = malloc_mbstowcs(name);
+    bool slash = wname && wcschr(wname, L'/');
+    free(wname);
+    if (slash) {  /* name にスラッシュが入っていれば name をそのまま返す */
+	ci->type = externalprogram;
+	ci->ci_path = name;
+	return true;
+    }
+
     // TODO exec.c: find_command: 暫定実装
-    (void) name;
     ci->type = externalprogram;
     ci->ci_path = get_command_path(name, false);
     return ci->ci_path != NULL;
@@ -600,8 +609,12 @@ void exec_simple_command(
 	if (errno != ENOEXEC) {
 	    if (errno == EACCES && is_directory(ci->ci_path))
 		errno = EISDIR;
-	    xerror(errno, Ngt("cannot execute `%s' (%s)"),
-		    (char *) argv[0], ci->ci_path);
+	    if (strcmp(argv[0], ci->ci_path) == 0)
+		xerror(errno, Ngt("cannot execute `%s'"),
+			(char *) argv[0]);
+	    else
+		xerror(errno, Ngt("cannot execute `%s' (%s)"),
+			(char *) argv[0], ci->ci_path);
 	    exit(EXIT_NOEXEC);
 	}
 	// TODO exec.c: exec_simple_command: コマンドをシェルスクリプトとして実行
