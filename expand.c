@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wctype.h>
+#include "option.h"
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
@@ -107,12 +108,54 @@ bool expand_line(void *const *restrict args,
 }
 
 /* 一つの単語を展開する。
- * 各種展開と引用符除去・エスケープ解除を行う。フィールド分割はしない。
+ * 各種展開と引用符除去・エスケープ解除を行う。
+ * ただしブレース展開・フィールド分割はしない。
  * glob が true ならファイル名展開も行うが、結果が一つでない場合は……
  *   - posixly_correct が true ならファイル名展開前のパターンを返し、
  *   - posixly_correct が false ならエラーとする。
- * エラー発生時はメッセージを出して NULL を返す。 */
-wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde, bool glob);
+ * エラー発生時はメッセージを出して NULL を返す。
+ * 戻り値: 展開結果。新しく malloc した文字列。 */
+wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde, bool glob)
+{
+    wchar_t *result;
+    plist_T list;
+    pl_init(&list);
+
+    /* 展開する */
+    if (!expand_word(arg, tilde, NULL, &list)) {
+	recfree(pl_toary(&list), free);
+	return NULL;
+    }
+    result = list.contents[0];
+    pl_destroy(&list);
+
+    /* glob する */
+    if (glob) {
+	enum wglbflags flags = 0;
+	// TODO expand: expand_line: wglob のフラグオプション
+	pl_init(&list);
+	wglob(result, flags, &list);
+	if (list.length == 1) {
+	    free(result);
+	    result = list.contents[0];
+	    pl_destroy(&list);
+	} else {
+	    recfree(pl_toary(&list), free);
+	    if (posixly_correct) {
+		goto noglob;
+	    } else {
+		xerror(0, Ngt("%ls: glob resulted in multiple words"), result);
+		free(result);
+		result = NULL;
+	    }
+	}
+    } else {
+noglob:
+	result = unescapefree(result);
+    }
+
+    return result;
+}
 
 /* 一つの文字列を展開する。
  * パラメータ展開・数式展開・コマンド置換を行うが、引用符除去・フィールド分割・
@@ -123,7 +166,7 @@ wchar_t *expand_string(const wordunit_T *arg);
  * チルダ展開・パラメータ展開・コマンド置換・数式展開をし、単語分割をする。
  * w:      展開する単語
  * tilde:  チルダ展開の種類
- * ifs:    非 NULL なら、これに従って単語分割する。
+ * ifs:    非 NULL なら、これに従って単語分割する。NULL なら単語分割しない。
  * list:   結果を入れるリスト
  * 戻り値: エラーがなければ true。
  * ifs が NULL なら、結果は常に 1 要素である。
