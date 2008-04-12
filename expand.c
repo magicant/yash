@@ -25,6 +25,7 @@
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
+#include "wfnmatch.h"
 #include "path.h"
 #include "parser.h"
 #include "variable.h"
@@ -49,6 +50,8 @@ static void print_subst_as_error(const paramexp_T *p)
 static void add_splitting(wchar_t *s,
 	plist_T *list, xwcsbuf_T *buf, const wchar_t *ifs)
     __attribute__((nonnull(2,3)));
+static void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
+    __attribute__((nonnull));
 static enum wglbflags get_wglbflags(void)
     __attribute__((pure));
 
@@ -89,7 +92,7 @@ bool expand_line(void *const *restrict args,
 
     /* glob する */
     if (shopt_noglob) {
-	for (size_t i = 0; i < list1.length; i++) {
+	for (size_t i = 0; i < list2.length; i++) {
 	    char *v = realloc_wcstombs(list2.contents[i]);
 	    if (!v) {
 		xerror(0, Ngt("expanded word contains characters that "
@@ -97,28 +100,13 @@ bool expand_line(void *const *restrict args,
 			    "is replaced with null string"));
 		v = xstrdup("");
 	    }
-	    list1.contents[i] = v;
+	    list2.contents[i] = v;
 	}
 	list1 = list2;
     } else {
-	enum wglbflags flags = get_wglbflags();
 	pl_init(&list1);
-	for (size_t i = 0; i < list2.length; i++) {
-	    size_t oldlen = list1.length;
-	    wglob(list2.contents[i], flags, &list1);
-	    if (!shopt_nullglob && oldlen == list1.length) {
-		char *v = realloc_wcstombs(unescape(list2.contents[i]));
-		if (!v) {
-		    xerror(0, Ngt("expanded word contains characters that "
-				"cannot be converted to wide characters and "
-				"is replaced with null string"));
-		    v = xstrdup("");
-		}
-		pl_add(&list1, v);
-	    }
-	    free(list2.contents[i]);
-	}
-	pl_destroy(&list2);
+	do_glob_each(list2.contents, &list1);
+	recfree(pl_toary(&list2), free);
     }
 
     *argcp = list1.length;
@@ -127,34 +115,55 @@ bool expand_line(void *const *restrict args,
 }
 
 /* 一つの単語を展開する。
- * 各種展開と引用符除去・エスケープ解除を行う。
- * ただしブレース展開・フィールド分割はしない。
- * glob が true ならファイル名展開も行うが、結果が一つでない場合は……
- *   - posixly_correct が true ならファイル名展開前のパターンを返し、
- *   - posixly_correct が false ならエラーとする。
+ * 各種展開と引用符除去を行う。
+ * ただしブレース展開・フィールド分割・glob・エスケープ解除はしない。
  * エラー発生時はメッセージを出して NULL を返す。
  * 戻り値: 展開結果。新しく malloc した文字列。 */
-wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde, bool glob)
+wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 {
     wchar_t *result;
     plist_T list;
     pl_init(&list);
 
-    /* 展開する */
     if (!expand_word(arg, tilde, NULL, &list)) {
 	recfree(pl_toary(&list), free);
 	return NULL;
     }
+    assert(list.length == 1);
     result = list.contents[0];
     pl_destroy(&list);
 
+    return result;
+}
+
+/* 一つの単語を展開する。
+ * 各種展開と glob・引用符除去・エスケープ解除を行う。
+ * ただしブレース展開・フィールド分割はしない。
+ * glob の結果が一つでなければ、
+ *   - posixly_correct が true なら glob 前のパターンを返し、
+ *   - posixly_correct が false ならエラーを出す。
+ * shopt_noglob が true なら glob は行わない。
+ * shopt_nullglob が false でも true とみなす。
+ * 戻り値: 新しく malloc した文字列。エラーの場合は NULL。 */
+char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
+{
+    wchar_t *exp = expand_single(arg, tilde);
+    char *result;
+
     /* glob する */
-    if (glob) {
-	enum wglbflags flags = get_wglbflags();
+    if (shopt_noglob || !pattern_with_special_char(exp)) {
+noglob:
+	result = realloc_wcstombs(unescapefree(exp));
+	if (!result)
+	    xerror(0, Ngt("expanded word contains characters that "
+			"cannot be converted to wide characters and "
+			"is replaced with null string"));
+    } else {
+	plist_T list;
 	pl_init(&list);
-	wglob(result, flags, &list);
+	wglob(exp, get_wglbflags(), &list);
 	if (list.length == 1) {
-	    free(result);
+	    free(exp);
 	    result = list.contents[0];
 	    pl_destroy(&list);
 	} else {
@@ -162,16 +171,13 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde, bool glob)
 	    if (posixly_correct) {
 		goto noglob;
 	    } else {
-		xerror(0, Ngt("%ls: glob resulted in multiple words"), result);
-		free(result);
+		exp = unescapefree(exp);
+		xerror(0, Ngt("%ls: not single file"), exp);
+		free(exp);
 		result = NULL;
 	    }
 	}
-    } else {
-noglob:
-	result = unescapefree(result);
     }
-
     return result;
 }
 
@@ -406,7 +412,7 @@ void **expand_param(
 	if (unset) {
 subst:
 	    recfree(list, free);
-	    subst = expand_single(p->pe_subst, tt_single, false);
+	    subst = unescapefree(expand_single(p->pe_subst, tt_single));
 	    if (!subst)
 		return NULL;
 	    list = xmalloc(2 * sizeof *list);
@@ -456,7 +462,8 @@ subst:
 void print_subst_as_error(const paramexp_T *p)
 {
     if (p->pe_subst) {
-	wchar_t *subst = expand_single(p->pe_subst, tt_single, false);
+	wchar_t *subst = unescapefree(
+		expand_single(p->pe_subst, tt_single));
 	if (subst) {
 	    if (p->pe_type & PT_NEST)
 		xerror(0, "%ls", subst);
@@ -554,6 +561,38 @@ enum wglbflags get_wglbflags(void)
     if (shopt_markdirs)     flags |= WGLB_MARK;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
     return flags;
+}
+
+/* 指定した各パターンについて glob を行い、結果をリストに入れる。
+ * patterns: void * にキャストしたワイド文字列へのポインタの NULL 終端配列。
+ * list: 結果のマルチバイト文字列へのポインタを入れるリスト。 */
+void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
+{
+    enum wglbflags flags = get_wglbflags();
+
+    while (*patterns) {
+	const wchar_t *pat = *patterns;
+	if (pattern_with_special_char(pat)) {
+	    size_t oldlen = list->length;
+	    wglob(pat, flags, list);
+	    if (!shopt_nullglob && oldlen == list->length)
+		goto addpattern;
+	} else {
+	    /* pat に L'*' や L'?' などの文字が入っていなければ
+	     * わざわざ glob する必要はない。 */
+	    char *v;
+addpattern:
+	    v = realloc_wcstombs(unescape(pat));
+	    if (!v) {
+		xerror(0, Ngt("expanded word contains characters that "
+			    "cannot be converted to wide characters and "
+			    "is replaced with null string"));
+		v = xstrdup("");
+	    }
+	    pl_add(list, v);
+	}
+	patterns++;
+    }
 }
 
 

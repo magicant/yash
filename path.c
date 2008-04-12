@@ -527,7 +527,6 @@ static bool is_reentry(const struct stat *st, const plist_T *dirstack)
  * パターンが不正な場合はすぐに false を返す。ファイル探索のための
  * パーミッションがない場合などは、できるだけエラーとはみなさない。
  * エラーがあっても list に途中結果が入るかもしれない。 */
-//TODO path: wglob: WGLB_PERIOD
 bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	plist_T *restrict list)
 {
