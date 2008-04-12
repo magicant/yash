@@ -509,10 +509,14 @@ void variable_set(const char *name, variable_T *var)
     switch (name[0]) {
     case 'P':
 	if (strcmp(name, VAR_PATH) == 0) {
-	    if ((var->v_type & VF_MASK) == VF_NORMAL)
-		reset_patharray(var->v_value);
-	    else
-		reset_patharray(L"");  // TODO variable: PATH が配列の場合
+	    switch (var->v_type & VF_MASK) {
+		case VF_NORMAL:
+		    reset_patharray(var->v_value);
+		    break;
+		case VF_ARRAY:
+		    reset_patharray(L"");
+		    break;  // TODO variable: PATH が配列の場合
+	    }
 	}
 	break;
     }

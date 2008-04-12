@@ -330,7 +330,8 @@ void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
 		assert(false);
 	    case L'\'':
 		return;
-	    case L'*':  case L'?':  case L'[':  case L'{':  /* ESCAPED_CHARS */
+	    case L'\\':  case L'*':  case L'?':  case L'[':  case L'{':
+		/* ESCAPED_CHARS */
 		wb_wccat(buf, L'\\');
 		/* falls thru! */
 	    default:
