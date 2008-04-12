@@ -413,16 +413,34 @@ void **expand_param(
 	if (unset) {
 subst:
 	    recfree(list, free);
-	    subst = unescapefree(expand_single(p->pe_subst, tt_single));
+	    subst = expand_single(p->pe_subst, tt_single);
 	    if (!subst)
 		return NULL;
+	    subst = unescapefree(subst);
 	    list = xmalloc(2 * sizeof *list);
 	    list[0] = subst;
 	    list[1] = NULL;
 	}
 	break;
     case PT_ASSIGN:
-	// TODO expand: expand_param: PT_ASSIGN
+	if (unset) {
+	    recfree(list, free);
+	    if (p->pe_type & PT_NEST) {
+		xerror(0, Ngt("invalid assignment in parameter expansion"));
+		return NULL;
+	    }
+	    subst = expand_single(p->pe_subst, tt_single);
+	    if (!subst)
+		return NULL;
+	    subst = unescapefree(subst);
+	    if (!set_variable(p->pe_name, xwcsdup(subst), false, false)) {
+		free(subst);
+		return NULL;
+	    }
+	    list = xmalloc(2 * sizeof *list);
+	    list[0] = subst;
+	    list[1] = NULL;
+	}
 	break;
     case PT_ERROR:
 	if (unset) {
@@ -463,9 +481,9 @@ subst:
 void print_subst_as_error(const paramexp_T *p)
 {
     if (p->pe_subst) {
-	wchar_t *subst = unescapefree(
-		expand_single(p->pe_subst, tt_single));
+	wchar_t *subst = expand_single(p->pe_subst, tt_single);
 	if (subst) {
+	    subst = unescapefree(subst);
 	    if (p->pe_type & PT_NEST)
 		xerror(0, "%ls", subst);
 	    else
