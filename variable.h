@@ -87,13 +87,18 @@ typedef struct variable_T {
 
 extern void init_variables(void);
 extern void finalize_variables(void);
+extern bool set_variable(
+	const char *name, wchar_t *value, bool local, bool export)
+    __attribute__((nonnull));
+extern bool set_array(const char *name, char *const *values, bool local)
+    __attribute__((nonnull));
+extern void set_positional_parameters(char *const *values)
+    __attribute__((nonnull));
 extern const wchar_t *getvar(const char *name)
     __attribute__((pure,nonnull));
 extern void **get_variable(const char *name, bool *concat)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern void set_positional_parameters(char *const *values)
-    __attribute__((nonnull));
-extern void set_shlvl(int change);
+extern void set_shlvl(long change);
 
 
 #endif /* VARIABLE_H */

@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
@@ -51,10 +52,18 @@ static void varfree(variable_T *v);
 static void varkvfree(kvpair_T kv);
 static variable_T *search_variable(const char *name, bool temp)
     __attribute__((pure,nonnull));
+static void update_enrivon(const char *name)
+    __attribute__((nonnull));
+static variable_T *new_global(const char *name)
+    __attribute__((nonnull));
+static variable_T *new_local(const char *name)
+    __attribute__((nonnull));
 
 
 /* 現在の変数環境 */
 static environ_T *current_env;
+/* 最も外側の変数環境 */
+static environ_T *top_env;
 
 /* 一時的変数を保持するハッシュテーブル。
  * 一時的変数は、特殊組込みコマンドでない組込みコマンドを実行する際に
@@ -95,7 +104,7 @@ void init_variables(void)
 	return;
     initialized = true;
 
-    current_env = xmalloc(sizeof *current_env);
+    top_env = current_env = xmalloc(sizeof *current_env);
     current_env->parent = NULL;
     ht_init(&current_env->contents, hashstr, htstrcmp);
 
@@ -167,6 +176,165 @@ variable_T *search_variable(const char *name, bool temp)
 	env = env->parent;
     }
     return NULL;
+}
+
+/* 指定した名前の変数について、environ の値を更新する。
+ * 一時的変数は無視する。 */
+void update_enrivon(const char *name)
+{
+    environ_T *env = current_env;
+    while (env) {
+	variable_T *var = ht_get(&env->contents, name).value;
+	if (var && (var->v_type & VF_EXPORT)) {
+	    char *value = malloc_wcstombs(var->v_value);
+	    if (value) {
+		if (setenv(name, value, true) != 0)
+		    xerror(errno, Ngt("cannot set environment variable `%s'"),
+			    name);
+		free(value);
+	    } else {
+		xerror(0, Ngt("environment variable `%s' contains characters "
+			    "that cannot be converted from wide characters"),
+			name);
+	    }
+	    return;
+	}
+	env = env->parent;
+    }
+    unsetenv(name);
+}
+
+/* 新しいグローバル変数を用意する。
+ * グローバルといっても、常に top_env に作成するわけではなく、既にローカル変数が
+ * 存在していればそれを返すことになる。
+ * 古い変数があれば削除し、古い変数と同じ環境に新しい変数を用意してそれを返す。
+ * 古い変数がなければ、top_env に新しい変数を用意して返す。
+ * いずれにしても、呼び出し元で戻り値の内容を正しく設定すること。
+ * 戻り値の v_type 以外のメンバの値は信用してはいけない。
+ * 戻り値の v_type に VF_EXPORT がついている場合、呼出し元で update_enrivon
+ * を呼ぶこと。
+ * 失敗すればエラーを出して (読み取り専用変数が既に存在するなど) NULL を返す。
+ * 同じ名前の一時的変数はあっても無視する。 */
+variable_T *new_global(const char *name)
+{
+    variable_T *var = search_variable(name, false);
+    if (!var) {
+	var = xmalloc(sizeof *var);
+	var->v_type = 0;
+	ht_set(&top_env->contents, xstrdup(name), var);
+    } else if (var->v_type & VF_READONLY) {
+	xerror(0, Ngt("%s: readonly"), name);
+	return NULL;
+    } else {
+	switch (var->v_type & VF_MASK) {
+	    case VF_NORMAL:
+		free(var->v_value);
+		break;
+	    case VF_ARRAY:
+		recfree(var->v_vals, free);
+		break;
+	}
+    }
+    return var;
+}
+
+/* 新しいローカル変数を用意する。
+ * 古い変数があれば削除し、指定した名前の新しい変数を current_env->contents に
+ * 設定して、それを返す。呼び出し元で戻り値の内容を正しく設定すること。
+ * 戻り値の v_type 以外のメンバの値は信用してはいけない。
+ * 戻り値の v_type に VF_EXPORT がついている場合、呼出し元で update_enrivon
+ * を呼ぶこと。
+ * 失敗すればエラーを出して (読み取り専用変数が既に存在するなど) NULL を返す。
+ * 同じ名前の一時的変数はあっても無視する。 */
+variable_T *new_local(const char *name)
+{
+    variable_T *var = ht_get(&current_env->contents, name).value;
+    if (!var) {
+	var = xmalloc(sizeof *var);
+	var->v_type = 0;
+	ht_set(&current_env->contents, xstrdup(name), var);
+    } else if (var->v_type & VF_READONLY) {
+	xerror(0, Ngt("%s: readonly"), name);
+	return NULL;
+    } else {
+	switch (var->v_type & VF_MASK) {
+	    case VF_NORMAL:
+		free(var->v_value);
+		break;
+	    case VF_ARRAY:
+		recfree(var->v_vals, free);
+		break;
+	}
+    }
+    return var;
+}
+
+/* 指定した名前と値で変数を作成する。
+ * value: 予め wcsdup しておいた free 可能な文字列。
+ *        この関数が返った後、呼出し元はこの文字列を一切使用してはならない。
+ * export: VF_EXPORT フラグを追加するかどうか。
+ * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+bool set_variable(const char *name, wchar_t *value, bool local, bool export)
+{
+    variable_T *var = local ? new_local(name) : new_global(name);
+    if (!var)
+	return false;
+
+    var->v_type = VF_NORMAL
+	| (var->v_type & (VF_EXPORT | VF_NODELETE))
+	| (export ? VF_EXPORT : 0);
+    var->v_value = value;
+
+    if (var->v_type & VF_EXPORT)
+	update_enrivon(name);
+    return true;
+}
+
+/* 指定した名前と値の配列を作成する。
+ * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+bool set_array(const char *name, char *const *values, bool local)
+{
+    variable_T *var = local ? new_local(name) : new_global(name);
+    if (!var)
+	return false;
+
+    bool needupdate = (var->v_type & VF_EXPORT);
+
+    plist_T list;
+    pl_init(&list);
+    while (*values) {
+	wchar_t *wv = malloc_mbstowcs(*values);
+	if (!wv) {
+	    if (strcmp(name, VAR_positional) == 0)
+		xerror(0,
+			Ngt("new positional parameter $%zu contains characters "
+			    "that cannot be converted to wide characters and "
+			    "is replaced with null string"),
+			list.length + 1);
+	    else
+		xerror(0, Ngt("new array element %s[%zu] contains characters "
+			    "that cannot be converted to wide characters and "
+			    "is replaced with null string"),
+			name, list.length + 1);
+	    wv = xwcsdup(L"");
+	}
+	pl_add(&list, wv);
+	values++;
+    }
+    var->v_type = VF_ARRAY | (var->v_type & VF_NODELETE);
+    var->v_valc = list.length;
+    var->v_vals = pl_toary(&list);
+
+    if (needupdate)
+	update_enrivon(name);
+    return true;
+}
+
+/* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
+ * values[0] が $1、values[1] が $2、というようになる。 */
+void set_positional_parameters(char *const *values)
+{
+    set_array(VAR_positional, values, true);
 }
 
 /* 指定した名前のシェル変数を取得する。
@@ -270,43 +438,24 @@ return_array:  /* 配列をコピーして返す */
     return dupwcsarray(result);
 }
 
-/* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
- * values[0] が $1、values[1] が $2、というようになる。 */
-void set_positional_parameters(char *const *values)
-{
-    variable_T *var = ht_get(&current_env->contents, VAR_positional).value;
-    if (!var) {
-	var = xmalloc(sizeof *var);
-	var->v_type = VF_ARRAY | VF_NODELETE;
-	var->v_valc = 0;
-	var->v_vals = NULL;
-	ht_set(&current_env->contents, xstrdup(VAR_positional), var);
-    }
-    recfree(var->v_vals, free);
-
-    plist_T list;
-    pl_init(&list);
-    while (*values) {
-	wchar_t *wv = malloc_mbstowcs(*values);
-	if (!wv) {
-	    xerror(0, Ngt("new positional parameter $%zu contains characters "
-			"that cannot be converted to wide characters and "
-			"is replaced with null string"),
-		    list.length + 1);
-	    wv = xwcsdup(L"");
-	}
-	pl_add(&list, wv);
-	values++;
-    }
-    var->v_valc = list.length;
-    var->v_vals = pl_toary(&list);
-}
-
 /* SHLVL 変数の値に change を加える。 */
-void set_shlvl(int change)
+void set_shlvl(long change)
 {
-    (void) change;
-    // TODO variable: set_shlvl: 未実装
+    if (!posixly_correct) {
+	long shlvl;
+	const wchar_t *shlvlw = getvar(VAR_SHLVL);
+	if (shlvlw) {
+	    wchar_t *endp;
+	    errno = 0;
+	    shlvl = wcstol(shlvlw, &endp, 0);
+	    if (errno || *endp != L'\0')
+		shlvl = 0L;
+	} else {
+	    shlvl = 0L;
+	}
+	shlvl += change;
+	set_variable(VAR_SHLVL, malloc_wprintf(L"%ld", shlvl), false, true);
+    }
 }
 
 
