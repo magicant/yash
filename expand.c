@@ -33,7 +33,9 @@
 #include "exec.h"
 
 
-#define ESCAPED_CHARS L"\\*?[{"  /* ブレース展開・glob で特殊な意味を持つ文字 */
+/* ブレース展開・glob で特殊な意味を持つ文字 */
+#define ESCAPED_CHARS_INQ L"*?[\\{"    /* 引用符内用 */
+#define ESCAPED_CHARS_OOQ L"\\{"       /* 引用符外用 */
 
 static bool expand_word(const wordunit_T *arg,
 	tildetype_T tilde, const wchar_t *ifs, plist_T *list)
@@ -286,10 +288,11 @@ out:
 	    s = exec_command_substitution(w->wu_cmdsub);
 	    if (s) {
 		if (indq) {
-		    wchar_t *ss = escapefree(s, ESCAPED_CHARS);
-		    wb_cat(&buf, ss);
-		    free(ss);
+		    s = escapefree(s, ESCAPED_CHARS_INQ);
+		    wb_cat(&buf, s);
+		    free(s);
 		} else {
+		    s = escapefree(s, ESCAPED_CHARS_OOQ);
 		    add_splitting(s, list, &buf, ifs);
 		}
 	    } else {
@@ -331,7 +334,7 @@ void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
 	    case L'\'':
 		return;
 	    case L'\\':  case L'*':  case L'?':  case L'[':  case L'{':
-		/* ESCAPED_CHARS */
+		/* ESCAPED_CHARS_INDQ */
 		wb_wccat(buf, L'\\');
 		/* falls thru! */
 	    default:
@@ -359,7 +362,7 @@ wchar_t *expand_tilde(const wchar_t **ss)
  * 戻り値: 展開結果。void * にキャストしたワイド文字列へのポインタの NULL 終端
  *         配列。配列および要素は新しく malloc したものである。
  *         エラーのときは NULL。
- * 返す各要素は、ESCAPED_CHARS をエスケープ済みである。(indq が true の場合)
+ * 返す各要素は、ESCAPED_CHARS をエスケープ済みである。
  * "@" または配列以外の展開結果は、必ず要素数 1 である。
  * "*" の展開結果は、ifs に従って結合済みである。 */
 void **expand_param(
@@ -472,7 +475,8 @@ subst:
 
     /* 戻り値をエスケープする */
     for (size_t i = 0; list[i]; i++)
-	list[i] = escapefree(list[i], indq ? ESCAPED_CHARS : L"\\");
+	list[i] = escapefree(list[i],
+		indq ? ESCAPED_CHARS_INQ : ESCAPED_CHARS_OOQ);
 
     return list;
 }
