@@ -76,14 +76,19 @@ typedef struct variable_T {
 	    size_t valc;
 	} array;
     } v_contents;
+    void (*v_getter)(struct variable_T *var);
 } variable_T;
 #define v_value v_contents.value
 #define v_vals  v_contents.array.vals
 #define v_valc  v_contents.array.valc
 /* v_vals は、void * にキャストした wchar_t * の NULL 終端配列である。
  * v_valc はもちろん v_vals の要素数である。
- * v_value, v_vals および v_vals の要素は free 可能な領域を指す。 */
+ * v_value, v_vals および v_vals の要素は free 可能な領域を指す。
+ * v_getter は変数が取得される前に呼ばれる関数。変数に代入すると v_getter は
+ * NULL に戻る。 */
 
+
+extern unsigned long current_lineno;
 
 extern void init_variables(void);
 extern void finalize_variables(void);

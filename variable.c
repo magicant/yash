@@ -58,6 +58,8 @@ static variable_T *new_global(const char *name)
     __attribute__((nonnull));
 static variable_T *new_local(const char *name)
     __attribute__((nonnull));
+static void lineno_getter(variable_T *var)
+    __attribute__((nonnull));
 
 
 /* 現在の変数環境 */
@@ -120,6 +122,7 @@ void init_variables(void)
 	variable_T *v = xmalloc(sizeof *v);
 	v->v_type = VF_NORMAL | VF_EXPORT;
 	v->v_value = malloc_mbstowcs(*e + namelen + 1);
+	v->v_getter = NULL;
 	if (v->v_value) {
 	    varkvfree(ht_set(&current_env->contents, name, v));
 	} else {
@@ -131,6 +134,18 @@ void init_variables(void)
 	}
     }
 
+    /* LINENO 特殊変数を設定する */
+    {
+	variable_T *v = new_global(VAR_LINENO);
+	assert(v != NULL);
+	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
+	v->v_value = xwcsdup(L"");
+	v->v_getter = lineno_getter;
+	if (v->v_type & VF_EXPORT)
+	    update_enrivon(VAR_LINENO);
+    }
+
+    // TODO variable: init_variables: RANDOM を設定
     // TODO variable: init_variables: PWD を設定
     // TODO variable: init_variables: PPID を設定
     // TODO variable: init_variables: YASH_VERSION を設定
@@ -284,6 +299,7 @@ bool set_variable(const char *name, wchar_t *value, bool local, bool export)
 	| (var->v_type & (VF_EXPORT | VF_NODELETE))
 	| (export ? VF_EXPORT : 0);
     var->v_value = value;
+    var->v_getter = NULL;
 
     if (var->v_type & VF_EXPORT)
 	update_enrivon(name);
@@ -324,6 +340,7 @@ bool set_array(const char *name, char *const *values, bool local)
     var->v_type = VF_ARRAY | (var->v_type & VF_NODELETE);
     var->v_valc = list.length;
     var->v_vals = pl_toary(&list);
+    var->v_getter = NULL;
 
     if (needupdate)
 	update_enrivon(name);
@@ -346,8 +363,11 @@ void set_positional_parameters(char *const *values)
 const wchar_t *getvar(const char *name)
 {
     variable_T *var = search_variable(name, true);
-    if (var && (var->v_type & VF_MASK) == VF_NORMAL)
+    if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
+	if (var->v_getter)
+	    var->v_getter(var);
 	return var->v_value;
+    }
     return NULL;
 }
 
@@ -415,6 +435,8 @@ void **get_variable(const char *name, bool *concat)
     /* 普通の変数を探す */
     var = search_variable(name, true);
     if (var) {
+	if (var->v_getter)
+	    var->v_getter(var);
 	switch (var->v_type & VF_MASK) {
 	    case VF_NORMAL:
 		value = xwcsdup(var->v_value);
@@ -436,6 +458,19 @@ return_single:  /* 一つの値を要素数 1 の配列で返す。 */
 
 return_array:  /* 配列をコピーして返す */
     return dupwcsarray(result);
+}
+
+/* 現在実行中のコマンドの行番号 */
+unsigned long current_lineno;
+
+/* LINENO 変数のゲッター */
+void lineno_getter(variable_T *var)
+{
+    assert((var->v_type & VF_MASK) == VF_NORMAL);
+    free(var->v_value);
+    var->v_value = malloc_wprintf(L"%lu", current_lineno);
+    if (var->v_type & VF_EXPORT)
+	update_enrivon(VAR_LINENO);
 }
 
 /* SHLVL 変数の値に change を加える。 */

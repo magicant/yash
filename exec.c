@@ -35,10 +35,11 @@
 #include "strbuf.h"
 #include "plist.h"
 #include "path.h"
+#include "variable.h"
 #include "parser.h"
-#include "redir.h"
-#include "expand.h"
 #include "sig.h"
+#include "expand.h"
+#include "redir.h"
 #include "job.h"
 #include "exec.h"
 #include "yash.h"
@@ -412,6 +413,8 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     int argc;
     char **argv = NULL;
     commandinfo_T cmdinfo;
+
+    current_lineno = c->c_lineno;
 
     switch (c->c_type) {
     case CT_SIMPLE:
