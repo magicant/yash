@@ -50,7 +50,7 @@ typedef struct environ_T {
 static void varfree(variable_T *v);
 static void varkvfree(kvpair_T kv);
 static variable_T *search_variable(const char *name, bool temp)
-    __attribute__((nonnull));
+    __attribute__((pure,nonnull));
 
 
 /* 現在の変数環境 */

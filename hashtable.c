@@ -184,12 +184,9 @@ kvpair_T ht_get(hashtable_T *ht, const void *key)
 /* ハッシュテーブルにエントリを設定する。
  * 戻り値は、これまでに設定されていた key に等しいキーとそれに対応する値である。
  * これまでに key に等しいキーを持つエントリがなかった場合は { NULL, NULL }
- * を返す。key が NULL ならば何もせずに { NULL, NULL } を返す。 */
+ * を返す。key は NULL であってはならない。 */
 kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 {
-    if (!key)
-	return (kvpair_T) { NULL, NULL, };
-
     /* まず、key に等しいキーの既存のエントリがあるならそれを置き換える */
     unsigned long hash = ht->hashfunc(key);
     size_t mhash = (size_t) hash % ht->capacity;
@@ -288,7 +285,7 @@ int ht_each(hashtable_T *ht, int f(kvpair_T kv))
  * また、列挙の途中でハッシュテーブルのエントリを追加・削除してはならない。
  * この関数は各エントリを一度ずつ返すが、その順番は不定である。
  * 全ての列挙が終わると { NULL, NULL } が返る。 */
-kvpair_T ht_next(hashtable_T *ht, size_t *indexp)
+kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
 {
     while (*indexp < ht->capacity) {
 	kvpair_T kv = ht->entries[*indexp].kv;

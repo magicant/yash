@@ -493,7 +493,7 @@ enum wglbrflags {
 };
 
 static int wglob_sortcmp(const void *v1, const void *v2)
-    __attribute__((nonnull));
+    __attribute__((pure,nonnull));
 static bool wglob_search(const wchar_t *restrict pattern, enum wglbflags flags,
 	xstrbuf_T *restrict const dirname,
 	plist_T *restrict dirstack, plist_T *restrict list)
@@ -508,8 +508,8 @@ static bool wglob_recursive_search(const wchar_t *restrict pattern,
 	xstrbuf_T *restrict const dirname,
 	plist_T *restrict dirstack, plist_T *restrict list)
     __attribute__((nonnull));
-static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack)
-    __attribute__((nonnull));
+static bool is_reentry(const struct stat *st, const plist_T *dirstack)
+    __attribute__((pure,nonnull));
 
 /* ワイド文字列に対する glob の実装。
  * 指定したパターンに一致するファイルのパスをリストに追加する。
@@ -775,10 +775,10 @@ bool wglob_recursive_search(
 }
 
 /* 指定した stat 情報と同じ inode の stat 情報がリスト内にあるかどうか調べる */
-bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack)
+bool is_reentry(const struct stat *st, const plist_T *dirstack)
 {
     for (size_t i = 0; i < dirstack->length; i++) {
-	struct stat *st2 = dirstack->contents[i];
+	const struct stat *st2 = dirstack->contents[i];
 	if (st->st_dev == st2->st_dev && st->st_ino == st2->st_ino)
 	    return true;
     }

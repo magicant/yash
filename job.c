@@ -236,7 +236,7 @@ int calc_status(int status)
 
 /* 指定したジョブの終了コードを求める。
  * 状態が JS_RUNNING なジョブを指定しないこと。 */
-int calc_status_of_job(job_T *job)
+int calc_status_of_job(const job_T *job)
 {
     switch (job->j_status) {
     case JS_DONE:

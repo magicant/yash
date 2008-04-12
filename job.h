@@ -67,8 +67,8 @@ extern void remove_all_jobs(void);
 extern void do_wait(void);
 extern void wait_for_job(size_t jobnumber, bool return_on_stop);
 
-extern int calc_status_of_job(job_T *job)
-    __attribute__((nonnull));
+extern int calc_status_of_job(const job_T *job)
+    __attribute__((pure,nonnull));
 
 
 #endif /* JOB_H */

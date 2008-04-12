@@ -88,7 +88,7 @@ typedef struct variable_T {
 extern void init_variables(void);
 extern void finalize_variables(void);
 extern const wchar_t *getvar(const char *name)
-    __attribute__((nonnull));
+    __attribute__((pure,nonnull));
 extern void **get_variable(const char *name, bool *concat)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern void set_positional_parameters(char *const *values)

@@ -1,15 +1,3 @@
-ht_set の key に NULL を渡せないように, ht_next に restrict を
-calc_status_of_job に pure 属性, 引数に const
-skip_name: pure 属性
-is_token_delimiter_char, is_token_at: pure
-wglob_sortcmp: pure
-is_reentry: restrict 不要、pure、引数 const
-plcount: pure
-sb_initwith, wb_initwith: assert(s != NULL);
-xstrnlen, xwcsnlen, matchstrprefix, matchwcsprefix: pure
-search_variable, getvar: pure
-pattern_with_special_char: pure
-
 wglob: パターンに * や ? が含まれていない場合はショートカット
 配列の解釈・代入
 exec: exec_command_substitution: pselect で子プロセスをすぐに回収

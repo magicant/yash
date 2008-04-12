@@ -28,7 +28,7 @@ typedef struct plist_T {
 } plist_T;
 
 extern size_t plcount(void *const *list)
-    __attribute__((nonnull));
+    __attribute__((pure,nonnull));
 extern void recfree(void **ary, void freer(void *elem));
 
 extern plist_T *pl_init(plist_T *list)

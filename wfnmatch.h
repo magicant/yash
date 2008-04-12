@@ -46,7 +46,7 @@ extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
 extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
     __attribute__((nonnull));
 extern bool pattern_with_special_char(const wchar_t *pat)
-    __attribute__((nonnull));
+    __attribute__((pure,nonnull));
 
 
 #endif /* STRMATCH_H */

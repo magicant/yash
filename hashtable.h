@@ -51,12 +51,12 @@ extern hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 extern kvpair_T ht_get(hashtable_T *ht, const void *key)
     __attribute__((nonnull(1)));
 extern kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
-    __attribute__((nonnull(1)));
+    __attribute__((nonnull(1,2)));
 extern kvpair_T ht_remove(hashtable_T *ht, const void *key)
     __attribute__((nonnull(1)));
 extern int ht_each(hashtable_T *ht, int f(kvpair_T kv))
     __attribute__((nonnull));
-extern kvpair_T ht_next(hashtable_T *ht, size_t *indexp)
+extern kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
     __attribute__((nonnull));
 
 extern unsigned long hashstr(const void *s)         __attribute__((pure));

@@ -212,7 +212,7 @@ void redirsfree(redir_T *r)
 static inline bool is_name_char(wchar_t c)
     __attribute__((const));
 static wchar_t *skip_name(const wchar_t *s)
-    __attribute__((nonnull));
+    __attribute__((pure,nonnull));
 
 
 /* 引数が名前構成文字であるかどうか調べる */
@@ -259,7 +259,8 @@ static inline int ensure_buffer(size_t n);
 static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
-static bool is_token_delimiter_char(wchar_t c);
+static bool is_token_delimiter_char(wchar_t c)
+    __attribute__((pure));
 static bool is_command_delimiter_char(wchar_t c)
     __attribute__((const));
 static bool is_slash_or_closing_brace(wchar_t c)
@@ -267,7 +268,7 @@ static bool is_slash_or_closing_brace(wchar_t c)
 static bool is_closing_brace(wchar_t c)
     __attribute__((const));
 static bool is_token_at(const wchar_t *token, size_t index)
-    __attribute__((nonnull));
+    __attribute__((pure,nonnull));
 static const wchar_t *check_opening_token_at(size_t index);
 static const wchar_t *check_closing_token_at(size_t index);
 static and_or_T *parse_command_list(void)
