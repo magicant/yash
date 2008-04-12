@@ -242,22 +242,20 @@ int xclosedir(DIR *dir)
  * 各文字列は初期シフト状態で始まり、終わる。 */
 static char **patharray = NULL;
 
-/* 新しい PATH 環境変数に合わせて patharray の内容を更新する
+/* 新しい PATH 環境変数に合わせて patharray の内容を更新する。
+ * PATH の値が空ならエラーを出す (が処理は行う)。
  * newpath: 新しい PATH の値。NULL でもよい。 */
-void reset_patharray(const char *newpath)
+void reset_patharray(const wchar_t *newpath)
 {
     recfree((void **) patharray, free);
 
-    if (!newpath)
-	newpath = "";
-
-    wchar_t *wpath = malloc_mbstowcs(newpath);
-    if (!wpath) {
-	xerror(0, Ngt("PATH variable contains characters that cannot be "
-		    "converted to wide characters: command path search will "
-		    "be abandoned"));
-	return;
+    if (!newpath || !newpath[0]) {
+	xerror(0, Ngt("PATH not set or null"));
+	newpath = L"";
     }
+
+    wchar_t wpath[wcslen(newpath) + 1];
+    wcscpy(wpath, newpath);
 
     plist_T list;
     pl_init(&list);
@@ -285,7 +283,6 @@ void reset_patharray(const char *newpath)
 	    list.contents[i] = xstrdup("");
     }
 
-    free(wpath);
     patharray = (char **) pl_toary(&list);
 }
 

@@ -49,7 +49,7 @@ extern int xclosedir(DIR *dir)
 
 /********** patharray **********/
 
-extern void reset_patharray(const char *newpath);
+extern void reset_patharray(const wchar_t *newpath);
 
 
 /********** コマンド名ハッシュ **********/

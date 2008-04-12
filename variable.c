@@ -60,6 +60,8 @@ static variable_T *new_local(const char *name)
     __attribute__((nonnull));
 static void lineno_getter(variable_T *var)
     __attribute__((nonnull));
+static void variable_set(const char *name, variable_T *var)
+    __attribute__((nonnull));
 
 
 /* 現在の変数環境 */
@@ -151,7 +153,7 @@ void init_variables(void)
     // TODO variable: init_variables: YASH_VERSION を設定
 
     /* PATH に基づいて patharray を初期化する */
-    reset_patharray(getenv(VAR_PATH));
+    reset_patharray(getvar(VAR_PATH));
 }
 
 /* 変数関連のデータを初期化前の状態に戻す */
@@ -301,6 +303,7 @@ bool set_variable(const char *name, wchar_t *value, bool local, bool export)
     var->v_value = value;
     var->v_getter = NULL;
 
+    variable_set(name, var);
     if (var->v_type & VF_EXPORT)
 	update_enrivon(name);
     return true;
@@ -342,6 +345,7 @@ bool set_array(const char *name, char *const *values, bool local)
     var->v_vals = pl_toary(&list);
     var->v_getter = NULL;
 
+    variable_set(name, var);
     if (needupdate)
 	update_enrivon(name);
     return true;
@@ -460,19 +464,6 @@ return_array:  /* 配列をコピーして返す */
     return dupwcsarray(result);
 }
 
-/* 現在実行中のコマンドの行番号 */
-unsigned long current_lineno;
-
-/* LINENO 変数のゲッター */
-void lineno_getter(variable_T *var)
-{
-    assert((var->v_type & VF_MASK) == VF_NORMAL);
-    free(var->v_value);
-    var->v_value = malloc_wprintf(L"%lu", current_lineno);
-    if (var->v_type & VF_EXPORT)
-	update_enrivon(VAR_LINENO);
-}
-
 /* SHLVL 変数の値に change を加える。 */
 void set_shlvl(long change)
 {
@@ -490,6 +481,40 @@ void set_shlvl(long change)
 	}
 	shlvl += change;
 	set_variable(VAR_SHLVL, malloc_wprintf(L"%ld", shlvl), false, true);
+    }
+}
+
+
+/********** 各種ゲッター **********/
+
+/* 現在実行中のコマンドの行番号 */
+unsigned long current_lineno;
+
+/* LINENO 変数のゲッター */
+void lineno_getter(variable_T *var)
+{
+    assert((var->v_type & VF_MASK) == VF_NORMAL);
+    free(var->v_value);
+    var->v_value = malloc_wprintf(L"%lu", current_lineno);
+    if (var->v_type & VF_EXPORT)
+	update_enrivon(VAR_LINENO);
+}
+
+
+/********** 各種セッター **********/
+
+/* 変数が設定されたときに呼ばれる */
+void variable_set(const char *name, variable_T *var)
+{
+    switch (name[0]) {
+    case 'P':
+	if (strcmp(name, VAR_PATH) == 0) {
+	    if ((var->v_type & VF_MASK) == VF_NORMAL)
+		reset_patharray(var->v_value);
+	    else
+		reset_patharray(L"");  // TODO variable: PATH が配列の場合
+	}
+	break;
     }
 }
 
