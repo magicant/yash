@@ -24,27 +24,27 @@
 #include <dirent.h>
 
 
-__attribute__((nonnull))
-extern bool is_readable(const char *path);
-__attribute__((nonnull))
-extern bool is_executable(const char *path);
-__attribute__((nonnull))
-extern bool is_directory(const char *path);
+extern bool is_readable(const char *path)
+    __attribute__((nonnull));
+extern bool is_executable(const char *path)
+    __attribute__((nonnull));
+extern bool is_directory(const char *path)
+    __attribute__((nonnull));
 
-__attribute__((nonnull))
-extern bool is_same_file(const char *path1, const char *path2);
+extern bool is_same_file(const char *path1, const char *path2)
+    __attribute__((nonnull));
 
-__attribute__((nonnull,malloc,warn_unused_result))
-extern wchar_t *canonicalize_path(const wchar_t *path);
+extern wchar_t *canonicalize_path(const wchar_t *path)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
-__attribute__((nonnull(1),malloc,warn_unused_result))
 extern char *which(
 	const char *restrict name,
 	char *const *restrict dirs,
-	bool cond(const char *path));
+	bool cond(const char *path))
+    __attribute__((nonnull(1),malloc,warn_unused_result));
 
-__attribute__((nonnull))
-extern int xclosedir(DIR *dir);
+extern int xclosedir(DIR *dir)
+    __attribute__((nonnull));
 
 
 /********** patharray **********/
@@ -55,20 +55,20 @@ extern void reset_patharray(const char *newpath);
 /********** コマンド名ハッシュ **********/
 
 extern void init_cmdhash(void);
-__attribute__((nonnull))
-extern const char *get_command_path(const char *name, bool forcelookup);
+extern const char *get_command_path(const char *name, bool forcelookup)
+    __attribute__((nonnull));
 extern void fill_cmdhash(const char *prefix, bool ignorecase);
 
 
 /********** ホームディレクトリキャッシュ **********/
 
-__attribute__((nonnull))
-extern struct passwd *xgetpwnam(const char *name);
+extern struct passwd *xgetpwnam(const char *name)
+    __attribute__((nonnull));
 extern void init_homedirhash(void);
 extern void clear_homedirhash(void);
-__attribute__((nonnull))
 extern const wchar_t *get_home_directory(
-	const wchar_t *username, bool forcelookup);
+	const wchar_t *username, bool forcelookup)
+    __attribute__((nonnull));
 
 
 /********** wglob **********/
@@ -84,9 +84,9 @@ enum wglbflags {
 
 struct plist_T;
 
-__attribute__((nonnull))
 extern bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
-	struct plist_T *restrict list);
+	struct plist_T *restrict list)
+    __attribute__((nonnull));
 
 
 #endif /* PATH_H */

@@ -492,24 +492,24 @@ enum wglbrflags {
     WGLB_period     = 1 << 1,
 };
 
-__attribute__((nonnull))
-static int wglob_sortcmp(const void *v1, const void *v2);
-__attribute__((nonnull))
+static int wglob_sortcmp(const void *v1, const void *v2)
+    __attribute__((nonnull));
 static bool wglob_search(const wchar_t *restrict pattern, enum wglbflags flags,
 	xstrbuf_T *restrict const dirname,
-	plist_T *restrict dirstack, plist_T *restrict list);
-__attribute__((nonnull))
+	plist_T *restrict dirstack, plist_T *restrict list)
+    __attribute__((nonnull));
 static bool wglob_start_recursive_search(const wchar_t *restrict pattern,
 	enum wglbflags flags, enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname,
-	plist_T *restrict dirstack, plist_T *restrict list);
-__attribute__((nonnull))
+	plist_T *restrict dirstack, plist_T *restrict list)
+    __attribute__((nonnull));
 static bool wglob_recursive_search(const wchar_t *restrict pattern,
 	enum wglbflags flags, enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname,
-	plist_T *restrict dirstack, plist_T *restrict list);
-__attribute__((nonnull))
-static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack);
+	plist_T *restrict dirstack, plist_T *restrict list)
+    __attribute__((nonnull));
+static bool is_reentry(struct stat *restrict st, plist_T *restrict dirstack)
+    __attribute__((nonnull));
 
 /* ワイド文字列に対する glob の実装。
  * 指定したパターンに一致するファイルのパスをリストに追加する。

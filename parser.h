@@ -275,17 +275,17 @@ typedef struct parseinfo_T {
     int lastinputresult;  /* 最後の input の戻り値。最初は 0 にしておく。 */
 } parseinfo_T;
 
-__attribute__((nonnull))
 extern int read_and_parse(
-	parseinfo_T *restrict info, and_or_T **restrict result);
+	parseinfo_T *restrict info, and_or_T **restrict result)
+    __attribute__((nonnull));
 
 
 /********** 構文木を文字列に戻すルーチン **********/
 
-__attribute__((malloc,warn_unused_result))
-wchar_t *pipelines_to_wcs(const pipeline_T *pipelines);
-__attribute__((malloc,warn_unused_result))
-extern wchar_t *command_to_wcs(const command_T *command);
+extern wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
+    __attribute__((malloc,warn_unused_result));
+extern wchar_t *command_to_wcs(const command_T *command)
+    __attribute__((malloc,warn_unused_result));
 
 
 /********** 構文木データを解放するルーチン **********/

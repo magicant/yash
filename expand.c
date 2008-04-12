@@ -34,23 +34,23 @@
 
 #define ESCAPED_CHARS L"\\*?[{"  /* ブレース展開・glob で特殊な意味を持つ文字 */
 
-__attribute__((nonnull(4)))
 static bool expand_word(const wordunit_T *arg,
-	tildetype_T tilde, const wchar_t *ifs, plist_T *list);
-__attribute__((nonnull))
-static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf);
-__attribute__((nonnull,malloc,warn_unused_result))
-static wchar_t *expand_tilde(const wchar_t **ss);
-__attribute__((nonnull(1),malloc,warn_unused_result))
+	tildetype_T tilde, const wchar_t *ifs, plist_T *list)
+    __attribute__((nonnull(4)));
+static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
+    __attribute__((nonnull));
+static wchar_t *expand_tilde(const wchar_t **ss)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static void **expand_param(
-	const paramexp_T *p, bool indq, tildetype_T tilde, const wchar_t *ifs);
-__attribute__((nonnull))
-static void print_subst_as_error(const paramexp_T *p);
-__attribute__((nonnull(2,3)))
+	const paramexp_T *p, bool indq, tildetype_T tilde, const wchar_t *ifs)
+    __attribute__((nonnull(1),malloc,warn_unused_result));
+static void print_subst_as_error(const paramexp_T *p)
+    __attribute__((nonnull));
 static void add_splitting(wchar_t *s,
-	plist_T *list, xwcsbuf_T *buf, const wchar_t *ifs);
-__attribute__((pure))
-static enum wglbflags get_wglbflags(void);
+	plist_T *list, xwcsbuf_T *buf, const wchar_t *ifs)
+    __attribute__((nonnull(2,3)));
+static enum wglbflags get_wglbflags(void)
+    __attribute__((pure));
 
 
 /* コマンドライン上の各種展開を行う。

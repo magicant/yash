@@ -83,30 +83,30 @@ typedef struct commandinfo_T {
 #define ci_function value.function
 
 static void exec_pipelines(const pipeline_T *p, bool finally_exit);
-__attribute__((nonnull))
-static void exec_pipelines_async(const pipeline_T *p);
-__attribute__((nonnull))
-static void exec_if(const command_T *c, bool finally_exit);
-__attribute__((nonnull))
-static void exec_for(const command_T *c, bool finally_exit);
-__attribute__((nonnull))
-static void exec_while(const command_T *c, bool finally_exit);
-__attribute__((nonnull))
-static void exec_case(const command_T *c, bool finally_exit);
-__attribute__((nonnull))
-static inline void next_pipe(pipeinfo_T *pi, bool next);
+static void exec_pipelines_async(const pipeline_T *p)
+    __attribute__((nonnull));
+static void exec_if(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_for(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_while(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_case(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static inline void next_pipe(pipeinfo_T *pi, bool next)
+    __attribute__((nonnull));
 static void exec_commands(const command_T *c, exec_T type, bool looppipe);
-__attribute__((nonnull))
 static pid_t exec_process(
-	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid);
+	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+    __attribute__((nonnull));
 static pid_t fork_and_reset(pid_t pgid, bool fg);
 static bool search_command(
 	const char *restrict name, commandinfo_T *restrict ci);
-__attribute__((nonnull))
-static void exec_nonsimple_command(const command_T *c, bool finally_exit);
-__attribute__((nonnull))
+static void exec_nonsimple_command(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
-	int argc, char *const *argv, bool finally_exit);
+	int argc, char *const *argv, bool finally_exit)
+    __attribute__((nonnull));
 
 
 /* 最後に実行したコマンドの終了ステータス */

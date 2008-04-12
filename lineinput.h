@@ -34,14 +34,14 @@
 struct xwcsbuf_T;
 
 /* inputfunc_T に適合する入力関数の宣言 */
-__attribute__((nonnull))
-extern int input_mbs(struct xwcsbuf_T *buf, void *inputinfo);
-__attribute__((nonnull))
-extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo);
-__attribute__((nonnull))
-extern int input_file(struct xwcsbuf_T *buf, void *inputinfo);
-__attribute__((nonnull))
-extern int input_readline(struct xwcsbuf_T *buf, void *inputinfo);
+extern int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
+    __attribute__((nonnull));
+extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
+    __attribute__((nonnull));
+extern int input_file(struct xwcsbuf_T *buf, void *inputinfo)
+    __attribute__((nonnull));
+extern int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
+    __attribute__((nonnull));
 
 /* input_mbs の inputinfo として使う構造体 */
 struct input_mbs_info {

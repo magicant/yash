@@ -27,51 +27,52 @@ typedef struct plist_T {
     size_t length, maxlength;
 } plist_T;
 
-__attribute__((nonnull))
-extern size_t plcount(void *const *list);
+extern size_t plcount(void *const *list)
+    __attribute__((nonnull));
 extern void recfree(void **ary, void freer(void *elem));
 
-__attribute__((nonnull))
-extern plist_T *pl_init(plist_T *list);
-__attribute__((nonnull))
-extern void pl_destroy(plist_T *list);
-__attribute__((nonnull))
-extern void **pl_toary(plist_T *list);
-__attribute__((nonnull))
-extern plist_T *pl_setmax(plist_T *list, size_t newmax);
-__attribute__((nonnull))
-extern plist_T *pl_ensuremax(plist_T *list, size_t max);
-__attribute__((nonnull))
-extern plist_T *pl_clear(plist_T *list);
-__attribute__((nonnull))
+extern plist_T *pl_init(plist_T *list)
+    __attribute__((nonnull));
+extern void pl_destroy(plist_T *list)
+    __attribute__((nonnull));
+extern void **pl_toary(plist_T *list)
+    __attribute__((nonnull));
+extern plist_T *pl_setmax(plist_T *list, size_t newmax)
+    __attribute__((nonnull));
+extern plist_T *pl_ensuremax(plist_T *list, size_t max)
+    __attribute__((nonnull));
+extern plist_T *pl_clear(plist_T *list)
+    __attribute__((nonnull));
 extern plist_T *pl_replace(
 	plist_T *restrict list, size_t i, size_t ln,
-	void *const *restrict a, size_t an);
-__attribute__((nonnull))
+	void *const *restrict a, size_t an)
+    __attribute__((nonnull));
 static inline plist_T *pl_ninsert(
-	plist_T *restrict list, size_t i, void *const *restrict a, size_t n);
-__attribute__((nonnull))
+	plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
+    __attribute__((nonnull));
 static inline plist_T *pl_insert(
-	plist_T *restrict list, size_t i, void *const *restrict a);
-__attribute__((nonnull))
+	plist_T *restrict list, size_t i, void *const *restrict a)
+    __attribute__((nonnull));
 static inline plist_T *pl_ncat(
-	plist_T *restrict list, void *const *restrict a, size_t n);
-__attribute__((nonnull))
+	plist_T *restrict list, void *const *restrict a, size_t n)
+    __attribute__((nonnull));
 static inline plist_T *pl_cat(
-	plist_T *restrict list, void *const *restrict a);
-__attribute__((nonnull))
-static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n);
-__attribute__((nonnull(1)))
-extern plist_T *pl_add(plist_T *list, void *p);
-__attribute__((nonnull))
-extern void *pl_pop(plist_T *list);
+	plist_T *restrict list, void *const *restrict a)
+    __attribute__((nonnull));
+static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n)
+    __attribute__((nonnull));
+extern plist_T *pl_add(plist_T *list, void *p)
+    __attribute__((nonnull(1)));
+extern void *pl_pop(plist_T *list)
+    __attribute__((nonnull));
 
 
 /* ポインタの配列 a の最初の n 要素をポインタリストの i 要素目の手前に挿入する。
  * a の要素に NULL があってもそれは特別扱いしない。
  * list->length <= i ならばリストの末尾に追加する。
  * a は list->contents の一部であってはならない。 */
-plist_T *pl_ninsert(plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
+plist_T *pl_ninsert(
+	plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
 {
     return pl_replace(list, i, 0, a, n);
 }

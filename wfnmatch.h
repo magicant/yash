@@ -37,16 +37,16 @@ enum wfnmtype { WFNM_WHOLE, WFNM_LONGEST, WFNM_SHORTEST, };
 #define WFNM_NOMATCH ((size_t) -1)
 #define WFNM_ERROR   ((size_t) -2)
 
-__attribute__((nonnull))
 extern size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
-	enum wfnmflags flags, enum wfnmtype type);
-__attribute__((nonnull))
+	enum wfnmflags flags, enum wfnmtype type)
+    __attribute__((nonnull));
 extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
-	enum wfnmflags flags, enum wfnmtype type, size_t shortest_match_length);
-__attribute__((nonnull))
-extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags);
-__attribute__((nonnull))
-extern bool pattern_with_special_char(const wchar_t *pat);
+	enum wfnmflags flags, enum wfnmtype type, size_t shortest_match_length)
+    __attribute__((nonnull));
+extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
+    __attribute__((nonnull));
+extern bool pattern_with_special_char(const wchar_t *pat)
+    __attribute__((nonnull));
 
 
 #endif /* STRMATCH_H */

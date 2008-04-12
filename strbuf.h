@@ -33,114 +33,114 @@ typedef struct xwcsbuf_T {
     size_t length, maxlength;
 } xwcsbuf_T;
 
-__attribute__((nonnull))
-extern xstrbuf_T *sb_init(xstrbuf_T *buf);
-__attribute__((nonnull))
-extern xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s);
-__attribute__((nonnull))
-extern void sb_destroy(xstrbuf_T *buf);
-__attribute__((nonnull))
-extern char *sb_tostr(xstrbuf_T *buf);
-__attribute__((nonnull))
-extern xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax);
-__attribute__((nonnull))
-extern inline xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max);
-__attribute__((nonnull))
-extern xstrbuf_T *sb_clear(xstrbuf_T *buf);
-__attribute__((nonnull))
+extern xstrbuf_T *sb_init(xstrbuf_T *buf)
+    __attribute__((nonnull));
+extern xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
+    __attribute__((nonnull));
+extern void sb_destroy(xstrbuf_T *buf)
+    __attribute__((nonnull));
+extern char *sb_tostr(xstrbuf_T *buf)
+    __attribute__((nonnull));
+extern xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
+    __attribute__((nonnull));
+extern inline xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
+    __attribute__((nonnull));
+extern xstrbuf_T *sb_clear(xstrbuf_T *buf)
+    __attribute__((nonnull));
 extern xstrbuf_T *sb_replace(
 	xstrbuf_T *restrict buf, size_t i, size_t bn,
-	const char *restrict s, size_t sn);
-__attribute__((nonnull))
+	const char *restrict s, size_t sn)
+    __attribute__((nonnull));
 static inline xstrbuf_T *sb_ninsert(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n);
-__attribute__((nonnull))
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
+    __attribute__((nonnull));
 static inline xstrbuf_T *sb_insert(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s);
-__attribute__((nonnull))
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s)
+    __attribute__((nonnull));
 static inline xstrbuf_T *sb_ncat(
-	xstrbuf_T *restrict buf, const char *restrict s, size_t n);
-__attribute__((nonnull))
+	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
+    __attribute__((nonnull));
 static inline xstrbuf_T *sb_cat(
-	xstrbuf_T *restrict buf, const char *restrict s);
-__attribute__((nonnull))
-static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n);
-__attribute__((nonnull))
-extern xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c);
-__attribute__((nonnull(1)))
+	xstrbuf_T *restrict buf, const char *restrict s)
+    __attribute__((nonnull));
+static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
+    __attribute__((nonnull));
+extern xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
+    __attribute__((nonnull));
 extern wchar_t *sb_wcscat(
 	xstrbuf_T *restrict buf,
-	const wchar_t *restrict s, mbstate_t *restrict ps);
-__attribute__((nonnull(1,2),format(printf,2,0)))
+	const wchar_t *restrict s, mbstate_t *restrict ps)
+    __attribute__((nonnull(1)));
 extern int sb_vprintf(
-	xstrbuf_T *restrict buf, const char *restrict format, va_list ap);
-__attribute__((nonnull(1,2),format(printf,2,3)))
+	xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
+    __attribute__((nonnull(1,2),format(printf,2,0)));
 extern int sb_printf(
-	xstrbuf_T *restrict buf, const char *restrict format, ...);
-__attribute__((nonnull,format(strftime,2,0)))
+	xstrbuf_T *restrict buf, const char *restrict format, ...)
+    __attribute__((nonnull(1,2),format(printf,2,3)));
 extern size_t sb_strftime(
 	xstrbuf_T *restrict buf,
-	const char *restrict format, const struct tm *restrict tm);
+	const char *restrict format, const struct tm *restrict tm)
+    __attribute__((nonnull,format(strftime,2,0)));
 
-__attribute__((nonnull))
-extern xwcsbuf_T *wb_init(xwcsbuf_T *buf);
-__attribute__((nonnull))
-extern xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s);
-__attribute__((nonnull))
-extern void wb_destroy(xwcsbuf_T *buf);
-__attribute__((nonnull))
-extern wchar_t *wb_towcs(xwcsbuf_T *buf);
-__attribute__((nonnull))
-extern xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax);
-__attribute__((nonnull))
-extern xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max);
-__attribute__((nonnull))
-extern xwcsbuf_T *wb_clear(xwcsbuf_T *buf);
-__attribute__((nonnull))
+extern xwcsbuf_T *wb_init(xwcsbuf_T *buf)
+    __attribute__((nonnull));
+extern xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
+    __attribute__((nonnull));
+extern void wb_destroy(xwcsbuf_T *buf)
+    __attribute__((nonnull));
+extern wchar_t *wb_towcs(xwcsbuf_T *buf)
+    __attribute__((nonnull));
+extern xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
+    __attribute__((nonnull));
+extern xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
+    __attribute__((nonnull));
+extern xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
+    __attribute__((nonnull));
 extern xwcsbuf_T *wb_replace(
 	xwcsbuf_T *restrict buf, size_t i, size_t bn,
-	const wchar_t *restrict s, size_t sn);
-__attribute__((nonnull))
+	const wchar_t *restrict s, size_t sn)
+    __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ninsert(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n);
-__attribute__((nonnull))
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
+    __attribute__((nonnull));
 static inline xwcsbuf_T *wb_insert(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s);
-__attribute__((nonnull))
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
+    __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ncat(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n);
-__attribute__((nonnull))
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
+    __attribute__((nonnull));
 static inline xwcsbuf_T *wb_cat(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s);
-__attribute__((nonnull))
-static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n);
-__attribute__((nonnull))
-extern xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c);
-__attribute__((nonnull))
-extern char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s);
-__attribute__((nonnull(1,2)))
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+    __attribute__((nonnull));
+static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
+    __attribute__((nonnull));
+extern xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
+    __attribute__((nonnull));
+extern char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
+    __attribute__((nonnull));
 extern int wb_vwprintf(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap);
-__attribute__((nonnull(1,2)))
+	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
+    __attribute__((nonnull(1,2)));
 extern int wb_wprintf(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...);
+	xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
+    __attribute__((nonnull(1,2)));
 
-__attribute__((nonnull,malloc,warn_unused_result))
-extern char *malloc_wcsntombs(const wchar_t *s, size_t n);
-__attribute__((nonnull,malloc,warn_unused_result))
-static inline char *malloc_wcstombs(const wchar_t *s);
-__attribute__((nonnull,malloc,warn_unused_result))
-static inline char *realloc_wcstombs(wchar_t *s);
-__attribute__((nonnull,malloc,warn_unused_result))
-extern wchar_t *malloc_mbsntowcs(const char *s, size_t n);
-__attribute__((nonnull,malloc,warn_unused_result))
-static inline wchar_t *malloc_mbstowcs(const char *s);
-__attribute__((nonnull,malloc,warn_unused_result))
-static inline wchar_t *realloc_mbstowcs(char *s);
-__attribute__((nonnull,malloc,warn_unused_result))
-static inline wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap);
-__attribute__((nonnull,malloc,warn_unused_result))
-static inline wchar_t *malloc_wprintf(const wchar_t *format, ...);
+extern char *malloc_wcsntombs(const wchar_t *s, size_t n)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline char *malloc_wcstombs(const wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline char *realloc_wcstombs(wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *malloc_mbsntowcs(const char *s, size_t n)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t *malloc_mbstowcs(const char *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t *realloc_mbstowcs(char *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t *malloc_wprintf(const wchar_t *format, ...)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 
 /* マルチバイト文字列 s の最初の n バイトを

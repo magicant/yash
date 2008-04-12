@@ -30,8 +30,8 @@
 #include "job.h"
 
 
-__attribute__((const))
-static int calc_status(int status);
+static int calc_status(int status)
+    __attribute__((const));
 
 
 /* ジョブリスト。

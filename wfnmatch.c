@@ -33,16 +33,16 @@
 
 #define FOLD(c) (CASEFOLD ? towlower(c) : (wint_t) (c))
 
-__attribute__((nonnull))
-static wchar_t *skip_bracket(const wchar_t *pat, enum wfnmflags flags);
-__attribute__((nonnull))
+static wchar_t *skip_bracket(const wchar_t *pat, enum wfnmflags flags)
+    __attribute__((nonnull));
 static size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
-	enum wfnmflags flags, enum wfnmtype type);
-__attribute__((nonnull))
+	enum wfnmflags flags, enum wfnmtype type)
+    __attribute__((nonnull));
 static size_t match_bracket(
-	const wchar_t **pp, const wchar_t *s, enum wfnmflags flags);
-__attribute__((nonnull))
-static wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match);
+	const wchar_t **pp, const wchar_t *s, enum wfnmflags flags)
+    __attribute__((nonnull));
+static wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
+    __attribute__((nonnull));
 
 
 /* ワイド文字列に対するパターンマッチを行う。

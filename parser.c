@@ -209,10 +209,10 @@ void redirsfree(redir_T *r)
 
 /********** 構文解析に関する補助ルーチン **********/
 
-__attribute__((const))
-static inline bool is_name_char(wchar_t c);
-__attribute__((nonnull))
-static wchar_t *skip_name(const wchar_t *s);
+static inline bool is_name_char(wchar_t c)
+    __attribute__((const));
+static wchar_t *skip_name(const wchar_t *s)
+    __attribute__((nonnull));
 
 
 /* 引数が名前構成文字であるかどうか調べる */
@@ -252,88 +252,88 @@ wchar_t *skip_name(const wchar_t *s)
 
 typedef enum { noalias, globalonly, anyalias, } aliastype_T;
 
-__attribute__((nonnull(1),format(printf,1,2)))
-static void serror(const char *restrict format, ...);
+static void serror(const char *restrict format, ...)
+    __attribute__((nonnull(1),format(printf,1,2)));
 static inline int read_more_input(void);
 static inline int ensure_buffer(size_t n);
 static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
 static bool is_token_delimiter_char(wchar_t c);
-__attribute__((const))
-static bool is_command_delimiter_char(wchar_t c);
-__attribute__((const))
-static bool is_slash_or_closing_brace(wchar_t c);
-__attribute__((const))
-static bool is_closing_brace(wchar_t c);
-__attribute__((nonnull))
-static bool is_token_at(const wchar_t *token, size_t index);
+static bool is_command_delimiter_char(wchar_t c)
+    __attribute__((const));
+static bool is_slash_or_closing_brace(wchar_t c)
+    __attribute__((const));
+static bool is_closing_brace(wchar_t c)
+    __attribute__((const));
+static bool is_token_at(const wchar_t *token, size_t index)
+    __attribute__((nonnull));
 static const wchar_t *check_opening_token_at(size_t index);
 static const wchar_t *check_closing_token_at(size_t index);
-__attribute__((malloc,warn_unused_result))
-static and_or_T *parse_command_list(void);
-__attribute__((malloc,warn_unused_result))
-static and_or_T *parse_compound_list(void);
-__attribute__((malloc,warn_unused_result))
-static and_or_T *parse_and_or_list(void);
-__attribute__((malloc,warn_unused_result))
-static pipeline_T *parse_pipelines_in_and_or(void);
-__attribute__((malloc,warn_unused_result))
-static pipeline_T *parse_pipeline(void);
-__attribute__((malloc,warn_unused_result))
-static command_T *parse_commands_in_pipeline(void);
-__attribute__((malloc,warn_unused_result))
-static command_T *parse_command(void);
-__attribute__((malloc,warn_unused_result,nonnull))
-static redir_T **parse_assignments_and_redirects(command_T *c);
-__attribute__((malloc,warn_unused_result,nonnull))
-static void **parse_words_and_redirects(redir_T **redirlastp, bool first);
-__attribute__((nonnull))
-static void parse_redirect_list(redir_T **lastp);
-__attribute__((malloc,warn_unused_result))
-static assign_T *tryparse_assignment(void);
-__attribute__((malloc,warn_unused_result))
-static redir_T *tryparse_redirect(void);
-__attribute__((malloc,warn_unused_result,nonnull))
-static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c));
-__attribute__((malloc,warn_unused_result))
-static inline wordunit_T *parse_word(aliastype_T type);
+static and_or_T *parse_command_list(void)
+    __attribute__((malloc,warn_unused_result));
+static and_or_T *parse_compound_list(void)
+    __attribute__((malloc,warn_unused_result));
+static and_or_T *parse_and_or_list(void)
+    __attribute__((malloc,warn_unused_result));
+static pipeline_T *parse_pipelines_in_and_or(void)
+    __attribute__((malloc,warn_unused_result));
+static pipeline_T *parse_pipeline(void)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_commands_in_pipeline(void)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_command(void)
+    __attribute__((malloc,warn_unused_result));
+static redir_T **parse_assignments_and_redirects(command_T *c)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static void **parse_words_and_redirects(redir_T **redirlastp, bool first)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static void parse_redirect_list(redir_T **lastp)
+    __attribute__((nonnull));
+static assign_T *tryparse_assignment(void)
+    __attribute__((malloc,warn_unused_result));
+static redir_T *tryparse_redirect(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
+    __attribute__((malloc,warn_unused_result,nonnull));
+static inline wordunit_T *parse_word(aliastype_T type)
+    __attribute__((malloc,warn_unused_result));
 static void skip_to_next_single_quote(void);
-__attribute__((malloc,warn_unused_result))
-static wordunit_T *parse_special_word_unit(void);
-__attribute__((malloc,warn_unused_result))
-static wordunit_T *tryparse_paramexp_raw(void);
-__attribute__((malloc,warn_unused_result))
-static wordunit_T *parse_paramexp_in_brase(void);
-__attribute__((malloc,warn_unused_result))
-static wordunit_T *parse_cmdsubst_in_paren(void);
-__attribute__((malloc,warn_unused_result))
-static wordunit_T *parse_cmdsubst_in_backquote(void);
-__attribute__((malloc,warn_unused_result))
-static wordunit_T *tryparse_arith(void);
-__attribute__((malloc,warn_unused_result))
-static wchar_t *parse_word_as_wcs(void);
-__attribute__((malloc,warn_unused_result,nonnull))
-static command_T *parse_compound_command(const wchar_t *command);
-__attribute__((malloc,warn_unused_result))
-static command_T *parse_group(commandtype_T type) __attribute__((malloc));
-__attribute__((malloc,warn_unused_result))
-static command_T *parse_if(void);
-__attribute__((malloc,warn_unused_result))
-static command_T *parse_for(void);
-__attribute__((malloc,warn_unused_result))
-static command_T *parse_while(bool whltype);
-__attribute__((malloc,warn_unused_result))
-static command_T *parse_case(void);
-__attribute__((malloc,warn_unused_result))
-static caseitem_T *parse_case_list(void);
-__attribute__((malloc,warn_unused_result))
-static void **parse_case_patterns(void);
+static wordunit_T *parse_special_word_unit(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *tryparse_paramexp_raw(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *parse_paramexp_in_brase(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *parse_cmdsubst_in_paren(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *parse_cmdsubst_in_backquote(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *tryparse_arith(void)
+    __attribute__((malloc,warn_unused_result));
+static wchar_t *parse_word_as_wcs(void)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_compound_command(const wchar_t *command)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static command_T *parse_group(commandtype_T type)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_if(void)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_for(void)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_while(bool whltype)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_case(void)
+    __attribute__((malloc,warn_unused_result));
+static caseitem_T *parse_case_list(void)
+    __attribute__((malloc,warn_unused_result));
+static void **parse_case_patterns(void)
+    __attribute__((malloc,warn_unused_result));
 static void read_heredoc_contents(redir_T *redir);
-__attribute__((nonnull))
-static const char *get_errmsg_unexpected_token(const wchar_t *token);
-__attribute__((nonnull))
-static void print_errmsg_token_missing(const wchar_t *token, size_t index);
+static const char *get_errmsg_unexpected_token(const wchar_t *token)
+    __attribute__((nonnull));
+static void print_errmsg_token_missing(const wchar_t *token, size_t index)
+    __attribute__((nonnull));
 
 wordunit_T *parse_word(aliastype_T type)
 {
@@ -1826,36 +1826,36 @@ void print_errmsg_token_missing(const wchar_t *token, size_t index)
 
 /********** 構文木を文字列に戻すルーチン **********/
 
-__attribute__((nonnull(1)))
 static void print_and_or_lists(
 	xwcsbuf_T *restrict buf, const and_or_T *restrict andors,
-	bool omit_last_semicolon);
-__attribute__((nonnull(1)))
+	bool omit_last_semicolon)
+    __attribute__((nonnull(1)));
 static void print_pipelines(
-	xwcsbuf_T *restrict buf, const pipeline_T *restrict pipelines);
-__attribute__((nonnull(1)))
+	xwcsbuf_T *restrict buf, const pipeline_T *restrict pipelines)
+    __attribute__((nonnull(1)));
 static void print_commands(
-	xwcsbuf_T *restrict buf, const command_T *restrict commands);
-__attribute__((nonnull))
+	xwcsbuf_T *restrict buf, const command_T *restrict commands)
+    __attribute__((nonnull(1)));
 static void print_command_content(
-	xwcsbuf_T *restrict buf, const command_T *restrict command);
-__attribute__((nonnull(1)))
+	xwcsbuf_T *restrict buf, const command_T *restrict command)
+    __attribute__((nonnull));
 static void print_caseitems(
-	xwcsbuf_T *restrict buf, const caseitem_T *restrict caseitems);
-__attribute__((nonnull(1)))
+	xwcsbuf_T *restrict buf, const caseitem_T *restrict caseitems)
+    __attribute__((nonnull(1)));
 static void print_assigns(
-	xwcsbuf_T *restrict buf, const assign_T *restrict assigns);
-__attribute__((nonnull(1)))
+	xwcsbuf_T *restrict buf, const assign_T *restrict assigns)
+    __attribute__((nonnull(1)));
 static void print_redirs(
-	xwcsbuf_T *restrict buf, const redir_T *restrict redirs);
-__attribute__((nonnull(1)))
+	xwcsbuf_T *restrict buf, const redir_T *restrict redirs)
+    __attribute__((nonnull(1)));
 static void print_word(
-	xwcsbuf_T *restrict buf, const wordunit_T *restrict word);
-__attribute__((nonnull))
+	xwcsbuf_T *restrict buf, const wordunit_T *restrict word)
+    __attribute__((nonnull(1)));
 static void print_paramexp(
-	xwcsbuf_T *restrict buf, const paramexp_T *restrict param);
-__attribute__((nonnull))
-static void trim_end_of_buffer(xwcsbuf_T *buf);
+	xwcsbuf_T *restrict buf, const paramexp_T *restrict param)
+    __attribute__((nonnull));
+static void trim_end_of_buffer(xwcsbuf_T *buf)
+    __attribute__((nonnull));
 
 #if 0
 /* 構文木をワイド文字列に変換して返す。

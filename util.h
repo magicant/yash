@@ -26,34 +26,34 @@
 
 /********** General functions **********/
 
-__attribute__((malloc,warn_unused_result))
-extern void *xcalloc(size_t nmemb, size_t size);
-__attribute__((malloc,warn_unused_result))
-extern void *xmalloc(size_t size);
-__attribute__((malloc,warn_unused_result))
-extern void *xrealloc(void *ptr, size_t size);
+extern void *xcalloc(size_t nmemb, size_t size)
+    __attribute__((malloc,warn_unused_result));
+extern void *xmalloc(size_t size)
+    __attribute__((malloc,warn_unused_result));
+extern void *xrealloc(void *ptr, size_t size)
+    __attribute__((malloc,warn_unused_result));
 
 
 /********** String utilities **********/
 
-__attribute__((nonnull))
-static inline size_t xstrnlen(const char *s, size_t maxlen);
-__attribute__((malloc,warn_unused_result,nonnull))
-extern char *xstrndup(const char *s, size_t maxlen);
-__attribute__((malloc,warn_unused_result,nonnull))
-static inline char *xstrdup(const char *s);
-__attribute__((nonnull))
-static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen);
-__attribute__((malloc,warn_unused_result,nonnull))
-extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen);
-__attribute__((malloc,warn_unused_result,nonnull))
-static inline wchar_t *xwcsdup(const wchar_t *s);
-__attribute__((malloc,warn_unused_result))
-void **dupwcsarray(void *const *array);
-__attribute__((nonnull))
-extern char *matchstrprefix(const char *s, const char *prefix);
-__attribute__((nonnull))
-extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix);
+static inline size_t xstrnlen(const char *s, size_t maxlen)
+    __attribute__((nonnull));
+extern char *xstrndup(const char *s, size_t maxlen)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static inline char *xstrdup(const char *s)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
+    __attribute__((nonnull));
+extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static inline wchar_t *xwcsdup(const wchar_t *s)
+    __attribute__((malloc,warn_unused_result,nonnull));
+extern void **dupwcsarray(void *const *array)
+    __attribute__((malloc,warn_unused_result));
+extern char *matchstrprefix(const char *s, const char *prefix)
+    __attribute__((nonnull));
+extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
+    __attribute__((nonnull));
 
 /* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
  * つまり、長さが maxlen 以上なら maxlen を返す。 */
@@ -131,8 +131,8 @@ wchar_t *xwcsdup(const wchar_t *s)
 extern const char *yash_program_invocation_name;
 extern const char *yash_program_invocation_short_name;
 extern unsigned yash_error_message_count;
-__attribute__((format(printf,2,3)))
-extern void xerror(int errno_, const char *restrict format, ...);
+extern void xerror(int errno_, const char *restrict format, ...)
+    __attribute__((format(printf,2,3)));
 
 
 /********** xgetopt **********/
@@ -148,16 +148,16 @@ struct xoption {
     int val;
 };
 
-__attribute__((nonnull(1,2)))
 extern int xgetopt_long(
 	char **restrict argv,
 	const char *restrict optstring,
 	const struct xoption *restrict longopts,
-	int *restrict longindex);
-__attribute__((nonnull(1,2)))
+	int *restrict longindex)
+    __attribute__((nonnull(1,2)));
 static inline int xgetopt(
 	char **restrict argv,
-	const char *restrict optstring);
+	const char *restrict optstring)
+    __attribute__((nonnull(1,2)));
 
 /* 長いオプションがない xgetopt */
 int xgetopt(char **restrict argv, const char *restrict optstring)

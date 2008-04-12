@@ -58,8 +58,8 @@ typedef struct job_T {
 
 extern void init_job(void);
 
-__attribute__((nonnull))
-extern void set_active_job(job_T *job);
+extern void set_active_job(job_T *job)
+    __attribute__((nonnull));
 extern void add_job(void);
 extern void remove_job(size_t jobnumber);
 extern void remove_all_jobs(void);
@@ -67,8 +67,8 @@ extern void remove_all_jobs(void);
 extern void do_wait(void);
 extern void wait_for_job(size_t jobnumber, bool return_on_stop);
 
-__attribute__((nonnull))
-extern int calc_status_of_job(job_T *job);
+extern int calc_status_of_job(job_T *job)
+    __attribute__((nonnull));
 
 
 #endif /* JOB_H */
