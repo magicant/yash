@@ -25,22 +25,24 @@
 /* チルダ展開の種類 */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 
-__attribute__((nonnull))
 extern bool expand_line(
 	void *const *restrict args,
 	int *restrict argcp,
-	char ***restrict argvp);
-__attribute__((nonnull,malloc,warn_unused_result))
-wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde, bool glob);
-__attribute__((nonnull,malloc,warn_unused_result))
-extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t);
-__attribute__((nonnull,malloc,warn_unused_result))
+	char ***restrict argvp)
+    __attribute__((nonnull));
+extern wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t *escapefree(
-	wchar_t *restrict s, const wchar_t *restrict t);
-__attribute__((nonnull,malloc,warn_unused_result))
-extern wchar_t *unescape(const wchar_t *s);
-__attribute__((nonnull,malloc,warn_unused_result))
-static inline wchar_t *unescapefree(wchar_t *s);
+	wchar_t *restrict s, const wchar_t *restrict t)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *unescape(const wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t *unescapefree(wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 
 /* escape と同じだが、第 1 引数を free する。
