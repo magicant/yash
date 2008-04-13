@@ -430,9 +430,37 @@ wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
 
 /* パターン内に L'*' や L'?' などの特殊文字があるかどうか調べる。
  * 結果が false ならば、pat にマッチする文字列は pat それ自身のみである。 */
-bool pattern_with_special_char(const wchar_t *pat)
+bool pattern_is_literal(const wchar_t *pat)
 {
     return wcspbrk(pat, L"*?[\\") != NULL;
+}
+
+/* パターン内に L'*' や L'?' などの特殊文字があるかどうか調べる。
+ * パターンは WFNM_PATHNAME ありで WFNM_NOESCAPE なしの設定とみなす。
+ * 結果が false ならば、ファイル名展開の必要はない。 */
+bool pattern_has_special_char(const wchar_t *pat)
+{
+    for (;;) {
+	switch (*pat) {
+	    case L'\0':
+		return false;
+	    case L'\\':
+		pat++;
+		if (!*pat)
+		    return false;
+		pat++;
+		break;
+	    case L'*':  case L'?':
+		return true;
+	    case L'[':
+		if (skip_bracket(pat, WFNM_PATHNAME) != pat)
+		    return true;
+		/* falls thru! */
+	    default:
+		pat++;
+		break;
+	}
+    }
 }
 
 

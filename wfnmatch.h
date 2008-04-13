@@ -45,7 +45,9 @@ extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
     __attribute__((nonnull));
 extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
     __attribute__((nonnull));
-extern bool pattern_with_special_char(const wchar_t *pat)
+extern bool pattern_is_literal(const wchar_t *pat)
+    __attribute__((pure,nonnull));
+extern bool pattern_has_special_char(const wchar_t *pat)
     __attribute__((pure,nonnull));
 
 
