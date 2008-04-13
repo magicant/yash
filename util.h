@@ -48,8 +48,14 @@ extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen)
     __attribute__((malloc,warn_unused_result,nonnull));
 static inline wchar_t *xwcsdup(const wchar_t *s)
     __attribute__((malloc,warn_unused_result,nonnull));
+extern char **dupstrarray(char *const *array)
+    __attribute__((malloc,warn_unused_result));
 extern void **dupwcsarray(void *const *array)
     __attribute__((malloc,warn_unused_result));
+extern char *joinstrarray(char *const *array, char padding)
+    __attribute__((malloc,warn_unused_result,nonnull));
+extern wchar_t *joinwcsarray(void *const *array, wchar_t padding)
+    __attribute__((malloc,warn_unused_result,nonnull));
 extern char *matchstrprefix(const char *s, const char *prefix)
     __attribute__((pure,nonnull));
 extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)

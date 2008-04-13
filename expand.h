@@ -35,10 +35,10 @@ extern wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 extern char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
-    __attribute__((nonnull,malloc,warn_unused_result));
+    __attribute__((nonnull(1),malloc,warn_unused_result));
 static inline wchar_t *escapefree(
 	wchar_t *restrict s, const wchar_t *restrict t)
-    __attribute__((nonnull,malloc,warn_unused_result));
+    __attribute__((nonnull(1),malloc,warn_unused_result));
 extern wchar_t *unescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t *unescapefree(wchar_t *s)
@@ -51,7 +51,7 @@ static inline wchar_t *escapefree(
 	wchar_t *restrict s, const wchar_t *restrict t)
 {
     wchar_t *wcspbrk(const wchar_t *ws1, const wchar_t *ws2);
-    if (!wcspbrk(s, t))
+    if (t && !wcspbrk(s, t))
 	return s;
 
     wchar_t *result = escape(s, t);

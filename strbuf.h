@@ -63,6 +63,9 @@ static inline xstrbuf_T *sb_ncat(
 static inline xstrbuf_T *sb_cat(
 	xstrbuf_T *restrict buf, const char *restrict s)
     __attribute__((nonnull));
+static inline xstrbuf_T *sb_catfree(
+	xstrbuf_T *restrict buf, char *restrict s)
+    __attribute__((nonnull));
 static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
@@ -111,6 +114,9 @@ static inline xwcsbuf_T *wb_ncat(
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_cat(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+    __attribute__((nonnull));
+static inline xwcsbuf_T *wb_catfree(
+	xwcsbuf_T *restrict buf, wchar_t *restrict s)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
     __attribute__((nonnull));
@@ -177,6 +183,17 @@ xstrbuf_T *sb_cat(xstrbuf_T *restrict buf, const char *restrict s)
     return sb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
 
+/* マルチバイト文字列を文字列バッファに追加した後 free する。
+ * s は buf->contents の一部であってはならない。 */
+xstrbuf_T *sb_catfree(xstrbuf_T *restrict buf, char *restrict s)
+{
+    void free(void *p);
+
+    sb_cat(buf, s);
+    free(s);
+    return buf;
+}
+
 /* マルチバイト文字列バッファの i バイト目から n バイトを削除する。
  * buf->length <= i ならば何もしない。
  * buf->length <= i + n ならば i バイト目以降全てを削除する。 */
@@ -218,6 +235,17 @@ xwcsbuf_T *wb_ncat(xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
 xwcsbuf_T *wb_cat(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
 {
     return wb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
+}
+
+/* ワイド文字列を文字列バッファに追加した後 free する。
+ * s は buf->contents の一部であってはならない。 */
+xwcsbuf_T *wb_catfree(xwcsbuf_T *restrict buf, wchar_t *restrict s)
+{
+    void free(void *p);
+
+    wb_cat(buf, s);
+    free(s);
+    return buf;
 }
 
 /* ワイド文字列バッファの i 文字目から n 文字を削除する。
