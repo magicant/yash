@@ -415,12 +415,15 @@ subst:
 	    if (p->pe_type & PT_NEST) {
 		xerror(0, Ngt("invalid assignment in parameter expansion"));
 		return NULL;
+	    } else if (!is_name(p->pe_name)) {
+		xerror(0, Ngt("cannot assign to `%s' in parameter expansion"),
+			p->pe_name);
+		return NULL;
 	    }
 	    subst = expand_single(p->pe_subst, tt_single);
 	    if (!subst)
 		return NULL;
 	    subst = unescapefree(subst);
-	    // TODO 特殊パラメータや位置パラメータでないか確認
 	    if (!set_variable(p->pe_name, xwcsdup(subst), false, false)) {
 		free(subst);
 		return NULL;

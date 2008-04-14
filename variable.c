@@ -50,6 +50,8 @@ typedef struct environ_T {
 
 static void varfree(variable_T *v);
 static void varkvfree(kvpair_T kv);
+static inline bool is_name_char(char c)
+    __attribute__((const));
 static variable_T *search_variable(const char *name, bool temp)
     __attribute__((pure,nonnull));
 static void update_enrivon(const char *name)
@@ -171,6 +173,38 @@ void finalize_variables(void)
     ht_clear(&temp_variables, varkvfree);
 
     initialized = false;
+}
+
+/* 引数が名前構成文字であるかどうか調べる */
+bool is_name_char(char c)
+{
+    switch (c) {
+    case '0':  case '1':  case '2':  case '3':  case '4':
+    case '5':  case '6':  case '7':  case '8':  case '9':
+    case 'a':  case 'b':  case 'c':  case 'd':  case 'e':  case 'f':
+    case 'g':  case 'h':  case 'i':  case 'j':  case 'k':  case 'l':
+    case 'm':  case 'n':  case 'o':  case 'p':  case 'q':  case 'r':
+    case 's':  case 't':  case 'u':  case 'v':  case 'w':  case 'x':
+    case 'y':  case 'z':
+    case 'A':  case 'B':  case 'C':  case 'D':  case 'E':  case 'F':
+    case 'G':  case 'H':  case 'I':  case 'J':  case 'K':  case 'L':
+    case 'M':  case 'N':  case 'O':  case 'P':  case 'Q':  case 'R':
+    case 'S':  case 'T':  case 'U':  case 'V':  case 'W':  case 'X':
+    case 'Y':  case 'Z':  case '_':
+	return true;
+    default:
+	return false;
+    }
+}
+
+/* 指定した文字列が (位置パラメータや特殊パラメータではない) 普通の変数の名前
+ * であるかどうか調べる */
+bool is_name(const char *s)
+{
+    if (!xisdigit(*s))
+	while (is_name_char(*s))
+	    s++;
+    return !*s;
 }
 
 /* 指定した名前の変数を捜し出す。

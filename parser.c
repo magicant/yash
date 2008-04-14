@@ -216,7 +216,7 @@ static wchar_t *skip_name(const wchar_t *s)
 
 
 /* 引数が名前構成文字であるかどうか調べる */
-inline bool is_name_char(wchar_t c)
+bool is_name_char(wchar_t c)
 {
     switch (c) {
     case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
@@ -335,11 +335,6 @@ static const char *get_errmsg_unexpected_token(const wchar_t *token)
     __attribute__((nonnull));
 static void print_errmsg_token_missing(const wchar_t *token, size_t index)
     __attribute__((nonnull));
-
-wordunit_T *parse_word(aliastype_T type)
-{
-    return parse_word_to(type, is_token_delimiter_char);
-}
 
 
 /* 解析中のソースのデータ */
@@ -975,6 +970,11 @@ reparse:
 	result->rd_herecontent = NULL;
     }
     return result;
+}
+
+wordunit_T *parse_word(aliastype_T type)
+{
+    return parse_word_to(type, is_token_delimiter_char);
 }
 
 /* 現在位置のエイリアスを展開し、ワードを解析する。

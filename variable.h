@@ -92,6 +92,8 @@ extern unsigned long current_lineno;
 
 extern void init_variables(void);
 extern void finalize_variables(void);
+extern bool is_name(const char *s)
+    __attribute__((nonnull,pure));
 extern bool set_variable(
 	const char *name, wchar_t *value, bool local, bool export)
     __attribute__((nonnull));

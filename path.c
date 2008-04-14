@@ -248,8 +248,7 @@ static char **patharray = NULL;
 void reset_patharray(const wchar_t *newpath)
 {
     recfree((void **) patharray, free);
-
-    if (!newpath || !newpath[0])
+    if (!newpath)
 	newpath = L"";
 
     wchar_t wpath[wcslen(newpath) + 1];
