@@ -160,6 +160,8 @@ void **dupwcsarray(void *const *array)
 //	if (padding)
 //	    *s++ = padding;
 //    }
+//    if (padding && elemcount)
+//	s--;
 //    *s = '\0';
 //
 //    return result;
@@ -189,7 +191,7 @@ wchar_t *joinwcsarray(void *const *array, wchar_t padding)
 	if (padding)
 	    *s++ = padding;
     }
-    if (padding)
+    if (padding && elemcount)
 	s--;
     *s = L'\0';
 

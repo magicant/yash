@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <wctype.h>
 #include "option.h"
 #include "util.h"
@@ -44,6 +45,15 @@ static wchar_t *expand_tilde(const wchar_t **ss)
 static void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void print_subst_as_error(const paramexp_T *p)
+    __attribute__((nonnull));
+static void match_each(
+	void **slist, const wchar_t *pattern, paramexptype_T type)
+    __attribute__((nonnull));
+static void match_head_each(void **slist, const wchar_t *pattern, bool longest)
+    __attribute__((nonnull));
+static void match_tail_longest_each(void **slist, const wchar_t *pattern)
+    __attribute__((nonnull));
+static void match_tail_shortest_each(void **slist, const wchar_t *pattern)
     __attribute__((nonnull));
 static void fieldsplit(wchar_t *restrict s, const wchar_t *restrict ifs,
 	plist_T *restrict dest)
@@ -388,7 +398,7 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	    && (!list[0] || (!((char *) list[0])[0] && !list[1])))
 	unset = true;
 
-    /* PT_MINUS, PT_PLUS, PT_ASSIGN, PT_ERROR を処理する */
+    /* PT_MINUS, PT_PLUS, PT_ASSIGN, PT_ERROR, PT_MATCH, PT_SUBST を処理する */
     switch (p->pe_type & PT_MASK) {
     case PT_PLUS:
 	if (!unset)
@@ -440,10 +450,17 @@ subst:
 	    return NULL;
 	}
 	break;
+    case PT_MATCH:
+	match = expand_single(p->pe_match, tt_single);
+	if (!match) {
+	    recfree(list, free);
+	    return NULL;
+	}
+	match_each(list, match, p->pe_type);
+	free(match);
+	break;
+	// TODO PT_SUBST
     }
-
-    // TODO PT_MATCH などの処理
-    (void) match;
 
     /* 配列の要素を連結する */
     if (concat) {
@@ -489,6 +506,92 @@ void print_subst_as_error(const paramexp_T *p)
 		    ? Ngt("%s: parameter null or not set")
 		    : Ngt("%s: parameter not set"),
 		    p->pe_name);
+    }
+}
+
+/* slist の要素である各ワイド文字列に対してマッチングを行い、
+ * マッチした部分を削除して返す。
+ * slist:   void * にキャストした free 可能なワイド文字列へのポインタの配列
+ * pattern: マッチングするパターン
+ * type:    PT_MATCHHEAD, PT_MATCHTAIL, PT_MATCHLONGEST フラグ
+ * slist の各要素はこの関数内で realloc する。 */
+void match_each(void **slist, const wchar_t *pattern, paramexptype_T type)
+{
+    if (type & PT_MATCHHEAD) {
+	match_head_each(slist, pattern, type & PT_MATCHLONGEST);
+    } else {
+	assert(type & PT_MATCHTAIL);
+	if (type & PT_MATCHLONGEST)
+	    match_tail_longest_each(slist, pattern);
+	else
+	    match_tail_shortest_each(slist, pattern);
+    }
+}
+
+/* PT_MATCHHEAD な match_each を実際に行う。
+ * longest: true なら最長マッチ、false なら最短マッチ */
+void match_head_each(void **slist, const wchar_t *pattern, bool longest)
+{
+    enum wfnmtype type = longest ? WFNM_LONGEST : WFNM_SHORTEST;
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t match = wfnmatchl(pattern, str, flags, type, minlen);
+	if (match == WFNM_ERROR) {
+	    break;
+	} else if (match != WFNM_NOMATCH) {
+	    if (match > 0)
+		wmemmove(str, str + match, wcslen(str + match) + 1);
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHTAIL かつ PT_MATCHLONGEST な match_each を実際に行う。 */
+void match_tail_longest_each(void **slist, const wchar_t *pattern)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t len = wcslen(str);
+	size_t index = 0;
+	while (minlen <= len - index) {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH) {
+		str[index] = L'\0';
+		break;
+	    }
+	    index++;
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHTAIL だが PT_MATCHLONGEST ではない match_each を実際に行う。 */
+void match_tail_shortest_each(void **slist, const wchar_t *pattern)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t len = wcslen(str);
+	size_t index = len - minlen;
+	do {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH) {
+		str[index] = L'\0';
+		break;
+	    }
+	} while (index--);
+	slist++;
     }
 }
 
