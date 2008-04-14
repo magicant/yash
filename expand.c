@@ -284,6 +284,7 @@ out:
 		if (!array[0]) {
 		    suppress = true;
 		} else {
+		    force = true;
 		    for (void **a = array; ; ) {
 			wb_catfree(&buf, *a);
 			a++;
