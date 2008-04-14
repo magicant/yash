@@ -70,6 +70,8 @@ static void subst_tail_each(
 static void subst_generic_each(void **slist,
 	const wchar_t *pattern, const wchar_t *subst, bool substall)
     __attribute__((nonnull));
+static void subst_length_each(void **slist)
+    __attribute__((nonnull));
 static void fieldsplit(wchar_t *restrict s, const wchar_t *restrict ifs,
 	plist_T *restrict dest)
     __attribute__((nonnull));
@@ -413,7 +415,7 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	    && (!list[0] || (!((char *) list[0])[0] && !list[1])))
 	unset = true;
 
-    /* PT_MINUS, PT_PLUS, PT_ASSIGN, PT_ERROR, PT_MATCH, PT_SUBST を処理する */
+    /* PT_PLUS, PT_MINUS, PT_ASSIGN, PT_ERROR, PT_MATCH, PT_SUBST を処理する */
     switch (p->pe_type & PT_MASK) {
     case PT_PLUS:
 	if (!unset)
@@ -489,7 +491,10 @@ subst:
 	free(subst);
 	break;
     }
-    // TODO PT_NUMBER
+
+    /* PT_NUMBER を処理する */
+    if (p->pe_type & PT_NUMBER)
+	subst_length_each(list);
 
     /* 配列の要素を連結する */
     if (concat) {
@@ -751,6 +756,20 @@ void subst_generic_each(void **slist,
 	}
 	free(str);
 	*slist = wb_towcs(&buf);
+	slist++;
+    }
+}
+
+/* slist の要素である各ワイド文字列について、その文字数を表す数字の文字列に
+ * 置き換える。
+ * slist: void * にキャストした free 可能なワイド文字列へのポインタの配列
+ * slist の各要素はこの関数内で realloc する。 */
+void subst_length_each(void **slist)
+{
+    wchar_t *str;
+    while ((str = *slist)) {
+	*slist = malloc_wprintf(L"%zu", wcslen(str));
+	free(str);
 	slist++;
     }
 }
