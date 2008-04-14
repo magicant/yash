@@ -249,6 +249,9 @@ void reset_patharray(const wchar_t *newpath)
 {
     recfree((void **) patharray, free);
 
+    if (!newpath || !newpath[0])
+	newpath = L"";
+
     wchar_t wpath[wcslen(newpath) + 1];
     wcscpy(wpath, newpath);
 
