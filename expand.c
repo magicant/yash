@@ -727,8 +727,6 @@ void subst_generic_each(void **slist,
     size_t minlen = shortest_match_length(pattern, flags);
     wchar_t *str;
     while ((str = *slist)) {
-	xerror(0, "DEBUG pat='%ls' str='%ls' subst='%ls'",
-		pattern, str, subst);
 	size_t index = 0;
 	xwcsbuf_T buf;
 	wb_init(&buf);
