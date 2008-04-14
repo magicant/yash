@@ -1255,7 +1255,9 @@ make_name:
 
 parse_match:
     if (pe->pe_type & PT_COLON) {
-	if ((pe->pe_type & PT_MASK) != PT_SUBST)
+	if ((pe->pe_type & PT_MASK) == PT_SUBST)
+	    pe->pe_type |= PT_MATCHHEAD | PT_MATCHTAIL;
+	else
 	    serror(Ngt("invalid use of `:' in parameter expansion"));
 	cindex += 1;
     } else if (cbuf.contents[cindex] == cbuf.contents[cindex + 1]) {

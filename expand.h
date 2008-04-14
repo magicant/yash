@@ -31,9 +31,9 @@ extern bool expand_line(
 	char ***restrict argvp)
     __attribute__((nonnull));
 extern wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
-    __attribute__((nonnull,malloc,warn_unused_result));
+    __attribute__((malloc,warn_unused_result));
 extern char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
-    __attribute__((nonnull,malloc,warn_unused_result));
+    __attribute__((malloc,warn_unused_result));
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 static inline wchar_t *escapefree(

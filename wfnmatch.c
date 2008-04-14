@@ -89,8 +89,8 @@ size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
 {
     const wchar_t *const savestr = str;
 
-    if (!*pat)
-	return WFNM_NOMATCH;
+    if (!pat[0])
+	return str[0] ? WFNM_NOMATCH : 0;
 
     /* 先頭のピリオドをチェック */
     if (PERIOD && FOLD(str[0]) == L'.' && pat[0] != L'.')

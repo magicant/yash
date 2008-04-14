@@ -55,6 +55,21 @@ static void match_tail_longest_each(void **slist, const wchar_t *pattern)
     __attribute__((nonnull));
 static void match_tail_shortest_each(void **slist, const wchar_t *pattern)
     __attribute__((nonnull));
+static void subst_each(void **slist, const wchar_t *pattern,
+	const wchar_t *subst, paramexptype_T type)
+    __attribute__((nonnull));
+static void subst_whole_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+    __attribute__((nonnull));
+static void subst_head_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+    __attribute__((nonnull));
+static void subst_tail_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+    __attribute__((nonnull));
+static void subst_generic_each(void **slist,
+	const wchar_t *pattern, const wchar_t *subst, bool substall)
+    __attribute__((nonnull));
 static void fieldsplit(wchar_t *restrict s, const wchar_t *restrict ifs,
 	plist_T *restrict dest)
     __attribute__((nonnull));
@@ -459,8 +474,22 @@ subst:
 	match_each(list, match, p->pe_type);
 	free(match);
 	break;
-	// TODO PT_SUBST
+    case PT_SUBST:
+	match = expand_single(p->pe_match, tt_single);
+	subst = expand_single(p->pe_subst, tt_single);
+	if (!match || !subst) {
+	    free(match);
+	    free(subst);
+	    recfree(list, free);
+	    return NULL;
+	}
+	subst = unescapefree(subst);
+	subst_each(list, match, subst, p->pe_type);
+	free(match);
+	free(subst);
+	break;
     }
+    // TODO PT_NUMBER
 
     /* 配列の要素を連結する */
     if (concat) {
@@ -557,7 +586,7 @@ void match_tail_longest_each(void **slist, const wchar_t *pattern)
     while ((str = *slist)) {
 	size_t len = wcslen(str);
 	size_t index = 0;
-	while (minlen <= len - index) {
+	while (minlen + index <= len) {
 	    size_t match = wfnmatchl(
 		    pattern, str + index, flags, WFNM_WHOLE, minlen);
 	    if (match == WFNM_ERROR) {
@@ -591,6 +620,139 @@ void match_tail_shortest_each(void **slist, const wchar_t *pattern)
 		break;
 	    }
 	} while (index--);
+	slist++;
+    }
+}
+
+/* slist の要素である各ワイド文字列に対してマッチングを行い、
+ * マッチした部分を置換して返す。
+ * slist:   void * にキャストした free 可能なワイド文字列へのポインタの配列
+ * pattern: マッチングするパターン
+ * subst:   マッチした部分を置換する文字列
+ * type:    PT_MATCHHEAD, PT_MATCHTAIL, PT_SUBSTALL フラグ
+ * slist の各要素はこの関数内で realloc する。 */
+void subst_each(void **slist, const wchar_t *pattern, const wchar_t *subst,
+	paramexptype_T type)
+{
+    if (type & PT_MATCHHEAD) {
+	if (type & PT_MATCHTAIL)
+	    subst_whole_each(slist, pattern, subst);
+	else
+	    subst_head_each(slist, pattern, subst);
+    } else if (type & PT_MATCHTAIL) {
+	subst_tail_each(slist, pattern, subst);
+    } else {
+	subst_generic_each(slist, pattern, subst, type & PT_SUBSTALL);
+    }
+}
+
+/* PT_MATCHHEAD かつ PT_MATCHTAIL な subst_each を実際に行う */
+void subst_whole_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t match = wfnmatchl(pattern, str, flags, WFNM_WHOLE, minlen);
+	if (match == WFNM_ERROR) {
+	    break;
+	} else if (match != WFNM_NOMATCH) {
+	    free(str);
+	    *slist = xwcsdup(subst);
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHHEAD だが PT_MATCHTAIL ではない subst_each を実際に行う */
+void subst_head_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t match = wfnmatchl(pattern, str, flags, WFNM_LONGEST, minlen);
+	if (match == WFNM_ERROR) {
+	    break;
+	} else if (match != WFNM_NOMATCH) {
+	    xwcsbuf_T buf;
+	    wb_init(&buf);
+	    wb_cat(&buf, subst);
+	    wb_cat(&buf, str + match);
+	    free(str);
+	    *slist = wb_towcs(&buf);
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHTAIL だが PT_MATCHHEAD ではない subst_each を実際に行う */
+void subst_tail_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t len = wcslen(str);
+	size_t index = 0;
+	while (minlen + index <= len) {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH) {
+		xwcsbuf_T buf;
+		wb_init(&buf);
+		wb_ncat(&buf, str, index);
+		wb_cat(&buf, subst);
+		free(str);
+		*slist = wb_towcs(&buf);
+		break;
+	    }
+	    index++;
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHHEAD でも PT_MATCHTAIL でもない subst_each を実際に行う
+ * substall: true なら全てのマッチを置換する */
+void subst_generic_each(void **slist,
+	const wchar_t *pattern, const wchar_t *subst, bool substall)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	xerror(0, "DEBUG pat='%ls' str='%ls' subst='%ls'",
+		pattern, str, subst);
+	size_t index = 0;
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	while (str[index]) {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_LONGEST, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH && match > 0) {
+		wb_cat(&buf, subst);
+		index += match;
+		if (!substall) {
+		    wb_cat(&buf, str + index);
+		    break;
+		} else {
+		    continue;
+		}
+	    } else {
+		wb_wccat(&buf, str[index]);
+	    }
+	    index++;
+	}
+	free(str);
+	*slist = wb_towcs(&buf);
 	slist++;
     }
 }
