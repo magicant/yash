@@ -60,6 +60,10 @@ static variable_T *search_variable(const char *name, bool temp)
     __attribute__((pure,nonnull));
 static void update_enrivon(const char *name)
     __attribute__((nonnull));
+static void reset_locale(const char *name)
+    __attribute__((nonnull));
+static void reset_locale_category(const char *name, int category)
+    __attribute__((nonnull));
 static variable_T *new_global(const char *name)
     __attribute__((nonnull));
 static variable_T *new_local(const char *name)
@@ -319,6 +323,59 @@ void update_enrivon(const char *name)
 	env = env->parent;
     }
     unsetenv(name);
+}
+
+/* 指定した名前のロケール設定を現在の変数の値に基づいて再設定する。
+ * name がへんてこな文字列なら何もしない。 */
+void reset_locale(const char *name)
+{
+    if (strcmp(name, VAR_LANG) == 0) {
+	goto reset_locale_all;
+    } else if (strncmp(name, "LC_", 3) == 0) {
+	/* POSIX の定めによると、実行中に環境変数が変わっても
+	 * LC_CTYPE はリセットしてはいけない。 */
+	if (strcmp(name, VAR_LC_ALL) == 0) {
+reset_locale_all:
+	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
+//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
+	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
+	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
+	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	} else if (strcmp(name, VAR_LC_COLLATE) == 0) {
+	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
+//	} else if (strcmp(name, VAR_LC_CTYPE) == 0) {
+//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	} else if (strcmp(name, VAR_LC_MESSAGES) == 0) {
+	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
+	} else if (strcmp(name, VAR_LC_MONETARY) == 0) {
+	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
+	} else if (strcmp(name, VAR_LC_NUMERIC) == 0) {
+	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
+	} else if (strcmp(name, VAR_LC_TIME) == 0) {
+	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	}
+    }
+}
+
+/* 指定したロケールのカテゴリを再設定する
+ * name: LC_ALL 以外の LC_ で始まるカテゴリ名 */
+void reset_locale_category(const char *name, int category)
+{
+    const wchar_t *v = getvar(VAR_LC_ALL);
+    if (!v) {
+	v = getvar(name);
+	if (!v) {
+	    v = getvar(VAR_LANG);
+	    if (!v)
+		v = L"";
+	}
+    }
+    char *sv = malloc_wcstombs(v);
+    if (sv) {
+	setlocale(category, sv);
+	free(sv);
+    }
 }
 
 /* 新しいグローバル変数を用意する。
@@ -645,33 +702,8 @@ void variable_set(const char *name, variable_T *var)
 {
     switch (name[0]) {
     case 'L':
-	if (strcmp(name, VAR_LANG) == 0) {
-	    goto reset_locale_all;
-	} else if (strncmp(name, "LC_", 3) == 0) {
-	    /* POSIX の定めによると、実行中に環境変数が変わっても
-	     * LC_CTYPE はリセットしてはいけない。 */
-	    if (strcmp(name, VAR_LC_ALL) == 0) {
-reset_locale_all:
-		setlocale(LC_COLLATE,  "");
-		/* setlocale(LC_CTYPE, ""); */
-		setlocale(LC_MESSAGES, "");
-		setlocale(LC_MONETARY, "");
-		setlocale(LC_NUMERIC,  "");
-		setlocale(LC_TIME,     "");
-	    } else if (strcmp(name, VAR_LC_COLLATE) == 0) {
-		setlocale(LC_COLLATE, "");
-//	    } else if (strcmp(name, VAR_LC_CTYPE) == 0) {
-//		setlocale(LC_CTYPE, "");
-	    } else if (strcmp(name, VAR_LC_MESSAGES) == 0) {
-		setlocale(LC_MESSAGES, "");
-	    } else if (strcmp(name, VAR_LC_MONETARY) == 0) {
-		setlocale(LC_MONETARY, "");
-	    } else if (strcmp(name, VAR_LC_NUMERIC) == 0) {
-		setlocale(LC_NUMERIC, "");
-	    } else if (strcmp(name, VAR_LC_TIME) == 0) {
-		setlocale(LC_TIME, "");
-	    }
-	}
+	if (strcmp(name, VAR_LANG) == 0 || strncmp(name, "LC_", 3) == 0)
+	    reset_locale(name);
 	break;
     case 'P':
 	if (strcmp(name, VAR_PATH) == 0) {
