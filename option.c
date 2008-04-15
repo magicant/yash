@@ -44,6 +44,8 @@ bool shopt_noglob;
 bool shopt_nocaseglob, shopt_dotglob, shopt_markdirs, shopt_extendedglob;
 /* パス名展開に一致するファイル名が一つもないとき、元のパターンを返さない。 */
 bool shopt_nullglob;
+/* ブレース展開をするかどうか */
+bool shopt_braceexpand;
 
 
 /* シェルと set コマンドの長いオプション。 */
@@ -59,6 +61,7 @@ static const struct xoption long_options[] = {
     { "markdirs",     xno_argument, NULL, 'M', },
     { "extendedglob", xno_argument, NULL, 'E', },
     { "nullglob",     xno_argument, NULL, 'N', },
+    { "braceexpand",  xno_argument, NULL, 'B', },
     { "jobcontrol",   xno_argument, NULL, 'm', },
     { "posix",        xno_argument, NULL, 'X', },
     { NULL,           0,            NULL, 0,   },
@@ -93,6 +96,9 @@ void set_option(char c)
 	    break;
 	case 'N':
 	    shopt_nullglob = value;
+	    break;
+	case 'B':
+	    shopt_braceexpand = value;
 	    break;
 	case 'm':
 	    do_job_control = value;

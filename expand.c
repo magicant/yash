@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
@@ -73,6 +74,15 @@ static void subst_generic_each(void **slist,
     __attribute__((nonnull));
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
+static void expand_brace_each(void **restrict slist, plist_T *restrict dest)
+    __attribute__((nonnull));
+static void expand_brace(wchar_t *restrict word, plist_T *restrict dest)
+    __attribute__((nonnull));
+static bool has_leading_zero(const wchar_t *s, bool *sign)
+    __attribute__((nonnull));
+static bool tryexpand_brace_sequence(
+	wchar_t *word, wchar_t *startc, plist_T *restrict dest)
+    __attribute__((nonnull));
 static void fieldsplit(wchar_t *restrict s, const wchar_t *restrict ifs,
 	plist_T *restrict dest)
     __attribute__((nonnull));
@@ -83,6 +93,8 @@ static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
 static wchar_t *reescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void **reescape_full_array(void **wcsarray)
+    __attribute__((nonnull));
+static wchar_t *escaped_wcspbrk(const wchar_t *wcs, const wchar_t *accept)
     __attribute__((nonnull));
 static void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
     __attribute__((nonnull));
@@ -117,7 +129,10 @@ bool expand_line(void *const *restrict args,
     }
 
     /* ブレース展開する (list1 -> list2) */
-    if (false) {  // TODO expand: expand_line: ブレース展開
+    if (shopt_braceexpand) {
+	pl_init(&list2);
+	expand_brace_each(list1.contents, &list2);
+	pl_destroy(&list1);
     } else {
 	list2 = list1;
     }
@@ -818,6 +833,168 @@ void subst_length_each(void **slist)
 }
 
 
+/********** ブレース展開 **********/
+
+/* 配列内の各要素をブレース展開する。
+ * slist: void * にキャストした wchar_t * の NULL 終端配列。
+ *        各要素はこの関数内で free する。関数自身は free しない。
+ * dest:  結果 (新しく malloc したワイド文字列) を入れるリスト。
+ * バックスラッシュエスケープしてあるブレースは展開しない。 */
+void expand_brace_each(void **restrict slist, plist_T *restrict dest)
+{
+    while (*slist) {
+	expand_brace(*slist, dest);
+	slist++;
+    }
+}
+
+/* 一つの単語をブレース展開する。
+ * word: 展開する単語。この関数内で free する。
+ * dest: 結果 (新しく malloc したワイド文字列) を入れるリスト。
+ * バックスラッシュエスケープしてあるブレースは展開しない。 */
+void expand_brace(wchar_t *restrict const word, plist_T *restrict dest)
+{
+    plist_T elemlist;
+    wchar_t *c;
+    unsigned nest;
+    size_t lastindex, headlength;
+
+    c = word;
+start:
+    c = escaped_wcspbrk(c, L"{");
+    if (!c || !*++c) {  /* L'{' がないか、L'{' が文字列末尾にあるなら無展開 */
+	pl_add(dest, word);
+	return;
+    } else if (tryexpand_brace_sequence(word, c, dest)) {
+	return;
+    }
+
+    /* elemlist には展開する各要素の先頭の文字へのポインタを入れる */
+    pl_init(&elemlist);
+    pl_add(&elemlist, c);
+    nest = 0;
+    while ((c = escaped_wcspbrk(c, L"{,}"))) {
+	switch (*c++) {
+	    case L'{':
+		nest++;
+		break;
+	    case L',':
+		if (nest == 0)
+		    pl_add(&elemlist, c);
+		break;
+	    case L'}':
+		if (nest > 0) {
+		    nest--;
+		    break;
+		} else if (elemlist.length == 1) {
+		    goto restart;
+		} else {
+		    pl_add(&elemlist, c);
+		    goto done;
+		}
+	}
+    }
+restart:
+    /* 最初の L'{' に対応する L',' および L'}' が見付からなかったら、
+     * 次の L'{' を探すところからやり直す */
+    c = elemlist.contents[0];
+    pl_destroy(&elemlist);
+    goto start;
+
+done:
+    lastindex = elemlist.length - 1;
+    headlength = (wchar_t *) elemlist.contents[0] - 1 - word;
+    for (size_t i = 0; i < lastindex; i++) {
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	wb_ncat(&buf, word, headlength);
+	wb_ncat(&buf, elemlist.contents[i],
+		(wchar_t *) elemlist.contents[i + 1] -
+		(wchar_t *) elemlist.contents[i    ] - 1);
+	wb_cat(&buf, elemlist.contents[lastindex]);
+	expand_brace(wb_towcs(&buf), dest);
+    }
+    pl_destroy(&elemlist);
+    free(word);
+}
+
+/* {01..05} のような数列へのブレース展開を試みる。
+ * 失敗すれば何もせずに false を返す。成功すれば word の完全なブレース展開結果を
+ * dest に追加する。
+ * word:   展開する単語全体。成功すればこの関数内で free する。
+ * startc: word の最初の L'{' の直後の文字へのポインタ
+ * dest: 結果 (新しく malloc したワイド文字列) を入れるリスト。 */
+bool tryexpand_brace_sequence(
+	wchar_t *const word, wchar_t *const startc, plist_T *restrict dest)
+{
+    long start, end, value;
+    wchar_t *dotexpect, *braceexpect, *c;
+    int startlen, endlen, len;
+    bool sign = false;
+
+    assert(startc[-1] == L'{');
+    c = startc;
+
+    /* 数列の始点を解析 */
+    dotexpect = wcschr(c, L'.');
+    if (!dotexpect || c == dotexpect)
+	return false;
+    startlen = has_leading_zero(c, &sign) ? (dotexpect - c) : 0;
+    errno = 0;
+    start = wcstol(c, &c, 0);
+    if (errno || c != dotexpect || c[1] != L'.')
+	return false;
+
+    c += 2;
+
+    /* 数列の終点を解析 */
+    braceexpect = wcschr(c, L'}');
+    if (!braceexpect || c == braceexpect)
+	return false;
+    endlen = has_leading_zero(c, &sign) ? (braceexpect - c) : 0;
+    errno = 0;
+    end = wcstol(c, &c, 0);
+    if (errno || c != braceexpect)
+	return false;
+
+    /* 数列を展開 */
+    value = start;
+    len = (startlen > endlen) ? startlen : endlen;
+    for (;;) {
+	wchar_t *expansion = malloc_wprintf(
+		sign ? L"%.*ls%0+*ld%ls" : L"%.*ls%0*ld%ls",
+		(int) (startc - 1 - word), word,
+		len, value,
+		braceexpect + 1);
+	expand_brace(expansion, dest);  /* 残りの部分を再帰的に展開 */
+
+	if (value == end)
+	    break;
+	if (start < end)
+	    value++;
+	else
+	    value--;
+    }
+    free(word);
+    return true;
+}
+
+/* 数値の先頭が L'0' で始まるかどうか調べる
+ * sign: 数値に正号 L'+' があれば *sign に true を代入する */
+bool has_leading_zero(const wchar_t *s, bool *sign)
+{
+    while (iswspace(*s))
+	s++;
+    if (*s == L'+') {
+	*sign = true;
+	s++;
+    } else if (*s == L'-') {
+	s++;
+    }
+    return *s == L'0';
+}
+
+
 /********** 単語分割 **********/
 
 /* 単語分割を行う。
@@ -978,6 +1155,24 @@ void **reescape_full_array(void **const wcsarray)
 	ary++;
     }
     return wcsarray;
+}
+
+/* wcspbrk と同じだが、wcs 内のバックスラッシュエスケープした文字は無視する */
+wchar_t *escaped_wcspbrk(const wchar_t *wcs, const wchar_t *accept)
+{
+    while (*wcs) {
+	if (*wcs == L'\\') {
+	    wcs++;
+	    if (!*wcs)
+		break;
+	    wcs++;
+	    continue;
+	}
+	if (wcschr(accept, *wcs))
+	    return (wchar_t *) wcs;
+	wcs++;
+    }
+    return NULL;
 }
 
 

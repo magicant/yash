@@ -29,6 +29,7 @@ extern bool do_job_control;
 extern const char *command_name;
 extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
+extern bool shopt_braceexpand;
 
 #define SHELLSET_OPTIONS "fm"
 
