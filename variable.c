@@ -43,9 +43,9 @@ typedef struct environ_T {
     struct hashtable_T contents;   /* 変数を保持するハッシュテーブル */
 } environ_T;
 /* contents は char * から variable_T * へのハッシュテーブルである。 */
-/* 位置パラメータは、contents に "*" という名前の配列として入れる。
+/* 位置パラメータは、contents に "=" という名前の配列として入れる。
  * 位置パラメータの番号と配列のインデックスが一つずれるので注意。 */
-#define VAR_positional "*"
+#define VAR_positional "="
 
 
 static void varfree(variable_T *v);
