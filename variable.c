@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <wchar.h>
 #include "option.h"
 #include "util.h"
@@ -34,6 +35,7 @@
 #include "variable.h"
 #include "exec.h"
 #include "yash.h"
+#include "version.h"
 
 
 /* 変数環境 (=現在有効な変数・パラメータの集まり) を表す構造体。 */
@@ -63,6 +65,9 @@ static variable_T *new_local(const char *name)
     __attribute__((nonnull));
 static void lineno_getter(variable_T *var)
     __attribute__((nonnull));
+static void random_getter(variable_T *var)
+    __attribute__((nonnull));
+static unsigned next_random(void);
 static void variable_set(const char *name, variable_T *var)
     __attribute__((nonnull));
 
@@ -77,6 +82,9 @@ static environ_T *top_env;
  * 一時的な代入を行うためのものである。例えば、"HOME=/ cd" というコマンドライン
  * を実行する際に HOME 変数を一時的に代入し、cd の実行が終わったら削除する。 */
 static hashtable_T temp_variables;
+
+/* RANDOM 変数が乱数として機能しているかどうか */
+static bool random_active;
 
 
 /* variable_T * を free する */
@@ -153,9 +161,25 @@ void init_variables(void)
     /* PWD を設定する */
     init_pwd();
 
-    // TODO variable: init_variables: RANDOM を設定
-    // TODO variable: init_variables: PPID を設定
-    // TODO variable: init_variables: YASH_VERSION を設定
+    /* PPID を設定する */
+    set_variable(VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
+	    false, false);
+
+    /* RANDOM 特殊変数を設定する */
+    if (!posixly_correct && !getvar(VAR_RANDOM)) {
+	variable_T *v = new_global(VAR_RANDOM);
+	assert(v != NULL);
+	v->v_type = VF_NORMAL;
+	v->v_value = xwcsdup(L"");
+	v->v_getter = random_getter;
+	random_active = true;
+	srand(shell_pid);
+    } else {
+	random_active = false;
+    }
+
+    /* YASH_VERSION を設定する */
+    set_variable(VAR_YASH_VERSION, xwcsdup(L"" PACKAGE_VERSION), false, false);
 
     /* PATH に基づいて patharray を初期化する */
     reset_patharray(getvar(VAR_PATH));
@@ -176,7 +200,9 @@ void init_pwd(void)
     if (!wpwd)
 	goto set;
     wchar_t *cpwd = canonicalize_path(wpwd);
-    if (wcscmp(wpwd, cpwd) != 0)
+    bool iscanon = (wcscmp(wpwd, cpwd) == 0);
+    free(cpwd);
+    if (!iscanon)
 	goto set;
     return;
 
@@ -573,6 +599,43 @@ void lineno_getter(variable_T *var)
 	update_enrivon(VAR_LINENO);
 }
 
+/* RANDOM 変数のゲッター */
+void random_getter(variable_T *var)
+{
+    assert((var->v_type & VF_MASK) == VF_NORMAL);
+    free(var->v_value);
+    var->v_value = malloc_wprintf(L"%u", next_random());
+    if (var->v_type & VF_EXPORT)
+	update_enrivon(VAR_RANDOM);
+}
+
+/* rand を呼び出して 0 以上 32767 以下の乱数を返す */
+unsigned next_random(void)
+{
+#if RAND_MAX == 32767
+    return rand();
+#elif RAND_MAX == 65535
+    return rand() >> 1;
+#elif RAND_MAX == 2147483647
+    return rand() >> 16;
+#elif RAND_MAX == 4294967295
+    return rand() >> 17;
+#else
+    unsigned max, value;
+    do {
+	max   = RAND_MAX;
+	value = rand();
+	while (max > 65535) {
+	    max   >>= 1;
+	    value >>= 1;
+	}
+	if (max == 65535)
+	    return value >> 1;
+    } while (value > 32767);
+    return value;
+#endif
+}
+
 
 /********** 各種セッター **********/
 
@@ -591,8 +654,14 @@ void variable_set(const char *name, variable_T *var)
 		    break;  // TODO variable: variable_set: PATH が配列の場合
 	    }
 	}
-	// TODO variable: variable_set: 他の変数
 	break;
+    case 'R':
+	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
+	    if ((var->v_type & VF_MASK) == VF_NORMAL)
+		var->v_getter = random_getter;
+	}
+	break;
+	// TODO variable: variable_set: 他の変数
     }
 }
 

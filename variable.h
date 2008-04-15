@@ -52,7 +52,9 @@ extern char **environ;
 #define VAR_PS3		"PS3"
 #define VAR_PS4		"PS4"
 #define VAR_PWD		"PWD"
+#define VAR_RANDOM	"RANDOM"
 #define VAR_SHLVL	"SHLVL"
+#define VAR_YASH_VERSION "YASH_VERSION"
 
 /* 変数の属性フラグ */
 typedef enum vartype_T {

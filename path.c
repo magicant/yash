@@ -152,6 +152,7 @@ wchar_t *canonicalize_path(const wchar_t *path)
 	if (i < list.length - 1)
 	    wb_wccat(&result, L'/');
     }
+    pl_destroy(&list);
     if (result.length == 0)
 	/* 結果が空ならカレントディレクトリを表す L"." を返す */
 	wb_wccat(&result, L'.');
