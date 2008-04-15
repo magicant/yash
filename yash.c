@@ -139,6 +139,7 @@ int main(int argc __attribute__((unused)), char **argv)
 
     shell_pid = getpid();
     init_cmdhash();
+    init_homedirhash();
     init_variables();
     init_signal();
     init_job();

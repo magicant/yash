@@ -40,7 +40,8 @@
 static bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, plist_T *restrict list)
     __attribute__((nonnull(3)));
-static wchar_t *expand_tilde(const wchar_t **ss)
+static wchar_t *expand_tilde(const wchar_t **ss,
+	bool hasnextwordunit, tildetype_T tt)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -258,7 +259,7 @@ bool expand_word(
 	case WT_STRING:
 	    str = w->wu_string;
 	    if (first && tilde != tt_none) {
-		s = expand_tilde(&str);
+		s = expand_tilde(&str, w->next, tilde);
 		if (s)
 		    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
 	    }
@@ -289,7 +290,7 @@ bool expand_word(
 		    if (!indq && tilde == tt_multi) {
 			wb_wccat(&buf, L':');
 			str++;
-			s = expand_tilde(&str);
+			s = expand_tilde(&str, w->next, tilde);
 			if (s)
 			    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
 			continue;
@@ -357,13 +358,55 @@ out:
 /* チルダ展開を行う。
  * ss: チルダがあるべき場所を指すポインタへのポインタ。
  *     *ss は展開した後の部分まで進む。
+ * hasnextwordunit: 現在展開中の WT_STRING な wordunit_T の後ろに他の wordunit_T
+ *     が控えているかどうか。他の wordunit_T がない場合のみ文字列全体を展開する
  * 戻り値: 新しく malloc した、展開結果。失敗なら NULL。
  * (*ss)[0] が L'~' でなければ直ちに NULL を返す。 */
-wchar_t *expand_tilde(const wchar_t **ss)
+wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
 {
-    // TODO expand:expand_tilde
-    (void) ss;
-    return NULL;
+    const wchar_t *s = *ss;
+    if (*s != L'~')
+	return NULL;
+    s++;
+
+    const wchar_t *end = wcspbrk(s, tt == tt_single ? L"/" : L"/:");
+    wchar_t *username;
+    const wchar_t *home;
+    size_t usernamelen;
+
+    if (end) {
+	usernamelen = end - s;
+    } else {
+	if (hasnextwordunit)
+	    return NULL;
+	usernamelen = wcslen(s);
+    }
+    username = xwcsndup(s, usernamelen);
+    if (username[0] == L'\0') {
+	/* 空のユーザ名なら $HOME に展開 */
+	home = getvar(VAR_HOME);
+	goto finish;
+    } else if (wcspbrk(username, L"\"'\\") != 0) {
+	/* ユーザ名に引用符があれば展開しない */
+	free(username);
+	return NULL;
+    }
+    if (!posixly_correct) {
+	if (wcscmp(username, L"+") == 0) {
+	    home = getvar(VAR_PWD);
+	    goto finish;
+	} else if (wcscmp(username, L"-") == 0) {
+	    home = getvar(VAR_OLDPWD);
+	    goto finish;
+	}  // TODO expand: expand_tilde: ディレクトリスタック対応
+    }
+    home = get_home_directory(username, false);
+finish:
+    free(username);
+    if (!home)
+	return NULL;
+    *ss = s + usernamelen;
+    return xwcsdup(home);
 }
 
 /* パラメータ展開を行い、結果を返す。
