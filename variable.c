@@ -719,8 +719,17 @@ void variable_set(const char *name, variable_T *var)
 	break;
     case 'R':
 	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
-	    if ((var->v_type & VF_MASK) == VF_NORMAL)
-		var->v_getter = random_getter;
+	    random_active = false;
+	    if ((var->v_type & VF_MASK) == VF_NORMAL) {
+		wchar_t *end;
+		errno = 0;
+		unsigned seed = wcstoul(var->v_value, &end, 0);
+		if (!errno && *end == L'\0') {
+		    srand(seed);
+		    var->v_getter = random_getter;
+		    random_active = true;
+		}
+	    }
 	}
 	break;
 	// TODO variable: variable_set: 他の変数
