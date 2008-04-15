@@ -37,6 +37,9 @@ extern bool is_same_file(const char *path1, const char *path2)
 extern wchar_t *canonicalize_path(const wchar_t *path)
     __attribute__((nonnull,malloc,warn_unused_result));
 
+extern char *xgetcwd(void)
+    __attribute__((malloc,warn_unused_result));
+
 extern char *which(
 	const char *restrict name,
 	char *const *restrict dirs,

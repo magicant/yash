@@ -50,6 +50,7 @@ typedef struct environ_T {
 
 static void varfree(variable_T *v);
 static void varkvfree(kvpair_T kv);
+static void init_pwd(void);
 static inline bool is_name_char(char c)
     __attribute__((const));
 static variable_T *search_variable(const char *name, bool temp)
@@ -149,13 +150,51 @@ void init_variables(void)
 	    update_enrivon(VAR_LINENO);
     }
 
+    /* PWD を設定する */
+    init_pwd();
+
     // TODO variable: init_variables: RANDOM を設定
-    // TODO variable: init_variables: PWD を設定
     // TODO variable: init_variables: PPID を設定
     // TODO variable: init_variables: YASH_VERSION を設定
 
     /* PATH に基づいて patharray を初期化する */
     reset_patharray(getvar(VAR_PATH));
+}
+
+/* 以下の場合に PWD 環境変数を設定する
+ *  - posixly_correct が true である
+ *  - PWD 変数が存在しないか '/' で始まらないか実際の作業ディレクトリとは異なる
+ *  - PWD 変数の値が正規化されていない */
+void init_pwd(void)
+{
+    if (posixly_correct)
+	goto set;
+    const char *pwd = getenv(VAR_PWD);
+    if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
+	goto set;
+    const wchar_t *wpwd = getvar(VAR_PWD);
+    if (!wpwd)
+	goto set;
+    wchar_t *cpwd = canonicalize_path(wpwd);
+    if (wcscmp(wpwd, cpwd) != 0)
+	goto set;
+    return;
+
+    char *newpwd;
+    wchar_t *wnewpwd;
+set:
+    newpwd = xgetcwd();
+    if (!newpwd) {
+	xerror(errno, Ngt("cannot set PWD"));
+	return;
+    }
+    wnewpwd = malloc_mbstowcs(newpwd);
+    free(newpwd);
+    if (!wnewpwd) {
+	xerror(0, Ngt("cannot set PWD"));
+	return;
+    }
+    set_variable(VAR_PWD, wnewpwd, false, true);
 }
 
 /* 変数関連のデータを初期化前の状態に戻す */
@@ -549,9 +588,10 @@ void variable_set(const char *name, variable_T *var)
 		    break;
 		case VF_ARRAY:
 		    reset_patharray(L"");
-		    break;  // TODO variable: PATH が配列の場合
+		    break;  // TODO variable: variable_set: PATH が配列の場合
 	    }
 	}
+	// TODO variable: variable_set: 他の変数
 	break;
     }
 }
