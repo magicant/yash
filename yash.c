@@ -35,6 +35,7 @@
 #include "parser.h"
 #include "variable.h"
 #include "sig.h"
+#include "redir.h"
 #include "job.h"
 #include "exec.h"
 #include "yash.h"
@@ -142,6 +143,7 @@ int main(int argc __attribute__((unused)), char **argv)
     init_homedirhash();
     init_variables();
     init_signal();
+    init_shellfds();
     init_job();
 
     if (exec_first_arg && read_stdin) {
@@ -169,18 +171,18 @@ int main(int argc __attribute__((unused)), char **argv)
 	if (read_stdin || !argv[xoptind]) {
 	    input = stdin;
 	    inputname = "<stdin>";
-	    if (!argv[xoptind] && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
-		if (!is_interactive_set)
-		    is_interactive = true;
+	    if (!is_interactive_set && !argv[xoptind]
+		    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
+		is_interactive = true;
 	} else {
 	    command_name = argv[xoptind++];
 	    input = fopen(command_name, "r");
 	    inputname = command_name;
-	    // TODO yash:main: fd を shellfd 以上に移す
+	    input = reopen_with_shellfd(input, "r");
 	    if (!input) {
-		int saveerrno = errno;
-		xerror(errno, Ngt("cannot open file `%s'"), command_name);
-		exit(saveerrno == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
+		int errno_ = errno;
+		xerror(errno_, Ngt("cannot open file `%s'"), command_name);
+		exit(errno_ == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
 	    }
 	}
 	is_interactive_now = is_interactive;

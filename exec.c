@@ -570,7 +570,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	// TODO exec: fork_and_reset: forget_original_pgrp
 	remove_all_jobs();
 	clear_traps();
-	// TODO exec: fork_and_reset: clear_shellfds
+	clear_shellfds();
 	do_job_control = is_interactive_now = false;
     }
     return cpid;
