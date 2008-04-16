@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
 #include "option.h"
@@ -121,7 +122,8 @@ static enum wglbflags get_wglbflags(void)
  *       へのポインタの配列へのポインタであり、配列の最後の要素は NULL である。
  * args で与えられる内容は変更されない。
  * 戻り値: 成功すると true、エラーがあると false。
- * エラーがあった場合、*argcp, *argvp の値は不定である */
+ * エラーがあった場合、*argcp, *argvp の値は不定である。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
 bool expand_line(void *const *restrict args,
     int *restrict argcp, char ***restrict argvp)
 {
@@ -131,6 +133,8 @@ bool expand_line(void *const *restrict args,
     /* 四種展開をする (args -> list1) */
     while (*args) {
 	if (!expand_word(*args, tt_single, &list1)) {
+	    if (!is_interactive)
+		exit(EXIT_FAILURE);
 	    recfree(pl_toary(&list1), free);
 	    return false;
 	}
@@ -178,7 +182,8 @@ bool expand_line(void *const *restrict args,
  * 四種展開と引用符除去を行う。
  * ただしブレース展開・フィールド分割・glob・エスケープ解除はしない。
  * エラー発生時はメッセージを出して NULL を返す。
- * 戻り値: 展開結果。新しく malloc した文字列。 */
+ * 戻り値: 展開結果。新しく malloc した文字列。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
 wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 {
     wchar_t *result;
@@ -186,6 +191,8 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     pl_init(&list);
 
     if (!expand_word(arg, tilde, &list)) {
+	if (!is_interactive)
+	    exit(EXIT_FAILURE);
 	recfree(pl_toary(&list), free);
 	return NULL;
     }
@@ -209,7 +216,8 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
  *   - posixly_correct が false ならエラーを出す。
  * shopt_noglob が true なら glob は行わない。
  * shopt_nullglob が false でも true とみなす。
- * 戻り値: 新しく malloc した文字列。エラーの場合は NULL。 */
+ * 戻り値: 新しく malloc した文字列。エラーの場合は NULL。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
 char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 {
     wchar_t *exp = expand_single(arg, tilde);
@@ -251,7 +259,8 @@ noglob:
  * ・ファイル名展開はしない。エラー発生時はメッセージを出して NULL を返す。
  * esc:    true なら $, `, ", \ の直前の \ を削除する。
  *         false なら全ての引用符はただの文字として扱う。
- * 戻り値: 展開結果。新しく malloc したワイド文字列。 */
+ * 戻り値: 展開結果。新しく malloc したワイド文字列。エラーなら NULL。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
 wchar_t *expand_string(const wordunit_T *w, bool esc)
 {
     bool ok = true;
@@ -311,7 +320,14 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	}
 	w = w->next;
     }
-    return wb_towcs(&buf);
+    if (ok) {
+	return wb_towcs(&buf);
+    } else {
+	if (!is_interactive)
+	    exit(EXIT_FAILURE);
+	wb_destroy(&buf);
+	return NULL;
+    }
 }
 
 

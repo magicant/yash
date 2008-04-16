@@ -436,11 +436,8 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 
     switch (c->c_type) {
     case CT_SIMPLE:
-	if (!expand_line(c->c_words, &argc, &argv)) {
-	    if (!is_interactive_now)
-		exit(EXIT_FAILURE);
+	if (!expand_line(c->c_words, &argc, &argv))
 	    goto onerror;
-	}
 	if (argc == 0) {
 	    need_fork = finally_exit = false;
 #ifndef NDEBUG  /* GCC の警告を黙らせる小細工 */
