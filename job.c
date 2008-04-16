@@ -224,9 +224,9 @@ int calc_status(int status)
     if (WIFEXITED(status))
 	return WEXITSTATUS(status);
     if (WIFSIGNALED(status))
-	return WTERMSIG(status);
+	return WTERMSIG(status) + TERMSIGOFFSET;
     if (WIFSTOPPED(status))
-	return WSTOPSIG(status);
+	return WSTOPSIG(status) + TERMSIGOFFSET;
 #ifdef WIFCONTINUED
     if (WIFCONTINUED(status))
 	return 0;

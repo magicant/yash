@@ -96,6 +96,8 @@ static void exec_case(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
+static inline void connect_pipes(pipeinfo_T *pi)
+    __attribute__((nonnull));
 static void exec_commands(const command_T *c, exec_T type, bool looppipe);
 static pid_t exec_process(
 	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
@@ -247,7 +249,7 @@ void exec_case(const command_T *c, bool finally_exit)
  * next が false なら pi->pi_loopoutfd を pi->pi_tonextfds[PIDX_OUT] に移し、
  * pi->pi_loopoutfd と pi->pi_tonextfds[PIDX_IN] を -1 にする。
  * 成功すると true、エラーがあると false を返す。 */
-inline void next_pipe(pipeinfo_T *pi, bool next)
+void next_pipe(pipeinfo_T *pi, bool next)
 {
     if (pi->pi_fromprevfd >= 0)
 	xclose(pi->pi_fromprevfd);
@@ -281,6 +283,23 @@ inline void next_pipe(pipeinfo_T *pi, bool next)
 fail:
     pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
     xerror(errno, Ngt("cannot open pipe"));
+}
+
+/* パイプを繋ぎ、余ったパイプを閉じる */
+void connect_pipes(pipeinfo_T *pi)
+{
+    if (pi->pi_fromprevfd >= 0) {
+	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
+	xclose(pi->pi_fromprevfd);
+    }
+    if (pi->pi_tonextfds[PIDX_OUT] >= 0) {
+	xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);
+	xclose(pi->pi_tonextfds[PIDX_OUT]);
+    }
+    if (pi->pi_tonextfds[PIDX_IN] >= 0)
+	xclose(pi->pi_tonextfds[PIDX_IN]);
+    if (pi->pi_loopoutfd >= 0)
+	xclose(pi->pi_loopoutfd);
 }
 
 /* 一つのパイプラインを構成する各コマンドを実行する
@@ -384,7 +403,7 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
     return;
 
 fail:
-    laststatus = -2;
+    laststatus = EXIT_FAILURE;
     if (pinfo.pi_fromprevfd >= 0)
 	xclose(pinfo.pi_fromprevfd);
     if (pinfo.pi_tonextfds[PIDX_IN] >= 0)
@@ -403,9 +422,8 @@ fail:
  * pgid:   ジョブ制御有効時、fork 後に子プロセスに設定するプロセスグループ ID。
  *         子プロセスのプロセス ID をプロセスグループ ID にする場合は 0。
  * 戻り値: fork した場合、子プロセスのプロセス ID。fork せずにコマンドを実行
- *         できた場合は 0。重大なエラーが生じたら -1。
+ *         できた場合は 0。パイプの実行を中止すべきエラーが生じたら -1。
  * 0 を返すとき、exec_process 内で laststatus を設定する。 */
-// TODO exec.c: exec_process: 本当に -1 を返す場合があるか考え直す
 pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
     bool need_fork;    /* fork するかどうか */
@@ -419,8 +437,9 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     switch (c->c_type) {
     case CT_SIMPLE:
 	if (!expand_line(c->c_words, &argc, &argv)) {
-	    laststatus = 1;
-	    goto done;
+	    if (!is_interactive_now)
+		exit(EXIT_FAILURE);
+	    goto onerror;
 	}
 	if (argc == 0) {
 	    need_fork = finally_exit = false;
@@ -472,18 +491,7 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     }
 
     /* パイプを繋ぎ、余ったパイプを閉じる */
-    if (pi->pi_fromprevfd >= 0) {
-	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
-	xclose(pi->pi_fromprevfd);
-    }
-    if (pi->pi_tonextfds[PIDX_OUT] >= 0) {
-	xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);
-	xclose(pi->pi_tonextfds[PIDX_OUT]);
-    }
-    if (pi->pi_tonextfds[PIDX_IN] >= 0)
-	xclose(pi->pi_tonextfds[PIDX_IN]);
-    if (pi->pi_loopoutfd >= 0)
-	xclose(pi->pi_loopoutfd);
+    connect_pipes(pi);
 
     /* リダイレクトを開く */
     // TODO exec.c: exec_process: redirect
@@ -515,6 +523,10 @@ done:
     if (type == execself)
 	exit(laststatus);
     return 0;
+onerror:
+    if (type == execself)
+	exit(laststatus);
+    return -1;
 }
 
 /* fork して、いろいろ必要な設定を行う。

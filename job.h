@@ -54,7 +54,13 @@ typedef struct job_T {
  * j_pgid は 0 となる。 */
 
 
+/* アクティブジョブのジョブ番号 */
 #define ACTIVE_JOBNO 0
+
+/* プロセスがシグナルによって終了した場合は、シグナル番号に TERMSIGOFFSET を
+ * 加えた値がそのプロセスの終了ステータスになる。
+ * bash/zsh/dash ではこの値は 128、ksh では 256 である。 */
+#define TERMSIGOFFSET 384
 
 extern void init_job(void);
 
