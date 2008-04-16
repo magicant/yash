@@ -38,12 +38,17 @@
 /* ブレース展開・glob で特殊な意味を持つ文字 */
 #define ESCAPED_CHARS L"\\{,}"
 
+/* 二重引用符の中でバックスラッシュエスケープできる文字 */
+#define ESCAPABLE_CHARS L"$`\"\\"
+
 static bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, plist_T *restrict list)
     __attribute__((nonnull(3)));
+
 static wchar_t *expand_tilde(const wchar_t **ss,
 	bool hasnextwordunit, tildetype_T tt)
     __attribute__((nonnull,malloc,warn_unused_result));
+
 static void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void print_subst_as_error(const paramexp_T *p)
@@ -74,6 +79,7 @@ static void subst_generic_each(void **slist,
     __attribute__((nonnull));
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
+
 static void expand_brace_each(void **restrict slist, plist_T *restrict dest)
     __attribute__((nonnull));
 static void expand_brace(wchar_t *restrict word, plist_T *restrict dest)
@@ -83,11 +89,13 @@ static bool has_leading_zero(const wchar_t *s, bool *sign)
 static bool tryexpand_brace_sequence(
 	wchar_t *word, wchar_t *startc, plist_T *restrict dest)
     __attribute__((nonnull));
+
 static void fieldsplit(wchar_t *restrict s, const wchar_t *restrict ifs,
 	plist_T *restrict dest)
     __attribute__((nonnull));
 static void fieldsplit_all(void **restrict src, plist_T *restrict dest)
     __attribute__((nonnull));
+
 static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
     __attribute__((nonnull));
 static wchar_t *reescape(const wchar_t *s)
@@ -96,6 +104,7 @@ static void **reescape_full_array(void **wcsarray)
     __attribute__((nonnull));
 static wchar_t *escaped_wcspbrk(const wchar_t *wcs, const wchar_t *accept)
     __attribute__((nonnull));
+
 static void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
     __attribute__((nonnull));
 static enum wglbflags get_wglbflags(void)
@@ -119,7 +128,7 @@ bool expand_line(void *const *restrict args,
     plist_T list1, list2;
     pl_init(&list1);
 
-    /* 各種展開をする (args -> list1) */
+    /* 四種展開をする (args -> list1) */
     while (*args) {
 	if (!expand_word(*args, tt_single, &list1)) {
 	    recfree(pl_toary(&list1), free);
@@ -166,7 +175,7 @@ bool expand_line(void *const *restrict args,
 }
 
 /* 一つの単語を展開する。
- * 各種展開と引用符除去を行う。
+ * 四種展開と引用符除去を行う。
  * ただしブレース展開・フィールド分割・glob・エスケープ解除はしない。
  * エラー発生時はメッセージを出して NULL を返す。
  * 戻り値: 展開結果。新しく malloc した文字列。 */
@@ -193,7 +202,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 }
 
 /* 一つの単語を展開する。
- * 各種展開と glob・引用符除去・エスケープ解除を行う。
+ * 四種展開と glob・引用符除去・エスケープ解除を行う。
  * ただしブレース展開・フィールド分割はしない。
  * glob の結果が一つでなければ、
  *   - posixly_correct が true なら glob 前のパターンを返し、
@@ -238,10 +247,72 @@ noglob:
 }
 
 /* 一つの文字列を展開する。
- * パラメータ展開・数式展開・コマンド置換を行うが、引用符除去・フィールド分割・
- * ファイル名展開はしない。エラー発生時はメッセージを出して NULL を返す。 */
-wchar_t *expand_string(const wordunit_T *arg);
-// TODO expand: expand_string 未実装
+ * パラメータ展開・数式展開・コマンド置換を行うが、ブレース展開・フィールド分割
+ * ・ファイル名展開はしない。エラー発生時はメッセージを出して NULL を返す。
+ * esc:    true なら $, `, ", \ の直前の \ を削除する。
+ *         false なら全ての引用符はただの文字として扱う。
+ * 戻り値: 展開結果。新しく malloc したワイド文字列。 */
+wchar_t *expand_string(const wordunit_T *w, bool esc)
+{
+    bool ok = true;
+    xwcsbuf_T buf;
+    const wchar_t *str;
+    wchar_t *s;
+    void **array;
+
+    wb_init(&buf);
+    while (w) {
+	switch (w->wu_type) {
+	case WT_STRING:
+	    str = w->wu_string;
+	    while (*str) {
+		if (esc && str[0] == L'\\' && str[1] != L'\0'
+			&& wcschr(ESCAPABLE_CHARS, str[1])) {
+		    str++;
+		    if (*str)
+			wb_wccat(&buf, *str);
+		} else {
+		    wb_wccat(&buf, *str);
+		}
+		str++;
+	    }
+	    break;
+	case WT_PARAM:
+	    array = expand_param(w->wu_param, false, tt_none);
+	    if (array) {
+		if (array[0]) {
+		    for (void **a = array; *a; a++)
+			*a = unescapefree(*a);
+		    if (!array[1]) {
+			wb_cat(&buf, array[0]);
+		    } else {
+			const wchar_t *ifs = getvar(VAR_IFS);
+			wb_catfree(&buf,
+				joinwcsarray(array, ifs ? ifs[0] : L' '));
+		    }
+		}
+		recfree(array, free);
+	    } else {
+		ok = false;
+	    }
+	    break;
+	case WT_CMDSUB:
+	    s = exec_command_substitution(w->wu_cmdsub);
+	    if (s) {
+		wb_catfree(&buf, s);
+	    } else {
+		ok = false;
+	    }
+	    break;
+	case WT_ARITH:
+	    ok = false;  // TODO expand: expand_word: 数式展開
+	    xerror(0, "arithmetic expansion not implemented");
+	    break;
+	}
+	w = w->next;
+    }
+    return wb_towcs(&buf);
+}
 
 
 /********** 四種展開 **********/
@@ -278,10 +349,8 @@ bool expand_word(
 		if (s)
 		    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
 	    }
-	    for (;;) {
+	    while (*str) {
 		switch (*str) {
-		case L'\0':
-		    goto out;
 		case L'"':
 		    indq = !indq;
 		    force = true;
@@ -293,7 +362,7 @@ bool expand_word(
 		    add_sq(&str, &buf);
 		    break;
 		case L'\\':
-		    if (indq && !wcschr(L"$`\"\\", str[1])) {
+		    if (indq && !wcschr(ESCAPABLE_CHARS, str[1])) {
 			goto default_case;
 		    } else {
 			wb_wccat(&buf, L'\\');
@@ -319,7 +388,6 @@ bool expand_word(
 		}
 		str++;
 	    }
-out:
 	    break;
 	case WT_PARAM:
 	    array = expand_param(w->wu_param, indq, tilde);
