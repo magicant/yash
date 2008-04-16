@@ -217,8 +217,7 @@ void set_signals(void)
     }
 }
 
-/* シグナルハンドラを初期設定に戻す。
- * qiignore: true なら、SIGQUIT と SIGINT はブロックしたままにする。 */
+/* シグナルハンドラを初期設定に戻す。 */
 void reset_signals(void)
 {
     if (initialized) {
