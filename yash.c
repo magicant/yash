@@ -49,6 +49,8 @@ static void print_version(void);
 
 /* シェル本体のプロセス ID。 */
 pid_t shell_pid;
+/* シェルの元々のプロセスグループ */
+pid_t initial_pgrp;
 
 
 int main(int argc __attribute__((unused)), char **argv)
@@ -139,6 +141,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	return EXIT_SUCCESS;
 
     shell_pid = getpid();
+    initial_pgrp = getpgrp();
     init_cmdhash();
     init_homedirhash();
     init_variables();
@@ -161,9 +164,9 @@ int main(int argc __attribute__((unused)), char **argv)
 	is_interactive_now = is_interactive;
 	if (!do_job_control_set)
 	    do_job_control = is_interactive;
-	// TODO yash:main:exec_first_arg シェル環境設定
 	set_signals();
 	open_ttyfd();
+	set_own_pgrp();
 	set_positional_parameters(argv + xoptind);
 	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
@@ -191,10 +194,12 @@ int main(int argc __attribute__((unused)), char **argv)
 	    do_job_control = is_interactive;
 	set_signals();
 	open_ttyfd();
+	set_own_pgrp();
 	set_positional_parameters(argv + xoptind);
 	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
+    // TODO rc ファイル
 }
 
 void print_help(void)
@@ -219,6 +224,30 @@ void print_version(void)
 {
     printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
     printf(PACKAGE_COPYRIGHT "\n");
+}
+
+
+/* ジョブ制御が有効なら、自分自身のプロセスグループを
+ * 自分のプロセス ID に変更する */
+void set_own_pgrp(void)
+{
+    if (do_job_control) {
+	setpgid(0, 0);
+	make_myself_foreground();
+    }
+}
+
+/* ジョブ制御が有効なら、自分自身のプロセスグループを set_own_pgrp 前に戻す */
+void reset_own_pgrp(void)
+{
+    if (do_job_control && initial_pgrp > 0)
+	setpgid(0, initial_pgrp);
+}
+
+/* reset_own_pgrp してもプロセスグループが元に戻らないようにする */
+void forget_initial_pgrp(void)
+{
+    initial_pgrp = 0;
 }
 
 

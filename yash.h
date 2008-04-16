@@ -26,6 +26,10 @@
 
 extern pid_t shell_pid;
 
+extern void set_own_pgrp(void);
+extern void reset_own_pgrp(void);
+extern void forget_initial_pgrp(void);
+
 struct parseinfo_T;
 
 extern bool exec_mbs(const char *code, const char *name, bool finally_exit)

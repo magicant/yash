@@ -107,7 +107,6 @@ static pid_t exec_process(
 	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
 static pid_t fork_and_reset(pid_t pgid, bool fg);
-static void make_myself_foreground(void);
 static bool search_command(
 	const char *restrict name, commandinfo_T *restrict ci);
 static bool do_assignments_for_command_type(
@@ -573,7 +572,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	    if (fg)
 		make_myself_foreground();
 	}
-	// TODO exec: fork_and_reset: forget_original_pgrp
+	forget_initial_pgrp();
 	remove_all_jobs();
 	clear_traps();
 	clear_shellfds();
