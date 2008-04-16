@@ -149,6 +149,9 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
     size_t *indices = ht->indices;
     struct hash_entry *entries = ht->entries;
 
+    if (ht->count == 0)
+	return ht;
+
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
 	indices[i] = NOTHING;
 	if (entries[i].kv.key) {

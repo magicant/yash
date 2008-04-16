@@ -97,8 +97,10 @@ extern unsigned long current_lineno;
 
 extern void init_variables(void);
 extern void finalize_variables(void);
+
 extern bool is_name(const char *s)
     __attribute__((nonnull,pure));
+
 extern bool set_variable(
 	const char *name, wchar_t *value, bool local, bool export)
     __attribute__((nonnull));
@@ -106,10 +108,17 @@ extern bool set_array(const char *name, char *const *values, bool local)
     __attribute__((nonnull));
 extern void set_positional_parameters(char *const *values)
     __attribute__((nonnull));
+struct assign_T;
+extern bool do_assignments(
+	const struct assign_T *assigns, bool temp, bool export);
+
 extern const wchar_t *getvar(const char *name)
     __attribute__((pure,nonnull));
 extern void **get_variable(const char *name, bool *concat)
     __attribute__((nonnull,malloc,warn_unused_result));
+
+extern void clear_temporary_variables(void);
+
 extern void set_shlvl(long change);
 
 

@@ -68,9 +68,11 @@ typedef int main_T(int argc, char **argv);
 
 /* 実行するコマンドの情報 */
 typedef struct commandinfo_T {
-    enum {                  /* コマンドの種類 */
+    enum cmdtype_T {        /* コマンドの種類 */
 	externalprogram,      /* 外部コマンド */
-	builtin,              /* 組込みコマンド */
+	specialbuiltin,       /* 特殊組込みコマンド */
+	semispecialbuiltin,   /* 準特殊組込みコマンド */
+	regularbuiltin,       /* 普通の組込みコマンド */
 	function,             /* 関数 */
     } type;
     union {
@@ -94,10 +96,12 @@ static void exec_while(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_case(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
+
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
+
 static void exec_commands(const command_T *c, exec_T type, bool looppipe);
 static pid_t exec_process(
 	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
@@ -105,6 +109,8 @@ static pid_t exec_process(
 static pid_t fork_and_reset(pid_t pgid, bool fg);
 static bool search_command(
 	const char *restrict name, commandinfo_T *restrict ci);
+static bool do_assignments_for_command_type(
+	const assign_T *asgns, enum cmdtype_T type);
 static void exec_nonsimple_command(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
@@ -498,13 +504,23 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    /* TODO exec.c:  && !is_stdin_redirected */) {
     }
 
-    /* 変数を代入する */
-    // TODO exec.c: exec_process: assignment
-
     /* コマンドを実行する */
     if (c->c_type == CT_SIMPLE) {
-	if (argc != 0)
-	    exec_simple_command(&cmdinfo, argc, argv, finally_exit);
+	if (argc == 0) {
+	    if (do_assignments(c->c_assigns, false, false))
+		laststatus = EXIT_SUCCESS;
+	    else
+		laststatus = EXIT_FAILURE;
+	} else {
+	    if (do_assignments_for_command_type(c->c_assigns, cmdinfo.type)) {
+		exec_simple_command(&cmdinfo, argc, argv, finally_exit);
+	    } else {
+		if (!is_interactive && cmdinfo.type == specialbuiltin)
+		    exit(EXIT_FAILURE);
+		laststatus = EXIT_FAILURE;
+	    }
+	    clear_temporary_variables();
+	}
 	recfree((void **) argv, free);
     } else {
 	exec_nonsimple_command(c, finally_exit);
@@ -512,7 +528,6 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (finally_exit)
 	exit(laststatus);
 
-    // TODO exec.c: exec_process: 変数の一時代入を削除
     // TODO exec.c: exec_process: セーブしたリダイレクトを戻す
     return 0;
 
@@ -581,6 +596,24 @@ bool search_command(const char *restrict name, commandinfo_T *restrict ci)
     return ci->ci_path != NULL;
 }
 
+/* 指定した commandtype_T に従って do_assignments を呼び出す */
+bool do_assignments_for_command_type(const assign_T *asgns, enum cmdtype_T type)
+{
+    bool temporary, export;
+    switch (type) {
+	case externalprogram:
+	case specialbuiltin:
+	case function:
+	    temporary = false, export = true;
+	    break;
+	case semispecialbuiltin:
+	case regularbuiltin:
+	    temporary = true, export = false;
+	    break;
+    }
+    return do_assignments(asgns, temporary, export);
+}
+
 /* CT_SIMPLE でない一つのコマンドを実行する。
  * c->c_redirs は実行しない */
 void exec_nonsimple_command(const command_T *c, bool finally_exit)
@@ -631,7 +664,9 @@ void exec_simple_command(
 	}
 	// TODO exec.c: exec_simple_command: コマンドをシェルスクリプトとして実行
 	break;
-    case builtin:
+    case specialbuiltin:
+    case semispecialbuiltin:
+    case regularbuiltin:
 	laststatus = ci->ci_builtin(argc, (char **) argv);
 	break;
     case function:

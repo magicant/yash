@@ -33,7 +33,9 @@
 #include "plist.h"
 #include "hashtable.h"
 #include "path.h"
+#include "parser.h"
 #include "variable.h"
+#include "expand.h"
 #include "exec.h"
 #include "yash.h"
 #include "version.h"
@@ -53,9 +55,12 @@ typedef struct environ_T {
 
 static void varfree(variable_T *v);
 static void varkvfree(kvpair_T kv);
+
 static void init_pwd(void);
+
 static inline bool is_name_char(char c)
     __attribute__((const));
+
 static variable_T *search_variable(const char *name, bool temp)
     __attribute__((pure,nonnull));
 static void update_enrivon(const char *name)
@@ -68,11 +73,15 @@ static variable_T *new_global(const char *name)
     __attribute__((nonnull));
 static variable_T *new_local(const char *name)
     __attribute__((nonnull));
+static bool assign_temporary(const char *name, wchar_t *value)
+    __attribute__((nonnull));
+
 static void lineno_getter(variable_T *var)
     __attribute__((nonnull));
 static void random_getter(variable_T *var)
     __attribute__((nonnull));
 static unsigned next_random(void);
+
 static void variable_set(const char *name, variable_T *var)
     __attribute__((nonnull));
 
@@ -240,7 +249,7 @@ void finalize_variables(void)
 	env = parent;
     }
     current_env = NULL;
-    ht_clear(&temp_variables, varkvfree);
+    clear_temporary_variables();
 
     initialized = false;
 }
@@ -451,8 +460,10 @@ variable_T *new_local(const char *name)
 bool set_variable(const char *name, wchar_t *value, bool local, bool export)
 {
     variable_T *var = local ? new_local(name) : new_global(name);
-    if (!var)
+    if (!var) {
+	free(value);
 	return false;
+    }
 
     var->v_type = VF_NORMAL
 	| (var->v_type & (VF_EXPORT | VF_NODELETE))
@@ -513,6 +524,65 @@ bool set_array(const char *name, char *const *values, bool local)
 void set_positional_parameters(char *const *values)
 {
     set_array(VAR_positional, values, true);
+}
+
+/* 一時的変数への代入を行う。
+ * name:  変数名
+ * value: 予め wcsdup しておいた free 可能な文字列。
+ *        この関数が返った後、呼出し元はこの文字列を一切使用してはならない。
+ * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+bool assign_temporary(const char *name, wchar_t *value)
+{
+    variable_T *var = ht_get(&temp_variables, name).value;
+    if (!var) {
+	var = xmalloc(sizeof *var);
+	var->v_type = 0;
+	ht_set(&temp_variables, xstrdup(name), var);
+    } else {
+	switch (var->v_type & VF_MASK) {
+	    case VF_NORMAL:
+		free(var->v_value);
+		break;
+	    case VF_ARRAY:
+		recfree(var->v_vals, free);
+		break;
+	}
+    }
+
+    var->v_type = VF_NORMAL;
+    var->v_value = value;
+    var->v_getter = NULL;
+    return true;
+}
+
+/* 変数代入を行う。
+ * assign: 代入する変数と値
+ * temp:   代入する変数を一時的変数にするかどうか
+ * export: 代入した変数を export 対象にするかどうか
+ * 戻り値: エラーがなければ true
+ * temp と export を両方 true にしてはいけない。
+ * エラーの場合でもそれまでの代入の結果は残る。 */
+bool do_assignments(const assign_T *assign, bool temp, bool export)
+{
+    assert(!(temp && export));
+
+    while (assign) {
+	wchar_t *value = expand_single(assign->value, tt_multi);
+	if (!value)
+	    return false;
+	value = unescapefree(value);
+
+	bool ok;
+	if (temp)
+	    ok = assign_temporary(assign->name, value);
+	else
+	    ok = set_variable(assign->name, value, false, export);
+	if (!ok)
+	    return false;
+
+	assign = assign->next;
+    }
+    return true;
 }
 
 /* 指定した名前のシェル変数を取得する。
@@ -619,6 +689,12 @@ return_single:  /* 一つの値を要素数 1 の配列で返す。 */
 
 return_array:  /* 配列をコピーして返す */
     return dupwcsarray(result);
+}
+
+/* 一時的変数を削除する */
+void clear_temporary_variables(void)
+{
+    ht_clear(&temp_variables, varkvfree);
 }
 
 /* SHLVL 変数の値に change を加える。 */
