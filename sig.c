@@ -263,6 +263,26 @@ void block_sigtstp(void)
 	xerror(errno, "sigprocmask(BLOCK, TSTP)");
 }
 
+/* SIGTTOU をブロックする */
+void block_sigttou(void)
+{
+    sigset_t ss;
+    sigemptyset(&ss);
+    sigaddset(&ss, SIGTTOU);
+    if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
+	xerror(errno, "sigprocmask(BLOCK, TTOU)");
+}
+
+/* SIGTTOU のブロックを解除する */
+void unblock_sigttou(void)
+{
+    sigset_t ss;
+    sigemptyset(&ss);
+    sigaddset(&ss, SIGTTOU);
+    if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
+	xerror(errno, "sigprocmask(UNBLOCK, TTOU)");
+}
+
 /* 汎用のシグナルハンドラ */
 void sig_handler(int signum)
 {

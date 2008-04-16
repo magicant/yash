@@ -163,6 +163,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	    do_job_control = is_interactive;
 	// TODO yash:main:exec_first_arg シェル環境設定
 	set_signals();
+	open_ttyfd();
 	set_positional_parameters(argv + xoptind);
 	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
@@ -189,6 +190,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	if (!do_job_control_set)
 	    do_job_control = is_interactive;
 	set_signals();
+	open_ttyfd();
 	set_positional_parameters(argv + xoptind);
 	exec_input(input, inputname, is_interactive, true);
     }

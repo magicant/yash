@@ -107,6 +107,7 @@ static pid_t exec_process(
 	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
 static pid_t fork_and_reset(pid_t pgid, bool fg);
+static void make_myself_foreground(void);
 static bool search_command(
 	const char *restrict name, commandinfo_T *restrict ci);
 static bool do_assignments_for_command_type(
@@ -176,7 +177,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    ps->pr_statuscode = 0;
 	    ps->pr_name = pipelines_to_wcs(p);
 
-	    job->j_pgid = do_job_control ? cpid : 0;
+	    job->j_pgid = doing_job_control_now ? cpid : 0;
 	    job->j_status = JS_RUNNING;
 	    job->j_statuschanged = true;
 	    job->j_loop = false;
@@ -381,18 +382,18 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
     }
 
     set_active_job(job);
-    job->j_pgid = do_job_control ? pgid : 0;
+    job->j_pgid = doing_job_control_now ? pgid : 0;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = true;
     job->j_loop = looppipe;
     job->j_pcount = count;
     if (type == execnormal) {   /* ジョブの終了を待つ */
-	wait_for_job(ACTIVE_JOBNO, do_job_control);
+	wait_for_job(ACTIVE_JOBNO, doing_job_control_now);
 	laststatus = calc_status_of_job(job);
 	handle_traps();
 	if (job->j_status == JS_DONE) {
 	    remove_job(ACTIVE_JOBNO);
-	    return;
+	    goto finish;
 	}
     } else {
 	laststatus = EXIT_SUCCESS;
@@ -406,7 +407,7 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
 	cc = cc->next;
     }
     add_job();
-    return;
+    goto finish;
 
 fail:
     laststatus = EXIT_FAILURE;
@@ -419,6 +420,10 @@ fail:
     if (pinfo.pi_loopoutfd >= 0)
 	xclose(pinfo.pi_loopoutfd);
     free(job);
+
+finish:
+    if (doing_job_control_now)
+	make_myself_foreground();
 }
 
 /* 一つのコマンドを実行する。
@@ -480,6 +485,7 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     }
 
     assert(!need_fork || finally_exit);  /* fork すれば子プロセスは必ず exit */
+    bool job_control = doing_job_control_now;
     if (need_fork) {
 	pid_t cpid = fork_and_reset(pgid, type == execnormal);
 	if (cpid != 0) {
@@ -488,7 +494,7 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	}
     }
     if (finally_exit) {
-	if (!do_job_control && type == execasync)
+	if (!job_control && type == execasync)
 	    block_sigquit_and_sigint();
 	reset_signals();
     }
@@ -558,22 +564,31 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	xerror(errno, Ngt("fork: cannot make child process"));
     } else if (cpid > 0) {
 	/* 親プロセス */
-	if (do_job_control && pgid >= 0)
+	if (doing_job_control_now && pgid >= 0)
 	    setpgid(cpid, pgid);
     } else {
 	/* 子プロセス */
-	if (do_job_control && pgid >= 0) {
+	if (doing_job_control_now && pgid >= 0) {
 	    setpgid(0, pgid);
 	    if (fg)
-		(void) 0; // TODO exec: fork_and_reset: tcsetpgrp
+		make_myself_foreground();
 	}
 	// TODO exec: fork_and_reset: forget_original_pgrp
 	remove_all_jobs();
 	clear_traps();
 	clear_shellfds();
-	do_job_control = is_interactive_now = false;
+	is_interactive_now = false;
     }
     return cpid;
+}
+
+/* 自分自身のプロセスグループをフォアグラウンドにする */
+void make_myself_foreground(void)
+{
+    assert(ttyfd >= 0);
+    block_sigttou();
+    tcsetpgrp(ttyfd, getpgrp());
+    unblock_sigttou();
 }
 
 /* コマンドの種類を特定し、コマンドのありかを探す。

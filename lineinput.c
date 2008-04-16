@@ -136,7 +136,7 @@ start:
 	    return EOF;
 	assert(ferror(f));
 	switch (errno) {
-	    case EINTR:
+	    case EINTR:  // TODO lineinput: input_file: レースコンディション
 		do_wait();
 		handle_traps();
 		// TODO lineinput: input_file: SIGINT 対処

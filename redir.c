@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #include "util.h"
 #include "redir.h"
 
@@ -96,6 +97,9 @@ static int shellfdmax;
 #define SHELLFDMINMAX 100  /* shellfdmin の最大値 */
 #endif
 
+/* 制御端末のファイルディスクリプタ */
+int ttyfd = -1;
+
 
 /* redir モジュールを初期化する */
 void init_shellfds(void)
@@ -166,6 +170,7 @@ void clear_shellfds(void)
 	    xclose(fd);
     FD_ZERO(&shellfds);
     shellfdmax = -1;
+    ttyfd = -1;
 }
 
 /* 指定したファイルディスクリプタを複製する。
@@ -197,15 +202,35 @@ FILE *reopen_with_shellfd(FILE *f, const char *mode)
 	return fdopen(newfd, mode);
 }
 
+/* ttyfd を開く */
+void open_ttyfd(void)
+{
+    if (ttyfd < 0) {
+	int fd = open("/dev/tty", O_RDWR);
+	if (fd >= 0) {
+	    ttyfd = copy_as_shellfd(fd);
+	    if (ttyfd < 0)
+		goto onerror;
+	    xclose(fd);
+	} else {
+	    goto onerror;
+	}
+    }
+    return;
+
+onerror:
+    xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
+}
+
 
 /********** リダイレクト **********/
 
 /* リダイレクトを後で元に戻すための情報 */
 struct saveredir_T {
     struct saveredir_T *next;
-    int   sr_origfd;  /* 元のファイルディスクリプタ */
-    int   sr_copyfd;  /* コピー先のファイルディスクリプタ */
-    FILE *sr_file;    /* 元のストリーム */
+    int   sr_origfd;            /* 元のファイルディスクリプタ */
+    int   sr_copyfd;            /* コピー先のファイルディスクリプタ */
+    FILE *sr_file;              /* 元のストリーム */
     bool  sr_stdin_redirected;  /* 元の is_stdin_redirected */
 };
 

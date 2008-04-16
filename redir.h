@@ -28,11 +28,13 @@ extern int xclose(int fd);
 extern int xdup2(int oldfd, int newfd);
 
 extern bool is_stdin_redirected;
+extern int ttyfd;
 
 extern void init_shellfds(void);
 extern void clear_shellfds(void);
 extern int copy_as_shellfd(int fd);
 extern FILE *reopen_with_shellfd(FILE *f, const char *mode);
+extern void open_ttyfd(void);
 
 
 #endif /* REDIR_H */
