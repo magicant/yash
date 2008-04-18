@@ -35,6 +35,7 @@
 #include "strbuf.h"
 #include "plist.h"
 #include "parser.h"
+#include "expand.h"
 
 
 /********** 解析した構文木データを解放するルーチン **********/
@@ -331,10 +332,19 @@ static caseitem_T *parse_case_list(void)
 static void **parse_case_patterns(void)
     __attribute__((malloc,warn_unused_result));
 static void read_heredoc_contents(redir_T *redir);
+static void read_heredoc_contents_without_expand(redir_T *r);
+static void read_heredoc_contents_with_expand(redir_T *r);
+static bool is_end_of_heredoc_contents(
+	const wchar_t *eoc, size_t eoclen, bool skiptab)
+    __attribute__((nonnull));
+static wordunit_T *parse_string_to(bool stoponnewline)
+    __attribute__((malloc,warn_unused_result));
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
     __attribute__((nonnull));
 static void print_errmsg_token_missing(const wchar_t *token, size_t index)
     __attribute__((nonnull));
+
+#define QUOTES L"\"'\\"
 
 
 /* 解析中のソースのデータ */
@@ -426,6 +436,7 @@ void serror(const char *restrict format, ...)
  * 戻り値: 0:   何らかの入力があった。
  *         1:   対話モードで SIGINT を受けた。(buf の内容は不定)
  *         EOF: EOF に達したか、エラーがあった。(buf の内容は不定) */
+//TODO 非 0 でも buf の内容を安全にする
 int read_more_input(void)
 {
     if (cinfo->lastinputresult == 0)
@@ -964,10 +975,9 @@ reparse:
 	size_t index = cindex;
 	wchar_t *endofheredoc = parse_word_as_wcs();
 	assert(index != cindex);
-	if (wcschr(endofheredoc, L'\n'))
-	    serror(Ngt("end-of-heredoc indicator containing newline"));
 	result->rd_hereend = endofheredoc;
 	result->rd_herecontent = NULL;
+	pl_add(&pending_heredocs, result);
     }
     return result;
 }
@@ -981,7 +991,7 @@ wordunit_T *parse_word(aliastype_T type)
  * type: 展開するエイリアスの種類
  * testfunc: ワード区切り文字かどうかを判別する関数
  *       解析は、エスケープされていなくて testfunc が false を返す文字まで進む。
- *       testfunc は、NULL 文字に対して true を返さねばならない。
+ *       testfunc は、L'\0' に対して true を返さねばならない。
  * ワードがなくてもエラーを出さない。 */
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
@@ -1319,6 +1329,9 @@ fail:
 wordunit_T *parse_cmdsubst_in_paren(void)
 {
     // TODO parser: parse_cmdsubst_in_paren: エイリアスを一時的に無効にする
+    plist_T save_pending_heredocs = pending_heredocs;
+    pl_init(&pending_heredocs);
+
     assert(cbuf.contents[cindex] == L'(');
 
     size_t startindex = ++cindex;
@@ -1336,6 +1349,9 @@ wordunit_T *parse_cmdsubst_in_paren(void)
 	cindex++;
     else
 	serror(Ngt("`%ls' missing"), L")");
+
+    pl_destroy(&pending_heredocs);
+    pending_heredocs = save_pending_heredocs;
     return result;
 }
 
@@ -1775,14 +1791,148 @@ void **parse_case_patterns(void)
 }
 
 /* ヒアドキュメントの内容を読み込む。 */
-void read_heredoc_contents(redir_T *redir)
+void read_heredoc_contents(redir_T *r)
 {
+    if (wcschr(r->rd_hereend, L'\n')) {
+	serror(Ngt("end-of-heredoc indicator containing newline"));
+	return;
+    }
+
+    assert(r->rd_type == RT_HERE || r->rd_type == RT_HERERT);
+    if (wcspbrk(r->rd_hereend, QUOTES))
+	read_heredoc_contents_without_expand(r);
+    else
+	read_heredoc_contents_with_expand(r);
+}
+
+/* パラメータ展開などの無いヒアドキュメントの内容を読み込む。 */
+void read_heredoc_contents_without_expand(redir_T *r)
+{
+    wchar_t *eoc = unquote(r->rd_hereend);
+    size_t eoclen = wcslen(eoc);
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    while (!is_end_of_heredoc_contents(eoc, eoclen, r->rd_type == RT_HERERT)
+	    && cbuf.contents[cindex] != L'\0') {
+	wb_cat(&buf, cbuf.contents + cindex);
+	cindex = cbuf.length;
+    }
+    free(eoc);
+    
     wordunit_T *wu = xmalloc(sizeof *wu);
     wu->next = NULL;
     wu->wu_type = WT_STRING;
-    wu->wu_string = xwcsdup(L"");
-    redir->rd_herecontent = wu;
-    // TODO parser.c: read_heredoc_contents: 未実装
+    wu->wu_string = escapefree(wb_towcs(&buf), L"\\");
+    r->rd_herecontent = wu;
+}
+
+/* パラメータ展開・コマンド置換・数式展開を含むヒアドキュメントの内容を
+ * 読み込む。 */
+void read_heredoc_contents_with_expand(redir_T *r)
+{
+    wordunit_T *first = NULL, **lastp = &first;
+    const wchar_t *eoc = r->rd_hereend;
+    size_t eoclen = wcslen(eoc);
+
+    while (!is_end_of_heredoc_contents(eoc, eoclen, r->rd_type == RT_HERERT)
+	    && cbuf.contents[cindex] != L'\0') {
+	wordunit_T *wu = parse_string_to(true);
+	if (wu) {
+	    *lastp = wu;
+	    while (wu->next)
+		wu = wu->next;
+	    lastp = &wu->next;
+	}
+    }
+    r->rd_herecontent = first;
+}
+
+/* 現在位置の行全体がヒアドキュメントの終わりを表す文字列 eoc かどうか調べる。
+ * eoc: 終わりを表す文字列
+ * eoclen: wcslen(eoc)
+ * skiptab: true なら行頭のタブを無視。
+ * 戻り値が true なら、cindex は eoc を含む行の改行の直後まで進む。
+ * false なら、cindex はそのまま。ただし skiptab が true ならタブの直後まで
+ * cindex を進める。 */
+bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
+{
+    if (cinfo->lastinputresult != 0)
+	return true;
+
+    assert(wcslen(eoc) == eoclen);
+    assert(cbuf.length > 0 && cbuf.contents[cindex - 1] == L'\n');
+    read_more_input();
+    while (ensure_buffer(eoclen + 1),
+	    skiptab && cbuf.contents[cindex] == L'\t') {
+	cindex++;
+    }
+
+    const wchar_t *m = matchwcsprefix(cbuf.contents + cindex, eoc);
+    if (m && *m == L'\n') {
+	cindex += eoclen + 1;
+	return true;
+    } else if (m && *m == L'\0') {
+	cindex += eoclen;
+	return true;
+    } else {
+	return false;
+    }
+}
+
+/* 現在位置の文字列を解析する。パラメータ展開・コマンド置換・数式展開を
+ * 認識するが、一重・二重引用符は引用符として扱わない。
+ * stoponnewline: true なら、改行のところで解析を終了する。このとき改行は解析
+ *     結果に含まれる。false なら現在位置以降全て (EOF まで) を解析する。 */
+wordunit_T *parse_string_to(bool stoponnewline)
+{
+    wordunit_T *first = NULL, **lastp = &first, *wu;
+    size_t startindex = cindex;
+
+    for (;;) {
+	ensure_buffer(1);
+	switch (cbuf.contents[cindex]) {
+	case L'\0':
+	    goto done;
+	case L'\\':
+	    ensure_buffer(2);
+	    if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
+		wb_remove(&cbuf, cindex, 2);
+		cinfo->lineno++;
+		continue;
+	    } else if (cbuf.contents[cindex + 1] != L'\0') {
+		cindex += 2;
+		continue;
+	    }
+	    break;
+	case L'\n':
+	    if (stoponnewline) {
+		cindex++;
+		goto done;
+	    }
+	    cinfo->lineno++;
+	    read_more_input();
+	    break;
+	case L'$':
+	case L'`':
+	    MAKE_WORDUNIT_STRING;
+	    wu = parse_special_word_unit();
+	    startindex = cindex;
+	    if (wu) {
+		*lastp = wu;
+		lastp = &wu->next;
+		continue;
+	    } else if (cbuf.contents[cindex] == L'\0') {
+		continue;
+	    }
+	    break;
+	default:
+	    break;
+	}
+	cindex++;
+    }
+done:
+    MAKE_WORDUNIT_STRING;
+    return first;
 }
 
 

@@ -249,7 +249,8 @@ typedef struct redir_T {
  * rd_herecontent はヒアドキュメントの内容。RT_HERERT では、予め行頭のタブは
  * 取り除いてある。rd_hereend に引用符がある場合、ヒアドキュメントの内容の
  * パラメータ展開などは行わないので、rd_herecontent は単一の WT_STRING の
- * word_unit になる。 */
+ * word_unit になる。いずれにしても rd_herecontent は esc が true の
+ * expand_string で展開する。 */
 
 
 /********** 構文解析ルーチンへのインタフェース宣言 **********/

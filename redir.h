@@ -22,8 +22,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-typedef struct saveredir_T saveredir_T;
-
 extern int xclose(int fd);
 extern int xdup2(int oldfd, int newfd);
 
@@ -35,6 +33,13 @@ extern void clear_shellfds(void);
 extern int copy_as_shellfd(int fd);
 extern FILE *reopen_with_shellfd(FILE *f, const char *mode);
 extern void open_ttyfd(void);
+
+typedef struct savefd_T savefd_T;
+struct redir_T;
+
+extern bool open_redirections(const struct redir_T *r, struct savefd_T **save);
+extern void undo_redirections(savefd_T *save);
+extern void clear_savefd(savefd_T *save);
 
 
 #endif /* REDIR_H */

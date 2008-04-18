@@ -29,10 +29,12 @@ extern void block_sigquit_and_sigint(void);
 extern void block_sigtstp(void);
 extern void block_sigttou(void);
 extern void unblock_sigttou(void);
+extern void block_all_but_sigpipe(void);
 
 extern void block_sigchld_and_sighup(void);
 extern void unblock_sigchld_and_sighup(void);
 extern void wait_for_sigchld(void);
+
 extern void handle_traps(void);
 extern void clear_traps(void);
 

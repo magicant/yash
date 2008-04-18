@@ -502,7 +502,9 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     connect_pipes(pi);
 
     /* リダイレクトを開く */
-    // TODO exec.c: exec_process: redirect
+    savefd_T *savefd;
+    if (!open_redirections(c->c_redirs, finally_exit ? NULL : &savefd))
+	goto redir_fail;
     
     /* 非対話的シェルで非同期実行する場合は stdin を /dev/null にリダイレクト */
     if (type == execasync && !is_interactive && pi->pi_fromprevfd < 0
@@ -533,7 +535,14 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (finally_exit)
 	exit(laststatus);
 
-    // TODO exec.c: exec_process: セーブしたリダイレクトを戻す
+    // TODO exec: exec_process: exec コマンドのリダイレクトは残す
+#if 0
+    if (c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin
+	    && cmdinfo.ci_builtin == exec_builtin && laststatus == EXIT_SUCCESS)
+	clear_savefd(savefd);
+    else
+#endif
+	undo_redirections(savefd);
     return 0;
 
 done:
@@ -544,6 +553,16 @@ onerror:
     if (type == execself)
 	exit(laststatus);
     return -1;
+redir_fail:
+    if (finally_exit)
+	exit(EXIT_FAILURE);
+    if (posixly_correct && !is_interactive
+	    && c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin)
+	exit(EXIT_FAILURE);
+    undo_redirections(savefd);
+    if (c->c_type == CT_SIMPLE)
+	recfree((void **) argv, free);
+    return 0;
 }
 
 /* fork して、いろいろ必要な設定を行う。
@@ -781,6 +800,58 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 
 	exec_wcs(code, gt("command substitution"), true);
 	assert(false);
+    }
+}
+
+/* 引数を内容とするヒアドキュメントを開く。
+ * 成功ならファイルディスクリプタ、エラーなら負数を返す。 */
+/* ヒアドキュメントの内容は fork した子プロセスからパイプ経由で渡す */
+int open_heredocument(const wordunit_T *contents)
+{
+    int pipefd[2];
+    pid_t cpid;
+
+    /* ヒアドキュメントの内容を渡すためのパイプを開く */
+    if (pipe(pipefd) < 0) {
+	xerror(errno, Ngt("cannot open pipe for here-document"));
+	return -1;
+    }
+
+    /* contents が空文字列なら fork するまでもない */
+    if (!contents)
+	goto success;
+
+    cpid = fork_and_reset(-1, false);
+    if (cpid < 0) {
+	/* fork 失敗 */
+	xerror(0, Ngt("cannot redirect to here-document"));
+	xclose(pipefd[PIDX_IN]);
+	xclose(pipefd[PIDX_OUT]);
+	return -1;
+    } else if (cpid > 0) {
+	/* 親プロセス */
+success:
+	xclose(pipefd[PIDX_OUT]);
+	return pipefd[PIDX_IN];
+    } else {
+	/* 子プロセス */
+	xclose(pipefd[PIDX_IN]);
+	block_all_but_sigpipe();
+
+	FILE *f = fdopen(pipefd[PIDX_OUT], "w");
+	if (!f) {
+	    xerror(errno, Ngt("cannot open pipe for here-document"));
+	    exit(EXIT_FAILURE);
+	}
+
+	wchar_t *s = expand_string(contents, true);
+	if (!s)
+	    exit(EXIT_FAILURE);
+	if (fputws(s, f) < 0) {
+	    xerror(errno, Ngt("cannot write here-document contents"));
+	    exit(EXIT_FAILURE);
+	}
+	exit(EXIT_SUCCESS);
     }
 }
 

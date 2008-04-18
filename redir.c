@@ -22,11 +22,17 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/stat.h>
+#include "option.h"
 #include "util.h"
+#include "parser.h"
+#include "expand.h"
 #include "redir.h"
+#include "exec.h"
 
 
 /********** ユーティリティ **********/
@@ -63,7 +69,7 @@ int xdup2(int oldfd, int newfd)
 	    continue;
 	default:
 	    xerror(errno,
-		    Ngt("error in copying file descriptor %d to %d"),
+		    Ngt("cannot copy file descriptor %d to %d"),
 		    oldfd, newfd);
 	    return -1;
 	}
@@ -226,13 +232,222 @@ onerror:
 /********** リダイレクト **********/
 
 /* リダイレクトを後で元に戻すための情報 */
-struct saveredir_T {
-    struct saveredir_T *next;
-    int   sr_origfd;            /* 元のファイルディスクリプタ */
-    int   sr_copyfd;            /* コピー先のファイルディスクリプタ */
-    FILE *sr_file;              /* 元のストリーム */
-    bool  sr_stdin_redirected;  /* 元の is_stdin_redirected */
+struct savefd_T {
+    struct savefd_T *next;
+    int   sf_origfd;            /* 元のファイルディスクリプタ */
+    int   sf_copyfd;            /* コピー先のファイルディスクリプタ */
+    bool  sf_stdin_redirected;  /* 元の is_stdin_redirected */
 };
+
+static void save_fd(int oldfd, savefd_T **save);
+static int parse_and_check_dup(char *num, redirtype_T type)
+    __attribute__((nonnull));
+
+
+/* リダイレクトを開く。
+ * save が非 NULL なら、元のファイルディスクリプタをセーブした情報へのポインタを
+ * *save に入れる。
+ * 戻り値: エラーがなければ true。
+ * エラーがあっても、それまでのリダイレクトをセーブした情報が *save に入る */
+bool open_redirections(const redir_T *r, savefd_T **save)
+{
+    if (save)
+	*save = NULL;
+
+    while (r) {
+	if (r->rd_fd < 0 || is_shellfd(r->rd_fd)) {
+	    xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+		    r->rd_fd);
+	    return false;
+	}
+
+	/* rd_filename を展開する */
+	char *filename;
+	if (r->rd_type != RT_HERE && r->rd_type != RT_HERERT) {
+	    filename = expand_single_with_glob(r->rd_filename, tt_single);
+	    if (!filename)
+		return false;
+	} else {
+	    filename = NULL;
+	}
+
+	/* リダイレクトをセーブする */
+	save_fd(r->rd_fd, save);
+
+	/* 実際にリダイレクトを開く */
+	int fd;
+	int flags;
+	bool keepopen;
+	switch (r->rd_type) {
+	case RT_INPUT:
+	    flags = O_RDONLY;
+	    goto openwithflags;
+	case RT_OUTPUT:
+	    if (false) {  // TODO redir: open_redirections: noclobber option
+		flags = O_WRONLY | O_CREAT | O_EXCL;
+	    } else {
+	case RT_CLOBBER:
+		flags = O_WRONLY | O_CREAT | O_TRUNC;
+	    }
+	    goto openwithflags;
+	case RT_APPEND:
+	    flags = O_WRONLY | O_CREAT | O_APPEND;
+	    goto openwithflags;
+	case RT_INOUT:
+	    flags = O_RDWR | O_CREAT;
+	    goto openwithflags;
+openwithflags:
+	    keepopen = false;
+	    fd = open(filename, flags,
+		    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	    if (fd < 0) {
+		xerror(errno, Ngt("redirection: cannot open `%s'"), filename);
+		free(filename);
+		return false;
+	    }
+	    free(filename);
+	    break;
+	case RT_DUPIN:
+	case RT_DUPOUT:
+	    keepopen = true;
+	    fd = parse_and_check_dup(filename, r->rd_type);
+	    if (fd < -1)
+		return false;
+	    break;
+	case RT_HERE:
+	case RT_HERERT:
+	    keepopen = false;
+	    fd = open_heredocument(r->rd_herecontent);
+	    if (fd < 0)
+		return false;
+	    break;
+	default:
+	    assert(false);
+	}
+
+	/* 開いたファイルディスクリプタを r->rd_fd に移動する */
+	if (fd != r->rd_fd) {
+	    if (fd >= 0) {
+		if (xdup2(fd, r->rd_fd) < 0)
+		    return false;
+		if (!keepopen)
+		    xclose(fd);
+	    } else {
+		xclose(r->rd_fd);
+	    }
+	}
+
+	if (r->rd_fd == STDIN_FILENO)
+	    is_stdin_redirected = true;
+
+	r = r->next;
+    }
+    return true;
+}
+
+/* ファイルディスクリプタをセーブする。
+ * fd:   セーブするファイルディスクリプタ
+ * save: セーブ情報の保存先へのポインタ。NULL なら何もしない。 */
+void save_fd(int fd, savefd_T **save)
+{
+    assert(0 <= fd);
+    if (!save)
+	return;
+
+    int copyfd = copy_as_shellfd(fd);
+    if (copyfd < 0 && errno != EBADF) {
+	xerror(errno, Ngt("cannot save file descriptor %d"), fd);
+	return;
+    }
+
+    savefd_T *s = xmalloc(sizeof *s);
+    s->next = *save;
+    s->sf_origfd = fd;
+    s->sf_copyfd = copyfd;
+    s->sf_stdin_redirected = is_stdin_redirected;
+    /* 註: fd が未使用だった場合は sf_copyfd は -1 になる */
+    *save = s;
+}
+
+/* RT_DUPIN/RT_DUPOUT の対象を解析する。
+ * num:    解析の対象となる文字列。"-" または数字であることが期待される。
+ *         num はこの関数内で free する。
+ * 戻り値: 成功すれば、複製すべきファイルディスクリプタ。num が "-" だった場合は
+ *         -1。エラーの場合は -1 未満。 */
+int parse_and_check_dup(char *const num, redirtype_T type)
+{
+    int fd;
+    if (strcmp(num, "-") == 0) {
+	fd = -1;
+    } else {
+	char *end;
+	errno = 0;
+	fd = strtol(num, &end, 10);
+	if (*num == '\0' || *end != '\0')
+	    errno = EINVAL;
+	else if (fd < 0)
+	    errno = ERANGE;
+	if (errno) {
+	    xerror(errno, Ngt("redirection: %s"), num);
+	    fd = -2;
+	} else {
+	    if (posixly_correct) {
+		/* ファイルディスクリプタの読み書き権限をチェック */
+		int flags = fcntl(fd, F_GETFL);
+		if (flags < 0) {
+		    xerror(errno, Ngt("redirection: %d"), fd);
+		    fd = -2;
+		} else {
+		    if (type == RT_DUPIN && (flags & O_ACCMODE) == O_WRONLY) {
+			xerror(0, Ngt("redirection: %d: not readable"), fd);
+			fd = -2;
+		    }
+		    if (type == RT_DUPOUT && (flags & O_ACCMODE) == O_RDONLY) {
+			xerror(0, Ngt("redirection: %d: not writable"), fd);
+			fd = -2;
+		    }
+		}
+	    }
+	}
+    }
+    free(num);
+    return fd;
+}
+
+/* セーブしたファイルディスクリプタを元に戻し、save を free する。 */
+void undo_redirections(savefd_T *save)
+{
+    while (save) {
+	if (save->sf_copyfd >= 0) {
+	    remove_shellfd(save->sf_copyfd);
+	    xdup2(save->sf_copyfd, save->sf_origfd);
+	    xclose(save->sf_copyfd);
+	} else {
+	    xclose(save->sf_origfd);
+	}
+	is_stdin_redirected = save->sf_stdin_redirected;
+
+	savefd_T *next = save->next;
+	free(save);
+	save = next;
+    }
+}
+
+/* セーブしたファイルディスクリプタの情報を削除し、元に戻せないようにする。
+ * 引数は関数内で free する。 */
+void clear_savefd(savefd_T *save)
+{
+    while (save) {
+	if (save->sf_copyfd >= 0) {
+	    remove_shellfd(save->sf_copyfd);
+	    xclose(save->sf_copyfd);
+	}
+
+	savefd_T *next = save->next;
+	free(save);
+	save = next;
+    }
+}
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

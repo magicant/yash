@@ -46,6 +46,8 @@ extern wchar_t *unescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t *unescapefree(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *unquote(const wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 
 /* escape と同じだが、第 1 引数を free する。

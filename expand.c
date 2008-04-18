@@ -97,7 +97,8 @@ static void fieldsplit(wchar_t *restrict s, const wchar_t *restrict ifs,
 static void fieldsplit_all(void **restrict src, plist_T *restrict dest)
     __attribute__((nonnull));
 
-static inline void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
+static inline void add_sq(
+	const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
     __attribute__((nonnull));
 static wchar_t *reescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -257,7 +258,7 @@ noglob:
 /* 一つの文字列を展開する。
  * パラメータ展開・数式展開・コマンド置換を行うが、ブレース展開・フィールド分割
  * ・ファイル名展開はしない。エラー発生時はメッセージを出して NULL を返す。
- * esc:    true なら $, `, ", \ の直前の \ を削除する。
+ * esc:    true なら $, `, \ の直前の \ を削除する。
  *         false なら全ての引用符はただの文字として扱う。
  * 戻り値: 展開結果。新しく malloc したワイド文字列。エラーなら NULL。
  * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
@@ -276,7 +277,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	    str = w->wu_string;
 	    while (*str) {
 		if (esc && str[0] == L'\\' && str[1] != L'\0'
-			&& wcschr(ESCAPABLE_CHARS, str[1])) {
+			&& wcschr(L"$`\\", str[1])) {
 		    str++;
 		    if (*str)
 			wb_wccat(&buf, *str);
@@ -375,7 +376,7 @@ bool expand_word(
 		    if (indq)
 			goto default_case;
 		    force = true;
-		    add_sq(&str, &buf);
+		    add_sq(&str, &buf, true);
 		    break;
 		case L'\\':
 		    if (indq && !wcschr(ESCAPABLE_CHARS, str[1])) {
@@ -1153,9 +1154,10 @@ void fieldsplit_all(void **restrict const src, plist_T *restrict dest)
 
 /********** 文字列のエスケープ **********/
 
-/* 単一引用符の中身を、エスケープしながら加える。
- * 最初 *ss は開く引用符を指していて、返るとき *ss は閉じる引用符を指す。 */
-void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
+/* 単一引用符の中身をバッファに加える。
+ * 最初 *ss は開く引用符を指していて、返るとき *ss は閉じる引用符を指す。
+ * escape: true なら加える内容全ての文字をバックスラッシュエスケープする。 */
+void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
 {
     (*ss)++;
     for (;;) {
@@ -1165,7 +1167,8 @@ void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf)
 	    case L'\'':
 		return;
 	    default:
-		wb_wccat(buf, L'\\');
+		if (escape)
+		    wb_wccat(buf, L'\\');
 		wb_wccat(buf, **ss);
 		break;
 	}
@@ -1239,6 +1242,42 @@ void **reescape_full_array(void **const wcsarray)
 	ary++;
     }
     return wcsarray;
+}
+
+/* 引用符 (', ", \) を除去する
+ * 戻り値: 新しく malloc した文字列 */
+wchar_t *unquote(const wchar_t *s)
+{
+    bool indq = false;
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    for (;;) {
+	switch (*s) {
+	case L'\0':
+	    goto done;
+	case L'\'':
+	    if (indq)
+		goto default_case;
+	    add_sq(&s, &buf, false);
+	    break;
+	case L'"':
+	    indq = !indq;
+	    break;
+	case L'\\':
+	    if (s[1] != L'\0' && (!indq || wcschr(ESCAPABLE_CHARS, s[1]))) {
+		wb_wccat(&buf, s[1]);
+		s += 2;
+		continue;
+	    }
+	    /* falls thru! */
+	default:  default_case:
+	    wb_wccat(&buf, *s);
+	    break;
+	}
+	s++;
+    }
+done:
+    return wb_towcs(&buf);
 }
 
 /* wcspbrk と同じだが、wcs 内のバックスラッシュエスケープした文字は無視する */

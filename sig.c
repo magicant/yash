@@ -283,6 +283,23 @@ void unblock_sigttou(void)
 	xerror(errno, "sigprocmask(UNBLOCK, TTOU)");
 }
 
+/* SIGPIPE 以外の全てのシグナルをブロックし、SIGPIPE を SIG_DFL に戻す。 */
+void block_all_but_sigpipe(void)
+{
+    sigset_t ss;
+    sigfillset(&ss);
+    sigdelset(&ss, SIGPIPE);
+    if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0)
+	xerror(errno, "sigprocmask(SETMASK, all but PIPE)");
+
+    struct sigaction action;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    action.sa_handler = SIG_DFL;
+    if (sigaction(SIGPIPE, &action, NULL) < 0)
+	xerror(errno, "sigaction(SIGPIPE)");
+}
+
 /* 汎用のシグナルハンドラ */
 void sig_handler(int signum)
 {
