@@ -321,7 +321,7 @@ const char *get_command_path(const char *name, bool forcelookup)
 
     if (!forcelookup) {
 	path = ht_get(&cmdhash, name).value;
-	if (path)
+	if (path && is_executable(path))
 	    return path;
     }
 
