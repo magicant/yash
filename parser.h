@@ -263,8 +263,9 @@ struct xwcsbuf_T;
  * inputinfo は、read_and_parse 関数の第 2 引数で与えられたポインタである。
  * エラーのときは、エラーメッセージを出して EOF を返す。
  * 戻り値: 0:   何らかの入力があった。
- *         1:   対話モードで SIGINT を受けた。(buf の内容は不定)
- *         EOF: EOF に達したか、エラーがあった。(buf の内容は不定) */
+ *         1:   対話モードで SIGINT を受けた。
+ *         EOF: EOF に達したか、エラーがあった。
+ * 戻り値が 0 でなければ、buf の内容は変化してはならない。 */
 typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 typedef struct parseinfo_T {

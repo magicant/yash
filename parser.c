@@ -434,9 +434,8 @@ void serror(const char *restrict format, ...)
 
 /* 更なる入力を読み込む
  * 戻り値: 0:   何らかの入力があった。
- *         1:   対話モードで SIGINT を受けた。(buf の内容は不定)
- *         EOF: EOF に達したか、エラーがあった。(buf の内容は不定) */
-//TODO 非 0 でも buf の内容を安全にする
+ *         1:   対話モードで SIGINT を受けた。
+ *         EOF: EOF に達したか、エラーがあった。 */
 int read_more_input(void)
 {
     if (cinfo->lastinputresult == 0)

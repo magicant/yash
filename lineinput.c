@@ -134,6 +134,7 @@ start:
 	buf->length += wcslen(buf->contents + buf->length);
 	return 0;
     } else {
+	buf->contents[buf->length] = L'\0';
 	if (feof(f))
 	    return EOF;
 	assert(ferror(f));
