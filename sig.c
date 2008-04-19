@@ -217,10 +217,11 @@ void set_signals(void)
     }
 }
 
-/* シグナルハンドラを初期設定に戻す。 */
-void reset_signals(void)
+/* シグナルハンドラを全て初期設定に戻す。 */
+void reset_all_signals(void)
 {
     if (initialized) {
+	initialized = false;
 	if (sigaction(SIGCHLD, &initsigchldaction, NULL) < 0)
 	    xerror(errno, "sigaction(SIGCHLD)");
 	if (sigaction(SIGHUP, &initsighupaction, NULL) < 0)
@@ -228,13 +229,21 @@ void reset_signals(void)
 	if (sigaction(SIGQUIT, &initsigquitaction, NULL) < 0)
 	    xerror(errno, "sigaction(SIGQUIT)");
     }
+    reset_signals();
+}
+
+/* ジョブ制御・対話的動作に関連するシグナルハンドラを初期設定に戻す。 */
+void reset_signals(void)
+{
     if (job_initialized) {
+	job_initialized = false;
 	if (sigaction(SIGTTOU, &initsigttouaction, NULL) < 0)
 	    xerror(errno, "sigaction(SIGTTOU)");
 	if (sigaction(SIGTSTP, &initsigtstpaction, NULL) < 0)
 	    xerror(errno, "sigaction(SIGTSTP)");
     }
     if (interactive_initialized) {
+	interactive_initialized = false;
 	if (sigaction(SIGINT, &initsigintaction, NULL) < 0)
 	    xerror(errno, "sigaction(SIGINT)");
 	if (sigaction(SIGTERM, &initsigtermaction, NULL) < 0)

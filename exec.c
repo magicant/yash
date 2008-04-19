@@ -495,7 +495,10 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (finally_exit) {
 	if (!job_control && type == execasync)
 	    block_sigquit_and_sigint();
-	reset_signals();
+	if (c->c_type == CT_SIMPLE && cmdinfo.type == externalprogram)
+	    reset_all_signals();
+	else
+	    reset_signals();
     }
 
     /* パイプを繋ぎ、余ったパイプを閉じる */
@@ -683,6 +686,7 @@ void exec_simple_command(
 
     switch (ci->type) {
     case externalprogram:
+	assert(finally_exit);
 	execv(ci->ci_path, (char **) argv);
 	if (errno != ENOEXEC) {
 	    if (errno == EACCES && is_directory(ci->ci_path))
