@@ -295,6 +295,7 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.lineno = 1,
 	.input = input_wcs,
 	.inputinfo = &iinfo,
+	.lastinputresult = 0,
     };
 
     return parse_and_exec(&pinfo, false, finally_exit);
@@ -316,6 +317,7 @@ bool exec_input(FILE *f, const char *name,
 	.lineno = 1,
 	.input = input_file,
 	.inputinfo = f,
+	.lastinputresult = 0,
     };
     return parse_and_exec(&pinfo, ignore_synerr, finally_exit);
 }
