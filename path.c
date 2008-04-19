@@ -326,11 +326,13 @@ const char *get_command_path(const char *name, bool forcelookup)
     }
 
     path = which(name, patharray, is_executable);
-    if (path) {
+    if (path && path[0] == '/') {
 	size_t namelen = strlen(name), pathlen = strlen(path);
 	const char *pathname = path + pathlen - namelen;
 	assert(strcmp(name, pathname) == 0);
 	vfree(ht_set(&cmdhash, pathname, path));
+    } else {
+	vfree(ht_remove(&cmdhash, name));
     }
     return path;
 }
