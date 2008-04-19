@@ -196,7 +196,6 @@ int main() { readline(""); return 0; }
 END
     if trycompile
     then
-	defconfigh "HAVE_LIBREADLINE"
 	compilation="ok"
     else
 	cat >"${tempsrc}" <<END
@@ -237,11 +236,23 @@ END
 	    done
 	fi
     fi
-    if [ x"${readline}" != x"ok" ]
+    if [ x"${readline}" = x"ok" ]
     then
+	defconfigh "HAVE_LIBREADLINE"
+    else
 	checked "no"
 	readline="no"
     fi
+fi
+
+# check whether system has /proc file system
+checking "whether system has /proc file system"
+if [ -x /proc/self/exe ]
+then
+    checked "yes"
+    defconfigh "HAVE_PROC_FILESYSTEM"
+else
+    checked "no"
 fi
 
 # check for strnlen
@@ -303,6 +314,20 @@ if trymake
 then
     checked "yes"
     defconfigh "HAVE_STRSIGNAL"
+else
+    checked "no"
+fi
+
+# check for paths.h
+checking "for paths.h"
+cat >"${tempsrc}" <<END
+#include <paths.h>
+int main() { printf("%s\n", _PATH_BSHELL); return 0; }
+END
+if trycompile
+then
+    checked "yes"
+    defconfigh "HAVE_PATHS_H"
 else
     checked "no"
 fi

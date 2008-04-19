@@ -30,6 +30,9 @@
 #ifdef HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#ifdef HAVE_PATHS_H
+# include <paths.h>
+#endif
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
@@ -116,6 +119,14 @@ static void exec_nonsimple_command(const command_T *c, bool finally_exit)
 static void exec_simple_command(const commandinfo_T *ci,
 	int argc, char *const *argv, bool finally_exit)
     __attribute__((nonnull));
+static void exec_fall_back_on_sh(
+	int argc, char *const *argv, char *const *env, const char *path)
+    __attribute__((nonnull(2,4)));
+static inline int xexecv(const char *path, char *const *argv)
+    __attribute__((nonnull(1)));
+static inline int xexecve(
+	const char *path, char *const *argv, char *const *envp)
+    __attribute__((nonnull(1)));
 
 
 /* 最後に実行したコマンドの終了ステータス */
@@ -687,19 +698,20 @@ void exec_simple_command(
     switch (ci->type) {
     case externalprogram:
 	assert(finally_exit);
-	execv(ci->ci_path, (char **) argv);
+	xexecv(ci->ci_path, (char **) argv);
 	if (errno != ENOEXEC) {
 	    if (errno == EACCES && is_directory(ci->ci_path))
 		errno = EISDIR;
 	    if (strcmp(argv[0], ci->ci_path) == 0)
 		xerror(errno, Ngt("cannot execute `%s'"),
-			(char *) argv[0]);
+			argv[0]);
 	    else
 		xerror(errno, Ngt("cannot execute `%s' (%s)"),
-			(char *) argv[0], ci->ci_path);
-	    exit(EXIT_NOEXEC);
+			argv[0], ci->ci_path);
+	} else {
+	    exec_fall_back_on_sh(argc, argv, environ, ci->ci_path);
 	}
-	// TODO exec.c: exec_simple_command: コマンドをシェルスクリプトとして実行
+	exit(EXIT_NOEXEC);
 	break;
     case specialbuiltin:
     case semispecialbuiltin:
@@ -713,6 +725,53 @@ void exec_simple_command(
     }
     if (finally_exit)
 	exit(laststatus);
+}
+
+/* 指定した引数で sh を exec する。
+ * exec する sh には path と argv の最初以外を渡す。 */
+void exec_fall_back_on_sh(
+	int argc, char *const *argv, char *const *envp, const char *path)
+{
+    assert(argv[argc] == NULL);
+    if (!envp)
+	envp = (char *[]) { NULL };
+
+    char *args[argc + 2];
+    args[0] = argv[0];
+    args[1] = (char *) path;
+    for (int i = 1; i < argc; i++)
+	args[i + 1] = argv[i];
+    args[argc + 1] = NULL;
+#if defined HAVE_PROC_FILESYSTEM
+    xexecve("/proc/self/exe", args, envp);
+#elif defined _PATH_BSHELL
+    xexecve(_PATH_BSHELL, args, envp);
+#else
+    const char *shpath = get_command_path("sh", false);
+    if (shpath)
+	xexecve(shpath, args, envp);
+    else
+	errno = ENOENT;
+#endif
+    xerror(errno, Ngt("cannot execute `%s'"), argv[0]);
+}
+
+/* execv を行う。execv が EINTR を返したら、やり直す。 */
+int xexecv(const char *path, char *const *argv)
+{
+    do
+	execv(path, argv);
+    while (errno == EINTR);
+    return -1;
+}
+
+/* execve を行う。execve が EINTR を返したら、やり直す。 */
+int xexecve(const char *path, char *const *argv, char *const *envp)
+{
+    do
+	execve(path, argv, envp);
+    while (errno == EINTR);
+    return -1;
 }
 
 /* コマンド置換を実行する。
