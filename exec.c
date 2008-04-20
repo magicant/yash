@@ -736,12 +736,17 @@ void exec_fall_back_on_sh(
     if (!envp)
 	envp = (char *[]) { NULL };
 
-    char *args[argc + 2];
-    args[0] = argv[0];
-    args[1] = (char *) path;
+    char *args[argc + 3];
+    size_t index = 0;
+    args[index++] = argv[0];
+    args[index++] = (char *) "-";
+    if (strcmp(path, "--") == 0)
+	args[index++] = "./--";
+    else
+	args[index++] = (char *) path;
     for (int i = 1; i < argc; i++)
-	args[i + 1] = argv[i];
-    args[argc + 1] = NULL;
+	args[index++] = argv[i];
+    args[index++] = NULL;
 #if defined HAVE_PROC_FILESYSTEM
     xexecve("/proc/self/exe", args, envp);
 #elif defined _PATH_BSHELL
@@ -753,7 +758,7 @@ void exec_fall_back_on_sh(
     else
 	errno = ENOENT;
 #endif
-    xerror(errno, Ngt("cannot execute `%s'"), argv[0]);
+    xerror(errno, Ngt("cannot invoke new shell to execute `%s'"), argv[0]);
 }
 
 /* execv を行う。execv が EINTR を返したら、やり直す。 */
