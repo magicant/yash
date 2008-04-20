@@ -635,10 +635,6 @@ subst:
 	break;
     }
 
-    /* PT_NUMBER を処理する */
-    if (p->pe_type & PT_NUMBER)
-	subst_length_each(list);
-
     /* 配列の要素を連結する */
     if (concat) {
 	const wchar_t *ifs = getvar(VAR_IFS);
@@ -648,6 +644,10 @@ subst:
 	list[0] = chain;
 	list[1] = NULL;
     }
+
+    /* PT_NUMBER を処理する */
+    if (p->pe_type & PT_NUMBER)
+	subst_length_each(list);
 
     /* 戻り値をエスケープする */
     for (size_t i = 0; list[i]; i++)

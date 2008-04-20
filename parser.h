@@ -43,11 +43,12 @@ typedef struct and_or_T {
 typedef struct pipeline_T {
     struct pipeline_T *next;
     struct command_T  *pl_commands;  /* パイプラインを構成するコマンドたち */
-    bool               pl_neg, pl_loop, pl_next_cond;
+    bool               pl_neg, pl_loop, pl_cond;
 } pipeline_T;
 /* pl_neg はパイプラインの終了ステータスを反転するかどうか。
  * pl_loop はパイプラインが環状かどうか。
- * pl_next_cond は next を実行する条件で、'&&' なら true、'||' なら false。 */
+ * pl_cond はパイプラインを実行する条件で、'&&' なら true、'||' なら false。
+ * ただし and/or リスト内の最初のパイプラインの pl_cond は不定。 */
 
 /* command_T の種類を表す */
 typedef enum {

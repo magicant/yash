@@ -154,16 +154,15 @@ void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 /* パイプラインたちを実行する。 */
 void exec_pipelines(const pipeline_T *p, bool finally_exit)
 {
-    while (p) {
+    for (bool first = true; p; p = p->next, first = false) {
+	if (!first && p->pl_cond == !!laststatus)
+	    continue;
+
 	exec_commands(p->pl_commands,
 	    (finally_exit && !p->next && !p->pl_neg) ? execself : execnormal,
 	    p->pl_loop);
 	if (p->pl_neg)
 	    laststatus = !laststatus;
-
-	if (p->pl_next_cond == !!laststatus)
-	    break;
-	p = p->next;
     }
     if (finally_exit)
 	exit(laststatus);

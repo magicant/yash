@@ -683,10 +683,12 @@ and_or_T *parse_and_or_list(void)
 pipeline_T *parse_pipelines_in_and_or(void)
 {
     pipeline_T *first = NULL, **lastp = &first;
+    bool cond = cond;  /* GCC の警告を黙らせるために自己代入する */
 
     for (;;) {
 	pipeline_T *p = parse_pipeline();
 	if (p) {
+	    p->pl_cond = cond;
 	    *lastp = p;
 	    lastp = &p->next;
 	}
@@ -694,10 +696,10 @@ pipeline_T *parse_pipelines_in_and_or(void)
 	ensure_buffer(2);
 	if (cbuf.contents[cindex] == L'&'
 		&& cbuf.contents[cindex+1] == L'&') {
-	    p->pl_next_cond = true;
+	    cond = true;
 	} else if (cbuf.contents[cindex] == L'|'
 		&& cbuf.contents[cindex+1] == L'|') {
-	    p->pl_next_cond = false;
+	    cond = false;
 	} else {
 	    break;
 	}
@@ -712,7 +714,7 @@ pipeline_T *parse_pipeline(void)
 {
     pipeline_T *result = xmalloc(sizeof *result);
     result->next = NULL;
-    result->pl_next_cond = false;
+    result->pl_cond = false;
 
     ensure_buffer(2);
     if (is_token_at(L"!", cindex)) {
@@ -2063,15 +2065,14 @@ void print_and_or_lists(
 
 void print_pipelines(xwcsbuf_T *restrict buf, const pipeline_T *restrict p)
 {
-    while (p) {
+    for (bool first = true; p; p = p->next, first = false) {
+	if (!first)
+	    wb_cat(buf, p->pl_cond ? L"&& " : L"|| ");
 	if (p->pl_neg)
 	    wb_cat(buf, L"! ");
 	if (p->pl_loop)
 	    wb_cat(buf, L"| ");
 	print_commands(buf, p->pl_commands);
-	if (p->next)
-	    wb_cat(buf, p->pl_next_cond ? L"&& " : L"|| ");
-	p = p->next;
     }
 }
 
