@@ -56,7 +56,6 @@ extern char **environ;
 #define VAR_PS4		"PS4"
 #define VAR_PWD		"PWD"
 #define VAR_RANDOM	"RANDOM"
-#define VAR_SHLVL	"SHLVL"
 #define VAR_YASH_VERSION "YASH_VERSION"
 
 /* 変数の属性フラグ */
@@ -118,8 +117,6 @@ extern void **get_variable(const char *name, bool *concat)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 extern void clear_temporary_variables(void);
-
-extern void set_shlvl(long change);
 
 
 #endif /* VARIABLE_H */

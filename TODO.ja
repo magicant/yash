@@ -1,4 +1,3 @@
-SHLVL の設定
 配列の解釈・代入
 exec: exec_command_substitution: pselect で子プロセスをすぐに回収
 wfnmatch や wglob を SIGINT で止められるように

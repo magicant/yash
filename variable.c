@@ -697,26 +697,6 @@ void clear_temporary_variables(void)
     ht_clear(&temp_variables, varkvfree);
 }
 
-/* SHLVL 変数の値に change を加える。 */
-void set_shlvl(long change)
-{
-    if (!posixly_correct) {
-	long shlvl;
-	const wchar_t *shlvlw = getvar(VAR_SHLVL);
-	if (shlvlw) {
-	    wchar_t *endp;
-	    errno = 0;
-	    shlvl = wcstol(shlvlw, &endp, 0);
-	    if (errno || *endp != L'\0')
-		shlvl = 0L;
-	} else {
-	    shlvl = 0L;
-	}
-	shlvl += change;
-	set_variable(VAR_SHLVL, malloc_wprintf(L"%ld", shlvl), false, true);
-    }
-}
-
 
 /********** 各種ゲッター **********/
 
