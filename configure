@@ -322,6 +322,7 @@ fi
 checking "for paths.h"
 cat >"${tempsrc}" <<END
 #include <paths.h>
+#include <stdio.h>
 int main() { printf("%s\n", _PATH_BSHELL); return 0; }
 END
 if trycompile
