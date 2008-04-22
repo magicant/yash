@@ -65,7 +65,7 @@ extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
  * つまり、長さが maxlen 以上なら maxlen を返す。 */
 size_t xstrnlen(const char *s, size_t maxlen)
 {
-#ifdef HAVE_STRNLEN
+#if HAVE_STRNLEN
     return strnlen(s, maxlen);
 #else
     size_t result = 0;
@@ -85,7 +85,7 @@ char *xstrdup(const char *s)
  * つまり、長さが maxlen 以上なら maxlen を返す。 */
 size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 {
-#ifdef HAVE_WCSNLEN
+#if HAVE_WCSNLEN
     return wcsnlen(s, maxlen);
 #else
     size_t result = 0;

@@ -20,8 +20,8 @@
 #define LINEINPUT_H
 
 #include <wchar.h>
-#ifdef USE_READLINE
-# ifdef HAVE_LIBREADLINE
+#if USE_READLINE
+# if HAVE_LIBREADLINE
 #  include <readline/readline.h>
 #  include <readline/history.h>
 # else

@@ -28,12 +28,12 @@
 # define __attribute__(ignore)
 #endif
 
-#ifdef HAVE_CONFIG_H
+#if HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-#ifdef HAVE_LIBREADLINE
-# define USE_READLINE
+#if HAVE_LIBREADLINE
+# define USE_READLINE 1
 #endif
 
 /* shellfdmin の最大値 */
@@ -46,21 +46,21 @@
  * POSIX にない拡張機能は宣言されない (はずである)。
  * 以下に、configure で利用可能と判断したものについて手動で宣言を行う */
 
-#ifdef HAVE_STRNLEN
+#if HAVE_STRNLEN
 #include <stddef.h>
 extern size_t strnlen(const char *, size_t);
 #endif
 
-#ifdef HAVE_WCSNLEN
+#if HAVE_WCSNLEN
 #include <stddef.h>
 extern size_t wcsnlen(const wchar_t *, size_t);
 #endif
 
-#ifdef HAVE_STRSIGNAL
+#if HAVE_STRSIGNAL
 extern char *strsignal(int);
 #endif
 
-#ifdef HAVE_GETTEXT
+#if HAVE_GETTEXT
 # define gt(MSGID)  gettext(MSGID)
 # define Ngt(MSGID) MSGID
 #else

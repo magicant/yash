@@ -146,8 +146,8 @@ checked () {
     echo "# result: $1" >&5
 }
 defconfigh () {
-    echo "#define" $1 ${2} >&6
-    echo "# defining $1='${2}' in ${configh}" >&5
+    echo "#define" $1 ${2-1} >&6
+    echo "# defining $1='${2-1}' in ${configh}" >&5
 }
 
 # check whether GCC is available

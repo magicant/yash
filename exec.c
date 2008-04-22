@@ -27,10 +27,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
-#ifdef HAVE_GETTEXT
+#if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#ifdef HAVE_PATHS_H
+#if HAVE_PATHS_H
 # include <paths.h>
 #endif
 #include "option.h"
@@ -746,7 +746,7 @@ void exec_fall_back_on_sh(
     for (int i = 1; i < argc; i++)
 	args[index++] = argv[i];
     args[index++] = NULL;
-#if defined HAVE_PROC_FILESYSTEM
+#if HAVE_PROC_FILESYSTEM
     xexecve("/proc/self/exe", args, envp);
 #elif defined _PATH_BSHELL
     xexecve(_PATH_BSHELL, args, envp);

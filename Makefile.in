@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
+.SUFFIXES: .c .h .o
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -29,6 +30,13 @@ SUBSOURCES = mksignum.c
 BYPRODUCTS = mksignum.o mksignum signum.h
 
 all: $(TARGET)
+
+# Though these rules are exactly the same as the default rules defined by POSIX,
+# we re-define them here because at least GNU Make is not fully compliant.
+.c:
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+.c.o:
+	$(CC) $(CFLAGS) -c $<
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
