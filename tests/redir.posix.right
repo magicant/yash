@@ -1,0 +1,24 @@
+Hello,
+Hello,
+World.
+redirection before command
+2>/dev/null
+2
+new file
+===== 1 =====
+complex redirection
+===== 2 =====
+Test of here-document.
+		<"">
+		"'"''\-\'\"
+Test of here-document.
+		<"${TERM+}">
+		"'"''\\-\'\"
+Test of here-document.
+<"">
+"'"''\-\'\"
+Test of here-document.
+<"${TERM+}">
+"'"''\\-\'\"
+1
+2

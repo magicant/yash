@@ -1,0 +1,11 @@
+var=var
+echo $var
+var='v'"a"r
+echo $var
+
+foo='123  456  789'
+bar=-${foo}-
+echo $bar
+echo "$bar"
+
+# TODO  'set', 'unset', 'shift'...

@@ -1,0 +1,37 @@
+123
+abc abc abc abc $var ${var}
+$var ${var} $var ${var}
+abc abc abc abc $var ${var}
+abc abc abc abc $var ${var}
+$(echo $var ${var} "$var" "${var}")
+===== 1 =====
+comment# #
+pipeline |
+test
+of
+sequential ;
+lists
+===== 2 =====
+true and
+false or
+or
+and
+and newline
+or newline
+===== 3 =====
+compound list
+another
+compound list
+subshell
+another
+subshell
+yet another subshell
+===== 4 =====
+if construct
+dummy
+ok!
+dummy
+dummy
+ok!
+dummy
+ok!

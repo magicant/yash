@@ -1,0 +1,32 @@
+===== tilde expansion =====
+$HOME
+path=~:~
+~home ~home ~/dir /tmp/home/dir
+~+
+===== parameter expansion =====
+123/456/789 123/456/789 123/456/789 123/456/789
+1 2
+1  2
+unset  variable and set  variable
+1 null variable 2 3
+unset variable error
+null variable error
+123/456/789  123/456/789
+unset
+123/456/789 123/456/789
+NULL
+UNSET
+123/456/789 NULL UNSET
+456/789 789 123/456 123
+****
+${#var}=11
+===== command substitution =====
+\$x
+$x
+\$x
+)
+abc
+a here-doc with )
+another here-doc
+===== arithmetic expansion =====
+===== field splitting =====

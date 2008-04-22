@@ -1,0 +1,91 @@
+tmp=/tmp/yash-parser-test-$$
+
+var=abc
+echo 1\2\
+3
+echo $var ${var} "$var" "${var}" '$var' '${var}'
+echo \$var \${var} "\$var" "\${var}"
+echo $(echo $var ${var} "$var" "${var}" '$var' '${var}')
+echo "$(echo $var ${var} "$var" "${var}" '$var' '${var}')"
+echo '$(echo $var ${var} "$var" "${var}")'
+
+# TODO test for arithmetic expansion
+
+echo dummy >/dev/null
+
+echo ===== 1 =====
+
+echo comment# \# # comment
+
+echo pipeline \| | cat |
+cat \
+| cat
+
+echo test ;echo of
+echo sequential \;; echo lists ;
+#
+# TODO test of asynchronous list (needs 'wait')
+
+echo ===== 2 =====
+
+true  && echo true  and
+false && echo false and
+true  || echo true  or
+false || echo false or
+
+false && echo and || echo or
+true || echo or && echo and
+
+true &&
+echo and newline
+false\
+|| echo or newline
+
+echo ===== 3 =====
+
+{ echo compound list;}| cat
+{
+	echo another
+	echo compound list
+} 2>&1|cat
+
+(echo subshell|cat)|
+cat
+(
+echo another
+echo subshell
+)2>&1|cat
+echo yet another subshell|(
+cat;)
+
+echo ===== 4 =====
+
+if true; then echo if construct; fi
+if
+	echo dummy
+	false
+then
+	echo no!
+else
+	echo ok!
+fi
+
+if if true; then false; else true; fi then
+	echo no!; elif echo dummy; echo dummy; then
+	echo ok!; else echo no!; fi
+
+if false;
+then echo no!;
+elif true &&! echo dummy;
+then echo no!;
+elif false ||! false;
+then echo ok!;
+fi
+
+# TODO test for while/until loop
+# TODO test for for loop
+# TODO test for case construct
+# TODO test for function definition
+
+# TODO should be removed by EXIT trap
+rm -f $tmp
