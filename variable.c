@@ -213,12 +213,7 @@ void init_pwd(void)
     if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
 	goto set;
     const wchar_t *wpwd = getvar(VAR_PWD);
-    if (!wpwd)
-	goto set;
-    wchar_t *cpwd = canonicalize_path(wpwd);
-    bool iscanon = (wcscmp(wpwd, cpwd) == 0);
-    free(cpwd);
-    if (!iscanon)
+    if (!wpwd || !is_canonicalized(wpwd))
 	goto set;
     return;
 

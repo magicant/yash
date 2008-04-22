@@ -159,6 +159,15 @@ wchar_t *canonicalize_path(const wchar_t *path)
     return wb_towcs(&result);
 }
 
+/* 指定したパスが正規化済みかどうか調べる */
+bool is_canonicalized(const wchar_t *path)
+{
+    wchar_t *canon = canonicalize_path(path);
+    bool result = wcscmp(path, canon);
+    free(canon);
+    return result;
+}
+
 /* getcwd の結果を新しく malloc した文字列で返す。
  * エラーのときは errno を設定して NULL を返す。 */
 char *xgetcwd(void)
