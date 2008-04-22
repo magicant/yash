@@ -48,6 +48,8 @@ typedef struct environ_T {
     struct hashtable_T contents;   /* 変数を保持するハッシュテーブル */
 } environ_T;
 /* contents は char * から variable_T * へのハッシュテーブルである。 */
+/* 変数名は、ナル文字と '=' を除く任意の文字を含み得る。ただしシェル内で代入
+ * できる変数名はそれよりも限られている。 */
 /* 位置パラメータは、contents に "=" という名前の配列として入れる。
  * 位置パラメータの番号と配列のインデックスが一つずれるので注意。 */
 #define VAR_positional "="
