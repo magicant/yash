@@ -1,5 +1,4 @@
 job: do_wait で待つようにする
-common.h: 拡張の宣言を他のヘッダに移動
 parser: cerror が true になったらもう入力を読み込まない
 四種展開の結果に対してだけ単語分割を行う
 variable: export/readonly フラグが設定されているが値をまだ設定していない変数

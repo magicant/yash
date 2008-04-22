@@ -55,7 +55,7 @@ extern wchar_t *unquote(const wchar_t *s)
 static inline wchar_t *escapefree(
 	wchar_t *restrict s, const wchar_t *restrict t)
 {
-    void free(void *);
+    extern void free(void *ptr);
 
     wchar_t *wcspbrk(const wchar_t *ws1, const wchar_t *ws2);
     if (t && !wcspbrk(s, t))
@@ -69,7 +69,7 @@ static inline wchar_t *escapefree(
 /* unescape と同じだが、引数を free する。 */
 wchar_t *unescapefree(wchar_t *s)
 {
-    void free(void *);
+    extern void free(void *ptr);
 
     wchar_t *wcschr(const wchar_t *ws, wchar_t wc);
     if (!wcschr(s, L'\\'))

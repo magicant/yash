@@ -39,6 +39,10 @@ extern void wait_for_sigchld(void);
 extern void handle_traps(void);
 extern void clear_traps(void);
 
+#if HAVE_STRSIGNAL
+extern char *strsignal(int signum);
+#endif
+
 
 #endif /* SIG_H */
 

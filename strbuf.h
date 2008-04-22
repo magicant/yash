@@ -187,7 +187,7 @@ xstrbuf_T *sb_cat(xstrbuf_T *restrict buf, const char *restrict s)
  * s は buf->contents の一部であってはならない。 */
 xstrbuf_T *sb_catfree(xstrbuf_T *restrict buf, char *restrict s)
 {
-    void free(void *p);
+    extern void free(void *ptr);
 
     sb_cat(buf, s);
     free(s);
@@ -241,7 +241,7 @@ xwcsbuf_T *wb_cat(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
  * s は buf->contents の一部であってはならない。 */
 xwcsbuf_T *wb_catfree(xwcsbuf_T *restrict buf, wchar_t *restrict s)
 {
-    void free(void *p);
+    extern void free(void *ptr);
 
     wb_cat(buf, s);
     free(s);
@@ -271,7 +271,7 @@ char *malloc_wcstombs(const wchar_t *s)
  * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
 char *realloc_wcstombs(wchar_t *s)
 {
-    void free(void *);
+    extern void free(void *ptr);
     char *result = malloc_wcstombs(s);
     free(s);
     return result;
@@ -290,7 +290,7 @@ wchar_t *malloc_mbstowcs(const char *s)
  * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
 wchar_t *realloc_mbstowcs(char *s)
 {
-    void free(void *);
+    extern void free(void *ptr);
     wchar_t *result = malloc_mbstowcs(s);
     free(s);
     return result;

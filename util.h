@@ -21,6 +21,7 @@
 
 #include "common.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 
@@ -66,6 +67,7 @@ extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 size_t xstrnlen(const char *s, size_t maxlen)
 {
 #if HAVE_STRNLEN
+    extern size_t strnlen(const char *s, size_t maxlen);
     return strnlen(s, maxlen);
 #else
     size_t result = 0;
@@ -86,6 +88,7 @@ char *xstrdup(const char *s)
 size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 {
 #if HAVE_WCSNLEN
+    extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
     return wcsnlen(s, maxlen);
 #else
     size_t result = 0;

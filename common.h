@@ -36,30 +36,6 @@
 # define USE_READLINE 1
 #endif
 
-/* shellfdmin の最大値 */
-#ifndef SHELLFDMINMAX
-# define SHELLFDMINMAX 100
-#endif
-
-/* _POSIX_C_SOURCE 機能検査マクロを定義してから各種ヘッダファイルを
- * インクルードすることで POSIX で定められた定数や関数が宣言されるが、
- * POSIX にない拡張機能は宣言されない (はずである)。
- * 以下に、configure で利用可能と判断したものについて手動で宣言を行う */
-
-#if HAVE_STRNLEN
-#include <stddef.h>
-extern size_t strnlen(const char *, size_t);
-#endif
-
-#if HAVE_WCSNLEN
-#include <stddef.h>
-extern size_t wcsnlen(const wchar_t *, size_t);
-#endif
-
-#if HAVE_STRSIGNAL
-extern char *strsignal(int);
-#endif
-
 #if HAVE_GETTEXT
 # define gt(MSGID)  gettext(MSGID)
 # define Ngt(MSGID) MSGID
