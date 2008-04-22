@@ -5,10 +5,6 @@ HOME=/tmp/home
 path=~:~
 [ $path = $HOME:$HOME ] && echo path=~:~
 echo \~home ~h\ome ~\/dir ~/\dir
-[ ~+ = $PWD ] && echo \~+
-# TODO needs 'cd' builtin
-# cd .
-# [ ~- = $OLDPWD ] && echo \~-
 
 echo ===== parameter expansion =====
 
@@ -36,6 +32,7 @@ echo ${unset=UNSET}
 echo $var $null $unset
 
 echo ${var#*/} ${var##*/} ${var%/*} ${var%%/*}
+echo ${var#x} ${var##x} ${var%x} ${var%%x}
 echo ${asterisks##*} "${asterisks#"*"}"
 echo '${#var}='${#var}
 

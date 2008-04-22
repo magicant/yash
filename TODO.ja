@@ -1,5 +1,4 @@
 四種展開の結果に対してだけ単語分割を行う
-variable: export/readonly フラグが設定されているが値をまだ設定していない変数
 配列の解釈・代入
 ループパイプのテストスクリプト
 exec: exec_command_substitution: pselect で子プロセスをすぐに回収

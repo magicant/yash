@@ -45,7 +45,7 @@ signum.h: mksignum
 	./mksignum > $@
 
 test check: $(TARGET)
-	@cd tests && exec $(SHELL) ./run-all.sh
+	@cd tests && $(MAKE) test-all
 
 BINDIR = @BINDIR@
 install: $(TARGET) $(BINDIR)
@@ -100,11 +100,12 @@ cscope.out: $(SOURCES)
 	cscope -b
 
 mostlyclean:
-	rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
+	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
+	-@cd tests && $(MAKE) clean
 clean: mostlyclean
-	rm -rf $(TARGET) $(DISTS)
+	-rm -rf $(TARGET) $(DISTS)
 distclean: clean
-	rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
+	-rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'

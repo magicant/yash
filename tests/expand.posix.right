@@ -2,7 +2,6 @@
 $HOME
 path=~:~
 ~home ~home ~/dir /tmp/home/dir
-~+
 ===== parameter expansion =====
 123/456/789 123/456/789 123/456/789 123/456/789
 1 2
@@ -18,6 +17,7 @@ NULL
 UNSET
 123/456/789 NULL UNSET
 456/789 789 123/456 123
+123/456/789 123/456/789 123/456/789 123/456/789
 ****
 ${#var}=11
 ===== command substitution =====
