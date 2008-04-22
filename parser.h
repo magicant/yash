@@ -266,7 +266,8 @@ struct xwcsbuf_T;
  * 戻り値: 0:   何らかの入力があった。
  *         1:   対話モードで SIGINT を受けた。
  *         EOF: EOF に達したか、エラーがあった。
- * 戻り値が 0 でなければ、buf の内容は変化してはならない。 */
+ * 戻り値が 0 でなければ、buf の内容は変化してはならない。
+ * この関数は非 0 を返した後もさらに呼ばれることがある。 */
 typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 typedef struct parseinfo_T {
@@ -275,6 +276,7 @@ typedef struct parseinfo_T {
     unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
     inputfunc_T *input;   /* 入力関数 */
     void *inputinfo;      /* 入力関数に渡す情報 */
+    bool ttyinput;        /* 入力が対話的端末からかどうか */
     int lastinputresult;  /* 最後の input の戻り値。最初は 0 にしておく。 */
 } parseinfo_T;
 

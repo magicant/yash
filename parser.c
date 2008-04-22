@@ -382,15 +382,16 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     cerror = false;
     cindex = 0;
     wb_init(&cbuf);
-    pl_init(&pending_heredocs);
-    if (cinfo->lastinputresult == 0)
-	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+    cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
     if (cinfo->lastinputresult == EOF) {
+	wb_destroy(&cbuf);
 	return EOF;
     } else if (cinfo->lastinputresult == 1) {
+	wb_destroy(&cbuf);
 	*result = NULL;
 	return 0;
     }
+    pl_init(&pending_heredocs);
 
     and_or_T *r = parse_command_list();
 
@@ -418,7 +419,8 @@ void serror(const char *restrict format, ...)
     va_list ap;
 
     if (cinfo->print_errmsg) {
-	fflush(stdout);
+	/* TRANSLATORS: "%s:%lu:" at the beginning should be left intact
+	 * because many tools can recognize this "filename:lineno:" format. */
 	fprintf(stderr, gt("%s:%lu: syntax error: "),
 		cinfo->filename ? cinfo->filename
 				: yash_program_invocation_name,
@@ -435,9 +437,12 @@ void serror(const char *restrict format, ...)
 /* 更なる入力を読み込む
  * 戻り値: 0:   何らかの入力があった。
  *         1:   対話モードで SIGINT を受けた。
- *         EOF: EOF に達したか、エラーがあった。 */
+ *         EOF: EOF に達したか、エラーがあった。
+ * 対話的端末からの入力時、cerror が true なら 1 を返す。 */
 int read_more_input(void)
 {
+    if (cerror && cinfo->ttyinput)
+	return 1;
     if (cinfo->lastinputresult == 0)
 	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
     return cinfo->lastinputresult;
@@ -640,7 +645,8 @@ and_or_T *parse_compound_list(void)
     /* 二つ目以降のトークンを解析するにはセパレータ ('&', ';', または一つ以上の
      * 改行) が必要となる。 */
 
-    cerror = false;
+    if (!cinfo->ttyinput)
+	cerror = false;
     while (!cerror) {
 	separator |= skip_to_next_token();
 	if (!separator
@@ -1479,9 +1485,10 @@ fail:
     return NULL;
 }
 
-/* 現在位置にある WORD トークンを取り出す。
- * 結果は malloc したワイド文字列として返す。
- * cindex は次のトークンを指すように skip_blanks_and_comment した位置まで進む */
+/* 現在位置にある WORD トークンを文字列として取り出す。
+ * 結果は新しく malloc したワイド文字列として返す。
+ * cindex は次のトークンを指すように skip_blanks_and_comment した位置まで進む。
+ * この関数は常に非 NULL を返す。 */
 wchar_t *parse_word_as_wcs(void)
 {
     size_t index = cindex;
@@ -1634,7 +1641,9 @@ command_T *parse_for(void)
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
     result->c_forname = parse_word_as_wcs();
-    if (result->c_forname[0] == L'\0' || *skip_name(result->c_forname) != L'\0')
+    if (result->c_forname[0] == L'\0')
+	serror(Ngt("no identifier after `for'"));
+    else if (*skip_name(result->c_forname) != L'\0')
 	serror(Ngt("`%ls' is not valid identifier"), result->c_forname);
     skip_to_next_token();
     ensure_buffer(3);

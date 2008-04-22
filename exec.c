@@ -486,7 +486,6 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (type == execself) {
 	/* execself は絶対に fork しないで自分で実行して終了 */
 	need_fork = false;  finally_exit = true;
-	assert(!is_interactive_now);
     } else if (type == execasync
 	    || pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0) {
 	/* 非同期実行またはパイプを繋ぐ場合は fork */

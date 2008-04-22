@@ -25,6 +25,7 @@
 
 #define EXIT_NOEXEC   126
 #define EXIT_NOTFOUND 127
+#define EXIT_SYNERROR (256 + 2)
 
 extern int laststatus;
 extern pid_t lastasyncpid;

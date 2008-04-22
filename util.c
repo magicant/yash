@@ -248,7 +248,6 @@ void xerror(int errno_, const char *restrict format, ...)
     va_list ap;
 
     yash_error_message_count++;
-    fflush(stdout);
     fprintf(stderr, "%s: ", yash_program_invocation_name);
     if (format) {
 	va_start(ap, format);

@@ -125,8 +125,6 @@ int input_file(struct xwcsbuf_T *buf, void *inputinfo)
     FILE *f = inputinfo;
 
 start:
-    if (feof(f))
-	return EOF;
     wb_ensuremax(buf, buf->length + 100);
     if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
 	// XXX fflush を入れるとセグフォる。glibc のバグ?
@@ -135,8 +133,10 @@ start:
 	return 0;
     } else {
 	buf->contents[buf->length] = L'\0';
-	if (feof(f))
+	if (feof(f)) {
+	    clearerr(f);
 	    return EOF;
+	}
 	assert(ferror(f));
 	switch (errno) {
 	    case EINTR:  // TODO lineinput: input_file: レースコンディション
