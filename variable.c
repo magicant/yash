@@ -55,6 +55,8 @@ typedef struct environ_T {
 #define VAR_positional "="
 
 
+static void varvaluefree(variable_T *v)
+    __attribute__((nonnull));
 static void varfree(variable_T *v);
 static void varkvfree(kvpair_T kv);
 
@@ -103,18 +105,24 @@ static hashtable_T temp_variables;
 static bool random_active;
 
 
+/* variable_T * の値 (v_value/v_vals) を free する。 */
+void varvaluefree(variable_T *v)
+{
+    switch (v->v_type & VF_MASK) {
+	case VF_NORMAL:
+	    free(v->v_value);
+	    break;
+	case VF_ARRAY:
+	    recfree(v->v_vals, free);
+	    break;
+    }
+}
+
 /* variable_T * を free する */
 void varfree(variable_T *v)
 {
     if (v) {
-	switch (v->v_type & VF_MASK) {
-	    case VF_NORMAL:
-		free(v->v_value);
-		break;
-	    case VF_ARRAY:
-		recfree(v->v_vals, free);
-		break;
-	}
+	varvaluefree(v);
 	free(v);
     }
 }
@@ -168,7 +176,7 @@ void init_variables(void)
 	variable_T *v = new_global(VAR_LINENO);
 	assert(v != NULL);
 	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
-	v->v_value = xwcsdup(L"");
+	v->v_value = NULL;
 	v->v_getter = lineno_getter;
 	if (v->v_type & VF_EXPORT)
 	    update_enrivon(VAR_LINENO);
@@ -186,7 +194,7 @@ void init_variables(void)
 	variable_T *v = new_global(VAR_RANDOM);
 	assert(v != NULL);
 	v->v_type = VF_NORMAL;
-	v->v_value = xwcsdup(L"");
+	v->v_value = NULL;
 	v->v_getter = random_getter;
 	random_active = true;
 	srand(shell_pid);
@@ -312,7 +320,7 @@ void update_enrivon(const char *name)
     environ_T *env = current_env;
     while (env) {
 	variable_T *var = ht_get(&env->contents, name).value;
-	if (var && (var->v_type & VF_EXPORT)) {
+	if (var && (var->v_type & VF_EXPORT) && var->v_value) {
 	    char *value = malloc_wcstombs(var->v_value);
 	    if (value) {
 		if (setenv(name, value, true) != 0)
@@ -406,14 +414,7 @@ variable_T *new_global(const char *name)
 	xerror(0, Ngt("%s: readonly"), name);
 	return NULL;
     } else {
-	switch (var->v_type & VF_MASK) {
-	    case VF_NORMAL:
-		free(var->v_value);
-		break;
-	    case VF_ARRAY:
-		recfree(var->v_vals, free);
-		break;
-	}
+	varvaluefree(var);
     }
     return var;
 }
@@ -437,14 +438,7 @@ variable_T *new_local(const char *name)
 	xerror(0, Ngt("%s: readonly"), name);
 	return NULL;
     } else {
-	switch (var->v_type & VF_MASK) {
-	    case VF_NORMAL:
-		free(var->v_value);
-		break;
-	    case VF_ARRAY:
-		recfree(var->v_vals, free);
-		break;
-	}
+	varvaluefree(var);
     }
     return var;
 }
@@ -536,14 +530,7 @@ bool assign_temporary(const char *name, wchar_t *value)
 	var->v_type = 0;
 	ht_set(&temp_variables, xstrdup(name), var);
     } else {
-	switch (var->v_type & VF_MASK) {
-	    case VF_NORMAL:
-		free(var->v_value);
-		break;
-	    case VF_ARRAY:
-		recfree(var->v_vals, free);
-		break;
-	}
+	varvaluefree(var);
     }
 
     var->v_type = VF_NORMAL;
@@ -667,7 +654,7 @@ void **get_variable(const char *name, bool *concat)
 	    var->v_getter(var);
 	switch (var->v_type & VF_MASK) {
 	    case VF_NORMAL:
-		value = xwcsdup(var->v_value);
+		value = var->v_value ? xwcsdup(var->v_value) : NULL;
 		goto return_single;
 	    case VF_ARRAY:
 		result = var->v_vals;
@@ -765,7 +752,7 @@ void variable_set(const char *name, variable_T *var)
 		    reset_patharray(var->v_value);
 		    break;
 		case VF_ARRAY:
-		    reset_patharray(L"");
+		    reset_patharray(NULL);
 		    break;  // TODO variable: variable_set: PATH が配列の場合
 	    }
 	}
@@ -773,7 +760,7 @@ void variable_set(const char *name, variable_T *var)
     case 'R':
 	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
 	    random_active = false;
-	    if ((var->v_type & VF_MASK) == VF_NORMAL) {
+	    if ((var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
 		wchar_t *end;
 		errno = 0;
 		unsigned seed = wcstoul(var->v_value, &end, 0);

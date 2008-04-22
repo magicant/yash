@@ -253,7 +253,6 @@ int xclosedir(DIR *dir)
 static char **patharray = NULL;
 
 /* 新しい PATH 環境変数に合わせて patharray の内容を更新する。
- * PATH の値が空ならエラーを出す (が処理は行う)。
  * newpath: 新しい PATH の値。NULL でもよい。 */
 void reset_patharray(const wchar_t *newpath)
 {

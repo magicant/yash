@@ -88,6 +88,8 @@ typedef struct variable_T {
 /* v_vals は、void * にキャストした wchar_t * の NULL 終端配列である。
  * v_valc はもちろん v_vals の要素数である。
  * v_value, v_vals および v_vals の要素は free 可能な領域を指す。
+ * v_value は NULL かもしれない (まだ値を代入していない場合)。
+ * v_vals は常に非 NULL だが要素数は 0 かもしれない。
  * v_getter は変数が取得される前に呼ばれる関数。変数に代入すると v_getter は
  * NULL に戻る。 */
 
