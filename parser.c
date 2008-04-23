@@ -454,7 +454,8 @@ int read_more_input(void)
 int ensure_buffer(size_t n)
 {
     int lir = cinfo->lastinputresult;
-    while (lir == 0 && cbuf.length < cindex + n) {
+    assert(cbuf.length >= cindex);
+    while (lir == 0 && cbuf.length - cindex < n) {
 	if (cbuf.length > 0 && cbuf.contents[cbuf.length - 1] == L'\n')
 	    break;
 	lir = read_more_input();
@@ -1824,8 +1825,11 @@ void read_heredoc_contents_without_expand(redir_T *r)
     wb_init(&buf);
     while (!is_end_of_heredoc_contents(eoc, eoclen, r->rd_type == RT_HERERT)
 	    && cbuf.contents[cindex] != L'\0') {
+	ensure_buffer(SIZE_MAX);
 	wb_cat(&buf, cbuf.contents + cindex);
 	cindex = cbuf.length;
+	if (cbuf.contents[cindex - 1] == L'\n')
+	    cinfo->lineno++;
     }
     free(eoc);
     
@@ -1880,6 +1884,7 @@ bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
     const wchar_t *m = matchwcsprefix(cbuf.contents + cindex, eoc);
     if (m && *m == L'\n') {
 	cindex += eoclen + 1;
+	cinfo->lineno++;
 	return true;
     } else if (m && *m == L'\0') {
 	cindex += eoclen;
@@ -1915,11 +1920,11 @@ wordunit_T *parse_string_to(bool stoponnewline)
 	    }
 	    break;
 	case L'\n':
+	    cinfo->lineno++;
 	    if (stoponnewline) {
 		cindex++;
 		goto done;
 	    }
-	    cinfo->lineno++;
 	    read_more_input();
 	    break;
 	case L'$':

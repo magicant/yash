@@ -4,6 +4,10 @@ some
 here
 document
 EOF
+cat <<\END
+another
+here-document
+END
 echo $LINENO
 echo line \
 continuation

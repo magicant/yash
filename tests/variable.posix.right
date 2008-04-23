@@ -2,9 +2,11 @@
 some
 here
 document
-7
+another
+here-document
+11
 line continuation
-10
+14
 ===== 1 =====
 var
 var
