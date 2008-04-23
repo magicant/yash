@@ -26,7 +26,7 @@ test-all:
 test-posix:
 	@$(MAKE) TEST_ITEMS='*.posix.test' test
 test: invoke
-	@exec $(SHELL) ./run-test.sh
+	@$(SHELL) ./run-test.sh
 
 # Though these rules are exactly the same as the default rules defined by POSIX,
 # we re-define them here because at least GNU Make is not fully compliant.

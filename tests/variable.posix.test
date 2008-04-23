@@ -1,7 +1,22 @@
+echo $LINENO
+cat <<EOF
+some
+here
+document
+EOF
+echo $LINENO
+echo line \
+continuation
+echo $LINENO
+# TODO $LINENO in function
+
+echo ===== 1 =====
+
 var=var
 echo $var
 var='v'"a"r
 echo $var
+var=xxx echo $var
 
 foo='123  456  789'
 bar=-${foo}-

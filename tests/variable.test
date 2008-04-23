@@ -1,0 +1,13 @@
+tmp=/tmp/yash-variable-test-$$
+
+RANDOM=123
+(echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
+RANDOM=456
+echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >$tmp-1
+(echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
+RANDOM=456
+echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >$tmp-2
+diff $tmp-1 $tmp-2 && echo ok
+
+# TODO should be removed in EXIT trap
+rm -f $tmp-1 $tmp-2
