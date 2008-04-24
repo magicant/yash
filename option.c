@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <stdbool.h>
+#include <string.h>
 #include "option.h"
 #include "util.h"
 
@@ -51,7 +52,7 @@ bool shopt_braceexpand;
 /* シェルと set コマンドの長いオプション。 */
 static const struct xoption long_options[] = {
     { "interactive",  xno_argument, NULL, 'i', },
-    { "help",         xno_argument, NULL, '?', },
+    { "help",         xno_argument, NULL, '!', },
     { "version",      xno_argument, NULL, 'V', },
     { "login",        xno_argument, NULL, 'l', },
     /* ↑ 以上のオプションは set コマンドでは使えない。 */
@@ -70,7 +71,7 @@ static const struct xoption long_options[] = {
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 4;
 
-// TODO option: unimplemented options: -abCefhnuvx -o
+// TODO option: unimplemented options: -abCefhnuvx -o{ignoreeof,nolog,vi,emacs}
 
 
 /* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
@@ -107,6 +108,24 @@ void set_option(char c)
 	    posixly_correct = value;
 	    break;
     }
+}
+
+/* "noglob" や "noexec" などの長いオプション名を受け取り、現在の xoptopt に
+ * 従って、そのオプションをオン・オフする。
+ * シェルの起動時しか使えないオプション名は指定できない。
+ * 戻り値: エラーが無ければ true、指定したオプション名が無効なら false。 */
+bool set_long_option(const char *s)
+{
+    const struct xoption *opt = set_long_options;
+
+    while (opt->name) {
+	if (strcmp(s, opt->name) == 0) {
+	    set_option(opt->val);
+	    return true;
+	}
+	opt++;
+    }
+    return false;
 }
 
 

@@ -58,6 +58,7 @@ int main(int argc __attribute__((unused)), char **argv)
     bool help = false, version = false;
     bool exec_first_arg = false, read_stdin = false;
     bool do_job_control_set = false, is_interactive_set = false;
+    bool option_error = false;
     int opt;
     const char *shortest_name;
 
@@ -86,7 +87,7 @@ int main(int argc __attribute__((unused)), char **argv)
     xoptind = 0;
     xopterr = true;
     while ((opt = xgetopt_long(argv,
-		    "+*cilsV?" SHELLSET_OPTIONS,
+		    "+*cilo:sV" SHELLSET_OPTIONS,
 		    shell_long_options,
 		    NULL))
 	    >= 0) {
@@ -95,8 +96,8 @@ int main(int argc __attribute__((unused)), char **argv)
 	    break;
 	case 'c':
 	    if (xoptopt != '-') {
-		xerror(0, Ngt("+c: invalid option"));
-		help = true;
+		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 'c');
+		option_error = true;
 	    }
 	    exec_first_arg = true;
 	    break;
@@ -107,18 +108,27 @@ int main(int argc __attribute__((unused)), char **argv)
 	case 'l':
 	    is_login_shell = (xoptopt == '-');
 	    break;
+	case 'o':
+	    if (!set_long_option(xoptarg)) {
+		xerror(0, Ngt("%co %s: invalid option"), xoptopt, xoptarg);
+		option_error = true;
+	    }
+	    break;
 	case 's':
 	    if (xoptopt != '-') {
-		xerror(0, Ngt("+s: invalid option"));
-		help = true;
+		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 's');
+		option_error = true;
 	    }
 	    read_stdin = true;
 	    break;
 	case 'V':
 	    version = true;
 	    break;
-	case '?':
+	case '!':
 	    help = true;
+	    break;
+	case '?':
+	    option_error = true;
 	    break;
 	case 'm':
 	    do_job_control_set = true;
@@ -129,6 +139,9 @@ int main(int argc __attribute__((unused)), char **argv)
 	}
     }
 
+    if (option_error)
+	exit(2);
+
     /* 最初の引数が "-" なら無視する */
     if (argv[xoptind] && strcmp(argv[xoptind], "-") == 0)
 	xoptind++;
@@ -138,7 +151,7 @@ int main(int argc __attribute__((unused)), char **argv)
     if (help)
 	print_help();
     if (version || help)
-	return EXIT_SUCCESS;
+	exit(EXIT_SUCCESS);
 
     shell_pid = getpid();
     initial_pgrp = getpgrp();
@@ -213,7 +226,7 @@ void print_help(void)
 	printf(gt("Usage:  yash [options] [filename [args...]]\n"
 		  "        yash [options] -c command [args...]\n"
 		  "        yash [options] -s [args...]\n"));
-	printf(gt("Short options: -il%sV?\n"), SHELLSET_OPTIONS);
+	printf(gt("Short options: -il%sV\n"), SHELLSET_OPTIONS);
 	printf(gt("Long options:\n"));
 	for (size_t i = 0; shell_long_options[i].name; i++)
 	    printf("\t--%s\n", shell_long_options[i].name);

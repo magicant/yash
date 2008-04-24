@@ -36,6 +36,8 @@ extern bool shopt_braceexpand;
 extern const struct xoption *const shell_long_options, *const set_long_options;
 
 extern void set_option(char c);
+extern bool set_long_option(const char *s)
+    __attribute__((nonnull));
 
 /* 今現在ジョブ制御が有効であるかどうか */
 #define doing_job_control_now  (do_job_control && ttyfd >= 0)

@@ -539,11 +539,9 @@ nosuchoption:
     xoptind++;
     return '?';
 argumentmissing:
-    if (xopterr) {
-	fflush(stdout);
-	fprintf(stderr, gt("%s: %s: argument missing\n"), argv[0], argv[xoptind]);
-	fflush(stderr);
-    }
+    if (xopterr)
+	fprintf(stderr, gt("%s: %s: argument missing\n"),
+		argv[0], argv[xoptind]);
     xoptind++;
     return '?';
 }
