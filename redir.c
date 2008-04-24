@@ -449,5 +449,18 @@ void clear_savefd(savefd_T *save)
     }
 }
 
+/* 標準入力を /dev/null にリダイレクトする。 */
+void redirect_stdin_to_devnull(void)
+{
+    xclose(STDIN_FILENO);
+
+    int fd = open("/dev/null", O_RDONLY);
+    if (fd > 0) {
+	xdup2(fd, STDIN_FILENO);
+	xclose(fd);
+    }
+    is_stdin_redirected = true;
+}
+
 
 /* vim: set ts=8 sts=4 sw=4 noet: */
