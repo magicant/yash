@@ -20,12 +20,14 @@
 #define OPTION_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 
 extern bool posixly_correct;
 extern bool is_login_shell;
 extern bool is_interactive, is_interactive_now;
 extern bool do_job_control;
+extern bool shopt_read_arg, shopt_read_stdin;
 extern const char *command_name;
 extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
@@ -38,6 +40,8 @@ extern const struct xoption *const shell_long_options, *const set_long_options;
 extern void set_option(char c);
 extern bool set_long_option(const char *s)
     __attribute__((nonnull));
+extern wchar_t *get_hyphen_parameter(void)
+    __attribute__((malloc,warn_unused_result));
 
 /* 今現在ジョブ制御が有効であるかどうか */
 #define doing_job_control_now  (do_job_control && ttyfd >= 0)

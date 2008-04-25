@@ -56,7 +56,6 @@ pid_t initial_pgrp;
 int main(int argc __attribute__((unused)), char **argv)
 {
     bool help = false, version = false;
-    bool exec_first_arg = false, read_stdin = false;
     bool do_job_control_set = false, is_interactive_set = false;
     bool option_error = false;
     int opt;
@@ -99,7 +98,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 'c');
 		option_error = true;
 	    }
-	    exec_first_arg = true;
+	    shopt_read_arg = true;
 	    break;
 	case 'i':
 	    is_interactive = (xoptopt == '-');
@@ -119,7 +118,7 @@ int main(int argc __attribute__((unused)), char **argv)
 		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 's');
 		option_error = true;
 	    }
-	    read_stdin = true;
+	    shopt_read_stdin = true;
 	    break;
 	case 'V':
 	    version = true;
@@ -162,11 +161,13 @@ int main(int argc __attribute__((unused)), char **argv)
     init_shellfds();
     init_job();
 
-    if (exec_first_arg && read_stdin) {
+    if (shopt_read_arg && shopt_read_stdin) {
 	xerror(0, Ngt("both -c and -s options cannot be given at once"));
 	exit(2);
     }
-    if (exec_first_arg) {
+    shopt_read_arg = shopt_read_arg;
+    shopt_read_stdin = shopt_read_stdin;
+    if (shopt_read_arg) {
 	char *command = argv[xoptind++];
 	if (!command) {
 	    xerror(0, Ngt("-c option requires an operand"));
@@ -185,7 +186,9 @@ int main(int argc __attribute__((unused)), char **argv)
     } else {
 	FILE *input;
 	const char *inputname;
-	if (read_stdin || !argv[xoptind]) {
+	if (!argv[xoptind])
+	    shopt_read_stdin = true;
+	if (shopt_read_stdin) {
 	    input = stdin;
 	    inputname = "<stdin>";
 	    if (!is_interactive_set && !argv[xoptind]

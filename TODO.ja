@@ -1,6 +1,5 @@
 四種展開の結果に対してだけ単語分割を行う
+exec: exec_command_substitution: pselect で子プロセスをすぐに回収
 配列の解釈・代入
 ループパイプのテストスクリプト
-exec: exec_command_substitution: pselect で子プロセスをすぐに回収
-wfnmatch や wglob を SIGINT で止められるように
 gettext 対応

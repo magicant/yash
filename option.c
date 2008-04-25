@@ -21,6 +21,7 @@
 #include <string.h>
 #include "option.h"
 #include "util.h"
+#include "strbuf.h"
 
 
 /* true なら POSIX に厳密に従う。--posix オプションに対応 */
@@ -35,6 +36,9 @@ bool is_interactive, is_interactive_now;
 
 /* ジョブ制御が有効かどうか。-m オプションに対応 */
 bool do_job_control;
+
+/* コマンドをどこから読んでいるか。それぞれ -c, -s オプションに対応 */
+bool shopt_read_arg, shopt_read_stdin;
 
 /* コマンド名。特殊パラメータ $0 の値。 */
 const char *command_name;
@@ -126,6 +130,22 @@ bool set_long_option(const char *s)
 	opt++;
     }
     return false;
+}
+
+/* 現在の $- パラメータの値を取得する。
+ * 戻り値: 新しく malloc したワイド文字列。 */
+wchar_t *get_hyphen_parameter(void)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+
+    if (shopt_read_arg)    wb_wccat(&buf, L'c');
+    if (shopt_noglob)      wb_wccat(&buf, L'f');
+    if (is_interactive)    wb_wccat(&buf, L'i');
+    if (do_job_control)    wb_wccat(&buf, L'm');
+    if (shopt_read_stdin)  wb_wccat(&buf, L's');
+
+    return wb_towcs(&buf);
 }
 
 

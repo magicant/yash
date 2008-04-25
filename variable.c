@@ -620,7 +620,9 @@ void **get_variable(const char *name, bool *concat)
 	    case '?':
 		value = malloc_wprintf(L"%d", laststatus);
 		goto return_single;
-	    case '-':  // TODO variable:get_variable: 特殊パラメータ '-'
+	    case '-':
+		value = get_hyphen_parameter();
+		goto return_single;
 	    case '$':
 		value = malloc_wprintf(L"%jd", (intmax_t) shell_pid);
 		goto return_single;
