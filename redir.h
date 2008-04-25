@@ -40,7 +40,7 @@ struct redir_T;
 extern bool open_redirections(const struct redir_T *r, struct savefd_T **save);
 extern void undo_redirections(savefd_T *save);
 extern void clear_savefd(savefd_T *save);
-extern void redirect_stdin_to_devnull(void);
+extern void maybe_redirect_stdin_to_devnull(void);
 
 
 #endif /* REDIR_H */

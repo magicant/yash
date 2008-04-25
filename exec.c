@@ -199,8 +199,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	} else if (cpid == 0) {
 	    /* 子プロセス: コマンドを実行して終了 */
 	    block_sigquit_and_sigint();
-	    if (!is_interactive && !is_stdin_redirected)
-		redirect_stdin_to_devnull();
+	    maybe_redirect_stdin_to_devnull();
 	    exec_pipelines(p, true);
 	    assert(false);
 	}
@@ -518,10 +517,8 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	goto redir_fail;
     
     /* 非対話的シェルで非同期実行する場合は stdin を /dev/null にリダイレクト */
-    if (type == execasync && pi->pi_fromprevfd < 0
-	    && !is_interactive && !is_stdin_redirected) {
-	redirect_stdin_to_devnull();
-    }
+    if (type == execasync && pi->pi_fromprevfd < 0)
+	maybe_redirect_stdin_to_devnull();
 
     /* コマンドを実行する */
     if (c->c_type == CT_SIMPLE) {

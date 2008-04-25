@@ -449,12 +449,19 @@ void clear_savefd(savefd_T *save)
     }
 }
 
-/* 標準入力を /dev/null にリダイレクトする。 */
-void redirect_stdin_to_devnull(void)
+/* ジョブ制御が無効で標準入力がまだリダイレクトされていなければ
+ * 標準入力を /dev/null にリダイレクトする。
+ * posixly_correct ならばジョブ制御の代わりに対話的かどうかで判定する。 */
+void maybe_redirect_stdin_to_devnull(void)
 {
-    xclose(STDIN_FILENO);
+    int fd;
 
-    int fd = open("/dev/null", O_RDONLY);
+    if ((posixly_correct ? is_interactive : do_job_control)
+	    || is_stdin_redirected)
+	return;
+
+    xclose(STDIN_FILENO);
+    fd = open("/dev/null", O_RDONLY);
     if (fd > 0) {
 	xdup2(fd, STDIN_FILENO);
 	xclose(fd);
