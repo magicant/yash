@@ -53,9 +53,9 @@ extern char **dupstrarray(char *const *array)
     __attribute__((malloc,warn_unused_result));
 extern void **dupwcsarray(void *const *array)
     __attribute__((malloc,warn_unused_result));
-extern char *joinstrarray(char *const *array, char padding)
+extern char *joinstrarray(char *const *array, const char *padding)
     __attribute__((malloc,warn_unused_result,nonnull));
-extern wchar_t *joinwcsarray(void *const *array, wchar_t padding)
+extern wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern char *matchstrprefix(const char *s, const char *prefix)
     __attribute__((pure,nonnull));

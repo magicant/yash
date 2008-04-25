@@ -200,7 +200,8 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     if (list.length != 1) {
 	/* 結果の単語が複数ある場合は結合して返す */
 	const wchar_t *ifs = getvar(VAR_IFS);
-	result = joinwcsarray(list.contents, ifs ? ifs[0] : L' ');
+	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
+	result = joinwcsarray(list.contents, padding);
 	recfree(pl_toary(&list), free);
     } else {
 	result = list.contents[0];
@@ -297,8 +298,8 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 			wb_cat(&buf, array[0]);
 		    } else {
 			const wchar_t *ifs = getvar(VAR_IFS);
-			wb_catfree(&buf,
-				joinwcsarray(array, ifs ? ifs[0] : L' '));
+			wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
+			wb_catfree(&buf, joinwcsarray(array, padding));
 		    }
 		}
 		recfree(array, free);
@@ -638,7 +639,8 @@ subst:
     /* 配列の要素を連結する */
     if (concat) {
 	const wchar_t *ifs = getvar(VAR_IFS);
-	wchar_t *chain = joinwcsarray(list, ifs ? ifs[0] : L' ');
+	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
+	wchar_t *chain = joinwcsarray(list, padding);
 	recfree(list, free);
 	list = xmalloc(2 * sizeof *list);
 	list[0] = chain;

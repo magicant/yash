@@ -136,19 +136,19 @@ void **dupwcsarray(void *const *array)
 }
 
 /* マルチバイト文字列へのポインタの NULL 終端配列の内容を繋げて
- * 一つの文字列にして返す。padding が '\0' でなければ各文字列の間に
+ * 一つの文字列にして返す。padding が NULL でなければ各文字列の間に
  * padding を差し挟む。
  * 戻り値: 新しく malloc したマルチバイト文字列 */
 // Unused function
-//char *joinstrarray(char *const *array, char padding)
+//char *joinstrarray(char *const *array, const char *padding)
 //{
 //    size_t elemcount, ccount = 0;
 //
 //    /* 全体の文字数を数える */
 //    for (elemcount = 0; array[elemcount]; elemcount++)
-//	ccount += strlen(array[elemcount]);
+//	ccount += wcslen(array[elemcount]);
 //    if (padding && elemcount > 0)
-//	ccount += elemcount - 1;
+//	ccount += wcslen(padding) * (elemcount - 1);
 //
 //    /* 戻り値を malloc し文字列をコピーする */
 //    char *result = xmalloc((ccount + 1) * sizeof *result);
@@ -157,21 +157,22 @@ void **dupwcsarray(void *const *array)
 //	char *elem = array[i];
 //	while (*elem)
 //	    *s++ = *elem++;
-//	if (padding)
-//	    *s++ = padding;
+//	if (i + 1 < elemcount) {
+//	    const char *pad = padding;
+//	    if (*pad)
+//		*s++ = *pad++;
+//	}
 //    }
-//    if (padding && elemcount)
-//	s--;
-//    *s = '\0';
+//    *s = L'\0';
 //
 //    return result;
 //}
 
 /* void * にキャストしたワイド文字列へのポインタの NULL 終端配列の内容を
- * 繋げて一つの文字列にして返す。padding が L'\0' でなければ各文字列の間に
+ * 繋げて一つの文字列にして返す。padding が NULL でなければ各文字列の間に
  * padding を差し挟む。
  * 戻り値: 新しく malloc したワイド文字列 */
-wchar_t *joinwcsarray(void *const *array, wchar_t padding)
+wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 {
     size_t elemcount, ccount = 0;
 
@@ -179,7 +180,7 @@ wchar_t *joinwcsarray(void *const *array, wchar_t padding)
     for (elemcount = 0; array[elemcount]; elemcount++)
 	ccount += wcslen(array[elemcount]);
     if (padding && elemcount > 0)
-	ccount += elemcount - 1;
+	ccount += wcslen(padding) * (elemcount - 1);
 
     /* 戻り値を malloc し文字列をコピーする */
     wchar_t *result = xmalloc((ccount + 1) * sizeof *result);
@@ -188,11 +189,12 @@ wchar_t *joinwcsarray(void *const *array, wchar_t padding)
 	wchar_t *elem = array[i];
 	while (*elem)
 	    *s++ = *elem++;
-	if (padding)
-	    *s++ = padding;
+	if (i + 1 < elemcount) {
+	    const wchar_t *pad = padding;
+	    if (*pad)
+		*s++ = *pad++;
+	}
     }
-    if (padding && elemcount)
-	s--;
     *s = L'\0';
 
     return result;
