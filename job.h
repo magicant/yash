@@ -37,7 +37,7 @@ typedef struct process_T {
     wchar_t          *pr_name;         /* 表示用のプロセス名 */
 } process_T;
 /* pr_pid が 0 のとき、そのプロセスは fork せずに実行できたことを示す。このとき
- * そのコマンドの終了コードが pr_statuscode に入る。
+ * pr_pid は JS_DONE で、そのコマンドの終了コードが pr_statuscode に入る。
  * pr_pid が正数のとき、それはプロセス ID である。このときの pr_statuscode は
  * waitpid が返した status の値である。 */
 

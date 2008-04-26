@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -40,6 +41,8 @@ static int calc_status(int status)
     __attribute__((const));
 static wchar_t *get_job_name(const job_T *job)
     __attribute__((nonnull,warn_unused_result));
+static char *get_process_status_string(const process_T *p, bool *needfree)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 
@@ -288,30 +291,23 @@ wchar_t *get_job_name(const job_T *job)
     return wb_towcs(&buf);
 }
 
-/* ジョブの状態を示す "Running" とか "Stopped(SIGTSTP)" のような文字列を返す。
+/* プロセスの状態を示す "Running" とか "Stopped(SIGTSTP)" のような文字列を返す。
  * needfree: 戻り値を free すべきかどうかが *needfree に入る。 */
-char *get_job_status_string(const job_T *job, bool *needfree)
+char *get_process_status_string(const process_T *p, bool *needfree)
 {
     int status;
 
-    switch (job->j_status) {
+    switch (p->pr_status) {
     case JS_RUNNING:
 	*needfree = false;
 	return gt("Running");
     case JS_STOPPED:
 	*needfree = true;
-	/* ジョブ内のプロセスのうち、実際に停止しているものを探す。 */
-	for (size_t i = job->j_pcount; ; ) {
-	    if (job->j_procs[--i].pr_status == JS_STOPPED) {
-		status = job->j_procs[i].pr_statuscode;
-		break;
-	    }
-	}
 	return malloc_printf(gt("Stopped(SIG%s)"),
-		get_signal_name(WSTOPSIG(status)));
+		get_signal_name(WSTOPSIG(p->pr_statuscode)));
     case JS_DONE:
-	status = job->j_procs[job->j_pcount - 1].pr_statuscode;
-	if (job->j_procs[job->j_pcount - 1].pr_pid == 0)
+	status = p->pr_statuscode;
+	if (p->pr_pid == 0)
 	    goto exitstatus;
 	if (WIFEXITED(status)) {
 	    status = WEXITSTATUS(status);
@@ -329,13 +325,33 @@ exitstatus:
 	    status = WTERMSIG(status);
 #ifdef WCOREDUMP
 	    if (WCOREDUMP(status)) {
-		return malloc_printf(gt("Terminated(SIG%s: core dumped)"),
+		return malloc_printf(gt("Aborted(SIG%s: core dumped)"),
 			get_signal_name(status));
 	    }
 #endif
-	    return malloc_printf(gt("Terminated(SIG%s)"),
+	    return malloc_printf(gt("Aborted(SIG%s)"),
 		    get_signal_name(status));
 	}
+    }
+    assert(false);
+}
+
+/* ジョブの状態を示す "Running" とか "Stopped(SIGTSTP)" のような文字列を返す。
+ * needfree: 戻り値を free すべきかどうかが *needfree に入る。 */
+char *get_job_status_string(const job_T *job, bool *needfree)
+{
+    switch (job->j_status) {
+    case JS_RUNNING:
+	*needfree = false;
+	return gt("Running");
+    case JS_STOPPED:
+	/* ジョブ内のプロセスのうち、実際に停止しているものを探して返す。 */
+	for (size_t i = job->j_pcount; ; )
+	    if (job->j_procs[--i].pr_status == JS_STOPPED)
+		return get_process_status_string(&job->j_procs[i], needfree);
+    case JS_DONE:
+	return get_process_status_string(
+		&job->j_procs[job->j_pcount - 1], needfree);
     }
     assert(false);
 }
@@ -365,17 +381,46 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     else if (jobnumber == previous_jobnumber) current = '-';
     else*/                                      current = ' ';
 
-    wchar_t *jobname = verbose ? NULL : get_job_name(job);
-    bool needfree;
-    char *status = get_job_status_string(job, &needfree);
+    if (!verbose) {
+	bool needfree;
+	char *status = get_job_status_string(job, &needfree);
+	wchar_t *jobname = get_job_name(job);
 
-    fprintf(f, posixly_correct ? "[%zu]%c %s %ls\n" : gt("[%zu]%c %s %ls\n"),
-	    jobnumber, current, status, jobname);
+	/* TRANSLATORS: the translated format string can be different 
+	 * from the original only in the number of spaces. */
+	fprintf(f, gt("[%zu]%c %-20s %ls\n"),
+		jobnumber, current, status, jobname);
 
-    if (needfree)
-	free(status);
-    if (jobname != job->j_procs[0].pr_name)
-	free(jobname);
+	if (needfree)
+	    free(status);
+	if (jobname != job->j_procs[0].pr_name)
+	    free(jobname);
+    } else {
+	bool needfree;
+	pid_t pid = job->j_procs[0].pr_pid;
+	char *status = get_process_status_string(&job->j_procs[0], &needfree);
+	wchar_t *jobname = job->j_procs[0].pr_name;
+
+	/* TRANSLATORS: the translated format string can be different 
+	 * from the original only in the number of spaces. */
+	fprintf(f, gt("[%zu]%c %jd %-20s   %ls\n"),
+		jobnumber, current, (intmax_t) pid, status, jobname);
+	if (needfree)
+	    free(status);
+
+	for (size_t i = 1; i < job->j_pcount; i++) {
+	    pid = job->j_procs[i].pr_pid;
+	    status = get_process_status_string(&job->j_procs[i], &needfree);
+	    jobname = job->j_procs[i].pr_name;
+
+	    /* TRANSLATORS: the translated format string can be different 
+	     * from the original only in the number of spaces. */
+	    fprintf(f, gt("     %jd %-20s | %ls\n"),
+		    (intmax_t) pid, (posixly_correct ? "" : status), jobname);
+	    if (needfree)
+		free(status);
+	}
+    }
     job->j_statuschanged = false;
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
