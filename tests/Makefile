@@ -18,7 +18,7 @@
 .SUFFIXES: .c .h .o
 
 CC = c99
-CFLAGS = -O
+CFLAGS = -O1
 LDFLAGS = 
 
 test-all:
