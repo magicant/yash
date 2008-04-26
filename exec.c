@@ -359,8 +359,6 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
 		(type == execself && i < count - 1) ? execnormal : type,
 		&pinfo,
 		pgid);
-	if (pid < 0)
-	    goto fail;
 	ps[i].pr_pid = pid;
 	if (pid) {
 	    ps[i].pr_status = JS_RUNNING;
@@ -414,19 +412,6 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
 	cc = cc->next;
     }
     add_job();
-    goto finish;
-
-fail:
-    laststatus = EXIT_FAILURE;
-    if (pinfo.pi_fromprevfd >= 0)
-	xclose(pinfo.pi_fromprevfd);
-    if (pinfo.pi_tonextfds[PIDX_IN] >= 0)
-	xclose(pinfo.pi_tonextfds[PIDX_IN]);
-    if (pinfo.pi_tonextfds[PIDX_OUT] >= 0)
-	xclose(pinfo.pi_tonextfds[PIDX_OUT]);
-    if (pinfo.pi_loopoutfd >= 0)
-	xclose(pinfo.pi_loopoutfd);
-    free(job);
 
 finish:
     if (doing_job_control_now)
@@ -440,11 +425,13 @@ finish:
  * pgid:   ジョブ制御有効時、fork 後に子プロセスに設定するプロセスグループ ID。
  *         子プロセスのプロセス ID をプロセスグループ ID にする場合は 0。
  * 戻り値: fork した場合、子プロセスのプロセス ID。fork せずにコマンドを実行
- *         できた場合は 0。パイプの実行を中止すべきエラーが生じたら -1。
- * 0 を返すとき、exec_process 内で laststatus を設定する。 */
+ *         できた場合は 0。
+ * 0 を返すとき、この関数内でコマンドの終了コードを laststatus に設定する。
+ * type == execself ならこの関数は返らない。 */
 pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
-    bool need_fork;    /* fork するかどうか */
+    bool early_fork;   /* まず最初に fork するかどうか */
+    bool later_fork;   /* コマンドライン展開の後に fork するかどうか */
     bool finally_exit; /* true なら最後に exit してこの関数から返らない */
     int argc;
     char **argv = NULL;
@@ -452,12 +439,23 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 
     current_lineno = c->c_lineno;
 
+    /* 非同期実行であるかまたはパイプを繋ぐ場合は、先に fork。 */
+    early_fork = (type != execself) && (type == execasync
+	|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
+    if (early_fork) {
+	pid_t cpid = fork_and_reset(pgid, type == execnormal);
+	if (cpid)
+	    return cpid;
+	if (!doing_job_control_now && type == execasync)
+	    block_sigquit_and_sigint();
+    }
+
     switch (c->c_type) {
     case CT_SIMPLE:
 	if (!expand_line(c->c_words, &argc, &argv))
-	    goto onerror;
+	    goto fail;
 	if (argc == 0) {
-	    need_fork = finally_exit = false;
+	    later_fork = finally_exit = false;
 #ifndef NDEBUG  /* GCC の警告を黙らせる小細工 */
 	    cmdinfo.type = externalprogram;
 #endif
@@ -469,30 +467,24 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 		goto done;
 	    }
 	    /* 外部コマンドは fork し、組込みコマンドや関数は fork しない。 */
-	    need_fork = finally_exit = (cmdinfo.type == externalprogram);
+	    later_fork = finally_exit = (cmdinfo.type == externalprogram);
 	}
 	break;
     case CT_SUBSHELL:
-	need_fork = finally_exit = true;
+	later_fork = finally_exit = true;
 	break;
     default:
-	need_fork = finally_exit = false;
+	later_fork = finally_exit = false;
 	break;
     }
     /* argc, argv, cmdinfo は CT_SIMPLE でしか使わない */
 
-    if (type == execself) {
-	/* execself は絶対に fork しないで自分で実行して終了 */
-	need_fork = false;  finally_exit = true;
-    } else if (type == execasync
-	    || pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0) {
-	/* 非同期実行またはパイプを繋ぐ場合は fork */
-	need_fork = finally_exit = true;
-    }
+    if (early_fork || type == execself)
+	later_fork = false, finally_exit = true;
 
-    assert(!need_fork || finally_exit);  /* fork すれば子プロセスは必ず exit */
-    bool job_control = doing_job_control_now;
-    if (need_fork) {
+    assert(!(early_fork && later_fork));  /* fork は 2 回はしない */
+    assert(!(early_fork || later_fork) || finally_exit);  /* fork すれば exit */
+    if (later_fork) {
 	pid_t cpid = fork_and_reset(pgid, type == execnormal);
 	if (cpid != 0) {
 	    recfree((void **) argv, free);
@@ -500,8 +492,6 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	}
     }
     if (finally_exit) {
-	if (!job_control && type == execasync)
-	    block_sigquit_and_sigint();
 	if (c->c_type == CT_SIMPLE && cmdinfo.type == externalprogram)
 	    reset_all_signals();
 	else
@@ -554,14 +544,12 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	undo_redirections(savefd);
     return 0;
 
+fail:
+    laststatus = EXIT_FAILURE;
 done:
-    if (type == execself)
+    if (early_fork || type == execself)
 	exit(laststatus);
     return 0;
-onerror:
-    if (type == execself)
-	exit(laststatus);
-    return -1;
 redir_fail:
     if (finally_exit)
 	exit(EXIT_FAILURE);
@@ -574,7 +562,7 @@ redir_fail:
     return 0;
 }
 
-/* fork して、いろいろ必要な設定を行う。
+/* サブシェルを fork して、いろいろ必要な設定を行う。
  * pgid:   ジョブ制御有効時、fork 後に子プロセスに設定するプロセスグループ ID。
  *         子プロセスのプロセス ID をプロセスグループ ID にする場合は 0。
  *         ジョブ制御が有効でもプロセスグループを変えない場合は負数。
