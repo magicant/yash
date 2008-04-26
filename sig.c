@@ -21,9 +21,11 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <sys/select.h>
 #include "option.h"
 #include "util.h"
 #include "sig.h"
+#include "job.h"
 #include "signum.h"
 
 
@@ -388,6 +390,47 @@ void wait_for_sigchld(void)
     }
 
     sigchld_received = false;
+}
+
+/* 指定したファイルディスクリプタが読めるようになるまで待つ。
+ * 待っている間に SIGCHLD/SIGHUP を受け取ったら対処する。
+ * この関数は SIGCHLD/SIGHUP をブロックした状態で呼び出さないと競合状態を生む。
+ * trap が true ならトラップも実行する。 */
+void wait_for_input(int fd, bool trap)
+{
+    sigset_t ss;
+
+    sigemptyset(&ss);
+    for (;;) {
+	handle_sigchld_and_sighup();
+	if (trap)
+	    handle_traps();
+
+	fd_set fdset;
+	FD_ZERO(&fdset);
+	FD_SET(fd, &fdset);
+	if (pselect(fd + 1, &fdset, NULL, NULL, NULL, &ss) >= 0) {
+	    if (FD_ISSET(fd, &fdset))
+		return;
+	} else {
+	    if (errno != EINTR) {
+		xerror(errno, "pselect");
+		return;
+	    }
+	}
+    }
+}
+
+/* SIGCHLD/SIGHUP を受信していたら、対処する。
+ * SIGHUP にトラップを設定していない場合に SIGHUP を受信すると、ただちに
+ * シェルを終了する。 */
+void handle_sigchld_and_sighup(void)
+{
+    if (sigchld_received) {
+        sigchld_received = false;
+        do_wait();
+    }
+    // TODO sig.c: SIGHUP 受信時にシェルを終了する
 }
 
 /* トラップが設定されたシグナルを受信していたら、対応するコマンドを実行する。 */

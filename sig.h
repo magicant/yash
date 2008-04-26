@@ -38,7 +38,9 @@ extern void block_all_but_sigpipe(void);
 extern void block_sigchld_and_sighup(void);
 extern void unblock_sigchld_and_sighup(void);
 extern void wait_for_sigchld(void);
+extern void wait_for_input(int fd, bool trap);
 
+extern void handle_sigchld_and_sighup(void);
 extern void handle_traps(void);
 extern void clear_traps(void);
 

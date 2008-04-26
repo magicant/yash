@@ -31,6 +31,9 @@
 #endif
 
 
+extern bool set_nonblocking(int fd);
+extern bool unset_nonblocking(int fd);
+
 struct xwcsbuf_T;
 
 /* inputfunc_T に適合する入力関数の宣言 */
