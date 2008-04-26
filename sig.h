@@ -22,6 +22,9 @@
 #include <stdbool.h>
 
 
+extern const char *get_signal_name(int signum)
+    __attribute__((const));
+
 extern void init_signal(void);
 extern void set_signals(void);
 extern void reset_all_signals(void);

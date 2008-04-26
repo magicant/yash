@@ -127,6 +127,17 @@ static const signal_T signals[] = {
      * よってこれを配列の終わりの目印とする */
 };
 
+/* シグナル番号に対応するシグナル名を返す。先頭に "SIG" は付かない。
+ * 未知のシグナルに対しては "?" を返す。 */
+const char *get_signal_name(int signum)
+{
+    for (const signal_T *s = signals; s->no; s++)
+	if (s->no == signum)
+	    return s->name;
+    return "?";
+}
+
+
 /* 各シグナルについて、受け取った後まだ処理していないことを示すフラグ */
 static volatile sig_atomic_t signal_received[MAXSIGIDX];
 /* 各シグナルについて、受信時に実行するトラップコマンド */

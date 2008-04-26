@@ -20,7 +20,7 @@
 #define JOB_H
 
 #include <stdbool.h>
-#include <stddef.h>
+#include <stdio.h>
 #include <sys/types.h>
 
 
@@ -75,6 +75,11 @@ extern void wait_for_job(size_t jobnumber, bool return_on_stop);
 
 extern int calc_status_of_job(const job_T *job)
     __attribute__((pure,nonnull));
+
+#define PJS_ALL 0  /* 全てのジョブを表す */
+extern void print_job_status(
+	size_t jobnumber, bool changedonly, bool verbose, FILE *f)
+    __attribute__((nonnull));
 
 
 #endif /* JOB_H */

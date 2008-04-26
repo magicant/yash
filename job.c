@@ -20,18 +20,28 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "option.h"
 #include "util.h"
+#include "strbuf.h"
 #include "plist.h"
 #include "sig.h"
 #include "job.h"
 
 
+static inline job_T *get_job(size_t jobnumber);
 static int calc_status(int status)
     __attribute__((const));
+static wchar_t *get_job_name(const job_T *job)
+    __attribute__((nonnull,warn_unused_result));
+static char *get_job_status_string(const job_T *job, bool *needfree)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 
 /* ジョブリスト。
@@ -103,6 +113,12 @@ void remove_all_jobs(void)
     pl_clear(&joblist);
     pl_add(&joblist, NULL);
     */
+}
+
+/* 指定した番号のジョブを取得する。ジョブが存在しなければ NULL を返す。 */
+job_T *get_job(size_t jobnumber)
+{
+    return jobnumber < joblist.length ? joblist.contents[jobnumber] : NULL;
 }
 
 
@@ -253,6 +269,116 @@ int calc_status_of_job(const job_T *job)
     default:
 	assert(false);
     }
+}
+
+/* 指定したジョブ全体の名前 (コマンド) を取得する。
+ * 戻り値: 新しく malloc した文字列 または job->j_procs[0].pr_name。 */
+wchar_t *get_job_name(const job_T *job)
+{
+    if (job->j_pcount == 1)
+	return job->j_procs[0].pr_name;
+
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    for (size_t i = 0; i < job->j_pcount; i++) {
+	if (i > 0)
+	    wb_cat(&buf, L" | ");
+	wb_cat(&buf, job->j_procs[i].pr_name);
+    }
+    return wb_towcs(&buf);
+}
+
+/* ジョブの状態を示す "Running" とか "Stopped(SIGTSTP)" のような文字列を返す。
+ * needfree: 戻り値を free すべきかどうかが *needfree に入る。 */
+char *get_job_status_string(const job_T *job, bool *needfree)
+{
+    int status;
+
+    switch (job->j_status) {
+    case JS_RUNNING:
+	*needfree = false;
+	return gt("Running");
+    case JS_STOPPED:
+	*needfree = true;
+	/* ジョブ内のプロセスのうち、実際に停止しているものを探す。 */
+	for (size_t i = job->j_pcount; ; ) {
+	    if (job->j_procs[--i].pr_status == JS_STOPPED) {
+		status = job->j_procs[i].pr_statuscode;
+		break;
+	    }
+	}
+	return malloc_printf(gt("Stopped(SIG%s)"),
+		get_signal_name(WSTOPSIG(status)));
+    case JS_DONE:
+	status = job->j_procs[job->j_pcount - 1].pr_statuscode;
+	if (job->j_procs[job->j_pcount - 1].pr_pid == 0)
+	    goto exitstatus;
+	if (WIFEXITED(status)) {
+	    status = WEXITSTATUS(status);
+exitstatus:
+	    if (status == EXIT_SUCCESS) {
+		*needfree = false;
+		return gt("Done");
+	    } else {
+		*needfree = true;
+		return malloc_printf(gt("Done(%d)"), status);
+	    }
+	} else {
+	    assert(WIFSIGNALED(status));
+	    *needfree = true;
+	    status = WTERMSIG(status);
+#ifdef WCOREDUMP
+	    if (WCOREDUMP(status)) {
+		return malloc_printf(gt("Terminated(SIG%s: core dumped)"),
+			get_signal_name(status));
+	    }
+#endif
+	    return malloc_printf(gt("Terminated(SIG%s)"),
+		    get_signal_name(status));
+	}
+    }
+    assert(false);
+}
+
+/* ジョブの状態を表示する。
+ * 終了したジョブを表示したら、そのジョブは削除する。
+ * jobnumber: 1 以上のジョブ番号または PJS_ALL (全てのジョブ)。
+ *            存在しないジョブ番号を指定しても何もしない。
+ * changedonly: 状態が変化したジョブだけを通知する。
+ * verbose: 詳細化。パイプ内の全てのプロセスの情報を表示する。
+ * f: 出力先。 */
+void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
+{
+    if (jobnumber == PJS_ALL) {
+	for (size_t i = 1; i < joblist.length; i++)
+	    print_job_status(i, changedonly, verbose, f);
+	return;
+    }
+
+    job_T *job = get_job(jobnumber);
+    if (!job || (changedonly && !job->j_statuschanged))
+	return;
+
+    char current;
+    // TODO job: print_job_status: current_jobnumber, previous_jobnumber
+    /*if      (jobnumber == current_jobnumber)  current = '+';
+    else if (jobnumber == previous_jobnumber) current = '-';
+    else*/                                      current = ' ';
+
+    wchar_t *jobname = verbose ? NULL : get_job_name(job);
+    bool needfree;
+    char *status = get_job_status_string(job, &needfree);
+
+    fprintf(f, posixly_correct ? "[%zu]%c %s %ls\n" : gt("[%zu]%c %s %ls\n"),
+	    jobnumber, current, status, jobname);
+
+    if (needfree)
+	free(status);
+    if (jobname != job->j_procs[0].pr_name)
+	free(jobname);
+    job->j_statuschanged = false;
+    if (job->j_status == JS_DONE)
+	remove_job(jobnumber);
 }
 
 

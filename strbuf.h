@@ -143,10 +143,15 @@ static inline wchar_t *malloc_mbstowcs(const char *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t *realloc_mbstowcs(char *s)
     __attribute__((nonnull,malloc,warn_unused_result));
+
+static inline char *malloc_vprintf(const char *format, va_list ap)
+    __attribute__((nonnull(1),malloc,warn_unused_result,format(printf,1,0)));
+static inline char *malloc_printf(const char *format, ...)
+    __attribute__((nonnull(1),malloc,warn_unused_result,format(printf,1,2)));
 static inline wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
-    __attribute__((nonnull,malloc,warn_unused_result));
+    __attribute__((nonnull(1),malloc,warn_unused_result));
 static inline wchar_t *malloc_wprintf(const wchar_t *format, ...)
-    __attribute__((nonnull,malloc,warn_unused_result));
+    __attribute__((nonnull(1),malloc,warn_unused_result));
 
 
 /* マルチバイト文字列 s の最初の n バイトを
@@ -293,6 +298,26 @@ wchar_t *realloc_mbstowcs(char *s)
     extern void free(void *ptr);
     wchar_t *result = malloc_mbstowcs(s);
     free(s);
+    return result;
+}
+
+/* vprintf の結果を新しく malloc した文字列として返す。 */
+char *malloc_vprintf(const char *format, va_list ap)
+{
+    xstrbuf_T buf;
+    sb_init(&buf);
+    sb_vprintf(&buf, format, ap);
+    return sb_tostr(&buf);
+}
+
+/* printf の結果を新しく malloc した文字列として返す。 */
+char *malloc_printf(const char *format, ...)
+{
+    va_list ap;
+    char *result;
+    va_start(ap, format);
+    result = malloc_vprintf(format, ap);
+    va_end(ap);
     return result;
 }
 
