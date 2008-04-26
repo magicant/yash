@@ -342,8 +342,7 @@ void sig_handler(int signum)
     }
 }
 
-/* wait_for_sigchld を呼ぶ前にこの関数を呼んで、
- * SIGCHLD と SIGHUP をブロックする。 */
+/* SIGCHLD と SIGHUP をブロックする。 */
 void block_sigchld_and_sighup(void)
 {
     sigset_t ss;
@@ -355,8 +354,7 @@ void block_sigchld_and_sighup(void)
 	xerror(errno, "sigprocmask(BLOCK, CHLD|HUP)");
 }
 
-/* wait_for_sigchld を呼んだ後にこの関数を呼んで、
- * SIGCHLD と SIGHUP のブロックを解除する。 */
+/* SIGCHLD と SIGHUP のブロックを解除する。 */
 void unblock_sigchld_and_sighup(void)
 {
     sigset_t ss;
@@ -368,7 +366,7 @@ void unblock_sigchld_and_sighup(void)
 	xerror(errno, "sigprocmask(UNBLOCK, CHLD|HUP)");
 }
 
-/* SIGCHLD を受信するまで待機する。
+/* SIGCHLD を受信するまで待機し、handle_sigchld_and_sighup する。
  * この関数は SIGCHLD と SIGHUP をブロックした状態で呼び出すこと。
  * 既にシグナルを受信済みの場合、待機せずにすぐ返る。
  * SIGHUP にトラップを設定していない場合に SIGHUP を受信すると、ただちに
@@ -378,18 +376,14 @@ void wait_for_sigchld(void)
     sigset_t ss;
 
     sigemptyset(&ss);
-    for (;;) {
-	if (signal_received[sigindex(SIGHUP)])
-	    (void) 0; // TODO sig.c: SIGHUP 受信時にシェルを終了する
-	if (sigchld_received)
-	    break;
+    while (!sigchld_received && !signal_received[sigindex(SIGHUP)]) {
 	if (sigsuspend(&ss) < 0 && errno != EINTR) {
 	    xerror(errno, "sigsuspend");
 	    break;
 	}
     }
 
-    sigchld_received = false;
+    handle_sigchld_and_sighup();
 }
 
 /* 指定したファイルディスクリプタが読めるようになるまで待つ。

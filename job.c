@@ -227,7 +227,6 @@ void wait_for_job(size_t jobnumber, bool return_on_stop)
 
     block_sigchld_and_sighup();
     for (;;) {
-	do_wait();
 	if (job->j_status == JS_DONE)
 	    break;
 	if (return_on_stop && job->j_status == JS_STOPPED)
