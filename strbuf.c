@@ -184,7 +184,7 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
     va_list saveap;
     va_copy(saveap, ap);
 
-    ssize_t rest = buf->maxlength - buf->length + 1;
+    int rest = buf->maxlength - buf->length + 1;
     int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
 
     if (result >= rest) {
@@ -193,7 +193,7 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
 	rest = buf->maxlength - buf->length + 1;
 	result = vsnprintf(buf->contents + buf->length, rest, format, saveap);
     }
-    assert(result <= rest - 1);
+    assert(result < rest);
     if (result >= 0)
 	buf->length += result;
     assert(buf->contents[buf->length] == '\0');
@@ -381,8 +381,7 @@ int wb_vwprintf(
     va_list saveap;
     va_copy(saveap, ap);
 
-    ssize_t rest;
-    int result;
+    int rest, result;
 
     for (int i = 0; i < 10; i++) {
 	rest = buf->maxlength - buf->length + 1;
@@ -401,7 +400,6 @@ int wb_vwprintf(
     if (result >= 0)
 	buf->length += result;
     assert(buf->contents[buf->length] == L'\0');
-    va_end(ap);
     va_end(saveap);
     return result;
 }
