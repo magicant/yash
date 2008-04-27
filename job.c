@@ -402,7 +402,7 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 
 	/* TRANSLATORS: the translated format string can be different 
 	 * from the original only in the number of spaces. */
-	fprintf(f, gt("[%zu]%c %jd %-20s   %ls\n"),
+	fprintf(f, gt("[%zu]%c %5jd %-20s   %ls\n"),
 		jobnumber, current, (intmax_t) pid, status, jobname);
 	if (needfree)
 	    free(status);
@@ -414,7 +414,7 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 
 	    /* TRANSLATORS: the translated format string can be different 
 	     * from the original only in the number of spaces. */
-	    fprintf(f, gt("     %jd %-20s | %ls\n"),
+	    fprintf(f, gt("     %5jd %-20s | %ls\n"),
 		    (intmax_t) pid, (posixly_correct ? "" : status), jobname);
 	    if (needfree)
 		free(status);
