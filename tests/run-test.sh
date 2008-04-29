@@ -17,12 +17,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:?TEST_ITEMS not specified}"
+echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:?}"
 echo "Any output from the tests indicates a possible malfunction"
 
 LC_ALL=C
 export TESTEE LC_ALL
-unset IFS argv0 failed
+unset IFS invokecmd failed
 
 failed=0
 for x in $TEST_ITEMS
@@ -30,10 +30,10 @@ do
     x="${x%.test}"
     echo " * $x"
     if [ x"$x" = x"${x%.posix}" ]
-    then argv0="$TESTEE"
-    else argv0=sh
+    then invokecmd=
+    else invokecmd='./invoke sh'
     fi
-    if ! ./invoke "$TESTEE" "$argv0" "${x}.test" 2>&1 | diff - "${x}.right"
+    if ! $invokecmd $TESTEE "${x}.test" 2>&1 | diff - "${x}.right"
     then
 	failed=$(( failed + 1 ))
     fi

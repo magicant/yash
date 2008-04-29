@@ -24,7 +24,10 @@ int main(int argc, char **argv)
 	fprintf(stderr, "invoke: too few arguments\n");
 	return 2;
     }
-    execvp(argv[1], argv + 2);
+    char *givenname = argv[1];
+    char *invokedcommand = argv[2];
+    argv[2] = givenname;
+    execvp(invokedcommand, argv + 2);
     perror("invoke: exec failed");
     return 126;
 }
