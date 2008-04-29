@@ -30,3 +30,5 @@ a here-doc with )
 another here-doc
 ===== arithmetic expansion =====
 ===== field splitting =====
++1 2+3 4+
++1 2 3+4 5  6+

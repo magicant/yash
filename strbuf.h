@@ -70,6 +70,8 @@ static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
     __attribute__((nonnull));
+extern xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
+    __attribute__((nonnull));
 extern wchar_t *sb_wcscat(
 	xstrbuf_T *restrict buf,
 	const wchar_t *restrict s, mbstate_t *restrict ps)
@@ -121,6 +123,8 @@ static inline xwcsbuf_T *wb_catfree(
 static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
+    __attribute__((nonnull));
+extern xwcsbuf_T *wb_wccat_repeat(xwcsbuf_T *buf, wchar_t c, size_t n)
     __attribute__((nonnull));
 extern char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
     __attribute__((nonnull));

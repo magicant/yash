@@ -137,6 +137,16 @@ xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
     return buf;
 }
 
+/* バッファの末尾にバイト c を n 個追加する。 */
+xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
+{
+    sb_ensuremax(buf, buf->length + n + 1);
+    memset(buf->contents + buf->length, c, n);
+    buf->length += n;
+    buf->contents[buf->length] = '\0';
+    return buf;
+}
+
 /* ワイド文字列をマルチバイト文字列に変換しバッファに追加する。
  * 変換に伴い、シフト状態 *ps を更新する。
  * 戻り値: ワイド文字列が全て正しく変換されたら NULL、
@@ -344,6 +354,17 @@ xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
     buf->contents[buf->length] = L'\0';
     return buf;
 }
+
+/* バッファの末尾にワイド文字 c を n 個追加する。 */
+//Unused function
+//xwcsbuf_T *wb_wccat_repeat(xwcsbuf_T *buf, wchar_t c, size_t n)
+//{
+//    wb_ensuremax(buf, buf->length + n + 1);
+//    wmemset(buf->contents + buf->length, c, n);
+//    buf->length += n;
+//    buf->contents[buf->length] = L'\0';
+//    return buf;
+//}
 
 /* マルチバイト文字列をワイド文字列に変換しバッファに追加する。
  * 文字列の変換は初期シフト状態で始まる。

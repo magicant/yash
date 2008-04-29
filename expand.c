@@ -43,7 +43,8 @@
 #define ESCAPABLE_CHARS L"$`\"\\"
 
 static bool expand_word(
-	const wordunit_T *restrict w, tildetype_T tilde, plist_T *restrict list)
+	const wordunit_T *restrict w, tildetype_T tilde,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull(3)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
@@ -81,20 +82,24 @@ static void subst_generic_each(void **slist,
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
 
-static void expand_brace_each(void **restrict slist, plist_T *restrict dest)
+static void expand_brace_each(void **restrict values, void **restrict splits,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull));
-static void expand_brace(wchar_t *restrict word, plist_T *restrict dest)
+static void expand_brace(wchar_t *restrict word, char *restrict split,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull));
 static bool has_leading_zero(const wchar_t *s, bool *sign)
     __attribute__((nonnull));
 static bool tryexpand_brace_sequence(
-	wchar_t *word, wchar_t *startc, plist_T *restrict dest)
+	wchar_t *word, char *split, wchar_t *startc,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull));
 
-static void fieldsplit(wchar_t *restrict s, const wchar_t *restrict ifs,
-	plist_T *restrict dest)
+static void fieldsplit(wchar_t *restrict str, char *restrict split,
+	const wchar_t *restrict ifs, plist_T *restrict dest)
     __attribute__((nonnull));
-static void fieldsplit_all(void **restrict src, plist_T *restrict dest)
+static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
+	plist_T *restrict dest)
     __attribute__((nonnull));
 
 static inline void add_sq(
@@ -128,15 +133,17 @@ static enum wglbflags get_wglbflags(void)
 bool expand_line(void *const *restrict args,
     int *restrict argcp, char ***restrict argvp)
 {
-    plist_T list1, list2;
-    pl_init(&list1);
+    plist_T valuelist1, valuelist2, splitlist1, splitlist2;
+    pl_init(&valuelist1);
+    pl_init(&splitlist1);
 
     /* 四種展開をする (args -> list1) */
     while (*args) {
-	if (!expand_word(*args, tt_single, &list1)) {
+	if (!expand_word(*args, tt_single, &valuelist1, &splitlist1)) {
 	    if (!is_interactive)
 		exit(EXIT_FAILURE);
-	    recfree(pl_toary(&list1), free);
+	    recfree(pl_toary(&valuelist1), free);
+	    recfree(pl_toary(&splitlist1), free);
 	    return false;
 	}
 	args++;
@@ -144,38 +151,42 @@ bool expand_line(void *const *restrict args,
 
     /* ブレース展開する (list1 -> list2) */
     if (shopt_braceexpand) {
-	pl_init(&list2);
-	expand_brace_each(list1.contents, &list2);
-	pl_destroy(&list1);
+	pl_init(&valuelist2);
+	pl_init(&splitlist2);
+	expand_brace_each(valuelist1.contents, splitlist1.contents,
+		&valuelist2, &splitlist2);
+	pl_destroy(&valuelist1);
+	pl_destroy(&splitlist1);
     } else {
-	list2 = list1;
+	valuelist2 = valuelist1;
+	splitlist2 = splitlist1;
     }
 
     /* 単語分割する (list2 -> list1) */
-    pl_init(&list1);
-    fieldsplit_all(pl_toary(&list2), &list1);
+    pl_init(&valuelist1);
+    fieldsplit_all(pl_toary(&valuelist2), pl_toary(&splitlist2), &valuelist1);
 
     /* glob する (list1 -> list2) */
     if (shopt_noglob) {
-	for (size_t i = 0; i < list1.length; i++) {
-	    char *v = realloc_wcstombs(list1.contents[i]);
+	for (size_t i = 0; i < valuelist1.length; i++) {
+	    char *v = realloc_wcstombs(valuelist1.contents[i]);
 	    if (!v) {
 		xerror(0, Ngt("expanded word contains characters that "
 			    "cannot be converted to wide characters and "
 			    "is replaced with null string"));
 		v = xstrdup("");
 	    }
-	    list1.contents[i] = v;
+	    valuelist1.contents[i] = v;
 	}
-	list2 = list1;
+	valuelist2 = valuelist1;
     } else {
-	pl_init(&list2);
-	do_glob_each(list1.contents, &list2);
-	recfree(pl_toary(&list1), free);
+	pl_init(&valuelist2);
+	do_glob_each(valuelist1.contents, &valuelist2);
+	recfree(pl_toary(&valuelist1), free);
     }
 
-    *argcp = list2.length;
-    *argvp = (char **) pl_toary(&list2);
+    *argcp = valuelist2.length;
+    *argvp = (char **) pl_toary(&valuelist2);
     return true;
 }
 
@@ -191,7 +202,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     plist_T list;
     pl_init(&list);
 
-    if (!expand_word(arg, tilde, &list)) {
+    if (!expand_word(arg, tilde, &list, NULL)) {
 	if (!is_interactive)
 	    exit(EXIT_FAILURE);
 	recfree(pl_toary(&list), free);
@@ -336,36 +347,54 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 /********** 四種展開 **********/
 
 /* 一つの単語についてチルダ展開・パラメータ展開・コマンド置換・数式展開をする。
- * w:      展開する単語
- * tilde:  チルダ展開の種類
- * list:   結果 (新しく malloc したワイド文字列へのポインタ) を入れるリスト
- * 戻り値: エラーがなければ true。
+ * w:         展開する単語
+ * tilde:     チルダ展開の種類
+ * valuelist: 結果 (新しく malloc したワイド文字列へのポインタ) を入れるリスト
+ * splitlist: 結果に対応するフィールド分割可能性文字列を入れるリスト。NULL も可
+ * 戻り値:    エラーがなければ true。
  * 引用符 (" と ') はバックスラッシュエスケープに置き換わる。
- * list に追加する要素数は基本的に一つだが、"$@" を展開した場合は
- * 複数追加したり一つも追加しなかったりする場合もある。 */
+ * valuelist, splitlist に追加する要素数は基本的に一つだが、"$@" を展開した
+ * 場合は複数追加したり一つも追加しなかったりする場合もある。
+ * splitlist の要素は valuelist の要素のフィールド分割可能な文字を示す。
+ * ((wchar_t*) valuelist->contents[i])[j] がフィールド分割の対象となるかどうかは
+ * ((char *) splitlist->contents[i])[j] が非 0 かどうかによって決まる。
+ * フィールド分割に関する情報が不要なら splitlist は NULL でもよい。
+ * splitlist に入る要素も valuelist に入る要素と同様に free すること。 */
 bool expand_word(
-	const wordunit_T *restrict w, tildetype_T tilde, plist_T *restrict list)
+	const wordunit_T *restrict w, tildetype_T tilde,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
     bool ok = true;
     bool indq = false;     /* 二重引用符 " の中かどうか */
     bool first = true;     /* 最初の word unit かどうか */
     bool force = false;    /* 展開結果が空文字列でも追加する */
     bool suppress = false; /* force を無効にする */
-    size_t initlen = list->length;
+    size_t initlen = valuelist->length;
     xwcsbuf_T buf;
+    xstrbuf_T sbuf;
     const wchar_t *str;
     wchar_t *s;
     void **array;
 
     wb_init(&buf);
+    if (splitlist)
+	sb_init(&sbuf);
+
+#define FILL_SBUF(c) \
+    ((void) (splitlist && sb_ccat_repeat(&sbuf, c, buf.length - sbuf.length)))
+#define FILL_SBUF_SPLITTABLE    FILL_SBUF(1)
+#define FILL_SBUF_UNSPLITTABLE  FILL_SBUF(0)
+
     while (w) {
 	switch (w->wu_type) {
 	case WT_STRING:
 	    str = w->wu_string;
 	    if (first && tilde != tt_none) {
 		s = expand_tilde(&str, w->next, tilde);
-		if (s)
+		if (s) {
 		    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
+		    FILL_SBUF_UNSPLITTABLE;
+		}
 	    }
 	    while (*str) {
 		switch (*str) {
@@ -378,6 +407,7 @@ bool expand_word(
 			goto default_case;
 		    force = true;
 		    add_sq(&str, &buf, true);
+		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\\':
 		    if (indq && !wcschr(ESCAPABLE_CHARS, str[1])) {
@@ -386,6 +416,7 @@ bool expand_word(
 			wb_wccat(&buf, L'\\');
 			if (*++str)
 			    wb_wccat(&buf, *str++);
+			FILL_SBUF_UNSPLITTABLE;
 			continue;
 		    }
 		case L':':
@@ -395,6 +426,7 @@ bool expand_word(
 			s = expand_tilde(&str, w->next, tilde);
 			if (s)
 			    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
+			FILL_SBUF_UNSPLITTABLE;
 			continue;
 		    }
 		    /* falls thru! */
@@ -402,6 +434,7 @@ bool expand_word(
 		    if (indq)
 			wb_wccat(&buf, L'\\');
 		    wb_wccat(&buf, *str);
+		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		}
 		str++;
@@ -416,11 +449,16 @@ bool expand_word(
 		    force = true;
 		    for (void **a = array; ; ) {
 			wb_catfree(&buf, *a);
+			FILL_SBUF_SPLITTABLE;
 			a++;
 			if (!*a)
 			    break;
-			pl_add(list, wb_towcs(&buf));
+			pl_add(valuelist, wb_towcs(&buf));
 			wb_init(&buf);
+			if (splitlist) {
+			    pl_add(splitlist, sb_tostr(&sbuf));
+			    sb_init(&sbuf);
+			}
 		    }
 		}
 		free(array);
@@ -432,12 +470,14 @@ bool expand_word(
 	    s = exec_command_substitution(w->wu_cmdsub);
 	    if (s) {
 		wb_catfree(&buf, escapefree(s, indq ? NULL : ESCAPED_CHARS));
+		FILL_SBUF_SPLITTABLE;
 	    } else {
 		ok = false;
 	    }
 	    break;
 	case WT_ARITH:
 	    ok = false;  // TODO expand: expand_word: 数式展開の実装
+	    //FILL_SBUF_SPLITTABLE;
 	    xerror(0, "arithmetic expansion not implemented");
 	    break;
 	}
@@ -449,11 +489,20 @@ bool expand_word(
      * 引用符が出た段階で force が true になり、単語を追加すべきことを示す。
      * 例外として、"$@" は (引用符があるが) 内容が空なら追加しない。これは
      * suppress によって示す。 */
-    if (buf.length > 0 || (initlen == list->length && force && !suppress))
-	pl_add(list, wb_towcs(&buf));
-    else
+    if (buf.length > 0 || (initlen == valuelist->length && force && !suppress)){
+	pl_add(valuelist, wb_towcs(&buf));
+	if (splitlist)
+	    pl_add(splitlist, sb_tostr(&sbuf));
+    } else {
 	wb_destroy(&buf);
+	if (splitlist)
+	    sb_destroy(&sbuf);
+    }
     return ok;
+
+#undef FILL_SBUF
+#undef FILL_SBUF_SPLITTABLE
+#undef FILL_SBUF_UNSPLITTABLE
 }
 
 /* チルダ展開を行う。
@@ -529,7 +578,7 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
 	pl_init(&plist);
-	if (!expand_word(p->pe_nest, tilde, &plist)) {
+	if (!expand_word(p->pe_nest, tilde, &plist, NULL)) {
 	    recfree(pl_toary(&plist), free);
 	    return NULL;
 	}
@@ -571,7 +620,7 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 subst:
 	    recfree(list, free);
 	    pl_init(&plist);
-	    if (expand_word(p->pe_subst, tt_single, &plist)) {
+	    if (expand_word(p->pe_subst, tt_single, &plist, NULL)) {
 		list = pl_toary(&plist);
 		return indq ? reescape_full_array(list) : list;
 	    } else {
@@ -923,36 +972,42 @@ void subst_length_each(void **slist)
 /********** ブレース展開 **********/
 
 /* 配列内の各要素をブレース展開する。
- * slist: void * にキャストした wchar_t * の NULL 終端配列。
- *        各要素はこの関数内で free する。関数自身は free しない。
- * dest:  結果 (新しく malloc したワイド文字列) を入れるリスト。
+ * values, splits: void * にキャストした文字列へのポインタの NULL 終端配列。
+ *       各要素はこの関数内で free する。配列自身は free しない。
+ *       values の要素が実際に展開するワイド文字列であり、splits の要素が
+ *       それに対応するフィールド分割可能性文字列である。
+ * valuelist, splitlist: 結果 (新しく malloc した文字列) を入れるリスト。
  * バックスラッシュエスケープしてあるブレースは展開しない。 */
-void expand_brace_each(void **restrict slist, plist_T *restrict dest)
+void expand_brace_each(void **restrict values, void **restrict splits,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
-    while (*slist) {
-	expand_brace(*slist, dest);
-	slist++;
+    while (*values) {
+	expand_brace(*values, *splits, valuelist, splitlist);
+	values++;
+	splits++;
     }
 }
 
 /* 一つの単語をブレース展開する。
- * word: 展開する単語。この関数内で free する。
- * dest: 結果 (新しく malloc したワイド文字列) を入れるリスト。
+ * word:  展開する単語。この関数内で free する。
+ * split: word に対応するフィールド分割可能性文字列。この関数内で free する。
+ * valuelist, splitlist: 結果 (新しく malloc した文字列) を入れるリスト。
  * バックスラッシュエスケープしてあるブレースは展開しない。 */
-void expand_brace(wchar_t *restrict const word, plist_T *restrict dest)
+void expand_brace(wchar_t *restrict const word, char *restrict const split,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
     plist_T elemlist;
     wchar_t *c;
     unsigned nest;
-    size_t lastindex, headlength;
 
     c = word;
 start:
     c = escaped_wcspbrk(c, L"{");
     if (!c || !*++c) {  /* L'{' がないか、L'{' が文字列末尾にあるなら無展開 */
-	pl_add(dest, word);
+	pl_add(valuelist, word);
+	pl_add(splitlist, split);
 	return;
-    } else if (tryexpand_brace_sequence(word, c, dest)) {
+    } else if (tryexpand_brace_sequence(word, split, c, valuelist, splitlist)) {
 	return;
     }
 
@@ -988,31 +1043,45 @@ restart:
     pl_destroy(&elemlist);
     goto start;
 
-done:
-    lastindex = elemlist.length - 1;
-    headlength = (wchar_t *) elemlist.contents[0] - 1 - word;
-    for (size_t i = 0; i < lastindex; i++) {
+done:;
+#define idx(p)  ((wchar_t *) (p) - word)
+#define wtos(p) (split + idx(p))
+    size_t lastelemindex = elemlist.length - 1;
+    size_t headlength = idx(elemlist.contents[0]) - 1;
+    for (size_t i = 0; i < lastelemindex; i++) {
 	xwcsbuf_T buf;
+	xstrbuf_T sbuf;
 	wb_init(&buf);
+	sb_init(&sbuf);
 	wb_ncat(&buf, word, headlength);
+	sb_ncat(&sbuf, split, headlength);
 	wb_ncat(&buf, elemlist.contents[i],
 		(wchar_t *) elemlist.contents[i + 1] -
 		(wchar_t *) elemlist.contents[i    ] - 1);
-	wb_cat(&buf, elemlist.contents[lastindex]);
-	expand_brace(wb_towcs(&buf), dest);
+	sb_ncat(&sbuf, wtos(elemlist.contents[i]),
+		(wchar_t *) elemlist.contents[i + 1] -
+		(wchar_t *) elemlist.contents[i    ] - 1);
+	wb_cat(&buf, elemlist.contents[lastelemindex]);
+	sb_cat(&sbuf, wtos(elemlist.contents[lastelemindex]));
+	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
     }
     pl_destroy(&elemlist);
     free(word);
+    free(split);
+#undef idx
+#undef wtos
 }
 
 /* {01..05} のような数列へのブレース展開を試みる。
  * 失敗すれば何もせずに false を返す。成功すれば word の完全なブレース展開結果を
  * dest に追加する。
  * word:   展開する単語全体。成功すればこの関数内で free する。
+ * split:  word に対応するフィールド分割可能性文字列。成功すれば free する。
  * startc: word の最初の L'{' の直後の文字へのポインタ
- * dest: 結果 (新しく malloc したワイド文字列) を入れるリスト。 */
+ * valuelist, splitlist: 結果 (新しく malloc した文字列) を入れるリスト。 */
 bool tryexpand_brace_sequence(
-	wchar_t *const word, wchar_t *const startc, plist_T *restrict dest)
+	wchar_t *word, char *split, wchar_t *startc,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
     long start, end, value;
     wchar_t *dotexpect, *braceexpect, *c;
@@ -1048,12 +1117,20 @@ bool tryexpand_brace_sequence(
     value = start;
     len = (startlen > endlen) ? startlen : endlen;
     for (;;) {
-	wchar_t *expansion = malloc_wprintf(
-		sign ? L"%.*ls%0+*ld%ls" : L"%.*ls%0*ld%ls",
-		(int) (startc - 1 - word), word,
-		len, value,
-		braceexpect + 1);
-	expand_brace(expansion, dest);  /* 残りの部分を再帰的に展開 */
+	xwcsbuf_T buf;
+	xstrbuf_T sbuf;
+	wb_init(&buf);
+	sb_init(&sbuf);
+	wb_ncat(&buf, word, startc - 1 - word);
+	sb_ncat(&sbuf, split, startc - 1 - word);
+	int plen = wb_wprintf(&buf, sign ? L"%0+*ld" : L"%0*ld", len, value);
+	if (plen > 0)
+	    sb_ccat_repeat(&sbuf, 0, plen);
+	wb_cat(&buf, braceexpect + 1);
+	sb_cat(&sbuf, split + (braceexpect + 1 - word));
+
+	/* 残りの部分を再帰的に展開 */
+	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
 
 	if (value == end)
 	    break;
@@ -1063,6 +1140,7 @@ bool tryexpand_brace_sequence(
 	    value--;
     }
     free(word);
+    free(split);
     return true;
 }
 
@@ -1085,42 +1163,44 @@ bool has_leading_zero(const wchar_t *s, bool *sign)
 /********** 単語分割 **********/
 
 /* 単語分割を行う。
- * s:    分割する単語。この関数内で free する。
- * dest: 結果 (新しく malloc したワイド文字列) を入れるリスト
- * 分割は、ifs に従って、バックスラッシュエスケープしていない文字の所で行う。 */
-void fieldsplit(wchar_t *restrict const s, const wchar_t *restrict ifs,
-	plist_T *restrict dest)
+ * str:   分割する単語。この関数内で free する。
+ * split: str に対応するフィールド分割可能性文字列。この関数内で free する。
+ * dest:  結果 (新しく malloc したワイド文字列) を入れるリスト
+ * 分割は、ifs に従って、フィールド分割可能性が非 0 でかつ
+ * バックスラッシュエスケープしていない文字の所で行う。 */
+void fieldsplit(wchar_t *restrict str, char *restrict split,
+	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
     size_t index = 0, startindex = 0;
     size_t savedestlen = dest->length;
 
-    while (s[index]) {
-	if (s[index] == L'\\') {
+    while (str[index]) {
+	if (str[index] == L'\\') {
 	    index++;
-	    if (!s[index])
+	    if (!str[index])
 		break;
 	    index++;
-	} else if (wcschr(ifs, s[index])) {
+	} else if (split[index] && wcschr(ifs, str[index])) {
 	    /* IFS にある文字なので、分割する */
 	    bool splitonnonspace = false, nonspace = false;
 	    if (startindex < index)
-		pl_add(dest, xwcsndup(s + startindex, index - startindex));
+		pl_add(dest, xwcsndup(str + startindex, index - startindex));
 	    else
 		splitonnonspace = true;
 	    do {
-		if (!iswspace(s[index])) {
+		if (!iswspace(str[index])) {
 		    if (splitonnonspace)
 			pl_add(dest, xwcsdup(L""));
 		    splitonnonspace = true;
 		    nonspace = true;
 		}
 		index++;
-		if (!s[index]) {
+		if (!str[index]) {
 		    if (nonspace && startindex < index)
 			pl_add(dest, xwcsdup(L""));
 		    break;
 		}
-	    } while (wcschr(ifs, s[index]));
+	    } while (split[index] && wcschr(ifs, str[index]));
 	    startindex = index;
 	} else {
 	    index++;
@@ -1128,29 +1208,35 @@ void fieldsplit(wchar_t *restrict const s, const wchar_t *restrict ifs,
     }
     if (savedestlen == dest->length) {
 	assert(startindex == 0);  /* 結果的に一回も分割しなかった場合 */
-	pl_add(dest, s);
+	pl_add(dest, str);
     } else {
 	if (startindex < index)
-	    pl_add(dest, xwcsndup(s + startindex, index - startindex));
-	free(s);
+	    pl_add(dest, xwcsndup(str + startindex, index - startindex));
+	free(str);
     }
+    free(split);
 }
 
 /* 単語分割を行う。
- * src:  分割する単語 (ワイド文字列) の配列。この関数内で recfree する。
+ * valuelist: 分割する単語 (ワイド文字列) の配列。この関数内で recfree する。
+ * splitlist: valuelist に対応するフィールド分割可能性文字列へのポインタの配列。
+ *       この関数内で recfree する。
  * dest: 結果 (新しく malloc したワイド文字列) を入れるリスト
- * 分割は、IFS に従って、バックスラッシュエスケープしていない文字の所で行う。 */
-void fieldsplit_all(void **restrict const src, plist_T *restrict dest)
+ * 分割は、ifs に従って、フィールド分割可能性が非 0 でかつ
+ * バックスラッシュエスケープしていない文字の所で行う。 */
+void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
+	plist_T *restrict dest)
 {
-    void **s = src;
+    void **s = valuelist, **t = splitlist;
     const wchar_t *ifs = getvar(VAR_IFS);
     if (!ifs)
 	ifs = L" \t\n";
     while (*s) {
-	fieldsplit(*s, ifs, dest);
-	s++;
+	fieldsplit(*s, *t, ifs, dest);
+	s++, t++;
     }
-    free(src);
+    free(valuelist);
+    free(splitlist);
 }
 
 
