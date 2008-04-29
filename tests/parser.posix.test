@@ -82,6 +82,11 @@ elif false ||! false;
 then echo ok!;
 fi
 
+if if (true)
+then (echo 1)
+fi then echo 2
+fi
+
 # TODO test for while/until loop
 # TODO test for for loop
 # TODO test for case construct
