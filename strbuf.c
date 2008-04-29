@@ -105,6 +105,23 @@ xstrbuf_T *sb_clear(xstrbuf_T *buf)
 
 /* マルチバイト文字列バッファの i バイト目から bn バイトを
  * マルチバイト文字列 s の最初の sn バイトに置換する。
+ * i, bn, sn の境界チェックはしない。
+ * s は buf->contents の一部であってはならない。 */
+xstrbuf_T *sb_replace_force(
+	xstrbuf_T *restrict buf, size_t i, size_t bn,
+	const char *restrict s, size_t sn)
+{
+    size_t newlength = buf->length - bn + sn;
+    sb_ensuremax(buf, newlength);
+    memmove(buf->contents + i + sn, buf->contents + i + bn,
+	    buf->length - (i + bn) + 1);
+    memcpy(buf->contents + i, s, sn);
+    buf->length = newlength;
+    return buf;
+}
+
+/* マルチバイト文字列バッファの i バイト目から bn バイトを
+ * マルチバイト文字列 s の最初の sn バイトに置換する。
  * strlen(s) < sn ならば s 全体に置換する。
  * buf->length < i + sn ならばバッファの i バイト目以降を全て置換する。
  * 特に、buf->length <= i ならば文字列の末尾に追加する。
@@ -118,14 +135,7 @@ xstrbuf_T *sb_replace(
 	i = buf->length;
     if (bn > buf->length - i)
 	bn = buf->length - i;
-
-    size_t newlength = buf->length - bn + sn;
-    sb_ensuremax(buf, newlength);
-    memmove(buf->contents + i + sn, buf->contents + i + bn,
-	    buf->length - (i + bn) + 1);
-    memcpy(buf->contents + i, s, sn);
-    buf->length = newlength;
-    return buf;
+    return sb_replace_force(buf, i, bn, s, sn);
 }
 
 /* バッファの末尾にバイト c を追加する。 */
@@ -137,10 +147,11 @@ xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
     return buf;
 }
 
-/* バッファの末尾にバイト c を n 個追加する。 */
+/* バッファの末尾にバイト c を n 個追加する。
+ * c が '\0' でも気にせず追加する。 */
 xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
 {
-    sb_ensuremax(buf, buf->length + n + 1);
+    sb_ensuremax(buf, buf->length + n);
     memset(buf->contents + buf->length, c, n);
     buf->length += n;
     buf->contents[buf->length] = '\0';
@@ -323,6 +334,22 @@ inline xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
 }
 
 /* バッファの i 文字目から bn 文字をワイド文字列 s の最初の sn 文字に置換する。
+ * i, bn, sn の境界チェックはしない。
+ * s は buf->contents の一部であってはならない。 */
+xwcsbuf_T *wb_replace_force(
+	xwcsbuf_T *restrict buf, size_t i, size_t bn,
+	const wchar_t *restrict s, size_t sn)
+{
+    size_t newlength = buf->length - bn + sn;
+    wb_ensuremax(buf, newlength);
+    wmemmove(buf->contents + i + sn, buf->contents + i + bn,
+	    buf->length - (i + bn) + 1);
+    wmemcpy(buf->contents + i, s, sn);
+    buf->length = newlength;
+    return buf;
+}
+
+/* バッファの i 文字目から bn 文字をワイド文字列 s の最初の sn 文字に置換する。
  * wcslen(s) < sn ならば s 全体に置換する。
  * buf->length < i + sn ならばバッファの i 文字目以降を全て置換する。
  * 特に、buf->length <= i ならば文字列の末尾に追加する。
@@ -336,14 +363,7 @@ xwcsbuf_T *wb_replace(
 	i = buf->length;
     if (bn > buf->length - i)
 	bn = buf->length - i;
-
-    size_t newlength = buf->length - bn + sn;
-    wb_ensuremax(buf, newlength);
-    wmemmove(buf->contents + i + sn, buf->contents + i + bn,
-	    buf->length - (i + bn) + 1);
-    wmemcpy(buf->contents + i, s, sn);
-    buf->length = newlength;
-    return buf;
+    return wb_replace_force(buf, i, bn, s, sn);
 }
 
 /* バッファの末尾にワイド文字 c を追加する。 */
@@ -355,11 +375,12 @@ xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
     return buf;
 }
 
-/* バッファの末尾にワイド文字 c を n 個追加する。 */
+/* バッファの末尾にワイド文字 c を n 個追加する。
+ * c が L'\0' でも気にせず追加する。 */
 //Unused function
 //xwcsbuf_T *wb_wccat_repeat(xwcsbuf_T *buf, wchar_t c, size_t n)
 //{
-//    wb_ensuremax(buf, buf->length + n + 1);
+//    wb_ensuremax(buf, buf->length + n);
 //    wmemset(buf->contents + buf->length, c, n);
 //    buf->length += n;
 //    buf->contents[buf->length] = L'\0';

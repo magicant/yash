@@ -917,9 +917,15 @@ success:
 	if (!s)
 	    exit(EXIT_FAILURE);
 	if (fputws(s, f) < 0) {
+#ifndef NDEBUG
+	    free(s);
+#endif
 	    xerror(errno, Ngt("cannot write here-document contents"));
 	    exit(EXIT_FAILURE);
 	}
+#ifndef NDEBUG
+	free(s);
+#endif
 	exit(EXIT_SUCCESS);
     }
 }

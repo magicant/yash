@@ -42,6 +42,10 @@
 /* 二重引用符の中でバックスラッシュエスケープできる文字 */
 #define ESCAPABLE_CHARS L"$`\"\\"
 
+static bool expand_word_and_split(
+	const wordunit_T *restrict w, plist_T *restrict list)
+    __attribute__((nonnull(2)));
+
 static bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
@@ -133,23 +137,63 @@ static enum wglbflags get_wglbflags(void)
 bool expand_line(void *const *restrict args,
     int *restrict argcp, char ***restrict argvp)
 {
-    plist_T valuelist1, valuelist2, splitlist1, splitlist2;
-    pl_init(&valuelist1);
-    pl_init(&splitlist1);
+    plist_T list1, list2;
+    pl_init(&list1);
 
-    /* 四種展開をする (args -> list1) */
+    /* 四種展開・ブレース展開・フィールド分割をする (args -> list1) */
     while (*args) {
-	if (!expand_word(*args, tt_single, &valuelist1, &splitlist1)) {
+	if (!expand_word_and_split(*args, &list1)) {
 	    if (!is_interactive)
 		exit(EXIT_FAILURE);
-	    recfree(pl_toary(&valuelist1), free);
-	    recfree(pl_toary(&splitlist1), free);
+	    recfree(pl_toary(&list1), free);
 	    return false;
 	}
 	args++;
     }
 
-    /* ブレース展開する (list1 -> list2) */
+    /* glob する (list1 -> list2) */
+    if (shopt_noglob) {
+	for (size_t i = 0; i < list1.length; i++) {
+	    char *v = realloc_wcstombs(list1.contents[i]);
+	    if (!v) {
+		xerror(0, Ngt("expanded word contains characters that "
+			    "cannot be converted to wide characters and "
+			    "is replaced with null string"));
+		v = xstrdup("");
+	    }
+	    list1.contents[i] = v;
+	}
+	list2 = list1;
+    } else {
+	pl_init(&list2);
+	do_glob_each(list1.contents, &list2);
+	recfree(pl_toary(&list1), free);
+    }
+
+    *argcp = list2.length;
+    *argvp = (char **) pl_toary(&list2);
+    return true;
+}
+
+/* 一つの単語に対して四種展開・ブレース展開・フィールド分割を行う。
+ * w:      展開する単語
+ * list:   結果を入れるリスト
+ * 戻り値: 成功すると true、エラーがあると false。
+ * チルダ展開は tt_single で行う。 */
+bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
+{
+    plist_T valuelist1, valuelist2, splitlist1, splitlist2;
+    pl_init(&valuelist1);
+    pl_init(&splitlist1);
+
+    /* 四種展開をする (w -> list1) */
+    if (!expand_word(w, tt_single, &valuelist1, &splitlist1)) {
+	recfree(pl_toary(&valuelist1), free);
+	recfree(pl_toary(&splitlist1), free);
+	return false;
+    }
+
+    /* ブレース展開をする (list1 -> list2) */
     if (shopt_braceexpand) {
 	pl_init(&valuelist2);
 	pl_init(&splitlist2);
@@ -162,31 +206,8 @@ bool expand_line(void *const *restrict args,
 	splitlist2 = splitlist1;
     }
 
-    /* 単語分割する (list2 -> list1) */
-    pl_init(&valuelist1);
-    fieldsplit_all(pl_toary(&valuelist2), pl_toary(&splitlist2), &valuelist1);
-
-    /* glob する (list1 -> list2) */
-    if (shopt_noglob) {
-	for (size_t i = 0; i < valuelist1.length; i++) {
-	    char *v = realloc_wcstombs(valuelist1.contents[i]);
-	    if (!v) {
-		xerror(0, Ngt("expanded word contains characters that "
-			    "cannot be converted to wide characters and "
-			    "is replaced with null string"));
-		v = xstrdup("");
-	    }
-	    valuelist1.contents[i] = v;
-	}
-	valuelist2 = valuelist1;
-    } else {
-	pl_init(&valuelist2);
-	do_glob_each(valuelist1.contents, &valuelist2);
-	recfree(pl_toary(&valuelist1), free);
-    }
-
-    *argcp = valuelist2.length;
-    *argvp = (char **) pl_toary(&valuelist2);
+    /* フィールド分割をする (list2 -> list) */
+    fieldsplit_all(pl_toary(&valuelist2), pl_toary(&splitlist2), list);
     return true;
 }
 
@@ -1048,21 +1069,28 @@ done:;
 #define wtos(p) (split + idx(p))
     size_t lastelemindex = elemlist.length - 1;
     size_t headlength = idx(elemlist.contents[0]) - 1;
+    size_t lastlen = wcslen(elemlist.contents[lastelemindex]);
     for (size_t i = 0; i < lastelemindex; i++) {
 	xwcsbuf_T buf;
 	xstrbuf_T sbuf;
 	wb_init(&buf);
 	sb_init(&sbuf);
+
 	wb_ncat(&buf, word, headlength);
-	sb_ncat(&sbuf, split, headlength);
+	sb_ncat_force(&sbuf, split, headlength);
+
 	wb_ncat(&buf, elemlist.contents[i],
 		(wchar_t *) elemlist.contents[i + 1] -
 		(wchar_t *) elemlist.contents[i    ] - 1);
-	sb_ncat(&sbuf, wtos(elemlist.contents[i]),
+	sb_ncat_force(&sbuf, wtos(elemlist.contents[i]),
 		(wchar_t *) elemlist.contents[i + 1] -
 		(wchar_t *) elemlist.contents[i    ] - 1);
-	wb_cat(&buf, elemlist.contents[lastelemindex]);
-	sb_cat(&sbuf, wtos(elemlist.contents[lastelemindex]));
+
+	wb_ncat_force(&buf, elemlist.contents[lastelemindex], lastlen);
+	sb_ncat_force(&sbuf, wtos(elemlist.contents[lastelemindex]), lastlen);
+	assert(buf.length == sbuf.length);
+
+	/* 残りの部分を再帰的に展開 */
 	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
     }
     pl_destroy(&elemlist);
@@ -1085,7 +1113,7 @@ bool tryexpand_brace_sequence(
 {
     long start, end, value;
     wchar_t *dotexpect, *braceexpect, *c;
-    int startlen, endlen, len;
+    int startlen, endlen, len, wordlen;
     bool sign = false;
 
     assert(startc[-1] == L'{');
@@ -1116,18 +1144,25 @@ bool tryexpand_brace_sequence(
     /* 数列を展開 */
     value = start;
     len = (startlen > endlen) ? startlen : endlen;
+    wordlen = wcslen(word);
     for (;;) {
 	xwcsbuf_T buf;
 	xstrbuf_T sbuf;
 	wb_init(&buf);
 	sb_init(&sbuf);
+
 	wb_ncat(&buf, word, startc - 1 - word);
-	sb_ncat(&sbuf, split, startc - 1 - word);
+	sb_ncat_force(&sbuf, split, startc - 1 - word);
+
 	int plen = wb_wprintf(&buf, sign ? L"%0+*ld" : L"%0*ld", len, value);
 	if (plen > 0)
 	    sb_ccat_repeat(&sbuf, 0, plen);
+
 	wb_cat(&buf, braceexpect + 1);
-	sb_cat(&sbuf, split + (braceexpect + 1 - word));
+	sb_ncat_force(&sbuf,
+		split + (braceexpect + 1 - word),
+		wordlen - (braceexpect + 1 - word));
+	assert(buf.length == sbuf.length || plen < 0);
 
 	/* 残りの部分を再帰的に展開 */
 	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);

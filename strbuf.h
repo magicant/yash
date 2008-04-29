@@ -47,15 +47,25 @@ extern inline xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_clear(xstrbuf_T *buf)
     __attribute__((nonnull));
+extern xstrbuf_T *sb_replace_force(
+	xstrbuf_T *restrict buf, size_t i, size_t bn,
+	const char *restrict s, size_t sn)
+    __attribute__((nonnull));
 extern xstrbuf_T *sb_replace(
 	xstrbuf_T *restrict buf, size_t i, size_t bn,
 	const char *restrict s, size_t sn)
+    __attribute__((nonnull));
+static inline xstrbuf_T *sb_ninsert_force(
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_ninsert(
 	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_insert(
 	xstrbuf_T *restrict buf, size_t i, const char *restrict s)
+    __attribute__((nonnull));
+static inline xstrbuf_T *sb_ncat_force(
+	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_ncat(
 	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
@@ -101,15 +111,25 @@ extern xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
     __attribute__((nonnull));
+extern xwcsbuf_T *wb_replace_force(
+	xwcsbuf_T *restrict buf, size_t i, size_t bn,
+	const wchar_t *restrict s, size_t sn)
+    __attribute__((nonnull));
 extern xwcsbuf_T *wb_replace(
 	xwcsbuf_T *restrict buf, size_t i, size_t bn,
 	const wchar_t *restrict s, size_t sn)
+    __attribute__((nonnull));
+static inline xwcsbuf_T *wb_ninsert_force(
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ninsert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_insert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
+    __attribute__((nonnull));
+static inline xwcsbuf_T *wb_ncat_force(
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ncat(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
@@ -160,6 +180,16 @@ static inline wchar_t *malloc_wprintf(const wchar_t *format, ...)
 
 /* マルチバイト文字列 s の最初の n バイトを
  * バッファの i バイト目の手前に挿入する。
+ * i, n の境界チェックはしない。
+ * s は buf->contents の一部であってはならない。 */
+xstrbuf_T *sb_ninsert_force(
+	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
+{
+    return sb_replace_force(buf, i, 0, s, n);
+}
+
+/* マルチバイト文字列 s の最初の n バイトを
+ * バッファの i バイト目の手前に挿入する。
  * strlen(s) < n ならば s 全体を挿入する。
  * buf->length <= i ならば文字列の末尾に追加する。
  * s は buf->contents の一部であってはならない。 */
@@ -175,6 +205,15 @@ xstrbuf_T *sb_ninsert(
 xstrbuf_T *sb_insert(xstrbuf_T *restrict buf, size_t i, const char *restrict s)
 {
     return sb_replace(buf, i, 0, s, SIZE_MAX);
+}
+
+/* マルチバイト文字列 s の最初の n バイトを文字列バッファに追加する。
+ * n の境界チェックはしない。
+ * s は buf->contents の一部であってはならない。 */
+xstrbuf_T *sb_ncat_force(
+	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
+{
+    return sb_replace_force(buf, buf->length, 0, s, n);
 }
 
 /* マルチバイト文字列 s の最初の n バイトを文字列バッファに追加する。
@@ -211,6 +250,14 @@ xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
     return sb_replace(buf, i, n, "", 0);
 }
 
+/* ワイド文字列 s の最初の n 文字をバッファの i 文字目の手前に挿入する。
+ * i, n の境界チェックはしない。
+ * s は buf->contents の一部であってはならない。 */
+xwcsbuf_T *wb_ninsert_force(
+	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
+{
+    return wb_replace_force(buf, i, 0, s, n);
+}
 
 /* ワイド文字列 s の最初の n 文字をバッファの i 文字目の手前に挿入する。
  * wcslen(s) < n ならば s 全体を挿入する。
@@ -229,6 +276,15 @@ xwcsbuf_T *wb_insert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
 {
     return wb_replace(buf, i, 0, s, SIZE_MAX);
+}
+
+/* ワイド文字列 s の最初の n 文字を文字列バッファに追加する。
+ * n の境界チェックはしない。
+ * s は buf->contents の一部であってはならない。 */
+xwcsbuf_T *wb_ncat_force(
+	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
+{
+    return wb_replace_force(buf, buf->length, 0, s, n);
 }
 
 /* ワイド文字列 s の最初の n 文字を文字列バッファに追加する。
