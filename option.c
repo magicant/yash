@@ -51,6 +51,8 @@ bool shopt_nocaseglob, shopt_dotglob, shopt_markdirs, shopt_extendedglob;
 bool shopt_nullglob;
 /* ブレース展開をするかどうか */
 bool shopt_braceexpand;
+/* リダイレクトでファイルの上書きを防止するかどうか */
+bool shopt_noclobber;
 
 
 /* シェルと set コマンドの長いオプション。 */
@@ -60,6 +62,7 @@ static const struct xoption long_options[] = {
     { "version",      xno_argument, NULL, 'V', },
     { "login",        xno_argument, NULL, 'l', },
     /* ↑ 以上のオプションは set コマンドでは使えない。 */
+    { "noclobber",    xno_argument, NULL, 'C', },
     { "noglob",       xno_argument, NULL, 'f', },
     { "nocaseglob",   xno_argument, NULL, 'c', },
     { "dotglob",      xno_argument, NULL, 'D', },
@@ -75,7 +78,7 @@ static const struct xoption long_options[] = {
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 4;
 
-// TODO option: unimplemented options: -abCefhnuvx -o{ignoreeof,nolog,vi,emacs}
+// TODO option: unimplemented options: -abehnuvx -o{ignoreeof,nolog,vi,emacs}
 
 
 /* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
@@ -84,6 +87,9 @@ void set_option(char c)
 {
     bool value = (xoptopt == '-');
     switch (c) {
+	case 'C':
+	    shopt_noclobber = value;
+	    break;
 	case 'f':
 	    shopt_noglob = value;
 	    break;
@@ -144,6 +150,7 @@ wchar_t *get_hyphen_parameter(void)
     if (is_interactive)    wb_wccat(&buf, L'i');
     if (do_job_control)    wb_wccat(&buf, L'm');
     if (shopt_read_stdin)  wb_wccat(&buf, L's');
+    if (shopt_noclobber)   wb_wccat(&buf, L'C');
 
     return wb_towcs(&buf);
 }

@@ -32,8 +32,9 @@ extern const char *command_name;
 extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern bool shopt_braceexpand;
+extern bool shopt_noclobber;
 
-#define SHELLSET_OPTIONS "fm"
+#define SHELLSET_OPTIONS "fmC"
 
 extern const struct xoption *const shell_long_options, *const set_long_options;
 

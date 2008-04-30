@@ -283,7 +283,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    flags = O_RDONLY;
 	    goto openwithflags;
 	case RT_OUTPUT:
-	    if (false) {  // TODO redir: open_redirections: noclobber option
+	    if (shopt_noclobber) {
 		flags = O_WRONLY | O_CREAT | O_EXCL;
 	    } else {
 	case RT_CLOBBER:
