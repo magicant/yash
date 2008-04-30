@@ -282,6 +282,8 @@ wchar_t *get_job_name(const job_T *job)
 
     xwcsbuf_T buf;
     wb_init(&buf);
+    if (job->j_loop)
+	wb_cat(&buf, L"| ");
     for (size_t i = 0; i < job->j_pcount; i++) {
 	if (i > 0)
 	    wb_cat(&buf, L" | ");
@@ -398,12 +400,13 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	bool needfree;
 	pid_t pid = job->j_procs[0].pr_pid;
 	char *status = get_process_status_string(&job->j_procs[0], &needfree);
+	char looppipe = job->j_loop ? '|' : ' ';
 	wchar_t *jobname = job->j_procs[0].pr_name;
 
 	/* TRANSLATORS: the translated format string can be different 
 	 * from the original only in the number of spaces. */
-	fprintf(f, gt("[%zu]%c %5jd %-20s   %ls\n"),
-		jobnumber, current, (intmax_t) pid, status, jobname);
+	fprintf(f, gt("[%zu]%c %5jd %-20s %c %ls\n"),
+		jobnumber, current, (intmax_t) pid, status, looppipe, jobname);
 	if (needfree)
 	    free(status);
 
