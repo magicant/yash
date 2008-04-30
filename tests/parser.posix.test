@@ -87,7 +87,22 @@ then (echo 1)
 fi then echo 2
 fi
 
-# TODO test for while/until loop
+echo ===== 5 =====
+
+while false; do true; done; echo $?
+until true; do true; done; echo $?
+# TODO need 'exit'
+# while [ $? = 0 ]; do (exit 10) done; echo $?
+# until ! [ $? = 0 ]; do (exit 10) done; echo $?
+# TODO need 'shift'
+# set 1 '2  2' 3
+while
+	[ $# != 0 ]
+do
+	echo $# $1
+# 	shift
+done
+
 # TODO test for for loop
 # TODO test for case construct
 # TODO test for function definition

@@ -287,13 +287,33 @@ void exec_for(const command_T *c, bool finally_exit)
 }
 
 /* while コマンドを実行する */
+/* while コマンドの終了ステータスは、最後に実行した c_whlcmds の終了ステータス
+ * である。一度も c_whlcmds を実行しなければ、c_whlcond の結果にかかわらず
+ * 終了ステータスは 0 である。 */
 void exec_while(const command_T *c, bool finally_exit)
 {
-    // TODO exec.c: exec_while: 未実装
-    (void) c;
-    laststatus = 0;
+    assert(c->c_type == CT_WHILE);
+    assert(!need_break());
+    execinfo.loopnest++;
+
+    int status = EXIT_SUCCESS;
+    while (exec_and_or_lists(c->c_whlcond, false),
+	    !laststatus == c->c_whltype) {
+	if (need_break())
+	    goto done;
+
+	exec_and_or_lists(c->c_whlcmds, false);
+	status = laststatus;
+
+	if (need_break())
+	    goto done;
+    }
+
+    laststatus = status;
+done:
     if (finally_exit)
 	exit(laststatus);
+    execinfo.loopnest--;
 }
 
 /* case コマンドを実行する */
