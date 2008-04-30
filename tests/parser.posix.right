@@ -40,3 +40,12 @@ ok!
 ===== 5 =====
 0
 0
+===== 6 =====
+1
+1
+2 2
+2   2
+3
+3
+parser.posix.right
+parser.posix.test

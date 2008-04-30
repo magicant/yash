@@ -1641,11 +1641,16 @@ command_T *parse_for(void)
     result->c_type = CT_FOR;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
-    result->c_forname = parse_word_as_wcs();
-    if (result->c_forname[0] == L'\0')
+
+    wchar_t *name = parse_word_as_wcs();
+    if (name[0] == L'\0')
 	serror(Ngt("no identifier after `for'"));
-    else if (*skip_name(result->c_forname) != L'\0')
-	serror(Ngt("`%ls' is not valid identifier"), result->c_forname);
+    else if (*skip_name(name) != L'\0')
+	serror(Ngt("`%ls' is not valid identifier"), name);
+    result->c_forname = realloc_wcstombs(name);
+    if (!result->c_forname)
+	serror(Ngt("unexpected error in wide character conversion"));
+
     skip_to_next_token();
     ensure_buffer(3);
     if (is_token_at(L"in", cindex)) {
@@ -2143,7 +2148,7 @@ void print_command_content(xwcsbuf_T *restrict buf, const command_T *restrict c)
 	break;
     case CT_FOR:
 	wb_cat(buf, L"for ");
-	wb_cat(buf, c->c_forname);
+	wb_mbscat(buf, c->c_forname);
 	if (c->c_forwords) {
 	    wb_cat(buf, L" in");
 	    for (void **w = c->c_forwords; *w; w++) {

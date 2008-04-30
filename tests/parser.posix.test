@@ -103,7 +103,22 @@ do
 # 	shift
 done
 
-# TODO test for for loop
+echo ===== 6 =====
+
+for i in 1 '2   2' 3; do echo $i; echo "$i"; done
+for i
+	in parser.posix.*
+do
+	echo $i
+done
+# TODO need 'readonly'
+# for i in 1 2 3 4 5; do
+# 	echo $i
+# 	if [ $i = 3 ]; then
+# 		readonly i
+# 	fi
+# done
+
 # TODO test for case construct
 # TODO test for function definition
 

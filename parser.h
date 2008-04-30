@@ -75,7 +75,7 @@ typedef struct command_T {
 	struct and_or_T     *subcmds;  /* CT_GROUP, CT_SUBSHELL の内容 */
 	struct ifcommand_T  *ifcmds;   /* if の内容 */
 	struct {
-	    wchar_t         *forname;  /* for で回す変数名 */
+	    char            *forname;  /* for で回す変数名 */
 	    void           **forwords; /* 代入する word のリスト */
 	    struct and_or_T *forcmds;  /* for で実行するコマンド */
 	} forcontent;

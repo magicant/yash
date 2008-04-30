@@ -147,6 +147,7 @@ struct execinfo {
 } execinfo;
 /* "continue n" は (n-1) 回の break と 1 回の continue として扱う。
  * exception が ee_return なら breakcount は 0 である。 */
+/* ループの内部でサブシェルを作った場合でも execinfo はリセットしないので注意 */
 
 /* 現在 break/continue/return すべき状態なら true を返す */
 bool need_break(void)
@@ -279,11 +280,60 @@ bool exec_if_condition(const and_or_T *c)
 /* for コマンドを実行する */
 void exec_for(const command_T *c, bool finally_exit)
 {
-    // TODO exec.c: exec_for: 未実装
-    (void) c;
-    laststatus = 0;
+    assert(c->c_type == CT_FOR);
+    assert(!need_break());
+    execinfo.loopnest++;
+
+    int count;
+    void **words;
+
+    if (c->c_forwords) {
+	char **mbswords;
+	if (!expand_line(c->c_forwords, &count, &mbswords)) {
+	    laststatus = EXIT_FAILURE;
+	    goto done;
+	}
+	words = (void **) mbswords;
+	for (int i = 0; i < count; i++) {
+	    words[i] = realloc_mbstowcs(words[i]);
+	    if (!words[i])
+		words[i] = xwcsdup(L"");
+	}
+    } else {
+	bool concat;
+	words = get_variable("@", &concat);
+	assert(words != NULL && !concat);
+	count = plcount(words);
+    }
+
+#define CHECK_LOOP                                   \
+    if (execinfo.breakcount > 0) {                   \
+	execinfo.breakcount--;                       \
+	goto done;                                   \
+    } else if (execinfo.exception == ee_continue) {  \
+	execinfo.exception = ee_none;                \
+	continue;                                    \
+    } else if (execinfo.exception != ee_none) {      \
+	goto done;                                   \
+    } else (void) 0
+
+    int i;
+    for (i = 0; i < count; i++) {
+	if (!set_variable(c->c_forname, words[i], !posixly_correct, false))
+	    goto done;
+	exec_and_or_lists(c->c_forcmds, false);
+	CHECK_LOOP;
+    }
+
+done:
+    if (count == 0)
+	laststatus = EXIT_SUCCESS;
+    while (++i < count)
+	free(words[i]);
+    free(words);
     if (finally_exit)
 	exit(laststatus);
+    execinfo.loopnest--;
 }
 
 /* while コマンドを実行する */
@@ -299,14 +349,10 @@ void exec_while(const command_T *c, bool finally_exit)
     int status = EXIT_SUCCESS;
     while (exec_and_or_lists(c->c_whlcond, false),
 	    !laststatus == c->c_whltype) {
-	if (need_break())
-	    goto done;
-
+	CHECK_LOOP;
 	exec_and_or_lists(c->c_whlcmds, false);
 	status = laststatus;
-
-	if (need_break())
-	    goto done;
+	CHECK_LOOP;
     }
 
     laststatus = status;
@@ -315,6 +361,7 @@ done:
 	exit(laststatus);
     execinfo.loopnest--;
 }
+#undef CHECK_LOOP
 
 /* case コマンドを実行する */
 void exec_case(const command_T *c, bool finally_exit)
