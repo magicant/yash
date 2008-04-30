@@ -427,7 +427,8 @@ void handle_sigchld_and_sighup(void)
     // TODO sig.c: SIGHUP 受信時にシェルを終了する
 }
 
-/* トラップが設定されたシグナルを受信していたら、対応するコマンドを実行する。 */
+/* トラップが設定されたシグナルを受信していたら、対応するコマンドを実行する。
+ * この関数を呼び出すときアクティブジョブが存在してはならない。 */
 void handle_traps(void)
 {
     (void) trap_command;

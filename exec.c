@@ -88,11 +88,15 @@ typedef struct commandinfo_T {
 #define ci_builtin  value.builtin
 #define ci_function value.function
 
+static inline bool need_break(void)
+    __attribute__((pure));
+
 static void exec_pipelines(const pipeline_T *p, bool finally_exit);
 static void exec_pipelines_async(const pipeline_T *p)
     __attribute__((nonnull));
 static void exec_if(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
+static inline bool exec_if_condition(const and_or_T *c);
 static void exec_for(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_while(const command_T *c, bool finally_exit)
@@ -134,12 +138,46 @@ int laststatus = EXIT_SUCCESS;
 /* 最後に起動した非同期実行リストのプロセス ID */
 pid_t lastasyncpid;
 
+/* 現在実行中のループと break/continue/return の動作状況 */
+struct execinfo {
+    unsigned loopnest;    /* 現在実行中のループの深さ */
+    unsigned breakcount;  /* break すべきループの数 (<= loopnest) */
+    enum { ee_none, ee_continue, ee_return
+    } exception;          /* 行うべき例外的処理 */
+} execinfo;
+/* "continue n" は (n-1) 回の break と 1 回の continue として扱う。
+ * exception が ee_return なら breakcount は 0 である。 */
+
+/* 現在 break/continue/return すべき状態なら true を返す */
+bool need_break(void)
+{
+    return execinfo.breakcount > 0 || execinfo.exception != ee_none;
+}
+
+/* 現在の execinfo をセーブし、戻り値として返す。
+ * execinfo は初期状態に戻る。 */
+struct execinfo *save_execinfo(void)
+{
+    struct execinfo *save = xmalloc(sizeof execinfo);
+    *save = execinfo;
+    execinfo = (struct execinfo) {
+	.loopnest = 0, .breakcount = 0, .exception = ee_none };
+    return save;
+}
+
+/* execinfo をセーブしておいたものに戻す。引数は関数内で解放する。 */
+void load_execinfo(struct execinfo *save)
+{
+    execinfo = *save;
+    free(save);
+}
+
 
 /* コマンドを実行する。
  * finally_exit: true なら実行後そのまま終了する。 */
 void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 {
-    while (a) {
+    while (a && !need_break()) {
 	if (!a->ao_async)
 	    exec_pipelines(a->ao_pipelines, finally_exit && !a->next);
 	else
@@ -154,7 +192,7 @@ void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 /* パイプラインたちを実行する。 */
 void exec_pipelines(const pipeline_T *p, bool finally_exit)
 {
-    for (bool first = true; p; p = p->next, first = false) {
+    for (bool first = true; p && !need_break(); p = p->next, first = false) {
 	if (!first && p->pl_cond == !!laststatus)
 	    continue;
 
@@ -171,6 +209,8 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 /* 一つ以上のパイプラインを非同期的に実行する。 */
 void exec_pipelines_async(const pipeline_T *p)
 {
+    assert(!need_break());
+
     if (!p->next && !p->pl_neg) {
 	exec_commands(p->pl_commands, execasync, p->pl_loop);
     } else {
@@ -212,17 +252,28 @@ void exec_if(const command_T *c, bool finally_exit)
     assert(c->c_type == CT_IF);
 
     for (const ifcommand_T *cmds = c->c_ifcmds; cmds; cmds = cmds->next) {
-	if (cmds->ic_condition) {
-	    exec_and_or_lists(cmds->ic_condition, false);
-	    if (laststatus != EXIT_SUCCESS)
-		continue;
+	if (need_break())
+	    goto done;
+	if (exec_if_condition(cmds->ic_condition)) {
+	    exec_and_or_lists(cmds->ic_commands, finally_exit);
+	    return;
 	}
-	exec_and_or_lists(cmds->ic_commands, finally_exit);
-	return;
     }
     laststatus = 0;
+done:
     if (finally_exit)
 	exit(laststatus);
+}
+
+/* if コマンドの条件を実行する */
+bool exec_if_condition(const and_or_T *c)
+{
+    if (c) {
+	exec_and_or_lists(c, false);
+	return laststatus == EXIT_SUCCESS;
+    } else {
+	return true;
+    }
 }
 
 /* for コマンドを実行する */
@@ -328,6 +379,8 @@ void exec_commands(const command_T *c, exec_T type, bool looppipe)
     job_T *job;
     process_T *ps;
     pipeinfo_T pinfo = PIPEINFO_INIT;
+
+    assert(!need_break());
 
     /* コマンドの数を数える */
     count = 0;
@@ -704,6 +757,10 @@ void exec_simple_command(
     case function:
 	// TODO exec.c: exec_simple_command: 関数のリダイレクト
 	exec_nonsimple_command(ci->ci_function, finally_exit);
+	if (execinfo.exception == ee_return) {
+	    assert(execinfo.breakcount == 0);
+	    execinfo.exception = ee_none;
+	}
 	break;
     }
     if (finally_exit)
