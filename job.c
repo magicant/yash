@@ -36,7 +36,10 @@
 #include "job.h"
 
 
-static inline job_T *get_job(size_t jobnumber);
+static inline job_T *get_job(size_t jobnumber)
+    __attribute__((pure));
+static void set_current_jobnumber(size_t no);
+static size_t find_next_job(size_t numlimit);
 static int calc_status(int status)
     __attribute__((const));
 static wchar_t *get_job_name(const job_T *job)
@@ -51,6 +54,9 @@ static char *get_job_status_string(const job_T *job, bool *needfree)
  * joblist.contents[0] はアクティブジョブで、起動直後でまだジョブリストに
  * 入っていないジョブを表す。それ以降の要素は普通のジョブ。 */
 static plist_T joblist;
+
+/* 現在・前のジョブ番号。当該ジョブがなければ 0。 */
+static size_t current_jobnumber, previous_jobnumber;
 
 /* joblist を初期化する。 */
 void init_job(void)
@@ -70,7 +76,7 @@ void set_active_job(job_T *job)
     joblist.contents[ACTIVE_JOBNO] = job;
 }
 
-/* アクティブジョブをジョブリストに追加する。 */
+/* アクティブジョブをジョブリストに追加し、それを現在のジョブにする。 */
 void add_job(void)
 {
     job_T *job = joblist.contents[ACTIVE_JOBNO];
@@ -82,16 +88,19 @@ void add_job(void)
     for (size_t i = 1; i < joblist.length; i++) {
 	if (joblist.contents[i] == NULL) {
 	    joblist.contents[i] = job;
+	    set_current_jobnumber(i);
 	    return;
 	}
     }
 
     /* 空いているジョブ番号がなければ最後に追加する。 */
     pl_add(&joblist, job);
+    set_current_jobnumber(joblist.length - 1);
 }
 
 /* 指定した番号のジョブを無条件で削除する。
- * 使われていないジョブ番号を指定しないこと。 */
+ * 使われていないジョブ番号を指定しないこと。
+ * 指定したジョブが現在・前のジョブならば現在・前のジョブを再設定する。 */
 void remove_job(size_t jobnumber)
 {
     assert(jobnumber < joblist.length);
@@ -104,6 +113,13 @@ void remove_job(size_t jobnumber)
     for (size_t i = 0; i < job->j_pcount; i++)
 	free(job->j_procs[i].pr_name);
     free(job);
+
+    if (jobnumber == current_jobnumber) {
+	current_jobnumber = previous_jobnumber;
+	previous_jobnumber = find_next_job(current_jobnumber);
+    } else if (jobnumber == previous_jobnumber) {
+	previous_jobnumber = find_next_job(current_jobnumber);
+    }
 }
 
 /* 全てのジョブを無条件で削除する */
@@ -122,6 +138,61 @@ void remove_all_jobs(void)
 job_T *get_job(size_t jobnumber)
 {
     return jobnumber < joblist.length ? joblist.contents[jobnumber] : NULL;
+}
+
+/* ジョブ番号の扱いについて
+ *   * 現在のジョブが変わるとき、元の現在のジョブが新しい前のジョブになる
+ *     * 'fg' コマンドは現在のジョブを変更する
+ *     * set_active_job でジョブを追加するとそれは現在のジョブになる
+ *   * 現在のジョブが終了すると、前のジョブが現在のジョブになる
+ *   * 'bg' コマンドで現在・前のジョブを再開すると現在・前のジョブは再設定される
+ *   * 'wait' コマンドは現在・前のジョブを変更しない
+ */
+
+/* 現在のジョブ番号を指定した番号にし、前のジョブ番号を再設定する。
+ * 0 を指定すると前のジョブ番号を現在のジョブ番号にする。
+ * 存在しないジョブ番号を指定しないこと。 */
+void set_current_jobnumber(size_t jobnumber)
+{
+    assert(jobnumber == 0 || get_job(jobnumber) != NULL);
+
+    previous_jobnumber = current_jobnumber;
+    if (jobnumber == 0) {
+	jobnumber = previous_jobnumber;
+	if (jobnumber == 0 || get_job(jobnumber) == NULL)
+	    jobnumber = find_next_job(0);
+	current_jobnumber = jobnumber;
+    }
+
+    if (previous_jobnumber == 0
+	    || previous_jobnumber == current_jobnumber)
+	previous_jobnumber = find_next_job(current_jobnumber);
+}
+
+/* 指定した番号以外で、次の 現在のまたは前のジョブ番号を選び出す。
+ * ジョブ番号の候補がなければ 0 を返す。 */
+/* 候補の選び方:
+ *   まず停止しているジョブから探す。停止しているジョブがなければ他をあたる。
+ *   ジョブ番号は出来るだけ大きいものを優先して選ぶ */
+size_t find_next_job(size_t excl)
+{
+    size_t jobnumber = joblist.length;
+    while (--jobnumber > 0) {
+	if (jobnumber != excl) {
+	    job_T *job = get_job(jobnumber);
+	    if (job != NULL && job->j_status == JS_STOPPED)
+		return jobnumber;
+	}
+    }
+    jobnumber = joblist.length;
+    while (--jobnumber > 0) {
+	if (jobnumber != excl) {
+	    job_T *job = get_job(jobnumber);
+	    if (job != NULL)
+		return jobnumber;
+	}
+    }
+    return 0;
 }
 
 
@@ -377,10 +448,9 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	return;
 
     char current;
-    // TODO job: print_job_status: current_jobnumber, previous_jobnumber
-    /*if      (jobnumber == current_jobnumber)  current = '+';
+    if      (jobnumber == current_jobnumber)  current = '+';
     else if (jobnumber == previous_jobnumber) current = '-';
-    else*/                                      current = ' ';
+    else                                      current = ' ';
 
     if (!verbose) {
 	bool needfree;
