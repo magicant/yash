@@ -126,6 +126,8 @@ static void exec_simple_command(const commandinfo_T *ci,
 static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
     __attribute__((nonnull(2,4)));
+static void exec_function_body(const command_T *body, bool finally_exit)
+    __attribute__((nonnull));
 static inline int xexecv(const char *path, char *const *argv)
     __attribute__((nonnull(1)));
 static inline int xexecve(
@@ -822,12 +824,7 @@ void exec_simple_command(
 	laststatus = ci->ci_builtin(argc, (char **) argv);
 	break;
     case function:
-	// TODO exec.c: exec_simple_command: 関数のリダイレクト
-	exec_nonsimple_command(ci->ci_function, finally_exit);
-	if (execinfo.exception == ee_return) {
-	    assert(execinfo.breakcount == 0);
-	    execinfo.exception = ee_none;
-	}
+	exec_function_body(ci->ci_function, finally_exit);
 	break;
     }
     if (finally_exit)
@@ -866,6 +863,21 @@ void exec_fall_back_on_sh(
 	errno = ENOENT;
 #endif
     xerror(errno, Ngt("cannot invoke new shell to execute `%s'"), argv[0]);
+}
+
+/* 指定したコマンドを関数の本体として実行する */
+void exec_function_body(const command_T *body, bool finally_exit)
+{
+    savefd_T *savefd;
+
+    if (open_redirections(body->c_redirs, &savefd)) {
+	exec_nonsimple_command(body, finally_exit);
+	if (execinfo.exception == ee_return) {
+	    assert(execinfo.breakcount == 0);
+	    execinfo.exception = ee_none;
+	}
+    }
+    undo_redirections(savefd);
 }
 
 /* execv を行う。execv が EINTR を返したら、やり直す。 */
