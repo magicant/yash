@@ -208,6 +208,222 @@ void redirsfree(redir_T *r)
 }
 
 
+/********** 構文木データを複製するルーチン **********/
+
+static and_or_T    *andorsdup(const and_or_T *a);
+static pipeline_T  *pipesdup(const pipeline_T *p);
+static command_T   *comsdup(const command_T *c);
+static ifcommand_T *ifcmdsdup(const ifcommand_T *i);
+static caseitem_T  *caseitemsdup(const caseitem_T *i);
+static wordunit_T  *worddup(const wordunit_T *w);
+static void       **wordsdup(void *const *w);
+static paramexp_T  *paramdup(const paramexp_T *p);
+static assign_T    *assignsdup(const assign_T *a);
+static redir_T     *redirsdup(const redir_T *r);
+
+and_or_T *andorsdup(const and_or_T *a)
+{
+    and_or_T *first = NULL, **last = &first;
+
+    while (a) {
+	and_or_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->ao_pipelines = pipesdup(a->ao_pipelines);
+	dup->ao_async = a->ao_async;
+	*last = dup;
+	last = &dup->next;
+	a = a->next;
+    }
+    return first;
+}
+
+pipeline_T *pipesdup(const pipeline_T *p)
+{
+    pipeline_T *first = NULL, **last = &first;
+
+    while (p) {
+	pipeline_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->pl_commands = comsdup(p->pl_commands);
+	dup->pl_neg  = p->pl_neg;
+	dup->pl_loop = p->pl_loop;
+	dup->pl_cond = p->pl_cond;
+	*last = dup;
+	last = &dup->next;
+	p = p->next;
+    }
+    return first;
+}
+
+command_T *comsdup(const command_T *c)
+{
+    command_T *first = NULL, **last = &first;
+
+    while (c) {
+	command_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->c_type   = c->c_type;
+	dup->c_lineno = c->c_lineno;
+	dup->c_redirs = redirsdup(c->c_redirs);
+	switch (c->c_type) {
+	    case CT_SIMPLE:
+		dup->c_assigns = assignsdup(c->c_assigns);
+		dup->c_words = wordsdup(c->c_words);
+		break;
+	    case CT_GROUP:
+	    case CT_SUBSHELL:
+		dup->c_subcmds = andorsdup(c->c_subcmds);
+		break;
+	    case CT_IF:
+		dup->c_ifcmds = ifcmdsdup(c->c_ifcmds);
+		break;
+	    case CT_FOR:
+		dup->c_forname = xstrdup(c->c_forname);
+		dup->c_forwords = wordsdup(c->c_forwords);
+		dup->c_forcmds = andorsdup(c->c_forcmds);
+		break;
+	    case CT_WHILE:
+		dup->c_whltype = c->c_whltype;
+		dup->c_whlcond = andorsdup(c->c_whlcond);
+		dup->c_whlcmds = andorsdup(c->c_whlcmds);
+		break;
+	    case CT_CASE:
+		dup->c_casword = worddup(c->c_casword);
+		dup->c_casitems = caseitemsdup(c->c_casitems);
+		break;
+	}
+	*last = dup;
+	last = &dup->next;
+	c = c->next;
+    }
+    return first;
+}
+
+ifcommand_T *ifcmdsdup(const ifcommand_T *i)
+{
+    ifcommand_T *first = NULL, **last = &first;
+
+    while (i) {
+	ifcommand_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->ic_condition = andorsdup(i->ic_condition);
+	dup->ic_commands  = andorsdup(i->ic_commands);
+	*last = dup;
+	last = &dup->next;
+	i = i->next;
+    }
+    return first;
+}
+
+caseitem_T *caseitemsdup(const caseitem_T *i)
+{
+    caseitem_T *first = NULL, **last = &first;
+
+    while (i) {
+	caseitem_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->ci_patterns = wordsdup(i->ci_patterns);
+	dup->ci_commands = andorsdup(i->ci_commands);
+	*last = dup;
+	last = &dup->next;
+	i = i->next;
+    }
+    return first;
+}
+
+wordunit_T *worddup(const wordunit_T *w)
+{
+    wordunit_T *first = NULL, **last = &first;
+
+    while (w) {
+	wordunit_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->wu_type = w->wu_type;
+	switch (w->wu_type) {
+	    case WT_STRING:
+		dup->wu_string = xwcsdup(w->wu_string);
+		break;
+	    case WT_PARAM:
+		dup->wu_param = paramdup(w->wu_param);
+		break;
+	    case WT_CMDSUB:
+		dup->wu_cmdsub = xwcsdup(w->wu_cmdsub);
+		break;
+	    case WT_ARITH:
+		dup->wu_arith = worddup(w->wu_arith);
+		break;
+	}
+	*last = dup;
+	last = &dup->next;
+	w = w->next;
+    }
+    return first;
+}
+
+void **wordsdup(void *const *w)
+{
+    if (!w)
+	return NULL;
+
+    void **dup = xmalloc(sizeof *dup * (plcount(w) + 1));
+
+    for (size_t i = 0; w[i]; i++)
+	dup[i] = worddup(w[i]);
+    return dup;
+}
+
+paramexp_T *paramdup(const paramexp_T *p)
+{
+    paramexp_T *dup = xmalloc(sizeof *dup);
+    dup->pe_type = p->pe_type;
+    if (p->pe_type & PT_NEST)
+	dup->pe_nest = worddup(p->pe_nest);
+    else
+	dup->pe_name = xstrdup(p->pe_name);
+    dup->pe_match = worddup(p->pe_match);
+    dup->pe_subst = worddup(p->pe_subst);
+    return dup;
+}
+
+assign_T *assignsdup(const assign_T *a)
+{
+    assign_T *first = NULL, **last = &first;
+
+    while (a) {
+	assign_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->name = xstrdup(a->name);
+	dup->value = worddup(a->value);
+	*last = dup;
+	last = &dup->next;
+	a = a->next;
+    }
+    return first;
+}
+
+redir_T *redirsdup(const redir_T *r)
+{
+    redir_T *first = NULL, **last = &first;
+
+    while (r) {
+	redir_T *dup = xmalloc(sizeof *dup);
+	dup->next = NULL;
+	dup->rd_type = r->rd_type;
+	dup->rd_fd   = r->rd_fd;
+	if (r->rd_type == RT_HERE || r->rd_type == RT_HERERT) {
+	    dup->rd_hereend = xwcsdup(r->rd_hereend);
+	    dup->rd_herecontent = worddup(r->rd_herecontent);
+	} else {
+	    dup->rd_filename = worddup(r->rd_filename);
+	}
+	*last = dup;
+	last = &dup->next;
+	r = r->next;
+    }
+    return first;
+}
+
+
 /********** 構文解析に関する補助ルーチン **********/
 
 static inline bool is_name_char(wchar_t c)
