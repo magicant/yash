@@ -210,16 +210,26 @@ void redirsfree(redir_T *r)
 
 /********** 構文木データを複製するルーチン **********/
 
-static and_or_T    *andorsdup(const and_or_T *a);
-static pipeline_T  *pipesdup(const pipeline_T *p);
-static command_T   *comsdup(const command_T *c);
-static ifcommand_T *ifcmdsdup(const ifcommand_T *i);
-static caseitem_T  *caseitemsdup(const caseitem_T *i);
-static wordunit_T  *worddup(const wordunit_T *w);
-static void       **wordsdup(void *const *w);
-static paramexp_T  *paramdup(const paramexp_T *p);
-static assign_T    *assignsdup(const assign_T *a);
-static redir_T     *redirsdup(const redir_T *r);
+static and_or_T    *andorsdup(const and_or_T *a)
+    __attribute__((malloc,warn_unused_result));
+static pipeline_T  *pipesdup(const pipeline_T *p)
+    __attribute__((malloc,warn_unused_result));
+static command_T   *comsdup(const command_T *c)
+    __attribute__((malloc,warn_unused_result));
+static ifcommand_T *ifcmdsdup(const ifcommand_T *i)
+    __attribute__((malloc,warn_unused_result));
+static caseitem_T  *caseitemsdup(const caseitem_T *i)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T  *worddup(const wordunit_T *w)
+    __attribute__((malloc,warn_unused_result));
+static void        *copyasword(const void *w)
+    __attribute__((malloc,warn_unused_result));
+static paramexp_T  *paramdup(const paramexp_T *p)
+    __attribute__((malloc,warn_unused_result));
+static assign_T    *assignsdup(const assign_T *a)
+    __attribute__((malloc,warn_unused_result));
+static redir_T     *redirsdup(const redir_T *r)
+    __attribute__((malloc,warn_unused_result));
 
 and_or_T *andorsdup(const and_or_T *a)
 {
@@ -268,7 +278,7 @@ command_T *comsdup(const command_T *c)
 	switch (c->c_type) {
 	    case CT_SIMPLE:
 		dup->c_assigns = assignsdup(c->c_assigns);
-		dup->c_words = wordsdup(c->c_words);
+		dup->c_words = duparray(c->c_words, copyasword);
 		break;
 	    case CT_GROUP:
 	    case CT_SUBSHELL:
@@ -279,7 +289,7 @@ command_T *comsdup(const command_T *c)
 		break;
 	    case CT_FOR:
 		dup->c_forname = xstrdup(c->c_forname);
-		dup->c_forwords = wordsdup(c->c_forwords);
+		dup->c_forwords = duparray(c->c_forwords, copyasword);
 		dup->c_forcmds = andorsdup(c->c_forcmds);
 		break;
 	    case CT_WHILE:
@@ -322,7 +332,7 @@ caseitem_T *caseitemsdup(const caseitem_T *i)
     while (i) {
 	caseitem_T *dup = xmalloc(sizeof *dup);
 	dup->next = NULL;
-	dup->ci_patterns = wordsdup(i->ci_patterns);
+	dup->ci_patterns = duparray(i->ci_patterns, copyasword);
 	dup->ci_commands = andorsdup(i->ci_commands);
 	*last = dup;
 	last = &dup->next;
@@ -360,16 +370,9 @@ wordunit_T *worddup(const wordunit_T *w)
     return first;
 }
 
-void **wordsdup(void *const *w)
+void *copyasword(const void *w)
 {
-    if (!w)
-	return NULL;
-
-    void **dup = xmalloc(sizeof *dup * (plcount(w) + 1));
-
-    for (size_t i = 0; w[i]; i++)
-	dup[i] = worddup(w[i]);
-    return dup;
+    return worddup(w);
 }
 
 paramexp_T *paramdup(const paramexp_T *p)

@@ -96,30 +96,11 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
     return wmemcpy(result, s, len);
 }
 
-/* マルチバイト文字列へのポインタの NULL 終端配列を、内容も含めてコピーする。
+/* ポインタの NULL 終端配列を内容も含めてコピーする。
+ * 配列の各要素は copy でコピーする。
  * 引数が NULL なら単に NULL を返す。 */
-/* Unused function
-char **dupstrarray(char *const *array)
-{
-    if (!array)
-	return NULL;
-
-    size_t count = 0;
-    for (char *const *a = array; *a; a++)
-	count++;
-
-    char **result = xmalloc((count + 1) * sizeof *result);
-    for (size_t i = 0; i < count; i++)
-	result[i] = xstrdup(array[i]);
-    result[count] = NULL;
-    return result;
-}
-*/
-
-/* void * にキャストしたワイド文字列へのポインタの NULL 終端配列を、
- * 内容も含めてコピーする。
- * 引数が NULL なら単に NULL を返す。 */
-void **dupwcsarray(void *const *array)
+/* copy として渡す関数としては、xstrdup や copyaswcs が使える。 */
+void **duparray(void *const *array, void *copy(const void *p))
 {
     if (!array)
 	return NULL;
@@ -130,43 +111,10 @@ void **dupwcsarray(void *const *array)
 
     void **result = xmalloc((count + 1) * sizeof *result);
     for (size_t i = 0; i < count; i++)
-	result[i] = xwcsdup(array[i]);
+	result[i] = copy(array[i]);
     result[count] = NULL;
     return result;
 }
-
-/* マルチバイト文字列へのポインタの NULL 終端配列の内容を繋げて
- * 一つの文字列にして返す。padding が NULL でなければ各文字列の間に
- * padding を差し挟む。
- * 戻り値: 新しく malloc したマルチバイト文字列 */
-// Unused function
-//char *joinstrarray(char *const *array, const char *padding)
-//{
-//    size_t elemcount, ccount = 0;
-//
-//    /* 全体の文字数を数える */
-//    for (elemcount = 0; array[elemcount]; elemcount++)
-//	ccount += wcslen(array[elemcount]);
-//    if (padding && elemcount > 0)
-//	ccount += wcslen(padding) * (elemcount - 1);
-//
-//    /* 戻り値を malloc し文字列をコピーする */
-//    char *result = xmalloc((ccount + 1) * sizeof *result);
-//    char *s = result;
-//    for (size_t i = 0; i < elemcount; i++) {
-//	char *elem = array[i];
-//	while (*elem)
-//	    *s++ = *elem++;
-//	if (i + 1 < elemcount) {
-//	    const char *pad = padding;
-//	    if (*pad)
-//		*s++ = *pad++;
-//	}
-//    }
-//    *s = L'\0';
-//
-//    return result;
-//}
 
 /* void * にキャストしたワイド文字列へのポインタの NULL 終端配列の内容を
  * 繋げて一つの文字列にして返す。padding が NULL でなければ各文字列の間に
@@ -226,6 +174,12 @@ wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 	s++;
     }
     return (wchar_t *) s;
+}
+
+/* xwcsdup と同じだが、引数と戻り値の wchar_t * が void * にキャストしてある */
+void *copyaswcs(const void *p)
+{
+    return xwcsdup(p);
 }
 
 

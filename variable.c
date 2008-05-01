@@ -674,7 +674,7 @@ return_single:  /* 一つの値を要素数 1 の配列で返す。 */
     return result;
 
 return_array:  /* 配列をコピーして返す */
-    return dupwcsarray(result);
+    return duparray(result, copyaswcs);
 }
 
 /* 一時的変数を削除する */

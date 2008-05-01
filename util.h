@@ -49,10 +49,8 @@ extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen)
     __attribute__((malloc,warn_unused_result,nonnull));
 static inline wchar_t *xwcsdup(const wchar_t *s)
     __attribute__((malloc,warn_unused_result,nonnull));
-extern char **dupstrarray(char *const *array)
-    __attribute__((malloc,warn_unused_result));
-extern void **dupwcsarray(void *const *array)
-    __attribute__((malloc,warn_unused_result));
+extern void **duparray(void *const *array, void *copy(const void *p))
+    __attribute__((malloc,warn_unused_result,nonnull(2)));
 extern char *joinstrarray(char *const *array, const char *padding)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
@@ -61,6 +59,9 @@ extern char *matchstrprefix(const char *s, const char *prefix)
     __attribute__((pure,nonnull));
 extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
     __attribute__((pure,nonnull));
+
+extern void *copyaswcs(const void *p)
+    __attribute__((malloc,warn_unused_result));
 
 /* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
  * つまり、長さが maxlen 以上なら maxlen を返す。 */
