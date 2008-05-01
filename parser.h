@@ -59,6 +59,7 @@ typedef enum {
     CT_FOR,        /* for コマンド */
     CT_WHILE,      /* while/until コマンド */
     CT_CASE,       /* case コマンド */
+    CT_FUNCDEF,    /* 関数定義 */
 } commandtype_T;
 
 /* パイプラインを構成する一つのコマンドを表す */
@@ -88,6 +89,10 @@ typedef struct command_T {
 	    struct wordunit_T *casword;   /* case で検索する word */
 	    struct caseitem_T *casitems;  /* case の各項目 */
 	} casecontent;
+	struct {
+	    char             *funcname;  /* 定義する関数の名前 */
+	    struct command_T *funcbody;  /* 定義する関数の中身 */
+	} funcdef;
     } c_content;
 } command_T;
 #define c_assigns  c_content.simplecontent.assigns
@@ -102,6 +107,8 @@ typedef struct command_T {
 #define c_whlcmds  c_content.whilecontent.whlcmds
 #define c_casword  c_content.casecontent.casword
 #define c_casitems c_content.casecontent.casitems
+#define c_funcname c_content.funcdef.funcname
+#define c_funcbody c_content.funcdef.funcbody
 /* c_words, c_forwords は void * にキャストした wordunit_T * の
  * NULL 終端配列へのポインタ */
 /* c_forwords が NULL のとき、for に in 節はない。

@@ -105,6 +105,8 @@ static void exec_while(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_case(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
+static void exec_function_definition(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
 
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
@@ -401,6 +403,16 @@ done:
 fail:
     laststatus = EXIT_FAILURE;
     goto done;
+}
+
+/* 関数定義コマンドを実行する */
+void exec_function_definition(const command_T *c, bool finally_exit)
+{
+    (void)c,(void)finally_exit;
+    // TODO exec: exec_function_definition
+    laststatus = EXIT_SUCCESS;
+    if (finally_exit)
+	exit(laststatus);
 }
 
 /* exec_commands 関数で使うサブルーチン */
@@ -816,6 +828,9 @@ void exec_nonsimple_command(const command_T *c, bool finally_exit)
 	break;
     case CT_CASE:
 	exec_case(c, finally_exit);
+	break;
+    case CT_FUNCDEF:
+	exec_function_definition(c, finally_exit);
 	break;
     }
 }

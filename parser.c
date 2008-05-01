@@ -101,6 +101,10 @@ void comsfree(command_T *c)
 		wordfree(c->c_casword);
 		caseitemsfree(c->c_casitems);
 		break;
+	    case CT_FUNCDEF:
+		free(c->c_funcname);
+		comsfree(c->c_funcbody);
+		break;
 	}
 
 	command_T *next = c->next;
@@ -300,6 +304,10 @@ command_T *comsdup(const command_T *c)
 	    case CT_CASE:
 		dup->c_casword = worddup(c->c_casword);
 		dup->c_casitems = caseitemsdup(c->c_casitems);
+		break;
+	    case CT_FUNCDEF:
+		dup->c_funcname = xstrdup(c->c_funcname);
+		dup->c_funcbody = comsdup(c->c_funcbody);
 		break;
 	}
 	*lastp = dup;
@@ -550,6 +558,8 @@ static caseitem_T *parse_case_list(void)
     __attribute__((malloc,warn_unused_result));
 static void **parse_case_patterns(void)
     __attribute__((malloc,warn_unused_result));
+static command_T *tryparse_function(void)
+    __attribute__((malloc,warn_unused_result));
 static void read_heredoc_contents(redir_T *redir);
 static void read_heredoc_contents_without_expand(redir_T *r);
 static void read_heredoc_contents_with_expand(redir_T *r);
@@ -782,6 +792,7 @@ bool is_token_at(const wchar_t *token, size_t index)
 
 /* cbuf の指定したインデックスに ( や { や if などの「開く」トークンがあるか
  * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。 */
+// TODO parser: check_opening_token_at: 引数は必要?
 const wchar_t *check_opening_token_at(size_t index)
 {
     ensure_buffer(6);
@@ -1017,10 +1028,12 @@ command_T *parse_command(void)
     if (t)
 	return parse_compound_command(t);
 
-    // TODO parser.c: parse_command: 関数の解析
+    command_T *result = tryparse_function();
+    if (result)
+	return result;
 
     /* 普通の単純なコマンドを解析 */
-    command_T *result = xmalloc(sizeof *result);
+    result = xmalloc(sizeof *result);
     redir_T **redirlastp;
 
     result->next = NULL;
@@ -2025,6 +2038,59 @@ void **parse_case_patterns(void)
     return pl_toary(&wordlist);
 }
 
+/* 現在位置に関数定義コマンドがあればそれを解析する。 */
+command_T *tryparse_function(void)
+{
+    size_t savecindex = cindex;
+    unsigned long lineno = cinfo->lineno;
+
+    /* 関数の名前を取り出す */
+    wchar_t *namestart = cbuf.contents + cindex;
+    wchar_t *nameend;
+
+    while (*(nameend = skip_name(namestart)) == L'\0'
+	    && read_more_input() == 0);
+    if (!is_token_delimiter_char(*nameend))
+	goto fail;
+    cindex = nameend - cbuf.contents;
+    skip_blanks_and_comment();
+
+    /* 括弧の解析 */
+    if (cbuf.contents[cindex] != L'(')
+	goto fail;
+    cindex++;
+    skip_blanks_and_comment();
+    if (cbuf.contents[cindex] != L')') {
+	serror(Ngt("`(' must be followed by `)' in function definition"));
+	return NULL;
+    }
+    cindex++;
+    skip_to_next_token();
+
+    /* 関数本体の解析 */
+    const wchar_t *t = check_opening_token_at(cindex);
+    if (!t) {
+	serror(Ngt("function body must be compound command"));
+	return NULL;
+    }
+    command_T *body = parse_compound_command(t);
+    command_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->c_type = CT_FUNCDEF;
+    result->c_lineno = lineno;
+    result->c_redirs = NULL;
+    result->c_funcname = realloc_wcstombs(
+	    xwcsndup(namestart, nameend - namestart));
+    result->c_funcbody = body;
+    if (!result->c_funcname)
+	serror(Ngt("unexpected error in wide character conversion"));
+    return result;
+
+fail:
+    cindex = savecindex;
+    return NULL;
+}
+
 /* ヒアドキュメントの内容を読み込む。 */
 void read_heredoc_contents(redir_T *r)
 {
@@ -2392,6 +2458,11 @@ void print_command_content(xwcsbuf_T *restrict buf, const command_T *restrict c)
 	wb_cat(buf, L" in ");
 	print_caseitems(buf, c->c_casitems);
 	wb_cat(buf, L"esac ");
+	break;
+    case CT_FUNCDEF:
+	wb_mbscat(buf, c->c_funcname);
+	wb_cat(buf, L" () ");
+	print_commands(buf, c->c_funcbody);
 	break;
     }
 }
