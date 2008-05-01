@@ -233,15 +233,15 @@ static redir_T     *redirsdup(const redir_T *r)
 
 and_or_T *andorsdup(const and_or_T *a)
 {
-    and_or_T *first = NULL, **last = &first;
+    and_or_T *first = NULL, **lastp = &first;
 
     while (a) {
 	and_or_T *dup = xmalloc(sizeof *dup);
 	dup->next = NULL;
 	dup->ao_pipelines = pipesdup(a->ao_pipelines);
 	dup->ao_async = a->ao_async;
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	a = a->next;
     }
     return first;
@@ -249,7 +249,7 @@ and_or_T *andorsdup(const and_or_T *a)
 
 pipeline_T *pipesdup(const pipeline_T *p)
 {
-    pipeline_T *first = NULL, **last = &first;
+    pipeline_T *first = NULL, **lastp = &first;
 
     while (p) {
 	pipeline_T *dup = xmalloc(sizeof *dup);
@@ -258,8 +258,8 @@ pipeline_T *pipesdup(const pipeline_T *p)
 	dup->pl_neg  = p->pl_neg;
 	dup->pl_loop = p->pl_loop;
 	dup->pl_cond = p->pl_cond;
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	p = p->next;
     }
     return first;
@@ -267,7 +267,7 @@ pipeline_T *pipesdup(const pipeline_T *p)
 
 command_T *comsdup(const command_T *c)
 {
-    command_T *first = NULL, **last = &first;
+    command_T *first = NULL, **lastp = &first;
 
     while (c) {
 	command_T *dup = xmalloc(sizeof *dup);
@@ -302,8 +302,8 @@ command_T *comsdup(const command_T *c)
 		dup->c_casitems = caseitemsdup(c->c_casitems);
 		break;
 	}
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	c = c->next;
     }
     return first;
@@ -311,15 +311,15 @@ command_T *comsdup(const command_T *c)
 
 ifcommand_T *ifcmdsdup(const ifcommand_T *i)
 {
-    ifcommand_T *first = NULL, **last = &first;
+    ifcommand_T *first = NULL, **lastp = &first;
 
     while (i) {
 	ifcommand_T *dup = xmalloc(sizeof *dup);
 	dup->next = NULL;
 	dup->ic_condition = andorsdup(i->ic_condition);
 	dup->ic_commands  = andorsdup(i->ic_commands);
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	i = i->next;
     }
     return first;
@@ -327,15 +327,15 @@ ifcommand_T *ifcmdsdup(const ifcommand_T *i)
 
 caseitem_T *caseitemsdup(const caseitem_T *i)
 {
-    caseitem_T *first = NULL, **last = &first;
+    caseitem_T *first = NULL, **lastp = &first;
 
     while (i) {
 	caseitem_T *dup = xmalloc(sizeof *dup);
 	dup->next = NULL;
 	dup->ci_patterns = duparray(i->ci_patterns, copyasword);
 	dup->ci_commands = andorsdup(i->ci_commands);
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	i = i->next;
     }
     return first;
@@ -343,7 +343,7 @@ caseitem_T *caseitemsdup(const caseitem_T *i)
 
 wordunit_T *worddup(const wordunit_T *w)
 {
-    wordunit_T *first = NULL, **last = &first;
+    wordunit_T *first = NULL, **lastp = &first;
 
     while (w) {
 	wordunit_T *dup = xmalloc(sizeof *dup);
@@ -363,8 +363,8 @@ wordunit_T *worddup(const wordunit_T *w)
 		dup->wu_arith = worddup(w->wu_arith);
 		break;
 	}
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	w = w->next;
     }
     return first;
@@ -390,15 +390,15 @@ paramexp_T *paramdup(const paramexp_T *p)
 
 assign_T *assignsdup(const assign_T *a)
 {
-    assign_T *first = NULL, **last = &first;
+    assign_T *first = NULL, **lastp = &first;
 
     while (a) {
 	assign_T *dup = xmalloc(sizeof *dup);
 	dup->next = NULL;
 	dup->name = xstrdup(a->name);
 	dup->value = worddup(a->value);
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	a = a->next;
     }
     return first;
@@ -406,7 +406,7 @@ assign_T *assignsdup(const assign_T *a)
 
 redir_T *redirsdup(const redir_T *r)
 {
-    redir_T *first = NULL, **last = &first;
+    redir_T *first = NULL, **lastp = &first;
 
     while (r) {
 	redir_T *dup = xmalloc(sizeof *dup);
@@ -419,8 +419,8 @@ redir_T *redirsdup(const redir_T *r)
 	} else {
 	    dup->rd_filename = worddup(r->rd_filename);
 	}
-	*last = dup;
-	last = &dup->next;
+	*lastp = dup;
+	lastp = &dup->next;
 	r = r->next;
     }
     return first;
