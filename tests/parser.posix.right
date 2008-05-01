@@ -49,3 +49,15 @@ ok!
 3
 parser.posix.right
 parser.posix.test
+===== 7 =====
+0
+ok
+2
+*
+foo
+one
+two
+3
+foo
+four
+5

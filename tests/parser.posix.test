@@ -119,7 +119,50 @@ done
 # 	fi
 # done
 
-# TODO test for case construct
+echo ===== 7 =====
+
+false
+case 123 in esac
+echo $?
+
+case 123
+	in
+esac
+
+i=''
+case 123
+	in
+	${i:=2}) echo ng\;;;
+	(x|y|z) echo ng;;
+	(dummy) ;;
+	foo | 1$i*3 ) echo ok
+	false
+esac
+if [ $? != 0 ]; then echo $i; fi
+
+case '*' in
+	'*')
+	echo '*'
+	;;
+	*)
+	echo ng
+	;;
+esac
+
+for i in 1 '2  2' 3 4 5; do
+	case $i in
+		1 | 4 )
+		echo foo
+		if [ $i = 1 ]; then echo one; else echo four; fi
+		;;
+		2 ) echo ng ;;
+		(*2"  "[1-3]*) echo two;;
+		(\*) echo ng;;
+		(*) echo $i;;
+	esac
+done
+
+
 # TODO test for function definition
 
 # TODO should be removed by EXIT trap

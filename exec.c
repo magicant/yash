@@ -37,6 +37,7 @@
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
+#include "wfnmatch.h"
 #include "path.h"
 #include "parser.h"
 #include "variable.h"
@@ -368,11 +369,37 @@ done:
 /* case コマンドを実行する */
 void exec_case(const command_T *c, bool finally_exit)
 {
-    // TODO exec.c: exec_case: 未実装
-    (void) c;
-    laststatus = 0;
+    assert(c->c_type == CT_CASE);
+    assert(!need_break());
+
+    wchar_t *word = expand_single(c->c_casword, tt_single);
+    if (!word)
+	goto fail;
+    word = unescapefree(word);
+
+    for (caseitem_T *ci = c->c_casitems; ci; ci = ci->next) {
+	for (void **pats = ci->ci_patterns; *pats; pats++) {
+	    wchar_t *pattern = expand_single(*pats, tt_single);
+	    if (!pattern)
+		goto fail;
+	    size_t match = wfnmatch(pattern, word, 0, WFNM_WHOLE);
+	    free(pattern);
+	    if (match != WFNM_NOMATCH && match != WFNM_ERROR) {
+		exec_and_or_lists(ci->ci_commands, finally_exit);
+		goto done;
+	    }
+	}
+    }
+    laststatus = EXIT_SUCCESS;
+done:
     if (finally_exit)
 	exit(laststatus);
+    free(word);
+    return;
+
+fail:
+    laststatus = EXIT_FAILURE;
+    goto done;
 }
 
 /* exec_commands 関数で使うサブルーチン */
