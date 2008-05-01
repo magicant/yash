@@ -39,6 +39,7 @@
 #include "plist.h"
 #include "wfnmatch.h"
 #include "path.h"
+#include "lineinput.h"
 #include "parser.h"
 #include "variable.h"
 #include "sig.h"
@@ -962,21 +963,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	    return NULL;
 	}
 
-	/* 子プロセスの出力を読む */
-	xwcsbuf_T buf;
-	wb_init(&buf);
-	for (;;) {
-	    wint_t c = fgetwc(f);
-	    if (c == WEOF) {
-		if (feof(f) || errno != EINTR)
-		    break;
-	    } else {
-		wb_wccat(&buf, c);
-	    }
-	}
-	fclose(f);
-
-	/* 子プロセスの終了を待つ */
+	/* 子プロセスをアクティブジョブにする */
 	job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
 	job->j_pgid = 0;
 	job->j_status = JS_RUNNING;
@@ -988,6 +975,37 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	job->j_procs[0].pr_statuscode = 0;
 	job->j_procs[0].pr_name = NULL;
 	set_active_job(job);
+
+	/* 子プロセスの出力を読む */
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	set_nonblocking(pipefd[PIDX_IN]);
+	block_sigchld_and_sighup();
+	handle_sigchld_and_sighup();
+	for (;;) {
+	    wint_t c = fgetwc(f);
+	    if (c == WEOF) {
+		if (feof(f))
+		    break;
+		assert(ferror(f));
+		switch (errno) {
+		    case EINTR:
+		    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+		    case EWOULDBLOCK:
+#endif
+			wait_for_input(pipefd[PIDX_IN], false);
+			continue;
+		}
+		break;
+	    } else {
+		wb_wccat(&buf, c);
+	    }
+	}
+	unblock_sigchld_and_sighup();
+	fclose(f);
+
+	/* 子プロセスの終了を待つ */
 	wait_for_job(ACTIVE_JOBNO, false);
 	laststatus = calc_status_of_job(job);
 	remove_job(ACTIVE_JOBNO);
