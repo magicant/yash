@@ -792,10 +792,10 @@ bool is_token_at(const wchar_t *token, size_t index)
 
 /* cbuf の指定したインデックスに ( や { や if などの「開く」トークンがあるか
  * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。 */
-// TODO parser: check_opening_token_at: 引数は必要?
 const wchar_t *check_opening_token_at(size_t index)
 {
-    ensure_buffer(6);
+    if (true || index + 6 >= cindex)
+	ensure_buffer(6);
     if (cbuf.contents[index] == L'(') return L"(";
     if (is_token_at(L"{",     index)) return L"{";
     if (is_token_at(L"if",    index)) return L"if";

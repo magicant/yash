@@ -70,7 +70,7 @@ static const struct xoption long_options[] = {
     { "extendedglob", xno_argument, NULL, 'E', },
     { "nullglob",     xno_argument, NULL, 'N', },
     { "braceexpand",  xno_argument, NULL, 'B', },
-    { "jobcontrol",   xno_argument, NULL, 'm', },
+    { "monitor",      xno_argument, NULL, 'm', },
     { "posix",        xno_argument, NULL, 'X', },
     { NULL,           0,            NULL, 0,   },
 };
