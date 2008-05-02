@@ -297,7 +297,7 @@ void exec_for(const command_T *c, bool finally_exit)
 	char **mbswords;
 	if (!expand_line(c->c_forwords, &count, &mbswords)) {
 	    laststatus = EXIT_FAILURE;
-	    goto done;
+	    goto finish;
 	}
 	words = (void **) mbswords;
 	for (int i = 0; i < count; i++) {
@@ -332,11 +332,12 @@ void exec_for(const command_T *c, bool finally_exit)
     }
 
 done:
-    if (count == 0)
-	laststatus = EXIT_SUCCESS;
     while (++i < count)
 	free(words[i]);
     free(words);
+    if (count == 0)
+	laststatus = EXIT_SUCCESS;
+finish:
     if (finally_exit)
 	exit(laststatus);
     execinfo.loopnest--;
