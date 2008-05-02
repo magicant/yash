@@ -255,6 +255,7 @@ void finalize_variables(void)
     }
     current_env = NULL;
     clear_temporary_variables();
+    ht_destroy(&temp_variables);
 
     initialized = false;
 }
