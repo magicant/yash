@@ -83,7 +83,7 @@ typedef struct commandinfo_T {
     union {
 	const char *path;           /* コマンドのパス (externalprogram 用) */
 	main_T *builtin;            /* 組込みコマンドの本体 */
-	const command_T *function;  /* 関数の本体 */
+	command_T *function;  /* 関数の本体 */
     } value;
 } commandinfo_T;
 #define ci_path     value.path
@@ -105,24 +105,21 @@ static void exec_while(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_case(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
-static void exec_function_definition(const command_T *c, bool finally_exit)
-    __attribute__((nonnull));
 
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
 
-static void exec_commands(const command_T *c, exec_T type, bool looppipe);
-static pid_t exec_process(
-	const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+static void exec_commands(command_T *c, exec_T type, bool looppipe);
+static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
 static pid_t fork_and_reset(pid_t pgid, bool fg);
 static bool search_command(
 	const char *restrict name, commandinfo_T *restrict ci);
 static bool do_assignments_for_command_type(
 	const assign_T *asgns, enum cmdtype_T type);
-static void exec_nonsimple_command(const command_T *c, bool finally_exit)
+static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
 	int argc, char *const *argv, bool finally_exit)
@@ -130,7 +127,7 @@ static void exec_simple_command(const commandinfo_T *ci,
 static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
     __attribute__((nonnull(2,4)));
-static void exec_function_body(const command_T *body, bool finally_exit)
+static void exec_function_body(command_T *body, char **args, bool finally_exit)
     __attribute__((nonnull));
 static inline int xexecv(const char *path, char *const *argv)
     __attribute__((nonnull(1)));
@@ -406,16 +403,6 @@ fail:
     goto done;
 }
 
-/* 関数定義コマンドを実行する */
-void exec_function_definition(const command_T *c, bool finally_exit)
-{
-    (void)c,(void)finally_exit;
-    // TODO exec: exec_function_definition
-    laststatus = EXIT_SUCCESS;
-    if (finally_exit)
-	exit(laststatus);
-}
-
 /* exec_commands 関数で使うサブルーチン */
 /* 次のプロセスの処理のために pipeinfo_T の内容を更新する。
  * pi->pi_fromprevfd, pi->pi_tonextfds[PIDX_OUT] を閉じ、
@@ -481,11 +468,11 @@ void connect_pipes(pipeinfo_T *pi)
  * c:        実行する一つ以上のコマンド
  * type:     実行のしかた
  * looppipe: パイプをループ状にするかどうか */
-void exec_commands(const command_T *c, exec_T type, bool looppipe)
+void exec_commands(command_T *c, exec_T type, bool looppipe)
 {
     size_t count;
     pid_t pgid;
-    const command_T *cc;
+    command_T *cc;
     job_T *job;
     process_T *ps;
     pipeinfo_T pinfo = PIPEINFO_INIT;
@@ -591,14 +578,14 @@ finish:
  *         できた場合は 0。
  * 0 を返すとき、この関数内でコマンドの終了コードを laststatus に設定する。
  * type == execself ならこの関数は返らない。 */
-pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
     bool early_fork;   /* まず最初に fork するかどうか */
     bool later_fork;   /* コマンドライン展開の後に fork するかどうか */
     bool finally_exit; /* true なら最後に exit してこの関数から返らない */
     int argc;
     char **argv = NULL;
-    commandinfo_T cmdinfo;
+    commandinfo_T cmdinfo = cmdinfo;  /* 自己代入で GCC の警告を防ぐ */
 
     current_lineno = c->c_lineno;
 
@@ -619,9 +606,6 @@ pid_t exec_process(const command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    goto fail;
 	if (argc == 0) {
 	    later_fork = finally_exit = false;
-#ifndef NDEBUG  /* GCC の警告を黙らせる小細工 */
-	    cmdinfo.type = externalprogram;
-#endif
 	} else {
 	    if (!search_command(argv[0], &cmdinfo)) {
 		xerror(0, Ngt("%s: command not found"), argv[0]);
@@ -774,6 +758,14 @@ void make_myself_foreground(void)
  * 見付からなければ false を返し、*ci は不定 */
 bool search_command(const char *restrict name, commandinfo_T *restrict ci)
 {
+    /* 関数を探す: 関数名に '/' が含まれないことを仮定している */
+    command_T *funcbody = get_function(name);
+    if (funcbody) {
+	ci->type = function;
+	ci->ci_function = funcbody;
+	return true;
+    }
+
     wchar_t *wname = malloc_mbstowcs(name);
     bool slash = wname && wcschr(wname, L'/');
     free(wname);
@@ -803,14 +795,17 @@ bool do_assignments_for_command_type(const assign_T *asgns, enum cmdtype_T type)
 	case regularbuiltin:
 	    temporary = true, export = false;
 	    break;
+	default:
+	    assert(false);
     }
     return do_assignments(asgns, temporary, export);
 }
 
 /* CT_SIMPLE でない一つのコマンドを実行する。
  * c->c_redirs は実行しない */
-void exec_nonsimple_command(const command_T *c, bool finally_exit)
+void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
+    c = comsdup(c);
     switch (c->c_type) {
     case CT_SIMPLE:
 	assert(false);
@@ -831,9 +826,15 @@ void exec_nonsimple_command(const command_T *c, bool finally_exit)
 	exec_case(c, finally_exit);
 	break;
     case CT_FUNCDEF:
-	exec_function_definition(c, finally_exit);
+	if (define_function(c->c_funcname, c->c_funcbody))
+	    laststatus = EXIT_SUCCESS;
+	else
+	    laststatus = EXIT_FAILURE;
+	if (finally_exit)
+	    exit(laststatus);
 	break;
     }
+    comsfree(c);
 }
 
 /* 単純コマンドを実行する
@@ -868,7 +869,7 @@ void exec_simple_command(
 	laststatus = ci->ci_builtin(argc, (char **) argv);
 	break;
     case function:
-	exec_function_body(ci->ci_function, finally_exit);
+	exec_function_body(ci->ci_function, (char **) argv, finally_exit);
 	break;
     }
     if (finally_exit)
@@ -909,17 +910,22 @@ void exec_fall_back_on_sh(
     xerror(errno, Ngt("cannot invoke new shell to execute `%s'"), argv[0]);
 }
 
-/* 指定したコマンドを関数の本体として実行する */
-void exec_function_body(const command_T *body, bool finally_exit)
+/* 指定したコマンドを関数の本体として実行する
+ * args: 関数の引数。args[1] が $1 に args[2] が $2 になる。 */
+void exec_function_body(command_T *body, char **args, bool finally_exit)
 {
     savefd_T *savefd;
 
+    assert(args[0] != NULL);
     if (open_redirections(body->c_redirs, &savefd)) {
+	open_new_environment();
+	set_positional_parameters(args + 1);
 	exec_nonsimple_command(body, finally_exit);
 	if (execinfo.exception == ee_return) {
 	    assert(execinfo.breakcount == 0);
 	    execinfo.exception = ee_none;
 	}
+	close_current_environment();
     }
     undo_redirections(savefd);
 }

@@ -1,5 +1,10 @@
 tmp=/tmp/yash-variable-test-$$
 
+e\
+c\
+h\
+o $LINENO
+
 RANDOM=123
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456
@@ -8,6 +13,21 @@ echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >$tmp-1
 RANDOM=456
 echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >$tmp-2
 diff $tmp-1 $tmp-2 && echo ok
+
+echo ===== 1 =====
+
+func1 () { echo func1; }
+func2 () { echo func2; }
+
+func1; func2;
+
+func1 () {
+	func1 () { echo re-defined func1; }
+	func2 () { echo re-defined func2; }
+	echo re-defined.
+}
+func2; func1; func2; func1;
+
 
 # TODO should be removed in EXIT trap
 rm -f $tmp-1 $tmp-2

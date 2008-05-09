@@ -54,6 +54,44 @@ typedef struct environ_T {
  * 位置パラメータの番号と配列のインデックスが一つずれるので注意。 */
 #define VAR_positional "="
 
+/* 変数の属性フラグ */
+typedef enum vartype_T {
+    VF_NORMAL,
+    VF_ARRAY,
+    VF_EXPORT   = 1 << 2,  /* 変数を export するかどうか */
+    VF_READONLY = 1 << 3,  /* 変数が読み取り専用かどうか */
+    VF_NODELETE = 1 << 4,  /* 変数を削除できないようにするかどうか */
+} vartype_T;
+#define VF_MASK ((1 << 2) - 1)
+/* vartype_T の値は VF_NORMAL と VF_ARRAY のどちらかと他のフラグとの OR である。
+ * VF_EXPORT は VF_NORMAL でのみ使える。 */
+
+/* 変数を表す構造体 */
+typedef struct variable_T {
+    vartype_T v_type;
+    union {
+	wchar_t *value;
+	struct {
+	    void **vals;
+	    size_t valc;
+	} array;
+    } v_contents;
+    void (*v_getter)(struct variable_T *var);
+} variable_T;
+#define v_value v_contents.value
+#define v_vals  v_contents.array.vals
+#define v_valc  v_contents.array.valc
+/* v_vals は、void * にキャストした wchar_t * の NULL 終端配列である。
+ * v_valc はもちろん v_vals の要素数である。
+ * v_value, v_vals および v_vals の要素は free 可能な領域を指す。
+ * v_value は NULL かもしれない (まだ値を代入していない場合)。
+ * v_vals は常に非 NULL だが要素数は 0 かもしれない。
+ * v_getter は変数が取得される前に呼ばれる関数。変数に代入すると v_getter は
+ * NULL に戻る。 */
+
+/* 関数を表す構造体。メンバの定義は後で。 */
+typedef struct function_T function_T;
+
 
 static void varvaluefree(variable_T *v)
     __attribute__((nonnull));
@@ -89,6 +127,9 @@ static unsigned next_random(void);
 static void variable_set(const char *name, variable_T *var)
     __attribute__((nonnull));
 
+static void funcfree(function_T *f);
+static void funckvfree(kvpair_T kv);
+
 
 /* 現在の変数環境 */
 static environ_T *current_env;
@@ -103,6 +144,10 @@ static hashtable_T temp_variables;
 
 /* RANDOM 変数が乱数として機能しているかどうか */
 static bool random_active;
+
+/* 関数を登録するハッシュテーブル。
+ * 関数名 (バイト文字列) から function_T * を引く。 */
+static hashtable_T functions;
 
 
 /* variable_T * の値 (v_value/v_vals) を free する。 */
@@ -148,6 +193,7 @@ void init_variables(void)
     ht_init(&current_env->contents, hashstr, htstrcmp);
 
     ht_init(&temp_variables, hashstr, htstrcmp);
+    ht_init(&functions, hashstr, htstrcmp);
 
     /* まず current_env->contents に全ての既存の環境変数を設定する。 */
     for (char **e = environ; *e; e++) {
@@ -254,8 +300,11 @@ void finalize_variables(void)
 	env = parent;
     }
     current_env = NULL;
+
     clear_temporary_variables();
     ht_destroy(&temp_variables);
+    clear_all_functions();
+    ht_destroy(&functions);
 
     initialized = false;
 }
@@ -512,7 +561,8 @@ bool set_array(const char *name, char *const *values, bool local)
 }
 
 /* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
- * values[0] が $1、values[1] が $2、というようになる。 */
+ * values[0] が $1、values[1] が $2、というようになる。
+ * この関数は新しい変数環境を作成した後必ず呼ぶこと。 */
 void set_positional_parameters(char *const *values)
 {
     set_array(VAR_positional, values, true);
@@ -684,6 +734,28 @@ void clear_temporary_variables(void)
     ht_clear(&temp_variables, varkvfree);
 }
 
+/* 新しい変数環境を構築する。元の環境は新しい環境の親環境になる。
+ * set_positional_parameters を呼ぶのを忘れないこと。 */
+void open_new_environment(void)
+{
+    environ_T *newenv = xmalloc(sizeof *newenv);
+    newenv->parent = current_env;
+    ht_init(&newenv->contents, hashstr, htstrcmp);
+    current_env = newenv;
+}
+
+/* 現在の変数環境を閉じる。元の環境の親環境が新しい環境になる。 */
+void close_current_environment(void)
+{
+    environ_T *oldenv = current_env;
+
+    assert(oldenv != top_env);
+    ht_clear(&oldenv->contents, varkvfree);
+    ht_destroy(&oldenv->contents);
+    current_env = oldenv->parent;
+    free(oldenv);
+}
+
 
 /********** 各種ゲッター **********/
 
@@ -777,6 +849,63 @@ void variable_set(const char *name, variable_T *var)
 	break;
 	// TODO variable: variable_set: 他の変数
     }
+}
+
+
+/********** シェル関数 **********/
+
+/* 関数を表す構造体 */
+struct function_T {
+    vartype_T  f_type;  /* VF_READONLY と VF_NODELETE のみ有効 */
+    command_T *f_body;  /* 関数の本体 */
+};
+
+void funcfree(function_T *f)
+{
+    if (f) {
+	comsfree(f->f_body);
+	free(f);
+    }
+}
+
+void funckvfree(kvpair_T kv)
+{
+    free(kv.key);
+    funcfree(kv.value);
+}
+
+/* 全ての関数を (読み取り専用フラグなどは無視して) 削除する */
+void clear_all_functions(void)
+{
+    ht_clear(&functions, funckvfree);
+}
+
+/* 関数を定義する。
+ * 読み取り専用関数を上書きしようとするとエラーになる。
+ * 戻り値: エラーがなければ true */
+bool define_function(const char *name, command_T *body)
+{
+    function_T *f = ht_get(&functions, name).value;
+    if (f != NULL && (f->f_type & VF_READONLY)) {
+	xerror(0, Ngt("cannot re-define readonly function `%s'"), name);
+	return false;
+    }
+
+    f = xmalloc(sizeof *f);
+    f->f_type = 0;
+    f->f_body = comsdup(body);
+    funckvfree(ht_set(&functions, xstrdup(name), f));
+    return true;
+}
+
+/* 指定した名前の関数を取得する。当該関数がなければ NULL を返す。  */
+command_T *get_function(const char *name)
+{
+    function_T *f = ht_get(&functions, name).value;
+    if (f)
+	return f->f_body;
+    else
+	return NULL;
 }
 
 

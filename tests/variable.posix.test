@@ -27,4 +27,13 @@ bar=-${foo}-
 echo $bar
 echo "$bar"
 
+echo ===== 2 =====
+
+func () {
+	var=xyz
+	echo $var
+}
+func
+echo $var
+
 # TODO  'set', 'unset', 'shift'...

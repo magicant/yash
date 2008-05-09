@@ -162,8 +162,44 @@ for i in 1 '2  2' 3 4 5; do
 	esac
 done
 
+echo ===== 8 =====
 
-# TODO test for function definition
+func () {
+	echo function
+}
+func
+func
+
+  fu\
+\
+nc2 ()
+  # splitted function def.
+(echo splitted)
+
+func2
+
+func3 () if true; then echo func3; fi
+func3
+func
+func3
+func
+
+if $TESTEE -s 2>/dev/null <<END
+f () f2 () { echo error; }
+END
+then echo 1
+else echo 2
+fi
+
+funcredir () {
+	echo redirected
+	echo re-redirected >&2
+} \
+>$tmp
+
+funcredir >/dev/null
+cat $tmp
+
 
 # TODO should be removed by EXIT trap
 rm -f $tmp

@@ -58,41 +58,6 @@ extern char **environ;
 #define VAR_RANDOM	"RANDOM"
 #define VAR_YASH_VERSION "YASH_VERSION"
 
-/* 変数の属性フラグ */
-typedef enum vartype_T {
-    VF_NORMAL,
-    VF_ARRAY,
-    VF_EXPORT   = 1 << 2,  /* 変数を export するかどうか */
-    VF_READONLY = 1 << 3,  /* 変数が読み取り専用かどうか */
-    VF_NODELETE = 1 << 4,  /* 変数を削除できないようにするかどうか */
-} vartype_T;
-#define VF_MASK ((1 << 2) - 1)
-/* vartype_T の値は VF_NORMAL と VF_ARRAY のどちらかと他のフラグとの OR である。
- * VF_EXPORT は VF_NORMAL でのみ使える。 */
-
-/* 変数を表す構造体 */
-typedef struct variable_T {
-    vartype_T v_type;
-    union {
-	wchar_t *value;
-	struct {
-	    void **vals;
-	    size_t valc;
-	} array;
-    } v_contents;
-    void (*v_getter)(struct variable_T *var);
-} variable_T;
-#define v_value v_contents.value
-#define v_vals  v_contents.array.vals
-#define v_valc  v_contents.array.valc
-/* v_vals は、void * にキャストした wchar_t * の NULL 終端配列である。
- * v_valc はもちろん v_vals の要素数である。
- * v_value, v_vals および v_vals の要素は free 可能な領域を指す。
- * v_value は NULL かもしれない (まだ値を代入していない場合)。
- * v_vals は常に非 NULL だが要素数は 0 かもしれない。
- * v_getter は変数が取得される前に呼ばれる関数。変数に代入すると v_getter は
- * NULL に戻る。 */
-
 
 extern unsigned long current_lineno;
 
@@ -119,6 +84,15 @@ extern void **get_variable(const char *name, bool *concat)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 extern void clear_temporary_variables(void);
+extern void open_new_environment(void);
+extern void close_current_environment(void);
+
+extern void clear_all_functions(void);
+
+extern bool define_function(const char *name, command_T *body)
+    __attribute__((nonnull));
+extern command_T *get_function(const char *name)
+    __attribute__((nonnull));
 
 
 #endif /* VARIABLE_H */

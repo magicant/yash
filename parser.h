@@ -65,6 +65,7 @@ typedef enum {
 /* パイプラインを構成する一つのコマンドを表す */
 typedef struct command_T {
     struct command_T *next;
+    unsigned          refcount;   /* 参照カウント */
     commandtype_T     c_type;
     unsigned long     c_lineno;   /* このコマンドの行番号 */
     struct redir_T   *c_redirs;   /* このコマンドで行うリダイレクト */
@@ -300,9 +301,19 @@ extern wchar_t *command_to_wcs(const command_T *command)
     __attribute__((malloc,warn_unused_result));
 
 
-/********** 構文木データを解放するルーチン **********/
+/********** 構文木データを複製・解放するルーチン **********/
 
 extern void andorsfree(and_or_T *a);
+static inline command_T *comsdup(command_T *c);
+extern void comsfree(command_T *c);
+
+
+/* 指定したコマンドを (仮想的に) 複製する。 */
+command_T *comsdup(command_T *c)
+{
+    c->refcount++;
+    return c;
+}
 
 
 #endif /* PARSER_H */

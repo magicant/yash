@@ -41,7 +41,6 @@
 /********** 解析した構文木データを解放するルーチン **********/
 
 static void pipesfree(pipeline_T *p);
-static void comsfree(command_T *c);
 static void ifcmdsfree(ifcommand_T *i);
 static void caseitemsfree(caseitem_T *i);
 static void wordfree(wordunit_T *w);
@@ -74,7 +73,7 @@ void pipesfree(pipeline_T *p)
 
 void comsfree(command_T *c)
 {
-    while (c) {
+    while (c && --(c->refcount) == 0) {
 	redirsfree(c->c_redirs);
 	switch (c->c_type) {
 	    case CT_SIMPLE:
@@ -212,229 +211,6 @@ void redirsfree(redir_T *r)
 }
 
 
-/********** 構文木データを複製するルーチン **********/
-
-static and_or_T    *andorsdup(const and_or_T *a)
-    __attribute__((malloc,warn_unused_result));
-static pipeline_T  *pipesdup(const pipeline_T *p)
-    __attribute__((malloc,warn_unused_result));
-static command_T   *comsdup(const command_T *c)
-    __attribute__((malloc,warn_unused_result));
-static ifcommand_T *ifcmdsdup(const ifcommand_T *i)
-    __attribute__((malloc,warn_unused_result));
-static caseitem_T  *caseitemsdup(const caseitem_T *i)
-    __attribute__((malloc,warn_unused_result));
-static wordunit_T  *worddup(const wordunit_T *w)
-    __attribute__((malloc,warn_unused_result));
-static void        *copyasword(const void *w)
-    __attribute__((malloc,warn_unused_result));
-static paramexp_T  *paramdup(const paramexp_T *p)
-    __attribute__((malloc,warn_unused_result));
-static assign_T    *assignsdup(const assign_T *a)
-    __attribute__((malloc,warn_unused_result));
-static redir_T     *redirsdup(const redir_T *r)
-    __attribute__((malloc,warn_unused_result));
-
-and_or_T *andorsdup(const and_or_T *a)
-{
-    and_or_T *first = NULL, **lastp = &first;
-
-    while (a) {
-	and_or_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->ao_pipelines = pipesdup(a->ao_pipelines);
-	dup->ao_async = a->ao_async;
-	*lastp = dup;
-	lastp = &dup->next;
-	a = a->next;
-    }
-    return first;
-}
-
-pipeline_T *pipesdup(const pipeline_T *p)
-{
-    pipeline_T *first = NULL, **lastp = &first;
-
-    while (p) {
-	pipeline_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->pl_commands = comsdup(p->pl_commands);
-	dup->pl_neg  = p->pl_neg;
-	dup->pl_loop = p->pl_loop;
-	dup->pl_cond = p->pl_cond;
-	*lastp = dup;
-	lastp = &dup->next;
-	p = p->next;
-    }
-    return first;
-}
-
-command_T *comsdup(const command_T *c)
-{
-    command_T *first = NULL, **lastp = &first;
-
-    while (c) {
-	command_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->c_type   = c->c_type;
-	dup->c_lineno = c->c_lineno;
-	dup->c_redirs = redirsdup(c->c_redirs);
-	switch (c->c_type) {
-	    case CT_SIMPLE:
-		dup->c_assigns = assignsdup(c->c_assigns);
-		dup->c_words = duparray(c->c_words, copyasword);
-		break;
-	    case CT_GROUP:
-	    case CT_SUBSHELL:
-		dup->c_subcmds = andorsdup(c->c_subcmds);
-		break;
-	    case CT_IF:
-		dup->c_ifcmds = ifcmdsdup(c->c_ifcmds);
-		break;
-	    case CT_FOR:
-		dup->c_forname = xstrdup(c->c_forname);
-		dup->c_forwords = duparray(c->c_forwords, copyasword);
-		dup->c_forcmds = andorsdup(c->c_forcmds);
-		break;
-	    case CT_WHILE:
-		dup->c_whltype = c->c_whltype;
-		dup->c_whlcond = andorsdup(c->c_whlcond);
-		dup->c_whlcmds = andorsdup(c->c_whlcmds);
-		break;
-	    case CT_CASE:
-		dup->c_casword = worddup(c->c_casword);
-		dup->c_casitems = caseitemsdup(c->c_casitems);
-		break;
-	    case CT_FUNCDEF:
-		dup->c_funcname = xstrdup(c->c_funcname);
-		dup->c_funcbody = comsdup(c->c_funcbody);
-		break;
-	}
-	*lastp = dup;
-	lastp = &dup->next;
-	c = c->next;
-    }
-    return first;
-}
-
-ifcommand_T *ifcmdsdup(const ifcommand_T *i)
-{
-    ifcommand_T *first = NULL, **lastp = &first;
-
-    while (i) {
-	ifcommand_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->ic_condition = andorsdup(i->ic_condition);
-	dup->ic_commands  = andorsdup(i->ic_commands);
-	*lastp = dup;
-	lastp = &dup->next;
-	i = i->next;
-    }
-    return first;
-}
-
-caseitem_T *caseitemsdup(const caseitem_T *i)
-{
-    caseitem_T *first = NULL, **lastp = &first;
-
-    while (i) {
-	caseitem_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->ci_patterns = duparray(i->ci_patterns, copyasword);
-	dup->ci_commands = andorsdup(i->ci_commands);
-	*lastp = dup;
-	lastp = &dup->next;
-	i = i->next;
-    }
-    return first;
-}
-
-wordunit_T *worddup(const wordunit_T *w)
-{
-    wordunit_T *first = NULL, **lastp = &first;
-
-    while (w) {
-	wordunit_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->wu_type = w->wu_type;
-	switch (w->wu_type) {
-	    case WT_STRING:
-		dup->wu_string = xwcsdup(w->wu_string);
-		break;
-	    case WT_PARAM:
-		dup->wu_param = paramdup(w->wu_param);
-		break;
-	    case WT_CMDSUB:
-		dup->wu_cmdsub = xwcsdup(w->wu_cmdsub);
-		break;
-	    case WT_ARITH:
-		dup->wu_arith = worddup(w->wu_arith);
-		break;
-	}
-	*lastp = dup;
-	lastp = &dup->next;
-	w = w->next;
-    }
-    return first;
-}
-
-void *copyasword(const void *w)
-{
-    return worddup(w);
-}
-
-paramexp_T *paramdup(const paramexp_T *p)
-{
-    paramexp_T *dup = xmalloc(sizeof *dup);
-    dup->pe_type = p->pe_type;
-    if (p->pe_type & PT_NEST)
-	dup->pe_nest = worddup(p->pe_nest);
-    else
-	dup->pe_name = xstrdup(p->pe_name);
-    dup->pe_match = worddup(p->pe_match);
-    dup->pe_subst = worddup(p->pe_subst);
-    return dup;
-}
-
-assign_T *assignsdup(const assign_T *a)
-{
-    assign_T *first = NULL, **lastp = &first;
-
-    while (a) {
-	assign_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->name = xstrdup(a->name);
-	dup->value = worddup(a->value);
-	*lastp = dup;
-	lastp = &dup->next;
-	a = a->next;
-    }
-    return first;
-}
-
-redir_T *redirsdup(const redir_T *r)
-{
-    redir_T *first = NULL, **lastp = &first;
-
-    while (r) {
-	redir_T *dup = xmalloc(sizeof *dup);
-	dup->next = NULL;
-	dup->rd_type = r->rd_type;
-	dup->rd_fd   = r->rd_fd;
-	if (r->rd_type == RT_HERE || r->rd_type == RT_HERERT) {
-	    dup->rd_hereend = xwcsdup(r->rd_hereend);
-	    dup->rd_herecontent = worddup(r->rd_herecontent);
-	} else {
-	    dup->rd_filename = worddup(r->rd_filename);
-	}
-	*lastp = dup;
-	lastp = &dup->next;
-	r = r->next;
-    }
-    return first;
-}
-
-
 /********** 構文解析に関する補助ルーチン **********/
 
 static inline bool is_name_char(wchar_t c)
@@ -484,6 +260,7 @@ static void serror(const char *restrict format, ...)
     __attribute__((nonnull(1),format(printf,1,2)));
 static inline int read_more_input(void);
 static inline int ensure_buffer(size_t n);
+static inline void line_continuation(size_t index);
 static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
@@ -692,6 +469,14 @@ int ensure_buffer(size_t n)
     return lir;
 }
 
+/* 指定したインデックスにある行連結を削除し、行番号を更新する */
+void line_continuation(size_t index)
+{
+    assert(cbuf.contents[index] == L'\\' && cbuf.contents[index + 1] == L'\n');
+    wb_remove(&cbuf, index, 2);
+    cinfo->lineno++;
+}
+
 /* cindex を増やして blank・コメント・行連結を飛ばす。必要に応じて
  * read_more_input する。cindex は次の非 blank 文字を指す。コメントを飛ばした
  * 場合はコメントの直後の文字 (普通は改行文字) を指す。行連結は、飛ばすと
@@ -717,8 +502,7 @@ skiptonewline:  /* コメントを飛ばす */
     /* 行連結を削除する */
     ensure_buffer(2);
     if (cbuf.contents[cindex] == L'\\' && cbuf.contents[cindex + 1] == L'\n') {
-	wb_remove(&cbuf, cindex, 2);
-	cinfo->lineno++;
+	line_continuation(cindex);
 	goto skipblanks;
     }
 }
@@ -1028,6 +812,7 @@ command_T *parse_command(void)
     if (t)
 	return parse_compound_command(t);
 
+    unsigned long lineno = cinfo->lineno;
     command_T *result = tryparse_function();
     if (result)
 	return result;
@@ -1037,7 +822,8 @@ command_T *parse_command(void)
     redir_T **redirlastp;
 
     result->next = NULL;
-    result->c_lineno = cinfo->lineno;
+    result->refcount = 1;
+    result->c_lineno = lineno;
     result->c_type = CT_SIMPLE;
     redirlastp = parse_assignments_and_redirects(result);
     result->c_words = parse_words_and_redirects(redirlastp, true);
@@ -1264,8 +1050,7 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	case L'\\':
 	    ensure_buffer(2);
 	    if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
-		wb_remove(&cbuf, cindex, 2);
-		cinfo->lineno++;
+		line_continuation(cindex);
 		continue;
 	    } else if (cbuf.contents[cindex + 1] != L'\0') {
 		cindex += 2;
@@ -1663,8 +1448,7 @@ wordunit_T *tryparse_arith(void)
 	case L'\\':
 	    ensure_buffer(2);
 	    if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
-		wb_remove(&cbuf, cindex, 2);
-		cinfo->lineno++;
+		line_continuation(cindex);
 		continue;
 	    } else if (cbuf.contents[cindex + 1] != L'\0') {
 		cindex += 2;
@@ -1790,6 +1574,7 @@ command_T *parse_group(commandtype_T type)
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
+    result->refcount = 1;
     result->c_type = type;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
@@ -1811,6 +1596,7 @@ command_T *parse_if(void)
     ifcommand_T *first = NULL, **lastp = &first;
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
+    result->refcount = 1;
     result->c_type = CT_IF;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
@@ -1870,6 +1656,7 @@ command_T *parse_for(void)
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
+    result->refcount = 1;
     result->c_type = CT_FOR;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
@@ -1924,6 +1711,7 @@ command_T *parse_while(bool whltype)
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
+    result->refcount = 1;
     result->c_type = CT_WHILE;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
@@ -1956,6 +1744,7 @@ command_T *parse_case(void)
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
+    result->refcount = 1;
     result->c_type = CT_CASE;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
@@ -2038,21 +1827,30 @@ void **parse_case_patterns(void)
     return pl_toary(&wordlist);
 }
 
-/* 現在位置に関数定義コマンドがあればそれを解析する。 */
+/* 現在位置に関数定義コマンドがあればそれを解析する。
+ * この関数は内部で行連結の削除を行うので、行番号は呼出し元で覚えておくこと。 */
 command_T *tryparse_function(void)
 {
     size_t savecindex = cindex;
     unsigned long lineno = cinfo->lineno;
 
     /* 関数の名前を取り出す */
-    wchar_t *namestart = cbuf.contents + cindex;
     wchar_t *nameend;
+    size_t namelen;
 
-    while (*(nameend = skip_name(namestart)) == L'\0'
+readname:
+    while (*(nameend = skip_name(cbuf.contents + cindex)) == L'\0'
 	    && read_more_input() == 0);
-    if (!is_token_delimiter_char(*nameend))
+    namelen = nameend - (cbuf.contents + cindex);
+    if (namelen == 0 || !is_token_delimiter_char(*nameend)) {
+	ensure_buffer(2);
+	if (nameend[0] == L'\\' && nameend[1] == L'\n') { /* 行連結なら削除 */
+	    line_continuation(nameend - cbuf.contents);
+	    goto readname;
+	}
 	goto fail;
-    cindex = nameend - cbuf.contents;
+    }
+    cindex += namelen;
     skip_blanks_and_comment();
 
     /* 括弧の解析 */
@@ -2076,11 +1874,12 @@ command_T *tryparse_function(void)
     command_T *body = parse_compound_command(t);
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
+    result->refcount = 1;
     result->c_type = CT_FUNCDEF;
     result->c_lineno = lineno;
     result->c_redirs = NULL;
     result->c_funcname = realloc_wcstombs(
-	    xwcsndup(namestart, nameend - namestart));
+	    xwcsndup(cbuf.contents + savecindex, namelen));
     result->c_funcbody = body;
     if (!result->c_funcname)
 	serror(Ngt("unexpected error in wide character conversion"));

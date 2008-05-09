@@ -1,3 +1,4 @@
+変数名の中に含まれる行連結 ($LINE\<newline>NO, ${LINE\<newline>NO})
 EXIT_FAILURE -> EXIT_FAILURE{1,2}
 配列の解釈・代入
 ループパイプのテストスクリプト
