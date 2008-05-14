@@ -12,7 +12,13 @@ echo $LINENO
 echo line \
 continuation
 echo $LINENO
-# TODO $LINENO in function
+
+printlineno () {
+	echo function
+	echo $LINENO
+}
+printlineno
+echo $LINENO
 
 echo ===== 1 =====
 
