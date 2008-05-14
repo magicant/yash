@@ -144,7 +144,7 @@ bool expand_line(void *const *restrict args,
     while (*args) {
 	if (!expand_word_and_split(*args, &list1)) {
 	    if (!is_interactive)
-		exit(EXIT_FAILURE);
+		exit(EXIT_EXPERROR);
 	    recfree(pl_toary(&list1), free);
 	    return false;
 	}
@@ -225,7 +225,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 
     if (!expand_word(arg, tilde, &list, NULL)) {
 	if (!is_interactive)
-	    exit(EXIT_FAILURE);
+	    exit(EXIT_EXPERROR);
 	recfree(pl_toary(&list), free);
 	return NULL;
     }
@@ -358,7 +358,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	return wb_towcs(&buf);
     } else {
 	if (!is_interactive)
-	    exit(EXIT_FAILURE);
+	    exit(EXIT_EXPERROR);
 	wb_destroy(&buf);
 	return NULL;
     }

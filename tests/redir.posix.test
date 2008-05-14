@@ -14,7 +14,7 @@ echo 2\>/dev/null|cat - $tmp
 rm -f $tmp
 >$tmp
 [ -f $tmp ] && echo new file
-# TODO clobber
+# TODO clobber: needs 'set'
 
 echo ===== 1 =====
 

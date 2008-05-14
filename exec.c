@@ -293,7 +293,7 @@ void exec_for(const command_T *c, bool finally_exit)
     if (c->c_forwords) {
 	char **mbswords;
 	if (!expand_line(c->c_forwords, &count, &mbswords)) {
-	    laststatus = EXIT_FAILURE;
+	    laststatus = EXIT_EXPERROR;
 	    goto finish;
 	}
 	words = (void **) mbswords;
@@ -399,7 +399,7 @@ done:
     return;
 
 fail:
-    laststatus = EXIT_FAILURE;
+    laststatus = EXIT_EXPERROR;
     goto done;
 }
 
@@ -603,13 +603,13 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     switch (c->c_type) {
     case CT_SIMPLE:
 	if (!expand_line(c->c_words, &argc, &argv))
-	    goto fail;
+	    goto exp_fail;
 	if (argc == 0) {
 	    later_fork = finally_exit = false;
 	} else {
 	    // TODO メッセージの表示はリダイレクトの後に
 	    if (!search_command(argv[0], &cmdinfo)) {
-		xerror(0, Ngt("%s: command not found"), argv[0]);
+		xerror(0, Ngt("%s: no such command or function"), argv[0]);
 		laststatus = EXIT_NOTFOUND;
 		recfree((void **) argv, free);
 		goto done;
@@ -664,14 +664,14 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    if (do_assignments(c->c_assigns, false, false))
 		laststatus = EXIT_SUCCESS;
 	    else
-		laststatus = EXIT_FAILURE;
+		laststatus = EXIT_ASSGNERR;
 	} else {
 	    if (do_assignments_for_command_type(c->c_assigns, cmdinfo.type)) {
 		exec_simple_command(&cmdinfo, argc, argv, finally_exit);
 	    } else {
 		if (!is_interactive && cmdinfo.type == specialbuiltin)
-		    exit(EXIT_FAILURE);
-		laststatus = EXIT_FAILURE;
+		    exit(EXIT_ASSGNERR);
+		laststatus = EXIT_ASSGNERR;
 	    }
 	    clear_temporary_variables();
 	}
@@ -692,21 +692,22 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	undo_redirections(savefd);
     return 0;
 
-fail:
-    laststatus = EXIT_FAILURE;
+exp_fail:
+    laststatus = EXIT_EXPERROR;
 done:
     if (early_fork || type == execself)
 	exit(laststatus);
     return 0;
 redir_fail:
     if (finally_exit)
-	exit(EXIT_FAILURE);
+	exit(EXIT_REDIRERR);
     if (posixly_correct && !is_interactive
 	    && c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin)
-	exit(EXIT_FAILURE);
+	exit(EXIT_REDIRERR);
     undo_redirections(savefd);
     if (c->c_type == CT_SIMPLE)
 	recfree((void **) argv, free);
+    laststatus = EXIT_REDIRERR;
     return 0;
 }
 
@@ -830,7 +831,7 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	if (define_function(c->c_funcname, c->c_funcbody))
 	    laststatus = EXIT_SUCCESS;
 	else
-	    laststatus = EXIT_FAILURE;
+	    laststatus = EXIT_ASSGNERR;
 	if (finally_exit)
 	    exit(laststatus);
 	break;
@@ -1096,18 +1097,18 @@ success:
 	FILE *f = fdopen(pipefd[PIDX_OUT], "w");
 	if (!f) {
 	    xerror(errno, Ngt("cannot open pipe for here-document"));
-	    exit(EXIT_FAILURE);
+	    exit(EXIT_ERROR);
 	}
 
 	wchar_t *s = expand_string(contents, true);
 	if (!s)
-	    exit(EXIT_FAILURE);
+	    exit(EXIT_EXPERROR);
 	if (fputws(s, f) < 0) {
 #ifndef NDEBUG
 	    free(s);
 #endif
 	    xerror(errno, Ngt("cannot write here-document contents"));
-	    exit(EXIT_FAILURE);
+	    exit(EXIT_ERROR);
 	}
 #ifndef NDEBUG
 	free(s);

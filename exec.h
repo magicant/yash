@@ -23,9 +23,14 @@
 #include <sys/types.h>
 
 
+#define EXIT_FAILURE1 1
+#define EXIT_ERROR    2
 #define EXIT_NOEXEC   126
 #define EXIT_NOTFOUND 127
-#define EXIT_SYNERROR (256 + 2)
+#define EXIT_SYNERROR (256 + EXIT_ERROR)
+#define EXIT_EXPERROR EXIT_ERROR
+#define EXIT_ASSGNERR EXIT_ERROR
+#define EXIT_REDIRERR EXIT_ERROR
 
 extern int laststatus;
 extern pid_t lastasyncpid;
