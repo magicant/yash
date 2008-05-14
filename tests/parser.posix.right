@@ -6,6 +6,7 @@ abc abc abc abc $var ${var}
 $(echo $var ${var} "$var" "${var}")
 ===== 1 =====
 comment# #
+very very long line
 pipeline |
 test
 of

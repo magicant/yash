@@ -122,7 +122,7 @@ int input_file(struct xwcsbuf_T *buf, void *inputinfo)
 {
     FILE *f = inputinfo;
     int fd = fileno(f);
-    int result;
+    size_t initlen = buf->length;
 
     if (!set_nonblocking(fd))
 	return EOF;
@@ -130,21 +130,22 @@ start:
     wb_ensuremax(buf, buf->length + 100);
     if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
 	// XXX fflush を入れるとセグフォる。glibc のバグ?
-	//fflush(f);
+	//fflush(f);  fseek(f, 0, SEEK_CUR);
+	assert(wcslen(buf->contents + buf->length) > 0);
 	buf->length += wcslen(buf->contents + buf->length);
-	result = 0;
-	goto end;
+	if (buf->contents[buf->length - 1] != L'\n')
+	    goto start;
+	else
+	    goto end;
     } else {
 	buf->contents[buf->length] = L'\0';
 	if (feof(f)) {
 	    clearerr(f);
-	    result = EOF;
 	    goto end;
 	}
 	assert(ferror(f));
 	switch (errno) {
 	    case EINTR:
-		// TODO lineinput: input_file: SIGINT 対処
 	    case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
 	    case EWOULDBLOCK:
@@ -153,15 +154,14 @@ start:
 		wait_for_input(fd, true);
 		goto start;
 	    default:
-		//fflush(f); XXX
+		//fflush(f);  fseek(f, 0, SEEK_CUR);  XXX
 		xerror(errno, Ngt("cannot read input"));
-		result = EOF;
 		goto end;
 	}
     }
 end:
     unset_nonblocking(fd);
-    return result;
+    return (initlen == buf->length) ? EOF : 0;
 }
 
 /* 指定したファイルディスクリプタの O_NONBLOCK フラグを設定する。

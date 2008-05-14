@@ -17,6 +17,9 @@ echo ===== 1 =====
 
 echo comment# \# # comment
 
+echo                                                                          very                                                                very                                          lo\
+ng                                                                                                  line
+
 echo pipeline \| | cat |
 cat \
 | cat

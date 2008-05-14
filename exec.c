@@ -607,6 +607,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	if (argc == 0) {
 	    later_fork = finally_exit = false;
 	} else {
+	    // TODO メッセージの表示はリダイレクトの後に
 	    if (!search_command(argv[0], &cmdinfo)) {
 		xerror(0, Ngt("%s: command not found"), argv[0]);
 		laststatus = EXIT_NOTFOUND;
