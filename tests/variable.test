@@ -1,10 +1,5 @@
 tmp=/tmp/yash-variable-test-$$
 
-e\
-c\
-h\
-o $LINENO
-
 RANDOM=123
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456

@@ -13,6 +13,35 @@ echo '$(echo $var ${var} "$var" "${var}")'
 
 echo dummy >/dev/null
 
+echo ===== 0 =====
+
+# echo $var ${var#a} ${var%%b*}
+e\
+c\
+h\
+o\
+ \
+$\
+v\
+a\
+r\
+ \
+$\
+{\
+v\
+a\
+r\
+#\
+a\
+}\
+ \
+${var\
+%\
+%\
+b\
+*\
+}
+
 echo ===== 1 =====
 
 echo comment# \# # comment
@@ -42,21 +71,24 @@ true || echo or && echo and
 true &&
 echo and newline
 false\
-|| echo or newline
+|\
+|\
+echo or newline
 
 echo ===== 3 =====
 
 { echo compound list;}| cat
 {
 	echo another
-	echo compound list
+	echo compound list\
+}
 } 2>&1|cat
 
 (echo subshell|cat)|
 cat
 (
 echo another
-echo subshell
+echo subshell\
 )2>&1|cat
 echo yet another subshell|(
 cat;)
@@ -90,6 +122,22 @@ then (echo 1)
 fi then echo 2
 fi
 
+# if true;then echo line concatenation ok \(if\)
+# fi
+i\
+f\
+ \
+true\
+;\
+t\
+h\
+e\
+n\
+ \
+echo line concatenation ok \(if\)
+f\
+i
+
 echo ===== 5 =====
 
 while false; do true; done; echo $?
@@ -106,6 +154,21 @@ do
 # 	shift
 done
 
+w\
+h\
+i\
+l\
+e
+echo line concatenation ok \(while\)
+false;\
+d\
+o\
+ echo ng
+d\
+o\
+n\
+e
+
 echo ===== 6 =====
 
 for i in 1 '2   2' 3; do echo $i; echo "$i"; done
@@ -121,6 +184,30 @@ done
 # 		readonly i
 # 	fi
 # done
+
+# for index in 1 '2  2' 3;do echo $index; echo "$index";done
+f\
+o\
+r\
+ \
+i\
+n\
+d\
+e\
+x\
+ \
+i\
+n\
+ \
+1 '2  2' 3\
+;\
+d\
+o\
+ echo $index; echo "$index";\
+d\
+o\
+n\
+e
 
 echo ===== 7 =====
 
@@ -165,6 +252,41 @@ for i in 1 '2  2' 3 4 5; do
 	esac
 done
 
+# case case in false)echo ng;;(c*e)echo line concatenation ok \(case\);esac
+c\
+a\
+s\
+e\
+ \
+c\
+a\
+s\
+e\
+ \
+i\
+n\
+ \
+f\
+a\
+l\
+s\
+e\
+)\
+echo ng\
+;\
+;\
+(\
+c\
+*\
+e\
+)\
+echo line concatenation ok \(case\)\
+;\
+e\
+s\
+a\
+c
+
 echo ===== 8 =====
 
 func () {
@@ -173,11 +295,17 @@ func () {
 func
 func
 
-  fu\
+# func2 () (echo line concatenation ok \(func\))
+  f\
+u\
 \
-nc2 ()
+n\
+c\
+2\
+(\
+)\
   # splitted function def.
-(echo splitted)
+(echo line concatenation ok \(func\))
 
 func2
 
@@ -202,6 +330,15 @@ funcredir () {
 
 funcredir >/dev/null
 cat $tmp
+
+funcredir2 () {
+	echo not-redirected
+}
+
+funcredir2 >/dev/null
+
+
+echo lineno=$LINENO
 
 
 # TODO should be removed by EXIT trap

@@ -259,8 +259,8 @@ typedef enum { noalias, globalonly, anyalias, } aliastype_T;
 static void serror(const char *restrict format, ...)
     __attribute__((nonnull(1),format(printf,1,2)));
 static inline int read_more_input(void);
-static inline int ensure_buffer(size_t n);
 static inline void line_continuation(size_t index);
+static void ensure_buffer(size_t n);
 static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
@@ -454,27 +454,41 @@ int read_more_input(void)
     return cinfo->lastinputresult;
 }
 
-/* cbuf.length >= cindex + n となるように、必要に応じて read_more_input する。
- * ただし、改行を越えては読み込まない。
- * 戻り値: cinfo->lastinputresult */
-int ensure_buffer(size_t n)
-{
-    int lir = cinfo->lastinputresult;
-    assert(cbuf.length >= cindex);
-    while (lir == 0 && cbuf.length - cindex < n) {
-	if (cbuf.length > 0 && cbuf.contents[cbuf.length - 1] == L'\n')
-	    break;
-	lir = read_more_input();
-    }
-    return lir;
-}
-
-/* 指定したインデックスにある行連結を削除し、行番号を更新する */
+/* 指定したインデックスにある行連結を削除し、行番号を更新し、次行を読み込む。 */
 void line_continuation(size_t index)
 {
     assert(cbuf.contents[index] == L'\\' && cbuf.contents[index + 1] == L'\n');
     wb_remove(&cbuf, index, 2);
     cinfo->lineno++;
+    read_more_input();
+}
+
+/* 現在位置がナル文字なら次行を読み込む。
+ * 現在位置から n 文字以内に行連結があれば次行を読み込んで行連結を行う。
+ * ただし、n 文字以内に他の引用符があればそこで処理を止める。 */
+/* n はできるだけ小さくすること。 */
+void ensure_buffer(size_t n)
+{
+    size_t index = cindex;
+    if (cbuf.contents[cindex] == L'\0')
+	read_more_input();
+    while (index - cindex < n) {
+	switch (cbuf.contents[index]) {
+	case L'\0':  case L'\'':  case L'"':
+	    return;
+	case L'\\':
+	    if (cbuf.contents[index + 1] != L'\n')
+		return;
+	    assert(cbuf.contents[index + 2] == L'\0');
+	    line_continuation(index);
+	    if (cinfo->lastinputresult != 0)
+		return;
+	    /* falls thru! */
+	default:
+	    index++;
+	    break;
+	}
+    }
 }
 
 /* cindex を増やして blank・コメント・行連結を飛ばす。必要に応じて
@@ -483,27 +497,27 @@ void line_continuation(size_t index)
  * いうよりは "\\\n" をバッファから削除する。 */
 void skip_blanks_and_comment(void)
 {
-skipblanks:  /* blank を飛ばす */
+    if (cbuf.contents[cindex] == L'\0')
+	if (read_more_input() != 0)
+	    return;
+
+start:
+    /* blank を飛ばす */
     while (iswblank(cbuf.contents[cindex]))
 	cindex++;
-    if (cbuf.contents[cindex] == L'\0' && read_more_input() == 0)
-	goto skipblanks;
 
-skiptonewline:  /* コメントを飛ばす */
+    /* コメントを飛ばす */
     if (cbuf.contents[cindex] == L'#') {
 	do {
 	    cindex++;
 	} while (cbuf.contents[cindex] != L'\n'
 		&& cbuf.contents[cindex] != L'\0');
     }
-    if (cbuf.contents[cindex] == L'\0' && read_more_input() == 0)
-	goto skiptonewline;
 
     /* 行連結を削除する */
-    ensure_buffer(2);
     if (cbuf.contents[cindex] == L'\\' && cbuf.contents[cindex + 1] == L'\n') {
 	line_continuation(cindex);
-	goto skipblanks;
+	goto start;
     }
 }
 
@@ -845,8 +859,8 @@ redir_T **parse_assignments_and_redirects(command_T *c)
 
     c->c_assigns = NULL;
     c->c_redirs = NULL;
-    ensure_buffer(1);
-    while (!is_command_delimiter_char(cbuf.contents[cindex])) {
+    while (ensure_buffer(1),
+	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -856,7 +870,6 @@ redir_T **parse_assignments_and_redirects(command_T *c)
 	} else {
 	    break;
 	}
-	ensure_buffer(1);
     }
     return redirlastp;
 }
@@ -874,8 +887,8 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     wordunit_T *word;
 
     pl_init(&wordlist);
-    ensure_buffer(1);
-    while (!is_command_delimiter_char(cbuf.contents[cindex])) {
+    while (ensure_buffer(1),
+	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -885,7 +898,6 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 	} else {
 	    break;
 	}
-	ensure_buffer(1);
     }
     return pl_toary(&wordlist);
 }
@@ -924,7 +936,6 @@ assign_T *tryparse_assignment(void)
     if (is_token_delimiter_char(cbuf.contents[cindex])) {
 	/* '=' の後は空文字列 */
 	result->value = NULL;
-	skip_blanks_and_comment();
     } else {
 	result->value = parse_word(noalias);
     }
@@ -946,11 +957,9 @@ reparse:
 	fd = wcstol(cbuf.contents + cindex, &endptr, 10);
 	if (errno)
 	    fd = -1;  /* 無効な値 */
-	if (!is_token_delimiter_char(*endptr)) {
-	    if (*endptr == L'\0' && read_more_input() == 0)
-		goto reparse;
-	    else
-		return NULL;
+	if (endptr[0] == L'\\' && endptr[1] == L'\n') {
+	    line_continuation(endptr - cbuf.contents);
+	    goto reparse;
 	} else if (*endptr != L'<' && *endptr != L'>') {
 	    return NULL;
 	}
@@ -1042,14 +1051,12 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
         }                                                                    \
     } while (0)
 
-    while (ensure_buffer(1),
-	    indq ? cbuf.contents[cindex] != L'\0'
-		 : !testfunc(cbuf.contents[cindex])) {
+    while (indq ? cbuf.contents[cindex] != L'\0'
+		: !testfunc(cbuf.contents[cindex])) {
 
 	switch (cbuf.contents[cindex]) {
 	case L'\\':
-	    ensure_buffer(2);
-	    if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
+	    if (cbuf.contents[cindex + 1] == L'\n') {
 		line_continuation(cindex);
 		continue;
 	    } else if (cbuf.contents[cindex + 1] != L'\0') {
@@ -1104,7 +1111,6 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 void skip_to_next_single_quote(void)
 {
     for (;;) {
-	ensure_buffer(1);
 	switch (cbuf.contents[cindex]) {
 	case L'\'':
 	    return;
@@ -1172,13 +1178,18 @@ wordunit_T *tryparse_paramexp_raw(void)
     if (!is_name_char(cbuf.contents[cindex]))
 	goto fail;
 
-    do
-	namelen = skip_name(cbuf.contents + cindex) - (cbuf.contents + cindex);
-    while (cbuf.contents[cindex + namelen] == L'\0' && read_more_input() == 0);
+findnamelen:
+    namelen = skip_name(cbuf.contents + cindex) - (cbuf.contents + cindex);
+    if (cbuf.contents[cindex + namelen] == L'\\' &&
+	    cbuf.contents[cindex + namelen + 1] == L'\n') {
+	line_continuation(cindex + namelen);
+	goto findnamelen;
+    }
     if (namelen == 0) {
 	assert(L'0' <= cbuf.contents[cindex] && cbuf.contents[cindex] <= L'9');
 	namelen++;
     }
+
 success:
     pe = xmalloc(sizeof *pe);
     pe->pe_type = PT_NONE;
@@ -1223,6 +1234,7 @@ wordunit_T *parse_paramexp_in_brase(void)
     }
 
     /* 入れ子のパラメータ展開を解析 */
+    /* ensure_buffer(2); */
     if (!posixly_correct && cbuf.contents[cindex] == L'{') {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = parse_paramexp_in_brase();
@@ -1244,10 +1256,8 @@ parse_name:;
 		cindex++;
 		goto make_name;
 	}
-	do
-	    while (is_name_char(cbuf.contents[cindex]))
-		cindex++;
-	while (cbuf.contents[cindex] == L'\0' && read_more_input == 0);
+	while (ensure_buffer(1), is_name_char(cbuf.contents[cindex]))
+	    cindex++;
 	if (namestartindex == cindex) {
 	    serror(Ngt("parameter name missing or invalid"));
 	    goto fail;
@@ -1406,7 +1416,6 @@ wordunit_T *parse_cmdsubst_in_backquote(void)
 	    break;
 	case L'\\':
 	    cindex++;
-	    ensure_buffer(1);
 	    switch (cbuf.contents[cindex]) {
 		case L'$':  case L'`':  case L'\\':
 		    goto default_;
@@ -1446,8 +1455,7 @@ wordunit_T *tryparse_arith(void)
 	ensure_buffer(1);
 	switch (cbuf.contents[cindex]) {
 	case L'\\':
-	    ensure_buffer(2);
-	    if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
+	    if (cbuf.contents[cindex + 1] == L'\n') {
 		line_continuation(cindex);
 		continue;
 	    } else if (cbuf.contents[cindex + 1] != L'\0') {
@@ -1914,7 +1922,6 @@ void read_heredoc_contents_without_expand(redir_T *r)
     wb_init(&buf);
     while (!is_end_of_heredoc_contents(eoc, eoclen, r->rd_type == RT_HERERT)
 	    && cbuf.contents[cindex] != L'\0') {
-	ensure_buffer(SIZE_MAX);
 	wb_cat(&buf, cbuf.contents + cindex);
 	cindex = cbuf.length;
 	if (cbuf.contents[cindex - 1] == L'\n')
@@ -1965,8 +1972,7 @@ bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
     assert(wcslen(eoc) == eoclen);
     assert(cbuf.length > 0 && cbuf.contents[cindex - 1] == L'\n');
     read_more_input();
-    while (ensure_buffer(eoclen + 1),
-	    skiptab && cbuf.contents[cindex] == L'\t') {
+    while (skiptab && cbuf.contents[cindex] == L'\t') {
 	cindex++;
     }
 
@@ -1993,15 +1999,12 @@ wordunit_T *parse_string_to(bool stoponnewline)
     size_t startindex = cindex;
 
     for (;;) {
-	ensure_buffer(1);
 	switch (cbuf.contents[cindex]) {
 	case L'\0':
 	    goto done;
 	case L'\\':
-	    ensure_buffer(2);
-	    if (cbuf.contents[cindex + 1] == L'\n') {  /* 行連結なら削除 */
-		wb_remove(&cbuf, cindex, 2);
-		cinfo->lineno++;
+	    if (cbuf.contents[cindex + 1] == L'\n') {
+		line_continuation(cindex);
 		continue;
 	    } else if (cbuf.contents[cindex + 1] != L'\0') {
 		cindex += 2;
