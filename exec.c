@@ -81,8 +81,8 @@ typedef struct commandinfo_T {
 	function,             /* 関数 */
     } type;
     union {
-	const char *path;           /* コマンドのパス (externalprogram 用) */
-	main_T *builtin;            /* 組込みコマンドの本体 */
+	const char *path;     /* コマンドのパス (externalprogram 用) */
+	main_T *builtin;      /* 組込みコマンドの本体 */
 	command_T *function;  /* 関数の本体 */
     } value;
 } commandinfo_T;
@@ -115,7 +115,7 @@ static void exec_commands(command_T *c, exec_T type, bool looppipe);
 static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
 static pid_t fork_and_reset(pid_t pgid, bool fg);
-static bool search_command(
+static void search_command(
 	const char *restrict name, commandinfo_T *restrict ci);
 static bool do_assignments_for_command_type(
 	const assign_T *asgns, enum cmdtype_T type);
@@ -607,15 +607,19 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	if (argc == 0) {
 	    later_fork = finally_exit = false;
 	} else {
-	    // TODO メッセージの表示はリダイレクトの後に
-	    if (!search_command(argv[0], &cmdinfo)) {
+	    search_command(argv[0], &cmdinfo);
+
+	    /* 外部コマンドは fork し、組込みコマンドや関数は fork しない。 */
+	    later_fork = finally_exit = (cmdinfo.type == externalprogram);
+
+	    /* コマンドが見付からず、リダイレクトや代入もなければこれで終わり */
+	    if (cmdinfo.type == externalprogram && !cmdinfo.ci_path
+		    && !c->c_redirs && !c->c_assigns) {
 		xerror(0, Ngt("%s: no such command or function"), argv[0]);
 		laststatus = EXIT_NOTFOUND;
 		recfree((void **) argv, free);
 		goto done;
 	    }
-	    /* 外部コマンドは fork し、組込みコマンドや関数は fork しない。 */
-	    later_fork = finally_exit = (cmdinfo.type == externalprogram);
 	}
 	break;
     case CT_SUBSHELL:
@@ -756,16 +760,17 @@ void make_myself_foreground(void)
 }
 
 /* コマンドの種類を特定し、コマンドのありかを探す。
- * コマンドが見付かれば結果を *ci に入れて true を返す。
- * 見付からなければ false を返し、*ci は不定 */
-bool search_command(const char *restrict name, commandinfo_T *restrict ci)
+ * コマンドが見付からなければ ci->type = externalprogram で
+ * ci->ci_path = NULL とする。 */
+void search_command(const char *restrict name, commandinfo_T *restrict ci)
 {
     /* 関数を探す: 関数名に '/' が含まれないことを仮定している */
     command_T *funcbody = get_function(name);
     if (funcbody) {
+	assert(strchr(name, '/') == NULL);
 	ci->type = function;
 	ci->ci_function = funcbody;
-	return true;
+	return;
     }
 
     wchar_t *wname = malloc_mbstowcs(name);
@@ -774,13 +779,12 @@ bool search_command(const char *restrict name, commandinfo_T *restrict ci)
     if (slash) {  /* name にスラッシュが入っていれば name をそのまま返す */
 	ci->type = externalprogram;
 	ci->ci_path = name;
-	return true;
+	return;
     }
 
-    // TODO exec.c: find_command: 暫定実装
+    // TODO exec.c: find_command: 組込みコマンド
     ci->type = externalprogram;
     ci->ci_path = get_command_path(name, false);
-    return ci->ci_path != NULL;
 }
 
 /* 指定した commandtype_T に従って do_assignments を呼び出す */
@@ -850,6 +854,10 @@ void exec_simple_command(
     switch (ci->type) {
     case externalprogram:
 	assert(finally_exit);
+	if (ci->ci_path == NULL) {
+	    xerror(0, Ngt("%s: no such command or function"), argv[0]);
+	    exit(EXIT_NOTFOUND);
+	}
 	xexecv(ci->ci_path, (char **) argv);
 	if (errno != ENOEXEC) {
 	    if (errno == EACCES && is_directory(ci->ci_path))
