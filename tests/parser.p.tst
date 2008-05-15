@@ -173,7 +173,7 @@ echo ===== 6 =====
 
 for i in 1 '2   2' 3; do echo $i; echo "$i"; done
 for i
-	in parser.posix.*
+	in parser.p.*
 do
 	echo $i
 done

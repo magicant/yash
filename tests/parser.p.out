@@ -52,8 +52,8 @@ line concatenation ok (while)
 2   2
 3
 3
-parser.posix.right
-parser.posix.test
+parser.p.out
+parser.p.tst
 1
 1
 2 2

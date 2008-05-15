@@ -5,7 +5,7 @@
 
 var=123/456/789 asterisks='*****'
 
-echo expand.te${{asterisks#"**"}%"**"}st
+echo expand.t${{asterisks#"**"}%"**"}st
 echo ${#$(echo a)} ${${`echo abc`#a}%c}
 
 echo ${var/456/xxx}

@@ -27,13 +27,13 @@ unset IFS invokecmd failed
 failed=0
 for x in $TEST_ITEMS
 do
-    x="${x%.test}"
+    x="${x%.tst}"
     echo " * $x"
-    if [ x"$x" = x"${x%.posix}" ]
+    if [ x"$x" = x"${x%.p}" ]
     then invokecmd=
     else invokecmd='./invoke sh'
     fi
-    if ! $invokecmd $TESTEE "${x}.test" 2>&1 | diff - "${x}.right"
+    if ! $invokecmd $TESTEE "${x}.tst" 2>&1 | diff - "${x}.out"
     then
 	failed=$(( failed + 1 ))
     fi

@@ -22,14 +22,14 @@ CFLAGS = -O1
 LDFLAGS = 
 
 test-all:
-	@$(MAKE) TEST_ITEMS='*.test' test
+	@$(MAKE) TEST_ITEMS='*.tst' test
 test-posix:
-	@$(MAKE) TEST_ITEMS='*.posix.test' test
+	@$(MAKE) TEST_ITEMS='*.p.tst' test
 test: invoke
 	@$(SHELL) ./run-test.sh
 
 # Though these rules are exactly the same as the default rules defined by POSIX,
-# we re-define them here because at least GNU Make is not fully compliant.
+# we re-define them here for maximum portability.
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
