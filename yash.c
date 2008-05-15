@@ -190,7 +190,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	    shopt_read_stdin = true;
 	if (shopt_read_stdin) {
 	    input = stdin;
-	    inputname = "<stdin>";
+	    inputname = NULL;
 	    if (!is_interactive_set && !argv[xoptind]
 		    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
 		is_interactive = true;
@@ -364,7 +364,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
 		if (finally_exit)
-		    exit(laststatus);
+		    exit(laststatus); // TODO exit 組込みを呼ぶ
 		else
 		    return true;
 	    case 1:  // 構文エラー

@@ -1889,8 +1889,10 @@ readname:
     result->c_funcname = realloc_wcstombs(
 	    xwcsndup(cbuf.contents + savecindex, namelen));
     result->c_funcbody = body;
-    if (!result->c_funcname)
-	serror(Ngt("unexpected error in wide character conversion"));
+    if (!result->c_funcname) {
+	cerror = true;
+	xerror(0, Ngt("unexpected error in wide character conversion"));
+    }
     return result;
 
 fail:
