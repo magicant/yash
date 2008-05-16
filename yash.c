@@ -328,15 +328,23 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
  * 戻り値: 構文エラー・入力エラーがなければ true */
 bool exec_input(FILE *f, const char *name, bool ttyinput, bool finally_exit)
 {
+    struct input_readline_info rlinfo;
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.filename = name,
 	.lineno = 1,
-	.input = input_file,
-	.inputinfo = f,
 	.ttyinput = ttyinput,
 	.lastinputresult = 0,
     };
+    if (ttyinput) {
+	rlinfo.fp = f;
+	rlinfo.type = 1;
+	pinfo.input = input_readline;
+	pinfo.inputinfo = &rlinfo;
+    } else {
+	pinfo.input = input_file;
+	pinfo.inputinfo = f;
+    }
     return parse_and_exec(&pinfo, finally_exit);
 }
 

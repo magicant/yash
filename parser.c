@@ -34,6 +34,7 @@
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
+#include "lineinput.h"
 #include "parser.h"
 #include "expand.h"
 
@@ -388,6 +389,10 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     cerror = false;
     cindex = 0;
     wb_init(&cbuf);
+
+    if (info->ttyinput)
+	((struct input_readline_info *) info->inputinfo)->type = 1;
+
     cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
     if (cinfo->lastinputresult == EOF) {
 	wb_destroy(&cbuf);

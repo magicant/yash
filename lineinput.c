@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <wchar.h>
 #include "util.h"
 #include "strbuf.h"
@@ -162,6 +163,39 @@ start:
 end:
     unset_nonblocking(fd);
     return (initlen == buf->length) ? EOF : 0;
+}
+
+/* 端末にプロンプトを出して入力を受け取る入力用関数。
+ * inputinfo として struct input_readline_info へのポインタを受け取る。
+ * type はプロンプトの種類を指定し、1 なら PS1 を、2 なら PS2 をプロンプトする。
+ * 1 <= type <= 4 でなければならない。
+ * type が 1 ならこの関数内で 2 に変更する。 */
+int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
+{
+    struct input_readline_info *info = inputinfo;
+    wchar_t *prompt;
+
+    switch (info->type) {
+	case 1:
+	    info->type = 2;
+	    prompt = xwcsdup(L"$ ");
+	    break;
+	case 2:
+	    prompt = xwcsdup(L"> ");
+	    break;
+	case 3:
+	    prompt = xwcsdup(L"");
+	    break;
+	case 4:
+	    prompt = xwcsdup(L"+ ");
+	    break;
+	default:
+	    assert(false);
+    }
+    fputws(prompt, stderr);
+    fflush(stderr);
+    free(prompt);
+    return input_file(buf, info->fp);
 }
 
 /* 指定したファイルディスクリプタの O_NONBLOCK フラグを設定する。

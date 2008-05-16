@@ -289,6 +289,8 @@ typedef struct parseinfo_T {
     bool ttyinput;        /* 入力が対話的端末からかどうか */
     int lastinputresult;  /* 最後の input の戻り値。最初は 0 にしておく。 */
 } parseinfo_T;
+/* ttyinput が true ならば、input は input_readline で inputinfo は
+ * struct input_readline_info へのポインタである。 */
 
 extern int read_and_parse(
 	parseinfo_T *restrict info, and_or_T **restrict result)

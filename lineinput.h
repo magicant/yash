@@ -19,6 +19,7 @@
 #ifndef LINEINPUT_H
 #define LINEINPUT_H
 
+#include <stdio.h>
 #include <wchar.h>
 #if USE_READLINE
 # if HAVE_LIBREADLINE
@@ -56,6 +57,12 @@ struct input_mbs_info {
 /* input_wcs の inputinfo として使う構造体 */
 struct input_wcs_info {
     const wchar_t *src;  /* 入力として返すソースコード */
+};
+
+/* input_readline の inputinfo として使う構造体 */
+struct input_readline_info {
+    FILE *fp;   /* 入力元のストリーム */
+    int type;   /* プロンプトの種類を指定する */
 };
 
 
