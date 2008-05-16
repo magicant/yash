@@ -1,4 +1,4 @@
-tmp="/tmp/yash-redir-test-$$"
+tmp=/tmp/yashtest.$$
 
 echo Hello, >$tmp
 cat $tmp

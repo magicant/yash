@@ -1,4 +1,4 @@
-tmp=/tmp/yash-parser-test-$$
+tmp=/tmp/yashtest.$$
 
 var=abc
 echo 1\2\
