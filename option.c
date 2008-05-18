@@ -47,6 +47,8 @@ const char *command_name;
 
 /* コマンドの実行を行わないかどうか。-n オプションに対応 */
 bool shopt_noexec;
+/* プロンプトで EOF を無視するかどうか。-o ignoreeof オプションに対応 */
+bool shopt_ignoreeof;
 
 /* パス名展開を行わないかどうか。-f オプションに対応。 */
 bool shopt_noglob;
@@ -76,6 +78,7 @@ static const struct xoption long_options[] = {
     { "nullglob",     xno_argument, NULL, 'N', },
     { "braceexpand",  xno_argument, NULL, 'B', },
     { "noexec",       xno_argument, NULL, 'n', },
+    { "ignoreeof",    xno_argument, NULL, 'I', },
     { "monitor",      xno_argument, NULL, 'm', },
     { "notify",       xno_argument, NULL, 'b', },
     { "posix",        xno_argument, NULL, 'X', },
@@ -85,7 +88,7 @@ static const struct xoption long_options[] = {
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 4;
 
-// TODO option: unimplemented options: -aehnuvx -o{ignoreeof,nolog,vi,emacs}
+// TODO option: unimplemented options: -aehuvx -o{nolog,vi,emacs}
 
 
 /* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
@@ -120,6 +123,9 @@ void set_option(char c)
 	    break;
 	case 'n':
 	    shopt_noexec = value;
+	    break;
+	case 'I':
+	    shopt_ignoreeof = value;
 	    break;
 	case 'm':
 	    do_job_control = value;

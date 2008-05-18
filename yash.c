@@ -371,6 +371,10 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		}
 		break;
 	    case EOF:
+		if (pinfo->ttyinput && shopt_ignoreeof) {
+		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
+		    break;
+		}
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
 		if (finally_exit)
