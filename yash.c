@@ -361,11 +361,13 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	switch (read_and_parse(pinfo, &commands)) {
 	    case 0:  // OK
 		if (commands) {
-		    exec_and_or_lists(commands,
-			    finally_exit && !pinfo->ttyinput &&
-			    pinfo->lastinputresult == EOF);
+		    if (!shopt_noexec) {
+			exec_and_or_lists(commands,
+				finally_exit && !pinfo->ttyinput &&
+				pinfo->lastinputresult == EOF);
+			executed = true;
+		    }
 		    andorsfree(commands);
-		    executed = true;
 		}
 		break;
 	    case EOF:

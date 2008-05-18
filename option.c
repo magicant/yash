@@ -45,6 +45,9 @@ bool shopt_read_arg, shopt_read_stdin;
 /* コマンド名。特殊パラメータ $0 の値。 */
 const char *command_name;
 
+/* コマンドの実行を行わないかどうか。-n オプションに対応 */
+bool shopt_noexec;
+
 /* パス名展開を行わないかどうか。-f オプションに対応。 */
 bool shopt_noglob;
 /* それぞれ WGLB_CASEFOLD, WGLB_PERIOD, WGLB_MARK, WGLB_RECDIR に対応 */
@@ -72,6 +75,7 @@ static const struct xoption long_options[] = {
     { "extendedglob", xno_argument, NULL, 'E', },
     { "nullglob",     xno_argument, NULL, 'N', },
     { "braceexpand",  xno_argument, NULL, 'B', },
+    { "noexec",       xno_argument, NULL, 'n', },
     { "monitor",      xno_argument, NULL, 'm', },
     { "notify",       xno_argument, NULL, 'b', },
     { "posix",        xno_argument, NULL, 'X', },
@@ -113,6 +117,9 @@ void set_option(char c)
 	    break;
 	case 'B':
 	    shopt_braceexpand = value;
+	    break;
+	case 'n':
+	    shopt_noexec = value;
 	    break;
 	case 'm':
 	    do_job_control = value;
@@ -156,6 +163,7 @@ wchar_t *get_hyphen_parameter(void)
     if (shopt_noglob)      wb_wccat(&buf, L'f');
     if (is_interactive)    wb_wccat(&buf, L'i');
     if (do_job_control)    wb_wccat(&buf, L'm');
+    if (shopt_noexec)      wb_wccat(&buf, L'n');
     if (shopt_read_stdin)  wb_wccat(&buf, L's');
     if (shopt_noclobber)   wb_wccat(&buf, L'C');
 
