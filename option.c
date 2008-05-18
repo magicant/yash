@@ -36,6 +36,8 @@ bool is_interactive, is_interactive_now;
 
 /* ジョブ制御が有効かどうか。-m オプションに対応 */
 bool do_job_control;
+/* ジョブの状態変化をいつでもすぐに通知するかどうか。-b オプションに対応 */
+bool shopt_notify;
 
 /* コマンドをどこから読んでいるか。それぞれ -c, -s オプションに対応 */
 bool shopt_read_arg, shopt_read_stdin;
@@ -71,6 +73,7 @@ static const struct xoption long_options[] = {
     { "nullglob",     xno_argument, NULL, 'N', },
     { "braceexpand",  xno_argument, NULL, 'B', },
     { "monitor",      xno_argument, NULL, 'm', },
+    { "notify",       xno_argument, NULL, 'b', },
     { "posix",        xno_argument, NULL, 'X', },
     { NULL,           0,            NULL, 0,   },
 };
@@ -78,7 +81,7 @@ static const struct xoption long_options[] = {
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 4;
 
-// TODO option: unimplemented options: -abehnuvx -o{ignoreeof,nolog,vi,emacs}
+// TODO option: unimplemented options: -aehnuvx -o{ignoreeof,nolog,vi,emacs}
 
 
 /* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
@@ -114,6 +117,9 @@ void set_option(char c)
 	case 'm':
 	    do_job_control = value;
 	    break;
+	case 'b':
+	    shopt_notify = value;
+	    break;
 	case 'X':
 	    posixly_correct = value;
 	    break;
@@ -145,6 +151,7 @@ wchar_t *get_hyphen_parameter(void)
     xwcsbuf_T buf;
     wb_init(&buf);
 
+    if (shopt_notify)      wb_wccat(&buf, L'b');
     if (shopt_read_arg)    wb_wccat(&buf, L'c');
     if (shopt_noglob)      wb_wccat(&buf, L'f');
     if (is_interactive)    wb_wccat(&buf, L'i');

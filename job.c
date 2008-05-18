@@ -161,8 +161,8 @@ void set_current_jobnumber(size_t jobnumber)
 	jobnumber = previous_jobnumber;
 	if (jobnumber == 0 || get_job(jobnumber) == NULL)
 	    jobnumber = find_next_job(0);
-	current_jobnumber = jobnumber;
     }
+    current_jobnumber = jobnumber;
 
     if (previous_jobnumber == 0
 	    || previous_jobnumber == current_jobnumber)

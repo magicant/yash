@@ -423,6 +423,10 @@ void handle_sigchld_and_sighup(void)
     if (sigchld_received) {
         sigchld_received = false;
         do_wait();
+	if (shopt_notify) {
+	    // XXX lineedit 中はプロンプトを再表示したい
+	    print_job_status(PJS_ALL, true, false, stderr);
+	}
     }
     // TODO sig.c: SIGHUP 受信時にシェルを終了する
 }

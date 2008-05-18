@@ -175,7 +175,9 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     struct input_readline_info *info = inputinfo;
     wchar_t *prompt;
 
-    switch (info->type) {
+    print_job_status(PJS_ALL, true, false, stderr);
+
+    switch (info->type) { // TODO プロンプトの展開
 	case 1:
 	    info->type = 2;
 	    prompt = xwcsdup(L"$ ");
@@ -192,7 +194,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	default:
 	    assert(false);
     }
-    fputws(prompt, stderr);
+    fprintf(stderr, "%ls", prompt);
     fflush(stderr);
     free(prompt);
     return input_file(buf, info->fp);

@@ -26,7 +26,7 @@
 extern bool posixly_correct;
 extern bool is_login_shell;
 extern bool is_interactive, is_interactive_now;
-extern bool do_job_control;
+extern bool do_job_control, shopt_notify;
 extern bool shopt_read_arg, shopt_read_stdin;
 extern const char *command_name;
 extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
@@ -34,7 +34,7 @@ extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
 extern bool shopt_braceexpand;
 extern bool shopt_noclobber;
 
-#define SHELLSET_OPTIONS "fmC"
+#define SHELLSET_OPTIONS "bfmC"
 
 extern const struct xoption *const shell_long_options, *const set_long_options;
 
