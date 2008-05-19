@@ -237,7 +237,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    job->j_pcount = 1;
 
 	    set_active_job(job);
-	    add_job();
+	    add_job(false);
 	    laststatus = EXIT_SUCCESS;
 	    lastasyncpid = cpid;
 	} else if (cpid == 0) {
@@ -560,7 +560,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 	ps[i].pr_name = command_to_wcs(cc);
 	cc = cc->next;
     }
-    add_job();
+    add_job(type == execnormal);
 
 finish:
     if (doing_job_control_now)

@@ -66,7 +66,7 @@ extern void init_job(void);
 
 extern void set_active_job(job_T *job)
     __attribute__((nonnull));
-extern void add_job(void);
+extern void add_job(bool current);
 extern void remove_job(size_t jobnumber);
 extern void remove_all_jobs(void);
 

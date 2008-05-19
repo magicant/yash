@@ -76,9 +76,10 @@ void set_active_job(job_T *job)
     joblist.contents[ACTIVE_JOBNO] = job;
 }
 
-/* アクティブジョブをジョブリストに追加し、それを現在のジョブにする。 */
-// TODO 現在のジョブにするかどうかを指定できるように
-void add_job(void)
+/* アクティブジョブをジョブリストに追加する。
+ * current: true なら追加したジョブを現在のジョブにする。
+ * current が false でも現在のジョブがなければ true とみなす。 */
+void add_job(bool current)
 {
     job_T *job = joblist.contents[ACTIVE_JOBNO];
 
@@ -89,14 +90,20 @@ void add_job(void)
     for (size_t i = 1; i < joblist.length; i++) {
 	if (joblist.contents[i] == NULL) {
 	    joblist.contents[i] = job;
-	    set_current_jobnumber(i);
+	    if (current || current_jobnumber == 0)
+		set_current_jobnumber(i);
+	    else if (previous_jobnumber == 0)
+		previous_jobnumber = i;
 	    return;
 	}
     }
 
     /* 空いているジョブ番号がなければ最後に追加する。 */
     pl_add(&joblist, job);
-    set_current_jobnumber(joblist.length - 1);
+    if (current || current_jobnumber == 0)
+	set_current_jobnumber(joblist.length - 1);
+    else if (previous_jobnumber == 0)
+	previous_jobnumber = joblist.length - 1;
 }
 
 /* 指定した番号のジョブを無条件で削除する。
@@ -398,11 +405,11 @@ exitstatus:
 	    status = WTERMSIG(status);
 #ifdef WCOREDUMP
 	    if (WCOREDUMP(status)) {
-		return malloc_printf(gt("Aborted(SIG%s: core dumped)"),
+		return malloc_printf(gt("Killed (SIG%s: core dumped)"),
 			get_signal_name(status));
 	    }
 #endif
-	    return malloc_printf(gt("Aborted(SIG%s)"),
+	    return malloc_printf(gt("Killed (SIG%s)"),
 		    get_signal_name(status));
 	}
     }
