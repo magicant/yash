@@ -39,9 +39,15 @@
 #if HAVE_GETTEXT
 # define gt(MSGID)  gettext(MSGID)
 # define Ngt(MSGID) MSGID
+# if HAVE_NGETTEXT
+#  define ngt(MSGIDS,MSGIDP,N) ngettext(MSGIDS, MSGIDP, N)
+# else
+#  define ngt(MSGIDS,MSGIDP,N) gt(MSGIDP)
+# endif
 #else
-# define gt(MSGID)  MSGID
-# define Ngt(MSGID) MSGID
+# define gt(MSGID)            MSGID
+# define Ngt(MSGID)           MSGID
+# define ngt(MSGIDS,MSGIDP,N) MSGIDP
 #endif
 
 #endif /* COMMON_H */

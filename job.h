@@ -69,6 +69,10 @@ extern void set_active_job(job_T *job)
 extern void add_job(bool current);
 extern void remove_job(size_t jobnumber);
 extern void remove_all_jobs(void);
+extern size_t job_count(void)
+    __attribute__((pure));
+extern size_t stopped_job_count(void)
+    __attribute__((pure));
 
 extern void do_wait(void);
 extern void wait_for_job(size_t jobnumber, bool return_on_stop);

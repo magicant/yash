@@ -359,11 +359,13 @@ bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
     bool executed = false;
+    bool justwarned = false;
 
     for (;;) {
 	and_or_T *commands;
 	switch (read_and_parse(pinfo, &commands)) {
 	    case 0:  // OK
+		justwarned = false;
 		if (commands) {
 		    if (!shopt_noexec) {
 			exec_and_or_lists(commands,
@@ -378,7 +380,18 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (shopt_ignoreeof && pinfo->inputisatty) {
 		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
 		    break;
-		}// TODO 対話的で停止ジョブがあるなら警告
+		} else if (pinfo->intrinput && !justwarned) {
+		    size_t sjc = stopped_job_count();
+		    if (sjc > 0) {
+			fprintf(stderr,
+				ngt("You have a stopped job!\n",
+				    "You have %zu stopped jobs!\n",
+				    sjc),
+				sjc);
+			justwarned = true;
+			break;
+		    }
+		}
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
 		if (finally_exit)
@@ -386,6 +399,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		else
 		    return true;
 	    case 1:  // 構文エラー
+		justwarned = false;
 		laststatus = EXIT_SYNERROR;
 		if (pinfo->intrinput)
 		    break;

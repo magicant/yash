@@ -203,6 +203,28 @@ size_t find_next_job(size_t excl)
     return 0;
 }
 
+/* ジョブリスト内のジョブの数を返す */
+size_t job_count(void)
+{
+    size_t count = 0;
+    for (size_t i = 0; i < joblist.length; i++)
+	if (joblist.contents[i])
+	    count++;
+    return count;
+}
+
+/* ジョブリスト内の停止しているジョブの数を返す */
+size_t stopped_job_count(void)
+{
+    size_t count = 0;
+    for (size_t i = 0; i < joblist.length; i++) {
+	job_T *job = joblist.contents[i];
+	if (job && job->j_status == JS_STOPPED)
+	    count++;
+    }
+    return count;
+}
+
 
 /* waitpid を実行してジョブリスト内の子プロセスの情報を更新する。
  * この関数はブロックしない。 */
