@@ -77,6 +77,7 @@ void set_active_job(job_T *job)
 }
 
 /* アクティブジョブをジョブリストに追加し、それを現在のジョブにする。 */
+// TODO 現在のジョブにするかどうかを指定できるように
 void add_job(void)
 {
     job_T *job = joblist.contents[ACTIVE_JOBNO];

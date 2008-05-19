@@ -287,7 +287,8 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
 	.lineno = 1,
 	.input = input_mbs,
 	.inputinfo = &iinfo,
-	.ttyinput = false,
+	.intrinput = false,
+	.inputisatty = false,
 	.lastinputresult = 0,
     };
     memset(&iinfo.state, 0, sizeof iinfo.state);  // state を初期状態にする
@@ -312,7 +313,8 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.lineno = 1,
 	.input = input_wcs,
 	.inputinfo = &iinfo,
-	.ttyinput = false,
+	.intrinput = false,
+	.inputisatty = false,
 	.lastinputresult = 0,
     };
 
@@ -322,28 +324,30 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 /* 入力ストリームを読み取ってコマンドを実行する。
  * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
  * f: 入力元のストリーム
- * ttyinput: 入力が対話的端末からかどうか
+ * intrinput: 入力が対話的かどうか
  * name: 構文エラーで表示するコード名。NULL でも良い。
  * finally_exit: true なら実行後にそのままシェルを終了する。
  * 戻り値: 構文エラー・入力エラーがなければ true */
-bool exec_input(FILE *f, const char *name, bool ttyinput, bool finally_exit)
+bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 {
     struct input_readline_info rlinfo;
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.filename = name,
 	.lineno = 1,
-	.ttyinput = ttyinput,
+	.intrinput = intrinput,
 	.lastinputresult = 0,
     };
-    if (ttyinput) {
+    if (intrinput) {
 	rlinfo.fp = f;
 	rlinfo.type = 1;
 	pinfo.input = input_readline;
 	pinfo.inputinfo = &rlinfo;
+	pinfo.inputisatty = isatty(fileno(f));
     } else {
 	pinfo.input = input_file;
 	pinfo.inputinfo = f;
+	pinfo.inputisatty = false;
     }
     return parse_and_exec(&pinfo, finally_exit);
 }
@@ -363,7 +367,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (commands) {
 		    if (!shopt_noexec) {
 			exec_and_or_lists(commands,
-				finally_exit && !pinfo->ttyinput &&
+				finally_exit && !pinfo->intrinput &&
 				pinfo->lastinputresult == EOF);
 			executed = true;
 		    }
@@ -371,10 +375,10 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		}
 		break;
 	    case EOF:
-		if (pinfo->ttyinput && shopt_ignoreeof) {
+		if (shopt_ignoreeof && pinfo->inputisatty) {
 		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
 		    break;
-		}
+		}// TODO 対話的で停止ジョブがあるなら警告
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
 		if (finally_exit)
@@ -383,7 +387,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    return true;
 	    case 1:  // 構文エラー
 		laststatus = EXIT_SYNERROR;
-		if (pinfo->ttyinput)
+		if (pinfo->intrinput)
 		    break;
 		else if (finally_exit)
 		    exit(laststatus);

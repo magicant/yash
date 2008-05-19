@@ -37,7 +37,7 @@ extern bool exec_mbs(const char *code, const char *name, bool finally_exit)
 extern bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     __attribute__((nonnull(1)));
 extern bool exec_input(FILE *f, const char *name,
-	bool ttyinput, bool finally_exit)
+	bool intrinput, bool finally_exit)
     __attribute__((nonnull(1)));
 extern bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
     __attribute__((nonnull(1)));

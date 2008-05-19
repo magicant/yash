@@ -286,11 +286,15 @@ typedef struct parseinfo_T {
     unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
     inputfunc_T *input;   /* 入力関数 */
     void *inputinfo;      /* 入力関数に渡す情報 */
-    bool ttyinput;        /* 入力が対話的端末からかどうか */
+    bool intrinput;       /* 入力が対話的かどうか */
+    bool inputisatty;     /* 入力が対話的端末かどうか */
     int lastinputresult;  /* 最後の input の戻り値。最初は 0 にしておく。 */
 } parseinfo_T;
-/* ttyinput が true ならば、input は input_readline で inputinfo は
- * struct input_readline_info へのポインタである。 */
+/* intrinput が true ならば、input は input_readline で inputinfo は
+ * struct input_readline_info へのポインタである。
+ * intrinput が true でも入力元が本当に端末であるとは限らない。 */
+/* intrinput が true で、かつ入力元に関して isatty も true なら inputisatty
+ * が true になる。 */
 
 extern int read_and_parse(
 	parseinfo_T *restrict info, and_or_T **restrict result)

@@ -390,7 +390,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     cindex = 0;
     wb_init(&cbuf);
 
-    if (info->ttyinput)
+    if (info->intrinput)
 	((struct input_readline_info *) info->inputinfo)->type = 1;
 
     cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
@@ -452,7 +452,7 @@ void serror(const char *restrict format, ...)
  * 対話的端末からの入力時、cerror が true なら 1 を返す。 */
 int read_more_input(void)
 {
-    if (cerror && cinfo->ttyinput)
+    if (cerror && cinfo->intrinput)
 	return 1;
     if (cinfo->lastinputresult == 0)
 	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
@@ -679,7 +679,7 @@ and_or_T *parse_compound_list(void)
     /* 二つ目以降のトークンを解析するにはセパレータ ('&', ';', または一つ以上の
      * 改行) が必要となる。 */
 
-    if (!cinfo->ttyinput)
+    if (!cinfo->intrinput)
 	cerror = false;
     while (!cerror) {
 	separator |= skip_to_next_token();
