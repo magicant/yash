@@ -48,6 +48,8 @@ const char *command_name;
 /* コマンドの終了ステータスが非 0 のとき直ちに終了するかどうか。
  * -e オプションに対応 */
 bool shopt_errexit;
+/* 未定義の変数の展開をエラーにするかどうか。-u オプションに対応 */
+bool shopt_nounset;
 /* コマンドの実行を行わないかどうか。-n オプションに対応 */
 bool shopt_noexec;
 /* プロンプトで EOF を無視するかどうか。-o ignoreeof オプションに対応 */
@@ -83,6 +85,7 @@ static const struct xoption long_options[] = {
     { "nullglob",     xno_argument, NULL, 'N', },
     { "braceexpand",  xno_argument, NULL, 'B', },
     { "errexit",      xno_argument, NULL, 'e', },
+    { "nounset",      xno_argument, NULL, 'u', },
     { "noexec",       xno_argument, NULL, 'n', },
     { "ignoreeof",    xno_argument, NULL, 'I', },
     { "verbose",      xno_argument, NULL, 'v', },
@@ -95,7 +98,7 @@ static const struct xoption long_options[] = {
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 4;
 
-// TODO option: unimplemented options: -ahux -o{nolog,vi,emacs}
+// TODO option: unimplemented options: -ahx -o{nolog,vi,emacs}
 
 
 /* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
@@ -130,6 +133,9 @@ void set_option(char c)
 	    break;
 	case 'e':
 	    shopt_errexit = value;
+	    break;
+	case 'u':
+	    shopt_nounset = value;
 	    break;
 	case 'n':
 	    shopt_noexec = value;
@@ -185,6 +191,7 @@ wchar_t *get_hyphen_parameter(void)
     if (do_job_control)    wb_wccat(&buf, L'm');
     if (shopt_noexec)      wb_wccat(&buf, L'n');
     if (shopt_read_stdin)  wb_wccat(&buf, L's');
+    if (shopt_nounset)     wb_wccat(&buf, L'u');
     if (shopt_verbose)     wb_wccat(&buf, L'v');
     if (shopt_noclobber)   wb_wccat(&buf, L'C');
 

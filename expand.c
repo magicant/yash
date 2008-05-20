@@ -613,10 +613,15 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	if (list) {
 	    unset = false;
 	} else {
-	    /* 指定した名前の変数が存在しなければ、空文字列を返す */
-	    plist_T plist;
-	    list = pl_toary(pl_add(pl_init(&plist), xwcsdup(L"")));
-	    unset = true;
+	    /* 指定した名前の変数が存在しなければ空文字列を返すかエラーにする */
+	    if (shopt_nounset) {
+		xerror(0, Ngt("%s: parameter not set"), p->pe_name);
+		return NULL;
+	    } else {
+		plist_T plist;
+		list = pl_toary(pl_add(pl_init(&plist), xwcsdup(L"")));
+		unset = true;
+	    }
 	}
     }
 
