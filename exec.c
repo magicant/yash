@@ -98,7 +98,7 @@ static void exec_pipelines_async(const pipeline_T *p)
     __attribute__((nonnull));
 static void exec_if(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
-static inline bool exec_if_condition(const and_or_T *c);
+static inline bool exec_condition(const and_or_T *c);
 static void exec_for(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_while(const command_T *c, bool finally_exit)
@@ -140,6 +140,10 @@ static inline int xexecve(
 int laststatus = EXIT_SUCCESS;
 /* 最後に起動した非同期実行リストのプロセス ID */
 pid_t lastasyncpid;
+
+/* if 文の条件文や and-or リスト内のコマンドを実行する際、
+ * -o errexit オプションの効果を抑制するためにこの変数が true になる。 */
+static bool supresserrexit;
 
 /* 現在実行中のループと break/continue/return の動作状況 */
 struct execinfo {
@@ -200,11 +204,16 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	if (!first && p->pl_cond == !!laststatus)
 	    continue;
 
+	bool savesee = supresserrexit;
+	supresserrexit |= p->pl_neg || p->next;
+
 	exec_commands(p->pl_commands,
 	    (finally_exit && !p->next && !p->pl_neg) ? execself : execnormal,
 	    p->pl_loop);
 	if (p->pl_neg)
 	    laststatus = !laststatus;
+
+	supresserrexit = savesee;
     }
     if (finally_exit)
 	exit(laststatus);
@@ -258,7 +267,7 @@ void exec_if(const command_T *c, bool finally_exit)
     for (const ifcommand_T *cmds = c->c_ifcmds; cmds; cmds = cmds->next) {
 	if (need_break())
 	    goto done;
-	if (exec_if_condition(cmds->ic_condition)) {
+	if (exec_condition(cmds->ic_condition)) {
 	    exec_and_or_lists(cmds->ic_commands, finally_exit);
 	    return;
 	}
@@ -269,11 +278,14 @@ done:
 	exit(laststatus);
 }
 
-/* if コマンドの条件を実行する */
-bool exec_if_condition(const and_or_T *c)
+/* if/while/until コマンドの条件を実行する */
+bool exec_condition(const and_or_T *c)
 {
     if (c) {
+	bool savesee = supresserrexit;
+	supresserrexit = true;
 	exec_and_or_lists(c, false);
+	supresserrexit = savesee;
 	return laststatus == EXIT_SUCCESS;
     } else {
 	return true;
@@ -351,8 +363,7 @@ void exec_while(const command_T *c, bool finally_exit)
     execinfo.loopnest++;
 
     int status = EXIT_SUCCESS;
-    while (exec_and_or_lists(c->c_whlcond, false),
-	    !laststatus == c->c_whltype) {
+    while (exec_condition(c->c_whlcond) == c->c_whltype) {
 	CHECK_LOOP;
 	exec_and_or_lists(c->c_whlcmds, false);
 	status = laststatus;
@@ -476,6 +487,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     job_T *job;
     process_T *ps;
     pipeinfo_T pinfo = PIPEINFO_INIT;
+    commandtype_T lasttype;
 
     assert(!need_break());
 
@@ -504,6 +516,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     for (size_t i = 0; i < count; i++) {
 	pid_t pid;
 
+	lasttype = cc->c_type;
 	next_pipe(&pinfo, i < count - 1);
 	pid = exec_process(cc,
 		(type == execself && i < count - 1) ? execnormal : type,
@@ -533,7 +546,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 
     if (pgid == 0) {  /* fork しなかったらもうやることはない */
 	free(job);
-	return;
+	goto done;
     }
 
     set_active_job(job);
@@ -560,12 +573,16 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 	ps[i].pr_name = command_to_wcs(cc);
 	cc = cc->next;
     }
-    add_job(type == execnormal);
+    add_job(type == execnormal /* TODO || shopt_curasync */);
 
 finish:
     if (doing_job_control_now)
 	make_myself_foreground();
     handle_traps();
+done:
+    if (shopt_errexit && !supresserrexit && laststatus != EXIT_SUCCESS
+	    && lasttype == CT_SIMPLE)
+	exit(laststatus);
 }
 
 /* 一つのコマンドを実行する。
