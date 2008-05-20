@@ -29,13 +29,13 @@ extern bool is_interactive, is_interactive_now;
 extern bool do_job_control, shopt_notify;
 extern bool shopt_read_arg, shopt_read_stdin;
 extern const char *command_name;
-extern bool shopt_noexec, shopt_ignoreeof;
+extern bool shopt_noexec, shopt_ignoreeof, shopt_verbose;
 extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern bool shopt_braceexpand;
 extern bool shopt_noclobber;
 
-#define SHELLSET_OPTIONS "bfmnC"
+#define SHELLSET_OPTIONS "bfmnvC"
 
 extern const struct xoption *const shell_long_options, *const set_long_options;
 

@@ -49,6 +49,8 @@ const char *command_name;
 bool shopt_noexec;
 /* プロンプトで EOF を無視するかどうか。-o ignoreeof オプションに対応 */
 bool shopt_ignoreeof;
+/* 読み込んだコマンドをそのままエコーするかどうか。-v オプションに対応 */
+bool shopt_verbose;
 
 /* パス名展開を行わないかどうか。-f オプションに対応。 */
 bool shopt_noglob;
@@ -79,6 +81,7 @@ static const struct xoption long_options[] = {
     { "braceexpand",  xno_argument, NULL, 'B', },
     { "noexec",       xno_argument, NULL, 'n', },
     { "ignoreeof",    xno_argument, NULL, 'I', },
+    { "verbose",      xno_argument, NULL, 'v', },
     { "monitor",      xno_argument, NULL, 'm', },
     { "notify",       xno_argument, NULL, 'b', },
     { "posix",        xno_argument, NULL, 'X', },
@@ -127,6 +130,9 @@ void set_option(char c)
 	case 'I':
 	    shopt_ignoreeof = value;
 	    break;
+	case 'v':
+	    shopt_verbose = value;
+	    break;
 	case 'm':
 	    do_job_control = value;
 	    break;
@@ -171,6 +177,7 @@ wchar_t *get_hyphen_parameter(void)
     if (do_job_control)    wb_wccat(&buf, L'm');
     if (shopt_noexec)      wb_wccat(&buf, L'n');
     if (shopt_read_stdin)  wb_wccat(&buf, L's');
+    if (shopt_verbose)     wb_wccat(&buf, L'v');
     if (shopt_noclobber)   wb_wccat(&buf, L'C');
 
     return wb_towcs(&buf);

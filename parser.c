@@ -423,7 +423,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     if (info->intrinput)
 	((struct input_readline_info *) info->inputinfo)->type = 1;
 
-    cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+    read_more_input();
     if (cinfo->lastinputresult == EOF) {
 	wb_destroy(&cbuf);
 	return EOF;
@@ -484,8 +484,12 @@ int read_more_input(void)
 {
     if (cerror && cinfo->intrinput)
 	return 1;
-    if (cinfo->lastinputresult == 0)
+    if (cinfo->lastinputresult == 0) {
+	size_t savelength = cbuf.length;
 	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+	if (shopt_verbose)
+	    fprintf(stderr, "%ls", cbuf.contents + savelength);
+    }
     return cinfo->lastinputresult;
 }
 
@@ -2098,7 +2102,7 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
     cindex = 0;
     wb_init(&cbuf);
 
-    cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+    read_more_input();
     if (cinfo->lastinputresult == 1) {
 	wb_destroy(&cbuf);
 	return false;
