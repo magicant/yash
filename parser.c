@@ -344,7 +344,7 @@ static void read_heredoc_contents_with_expand(redir_T *r);
 static bool is_end_of_heredoc_contents(
 	const wchar_t *eoc, size_t eoclen, bool skiptab)
     __attribute__((nonnull));
-static wordunit_T *parse_string_to(bool stoponnewline)
+static wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
     __attribute__((malloc,warn_unused_result));
 static const char *get_errmsg_unexpected_token(const wchar_t *token)
     __attribute__((nonnull));
@@ -364,6 +364,36 @@ static xwcsbuf_T cbuf;
 static size_t cindex;
 /* 読み込みを控えているヒアドキュメントのリスト */
 static plist_T pending_heredocs;
+
+
+/* 解析の途中経過を構造体に保存して返す。
+ * 本来 read_and_parse や parse_string は再入できないが、この関数で経過を保存
+ * すれば再入できる。この関数を呼んだ後は必ず restore_parse_state で経過を
+ * 元に戻すこと。 */
+struct parsestate_T *save_parse_state(void)
+{
+    struct parsestate_T *result = xmalloc(sizeof *result);
+    *result = (struct parsestate_T) {
+	.cinfo = cinfo,
+	.cerror = cerror,
+	.cbuf = cbuf,
+	.cindex = cindex,
+	.pending_heredocs = pending_heredocs,
+    };
+    return result;
+}
+
+/* 指定した解析の途中経過を復元する。
+ * *state はこの関数内で解放する。 */
+void restore_parse_state(struct parsestate_T *state)
+{
+    cinfo = state->cinfo;
+    cerror = state->cerror;
+    cbuf = state->cbuf;
+    cindex = state->cindex;
+    pending_heredocs = state->pending_heredocs;
+    free(state);
+}
 
 
 /* 以下の解析関数は、エラーが発生しても NULL を返すとは限らない。
@@ -1953,7 +1983,7 @@ void read_heredoc_contents_with_expand(redir_T *r)
 
     while (!is_end_of_heredoc_contents(eoc, eoclen, r->rd_type == RT_HERERT)
 	    && cbuf.contents[cindex] != L'\0') {
-	wordunit_T *wu = parse_string_to(true);
+	wordunit_T *wu = parse_string_to(true, true);
 	if (wu) {
 	    *lastp = wu;
 	    while (wu->next)
@@ -1998,9 +2028,10 @@ bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
 
 /* 現在位置の文字列を解析する。パラメータ展開・コマンド置換・数式展開を
  * 認識するが、一重・二重引用符は引用符として扱わない。
+ * backquote: バッククォートで囲んだコマンド置換を解釈するかどうか
  * stoponnewline: true なら、改行のところで解析を終了する。このとき改行は解析
  *     結果に含まれる。false なら現在位置以降全て (EOF まで) を解析する。 */
-wordunit_T *parse_string_to(bool stoponnewline)
+wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
 {
     wordunit_T *first = NULL, **lastp = &first, *wu;
     size_t startindex = cindex;
@@ -2026,8 +2057,11 @@ wordunit_T *parse_string_to(bool stoponnewline)
 	    }
 	    read_more_input();
 	    break;
-	case L'$':
 	case L'`':
+	    if (!backquote)
+		break;
+	    /* falls thru! */
+	case L'$':
 	    MAKE_WORDUNIT_STRING;
 	    wu = parse_special_word_unit();
 	    startindex = cindex;
@@ -2047,6 +2081,40 @@ wordunit_T *parse_string_to(bool stoponnewline)
 done:
     MAKE_WORDUNIT_STRING;
     return first;
+}
+
+/* 指定した入力に含まれるパラメータ展開・数式展開・コマンド置換
+ * ("$(...)" のみ) を解釈する。
+ * この関数は入力全体を最後まで解釈する。
+ * info: 解析情報へのポインタ。全ての値を初期化しておくこと。
+ * result: 成功したら *result に解析結果が入る。
+ *         入力が空文字列なら *result は NULL になる。
+ * 戻り値: 成功したかどうか (エラーがなかったかどうか)。
+ * この関数は再入不可能である。 */
+bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
+{
+    cinfo = info;
+    cerror = false;
+    cindex = 0;
+    wb_init(&cbuf);
+
+    cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+    if (cinfo->lastinputresult == 1) {
+	wb_destroy(&cbuf);
+	return false;
+    }
+    pl_init(&pending_heredocs);
+
+    *result = parse_string_to(false, false);
+
+    wb_destroy(&cbuf);
+    pl_destroy(&pending_heredocs);
+    if (cinfo->lastinputresult == 1 || cerror) {
+	wordfree(*result);
+	return false;
+    } else {
+	return true;
+    }
 }
 
 

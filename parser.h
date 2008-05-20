@@ -25,6 +25,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include "strbuf.h"
+#include "plist.h"
 
 
 /********** 解析したソースコードの構文木を構成する構造体の宣言 **********/
@@ -264,8 +266,6 @@ typedef struct redir_T {
 
 /********** 構文解析ルーチンへのインタフェース宣言 **********/
 
-struct xwcsbuf_T;
-
 /* 入力を読み取ってバッファに追加する関数。
  * 入力は基本的に行単位で、入力元の現在位置から次の改行文字までを読み込む。
  * 読み込んだ改行文字もバッファに追加する。ただし改行がないまま入力の最後に
@@ -298,6 +298,25 @@ typedef struct parseinfo_T {
 
 extern int read_and_parse(
 	parseinfo_T *restrict info, and_or_T **restrict result)
+    __attribute__((nonnull));
+
+extern bool parse_string(
+	parseinfo_T *restrict info, wordunit_T **restrict result)
+    __attribute__((nonnull));
+
+
+/* 解析を中断する際に途中経過を保存するための構造体 */
+struct parsestate_T {
+    parseinfo_T *cinfo;
+    bool cerror;
+    struct xwcsbuf_T cbuf;
+    size_t cindex;
+    struct plist_T pending_heredocs;
+};
+
+extern struct parsestate_T *save_parse_state(void)
+    __attribute__((malloc,warn_unused_result));
+extern void restore_parse_state(struct parsestate_T *state)
     __attribute__((nonnull));
 
 
