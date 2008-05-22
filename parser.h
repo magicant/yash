@@ -280,6 +280,7 @@ typedef struct redir_T {
  * この関数は非 0 を返した後もさらに呼ばれることがある。 */
 typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
+/* 解析のための各種情報を保持する構造体 */
 typedef struct parseinfo_T {
     bool print_errmsg;    /* エラーメッセージを出力するかどうか */
     const char *filename; /* エラー表示で使うファイル名。NULL でも良い。 */
@@ -296,15 +297,6 @@ typedef struct parseinfo_T {
 /* intrinput が true で、かつ入力元に関して isatty も true なら inputisatty
  * が true になる。 */
 
-extern int read_and_parse(
-	parseinfo_T *restrict info, and_or_T **restrict result)
-    __attribute__((nonnull));
-
-extern bool parse_string(
-	parseinfo_T *restrict info, wordunit_T **restrict result)
-    __attribute__((nonnull));
-
-
 /* 解析を中断する際に途中経過を保存するための構造体 */
 struct parsestate_T {
     parseinfo_T *cinfo;
@@ -320,6 +312,28 @@ extern void restore_parse_state(struct parsestate_T *state)
     __attribute__((nonnull));
 
 
+extern int read_and_parse(
+	parseinfo_T *restrict info, and_or_T **restrict result)
+    __attribute__((nonnull));
+
+extern bool parse_string(
+	parseinfo_T *restrict info, wordunit_T **restrict result)
+    __attribute__((nonnull));
+static inline bool parse_string_saving(
+	parseinfo_T *restrict info, wordunit_T **restrict result)
+    __attribute__((nonnull));
+
+
+bool parse_string_saving(
+	parseinfo_T *restrict info, wordunit_T **restrict result)
+{
+    struct parsestate_T *state = save_parse_state();
+    bool ok = parse_string(info, result);
+    restore_parse_state(state);
+    return ok;
+}
+
+
 /********** 構文木を文字列に戻すルーチン **********/
 
 extern wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
@@ -331,6 +345,7 @@ extern wchar_t *command_to_wcs(const command_T *command)
 /********** 構文木データを複製・解放するルーチン **********/
 
 extern void andorsfree(and_or_T *a);
+extern void wordfree(wordunit_T *w);
 static inline command_T *comsdup(command_T *c);
 extern void comsfree(command_T *c);
 

@@ -89,7 +89,8 @@ extern void close_current_environment(void);
 
 extern void clear_all_functions(void);
 
-extern bool define_function(const char *name, command_T *body)
+struct command_T;
+extern bool define_function(const char *name, struct command_T *body)
     __attribute__((nonnull));
 extern command_T *get_function(const char *name)
     __attribute__((nonnull));

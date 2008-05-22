@@ -27,11 +27,18 @@
 #include "util.h"
 #include "strbuf.h"
 #include "lineinput.h"
+#include "parser.h"
+#include "variable.h"
 #include "sig.h"
+#include "expand.h"
 #include "job.h"
 
 
 /********** 入力関数 **********/
+
+static void print_prompt(int type);
+static wchar_t *expand_ps1(wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 /* マルチバイト文字列をソースとして読み取る入力用関数。
  * この関数は、inputinfo として input_mbs_info 構造体へのポインタを受け取る。
@@ -172,32 +179,69 @@ end:
  * type が 1 ならこの関数内で 2 に変更する。 */
 int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
+    print_job_status(PJS_ALL, true, false, stderr);
+    // TODO prompt command
+
     struct input_readline_info *info = inputinfo;
+    print_prompt(info->type);
+    if (info->type == 1)
+	info->type = 2;
+    return input_file(buf, info->fp);
+}
+
+/* 指定したタイプのプロンプトを表示する。
+ * type: プロンプトのタイプ。1 以上 3 以下。 */
+void print_prompt(int type)
+{
+    const wchar_t *ps;
+    switch (type) {
+	case 1:   ps = getvar(VAR_PS1);   break;
+	case 2:   ps = getvar(VAR_PS2);   break;
+	case 3:   ps = getvar(VAR_PS3);   goto just_print;
+	default:  assert(false);
+    }
+
+    struct input_wcs_info winfo = {
+	.src = ps,
+    };
+    parseinfo_T info = {
+	.print_errmsg = true,
+	.filename = gt("prompt"),
+	.lineno = 1,
+	.input = input_wcs,
+	.inputinfo = &winfo,
+    };
+    wordunit_T *word;
     wchar_t *prompt;
 
-    print_job_status(PJS_ALL, true, false, stderr);
-
-    switch (info->type) { // TODO プロンプトの展開
-	case 1:
-	    info->type = 2;
-	    prompt = xwcsdup(L"$ ");
-	    break;
-	case 2:
-	    prompt = xwcsdup(L"> ");
-	    break;
-	case 3:
-	    prompt = xwcsdup(L"");
-	    break;
-	case 4:
-	    prompt = xwcsdup(L"+ ");
-	    break;
-	default:
-	    assert(false);
-    }
+    if (ps == NULL)
+	return;
+    if (!parse_string_saving(&info, &word))
+	goto just_print;
+    prompt = expand_string(word, false);
+    wordfree(word);
+    if (type == 1)
+	prompt = expand_ps1(prompt);
     fprintf(stderr, "%ls", prompt);
     fflush(stderr);
     free(prompt);
-    return input_file(buf, info->fp);
+    return;
+
+just_print:
+    if (ps) {
+	fprintf(stderr, "%ls", ps);
+	fflush(stderr);
+    }
+}
+
+/* PS1 の内容を展開する。
+ * 引数は free 可能な文字列へのポインタであり、関数内で free する。
+ * 戻り値: 展開後のプロンプト文字列。呼出し元で free すること。 */
+/* posixly_correct が true なら ! を履歴番号に展開する。
+ * posixly_correct が false なら各種のバックスラッシュエスケープを展開する。 */
+wchar_t *expand_ps1(wchar_t *s)
+{
+    return s; // TODO expand_ps1
 }
 
 /* 指定したファイルディスクリプタの O_NONBLOCK フラグを設定する。
