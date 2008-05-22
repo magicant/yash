@@ -984,6 +984,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 {
     int pipefd[2];
     pid_t cpid;
+    bool save_is_interactive_now = is_interactive_now;
 
     if (!code[0])
 	return xwcsdup(L"");
@@ -1069,7 +1070,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	/* 子プロセスが SIGTSTP で停止してしまうと、親プロセスである
 	 * 対話的なシェルに制御が戻らなくなってしまう。よって、SIGTSTP を
 	 * 受け取っても停止しないようにブロックしておく。 */
-	if (is_interactive_now)
+	if (save_is_interactive_now)
 	    block_sigtstp();
 	reset_signals();
 

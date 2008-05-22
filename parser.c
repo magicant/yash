@@ -412,7 +412,7 @@ void restore_parse_state(struct parsestate_T *state)
  *         構文エラーならエラーメッセージを出して 1 を返す。
  *         入力が最後に達したら EOF を返す。
  *         入力エラーならエラーメッセージを出して EOF を返す。
- * この関数は再入不可能である。 */
+ * この関数は原則として再入不可能である。 */
 int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 {
     cinfo = info;
@@ -423,6 +423,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     if (info->intrinput)
 	((struct input_readline_info *) info->inputinfo)->type = 1;
 
+    cinfo->lastinputresult = 0;
     read_more_input();
     if (cinfo->lastinputresult == EOF) {
 	wb_destroy(&cbuf);
@@ -2094,7 +2095,7 @@ done:
  * result: 成功したら *result に解析結果が入る。
  *         入力が空文字列なら *result は NULL になる。
  * 戻り値: 成功したかどうか (エラーがなかったかどうか)。
- * この関数は再入不可能である。 */
+ * この関数は原則として再入不可能である。 */
 bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 {
     cinfo = info;
@@ -2102,6 +2103,7 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
     cindex = 0;
     wb_init(&cbuf);
 
+    cinfo->lastinputresult = 0;
     read_more_input();
     if (cinfo->lastinputresult == 1) {
 	wb_destroy(&cbuf);
