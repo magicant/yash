@@ -182,7 +182,6 @@ int main(int argc __attribute__((unused)), char **argv)
 	open_ttyfd();
 	set_own_pgrp();
 	set_positional_parameters(argv + xoptind);
-	// TODO デフォルトの変数の値を設定
 	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
 	FILE *input;
@@ -213,13 +212,13 @@ int main(int argc __attribute__((unused)), char **argv)
 	open_ttyfd();
 	set_own_pgrp();
 	set_positional_parameters(argv + xoptind);
-	// TODO デフォルトの変数の値を設定
 	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
     // TODO rc ファイル
 }
 
+/* ヘルプを標準出力に出力する */
 void print_help(void)
 {
     if (posixly_correct) {
@@ -238,6 +237,7 @@ void print_help(void)
     }
 }
 
+/* バージョン情報を標準出力に出力する */
 void print_version(void)
 {
     printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);

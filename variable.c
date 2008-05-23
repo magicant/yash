@@ -228,6 +228,16 @@ void init_variables(void)
 	    update_enrivon(VAR_LINENO);
     }
 
+    /* PS1/PS2/PS3/PS4 を設定する */
+    {
+	const wchar_t *ps1 =
+	    !posixly_correct ? L"\\$ " : geteuid() ? L"$ " : L"# ";
+	set_variable(VAR_PS1, xwcsdup(ps1),    false, false);
+	set_variable(VAR_PS2, xwcsdup(L"> "),  false, false);
+	set_variable(VAR_PS3, xwcsdup(L"#? "), false, false);
+	set_variable(VAR_PS4, xwcsdup(L"+ "),  false, false);
+    }
+
     /* PWD を設定する */
     init_pwd();
 
