@@ -319,19 +319,6 @@ extern int read_and_parse(
 extern bool parse_string(
 	parseinfo_T *restrict info, wordunit_T **restrict result)
     __attribute__((nonnull));
-static inline bool parse_string_saving(
-	parseinfo_T *restrict info, wordunit_T **restrict result)
-    __attribute__((nonnull));
-
-
-bool parse_string_saving(
-	parseinfo_T *restrict info, wordunit_T **restrict result)
-{
-    struct parsestate_T *state = save_parse_state();
-    bool ok = parse_string(info, result);
-    restore_parse_state(state);
-    return ok;
-}
 
 
 /********** 構文木を文字列に戻すルーチン **********/

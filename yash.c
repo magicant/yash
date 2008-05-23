@@ -182,6 +182,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	open_ttyfd();
 	set_own_pgrp();
 	set_positional_parameters(argv + xoptind);
+	// TODO デフォルトの変数の値を設定
 	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
 	FILE *input;
@@ -212,6 +213,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	open_ttyfd();
 	set_own_pgrp();
 	set_positional_parameters(argv + xoptind);
+	// TODO デフォルトの変数の値を設定
 	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
@@ -391,7 +393,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 			justwarned = true;
 			break;
 		    }
-		}
+		} // TODO stopped job の警告は exit 組み込みに移動
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
 		if (finally_exit)

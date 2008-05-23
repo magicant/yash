@@ -23,7 +23,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <wchar.h>
+#include "option.h"
 #include "util.h"
 #include "strbuf.h"
 #include "lineinput.h"
@@ -37,7 +39,9 @@
 /********** 入力関数 **********/
 
 static void print_prompt(int type);
-static wchar_t *expand_ps1(wchar_t *s)
+static wchar_t *expand_ps1_posix(wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wchar_t *expand_ps_yash(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 /* マルチバイト文字列をソースとして読み取る入力用関数。
@@ -179,6 +183,7 @@ end:
  * type が 1 ならこの関数内で 2 に変更する。 */
 int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
+    struct parsestate_T *state = save_parse_state();
     print_job_status(PJS_ALL, true, false, stderr);
     // TODO prompt command
 
@@ -186,11 +191,13 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     print_prompt(info->type);
     if (info->type == 1)
 	info->type = 2;
+    restore_parse_state(state);
     return input_file(buf, info->fp);
 }
 
 /* 指定したタイプのプロンプトを表示する。
  * type: プロンプトのタイプ。1 以上 3 以下。 */
+/* この関数内で parse_string を呼び出すので予め save_parse_state しておくこと */
 void print_prompt(int type)
 {
     const wchar_t *ps;
@@ -216,12 +223,17 @@ void print_prompt(int type)
 
     if (ps == NULL)
 	return;
-    if (!parse_string_saving(&info, &word))
+    if (!parse_string(&info, &word))
 	goto just_print;
     prompt = expand_string(word, false);
     wordfree(word);
-    if (type == 1)
-	prompt = expand_ps1(prompt);
+    if (posixly_correct) {
+	if (type == 1)
+	    prompt = expand_ps1_posix(prompt);
+    } else {
+	assert(type == 1 || type == 2);
+	prompt = expand_ps_yash(prompt);
+    }
     fprintf(stderr, "%ls", prompt);
     fflush(stderr);
     free(prompt);
@@ -234,14 +246,95 @@ just_print:
     }
 }
 
-/* PS1 の内容を展開する。
+/* posixly_correct が true の場合用に PS1 の内容を展開する。
  * 引数は free 可能な文字列へのポインタであり、関数内で free する。
  * 戻り値: 展開後のプロンプト文字列。呼出し元で free すること。 */
-/* posixly_correct が true なら ! を履歴番号に展開する。
- * posixly_correct が false なら各種のバックスラッシュエスケープを展開する。 */
-wchar_t *expand_ps1(wchar_t *s)
+/* この関数内では、"!" が次の履歴番号に、"!!" が "!" に置き換わる */
+wchar_t *expand_ps1_posix(wchar_t *s)
 {
-    return s; // TODO expand_ps1
+    wchar_t *const saves = s;
+    xwcsbuf_T buf;
+    wb_init(&buf);
+
+    while (*s) {
+	if (*s == L'!') {
+	    if (*++s == L'!') {
+		wb_wccat(&buf, L'!');
+	    } else {
+		// TODO expand_ps1_posix: "!" を履歴番号に展開
+		wb_wprintf(&buf, L"%d", 0);
+		continue;
+	    }
+	} else {
+	    wb_wccat(&buf, *s);
+	}
+	s++;
+    }
+    free(saves);
+    return wb_towcs(&buf);
+}
+
+/* posixly_correct が false の場合用に PS1/PS2 の内容を展開する。
+ * 引数は free 可能な文字列へのポインタであり、関数内で free する。
+ * 戻り値: 展開後のプロンプト文字列。呼出し元で free すること。 */
+/* この関数内では以下のバックスラッシュエスケープが置き換わる。
+ *   \a    警報文字 L'\a' (L'\07')
+ *   \e    エスケープ文字 L'\033'
+ *   \fX   文字の色などを変更する
+ *   \j    ジョブ数
+ *   \n    改行文字 L'\n'
+ *   \r    復帰文字 L'\r'
+ *   \!    履歴番号
+ *   \$    実効 UID が 0 なら L'#' さもなくば L'$'
+ *   \nnn  八進数 nnn の文字 L'\nnn'
+ *   \\    バックスラッシュ
+ *   \[    表示する文字数に数えない文字の始まり
+ *   \]    表示する文字数に数えない文字の終わり
+ *
+ * TODO expand_ps_yash 色を変更する特殊シーケンス
+ * \fX の X には以下をいくつでも指定できる。
+ *   k (black)    r (red)        g (green)    y (yellow)
+ *   b (blue)     m (magenta)    c (cyan)     w (white)
+ *    (色を表すこれら 8 文字は、小文字は文字の色を、大文字は背景の色を指定する)
+ *   d (デフォルトの文字と背景色)
+ *   s (standout)
+ *   u (underline)
+ *   v (reverse)
+ *   n (blink)
+ *   i (dim)
+ *   o (bold)
+ *   x (invisible)
+ *   . (終わり - なくてもよい)
+ * */
+wchar_t *expand_ps_yash(wchar_t *s)
+{
+    wchar_t *const saves = s;
+    xwcsbuf_T buf;
+    wb_init(&buf);
+
+    while (*s) {
+	if (*s != L'\\') {
+	    wb_wccat(&buf, *s);
+	} else switch (*++s) {
+	case L'\0':   wb_wccat(&buf, L'\\');     goto done;
+	//case L'\\':   wb_wccat(&buf, L'\\');     break;
+	case L'a':    wb_wccat(&buf, L'\a');     break;
+	case L'e':    wb_wccat(&buf, L'\033');   break;
+	case L'n':    wb_wccat(&buf, L'\n');     break;
+	case L'r':    wb_wccat(&buf, L'\r');     break;
+	default:      wb_wccat(&buf, *s);        break;
+	case L'$':    wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
+	case L'j':    wb_wprintf(&buf, L"%zu", job_count());  break;
+	case L'!':    wb_wprintf(&buf, L"%d", 0); break;
+		      // TODO  expand_ps_yash: 履歴番号の展開
+	case L'[':    // TODO  expand_ps_yash: \[ と \] の処理
+	case L']':    break;
+	}
+	s++;
+    }
+done:
+    free(saves);
+    return wb_towcs(&buf);
 }
 
 /* 指定したファイルディスクリプタの O_NONBLOCK フラグを設定する。
