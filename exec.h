@@ -42,10 +42,11 @@ extern void load_execinfo(struct execinfo *save)
     __attribute__((nonnull));
 
 struct and_or_T;
+struct wordunit_T;
 extern void exec_and_or_lists(const struct and_or_T *a, bool finally_exit);
 extern wchar_t *exec_command_substitution(const wchar_t *code)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern int open_heredocument(const wordunit_T *content);
+extern int open_heredocument(const struct wordunit_T *content);
 
 extern void make_myself_foreground(void);
 

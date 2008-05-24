@@ -194,7 +194,7 @@ void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 	a = a->next;
     }
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
 }
 
 /* パイプラインたちを実行する。 */
@@ -216,7 +216,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	supresserrexit = savesee;
     }
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
 }
 
 /* 一つ以上のパイプラインを非同期的に実行する。 */
@@ -275,7 +275,7 @@ void exec_if(const command_T *c, bool finally_exit)
     laststatus = 0;
 done:
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
 }
 
 /* if/while/until コマンドの条件を実行する */
@@ -348,7 +348,7 @@ done:
 	laststatus = EXIT_SUCCESS;
 finish:
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
     execinfo.loopnest--;
 }
 
@@ -373,7 +373,7 @@ void exec_while(const command_T *c, bool finally_exit)
     laststatus = status;
 done:
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
     execinfo.loopnest--;
 }
 #undef CHECK_LOOP
@@ -405,7 +405,7 @@ void exec_case(const command_T *c, bool finally_exit)
     laststatus = EXIT_SUCCESS;
 done:
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
     free(word);
     return;
 
@@ -582,7 +582,7 @@ finish:
 done:
     if (shopt_errexit && !supresserrexit && laststatus != EXIT_SUCCESS
 	    && lasttype == CT_SIMPLE)
-	exit(laststatus);
+	exit_shell();
 }
 
 /* 一つのコマンドを実行する。
@@ -690,9 +690,9 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    if (do_assignments_for_command_type(c->c_assigns, cmdinfo.type)) {
 		exec_simple_command(&cmdinfo, argc, argv, finally_exit);
 	    } else {
-		if (!is_interactive && cmdinfo.type == specialbuiltin)
-		    exit(EXIT_ASSGNERR);
 		laststatus = EXIT_ASSGNERR;
+		if (!is_interactive && cmdinfo.type == specialbuiltin)
+		    exit_shell();
 	    }
 	    clear_temporary_variables();
 	}
@@ -701,7 +701,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	exec_nonsimple_command(c, finally_exit);
     }
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
 
     // TODO exec: exec_process: exec コマンドのリダイレクトは残す
 #if 0
@@ -717,18 +717,18 @@ exp_fail:
     laststatus = EXIT_EXPERROR;
 done:
     if (early_fork || type == execself)
-	exit(laststatus);
+	exit_shell();
     return 0;
 redir_fail:
+    laststatus = EXIT_REDIRERR;
     if (finally_exit)
-	exit(EXIT_REDIRERR);
+	exit_shell();
     if (posixly_correct && !is_interactive
 	    && c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin)
-	exit(EXIT_REDIRERR);
+	exit_shell();
     undo_redirections(savefd);
     if (c->c_type == CT_SIMPLE)
 	recfree((void **) argv, free);
-    laststatus = EXIT_REDIRERR;
     return 0;
 }
 
@@ -854,7 +854,7 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	else
 	    laststatus = EXIT_ASSGNERR;
 	if (finally_exit)
-	    exit(laststatus);
+	    exit_shell();
 	break;
     }
     comsfree(c);
@@ -873,7 +873,7 @@ void exec_simple_command(
 	assert(finally_exit);
 	if (ci->ci_path == NULL) {
 	    xerror(0, Ngt("%s: no such command or function"), argv[0]);
-	    exit(EXIT_NOTFOUND);
+	    exit_shell_with_status(EXIT_NOTFOUND);
 	}
 	xexecv(ci->ci_path, (char **) argv);
 	if (errno != ENOEXEC) {
@@ -888,8 +888,8 @@ void exec_simple_command(
 	} else {
 	    exec_fall_back_on_sh(argc, argv, environ, ci->ci_path);
 	}
-	exit(EXIT_NOEXEC);
-	break;
+	exit_shell_with_status(EXIT_NOEXEC);
+	//break;
     case specialbuiltin:
     case semispecialbuiltin:
     case regularbuiltin:
@@ -900,7 +900,7 @@ void exec_simple_command(
 	break;
     }
     if (finally_exit)
-	exit(laststatus);
+	exit_shell();
 }
 
 /* 指定した引数で sh を exec する。

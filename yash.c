@@ -139,7 +139,7 @@ int main(int argc __attribute__((unused)), char **argv)
     }
 
     if (option_error)
-	exit(2);
+	exit(EXIT_ERROR);
 
     /* 最初の引数が "-" なら無視する */
     if (argv[xoptind] && strcmp(argv[xoptind], "-") == 0)
@@ -163,7 +163,7 @@ int main(int argc __attribute__((unused)), char **argv)
 
     if (shopt_read_arg && shopt_read_stdin) {
 	xerror(0, Ngt("both -c and -s options cannot be given at once"));
-	exit(2);
+	exit(EXIT_ERROR);
     }
     shopt_read_arg = shopt_read_arg;
     shopt_read_stdin = shopt_read_stdin;
@@ -171,7 +171,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	char *command = argv[xoptind++];
 	if (!command) {
 	    xerror(0, Ngt("-c option requires an operand"));
-	    exit(2);
+	    exit(EXIT_ERROR);
 	}
 	if (argv[xoptind])
 	    command_name = argv[xoptind++];
@@ -216,6 +216,24 @@ int main(int argc __attribute__((unused)), char **argv)
     }
     assert(false);
     // TODO rc ファイル
+}
+
+/* シェルを終了し、終了ステータスとして status を返す。
+ * status が負数なら laststatus を返す。 */
+/* この関数は EXIT トラップを実行し、reset_own_pgrp を呼び出す。 */
+/* この関数は返らない。 */
+/* この関数は再入可能であり、再入すると直ちに終了する。 */
+void exit_shell_with_status(int status)
+{
+    static bool exiting = false;
+    static int exitstatus;
+    if (!exiting) {
+	exiting = true;
+	exitstatus = (status < 0) ? laststatus : status;
+	// TODO yash: exit_shell: EXIT トラップを実行
+    }
+    reset_own_pgrp();
+    exit((status < 0) ? exitstatus : status);
 }
 
 /* ヘルプを標準出力に出力する */
@@ -386,6 +404,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
 		    break;
 		} else if (pinfo->intrinput && !justwarned) {
+		    // TODO yash: parse_and_exec: exit 組込みでも同様の警告を
 		    size_t sjc = stopped_job_count();
 		    if (sjc > 0) {
 			fprintf(stderr,
@@ -400,7 +419,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
 		if (finally_exit)
-		    exit(laststatus); // TODO exit 組込みを呼ぶ
+		    exit_shell();
 		else
 		    return true;
 	    case 1:  // 構文エラー
@@ -409,7 +428,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (pinfo->intrinput)
 		    break;
 		else if (finally_exit)
-		    exit(laststatus);
+		    exit_shell();
 		else
 		    return false;
 	}

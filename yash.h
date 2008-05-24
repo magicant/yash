@@ -30,6 +30,12 @@ extern void set_own_pgrp(void);
 extern void reset_own_pgrp(void);
 extern void forget_initial_pgrp(void);
 
+static inline void exit_shell(void)
+    __attribute__((noreturn));
+extern void exit_shell_with_status(int status)
+    __attribute__((noreturn));
+
+
 struct parseinfo_T;
 
 extern bool exec_mbs(const char *code, const char *name, bool finally_exit)
@@ -41,6 +47,16 @@ extern bool exec_input(FILE *f, const char *name,
     __attribute__((nonnull(1)));
 extern bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
     __attribute__((nonnull(1)));
+
+
+/* シェルを終了し、終了ステータスとして laststatus を返す。 */
+/* この関数は EXIT トラップを実行し、reset_own_pgrp を呼び出す。 */
+/* この関数は返らない。 */
+/* この関数は再入可能であり、再入すると直ちに終了する。 */
+void exit_shell(void)
+{
+    exit_shell_with_status(-1);
+}
 
 
 #endif /* YASH_H */

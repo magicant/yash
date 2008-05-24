@@ -31,6 +31,7 @@
 #endif
 #include "option.h"
 #include "util.h"
+#include "exec.h"
 
 
 /********** General functions **********/
@@ -43,7 +44,7 @@ void *xcalloc(size_t nmemb, size_t size)
     if (result)
 	return result;
     xerror(ENOMEM, NULL);
-    exit(2);
+    exit(EXIT_ERROR);
 }
 */
 
@@ -54,7 +55,7 @@ void *xmalloc(size_t size)
     if (result)
 	return result;
     xerror(ENOMEM, NULL);
-    exit(2);
+    exit(EXIT_ERROR);
 }
 
 /* realloc を試みる。失敗したらプログラムを強制終了する。 */
@@ -64,7 +65,7 @@ void *xrealloc(void *ptr, size_t size)
     if (result)
 	return result;
     xerror(ENOMEM, NULL);
-    exit(2);
+    exit(EXIT_ERROR);
 }
 
 
