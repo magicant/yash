@@ -315,7 +315,7 @@ func
 func3
 func
 
-if $TESTEE -s 2>/dev/null <<END
+if $INVOKE $TESTEE -s 2>/dev/null <<END
 f () f2 () { echo error; }
 END
 then echo 1

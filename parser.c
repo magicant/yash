@@ -254,6 +254,15 @@ wchar_t *skip_name(const wchar_t *s)
 
 /********** 構文解析ルーチン **********/
 
+/* 解析を中断する際に途中経過を保存するための構造体 */
+struct parsestate_T {
+    parseinfo_T *cinfo;
+    bool cerror;
+    struct xwcsbuf_T cbuf;
+    size_t cindex;
+    struct plist_T pending_heredocs;
+};
+
 typedef enum { noalias, globalonly, anyalias, } aliastype_T;
 
 static void serror(const char *restrict format, ...)
@@ -487,7 +496,7 @@ int read_more_input(void)
     if (cinfo->lastinputresult == 0) {
 	size_t savelength = cbuf.length;
 	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
-	if (shopt_verbose)
+	if (cinfo->enable_verbose && shopt_verbose)
 	    fprintf(stderr, "%ls", cbuf.contents + savelength);
     }
     return cinfo->lastinputresult;

@@ -25,8 +25,6 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include "strbuf.h"
-#include "plist.h"
 
 
 /********** 解析したソースコードの構文木を構成する構造体の宣言 **********/
@@ -266,6 +264,9 @@ typedef struct redir_T {
 
 /********** 構文解析ルーチンへのインタフェース宣言 **********/
 
+struct xwcsbuf_T;
+struct parsestate_T;
+
 /* 入力を読み取ってバッファに追加する関数。
  * 入力は基本的に行単位で、入力元の現在位置から次の改行文字までを読み込む。
  * 読み込んだ改行文字もバッファに追加する。ただし改行がないまま入力の最後に
@@ -283,6 +284,7 @@ typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 /* 解析のための各種情報を保持する構造体 */
 typedef struct parseinfo_T {
     bool print_errmsg;    /* エラーメッセージを出力するかどうか */
+    bool enable_verbose;  /* shopt_verbose が true のときエコーするかどうか */
     const char *filename; /* エラー表示で使うファイル名。NULL でも良い。 */
     unsigned long lineno; /* 行番号。最初は 1 にしておく。 */
     inputfunc_T *input;   /* 入力関数 */
@@ -296,15 +298,6 @@ typedef struct parseinfo_T {
  * intrinput が true でも入力元が本当に端末であるとは限らない。 */
 /* intrinput が true で、かつ入力元に関して isatty も true なら inputisatty
  * が true になる。 */
-
-/* 解析を中断する際に途中経過を保存するための構造体 */
-struct parsestate_T {
-    parseinfo_T *cinfo;
-    bool cerror;
-    struct xwcsbuf_T cbuf;
-    size_t cindex;
-    struct plist_T pending_heredocs;
-};
 
 extern struct parsestate_T *save_parse_state(void)
     __attribute__((malloc,warn_unused_result));

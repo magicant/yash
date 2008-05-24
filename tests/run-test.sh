@@ -21,8 +21,8 @@ echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:?}"
 echo "Any output from the tests indicates a possible malfunction"
 
 LC_ALL=C
-export TESTEE LC_ALL
-unset IFS invokecmd failed
+export INVOKE TESTEE LC_ALL
+unset IFS failed
 
 failed=0
 for x in $TEST_ITEMS
@@ -30,10 +30,10 @@ do
     x="${x%.tst}"
     echo " * $x"
     if [ x"$x" = x"${x%.p}" ]
-    then invokecmd=
-    else invokecmd='./invoke sh'
+    then INVOKE=
+    else INVOKE='./invoke sh'
     fi
-    if ! $invokecmd $TESTEE "${x}.tst" 2>&1 | diff - "${x}.out"
+    if ! $INVOKE $TESTEE "${x}.tst" 2>&1 | diff - "${x}.out"
     then
 	failed=$(( failed + 1 ))
     fi

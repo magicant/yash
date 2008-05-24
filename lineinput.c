@@ -213,6 +213,7 @@ void print_prompt(int type)
     };
     parseinfo_T info = {
 	.print_errmsg = true,
+	.enable_verbose = false,
 	.filename = gt("prompt"),
 	.lineno = 1,
 	.input = input_wcs,
@@ -286,7 +287,6 @@ wchar_t *expand_ps1_posix(wchar_t *s)
  *   \r    復帰文字 L'\r'
  *   \!    履歴番号
  *   \$    実効 UID が 0 なら L'#' さもなくば L'$'
- *   \nnn  八進数 nnn の文字 L'\nnn'
  *   \\    バックスラッシュ
  *   \[    表示する文字数に数えない文字の始まり
  *   \]    表示する文字数に数えない文字の終わり

@@ -285,6 +285,7 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
     };
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
+	.enable_verbose = false,
 	.filename = name,
 	.lineno = 1,
 	.input = input_mbs,
@@ -311,6 +312,7 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     };
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
+	.enable_verbose = false,
 	.filename = name,
 	.lineno = 1,
 	.input = input_wcs,
@@ -335,6 +337,7 @@ bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
     struct input_readline_info rlinfo;
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
+	.enable_verbose = true,
 	.filename = name,
 	.lineno = 1,
 	.intrinput = intrinput,
