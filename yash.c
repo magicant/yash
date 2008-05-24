@@ -31,7 +31,7 @@
 #include "option.h"
 #include "util.h"
 #include "path.h"
-#include "lineinput.h"
+#include "input.h"
 #include "parser.h"
 #include "variable.h"
 #include "sig.h"

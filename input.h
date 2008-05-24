@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* lineinput.h: functions for input, including Readline Library wrapper */
+/* input.h: functions for input, including Readline Library wrapper */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef LINEINPUT_H
-#define LINEINPUT_H
+#ifndef INPUT_H
+#define INPUT_H
 
 #include <stdio.h>
 #include <wchar.h>
@@ -66,7 +66,7 @@ struct input_readline_info {
 };
 
 
-#endif /* LINEINPUT_H */
+#endif /* INPUT_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* lineinput.c: functions for input, including Readline Library wrapper */
+/* input.c: functions for input, including Readline Library wrapper */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
-#include "lineinput.h"
+#include "input.h"
 #include "parser.h"
 #include "variable.h"
 #include "sig.h"

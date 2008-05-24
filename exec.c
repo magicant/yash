@@ -39,7 +39,7 @@
 #include "plist.h"
 #include "wfnmatch.h"
 #include "path.h"
-#include "lineinput.h"
+#include "input.h"
 #include "parser.h"
 #include "variable.h"
 #include "sig.h"

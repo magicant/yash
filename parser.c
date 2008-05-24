@@ -34,7 +34,7 @@
 #include "util.h"
 #include "strbuf.h"
 #include "plist.h"
-#include "lineinput.h"
+#include "input.h"
 #include "parser.h"
 #include "expand.h"
 

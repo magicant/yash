@@ -62,7 +62,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) $(SUBSOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh tests/Makefile tests/*.test tests/*.right tests/invoke.c tests/run-test.sh
+DISTCONTENTS = $(SOURCES) $(SUBSOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh tests/Makefile tests/*.tst tests/*.t tests/*.out tests/invoke.c tests/run-test.sh
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	rm -rf $(DISTDIR)
