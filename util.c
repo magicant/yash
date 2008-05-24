@@ -393,6 +393,7 @@ tryparseshortoption:
 	    argshift(argv, xoptind, initind);
 	    xoptind = initind;
 	} else {
+	    aindex = 1;
 	    argshift(argv, xoptind, initind);
 	    xoptind = initind + 1;
 	}
