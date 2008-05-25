@@ -276,8 +276,10 @@ void set_own_pgrp(void)
 /* ジョブ制御が有効なら、自分自身のプロセスグループを set_own_pgrp 前に戻す */
 void reset_own_pgrp(void)
 {
-    if (do_job_control && initial_pgrp > 0)
+    if (do_job_control && initial_pgrp > 0) {
 	setpgid(0, initial_pgrp);
+	make_myself_foreground();
+    }
 }
 
 /* reset_own_pgrp してもプロセスグループが元に戻らないようにする */
