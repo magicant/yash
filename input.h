@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* input.h: functions for input, including Readline Library wrapper */
+/* input.h: functions for input of command line */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -21,15 +21,6 @@
 
 #include <stdio.h>
 #include <wchar.h>
-#if USE_READLINE
-# if HAVE_LIBREADLINE
-#  include <readline/readline.h>
-#  include <readline/history.h>
-# else
-#  include "readline.h"  /* should be manually prepared */
-#  include "history.h"   /* should be manually prepared */
-# endif
-#endif
 
 
 extern bool set_nonblocking(int fd);

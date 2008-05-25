@@ -32,10 +32,6 @@
 # include "config.h"
 #endif
 
-#if HAVE_LIBREADLINE
-# define USE_READLINE 1
-#endif
-
 #if HAVE_GETTEXT
 # define gt(MSGID)  gettext(MSGID)
 # define Ngt(MSGID) MSGID

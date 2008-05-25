@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* input.c: functions for input, including Readline Library wrapper */
+/* input.c: functions for input of command line */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
