@@ -172,6 +172,10 @@ bool is_canonicalized(const wchar_t *path)
  * エラーのときは errno を設定して NULL を返す。 */
 char *xgetcwd(void)
 {
+#if GETCWD_AUTO_MALLOC
+    char *pwd = getcwd(NULL, 0);
+    return pwd ? xrealloc(pwd, strlen(pwd) + 1) : NULL;
+#else
     size_t pwdlen = 40;
     char *pwd = xmalloc(pwdlen);
     while (getcwd(pwd, pwdlen) == NULL) {
@@ -185,6 +189,7 @@ char *xgetcwd(void)
 	}
     }
     return pwd;
+#endif
 }
 
 

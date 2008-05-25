@@ -23,7 +23,7 @@ configh="config.h"
 versionh="version.h"
 tempsrc=".temp.c"
 tempo=".temp.o"
-tempout=".temp.out"
+tempout="./.temp.out"
 
 cc="${CC-c99}"
 cflags="${CFLAGS--O1 -g}"
@@ -230,7 +230,7 @@ cat >"${tempsrc}" <<END
 #include <stdio.h>
 #include <signal.h>
 extern char *strsignal(int);
-int main() { printf("%s\n", strsignal(SIGKILL)); return 0; }
+int main() { printf("%s\n", strsignal(SIGKILL)); }
 END
 if trymake
 then
@@ -245,12 +245,53 @@ checking "for paths.h"
 cat >"${tempsrc}" <<END
 #include <paths.h>
 #include <stdio.h>
-int main() { printf("%s\n", _PATH_BSHELL); return 0; }
+int main() { printf("%s\n", _PATH_BSHELL); }
 END
 if trycompile
 then
     checked "yes"
     defconfigh "HAVE_PATHS_H"
+else
+    checked "no"
+fi
+
+# check if getcwd accepts (NULL,0) as argument
+checking "if getcwd(NULL,0) returns malloc'ed string"
+cat >"${tempsrc}" <<END
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+char *xgetcwd(void) {
+    size_t pwdlen = 40;
+    char *pwd = malloc(pwdlen);
+    if (!pwd) return NULL;
+    while (getcwd(pwd, pwdlen) == NULL) {
+	if (errno == ERANGE) {
+	    pwdlen *= 2;
+	    pwd = realloc(pwd, pwdlen);
+	    if (!pwd) return NULL;
+	} else {
+	    free(pwd);
+	    return NULL;
+	}
+    }
+    return pwd;
+}
+int main(void) {
+    char *wd1 = getcwd(NULL, 0);
+    if (!wd1) return 1;
+    char *wd2 = xgetcwd();
+    if (!wd2 || strcmp(wd1, wd2) != 0) return 1;
+    char *wd11 = realloc(wd1, strlen(wd1) + 10);
+    if (!wd11 || strcmp(wd11, wd2) != 0) return 1;
+    free(wd11);
+}
+END
+if trymake && "${tempout}"
+then
+    checked "yes"
+    defconfigh "GETCWD_AUTO_MALLOC"
 else
     checked "no"
 fi
