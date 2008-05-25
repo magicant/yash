@@ -24,6 +24,8 @@ Currently there is no manpage for yash. Sorry.
    codes. When not compiled with GCC, this keyword is removed by
    preprocessor, so generally there is no harm. But if your compiler
    uses this keyword for any other purpose, compilation may fail.
+   Additionally, some other identifiers starting with '_' may cause
+   compilation errors on some rare environments.
  * When -e (-o errexit) option is set, failure of the last command of
    an and/or list makes the shell exit. This behavior is not strictly
    POSIX-compliant, but most existing shells behave this way.

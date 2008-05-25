@@ -5,6 +5,10 @@ History of Yash
    -: removed feature
    =: specification change
    *: bug fix
-   x: newly found bug that is not fixed yet
+   x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.0 alpha0 (the first release of version 2.x)
+
+  x  Arithmetic expansion is not implemented
+  x  Builtins are not implemented at all
