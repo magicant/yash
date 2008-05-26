@@ -1,0 +1,87 @@
+123
+abc abc abc abc $var ${var}
+$var ${var} $var ${var}
+abc abc abc abc $var ${var}
+abc abc abc abc $var ${var}
+$(echo $var ${var} "$var" "${var}")
+===== 0 =====
+abc bc a
+===== 1 =====
+comment# #
+very very long line
+pipeline |
+test
+of
+sequential ;
+lists
+===== 2 =====
+true and
+false or
+or
+and
+and newline
+or newline
+===== 3 =====
+compound list
+another
+compound list}
+subshell
+another
+subshell
+yet another subshell
+===== 4 =====
+if construct
+dummy
+ok!
+dummy
+dummy
+ok!
+dummy
+ok!
+1
+2
+line concatenation ok (if)
+===== 5 =====
+0
+0
+line concatenation ok (while)
+===== 6 =====
+1
+1
+2 2
+2   2
+3
+3
+parser.p.out
+parser.p.tst
+1
+1
+2 2
+2  2
+3
+3
+===== 7 =====
+0
+ok
+2
+*
+foo
+one
+two
+3
+foo
+four
+5
+line concatenation ok (case)
+===== 8 =====
+function
+function
+line concatenation ok (func)
+func3
+function
+func3
+function
+2
+re-redirected
+redirected
+lineno=341

@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* exec.h: interface to command execution */
+/* exec.h: command execution */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -19,25 +19,39 @@
 #ifndef EXEC_H
 #define EXEC_H
 
-#include <signal.h>
 #include <stdbool.h>
 #include <sys/types.h>
-#include <sys/select.h>
-#include "parser.h"
 
+
+#define EXIT_FAILURE1 1
+#define EXIT_ERROR    2
+#define EXIT_NOEXEC   126
+#define EXIT_NOTFOUND 127
+#define EXIT_SYNERROR (256 + EXIT_ERROR)
+#define EXIT_EXPERROR EXIT_ERROR
+#define EXIT_ASSGNERR EXIT_ERROR
+#define EXIT_REDIRERR EXIT_ERROR
 
 extern int laststatus;
-extern int shellfdmin;
+extern pid_t lastasyncpid;
 
-void init_exec(void);
-void add_shellfd(int fd);
-void remove_shellfd(int fd);
-bool is_shellfd(int fd);
-void clear_shellfds(void);
-void reset_shellfdmin(void);
-void exec_statements(STATEMENT *statements, bool finally_exit);
-void reset_after_fork(void);
-char *exec_and_read(const char *code, bool trimend);
+struct execinfo;
+extern struct execinfo *save_execinfo(void)
+    __attribute__((malloc,warn_unused_result));
+extern void load_execinfo(struct execinfo *save)
+    __attribute__((nonnull));
+
+struct and_or_T;
+struct wordunit_T;
+extern void exec_and_or_lists(const struct and_or_T *a, bool finally_exit);
+extern wchar_t *exec_command_substitution(const wchar_t *code)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern int open_heredocument(const struct wordunit_T *content);
+
+extern void make_myself_foreground(void);
 
 
 #endif /* EXEC_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* expand.h: functions for command line expansion */
+/* expand.h: word expansion */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -20,30 +20,68 @@
 #define EXPAND_H
 
 #include <stdbool.h>
-#include "util.h"
+#include <stddef.h>
+
+/* チルダ展開の種類 */
+typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
+
+extern bool expand_line(
+	void *const *restrict args,
+	int *restrict argcp,
+	char ***restrict argvp)
+    __attribute__((nonnull));
+extern wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
+    __attribute__((malloc,warn_unused_result));
+extern char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
+    __attribute__((malloc,warn_unused_result));
+extern wchar_t *expand_string(const wordunit_T *w, bool esc)
+    __attribute__((malloc,warn_unused_result));
+
+extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
+    __attribute__((nonnull(1),malloc,warn_unused_result));
+static inline wchar_t *escapefree(
+	wchar_t *restrict s, const wchar_t *restrict t)
+    __attribute__((nonnull(1),malloc,warn_unused_result));
+extern wchar_t *unescape(const wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t *unescapefree(wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *unquote(const wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 
-enum tildeexpandtype { te_none, te_single, te_multi };
+/* escape と同じだが、第 1 引数を free する。
+ * s の文字のうち、t に含まれる文字をバックスラッシュエスケープして返す。 */
+static inline wchar_t *escapefree(
+	wchar_t *restrict s, const wchar_t *restrict t)
+{
+    extern void free(void *ptr);
 
-bool expand_line(char *const *args, int *argc, char ***argv)
-	__attribute__((nonnull(2,3)));
-char *expand_single(const char *arg, bool pathexp)
-	__attribute__((nonnull));
-char *expand_word(const char *s, enum tildeexpandtype type, bool alwaysindq)
-	__attribute__((nonnull));
-void append_splitting(const char *str, struct strbuf *buf, struct plist *list,
-		const char *ifs, const char *q)
-	__attribute__((nonnull(1,2,3,4)));
-char *unescape(char *s)
-	__attribute__((malloc));
-char *unescape_here_document(char *s)
-	__attribute__((malloc));
-void escape_sq(const char *s, struct strbuf *buf)
-	__attribute__((nonnull));
-void escape_bs(const char *s, const char *q, struct strbuf *buf)
-	__attribute__((nonnull));
-char *escape(char *s, const char *q)
-	__attribute__((nonnull, malloc));
+    wchar_t *wcspbrk(const wchar_t *ws1, const wchar_t *ws2);
+    if (t && !wcspbrk(s, t))
+	return s;
+
+    wchar_t *result = escape(s, t);
+    free(s);
+    return result;
+}
+
+/* unescape と同じだが、引数を free する。 */
+wchar_t *unescapefree(wchar_t *s)
+{
+    extern void free(void *ptr);
+
+    wchar_t *wcschr(const wchar_t *ws, wchar_t wc);
+    if (!wcschr(s, L'\\'))
+	return s;
+
+    wchar_t *result = unescape(s);
+    free(s);
+    return result;
+}
 
 
 #endif /* EXPAND_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

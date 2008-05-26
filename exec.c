@@ -17,1000 +17,1131 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/select.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
 #include <unistd.h>
-#include "yash.h"
+#include <wchar.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
+#if HAVE_PATHS_H
+# include <paths.h>
+#endif
+#include "option.h"
 #include "util.h"
-#include "sig.h"
-#include "parser.h"
-#include "expand.h"
-#include "exec.h"
-#include "job.h"
+#include "strbuf.h"
+#include "plist.h"
+#include "wfnmatch.h"
 #include "path.h"
-#include "builtin.h"
+#include "input.h"
+#include "parser.h"
 #include "variable.h"
-#include <assert.h>
+#include "sig.h"
+#include "expand.h"
+#include "redir.h"
+#include "job.h"
+#include "exec.h"
+#include "yash.h"
 
 
-/* パイプの集合 */
-typedef struct {
-	size_t p_count;     /* パイプの fd ペアの数 */
-	int (*p_pipes)[2];  /* パイプの fd ペアの配列へのポインタ */
-} PIPES;
-
-/* コマンドをどのように実行するか */
+/* コマンドの実行のしかたを表す */
 typedef enum {
-	FOREGROUND,         /* フォアグラウンドで実行 */
-	BACKGROUND,         /* バックグラウンドで実行 */
-	SELF,               /* このシェル自身を exec して実行 */
-} exec_t;
+    execnormal,  /* 普通に実行 */
+    execasync,   /* 非同期的に実行 */
+    execself,    /* 自分自身のプロセスで実行 */
+} exec_T;
 
-/* 設定したリダイレクトを後で元に戻すためのデータ */
-struct save_redirect {
-	struct save_redirect *next;
-	int   sr_origfd; /* 元のファイルディスクリプタ */
-	int   sr_copyfd; /* 新しくコピーしたファイルディスクリプタ */
-	FILE *sr_file;   /* 元のストリーム */
-	bool  sr_stdin_redirected;  /* is_stdin_redirected の値 */
-};
+/* パイプのファイルディスクリプタの情報 */
+typedef struct pipeinfo_T {
+    int pi_fromprevfd;      /* 前のプロセスとのパイプ */
+    int pi_tonextfds[2];    /* 次のプロセスとのパイプ */
+    int pi_loopoutfd;       /* ループパイプの書き込み側 */
+} pipeinfo_T;
+/* 使用しない部分は無効な値として -1 を入れる。 */
+#define PIDX_IN  0   /* パイプの読み込み側の FD のインデックス */
+#define PIDX_OUT 1   /* パイプの書き込み側の FD のインデックス */
+#define PIPEINFO_INIT { -1, { -1, -1 }, -1 }  /* pipeinfo_T の初期化用 */
 
-static int (*create_pipes(size_t count))[2];
-static void close_pipes(PIPES pipes);
-static inline int xdup2(int oldfd, int newfd);
-static void exec_pipelines(PIPELINE *pipelines, bool finally_exit);
-static void exec_processes(PIPELINE *pl, bool background, char *jobname);
-static pid_t exec_single(
-		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes);
-static bool open_redirections(REDIR *redirs, struct save_redirect **save);
-static void save_redirect(struct save_redirect **save, int fd);
-static int parse_dupfd(const char *exp, enum redirect_type type);
-static int open_heredocument(bool expand, const char *content);
-static void undo_redirections(struct save_redirect *save);
-static void clear_save_redirect(struct save_redirect *save);
+/* TODO exec.c: main_T: should be moved to builtin.h */
+typedef int main_T(int argc, char **argv);
 
-/* 最後に実行したコマンドの終了コード */
-int laststatus = 0;
+/* 実行するコマンドの情報 */
+typedef struct commandinfo_T {
+    enum cmdtype_T {        /* コマンドの種類 */
+	externalprogram,      /* 外部コマンド */
+	specialbuiltin,       /* 特殊組込みコマンド */
+	semispecialbuiltin,   /* 準特殊組込みコマンド */
+	regularbuiltin,       /* 普通の組込みコマンド */
+	function,             /* 関数 */
+    } type;
+    union {
+	const char *path;     /* コマンドのパス (externalprogram 用) */
+	main_T *builtin;      /* 組込みコマンドの本体 */
+	command_T *function;  /* 関数の本体 */
+    } value;
+} commandinfo_T;
+#define ci_path     value.path
+#define ci_builtin  value.builtin
+#define ci_function value.function
 
-/* シェルがセーブ等に使用中のファイルディスクリプタの集合。
- * これらのファイルディスクリプタはユーザが使うことはできない。 */
-static fd_set shellfds;
-/* シェルが自由に使えるファイルディスクリプタの最小値。 */
-int shellfdmin;
-/* shellfds 内のファイルディスクリプタの最大値。 */
-static int shellfdmax = -1;
-/* stdin がリダイレクトされているかどうか */
-static bool is_stdin_redirected = false;
+static inline bool need_break(void)
+    __attribute__((pure));
 
-/* exec モジュールを初期化する */
-void init_exec(void)
+static void exec_pipelines(const pipeline_T *p, bool finally_exit);
+static void exec_pipelines_async(const pipeline_T *p)
+    __attribute__((nonnull));
+static void exec_if(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static inline bool exec_condition(const and_or_T *c);
+static void exec_for(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_while(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_case(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+
+static inline void next_pipe(pipeinfo_T *pi, bool next)
+    __attribute__((nonnull));
+static inline void connect_pipes(pipeinfo_T *pi)
+    __attribute__((nonnull));
+
+static void exec_commands(command_T *c, exec_T type, bool looppipe);
+static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+    __attribute__((nonnull));
+static pid_t fork_and_reset(pid_t pgid, bool fg);
+static void search_command(
+	const char *restrict name, commandinfo_T *restrict ci);
+static bool do_assignments_for_command_type(
+	const assign_T *asgns, enum cmdtype_T type);
+static void exec_nonsimple_command(command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_simple_command(const commandinfo_T *ci,
+	int argc, char *const *argv, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_fall_back_on_sh(
+	int argc, char *const *argv, char *const *env, const char *path)
+    __attribute__((nonnull(2,4)));
+static void exec_function_body(command_T *body, char **args, bool finally_exit)
+    __attribute__((nonnull));
+static inline int xexecv(const char *path, char *const *argv)
+    __attribute__((nonnull(1)));
+static inline int xexecve(
+	const char *path, char *const *argv, char *const *envp)
+    __attribute__((nonnull(1)));
+
+
+/* 最後に実行したコマンドの終了ステータス */
+int laststatus = EXIT_SUCCESS;
+/* 最後に起動した非同期実行リストのプロセス ID */
+pid_t lastasyncpid;
+
+/* if 文の条件文や and-or リスト内のコマンドを実行する際、
+ * -o errexit オプションの効果を抑制するためにこの変数が true になる。 */
+static bool supresserrexit;
+
+/* 現在実行中のループと break/continue/return の動作状況 */
+struct execinfo {
+    unsigned loopnest;    /* 現在実行中のループの深さ */
+    unsigned breakcount;  /* break すべきループの数 (<= loopnest) */
+    enum { ee_none, ee_continue, ee_return
+    } exception;          /* 行うべき例外的処理 */
+} execinfo;
+/* "continue n" は (n-1) 回の break と 1 回の continue として扱う。
+ * exception が ee_return なら breakcount は 0 である。 */
+/* ループの内部でサブシェルを作った場合でも execinfo はリセットしないので注意 */
+
+/* 現在 break/continue/return すべき状態なら true を返す */
+bool need_break(void)
 {
-	FD_ZERO(&shellfds);
-	reset_shellfdmin();
+    return execinfo.breakcount > 0 || execinfo.exception != ee_none;
 }
 
-/* fd (>= shellfdmin) を shellfds に追加する。 */
-void add_shellfd(int fd)
+/* 現在の execinfo をセーブし、戻り値として返す。
+ * execinfo は初期状態に戻る。 */
+struct execinfo *save_execinfo(void)
 {
-	assert(fd >= shellfdmin);
-	if (fd < FD_SETSIZE)
-		FD_SET(fd, &shellfds);
-	if (shellfdmax < fd)
-		shellfdmax = fd;
+    struct execinfo *save = xmalloc(sizeof execinfo);
+    *save = execinfo;
+    execinfo = (struct execinfo) {
+	.loopnest = 0, .breakcount = 0, .exception = ee_none };
+    return save;
 }
 
-/* fd を shellfds から削除する */
-void remove_shellfd(int fd)
+/* execinfo をセーブしておいたものに戻す。引数は関数内で解放する。 */
+void load_execinfo(struct execinfo *save)
 {
-	if (0 <= fd && fd < FD_SETSIZE)
-		FD_CLR(fd, &shellfds);
-	if (fd == shellfdmax) {
-		shellfdmax = fd - 1;
-		while (shellfdmax >= 0 && !FD_ISSET(shellfdmax, &shellfds))
-			shellfdmax--;
+    execinfo = *save;
+    free(save);
+}
+
+
+/* コマンドを実行する。
+ * finally_exit: true なら実行後そのまま終了する。 */
+void exec_and_or_lists(const and_or_T *a, bool finally_exit)
+{
+    while (a && !need_break()) {
+	if (!a->ao_async)
+	    exec_pipelines(a->ao_pipelines, finally_exit && !a->next);
+	else
+	    exec_pipelines_async(a->ao_pipelines);
+
+	a = a->next;
+    }
+    if (finally_exit)
+	exit_shell();
+}
+
+/* パイプラインたちを実行する。 */
+void exec_pipelines(const pipeline_T *p, bool finally_exit)
+{
+    for (bool first = true; p && !need_break(); p = p->next, first = false) {
+	if (!first && p->pl_cond == !!laststatus)
+	    continue;
+
+	bool savesee = supresserrexit;
+	supresserrexit |= p->pl_neg || p->next;
+
+	exec_commands(p->pl_commands,
+	    (finally_exit && !p->next && !p->pl_neg) ? execself : execnormal,
+	    p->pl_loop);
+	if (p->pl_neg)
+	    laststatus = !laststatus;
+
+	supresserrexit = savesee;
+    }
+    if (finally_exit)
+	exit_shell();
+}
+
+/* 一つ以上のパイプラインを非同期的に実行する。 */
+void exec_pipelines_async(const pipeline_T *p)
+{
+    assert(!need_break());
+
+    if (!p->next && !p->pl_neg) {
+	exec_commands(p->pl_commands, execasync, p->pl_loop);
+    } else {
+	pid_t cpid = fork_and_reset(0, false);
+	
+	if (cpid > 0) {
+	    /* 親プロセス: 新しいジョブを登録する */
+	    job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+	    process_T *ps = job->j_procs;
+
+	    ps->pr_pid = cpid;
+	    ps->pr_status = JS_RUNNING;
+	    ps->pr_statuscode = 0;
+	    ps->pr_name = pipelines_to_wcs(p);
+
+	    job->j_pgid = doing_job_control_now ? cpid : 0;
+	    job->j_status = JS_RUNNING;
+	    job->j_statuschanged = true;
+	    job->j_loop = false;
+	    job->j_pcount = 1;
+
+	    set_active_job(job);
+	    add_job(false);
+	    laststatus = EXIT_SUCCESS;
+	    lastasyncpid = cpid;
+	} else if (cpid == 0) {
+	    /* 子プロセス: コマンドを実行して終了 */
+	    block_sigquit_and_sigint();
+	    maybe_redirect_stdin_to_devnull();
+	    exec_pipelines(p, true);
+	    assert(false);
 	}
+    }
 }
 
-/* fd が shellfds に入っているかどうか */
-bool is_shellfd(int fd)
+/* if コマンドを実行する */
+void exec_if(const command_T *c, bool finally_exit)
 {
-	return fd >= FD_SETSIZE || (fd >= 0 && FD_ISSET(fd, &shellfds));
-}
+    assert(c->c_type == CT_IF);
 
-/* shellfds 内のファイルディスクリプタを全て閉じる。
- * reset_after_fork の中で呼ばれる。 */
-void clear_shellfds(void)
-{
-	for (int i = 0; i <= shellfdmax; i++)
-		if (FD_ISSET(i, &shellfds))
-			xclose(i);
-	FD_ZERO(&shellfds);
-	shellfdmax = -1;
-}
-
-/* shellfdmin を(再)計算する */
-void reset_shellfdmin(void)
-{
-	errno = 0;
-	shellfdmin = sysconf(_SC_OPEN_MAX);
-	if (shellfdmin == -1) {
-		if (errno)
-			shellfdmin = 10;
-		else
-			shellfdmin = SHELLFDMINMAX;
-	} else {
-		shellfdmin /= 2;
-		if (shellfdmin > SHELLFDMINMAX)
-			shellfdmin = SHELLFDMINMAX;
-		else if (shellfdmin < 10)
-			shellfdmin = 10;
+    for (const ifcommand_T *cmds = c->c_ifcmds; cmds; cmds = cmds->next) {
+	if (need_break())
+	    goto done;
+	if (exec_condition(cmds->ic_condition)) {
+	    exec_and_or_lists(cmds->ic_commands, finally_exit);
+	    return;
 	}
+    }
+    laststatus = 0;
+done:
+    if (finally_exit)
+	exit_shell();
 }
 
-/* count 組のパイプを作り、その (新しく malloc した) 配列へのポインタを返す。
- * count が 0 なら何もせずに NULL を返す。
- * エラー時も NULL を返す。 */
-static int (*create_pipes(size_t count))[2]
+/* if/while/until コマンドの条件を実行する */
+bool exec_condition(const and_or_T *c)
 {
-	size_t i, j;
-	int (*pipes)[2];
-	int dummypipe[2];
+    if (c) {
+	bool savesee = supresserrexit;
+	supresserrexit = true;
+	exec_and_or_lists(c, false);
+	supresserrexit = savesee;
+	return laststatus == EXIT_SUCCESS;
+    } else {
+	return true;
+    }
+}
 
-	if (!count)
-		return NULL;
+/* for コマンドを実行する */
+void exec_for(const command_T *c, bool finally_exit)
+{
+    assert(c->c_type == CT_FOR);
+    assert(!need_break());
+    execinfo.loopnest++;
 
-	/* ファイルディスクリプタ 0 番または 1 番が未使用の場合は、ダミーのパイプを
+    int count;
+    void **words;
+
+    if (c->c_forwords) {
+	char **mbswords;
+	if (!expand_line(c->c_forwords, &count, &mbswords)) {
+	    laststatus = EXIT_EXPERROR;
+	    goto finish;
+	}
+	words = (void **) mbswords;
+	for (int i = 0; i < count; i++) {
+	    words[i] = realloc_mbstowcs(words[i]);
+	    if (!words[i])
+		words[i] = xwcsdup(L"");
+	}
+    } else {
+	bool concat;
+	words = get_variable("@", &concat);
+	assert(words != NULL && !concat);
+	count = plcount(words);
+    }
+
+#define CHECK_LOOP                                   \
+    if (execinfo.breakcount > 0) {                   \
+	execinfo.breakcount--;                       \
+	goto done;                                   \
+    } else if (execinfo.exception == ee_continue) {  \
+	execinfo.exception = ee_none;                \
+	continue;                                    \
+    } else if (execinfo.exception != ee_none) {      \
+	goto done;                                   \
+    } else (void) 0
+
+    int i;
+    for (i = 0; i < count; i++) {
+	if (!set_variable(c->c_forname, words[i], !posixly_correct, false))
+	    goto done;
+	exec_and_or_lists(c->c_forcmds, false);
+	CHECK_LOOP;
+    }
+
+done:
+    while (++i < count)
+	free(words[i]);
+    free(words);
+    if (count == 0)
+	laststatus = EXIT_SUCCESS;
+finish:
+    if (finally_exit)
+	exit_shell();
+    execinfo.loopnest--;
+}
+
+/* while コマンドを実行する */
+/* while コマンドの終了ステータスは、最後に実行した c_whlcmds の終了ステータス
+ * である。一度も c_whlcmds を実行しなければ、c_whlcond の結果にかかわらず
+ * 終了ステータスは 0 である。 */
+void exec_while(const command_T *c, bool finally_exit)
+{
+    assert(c->c_type == CT_WHILE);
+    assert(!need_break());
+    execinfo.loopnest++;
+
+    int status = EXIT_SUCCESS;
+    while (exec_condition(c->c_whlcond) == c->c_whltype) {
+	CHECK_LOOP;
+	exec_and_or_lists(c->c_whlcmds, false);
+	status = laststatus;
+	CHECK_LOOP;
+    }
+
+    laststatus = status;
+done:
+    if (finally_exit)
+	exit_shell();
+    execinfo.loopnest--;
+}
+#undef CHECK_LOOP
+
+/* case コマンドを実行する */
+void exec_case(const command_T *c, bool finally_exit)
+{
+    assert(c->c_type == CT_CASE);
+    assert(!need_break());
+
+    wchar_t *word = expand_single(c->c_casword, tt_single);
+    if (!word)
+	goto fail;
+    word = unescapefree(word);
+
+    for (caseitem_T *ci = c->c_casitems; ci; ci = ci->next) {
+	for (void **pats = ci->ci_patterns; *pats; pats++) {
+	    wchar_t *pattern = expand_single(*pats, tt_single);
+	    if (!pattern)
+		goto fail;
+	    size_t match = wfnmatch(pattern, word, 0, WFNM_WHOLE);
+	    free(pattern);
+	    if (match != WFNM_NOMATCH && match != WFNM_ERROR) {
+		exec_and_or_lists(ci->ci_commands, finally_exit);
+		goto done;
+	    }
+	}
+    }
+    laststatus = EXIT_SUCCESS;
+done:
+    if (finally_exit)
+	exit_shell();
+    free(word);
+    return;
+
+fail:
+    laststatus = EXIT_EXPERROR;
+    goto done;
+}
+
+/* exec_commands 関数で使うサブルーチン */
+/* 次のプロセスの処理のために pipeinfo_T の内容を更新する。
+ * pi->pi_fromprevfd, pi->pi_tonextfds[PIDX_OUT] を閉じ、
+ * pi->pi_tonextfds[PIDX_IN] を pi->pi_fromprevfd に移し、
+ * next が true なら新しいパイプを開いて pi->pi_tonextfds に入れる。
+ * next が false なら pi->pi_loopoutfd を pi->pi_tonextfds[PIDX_OUT] に移し、
+ * pi->pi_loopoutfd と pi->pi_tonextfds[PIDX_IN] を -1 にする。
+ * 成功すると true、エラーがあると false を返す。 */
+void next_pipe(pipeinfo_T *pi, bool next)
+{
+    if (pi->pi_fromprevfd >= 0)
+	xclose(pi->pi_fromprevfd);
+    if (pi->pi_tonextfds[PIDX_OUT] >= 0)
+	xclose(pi->pi_tonextfds[PIDX_OUT]);
+    pi->pi_fromprevfd = pi->pi_tonextfds[PIDX_IN];
+    if (next) {
+	/* ファイルディスクリプタ 0 または 1 が未使用の場合は、ダミーのパイプを
 	 * 開くことで実際のパイプのファイルディスクリプタを 2 以上にする。
 	 * こうしないと、後でパイプを標準入出力に繋ぎ変える時に他のパイプを
 	 * 上書きしてしまう。 */
+	int dummy[2];
 	bool usedummy = (fcntl(STDIN_FILENO,  F_GETFD) == -1 && errno == EBADF)
-	             || (fcntl(STDOUT_FILENO, F_GETFD) == -1 && errno == EBADF);
+		     || (fcntl(STDOUT_FILENO, F_GETFD) == -1 && errno == EBADF);
+
+	if (usedummy && pipe(dummy) < 0)
+	    goto fail;
+	if (pipe(pi->pi_tonextfds) < 0)
+	    goto fail;
 	if (usedummy) {
-		if (pipe(dummypipe) < 0) {
-			xerror(0, errno, "pipe");
-			return NULL;
-		}
+	    xclose(dummy[PIDX_IN]);
+	    xclose(dummy[PIDX_OUT]);
 	}
+    } else {
+	pi->pi_tonextfds[PIDX_IN] = -1;
+	pi->pi_tonextfds[PIDX_OUT] = pi->pi_loopoutfd;
+	pi->pi_loopoutfd = -1;
+    }
+    return;
 
-	pipes = xmalloc(count * sizeof(int[2]));
-	for (i = 0; i < count; i++) {
-		if (pipe(pipes[i]) < 0) {
-			xerror(0, errno, "pipe");
-			goto failed;
-		}
-	}
-	if (usedummy) { close(dummypipe[0]); close(dummypipe[1]); }
-	return pipes;
-
-failed:
-	for (j = 0; j < i; j++) {
-		if (close(pipes[i][0]) < 0)
-			xerror(0, errno, "pipe close");
-		if (close(pipes[i][1]) < 0)
-			xerror(0, errno, "pipe close");
-	}
-	if (usedummy) { close(dummypipe[0]); close(dummypipe[1]); }
-	free(pipes);
-	return NULL;
+fail:
+    pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
+    xerror(errno, Ngt("cannot open pipe"));
 }
 
-/* 引数の配列に含まれるパイプを閉じ、配列を解放する。
- * pipes: パイプのペアの配列。NULL なら何もしない。
- * count: パイプのペアの個数 */
-static void close_pipes(PIPES pipes)
+/* パイプを繋ぎ、余ったパイプを閉じる */
+void connect_pipes(pipeinfo_T *pi)
 {
-	size_t i;
-
-	if (!pipes.p_pipes)
-		return;
-	for (i = 0; i < pipes.p_count; i++) {
-		xclose(pipes.p_pipes[i][0]);
-		xclose(pipes.p_pipes[i][1]);
-	}
-	free(pipes.p_pipes);
+    if (pi->pi_fromprevfd >= 0) {
+	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
+	xclose(pi->pi_fromprevfd);
+    }
+    if (pi->pi_tonextfds[PIDX_OUT] >= 0) {
+	xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);
+	xclose(pi->pi_tonextfds[PIDX_OUT]);
+    }
+    if (pi->pi_tonextfds[PIDX_IN] >= 0)
+	xclose(pi->pi_tonextfds[PIDX_IN]);
+    if (pi->pi_loopoutfd >= 0)
+	xclose(pi->pi_loopoutfd);
 }
 
-/* dup2 を確実に行う。(dup2 が EINTR を返したら、やり直す)
- * エラーが出たら、メッセージを出力する。 */
-static inline int xdup2(int oldfd, int newfd)
+/* 一つのパイプラインを構成する各コマンドを実行する
+ * c:        実行する一つ以上のコマンド
+ * type:     実行のしかた
+ * looppipe: パイプをループ状にするかどうか */
+void exec_commands(command_T *c, exec_T type, bool looppipe)
 {
-	while (dup2(oldfd, newfd) < 0) {
-		switch (errno) {
-			case EINTR:
-				continue;
-			default:
-				xerror(0, errno,
-						"cannot copy file descriptor %d to %d", oldfd, newfd);
-				return -1;
-		}
-	}
-	return newfd;
-}
+    size_t count;
+    pid_t pgid;
+    command_T *cc;
+    job_T *job;
+    process_T *ps;
+    pipeinfo_T pinfo = PIPEINFO_INIT;
+    commandtype_T lasttype;
 
-/* コマンド入力全体を受け取って、全コマンドを実行する。
- * finally_exit: true なら実行後そのまま終了する。 */
-void exec_statements(STATEMENT *s, bool finally_exit)
-{
-	while (s) {
-		PIPELINE *p = s->s_pipeline;
-		if (p) {
-			if (!s->s_bg) {
-				/* フォアグラウンド */
-				exec_pipelines(p, !s->next && finally_exit);
-			} else {
-				/* バックグラウンド */
-				if (!p->next) {
-					/* パイプが一つしかない場合 */
-					exec_processes(p, true, NULL);
-				} else {
-					/* パイプが複数ある場合 (&& か || がある場合) */
-					STATEMENT s2 = {
-						.next = NULL,
-						.s_pipeline = p,
-						.s_bg = false,
-					};
-					PROCESS proc = {
-						.next = NULL,
-						.p_type = PT_GROUP,
-						.p_assigns = NULL,
-						.p_subcmds = &s2,
-						.p_redirs = NULL,
-					};
-					PIPELINE pipe = {
-						.next = NULL,
-						.pl_proc = &proc,
-						.pl_neg = false,
-						.pl_loop = false,
-					};
-					char *name = make_statement_name(p);
-					exec_processes(&pipe, true, name);
-				}
-			}
-		}
-		s = s->next;
-	}
-	if (finally_exit)
-		exit(laststatus);
-}
+    assert(!need_break());
 
-/* 一つの文の各パイプラインを実行する。
- * finally_exit: true なら実行後そのまま終了する。 */
-static void exec_pipelines(PIPELINE *p, bool finally_exit)
-{
-	while (p) {
-		if (finally_exit && !p->next && !p->pl_neg && !p->pl_loop) {
-			/* 最後なのでこのプロセスで直接実行する。 */
-			PROCESS *proc = p->pl_proc;
-			if (!proc->next) {
-				exec_single(proc, 0, 0, SELF,
-						(PIPES) { .p_count = 0, .p_pipes = NULL, });
-				assert(false);
-			}
-		}
+    /* コマンドの数を数える */
+    count = 0;
+    for (cc = c; cc; cc = cc->next)
+	count++;
+    assert(count > 0);
 
-		exec_processes(p, false, NULL);
-		if (!p->pl_next_cond == !laststatus)
-			break;
-		p = p->next;
-	}
-	if (finally_exit)
-		exit(laststatus);
-}
-
-/* 一つのパイプラインを実行し、wait する。
- * pl:      実行するパイプライン
- * jobname: パイプラインのジョブ名。この関数内で free する。NULL を指定すると
- *          この関数内でジョブ名を作成する。
- * bg ならばバックグラウンドでジョブを実行。
- * すなわち wait せずに新しいジョブを追加して戻る。
- * bg でなければフォアグラウンドでジョブを実行。
- * すなわち wait し、停止した場合のみ新しいジョブを追加して戻る。 */
-static void exec_processes(PIPELINE *pl, bool bg, char *jobname)
-{
-	size_t pcount;
-	pid_t pgid;
-	struct jproc *ps;
-	PIPES pipes;
-	PROCESS *p = pl->pl_proc;
-
-	/* パイプライン内のプロセス数を数える */
-	pcount = 0;
-	for (PROCESS *pp = p; pp; pcount++, pp = pp->next);
-
-	/* 必要な数のパイプを作成する */
-	pipes.p_count = pl->pl_loop ? pcount : pcount - 1;
-	pipes.p_pipes = create_pipes(pipes.p_count);
-	if (pipes.p_count > 0 && !pipes.p_pipes) {
-		laststatus = 2;
-		free(jobname);
-		return;
-	}
-
-	ps = xmalloc(pcount * sizeof *ps);
-
-	/* パイプの最初のコマンドを実行 */
-	ps[0].jp_status = JS_RUNNING;
-	pgid = ps[0].jp_pid = exec_single(p, pl->pl_loop ? -1 : 0, 0,
-			bg ? BACKGROUND : FOREGROUND, pipes);
-	ps[0].jp_waitstatus = 0;
-
-	/* パイプの二つ目以降のコマンドを実行 */
-	if (pgid >= 0) {
-		for (size_t i = 1; i < pcount; i++) {
-			p = p->next;
-			ps[i] = (struct jproc) {
-				.jp_pid = exec_single(p, i, pgid,
-						bg ? BACKGROUND : FOREGROUND, pipes),
-				.jp_status = JS_RUNNING,
-			};
-		}
+    if (looppipe) {  /* 最初と最後を繋ぐパイプを用意する */
+	int fds[2];
+	if (pipe(fds) < 0) {
+	    xerror(errno, Ngt("cannot open pipe"));
 	} else {
-		laststatus = EXIT_FAILURE;
+	    pinfo.pi_tonextfds[PIDX_IN] = fds[PIDX_IN];
+	    pinfo.pi_loopoutfd = fds[PIDX_OUT];
 	}
+    }
 
-	close_pipes(pipes);
-	if (pgid > 0) {
-		JOB *job = xmalloc(sizeof *job);
-		assert(!joblist.contents[0]);
-		joblist.contents[0] = job;
-		*job = (JOB) {
-			.j_pgid = pgid,
-			.j_status = JS_RUNNING,
-			.j_statuschanged = true,
-			.j_procc = pcount,
-			.j_procv = ps,
-			.j_flags = 0,
-			.j_name = NULL,
-		};
-		if (!bg) {
-			do {
-				wait_for_signal();
-			} while (job->j_status == JS_RUNNING ||
-					(!is_interactive_now && job->j_status == JS_STOPPED));
-			if (WIFSTOPPED(job->j_waitstatus)) {
-				laststatus = TERMSIGOFFSET + SIGTSTP;
-				fflush(stdout);
-				fputs("\n", stderr);
-				fflush(stderr);
-			} else {
-				laststatus = exitcode_from_status(job->j_waitstatus);
-				if (WIFSIGNALED(job->j_waitstatus)) {
-					int sig = WTERMSIG(job->j_waitstatus);
-					if (is_interactive_now && sig != SIGINT && sig != SIGPIPE)
-						fprintf(stderr, "%s\n", xstrsignal(sig));
-				}
-			}
-			if (pl->pl_neg)
-				laststatus = !laststatus;
-			if (job->j_status == JS_DONE) {
-				remove_job(0);
-			} else {
-				job->j_name = jobname ? jobname : make_pipeline_name(pl);
-				add_job();
-			}
-		} else {
-			laststatus = EXIT_SUCCESS;
-			last_bg_pid = ps[pcount - 1].jp_pid;
-			job->j_name = jobname ? jobname : make_pipeline_name(pl);
-			add_job();
-		}
+    job = xmalloc(sizeof *job + count * sizeof *job->j_procs);
+    ps = job->j_procs;
+
+    /* 各コマンドを実行 */
+    pgid = 0;
+    cc = c;
+    for (size_t i = 0; i < count; i++) {
+	pid_t pid;
+
+	lasttype = cc->c_type;
+	next_pipe(&pinfo, i < count - 1);
+	pid = exec_process(cc,
+		(type == execself && i < count - 1) ? execnormal : type,
+		&pinfo,
+		pgid);
+	ps[i].pr_pid = pid;
+	if (pid) {
+	    ps[i].pr_status = JS_RUNNING;
+	    ps[i].pr_statuscode = 0;
 	} else {
-		free(ps);
-		free(jobname);
+	    ps[i].pr_status = JS_DONE;
+	    ps[i].pr_statuscode = laststatus;
 	}
-	assert(!joblist.contents[0]);
+	ps[i].pr_name = NULL;   /* 最初は名無し: 名前は後で付ける */
+	if (pgid == 0)
+	    pgid = pid;
+	cc = cc->next;
+    }
+    assert(cc == NULL);
+    assert(type != execself);  /* execself なら exec_process は返らない */
+    assert(pinfo.pi_tonextfds[PIDX_IN] < 0);
+    assert(pinfo.pi_loopoutfd < 0);
+    if (pinfo.pi_fromprevfd >= 0)
+	xclose(pinfo.pi_fromprevfd);           /* 残ったパイプを閉じる */
+    if (pinfo.pi_tonextfds[PIDX_OUT] >= 0)
+	xclose(pinfo.pi_tonextfds[PIDX_OUT]);  /* 残ったパイプを閉じる */
+
+    if (pgid == 0) {  /* fork しなかったらもうやることはない */
+	free(job);
+	goto done;
+    }
+
+    set_active_job(job);
+    job->j_pgid = doing_job_control_now ? pgid : 0;
+    job->j_status = JS_RUNNING;
+    job->j_statuschanged = true;
+    job->j_loop = looppipe;
+    job->j_pcount = count;
+    if (type == execnormal) {   /* ジョブの終了を待つ */
+	wait_for_job(ACTIVE_JOBNO, doing_job_control_now);
+	laststatus = calc_status_of_job(job);
+	if (job->j_status == JS_DONE) {
+	    remove_job(ACTIVE_JOBNO);
+	    goto finish;
+	}
+    } else {
+	laststatus = EXIT_SUCCESS;
+	lastasyncpid = ps[count - 1].pr_pid;
+    }
+
+    /* バックグラウンドジョブをジョブリストに追加する */
+    cc = c;
+    for (size_t i = 0; i < count; i++) {  /* 各プロセスの名前を設定 */
+	ps[i].pr_name = command_to_wcs(cc);
+	cc = cc->next;
+    }
+    add_job(type == execnormal /* TODO || shopt_curasync */);
+
+finish:
+    if (doing_job_control_now)
+	make_myself_foreground();
+    handle_traps();
+done:
+    if (shopt_errexit && !supresserrexit && laststatus != EXIT_SUCCESS
+	    && lasttype == CT_SIMPLE)
+	exit_shell();
 }
 
-/* 一つのコマンドを実行する。リダイレクト・変数代入などを行い、必要に応じて
- * fork/exec する。
- * p:       実行するコマンド
- * pindex:  パイプ全体における子プロセスのインデックス。
- *          環状パイプを作る場合は 0 の代わりに -1。
- * pgid:    子プロセスに設定するプロセスグループ ID。
- *          子プロセスのプロセス ID をそのままプロセスグループ ID にする時は 0。
- *          fork しない場合はプロセスグループを設定しないので pgid は無視。
- * etype:   このプロセスの実行方式。
- *          FOREGROUND では、組込みコマンドなどは fork しないことがある。
- *          SELF は、非対話状態でのみ使える。
- * pipes:   パイプの配列。
- * 戻り値:  子プロセスの PID。fork/exec しなかった場合は 0。エラーなら -1。 */
-/* fork しないで 0 を返すことがあるのは、etype == FOREGROUND で
- * pipes.p_count == 0 の場合に限る。
- * 0 を返す場合、laststatus に値が入る。 */
-static pid_t exec_single(
-		PROCESS *p, ssize_t pindex, pid_t pgid, exec_t etype, PIPES pipes)
+/* 一つのコマンドを実行する。
+ * c:      実行するコマンド
+ * type:   実行のしかた
+ * pi:     繋ぐパイプのファイルディスクリプタ情報
+ * pgid:   ジョブ制御有効時、fork 後に子プロセスに設定するプロセスグループ ID。
+ *         子プロセスのプロセス ID をプロセスグループ ID にする場合は 0。
+ * 戻り値: fork した場合、子プロセスのプロセス ID。fork せずにコマンドを実行
+ *         できた場合は 0。
+ * 0 を返すとき、この関数内でコマンドの終了コードを laststatus に設定する。
+ * type == execself ならこの関数は返らない。 */
+pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
-	bool need_fork, finally_exit;
-	int argc;
-	char **argv = NULL;
-	const char *commandname = "?", *commandpath = NULL;
-	BUILTIN *builtin = NULL;
+    bool early_fork;   /* まず最初に fork するかどうか */
+    bool later_fork;   /* コマンドライン展開の後に fork するかどうか */
+    bool finally_exit; /* true なら最後に exit してこの関数から返らない */
+    int argc;
+    char **argv = NULL;
+    commandinfo_T cmdinfo = cmdinfo;  /* 自己代入で GCC の警告を防ぐ */
 
-	switch (p->p_type) {
-	case PT_NORMAL:
-		if (!expand_line(p->p_args, &argc, &argv)) {  /* 単語展開 */
-			recfree((void **) argv, free);
-			return -1;
-		}
-		if (!argc) {
-			need_fork = finally_exit = false;
-		} else {
-			/* コマンド検索 */
-			if (strchr(argv[0], '/')) {
-				commandpath = argv[0];
-			} else {
-				enum biflags flags = BI_SPECIAL | BI_SEMISPECIAL;
-				builtin = get_builtin(argv[0]);
-				if (!builtin || (posixly_correct && !(builtin->flags & flags))){
-					commandpath = get_command_fullpath(argv[0], false);
-					if (!commandpath) {
-						xerror(0, 0, "%s: command not found", argv[0]);
-						laststatus = EXIT_NOTFOUND;
-						return 0;
-					}
-				}
-			}
-			need_fork = finally_exit = !builtin;
-			commandname = argv[0];
-		}
-		break;
-	case PT_SUBSHELL:
-		need_fork = finally_exit = true;
-		break;
-	case PT_GROUP:
-		need_fork = finally_exit = false;
-		break;
-	default:
-		assert(false);
-	}
+    current_lineno = c->c_lineno;
 
-	if (etype == SELF) {
-		need_fork = false;  finally_exit = true;
-		assert(!is_interactive_now);
-	} else if (etype == BACKGROUND || pipes.p_count || p->p_type==PT_SUBSHELL) {
-		/* 非同期リスト・パイプ内またはサブシェルでは常に fork */
-		need_fork = finally_exit = true;
-	}
+    /* 非同期実行であるかまたはパイプを繋ぐ場合は、先に fork。 */
+    early_fork = (type != execself) && (type == execasync
+	|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
+    if (early_fork) {
+	pid_t cpid = fork_and_reset(pgid, type == execnormal);
+	if (cpid)
+	    return cpid;
+	if (!doing_job_control_now && type == execasync)
+	    block_sigquit_and_sigint();
+    }
 
-	assert(!need_fork || finally_exit);
-	if (need_fork) {
-		pid_t cpid = fork();
+    switch (c->c_type) {
+    case CT_SIMPLE:
+	if (!expand_line(c->c_words, &argc, &argv))
+	    goto exp_fail;
+	if (argc == 0) {
+	    later_fork = finally_exit = false;
+	} else {
+	    search_command(argv[0], &cmdinfo);
 
-		if (cpid) {
-			if (cpid < 0) {  /* fork 失敗 */
-				xerror(0, errno, "%s: fork", commandname);
-			} else {  /* 親プロセス */
-				if (is_interactive_now) {
-					if (setpgid(cpid, pgid) < 0
-							&& errno != EACCES && errno != ESRCH)
-						xerror(0, errno, "%s: setpgid (parent)", commandname);
-				}
-			}
-			recfree((void **) argv, free);
-			return cpid;
-		}
+	    /* 外部コマンドは fork し、組込みコマンドや関数は fork しない。 */
+	    later_fork = finally_exit = (cmdinfo.type == externalprogram);
 
-		/* 子プロセス */
-		if (is_interactive_now) {
-			if (setpgid(0, pgid) < 0)
-				xerror(0, errno, "%s: setpgid (child)", commandname);
-			if (etype == FOREGROUND && ttyfd >= 0
-					&& tcsetpgrp(ttyfd, pgid ? pgid : getpid()) < 0)
-				xerror(0, errno, "%s: tcsetpgrp (child)", commandname);
-		}
-		reset_after_fork();
-	}
-
-	if (finally_exit)
-		unset_signals();
-
-	/* パイプを繋ぐ */
-	if (pipes.p_count > 0) {
-		if (pindex) {
-			size_t index = ((pindex >= 0) ? (size_t)pindex : pipes.p_count) - 1;
-			xdup2(pipes.p_pipes[index][0], STDIN_FILENO);
-		}
-		if (pindex < (ssize_t) pipes.p_count) {
-			size_t index = (pindex >= 0) ? (size_t) pindex : 0;
-			xdup2(pipes.p_pipes[index][1], STDOUT_FILENO);
-		}
-		close_pipes(pipes);  /* 余ったパイプを閉じる */
-	}
-
-	/* リダイレクトを開く */
-	struct save_redirect *saveredir;
-	if (!open_redirections(p->p_redirs, finally_exit ? NULL : &saveredir)) {
-		if (finally_exit)
-			exit(EXIT_FAILURE);
-undo_redir_and_fail:
-		if (posixly_correct && !is_interactive_now
-				&& builtin && (builtin->flags & BI_SPECIAL))
-			exit(EXIT_FAILURE);
-		undo_redirections(saveredir);
+	    /* コマンドが見付からず、リダイレクトや代入もなければこれで終わり */
+	    if (cmdinfo.type == externalprogram && !cmdinfo.ci_path
+		    && !c->c_redirs && !c->c_assigns) {
+		xerror(0, Ngt("%s: no such command or function"), argv[0]);
+		laststatus = EXIT_NOTFOUND;
 		recfree((void **) argv, free);
-		return -1;
+		goto done;
+	    }
 	}
+	break;
+    case CT_SUBSHELL:
+	later_fork = finally_exit = true;
+	break;
+    default:
+	later_fork = finally_exit = false;
+	break;
+    }
+    /* argc, argv, cmdinfo は CT_SIMPLE でしか使わない */
 
-	/* 非対話の非同期リストなら stdin を /dev/null にリダイレクトする */
-	if (etype == BACKGROUND && !is_interactive
-			&& pindex <= 0 && !is_stdin_redirected) {
-		xclose(STDIN_FILENO);
-		int fd = open("/dev/null", O_RDONLY);
-		if (fd < 0)
-			xerror(0, errno, "cannot redirect stdin to /dev/null");
-		if (fd != STDIN_FILENO) {
-			xdup2(fd, STDIN_FILENO);
-			xclose(fd);
-		}
+    if (early_fork || type == execself)
+	later_fork = false, finally_exit = true;
+
+    assert(!(early_fork && later_fork));  /* fork は 2 回はしない */
+    assert(!(early_fork || later_fork) || finally_exit);  /* fork すれば exit */
+    if (later_fork) {
+	pid_t cpid = fork_and_reset(pgid, type == execnormal);
+	if (cpid != 0) {
+	    recfree((void **) argv, free);
+	    return cpid;
 	}
-
-	/* 変数を代入する */
-	bool tempassign = builtin && !(builtin->flags & BI_SPECIAL);
-	bool export = argc && !tempassign;
-	if (p->p_assigns) {
-		if (!assign_variables(p->p_assigns, tempassign, export)) {
-			if (finally_exit)
-				exit(EXIT_FAILURE);
-			unset_temporary(NULL);
-			goto undo_redir_and_fail;
-		}
-	}
-
-	/* コマンドを実行する */
-	switch (p->p_type) {
-	case PT_NORMAL:
-		// XXX 関数の実行
-		if (builtin) {
-			laststatus = builtin->main(argc, argv);
-		} else if (commandpath) {
-			execve(commandpath, argv, environ);
-			if (errno != ENOEXEC) {
-				if (errno == EACCES && is_directory(commandpath))
-					errno = EISDIR;
-				xerror(EXIT_NOEXEC, errno, "%s", commandname);
-			}
-			selfexec(commandpath, argv);
-		}
-		break;
-
-	case PT_SUBSHELL:  case PT_GROUP:
-		exec_statements(p->p_subcmds, finally_exit);
-		break;
-	}
-	if (finally_exit)
-		exit(laststatus);
-
-	fflush(NULL);
-	if (tempassign)
-		unset_temporary(NULL);
-	if (builtin && builtin->main == builtin_exec && laststatus == EXIT_SUCCESS)
-		clear_save_redirect(saveredir);
+    }
+    if (finally_exit) {
+	if (c->c_type == CT_SIMPLE && cmdinfo.type == externalprogram)
+	    reset_all_signals();
 	else
-		undo_redirections(saveredir);
+	    reset_signals();
+    }
+
+    /* パイプを繋ぎ、余ったパイプを閉じる */
+    connect_pipes(pi);
+
+    /* リダイレクトを開く */
+    savefd_T *savefd;
+    if (!open_redirections(c->c_redirs, finally_exit ? NULL : &savefd))
+	goto redir_fail;
+    
+    /* 非対話的シェルで非同期実行する場合は stdin を /dev/null にリダイレクト */
+    if (type == execasync && pi->pi_fromprevfd < 0)
+	maybe_redirect_stdin_to_devnull();
+
+    /* コマンドを実行する */
+    if (c->c_type == CT_SIMPLE) {
+	if (argc == 0) {
+	    if (do_assignments(c->c_assigns, false, false))
+		laststatus = EXIT_SUCCESS;
+	    else
+		laststatus = EXIT_ASSGNERR;
+	} else {
+	    if (do_assignments_for_command_type(c->c_assigns, cmdinfo.type)) {
+		exec_simple_command(&cmdinfo, argc, argv, finally_exit);
+	    } else {
+		laststatus = EXIT_ASSGNERR;
+		if (!is_interactive && cmdinfo.type == specialbuiltin)
+		    exit_shell();
+	    }
+	    clear_temporary_variables();
+	}
 	recfree((void **) argv, free);
-	return 0;
+    } else {
+	exec_nonsimple_command(c, finally_exit);
+    }
+    if (finally_exit)
+	exit_shell();
+
+    // TODO exec: exec_process: exec コマンドのリダイレクトは残す
+#if 0
+    if (c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin
+	    && cmdinfo.ci_builtin == exec_builtin && laststatus == EXIT_SUCCESS)
+	clear_savefd(savefd);
+    else
+#endif
+	undo_redirections(savefd);
+    return 0;
+
+exp_fail:
+    laststatus = EXIT_EXPERROR;
+done:
+    if (early_fork || type == execself)
+	exit_shell();
+    return 0;
+redir_fail:
+    laststatus = EXIT_REDIRERR;
+    if (finally_exit)
+	exit_shell();
+    if (posixly_correct && !is_interactive
+	    && c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin)
+	exit_shell();
+    undo_redirections(savefd);
+    if (c->c_type == CT_SIMPLE)
+	recfree((void **) argv, free);
+    return 0;
 }
 
-/* リダイレクトを開く。
- * 各 r の rd_file に対する各種展開もここで行う。
- * save:   非 NULL なら、元の FD をセーブしつつリダイレクトを処理し、*save
- *         にセーブデータへのポインタが入る。
- * 戻り値: OK なら true、エラーがあれば false。
- * エラーがあっても *save にはそれまでにセーブした FD のデータが入る。 */
-static bool open_redirections(REDIR *r, struct save_redirect **save)
+/* サブシェルを fork して、いろいろ必要な設定を行う。
+ * pgid:   ジョブ制御有効時、fork 後に子プロセスに設定するプロセスグループ ID。
+ *         子プロセスのプロセス ID をプロセスグループ ID にする場合は 0。
+ *         ジョブ制御が有効でもプロセスグループを変えない場合は負数。
+ * fg:     プロセスグループ設定後、子プロセスをフォアグラウンドにするかどうか。
+ * 戻り値: fork の戻り値 */
+pid_t fork_and_reset(pid_t pgid, bool fg)
 {
-	char *exp;
+    fflush(NULL);
 
-	if (save)
-		*save = NULL;
+    pid_t cpid = fork();
 
-	while (r) {
-		int fd, flags;
-
-		if (r->rd_fd < 0 || is_shellfd(r->rd_fd)) {
-			xerror(0, 0, "redirect: file descriptor %d unavailable", r->rd_fd);
-			exp = NULL;
-			goto returnfalse;
-		}
-
-		/* rd_file を展開する */
-		if (r->rd_type != RT_HERE && r->rd_type != RT_HERERT) {
-			exp = expand_single(r->rd_value, is_interactive);
-			if (!exp)
-				goto returnfalse;
-		} else {
-			exp = NULL;
-		}
-
-		/* リダイレクトをセーブする */
-		save_redirect(save, r->rd_fd);
-
-		/* 実際に rd_type に応じてリダイレクトを行う */
-		switch (r->rd_type) {
-			case RT_INPUT:
-				flags = O_RDONLY;
-				goto openwithflags;
-			case RT_OUTPUT:
-				if (false) {  // TODO noclobber
-					flags = O_WRONLY | O_CREAT | O_EXCL;
-					goto openwithflags;
-				}
-				/* falls thru! */
-			case RT_OUTCLOB:
-				flags = O_WRONLY | O_CREAT | O_TRUNC;
-				goto openwithflags;
-			case RT_APPEND:
-				flags = O_WRONLY | O_CREAT | O_APPEND;
-				goto openwithflags;
-			case RT_INOUT:
-				flags = O_RDWR | O_CREAT;
-openwithflags:
-				fd = open(exp, flags, S_IRUSR | S_IWUSR | S_IRGRP
-						| S_IWGRP | S_IROTH | S_IWOTH);
-				if (fd < 0)
-					goto onerror;
-				break;
-			case RT_DUPIN:
-			case RT_DUPOUT:
-				if (strcmp(exp, "-") == 0) {
-					fd = -1;
-				} else {
-					fd = parse_dupfd(exp, r->rd_type);
-					switch (fd) {
-						case -1:  goto onerror;
-						case -2:  goto returnfalse;
-					}
-				}
-				break;
-			case RT_HERE:
-			case RT_HERERT:
-				fd = open_heredocument(
-						!strpbrk(r->rd_value, "\"'\\"), r->rd_herecontent);
-				if (fd < 0)
-					goto onerror;
-				break;
-			default:
-				assert(false);
-		}
-
-		/* fd が目的のファイルディスクリプタとは異なる場合は移動する。 */
-		if (fd != r->rd_fd) {
-			xclose(r->rd_fd);
-			if (fd >= 0) {
-				if (xdup2(fd, r->rd_fd) < 0)
-					goto returnfalse;
-				if (r->rd_type != RT_DUPIN && r->rd_type != RT_DUPOUT)
-					if (xclose(fd) < 0)
-						goto returnfalse;
-			}
-		}
-
-		if (r->rd_fd == STDIN_FILENO)
-			is_stdin_redirected = true;
-
-		free(exp);
-		r = r->next;
+    if (cpid < 0) {
+	/* fork 失敗 */
+	xerror(errno, Ngt("fork: cannot make child process"));
+    } else if (cpid > 0) {
+	/* 親プロセス */
+	if (doing_job_control_now && pgid >= 0)
+	    setpgid(cpid, pgid);
+    } else {
+	/* 子プロセス */
+	if (doing_job_control_now && pgid >= 0) {
+	    setpgid(0, pgid);
+	    if (fg)
+		make_myself_foreground();
 	}
-	return true;
-
-onerror:
-	xerror(0, errno, "redirect: %s", r->rd_value);
-returnfalse:
-	free(exp);
-	return false;
-}
-
-/* リダイレクトをセーブする
- * save: セーブ情報の保存先へのポインタ (NULL ならセーブしない)
- * fd:   セーブする元のファイルディスクリプタ */
-static void save_redirect(struct save_redirect **save, int fd)
-{
-	assert(0 <= fd && fd < FD_SETSIZE);
-	if (save) {
-		int copyfd = fcntl(fd, F_DUPFD, shellfdmin);
-		if (copyfd < 0 && errno != EBADF) {
-			xerror(0, errno, "redirect: cannot save file descriptor %d", fd);
-		} else if (copyfd >= 0 && fcntl(copyfd, F_SETFD, FD_CLOEXEC) == -1){
-			xerror(0, errno, "redirect: cannot save file descriptor %d", fd);
-			xclose(copyfd);
-		} else {
-			struct save_redirect *ss = xmalloc(sizeof *ss);
-			ss->next = *save;
-			ss->sr_origfd = fd;
-			ss->sr_copyfd = copyfd;
-			ss->sr_stdin_redirected = is_stdin_redirected;
-			/* 註: オリジナルが存在しなければ copyfd == -1 */
-			if (0 <= copyfd)
-				add_shellfd(copyfd);
-			switch (fd) {
-				case STDIN_FILENO:   ss->sr_file = stdin;  break;
-				case STDOUT_FILENO:  ss->sr_file = stdout; break;
-				case STDERR_FILENO:  ss->sr_file = stderr; break;
-				default:             ss->sr_file = NULL;   break;
-			}
-			if (ss->sr_file)
-				fflush(ss->sr_file);
-			*save = ss;
-
-			if (ttyfd >= 0 && ttyfd == fd)
-				ttyfd = copyfd;
-		}
-	}
-}
-
-/* DUPIN/DUPOUT のリダイレクトの値を解析する。
- * exp が有効なファイルディスクリプタを表す文字列で、type に適合するなら
- * その番号を返す。エラー時は -1 or -2 を返す。-1 なら呼び出し元で errno に
- * 対応するエラーを出力すべし。-2 ならエラーはこの関数内で出力済。
- * この関数は exp が有効な数字でなければエラーとする。 exp が "-" かどうかは
- * 予め判定しておくこと。 */
-static int parse_dupfd(const char *exp, enum redirect_type type)
-{
-	char *end;
-	int fd;
-
-	assert(type == RT_DUPIN || type == RT_DUPOUT);
-	errno = 0;
-	fd = strtol(exp, &end, 10);
-	if (errno)
-		return -1;
-	if (exp[0] == '\0' || end[0] != '\0') {
-		xerror(0, 0, "%s: redirect syntax error", exp);
-		return -2;
-	}
-	if (fd < 0) {
-		errno = ERANGE;
-		return -1;
-	}
-	if (posixly_correct) {
-		int flags = fcntl(fd, F_GETFL);
-		if (flags == -1) {
-			return -1;
-		} else {
-			if (type == RT_DUPIN && (flags & O_ACCMODE) == O_WRONLY) {
-				xerror(0, 0, "redirect: %d: file descriptor not readable", fd);
-				return -2;
-			}
-			if (type == RT_DUPOUT && (flags & O_ACCMODE) == O_RDONLY) {
-				xerror(0, 0, "redirect: %d: file descriptor not writable", fd);
-				return -2;
-			}
-		}
-	}
-	assert(fd >= 0);
-	return fd;
-}
-
-/* ヒアドキュメントの内容を一時ファイルに書き出し、そのファイルへの
- * ファイルディスクリプタを返す。一時ファイルは削除 (unlink) 済である。
- * 返すファイルディスクリプタは、ファイルの先頭から読み込み可能になっている。
- * 失敗すると負数を返す。 */
-static int open_heredocument(bool expand, const char *content)
-{
-	char *expandedcontent = NULL;
-
-	/* 一時ファイルを作る */
-	errno = 0;
-	char tempfile[] = XMKSTEMP_NAME;
-	int fd = xmkstemp(tempfile);
-	if (fd < 0)
-		return -1;
-	if (unlink(tempfile) < 0) {
-		xclose(fd);
-		return -1;
-	}
-
-	/* 一時ファイルにヒアドキュメントを書き出す */
-	if (expand)
-		content = expandedcontent =
-			unescape_here_document(expand_word(content, te_none, true));
-	size_t len = strlen(content), off = 0;
-	while (off < len) {
-		size_t rem = len - off;
-		if (rem > SSIZE_MAX)
-			rem = SSIZE_MAX;
-		ssize_t count = write(fd, content + off, rem);
-		if (count < 0) {
-			free(expandedcontent);
-			return -1;
-		}
-		off += count;
-	}
-	free(expandedcontent);
-
-	/* ファイルディスクリプタを先頭に戻す */
-	if (lseek(fd, 0, SEEK_SET) == (off_t) -1)
-		return -1;
-	/* XXX: ファイルディスクリプタを読み取り専用にすべき? */
-
-	return fd;
-}
-
-/* セーブしたリダイレクトを元に戻し、さらに引数リスト save を free する。 */
-static void undo_redirections(struct save_redirect *save)
-{
-	while (save) {
-		if (save->sr_file)
-			fflush(save->sr_file);
-		xclose(save->sr_origfd);
-		if (save->sr_copyfd >= 0) {
-			remove_shellfd(save->sr_copyfd);
-			xdup2(save->sr_copyfd, save->sr_origfd);
-			xclose(save->sr_copyfd);
-		}
-		if (save->sr_origfd == STDIN_FILENO)
-			is_stdin_redirected = save->sr_stdin_redirected;
-
-		if (ttyfd >= 0 && ttyfd == save->sr_copyfd)
-			ttyfd = save->sr_origfd;
-
-		struct save_redirect *next = save->next;
-		free(save);
-		save = next;
-	}
-}
-
-/* セーブしたリダイレクトを削除し、元に戻せないようにする。
- * さらに引数リスト save を free する。 */
-static void clear_save_redirect(struct save_redirect *save)
-{
-	while (save) {
-		if (save->sr_copyfd >= 0) {
-			if (ttyfd != save->sr_copyfd) {
-				remove_shellfd(save->sr_copyfd);
-				xclose(save->sr_copyfd);
-			}
-		}
-
-		struct save_redirect *next = save->next;
-		free(save);
-		save = next;
-	}
-}
-
-/* fork 後の子プロセスで必要な再設定を行う。 */
-void reset_after_fork(void)
-{
-	forget_orig_pgrp();
-	joblist_reinit();
+	forget_initial_pgrp();
+	remove_all_jobs();
+	clear_traps();
 	clear_shellfds();
 	is_interactive_now = false;
+    }
+    return cpid;
 }
 
-/* 指定したコマンドを実行し、その標準出力の内容を返す。
- * この関数はコマンドの実行が終わるまで返らない。
- * code:    実行するコマンド
- * trimend: true なら戻り値の末尾の改行を削除してから返す。
- * 戻り値:  新しく malloc した、statements の実行結果。
- *          エラーや、statements が中止された場合は NULL。 */
-char *exec_and_read(const char *code, bool trimend)
+/* 自分自身のプロセスグループをフォアグラウンドにする */
+void make_myself_foreground(void)
 {
-	int pipefd[2];
-	pid_t cpid;
-
-	if (!code || !code[0])
-		return xstrdup("");
-
-	/* コマンドの出力を受け取るためのパイプを開く */
-	if (pipe(pipefd) < 0) {
-		xerror(0, errno, "can't open pipe for command substitution");
-		return NULL;
-	}
-	fflush(stdout);
-
-	assert(!temp_chld.jp_pid);
-	cpid = fork();
-	if (cpid < 0) {  /* fork 失敗 */
-		xerror(0, errno, "command substitution: fork");
-		xclose(pipefd[0]);
-		xclose(pipefd[1]);
-		return NULL;
-	} else if (cpid) {  /* 親プロセス */
-		sigset_t newset, oldset;
-		fd_set fds;
-		char *buf;
-		size_t len, max;
-		ssize_t count;
-
-		xclose(pipefd[1]);
-
-		sigfillset(&newset);
-		sigemptyset(&oldset);
-		if (sigprocmask(SIG_BLOCK, &newset, &oldset) < 0) {
-			xerror(0, errno, "sigprocmask");
-			return NULL;
-		}
-
-		sigint_received = false;
-		temp_chld = (struct jproc) { .jp_pid = cpid, .jp_status = JS_RUNNING, };
-		len = 0;
-		max = 100;
-		buf = xmalloc(max + 1);
-
-		/* 子プロセスからの出力を受け取る */
-		for (;;) {
-			handle_signals();
-			FD_ZERO(&fds);
-			FD_SET(pipefd[0], &fds);
-			if (pselect(pipefd[0] + 1, &fds, NULL, NULL, NULL, &oldset) < 0) {
-				if (errno == EINTR) {
-					continue;
-				} else {
-					xerror(0, errno, "command substitution");
-					break;
-				}
-			}
-			if (FD_ISSET(pipefd[0], &fds)) {
-				count = read(pipefd[0], buf + len, max - len);
-				if (count < 0) {
-					if (errno == EINTR) {
-						continue;
-					} else {
-						xerror(0, errno, "command substitution");
-						break;
-					}
-				} else if (count == 0) {
-					break;
-				}
-				len += count;
-				if (len + 30 >= max) {
-					max *= 2;
-					buf = xrealloc(buf, max + 1);
-				}
-			}
-		}
-		if (sigprocmask(SIG_SETMASK, &oldset, NULL) < 0)
-			xerror(0, errno, "command substitution");
-		xclose(pipefd[0]);
-
-		/* 子プロセスの終了を待つ */
-		while (temp_chld.jp_status != JS_DONE)
-			wait_for_signal();
-		temp_chld.jp_pid = 0;
-		laststatus = exitcode_from_status(temp_chld.jp_waitstatus);
-		if (WIFSIGNALED(temp_chld.jp_waitstatus)
-				&& WTERMSIG(temp_chld.jp_waitstatus) == SIGINT) {
-			free(buf);
-			return NULL;
-		}
-
-		if (trimend)
-			while (len > 0 && (buf[len - 1] == '\n'))
-				len--;
-		if (len + 30 < max)
-			buf = xrealloc(buf, len + 1);
-		buf[len] = '\0';
-
-		return buf;
-	} else {  /* 子プロセス */
-		sigset_t ss;
-
-		if (is_interactive_now) {
-			/* 子プロセスが SIGTSTP で停止してしまうと、親プロセスである
-			 * 対話的なシェルに制御が戻らなくなってしまう。よって、SIGTSTP を
-			 * 受け取っても停止しないようにブロックしておく。 */
-			sigemptyset(&ss);
-			sigaddset(&ss, SIGTSTP);
-			sigprocmask(SIG_BLOCK, &ss, NULL);
-		}
-
-		reset_after_fork();
-
-		xclose(pipefd[0]);
-		if (pipefd[1] != STDOUT_FILENO) {
-			/* ↑ この条件が成り立たないことは普通考えられないが…… */
-			xclose(STDOUT_FILENO);
-			xdup2(pipefd[1], STDOUT_FILENO);
-			xclose(pipefd[1]);
-		}
-		exec_source_and_exit(code, "command substitution");
-	}
+    assert(ttyfd >= 0);
+    block_sigttou();
+    tcsetpgrp(ttyfd, getpgrp());
+    unblock_sigttou();
 }
+
+/* コマンドの種類を特定し、コマンドのありかを探す。
+ * コマンドが見付からなければ ci->type = externalprogram で
+ * ci->ci_path = NULL とする。 */
+void search_command(const char *restrict name, commandinfo_T *restrict ci)
+{
+    /* 関数を探す: 関数名に '/' が含まれないことを仮定している */
+    command_T *funcbody = get_function(name);
+    if (funcbody) {
+	assert(strchr(name, '/') == NULL);
+	ci->type = function;
+	ci->ci_function = funcbody;
+	return;
+    }
+
+    wchar_t *wname = malloc_mbstowcs(name);
+    bool slash = wname && wcschr(wname, L'/');
+    free(wname);
+    if (slash) {  /* name にスラッシュが入っていれば name をそのまま返す */
+	ci->type = externalprogram;
+	ci->ci_path = name;
+	return;
+    }
+
+    // TODO exec.c: find_command: 組込みコマンド
+    ci->type = externalprogram;
+    ci->ci_path = get_command_path(name, false);
+}
+
+/* 指定した commandtype_T に従って do_assignments を呼び出す */
+bool do_assignments_for_command_type(const assign_T *asgns, enum cmdtype_T type)
+{
+    bool temporary, export;
+    switch (type) {
+	case externalprogram:
+	case specialbuiltin:
+	case function:
+	    temporary = false, export = true;
+	    break;
+	case semispecialbuiltin:
+	case regularbuiltin:
+	    temporary = true, export = false;
+	    break;
+	default:
+	    assert(false);
+    }
+    return do_assignments(asgns, temporary, export);
+}
+
+/* CT_SIMPLE でない一つのコマンドを実行する。
+ * c->c_redirs は実行しない */
+void exec_nonsimple_command(command_T *c, bool finally_exit)
+{
+    c = comsdup(c);
+    switch (c->c_type) {
+    case CT_SIMPLE:
+	assert(false);
+    case CT_SUBSHELL:
+    case CT_GROUP:
+	exec_and_or_lists(c->c_subcmds, finally_exit);
+	break;
+    case CT_IF:
+	exec_if(c, finally_exit);
+	break;
+    case CT_FOR:
+	exec_for(c, finally_exit);
+	break;
+    case CT_WHILE:
+	exec_while(c, finally_exit);
+	break;
+    case CT_CASE:
+	exec_case(c, finally_exit);
+	break;
+    case CT_FUNCDEF:
+	if (define_function(c->c_funcname, c->c_funcbody))
+	    laststatus = EXIT_SUCCESS;
+	else
+	    laststatus = EXIT_ASSGNERR;
+	if (finally_exit)
+	    exit_shell();
+	break;
+    }
+    comsfree(c);
+}
+
+/* 単純コマンドを実行する
+ * ci:   実行するコマンドの情報
+ * argv: コマンド名と引数。マルチバイト文字列へのポインタの配列へのポインタ。 */
+void exec_simple_command(
+	const commandinfo_T *ci, int argc, char *const *argv, bool finally_exit)
+{
+    assert(argv[argc] == NULL);
+
+    switch (ci->type) {
+    case externalprogram:
+	assert(finally_exit);
+	if (ci->ci_path == NULL) {
+	    xerror(0, Ngt("%s: no such command or function"), argv[0]);
+	    exit_shell_with_status(EXIT_NOTFOUND);
+	}
+	xexecv(ci->ci_path, (char **) argv);
+	if (errno != ENOEXEC) {
+	    if (errno == EACCES && is_directory(ci->ci_path))
+		errno = EISDIR;
+	    if (strcmp(argv[0], ci->ci_path) == 0)
+		xerror(errno, Ngt("cannot execute `%s'"),
+			argv[0]);
+	    else
+		xerror(errno, Ngt("cannot execute `%s' (%s)"),
+			argv[0], ci->ci_path);
+	} else {
+	    exec_fall_back_on_sh(argc, argv, environ, ci->ci_path);
+	}
+	exit_shell_with_status(EXIT_NOEXEC);
+	//break;
+    case specialbuiltin:
+    case semispecialbuiltin:
+    case regularbuiltin:
+	laststatus = ci->ci_builtin(argc, (char **) argv);
+	break;
+    case function:
+	exec_function_body(ci->ci_function, (char **) argv, finally_exit);
+	break;
+    }
+    if (finally_exit)
+	exit_shell();
+}
+
+/* 指定した引数で sh を exec する。
+ * exec する sh には path と argv の最初以外を渡す。 */
+void exec_fall_back_on_sh(
+	int argc, char *const *argv, char *const *envp, const char *path)
+{
+    assert(argv[argc] == NULL);
+    if (!envp)
+	envp = (char *[]) { NULL };
+
+    char *args[argc + 3];
+    size_t index = 0;
+    args[index++] = argv[0];
+    args[index++] = (char *) "-";
+    if (strcmp(path, "--") == 0)
+	args[index++] = "./--";
+    else
+	args[index++] = (char *) path;
+    for (int i = 1; i < argc; i++)
+	args[index++] = argv[i];
+    args[index++] = NULL;
+#if HAVE_PROC_FILESYSTEM
+    xexecve("/proc/self/exe", args, envp);
+#elif defined _PATH_BSHELL
+    xexecve(_PATH_BSHELL, args, envp);
+#else
+    const char *shpath = get_command_path("sh", false);
+    if (shpath)
+	xexecve(shpath, args, envp);
+    else
+	errno = ENOENT;
+#endif
+    xerror(errno, Ngt("cannot invoke new shell to execute `%s'"), argv[0]);
+}
+
+/* 指定したコマンドを関数の本体として実行する
+ * args: 関数の引数。args[1] が $1 に args[2] が $2 になる。 */
+void exec_function_body(command_T *body, char **args, bool finally_exit)
+{
+    savefd_T *savefd;
+
+    assert(args[0] != NULL);
+    if (open_redirections(body->c_redirs, &savefd)) {
+	open_new_environment();
+	set_positional_parameters(args + 1);
+	exec_nonsimple_command(body, finally_exit);
+	if (execinfo.exception == ee_return) {
+	    assert(execinfo.breakcount == 0);
+	    execinfo.exception = ee_none;
+	}
+	close_current_environment();
+    }
+    undo_redirections(savefd);
+}
+
+/* execv を行う。execv が EINTR を返したら、やり直す。 */
+int xexecv(const char *path, char *const *argv)
+{
+    do
+	execv(path, argv);
+    while (errno == EINTR);
+    return -1;
+}
+
+/* execve を行う。execve が EINTR を返したら、やり直す。 */
+int xexecve(const char *path, char *const *argv, char *const *envp)
+{
+    do
+	execve(path, argv, envp);
+    while (errno == EINTR);
+    return -1;
+}
+
+/* コマンド置換を実行する。
+ * 指定したコードを実行し、その標準出力を返す。
+ * この関数はコマンドの実行が終わるまで返らない。
+ * 戻り値: 新しく malloc したコマンドの出力した文字列。末尾の改行は除いてある。
+ *         エラーや、中止した場合は NULL。 */
+wchar_t *exec_command_substitution(const wchar_t *code)
+{
+    int pipefd[2];
+    pid_t cpid;
+    bool save_is_interactive_now = is_interactive_now;
+
+    if (!code[0])
+	return xwcsdup(L"");
+
+    /* コマンドの出力を受け取るためのパイプを開く */
+    if (pipe(pipefd) < 0) {
+	xerror(errno, Ngt("cannot open pipe for command substitution"));
+	return NULL;
+    }
+
+    cpid = fork_and_reset(-1, false);
+    if (cpid < 0) {
+	/* fork 失敗 */
+	xclose(pipefd[PIDX_IN]);
+	xclose(pipefd[PIDX_OUT]);
+	return NULL;
+    } else if (cpid) {
+	/* 親プロセス */
+	FILE *f;
+
+	xclose(pipefd[PIDX_OUT]);
+	f = fdopen(pipefd[PIDX_IN], "r");
+	if (!f) {
+	    xerror(errno, Ngt("cannot open pipe for command substitution"));
+	    xclose(pipefd[PIDX_IN]);
+	    return NULL;
+	}
+
+	/* 子プロセスをアクティブジョブにする */
+	job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+	job->j_pgid = 0;
+	job->j_status = JS_RUNNING;
+	job->j_statuschanged = false;
+	job->j_loop = false;
+	job->j_pcount = 1;
+	job->j_procs[0].pr_pid = cpid;
+	job->j_procs[0].pr_status = JS_RUNNING;
+	job->j_procs[0].pr_statuscode = 0;
+	job->j_procs[0].pr_name = NULL;
+	set_active_job(job);
+
+	/* 子プロセスの出力を読む */
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	set_nonblocking(pipefd[PIDX_IN]);
+	block_sigchld_and_sighup();
+	handle_sigchld_and_sighup();
+	for (;;) {
+	    wint_t c = fgetwc(f);
+	    if (c == WEOF) {
+		if (feof(f))
+		    break;
+		assert(ferror(f));
+		switch (errno) {
+		    case EINTR:
+		    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+		    case EWOULDBLOCK:
+#endif
+			wait_for_input(pipefd[PIDX_IN], false);
+			continue;
+		}
+		break;
+	    } else {
+		wb_wccat(&buf, c);
+	    }
+	}
+	unblock_sigchld_and_sighup();
+	fclose(f);
+
+	/* 子プロセスの終了を待つ */
+	wait_for_job(ACTIVE_JOBNO, false);
+	laststatus = calc_status_of_job(job);
+	remove_job(ACTIVE_JOBNO);
+
+	/* 末尾の改行を削って返す */
+	while (buf.length > 0 && buf.contents[buf.length - 1] == L'\n')
+	    wb_remove(&buf, buf.length - 1, 1);
+	return wb_towcs(&buf);
+    } else {
+	/* 子プロセス */
+
+	/* 子プロセスが SIGTSTP で停止してしまうと、親プロセスである
+	 * 対話的なシェルに制御が戻らなくなってしまう。よって、SIGTSTP を
+	 * 受け取っても停止しないようにブロックしておく。 */
+	if (save_is_interactive_now)
+	    block_sigtstp();
+	reset_signals();
+
+	xclose(pipefd[PIDX_IN]);
+	if (pipefd[PIDX_OUT] != STDOUT_FILENO) {  /* パイプを繋ぐ */
+	    xdup2(pipefd[PIDX_OUT], STDOUT_FILENO);
+	    xclose(pipefd[PIDX_OUT]);
+	}
+
+	exec_wcs(code, gt("command substitution"), true);
+	assert(false);
+    }
+}
+
+/* 引数を内容とするヒアドキュメントを開く。
+ * 成功ならファイルディスクリプタ、エラーなら負数を返す。 */
+/* ヒアドキュメントの内容は fork した子プロセスからパイプ経由で渡す */
+int open_heredocument(const wordunit_T *contents)
+{
+    int pipefd[2];
+    pid_t cpid;
+
+    /* ヒアドキュメントの内容を渡すためのパイプを開く */
+    if (pipe(pipefd) < 0) {
+	xerror(errno, Ngt("cannot open pipe for here-document"));
+	return -1;
+    }
+
+    /* contents が空文字列なら fork するまでもない */
+    if (!contents)
+	goto success;
+
+    cpid = fork_and_reset(-1, false);
+    if (cpid < 0) {
+	/* fork 失敗 */
+	xerror(0, Ngt("cannot redirect to here-document"));
+	xclose(pipefd[PIDX_IN]);
+	xclose(pipefd[PIDX_OUT]);
+	return -1;
+    } else if (cpid > 0) {
+	/* 親プロセス */
+success:
+	xclose(pipefd[PIDX_OUT]);
+	return pipefd[PIDX_IN];
+    } else {
+	/* 子プロセス */
+	xclose(pipefd[PIDX_IN]);
+	block_all_but_sigpipe();
+
+	FILE *f = fdopen(pipefd[PIDX_OUT], "w");
+	if (!f) {
+	    xerror(errno, Ngt("cannot open pipe for here-document"));
+	    exit(EXIT_ERROR);
+	}
+
+	wchar_t *s = expand_string(contents, true);
+	if (!s)
+	    exit(EXIT_EXPERROR);
+	if (fputws(s, f) < 0) {
+#ifndef NDEBUG
+	    free(s);
+#endif
+	    xerror(errno, Ngt("cannot write here-document contents"));
+	    exit(EXIT_ERROR);
+	}
+#ifndef NDEBUG
+	free(s);
+#endif
+	exit(EXIT_SUCCESS);
+    }
+}
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* variable.c: shell variable manager */
+/* variable.c: deals with shell variables and parameters */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -17,668 +17,906 @@
 
 
 #include "common.h"
+#include <assert.h>
+#include <ctype.h>
 #include <errno.h>
-#include <limits.h>
+#include <locale.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "yash.h"
+#include <wchar.h>
+#include "option.h"
 #include "util.h"
+#include "strbuf.h"
+#include "plist.h"
+#include "hashtable.h"
+#include "path.h"
 #include "parser.h"
+#include "variable.h"
 #include "expand.h"
 #include "exec.h"
-#include "job.h"
-#include "path.h"
-#include "variable.h"
+#include "yash.h"
 #include "version.h"
-#include <assert.h>
 
 
-/* 変数環境を表す構造体 */
-struct environment {
-	struct environment *parent;  /* 親環境 */
-	struct hasht variables;      /* 普通の変数のハッシュテーブル */
-	struct plist positionals;    /* 位置パラメータのリスト */
-};
-/* variables の要素は struct variable へのポインタ、positionals の要素は
- * char へのポインタである。 */
-/* $0 は位置パラメータではない。故に positionals.contents[0] は NULL である。 */
+/* 変数環境 (=現在有効な変数・パラメータの集まり) を表す構造体。 */
+/* 言葉が似ているが環境変数とは全く異なる。 */
+typedef struct environ_T {
+    struct environ_T *parent;      /* 親環境 */
+    struct hashtable_T contents;   /* 変数を保持するハッシュテーブル */
+} environ_T;
+/* contents は char * から variable_T * へのハッシュテーブルである。 */
+/* 変数名は、ナル文字と '=' を除く任意の文字を含み得る。ただしシェル内で代入
+ * できる変数名はそれよりも限られている。 */
+/* 位置パラメータは、contents に "=" という名前の配列として入れる。
+ * 位置パラメータの番号と配列のインデックスが一つずれるので注意。 */
+#define VAR_positional "="
+
+/* 変数の属性フラグ */
+typedef enum vartype_T {
+    VF_NORMAL,
+    VF_ARRAY,
+    VF_EXPORT   = 1 << 2,  /* 変数を export するかどうか */
+    VF_READONLY = 1 << 3,  /* 変数が読み取り専用かどうか */
+    VF_NODELETE = 1 << 4,  /* 変数を削除できないようにするかどうか */
+} vartype_T;
+#define VF_MASK ((1 << 2) - 1)
+/* vartype_T の値は VF_NORMAL と VF_ARRAY のどちらかと他のフラグとの OR である。
+ * VF_EXPORT は VF_NORMAL でのみ使える。 */
+
+/* 変数を表す構造体 */
+typedef struct variable_T {
+    vartype_T v_type;
+    union {
+	wchar_t *value;
+	struct {
+	    void **vals;
+	    size_t valc;
+	} array;
+    } v_contents;
+    void (*v_getter)(struct variable_T *var);
+} variable_T;
+#define v_value v_contents.value
+#define v_vals  v_contents.array.vals
+#define v_valc  v_contents.array.valc
+/* v_vals は、void * にキャストした wchar_t * の NULL 終端配列である。
+ * v_valc はもちろん v_vals の要素数である。
+ * v_value, v_vals および v_vals の要素は free 可能な領域を指す。
+ * v_value は NULL かもしれない (まだ値を代入していない場合)。
+ * v_vals は常に非 NULL だが要素数は 0 かもしれない。
+ * v_getter は変数が取得される前に呼ばれる関数。変数に代入すると v_getter は
+ * NULL に戻る。 */
+
+/* 関数を表す構造体。メンバの定義は後で。 */
+typedef struct function_T function_T;
 
 
-static struct variable *get_variable(const char *name, bool temp);
-static const char *count_getter(struct variable *var);
-static const char *laststatus_getter(struct variable *var);
-static const char *pid_getter(struct variable *var);
-static const char *last_bg_pid_getter(struct variable *var);
-static const char *zero_getter(struct variable *var);
-static const char *lineno_getter(struct variable *var);
-static bool path_setter(struct variable *var);
+static void varvaluefree(variable_T *v)
+    __attribute__((nonnull));
+static void varfree(variable_T *v);
+static void varkvfree(kvpair_T kv);
+
+static void init_pwd(void);
+
+static inline bool is_name_char(char c)
+    __attribute__((const));
+
+static variable_T *search_variable(const char *name, bool temp)
+    __attribute__((pure,nonnull));
+static void update_enrivon(const char *name)
+    __attribute__((nonnull));
+static void reset_locale(const char *name)
+    __attribute__((nonnull));
+static void reset_locale_category(const char *name, int category)
+    __attribute__((nonnull));
+static variable_T *new_global(const char *name)
+    __attribute__((nonnull));
+static variable_T *new_local(const char *name)
+    __attribute__((nonnull));
+static bool assign_temporary(const char *name, wchar_t *value)
+    __attribute__((nonnull));
+
+static void lineno_getter(variable_T *var)
+    __attribute__((nonnull));
+static void random_getter(variable_T *var)
+    __attribute__((nonnull));
+static unsigned next_random(void);
+
+static void variable_set(const char *name, variable_T *var)
+    __attribute__((nonnull));
+
+static void funcfree(function_T *f);
+static void funckvfree(kvpair_T kv);
 
 
-/* 変数を保存する環境 */
-static struct environment *current_env;
-/* 一時的変数を保存するハッシュテーブル */
-static struct hasht temp_variables;
+/* 現在の変数環境 */
+static environ_T *current_env;
+/* 最も外側の変数環境 */
+static environ_T *top_env;
+
+/* 一時的変数を保持するハッシュテーブル。
+ * 一時的変数は、特殊組込みコマンドでない組込みコマンドを実行する際に
+ * 一時的な代入を行うためのものである。例えば、"HOME=/ cd" というコマンドライン
+ * を実行する際に HOME 変数を一時的に代入し、cd の実行が終わったら削除する。 */
+static hashtable_T temp_variables;
+
+/* RANDOM 変数が乱数として機能しているかどうか */
+static bool random_active;
+
+/* 関数を登録するハッシュテーブル。
+ * 関数名 (バイト文字列) から function_T * を引く。 */
+static hashtable_T functions;
 
 
-/* 環境変数などを初期化する。 */
-void init_var(void)
+/* variable_T * の値 (v_value/v_vals) を free する。 */
+void varvaluefree(variable_T *v)
 {
-	struct variable *var;
-
-	current_env = xmalloc(sizeof *current_env);
-	current_env->parent = NULL;
-	ht_init(&current_env->variables);
-	pl_init(&current_env->positionals);
-	pl_append(&current_env->positionals, NULL);
-
-	ht_init(&temp_variables);
-
-	/* まず current_env->variables に全ての環境変数を設定する。 */
-	for (char **e = environ; *e; e++) {
-		size_t namelen = strcspn(*e, "=");
-		char name[namelen + 1];
-		strncpy(name, *e, namelen);
-		name[namelen] = '\0';
-		if ((*e)[namelen] != '=')
-			continue;
-
-		struct variable *var = xmalloc(sizeof *var);
-		*var = (struct variable) {
-			.value = xstrdup(*e + namelen + 1),
-			.flags = VF_EXPORT,
-		};
-		ht_set(&current_env->variables, name, var);
-	}
-
-	/* 特殊パラメータを設定する。 */
-	var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = NULL,
-		.getter = count_getter,
-	};
-	ht_set(&current_env->variables, "#", var);
-	var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = NULL,
-		.getter = laststatus_getter,
-	};
-	ht_set(&current_env->variables, "?", var);
-	/*var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = NULL,
-		.getter = TODO $- parameter,
-	};
-	ht_set(&current_env->variables, "-", var);*/
-	var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = NULL,
-		.getter = pid_getter,
-	};
-	ht_set(&current_env->variables, "$", var);
-	var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = NULL,
-		.getter = last_bg_pid_getter,
-	};
-	ht_set(&current_env->variables, "!", var);
-	var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = NULL,
-		.getter = zero_getter,
-	};
-	ht_set(&current_env->variables, "0", var);
-
-	/* デフォルトの export を設定する。 */
-	export(VAR_HOME);
-	export(VAR_LANG);
-	export(VAR_LC_ALL);
-	export(VAR_LC_COLLATE);
-	export(VAR_LC_CTYPE);
-	export(VAR_LC_MESSAGES);
-	export(VAR_LC_MONETARY);
-	export(VAR_LC_NUMERIC);
-	export(VAR_LC_TIME);
-	export(VAR_PATH);
-	export(VAR_PWD);
-	export(VAR_OLDPWD);
-	export(VAR_SHLVL);
-	export(VAR_LINES);
-	export(VAR_COLUMNS);
-
-	/* PWD 環境変数を設定する */
-	{
-		const char *pwd;
-		char *newpwd;
-		if (posixly_correct || !(pwd = getvar(VAR_PWD))
-				|| pwd[0] != '/' || !is_same_file(pwd, ".")) {
-			newpwd = xgetcwd();
-		} else {
-			newpwd = canonicalize_path(pwd);
-		}
-		if (newpwd) {
-			setvar(VAR_PWD, newpwd, true);
-			free(newpwd);
-		}
-	}
-
-	/* PPID 変数を設定する */
-	{
-		char s[INT_STRLEN_BOUND(pid_t) + 1];
-		if (sprintf(s, "%jd", (intmax_t) getppid()) >= 0)
-			setvar(VAR_PPID, s, false);
-	}
-
-	/* LINENO 変数を設定する */
-	var = xmalloc(sizeof *var);
-	*var = (struct variable) {
-		.value = NULL,
-		.getter = lineno_getter,
-	};
-	var = ht_set(&current_env->variables, VAR_LINENO, var);
-	if (var) {
-		free(var->value);
-		free(var);
-	}
-
-	/* YASH_VERSION 変数を設定する。 */
-	setvar(VAR_YASH_VERSION, PACKAGE_VERSION, false);
-
-	/* PATH 環境変数にセッターを設定する。 */
-	var = get_variable(VAR_PATH, false);
-	var->setter = path_setter;
+    switch (v->v_type & VF_MASK) {
+	case VF_NORMAL:
+	    free(v->v_value);
+	    break;
+	case VF_ARRAY:
+	    recfree(v->v_vals, free);
+	    break;
+    }
 }
 
-/* finalize_var で使う内部関数。変数を解放する。 */
-static int delete_variable_export(
-		const char *name __attribute__((unused)), void *v)
+/* variable_T * を free する */
+void varfree(variable_T *v)
 {
-	struct variable *var = v;
-	free(var->value);
-	free(var);
-	return 0;
+    if (v) {
+	varvaluefree(v);
+	free(v);
+    }
 }
 
-/* 変数環境を終了する */
-void finalize_var(void)
+/* 変数を保持するハッシュテーブルの内容だった kvpair_T を解放する。 */
+void varkvfree(kvpair_T kv)
 {
-	struct environment *env;
-	while ((env = current_env)) {
-		current_env = env->parent;
+    free(kv.key);
+    varfree(kv.value);
+}
 
-		struct plist *pos = &env->positionals;
-		for (size_t i = 1; i < pos->length; i++)
-			free(pos->contents[i]);
-		pl_destroy(pos);
+static bool initialized = false;
 
-		struct hasht *vars = &env->variables;
-		ht_each(vars, delete_variable_export);
-		ht_destroy(vars);
-		free(env);
+/* 変数関連のデータを初期化する */
+void init_variables(void)
+{
+    if (initialized)
+	return;
+    initialized = true;
+
+    top_env = current_env = xmalloc(sizeof *current_env);
+    current_env->parent = NULL;
+    ht_init(&current_env->contents, hashstr, htstrcmp);
+
+    ht_init(&temp_variables, hashstr, htstrcmp);
+    ht_init(&functions, hashstr, htstrcmp);
+
+    /* まず current_env->contents に全ての既存の環境変数を設定する。 */
+    for (char **e = environ; *e; e++) {
+	size_t namelen = strcspn(*e, "=");
+	if ((*e)[namelen] != '=')
+	    continue;
+
+	char *name = xstrndup(*e, namelen);
+	variable_T *v = xmalloc(sizeof *v);
+	v->v_type = VF_NORMAL | VF_EXPORT;
+	v->v_value = malloc_mbstowcs(*e + namelen + 1);
+	v->v_getter = NULL;
+	if (v->v_value) {
+	    varkvfree(ht_set(&current_env->contents, name, v));
+	} else {
+	    xerror(0, Ngt("value of environment variable `%s' cannot be "
+		    "converted to wide-character string"),
+		    name);
+	    free(name);
+	    free(v);
 	}
+    }
 
-	ht_each(&temp_variables, delete_variable_export);
-	ht_destroy(&temp_variables);
+    /* LINENO 特殊変数を設定する */
+    {
+	variable_T *v = new_global(VAR_LINENO);
+	assert(v != NULL);
+	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
+	v->v_value = NULL;
+	v->v_getter = lineno_getter;
+	if (v->v_type & VF_EXPORT)
+	    update_enrivon(VAR_LINENO);
+    }
+
+    /* PS1/PS2/PS3/PS4 を設定する */
+    {
+	const wchar_t *ps1 =
+	    !posixly_correct ? L"\\$ " : geteuid() ? L"$ " : L"# ";
+	set_variable(VAR_PS1, xwcsdup(ps1),    false, false);
+	set_variable(VAR_PS2, xwcsdup(L"> "),  false, false);
+	set_variable(VAR_PS3, xwcsdup(L"#? "), false, false);
+	set_variable(VAR_PS4, xwcsdup(L"+ "),  false, false);
+    }
+
+    /* PWD を設定する */
+    init_pwd();
+
+    /* PPID を設定する */
+    set_variable(VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
+	    false, false);
+
+    /* RANDOM 特殊変数を設定する */
+    if (!posixly_correct && !getvar(VAR_RANDOM)) {
+	variable_T *v = new_global(VAR_RANDOM);
+	assert(v != NULL);
+	v->v_type = VF_NORMAL;
+	v->v_value = NULL;
+	v->v_getter = random_getter;
+	random_active = true;
+	srand(shell_pid);
+    } else {
+	random_active = false;
+    }
+
+    /* YASH_VERSION を設定する */
+    set_variable(VAR_YASH_VERSION, xwcsdup(L"" PACKAGE_VERSION), false, false);
+
+    /* PATH に基づいて patharray を初期化する */
+    reset_patharray(getvar(VAR_PATH));
+}
+
+/* 以下の場合に PWD 環境変数を設定する
+ *  - posixly_correct が true である
+ *  - PWD 変数が存在しないか '/' で始まらないか実際の作業ディレクトリとは異なる
+ *  - PWD 変数の値が正規化されていない */
+void init_pwd(void)
+{
+    if (posixly_correct)
+	goto set;
+    const char *pwd = getenv(VAR_PWD);
+    if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
+	goto set;
+    const wchar_t *wpwd = getvar(VAR_PWD);
+    if (!wpwd || !is_canonicalized(wpwd))
+	goto set;
+    return;
+
+    char *newpwd;
+    wchar_t *wnewpwd;
+set:
+    newpwd = xgetcwd();
+    if (!newpwd) {
+	xerror(errno, Ngt("cannot set PWD"));
+	return;
+    }
+    wnewpwd = malloc_mbstowcs(newpwd);
+    free(newpwd);
+    if (!wnewpwd) {
+	xerror(0, Ngt("cannot set PWD"));
+	return;
+    }
+    set_variable(VAR_PWD, wnewpwd, false, true);
+}
+
+/* 変数関連のデータを初期化前の状態に戻す */
+void finalize_variables(void)
+{
+    environ_T *env = current_env;
+    while (env) {
+	ht_clear(&env->contents, varkvfree);
+
+	environ_T *parent = env->parent;
+	free(env);
+	env = parent;
+    }
+    current_env = NULL;
+
+    clear_temporary_variables();
+    ht_destroy(&temp_variables);
+    clear_all_functions();
+    ht_destroy(&functions);
+
+    initialized = false;
+}
+
+/* 引数が名前構成文字であるかどうか調べる */
+bool is_name_char(char c)
+{
+    switch (c) {
+    case '0':  case '1':  case '2':  case '3':  case '4':
+    case '5':  case '6':  case '7':  case '8':  case '9':
+    case 'a':  case 'b':  case 'c':  case 'd':  case 'e':  case 'f':
+    case 'g':  case 'h':  case 'i':  case 'j':  case 'k':  case 'l':
+    case 'm':  case 'n':  case 'o':  case 'p':  case 'q':  case 'r':
+    case 's':  case 't':  case 'u':  case 'v':  case 'w':  case 'x':
+    case 'y':  case 'z':
+    case 'A':  case 'B':  case 'C':  case 'D':  case 'E':  case 'F':
+    case 'G':  case 'H':  case 'I':  case 'J':  case 'K':  case 'L':
+    case 'M':  case 'N':  case 'O':  case 'P':  case 'Q':  case 'R':
+    case 'S':  case 'T':  case 'U':  case 'V':  case 'W':  case 'X':
+    case 'Y':  case 'Z':  case '_':
+	return true;
+    default:
+	return false;
+    }
+}
+
+/* 指定した文字列が (位置パラメータや特殊パラメータではない) 普通の変数の名前
+ * であるかどうか調べる */
+bool is_name(const char *s)
+{
+    if (!xisdigit(*s))
+	while (is_name_char(*s))
+	    s++;
+    return !*s;
+}
+
+/* 指定した名前の変数を捜し出す。
+ * temp:   temp_variables からも探すかどうか。
+ * 戻り値: 見付かった変数。見付からなければ NULL。 */
+variable_T *search_variable(const char *name, bool temp)
+{
+    variable_T *var;
+    if (temp) {
+	var = ht_get(&temp_variables, name).value;
+	if (var)
+	    return var;
+    }
+
+    environ_T *env = current_env;
+    while (env) {
+	var = ht_get(&env->contents, name).value;
+	if (var)
+	    return var;
+	env = env->parent;
+    }
+    return NULL;
+}
+
+/* 指定した名前の変数について、environ の値を更新する。
+ * 一時的変数は無視する。 */
+void update_enrivon(const char *name)
+{
+    environ_T *env = current_env;
+    while (env) {
+	variable_T *var = ht_get(&env->contents, name).value;
+	if (var && (var->v_type & VF_EXPORT) && var->v_value) {
+	    char *value = malloc_wcstombs(var->v_value);
+	    if (value) {
+		if (setenv(name, value, true) != 0)
+		    xerror(errno, Ngt("cannot set environment variable `%s'"),
+			    name);
+		free(value);
+	    } else {
+		xerror(0, Ngt("environment variable `%s' contains characters "
+			    "that cannot be converted from wide characters"),
+			name);
+	    }
+	    return;
+	}
+	env = env->parent;
+    }
+    unsetenv(name);
+}
+
+/* 指定した名前のロケール設定を現在の変数の値に基づいて再設定する。
+ * name がへんてこな文字列なら何もしない。 */
+void reset_locale(const char *name)
+{
+    if (strcmp(name, VAR_LANG) == 0) {
+	goto reset_locale_all;
+    } else if (strncmp(name, "LC_", 3) == 0) {
+	/* POSIX の定めによると、実行中に環境変数が変わっても
+	 * LC_CTYPE はリセットしてはいけない。 */
+	if (strcmp(name, VAR_LC_ALL) == 0) {
+reset_locale_all:
+	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
+//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
+	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
+	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
+	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	} else if (strcmp(name, VAR_LC_COLLATE) == 0) {
+	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
+//	} else if (strcmp(name, VAR_LC_CTYPE) == 0) {
+//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	} else if (strcmp(name, VAR_LC_MESSAGES) == 0) {
+	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
+	} else if (strcmp(name, VAR_LC_MONETARY) == 0) {
+	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
+	} else if (strcmp(name, VAR_LC_NUMERIC) == 0) {
+	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
+	} else if (strcmp(name, VAR_LC_TIME) == 0) {
+	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	}
+    }
+}
+
+/* 指定したロケールのカテゴリを再設定する
+ * name: LC_ALL 以外の LC_ で始まるカテゴリ名 */
+void reset_locale_category(const char *name, int category)
+{
+    const wchar_t *v = getvar(VAR_LC_ALL);
+    if (!v) {
+	v = getvar(name);
+	if (!v) {
+	    v = getvar(VAR_LANG);
+	    if (!v)
+		v = L"";
+	}
+    }
+    char *sv = malloc_wcstombs(v);
+    if (sv) {
+	setlocale(category, sv);
+	free(sv);
+    }
+}
+
+/* 新しいグローバル変数を用意する。
+ * グローバルといっても、常に top_env に作成するわけではなく、既にローカル変数が
+ * 存在していればそれを返すことになる。
+ * 古い変数があれば削除し、古い変数と同じ環境に新しい変数を用意してそれを返す。
+ * 古い変数がなければ、top_env に新しい変数を用意して返す。
+ * いずれにしても、呼び出し元で戻り値の内容を正しく設定すること。
+ * 戻り値の v_type 以外のメンバの値は信用してはいけない。
+ * 戻り値の v_type に VF_EXPORT がついている場合、呼出し元で update_enrivon
+ * を呼ぶこと。
+ * 失敗すればエラーを出して (読み取り専用変数が既に存在するなど) NULL を返す。
+ * 同じ名前の一時的変数はあっても無視する。 */
+variable_T *new_global(const char *name)
+{
+    variable_T *var = search_variable(name, false);
+    if (!var) {
+	var = xmalloc(sizeof *var);
+	var->v_type = 0;
+	ht_set(&top_env->contents, xstrdup(name), var);
+    } else if (var->v_type & VF_READONLY) {
+	xerror(0, Ngt("%s: readonly"), name);
+	return NULL;
+    } else {
+	varvaluefree(var);
+    }
+    return var;
+}
+
+/* 新しいローカル変数を用意する。
+ * 古い変数があれば削除し、指定した名前の新しい変数を current_env->contents に
+ * 設定して、それを返す。呼び出し元で戻り値の内容を正しく設定すること。
+ * 戻り値の v_type 以外のメンバの値は信用してはいけない。
+ * 戻り値の v_type に VF_EXPORT がついている場合、呼出し元で update_enrivon
+ * を呼ぶこと。
+ * 失敗すればエラーを出して (読み取り専用変数が既に存在するなど) NULL を返す。
+ * 同じ名前の一時的変数はあっても無視する。 */
+variable_T *new_local(const char *name)
+{
+    variable_T *var = ht_get(&current_env->contents, name).value;
+    if (!var) {
+	var = xmalloc(sizeof *var);
+	var->v_type = 0;
+	ht_set(&current_env->contents, xstrdup(name), var);
+    } else if (var->v_type & VF_READONLY) {
+	xerror(0, Ngt("%s: readonly"), name);
+	return NULL;
+    } else {
+	varvaluefree(var);
+    }
+    return var;
+}
+
+/* 指定した名前と値で変数を作成する。
+ * value: 予め wcsdup しておいた free 可能な文字列。
+ *        この関数が返った後、呼出し元はこの文字列を一切使用してはならない。
+ * export: VF_EXPORT フラグを追加するかどうか。
+ * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+bool set_variable(const char *name, wchar_t *value, bool local, bool export)
+{
+    variable_T *var = local ? new_local(name) : new_global(name);
+    if (!var) {
+	free(value);
+	return false;
+    }
+
+    var->v_type = VF_NORMAL
+	| (var->v_type & (VF_EXPORT | VF_NODELETE))
+	| (export ? VF_EXPORT : 0);
+    var->v_value = value;
+    var->v_getter = NULL;
+
+    variable_set(name, var);
+    if (var->v_type & VF_EXPORT)
+	update_enrivon(name);
+    return true;
+}
+
+/* 指定した名前と値の配列を作成する。
+ * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+bool set_array(const char *name, char *const *values, bool local)
+{
+    variable_T *var = local ? new_local(name) : new_global(name);
+    if (!var)
+	return false;
+
+    bool needupdate = (var->v_type & VF_EXPORT);
+
+    plist_T list;
+    pl_init(&list);
+    while (*values) {
+	wchar_t *wv = malloc_mbstowcs(*values);
+	if (!wv) {
+	    if (strcmp(name, VAR_positional) == 0)
+		xerror(0,
+			Ngt("new positional parameter $%zu contains characters "
+			    "that cannot be converted to wide characters and "
+			    "is replaced with null string"),
+			list.length + 1);
+	    else
+		xerror(0, Ngt("new array element %s[%zu] contains characters "
+			    "that cannot be converted to wide characters and "
+			    "is replaced with null string"),
+			name, list.length + 1);
+	    wv = xwcsdup(L"");
+	}
+	pl_add(&list, wv);
+	values++;
+    }
+    var->v_type = VF_ARRAY | (var->v_type & VF_NODELETE);
+    var->v_valc = list.length;
+    var->v_vals = pl_toary(&list);
+    var->v_getter = NULL;
+
+    variable_set(name, var);
+    if (needupdate)
+	update_enrivon(name);
+    return true;
 }
 
 /* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
- * values[0] が $1 に、values[1] が $2 に、という風になる。values[x] が NULL
- * になったら終わり。 */
-void set_positionals(char *const *values)
+ * values[0] が $1、values[1] が $2、というようになる。
+ * この関数は新しい変数環境を作成した後必ず呼ぶこと。 */
+void set_positional_parameters(char *const *values)
 {
-	struct plist *pos = &current_env->positionals;
-
-	/* まず古いのを消す。 */
-	for (size_t i = 1; i < pos->length; i++)
-		free(pos->contents[i]);
-	pl_remove(pos, 1, SIZE_MAX);
-
-	/* 新しいのを追加する。 */
-	assert(pos->length == 1);
-	while (*values) {
-		pl_append(pos, xstrdup(*values));
-		values++;
-	}
+    set_array(VAR_positional, values, true);
 }
 
-/* 環境変数 SHLVL に change を加える */
-void set_shlvl(int change)
+/* 一時的変数への代入を行う。
+ * name:  変数名
+ * value: 予め wcsdup しておいた free 可能な文字列。
+ *        この関数が返った後、呼出し元はこの文字列を一切使用してはならない。
+ * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+bool assign_temporary(const char *name, wchar_t *value)
 {
-	const char *shlvl = getvar(VAR_SHLVL);
-	int level = shlvl ? atoi(shlvl) : 0;
-	char newshlvl[16];
+    variable_T *var = ht_get(&temp_variables, name).value;
+    if (!var) {
+	var = xmalloc(sizeof *var);
+	var->v_type = 0;
+	ht_set(&temp_variables, xstrdup(name), var);
+    } else {
+	varvaluefree(var);
+    }
 
-	level += change;
-	if (level < 0)
-		level = 0;
-	if (snprintf(newshlvl, sizeof newshlvl, "%d", level) >= 0) {
-		if (!setvar(VAR_SHLVL, newshlvl, false))
-			xerror(0, 0, "failed to set env SHLVL");
-	}
-}
-
-/* 現在の変数環境や親変数環境・一時的変数から指定した変数を捜し出す。
- * 位置パラメータ、$*, $@ は取得できない。
- * temp: 一時的変数からも探すかどうか。 */
-static struct variable *get_variable(const char *name, bool temp)
-{
-	if (temp) {
-		struct variable *var = ht_get(&temp_variables, name);
-		if (var)
-			return var;
-	}
-
-	struct environment *env = current_env;
-	while (env) {
-		struct variable *var = ht_get(&env->variables, name);
-		if (var)
-			return var;
-		env = env->parent;
-	}
-	return NULL;
-}
-
-/* 指定した名前のシェル変数を取得する。
- * 特殊パラメータ $* および $@ は得られない。
- * 変数が存在しないときは NULL を返す。
- * 得られた変数値はこの変数を (un)setvar するまでは有効である。 */
-const char *getvar(const char *name)
-{
-	struct variable *var = get_variable(name, true);  /* 普通の変数を探す */
-	if (var) {
-		if (var->getter)
-			return var->getter(var);
-		if (var->flags & VF_EXPORT)
-			return getenv(name);
-		return var->value;
-	}
-	if (xisdigit(name[0])) {  /* 位置パラメータを探す */
-		char *end;
-		errno = 0;
-		size_t posindex = strtoul(name, &end, 10);
-		if (*end || errno)
-			return NULL;
-		if (0 < posindex && current_env->positionals.length)
-			return current_env->positionals.contents[posindex];
-	}
-	return NULL;
-}
-
-/* シェル変数の値を設定する。変数が存在しない場合、基底変数環境に追加する。
- * この関数では位置・特殊パラメータは設定できない (してはいけない)。
- * 同名の一時的変数があれば、一時的変数を削除してから普通に変数を設定する。
- * name:   正しい変数名。
- * export: true ならその変数を export 対象にする。false ならそのまま。
- * 戻り値: 成功なら true、エラーならメッセージを出して false。 */
-// TODO 配列も代入可能に
-bool setvar(const char *name, const char *value, bool export)
-{
-	assert(!xisdigit(name[0]));
-	assert(!is_special_parameter_char(name[0]));
-
-	unset_temporary(name);
-
-	struct variable *var = get_variable(name, false);
-	if (!var) {
-		struct environment *env = current_env;
-		while (env->parent)
-			env = env->parent;
-		var = xmalloc(sizeof *var);
-		*var = (struct variable) {
-			.value = NULL,
-			.flags = 0,
-		};
-		ht_set(&env->variables, name, var);
-	}
-	if (var->flags & VF_READONLY) {
-		xerror(0, 0, "%s: readonly variable cannot be assigned to", name);
-		return false;
-	}
-
-	bool ok = true;
-	if (export)
-		var->flags |= VF_EXPORT;
-	if (var->flags & VF_EXPORT) {
-		if (setenv(name, value, true) < 0) {
-			xerror(0, errno, "export %s=%s", name, value);
-			ok = false;
-		}
-	}
-	if (var->value != value) {
-		free(var->value);
-		var->value = xstrdup(value);
-	}
-	if (var->setter)
-		ok = var->setter(var);
-	assert(var->value != NULL);
-	return ok;
-}
-
-/* メインの変数テーブルを取得する。テーブルの内容を変えてはいけない。 */
-struct hasht *get_variable_table(void)
-{
-	struct environment *env = current_env;
-	while (env->parent)
-		env = env->parent;
-	return &env->variables;
-}
-
-/* 指定した名前の配列変数の内容を取得する。
- * name が NULL なら位置パラメータリストを取得する。
- * 配列変数が見付からなければ NULL を返す。 */
-/* 位置パラメータのインデックスは 0 ではなく 1 から始まることに注意 */
-struct plist *getarray(const char *name)
-{
-	if (!name)
-		return &current_env->positionals;
-	return NULL; //XXX 配列は未実装
-}
-
-/* シェル変数を削除する。
- * 特殊パラメータなどを削除しようとしてはいけない。
- * 戻り値: エラーがなければ true、変数を削除できなければ false。
- *         変数が存在しなかったら true。 */
-bool unsetvar(const char *name)
-{
-	unset_temporary(name);
-
-	struct environment *env = current_env;
-	while (env) {
-		struct variable *var = ht_remove(&env->variables, name);
-		if (var) {
-			bool oldvarexport = var->flags & VF_EXPORT;
-			if (var->flags & VF_READONLY) {
-				ht_set(&env->variables, name, var);
-				xerror(0, 0, "cannot unset readonly variable `%s'", name);
-				return false;
-			} else if (var->setter) {
-				free(var->value);
-				var->value = NULL;
-				var->flags &= ~VF_EXPORT;
-				var->setter(var);
-				ht_set(&env->variables, name, var);
-			} else {
-				free(var->value);
-				free(var);
-			}
-
-			/* 親環境に同名の変数があれば、environ の内容をそれに合わせる */
-			var = get_variable(name, false);
-			if (!var || !var->value || !(var->flags & VF_EXPORT))
-				unsetenv(name);
-			else if (!getenv(name) && oldvarexport)
-				setenv(name, var->value, true);
-			return true;
-		}
-		env = env->parent;
-	}
-	return true;
-}
-
-/* 変数環境を拡張する。 */
-void extend_environment(void)
-{
-	struct environment *newenv = xmalloc(sizeof *newenv);
-	newenv->parent = current_env;
-	ht_init(&newenv->variables);
-	pl_init(&newenv->positionals);
-	pl_append(&newenv->positionals, NULL);
-	current_env = newenv;
-}
-
-/* unextend_environment で使う内部関数。変数を解放する。 */
-static int delete_variable(const char *name __attribute__((unused)), void *v)
-{
-	struct variable *var = v;
-	bool oldvarexport = var->flags & VF_EXPORT;
-	free(var->value);
-	free(var);
-
-	/* 親環境に同名の変数があれば、environ の内容をそれに合わせる */
-	var = get_variable(name, false);
-	if (!var || !var->value || !(var->flags & VF_EXPORT))
-		unsetenv(name);
-	else if (!getenv(name) && oldvarexport)
-		setenv(name, var->value, true);
-	return 0;
-}
-
-/* 変数環境を閉じる */
-void unextend_environment(void)
-{
-	struct environment *env = current_env;
-	current_env = env->parent;
-
-	struct plist *pos = &env->positionals;
-	for (size_t i = 1; i < pos->length; i++)
-		free(pos->contents[i]);
-	pl_destroy(pos);
-
-	struct hasht *vars = &env->variables;
-	ht_each(vars, delete_variable);
-	ht_destroy(vars);
-	free(env);
-
-	assert(current_env);
-}
-
-/* 変数を export 対象にする。
- * 戻り値: 成功したかどうか */
-bool export(const char *name)
-{
-	unset_temporary(name);
-
-	struct variable *var = get_variable(name, false);
-	if (var) {
-		if (setenv(name, var->value, false) < 0) {
-			xerror(0, errno, "export %s=%s", name, var->value);
-			return false;
-		}
-	} else {
-		struct environment *env = current_env;
-		while (env->parent)
-			env = env->parent;
-		var = xmalloc(sizeof *var);
-		*var = (struct variable) {
-			.value = NULL,
-			.flags = VF_EXPORT,
-		};
-		ht_set(&env->variables, name, var);
-	}
-	return true;
-}
-
-/* 変数を非 export 対象にする。 */
-void unexport(const char *name)
-{
-	unset_temporary(name);
-
-	struct variable *var = get_variable(name, false);
-	if (var)
-		var->flags &= ~VF_EXPORT;
-	unsetenv(name);
-}
-
-/* 指定した名前のシェル変数が存在しかつ export 対象かどうかを返す。
- * 一時的変数は考慮しない。 */
-bool is_exported(const char *name)
-{
-	struct variable *var = get_variable(name, false);
-	return var && (var->flags & VF_EXPORT);
+    var->v_type = VF_NORMAL;
+    var->v_value = value;
+    var->v_getter = NULL;
+    return true;
 }
 
 /* 変数代入を行う。
- * assigns: 代入する "変数=値" の配列へのポインタ。
- * temp:    true なら一時的変数として代入する。false なら普通に代入する。
- * export:  代入する変数を export 対象にするかどうか。
- * 戻り値:  成功すれば true、エラーなら false。
+ * assign: 代入する変数と値
+ * temp:   代入する変数を一時的変数にするかどうか
+ * export: 代入した変数を export 対象にするかどうか
+ * 戻り値: エラーがなければ true
  * temp と export を両方 true にしてはいけない。
- * エラーの場合でも途中までは代入が完了していることがある。 */
-bool assign_variables(char **assigns, bool temp, bool export)
+ * エラーの場合でもそれまでの代入の結果は残る。 */
+bool do_assignments(const assign_T *assign, bool temp, bool export)
 {
-	assert(!temp || !export);
+    assert(!(temp && export));
 
-	char *assign;
-	if (!assigns)
-		return true;
-	while ((assign = *assigns)) {
-		//XXX 配列の代入は未対応
-		size_t namelen = strcspn(assign, "=");
-		char name[namelen + 1];
-		strncpy(name, assign, namelen);
-		name[namelen] = '\0';
-		assert(namelen > 0 && assign[namelen] == '=');
+    while (assign) {
+	wchar_t *value = expand_single(assign->value, tt_multi);
+	if (!value)
+	    return false;
+	value = unescapefree(value);
 
-		char *value = unescape(
-				expand_word(assign + namelen + 1, te_multi, false));
-		if (!value) {
-			return false;
-		}
-		if (temp) {
-			struct variable *var = xmalloc(sizeof *var);
-			*var = (struct variable) { .value = value, .flags = 0, };
-			var = ht_set(&temp_variables, name, var);
-			if (var) {
-				free(var->value);
-				free(var);
-			}
-		} else {
-			if (!setvar(name, value, export)) {
-				free(value);
-				return false;
-			}
-		}
-		assigns++;
+	bool ok;
+	if (temp)
+	    ok = assign_temporary(assign->name, value);
+	else
+	    ok = set_variable(assign->name, value, false, export);
+	if (!ok)
+	    return false;
+
+	assign = assign->next;
+    }
+    return true;
+}
+
+/* 指定した名前のシェル変数を取得する。
+ * 普通の変数 (VF_NORMAL) にのみ使える。
+ * "$" や "@" などの特殊パラメータは得られない。
+ * 変数がなければ NULL を返す。
+ * 戻り値を変更したり free したりしてはならない。
+ * 戻り値は変数を変更・削除するまで有効である。 */
+const wchar_t *getvar(const char *name)
+{
+    variable_T *var = search_variable(name, true);
+    if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
+	if (var->v_getter)
+	    var->v_getter(var);
+	return var->v_value;
+    }
+    return NULL;
+}
+
+/* シェル変数を配列として取得する。
+ * 変数がなければ NULL を返す。
+ * 戻り値は void * にキャストした wchar_t * の NULL 終端配列。
+ * 配列および各要素は全て新しく malloc した領域である。
+ * 配列でない普通の変数は、要素数 1 の配列として返す。
+ * concat: 配列の要素を結合すべきかどうかが *concat に入る。
+ *     name が "*" なら true、それ以外なら false になる。 */
+void **get_variable(const char *name, bool *concat)
+{
+    void **result;
+    wchar_t *value;
+    variable_T *var;
+
+    *concat = false;
+    if (!name[0])
+	return NULL;
+    if (!name[1]) {
+	switch (name[0]) {  /* 名前が一文字なので、特殊パラメータかどうか見る */
+	    case '*':
+		*concat = true;
+		/* falls thru! */
+	    case '@':
+		var = search_variable(VAR_positional, false);
+		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+		result = var->v_vals;
+		goto return_array;
+	    case '#':
+		var = search_variable(VAR_positional, false);
+		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+		value = malloc_wprintf(L"%zu", var->v_valc);
+		goto return_single;
+	    case '?':
+		value = malloc_wprintf(L"%d", laststatus);
+		goto return_single;
+	    case '-':
+		value = get_hyphen_parameter();
+		goto return_single;
+	    case '$':
+		value = malloc_wprintf(L"%jd", (intmax_t) shell_pid);
+		goto return_single;
+	    case '!':
+		value = malloc_wprintf(L"%jd", (intmax_t) lastasyncpid);
+		goto return_single;
+	    case '0':
+		value = malloc_mbstowcs(command_name);
+		goto return_single;
 	}
-	return true;
+    }
+
+    if (xisdigit(name[0])) {  /* 名前の先頭が数字なので、位置パラメータである */
+	char *nameend;
+	errno = 0;
+	long v = strtol(name, &nameend, 10);
+	if (errno || *nameend != '\0')
+	    return NULL;  /* 数値ではない or オーバーフロー */
+	var = search_variable(VAR_positional, false);
+	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+	if (v <= 0 || (uintmax_t) var->v_valc < (uintmax_t) v)
+	    return NULL;  /* インデックスが範囲外 */
+	value = xwcsdup(var->v_vals[v - 1]);
+	goto return_single;
+    }
+
+    /* 普通の変数を探す */
+    var = search_variable(name, true);
+    if (var) {
+	if (var->v_getter)
+	    var->v_getter(var);
+	switch (var->v_type & VF_MASK) {
+	    case VF_NORMAL:
+		value = var->v_value ? xwcsdup(var->v_value) : NULL;
+		goto return_single;
+	    case VF_ARRAY:
+		result = var->v_vals;
+		goto return_array;
+	}
+    }
+    return NULL;
+
+return_single:  /* 一つの値を要素数 1 の配列で返す。 */
+    if (!value)
+	return NULL;
+    result = xmalloc(2 * sizeof *result);
+    result[0] = value;
+    result[1] = NULL;
+    return result;
+
+return_array:  /* 配列をコピーして返す */
+    return duparray(result, copyaswcs);
 }
 
-/* unset_temporary で使う内部関数 */
-static void free_tempvar(void *value)
+/* 一時的変数を削除する */
+void clear_temporary_variables(void)
 {
-	struct variable *var = value;
-	assert(var != NULL);
-	free(var->value);
-	free(var);
+    ht_clear(&temp_variables, varkvfree);
 }
 
-/* 一時的変数を削除する。
- * name: 削除する一時的変数の名前。NULL なら全部の一時的変数を削除する。 */
-void unset_temporary(const char *name)
+/* 新しい変数環境を構築する。元の環境は新しい環境の親環境になる。
+ * set_positional_parameters を呼ぶのを忘れないこと。 */
+void open_new_environment(void)
 {
-	if (name) {
-		struct variable *var = ht_remove(&temp_variables, name);
-		if (var) {
-			free(var->value);
-			free(var);
+    environ_T *newenv = xmalloc(sizeof *newenv);
+    newenv->parent = current_env;
+    ht_init(&newenv->contents, hashstr, htstrcmp);
+    current_env = newenv;
+}
+
+/* 現在の変数環境を閉じる。元の環境の親環境が新しい環境になる。 */
+void close_current_environment(void)
+{
+    environ_T *oldenv = current_env;
+
+    assert(oldenv != top_env);
+    ht_clear(&oldenv->contents, varkvfree);
+    ht_destroy(&oldenv->contents);
+    current_env = oldenv->parent;
+    free(oldenv);
+}
+
+
+/********** 各種ゲッター **********/
+
+/* 現在実行中のコマンドの行番号 */
+unsigned long current_lineno;
+
+/* LINENO 変数のゲッター */
+void lineno_getter(variable_T *var)
+{
+    assert((var->v_type & VF_MASK) == VF_NORMAL);
+    free(var->v_value);
+    var->v_value = malloc_wprintf(L"%lu", current_lineno);
+    if (var->v_type & VF_EXPORT)
+	update_enrivon(VAR_LINENO);
+}
+
+/* RANDOM 変数のゲッター */
+void random_getter(variable_T *var)
+{
+    assert((var->v_type & VF_MASK) == VF_NORMAL);
+    free(var->v_value);
+    var->v_value = malloc_wprintf(L"%u", next_random());
+    if (var->v_type & VF_EXPORT)
+	update_enrivon(VAR_RANDOM);
+}
+
+/* rand を呼び出して 0 以上 32767 以下の乱数を返す */
+unsigned next_random(void)
+{
+#if RAND_MAX == 32767
+    return rand();
+#elif RAND_MAX == 65535
+    return rand() >> 1;
+#elif RAND_MAX == 2147483647
+    return rand() >> 16;
+#elif RAND_MAX == 4294967295
+    return rand() >> 17;
+#else
+    unsigned max, value;
+    do {
+	max   = RAND_MAX;
+	value = rand();
+	while (max > 65535) {
+	    max   >>= 1;
+	    value >>= 1;
+	}
+	if (max == 65535)
+	    return value >> 1;
+    } while (value > 32767);
+    return value;
+#endif
+}
+
+
+/********** 各種セッター **********/
+
+/* 変数が設定されたときに呼ばれる */
+void variable_set(const char *name, variable_T *var)
+{
+    switch (name[0]) {
+    case 'L':
+	if (strcmp(name, VAR_LANG) == 0 || strncmp(name, "LC_", 3) == 0)
+	    reset_locale(name);
+	break;
+    case 'P':
+	if (strcmp(name, VAR_PATH) == 0) {
+	    switch (var->v_type & VF_MASK) {
+		case VF_NORMAL:
+		    reset_patharray(var->v_value);
+		    break;
+		case VF_ARRAY:
+		    reset_patharray(NULL);
+		    break;  // TODO variable: variable_set: PATH が配列の場合
+	    }
+	}
+	break;
+    case 'R':
+	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
+	    random_active = false;
+	    if ((var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
+		wchar_t *end;
+		errno = 0;
+		unsigned seed = wcstoul(var->v_value, &end, 0);
+		if (!errno && *end == L'\0') {
+		    srand(seed);
+		    var->v_getter = random_getter;
+		    random_active = true;
 		}
-	} else {
-		ht_freeclear(&temp_variables, free_tempvar);
+	    }
 	}
+	break;
+	// TODO variable: variable_set: 他の変数
+    }
 }
 
-/* 引数 c が特殊パラメータの名前であるかどうか判定する。
- * 例外的に、'0' はこの関数では false を返す。 */
-bool is_special_parameter_char(char c)
+
+/********** シェル関数 **********/
+
+/* 関数を表す構造体 */
+struct function_T {
+    vartype_T  f_type;  /* VF_READONLY と VF_NODELETE のみ有効 */
+    command_T *f_body;  /* 関数の本体 */
+};
+
+void funcfree(function_T *f)
 {
-	return c != '\0' && strchr("@*#?-$!", c) != NULL;
+    if (f) {
+	comsfree(f->f_body);
+	free(f);
+    }
 }
 
-/* 文字が変数名に使えるかどうか判定する。 */
-bool is_name_char(char c)
+void funckvfree(kvpair_T kv)
 {
-	switch (c) {
-		case 'a':  case 'b':  case 'c':  case 'd':  case 'e':  case 'f':
-		case 'g':  case 'h':  case 'i':  case 'j':  case 'k':  case 'l':
-		case 'm':  case 'n':  case 'o':  case 'p':  case 'q':  case 'r':
-		case 's':  case 't':  case 'u':  case 'v':  case 'w':  case 'x':
-		case 'y':  case 'z':  case '_':
-		case 'A':  case 'B':  case 'C':  case 'D':  case 'E':  case 'F':
-		case 'G':  case 'H':  case 'I':  case 'J':  case 'K':  case 'L':
-		case 'M':  case 'N':  case 'O':  case 'P':  case 'Q':  case 'R':
-		case 'S':  case 'T':  case 'U':  case 'V':  case 'W':  case 'X':
-		case 'Y':  case 'Z':  case '0':  case '1':  case '2':  case '3':
-		case '4':  case '5':  case '6':  case '7':  case '8':  case '9':
-			return true;
-		default:
-			return false;
-	}
+    free(kv.key);
+    funcfree(kv.value);
 }
 
-/* 文字列が変数名として正しいかどうか判定する。 */
-bool is_name(const char *s)
+/* 全ての関数を (読み取り専用フラグなどは無視して) 削除する */
+void clear_all_functions(void)
 {
-	if ('0' <= *s && *s <= '9')
-		return false;
-	while (is_name_char(*s)) s++;
-	return !*s;
+    ht_clear(&functions, funckvfree);
 }
 
-/* 特殊パラメータ $# のゲッター。位置パラメータの数を返す。 */
-static const char *count_getter(
-		struct variable *var __attribute__((unused)))
+/* 関数を定義する。
+ * 読み取り専用関数を上書きしようとするとエラーになる。
+ * 戻り値: エラーがなければ true */
+bool define_function(const char *name, command_T *body)
 {
-	static char result[INT_STRLEN_BOUND(size_t) + 1];
-	if (snprintf(result, sizeof result, "%zd",
-				current_env->positionals.length - 1) >= 0)
-		return result;
+    function_T *f = ht_get(&functions, name).value;
+    if (f != NULL && (f->f_type & VF_READONLY)) {
+	xerror(0, Ngt("cannot re-define readonly function `%s'"), name);
+	return false;
+    }
+
+    f = xmalloc(sizeof *f);
+    f->f_type = 0;
+    f->f_body = comsdup(body);
+    funckvfree(ht_set(&functions, xstrdup(name), f));
+    return true;
+}
+
+/* 指定した名前の関数を取得する。当該関数がなければ NULL を返す。  */
+command_T *get_function(const char *name)
+{
+    function_T *f = ht_get(&functions, name).value;
+    if (f)
+	return f->f_body;
+    else
 	return NULL;
 }
 
-/* 特殊パラメータ $? のゲッター。laststatus の値を返す。 */
-static const char *laststatus_getter(
-		struct variable *var __attribute__((unused)))
-{
-	static char result[INT_STRLEN_BOUND(int) + 1];
-	if (snprintf(result, sizeof result, "%d", laststatus) >= 0)
-		return result;
-	return NULL;
-}
 
-/* 特殊パラメータ $$ のゲッター。シェルのプロセス ID の値を返す。 */
-static const char *pid_getter(
-		struct variable *var __attribute__((unused)))
-{
-	static char result[INT_STRLEN_BOUND(pid_t) + 1];
-	if (snprintf(result, sizeof result, "%jd", (intmax_t) shell_pid) >= 0)
-		return result;
-	return NULL;
-}
-
-/* 特殊パラメータ $! のゲッター。最後に起動したバックグラウンドジョブの PID。 */
-static const char *last_bg_pid_getter(
-		struct variable *var __attribute__((unused)))
-{
-	static char result[INT_STRLEN_BOUND(pid_t) + 1];
-	if (snprintf(result, sizeof result, "%.0jd", (intmax_t) last_bg_pid) >= 0)
-		return result;
-	return NULL;
-}
-
-/* 特殊パラメータ $0 のゲッター。実行中のシェル(スクリプト)名を返す。 */
-static const char *zero_getter(
-		struct variable *var __attribute__((unused)))
-{
-	return command_name;
-}
-
-/* LINENO 変数のゲッター。 */
-static const char *lineno_getter(struct variable *var)
-{
-	if (var->value)
-		return var->value;
-	static char result[INT_STRLEN_BOUND(unsigned) + 1];
-	if (snprintf(result, sizeof result, "%u", lineno) >= 0)
-		return result;
-	return NULL;
-}
-
-/* PATH 環境変数のセッター。 */
-static bool path_setter(struct variable *var __attribute__((unused)))
-{
-	clear_cmdhash();
-	return true;
-}
+/* vim: set ts=8 sts=4 sw=4 noet: */

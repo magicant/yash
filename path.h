@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* path.h: path manipulaiton utilities */
+/* path.h: filename-related utilities */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -20,37 +20,81 @@
 #define PATH_H
 
 #include <stdbool.h>
-#include <sys/stat.h>
+#include <stddef.h>
+#include <dirent.h>
 
 
-extern bool which_found_in_path;
+extern bool is_readable(const char *path)
+    __attribute__((nonnull));
+extern bool is_executable(const char *path)
+    __attribute__((nonnull));
+extern bool is_directory(const char *path)
+    __attribute__((nonnull));
 
-char *which(const char *name, const char *path, bool cond(const char *name))
-	__attribute__((malloc));
-bool is_readable(const char *path);
-bool is_executable(const char *path);
-bool is_directory(const char *path);
-char *expand_tilde(const char *path)
-	__attribute__((malloc, nonnull));
-char *expand_tilde_multiple(const char *paths)
-	__attribute__((malloc, nonnull));
-char *skip_homedir(const char *path);
-char *collapse_homedir(const char *path)
-	__attribute__((malloc));
-char *canonicalize_path(const char *path)
-	__attribute__((malloc));
-bool is_same_file(const char *path1, const char *path2)
-	__attribute__((nonnull));
-char *xgetcwd(void)
-	__attribute__((malloc));
+extern bool is_same_file(const char *path1, const char *path2)
+    __attribute__((nonnull));
 
-extern struct hasht cmdhash;
+extern wchar_t *canonicalize_path(const wchar_t *path)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern bool is_canonicalized(const wchar_t *path)
+    __attribute__((nonnull));
 
-void init_cmdhash(void);
-void clear_cmdhash(void);
-void fill_cmdhash(const char *prefix);
-const char *get_command_fullpath(const char *name, bool forcelookup)
-	__attribute__((nonnull));
+extern char *xgetcwd(void)
+    __attribute__((malloc,warn_unused_result));
+
+extern char *which(
+	const char *restrict name,
+	char *const *restrict dirs,
+	bool cond(const char *path))
+    __attribute__((nonnull(1),malloc,warn_unused_result));
+
+extern int xclosedir(DIR *dir)
+    __attribute__((nonnull));
+
+
+/********** patharray **********/
+
+extern void reset_patharray(const wchar_t *newpath);
+
+
+/********** コマンド名ハッシュ **********/
+
+extern void init_cmdhash(void);
+extern const char *get_command_path(const char *name, bool forcelookup)
+    __attribute__((nonnull));
+extern void fill_cmdhash(const char *prefix, bool ignorecase);
+
+
+/********** ホームディレクトリキャッシュ **********/
+
+extern struct passwd *xgetpwnam(const char *name)
+    __attribute__((nonnull));
+extern void init_homedirhash(void);
+extern void clear_homedirhash(void);
+extern const wchar_t *get_home_directory(
+	const wchar_t *username, bool forcelookup)
+    __attribute__((nonnull));
+
+
+/********** wglob **********/
+
+enum wglbflags {
+    WGLB_MARK     = 1 << 0,
+    WGLB_NOESCAPE = 1 << 1,
+    WGLB_CASEFOLD = 1 << 2,
+    WGLB_PERIOD   = 1 << 3,
+    WGLB_NOSORT   = 1 << 4,
+    WGLB_RECDIR   = 1 << 5,
+};
+
+struct plist_T;
+
+extern bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
+	struct plist_T *restrict list)
+    __attribute__((nonnull));
 
 
 #endif /* PATH_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

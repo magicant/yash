@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* yash.h: miscellaneous items */
+/* yash.h: basic functions of the shell and miscellanies */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -21,50 +21,45 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <signal.h>
 #include <sys/types.h>
 
 
-#define EXIT_NOEXEC   126
-#define EXIT_NOTFOUND 127
-
-
-extern const char *yash_program_invocation_name;
-extern const char *yash_program_invocation_short_name;
-extern const char *command_name;
 extern pid_t shell_pid;
 
-extern bool is_loginshell;
-extern bool is_interactive, is_interactive_now;
-extern bool posixly_correct;
-extern int ttyfd;
+extern void set_own_pgrp(void);
+extern void reset_own_pgrp(void);
+extern void forget_initial_pgrp(void);
 
-extern char *prompt_command;
-
-int exec_file(const char *path, char *const *positionals,
-		bool pathsearch, bool suppresserror)
-	__attribute__((nonnull(1)));
-int exec_file_exp(const char *path, bool suppresserror)
-	__attribute__((nonnull));
-int exec_source(const char *code, const char *name)
-	__attribute__((nonnull(1)));
-void exec_source_and_exit(const char *code, const char *name)
-	__attribute__((nonnull(1),noreturn));
-
-void set_signals(void);
-void unset_signals(void);
-void wait_for_signal(void);
-void handle_signals(void);
-void set_unique_pgid(void);
-void restore_pgid(void);
-void forget_orig_pgrp(void);
-void set_shell_env(void);
-void unset_shell_env(void);
-
-void yash_exit(int exitcode)
-	__attribute__((noreturn));
-void selfexec(const char *commandpath, char **argv)
-	__attribute__((nonnull, noreturn));
+static inline void exit_shell(void)
+    __attribute__((noreturn));
+extern void exit_shell_with_status(int status)
+    __attribute__((noreturn));
 
 
-#endif  /* YASH_H */
+struct parseinfo_T;
+
+extern bool exec_mbs(const char *code, const char *name, bool finally_exit)
+    __attribute__((nonnull(1)));
+extern bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
+    __attribute__((nonnull(1)));
+extern bool exec_input(FILE *f, const char *name,
+	bool intrinput, bool finally_exit)
+    __attribute__((nonnull(1)));
+extern bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
+    __attribute__((nonnull(1)));
+
+
+/* シェルを終了し、終了ステータスとして laststatus を返す。 */
+/* この関数は EXIT トラップを実行し、reset_own_pgrp を呼び出す。 */
+/* この関数は返らない。 */
+/* この関数は再入可能であり、再入すると直ちに終了する。 */
+void exit_shell(void)
+{
+    exit_shell_with_status(-1);
+}
+
+
+#endif /* YASH_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

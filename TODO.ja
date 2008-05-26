@@ -1,0 +1,56 @@
+configure: *.dSYM 削除
+一時的変数の実装を変更: 一時的変数も export 対象にできるように
+配列の解釈・代入
+ループパイプのテストスクリプト
+gettext 対応
+
+組込みコマンド
+	alias -gp
+	bg
+	bind
+	break
+	cd -LP
+	command -pvV
+	compgen
+	complete
+	continue
+	declare/typeset/...
+	dirs -clpv
+	disown -ahr
+	echo -eEn
+	eval
+	exec -acl
+	exit -f
+	export -fnp
+	false
+	fc -enlrs
+	fg
+	getopts
+	hash -pr
+	help -s
+	history -acdnprsw
+	jobs -lnprs
+	kill -lsn
+	local
+	newgrp
+	popd -n
+	printf
+	pushd -n
+	pwd -LP
+	read -aprs
+	readonly -afp
+	return
+	set -o +o
+	shift
+	source/.
+	suspend -f
+	test/[
+	times
+	trap -lp
+	true/:
+	type
+	ulimit -acdfilmnpqstvxHNS
+	umask -pS
+	unalias -a
+	unset -fv
+	wait

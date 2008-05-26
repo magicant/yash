@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* expand.c: functions for command line expansion */
+/* expand.c: word expansion */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -17,1264 +17,1461 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <fnmatch.h>
-#include <glob.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include "yash.h"
+#include <wchar.h>
+#include <wctype.h>
+#include "option.h"
 #include "util.h"
+#include "strbuf.h"
+#include "plist.h"
+#include "wfnmatch.h"
+#include "path.h"
 #include "parser.h"
+#include "variable.h"
 #include "expand.h"
 #include "exec.h"
-#include "path.h"
-#include "variable.h"
-#include <assert.h>
+#include "yash.h"
 
 
-/* コマンドの解釈は次の順序で行う:
- *  1. リダイレクトの分離
- *  2. ブレース展開
- *  3. チルダ展開
- *  4. パラメータ/数式展開・コマンド置換
- *  5. 単語分割 (IFS)
- *  6. パス名展開 (glob)
- *  7. エスケープ・引用符の削除
- *
- * 各関数の呼出しツリー:
- *  expand_line/expand_single
- *   \_ expand_word/expand_word_splitting/expand_arg
- *       \_ expand_brace
- *       \_ expand_tilde  (in path.c)
- *       \_ expand_subst
- *       |   \_ expand_dollar
- *       |   |   \_ expand_param
- *       |   |   |  \_ expand_param2
- *       |   |   |     \_ matchhead/matchtail/matchandsubst
- *       |   |   \_ get_comsub_code_p
- *       |   \_ get_comsub_code_bq
- *       |   \_ append_maybe_splitting
- *       |      \_ append_splitting
- *       \_ do_glob
- *           \_ unescape_for_glob
- *
- * 非対話的シェルにおいて展開時にエラーが発生したら、シェルはそのまま終了する
- */
+/* ブレース展開・glob で特殊な意味を持つ文字 */
+#define ESCAPED_CHARS L"\\{,}"
 
-struct expand {
-	struct strbuf *current;
-	struct plist  *fields;
-	bool           indq;
-	bool           split;
-};
-struct expand_args {
-	bool indq, count, indirect, formatcolon;
-	const char *full, *param, *format;
-};
-enum substtype {
-	substonce, substhead, substtail, substwhole, substall
-};
+/* 二重引用符の中でバックスラッシュエスケープできる文字 */
+#define ESCAPABLE_CHARS L"$`\"\\"
 
-static inline const char *get_ifs(void);
-static inline bool append_maybe_splitting(
-		char *result, struct expand *info, bool escape)
-	__attribute__((nonnull(2)));
-static char **expand_word_splitting(const char *s)
-	__attribute__((nonnull,malloc));
-static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
-	__attribute__((nonnull));
-static bool expand_brace(char *s, struct plist *result)
-	__attribute__((nonnull));
-static bool expand_subst(char *s, struct plist *result,
-		bool split, bool alwaysindq)
-	__attribute__((nonnull));
-static bool expand_dollar(char **srcp, struct expand *restrict info)
-	__attribute__((nonnull));
-static bool expand_param(const char *s, struct expand *restrict info)
-	__attribute__((nonnull));
-static char *expand_param2(struct expand_args *args, const char *value)
-	__attribute__((nonnull,malloc));
-static char *matchhead(const char *s, char *pat)
-	__attribute__((nonnull,malloc));
-static char *matchtail(const char *s, char *pat)
-	__attribute__((nonnull,malloc));
-static char *matchandsubst(
-		const char *s, char *pat, char *str, enum substtype type)
-	__attribute__((nonnull(1,2),malloc));
-static char *get_comsub_code_p(char **src)
-	__attribute__((nonnull,malloc));
-static char *get_comsub_code_bq(char **src)
-	__attribute__((nonnull,malloc));
-static bool do_glob(char **ss, struct plist *result)
-	__attribute__((nonnull));
-static char *unescape_for_glob(const char *s)
-	__attribute__((malloc));
+static bool expand_word_and_split(
+	const wordunit_T *restrict w, plist_T *restrict list)
+    __attribute__((nonnull(2)));
+
+static bool expand_word(
+	const wordunit_T *restrict w, tildetype_T tilde,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
+    __attribute__((nonnull(3)));
+
+static wchar_t *expand_tilde(const wchar_t **ss,
+	bool hasnextwordunit, tildetype_T tt)
+    __attribute__((nonnull,malloc,warn_unused_result));
+
+static void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static void print_subst_as_error(const paramexp_T *p)
+    __attribute__((nonnull));
+static void match_each(
+	void **slist, const wchar_t *pattern, paramexptype_T type)
+    __attribute__((nonnull));
+static void match_head_each(void **slist, const wchar_t *pattern, bool longest)
+    __attribute__((nonnull));
+static void match_tail_longest_each(void **slist, const wchar_t *pattern)
+    __attribute__((nonnull));
+static void match_tail_shortest_each(void **slist, const wchar_t *pattern)
+    __attribute__((nonnull));
+static void subst_each(void **slist, const wchar_t *pattern,
+	const wchar_t *subst, paramexptype_T type)
+    __attribute__((nonnull));
+static void subst_whole_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+    __attribute__((nonnull));
+static void subst_head_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+    __attribute__((nonnull));
+static void subst_tail_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+    __attribute__((nonnull));
+static void subst_generic_each(void **slist,
+	const wchar_t *pattern, const wchar_t *subst, bool substall)
+    __attribute__((nonnull));
+static void subst_length_each(void **slist)
+    __attribute__((nonnull));
+
+static void expand_brace_each(void **restrict values, void **restrict splits,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
+    __attribute__((nonnull));
+static void expand_brace(wchar_t *restrict word, char *restrict split,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
+    __attribute__((nonnull));
+static bool has_leading_zero(const wchar_t *s, bool *sign)
+    __attribute__((nonnull));
+static bool tryexpand_brace_sequence(
+	wchar_t *word, char *split, wchar_t *startc,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
+    __attribute__((nonnull));
+
+static void fieldsplit(wchar_t *restrict str, char *restrict split,
+	const wchar_t *restrict ifs, plist_T *restrict dest)
+    __attribute__((nonnull));
+static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
+	plist_T *restrict dest)
+    __attribute__((nonnull));
+
+static inline void add_sq(
+	const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
+    __attribute__((nonnull));
+static wchar_t *reescape(const wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static void **reescape_full_array(void **wcsarray)
+    __attribute__((nonnull));
+static wchar_t *escaped_wcspbrk(const wchar_t *wcs, const wchar_t *accept)
+    __attribute__((nonnull));
+
+static void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
+    __attribute__((nonnull));
+static enum wglbflags get_wglbflags(void)
+    __attribute__((pure));
 
 
-/* IFS 環境変数を取得する。環境変数がなければ " \t\n" を返す。 */
-static inline const char *get_ifs(void)
-{
-	const char *ifs = getvar(VAR_IFS);
-	if (!ifs) ifs = " \t\n";
-	return ifs;
-}
-
-/* expand_subst 内で使う補助関数。result が非 NULL ならそれを info の current
- * に追加する。場合によっては単語分割をする。result はこの関数内で free する。
- * escape: 単語を追加するときにエスケープするかどうか。
- * 戻り値: result が非 NULL だったかどうか。 */
-static inline bool append_maybe_splitting(
-		char *result, struct expand *info, bool escape)
-{
-	if (result) {
-		if (info->split && !info->indq) { /* 単語分割しつつ追加 */
-			append_splitting(result, info->current, info->fields,
-					get_ifs(), escape ? "\"'\\" : NULL);
-		} else {  /* そのまま追加 */
-			if (escape)
-				escape_bs(result, "\"\\", info->current);
-			else
-				sb_append(info->current, result);
-		}
-		free(result);
-		return true;
-	} else {
-		return false;
-	}
-}
-
+/********** 各種展開のエントリポイント **********/
 
 /* コマンドライン上の各種展開を行う。
- * args は入力引数であり、展開される文字列への配列である。これは NULL でもよい。
- * argc, argv は出力引数であり、各ポインタのアドレスにそれぞれ
- * 展開結果の個数・展開結果への配列へのポインタが入る。(エラーの有無に拘らず)
- * *argv は新しく malloc した文字列への新しく malloc した配列である。
- * args の内容は一切変更しない。
- * 成功すると true 、失敗すると false を返す。失敗時はエラーを出力する。 */
-bool expand_line(char *const *args, int *argc, char ***argv)
+ * args: void * にキャストした const wordunit_T へのポインタの配列。配列内の
+ *       各ワードが展開される。配列の最後の要素は NULL でなければならない。
+ * argcp: このポインタが指すところに展開結果の個数が入る。
+ * argvp: このポインタが指すところに展開結果が入る。結果は、マルチバイト文字列
+ *       へのポインタの配列へのポインタであり、配列の最後の要素は NULL である。
+ * args で与えられる内容は変更されない。
+ * 戻り値: 成功すると true、エラーがあると false。
+ * エラーがあった場合、*argcp, *argvp の値は不定である。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
+bool expand_line(void *const *restrict args,
+    int *restrict argcp, char ***restrict argvp)
 {
-	struct plist alist;
-	bool ok = true;
+    plist_T list1, list2;
+    pl_init(&list1);
 
-	pl_init(&alist);
-	if (!args) goto end;
-
-	while (ok && *args) {
-		ok = expand_arg(*args, &alist, true);
-		args++;
+    /* 四種展開・ブレース展開・フィールド分割をする (args -> list1) */
+    while (*args) {
+	if (!expand_word_and_split(*args, &list1)) {
+	    if (!is_interactive)
+		exit_shell_with_status(EXIT_EXPERROR);
+	    recfree(pl_toary(&list1), free);
+	    return false;
 	}
+	args++;
+    }
 
-end:
-	*argc = alist.length;
-	*argv = (char **) pl_toary(&alist);
-	return ok;
+    /* glob する (list1 -> list2) */
+    if (shopt_noglob) {
+	for (size_t i = 0; i < list1.length; i++) {
+	    char *v = realloc_wcstombs(list1.contents[i]);
+	    if (!v) {
+		xerror(0, Ngt("expanded word contains characters that "
+			    "cannot be converted to wide characters and "
+			    "is replaced with null string"));
+		v = xstrdup("");
+	    }
+	    list1.contents[i] = v;
+	}
+	list2 = list1;
+    } else {
+	pl_init(&list2);
+	do_glob_each(list1.contents, &list2);
+	recfree(pl_toary(&list1), free);
+    }
+
+    *argcp = list2.length;
+    *argvp = (char **) pl_toary(&list2);
+    return true;
 }
 
-/* 一つのフィールドに対してチルダ展開・パラメータ/数式展開・コマンド置換・
- * 引用符除去を行う。pathexp が true ならパス名展開も行う。
- * 成功すると展開結果を新しく malloc した文字列として返す。エラーがあったら
- * (stderr に出力して) NULL を返す。結果が単語分割で複数 or 0 個になった場合も
- * エラーである。 */
-char *expand_single(const char *arg, bool pathexp)
+/* 一つの単語に対して四種展開・ブレース展開・フィールド分割を行う。
+ * w:      展開する単語
+ * list:   結果を入れるリスト
+ * 戻り値: 成功すると true、エラーがあると false。
+ * チルダ展開は tt_single で行う。 */
+bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
 {
-	struct plist alist;
-	pl_init(&alist);
-	if (!expand_arg(arg, &alist, pathexp)) {
-		recfree(pl_toary(&alist), free);
-		return NULL;
-	}
-	if (alist.length != 1) {
-		xerror(is_interactive_now ? 0 : EXIT_FAILURE,
-				0, "%s: parameter expanded to multiple words", arg);
-		recfree(pl_toary(&alist), free);
-		return NULL;
-	}
+    plist_T valuelist1, valuelist2, splitlist1, splitlist2;
+    pl_init(&valuelist1);
+    pl_init(&splitlist1);
 
-	char *result = alist.contents[0];
-	pl_destroy(&alist);
-	return result;
-}
-
-/* 一つのフィールドに対してチルダ展開・パラメータ/数式展開・コマンド置換を行う。
- * パス名展開・引用符除去は行わない。
- * tildeexpandtype: チルダ展開の種類。
- * alwaysindq: true なら " を引用符として扱わず、常に " で囲まれているとみなす。
- * 戻り値: 新しく malloc した、展開の結果。エラーなら NULL。 */
-char *expand_word(const char *s, enum tildeexpandtype tetype, bool alwaysindq)
-{
-	char *s2;
-	struct plist list;
-
-	switch (tetype) {
-		case te_single:
-			s2 = expand_tilde(s);
-			if (s2)
-				break;
-			/* falls thru! */
-		case te_none:
-			s2 = xstrdup(s);
-			break;
-		case te_multi:
-			s2 = expand_tilde_multiple(s);
-			break;
-		default:
-			assert(false);
-	}
-
-	pl_init(&list);
-	if (!expand_subst(s2, &list, false, alwaysindq)) {
-		recfree(pl_toary(&list), free);
-		return NULL;
-	}
-	assert(list.length <= 1);
-	s2 = list.contents[0];
-	pl_destroy(&list);
-	return s2;
-}
-
-/* 一つの引数に対してチルダ展開とパラメータ展開を行い結果を配列で返す。
- * 一つの引数が単語分割によって複数の単語に分かれたり 0 個になったりすることが
- * ある。
- * 成功すると結果の配列を、失敗すると NULL を返す。失敗時はエラーを出力する。 */
-static char **expand_word_splitting(const char *s)
-{
-	char *temp = expand_tilde(s);
-	struct plist results;
-	if (!temp)
-		return NULL;
-	pl_init(&results);
-	if (expand_subst(temp, &results, true, false)) {
-		return (char **) pl_toary(&results);
-	} else {
-		recfree(pl_toary(&results), free);
-		return NULL;
-	}
-}
-
-/* 一つの引数に対してブレース展開以降の全ての展開を行い結果を argv に追加する。
- * 一つの引数が単語分割によって複数の単語に分かれることがあるので、argv
- * に加わる要素は一つとは限らない。(分割結果が 0 個になることもある)
- * 成功すると true を、失敗すると false を返す。失敗時はエラーを出力する。
- * 失敗しても途中結果が argv に追加されること場合もある。
- * pathexp: false ならパス名展開を飛ばす。 */
-static bool expand_arg(const char *s, struct plist *argv, bool pathexp)
-{
-	struct plist temp1, temp2;
-	bool ok = true;
-
-	pl_init(&temp1);
-	pl_init(&temp2);
-
-	expand_brace(xstrdup(s), &temp1);  /* まずブレース展開 */
-
-	for (size_t i = 0; i < temp1.length; i++) {  /* 続いてチルダ展開 */
-		char *s1 = temp1.contents[i];
-		char *s2 = expand_tilde(s1);
-		if (s2) {
-			pl_append(&temp2, s2);
-			free(s1);
-		} else {
-			pl_append(&temp2, s1);
-		}
-	}
-	pl_clear(&temp1);
-
-	for (size_t i = 0; ok && i < temp2.length; i++) { /* そしてパラメータ展開 */
-		ok = expand_subst(temp2.contents[i], &temp1, true, false);
-	}
-	pl_destroy(&temp2);
-
-	if (pathexp) {
-		/* 最後に glob */
-		ok &= do_glob((char **) temp1.contents, argv);
-	} else {
-		/* glob せずに引用符除去 */
-		for (size_t i = 0; i < temp1.length; i++)
-			pl_append(argv, unescape(temp1.contents[i]));
-	}
-	pl_destroy(&temp1);
-	return ok;
-}
-
-/* ブレース展開を行い、結果を result に追加する。
- * 展開を行ったならば、展開結果は複数の文字列になる (各展開結果を新しく malloc
- * した文字列として result に追加する)。展開がなければ、元の s がそのまま
- * result に入る。
- * s:      展開を行う、free 可能な文字列へのポインタ。
- *         展開を行った場合、s は expand_brace 内で free される。
- *         展開がなければ、s は result に追加される。
- * result: 初期化済の plist へのポインタ
- * 戻り値: 展開を行ったら true、展開がなければ false。 */
-static bool expand_brace(char *s, struct plist *result)
-{
-	struct plist ps;
-	char *t;
-	int count = 0;
-	size_t headlen, tailidx;
-
-	t = skip_with_quote(s, "{");
-	if (*t != '{' || *++t == '\0') {
-		pl_append(result, s);
-		return false;
-	}
-	pl_init(&ps);
-	pl_append(&ps, t);
-	for (;;) {
-		t = skip_with_quote(t, "{,}");
-		switch (*t++) {
-			case '{':
-				count++;
-				break;
-			case ',':
-				if (count == 0)
-					pl_append(&ps, t);
-				break;
-			case '}':
-				if (--count >= 0)
-					break;
-				if (ps.length >= 2) {
-					pl_append(&ps, t);
-					goto done;
-				}
-				/* falls thru! */
-			default:
-				pl_destroy(&ps);
-				pl_append(result, s);
-				return false;
-		}
-	}
-done:
-	tailidx = ps.length - 1;
-	headlen = (char *) ps.contents[0] - s - 1;
-	for (size_t i = 0, l = ps.length - 1; i < l; i++) {
-		struct strbuf buf;
-		sb_init(&buf);
-		sb_nappend(&buf, s, headlen);
-		sb_nappend(&buf, ps.contents[i],
-				(char *) ps.contents[i+1] - (char *) ps.contents[i] - 1);
-		sb_append(&buf, ps.contents[tailidx]);
-		expand_brace(sb_tostr(&buf), result);
-	}
-	pl_destroy(&ps);
-	free(s);
-	return true;
-}
-
-/* パラメータ展開・コマンド置換、そして split が true なら単語分割を行い、
- * 結果を result に追加する。
- * 引用符 (" と ') やバックスラッシュエスケープはそのまま展開結果に残る。
- * s:          free 可能な、展開・分割を行う対象の文字列。
- * split:      単語分割を行うかどうか。
- * alwaysindq: true なら " を認識しないで常に " の中とみなす。
- * エラー時はエラーメッセージを出力して false を返す。
- * ただし、エラーの場合でも途中結果が result に入っているかもしれない。
- * s は (展開や分割の結果が元と同じ時) *result に追加されるか、free される。 */
-/* IFS による単語分割は、パラメータ展開の結果内においてのみ実行する。
- * これはセキュリティ上の理由による。 */
-static bool expand_subst(char *const s, struct plist *result,
-		bool split, bool alwaysindq)
-{
-	bool ok = true;
-	char *s1 = s, *s2 = strpbrk(s, "\"'\\$`");
-	struct strbuf buf;
-	struct expand info = {
-		.current = &buf,
-		.fields = result,
-		.indq = alwaysindq,
-		.split = split,
-	};
-
-	if (!s2) {
-		pl_append(result, s);
-		return ok;
-	}
-	sb_init(&buf);
-	for (;;) {
-		sb_nappend(&buf, s1, s2 - s1);
-		s1 = s2;
-		switch (*s1) {
-			case '"':
-				info.indq = !info.indq || alwaysindq;
-				goto default_case;
-			case '\'':
-				s1 = skip_without_quote(s1 + 1, "'");
-				sb_nappend(&buf, s2, s1 - s2);
-				goto default_case;
-			case '\\':
-				sb_cappend(&buf, '\\');
-				if (*++s1)
-					goto default_case;
-				else
-					break;
-			case '$':
-				s1++;
-				ok &= expand_dollar(&s1, &info);
-				break;
-			case '`':
-				{
-					char *code = get_comsub_code_bq(&s1);
-					s2 = ok ? exec_and_read(code, true) : NULL;
-					free(code);
-					ok &= append_maybe_splitting(s2, &info, true);
-				}
-				break;
-			default:  default_case:
-				sb_cappend(&buf, *s1);
-				break;
-		}
-		if (*s1) s1++;
-		s2 = strpbrk(s1, "\"'\\$`");
-		if (!s2) {
-			sb_append(&buf, s1);
-			break;
-		}
-	}
-	if (info.indq && !alwaysindq)
-		xerror(0, 0, "%s: unclosed quotation", s);
-	if (buf.length > 0) {
-		pl_append(result, sb_tostr(&buf));
-	} else {
-		sb_destroy(&buf);
-	}
-	free(s);
-	return ok;
-}
-
-/* '$' で始まるパラメータ展開・コマンド置換を解釈し、結果を info に入れる。
- * srcp:   展開する '$' の次の文字へのポインタのポインタ。
- *         成功すると、*srcp は置換すべき部分文字列の最後の文字を指す。
- * 戻り値: 成功なら true、エラーなら NULL。 */
-static bool expand_dollar(char **srcp, struct expand *restrict info)
-{
-	char *s = *srcp;
-	char *ss, *result;
-
-	assert(s[-1] == '$');
-	switch (*s) {
-		case '{':
-			ss = skip_with_quote(s + 1, "}");
-			if (*ss != '}') {
-				xerror(0, 0, "$%s: missing `%c'", s, '}');
-				*srcp = ss - 1;
-				return false;
-			} else {
-				s++;
-				*srcp = ss;
-				char inside[ss - s + 1];
-				strncpy(inside, s, ss - s);
-				inside[ss - s] = '\0';
-				return expand_param(inside, info);
-			}
-		case '(':
-			ss = get_comsub_code_p(srcp);
-			result = exec_and_read(ss, true);
-			free(ss);
-			return append_maybe_splitting(result, info, true);
-		case '\0':
-		default:
-			if (is_special_parameter_char(*s) || xisdigit(*s)) {
-				char name[] = { *s, '\0' };
-				return expand_param(name, info);
-			} else if (is_name_char(*s)) {
-				ss = s + 1;
-				while (is_name_char(*ss)) ss++;
-				*srcp = ss - 1;
-				char name[ss - s + 1];
-				strncpy(name, s, ss - s);
-				name[ss - s] = '\0';
-				return expand_param(name, info);
-			} else {
-				*srcp = s - 1;
-				return xstrdup("$");
-			}
-	}
-}
-
-/* 括弧 ${ } で囲んだパラメータの内容を展開する
- * s:      ${ と } の間の文字列。
- * info:   展開に関する情報へのポインタ。
- * 戻り値: 成功なら true、エラーなら false。 */
-/* 書式:
- *    ${param-word}   param が未定義なら代わりに word を返す。
- *    ${param+word}   param が未定義でなければ代わりに word を返す。
- *    ${param=word}   param が未定義なら word を param に代入する事を試みる。
- *                    最終的な param の値を返す。
- *    ${param?word}   param が未定義なら word をエラーとして出力し終了する。
- *                    word が無ければデフォルトのエラーメッセージを出す。
- *                    ただし対話的シェルはエラーでも終了しない。
- *  param の直後に ':' を付けて ${param:-word} のようにすると、「未定義なら」
- *  ではなく「未定義か空文字列なら」の条件で判定する。
- *    ${#param}       param の内容の文字数を返す。
- *                    param が * か @ なら、yash では位置パラメータの数を返す。
- *    ${param#word}   word を glob パタンとみなして param の内容の先頭部分に
- *                    マッチさせ、一致した部分を削除して返す。(最短一致)
- *    ${param##word}  同様にマッチさせ、一致部分を削除して返す。(最長一致)
- *    ${param%word}   先頭ではなく末尾にマッチさせ、削除して返す。(最短一致)
- *    ${param%%word}  同様にマッチさせ、一致部分を削除して返す。(最長一致)
- *  これら四つは、param が * か @ か配列全体なら各要素に対して一致を行う。
- *  各 word は、使う前にチルダ展開・パラメータ/数式展開・コマンド置換を行う。
- *  word を使わない場合は展開・置換は行わない。
- *  以下は、POSIX にない書式である (基本的に bash とおなじ):
- *    ${prefix*}      名前が prefix で始まる全ての変数に展開する。
- *                    各変数は IFS の最初の文字で区切る。
- *    ${!prefix*}     同上
- *    ${param:off:len}  param の内容の off 文字目から最大 len 文字を返す。
- *                    off, len は数式展開する。len は省略可能。param が @ か
- *                    配列全体なら、部分配列を取り出す。
- *                    XXX 未実装
- *    ${param/pat/str}  pat を glob パタンとみなして param の内容にマッチさせ、
- *                    最初に一致した部分を str に置換して返す。pat の直前に #
- *                    があれば先頭部分のみ、% があれば末尾部分のみマッチさせる。
- *                    pat, str は word と同じように展開する。str は省略可能。
- *                    param が * か @ か配列全体なら、各要素ごとに置換する。
- *                    一致は常に最長一致とする。
- *    ${param//pat/str}  最初だけでなく全ての一致を同様に置換する。
- *    ${param:/pat/str}  pat が param の内容全体に一致するときのみ置換する。
- *  param の直前に ! がある場合、param を名前とする変数の内容ではなくて、
- *  param を名前とする変数の内容を名前とする変数の内容を用いる。ただし、
- *  ${!prefix*} は例外である。またこの記法は配列に対しては使えない。
- */
-static bool expand_param(const char *s, struct expand *restrict info)
-{
-	struct expand_args args;
-	args.full = s;
-	args.indq = info->indq;
-
-	args.count = (s[0] == '#' && s[1]);
-	if (args.count) s++;
-	args.indirect = (s[0] == '!');
-	if (args.indirect) s++;
-	
-	const char *pstart = s;
-	if (is_special_parameter_char(*s)) {
-		s++;
-	} else {
-		while (xisalnum(*s) || *s == '_') s++;
-	}
-	if (pstart == s && args.indirect) {
-		/* この場合 '!' は indirect のしるしではなく変数名そのもの */
-		pstart--;
-		args.indirect = false;
-		assert(*pstart == '!');
-	}
-
-	char param[s - pstart + 1];
-	strncpy(param, pstart, s - pstart);
-	param[s - pstart] = '\0';
-	args.param = param;
-
-	args.formatcolon = (*s == ':');
-	if (args.formatcolon) {
-		s++;
-		if (!*s)
-			goto syntax_error;
-	}
-	switch (*s) {
-		case '\0': case '+':  case '-':  case '=':  case '?':
-		case '#':  case '%':  case '/':
-			break;
-		default:
-			goto syntax_error;
-	}
-	args.format = s;
-
-	// TODO ${!prefix*} パタン, 配列
-	bool separate = false, singlevalue;
-	const char *const *values;
-	const char *singlevalues[2];
-	if (args.param[0] == '@' || args.param[0] == '*') {
-		struct plist *list = getarray(NULL);
-		values = (const char **) list->contents + 1;
-		separate = (args.indq && args.param[0] == '@');
-		singlevalue = false;
-	} else {
-		/* 配列でない変数は、要素が一つの配列のように扱う。 */
-		singlevalues[0] = getvar(args.param);
-		singlevalues[1] = NULL;
-		values = singlevalues;
-		separate = false;
-		singlevalue = true;
-
-		if (args.indirect && singlevalues[0])
-			singlevalues[0] = getvar(singlevalues[0]);
-	}
-	assert(values != NULL);
-
-	if (args.count) {
-		if (args.format[0])
-			goto syntax_error;
-		sb_printf(info->current, "%zu",
-				singlevalue
-					? (values[0] ? strlen(values[0]) : (size_t) 0)
-					: parylen((void **) values));
-		return true;
-	}
-
-	struct plist rlist;
-	char **rvalues;
-	pl_init(&rlist);
-	for (size_t i = 0; values[i]; i++) {
-		char *evalue = expand_param2(&args, values[i]);
-		if (!evalue) {
-			recfree(pl_toary(&rlist), free);
-			return false;
-		}
-		pl_append(&rlist, evalue);
-	}
-	rvalues = (char **) pl_toary(&rlist);
-
-	bool raw = false;
-	bool isempty =
-		!values[0] || (args.formatcolon && !values[0][0] && !values[1]); 
-	switch (args.format[0]) {
-		case '-':  case '+':
-			if (isempty == (args.format[0] == '-')) {
-				recfree((void **) rvalues, free);
-				rvalues = expand_word_splitting(args.format + 1);
-				if (!rvalues)
-					return NULL;
-				separate = false;
-				raw = !args.indq || posixly_correct;
-				if (!raw)
-					for (size_t i = 0; rvalues[i]; i++)
-						rvalues[i] = unescape(rvalues[i]);
-			}
-			break;
-		case '=':
-			if (isempty) {
-				if (singlevalue && !args.indirect
-						&& xisalpha(args.full[0]) && is_name(args.param)) {
-					char *word1 = unescape(
-							expand_word(args.format + 1, te_single, false));
-					recfree((void **) rvalues, free);
-					if (word1 && !setvar(args.param, word1, false)) {
-						free(word1);
-						return false;
-					}
-					return word1;
-				} else {  /* 配列などは代入できない */
-					xerror(0, 0, "${%s}: parameter cannot be "
-							"assigned to in this way", args.full);
-					recfree((void **) rvalues, free);
-					return false;
-				}
-			}
-			break;
-		case '?':
-			if (isempty) {
-				if (args.format[1]) {
-					char *word1 = unescape(
-							expand_word(args.format + 1, te_single, false));
-					if (word1) {
-						xerror(is_interactive_now ? 0 : EXIT_FAILURE,
-								0, "%s: %s", param, word1);
-						free(word1);
-					}
-				} else {
-					xerror(is_interactive_now ? 0 : EXIT_FAILURE,
-							0,
-							values[0] ? "%s: parameter null"
-							          : "%s: parameter not set",
-							args.param);
-				}
-				recfree((void **) rvalues, free);
-				return false;
-			}
-			break;
-	}
-
-	if (info->split && (separate || raw)) {
-		/* 配列の要素ごとに単語分割して追加 */
-		char **rv = rvalues;
-		if (*rv) {
-			for (;;) {
-				if (raw)
-					sb_append(info->current, *rv);
-				else
-					escape_bs(*rv, args.indq ? "\"\\" : "\"\\'", info->current);
-				free(*rv);
-				rv++;
-				if (!*rv) break;
-				if (args.indq) sb_cappend(info->current, '"');
-				pl_append(info->fields, sb_tostr(info->current));
-				sb_init(info->current);
-				if (args.indq) sb_cappend(info->current, '"');
-			}
-		}
-		free(rvalues);
-		return true;
-	} else if (!rvalues[0]) {
-		free(rvalues);
-		return true;
-	} else {
-		char *result;
-		if (!rvalues[1]) {
-			result = rvalues[0];
-			free(rvalues);
-		} else {
-			char sep[2] = { get_ifs()[0], '\0' };
-			/* IFS が "" なら sep も "" となる。これは正しい動作である。 */
-			result = strjoin(-1, rvalues, sep);
-			recfree((void **) rvalues, free);
-		}
-		return append_maybe_splitting(result, info, !raw);
-	}
-
-syntax_error:
-	xerror(is_interactive_now ? 0 : EXIT_FAILURE,
-			0, "${%s}: bad substitution", args.full);
+    /* 四種展開をする (w -> list1) */
+    if (!expand_word(w, tt_single, &valuelist1, &splitlist1)) {
+	recfree(pl_toary(&valuelist1), free);
+	recfree(pl_toary(&splitlist1), free);
 	return false;
+    }
+
+    /* ブレース展開をする (list1 -> list2) */
+    if (shopt_braceexpand) {
+	pl_init(&valuelist2);
+	pl_init(&splitlist2);
+	expand_brace_each(valuelist1.contents, splitlist1.contents,
+		&valuelist2, &splitlist2);
+	pl_destroy(&valuelist1);
+	pl_destroy(&splitlist1);
+    } else {
+	valuelist2 = valuelist1;
+	splitlist2 = splitlist1;
+    }
+
+    /* フィールド分割をする (list2 -> list) */
+    fieldsplit_all(pl_toary(&valuelist2), pl_toary(&splitlist2), list);
+    return true;
 }
 
-/* パラメータの値を操作する書式を適用する。
- * info:   全ての値を設定してある struct expand_args。
- * 戻り値: 新しく malloc した、書式の適用結果。エラーなら NULL。 */
-/* 書式の詳細は expand_param の説明を参照 */
-static char *expand_param2(struct expand_args *args, const char *value)
+/* 一つの単語を展開する。
+ * 四種展開と引用符除去を行う。
+ * ただしブレース展開・フィールド分割・glob・エスケープ解除はしない。
+ * エラー発生時はメッセージを出して NULL を返す。
+ * 戻り値: 展開結果。新しく malloc した文字列。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
+wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 {
-	const char *format = args->format;
-	char *word1, *word2;
-	bool matchlong;
+    wchar_t *result;
+    plist_T list;
+    pl_init(&list);
 
-	switch (*format++) {
-		/* '+', '-', '=', '?' の各記号は expand_param で処理する */
-		case '#':
-			matchlong = (format[0] == '#');
-			if (matchlong) format++;
-			word1 = unescape_for_glob(expand_word(format, te_single, false));
-			if (!word1) return NULL;
-			return matchlong ? matchandsubst(value, word1, NULL, substhead)
-			                 : matchhead(value, word1);
-		case '%':
-			matchlong = (format[0] == '%');
-			if (matchlong) format++;
-			word1 = unescape_for_glob(expand_word(format, te_single, false));
-			if (!word1) return NULL;
-			return matchlong ? matchandsubst(value, word1, NULL, substtail)
-			                 : matchtail(value, word1);
-		case '/':;
-			bool sall = (format[0] == '/');
-			if (sall) format++;
-			bool headonly = (format[0] == '#'), tailonly = (format[0] == '%');
-			if (headonly || tailonly) format++;
-
-			size_t patlen = skip_with_quote(format, "/") - format;
-			char pat[patlen + 1];
-			strncpy(pat, format, patlen);
-			pat[patlen] = '\0';
-			word1 = unescape_for_glob(expand_word(pat, te_single, false));
-			if (!word1) return NULL;
-			if (format[patlen] != '/') {
-				word2 = NULL;
-			} else {
-				word2 = unescape(expand_word(
-							format + patlen + 1, te_single, false));
-				if (!word2) {
-					free(word1);
-					return NULL;
-				}
-			}
-			return matchandsubst(value, word1, word2,
-					args->formatcolon ? substwhole :
-					sall              ? substall :
-					headonly          ? substhead :
-					tailonly          ? substtail :
-					                    substonce);
-	}
-	return xstrdup(value ? value : "");
-}
-
-/* pat を s の先頭部分にマッチさせ、最短で一致した部分を取り除いた文字列を返す。
- * pat:       マッチさせる glob パタン。matchhead 内で free する。
- * 戻り値:    新しく malloc した、s の部分文字列。エラーなら NULL。 */
-static char *matchhead(const char *s, char *pat)
-{
-	size_t len = strlen(s);
-	size_t i = 0;
-	char buf[len + 1];
-
-	for (;;) {
-		buf[i] = '\0';
-		switch (fnmatch(pat, buf, 0)) {
-			case 0:  /* 一致した */
-				goto end;
-			case FNM_NOMATCH:  /* 一致しなかった */
-				break;
-			default:  /* エラー */
-				xerror(0, 0, "unexpected fnmatch error");
-				free(pat);
-				return NULL;
-		}
-		if (i == len) {
-			i = 0;
-			goto end;
-		}
-		buf[i] = s[i];
-		i++;
-	}
-end:
-	free(pat);
-	return xstrdup(s + i);
-}
-
-/* pat を s の末尾部分にマッチさせ、最短で一致した部分を取り除いた文字列を返す。
- * pat:       マッチさせる glob パタン。matchtail 内で free する。
- * 戻り値:    新しく malloc した、s の部分文字列。エラーなら NULL。 */
-static char *matchtail(const char *const s, char *pat)
-{
-	size_t i = strlen(s);
-	for (;;) {
-		switch (fnmatch(pat, s + i, 0)) {
-			case 0:  /* 一致した */
-				goto end;
-			case FNM_NOMATCH:  /* 一致しなかった */
-				break;
-			default:  /* エラー */
-				xerror(0, 0, "unexpected fnmatch error");
-				free(pat);
-				return NULL;
-		}
-		if (!i) {
-			i = SIZE_MAX;
-			goto end;
-		}
-		i--;
-	}
-end:
-	free(pat);
-	return xstrndup(s, i);
-}
-
-/* pat を s にマッチさせ、一致した部分を str に置換して返す。
- * pat:    マッチさせる glob パタン。この関数内で free する。
- * str:    置換する文字列。この関数内で free する。NULL なら空文字列に置換。
- * type:   置換のしかた。
- *           substonce  = 最初の一致だけ置換。
- *           substhead  = s の先頭部分の最初の一致だけ置換。
- *           substtail  = s の末尾部分の最初の一致だけ置換。
- *           substwhole = s 全体に一致した場合だけ置換。
- *           substall   = 一致した部分を全て置換。
- * 戻り値: 新しく malloc した、置換結果。エラーなら NULL。 */
-static char *matchandsubst(
-		const char *s, char *pat, char *str, enum substtype type)
-{
-	if (type == substwhole) {
-		switch (fnmatch(pat, s, 0)) {
-			case 0:  /* 一致した */
-				free(pat);
-				return str ? str : xstrdup("");
-			case FNM_NOMATCH:  /* 一致しなかった */
-				goto nomatch;
-			default:  /* エラー */
-				goto err;
-		}
-	} else if (type == substtail) {
-		size_t i = 0;
-		while (s[i]) {
-			switch (fnmatch(pat, s + i, 0)) {
-				case 0:  /* 一致した */
-					free(pat);
-					size_t slen = str ? strlen(str) : 0;
-					char *result = xmalloc(i + slen + 1);
-					strncpy(result, s, i);
-					strcpy(result + i, str ? str : "");
-					free(str);
-					return result;
-				case FNM_NOMATCH:  /* 一致しなかった */
-					break;
-				default:  /* エラー */
-					goto err;
-			}
-			i++;
-		}
-		goto nomatch;
-	} else if (type == substonce || type == substhead) {
-		size_t len = strlen(s);
-		char buf[len + 1];
-		for (size_t i = 0; i <= len; i++) {
-			size_t l = len - i;
-			strcpy(buf, s + i);
-			for (;;) {
-				switch (fnmatch(pat, buf, 0)) {
-					case 0:  /* 一致した */
-						free(pat);
-						size_t slen = str ? strlen(str) : 0;
-						char *result = xmalloc(len - l + slen + 1);
-						strncpy(result, s, i);
-						if (str) {
-							strcpy(result + i, str);
-							free(str);
-						}
-						strcpy(result + i + slen, s + i + l);
-						return result;
-					case FNM_NOMATCH:  /* 一致しなかった */
-						break;
-					default:  /* エラー */
-						goto err;
-				}
-				if (!l)
-					break;
-				buf[--l] = '\0';  /* buf の末尾の一文字を削る */
-			}
-			if (type == substhead)
-				goto nomatch;
-		}
-		goto nomatch;
-	} else {
-		assert(type == substall);
-
-		size_t len = strlen(s);
-		char buf[len + 1];
-		struct strbuf result;
-		sb_init(&result);
-		for (size_t i = 0; i <= len; ) {
-			size_t l = len - i;
-			strcpy(buf, s + i);
-			for (;;) {
-				switch (fnmatch(pat, buf, 0)) {
-					case 0:  /* 一致した */
-						if (str)
-							sb_append(&result, str);
-						i += l;
-						goto cont;
-					case FNM_NOMATCH:  /* 一致しなかった */
-						break;
-					default:  /* エラー */
-						goto err;
-				}
-				if (!l)
-					break;
-				buf[--l] = '\0';  /* buf の末尾の一文字を削る */
-			}
-			sb_cappend(&result, s[i++]);
-cont:;
-		}
-		free(pat);
-		free(str);
-		return sb_tostr(&result);
-	}
-
-nomatch:
-	free(pat);
-	free(str);
-	return xstrdup(s);
-err:
-	xerror(0, 0, "unexpected fnmatch error");
-	free(pat);
-	free(str);
+    if (!expand_word(arg, tilde, &list, NULL)) {
+	if (!is_interactive)
+	    exit_shell_with_status(EXIT_EXPERROR);
+	recfree(pl_toary(&list), free);
 	return NULL;
+    }
+    if (list.length != 1) {
+	/* 結果の単語が複数ある場合は結合して返す */
+	const wchar_t *ifs = getvar(VAR_IFS);
+	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
+	result = joinwcsarray(list.contents, padding);
+	recfree(pl_toary(&list), free);
+    } else {
+	result = list.contents[0];
+	pl_destroy(&list);
+    }
+    return result;
 }
 
-/* 括弧 ( ) で囲んだコマンドの閉じ括弧を探す。
- * src:    開き括弧で始まる文字列へのポインタのポインタ。
- *         関数が返るとき、*src に閉じ括弧へのポインタが入る。
- * 戻り値: 新しく malloc した、括弧の間にあるコマンドの文字列。 */
-static char *get_comsub_code_p(char **src)
+/* 一つの単語を展開する。
+ * 四種展開と glob・引用符除去・エスケープ解除を行う。
+ * ただしブレース展開・フィールド分割はしない。
+ * glob の結果が一つでなければ、
+ *   - posixly_correct が true なら glob 前のパターンを返し、
+ *   - posixly_correct が false ならエラーを出す。
+ * shopt_noglob が true なら glob は行わない。
+ * shopt_nullglob が false でも true とみなす。
+ * 戻り値: 新しく malloc した文字列。エラーの場合は NULL。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
+char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 {
-	char *s = *src;
-	char *init;
-	int count = 0;
+    wchar_t *exp = expand_single(arg, tilde);
+    char *result;
 
-	assert(*s == '(');
-	s++;
-	init = s;
-	while (*s) {  // TODO
-		s = skip_with_quote(s, "()");
-		switch (*s) {
-			case ')':
-				if (--count < 0)
-					goto end;
-				break;
-			case '(':
-				count++;
-				break;
+    /* glob する */
+    if (shopt_noglob || !pattern_has_special_char(exp)) {
+noglob:
+	result = realloc_wcstombs(unescapefree(exp));
+	if (!result)
+	    xerror(0, Ngt("expanded word contains characters that "
+			"cannot be converted to wide characters and "
+			"is replaced with null string"));
+    } else {
+	plist_T list;
+	pl_init(&list);
+	wglob(exp, get_wglbflags(), &list);
+	if (list.length == 1) {
+	    free(exp);
+	    result = list.contents[0];
+	    pl_destroy(&list);
+	} else {
+	    recfree(pl_toary(&list), free);
+	    if (posixly_correct) {
+		goto noglob;
+	    } else {
+		exp = unescapefree(exp);
+		xerror(0, Ngt("%ls: not single file"), exp);
+		free(exp);
+		result = NULL;
+	    }
+	}
+    }
+    return result;
+}
+
+/* 一つの文字列を展開する。
+ * パラメータ展開・数式展開・コマンド置換を行うが、ブレース展開・フィールド分割
+ * ・ファイル名展開はしない。エラー発生時はメッセージを出して NULL を返す。
+ * esc:    true なら $, `, \ の直前の \ を削除する。
+ *         false なら全ての引用符はただの文字として扱う。
+ * 戻り値: 展開結果。新しく malloc したワイド文字列。エラーなら NULL。
+ * 非対話的シェルでエラーがあった場合はシェルを終了する。 */
+wchar_t *expand_string(const wordunit_T *w, bool esc)
+{
+    bool ok = true;
+    xwcsbuf_T buf;
+    const wchar_t *str;
+    wchar_t *s;
+    void **array;
+
+    wb_init(&buf);
+    while (w) {
+	switch (w->wu_type) {
+	case WT_STRING:
+	    str = w->wu_string;
+	    while (*str) {
+		if (esc && str[0] == L'\\' && str[1] != L'\0'
+			&& wcschr(L"$`\\", str[1])) {
+		    str++;
+		    if (*str)
+			wb_wccat(&buf, *str);
+		} else {
+		    wb_wccat(&buf, *str);
 		}
-		s++;
+		str++;
+	    }
+	    break;
+	case WT_PARAM:
+	    array = expand_param(w->wu_param, false, tt_none);
+	    if (array) {
+		if (array[0]) {
+		    for (void **a = array; *a; a++)
+			*a = unescapefree(*a);
+		    if (!array[1]) {
+			wb_cat(&buf, array[0]);
+		    } else {
+			const wchar_t *ifs = getvar(VAR_IFS);
+			wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
+			wb_catfree(&buf, joinwcsarray(array, padding));
+		    }
+		}
+		recfree(array, free);
+	    } else {
+		ok = false;
+	    }
+	    break;
+	case WT_CMDSUB:
+	    s = exec_command_substitution(w->wu_cmdsub);
+	    if (s) {
+		wb_catfree(&buf, s);
+	    } else {
+		ok = false;
+	    }
+	    break;
+	case WT_ARITH:
+	    ok = false;  // TODO expand: expand_word: 数式展開
+	    xerror(0, "arithmetic expansion not implemented");
+	    break;
 	}
-end:
-	*src = s;
-	return xstrndup(init, s - init);
+	w = w->next;
+    }
+    if (ok) {
+	return wb_towcs(&buf);
+    } else {
+	if (!is_interactive)
+	    exit_shell_with_status(EXIT_EXPERROR);
+	wb_destroy(&buf);
+	return NULL;
+    }
 }
 
-/* ` ` で囲んだコマンドの閉じ ` を探す。
- * src:    開き ` で始まる文字列へのポインタのポインタ。
- *         関数が返るとき、*src に閉じ ` へのポインタが入る。
- * 戻り値: 新しく malloc した、` の間にあるコマンドの文字列。
- *         バックスラッシュエスケープは取り除いてある。 */
-static char *get_comsub_code_bq(char **src)
-{
-	struct strbuf buf;
-	char *s = *src;
 
-	assert(*s == '`');
-	s++;
-	sb_init(&buf);
-	while (*s && *s != '`') {
-		if (*s == '\\')
-			s++;
-		if (*s)
-			sb_cappend(&buf, *s);
-		s++;
-	}
-	*src = s;
-	return sb_tostr(&buf);
-}
+/********** 四種展開 **********/
 
-/* ifs に基づいて str を単語分割し、結果を buf, list にいれる。
- * buf, list は予め初期化しておく必要がある (空である必要は無い)。
- * 単語を分割する度に pl_append(list, sb_tostr(buf)) を行い buf を再初期化する。
- * 最後の単語以外の単語は free 可能な文字列として list に入る。
- * 最後の単語は buf に入ったままになる。
- * q が非 NULL なら、q に入っている文字を escape_bs でエスケープする。 */
-void append_splitting(const char *str, struct strbuf *buf, struct plist *list,
-		const char *ifs, const char *q)
+/* 一つの単語についてチルダ展開・パラメータ展開・コマンド置換・数式展開をする。
+ * w:         展開する単語
+ * tilde:     チルダ展開の種類
+ * valuelist: 結果 (新しく malloc したワイド文字列へのポインタ) を入れるリスト
+ * splitlist: 結果に対応するフィールド分割可能性文字列を入れるリスト。NULL も可
+ * 戻り値:    エラーがなければ true。
+ * 引用符 (" と ') はバックスラッシュエスケープに置き換わる。
+ * valuelist, splitlist に追加する要素数は基本的に一つだが、"$@" を展開した
+ * 場合は複数追加したり一つも追加しなかったりする場合もある。
+ * splitlist の要素は valuelist の要素のフィールド分割可能な文字を示す。
+ * ((wchar_t*) valuelist->contents[i])[j] がフィールド分割の対象となるかどうかは
+ * ((char *) splitlist->contents[i])[j] が非 0 かどうかによって決まる。
+ * フィールド分割に関する情報が不要なら splitlist は NULL でもよい。
+ * splitlist に入る要素も valuelist に入る要素と同様に free すること。 */
+bool expand_word(
+	const wordunit_T *restrict w, tildetype_T tilde,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
-	for (;;) {
-		size_t len = strspn(str, ifs);
-		if (len > 0) {
-			if (buf->length > 0) {
-				pl_append(list, sb_tostr(buf));
-				sb_init(buf);
-			} else {
-				sb_clear(buf);
+    bool ok = true;
+    bool indq = false;     /* 二重引用符 " の中かどうか */
+    bool first = true;     /* 最初の word unit かどうか */
+    bool force = false;    /* 展開結果が空文字列でも追加する */
+    bool suppress = false; /* force を無効にする */
+    size_t initlen = valuelist->length;
+    xwcsbuf_T buf;
+    xstrbuf_T sbuf;
+    const wchar_t *str;
+    wchar_t *s;
+    void **array;
+
+    wb_init(&buf);
+    if (splitlist)
+	sb_init(&sbuf);
+
+#define FILL_SBUF(c) \
+    ((void) (splitlist && sb_ccat_repeat(&sbuf, c, buf.length - sbuf.length)))
+#define FILL_SBUF_SPLITTABLE    FILL_SBUF(1)
+#define FILL_SBUF_UNSPLITTABLE  FILL_SBUF(0)
+
+    while (w) {
+	switch (w->wu_type) {
+	case WT_STRING:
+	    str = w->wu_string;
+	    if (first && tilde != tt_none) {
+		s = expand_tilde(&str, w->next, tilde);
+		if (s) {
+		    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
+		    FILL_SBUF_UNSPLITTABLE;
+		}
+	    }
+	    while (*str) {
+		switch (*str) {
+		case L'"':
+		    indq = !indq;
+		    force = true;
+		    break;
+		case L'\'':
+		    if (indq)
+			goto default_case;
+		    force = true;
+		    add_sq(&str, &buf, true);
+		    FILL_SBUF_UNSPLITTABLE;
+		    break;
+		case L'\\':
+		    if (indq && !wcschr(ESCAPABLE_CHARS, str[1])) {
+			goto default_case;
+		    } else {
+			wb_wccat(&buf, L'\\');
+			if (*++str)
+			    wb_wccat(&buf, *str++);
+			FILL_SBUF_UNSPLITTABLE;
+			continue;
+		    }
+		case L':':
+		    if (!indq && tilde == tt_multi) {
+			wb_wccat(&buf, L':');
+			str++;
+			s = expand_tilde(&str, w->next, tilde);
+			if (s)
+			    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
+			FILL_SBUF_UNSPLITTABLE;
+			continue;
+		    }
+		    /* falls thru! */
+		default:  default_case:
+		    if (indq)
+			wb_wccat(&buf, L'\\');
+		    wb_wccat(&buf, *str);
+		    FILL_SBUF_UNSPLITTABLE;
+		    break;
+		}
+		str++;
+	    }
+	    break;
+	case WT_PARAM:
+	    array = expand_param(w->wu_param, indq, tilde);
+	    if (array) {
+		if (!array[0]) {
+		    suppress = true;
+		} else {
+		    force = true;
+		    for (void **a = array; ; ) {
+			wb_catfree(&buf, *a);
+			FILL_SBUF_SPLITTABLE;
+			a++;
+			if (!*a)
+			    break;
+			pl_add(valuelist, wb_towcs(&buf));
+			wb_init(&buf);
+			if (splitlist) {
+			    pl_add(splitlist, sb_tostr(&sbuf));
+			    sb_init(&sbuf);
 			}
+		    }
 		}
-		str += len;
-		if (!*str)
-			break;
-		len = strcspn(str, ifs);
-
-		char ss[len + 1];
-		strncpy(ss, str, len);
-		ss[len] = '\0';
-		if (q)
-			escape_bs(ss, q, buf);
-		else
-			sb_append(buf, ss);
-		str += len;
+		free(array);
+	    } else {
+		ok = false;
+	    }
+	    break;
+	case WT_CMDSUB:
+	    s = exec_command_substitution(w->wu_cmdsub);
+	    if (s) {
+		wb_catfree(&buf, escapefree(s, indq ? NULL : ESCAPED_CHARS));
+		FILL_SBUF_SPLITTABLE;
+	    } else {
+		ok = false;
+	    }
+	    break;
+	case WT_ARITH:
+	    ok = false;  // TODO expand: expand_word: 数式展開の実装
+	    //FILL_SBUF_SPLITTABLE;
+	    xerror(0, "arithmetic expansion not implemented");
+	    break;
 	}
+	w = w->next;
+	first = false;
+    }
+
+    /* "" や '' のような空の単語はここで追加する。
+     * 引用符が出た段階で force が true になり、単語を追加すべきことを示す。
+     * 例外として、"$@" は (引用符があるが) 内容が空なら追加しない。これは
+     * suppress によって示す。 */
+    if (buf.length > 0 || (initlen == valuelist->length && force && !suppress)){
+	pl_add(valuelist, wb_towcs(&buf));
+	if (splitlist)
+	    pl_add(splitlist, sb_tostr(&sbuf));
+    } else {
+	wb_destroy(&buf);
+	if (splitlist)
+	    sb_destroy(&sbuf);
+    }
+    return ok;
+
+#undef FILL_SBUF
+#undef FILL_SBUF_SPLITTABLE
+#undef FILL_SBUF_UNSPLITTABLE
 }
 
-/* glob を配列 *ss の各文字列に対して行い、全ての結果を *result に入れる。
- * *ss の各文字列は free されるか *result に入る。
- * ss:     free 可能な文字列の NULL 終端配列へのポインタ。
- * 戻り値: エラーがなければ true、エラーがあれば (エラーを表示して) false。 */
-static bool do_glob(char **ss, struct plist *result)
+/* チルダ展開を行う。
+ * ss: チルダがあるべき場所を指すポインタへのポインタ。
+ *     *ss は展開した後の部分まで進む。
+ * hasnextwordunit: 現在展開中の WT_STRING な wordunit_T の後ろに他の wordunit_T
+ *     が控えているかどうか。他の wordunit_T がない場合のみ文字列全体を展開する
+ * 戻り値: 新しく malloc した、展開結果。失敗なら NULL。
+ * (*ss)[0] が L'~' でなければ直ちに NULL を返す。 */
+wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
 {
-	glob_t gbuf;
-	bool ok = true;
-	while (*ss) {
-		char *s = unescape_for_glob(*ss);
-		switch (glob(s, 0, NULL, &gbuf)) {
-			case GLOB_NOSPACE:  case GLOB_ABORTED:  default:
-				xerror(0, 0, "%s: glob error", *ss);
-				free(*ss);
-				ok = false;
-				break;
-			case GLOB_NOMATCH:
-				assert(gbuf.gl_pathc == 0);
-				pl_append(result, unescape(*ss));
-				break;
-			case 0:
-				free(*ss);
-				break;
-		}
-		free(s);
-#if 1
-		for (size_t i = 0; i < gbuf.gl_pathc; i++)
-			pl_append(result, xstrdup(gbuf.gl_pathv[i]));
-		globfree(&gbuf);
-#else
-		/* This is dangerous because gbuf.gl_pathv might not be 'free'able. */
-		if (gbuf.gl_pathc > 0)
-			pl_anappend(result, gbuf.gl_pathv, gbuf.gl_pathc);
-		free(gbuf.gl_pathv);
-#endif
-		ss++;
-	}
-	return ok;
+    const wchar_t *s = *ss;
+    if (*s != L'~')
+	return NULL;
+    s++;
+
+    const wchar_t *end = wcspbrk(s, tt == tt_single ? L"/" : L"/:");
+    wchar_t *username;
+    const wchar_t *home;
+    size_t usernamelen;
+
+    if (end) {
+	usernamelen = end - s;
+    } else {
+	if (hasnextwordunit)
+	    return NULL;
+	usernamelen = wcslen(s);
+    }
+    username = xwcsndup(s, usernamelen);
+    if (username[0] == L'\0') {
+	/* 空のユーザ名なら $HOME に展開 */
+	home = getvar(VAR_HOME);
+	goto finish;
+    } else if (wcspbrk(username, L"\"'\\") != 0) {
+	/* ユーザ名に引用符があれば展開しない */
+	free(username);
+	return NULL;
+    }
+    if (!posixly_correct) {
+	if (wcscmp(username, L"+") == 0) {
+	    home = getvar(VAR_PWD);
+	    goto finish;
+	} else if (wcscmp(username, L"-") == 0) {
+	    home = getvar(VAR_OLDPWD);
+	    goto finish;
+	}  // TODO expand: expand_tilde: ディレクトリスタック対応
+    }
+    home = get_home_directory(username, false);
+finish:
+    free(username);
+    if (!home)
+	return NULL;
+    *ss = s + usernamelen;
+    return xwcsdup(home);
 }
 
-/* 引用符を削除し、通常の文字列に戻す。
- * バックスラッシュエスケープはそのまま残る。引用符の中にあった * や [ は、
- * glob で解釈されないようにバックスラッシュでエスケープする。
- * 戻り値: 新しく malloc した、s の展開結果。s が NULL なら NULL。 */
-static char *unescape_for_glob(const char *s)
+/* パラメータ展開を行い、結果を返す。
+ * tilde:  入れ子の展開で行うチルダ展開
+ * 戻り値: 展開結果。void * にキャストしたワイド文字列へのポインタの NULL 終端
+ *         配列。配列および要素は新しく malloc したものである。
+ *         エラーのときは NULL。
+ * 返す各要素は、ESCAPED_CHARS をエスケープ済みである。
+ * "@" または配列以外の展開結果は、必ず要素数 1 である。
+ * "*" の展開結果は、IFS に従って結合済みである。 */
+void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 {
-	enum { NORM, INSQ, INDQ, } state = NORM;
-	struct strbuf buf;
+    void **list;  /* void * にキャストした wchar_t * の配列 */
+    bool concat;  /* true なら配列の内容を IFS の最初の文字で繋ぐ */
+    bool unset;   /* 指定した変数が存在しなかった場合 true */
+    wchar_t *match, *subst;
 
-	if (!s) return NULL;
-	sb_init(&buf);
-	while (*s) {
-		switch (*s) {
-			case '"':
-				switch (state) {
-					case NORM:  state = INDQ;  break;
-					case INDQ:  state = NORM;  break;
-					case INSQ:  goto default_case;
-				}
-				break;
-			case '\'':
-				switch (state) {
-					case NORM:  state = INSQ;  break;
-					case INSQ:  state = NORM;  break;
-					case INDQ:  goto default_case;
-				}
-				break;
-			case '\\':
-				if (state == INSQ) {
-					sb_cappend(&buf, '\\');
-					goto default_case;
-				} else if (!*++s) {
-					sb_cappend(&buf, '\\');
-					break;
-				} else if (state == NORM || *s == '\\') {
-					sb_cappend(&buf, '\\');
-					sb_cappend(&buf, *s);
-					break;
-				} else if (*s != '"' && *s != '`' && *s != '$') {
-					sb_cappend(&buf, '\\');
-					sb_cappend(&buf, '\\');
-				}
-				goto default_case;
-			case '*':  case '?':  case '[':
-				if (state != NORM)
-					sb_cappend(&buf, '\\');
-				goto default_case;
-			default:  default_case:
-				sb_cappend(&buf, *s);
-				break;
-		}
-		if (*s) s++;
+    /* 変数またはネストした展開の内容を取得する */
+    if (p->pe_type & PT_NEST) {
+	plist_T plist;
+	pl_init(&plist);
+	if (!expand_word(p->pe_nest, tilde, &plist, NULL)) {
+	    recfree(pl_toary(&plist), free);
+	    return NULL;
 	}
-	return sb_tostr(&buf);
+	list = pl_toary(&plist);
+	concat = true;
+	unset = false;
+	for (size_t i = 0; list[i]; i++)
+	    list[i] = unescapefree(list[i]);
+    } else {
+	list = get_variable(p->pe_name, &concat);
+	if (list) {
+	    unset = false;
+	} else {
+	    /* 指定した名前の変数が存在しなければ空文字列を返すかエラーにする */
+	    if (shopt_nounset) {
+		xerror(0, Ngt("%s: parameter not set"), p->pe_name);
+		return NULL;
+	    } else {
+		plist_T plist;
+		list = pl_toary(pl_add(pl_init(&plist), xwcsdup(L"")));
+		unset = true;
+	    }
+	}
+    }
+
+    /* この時点で、list の内容はバックスラッシュエスケープしていない
+     * 生の文字列である。 */
+
+    /* PT_COLON フラグが立っているなら、変数の値が空文字列の場合も
+     * 変数が存在しないとみなす。 */
+    if ((p->pe_type & PT_COLON)
+	    && (!list[0] || (!((char *) list[0])[0] && !list[1])))
+	unset = true;
+
+    /* PT_PLUS, PT_MINUS, PT_ASSIGN, PT_ERROR, PT_MATCH, PT_SUBST を処理する */
+    switch (p->pe_type & PT_MASK) {
+    case PT_PLUS:
+	if (!unset)
+	    goto subst;
+	break;
+    case PT_MINUS:
+	if (unset) {
+	    plist_T plist;
+subst:
+	    recfree(list, free);
+	    pl_init(&plist);
+	    if (expand_word(p->pe_subst, tt_single, &plist, NULL)) {
+		list = pl_toary(&plist);
+		return indq ? reescape_full_array(list) : list;
+	    } else {
+		recfree(pl_toary(&plist), free);
+		return NULL;
+	    }
+	}
+	break;
+    case PT_ASSIGN:
+	if (unset) {
+	    recfree(list, free);
+	    if (p->pe_type & PT_NEST) {
+		xerror(0, Ngt("invalid assignment in parameter expansion"));
+		return NULL;
+	    } else if (!is_name(p->pe_name)) {
+		xerror(0, Ngt("cannot assign to `%s' in parameter expansion"),
+			p->pe_name);
+		return NULL;
+	    }
+	    subst = expand_single(p->pe_subst, tt_single);
+	    if (!subst)
+		return NULL;
+	    subst = unescapefree(subst);
+	    if (!set_variable(p->pe_name, xwcsdup(subst), false, false)) {
+		free(subst);
+		return NULL;
+	    }
+	    list = xmalloc(2 * sizeof *list);
+	    list[0] = subst;
+	    list[1] = NULL;
+	}
+	break;
+    case PT_ERROR:
+	if (unset) {
+	    recfree(list, free);
+	    print_subst_as_error(p);
+	    return NULL;
+	}
+	break;
+    case PT_MATCH:
+	match = expand_single(p->pe_match, tt_single);
+	if (!match) {
+	    recfree(list, free);
+	    return NULL;
+	}
+	match_each(list, match, p->pe_type);
+	free(match);
+	break;
+    case PT_SUBST:
+	match = expand_single(p->pe_match, tt_single);
+	subst = expand_single(p->pe_subst, tt_single);
+	if (!match || !subst) {
+	    free(match);
+	    free(subst);
+	    recfree(list, free);
+	    return NULL;
+	}
+	subst = unescapefree(subst);
+	subst_each(list, match, subst, p->pe_type);
+	free(match);
+	free(subst);
+	break;
+    }
+
+    /* 配列の要素を連結する */
+    if (concat) {
+	const wchar_t *ifs = getvar(VAR_IFS);
+	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
+	wchar_t *chain = joinwcsarray(list, padding);
+	recfree(list, free);
+	list = xmalloc(2 * sizeof *list);
+	list[0] = chain;
+	list[1] = NULL;
+    }
+
+    /* PT_NUMBER を処理する */
+    if (p->pe_type & PT_NUMBER)
+	subst_length_each(list);
+
+    /* 戻り値をエスケープする */
+    for (size_t i = 0; list[i]; i++)
+	list[i] = escapefree(list[i], indq ? NULL : ESCAPED_CHARS);
+
+    /* 結果が空になる場合 */
+    if (!indq && list[0] && !list[1] && !((wchar_t *) list[0])[0]) {
+	free(list[0]);
+	list[0] = NULL;
+    }
+
+    return list;
 }
 
-/* 引用符とバックスラッシュエスケープを削除する。
- * s:      free 可能な文字列。
- * 戻り値: 引用符とエスケープを削除した結果。
- * s は unescape 内で free され、新しく malloc した文字列で結果が返る。 */
-char *unescape(char *const s)
+/* p->pe_subst を展開して、それをエラーメッセージとして表示する */
+void print_subst_as_error(const paramexp_T *p)
 {
-	char *ss;
-	bool indq = false;
-	struct strbuf buf;
-
-	if (!s) return NULL;
-	ss = strpbrk(s, "\"'\\");
-	if (!ss) return s;
-	sb_init(&buf);
-	sb_nappend(&buf, s, ss - s);
-	while (*ss) {
-		switch (*ss) {
-			case '"':
-				indq = !indq;
-				break;
-			case '\'':
-				if (!indq) {
-					char *end = skip_without_quote(++ss, "'");
-					sb_nappend(&buf, ss, end - ss);
-					ss = end;
-				} else {
-					goto default_case;
-				}
-				break;
-			case '\\':
-				if (!*++ss) {
-					sb_cappend(&buf, '\\');
-					goto out;
-				} else if (indq && *ss != '\\' && *ss != '"'
-						&& *ss != '`' && *ss != '$' && *ss != '\n') {
-					sb_cappend(&buf, '\\');
-					goto default_case;
-				}
-				goto default_case;
-			default:  default_case:
-				sb_cappend(&buf, *ss);
-				break;
-		}
-		ss++;
+    if (p->pe_subst) {
+	wchar_t *subst = expand_single(p->pe_subst, tt_single);
+	if (subst) {
+	    subst = unescapefree(subst);
+	    if (p->pe_type & PT_NEST)
+		xerror(0, "%ls", subst);
+	    else
+		xerror(0, "%s: %ls", p->pe_name, subst);
+	    free(subst);
 	}
-out:
-	free(s);
-	return sb_tostr(&buf);
+    } else {
+	if (p->pe_type & PT_NEST)
+	    xerror(0, Ngt("parameter null"));
+	else
+	    xerror(0, (p->pe_type & PT_COLON)
+		    ? Ngt("%s: parameter null or not set")
+		    : Ngt("%s: parameter not set"),
+		    p->pe_name);
+    }
 }
 
-/* ヒアドキュメント内のバックスラッシュエスケープを削除する。
- * s:      free 可能な文字列。
- * 戻り値: エスケープを削除した結果。
- * s は unescape 内で free され、新しく malloc した文字列で結果が返る。 */
-char *unescape_here_document(char *const s)
+/* slist の要素である各ワイド文字列に対してマッチングを行い、
+ * マッチした部分を削除して返す。
+ * slist:   void * にキャストした free 可能なワイド文字列へのポインタの配列
+ * pattern: マッチングするパターン
+ * type:    PT_MATCHHEAD, PT_MATCHTAIL, PT_MATCHLONGEST フラグ
+ * slist の各要素はこの関数内で realloc する。 */
+void match_each(void **slist, const wchar_t *pattern, paramexptype_T type)
 {
-	char *ss;
-	struct strbuf buf;
-
-	if (!s) return NULL;
-	ss = strpbrk(s, "\"'\\");
-	if (!ss) return s;
-	sb_init(&buf);
-	sb_nappend(&buf, s, ss - s);
-	while (*ss) {
-		if (*ss == '\\') {
-			if (!*++ss) {
-				sb_cappend(&buf, '\\');
-				break;
-			} else if (*ss != '\\' && *ss != '`' && *ss != '$' && *ss != '\n') {
-				sb_cappend(&buf, '\\');
-			}
-		}
-		sb_cappend(&buf, *ss);
-		ss++;
-	}
-	free(s);
-	return sb_tostr(&buf);
+    if (type & PT_MATCHHEAD) {
+	match_head_each(slist, pattern, type & PT_MATCHLONGEST);
+    } else {
+	assert(type & PT_MATCHTAIL);
+	if (type & PT_MATCHLONGEST)
+	    match_tail_longest_each(slist, pattern);
+	else
+	    match_tail_shortest_each(slist, pattern);
+    }
 }
 
-/* 文字列 s を引用符 ' で囲む。ただし、文字列に ' 自身が含まれる場合は
- * \ でエスケープする。結果は buf に追加する。buf は初期化してから渡すこと。
- *   例)  abc"def'ghi  ->  'abcdef'\''ghi'  */
-void escape_sq(const char *s, struct strbuf *buf)
+/* PT_MATCHHEAD な match_each を実際に行う。
+ * longest: true なら最長マッチ、false なら最短マッチ */
+void match_head_each(void **slist, const wchar_t *pattern, bool longest)
 {
-	sb_cappend(buf, '\'');
-	while (*s) {
-		if (*s == '\'')
-			sb_append(buf, "'\\''");
-		else
-			sb_cappend(buf, *s);
+    enum wfnmtype type = longest ? WFNM_LONGEST : WFNM_SHORTEST;
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t match = wfnmatchl(pattern, str, flags, type, minlen);
+	if (match == WFNM_ERROR) {
+	    break;
+	} else if (match != WFNM_NOMATCH) {
+	    if (match > 0)
+		wmemmove(str, str + match, wcslen(str + match) + 1);
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHTAIL かつ PT_MATCHLONGEST な match_each を実際に行う。 */
+void match_tail_longest_each(void **slist, const wchar_t *pattern)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t len = wcslen(str);
+	size_t index = 0;
+	while (minlen + index <= len) {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH) {
+		str[index] = L'\0';
+		break;
+	    }
+	    index++;
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHTAIL だが PT_MATCHLONGEST ではない match_each を実際に行う。 */
+void match_tail_shortest_each(void **slist, const wchar_t *pattern)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t len = wcslen(str);
+	size_t index = len - minlen;
+	do {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH) {
+		str[index] = L'\0';
+		break;
+	    }
+	} while (index--);
+	slist++;
+    }
+}
+
+/* slist の要素である各ワイド文字列に対してマッチングを行い、
+ * マッチした部分を置換して返す。
+ * slist:   void * にキャストした free 可能なワイド文字列へのポインタの配列
+ * pattern: マッチングするパターン
+ * subst:   マッチした部分を置換する文字列
+ * type:    PT_MATCHHEAD, PT_MATCHTAIL, PT_SUBSTALL フラグ
+ * slist の各要素はこの関数内で realloc する。 */
+void subst_each(void **slist, const wchar_t *pattern, const wchar_t *subst,
+	paramexptype_T type)
+{
+    if (type & PT_MATCHHEAD) {
+	if (type & PT_MATCHTAIL)
+	    subst_whole_each(slist, pattern, subst);
+	else
+	    subst_head_each(slist, pattern, subst);
+    } else if (type & PT_MATCHTAIL) {
+	subst_tail_each(slist, pattern, subst);
+    } else {
+	subst_generic_each(slist, pattern, subst, type & PT_SUBSTALL);
+    }
+}
+
+/* PT_MATCHHEAD かつ PT_MATCHTAIL な subst_each を実際に行う */
+void subst_whole_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t match = wfnmatchl(pattern, str, flags, WFNM_WHOLE, minlen);
+	if (match == WFNM_ERROR) {
+	    break;
+	} else if (match != WFNM_NOMATCH) {
+	    free(str);
+	    *slist = xwcsdup(subst);
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHHEAD だが PT_MATCHTAIL ではない subst_each を実際に行う */
+void subst_head_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t match = wfnmatchl(pattern, str, flags, WFNM_LONGEST, minlen);
+	if (match == WFNM_ERROR) {
+	    break;
+	} else if (match != WFNM_NOMATCH) {
+	    xwcsbuf_T buf;
+	    wb_init(&buf);
+	    wb_cat(&buf, subst);
+	    wb_cat(&buf, str + match);
+	    free(str);
+	    *slist = wb_towcs(&buf);
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHTAIL だが PT_MATCHHEAD ではない subst_each を実際に行う */
+void subst_tail_each(
+	void **slist, const wchar_t *pattern, const wchar_t *subst)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t len = wcslen(str);
+	size_t index = 0;
+	while (minlen + index <= len) {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH) {
+		xwcsbuf_T buf;
+		wb_init(&buf);
+		wb_ncat(&buf, str, index);
+		wb_cat(&buf, subst);
+		free(str);
+		*slist = wb_towcs(&buf);
+		break;
+	    }
+	    index++;
+	}
+	slist++;
+    }
+}
+
+/* PT_MATCHHEAD でも PT_MATCHTAIL でもない subst_each を実際に行う
+ * substall: true なら全てのマッチを置換する */
+void subst_generic_each(void **slist,
+	const wchar_t *pattern, const wchar_t *subst, bool substall)
+{
+    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
+    size_t minlen = shortest_match_length(pattern, flags);
+    wchar_t *str;
+    while ((str = *slist)) {
+	size_t index = 0;
+	xwcsbuf_T buf;
+	wb_init(&buf);
+	while (str[index]) {
+	    size_t match = wfnmatchl(
+		    pattern, str + index, flags, WFNM_LONGEST, minlen);
+	    if (match == WFNM_ERROR) {
+		return;
+	    } else if (match != WFNM_NOMATCH && match > 0) {
+		wb_cat(&buf, subst);
+		index += match;
+		if (!substall) {
+		    wb_cat(&buf, str + index);
+		    break;
+		} else {
+		    continue;
+		}
+	    } else {
+		wb_wccat(&buf, str[index]);
+	    }
+	    index++;
+	}
+	free(str);
+	*slist = wb_towcs(&buf);
+	slist++;
+    }
+}
+
+/* slist の要素である各ワイド文字列について、その文字数を表す数字の文字列に
+ * 置き換える。
+ * slist: void * にキャストした free 可能なワイド文字列へのポインタの配列
+ * slist の各要素はこの関数内で realloc する。 */
+void subst_length_each(void **slist)
+{
+    wchar_t *str;
+    while ((str = *slist)) {
+	*slist = malloc_wprintf(L"%zu", wcslen(str));
+	free(str);
+	slist++;
+    }
+}
+
+
+/********** ブレース展開 **********/
+
+/* 配列内の各要素をブレース展開する。
+ * values, splits: void * にキャストした文字列へのポインタの NULL 終端配列。
+ *       各要素はこの関数内で free する。配列自身は free しない。
+ *       values の要素が実際に展開するワイド文字列であり、splits の要素が
+ *       それに対応するフィールド分割可能性文字列である。
+ * valuelist, splitlist: 結果 (新しく malloc した文字列) を入れるリスト。
+ * バックスラッシュエスケープしてあるブレースは展開しない。 */
+void expand_brace_each(void **restrict values, void **restrict splits,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
+{
+    while (*values) {
+	expand_brace(*values, *splits, valuelist, splitlist);
+	values++;
+	splits++;
+    }
+}
+
+/* 一つの単語をブレース展開する。
+ * word:  展開する単語。この関数内で free する。
+ * split: word に対応するフィールド分割可能性文字列。この関数内で free する。
+ * valuelist, splitlist: 結果 (新しく malloc した文字列) を入れるリスト。
+ * バックスラッシュエスケープしてあるブレースは展開しない。 */
+void expand_brace(wchar_t *restrict const word, char *restrict const split,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
+{
+    plist_T elemlist;
+    wchar_t *c;
+    unsigned nest;
+
+    c = word;
+start:
+    c = escaped_wcspbrk(c, L"{");
+    if (!c || !*++c) {  /* L'{' がないか、L'{' が文字列末尾にあるなら無展開 */
+	pl_add(valuelist, word);
+	pl_add(splitlist, split);
+	return;
+    } else if (tryexpand_brace_sequence(word, split, c, valuelist, splitlist)) {
+	return;
+    }
+
+    /* elemlist には展開する各要素の先頭の文字へのポインタを入れる */
+    pl_init(&elemlist);
+    pl_add(&elemlist, c);
+    nest = 0;
+    while ((c = escaped_wcspbrk(c, L"{,}"))) {
+	switch (*c++) {
+	    case L'{':
+		nest++;
+		break;
+	    case L',':
+		if (nest == 0)
+		    pl_add(&elemlist, c);
+		break;
+	    case L'}':
+		if (nest > 0) {
+		    nest--;
+		    break;
+		} else if (elemlist.length == 1) {
+		    goto restart;
+		} else {
+		    pl_add(&elemlist, c);
+		    goto done;
+		}
+	}
+    }
+restart:
+    /* 最初の L'{' に対応する L',' および L'}' が見付からなかったら、
+     * 次の L'{' を探すところからやり直す */
+    c = elemlist.contents[0];
+    pl_destroy(&elemlist);
+    goto start;
+
+done:;
+#define idx(p)  ((wchar_t *) (p) - word)
+#define wtos(p) (split + idx(p))
+    size_t lastelemindex = elemlist.length - 1;
+    size_t headlength = idx(elemlist.contents[0]) - 1;
+    size_t lastlen = wcslen(elemlist.contents[lastelemindex]);
+    for (size_t i = 0; i < lastelemindex; i++) {
+	xwcsbuf_T buf;
+	xstrbuf_T sbuf;
+	wb_init(&buf);
+	sb_init(&sbuf);
+
+	wb_ncat(&buf, word, headlength);
+	sb_ncat_force(&sbuf, split, headlength);
+
+	wb_ncat(&buf, elemlist.contents[i],
+		(wchar_t *) elemlist.contents[i + 1] -
+		(wchar_t *) elemlist.contents[i    ] - 1);
+	sb_ncat_force(&sbuf, wtos(elemlist.contents[i]),
+		(wchar_t *) elemlist.contents[i + 1] -
+		(wchar_t *) elemlist.contents[i    ] - 1);
+
+	wb_ncat_force(&buf, elemlist.contents[lastelemindex], lastlen);
+	sb_ncat_force(&sbuf, wtos(elemlist.contents[lastelemindex]), lastlen);
+	assert(buf.length == sbuf.length);
+
+	/* 残りの部分を再帰的に展開 */
+	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
+    }
+    pl_destroy(&elemlist);
+    free(word);
+    free(split);
+#undef idx
+#undef wtos
+}
+
+/* {01..05} のような数列へのブレース展開を試みる。
+ * 失敗すれば何もせずに false を返す。成功すれば word の完全なブレース展開結果を
+ * dest に追加する。
+ * word:   展開する単語全体。成功すればこの関数内で free する。
+ * split:  word に対応するフィールド分割可能性文字列。成功すれば free する。
+ * startc: word の最初の L'{' の直後の文字へのポインタ
+ * valuelist, splitlist: 結果 (新しく malloc した文字列) を入れるリスト。 */
+bool tryexpand_brace_sequence(
+	wchar_t *word, char *split, wchar_t *startc,
+	plist_T *restrict valuelist, plist_T *restrict splitlist)
+{
+    long start, end, value;
+    wchar_t *dotexpect, *braceexpect, *c;
+    int startlen, endlen, len, wordlen;
+    bool sign = false;
+
+    assert(startc[-1] == L'{');
+    c = startc;
+
+    /* 数列の始点を解析 */
+    dotexpect = wcschr(c, L'.');
+    if (!dotexpect || c == dotexpect)
+	return false;
+    startlen = has_leading_zero(c, &sign) ? (dotexpect - c) : 0;
+    errno = 0;
+    start = wcstol(c, &c, 0);
+    if (errno || c != dotexpect || c[1] != L'.')
+	return false;
+
+    c += 2;
+
+    /* 数列の終点を解析 */
+    braceexpect = wcschr(c, L'}');
+    if (!braceexpect || c == braceexpect)
+	return false;
+    endlen = has_leading_zero(c, &sign) ? (braceexpect - c) : 0;
+    errno = 0;
+    end = wcstol(c, &c, 0);
+    if (errno || c != braceexpect)
+	return false;
+
+    /* 数列を展開 */
+    value = start;
+    len = (startlen > endlen) ? startlen : endlen;
+    wordlen = wcslen(word);
+    for (;;) {
+	xwcsbuf_T buf;
+	xstrbuf_T sbuf;
+	wb_init(&buf);
+	sb_init(&sbuf);
+
+	wb_ncat(&buf, word, startc - 1 - word);
+	sb_ncat_force(&sbuf, split, startc - 1 - word);
+
+	int plen = wb_wprintf(&buf, sign ? L"%0+*ld" : L"%0*ld", len, value);
+	if (plen > 0)
+	    sb_ccat_repeat(&sbuf, 0, plen);
+
+	wb_cat(&buf, braceexpect + 1);
+	sb_ncat_force(&sbuf,
+		split + (braceexpect + 1 - word),
+		wordlen - (braceexpect + 1 - word));
+	assert(buf.length == sbuf.length || plen < 0);
+
+	/* 残りの部分を再帰的に展開 */
+	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
+
+	if (value == end)
+	    break;
+	if (start < end)
+	    value++;
+	else
+	    value--;
+    }
+    free(word);
+    free(split);
+    return true;
+}
+
+/* 数値の先頭が L'0' で始まるかどうか調べる
+ * sign: 数値に正号 L'+' があれば *sign に true を代入する */
+bool has_leading_zero(const wchar_t *s, bool *sign)
+{
+    while (iswspace(*s))
+	s++;
+    if (*s == L'+') {
+	*sign = true;
+	s++;
+    } else if (*s == L'-') {
+	s++;
+    }
+    return *s == L'0';
+}
+
+
+/********** 単語分割 **********/
+
+/* 単語分割を行う。
+ * str:   分割する単語。この関数内で free する。
+ * split: str に対応するフィールド分割可能性文字列。この関数内で free する。
+ * dest:  結果 (新しく malloc したワイド文字列) を入れるリスト
+ * 分割は、ifs に従って、フィールド分割可能性が非 0 でかつ
+ * バックスラッシュエスケープしていない文字の所で行う。 */
+void fieldsplit(wchar_t *restrict str, char *restrict split,
+	const wchar_t *restrict ifs, plist_T *restrict dest)
+{
+    size_t index = 0, startindex = 0;
+    size_t savedestlen = dest->length;
+
+    while (str[index]) {
+	if (str[index] == L'\\') {
+	    index++;
+	    if (!str[index])
+		break;
+	    index++;
+	} else if (split[index] && wcschr(ifs, str[index])) {
+	    /* IFS にある文字なので、分割する */
+	    bool splitonnonspace = false, nonspace = false;
+	    if (startindex < index)
+		pl_add(dest, xwcsndup(str + startindex, index - startindex));
+	    else
+		splitonnonspace = true;
+	    do {
+		if (!iswspace(str[index])) {
+		    if (splitonnonspace)
+			pl_add(dest, xwcsdup(L""));
+		    splitonnonspace = true;
+		    nonspace = true;
+		}
+		index++;
+		if (!str[index]) {
+		    if (nonspace && startindex < index)
+			pl_add(dest, xwcsdup(L""));
+		    break;
+		}
+	    } while (split[index] && wcschr(ifs, str[index]));
+	    startindex = index;
+	} else {
+	    index++;
+	}
+    }
+    if (savedestlen == dest->length) {
+	assert(startindex == 0);  /* 結果的に一回も分割しなかった場合 */
+	pl_add(dest, str);
+    } else {
+	if (startindex < index)
+	    pl_add(dest, xwcsndup(str + startindex, index - startindex));
+	free(str);
+    }
+    free(split);
+}
+
+/* 単語分割を行う。
+ * valuelist: 分割する単語 (ワイド文字列) の配列。この関数内で recfree する。
+ * splitlist: valuelist に対応するフィールド分割可能性文字列へのポインタの配列。
+ *       この関数内で recfree する。
+ * dest: 結果 (新しく malloc したワイド文字列) を入れるリスト
+ * 分割は、ifs に従って、フィールド分割可能性が非 0 でかつ
+ * バックスラッシュエスケープしていない文字の所で行う。 */
+void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
+	plist_T *restrict dest)
+{
+    void **s = valuelist, **t = splitlist;
+    const wchar_t *ifs = getvar(VAR_IFS);
+    if (!ifs)
+	ifs = L" \t\n";
+    while (*s) {
+	fieldsplit(*s, *t, ifs, dest);
+	s++, t++;
+    }
+    free(valuelist);
+    free(splitlist);
+}
+
+
+/********** 文字列のエスケープ **********/
+
+/* 単一引用符の中身をバッファに加える。
+ * 最初 *ss は開く引用符を指していて、返るとき *ss は閉じる引用符を指す。
+ * escape: true なら加える内容全ての文字をバックスラッシュエスケープする。 */
+void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
+{
+    (*ss)++;
+    for (;;) {
+	switch (**ss) {
+	    case L'\0':
+		assert(false);
+	    case L'\'':
+		return;
+	    default:
+		if (escape)
+		    wb_wccat(buf, L'\\');
+		wb_wccat(buf, **ss);
+		break;
+	}
+	(*ss)++;
+    }
+}
+
+/* s の文字のうち、t に含まれるものをバックスラッシュエスケープして、
+ * 新しく malloc した文字列として返す。t が NULL なら全部の文字をエスケープする
+ * 戻り値: エスケープした s */
+wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    while (*s) {
+	if (!t || wcschr(t, *s))
+	    wb_wccat(&buf, L'\\');
+	wb_wccat(&buf, *s);
+	s++;
+    }
+    return wb_towcs(&buf);
+}
+
+/* バックスラッシュエスケープを削除して新しく malloc した文字列として返す。 */
+wchar_t *unescape(const wchar_t *s)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    while (*s) {
+	if (*s == L'\\') {
+	    if (*(s+1) == L'\0')
+		break;
+	    else
 		s++;
 	}
-	sb_cappend(buf, '\'');
+	wb_wccat(&buf, *s);
+	s++;
+    }
+    return wb_towcs(&buf);
 }
 
-/* 文字列 s を \ でエスケープしつつ buf に追加する。
- * 文字列 s の文字のうち、文字列 q に含まれている文字をエスケープする。
- * buf は初期化してから渡すこと。
- *   例) escape_bs("$%&'()", "$'", buf)  ->  "\$%&\'()"   */
-void escape_bs(const char *s, const char *q, struct strbuf *buf)
+/* 一部の文字だけがバックスラッシュエスケープしてある文字列を受け取り、
+ * 全ての文字をバックスラッシュエスケープした状態にして返す。
+ * 戻り値: 新しく malloc した文字列。 */
+wchar_t *reescape(const wchar_t *s)
 {
-	while (*s) {
-		if (strchr(q, *s))
-			sb_cappend(buf, '\\');
-		sb_cappend(buf, *s);
-		s++;
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    while (*s) {
+	wb_wccat(&buf, L'\\');
+	if (*s == L'\\')
+	    s++;
+	if (*s)
+	    wb_wccat(&buf, *s++);
+    }
+    return wb_towcs(&buf);
+}
+
+/* 一部の文字だけがバックスラッシュエスケープしてある文字列へのポインタの配列を
+ * 受け取り、各文字列の全ての文字をバックスラッシュエスケープした状態に
+ * 置き換える。この時、配列の要素である各ポインタは realloc する。
+ * 戻り値: 内容が書き換わった wcsarray */
+void **reescape_full_array(void **const wcsarray)
+{
+    void **ary = wcsarray;
+    while (*ary) {
+	wchar_t *esc = reescape(*ary);
+	free(*ary);
+	*ary = esc;
+	ary++;
+    }
+    return wcsarray;
+}
+
+/* 引用符 (', ", \) を除去する
+ * 戻り値: 新しく malloc した文字列 */
+wchar_t *unquote(const wchar_t *s)
+{
+    bool indq = false;
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    for (;;) {
+	switch (*s) {
+	case L'\0':
+	    goto done;
+	case L'\'':
+	    if (indq)
+		goto default_case;
+	    add_sq(&s, &buf, false);
+	    break;
+	case L'"':
+	    indq = !indq;
+	    break;
+	case L'\\':
+	    if (s[1] != L'\0' && (!indq || wcschr(ESCAPABLE_CHARS, s[1]))) {
+		wb_wccat(&buf, s[1]);
+		s += 2;
+		continue;
+	    }
+	    /* falls thru! */
+	default:  default_case:
+	    wb_wccat(&buf, *s);
+	    break;
 	}
+	s++;
+    }
+done:
+    return wb_towcs(&buf);
 }
 
-/* free 可能な文字列 s 文字のうち、文字列 q に含まれている文字を \ で
- * エスケープする。
- * s は escape 関数内で free し、結果として新しく malloc した文字列が返る。 */
-char *escape(char *s, const char *q)
+/* wcspbrk と同じだが、wcs 内のバックスラッシュエスケープした文字は無視する */
+wchar_t *escaped_wcspbrk(const wchar_t *wcs, const wchar_t *accept)
 {
-	if (!strpbrk(s, q))
-		return s;
-
-	struct strbuf buf;
-	sb_init(&buf);
-	escape_bs(s, q, &buf);
-	free(s);
-	return sb_tostr(&buf);
+    while (*wcs) {
+	if (*wcs == L'\\') {
+	    wcs++;
+	    if (!*wcs)
+		break;
+	    wcs++;
+	    continue;
+	}
+	if (wcschr(accept, *wcs))
+	    return (wchar_t *) wcs;
+	wcs++;
+    }
+    return NULL;
 }
+
+
+/********** ファイル名展開 (glob) **********/
+
+/* 現在のシェルの設定から、wglob のオプションフラグの値を得る */
+enum wglbflags get_wglbflags(void)
+{
+    enum wglbflags flags = 0;
+    if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;
+    if (shopt_dotglob)      flags |= WGLB_PERIOD;
+    if (shopt_markdirs)     flags |= WGLB_MARK;
+    if (shopt_extendedglob) flags |= WGLB_RECDIR;
+    return flags;
+}
+
+/* 指定した各パターンについて glob を行い、結果をリストに入れる。
+ * patterns: void * にキャストしたワイド文字列へのポインタの NULL 終端配列。
+ * list: 結果のマルチバイト文字列へのポインタを入れるリスト。 */
+void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
+{
+    enum wglbflags flags = get_wglbflags();
+
+    while (*patterns) {
+	const wchar_t *pat = *patterns;
+	if (pattern_has_special_char(pat)) {
+	    size_t oldlen = list->length;
+	    wglob(pat, flags, list);
+	    if (!shopt_nullglob && oldlen == list->length)
+		goto addpattern;
+	} else {
+	    /* pat に L'*' や L'?' などの文字が入っていなければ
+	     * わざわざ glob する必要はない。 */
+	    char *v;
+addpattern:
+	    v = realloc_wcstombs(unescape(pat));
+	    if (!v) {
+		xerror(0, Ngt("expanded word contains characters that "
+			    "cannot be converted to wide characters and "
+			    "is replaced with null string"));
+		v = xstrdup("");
+	    }
+	    pl_add(list, v);
+	}
+	patterns++;
+    }
+}
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

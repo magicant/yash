@@ -1,66 +1,64 @@
-Yash のビルドとインストールの方法
+How to Build and Install Yash
 
-基本的なビルド・インストール方法は以下の通り:
 
-  1. シェルを起動し、このファイルが入っているディレクトリに `cd' する。
+A normal way to build and install Yash is:
 
-  2. `sh configure' と入力して configure シェルスクリプトを実行する。
-     このスクリプトは実行中のシステムで利用可能な機能を調査してビルドのための
-     設定を行い、Makefile や config.h ファイルなどを生成する。
+  1. In your shell, `cd' to the directory containing this file.
 
-  3. `make' を起動して yash をビルドする。
+  2. Type `sh configure' to run the configuration script. This script
+     checks which features are available on your system and creates
+	 files to build Yash.
 
-  4. `make test' を起動して、ビルドした yash が正しく動作するかチェックする。
-     (このチェックは飛ばしてもよい)
+  3. Type `make' to build Yash.
 
-  5. `make install' を実行して yash をインストールする。
-     デフォルトのインストール先は /usr/local/bin/yash である。
+  4. Optionally, type `make test' to check if Yash works right.
 
-configure は、GCC コンパイラが利用可能ならそれを用いる。GCC が使えなければ
-(POSIX で定められた) c99 を使う。
-configure スクリプトを実行する際に以下のオプションを与えることで、
-ビルドの方法を調整することができる:
+  5. Type `make install' to install yash. By default, Yash is installed
+     at /usr/local/bin/yash.
+
+The `configure' script chooses a compiler to compile Yash. GCC is
+preferred if available. If GCC is unavailable, `c99' is used, which is
+defined by POSIX.
+
+The `configure' script accepts following options, which affect the
+way Yash is built and installed:
 
   --debug
-          デバッグ用にコンパイラの最適化レベルを落とす。
-          GCC コンパイラを使っている場合のみ有効である。
+          Lower the optimization level of the compiler to make it easy
+		  to debug Yash. Only valid for GCC.
   --with-readline
-          GNU Readline ライブラリを使った行編集機能を強制的に盛り込む。
-          デフォルトの状態では configure が Readline を正しく認識できない場合に
-          使うとよい。
-          (ただし、おそらくリンカオプション等を手動で設定する必要がある)
+          Enable line editing with GNU Readline Library even if
+		  `configure' script cannot find the correct linker option.
+		  You need to define the correct linker option yourself.
   --without-readline
-          GNU Readline が利用可能でも、行編集機能を盛り込まない。
+          Disable line editing with GNU Readline Library.
 
   --bindir=DIR
-          デフォルトの /usr/local/bin ではなく、指定した DIR にインストールする
+          Install Yash in DIR, rather than /usr/local/bin.
 
-configure スクリプトは環境変数によって設定内容を変更する。
-以下の環境変数は configure スクリプトが行った通常の設定を上書きする:
+To static-link GNU Readline Library, copy a pre-compiled `libreadline.a`
+file into this directory and then do `configure'.
+
+Following environment variables override `configure' script's choices:
 
   CC
-          使用するコンパイラ／リンカのコマンド名
+          The name of Compiler/linker.
   CFLAGS
-          コンパイラに与えるコマンドラインオプション
+          Options given to the compiler.
   LDFLAGS
-          リンカに与えるコマンドラインオプション
+          Options given to the linker.
   INSTALL_PROGRAM
-          成果物をインストールするためのユーティリティのコマンド名
+          The name of the installer.
 
-また以下の環境変数が configure の動作に影響する:
+Following environment variables affect `configure' script's choices:
 
   CADDS
-          コンパイラに追加で与えるコマンドラインオプション
+          Additional options given to the compiler.
   LDADDS, LIBS
-          リンカに追加で与えるコマンドラインオプション
+          Additional options given to the linker.
 
 
-Makefile ファイルは configure スクリプトが Makefile.in ファイルを元に生成する
-make コマンド用ファイルである。ビルド・インストールのためのルールの他に
-いくつかのルールが定義してあるが、詳細は書略する。
-
-`make uninstall' を実行すると、インストールしたファイルをアンインストールする。
-`make clean' を実行すると、ビルドでできたオブジェクトコードファイルや実行可能
-ファイルを削除する。
-`make distclean' を実行すると、さらに configure スクリプトが生成したファイルも
-削除し、アーカイブを展開した直後の状態に戻す。
+Typing `make uninstall' uninstalls the program.
+Typing `make clean' deletes object files and executables.
+Typing `make distclean' deletes any files that are made by `configure'
+or during build.

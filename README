@@ -1,0 +1,38 @@
+Yash: yet another shell
+=======================
+
+
+Yash is a implementation of command line shell, personally developed
+by Magicant. It is under development aiming at complete comformance to
+POSIX.1-2001.
+
+
+Yash is free software, distributed under the terms of GPL.
+See the file COPYING for more info.
+
+See the file INSTALL to find how to build and install Yash.
+
+Currently there is no manpage for yash. Sorry.
+
+
+===== Notes =====
+
+ * In C, a null character represents the end of string. If input from
+   a file or a string in itself contains a null character, the
+   following characters will be neglected.
+ * The GCC extension keyword `__attribute__' is used in the source
+   codes. When not compiled with GCC, this keyword is removed by
+   preprocessor, so generally there is no harm. But if your compiler
+   uses this keyword for any other purpose, compilation may fail.
+   Additionally, some other identifiers starting with '_' may cause
+   compilation errors on some rare environments.
+ * When -e (-o errexit) option is set, failure of the last command of
+   an and/or list makes the shell exit. This behavior is not strictly
+   POSIX-compliant, but most existing shells behave this way.
+ * According to POSIX, the variable 'PS1' is subject to parameter
+   expandsion. Yash also performs command substitution and arithmetic
+   expandsion on 'PS1'.
+
+
+======================
+Magicant <magicant.starmen@nifty.com>

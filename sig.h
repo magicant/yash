@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* signal.h: signal management interface */
+/* sig.h: signal handling */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -19,24 +19,37 @@
 #ifndef SIG_H
 #define SIG_H
 
+#include <stdbool.h>
 
-typedef struct {
-	int s_signal;
-	const char *s_name;
-} SIGDATA;
 
-extern const SIGDATA const sigdata[];
+extern const char *get_signal_name(int signum)
+    __attribute__((const));
 
-extern volatile sig_atomic_t sigint_received;
+extern void init_signal(void);
+extern void set_signals(void);
+extern void reset_all_signals(void);
+extern void reset_signals(void);
+extern void block_sigquit_and_sigint(void);
+extern void block_sigtstp(void);
+extern void block_sigttou(void);
+extern void unblock_sigttou(void);
+extern void block_all_but_sigpipe(void);
 
-int get_signal(const char *name);
-const char *get_signal_name(int signal);
-const char *xstrsignal(int signal);
-void init_signal(void);
-void set_signals(void);
-void unset_signals(void);
-void wait_for_signal(void);
-void handle_signals(void);
+extern void block_sigchld_and_sighup(void);
+extern void unblock_sigchld_and_sighup(void);
+extern void wait_for_sigchld(void);
+extern void wait_for_input(int fd, bool trap);
+
+extern void handle_sigchld_and_sighup(void);
+extern void handle_traps(void);
+extern void clear_traps(void);
+
+#if HAVE_STRSIGNAL
+extern char *strsignal(int signum);
+#endif
 
 
 #endif /* SIG_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

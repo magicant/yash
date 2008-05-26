@@ -15,21 +15,37 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
+.SUFFIXES: .c .h .o
 
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
+LDLIBS = @LDLIBS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 SOURCES = @SOURCES@
 OBJS = @OBJS@
 TARGET = @TARGET@
 
+SUBSOURCES = mksignum.c
+BYPRODUCTS = mksignum.o mksignum signum.h
+
 all: $(TARGET)
 
+# Though these rules are exactly the same as the default rules defined by POSIX,
+# we re-define them here because at least GNU Make is not fully compliant.
+.c:
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
 $(TARGET): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+mksignum: mksignum.c
+signum.h: mksignum
+	./mksignum > $@
 
 test check: $(TARGET)
-	@cd tests && exec $(SHELL) ./run-all.sh
+	@cd tests && $(MAKE) test-all
 
 BINDIR = @BINDIR@
 install: $(TARGET) $(BINDIR)
@@ -46,7 +62,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README.html COPYING TODO configure Makefile.in makedepend install-sh tests
+DISTCONTENTS = $(SOURCES) $(SUBSOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh tests/Makefile tests/*.tst tests/*.t tests/*.out tests/invoke.c tests/run-test.sh
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	rm -rf $(DISTDIR)
@@ -72,7 +88,10 @@ $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
 $(DISTDIR): $(DISTCONTENTS)
 	mkdir -p $@
-	for i in $(DISTCONTENTS); do cp -fRL $$i $@; done
+	for i in $(DISTCONTENTS); do \
+		if [ x$$i != x$${i%/*} ]; then mkdir -p $@/$${i%/*}; fi; \
+		cp -fRL $$i $@/$${i%/*}; \
+	done
 
 # ctags conforms to POSIX, but etags and cscope do not.
 tags: $(SOURCES)
@@ -84,11 +103,12 @@ cscope.out: $(SOURCES)
 	cscope -b
 
 mostlyclean:
-	rm -rf $(OBJS) $(DISTDIR)
+	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
+	-@cd tests && $(MAKE) clean
 clean: mostlyclean
-	rm -rf $(TARGET) $(DISTS)
+	-rm -rf $(TARGET) $(DISTS)
 distclean: clean
-	rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
+	-rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'

@@ -17,527 +17,428 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <locale.h>
-#include <signal.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/select.h>  /* for FD_*** */
-#include "yash.h"
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
+#include "option.h"
 #include "util.h"
-#include "sig.h"
-#include "lineinput.h"
-#include "parser.h"
-#include "exec.h"
-#include "job.h"
 #include "path.h"
-#include "builtin.h"
-#include "alias.h"
+#include "input.h"
+#include "parser.h"
 #include "variable.h"
+#include "sig.h"
+#include "redir.h"
+#include "job.h"
+#include "exec.h"
+#include "yash.h"
 #include "version.h"
-#include <assert.h>
 
 
-static int exec_promptcommand(void);
-static void interactive_loop(void) __attribute__((noreturn));
-int main(int argc, char **argv) __attribute__((nonnull));
-void print_help(void);
-void print_version(void);
-void yash_exit(int exitcode);
+extern int main(int argc, char **argv)
+    __attribute__((nonnull));
+static void print_help(void);
+static void print_version(void);
 
-/* main に渡された argv[0] の値。 */
-const char *yash_program_invocation_name, *yash_program_invocation_short_name;
-/* コマンド名。特殊パラメータ $0 の値。 */
-const char *command_name;
-/* シェルのプロセス ID。サブシェルでも変わらない。 */
+/* シェル本体のプロセス ID。 */
 pid_t shell_pid;
+/* シェルの元々のプロセスグループ */
+pid_t initial_pgrp;
 
-/* このプロセスがログインシェルかどうか */
-bool is_loginshell;
-/* 対話的シェルかどうか */
-bool is_interactive, is_interactive_now;
-/* is_loginshell, is_interactive の値はサブシェルでも変わらない。
- * is_interactive_now はサブシェルでは常に false である。 */
-/* POSIX の規定に厳密に従うかどうか */
-bool posixly_correct;
-
-/* 端末へのファイルディスクリプタ。対話的シェルでのみ有効。
- * 対話的シェルでも、端末を開けなかった場合は負数。 */
-int ttyfd = -1;
-
-/* プライマリプロンプトの前に実行するコマンド */
-char *prompt_command = NULL;
-
-/* 指定したファイルをシェルスクリプトとしてこのシェルの中で実行する
- * path:   実行するファイル名。
- * pathsearch: true なら path が相対パスのとき PATH から検索する。
- * suppresserror: true なら、ファイルが読み込めなくてもエラーを出さない
- *         false なら、非対話的シェルでファイルが読み込めなければ終了する。
- * 戻り値: エラーがなければ 0、エラーなら非 0。 */
-int exec_file(const char *path, char *const *positionals,
-		bool pathsearch, bool suppresserror)
-{
-	char *rpath = NULL;
-	if (pathsearch && strchr(path, '/') == NULL) {
-		rpath = which(path, getenv(VAR_PATH), is_readable);
-		if (!rpath) {
-			if (!suppresserror)
-				xerror(is_interactive_now ? 0 : EXIT_FAILURE,
-						ENOENT, "%s", path);
-			return -1;
-		}
-	}
-
-	int fd = open(rpath ? rpath : path, O_RDONLY);
-	free(rpath);
-	if (fd < 0) {
-		if (!suppresserror)
-			xerror(is_interactive_now ? 0 : EXIT_FAILURE, errno, "%s", path);
-		return -1;
-	}
-	/* shellfdmin 以上のファイルディスクリプタで開くことを保証する。 */
-	if (fd < shellfdmin) {
-		int newfd = fcntl(fd, F_DUPFD, shellfdmin);
-		int olderrno = errno;
-		xclose(fd);
-		if (newfd < 0) {
-			xerror(0, olderrno, "%s", path);
-			return -1;
-		}
-		fd = newfd;
-	}
-	add_shellfd(fd);
-
-	bool executed = false;
-	struct fgetline_info finfo = {
-		.fd = fd,
-	};
-	struct parse_info info = {
-		.filename = path,
-		.lineno = 0,
-		.input = yash_fgetline,
-		.inputinfo = &finfo,
-	};
-	int result;
-	extend_environment();
-	if (positionals)
-		set_positionals(positionals);
-	for (;;) {
-		STATEMENT *statements;
-		switch (read_and_parse(&info, &statements)) {
-			case 0:  /* OK */
-				if (statements) {
-					exec_statements(statements, false);
-					statementsfree(statements);
-					executed = true;
-				}
-				break;
-			case EOF:
-				result = 0;
-				if (!executed)
-					laststatus = EXIT_SUCCESS;
-				goto end;
-			case 1:  /* syntax error */
-			default:
-				result = -1;
-				laststatus = 2;
-				goto end;
-		}
-	}
-end:
-	unextend_environment();
-	remove_shellfd(fd);
-	xclose(fd);
-	return result;
-}
-
-/* ファイルをシェルスクリプトとして実行する。
- * path: ファイルのパス。'~' で始まるならホームディレクトリを展開して
- *       ファイルを探す。
- * 戻り値: エラーがなければ 0、エラーなら非 0。 */
-int exec_file_exp(const char *path, bool suppresserror)
-{
-	if (path[0] == '~') {
-		char *newpath = expand_tilde(path);
-		if (!newpath)
-			return -1;
-		int result = exec_file(newpath, NULL, false, suppresserror);
-		free(newpath);
-		return result;
-	} else {
-		return exec_file(path, NULL, false, suppresserror);
-	}
-}
-
-/* code をシェルスクリプトのソースコードとして解析し、このシェル内で実行する。
- * code:   実行するコード。NULL なら何も行わない。
- * name:   構文エラー時に表示するコード名。
- * 戻り値: エラーがなければ 0、エラーなら非 0。 */
-int exec_source(const char *code, const char *name)
-{
-	if (!code)
-		return 0;
-
-	bool executed = false;
-	struct sgetline_info sinfo = {
-		.src = code,
-		.offset = 0,
-	};
-	struct parse_info pinfo = {
-		.filename = name,
-		.lineno = 0,
-		.input = yash_sgetline,
-		.inputinfo = &sinfo,
-	};
-	for (;;) {
-		STATEMENT *statements;
-		switch (read_and_parse(&pinfo, &statements)) {
-			case 0:  /* OK */
-				if (statements) {
-					exec_statements(statements, false);
-					statementsfree(statements);
-					executed = true;
-				}
-				break;
-			case EOF:
-				if (!executed)
-					laststatus = EXIT_SUCCESS;
-				return 0;
-			case 1:  /* syntax error */
-			default:
-				laststatus = 2;
-				return -1;
-		}
-	}
-}
-
-/* exec_source_and_exit でつかう getline_t 関数 */
-static char *exec_source_and_exit_getline(int ptype, void *code) {
-	if (ptype == 1) return xstrdup(code);
-	else            return NULL;
-}
-
-/* code をシェルスクリプトのソースコードとして解析し、このシェル内でし、
- * そのまま終了する。
- * code: 実行するコード。NULL なら何も実行せず終了する。
- * name: 構文エラー時に表示するコード名。 */
-void exec_source_and_exit(const char *code, const char *name)
-{
-	/* 改行を含むコードは一度に解析できないので、普通に exec_source を使う */
-	if (strchr(code, '\n')) {
-		exec_source(code, name);
-		exit(laststatus);
-	}
-
-	struct parse_info info = {
-		.filename = name,
-		.lineno = 0,
-		.input = exec_source_and_exit_getline,
-		.inputinfo = (void *) code,
-	};
-	STATEMENT *statements;
-	switch (read_and_parse(&info, &statements)) {
-		case 0:  /* OK */
-			exec_statements(statements, true);
-			/* not reached */
-		default:  /* error */
-			exit(2);
-	}
-}
-
-
-static pid_t orig_pgrp = 0;
-
-/* このシェル自身が独立したプロセスグループに属するように、
- * このシェルのプロセスグループ ID をこのシェルのプロセス ID に変更する。 */
-void set_unique_pgid(void)
-{
-	if (is_interactive_now) {
-		orig_pgrp = getpgrp();
-		setpgid(0, 0);  // setpgrp();
-	}
-}
-
-/* このシェルのプロセスグループ ID を、set_unique_pgid を実行する前のものに
- * 戻す。 */
-void restore_pgid(void)
-{
-	if (orig_pgrp > 0) {
-		if (setpgid(0, orig_pgrp) < 0 && errno != EPERM)
-			xerror(0, errno, "cannot restore process group");
-		if (ttyfd >= 0 && tcsetpgrp(ttyfd, orig_pgrp) < 0)
-			xerror(0, errno, "cannot restore foreground process group");
-		orig_pgrp = 0;
-	}
-}
-
-/* orig_pgrp をリセットする */
-void forget_orig_pgrp(void)
-{
-	orig_pgrp = 0;
-}
-
-static bool noprofile = false, norc = false; 
-static char *rcfile = "~/.yashrc";
-
-/* シェルのシグナルハンドラなどの初期化を行う */
-void set_shell_env(void)
-{
-	static bool initialized = false;
-
-	if (is_interactive_now) {
-		set_signals();
-		set_unique_pgid();
-		set_shlvl(1);
-		if (!initialized) {
-			if (is_loginshell) {
-				if (!noprofile)
-					exec_file_exp("~/.yash_profile", true /* suppress error */);
-			} else if (!norc) {
-				if (rcfile[0] == '/' || rcfile[0] == '~') {
-					exec_file_exp(rcfile, true /* suppress error */);
-				} else {
-					char rcfile2[strlen(rcfile) + 3];
-					rcfile2[0] = '.';
-					rcfile2[1] = '/';
-					strcpy(rcfile2 + 2, rcfile);
-					exec_file_exp(rcfile2, true /* suppress error */);
-				}
-			}
-			initialized = true;
-		}
-		initialize_readline();
-	}
-}
-
-/* シェルのシグナルハンドラなどを元に戻す */
-void unset_shell_env(void)
-{
-	if (is_interactive_now) {
-		finalize_readline();
-		set_shlvl(-1);
-		restore_pgid();
-		unset_signals();
-	}
-}
-
-/* PROMPT_COMMAND を実行する。
- * 戻り値: 実行したコマンドの終了ステータス */
-static int exec_promptcommand(void)
-{
-	int resultstatus = 0;
-	int savestatus = laststatus;
-	exec_source(prompt_command, "prompt command");
-	resultstatus = laststatus;
-	laststatus = savestatus;
-	return resultstatus;
-}
-
-/* 対話的動作を行う。この関数は返らない。 */
-static void interactive_loop(void)
-{
-	static char exitarg0[] = "exit";
-	static char *exitargv[] = { exitarg0, NULL, };
-	struct parse_info info = { .input = yash_readline };
-
-	assert(is_interactive && is_interactive_now);
-	for (;;) {
-		STATEMENT *statements;
-
-		exec_promptcommand();
-		switch (read_and_parse(&info, &statements)) {
-			case 0:  /* OK */
-				if (statements) {
-					exec_statements(statements, false);
-					statementsfree(statements);
-				}
-				break;
-			case 1:  /* syntax error */
-				break;
-			case EOF:
-				laststatus = builtin_exit(1, exitargv);
-				break;
-		}
-	}
-}
-
-static struct xoption long_opts[] = {
-	{ "help",        xno_argument,       NULL, '?', },
-	{ "version",     xno_argument,       NULL, 'V', },
-	{ "rcfile",      xrequired_argument, NULL, 'r', },
-	{ "noprofile",   xno_argument,       NULL, 'E', },
-	{ "norc",        xno_argument,       NULL, 'O', },
-	{ "login",       xno_argument,       NULL, 'l', },
-	{ "interactive", xno_argument,       NULL, 'i', },
-	{ "posix",       xno_argument,       NULL, 'X', },
-	{ NULL, 0, NULL, 0, },
-};
 
 int main(int argc __attribute__((unused)), char **argv)
 {
-	bool help = false, version = false;
-	int opt;
-	char *directcommand = NULL;
-	const char *short_opts = "+c:il";
+    bool help = false, version = false;
+    bool do_job_control_set = false, is_interactive_set = false;
+    bool option_error = false;
+    int opt;
+    const char *shortest_name;
 
-	yash_program_invocation_name = argv[0] ? argv[0] : "";
-	yash_program_invocation_short_name
-		= strrchr(yash_program_invocation_name, '/');
-	if (yash_program_invocation_short_name)
-		yash_program_invocation_short_name++;
-	else
-		yash_program_invocation_short_name = yash_program_invocation_name;
+    yash_program_invocation_name = argv[0] ? argv[0] : "";
+    yash_program_invocation_short_name
+	= strrchr(yash_program_invocation_name, '/');
+    if (yash_program_invocation_short_name)
+	yash_program_invocation_short_name++;
+    else
+	yash_program_invocation_short_name = yash_program_invocation_name;
+    command_name = yash_program_invocation_name;
+    is_login_shell = (yash_program_invocation_name[0] == '-');
+    shortest_name = yash_program_invocation_short_name;
+    if (shortest_name[0] == '-')
+	shortest_name++;
+    if (strcmp(shortest_name, "sh") == 0)
+	posixly_correct = true;
 
-	command_name = yash_program_invocation_name;
-	is_loginshell = yash_program_invocation_name[0] == '-';
-	posixly_correct = getenv(VAR_POSIXLY_CORRECT) != NULL;
-	setlocale(LC_ALL, "");
+    setlocale(LC_ALL, "");
+#if HAVE_GETTEXT
+    bindtextdomain(PACKAGE_NAME, LOCALEDIR);
+    textdomain(PACKAGE_NAME);
+#endif
 
-	xoptind = 0;
-	xopterr = true;
-	while ((opt = xgetopt_long(argv, short_opts, long_opts, NULL)) >= 0){
-		switch (opt) {
-			case 0:
-				break;
-			case 'c':
-				directcommand = xoptarg;
-				break;
-			case 'i':
-				is_interactive = true;
-				break;
-			case 'l':
-				is_loginshell = true;
-				break;
-			case 'O':
-				norc = 1;
-				break;
-			case 'E':
-				noprofile = true;
-				break;
-			case 'X':
-				posixly_correct = true;
-				break;
-			case 'r':
-				rcfile = xoptarg;
-				break;
-			case 'V':
-				version = true;
-				break;
-			case '?':
-				help = true;
-				break;
-			default:
-				assert(false);
-				return EXIT_FAILURE;
-		}
+    /* オプションを解釈する */
+    xoptind = 0;
+    xopterr = true;
+    while ((opt = xgetopt_long(argv,
+		    "+*cilo:sV" SHELLSET_OPTIONS,
+		    shell_long_options,
+		    NULL))
+	    >= 0) {
+	switch (opt) {
+	case 0:
+	    break;
+	case 'c':
+	    if (xoptopt != '-') {
+		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 'c');
+		option_error = true;
+	    }
+	    shopt_read_arg = true;
+	    break;
+	case 'i':
+	    is_interactive = (xoptopt == '-');
+	    is_interactive_set = true;
+	    break;
+	case 'l':
+	    is_login_shell = (xoptopt == '-');
+	    break;
+	case 'o':
+	    if (!set_long_option(xoptarg)) {
+		xerror(0, Ngt("%co %s: invalid option"), xoptopt, xoptarg);
+		option_error = true;
+	    }
+	    break;
+	case 's':
+	    if (xoptopt != '-') {
+		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 's');
+		option_error = true;
+	    }
+	    shopt_read_stdin = true;
+	    break;
+	case 'V':
+	    version = true;
+	    break;
+	case '!':
+	    help = true;
+	    break;
+	case '?':
+	    option_error = true;
+	    break;
+	case 'm':
+	    do_job_control_set = true;
+	    /* falls thru! */
+	default:
+	    set_option(opt);
+	    break;
 	}
-	if (help) {
-		print_help();
-		return EXIT_SUCCESS;
-	} else if (version) {
-		print_version();
-		return EXIT_SUCCESS;
-	}
+    }
 
-	shell_pid = getpid();
-	init_signal();
-	init_exec();
-	init_jobcontrol();
-	init_var();
-	init_alias();
-	init_builtin();
-	init_cmdhash();
+    if (option_error)
+	exit(EXIT_ERROR);
 
-	if (directcommand) {
-		is_interactive = is_interactive_now = false;
-		set_shell_env();
-		if (argv[xoptind]) {
-			command_name = argv[xoptind];
-			set_positionals(argv + xoptind + 1);
-		}
-		exec_source_and_exit(directcommand, "yash -c");
-	}
-	if (argv[xoptind]) {
-		is_interactive = is_interactive_now = false;
-		set_shell_env();
-		command_name = argv[xoptind];
-		exec_file(command_name, argv + xoptind + 1, false, false);
-		exit(laststatus);
-	}
+    /* 最初の引数が "-" なら無視する */
+    if (argv[xoptind] && strcmp(argv[xoptind], "-") == 0)
+	xoptind++;
 
-	bool stdinistty = isatty(STDIN_FILENO);
-	if (is_interactive || (stdinistty && isatty(STDERR_FILENO))) {
-		if (stdinistty) {
-			ttyfd = STDIN_FILENO;
-		} else {
-			ttyfd = open("/dev/tty", O_RDONLY);
-			if (0 <= ttyfd && ttyfd < shellfdmin) {
-				int newttyfd = fcntl(ttyfd, F_DUPFD, shellfdmin);
-				if (newttyfd < 0)
-					xerror(EXIT_FAILURE, errno, "file descriptor unavailable");
-				if (close(ttyfd) < 0)
-					xerror(0, errno, "closing file descriptor %d", ttyfd);
-				ttyfd = newttyfd;
-			}
-			if (ttyfd >= shellfdmin)
-				add_shellfd(ttyfd);
-		}
-		while (ttyfd >= 0 && tcgetpgrp(ttyfd) != getpgrp())
-			raise(SIGTTIN);
-		is_interactive = is_interactive_now = true;
-		set_shell_env();
-		interactive_loop();
+    if (version)
+	print_version();
+    if (help)
+	print_help();
+    if (version || help)
+	exit(EXIT_SUCCESS);
+
+    shell_pid = getpid();
+    initial_pgrp = getpgrp();
+    init_cmdhash();
+    init_homedirhash();
+    init_variables();
+    init_signal();
+    init_shellfds();
+    init_job();
+
+    if (shopt_read_arg && shopt_read_stdin) {
+	xerror(0, Ngt("both -c and -s options cannot be given at once"));
+	exit(EXIT_ERROR);
+    }
+    shopt_read_arg = shopt_read_arg;
+    shopt_read_stdin = shopt_read_stdin;
+    if (shopt_read_arg) {
+	char *command = argv[xoptind++];
+	if (!command) {
+	    xerror(0, Ngt("-c option requires an operand"));
+	    exit(EXIT_ERROR);
 	}
-	return EXIT_SUCCESS;
+	if (argv[xoptind])
+	    command_name = argv[xoptind++];
+	is_interactive_now = is_interactive;
+	if (!do_job_control_set)
+	    do_job_control = is_interactive;
+	set_signals();
+	open_ttyfd();
+	set_own_pgrp();
+	set_positional_parameters(argv + xoptind);
+	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
+    } else {
+	FILE *input;
+	const char *inputname;
+	if (!argv[xoptind])
+	    shopt_read_stdin = true;
+	if (shopt_read_stdin) {
+	    input = stdin;
+	    inputname = NULL;
+	    if (!is_interactive_set && !argv[xoptind]
+		    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
+		is_interactive = true;
+	} else {
+	    command_name = argv[xoptind++];
+	    input = fopen(command_name, "r");
+	    inputname = command_name;
+	    input = reopen_with_shellfd(input, "r");
+	    if (!input) {
+		int errno_ = errno;
+		xerror(errno_, Ngt("cannot open file `%s'"), command_name);
+		exit(errno_ == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
+	    }
+	}
+	is_interactive_now = is_interactive;
+	if (!do_job_control_set)
+	    do_job_control = is_interactive;
+	set_signals();
+	open_ttyfd();
+	set_own_pgrp();
+	set_positional_parameters(argv + xoptind);
+	exec_input(input, inputname, is_interactive, true);
+    }
+    assert(false);
+    // TODO rc ファイル
 }
 
+/* シェルを終了し、終了ステータスとして status を返す。
+ * status が負数なら laststatus を返す。 */
+/* この関数は EXIT トラップを実行し、reset_own_pgrp を呼び出す。 */
+/* この関数は返らない。 */
+/* この関数は再入可能であり、再入すると直ちに終了する。 */
+void exit_shell_with_status(int status)
+{
+    static bool exiting = false;
+    static int exitstatus;
+    if (!exiting) {
+	exiting = true;
+	exitstatus = (status < 0) ? laststatus : status;
+	// TODO yash: exit_shell: EXIT トラップを実行
+    }
+    reset_own_pgrp();
+    exit((status < 0) ? exitstatus : status);
+}
+
+/* ヘルプを標準出力に出力する */
 void print_help(void)
 {
-	printf("Usage:  yash [-il] [-c command] [long options] [file]\n");
-	printf("Long options:\n");
-	for (size_t index = 0; long_opts[index].name; index++)
-		printf("\t--%s\n", long_opts[index].name);
+    if (posixly_correct) {
+	printf(gt("Usage:  sh [options] [filename [args...]]\n"
+		  "        sh [options] -c command [command_name [args...]]\n"
+		  "        sh [options] -s [args...]\n"));
+	printf(gt("Options: -il%s\n"), SHELLSET_OPTIONS);
+    } else {
+	printf(gt("Usage:  yash [options] [filename [args...]]\n"
+		  "        yash [options] -c command [args...]\n"
+		  "        yash [options] -s [args...]\n"));
+	printf(gt("Short options: -il%sV\n"), SHELLSET_OPTIONS);
+	printf(gt("Long options:\n"));
+	for (size_t i = 0; shell_long_options[i].name; i++)
+	    printf("\t--%s\n", shell_long_options[i].name);
+    }
 }
 
+/* バージョン情報を標準出力に出力する */
 void print_version(void)
 {
-	printf("Yet another shell, version " PACKAGE_VERSION
-			" (compiled " __DATE__ " " __TIME__ ")\n"
-			PACKAGE_COPYRIGHT "\n");
+    printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
+    printf(PACKAGE_COPYRIGHT "\n");
 }
 
-/* 終了前の手続きを行って、終了する。*/
-void yash_exit(int exitcode) {
-	//wait_chld();
-	//print_all_job_status(false /* all jobs */, false /* not verbose */);
-	if (is_interactive_now && is_loginshell)
-		exec_file_exp("~/.yash_logout", true /* suppress error */);
-	unset_shell_env();
-	if (huponexit)
-		send_sighup_to_all_jobs();
-	exit(exitcode);
-}
 
-/* 自分自身に exec する。
- * argv をコマンドラインとして実行されたかのように、commandpath を
- * シェルスクリプトとして実行する。
- * この関数はシェルの状態を完全に初期状態に戻した後、main を実行する。 */
-void selfexec(const char *commandpath, char **argv)
+/* ジョブ制御が有効なら、自分自身のプロセスグループを
+ * 自分のプロセス ID に変更する */
+void set_own_pgrp(void)
 {
-	unset_shell_env();
-	finalize_jobcontrol();
-	finalize_var();
-	finalize_alias();
-	laststatus = 0;
-
-	struct plist newargs;
-	pl_init(&newargs);
-	pl_append(&newargs, argv[0]);
-	pl_append(&newargs, commandpath);
-	pl_aappend(&newargs, (void **) (argv + 1));
-	exit(main(newargs.length, (char **) newargs.contents));
+    if (do_job_control) {
+	setpgid(0, 0);
+	make_myself_foreground();
+    }
 }
+
+/* ジョブ制御が有効なら、自分自身のプロセスグループを set_own_pgrp 前に戻す */
+void reset_own_pgrp(void)
+{
+    if (do_job_control && initial_pgrp > 0) {
+	setpgid(0, initial_pgrp);
+	make_myself_foreground();
+    }
+}
+
+/* reset_own_pgrp してもプロセスグループが元に戻らないようにする */
+void forget_initial_pgrp(void)
+{
+    initial_pgrp = 0;
+}
+
+
+/********** コードを実行する関数 **********/
+
+/* マルチバイト文字列をソースコードとしてコマンドを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * code: 実行するコード (初期シフト状態で始まる)
+ * name: 構文エラーで表示するコード名。NULL でも良い。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool exec_mbs(const char *code, const char *name, bool finally_exit)
+{
+    struct input_mbs_info iinfo = {
+	.src = code,
+	.srclen = strlen(code) + 1,
+    };
+    struct parseinfo_T pinfo = {
+	.print_errmsg = true,
+	.enable_verbose = false,
+	.filename = name,
+	.lineno = 1,
+	.input = input_mbs,
+	.inputinfo = &iinfo,
+	.intrinput = false,
+	.inputisatty = false,
+	.lastinputresult = 0,
+    };
+    memset(&iinfo.state, 0, sizeof iinfo.state);  // state を初期状態にする
+
+    return parse_and_exec(&pinfo, finally_exit);
+}
+
+/* ワイド文字列をソースコードとしてコマンドを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * code: 実行するコード
+ * name: 構文エラーで表示するコード名。NULL でも良い。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
+{
+    struct input_wcs_info iinfo = {
+	.src = code,
+    };
+    struct parseinfo_T pinfo = {
+	.print_errmsg = true,
+	.enable_verbose = false,
+	.filename = name,
+	.lineno = 1,
+	.input = input_wcs,
+	.inputinfo = &iinfo,
+	.intrinput = false,
+	.inputisatty = false,
+	.lastinputresult = 0,
+    };
+
+    return parse_and_exec(&pinfo, finally_exit);
+}
+
+/* 入力ストリームを読み取ってコマンドを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * f: 入力元のストリーム
+ * intrinput: 入力が対話的かどうか
+ * name: 構文エラーで表示するコード名。NULL でも良い。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
+{
+    struct input_readline_info rlinfo;
+    struct parseinfo_T pinfo = {
+	.print_errmsg = true,
+	.enable_verbose = true,
+	.filename = name,
+	.lineno = 1,
+	.intrinput = intrinput,
+	.lastinputresult = 0,
+    };
+    if (intrinput) {
+	rlinfo.fp = f;
+	rlinfo.type = 1;
+	pinfo.input = input_readline;
+	pinfo.inputinfo = &rlinfo;
+	pinfo.inputisatty = isatty(fileno(f));
+    } else {
+	pinfo.input = input_file;
+	pinfo.inputinfo = f;
+	pinfo.inputisatty = false;
+    }
+    return parse_and_exec(&pinfo, finally_exit);
+}
+
+/* 指定した parseinfo_T に基づいてソースを読み込み、それを実行する。
+ * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
+ * finally_exit: true なら実行後にそのままシェルを終了する。
+ * 戻り値: 構文エラー・入力エラーがなければ true */
+bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
+{
+    bool executed = false;
+    bool justwarned = false;
+
+    for (;;) {
+	and_or_T *commands;
+	switch (read_and_parse(pinfo, &commands)) {
+	    case 0:  // OK
+		justwarned = false;
+		if (commands) {
+		    if (!shopt_noexec) {
+			exec_and_or_lists(commands,
+				finally_exit && !pinfo->intrinput &&
+				pinfo->lastinputresult == EOF);
+			executed = true;
+		    }
+		    andorsfree(commands);
+		}
+		break;
+	    case EOF:
+		if (shopt_ignoreeof && pinfo->inputisatty) {
+		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
+		    break;
+		} else if (pinfo->intrinput && !justwarned) {
+		    // TODO yash: parse_and_exec: exit 組込みでも同様の警告を
+		    size_t sjc = stopped_job_count();
+		    if (sjc > 0) {
+			fprintf(stderr,
+				ngt("You have a stopped job!\n",
+				    "You have %zu stopped jobs!\n",
+				    sjc),
+				sjc);
+			justwarned = true;
+			break;
+		    }
+		} // TODO stopped job の警告は exit 組み込みに移動
+		if (!executed)
+		    laststatus = EXIT_SUCCESS;
+		if (finally_exit)
+		    exit_shell();
+		else
+		    return true;
+	    case 1:  // 構文エラー
+		justwarned = false;
+		laststatus = EXIT_SYNERROR;
+		if (pinfo->intrinput)
+		    break;
+		else if (finally_exit)
+		    exit_shell();
+		else
+		    return false;
+	}
+    }
+    /* コマンドを一つも実行しなかった場合のみ後から laststatus を 0 にする。
+     * 最初に laststatus を 0 にしてしまうと、コマンドを実行する際に $? の値が
+     * 変わってしまう。 */
+}
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

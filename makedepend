@@ -20,17 +20,18 @@
 echo "# dependencies resolved by makedepend"
 for source in "$@"
 do
-	case "${source}" in
-		*.c)
-		{
-			echo "${source%.c}.o:";
-			sed -e '
-				/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"/ {
-				  s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
-				  p
-				}
-				d
-				' "${source}"
-		} | xargs
-	esac
+    case "${source}" in
+	*.c)
+	sed -e '
+	    /^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
+	      s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
+	      p
+	    }
+	    d
+	    ' "${source}" | 
+	xargs echo "${source%.c}.o:"
+    esac
 done
+
+
+# vim: set ts=8 sts=4 sw=4 noet:

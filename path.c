@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* path.c: path manipulaiton utilities */
+/* path.c: filename-related utilities */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -17,473 +17,782 @@
 
 
 #include "common.h"
+#include <assert.h>
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
-#include "yash.h"
+#include <wchar.h>
+#include <sys/stat.h>
+#include "option.h"
 #include "util.h"
-#include "lineinput.h"
-#include "parser.h"
+#include "strbuf.h"
+#include "plist.h"
+#include "hashtable.h"
+#include "wfnmatch.h"
 #include "path.h"
-#include "variable.h"
-#include <assert.h>
 
 
-/* which が非 NULL を返した直後、この値が true なら which の戻り値は
- * 非カレントディレクトリから得られたことを表す。 */
-bool which_found_in_path;
-
-/* path に含まれるディレクトリを走査し、ファイル名 name のフルパスを得る。
- * name が "/" で始まるなら、無条件で name のコピーを返す。
- * name:   探すファイル名
- * path:   PATH 環境変数のような、":" で区切ったディレクトリ名のリスト。
- *         NULL ならカレントディレクトリから探す。
- * cond:   ファイル名を受け取り、ファイルが条件に合致しているかどうかを
- *         判断する関数へのポインタ。cond が true を返した場合のみその結果が
- *         返る。cond が 0 ならファイルが存在すれば無条件でその結果が返る。
- *         cond の引数には、存在しないファイルの名前が渡ることがあるので注意。
- * 戻り値: 新しく malloc した、name のフルパス。見付からなかったら NULL。
- *         ただし path に相対パスが含まれていた場合、戻り値も相対パスになる。 */
-char *which(const char *name, const char *path, bool cond(const char *name))
-{
-	which_found_in_path = false;
-	if (!name || !*name)
-		return NULL;
-	if (!path)
-		path = "";
-	if (name[0] == '/')
-		return xstrdup(name);
-
-	size_t namelen = strlen(name);
-	for (;;) {
-		size_t pathlen = strcspn(path, ":");
-		char searchname[pathlen + namelen + 3];
-		if (pathlen) {
-			strncpy(searchname, path, pathlen);
-			searchname[pathlen] = '/';
-			searchname[pathlen + 1] = '\0';
-		} else {
-			searchname[0] = '.';
-			searchname[1] = '/';
-			searchname[2] = '\0';
-		}
-		strcat(searchname, name);
-		if (cond ? cond(searchname) : (access(searchname, F_OK) == 0)) {
-			which_found_in_path = pathlen;
-			return xstrdup(searchname);
-		}
-		path += pathlen;
-		if (!*path)
-			break;
-		path++;
-	}
-	return NULL;
-}
-
-/* path が読み込み可能な通常のファイルであるか判定する */
+/* path が読み込み可能な普通のファイルかどうか判定する */
 bool is_readable(const char *path)
 {
-	struct stat st;
-	return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
-		&& access(path, R_OK) == 0;
+    struct stat st;
+    return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
+	&& access(path, R_OK) == 0;
 }
 
-/* path が実行可能な通常のファイルであるか判定する */
+/* path が実行可能な普通のファイルかどうか判定する */
 bool is_executable(const char *path)
 {
-	struct stat st;
-	return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
-		&& access(path, X_OK) == 0;
+    struct stat st;
+    return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
+	&& access(path, X_OK) == 0;
 }
 
-/* path がディレクトリであるか判定する。 */
+/* path がディレクトリであるか判定する */
 bool is_directory(const char *path)
 {
-	struct stat st;
-	return (stat(path, &st) == 0) && S_ISDIR(st.st_mode);
+    struct stat st;
+    return (stat(path, &st) == 0) && S_ISDIR(st.st_mode);
 }
 
-/* 指定した名前のユーザのホームディレクトリを得る。
- * name が空文字列なら HOME 環境変数を返す。また name が "+", "-" のときは
- * それぞれ PWD, OLDPWD 環境変数を返す。
- * 戻り値: データが見付からなければ NULL。 */
-static const char *get_tilde_dir(const char *name)
+/* 二つのファイルが同じファイルかどうか調べる
+ * stat に失敗した場合も false を返す。 */
+bool is_same_file(const char *path1, const char *path2)
 {
-	if (!name[0]) {
-		const char *home = getvar(VAR_HOME);
-		if (home)
-			return home;
-		struct passwd *pwd = getpwuid(geteuid());
-		if (pwd)
-			return pwd->pw_dir;
-	} else if (!posixly_correct && strcmp(name, "+") == 0) {
-		const char *pwd = getvar(VAR_PWD);
-		if (pwd)
-			return pwd;
-	} else if (!posixly_correct && strcmp(name, "-") == 0) {
-		const char *oldpwd = getvar(VAR_OLDPWD);
-		if (oldpwd)
-			return oldpwd;
-	} else {
-		struct passwd *pwd = getpwnam(name);
-		if (pwd)
-			return pwd->pw_dir;
-	}
-	return NULL;
-}
-
-/* '~' で始まるパスを実際のホームディレクトリに展開する。
- *   例)  "~user/dir"  ->  "/home/user/dir"
- * path:   展開する文字列。
- * 戻り値: 成功したら新しく malloc した文字列にパスを展開したもの。
- *         失敗 (データが見付からない場合など) なら NULL。
- *         path が '~' で始まらなければ path のコピーを返す。 */
-char *expand_tilde(const char *path)
-{
-	assert(path);
-	if (path[0] != '~')
-		return xstrdup(path);
-	path++;
-
-	size_t len = strcspn(path, "/");
-	char name[len + 1];
-	strncpy(name, path, len);
-	name[len] = '\0';
-
-	const char *home = get_tilde_dir(name);
-	if (!home)
-		return NULL;
-
-	char *result = xmalloc(strlen(home) + strlen(path + len) + 1);
-	strcpy(result, home);
-	strcat(result, path + len);
-	return result;
-}
-
-/* ':' で区切った複数のパスのそれぞれに対してチルダ展開を行う。
- * 文字列内の引用符・エスケープは適切に飛ばす。
- * 戻り値: 新しく malloc した文字列に paths を展開したもの。 */
-/* この関数は、変数代入の右辺値のチルダ展開で使う。 */
-char *expand_tilde_multiple(const char *paths)
-{
-	struct strbuf buf;
-	sb_init(&buf);
-
-	while (*paths) {
-		if (*paths == '~') {
-			const char *end = skip_with_quote(paths, "/:");
-			size_t len = end - (paths + 1);
-			char name[len + 1];
-			strncpy(name, paths + 1, len);
-			name[len] = '\0';
-
-			const char *home = get_tilde_dir(name);
-			if (home) {
-				sb_append(&buf, home);
-				paths = end;
-			}
-		}
-		const char *colon = skip_with_quote(paths, ":");
-		if (*colon == ':')
-			colon++;
-		sb_nappend(&buf, paths, colon - paths);
-		paths = colon;
-	}
-	return sb_tostr(&buf);
-}
-
-/* 指定したパスがホームディレクトリで始まるなら、それ以降の部分を返す。
- * 例えばホームディレクトリが /home/user で path が /home/user/dir ならば /dir
- * を返す。ホームディレクトリは HOME 環境変数から得る。
- * パスがホームディレクトリで始まらなければ (又は HOME 環境変数が得られなければ)
- * NULL を返す。戻り値は、(NULL でなければ) 引数 path に含まれる文字のどれかへの
- * ポインタであり、新しく malloc した文字列ではない。 */
-char *skip_homedir(const char *path)
-{
-	const char *home;
-	size_t homelen; 
-
-	if (!path || !(home = getvar(VAR_HOME)))
-		return NULL;
-	homelen = strlen(home);
-	if (strncmp(home, path, homelen) == 0)
-		return (char *) (path + homelen);
-	else
-		return NULL;
-}
-
-/* 指定したパスがホームディレクトリで始まるなら、その部分を "~" に置き換えた
- * 文字列を返す。ホームディレクトリは HOME 環境変数から得る。
- * パスがホームディレクトリで始まらなければ (又は HOME 環境変数が得られなければ)
- * 元と同じ内容の文字列を返す。
- * 戻り値: path がホームディレクトリで始まっていればそれを "~" に置き換えた
- *         文字列。置き換えたかどうかにかかわらず、戻り値が NULL でなければ
- *         それは新しく malloc した文字列である。エラーがあると NULL を返す。 */
-char *collapse_homedir(const char *path)
-{
-	const char *aftertilde = skip_homedir(path);
-	char *result;
-
-	if (!path)
-		return NULL;
-	if (!aftertilde)
-		return xstrdup(path);
-	result = xmalloc(strlen(aftertilde) + 2);
-	result[0] = '~';
-	strcpy(result + 1, aftertilde);
-	return result;
+    struct stat stat1, stat2;
+    return stat(path1, &stat1) == 0 && stat(path2, &stat2) == 0
+	&& stat1.st_dev == stat2.st_dev && stat1.st_ino == stat2.st_ino;
 }
 
 /* パスを正規化する。これは単なる文字列の操作であり、実際にパスにファイルが
  * 存在するかどうかなどは関係ない。
  * path:   正規化するパス。
- * 戻り値: 新しく malloc した文字列で、path を正規化した結果。 */
-char *canonicalize_path(const char *path)
+ * 戻り値: 新しく malloc したワイド文字列で、path を正規化した結果。 */
+wchar_t *canonicalize_path(const wchar_t *path)
 {
-	if (!path)    return NULL;
-	if (!path[0]) return xstrdup(path);
+    if (!path[0])
+	return xwcsdup(path);
 
-	/* path の先頭に三つ以上のスラッシュがある場合、それらを一つのスラッシュに
-	 * まとめることができる。この場合、単にスラッシュを無視すればよい。
-	 *   例) "///dir/file" -> "/dir/file"  */
-	if (matchprefix(path, "///")) {
-		while (*path == '/') path++;
-		path--;
+    /* 先頭の L'/' の数を数える */
+    size_t leadingslashcount = 0;
+    while (path[0] == L'/') {
+	leadingslashcount++;
+	path++;
+    }
+
+    plist_T list;
+    wchar_t p[wcslen(path) + 1];
+    wcscpy(p, path);  /* p に path をコピー */
+    pl_init(&list);
+
+    /* p 内の L'/' を全て L'\0' に置き換えながら、各要素を list に追加する。
+     * これにより、元々 L'/' で区切ってあった各部分が list に入る。 */
+    pl_add(&list, p);
+    for (wchar_t *pp = p; *pp; pp++) {
+	if (*pp == L'/') {
+	    *pp = L'\0';
+	    pl_add(&list, pp + 1);
 	}
+    }
 
-	struct plist list;
-	char save[strlen(path) + 1];  /* path を save にコピー */
-	strcpy(save, path);
-	pl_init(&list);
+    /* まず、L"" と L"." をリストから削除する */
+    for (size_t i = 0; i < list.length; ) {
+	if (wcscmp(list.contents[i], L"") == 0
+		|| wcscmp(list.contents[i], L".") == 0) {
+	    pl_remove(&list, i, 1);
+	} else {
+	    i++;
+	}
+    }
 
-	/* save 内の '/' を全て '\0' に置き換え、パスの各構成要素ごとの文字列に
-	 * 分解し、list に入れる。 */
-	pl_append(&list, save);
-	for (char *s = save; *s; s++) {
-		if (*s == '/') {
-			*s = '\0';
-			pl_append(&list, s + 1);
+    /* 続いて、L".." とその親要素を削除する */
+    for (size_t i = 0; i < list.length; ) {
+	if (wcscmp(list.contents[i], L"..") == 0) {
+	    if (i == 0) {
+		/* L".." が先頭にある場合、L".." は基本的に消してはいけない。
+		 * しかしこれだと例えば L"/../" が L"/" にならなくて不自然なので
+		 * 非 posixly_correct のときはルートの後の L".." は削除する。 */
+		if (!posixly_correct && leadingslashcount > 0) {
+		    pl_remove(&list, i, 1);
+		    continue;
 		}
-	}
-
-	char **entries = (char **) list.contents;
-	size_t i;
-
-	/* まず、"" と "." を削除する。ただし……
-	 * - リストの最初の構成要素が "" の場合、それはパスが絶対パスであることを
-	 *   示している。よってこれは削除してはいけない。これを削除してしまうと、
-	 *   例えば /usr/bin が usr/bin になってしまう。また、さらに二つ目の構成
-	 *   要素も "" の場合、それも削除してはいけない。この場合は path が "//"
-	 *   で始まっている訳だが、これはシステムによっては特殊な意味を持つので
-	 *   勝手にスラッシュを一つにしてはいけない。スラッシュが三つ以上ある場合は
-	 *   スラッシュを一つにまとめることができるが、これは既に関数の最初で
-	 *   処理してある。
-	 *   もちろん、これら以外の "" は自由に削除できる。 */
-	if (entries[0][0] || !entries[1])
-		i = 0;  /* 相対パス */
-	else if (entries[1][0])
-		i = 1;  /* "/xxx" */
-	else if (!entries[2])
-		i = 2;  /* "/" */
-	else if (entries[2][0])
-		i = 2;  /* "//xxx" */
-	else if (!entries[3])
-		i = 3;  /* "//" */
-	else 
-		assert(false);
-	while (entries[i]) {
-		if (!entries[i][0] || (strcmp(entries[i], ".") == 0)) {
-			pl_remove(&list, i, 1);
-
-			/* 末尾の要素を消したとき、その親がルートなら '/' の数を合わせる
-			 * ために "" を追加する。 */
-			if (i == list.length && i > 0 && !entries[i - 1][0]) {
-				pl_append(&list, entries[0]);
-				i++;
-				break;
-			}
-		} else {
-			i++;
+	    } else {
+		/* L".." が先頭以外にある場合は普通に L".." とその親を削除。
+		 * ただし親が L".." なら削除しない */
+		if (wcscmp(list.contents[i - 1], L"..") != 0) {
+		    pl_remove(&list, i - 1, 2);
+		    i--;
+		    continue;
 		}
+	    }
 	}
-	assert(list.length == i);
-	if (!list.length) {
-		/* リストが空になったら、元の path は "." や "./." だったということ。
-		 * "." を返す。 */
-		return xstrdup(".");
-	}
+	i++;
+    }
 
-	/* 続いて、".." とその親要素を削除する。ただし……
-	 * - ".." の手前がルートまたは ".." なら削除してはいけない。消してもよい ""
-	 *   は既に消してあるので、".." の手前が "" か ".." なら消してはいけない、
-	 *   ということになる。
-	 * ……というのが POSIX の定めである。しかし "/../" が "/" にならないのは
-	 * やはり変なので、非 posixly_correct のときは、
-	 * ".." の手前が "" の場合には ".." を削除する。 */
-	i = 1;
-	while (i < list.length) {
-		if (strcmp(entries[i], "..") == 0) {
-			if (!entries[i - 1][0]) {  /* 手前が "" の場合 */
-				if (!posixly_correct) {
-					pl_remove(&list, i, 1);
-					goto next;
-				}
-			} else if (strcmp(entries[i - 1], "..") != 0) {
-				i--;
-				pl_remove(&list, i, 2);
-				if (i == 0)
-					i = 1;
-				goto next;
-			}
-		}
-		i++;
-		continue;
-next:
-		/* 末尾の要素を消したとき、その親がルートなら '/' の数を合わせる
-		 * ために "" を追加する。 */
-		if (i == list.length && i > 0 && !entries[i - 1][0]) {
-			pl_append(&list, entries[0]);
-			break;
-		}
-	}
-
-	char *result = strjoin(-1, entries, "/");
-	pl_destroy(&list);
-	return result;
+    /* 最後に list 内の各要素を全部つないで完成 */
+    xwcsbuf_T result;
+    wb_init(&result);
+    switch (leadingslashcount) {  /* 先頭の L'/' を加える */
+	case 0:
+	    break;
+	case 2:
+	    wb_cat(&result, L"//");
+	    break;
+	default:  /* 先頭に L'/' が三つ以上あるときは一つに減らしてよい */
+	    wb_wccat(&result, L'/');
+	    break;
+    }
+    for (size_t i = 0; i < list.length; i++) {
+	wb_cat(&result, list.contents[i]);
+	if (i < list.length - 1)
+	    wb_wccat(&result, L'/');
+    }
+    pl_destroy(&list);
+    if (result.length == 0)
+	/* 結果が空ならカレントディレクトリを表す L"." を返す */
+	wb_wccat(&result, L'.');
+    return wb_towcs(&result);
 }
 
-/* 二つのファイルが同じファイルであるか調べる。
- * stat に失敗した場合も false を返す。 */
-bool is_same_file(const char *path1, const char *path2)
+/* 指定したパスが正規化済みかどうか調べる */
+bool is_canonicalized(const wchar_t *path)
 {
-	struct stat stat1, stat2;
-	return stat(path1, &stat1) == 0 && stat(path2, &stat2) == 0
-		&& stat1.st_dev == stat2.st_dev && stat1.st_ino == stat2.st_ino;
+    wchar_t *canon = canonicalize_path(path);
+    bool result = wcscmp(path, canon);
+    free(canon);
+    return result;
 }
 
-/* getcwd(3) の結果を新しく malloc した文字列で返す。
- * エラー時は NULL を返し、errno を設定する。 */
+/* getcwd の結果を新しく malloc した文字列で返す。
+ * エラーのときは errno を設定して NULL を返す。 */
 char *xgetcwd(void)
 {
-	size_t pwdlen = 40;
-	char *pwd = xmalloc(pwdlen);
-	while (getcwd(pwd, pwdlen) == NULL) {
-		if (errno == ERANGE) {
-			pwdlen *= 2;
-			pwd = xrealloc(pwd, pwdlen);
-		} else {
-			free(pwd);
-			pwd = NULL;
-			break;
-		}
+#if GETCWD_AUTO_MALLOC
+    char *pwd = getcwd(NULL, 0);
+    return pwd ? xrealloc(pwd, strlen(pwd) + 1) : NULL;
+#else
+    size_t pwdlen = 40;
+    char *pwd = xmalloc(pwdlen);
+    while (getcwd(pwd, pwdlen) == NULL) {
+	if (errno == ERANGE) {
+	    pwdlen *= 2;
+	    pwd = xrealloc(pwd, pwdlen);
+	} else {
+	    free(pwd);
+	    pwd = NULL;
+	    break;
 	}
-	return pwd;
+    }
+    return pwd;
+#endif
 }
 
+
+/* 与えられた各ディレクトリの中から指定された名前のエントリを探し、最初に
+ * 見付かったもののパスを返す。
+ * name:   探すエントリの名前。これが絶対パスなら、検索を行わずにそのまま
+ *         name のコピーを返す。
+ * dirs:   検索するディレクトリ名の配列。空文字列はカレントディレクトリを示す。
+ *         path そのものが NULL の場合はカレントディレクトリのみから探す。
+ * cond:   ファイルパスを受け取り、ファイルが条件に合うかどうか調べる関数。
+ *         cond が true を返すと実際にそのパスが返される。
+ *         cond が true を返すと検索を続ける。
+ * 戻り値: エントリが見付かって、cond が true を返したら、そのエントリへのパス
+ *         (新しく malloc した文字列)。見付からなかったら、NULL。
+ * name および paths 内の各文字列はすべて初期シフト状態で始まり、終わらなければ
+ * ならない。which_found_in_path の値は、which が非 NULL を返した直後のみ
+ * 有効である。
+ * 返す文字列は、dirs のどれかの要素と name を '/' で繋いだものになる。 */
+char *which(
+	const char *restrict name,
+	char *const *restrict dirs,
+	bool cond(const char *path))
+{
+    if (!name[0])
+	return NULL;
+    if (!dirs)
+	dirs = (char *[]) { "", NULL, };
+    if (name[0] == '/')
+	return xstrdup(name);
+
+    size_t namelen = strlen(name);
+    const char *dir;
+    while ((dir = *dirs++)) {
+	size_t dirlen = strlen(dir);
+	char path[dirlen + namelen + 3];
+	if (dirlen > 0) {
+	    /* dir と name を繋げてエントリ名候補 path を作る */
+	    strcpy(path, dir);
+	    path[dirlen] = '/';
+	    strcpy(path + dirlen + 1, name);
+	} else {
+	    /* dir が空文字列ならカレントディレクトリとして扱う */
+	    strcpy(path, name);
+	}
+	if (cond ? cond(path) : (access(path, F_OK) == 0))
+	    return xstrdup(path);
+    }
+    return NULL;
+}
+
+/* ディレクトリを確実に閉じる。
+ * closedir が EINTR を返したらやり直す。 */
+int xclosedir(DIR *dir)
+{
+    int result;
+    while ((result = closedir(dir)) < 0 && errno == EINTR);
+    return result;
+}
+
+
+/********** patharray **********/
+
+/* PATH 環境変数を ':' ごとに区切った各文字列へのポインタの配列へのポインタ。
+ * 主に which の第二引数として使う。PATH 環境変数が変わるたびにリセットされる。
+ * 各文字列は初期シフト状態で始まり、終わる。 */
+static char **patharray = NULL;
+
+/* 新しい PATH 環境変数に合わせて patharray の内容を更新する。
+ * newpath: 新しい PATH の値。NULL でもよい。 */
+void reset_patharray(const wchar_t *newpath)
+{
+    recfree((void **) patharray, free);
+    if (!newpath)
+	newpath = L"";
+
+    wchar_t wpath[wcslen(newpath) + 1];
+    wcscpy(wpath, newpath);
+
+    plist_T list;
+    pl_init(&list);
+
+    /* wpath の中の L':' を L'\0' に置き換えつつ各要素を list に追加する */
+    pl_add(&list, wpath);
+    for (wchar_t *w = wpath; *w; w++) {
+	if (*w == L':') {
+	    *w = L'\0';
+	    pl_add(&list, w + 1);
+	}
+    }
+
+    /* list 内の重複要素を削除する */
+    for (size_t i = 0; i < list.length; i++)
+	for (size_t j = list.length; --j > i; )
+	    if (wcscmp(list.contents[i], list.contents[j]) == 0)
+		pl_remove(&list, j, 1);
+
+    /* list の各要素をマルチバイト文字列に戻す */
+    for (size_t i = 0; i < list.length; i++) {
+	list.contents[i] = malloc_wcstombs(list.contents[i]);
+	if (!list.contents[i])
+	    /* まさかここで変換エラーが起きることはないと思うが…… */
+	    list.contents[i] = xstrdup("");
+    }
+
+    patharray = (char **) pl_toary(&list);
+}
 
 
 /********** コマンド名ハッシュ **********/
 
-static bool cmdhash_initialized = false;
-
-/* コマンド名からコマンドのフルパスへのハッシュテーブル */
-struct hasht cmdhash;
+/* コマンド名からそのフルパスへのハッシュテーブル。
+ * キーはコマンド名を表すマルチバイト文字列へのポインタで、
+ * 値はコマンドのフルパスを表すマルチバイト文字列へのポインタである。
+ * キーと値を入れる領域はまとめて malloc され、値を free するとキーも一緒に
+ * 解放されるようになっている必要がある。 */
+static hashtable_T cmdhash;
 
 /* コマンド名ハッシュを初期化する */
 void init_cmdhash(void)
 {
-	if (!cmdhash_initialized) {
-		ht_init(&cmdhash);
-		cmdhash_initialized = true;
-	}
+    static bool initialized = false;
+    if (!initialized) {
+	initialized = true;
+	ht_init(&cmdhash, hashstr, htstrcmp);
+    }
 }
 
-/* コマンド名ハッシュを空にする。 */
+/* コマンド名ハッシュを空にする */
 void clear_cmdhash(void)
 {
-	ht_freeclear(&cmdhash, free);
+    ht_clear(&cmdhash, vfree);
 }
 
-/* PATH を走査してハッシュテーブルを埋める。
- * PATH 環境変数がない場合は何もしない。
- * prefix: この文字列で始まるコマンドだけハッシュテーブルに入れる。
- *         条件の判定には comp_prefix を使う。
- *         NULL なら全てのコマンドをハッシュテーブルに入れる。(遅い!) */
-void fill_cmdhash(const char *prefix)
-{
-	const char *path = getvar(VAR_PATH);
-	if (!path) return;
-
-	/* path の先頭の方にあるものを優先するため、path の後ろから検索し、
-	 * 重複して見付かったものは上書きする */
-
-	/* リストに path の各要素の先頭アドレスを入れる。 */
-	const char *p = path;
-	struct plist list;
-	pl_init(&list);
-	pl_append(&list, p);
-	while (*p) {
-		if (*p == ':') pl_append(&list, p + 1);
-		p++;
-	}
-
-	/* リストを後ろからたどって各パスを調べる */
-	size_t lindex = list.length - 1;
-	do {
-		p = list.contents[lindex];
-		if (p[0] == '/') {  /* '/' で始まる絶対パスのみ探す */
-			size_t dirlen = (lindex + 1 < list.length)
-				? (size_t) ((const char *) list.contents[lindex + 1] - p) - 1
-				: strlen(p);
-			char dirname[dirlen + 1];
-			strncpy(dirname, p, dirlen);
-			dirname[dirlen] = '\0';
-			DIR *dir = opendir(dirname);
-			if (dir) {
-				struct dirent *de;
-				while ((de = readdir(dir))) {
-					size_t namelen = strlen(de->d_name);
-					char *fullpath = xmalloc(dirlen + namelen + 2);
-					strcpy(fullpath, dirname);
-					fullpath[dirlen] = '/';
-					strcpy(fullpath + dirlen + 1, de->d_name);
-					if (is_executable(fullpath)
-							&& (!prefix || comp_prefix(prefix, de->d_name)))
-						free(ht_set(&cmdhash, de->d_name, fullpath));
-					else
-						free(fullpath);
-				}
-				closedir(dir);
-			}
-		}
-	} while (lindex-- > 0);
-	pl_destroy(&list);
-}
-
-/* 指定したコマンドを PATH から探しだし、フルパスを返す。forcelookup が false
- * でハッシュにパスが登録されていればそれを返す。さもなくば PATH を一つずつ
- * 調べてハッシュに登録し直し、それを返す。
+/* 指定したコマンドを PATH (patharray) から探しだし、フルパスを返す。
+ * forcelookup が false でハッシュにパスが登録されていればそれを返す。
+ * さもなくば which を呼んで検索し、結果をハッシュに登録してから返す。
  * 戻り値: 見付かったらそのフルパス。見付からなければ NULL。
- *         フルパスが返ったらそれを変更したりしないこと。 */
-const char *get_command_fullpath(const char *name, bool forcelookup)
+ *         戻り値を変更したり free したりしないこと。 */
+const char *get_command_path(const char *name, bool forcelookup)
 {
-	const char *fullpath;
-	if (!forcelookup) {
-		fullpath = ht_get(&cmdhash, name);
-		if (fullpath)
-			return fullpath;
-	}
+    const char *path;
 
-	fullpath = which(name, getvar(VAR_PATH), is_executable);
-	if (fullpath) {
-		free(ht_set(&cmdhash, name, fullpath));
-		return fullpath;
-	}
+    if (!forcelookup) {
+	path = ht_get(&cmdhash, name).value;
+	if (path && is_executable(path))
+	    return path;
+    }
 
-	return NULL;
+    path = which(name, patharray, is_executable);
+    if (path && path[0] == '/') {
+	size_t namelen = strlen(name), pathlen = strlen(path);
+	const char *pathname = path + pathlen - namelen;
+	assert(strcmp(name, pathname) == 0);
+	vfree(ht_set(&cmdhash, pathname, path));
+    } else {
+	vfree(ht_remove(&cmdhash, name));
+    }
+    return path;
 }
+
+/* prefix で始まるコマンド名を対象に patharray を検索して、コマンド名ハッシュを
+ * 埋める。patharray が NULL なら何もしない。また patharray に相対パスが入って
+ * いる場合は無視する。prefix が NULL または空文字列なら、全てのコマンドを
+ * 対象とする。ignorecase が true ならコマンド名の大文字小文字を区別
+ * しない。
+ * この関数はエラーメッセージを出さない。
+ * 処理を早くするため、この関数はマルチバイト文字の大文字小文字の区別を正確には
+ * 処理しない。*/
+void fill_cmdhash(const char *prefix, bool ignorecase)
+{
+    char *const *pa = patharray;
+    if (!pa)
+	return;
+
+    if (!prefix)
+	prefix = "";
+    size_t plen = strlen(prefix);
+    char pfx[plen + 1];
+    if (ignorecase) {
+	/* prefix を小文字にして pfx にコピー */
+	for (size_t i = 0; i < plen; i++)
+	    pfx[i] = tolower(prefix[i]);
+	pfx[plen] = '\0';
+    }
+
+    /* patharray の中で前にあるパスを優先するため、配列の後ろの方から検索し、
+     * 対象が重複して見付かったら後から見付かったもので上書きする。 */
+    for (size_t i = plcount((void **) pa); i-- > 0; ) {
+	const char *dirpath = pa[i];
+	if (dirpath[0] != '/')
+	    continue;  /* 絶対パスでなければ無視 */
+
+	DIR *dir = opendir(dirpath);
+	if (!dir)
+	    continue;
+
+	size_t dirpathlen = strlen(dirpath);
+	struct dirent *de;
+	while ((de = readdir(dir))) {
+	    /* 名前が prefix に当てはまらなければ飛ばす */
+	    if (!ignorecase) {
+		if (strncmp(prefix, de->d_name, plen) != 0)
+		    goto next;
+	    } else {
+		for (size_t j = 0; j < plen; j++)
+		    if (tolower(de->d_name[j]) != pfx[j])
+			goto next;
+	    }
+
+	    /* フルパスを生成する */
+	    char *path = xmalloc(dirpathlen + strlen(de->d_name) + 2);
+	    strncpy(path, dirpath, dirpathlen);
+	    path[dirpathlen] = '/';
+	    strcpy(path + dirpathlen + 1, de->d_name);
+
+	    /* ファイルが実行可能ならハッシュに追加する */
+	    if (is_executable(path))
+		vfree(ht_set(&cmdhash, path + dirpathlen + 1, path));
+	    else
+		free(path);
+next:;
+	}
+
+	xclosedir(dir);
+    }
+}
+
+
+/********** ホームディレクトリキャッシュ **********/
+
+/* getpwnam を確実に行う。getpwnam が EINTR を返したら、やり直す。 */
+struct passwd *xgetpwnam(const char *name)
+{
+    struct passwd *pw;
+    do {
+	errno = 0;
+	pw = getpwnam(name);
+    } while (!pw && errno == EINTR);
+    return pw;
+}
+
+/* ユーザ名からそのユーザのホームディレクトリのフルパスへのハッシュテーブル。
+ * キーはユーザのログイン名を表すワイド文字列へのポインタで、
+ * 値はホームディレクトリを表すワイド文字列へのポインタである。
+ * キーと値を入れる領域はまとめて malloc され、値を free するとキーも一緒に
+ * 解放されるようになっている必要がある。 */
+static hashtable_T homedirhash;
+
+/* ホームディレクトリハッシュを初期化する */
+void init_homedirhash(void)
+{
+    static bool initialized = false;
+    if (!initialized) {
+	initialized = true;
+	ht_init(&homedirhash, hashwcs, htwcscmp);
+    }
+}
+
+/* ホームディレクトリハッシュを空にする */
+void clear_homedirhash(void)
+{
+    ht_clear(&homedirhash, vfree);
+}
+
+/* 指定したログイン名のユーザのホームディレクトリ (初期作業ディレクトリ) を
+ * 探し、フルパスを返す。
+ * forcelookup が false でハッシュにパスが登録されていればそれを返す。
+ * さもなくば getpwnam を呼んで検索し、結果をハッシュに登録してから返す。
+ * 戻り値: 見付かったらそのフルパス。見付からなければ NULL。
+ *         戻り値を変更したり free したりしないこと。 */
+const wchar_t *get_home_directory(const wchar_t *username, bool forcelookup)
+{
+    const wchar_t *path;
+
+    if (!forcelookup) {
+	path = ht_get(&homedirhash, username).value;
+	if (path)
+	    return path;
+    }
+
+    char *mbsusername = malloc_wcstombs(username);
+    if (!mbsusername)
+	return NULL;
+
+    struct passwd *pw = xgetpwnam(mbsusername);
+    free(mbsusername);
+    if (!pw)
+	return NULL;
+
+    /* 得られた情報をハッシュに登録して返す */
+    xwcsbuf_T dir;
+    wb_init(&dir);
+    if (wb_mbscat(&dir, pw->pw_dir) != NULL) {
+	wb_destroy(&dir);
+	return NULL;
+    }
+    wb_wccat(&dir, L'\0');
+    size_t usernameindex = dir.length;
+    wb_cat(&dir, username);
+    wchar_t *dirname = wb_towcs(&dir);
+    vfree(ht_set(&homedirhash, dirname + usernameindex, dirname));
+    return dirname;
+}
+
+
+/********** wglob **********/
+
+enum wglbrflags {
+    WGLB_followlink = 1 << 0,
+    WGLB_period     = 1 << 1,
+};
+
+static int wglob_sortcmp(const void *v1, const void *v2)
+    __attribute__((pure,nonnull));
+static bool wglob_search(const wchar_t *restrict pattern, enum wglbflags flags,
+	xstrbuf_T *restrict const dirname,
+	plist_T *restrict dirstack, plist_T *restrict list)
+    __attribute__((nonnull));
+static bool wglob_start_recursive_search(const wchar_t *restrict pattern,
+	enum wglbflags flags, enum wglbrflags rflags,
+	xstrbuf_T *restrict const dirname,
+	plist_T *restrict dirstack, plist_T *restrict list)
+    __attribute__((nonnull));
+static bool wglob_recursive_search(const wchar_t *restrict pattern,
+	enum wglbflags flags, enum wglbrflags rflags,
+	xstrbuf_T *restrict const dirname,
+	plist_T *restrict dirstack, plist_T *restrict list)
+    __attribute__((nonnull));
+static bool is_reentry(const struct stat *st, const plist_T *dirstack)
+    __attribute__((pure,nonnull));
+
+/* ワイド文字列に対する glob の実装。
+ * 指定したパターンに一致するファイルのパスをリストに追加する。
+ * pattern: 検索するパターン
+ * flags:   マッチングの種類を指定するフラグ。以下の値のビットごとの OR。
+ *          WGLB_MARK: ディレクトリについてはパス名の最後に L'/' を付けて返す
+ *          WGLB_NOESCAPE: パターンでバックスラッシュエスケープを無効にする
+ *          WGLB_CASEFOLD: 大文字小文字を区別しない
+ *          WGLB_PERIOD: L'*' や L'?' を先頭のピリオドにもマッチさせる
+ *          WGLB_NOSORT: 検索結果をソートしない
+ *          WGLB_RECDIR: L"**" パターンでディレクトリを再帰的に検索する
+ * list:    検索結果を追加するリスト。見付かったファイルパスが
+ *          新しく malloc したマルチバイト文字列へのポインタとしてこれに入る。
+ * 戻り値:  エラーがなければ true。
+ * パターンが不正な場合はすぐに false を返す。ファイル探索のための
+ * パーミッションがない場合などは、できるだけエラーとはみなさない。
+ * エラーがあっても list に途中結果が入るかもしれない。 */
+bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
+	plist_T *restrict list)
+{
+    size_t listbase = list->length;
+    xstrbuf_T dir;
+    plist_T dirstack;
+
+    if (!pattern[0])
+	return true;
+
+    sb_init(&dir);
+    if (flags & WGLB_RECDIR)
+	pl_init(&dirstack);
+    while (pattern[0] == L'/') {
+	sb_ccat(&dir, '/');
+	pattern++;
+    }
+
+    bool succ = wglob_search(pattern, flags, &dir, &dirstack, list);
+    sb_destroy(&dir);
+    if (flags & WGLB_RECDIR)
+	pl_destroy(&dirstack);
+    if (!succ)
+	return false;
+
+    if (!(flags & WGLB_NOSORT)) {
+	/* 結果をソートして…… */
+	size_t count = list->length - listbase;  /* 実際に追加した個数 */
+	if (count > 0) {
+	    qsort(list->contents + listbase, count, sizeof (void *),
+		    wglob_sortcmp);
+	    /* 重複を除く */
+	    for (size_t i = list->length; --i > listbase; ) {
+		if (strcmp(list->contents[i], list->contents[i-1]) == 0) {
+		    free(list->contents[i]);
+		    pl_remove(list, i, 1);
+		}
+	    }
+	}
+    }
+    return true;
+}
+
+/* 結果を並べ替えるために qsort が呼ぶ関数。
+ * 二つの引数はそれぞれ char * を void * にキャストしたものへのポインタ
+ * である。二つのマルチバイト文字列を strcmp で比較した結果を返す。 */
+int wglob_sortcmp(const void *v1, const void *v2)
+{
+    return strcoll(*(const char *const *) v1, *(const char *const *) v2);
+}
+
+/* 指定したディレクトリを探索してパターンにマッチするファイルをリストに追加する
+ * dirname:  最後に '/' がついた、検索するディレクトリ名。または空文字列。
+ * 他の引数や戻り値は wglob に準ずる。
+ * pattern の先頭に L'/' があってはならない。
+ * ルートディレクトリを検索するには、dirname に "/" を指定する。
+ * dirname は、空文字列でない限り最後は '/' で終わっている必要がある。
+ * 空文字列はカレントディレクトリを表す。
+ * dirname は関数内で書き換えるかもしれないが、関数が返るときには
+ * 内容は呼出し時のものに戻っている。 */
+bool wglob_search(
+	const wchar_t *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict const dirname,
+	plist_T *restrict dirstack,
+	plist_T *restrict list)
+{
+    const size_t savedirlen = dirname->length;
+#define RESTORE_DIRNAME \
+    ((void) (dirname->contents[dirname->length = savedirlen] = '\0'))
+
+    assert(pattern[0] != L'/');
+    if (!pattern[0]) {
+	/* パターンが空文字列なら dirname そのものを追加する。
+	 * ただし dirname も空文字列の場合を除く。
+	 * (dirname が空文字列なら is_directory は false を返す) */
+	if (is_directory(dirname->contents))
+	    pl_add(list, xstrdup(dirname->contents));
+	return true;
+    } else if (flags & WGLB_RECDIR) {
+	/* 再帰検索パターンかどうかチェックする */
+	const wchar_t *p = pattern;
+	enum wglbrflags rflags = 0;
+	if (p[0] == L'.') {
+	    rflags |= WGLB_period;
+	    p++;
+	}
+	if (wcsncmp(p, L"**/", 3) == 0) {
+	    p += 3;
+	    while (p[0] == L'/') p++;
+	    return wglob_start_recursive_search(
+		    p, flags, rflags, dirname, dirstack, list);
+	} else if (wcsncmp(p, L"***/", 4) == 0) {
+	    rflags |= WGLB_followlink;
+	    p += 4;
+	    while (p[0] == L'/') p++;
+	    return wglob_start_recursive_search(
+		    p, flags, rflags, dirname, dirstack, list);
+	}
+    }
+
+    DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
+    if (!dir)
+	return true;
+
+    size_t patlen = wcscspn(pattern, L"/");
+    bool isleaf = (pattern[patlen] == L'\0');
+    wchar_t pat[patlen + 1];
+    wcsncpy(pat, pattern, patlen);
+    pat[patlen] = L'\0';
+
+    enum wfnmflags wfnmflags = wfnmflags;
+    size_t sml = sml;  /* GCC の警告を黙らせるために自分自身を代入する */
+    /* domatch が true なら wfnmatchl で普通にマッチングする。
+     * domatch が false なら単純な文字列比較で済ませる。 */
+    bool domatch = pattern_is_literal(pat);
+    if (domatch) {
+	wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
+	if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;
+	if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
+	if (flags & WGLB_PERIOD)   wfnmflags &= ~WFNM_PERIOD;
+	sml = shortest_match_length(pat, wfnmflags);
+    }
+
+    struct dirent *de;
+    bool ok = true;
+    while (ok && (de = readdir(dir))) {
+	if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    continue;
+
+	wchar_t *wentname = malloc_mbstowcs(de->d_name);
+	if (!wentname)
+	    continue;
+
+	size_t match = domatch
+	    ? wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml)
+	    : ((wcscmp(pat, wentname) == 0) ? 1 : WFNM_NOMATCH);
+	free(wentname);
+	if (match == WFNM_ERROR) {
+	    ok = false;
+	} else if (match != WFNM_NOMATCH) {
+	    /* マッチした! */
+	    if (isleaf) {
+		/* マッチしたファイル名をリストに追加 */
+		sb_cat(dirname, de->d_name);
+		if ((flags & WGLB_MARK) && is_directory(dirname->contents))
+		    sb_ccat(dirname, '/');
+		pl_add(list, xstrdup(dirname->contents));
+		RESTORE_DIRNAME;
+	    } else {
+		/* サブディレクトリを検索 */
+		assert(pattern[patlen] == L'/');
+		sb_cat(dirname, de->d_name);
+		sb_ccat(dirname, '/');
+		const wchar_t *subpat = pattern + patlen + 1;
+		while (subpat[0] == L'/') {
+		    sb_ccat(dirname, '/');
+		    subpat++;
+		}
+		ok = wglob_search(
+			subpat, flags, dirname, dirstack, list);
+		RESTORE_DIRNAME;
+	    }
+	}
+    }
+
+    xclosedir(dir);
+    return ok;
+}
+
+/* 指定したディレクトリに対する再帰的な検索を開始する。
+ * rflags: 動作を指定するフラグ。以下の値のビットごとの OR。
+ *         WGLB_followlink: シンボリックリンクの先のディレクトリも検索する
+ *         WGLB_period: ピリオドで始まる名前のディレクトリも検索する
+ * 他の引数や戻り値は wglob_search に準ずる。 */
+bool wglob_start_recursive_search(
+	const wchar_t *restrict pattern,
+	enum wglbflags flags,
+	enum wglbrflags rflags,
+	xstrbuf_T *restrict const dirname,
+	plist_T *restrict dirstack,
+	plist_T *restrict list)
+{
+    char *dir = dirname->contents[0] ? dirname->contents : ".";
+    bool followlink = rflags & WGLB_followlink;
+    bool ok = true;
+    struct stat st;
+    if ((followlink ? stat : lstat)(dir, &st) >= 0
+	    && S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
+	pl_add(dirstack, &st);
+	ok = wglob_recursive_search(
+		pattern, flags, rflags, dirname, dirstack, list);
+	pl_pop(dirstack);
+    }
+    return ok;
+}
+
+/* 指定したディレクトリに対する再帰的な検索を実際に行う。 */
+bool wglob_recursive_search(
+	const wchar_t *restrict pattern,
+	enum wglbflags flags,
+	enum wglbrflags rflags,
+	xstrbuf_T *restrict const dirname,
+	plist_T *restrict dirstack,
+	plist_T *restrict list)
+{
+    const size_t savedirlen = dirname->length;
+
+    /* Step 1: まず dirname を検索 */
+    if (!wglob_search(pattern, flags, dirname, dirstack, list))
+	return false;
+
+    assert(dirname->length == savedirlen);
+
+    /* Step 2: 続いて dirname のサブディレクトリを再帰的に検索 */
+    DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
+    if (!dir)
+	return true;
+
+    struct dirent *de;
+    bool ok = true;
+    while (ok && (de = readdir(dir))) {
+	if ((rflags & WGLB_period)
+		? strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0
+		: de->d_name[0] == '.')
+	    continue;
+
+	bool followlink = rflags & WGLB_followlink;
+	struct stat st;
+	sb_cat(dirname, de->d_name);
+	if ((followlink ? stat : lstat)(dirname->contents, &st) >= 0
+		&& S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
+	    /* ディレクトリなら再帰する */
+	    sb_ccat(dirname, '/');
+	    pl_add(dirstack, &st);
+	    ok = wglob_recursive_search(pattern, flags, rflags,
+		    dirname, dirstack, list);
+	    pl_pop(dirstack);
+	}
+	RESTORE_DIRNAME;
+    }
+
+    xclosedir(dir);
+    return ok;
+}
+
+/* 指定した stat 情報と同じ inode の stat 情報がリスト内にあるかどうか調べる */
+bool is_reentry(const struct stat *st, const plist_T *dirstack)
+{
+    for (size_t i = 0; i < dirstack->length; i++) {
+	const struct stat *st2 = dirstack->contents[i];
+	if (st->st_dev == st2->st_dev && st->st_ino == st2->st_ino)
+	    return true;
+    }
+    return false;
+}
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

@@ -28,31 +28,25 @@
 # define __attribute__(ignore)
 #endif
 
-#ifdef HAVE_CONFIG_H
+#if HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-#ifdef HAVE_LIBREADLINE
-# define USE_READLINE
-#endif
-
-/* shellfdmin の最大値 */
-#ifndef SHELLFDMINMAX
-# define SHELLFDMINMAX 100
-#endif
-
-/* _POSIX_C_SOURCE 機能検査マクロを定義してから各種ヘッダファイルを
- * インクルードすることで POSIX で定められた定数や関数が宣言されるが、
- * POSIX にない拡張機能は宣言されない (はずである)。
- * 以下に、configure で利用可能と判断したものについて手動で宣言を行う */
-
-#ifdef HAVE_STRNLEN
-#include <stddef.h>
-extern size_t strnlen(const char *, size_t);
-#endif
-
-#ifdef HAVE_STRSIGNAL
-extern char *strsignal(int);
+#if HAVE_GETTEXT
+# define gt(MSGID)  gettext(MSGID)
+# define Ngt(MSGID) MSGID
+# if HAVE_NGETTEXT
+#  define ngt(MSGIDS,MSGIDP,N) ngettext(MSGIDS, MSGIDP, N)
+# else
+#  define ngt(MSGIDS,MSGIDP,N) gt(MSGIDP)
+# endif
+#else
+# define gt(MSGID)            MSGID
+# define Ngt(MSGID)           MSGID
+# define ngt(MSGIDS,MSGIDP,N) MSGIDP
 #endif
 
 #endif /* COMMON_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */
