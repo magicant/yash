@@ -131,6 +131,9 @@ trylink () {
     ${cc} ${ldflags} ${LDADDS} -o "${tempout}" \
 	"${tempo}" "$@" ${ldlibs} >&5 2>&1
 }
+tryexec () {
+    checkby "${tempout}"
+}
 checked () {
     echo "$1"
     echo "# result: $1" >&5
@@ -288,7 +291,7 @@ int main(void) {
     free(wd11);
 }
 END
-if trymake && "${tempout}"
+if trymake && tryexec
 then
     checked "yes"
     defconfigh "GETCWD_AUTO_MALLOC"
