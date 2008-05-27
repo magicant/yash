@@ -40,6 +40,7 @@ objs="option.o util.o strbuf.o plist.o hashtable.o wfnmatch.o path.o input.o par
 help="no"
 gcc=""
 debug="no"
+noundef="no"
 unset prefix eprefix bindir
 
 # parse options
@@ -50,6 +51,8 @@ do
 	    help="yes" ;;
 	-d|--debug)
 	    debug="yes" ;;
+	--no-undefined)
+	    noundef="yes" ;;
 	--prefix=*)
 	    prefix="${i#--prefix=}" ;;
 	--exec-prefix=*)
@@ -68,7 +71,8 @@ then
 Usage: ./configure [options...]
 
 Available options:
-  --debug                configure for debug build (requires GCC)
+  --debug                configure for debug build (GCC required)
+  --no-undefined         inhibit any undefined operation
 
 Installation options:
   --prefix=PREFIX        install architecture-independent files in PREFIX
@@ -259,8 +263,9 @@ else
 fi
 
 # check if getcwd accepts (NULL,0) as argument
-checking "if getcwd(NULL,0) returns malloc'ed string"
-cat >"${tempsrc}" <<END
+if [ x"${noundef}" = x"no" ]; then
+    checking "if getcwd(NULL,0) returns malloc'ed string"
+    cat >"${tempsrc}" <<END
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -291,12 +296,19 @@ int main(void) {
     free(wd11);
 }
 END
-if trymake && tryexec
-then
-    checked "yes"
-    defconfigh "GETCWD_AUTO_MALLOC"
-else
-    checked "no"
+    if trymake && tryexec
+    then
+	checked "yes"
+	defconfigh "GETCWD_AUTO_MALLOC"
+    else
+	checked "no"
+    fi
+fi
+
+# define ARITH_OVERFLOW_CHECK
+if [ x"${noundef}" = x"yes" ]; then
+    echo >&5
+    defconfigh ARITH_OVERFLOW_CHECK
 fi
 
 
