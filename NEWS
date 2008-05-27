@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.0 alpha1
+
+  =  The default value of 'PS3' is not set in posixly-correct mode.
+  +  'configure' accepts new '--no-undefined' option
+
+----------------------------------------------------------------------
 Yash 2.0 alpha0 (the first release of version 2.x)
 
   x  Arithmetic expansion is not implemented
