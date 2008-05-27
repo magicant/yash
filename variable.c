@@ -234,7 +234,8 @@ void init_variables(void)
 	    !posixly_correct ? L"\\$ " : geteuid() ? L"$ " : L"# ";
 	set_variable(VAR_PS1, xwcsdup(ps1),    false, false);
 	set_variable(VAR_PS2, xwcsdup(L"> "),  false, false);
-	set_variable(VAR_PS3, xwcsdup(L"#? "), false, false);
+	if (!posixly_correct)
+	    set_variable(VAR_PS3, xwcsdup(L"#? "), false, false);
 	set_variable(VAR_PS4, xwcsdup(L"+ "),  false, false);
     }
 
