@@ -97,6 +97,7 @@ static void varvaluefree(variable_T *v)
     __attribute__((nonnull));
 static void varfree(variable_T *v);
 static void varkvfree(kvpair_T kv);
+static void varkvfree_reexport(kvpair_T kv);
 
 static void init_pwd(void);
 
@@ -115,7 +116,7 @@ static variable_T *new_global(const char *name)
     __attribute__((nonnull));
 static variable_T *new_local(const char *name)
     __attribute__((nonnull));
-static bool assign_temporary(const char *name, wchar_t *value)
+static bool assign_temporary(const char *name, wchar_t *value, bool export)
     __attribute__((nonnull));
 
 static void lineno_getter(variable_T *var)
@@ -135,12 +136,12 @@ static void funckvfree(kvpair_T kv);
 static environ_T *current_env;
 /* 最も外側の変数環境 */
 static environ_T *top_env;
+/* 現在の変数環境が一時的なものかどうか */
+static bool current_env_is_temporary;
 
-/* 一時的変数を保持するハッシュテーブル。
- * 一時的変数は、特殊組込みコマンドでない組込みコマンドを実行する際に
- * 一時的な代入を行うためのものである。例えば、"HOME=/ cd" というコマンドライン
- * を実行する際に HOME 変数を一時的に代入し、cd の実行が終わったら削除する。 */
-static hashtable_T temp_variables;
+/* 一時的変数は、特殊組込みコマンドでない組込みコマンドを実行する際に
+ * 一時的な代入を行うためのものである。コマンドの実行が終わったら一時的変数は
+ * 削除する。一時的変数は専用の一時的環境で代入する。 */
 
 /* RANDOM 変数が乱数として機能しているかどうか */
 static bool random_active;
@@ -179,6 +180,13 @@ void varkvfree(kvpair_T kv)
     varfree(kv.value);
 }
 
+/* 変数を update_enrivon して、解放する。 */
+void varkvfree_reexport(kvpair_T kv)
+{
+    update_enrivon(kv.key);
+    varkvfree(kv);
+}
+
 static bool initialized = false;
 
 /* 変数関連のデータを初期化する */
@@ -192,7 +200,6 @@ void init_variables(void)
     current_env->parent = NULL;
     ht_init(&current_env->contents, hashstr, htstrcmp);
 
-    ht_init(&temp_variables, hashstr, htstrcmp);
     ht_init(&functions, hashstr, htstrcmp);
 
     /* まず current_env->contents に全ての既存の環境変数を設定する。 */
@@ -299,27 +306,6 @@ set:
     set_variable(VAR_PWD, wnewpwd, false, true);
 }
 
-/* 変数関連のデータを初期化前の状態に戻す */
-void finalize_variables(void)
-{
-    environ_T *env = current_env;
-    while (env) {
-	ht_clear(&env->contents, varkvfree);
-
-	environ_T *parent = env->parent;
-	free(env);
-	env = parent;
-    }
-    current_env = NULL;
-
-    clear_temporary_variables();
-    ht_destroy(&temp_variables);
-    clear_all_functions();
-    ht_destroy(&functions);
-
-    initialized = false;
-}
-
 /* 引数が名前構成文字であるかどうか調べる */
 bool is_name_char(char c)
 {
@@ -353,18 +339,14 @@ bool is_name(const char *s)
 }
 
 /* 指定した名前の変数を捜し出す。
- * temp:   temp_variables からも探すかどうか。
+ * temp:   一時的変数からも探すかどうか。
  * 戻り値: 見付かった変数。見付からなければ NULL。 */
 variable_T *search_variable(const char *name, bool temp)
 {
     variable_T *var;
-    if (temp) {
-	var = ht_get(&temp_variables, name).value;
-	if (var)
-	    return var;
-    }
-
     environ_T *env = current_env;
+    if (!temp && current_env_is_temporary)
+	env = env->parent;
     while (env) {
 	var = ht_get(&env->contents, name).value;
 	if (var)
@@ -374,8 +356,7 @@ variable_T *search_variable(const char *name, bool temp)
     return NULL;
 }
 
-/* 指定した名前の変数について、environ の値を更新する。
- * 一時的変数は無視する。 */
+/* 指定した名前の変数について、environ の値を更新する。 */
 void update_enrivon(const char *name)
 {
     environ_T *env = current_env;
@@ -490,11 +471,14 @@ variable_T *new_global(const char *name)
  * 同じ名前の一時的変数はあっても無視する。 */
 variable_T *new_local(const char *name)
 {
-    variable_T *var = ht_get(&current_env->contents, name).value;
+    environ_T *env = current_env;
+    if (current_env_is_temporary)
+	env = env->parent;
+    variable_T *var = ht_get(&env->contents, name).value;
     if (!var) {
 	var = xmalloc(sizeof *var);
 	var->v_type = 0;
-	ht_set(&current_env->contents, xstrdup(name), var);
+	ht_set(&env->contents, xstrdup(name), var);
     } else if (var->v_type & VF_READONLY) {
 	xerror(0, Ngt("%s: readonly"), name);
 	return NULL;
@@ -573,24 +557,30 @@ bool set_array(const char *name, char *const *values, bool local)
 
 /* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
  * values[0] が $1、values[1] が $2、というようになる。
- * この関数は新しい変数環境を作成した後必ず呼ぶこと。 */
+ * この関数は新しい変数環境を作成した後必ず呼ぶこと (一時的環境を除く)。 */
 void set_positional_parameters(char *const *values)
 {
-    set_array(VAR_positional, values, true);
+    set_array(VAR_positional, values, !current_env_is_temporary);
 }
 
 /* 一時的変数への代入を行う。
  * name:  変数名
  * value: 予め wcsdup しておいた free 可能な文字列。
  *        この関数が返った後、呼出し元はこの文字列を一切使用してはならない。
+ * export: export するかどうか
  * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
-bool assign_temporary(const char *name, wchar_t *value)
+bool assign_temporary(const char *name, wchar_t *value, bool export)
 {
-    variable_T *var = ht_get(&temp_variables, name).value;
+    if (!current_env_is_temporary) {
+	open_new_environment();
+	current_env_is_temporary = true;
+    }
+
+    variable_T *var = ht_get(&current_env->contents, name).value;
     if (!var) {
 	var = xmalloc(sizeof *var);
 	var->v_type = 0;
-	ht_set(&temp_variables, xstrdup(name), var);
+	ht_set(&current_env->contents, xstrdup(name), var);
     } else {
 	varvaluefree(var);
     }
@@ -598,6 +588,10 @@ bool assign_temporary(const char *name, wchar_t *value)
     var->v_type = VF_NORMAL;
     var->v_value = value;
     var->v_getter = NULL;
+    if (export) {
+	var->v_type |= VF_EXPORT;
+	update_enrivon(name);
+    }
     return true;
 }
 
@@ -606,12 +600,9 @@ bool assign_temporary(const char *name, wchar_t *value)
  * temp:   代入する変数を一時的変数にするかどうか
  * export: 代入した変数を export 対象にするかどうか
  * 戻り値: エラーがなければ true
- * temp と export を両方 true にしてはいけない。
  * エラーの場合でもそれまでの代入の結果は残る。 */
 bool do_assignments(const assign_T *assign, bool temp, bool export)
 {
-    assert(!(temp && export));
-
     while (assign) {
 	wchar_t *value = expand_single(assign->value, tt_multi);
 	if (!value)
@@ -620,7 +611,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 
 	bool ok;
 	if (temp)
-	    ok = assign_temporary(assign->name, value);
+	    ok = assign_temporary(assign->name, value, export);
 	else
 	    ok = set_variable(assign->name, value, false, export);
 	if (!ok)
@@ -739,17 +730,13 @@ return_array:  /* 配列をコピーして返す */
     return duparray(result, copyaswcs);
 }
 
-/* 一時的変数を削除する */
-void clear_temporary_variables(void)
-{
-    ht_clear(&temp_variables, varkvfree);
-}
-
 /* 新しい変数環境を構築する。元の環境は新しい環境の親環境になる。
  * set_positional_parameters を呼ぶのを忘れないこと。 */
 void open_new_environment(void)
 {
     environ_T *newenv = xmalloc(sizeof *newenv);
+
+    assert(!current_env_is_temporary);
     newenv->parent = current_env;
     ht_init(&newenv->contents, hashstr, htstrcmp);
     current_env = newenv;
@@ -761,10 +748,19 @@ void close_current_environment(void)
     environ_T *oldenv = current_env;
 
     assert(oldenv != top_env);
-    ht_clear(&oldenv->contents, varkvfree);
-    ht_destroy(&oldenv->contents);
     current_env = oldenv->parent;
+    ht_clear(&oldenv->contents, varkvfree_reexport);
+    ht_destroy(&oldenv->contents);
     free(oldenv);
+}
+
+/* 一時的変数を削除する */
+void clear_temporary_variables(void)
+{
+    if (current_env_is_temporary) {
+	close_current_environment();
+	current_env_is_temporary = false;
+    }
 }
 
 

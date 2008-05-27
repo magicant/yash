@@ -62,7 +62,6 @@ extern char **environ;
 extern unsigned long current_lineno;
 
 extern void init_variables(void);
-extern void finalize_variables(void);
 
 extern bool is_name(const char *s)
     __attribute__((nonnull,pure));
@@ -83,9 +82,9 @@ extern const wchar_t *getvar(const char *name)
 extern void **get_variable(const char *name, bool *concat)
     __attribute__((nonnull,malloc,warn_unused_result));
 
-extern void clear_temporary_variables(void);
 extern void open_new_environment(void);
 extern void close_current_environment(void);
+extern void clear_temporary_variables(void);
 
 extern void clear_all_functions(void);
 

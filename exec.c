@@ -807,21 +807,23 @@ void search_command(const char *restrict name, commandinfo_T *restrict ci)
 /* 指定した commandtype_T に従って do_assignments を呼び出す */
 bool do_assignments_for_command_type(const assign_T *asgns, enum cmdtype_T type)
 {
-    bool temporary, export;
+    bool temporary;
     switch (type) {
+	/* externalprogram は本来 temporary = true だが、fork しているので
+	 * 一時的にする必要はない */
 	case externalprogram:
 	case specialbuiltin:
 	case function:
-	    temporary = false, export = true;
+	    temporary = false;
 	    break;
 	case semispecialbuiltin:
 	case regularbuiltin:
-	    temporary = true, export = false;
+	    temporary = true;
 	    break;
 	default:
 	    assert(false);
     }
-    return do_assignments(asgns, temporary, export);
+    return do_assignments(asgns, temporary, true);
 }
 
 /* CT_SIMPLE でない一つのコマンドを実行する。
