@@ -60,6 +60,7 @@ extern void reset_patharray(const wchar_t *newpath);
 /********** コマンド名ハッシュ **********/
 
 extern void init_cmdhash(void);
+extern void clear_cmdhash(void);
 extern const char *get_command_path(const char *name, bool forcelookup)
     __attribute__((nonnull));
 extern void fill_cmdhash(const char *prefix, bool ignorecase);

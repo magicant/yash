@@ -262,6 +262,7 @@ static char **patharray = NULL;
 void reset_patharray(const wchar_t *newpath)
 {
     recfree((void **) patharray, free);
+    clear_cmdhash();
     if (!newpath)
 	newpath = L"";
 
