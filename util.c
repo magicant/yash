@@ -36,34 +36,9 @@
 
 /********** General functions **********/
 
-/* calloc を試みる。失敗したらプログラムを強制終了する。 */
-/* Unused function
-void *xcalloc(size_t nmemb, size_t size)
+/* エラーメッセージを吐いて強制終了する。メモリの確保に失敗すると呼ばれる。 */
+void alloc_failed(void)
 {
-    void *result = calloc(nmemb, size);
-    if (result)
-	return result;
-    xerror(ENOMEM, NULL);
-    exit(EXIT_ERROR);
-}
-*/
-
-/* malloc を試みる。失敗したらプログラムを強制終了する。 */
-void *xmalloc(size_t size)
-{
-    void *result = malloc(size);
-    if (result)
-	return result;
-    xerror(ENOMEM, NULL);
-    exit(EXIT_ERROR);
-}
-
-/* realloc を試みる。失敗したらプログラムを強制終了する。 */
-void *xrealloc(void *ptr, size_t size)
-{
-    void *result = realloc(ptr, size);
-    if (result)
-	return result;
     xerror(ENOMEM, NULL);
     exit(EXIT_ERROR);
 }

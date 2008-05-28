@@ -27,12 +27,47 @@
 
 /********** General functions **********/
 
-extern void *xcalloc(size_t nmemb, size_t size)
+static inline void *xcalloc(size_t nmemb, size_t size)
     __attribute__((malloc,warn_unused_result));
-extern void *xmalloc(size_t size)
+static inline void *xmalloc(size_t size)
     __attribute__((malloc,warn_unused_result));
-extern void *xrealloc(void *ptr, size_t size)
+static inline void *xrealloc(void *ptr, size_t size)
     __attribute__((malloc,warn_unused_result));
+extern void alloc_failed(void)
+    __attribute__((noreturn));
+
+/* calloc を試みる。失敗したらプログラムを強制終了する。 */
+void *xcalloc(size_t nmemb, size_t size)
+{
+    extern void *calloc(size_t nmemb, size_t size)
+	__attribute__((malloc,warn_unused_result));
+    void *result = calloc(nmemb, size);
+    if (!result)
+	alloc_failed();
+    return result;
+}
+
+/* malloc を試みる。失敗したらプログラムを強制終了する。 */
+void *xmalloc(size_t size)
+{
+    extern void *malloc(size_t size)
+	__attribute__((malloc,warn_unused_result));
+    void *result = malloc(size);
+    if (!result)
+	alloc_failed();
+    return result;
+}
+
+/* realloc を試みる。失敗したらプログラムを強制終了する。 */
+void *xrealloc(void *ptr, size_t size)
+{
+    extern void *realloc(void *ptr, size_t size)
+	__attribute__((malloc,warn_unused_result));
+    void *result = realloc(ptr, size);
+    if (!result)
+	alloc_failed();
+    return result;
+}
 
 
 /********** String utilities **********/
