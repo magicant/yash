@@ -47,6 +47,9 @@ const char *command_name;
 
 /* 代入した変数をすべて export するかどうか。-a オプションに対応 */
 bool shopt_allexport;
+/* 関数を定義するとき、関数内の全コマンドをハッシュするかどうか。
+ * -h オプションに対応 */
+bool shopt_hashondef;
 
 /* コマンドの終了ステータスが非 0 のとき直ちに終了するかどうか。
  * -e オプションに対応 */
@@ -80,6 +83,7 @@ static const struct xoption long_options[] = {
     { "login",        xno_argument, NULL, 'l', },
     /* ↑ 以上のオプションは set コマンドでは使えない。 */
     { "allexport",    xno_argument, NULL, 'a', },
+    { "hashondef",    xno_argument, NULL, 'h', },
     { "noclobber",    xno_argument, NULL, 'C', },
     { "noglob",       xno_argument, NULL, 'f', },
     { "nocaseglob",   xno_argument, NULL, 'c', },
@@ -102,7 +106,7 @@ static const struct xoption long_options[] = {
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 4;
 
-// TODO option: unimplemented options: -ahx -o{nolog,vi,emacs}
+// TODO option: unimplemented options: -x -o{nolog,vi,emacs}
 
 
 /* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
@@ -111,57 +115,24 @@ void set_option(char c)
 {
     bool value = (xoptopt == '-');
     switch (c) {
-	case 'a':
-	    shopt_allexport = value;
-	    break;
-	case 'C':
-	    shopt_noclobber = value;
-	    break;
-	case 'f':
-	    shopt_noglob = value;
-	    break;
-	case 'c':
-	    shopt_nocaseglob = value;
-	    break;
-	case 'D':
-	    shopt_dotglob = value;
-	    break;
-	case 'M':
-	    shopt_markdirs = value;
-	    break;
-	case 'E':
-	    shopt_extendedglob = value;
-	    break;
-	case 'N':
-	    shopt_nullglob = value;
-	    break;
-	case 'B':
-	    shopt_braceexpand = value;
-	    break;
-	case 'e':
-	    shopt_errexit = value;
-	    break;
-	case 'u':
-	    shopt_nounset = value;
-	    break;
-	case 'n':
-	    shopt_noexec = value;
-	    break;
-	case 'I':
-	    shopt_ignoreeof = value;
-	    break;
-	case 'v':
-	    shopt_verbose = value;
-	    break;
-	case 'm':
-	    do_job_control = value;
-	    break;
-	case 'b':
-	    shopt_notify = value;
-	    break;
-	case 'X':
-	    posixly_correct = value;
-	    break;
+	case 'a':   shopt_allexport    = value;   break;
+	case 'h':   shopt_hashondef    = value;   break;
+	case 'C':   shopt_noclobber    = value;   break;
+	case 'f':   shopt_noglob       = value;   break;
+	case 'c':   shopt_nocaseglob   = value;   break;
+	case 'D':   shopt_dotglob      = value;   break;
+	case 'M':   shopt_markdirs     = value;   break;
+	case 'E':   shopt_extendedglob = value;   break;
+	case 'N':   shopt_nullglob     = value;   break;
+	case 'B':   shopt_braceexpand  = value;   break;
+	case 'e':   shopt_errexit      = value;   break;
+	case 'u':   shopt_nounset      = value;   break;
+	case 'n':   shopt_noexec       = value;   break;
+	case 'I':   shopt_ignoreeof    = value;   break;
+	case 'v':   shopt_verbose      = value;   break;
+	case 'm':   do_job_control     = value;   break;
+	case 'b':   shopt_notify       = value;   break;
+	case 'X':   posixly_correct    = value;   break;
     }
 }
 
@@ -195,6 +166,7 @@ wchar_t *get_hyphen_parameter(void)
     if (shopt_read_arg)    wb_wccat(&buf, L'c');
     if (shopt_errexit)     wb_wccat(&buf, L'e');
     if (shopt_noglob)      wb_wccat(&buf, L'f');
+    if (shopt_hashondef)   wb_wccat(&buf, L'h');
     if (is_interactive)    wb_wccat(&buf, L'i');
     if (do_job_control)    wb_wccat(&buf, L'm');
     if (shopt_noexec)      wb_wccat(&buf, L'n');

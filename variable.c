@@ -131,6 +131,12 @@ static void variable_set(const char *name, variable_T *var)
 static void funcfree(function_T *f);
 static void funckvfree(kvpair_T kv);
 
+static void hash_all_commands_recursively(const command_T *c);
+static void hash_all_commands_in_and_or(const and_or_T *ao);
+static void hash_all_commands_in_if(const ifcommand_T *ic);
+static void hash_all_commands_in_case(const caseitem_T *ci);
+static void tryhash_word_as_command(const wordunit_T *w);
+
 
 /* 現在の変数環境 */
 static environ_T *current_env;
@@ -901,6 +907,8 @@ bool define_function(const char *name, command_T *body)
     f = xmalloc(sizeof *f);
     f->f_type = 0;
     f->f_body = comsdup(body);
+    if (shopt_hashondef)
+	hash_all_commands_recursively(body);
     funckvfree(ht_set(&functions, xstrdup(name), f));
     return true;
 }
@@ -913,6 +921,77 @@ command_T *get_function(const char *name)
 	return f->f_body;
     else
 	return NULL;
+}
+
+
+/* 指定したコマンドに含まれるすべてのコマンドをハッシュする。 */
+void hash_all_commands_recursively(const command_T *c)
+{
+    while (c) {
+	switch (c->c_type) {
+	    case CT_SIMPLE:
+		if (c->c_words)
+		    tryhash_word_as_command(c->c_words[0]);
+		break;
+	    case CT_GROUP:
+	    case CT_SUBSHELL:
+		hash_all_commands_in_and_or(c->c_subcmds);
+		break;
+	    case CT_IF:
+		hash_all_commands_in_if(c->c_ifcmds);
+		break;
+	    case CT_FOR:
+		hash_all_commands_in_and_or(c->c_forcmds);
+		break;
+	    case CT_WHILE:
+		hash_all_commands_in_and_or(c->c_whlcond);
+		hash_all_commands_in_and_or(c->c_whlcmds);
+		break;
+	    case CT_CASE:
+		hash_all_commands_in_case(c->c_casitems);
+		break;
+	    case CT_FUNCDEF:
+		break;
+	}
+	c = c->next;
+    }
+}
+
+void hash_all_commands_in_and_or(const and_or_T *ao)
+{
+    for (; ao; ao = ao->next) {
+	for (pipeline_T *p = ao->ao_pipelines; p; p = p->next) {
+	    hash_all_commands_recursively(p->pl_commands);
+	}
+    }
+}
+
+void hash_all_commands_in_if(const ifcommand_T *ic)
+{
+    for (; ic; ic = ic->next) {
+	hash_all_commands_in_and_or(ic->ic_condition);
+	hash_all_commands_in_and_or(ic->ic_commands);
+    }
+}
+
+void hash_all_commands_in_case(const caseitem_T *ci)
+{
+    for (; ci; ci = ci->next) {
+	hash_all_commands_in_and_or(ci->ci_commands);
+    }
+}
+
+void tryhash_word_as_command(const wordunit_T *w)
+{
+    if (w && !w->next && w->wu_type == WT_STRING) {
+	wchar_t *cmdname = unquote(w->wu_string);
+	if (wcschr(cmdname, L'/') == NULL) {
+	    char *mbsname = malloc_wcstombs(cmdname);
+	    get_command_path(mbsname, false);
+	    free(mbsname);
+	}
+	free(cmdname);
+    }
 }
 
 
