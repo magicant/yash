@@ -31,13 +31,13 @@ extern bool shopt_read_arg, shopt_read_stdin;
 extern const char *command_name;
 extern bool shopt_allexport, shopt_hashondef;
 extern bool shopt_errexit, shopt_nounset, shopt_noexec, shopt_ignoreeof,
-       shopt_verbose;
+       shopt_verbose, shopt_xtrace;
 extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern bool shopt_braceexpand;
 extern bool shopt_noclobber;
 
-#define SHELLSET_OPTIONS "abefhmnuvC"
+#define SHELLSET_OPTIONS "abefhmnuvxC"
 
 extern const struct xoption *const shell_long_options, *const set_long_options;
 

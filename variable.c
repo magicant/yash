@@ -33,6 +33,7 @@
 #include "plist.h"
 #include "hashtable.h"
 #include "path.h"
+#include "input.h"
 #include "parser.h"
 #include "variable.h"
 #include "expand.h"
@@ -602,6 +603,7 @@ bool assign_temporary(const char *name, wchar_t *value, bool export)
 }
 
 /* 変数代入を行う。
+ * shopt_xtrace が true ならトレースも出力する。
  * assign: 代入する変数と値
  * temp:   代入する変数を一時的変数にするかどうか
  * export: 代入した変数を export 対象にするかどうか
@@ -609,11 +611,17 @@ bool assign_temporary(const char *name, wchar_t *value, bool export)
  * エラーの場合でもそれまでの代入の結果は残る。 */
 bool do_assignments(const assign_T *assign, bool temp, bool export)
 {
+    if (shopt_xtrace && assign)
+	print_prompt(4);
+
     while (assign) {
 	wchar_t *value = expand_single(assign->value, tt_multi);
 	if (!value)
 	    return false;
 	value = unescapefree(value);
+	if (shopt_xtrace)
+	    fprintf(stderr, "%s=%ls%c",
+		    assign->name, value, (assign->next ? ' ' : '\n'));
 
 	bool ok;
 	if (temp)

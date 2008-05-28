@@ -62,6 +62,8 @@ bool shopt_noexec;
 bool shopt_ignoreeof;
 /* 読み込んだコマンドをそのままエコーするかどうか。-v オプションに対応 */
 bool shopt_verbose;
+/* コマンドのトレースを出力するかどうか。-x オプションに対応 */
+bool shopt_xtrace;
 
 /* パス名展開を行わないかどうか。-f オプションに対応。 */
 bool shopt_noglob;
@@ -97,6 +99,7 @@ static const struct xoption long_options[] = {
     { "noexec",       xno_argument, NULL, 'n', },
     { "ignoreeof",    xno_argument, NULL, 'I', },
     { "verbose",      xno_argument, NULL, 'v', },
+    { "xtrace",       xno_argument, NULL, 'x', },
     { "monitor",      xno_argument, NULL, 'm', },
     { "notify",       xno_argument, NULL, 'b', },
     { "posix",        xno_argument, NULL, 'X', },
@@ -106,7 +109,7 @@ static const struct xoption long_options[] = {
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 4;
 
-// TODO option: unimplemented options: -x -o{nolog,vi,emacs}
+// TODO option: unimplemented options: -o{nolog,vi,emacs}
 
 
 /* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
@@ -130,6 +133,7 @@ void set_option(char c)
 	case 'n':   shopt_noexec       = value;   break;
 	case 'I':   shopt_ignoreeof    = value;   break;
 	case 'v':   shopt_verbose      = value;   break;
+	case 'x':   shopt_xtrace       = value;   break;
 	case 'm':   do_job_control     = value;   break;
 	case 'b':   shopt_notify       = value;   break;
 	case 'X':   posixly_correct    = value;   break;
@@ -173,6 +177,7 @@ wchar_t *get_hyphen_parameter(void)
     if (shopt_read_stdin)  wb_wccat(&buf, L's');
     if (shopt_nounset)     wb_wccat(&buf, L'u');
     if (shopt_verbose)     wb_wccat(&buf, L'v');
+    if (shopt_xtrace)      wb_wccat(&buf, L'x');
     if (shopt_noclobber)   wb_wccat(&buf, L'C');
 
     return wb_towcs(&buf);

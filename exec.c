@@ -124,6 +124,8 @@ static void exec_nonsimple_command(command_T *c, bool finally_exit)
 static void exec_simple_command(const commandinfo_T *ci,
 	int argc, char *const *argv, bool finally_exit)
     __attribute__((nonnull));
+static void print_xtrace(char *const *argv)
+    __attribute__((nonnull));
 static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
     __attribute__((nonnull(2,4)));
@@ -870,6 +872,7 @@ void exec_simple_command(
 {
     assert(argv[argc] == NULL);
 
+    print_xtrace(argv);
     switch (ci->type) {
     case externalprogram:
 	assert(finally_exit);
@@ -903,6 +906,22 @@ void exec_simple_command(
     }
     if (finally_exit)
 	exit_shell();
+}
+
+/* shopt_xtrace が true ならトレースを出力する */
+void print_xtrace(char *const *argv)
+{
+    if (shopt_xtrace) {
+	print_prompt(4);
+	for (;;) {
+	    fputs(*argv, stderr);
+	    argv++;
+	    if (!*argv)
+		break;
+	    fputs(" ", stderr);
+	}
+	fputs("\n", stderr);
+    }
 }
 
 /* 指定した引数で sh を exec する。

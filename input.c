@@ -38,7 +38,6 @@
 
 /********** 入力関数 **********/
 
-static void print_prompt(int type);
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *expand_ps_yash(wchar_t *s)
@@ -196,7 +195,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 }
 
 /* 指定したタイプのプロンプトを表示する。
- * type: プロンプトのタイプ。1 以上 3 以下。 */
+ * type: プロンプトのタイプ。1 以上 4 以下。 */
 /* この関数内で parse_string を呼び出すので予め save_parse_state しておくこと */
 void print_prompt(int type)
 {
@@ -205,8 +204,11 @@ void print_prompt(int type)
 	case 1:   ps = getvar(VAR_PS1);   break;
 	case 2:   ps = getvar(VAR_PS2);   break;
 	case 3:   ps = getvar(VAR_PS3);   goto just_print;
+	case 4:   ps = getvar(VAR_PS4);   break;
 	default:  assert(false);
     }
+    if (ps == NULL)
+	return;
 
     struct input_wcs_info winfo = {
 	.src = ps,
@@ -222,8 +224,6 @@ void print_prompt(int type)
     wordunit_T *word;
     wchar_t *prompt;
 
-    if (ps == NULL)
-	return;
     if (!parse_string(&info, &word))
 	goto just_print;
     prompt = expand_string(word, false);
@@ -232,8 +232,8 @@ void print_prompt(int type)
 	if (type == 1)
 	    prompt = expand_ps1_posix(prompt);
     } else {
-	assert(type == 1 || type == 2);
-	prompt = expand_ps_yash(prompt);
+	if (type == 1 || type == 2)
+	    prompt = expand_ps_yash(prompt);
     }
     fprintf(stderr, "%ls", prompt);
     fflush(stderr);

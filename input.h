@@ -23,6 +23,7 @@
 #include <wchar.h>
 
 
+extern void print_prompt(int type);
 extern bool set_nonblocking(int fd);
 extern bool unset_nonblocking(int fd);
 
