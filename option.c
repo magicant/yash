@@ -45,6 +45,9 @@ bool shopt_read_arg, shopt_read_stdin;
 /* コマンド名。特殊パラメータ $0 の値。 */
 const char *command_name;
 
+/* 代入した変数をすべて export するかどうか。-a オプションに対応 */
+bool shopt_allexport;
+
 /* コマンドの終了ステータスが非 0 のとき直ちに終了するかどうか。
  * -e オプションに対応 */
 bool shopt_errexit;
@@ -76,6 +79,7 @@ static const struct xoption long_options[] = {
     { "version",      xno_argument, NULL, 'V', },
     { "login",        xno_argument, NULL, 'l', },
     /* ↑ 以上のオプションは set コマンドでは使えない。 */
+    { "allexport",    xno_argument, NULL, 'a', },
     { "noclobber",    xno_argument, NULL, 'C', },
     { "noglob",       xno_argument, NULL, 'f', },
     { "nocaseglob",   xno_argument, NULL, 'c', },
@@ -107,6 +111,9 @@ void set_option(char c)
 {
     bool value = (xoptopt == '-');
     switch (c) {
+	case 'a':
+	    shopt_allexport = value;
+	    break;
 	case 'C':
 	    shopt_noclobber = value;
 	    break;
@@ -183,6 +190,7 @@ wchar_t *get_hyphen_parameter(void)
     xwcsbuf_T buf;
     wb_init(&buf);
 
+    if (shopt_allexport)   wb_wccat(&buf, L'a');
     if (shopt_notify)      wb_wccat(&buf, L'b');
     if (shopt_read_arg)    wb_wccat(&buf, L'c');
     if (shopt_errexit)     wb_wccat(&buf, L'e');

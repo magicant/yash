@@ -682,7 +682,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     /* コマンドを実行する */
     if (c->c_type == CT_SIMPLE) {
 	if (argc == 0) {
-	    if (do_assignments(c->c_assigns, false, false))
+	    if (do_assignments(c->c_assigns, false, shopt_allexport))
 		laststatus = EXIT_SUCCESS;
 	    else
 		laststatus = EXIT_ASSGNERR;
