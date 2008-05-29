@@ -10,8 +10,10 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.0 alpha1
 
+  +  New options implemented: -x, -h, -a
   =  The default value of 'PS3' is not set in posixly-correct mode.
   +  'configure' accepts new '--no-undefined' option
+  *  Command hashtable is now cleared when PATH is assigned.
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha0 (the first release of version 2.x)
