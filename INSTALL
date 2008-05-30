@@ -26,18 +26,12 @@ way Yash is built and installed:
   --debug
           Lower the optimization level of the compiler to make it easy
 		  to debug Yash. Only valid for GCC.
-  --with-readline
-          Enable line editing with GNU Readline Library even if
-		  `configure' script cannot find the correct linker option.
-		  You need to define the correct linker option yourself.
-  --without-readline
-          Disable line editing with GNU Readline Library.
+  --no-undefined
+          Inhibit any operation whose result is not defined in the
+		  standards.
 
   --bindir=DIR
           Install Yash in DIR, rather than /usr/local/bin.
-
-To static-link GNU Readline Library, copy a pre-compiled `libreadline.a`
-file into this directory and then do `configure'.
 
 Following environment variables override `configure' script's choices:
 
