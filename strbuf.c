@@ -472,8 +472,8 @@ char *malloc_wcsntombs(const wchar_t *s, size_t n)
 {
     xstrbuf_T buf;
     mbstate_t state;
-    wchar_t ss[n + 1];
     size_t nn = xwcsnlen(s, n);
+    wchar_t ss[nn + 1];
 
     if (s[nn] != L'\0') {
 	wcsncpy(ss, s, nn);
@@ -498,8 +498,8 @@ char *malloc_wcsntombs(const wchar_t *s, size_t n)
 wchar_t *malloc_mbsntowcs(const char *s, size_t n)
 {
     xwcsbuf_T buf;
-    char ss[n + 1];
     size_t nn = xstrnlen(s, n);
+    char ss[nn + 1];
 
     if (s[nn] != '\0') {
 	strncpy(ss, s, nn);
