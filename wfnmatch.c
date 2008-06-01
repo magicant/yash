@@ -18,7 +18,6 @@
 
 #include "common.h"
 #include <assert.h>
-#include <fnmatch.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
