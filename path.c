@@ -653,7 +653,7 @@ bool wglob_search(
     size_t sml = sml;  /* GCC の警告を黙らせるために自分自身を代入する */
     /* domatch が true なら wfnmatchl で普通にマッチングする。
      * domatch が false なら単純な文字列比較で済ませる。 */
-    bool domatch = pattern_is_literal(pat);
+    bool domatch = pattern_is_nonliteral(pat);
     if (domatch) {
 	wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
 	if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;

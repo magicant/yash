@@ -45,10 +45,18 @@ extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
     __attribute__((nonnull));
 extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
     __attribute__((nonnull));
-extern bool pattern_is_literal(const wchar_t *pat)
+static inline bool pattern_is_nonliteral(const wchar_t *pat)
     __attribute__((pure,nonnull));
 extern bool pattern_has_special_char(const wchar_t *pat)
     __attribute__((pure,nonnull));
+
+/* パターン内に L'*' や L'?' などの特殊文字があるかどうか調べる。
+ * 結果が false ならば、pat にマッチする文字列は pat それ自身のみである。 */
+bool pattern_is_nonliteral(const wchar_t *pat)
+{
+    extern wchar_t *wcspbrk(const wchar_t *, const wchar_t *);
+    return wcspbrk(pat, L"*?[\\") != NULL;
+}
 
 
 #endif /* WFNMATCH_H */
