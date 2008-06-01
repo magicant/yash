@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* strmatch.h: fnmatch for wide-character strings */
+/* wfnmatch.h: fnmatch for wide-character strings */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef STRMATCH_H
-#define STRMATCH_H
+#ifndef WFNMATCH_H
+#define WFNMATCH_H
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -37,10 +37,10 @@ enum wfnmtype { WFNM_WHOLE, WFNM_LONGEST, WFNM_SHORTEST, };
 #define WFNM_NOMATCH ((size_t) -1)
 #define WFNM_ERROR   ((size_t) -2)
 
-extern size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
+extern size_t wfnmatch(const wchar_t *pat, const wchar_t *s,
 	enum wfnmflags flags, enum wfnmtype type)
     __attribute__((nonnull));
-extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
+extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 	enum wfnmflags flags, enum wfnmtype type, size_t shortest_match_length)
     __attribute__((nonnull));
 extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
@@ -51,7 +51,7 @@ extern bool pattern_has_special_char(const wchar_t *pat)
     __attribute__((pure,nonnull));
 
 
-#endif /* STRMATCH_H */
+#endif /* WFNMATCH_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

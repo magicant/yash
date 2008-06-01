@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* strmatch.c: fnmatch for wide-character strings */
+/* wfnmatch.c: fnmatch for wide-character strings */
 /* © 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -47,78 +47,78 @@ static wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
 
 /* ワイド文字列に対するパターンマッチを行う。
  * pat:    マッチさせるパターン。
- * str:    マッチの対象となる文字列。
+ * s:      マッチの対象となる文字列。
  * flags:  マッチの種類を指定するフラグ。以下の値のビットごとの OR。
  *         WFNM_NOESCAPE: バックスラッシュをエスケープとして扱わない
  *         WFNM_PATHNAME: L'/' を L"*" や L"?" にマッチさせない。
  *         WFNM_PERIOD: 先頭の L'.' を L"*" や L"?" にマッチさせない。
  *         WFNM_CASEFOLD: 大文字小文字を区別しない。
  * type:   マッチ結果の長さの優先順位を指定する値。
- *         WFNM_WHOLE なら pat が str 全体にマッチする場合のみ成功とする。
- *         WFNM_LONGEST なら str の先頭部分にできるだけ長くマッチさせる。
- *         WFNM_SHORTEST なら str の先頭部分にできるだけ短くマッチさせる。
- * 戻り値: マッチしたら、その str の先頭部分の文字数。
+ *         WFNM_WHOLE なら pat が s 全体にマッチする場合のみ成功とする。
+ *         WFNM_LONGEST なら s の先頭部分にできるだけ長くマッチさせる。
+ *         WFNM_SHORTEST なら s の先頭部分にできるだけ短くマッチさせる。
+ * 戻り値: マッチしたら、その s の先頭部分の文字数。
  *         マッチしなかったら WFNM_NOMATCH、エラーなら WFNM_ERROR。
  * エラーが返るのは基本的にパターンが不正な場合だが、パターンが不正でも常に
  * エラーを返すわけではない。 */
-size_t wfnmatch(const wchar_t *pat, const wchar_t *str,
+size_t wfnmatch(const wchar_t *pat, const wchar_t *s,
 	enum wfnmflags flags, enum wfnmtype type)
 {
-    return wfnmatchl(pat, str, flags, type, shortest_match_length(pat, flags));
+    return wfnmatchl(pat, s, flags, type, shortest_match_length(pat, flags));
 }
 
 /* ワイド文字列に対するパターンマッチを行う。
  * pat:    マッチさせるパターン。
- * str:    マッチの対象となる文字列。
+ * s:      マッチの対象となる文字列。
  * flags:  マッチの種類を指定するフラグ。以下の値のビットごとの OR。
  *         WFNM_NOESCAPE: バックスラッシュをエスケープとして扱わない
  *         WFNM_PATHNAME: L'/' を L"*" や L"?" にマッチさせない。
  *         WFNM_PERIOD: 先頭の L'.' を L"*" や L"?" にマッチさせない。
  *         WFNM_CASEFOLD: 大文字小文字を区別しない。
  * type:   マッチ結果の長さの優先順位を指定する値。
- *         WFNM_WHOLE なら pat が str 全体にマッチする場合のみ成功とする。
- *         WFNM_LONGEST なら str の先頭部分にできるだけ長くマッチさせる。
- *         WFNM_SHORTEST なら str の先頭部分にできるだけ短くマッチさせる。
+ *         WFNM_WHOLE なら pat が s 全体にマッチする場合のみ成功とする。
+ *         WFNM_LONGEST なら s の先頭部分にできるだけ長くマッチさせる。
+ *         WFNM_SHORTEST なら s の先頭部分にできるだけ短くマッチさせる。
  * minlen: 予め計算した shortest_match_length(pat, flags) の値。
- * 戻り値: マッチしたら、その str の先頭部分の文字数。
+ * 戻り値: マッチしたら、その s の先頭部分の文字数。
  *         マッチしなかったら WFNM_NOMATCH、エラーなら WFNM_ERROR。
  * エラーが返るのは基本的にパターンが不正な場合だが、パターンが不正でも常に
  * エラーを返すわけではない。 */
-size_t wfnmatchl(const wchar_t *pat, const wchar_t *str,
+size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 	enum wfnmflags flags, enum wfnmtype type, size_t minlen)
 {
-    const wchar_t *const savestr = str;
+    const wchar_t *const saves = s;
 
     if (!pat[0])
-	return str[0] ? WFNM_NOMATCH : 0;
+	return s[0] ? WFNM_NOMATCH : 0;
 
     /* 先頭のピリオドをチェック */
-    if (PERIOD && FOLD(str[0]) == L'.' && pat[0] != L'.')
+    if (PERIOD && FOLD(s[0]) == L'.' && pat[0] != L'.')
 	return WFNM_NOMATCH;
 
-    size_t strlen = wcslen(str);
-    if (strlen < minlen)
+    size_t slen = wcslen(s);
+    if (slen < minlen)
 	return WFNM_NOMATCH;
 
     if (type == WFNM_WHOLE) {
 	/* パターンの末尾が一致するか、一文字だけチェック */
 	size_t patlen = wcslen(pat);
-	if (patlen > 0 && strlen > 0) {
+	if (patlen > 0 && slen > 0) {
 	    switch (pat[patlen-1]) {
 		case L']':  case L'?':  case L'*':  case L'\\':
 		    break;
 		default:
-		    if (pat[patlen-1] != str[strlen-1])
+		    if (pat[patlen-1] != s[slen-1])
 			return WFNM_NOMATCH;
 	    }
 	}
     }
 
-    size_t r = wfnmatchn(pat, str, strlen - minlen, flags, type);
+    size_t r = wfnmatchn(pat, s, slen - minlen, flags, type);
     if (r == WFNM_NOMATCH || r == WFNM_ERROR)
 	return r;
     else
-	return r + (str - savestr);
+	return r + (s - saves);
 }
 
 /* 指定したパターンがマッチする最小の文字数をカウントする。 */
