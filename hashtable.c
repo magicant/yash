@@ -190,6 +190,8 @@ kvpair_T ht_get(hashtable_T *ht, const void *key)
  * を返す。key は NULL であってはならない。 */
 kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 {
+    assert(key != NULL);
+
     /* まず、key に等しいキーの既存のエントリがあるならそれを置き換える */
     unsigned long hash = ht->hashfunc(key);
     size_t mhash = (size_t) hash % ht->capacity;
