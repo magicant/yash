@@ -14,6 +14,7 @@ Yash 2.0 alpha1
   =  The default value of 'PS3' is not set in posixly-correct mode.
   +  'configure' accepts new '--no-undefined' option
   *  Command hashtable is now cleared when PATH is assigned.
+  *  Assertion failure when a null character is input
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha0 (the first release of version 2.x)
