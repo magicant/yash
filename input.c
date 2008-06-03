@@ -142,9 +142,10 @@ start:
     if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
 	// XXX fflush を入れるとセグフォる。glibc のバグ?
 	//fflush(f);  fseek(f, 0, SEEK_CUR);
-	assert(wcslen(buf->contents + buf->length) > 0);
-	buf->length += wcslen(buf->contents + buf->length);
-	if (buf->contents[buf->length - 1] != L'\n')
+	size_t len = wcslen(buf->contents + buf->length);
+	// ナル文字が入力されると len=0 もありうる
+	buf->length += len;
+	if (len > 0 && buf->contents[buf->length - 1] != L'\n')
 	    goto start;
 	else
 	    goto end;
