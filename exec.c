@@ -580,8 +580,8 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 finish:
     if (doing_job_control_now)
 	make_myself_foreground();
-    handle_traps();
 done:
+    handle_traps();
     if (shopt_errexit && !supresserrexit && laststatus != EXIT_SUCCESS
 	    && lasttype == CT_SIMPLE)
 	exit_shell();

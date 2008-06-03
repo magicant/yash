@@ -38,6 +38,8 @@
 
 static inline job_T *get_job(size_t jobnumber)
     __attribute__((pure));
+static inline void free_job(job_T *job);
+static void trim_joblist(void);
 static void set_current_jobnumber(size_t no);
 static size_t find_next_job(size_t numlimit);
 static int calc_status(int status)
@@ -106,21 +108,21 @@ void add_job(bool current)
 	previous_jobnumber = joblist.length - 1;
 }
 
+/* 指定した番号のジョブを取得する。ジョブが存在しなければ NULL を返す。 */
+job_T *get_job(size_t jobnumber)
+{
+    return jobnumber < joblist.length ? joblist.contents[jobnumber] : NULL;
+}
+
 /* 指定した番号のジョブを無条件で削除する。
  * 使われていないジョブ番号を指定しないこと。
  * 指定したジョブが現在・前のジョブならば現在・前のジョブを再設定する。 */
 void remove_job(size_t jobnumber)
 {
-    assert(jobnumber < joblist.length);
-
-    job_T *job = joblist.contents[jobnumber];
-    assert(job != NULL);
+    job_T *job = get_job(jobnumber);
     joblist.contents[jobnumber] = NULL;
-
-    /* ジョブの領域を解放する */
-    for (size_t i = 0; i < job->j_pcount; i++)
-	free(job->j_procs[i].pr_name);
-    free(job);
+    free_job(job);
+    trim_joblist();
 
     if (jobnumber == current_jobnumber) {
 	current_jobnumber = previous_jobnumber;
@@ -134,18 +136,32 @@ void remove_job(size_t jobnumber)
 void remove_all_jobs(void)
 {
     for (size_t i = 0; i < joblist.length; i++)
-	if (joblist.contents[i])
-	    remove_job(i);
-    /*
-    pl_clear(&joblist);
-    pl_add(&joblist, NULL);
-    */
+	remove_job(i);
+    trim_joblist();
+    current_jobnumber = previous_jobnumber = 0;
 }
 
-/* 指定した番号のジョブを取得する。ジョブが存在しなければ NULL を返す。 */
-job_T *get_job(size_t jobnumber)
+/* ジョブを解放する */
+void free_job(job_T *job)
 {
-    return jobnumber < joblist.length ? joblist.contents[jobnumber] : NULL;
+    if (job) {
+	for (size_t i = 0; i < job->j_pcount; i++)
+	    free(job->j_procs[i].pr_name);
+	free(job);
+    }
+}
+
+/* ジョブリストの後方にある不要な NULL 要素を削除する */
+void trim_joblist(void)
+{
+    size_t tail = joblist.length;
+
+    while (tail > 0 && joblist.contents[--tail] == NULL);
+    tail++;
+    if (joblist.maxlength > 20 && joblist.maxlength / 2 > joblist.length)
+	pl_setmax(&joblist, tail);
+    else
+	pl_remove(&joblist, tail, SIZE_MAX);
 }
 
 /* ジョブ番号の扱いについて
