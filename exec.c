@@ -229,6 +229,7 @@ void exec_pipelines_async(const pipeline_T *p)
     if (!p->next && !p->pl_neg) {
 	exec_commands(p->pl_commands, execasync, p->pl_loop);
     } else {
+	bool doingjobcontrol = doing_job_control_now;
 	pid_t cpid = fork_and_reset(0, false);
 	
 	if (cpid > 0) {
@@ -253,7 +254,8 @@ void exec_pipelines_async(const pipeline_T *p)
 	    lastasyncpid = cpid;
 	} else if (cpid == 0) {
 	    /* 子プロセス: コマンドを実行して終了 */
-	    block_sigquit_and_sigint();
+	    if (!doingjobcontrol)
+		block_sigquit_and_sigint();
 	    maybe_redirect_stdin_to_devnull();
 	    exec_pipelines(p, true);
 	    assert(false);
