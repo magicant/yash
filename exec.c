@@ -612,10 +612,11 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     early_fork = (type != execself) && (type == execasync
 	|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
     if (early_fork) {
+	bool doingjobcontrol = doing_job_control_now;
 	pid_t cpid = fork_and_reset(pgid, type == execnormal);
 	if (cpid)
 	    return cpid;
-	if (!doing_job_control_now && type == execasync)
+	if (!doingjobcontrol && type == execasync)
 	    block_sigquit_and_sigint();
     }
 
