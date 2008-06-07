@@ -100,7 +100,7 @@ static bool tryexpand_brace_sequence(
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull));
 
-static void fieldsplit(wchar_t *restrict str, char *restrict split,
+static void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
     __attribute__((nonnull));
 static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
@@ -300,7 +300,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 {
     bool ok = true;
     xwcsbuf_T buf;
-    const wchar_t *str;
+    const wchar_t *ss;
     wchar_t *s;
     void **array;
 
@@ -308,17 +308,17 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
     while (w) {
 	switch (w->wu_type) {
 	case WT_STRING:
-	    str = w->wu_string;
-	    while (*str) {
-		if (esc && str[0] == L'\\' && str[1] != L'\0'
-			&& wcschr(L"$`\\", str[1])) {
-		    str++;
-		    if (*str)
-			wb_wccat(&buf, *str);
+	    ss = w->wu_string;
+	    while (*ss) {
+		if (esc && ss[0] == L'\\' && ss[1] != L'\0'
+			&& wcschr(L"$`\\", ss[1])) {
+		    ss++;
+		    if (*ss)
+			wb_wccat(&buf, *ss);
 		} else {
-		    wb_wccat(&buf, *str);
+		    wb_wccat(&buf, *ss);
 		}
-		str++;
+		ss++;
 	    }
 	    break;
 	case WT_PARAM:
@@ -394,7 +394,7 @@ bool expand_word(
     size_t initlen = valuelist->length;
     xwcsbuf_T buf;
     xstrbuf_T sbuf;
-    const wchar_t *str;
+    const wchar_t *ss;
     wchar_t *s;
     void **array;
 
@@ -410,16 +410,16 @@ bool expand_word(
     while (w) {
 	switch (w->wu_type) {
 	case WT_STRING:
-	    str = w->wu_string;
+	    ss = w->wu_string;
 	    if (first && tilde != tt_none) {
-		s = expand_tilde(&str, w->next, tilde);
+		s = expand_tilde(&ss, w->next, tilde);
 		if (s) {
 		    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
 		    FILL_SBUF_UNSPLITTABLE;
 		}
 	    }
-	    while (*str) {
-		switch (*str) {
+	    while (*ss) {
+		switch (*ss) {
 		case L'"':
 		    indq = !indq;
 		    force = true;
@@ -428,24 +428,24 @@ bool expand_word(
 		    if (indq)
 			goto default_case;
 		    force = true;
-		    add_sq(&str, &buf, true);
+		    add_sq(&ss, &buf, true);
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\\':
-		    if (indq && !wcschr(ESCAPABLE_CHARS, str[1])) {
+		    if (indq && !wcschr(ESCAPABLE_CHARS, ss[1])) {
 			goto default_case;
 		    } else {
 			wb_wccat(&buf, L'\\');
-			if (*++str)
-			    wb_wccat(&buf, *str++);
+			if (*++ss)
+			    wb_wccat(&buf, *ss++);
 			FILL_SBUF_UNSPLITTABLE;
 			continue;
 		    }
 		case L':':
 		    if (!indq && tilde == tt_multi) {
 			wb_wccat(&buf, L':');
-			str++;
-			s = expand_tilde(&str, w->next, tilde);
+			ss++;
+			s = expand_tilde(&ss, w->next, tilde);
 			if (s)
 			    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
 			FILL_SBUF_UNSPLITTABLE;
@@ -455,11 +455,11 @@ bool expand_word(
 		default:  default_case:
 		    if (indq)
 			wb_wccat(&buf, L'\\');
-		    wb_wccat(&buf, *str);
+		    wb_wccat(&buf, *ss);
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		}
-		str++;
+		ss++;
 	    }
 	    break;
 	case WT_PARAM:
@@ -790,14 +790,14 @@ void match_head_each(void **slist, const wchar_t *pattern, bool longest)
     enum wfnmtype type = longest ? WFNM_LONGEST : WFNM_SHORTEST;
     enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
     size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *str;
-    while ((str = *slist)) {
-	size_t match = wfnmatchl(pattern, str, flags, type, minlen);
+    wchar_t *s;
+    while ((s = *slist)) {
+	size_t match = wfnmatchl(pattern, s, flags, type, minlen);
 	if (match == WFNM_ERROR) {
 	    break;
 	} else if (match != WFNM_NOMATCH) {
 	    if (match > 0)
-		wmemmove(str, str + match, wcslen(str + match) + 1);
+		wmemmove(s, s + match, wcslen(s + match) + 1);
 	}
 	slist++;
     }
@@ -808,17 +808,17 @@ void match_tail_longest_each(void **slist, const wchar_t *pattern)
 {
     enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
     size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *str;
-    while ((str = *slist)) {
-	size_t len = wcslen(str);
+    wchar_t *s;
+    while ((s = *slist)) {
+	size_t len = wcslen(s);
 	size_t index = 0;
 	while (minlen + index <= len) {
 	    size_t match = wfnmatchl(
-		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+		    pattern, s + index, flags, WFNM_WHOLE, minlen);
 	    if (match == WFNM_ERROR) {
 		return;
 	    } else if (match != WFNM_NOMATCH) {
-		str[index] = L'\0';
+		s[index] = L'\0';
 		break;
 	    }
 	    index++;
@@ -832,17 +832,17 @@ void match_tail_shortest_each(void **slist, const wchar_t *pattern)
 {
     enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
     size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *str;
-    while ((str = *slist)) {
-	size_t len = wcslen(str);
+    wchar_t *s;
+    while ((s = *slist)) {
+	size_t len = wcslen(s);
 	size_t index = len - minlen;
 	do {
 	    size_t match = wfnmatchl(
-		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+		    pattern, s + index, flags, WFNM_WHOLE, minlen);
 	    if (match == WFNM_ERROR) {
 		return;
 	    } else if (match != WFNM_NOMATCH) {
-		str[index] = L'\0';
+		s[index] = L'\0';
 		break;
 	    }
 	} while (index--);
@@ -878,13 +878,13 @@ void subst_whole_each(
 {
     enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
     size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *str;
-    while ((str = *slist)) {
-	size_t match = wfnmatchl(pattern, str, flags, WFNM_WHOLE, minlen);
+    wchar_t *s;
+    while ((s = *slist)) {
+	size_t match = wfnmatchl(pattern, s, flags, WFNM_WHOLE, minlen);
 	if (match == WFNM_ERROR) {
 	    break;
 	} else if (match != WFNM_NOMATCH) {
-	    free(str);
+	    free(s);
 	    *slist = xwcsdup(subst);
 	}
 	slist++;
@@ -897,17 +897,17 @@ void subst_head_each(
 {
     enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
     size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *str;
-    while ((str = *slist)) {
-	size_t match = wfnmatchl(pattern, str, flags, WFNM_LONGEST, minlen);
+    wchar_t *s;
+    while ((s = *slist)) {
+	size_t match = wfnmatchl(pattern, s, flags, WFNM_LONGEST, minlen);
 	if (match == WFNM_ERROR) {
 	    break;
 	} else if (match != WFNM_NOMATCH) {
 	    xwcsbuf_T buf;
 	    wb_init(&buf);
 	    wb_cat(&buf, subst);
-	    wb_cat(&buf, str + match);
-	    free(str);
+	    wb_cat(&buf, s + match);
+	    free(s);
 	    *slist = wb_towcs(&buf);
 	}
 	slist++;
@@ -920,21 +920,21 @@ void subst_tail_each(
 {
     enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
     size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *str;
-    while ((str = *slist)) {
-	size_t len = wcslen(str);
+    wchar_t *s;
+    while ((s = *slist)) {
+	size_t len = wcslen(s);
 	size_t index = 0;
 	while (minlen + index <= len) {
 	    size_t match = wfnmatchl(
-		    pattern, str + index, flags, WFNM_WHOLE, minlen);
+		    pattern, s + index, flags, WFNM_WHOLE, minlen);
 	    if (match == WFNM_ERROR) {
 		return;
 	    } else if (match != WFNM_NOMATCH) {
 		xwcsbuf_T buf;
 		wb_init(&buf);
-		wb_ncat(&buf, str, index);
+		wb_ncat(&buf, s, index);
 		wb_cat(&buf, subst);
-		free(str);
+		free(s);
 		*slist = wb_towcs(&buf);
 		break;
 	    }
@@ -951,31 +951,31 @@ void subst_generic_each(void **slist,
 {
     enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
     size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *str;
-    while ((str = *slist)) {
+    wchar_t *s;
+    while ((s = *slist)) {
 	size_t index = 0;
 	xwcsbuf_T buf;
 	wb_init(&buf);
-	while (str[index]) {
+	while (s[index]) {
 	    size_t match = wfnmatchl(
-		    pattern, str + index, flags, WFNM_LONGEST, minlen);
+		    pattern, s + index, flags, WFNM_LONGEST, minlen);
 	    if (match == WFNM_ERROR) {
 		return;
 	    } else if (match != WFNM_NOMATCH && match > 0) {
 		wb_cat(&buf, subst);
 		index += match;
 		if (!substall) {
-		    wb_cat(&buf, str + index);
+		    wb_cat(&buf, s + index);
 		    break;
 		} else {
 		    continue;
 		}
 	    } else {
-		wb_wccat(&buf, str[index]);
+		wb_wccat(&buf, s[index]);
 	    }
 	    index++;
 	}
-	free(str);
+	free(s);
 	*slist = wb_towcs(&buf);
 	slist++;
     }
@@ -987,10 +987,10 @@ void subst_generic_each(void **slist,
  * slist の各要素はこの関数内で realloc する。 */
 void subst_length_each(void **slist)
 {
-    wchar_t *str;
-    while ((str = *slist)) {
-	*slist = malloc_wprintf(L"%zu", wcslen(str));
-	free(str);
+    wchar_t *s;
+    while ((s = *slist)) {
+	*slist = malloc_wprintf(L"%zu", wcslen(s));
+	free(s);
 	slist++;
     }
 }
@@ -1204,44 +1204,44 @@ bool has_leading_zero(const wchar_t *s, bool *sign)
 /********** 単語分割 **********/
 
 /* 単語分割を行う。
- * str:   分割する単語。この関数内で free する。
- * split: str に対応するフィールド分割可能性文字列。この関数内で free する。
+ * s:     分割する単語。この関数内で free する。
+ * split: s に対応するフィールド分割可能性文字列。この関数内で free する。
  * dest:  結果 (新しく malloc したワイド文字列) を入れるリスト
  * 分割は、ifs に従って、フィールド分割可能性が非 0 でかつ
  * バックスラッシュエスケープしていない文字の所で行う。 */
-void fieldsplit(wchar_t *restrict str, char *restrict split,
+void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
     size_t index = 0, startindex = 0;
     size_t savedestlen = dest->length;
 
-    while (str[index]) {
-	if (str[index] == L'\\') {
+    while (s[index]) {
+	if (s[index] == L'\\') {
 	    index++;
-	    if (!str[index])
+	    if (!s[index])
 		break;
 	    index++;
-	} else if (split[index] && wcschr(ifs, str[index])) {
+	} else if (split[index] && wcschr(ifs, s[index])) {
 	    /* IFS にある文字なので、分割する */
 	    bool splitonnonspace = false, nonspace = false;
 	    if (startindex < index)
-		pl_add(dest, xwcsndup(str + startindex, index - startindex));
+		pl_add(dest, xwcsndup(s + startindex, index - startindex));
 	    else
 		splitonnonspace = true;
 	    do {
-		if (!iswspace(str[index])) {
+		if (!iswspace(s[index])) {
 		    if (splitonnonspace)
 			pl_add(dest, xwcsdup(L""));
 		    splitonnonspace = true;
 		    nonspace = true;
 		}
 		index++;
-		if (!str[index]) {
+		if (!s[index]) {
 		    if (nonspace && startindex < index)
 			pl_add(dest, xwcsdup(L""));
 		    break;
 		}
-	    } while (split[index] && wcschr(ifs, str[index]));
+	    } while (split[index] && wcschr(ifs, s[index]));
 	    startindex = index;
 	} else {
 	    index++;
@@ -1249,11 +1249,11 @@ void fieldsplit(wchar_t *restrict str, char *restrict split,
     }
     if (savedestlen == dest->length) {
 	assert(startindex == 0);  /* 結果的に一回も分割しなかった場合 */
-	pl_add(dest, str);
+	pl_add(dest, s);
     } else {
 	if (startindex < index)
-	    pl_add(dest, xwcsndup(str + startindex, index - startindex));
-	free(str);
+	    pl_add(dest, xwcsndup(s + startindex, index - startindex));
+	free(s);
     }
     free(split);
 }
