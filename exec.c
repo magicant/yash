@@ -157,6 +157,7 @@ struct execinfo {
 /* "continue n" は (n-1) 回の break と 1 回の continue として扱う。
  * exception が ee_return なら breakcount は 0 である。 */
 /* ループの内部でサブシェルを作った場合でも execinfo はリセットしないので注意 */
+#define EXECINFO_INIT { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
 /* 現在 break/continue/return すべき状態なら true を返す */
 bool need_break(void)
@@ -170,8 +171,7 @@ struct execinfo *save_execinfo(void)
 {
     struct execinfo *save = xmalloc(sizeof execinfo);
     *save = execinfo;
-    execinfo = (struct execinfo) {
-	.loopnest = 0, .breakcount = 0, .exception = ee_none };
+    execinfo = (struct execinfo) EXECINFO_INIT;
     return save;
 }
 
