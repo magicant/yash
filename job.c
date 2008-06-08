@@ -467,6 +467,7 @@ char *get_job_status_string(const job_T *job, bool *needfree)
 	for (size_t i = job->j_pcount; ; )
 	    if (job->j_procs[--i].pr_status == JS_STOPPED)
 		return get_process_status_string(&job->j_procs[i], needfree);
+	assert(false);
     case JS_DONE:
 	return get_process_status_string(
 		&job->j_procs[job->j_pcount - 1], needfree);
