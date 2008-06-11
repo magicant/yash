@@ -213,10 +213,12 @@ char *which(
 	char *const *restrict dirs,
 	bool cond(const char *path))
 {
+    static char *const null[] = { "", NULL, };
+
     if (!name[0])
 	return NULL;
     if (!dirs)
-	dirs = (char *[]) { "", NULL, };
+	dirs = null;
     if (name[0] == '/')
 	return xstrdup(name);
 

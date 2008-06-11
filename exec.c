@@ -932,9 +932,11 @@ void print_xtrace(char *const *argv)
 void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *envp, const char *path)
 {
+    static char *const null[] = { NULL, };
+
     assert(argv[argc] == NULL);
     if (!envp)
-	envp = (char *[]) { NULL };
+	envp = null;
 
     char *args[argc + 3];
     size_t index = 0;
