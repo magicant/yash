@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # run-test.sh: runs tests specified by $TESTEE and $TEST_ITEMS
-# © 2007-2008 magicant
+# (C) 2007-2008 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

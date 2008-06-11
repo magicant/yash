@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.h: word expansion */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-/* チルダ展開の種類 */
+/* type of tilde expansion */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 
 extern bool expand_line(
@@ -50,10 +50,8 @@ extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 
-/* escape と同じだが、第 1 引数を free する。
- * s の文字のうち、t に含まれる文字をバックスラッシュエスケープして返す。 */
-static inline wchar_t *escapefree(
-	wchar_t *restrict s, const wchar_t *restrict t)
+/* Same as `escape', except that the first argument is freed. */
+wchar_t *escapefree(wchar_t *restrict s, const wchar_t *restrict t)
 {
     extern void free(void *ptr);
 
@@ -66,7 +64,7 @@ static inline wchar_t *escapefree(
     return result;
 }
 
-/* unescape と同じだが、引数を free する。 */
+/* Same as `unescape', except that the first argument is freed. */
 wchar_t *unescapefree(wchar_t *s)
 {
     extern void free(void *ptr);

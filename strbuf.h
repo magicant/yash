@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* strbuf.h: modifiable string buffer */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -178,61 +178,61 @@ static inline wchar_t *malloc_wprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 
-/* マルチバイト文字列 s の最初の n バイトを
- * バッファの i バイト目の手前に挿入する。
- * i, n の境界チェックはしない。
- * s は buf->contents の一部であってはならない。 */
+/* Inserts the first `n' bytes of a multibyte string `s' at the offset `i'
+ * in the buffer `buf'.
+ * No boundary checks are done and a null character is not considered special.
+ * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ninsert_force(
 	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
 {
     return sb_replace_force(buf, i, 0, s, n);
 }
 
-/* マルチバイト文字列 s の最初の n バイトを
- * バッファの i バイト目の手前に挿入する。
- * strlen(s) < n ならば s 全体を挿入する。
- * buf->length <= i ならば文字列の末尾に追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Inserts the first `n' bytes of a multibyte string `s' at the offset `i'
+ * in the buffer `buf'.
+ * If (strlen(s) <= n), the whole of `s' is inserted.
+ * If (buf->length <= i), `s' is appended to the end of the buffer.
+ * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ninsert(
 	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
 {
     return sb_replace(buf, i, 0, s, n);
 }
 
-/* マルチバイト文字列 s をバッファの i バイト目の手前に挿入する。
- * buf->length <= i ならば文字列の末尾に追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Inserts a multibyte string `s' at the offset `i' in the buffer `buf'.
+ * If (buf->length <= i), `s' is appended to the end of the buffer.
+ * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_insert(xstrbuf_T *restrict buf, size_t i, const char *restrict s)
 {
     return sb_replace(buf, i, 0, s, SIZE_MAX);
 }
 
-/* マルチバイト文字列 s の最初の n バイトを文字列バッファに追加する。
- * n の境界チェックはしない。
- * s は buf->contents の一部であってはならない。 */
+/* Appends the first `n' bytes of a multibyte string `s' to the buffer `buf'.
+ * No boundary checks are done and a null character is not considered special.
+ * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ncat_force(
 	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
 {
     return sb_replace_force(buf, buf->length, 0, s, n);
 }
 
-/* マルチバイト文字列 s の最初の n バイトを文字列バッファに追加する。
- * strlen(s) < n ならば s 全体を追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Appends the first `n' bytes of a multibyte string `s' to the buffer `buf'.
+ * If (strlen(s) <= n), the whole of `s' is appended.
+ * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ncat(xstrbuf_T *restrict buf, const char *restrict s, size_t n)
 {
     return sb_replace(buf, SIZE_MAX, 0, s, n);
 }
 
-/* マルチバイト文字列 s を文字列バッファに追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Appends a multibyte string `s' to the buffer `buf'.
+ * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_cat(xstrbuf_T *restrict buf, const char *restrict s)
 {
     return sb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
 
-/* マルチバイト文字列を文字列バッファに追加した後 free する。
- * s は buf->contents の一部であってはならない。 */
+/* Appends a multibyte string `s' to the buffer `buf' and free the string.
+ * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_catfree(xstrbuf_T *restrict buf, char *restrict s)
 {
     extern void free(void *ptr);
@@ -242,68 +242,70 @@ xstrbuf_T *sb_catfree(xstrbuf_T *restrict buf, char *restrict s)
     return buf;
 }
 
-/* マルチバイト文字列バッファの i バイト目から n バイトを削除する。
- * buf->length <= i ならば何もしない。
- * buf->length <= i + n ならば i バイト目以降全てを削除する。 */
+/* Removes `n' bytes at the offset `i' in the buffer `buf'.
+ * If (buf->length <= i), `buf' is unchanged.
+ * If (buf->length <= i + n), `buf' is truncated to `i' bytes. */
 xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
 {
     return sb_replace(buf, i, n, "", 0);
 }
 
-/* ワイド文字列 s の最初の n 文字をバッファの i 文字目の手前に挿入する。
- * i, n の境界チェックはしない。
- * s は buf->contents の一部であってはならない。 */
+/* Inserts the first `n' characters of a wide string `s'
+ * at the offset `i' in the buffer `buf'.
+ * No boundary checks are done and a null character is not considered special.
+ * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ninsert_force(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
 {
     return wb_replace_force(buf, i, 0, s, n);
 }
 
-/* ワイド文字列 s の最初の n 文字をバッファの i 文字目の手前に挿入する。
- * wcslen(s) < n ならば s 全体を挿入する。
- * buf->length <= i ならば文字列の末尾に追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Inserts the first `n' characters of a wide string
+ * at the offset `i' in the buffer `buf'.
+ * If (wcslen(s) <= n), the whole of `s' is inserted.
+ * If (buf->length <= i), `s' is appended to the end of the buffer.
+ * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ninsert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
 {
     return wb_replace(buf, i, 0, s, n);
 }
 
-/* ワイド文字列 s をバッファの i 文字目の手前に挿入する。
- * buf->length <= i ならば文字列の末尾に追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Inserts a wide string at the offset `i' in the buffer `buf'.
+ * If (buf->length <= i), `s' is appended to the end of the buffer.
+ * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_insert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
 {
     return wb_replace(buf, i, 0, s, SIZE_MAX);
 }
 
-/* ワイド文字列 s の最初の n 文字を文字列バッファに追加する。
- * n の境界チェックはしない。
- * s は buf->contents の一部であってはならない。 */
+/* Appends the first `n' characters of a wide string `s' to the buffer `buf'.
+ * No boundary checks are done and a null character is not considered special.
+ * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ncat_force(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
 {
     return wb_replace_force(buf, buf->length, 0, s, n);
 }
 
-/* ワイド文字列 s の最初の n 文字を文字列バッファに追加する。
- * wcslen(s) < n ならば s 全体を追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Appends the first `n' characters of a wide string `s' to the buffer `buf'.
+ * If (wcslen(s) <= n), the whole of `s' is appended.
+ * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ncat(xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
 {
     return wb_replace(buf, SIZE_MAX, 0, s, n);
 }
 
-/* ワイド文字列 s を文字列バッファに追加する。
- * s は buf->contents の一部であってはならない。 */
+/* Appends a wide string `s' to the buffer `buf'.
+ * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_cat(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
 {
     return wb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
 }
 
-/* ワイド文字列を文字列バッファに追加した後 free する。
- * s は buf->contents の一部であってはならない。 */
+/* Appends a wide string `s' to the buffer and free the string.
+ * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_catfree(xwcsbuf_T *restrict buf, wchar_t *restrict s)
 {
     extern void free(void *ptr);
@@ -313,27 +315,26 @@ xwcsbuf_T *wb_catfree(xwcsbuf_T *restrict buf, wchar_t *restrict s)
     return buf;
 }
 
-/* ワイド文字列バッファの i 文字目から n 文字を削除する。
- * buf->length <= i ならば何もしない。
- * buf->length <= i + n ならば i 文字目以降全てを削除する。 */
+/* Removes `n' characters at the offset `i' in the buffer `buf'.
+ * If (buf->length <= i), `buf' is unchanged.
+ * If (buf->length <= i + n), `buf' is truncated to `i' characters. */
 xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
 {
     return wb_replace(buf, i, n, L"", 0);
 }
 
-/* ワイド文字列 s をマルチバイト文字列に変換し、
- * 新しく malloc した文字列として返す。
- * 変換の際にエラーがあると NULL を返す。
- * 返すマルチバイト文字列は、初期シフト状態で始まり、終わる。 */
+/* Converts a wide string to a newly malloced multibyte string.
+ * Returns NULL on error.
+ * The resulting string starts and ends in the initial shift state.*/
 char *malloc_wcstombs(const wchar_t *s)
 {
     return malloc_wcsntombs(s, SIZE_MAX);
 }
 
-/* ワイド文字列を直接マルチバイト文字列に変換する。
- * 返すマルチバイト文字列は、初期シフト状態で始まり、終わる。
- * 引数で与えた領域は適切に realloc される。
- * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
+/* Converts a wide string to a newly malloced multibyte string and free the
+ * wide string.
+ * Returns NULL on error. The wide string is freed anyway.
+ * The resulting string starts and ends in the initial shift state.*/
 char *realloc_wcstombs(wchar_t *s)
 {
     extern void free(void *ptr);
@@ -342,17 +343,16 @@ char *realloc_wcstombs(wchar_t *s)
     return result;
 }
 
-/* マルチバイト文字列 s をワイド文字列に変換し、
- * 新しく malloc した文字列として返す。
- * 変換の際にエラーがあると NULL を返す。 */
+/* Converts a multibyte string to a newly malloced wide string.
+ * Returns NULL on error. */
 wchar_t *malloc_mbstowcs(const char *s)
 {
     return malloc_mbsntowcs(s, SIZE_MAX);
 }
 
-/* マルチバイト文字列を直接ワイド文字列に変換する。
- * 引数で与えた領域は適切に realloc される。
- * 変換に失敗すると NULL を返すが、いずれにしても元の文字列の領域は解放される */
+/* Converts a multibyte string to a newly malloced wide string and free the
+ * multibyte string.
+ * Returns NULL on error. The multibyte string is freed anyway. */
 wchar_t *realloc_mbstowcs(char *s)
 {
     extern void free(void *ptr);
@@ -361,7 +361,7 @@ wchar_t *realloc_mbstowcs(char *s)
     return result;
 }
 
-/* vprintf の結果を新しく malloc した文字列として返す。 */
+/* Returns the result of `vsprintf' as a newly malloced string. */
 char *malloc_vprintf(const char *format, va_list ap)
 {
     xstrbuf_T buf;
@@ -370,7 +370,7 @@ char *malloc_vprintf(const char *format, va_list ap)
     return sb_tostr(&buf);
 }
 
-/* printf の結果を新しく malloc した文字列として返す。 */
+/* Returns the result of `sprintf' as a newly malloced string. */
 char *malloc_printf(const char *format, ...)
 {
     va_list ap;
@@ -381,7 +381,7 @@ char *malloc_printf(const char *format, ...)
     return result;
 }
 
-/* vwprintf の結果を新しく malloc した文字列として返す。 */
+/* Returns the result of `vswprintf' as a newly malloced string. */
 wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
 {
     xwcsbuf_T buf;
@@ -390,7 +390,7 @@ wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
     return wb_towcs(&buf);
 }
 
-/* wprintf の結果を新しく malloc した文字列として返す。 */
+/* Returns the result of `swprintf' as a newly malloced string. */
 wchar_t *malloc_wprintf(const wchar_t *format, ...)
 {
     va_list ap;

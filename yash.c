@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,9 +47,9 @@ extern int main(int argc, char **argv)
 static void print_help(void);
 static void print_version(void);
 
-/* シェル本体のプロセス ID。 */
+/* the process ID of the shell */
 pid_t shell_pid;
-/* シェルの元々のプロセスグループ */
+/* the initial process group ID of the shell */
 pid_t initial_pgrp;
 
 
@@ -82,7 +82,7 @@ int main(int argc __attribute__((unused)), char **argv)
     textdomain(PACKAGE_NAME);
 #endif
 
-    /* オプションを解釈する */
+    /* parse options */
     xoptind = 0;
     xopterr = true;
     while ((opt = xgetopt_long(argv,
@@ -141,7 +141,7 @@ int main(int argc __attribute__((unused)), char **argv)
     if (option_error)
 	exit(EXIT_ERROR);
 
-    /* 最初の引数が "-" なら無視する */
+    /* ignore "-" if it's the first argument */
     if (argv[xoptind] && strcmp(argv[xoptind], "-") == 0)
 	xoptind++;
 
@@ -215,14 +215,14 @@ int main(int argc __attribute__((unused)), char **argv)
 	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
-    // TODO rc ファイル
+    // TODO yashrc
 }
 
-/* シェルを終了し、終了ステータスとして status を返す。
- * status が負数なら laststatus を返す。 */
-/* この関数は EXIT トラップを実行し、reset_own_pgrp を呼び出す。 */
-/* この関数は返らない。 */
-/* この関数は再入可能であり、再入すると直ちに終了する。 */
+/* Exits the shell with the specified exit status.
+ * If `status' is negative, the value of `laststatus' is used.
+ * This function executes EXIT trap and calls `reset_own_pgrp'.
+ * This function never returns.
+ * This function is reentrant and exits immediately if reentered. */
 void exit_shell_with_status(int status)
 {
     static bool exiting = false;
@@ -230,13 +230,13 @@ void exit_shell_with_status(int status)
     if (!exiting) {
 	exiting = true;
 	exitstatus = (status < 0) ? laststatus : status;
-	// TODO yash: exit_shell: EXIT トラップを実行
+	// TODO yash: exit_shell: execute EXIT trap
     }
     reset_own_pgrp();
     exit((status < 0) ? exitstatus : status);
 }
 
-/* ヘルプを標準出力に出力する */
+/* Prints the help message to stdout */
 void print_help(void)
 {
     if (posixly_correct) {
@@ -255,7 +255,7 @@ void print_help(void)
     }
 }
 
-/* バージョン情報を標準出力に出力する */
+/* Prints the version info to stdout. */
 void print_version(void)
 {
     printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
@@ -263,8 +263,8 @@ void print_version(void)
 }
 
 
-/* ジョブ制御が有効なら、自分自身のプロセスグループを
- * 自分のプロセス ID に変更する */
+/* If job control is active, sets the process group ID of the shell to its
+ * process ID. */
 void set_own_pgrp(void)
 {
     if (do_job_control) {
@@ -273,7 +273,8 @@ void set_own_pgrp(void)
     }
 }
 
-/* ジョブ制御が有効なら、自分自身のプロセスグループを set_own_pgrp 前に戻す */
+/* If job control is active, resets the process group ID of the shell.
+ * The initial process group ID is restored. */
 void reset_own_pgrp(void)
 {
     if (do_job_control && initial_pgrp > 0) {
@@ -282,21 +283,21 @@ void reset_own_pgrp(void)
     }
 }
 
-/* reset_own_pgrp してもプロセスグループが元に戻らないようにする */
+/* Forgets the value of `initial_pgrp' so that `reset_own_pgrp' is no longer
+ * effective. */
 void forget_initial_pgrp(void)
 {
     initial_pgrp = 0;
 }
 
 
-/********** コードを実行する関数 **********/
+/********** Functions to execute commands **********/
 
-/* マルチバイト文字列をソースコードとしてコマンドを実行する。
- * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
- * code: 実行するコード (初期シフト状態で始まる)
- * name: 構文エラーで表示するコード名。NULL でも良い。
- * finally_exit: true なら実行後にそのままシェルを終了する。
- * 戻り値: 構文エラー・入力エラーがなければ true */
+/* Parses a multibyte string and executes the commands.
+ * `code' must start in a initial shift state.
+ * `name' is printed in an error message on syntax error. `name' may be NULL.
+ * Returns true iff successful (no input/parse errors).
+ * If there are no commands in `code', `laststatus' is set to 0. */
 bool exec_mbs(const char *code, const char *name, bool finally_exit)
 {
     struct input_mbs_info iinfo = {
@@ -314,17 +315,15 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
 	.inputisatty = false,
 	.lastinputresult = 0,
     };
-    memset(&iinfo.state, 0, sizeof iinfo.state);  // state を初期状態にする
+    memset(&iinfo.state, 0, sizeof iinfo.state);  // initialize the shift state
 
     return parse_and_exec(&pinfo, finally_exit);
 }
 
-/* ワイド文字列をソースコードとしてコマンドを実行する。
- * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
- * code: 実行するコード
- * name: 構文エラーで表示するコード名。NULL でも良い。
- * finally_exit: true なら実行後にそのままシェルを終了する。
- * 戻り値: 構文エラー・入力エラーがなければ true */
+/* Parses a wide string and executes the commands.
+ * `name' is printed in an error message on syntax error. `name' may be NULL.
+ * Returns true iff successful (no input/parse errors).
+ * If there are no commands in `code', `laststatus' is set to 0. */
 bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 {
     struct input_wcs_info iinfo = {
@@ -345,13 +344,11 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     return parse_and_exec(&pinfo, finally_exit);
 }
 
-/* 入力ストリームを読み取ってコマンドを実行する。
- * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
- * f: 入力元のストリーム
- * intrinput: 入力が対話的かどうか
- * name: 構文エラーで表示するコード名。NULL でも良い。
- * finally_exit: true なら実行後にそのままシェルを終了する。
- * 戻り値: 構文エラー・入力エラーがなければ true */
+/* Parses input from a file stream and executes the commands.
+ * `name' is printed in an error message on syntax error. `name' may be NULL.
+ * If `intrinput' is true, the input stream is considered interactive.
+ * Returns true iff successful (no input/parse errors).
+ * If there are no commands in `code', `laststatus' is set to 0. */
 bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 {
     struct input_readline_info rlinfo;
@@ -377,10 +374,9 @@ bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
     return parse_and_exec(&pinfo, finally_exit);
 }
 
-/* 指定した parseinfo_T に基づいてソースを読み込み、それを実行する。
- * コマンドを一つも実行しなかった場合、laststatus は 0 になる。
- * finally_exit: true なら実行後にそのままシェルを終了する。
- * 戻り値: 構文エラー・入力エラーがなければ true */
+/* Parses input using the specified `parseinfo_T' and executes the commands.
+ * Returns true iff successful (no input/parse errors).
+ * If there are no commands in `code', `laststatus' is set to 0. */
 bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
     bool executed = false;
@@ -406,7 +402,8 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
 		    break;
 		} else if (pinfo->intrinput && !justwarned) {
-		    // TODO yash: parse_and_exec: exit 組込みでも同様の警告を
+		    // TODO yash: parse_and_exec: exit builtin should have the
+		    // same warning mechanism
 		    size_t sjc = stopped_job_count();
 		    if (sjc > 0) {
 			fprintf(stderr,
@@ -417,14 +414,14 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 			justwarned = true;
 			break;
 		    }
-		} // TODO stopped job の警告は exit 組み込みに移動
+		}
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
 		if (finally_exit)
 		    exit_shell();
 		else
 		    return true;
-	    case 1:  // 構文エラー
+	    case 1:  // syntax error
 		justwarned = false;
 		laststatus = EXIT_SYNERROR;
 		if (pinfo->intrinput)
@@ -435,9 +432,9 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    return false;
 	}
     }
-    /* コマンドを一つも実行しなかった場合のみ後から laststatus を 0 にする。
-     * 最初に laststatus を 0 にしてしまうと、コマンドを実行する際に $? の値が
-     * 変わってしまう。 */
+    /* If no commands are executed, set `laststatus' to 0 finally.
+     * We don't set it at first because the value of "$?" gets wrong in
+     * execution. */
 }
 
 

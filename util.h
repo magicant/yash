@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.h: miscellaneous utility functions */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ static inline void *xrealloc(void *ptr, size_t size)
 extern void alloc_failed(void)
     __attribute__((noreturn));
 
-/* calloc を試みる。失敗したらプログラムを強制終了する。 */
+/* Attempts a `calloc' and abort the program on failure. */
 void *xcalloc(size_t nmemb, size_t size)
 {
     extern void *calloc(size_t nmemb, size_t size)
@@ -47,7 +47,7 @@ void *xcalloc(size_t nmemb, size_t size)
     return result;
 }
 
-/* malloc を試みる。失敗したらプログラムを強制終了する。 */
+/* Attempts a `malloc' and abort the program on failure. */
 void *xmalloc(size_t size)
 {
     extern void *malloc(size_t size)
@@ -58,7 +58,7 @@ void *xmalloc(size_t size)
     return result;
 }
 
-/* realloc を試みる。失敗したらプログラムを強制終了する。 */
+/* Attempts a `realloc' and abort the program on failure. */
 void *xrealloc(void *ptr, size_t size)
 {
     extern void *realloc(void *ptr, size_t size)
@@ -98,8 +98,7 @@ extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 extern void *copyaswcs(const void *p)
     __attribute__((malloc,warn_unused_result));
 
-/* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
- * つまり、長さが maxlen 以上なら maxlen を返す。 */
+/* Returns min(maxlen, strlen(s)). */
 size_t xstrnlen(const char *s, size_t maxlen)
 {
 #if HAVE_STRNLEN
@@ -112,15 +111,14 @@ size_t xstrnlen(const char *s, size_t maxlen)
 #endif
 }
 
-/* 文字列を新しく malloc した領域に複製する。
- * malloc に失敗するとプログラムを強制終了する。 */
+/* Returns a newly malloced copy of the specified string.
+ * Aborts the program if failed to allocate memory. */
 char *xstrdup(const char *s)
 {
     return xstrndup(s, SIZE_MAX);
 }
 
-/* 文字列の長さを返す。ただし文字列の最初の maxlen バイトしか見ない。
- * つまり、長さが maxlen 以上なら maxlen を返す。 */
+/* Returns min(maxlen, wcslen(s)). */
 size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 {
 #if HAVE_WCSNLEN
@@ -133,15 +131,16 @@ size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 #endif
 }
 
-/* 文字列を新しく malloc した領域に複製する。
- * malloc に失敗するとプログラムを強制終了する。 */
+/* Returns a newly malloced copy of the specified string.
+ * Aborts the program if failed to allocate memory. */
 wchar_t *xwcsdup(const wchar_t *s)
 {
     return xwcsndup(s, SIZE_MAX);
 }
 
 
-/* 引数を正しくキャストするためのマクロ */
+/* These macros are used to cast the argument properly.
+ * We don't need such macros for wide strings. */
 #define xisalnum(c)  (isalnum((unsigned char) (c)))
 #define xisalpha(c)  (isalpha((unsigned char) (c)))
 #define xisblank(c)  (isblank((unsigned char) (c)))
@@ -156,16 +155,16 @@ wchar_t *xwcsdup(const wchar_t *s)
 #define xisxdigit(c) (isxdigit((unsigned char) (c)))
 #define xtoupper(c)  (toupper((unsigned char) (c)))
 #define xtolower(c)  (tolower((unsigned char) (c)))
-/* wchar_t ではこのようなマクロは必要ない */
 
 
 /********** Arithmetic utilities **********/
 
-/* 整数型 type が符号付きかどうか */
+/* Whether an integral type `type' is signed. */
 #define IS_TYPE_SIGNED(type) ((type) 1 > (type) -1)
 
-/* 整数型 type を文字列に変換した場合の最大長。
- * CHAR_BIT の為に limits.h が必要。 */
+/* Maximum number of digits we need to convert a value of an integral type
+ * `type' to a decimal string.
+ * Inclusion of <limits.h> is required for CHAR_BIT. */
 #define INT_STRLEN_BOUND(type) \
     ((sizeof(type) * CHAR_BIT - IS_TYPE_SIGNED(type)) * 31 / 100 \
      + 1 + IS_TYPE_SIGNED(type))
@@ -204,7 +203,7 @@ static inline int xgetopt(
 	const char *restrict optstring)
     __attribute__((nonnull(1,2)));
 
-/* 長いオプションがない xgetopt */
+/* `xgetopt_long' without long options. */
 int xgetopt(char **restrict argv, const char *restrict optstring)
 {
     return xgetopt_long(argv, optstring, NULL, NULL);

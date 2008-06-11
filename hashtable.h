@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* hashtable.h: hashtable library */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,14 @@
 
 #include <stddef.h>
 
+/* The type of hash functions.
+ * Hash functions must return the same value for two keys that compare equal. */
 typedef unsigned long hashfunc_T(const void *key);
+
+/* The type of functions that compare two keys.
+ * Returns zero if two keys are equal, or non-zero if unequal. */
 typedef int keycmp_T(const void *key1, const void *key2);
+
 typedef struct hashtable_T {
     size_t count, capacity;
     hashfunc_T *hashfunc;
@@ -70,10 +76,9 @@ extern void kvfree(kvpair_T kv);
 
 #define HASHTABLE_DEFAULT_INIT_CAPACITY 5
 
-/* 未初期化のハッシュテーブルを、デフォルトの初期容量で初期化する。
- * hashfunc はキーのハッシュ値を求めるハッシュ関数へのポインタ、
- * keycmp は二つのキーを比較する比較関数へのポインタである。
- * 比較関数は、二つのキーが等しいとき 0 を、異なるときに非 0 を返す。 */
+/* Initializes a hashtable with the default capacity.
+ * `hashfunc' is a hash function to hash keys.
+ * `keycmp' is a function that compares two keys. */
 hashtable_T *ht_init(hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
 {
     return ht_initwithcapacity(

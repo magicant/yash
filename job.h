@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.h: job control */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,42 +24,42 @@
 #include <sys/types.h>
 
 
-/* ジョブ／プロセスの状態 */
+/* status of job/process */
 typedef enum jobstatus_T {
     JS_RUNNING, JS_STOPPED, JS_DONE,
 } jobstatus_T;
 
-/* ジョブを構成するプロセスの情報 */
+/* info about a process in a job */
 typedef struct process_T {
-    pid_t             pr_pid;          /* プロセス ID */
-    enum jobstatus_T  pr_status;       /* プロセスの状態 */
+    pid_t             pr_pid;          /* process ID */
+    enum jobstatus_T  pr_status;
     int               pr_statuscode;
-    wchar_t          *pr_name;         /* 表示用のプロセス名 */
+    wchar_t          *pr_name;         /* process name made from command line */
 } process_T;
-/* pr_pid が 0 のとき、そのプロセスは fork せずに実行できたことを示す。このとき
- * pr_pid は JS_DONE で、そのコマンドの終了コードが pr_statuscode に入る。
- * pr_pid が正数のとき、それはプロセス ID である。このときの pr_statuscode は
- * waitpid が返した status の値である。 */
+/* If `pr_pid' is 0, the process is finished without `fork'ing from the shell.
+ * In this case, `pr_status' is `JS_DONE' and `pr_statuscode' is the exit
+ * status. If `pr_pid' is a positive number, it's the process ID. In this case,
+ * `pr_statuscode' is the status code returned by `waitpid'. */
 
-/* ジョブの情報 */
+/* info about a job */
 typedef struct job_T {
-    pid_t             j_pgid;          /* プロセスグループ ID */
-    enum jobstatus_T  j_status;        /* ジョブの状態 */
-    bool              j_statuschanged; /* 状態変化を報告していないなら true */
-    bool              j_loop;          /* ループパイプかどうか */
-    size_t            j_pcount;        /* j_procs の要素数 */
-    struct process_T  j_procs[];       /* 各プロセスの情報 */
+    pid_t             j_pgid;          /* process group ID */
+    enum jobstatus_T  j_status;
+    bool              j_statuschanged; /* job's status not yet reported? */
+    bool              j_loop;          /* loop pipe? */
+    size_t            j_pcount;        /* # of processes in `j_procs' */
+    struct process_T  j_procs[];       /* info about processes */
 } job_T;
-/* ジョブ制御無効時、ジョブのプロセスグループ ID はシェルと同じになるので、
- * j_pgid は 0 となる。 */
+/* When job control is off, `j_pgid' is 0 since the job shares the process group
+ * ID with the shell. */
 
 
-/* アクティブジョブのジョブ番号 */
+/* job number of the active job */
 #define ACTIVE_JOBNO 0
 
-/* プロセスがシグナルによって終了した場合は、シグナル番号に TERMSIGOFFSET を
- * 加えた値がそのプロセスの終了ステータスになる。
- * bash/zsh/dash ではこの値は 128、ksh では 256 である。 */
+/* When a process is stopped/terminated by a signal, this value is added to the
+ * signal number to make the value of the exit status.
+ * 128 in bash/zsh/dash, 256 in ksh. */
 #define TERMSIGOFFSET 384
 
 extern void init_job(void);
@@ -80,7 +80,7 @@ extern void wait_for_job(size_t jobnumber, bool return_on_stop);
 extern int calc_status_of_job(const job_T *job)
     __attribute__((pure,nonnull));
 
-#define PJS_ALL 0  /* 全てのジョブを表す */
+#define PJS_ALL 0  /* stands for all the jobs */
 extern void print_job_status(
 	size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     __attribute__((nonnull));

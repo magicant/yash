@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* wfnmatch.c: fnmatch for wide-character strings */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,45 +44,45 @@ static wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
     __attribute__((nonnull));
 
 
-/* ワイド文字列に対するパターンマッチを行う。
- * pat:    マッチさせるパターン。
- * s:      マッチの対象となる文字列。
- * flags:  マッチの種類を指定するフラグ。以下の値のビットごとの OR。
- *         WFNM_NOESCAPE: バックスラッシュをエスケープとして扱わない
- *         WFNM_PATHNAME: L'/' を L"*" や L"?" にマッチさせない。
- *         WFNM_PERIOD: 先頭の L'.' を L"*" や L"?" にマッチさせない。
- *         WFNM_CASEFOLD: 大文字小文字を区別しない。
- * type:   マッチ結果の長さの優先順位を指定する値。
- *         WFNM_WHOLE なら pat が s 全体にマッチする場合のみ成功とする。
- *         WFNM_LONGEST なら s の先頭部分にできるだけ長くマッチさせる。
- *         WFNM_SHORTEST なら s の先頭部分にできるだけ短くマッチさせる。
- * 戻り値: マッチしたら、その s の先頭部分の文字数。
- *         マッチしなかったら WFNM_NOMATCH、エラーなら WFNM_ERROR。
- * エラーが返るのは基本的にパターンが不正な場合だが、パターンが不正でも常に
- * エラーを返すわけではない。 */
+/* Does a pattern matching on a wide string.
+ * pat:    a pattern
+ * s:      a string to be matched.
+ * flags:  a bitwise OR of the following flags:
+ *         WFNM_NOESCAPE: don't treat backslashes as escape characters.
+ *         WFNM_PATHNAME: L"*" and L"?" don't match to L'/'
+ *         WFNM_PERIOD:   L"*" and L"?" don't match to L'.' at the head.
+ *         WFNM_CASEFOLD: case insensitive matching
+ * type:   one of:
+ *         WFNM_WHOLE:    match the whole string only
+ *         WFNM_LONGEST:  match as long as possible
+ *         WFNM_SHORTEST: match as short as possible
+ * Returns the number of characters that matched if successful or
+ * WFNM_NOMATCH if the string doesn't match or WFNM_ERROR on error.
+ * WFNM_ERROR means that the pattern is invalid, though WFNM_ERROR is not
+ * always returned when the pattern is invalid. */
 size_t wfnmatch(const wchar_t *pat, const wchar_t *s,
 	enum wfnmflags flags, enum wfnmtype type)
 {
     return wfnmatchl(pat, s, flags, type, shortest_match_length(pat, flags));
 }
 
-/* ワイド文字列に対するパターンマッチを行う。
- * pat:    マッチさせるパターン。
- * s:      マッチの対象となる文字列。
- * flags:  マッチの種類を指定するフラグ。以下の値のビットごとの OR。
- *         WFNM_NOESCAPE: バックスラッシュをエスケープとして扱わない
- *         WFNM_PATHNAME: L'/' を L"*" や L"?" にマッチさせない。
- *         WFNM_PERIOD: 先頭の L'.' を L"*" や L"?" にマッチさせない。
- *         WFNM_CASEFOLD: 大文字小文字を区別しない。
- * type:   マッチ結果の長さの優先順位を指定する値。
- *         WFNM_WHOLE なら pat が s 全体にマッチする場合のみ成功とする。
- *         WFNM_LONGEST なら s の先頭部分にできるだけ長くマッチさせる。
- *         WFNM_SHORTEST なら s の先頭部分にできるだけ短くマッチさせる。
- * minlen: 予め計算した shortest_match_length(pat, flags) の値。
- * 戻り値: マッチしたら、その s の先頭部分の文字数。
- *         マッチしなかったら WFNM_NOMATCH、エラーなら WFNM_ERROR。
- * エラーが返るのは基本的にパターンが不正な場合だが、パターンが不正でも常に
- * エラーを返すわけではない。 */
+/* Does a pattern matching on a wide string.
+ * pat:    a pattern
+ * s:      a string to be matched.
+ * flags:  a bitwise OR of the following flags:
+ *         WFNM_NOESCAPE: don't treat backslashes as escape characters.
+ *         WFNM_PATHNAME: L"*" and L"?" don't match to L'/'
+ *         WFNM_PERIOD:   L"*" and L"?" don't match to L'.' at the head.
+ *         WFNM_CASEFOLD: case insensitive matching
+ * type:   one of:
+ *         WFNM_WHOLE:    match the whole string only
+ *         WFNM_LONGEST:  match as long as possible
+ *         WFNM_SHORTEST: match as short as possible
+ * minlen: the value of `shortest_match_length(pat, flags)'
+ * Returns the number of characters that matched if successful or
+ * WFNM_NOMATCH if the string doesn't match or WFNM_ERROR on error.
+ * WFNM_ERROR means that the pattern is invalid, though WFNM_ERROR is not
+ * always returned when the pattern is invalid. */
 size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 	enum wfnmflags flags, enum wfnmtype type, size_t minlen)
 {
@@ -91,7 +91,7 @@ size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
     if (!pat[0])
 	return s[0] ? WFNM_NOMATCH : 0;
 
-    /* 先頭のピリオドをチェック */
+    /* check a period at the head */
     if (PERIOD && FOLD(s[0]) == L'.' && pat[0] != L'.')
 	return WFNM_NOMATCH;
 
@@ -100,7 +100,7 @@ size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 	return WFNM_NOMATCH;
 
     if (type == WFNM_WHOLE) {
-	/* パターンの末尾が一致するか、一文字だけチェック */
+	/* check one character at the tail */
 	size_t patlen = wcslen(pat);
 	if (patlen > 0 && slen > 0) {
 	    switch (pat[patlen-1]) {
@@ -120,7 +120,7 @@ size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 	return r + (s - saves);
 }
 
-/* 指定したパターンがマッチする最小の文字数をカウントする。 */
+/* Counts the minimum number of characters that `pat' matches. */
 size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
 {
     size_t count = 0;
@@ -155,8 +155,8 @@ size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
     }
 }
 
-/* L'[' で始まるパターンブラケット式を飛ばして L']' の次の文字へのポインタを
- * 返す。対応する L']' がなければ pat をそのまま返す。 */
+/* Skips a bracket expression starting with L'[' and returns a pointer to the
+ * closing L']'. If no corresponding L']' is found, returns `pat'. */
 wchar_t *skip_bracket(const wchar_t *pat, enum wfnmflags flags)
 {
     const wchar_t *savepat = pat;
@@ -192,7 +192,7 @@ wchar_t *skip_bracket(const wchar_t *pat, enum wfnmflags flags)
 		    return (wchar_t *) pat + 1;
 		break;
 	    case L'/':
-		/* PATHNAME では L'/' を含むブラケット記法は使えない */
+		/* L'/' is not allowed inside a bracket expr. if PATHNAME */
 		if (PATHNAME)
 		    goto fail;
 		break;
@@ -206,9 +206,9 @@ fail:
     return (wchar_t *) savepat;
 }
 
-/* 実際にマッチングを行う。
- * lendiff: wcslen(s) - shortest_match_length(p, flags)
- * 他の引数、戻り値は wfnmatch に準ずる。 */
+/* Do matching.
+ * `lendiff' is (wcslen(s) - shortest_match_length(p, flags)).
+ * See `wfnmatch' for the other arguments. */
 size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 	enum wfnmflags flags, enum wfnmtype type)
 {
@@ -223,16 +223,17 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 	    else
 		return s - saves;
 	case L'*':
-	    do p++; while (*p == L'*');  /* L'*' 以外のパターンまでスキップ */
+	    do p++; while (*p == L'*');  /* skip until non-L'*' */
 	    if (*p == L'\0') {
-		/* パターンが L'*' で終わっているならマッチ完了 */
+		/* if the pattern ends with L'*', we're done */
 		switch (type) {
 		case WFNM_WHOLE:
 		case WFNM_LONGEST:  return (s - saves) + wcslen(s);
 		case WFNM_SHORTEST: return (s - saves);
 		}
 	    }
-	    /* L'*' に何文字分マッチするかを変えながら、パターンの残りを試す */
+	    /* try matching the remaining portion of the pattern, increasing
+	     * the number of character that match L'*' until successful */
 	    size_t submatchlen = WFNM_NOMATCH;
 	    do {
 		size_t r = wfnmatchn(p, s, lendiff, flags, type);
@@ -247,7 +248,7 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 		if (PATHNAME && FOLD(*s) == L'/')
 		    break;
 		s++;
-	    } while (lendiff-- != 0);  /* lendiff が負になったらやめる */
+	    } while (lendiff-- != 0);  /* loop until `lendiff' is negative */
 	    return submatchlen;
 	case L'?':
 	    if ((PATHNAME && FOLD(*s) == L'/') || (*s == L'\0'))
@@ -275,7 +276,7 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
 	    if (FOLD(*p) != sc)
 		return WFNM_NOMATCH;
 	    if (PATHNAME && PERIOD) {
-		/* PATHNAME && PERIOD の場合、L"/." の二文字は一気に処理する */
+		/* if PATHNAME && PERIOD, check L"/." at a time */
 		if (sc == L'/' && FOLD(*(s+1)) == L'.') {
 		    if (*(p+1) != L'.') return WFNM_NOMATCH;
 		    p += 2;  s += 2;
@@ -288,11 +289,10 @@ size_t wfnmatchn(const wchar_t *p, const wchar_t *s, size_t lendiff,
     }
 }
 
-/* ブラケット記法を解析し、マッチするか調べる。
- * マッチしたらその分 *pp を進める。しなかったらそのまま。
- * 戻り値は wfnmatch に準ずる。
- * 指定したパターンがブラケット記法ではなかった場合、エラーにすべきかどうかに
- * よって 0 か WFNM_ERROR を返す。 */
+/* Parses a bracket expression and checks if it matches.
+ * If it matches, `*pp' is advanced to the character right after the match.
+ * If not, `*pp' is unchanged.
+ * See `wfnmatch' for the meaning of the return value. */
 size_t match_bracket(
 	const wchar_t **pp, const wchar_t *s, enum wfnmflags flags)
 {
@@ -303,19 +303,18 @@ size_t match_bracket(
     assert(*p == L'[');
     p++;
 
-    /* マッチングの否定かどうかを調べる。
-     * PATHNAME がオフのとき、L'[' の直後に L'^' がある場合はマッチングの成否を
-     * 逆転する。PATHNAME がオンのときは L'^' の代わりに L'!' を使うことに
-     * なっているが、POSIX ではこの場合の L'^' の扱いを定めていない。
-     * この実装では L'^' は常に成否を逆転するものとして扱う。 */
+    /* check for negation.
+     * If not PATHNAME, L'^' following L'[' inverts the matching result.
+     * If PATHNAME, L'!' is to be used instead of L'^', where the meaning of
+     * L'^' is not specified by POSIX. We treat L'^' as same as L'!' in this
+     * case. */
     bool neg = (*p == L'^') || (PATHNAME && *p == L'!');
     if (neg)
 	p++;
 
-    /* この実装は、L"[.ch.]" のようなコレーティングシンボルや
-     * L"[=a=]" のような等価クラス記法には厳密には対応しない。
-     * これらはどちらも最初の一文字にマッチするだけである。
-     * 例えば、L"[.ch.]" は単なる L"c" に等しい。 */
+    /* We don't support collating symbols like L"[.ch.]" or equivalent classes
+     * like L"[=a=]". These pattern simply matches to the first character of it.
+     * For example, L"[.ch.]" is equivalent to L"c". */
 
     for (bool initial = true; ; initial = false) {
 	wint_t rangestart, rangeend;
@@ -406,10 +405,12 @@ size_t match_bracket(
     }
 }
 
-/* L"[:" で始まる文字クラスのマッチングを判定する。
- * p:      L"[:" の直後の位置
- * c:      判定する文字。
- * 戻り値: L":]" の直後の位置。またはパターンが不正なら NULL。 */
+/* Checks if a character class matches or not.
+ * `p' is a pointer to the character right after L"[:".
+ * `c' is a character to be matched.
+ * The result is assigned to `*match'.
+ * Returns the character right after L":]" in the pattern, or NULL if there is
+ * no L":]" in the pattern. */
 wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
 {
     const wchar_t *end = wcsstr(p, L":]");
@@ -427,9 +428,9 @@ wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
     return (wchar_t *) end + 2;
 }
 
-/* パターン内に L'*' や L'?' などの特殊文字があるかどうか調べる。
- * パターンは WFNM_PATHNAME ありで WFNM_NOESCAPE なしの設定とみなす。
- * 結果が false ならば、ファイル名展開の必要はない。 */
+/* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
+ * It's assumed that PATHNAME=true and NOESCAPE=false.
+ * If the result is false, the pattern is not a filename expansion pattern. */
 bool pattern_has_special_char(const wchar_t *pat)
 {
     for (;;) {

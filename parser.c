@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 #include "expand.h"
 
 
-/********** 解析した構文木データを解放するルーチン **********/
+/********** Functions that Free Parse Trees **********/
 
 static void pipesfree(pipeline_T *p);
 static void ifcmdsfree(ifcommand_T *i);
@@ -211,7 +211,7 @@ void redirsfree(redir_T *r)
 }
 
 
-/********** 構文解析に関する補助ルーチン **********/
+/********** Auxiliary Functions for Parser **********/
 
 static inline bool is_name_char(wchar_t c)
     __attribute__((const));
@@ -219,7 +219,8 @@ static wchar_t *skip_name(const wchar_t *s)
     __attribute__((pure,nonnull));
 
 
-/* 引数が名前構成文字であるかどうか調べる */
+/* Checks if the specified character can be used in a variable name.
+ * Returns true for a digit. */
 bool is_name_char(wchar_t c)
 {
     switch (c) {
@@ -241,8 +242,8 @@ bool is_name_char(wchar_t c)
     }
 }
 
-/* s の先頭にある、識別子として正しい部分を飛ばして、残りの部分へのポインタを
- * 返す。 */
+/* Skips an identifier at the head of the specified string and returns a
+ * pointer to the character right after the identifier in the string. */
 wchar_t *skip_name(const wchar_t *s)
 {
     if (!iswdigit(*s))
@@ -252,9 +253,9 @@ wchar_t *skip_name(const wchar_t *s)
 }
 
 
-/********** 構文解析ルーチン **********/
+/********** Parser **********/
 
-/* 解析を中断する際に途中経過を保存するための構造体 */
+/* Object used to save the state of parsing on the way. */
 struct parsestate_T {
     parseinfo_T *cinfo;
     bool cerror;
@@ -362,22 +363,22 @@ static void print_errmsg_token_missing(const wchar_t *token, size_t index)
 #define QUOTES L"\"'\\"
 
 
-/* 解析中のソースのデータ */
+/* object containing the info for parsing */
 static parseinfo_T *cinfo;
-/* 現在の解析でエラーが発生しているなら true */
+/* set true when an error occurs. */
 static bool cerror;
-/* 解析するソースを取り込むバッファ */
+/* buffer to contain the source code */
 static xwcsbuf_T cbuf;
-/* 現在解析している箇所の cbuf におけるインデックス */
+/* index to the point currently parsing in `cbuf' */
 static size_t cindex;
-/* 読み込みを控えているヒアドキュメントのリスト */
+/* list of here-documents whose contents are to be read */
 static plist_T pending_heredocs;
 
 
-/* 解析の途中経過を構造体に保存して返す。
- * 本来 read_and_parse や parse_string は再入できないが、この関数で経過を保存
- * すれば再入できる。この関数を呼んだ後は必ず restore_parse_state で経過を
- * 元に戻すこと。 */
+/* Saves the current parsing state to an object and returns it.
+ * Though `read_and_parse' and `parse_string' cannot be reentered by nature,
+ * they actually can if the parsing state is saved.
+ * Don't forget to call `restore_parse_state' to restore the state. */
 struct parsestate_T *save_parse_state(void)
 {
     struct parsestate_T *result = xmalloc(sizeof *result);
@@ -391,8 +392,7 @@ struct parsestate_T *save_parse_state(void)
     return result;
 }
 
-/* 指定した解析の途中経過を復元する。
- * *state はこの関数内で解放する。 */
+/* Restores the parsing state to the specified state and frees the object. */
 void restore_parse_state(struct parsestate_T *state)
 {
     cinfo = state->cinfo;
@@ -404,23 +404,24 @@ void restore_parse_state(struct parsestate_T *state)
 }
 
 
-/* 以下の解析関数は、エラーが発生しても NULL を返すとは限らない。
- * エラーが発生したかどうかは cerror によって判断する。cerror は serror を
- * 呼び出すと true になる。 */
-/* parse_ で始まる各関数は、自分が解析すべき部分の後の次のトークンの最初の文字
- * まで cindex を進めてから返る。(入力が EOF でない限り) このとき
- * cbuf.contents[cindex] は非 null である。 */
+/* The functions below may not return NULL even on error.
+ * The error condition must be tested by checking `cerror'.
+ * `cerror' is set to true when `serror' is called. */
+/* All the functions named `parse_*' advance `cindex' to the index of the
+ * character right after the functions have parsed. `cbuf.contents[cindex]' is
+ * non-null when these functions return (except when EOF is read). */
 
 
-/* 少なくとも一行の入力を読み取り、解析する。
- * info: 解析情報へのポインタ。全ての値を初期化しておくこと。
- * result: 成功したら *result に解析結果が入る。
- *         コマンドがなければ *result は NULL になる。
- * 戻り値: 成功したら *result に結果を入れて 0 を返す。
- *         構文エラーならエラーメッセージを出して 1 を返す。
- *         入力が最後に達したら EOF を返す。
- *         入力エラーならエラーメッセージを出して EOF を返す。
- * この関数は原則として再入不可能である。 */
+/* An entry point to the parser. Reads at least one line and parses it.
+ * All the members of `info' must be initialized beforehand.
+ * The resulting parse tree is assigned to `*result'. If there is no command in
+ * the next line, NULL is assigned.
+ * Returns 0 if successful,
+ *         1 if a syntax error is found, or
+ *         EOF when EOF is input.
+ * If 1 is returned, at least one error message is printed.
+ * Note that `*result' is assigned if and only if the return value is 0.
+ * This function is not reentrant in itself. */
 int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 {
     cinfo = info;
@@ -462,8 +463,9 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     }
 }
 
-/* 構文エラーメッセージを stderr に出力する。
- * format はこの関数内で gettext に通す。format の最後に改行は不要。 */
+/* Prints an error message to stderr.
+ * `format' is passed to `gettext' in this function.
+ * `format' need not to have a trailing newline. */
 void serror(const char *restrict format, ...)
 {
     va_list ap;
@@ -484,11 +486,8 @@ void serror(const char *restrict format, ...)
     cerror = true;
 }
 
-/* 更なる入力を読み込む
- * 戻り値: 0:   何らかの入力があった。
- *         1:   対話モードで SIGINT を受けた。
- *         EOF: EOF に達したか、エラーがあった。
- * 対話的端末からの入力時、cerror が true なら 1 を返す。 */
+/* Reads more input and returns `cinfo->lastinputresult'.
+ * If input is from a interactive terminal and `cerror' is true, returns 1. */
 int read_more_input(void)
 {
     if (cerror && cinfo->intrinput)
@@ -502,7 +501,8 @@ int read_more_input(void)
     return cinfo->lastinputresult;
 }
 
-/* 指定したインデックスにある行連結を削除し、行番号を更新し、次行を読み込む。 */
+/* Removes a line continuation at the specified index in `cbuf', increments
+ * line number, and reads the next line. */
 void line_continuation(size_t index)
 {
     assert(cbuf.contents[index] == L'\\' && cbuf.contents[index + 1] == L'\n');
@@ -511,10 +511,10 @@ void line_continuation(size_t index)
     read_more_input();
 }
 
-/* 現在位置がナル文字なら次行を読み込む。
- * 現在位置から n 文字以内に行連結があれば次行を読み込んで行連結を行う。
- * ただし、n 文字以内に他の引用符があればそこで処理を止める。 */
-/* n はできるだけ小さくすること。 */
+/* Reads the next line if `cbuf.contents[cindex]' is a null character.
+ * If there is a line continuation within `n' characters from the current
+ * `cindex', calls `line_continuation'.
+ * `n' should be as small as possible. */
 void ensure_buffer(size_t n)
 {
     size_t index = cindex;
@@ -539,10 +539,11 @@ void ensure_buffer(size_t n)
     }
 }
 
-/* cindex を増やして blank・コメント・行連結を飛ばす。必要に応じて
- * read_more_input する。cindex は次の非 blank 文字を指す。コメントを飛ばした
- * 場合はコメントの直後の文字 (普通は改行文字) を指す。行連結は、飛ばすと
- * いうよりは "\\\n" をバッファから削除する。 */
+/* Advances `cindex' to skip blank characters, comments and line continuations.
+ * This function may call `read_more_input' if needed. `cindex' is advanced to
+ * the next non-blank character. If a comment is skipped, `cindex' will point to
+ * the character right after the comment, typically a newline character.
+ * Line continuations are actually removed rather than skipped. */
 void skip_blanks_and_comment(void)
 {
     if (cbuf.contents[cindex] == L'\0')
@@ -550,11 +551,11 @@ void skip_blanks_and_comment(void)
 	    return;
 
 start:
-    /* blank を飛ばす */
+    /* skip blanks */
     while (iswblank(cbuf.contents[cindex]))
 	cindex++;
 
-    /* コメントを飛ばす */
+    /* skip a comment */
     if (cbuf.contents[cindex] == L'#') {
 	do {
 	    cindex++;
@@ -562,16 +563,16 @@ start:
 		&& cbuf.contents[cindex] != L'\0');
     }
 
-    /* 行連結を削除する */
+    /* remove line continuation */
     if (cbuf.contents[cindex] == L'\\' && cbuf.contents[cindex + 1] == L'\n') {
 	line_continuation(cindex);
 	goto start;
     }
 }
 
-/* 次のトークンに達するまで cindex を増やして blank 文字・改行文字・コメントを
- * 飛ばす。必要に応じて read_more_input する。
- * 戻り値: 一つ以上の NEWLINE トークンを飛ばしたかどうか */
+/* Advances `cindex' to skip blank characters, comments and newlines, until
+ * the next token. This function may call `read_more_input' if needed.
+ * Returns true iff at least one NEWLINE token is skipped. */
 bool skip_to_next_token(void)
 {
     bool newline = false;
@@ -585,8 +586,8 @@ bool skip_to_next_token(void)
     return newline;
 }
 
-/* 現在位置が改行文字のとき、NEWLINE トークンとして解釈して次の行に進む。
- * ヒアドキュメントの読み込みを控えているならそれも行う。 */
+/* Parses a NEWLINE token at the current index and proceeds to the next line.
+ * The contents of pending here-documents is read if any. */
 void next_line(void)
 {
     assert(cbuf.contents[cindex] == L'\n');
@@ -599,7 +600,7 @@ void next_line(void)
     pl_clear(&pending_heredocs);
 }
 
-/* 指定した文字がトークン区切り文字かどうかを調べる */
+/* Checks if the specified character is a token separator */
 bool is_token_delimiter_char(wchar_t c)
 {
     return iswblank(c) || c == L'\0' || c == L'\n'
@@ -607,7 +608,7 @@ bool is_token_delimiter_char(wchar_t c)
 	|| c == L'<' || c == L'>' || c == L'(' || c == L')';
 }
 
-/* 指定した文字が単純コマンドを区切る文字かどうかを調べる */
+/* Checks if the specified character delimits a simple command. */
 bool is_command_delimiter_char(wchar_t c)
 {
     return c == L'\0' || c == L'\n'
@@ -624,20 +625,19 @@ bool is_closing_brace(wchar_t c)
     return c == L'}' || c == L'\0';
 }
 
-/* cbuf の指定したインデックスにトークン token があるか調べる。
- * token: 調べるトークン
- * index: cbuf へのインデックス (cbuf.length 以下) */
-/* token には、他の演算子トークンの真の部分文字列であるような文字列を
- * 指定してはならない。 */
-/* 予め ensure_buffer(wcslen(token)) を行っておくこと。 */
+/* Checks if there is a `token' at the specified index in `cbuf'.
+ * `index' must not be greater than `cbuf.length'.
+ * `token' must not be a proper substring of another operator token.
+ * `ensure_buffer(wcslen(token))' must be done beforehand. */
 bool is_token_at(const wchar_t *token, size_t index)
 {
     wchar_t *c = matchwcsprefix(cbuf.contents + index, token);
     return c && is_token_delimiter_char(*c);
 }
 
-/* cbuf の指定したインデックスに ( や { や if などの「開く」トークンがあるか
- * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。 */
+/* Checks if there is a 'opening' token such as "(", "{" and "if" at the
+ * specified index in `cbuf'. If there is one, the token string is returned.
+ * Otherwise NULL is returned. */
 const wchar_t *check_opening_token_at(size_t index)
 {
     if (true || index + 6 >= cindex)
@@ -652,9 +652,10 @@ const wchar_t *check_opening_token_at(size_t index)
     return NULL;
 }
 
-/* cbuf の指定したインデックスに ) や } や fi などの「閉じる」トークンがあるか
- * 調べる。あれば、そのトークンを示す文字列定数を返す。なければ NULL を返す。
- * 「閉じる」トークンというのは、and/or リストを終わらせる印になるものである。*/
+/* Checks if there is a 'closing' token such as ")", "}" and "fi" at the
+ * specified index in `cbuf'. If there is one, the token string is returned.
+ * Otherwise NULL is returned.
+ * Closing tokens delimit and/or lists. */
 const wchar_t *check_closing_token_at(size_t index)
 {
     ensure_buffer(5);
@@ -672,15 +673,14 @@ const wchar_t *check_closing_token_at(size_t index)
     return NULL;
 }
 
-/* 区切りの良いところまで解析を進める。すなわち、少くとも一行の入力を読み取り、
- * 複合コマンドなどの内部でない改行の直後まで解析する。
- * この関数を呼ぶ前に skip_blanks_and_comment をする必要はない。 */
+/* Parses up to the end of the current line.
+ * You don't have to call `skip_blanks_and_comment' beforehand. */
 and_or_T *parse_command_list(void)
 {
     and_or_T *first = NULL, **lastp = &first;
     bool separator = true;
-    /* 二つ目以降のトークンを解析するにはセパレータ ('&', ';', または一つ以上の
-     * 改行) が必要となる。 */
+    /* To parse a command after another, there must be "&", ";" or one or more
+     * newlines as the separator. */
 
     while (!cerror) {
 	skip_blanks_and_comment();
@@ -712,15 +712,15 @@ and_or_T *parse_command_list(void)
     return first;
 }
 
-/* 「閉じる」トークンが現れるまでコマンドを解析する。
- * この関数を呼ぶ前に skip_to_next_token をする必要はない。 */
+/* Parses commands until a closing token is found.
+ * You don't have to call `skip_blanks_and_comment' beforehand. */
 and_or_T *parse_compound_list(void)
 {
     and_or_T *first = NULL, **lastp = &first;
     bool savecerror = cerror;
     bool separator = true;
-    /* 二つ目以降のトークンを解析するにはセパレータ ('&', ';', または一つ以上の
-     * 改行) が必要となる。 */
+    /* To parse a command after another, there must be "&", ";" or one or more
+     * newlines as the separator. */
 
     if (!cinfo->intrinput)
 	cerror = false;
@@ -750,9 +750,9 @@ and_or_T *parse_compound_list(void)
     return first;
 }
 
-/* 一つの and/or リストを解析する。
- * 末尾の '&' または ';' は解析結果には反映するが、cindex は '&'/';' の後では
- * なく '&'/';' そのもののインデックスを指した状態で返る。 */
+/* Parses one and/or list.
+ * The result reflects the trailing "&" or ";", but `cindex' points to the
+ * delimiter "&" or ";" when the function returns. */
 and_or_T *parse_and_or_list(void)
 {
     and_or_T *result = xmalloc(sizeof *result);
@@ -762,11 +762,11 @@ and_or_T *parse_and_or_list(void)
     return result;
 }
 
-/* and/or リスト内の全てのパイプラインを解析する。 */
+/* Parses all pipelines in the and/or list. */
 pipeline_T *parse_pipelines_in_and_or(void)
 {
     pipeline_T *first = NULL, **lastp = &first;
-    bool cond = cond;  /* GCC の警告を黙らせるために自己代入する */
+    bool cond = cond;
 
     for (;;) {
 	pipeline_T *p = parse_pipeline();
@@ -792,7 +792,7 @@ pipeline_T *parse_pipelines_in_and_or(void)
     return first;
 }
 
-/* 一つのパイプライン ('|' で繋がった一つ以上のコマンド) を解析する。 */
+/* Parses one pipeline. */
 pipeline_T *parse_pipeline(void)
 {
     pipeline_T *result = xmalloc(sizeof *result);
@@ -822,7 +822,7 @@ pipeline_T *parse_pipeline(void)
     return result;
 }
 
-/* パイプラインの本体 (間を '|' で繋いた一つ以上のコマンド) を解析する。 */
+/* Parses the body of a pipeline. */
 command_T *parse_commands_in_pipeline(void)
 {
     command_T *first = NULL, **lastp = &first;
@@ -845,10 +845,10 @@ command_T *parse_commands_in_pipeline(void)
     return first;
 }
 
-/* 一つのコマンドを解析する。 */
+/* Parses one command. */
 command_T *parse_command(void)
 {
-    /* Note: check_closing_token_at は ensure_buffer(5) を含む */
+    /* Note: `check_closing_token_at` includes `ensure_buffer(5)'. */
     const wchar_t *t = check_closing_token_at(cindex);
     if (t) {
 	serror(get_errmsg_unexpected_token(t), t);
@@ -879,7 +879,7 @@ command_T *parse_command(void)
     if (result)
 	return result;
 
-    /* 普通の単純なコマンドを解析 */
+    /* parse as a simple command */
     result = xmalloc(sizeof *result);
     redir_T **redirlastp;
 
@@ -896,8 +896,9 @@ command_T *parse_command(void)
     return result;
 }
 
-/* 変数代入とリダイレクトを解析する。
- * 結果を c->c_assigns と c->c_redirs に代入し、新しい redirlastp を返す。 */
+/* Parses assignments and redirections.
+ * The results are assigned to `c->c_assigns' and `c->c_redirs'.
+ * The new `redirlastp' is returned. */
 redir_T **parse_assignments_and_redirects(command_T *c)
 {
     assign_T **assgnlastp = &c->c_assigns;
@@ -922,12 +923,12 @@ redir_T **parse_assignments_and_redirects(command_T *c)
     return redirlastp;
 }
 
-/* ワードとリダイレクトを解析する。
- * リダイレクトの解析結果は *redirlastp に入る。
- * ワードの解析結果は wordunit_T * を void * に変換したものの配列への
- * ポインタとして返す。
- * *redirlastp は予め NULL を代入しておくこと。
- * first が true なら最初のワードは全ての種類のエイリアスを展開する。 */
+/* Parses words and redirections.
+ * The parsing result of redirections is assigned to `*redirlastp'
+ * The parsing result of assignments is returned as an array of pointers to
+ * word units that are cast to (void *).
+ * `*redirlastp' must be initialized to NULL beforehand.
+ * If `first' is true, the first word is subject to any-type alias expansion. */
 void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 {
     plist_T wordlist;
@@ -950,8 +951,9 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     return pl_toary(&wordlist);
 }
 
-/* 0 個以上のリダイレクトを解析する。解析結果は *redirlastp に入る。
- * *redirlastp は予め NULL を代入しておくこと。 */
+/* Parses zero or more redirections.
+ * The parsing result is assigned to `*redirlastp'
+ * `*redirlastp' must be initialized to NULL beforehand. */
 void parse_redirect_list(redir_T **lastp)
 {
     redir_T *redir;
@@ -962,8 +964,8 @@ void parse_redirect_list(redir_T **lastp)
     }
 }
 
-/* 現在位置に変数代入があれば、それを解析して結果を返す。
- * なければ、何もせず NULL を返す。 */
+/* If there is an assignment at the current index, parses and returns it.
+ * Otherwise, does nothing and returns NULL. */
 assign_T *tryparse_assignment(void)
 {
     size_t namelen;
@@ -982,7 +984,6 @@ assign_T *tryparse_assignment(void)
 
     ensure_buffer(1);
     if (is_token_delimiter_char(cbuf.contents[cindex])) {
-	/* '=' の後は空文字列 */
 	result->value = NULL;
     } else {
 	result->value = parse_word(noalias);
@@ -990,8 +991,8 @@ assign_T *tryparse_assignment(void)
     return result;
 }
 
-/* 現在位置にリダイレクトがあれば、それを解析して結果を返す。
- * なければ、何もせず NULL を返す。 */
+/* If there is a redirection at the current index, parses and returns it.
+ * Otherwise, does nothing and returns NULL. */
 redir_T *tryparse_redirect(void)
 {
     int fd;
@@ -1004,7 +1005,7 @@ reparse:
 	errno = 0;
 	fd = wcstol(cbuf.contents + cindex, &endptr, 10);
 	if (errno)
-	    fd = -1;  /* 無効な値 */
+	    fd = -1;  /* invalid fd */
 	if (endptr[0] == L'\\' && endptr[1] == L'\n') {
 	    line_continuation(endptr - cbuf.contents);
 	    goto reparse;
@@ -1070,22 +1071,23 @@ wordunit_T *parse_word(aliastype_T type)
     return parse_word_to(type, is_token_delimiter_char);
 }
 
-/* 現在位置のエイリアスを展開し、ワードを解析する。
- * type: 展開するエイリアスの種類
- * testfunc: ワード区切り文字かどうかを判別する関数
- *       解析は、エスケープされていなくて testfunc が false を返す文字まで進む。
- *       testfunc は、L'\0' に対して true を返さねばならない。
- * ワードがなくてもエラーを出さない。 */
+/* Expands an alias and parses a word at the current index.
+ * `type' specifies the type of aliases to be expanded.
+ * `testfunc' is a function that determines if a character is a word delimiter.
+ * It must return true for L'\0'.
+ * The parsing process proceeds up to an unescaped character `testfunc' returns
+ * false for. It is not an error if there is no characters to be a word. */
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
     wordunit_T *first = NULL, **lastp = &first, *wu;
-    bool indq = false;  /* 二重引用符 " の中かどうか */
+    bool indq = false;  /* in double quotes? */
     size_t startindex = cindex;
 
-    // TODO parser.c: parse_word: エイリアス展開
+    // TODO parser.c: parse_word: alias expansion
     (void) type;
 
-/* startindex から cindex の手前までの文字列を *lastp に追加する。 */
+/* appends the substring from `startindex' to `cindex' as a new word unit
+ * to `*lastp' */
 #define MAKE_WORDUNIT_STRING                                                 \
     do {                                                                     \
         if (startindex != cindex) {                                          \
@@ -1152,10 +1154,10 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
     return first;
 }
 
-/* 次の単一引用符 ' が現れるまで cindex を増やして飛ばす。
- * cindex は見付かった ' を指した状態で返る。
- * よって cindex が最初から ' を指している場合は何もしない。
- * ' が見付からずに EOF に達したらエラーを出す。 */
+/* Skips to the next single quote.
+ * When the function returns, `cindex' points to the single quote.
+ * If `cindex' points to a single quote when the function is called, `cindex' is
+ * not advanced. It is an error if there is no single quote before EOF. */
 void skip_to_next_single_quote(void)
 {
     for (;;) {
@@ -1178,10 +1180,11 @@ void skip_to_next_single_quote(void)
     }
 }
 
-/* '$' または '`' で始まるパラメータ展開やコマンド置換を解析する。
- * cindex は '$' か '`' を指した状態で呼び出され、解析した部分の直後の文字を
- * 指した状態で返る。'$' の後にパラメータ展開などがなければ、cindex は最初の
- * まま返る。さもなくば、cindex は少なくとも 1 以上増える。 */
+/* Parses a parameter expansion or command substitution that starts with '$' or
+ * '`'. `cindex' must point to '$' or '`' when the function is called, and is
+ * advanced to right after the expansion/substitution.
+ * If `cindex' points to '$' but it's not an expansion, `cindex' is unchanged
+ * and NULL is returned. Otherwise `cindex' is advanced at least by 1. */
 wordunit_T *parse_special_word_unit(void)
 {
     switch (cbuf.contents[cindex++]) {
@@ -1207,14 +1210,15 @@ wordunit_T *parse_special_word_unit(void)
     }
 }
 
-/* { } で囲んでいないパラメータを解析する。
- * cindex は '$' の直後の文字を指した状態で呼ばれ、変数名部分の直後の文字を
- * 指した状態で返る。正しいパラメータがなければ、cindex を元より 1 少なくして
- * NULL を返す。 */
+/* Parses a parameter that is not enclosed by { }.
+ * `cindex' points to the character right after '$' when the function is called,
+ * and right after the parameter name when returns.
+ * If there is not a parameter, NULL is returned with `cindex' pointing to '$'.
+ */
 wordunit_T *tryparse_paramexp_raw(void)
 {
     paramexp_T *pe;
-    size_t namelen;  /* 変数名の長さ */
+    size_t namelen;  /* length of parameter name */
 
     ensure_buffer(1);
     switch (cbuf.contents[cindex]) {
@@ -1257,9 +1261,8 @@ fail:
     return NULL;
 }
 
-/* "${" で始まるパラメータ展開を解析する。
- * cindex は '{' を指した状態で呼ばれ、対応する '}' の直後の文字を
- * 指した状態で返る。 */
+/* Parses a parameter expansion starting with "${".
+ * `cindex' points to '{' when the function is called, and '}' when returns. */
 wordunit_T *parse_paramexp_in_brase(void)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
@@ -1270,7 +1273,7 @@ wordunit_T *parse_paramexp_in_brase(void)
     assert(cbuf.contents[cindex] == L'{');
     cindex++;
 
-    /* PT_NUMBER を解析 */
+    /* parse PT_NUMBER */
     ensure_buffer(3);
     if (cbuf.contents[cindex] == L'#'
 	    && cbuf.contents[cindex + 1] != L'}'
@@ -1281,7 +1284,7 @@ wordunit_T *parse_paramexp_in_brase(void)
 	cindex++;
     }
 
-    /* 入れ子のパラメータ展開を解析 */
+    /* parse nested expansion */
     /* ensure_buffer(2); */
     if (!posixly_correct && cbuf.contents[cindex] == L'{') {
 	pe->pe_type |= PT_NEST;
@@ -1296,7 +1299,7 @@ wordunit_T *parse_paramexp_in_brase(void)
 	    goto parse_name;
     } else {
 parse_name:;
-	/* 入れ子でなければ、普通に変数名を取り出す */
+	/* no nesting: parse parameter name */
 	size_t namestartindex = cindex;
 	switch (cbuf.contents[cindex]) {
 	    case L'@':  case L'*':  case L'#':  case L'?':
@@ -1316,14 +1319,14 @@ make_name:
 	assert(pe->pe_name != NULL);
     }
 
-    /* PT_COLON を解析 */
+    /* parse PT_COLON */
     ensure_buffer(3);
     if (cbuf.contents[cindex] == L':') {
 	pe->pe_type |= PT_COLON;
 	cindex++;
     }
 
-    /* '-' とか '+' とか '#' とかを解析 */
+    /* parse '-', '+', '#', etc. */
     switch (cbuf.contents[cindex]) {
     case L'-':   pe->pe_type |= PT_MINUS;                    goto parse_subst;
     case L'+':   pe->pe_type |= PT_PLUS;                     goto parse_subst;
@@ -1406,12 +1409,11 @@ fail:
     return NULL;
 }
 
-/* "$(" で始まるコマンド置換を解析する。
- * cindex は '(' を指した状態で呼ばれ、対応する ')' の直後の文字を指した状態で
- * 返る。 */
+/* Parses a command substitution starting with "$(".
+ * `cindex' points to '(' when the function is called, and ')' when returns. */
 wordunit_T *parse_cmdsubst_in_paren(void)
 {
-    // TODO parser: parse_cmdsubst_in_paren: エイリアスを一時的に無効にする
+    // TODO parser: parse_cmdsubst_in_paren: temporarily disable aliases
     plist_T save_pending_heredocs = pending_heredocs;
     pl_init(&pending_heredocs);
 
@@ -1438,9 +1440,9 @@ wordunit_T *parse_cmdsubst_in_paren(void)
     return result;
 }
 
-/* '`' で始まるコマンド置換を解析する。
- * cindex は '`' の直後の文字を指した状態で呼ばれ、対応する '`' の直後の文字を
- * 指した状態で返る。 */
+/* Parses a command substitution enclosed by backquotes.
+ * `cindex' points to the character right after the starting '`' when the
+ * function is called, and right after the ending '`' when returns. */
 wordunit_T *parse_cmdsubst_in_backquote(void)
 {
     xwcsbuf_T buf;
@@ -1485,10 +1487,10 @@ end:
     return result;
 }
 
-/* "$((" で始まる数式展開を解析する。
- * cindex は '$' の直後の '(' を指した状態で呼ばれ、成功すれば対応する "))" の
- * 直後の文字を指した状態で返る。数式展開に失敗すれば、cindex は元のままで
- * NULL を返す。 */
+/* Parses a arithmetic expansion.
+ * `cindex' points to the character right after '$' when the function is called,
+ * and right after the whole expansion when returns. If there is no arithmetic
+ * expansion, NULL is returned with `cindex' unchanged. */
 wordunit_T *tryparse_arith(void)
 {
     size_t savecindex = cindex;
@@ -1558,29 +1560,29 @@ fail:
     return NULL;
 }
 
-/* 現在位置にある WORD トークンを文字列として取り出す。
- * 結果は新しく malloc したワイド文字列として返す。
- * cindex は次のトークンを指すように skip_blanks_and_comment した位置まで進む。
- * この関数は常に非 NULL を返す。 */
+/* Returns a word token at the current index as a newly malloced string.
+ * `cindex' is advanced to the next token by `skip_blanks_and_comment'.
+ * This function never returns NULL. */
 wchar_t *parse_word_as_wcs(void)
 {
     size_t index = cindex;
     wordfree(parse_word(globalonly));
 
-    /* 元のインデックスと現在のインデックスの間にあるワードを取り出す */
+    /* create a copy of the word */
     wchar_t *result = xwcsndup(cbuf.contents + index, cindex - index);
-    /* ワード末尾の空白を除去 */
+    /* remove the trailing blanks of the word */
     index = cindex - index;
     while (index-- > 0 && iswblank(result[index]));
     result[++index] = L'\0';
     return result;
 }
 
-/* 複合コマンドを解析する。command はコマンド名。 */
-/* parse_group, parse_if などの複合コマンド解析関数は、skip_blanks_and_comment
- * の呼出しおよびリダイレクトの解析をせずに戻る。 */
+/* Parses a compound command.
+ * `command' is the name of the command to parse such as "(" and "if". */
 command_T *parse_compound_command(const wchar_t *command)
 {
+    /* `parse_group', `parse_if', etc. don't call `skip_blanks_and_comment'
+     * before they return nor parse redirections. */
     command_T *result;
     switch (command[0]) {
     case L'(':
@@ -1612,7 +1614,8 @@ command_T *parse_compound_command(const wchar_t *command)
     return result;
 }
 
-/* グループコマンドを解析する。type は CT_GROUP か CT_SUBSHELL。 */
+/* Parses a command group.
+ * `type' must be either CT_GROUP or CT_SUBSHELL. */
 command_T *parse_group(commandtype_T type)
 {
     const wchar_t *terminator;
@@ -1643,7 +1646,7 @@ command_T *parse_group(commandtype_T type)
     return result;
 }
 
-/* if コマンドを解析する */
+/* Parses a if command */
 command_T *parse_if(void)
 {
     assert(is_token_at(L"if", cindex));
@@ -1703,7 +1706,7 @@ command_T *parse_if(void)
     return result;
 }
 
-/* for コマンドを解析する */
+/* Parses a for command. */
 command_T *parse_for(void)
 {
     assert(is_token_at(L"for", cindex));
@@ -1759,7 +1762,7 @@ command_T *parse_for(void)
     return result;
 }
 
-/* while/until コマンドを解析する */
+/* Parses a while or until command. */
 command_T *parse_while(bool whltype)
 {
     assert(is_token_at(whltype ? L"while" : L"until", cindex));
@@ -1791,7 +1794,7 @@ command_T *parse_while(bool whltype)
     return result;
 }
 
-/* case コマンドを解析する */
+/* Parses a case command. */
 command_T *parse_case(void)
 {
     assert(is_token_at(L"case", cindex));
@@ -1822,8 +1825,8 @@ command_T *parse_case(void)
     return result;
 }
 
-/* case コマンドの本体 (`in' と `esac' の間) を解析する。
- * この関数を呼ぶ前に skip_to_next_token は不要。 */
+/* Parses the body of a case command (the part between "in" and "esac").
+ * You don't have to call `skip_to_next_token' before calling this function. */
 caseitem_T *parse_case_list(void)
 {
     caseitem_T *first = NULL, **lastp = &first;
@@ -1840,7 +1843,7 @@ caseitem_T *parse_case_list(void)
 	ci->next = NULL;
 	ci->ci_patterns = parse_case_patterns();
 	ci->ci_commands = parse_compound_list();
-	/* for や while とは異なり、ci_commands は NULL でも良い。 */
+	/* `ci_commands' may be NULL unlike for and while commands */
 	ensure_buffer(2);
 	if (cbuf.contents[cindex] == L';' && cbuf.contents[cindex+1] == L';') {
 	    cindex += 2;
@@ -1851,15 +1854,15 @@ caseitem_T *parse_case_list(void)
     return first;
 }
 
-/* case 項目のパタン部分を解析する。
- * cindex は ')' の次の文字 (not トークン) まで進む。
- * 予め ensure_buffer(1), skip_blanks_and_comment しておくこと。 */
+/* Parses patterns of a case item.
+ * `cindex' is advanced to the next character after ')', not the next token.
+ * Call `skip_blanks_and_comment' and `ensure_buffer(1)' beforehand. */
 void **parse_case_patterns(void)
 {
     plist_T wordlist;
 
     pl_init(&wordlist);
-    if (cbuf.contents[cindex] == L'(') {  /* 最初の '(' は無視 */
+    if (cbuf.contents[cindex] == L'(') {  /* ignore the first '(' */
 	cindex++;
 	skip_blanks_and_comment();
     }
@@ -1883,24 +1886,24 @@ void **parse_case_patterns(void)
     return pl_toary(&wordlist);
 }
 
-/* 現在位置に関数定義コマンドがあればそれを解析する。
- * この関数は内部で行連結の削除を行うので、行番号は呼出し元で覚えておくこと。 */
+/* Parses a function definition if any.
+ * This function may do line continuations, increasing the line number. */
 command_T *tryparse_function(void)
 {
     size_t savecindex = cindex;
     unsigned long lineno = cinfo->lineno;
 
-    /* 関数の名前を取り出す */
     wchar_t *nameend;
     size_t namelen;
 
+    /* parse function name */
 readname:
     while (*(nameend = skip_name(cbuf.contents + cindex)) == L'\0'
 	    && read_more_input() == 0);
     namelen = nameend - (cbuf.contents + cindex);
     if (namelen == 0 || !is_token_delimiter_char(*nameend)) {
 	ensure_buffer(2);
-	if (nameend[0] == L'\\' && nameend[1] == L'\n') { /* 行連結なら削除 */
+	if (nameend[0] == L'\\' && nameend[1] == L'\n') {
 	    line_continuation(nameend - cbuf.contents);
 	    goto readname;
 	}
@@ -1909,7 +1912,7 @@ readname:
     cindex += namelen;
     skip_blanks_and_comment();
 
-    /* 括弧の解析 */
+    /* parse parentheses */
     if (cbuf.contents[cindex] != L'(')
 	goto fail;
     cindex++;
@@ -1921,7 +1924,7 @@ readname:
     cindex++;
     skip_to_next_token();
 
-    /* 関数本体の解析 */
+    /* parse function body */
     const wchar_t *t = check_opening_token_at(cindex);
     if (!t) {
 	serror(Ngt("function body must be compound command"));
@@ -1948,7 +1951,7 @@ fail:
     return NULL;
 }
 
-/* ヒアドキュメントの内容を読み込む。 */
+/* Reads the contents of a here-document. */
 void read_heredoc_contents(redir_T *r)
 {
     if (wcschr(r->rd_hereend, L'\n')) {
@@ -1963,7 +1966,7 @@ void read_heredoc_contents(redir_T *r)
 	read_heredoc_contents_with_expand(r);
 }
 
-/* パラメータ展開などの無いヒアドキュメントの内容を読み込む。 */
+/* Reads the contents of a here-document without any parameter expansions. */
 void read_heredoc_contents_without_expand(redir_T *r)
 {
     wchar_t *eoc = unquote(r->rd_hereend);
@@ -1986,8 +1989,8 @@ void read_heredoc_contents_without_expand(redir_T *r)
     r->rd_herecontent = wu;
 }
 
-/* パラメータ展開・コマンド置換・数式展開を含むヒアドキュメントの内容を
- * 読み込む。 */
+/* Reads the contents of a here-document that may contain parameter expansions,
+ * command substitutions and arithmetic expansions. */
 void read_heredoc_contents_with_expand(redir_T *r)
 {
     wordunit_T *first = NULL, **lastp = &first;
@@ -2007,13 +2010,12 @@ void read_heredoc_contents_with_expand(redir_T *r)
     r->rd_herecontent = first;
 }
 
-/* 現在位置の行全体がヒアドキュメントの終わりを表す文字列 eoc かどうか調べる。
- * eoc: 終わりを表す文字列
- * eoclen: wcslen(eoc)
- * skiptab: true なら行頭のタブを無視。
- * 戻り値が true なら、cindex は eoc を含む行の改行の直後まで進む。
- * false なら、cindex はそのまま。ただし skiptab が true ならタブの直後まで
- * cindex を進める。 */
+/* Checks if the whole line to which `cindex' points is an end-of-heredoc `eoc'.
+ * `eoclen' is `wcslen(eoc)'. If `skiptab' is true, leading tabs in the line are
+ * skipped.
+ * If an end-of-heredoc is found, returns true with `cindex' advanced to the
+ * next line. Otherwise returns false with `cindex' unchanged (except that
+ * leading tabs are skipped). */
 bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
 {
     if (cinfo->lastinputresult != 0)
@@ -2039,11 +2041,12 @@ bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
     }
 }
 
-/* 現在位置の文字列を解析する。パラメータ展開・コマンド置換・数式展開を
- * 認識するが、一重・二重引用符は引用符として扱わない。
- * backquote: バッククォートで囲んだコマンド置換を解釈するかどうか
- * stoponnewline: true なら、改行のところで解析を終了する。このとき改行は解析
- *     結果に含まれる。false なら現在位置以降全て (EOF まで) を解析する。 */
+/* Parses a string.
+ * Parameter expansions, command substitutions and arithmetic expansions are
+ * recognized, but singlequotes and doublequotes are not treated as quotes.
+ * Command substitutions enclosed by backquotes are recognized iff `backquote'
+ * is true. If `stoponnewline' is true, stops parsing right after the next
+ * newline is parsed. Otherwise parsing continues to the EOF. */
 wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
 {
     wordunit_T *first = NULL, **lastp = &first, *wu;
@@ -2096,14 +2099,12 @@ done:
     return first;
 }
 
-/* 指定した入力に含まれるパラメータ展開・数式展開・コマンド置換
- * ("$(...)" のみ) を解釈する。
- * この関数は入力全体を最後まで解釈する。
- * info: 解析情報へのポインタ。全ての値を初期化しておくこと。
- * result: 成功したら *result に解析結果が入る。
- *         入力が空文字列なら *result は NULL になる。
- * 戻り値: 成功したかどうか (エラーがなかったかどうか)。
- * この関数は原則として再入不可能である。 */
+/* Parses a string recognizing parameter expansions, command substitutions in
+ * "$(...)" form and arithmetic expansions.
+ * This function reads and parses the input to the EOF.
+ * Iff successful, the result is assigned to `*result' and true is returned.
+ * If the input is empty, NULL is assigned.
+ * This function is not reentrant in itself. */
 bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 {
     cinfo = info;
@@ -2132,7 +2133,7 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 }
 
 
-/***** エラーメッセージ関連 *****/
+/***** Error Message Auxiliaries *****/
 
 const char *get_errmsg_unexpected_token(const wchar_t *token)
 {
@@ -2173,7 +2174,7 @@ void print_errmsg_token_missing(const wchar_t *token, size_t index)
 }
 
 
-/********** 構文木を文字列に戻すルーチン **********/
+/********** Functions that Convert Parse Trees into Strings**********/
 
 static void print_and_or_lists(
 	xwcsbuf_T *restrict buf, const and_or_T *restrict andors,
@@ -2207,8 +2208,7 @@ static void trim_end_of_buffer(xwcsbuf_T *buf)
     __attribute__((nonnull));
 
 #if 0
-/* 構文木をワイド文字列に変換して返す。
- * 戻り値は free 可能なワイド文字列へのポインタ。 */
+/* Converts a parse tree into a newly malloced wide string. */
 wchar_t *commands_to_wcstring(const and_or_T *commands)
 {
     xwcsbuf_T buf;
@@ -2220,8 +2220,7 @@ wchar_t *commands_to_wcstring(const and_or_T *commands)
 }
 #endif
 
-/* 一つ以上のパイプラインをワイド文字列に変換して返す。
- * 戻り値は free 可能なワイド文字列へのポインタ。 */
+/* Converts pipelines into a newly malloced wide string. */
 wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
 {
     xwcsbuf_T buf;
@@ -2232,8 +2231,7 @@ wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
     return wb_towcs(&buf);
 }
 
-/* 一つのコマンドをワイド文字列に変換して返す。
- * 戻り値は free 可能なワイド文字列へのポインタ。 */
+/* Converts commands into a newly malloced wide string. */
 wchar_t *command_to_wcs(const command_T *command)
 {
     xwcsbuf_T buf;

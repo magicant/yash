@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* plist.h: modifiable list of pointers */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,43 +67,46 @@ extern void *pl_pop(plist_T *list)
     __attribute__((nonnull));
 
 
-/* ポインタの配列 a の最初の n 要素をポインタリストの i 要素目の手前に挿入する。
- * a の要素に NULL があってもそれは特別扱いしない。
- * list->length <= i ならばリストの末尾に追加する。
- * a は list->contents の一部であってはならない。 */
+/* Inserts the first `n' elements of the array `a' at the offset `i'
+ * in the pointer list `list'.
+ * NULL elements in `a' are not treated specially.
+ * If (list->length <= i), the array elements are appended to the list.
+ * `a' must not be a part of `list->contents'. */
 plist_T *pl_ninsert(
 	plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
 {
     return pl_replace(list, i, 0, a, n);
 }
 
-/* ポインタの配列 a の要素をポインタリストの i 要素目の手前に挿入する。
- * 挿入するのは、a 内の NULL の手前までの要素である。
- * list->length <= i ならばリストの末尾に追加する。
- * a は list->contents の一部であってはならない。 */
+/* Inserts the elements of the array `a' at the offset `i'
+ * in the pointer list `list'.
+ * The array `a' must be terminated by a NULL element, which is not inserted.
+ * If (list->length <= i), the array elements are appended to the list.
+ * `a' must not be a part of `list->contents'. */
 plist_T *pl_insert(plist_T *restrict list, size_t i, void *const *restrict a)
 {
     return pl_replace(list, i, 0, a, plcount(a));
 }
 
-/* ポインタの配列 a の最初の n 要素をポインタリストの末尾に追加する。
- * a の要素に NULL があってもそれは特別扱いしない。
- * a は list->contents の一部であってはならない。 */
+/* Appends the first `n' elements of the array `a' to the pointer list `list'.
+ * NULL elements in `a' are not treated specially.
+ * `a' must not be a part of `list->contents'. */
 plist_T *pl_ncat(plist_T *restrict list, void *const *restrict a, size_t n)
 {
     return pl_replace(list, SIZE_MAX, 0, a, n);
 }
 
-/* ポインタの配列 a の要素をポインタリストの末尾に追加する。
- * 挿入するのは、a 内の NULL の手前までの要素である。
- * a は list->contents の一部であってはならない。 */
+/* Inserts the elements of the array `a' to the pointer list `list'.
+ * The array `a' must be terminated by a NULL element, which is not inserted.
+ * `a' must not be a part of `list->contents'. */
 plist_T *pl_cat(plist_T *restrict list, void *const *restrict a)
 {
     return pl_replace(list, SIZE_MAX, 0, a, plcount(a));
 }
 
-/* リストの i 要素目から n 個の要素を削除する。
- * 消される要素は勝手には解放されないので注意。 */
+/* Removes the `n' elements at the offset `i' in the pointer list `list'.
+ * It's the caller's responsibility to free the objects pointed by the removed
+ * pointers. */
 plist_T *pl_remove(plist_T *list, size_t i, size_t n)
 {
     return pl_replace(list, i, n, (void *[]) { NULL, }, 0);

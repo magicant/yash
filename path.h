@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.h: filename-related utilities */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,12 +52,12 @@ extern int xclosedir(DIR *dir)
     __attribute__((nonnull));
 
 
-/********** patharray **********/
+/********** Path Array **********/
 
 extern void reset_patharray(const wchar_t *newpath);
 
 
-/********** コマンド名ハッシュ **********/
+/********** Command Hashtable **********/
 
 extern void init_cmdhash(void);
 extern void clear_cmdhash(void);
@@ -66,7 +66,7 @@ extern const char *get_command_path(const char *name, bool forcelookup)
 extern void fill_cmdhash(const char *prefix, bool ignorecase);
 
 
-/********** ホームディレクトリキャッシュ **********/
+/********** Home Directory Cache **********/
 
 extern struct passwd *xgetpwnam(const char *name)
     __attribute__((nonnull));

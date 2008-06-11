@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,32 +42,34 @@
 #include "version.h"
 
 
-/* 変数環境 (=現在有効な変数・パラメータの集まり) を表す構造体。 */
-/* 言葉が似ているが環境変数とは全く異なる。 */
+/* variable environment (= set of variables) */
+/* not to be confused with environment variables */
 typedef struct environ_T {
-    struct environ_T *parent;      /* 親環境 */
-    struct hashtable_T contents;   /* 変数を保持するハッシュテーブル */
+    struct environ_T *parent;      /* parent environment */
+    struct hashtable_T contents;   /* hashtable containing variables */
 } environ_T;
-/* contents は char * から variable_T * へのハッシュテーブルである。 */
-/* 変数名は、ナル文字と '=' を除く任意の文字を含み得る。ただしシェル内で代入
- * できる変数名はそれよりも限られている。 */
-/* 位置パラメータは、contents に "=" という名前の配列として入れる。
- * 位置パラメータの番号と配列のインデックスが一つずれるので注意。 */
+/* `contents' is a hashtable from (char *) to (variable_T *).
+ * A variable name may contain any characters except '\0' and '=', though
+ * assignment syntax allows only limited characters.
+ * Variable names starting with '=' are used for special purposes.
+ * The positional parameter is treated as an array whose name is "=".
+ * Note that the number of positional parameters is offseted by 1 against the
+ * array index. */
 #define VAR_positional "="
 
-/* 変数の属性フラグ */
+/* flags for variable attributes */
 typedef enum vartype_T {
     VF_NORMAL,
     VF_ARRAY,
-    VF_EXPORT   = 1 << 2,  /* 変数を export するかどうか */
-    VF_READONLY = 1 << 3,  /* 変数が読み取り専用かどうか */
-    VF_NODELETE = 1 << 4,  /* 変数を削除できないようにするかどうか */
+    VF_EXPORT   = 1 << 2,
+    VF_READONLY = 1 << 3,
+    VF_NODELETE = 1 << 4,
 } vartype_T;
 #define VF_MASK ((1 << 2) - 1)
-/* vartype_T の値は VF_NORMAL と VF_ARRAY のどちらかと他のフラグとの OR である。
- * VF_EXPORT は VF_NORMAL でのみ使える。 */
+/* For all variables, the variable type is either of VF_NORMAL and VF_ARRAY,
+ * possibly OR'ed with other flags. VF_EXPORT is only valid for VF_NORMAL. */
 
-/* 変数を表す構造体 */
+/* shell variable */
 typedef struct variable_T {
     vartype_T v_type;
     union {
@@ -82,15 +84,14 @@ typedef struct variable_T {
 #define v_value v_contents.value
 #define v_vals  v_contents.array.vals
 #define v_valc  v_contents.array.valc
-/* v_vals は、void * にキャストした wchar_t * の NULL 終端配列である。
- * v_valc はもちろん v_vals の要素数である。
- * v_value, v_vals および v_vals の要素は free 可能な領域を指す。
- * v_value は NULL かもしれない (まだ値を代入していない場合)。
- * v_vals は常に非 NULL だが要素数は 0 かもしれない。
- * v_getter は変数が取得される前に呼ばれる関数。変数に代入すると v_getter は
- * NULL に戻る。 */
+/* `v_vals' is a NULL-terminated array of pointers to wide strings cast to
+ * (void *). `v_valc' is, of course, the number of elements in `v_vals'.
+ * `v_value', `v_vals' and the elements of `v_vals' are `free'able.
+ * `v_value' is NULL if the variable is declared but not yet assigned.
+ * `v_vals' is always non-NULL, but it may contain no elements.
+ * `v_getter' is the setter function, which is reset to NULL on reassignment.*/
 
-/* 関数を表す構造体。メンバの定義は後で。 */
+/* shell function (defined later) */
 typedef struct function_T function_T;
 
 
@@ -139,26 +140,25 @@ static void hash_all_commands_in_case(const caseitem_T *ci);
 static void tryhash_word_as_command(const wordunit_T *w);
 
 
-/* 現在の変数環境 */
+/* the current environment */
 static environ_T *current_env;
-/* 最も外側の変数環境 */
+/* the initial environment (the farthest from the current) */
 static environ_T *top_env;
-/* 現在の変数環境が一時的なものかどうか */
+/* whether the current environment is temporary */
 static bool current_env_is_temporary;
 
-/* 一時的変数は、特殊組込みコマンドでない組込みコマンドを実行する際に
- * 一時的な代入を行うためのものである。コマンドの実行が終わったら一時的変数は
- * 削除する。一時的変数は専用の一時的環境で代入する。 */
+/* Temporary variables are used when a non-special builtin is executed.
+ * They are assigned in a temporary environment and valid only while the command
+ * is executed. */
 
-/* RANDOM 変数が乱数として機能しているかどうか */
+/* whether $RANDOM is functioning as a random number */
 static bool random_active;
 
-/* 関数を登録するハッシュテーブル。
- * 関数名 (バイト文字列) から function_T * を引く。 */
+/* Hashtable from function names (char *) to functions (function_T *). */
 static hashtable_T functions;
 
 
-/* variable_T * の値 (v_value/v_vals) を free する。 */
+/* Frees the value of a variable, but not the variable itself. */
 void varvaluefree(variable_T *v)
 {
     switch (v->v_type & VF_MASK) {
@@ -171,7 +171,7 @@ void varvaluefree(variable_T *v)
     }
 }
 
-/* variable_T * を free する */
+/* Frees a variable. */
 void varfree(variable_T *v)
 {
     if (v) {
@@ -180,14 +180,14 @@ void varfree(variable_T *v)
     }
 }
 
-/* 変数を保持するハッシュテーブルの内容だった kvpair_T を解放する。 */
+/* Frees a former variable environment entry. */
 void varkvfree(kvpair_T kv)
 {
     free(kv.key);
     varfree(kv.value);
 }
 
-/* 変数を update_enrivon して、解放する。 */
+/* Calls `update_enrivon' for `kv.key' and frees the variable. */
 void varkvfree_reexport(kvpair_T kv)
 {
     update_enrivon(kv.key);
@@ -196,7 +196,7 @@ void varkvfree_reexport(kvpair_T kv)
 
 static bool initialized = false;
 
-/* 変数関連のデータを初期化する */
+/* Initializes the initial environment. */
 void init_variables(void)
 {
     if (initialized)
@@ -209,7 +209,7 @@ void init_variables(void)
 
     ht_init(&functions, hashstr, htstrcmp);
 
-    /* まず current_env->contents に全ての既存の環境変数を設定する。 */
+    /* add all the existing environment variables to the variable environment */
     for (char **e = environ; *e; e++) {
 	size_t namelen = strcspn(*e, "=");
 	if ((*e)[namelen] != '=')
@@ -231,7 +231,7 @@ void init_variables(void)
 	}
     }
 
-    /* LINENO 特殊変数を設定する */
+    /* set $LINENO */
     {
 	variable_T *v = new_global(VAR_LINENO);
 	assert(v != NULL);
@@ -242,7 +242,7 @@ void init_variables(void)
 	    update_enrivon(VAR_LINENO);
     }
 
-    /* PS1/PS2/PS3/PS4 を設定する */
+    /* set $PS1~4 */
     {
 	const wchar_t *ps1 =
 	    !posixly_correct ? L"\\$ " : geteuid() ? L"$ " : L"# ";
@@ -253,14 +253,14 @@ void init_variables(void)
 	set_variable(VAR_PS4, xwcsdup(L"+ "),  false, false);
     }
 
-    /* PWD を設定する */
+    /* set $PWD */
     init_pwd();
 
-    /* PPID を設定する */
+    /* set $PPID */
     set_variable(VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
 	    false, false);
 
-    /* RANDOM 特殊変数を設定する */
+    /* set $RANDOM */
     if (!posixly_correct && !getvar(VAR_RANDOM)) {
 	variable_T *v = new_global(VAR_RANDOM);
 	assert(v != NULL);
@@ -273,17 +273,19 @@ void init_variables(void)
 	random_active = false;
     }
 
-    /* YASH_VERSION を設定する */
+    /* set $YASH_VERSION */
     set_variable(VAR_YASH_VERSION, xwcsdup(L"" PACKAGE_VERSION), false, false);
 
-    /* PATH に基づいて patharray を初期化する */
+    /* initialize patharray according to $PATH */
     reset_patharray(getvar(VAR_PATH));
 }
 
-/* 以下の場合に PWD 環境変数を設定する
- *  - posixly_correct が true である
- *  - PWD 変数が存在しないか '/' で始まらないか実際の作業ディレクトリとは異なる
- *  - PWD 変数の値が正規化されていない */
+/* Reset the value of $PWD if
+ *  - `posixly_correct' is true, or
+ *  - $PWD doesn't exist, or
+ *  - the value of $PWD isn't an absolute path, or
+ *  - the value of $PWD isn't the actual current directory, or
+ *  - the value of $PWD isn't canonicalized. */
 void init_pwd(void)
 {
     if (posixly_correct)
@@ -313,7 +315,8 @@ set:
     set_variable(VAR_PWD, wnewpwd, false, true);
 }
 
-/* 引数が名前構成文字であるかどうか調べる */
+/* Checks if the specified character can be used in a variable name in an
+ * assignment. */
 bool is_name_char(char c)
 {
     switch (c) {
@@ -335,8 +338,8 @@ bool is_name_char(char c)
     }
 }
 
-/* 指定した文字列が (位置パラメータや特殊パラメータではない) 普通の変数の名前
- * であるかどうか調べる */
+/* Checks if the specified string is a valid variable name.
+ * Note that parameters are not variables. */
 bool is_name(const char *s)
 {
     if (!xisdigit(*s))
@@ -345,9 +348,9 @@ bool is_name(const char *s)
     return !*s;
 }
 
-/* 指定した名前の変数を捜し出す。
- * temp:   一時的変数からも探すかどうか。
- * 戻り値: 見付かった変数。見付からなければ NULL。 */
+/* Searches for a variable with the specified name.
+ * if `temp' is false, temporary variables are ignored.
+ * Returns NULL if none found. */
 variable_T *search_variable(const char *name, bool temp)
 {
     variable_T *var;
@@ -363,7 +366,7 @@ variable_T *search_variable(const char *name, bool temp)
     return NULL;
 }
 
-/* 指定した名前の変数について、environ の値を更新する。 */
+/* Update the value in `environ' for the variable with the specified name. */
 void update_enrivon(const char *name)
 {
     environ_T *env = current_env;
@@ -388,15 +391,15 @@ void update_enrivon(const char *name)
     unsetenv(name);
 }
 
-/* 指定した名前のロケール設定を現在の変数の値に基づいて再設定する。
- * name がへんてこな文字列なら何もしない。 */
+/* Resets the locate settings for the specified variable.
+ * If `name' is not any of "LANG", "LC_ALL", etc., does nothing. */
 void reset_locale(const char *name)
 {
     if (strcmp(name, VAR_LANG) == 0) {
 	goto reset_locale_all;
     } else if (strncmp(name, "LC_", 3) == 0) {
-	/* POSIX の定めによると、実行中に環境変数が変わっても
-	 * LC_CTYPE はリセットしてはいけない。 */
+	/* POSIX forbids resetting LC_CTYPE even if the value of the variable
+	 * is changed. */
 	if (strcmp(name, VAR_LC_ALL) == 0) {
 reset_locale_all:
 	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
@@ -421,8 +424,8 @@ reset_locale_all:
     }
 }
 
-/* 指定したロケールのカテゴリを再設定する
- * name: LC_ALL 以外の LC_ で始まるカテゴリ名 */
+/* Resets the locale of the specified category.
+ * `name' must be one of the `LC_*' constants except LC_ALL. */
 void reset_locale_category(const char *name, int category)
 {
     const wchar_t *v = getvar(VAR_LC_ALL);
@@ -441,17 +444,15 @@ void reset_locale_category(const char *name, int category)
     }
 }
 
-/* 新しいグローバル変数を用意する。
- * グローバルといっても、常に top_env に作成するわけではなく、既にローカル変数が
- * 存在していればそれを返すことになる。
- * 古い変数があれば削除し、古い変数と同じ環境に新しい変数を用意してそれを返す。
- * 古い変数がなければ、top_env に新しい変数を用意して返す。
- * いずれにしても、呼び出し元で戻り値の内容を正しく設定すること。
- * 戻り値の v_type 以外のメンバの値は信用してはいけない。
- * 戻り値の v_type に VF_EXPORT がついている場合、呼出し元で update_enrivon
- * を呼ぶこと。
- * 失敗すればエラーを出して (読み取り専用変数が既に存在するなど) NULL を返す。
- * 同じ名前の一時的変数はあっても無視する。 */
+/* Creates a new global variable if there is none.
+ * If a local variable already exists, it is cleared and returned.
+ *
+ * On error, NULL is returned. Otherwise a (new) variable is returned.
+ * `v_type' is the only valid member of the variable; the other members must be
+ * initialized by the caller. If `v_type' of the return value has the VF_EXPORT
+ * flag set, the caller must call `update_enrivon'.
+ *
+ * Temporary variables are ignored. */
 variable_T *new_global(const char *name)
 {
     variable_T *var = search_variable(name, false);
@@ -468,14 +469,15 @@ variable_T *new_global(const char *name)
     return var;
 }
 
-/* 新しいローカル変数を用意する。
- * 古い変数があれば削除し、指定した名前の新しい変数を current_env->contents に
- * 設定して、それを返す。呼び出し元で戻り値の内容を正しく設定すること。
- * 戻り値の v_type 以外のメンバの値は信用してはいけない。
- * 戻り値の v_type に VF_EXPORT がついている場合、呼出し元で update_enrivon
- * を呼ぶこと。
- * 失敗すればエラーを出して (読み取り専用変数が既に存在するなど) NULL を返す。
- * 同じ名前の一時的変数はあっても無視する。 */
+/* Creates a new local variable.
+ * If a variable already exists, it is cleared and returned.
+ *
+ * On error, NULL is returned. Otherwise a (new) variable is returned.
+ * `v_type' is the only valid member of the variable; the other members must be
+ * initialized by the caller. If `v_type' of the return value has the VF_EXPORT
+ * flag set, the caller must call `update_enrivon'.
+ *
+ * Temporary variables are ignored. */
 variable_T *new_local(const char *name)
 {
     environ_T *env = current_env;
@@ -495,11 +497,12 @@ variable_T *new_local(const char *name)
     return var;
 }
 
-/* 指定した名前と値で変数を作成する。
- * value: 予め wcsdup しておいた free 可能な文字列。
- *        この関数が返った後、呼出し元はこの文字列を一切使用してはならない。
- * export: VF_EXPORT フラグを追加するかどうか。
- * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+/* Creates a scalar variable with the specified name and value.
+ * `value' must be a `free'able string. The caller must not modify or `free'
+ * `value' hereafter, whether or not this function is successful.
+ * If `export' is true, the variable is exported. `export' being false doesn't
+ * mean the variable is no longer exported.
+ * Returns true iff successful. */
 bool set_variable(const char *name, wchar_t *value, bool local, bool export)
 {
     variable_T *var = local ? new_local(name) : new_global(name);
@@ -520,8 +523,8 @@ bool set_variable(const char *name, wchar_t *value, bool local, bool export)
     return true;
 }
 
-/* 指定した名前と値の配列を作成する。
- * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+/* Creates an array variable with the specified name and values.
+ * Returns true iff successful. */
 bool set_array(const char *name, char *const *values, bool local)
 {
     variable_T *var = local ? new_local(name) : new_global(name);
@@ -562,20 +565,22 @@ bool set_array(const char *name, char *const *values, bool local)
     return true;
 }
 
-/* 現在の環境の位置パラメータを設定する。既存の位置パラメータは削除する。
- * values[0] が $1、values[1] が $2、というようになる。
- * この関数は新しい変数環境を作成した後必ず呼ぶこと (一時的環境を除く)。 */
+/* Sets the positional parameters of the current environment.
+ * The existent parameters are cleared.
+ * `values[0]' will be the new $1, `values[1]' $2, and so on.
+ * When a new environment is created, this function must be called at least once
+ * except for a temporary environment. */
 void set_positional_parameters(char *const *values)
 {
     set_array(VAR_positional, values, !current_env_is_temporary);
 }
 
-/* 一時的変数への代入を行う。
- * name:  変数名
- * value: 予め wcsdup しておいた free 可能な文字列。
- *        この関数が返った後、呼出し元はこの文字列を一切使用してはならない。
- * export: export するかどうか
- * 戻り値: 成功すれば true、失敗すればエラーを出して false。 */
+/* Does an assignment to a temporary variable.
+ * `value' must be a `free'able string. The caller must not modify or `free'
+ * `value' hereafter, whether or not this function is successful.
+ * If `export' is true, the variable is exported. `export' being false doesn't
+ * mean the variable is no longer exported.
+ * Returns true iff successful. */
 bool assign_temporary(const char *name, wchar_t *value, bool export)
 {
     if (!current_env_is_temporary) {
@@ -602,13 +607,12 @@ bool assign_temporary(const char *name, wchar_t *value, bool export)
     return true;
 }
 
-/* 変数代入を行う。
- * shopt_xtrace が true ならトレースも出力する。
- * assign: 代入する変数と値
- * temp:   代入する変数を一時的変数にするかどうか
- * export: 代入した変数を export 対象にするかどうか
- * 戻り値: エラーがなければ true
- * エラーの場合でもそれまでの代入の結果は残る。 */
+/* Does assignments.
+ * If `shopt_xtrace' is true, traces are printed to stderr.
+ * If `export' is true, the variables are exported. `export' being false doesn't
+ * mean the variables are no longer exported.
+ * Returns true iff successful. An error on an assignment may leave some other
+ * variables assigned. */
 bool do_assignments(const assign_T *assign, bool temp, bool export)
 {
     if (shopt_xtrace && assign)
@@ -636,12 +640,11 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
     return true;
 }
 
-/* 指定した名前のシェル変数を取得する。
- * 普通の変数 (VF_NORMAL) にのみ使える。
- * "$" や "@" などの特殊パラメータは得られない。
- * 変数がなければ NULL を返す。
- * 戻り値を変更したり free したりしてはならない。
- * 戻り値は変数を変更・削除するまで有効である。 */
+/* Gets the value of the specified scalar variable.
+ * Cannot be used for special parameters such as $$ and $@.
+ * Returns the value of the variable, or NULL if not found.
+ * The return value must not be modified or `free'ed by the caller and
+ * is valid until the variable is re-assigned or unset. */
 const wchar_t *getvar(const char *name)
 {
     variable_T *var = search_variable(name, true);
@@ -653,13 +656,13 @@ const wchar_t *getvar(const char *name)
     return NULL;
 }
 
-/* シェル変数を配列として取得する。
- * 変数がなければ NULL を返す。
- * 戻り値は void * にキャストした wchar_t * の NULL 終端配列。
- * 配列および各要素は全て新しく malloc した領域である。
- * 配列でない普通の変数は、要素数 1 の配列として返す。
- * concat: 配列の要素を結合すべきかどうかが *concat に入る。
- *     name が "*" なら true、それ以外なら false になる。 */
+/* Gets the value(s) of the specified variable as an array.
+ * A scalar value is returned as a one-element array.
+ * The returned array is a newly-malloced NULL-terminated array of pointers to
+ * newly-malloced wide characters cast to (void *).
+ * If no such variable is found, NULL is returned.
+ * If `name' is "*", true is assigned to `*concat' to indicate the array
+ * elements should be concatenated by the caller. Otherwise false is assigned.*/
 void **get_variable(const char *name, bool *concat)
 {
     void **result;
@@ -670,7 +673,8 @@ void **get_variable(const char *name, bool *concat)
     if (!name[0])
 	return NULL;
     if (!name[1]) {
-	switch (name[0]) {  /* 名前が一文字なので、特殊パラメータかどうか見る */
+	/* `name' is one-character long: check if it's a special parameter */
+	switch (name[0]) {
 	    case '*':
 		*concat = true;
 		/* falls thru! */
@@ -702,21 +706,22 @@ void **get_variable(const char *name, bool *concat)
 	}
     }
 
-    if (xisdigit(name[0])) {  /* 名前の先頭が数字なので、位置パラメータである */
+    if (xisdigit(name[0])) {
+	/* `name' starts with a digit: a positional parameter */
 	char *nameend;
 	errno = 0;
 	long v = strtol(name, &nameend, 10);
 	if (errno || *nameend != '\0')
-	    return NULL;  /* 数値ではない or オーバーフロー */
+	    return NULL;  /* not a number or overflow */
 	var = search_variable(VAR_positional, false);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (v <= 0 || (uintmax_t) var->v_valc < (uintmax_t) v)
-	    return NULL;  /* インデックスが範囲外 */
+	    return NULL;  /* index out of bounds */
 	value = xwcsdup(var->v_vals[v - 1]);
 	goto return_single;
     }
 
-    /* 普通の変数を探す */
+    /* now it should be a normal variable */
     var = search_variable(name, true);
     if (var) {
 	if (var->v_getter)
@@ -732,7 +737,7 @@ void **get_variable(const char *name, bool *concat)
     }
     return NULL;
 
-return_single:  /* 一つの値を要素数 1 の配列で返す。 */
+return_single:  /* return a scalar as a one-element array */
     if (!value)
 	return NULL;
     result = xmalloc(2 * sizeof *result);
@@ -740,12 +745,13 @@ return_single:  /* 一つの値を要素数 1 の配列で返す。 */
     result[1] = NULL;
     return result;
 
-return_array:  /* 配列をコピーして返す */
+return_array:  /* duplicate an array and return it */
     return duparray(result, copyaswcs);
 }
 
-/* 新しい変数環境を構築する。元の環境は新しい環境の親環境になる。
- * set_positional_parameters を呼ぶのを忘れないこと。 */
+/* Creates a new variable environment.
+ * The current environment will be the parent of the new environment.
+ * Don't forget to call `set_positional_parameters'. */
 void open_new_environment(void)
 {
     environ_T *newenv = xmalloc(sizeof *newenv);
@@ -756,7 +762,8 @@ void open_new_environment(void)
     current_env = newenv;
 }
 
-/* 現在の変数環境を閉じる。元の環境の親環境が新しい環境になる。 */
+/* Closes the current variable environment.
+ * The parent of the current will be the new current. */
 void close_current_environment(void)
 {
     environ_T *oldenv = current_env;
@@ -768,7 +775,7 @@ void close_current_environment(void)
     free(oldenv);
 }
 
-/* 一時的変数を削除する */
+/* Clears all temporary variables. */
 void clear_temporary_variables(void)
 {
     if (current_env_is_temporary) {
@@ -778,12 +785,12 @@ void clear_temporary_variables(void)
 }
 
 
-/********** 各種ゲッター **********/
+/********** Getters **********/
 
-/* 現在実行中のコマンドの行番号 */
+/* line number of the currently executing command */
 unsigned long current_lineno;
 
-/* LINENO 変数のゲッター */
+/* getter for $LINENO */
 void lineno_getter(variable_T *var)
 {
     assert((var->v_type & VF_MASK) == VF_NORMAL);
@@ -793,7 +800,7 @@ void lineno_getter(variable_T *var)
 	update_enrivon(VAR_LINENO);
 }
 
-/* RANDOM 変数のゲッター */
+/* getter for $RANDOM */
 void random_getter(variable_T *var)
 {
     assert((var->v_type & VF_MASK) == VF_NORMAL);
@@ -803,7 +810,7 @@ void random_getter(variable_T *var)
 	update_enrivon(VAR_RANDOM);
 }
 
-/* rand を呼び出して 0 以上 32767 以下の乱数を返す */
+/* Returns a random number between 0 and 32767 using `rand'. */
 unsigned next_random(void)
 {
 #if RAND_MAX == 32767
@@ -831,9 +838,9 @@ unsigned next_random(void)
 }
 
 
-/********** 各種セッター **********/
+/********** Setter **********/
 
-/* 変数が設定されたときに呼ばれる */
+/* general callback that is called after an assignment. */
 void variable_set(const char *name, variable_T *var)
 {
     switch (name[0]) {
@@ -849,7 +856,7 @@ void variable_set(const char *name, variable_T *var)
 		    break;
 		case VF_ARRAY:
 		    reset_patharray(NULL);
-		    break;  // TODO variable: variable_set: PATH が配列の場合
+		    break;  // TODO variable: variable_set: when PATH is array
 	    }
 	}
 	break;
@@ -868,17 +875,17 @@ void variable_set(const char *name, variable_T *var)
 	    }
 	}
 	break;
-	// TODO variable: variable_set: 他の変数
+	// TODO variable: variable_set: other variables
     }
 }
 
 
-/********** シェル関数 **********/
+/********** Shell Functions **********/
 
-/* 関数を表す構造体 */
+/* function */
 struct function_T {
-    vartype_T  f_type;  /* VF_READONLY と VF_NODELETE のみ有効 */
-    command_T *f_body;  /* 関数の本体 */
+    vartype_T  f_type;  /* only VF_READONLY and VF_NODELETE are valid */
+    command_T *f_body;  /* body of function */
 };
 
 void funcfree(function_T *f)
@@ -895,15 +902,15 @@ void funckvfree(kvpair_T kv)
     funcfree(kv.value);
 }
 
-/* 全ての関数を (読み取り専用フラグなどは無視して) 削除する */
+/* Clears all functions ignoring VF_READONLY/VF_NODELETE flags. */
 void clear_all_functions(void)
 {
     ht_clear(&functions, funckvfree);
 }
 
-/* 関数を定義する。
- * 読み取り専用関数を上書きしようとするとエラーになる。
- * 戻り値: エラーがなければ true */
+/* Defines a function.
+ * It is an error to re-define a readonly function.
+ * Returns true iff successful. */
 bool define_function(const char *name, command_T *body)
 {
     function_T *f = ht_get(&functions, name).value;
@@ -921,7 +928,8 @@ bool define_function(const char *name, command_T *body)
     return true;
 }
 
-/* 指定した名前の関数を取得する。当該関数がなければ NULL を返す。  */
+/* Gets the body of the function with the specified name.
+ * Returns NULL if there is no such a function. */
 command_T *get_function(const char *name)
 {
     function_T *f = ht_get(&functions, name).value;
@@ -932,7 +940,7 @@ command_T *get_function(const char *name)
 }
 
 
-/* 指定したコマンドに含まれるすべてのコマンドをハッシュする。 */
+/* Registers all the commands in the argument to the command hashtable. */
 void hash_all_commands_recursively(const command_T *c)
 {
     while (c) {

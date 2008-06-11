@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.c: manages file descriptors and provides functions for redirections */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,12 +35,12 @@
 #include "exec.h"
 
 
-/********** ユーティリティ **********/
+/********** Utilities **********/
 
-/* ファイルディスクリプタを確実に閉じる。
- * close が EINTR を返したら、もう一度やり直す。
- * close が EBADF を返したら、エラーとはみなさず 0 を返す。
- * close が EINTR/EBADF 以外のエラーを返したら、エラーメッセージを出す。 */
+/* Closes a file descriptor surely.
+ * If `close' returns EINTR, tries again.
+ * If `close' returns EBADF, it is considered successful and silently ignored.
+ * If `close' returns an error other than EINTR/EBADF, a message is printed. */
 int xclose(int fd)
 {
     while (close(fd) < 0) {
@@ -57,9 +57,10 @@ int xclose(int fd)
     return 0;
 }
 
-/* dup2 を確実に行う。(dup2 が EINTR を返したら、やり直す)
- * dup2 が EINTR 以外のエラーを返したら、エラーメッセージを出す。
- * この関数は事前に xclose(newfd) を行う。 */
+/* Performs `dup2' surely.
+ * If `dup2' returns EINTR, tries again.
+ * If `dup2' returns an error other than EINTR, an error message is printed.
+ * `xclose' is called before `dup2'. */
 int xdup2(int oldfd, int newfd)
 {
     xclose(newfd);
@@ -78,7 +79,7 @@ int xdup2(int oldfd, int newfd)
 }
 
 
-/********** shellfd **********/
+/********** Shell FD **********/
 
 static void reset_shellfdmin(void);
 static void add_shellfd(int fd);
@@ -87,27 +88,27 @@ static bool is_shellfd(int fd)
     __attribute__((pure));
 
 
-/* stdin がリダイレクトされているかどうか */
+/* true iff stdin is redirected */
 bool is_stdin_redirected = false;
 
-/* シェルがセーブ等に使用中のファイルディスクリプタの集合。
- * これらのファイルディスクリプタはユーザが使うことはできない。 */
+/* set of file descriptors used by the shell.
+ * These file descriptors cannot be used by the user. */
 static fd_set shellfds;
-/* シェルがセーブ等に使用可能なファイルディスクリプタの最小値 */
+/* the minimum file descriptor that can be used for shell FD. */
 static int shellfdmin;
-/* shellfds 内のファイルディスクリプタの最大値。
- * shellfds が空集合なら -1。 */
+/* the maximum file descriptor in `shellfds'.
+ * `shellfdmax' is -1 if `shellfds' is empty. */
 static int shellfdmax;
 
 #ifndef SHELLFDMINMAX
-#define SHELLFDMINMAX 100  /* shellfdmin の最大値 */
+#define SHELLFDMINMAX 100  /* maximum for `shellfdmin' */
 #endif
 
-/* 制御端末のファイルディスクリプタ */
+/* file descriptor associated with the controlling terminal */
 int ttyfd = -1;
 
 
-/* redir モジュールを初期化する */
+/* Initializes shell FDs. */
 void init_shellfds(void)
 {
     static bool initialized = false;
@@ -120,7 +121,7 @@ void init_shellfds(void)
     shellfdmax = -1;
 }
 
-/* shellfdmin を(再)計算する */
+/* Recomputes `shellfdmin'. */
 void reset_shellfdmin(void)
 {
     errno = 0;
@@ -139,7 +140,7 @@ void reset_shellfdmin(void)
     }
 }
 
-/* fd (>= shellfdmin) を shellfds に追加する */
+/* Adds the specified file descriptor (>= `shellfdmin') to `shellfds'. */
 void add_shellfd(int fd)
 {
     assert(fd >= shellfdmin);
@@ -149,8 +150,8 @@ void add_shellfd(int fd)
 	shellfdmax = fd;
 }
 
-/* fd を shellfds から削除する */
-/* remove_shellfd(fd) は xclose(fd) より先に行うこと */
+/* Removes the specified file descriptor from `shellfds'.
+ * Must be called BEFORE `xclose(fd)'. */
 void remove_shellfd(int fd)
 {
     if (0 <= fd && fd < FD_SETSIZE)
@@ -161,14 +162,16 @@ void remove_shellfd(int fd)
 	    shellfdmax--;
     }
 }
+/* The argument to `FD_CLR' must be a valid (open) file descriptor. This is why
+ * `remove_shellfd' must be called before closing the file descriptor. */
 
-/* fd が shellfds に入っているかどうか調べる */
+/* Checks if the specified file descriptor is in `shellfds'. */
 bool is_shellfd(int fd)
 {
     return fd >= FD_SETSIZE || (fd >= 0 && FD_ISSET(fd, &shellfds));
 }
 
-/* shellfds 内のファイルディスクリプタを全て閉じる */
+/* Closes all file descriptors in `shellfds' and empties it. */
 void clear_shellfds(void)
 {
     for (int fd = 0; fd <= shellfdmax; fd++)
@@ -179,9 +182,9 @@ void clear_shellfds(void)
     ttyfd = -1;
 }
 
-/* 指定したファイルディスクリプタを複製する。
- * 戻り値: 複製した (新しく shellfds に加わった) ファイルディスクリプタ。
- * エラーなら errno を設定して -1 を返す。 */
+/* Duplicates the specified file descriptor as a new shell FD.
+ * The new FD is added to `shellfds'.
+ * On error, `errno' is set and -1 is returned. */
 int copy_as_shellfd(int fd)
 {
     int newfd = fcntl(fd, F_DUPFD, shellfdmin);
@@ -192,9 +195,11 @@ int copy_as_shellfd(int fd)
     return newfd;
 }
 
-/* ストリームの元になっているファイルディスクリプタを copy_as_shellfd して
- * fdopen する。元のストリームはエラーの有無にかかわらず閉じる。
- * 引数が NULL なら何もしない。エラーの時も NULL を返す。 */
+/* Duplicates the underlining file descriptor of the specified stream.
+ * The original stream is closed whether successful or not.
+ * A new stream is open with the new FD using `fdopen' and returned.
+ * The new stream's underlining file descriptor is registered as a shell FD.
+ * If NULL is given, this function just returns NULL without doing anything. */
 FILE *reopen_with_shellfd(FILE *f, const char *mode)
 {
     if (!f)
@@ -208,7 +213,7 @@ FILE *reopen_with_shellfd(FILE *f, const char *mode)
 	return fdopen(newfd, mode);
 }
 
-/* ttyfd を開く */
+/* Opens `ttyfd' */
 void open_ttyfd(void)
 {
     if (ttyfd < 0) {
@@ -229,14 +234,14 @@ onerror:
 }
 
 
-/********** リダイレクト **********/
+/********** Redirections **********/
 
-/* リダイレクトを後で元に戻すための情報 */
+/* info used to undo redirection */
 struct savefd_T {
     struct savefd_T *next;
-    int   sf_origfd;            /* 元のファイルディスクリプタ */
-    int   sf_copyfd;            /* コピー先のファイルディスクリプタ */
-    bool  sf_stdin_redirected;  /* 元の is_stdin_redirected */
+    int   sf_origfd;            /* original file descriptor */
+    int   sf_copyfd;            /* copied file descriptor */
+    bool  sf_stdin_redirected;  /* original `is_stdin_redirected' */
 };
 
 static void save_fd(int oldfd, savefd_T **save);
@@ -244,11 +249,10 @@ static int parse_and_check_dup(char *num, redirtype_T type)
     __attribute__((nonnull));
 
 
-/* リダイレクトを開く。
- * save が非 NULL なら、元のファイルディスクリプタをセーブした情報へのポインタを
- * *save に入れる。
- * 戻り値: エラーがなければ true。
- * エラーがあっても、それまでのリダイレクトをセーブした情報が *save に入る */
+/* Opens a redirection.
+ * If `save' is non-NULL, the original FD is saved and a pointer to the info is
+ * assigned to `*save' (whether successful or not).
+ * Returns true iff successful. */
 bool open_redirections(const redir_T *r, savefd_T **save)
 {
     if (save)
@@ -261,7 +265,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    return false;
 	}
 
-	/* rd_filename を展開する */
+	/* expand rd_filename */
 	char *filename;
 	if (r->rd_type != RT_HERE && r->rd_type != RT_HERERT) {
 	    filename = expand_single_with_glob(r->rd_filename, tt_single);
@@ -271,10 +275,10 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    filename = NULL;
 	}
 
-	/* リダイレクトをセーブする */
+	/* save original FD */
 	save_fd(r->rd_fd, save);
 
-	/* 実際にリダイレクトを開く */
+	/* now, open redirection */
 	int fd;
 	int flags;
 	bool keepopen;
@@ -325,7 +329,7 @@ openwithflags:
 	    assert(false);
 	}
 
-	/* 開いたファイルディスクリプタを r->rd_fd に移動する */
+	/* move the new FD to `r->rd_fd' */
 	if (fd != r->rd_fd) {
 	    if (fd >= 0) {
 		if (xdup2(fd, r->rd_fd) < 0)
@@ -345,9 +349,7 @@ openwithflags:
     return true;
 }
 
-/* ファイルディスクリプタをセーブする。
- * fd:   セーブするファイルディスクリプタ
- * save: セーブ情報の保存先へのポインタ。NULL なら何もしない。 */
+/* Saves the specified file descriptor if `save' is non-NULL. */
 void save_fd(int fd, savefd_T **save)
 {
     assert(0 <= fd);
@@ -365,15 +367,16 @@ void save_fd(int fd, savefd_T **save)
     s->sf_origfd = fd;
     s->sf_copyfd = copyfd;
     s->sf_stdin_redirected = is_stdin_redirected;
-    /* 註: fd が未使用だった場合は sf_copyfd は -1 になる */
+    /* note: if `fd' is formerly unused, `sf_copyfd' is -1. */
     *save = s;
 }
 
-/* RT_DUPIN/RT_DUPOUT の対象を解析する。
- * num:    解析の対象となる文字列。"-" または数字であることが期待される。
- *         num はこの関数内で free する。
- * 戻り値: 成功すれば、複製すべきファイルディスクリプタ。num が "-" だった場合は
- *         -1。エラーの場合は -1 未満。 */
+/* Parses the argument to `RT_DUPIN'/`RT_DUPOUT'.
+ * `num' is the argument to parse, which is expected to be "-" or numeric.
+ * `num' is freed in this function.
+ * If `num' is a positive integer, the value is returned.
+ * If `num' is "-", -1 is returned.
+ * Otherwise, a negative value other than -1 is returned. */
 int parse_and_check_dup(char *const num, redirtype_T type)
 {
     int fd;
@@ -392,7 +395,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 	    fd = -2;
 	} else {
 	    if (posixly_correct) {
-		/* ファイルディスクリプタの読み書き権限をチェック */
+		/* check the read/write permission */
 		int flags = fcntl(fd, F_GETFL);
 		if (flags < 0) {
 		    xerror(errno, Ngt("redirection: %d"), fd);
@@ -414,7 +417,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     return fd;
 }
 
-/* セーブしたファイルディスクリプタを元に戻し、save を free する。 */
+/* Restores the saved file descriptor and frees `save'. */
 void undo_redirections(savefd_T *save)
 {
     while (save) {
@@ -433,8 +436,8 @@ void undo_redirections(savefd_T *save)
     }
 }
 
-/* セーブしたファイルディスクリプタの情報を削除し、元に戻せないようにする。
- * 引数は関数内で free する。 */
+/* Frees the FD-saving info without restoring FD.
+ * The copied FDs are closed. */
 void clear_savefd(savefd_T *save)
 {
     while (save) {
@@ -449,9 +452,10 @@ void clear_savefd(savefd_T *save)
     }
 }
 
-/* ジョブ制御が無効で標準入力がまだリダイレクトされていなければ
- * 標準入力を /dev/null にリダイレクトする。
- * posixly_correct ならばジョブ制御の代わりに対話的かどうかで判定する。 */
+/* Redirects stdin to "/dev/null" if job control is off and stdin is not yet
+ * redirected.
+ * If `posixly_correct' is true, the condition is slightly different:
+ * "if non-interactive" rather than "if job control is off". */
 void maybe_redirect_stdin_to_devnull(void)
 {
     int fd;

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,66 +24,84 @@
 #include "strbuf.h"
 
 
-/* true なら POSIX に厳密に従う。--posix オプションに対応 */
+/* If set, the shell behaves strictly as defined in POSIX.
+ * Corresponds to --posix option. */
 bool posixly_correct;
 
-/* ログインシェルかどうか。--login オプションに対応  */
+/* If set, this shell is a login shell.
+ * Corresponds to --login option. */
 bool is_login_shell;
 
-/* 対話的シェルかどうか。-i オプションに対応。
- * is_interactive_now はサブシェルでは false になる。 */
+/* If set, this shell is interactive.
+ * `is_interactive_now' is set false in subshells while `is_interactive'
+ * remains unchanged.
+ * Correspond to -i/--interactive option. */
 bool is_interactive, is_interactive_now;
 
-/* ジョブ制御が有効かどうか。-m オプションに対応 */
+/* If set, the shell performs job control.
+ * Corresponds to -m/--monitor option. */
 bool do_job_control;
-/* ジョブの状態変化をいつでもすぐに通知するかどうか。-b オプションに対応 */
+/* If set, the shell immediately notifies on a change of job status.
+ * Corresponds to -b/--notify option. */
 bool shopt_notify;
 
-/* コマンドをどこから読んでいるか。それぞれ -c, -s オプションに対応 */
+/* Set if commands are read from argument and stdin respectively.
+ * Correspond to -c and -s options respectively. */
 bool shopt_read_arg, shopt_read_stdin;
 
-/* コマンド名。特殊パラメータ $0 の値。 */
+/* The value of special parameter $0. */
 const char *command_name;
 
-/* 代入した変数をすべて export するかどうか。-a オプションに対応 */
+/* If set, any variable is exported when assigned.
+ * Corresponds to -a/--allexport option. */
 bool shopt_allexport;
-/* 関数を定義するとき、関数内の全コマンドをハッシュするかどうか。
- * -h オプションに対応 */
+/* If set, when a function is defined, all the commands in the function
+ * are hashed. Corresponds to -h/--hashondef option. */
 bool shopt_hashondef;
 
-/* コマンドの終了ステータスが非 0 のとき直ちに終了するかどうか。
- * -e オプションに対応 */
+/* If set, when a command returns a non-zero status, exit the shell.
+ * Corresponds to -e/--errexit option. */
 bool shopt_errexit;
-/* 未定義の変数の展開をエラーにするかどうか。-u オプションに対応 */
+/* If set, treat an expansion of undefined parameter as an error.
+ * Corresponds to -u/--nounset option. */
 bool shopt_nounset;
-/* コマンドの実行を行わないかどうか。-n オプションに対応 */
+/* If set, don't execute any command; just do syntax checking.
+ * Corresponds to -n/--noexec option. */
 bool shopt_noexec;
-/* プロンプトで EOF を無視するかどうか。-o ignoreeof オプションに対応 */
+/* If set, don't exit when EOF is entered.
+ * Corresponds to --ignoreeof option. */
 bool shopt_ignoreeof;
-/* 読み込んだコマンドをそのままエコーするかどうか。-v オプションに対応 */
+/* If set, echo the input to the shell.
+ * Corresponds to -v/--verbose option. */
 bool shopt_verbose;
-/* コマンドのトレースを出力するかどうか。-x オプションに対応 */
+/* If set, print the trace of each command executed and variable assigned.
+ * Corresponds to -x/--xtrace option. */
 bool shopt_xtrace;
 
-/* パス名展開を行わないかどうか。-f オプションに対応。 */
+/* If set, don't perform filename expansions.
+ * Corresponds to -f/--noglob option. */
 bool shopt_noglob;
-/* それぞれ WGLB_CASEFOLD, WGLB_PERIOD, WGLB_MARK, WGLB_RECDIR に対応 */
+/* Correspond to WGLB_CASEFOLD, WGLB_PERIOD, WGLB_MARK, WGLB_RECDIR resp. */
 bool shopt_nocaseglob, shopt_dotglob, shopt_markdirs, shopt_extendedglob;
-/* パス名展開に一致するファイル名が一つもないとき、元のパターンを返さない。 */
+/* If set, globbing pattern is removed from command line rather than left
+ * intact when there are no matches.
+ * Corresponds to --nullglob option. */
 bool shopt_nullglob;
-/* ブレース展開をするかどうか */
+/* If set, perform brace expansion.
+ * Corresponds to --brace option.*/
 bool shopt_braceexpand;
-/* リダイレクトでファイルの上書きを防止するかどうか */
+/* If set, prevent redirections from overwriting existent file.
+ * Corresponds to -C/--noclobber option. */
 bool shopt_noclobber;
 
 
-/* シェルと set コマンドの長いオプション。 */
+/* Long options for the shell and set builtin */
 static const struct xoption long_options[] = {
     { "interactive",  xno_argument, NULL, 'i', },
     { "help",         xno_argument, NULL, '!', },
     { "version",      xno_argument, NULL, 'V', },
     { "login",        xno_argument, NULL, 'l', },
-    /* ↑ 以上のオプションは set コマンドでは使えない。 */
+    /* Options above cannot be used in set builtin */
     { "allexport",    xno_argument, NULL, 'a', },
     { "hashondef",    xno_argument, NULL, 'h', },
     { "noclobber",    xno_argument, NULL, 'C', },
@@ -112,8 +130,8 @@ const struct xoption *const set_long_options   = long_options + 4;
 // TODO option: unimplemented options: -o{nolog,vi,emacs}
 
 
-/* 一文字のオプションを xoptopt が '-' かどうかによってオン・オフする。
- * シェル起動にしか使えないオプションの文字を指定しても何も起こらない。 */
+/* Switches a one-character option depending on whether `xoptopt' is '-' or not.
+ * Option characters that can only be used in shell invokation are ignored. */
 void set_option(char c)
 {
     bool value = (xoptopt == '-');
@@ -140,10 +158,9 @@ void set_option(char c)
     }
 }
 
-/* "noglob" や "noexec" などの長いオプション名を受け取り、現在の xoptopt に
- * 従って、そのオプションをオン・オフする。
- * シェルの起動時しか使えないオプション名は指定できない。
- * 戻り値: エラーが無ければ true、指定したオプション名が無効なら false。 */
+/* Switches the setting of a specified long option according to `xoptopt'.
+ * Options that can only be used in shell invokation are ignored.
+ * Returns true if successful, false for invalid options. */
 bool set_long_option(const char *s)
 {
     const struct xoption *opt = set_long_options;
@@ -158,8 +175,7 @@ bool set_long_option(const char *s)
     return false;
 }
 
-/* 現在の $- パラメータの値を取得する。
- * 戻り値: 新しく malloc したワイド文字列。 */
+/* Return current value of special parameter $- as a newly malloced string. */
 wchar_t *get_hyphen_parameter(void)
 {
     xwcsbuf_T buf;

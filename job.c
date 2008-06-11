@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,15 +52,15 @@ static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 
-/* ジョブリスト。
- * joblist.contents[0] はアクティブジョブで、起動直後でまだジョブリストに
- * 入っていないジョブを表す。それ以降の要素は普通のジョブ。 */
+/* The list of jobs.
+ * `joblist.contents[ACTIVE_JOBNO]' is a special job, which is called "active
+ * job": the job that is being executed. */
 static plist_T joblist;
 
-/* 現在・前のジョブ番号。当該ジョブがなければ 0。 */
+/* number of the current/previous jobs. 0 if none. */
 static size_t current_jobnumber, previous_jobnumber;
 
-/* joblist を初期化する。 */
+/* Initializes the job list. */
 void init_job(void)
 {
     static bool initialized = false;
@@ -71,16 +71,16 @@ void init_job(void)
     }
 }
 
-/* アクティブジョブを設定する。 */
+/* Sets the active job. */
 void set_active_job(job_T *job)
 {
     assert(joblist.contents[ACTIVE_JOBNO] == NULL);
     joblist.contents[ACTIVE_JOBNO] = job;
 }
 
-/* アクティブジョブをジョブリストに追加する。
- * current: true なら追加したジョブを現在のジョブにする。
- * current が false でも現在のジョブがなければ true とみなす。 */
+/* Moves the active job into the job list.
+ * If `current' is true or there is no current job, the job will be the current
+ * job. */
 void add_job(bool current)
 {
     job_T *job = joblist.contents[ACTIVE_JOBNO];
@@ -88,7 +88,7 @@ void add_job(bool current)
     assert(job != NULL);
     joblist.contents[ACTIVE_JOBNO] = NULL;
 
-    /* 空いているジョブ番号があればそこに追加する。 */
+    /* if there is an empty element in the list, use it */
     for (size_t i = 1; i < joblist.length; i++) {
 	if (joblist.contents[i] == NULL) {
 	    joblist.contents[i] = job;
@@ -100,7 +100,7 @@ void add_job(bool current)
 	}
     }
 
-    /* 空いているジョブ番号がなければ最後に追加する。 */
+    /* if there is no empty, append at the end of the list */
     pl_add(&joblist, job);
     if (current || current_jobnumber == 0)
 	set_current_jobnumber(joblist.length - 1);
@@ -108,15 +108,15 @@ void add_job(bool current)
 	previous_jobnumber = joblist.length - 1;
 }
 
-/* 指定した番号のジョブを取得する。ジョブが存在しなければ NULL を返す。 */
+/* Returns the job of the specified number or NULL if not found. */
 job_T *get_job(size_t jobnumber)
 {
     return jobnumber < joblist.length ? joblist.contents[jobnumber] : NULL;
 }
 
-/* 指定した番号のジョブを無条件で削除する。
- * 使われていないジョブ番号を指定しないこと。
- * 指定したジョブが現在・前のジョブならば現在・前のジョブを再設定する。 */
+/* Removes the job of the specified number.
+ * If the job is the current/previous job, the current/previous job is reset
+ * (another job is assigned to it). */
 void remove_job(size_t jobnumber)
 {
     job_T *job = get_job(jobnumber);
@@ -132,7 +132,7 @@ void remove_job(size_t jobnumber)
     }
 }
 
-/* 全てのジョブを無条件で削除する */
+/* Removes all jobs unconditionally. */
 void remove_all_jobs(void)
 {
     for (size_t i = 0; i < joblist.length; i++)
@@ -141,7 +141,7 @@ void remove_all_jobs(void)
     current_jobnumber = previous_jobnumber = 0;
 }
 
-/* ジョブを解放する */
+/* Frees a job. */
 void free_job(job_T *job)
 {
     if (job) {
@@ -151,7 +151,7 @@ void free_job(job_T *job)
     }
 }
 
-/* ジョブリストの後方にある不要な NULL 要素を削除する */
+/* Removes unused elements in `joblist'. */
 void trim_joblist(void)
 {
     size_t tail = joblist.length;
@@ -164,18 +164,18 @@ void trim_joblist(void)
 	pl_remove(&joblist, tail, SIZE_MAX);
 }
 
-/* ジョブ番号の扱いについて
- *   * 現在のジョブが変わるとき、元の現在のジョブが新しい前のジョブになる
- *     * 'fg' コマンドは現在のジョブを変更する
- *     * set_active_job でジョブを追加するとそれは現在のジョブになる
- *   * 現在のジョブが終了すると、前のジョブが現在のジョブになる
- *   * 'bg' コマンドで現在・前のジョブを再開すると現在・前のジョブは再設定される
- *   * 'wait' コマンドは現在・前のジョブを変更しない
- */
+/* - When the current job changes, the last current job will be the next
+ *   previous job.
+ *   - The "fg" command changes the current job.
+ *   - The `add_job' function may change the current job.
+ * - When the current job finishes, the previous job becomes the current job.
+ * - Restarting the current or previous job by the "bg" command resets the
+ *   current and previous jobs.
+ * - The "wait" command doesn't change the current and previous jobs. */
 
-/* 現在のジョブ番号を指定した番号にし、前のジョブ番号を再設定する。
- * 0 を指定すると前のジョブ番号を現在のジョブ番号にする。
- * 存在しないジョブ番号を指定しないこと。 */
+/* Sets the current job number to the specified one and resets the previous job
+ * number. If `jobnumber' is 0, the previous job becomes the current job.
+ * Otherwise `jobnumber' must be a valid job number. */
 void set_current_jobnumber(size_t jobnumber)
 {
     assert(jobnumber == 0 || get_job(jobnumber) != NULL);
@@ -193,11 +193,11 @@ void set_current_jobnumber(size_t jobnumber)
 	previous_jobnumber = find_next_job(current_jobnumber);
 }
 
-/* 指定した番号以外で、次の 現在のまたは前のジョブ番号を選び出す。
- * ジョブ番号の候補がなければ 0 を返す。 */
-/* 候補の選び方:
- *   まず停止しているジョブから探す。停止しているジョブがなければ他をあたる。
- *   ジョブ番号は出来るだけ大きいものを優先して選ぶ */
+/* Returns an arbitrary job number except the specified.
+ * The returned number is suitable for the next current/previous jobs.
+ * If there is no job to pick out, 0 is returned.
+ * Stopped jobs are preferred to running/finished jobs.
+ * If there are more than one stopped jobs, larger job number is preferred. */
 size_t find_next_job(size_t excl)
 {
     size_t jobnumber = joblist.length;
@@ -219,7 +219,7 @@ size_t find_next_job(size_t excl)
     return 0;
 }
 
-/* ジョブリスト内のジョブの数を返す */
+/* Counts the number of jobs in the job list. */
 size_t job_count(void)
 {
     size_t count = 0;
@@ -229,7 +229,7 @@ size_t job_count(void)
     return count;
 }
 
-/* ジョブリスト内の停止しているジョブの数を返す */
+/* Counts the number of stopped jobs in the job list. */
 size_t stopped_job_count(void)
 {
     size_t count = 0;
@@ -242,8 +242,8 @@ size_t stopped_job_count(void)
 }
 
 
-/* waitpid を実行してジョブリスト内の子プロセスの情報を更新する。
- * この関数はブロックしない。 */
+/* Updates the info about the jobs in the job list by calling `waitpid'.
+ * This function doesn't block. */
 void do_wait(void)
 {
     pid_t pid;
@@ -259,13 +259,15 @@ start:
     if (pid < 0) {
 	switch (errno) {
 	    case EINTR:
-		goto start;  /* 単にやり直す */
+		goto start;  /* try again */
 	    case ECHILD:
-		return;      /* 子プロセスが存在しなかった */
+		return;      /* there are no child processes */
 	    case EINVAL:
 #ifdef WIFCONTINUED
-		/* bash のソースによると、WCONTINUED が定義されていても
-		 * 使えない環境があるらしい。 → WCONTINUED なしで再挑戦 */
+		/* According to the Bash source:
+		 *     WCONTINUED may be rejected by waitpid as invalid even
+		 *     when defined
+		 * -> retry without WCONTINUED. */
 		if (waitopts & WCONTINUED) {
 		    waitopts = WUNTRACED | WNOHANG;
 		    goto start;
@@ -277,7 +279,7 @@ start:
 		return;
 	}
     } else if (pid == 0) {
-	/* もう状態変化を通知していない子プロセスは残っていなかった */
+	/* no more jobs to be updated */
 	return;
     }
 
@@ -285,15 +287,15 @@ start:
     job_T *job;
     process_T *pr;
 
-    /* pid に対応する jobnumber, job, pr を特定する */
+    /* determine `jobnumber', `job' and `pr' from `pid' */
     for (jobnumber = 0; jobnumber < joblist.length; jobnumber++)
 	if ((job = joblist.contents[jobnumber]))
 	    for (pnumber = 0; pnumber < job->j_pcount; pnumber++)
 		if ((pr = &job->j_procs[pnumber])->pr_pid == pid)
 		    goto found;
 
-    /* ジョブリスト内に pid が見付からなければ (これはジョブを disown した場合
-     * などに起こりうる)、単に無視して start に戻る。 */
+    /* If `pid' is not found in the job list, we simply ignore it. This may
+     * happen on some occasions: e.g. the job is "disown"ed. */
     goto start;
 
 found:
@@ -307,17 +309,13 @@ found:
 	pr->pr_status = JS_RUNNING;
 #endif
 
-    /* ジョブの各プロセスの状態を元に、ジョブ全体の状態を決める。
-     * 少なくとも一つのプロセスが JS_RUNNING
-     *     -> ジョブ全体も JS_RUNNING
-     * JS_RUNNING のプロセスはないが、JS_STOPPED のプロセスはある
-     *     -> ジョブ全体も JS_STOPPED
-     * 全てのプロセスが JS_DONE
-     *     -> ジョブ全体も JS_DONE
-     */
+    /* decide the job status from the process status:
+     * - JS_RUNNING if any of the processes is running.
+     * - JS_STOPPED if no processes are running but some are stopped.
+     * - JS_DONE if all the processes are finished. */
     jobstatus_T oldstatus = job->j_status;
     bool anyrunning = false, anystopped = false;
-    /* job 内に一つでも実行中・停止中のプロセスが残っているかどうか調べる */
+    /* check if there are running/stopped processes */
     for (size_t i = 0; i < job->j_pcount; i++) {
 	switch (job->j_procs[i].pr_status) {
 	    case JS_RUNNING:  anyrunning = true;  goto out_of_loop;
@@ -333,11 +331,11 @@ out_of_loop:
     goto start;
 }
 
-/* 指定した番号のジョブの状態変化を待つ。
- * 存在しないジョブ番号を指定しないこと。
- * return_on_stop が false ならば、ジョブが終了するまで待つ。
- * return_on_stop が true ならば、ジョブが停止または終了するまで待つ。
- * ジョブが既に終了 (または停止) していれば、待たずにすぐに返る。 */
+/* Waits for a job to finish (or stop).
+ * `jobnumber' must be a valid job number.
+ * If `return_on_stop' is false, waits for the job to finish.
+ * Otherwise, waits for the job to finish or stop.
+ * This function returns immediately if the job is already finished/stopped. */
 void wait_for_job(size_t jobnumber, bool return_on_stop)
 {
     job_T *job = joblist.contents[jobnumber];
@@ -353,7 +351,7 @@ void wait_for_job(size_t jobnumber, bool return_on_stop)
     unblock_sigchld_and_sighup();
 }
 
-/* waitpid が返したステータスから終了コードを算出する。 */
+/* Computes the exit status from the status code returned by `waitpid'. */
 int calc_status(int status)
 {
     if (WIFEXITED(status))
@@ -369,8 +367,8 @@ int calc_status(int status)
     assert(false);
 }
 
-/* 指定したジョブの終了コードを求める。
- * 状態が JS_RUNNING なジョブを指定しないこと。 */
+/* Computes the exit status of the specified job.
+ * The job must be JS_DONE or JS_STOPPED. */
 int calc_status_of_job(const job_T *job)
 {
     switch (job->j_status) {
@@ -390,8 +388,10 @@ int calc_status_of_job(const job_T *job)
     }
 }
 
-/* 指定したジョブ全体の名前 (コマンド) を取得する。
- * 戻り値: 新しく malloc した文字列 または job->j_procs[0].pr_name。 */
+/* Returns the name of the specified job.
+ * If the job has only one process, `job->j_procs[0].pr_name' is returned.
+ * Otherwise, the names of all the process are concatenated and returned, which
+ * must be freed by the caller. */
 wchar_t *get_job_name(const job_T *job)
 {
     if (job->j_pcount == 1)
@@ -409,8 +409,10 @@ wchar_t *get_job_name(const job_T *job)
     return wb_towcs(&buf);
 }
 
-/* プロセスの状態を示す "Running" とか "Stopped(SIGTSTP)" のような文字列を返す。
- * needfree: 戻り値を free すべきかどうかが *needfree に入る。 */
+/* Returns a string that describes the status of the specified process
+ * such as "Running" and "Stopped(SIGTSTP)".
+ * The returned string must be freed by the caller iff `*needfree' is assigned
+ * true. */
 char *get_process_status_string(const process_T *p, bool *needfree)
 {
     int status;
@@ -454,8 +456,10 @@ exitstatus:
     assert(false);
 }
 
-/* ジョブの状態を示す "Running" とか "Stopped(SIGTSTP)" のような文字列を返す。
- * needfree: 戻り値を free すべきかどうかが *needfree に入る。 */
+/* Returns a string that describes the status of the specified job
+ * such as "Running" and "Stopped(SIGTSTP)".
+ * The returned string must be freed by the caller iff `*needfree' is assigned
+ * true. */
 char *get_job_status_string(const job_T *job, bool *needfree)
 {
     switch (job->j_status) {
@@ -463,7 +467,7 @@ char *get_job_status_string(const job_T *job, bool *needfree)
 	*needfree = false;
 	return gt("Running");
     case JS_STOPPED:
-	/* ジョブ内のプロセスのうち、実際に停止しているものを探して返す。 */
+	/* find a stopped process */
 	for (size_t i = job->j_pcount; ; )
 	    if (job->j_procs[--i].pr_status == JS_STOPPED)
 		return get_process_status_string(&job->j_procs[i], needfree);
@@ -475,13 +479,13 @@ char *get_job_status_string(const job_T *job, bool *needfree)
     assert(false);
 }
 
-/* ジョブの状態を表示する。
- * 終了したジョブを表示したら、そのジョブは削除する。
- * jobnumber: 1 以上のジョブ番号または PJS_ALL (全てのジョブ)。
- *            存在しないジョブ番号を指定しても何もしない。
- * changedonly: 状態が変化したジョブだけを通知する。
- * verbose: 詳細化。パイプ内の全てのプロセスの情報を表示する。
- * f: 出力先。 */
+/* Prints the status of job(s).
+ * Finished jobs are removed from the job list after the status is printed.
+ * If `jobnumber' is PJS_ALL, all the jobs are printed. If the specified job
+ * doesn't exist, nothing is printed (it isn't an error).
+ * If `changedonly' is true, only jobs whose `j_statuschanged' is true is
+ * printed. If `verbose' is true, the status is printed in the process-wise
+ * format rather than the usual job-wise format. */
 void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 {
     if (jobnumber == PJS_ALL) {
@@ -505,7 +509,8 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	wchar_t *jobname = get_job_name(job);
 
 	/* TRANSLATORS: the translated format string can be different 
-	 * from the original only in the number of spaces. */
+	 * from the original only in the number of spaces. This is required
+	 * for POSIX compliance. */
 	fprintf(f, gt("[%zu] %c %-20s %ls\n"),
 		jobnumber, current, status, jobname);
 
@@ -521,7 +526,8 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	wchar_t *jobname = job->j_procs[0].pr_name;
 
 	/* TRANSLATORS: the translated format string can be different 
-	 * from the original only in the number of spaces. */
+	 * from the original only in the number of spaces. This is required
+	 * for POSIX compliance. */
 	fprintf(f, gt("[%zu] %c %5jd %-20s %c %ls\n"),
 		jobnumber, current, (intmax_t) pid, status, looppipe, jobname);
 	if (needfree)
@@ -533,7 +539,8 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	    jobname = job->j_procs[i].pr_name;
 
 	    /* TRANSLATORS: the translated format string can be different 
-	     * from the original only in the number of spaces. */
+	     * from the original only in the number of spaces. This is required
+	     * for POSIX compliance. */
 	    fprintf(f, gt("      %5jd %-20s | %ls\n"),
 		    (intmax_t) pid, (posixly_correct ? "" : status), jobname);
 	    if (needfree)

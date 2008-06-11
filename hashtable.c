@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* hashtable.c: hashtable library */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,33 +25,32 @@
 #include "hashtable.h"
 
 
-/* ハッシュテーブルは、「キー」から「値」を引くための対応表である。
- * キーと値はどちらも void * 型である。値は NULL でも良いが、キーは NULL
- * にはできない。これらのポインタの指す先のオブジェクトを確保・解放するのは、
- * すべて呼出し元の責任である。 */
-/* ハッシュテーブルの容量は 0 にはならない。 */
-/* このハッシュテーブルの実装は、連鎖式クローズドハッシュ方式による。 */
+/* A hashtable is a mapping from keys to values.
+ * Keys and values are all of type (void *).
+ * NULL is allowed as a value, but not as a key.
+ * The capacity of a hashtable is always no less than one. */
+/* The implementation is a chained closed hashing. */
 
 
-/* 無効なインデックスを表す */
+/* The null index */
 #define NOTHING ((size_t) -1)
 
-/* struct hash_entry の定義 */
+/* hashtable entry */
 struct hash_entry {
     size_t next;
     unsigned long hash;
     kvpair_T kv;
 };
-/* ハッシュエントリが有効かどうかは、kv.key が NULL でないかどうかで判別する。
- * kv.key が NULL のとき、struct hash_entry 内の他のメンバは全て不定である。 */
+/* An entry is occupied iff `.kv.key' is non-NULL.
+ * When an entry is unoccupied, the values of the other members of the entry are
+ * unspecified. */
 
 static hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity);
 
 
-/* 未初期化のハッシュテーブルを、指定した初期容量で初期化する。
- * hashfunc はキーのハッシュ値を求めるハッシュ関数へのポインタ、
- * keycmp は二つのキーを比較する比較関数へのポインタである。
- * 比較関数は、二つのキーが等しいとき 0 を、異なるときに非 0 を返す。 */
+/* Initializes a hashtable with the specified capacity.
+ * `hashfunc' is a hash function to hash keys.
+ * `keycmp' is a function that compares two keys. */
 hashtable_T *ht_initwithcapacity(
 	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
 	size_t capacity)
@@ -76,15 +75,16 @@ hashtable_T *ht_initwithcapacity(
     return ht;
 }
 
-/* 初期化済みのハッシュテーブルを解放する。
- * ハッシュテーブルに含まれる各キー・各値の解放は予め行っておくこと。 */
+/* Destroys a hashtable.
+ * Note that this function doesn't `free' any of the keys and the values. */
 void ht_destroy(hashtable_T *ht)
 {
     free(ht->indices);
     free(ht->entries);
 }
 
-/* ハッシュテーブルの容量を変更する。 */
+/* Changes the capacity of a hashtable.
+ * Note that the capacity must not be zero. */
 hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
 {
     assert(newcapacity > 0 && newcapacity >= ht->count);
@@ -101,7 +101,7 @@ hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
 	newentries[i].kv.key = NULL;
     }
 
-    /* oldentries から newentries にデータを移す */
+    /* move the data from oldentries to newentries */
     for (size_t i = 0; i < oldcapacity; i++) {
 	void *key = oldentries[i].kv.key;
 	if (key) {
@@ -127,7 +127,8 @@ hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
     return ht;
 }
 
-/* ハッシュテーブルが少なくとも capacity 以上の容量を持つように拡張する。 */
+/* Increases the capacity if needed
+ * so that the capacity is no less than the specified. */
 inline hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
 {
     if (ht->capacity < capacity) {
@@ -141,9 +142,9 @@ inline hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
     }
 }
 
-/* ハッシュテーブルの全エントリを削除する。freer が NULL でなければ、
- * 各エントリに対して freer を一回ずつ呼出す。
- * ハッシュテーブルの容量は変わらない。 */
+/* Removes all the entries of a hashtable.
+ * If `freer' is non-NULL, it is called for each entry removed.
+ * The capacity of the hashtable is not changed. */
 hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 {
     size_t *indices = ht->indices;
@@ -167,8 +168,8 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
     return ht;
 }
 
-/* ハッシュテーブルの値を取得する。
- * key が NULL であるか、key に対応する要素がなければ { NULL, NULL } を返す。 */
+/* Returns the entry whose key is equal to the specified `key',
+ * or { NULL, NULL } if `key' is NULL or there is no such entry. */
 kvpair_T ht_get(hashtable_T *ht, const void *key)
 {
     if (key) {
@@ -184,15 +185,15 @@ kvpair_T ht_get(hashtable_T *ht, const void *key)
     return (kvpair_T) { NULL, NULL, };
 }
 
-/* ハッシュテーブルにエントリを設定する。
- * 戻り値は、これまでに設定されていた key に等しいキーとそれに対応する値である。
- * これまでに key に等しいキーを持つエントリがなかった場合は { NULL, NULL }
- * を返す。key は NULL であってはならない。 */
+/* Makes a new entry with the specified key and value,
+ * removing and returning the old entry with an equal key.
+ * If there is no such old entry, { NULL, NULL } is returned.
+ * `key' must not be NULL. */
 kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 {
     assert(key != NULL);
 
-    /* まず、key に等しいキーの既存のエントリがあるならそれを置き換える */
+    /* if there is an entry with an equal key, replace it */
     unsigned long hash = ht->hashfunc(key);
     size_t mhash = (size_t) hash % ht->capacity;
     size_t index = ht->indices[mhash];
@@ -206,10 +207,10 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	index = entry->next;
     }
 
-    /* 既存のエントリがなかったので、新しいエントリを追加する。 */
+    /* no entry with an equal key found, so add a new entry */
     index = ht->emptyindex;
     if (index != NOTHING) {
-	/* empty entry があればそこに追加する。 */
+	/* if there are empty entries, use one of them */
 	struct hash_entry *entry = &ht->entries[index];
 	ht->emptyindex = entry->next;
 	*entry = (struct hash_entry) {
@@ -219,7 +220,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	};
 	ht->indices[mhash] = index;
     } else {
-	/* empty entry がなければ tail entry に追加する。 */
+	/* if there are no empty entries, use a tail entry */
 	ht_ensurecapacity(ht, ht->count + 1);
 	mhash = (size_t) hash % ht->capacity;
 	index = ht->tailindex;
@@ -235,9 +236,8 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
     return (kvpair_T) { NULL, NULL, };
 }
 
-/* ハッシュテーブルから key に等しいキーのエントリを削除する。
- * 戻り値は、削除したエントリのキーと値。key に等しいエントリがなかった場合は
- * { NULL, NULL } を返す。 */
+/* Removes and returns the entry whose key is equal to the specified `key'.
+ * If `key' is NULL or there is no such entry, { NULL, NULL } is returned. */
 kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
     if (key) {
@@ -261,12 +261,12 @@ kvpair_T ht_remove(hashtable_T *ht, const void *key)
     return (kvpair_T) { NULL, NULL, };
 }
 
-/* ハッシュテーブルの各エントリに対して、関数 f を一回ずつ呼び出す。
- * 各エントリに対して f を呼び出す順序は不定である。
- * あるエントリに対して f が非 0 を返した場合、それ以降のエントリに対して f
- * は呼び出さず、ht_each はただちに f が返したその非 0 値を返す。
- * 全てのエントリに対して f が 0 を返した場合、ht_each も 0 を返す。
- * この関数の実行中に ht のエントリを追加・削除してはならない。 */
+/* Calls the specified function `f' once for each entry in the hashtable `ht'.
+ * The order of calls is unspecified.
+ * If `f' returns a non-zero value for some entry, `f' is not called any more
+ * and `ht_each' immediately returns the non-zero value. Otherwise, that is,
+ * if `f' returns zero for all the entry, `ht_each' also returns zero.
+ * You must not add or remove any entry during this function. */
 int ht_each(hashtable_T *ht, int f(kvpair_T kv))
 {
     struct hash_entry *entries = ht->entries;
@@ -282,14 +282,14 @@ int ht_each(hashtable_T *ht, int f(kvpair_T kv))
     return 0;
 }
 
-/* ハッシュテーブルの内容を列挙する。
- * 最初に列挙を開始する前に、*indexp を 0 に初期化しておく。
- * その後同じ ht と indexp をこの関数に渡す度にキーと値のペアが返される。
- * *indexp は列挙がどこまで進んだかを覚えておくためにこの関数が書き換える。
- * 列挙の途中で勝手に *indexp の値を変えてはならない。
- * また、列挙の途中でハッシュテーブルのエントリを追加・削除してはならない。
- * この関数は各エントリを一度ずつ返すが、その順番は不定である。
- * 全ての列挙が終わると { NULL, NULL } が返る。 */
+/* Iterates the entries of a hashtable.
+ * Firstly, `*indexp' must be initialized to zero.
+ * Each time this function is called, it returns the entry to be iterated next
+ * and increases `*indexp'.
+ * You must not change the value of `*indexp' from outside this function or
+ * add/remove any entry in the hashtable.
+ * Each entry is returned exactly once, in an unspecified order.
+ * If there is no more entry to be iterated, { NULL, NULL } is returned. */
 kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
 {
     while (*indexp < ht->capacity) {
@@ -302,10 +302,9 @@ kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
 }
 
 
-/* マルチバイト文字列に対するハッシュ関数。引数は const char * にキャストされ、
- * そのポインタが指す文字列に対するハッシュ値を返す。
- * この関数はマルチバイト文字列をキーとするハッシュテーブルのハッシュ関数として
- * 使える。比較関数には strcmp を使うと良い。 */
+/* A hash function for a multibyte string.
+ * The argument is cast from (const char *) to (const void *).
+ * You can use `htstrcmp' for a corresponding comparison function. */
 unsigned long hashstr(const void *s)
 {
     const char *c = s;
@@ -315,19 +314,17 @@ unsigned long hashstr(const void *s)
     return h;
 }
 
-/* マルチバイト文字列の比較関数。引数を const char * にキャストし、strcmp 関数で
- * 比較した結果が返る。
- * この関数はマルチバイト文字列をキーとするハッシュテーブルの比較関数として
- * 使える。ハッシュ関数には hashstr を使うと良い。 */
+/* A comparison function for multibyte strings.
+ * The argument is cast from (const char *) to (const void *).
+ * You can use `hashstr' for a corresponding hash function. */
 int htstrcmp(const void *s1, const void *s2)
 {
     return strcmp((const char *) s1, (const char *) s2);
 }
 
-/* ワイド文字列に対するハッシュ関数。引数は const wchar_t * にキャストされ、
- * そのポインタが指す文字列に対するハッシュ値を返す。
- * この関数はワイド文字列をキーとするハッシュテーブルのハッシュ関数として
- * 使える。比較関数には htwcscmp を使うと良い。 */
+/* A hash function for a wide string.
+ * The argument is cast from (const wchar_t *) to (const void *).
+ * You can use `htwcscmp' for a corresponding comparison function. */
 unsigned long hashwcs(const void *s)
 {
     const wchar_t *c = s;
@@ -337,28 +334,30 @@ unsigned long hashwcs(const void *s)
     return h;
 }
 
-/* ワイド文字列の比較関数。引数を const wchar_t * にキャストし、wcscmp 関数で
- * 比較した結果が返る。
- * この関数はワイド文字列をキーとするハッシュテーブルの比較関数として使える。
- * ハッシュ関数には hashwcs を使うと良い。 */
+/* A comparison function for wide strings.
+ * The argument is cast from (const wchar_t *) to (const void *).
+ * You can use `hashwcs' for a corresponding hash function. */
 int htwcscmp(const void *s1, const void *s2)
 {
     return wcscmp((const wchar_t *) s1, (const wchar_t *) s2);
 }
 
-/* free(kv.key) を行うだけの関数。ht_clear の第二引数用。 */
+/* Just `free's the key of the key-value pair `kv'.
+ * Can be used as a freer function to `ht_clear'. */
 void kfree(kvpair_T kv)
 {
     free(kv.key);
 }
 
-/* free(kv.value) を行うだけの関数。ht_clear の第二引数用。 */
+/* Just `free's the value of the key-value pair `kv'.
+ * Can be used as a freer function to `ht_clear'. */
 void vfree(kvpair_T kv)
 {
     free(kv.value);
 }
 
-/* free(kv.key) と free(kv.value) を行うだけの関数。ht_clear の第二引数用。 */
+/* Just `free's the key and the value of the key-value pair `kv'.
+ * Can be used as a freer function to `ht_clear'. */
 void kvfree(kvpair_T kv)
 {
     free(kv.key);

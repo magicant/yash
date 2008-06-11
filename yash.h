@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.h: basic functions of the shell and miscellanies */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,10 +49,10 @@ extern bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
     __attribute__((nonnull(1)));
 
 
-/* シェルを終了し、終了ステータスとして laststatus を返す。 */
-/* この関数は EXIT トラップを実行し、reset_own_pgrp を呼び出す。 */
-/* この関数は返らない。 */
-/* この関数は再入可能であり、再入すると直ちに終了する。 */
+/* Exits the shell with the exit status of `laststatus'.
+ * This function executes EXIT trap and calls `reset_own_pgrp'.
+ * This function never returns.
+ * This function is reentrant and exits immediately if reentered. */
 void exit_shell(void)
 {
     exit_shell_with_status(-1);

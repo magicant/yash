@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.c: miscellaneous utility functions */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,8 @@
 
 /********** General functions **********/
 
-/* エラーメッセージを吐いて強制終了する。メモリの確保に失敗すると呼ばれる。 */
+/* This function is called on memory allocation failure and
+ * aborts the program after printing an error message. */
 void alloc_failed(void)
 {
     xerror(ENOMEM, NULL);
@@ -46,10 +47,10 @@ void alloc_failed(void)
 
 /********** String utilities **********/
 
-/* 文字列を新しく malloc した領域に複製する。
- * malloc に失敗するとプログラムを強制終了する。
- * len: 複製する文字列の長さ ('\0' を含まない)。
- *      len が s の実際の長さより大きければ s 全体を複製する */
+/* Returns a newly malloced copy of the specified string.
+ * The copy is at most `len' bytes long.
+ * Returns an exact copy if (strlen(s) <= len).
+ * Aborts the program on malloc failure. */
 char *xstrndup(const char *s, size_t len)
 {
     len = xstrnlen(s, len);
@@ -59,10 +60,10 @@ char *xstrndup(const char *s, size_t len)
     return memcpy(result, s, len);
 }
 
-/* 文字列を新しく malloc した領域に複製する。
- * malloc に失敗するとプログラムを強制終了する。
- * len: 複製する文字列の長さ ('\0' を含まない)。
- *      len が s の実際の長さより大きければ s 全体を複製する */
+/* Returns a newly malloced copy of the specified string.
+ * The copy is at most `len' characters long.
+ * Returns an exact copy if (wcslen(s) <= len).
+ * Aborts the program on malloc failure. */
 wchar_t *xwcsndup(const wchar_t *s, size_t len)
 {
     len = xwcsnlen(s, len);
@@ -72,10 +73,10 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
     return wmemcpy(result, s, len);
 }
 
-/* ポインタの NULL 終端配列を内容も含めてコピーする。
- * 配列の各要素は copy でコピーする。
- * 引数が NULL なら単に NULL を返す。 */
-/* copy として渡す関数としては、xstrdup や copyaswcs が使える。 */
+/* Clones a NULL-terminated array of pointers.
+ * Each pointer element is passed to `copy' function and the return value is
+ * assigned to the new array element. */
+/* `xstrdup' and `copyaswcs' are suitable for `copy'. */
 void **duparray(void *const *array, void *copy(const void *p))
 {
     if (!array)
@@ -92,21 +93,21 @@ void **duparray(void *const *array, void *copy(const void *p))
     return result;
 }
 
-/* void * にキャストしたワイド文字列へのポインタの NULL 終端配列の内容を
- * 繋げて一つの文字列にして返す。padding が NULL でなければ各文字列の間に
- * padding を差し挟む。
- * 戻り値: 新しく malloc したワイド文字列 */
+/* Joins wide-character strings in the specified array whose elements are cast
+ * from (wchar_t *) to (void *). If `padding' is non-NULL, the contents of
+ * `padding' is padded between each joined element.
+ * Returns a newly malloced string. */
 wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 {
     size_t elemcount, ccount = 0;
 
-    /* 全体の文字数を数える */
+    /* count the full length of the resulting string */
     for (elemcount = 0; array[elemcount]; elemcount++)
 	ccount += wcslen(array[elemcount]);
     if (padding && elemcount > 0)
 	ccount += wcslen(padding) * (elemcount - 1);
 
-    /* 戻り値を malloc し文字列をコピーする */
+    /* do copying */
     wchar_t *result = xmalloc((ccount + 1) * sizeof *result);
     wchar_t *s = result;
     for (size_t i = 0; i < elemcount; i++) {
@@ -124,9 +125,8 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
     return result;
 }
 
-/* 文字列 s が prefix で始まるなら、s 内の prefix を飛ばした最初の文字への
- * ポインタを返し、さもなくば NULL を返す。 */
-/* Unused function 
+/* If the string `s' starts with the `prefix', returns a pointer to the
+ * byte right after the prefix in `s'. Otherwide returns NULL. */
 char *matchstrprefix(const char *s, const char *prefix)
 {
     while (*prefix) {
@@ -137,10 +137,9 @@ char *matchstrprefix(const char *s, const char *prefix)
     }
     return (char *) s;
 }
-*/
 
-/* 文字列 s が prefix で始まるなら、s 内の prefix を飛ばした最初の文字への
- * ポインタを返し、さもなくば NULL を返す。 */
+/* If the string `s' starts with the `prefix', returns a pointer to the
+ * character right after the prefix in `s'. Otherwide returns NULL. */
 wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 {
     while (*prefix) {
@@ -152,7 +151,8 @@ wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
     return (wchar_t *) s;
 }
 
-/* xwcsdup と同じだが、引数と戻り値の wchar_t * が void * にキャストしてある */
+/* Same as `xwcsdup', except that the argument and the return value are cast to
+ * (void *). */
 void *copyaswcs(const void *p)
 {
     return xwcsdup(p);
@@ -165,16 +165,12 @@ const char *yash_program_invocation_name;
 const char *yash_program_invocation_short_name;
 unsigned yash_error_message_count = 0;
 
-/* glibc の error 関数の独自の実装。エラーメッセージを stderr に出力する。
- * errno_: 非 0 なら format メッセージに続けて errno に対応するメッセージを出す
- * format: エラーメッセージ。printf 用のフォーマット文字列。
- *         xerror 内で gettext する。
- * 出力内容は以下の通り:
- *   - "%s: ", yash_program_invocation_name
- *   - format, ... の内容        (format が非 NULL の場合のみ)
- *   - ": %s", strerror(errno)   (errno が非 0 の場合のみ)
- *   - "\n"
- * format == NULL && errno_ == 0 なら、"unknown error" を出力する。 */
+/* Prints an error message to stderr.
+ * `format' is passed to `gettext' and the result is printed to stderr using
+ * `vfprintf'.  If `errno_' is non-zero, prints `strerror(errno_)' after the
+ * formatted string.
+ * `format' need not to end with '\n'. If (format == NULL && errno_ == 0),
+ * prints "unknown error". */
 void xerror(int errno_, const char *restrict format, ...)
 {
     va_list ap;
@@ -207,7 +203,7 @@ int xoptind = 0;
 int xoptopt;
 bool xopterr = true;
 
-/* xgetopt_long で使う補助関数。argv[from] を argv[to] に持ってくる。 */
+/* Moves `argv[from]' to `argv[to]'. */
 void argshift(char **argv, int from, int to /* <= from */)
 {
     char *s = argv[from];
@@ -218,78 +214,79 @@ void argshift(char **argv, int from, int to /* <= from */)
     argv[to] = s;
 }
 
-/* GNU ライブラリにある getopt_long の自前の実装。
- * argv 内の各文字列をコマンドライン引数とみなし、オプションを取り出す。
- * この関数を呼び出すごとに、オプションを一つづつ取り出して返してゆく。詳細は
- * http://www.linux.or.jp/JM/html/LDP_man-pages/man3/getopt.3.html
- * 等も参照のこと。
- * argv:      解析する文字列の配列の先頭へのポインタ。
- *            配列の中の文字列は関数の中で並び変わることがある。
- *            配列の最後の要素の後には NULL ポインタが入っている必要がある。
- * optstring: 認識すべき一文字のオプションを指定する文字列へのポインタ。
- *            例えば -a, -d, -w の三種類のオプションを認識すべきなら、
- *            "ad:w" となる。'd' の後の ':' は -d が引数を取ることを示す。
- *            ':' を二つにすると下記の xoptional_argument のようになる。
- *            英数字以外のオプション文字は正しく動作しない。
- * longopts:  認識すべき長いオプションを指定する struct xoption 配列への
- *            ポインタ。配列の最後の要素は { 0, 0, 0, 0, } とすること。
- *            長いオプションを一切使わない場合は NULL でもよい。
- *            posixly_correct ならば、長いオプションは一切解析しない。
- * longindex: 長いオプションを認識したとき、longindex が非 NULL なら、
- *            そのオプションを表す struct xoption が longopts 内の何番目の要素
- *            であるかを示すインデックスが *longindex に入る。
- * 戻り値:    一文字のオプションを認識したときは、その一文字。
- *            長いオプションを認識したときは、下記説明を参照。
- *            optstring や longopts に無いオプションが出たときは '?'。
- *            もうオプションがない時は、-1。
- * posixly_correct || '+' フラグありの時を除いて、argv の中の文字列は
- * オプションとそれ以外の引数が混ざっていてもよい。この場合、全てのオプションを
- * 認識し終えて -1 を返した時点で、全てのオプションがそれ以外の引数よりも前に
- * 来るように argv の中の文字列は並び変わっている。(認識できないオプションが
- * あった場合を除く)
- * posixly_correct || '+' フラグありの時は、オプションでない引数が一つでも
- * 出た時点で認識は終了する。(よって、argv は並び変わらない)
- * いづれの場合も、-1 を返した時点で、argv[xoptind] はオプションでない最初の
- * 引数である。-1 が返ったら、それ以上 xgetopt_long を呼んではいけない。
- * それまでは、毎回同じ引数で xgetopt_long を呼ぶこと。とくに、途中で
- * argv や xoptind を外から書き換えてはいけない。
- * '*' フラグありの時は、'+' で始まる一文字のオプションも認識する。
- * '+' で始まるオプションを認識すると、xoptopt が '+' になる。
- * '+'/'*' フラグは optstring の先頭に付ける。
- * '+' フラグは '*' より先に指定する。
- * struct xoption のメンバの意味は以下の通り:
- * name:     長いオプションの名前。("--" より後の部分)
- *           引数ありのオプションの名前に '=' が入っているとうまく動かない。
- *           いづれにしても名前は英数字とハイフンのみからなるべきである。
- * has_arg:  オプションが引数を取るかどうか。xno_argument, xrequired_argument,
- *           xoptional_argument のどれかを指定する。xoptional_argument なら、
- *           オプションに対する引数は --opt arg のように分けることはできない。
- *           xrequired_argument では、--opt arg のように分けてもよいし、
- *           --opt=arg のように繋げてもよい。
- * flag,val: 長いオプションを認識したときの動作を決める。flag が非 NULL なら、
- *           *flag に val を代入して xgetopt_long は 0 を返す。flag が NULL
- *           なら、単に xgetopt_long は val を返す。
- * 外部結合変数 xoptind, xoptarg, xoptopt, xopterr の意味は以下の通り:
- * xoptind: argv 内で次に解析すべき文字列のインデックス。始めは 0 になっていて、
- *          解析が進むにつれて増える。新しい argv に対する解析を始める前には、
- *          0 に値を設定し直すこと。
- * xoptarg: 引数のあるオプションを認識したとき、その引数の最初の文字への
- *          ポインタが xoptarg に入る。xoptional_argument で引数がない場合、
- *          NULL ポインタが入る。
- * xoptopt: optstring に無い一文字のオプションがあると、その文字が xoptopt に
- *          入る。optstring にある一文字のオプションを認識したとき、オプションが
- *          '-' で始まるか '+' で始まるかによって '-' と '+' のどちらかが入る。
- *          長いオプションを認識したときは '-' になる。
- * xopterr: true なら、optstring や longopts に無いオプションが出たときに
- *          エラーメッセージを stderr に出力する。
+/* Parses options for a command.
+ * Each time this function is called, one option is parsed.
+ * If a one-character option is parsed, the character is returned.
+ * If an unknown option is encountered, '?' is returned.
+ * If there is no more option to be recognized, -1 is returned.
+ * See the description below for the return value when a long option is
+ * recognized.
+ *
+ * `argv' is a pointer to an NULL-terminated array whose contents are to be
+ * parsed. Elements in `argv' may be sorted in this function.
+ *
+ * `optstring' is a string specifying one-character options to be recognized.
+ * For example, if `optstring' is "ad:w", -a, -d and -w are recognized and
+ * -d takes an operand. If option character is followed by two colons,
+ * the operand is optional. Option characters should be alphanumeric.
+ * If `optstring' starts with '+', options are parsed in posixly correct way.
+ * If `optstring' starts with '*', one-character options may start with '+'
+ * instead of '-', which is allowed in "sh" and "set" command.
+ * '+' must precede '*' when the both are specified.
+ *
+ * `longopts' is a pointer to an array of `struct xoption's specifying long
+ * options to be recognized. The last element must be { 0, 0, 0, 0 }.
+ * `longopts' may be NULL if no long option is to be recognized.
+ * `longopts' is ignored if `posixly_correct' is true.
+ *
+ * When a long option is recognized and `longindex' is non-NULL,
+ * the index of corresponding `struct xoption' in the `longopts' array is
+ * assigned to `*longindex'.
+ *
+ * If `posixly_correct' is true or `optstring' starts with a '+' flag,
+ * all the options must be preceding the operands. `argv' is not arranged.
+ * Otherwise options and operands may be mixed. After all the option is parsed,
+ * `argv' is arranged so that all the options percede the operands (except when
+ * there was a parse error).
+ *
+ * After this function returned -1, it must not be called any more and
+ * `argv[xoptind]' points to the first operand.
+ * `argv', `xoptind' and `xoptopt' must not be changed from outside this
+ * function during parsing.
+ *
+ * Here are the meaning of the members of `struct xoption':
+ *  name:      Name of the long option (without preceding "--")
+ *             that should consist only of alphanumeric characters and hyphens.
+ *  has_arg:   One of `xno_argument', `xrequired_argument' and
+ *             `xoptional_argument'.
+ *             An argument is specified in the form of "--opt=arg".
+ *             A required argument may be in the form of "--opt arg" instead.
+ *  flag, val: Defines the behavior on recognition of a long option.
+ *             If `flag' is non-NULL, `val' is assigned to `*flag' and the
+ *             function returns 0. Otherwise the function simply returns `val'.
+ *
+ * Here are the meaning of external variables with `xopt'-prefix.
+ *  xoptind:  Index of the argument in `argv' to be parsed next.
+ *            Must be initialized to 0 before first call to the function.
+ *  xoptarg:  When an option with an argument is parsed, `xoptarg' points to
+ *            the first character of the argument. If an optional argument is
+ *            not given, `xoptarg' is NULL.
+ *  xoptopt:  When an unknown one-character option is encountered, the
+ *            character is assigned to `xoptopt'.
+ *            When a one-character option is parsed properly, '-' or '+' is
+ *            assigned to `xoptopt' according to the prefix of the option.
+ *            When a long option is parsed, '-' is assigned.
+ *  xopterr:  When an unknown option is encountered, if `xopterr' is true,
+ *            an error message is printed to stderr.
+ *
+ * This implementation is not fully compatible with GNU's getopt_long or
+ * POSIX's getopt.
+ * This implementation assumes that all the option characters are
+ * simglebyte character.
+ * Some implementation has `argreset' variable, which is assigned 1 before
+ * starting new parsing to reset the state. In this implementation, the parse
+ * state is reset when 0 is assigned to `xoptind'.
  */
-/* この実装は GNU 版の getopt_long や POSIX の定める getopt 関数と
- * 完全に互換性がある訳ではない。
- * getopt の実装によっては、新しい解析を始める前に argreset に 1 を代入する
- * ことで解析器をリセットするようになっているものもある。この実装では、argreset
- * を使わずに、xoptind を 0 に戻すことでリセットする。
- * この実装はマルチバイト文字には完全には対応していない。解析の対象となる文字は
- * すべて初期シフト状態で解釈する。 */
 int xgetopt_long(
 	char **restrict argv,
 	const char *restrict optstring,
@@ -301,7 +298,7 @@ int xgetopt_long(
     static int aindex;
     bool optionsfirst = posixly_correct, plusoptions = false;
 
-    if (xoptind == 0) {  /* 新しい解析を始めるためにリセット */
+    if (xoptind == 0) {  /* reset the state */
 	aindex = 1;
 	xoptind = 1;
     }
@@ -317,7 +314,7 @@ int xgetopt_long(
     initind = xoptind;
     while ((arg = argv[xoptind])) {
 	if ((arg[0] != '-' && (!plusoptions || (arg[0] != '+'))) || !arg[1]) {
-	    /* arg はオプションではない */
+	    /* arg is not an option */
 	    if (optionsfirst)
 		break;
 	    xoptind++;
@@ -325,10 +322,10 @@ int xgetopt_long(
 	}
 
 	if (arg[0] == '-' && arg[1] == '-') {
-	    /* arg は "--" で始まる */
+	    /* arg starts with "--" */
 	    goto tryparselongoption;
 	} else {
-	    /* 一文字のオプションを解析 */
+	    /* start parsing a one-character option */
 	    goto tryparseshortoption;
 	}
     }
@@ -344,13 +341,13 @@ tryparseshortoption:
 	goto nosuchoption;
     }
 
-    /* 有効なオプションが見付かった */
+    /* a valid option is found */
     if (optstring[1] == ':') {
-	/* 引数を取るオプション */
+	/* the option takes an argument */
 	xoptarg = &arg[aindex + 1];
 	aindex = 1;
 	if (!*xoptarg && optstring[2] != ':') {
-	    /* -x arg のように分かれている場合 */
+	    /* the argument is split from option like "-x arg" */
 	    xoptarg = argv[xoptind + 1];
 	    if (!xoptarg)
 		goto argumentmissing;
@@ -358,12 +355,12 @@ tryparseshortoption:
 	    argshift(argv, xoptind + 1, initind + 1);
 	    xoptind = initind + 2;
 	} else {
-	    /* 引数が省略された場合 */
+	    /* the argument is omitted */
 	    argshift(argv, xoptind, initind);
 	    xoptind = initind + 1;
 	}
     } else {
-	/* 引数を取らないオプション */
+	/* the option doesn't take an argument */
 	if (arg[aindex + 1]) {
 	    aindex++;
 	    argshift(argv, xoptind, initind);
@@ -387,24 +384,24 @@ tryparselongoption:
     if (posixly_correct || !longopts)
 	goto nosuchoption;
 
-    /* 一致する長いオプションを探す */
+    /* identify the name of the long option */
     int matchindex = -1;
     size_t len = strcspn(arg2, "=");
     for (int i = 0; longopts[i].name; i++) {
 	if (strncmp(longopts[i].name, arg2, len) == 0) {
 	    if (longopts[i].name[len]) {
-		/* 部分一致 */
+		/* partial match */
 		if (matchindex < 0) {
-		    /* 初めての一致 */
+		    /* first match */
 		    matchindex = i;
 		    continue;
 		} else {
-		    /* すでに他にも一致したものがある */
+		    /* there was other match */
 		    arg = arg2;
 		    goto ambiguousmatch;
 		}
 	    } else {
-		/* 完全一致 */
+		/* full match */
 		matchindex = i;
 		break;
 	    }
@@ -413,14 +410,14 @@ tryparselongoption:
     if (matchindex < 0)
 	goto nosuchoption;
 
-    /* 長いオプションが見付かった */
+    /* a valid long option is found */
     if (longindex)
 	*longindex = matchindex;
     xoptopt = '-';
     if (longopts[matchindex].has_arg) {
 	char *eq = strchr(arg2, '=');
 	if (!eq) {
-	    /* --option arg のように分かれている場合 */
+	    /* the argument is split from option like "--option argument" */
 	    xoptarg = argv[xoptind + 1];
 	    if (!xoptarg) {
 		if (longopts[matchindex].has_arg == xrequired_argument)
@@ -433,13 +430,13 @@ tryparselongoption:
 		xoptind = initind + 2;
 	    }
 	} else {
-	    /* --option=arg のように '=' で引数を指定している場合 */
+	    /* the argument is specified after '=' like "--option=argument" */
 	    xoptarg = eq + 1;
 	    argshift(argv, xoptind, initind);
 	    xoptind = initind + 1;
 	}
     } else {
-	/* 引数を取らないオプション */
+	/* the option doesn't take an argument */
 	argshift(argv, xoptind, initind);
 	xoptind = initind + 1;
     }

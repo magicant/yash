@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.h: option settings */
-/* © 2007-2008 magicant */
+/* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ extern bool set_long_option(const char *s)
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
 
-/* 今現在ジョブ制御が有効であるかどうか */
+/* Whether or not this shell process is doing job control right now. */
 #define doing_job_control_now  (do_job_control && ttyfd >= 0)
 
 
