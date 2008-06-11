@@ -114,7 +114,7 @@ static wchar_t *reescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void **reescape_full_array(void **wcsarray)
     __attribute__((nonnull));
-static wchar_t *escaped_wcspbrk(const wchar_t *wcs, const wchar_t *accept)
+static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
     __attribute__((nonnull));
 
 static void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
@@ -1409,20 +1409,20 @@ done:
     return wb_towcs(&buf);
 }
 
-/* wcspbrk と同じだが、wcs 内のバックスラッシュエスケープした文字は無視する */
-wchar_t *escaped_wcspbrk(const wchar_t *wcs, const wchar_t *accept)
+/* wcspbrk と同じだが、s 内のバックスラッシュエスケープした文字は無視する */
+wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
 {
-    while (*wcs) {
-	if (*wcs == L'\\') {
-	    wcs++;
-	    if (!*wcs)
+    while (*s) {
+	if (*s == L'\\') {
+	    s++;
+	    if (!*s)
 		break;
-	    wcs++;
+	    s++;
 	    continue;
 	}
-	if (wcschr(accept, *wcs))
-	    return (wchar_t *) wcs;
-	wcs++;
+	if (wcschr(accept, *s))
+	    return (wchar_t *) s;
+	s++;
     }
     return NULL;
 }
