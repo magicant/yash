@@ -1313,6 +1313,18 @@ wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     return wb_towcs(&buf);
 }
 
+/* Same as `escape', except that the first argument is freed. */
+wchar_t *escapefree(wchar_t *restrict s, const wchar_t *restrict t)
+{
+    if (t && !wcspbrk(s, t)) {
+	return s;
+    } else {
+	wchar_t *result = escape(s, t);
+	free(s);
+	return result;
+    }
+}
+
 /* Removes backslash escapes. The result is a newly malloced string. */
 wchar_t *unescape(const wchar_t *s)
 {
@@ -1329,6 +1341,18 @@ wchar_t *unescape(const wchar_t *s)
 	s++;
     }
     return wb_towcs(&buf);
+}
+
+/* Same as `unescape', except that the first argument is freed. */
+wchar_t *unescapefree(wchar_t *s)
+{
+    if (!wcschr(s, L'\\')) {
+	return s;
+    } else {
+	wchar_t *result = unescape(s);
+	free(s);
+	return result;
+    }
 }
 
 /* Backslashes all the characters in the specified string.

@@ -39,44 +39,15 @@ extern wchar_t *expand_string(const wordunit_T *w, bool esc)
 
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));
-static inline wchar_t *escapefree(
+extern wchar_t *escapefree(
 	wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 extern wchar_t *unescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
-static inline wchar_t *unescapefree(wchar_t *s)
+extern wchar_t *unescapefree(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
-
-
-/* Same as `escape', except that the first argument is freed. */
-wchar_t *escapefree(wchar_t *restrict s, const wchar_t *restrict t)
-{
-    extern void free(void *ptr);
-
-    wchar_t *wcspbrk(const wchar_t *ws1, const wchar_t *ws2);
-    if (t && !wcspbrk(s, t))
-	return s;
-
-    wchar_t *result = escape(s, t);
-    free(s);
-    return result;
-}
-
-/* Same as `unescape', except that the first argument is freed. */
-wchar_t *unescapefree(wchar_t *s)
-{
-    extern void free(void *ptr);
-
-    wchar_t *wcschr(const wchar_t *ws, wchar_t wc);
-    if (!wcschr(s, L'\\'))
-	return s;
-
-    wchar_t *result = unescape(s);
-    free(s);
-    return result;
-}
 
 
 #endif /* EXPAND_H */
