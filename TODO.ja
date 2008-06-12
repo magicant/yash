@@ -2,9 +2,7 @@ variable: patharray を environ_T のメンバに
 配列の解釈・代入
 メールチェック
 ループパイプのテストスクリプト
-ソースのコメントを英語にする
 gettext 対応
-	ngt: ngettext の有無により gettext と ngettext を振り分ける
 
 組込みコマンド
 	alias -gp

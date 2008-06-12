@@ -407,7 +407,8 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    size_t sjc = stopped_job_count();
 		    if (sjc > 0) {
 			fprintf(stderr,
-				ngt("You have a stopped job!\n",
+				ngt("You have %zu stopped job(s)!\n",
+				    "You have a stopped job!\n",
 				    "You have %zu stopped jobs!\n",
 				    sjc),
 				sjc);

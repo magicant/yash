@@ -36,14 +36,14 @@
 # define gt(MSGID)  gettext(MSGID)
 # define Ngt(MSGID) MSGID
 # if HAVE_NGETTEXT
-#  define ngt(MSGIDS,MSGIDP,N) ngettext(MSGIDS, MSGIDP, N)
+#  define ngt(MSGID,MSGIDS,MSGIDP,N) ngettext(MSGIDS, MSGIDP, N)
 # else
-#  define ngt(MSGIDS,MSGIDP,N) gt(MSGIDP)
+#  define ngt(MSGID,MSGIDS,MSGIDP,N) gt(MSGID)
 # endif
 #else
-# define gt(MSGID)            MSGID
-# define Ngt(MSGID)           MSGID
-# define ngt(MSGIDS,MSGIDP,N) MSGIDP
+# define gt(MSGID)                  MSGID
+# define Ngt(MSGID)                 MSGID
+# define ngt(MSGID,MSGIDS,MSGIDP,N) MSGID
 #endif
 
 #endif /* COMMON_H */
