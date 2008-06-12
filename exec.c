@@ -255,7 +255,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	} else if (cpid == 0) {
 	    /* child process: execute the commands and then exit */
 	    if (!doingjobcontrol)
-		block_sigquit_and_sigint();
+		ignore_sigquit_and_sigint();
 	    maybe_redirect_stdin_to_devnull();
 	    exec_pipelines(p, true);
 	    assert(false);
@@ -613,7 +613,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	if (cpid)
 	    return cpid;
 	if (!doingjobcontrol && type == execasync)
-	    block_sigquit_and_sigint();
+	    ignore_sigquit_and_sigint();
     }
 
     switch (c->c_type) {
@@ -1057,8 +1057,8 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	xwcsbuf_T buf;
 	wb_init(&buf);
 	set_nonblocking(pipefd[PIDX_IN]);
-	block_sigchld_and_sighup();
-	handle_sigchld_and_sighup();
+	block_sigchld();
+	handle_sigchld();
 	for (;;) {
 	    wint_t c = fgetwc(f);
 	    if (c == WEOF) {
@@ -1079,7 +1079,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 		wb_wccat(&buf, c);
 	    }
 	}
-	unblock_sigchld_and_sighup();
+	unblock_sigchld();
 	fclose(f);
 
 	/* wait for the child to finish */
@@ -1098,7 +1098,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	 * the shell will be stuck. So we make the child unstoppable
 	 * by SIGTSTP. */
 	if (save_is_interactive_now)
-	    block_sigtstp();
+	    ignore_sigtstp();
 	reset_signals();
 
 	xclose(pipefd[PIDX_IN]);

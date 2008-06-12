@@ -340,7 +340,7 @@ void wait_for_job(size_t jobnumber, bool return_on_stop)
 {
     job_T *job = joblist.contents[jobnumber];
 
-    block_sigchld_and_sighup();
+    block_sigchld();
     for (;;) {
 	if (job->j_status == JS_DONE)
 	    break;
@@ -348,7 +348,7 @@ void wait_for_job(size_t jobnumber, bool return_on_stop)
 	    break;
 	wait_for_sigchld();
     }
-    unblock_sigchld_and_sighup();
+    unblock_sigchld();
 }
 
 /* Computes the exit status from the status code returned by `waitpid'. */

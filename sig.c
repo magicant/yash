@@ -31,9 +31,9 @@
 
 /* About the shell's signal handling:
  *
- * Yash always catches SIGCHLD, SIGHUP and SIGQUIT.
- * When job control is active, SIGTTOU and SIGTSTP are also caught.
- * If the shell is interactive, SIGINT and SIGTERM are also caught.
+ * Yash always catches SIGCHLD and ignores SIGQUIT.
+ * When job control is active, SIGTTOU and SIGTSTP are also ignored.
+ * If the shell is interactive, SIGINT and SIGTERM are also ignored.
  * Other signals are caught if a trap for the signals are set.
  *
  * SIGQUIT and SIGINT are blocked in an asynchronous list.
@@ -41,7 +41,7 @@
  * SIGTTOU is blocked during `tcsetpgrp'
  * all signals other than SIGPIPE is blocked when writing the contents of a
  * here-document to a pipe.
- * SIGCHLD and SIGHUP is blocked to avoid a race condition
+ * SIGCHLD is blocked to avoid a race condition
  *  - while reading the output of a command substitution, and
  *  - in `wait_for_job'. */
 
@@ -164,19 +164,24 @@ static char *rttrap_command[RTSIZE];
  * handling. */
 static volatile sig_atomic_t sigchld_received;
 
-/* Initial actions for SIGCHLD/HUP/QUIT/TTOU/TSTP/TERM/INT.
- * These actions are restored before calling `execve'. */
-static struct sigaction
-    initsigchldaction, initsighupaction, initsigquitaction,
-    initsigttouaction, initsigtstpaction,
-    initsigtermaction, initsigintaction;
+/* Actions of SIGCHLD/QUIT/TTOU/TSTP/TERM/INT to be restored before `execve'. */
+static struct {
+    bool valid;
+    struct sigaction action;
+} savesigchld, savesigquit, savesigttou, savesigtstp, savesigterm, savesigint;
 
-/* true iff `initsig{chld,hup,quit}action' are valid. */
+/* true iff SIGCHLD/QUIT are handled. */
 static bool initialized = false;
-/* true iff `initsig{ttou,tstp}action' are valid. */
+/* true iff SIGTTOU/TSTP are ignored. */
 static bool job_initialized = false;
-/* true iff `initsig{int,term}action' are valid. */
+/* true iff SIGTERM/INT are ignored. */
 static bool interactive_initialized = false;
+
+/* Signal mask to be restored before `execve'. */
+static struct {
+    bool valid;
+    sigset_t mask;
+} savemask;
 
 /* Initializes signal handling */
 void init_signal(void)
@@ -190,16 +195,22 @@ void init_signal(void)
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 	action.sa_handler = sig_handler;
-	if (sigaction(SIGCHLD, &action, &initsigchldaction) < 0)
+	if (sigaction(SIGCHLD, &action, &savesigchld.action) >= 0)
+	    savesigchld.valid = true;
+	else
 	    xerror(errno, "sigaction(SIGCHLD)");
-	if (sigaction(SIGHUP, &action, &initsighupaction) < 0)
-	    xerror(errno, "sigaction(SIGHUP)");
-	if (sigaction(SIGQUIT, &action, &initsigquitaction) < 0)
-	    xerror(errno, "sigaction(SIGQUIT)");
+	action.sa_handler = SIG_IGN;
+	if (sigaction(SIGQUIT, &action, &savesigquit.action) >= 0)
+	    savesigquit.valid = true;
+	else
+	    xerror(errno, "sigaction(SIGQUIT, SIG_IGN)");
 
 	sigemptyset(&ss);
-	if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0)
-	    xerror(errno, "sigprocmask(SETMASK, nothing)");
+	sigaddset(&ss, SIGCHLD);
+	if (sigprocmask(SIG_UNBLOCK, &ss, &savemask.mask) >= 0)
+	    savemask.valid = true;
+	else
+	    xerror(errno, "sigprocmask(UNBLOCK, CHLD)");
     }
 }
 
@@ -214,22 +225,30 @@ void set_signals(void)
 
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
-	action.sa_handler = sig_handler;
-	if (sigaction(SIGTTOU, &action, &initsigttouaction) < 0)
-	    xerror(errno, "sigaction(SIGTTOU)");
-	if (sigaction(SIGTSTP, &action, &initsigtstpaction) < 0)
-	    xerror(errno, "sigaction(SIGTSTP)");
+	action.sa_handler = SIG_IGN;
+	if (sigaction(SIGTTOU, &action, &savesigttou.action) >= 0)
+	    savesigttou.valid = true;
+	else
+	    xerror(errno, "sigaction(SIGTTOU, SIG_IGN)");
+	if (sigaction(SIGTSTP, &action, &savesigtstp.action) >= 0)
+	    savesigtstp.valid = true;
+	else
+	    xerror(errno, "sigaction(SIGTSTP, SIG_IGN)");
     }
     if (is_interactive_now && !interactive_initialized) {
 	interactive_initialized = true;
 
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
-	action.sa_handler = sig_handler;
-	if (sigaction(SIGINT, &action, &initsigintaction) < 0)
-	    xerror(errno, "sigaction(SIGINT)");
-	if (sigaction(SIGTERM, &action, &initsigtermaction) < 0)
-	    xerror(errno, "sigaction(SIGTERM)");
+	action.sa_handler = SIG_IGN;
+	if (sigaction(SIGINT, &action, &savesigint.action) >= 0)
+	    savesigint.valid = true;
+	else
+	    xerror(errno, "sigaction(SIGINT, SIG_IGN)");
+	if (sigaction(SIGTERM, &action, &savesigterm.action) >= 0)
+	    savesigterm.valid = true;
+	else
+	    xerror(errno, "sigaction(SIGTERM, SIG_IGN)");
     }
 }
 
@@ -238,12 +257,16 @@ void reset_all_signals(void)
 {
     if (initialized) {
 	initialized = false;
-	if (sigaction(SIGCHLD, &initsigchldaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGCHLD)");
-	if (sigaction(SIGHUP, &initsighupaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGHUP)");
-	if (sigaction(SIGQUIT, &initsigquitaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGQUIT)");
+	if (savesigchld.valid)
+	    if (sigaction(SIGCHLD, &savesigchld.action, NULL) < 0)
+		xerror(errno, "sigaction(SIGCHLD)");
+	if (savesigquit.valid)
+	    if (sigaction(SIGQUIT, &savesigquit.action, NULL) < 0)
+		xerror(errno, "sigaction(SIGQUIT)");
+	if (savemask.valid)
+	    if (sigprocmask(SIG_SETMASK, &savemask.mask, NULL) < 0)
+		xerror(errno, "sigprocmask(SETMASK, save)");
+	savesigchld.valid = savesigquit.valid = savemask.valid = false;
     }
     reset_signals();
 }
@@ -253,39 +276,54 @@ void reset_signals(void)
 {
     if (job_initialized) {
 	job_initialized = false;
-	if (sigaction(SIGTTOU, &initsigttouaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGTTOU)");
-	if (sigaction(SIGTSTP, &initsigtstpaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGTSTP)");
+	if (savesigttou.valid)
+	    if (sigaction(SIGTTOU, &savesigttou.action, NULL) < 0)
+		xerror(errno, "sigaction(SIGTTOU)");
+	if (savesigtstp.valid)
+	    if (sigaction(SIGTSTP, &savesigtstp.action, NULL) < 0)
+		xerror(errno, "sigaction(SIGTSTP)");
+	savesigttou.valid = savesigtstp.valid = false;
     }
     if (interactive_initialized) {
 	interactive_initialized = false;
-	if (sigaction(SIGINT, &initsigintaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGINT)");
-	if (sigaction(SIGTERM, &initsigtermaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGTERM)");
+	if (savesigint.valid)
+	    if (sigaction(SIGINT, &savesigint.action, NULL) < 0)
+		xerror(errno, "sigaction(SIGINT)");
+	if (savesigterm.valid)
+	    if (sigaction(SIGTERM, &savesigterm.action, NULL) < 0)
+		xerror(errno, "sigaction(SIGTERM)");
+	savesigint.valid = savesigterm.valid = false;
     }
 }
 
-/* Blocks SIGQUIT and SIGINT. */
-void block_sigquit_and_sigint(void)
+/* Sets the action of SIGQUIT and SIGINT to ignoring the signals
+ * to prevent an asynchronous job from being killed by these signals. */
+void ignore_sigquit_and_sigint(void)
 {
-    sigset_t ss;
-    sigemptyset(&ss);
-    sigaddset(&ss, SIGQUIT);
-    sigaddset(&ss, SIGINT);
-    if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
-	xerror(errno, "sigprocmask(BLOCK, QUIT|INT)");
+    struct sigaction action;
+
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    action.sa_handler = SIG_IGN;
+    if (sigaction(SIGQUIT, &action, NULL) < 0)
+	xerror(errno, "sigaction(SIGQUIT, SIG_IGN)");
+    if (sigaction(SIGINT, &action, NULL) < 0)
+	xerror(errno, "sigaction(SIGINT, SIG_IGN)");
+    savesigquit.valid = savesigint.valid = false;
 }
 
-/* Blocks SIGTSTP. */
-void block_sigtstp(void)
+/* Sets the action of SIGTSTP to ignoring the signal
+ * to prevent a command substitution process from being stopped by SIGTSTP. */
+void ignore_sigtstp(void)
 {
-    sigset_t ss;
-    sigemptyset(&ss);
-    sigaddset(&ss, SIGTSTP);
-    if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
-	xerror(errno, "sigprocmask(BLOCK, TSTP)");
+    struct sigaction action;
+
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    action.sa_handler = SIG_IGN;
+    if (sigaction(SIGTSTP, &action, NULL) < 0)
+	xerror(errno, "sigaction(SIGTSTP, SIG_IGN)");
+    savesigtstp.valid = false;
 }
 
 /* Blocks SIGTTOU. */
@@ -308,7 +346,9 @@ void unblock_sigttou(void)
 	xerror(errno, "sigprocmask(UNBLOCK, TTOU)");
 }
 
-/* Blocks all signals other than SIGPIPE and set SIGPIPE's action to SIG_DFL. */
+/* Blocks all signals other than SIGPIPE and set the action of SIGPIPE to the
+ * default.
+ * The shell must not call any of the `exec' family hereafter. */
 void block_all_but_sigpipe(void)
 {
     sigset_t ss;
@@ -345,51 +385,49 @@ void sig_handler(int signum)
     }
 }
 
-/* Blocks SIGCHLD and SIGHUP. */
-void block_sigchld_and_sighup(void)
+/* Blocks SIGCHLD. */
+void block_sigchld(void)
 {
     sigset_t ss;
 
     sigemptyset(&ss);
     sigaddset(&ss, SIGCHLD);
-    sigaddset(&ss, SIGHUP);
     if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
-	xerror(errno, "sigprocmask(BLOCK, CHLD|HUP)");
+	xerror(errno, "sigprocmask(BLOCK, CHLD)");
 }
 
-/* Unblocks SIGCHLD and SIGHUP. */
-void unblock_sigchld_and_sighup(void)
+/* Unblocks SIGCHLD. */
+void unblock_sigchld(void)
 {
     sigset_t ss;
 
     sigemptyset(&ss);
     sigaddset(&ss, SIGCHLD);
-    sigaddset(&ss, SIGHUP);
     if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
-	xerror(errno, "sigprocmask(UNBLOCK, CHLD|HUP)");
+	xerror(errno, "sigprocmask(UNBLOCK, CHLD)");
 }
 
-/* Waits for SIGCHLD to be caught and call `handle_sigchld_and_sighup'.
- * This function must be called with SIGCHLD/HUP blocked.
+/* Waits for SIGCHLD to be caught and call `handle_sigchld'.
+ * SIGCHLD must be blocked when this function is called.
  * If SIGCHLD is already caught, this function doesn't wait. */
 void wait_for_sigchld(void)
 {
     sigset_t ss;
 
     sigemptyset(&ss);
-    while (!sigchld_received && !signal_received[sigindex(SIGHUP)]) {
+    while (!sigchld_received) {
 	if (sigsuspend(&ss) < 0 && errno != EINTR) {
 	    xerror(errno, "sigsuspend");
 	    break;
 	}
     }
 
-    handle_sigchld_and_sighup();
+    handle_sigchld();
 }
 
 /* Waits for the specified file descriptor to be available for reading.
- * If SIGCHLD or SIGHUP is caught while waiting, `handle_sigchld_and_sighup'
- * is called. SIGCHLD and SIGHUP must be blocked when this function is called.
+ * If SIGCHLD is caught while waiting, `handle_sigchld' is called.
+ * SIGCHLD must be blocked when this function is called.
  * If `trap' is true, traps are also handled while waiting. */
 void wait_for_input(int fd, bool trap)
 {
@@ -397,7 +435,7 @@ void wait_for_input(int fd, bool trap)
 
     sigemptyset(&ss);
     for (;;) {
-	handle_sigchld_and_sighup();
+	handle_sigchld();
 	if (trap)
 	    handle_traps();
 
@@ -416,8 +454,8 @@ void wait_for_input(int fd, bool trap)
     }
 }
 
-/* Handles SIGCHLD and SIGHUP if caught. */
-void handle_sigchld_and_sighup(void)
+/* Handles SIGCHLD if caught. */
+void handle_sigchld(void)
 {
     if (sigchld_received) {
         sigchld_received = false;
@@ -427,7 +465,6 @@ void handle_sigchld_and_sighup(void)
 	    // XXX redisplay prompt if lineedit is active
 	}
     }
-    // TODO sig.c: handling of SIGHUP
 }
 
 /* Executes trap commands for trapped signals if any.
