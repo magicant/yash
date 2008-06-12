@@ -52,11 +52,6 @@ extern int xclosedir(DIR *dir)
     __attribute__((nonnull));
 
 
-/********** Path Array **********/
-
-extern void reset_patharray(const wchar_t *newpath);
-
-
 /********** Command Hashtable **********/
 
 extern void init_cmdhash(void);

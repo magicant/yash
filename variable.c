@@ -42,11 +42,18 @@
 #include "version.h"
 
 
+const char *path_variables[PATHTCOUNT] = {
+    [PA_PATH] = VAR_PATH,
+    [PA_CDPATH] = VAR_CDPATH,
+};
+
+
 /* variable environment (= set of variables) */
 /* not to be confused with environment variables */
 typedef struct environ_T {
     struct environ_T *parent;      /* parent environment */
     struct hashtable_T contents;   /* hashtable containing variables */
+    char **paths[PATHTCOUNT];
 } environ_T;
 /* `contents' is a hashtable from (char *) to (variable_T *).
  * A variable name may contain any characters except '\0' and '=', though
@@ -55,6 +62,8 @@ typedef struct environ_T {
  * The positional parameter is treated as an array whose name is "=".
  * Note that the number of positional parameters is offseted by 1 against the
  * array index. */
+/* Elements of `path' are arrays of the pathnames contained in the $PATH/CDPATH
+ * variables. They are NULL if the corresponding variables are not set. */
 #define VAR_positional "="
 
 /* flags for variable attributes */
@@ -128,6 +137,9 @@ static void random_getter(variable_T *var)
 static unsigned next_random(void);
 
 static void variable_set(const char *name, variable_T *var)
+    __attribute__((nonnull));
+
+static void reset_path(path_T name, variable_T *var)
     __attribute__((nonnull));
 
 static void funcfree(function_T *f);
@@ -206,6 +218,8 @@ void init_variables(void)
     top_env = current_env = xmalloc(sizeof *current_env);
     current_env->parent = NULL;
     ht_init(&current_env->contents, hashstr, htstrcmp);
+    for (size_t i = 0; i < PATHTCOUNT; i++)
+	current_env->paths[i] = NULL;
 
     ht_init(&functions, hashstr, htstrcmp);
 
@@ -276,8 +290,9 @@ void init_variables(void)
     /* set $YASH_VERSION */
     set_variable(VAR_YASH_VERSION, xwcsdup(L"" PACKAGE_VERSION), false, false);
 
-    /* initialize patharray according to $PATH */
-    reset_patharray(getvar(VAR_PATH));
+    /* initialize path according to $PATH/CDPATH */
+    for (size_t i = 0; i < PATHTCOUNT; i++)
+	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
 }
 
 /* Reset the value of $PWD if
@@ -759,6 +774,8 @@ void open_new_environment(void)
     assert(!current_env_is_temporary);
     newenv->parent = current_env;
     ht_init(&newenv->contents, hashstr, htstrcmp);
+    for (size_t i = 0; i < PATHTCOUNT; i++)
+	newenv->paths[i] = NULL;
     current_env = newenv;
 }
 
@@ -772,6 +789,8 @@ void close_current_environment(void)
     current_env = oldenv->parent;
     ht_clear(&oldenv->contents, varkvfree_reexport);
     ht_destroy(&oldenv->contents);
+    for (size_t i = 0; i < PATHTCOUNT; i++)
+	recfree((void **) oldenv->paths[i], free);
     free(oldenv);
 }
 
@@ -844,21 +863,17 @@ unsigned next_random(void)
 void variable_set(const char *name, variable_T *var)
 {
     switch (name[0]) {
+    case 'C':
+	if (strcmp(name, VAR_CDPATH) == 0)
+	    reset_path(PA_CDPATH, var);
+	break;
     case 'L':
 	if (strcmp(name, VAR_LANG) == 0 || strncmp(name, "LC_", 3) == 0)
 	    reset_locale(name);
 	break;
     case 'P':
-	if (strcmp(name, VAR_PATH) == 0) {
-	    switch (var->v_type & VF_MASK) {
-		case VF_NORMAL:
-		    reset_patharray(var->v_value);
-		    break;
-		case VF_ARRAY:
-		    reset_patharray(NULL);
-		    break;  // TODO variable: variable_set: when PATH is array
-	    }
-	}
+	if (strcmp(name, VAR_PATH) == 0)
+	    reset_path(PA_PATH, var);
 	break;
     case 'R':
 	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
@@ -877,6 +892,100 @@ void variable_set(const char *name, variable_T *var)
 	break;
 	// TODO variable: variable_set: other variables
     }
+}
+
+
+/********** Path Array Manipulation **********/
+
+/* Splits the specified string at colons.
+ * If `paths' is non-NULL, a newly-malloced NULL-terminated array of pointers to
+ * newly-malloced multibyte strings is returned.
+ * If `paths' is NULL, NULL is returned. */
+char **decompose_paths(const wchar_t *paths)
+{
+    if (!paths)
+	return NULL;
+
+    wchar_t wpath[wcslen(paths) + 1];
+    wcscpy(wpath, paths);
+
+    plist_T list;
+    pl_init(&list);
+
+    /* add each element to `list', replacing each L':' with L'\0' in `wpath'. */
+    pl_add(&list, wpath);
+    for (wchar_t *w = wpath; *w; w++) {
+	if (*w == L':') {
+	    *w = L'\0';
+	    pl_add(&list, w + 1);
+	}
+    }
+
+    /* remove duplicates */
+    for (size_t i = 0; i < list.length; i++)
+	for (size_t j = list.length; --j > i; )
+	    if (wcscmp(list.contents[i], list.contents[j]) == 0)
+		pl_remove(&list, j, 1);
+
+    /* convert each element back to multibyte string */
+    for (size_t i = 0; i < list.length; i++) {
+	list.contents[i] = malloc_wcstombs(list.contents[i]);
+	/* We actually assert this conversion always succeeds, but... */
+	if (!list.contents[i])
+	    list.contents[i] = xstrdup("");
+    }
+
+    return (char **) pl_toary(&list);
+}
+
+/* Reconstructs the path array of the specified variable in the environment. */
+void reset_path(path_T name, variable_T *var)
+{
+    if (name == PA_PATH)
+	clear_cmdhash();
+
+    environ_T *env = current_env;
+    while (env) {
+	recfree((void **) env->paths[name], free);
+
+	variable_T *v = ht_get(&env->contents, path_variables[name]).value;
+	if (v) {
+	    switch (v->v_type & VF_MASK) {
+		    plist_T list;
+		case VF_NORMAL:
+		    env->paths[name] = decompose_paths(v->v_value);
+		    break;
+		case VF_ARRAY:
+		    pl_init(&list);
+		    pl_setmax(&list, v->v_valc);
+		    for (size_t i = 0; i < v->v_valc; i++) {
+			char *p = malloc_wcstombs(v->v_vals[i]);
+			if (!p)
+			    p = xstrdup("");
+			pl_add(&list, p);
+		    }
+		    env->paths[name] = (char **) pl_toary(&list);
+		    break;
+	    }
+	    if (v == var)
+		break;
+	}
+	env = env->parent;
+    }
+}
+
+/* Returns the path array of the specified variable.
+ * The return value is NULL if the variable is not set.
+ * The caller must not make any change to the returned array. */
+char *const *get_path_array(path_T name)
+{
+    environ_T *env = current_env;
+    while (env) {
+	if (env->paths[name])
+	    return env->paths[name];
+	env = env->parent;
+    }
+    return NULL;
 }
 
 

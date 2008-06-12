@@ -58,6 +58,12 @@ extern char **environ;
 #define VAR_RANDOM	"RANDOM"
 #define VAR_YASH_VERSION "YASH_VERSION"
 
+typedef enum path_T {
+    PA_PATH, PA_CDPATH,
+} path_T;
+#define PATHTCOUNT 2
+extern const char *path_variables[PATHTCOUNT];
+
 
 extern unsigned long current_lineno;
 
@@ -86,12 +92,16 @@ extern void open_new_environment(void);
 extern void close_current_environment(void);
 extern void clear_temporary_variables(void);
 
+extern char **decompose_paths(const wchar_t *paths)
+    __attribute__((malloc,warn_unused_result));
+extern char *const *get_path_array(path_T name);
+
 extern void clear_all_functions(void);
 
 struct command_T;
 extern bool define_function(const char *name, struct command_T *body)
     __attribute__((nonnull));
-extern command_T *get_function(const char *name)
+extern struct command_T *get_function(const char *name)
     __attribute__((nonnull));
 
 

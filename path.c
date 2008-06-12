@@ -35,6 +35,7 @@
 #include "hashtable.h"
 #include "wfnmatch.h"
 #include "path.h"
+#include "variable.h"
 
 
 /* Checks if `path' is a readable regular file. */
@@ -255,53 +256,6 @@ int xclosedir(DIR *dir)
 }
 
 
-/********** Path Array **********/
-
-/* A NULL-terminated array of strings that are the elements of PATH variable. */
-static char **patharray = NULL;
-
-/* Updates `patharray' to reflect the new value of PATH.
- * `newpath' may be NULL. */
-void reset_patharray(const wchar_t *newpath)
-{
-    recfree((void **) patharray, free);
-    clear_cmdhash();
-    if (!newpath)
-	newpath = L"";
-
-    wchar_t wpath[wcslen(newpath) + 1];
-    wcscpy(wpath, newpath);
-
-    plist_T list;
-    pl_init(&list);
-
-    /* add each element to `list', replacing each L':' with L'\0' in `wpath'. */
-    pl_add(&list, wpath);
-    for (wchar_t *w = wpath; *w; w++) {
-	if (*w == L':') {
-	    *w = L'\0';
-	    pl_add(&list, w + 1);
-	}
-    }
-
-    /* remove duplicates */
-    for (size_t i = 0; i < list.length; i++)
-	for (size_t j = list.length; --j > i; )
-	    if (wcscmp(list.contents[i], list.contents[j]) == 0)
-		pl_remove(&list, j, 1);
-
-    /* convert each element back to multibyte string */
-    for (size_t i = 0; i < list.length; i++) {
-	list.contents[i] = malloc_wcstombs(list.contents[i]);
-	/* We actually assert this conversion always succeeds, but... */
-	if (!list.contents[i])
-	    list.contents[i] = xstrdup("");
-    }
-
-    patharray = (char **) pl_toary(&list);
-}
-
-
 /********** Command Hashtable **********/
 
 /* A hashtable from command names to their full path.
@@ -342,7 +296,7 @@ const char *get_command_path(const char *name, bool forcelookup)
 	    return path;
     }
 
-    path = which(name, patharray, is_executable);
+    path = which(name, get_path_array(PA_PATH), is_executable);
     if (path && path[0] == '/') {
 	size_t namelen = strlen(name), pathlen = strlen(path);
 	const char *pathname = path + pathlen - namelen;
@@ -356,15 +310,15 @@ const char *get_command_path(const char *name, bool forcelookup)
 
 /* Fills the command hashtable, searching PATH for all commands whose name
  * starts with the specified prefix.
- * If `patharray' is NULL, this function does nothing.
- * Relative pathnames in `patharray' are ignored.
+ * If PATH is not set, this function does nothing.
+ * Relative pathnames in PATH are ignored.
  * If `prefix' is NULL or empty, all the commands in PATH is entered.
  * This function never prints error messages.
  * If `ignorecase' is true, search is done case-insensitively, though
  * multibyte characters are not handled properly to search quickly. */
 void fill_cmdhash(const char *prefix, bool ignorecase)
 {
-    char *const *pa = patharray;
+    char *const *pa = get_path_array(PA_PATH);
     if (!pa)
 	return;
 
@@ -378,8 +332,8 @@ void fill_cmdhash(const char *prefix, bool ignorecase)
 	pfx[plen] = '\0';
     }
 
-    /* We search `patharray' in reverse order, and ones that are found later
-     * (= placed at lower indeces in `patharray') survive. */
+    /* We search PATH in reverse order, and ones that are found later
+     * (= placed at lower indeces in PATH) survive. */
     for (size_t i = plcount((void **) pa); i-- > 0; ) {
 	const char *dirpath = pa[i];
 	if (dirpath[0] != '/')
