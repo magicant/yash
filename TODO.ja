@@ -1,4 +1,3 @@
-hashtable: ハッシュ関数を FNV に
 expand: (un)escapefree を非インライン化
 sig: block_sigquit_and_sigint は sigprocmask ではなく SIG_IGN でするように
 sig: SIGHUP の捕捉を止める: handle_sigchld_and_sighup -> handle_sigchld

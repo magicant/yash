@@ -32,13 +32,23 @@
 /* The implementation is a chained closed hashing. */
 
 
+//#define DEBUG_HASH 1
+#if DEBUG_HASH   /* For debugging */
+# define DEBUG_PRINT_STATISTICS(ht) (print_statistics(ht))
+# include <stdio.h>
+#else
+# define DEBUG_PRINT_STATISTICS(ht) ((void) 0)
+#endif
+static void print_statistics(const hashtable_T *ht);
+
+
 /* The null index */
 #define NOTHING ((size_t) -1)
 
 /* hashtable entry */
 struct hash_entry {
     size_t next;
-    unsigned long hash;
+    hashval_T hash;
     kvpair_T kv;
 };
 /* An entry is occupied iff `.kv.key' is non-NULL.
@@ -105,7 +115,7 @@ hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
     for (size_t i = 0; i < oldcapacity; i++) {
 	void *key = oldentries[i].kv.key;
 	if (key) {
-	    unsigned long hash = oldentries[i].hash;
+	    hashval_T hash = oldentries[i].hash;
 	    size_t newindex = (size_t) hash % newcapacity;
 	    newentries[tail] = (struct hash_entry) {
 		.next = newindices[newindex],
@@ -173,7 +183,7 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 kvpair_T ht_get(hashtable_T *ht, const void *key)
 {
     if (key) {
-	unsigned long hash = ht->hashfunc(key);
+	hashval_T hash = ht->hashfunc(key);
 	size_t index = ht->indices[(size_t) hash % ht->capacity];
 	while (index != NOTHING) {
 	    struct hash_entry *entry = &ht->entries[index];
@@ -194,7 +204,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
     assert(key != NULL);
 
     /* if there is an entry with an equal key, replace it */
-    unsigned long hash = ht->hashfunc(key);
+    hashval_T hash = ht->hashfunc(key);
     size_t mhash = (size_t) hash % ht->capacity;
     size_t index = ht->indices[mhash];
     while (index != NOTHING) {
@@ -202,6 +212,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
 	    kvpair_T oldkv = entry->kv;
 	    entry->kv = (kvpair_T) { (void *) key, (void *) value, };
+	    DEBUG_PRINT_STATISTICS(ht);
 	    return oldkv;
 	}
 	index = entry->next;
@@ -221,7 +232,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	ht->indices[mhash] = index;
     } else {
 	/* if there are no empty entries, use a tail entry */
-	ht_ensurecapacity(ht, ht->count + 1);
+	ht_ensurecapacity(ht, ht->count + (ht->count >> 2) + 1);
 	mhash = (size_t) hash % ht->capacity;
 	index = ht->tailindex;
 	ht->entries[index] = (struct hash_entry) {
@@ -233,6 +244,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	ht->tailindex++;
     }
     ht->count++;
+    DEBUG_PRINT_STATISTICS(ht);
     return (kvpair_T) { NULL, NULL, };
 }
 
@@ -241,7 +253,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
     if (key) {
-	unsigned long hash = ht->hashfunc(key);
+	hashval_T hash = ht->hashfunc(key);
 	size_t *indexp = &ht->indices[(size_t) hash % ht->capacity];
 	while (*indexp != NOTHING) {
 	    size_t index = *indexp;
@@ -305,12 +317,14 @@ kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
 /* A hash function for a multibyte string.
  * The argument is cast from (const char *) to (const void *).
  * You can use `htstrcmp' for a corresponding comparison function. */
-unsigned long hashstr(const void *s)
+hashval_T hashstr(const void *s)
 {
-    const char *c = s;
-    unsigned long h = 0;
+    /* The hashing algorithm is FNV hash.
+     * cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
+    const unsigned char *c = s;
+    hashval_T h = 0;
     while (*c)
-	h = (h * 0x15uL + (unsigned long) *c++) ^ 0x55555555uL;
+	h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }
 
@@ -325,12 +339,14 @@ int htstrcmp(const void *s1, const void *s2)
 /* A hash function for a wide string.
  * The argument is cast from (const wchar_t *) to (const void *).
  * You can use `htwcscmp' for a corresponding comparison function. */
-unsigned long hashwcs(const void *s)
+hashval_T hashwcs(const void *s)
 {
+    /* The hashing algorithm is a slightly modified version of FNV hash.
+     * cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
     const wchar_t *c = s;
-    unsigned long h = 0;
+    hashval_T h = 0;
     while (*c)
-	h = (h * 0x155uL + (unsigned long) *c++) ^ 0x55555555uL;
+	h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }
 
@@ -363,6 +379,28 @@ void kvfree(kvpair_T kv)
     free(kv.key);
     free(kv.value);
 }
+
+
+#if DEBUG_HASH
+/* Prints statistics.
+ * This function is used in debugging. */
+void print_statistics(const hashtable_T *ht)
+{
+    fprintf(stderr, "DEBUG: hash->count=%zu, capacity=%zu\n",
+	    ht->count, ht->capacity);
+    fprintf(stderr, "DEBUG: hash->emptyindex=%zu, tailindex=%zu\n",
+	    ht->emptyindex, ht->tailindex);
+
+    unsigned emptycount = 0, collcount = 0;
+    for (size_t i = ht->emptyindex; i != NOTHING; i = ht->entries[i].next)
+	emptycount++;
+    for (size_t i = 0; i < ht->capacity; i++)
+	if (ht->entries[i].kv.key && ht->entries[i].next != NOTHING)
+	    collcount++;
+    fprintf(stderr, "DEBUG: hash empties=%u collisions=%u\n\n",
+	    emptycount, collcount);
+}
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

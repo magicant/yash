@@ -20,10 +20,22 @@
 #define HASHTABLE_H
 
 #include <stddef.h>
+#include <stdint.h>
+
+#if defined UINT64_MAX && UINT64_MAX == UINT_FAST32_MAX
+typedef uint64_t hashval_T;
+# define FNVPRIME 1099511628211
+#elif defined UINT128_MAX && UINT128_MAX == UINT_FAST32_MAX
+typedef uint128_t hashval_T;
+# define FNVPRIME 309485009821345068724781401
+#else
+typedef uint32_t hashval_T;
+# define FNVPRIME 16777619
+#endif
 
 /* The type of hash functions.
  * Hash functions must return the same value for two keys that compare equal. */
-typedef unsigned long hashfunc_T(const void *key);
+typedef hashval_T hashfunc_T(const void *key);
 
 /* The type of functions that compare two keys.
  * Returns zero if two keys are equal, or non-zero if unequal. */
@@ -65,9 +77,9 @@ extern int ht_each(hashtable_T *ht, int f(kvpair_T kv))
 extern kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
     __attribute__((nonnull));
 
-extern unsigned long hashstr(const void *s)         __attribute__((pure));
+extern hashval_T hashstr(const void *s)             __attribute__((pure));
 extern int htstrcmp(const void *s1, const void *s2) __attribute__((pure));
-extern unsigned long hashwcs(const void *s)         __attribute__((pure));
+extern hashval_T hashwcs(const void *s)             __attribute__((pure));
 extern int htwcscmp(const void *s1, const void *s2) __attribute__((pure));
 extern void kfree(kvpair_T kv);
 extern void vfree(kvpair_T kv);
