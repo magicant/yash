@@ -37,6 +37,7 @@
 #include "sig.h"
 #include "redir.h"
 #include "job.h"
+#include "builtin.h"
 #include "exec.h"
 #include "yash.h"
 #include "version.h"
@@ -160,6 +161,7 @@ int main(int argc __attribute__((unused)), char **argv)
     init_signal();
     init_shellfds();
     init_job();
+    init_builtin();
 
     if (shopt_read_arg && shopt_read_stdin) {
 	xerror(0, Ngt("both -c and -s options cannot be given at once"));

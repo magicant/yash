@@ -46,6 +46,7 @@
 #include "expand.h"
 #include "redir.h"
 #include "job.h"
+#include "builtin.h"
 #include "exec.h"
 #include "yash.h"
 
@@ -67,9 +68,6 @@ typedef struct pipeinfo_T {
 #define PIDX_IN  0   /* index of the reading end of a pipe */
 #define PIDX_OUT 1   /* index of the writing end of a pipe */
 #define PIPEINFO_INIT { -1, { -1, -1 }, -1 }  /* used to initialize `pipeinfo_T' */
-
-/* TODO exec.c: main_T: should be moved to builtin.h */
-typedef int main_T(int argc, char **argv);
 
 /* info about a simple command to execute */
 typedef struct commandinfo_T {
@@ -785,15 +783,23 @@ void make_myself_foreground(void)
  * `ci->ci_path' is NULL. */
 void search_command(const char *restrict name, commandinfo_T *restrict ci)
 {
-    /* search functions. We assume function names don't contain '/' */
+    /* search builtins and functions.
+     * We assume builtins/functions' names don't contain '/' */
+    const builtin_T *bi = get_builtin(name);
     command_T *funcbody = get_function(name);
-    if (funcbody) {
-	assert(strchr(name, '/') == NULL);
+    if (bi && bi->type == BI_SPECIAL) {
+	ci->type = specialbuiltin;
+	ci->ci_builtin = bi->body;
+	return;
+    } else if (funcbody) {
 	ci->type = function;
 	ci->ci_function = funcbody;
 	return;
+    } else if (bi && bi->type == BI_SEMISPECIAL) {
+	ci->type = semispecialbuiltin;
+	ci->ci_builtin = bi->body;
+	return;
     }
-    // TODO exec.c: find_command: built-ins
 
     wchar_t *wname = malloc_mbstowcs(name);
     bool slash = wname && wcschr(wname, L'/');
@@ -804,8 +810,14 @@ void search_command(const char *restrict name, commandinfo_T *restrict ci)
 	return;
     }
 
-    ci->type = externalprogram;
     ci->ci_path = get_command_path(name, false);
+    if (bi && ci->ci_path) {
+	assert(bi->type == BI_REGULAR);
+	ci->type = regularbuiltin;
+	ci->ci_builtin = bi->body;
+    } else {
+	ci->type = externalprogram;
+    }
 }
 
 /* Calls `do_assignments' with appropriate arguments according to the specified
