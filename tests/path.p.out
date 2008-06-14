@@ -4,6 +4,8 @@ $PWD=/tmp
 cd $OLDPWD
 cd $PWD
 $OLDPWD=/tmp
-cd symlink
 cd -P
 cd -L
+cd -L default
+cd $CDPATH 1
+cd $CDPATH 2
