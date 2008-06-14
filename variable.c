@@ -137,10 +137,9 @@ static void random_getter(variable_T *var)
 static unsigned next_random(void);
 
 static void variable_set(const char *name, variable_T *var)
-    __attribute__((nonnull));
+    __attribute__((nonnull(1)));
 
-static void reset_path(path_T name, variable_T *var)
-    __attribute__((nonnull));
+static void reset_path(path_T name, variable_T *var);
 
 static void funcfree(function_T *f);
 static void funckvfree(kvpair_T kv);
@@ -199,9 +198,11 @@ void varkvfree(kvpair_T kv)
     varfree(kv.value);
 }
 
-/* Calls `update_enrivon' for `kv.key' and frees the variable. */
+/* Calls `variable_set' and `update_enrivon' for `kv.key' and
+ * frees the variable. */
 void varkvfree_reexport(kvpair_T kv)
 {
+    variable_set(kv.key, NULL);
     update_enrivon(kv.key);
     varkvfree(kv);
 }
@@ -596,6 +597,8 @@ bool assign_temporary(const char *name, wchar_t *value, bool export)
     var->v_type = VF_NORMAL;
     var->v_value = value;
     var->v_getter = NULL;
+
+    variable_set(name, var);
     if (export) {
 	var->v_type |= VF_EXPORT;
 	update_enrivon(name);
@@ -840,7 +843,8 @@ unsigned next_random(void)
 
 /********** Setter **********/
 
-/* general callback that is called after an assignment. */
+/* general callback that is called after an assignment.
+ * `var' is NULL when the variable is unset. */
 void variable_set(const char *name, variable_T *var)
 {
     switch (name[0]) {
@@ -859,7 +863,7 @@ void variable_set(const char *name, variable_T *var)
     case 'R':
 	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
 	    random_active = false;
-	    if ((var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
+	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
 		wchar_t *end;
 		errno = 0;
 		unsigned seed = wcstoul(var->v_value, &end, 0);
@@ -919,7 +923,8 @@ char **decompose_paths(const wchar_t *paths)
     return (char **) pl_toary(&list);
 }
 
-/* Reconstructs the path array of the specified variable in the environment. */
+/* Reconstructs the path array of the specified variable in the environment.
+ * `var' may be NULL. */
 void reset_path(path_T name, variable_T *var)
 {
     if (name == PA_PATH)
