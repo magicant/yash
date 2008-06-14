@@ -709,7 +709,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 
     // TODO exec: exec_process: leave "exec" command's redirections open
 #if 0
-    if (c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin
+    if (c->c_type == CT_SIMPLE && argc > 0 && cmdinfo.type == specialbuiltin
 	    && cmdinfo.ci_builtin == exec_builtin && laststatus == EXIT_SUCCESS)
 	clear_savefd(savefd);
     else
@@ -727,8 +727,8 @@ redir_fail:
     laststatus = EXIT_REDIRERR;
     if (finally_exit)
 	exit_shell();
-    if (posixly_correct && !is_interactive
-	    && c->c_type == CT_SIMPLE && cmdinfo.type == specialbuiltin)
+    if (posixly_correct && !is_interactive && c->c_type == CT_SIMPLE &&
+	    argc > 0 && cmdinfo.type == specialbuiltin)
 	exit_shell();
     undo_redirections(savefd);
     if (c->c_type == CT_SIMPLE)

@@ -64,6 +64,9 @@ int main(int argc, char **argv)
     wchar_t opt;
     const wchar_t *shortest_name;
 
+    setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
+    setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
+
     setlocale(LC_ALL, "");
 #if HAVE_GETTEXT
     bindtextdomain(PACKAGE_NAME, LOCALEDIR);
