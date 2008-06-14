@@ -812,6 +812,10 @@ void search_command(
 	ci->type = semispecialbuiltin;
 	ci->ci_builtin = bi->body;
 	return;
+    } else if (bi && !posixly_correct) {
+	ci->type = regularbuiltin;
+	ci->ci_builtin = bi->body;
+	return;
     }
 
     ci->ci_path = get_command_path(name, false);
