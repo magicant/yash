@@ -594,7 +594,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     bool finally_exit; /* never return? */
     int argc;
     void **argv = NULL;
-    char *argv0;
+    char *argv0 = NULL;
     commandinfo_T cmdinfo = cmdinfo;
 
     current_lineno = c->c_lineno;
