@@ -172,8 +172,8 @@ wchar_t *xwcsdup(const wchar_t *s)
 
 /********** Error utilities **********/
 
-extern const char *yash_program_invocation_name;
-extern const char *yash_program_invocation_short_name;
+extern const wchar_t *yash_program_invocation_name;
+extern const wchar_t *yash_program_invocation_short_name;
 extern unsigned yash_error_message_count;
 extern void xerror(int errno_, const char *restrict format, ...)
     __attribute__((format(printf,2,3)));
@@ -181,30 +181,30 @@ extern void xerror(int errno_, const char *restrict format, ...)
 
 /********** xgetopt **********/
 
-extern char *xoptarg;
-extern int xoptind, xoptopt;
+extern wchar_t *xoptarg;
+extern int xoptind;
+extern wchar_t xoptopt;
 extern bool xopterr;
 
 struct xoption {
-    const char *name;
+    const wchar_t *name;
     enum { xno_argument = 0, xrequired_argument, xoptional_argument, } has_arg;
-    int *flag;
-    int val;
+    wchar_t val;
 };
 
-extern int xgetopt_long(
-	char **restrict argv,
-	const char *restrict optstring,
+extern wchar_t xgetopt_long(
+	void **restrict argv,
+	const wchar_t *restrict optstring,
 	const struct xoption *restrict longopts,
 	int *restrict longindex)
     __attribute__((nonnull(1,2)));
-static inline int xgetopt(
-	char **restrict argv,
-	const char *restrict optstring)
+static inline wchar_t xgetopt(
+	void **restrict argv,
+	const wchar_t *restrict optstring)
     __attribute__((nonnull(1,2)));
 
 /* `xgetopt_long' without long options. */
-int xgetopt(char **restrict argv, const char *restrict optstring)
+wchar_t xgetopt(void **restrict argv, const wchar_t *restrict optstring)
 {
     return xgetopt_long(argv, optstring, NULL, NULL);
 }

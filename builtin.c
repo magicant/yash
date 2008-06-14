@@ -65,13 +65,13 @@ const builtin_T *get_builtin(const char *name)
 
 /* ":"/"true" builtin */
 int true_builtin(
-		int argc __attribute__((unused)), char **argv __attribute__((unused)))
+		int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
 	return EXIT_SUCCESS;
 }
 
 int false_builtin(
-		int argc __attribute__((unused)), char **argv __attribute__((unused)))
+		int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
 	return EXIT_FAILURE;
 }

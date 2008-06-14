@@ -461,17 +461,17 @@ enum wglbrflags {
 static int wglob_sortcmp(const void *v1, const void *v2)
     __attribute__((pure,nonnull));
 static bool wglob_search(const wchar_t *restrict pattern, enum wglbflags flags,
-	xstrbuf_T *restrict const dirname,
+	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack, plist_T *restrict list)
     __attribute__((nonnull));
 static bool wglob_start_recursive_search(const wchar_t *restrict pattern,
 	enum wglbflags flags, enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname,
+	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack, plist_T *restrict list)
     __attribute__((nonnull));
 static bool wglob_recursive_search(const wchar_t *restrict pattern,
 	enum wglbflags flags, enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname,
+	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack, plist_T *restrict list)
     __attribute__((nonnull));
 static bool is_reentry(const struct stat *st, const plist_T *dirstack)
@@ -487,7 +487,7 @@ static bool is_reentry(const struct stat *st, const plist_T *dirstack)
  *          WGLB_PERIOD:   L'*' and L'?' match L'.' at the head
  *          WGLB_NOSORT:   don't sort resulting items
  *          WGLB_RECDIR:   allow recursive search with L"**"
- * list:    a list of pointers to multibyte strings to which resulting items are
+ * list:    a list of pointers to wide strings to which resulting items are
  *          added.
  * Returns true iff successful. However, some result items may be added to the
  * list even if unsuccessful.
@@ -498,21 +498,25 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 {
     size_t listbase = list->length;
     xstrbuf_T dir;
+    xwcsbuf_T wdir;
     plist_T dirstack;
 
     if (!pattern[0])
 	return true;
 
     sb_init(&dir);
+    wb_init(&wdir);
     if (flags & WGLB_RECDIR)
 	pl_init(&dirstack);
     while (pattern[0] == L'/') {
 	sb_ccat(&dir, '/');
+	wb_wccat(&wdir, L'/');
 	pattern++;
     }
 
-    bool succ = wglob_search(pattern, flags, &dir, &dirstack, list);
+    bool succ = wglob_search(pattern, flags, &dir, &wdir, &dirstack, list);
     sb_destroy(&dir);
+    wb_destroy(&wdir);
     if (flags & WGLB_RECDIR)
 	pl_destroy(&dirstack);
     if (!succ)
@@ -525,7 +529,7 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 		    wglob_sortcmp);
 	    /* remove duplicates */
 	    for (size_t i = list->length; --i > listbase; ) {
-		if (strcmp(list->contents[i], list->contents[i-1]) == 0) {
+		if (wcscmp(list->contents[i], list->contents[i-1]) == 0) {
 		    free(list->contents[i]);
 		    pl_remove(list, i, 1);
 		}
@@ -538,26 +542,33 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 /* This function is passed to `qsort' in `wglob'. */
 int wglob_sortcmp(const void *v1, const void *v2)
 {
-    return strcoll(*(const char *const *) v1, *(const char *const *) v2);
+    return wcscoll(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
 }
 
 /* Searches the specified directory and add filenames that match the pattern.
  * `dirname' is the name of directory to search, ending with '/' or empty.
+ * `wdirname' is a wide string version of `dirname'.
  * For the meaning of the other arguments, see `wglob'.
  * `pattern' must not start with L'/'.
  * `dirname' must end with '/' except when empty. An empty `dirname' specifies
  * the current directory. Though the contents of `dirname' may be changed
- * during this function, the contents are restored when the function returns. */
+ * during this function, the contents are restored when the function returns.
+ * `wdirname' must contain the same string as that of `dirname' and the same
+ * properties apply. */
 bool wglob_search(
 	const wchar_t *restrict pattern,
 	enum wglbflags flags,
 	xstrbuf_T *restrict const dirname,
+	xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
     const size_t savedirlen = dirname->length;
+    const size_t savewdirlen = wdirname->length;
 #define RESTORE_DIRNAME \
     ((void) (dirname->contents[dirname->length = savedirlen] = '\0'))
+#define RESTORE_WDIRNAME \
+    ((void) (wdirname->contents[wdirname->length = savewdirlen] = L'\0'))
 
     assert(pattern[0] != L'/');
     if (!pattern[0]) {
@@ -565,7 +576,7 @@ bool wglob_search(
 	 * except when `dirname' is also empty.
 	 * Note that `is_directory' returns false for an empty string. */
 	if (is_directory(dirname->contents))
-	    pl_add(list, xstrdup(dirname->contents));
+	    pl_add(list, xwcsdup(wdirname->contents));
 	return true;
     } else if (flags & WGLB_RECDIR) {
 	/* check if it's a recursive search pattern */
@@ -579,13 +590,13 @@ bool wglob_search(
 	    p += 3;
 	    while (p[0] == L'/') p++;
 	    return wglob_start_recursive_search(
-		    p, flags, rflags, dirname, dirstack, list);
+		    p, flags, rflags, dirname, wdirname, dirstack, list);
 	} else if (wcsncmp(p, L"***/", 4) == 0) {
 	    rflags |= WGLB_followlink;
 	    p += 4;
 	    while (p[0] == L'/') p++;
 	    return wglob_start_recursive_search(
-		    p, flags, rflags, dirname, dirstack, list);
+		    p, flags, rflags, dirname, wdirname, dirstack, list);
 	}
     }
 
@@ -624,33 +635,41 @@ bool wglob_search(
 	size_t match = domatch
 	    ? wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml)
 	    : ((wcscmp(pat, wentname) == 0) ? 1 : WFNM_NOMATCH);
-	free(wentname);
 	if (match == WFNM_ERROR) {
 	    ok = false;
 	} else if (match != WFNM_NOMATCH) {
 	    /* matched! */
 	    if (isleaf) {
 		/* add the matched pathname to the list */
-		sb_cat(dirname, de->d_name);
-		if ((flags & WGLB_MARK) && is_directory(dirname->contents))
-		    sb_ccat(dirname, '/');
-		pl_add(list, xstrdup(dirname->contents));
-		RESTORE_DIRNAME;
+		wb_cat(wdirname, wentname);
+		if (flags & WGLB_MARK) {
+		    sb_cat(dirname, de->d_name);
+		    if (is_directory(dirname->contents))
+			wb_wccat(wdirname, L'/');
+		    RESTORE_DIRNAME;
+		}
+		pl_add(list, xwcsdup(wdirname->contents));
+		RESTORE_WDIRNAME;
 	    } else {
 		/* search the subdirectories */
 		assert(pattern[patlen] == L'/');
 		sb_cat(dirname, de->d_name);
 		sb_ccat(dirname, '/');
+		wb_cat(wdirname, wentname);
+		wb_wccat(wdirname, L'/');
 		const wchar_t *subpat = pattern + patlen + 1;
 		while (subpat[0] == L'/') {
 		    sb_ccat(dirname, '/');
+		    wb_wccat(wdirname, L'/');
 		    subpat++;
 		}
 		ok = wglob_search(
-			subpat, flags, dirname, dirstack, list);
+			subpat, flags, dirname, wdirname, dirstack, list);
 		RESTORE_DIRNAME;
+		RESTORE_WDIRNAME;
 	    }
 	}
+	free(wentname);
     }
 
     xclosedir(dir);
@@ -668,6 +687,7 @@ bool wglob_start_recursive_search(
 	enum wglbflags flags,
 	enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname,
+	xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
@@ -679,7 +699,7 @@ bool wglob_start_recursive_search(
 	    && S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
 	pl_add(dirstack, &st);
 	ok = wglob_recursive_search(
-		pattern, flags, rflags, dirname, dirstack, list);
+		pattern, flags, rflags, dirname, wdirname, dirstack, list);
 	pl_pop(dirstack);
     }
     return ok;
@@ -691,16 +711,19 @@ bool wglob_recursive_search(
 	enum wglbflags flags,
 	enum wglbrflags rflags,
 	xstrbuf_T *restrict const dirname,
+	xwcsbuf_T *restrict const wdirname,
 	plist_T *restrict dirstack,
 	plist_T *restrict list)
 {
     const size_t savedirlen = dirname->length;
+    const size_t savewdirlen = wdirname->length;
 
     /* Step 1: search `dirname' itself */
-    if (!wglob_search(pattern, flags, dirname, dirstack, list))
+    if (!wglob_search(pattern, flags, dirname, wdirname, dirstack, list))
 	return false;
 
     assert(dirname->length == savedirlen);
+    assert(wdirname->length == savewdirlen);
 
     /* Step 2: recursively search the subdirectories of `dirname' */
     DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
@@ -721,11 +744,18 @@ bool wglob_recursive_search(
 	if ((followlink ? stat : lstat)(dirname->contents, &st) >= 0
 		&& S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
 	    /* recurse if it's a directory */
-	    sb_ccat(dirname, '/');
-	    pl_add(dirstack, &st);
-	    ok = wglob_recursive_search(pattern, flags, rflags,
-		    dirname, dirstack, list);
-	    pl_pop(dirstack);
+	    wchar_t *wentname = malloc_mbstowcs(de->d_name);
+	    if (wentname) {
+		sb_ccat(dirname, '/');
+		wb_cat(wdirname, wentname);
+		wb_wccat(wdirname, L'/');
+		free(wentname);
+		pl_add(dirstack, &st);
+		ok = wglob_recursive_search(pattern, flags, rflags,
+			dirname, wdirname, dirstack, list);
+		pl_pop(dirstack);
+		RESTORE_WDIRNAME;
+	    }
 	}
 	RESTORE_DIRNAME;
     }

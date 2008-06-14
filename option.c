@@ -50,7 +50,7 @@ bool shopt_notify;
 bool shopt_read_arg, shopt_read_stdin;
 
 /* The value of special parameter $0. */
-const char *command_name;
+const wchar_t *command_name;
 
 /* If set, any variable is exported when assigned.
  * Corresponds to -a/--allexport option. */
@@ -97,31 +97,31 @@ bool shopt_noclobber;
 
 /* Long options for the shell and set builtin */
 static const struct xoption long_options[] = {
-    { "interactive",  xno_argument, NULL, 'i', },
-    { "help",         xno_argument, NULL, '!', },
-    { "version",      xno_argument, NULL, 'V', },
-    { "login",        xno_argument, NULL, 'l', },
+    { L"interactive",  xno_argument, L'i', },
+    { L"help",         xno_argument, L'-', },
+    { L"version",      xno_argument, L'V', },
+    { L"login",        xno_argument, L'l', },
     /* Options above cannot be used in set builtin */
-    { "allexport",    xno_argument, NULL, 'a', },
-    { "hashondef",    xno_argument, NULL, 'h', },
-    { "noclobber",    xno_argument, NULL, 'C', },
-    { "noglob",       xno_argument, NULL, 'f', },
-    { "nocaseglob",   xno_argument, NULL, 'c', },
-    { "dotglob",      xno_argument, NULL, 'D', },
-    { "markdirs",     xno_argument, NULL, 'M', },
-    { "extendedglob", xno_argument, NULL, 'E', },
-    { "nullglob",     xno_argument, NULL, 'N', },
-    { "braceexpand",  xno_argument, NULL, 'B', },
-    { "errexit",      xno_argument, NULL, 'e', },
-    { "nounset",      xno_argument, NULL, 'u', },
-    { "noexec",       xno_argument, NULL, 'n', },
-    { "ignoreeof",    xno_argument, NULL, 'I', },
-    { "verbose",      xno_argument, NULL, 'v', },
-    { "xtrace",       xno_argument, NULL, 'x', },
-    { "monitor",      xno_argument, NULL, 'm', },
-    { "notify",       xno_argument, NULL, 'b', },
-    { "posix",        xno_argument, NULL, 'X', },
-    { NULL,           0,            NULL, 0,   },
+    { L"allexport",    xno_argument, L'a', },
+    { L"hashondef",    xno_argument, L'h', },
+    { L"noclobber",    xno_argument, L'C', },
+    { L"noglob",       xno_argument, L'f', },
+    { L"nocaseglob",   xno_argument, L'c', },
+    { L"dotglob",      xno_argument, L'D', },
+    { L"markdirs",     xno_argument, L'M', },
+    { L"extendedglob", xno_argument, L'E', },
+    { L"nullglob",     xno_argument, L'N', },
+    { L"braceexpand",  xno_argument, L'B', },
+    { L"errexit",      xno_argument, L'e', },
+    { L"nounset",      xno_argument, L'u', },
+    { L"noexec",       xno_argument, L'n', },
+    { L"ignoreeof",    xno_argument, L'I', },
+    { L"verbose",      xno_argument, L'v', },
+    { L"xtrace",       xno_argument, L'x', },
+    { L"monitor",      xno_argument, L'm', },
+    { L"notify",       xno_argument, L'b', },
+    { L"posix",        xno_argument, L'X', },
+    { NULL,            0,            0,   },
 };
 
 const struct xoption *const shell_long_options = long_options;
@@ -132,41 +132,41 @@ const struct xoption *const set_long_options   = long_options + 4;
 
 /* Switches a one-character option depending on whether `xoptopt' is '-' or not.
  * Option characters that can only be used in shell invokation are ignored. */
-void set_option(char c)
+void set_option(wchar_t c)
 {
-    bool value = (xoptopt == '-');
+    bool value = (xoptopt == L'-');
     switch (c) {
-	case 'a':   shopt_allexport    = value;   break;
-	case 'h':   shopt_hashondef    = value;   break;
-	case 'C':   shopt_noclobber    = value;   break;
-	case 'f':   shopt_noglob       = value;   break;
-	case 'c':   shopt_nocaseglob   = value;   break;
-	case 'D':   shopt_dotglob      = value;   break;
-	case 'M':   shopt_markdirs     = value;   break;
-	case 'E':   shopt_extendedglob = value;   break;
-	case 'N':   shopt_nullglob     = value;   break;
-	case 'B':   shopt_braceexpand  = value;   break;
-	case 'e':   shopt_errexit      = value;   break;
-	case 'u':   shopt_nounset      = value;   break;
-	case 'n':   shopt_noexec       = value;   break;
-	case 'I':   shopt_ignoreeof    = value;   break;
-	case 'v':   shopt_verbose      = value;   break;
-	case 'x':   shopt_xtrace       = value;   break;
-	case 'm':   do_job_control     = value;   break;
-	case 'b':   shopt_notify       = value;   break;
-	case 'X':   posixly_correct    = value;   break;
+	case L'a':   shopt_allexport    = value;   break;
+	case L'h':   shopt_hashondef    = value;   break;
+	case L'C':   shopt_noclobber    = value;   break;
+	case L'f':   shopt_noglob       = value;   break;
+	case L'c':   shopt_nocaseglob   = value;   break;
+	case L'D':   shopt_dotglob      = value;   break;
+	case L'M':   shopt_markdirs     = value;   break;
+	case L'E':   shopt_extendedglob = value;   break;
+	case L'N':   shopt_nullglob     = value;   break;
+	case L'B':   shopt_braceexpand  = value;   break;
+	case L'e':   shopt_errexit      = value;   break;
+	case L'u':   shopt_nounset      = value;   break;
+	case L'n':   shopt_noexec       = value;   break;
+	case L'I':   shopt_ignoreeof    = value;   break;
+	case L'v':   shopt_verbose      = value;   break;
+	case L'x':   shopt_xtrace       = value;   break;
+	case L'm':   do_job_control     = value;   break;
+	case L'b':   shopt_notify       = value;   break;
+	case L'X':   posixly_correct    = value;   break;
     }
 }
 
 /* Switches the setting of a specified long option according to `xoptopt'.
  * Options that can only be used in shell invokation are ignored.
  * Returns true if successful, false for invalid options. */
-bool set_long_option(const char *s)
+bool set_long_option(const wchar_t *s)
 {
     const struct xoption *opt = set_long_options;
 
     while (opt->name) {
-	if (strcmp(s, opt->name) == 0) {
+	if (wcscmp(s, opt->name) == 0) {
 	    set_option(opt->val);
 	    return true;
 	}

@@ -30,6 +30,7 @@
 #endif
 #include "option.h"
 #include "util.h"
+#include "strbuf.h"
 #include "path.h"
 #include "input.h"
 #include "parser.h"
@@ -54,28 +55,14 @@ pid_t shell_pid;
 pid_t initial_pgrp;
 
 
-int main(int argc __attribute__((unused)), char **argv)
+int main(int argc, char **argv)
 {
+    void *wargv[argc + 1];
     bool help = false, version = false;
     bool do_job_control_set = false, is_interactive_set = false;
     bool option_error = false;
     int opt;
-    const char *shortest_name;
-
-    yash_program_invocation_name = argv[0] ? argv[0] : "";
-    yash_program_invocation_short_name
-	= strrchr(yash_program_invocation_name, '/');
-    if (yash_program_invocation_short_name)
-	yash_program_invocation_short_name++;
-    else
-	yash_program_invocation_short_name = yash_program_invocation_name;
-    command_name = yash_program_invocation_name;
-    is_login_shell = (yash_program_invocation_name[0] == '-');
-    shortest_name = yash_program_invocation_short_name;
-    if (shortest_name[0] == '-')
-	shortest_name++;
-    if (strcmp(shortest_name, "sh") == 0)
-	posixly_correct = true;
+    const wchar_t *shortest_name;
 
     setlocale(LC_ALL, "");
 #if HAVE_GETTEXT
@@ -83,54 +70,83 @@ int main(int argc __attribute__((unused)), char **argv)
     textdomain(PACKAGE_NAME);
 #endif
 
+    /* convert arguments into wide strings */
+    for (int i = 0; i < argc; i++) {
+	wargv[i] = malloc_mbstowcs(argv[i]);
+	if (wargv[i] == NULL) {
+	    fprintf(stderr,
+		    gt("%s: cannot convert the argument `%s' into wide-"
+			"character string: the argument is replaced with empty "
+			"string\n"),
+		    argv[0], argv[i]);
+	    wargv[i] = xwcsdup(L"");
+	}
+    }
+    wargv[argc] = NULL;
+
+    yash_program_invocation_name = wargv[0] ? wargv[0] : L"";
+    yash_program_invocation_short_name
+	= wcsrchr(yash_program_invocation_name, L'/');
+    if (yash_program_invocation_short_name)
+	yash_program_invocation_short_name++;
+    else
+	yash_program_invocation_short_name = yash_program_invocation_name;
+    command_name = yash_program_invocation_name;
+    is_login_shell = (yash_program_invocation_name[0] == L'-');
+    shortest_name = yash_program_invocation_short_name;
+    if (shortest_name[0] == L'-')
+	shortest_name++;
+    if (wcscmp(shortest_name, L"sh") == 0)
+	posixly_correct = true;
+
     /* parse options */
     xoptind = 0;
     xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    "+*cilo:sV" SHELLSET_OPTIONS,
+    while ((opt = xgetopt_long(wargv,
+		    L"+*cilo:sV" SHELLSET_OPTIONS,
 		    shell_long_options,
-		    NULL))
-	    >= 0) {
+		    NULL))) {
 	switch (opt) {
-	case 0:
-	    break;
-	case 'c':
-	    if (xoptopt != '-') {
-		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 'c');
+	case L'c':
+	    if (xoptopt != L'-') {
+		xerror(0, Ngt("%lc%lc: invalid option"),
+			(wint_t) xoptopt, (wint_t) L'c');
 		option_error = true;
 	    }
 	    shopt_read_arg = true;
 	    break;
-	case 'i':
-	    is_interactive = (xoptopt == '-');
+	case L'i':
+	    is_interactive = (xoptopt == L'-');
 	    is_interactive_set = true;
 	    break;
-	case 'l':
-	    is_login_shell = (xoptopt == '-');
+	case L'l':
+	    is_login_shell = (xoptopt == L'-');
 	    break;
-	case 'o':
+	case L'o':
 	    if (!set_long_option(xoptarg)) {
-		xerror(0, Ngt("%co %s: invalid option"), xoptopt, xoptarg);
+		xerror(0, Ngt("%lco %ls: invalid option"),
+			(wint_t) xoptopt, xoptarg);
 		option_error = true;
 	    }
 	    break;
-	case 's':
-	    if (xoptopt != '-') {
-		xerror(0, Ngt("%c%c: invalid option"), xoptopt, 's');
+	case L's':
+	    if (xoptopt != L'-') {
+		xerror(0, Ngt("%lc%lc: invalid option"),
+			(wint_t) xoptopt, (wint_t) L's');
 		option_error = true;
 	    }
 	    shopt_read_stdin = true;
 	    break;
-	case 'V':
+	case L'V':
 	    version = true;
 	    break;
-	case '!':
+	case L'-':
 	    help = true;
 	    break;
-	case '?':
+	case L'?':
 	    option_error = true;
 	    break;
-	case 'm':
+	case L'm':
 	    do_job_control_set = true;
 	    /* falls thru! */
 	default:
@@ -143,7 +159,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	exit(EXIT_ERROR);
 
     /* ignore "-" if it's the first argument */
-    if (argv[xoptind] && strcmp(argv[xoptind], "-") == 0)
+    if (wargv[xoptind] && wcscmp(wargv[xoptind], L"-") == 0)
 	xoptind++;
 
     if (version)
@@ -170,40 +186,40 @@ int main(int argc __attribute__((unused)), char **argv)
     shopt_read_arg = shopt_read_arg;
     shopt_read_stdin = shopt_read_stdin;
     if (shopt_read_arg) {
-	char *command = argv[xoptind++];
+	wchar_t *command = wargv[xoptind++];
 	if (!command) {
 	    xerror(0, Ngt("-c option requires an operand"));
 	    exit(EXIT_ERROR);
 	}
-	if (argv[xoptind])
-	    command_name = argv[xoptind++];
+	if (xoptind < argc)
+	    command_name = wargv[xoptind++];
 	is_interactive_now = is_interactive;
 	if (!do_job_control_set)
 	    do_job_control = is_interactive;
 	set_signals();
 	open_ttyfd();
 	set_own_pgrp();
-	set_positional_parameters(argv + xoptind);
-	exec_mbs(command, posixly_correct ? "sh -c" : "yash -c", true);
+	set_positional_parameters(wargv + xoptind);
+	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
 	FILE *input;
 	const char *inputname;
-	if (!argv[xoptind])
+	if (argc == xoptind)
 	    shopt_read_stdin = true;
 	if (shopt_read_stdin) {
 	    input = stdin;
 	    inputname = NULL;
-	    if (!is_interactive_set && !argv[xoptind]
+	    if (!is_interactive_set && argc == xoptind
 		    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
 		is_interactive = true;
 	} else {
-	    command_name = argv[xoptind++];
-	    input = fopen(command_name, "r");
-	    inputname = command_name;
+	    inputname = argv[xoptind];
+	    input = fopen(inputname, "r");
 	    input = reopen_with_shellfd(input, "r");
+	    command_name = wargv[xoptind++];
 	    if (!input) {
 		int errno_ = errno;
-		xerror(errno_, Ngt("cannot open file `%s'"), command_name);
+		xerror(errno_, Ngt("cannot open `%s'"), inputname);
 		exit(errno_ == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
 	    }
 	}
@@ -213,7 +229,7 @@ int main(int argc __attribute__((unused)), char **argv)
 	set_signals();
 	open_ttyfd();
 	set_own_pgrp();
-	set_positional_parameters(argv + xoptind);
+	set_positional_parameters(wargv + xoptind);
 	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
@@ -245,15 +261,15 @@ void print_help(void)
 	printf(gt("Usage:  sh [options] [filename [args...]]\n"
 		  "        sh [options] -c command [command_name [args...]]\n"
 		  "        sh [options] -s [args...]\n"));
-	printf(gt("Options: -il%s\n"), SHELLSET_OPTIONS);
+	printf(gt("Options: -il%ls\n"), SHELLSET_OPTIONS);
     } else {
 	printf(gt("Usage:  yash [options] [filename [args...]]\n"
 		  "        yash [options] -c command [args...]\n"
 		  "        yash [options] -s [args...]\n"));
-	printf(gt("Short options: -il%sV\n"), SHELLSET_OPTIONS);
+	printf(gt("Short options: -il%lsV\n"), SHELLSET_OPTIONS);
 	printf(gt("Long options:\n"));
 	for (size_t i = 0; shell_long_options[i].name; i++)
-	    printf("\t--%s\n", shell_long_options[i].name);
+	    printf("\t--%ls\n", shell_long_options[i].name);
     }
 }
 

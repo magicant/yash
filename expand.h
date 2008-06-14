@@ -28,7 +28,7 @@ typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 extern bool expand_line(
 	void *const *restrict args,
 	int *restrict argcp,
-	char ***restrict argvp)
+	void ***restrict argvp)
     __attribute__((nonnull));
 extern wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     __attribute__((malloc,warn_unused_result));

@@ -20,7 +20,7 @@
 #define BUILTIN_H
 
 
-typedef int main_T(int argc, char **argv);
+typedef int main_T(int argc, void **argv);
 
 typedef enum builtintype_T {
 	BI_SPECIAL, BI_SEMISPECIAL, BI_REGULAR,

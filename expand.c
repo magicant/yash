@@ -117,7 +117,7 @@ static void **reescape_full_array(void **wcsarray)
 static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
     __attribute__((nonnull));
 
-static void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
+static void do_glob_each(void **restrict patterns, plist_T *restrict list)
     __attribute__((nonnull));
 static enum wglbflags get_wglbflags(void)
     __attribute__((pure));
@@ -130,13 +130,13 @@ static enum wglbflags get_wglbflags(void)
  * to expand.
  * The number of resulting words is assigned to `*argcp' and a newly malloced
  * array of the words is assigned to `*argvp'. The array is NULL-terminated and
- * each word is newly malloced.
+ * its elements are newly malloced wide strings.
  * If successful, true is returned and `*argcp' and `*argvp' are assigned to.
  * If unsuccessful, false is returned and the values of `*argcp' and `*argvp'
  * are unspecified.
  * On error in a non-interactive shell, the shell exits. */
 bool expand_line(void *const *restrict args,
-    int *restrict argcp, char ***restrict argvp)
+    int *restrict argcp, void ***restrict argvp)
 {
     plist_T list1, list2;
     pl_init(&list1);
@@ -154,25 +154,14 @@ bool expand_line(void *const *restrict args,
 
     /* glob (list1 -> list2) */
     if (shopt_noglob) {
-	for (size_t i = 0; i < list1.length; i++) {
-	    char *v = realloc_wcstombs(list1.contents[i]);
-	    if (!v) {
-		xerror(0, Ngt("expanded word contains characters that "
-			    "cannot be converted to wide characters and "
-			    "is replaced with null string"));
-		v = xstrdup("");
-	    }
-	    list1.contents[i] = v;
-	}
 	list2 = list1;
     } else {
 	pl_init(&list2);
-	do_glob_each(list1.contents, &list2);
-	recfree(pl_toary(&list1), free);
+	do_glob_each(pl_toary(&list1), &list2);
     }
 
     *argcp = list2.length;
-    *argvp = (char **) pl_toary(&list2);
+    *argvp = pl_toary(&list2);
     return true;
 }
 
@@ -1457,35 +1446,30 @@ enum wglbflags get_wglbflags(void)
 
 /* Performs file name expansion to each pattern.
  * `patterns' is a NULL-terminated array of pointers to wide strings cast to
- * (void *).
- * The results are added to `list' as newly malloced strings. */
-void do_glob_each(void *const *restrict patterns, plist_T *restrict list)
+ * (void *). `patterns' is `recfree'd in this function.
+ * The results are added to `list' as newly malloced wide strings. */
+void do_glob_each(void **restrict patterns, plist_T *restrict list)
 {
+    void **const savepatterns = patterns;
     enum wglbflags flags = get_wglbflags();
 
     while (*patterns) {
-	const wchar_t *pat = *patterns;
+	wchar_t *pat = *patterns;
 	if (pattern_has_special_char(pat)) {
 	    size_t oldlen = list->length;
 	    wglob(pat, flags, list);
 	    if (!shopt_nullglob && oldlen == list->length)
 		goto addpattern;
+	    free(pat);
 	} else {
 	    /* if the pattern doesn't contain characters like L'*' and L'?',
 	     * we don't need to glob. */
-	    char *v;
 addpattern:
-	    v = realloc_wcstombs(unescape(pat));
-	    if (!v) {
-		xerror(0, Ngt("expanded word contains characters that "
-			    "cannot be converted to wide characters and "
-			    "is replaced with null string"));
-		v = xstrdup("");
-	    }
-	    pl_add(list, v);
+	    pl_add(list, unescapefree(pat));
 	}
 	patterns++;
     }
+    free(savepatterns);
 }
 
 

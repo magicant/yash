@@ -36,10 +36,10 @@
 #if DEBUG_HASH   /* For debugging */
 # define DEBUG_PRINT_STATISTICS(ht) (print_statistics(ht))
 # include <stdio.h>
+static void print_statistics(const hashtable_T *ht);
 #else
 # define DEBUG_PRINT_STATISTICS(ht) ((void) 0)
 #endif
-static void print_statistics(const hashtable_T *ht);
 
 
 /* The null index */

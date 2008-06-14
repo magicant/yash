@@ -539,8 +539,9 @@ bool set_variable(const char *name, wchar_t *value, bool local, bool export)
 }
 
 /* Creates an array variable with the specified name and values.
+ * `values' is a NULL-terminated array of pointers to wide strings.
  * Returns true iff successful. */
-bool set_array(const char *name, char *const *values, bool local)
+bool set_array(const char *name, void *const *values, bool local)
 {
     variable_T *var = local ? new_local(name) : new_global(name);
     if (!var)
@@ -548,30 +549,9 @@ bool set_array(const char *name, char *const *values, bool local)
 
     bool needupdate = (var->v_type & VF_EXPORT);
 
-    plist_T list;
-    pl_init(&list);
-    while (*values) {
-	wchar_t *wv = malloc_mbstowcs(*values);
-	if (!wv) {
-	    if (strcmp(name, VAR_positional) == 0)
-		xerror(0,
-			Ngt("new positional parameter $%zu contains characters "
-			    "that cannot be converted to wide characters and "
-			    "is replaced with null string"),
-			list.length + 1);
-	    else
-		xerror(0, Ngt("new array element %s[%zu] contains characters "
-			    "that cannot be converted to wide characters and "
-			    "is replaced with null string"),
-			name, list.length + 1);
-	    wv = xwcsdup(L"");
-	}
-	pl_add(&list, wv);
-	values++;
-    }
     var->v_type = VF_ARRAY | (var->v_type & VF_NODELETE);
-    var->v_valc = list.length;
-    var->v_vals = pl_toary(&list);
+    var->v_vals = duparray(values, copyaswcs);
+    var->v_valc = plcount(var->v_vals);
     var->v_getter = NULL;
 
     variable_set(name, var);
@@ -582,10 +562,11 @@ bool set_array(const char *name, char *const *values, bool local)
 
 /* Sets the positional parameters of the current environment.
  * The existent parameters are cleared.
+ * `values' is an NULL-terminated array of pointers to wide strings.
  * `values[0]' will be the new $1, `values[1]' $2, and so on.
  * When a new environment is created, this function must be called at least once
  * except for a temporary environment. */
-void set_positional_parameters(char *const *values)
+void set_positional_parameters(void *const *values)
 {
     set_array(VAR_positional, values, !current_env_is_temporary);
 }
@@ -716,7 +697,7 @@ void **get_variable(const char *name, bool *concat)
 		value = malloc_wprintf(L"%jd", (intmax_t) lastasyncpid);
 		goto return_single;
 	    case '0':
-		value = malloc_mbstowcs(command_name);
+		value = xwcsdup(command_name);
 		goto return_single;
 	}
     }

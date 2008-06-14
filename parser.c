@@ -471,12 +471,9 @@ void serror(const char *restrict format, ...)
     va_list ap;
 
     if (cinfo->print_errmsg) {
-	/* TRANSLATORS: "%s:%lu:" at the beginning should be left intact
-	 * because many tools can recognize this "filename:lineno:" format. */
-	fprintf(stderr, gt("%s:%lu: syntax error: "),
-		cinfo->filename ? cinfo->filename
-				: yash_program_invocation_name,
-		cinfo->lineno);
+	if (cinfo->filename)
+	    fprintf(stderr, "%s:%lu: ", cinfo->filename, cinfo->lineno);
+	fprintf(stderr, gt("syntax error: "));
 	va_start(ap, format);
 	vfprintf(stderr, gt(format), ap);
 	va_end(ap);

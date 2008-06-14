@@ -75,9 +75,9 @@ extern bool is_name(const char *s)
 extern bool set_variable(
 	const char *name, wchar_t *value, bool local, bool export)
     __attribute__((nonnull));
-extern bool set_array(const char *name, char *const *values, bool local)
+extern bool set_array(const char *name, void *const *values, bool local)
     __attribute__((nonnull));
-extern void set_positional_parameters(char *const *values)
+extern void set_positional_parameters(void *const *values)
     __attribute__((nonnull));
 struct assign_T;
 extern bool do_assignments(

@@ -114,20 +114,22 @@ static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
 static pid_t fork_and_reset(pid_t pgid, bool fg);
 static void search_command(
-	const char *restrict name, commandinfo_T *restrict ci);
+	const char *restrict name, const wchar_t *restrict wname,
+	commandinfo_T *restrict ci)
+    __attribute__((nonnull));
 static bool do_assignments_for_command_type(
 	const assign_T *asgns, enum cmdtype_T type);
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
-	int argc, char *const *argv, bool finally_exit)
+	int argc, char *argv0, void **argv, bool finally_exit)
     __attribute__((nonnull));
-static void print_xtrace(char *const *argv)
+static void print_xtrace(void *const *argv)
     __attribute__((nonnull));
 static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
     __attribute__((nonnull(2,4)));
-static void exec_function_body(command_T *body, char **args, bool finally_exit)
+static void exec_function_body(command_T *body, void **args, bool finally_exit)
     __attribute__((nonnull));
 static inline int xexecv(const char *path, char *const *argv)
     __attribute__((nonnull(1)));
@@ -207,6 +209,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	bool savesee = supresserrexit;
 	supresserrexit |= p->pl_neg || p->next;
 
+	// TODO exec_pipelines: add a condition that no trap is set
 	exec_commands(p->pl_commands,
 	    (finally_exit && !p->next && !p->pl_neg) ? execself : execnormal,
 	    p->pl_loop);
@@ -305,16 +308,9 @@ void exec_for(const command_T *c, bool finally_exit)
     void **words;
 
     if (c->c_forwords) {
-	char **mbswords;
-	if (!expand_line(c->c_forwords, &count, &mbswords)) {
+	if (!expand_line(c->c_forwords, &count, &words)) {
 	    laststatus = EXIT_EXPERROR;
 	    goto finish;
-	}
-	words = (void **) mbswords;
-	for (int i = 0; i < count; i++) {
-	    words[i] = realloc_mbstowcs(words[i]);
-	    if (!words[i])
-		words[i] = xwcsdup(L"");
 	}
     } else {
 	bool concat;
@@ -597,7 +593,8 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     bool later_fork;   /* do later fork? */
     bool finally_exit; /* never return? */
     int argc;
-    char **argv = NULL;
+    void **argv = NULL;
+    char *argv0;
     commandinfo_T cmdinfo = cmdinfo;
 
     current_lineno = c->c_lineno;
@@ -620,8 +617,12 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    goto exp_fail;
 	if (argc == 0) {
 	    later_fork = finally_exit = false;
+	    argv0 = NULL;
 	} else {
-	    search_command(argv[0], &cmdinfo);
+	    argv0 = malloc_wcstombs(argv[0]);
+	    if (!argv0)
+		argv0 = xstrdup("");
+	    search_command(argv0, argv[0], &cmdinfo);
 
 	    /* fork for an external command.
 	     * don't fork for a built-in or a function */
@@ -631,9 +632,10 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	     * we're done. */
 	    if (cmdinfo.type == externalprogram && !cmdinfo.ci_path
 		    && !c->c_redirs && !c->c_assigns) {
-		xerror(0, Ngt("%s: no such command or function"), argv[0]);
+		xerror(0, Ngt("%s: no such command or function"), argv0);
 		laststatus = EXIT_NOTFOUND;
-		recfree((void **) argv, free);
+		recfree(argv, free);
+		free(argv0);
 		goto done;
 	    }
 	}
@@ -655,12 +657,14 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (later_fork) {
 	pid_t cpid = fork_and_reset(pgid, type == execnormal);
 	if (cpid != 0) {
-	    recfree((void **) argv, free);
+	    recfree(argv, free);
+	    free(argv0);
 	    return cpid;
 	}
     }
     if (finally_exit) {
-	if (c->c_type == CT_SIMPLE && cmdinfo.type == externalprogram)
+	if (c->c_type == CT_SIMPLE && argc > 0
+		&& cmdinfo.type == externalprogram)
 	    reset_all_signals();
 	else
 	    reset_signals();
@@ -687,7 +691,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 		laststatus = EXIT_ASSGNERR;
 	} else {
 	    if (do_assignments_for_command_type(c->c_assigns, cmdinfo.type)) {
-		exec_simple_command(&cmdinfo, argc, argv, finally_exit);
+		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
 	    } else {
 		laststatus = EXIT_ASSGNERR;
 		if (!is_interactive && cmdinfo.type == specialbuiltin)
@@ -695,7 +699,8 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    }
 	    clear_temporary_variables();
 	}
-	recfree((void **) argv, free);
+	recfree(argv, free);
+	free(argv0);
     } else {
 	exec_nonsimple_command(c, finally_exit);
     }
@@ -727,7 +732,7 @@ redir_fail:
 	exit_shell();
     undo_redirections(savefd);
     if (c->c_type == CT_SIMPLE)
-	recfree((void **) argv, free);
+	recfree(argv, free), free(argv0);
     return 0;
 }
 
@@ -780,11 +785,19 @@ void make_myself_foreground(void)
 /* Searches and determines the command to execute.
  * The result is assigned to `*ci'.
  * If the command is not found, `ci->type' is `externalprogram' and
- * `ci->ci_path' is NULL. */
-void search_command(const char *restrict name, commandinfo_T *restrict ci)
+ * `ci->ci_path' is NULL.
+ * `name' and `wname' must contain the same string value. */
+void search_command(
+	const char *restrict name, const wchar_t *restrict wname,
+	commandinfo_T *restrict ci)
 {
-    /* search builtins and functions.
-     * We assume builtins/functions' names don't contain '/' */
+    if (wcschr(wname, L'/')) {
+	ci->type = externalprogram;
+	ci->ci_path = name;
+	return;
+    }
+
+    /* search builtins and functions. */
     const builtin_T *bi = get_builtin(name);
     command_T *funcbody = get_function(name);
     if (bi && bi->type == BI_SPECIAL) {
@@ -798,15 +811,6 @@ void search_command(const char *restrict name, commandinfo_T *restrict ci)
     } else if (bi && bi->type == BI_SEMISPECIAL) {
 	ci->type = semispecialbuiltin;
 	ci->ci_builtin = bi->body;
-	return;
-    }
-
-    wchar_t *wname = malloc_mbstowcs(name);
-    bool slash = wname && wcschr(wname, L'/');
-    free(wname);
-    if (slash) {  /* if `name' contains '/', simply return it */
-	ci->type = externalprogram;
-	ci->ci_path = name;
 	return;
     }
 
@@ -881,8 +885,10 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 }
 
 /* Executes a simple command. */
+/* `argv0' is a multibyte version of `argv[0]' */
 void exec_simple_command(
-	const commandinfo_T *ci, int argc, char *const *argv, bool finally_exit)
+	const commandinfo_T *ci, int argc, char *argv0, void **argv,
+	bool finally_exit)
 {
     assert(argv[argc] == NULL);
 
@@ -891,31 +897,44 @@ void exec_simple_command(
     case externalprogram:
 	assert(finally_exit);
 	if (ci->ci_path == NULL) {
-	    xerror(0, Ngt("%s: no such command or function"), argv[0]);
+	    xerror(0, Ngt("%s: no such command or function"), argv0);
 	    exit_shell_with_status(EXIT_NOTFOUND);
 	}
-	xexecv(ci->ci_path, (char **) argv);
-	if (errno != ENOEXEC) {
-	    if (errno == EACCES && is_directory(ci->ci_path))
-		errno = EISDIR;
-	    if (strcmp(argv[0], ci->ci_path) == 0)
-		xerror(errno, Ngt("cannot execute `%s'"),
-			argv[0]);
-	    else
-		xerror(errno, Ngt("cannot execute `%s' (%s)"),
-			argv[0], ci->ci_path);
-	} else {
-	    exec_fall_back_on_sh(argc, argv, environ, ci->ci_path);
+
+	{
+	    char *mbsargv[argc + 1];
+	    mbsargv[0] = argv0;
+	    for (int i = 1; i < argc; i++) {
+		mbsargv[i] = malloc_wcstombs(argv[i]);
+		if (!mbsargv[i])
+		    mbsargv[i] = xstrdup("");
+	    }
+	    mbsargv[argc] = NULL;
+
+	    xexecv(ci->ci_path, mbsargv);
+	    if (errno != ENOEXEC) {
+		if (errno == EACCES && is_directory(ci->ci_path))
+		    errno = EISDIR;
+		if (strcmp(mbsargv[0], ci->ci_path) == 0)
+		    xerror(errno, Ngt("cannot execute `%s'"), argv0);
+		else
+		    xerror(errno, Ngt("cannot execute `%s' (%s)"),
+			    argv0, ci->ci_path);
+	    } else {
+		exec_fall_back_on_sh(argc, mbsargv, environ, ci->ci_path);
+	    }
+	    for (int i = 1; i < argc; i++)
+		free(mbsargv[i]);
+	    exit_shell_with_status(EXIT_NOEXEC);
 	}
-	exit_shell_with_status(EXIT_NOEXEC);
 	//break;
     case specialbuiltin:
     case semispecialbuiltin:
     case regularbuiltin:
-	laststatus = ci->ci_builtin(argc, (char **) argv);
+	laststatus = ci->ci_builtin(argc, argv);
 	break;
     case function:
-	exec_function_body(ci->ci_function, (char **) argv, finally_exit);
+	exec_function_body(ci->ci_function, argv, finally_exit);
 	break;
     }
     if (finally_exit)
@@ -923,18 +942,18 @@ void exec_simple_command(
 }
 
 /* Prints a trace if "-o xtrace" option is on. */
-void print_xtrace(char *const *argv)
+void print_xtrace(void *const *argv)
 {
     if (shopt_xtrace) {
 	print_prompt(4);
 	for (;;) {
-	    fputs(*argv, stderr);
+	    fprintf(stderr, "%ls", (wchar_t *) *argv);
 	    argv++;
 	    if (!*argv)
 		break;
-	    fputs(" ", stderr);
+	    fputc(' ', stderr);
 	}
-	fputs("\n", stderr);
+	fputc('\n', stderr);
     }
 }
 
@@ -976,10 +995,10 @@ void exec_fall_back_on_sh(
 }
 
 /* Executes the specified command as a function.
- * `args' are the arguments to the function. `args[0]' is the function name and
- * is ignored. `args[1]' is the first argument, `args[2]' the second, and so on.
- */
-void exec_function_body(command_T *body, char **args, bool finally_exit)
+ * `args' are the arguments to the function, which are wide strings cast to
+ * (void *). `args[0]' is the function name and is ignored.
+ * `args[1]' is the first argument, `args[2]' the second, and so on. */
+void exec_function_body(command_T *body, void **args, bool finally_exit)
 {
     savefd_T *savefd;
 

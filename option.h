@@ -28,7 +28,7 @@ extern bool is_login_shell;
 extern bool is_interactive, is_interactive_now;
 extern bool do_job_control, shopt_notify;
 extern bool shopt_read_arg, shopt_read_stdin;
-extern const char *command_name;
+extern const wchar_t *command_name;
 extern bool shopt_allexport, shopt_hashondef;
 extern bool shopt_errexit, shopt_nounset, shopt_noexec, shopt_ignoreeof,
        shopt_verbose, shopt_xtrace;
@@ -37,12 +37,12 @@ extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
 extern bool shopt_braceexpand;
 extern bool shopt_noclobber;
 
-#define SHELLSET_OPTIONS "abefhmnuvxC"
+#define SHELLSET_OPTIONS L"abefhmnuvxC"
 
 extern const struct xoption *const shell_long_options, *const set_long_options;
 
-extern void set_option(char c);
-extern bool set_long_option(const char *s)
+extern void set_option(wchar_t c);
+extern bool set_long_option(const wchar_t *s)
     __attribute__((nonnull));
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
