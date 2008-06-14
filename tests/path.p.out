@@ -1,0 +1,9 @@
+===== cd builtin =====
+cd $HOME
+$PWD=/tmp
+cd $OLDPWD
+cd $PWD
+$OLDPWD=/tmp
+cd symlink
+cd -P
+cd -L
