@@ -19,6 +19,8 @@
 #ifndef BUILTIN_H
 #define BUILTIN_H
 
+#include <stddef.h>
+
 
 typedef int main_T(int argc, void **argv);
 
@@ -35,6 +37,7 @@ typedef struct builtin_T {
 extern void init_builtin(void);
 extern const builtin_T *get_builtin(const char *name)
 	__attribute__((pure));
+extern void print_builtin_help(const wchar_t *name);
 
 
 #endif /* BUILTIN_H */

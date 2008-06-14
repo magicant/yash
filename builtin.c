@@ -19,6 +19,7 @@
 #include "common.h"
 #include <stdlib.h>
 #include "hashtable.h"
+#include "path.h"
 #include "builtin.h"
 
 
@@ -47,12 +48,16 @@ void init_builtin(void)
 	ht_initwithcapacity(&builtins, hashstr, htstrcmp, 5);
 
 	/* defined in "builtin.c" */
-	static const builtin_T bcolon = { true_builtin, BI_SPECIAL };
-	ht_set(&builtins, ":", &bcolon);
-	static const builtin_T btrue = { true_builtin, BI_SEMISPECIAL };
-	ht_set(&builtins, "true", &btrue);
-	static const builtin_T bfalse = { false_builtin, BI_SEMISPECIAL };
-	ht_set(&builtins, "false", &bfalse);
+	static const builtin_T b_colon = { true_builtin, BI_SPECIAL };
+	ht_set(&builtins, ":", &b_colon);
+	static const builtin_T b_true = { true_builtin, BI_SEMISPECIAL };
+	ht_set(&builtins, "true", &b_true);
+	static const builtin_T b_false = { false_builtin, BI_SEMISPECIAL };
+	ht_set(&builtins, "false", &b_false);
+
+	/* defined in "path.c" */
+	static const builtin_T b_cd = { cd_builtin, BI_SEMISPECIAL };
+	ht_set(&builtins, "cd", &b_cd);
 }
 
 /* Returns the builtin command of the specified name
@@ -60,6 +65,12 @@ void init_builtin(void)
 const builtin_T *get_builtin(const char *name)
 {
 	return ht_get(&builtins, name).value;
+}
+
+/* Prints usage description of the specified builtin. */
+void print_builtin_help(const wchar_t *name)
+{
+	// TODO print_builtin_help
 }
 
 
