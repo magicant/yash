@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     bool help = false, version = false;
     bool do_job_control_set = false, is_interactive_set = false;
     bool option_error = false;
-    int opt;
+    wchar_t opt;
     const wchar_t *shortest_name;
 
     setlocale(LC_ALL, "");
