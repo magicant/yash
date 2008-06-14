@@ -31,13 +31,15 @@ typedef enum builtintype_T {
 typedef struct builtin_T {
 	main_T *body;
 	builtintype_T type;
+	const char *help;
 } builtin_T;
 
 
 extern void init_builtin(void);
 extern const builtin_T *get_builtin(const char *name)
 	__attribute__((pure));
-extern void print_builtin_help(const wchar_t *name);
+extern void print_builtin_help(const wchar_t *name)
+	__attribute__((nonnull));
 
 
 #endif /* BUILTIN_H */

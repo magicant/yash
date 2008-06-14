@@ -93,6 +93,7 @@ extern bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 /********** builtins **********/
 
 extern int cd_builtin(int argc, void **argv);
+extern const char cd_help[];
 
 
 #endif /* PATH_H */

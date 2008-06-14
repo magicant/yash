@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <sys/stat.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
@@ -961,6 +964,22 @@ step7:
 
     return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
 }
+
+const char cd_help[] =
+"cd - change directory\n"
+"\tcd [-L|-P] [dir]\n"
+"Changes the working directory to <dir>.\n"
+"If <dir> is not specified, it defaults to $HOME.\n"
+"If <dir> is \"-\", $OLDPWD is used.\n"
+"If <dir> is a relative path which does not start with \".\" or \"..\",\n"
+"paths in $CDPATH are searched to find a new directory.\n"
+"If the working directory is successfully changed, $PWD is set to the new\n"
+"directory and $OLDPWD is set to the previous $PWD.\n"
+"The -L option makes symbolic links in $PWD left as is.\n"
+"If the -P option is specified, $PWD does not contain any symbolic links.\n"
+"-L and -P are mutually exclusive: the one specified last is used.\n"
+"If neither is specified, -L is the default.\n"
+;
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

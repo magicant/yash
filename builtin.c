@@ -17,7 +17,12 @@
 
 
 #include "common.h"
+#include <stdio.h>
 #include <stdlib.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
+#include "strbuf.h"
 #include "hashtable.h"
 #include "path.h"
 #include "builtin.h"
@@ -36,6 +41,7 @@
 
 /* Prototypes of builtins */
 static main_T true_builtin, false_builtin;
+static const char colon_help[], true_help[], false_help[];
 
 
 /* A hashtable from names of builtins (const char *) to builtin info structures
@@ -47,17 +53,21 @@ void init_builtin(void)
 {
 	ht_initwithcapacity(&builtins, hashstr, htstrcmp, 5);
 
+#define DEFBUILTIN(strname,func,type,help) \
+	do {                                                                      \
+		static const builtin_T bi = { func, type, help, };                    \
+		ht_set(&builtins, strname, &bi);                                      \
+	} while (0)
+
 	/* defined in "builtin.c" */
-	static const builtin_T b_colon = { true_builtin, BI_SPECIAL };
-	ht_set(&builtins, ":", &b_colon);
-	static const builtin_T b_true = { true_builtin, BI_SEMISPECIAL };
-	ht_set(&builtins, "true", &b_true);
-	static const builtin_T b_false = { false_builtin, BI_SEMISPECIAL };
-	ht_set(&builtins, "false", &b_false);
+	DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help);
+	DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, true_help);
+	DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help);
 
 	/* defined in "path.c" */
-	static const builtin_T b_cd = { cd_builtin, BI_SEMISPECIAL };
-	ht_set(&builtins, "cd", &b_cd);
+	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
+
+#undef DEFBUILTIN
 }
 
 /* Returns the builtin command of the specified name
@@ -67,10 +77,14 @@ const builtin_T *get_builtin(const char *name)
 	return ht_get(&builtins, name).value;
 }
 
-/* Prints usage description of the specified builtin. */
+/* Prints usage description of the specified builtin to stdout. */
 void print_builtin_help(const wchar_t *name)
 {
-	// TODO print_builtin_help
+	char *mbsname = malloc_wcstombs(name);
+	const builtin_T *bi = get_builtin(mbsname);
+	free(mbsname);
+	if (bi)
+		fputs(gt(bi->help), stdout);
 }
 
 
@@ -81,8 +95,36 @@ int true_builtin(
 	return EXIT_SUCCESS;
 }
 
+/* "false" builtin */
 int false_builtin(
 		int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
 	return EXIT_FAILURE;
 }
+
+static const char colon_help[] =
+": - null utility\n"
+"\t: [arg...]\n"
+"Does nothing. Any arguments are ignored.\n"
+"Note that arguments are expanded and redirections are performed as usual.\n"
+"This command has the same effect as the \"true\" command, but \":\" is a\n"
+"special builtin while \"true\" is a semi-special.\n"
+;
+
+static const char true_help[] =
+"true - return true value\n"
+"\ttrue\n"
+"Does nothing successfully.\n"
+"Any arguments are ignored and the exit status is always zero.\n"
+"This command has the same effect as the \":\" command, but \":\" is a\n"
+"special builtin while \"true\" is a semi-special.\n"
+"Naturally the opposite of this command is the \"false\" command.\n"
+;
+
+static const char false_help[] =
+"false - return false value\n"
+"\tfalse\n"
+"Does nothing unsuccessfully.\n"
+"Any arguments are ignored and the exit status is always non-zero.\n"
+"Naturally the opposite of this command is the \"true\" command.\n"
+;

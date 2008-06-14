@@ -25,6 +25,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <wchar.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
