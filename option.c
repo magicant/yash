@@ -101,6 +101,9 @@ static const struct xoption long_options[] = {
     { L"help",         xno_argument, L'-', },
     { L"version",      xno_argument, L'V', },
     { L"login",        xno_argument, L'l', },
+    { L"noprofile",    xno_argument, L'(', },
+    { L"norcfile",     xno_argument, L')', },
+    { L"rcfile",       xrequired_argument, L'!', },
     /* Options above cannot be used in set builtin */
     { L"allexport",    xno_argument, L'a', },
     { L"hashondef",    xno_argument, L'h', },

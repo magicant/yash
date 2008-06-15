@@ -36,6 +36,7 @@
 #include "parser.h"
 #include "variable.h"
 #include "sig.h"
+#include "expand.h"
 #include "redir.h"
 #include "job.h"
 #include "builtin.h"
@@ -46,6 +47,8 @@
 
 extern int main(int argc, char **argv)
     __attribute__((nonnull));
+static void execute_profile(void);
+static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
 static void print_version(void);
 
@@ -60,9 +63,11 @@ int main(int argc, char **argv)
     void *wargv[argc + 1];
     bool help = false, version = false;
     bool do_job_control_set = false, is_interactive_set = false;
+    bool noprofile = false, norcfile = false;
     bool option_error = false;
     wchar_t opt;
     const wchar_t *shortest_name;
+    const wchar_t *rcfile = NULL;
 
     setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
     setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
@@ -143,6 +148,15 @@ int main(int argc, char **argv)
 	case L'V':
 	    version = true;
 	    break;
+	case L'(':
+	    noprofile = true;
+	    break;
+	case L')':
+	    norcfile = true;
+	    break;
+	case L'!':
+	    rcfile = xoptarg;
+	    break;
 	case L'-':
 	    help = true;
 	    break;
@@ -182,31 +196,23 @@ int main(int argc, char **argv)
     init_job();
     init_builtin();
 
+    wchar_t *command = command;
+    FILE *input = input;
+    const char *inputname = inputname;
+
     if (shopt_read_arg && shopt_read_stdin) {
 	xerror(0, Ngt("both -c and -s options cannot be given at once"));
 	exit(EXIT_ERROR);
     }
-    shopt_read_arg = shopt_read_arg;
-    shopt_read_stdin = shopt_read_stdin;
     if (shopt_read_arg) {
-	wchar_t *command = wargv[xoptind++];
+	command = wargv[xoptind++];
 	if (!command) {
 	    xerror(0, Ngt("-c option requires an operand"));
 	    exit(EXIT_ERROR);
 	}
 	if (xoptind < argc)
 	    command_name = wargv[xoptind++];
-	is_interactive_now = is_interactive;
-	if (!do_job_control_set)
-	    do_job_control = is_interactive;
-	set_signals();
-	open_ttyfd();
-	set_own_pgrp();
-	set_positional_parameters(wargv + xoptind);
-	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
     } else {
-	FILE *input;
-	const char *inputname;
 	if (argc == xoptind)
 	    shopt_read_stdin = true;
 	if (shopt_read_stdin) {
@@ -226,17 +232,105 @@ int main(int argc, char **argv)
 		exit(errno_ == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
 	    }
 	}
-	is_interactive_now = is_interactive;
-	if (!do_job_control_set)
-	    do_job_control = is_interactive;
-	set_signals();
-	open_ttyfd();
-	set_own_pgrp();
-	set_positional_parameters(wargv + xoptind);
+    }
+
+    is_interactive_now = is_interactive;
+    if (!do_job_control_set)
+	do_job_control = is_interactive;
+    set_signals();
+    open_ttyfd();
+    set_own_pgrp();
+    set_positional_parameters(wargv + xoptind);
+    if (!noprofile)
+	execute_profile();
+    if (!norcfile)
+	execute_rcfile(rcfile);
+
+    if (shopt_read_arg) {
+	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
+    } else {
 	exec_input(input, inputname, is_interactive, true);
     }
     assert(false);
-    // TODO yashrc
+}
+
+/* Executes "/etc/profile" and ("$HOME/.yash_profile" or "$HOME/.profile")
+ * if this is a login shell. */
+static void execute_profile(void)
+{
+    if (!is_login_shell || posixly_correct)
+	return;
+
+    FILE *f;
+    wchar_t *wpath;
+    char *path;
+
+    f = reopen_with_shellfd(fopen("/etc/profile", "r"), "r");
+    if (f) {
+	exec_input(f, "/etc/profile", false, false);
+	fclose(f);
+    }
+
+    f = NULL;
+    wpath = parse_and_expand_string(L"$HOME/.yash_profile", NULL);
+    if (wpath) {
+	path = realloc_wcstombs(wpath);
+	if (path) {
+	    f = reopen_with_shellfd(fopen(path, "r"), "r");
+	}
+    }
+    if (!f) {
+	wpath = parse_and_expand_string(L"$HOME/.profile", NULL);
+	if (wpath) {
+	    path = realloc_wcstombs(wpath);
+	    if (path) {
+		f = reopen_with_shellfd(fopen(path, "r"), "r");
+	    }
+	}
+    }
+    if (f) {
+	exec_input(f, path, false, false);
+	fclose(f);
+    }
+    free(path);
+}
+
+/* Executes the initialization file if this is an interactive shell.
+ * `rcfile' is the filename to source.
+ * If `rcfile' is NULL, it defaults to "$HOME/.yashrc" or "$ENV". */
+static void execute_rcfile(const wchar_t *rcfile)
+{
+    wchar_t *wpath;
+    char *path;
+    FILE *f;
+    if (!is_interactive)
+	return;
+    if (posixly_correct) {
+	const wchar_t *env = getvar(VAR_ENV);
+	if (!env)
+	    return;
+	wpath = parse_and_expand_string(env, "$ENV");
+	if (!wpath)
+	    return;
+	path = realloc_wcstombs(wpath);
+    } else {
+	if (rcfile) {
+	    path = malloc_wcstombs(rcfile);
+	} else {
+	    wpath = parse_and_expand_string(L"$HOME/.yashrc", NULL);
+	    if (!wpath)
+		return;
+	    path = realloc_wcstombs(wpath);
+	}
+    }
+    if (!path)
+	return;
+    f = reopen_with_shellfd(fopen(path, "r"), "r");
+    if (f) {
+	exec_input(f, path, false, false);
+	fclose(f);
+    }
+    free(path);
 }
 
 /* Exits the shell with the specified exit status.

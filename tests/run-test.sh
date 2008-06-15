@@ -22,7 +22,7 @@ echo "Any output from the tests indicates a possible malfunction"
 
 LC_ALL=C
 export INVOKE TESTEE LC_ALL
-unset IFS failed
+unset ENV IFS failed
 
 failed=0
 for x in $TEST_ITEMS
