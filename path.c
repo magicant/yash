@@ -171,7 +171,7 @@ wchar_t *canonicalize_path(const wchar_t *path)
 bool is_canonicalized(const wchar_t *path)
 {
     wchar_t *canon = canonicalize_path(path);
-    bool result = wcscmp(path, canon);
+    bool result = wcscmp(path, canon) == 0;
     free(canon);
     return result;
 }
@@ -787,19 +787,20 @@ bool is_reentry(const struct stat *st, const plist_T *dirstack)
 
 /********** builtins **********/
 
+/* options for "cd" and "pwd" builtins */
+static const struct xoption cd_pwd_options[] = {
+    { L"logical",  xno_argument, 'L', },
+    { L"physical", xno_argument, 'P', },
+    { L"help",     xno_argument, '-', },
+    { NULL, 0, 0, },
+};
+
 /* "cd" builtin, which accepts the following options:
  * -L: don't resolve symlinks (default)
  * -P: resolve symlinks
  * -L and -P are mutually exclusive: the one specified last is used. */
 int cd_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"logical",  xno_argument, 'L', },
-	{ L"physical", xno_argument, 'P', },
-	{ L"help",     xno_argument, '-', },
-	{ NULL, 0, 0, },
-    };
-
     bool logical = true;
     bool printnewdir = false;
     bool err = false;
@@ -808,7 +809,7 @@ int cd_builtin(int argc, void **argv)
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"LP", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"LP", cd_pwd_options, NULL))) {
 	switch (opt) {
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
@@ -979,6 +980,75 @@ const char cd_help[] = Ngt(
 "If the -P option is specified, $PWD does not contain any symbolic links.\n"
 "-L and -P are mutually exclusive: the one specified last is used.\n"
 "If neither is specified, -L is the default.\n"
+);
+
+/* "pwd" builtin, which accepts the following options:
+ * -L: don't resolve symlinks (default)
+ * -P: resolve symlinks
+ * -L and -P are mutually exclusive: the one specified last is used. */
+int pwd_builtin(int argc __attribute__((unused)), void **argv)
+{
+    bool logical = true;
+    char *mbspwd;
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"LP", cd_pwd_options, NULL))) {
+	switch (opt) {
+	    case L'L':  logical = true;   break;
+	    case L'P':  logical = false;  break;
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    if (logical) {
+	const wchar_t *pwd = getvar(VAR_PWD);
+	if (pwd != NULL && pwd[0] == L'/' && is_canonicalized(pwd)) {
+	    mbspwd = malloc_wcstombs(pwd);
+	    if (mbspwd != NULL) {
+		if (is_same_file(mbspwd, ".")) {
+		    printf("%s\n", mbspwd);
+		    free(mbspwd);
+		    return EXIT_SUCCESS;
+		}
+		free(mbspwd);
+	    }
+	}
+    }
+
+    mbspwd = xgetcwd();
+    if (mbspwd == NULL) {
+	xerror(errno, Ngt("%ls: cannot find out current directory"),
+		(wchar_t *) argv[0]);
+	return EXIT_FAILURE1;
+    }
+    printf("%s\n", mbspwd);
+    if (posixly_correct) {
+	wchar_t *pwd = malloc_mbstowcs(mbspwd);
+	if (pwd != NULL)
+	    set_variable(VAR_PWD, pwd, false, false);
+    }
+    free(mbspwd);
+    return EXIT_SUCCESS;
+}
+
+const char pwd_help[] = Ngt(
+"pwd - print working directory\n"
+"\tpwd [-L|-P]\n"
+"Prints the absolute pathname of the current working directory.\n"
+"When the -L option is specified, $PWD is printed if it is correct.\n"
+"It may contain symbolic links in the pathname.\n"
+"When the -P option is specified, the printed pathname does not contain\n"
+"symbolic links.\n"
+"-L and -P are mutually exclusive: the one specified last is used.\n"
+"If neither is specified, -L is the default.\n"
+"If the shell is in POSIXly correct mode and the -P option is specified,\n"
+"$PWD is set to the printed pathname.\n"
 );
 
 

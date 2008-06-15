@@ -33,7 +33,6 @@ gettext 対応
 	popd -n
 	printf
 	pushd -n
-	pwd -LP
 	read -aprs
 	readonly -afp
 	return

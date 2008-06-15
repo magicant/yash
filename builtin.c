@@ -66,6 +66,7 @@ void init_builtin(void)
 
 	/* defined in "path.c" */
 	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
+	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
 
 #undef DEFBUILTIN
 }
