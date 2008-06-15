@@ -30,6 +30,7 @@
 #include "plist.h"
 #include "wfnmatch.h"
 #include "path.h"
+#include "input.h"
 #include "parser.h"
 #include "variable.h"
 #include "expand.h"
@@ -1470,6 +1471,37 @@ addpattern:
 	patterns++;
     }
     free(savepatterns);
+}
+
+
+/********** Auxiliary functions **********/
+
+/* Performs parameter expansions, command substitutions in "$(...)" form and
+ * arithmetic expansions in the specified string.
+ * If `name' is non-NULL, it is printed in error messages on error.
+ * Returns a newly malloced string if successful. Otherwise NULL is returned.
+ * This function is reentrant. */
+wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
+{
+    struct input_wcs_info winfo = {
+	.src = s,
+    };
+    parseinfo_T info = {
+	.print_errmsg = true,
+	.enable_verbose = false,
+	.filename = name,
+	.lineno = 1,
+	.input = input_wcs,
+	.inputinfo = &winfo,
+    };
+    wordunit_T *word;
+    wchar_t *result;
+
+    if (!parse_string(&info, &word))
+	return NULL;
+    result = expand_string(word, false);
+    wordfree(word);
+    return result;
 }
 
 

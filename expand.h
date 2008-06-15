@@ -49,6 +49,9 @@ extern wchar_t *unescapefree(wchar_t *s)
 extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 
+extern wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
+    __attribute__((nonnull(1),malloc,warn_unused_result));
+
 
 #endif /* EXPAND_H */
 

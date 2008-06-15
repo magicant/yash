@@ -217,24 +217,9 @@ void print_prompt(int type)
     if (ps == NULL)
 	return;
 
-    struct input_wcs_info winfo = {
-	.src = ps,
-    };
-    parseinfo_T info = {
-	.print_errmsg = true,
-	.enable_verbose = false,
-	.filename = gt("prompt"),
-	.lineno = 1,
-	.input = input_wcs,
-	.inputinfo = &winfo,
-    };
-    wordunit_T *word;
-    wchar_t *prompt;
-
-    if (!parse_string(&info, &word))
+    wchar_t *prompt = parse_and_expand_string(ps, gt("prompt"));
+    if (prompt == NULL)
 	goto just_print;
-    prompt = expand_string(word, false);
-    wordfree(word);
     if (posixly_correct) {
 	if (type == 1)
 	    prompt = expand_ps1_posix(prompt);
