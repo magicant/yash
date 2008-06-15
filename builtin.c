@@ -102,16 +102,16 @@ int false_builtin(
 	return EXIT_FAILURE;
 }
 
-static const char colon_help[] =
+static const char colon_help[] = Ngt(
 ": - null utility\n"
 "\t: [arg...]\n"
 "Does nothing. Any arguments are ignored.\n"
 "Note that arguments are expanded and redirections are performed as usual.\n"
 "This command has the same effect as the \"true\" command, but \":\" is a\n"
 "special builtin while \"true\" is a semi-special.\n"
-;
+);
 
-static const char true_help[] =
+static const char true_help[] = Ngt(
 "true - return true value\n"
 "\ttrue\n"
 "Does nothing successfully.\n"
@@ -119,12 +119,12 @@ static const char true_help[] =
 "This command has the same effect as the \":\" command, but \":\" is a\n"
 "special builtin while \"true\" is a semi-special.\n"
 "Naturally the opposite of this command is the \"false\" command.\n"
-;
+);
 
-static const char false_help[] =
+static const char false_help[] = Ngt(
 "false - return false value\n"
 "\tfalse\n"
 "Does nothing unsuccessfully.\n"
 "Any arguments are ignored and the exit status is always non-zero.\n"
 "Naturally the opposite of this command is the \"true\" command.\n"
-;
+);

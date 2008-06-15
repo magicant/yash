@@ -965,7 +965,7 @@ step7:
     return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
 }
 
-const char cd_help[] =
+const char cd_help[] = Ngt(
 "cd - change directory\n"
 "\tcd [-L|-P] [dir]\n"
 "Changes the working directory to <dir>.\n"
@@ -979,7 +979,7 @@ const char cd_help[] =
 "If the -P option is specified, $PWD does not contain any symbolic links.\n"
 "-L and -P are mutually exclusive: the one specified last is used.\n"
 "If neither is specified, -L is the default.\n"
-;
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */
