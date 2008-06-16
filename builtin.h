@@ -22,7 +22,8 @@
 #include <stddef.h>
 
 
-typedef int main_T(int argc, void **argv);
+typedef int main_T(int argc, void **argv)
+	__attribute__((nonnull));
 
 typedef enum builtintype_T {
 	BI_SPECIAL, BI_SEMISPECIAL, BI_REGULAR,

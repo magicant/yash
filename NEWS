@@ -13,7 +13,7 @@ Yash 2.0 alpha2
   +  Initialization files such as /etc/profile and ~/.yashrc are
      sourced on start-up.
   +  --noprofile, --norcfile and --rcfile options
-  +  "pwd" builtin
+  +  "pwd" and "exit builtins
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha1

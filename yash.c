@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wchar.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
@@ -56,6 +57,11 @@ static void print_version(void);
 pid_t shell_pid;
 /* the initial process group ID of the shell */
 pid_t initial_pgrp;
+
+/* an equivalent to the -f flag for "exit" builtin */
+static bool forceexit;
+/* the next value of `forceexit' */
+bool nextforceexit;
 
 
 int main(int argc, char **argv)
@@ -495,13 +501,13 @@ bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
     bool executed = false;
-    bool justwarned = false;
 
     for (;;) {
 	and_or_T *commands;
+	forceexit = nextforceexit;
+	nextforceexit = false;
 	switch (read_and_parse(pinfo, &commands)) {
 	    case 0:  // OK
-		justwarned = false;
 		if (commands) {
 		    if (!shopt_noexec) {
 			exec_and_or_lists(commands,
@@ -516,29 +522,16 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (shopt_ignoreeof && pinfo->inputisatty) {
 		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
 		    break;
-		} else if (pinfo->intrinput && !justwarned) {
-		    // TODO yash: parse_and_exec: exit builtin should have the
-		    // same warning mechanism
-		    size_t sjc = stopped_job_count();
-		    if (sjc > 0) {
-			fprintf(stderr,
-				ngt("You have %zu stopped job(s)!\n",
-				    "You have a stopped job!\n",
-				    "You have %zu stopped jobs!\n",
-				    sjc),
-				sjc);
-			justwarned = true;
-			break;
-		    }
 		}
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
-		if (finally_exit)
-		    exit_shell();
-		else
+		if (finally_exit) {
+		    wchar_t argv0[] = L"EOF";
+		    exit_builtin(1, (void *[]) { argv0 });
+		} else
 		    return true;
+		break;
 	    case 1:  // syntax error
-		justwarned = false;
 		laststatus = EXIT_SYNERROR;
 		if (pinfo->intrinput)
 		    break;
@@ -552,6 +545,81 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
      * We don't set it at first because the value of "$?" gets wrong in
      * execution. */
 }
+
+
+/********** Builtins **********/
+
+/* "exit" builtin.
+ * If the shell is interactive, there are stopped jobs and the -f flag is not
+ * specified, then prints a warning message and does not exit. */
+int exit_builtin(int argc __attribute__((unused)), void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"force", xno_argument, L'f', },
+	{ L"help",  xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    bool force = false;
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"f", long_options, NULL))) {
+	switch (opt) {
+	    case L'f':
+		force = true;
+		break;
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    size_t sjc;
+    if (is_interactive_now && (sjc = stopped_job_count()) > 0 &&
+	    !(force || forceexit)) {
+	fprintf(stderr,
+		ngt("You have %zu stopped job(s)!",
+		    "You have a stopped job!",
+		    "You have %zu stopped jobs!",
+		    sjc),
+		sjc);
+	fprintf(stderr, gt("  Use `exit' again to exit anyway.\n"));
+	nextforceexit = true;
+	return EXIT_FAILURE1;
+    }
+
+    int status;
+    const wchar_t *statusstr = argv[xoptind];
+    if (statusstr == NULL) {
+	status = -1;
+    } else {
+	wchar_t *endofstr;
+	errno = 0;
+	status = (int) (wcstoul(statusstr, &endofstr, 0) & 0xFF);
+	if (errno || *endofstr != L'\0') {
+	    /* default to `laststatus'
+	     * if `statusstr' isn't a valid non-negative integer */
+	    status = -1;
+	}
+    }
+    exit_shell_with_status(status);
+    assert(false);
+}
+
+const char exit_help[] = Ngt(
+"exit - exit shell\n"
+"\texit [-f] [n]\n"
+"Exits the shell with the exit status of <n>.\n"
+"If <n> is not specified, it defaults to the exit status of the last executed\n"
+"command. <n> should be between 0 and 255 inclusive.\n"
+"If the shell is interactive and you have any stopped jobs, the shell prints\n"
+"a warning message and does not exit. Use the -f option or use `exit' twice \n"
+"in a row to avoid the warning and really exit.\n"
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

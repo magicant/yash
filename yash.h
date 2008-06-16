@@ -49,6 +49,13 @@ extern bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
     __attribute__((nonnull(1)));
 
 
+extern bool nextforceexit;
+
+extern int exit_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char exit_help[];
+
+
 /* Exits the shell with the exit status of `laststatus'.
  * This function executes EXIT trap and calls `reset_own_pgrp'.
  * This function never returns.

@@ -26,6 +26,7 @@
 #include "hashtable.h"
 #include "path.h"
 #include "builtin.h"
+#include "yash.h"
 
 
 /* Rules about builtin commands:
@@ -67,6 +68,9 @@ void init_builtin(void)
 	/* defined in "path.c" */
 	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
 	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
+
+	/* defined in "yash.c" */
+	DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
 
 #undef DEFBUILTIN
 }

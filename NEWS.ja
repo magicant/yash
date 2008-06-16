@@ -12,7 +12,7 @@ Yash 2.0 alpha2
 
   +  起動時に /etc/profile や ~/.yashrc を読み込むように
   +  --noprofile, --norcfile, --rcfile オプション
-  +  "pwd" 組込みコマンド
+  +  "pwd", "exit" 組込みコマンド
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha1
