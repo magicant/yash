@@ -789,9 +789,9 @@ bool is_reentry(const struct stat *st, const plist_T *dirstack)
 
 /* options for "cd" and "pwd" builtins */
 static const struct xoption cd_pwd_options[] = {
-    { L"logical",  xno_argument, 'L', },
-    { L"physical", xno_argument, 'P', },
-    { L"help",     xno_argument, '-', },
+    { L"logical",  xno_argument, L'L', },
+    { L"physical", xno_argument, L'P', },
+    { L"help",     xno_argument, L'-', },
     { NULL, 0, 0, },
 };
 
