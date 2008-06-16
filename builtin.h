@@ -42,5 +42,11 @@ extern const builtin_T *get_builtin(const char *name)
 extern void print_builtin_help(const wchar_t *name)
 	__attribute__((nonnull));
 
+extern int true_builtin(int argc, void **argv)
+	__attribute__((nonnull));
+extern int false_builtin(int argc, void **argv)
+	__attribute__((nonnull));
+extern const char colon_help[], true_help[], false_help[];
+
 
 #endif /* BUILTIN_H */

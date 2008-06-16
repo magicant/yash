@@ -40,11 +40,6 @@
  * - Builtins may sleep/wait, but cannot be stopped. */
 
 
-/* Prototypes of builtins */
-static main_T true_builtin, false_builtin;
-static const char colon_help[], true_help[], false_help[];
-
-
 /* A hashtable from names of builtins (const char *) to builtin info structures
  * (const builtin_T *). */
 static hashtable_T builtins;
@@ -52,7 +47,7 @@ static hashtable_T builtins;
 /* Initializes `builtins' */
 void init_builtin(void)
 {
-	ht_initwithcapacity(&builtins, hashstr, htstrcmp, 5);
+	ht_initwithcapacity(&builtins, hashstr, htstrcmp, 71);
 
 #define DEFBUILTIN(strname,func,type,help) \
 	do {                                                                      \
@@ -68,6 +63,8 @@ void init_builtin(void)
 	/* defined in "path.c" */
 	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
 	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
+
+	/* defined in "variable.c" */
 
 	/* defined in "yash.c" */
 	DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
@@ -107,7 +104,7 @@ int false_builtin(
 	return EXIT_FAILURE;
 }
 
-static const char colon_help[] = Ngt(
+const char colon_help[] = Ngt(
 ": - null utility\n"
 "\t: [arg...]\n"
 "Does nothing. Any arguments are ignored.\n"
@@ -116,7 +113,7 @@ static const char colon_help[] = Ngt(
 "special builtin while \"true\" is a semi-special.\n"
 );
 
-static const char true_help[] = Ngt(
+const char true_help[] = Ngt(
 "true - return true value\n"
 "\ttrue\n"
 "Does nothing successfully.\n"
@@ -126,7 +123,7 @@ static const char true_help[] = Ngt(
 "Naturally the opposite of this command is the \"false\" command.\n"
 );
 
-static const char false_help[] = Ngt(
+const char false_help[] = Ngt(
 "false - return false value\n"
 "\tfalse\n"
 "Does nothing unsuccessfully.\n"
