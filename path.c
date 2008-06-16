@@ -785,7 +785,7 @@ bool is_reentry(const struct stat *st, const plist_T *dirstack)
 }
 
 
-/********** builtins **********/
+/********** Builtins **********/
 
 /* options for "cd" and "pwd" builtins */
 static const struct xoption cd_pwd_options[] = {
@@ -971,13 +971,14 @@ const char cd_help[] = Ngt(
 "\tcd [-L|-P] [dir]\n"
 "Changes the working directory to <dir>.\n"
 "If <dir> is not specified, it defaults to $HOME.\n"
-"If <dir> is \"-\", $OLDPWD is used.\n"
+"If <dir> is \"-\", the working directory is changed to $OLDPWD.\n"
 "If <dir> is a relative path which does not start with \".\" or \"..\",\n"
 "paths in $CDPATH are searched to find a new directory.\n"
 "If the working directory is successfully changed, $PWD is set to the new\n"
 "directory and $OLDPWD is set to the previous $PWD.\n"
-"The -L option makes symbolic links in $PWD left as is.\n"
-"If the -P option is specified, $PWD does not contain any symbolic links.\n"
+"When the -L (--logical) option is specified, symbolic links in $PWD are left\n"
+"unchanged. When the -P (--physical) option is specified, symbolic links are\n"
+"resolved so that $PWD does not contain any symbolic links.\n"
 "-L and -P are mutually exclusive: the one specified last is used.\n"
 "If neither is specified, -L is the default.\n"
 );
@@ -1041,10 +1042,10 @@ const char pwd_help[] = Ngt(
 "pwd - print working directory\n"
 "\tpwd [-L|-P]\n"
 "Prints the absolute pathname of the current working directory.\n"
-"When the -L option is specified, $PWD is printed if it is correct.\n"
-"It may contain symbolic links in the pathname.\n"
-"When the -P option is specified, the printed pathname does not contain\n"
-"symbolic links.\n"
+"When the -L (--logical) option is specified, $PWD is printed if it is\n"
+"correct. It may contain symbolic links in the pathname.\n"
+"When the -P (--physical) option is specified, the printed pathname does not\n"
+"contain any symbolic links.\n"
 "-L and -P are mutually exclusive: the one specified last is used.\n"
 "If neither is specified, -L is the default.\n"
 "If the shell is in POSIXly correct mode and the -P option is specified,\n"

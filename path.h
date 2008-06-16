@@ -90,7 +90,7 @@ extern bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
     __attribute__((nonnull));
 
 
-/********** builtins **********/
+/********** Builtins **********/
 
 extern int cd_builtin(int argc, void **argv);
 extern int pwd_builtin(int argc, void **argv);

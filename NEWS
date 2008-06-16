@@ -8,6 +8,14 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.0 alpha2
+
+  +  Initialization files such as /etc/profile and ~/.yashrc are
+     sourced on start-up.
+  +  --noprofile, --norcfile and --rcfile options
+  +  "pwd" builtin
+
+----------------------------------------------------------------------
 Yash 2.0 alpha1
 
   +  New options implemented: -x, -h, -a
