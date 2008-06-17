@@ -602,15 +602,10 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	if (list) {
 	    unset = false;
 	} else {
-	    /* if parameter is not set, return empty string or error */
-	    if (shopt_nounset) {
-		xerror(0, Ngt("%s: parameter not set"), p->pe_name);
-		return NULL;
-	    } else {
-		plist_T plist;
-		list = pl_toary(pl_add(pl_init(&plist), xwcsdup(L"")));
-		unset = true;
-	    }
+	    /* if parameter is not set, return empty string */
+	    plist_T plist;
+	    list = pl_toary(pl_add(pl_init(&plist), xwcsdup(L"")));
+	    unset = true;
 	}
     }
 
@@ -621,11 +616,12 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	    && (!list[0] || (!((char *) list[0])[0] && !list[1])))
 	unset = true;
 
-    /* PT_PLUS, PT_MINUS, PT_ASSIGN, PT_ERROR, PT_MATCH, PT_SUBST */
+    /* PT_PLUS, PT_MINUS, PT_ASSIGN, PT_ERROR */
     switch (p->pe_type & PT_MASK) {
     case PT_PLUS:
 	if (!unset)
 	    goto subst;
+	unset = false;
 	break;
     case PT_MINUS:
 	if (unset) {
@@ -664,6 +660,7 @@ subst:
 	    list = xmalloc(2 * sizeof *list);
 	    list[0] = subst;
 	    list[1] = NULL;
+	    unset = false;
 	}
 	break;
     case PT_ERROR:
@@ -673,6 +670,16 @@ subst:
 	    return NULL;
 	}
 	break;
+    }
+
+    if (shopt_nounset && unset) {
+	recfree(list, free);
+	xerror(0, Ngt("%s: parameter not set"), p->pe_name);
+	return NULL;
+    }
+
+    /* PT_MATCH, PT_SUBST */
+    switch (p->pe_type & PT_MASK) {
     case PT_MATCH:
 	match = expand_single(p->pe_match, tt_single);
 	if (!match) {
