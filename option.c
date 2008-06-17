@@ -117,7 +117,7 @@ static const struct xoption long_options[] = {
     { L"hashondef",    xno_argument, L'h', },
     { L"noclobber",    xno_argument, L'C', },
     { L"noglob",       xno_argument, L'f', },
-    { L"nocaseglob",   xno_argument, L'c', },
+    { L"nocaseglob",   xno_argument, L'S', },
     { L"dotglob",      xno_argument, L'D', },
     { L"markdirs",     xno_argument, L'M', },
     { L"extendedglob", xno_argument, L'E', },
@@ -152,7 +152,7 @@ void set_option(wchar_t c)
 	case L'h':   shopt_hashondef    = value;   break;
 	case L'C':   shopt_noclobber    = value;   break;
 	case L'f':   shopt_noglob       = value;   break;
-	case L'c':   shopt_nocaseglob   = value;   break;
+	case L'S':   shopt_nocaseglob   = value;   break;
 	case L'D':   shopt_dotglob      = value;   break;
 	case L'M':   shopt_markdirs     = value;   break;
 	case L'E':   shopt_extendedglob = value;   break;

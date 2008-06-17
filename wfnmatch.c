@@ -107,7 +107,7 @@ size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 		case L']':  case L'?':  case L'*':  case L'\\':
 		    break;
 		default:
-		    if (pat[patlen-1] != s[slen-1])
+		    if (FOLD(pat[patlen-1]) != FOLD(s[slen-1]))
 			return WFNM_NOMATCH;
 	    }
 	}
@@ -399,8 +399,7 @@ size_t match_bracket(
 	    rangeend = rangestart;
 	}
 	if (rangestart)
-	    if ((rangestart <= sc && sc <= rangeend)
-		    || (rangestart <= fsc && fsc <= rangeend))
+	    if (FOLD(rangestart) <= fsc && fsc <= FOLD(rangeend))
 		matched = true;
     }
 }

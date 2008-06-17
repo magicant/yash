@@ -1,12 +1,13 @@
 tmp=/tmp/yashtest.$$
 mkdir -p $tmp
-cd $tmp
 
 echo ===== nocaseglob =====
 set --nocaseglob
-echo O[opq]T*ON.tst
+echo O[OPQ]T*ON.tst
 set +o nocaseglob
-echo O[opq]T*ON.tst
+echo O[OPQ]T*ON.tst
+
+cd $tmp
 
 echo ===== dotglob =====
 touch .dotfile

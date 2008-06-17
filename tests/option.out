@@ -1,6 +1,6 @@
 ===== nocaseglob =====
 option.tst
-O[opq]T*ON.tst
+O[OPQ]T*ON.tst
 ===== dotglob =====
 .dotfile
 *

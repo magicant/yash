@@ -15,7 +15,8 @@ rm -f $tmp
 echo foo >$tmp
 [ -f $tmp ] && cat $tmp
 set -C
-(>$tmp) 2>/dev/null
+(echo bar >|$tmp) 2>/dev/null
+(echo baz >$tmp) 2>/dev/null
 set +C
 cat $tmp
 
