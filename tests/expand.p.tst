@@ -81,6 +81,11 @@ IFS=" +"
 echo +${foo-1+2}+${bar-3+4}+
 echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 
-# TODO needs 'set' builtin and for statement
-# set $foo bar '' xyz ''$foo'' abc
-# for i; do echo "-$i-"; done
+set $foo bar '' xyz ''$foo'' abc
+for i; do echo "-$i-"; done
+
+echol () { for i; do printf "%s\n" "$i"; done }
+set "" "" ""
+echo [
+echol "$@"
+echo ]

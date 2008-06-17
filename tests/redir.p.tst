@@ -12,9 +12,12 @@ echo \2>$tmp
 echo 2\>/dev/null|cat - $tmp
 
 rm -f $tmp
->$tmp
-[ -f $tmp ] && echo new file
-# TODO clobber: needs 'set'
+echo foo >$tmp
+[ -f $tmp ] && cat $tmp
+set -C
+(>$tmp) 2>/dev/null
+set +C
+cat $tmp
 
 echo ===== 1 =====
 

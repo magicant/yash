@@ -142,9 +142,8 @@ echo ===== 5 =====
 
 while false; do true; done; echo $?
 until true; do true; done; echo $?
-# TODO need 'exit'
-# while [ $? = 0 ]; do (exit 10) done; echo $?
-# until ! [ $? = 0 ]; do (exit 10) done; echo $?
+while [ $? = 0 ]; do (exit 10) done; echo $?
+until ! [ $? = 0 ]; do (exit 10) done; echo $?
 # TODO need 'shift'
 # set 1 '2  2' 3
 while

@@ -4,7 +4,8 @@ World.
 redirection before command
 2>/dev/null
 2
-new file
+foo
+foo
 ===== 1 =====
 complex redirection
 not writable

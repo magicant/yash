@@ -1,0 +1,17 @@
+===== nocaseglob =====
+option.tst
+O[opq]T*ON.tst
+===== dotglob =====
+.dotfile
+*
+===== markdirs =====
+dir/
+dir
+===== extendedglob =====
+dir/dir2/file
+**/file
+===== nullglob =====
+1
+n*ll 2
+===== posix =====
+> 

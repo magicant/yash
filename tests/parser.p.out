@@ -44,6 +44,8 @@ line concatenation ok (if)
 ===== 5 =====
 0
 0
+10
+10
 line concatenation ok (while)
 ===== 6 =====
 1
@@ -84,4 +86,4 @@ function
 2
 re-redirected
 redirected
-lineno=341
+lineno=340

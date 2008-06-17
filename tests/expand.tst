@@ -1,7 +1,6 @@
 [ ~+ = $PWD ] && echo \~+
-# TODO needs 'cd' builtin
-# cd .
-# [ ~- = $OLDPWD ] && echo \~-
+cd .
+[ ~- = $OLDPWD ] && echo \~-
 
 var=123/456/789 asterisks='*****'
 
