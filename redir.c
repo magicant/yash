@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include "option.h"
 #include "util.h"
+#include "path.h"
 #include "parser.h"
 #include "expand.h"
 #include "redir.h"
@@ -287,7 +288,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    flags = O_RDONLY;
 	    goto openwithflags;
 	case RT_OUTPUT:
-	    if (shopt_noclobber) {
+	    if (shopt_noclobber && !is_irregular_file(filename)) {
 		flags = O_WRONLY | O_CREAT | O_EXCL;
 	    } else {
 	case RT_CLOBBER:

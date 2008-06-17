@@ -44,20 +44,30 @@
 #include "exec.h"
 
 
+/* Checks if `path' is a regular file. */
+bool is_regular_file(const char *path)
+{
+    struct stat st;
+    return (stat(path, &st) == 0) && S_ISREG(st.st_mode);
+}
+
+/* Checks if `path' is a non-regular file. */
+bool is_irregular_file(const char *path)
+{
+    struct stat st;
+    return (stat(path, &st) == 0) && !S_ISREG(st.st_mode);
+}
+
 /* Checks if `path' is a readable regular file. */
 bool is_readable(const char *path)
 {
-    struct stat st;
-    return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
-	&& access(path, R_OK) == 0;
+    return is_regular_file(path) && access(path, R_OK) == 0;
 }
 
-/* Checks if `path' is a executable regular file. */
+/* Checks if `path' is an executable regular file. */
 bool is_executable(const char *path)
 {
-    struct stat st;
-    return (stat(path, &st) == 0) && S_ISREG(st.st_mode)
-	&& access(path, X_OK) == 0;
+    return is_regular_file(path) && access(path, X_OK) == 0;
 }
 
 /* Checks if `path' is a directory. */

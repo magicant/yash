@@ -24,6 +24,10 @@
 #include <dirent.h>
 
 
+extern bool is_regular_file(const char *path)
+    __attribute__((nonnull));
+extern bool is_irregular_file(const char *path)
+    __attribute__((nonnull));
 extern bool is_readable(const char *path)
     __attribute__((nonnull));
 extern bool is_executable(const char *path)
