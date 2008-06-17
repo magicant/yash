@@ -22,6 +22,7 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#include "option.h"
 #include "strbuf.h"
 #include "hashtable.h"
 #include "path.h"
@@ -60,11 +61,12 @@ void init_builtin(void)
 	DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, true_help);
 	DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help);
 
+	/* defined in "option.c" */
+	DEFBUILTIN("set", set_builtin, BI_SPECIAL, set_help);
+
 	/* defined in "path.c" */
 	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
 	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
-
-	/* defined in "variable.c" */
 
 	/* defined in "yash.c" */
 	DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);

@@ -178,19 +178,20 @@ int main(int argc, char **argv)
 	}
     }
 
-    if (option_error)
+    if (option_error) {
+	print_help();
 	exit(EXIT_ERROR);
-
-    /* ignore "-" if it's the first argument */
-    if (wargv[xoptind] && wcscmp(wargv[xoptind], L"-") == 0)
-	xoptind++;
-
+    }
     if (version)
 	print_version();
     if (help)
 	print_help();
     if (version || help)
 	exit(EXIT_SUCCESS);
+
+    /* ignore "-" if it's the first argument */
+    if (wargv[xoptind] && wcscmp(wargv[xoptind], L"-") == 0)
+	xoptind++;
 
     shell_pid = getpid();
     initial_pgrp = getpgrp();
@@ -369,10 +370,14 @@ void print_help(void)
 	printf(gt("Usage:  yash [options] [filename [args...]]\n"
 		  "        yash [options] -c command [args...]\n"
 		  "        yash [options] -s [args...]\n"));
-	printf(gt("Short options: -il%lsV\n"), SHELLSET_OPTIONS);
-	printf(gt("Long options:\n"));
-	for (size_t i = 0; shell_long_options[i].name; i++)
-	    printf("\t--%ls\n", shell_long_options[i].name);
+	printf(gt("Options: -il%lsV\n"
+	          "         --interactive --login --noprofile "
+		  "--norcfile --rcfile=filename\n"),
+		SHELLSET_OPTIONS);
+	printf(gt("Type `set --help' in the shell for other options.\n"));
+//	printf(gt("Long options:\n"));
+//	for (size_t i = 0; shell_long_options[i].name; i++)
+//	    printf("\t--%ls\n", shell_long_options[i].name);
     }
 }
 

@@ -18,10 +18,19 @@
 
 #include "common.h"
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
+#include "variable.h"
+#include "builtin.h"
+#include "exec.h"
 
 
 /* If set, the shell behaves strictly as defined in POSIX.
@@ -98,12 +107,11 @@ bool shopt_noclobber;
 /* Long options for the shell and set builtin */
 static const struct xoption long_options[] = {
     { L"interactive",  xno_argument, L'i', },
-    { L"help",         xno_argument, L'-', },
-    { L"version",      xno_argument, L'V', },
     { L"login",        xno_argument, L'l', },
     { L"noprofile",    xno_argument, L'(', },
     { L"norcfile",     xno_argument, L')', },
     { L"rcfile",       xrequired_argument, L'!', },
+    { L"version",      xno_argument, L'V', },
     /* Options above cannot be used in set builtin */
     { L"allexport",    xno_argument, L'a', },
     { L"hashondef",    xno_argument, L'h', },
@@ -124,6 +132,7 @@ static const struct xoption long_options[] = {
     { L"monitor",      xno_argument, L'm', },
     { L"notify",       xno_argument, L'b', },
     { L"posix",        xno_argument, L'X', },
+    { L"help",         xno_argument, L'-', },
     { NULL,            0,            0,   },
 };
 
@@ -201,6 +210,115 @@ wchar_t *get_hyphen_parameter(void)
 
     return wb_towcs(&buf);
 }
+
+
+/********** Builtin **********/
+
+int set_builtin(int argc, void **argv)
+{
+    wchar_t opt;
+
+    if (argc <= 1) {
+	// TODO set_builtin: print all variables
+	return EXIT_SUCCESS;
+    }
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(
+		    argv, L"+*" SHELLSET_OPTIONS, set_long_options, NULL)))
+    {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    case L'?':
+		fprintf(stderr,
+		    gt("Usage:  set [-abefhmnuvxC] [-o option] [arg...]\n"));
+		return EXIT_ERROR;
+	    default:
+		set_option(opt);
+		break;
+	}
+    }
+
+    /* set positional parameters */
+    if (xoptind < argc ||
+	    (xoptind == argc && wcscmp(argv[xoptind - 1], L"--") == 0))
+	set_positional_parameters(argv + xoptind);
+
+    return EXIT_SUCCESS;
+}
+
+const char set_help[] = Ngt(
+"set - set shell options and positional parameters\n"
+"\tset [-abefhmnuvxC] [+abefhmnuvxC] [-o option] [+o option] [--] [arg...]\n"
+"\tset -o\n"
+"\tset +o\n"
+"The first form sets the specified shell options and positional parameters to\n"
+"<arg>s. If no <arg>s are given, the positional parameters are unchanged.\n"
+"If no options or <arg>s are given at all, a list of all variables currently\n"
+"defined is printed. To remove all the current positional parameters, use\n"
+"`set --'.\n"
+"The second form prints the current settings of the shell options in a human-\n"
+"readable form.\n"
+"The third form prints commands that can be used to restore the current\n"
+"option settings later.\n"
+"Below are the available options:\n"
+" -a --allexport\n"
+"\tAny variable is exported when assigned.\n"
+" -b --notify\n"
+"\tWhen the status of a job is changed, it is notified immediately.\n"
+" -e --errexit\n"
+"\tExit the shell immediately when any simple command returns a\n"
+"\tnon-zero status.\n"
+" -f --noglob\n"
+"\tDisable pathname expansion (globbing).\n"
+" --nocaseglob\n"
+"\tPerform pathname expansion case-insensitively.\n"
+" --dotglob\n"
+"\tIn pathname expansion, '*' and '?' match a '.' at the start of the\n"
+"\tfilename.\n"
+" --markdirs\n"
+"\tIn pathname expansion, pathnames expanded to directories have a '/'\n"
+"\tat the end of the name.\n"
+" --extendedglob\n"
+"\tEnable extended pathname expansion.\n"
+" --nullglob\n"
+"\tIn pathname expansion, patterns that do not match any pathname are\n"
+"\tremoved from the command line rather than left as is.\n"
+" -h --hashondef\n"
+"\tWhen a function is defined, all the commands in the function are\n"
+"\tregistered in the command name hashtable.\n"
+" -m --monitor\n"
+"\tEnable job control. All jobs are run in their own process group.\n"
+"\tWhen the status of a job is changed, the status is reported before\n"
+"\tthe next prompt. This option is enabled by default for interactive\n"
+"\tshells.\n"
+" -n --noexec\n"
+"\tCommands are parsed, but not executed.\n"
+"\tUseful for syntax checking of a shell script file.\n"
+" -u --nounset\n"
+"\tExpanding an undefined variable causes an error rather than\n"
+"\texpanding to an empty string.\n"
+" -v --verbose\n"
+"\tEcho each command to the standard error before execution.\n"
+" -x --xtrace\n"
+"\tAfter each command line is expanded, the expanded line is printed\n"
+"\tto the standard error.\n"
+" -C --noclobber\n"
+"\tPrevent existent files from being overridden by the \">\"\n"
+"\tredirection.\n"
+" --ignoreeof\n"
+"\tDo not exit when an EOF is entered.\n"
+"\tThis option is effective in interactive shells only.\n"
+" --braceexpand\n"
+"\tEnable brace expansion.\n"
+" --posix\n"
+"\tMake the shell behave as the POSIX shell.\n"
+"To disable options, put '+' before the option characters instead of '-'.\n"
+"Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
+"Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */
