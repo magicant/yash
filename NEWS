@@ -10,10 +10,14 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.0 alpha2
 
-  +  Initialization files such as /etc/profile and ~/.yashrc are
-     sourced on start-up.
-  +  --noprofile, --norcfile and --rcfile options
-  +  "pwd" and "exit builtins
+  +  Initialization files such as "/etc/profile" and "~/.yashrc" are
+     now sourced on start-up.
+  +  '--noprofile', '--norcfile' and '--rcfile' options
+  +  "pwd" and "exit" builtins
+  *  '--nocaseglob' was misinterpreted as '-c'.
+  *  It was not fully case-insensitive when '--nocaseglob' is on.
+  =  Error handling for unset parameters was improved.
+  =  The help message for 'yash --help' is now much briefer.
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha1

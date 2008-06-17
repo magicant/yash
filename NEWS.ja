@@ -13,6 +13,10 @@ Yash 2.0 alpha2
   +  起動時に /etc/profile や ~/.yashrc を読み込むように
   +  --noprofile, --norcfile, --rcfile オプション
   +  "pwd", "exit" 組込みコマンド
+  *  --nocaseglob が -c として解釈されていた
+  *  --nocaseglob で大文字小文字の認識が不十分だった
+  =  --nounset 有効時、${i?xxx} はエラーとして xxx を返すように
+  =  ヘルプの表示を簡潔に
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha1

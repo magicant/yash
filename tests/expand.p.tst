@@ -74,8 +74,8 @@ echo ===== field splitting =====
 
 # TODO needs 'unset' builtin
 # unset foo bar IFS
-# echo +${foo-1+2}+${bar-3+4}+
-# echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
+echo +${foo-1+2}+${bar-3+4}+
+echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 
 IFS=" +"
 echo +${foo-1+2}+${bar-3+4}+
@@ -84,8 +84,33 @@ echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 set $foo bar '' xyz ''$foo'' abc
 for i; do echo "-$i-"; done
 
-echol () { for i; do printf "%s\n" "$i"; done }
+echo =====
+
+echol () for i; do printf "%s\n" "$i"; done
+
 set "" "" ""
-echo [
-echol "$@"
-echo ]
+echol [ "$@" ]
+set 1 "" "" "" 5
+echol [ "$@" ]
+echol [ $@ ]
+set -- "$@"
+echol [ "$@" ]
+set -- $@
+echol [ "$@" ]
+
+echol [ "" "" ]
+echol [ '' '' ]
+echol [ """" ]
+echol [ '''' ]
+set ""
+echol [ "$@" ]
+echol [ "-$@-" ]
+set --
+echol [ "$@" ]
+echol [ "-$@-" ]
+
+echo =====
+
+set 1 2 3
+IFS=""
+echo "$*"

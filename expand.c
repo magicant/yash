@@ -373,7 +373,6 @@ bool expand_word(
     bool first = true;     /* is the first word unit? */
     bool force = false;    /* don't ignore empty string? */
     bool suppress = false; /* ignore empty string anyway? */
-    size_t initlen = valuelist->length;
     xwcsbuf_T buf;
     xstrbuf_T sbuf;
     const wchar_t *ss;
@@ -450,7 +449,8 @@ bool expand_word(
 		if (!array[0]) {
 		    suppress = true;
 		} else {
-		    force = true;
+		    if (array[1] /* plcount(array) >= 2 */)
+			force = true;
 		    for (void **a = array; ; ) {
 			wb_catfree(&buf, *a);
 			FILL_SBUF_SPLITTABLE;
@@ -491,10 +491,10 @@ bool expand_word(
 
     /* A quoted empty word is added to the list here.
      * It is indicated by the `force' flag, which is set when a quote is found.
-     * An exception is "$@", which is not added if there is no positional
-     * parameter even if it is quoted. This is indicated by the `suppress' flag.
+     * An exception is "$@", which is not added even if it is quoted when there
+     * are no positional parameters. This is indicated by the `suppress' flag.
      */
-    if (buf.length > 0 || (initlen == valuelist->length && force && !suppress)){
+    if (buf.length > 0 || (force && !suppress)) {
 	pl_add(valuelist, wb_towcs(&buf));
 	if (splitlist)
 	    pl_add(splitlist, sb_tostr(&sbuf));
@@ -706,7 +706,7 @@ subst:
     }
 
     /* concatenate `list' elements */
-    if (concat) {
+    if (concat || !indq) {
 	const wchar_t *ifs = getvar(VAR_IFS);
 	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	wchar_t *chain = joinwcsarray(list, padding);
@@ -723,12 +723,6 @@ subst:
     /* backslash */
     for (size_t i = 0; list[i]; i++)
 	list[i] = escapefree(list[i], indq ? NULL : ESCAPED_CHARS);
-
-    /* treat the case the value is empty */
-    if (!indq && list[0] && !list[1] && !((wchar_t *) list[0])[0]) {
-	free(list[0]);
-	list[0] = NULL;
-    }
 
     return list;
 }
