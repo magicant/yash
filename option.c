@@ -225,13 +225,20 @@ int set_builtin(int argc, void **argv)
 
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"+*" SHELLSET_OPTIONS, set_long_options, NULL)))
+		    argv, L"+*o:" SHELLSET_OPTIONS, set_long_options, NULL)))
     {
 	switch (opt) {
+	    case L'o':
+		if (!set_long_option(xoptarg)) {
+		    xerror(0, Ngt("%lco %ls: invalid option"),
+			    (wint_t) xoptopt, xoptarg);
+		    goto optionerror;
+		}
+		break;
 	    case L'-':
 		print_builtin_help(argv[0]);
 		return EXIT_SUCCESS;
-	    case L'?':
+	    case L'?':  optionerror:
 		fprintf(stderr,
 		    gt("Usage:  set [-abefhmnuvxC] [-o option] [arg...]\n"));
 		return EXIT_ERROR;
