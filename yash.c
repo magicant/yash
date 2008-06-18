@@ -502,7 +502,7 @@ void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
     struct execinfo *ei = ei;
-    if (finally_exit)
+    if (!finally_exit)
 	ei = save_execinfo();
 
     bool executed = false;

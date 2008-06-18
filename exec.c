@@ -155,8 +155,8 @@ static struct execinfo {
     enum { ee_none, ee_continue, ee_return
     } exception;          /* exceptional jump to be done */
 } execinfo;
-/* Note that n continues are equivalent to (n-1) breaks followed by one continue.
- * When `exception' is set to `ee_return', `breakcount' must be 0. */
+/* Note that n continues are equivalent to (n-1) breaks followed by one
+ * continue. When `exception' is set to `ee_return', `breakcount' must be 0. */
 /* Note that `execinfo' is not reset when a subshell forks. */
 #define EXECINFO_INIT { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
