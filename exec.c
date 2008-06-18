@@ -1235,7 +1235,7 @@ int return_builtin(int argc __attribute__((unused)), void **argv)
 		print_builtin_help(argv[0]);
 		return EXIT_SUCCESS;
 	    default:
-		fprintf(stderr, gt("Usage:  return [n]\n"));
+		fprintf(stderr, gt("Usage:  %ls [n]\n"), (wchar_t *) argv[0]);
 		return EXIT_ERROR;
 	}
     }
@@ -1264,6 +1264,72 @@ const char return_help[] = Ngt(
 "Exits the currently executed function or script file with the exit status\n"
 "of <n>. If <n> is not specified, it defaults to the exit status of the last\n"
 "executed command. <n> should be between 0 and 255 inclusive.\n"
+);
+
+/* "break" and "continue" builtin */
+int break_builtin(int argc __attribute__((unused)), void **argv)
+{
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  %ls [n]\n"), (wchar_t *) argv[0]);
+		return EXIT_ERROR;
+	}
+    }
+
+    unsigned count;
+    const wchar_t *countstr = argv[xoptind];
+    if (countstr == NULL) {
+	count = 1;
+    } else {
+	wchar_t *endofstr;
+	errno = 0;
+	count = wcstoul(countstr, &endofstr, 0);
+	if (errno || *endofstr != L'\0') {
+	    xerror(0, Ngt("%ls: `%ls' is not a valid integer"),
+		    (wchar_t *) argv[0], countstr);
+	    return EXIT_FAILURE1;
+	} else if (count == 0) {
+	    xerror(0, Ngt("%ls: %u: not a positive integer"),
+		    (wchar_t *) argv[0], count);
+	    return EXIT_FAILURE1;
+	}
+    }
+    assert(count > 0);
+    if (execinfo.loopnest == 0) {
+	xerror(0, Ngt("%ls: not in loop"), (wchar_t *) argv[0]);
+	return EXIT_FAILURE1;
+    }
+    if (count > execinfo.loopnest)
+	count = execinfo.loopnest;
+    if (wcscmp(argv[0], L"break") == 0) {
+	execinfo.breakcount = count;
+    } else {
+	assert(wcscmp(argv[0], L"continue") == 0);
+	execinfo.breakcount = count - 1;
+	execinfo.exception = ee_continue;
+    }
+    return EXIT_SUCCESS;
+}
+
+const char break_help[] = Ngt(
+"break - exit loop\n"
+"\tbreak [n]\n"
+"Exits the currently executed for, while or until loop.\n"
+"If <n> is specified, exits the <n>th outer loop.\n"
+);
+
+const char continue_help[] = Ngt(
+"continue - continue loop\n"
+"\tcontinue [n]\n"
+"Returns to the top of the currently executed for, while or until loop.\n"
+"If <n> is specified, returns to that of the <n>th outer loop.\n"
 );
 
 

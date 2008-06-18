@@ -55,7 +55,9 @@ extern void make_myself_foreground(void);
 
 extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char return_help[];
+extern int break_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char return_help[], break_help[], continue_help[];
 
 
 #endif /* EXEC_H */

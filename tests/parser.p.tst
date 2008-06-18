@@ -208,6 +208,8 @@ o\
 n\
 e
 
+for in in in; do echo $in; done
+
 echo ===== 7 =====
 
 false
