@@ -1,5 +1,11 @@
+===== : true false =====
 0
 0
 0
 false true
 : true false
+===== return break continue =====
+3
+4
+retfunc
+5

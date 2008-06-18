@@ -507,10 +507,20 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
     bool executed = false;
 
+    reset_execinfo();
     for (;;) {
 	and_or_T *commands;
+
 	forceexit = nextforceexit;
 	nextforceexit = false;
+	if (return_pending()) {
+	    reset_execinfo();
+	    if (pinfo->intrinput)
+		xerror(0, Ngt("return: not in function or sourced file"));
+	    else
+		goto finish;
+	}
+
 	switch (read_and_parse(pinfo, &commands)) {
 	    case 0:  // OK
 		if (commands) {
@@ -530,6 +540,7 @@ bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		}
 		if (!executed)
 		    laststatus = EXIT_SUCCESS;
+finish:
 		if (finally_exit) {
 		    wchar_t argv0[] = L"EOF";
 		    exit_builtin(1, (void *[]) { argv0 });
@@ -565,14 +576,13 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
 	{ NULL, 0, 0, },
     };
 
-    bool force = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"f", long_options, NULL))) {
 	switch (opt) {
 	    case L'f':
-		force = true;
+		forceexit = true;
 		break;
 	    case L'-':
 		print_builtin_help(argv[0]);
@@ -584,8 +594,7 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
     }
 
     size_t sjc;
-    if (is_interactive_now && (sjc = stopped_job_count()) > 0 &&
-	    !(force || forceexit)) {
+    if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
 	fprintf(stderr,
 		ngt("You have %zu stopped job(s)!",
 		    "You have a stopped job!",
@@ -600,7 +609,7 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
     int status;
     const wchar_t *statusstr = argv[xoptind];
     if (statusstr == NULL) {
-	status = -1;
+	status = -1;  // TODO exit_builtin: when executing trap
     } else {
 	wchar_t *endofstr;
 	errno = 0;
@@ -608,7 +617,7 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
 	if (errno || *endofstr != L'\0') {
 	    /* default to `laststatus'
 	     * if `statusstr' isn't a valid non-negative integer */
-	    status = -1;
+	    status = -1;  // TODO exit_builtin: when executing trap
 	}
     }
     exit_shell_with_status(status);

@@ -39,7 +39,8 @@ extern bool shopt_noclobber;
 
 #define SHELLSET_OPTIONS L"abefhmnuvxC"
 
-extern const struct xoption *const shell_long_options, *const set_long_options;
+extern const struct xoption
+    *const shell_long_options, *const set_long_options, *const help_option;
 
 extern void set_option(wchar_t c);
 extern bool set_long_option(const wchar_t *s)

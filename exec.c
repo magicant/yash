@@ -144,11 +144,12 @@ int laststatus = EXIT_SUCCESS;
 pid_t lastasyncpid;
 
 /* This flag is set to true while the shell is executing the condition of an if-
- * statement, an and-or list, etc. to suppress the effect of "-o errexit" option. */
+ * statement, an and-or list, etc. to suppress the effect of "-o errexit"
+ * option. */
 static bool supresserrexit;
 
 /* state of currently executed loop */
-struct execinfo {
+static struct execinfo {
     unsigned loopnest;    /* level of nested loops */
     unsigned breakcount;  /* # of loops to break (<= loopnest) */
     enum { ee_none, ee_continue, ee_return
@@ -163,6 +164,12 @@ struct execinfo {
 bool need_break(void)
 {
     return execinfo.breakcount > 0 || execinfo.exception != ee_none;
+}
+
+/* Resets `execinfo' to the initial state. */
+void reset_execinfo(void)
+{
+    execinfo = (struct execinfo) EXECINFO_INIT;
 }
 
 /* Saves the current `execinfo' and returns it.
@@ -180,6 +187,12 @@ void load_execinfo(struct execinfo *save)
 {
     execinfo = *save;
     free(save);
+}
+
+/* Returns true iff `ee_return' is pending. */
+bool return_pending(void)
+{
+    return execinfo.exception == ee_return;
 }
 
 
@@ -1012,10 +1025,10 @@ void exec_function_body(command_T *body, void **args, bool finally_exit)
 	open_new_environment();
 	set_positional_parameters(args + 1);
 	exec_nonsimple_command(body, finally_exit);
-	if (execinfo.exception == ee_return) {
-	    assert(execinfo.breakcount == 0);
+	assert(execinfo.breakcount == 0);
+	assert(execinfo.exception != ee_continue);
+	if (execinfo.exception == ee_return)
 	    execinfo.exception = ee_none;
-	}
 	close_current_environment();
     }
     undo_redirections(savefd);
@@ -1206,6 +1219,52 @@ success:
 	exit(EXIT_SUCCESS);
     }
 }
+
+
+/********** Builtins **********/
+
+/* "return" builtin */
+int return_builtin(int argc __attribute__((unused)), void **argv)
+{
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  return [n]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    int status;
+    const wchar_t *statusstr = argv[xoptind];
+    if (statusstr == NULL) {
+	status = laststatus;  // TODO return_builtin: when executing trap
+    } else {
+	wchar_t *endofstr;
+	errno = 0;
+	status = (int) (wcstoul(statusstr, &endofstr, 0) & 0xFF);
+	if (errno || *endofstr != L'\0') {
+	    /* default to `laststatus'
+	     * if `statusstr' isn't a valid non-negative integer */
+	    status = laststatus;  // TODO return_builtin: when executing trap
+	}
+    }
+    execinfo.exception = ee_return;
+    return status;
+}
+
+const char return_help[] = Ngt(
+"return - return from function\n"
+"\treturn [n]\n"
+"Exits the currently executed function or script file with the exit status\n"
+"of <n>. If <n> is not specified, it defaults to the exit status of the last\n"
+"executed command. <n> should be between 0 and 255 inclusive.\n"
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

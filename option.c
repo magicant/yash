@@ -137,7 +137,9 @@ static const struct xoption long_options[] = {
 };
 
 const struct xoption *const shell_long_options = long_options;
-const struct xoption *const set_long_options   = long_options + 4;
+const struct xoption *const set_long_options   = long_options + 6;
+const struct xoption *const help_option
+    = long_options + ((sizeof long_options / sizeof *long_options) - 2);
 
 // TODO option: unimplemented options: -o{nolog,vi,emacs}
 

@@ -36,10 +36,13 @@ extern int laststatus;
 extern pid_t lastasyncpid;
 
 struct execinfo;
+extern void reset_execinfo(void);
 extern struct execinfo *save_execinfo(void)
     __attribute__((malloc,warn_unused_result));
 extern void load_execinfo(struct execinfo *save)
     __attribute__((nonnull));
+extern bool return_pending(void)
+    __attribute__((pure));
 
 struct and_or_T;
 struct wordunit_T;
@@ -49,6 +52,10 @@ extern wchar_t *exec_command_substitution(const wchar_t *code)
 extern int open_heredocument(const struct wordunit_T *content);
 
 extern void make_myself_foreground(void);
+
+extern int return_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char return_help[];
 
 
 #endif /* EXEC_H */

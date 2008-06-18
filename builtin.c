@@ -27,6 +27,7 @@
 #include "hashtable.h"
 #include "path.h"
 #include "builtin.h"
+#include "exec.h"
 #include "yash.h"
 
 
@@ -67,6 +68,9 @@ void init_builtin(void)
 	/* defined in "path.c" */
 	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
 	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
+
+	/* defined in "exec.c" */
+	DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help);
 
 	/* defined in "yash.c" */
 	DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
