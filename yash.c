@@ -422,9 +422,8 @@ void forget_initial_pgrp(void)
 /* Parses a multibyte string and executes the commands.
  * `code' must start in a initial shift state.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
- * Returns true iff successful (no input/parse errors).
  * If there are no commands in `code', `laststatus' is set to 0. */
-bool exec_mbs(const char *code, const char *name, bool finally_exit)
+void exec_mbs(const char *code, const char *name, bool finally_exit)
 {
     struct input_mbs_info iinfo = {
 	.src = code,
@@ -443,14 +442,13 @@ bool exec_mbs(const char *code, const char *name, bool finally_exit)
     };
     memset(&iinfo.state, 0, sizeof iinfo.state);  // initialize the shift state
 
-    return parse_and_exec(&pinfo, finally_exit);
+    parse_and_exec(&pinfo, finally_exit);
 }
 
 /* Parses a wide string and executes the commands.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
- * Returns true iff successful (no input/parse errors).
  * If there are no commands in `code', `laststatus' is set to 0. */
-bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
+void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 {
     struct input_wcs_info iinfo = {
 	.src = code,
@@ -467,15 +465,14 @@ bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.lastinputresult = 0,
     };
 
-    return parse_and_exec(&pinfo, finally_exit);
+    parse_and_exec(&pinfo, finally_exit);
 }
 
 /* Parses input from a file stream and executes the commands.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
  * If `intrinput' is true, the input stream is considered interactive.
- * Returns true iff successful (no input/parse errors).
  * If there are no commands in `code', `laststatus' is set to 0. */
-bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
+void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 {
     struct input_readline_info rlinfo;
     struct parseinfo_T pinfo = {
@@ -497,17 +494,19 @@ bool exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 	pinfo.inputinfo = f;
 	pinfo.inputisatty = false;
     }
-    return parse_and_exec(&pinfo, finally_exit);
+    parse_and_exec(&pinfo, finally_exit);
 }
 
 /* Parses input using the specified `parseinfo_T' and executes the commands.
- * Returns true iff successful (no input/parse errors).
  * If there are no commands in `code', `laststatus' is set to 0. */
-bool parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
+void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
+    struct execinfo *ei = ei;
+    if (finally_exit)
+	ei = save_execinfo();
+
     bool executed = false;
 
-    reset_execinfo();
     for (;;) {
 	and_or_T *commands;
 
@@ -545,7 +544,7 @@ finish:
 		    wchar_t argv0[] = L"EOF";
 		    exit_builtin(1, (void *[]) { argv0 });
 		} else
-		    return true;
+		    goto out;
 		break;
 	    case 1:  // syntax error
 		laststatus = EXIT_SYNERROR;
@@ -554,12 +553,14 @@ finish:
 		else if (finally_exit)
 		    exit_shell();
 		else
-		    return false;
+		    goto out;
 	}
     }
     /* If no commands are executed, set `laststatus' to 0 finally.
      * We don't set it at first because the value of "$?" gets wrong in
      * execution. */
+out:
+    load_execinfo(ei);
 }
 
 

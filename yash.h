@@ -38,14 +38,14 @@ extern void exit_shell_with_status(int status)
 
 struct parseinfo_T;
 
-extern bool exec_mbs(const char *code, const char *name, bool finally_exit)
+extern void exec_mbs(const char *code, const char *name, bool finally_exit)
     __attribute__((nonnull(1)));
-extern bool exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
+extern void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     __attribute__((nonnull(1)));
-extern bool exec_input(FILE *f, const char *name,
+extern void exec_input(FILE *f, const char *name,
 	bool intrinput, bool finally_exit)
     __attribute__((nonnull(1)));
-extern bool parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
+extern void parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
     __attribute__((nonnull(1)));
 
 
