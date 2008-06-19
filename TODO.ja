@@ -1,4 +1,4 @@
-exit 組込みのテストを tests/job に
+exit/jobs/fg/bg 組込みのテストを tests/job に
 配列の解釈・代入
 メールチェック
 ループパイプのテストスクリプト
@@ -8,11 +8,9 @@ gettext 対応
 	alias -gp
 	bg
 	bind
-	break
 	command -pvV
 	compgen
 	complete
-	continue
 	declare/typeset/...
 	dirs -clpv
 	disown -ahr
@@ -26,7 +24,6 @@ gettext 対応
 	hash -pr
 	help -s
 	history -acdnprsw
-	jobs -lnprs
 	kill -lsn
 	local
 	newgrp
@@ -35,7 +32,6 @@ gettext 対応
 	pushd -n
 	read -aprs
 	readonly -afp
-	return
 	set -o +o
 	shift
 	source/.

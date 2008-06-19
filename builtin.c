@@ -26,6 +26,7 @@
 #include "strbuf.h"
 #include "hashtable.h"
 #include "path.h"
+#include "job.h"
 #include "builtin.h"
 #include "exec.h"
 #include "yash.h"
@@ -68,6 +69,9 @@ void init_builtin(void)
 	/* defined in "path.c" */
 	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
 	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
+
+	/* defined in "job.c" */
+	DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);
 
 	/* defined in "exec.c" */
 	DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help);

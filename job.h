@@ -85,6 +85,10 @@ extern void print_job_status(
 	size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     __attribute__((nonnull));
 
+extern int jobs_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char jobs_help[];
+
 
 #endif /* JOB_H */
 

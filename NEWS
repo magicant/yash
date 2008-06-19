@@ -13,7 +13,7 @@ Yash 2.0 alpha2
   +  Initialization files such as "/etc/profile" and "~/.yashrc" are
      now sourced on start-up.
   +  '--noprofile', '--norcfile' and '--rcfile' options
-  +  "pwd" and "exit" builtins
+  +  "pwd", "set", "exit", "return", "break" and "continue" builtins
   *  '--nocaseglob' was misinterpreted as '-c'.
   *  It was not fully case-insensitive when '--nocaseglob' is on.
   =  Error handling for unset parameters was improved.

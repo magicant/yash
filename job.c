@@ -34,6 +34,8 @@
 #include "plist.h"
 #include "sig.h"
 #include "job.h"
+#include "builtin.h"
+#include "exec.h"
 
 
 static inline job_T *get_job(size_t jobnumber)
@@ -50,6 +52,12 @@ static char *get_process_status_string(const process_T *p, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
+static size_t get_jobnumber_from_name(const wchar_t *name)
+    __attribute__((nonnull));
+
+static void jobs_builtin_print_job(size_t jobnumber,
+	bool verbose, bool changedonly, bool pidonly,
+	bool runningonly, bool stoppedonly);
 
 
 /* The list of jobs.
@@ -389,12 +397,13 @@ int calc_status_of_job(const job_T *job)
 }
 
 /* Returns the name of the specified job.
- * If the job has only one process, `job->j_procs[0].pr_name' is returned.
+ * If the job has only one process and is not a loop pipe,
+ * `job->j_procs[0].pr_name' is returned.
  * Otherwise, the names of all the process are concatenated and returned, which
  * must be freed by the caller. */
 wchar_t *get_job_name(const job_T *job)
 {
-    if (job->j_pcount == 1)
+    if (job->j_pcount == 1 && !job->j_loop)
 	return job->j_procs[0].pr_name;
 
     xwcsbuf_T buf;
@@ -551,6 +560,187 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
 }
+
+/* Returns the job number from the specified job ID string.
+ * If no applicable job is found, zero is returned.
+ * If more than one jobs are found, `joblist.length' is returned.
+ * When `name' is of the form "%n", the number `n' is returned if it is a valid
+ * job number.
+ * The string must not have the preceding '%'. */
+/* "", "%", "+"  -> the current job
+ * "-"           -> the previous job
+ * "n" (integer) -> the job #n
+ * "xxx"         -> the job whose name starts with "xxx"
+ * "?xxx"        -> the job whose name contains "xxx" */
+size_t get_jobnumber_from_name(const wchar_t *name)
+{
+    if (name[0] == L'\0' || wcscmp(name, L"%") == 0 || wcscmp(name, L"+") == 0)
+	return current_jobnumber;
+    if (wcscmp(name, L"-") == 0)
+	return previous_jobnumber;
+
+    if (iswdigit(name[0])) {
+	unsigned num;
+	wchar_t *nameend;
+	errno = 0;
+	num = wcstol(name, &nameend, 10);
+	if (!errno && !*nameend)
+	    return get_job(num) ? num : 0;
+    }
+
+    bool contain;
+    size_t n = 0;
+    if (name[0] == L'?') {
+	contain = true;
+	name++;
+    } else {
+	contain = false;
+    }
+    for (size_t i = 1; i < joblist.length; i++) {
+	job_T *job = joblist.contents[i];
+	if (job) {
+	    wchar_t *jobname = get_job_name(job);
+	    bool match = (contain ? wcsstr : matchwcsprefix)(jobname, name);
+	    if (jobname != job->j_procs[0].pr_name)
+		free(jobname);
+	    if (match) {
+		if (n != 0)
+		    return joblist.length;  /* more than one found */
+		else
+		    n = i;
+	    }
+	}
+    }
+    return n;
+}
+
+
+/********** Builtins **********/
+
+/* "jobs" builtin, which accepts the following options:
+ * -l: be verbose
+ * -n: print the jobs only whose status have changed
+ * -p: print the process ID only
+ * -r: print running jobs only
+ * -s: print stopped jobs only
+ * If `posixly_correct' is true, only -l and -p are available. */
+int jobs_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"verbose",      xno_argument, L'l', },
+	{ L"new",          xno_argument, L'n', },
+	{ L"pid-only",     xno_argument, L'p', },
+	{ L"running-only", xno_argument, L'r', },
+	{ L"stopped-only", xno_argument, L's', },
+	{ L"help",         xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    bool verbose = false, changedonly = false, pidonly = false;
+    bool runningonly = false, stoppedonly = false;
+    bool err = false;
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"lp" : L"lnprs",
+		    long_options, NULL))) {
+	switch (opt) {
+	    case L'l':  verbose     = true;  break;
+	    case L'n':  changedonly = true;  break;
+	    case L'p':  pidonly     = true;  break;
+	    case L'r':  runningonly = true;  break;
+	    case L's':  stoppedonly = true;  break;
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt(posixly_correct
+			    ? Ngt("Usage:  jobs [-lp] [job...]\n")
+			    : Ngt("Usage:  jobs [-lnprs] [job...]\n")));
+	}
+    }
+
+    if (xoptind < argc) {
+	while (xoptind < argc) {
+	    const wchar_t *jobspec = argv[xoptind];
+	    if (jobspec[0] == L'%') {
+		jobspec++;
+	    } else if (posixly_correct) {
+		xerror(0, Ngt("%ls: %ls: invalid job specification"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+		goto next;
+	    }
+	    size_t jobnumber = get_jobnumber_from_name(jobspec);
+	    if (jobnumber >= joblist.length) {
+		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
+		xerror(0, Ngt("%ls: %ls: no such job"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+	    } else {
+		jobs_builtin_print_job(jobnumber, verbose, changedonly, pidonly,
+			runningonly, stoppedonly);
+	    }
+next:
+	    xoptind++;
+	}
+    } else {
+	/* print all the jobs */
+	for (size_t i = 1; i < joblist.length; i++) {
+	    jobs_builtin_print_job(i, verbose, changedonly, pidonly,
+		    runningonly, stoppedonly);
+	}
+    }
+
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+}
+
+/* Prints the job status */
+void jobs_builtin_print_job(size_t jobnumber,
+	bool verbose, bool changedonly, bool pidonly,
+	bool runningonly, bool stoppedonly)
+{
+    job_T *job = get_job(jobnumber);
+
+    if (job == NULL)
+	return;
+    if (runningonly && job->j_status != JS_RUNNING)
+	return;
+    if (stoppedonly && job->j_status != JS_STOPPED)
+	return;
+
+    if (pidonly) {
+	if (changedonly && !job->j_statuschanged)
+	    return;
+	printf("%jd\n", (intmax_t) job->j_pgid);
+    } else {
+	print_job_status(jobnumber, changedonly, verbose, stdout);
+    }
+}
+
+const char jobs_help[] = Ngt(
+"jobs - print info about jobs\n"
+"\tjobs [-lnprs] [job...]\n"
+"Prints the status of jobs in the current shell execution environment.\n"
+"If the <job> is specified, the specified job is printed.\n"
+"If none is specified, all jobs are printed.\n"
+"Available options:\n"
+" -l --verbose\n"
+"\tprint info for each process in the job, including process ID\n"
+" -n --new\n"
+"\tprint jobs whose status have changed only\n"
+" -p --pid-only\n"
+"\tprint process group IDs only\n"
+" -r --running-only\n"
+"\tprint running jobs only\n"
+" -s --stopped-only\n"
+"\tprint stopped jobs only\n"
+"In POSIXly correct mode, only the -l and -p options are available.\n"
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */
