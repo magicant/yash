@@ -1,0 +1,7 @@
+===== break continue =====
+break ok 2
+break ok
+continue 1
+continue ok
+continue 2
+continue ok

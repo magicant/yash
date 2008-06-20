@@ -1025,8 +1025,6 @@ void exec_function_body(command_T *body, void **args, bool finally_exit)
 	open_new_environment();
 	set_positional_parameters(args + 1);
 	exec_nonsimple_command(body, finally_exit);
-	assert(execinfo.breakcount == 0);
-	assert(execinfo.exception != ee_continue);
 	if (execinfo.exception == ee_return)
 	    execinfo.exception = ee_none;
 	close_current_environment();
