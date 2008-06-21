@@ -25,6 +25,7 @@
 #include "option.h"
 #include "util.h"
 #include "sig.h"
+#include "redir.h"
 #include "job.h"
 #include "signum.h"
 
@@ -253,7 +254,7 @@ void set_signals(void)
 }
 
 /* Restores the initial signal actions for all signals. */
-void reset_all_signals(void)
+void restore_all_signals(void)
 {
     if (initialized) {
 	initialized = false;
@@ -268,11 +269,11 @@ void reset_all_signals(void)
 		xerror(errno, "sigprocmask(SETMASK, save)");
 	savesigchld.valid = savesigquit.valid = savemask.valid = false;
     }
-    reset_signals();
+    restore_signals();
 }
 
 /* Restores the initial signal actions for SIGTTOU/TSTP/INT/TERM. */
-void reset_signals(void)
+void restore_signals(void)
 {
     if (job_initialized) {
 	job_initialized = false;

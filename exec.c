@@ -678,9 +678,9 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (finally_exit) {
 	if (c->c_type == CT_SIMPLE && argc > 0
 		&& cmdinfo.type == externalprogram)
-	    reset_all_signals();
+	    restore_all_signals();
 	else
-	    reset_signals();
+	    restore_signals();
     }
 
     /* connect pipes and close leftovers */
@@ -1146,7 +1146,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	 * by SIGTSTP. */
 	if (save_is_interactive_now)
 	    ignore_sigtstp();
-	reset_signals();
+	restore_signals();
 
 	xclose(pipefd[PIDX_IN]);
 	if (pipefd[PIDX_OUT] != STDOUT_FILENO) {  /* connect the pipe */

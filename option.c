@@ -29,6 +29,7 @@
 #include "util.h"
 #include "strbuf.h"
 #include "variable.h"
+#include "sig.h"
 #include "builtin.h"
 #include "exec.h"
 
@@ -246,6 +247,8 @@ int set_builtin(int argc, void **argv)
 		return EXIT_ERROR;
 	    default:
 		set_option(opt);
+		if (opt == L'm')
+		    reset_signals();
 		break;
 	}
     }

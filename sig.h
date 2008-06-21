@@ -27,8 +27,9 @@ extern const char *get_signal_name(int signum)
 
 extern void init_signal(void);
 extern void set_signals(void);
-extern void reset_all_signals(void);
-extern void reset_signals(void);
+extern void restore_all_signals(void);
+extern void restore_signals(void);
+static inline void reset_signals(void);
 extern void ignore_sigquit_and_sigint(void);
 extern void ignore_sigtstp(void);
 extern void block_sigttou(void);
@@ -47,6 +48,13 @@ extern void clear_traps(void);
 #if HAVE_STRSIGNAL
 extern char *strsignal(int signum);
 #endif
+
+
+void reset_signals(void)
+{
+    set_signals();
+    restore_signals();
+}
 
 
 #endif /* SIG_H */
