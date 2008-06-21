@@ -395,7 +395,7 @@ void set_own_pgrp(void)
 {
     if (do_job_control) {
 	setpgid(0, 0);
-	make_myself_foreground();
+	put_foreground(getpgrp());
     }
 }
 
@@ -405,7 +405,7 @@ void reset_own_pgrp(void)
 {
     if (do_job_control && initial_pgrp > 0) {
 	setpgid(0, initial_pgrp);
-	make_myself_foreground();
+	put_foreground(getpgrp());
     }
 }
 

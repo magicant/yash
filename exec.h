@@ -51,8 +51,6 @@ extern wchar_t *exec_command_substitution(const wchar_t *code)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern int open_heredocument(const struct wordunit_T *content);
 
-extern void make_myself_foreground(void);
-
 extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int break_builtin(int argc, void **argv)

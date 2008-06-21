@@ -33,6 +33,7 @@
 #include "strbuf.h"
 #include "plist.h"
 #include "sig.h"
+#include "redir.h"
 #include "job.h"
 #include "builtin.h"
 #include "exec.h"
@@ -58,6 +59,7 @@ static size_t get_jobnumber_from_name(const wchar_t *name)
 static void jobs_builtin_print_job(size_t jobnumber,
 	bool verbose, bool changedonly, bool pidonly,
 	bool runningonly, bool stoppedonly);
+static int continue_job(size_t jobnumber, bool fg);
 
 
 /* The list of jobs.
@@ -359,6 +361,17 @@ void wait_for_job(size_t jobnumber, bool return_on_stop)
     unblock_sigchld();
 }
 
+/* Put the specified process group in the foreground.
+ * `pgrp' must be a valid process group ID and `doing_job_control_now' must be
+ * true. */
+void put_foreground(pid_t pgrp)
+{
+    assert(doing_job_control_now);
+    block_sigttou();
+    tcsetpgrp(ttyfd, pgrp);
+    unblock_sigttou();
+}
+
 /* Computes the exit status from the status code returned by `waitpid'. */
 int calc_status(int status)
 {
@@ -530,7 +543,9 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     } else {
 	bool needfree;
 	pid_t pid = job->j_procs[0].pr_pid;
-	char *status = get_process_status_string(&job->j_procs[0], &needfree);
+	char *status = get_process_status_string(
+		&job->j_procs[posixly_correct ? job->j_pcount - 1 : 0],
+		&needfree);
 	char looppipe = job->j_loop ? '|' : ' ';
 	wchar_t *jobname = job->j_procs[0].pr_name;
 
@@ -658,6 +673,7 @@ int jobs_builtin(int argc, void **argv)
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  jobs [-lp] [job...]\n")
 			    : Ngt("Usage:  jobs [-lnprs] [job...]\n")));
+		return EXIT_ERROR;
 	}
     }
 
@@ -740,6 +756,116 @@ const char jobs_help[] = Ngt(
 " -s --stopped-only\n"
 "\tprint stopped jobs only\n"
 "In POSIXly correct mode, only the -l and -p options are available.\n"
+);
+
+/* "fg"/"bg" builtin */
+int fg_builtin(int argc, void **argv)
+{
+    bool fg = wcscmp(argv[0], L"fg") == 0;
+    bool err = false;
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt(fg ? Ngt("Usage:  fg [job]\n")
+		                      : Ngt("Usage:  bg [job...]\n")));
+		return EXIT_ERROR;
+	}
+    }
+
+    if (!doing_job_control_now) {
+	xerror(0, Ngt("%ls: job control disabled"), (wchar_t *) argv[0]);
+	return EXIT_FAILURE1;
+    }
+
+    int status = EXIT_SUCCESS;
+    if (xoptind < argc) {
+	do {
+	    const wchar_t *jobspec = argv[xoptind];
+	    if (jobspec[0] == L'%') {
+		jobspec++;
+	    } else if (posixly_correct) {
+		xerror(0, Ngt("%ls: %ls: invalid job specification"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+		continue;
+	    }
+	    size_t jobnumber = get_jobnumber_from_name(jobspec);
+	    if (jobnumber >= joblist.length) {
+		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
+		xerror(0, Ngt("%ls: %ls: no such job"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+	    } else {
+		set_current_jobnumber(jobnumber);
+		status = continue_job(jobnumber, fg);
+	    }
+	} while (++xoptind < argc);
+    } else {
+	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL) {
+	    xerror(0, Ngt("%ls: no current job"), (wchar_t *) argv[0]);
+	    err = true;
+	} else {
+	    status = continue_job(current_jobnumber, fg);
+	}
+    }
+
+    return (status != 0) ? status : err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+}
+
+/* Continues execution of the specified job.
+ * `jobnumber' must be valid. */
+int continue_job(size_t jobnumber, bool fg)
+{
+    assert(0 < jobnumber && jobnumber < joblist.length);
+    job_T *job = joblist.contents[jobnumber];
+    assert(job != NULL);
+
+    wchar_t *name = get_job_name(job);
+    if (fg && posixly_correct)
+	printf("%ls\n", name);
+    else
+	printf("[%zu] %ls\n", jobnumber, name);
+    if (name != job->j_procs[0].pr_name)
+	free(name);
+
+    if (job->j_status != JS_DONE) {
+	if (fg)
+	    put_foreground(job->j_pgid);
+	send_sigcont_to_pgrp(job->j_pgid);
+	job->j_status = JS_RUNNING;
+    }
+
+    if (fg)
+	wait_for_job(jobnumber, true);
+    int status = (job->j_status == JS_RUNNING) ? 0 : calc_status_of_job(job);
+    if (job->j_status == JS_DONE)
+	remove_job(jobnumber);
+    return status;
+}
+
+const char fg_help[] = Ngt(
+"fg - run jobs in the foreground\n"
+"\tfg [job...]\n"
+"Continues execution of the specified jobs in the foreground.\n"
+"In POSIXly correct mode, you can specify at most one job. Otherwise, more\n"
+"than one jobs can be specified, which are in turn continued.\n"
+"If no job is specified, the current job is continued.\n"
+);
+
+const char bg_help[] = Ngt(
+"bg - run jobs in the background\n"
+"\tbg [job...]\n"
+"Continues execution of the specified jobs in the background.\n"
+"If no job is specified, the current job is continued.\n"
 );
 
 

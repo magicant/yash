@@ -568,7 +568,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 	laststatus = calc_status_of_job(job);
 	if (job->j_status == JS_DONE) {
 	    remove_job(ACTIVE_JOBNO);
-	    goto finish;
+	    goto done;
 	}
     } else {
 	laststatus = EXIT_SUCCESS;
@@ -583,10 +583,9 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     }
     add_job(type == execnormal /* TODO || shopt_curasync */);
 
-finish:
-    if (doing_job_control_now)
-	make_myself_foreground();
 done:
+    if (doing_job_control_now)
+	put_foreground(getpgrp()); /* put the shell in the foreground */
     handle_traps();
     if (shopt_errexit && !supresserrexit && laststatus != EXIT_SUCCESS
 	    && lasttype == CT_SIMPLE)
@@ -775,7 +774,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	if (doing_job_control_now && pgid >= 0) {
 	    setpgid(0, pgid);
 	    if (fg)
-		make_myself_foreground();
+		put_foreground(getpgrp());
 	}
 	forget_initial_pgrp();
 	remove_all_jobs();
@@ -785,15 +784,6 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	is_interactive_now = false;
     }
     return cpid;
-}
-
-/* Makes the process group foreground that this shell belongs to. */
-void make_myself_foreground(void)
-{
-    assert(ttyfd >= 0);
-    block_sigttou();
-    tcsetpgrp(ttyfd, getpgrp());
-    unblock_sigttou();
 }
 
 /* Searches and determines the command to execute.

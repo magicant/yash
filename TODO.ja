@@ -1,4 +1,4 @@
-exit/jobs/fg/bg 組込みのテストを tests/job に
+exit/jobs/fg/bg/wait 組込みのテストを tests/job に
 配列の解釈・代入
 メールチェック
 ループパイプのテストスクリプト

@@ -275,7 +275,7 @@ void restore_all_signals(void)
 /* Restores the initial signal actions for SIGTTOU/TSTP/INT/TERM. */
 void restore_signals(void)
 {
-    if (job_initialized) {
+    if (!doing_job_control_now && job_initialized) {
 	job_initialized = false;
 	if (savesigttou.valid)
 	    if (sigaction(SIGTTOU, &savesigttou.action, NULL) < 0)
@@ -285,7 +285,7 @@ void restore_signals(void)
 		xerror(errno, "sigaction(SIGTSTP)");
 	savesigttou.valid = savesigtstp.valid = false;
     }
-    if (interactive_initialized) {
+    if (!is_interactive_now && interactive_initialized) {
 	interactive_initialized = false;
 	if (savesigint.valid)
 	    if (sigaction(SIGINT, &savesigint.action, NULL) < 0)
@@ -345,6 +345,12 @@ void unblock_sigttou(void)
     sigaddset(&ss, SIGTTOU);
     if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
 	xerror(errno, "sigprocmask(UNBLOCK, TTOU)");
+}
+
+/* Sends SIGCONT to the specified process group. */
+void send_sigcont_to_pgrp(pid_t pgrp)
+{
+    kill(-pgrp, SIGCONT);
 }
 
 /* Blocks all signals other than SIGPIPE and set the action of SIGPIPE to the
