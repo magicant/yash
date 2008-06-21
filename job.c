@@ -868,5 +868,81 @@ const char bg_help[] = Ngt(
 "If no job is specified, the current job is continued.\n"
 );
 
+/* "disown" builtin, which accepts the following option:
+ * -a: disown all jobs */
+int disown_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"all",  xno_argument, L'a', },
+	{ L"help", xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    bool all = false;
+    bool err = false;
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"a", long_options, NULL))) {
+	switch (opt) {
+	    case L'a':  all = true;  break;
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  disown [job...]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    if (all) {
+	remove_all_jobs();
+    } else if (xoptind < argc) {
+	do {
+	    const wchar_t *jobspec = argv[xoptind];
+	    if (jobspec[0] == L'%') {
+		jobspec++;
+	    } else if (posixly_correct) {
+		xerror(0, Ngt("%ls: %ls: invalid job specification"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+		continue;
+	    }
+	    size_t jobnumber = get_jobnumber_from_name(jobspec);
+	    if (jobnumber >= joblist.length) {
+		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
+		xerror(0, Ngt("%ls: %ls: no such job"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+	    } else {
+		remove_job(jobnumber);
+	    }
+	} while (++xoptind < argc);
+    } else {
+	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL) {
+	    xerror(0, Ngt("%ls: no current job"), (wchar_t *) argv[0]);
+	    err = true;
+	} else {
+	    remove_job(current_jobnumber);
+	}
+    }
+
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+}
+
+const char disown_help[] = Ngt(
+"disown - disown jobs\n"
+"\tdisown [-a|job...]\n"
+"Removes the specified jobs from the job list.\n"
+"The status of the disowned jobs is no longer reported and the jobs can no\n"
+"longer be put back in the foreground.\n"
+"If the -a (--all) option is specified, all existing jobs are disowned.\n"
+"Otherwise, the specified jobs are disowned. If none is specified, the\n"
+"current job is disowned.\n"
+);
+
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

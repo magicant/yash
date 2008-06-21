@@ -1,4 +1,4 @@
-exit/jobs/fg/bg/wait 組込みのテストを tests/job に
+exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 配列の解釈・代入
 メールチェック
 ループパイプのテストスクリプト
@@ -6,20 +6,17 @@ gettext 対応
 
 組込みコマンド
 	alias -gp
-	bg
 	bind
 	command -pvV
 	compgen
 	complete
 	declare/typeset/...
 	dirs -clpv
-	disown -ahr
 	echo -eEn
 	eval
 	exec -acl
 	export -fnp
 	fc -enlrs
-	fg
 	getopts
 	hash -pr
 	help -s

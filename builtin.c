@@ -74,6 +74,7 @@ void init_builtin(void)
 	DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);
 	DEFBUILTIN("fg", fg_builtin, BI_SEMISPECIAL, fg_help);
 	DEFBUILTIN("bg", fg_builtin, BI_SEMISPECIAL, bg_help);
+	DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
 
 	/* defined in "exec.c" */
 	DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help);
