@@ -585,7 +585,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 
 done:
     if (doing_job_control_now)
-	put_foreground(getpgrp()); /* put the shell in the foreground */
+	put_foreground(shell_pgid); /* put the shell in the foreground */
     handle_traps();
     if (shopt_errexit && !supresserrexit && laststatus != EXIT_SUCCESS
 	    && lasttype == CT_SIMPLE)
@@ -776,7 +776,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	    if (fg)
 		put_foreground(getpgrp());
 	}
-	forget_initial_pgrp();
+	forget_initial_pgid();
 	/* remove_all_jobs(); */
 	clear_traps();
 	clear_shellfds();

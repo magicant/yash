@@ -24,11 +24,11 @@
 #include <sys/types.h>
 
 
-extern pid_t shell_pid;
+extern pid_t shell_pid, shell_pgid;
 
-extern void set_own_pgrp(void);
-extern void reset_own_pgrp(void);
-extern void forget_initial_pgrp(void);
+extern void set_own_pgid(void);
+extern void reset_own_pgid(void);
+extern void forget_initial_pgid(void);
 
 static inline void exit_shell(void)
     __attribute__((noreturn));

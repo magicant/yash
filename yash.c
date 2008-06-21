@@ -55,8 +55,9 @@ static void print_version(void);
 
 /* the process ID of the shell */
 pid_t shell_pid;
-/* the initial process group ID of the shell */
-pid_t initial_pgrp;
+/* the initial/current process group ID of the shell */
+static pid_t initial_pgid;
+pid_t shell_pgid;
 
 /* an equivalent to the -f flag for "exit" builtin */
 static bool forceexit;
@@ -194,7 +195,7 @@ int main(int argc, char **argv)
 	xoptind++;
 
     shell_pid = getpid();
-    initial_pgrp = getpgrp();
+    initial_pgid = shell_pgid = getpgrp();
     init_cmdhash();
     init_homedirhash();
     init_variables();
@@ -246,7 +247,7 @@ int main(int argc, char **argv)
 	do_job_control = is_interactive;
     set_signals();
     open_ttyfd();
-    set_own_pgrp();
+    set_own_pgid();
     set_positional_parameters(wargv + xoptind);
     if (!noprofile)
 	execute_profile();
@@ -342,7 +343,7 @@ static void execute_rcfile(const wchar_t *rcfile)
 
 /* Exits the shell with the specified exit status.
  * If `status' is negative, the value of `laststatus' is used.
- * This function executes EXIT trap and calls `reset_own_pgrp'.
+ * This function executes EXIT trap and calls `reset_own_pgid'.
  * This function never returns.
  * This function is reentrant and exits immediately if reentered. */
 void exit_shell_with_status(int status)
@@ -354,7 +355,7 @@ void exit_shell_with_status(int status)
 	exitstatus = (status < 0) ? laststatus : status;
 	// TODO yash: exit_shell: execute EXIT trap
     }
-    reset_own_pgrp();
+    reset_own_pgid();
     exit((status < 0) ? exitstatus : status);
 }
 
@@ -391,29 +392,33 @@ void print_version(void)
 
 /* If job control is active, sets the process group ID of the shell to its
  * process ID. */
-void set_own_pgrp(void)
+void set_own_pgid(void)
 {
     if (do_job_control) {
-	setpgid(0, 0);
-	put_foreground(getpgrp());
+	if (setpgid(0, 0) == 0) {
+	    shell_pgid = shell_pid;
+	    put_foreground(shell_pgid);
+	}
     }
 }
 
 /* If job control is active, resets the process group ID of the shell.
  * The initial process group ID is restored. */
-void reset_own_pgrp(void)
+void reset_own_pgid(void)
 {
-    if (do_job_control && initial_pgrp > 0) {
-	setpgid(0, initial_pgrp);
-	put_foreground(getpgrp());
+    if (do_job_control && initial_pgid > 0) {
+	if (setpgid(0, initial_pgid) == 0) {
+	    shell_pgid = initial_pgid;
+	    put_foreground(shell_pgid);
+	}
     }
 }
 
-/* Forgets the value of `initial_pgrp' so that `reset_own_pgrp' is no longer
+/* Forgets the value of `initial_pgid' so that `reset_own_pgid' is no longer
  * effective. */
-void forget_initial_pgrp(void)
+void forget_initial_pgid(void)
 {
-    initial_pgrp = 0;
+    initial_pgid = 0;
 }
 
 

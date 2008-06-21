@@ -32,6 +32,7 @@
 #include "sig.h"
 #include "builtin.h"
 #include "exec.h"
+#include "yash.h"
 
 
 /* If set, the shell behaves strictly as defined in POSIX.
@@ -246,9 +247,14 @@ int set_builtin(int argc, void **argv)
 		    gt("Usage:  set [-abefhmnuvxC] [-o option] [arg...]\n"));
 		return EXIT_ERROR;
 	    default:
+		if (opt == L'm') {
+		    reset_own_pgid();
+		}
 		set_option(opt);
-		if (opt == L'm')
+		if (opt == L'm') {
 		    reset_signals();
+		    set_own_pgid();
+		}
 		break;
 	}
     }
