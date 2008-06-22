@@ -777,7 +777,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 		put_foreground(getpgrp());
 	}
 	forget_initial_pgid();
-	/* remove_all_jobs(); */
+	neglect_all_jobs();
 	clear_traps();
 	clear_shellfds();
 	// TODO fork_and_reset: fix_temporary_variables

@@ -19,6 +19,7 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -59,7 +60,8 @@ static size_t get_jobnumber_from_name(const wchar_t *name)
 static void jobs_builtin_print_job(size_t jobnumber,
 	bool verbose, bool changedonly, bool pidonly,
 	bool runningonly, bool stoppedonly);
-static int continue_job(size_t jobnumber, bool fg);
+static int continue_job(size_t jobnumber, job_T *job, bool fg)
+    __attribute__((nonnull));
 
 
 /* The list of jobs.
@@ -172,6 +174,18 @@ void trim_joblist(void)
 	pl_setmax(&joblist, tail);
     else
 	pl_remove(&joblist, tail, SIZE_MAX);
+}
+
+/* Negate the `j_pgid' member of all jobs.
+ * All the jobs are no longer taken care of by job control. */
+void neglect_all_jobs(void)
+{
+    for (size_t i = 0; i < joblist.length; i++) {
+	job_T *job = joblist.contents[i];
+	if (job && job->j_pgid >= 0)
+	    job->j_pgid = -job->j_pgid;
+    }
+    current_jobnumber = previous_jobnumber = 0;
 }
 
 /* - When the current job changes, the last current job will be the next
@@ -367,8 +381,9 @@ void wait_for_job(size_t jobnumber, bool return_on_stop)
 void put_foreground(pid_t pgrp)
 {
     assert(doing_job_control_now);
+    assert(pgrp > 0);
     block_sigttou();
-    tcsetpgrp(ttyfd, pgrp);
+    tcsetpgrp(get_ttyfd(), pgrp);
     unblock_sigttou();
 }
 
@@ -732,7 +747,7 @@ void jobs_builtin_print_job(size_t jobnumber,
     if (pidonly) {
 	if (changedonly && !job->j_statuschanged)
 	    return;
-	printf("%jd\n", (intmax_t) job->j_pgid);
+	printf("%jd\n", imaxabs(job->j_pgid));
     } else {
 	print_job_status(jobnumber, changedonly, verbose, stdout);
     }
@@ -784,6 +799,7 @@ int fg_builtin(int argc, void **argv)
     }
 
     int status = EXIT_SUCCESS;
+    job_T *job;
     if (xoptind < argc) {
 	do {
 	    const wchar_t *jobspec = argv[xoptind];
@@ -800,35 +816,33 @@ int fg_builtin(int argc, void **argv)
 		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
 			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
 		err = true;
-	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
+	    } else if (jobnumber == 0
+		    || (job = joblist.contents[jobnumber]) == NULL
+		    || job->j_pgid < 0) {
 		xerror(0, Ngt("%ls: %ls: no such job"),
 			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
 		err = true;
 	    } else {
 		set_current_jobnumber(jobnumber);
-		status = continue_job(jobnumber, fg);
+		status = continue_job(jobnumber, job, fg);
 	    }
 	} while (++xoptind < argc);
     } else {
-	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL) {
+	if (current_jobnumber == 0 ||
+		(job = joblist.contents[current_jobnumber])->j_pgid <= 0) {
 	    xerror(0, Ngt("%ls: no current job"), (wchar_t *) argv[0]);
 	    err = true;
 	} else {
-	    status = continue_job(current_jobnumber, fg);
+	    status = continue_job(current_jobnumber, job, fg);
 	}
     }
 
     return (status != 0) ? status : err ? EXIT_FAILURE1 : EXIT_SUCCESS;
 }
 
-/* Continues execution of the specified job.
- * `jobnumber' must be valid. */
-int continue_job(size_t jobnumber, bool fg)
+/* Continues execution of the specified job. */
+int continue_job(size_t jobnumber, job_T *job, bool fg)
 {
-    assert(0 < jobnumber && jobnumber < joblist.length);
-    job_T *job = joblist.contents[jobnumber];
-    assert(job != NULL);
-
     wchar_t *name = get_job_name(job);
     if (fg && posixly_correct)
 	printf("%ls\n", name);

@@ -246,7 +246,8 @@ int main(int argc, char **argv)
     if (!do_job_control_set)
 	do_job_control = is_interactive;
     set_signals();
-    open_ttyfd();
+    if (is_interactive || do_job_control)
+	open_ttyfd();
     set_own_pgid();
     set_positional_parameters(wargv + xoptind);
     if (!noprofile)
@@ -394,7 +395,7 @@ void print_version(void)
  * process ID. */
 void set_own_pgid(void)
 {
-    if (do_job_control) {
+    if (doing_job_control_now && initial_pgid > 0) {
 	if (setpgid(0, 0) == 0) {
 	    shell_pgid = shell_pid;
 	    put_foreground(shell_pgid);
@@ -406,7 +407,7 @@ void set_own_pgid(void)
  * The initial process group ID is restored. */
 void reset_own_pgid(void)
 {
-    if (do_job_control && initial_pgid > 0) {
+    if (doing_job_control_now && initial_pgid > 0) {
 	if (setpgid(0, initial_pgid) == 0) {
 	    shell_pgid = initial_pgid;
 	    put_foreground(shell_pgid);

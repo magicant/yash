@@ -90,7 +90,7 @@ static bool is_shellfd(int fd)
 
 
 /* true iff stdin is redirected */
-bool is_stdin_redirected = false;
+static bool is_stdin_redirected = false;
 
 /* set of file descriptors used by the shell.
  * These file descriptors cannot be used by the user. */
@@ -106,7 +106,7 @@ static int shellfdmax;
 #endif
 
 /* file descriptor associated with the controlling terminal */
-int ttyfd = -1;
+static int ttyfd = -1;
 
 
 /* Initializes shell FDs. */
@@ -232,6 +232,12 @@ void open_ttyfd(void)
 
 onerror:
     xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
+}
+
+/* Returns `ttyfd', or -1 if not open. */
+int get_ttyfd(void)
+{
+    return ttyfd;
 }
 
 

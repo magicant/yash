@@ -50,8 +50,10 @@ typedef struct job_T {
     size_t            j_pcount;        /* # of processes in `j_procs' */
     struct process_T  j_procs[];       /* info about processes */
 } job_T;
-/* When job control is off, `j_pgid' is 0 since the job shares the process group
- * ID with the shell. */
+/* When job control is off, `j_pgid' is 0 since the job spares the process group
+ * ID with the shell.
+ * In subshells, `j_pgid' is negated to indicate that the job is not a direct
+ * child of the current shell process. */
 
 
 /* job number of the active job */
@@ -69,6 +71,7 @@ extern void set_active_job(job_T *job)
 extern void add_job(bool current);
 extern void remove_job(size_t jobnumber);
 extern void remove_all_jobs(void);
+extern void neglect_all_jobs(void);
 extern size_t job_count(void)
     __attribute__((pure));
 extern size_t stopped_job_count(void)

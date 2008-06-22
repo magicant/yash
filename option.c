@@ -30,6 +30,7 @@
 #include "strbuf.h"
 #include "variable.h"
 #include "sig.h"
+#include "redir.h"
 #include "builtin.h"
 #include "exec.h"
 #include "yash.h"
@@ -227,6 +228,8 @@ int set_builtin(int argc, void **argv)
 	return EXIT_SUCCESS;
     }
 
+    // TODO `set +o', `set -o'
+
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
 		    argv, L"+*o:" SHELLSET_OPTIONS, set_long_options, NULL)))
@@ -234,8 +237,8 @@ int set_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'o':
 		if (!set_long_option(xoptarg)) {
-		    xerror(0, Ngt("%lco %ls: invalid option"),
-			    (wint_t) xoptopt, xoptarg);
+		    xerror(0, Ngt("%ls: %lco %ls: invalid option"),
+			    (wchar_t *) argv[0], (wint_t) xoptopt, xoptarg);
 		    goto optionerror;
 		}
 		break;
@@ -248,12 +251,17 @@ int set_builtin(int argc, void **argv)
 		return EXIT_ERROR;
 	    default:
 		if (opt == L'm') {
-		    reset_own_pgid();
-		}
-		set_option(opt);
-		if (opt == L'm') {
-		    reset_signals();
-		    set_own_pgid();
+		    bool value = (xoptopt == L'-');
+		    if (value != do_job_control) {
+			reset_own_pgid();
+			if (value && get_ttyfd() < 0)
+			    open_ttyfd();
+			do_job_control = value;
+			reset_signals();
+			set_own_pgid();
+		    }
+		} else {
+		    set_option(opt);
 		}
 		break;
 	}
