@@ -189,7 +189,8 @@ end:
 int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct parsestate_T *state = save_parse_state();
-    print_job_status(PJS_ALL, true, false, stderr);
+    if (do_job_control)
+	print_job_status(PJS_ALL, true, false, stderr);
     // TODO prompt command
 
     struct input_readline_info *info = inputinfo;
