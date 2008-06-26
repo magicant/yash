@@ -78,7 +78,8 @@ extern size_t stopped_job_count(void)
     __attribute__((pure));
 
 extern void do_wait(void);
-extern void wait_for_job(size_t jobnumber, bool return_on_stop);
+extern bool wait_for_job(
+	size_t jobnumber, bool return_on_stop, bool interruptible);
 
 extern void put_foreground(pid_t pgrp);
 
@@ -94,9 +95,11 @@ extern int jobs_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int fg_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern int wait_builtin(int argc, void **argv)
+    __attribute__((nonnull));
 extern int disown_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char jobs_help[], fg_help[], bg_help[], disown_help[];
+extern const char jobs_help[], fg_help[], bg_help[], wait_help[], disown_help[];
 
 
 #endif /* JOB_H */

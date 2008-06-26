@@ -41,4 +41,3 @@ gettext 対応
 	umask -pS
 	unalias -a
 	unset -fv
-	wait

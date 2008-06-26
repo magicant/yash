@@ -37,9 +37,9 @@ extern void unblock_sigttou(void);
 extern void send_sigcont_to_pgrp(pid_t pgrp);
 extern void block_all_but_sigpipe(void);
 
-extern void block_sigchld(void);
-extern void unblock_sigchld(void);
-extern void wait_for_sigchld(void);
+extern void block_sigchld_and_sigint(void);
+extern void unblock_sigchld_and_sigint(void);
+extern bool wait_for_sigchld(bool interruptible);
 extern void wait_for_input(int fd, bool trap);
 
 extern void handle_sigchld(void);

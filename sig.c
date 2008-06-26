@@ -159,11 +159,11 @@ static char *trap_command[MAXSIGIDX];
 static volatile sig_atomic_t rtsignal_received[RTSIZE];
 static char *rttrap_command[RTSIZE];
 
-/* This flag is set to true as well as `signal_received[sigindex(SIGCHLD)]'
- * when SIGCHLD is caught.
+/* This flag is set to true as well as `signal_received[sigindex(SIGCHLD/INT)]'
+ * when SIGCHLD/SIGINT is caught.
  * This flag is used for job control while `signal_received[...]' is for trap
  * handling. */
-static volatile sig_atomic_t sigchld_received;
+static volatile sig_atomic_t sigchld_received, sigint_received;
 
 /* Actions of SIGCHLD/QUIT/TTOU/TSTP/TERM/INT to be restored before `execve'. */
 static struct {
@@ -389,47 +389,78 @@ void sig_handler(int signum)
 
 	if (signum == SIGCHLD)
 	    sigchld_received = true;
+	else if (signum == SIGINT)
+	    sigint_received = true;
     }
 }
 
-/* Blocks SIGCHLD. */
-void block_sigchld(void)
+/* Blocks SIGCHLD and SIGINT. */
+void block_sigchld_and_sigint(void)
 {
     sigset_t ss;
 
     sigemptyset(&ss);
     sigaddset(&ss, SIGCHLD);
+    sigaddset(&ss, SIGINT);
     if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0)
-	xerror(errno, "sigprocmask(BLOCK, CHLD)");
+	xerror(errno, "sigprocmask(BLOCK, CHLD|INT)");
 }
 
-/* Unblocks SIGCHLD. */
-void unblock_sigchld(void)
+/* Unblocks SIGCHLD and SIGINT. */
+void unblock_sigchld_and_sigint(void)
 {
     sigset_t ss;
 
     sigemptyset(&ss);
     sigaddset(&ss, SIGCHLD);
+    sigaddset(&ss, SIGINT);
     if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0)
-	xerror(errno, "sigprocmask(UNBLOCK, CHLD)");
+	xerror(errno, "sigprocmask(UNBLOCK, CHLD|INT)");
 }
 
 /* Waits for SIGCHLD to be caught and call `handle_sigchld'.
- * SIGCHLD must be blocked when this function is called.
- * If SIGCHLD is already caught, this function doesn't wait. */
-void wait_for_sigchld(void)
+ * SIGCHLD and SIGINT must be blocked when this function is called.
+ * If SIGCHLD is already caught, this function doesn't wait.
+ * If `interruptible' is true, this function can be canceled by SIGINT.
+ * Returns false iff interrupted. */
+bool wait_for_sigchld(bool interruptible)
 {
-    sigset_t ss;
+    bool result = true;
+    struct sigaction action, saveaction;
+    if (interruptible) {
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+	action.sa_handler = sig_handler;
+	if (sigaction(SIGINT, &action, &saveaction) < 0) {
+	    xerror(errno, "sigaction(SIGINT)");
+	    interruptible = false;
+	}
+	sigint_received = false;
+    }
 
+    sigset_t ss;
     sigemptyset(&ss);
     while (!sigchld_received) {
-	if (sigsuspend(&ss) < 0 && errno != EINTR) {
-	    xerror(errno, "sigsuspend");
-	    break;
+	if (sigsuspend(&ss) < 0) {
+	    if (errno == EINTR) {
+		if (interruptible && sigint_received)
+		    break;
+	    } else {
+		xerror(errno, "sigsuspend");
+		break;
+	    }
 	}
     }
 
+    if (interruptible) {
+	if (sigint_received)
+	    result = false;
+	if (sigaction(SIGINT, &saveaction, NULL) < 0)
+	    xerror(errno, "sigaction(SIGINT)");
+    }
+
     handle_sigchld();
+    return result;
 }
 
 /* Waits for the specified file descriptor to be available for reading.

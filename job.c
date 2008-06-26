@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -55,7 +56,9 @@ static char *get_process_status_string(const process_T *p, bool *needfree)
 static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 static size_t get_jobnumber_from_name(const wchar_t *name)
-    __attribute__((nonnull));
+    __attribute__((nonnull,pure));
+static size_t get_jobnumber_from_pid(pid_t pid)
+    __attribute__((pure));
 
 static void jobs_builtin_print_job(size_t jobnumber,
 	bool verbose, bool changedonly, bool pidonly,
@@ -183,7 +186,7 @@ void neglect_all_jobs(void)
     for (size_t i = 0; i < joblist.length; i++) {
 	job_T *job = joblist.contents[i];
 	if (job && job->j_pgid >= 0)
-	    job->j_pgid = -job->j_pgid;
+	    job->j_pgid = (job->j_pgid > 0) ? -job->j_pgid : -1;
     }
     current_jobnumber = previous_jobnumber = 0;
 }
@@ -359,20 +362,28 @@ out_of_loop:
  * `jobnumber' must be a valid job number.
  * If `return_on_stop' is false, waits for the job to finish.
  * Otherwise, waits for the job to finish or stop.
- * This function returns immediately if the job is already finished/stopped. */
-void wait_for_job(size_t jobnumber, bool return_on_stop)
+ * If `interruptible' is true, this function can be canceled by SIGINT.
+ * This function returns immediately if the job is already finished/stopped or
+ * is not a child of this shell process.
+ * Returns false iff interrupted. */
+bool wait_for_job(size_t jobnumber, bool return_on_stop, bool interruptible)
 {
+    bool result = true;
     job_T *job = joblist.contents[jobnumber];
 
-    block_sigchld();
-    for (;;) {
-	if (job->j_status == JS_DONE)
-	    break;
-	if (return_on_stop && job->j_status == JS_STOPPED)
-	    break;
-	wait_for_sigchld();
+    if (job->j_pgid >= 0 && job->j_status != JS_DONE
+	    && (!return_on_stop || job->j_status != JS_STOPPED)) {
+	block_sigchld_and_sigint();
+	do {
+	    if (!wait_for_sigchld(interruptible)) {
+		result = false;
+		break;
+	    }
+	} while (job->j_status != JS_DONE
+		&& (!return_on_stop || job->j_status != JS_STOPPED));
+	unblock_sigchld_and_sigint();
     }
-    unblock_sigchld();
+    return result;
 }
 
 /* Put the specified process group in the foreground.
@@ -613,7 +624,7 @@ size_t get_jobnumber_from_name(const wchar_t *name)
 	unsigned num;
 	wchar_t *nameend;
 	errno = 0;
-	num = wcstol(name, &nameend, 10);
+	num = wcstoul(name, &nameend, 10);
 	if (!errno && !*nameend)
 	    return get_job(num) ? num : 0;
     }
@@ -642,6 +653,23 @@ size_t get_jobnumber_from_name(const wchar_t *name)
 	}
     }
     return n;
+}
+
+/* Returns the number of job that contains a process whose process ID is `pid'.
+ * If not found, 0 is returned. */
+size_t get_jobnumber_from_pid(pid_t pid)
+{
+    size_t jobnumber;
+    for (jobnumber = joblist.length; --jobnumber > 0; ) {
+	job_T *job = joblist.contents[jobnumber];
+	if (job) {
+	    for (size_t i = 0; i < job->j_pcount; i++)
+		if (job->j_procs[i].pr_pid == pid)
+		    goto found;
+	}
+    }
+found:
+    return jobnumber;
 }
 
 
@@ -693,7 +721,7 @@ int jobs_builtin(int argc, void **argv)
     }
 
     if (xoptind < argc) {
-	while (xoptind < argc) {
+	do {
 	    const wchar_t *jobspec = argv[xoptind];
 	    if (jobspec[0] == L'%') {
 		jobspec++;
@@ -701,7 +729,7 @@ int jobs_builtin(int argc, void **argv)
 		xerror(0, Ngt("%ls: %ls: invalid job specification"),
 			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
 		err = true;
-		goto next;
+		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
@@ -716,11 +744,9 @@ int jobs_builtin(int argc, void **argv)
 		jobs_builtin_print_job(jobnumber, verbose, changedonly, pidonly,
 			runningonly, stoppedonly);
 	    }
-next:
-	    xoptind++;
-	}
+	} while (++xoptind < argc);
     } else {
-	/* print all the jobs */
+	/* print all jobs */
 	for (size_t i = 1; i < joblist.length; i++) {
 	    jobs_builtin_print_job(i, verbose, changedonly, pidonly,
 		    runningonly, stoppedonly);
@@ -822,6 +848,10 @@ int fg_builtin(int argc, void **argv)
 		xerror(0, Ngt("%ls: %ls: no such job"),
 			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
 		err = true;
+	    } else if (job->j_pgid == 0) {
+		xerror(0, Ngt("%ls: %ls: not job-controlled job"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
 	    } else {
 		set_current_jobnumber(jobnumber);
 		status = continue_job(jobnumber, job, fg);
@@ -859,7 +889,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     }
 
     if (fg)
-	wait_for_job(jobnumber, true);
+	wait_for_job(jobnumber, true, false);
     int status = (job->j_status == JS_RUNNING) ? 0 : calc_status_of_job(job);
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
@@ -880,6 +910,91 @@ const char bg_help[] = Ngt(
 "\tbg [job...]\n"
 "Continues execution of the specified jobs in the background.\n"
 "If no job is specified, the current job is continued.\n"
+);
+
+/* "wait" builtin */
+int wait_builtin(int argc, void **argv)
+{
+    bool jobcontrol = doing_job_control_now;
+    bool err = false;
+    int status = EXIT_SUCCESS;
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  wait [job or pid...]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    job_T *job;
+    if (xoptind < argc) {
+	do {
+	    const wchar_t *jobspec = argv[xoptind];
+	    size_t jobnumber;
+	    if (jobspec[0] == L'%') {
+		jobnumber = get_jobnumber_from_name(jobspec + 1);
+	    } else {
+		pid_t pid;
+		wchar_t *end;
+		errno = 0;
+		pid = wcstol(jobspec, &end, 10);
+		if (errno || *end || pid < 0) {
+		    xerror(0, Ngt("%ls: %ls: invalid job specification"),
+			    (wchar_t *) argv[0], jobspec);
+		    err = true;
+		    continue;
+		}
+		jobnumber = pid ? get_jobnumber_from_pid(pid) : 0;
+	    }
+	    if (jobnumber >= joblist.length) {
+		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
+			(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+		err = true;
+	    } else if (jobnumber == 0
+		    || (job = joblist.contents[jobnumber]) == NULL
+		    || job->j_pgid < 0) {
+		status = EXIT_NOTFOUND;
+	    } else {
+		if (wait_for_job(jobnumber, jobcontrol, jobcontrol)) {
+		    status = calc_status_of_job(job);
+		} else {
+		    status = TERMSIGOFFSET + SIGINT;
+		    break;
+		}
+		if (!jobcontrol && job->j_status == JS_DONE)
+		    remove_job(jobnumber);
+	    }
+	} while (++xoptind < argc);
+    } else {
+	/* wait for all jobs */
+	for (size_t i = 1; i < joblist.length; i++) {
+	    job = joblist.contents[i];
+	    if (job != NULL && job->j_pgid >= 0) {
+		if (!wait_for_job(i, jobcontrol, jobcontrol)) {
+		    status = TERMSIGOFFSET + SIGINT;
+		    break;
+		}
+		if (!jobcontrol && job->j_status == JS_DONE)
+		    remove_job(i);
+	    }
+	}
+    }
+
+    return status ? status : err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+}
+
+const char wait_help[] = Ngt(
+"wait - wait for jobs to terminate\n"
+"\twait [job or pid...]\n"
+"Waits for the specified jobs, or all jobs if none specified, to terminate.\n"
+"Jobs can be specified in the usual job specification form such as \"%2\" or\n"
+"by the process ID of a process belonging to the job.\n"
 );
 
 /* "disown" builtin, which accepts the following option:

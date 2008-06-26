@@ -564,7 +564,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     job->j_loop = looppipe;
     job->j_pcount = count;
     if (type == execnormal) {   /* wait for job to finish */
-	wait_for_job(ACTIVE_JOBNO, doing_job_control_now);
+	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false);
 	laststatus = calc_status_of_job(job);
 	if (job->j_status == JS_DONE) {
 	    remove_job(ACTIVE_JOBNO);
@@ -1094,7 +1094,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	xwcsbuf_T buf;
 	wb_init(&buf);
 	set_nonblocking(pipefd[PIDX_IN]);
-	block_sigchld();
+	block_sigchld_and_sigint();
 	handle_sigchld();
 	for (;;) {
 	    wint_t c = fgetwc(f);
@@ -1116,11 +1116,11 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 		wb_wccat(&buf, c);
 	    }
 	}
-	unblock_sigchld();
+	unblock_sigchld_and_sigint();
 	fclose(f);
 
 	/* wait for the child to finish */
-	wait_for_job(ACTIVE_JOBNO, false);
+	wait_for_job(ACTIVE_JOBNO, false, false);
 	laststatus = calc_status_of_job(job);
 	remove_job(ACTIVE_JOBNO);
 
