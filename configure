@@ -88,6 +88,8 @@ END
 fi
 
 
+trap 'rm -f "${tempsrc}" "${tempo}" "${tempout}"' EXIT
+
 exec 5>"${configlog}"
 exec 6>"${configh}"
 
@@ -382,9 +384,6 @@ cat >"${versionh}" <<END
 #define PACKAGE_COPYRIGHT "Copyright (C) ${copyrightyear} magicant"
 #endif
 END
-
-
-rm -f "${tempsrc}" "${tempo}" "${tempout}"
 
 
 # vim: set ts=8 sts=4 sw=4 noet:
