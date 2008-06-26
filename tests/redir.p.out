@@ -5,6 +5,7 @@ redirection before command
 2>/dev/null
 2
 foo
+noclobber
 bar
 ===== 1 =====
 complex redirection

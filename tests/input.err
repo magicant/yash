@@ -1,0 +1,21 @@
+$ echo x"$PS1"x
+$ echo x"$PS2"x
+$ echo x"$PS4"x
+$ echo \
+> ok
+$ cat <<END
+> here-document
+> ok
+> END
+$ PS1='${PWD##${PWD}}? '
+? PS1=
+$ echo x"$PS3"x
+$ PS1='${PWD##${PWD}}$(echo ?) '
+? PS1='! !! $ '
+! !! $ PS1='\a \e \n \r \\ $ '
+  
+  \ $ PS1='$ '
+$ PS2='\\ > '
+$ echo \
+\ > ok
+$ PS1=

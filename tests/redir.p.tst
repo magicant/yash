@@ -1,29 +1,29 @@
-tmp=/tmp/yashtest.$$
+tmp="${TESTTMP}/redir.p"
 
-echo Hello, >$tmp
-cat $tmp
+echo Hello, >"$tmp"
+cat "$tmp"
 
-echo World. >>$tmp
-cat <$tmp
+echo World. >>"$tmp"
+cat <"$tmp"
 
 1>&1 echo redirection before command
 
-echo \2>$tmp
-echo 2\>/dev/null|cat - $tmp
+echo \2>"$tmp"
+echo 2\>/dev/null|cat - "$tmp"
 
-rm -f $tmp
-echo foo >$tmp
-[ -f $tmp ] && cat $tmp
+rm -f "$tmp"
+echo foo >"$tmp"
+[ -f "$tmp" ] && cat "$tmp"
 set -C
-(echo bar >|$tmp) 2>/dev/null
-(echo baz >$tmp) 2>/dev/null
+echo bar >|"$tmp"
+(echo baz >"$tmp") 2>/dev/null || echo noclobber
 set +C
-cat $tmp
+cat "$tmp"
 
 echo ===== 1 =====
 
 # TODO unset unset
->&- echo 3>&2 complex 2>& ${unset--} redirection >& \3
+2>&- echo 3>&1 complex 2>& ${unset--} redirection >& \3
 <>/dev/null cat 2<& '0' 3>& 1
 (</dev/null >&0) 2>/dev/null || echo not writable
 (>/dev/null <&1) 2>/dev/null || echo not readable
@@ -31,19 +31,19 @@ echo ===== 1 =====
 
 echo ===== 2 =====
 
-cat <<END >$tmp
+cat <<END >"$tmp"
 Test of here-document.
 		<"${TERM+}">
 		"'"''\\-\'\"
 END
-cat $tmp
+cat "$tmp"
 
-cat <<"END" >$tmp
+cat <<"END" >"$tmp"
 Test of here-document.
 		<"${TERM+}">
 		"'"''\\-\'\"
 END
-cat $tmp
+cat "$tmp"
 
 cat <<-END -
 Test of here-document.
@@ -63,5 +63,4 @@ END
 2
 EOF
 
-rm -f $tmp
-# TODO temporary file should be removed in EXIT trap
+rm -f "$tmp"

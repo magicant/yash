@@ -1,13 +1,11 @@
-tmp=/tmp/yashtest.$$
-
 RANDOM=123
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456
-echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >${tmp}a
+echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >${TESTTMP}/variable-a
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456
-echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >${tmp}b
-diff ${tmp}a ${tmp}b && echo ok
+echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >${TESTTMP}/variable-b
+diff ${TESTTMP}/variable-a ${TESTTMP}/variable-b && echo ok
 
 echo ===== 1 =====
 
@@ -24,5 +22,4 @@ func1 () {
 func2; func1; func2; func1;
 
 
-# TODO should be removed in EXIT trap
-rm -f ${tmp}a ${tmp}b
+rm -f ${TESTTMP}/variable-a ${TESTTMP}/variable-b

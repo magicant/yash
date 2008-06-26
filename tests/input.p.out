@@ -1,17 +1,6 @@
-$ echo x"$PS1"x
 x$ x
-$ echo x"$PS2"x
 x> x
-$ echo x"$PS4"x
 x+ x
-$ echo \
-> ok
 ok
-$ cat <<END
-> here-document
-> ok
-> END
 here-document
 ok
-$ PS1='${PWD##${PWD}}? '
-? PS1=

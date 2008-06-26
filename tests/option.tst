@@ -1,5 +1,5 @@
-tmp=/tmp/yashtest.$$
-mkdir -p $tmp
+tmp=${TESTTMP}/option
+mkdir -p "$tmp"
 
 echo ===== nocaseglob =====
 set --nocaseglob
@@ -7,7 +7,7 @@ echo O[OPQ]T*ON.tst
 set +o nocaseglob
 echo O[OPQ]T*ON.tst
 
-cd $tmp
+cd "$tmp"
 
 echo ===== dotglob =====
 touch .dotfile
@@ -44,5 +44,4 @@ cd - >/dev/null
 echo ===== posix =====
 $INVOKE $TESTEE --posix -c 'echo "$PS2"'
 
-rm -fr $tmp
-# TODO should be removed by EXIT trap
+rm -fr "$tmp"

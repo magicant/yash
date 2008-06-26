@@ -1,9 +1,7 @@
 ===== cd builtin =====
 cd $HOME
-$PWD=/tmp
 cd $OLDPWD
 cd $PWD
-$OLDPWD=/tmp
 cd -P
 cd -L
 cd -L default

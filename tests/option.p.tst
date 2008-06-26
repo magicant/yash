@@ -44,20 +44,22 @@ echo ng nounset 2
 END
 
 echo ===== -v =====
+echo ===== -v ===== >&2
 $INVOKE $TESTEE -v <<\END
 var=123
 echo ${var#1}
 END
 
 echo ===== -x =====
+echo ===== -x ===== >&2
 $INVOKE $TESTEE -x <<\END
 var=123
 echo ${var#1}
 END
-{
-	set -o xtrace
-	set +x
-} 2>/dev/null
+if ! { set -o xtrace && set +x; } 2>/dev/null
+then
+	echo set -o xtrace +x: ng
+fi
 
 echo ===== ignoreeof =====
 # XXX We cannot actually test 'ignoreeof' since input from terminal is required.

@@ -17,11 +17,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:?}"
+echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
 echo "Any output from the tests indicates a possible malfunction"
 
+# make temporary directory
+TESTTMP="${TMPDIR:-/tmp}/yashtest.$$"
+if ! mkdir -m u=rwx,go= "$TESTTMP"; then
+    echo Cannot create temporary directory
+    exit 1
+fi
+trap 'rm -rf $TESTTMP' EXIT
+
 LC_ALL=C
-export INVOKE TESTEE LC_ALL
+export INVOKE TESTEE LC_ALL TESTTMP
 unset ENV IFS failed
 
 failed=0
@@ -29,17 +37,33 @@ for x in $TEST_ITEMS
 do
     x="${x%.tst}"
     echo " * $x"
+
     if [ x"$x" = x"${x%.p}" ]
     then INVOKE=
     else INVOKE='./invoke sh'
     fi
-    if ! $INVOKE $TESTEE "${x}.tst" 2>&1 | diff - "${x}.out"
+
+    $INVOKE $TESTEE "$x.tst" >|"${TESTTMP}/test.out" 2>|"${TESTTMP}/test.err"
+
+    failure=0
+    if ! diff "${x}.out" "${TESTTMP}/test.out"
     then
-	failed=$(( failed + 1 ))
+	failure=1
     fi
+    if
+	if [ -f "${x}.err" ]
+	then
+	    ! diff "${x}.err" "${TESTTMP}/test.err"
+	else
+	    ! diff /dev/null "${TESTTMP}/test.err"
+	fi
+    then
+	failure=1
+    fi
+    if [ 0 -ne $failure ]; then failed=$(( failed + 1 )); fi
 done
 
-if [ 0 -eq ${failed} ]
+if [ 0 -eq $failed ]
 then
     echo "All tests successful."
 else

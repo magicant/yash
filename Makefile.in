@@ -45,7 +45,7 @@ signum.h: mksignum
 	./mksignum > $@
 
 test check: $(TARGET)
-	@cd tests && $(MAKE) test-all
+	@cd tests && $(MAKE) $(MAKEFLAGS) test-all
 
 BINDIR = @BINDIR@
 install: $(TARGET) $(BINDIR)
@@ -62,7 +62,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) $(SUBSOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh tests/Makefile tests/*.tst tests/*.t tests/*.out tests/invoke.c tests/run-test.sh
+DISTCONTENTS = $(SOURCES) $(SUBSOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	rm -rf $(DISTDIR)
@@ -86,11 +86,16 @@ $(DISTDIR).shar.gz: $(DISTDIR)
 	shar -q -T $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
-$(DISTDIR): $(DISTCONTENTS)
+$(DISTDIR): $(DISTCONTENTS) tests
 	mkdir -p $@
 	for i in $(DISTCONTENTS); do \
 		if [ x$$i != x$${i%/*} ]; then mkdir -p $@/$${i%/*}; fi; \
 		cp -fRL $$i $@/$${i%/*}; \
+	done
+	mkdir -p $@/tests
+	for i in $$(cat tests/filelist); do \
+		if [ x$$i != x$${i%/*} ]; then mkdir -p $@/tests/$${i%/*}; fi; \
+		cp -fRL tests/$$i $@/tests/$${i%/*}; \
 	done
 
 # ctags conforms to POSIX, but etags and cscope do not.
@@ -104,7 +109,7 @@ cscope.out: $(SOURCES)
 
 mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
-	-@cd tests && $(MAKE) clean
+	-@cd tests && $(MAKE) $(MAKEFLAGS) clean
 clean: mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: clean
@@ -112,7 +117,7 @@ distclean: clean
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
-	@$(MAKE) distclean
+	@$(MAKE) $(MAKEFLAGS) distclean
 
 .PHONY: all test check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean
 

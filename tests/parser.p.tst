@@ -1,4 +1,4 @@
-tmp=/tmp/yashtest.$$
+tmp="${TESTTMP}/parser.p"
 
 var=abc
 echo 1\2\
@@ -325,12 +325,12 @@ fi
 
 funcredir () {
 	echo redirected
-	echo re-redirected >&2
+	echo re-redirected >&3
 } \
->$tmp
+>"$tmp"
 
-funcredir >/dev/null
-cat $tmp
+funcredir 3>&1 >/dev/null
+cat "$tmp"
 
 funcredir2 () {
 	echo not-redirected
@@ -342,5 +342,4 @@ funcredir2 >/dev/null
 echo lineno=$LINENO
 
 
-# TODO should be removed by EXIT trap
-rm -f $tmp
+rm -f "$tmp"

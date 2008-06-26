@@ -13,12 +13,8 @@ ok if
 ===== -u =====
 ok nounset
 ===== -v =====
-var=123
-echo ${var#1}
 23
 ===== -x =====
-+ var=123
-+ echo 23
 23
 ===== ignoreeof =====
 ignoreeof

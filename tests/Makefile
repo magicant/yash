@@ -21,12 +21,12 @@ CC = c99
 CFLAGS = -O1
 LDFLAGS = 
 
-test-all:
-	@$(MAKE) TEST_ITEMS='*.tst' test
-test-posix:
-	@$(MAKE) TEST_ITEMS='*.p.tst' test
-test: invoke
+TEST_ITEMS = *.tst  # the default test items
+
+test test-all: invoke
 	@$(SHELL) ./run-test.sh
+test-posix:
+	@$(MAKE) $(MAKEFLAGS) TEST_ITEMS='*.p.tst' test
 
 # Though these rules are exactly the same as the default rules defined by POSIX,
 # we re-define them here for maximum portability.
