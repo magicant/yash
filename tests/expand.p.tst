@@ -17,14 +17,14 @@ echo 1 "$null" 2
 echo ${unset-"unset  variable"} and ${var+"set  variable"}
 echo 1 ${null:-null variable} 2 ${null:+null variable} 3
 
-(echo ${unset?"unset variable error"}) 2>&1 |
+(: ${unset?"unset variable error"}) 2>&1 |
 grep "unset variable error" >/dev/null &&
 echo "unset variable error"
-(echo ${null:?"null variable error"}) 2>&1 |
+(: ${null:?"null variable error"}) 2>&1 |
 grep "null variable error" >/dev/null &&
 echo "null variable error"
 echo ${var?} "${null?}" ${var:?}
-(echo ${unset?}) 2>/dev/null || echo unset
+(: ${unset?}) 2>/dev/null || echo unset
 
 echo ${var=var} ${var:=VAR}
 echo ${null=null} ${null:=NULL}
