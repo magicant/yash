@@ -219,6 +219,9 @@ wchar_t *get_hyphen_parameter(void)
 
 /********** Builtin **********/
 
+static void set_builtin_print_current_settings(void);
+static void set_builtin_print_restoring_commands(void);
+
 int set_builtin(int argc, void **argv)
 {
     wchar_t opt;
@@ -227,8 +230,15 @@ int set_builtin(int argc, void **argv)
 	// TODO set_builtin: print all variables
 	return EXIT_SUCCESS;
     }
-
-    // TODO `set +o', `set -o'
+    if (argc == 2) {
+	if (wcscmp(argv[1], L"-o") == 0) {
+	    set_builtin_print_current_settings();
+	    return EXIT_SUCCESS;
+	} else if (wcscmp(argv[1], L"+o") == 0) {
+	    set_builtin_print_restoring_commands();
+	    return EXIT_SUCCESS;
+	}
+    }
 
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
@@ -273,6 +283,65 @@ int set_builtin(int argc, void **argv)
 	set_positional_parameters(argv + xoptind);
 
     return EXIT_SUCCESS;
+}
+
+void set_builtin_print_current_settings(void)
+{
+    const char *yes = gt("yes"), *no = gt("no");
+#define PRINTSETTING(name,value) \
+    printf("%-15ls %s\n", L"" #name, (value) ? yes : no)
+
+    PRINTSETTING(allexport, shopt_allexport);
+    PRINTSETTING(braceexpand, shopt_braceexpand);
+    PRINTSETTING(dotglob, shopt_dotglob);
+    PRINTSETTING(errexit, shopt_errexit);
+    PRINTSETTING(extendedglob, shopt_extendedglob);
+    PRINTSETTING(hashondef, shopt_hashondef);
+    PRINTSETTING(ignoreeof, shopt_ignoreeof);
+    PRINTSETTING(interactive, is_interactive);
+    PRINTSETTING(login, is_login_shell);
+    PRINTSETTING(markdirs, shopt_markdirs);
+    PRINTSETTING(monitor, do_job_control);
+    PRINTSETTING(nocaseglob, shopt_nocaseglob);
+    PRINTSETTING(noclobber, shopt_noclobber);
+    PRINTSETTING(noexec, shopt_noexec);
+    PRINTSETTING(noglob, shopt_noglob);
+    PRINTSETTING(notify, shopt_notify);
+    PRINTSETTING(nounset, shopt_nounset);
+    PRINTSETTING(nullglob, shopt_nullglob);
+    PRINTSETTING(posix, posixly_correct);
+    PRINTSETTING(verbose, shopt_verbose);
+    PRINTSETTING(xtrace, shopt_xtrace);
+#undef PRINTSETTING
+}
+
+void set_builtin_print_restoring_commands(void)
+{
+#define PRINTSETTING(name,value) \
+    printf("set %co %ls\n", (value) ? '-' : '+', L"" #name)
+
+    PRINTSETTING(allexport, shopt_allexport);
+    PRINTSETTING(braceexpand, shopt_braceexpand);
+    PRINTSETTING(dotglob, shopt_dotglob);
+    PRINTSETTING(errexit, shopt_errexit);
+    PRINTSETTING(extendedglob, shopt_extendedglob);
+    PRINTSETTING(hashondef, shopt_hashondef);
+    PRINTSETTING(ignoreeof, shopt_ignoreeof);
+    //PRINTSETTING(interactive, is_interactive);
+    //PRINTSETTING(login, is_login_shell);
+    PRINTSETTING(markdirs, shopt_markdirs);
+    PRINTSETTING(monitor, do_job_control);
+    PRINTSETTING(nocaseglob, shopt_nocaseglob);
+    PRINTSETTING(noclobber, shopt_noclobber);
+    PRINTSETTING(noexec, shopt_noexec);
+    PRINTSETTING(noglob, shopt_noglob);
+    PRINTSETTING(notify, shopt_notify);
+    PRINTSETTING(nounset, shopt_nounset);
+    PRINTSETTING(nullglob, shopt_nullglob);
+    PRINTSETTING(posix, posixly_correct);
+    PRINTSETTING(verbose, shopt_verbose);
+    PRINTSETTING(xtrace, shopt_xtrace);
+#undef PRINTSETTING
 }
 
 const char set_help[] = Ngt(

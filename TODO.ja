@@ -1,7 +1,9 @@
-exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
+テストスクリプト
+	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
+	set -o, set +o
+	ループパイプのテストスクリプト
 配列の解釈・代入
 メールチェック
-ループパイプのテストスクリプト
 gettext 対応
 
 組込みコマンド
@@ -29,7 +31,7 @@ gettext 対応
 	pushd -n
 	read -aprs
 	readonly -afp
-	set -o +o
+	set
 	shift
 	source/.
 	suspend -f
