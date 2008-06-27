@@ -14,9 +14,11 @@ Yash 2.0 alpha2
      now sourced on start-up.
   +  '--noprofile', '--norcfile' and '--rcfile' options
   +  "pwd", "set", "exit", "return", "break", "continue", "jobs",
-     "fg", "bg" and "disown" builtins
+     "fg", "bg", "wait" and "disown" builtins
   *  '--nocaseglob' was misinterpreted as '-c'.
   *  It was not fully case-insensitive when '--nocaseglob' is on.
+  *  If job control is off, an interactive shell no longer prints
+     changed status of jobs before prompt.
   =  Error handling for unset parameters was improved.
   =  The help message for 'yash --help' is now much briefer.
 

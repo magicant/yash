@@ -18,6 +18,8 @@ input.err
 input.out
 input.t
 input.tst
+job.p.out
+job.p.tst
 option.p.err
 option.p.out
 option.p.tst
