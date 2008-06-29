@@ -31,14 +31,14 @@ if [ x"$PWD" = x"${TESTTMP}/path.p.link" ] && [ x"$PWD" = x"$(pwd)" ]; then
 fi
 
 cd "${TESTTMP}"
-CDPATH=${TESTTMP}/dir/dir:${TESTTMP}/dir cd dir >${TESTTMP}/path.p.tmp
+CDPATH=${TESTTMP}/dir/dir:${TESTTMP}/dir cd dir >"${TESTTMP}/path.p.tmp"
 if [ x"$PWD" = x"${TESTTMP}/dir/dir" ] &&
 	[ x"$PWD" = x"$(cat "${TESTTMP}/path.p.tmp")" ]
 then
 	echo cd \$CDPATH 1
 fi
 cd ../..
-mv ${TESTTMP}/dir/dir ${TESTTMP}/dir/dir2
+mv "${TESTTMP}/dir/dir" "${TESTTMP}/dir/dir2"
 CDPATH=${TESTTMP}/dir:${TESTTMP}/dir/dir2 cd dir
 if [ x"$PWD" = x"${TESTTMP}/dir" ]; then
 	echo cd \$CDPATH 2

@@ -1,4 +1,4 @@
-tmp=${TESTTMP}/option
+tmp="${TESTTMP}/option"
 mkdir -p "$tmp"
 
 echo ===== -h =====

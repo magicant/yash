@@ -1,4 +1,4 @@
-tmp=${TESTTMP}/option.p.tmp
+tmp="${TESTTMP}/option.p.tmp"
 
 echo ===== -a =====
 set -a
