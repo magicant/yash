@@ -548,7 +548,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 finish:
 		if (finally_exit) {
 		    wchar_t argv0[] = L"EOF";
-		    exit_builtin(1, (void *[]) { argv0 });
+		    exit_builtin(1, (void *[]) { argv0, NULL });
 		} else
 		    goto out;
 		break;
