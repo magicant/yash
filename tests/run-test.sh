@@ -21,7 +21,11 @@ echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
 echo "Any output from the tests indicates a possible malfunction"
 
 # make temporary directory
-TESTTMP="${TMPDIR:-/tmp}/yashtest.$$"
+: ${TMPDIR:=/tmp}
+if [ x"${TMPDIR}" = x"${TMPDIR#/}" ]; then
+    TMPDIR=/tmp
+fi
+TESTTMP="${TMPDIR}/yashtest.$$"
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
     echo Cannot create temporary directory
     exit 1

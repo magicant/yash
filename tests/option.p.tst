@@ -1,3 +1,5 @@
+tmp=${TESTTMP}/option.p.tmp
+
 echo ===== -a =====
 set -a
 # TODO unset foo bar
@@ -19,9 +21,6 @@ echo ===== -f =====
 set -f
 echo /*
 set +o noglob
-
-echo ===== -h =====
-# TODO option: -h
 
 echo ===== -m =====
 echo ===== -b =====
@@ -68,5 +67,16 @@ $INVOKE $TESTEE -o ignoreeof <<\END
 echo ignoreeof
 END
 echo ok
+
+echo ===== -o +o =====
+# TODO need `eval' builtin
+#set -aeu
+#set -o > "$tmp"
+#saveset=$(set +o)
+#set +aeu
+#eval "$saveset"
+#set -o | diff "$tmp" - &&
+echo ok
+rm -f "$tmp"
 
 # test of -C option is in "redir.p.tst"

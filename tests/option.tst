@@ -1,6 +1,9 @@
 tmp=${TESTTMP}/option
 mkdir -p "$tmp"
 
+echo ===== -h =====
+# TODO option: -h
+
 echo ===== nocaseglob =====
 set --nocaseglob
 echo O[OPQ]T*ON.tst

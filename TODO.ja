@@ -1,6 +1,5 @@
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
-	set -o, set +o
 	ループパイプのテストスクリプト
 配列の解釈・代入
 メールチェック
