@@ -35,6 +35,7 @@
 #include "strbuf.h"
 #include "plist.h"
 #include "input.h"
+#include "alias.h"
 #include "parser.h"
 #include "expand.h"
 
@@ -1076,12 +1077,22 @@ wordunit_T *parse_word(aliastype_T type)
  * false for. It is not an error if there is no characters to be a word. */
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
+    switch (type) {
+	case noalias:
+	    break;
+	case globalonly:
+	    substitute_alias(&cbuf, cindex, true);
+	    skip_blanks_and_comment();
+	    break;
+	case anyalias:
+	    substitute_alias(&cbuf, cindex, false);
+	    skip_blanks_and_comment();
+	    break;
+    }
+
     wordunit_T *first = NULL, **lastp = &first, *wu;
     bool indq = false;  /* in double quotes? */
     size_t startindex = cindex;
-
-    // TODO parser.c: parse_word: alias expansion
-    (void) type;
 
 /* appends the substring from `startindex' to `cindex' as a new word unit
  * to `*lastp' */
@@ -1410,7 +1421,8 @@ fail:
  * `cindex' points to '(' when the function is called, and ')' when returns. */
 wordunit_T *parse_cmdsubst_in_paren(void)
 {
-    // TODO parser: parse_cmdsubst_in_paren: temporarily disable aliases
+    bool save_alias_enabled = alias_enabled;
+    alias_enabled = false;
     plist_T save_pending_heredocs = pending_heredocs;
     pl_init(&pending_heredocs);
 
@@ -1434,6 +1446,7 @@ wordunit_T *parse_cmdsubst_in_paren(void)
 
     pl_destroy(&pending_heredocs);
     pending_heredocs = save_pending_heredocs;
+    alias_enabled = save_alias_enabled;
     return result;
 }
 

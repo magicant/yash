@@ -31,6 +31,7 @@
 #endif
 #include "option.h"
 #include "util.h"
+#include "plist.h"
 #include "exec.h"
 
 
@@ -156,6 +157,19 @@ wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 void *copyaswcs(const void *p)
 {
     return xwcsdup(p);
+}
+
+/* Comparison function used in `sort_mbs_array'. */
+static int compare_mbs(const void *p1, const void *p2)
+{
+    return strcoll(*(char *const *) p1, *(char *const *) p2);
+}
+
+/* Sorts a NULL-terminated array of multibyte strings
+ * according to the current locale. */
+void sort_mbs_array(void **array)
+{
+    qsort(array, plcount(array), sizeof *array, compare_mbs);
 }
 
 

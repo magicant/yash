@@ -1,0 +1,6 @@
+c b a -A- -B- -C- A B C
+C='c'
+singlequote=''\'''
+pipe alias
+restored
+complex alias

@@ -1379,6 +1379,25 @@ void **reescape_full_array(void **const wcsarray)
     return wcsarray;
 }
 
+/* Quotes the specified string by singlequotes.
+ * If the string contains singlequotes, they are backslashed. */
+wchar_t *quote_sq(const wchar_t *s)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    wb_wccat(&buf, L'\'');
+    while (*s) {
+	if (*s != L'\'') {
+	    wb_wccat(&buf, *s);
+	} else {
+	    wb_cat(&buf, L"'\\''");
+	}
+	s++;
+    }
+    wb_wccat(&buf, L'\'');
+    return wb_towcs(&buf);
+}
+
 /* Removes quotes (', ", \). The result is a newly malloced string. */
 wchar_t *unquote(const wchar_t *s)
 {

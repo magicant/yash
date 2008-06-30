@@ -26,6 +26,7 @@
 #include "strbuf.h"
 #include "hashtable.h"
 #include "path.h"
+#include "alias.h"
 #include "job.h"
 #include "builtin.h"
 #include "exec.h"
@@ -69,6 +70,10 @@ void init_builtin(void)
 	/* defined in "path.c" */
 	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
 	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
+
+	/* defined in "alias.c" */
+	DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help);
+	DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help);
 
 	/* defined in "job.c" */
 	DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);

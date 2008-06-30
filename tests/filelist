@@ -2,6 +2,8 @@ filelist
 Makefile
 run-test.sh
 invoke.c
+alias.p.out
+alias.p.tst
 builtin.p.out
 builtin.p.tst
 builtin.out

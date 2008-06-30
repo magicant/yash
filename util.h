@@ -98,6 +98,9 @@ extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 extern void *copyaswcs(const void *p)
     __attribute__((malloc,warn_unused_result));
 
+extern void sort_mbs_array(void **array)
+    __attribute__((nonnull));
+
 /* Returns min(maxlen, strlen(s)). */
 size_t xstrnlen(const char *s, size_t maxlen)
 {

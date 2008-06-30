@@ -34,6 +34,7 @@
 #include "strbuf.h"
 #include "path.h"
 #include "input.h"
+#include "alias.h"
 #include "parser.h"
 #include "variable.h"
 #include "sig.h"
@@ -203,6 +204,7 @@ int main(int argc, char **argv)
     init_shellfds();
     init_job();
     init_builtin();
+    init_alias();
 
     wchar_t *command = command;
     FILE *input = input;

@@ -13,7 +13,7 @@ Yash 2.0 alpha2
   +  起動時に /etc/profile や ~/.yashrc を読み込むように
   +  --noprofile, --norcfile, --rcfile オプション
   +  "pwd", "set", "exit", "return", "break", "continue", "jobs",
-     "fg", "bg", "wait", "disown" 組込み
+     "fg", "bg", "wait", "disown", "alias", "unalias" 組込み
   *  --nocaseglob が -c として解釈されていた
   *  --nocaseglob で大文字小文字の認識が不十分だった
   *  ジョブ制御がオフなら、対話シェルでもジョブの状態変化を

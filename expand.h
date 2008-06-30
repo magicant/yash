@@ -25,16 +25,18 @@
 /* type of tilde expansion */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 
+struct wordunit_T;
 extern bool expand_line(
 	void *const *restrict args,
 	int *restrict argcp,
 	void ***restrict argvp)
     __attribute__((nonnull));
-extern wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
+extern wchar_t *expand_single(const struct wordunit_T *arg, tildetype_T tilde)
     __attribute__((malloc,warn_unused_result));
-extern char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
+extern char *expand_single_with_glob(
+	const struct wordunit_T *arg, tildetype_T tilde)
     __attribute__((malloc,warn_unused_result));
-extern wchar_t *expand_string(const wordunit_T *w, bool esc)
+extern wchar_t *expand_string(const struct wordunit_T *w, bool esc)
     __attribute__((malloc,warn_unused_result));
 
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
@@ -45,6 +47,8 @@ extern wchar_t *escapefree(
 extern wchar_t *unescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *unescapefree(wchar_t *s)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *quote_sq(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
