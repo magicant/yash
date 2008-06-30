@@ -6,7 +6,6 @@
 gettext 対応
 
 組込みコマンド
-	alias -gp
 	bind
 	command -pvV
 	compgen
@@ -40,5 +39,4 @@ gettext 対応
 	type
 	ulimit -acdfilmnpqstvxHNS
 	umask -pS
-	unalias -a
 	unset -fv

@@ -887,6 +887,9 @@ command_T *parse_command(void)
     result->c_type = CT_SIMPLE;
     redirlastp = parse_assignments_and_redirects(result);
     result->c_words = parse_words_and_redirects(redirlastp, true);
+    /* `tryparse_function' removes all line continuations in the command word,
+     * so we don't have to worry about line continuations in alias substitution.
+     * But line continuations aren't handled properly for other words. */
 
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L'(')
