@@ -108,7 +108,10 @@ echo >&5
 date >&5
 echo >&5
 echo "# Invocation command line was:" >&5
-echo "%" "$0" "$@" >&5
+echo "%" $(for i in "$0" "$@"; do echo "$i"; done | sed -e '
+/[^[:alnum:]]/ {
+s/\(.*\)/'"'"'\1'"'"'/
+}') >&5
 echo >&5
 echo "#" uname -n = `uname -n` >&5
 echo "#" uname -m = `uname -m` >&5
@@ -172,7 +175,7 @@ then
     cc="${CC:-gcc}"
     if [ x"${debug}" = x"yes" ]
     then
-	cflags="-std=c99 -O1 -ggdb -Wall -Wextra"
+	cflags="-std=c99 -O1 -fno-unit-at-a-time -ggdb -Wall -Wextra"
     else
 	cflags="-std=c99 -O2 -g"
 	defconfigh "NDEBUG"

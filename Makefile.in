@@ -121,7 +121,7 @@ maintainer-clean:
 
 reconfigure:
 	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q \
-	}' config.log) && { echo $$line; $$line; }; } || \
+	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	echo Cannot read \"config.log\". Try usual \"./configure\" >&2
 
 .PHONY: all test check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean reconfigure
