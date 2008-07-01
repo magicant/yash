@@ -109,7 +109,8 @@ date >&5
 echo >&5
 echo "# Invocation command line was:" >&5
 echo "%" $(for i in "$0" "$@"; do echo "$i"; done | sed -e '
-/[^[:alnum:]]/ {
+/[^[:alnum:]./=-]/ {
+s/'"'"'/'"'\\''"'/
 s/\(.*\)/'"'"'\1'"'"'/
 }') >&5
 echo >&5
