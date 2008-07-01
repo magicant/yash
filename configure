@@ -59,9 +59,19 @@ do
 	    execprefix="${i#--exec-prefix=}" ;;
 	--bindir=*)
 	    bindir="${i#--bindir=}" ;;
+	?*=*)
+	    if echo "$i" |
+		LC_ALL=C grep -E "^[[:alpha:]][[:alnum:]]*=" >/dev/null
+	    then
+		eval "${i%%=*}="'${i#*=}'
+	    else
+		echo "$0: $i: unknown argument" >&2
+		exit 1
+	    fi
+	    ;;
 	*)
-	echo "$0: $i: unknown option" >&2
-	exit 1
+	    echo "$0: $i: unknown argument" >&2
+	    exit 1
     esac
 done
 
@@ -119,7 +129,7 @@ checking () {
 }
 checkby () {
     echo "%" "$@" >&5
-    eval "$@" '>&5 2>&1'
+    eval "$@" >&5 2>&1
 }
 trymake () {
     echo "%" ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
