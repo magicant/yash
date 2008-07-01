@@ -274,7 +274,7 @@ static void execute_profile(void)
 
     FILE *f;
     wchar_t *wpath;
-    char *path;
+    char *path = NULL;
 
     f = reopen_with_shellfd(fopen("/etc/profile", "r"), "r");
     if (f) {
