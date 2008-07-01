@@ -55,7 +55,9 @@ extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int break_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char return_help[], break_help[], continue_help[];
+extern int eval_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char return_help[], break_help[], continue_help[], eval_help[];
 
 
 #endif /* EXEC_H */

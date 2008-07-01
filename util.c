@@ -117,7 +117,7 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 	    *s++ = *elem++;
 	if (i + 1 < elemcount) {
 	    const wchar_t *pad = padding;
-	    if (*pad)
+	    while (*pad)
 		*s++ = *pad++;
 	}
     }

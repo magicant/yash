@@ -69,14 +69,12 @@ END
 echo ok
 
 echo ===== -o +o =====
-# TODO need `eval' builtin
-#set -aeu
-#set -o > "$tmp"
-#saveset=$(set +o)
-#set +aeu
-#eval "$saveset"
-#set -o | diff "$tmp" - &&
-echo ok
+set -aeu
+set -o > "$tmp"
+saveset=$(set +o)
+set +aeu
+eval "$saveset"
+set -o | diff "$tmp" - && echo ok
 rm -f "$tmp"
 
 # test of -C option is in "redir.p.tst"

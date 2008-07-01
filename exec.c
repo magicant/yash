@@ -1320,5 +1320,34 @@ const char continue_help[] = Ngt(
 "If <n> is specified, returns to that of the <n>th outer loop.\n"
 );
 
+/* The "eval" builtin */
+int eval_builtin(int argc __attribute__((unused)), void **argv)
+{
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  eval [arg...]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    wchar_t *args = joinwcsarray(argv + xoptind, L" ");
+    exec_wcs(args, "eval", false);
+    free(args);
+    return laststatus;
+}
+
+const char eval_help[] = Ngt(
+"eval - evaluate arguments as command\n"
+"\teval [arg...]\n"
+"Parses and executes the specified <arg>s as a command in the current shell\n"
+"environment.\n"
+);
+
 
 /* vim: set ts=8 sts=4 sw=4 noet: */
