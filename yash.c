@@ -479,7 +479,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 /* Parses input from a file stream and executes the commands.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
  * If `intrinput' is true, the input stream is considered interactive.
- * If there are no commands in `code', `laststatus' is set to 0. */
+ * If there are no commands in input, `laststatus' is set to 0. */
 void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 {
     struct input_readline_info rlinfo;

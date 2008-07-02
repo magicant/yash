@@ -8,6 +8,7 @@ builtin.p.out
 builtin.p.tst
 builtin.out
 builtin.tst
+dot.t
 expand.p.out
 expand.p.tst
 expand.out

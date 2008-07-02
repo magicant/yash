@@ -1349,5 +1349,87 @@ const char eval_help[] = Ngt(
 "environment.\n"
 );
 
+int dot_builtin(int argc, void **argv)
+{
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(argv[0]);
+		return EXIT_SUCCESS;
+	    default:  print_usage:
+		fprintf(stderr, gt("Usage:  . file [arg...]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    const wchar_t *filename = argv[xoptind++];
+    if (!filename)
+	goto print_usage;
+
+    char *mbsfilename = malloc_wcstombs(filename);
+    if (!mbsfilename) {
+	xerror(0, Ngt("%ls: unexpected error"), (wchar_t *) argv[0]);
+	return EXIT_ERROR;
+    }
+
+    char *path;
+    if (!wcschr(filename, L'/')) {
+	path = which(mbsfilename, get_path_array(PA_PATH), is_readable);
+	if (!path && !posixly_correct)
+	    goto nowhich;
+    } else {
+nowhich:
+	path = mbsfilename;
+    }
+    if (!path) {
+	xerror(ENOENT, Ngt("%ls: %s"), (wchar_t *) argv[0], mbsfilename);
+	free(mbsfilename);
+	if (!is_interactive)
+	    exit_shell_with_status(EXIT_FAILURE1);
+	return EXIT_FAILURE1;
+    }
+
+    bool exp = xoptind < argc;
+    if (exp) {
+	open_new_environment();
+	set_positional_parameters(argv + xoptind);
+    }
+
+    FILE *f = fopen(path, "r");
+    if (path != mbsfilename)
+	free(path);
+    f = reopen_with_shellfd(f, "r");
+    if (!f) {
+	xerror(errno, Ngt("%ls: %s"), (wchar_t *) argv[0], mbsfilename);
+	free(mbsfilename);
+	if (!is_interactive)
+	    exit_shell_with_status(EXIT_FAILURE1);
+	return EXIT_FAILURE1;
+    }
+
+    exec_input(f, mbsfilename, false, false);
+    fclose(f);
+    free(mbsfilename);
+
+    if (exp) {
+	close_current_environment();
+    }
+
+    return laststatus;
+}
+
+const char dot_help[] = Ngt(
+"dot - read file and execute commands\n"
+"\t. file [arg...]\n"
+"Reads the specified <file> and executes commands in it.\n"
+"If <arg>s are specified, they are used as the positional parameters.\n"
+"Otherwise, the positional parameters are not changed.\n"
+"If <file> does not contain any slashes, the shell searches $PATH for a\n"
+"readable shell script file whose name is <file>. To ensure that the file in\n"
+"the current working directory is used, start <file> with \"./\".\n"
+);
+
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

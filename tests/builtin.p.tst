@@ -53,8 +53,6 @@ retfunc () {
 retfunc
 echo $?
 
-# TODO check if "return" works fine in a sourced file
-
 while true; do
 	echo while ok
 	break
@@ -136,3 +134,9 @@ for i in 1 2 3; do
 	echo !
 done
 echo done
+
+
+echo ===== . =====
+
+. ./dot.t
+echo $count

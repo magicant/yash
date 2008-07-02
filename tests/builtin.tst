@@ -22,3 +22,11 @@ for i in 1 2; do
 	echo continue $i
 	contfunc
 done
+
+
+echo ===== . =====
+
+set a b c
+. ./dot.t 1 2 3
+echo $count
+echo -"$@"-

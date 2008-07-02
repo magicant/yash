@@ -5,3 +5,10 @@ continue 1
 continue ok
 continue 2
 continue ok
+===== . =====
+-1 2 3-
+--
+returning --
+returning --
+0
+-a b c-

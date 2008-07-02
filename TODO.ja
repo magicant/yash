@@ -31,7 +31,6 @@ gettext 対応
 	readonly -afp
 	set
 	shift
-	source/.
 	suspend -f
 	test/[
 	times
