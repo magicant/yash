@@ -1220,16 +1220,16 @@ int return_builtin(int argc __attribute__((unused)), void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    default:
-		fprintf(stderr, gt("Usage:  %ls [n]\n"), (wchar_t *) argv[0]);
+		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
 		return EXIT_ERROR;
 	}
     }
 
     int status;
-    const wchar_t *statusstr = argv[xoptind];
+    const wchar_t *statusstr = ARGV(xoptind);
     if (statusstr == NULL) {
 	status = laststatus;  // TODO return_builtin: when executing trap
     } else {
@@ -1263,16 +1263,16 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    default:
-		fprintf(stderr, gt("Usage:  %ls [n]\n"), (wchar_t *) argv[0]);
+		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
 		return EXIT_ERROR;
 	}
     }
 
     unsigned count;
-    const wchar_t *countstr = argv[xoptind];
+    const wchar_t *countstr = ARGV(xoptind);
     if (countstr == NULL) {
 	count = 1;
     } else {
@@ -1281,25 +1281,25 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	count = wcstoul(countstr, &endofstr, 0);
 	if (errno || *endofstr != L'\0') {
 	    xerror(0, Ngt("%ls: `%ls' is not a valid integer"),
-		    (wchar_t *) argv[0], countstr);
+		    ARGV(0), countstr);
 	    return EXIT_FAILURE1;
 	} else if (count == 0) {
 	    xerror(0, Ngt("%ls: %u: not a positive integer"),
-		    (wchar_t *) argv[0], count);
+		    ARGV(0), count);
 	    return EXIT_FAILURE1;
 	}
     }
     assert(count > 0);
     if (execinfo.loopnest == 0) {
-	xerror(0, Ngt("%ls: not in loop"), (wchar_t *) argv[0]);
+	xerror(0, Ngt("%ls: not in loop"), ARGV(0));
 	return EXIT_FAILURE1;
     }
     if (count > execinfo.loopnest)
 	count = execinfo.loopnest;
-    if (wcscmp(argv[0], L"break") == 0) {
+    if (wcscmp(ARGV(0), L"break") == 0) {
 	execinfo.breakcount = count;
     } else {
-	assert(wcscmp(argv[0], L"continue") == 0);
+	assert(wcscmp(ARGV(0), L"continue") == 0);
 	execinfo.breakcount = count - 1;
 	execinfo.exception = ee_continue;
     }
@@ -1328,7 +1328,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  eval [arg...]\n"));
@@ -1356,7 +1356,7 @@ int dot_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  . file [arg...]\n"));
@@ -1364,13 +1364,13 @@ int dot_builtin(int argc, void **argv)
 	}
     }
 
-    const wchar_t *filename = argv[xoptind++];
+    const wchar_t *filename = ARGV(xoptind++);
     if (!filename)
 	goto print_usage;
 
     char *mbsfilename = malloc_wcstombs(filename);
     if (!mbsfilename) {
-	xerror(0, Ngt("%ls: unexpected error"), (wchar_t *) argv[0]);
+	xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
 	return EXIT_ERROR;
     }
 
@@ -1384,7 +1384,7 @@ nowhich:
 	path = mbsfilename;
     }
     if (!path) {
-	xerror(ENOENT, Ngt("%ls: %s"), (wchar_t *) argv[0], mbsfilename);
+	xerror(ENOENT, Ngt("%ls: %s"), ARGV(0), mbsfilename);
 	free(mbsfilename);
 	if (!is_interactive)
 	    exit_shell_with_status(EXIT_FAILURE1);
@@ -1402,7 +1402,7 @@ nowhich:
 	free(path);
     f = reopen_with_shellfd(f, "r");
     if (!f) {
-	xerror(errno, Ngt("%ls: %s"), (wchar_t *) argv[0], mbsfilename);
+	xerror(errno, Ngt("%ls: %s"), ARGV(0), mbsfilename);
 	free(mbsfilename);
 	if (!is_interactive)
 	    exit_shell_with_status(EXIT_FAILURE1);

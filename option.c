@@ -231,10 +231,10 @@ int set_builtin(int argc, void **argv)
 	return EXIT_SUCCESS;
     }
     if (argc == 2) {
-	if (wcscmp(argv[1], L"-o") == 0) {
+	if (wcscmp(ARGV(1), L"-o") == 0) {
 	    set_builtin_print_current_settings();
 	    return EXIT_SUCCESS;
-	} else if (wcscmp(argv[1], L"+o") == 0) {
+	} else if (wcscmp(ARGV(1), L"+o") == 0) {
 	    set_builtin_print_restoring_commands();
 	    return EXIT_SUCCESS;
 	}
@@ -248,12 +248,12 @@ int set_builtin(int argc, void **argv)
 	    case L'o':
 		if (!set_long_option(xoptarg)) {
 		    xerror(0, Ngt("%ls: %lco %ls: invalid option"),
-			    (wchar_t *) argv[0], (wint_t) xoptopt, xoptarg);
+			    ARGV(0), (wint_t) xoptopt, xoptarg);
 		    goto optionerror;
 		}
 		break;
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    case L'?':  optionerror:
 		fprintf(stderr,
@@ -279,7 +279,7 @@ int set_builtin(int argc, void **argv)
 
     /* set positional parameters */
     if (xoptind < argc ||
-	    (xoptind == argc && wcscmp(argv[xoptind - 1], L"--") == 0))
+	    (xoptind == argc && wcscmp(ARGV(xoptind - 1), L"--") == 0))
 	set_positional_parameters(argv + xoptind);
 
     return EXIT_SUCCESS;

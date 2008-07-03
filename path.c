@@ -824,7 +824,7 @@ int cd_builtin(int argc, void **argv)
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  cd [-L|-P] [dir]\n"));
@@ -837,7 +837,7 @@ int cd_builtin(int argc, void **argv)
 	char *pwd = xgetcwd();
 	if (pwd == NULL) {
 	    xerror(errno, Ngt("%ls: cannot find out current directory"),
-		    (wchar_t *) argv[0]);
+		    ARGV(0));
 	    err = true;
 	} else {
 	    wchar_t *wpwd = realloc_mbstowcs(pwd);
@@ -847,7 +847,7 @@ int cd_builtin(int argc, void **argv)
 		oldpwd = getvar(VAR_PWD);
 	    } else {
 		xerror(0, Ngt("%ls: name of current directory contains "
-			    "invalid characters"), (wchar_t *) argv[0]);
+			    "invalid characters"), ARGV(0));
 		err = true;
 	    }
 	}
@@ -858,20 +858,18 @@ int cd_builtin(int argc, void **argv)
     if (argc <= xoptind) {  /* step 1-2 */
 	newpwd = getvar(VAR_HOME);
 	if (newpwd == NULL || newpwd[0] == L'\0') {
-	    xerror(0, Ngt("%ls: HOME directory not specified"),
-		    (wchar_t *) argv[0]);
+	    xerror(0, Ngt("%ls: HOME directory not specified"), ARGV(0));
 	    return EXIT_FAILURE1;
 	}
-    } else if (wcscmp(argv[xoptind], L"-") == 0) {
+    } else if (wcscmp(ARGV(xoptind), L"-") == 0) {
 	newpwd = getvar(VAR_OLDPWD);
 	if (newpwd == NULL || newpwd[0] == L'\0') {
-	    xerror(0, Ngt("%ls: OLDPWD variable not specified"),
-		    (wchar_t *) argv[0]);
+	    xerror(0, Ngt("%ls: OLDPWD variable not specified"), ARGV(0));
 	    return EXIT_FAILURE1;
 	}
 	printnewdir = true;
     } else {
-	newpwd = argv[xoptind];
+	newpwd = ARGV(xoptind);
     }
 
     wb_init(&curpath);
@@ -882,7 +880,7 @@ int cd_builtin(int argc, void **argv)
 	char *mbsnewpwd = malloc_wcstombs(newpwd);
 	if (mbsnewpwd == NULL) {
 	    wb_destroy(&curpath);
-	    xerror(0, Ngt("%ls: unexpected error"), (wchar_t *) argv[0]);
+	    xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
 	    return EXIT_ERROR;
 	}
 	char *path = which(mbsnewpwd, get_path_array(PA_CDPATH), is_directory);
@@ -913,11 +911,11 @@ step7:
 	/* step 7 */
 	char *mbscurpath = realloc_wcstombs(wb_towcs(&curpath));
 	if (mbscurpath == NULL) {
-	    xerror(0, Ngt("%ls: unexpected error"), (wchar_t *) argv[0]);
+	    xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
 	    return EXIT_ERROR;
 	}
 	if (chdir(mbscurpath) < 0) {
-	    xerror(errno, Ngt("%ls: `%s'"), (wchar_t *) argv[0], mbscurpath);
+	    xerror(errno, Ngt("%ls: `%s'"), ARGV(0), mbscurpath);
 	    free(mbscurpath);
 	    return EXIT_FAILURE1;
 	}
@@ -929,7 +927,7 @@ step7:
 	char *actualpwd = xgetcwd();
 	if (actualpwd == NULL) {
 	    xerror(errno, Ngt("%ls: cannot find out new working directory"),
-		    (wchar_t *) argv[0]);
+		    ARGV(0));
 	    return EXIT_FAILURE1;
 	} else {
 	    if (printnewdir)
@@ -938,7 +936,7 @@ step7:
 	    wchar_t *wactualpwd = realloc_mbstowcs(actualpwd);
 	    if (wactualpwd == NULL) {
 		xerror(0, Ngt("%ls: name of new working directory contains "
-			    "invalid characters"), (wchar_t *) argv[0]);
+			    "invalid characters"), ARGV(0));
 		return EXIT_FAILURE1;
 	    } else {
 		if (!set_variable(VAR_PWD, wactualpwd, false, false))
@@ -952,12 +950,12 @@ step7:
 	if (path[0] != L'\0') {
 	    char *mbspath = malloc_wcstombs(path);
 	    if (mbspath == NULL) {
-		xerror(0, Ngt("%ls: unexpected error"), (wchar_t *) argv[0]);
+		xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
 		free(path);
 		return EXIT_ERROR;
 	    }
 	    if (chdir(mbspath) < 0) {
-		xerror(errno, Ngt("%ls: `%s'"), (wchar_t *) argv[0], mbspath);
+		xerror(errno, Ngt("%ls: `%s'"), ARGV(0), mbspath);
 		free(mbspath);
 		free(path);
 		return EXIT_FAILURE1;
@@ -1009,7 +1007,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
@@ -1034,8 +1032,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 
     mbspwd = xgetcwd();
     if (mbspwd == NULL) {
-	xerror(errno, Ngt("%ls: cannot find out current directory"),
-		(wchar_t *) argv[0]);
+	xerror(errno, Ngt("%ls: cannot find out current directory"), ARGV(0));
 	return EXIT_FAILURE1;
     }
     printf("%s\n", mbspwd);

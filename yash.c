@@ -594,7 +594,7 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
 		forceexit = true;
 		break;
 	    case L'-':
-		print_builtin_help(argv[0]);
+		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
@@ -616,7 +616,7 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
     }
 
     int status;
-    const wchar_t *statusstr = argv[xoptind];
+    const wchar_t *statusstr = ARGV(xoptind);
     if (statusstr == NULL) {
 	status = -1;  // TODO exit_builtin: when executing trap
     } else {

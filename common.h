@@ -46,6 +46,8 @@
 # define ngt(MSGID,MSGIDS,MSGIDP,N) MSGID
 #endif
 
+#define ARGV(i) ((wchar_t *) argv[i])
+
 #endif /* COMMON_H */
 
 

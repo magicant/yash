@@ -208,7 +208,7 @@ int alias_builtin(int argc, void **argv)
 			case L'g':  global = true;  break;
 			case L'p':  prefix = true;  break;
 			case L'-':
-				print_builtin_help(argv[0]);
+				print_builtin_help(ARGV(0));
 				return EXIT_SUCCESS;
 			default:
 				fprintf(stderr, gt(posixly_correct
@@ -235,7 +235,7 @@ int alias_builtin(int argc, void **argv)
 		return EXIT_SUCCESS;
 	}
 	do {
-		const wchar_t *arg = argv[xoptind];
+		const wchar_t *arg = ARGV(xoptind);
 		if (!define_alias(arg, global)) {
 			alias_T *alias = ht_get(&aliases, arg).value;
 			if (alias) {
@@ -246,7 +246,7 @@ int alias_builtin(int argc, void **argv)
 				xerror(0, wcschr(arg, L'=')
 						? Ngt("%ls: %ls: invalid alias name")
 						: Ngt("%ls: %ls: no such alias"),
-						(wchar_t *) argv[0], arg);
+						ARGV(0), arg);
 				err = true;
 			}
 		}
@@ -287,7 +287,7 @@ int unalias_builtin(int argc, void **argv)
 		switch (opt) {
 			case L'a':  all = true;  break;
 			case L'-':
-				print_builtin_help(argv[0]);
+				print_builtin_help(ARGV(0));
 				return EXIT_SUCCESS;
 			default:
 				goto print_usage;
@@ -300,10 +300,9 @@ int unalias_builtin(int argc, void **argv)
 		if (xoptind == argc)
 			goto print_usage;
 		do {
-			const wchar_t *arg = argv[xoptind];
+			const wchar_t *arg = ARGV(xoptind);
 			if (!remove_alias(arg)) {
-				xerror(0, Ngt("%ls: %ls: no such alias"),
-						(wchar_t *) argv[0], arg);
+				xerror(0, Ngt("%ls: %ls: no such alias"), ARGV(0), arg);
 				err = true;
 			}
 		} while (++xoptind < argc);
