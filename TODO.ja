@@ -13,7 +13,6 @@ gettext 対応
 	declare/typeset/...
 	dirs -clpv
 	echo -eEn
-	eval
 	exec -acl
 	export -fnp
 	fc -enlrs
