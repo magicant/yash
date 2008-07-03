@@ -782,8 +782,30 @@ void close_current_environment(void)
 void clear_temporary_variables(void)
 {
     if (current_env_is_temporary) {
-	close_current_environment();
 	current_env_is_temporary = false;
+	close_current_environment();
+    }
+}
+
+/* Makes all temporary variables permanent and exported. */
+void fix_temporary_variables(void)
+{
+    if (current_env_is_temporary) {
+	size_t i = 0;
+	kvpair_T kv;
+	while ((kv = ht_next(&current_env->contents, &i)).key) {
+	    const char *name = kv.key;
+	    variable_T *var = kv.value;
+	    variable_T *newvar = new_local(name);
+	    assert(!(var->v_type & VF_ARRAY));
+	    if (newvar) {
+		newvar->v_type = var->v_type | VF_EXPORT;
+		newvar->v_value = xwcsdup(var->v_value);
+		newvar->v_getter = NULL;
+		variable_set(name, newvar);
+	    }
+	}
+	clear_temporary_variables();
     }
 }
 

@@ -11,6 +11,7 @@ History of Yash
 Yash 2.0 alpha3
 
   +  "eval" and "." builtins
+  *  fixed token delimitation in alias substitution
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha2

@@ -91,6 +91,7 @@ extern void **get_variable(const char *name, bool *concat)
 extern void open_new_environment(void);
 extern void close_current_environment(void);
 extern void clear_temporary_variables(void);
+extern void fix_temporary_variables(void);
 
 extern char **decompose_paths(const wchar_t *paths)
     __attribute__((malloc,warn_unused_result));

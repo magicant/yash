@@ -780,7 +780,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	neglect_all_jobs();
 	clear_traps();
 	clear_shellfds();
-	// TODO fork_and_reset: fix_temporary_variables
+	fix_temporary_variables();
 	is_interactive_now = false;
     }
     return cpid;
