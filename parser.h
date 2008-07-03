@@ -310,6 +310,12 @@ extern bool parse_string(
     __attribute__((nonnull));
 
 
+/********** Auxiliary function **********/
+
+extern bool is_token_delimiter_char(wchar_t c)
+    __attribute__((pure));
+
+
 /********** Functions that Convert Parse Trees into Strings **********/
 
 extern wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)

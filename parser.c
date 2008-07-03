@@ -275,8 +275,6 @@ static void ensure_buffer(size_t n);
 static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
-static bool is_token_delimiter_char(wchar_t c)
-    __attribute__((pure));
 static bool is_command_delimiter_char(wchar_t c)
     __attribute__((const));
 static bool is_slash_or_closing_brace(wchar_t c)

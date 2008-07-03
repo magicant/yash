@@ -32,6 +32,7 @@
 #include "plist.h"
 #include "hashtable.h"
 #include "alias.h"
+#include "parser.h"
 #include "expand.h"
 #include "builtin.h"
 #include "exec.h"
@@ -140,9 +141,7 @@ void substitute_alias(xwcsbuf_T *buf, size_t i, bool globalonly)
 	size_t j = i;
 	while (is_alias_name_char(buf->contents[j]))
 		j++;
-	if (i < j &&
-			(buf->contents[j] == L'\0'
-			 || !wcschr(L"$\\'\"`", buf->contents[j]))) {
+	if (i < j && is_token_delimiter_char(buf->contents[j])) {
 		wchar_t savechar = buf->contents[j];
 		buf->contents[j] = L'\0';
 		alias_T *alias = ht_get(&aliases, buf->contents + i).value;
