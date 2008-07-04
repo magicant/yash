@@ -223,14 +223,13 @@ int alias_builtin(int argc, void **argv)
 		size_t i = 0;
 		kvpair_T kv;
 
-		pl_init(&list);
-		pl_setmax(&list, aliases.count);
+		pl_initwithmax(&list, aliases.count);
 		while ((kv = ht_next(&aliases, &i)).key)
 			pl_add(&list, alias_to_string(kv.key, kv.value, prefix));
 		sort_mbs_array(list.contents);
 		for (i = 0; i < list.length; i++)
-			fputs(list.contents[i], stdout);
-		recfree(pl_toary(&list), free);
+			fputs(list.contents[i], stdout), free(list.contents[i]);
+		pl_destroy(&list);
 		return EXIT_SUCCESS;
 	}
 	do {

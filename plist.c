@@ -60,16 +60,13 @@ void recfree(void **ary, void freer(void *elem))
  * the return value is the argument `list'. */
 
 
-#define PLIST_INITSIZE 7
-
-
 /* Initializes a pointer list as a new empty list. */
-plist_T *pl_init(plist_T *list)
+plist_T *pl_initwithmax(plist_T *list, size_t max)
 {
-    list->contents = xmalloc((PLIST_INITSIZE + 1) * sizeof (void *));
+    list->contents = xmalloc((max + 1) * sizeof (void *));
     list->contents[0] = NULL;
     list->length = 0;
-    list->maxlength = PLIST_INITSIZE;
+    list->maxlength = max;
     return list;
 }
 

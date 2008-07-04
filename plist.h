@@ -31,7 +31,9 @@ extern size_t plcount(void *const *list)
     __attribute__((pure,nonnull));
 extern void recfree(void **ary, void freer(void *elem));
 
-extern plist_T *pl_init(plist_T *list)
+static inline plist_T *pl_init(plist_T *list)
+    __attribute__((nonnull));
+extern plist_T *pl_initwithmax(plist_T *list, size_t max)
     __attribute__((nonnull));
 extern void pl_destroy(plist_T *list)
     __attribute__((nonnull));
@@ -66,6 +68,15 @@ extern plist_T *pl_add(plist_T *list, void *p)
 extern void *pl_pop(plist_T *list)
     __attribute__((nonnull));
 
+
+#define PLIST_DEFAULT_MAX 7
+
+
+/* Initializes a pointer list as a new empty list. */
+plist_T *pl_init(plist_T *list)
+{
+    return pl_initwithmax(list, PLIST_DEFAULT_MAX);
+}
 
 /* Inserts the first `n' elements of the array `a' at the offset `i'
  * in the pointer list `list'.
