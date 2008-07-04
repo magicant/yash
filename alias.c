@@ -169,18 +169,21 @@ void substitute_alias(xwcsbuf_T *buf, size_t i, bool globalonly)
 
 /********** Builtins **********/
 
-static char *alias_to_string(
-		const wchar_t *name, const alias_T *alias, bool prefix)
-	__attribute__((nonnull,malloc,warn_unused_result));
+static void print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
 
-/* Makes a string printed by the "alias" builtin. */
-char *alias_to_string(const wchar_t *name, const alias_T *alias, bool prefix)
+/* Prints a alias definition to stderr. */
+void print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 {
 	wchar_t *qvalue = quote_sq(alias->value);
-	char *result = malloc_printf(prefix ? "alias %ls=%ls%s\n" : "%ls=%ls\n",
-			name, qvalue, (alias->flags & AF_GLOBAL) ? " -g" : "");
+	const char *format;
+	if (!prefix)
+		format = "%ls=%ls\n";
+	else if (alias->flags & AF_GLOBAL)
+		format = "alias -g %ls=%ls\n";
+	else
+		format = "alias %ls=%ls\n";
+	printf(format, name, qvalue);
 	free(qvalue);
-	return result;
 }
 
 /* The "alias" builtin, which accepts the following options:
@@ -219,17 +222,11 @@ int alias_builtin(int argc, void **argv)
 
 	if (xoptind == argc) {
 		/* print all aliases */
-		plist_T list;
-		size_t i = 0;
-		kvpair_T kv;
-
-		pl_initwithmax(&list, aliases.count);
-		while ((kv = ht_next(&aliases, &i)).key)
-			pl_add(&list, alias_to_string(kv.key, kv.value, prefix));
-		sort_mbs_array(list.contents);
-		for (i = 0; i < list.length; i++)
-			fputs(list.contents[i], stdout), free(list.contents[i]);
-		pl_destroy(&list);
+		kvpair_T *kvs = ht_tokvarray(&aliases);
+		qsort(kvs, aliases.count, sizeof *kvs, keywcscoll);
+		for (size_t i = 0; i < aliases.count; i++)
+			print_alias(kvs[i].key, kvs[i].value, prefix);
+		free(kvs);
 		return EXIT_SUCCESS;
 	}
 	do {
@@ -237,9 +234,7 @@ int alias_builtin(int argc, void **argv)
 		if (!define_alias(arg, global)) {
 			alias_T *alias = ht_get(&aliases, arg).value;
 			if (alias) {
-				char *s = alias_to_string(arg, alias, prefix);
-				fputs(s, stdout);
-				free(s);
+				print_alias(arg, alias, prefix);
 			} else {
 				xerror(0, wcschr(arg, L'=')
 						? Ngt("%ls: %ls: invalid alias name")

@@ -76,11 +76,15 @@ extern int ht_each(hashtable_T *ht, int f(kvpair_T kv))
     __attribute__((nonnull));
 extern kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
     __attribute__((nonnull));
+extern kvpair_T *ht_tokvarray(hashtable_T *ht)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 extern hashval_T hashstr(const void *s)             __attribute__((pure));
 extern int htstrcmp(const void *s1, const void *s2) __attribute__((pure));
 extern hashval_T hashwcs(const void *s)             __attribute__((pure));
 extern int htwcscmp(const void *s1, const void *s2) __attribute__((pure));
+extern int keystrcoll(const void *kv1, const void *kv2) __attribute__((pure));
+extern int keywcscoll(const void *kv1, const void *kv2) __attribute__((pure));
 extern void kfree(kvpair_T kv);
 extern void vfree(kvpair_T kv);
 extern void kvfree(kvpair_T kv);

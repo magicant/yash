@@ -313,6 +313,24 @@ kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
     return (kvpair_T) { NULL, NULL, };
 }
 
+/* Returns a newly malloced array of key-value pairs that contains all the
+ * element of the specified hashtable.
+ * The returned array is terminated by the { NULL, NULL } element. */
+kvpair_T *ht_tokvarray(hashtable_T *ht)
+{
+    kvpair_T *array = xmalloc(sizeof *array * (ht->count + 1));
+    size_t index = 0;
+    for (size_t i = 0; i < ht->capacity; i++) {
+	if (ht->entries[i].kv.key) {
+	    assert(index < ht->count);
+	    array[index++] = ht->entries[i].kv;
+	}
+    }
+    assert(index == ht->count);
+    array[index] = (kvpair_T) { NULL, NULL, };
+    return array;
+}
+
 
 /* A hash function for a multibyte string.
  * The argument is cast from (const char *) to (const void *).
@@ -356,6 +374,20 @@ hashval_T hashwcs(const void *s)
 int htwcscmp(const void *s1, const void *s2)
 {
     return wcscmp((const wchar_t *) s1, (const wchar_t *) s2);
+}
+
+/* A comparison function for key-value pairs with multibyte-string keys.
+ * The arguments are pointers to kvpair_T's, cast to (void *). */
+int keystrcoll(const void *k1, const void *k2)
+{
+    return strcoll(((const kvpair_T *) k1)->key, ((const kvpair_T *) k2)->key);
+}
+
+/* A comparison function for key-value pairs with wide-string keys.
+ * The arguments are pointers to kvpair_T's, cast to (void *). */
+int keywcscoll(const void *k1, const void *k2)
+{
+    return wcscoll(((const kvpair_T *) k1)->key, ((const kvpair_T *) k2)->key);
 }
 
 /* Just `free's the key of the key-value pair `kv'.
