@@ -937,10 +937,12 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     pl_init(&wordlist);
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
+	substitute_alias(&cbuf, cindex, !first);
+	skip_blanks_and_comment();
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
-	} else if ((word = parse_word(first ? anyalias : globalonly))) {
+	} else if ((word = parse_word(noalias))) {
 	    pl_add(&wordlist, word);
 	    first = false;
 	} else {
