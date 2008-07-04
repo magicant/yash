@@ -4,7 +4,7 @@ Yash: yet another shell
 
 Yash is a implementation of command line shell, personally developed
 by Magicant. It is under development aiming at complete comformance to
-POSIX.1-2001.
+POSIX.1 (IEEE Std 1003.1, 2004 Edition).
 
 
 Yash is free software, distributed under the terms of GPL.
