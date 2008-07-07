@@ -265,45 +265,24 @@ int main(int argc, char **argv)
     assert(false);
 }
 
-/* Executes "/etc/profile" and ("$HOME/.yash_profile" or "$HOME/.profile")
- * if this is a login shell. */
+/* Executes "$HOME/.yash_profile" if this is a login shell. */
 static void execute_profile(void)
 {
     if (!is_login_shell || posixly_correct)
 	return;
 
-    FILE *f;
-    wchar_t *wpath;
-    char *path = NULL;
-
-    f = reopen_with_shellfd(fopen("/etc/profile", "r"), "r");
-    if (f) {
-	exec_input(f, "/etc/profile", false, false);
-	fclose(f);
-    }
-
-    f = NULL;
-    wpath = parse_and_expand_string(L"$HOME/.yash_profile", NULL);
+    wchar_t *wpath = parse_and_expand_string(L"$HOME/.yash_profile", NULL);
     if (wpath) {
-	path = realloc_wcstombs(wpath);
+	char *path = realloc_wcstombs(wpath);
 	if (path) {
-	    f = reopen_with_shellfd(fopen(path, "r"), "r");
-	}
-    }
-    if (!f) {
-	wpath = parse_and_expand_string(L"$HOME/.profile", NULL);
-	if (wpath) {
-	    path = realloc_wcstombs(wpath);
-	    if (path) {
-		f = reopen_with_shellfd(fopen(path, "r"), "r");
+	    FILE *f = reopen_with_shellfd(fopen(path, "r"), "r");
+	    if (f) {
+		exec_input(f, path, false, false);
+		fclose(f);
 	    }
+	    free(path);
 	}
     }
-    if (f) {
-	exec_input(f, path, false, false);
-	fclose(f);
-    }
-    free(path);
 }
 
 /* Executes the initialization file if this is an interactive shell.
