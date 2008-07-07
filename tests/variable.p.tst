@@ -42,4 +42,12 @@ func () {
 func
 echo $var
 
-# TODO  'set', 'unset', 'shift'...
+echo ===== 3 =====
+
+save=$(env -i foo=123 $INVOKE $TESTEE -c 'bar=456; set')
+$INVOKE $TESTEE -s <<END
+$save
+echo \$foo \$bar
+END
+
+# TODO  'set', 'export', 'readonly', 'unset', 'shift'...

@@ -1,3 +1,5 @@
+やっぱり /etc/profile は読み込まないように
+デフォルトで PWD/OLDPWD を export するように
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト

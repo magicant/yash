@@ -37,6 +37,7 @@
 #include "parser.h"
 #include "variable.h"
 #include "expand.h"
+#include "builtin.h"
 #include "exec.h"
 #include "yash.h"
 #include "version.h"
@@ -128,6 +129,8 @@ static variable_T *new_global(const char *name)
 static variable_T *new_local(const char *name)
     __attribute__((nonnull));
 static bool assign_temporary(const char *name, wchar_t *value, bool export)
+    __attribute__((nonnull(1)));
+static void get_all_variables_rec(hashtable_T *table, environ_T *env)
     __attribute__((nonnull));
 
 static void lineno_getter(variable_T *var)
@@ -514,8 +517,8 @@ variable_T *new_local(const char *name)
 }
 
 /* Creates a scalar variable with the specified name and value.
- * `value' must be a `free'able string. The caller must not modify or `free'
- * `value' hereafter, whether or not this function is successful.
+ * `value' must be a `free'able string or NULL. The caller must not modify or
+ * `free' `value' hereafter, whether or not this function is successful.
  * If `export' is true, the variable is exported. `export' being false doesn't
  * mean the variable is no longer exported.
  * Returns true iff successful. */
@@ -573,8 +576,8 @@ void set_positional_parameters(void *const *values)
 }
 
 /* Does an assignment to a temporary variable.
- * `value' must be a `free'able string. The caller must not modify or `free'
- * `value' hereafter, whether or not this function is successful.
+ * `value' must be a `free'able string or NULL. The caller must not modify or
+ * `free' `value' hereafter, whether or not this function is successful.
  * If `export' is true, the variable is exported. `export' being false doesn't
  * mean the variable is no longer exported.
  * Returns true iff successful. */
@@ -746,6 +749,22 @@ return_single:  /* return a scalar as a one-element array */
 
 return_array:  /* duplicate an array and return it */
     return duparray(result, copyaswcs);
+}
+
+/* Gathers all variables in the specified environment and its ancestors
+ * into the specified hashtable.
+ * Local variables may hide global variables.
+ * Temporary variables are ignored. */
+void get_all_variables_rec(hashtable_T *table, environ_T *env)
+{
+    if (env->parent)
+	get_all_variables_rec(table, env->parent);
+
+    size_t i = 0;
+    kvpair_T kv;
+
+    while ((kv = ht_next(&env->contents, &i)).key)
+	ht_set(table, kv.key, kv.value);
 }
 
 /* Creates a new variable environment.
@@ -1126,6 +1145,299 @@ void tryhash_word_as_command(const wordunit_T *w)
 	free(cmdname);
     }
 }
+
+
+/********** Builtins **********/
+
+static void print_variable(
+	const char *name, const variable_T *var,
+	const wchar_t *argv0, bool readonly, bool export)
+    __attribute__((nonnull));
+static void print_function(
+	const char *name, const function_T *func,
+	const wchar_t *argv0, bool readonly)
+    __attribute__((nonnull));
+
+/* The "typeset" builtin, which accepts the following options:
+ *  -f: affect functions rather than variables
+ *  -g: global
+ *  -p: print variables
+ *  -r: make variables readonly
+ *  -x: export variables
+ *  -X: cancel exportation of variables
+ * Equivalent builtins:
+ *  export:   typeset -gx
+ *  readonly: typeset -r
+ * If `posixly_correct' is on, the -g flag is on by default.
+ * The "set" builtin without any arguments is redirected to this builtin. */
+int typeset_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"functions", xno_argument, L'f', },
+	{ L"global",    xno_argument, L'g', },
+	{ L"print",     xno_argument, L'p', },
+	{ L"readonly",  xno_argument, L'r', },
+	{ L"export",    xno_argument, L'x', },
+	{ L"unexport",  xno_argument, L'X', },
+	{ L"help",      xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    wchar_t opt;
+    bool funcs = false, global = posixly_correct, print = false;
+    bool readonly = false, export = false, unexport = false;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, posixly_correct ? L"p" : L"fgprxX",
+		    long_options, NULL))) {
+	switch (opt) {
+	    case L'f':  funcs    = true;  break;
+	    case L'g':  global   = true;  break;
+	    case L'p':  print    = true;  break;
+	    case L'r':  readonly = true;  break;
+	    case L'x':  export = true, unexport = false;  break;
+	    case L'X':  export = false, unexport = true;  break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr,
+			gt("Usage:  %ls [-rgprxX] [name[=value]...]\n"),
+			ARGV(0));
+		return EXIT_ERROR;
+	}
+    }
+
+    if (wcscmp(ARGV(0), L"export") == 0)
+	export = true;
+    else if (wcscmp(ARGV(0), L"readonly") == 0)
+	readonly = true;
+    else
+	assert(wcscmp(ARGV(0), L"typeset") == 0
+	    || wcscmp(ARGV(0), L"set") == 0);
+
+    if (funcs && (export || unexport)) {
+	xerror(0, Ngt("%ls: invalid options: functions cannot be exported"),
+		ARGV(0));
+	return EXIT_ERROR;
+    }
+
+    fix_temporary_variables();
+
+    if (xoptind == argc) {
+	kvpair_T *kvs;
+	size_t count;
+
+	if (!funcs) {
+	    /* print all variables */
+	    hashtable_T table;
+
+	    ht_init(&table, hashstr, htstrcmp);
+	    get_all_variables_rec(&table, current_env);
+	    kvs = ht_tokvarray(&table);
+	    count = table.count;
+	    ht_destroy(&table);
+	    qsort(kvs, count, sizeof *kvs, keystrcoll);
+	    for (size_t i = 0; i < count; i++)
+		print_variable(kvs[i].key, kvs[i].value, ARGV(0),
+			readonly, export);
+	} else {
+	    /* print all functions */
+	    kvs = ht_tokvarray(&functions);
+	    count = functions.count;
+	    qsort(kvs, count, sizeof *kvs, keystrcoll);
+	    for (size_t i = 0; i < count; i++)
+		print_function(kvs[i].key, kvs[i].value, ARGV(0), readonly);
+	}
+	free(kvs);
+	return EXIT_SUCCESS;
+    }
+
+    bool err = false;
+    do {
+	wchar_t *warg = ARGV(xoptind);
+	wchar_t *wequal = wcschr(warg, L'=');
+	if (wequal)
+	    *wequal = L'\0';
+	char *name = malloc_wcstombs(warg);
+	if (!name) {
+	    xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
+	    return EXIT_ERROR;
+	} else if (!is_name(name)) {
+	    xerror(0, Ngt("%ls: %s: invalid name"), ARGV(0), name);
+	    err = true;
+	    goto next;
+	}
+	if (funcs) {
+	    if (wequal) {
+		xerror(0, Ngt("%ls: cannot assign function"), ARGV(0));
+		err = true;
+		goto next;
+	    }
+
+	    function_T *f = ht_get(&functions, name).value;
+	    if (f) {
+		if (readonly)
+		    f->f_type |= VF_READONLY | VF_NODELETE;
+		if (print)
+		    print_function(name, f, ARGV(0), readonly);
+	    } else {
+		xerror(0, Ngt("%ls: %s: no such function"), ARGV(0), name);
+		err = true;
+		goto next;
+	    }
+	} else if (wequal) {
+	    /* assign the variable */
+	    if (!set_variable(name, xwcsdup(wequal + 1), !global, export)) {
+		err = true;
+		goto next;
+	    } else {
+		if (readonly) {
+		    variable_T *var = search_variable(name, false);
+		    assert(var != NULL);
+		    var->v_type |= VF_READONLY | VF_NODELETE;
+		}
+	    }
+	} else if (print) {
+	    /* print the variable */
+	    variable_T *var = search_variable(name, false);
+	    if (var) {
+		print_variable(name, var, ARGV(0), readonly, export);
+	    } else {
+		xerror(0, Ngt("%ls: %s: no such variable"), ARGV(0), name);
+		err = true;
+		goto next;
+	    }
+	} else {
+	    /* create the variable */
+	    variable_T *var = search_variable(name, false);
+	    if (!var) {
+		var = global ? new_global(name) : new_local(name);
+		var->v_type = VF_NORMAL;
+		var->v_value = NULL;
+		var->v_getter = NULL;
+	    }
+	    if (!var) {
+		err = true;
+		goto next;
+	    } else {
+		if (readonly)
+		    var->v_type |= VF_READONLY | VF_NODELETE;
+		if (export)
+		    var->v_type |= VF_EXPORT;
+		/* we don't need to call `update_enrivon' here. */
+	    }
+	    variable_set(name, var);
+	}
+next:
+	free(name);
+    } while (++xoptind < argc);
+
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+}
+
+/* Prints the specified variable to stdout.
+ * This function does not print an array.
+ * If `readonly'/`export' is true, the variable is printed only if it is
+ * readonly/exported. */
+static void print_variable(
+	const char *name, const variable_T *var,
+	const wchar_t *argv0, bool readonly, bool export)
+{
+    if (readonly && !(var->v_type & VF_READONLY))
+	return;
+    if (export && !(var->v_type & VF_EXPORT))
+	return;
+    if ((var->v_type & VF_MASK) == VF_ARRAY)
+	return;
+
+    wchar_t *qvalue = var->v_value ? quote_sq(var->v_value) : NULL;
+    xstrbuf_T opts;
+    switch (argv0[0]) {
+	case L's':
+	    assert(wcscmp(argv0, L"set") == 0);
+	    if (qvalue)
+		printf("%s=%ls\n", name, qvalue);
+	    break;
+	case L'e':
+	case L'r':
+	    assert(wcscmp(argv0, L"export") == 0
+		    || wcscmp(argv0, L"readonly") == 0);
+	    printf(qvalue ? "%ls %s=%ls\n" : "%ls %s\n",
+		    argv0, name, qvalue);
+	    break;
+	case L't':
+	    assert(wcscmp(argv0, L"typeset") == 0);
+	    sb_init(&opts);
+	    if (var->v_type & VF_EXPORT)
+		sb_ccat(&opts, 'x');
+	    if (var->v_type & VF_READONLY)
+		sb_ccat(&opts, 'r');
+	    if (opts.length > 0)
+		sb_insert(&opts, 0, " -");
+	    printf(qvalue ? "%ls%s %s=%ls\n" : "%ls%s %s\n",
+		    argv0, opts.contents, name, qvalue);
+	    sb_destroy(&opts);
+	    break;
+	default:
+	    assert(false);
+    }
+    free(qvalue);
+}
+
+void print_function(
+	const char *name, const function_T *func,
+	const wchar_t *argv0, bool readonly)
+{
+    if (readonly && !(func->f_type & VF_READONLY))
+	return;
+
+    wchar_t *value = command_to_wcs(func->f_body);
+    printf("%s () %ls\n", name, value);
+    free(value);
+
+    switch (argv0[0]) {
+	case L'r':
+	    assert(wcscmp(argv0, L"readonly") == 0);
+	    if (func->f_type & VF_READONLY)
+		printf("%ls -f %s\n", argv0, name);
+	    break;
+	case L't':
+	    assert(wcscmp(argv0, L"typeset") == 0);
+	    if (func->f_type & VF_READONLY)
+		printf("%ls -fr %s\n", argv0, name);
+	    break;
+	default:
+	    assert(false);
+    }
+}
+
+const char typeset_help[] = Ngt(
+"typeset, export, readonly - set or print variables\n"
+"\ttypeset  [-fgprxX] [name[=value]...]\n"
+"\texport   [-fgprX]  [name[=value]...]\n"
+"\treadonly [-fgpxX]  [name[=value]...]\n"
+"For each operands of the form <name>, a variable of the specified name is\n"
+"created if not yet created, but the value is not assigned. If the -p\n"
+"(--print) option is specified, the current value and attributes of the\n"
+"variable is printed instead of creating a variable.\n"
+"For each operands of the form <name=value>, the value is assigned to the\n"
+"specified variable. A variable is created if necessary.\n"
+"If no operands are given, all variables are printed.\n"
+"\n"
+"By default, these builtins affect local variables. To declare global\n"
+"variables inside functions, the -g (--global) option can be used.\n"
+"The -f (--functions) option can be used to specify functions instead of\n"
+"variables. Functions cannot be assigned with these builtins: the -f option\n"
+"can only be used together with the -r or -p option to make functions\n"
+"readonly or print them.\n"
+"The -r (--readonly) option makes the specified variables/functions readonly.\n"
+"The -x (--export) option makes the variables exported to external commands.\n"
+"The -X (--unexport) option undoes the exportation.\n"
+"\n"
+"\"export\" is equivalent to \"typeset -gx\".\n"
+"\"readonly\" is equivalent to \"typeset -r\".\n"
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

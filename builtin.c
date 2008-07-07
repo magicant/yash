@@ -27,6 +27,7 @@
 #include "hashtable.h"
 #include "path.h"
 #include "alias.h"
+#include "variable.h"
 #include "job.h"
 #include "builtin.h"
 #include "exec.h"
@@ -74,6 +75,11 @@ void init_builtin(void)
 	/* defined in "alias.c" */
 	DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help);
 	DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help);
+
+	/* defined in "variable.c" */
+	DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help);
+	DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help);
+	DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
 
 	/* defined in "job.c" */
 	DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);

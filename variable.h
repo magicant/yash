@@ -74,7 +74,7 @@ extern bool is_name(const char *s)
 
 extern bool set_variable(
 	const char *name, wchar_t *value, bool local, bool export)
-    __attribute__((nonnull));
+    __attribute__((nonnull(1)));
 extern bool set_array(const char *name, void *const *values, bool local)
     __attribute__((nonnull));
 extern void set_positional_parameters(void *const *values)
@@ -104,6 +104,10 @@ extern bool define_function(const char *name, struct command_T *body)
     __attribute__((nonnull));
 extern struct command_T *get_function(const char *name)
     __attribute__((nonnull));
+
+extern int typeset_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char typeset_help[];
 
 
 #endif /* VARIABLE_H */

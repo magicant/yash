@@ -21,5 +21,7 @@ func1 () {
 }
 func2; func1; func2; func1;
 
+# TODO typeset, export, readonly, unset
+
 
 rm -f "${TESTTMP}/variable-a" "${TESTTMP}/variable-b"

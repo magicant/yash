@@ -2244,7 +2244,7 @@ wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
     return wb_towcs(&buf);
 }
 
-/* Converts commands into a newly malloced wide string. */
+/* Converts a command into a newly malloced wide string. */
 wchar_t *command_to_wcs(const command_T *command)
 {
     xwcsbuf_T buf;

@@ -227,8 +227,7 @@ int set_builtin(int argc, void **argv)
     wchar_t opt;
 
     if (argc <= 1) {
-	// TODO set_builtin: print all variables
-	return EXIT_SUCCESS;
+	return typeset_builtin(argc, argv);
     }
     if (argc == 2) {
 	if (wcscmp(ARGV(1), L"-o") == 0) {
