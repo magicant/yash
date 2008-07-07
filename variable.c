@@ -274,6 +274,21 @@ void init_variables(void)
     /* set $PWD */
     init_pwd();
 
+    /* export $OLDPWD */
+    {
+	variable_T *v = search_variable(VAR_OLDPWD, false);
+	if (!v) {
+	    v = new_global(VAR_OLDPWD);
+	    v->v_type = VF_NORMAL;
+	    v->v_value = NULL;
+	    v->v_getter = NULL;
+	}
+	if (v) {
+	    v->v_type |= VF_EXPORT;
+	    variable_set(VAR_OLDPWD, v);
+	}
+    }
+
     /* set $PPID */
     set_variable(VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
 	    false, false);
@@ -1316,17 +1331,18 @@ int typeset_builtin(int argc, void **argv)
 		var->v_type = VF_NORMAL;
 		var->v_value = NULL;
 		var->v_getter = NULL;
+		if (!var) {
+		    err = true;
+		    goto next;
+		}
 	    }
-	    if (!var) {
-		err = true;
-		goto next;
-	    } else {
-		if (readonly)
-		    var->v_type |= VF_READONLY | VF_NODELETE;
-		if (export)
-		    var->v_type |= VF_EXPORT;
-		/* we don't need to call `update_enrivon' here. */
-	    }
+	    if (readonly)
+		var->v_type |= VF_READONLY | VF_NODELETE;
+	    if (export)
+		var->v_type |= VF_EXPORT;
+	    if (unexport)
+		var->v_type &= ~VF_EXPORT;
+	    /* we don't need to call `update_enrivon' here. */
 	    variable_set(name, var);
 	}
 next:
