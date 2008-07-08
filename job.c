@@ -39,6 +39,7 @@
 #include "job.h"
 #include "builtin.h"
 #include "exec.h"
+#include "yash.h"
 
 
 static inline job_T *get_job(size_t jobnumber)
@@ -720,6 +721,7 @@ int jobs_builtin(int argc, void **argv)
 	}
     }
 
+    nextforceexit = true;
     if (xoptind < argc) {
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
@@ -826,6 +828,8 @@ int fg_builtin(int argc, void **argv)
 
     int status = EXIT_SUCCESS;
     job_T *job;
+
+    nextforceexit = true;
     if (xoptind < argc) {
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
@@ -932,6 +936,8 @@ int wait_builtin(int argc, void **argv)
 	}
     }
 
+    nextforceexit = true;
+
     job_T *job;
     if (xoptind < argc) {
 	do {
@@ -1024,6 +1030,7 @@ int disown_builtin(int argc, void **argv)
 	}
     }
 
+    nextforceexit = true;
     if (all) {
 	remove_all_jobs();
     } else if (xoptind < argc) {
