@@ -1,4 +1,3 @@
-デフォルトで PWD/OLDPWD を export するように
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
@@ -11,11 +10,9 @@ gettext 対応
 	command -pvV
 	compgen
 	complete
-	declare/typeset/...
 	dirs -clpv
 	echo -eEn
 	exec -acl
-	export -fnp
 	fc -enlrs
 	getopts
 	hash -pr
@@ -28,8 +25,6 @@ gettext 対応
 	printf
 	pushd -n
 	read -aprs
-	readonly -afp
-	set
 	shift
 	suspend -f
 	test/[

@@ -2251,6 +2251,7 @@ wchar_t *command_to_wcs(const command_T *command)
 
     wb_init(&buf);
     print_command_content(&buf, command);
+    print_redirs(&buf, command->c_redirs);
     trim_end_of_buffer(&buf);
     return wb_towcs(&buf);
 }

@@ -1182,7 +1182,7 @@ static void print_function(
  *  -X: cancel exportation of variables
  * Equivalent builtins:
  *  export:   typeset -gx
- *  readonly: typeset -r
+ *  readonly: typeset -gr
  * If `posixly_correct' is on, the -g flag is on by default.
  * The "set" builtin without any arguments is redirected to this builtin. */
 int typeset_builtin(int argc, void **argv)
@@ -1224,9 +1224,9 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (wcscmp(ARGV(0), L"export") == 0)
-	export = true;
+	global = export = true;
     else if (wcscmp(ARGV(0), L"readonly") == 0)
-	readonly = true;
+	global = readonly = true;
     else
 	assert(wcscmp(ARGV(0), L"typeset") == 0
 	    || wcscmp(ARGV(0), L"set") == 0);
