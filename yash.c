@@ -252,10 +252,12 @@ int main(int argc, char **argv)
 	open_ttyfd();
     set_own_pgid();
     set_positional_parameters(wargv + xoptind);
-    if (!noprofile)
-	execute_profile();
-    if (!norcfile)
-	execute_rcfile(rcfile);
+    if (getuid() == geteuid() && getgid() == getegid()) {
+	if (!noprofile)
+	    execute_profile();
+	if (!norcfile)
+	    execute_rcfile(rcfile);
+    }
 
     if (shopt_read_arg) {
 	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
