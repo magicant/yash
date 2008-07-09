@@ -206,7 +206,8 @@ void varkvfree(kvpair_T kv)
 void varkvfree_reexport(kvpair_T kv)
 {
     variable_set(kv.key, NULL);
-    update_enrivon(kv.key);
+    if (((variable_T *) kv.value)->v_type & VF_EXPORT)
+	update_enrivon(kv.key);
     varkvfree(kv);
 }
 
@@ -403,8 +404,7 @@ variable_T *search_variable(const char *name, bool temp)
 /* Update the value in `environ' for the variable with the specified name. */
 void update_enrivon(const char *name)
 {
-    environ_T *env = current_env;
-    while (env) {
+    for (environ_T *env = current_env; env; env = env->parent) {
 	variable_T *var = ht_get(&env->contents, name).value;
 	if (var && (var->v_type & VF_EXPORT) && var->v_value) {
 	    char *value = malloc_wcstombs(var->v_value);
@@ -420,7 +420,6 @@ void update_enrivon(const char *name)
 	    }
 	    return;
 	}
-	env = env->parent;
     }
     unsetenv(name);
 }
@@ -1011,6 +1010,8 @@ void reset_path(path_T name, variable_T *var)
 	    }
 	    if (v == var)
 		break;
+	} else {
+	    env->paths[name] = NULL;
 	}
 	env = env->parent;
     }
@@ -1181,8 +1182,8 @@ static void print_function(
  *  -x: export variables
  *  -X: cancel exportation of variables
  * Equivalent builtins:
- *  export:   typeset -gx
- *  readonly: typeset -gr
+ *  export:   typeset -x
+ *  readonly: typeset -r
  * If `posixly_correct' is on, the -g flag is on by default.
  * The "set" builtin without any arguments is redirected to this builtin. */
 int typeset_builtin(int argc, void **argv)
@@ -1224,9 +1225,9 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (wcscmp(ARGV(0), L"export") == 0)
-	global = export = true;
+	export = true;
     else if (wcscmp(ARGV(0), L"readonly") == 0)
-	global = readonly = true;
+	readonly = true;
     else
 	assert(wcscmp(ARGV(0), L"typeset") == 0
 	    || wcscmp(ARGV(0), L"set") == 0);
@@ -1325,7 +1326,9 @@ int typeset_builtin(int argc, void **argv)
 	    }
 	} else {
 	    /* create the variable */
-	    variable_T *var = search_variable(name, false);
+	    variable_T *var = NULL;
+	    if (global)
+		var = search_variable(name, false);
 	    if (!var) {
 		var = global ? new_global(name) : new_local(name);
 		var->v_type = VF_NORMAL;
@@ -1443,6 +1446,7 @@ const char typeset_help[] = Ngt(
 "\n"
 "By default, these builtins affect local variables. To declare global\n"
 "variables inside functions, the -g (--global) option can be used.\n"
+"In POSIXly correct mode, the -g option is always on.\n"
 "The -f (--functions) option can be used to specify functions instead of\n"
 "variables. Functions cannot be assigned with these builtins: the -f option\n"
 "can only be used together with the -r or -p option to make functions\n"
@@ -1451,7 +1455,7 @@ const char typeset_help[] = Ngt(
 "The -x (--export) option makes the variables exported to external commands.\n"
 "The -X (--unexport) option undoes the exportation.\n"
 "\n"
-"\"export\" is equivalent to \"typeset -gx\".\n"
+"\"export\" is equivalent to \"typeset -x\".\n"
 "\"readonly\" is equivalent to \"typeset -r\".\n"
 );
 
