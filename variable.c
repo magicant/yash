@@ -27,6 +27,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
@@ -127,6 +130,8 @@ static void reset_locale_category(const char *name, int category)
 static variable_T *new_global(const char *name)
     __attribute__((nonnull));
 static variable_T *new_local(const char *name)
+    __attribute__((nonnull));
+static variable_T *new_variable(const char *name, bool local)
     __attribute__((nonnull));
 static bool assign_temporary(const char *name, wchar_t *value, bool export)
     __attribute__((nonnull(1)));
@@ -253,7 +258,7 @@ void init_variables(void)
 
     /* set $LINENO */
     {
-	variable_T *v = new_global(VAR_LINENO);
+	variable_T *v = new_variable(VAR_LINENO, false);
 	assert(v != NULL);
 	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
 	v->v_value = NULL;
@@ -265,7 +270,7 @@ void init_variables(void)
     /* set $PS1~4 */
     {
 	const wchar_t *ps1 =
-	    !posixly_correct ? L"\\$ " : geteuid() ? L"$ " : L"# ";
+	    !posixly_correct ? L"\\$ " : (geteuid() != 0) ? L"$ " : L"# ";
 	set_variable(VAR_PS1, xwcsdup(ps1),    false, false);
 	set_variable(VAR_PS2, xwcsdup(L"> "),  false, false);
 	if (!posixly_correct)
@@ -278,17 +283,10 @@ void init_variables(void)
 
     /* export $OLDPWD */
     {
-	variable_T *v = search_variable(VAR_OLDPWD, false);
-	if (!v) {
-	    v = new_global(VAR_OLDPWD);
-	    v->v_type = VF_NORMAL;
-	    v->v_value = NULL;
-	    v->v_getter = NULL;
-	}
-	if (v) {
-	    v->v_type |= VF_EXPORT;
-	    variable_set(VAR_OLDPWD, v);
-	}
+	variable_T *v = new_global(VAR_OLDPWD);
+	assert(v != NULL);
+	v->v_type |= VF_EXPORT;
+	variable_set(VAR_OLDPWD, v);
     }
 
     /* set $PPID */
@@ -297,7 +295,7 @@ void init_variables(void)
 
     /* set $RANDOM */
     if (!posixly_correct && !getvar(VAR_RANDOM)) {
-	variable_T *v = new_global(VAR_RANDOM);
+	variable_T *v = new_variable(VAR_RANDOM, false);
 	assert(v != NULL);
 	v->v_type = VF_NORMAL;
 	v->v_value = NULL;
@@ -478,57 +476,60 @@ void reset_locale_category(const char *name, int category)
     }
 }
 
-/* Creates a new global variable if there is none.
- * If a local variable already exists, it is cleared and returned.
- *
- * On error, NULL is returned. Otherwise a (new) variable is returned.
- * `v_type' is the only valid member of the variable; the other members must be
- * initialized by the caller. If `v_type' of the return value has the VF_EXPORT
- * flag set, the caller must call `update_enrivon'.
- *
- * Temporary variables are ignored. */
+/* Creates a new scalar variable with the value unset.
+ * If the variable already exists, it is returned without change.
+ * So the return value may be an array variable. */
 variable_T *new_global(const char *name)
 {
     variable_T *var = search_variable(name, false);
-    if (!var) {
-	var = xmalloc(sizeof *var);
-	var->v_type = 0;
-	ht_set(&top_env->contents, xstrdup(name), var);
-    } else if (var->v_type & VF_READONLY) {
-	xerror(0, Ngt("%s: readonly"), name);
-	return NULL;
-    } else {
-	varvaluefree(var);
-    }
+    if (var)
+	return var;
+    var = xmalloc(sizeof *var);
+    var->v_type = VF_NORMAL;
+    var->v_value = NULL;
+    var->v_getter = NULL;
+    ht_set(&top_env->contents, xstrdup(name), var);
     return var;
 }
 
-/* Creates a new local variable.
- * If a variable already exists, it is cleared and returned.
- *
- * On error, NULL is returned. Otherwise a (new) variable is returned.
- * `v_type' is the only valid member of the variable; the other members must be
- * initialized by the caller. If `v_type' of the return value has the VF_EXPORT
- * flag set, the caller must call `update_enrivon'.
- *
- * Temporary variables are ignored. */
+/* Creates a new scalar variable with the value unset.
+ * If the variable already exists, it is returned without change.
+ * So the return value may be an array variable. */
 variable_T *new_local(const char *name)
 {
     environ_T *env = current_env;
     if (current_env_is_temporary)
 	env = env->parent;
     variable_T *var = ht_get(&env->contents, name).value;
-    if (!var) {
-	var = xmalloc(sizeof *var);
-	var->v_type = 0;
-	ht_set(&env->contents, xstrdup(name), var);
-    } else if (var->v_type & VF_READONLY) {
+    if (var)
+	return var;
+    var = xmalloc(sizeof *var);
+    var->v_type = VF_NORMAL;
+    var->v_value = NULL;
+    var->v_getter = NULL;
+    ht_set(&env->contents, xstrdup(name), var);
+    return var;
+}
+
+/* Creates a new variable if there is none.
+ * If the variable already exists, it is cleared and returned.
+ *
+ * On error, NULL is returned. Otherwise a (new) variable is returned.
+ * `v_type' is the only valid member of the variable; the other members must be
+ * initialized by the caller. If `v_type' of the return value has the VF_EXPORT
+ * flag set, the caller must call `update_enrivon'.
+ *
+ * Temporary variables are ignored. */
+variable_T *new_variable(const char *name, bool local)
+{
+    variable_T *var = local ? new_local(name) : new_global(name);
+    if (var->v_type & VF_READONLY) {
 	xerror(0, Ngt("%s: readonly"), name);
 	return NULL;
     } else {
 	varvaluefree(var);
+	return var;
     }
-    return var;
 }
 
 /* Creates a scalar variable with the specified name and value.
@@ -539,7 +540,7 @@ variable_T *new_local(const char *name)
  * Returns true iff successful. */
 bool set_variable(const char *name, wchar_t *value, bool local, bool export)
 {
-    variable_T *var = local ? new_local(name) : new_global(name);
+    variable_T *var = new_variable(name, local);
     if (!var) {
 	free(value);
 	return false;
@@ -562,7 +563,7 @@ bool set_variable(const char *name, wchar_t *value, bool local, bool export)
  * Returns true iff successful. */
 bool set_array(const char *name, void *const *values, bool local)
 {
-    variable_T *var = local ? new_local(name) : new_global(name);
+    variable_T *var = new_variable(name, local);
     if (!var)
 	return false;
 
@@ -830,7 +831,7 @@ void fix_temporary_variables(void)
 	while ((kv = ht_next(&current_env->contents, &i)).key) {
 	    const char *name = kv.key;
 	    variable_T *var = kv.value;
-	    variable_T *newvar = new_local(name);
+	    variable_T *newvar = new_variable(name, true);
 	    assert(!(var->v_type & VF_ARRAY));
 	    if (newvar) {
 		newvar->v_type = var->v_type | VF_EXPORT;
@@ -1212,8 +1213,8 @@ int typeset_builtin(int argc, void **argv)
 	    case L'g':  global   = true;  break;
 	    case L'p':  print    = true;  break;
 	    case L'r':  readonly = true;  break;
-	    case L'x':  export = true, unexport = false;  break;
-	    case L'X':  export = false, unexport = true;  break;
+	    case L'x':  export   = true;  break;
+	    case L'X':  unexport = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return EXIT_SUCCESS;
@@ -1225,17 +1226,22 @@ int typeset_builtin(int argc, void **argv)
 	}
     }
 
-    if (wcscmp(ARGV(0), L"export") == 0)
-	export = true;
-    else if (wcscmp(ARGV(0), L"readonly") == 0)
+    if (wcscmp(ARGV(0), L"export") == 0) {
+	if (!unexport)
+	    export = true;
+    } else if (wcscmp(ARGV(0), L"readonly") == 0) {
 	readonly = true;
-    else
+    } else {
 	assert(wcscmp(ARGV(0), L"typeset") == 0
 	    || wcscmp(ARGV(0), L"set") == 0);
+    }
 
     if (funcs && (export || unexport)) {
 	xerror(0, Ngt("%ls: invalid options: functions cannot be exported"),
 		ARGV(0));
+	return EXIT_ERROR;
+    } else if (export && unexport) {
+	xerror(0, Ngt("%ls: -x and -X cannot be used at a time"), ARGV(0));
 	return EXIT_ERROR;
     }
 
@@ -1304,27 +1310,30 @@ int typeset_builtin(int argc, void **argv)
 		err = true;
 		goto next;
 	    }
-	} else if (wequal) {
-	    /* assign the variable */
-	    if (!set_variable(name, xwcsdup(wequal + 1), !global, export)) {
-		err = true;
-		goto next;
-	    } else {
-		variable_T *var = NULL;
-		if (readonly) {
-		    var = search_variable(name, false);
-		    assert(var != NULL);
-		    var->v_type |= VF_READONLY | VF_NODELETE;
-		}
-		if (unexport) {
-		    if (!var)
-			var = search_variable(name, false);
-		    assert(var != NULL);
-		    var->v_type &= ~VF_EXPORT;
-		    update_enrivon(name);
+	} else if (wequal || !print) {
+	    /* create/assign variable */
+	    variable_T *var = global ? new_global(name) : new_local(name);
+	    vartype_T saveexport = var->v_type & VF_EXPORT;
+	    if (wequal) {
+		if (var->v_type & VF_READONLY) {
+		    xerror(0, Ngt("%ls: %s: readonly"), ARGV(0), name);
+		    err = true;
+		} else {
+		    varvaluefree(var);
+		    var->v_type = VF_NORMAL | (var->v_type & ~VF_MASK);
+		    var->v_value = xwcsdup(wequal + 1);
+		    var->v_getter = NULL;
 		}
 	    }
-	} else if (print) {
+	    if (readonly)
+		var->v_type |= VF_READONLY | VF_NODELETE;
+	    if (export)
+		var->v_type |= VF_EXPORT;
+	    else if (unexport)
+		var->v_type &= ~VF_EXPORT;
+	    if (saveexport != (var->v_type & VF_EXPORT))
+		update_enrivon(name);
+	} else {
 	    /* print the variable */
 	    variable_T *var = search_variable(name, false);
 	    if (var) {
@@ -1334,36 +1343,6 @@ int typeset_builtin(int argc, void **argv)
 		err = true;
 		goto next;
 	    }
-	} else {
-	    /* create the variable */
-	    variable_T *var;
-	    if (global) {
-		var = search_variable(name, false);
-	    } else {
-		assert(!current_env_is_temporary);
-		var = ht_get(&current_env->contents, name).value;
-	    }
-	    if (!var) {
-		var = global ? new_global(name) : new_local(name);
-		var->v_type = VF_NORMAL
-		    | (var->v_type & (VF_EXPORT | VF_NODELETE));
-		var->v_value = NULL;
-		var->v_getter = NULL;
-		if (!var) {
-		    err = true;
-		    goto next;
-		}
-	    }
-	    bool oldexport = var->v_type & VF_EXPORT;
-	    if (readonly)
-		var->v_type |= VF_READONLY | VF_NODELETE;
-	    if (export)
-		var->v_type |= VF_EXPORT;
-	    if (unexport)
-		var->v_type &= ~VF_EXPORT;
-	    variable_set(name, var);
-	    if (oldexport != !!(var->v_type & VF_EXPORT))
-		update_enrivon(name);
 	}
 next:
 	free(name);
