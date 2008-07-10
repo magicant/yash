@@ -52,52 +52,52 @@ static hashtable_T builtins;
 /* Initializes `builtins' */
 void init_builtin(void)
 {
-	ht_initwithcapacity(&builtins, hashstr, htstrcmp, 71);
+    ht_initwithcapacity(&builtins, hashstr, htstrcmp, 71);
 
 #define DEFBUILTIN(strname,func,type,help) \
-	do {                                                                      \
-		static const builtin_T bi = { func, type, help, };                    \
-		ht_set(&builtins, strname, &bi);                                      \
-	} while (0)
+    do {                                                                      \
+	static const builtin_T bi = { func, type, help, };                    \
+	ht_set(&builtins, strname, &bi);                                      \
+    } while (0)
 
-	/* defined in "builtin.c" */
-	DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help);
-	DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, true_help);
-	DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help);
+    /* defined in "builtin.c" */
+    DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help);
+    DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, true_help);
+    DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help);
 
-	/* defined in "option.c" */
-	DEFBUILTIN("set", set_builtin, BI_SPECIAL, set_help);
+    /* defined in "option.c" */
+    DEFBUILTIN("set", set_builtin, BI_SPECIAL, set_help);
 
-	/* defined in "path.c" */
-	DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
-	DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
+    /* defined in "path.c" */
+    DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
+    DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
 
-	/* defined in "alias.c" */
-	DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help);
-	DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help);
+    /* defined in "alias.c" */
+    DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help);
+    DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help);
 
-	/* defined in "variable.c" */
-	DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help);
-	DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help);
-	DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
-	DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
+    /* defined in "variable.c" */
+    DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help);
+    DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help);
+    DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
+    DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
 
-	/* defined in "job.c" */
-	DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);
-	DEFBUILTIN("fg", fg_builtin, BI_SEMISPECIAL, fg_help);
-	DEFBUILTIN("bg", fg_builtin, BI_SEMISPECIAL, bg_help);
-	DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help);
-	DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
+    /* defined in "job.c" */
+    DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);
+    DEFBUILTIN("fg", fg_builtin, BI_SEMISPECIAL, fg_help);
+    DEFBUILTIN("bg", fg_builtin, BI_SEMISPECIAL, bg_help);
+    DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help);
+    DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
 
-	/* defined in "exec.c" */
-	DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help);
-	DEFBUILTIN("break", break_builtin, BI_SPECIAL, break_help);
-	DEFBUILTIN("continue", break_builtin, BI_SPECIAL, continue_help);
-	DEFBUILTIN("eval", eval_builtin, BI_SPECIAL, eval_help);
-	DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help);
+    /* defined in "exec.c" */
+    DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help);
+    DEFBUILTIN("break", break_builtin, BI_SPECIAL, break_help);
+    DEFBUILTIN("continue", break_builtin, BI_SPECIAL, continue_help);
+    DEFBUILTIN("eval", eval_builtin, BI_SPECIAL, eval_help);
+    DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help);
 
-	/* defined in "yash.c" */
-	DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
+    /* defined in "yash.c" */
+    DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
 
 #undef DEFBUILTIN
 }
@@ -106,32 +106,32 @@ void init_builtin(void)
  * or NULL if not found. */
 const builtin_T *get_builtin(const char *name)
 {
-	return ht_get(&builtins, name).value;
+    return ht_get(&builtins, name).value;
 }
 
 /* Prints usage description of the specified builtin to stdout. */
 void print_builtin_help(const wchar_t *name)
 {
-	char *mbsname = malloc_wcstombs(name);
-	const builtin_T *bi = get_builtin(mbsname);
-	free(mbsname);
-	if (bi)
-		fputs(gt(bi->help), stdout);
+    char *mbsname = malloc_wcstombs(name);
+    const builtin_T *bi = get_builtin(mbsname);
+    free(mbsname);
+    if (bi)
+	fputs(gt(bi->help), stdout);
 }
 
 
 /* ":"/"true" builtin */
 int true_builtin(
-		int argc __attribute__((unused)), void **argv __attribute__((unused)))
+	int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 /* "false" builtin */
 int false_builtin(
-		int argc __attribute__((unused)), void **argv __attribute__((unused)))
+	int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
-	return EXIT_FAILURE;
+    return EXIT_FAILURE;
 }
 
 const char colon_help[] = Ngt(
@@ -160,3 +160,6 @@ const char false_help[] = Ngt(
 "Any arguments are ignored and the exit status is always non-zero.\n"
 "Naturally the opposite of this command is the \"true\" command.\n"
 );
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

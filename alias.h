@@ -26,7 +26,7 @@ extern bool alias_enabled;
 
 extern void init_alias(void);
 extern void substitute_alias(xwcsbuf_T *buf, size_t i, bool globalonly)
-	__attribute__((nonnull));
+    __attribute__((nonnull));
 
 extern int alias_builtin(int argc, void **argv)
     __attribute__((nonnull));
@@ -36,3 +36,6 @@ extern const char alias_help[], unalias_help[];
 
 
 #endif /* ALIAS_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */

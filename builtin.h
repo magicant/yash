@@ -23,30 +23,33 @@
 
 
 typedef int main_T(int argc, void **argv)
-	__attribute__((nonnull));
+    __attribute__((nonnull));
 
 typedef enum builtintype_T {
-	BI_SPECIAL, BI_SEMISPECIAL, BI_REGULAR,
+    BI_SPECIAL, BI_SEMISPECIAL, BI_REGULAR,
 } builtintype_T;
 
 typedef struct builtin_T {
-	main_T *body;
-	builtintype_T type;
-	const char *help;
+    main_T *body;
+    builtintype_T type;
+    const char *help;
 } builtin_T;
 
 
 extern void init_builtin(void);
 extern const builtin_T *get_builtin(const char *name)
-	__attribute__((pure));
+    __attribute__((pure));
 extern void print_builtin_help(const wchar_t *name)
-	__attribute__((nonnull));
+    __attribute__((nonnull));
 
 extern int true_builtin(int argc, void **argv)
-	__attribute__((nonnull));
+    __attribute__((nonnull));
 extern int false_builtin(int argc, void **argv)
-	__attribute__((nonnull));
+    __attribute__((nonnull));
 extern const char colon_help[], true_help[], false_help[];
 
 
 #endif /* BUILTIN_H */
+
+
+/* vim: set ts=8 sts=4 sw=4 noet: */
