@@ -6,3 +6,31 @@ func2
 re-defined.
 re-defined func2
 re-defined func1
+===== typeset export =====
+abcdef
+abcxyz
+foo bar
+unset global
+export baz
+export qux='global'
+unset global
+typeset -x baz
+typeset -x qux='global'
+unset
+global
+===== unset readonly =====
+unset unset unset unset
+readonly
+func local
+func readonly
+func localagain
+export
+export
+readonly ro2='export'
+typeset -r ro='readonly'
+===== function typeset =====
+func () { echo ok; }
+func () { echo ok; }
+func1 () { echo re-defined func1; }
+func2 () { echo re-defined func2; }
+ok

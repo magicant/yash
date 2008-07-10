@@ -19,5 +19,21 @@ var
 ===== 2 =====
 xyz
 xyz
-===== 3 =====
+===== set export =====
 123 456
+- -
+save unset
+123
+xyz
+var unset
+xyz
+null
+===== readonly =====
+xyz readonly! --
+xyz
+--
+xyz
+xyz
+--
+===== function unset =====
+ok

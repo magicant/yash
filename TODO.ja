@@ -1,3 +1,4 @@
+いくつかのファイルのインデント修正 (タブに対応するスペース数)
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
@@ -33,4 +34,3 @@ gettext 対応
 	type
 	ulimit -acdfilmnpqstvxHNS
 	umask -pS
-	unset -fv

@@ -42,12 +42,58 @@ func () {
 func
 echo $var
 
-echo ===== 3 =====
+echo ===== set export =====
 
-save=$(env -i foo=123 $INVOKE $TESTEE -c 'bar=456; set')
-$INVOKE $TESTEE -s <<END
-$save
-echo \$foo \$bar
+export save="$(env -i foo=123 $INVOKE $TESTEE -c 'bar=456; set')"
+$INVOKE $TESTEE -c 'eval $save; echo $foo $bar'
+
+unset save
+echo - $save -
+echo save ${save-unset}
+
+export var
+setvar="$(set | grep '^var=')"
+var=123
+echo $var
+eval "$setvar"
+echo $var
+exportvar="$(export | grep -E '^export[[:blank:]]+var=')"
+unset var
+echo var ${var-unset}
+eval "$exportvar"
+$INVOKE $TESTEE -c 'echo $var'
+
+unset null
+export null
+exportnull="$(export | grep -E '^export[[:blank:]]+null$')"
+unset null
+eval "$exportnull"
+null=null
+$INVOKE $TESTEE -c 'echo $null'
+
+echo ===== readonly =====
+
+readonly var ro=readonly! empty
+echo $var $ro -$empty-
+(var=no; echo $var) 2>/dev/null
+(empty=no; echo -$empty-) 2>/dev/null
+(unset var; echo $var) 2>/dev/null
+export readonlyvar="$(readonly | grep -E '^readonly[[:blank:]]+var=')"
+$INVOKE $TESTEE -s <<\END
+eval $readonlyvar
+(var=no; echo $var) 2>/dev/null
+END
+export readonlyempty="$(readonly | grep -E '^readonly[[:blank:]]+empty$')"
+$INVOKE $TESTEE -s <<\END
+eval $readonlyempty
+(empty=no; echo -$empty-) 2>/dev/null
 END
 
-# TODO  'set', 'export', 'readonly', 'unset', 'shift'...
+echo ===== function unset =====
+
+echo () { :; }
+echo ng
+unset -f echo
+echo ok
+
+# TODO  'shift'...

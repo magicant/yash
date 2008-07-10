@@ -80,6 +80,7 @@ void init_builtin(void)
 	DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help);
 	DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help);
 	DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
+	DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
 
 	/* defined in "job.c" */
 	DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);

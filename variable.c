@@ -173,6 +173,7 @@ static hashtable_T functions;
 
 
 /* Frees the value of a variable, but not the variable itself. */
+/* This function does not change the value of `*v'. */
 void varvaluefree(variable_T *v)
 {
     switch (v->v_type & VF_MASK) {
@@ -1239,6 +1240,7 @@ int typeset_builtin(int argc, void **argv)
     }
 
     fix_temporary_variables();
+    assert(!current_env_is_temporary);
 
     if (xoptind == argc) {
 	kvpair_T *kvs;
@@ -1308,10 +1310,18 @@ int typeset_builtin(int argc, void **argv)
 		err = true;
 		goto next;
 	    } else {
+		variable_T *var = NULL;
 		if (readonly) {
-		    variable_T *var = search_variable(name, false);
+		    var = search_variable(name, false);
 		    assert(var != NULL);
 		    var->v_type |= VF_READONLY | VF_NODELETE;
+		}
+		if (unexport) {
+		    if (!var)
+			var = search_variable(name, false);
+		    assert(var != NULL);
+		    var->v_type &= ~VF_EXPORT;
+		    update_enrivon(name);
 		}
 	    }
 	} else if (print) {
@@ -1326,12 +1336,17 @@ int typeset_builtin(int argc, void **argv)
 	    }
 	} else {
 	    /* create the variable */
-	    variable_T *var = NULL;
-	    if (global)
+	    variable_T *var;
+	    if (global) {
 		var = search_variable(name, false);
+	    } else {
+		assert(!current_env_is_temporary);
+		var = ht_get(&current_env->contents, name).value;
+	    }
 	    if (!var) {
 		var = global ? new_global(name) : new_local(name);
-		var->v_type = VF_NORMAL;
+		var->v_type = VF_NORMAL
+		    | (var->v_type & (VF_EXPORT | VF_NODELETE));
 		var->v_value = NULL;
 		var->v_getter = NULL;
 		if (!var) {
@@ -1339,14 +1354,16 @@ int typeset_builtin(int argc, void **argv)
 		    goto next;
 		}
 	    }
+	    bool oldexport = var->v_type & VF_EXPORT;
 	    if (readonly)
 		var->v_type |= VF_READONLY | VF_NODELETE;
 	    if (export)
 		var->v_type |= VF_EXPORT;
 	    if (unexport)
 		var->v_type &= ~VF_EXPORT;
-	    /* we don't need to call `update_enrivon' here. */
 	    variable_set(name, var);
+	    if (oldexport != !!(var->v_type & VF_EXPORT))
+		update_enrivon(name);
 	}
 next:
 	free(name);
@@ -1436,27 +1453,119 @@ const char typeset_help[] = Ngt(
 "\ttypeset  [-fgprxX] [name[=value]...]\n"
 "\texport   [-fgprX]  [name[=value]...]\n"
 "\treadonly [-fgpxX]  [name[=value]...]\n"
-"For each operands of the form <name>, a variable of the specified name is\n"
-"created if not yet created, but the value is not assigned. If the -p\n"
-"(--print) option is specified, the current value and attributes of the\n"
-"variable is printed instead of creating a variable.\n"
+"For each operands of the form <name>, the variable of the specified name is\n"
+"created if not yet created, without assigning any value. If the -p (--print)\n"
+"option is specified, the current value and attributes of the variable is\n"
+"printed instead of creating the variable.\n"
 "For each operands of the form <name=value>, the value is assigned to the\n"
-"specified variable. A variable is created if necessary.\n"
+"specified variable. The variable is created if necessary.\n"
 "If no operands are given, all variables are printed.\n"
 "\n"
 "By default, these builtins affect local variables. To declare global\n"
 "variables inside functions, the -g (--global) option can be used.\n"
 "In POSIXly correct mode, the -g option is always on.\n"
-"The -f (--functions) option can be used to specify functions instead of\n"
-"variables. Functions cannot be assigned with these builtins: the -f option\n"
-"can only be used together with the -r or -p option to make functions\n"
-"readonly or print them.\n"
 "The -r (--readonly) option makes the specified variables/functions readonly.\n"
 "The -x (--export) option makes the variables exported to external commands.\n"
 "The -X (--unexport) option undoes the exportation.\n"
+"The -f (--functions) option can be used to specify functions instead of\n"
+"variables. Functions cannot be assigned or exported with these builtins: the\n"
+"-f option can only be used together with the -r or -p option to make\n"
+"functions readonly or print them. Functions cannot be exported.\n"
 "\n"
 "\"export\" is equivalent to \"typeset -x\".\n"
 "\"readonly\" is equivalent to \"typeset -r\".\n"
+"Note that the typeset builtin is unavailable in the POSIXly correct mode.\n"
+);
+
+/* The "unset" builtin, which accepts the following options:
+ * -f: deletes functions
+ * -v: deletes variables (default) */
+int unset_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"functions", xno_argument, L'f', },
+	{ L"variables", xno_argument, L'v', },
+	{ L"help",      xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    wchar_t opt;
+    bool funcs = false;
+    bool err = false;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"fv", long_options, NULL))) {
+	switch (opt) {
+	    case L'f':  funcs = true;   break;
+	    case L'v':  funcs = false;  break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  unset [-fv] name...\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    assert(!current_env_is_temporary);
+    for (; xoptind < argc; xoptind++) {
+	char *name = malloc_wcstombs(ARGV(xoptind));
+	if (!name) {
+	    xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
+	    return EXIT_ERROR;
+	}
+
+	if (funcs) {
+	    /* remove function */
+	    kvpair_T kv = ht_remove(&functions, name);
+	    function_T *f = kv.value;
+	    if (f) {
+		if (!(f->f_type & VF_NODELETE)) {
+		    funckvfree(kv);
+		} else {
+		    xerror(0, Ngt("%ls: %s: readonly"), ARGV(0), name);
+		    err = true;
+		    ht_set(&functions, kv.key, kv.value);
+		}
+	    }
+	} else {
+	    /* remove variable */
+	    environ_T *env = current_env;
+	    while (env) {
+		kvpair_T kv = ht_remove(&env->contents, name);
+		variable_T *var = kv.value;
+		if (var) {
+		    if (!(var->v_type & VF_NODELETE)) {
+			bool ue = var->v_type & VF_EXPORT;
+			varkvfree(kv);
+			variable_set(name, NULL);
+			if (ue)
+			    update_enrivon(name);
+		    } else {
+			xerror(0, Ngt("%ls: %s: readonly"), ARGV(0), name);
+			err = true;
+			ht_set(&env->contents, kv.key, kv.value);
+		    }
+		    break;
+		}
+		env = env->parent;
+	    }
+	}
+	free(name);
+    }
+
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+}
+
+const char unset_help[] = Ngt(
+"unset - remove variables or functions\n"
+"\tunset [-fv] <name>...\n"
+"Removes the specified variables or functions.\n"
+"When the -f (--functions) options is specified, this command removes\n"
+"functions. When the -v (--variables) option is specified, this command\n"
+"removes variables.\n"
+"-f and -v are mutually exclusive: the one specified last is used.\n"
+"If neither is specified, -v is the default.\n"
 );
 
 

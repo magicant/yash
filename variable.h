@@ -107,7 +107,9 @@ extern struct command_T *get_function(const char *name)
 
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char typeset_help[];
+extern int unset_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char typeset_help[], unset_help[];
 
 
 #endif /* VARIABLE_H */

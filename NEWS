@@ -10,7 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.0 alpha3
 
-  +  "eval", ".", "typeset", "export", "readonly" builtins
+  +  "eval", ".", "typeset", "export", "readonly" and "unset" builtins
   -  "/etc/profile" and "~/.profile" are no longer sourced on start-up
   *  fixed token delimitation in alias substitution
 
