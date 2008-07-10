@@ -190,12 +190,12 @@ else
     defconfigh "NDEBUG"
 fi
 
-# check whether system has /proc file system
-checking "whether system has /proc file system"
+# check whether system has /proc/self/exe
+checking "whether system has /proc/self/exe"
 if [ -x /proc/self/exe ]
 then
     checked "yes"
-    defconfigh "HAVE_PROC_FILESYSTEM"
+    defconfigh "HAVE_PROC_SELF_EXE"
 else
     checked "no"
 fi

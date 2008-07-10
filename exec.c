@@ -988,7 +988,7 @@ void exec_fall_back_on_sh(
     for (int i = 1; i < argc; i++)
 	args[index++] = argv[i];
     args[index++] = NULL;
-#if HAVE_PROC_FILESYSTEM
+#if HAVE_PROC_SELF_EXE
     xexecve("/proc/self/exe", args, envp);
 #elif defined _PATH_BSHELL
     xexecve(_PATH_BSHELL, args, envp);
