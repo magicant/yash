@@ -160,6 +160,9 @@ static struct execinfo {
 /* Note that `execinfo' is not reset when a subshell forks. */
 #define EXECINFO_INIT { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
+/* the last assignment. */
+static assign_T *last_assign;
+
 /* Returns true iff we're breaking/continuing/returning now. */
 bool need_break(void)
 {
@@ -696,6 +699,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 
     /* execute! */
     if (c->c_type == CT_SIMPLE) {
+	last_assign = c->c_assigns;
 	if (argc == 0) {
 	    if (do_assignments(c->c_assigns, false, shopt_allexport))
 		laststatus = EXIT_SUCCESS;
@@ -719,13 +723,10 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (finally_exit)
 	exit_shell();
 
-    // TODO exec: exec_process: leave "exec" command's redirections open
-#if 0
     if (c->c_type == CT_SIMPLE && argc > 0 && cmdinfo.type == specialbuiltin
 	    && cmdinfo.ci_builtin == exec_builtin && laststatus == EXIT_SUCCESS)
 	clear_savefd(savefd);
     else
-#endif
 	undo_redirections(savefd);
     return 0;
 
@@ -1027,7 +1028,7 @@ int xexecv(const char *path, char *const *argv)
 {
     do
 	execv(path, argv);
-    while (errno == EINTR);
+    while (errno == EINTR);  // TODO handle_traps
     return -1;
 }
 
@@ -1210,6 +1211,9 @@ success:
 
 
 /********** Builtins **********/
+
+static int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
+    __attribute__((nonnull(2)));
 
 /* "return" builtin */
 int return_builtin(int argc __attribute__((unused)), void **argv)
@@ -1429,6 +1433,160 @@ const char dot_help[] = Ngt(
 "If <file> does not contain any slashes, the shell searches $PATH for a\n"
 "readable shell script file whose name is <file>. To ensure that the file in\n"
 "the current working directory is used, start <file> with \"./\".\n"
+);
+
+/* The "exec" builtin, which accepts the following options:
+ * -a name: give <name> as argv[0] to the command
+ * -c: don't pass environment variables to the command
+ * -f: suppress error when we have stopped jobs */
+int exec_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"as",    xrequired_argument, L'a', },
+	{ L"clear", xno_argument,       L'c', },
+	{ L"force", xno_argument,       L'f', },
+	{ L"help",  xno_argument,       L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    wchar_t opt;
+    const wchar_t *as = NULL;
+    bool clear = false, force = false;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"" : L"+a:cf",
+		    long_options, NULL))) {
+	switch (opt) {
+	    case L'a':  as = xoptarg;  break;
+	    case L'c':  clear = true;  break;
+	    case L'f':  force = true;  break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr,
+		    gt("Usage:  exec [-cf] [-a name] [command [arg...]]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    if (xoptind == argc)
+	return EXIT_SUCCESS;
+    if (!posixly_correct && is_interactive_now && !force) {
+	size_t sjc = stopped_job_count();
+	if (sjc > 0) {
+	    fprintf(stderr,
+		    ngt("You have %zu stopped job(s)!",
+			"You have a stopped job!",
+			"You have %zu stopped jobs!",
+			sjc),
+		    sjc);
+	    fprintf(stderr, gt("  Use `-f' option to exec anyway.\n"));
+	    return EXIT_FAILURE1;
+	}
+    }
+
+    return exec_builtin_2(argc - xoptind, argv + xoptind, as, clear);
+}
+
+/* Implements the "exec" builtin.
+ * argc, argv: the operands (not arguments) of the "exec" builtin.
+ * as: value of the -a option or NULL
+ * clear: true iff the -c option */
+int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
+{
+    int err;
+    char *tofree = NULL;
+    char *args[argc + 1];
+    for (int i = 0; i < argc; i++) {
+	args[i] = malloc_wcstombs(ARGV(i));
+	if (!args[i]) {
+	    // TODO exec: exec_builtin: error message
+	    args[i] = xstrdup("");
+	}
+    }
+    args[argc] = NULL;
+
+    const char *commandpath;
+    if (wcschr(ARGV(0), L'/')) {
+	commandpath = args[0];
+    } else {
+	commandpath = get_command_path(args[0], false);
+	if (!commandpath) {
+	    xerror(0, Ngt("%s: no such command"), args[0]);
+	    err = EXIT_NOTFOUND;
+	    goto err;
+	}
+    }
+
+    char **envs;
+    if (clear) {
+	plist_T list;
+	
+	pl_init(&list);
+	for (assign_T *assign = last_assign; assign; assign = assign->next) {
+	    const char *envval = getenv(assign->name);
+	    pl_add(&list, malloc_printf(
+			"%s=%s", assign->name, envval ? envval : ""));
+	}
+	envs = (char **) pl_toary(&list);
+    } else {
+	envs = NULL;
+    }
+
+    if (as) {
+	tofree = args[0];
+	args[0] = malloc_wcstombs(as);
+	if (!args[0]) {
+	    // TODO exec: exec_builtin: error message
+	    args[0] = xstrdup("");
+	}
+    }
+
+    finalize_shell();
+    xexecve(commandpath, args, envs ? envs : environ);
+    if (errno != ENOEXEC) {
+	if (errno == EACCES && is_directory(commandpath))
+	    errno = EISDIR;
+	if (strcmp(args[0], commandpath) == 0)
+	    xerror(errno, Ngt("cannot execute `%s'"), args[0]);
+	else
+	    xerror(errno, Ngt("cannot execute `%s' (%s)"),
+		    args[0], commandpath);
+    } else {
+	exec_fall_back_on_sh(argc, args, envs ? envs : environ, commandpath);
+    }
+    reinitialize_shell();
+    err = EXIT_NOEXEC;
+
+    recfree((void **) envs, free);
+
+err:
+    for (int i = 0; i < argc; i++)
+	free(args[i]);
+    free(tofree);
+    if (posixly_correct || !is_interactive_now)
+	exit_shell_with_status(err);
+    return err;
+}
+
+const char exec_help[] = Ngt(
+"exec - execute command in the shell process\n"
+"\texec [-cf] [-a name] [command [args...]]\n"
+"Replaces the shell process with the specified command. The command is\n"
+"executed in the former shell's process rather than a new child process.\n"
+"When an interactive shell has stopped jobs, the -f (--force) option is\n"
+"required to really do exec.\n"
+"If the -c (--clear) option is specified, the command is executed only with\n"
+"the environment variables assigned for this command.\n"
+"If the -a <name> (--as=<name>) option is specified, <name> is passed to the\n"
+"command instead of <command> as the zeroth argument.\n"
+"If no <command> is given, the shell does nothing. As a special result,\n"
+"the effects of redirections associated with the \"exec\" command remain\n"
+"after the command.\n"
+"In POSIXly correct mode, none of these options are available and the -f\n"
+"option is always assumed.\n"
 );
 
 

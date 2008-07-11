@@ -34,3 +34,7 @@ done
 --
 returning --
 0
+===== exec =====
+exec
+126
+exec echo

@@ -26,6 +26,8 @@
 
 extern pid_t shell_pid, shell_pgid;
 
+extern void finalize_shell(void);
+extern void reinitialize_shell(void);
 extern void set_own_pgid(void);
 extern void reset_own_pgid(void);
 extern void forget_initial_pgid(void);

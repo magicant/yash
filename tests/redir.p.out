@@ -11,6 +11,8 @@ bar
 complex redirection
 not writable
 not readable
+exec redirect
+exec redirect
 ===== 2 =====
 Test of here-document.
 		<"">

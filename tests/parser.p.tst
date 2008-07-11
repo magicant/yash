@@ -55,8 +55,12 @@ cat \
 
 echo test ;echo of
 echo sequential \;; echo lists ;
-#
-# TODO test of asynchronous list (needs 'wait')
+
+echo asynchronous list\
+&
+wait $!
+(echo another async; false) &
+if ! wait $!; then echo ok; fi
 
 echo ===== 2 =====
 
@@ -144,13 +148,12 @@ while false; do true; done; echo $?
 until true; do true; done; echo $?
 while [ $? = 0 ]; do (exit 10) done; echo $?
 until ! [ $? = 0 ]; do (exit 10) done; echo $?
-# TODO need 'shift'
-# set 1 '2  2' 3
+set 1 '2  2' 3
 while
 	[ $# != 0 ]
 do
 	echo $# $1
-# 	shift
+ 	shift
 done
 
 w\
@@ -176,13 +179,6 @@ for i
 do
 	echo $i
 done
-# TODO need 'readonly'
-# for i in 1 2 3 4 5; do
-# 	echo $i
-# 	if [ $i = 3 ]; then
-# 		readonly i
-# 	fi
-# done
 
 # for index in 1 '2  2' 3;do echo $index; echo "$index";done
 f\

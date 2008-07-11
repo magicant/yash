@@ -5,12 +5,10 @@ echo C B A -A- -B- -C- \A "B" 'C'
 alias --global \C \singlequote C='| cat'
 echo pipe alias C
 
-# TODO need "." builtin
-#alias -p >"$tmp"
-#\unalias -a
-#. "$tmp"
-#alias --prefix | diff - "$tmp" &&
-echo restored
+alias -p >"$tmp"
+\unalias -a
+. "$tmp"
+alias --prefix | diff - "$tmp" && echo restored
 
 unalias --all
 alias # prints nothing

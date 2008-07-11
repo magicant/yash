@@ -96,6 +96,7 @@ void init_builtin(void)
     DEFBUILTIN("continue", break_builtin, BI_SPECIAL, continue_help);
     DEFBUILTIN("eval", eval_builtin, BI_SPECIAL, eval_help);
     DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help);
+    DEFBUILTIN("exec", exec_builtin, BI_SPECIAL, exec_help);
 
     /* defined in "yash.c" */
     DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);

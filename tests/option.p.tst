@@ -2,7 +2,7 @@ tmp="${TESTTMP}/option.p.tmp"
 
 echo ===== -a =====
 set -a
-# TODO unset foo bar
+unset foo bar
 foo=123
 env | grep ^foo=
 set +o allexport
@@ -34,7 +34,7 @@ END
 
 echo ===== -u =====
 set -u
-# TODO unset none
+unset none
 if (echo $none) 2>/dev/null; then echo ng nounset; else echo ok nounset; fi
 set +o nounset
 $INVOKE $TESTEE -u 2>/dev/null <<\END

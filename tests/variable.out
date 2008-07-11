@@ -28,6 +28,9 @@ export
 export
 readonly ro2='export'
 typeset -r ro='readonly'
+1
+2
+3
 ===== function typeset =====
 func () { echo ok; }
 func () { echo ok; }

@@ -9,8 +9,7 @@ echo \~home ~h\ome ~\/dir ~/\dir
 echo ===== parameter expansion =====
 
 var=123/456/789 asterisks='*****' null=
-# TODO needs 'unset' builtin
-# unset unset
+unset unset
 echo $var ${var} "$var" "${var}"
 echo 1 $null 2
 echo 1 "$null" 2
@@ -72,8 +71,7 @@ x=1
 
 echo ===== field splitting =====
 
-# TODO needs 'unset' builtin
-# unset foo bar IFS
+unset foo bar IFS
 echo +${foo-1+2}+${bar-3+4}+
 echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 

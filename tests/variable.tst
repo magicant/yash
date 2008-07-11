@@ -72,6 +72,13 @@ func
 
 typeset -pr ro
 
+for num in 1 2 3 4 5; do
+	echo $num
+	if [ $num = 3 ]; then
+		readonly num
+	fi
+done 2>/dev/null
+
 echo ===== function typeset =====
 
 func () {

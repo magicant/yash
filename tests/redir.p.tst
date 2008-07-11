@@ -22,12 +22,20 @@ cat "$tmp"
 
 echo ===== 1 =====
 
-# TODO unset unset
+unset unset
 2>&- echo 3>&1 complex 2>& ${unset--} redirection >& \3
 <>/dev/null cat 2<& '0' 3>& 1
 (</dev/null >&0) 2>/dev/null || echo not writable
 (>/dev/null <&1) 2>/dev/null || echo not readable
-# TODO complex redirections using 'exec'
+
+exec 5>&1
+exec >&-
+echo exec redirect >&5
+exec >&5 5>&-
+echo exec redirect
+
+exec 4<>/dev/null
+cat >&4 <&4 # prints nothing
 
 echo ===== 2 =====
 

@@ -30,3 +30,11 @@ set a b c
 . ./dot.t 1 2 3
 echo $count
 echo -"$@"-
+
+
+echo ===== exec =====
+
+(exec -a sh $TESTEE -c 'echo $0')
+(exec --as=sh $TESTEE -c 'echo $0')
+(foo=123 bar=456 exec -c env | sort)
+(foo=123 bar=456 exec --clear env | sort)

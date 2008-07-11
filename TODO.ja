@@ -1,3 +1,4 @@
+wide-multibyte 変換関連のエラーメッセージを統一
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
@@ -19,7 +20,6 @@ gettext 対応
 	help -s
 	history -acdnprsw
 	kill -lsn
-	local
 	newgrp
 	popd -n
 	printf

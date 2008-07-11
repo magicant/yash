@@ -12,3 +12,10 @@ returning --
 returning --
 0
 -a b c-
+===== exec =====
+sh
+sh
+bar=456
+foo=123
+bar=456
+foo=123

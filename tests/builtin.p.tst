@@ -140,3 +140,13 @@ echo ===== . =====
 
 . ./dot.t
 echo $count
+
+
+echo ===== exec =====
+
+$INVOKE $TESTEE -c 'exec echo exec'
+$INVOKE $TESTEE -c 'exec /dev/null' 2>/dev/null
+echo $?
+
+exec echo exec echo
+echo not reached

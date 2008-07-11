@@ -339,8 +339,21 @@ void exit_shell_with_status(int status)
 	exitstatus = (status < 0) ? laststatus : status;
 	// TODO yash: exit_shell: execute EXIT trap
     }
-    reset_own_pgid();
+    finalize_shell();
     exit((status < 0) ? exitstatus : status);
+}
+
+/* Does what to do before exiting the shell.
+ * The EXIT trap should be executed beforehand if needed. */
+void finalize_shell(void)
+{
+    reset_own_pgid();
+}
+
+/* Cancels `finalize_shell'. */
+void reinitialize_shell(void)
+{
+    set_own_pgid();
 }
 
 /* Prints the help message to stdout */
