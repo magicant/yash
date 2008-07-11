@@ -37,3 +37,12 @@ xyz
 --
 ===== function unset =====
 ok
+===== set shift =====
+2 3 a b c
+a b c
+shift 4
+x y z
+y z
+z
+a b c
+0

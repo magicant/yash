@@ -25,7 +25,6 @@ gettext 対応
 	printf
 	pushd -n
 	read -aprs
-	shift
 	suspend -f
 	test/[
 	times

@@ -81,6 +81,7 @@ void init_builtin(void)
     DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help);
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
     DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
+    DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help);
 
     /* defined in "job.c" */
     DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);

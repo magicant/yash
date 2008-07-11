@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -1545,6 +1546,69 @@ const char unset_help[] = Ngt(
 "removes variables.\n"
 "-f and -v are mutually exclusive: the one specified last is used.\n"
 "If neither is specified, -v is the default.\n"
+);
+
+/* The "shift" builtin */
+int shift_builtin(int argc, void **argv)
+{
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  shift [n]\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    size_t scount;
+    if (xoptind < argc) {
+	long count;
+	wchar_t *end;
+	errno = 0;
+	count = wcstol(ARGV(xoptind), &end, 10);
+	if (*end || errno) {
+	    xerror(errno, Ngt("%ls: %ls: not an integer"),
+		    ARGV(0), ARGV(xoptind));
+	    return EXIT_ERROR;
+	} else if (count < 0) {
+	    xerror(0, Ngt("%ls: %ls: value must not be negative"),
+		    ARGV(0), ARGV(xoptind));
+	    return EXIT_ERROR;
+	}
+#if LONG_MAX <= SIZE_MAX
+	scount = (size_t) count;
+#else
+	scount = (count > (long) SIZE_MAX) ? SIZE_MAX : (size_t) count;
+#endif
+    } else {
+	scount = 1;
+    }
+
+    variable_T *var = search_variable(VAR_positional, false);
+    assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+    if (scount > var->v_valc) {
+	xerror(0, Ngt("%ls: %zu: cannot shift so many"), ARGV(0), scount);
+	return EXIT_ERROR;
+    }
+    for (size_t i = 0; i < scount; i++)
+	free(var->v_vals[i]);
+    var->v_valc -= scount;
+    memmove(var->v_vals, var->v_vals + scount,
+	    (var->v_valc + 1) * sizeof *var->v_vals);
+    return EXIT_SUCCESS;
+}
+
+const char shift_help[] = Ngt(
+"shift - remove some positional parameters\n"
+"\tshift [n]\n"
+"Removes the first <n> positional parameters.\n"
+"If <n> is not specified, the first one positional parameter is removed.\n"
+"<n> must be a non-negative integer that is not greater than $#.\n"
 );
 
 
