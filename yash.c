@@ -92,8 +92,7 @@ int main(int argc, char **argv)
 	if (wargv[i] == NULL) {
 	    fprintf(stderr,
 		    gt("%s: cannot convert the argument `%s' into wide-"
-			"character string: the argument is replaced with empty "
-			"string\n"),
+			"character string: replaced with empty string\n"),
 		    argv[0], argv[i]);
 	    wargv[i] = xwcsdup(L"");
 	}

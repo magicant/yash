@@ -1,4 +1,3 @@
-wide-multibyte 変換関連のエラーメッセージを統一
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト

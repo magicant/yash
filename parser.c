@@ -1740,7 +1740,7 @@ command_T *parse_for(void)
 	serror(Ngt("`%ls' is not valid identifier"), name);
     result->c_forname = realloc_wcstombs(name);
     if (!result->c_forname)
-	serror(Ngt("unexpected error in wide character conversion"));
+	serror(Ngt("cannot convert wide characters into multibyte characters"));
 
     skip_to_next_token();
     ensure_buffer(3);
@@ -1955,7 +1955,8 @@ readname:
     result->c_funcbody = body;
     if (!result->c_funcname) {
 	cerror = true;
-	xerror(0, Ngt("unexpected error in wide character conversion"));
+	xerror(0, Ngt("cannot convert wide characters "
+		    "into multibyte characters"));
     }
     return result;
 
