@@ -256,7 +256,8 @@ int set_builtin(int argc, void **argv)
 		return EXIT_SUCCESS;
 	    case L'?':  optionerror:
 		fprintf(stderr,
-		    gt("Usage:  set [-abefhmnuvxC] [-o option] [arg...]\n"));
+		    gt("Usage:  set [-abefhmnuvxC] [-o option] [+o option] "
+			"[arg...]\n"));
 		return EXIT_ERROR;
 	    default:
 		if (opt == L'm') {
@@ -266,7 +267,7 @@ int set_builtin(int argc, void **argv)
 			if (value && get_ttyfd() < 0)
 			    open_ttyfd();
 			do_job_control = value;
-			reset_signals();
+			set_signals();
 			set_own_pgid();
 		    }
 		} else {

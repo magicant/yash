@@ -215,13 +215,13 @@ void init_signal(void)
     }
 }
 
-/* Initializes actions for SIGTTOU/TSTP/INT/TERM according to
+/* Sets signal actions for SIGTTOU/TSTP/INT/TERM according to
  * `do_job_control' and `is_interactive_now'. */
 void set_signals(void)
 {
     struct sigaction action;
 
-    if (do_job_control && !job_initialized) {
+    if (doing_job_control_now && !job_initialized) {
 	job_initialized = true;
 
 	sigemptyset(&action.sa_mask);
@@ -235,6 +235,8 @@ void set_signals(void)
 	    savesigtstp.valid = true;
 	else
 	    xerror(errno, "sigaction(SIGTSTP, SIG_IGN)");
+    } else if (!doing_job_control_now) {
+	restore_job_signals();
     }
     if (is_interactive_now && !interactive_initialized) {
 	interactive_initialized = true;
@@ -250,12 +252,16 @@ void set_signals(void)
 	    savesigterm.valid = true;
 	else
 	    xerror(errno, "sigaction(SIGTERM, SIG_IGN)");
+    } else if (!is_interactive_now) {
+	restore_interactive_signals();
     }
 }
 
 /* Restores the initial signal actions for all signals. */
 void restore_all_signals(void)
 {
+    restore_job_signals();
+    restore_interactive_signals();
     if (initialized) {
 	initialized = false;
 	if (savesigchld.valid)
@@ -269,13 +275,12 @@ void restore_all_signals(void)
 		xerror(errno, "sigprocmask(SETMASK, save)");
 	savesigchld.valid = savesigquit.valid = savemask.valid = false;
     }
-    restore_signals();
 }
 
-/* Restores the initial signal actions for SIGTTOU/TSTP/INT/TERM. */
-void restore_signals(void)
+/* Restores the initial signal actions for SIGTTOU/TSTP. */
+void restore_job_signals(void)
 {
-    if (!doing_job_control_now && job_initialized) {
+    if (job_initialized) {
 	job_initialized = false;
 	if (savesigttou.valid)
 	    if (sigaction(SIGTTOU, &savesigttou.action, NULL) < 0)
@@ -285,7 +290,12 @@ void restore_signals(void)
 		xerror(errno, "sigaction(SIGTSTP)");
 	savesigttou.valid = savesigtstp.valid = false;
     }
-    if (!is_interactive_now && interactive_initialized) {
+}
+
+/* Restores the initial signal actions for SIGINT/TERM. */
+void restore_interactive_signals(void)
+{
+    if (interactive_initialized) {
 	interactive_initialized = false;
 	if (savesigint.valid)
 	    if (sigaction(SIGINT, &savesigint.action, NULL) < 0)

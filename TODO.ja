@@ -12,7 +12,6 @@ gettext 対応
 	complete
 	dirs -clpv
 	echo -eEn
-	exec -acl
 	fc -enlrs
 	getopts
 	hash -pr

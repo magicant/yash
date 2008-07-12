@@ -682,7 +682,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 		&& cmdinfo.type == externalprogram)
 	    restore_all_signals();
 	else
-	    restore_signals();
+	    set_signals();
     }
 
     /* connect pipes and close leftovers */
@@ -781,7 +781,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	neglect_all_jobs();
 	clear_traps();
 	clear_shellfds();
-	fix_temporary_variables();
+	fix_temporary_variables();  // XXX do we really need to do this?
 	is_interactive_now = false;
     }
     return cpid;
@@ -1137,7 +1137,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	 * by SIGTSTP. */
 	if (save_is_interactive_now)
 	    ignore_sigtstp();
-	restore_signals();
+	set_signals();
 
 	xclose(pipefd[PIDX_IN]);
 	if (pipefd[PIDX_OUT] != STDOUT_FILENO) {  /* connect the pipe */
@@ -1502,7 +1502,8 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     for (int i = 0; i < argc; i++) {
 	args[i] = malloc_wcstombs(ARGV(i));
 	if (!args[i]) {
-	    // TODO exec: exec_builtin: error message
+	    xerror(0, Ngt("cannot convert wide characters into "
+			"multibyte characters: replaced with empty string"));
 	    args[i] = xstrdup("");
 	}
     }
@@ -1539,12 +1540,14 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	tofree = args[0];
 	args[0] = malloc_wcstombs(as);
 	if (!args[0]) {
-	    // TODO exec: exec_builtin: error message
+	    xerror(0, Ngt("cannot convert wide characters into "
+			"multibyte characters: replaced with empty string"));
 	    args[0] = xstrdup("");
 	}
     }
 
     finalize_shell();
+    restore_all_signals();
     xexecve(commandpath, args, envs ? envs : environ);
     if (errno != ENOEXEC) {
 	if (errno == EACCES && is_directory(commandpath))
@@ -1557,6 +1560,10 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     } else {
 	exec_fall_back_on_sh(argc, args, envs ? envs : environ, commandpath);
     }
+    if (posixly_correct || !is_interactive_now)
+	exit(EXIT_NOEXEC);
+    init_signal();
+    set_signals();
     reinitialize_shell();
     err = EXIT_NOEXEC;
 
