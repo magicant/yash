@@ -19,6 +19,7 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -1004,9 +1005,11 @@ redir_T *tryparse_redirect(void)
 
 reparse:
 	errno = 0;
-	fd = wcstol(cbuf.contents + cindex, &endptr, 10);
-	if (errno)
+	long lfd = wcstol(cbuf.contents + cindex, &endptr, 10);
+	if (errno || lfd < 0 || lfd > INT_MAX)
 	    fd = -1;  /* invalid fd */
+	else
+	    fd = (int) lfd;
 	if (endptr[0] == L'\\' && endptr[1] == L'\n') {
 	    line_continuation(endptr - cbuf.contents);
 	    goto reparse;

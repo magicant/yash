@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -392,11 +393,13 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     } else {
 	char *end;
 	errno = 0;
-	fd = strtol(num, &end, 10);
-	if (*num == '\0' || *end != '\0')
+	long lfd = strtol(num, &end, 10);
+	if (!isxdigit(num[0]) || *end != '\0')
 	    errno = EINVAL;
-	else if (fd < 0)
+	else if (lfd < 0)
 	    errno = ERANGE;
+	else
+	    fd = (int) lfd;
 	if (errno) {
 	    xerror(errno, Ngt("redirection: %s"), num);
 	    fd = -2;

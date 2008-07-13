@@ -946,7 +946,7 @@ int wait_builtin(int argc, void **argv)
 	    if (jobspec[0] == L'%') {
 		jobnumber = get_jobnumber_from_name(jobspec + 1);
 	    } else {
-		pid_t pid;
+		long pid;
 		wchar_t *end;
 		errno = 0;
 		pid = wcstol(jobspec, &end, 10);
