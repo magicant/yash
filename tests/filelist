@@ -36,6 +36,10 @@ path.p.out
 path.p.tst
 redir.p.out
 redir.p.tst
+sig.p.out
+sig.p.tst
+sig.out
+sig.tst
 variable.p.out
 variable.p.tst
 variable.out

@@ -24,9 +24,16 @@
 
 extern const char *get_signal_name(int signum)
     __attribute__((const));
+extern int get_signal_number(const char *name)
+    __attribute__((nonnull,pure));
 
+extern bool any_trap_set;
+
+extern void init_fixed_trap_set(void);
 extern void init_signal(void);
 extern void set_signals(void);
+extern void set_job_signals(void);
+extern void set_interactive_signals(void);
 extern void restore_all_signals(void);
 extern void restore_job_signals(void);
 extern void restore_interactive_signals(void);
@@ -39,12 +46,17 @@ extern void block_all_but_sigpipe(void);
 
 extern void block_sigchld_and_sigint(void);
 extern void unblock_sigchld_and_sigint(void);
-extern bool wait_for_sigchld(bool interruptible);
+extern bool wait_for_sigchld(bool interruptible, bool return_on_trap);
 extern void wait_for_input(int fd, bool trap);
 
 extern void handle_sigchld(void);
-extern void handle_traps(void);
+extern bool handle_traps(void);
+extern void execute_exit_trap(void);
 extern void clear_traps(void);
+
+extern int trap_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char trap_help[];
 
 #if HAVE_STRSIGNAL
 extern char *strsignal(int signum);

@@ -18,15 +18,29 @@
 
 #include "common.h"
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
-#include <stdbool.h>
+#include <limits.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/select.h>
+#include <wctype.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "option.h"
 #include "util.h"
+#include "strbuf.h"
+#include "parser.h"
 #include "sig.h"
+#include "expand.h"
 #include "redir.h"
 #include "job.h"
+#include "builtin.h"
+#include "exec.h"
+#include "yash.h"
 #include "signum.h"
 
 
@@ -43,11 +57,12 @@
  * all signals other than SIGPIPE is blocked when writing the contents of a
  * here-document to a pipe.
  * SIGCHLD is blocked to avoid a race condition
- *  - while reading the output of a command substitution, and
+ *  - while reading the output of a command substitution, or
  *  - in `wait_for_job'. */
 
 
 static void sig_handler(int signum);
+static bool set_trap(int signum, const wchar_t *command);
 
 /* signal number and name */
 typedef struct signal_T {
@@ -139,25 +154,121 @@ static const signal_T signals[] = {
 
 /* Returns the name of the signal with the specified number.
  * The returned name doesn't have a "SIG"-prefix.
- * "?" is returned for an unknown signal number. */
+ * "?" is returned for an unknown signal number.
+ * The returned string is valid until the next call to this function. */
 const char *get_signal_name(int signum)
 {
+    if (signum == 0)
+	return "EXIT";
+#if defined SIGRTMIN && defined SIGRTMAX
+    int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
+    if (sigrtmin <= signum && signum <= sigrtmax) {
+	static char *name = NULL;
+	if (signum == sigrtmin)
+	    return "RTMIN";
+	if (signum == sigrtmax)
+	    return "RTMAX";
+	int range = sigrtmax - sigrtmin, diff = signum - sigrtmin;
+	free(name);
+	if (diff <= range / 2)
+	    name = malloc_printf("RTMIN+%d", diff);
+	else
+	    name = malloc_printf("RTMAX-%d", sigrtmax - signum);
+	return name;
+    }
+#endif
     for (const signal_T *s = signals; s->no; s++)
 	if (s->no == signum)
 	    return s->name;
     return "?";
 }
 
+/* Returns the number of a signal whose name is `name'.
+ * Returns 0 for "EXIT" and -1 for an unknown name.
+ * `name' should be all in uppercase. */
+int get_signal_number(const char *name)
+{
+    if (isdigit(name[0])) {  /* parse a decimal integer */
+	long num;
+	char *end;
+	errno = 0;
+	num = strtol(name, &end, 10);
+	if (errno || *end != '\0' || num > INT_MAX)
+	    return -1;
+
+	/* check if `num' is a valid signal */
+	int signum = (int) num;
+	for (const signal_T *s = signals; s->no; s++)
+	    if (s->no == signum)
+		return signum;
+	return -1;
+    }
+
+    if (strcmp(name, "EXIT") == 0)
+	return 0;
+    if (strncmp(name, "SIG", 3) == 0)
+	name += 3;
+    for (const signal_T *s = signals; s->no; s++)
+	if (strcmp(name, s->name) == 0)
+	    return s->no;
+#if defined SIGRTMIN && defined SIGRTMAX
+    if (strncmp(name, "RTMIN", 5) == 0) {
+	int sigrtmin = SIGRTMIN;
+	name += 5;
+	if (name[0] == '\0') {
+	    return sigrtmin;
+	} else if (name[0] == '+') {
+	    long num;
+	    char *end;
+	    errno = 0;
+	    num = strtol(name, &end, 10);
+	    if (errno || *end != '\0' || num < 0 || sigrtmin + num >= SIGRTMAX)
+		return -1;
+	    return sigrtmin + (int) num;
+	}
+    } else if (strncmp(name, "RTMAX", 5) == 0) {
+	int sigrtmax = SIGRTMAX;
+	name += 5;
+	if (name[0] == '\0') {
+	    return sigrtmax;
+	} else if (name[0] == '-') {
+	    long num;
+	    char *end;
+	    errno = 0;
+	    num = strtol(name, &end, 10);
+	    if (errno || *end != '\0' || num > 0 || sigrtmax + num < SIGRTMIN)
+		return -1;
+	    return sigrtmax + (int) num;
+	}
+    }
+#endif
+    return -1;
+}
+
+
+/* set to true when any trap is set */
+bool any_trap_set = false;
+
+/* flag to indicate a signal is caught. */
+static volatile sig_atomic_t any_signal_received = false;
+
+/* the signal for which trap is currently executed */
+static int handled_signal = -1;
+/* set to true when the EXIT trap is executed */
+static bool exit_handled = false;
 
 /* flags to indicate a signal is caught. */
 static volatile sig_atomic_t signal_received[MAXSIGIDX];
 /* commands to be executed when a signal is trapped (caught). */
-static char *trap_command[MAXSIGIDX];
+static wchar_t *trap_command[MAXSIGIDX];
 /* These arrays are indexed by `sigindex'. The index 0 is for the EXIT trap. */
 
 /* `signal_received' and `trap_command' for real-time signals. */
 static volatile sig_atomic_t rtsignal_received[RTSIZE];
-static char *rttrap_command[RTSIZE];
+static wchar_t *rttrap_command[RTSIZE];
+
+/* set of signals for which trap cannot be set */
+static sigset_t fixed_trap_set;
 
 /* This flag is set to true as well as `signal_received[sigindex(SIGCHLD/INT)]'
  * when SIGCHLD/SIGINT is caught.
@@ -178,13 +289,32 @@ static bool job_initialized = false;
 /* true iff SIGTERM/INT are ignored. */
 static bool interactive_initialized = false;
 
-/* Signal mask to be restored before `execve'. */
-static struct {
-    bool valid;
-    sigset_t mask;
-} savemask;
+/* Initializes `fixed_trap_set'.
+ * This function is called by `main' only once on startup. */
+void init_fixed_trap_set(void)
+{
+    sigemptyset(&fixed_trap_set);
+    if (!is_interactive) {
+	for (const signal_T *s = signals; s->no; s++) {
+	    struct sigaction action;
+	    if (sigaction(s->no, NULL, &action) >= 0
+		    && action.sa_handler == SIG_IGN)
+		sigaddset(&fixed_trap_set, s->no);
+	}
+#if defined SIGRTMIN && defined SIGRTMAX
+	int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
+	for (int signum = sigrtmin; signum <= sigrtmax; signum++) {
+	    struct sigaction action;
+	    if (sigaction(signum, NULL, &action) >= 0
+		    && action.sa_handler == SIG_IGN)
+		sigaddset(&fixed_trap_set, signum);
+	}
+#endif
+    }
+}
 
-/* Initializes signal handling */
+/* Initializes signal handling.
+ * May be called more than once. */
 void init_signal(void)
 {
     struct sigaction action;
@@ -195,65 +325,89 @@ void init_signal(void)
 
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
-	action.sa_handler = sig_handler;
-	if (sigaction(SIGCHLD, &action, &savesigchld.action) >= 0)
-	    savesigchld.valid = true;
-	else
-	    xerror(errno, "sigaction(SIGCHLD)");
-	action.sa_handler = SIG_IGN;
-	if (sigaction(SIGQUIT, &action, &savesigquit.action) >= 0)
-	    savesigquit.valid = true;
-	else
-	    xerror(errno, "sigaction(SIGQUIT, SIG_IGN)");
+	if (!trap_command[sigindex(SIGCHLD)]) {
+	    action.sa_handler = sig_handler;
+	    if (sigaction(SIGCHLD, &action, &savesigchld.action) >= 0)
+		savesigchld.valid = true;
+	    else
+		xerror(errno, "sigaction(SIGCHLD)");
+	}
+
+	if (!trap_command[sigindex(SIGQUIT)]) {
+	    action.sa_handler = SIG_IGN;
+	    if (sigaction(SIGQUIT, &action, &savesigquit.action) >= 0)
+		savesigquit.valid = true;
+	    else
+		xerror(errno, "sigaction(SIGQUIT, SIG_IGN)");
+	}
 
 	sigemptyset(&ss);
-	sigaddset(&ss, SIGCHLD);
-	if (sigprocmask(SIG_UNBLOCK, &ss, &savemask.mask) >= 0)
-	    savemask.valid = true;
-	else
-	    xerror(errno, "sigprocmask(UNBLOCK, CHLD)");
+	if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0)
+	    xerror(errno, "sigprocmask(SETMASK, none)");
     }
 }
 
 /* Sets signal actions for SIGTTOU/TSTP/INT/TERM according to
- * `do_job_control' and `is_interactive_now'. */
+ * `doing_job_control_now' and `is_interactive_now'. */
 void set_signals(void)
 {
-    struct sigaction action;
+    if (doing_job_control_now)
+	set_job_signals();
+    else
+	restore_job_signals();
+    if (is_interactive_now)
+	set_interactive_signals();
+    else
+	restore_interactive_signals();
+}
 
-    if (doing_job_control_now && !job_initialized) {
+/* Sets signal actions for SIGTTOU/TSTP if `job_initialized' is false. */
+void set_job_signals(void)
+{
+    if (!job_initialized) {
 	job_initialized = true;
 
+	struct sigaction action;
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 	action.sa_handler = SIG_IGN;
-	if (sigaction(SIGTTOU, &action, &savesigttou.action) >= 0)
-	    savesigttou.valid = true;
-	else
-	    xerror(errno, "sigaction(SIGTTOU, SIG_IGN)");
-	if (sigaction(SIGTSTP, &action, &savesigtstp.action) >= 0)
-	    savesigtstp.valid = true;
-	else
-	    xerror(errno, "sigaction(SIGTSTP, SIG_IGN)");
-    } else if (!doing_job_control_now) {
-	restore_job_signals();
+	if (!trap_command[sigindex(SIGTTOU)]) {
+	    if (sigaction(SIGTTOU, &action, &savesigttou.action) >= 0)
+		savesigttou.valid = true;
+	    else
+		xerror(errno, "sigaction(SIGTTOU, SIG_IGN)");
+	}
+	if (!trap_command[sigindex(SIGTSTP)]) {
+	    if (sigaction(SIGTSTP, &action, &savesigtstp.action) >= 0)
+		savesigtstp.valid = true;
+	    else
+		xerror(errno, "sigaction(SIGTSTP, SIG_IGN)");
+	}
     }
-    if (is_interactive_now && !interactive_initialized) {
+}
+
+/* Sets signal actions for SIGINT/TERM if `interactive_initialized' is false. */
+void set_interactive_signals(void)
+{
+    if (!interactive_initialized) {
 	interactive_initialized = true;
 
+	struct sigaction action;
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 	action.sa_handler = SIG_IGN;
-	if (sigaction(SIGINT, &action, &savesigint.action) >= 0)
-	    savesigint.valid = true;
-	else
-	    xerror(errno, "sigaction(SIGINT, SIG_IGN)");
-	if (sigaction(SIGTERM, &action, &savesigterm.action) >= 0)
-	    savesigterm.valid = true;
-	else
-	    xerror(errno, "sigaction(SIGTERM, SIG_IGN)");
-    } else if (!is_interactive_now) {
-	restore_interactive_signals();
+	if (!trap_command[sigindex(SIGINT)]) {
+	    if (sigaction(SIGINT, &action, &savesigint.action) >= 0)
+		savesigint.valid = true;
+	    else
+		xerror(errno, "sigaction(SIGINT, SIG_IGN)");
+	}
+	if (!trap_command[sigindex(SIGTERM)]) {
+	    if (sigaction(SIGTERM, &action, &savesigterm.action) >= 0)
+		savesigterm.valid = true;
+	    else
+		xerror(errno, "sigaction(SIGTERM, SIG_IGN)");
+	}
     }
 }
 
@@ -270,10 +424,7 @@ void restore_all_signals(void)
 	if (savesigquit.valid)
 	    if (sigaction(SIGQUIT, &savesigquit.action, NULL) < 0)
 		xerror(errno, "sigaction(SIGQUIT)");
-	if (savemask.valid)
-	    if (sigprocmask(SIG_SETMASK, &savemask.mask, NULL) < 0)
-		xerror(errno, "sigprocmask(SETMASK, save)");
-	savesigchld.valid = savesigquit.valid = savemask.valid = false;
+	savesigchld.valid = savesigquit.valid = false;
     }
 }
 
@@ -385,17 +536,17 @@ void block_all_but_sigpipe(void)
 /* general signal handler */
 void sig_handler(int signum)
 {
+    any_signal_received = true;
 #if defined SIGRTMIN && defined SIGRTMAX
-    if (SIGRTMIN <= signum && signum <= SIGRTMAX) {
-	size_t index = signum - SIGRTMIN;
+    int sigrtmin = SIGRTMIN;
+    if (sigrtmin <= signum && signum <= SIGRTMAX) {
+	size_t index = signum - sigrtmin;
 	if (index < RTSIZE)
 	    rtsignal_received[index] = true;
     } else
 #endif
     {
-	size_t index = sigindex(signum);
-	assert(index < MAXSIGIDX);
-	signal_received[index] = true;
+	signal_received[sigindex(signum)] = true;
 
 	if (signum == SIGCHLD)
 	    sigchld_received = true;
@@ -432,8 +583,10 @@ void unblock_sigchld_and_sigint(void)
  * SIGCHLD and SIGINT must be blocked when this function is called.
  * If SIGCHLD is already caught, this function doesn't wait.
  * If `interruptible' is true, this function can be canceled by SIGINT.
+ * If `return_on_trap' is ture, this function returns false immediately after
+ * trap actions are performed. Otherwise, traps are not handled.
  * Returns false iff interrupted. */
-bool wait_for_sigchld(bool interruptible)
+bool wait_for_sigchld(bool interruptible, bool return_on_trap)
 {
     bool result = true;
     struct sigaction action, saveaction;
@@ -451,6 +604,10 @@ bool wait_for_sigchld(bool interruptible)
     sigset_t ss;
     sigemptyset(&ss);
     while (!sigchld_received) {
+	if (return_on_trap && handle_traps()) {
+	    result = false;
+	    break;
+	}
 	if (sigsuspend(&ss) < 0) {
 	    if (errno == EINTR) {
 		if (interruptible && sigint_received)
@@ -516,19 +673,368 @@ void handle_sigchld(void)
 }
 
 /* Executes trap commands for trapped signals if any.
- * There must not be an active job when this function is called. */
-void handle_traps(void)
+ * There must not be an active job when this function is called.
+ * Returns true iff at least one signal is handled. */
+bool handle_traps(void)
 {
-    (void) trap_command;
-    (void) rttrap_command;
-    // TODO sig.c: handle_traps: unimplemented
+    /* Signal handler execution is not reentrant because the value of
+     * `savelaststatus' is lost. But the EXIT is the only exception:
+     * The EXIT trap may be executed inside another trap. */
+    if (!any_trap_set || !any_signal_received || handled_signal >= 0)
+	return false;
+
+    /* we reset this before executing signal commands to avoid race */
+    any_signal_received = false;
+
+    struct parsestate_T *state = NULL;
+    savelaststatus = laststatus;
+    for (const signal_T *s = signals; s->no; s++) {
+	size_t i = sigindex(s->no);
+	if (signal_received[i]) {
+	    signal_received[i] = false;
+	    wchar_t *command = trap_command[i];
+	    if (command && command[0]) {
+		if (!state)
+		    state = save_parse_state();
+		handled_signal = s->no;
+		exec_wcs(command, "trap", false);
+		laststatus = savelaststatus;
+		if (command != trap_command[i])
+		    free(command);
+	    }
+	}
+    }
+#if defined SIGRTMIN && defined SIGRTMAX
+    int sigrtmin = SIGRTMIN, range = SIGRTMAX - sigrtmin + 1;
+    if (range > RTSIZE)
+	range = RTSIZE;
+    for (int i = 0; i < range; i++) {
+	if (rtsignal_received[i]) {
+	    rtsignal_received[i] = false;
+	    wchar_t *command = rttrap_command[i];
+	    if (command && command[0]) {
+		if (!state)
+		    state = save_parse_state();
+		handled_signal = sigrtmin + i;
+		exec_wcs(command, "trap", false);
+		laststatus = savelaststatus;
+		if (command != rttrap_command[i])
+		    free(command);
+	    }
+	}
+    }
+#endif
+    savelaststatus = -1;
+    handled_signal = -1;
+    if (state) {
+	restore_parse_state(state);
+	return true;
+    } else {
+	return false;
+    }
+}
+
+/* Executes the EXIT trap if any. */
+void execute_exit_trap(void)
+{
+    wchar_t *command = trap_command[sigindex(0)];
+    if (command) {
+	/* don't have to save state because no commands are executed any more */
+	// struct parsestate_T *state = save_parse_state();
+	assert(!exit_handled);
+	exit_handled = true;
+	savelaststatus = laststatus;
+	exec_wcs(command, "EXIT trap", false);
+	savelaststatus = -1;
+	// restore_parse_state(state);
+#ifndef NDEBUG
+	if (command != trap_command[sigindex(0)])
+	    free(command);
+#endif
+    }
+}
+
+/* Sets trap for the signal `signum' to `command'.
+ * If `command' is NULL, the trap is reset to the default.
+ * If `command' is an empty string, the trap is set to SIG_IGN.
+ * This function may call `get_signal_name'.
+ * Returns true iff successful. */
+bool set_trap(int signum, const wchar_t *command)
+{
+    if (!is_interactive && sigismember(&fixed_trap_set, signum) > 0) {
+#if FIXED_SIGNAL_AS_ERROR
+	xerror(0, Ngt("SIG%s: this signal is fixed to be ignored"));
+	return false;
+#else
+	return true;
+#endif
+    } else if (signum == SIGKILL || signum == SIGSTOP) {
+	xerror(0, Ngt("SIG%s: cannot be trapped"),
+		signum == SIGKILL ? "KILL" : "STOP");
+	return false;
+    }
+
+    wchar_t **commandp;
+#if defined SIGRTMIN && defined SIGRTMAX
+    int sigrtmin = SIGRTMIN;
+    if (sigrtmin <= signum && signum <= SIGRTMAX) {
+	size_t index = signum - sigrtmin;
+	if (index < RTSIZE) {
+	    commandp = &rttrap_command[index];
+	} else {
+	    xerror(0, Ngt("SIG%s: unsupported real-time signal"),
+		    get_signal_name(signum));
+	    return false;
+	}
+    } else
+#endif
+    {
+	commandp = &trap_command[sigindex(signum)];
+    }
+
+    void (*oldhandler)(int);
+    if (*commandp == NULL)
+	oldhandler = SIG_DFL;
+    else if ((*commandp)[0] == L'\0')
+	oldhandler = SIG_IGN;
+    else
+	oldhandler = sig_handler;
+
+    /* If `*commandp' is currently executed, we must not free it. */
+    if (signum != handled_signal && (signum != 0 || !exit_handled))
+	free(*commandp);
+    if (command) {
+	any_trap_set = true;
+	*commandp = xwcsdup(command);
+    } else {
+	*commandp = NULL;
+    }
+    if (signum == 0)
+	return true;
+
+    struct sigaction action;
+    if (command == NULL)
+	action.sa_handler = SIG_DFL;
+    else if (command[0] == L'\0')
+	action.sa_handler = SIG_IGN;
+    else
+	action.sa_handler = sig_handler;
+    switch (signum) {
+	case SIGCHLD:
+	    savesigchld.valid = false;
+	    /* SIGCHLD's signal handler is always `sig_handler' */
+	    return true;
+	case SIGQUIT:
+	    savesigquit.valid = false;
+	    goto nodefault;
+	case SIGTTOU:
+	    savesigttou.valid = false;
+	    if (job_initialized)
+		goto nodefault;
+	    break;
+	case SIGTSTP:
+	    savesigtstp.valid = false;
+	    if (job_initialized)
+		goto nodefault;
+	    break;
+	case SIGINT:
+	    savesigint.valid = false;
+	    if (interactive_initialized)
+		goto nodefault;
+	    break;
+	case SIGTERM:
+	    savesigterm.valid = false;
+	    if (interactive_initialized)
+		goto nodefault;
+	    break;
+nodefault:
+	    if (action.sa_handler == SIG_DFL)
+		action.sa_handler = SIG_IGN;
+	    break;
+    }
+
+    if (action.sa_handler == oldhandler)
+	return true;
+
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    if (sigaction(signum, &action, NULL) >= 0) {
+	return true;
+    } else {
+	xerror(errno, "trap: sigaction(%s)", get_signal_name(signum));
+	return false;
+    }
 }
 
 /* Clears all traps except that are set to SIG_IGN. */
 void clear_traps(void)
 {
-    // TODO sig.c: clear_traps: unimplemented
+    if (!any_trap_set)
+	return;
+
+    {
+	wchar_t *command = trap_command[sigindex(0)];
+	if (command && command[0])
+	    set_trap(0, NULL);
+    }
+    for (const signal_T *s = signals; s->no; s++) {
+	wchar_t *command = trap_command[sigindex(s->no)];
+	if (command && command[0])
+	    set_trap(s->no, NULL);
+    }
+    for (int sigrtmin = SIGRTMIN, i = 0; i < RTSIZE; i++) {
+	wchar_t *command = rttrap_command[i];
+	if (command && command[0])
+	    set_trap(sigrtmin + i, NULL);
+    }
 }
+
+
+/********** Builtin **********/
+
+static void print_trap(const char *signame, const wchar_t *command)
+    __attribute__((nonnull));
+
+/* The "trap" builtin */
+int trap_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"print", xno_argument, L'p', },
+	{ L"help",  xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    wchar_t opt;
+    bool print = false;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"" : L"p",
+		    long_options, NULL))) {
+	switch (opt) {
+	    case L'p':
+		print = true;
+		break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		goto print_usage;
+	}
+    }
+
+    if (xoptind == argc) {
+	/* print all traps */
+	sigset_t ss;
+	sigemptyset(&ss);
+	print_trap("EXIT", trap_command[sigindex(0)]);
+	for (const signal_T *s = signals; s->no; s++) {
+	    if (!sigismember(&ss, s->no)) {
+		sigaddset(&ss, s->no);
+		print_trap(s->name, trap_command[sigindex(s->no)]);
+	    }
+	}
+#if defined SIGRTMIN && defined SIGRTMAX
+	int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
+	for (int i = 0; i < RTSIZE; i++) {
+	    if (sigrtmin + i > sigrtmax)
+		break;
+	    print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]);
+	}
+#endif
+	return EXIT_SUCCESS;
+    } else if (print) {
+	/* print specified traps */
+#if defined SIGRTMIN && defined SIGRTMAX
+	int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
+#endif
+	do {
+	    wchar_t *wname = ARGV(xoptind);
+	    for (wchar_t *w = wname; *w; w++)
+		*w = towupper(*w);
+	    char *name = malloc_wcstombs(wname);
+	    if (!name)
+		name = "";
+	    int signum = get_signal_number(name);
+	    if (signum < 0) {
+		xerror(0, Ngt("%ls: %s: no such signal"), ARGV(0), name);
+	    } else {
+#if defined SIGRTMIN && defined SIGRTMAX
+		if (sigrtmin <= signum && signum <= sigrtmax) {
+		    int index = signum - sigrtmin;
+		    if (index < RTSIZE)
+			print_trap(get_signal_name(signum),
+				rttrap_command[index]);
+		} else
+#endif
+		{
+		    print_trap(name, trap_command[sigindex(signum)]);
+		}
+	    }
+	    free(name);
+	} while (++xoptind < argc);
+	return EXIT_SUCCESS;
+    }
+
+    /* set traps */
+    bool err = false;
+    const wchar_t *command = ARGV(xoptind++);
+    if (xoptind == argc)
+	goto print_usage;
+    if (wcscmp(command, L"-") == 0)
+	command = NULL;
+
+    do {
+	wchar_t *wname = ARGV(xoptind);
+	for (wchar_t *w = wname; *w; w++)
+	    *w = towupper(*w);
+	char *name = malloc_wcstombs(wname);
+	if (!name)
+	    name = "";
+	int signum = get_signal_number(name);
+	if (signum < 0) {
+	    xerror(0, Ngt("%ls: %s: no such signal"), ARGV(0), name);
+	} else {
+	    err |= !set_trap(signum, command);
+	}
+	free(name);
+    } while (++xoptind < argc);
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+
+print_usage:
+    fprintf(stderr,
+	    Ngt("Usage:  trap [action signal...]\n"
+		"        trap -p [signal...]\n"));
+    return EXIT_ERROR;
+}
+
+/* Prints a trap command to stdout that can be used to restore the current
+ * signal handler for the specified signal.
+ * If the `command' is NULL, this function does nothing.
+ * Otherwise, the `command' is properly single-quoted and printed. */
+void print_trap(const char *signame, const wchar_t *command)
+{
+    if (command) {
+	wchar_t *q = quote_sq(command);
+	printf("trap -- %ls %s\n", q, signame);
+	free(q);
+    }
+}
+
+const char trap_help[] = Ngt(
+"trap - set signal handler\n"
+"\ttrap [action signal...]\n"
+"\ttrap -p [signal...]\n"
+"Sets the signal handler of the specified <signal>s to <action>.\n"
+"When the shell receives the signal, the corresponding action is executed as\n"
+"if by the \"exec\" command.\n"
+"If <action> is an empty string, no actions are taken and the signal is\n"
+"silently ignored when the signal is received.\n"
+"If <action> is \"-\", the signal handler is reset to the default.\n"
+"If the -p (--print) option is specified, the actions for the specified\n"
+"<signal>s are printed.\n"
+"Without any operands, all signal handlers currently set are printed.\n"
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

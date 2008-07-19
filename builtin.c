@@ -28,6 +28,7 @@
 #include "path.h"
 #include "alias.h"
 #include "variable.h"
+#include "sig.h"
 #include "job.h"
 #include "builtin.h"
 #include "exec.h"
@@ -82,6 +83,9 @@ void init_builtin(void)
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
     DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
     DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help);
+
+    /* defined in "sig.c" */
+    DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, trap_help);
 
     /* defined in "job.c" */
     DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);

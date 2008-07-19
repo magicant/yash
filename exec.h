@@ -32,7 +32,7 @@
 #define EXIT_ASSGNERR EXIT_ERROR
 #define EXIT_REDIRERR EXIT_ERROR
 
-extern int laststatus;
+extern int laststatus, savelaststatus;
 extern pid_t lastasyncpid;
 
 struct execinfo;

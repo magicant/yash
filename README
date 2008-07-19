@@ -26,6 +26,9 @@ Currently there is no manpage for yash. Sorry.
    uses this keyword for any other purpose, compilation may fail.
    Additionally, some other identifiers starting with '_' may cause
    compilation errors on some rare environments.
+ * Some signals are assumed to have the specific numbers:
+     SIGHUP=1 SIGINT=2 SIGQUIT=3 SIGABRT=6
+     SIGKILL=9 SIGALRM=14 SIGTERM=15
  * When -e (-o errexit) option is set, failure of the last command of
    an and/or list makes the shell exit. This behavior is not strictly
    POSIX-compliant, but most existing shells behave this way.

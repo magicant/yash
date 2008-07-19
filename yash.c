@@ -199,6 +199,7 @@ int main(int argc, char **argv)
     init_cmdhash();
     init_homedirhash();
     init_variables();
+    init_fixed_trap_set();
     init_signal();
     init_shellfds();
     init_job();
@@ -332,14 +333,17 @@ static void execute_rcfile(const wchar_t *rcfile)
 void exit_shell_with_status(int status)
 {
     static bool exiting = false;
-    static int exitstatus;
+    int exitstatus;
+
+    if (status >= 0)
+	laststatus = status;
+    exitstatus = laststatus;
     if (!exiting) {
 	exiting = true;
-	exitstatus = (status < 0) ? laststatus : status;
-	// TODO yash: exit_shell: execute EXIT trap
+	execute_exit_trap();
     }
     finalize_shell();
-    exit((status < 0) ? exitstatus : status);
+    exit(exitstatus);
 }
 
 /* Does what to do before exiting the shell.
@@ -611,15 +615,14 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
     if (statusstr == NULL) {
-	status = -1;  // TODO exit_builtin: when executing trap
+	status = -1;
     } else {
 	wchar_t *endofstr;
 	errno = 0;
 	status = (int) (wcstoul(statusstr, &endofstr, 0) & 0xFF);
 	if (errno || *endofstr != L'\0') {
-	    /* default to `laststatus'
-	     * if `statusstr' isn't a valid non-negative integer */
-	    status = -1;  // TODO exit_builtin: when executing trap
+	    /* ignore `statusstr' if not a valid non-negative integer */
+	    status = -1;
 	}
     }
     exit_shell_with_status(status);

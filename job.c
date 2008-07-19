@@ -364,10 +364,13 @@ out_of_loop:
  * If `return_on_stop' is false, waits for the job to finish.
  * Otherwise, waits for the job to finish or stop.
  * If `interruptible' is true, this function can be canceled by SIGINT.
+ * If `return_on_trap' is ture, this function returns false immediately after
+ * trap actions are performed. Otherwise, traps are not handled.
  * This function returns immediately if the job is already finished/stopped or
  * is not a child of this shell process.
  * Returns false iff interrupted. */
-bool wait_for_job(size_t jobnumber, bool return_on_stop, bool interruptible)
+bool wait_for_job(size_t jobnumber, bool return_on_stop,
+	bool interruptible, bool return_on_trap)
 {
     bool result = true;
     job_T *job = joblist.contents[jobnumber];
@@ -376,7 +379,7 @@ bool wait_for_job(size_t jobnumber, bool return_on_stop, bool interruptible)
 	    && (!return_on_stop || job->j_status != JS_STOPPED)) {
 	block_sigchld_and_sigint();
 	do {
-	    if (!wait_for_sigchld(interruptible)) {
+	    if (!wait_for_sigchld(interruptible, return_on_trap)) {
 		result = false;
 		break;
 	    }
@@ -893,7 +896,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     }
 
     if (fg)
-	wait_for_job(jobnumber, true, false);
+	wait_for_job(jobnumber, true, false, false);
     int status = (job->j_status == JS_RUNNING) ? 0 : calc_status_of_job(job);
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
@@ -967,10 +970,11 @@ int wait_builtin(int argc, void **argv)
 		    || job->j_pgid < 0) {
 		status = EXIT_NOTFOUND;
 	    } else {
-		if (wait_for_job(jobnumber, jobcontrol, jobcontrol)) {
+		if (wait_for_job(jobnumber, jobcontrol, jobcontrol, true)) {
 		    status = calc_status_of_job(job);
 		} else {
-		    status = TERMSIGOFFSET + SIGINT;
+		    assert(TERMSIGOFFSET > 128);
+		    status = TERMSIGOFFSET;
 		    break;
 		}
 		if (!jobcontrol && job->j_status == JS_DONE)
@@ -982,8 +986,9 @@ int wait_builtin(int argc, void **argv)
 	for (size_t i = 1; i < joblist.length; i++) {
 	    job = joblist.contents[i];
 	    if (job != NULL && job->j_pgid >= 0) {
-		if (!wait_for_job(i, jobcontrol, jobcontrol)) {
-		    status = TERMSIGOFFSET + SIGINT;
+		if (!wait_for_job(i, jobcontrol, jobcontrol, true)) {
+		    assert(TERMSIGOFFSET > 128);
+		    status = TERMSIGOFFSET;
 		    break;
 		}
 		if (!jobcontrol && job->j_status == JS_DONE)

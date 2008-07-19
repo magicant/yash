@@ -78,8 +78,8 @@ extern size_t stopped_job_count(void)
     __attribute__((pure));
 
 extern void do_wait(void);
-extern bool wait_for_job(
-	size_t jobnumber, bool return_on_stop, bool interruptible);
+extern bool wait_for_job(size_t jobnumber, bool return_on_stop,
+	bool interruptible, bool return_on_trap);
 
 extern void put_foreground(pid_t pgrp);
 

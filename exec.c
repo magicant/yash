@@ -112,7 +112,7 @@ static inline void connect_pipes(pipeinfo_T *pi)
 static void exec_commands(command_T *c, exec_T type, bool looppipe);
 static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
-static pid_t fork_and_reset(pid_t pgid, bool fg);
+static pid_t fork_and_reset(pid_t pgid, bool fg, bool dont_clear_traps);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci)
@@ -140,6 +140,8 @@ static inline int xexecve(
 
 /* exit status of the last command */
 int laststatus = EXIT_SUCCESS;
+/* exit status of the command preceding the currently executed trap action */
+int savelaststatus = -1;  // -1 if not in a trap action
 /* the process ID of the last asynchronous list */
 pid_t lastasyncpid;
 
@@ -225,10 +227,8 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	bool savesee = supresserrexit;
 	supresserrexit |= p->pl_neg || p->next;
 
-	// TODO exec_pipelines: add a condition that no trap is set
-	exec_commands(p->pl_commands,
-	    (finally_exit && !p->next && !p->pl_neg) ? execself : execnormal,
-	    p->pl_loop);
+	bool self = finally_exit && !p->next && !p->pl_neg && !any_trap_set;
+	exec_commands(p->pl_commands, self ? execself : execnormal, p->pl_loop);
 	if (p->pl_neg)
 	    laststatus = !laststatus;
 
@@ -247,7 +247,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	exec_commands(p->pl_commands, execasync, p->pl_loop);
     } else {
 	bool doingjobcontrol = doing_job_control_now;
-	pid_t cpid = fork_and_reset(0, false);
+	pid_t cpid = fork_and_reset(0, false, false);
 	
 	if (cpid > 0) {
 	    /* parent process: add a new job */
@@ -567,7 +567,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     job->j_loop = looppipe;
     job->j_pcount = count;
     if (type == execnormal) {   /* wait for job to finish */
-	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false);
+	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
 	laststatus = calc_status_of_job(job);
 	if (job->j_status == JS_DONE) {
 	    remove_job(ACTIVE_JOBNO);
@@ -619,7 +619,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
     if (early_fork) {
 	bool doingjobcontrol = doing_job_control_now;
-	pid_t cpid = fork_and_reset(pgid, type == execnormal);
+	pid_t cpid = fork_and_reset(pgid, type == execnormal, false);
 	if (cpid)
 	    return cpid;
 	if (!doingjobcontrol && type == execasync)
@@ -666,11 +666,13 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 
     if (early_fork || type == execself)
 	later_fork = false, finally_exit = true;
-
     assert(!(early_fork && later_fork));  /* don't fork twice */
     assert(!(early_fork || later_fork) || finally_exit);  /* exit if fork */
+
+    bool ext = (c->c_type == CT_SIMPLE) && (argc > 0)
+		&& (cmdinfo.type == externalprogram);
     if (later_fork) {
-	pid_t cpid = fork_and_reset(pgid, type == execnormal);
+	pid_t cpid = fork_and_reset(pgid, type == execnormal, ext);
 	if (cpid != 0) {
 	    recfree(argv, free);
 	    free(argv0);
@@ -678,8 +680,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	}
     }
     if (finally_exit) {
-	if (c->c_type == CT_SIMPLE && argc > 0
-		&& cmdinfo.type == externalprogram)
+	if (ext)
 	    restore_all_signals();
 	else
 	    set_signals();
@@ -756,8 +757,9 @@ redir_fail:
  * changed.
  * If job control is active and `fg' is true, the child process becomes a
  * foreground process.
+ * If `dont_clear_traps' is false, `clear_traps' is called.
  * Returns the return value of `fork'. */
-pid_t fork_and_reset(pid_t pgid, bool fg)
+pid_t fork_and_reset(pid_t pgid, bool fg, bool dont_clear_traps)
 {
     fflush(NULL);
 
@@ -779,7 +781,8 @@ pid_t fork_and_reset(pid_t pgid, bool fg)
 	}
 	forget_initial_pgid();
 	neglect_all_jobs();
-	clear_traps();
+	if (!dont_clear_traps)
+	    clear_traps();
 	clear_shellfds();
 	fix_temporary_variables();  // XXX do we really need to do this?
 	is_interactive_now = false;
@@ -1028,7 +1031,7 @@ int xexecv(const char *path, char *const *argv)
 {
     do
 	execv(path, argv);
-    while (errno == EINTR);  // TODO handle_traps
+    while (errno == EINTR);
     return -1;
 }
 
@@ -1060,7 +1063,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	return NULL;
     }
 
-    cpid = fork_and_reset(-1, false);
+    cpid = fork_and_reset(-1, false, false);
     if (cpid < 0) {
 	/* fork failure */
 	xclose(pipefd[PIDX_IN]);
@@ -1121,7 +1124,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	fclose(f);
 
 	/* wait for the child to finish */
-	wait_for_job(ACTIVE_JOBNO, false, false);
+	wait_for_job(ACTIVE_JOBNO, false, false, false);
 	laststatus = calc_status_of_job(job);
 	remove_job(ACTIVE_JOBNO);
 
@@ -1169,7 +1172,7 @@ int open_heredocument(const wordunit_T *contents)
     if (!contents)
 	goto success;
 
-    cpid = fork_and_reset(-1, false);
+    cpid = fork_and_reset(-1, false, true);
     if (cpid < 0) {
 	/* fork failure */
 	xerror(0, Ngt("cannot redirect to here-document"));
@@ -1235,15 +1238,14 @@ int return_builtin(int argc __attribute__((unused)), void **argv)
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
     if (statusstr == NULL) {
-	status = laststatus;  // TODO return_builtin: when executing trap
+	status = (savelaststatus >= 0) ? savelaststatus : laststatus;
     } else {
 	wchar_t *endofstr;
 	errno = 0;
 	status = (int) (wcstoul(statusstr, &endofstr, 0) & 0xFF);
 	if (errno || *endofstr != L'\0') {
-	    /* default to `laststatus'
-	     * if `statusstr' isn't a valid non-negative integer */
-	    status = laststatus;  // TODO return_builtin: when executing trap
+	    /* ignore `statusstr' if not a valid non-negative integer */
+	    status = (savelaststatus >= 0) ? savelaststatus : laststatus;
 	}
     }
     execinfo.exception = ee_return;
