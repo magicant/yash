@@ -893,7 +893,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     if (job->j_status != JS_DONE) {
 	if (fg)
 	    put_foreground(job->j_pgid);
-	send_sigcont_to_pgrp(job->j_pgid);
+	kill(-job->j_pgid, SIGCONT);
 	job->j_status = JS_RUNNING;
     }
 

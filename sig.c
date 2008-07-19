@@ -508,12 +508,6 @@ void unblock_sigttou(void)
 	xerror(errno, "sigprocmask(UNBLOCK, TTOU)");
 }
 
-/* Sends SIGCONT to the specified process group. */
-void send_sigcont_to_pgrp(pid_t pgrp)
-{
-    kill(-pgrp, SIGCONT);
-}
-
 /* Blocks all signals other than SIGPIPE and set the action of SIGPIPE to the
  * default.
  * The shell must not call any of the `exec' family hereafter. */
