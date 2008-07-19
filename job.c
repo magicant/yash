@@ -76,9 +76,6 @@ static plist_T joblist;
 /* number of the current/previous jobs. 0 if none. */
 static size_t current_jobnumber, previous_jobnumber;
 
-/* upper bound of pids in the job list */
-static pid_t maxpid;
-
 /* Initializes the job list. */
 void init_job(void)
 {
@@ -95,10 +92,6 @@ void set_active_job(job_T *job)
 {
     assert(joblist.contents[ACTIVE_JOBNO] == NULL);
     joblist.contents[ACTIVE_JOBNO] = job;
-
-    for (size_t i = 0; i < job->j_pcount; i++)
-	if (maxpid < job->j_procs[i].pr_pid)
-	    maxpid = job->j_procs[i].pr_pid;
 }
 
 /* Moves the active job into the job list.
@@ -968,9 +961,7 @@ int wait_builtin(int argc, void **argv)
 		    err = true;
 		    continue;
 		}
-		jobnumber = (pid <= maxpid)
-		    ? get_jobnumber_from_pid((pid_t) pid)
-		    : 0;
+		jobnumber = get_jobnumber_from_pid(pid);
 	    }
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
