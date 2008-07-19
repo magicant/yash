@@ -35,6 +35,7 @@ trap 'rm -rf $TESTTMP' EXIT
 LC_ALL=C
 export INVOKE TESTEE LC_ALL TESTTMP
 unset ENV IFS failed
+umask 077
 
 failed=0
 for x in $TEST_ITEMS

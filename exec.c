@@ -560,12 +560,12 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 	goto done;
     }
 
-    set_active_job(job);
     job->j_pgid = doing_job_control_now ? pgid : 0;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = true;
     job->j_loop = looppipe;
     job->j_pcount = count;
+    set_active_job(job);
     if (type == execnormal) {   /* wait for job to finish */
 	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
 	laststatus = calc_status_of_job(job);
