@@ -979,8 +979,12 @@ int wait_builtin(int argc, void **argv)
 		    status = TERMSIGOFFSET;
 		    break;
 		}
-		if (!jobcontrol && job->j_status == JS_DONE)
-		    remove_job(jobnumber);
+		if (job->j_status == JS_DONE) {
+		    if (jobcontrol && is_interactive_now && !posixly_correct)
+			print_job_status(jobnumber, false, false, stdout);
+		    else
+			remove_job(jobnumber);
+		}
 	    }
 	} while (++xoptind < argc);
     } else {
@@ -993,8 +997,12 @@ int wait_builtin(int argc, void **argv)
 		    status = TERMSIGOFFSET;
 		    break;
 		}
-		if (!jobcontrol && job->j_status == JS_DONE)
-		    remove_job(i);
+		if (job->j_status == JS_DONE) {
+		    if (jobcontrol && is_interactive_now && !posixly_correct)
+			print_job_status(i, false, false, stdout);
+		    else
+			remove_job(i);
+		}
 	    }
 	}
     }
