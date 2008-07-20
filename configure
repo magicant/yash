@@ -25,7 +25,7 @@ tempsrc=".temp.c"
 tempo=".temp.o"
 tempout="./.temp.out"
 
-cc="${CC-c99}"
+cc="${CC:-c99}"
 cflags="${CFLAGS--O1 -g}"
 ldflags="${LDFLAGS}"
 ldlibs="${LDLIBS}"
@@ -34,25 +34,28 @@ package="yash"
 version="2.0a3"
 copyrightyear="2007-2008"
 
-sources="alias.c alias.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
+# all source files in this directory
+sources="alias.c alias.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
+
+# object files to be linked as `yash'
 objs="option.o util.o strbuf.o plist.o hashtable.o wfnmatch.o path.o input.o alias.o parser.o variable.o sig.o expand.o redir.o job.o builtin.o exec.o yash.o"
+
+# object file to be linked as `mksignum'
+mksignumobjs="mksignum.o"
 
 help="no"
 gcc=""
 debug="no"
-noundef="no"
 unset prefix eprefix bindir
 
 # parse options
-for i in "$@"
+for i
 do
     case "$i" in
 	-h|--help)
 	    help="yes" ;;
 	-d|--debug)
 	    debug="yes" ;;
-	--no-undefined)
-	    noundef="yes" ;;
 	--prefix=*)
 	    prefix="${i#--prefix=}" ;;
 	--exec-prefix=*)
@@ -60,6 +63,7 @@ do
 	--bindir=*)
 	    bindir="${i#--bindir=}" ;;
 	?*=*)
+	    # parse variable assignment
 	    if echo "$i" |
 		LC_ALL=C grep -E "^[[:alpha:]][[:alnum:]]*=" >/dev/null
 	    then
@@ -114,11 +118,11 @@ s/'"'"'/'"'\\''"'/g
 s/\(.*\)/'"'"'\1'"'"'/
 }') >&5
 echo >&5
-echo "#" uname -n = `uname -n` >&5
-echo "#" uname -m = `uname -m` >&5
-echo "#" uname -r = `uname -r` >&5
-echo "#" uname -s = `uname -s` >&5
-echo "#" uname -v = `uname -v` >&5
+echo "#" uname -n = $(uname -n) >&5
+echo "#" uname -m = $(uname -m) >&5
+echo "#" uname -r = $(uname -r) >&5
+echo "#" uname -s = $(uname -s) >&5
+echo "#" uname -v = $(uname -v) >&5
 echo >&5
 echo "#" PATH="${PATH}" >&5
 echo >&5
@@ -162,33 +166,79 @@ defconfigh () {
     echo "#define" $1 ${2-1} >&6
     echo "# defining $1='${2-1}' in ${configh}" >&5
 }
+fail () {
+    echo "configuration failed" >&2
+}
 
-# check whether GCC is available
-checking "whether GCC is available"
-if checkby "${CC:-gcc} --version | grep -i gcc"
-then gcc="yes"
-else gcc="no"
-fi
-checked "${gcc}"
+# check OS type
+checking "operation system"
+ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
+checked "${ostype}"
+case "${ostype}" in
+    darwin)
+	defconfigh "_DARWIN_C_SOURCE"
+	;;
+esac
 
-if [ x"${gcc}" = x"yes" ]
+# determine the compiler and its flags
+if [ x"${debug}" = x"yes" ]
 then
-    cc="${CC:-gcc}"
-    if [ x"${debug}" = x"yes" ]
+    checking "whether the compiler is GCC"
+    if checkby "${CC:-gcc} --version | grep -i gcc"
     then
+	checked "yes"
+	gcc="yes" cc="${CC:-gcc}"
 	cflags="-std=c99 -O1 -fno-inline -ggdb -Wall -Wextra"
     else
-	cflags="-std=c99 -O2 -g"
-	defconfigh "NDEBUG"
+	checked "no"
+	echo "--debug option specified but the compiler is not GCC" 2>&1
+	fail
     fi
-else
-    if [ x"${debug}" = x"yes" ]
-    then
-	echo "--debug option specified but GCC unavailable" 2>&1
-	debug="no"
-    fi
+fi
+if [ x"${debug}" = x"no" ]
+then
     defconfigh "NDEBUG"
 fi
+
+# check if the compiler works
+checking "whether the compiler (${cc}) works"
+cat >"${tempsrc}" <<END
+int main() { return 0; }
+END
+if trymake && tryexec
+then
+    checked "yes"
+else
+    checked "no"
+    fail
+fi
+
+#checking "whether the compiler (c99) is GCC"
+#if checkby "${CC:-c99} --version 2>&1 | grep -i gcc" ||
+#    checkby "${CC:-c99} 2>&1 | grep -i gcc"
+#then gcc="yes"
+#else gcc="no"
+#fi
+#checked "${gcc}"
+#
+#if [ x"${gcc}" = x"yes" ]
+#then
+#    cc="${CC:-c99}"
+#    if [ x"${debug}" = x"yes" ]
+#    then
+#	cflags="-O1 -fno-inline -ggdb -Wall -Wextra"
+#    else
+#	cflags="-O2 -g"
+#	defconfigh "NDEBUG"
+#    fi
+#else
+#    if [ x"${debug}" = x"yes" ]
+#    then
+#	echo "--debug option specified but the compiler is not GCC" 2>&1
+#	debug="no"
+#    fi
+#    defconfigh "NDEBUG"
+#fi
 
 # check whether system has /proc/self/exe
 checking "whether system has /proc/self/exe"
@@ -279,9 +329,8 @@ else
 fi
 
 # check if getcwd accepts (NULL,0) as argument
-if [ x"${noundef}" = x"no" ]; then
-    checking "if getcwd(NULL,0) returns malloc'ed string"
-    cat >"${tempsrc}" <<END
+checking "if getcwd(NULL,0) returns malloc'ed string"
+cat >"${tempsrc}" <<END
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -312,19 +361,12 @@ int main(void) {
     free(wd11);
 }
 END
-    if trymake && tryexec
-    then
-	checked "yes"
-	defconfigh "GETCWD_AUTO_MALLOC"
-    else
-	checked "no"
-    fi
-fi
-
-# define ARITH_OVERFLOW_CHECK
-if [ x"${noundef}" = x"yes" ]; then
-    echo >&5
-    defconfigh ARITH_OVERFLOW_CHECK
+if trymake && tryexec
+then
+    checked "yes"
+    defconfigh "GETCWD_AUTO_MALLOC"
+else
+    checked "no"
 fi
 
 
@@ -336,6 +378,7 @@ LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 SOURCES="${sources}"
 OBJS="${objs}"
+MKSIGNUMOBJS="${mksignumobjs}"
 PACKAGE="${package}"
 TARGET="${target}"
 VERSION="${version}"
@@ -345,28 +388,31 @@ EPREFIX="${eprefix-${PREFIX}}"
 if [ x"${PREFIX}" = x"/" ]; then PREFIX=""; fi
 if [ x"${EPREFIX}" = x"/" ]; then EPREFIX=""; fi
 BINDIR="${bindir-${EPREFIX}/bin}"
-DISTDIR=`echo $PACKAGE $VERSION | sed -e 's/[[:space:]]/-/g'`
+DISTDIR=$(echo $PACKAGE $VERSION | sed -e 's/[[:space:]]/-/g')
 
 # create Makefile from Makefile.in
 echo "creating ${makefile}"
-echo "# ${makefile}: generated by configure" > "${makefile}"
-sed -e "
-    s!@CC@!${CC}!g
-    s!@CFLAGS@!${CFLAGS}!g
-    s!@LDFLAGS@!${LDFLAGS}!g
-    s!@LDLIBS@!${LDLIBS}!g
-    s!@SOURCES@!${SOURCES}!g
-    s!@OBJS@!${OBJS}!g
-    s!@PACKAGE@!${PACKAGE}!g
-    s!@TARGET@!${TARGET}!g
-    s!@VERSION@!${VERSION}!g
-    s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g
-    s!@PREFIX@!${PREFIX}!g
-    s!@EPREFIX@!${EPREFIX}!g
-    s!@BINDIR@!${BINDIR}!g
-    s!@DISTDIR@!${DISTDIR}!g
-    " "${makefilein}" >> "${makefile}"
-sh ./makedepend ${sources} >> "${makefile}"
+{
+    echo "# ${makefile}: generated by configure"
+    sed -e "
+	s!@CC@!${CC}!g
+	s!@CFLAGS@!${CFLAGS}!g
+	s!@LDFLAGS@!${LDFLAGS}!g
+	s!@LDLIBS@!${LDLIBS}!g
+	s!@SOURCES@!${SOURCES}!g
+	s!@OBJS@!${OBJS}!g
+	s!@MKSIGNUMOBJS@!${MKSIGNUMOBJS}!g
+	s!@PACKAGE@!${PACKAGE}!g
+	s!@TARGET@!${TARGET}!g
+	s!@VERSION@!${VERSION}!g
+	s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g
+	s!@PREFIX@!${PREFIX}!g
+	s!@EPREFIX@!${EPREFIX}!g
+	s!@BINDIR@!${BINDIR}!g
+	s!@DISTDIR@!${DISTDIR}!g
+	" "${makefilein}"
+    sh ./makedepend ${sources}
+} > "${makefile}"
 
 echo >&5
 echo "===== Output variables =====" >&5
@@ -376,6 +422,7 @@ echo LDFLAGS="'${LDFLAGS}'" >&5
 echo LDLIBS="'${LDLIBS}'" >&5
 echo SOURCES="'${SOURCES}'" >&5
 echo OBJS="'${OBJS}'" >&5
+echo MKSIGNUMOBJS="'${MKSIGNUMOBJS}'" >&5
 echo PACKAGE="'${PACKAGE}'" >&5
 echo TARGET="'${TARGET}'" >&5
 echo VERSION="'${VERSION}'" >&5

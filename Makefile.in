@@ -25,9 +25,9 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 SOURCES = @SOURCES@
 OBJS = @OBJS@
 TARGET = @TARGET@
+MKSIGNUMOBJS = @MKSIGNUMOBJS@
 
-SUBSOURCES = mksignum.c
-BYPRODUCTS = mksignum.o mksignum signum.h
+BYPRODUCTS = mksignum signum.h
 
 all: $(TARGET)
 
@@ -40,8 +40,8 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
-mksignum: mksignum.c
-mksignum: common.h siglist.h
+mksignum: $(MKSIGNUMOBJS)
+	$(CC) $(LDFLAGS) -o $@ $(MKSIGNUMOBJS) $(LDLIBS)
 signum.h: mksignum
 	./mksignum > $@
 
@@ -63,7 +63,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) $(SUBSOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh
+DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	rm -rf $(DISTDIR)
@@ -109,7 +109,7 @@ cscope.out: $(SOURCES)
 	cscope -b
 
 mostlyclean:
-	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
+	-rm -rf $(OBJS) $(MKSIGNUMOBJS) $(BYPRODUCTS) $(DISTDIR)
 	-@cd tests && $(MAKE) $(MAKEFLAGS) clean
 clean: mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
