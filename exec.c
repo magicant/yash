@@ -984,7 +984,7 @@ void exec_fall_back_on_sh(
 
     char *args[argc + 3];
     size_t index = 0;
-    args[index++] = argv[0];
+    args[index++] = "sh";
     args[index++] = (char *) "-";
     if (strcmp(path, "--") == 0)
 	args[index++] = "./--";
