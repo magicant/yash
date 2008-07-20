@@ -41,6 +41,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 mksignum: mksignum.c
+mksignum: common.h siglist.h
 signum.h: mksignum
 	./mksignum > $@
 

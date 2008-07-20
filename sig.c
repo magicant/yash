@@ -37,6 +37,7 @@
 #include "strbuf.h"
 #include "parser.h"
 #include "sig.h"
+#include "siglist.h"
 #include "expand.h"
 #include "redir.h"
 #include "job.h"
@@ -65,94 +66,6 @@
 
 static void sig_handler(int signum);
 static bool set_trap(int signum, const wchar_t *command);
-
-/* signal number and name */
-typedef struct signal_T {
-    int no;
-    const char *name;
-} signal_T;
-
-/* list of signals */
-static const signal_T signals[] = {
-    /* defined by POSIX.1-1990 */
-    { SIGHUP,  "HUP",  }, { SIGINT,  "INT",  }, { SIGQUIT, "QUIT", },
-    { SIGILL,  "ILL",  }, { SIGABRT, "ABRT", }, { SIGFPE,  "FPE",  },
-    { SIGKILL, "KILL", }, { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", },
-    { SIGALRM, "ALRM", }, { SIGTERM, "TERM", }, { SIGUSR1, "USR1", },
-    { SIGUSR2, "USR2", }, { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", },
-    { SIGSTOP, "STOP", }, { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", },
-    { SIGTTOU, "TTOU", },
-    /* defined by SUSv2 & POSIX.1-2001 (SUSv3) */
-    { SIGBUS,  "BUS",  }, { SIGPROF, "PROF", }, { SIGSYS,  "SYS",  },
-    { SIGTRAP, "TRAP", }, { SIGURG,  "URG",  }, { SIGXCPU, "XCPU", },
-    { SIGXFSZ, "XFSZ", },
-#ifdef SIGPOLL
-    { SIGPOLL, "POLL", },
-#endif
-#ifdef SIGVTALRM
-    { SIGVTALRM, "VTALRM", },
-#endif
-    /* non-standardized signals */
-#ifdef SIGIOT
-    { SIGIOT, "IOT", },
-#endif
-#ifdef SIGEMT
-    { SIGEMT, "EMT", },
-#endif
-#ifdef SIGSTKFLT
-    { SIGSTKFLT, "STKFLT", },
-#endif
-#ifdef SIGIO
-    { SIGIO, "IO", },
-#endif
-#ifdef SIGCLD
-    { SIGCLD, "CLD", },
-#endif
-#ifdef SIGPWR
-    { SIGPWR, "PWR", },
-#endif
-#ifdef SIGINFO
-    { SIGINFO, "INFO", },
-#endif
-#ifdef SIGLOST
-    { SIGLOST, "LOST", },
-#endif
-#ifdef SIGMSG
-    { SIGMSG, "MSG", },
-#endif
-#ifdef SIGWINCH
-    { SIGWINCH, "WINCH", },
-#endif
-#ifdef SIGDANGER
-    { SIGDANGER, "DANGER", },
-#endif
-#ifdef SIGMIGRATE
-    { SIGMIGRATE, "MIGRATE", },
-#endif
-#ifdef SIGPRE
-    { SIGPRE, "PRE", },
-#endif
-#ifdef SIGVIRT
-    { SIGVIRT, "VIRT", },
-#endif
-#ifdef SIGKAP
-    { SIGKAP, "KAP", },
-#endif
-#ifdef SIGGRANT
-    { SIGGRANT, "GRANT", },
-#endif
-#ifdef SIGRETRACT
-    { SIGRETRACT, "RETRACT", },
-#endif
-#ifdef SIGSOUND
-    { SIGSOUND, "SOUND", },
-#endif
-#ifdef SIGUNUSED
-    { SIGUNUSED, "UNUSED", },
-#endif
-    { 0, NULL, },
-    /* end of array: any signal number is non-zero (C99 7.14) */
-};
 
 /* Returns the name of the signal with the specified number.
  * The returned name doesn't have a "SIG"-prefix.

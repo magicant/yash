@@ -16,98 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define _POSIX_C_SOURCE 200112L
-#define _XOPEN_SOURCE   600
+#include "common.h"
 #include <locale.h>
 #include <signal.h>
 #include <stdio.h>
 #include <wchar.h>
-
-
-typedef struct signal_T {
-    int no;
-    const char *name;
-} signal_T;
-
-const signal_T signals[] = {
-    /* signals defined by POSIX.1-1990 */
-    { SIGHUP,  "HUP",  }, { SIGINT,  "INT",  }, { SIGQUIT, "QUIT", },
-    { SIGILL,  "ILL",  }, { SIGABRT, "ABRT", }, { SIGFPE,  "FPE",  },
-    { SIGKILL, "KILL", }, { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", },
-    { SIGALRM, "ALRM", }, { SIGTERM, "TERM", }, { SIGUSR1, "USR1", },
-    { SIGUSR2, "USR2", }, { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", },
-    { SIGSTOP, "STOP", }, { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", },
-    { SIGTTOU, "TTOU", },
-    /* signals defined by SUSv2 & POSIX.1-2001 (SUSv3) */
-    { SIGBUS,  "BUS",  }, { SIGPROF, "PROF", }, { SIGSYS,  "SYS",  },
-    { SIGTRAP, "TRAP", }, { SIGURG,  "URG",  }, { SIGXCPU, "XCPU", },
-    { SIGXFSZ, "XFSZ", },
-#ifdef SIGPOLL
-    { SIGPOLL, "POLL", },
-#endif
-#ifdef SIGVTALRM
-    { SIGVTALRM, "VTALRM", },
-#endif
-    /* other signals */
-#ifdef SIGIOT
-    { SIGIOT, "IOT", },
-#endif
-#ifdef SIGEMT
-    { SIGEMT, "EMT", },
-#endif
-#ifdef SIGSTKFLT
-    { SIGSTKFLT, "STKFLT", },
-#endif
-#ifdef SIGIO
-    { SIGIO, "IO", },
-#endif
-#ifdef SIGCLD
-    { SIGCLD, "CLD", },
-#endif
-#ifdef SIGPWR
-    { SIGPWR, "PWR", },
-#endif
-#ifdef SIGINFO
-    { SIGINFO, "INFO", },
-#endif
-#ifdef SIGLOST
-    { SIGLOST, "LOST", },
-#endif
-#ifdef SIGMSG
-    { SIGMSG, "MSG", },
-#endif
-#ifdef SIGWINCH
-    { SIGWINCH, "WINCH", },
-#endif
-#ifdef SIGDANGER
-    { SIGDANGER, "DANGER", },
-#endif
-#ifdef SIGMIGRATE
-    { SIGMIGRATE, "MIGRATE", },
-#endif
-#ifdef SIGPRE
-    { SIGPRE, "PRE", },
-#endif
-#ifdef SIGVIRT
-    { SIGVIRT, "VIRT", },
-#endif
-#ifdef SIGKAP
-    { SIGKAP, "KAP", },
-#endif
-#ifdef SIGGRANT
-    { SIGGRANT, "GRANT", },
-#endif
-#ifdef SIGRETRACT
-    { SIGRETRACT, "RETRACT", },
-#endif
-#ifdef SIGSOUND
-    { SIGSOUND, "SOUND", },
-#endif
-#ifdef SIGUNUSED
-    { SIGUNUSED, "UNUSED", },
-#endif
-    { 0, NULL, },
-};
+#include "siglist.h"
 
 
 int main(void)
