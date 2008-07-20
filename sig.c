@@ -912,7 +912,7 @@ void clear_traps(void)
 static void print_trap(const char *signame, const wchar_t *command)
     __attribute__((nonnull));
 static bool print_signal(int signum, const char *name, bool verbose);
-static bool signal_job(int signum, const wchar_t *jobname, const wchar_t *argv0)
+static bool signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
 /* The "trap" builtin */
@@ -977,7 +977,7 @@ int trap_builtin(int argc, void **argv)
 		name = "";
 	    int signum = get_signal_number(name);
 	    if (signum < 0) {
-		xerror(0, Ngt("%ls: %ls: no such signal"), ARGV(0), wname);
+		xerror(0, Ngt("%ls: no such signal"), wname);
 	    } else {
 #if defined SIGRTMIN && defined SIGRTMAX
 		if (sigrtmin <= signum && signum <= sigrtmax) {
@@ -1008,7 +1008,7 @@ int trap_builtin(int argc, void **argv)
 	wchar_t *name = ARGV(xoptind);
 	int signum = get_signal_number_w(name);
 	if (signum < 0) {
-	    xerror(0, Ngt("%ls: %ls: no such signal"), ARGV(0), name);
+	    xerror(0, Ngt("%ls: no such signal"), name);
 	} else {
 	    err |= !set_trap(signum, command);
 	}
@@ -1078,8 +1078,7 @@ int kill_builtin(int argc, void **argv)
 		    goto print_usage;
 		signum = get_signal_number_w(xoptarg);
 		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {
-		    xerror(0, Ngt("%ls: %ls: no such signal"),
-			    ARGV(0), xoptarg);
+		    xerror(0, Ngt("%ls: no such signal"), xoptarg);
 		    return EXIT_FAILURE1;
 		}
 		goto no_more_options;
@@ -1122,8 +1121,8 @@ main:
 		errno = 0;
 		signum = wcstol(ARGV(xoptind), &end, 10);
 		if (errno || *end || signum < 0 || signum > INT_MAX) {
-		    xerror(0, Ngt("%ls: `%ls' is not a valid integer"),
-			    ARGV(0), ARGV(xoptind));
+		    xerror(0, Ngt("`%ls' is not a valid integer"),
+			    ARGV(xoptind));
 		    err = true;
 		    continue;
 		}
@@ -1132,8 +1131,7 @@ main:
 		else if (signum >= (TERMSIGOFFSET & 0xFF))
 		    signum -= (TERMSIGOFFSET & 0xFF);
 		if (signum <= 0 || !print_signal((int) signum, NULL, verbose))
-		    xerror(0, Ngt("%ls: %ls: no such signal"),
-			    ARGV(0), ARGV(xoptind));
+		    xerror(0, Ngt("%ls: no such signal"), ARGV(xoptind));
 	    } while (++xoptind < argc);
 	}
     } else {
@@ -1143,7 +1141,7 @@ main:
 	do {
 	    wchar_t *proc = ARGV(xoptind);
 	    if (proc[0] == L'%') {
-		if (!signal_job(signum, proc, ARGV(0)))
+		if (!signal_job(signum, proc))
 		    err = true;
 	    } else {
 		long pid;
@@ -1152,14 +1150,13 @@ main:
 		errno = 0;
 		pid = wcstol(proc, &end, 10);
 		if (errno || *end) {
-		    xerror(0, Ngt("%ls: `%ls' is not a valid integer"),
-			    ARGV(0), proc);
+		    xerror(0, Ngt("`%ls' is not a valid integer"), proc);
 		    err = true;
 		    continue;
 		}
 		// XXX this cast might not be safe
 		if (kill((pid_t) pid, signum) < 0) {
-		    xerror(errno, Ngt("%ls: %ls"), ARGV(0), proc);
+		    xerror(errno, "%ls", proc);
 		    err = true;
 		    continue;
 		}
@@ -1205,23 +1202,22 @@ bool print_signal(int signum, const char *name, bool verbose)
 
 /* Sends the specified signal to the specified job.
  * Returns true iff successful. */
-bool signal_job(int signum, const wchar_t *jobspec, const wchar_t *argv0)
+bool signal_job(int signum, const wchar_t *jobspec)
 {
     switch (send_signal_to_job(signum, jobspec + 1)) {
 	case 0:  /* success */
 	    return true;
 	case 1:  /* no such job */
-	    xerror(0, Ngt("%ls: %ls: no such job"), argv0, jobspec);
+	    xerror(0, Ngt("%ls: no such job"), jobspec);
 	    return false;
 	case 2:  /* ambiguous job specification */
-	    xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
-		    argv0, jobspec);
+	    xerror(0, Ngt("%ls: ambiguous job specification"), jobspec);
 	    return false;
 	case 3:  /* not job-controlled */
-	    xerror(0, Ngt("%ls: %ls: not job-controlled job"), argv0, jobspec);
+	    xerror(0, Ngt("%ls: not job-controlled job"), jobspec);
 	    return false;
 	case 4:  /* `kill' failed */
-	    xerror(errno, Ngt("%ls: %ls"), argv0, jobspec);
+	    xerror(errno, "%ls", jobspec);
 	    return false;
 	default:
 	    assert(false);

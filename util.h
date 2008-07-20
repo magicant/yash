@@ -177,6 +177,7 @@ wchar_t *xwcsdup(const wchar_t *s)
 
 extern const wchar_t *yash_program_invocation_name;
 extern const wchar_t *yash_program_invocation_short_name;
+extern const wchar_t *current_builtin_name;
 extern unsigned yash_error_message_count;
 extern void xerror(int errno_, const char *restrict format, ...)
     __attribute__((format(printf,2,3)));

@@ -41,8 +41,10 @@
  * - `argv' may be rearranged and the values of the argument strings may be
  *   changed in builtins. However, the argument strings may not be `free'd or
  *   `realloc'ed.
- * - Any non-special builtin may not execute other commands without forking
- *   because variable environments may be corrupted.
+ * - Any non-special builtin may not execute other commands without calling
+ *   `fix_temporary_variables' because variable environments may be corrupted.
+ *   A builtin must save `current_builtin_name' when executing other commands
+ *   in case it is overridden by another builtin.
  * - Builtins may sleep/wait, but cannot be stopped. */
 
 

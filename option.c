@@ -246,8 +246,8 @@ int set_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'o':
 		if (!set_long_option(xoptarg)) {
-		    xerror(0, Ngt("%ls: %lco %ls: invalid option"),
-			    ARGV(0), (wint_t) xoptopt, xoptarg);
+		    xerror(0, Ngt("%lco %ls: invalid option"),
+			    (wint_t) xoptopt, xoptarg);
 		    goto optionerror;
 		}
 		break;

@@ -214,8 +214,8 @@ int alias_builtin(int argc, void **argv)
 		return EXIT_SUCCESS;
 	    default:
 		fprintf(stderr, gt(posixly_correct
-			    ? "Usage:  alias [name[=value]...]\n"
-			    : "Usage:  alias [-gp] [name[=value]...]\n"));
+			    ? Ngt("Usage:  alias [name[=value]...]\n")
+			    : Ngt("Usage:  alias [-gp] [name[=value]...]\n")));
 		return EXIT_ERROR;
 	}
     }
@@ -237,9 +237,9 @@ int alias_builtin(int argc, void **argv)
 		print_alias(arg, alias, prefix);
 	    } else {
 		xerror(0, wcschr(arg, L'=')
-			? Ngt("%ls: %ls: invalid alias name")
-			: Ngt("%ls: %ls: no such alias"),
-			ARGV(0), arg);
+			? Ngt("%ls: invalid alias name")
+			: Ngt("%ls: no such alias"),
+			arg);
 		err = true;
 	    }
 	}
@@ -295,7 +295,7 @@ int unalias_builtin(int argc, void **argv)
 	do {
 	    const wchar_t *arg = ARGV(xoptind);
 	    if (!remove_alias(arg)) {
-		xerror(0, Ngt("%ls: %ls: no such alias"), ARGV(0), arg);
+		xerror(0, Ngt("%ls: no such alias"), arg);
 		err = true;
 	    }
 	} while (++xoptind < argc);

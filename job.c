@@ -786,19 +786,17 @@ int jobs_builtin(int argc, void **argv)
 	    if (jobspec[0] == L'%') {
 		jobspec++;
 	    } else if (posixly_correct) {
-		xerror(0, Ngt("%ls: %ls: invalid job specification"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
 		err = true;
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: ambiguous job specification"),
+			ARGV(xoptind));
 		err = true;
 	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
-		xerror(0, Ngt("%ls: %ls: no such job"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
 		err = true;
 	    } else {
 		jobs_builtin_print_job(jobnumber, verbose, changedonly, pidonly,
@@ -880,7 +878,7 @@ int fg_builtin(int argc, void **argv)
     }
 
     if (!doing_job_control_now) {
-	xerror(0, Ngt("%ls: job control disabled"), ARGV(0));
+	xerror(0, Ngt("job control disabled"));
 	return EXIT_FAILURE1;
     }
 
@@ -894,25 +892,22 @@ int fg_builtin(int argc, void **argv)
 	    if (jobspec[0] == L'%') {
 		jobspec++;
 	    } else if (posixly_correct) {
-		xerror(0, Ngt("%ls: %ls: invalid job specification"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
 		err = true;
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: ambiguous job specification"),
+			ARGV(xoptind));
 		err = true;
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
 		    || job->j_pgid < 0) {
-		xerror(0, Ngt("%ls: %ls: no such job"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
 		err = true;
 	    } else if (job->j_pgid == 0) {
-		xerror(0, Ngt("%ls: %ls: not job-controlled job"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: not job-controlled job"), ARGV(xoptind));
 		err = true;
 	    } else {
 		set_current_jobnumber(jobnumber);
@@ -922,7 +917,7 @@ int fg_builtin(int argc, void **argv)
     } else {
 	if (current_jobnumber == 0 ||
 		(job = joblist.contents[current_jobnumber])->j_pgid <= 0) {
-	    xerror(0, Ngt("%ls: no current job"), ARGV(0));
+	    xerror(0, Ngt("no current job"));
 	    err = true;
 	} else {
 	    status = continue_job(current_jobnumber, job, fg);
@@ -1012,8 +1007,7 @@ int wait_builtin(int argc, void **argv)
 		errno = 0;
 		pid = wcstol(jobspec, &end, 10);
 		if (errno || *end || pid < 0) {
-		    xerror(0, Ngt("%ls: %ls: invalid job specification"),
-			    ARGV(0), jobspec);
+		    xerror(0, Ngt("%ls: invalid job specification"), jobspec);
 		    err = true;
 		    continue;
 		}
@@ -1021,8 +1015,8 @@ int wait_builtin(int argc, void **argv)
 		// XXX This cast might not be safe
 	    }
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: ambiguous job specification"),
+			ARGV(xoptind));
 		err = true;
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
@@ -1111,19 +1105,17 @@ int disown_builtin(int argc, void **argv)
 	    if (jobspec[0] == L'%') {
 		jobspec++;
 	    } else if (posixly_correct) {
-		xerror(0, Ngt("%ls: %ls: invalid job specification"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
 		err = true;
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: ambiguous job specification"),
+			ARGV(xoptind));
 		err = true;
 	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
-		xerror(0, Ngt("%ls: %ls: no such job"),
-			ARGV(0), ARGV(xoptind));
+		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
 		err = true;
 	    } else {
 		remove_job(jobnumber);
@@ -1131,7 +1123,7 @@ int disown_builtin(int argc, void **argv)
 	} while (++xoptind < argc);
     } else {
 	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL) {
-	    xerror(0, Ngt("%ls: no current job"), ARGV(0));
+	    xerror(0, Ngt("no current job"));
 	    err = true;
 	} else {
 	    remove_job(current_jobnumber);

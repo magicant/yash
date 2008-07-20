@@ -338,13 +338,13 @@ void init_pwd(void)
 set:
     newpwd = xgetcwd();
     if (!newpwd) {
-	xerror(errno, Ngt("cannot set PWD"));
+	xerror(errno, Ngt("cannot set $PWD"));
 	return;
     }
     wnewpwd = malloc_mbstowcs(newpwd);
     free(newpwd);
     if (!wnewpwd) {
-	xerror(0, Ngt("cannot set PWD"));
+	xerror(0, Ngt("cannot set $PWD"));
 	return;
     }
     set_variable(VAR_PWD, wnewpwd, false, true);
@@ -1238,11 +1238,10 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (funcs && (export || unexport)) {
-	xerror(0, Ngt("%ls: invalid options: functions cannot be exported"),
-		ARGV(0));
+	xerror(0, Ngt("invalid options: functions cannot be exported"));
 	return EXIT_ERROR;
     } else if (export && unexport) {
-	xerror(0, Ngt("%ls: -x and -X cannot be used at a time"), ARGV(0));
+	xerror(0, Ngt("-x and -X cannot be used at a time"));
 	return EXIT_ERROR;
     }
 
@@ -1286,16 +1285,16 @@ int typeset_builtin(int argc, void **argv)
 	    *wequal = L'\0';
 	char *name = malloc_wcstombs(warg);
 	if (!name) {
-	    xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
+	    xerror(0, Ngt("unexpected error"));
 	    return EXIT_ERROR;
 	} else if (!is_name(name)) {
-	    xerror(0, Ngt("%ls: %s: invalid name"), ARGV(0), name);
+	    xerror(0, Ngt("%s: invalid name"), name);
 	    err = true;
 	    goto next;
 	}
 	if (funcs) {
 	    if (wequal) {
-		xerror(0, Ngt("%ls: cannot assign function"), ARGV(0));
+		xerror(0, Ngt("cannot assign function"));
 		err = true;
 		goto next;
 	    }
@@ -1307,7 +1306,7 @@ int typeset_builtin(int argc, void **argv)
 		if (print)
 		    print_function(name, f, ARGV(0), readonly);
 	    } else {
-		xerror(0, Ngt("%ls: %s: no such function"), ARGV(0), name);
+		xerror(0, Ngt("%s: no such function"), name);
 		err = true;
 		goto next;
 	    }
@@ -1317,7 +1316,7 @@ int typeset_builtin(int argc, void **argv)
 	    vartype_T saveexport = var->v_type & VF_EXPORT;
 	    if (wequal) {
 		if (var->v_type & VF_READONLY) {
-		    xerror(0, Ngt("%ls: %s: readonly"), ARGV(0), name);
+		    xerror(0, Ngt("%s: readonly"), name);
 		    err = true;
 		} else {
 		    varvaluefree(var);
@@ -1340,7 +1339,7 @@ int typeset_builtin(int argc, void **argv)
 	    if (var) {
 		print_variable(name, var, ARGV(0), readonly, export);
 	    } else {
-		xerror(0, Ngt("%ls: %s: no such variable"), ARGV(0), name);
+		xerror(0, Ngt("%s: no such variable"), name);
 		err = true;
 		goto next;
 	    }
@@ -1491,7 +1490,7 @@ int unset_builtin(int argc, void **argv)
     for (; xoptind < argc; xoptind++) {
 	char *name = malloc_wcstombs(ARGV(xoptind));
 	if (!name) {
-	    xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
+	    xerror(0, Ngt("unexpected error"));
 	    return EXIT_ERROR;
 	}
 
@@ -1503,7 +1502,7 @@ int unset_builtin(int argc, void **argv)
 		if (!(f->f_type & VF_NODELETE)) {
 		    funckvfree(kv);
 		} else {
-		    xerror(0, Ngt("%ls: %s: readonly"), ARGV(0), name);
+		    xerror(0, Ngt("%s: readonly"), name);
 		    err = true;
 		    ht_set(&functions, kv.key, kv.value);
 		}
@@ -1522,7 +1521,7 @@ int unset_builtin(int argc, void **argv)
 			if (ue)
 			    update_enrivon(name);
 		    } else {
-			xerror(0, Ngt("%ls: %s: readonly"), ARGV(0), name);
+			xerror(0, Ngt("%s: readonly"), name);
 			err = true;
 			ht_set(&env->contents, kv.key, kv.value);
 		    }
@@ -1572,12 +1571,10 @@ int shift_builtin(int argc, void **argv)
 	errno = 0;
 	count = wcstol(ARGV(xoptind), &end, 10);
 	if (*end || errno) {
-	    xerror(errno, Ngt("%ls: %ls: not an integer"),
-		    ARGV(0), ARGV(xoptind));
+	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
 	    return EXIT_ERROR;
 	} else if (count < 0) {
-	    xerror(0, Ngt("%ls: %ls: value must not be negative"),
-		    ARGV(0), ARGV(xoptind));
+	    xerror(0, Ngt("%ls: value must not be negative"), ARGV(xoptind));
 	    return EXIT_ERROR;
 	}
 #if LONG_MAX <= SIZE_MAX
@@ -1592,7 +1589,7 @@ int shift_builtin(int argc, void **argv)
     variable_T *var = search_variable(VAR_positional, false);
     assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
     if (scount > var->v_valc) {
-	xerror(0, Ngt("%ls: %zu: cannot shift so many"), ARGV(0), scount);
+	xerror(0, Ngt("%zu: cannot shift so many"), scount);
 	return EXIT_ERROR;
     }
     for (size_t i = 0; i < scount; i++)

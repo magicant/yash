@@ -944,7 +944,9 @@ void exec_simple_command(
     case specialbuiltin:
     case semispecialbuiltin:
     case regularbuiltin:
+	current_builtin_name = argv[0];
 	laststatus = ci->ci_builtin(argc, argv);
+	current_builtin_name = NULL;
 	break;
     case function:
 	exec_function_body(ci->ci_function, argv, finally_exit);
@@ -1287,18 +1289,16 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	errno = 0;
 	count = wcstoul(countstr, &endofstr, 0);
 	if (errno || *endofstr != L'\0') {
-	    xerror(0, Ngt("%ls: `%ls' is not a valid integer"),
-		    ARGV(0), countstr);
+	    xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
 	    return EXIT_FAILURE1;
 	} else if (count == 0) {
-	    xerror(0, Ngt("%ls: %u: not a positive integer"),
-		    ARGV(0), count);
+	    xerror(0, Ngt("%u: not a positive integer"), count);
 	    return EXIT_FAILURE1;
 	}
     }
     assert(count > 0);
     if (execinfo.loopnest == 0) {
-	xerror(0, Ngt("%ls: not in loop"), ARGV(0));
+	xerror(0, Ngt("not in loop"));
 	return EXIT_FAILURE1;
     }
     if (count > execinfo.loopnest)
@@ -1377,25 +1377,26 @@ int dot_builtin(int argc, void **argv)
 
     char *mbsfilename = malloc_wcstombs(filename);
     if (!mbsfilename) {
-	xerror(0, Ngt("%ls: unexpected error"), ARGV(0));
+	xerror(0, Ngt("unexpected error"));
 	return EXIT_ERROR;
     }
 
     char *path;
     if (!wcschr(filename, L'/')) {
 	path = which(mbsfilename, get_path_array(PA_PATH), is_readable);
-	if (!path && !posixly_correct)
-	    goto nowhich;
+	if (!path) {
+	    if (!posixly_correct) {
+		path = mbsfilename;
+	    } else {
+		xerror(0, "%s: not found in $PATH", mbsfilename);
+		free(mbsfilename);
+		if (!is_interactive)
+		    exit_shell_with_status(EXIT_FAILURE1);
+		return EXIT_FAILURE1;
+	    }
+	}
     } else {
-nowhich:
 	path = mbsfilename;
-    }
-    if (!path) {
-	xerror(ENOENT, Ngt("%ls: %s"), ARGV(0), mbsfilename);
-	free(mbsfilename);
-	if (!is_interactive)
-	    exit_shell_with_status(EXIT_FAILURE1);
-	return EXIT_FAILURE1;
     }
 
     bool exp = xoptind < argc;
@@ -1409,7 +1410,7 @@ nowhich:
 	free(path);
     f = reopen_with_shellfd(f, "r");
     if (!f) {
-	xerror(errno, Ngt("%ls: %s"), ARGV(0), mbsfilename);
+	xerror(errno, Ngt("cannot open `%s'"), mbsfilename);
 	free(mbsfilename);
 	if (!is_interactive)
 	    exit_shell_with_status(EXIT_FAILURE1);

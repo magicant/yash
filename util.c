@@ -177,6 +177,7 @@ void sort_mbs_array(void **array)
 
 const wchar_t *yash_program_invocation_name;
 const wchar_t *yash_program_invocation_short_name;
+const wchar_t *current_builtin_name;
 unsigned yash_error_message_count = 0;
 
 /* Prints an error message to stderr.
@@ -190,7 +191,10 @@ void xerror(int errno_, const char *restrict format, ...)
     va_list ap;
 
     yash_error_message_count++;
-    fprintf(stderr, "%ls: ", yash_program_invocation_name);
+    fprintf(stderr, "%ls: ",
+	    current_builtin_name
+	    ? current_builtin_name
+	    : yash_program_invocation_name);
     if (format) {
 	va_start(ap, format);
 	vfprintf(stderr, gt(format), ap);
