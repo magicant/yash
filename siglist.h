@@ -70,9 +70,6 @@ static const signal_T signals[] = {
 #ifdef SIGPWR
     { SIGPWR, "PWR", },
 #endif
-#ifdef SIGINFO
-    { SIGINFO, "INFO", },
-#endif
 #ifdef SIGLOST
     { SIGLOST, "LOST", },
 #endif
@@ -81,6 +78,14 @@ static const signal_T signals[] = {
 #endif
 #ifdef SIGWINDOW
     { SIGWINDOW, "WINDOW", },
+#endif
+
+    /* from BSD */
+#ifdef SIGINFO
+    { SIGINFO, "INFO", },
+#endif
+#ifdef SIGTHR
+    { SIGTHR, "THR", },
 #endif
 
     /* from AIX */
@@ -149,8 +154,10 @@ static const signal_T signals[] = {
 #ifdef SIGUNUSED
     { SIGUNUSED, "UNUSED", },
 #endif
-    { 0, NULL, },
+
     /* end of array: any signal number is non-zero (C99 7.14) */
+    { 0, NULL, },
+
 };
 
 
