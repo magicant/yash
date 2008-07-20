@@ -989,6 +989,11 @@ int kill_builtin(int argc, void **argv)
 	    case L'n':  case L's':  parse_signal:
 		if (list)
 		    goto print_usage;
+		if (posixly_correct && wcsncmp(xoptarg, L"SIG", 3) == 0) {
+		    xerror(0, Ngt("%ls: signal name must be specified "
+				"without `SIG'"), xoptarg);
+		    return EXIT_FAILURE1;
+		}
 		signum = get_signal_number_w(xoptarg);
 		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {
 		    xerror(0, Ngt("%ls: no such signal"), xoptarg);
