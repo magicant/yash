@@ -9,6 +9,9 @@ echo $(echo $var ${var} "$var" "${var}" '$var' '${var}')
 echo "$(echo $var ${var} "$var" "${var}" '$var' '${var}')"
 echo '$(echo $var ${var} "$var" "${var}")'
 
+foo= bar= multiple=assignments one=line
+echo $multiple $one
+
 # TODO test for arithmetic expansion
 
 echo dummy >/dev/null

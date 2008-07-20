@@ -986,6 +986,7 @@ assign_T *tryparse_assignment(void)
 
     ensure_buffer(1);
     if (is_token_delimiter_char(cbuf.contents[cindex])) {
+	skip_blanks_and_comment();
 	result->value = NULL;
     } else {
 	result->value = parse_word(noalias);
