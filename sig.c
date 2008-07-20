@@ -200,8 +200,13 @@ static wchar_t *trap_command[MAXSIGIDX];
 /* These arrays are indexed by `sigindex'. The index 0 is for the EXIT trap. */
 
 /* `signal_received' and `trap_command' for real-time signals. */
+#if defined SIGRTMIN && defined SIGRTMAX
+# if RTSIZE == 0
+#  error "RTSIZE == 0"
+# endif
 static volatile sig_atomic_t rtsignal_received[RTSIZE];
 static wchar_t *rttrap_command[RTSIZE];
+#endif
 
 /* set of signals for which trap cannot be set */
 static sigset_t fixed_trap_set;
@@ -812,11 +817,13 @@ void clear_traps(void)
 	if (command && command[0])
 	    set_trap(s->no, NULL);
     }
+#if defined SIGRTMIN && defined SIGRTMAX
     for (int sigrtmin = SIGRTMIN, i = 0; i < RTSIZE; i++) {
 	wchar_t *command = rttrap_command[i];
 	if (command && command[0])
 	    set_trap(sigrtmin + i, NULL);
     }
+#endif
 }
 
 
