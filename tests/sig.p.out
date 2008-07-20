@@ -1,6 +1,8 @@
+===== kill =====
+TERM
 ===== trap =====
 ok
-ok
+USR2
 trapped
 ok
 trapped

@@ -20,12 +20,15 @@
 #define SIG_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 
 extern const char *get_signal_name(int signum)
     __attribute__((const));
 extern int get_signal_number(const char *name)
     __attribute__((nonnull,pure));
+extern int get_signal_number_w(wchar_t *name)
+    __attribute__((nonnull));
 
 extern bool any_trap_set;
 
@@ -55,7 +58,9 @@ extern void clear_traps(void);
 
 extern int trap_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char trap_help[];
+extern int kill_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char trap_help[], kill_help[];
 
 #if HAVE_STRSIGNAL
 extern char *strsignal(int signum);

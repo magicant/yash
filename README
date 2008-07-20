@@ -20,6 +20,9 @@ Currently there is no manpage for yash. Sorry.
  * In C, a null character represents the end of string. If input from
    a file or a string in itself contains a null character, the
    following characters will be neglected.
+ * We assume that an overflow in signed integer arithmetic or type
+   conversion silently yields an implementation-defined integer
+   rather than resulting in an error.
  * The GCC extension keyword `__attribute__' is used in the source
    codes. When not compiled with GCC, this keyword is removed by
    preprocessor, so generally there is no harm. But if your compiler
@@ -35,6 +38,7 @@ Currently there is no manpage for yash. Sorry.
  * According to POSIX, the variable 'PS1' is subject to parameter
    expandsion. Yash also performs command substitution and arithmetic
    expandsion on 'PS1'.
+ * Bracket expressions in filename expansion are not fully supported.
 
 
 ======================

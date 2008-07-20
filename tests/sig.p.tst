@@ -1,15 +1,28 @@
 tmp="${TESTTMP}/sig.p"
 
+set -m
+
+echo ===== kill =====
+
+kill -l >/dev/null
+
+sleep 30 &
+kill $!
+wait $!
+kill -l $?
+
 echo ===== trap =====
 
 trap -- "" USR1
 kill -s USR1 $$
 echo ok
 
-exec 3>&2 2>/dev/null
-(kill -s USR1 -$$)
-echo ok # kill -l $?
-exec 2>&3
+trap 'echo USR2 trapped' USR2
+sleep 30 &
+kill -s USR1 $!
+kill -s USR2 $!
+wait $!
+kill -l $?
 
 trap "trap - USR1; echo trapped" USR1
 kill -s USR1 $$
@@ -23,6 +36,5 @@ trap command2 USR2
 kill -s USR1 $$
 kill -s USR2 $$
 
-# TODO need kill
 
 rm -f "$tmp"

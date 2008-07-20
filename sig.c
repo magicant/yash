@@ -23,9 +23,11 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <wchar.h>
 #include <wctype.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
@@ -193,11 +195,17 @@ int get_signal_number(const char *name)
 	char *end;
 	errno = 0;
 	num = strtol(name, &end, 10);
-	if (errno || *end != '\0' || num > INT_MAX)
+	if (errno || *end != '\0' || num < 0 || num > INT_MAX)
 	    return -1;
 
 	/* check if `num' is a valid signal */
 	int signum = (int) num;
+	if (signum == 0)
+	    return 0;
+#if defined SIGRTMIN && defined SIGRTMAX
+	if (SIGRTMIN <= signum && signum <= SIGRTMAX)
+	    return signum;
+#endif
 	for (const signal_T *s = signals; s->no; s++)
 	    if (s->no == signum)
 		return signum;
@@ -243,6 +251,21 @@ int get_signal_number(const char *name)
     }
 #endif
     return -1;
+}
+
+/* Returns the number of a signal whose name is `name'.
+ * Returns 0 for "EXIT" and -1 for an unknown name.
+ * The given string is converted into uppercase. */
+int get_signal_number_w(wchar_t *name)
+{
+    for (wchar_t *n = name; *n; n++)
+	*n = towupper(*n);
+    char *mname = malloc_wcstombs(name);
+    if (!mname)
+	return -1;
+    int result = get_signal_number(mname);
+    free(mname);
+    return result;
 }
 
 
@@ -888,6 +911,9 @@ void clear_traps(void)
 
 static void print_trap(const char *signame, const wchar_t *command)
     __attribute__((nonnull));
+static bool print_signal(int signum, const char *name, bool verbose);
+static bool signal_job(int signum, const wchar_t *jobname, const wchar_t *argv0)
+    __attribute__((nonnull));
 
 /* The "trap" builtin */
 int trap_builtin(int argc, void **argv)
@@ -951,7 +977,7 @@ int trap_builtin(int argc, void **argv)
 		name = "";
 	    int signum = get_signal_number(name);
 	    if (signum < 0) {
-		xerror(0, Ngt("%ls: %s: no such signal"), ARGV(0), name);
+		xerror(0, Ngt("%ls: %ls: no such signal"), ARGV(0), wname);
 	    } else {
 #if defined SIGRTMIN && defined SIGRTMAX
 		if (sigrtmin <= signum && signum <= sigrtmax) {
@@ -979,19 +1005,13 @@ int trap_builtin(int argc, void **argv)
 	command = NULL;
 
     do {
-	wchar_t *wname = ARGV(xoptind);
-	for (wchar_t *w = wname; *w; w++)
-	    *w = towupper(*w);
-	char *name = malloc_wcstombs(wname);
-	if (!name)
-	    name = "";
-	int signum = get_signal_number(name);
+	wchar_t *name = ARGV(xoptind);
+	int signum = get_signal_number_w(name);
 	if (signum < 0) {
-	    xerror(0, Ngt("%ls: %s: no such signal"), ARGV(0), name);
+	    xerror(0, Ngt("%ls: %ls: no such signal"), ARGV(0), name);
 	} else {
 	    err |= !set_trap(signum, command);
 	}
-	free(name);
     } while (++xoptind < argc);
     return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
 
@@ -1028,6 +1048,199 @@ const char trap_help[] = Ngt(
 "If the -p (--print) option is specified, the actions for the specified\n"
 "<signal>s are printed.\n"
 "Without any operands, all signal handlers currently set are printed.\n"
+);
+
+/* The "kill" builtin, which accepts the following options:
+ * -s SIG: specifies the signal to send
+ * -n num: specifies the signal to send by number
+ * -l: prints signal info
+ * -v: prints signal info verbosely */
+int kill_builtin(int argc, void **argv)
+{
+    if (!posixly_correct && argc == 2 && wcscmp(ARGV(1), L"--help") == 0) {
+	print_builtin_help(ARGV(0));
+	return EXIT_SUCCESS;
+    }
+
+    wchar_t opt;
+    int signum = SIGTERM;
+    bool list = false, verbose = false;
+    bool err = false;
+
+    xoptind = 0, xopterr = false;
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"ls:" : L"+ln:s:v",
+		    NULL, NULL))) {
+	switch (opt) {
+	    /* we don't make any differences between -n and -s options */
+	    case L'n':  case L's':  parse_signal:
+		if (list)
+		    goto print_usage;
+		signum = get_signal_number_w(xoptarg);
+		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {
+		    xerror(0, Ngt("%ls: %ls: no such signal"),
+			    ARGV(0), xoptarg);
+		    return EXIT_FAILURE1;
+		}
+		goto no_more_options;
+	    case L'l':
+		list = true;
+		break;
+	    case L'v':
+		list = verbose = true;
+		break;
+	    default:
+		if (ARGV(xoptind)[0] == L'-' && ARGV(xoptind)[1] == xoptopt) {
+		    if (list)
+			goto no_more_options;
+		    xoptarg = &ARGV(xoptind++)[1];
+		    goto parse_signal;
+		}
+		goto print_usage;
+	    no_more_options:
+		if (xoptind < argc && wcscmp(ARGV(xoptind), L"--") == 0)
+		    xoptind++;
+		goto main;
+	}
+    }
+
+main:
+    if (list) {
+	/* print signal info */
+	if (xoptind == argc) {
+	    for (const signal_T *s = signals; s->no; s++)
+		print_signal(s->no, s->name, verbose);
+#if defined SIGRTMIN && defined SIGRTMAX
+	    for (int i = SIGRTMIN, max = SIGRTMAX; i <= max; i++)
+		print_signal(i, NULL, verbose);
+#endif
+	} else {
+	    do {
+		long signum;
+		wchar_t *end;
+
+		errno = 0;
+		signum = wcstol(ARGV(xoptind), &end, 10);
+		if (errno || *end || signum < 0 || signum > INT_MAX) {
+		    xerror(0, Ngt("%ls: `%ls' is not a valid integer"),
+			    ARGV(0), ARGV(xoptind));
+		    err = true;
+		    continue;
+		}
+		if (signum >= TERMSIGOFFSET)
+		    signum -= TERMSIGOFFSET;
+		else if (signum >= (TERMSIGOFFSET & 0xFF))
+		    signum -= (TERMSIGOFFSET & 0xFF);
+		if (signum <= 0 || !print_signal((int) signum, NULL, verbose))
+		    xerror(0, Ngt("%ls: %ls: no such signal"),
+			    ARGV(0), ARGV(xoptind));
+	    } while (++xoptind < argc);
+	}
+    } else {
+	/* send signal */
+	if (xoptind == argc)
+	    goto print_usage;
+	do {
+	    wchar_t *proc = ARGV(xoptind);
+	    if (proc[0] == L'%') {
+		if (!signal_job(signum, proc, ARGV(0)))
+		    err = true;
+	    } else {
+		long pid;
+		wchar_t *end;
+
+		errno = 0;
+		pid = wcstol(proc, &end, 10);
+		if (errno || *end) {
+		    xerror(0, Ngt("%ls: `%ls' is not a valid integer"),
+			    ARGV(0), proc);
+		    err = true;
+		    continue;
+		}
+		// XXX this cast might not be safe
+		if (kill((pid_t) pid, signum) < 0) {
+		    xerror(errno, Ngt("%ls: %ls"), ARGV(0), proc);
+		    err = true;
+		    continue;
+		}
+	    }
+	} while (++xoptind < argc);
+    }
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+
+print_usage:
+    fprintf(stderr, Ngt(
+		"Usage:  kill [-s signal] process...\n"
+		"        kill -l [number...]\n"));
+    return EXIT_ERROR;
+}
+
+/* Prints info about the specified signal.
+ * If `name' is non-NULL, it must be a valid signal name of `signum'.
+ * If `name' is NULL and `signum' is not a valid signal number, it is an error.
+ * `get_signal_name' may be called in this function.
+ * Returns true iff successful. */
+bool print_signal(int signum, const char *name, bool verbose)
+{
+    if (!name) {
+	name = get_signal_name(signum);
+	if (strcmp(name, "?") == 0)
+	    return false;
+    }
+    if (!verbose) {
+	puts(name);
+    } else {
+#if HAVE_STRSIGNAL
+	const char *sigdesc = strsignal(signum);
+	if (sigdesc) {
+	    printf("%d\t%-10s %s\n", signum, name, sigdesc);
+	} else
+#endif
+	{
+	    printf("%d\t%-10s\n", signum, name);
+	}
+    }
+    return true;
+}
+
+/* Sends the specified signal to the specified job.
+ * Returns true iff successful. */
+bool signal_job(int signum, const wchar_t *jobspec, const wchar_t *argv0)
+{
+    switch (send_signal_to_job(signum, jobspec + 1)) {
+	case 0:  /* success */
+	    return true;
+	case 1:  /* no such job */
+	    xerror(0, Ngt("%ls: %ls: no such job"), argv0, jobspec);
+	    return false;
+	case 2:  /* ambiguous job specification */
+	    xerror(0, Ngt("%ls: %ls: ambiguous job specification"),
+		    argv0, jobspec);
+	    return false;
+	case 3:  /* not job-controlled */
+	    xerror(0, Ngt("%ls: %ls: not job-controlled job"), argv0, jobspec);
+	    return false;
+	case 4:  /* `kill' failed */
+	    xerror(errno, Ngt("%ls: %ls"), argv0, jobspec);
+	    return false;
+	default:
+	    assert(false);
+    }
+}
+
+const char kill_help[] = Ngt(
+"kill - send a signal to processes\n"
+"\tkill [-signal|-s signal|-n number] process...\n"
+"\tkill -l [-v] [number...]\n"
+"The first form sends a signal to the specified processes. The signal to send\n"
+"can be specified by the name or by the number. The processes can be\n"
+"specified by the process ID or in the job specification format like \"%1\".\n"
+"If the process ID is negative, the signal is sent to the process group.\n"
+"The second form prints info about signals. For each <number> given, the name\n"
+"of the corresponding signal is printed. The <number> must be a valid signal\n"
+"number or the exit status of a process kill by a signal. If no <number>s are\n"
+"given, a list of available signals is printed.\n"
+"With the -v option, verbose info is printed.\n"
 );
 
 

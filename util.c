@@ -127,7 +127,7 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 }
 
 /* If the string `s' starts with the `prefix', returns a pointer to the
- * byte right after the prefix in `s'. Otherwide returns NULL. */
+ * byte right after the prefix in `s'. Otherwise returns NULL. */
 char *matchstrprefix(const char *s, const char *prefix)
 {
     while (*prefix) {
@@ -140,7 +140,7 @@ char *matchstrprefix(const char *s, const char *prefix)
 }
 
 /* If the string `s' starts with the `prefix', returns a pointer to the
- * character right after the prefix in `s'. Otherwide returns NULL. */
+ * character right after the prefix in `s'. Otherwise returns NULL. */
 wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 {
     while (*prefix) {
@@ -265,8 +265,12 @@ void argshift(void **argv, int from, int to /* <= from */)
  * `argv' is arranged so that all the options percede the operands (except when
  * there was a parse error).
  *
- * After this function returned -1, it must not be called any more and
+ * After this function returned L'\0', it must not be called any more and
  * `argv[xoptind]' points to the first operand.
+ * After this function returned L'?', it must not be called any more and
+ * `argv[xoptind]' points to the erroneous option.
+ * After this function returned something otherwise, `argv[xoptind]' points to
+ * the next argument to parse.
  * `argv', `xoptind' and `xoptopt' must not be changed from outside this
  * function during parsing.
  *
@@ -280,7 +284,7 @@ void argshift(void **argv, int from, int to /* <= from */)
  *  val:       When a long option is recognized, the corresponding `val' is
  *             returned.
  *
- * Here are the meaning of external variables with `xopt'-prefix.
+ * Here are the usage of external variables with `xopt'-prefix.
  *  xoptind:  Index of the argument in `argv' to be parsed next.
  *            Must be initialized to 0 before first call to the function.
  *  xoptarg:  When an option with an argument is parsed, `xoptarg' points to
@@ -464,19 +468,16 @@ ambiguousmatch:
 		fprintf(stderr, "\t--%s\n", longopts[i].name);
 #endif
     }
-    xoptind++;
     return L'?';
 nosuchoption:
     if (xopterr)
 	fprintf(stderr, gt("%ls: %ls: invalid option\n"),
 		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
-    xoptind++;
     return L'?';
 argumentmissing:
     if (xopterr)
 	fprintf(stderr, gt("%ls: %ls: argument missing\n"),
 		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
-    xoptind++;
     return L'?';
 }
 

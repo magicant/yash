@@ -1,3 +1,13 @@
+プロセスがシグナルで死んだときそのことを表示する
+signal: +SIGWAITING, SIGLWP, SIGFREEZE, SIGTHAW, SIGCANCEL, SIGXRES (from sunos)
+signal: +SIGDIL (from hp-ux)
+signal: +SIGALRM1 SIGSAK (from aix)
+signal: +SIGTHR (from freebsd)
+signal: +SIGWINDOW (from ?)
+configure: _DARWIN_C_SOURCE
+exec: exec_fall_back_on_sh: argv[0] が "sh" でなくていいの?
+parser: = の後に何もない代入の解析がおかしい
+組込みコマンド実行中は yash_program_invocation_name を変更
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
@@ -17,7 +27,6 @@ gettext 対応
 	hash -pr
 	help -s
 	history -acdnprsw
-	kill -lsn
 	newgrp
 	popd -n
 	printf
@@ -26,7 +35,6 @@ gettext 対応
 	suspend -f
 	test/[
 	times
-	trap -lp
 	type
 	ulimit -acdfilmnpqstvxHNS
 	umask -pS

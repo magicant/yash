@@ -390,6 +390,32 @@ bool wait_for_job(size_t jobnumber, bool return_on_stop,
     return result;
 }
 
+/* Sends the specified signal to the specified job.
+ * See `get_jobnumber_from_name' for the format of `jobname'.
+ * The return value is:
+ *  - 0 if the signal is successfully sent,
+ *  - 1 if there is no job for `jobname',
+ *  - 2 if more than one jobs are found for `jobname',
+ *  - 3 if the specified job is not job-controlled, or
+ *  - 4 if `kill' returned an error (errno is set). */
+int send_signal_to_job(int signum, const wchar_t *jobname)
+{
+    size_t jobnumber = get_jobnumber_from_name(jobname);
+    if (jobnumber == 0)
+	return 1;
+    if (jobnumber >= joblist.length)
+	return 2;
+
+    job_T *job = get_job(jobnumber);
+    if (!job)
+	return 1;
+    if (job->j_pgid == 0)
+	return 3;
+    if (kill(-job->j_pgid, signum) < 0)
+	return 4;
+    return 0;
+}
+
 /* Put the specified process group in the foreground.
  * `pgrp' must be a valid process group ID and `doing_job_control_now' must be
  * true. */
@@ -609,8 +635,7 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 /* Returns the job number from the specified job ID string.
  * If no applicable job is found, zero is returned.
  * If more than one jobs are found, `joblist.length' is returned.
- * When `name' is of the form "%n", the number `n' is returned if it is a valid
- * job number.
+ * When `name' is a number, the number is returned if it is a valid job number.
  * The string must not have the preceding '%'. */
 /* "", "%", "+"  -> the current job
  * "-"           -> the previous job
@@ -961,7 +986,8 @@ int wait_builtin(int argc, void **argv)
 		    err = true;
 		    continue;
 		}
-		jobnumber = get_jobnumber_from_pid(pid);
+		jobnumber = get_jobnumber_from_pid((pid_t) pid);
+		// XXX This cast might not be safe
 	    }
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("%ls: %ls: ambiguous job specification"),

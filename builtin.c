@@ -86,6 +86,7 @@ void init_builtin(void)
 
     /* defined in "sig.c" */
     DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, trap_help);
+    DEFBUILTIN("kill", kill_builtin, BI_SEMISPECIAL, kill_help);
 
     /* defined in "job.c" */
     DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);
