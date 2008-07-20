@@ -70,6 +70,7 @@ extern void set_active_job(job_T *job)
     __attribute__((nonnull));
 extern void add_job(bool current);
 extern void remove_job(size_t jobnumber);
+extern void remove_job_nofitying_signal(size_t jobnumber);
 extern void remove_all_jobs(void);
 extern void neglect_all_jobs(void);
 extern size_t job_count(void)
@@ -92,6 +93,7 @@ extern int calc_status_of_job(const job_T *job)
 extern void print_job_status(
 	size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     __attribute__((nonnull));
+extern void notify_signaled_job(size_t jobnumber);
 
 extern int jobs_builtin(int argc, void **argv)
     __attribute__((nonnull));

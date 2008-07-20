@@ -493,7 +493,7 @@ wchar_t *get_job_name(const job_T *job)
  * true. */
 char *get_process_status_string(const process_T *p, bool *needfree)
 {
-    int status;
+    int status, sig;
 
     switch (p->pr_status) {
     case JS_RUNNING:
@@ -520,15 +520,14 @@ exitstatus:
 	} else {
 	    assert(WIFSIGNALED(status));
 	    *needfree = true;
-	    status = WTERMSIG(status);
+	    sig = WTERMSIG(status);
 #ifdef WCOREDUMP
-	    if (WCOREDUMP(status)) {
+	    if (WCOREDUMP(sig))
 		return malloc_printf(gt("Killed (SIG%s: core dumped)"),
-			get_signal_name(status));
-	    }
+			get_signal_name(sig));
 #endif
 	    return malloc_printf(gt("Killed (SIG%s)"),
-		    get_signal_name(status));
+		    get_signal_name(sig));
 	}
     }
     assert(false);
@@ -630,6 +629,35 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     job->j_statuschanged = false;
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
+}
+
+/* If the shell is interactive and the specified job has been killed by a
+ * signal other than SIGINT or SIGPIPE, prints a notification to stderr. */
+void notify_signaled_job(size_t jobnumber)
+{
+    if (!is_interactive_now)
+	return;
+
+    job_T *job = get_job(jobnumber);
+    if (!job || job->j_status != JS_DONE)
+	return;
+
+    process_T *p = &job->j_procs[job->j_pcount - 1];
+    assert(p->pr_status == JS_DONE);
+    if (p->pr_pid == 0 || !WIFSIGNALED(p->pr_statuscode))
+	return;
+
+    int sig = WTERMSIG(p->pr_statuscode);
+    if (sig == SIGINT || sig == SIGPIPE)
+	return;
+
+#if HAVE_STRSIGNAL
+    fprintf(stderr, gt("Process killed by SIG%s: %s\n"),
+	    get_signal_name(sig), strsignal(sig));
+#else
+    fprintf(stderr, gt("Process killed by SIG%s\n"),
+	    get_signal_name(sig));
+#endif
 }
 
 /* Returns the job number from the specified job ID string.
@@ -904,7 +932,8 @@ int fg_builtin(int argc, void **argv)
     return (status != 0) ? status : err ? EXIT_FAILURE1 : EXIT_SUCCESS;
 }
 
-/* Continues execution of the specified job. */
+/* Continues execution of the specified job.
+ * Returns the exit code of the continued job or 0 if it is still running. */
 int continue_job(size_t jobnumber, job_T *job, bool fg)
 {
     wchar_t *name = get_job_name(job);
@@ -925,8 +954,10 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     if (fg)
 	wait_for_job(jobnumber, true, false, false);
     int status = (job->j_status == JS_RUNNING) ? 0 : calc_status_of_job(job);
-    if (job->j_status == JS_DONE)
+    if (job->j_status == JS_DONE) {
+	notify_signaled_job(jobnumber);
 	remove_job(jobnumber);
+    }
     return status;
 }
 

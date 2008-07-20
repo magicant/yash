@@ -570,6 +570,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
 	laststatus = calc_status_of_job(job);
 	if (job->j_status == JS_DONE) {
+	    notify_signaled_job(ACTIVE_JOBNO);
 	    remove_job(ACTIVE_JOBNO);
 	    goto done;
 	}
