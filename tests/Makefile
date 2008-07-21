@@ -23,6 +23,9 @@ LDFLAGS =
 
 TEST_ITEMS = *.tst  # the default test items
 
+INVOKEOBJS = invoke.o
+BYPRODUCTS = invoke
+
 test test-all: invoke
 	@$(SHELL) ./run-test.sh
 test-posix:
@@ -32,8 +35,12 @@ test-posix:
 # we re-define them here for maximum portability.
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+invoke: $(INVOKEOBJS)
 
 clean:
-	rm -f invoke
+	rm -f invoke $(INVOKEOBJS)
 
 .PHONY: test-all test-posix test clean

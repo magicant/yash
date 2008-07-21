@@ -18,7 +18,7 @@
 
 
 echo "# dependencies resolved by makedepend"
-for source in "$@"
+for source
 do
     case "${source}" in
 	*.c)
@@ -30,6 +30,17 @@ do
 	    d
 	    ' "${source}" | 
 	xargs echo "${source%.c}.o:"
+	;;
+	*.h)
+	sed -e '
+	    /^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
+	      s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
+	      p
+	    }
+	    d
+	    ' "${source}" | 
+	xargs echo "${source}:"
+	;;
     esac
 done
 
