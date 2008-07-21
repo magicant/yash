@@ -833,7 +833,7 @@ void clear_traps(void)
 /********** Builtin **********/
 
 static void print_trap(const char *signame, const wchar_t *command)
-    __attribute__((nonnull));
+    __attribute__((nonnull(1)));
 static bool print_signal(int signum, const char *name, bool verbose);
 static bool signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
