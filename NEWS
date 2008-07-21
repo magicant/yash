@@ -10,10 +10,14 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.0 alpha3
 
-  +  "eval", ".", "typeset", "export", "readonly", "unset", "shift"
-     and "exec" builtins
+  +  "eval", "exec", ".", "typeset", "export", "readonly", "unset",
+     "shift" and "trap" builtins
+  +  "wait" builtin now can be interrupted
+  +  Interactive shell now notifies the process killed by a signal
   -  "/etc/profile" and "~/.profile" are no longer sourced on start-up
-  *  fixed token delimitation in alias substitution
+  *  Fixed token delimitation in alias substitution
+  *  Fixed token delimitation on assignments without values
+  *  Many other bug fixes
 
 ----------------------------------------------------------------------
 Yash 2.0 alpha2

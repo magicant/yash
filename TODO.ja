@@ -1,4 +1,3 @@
-dist の作り方を変更: .distfiles
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
