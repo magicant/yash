@@ -387,7 +387,7 @@ void save_fd(int fd, savefd_T **save)
  * Otherwise, a negative value other than -1 is returned. */
 int parse_and_check_dup(char *const num, redirtype_T type)
 {
-    int fd;
+    int fd = fd;
     if (strcmp(num, "-") == 0) {
 	fd = -1;
     } else {

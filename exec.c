@@ -498,7 +498,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     job_T *job;
     process_T *ps;
     pipeinfo_T pinfo = PIPEINFO_INIT;
-    commandtype_T lasttype;
+    commandtype_T lasttype = lasttype;
 
     assert(!need_break());
 

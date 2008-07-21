@@ -201,7 +201,7 @@ then
 fi
 
 # check if the compiler works
-checking "whether the compiler (${cc}) works"
+checking "whether the compiler works"
 cat >"${tempsrc}" <<END
 int main() { return 0; }
 END
