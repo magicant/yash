@@ -63,20 +63,31 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
+DISTCONTENTSDIRS = . tests
 DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh
+distcontents: $(DISTCONTENTS)
+$(DISTDIR):
+	mkdir -p $@
+	for i in . $$(grep / .distfiles | sed -e 's;/[^/]*$$;;' | sort -u); do \
+		(cd $$i && $(MAKE) $(MAKEFLAGS) distcontents); \
+		mkdir -p $@/$$i; \
+	done
+	while read -r i; do \
+		cp -fRL $$i $@/$${i%/*}; \
+	done < .distfiles
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
-	rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR)
 dist dist-gzip: $(DISTDIR).tar.gz
-	rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR)
 dist-bzip2: $(DISTDIR).tar.bz2
-	rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR)
 dist-shar: $(DISTDIR).shar.gz
-	rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR)
 dist-zip: $(DISTDIR).zip
-	rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR)
 dist-all: $(DISTS)
-	rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR)
 $(DISTDIR).tar.Z: $(DISTDIR)
 	pax -w -x ustar $(DISTDIR) | compress -c > $@
 $(DISTDIR).tar.gz: $(DISTDIR)
@@ -87,17 +98,6 @@ $(DISTDIR).shar.gz: $(DISTDIR)
 	shar -q -T $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
-$(DISTDIR): $(DISTCONTENTS) tests
-	mkdir -p $@
-	for i in $(DISTCONTENTS); do \
-		if [ x$$i != x$${i%/*} ]; then mkdir -p $@/$${i%/*}; fi; \
-		cp -fRL $$i $@/$${i%/*}; \
-	done
-	mkdir -p $@/tests
-	for i in $$(cat tests/filelist); do \
-		if [ x$$i != x$${i%/*} ]; then mkdir -p $@/tests/$${i%/*}; fi; \
-		cp -fRL tests/$$i $@/tests/$${i%/*}; \
-	done
 
 # ctags conforms to POSIX, but etags and cscope do not.
 tags: $(SOURCES)
@@ -125,5 +125,5 @@ reconfigure:
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	echo Cannot read \"config.log\". Try usual \"./configure\" >&2
 
-.PHONY: all test check install install-strip installdirs uninstall dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean reconfigure
+.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean reconfigure
 

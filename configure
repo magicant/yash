@@ -183,7 +183,7 @@ esac
 # determine the compiler and its flags
 if [ x"${debug}" = x"yes" ]
 then
-    checking "whether the compiler is GCC"
+    checking "whether GCC is available"
     if checkby "${CC:-gcc} --version | grep -i gcc"
     then
 	checked "yes"
@@ -191,7 +191,7 @@ then
 	cflags="-std=c99 -O1 -fno-inline -ggdb -Wall -Wextra"
     else
 	checked "no"
-	echo "--debug option specified but the compiler is not GCC" 2>&1
+	echo "--debug option specified but GCC is not available" 2>&1
 	fail
     fi
 fi
@@ -213,32 +213,23 @@ else
     fail
 fi
 
-#checking "whether the compiler (c99) is GCC"
-#if checkby "${CC:-c99} --version 2>&1 | grep -i gcc" ||
-#    checkby "${CC:-c99} 2>&1 | grep -i gcc"
-#then gcc="yes"
-#else gcc="no"
-#fi
-#checked "${gcc}"
-#
-#if [ x"${gcc}" = x"yes" ]
-#then
-#    cc="${CC:-c99}"
-#    if [ x"${debug}" = x"yes" ]
-#    then
-#	cflags="-O1 -fno-inline -ggdb -Wall -Wextra"
-#    else
-#	cflags="-O2 -g"
-#	defconfigh "NDEBUG"
-#    fi
-#else
-#    if [ x"${debug}" = x"yes" ]
-#    then
-#	echo "--debug option specified but the compiler is not GCC" 2>&1
-#	debug="no"
-#    fi
-#    defconfigh "NDEBUG"
-#fi
+# check if the compiler accepts the -O2 option if we are not debugging
+if [ x"${debug}" = x"no" ]
+then
+    checking "whether the compiler accepts -O2 flag"
+    cat >"${tempsrc}" <<END
+int main() { return 0; }
+END
+    savecflags=${cflags}
+    if cflags="-O2 -g" trycompile
+    then
+	checked "yes"
+    else
+	checked "no"
+	cflags=${savecflags}
+    fi
+    unset savecflags
+fi
 
 # check whether system has /proc/self/exe
 checking "whether system has /proc/self/exe"

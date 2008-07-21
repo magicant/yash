@@ -40,7 +40,9 @@ test-posix:
 
 invoke: $(INVOKEOBJS)
 
+distcontents: ;
+
 clean:
 	rm -f invoke $(INVOKEOBJS)
 
-.PHONY: test-all test-posix test clean
+.PHONY: test-all test-posix test distcontents clean
