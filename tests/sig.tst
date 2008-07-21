@@ -1,9 +1,5 @@
 echo ===== kill =====
 
-# SIGQUIT is always ignored
-kill -s QUIT $$
-echo QUIT ignored
-
 # SIGTTOU and SIGTSTP are ignored when job control is active
 set -m
 kill -s TTOU $$
@@ -26,12 +22,14 @@ kill -l $?
 
 echo
 
-# SIGINT and SIGTERM are ignored if interactive
+# SIGINT, SIGTERM and SIGQUIT are ignored if interactive
 $INVOKE $TESTEE -si 2>/dev/null <<\END
 kill -s INT $$
 echo INT ignored
 kill -s TERM $$
 echo TERM ignored
+kill -s QUIT $$
+echo QUIT ignored
 
 sleep 30 &
 kill -s TERM %1
@@ -40,45 +38,45 @@ kill -l $?
 END
 
 # check various syntaxes of kill
-kill -s QUIT $$ $$
+kill -s CHLD $$ $$
 echo 1
-kill -n QUIT $$ $$
+kill -n CHLD $$ $$
 echo 2
-kill -s 3 $$ $$
+kill -s 0 $$ $$
 echo 3
-kill -n 3 $$ $$
+kill -n 0 $$ $$
 echo 4
-kill -sQUIT $$ $$
+kill -sCHLD $$ $$
 echo 5
-kill -nQUIT $$ $$
+kill -nCHLD $$ $$
 echo 6
-kill -s3 $$ $$
+kill -s0 $$ $$
 echo 7
-kill -n3 $$ $$
+kill -n0 $$ $$
 echo 8
-kill -QUIT $$ $$
+kill -CHLD $$ $$
 echo 9
-kill -3 $$ $$
+kill -0 $$ $$
 echo 10
-kill -s QUIT -- $$ $$
+kill -s CHLD -- $$ $$
 echo 11
-kill -n QUIT -- $$ $$
+kill -n CHLD -- $$ $$
 echo 12
-kill -s 3 -- $$ $$
+kill -s 0 -- $$ $$
 echo 13
-kill -n 3 -- $$ $$
+kill -n 0 -- $$ $$
 echo 14
-kill -sQUIT -- $$ $$
+kill -sCHLD -- $$ $$
 echo 15
-kill -nQUIT -- $$ $$
+kill -nCHLD -- $$ $$
 echo 16
-kill -s3 -- $$ $$
+kill -s0 -- $$ $$
 echo 17
-kill -n3 -- $$ $$
+kill -n0 -- $$ $$
 echo 18
-kill -QUIT -- $$ $$
+kill -CHLD -- $$ $$
 echo 19
-kill -3 -- $$ $$
+kill -0 -- $$ $$
 echo 20
 kill -l >/dev/null
 echo 21

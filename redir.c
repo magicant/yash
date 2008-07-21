@@ -173,12 +173,14 @@ bool is_shellfd(int fd)
     return fd >= FD_SETSIZE || (fd >= 0 && FD_ISSET(fd, &shellfds));
 }
 
-/* Closes all file descriptors in `shellfds' and empties it. */
-void clear_shellfds(void)
+/* Closes all file descriptors in `shellfds' and empties it.
+ * If `leavefds' is true, the file descriptors are actually not closed. */
+void clear_shellfds(bool leavefds)
 {
-    for (int fd = 0; fd <= shellfdmax; fd++)
-	if (FD_ISSET(fd, &shellfds))
-	    xclose(fd);
+    if (!leavefds)
+	for (int fd = 0; fd <= shellfdmax; fd++)
+	    if (FD_ISSET(fd, &shellfds))
+		xclose(fd);
     FD_ZERO(&shellfds);
     shellfdmax = -1;
     ttyfd = -1;

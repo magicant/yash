@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +58,14 @@ typedef enum {
     execasync,   /* asynchronous execution */
     execself,    /* execution in the shell's own process */
 } exec_T;
+
+/* options for `fork_and_reset' */
+typedef enum {
+    quitint    = 1 << 0,
+    tstp       = 1 << 1,
+    allbutpipe = 1 << 2,
+    leave      = 1 << 3,
+} sigtype_T;
 
 /* info about file descriptors of pipes */
 typedef struct pipeinfo_T {
@@ -112,7 +121,7 @@ static inline void connect_pipes(pipeinfo_T *pi)
 static void exec_commands(command_T *c, exec_T type, bool looppipe);
 static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
-static pid_t fork_and_reset(pid_t pgid, bool fg, bool dont_clear_traps);
+static pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci)
@@ -246,8 +255,7 @@ void exec_pipelines_async(const pipeline_T *p)
     if (!p->next && !p->pl_neg) {
 	exec_commands(p->pl_commands, execasync, p->pl_loop);
     } else {
-	bool doingjobcontrol = doing_job_control_now;
-	pid_t cpid = fork_and_reset(0, false, false);
+	pid_t cpid = fork_and_reset(0, false, quitint);
 	
 	if (cpid > 0) {
 	    /* parent process: add a new job */
@@ -271,8 +279,6 @@ void exec_pipelines_async(const pipeline_T *p)
 	    lastasyncpid = cpid;
 	} else if (cpid == 0) {
 	    /* child process: execute the commands and then exit */
-	    if (!doingjobcontrol)
-		ignore_sigquit_and_sigint();
 	    maybe_redirect_stdin_to_devnull();
 	    exec_pipelines(p, true);
 	    assert(false);
@@ -619,12 +625,10 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     early_fork = (type != execself) && (type == execasync
 	|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
     if (early_fork) {
-	bool doingjobcontrol = doing_job_control_now;
-	pid_t cpid = fork_and_reset(pgid, type == execnormal, false);
-	if (cpid)
+	sigtype_T sigtype = (type == execasync) ? quitint : 0;
+	pid_t cpid = fork_and_reset(pgid, type == execnormal, sigtype);
+	if (cpid != 0)
 	    return cpid;
-	if (!doingjobcontrol && type == execasync)
-	    ignore_sigquit_and_sigint();
     }
 
     switch (c->c_type) {
@@ -673,19 +677,15 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     bool ext = (c->c_type == CT_SIMPLE) && (argc > 0)
 		&& (cmdinfo.type == externalprogram);
     if (later_fork) {
-	pid_t cpid = fork_and_reset(pgid, type == execnormal, ext);
+	pid_t cpid = fork_and_reset(pgid, type == execnormal, ext ? leave : 0);
 	if (cpid != 0) {
 	    recfree(argv, free);
 	    free(argv0);
 	    return cpid;
 	}
     }
-    if (finally_exit) {
-	if (ext)
-	    restore_all_signals();
-	else
-	    set_signals();
-    }
+    if (ext)
+	restore_all_signals();
 
     /* connect pipes and close leftovers */
     connect_pipes(pi);
@@ -758,36 +758,71 @@ redir_fail:
  * changed.
  * If job control is active and `fg' is true, the child process becomes a
  * foreground process.
- * If `dont_clear_traps' is false, `clear_traps' is called.
+ * `sigtype' specifies settings of signals in the child.
+ * `sigtype' is a bitwise OR of the followings:
+ *   quitint: SIGQUIT and SIGINT are ignored if the parent's job control is on
+ *   tstp: SIGTSTP is ignored if the parent is interactive
+ *   allbutpipe: block all signals but SIGPIPE
+ *   leave: don't clear traps and shellfds. This option should be used only if
+ *          the shell is going to `exec' to an extenal program.
  * Returns the return value of `fork'. */
-pid_t fork_and_reset(pid_t pgid, bool fg, bool dont_clear_traps)
+pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
     fflush(NULL);
 
+    sigset_t all, savemask;
+    sigfillset(&all);
+    sigemptyset(&savemask);
+    if (sigprocmask(SIG_BLOCK, &all, &savemask) < 0)
+	xerror(errno, "sigprocmask(BLOCK, all)");
+    restore_job_signals();
+    restore_interactive_signals();
+
     pid_t cpid = fork();
 
-    if (cpid < 0) {
-	/* fork failure */
-	xerror(errno, Ngt("fork: cannot make child process"));
-    } else if (cpid > 0) {
-	/* parent process */
-	if (doing_job_control_now && pgid >= 0)
-	    setpgid(cpid, pgid);
+    if (cpid != 0) {
+	if (cpid < 0) {
+	    /* fork failure */
+	    xerror(errno, Ngt("fork: cannot make child process"));
+	} else {
+	    /* parent process */
+	    if (doing_job_control_now && pgid >= 0)
+		setpgid(cpid, pgid);
+	}
+	set_signals();
     } else {
 	/* child process */
-	if (doing_job_control_now && pgid >= 0) {
+	bool save_is_interactive_now = is_interactive_now;
+	bool save_doing_job_control_now = doing_job_control_now;
+	if (save_doing_job_control_now && pgid >= 0) {
 	    setpgid(0, pgid);
 	    if (fg)
 		put_foreground(getpgrp());
 	}
 	forget_initial_pgid();
 	neglect_all_jobs();
-	if (!dont_clear_traps)
-	    clear_traps();
-	clear_shellfds();
 	fix_temporary_variables();  // XXX do we really need to do this?
+	if (sigtype & leave) {
+	    clear_shellfds(false);
+	} else {
+	    clear_shellfds(true);
+	    clear_traps();
+	}
 	is_interactive_now = false;
+	if (sigtype & quitint)
+	    if (!save_doing_job_control_now)
+		ignore_sigquit_and_sigint();
+	if (sigtype & tstp)
+	    if (save_is_interactive_now)
+		ignore_sigtstp();
+	if (sigtype & allbutpipe) {
+	    reset_sigpipe();
+	    sigfillset(&savemask);
+	    sigdelset(&savemask, SIGPIPE);
+	}
     }
+    if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0 && errno != EINTR)
+	xerror(errno, "sigprocmask(SETMASK, none)");
     return cpid;
 }
 
@@ -1055,7 +1090,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 {
     int pipefd[2];
     pid_t cpid;
-    bool save_is_interactive_now = is_interactive_now;
 
     if (!code[0])
 	return xwcsdup(L"");
@@ -1066,7 +1100,10 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	return NULL;
     }
 
-    cpid = fork_and_reset(-1, false, false);
+    /* If the child is stopped by SIGTSTP, it can never be resumed and
+     * the shell will be stuck. So we make the child unstoppable
+     * by SIGTSTP. */
+    cpid = fork_and_reset(-1, false, tstp);
     if (cpid < 0) {
 	/* fork failure */
 	xclose(pipefd[PIDX_IN]);
@@ -1137,14 +1174,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	return wb_towcs(&buf);
     } else {
 	/* child process */
-
-	/* If the child is stopped by SIGTSTP, it can never be resumed and
-	 * the shell will be stuck. So we make the child unstoppable
-	 * by SIGTSTP. */
-	if (save_is_interactive_now)
-	    ignore_sigtstp();
-	set_signals();
-
 	xclose(pipefd[PIDX_IN]);
 	if (pipefd[PIDX_OUT] != STDOUT_FILENO) {  /* connect the pipe */
 	    xdup2(pipefd[PIDX_OUT], STDOUT_FILENO);
@@ -1175,7 +1204,7 @@ int open_heredocument(const wordunit_T *contents)
     if (!contents)
 	goto success;
 
-    cpid = fork_and_reset(-1, false, true);
+    cpid = fork_and_reset(-1, false, allbutpipe | leave);
     if (cpid < 0) {
 	/* fork failure */
 	xerror(0, Ngt("cannot redirect to here-document"));
@@ -1190,7 +1219,6 @@ success:
     } else {
 	/* child process */
 	xclose(pipefd[PIDX_IN]);
-	block_all_but_sigpipe();
 
 	FILE *f = fdopen(pipefd[PIDX_OUT], "w");
 	if (!f) {

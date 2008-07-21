@@ -1,5 +1,4 @@
 ===== kill =====
-QUIT ignored
 TTOU ignored
 TSTP ignored
 TTOU
@@ -10,6 +9,7 @@ TERM
 
 INT ignored
 TERM ignored
+QUIT ignored
 TERM
 1
 2
