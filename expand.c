@@ -33,6 +33,7 @@
 #include "input.h"
 #include "parser.h"
 #include "variable.h"
+#include "arith.h"
 #include "expand.h"
 #include "exec.h"
 #include "yash.h"
@@ -328,15 +329,17 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	    break;
 	case WT_CMDSUB:
 	    s = exec_command_substitution(w->wu_cmdsub);
+	    goto cat_s;
+	case WT_ARITH:
+	    s = expand_single(w->wu_arith, tt_none);
+	    if (s)
+		s = evaluate_arithmetic(unescapefree(s));
+	cat_s:
 	    if (s) {
 		wb_catfree(&buf, s);
 	    } else {
 		ok = false;
 	    }
-	    break;
-	case WT_ARITH:
-	    ok = false;  // TODO expand: expand_word: arithmetic expansion
-	    xerror(0, "arithmetic expansion not implemented");
 	    break;
 	}
 	w = w->next;
@@ -471,17 +474,18 @@ bool expand_word(
 	    break;
 	case WT_CMDSUB:
 	    s = exec_command_substitution(w->wu_cmdsub);
+	    goto cat_s;
+	case WT_ARITH:
+	    s = expand_single(w->wu_arith, tt_none);
+	    if (s)
+		s = evaluate_arithmetic(unescapefree(s));
+	cat_s:
 	    if (s) {
 		wb_catfree(&buf, escapefree(s, indq ? NULL : ESCAPED_CHARS));
 		FILL_SBUF_SPLITTABLE;
 	    } else {
 		ok = false;
 	    }
-	    break;
-	case WT_ARITH:
-	    ok = false;  // TODO expand: expand_word: arithmetic expansion
-	    //FILL_SBUF_SPLITTABLE;
-	    xerror(0, "arithmetic expansion not implemented");
 	    break;
 	}
 	w = w->next;
