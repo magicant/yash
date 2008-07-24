@@ -182,7 +182,7 @@ int get_signal_number_w(wchar_t *name)
 }
 
 
-/* set to true when any trap is set */
+/* set to true when any trap other than ignore is set */
 bool any_trap_set = false;
 
 /* flag to indicate a signal is caught. */
@@ -740,7 +740,8 @@ bool set_trap(int signum, const wchar_t *command)
     if (signum != handled_signal && (signum != 0 || !exit_handled))
 	free(*commandp);
     if (command) {
-	any_trap_set = true;
+	if (command[0] != L'\0')
+	    any_trap_set = true;
 	*commandp = xwcsdup(command);
     } else {
 	*commandp = NULL;
@@ -827,6 +828,7 @@ void clear_traps(void)
 	    set_trap(sigrtmin + i, NULL);
     }
 #endif
+    any_trap_set = false;
 }
 
 
