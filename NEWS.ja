@@ -13,6 +13,7 @@ Yash 2.0 alpha3
   +  "eval", "exec", ".", "typeset", "export", "readonly", "unset",
      "shift", "trap" 組込み
   +  "wait" 組込みを中断できるように
+  +  数式展開
   +  対話モードでプロセスがシグナルによって終了したらメッセージを
      表示するように
   -  起動時に "/etc/profile" と "~/.profile" は読み込まないように

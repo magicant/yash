@@ -916,6 +916,9 @@ void coerce_number(evalinfo_T *info, value_T *value)
     if (value->type != VT_VAR)
 	return;
 
+    // TODO: arith: coerce_number: recursively parse the value of the variable
+    //                             as an expression
+
     char *name = malloc_wcsntombs(value->v_var.contents, value->v_var.length);
     if (!name) {
 	xerror(0, Ngt("cannot convert wide characters "
