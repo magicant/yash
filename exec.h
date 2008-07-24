@@ -61,8 +61,10 @@ extern int dot_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int exec_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern int times_builtin(int argc, void **argv)
+    __attribute__((nonnull));
 extern const char return_help[], break_help[], continue_help[],
-       eval_help[], dot_help[], exec_help[];
+       eval_help[], dot_help[], exec_help[], times_help[];
 
 
 #endif /* EXEC_H */

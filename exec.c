@@ -21,11 +21,14 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <math.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/times.h>
 #include <unistd.h>
 #include <wchar.h>
 #if HAVE_GETTEXT
@@ -1626,6 +1629,59 @@ const char exec_help[] = Ngt(
 "after the command.\n"
 "In POSIXly correct mode, none of these options are available and the -f\n"
 "option is always assumed.\n"
+);
+
+/* The "times" builtin */
+int times_builtin(int argc __attribute__((unused)), void **argv)
+{
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  times\n"));
+		return EXIT_ERROR;
+	}
+    }
+
+    double clock;
+    struct tms tms;
+    intmax_t sum, ssm, cum, csm;
+    double sus, sss, cus, css;
+#define format_time(time, min, sec) \
+    do {                                   \
+	double tsec = (time) / clock;      \
+	double m = trunc(tsec / 60.0);     \
+	(min) = (intmax_t) m;              \
+	(sec) = tsec - m * 60.0;           \
+    } while (0)
+
+    clock = sysconf(_SC_CLK_TCK);
+    if (times(&tms) == (clock_t) -1) {
+	xerror(errno, Ngt("cannot get time data"));
+	return EXIT_FAILURE1;
+    }
+    format_time(tms.tms_utime, sum, sus);
+    format_time(tms.tms_stime, ssm, sss);
+    format_time(tms.tms_cutime, cum, cus);
+    format_time(tms.tms_cstime, csm, css);
+    printf(Ngt("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n"),
+	    sum, sus, ssm, sss, cum, cus, csm, css);
+    return EXIT_SUCCESS;
+#undef format_time
+}
+
+const char times_help[] = Ngt(
+"times - print process times\n"
+"\ttimes\n"
+"Prints the accumulated user and system times consumed by the shell process\n"
+"and all of its child processes.\n"
+"The first output line is for the shell process, and the second the child\n"
+"processes. For each line, the user time is printed, followed by the system\n"
+"time.\n"
 );
 
 

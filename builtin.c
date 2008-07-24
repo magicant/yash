@@ -104,6 +104,7 @@ void init_builtin(void)
     DEFBUILTIN("eval", eval_builtin, BI_SPECIAL, eval_help);
     DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help);
     DEFBUILTIN("exec", exec_builtin, BI_SPECIAL, exec_help);
+    DEFBUILTIN("times", times_builtin, BI_SPECIAL, times_help);
 
     /* defined in "yash.c" */
     DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
