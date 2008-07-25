@@ -1004,7 +1004,7 @@ int kill_builtin(int argc, void **argv)
 		if (posixly_correct && wcsncmp(xoptarg, L"SIG", 3) == 0) {
 		    xerror(0, Ngt("%ls: signal name must be specified "
 				"without `SIG'"), xoptarg);
-		    return EXIT_FAILURE1;
+		    return EXIT_ERROR;
 		}
 		signum = get_signal_number_w(xoptarg);
 		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {

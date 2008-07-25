@@ -933,8 +933,8 @@ step7:
 
 	    wchar_t *wactualpwd = realloc_mbstowcs(actualpwd);
 	    if (wactualpwd == NULL) {
-		xerror(0, Ngt("name of new working directory contains "
-			    "invalid characters"));
+		xerror(0, Ngt("cannot convert multibyte characters "
+			    "into wide characters"));
 		return EXIT_FAILURE1;
 	    } else {
 		if (!set_variable(VAR_PWD, wactualpwd, false, false))

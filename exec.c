@@ -1321,10 +1321,10 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	count = wcstoul(countstr, &endofstr, 0);
 	if (errno || *endofstr != L'\0') {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
-	    return EXIT_FAILURE1;
+	    return EXIT_ERROR;
 	} else if (count == 0) {
 	    xerror(0, Ngt("%u: not a positive integer"), count);
-	    return EXIT_FAILURE1;
+	    return EXIT_ERROR;
 	}
     }
     assert(count > 0);
