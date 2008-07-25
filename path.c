@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -797,6 +798,17 @@ bool is_reentry(const struct stat *st, const plist_T *dirstack)
 
 /********** Builtins **********/
 
+static inline void print_umask_octal(mode_t mode);
+static inline void print_umask_symbolic(mode_t mode);
+static inline int set_umask(const wchar_t *newmask)
+    __attribute__((nonnull));
+static inline mode_t copy_user_mask(mode_t mode)
+    __attribute__((const));
+static inline mode_t copy_group_mask(mode_t mode)
+    __attribute__((const));
+static inline mode_t copy_other_mask(mode_t mode)
+    __attribute__((const));
+
 /* options for "cd" and "pwd" builtins */
 static const struct xoption cd_pwd_options[] = {
     { L"logical",  xno_argument, L'L', },
@@ -1055,6 +1067,206 @@ const char pwd_help[] = Ngt(
 "If neither is specified, -L is the default.\n"
 "If the shell is in POSIXly correct mode and the -P option is specified,\n"
 "$PWD is set to the printed pathname.\n"
+);
+
+/* The "umask" builtin, which accepts the following option:
+ * -S: symbolic output */
+int umask_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"symbolic", xno_argument, L'S', },
+	{ L"help",     xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    wchar_t opt;
+    bool symbolic = false;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"S", long_options, NULL))) {
+	switch (opt) {
+	    case L'S':
+		symbolic = true;
+		break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		goto print_usage;
+	}
+    }
+
+    if (xoptind == argc) {
+	mode_t mode = umask(0);
+	umask(mode);
+	if (symbolic)
+	    print_umask_symbolic(mode);
+	else
+	    print_umask_octal(mode);
+    } else if (xoptind + 1 == argc) {
+	return set_umask(ARGV(xoptind));
+    } else {
+	goto print_usage;
+    }
+    return EXIT_SUCCESS;
+
+print_usage:
+    fprintf(stderr, gt("Usage:  umask [-S] [mask]\n"));
+    return EXIT_ERROR;
+}
+
+void print_umask_octal(mode_t mode)
+{
+    printf("0%.3jo\n", (uintmax_t) mode);
+}
+
+void print_umask_symbolic(mode_t mode)
+{
+    putchar('u');
+    putchar('=');
+    if (!(mode & S_IRUSR)) putchar('r');
+    if (!(mode & S_IWUSR)) putchar('w');
+    if (!(mode & S_IXUSR)) putchar('x');
+    putchar(',');
+    putchar('g');
+    putchar('=');
+    if (!(mode & S_IRGRP)) putchar('r');
+    if (!(mode & S_IWGRP)) putchar('w');
+    if (!(mode & S_IXGRP)) putchar('x');
+    putchar(',');
+    putchar('o');
+    putchar('=');
+    if (!(mode & S_IROTH)) putchar('r');
+    if (!(mode & S_IWOTH)) putchar('w');
+    if (!(mode & S_IXOTH)) putchar('x');
+    putchar('\n');
+}
+
+int set_umask(const wchar_t *maskstr)
+{
+    if (iswdigit(maskstr[0])) {
+	/* parse as an octal number */
+	uintmax_t mask;
+	wchar_t *end;
+
+	errno = 0;
+	mask = wcstoumax(maskstr, &end, 8);
+	if (errno || *end) {
+	    xerror(0, Ngt("`%ls': invalid mask"), maskstr);
+	    return EXIT_ERROR;
+	}
+	umask((mode_t) (mask & (S_IRWXU | S_IRWXG | S_IRWXO)));
+	return EXIT_SUCCESS;
+    }
+
+    /* otherwise parse as a symbolic mode specification */
+    mode_t origmask = ~umask(0);
+    mode_t newmask = origmask;
+    const wchar_t *savemaskstr = maskstr;
+
+    do {
+	mode_t who, perm;
+	char op;  /* '+', '-' or '=' */
+
+	/* parse 'who' */
+	who = 0;
+	for (;; maskstr++) switch (*maskstr) {
+	    case L'u':  who |= S_IRWXU;  break;
+	    case L'g':  who |= S_IRWXG;  break;
+	    case L'o':  who |= S_IRWXO;  break;
+	    case L'a':  who = S_IRWXU | S_IRWXG | S_IRWXO;  break;
+	    default:    goto who_end;
+	}
+who_end:
+	if (who == 0)
+	    who = S_IRWXU | S_IRWXG | S_IRWXO;
+
+	/* parse 'op' */
+op_start:
+	op = *maskstr++;
+	switch (op) {
+	    case L'+':  case L'-':  case L'=':
+		break;
+	    default:
+		goto err;
+	}
+
+	/* parse 'perm' */
+	switch (*maskstr) {
+	    case L'u':  perm = copy_user_mask(origmask);  maskstr++;  break;
+	    case L'g':  perm = copy_group_mask(origmask); maskstr++;  break;
+	    case L'o':  perm = copy_other_mask(origmask); maskstr++;  break;
+	    default:
+		perm = 0;
+		for (;; maskstr++) switch (*maskstr) {
+		    case L'r':  perm |= S_IRUSR | S_IRGRP | S_IROTH;  break;
+		    case L'w':  perm |= S_IWUSR | S_IWGRP | S_IWOTH;  break;
+		    case L'X':
+			if (!(origmask & (S_IXUSR | S_IXGRP | S_IXOTH)))
+			    break;
+			/* falls thru! */
+		    case L'x':  perm |= S_IXUSR | S_IXGRP | S_IXOTH;  break;
+		    case L's':  perm |= S_ISUID | S_ISGID;            break;
+		    default:    goto perm_end;
+		}
+perm_end:
+		break;
+	}
+
+	/* set newmask */
+	switch (op) {
+	    case L'+':  newmask |= who & perm;                      break;
+	    case L'-':  newmask &= ~(who & perm);                   break;
+	    case L'=':  newmask = (~who & newmask) | (who & perm);  break;
+	    default:    assert(false);
+	}
+
+	switch (*maskstr) {
+	    case L'\0':  goto parse_end;
+	    case L',':   break;
+	    default:     goto op_start;
+	}
+	maskstr++;
+    } while (1);
+parse_end:
+    umask(~newmask);
+    return EXIT_SUCCESS;
+
+err:
+    umask(~origmask);
+    xerror(0, Ngt("`%ls': invalid mask"), savemaskstr);
+    return EXIT_ERROR;
+}
+
+mode_t copy_user_mask(mode_t mode)
+{
+    return ((mode & S_IRUSR) ? (S_IRUSR | S_IRGRP | S_IROTH) : 0)
+         | ((mode & S_IWUSR) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
+	 | ((mode & S_IXUSR) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
+}
+
+mode_t copy_group_mask(mode_t mode)
+{
+    return ((mode & S_IRGRP) ? (S_IRUSR | S_IRGRP | S_IROTH) : 0)
+         | ((mode & S_IWGRP) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
+	 | ((mode & S_IXGRP) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
+}
+
+mode_t copy_other_mask(mode_t mode)
+{
+    return ((mode & S_IROTH) ? (S_IRUSR | S_IRGRP | S_IROTH) : 0)
+         | ((mode & S_IWOTH) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
+	 | ((mode & S_IXOTH) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
+}
+
+const char umask_help[] = Ngt(
+"umask - print or set file creation mask\n"
+"\tumask mode\n"
+"\tumask [-S]\n"
+"Sets the file mode creation mask of the shell to <mask>. The mask will be\n"
+"inherited by succeedingly invoked commands.\n"
+"If <mode> is not specified, the current setting of the mask is printed.\n"
+"The -S (--symbolic) option makes a symbolic output.\n"
 );
 
 

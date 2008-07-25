@@ -100,7 +100,9 @@ extern int cd_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int pwd_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char cd_help[], pwd_help[];
+extern int umask_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char cd_help[], pwd_help[], umask_help[];
 
 
 #endif /* PATH_H */

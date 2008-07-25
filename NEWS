@@ -10,8 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.0 alpha3
 
-  +  "eval", "exec", ".", "times", "typeset", "export", "readonly",
-     "unset", "shift" and "trap" builtins
+  +  "eval", "exec", ".", "times", "umask", "typeset", "export",
+     "readonly", "unset", "shift" and "trap" builtins
   +  "wait" builtin now can be interrupted
   +  Arithmetic expansions
   +  Interactive shell now notifies the process killed by a signal

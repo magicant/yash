@@ -24,7 +24,5 @@ gettext 対応
 	read -aprs
 	suspend -f
 	test/[
-	times
 	type
 	ulimit -acdfilmnpqstvxHNS
-	umask -pS

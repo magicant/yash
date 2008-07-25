@@ -44,4 +44,17 @@ if [ x"$PWD" = x"${TESTTMP}/dir" ]; then
 	echo cd \$CDPATH 2
 fi
 
+echo ===== umask builtin =====
+
+umask=$(umask)
+umask 0
+umask a-r
+umask ugo+r
+umask u-rw,u-x
+umask go=u
+umask -S
+umask "${umask}"
+[ x"${umask}" = x"$(umask)" ] && echo ok
+
+
 rm -fr "${TESTTMP}/path.p."* "${TESTTMP}/dir"
