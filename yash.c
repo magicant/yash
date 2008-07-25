@@ -117,7 +117,8 @@ int main(int argc, char **argv)
     /* parse options */
     xoptind = 0;
     xopterr = true;
-    while ((opt = xgetopt_long(wargv,
+    while (!option_error &&
+	    (opt = xgetopt_long(wargv,
 		    L"+*cilo:sV" SHELLSET_OPTIONS,
 		    shell_long_options,
 		    NULL))) {
