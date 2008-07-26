@@ -58,7 +58,7 @@ static const struct resource {
 #if HAVE_RLIMIT_MEMLOCK
     { L'l', RLIMIT_MEMLOCK, 1024, Ngt("locked memory (kbytes)"), },
 #endif
-#if HAVE_RLIMIT_RSS && RLIMIT_RSS != RLIMIT_AS
+#if HAVE_RLIMIT_RSS
     { L'm', RLIMIT_RSS, 1024, Ngt("resident set size (kbytes)"), },
 #endif
     { L'n', RLIMIT_NOFILE, 1, Ngt("open files"), },
@@ -93,7 +93,7 @@ int ulimit_builtin(int argc, void **argv)
 #if HAVE_RLIMIT_MEMLOCK
 	"l"
 #endif
-#if HAVE_RLIMIT_RSS && RLIMIT_RSS != RLIMIT_AS
+#if HAVE_RLIMIT_RSS
 	"m"
 #endif
 	"n"
@@ -130,7 +130,7 @@ int ulimit_builtin(int argc, void **argv)
 #if HAVE_RLIMIT_MEMLOCK
 	{ L"memlock", xno_argument, L'l', },
 #endif
-#if HAVE_RLIMIT_RSS && RLIMIT_RSS != RLIMIT_AS
+#if HAVE_RLIMIT_RSS
 	{ L"rss", xno_argument, L'm', },
 #endif
 	{ L"nofile", xno_argument, L'n', },

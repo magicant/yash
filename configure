@@ -421,11 +421,11 @@ then
     do
 	checking "for RLIMIT_${i}"
 	cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE 600
+#include "${configh}"
 #include <sys/resource.h>
-int main() { getrlimit(RLIMIT_${i}, 0); }
+int main() { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
 END
-	if trymake
+	if trymake && tryexec
 	then
 	    checked "yes"
 	    defconfigh "HAVE_RLIMIT_${i}"
