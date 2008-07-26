@@ -180,6 +180,34 @@ case "${ostype}" in
 	;;
 esac
 
+# check POSIX conformance
+checking "POSIX conformance"
+posix=$(getconf _POSIX_VERSION 2>/dev/null)
+if [ -n "${posix}" ] && [ x"${posix}" != x"undefined" ]; then
+    checked "${posix}"
+    if [ "${posix}" -lt 200112 ]; then
+	posix=""
+    fi
+else
+    posix=""
+    checked "no"
+fi
+
+# check SUS conformance
+if [ -n "${posix}" ]; then
+    checking "SUS conformance"
+    xopen=$(getconf _XOPEN_VERSION 2>/dev/null)
+    if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]; then
+	checked "${xopen}"
+	if [ "${xopen}" -lt 600 ]; then
+	    xopen=""
+	fi
+    else
+	xopen=""
+	checked "no"
+    fi
+fi
+
 # determine the compiler and its flags
 if [ x"${debug}" = x"yes" ]
 then
@@ -436,6 +464,13 @@ cat >"${versionh}" <<END
 #define PACKAGE_COPYRIGHT "Copyright (C) ${copyrightyear} magicant"
 #endif
 END
+
+
+# print warning if POSIX conformance is missing
+if [ -z "${posix}" ]; then
+    echo "WARNING: yash is designed for systems that conform to POSIX.1-2001"
+    echo "         but your system does not"
+fi
 
 
 # vim: set ts=8 sts=4 sw=4 noet:
