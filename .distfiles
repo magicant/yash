@@ -39,6 +39,8 @@ plist.c
 plist.h
 redir.c
 redir.h
+resource.c
+resource.h
 sig.c
 sig.h
 siglist.h

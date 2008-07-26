@@ -30,6 +30,7 @@
 #include "variable.h"
 #include "sig.h"
 #include "job.h"
+#include "resource.h"
 #include "builtin.h"
 #include "exec.h"
 #include "yash.h"
@@ -97,6 +98,11 @@ void init_builtin(void)
     DEFBUILTIN("bg", fg_builtin, BI_SEMISPECIAL, bg_help);
     DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help);
     DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
+
+    /* defined in "resource.c" */
+#ifdef HAVE_RLIMIT
+    DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help);
+#endif
 
     /* defined in "exec.c" */
     DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help);

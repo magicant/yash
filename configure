@@ -35,10 +35,10 @@ version="2.0a3"
 copyrightyear="2007-2008"
 
 # all source files in this directory
-sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
+sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h resource.c resource.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
 
 # object files to be linked as `yash'
-objs="option.o util.o strbuf.o plist.o hashtable.o wfnmatch.o path.o input.o alias.o parser.o variable.o sig.o arith.o expand.o redir.o job.o builtin.o exec.o yash.o"
+objs="option.o util.o strbuf.o plist.o hashtable.o wfnmatch.o path.o input.o alias.o parser.o variable.o sig.o arith.o expand.o redir.o job.o resource.o builtin.o exec.o yash.o"
 
 # object file to be linked as `mksignum'
 mksignumobjs="mksignum.o"
@@ -183,9 +183,11 @@ esac
 # check POSIX conformance
 checking "POSIX conformance"
 posix=$(getconf _POSIX_VERSION 2>/dev/null)
-if [ -n "${posix}" ] && [ x"${posix}" != x"undefined" ]; then
+if [ -n "${posix}" ] && [ x"${posix}" != x"undefined" ]
+then
     checked "${posix}"
-    if [ "${posix}" -lt 200112 ]; then
+    if [ "${posix}" -lt 200112 ]
+    then
 	posix=""
     fi
 else
@@ -194,12 +196,15 @@ else
 fi
 
 # check SUS conformance
-if [ -n "${posix}" ]; then
+if [ -n "${posix}" ]
+then
     checking "SUS conformance"
     xopen=$(getconf _XOPEN_VERSION 2>/dev/null)
-    if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]; then
+    if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]
+    then
 	checked "${xopen}"
-	if [ "${xopen}" -lt 600 ]; then
+	if [ "${xopen}" -lt 600 ]
+	then
 	    xopen=""
 	fi
     else
@@ -386,6 +391,48 @@ then
     defconfigh "GETCWD_AUTO_MALLOC"
 else
     checked "no"
+fi
+
+# check for getrlimit and setrlimit
+checking "for getrlimit and setrlimit"
+cat >"${tempsrc}" <<END
+#define _XOPEN_SOURCE 600
+#include <sys/resource.h>
+int main() {
+struct rlimit l;
+getrlimit(RLIMIT_FSIZE, &l);
+setrlimit(RLIMIT_FSIZE, &l);
+}
+END
+if trymake
+then
+    checked "yes"
+    defconfigh "HAVE_RLIMIT"
+    rlimit="yes"
+else
+    checked "no"
+    rlimit=""
+fi
+
+# check for RLIMIT_***
+if [ x"${rlimit}" = x"yes" ]
+then
+    for i in LOCKS MEMLOCK MSGQUEUE NICE NPROC RSS RTPRIO SIGPENDING 
+    do
+	checking "for RLIMIT_${i}"
+	cat >"${tempsrc}" <<END
+#define _XOPEN_SOURCE 600
+#include <sys/resource.h>
+int main() { getrlimit(RLIMIT_${i}, 0); }
+END
+	if trymake
+	then
+	    checked "yes"
+	    defconfigh "HAVE_RLIMIT_${i}"
+	else
+	    checked "no"
+	fi
+    done
 fi
 
 
