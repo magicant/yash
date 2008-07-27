@@ -8,7 +8,7 @@ Yash 更新履歴
    x: 新たに加わってしまったバグ
 
 ----------------------------------------------------------------------
-Yash 2.0 alpha3
+Yash 2.0 beta0
 
   +  "eval", "exec", ".", "times", "umask", "typeset", "export",
      "readonly", "unset", "shift", "trap" 組込み

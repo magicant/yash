@@ -8,7 +8,7 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
-Yash 2.0 alpha3
+Yash 2.0 beta0
 
   +  "eval", "exec", ".", "times", "umask", "typeset", "export",
      "readonly", "unset", "shift" and "trap" builtins
