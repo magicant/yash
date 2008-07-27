@@ -17,29 +17,41 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-echo "# dependencies resolved by makedepend"
+tmp=".deptmp"
+trap 'rm -rf "${tmp}"' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
+umask u=rwx,go=rx
+mkdir "${tmp}"
+
+csearch () {
+    if [ -r "${tmp}/$1" ]
+    then
+	cat "${tmp}/$1"
+    else
+	rm -rf "${tmp}/1"
+	sed -e '
+	    /^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
+	      s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
+	      p
+	    }
+	    d
+	    ' "$@" | \
+	while read -r dep
+	do
+	    echo "${dep}"
+	    csearch "${dep}"
+	done | \
+	tee "${tmp}/$1"
+    fi
+}
+
 for source
 do
     case "${source}" in
 	*.c)
-	sed -e '
-	    /^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
-	      s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
-	      p
-	    }
-	    d
-	    ' "${source}" | 
-	xargs echo "${source%.c}.o:"
+	csearch "${source}" | sort -u | xargs echo "${source%.c}.o:"
 	;;
 	*.h)
-	sed -e '
-	    /^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
-	      s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
-	      p
-	    }
-	    d
-	    ' "${source}" | 
-	xargs echo "${source}:"
+	csearch "${source}" | sort -u | xargs echo "${source}:"
 	;;
     esac
 done

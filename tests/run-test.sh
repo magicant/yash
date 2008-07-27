@@ -26,11 +26,11 @@ if [ x"${TMPDIR}" = x"${TMPDIR#/}" ]; then
     TMPDIR=/tmp
 fi
 TESTTMP="${TMPDIR}/yashtest.$$"
+trap 'rm -rf $TESTTMP' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
     echo Cannot create temporary directory
     exit 1
 fi
-trap 'rm -rf $TESTTMP' EXIT
 
 LC_ALL=C
 export INVOKE TESTEE LC_ALL TESTTMP

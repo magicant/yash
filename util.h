@@ -19,7 +19,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "common.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

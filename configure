@@ -47,6 +47,7 @@ help="no"
 gcc=""
 debug="no"
 unset prefix eprefix bindir
+chmod u=rwx,go=rx
 
 # parse options
 for i
@@ -477,7 +478,10 @@ echo "creating ${makefile}"
 	s!@BINDIR@!${BINDIR}!g
 	s!@DISTDIR@!${DISTDIR}!g
 	" "${makefilein}"
-    sh ./makedepend ${sources}
+    echo "# dependencies resolved by makedepend"
+    for i in ${SOURCES}
+    do echo "$i"
+    done | xargs sh ./makedepend
 } > "${makefile}"
 
 echo >&5
