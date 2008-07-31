@@ -247,6 +247,8 @@ void reopen_xstdin(void)
 	xstdin = fdopen(STDIN_FILENO, "r");
     else
 	xstdin = NULL;
+    if (xstdin)
+	setvbuf(xstdin, NULL, _IONBF, 0);
 }
 
 
