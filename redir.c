@@ -90,8 +90,9 @@ static bool is_shellfd(int fd)
     __attribute__((pure));
 
 
-/* true iff stdin is redirected */
-static bool is_stdin_redirected = false;
+/* The current stream used as stdin.
+ * NULL when the input is not available. */
+FILE *xstdin;
 
 /* set of file descriptors used by the shell.
  * These file descriptors cannot be used by the user. */
@@ -106,8 +107,8 @@ static int shellfdmax;
 #define SHELLFDMINMAX 100  /* maximum for `shellfdmin' */
 #endif
 
-/* file descriptor associated with the controlling terminal */
-static int ttyfd = -1;
+/* The file descriptor associated with the controlling terminal. -1 if none */
+int ttyfd = -1;
 
 
 /* Initializes shell FDs. */
@@ -118,6 +119,7 @@ void init_shellfds(void)
 	return;
     initialized = true;
 
+    xstdin = stdin;
     FD_ZERO(&shellfds);
     reset_shellfdmin();
     shellfdmax = -1;
@@ -237,12 +239,6 @@ onerror:
     xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
 }
 
-/* Returns `ttyfd', or -1 if not open. */
-int get_ttyfd(void)
-{
-    return ttyfd;
-}
-
 
 /********** Redirections **********/
 
@@ -251,7 +247,7 @@ struct savefd_T {
     struct savefd_T *next;
     int   sf_origfd;            /* original file descriptor */
     int   sf_copyfd;            /* copied file descriptor */
-    bool  sf_stdin_redirected;  /* original `is_stdin_redirected' */
+    FILE *sf_xstdin;            /* original `xstdin' */
 };
 
 static void save_fd(int oldfd, savefd_T **save);
@@ -351,8 +347,14 @@ openwithflags:
 	    }
 	}
 
-	if (r->rd_fd == STDIN_FILENO)
-	    is_stdin_redirected = true;
+	/* set new `xstdin` */
+	if (r->rd_fd == STDIN_FILENO) {
+	    int mode = fcntl(STDIN_FILENO, F_GETFL);
+	    if (mode >= 0 && (mode & O_ACCMODE) != O_WRONLY)
+		xstdin = fdopen(STDIN_FILENO, "r");
+	    else
+		xstdin = NULL;
+	}
 
 	r = r->next;
     }
@@ -376,7 +378,7 @@ void save_fd(int fd, savefd_T **save)
     s->next = *save;
     s->sf_origfd = fd;
     s->sf_copyfd = copyfd;
-    s->sf_stdin_redirected = is_stdin_redirected;
+    s->sf_xstdin = xstdin;
     /* note: if `fd' is formerly unused, `sf_copyfd' is -1. */
     *save = s;
 }
@@ -434,13 +436,16 @@ void undo_redirections(savefd_T *save)
 {
     while (save) {
 	if (save->sf_copyfd >= 0) {
+	    if (xstdin != save->sf_xstdin) {
+		fclose(xstdin);
+		xstdin = save->sf_xstdin;
+	    }
 	    remove_shellfd(save->sf_copyfd);
 	    xdup2(save->sf_copyfd, save->sf_origfd);
 	    xclose(save->sf_copyfd);
 	} else {
 	    xclose(save->sf_origfd);
 	}
-	is_stdin_redirected = save->sf_stdin_redirected;
 
 	savefd_T *next = save->next;
 	free(save);
@@ -454,6 +459,10 @@ void clear_savefd(savefd_T *save)
 {
     while (save) {
 	if (save->sf_copyfd >= 0) {
+	    if (xstdin != save->sf_xstdin) {
+		fclose(xstdin);
+		xstdin = save->sf_xstdin;
+	    }
 	    remove_shellfd(save->sf_copyfd);
 	    xclose(save->sf_copyfd);
 	}
@@ -472,8 +481,7 @@ void maybe_redirect_stdin_to_devnull(void)
 {
     int fd;
 
-    if ((posixly_correct ? is_interactive : do_job_control)
-	    || is_stdin_redirected)
+    if ((posixly_correct ? is_interactive : do_job_control) || xstdin != stdin)
 	return;
 
     xclose(STDIN_FILENO);
@@ -482,7 +490,7 @@ void maybe_redirect_stdin_to_devnull(void)
 	xdup2(fd, STDIN_FILENO);
 	xclose(fd);
     }
-    is_stdin_redirected = true;
+    xstdin = fdopen(STDIN_FILENO, "r");
 }
 
 

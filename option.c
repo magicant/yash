@@ -264,7 +264,7 @@ int set_builtin(int argc, void **argv)
 		    bool value = (xoptopt == L'-');
 		    if (value != do_job_control) {
 			reset_own_pgid();
-			if (value && get_ttyfd() < 0)
+			if (value && ttyfd < 0)
 			    open_ttyfd();
 			do_job_control = value;
 			set_signals();

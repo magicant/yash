@@ -49,7 +49,7 @@ extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
 
 /* Whether or not this shell process is doing job control right now. */
-#define doing_job_control_now  (do_job_control && get_ttyfd() >= 0)
+#define doing_job_control_now  (do_job_control && ttyfd >= 0)
 
 extern int set_builtin(int argc, void **argv)
     __attribute__((nonnull));
