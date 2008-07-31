@@ -485,8 +485,11 @@ fail:
 void connect_pipes(pipeinfo_T *pi)
 {
     if (pi->pi_fromprevfd >= 0) {
+	if (xstdin)
+	    fclose(xstdin);
 	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
 	xclose(pi->pi_fromprevfd);
+	reopen_xstdin();
     }
     if (pi->pi_tonextfds[PIDX_OUT] >= 0) {
 	xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);

@@ -33,6 +33,7 @@ extern void clear_shellfds(bool leavefds);
 extern int copy_as_shellfd(int fd);
 extern FILE *reopen_with_shellfd(FILE *f, const char *mode);
 extern void open_ttyfd(void);
+extern void reopen_xstdin(void);
 
 typedef struct savefd_T savefd_T;
 struct redir_T;

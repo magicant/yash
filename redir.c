@@ -239,6 +239,16 @@ onerror:
     xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
 }
 
+/* Reopens `xstdin' to the current file descriptor 0. */
+void reopen_xstdin(void)
+{
+    int mode = fcntl(STDIN_FILENO, F_GETFL);
+    if (mode >= 0 && (mode & O_ACCMODE) != O_WRONLY)
+	xstdin = fdopen(STDIN_FILENO, "r");
+    else
+	xstdin = NULL;
+}
+
 
 /********** Redirections **********/
 
@@ -348,13 +358,8 @@ openwithflags:
 	}
 
 	/* set new `xstdin` */
-	if (r->rd_fd == STDIN_FILENO) {
-	    int mode = fcntl(STDIN_FILENO, F_GETFL);
-	    if (mode >= 0 && (mode & O_ACCMODE) != O_WRONLY)
-		xstdin = fdopen(STDIN_FILENO, "r");
-	    else
-		xstdin = NULL;
-	}
+	if (r->rd_fd == STDIN_FILENO)
+	    reopen_xstdin();
 
 	r = r->next;
     }
@@ -436,8 +441,9 @@ void undo_redirections(savefd_T *save)
 {
     while (save) {
 	if (save->sf_copyfd >= 0) {
-	    if (xstdin != save->sf_xstdin) {
-		fclose(xstdin);
+	    if (save->sf_origfd == STDIN_FILENO && xstdin != save->sf_xstdin) {
+		if (xstdin)
+		    fclose(xstdin);
 		xstdin = save->sf_xstdin;
 	    }
 	    remove_shellfd(save->sf_copyfd);
@@ -459,11 +465,10 @@ void clear_savefd(savefd_T *save)
 {
     while (save) {
 	if (save->sf_copyfd >= 0) {
-	    if (xstdin != save->sf_xstdin) {
-		fclose(xstdin);
-		xstdin = save->sf_xstdin;
-	    }
 	    remove_shellfd(save->sf_copyfd);
+	    if (save->sf_origfd == STDIN_FILENO && save->sf_xstdin != NULL
+		    && xstdin != save->sf_xstdin && save->sf_xstdin != stdin)
+		fclose(save->sf_xstdin);
 	    xclose(save->sf_copyfd);
 	}
 
