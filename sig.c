@@ -569,6 +569,8 @@ bool wait_for_sigchld(bool interruptible, bool return_on_trap)
  * If SIGCHLD is caught while waiting, `handle_sigchld' is called.
  * SIGCHLD must be blocked when this function is called.
  * If `trap' is true, traps are also handled while waiting. */
+/* Note: some functions call this function without blocking SIGCHLD when the
+ * race condition is not a severe problem. */
 void wait_for_input(int fd, bool trap)
 {
     sigset_t ss;
