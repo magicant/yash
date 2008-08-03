@@ -25,6 +25,8 @@
 extern int xclose(int fd);
 extern int xdup2(int oldfd, int newfd);
 
+extern int ttyfd;
+
 extern void init_shellfds(void);
 extern void clear_shellfds(bool leavefds);
 extern int copy_as_shellfd(int fd);

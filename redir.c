@@ -107,7 +107,7 @@ static int shellfdmax;
 #endif
 
 /* file descriptor associated with the controlling terminal */
-static int ttyfd = -1;
+int ttyfd = -1;
 
 
 /* Initializes shell FDs. */
@@ -235,12 +235,6 @@ void open_ttyfd(void)
 
 onerror:
     xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
-}
-
-/* Returns `ttyfd', or -1 if not open. */
-int get_ttyfd(void)
-{
-    return ttyfd;
 }
 
 

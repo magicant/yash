@@ -771,8 +771,6 @@ redir_fail:
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
-    fflush(NULL);
-
     sigset_t all, savemask;
     sigfillset(&all);
     sigemptyset(&savemask);
