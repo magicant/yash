@@ -200,7 +200,6 @@ int main(int argc, char **argv)
     init_cmdhash();
     init_homedirhash();
     init_variables();
-    init_fixed_trap_set();
     init_signal();
     init_shellfds();
     init_job();
@@ -250,6 +249,7 @@ int main(int argc, char **argv)
 	do_job_control = is_interactive;
     if (is_interactive || do_job_control)
 	open_ttyfd();
+    init_fixed_trap_set();
     set_signals();
     set_own_pgid();
     set_positional_parameters(wargv + xoptind);
