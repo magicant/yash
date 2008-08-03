@@ -29,6 +29,9 @@ extern bool unset_nonblocking(int fd);
 
 struct xwcsbuf_T;
 
+extern bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
+    __attribute__((nonnull));
+
 /* input functions to be used as `inputfunc_T' */
 extern int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
@@ -36,6 +39,8 @@ extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 extern int input_file(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
+extern int input_stdin(struct xwcsbuf_T *buf, void *inputinfo)
+    __attribute__((nonnull(1)));
 extern int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 

@@ -475,6 +475,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 }
 
 /* Parses input from a file stream and executes the commands.
+ * The stream `f' must be set to non-blocking if it is not stdin.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
  * If `intrinput' is true, the input stream is considered interactive.
  * If there are no commands in input, `laststatus' is set to 0. */
@@ -496,7 +497,7 @@ void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 	pinfo.inputinfo = &rlinfo;
 	pinfo.inputisatty = isatty(fileno(f));
     } else {
-	pinfo.input = input_file;
+	pinfo.input = (f == stdin) ? input_stdin : input_file;
 	pinfo.inputinfo = f;
 	pinfo.inputisatty = false;
     }

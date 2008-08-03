@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <wchar.h>
 #if HAVE_GETTEXT
@@ -133,7 +134,7 @@ int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 }
 
 /* An input function that reads input from a file stream.
- * `inputinfo' is a pointer to a `FILE'.
+ * `inputinfo' is a pointer to a `FILE', which must be set to non-blocking.
  * Reads one line with `fgetws' and appends it to the buffer. */
 int input_file(struct xwcsbuf_T *buf, void *inputinfo)
 {
@@ -141,13 +142,9 @@ int input_file(struct xwcsbuf_T *buf, void *inputinfo)
     int fd = fileno(f);
     size_t initlen = buf->length;
 
-    if (!set_nonblocking(fd))
-	return EOF;
 start:
     wb_ensuremax(buf, buf->length + 100);
     if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
-	// XXX it segfaults if we do `fflush'. Is it a bug in glibc?
-	//fflush(f);  fseek(f, 0, SEEK_CUR);
 	size_t len = wcslen(buf->contents + buf->length);
 	// `len' may be 0 if a null character is input
 	buf->length += len;
@@ -172,14 +169,87 @@ start:
 		wait_for_input(fd, true);
 		goto start;
 	    default:
-		//fflush(f);  fseek(f, 0, SEEK_CUR);  XXX
 		xerror(errno, Ngt("cannot read input"));
 		goto end;
 	}
     }
 end:
-    unset_nonblocking(fd);
     return (initlen == buf->length) ? EOF : 0;
+}
+
+/* An input function that reads input from the standard input.
+ * Bytes are read one by one until a newline is encountered. No more bytes are
+ * read after the newline.
+ * This function does not use `inputinfo'.
+ * The result is appended to the buffer. */
+int input_stdin(struct xwcsbuf_T *buf, void *inputinfo __attribute__((unused)))
+{
+    size_t initlen = buf->length;
+    read_line_from_stdin(buf, true);
+    return (initlen == buf->length) ? EOF : 0;
+}
+
+/* Reads a line of input from the standard input.
+ * Bytes are read one by one until a newline is encountered. No more bytes are
+ * read after the newline.
+ * If `trap' is true, traps are handled while reading.
+ * The result is appended to the buffer.
+ * Returns true iff successful. */
+bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
+{
+    static bool initialized = false;
+    static mbstate_t state;
+
+    bool ok = true;
+
+    if (!initialized) {
+	initialized = true;
+	memset(&state, 0, sizeof state);  /* initialize the state */
+    }
+
+    if (!set_nonblocking(STDIN_FILENO))
+	return false;
+    while (ok) {
+	char c;
+	ssize_t n = read(STDIN_FILENO, &c, 1);
+	if (n < 0) switch (errno) {
+	    case EINTR:
+		break;
+	    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+	    case EWOULDBLOCK:
+#endif
+		wait_for_input(STDIN_FILENO, trap);
+		break;
+	    default:
+		xerror(errno, Ngt("cannot read input"));
+		ok = false;
+		break;
+	} else if (n == 0) {
+	    goto done;
+	} else {
+	    wchar_t wc;
+	    switch (mbrtowc(&wc, &c, 1, &state)) {
+		case 0:
+		case 1:
+		    wb_wccat(buf, wc);
+		    if (wc == L'\n')
+			goto done;
+		    break;
+		case (size_t) -2:
+		    break;
+		case (size_t) -1:
+		    xerror(errno, Ngt("cannot read input"));
+		    ok = false;
+		    break;
+		default:
+		    assert(false);
+	    }
+	}
+    }
+done:
+    unset_nonblocking(STDIN_FILENO);
+    return ok;
 }
 
 /* An input function that prints a prompt and read input.
@@ -199,7 +269,10 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     if (info->type == 1)
 	info->type = 2;
     restore_parse_state(state);
-    return input_file(buf, info->fp);
+    if (info->fp == stdin)
+	return input_stdin(buf, NULL);
+    else
+	return input_file(buf, info->fp);
 }
 
 /* Prints a prompt of the specified type.
