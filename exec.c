@@ -485,11 +485,8 @@ fail:
 void connect_pipes(pipeinfo_T *pi)
 {
     if (pi->pi_fromprevfd >= 0) {
-	if (xstdin)
-	    fclose(xstdin);
 	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
 	xclose(pi->pi_fromprevfd);
-	reopen_xstdin();
     }
     if (pi->pi_tonextfds[PIDX_OUT] >= 0) {
 	xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);
@@ -774,7 +771,7 @@ redir_fail:
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
-    // fflush(NULL);
+    fflush(NULL);
 
     sigset_t all, savemask;
     sigfillset(&all);

@@ -77,7 +77,6 @@ int main(int argc, char **argv)
     const wchar_t *shortest_name;
     const wchar_t *rcfile = NULL;
 
-    setvbuf(stdin,  NULL, _IONBF, 0);
     setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
     setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
 

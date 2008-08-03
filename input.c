@@ -146,6 +146,8 @@ int input_file(struct xwcsbuf_T *buf, void *inputinfo)
 start:
     wb_ensuremax(buf, buf->length + 100);
     if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
+	// XXX it segfaults if we do `fflush'. Is it a bug in glibc?
+	//fflush(f);  fseek(f, 0, SEEK_CUR);
 	size_t len = wcslen(buf->contents + buf->length);
 	// `len' may be 0 if a null character is input
 	buf->length += len;
@@ -170,6 +172,7 @@ start:
 		wait_for_input(fd, true);
 		goto start;
 	    default:
+		//fflush(f);  fseek(f, 0, SEEK_CUR);  XXX
 		xerror(errno, Ngt("cannot read input"));
 		goto end;
 	}

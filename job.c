@@ -424,7 +424,7 @@ void put_foreground(pid_t pgrp)
     assert(doing_job_control_now);
     assert(pgrp > 0);
     block_sigttou();
-    tcsetpgrp(ttyfd, pgrp);
+    tcsetpgrp(get_ttyfd(), pgrp);
     unblock_sigttou();
 }
 

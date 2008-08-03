@@ -25,15 +25,12 @@
 extern int xclose(int fd);
 extern int xdup2(int oldfd, int newfd);
 
-extern int ttyfd;
-extern FILE *xstdin;
-
 extern void init_shellfds(void);
 extern void clear_shellfds(bool leavefds);
 extern int copy_as_shellfd(int fd);
 extern FILE *reopen_with_shellfd(FILE *f, const char *mode);
 extern void open_ttyfd(void);
-extern void reopen_xstdin(void);
+extern int get_ttyfd(void) __attribute__((pure));
 
 typedef struct savefd_T savefd_T;
 struct redir_T;
