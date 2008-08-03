@@ -483,9 +483,8 @@ echo "creating ${makefile}"
     echo "# dependencies resolved by makedepend"
 
     for i in ${SOURCES}
-    do case "$i" in
-	*.c) echo "$i"
-    esac done | xargs sh ./makedepend
+    do echo "$i"
+    done | xargs sh ./makedepend
 } > "${makefile}"
 
 echo >&5

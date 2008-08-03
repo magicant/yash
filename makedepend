@@ -23,18 +23,22 @@ umask u=rwx,go=rx
 mkdir "${tmp}"
 
 csearch () {
+    if ! [ -r "$1" ]
+    then
+	return
+    fi
     if [ -r "${tmp}/$1" ]
     then
 	cat "${tmp}/$1"
     else
-	rm -rf "${tmp}/1"
+	rm -rf "${tmp}/$1"
 	sed -e '
 	    /^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
 	      s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
 	      p
 	    }
 	    d
-	    ' "$@" | \
+	    ' "$1" | \
 	while read -r dep
 	do
 	    echo "${dep}"
@@ -49,9 +53,6 @@ do
     case "${source}" in
 	*.c)
 	csearch "${source}" | sort -u | xargs echo "${source%.c}.o:"
-	;;
-	*.h)
-	csearch "${source}" | sort -u | xargs echo "${source}:"
 	;;
     esac
 done
