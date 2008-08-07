@@ -11,6 +11,8 @@ History of Yash
 Yash 2.0 beta1
 
   *  The standard input is no longer buffered
+  *  The "typeset" builtin now allows any characters other than '='
+     for variable names.
 
 ----------------------------------------------------------------------
 Yash 2.0 beta0

@@ -1255,10 +1255,6 @@ int typeset_builtin(int argc, void **argv)
 	if (!name) {
 	    xerror(0, Ngt("unexpected error"));
 	    return EXIT_ERROR;
-	} else if (!is_name(name)) {  // TODO do away with name restriction
-	    xerror(0, Ngt("%s: invalid name"), name);
-	    err = true;
-	    goto next;
 	}
 	if (funcs) {
 	    if (wequal) {
@@ -1323,6 +1319,7 @@ next:
  * This function does not print an array.
  * If `readonly'/`export' is true, the variable is printed only if it is
  * readonly/exported. */
+/* Note that `name' is never quoted even if it contains unusual symbol chars. */
 static void print_variable(
 	const char *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
