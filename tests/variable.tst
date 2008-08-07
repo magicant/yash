@@ -7,6 +7,11 @@ RANDOM=456
 echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >"${TESTTMP}/variable-b"
 diff "${TESTTMP}/variable-a" "${TESTTMP}/variable-b" && echo ok
 
+oldrand=$RANDOM rand=$RANDOM
+while [ "$oldrand" = "$rand" ]; do
+	oldrand=$rand rand=$RANDOM
+done
+
 echo ===== 1 =====
 
 func1 () { echo func1; }
@@ -69,8 +74,10 @@ func () {
 	readonly -p
 }
 func
+unset ro3
+ro3=dummy typeset -r ro3=ro3
 
-typeset -pr ro
+typeset -pr ro ro3
 
 for num in 1 2 3 4 5; do
 	echo $num

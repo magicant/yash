@@ -62,7 +62,7 @@ typedef enum path_T {
     PA_PATH, PA_CDPATH,
 } path_T;
 #define PATHTCOUNT 2
-extern const char *path_variables[PATHTCOUNT];
+extern const char *const path_variables[PATHTCOUNT];
 
 
 extern unsigned long current_lineno;
@@ -88,10 +88,8 @@ extern const wchar_t *getvar(const char *name)
 extern void **get_variable(const char *name, bool *concat)
     __attribute__((nonnull,malloc,warn_unused_result));
 
-extern void open_new_environment(void);
+extern void open_new_environment(bool temp);
 extern void close_current_environment(void);
-extern void clear_temporary_variables(void);
-extern void fix_temporary_variables(void);
 
 extern char **decompose_paths(const wchar_t *paths)
     __attribute__((malloc,warn_unused_result));

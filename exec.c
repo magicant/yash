@@ -129,8 +129,8 @@ static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci)
     __attribute__((nonnull));
-static bool do_assignments_for_command_type(
-	const assign_T *asgns, enum cmdtype_T type);
+static inline bool assignment_is_temporary(enum cmdtype_T type)
+    __attribute__((const));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
@@ -711,14 +711,18 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    else
 		laststatus = EXIT_ASSGNERR;
 	} else {
-	    if (do_assignments_for_command_type(c->c_assigns, cmdinfo.type)) {
+	    bool temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
+	    if (temp)
+		open_new_environment(true);
+	    if (do_assignments(c->c_assigns, temp, true)) {
 		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
 	    } else {
 		laststatus = EXIT_ASSGNERR;
 		if (!is_interactive && cmdinfo.type == specialbuiltin)
 		    exit_shell();
 	    }
-	    clear_temporary_variables();
+	    if (temp)
+		close_current_environment();
 	}
 	recfree(argv, free);
 	free(argv0);
@@ -802,7 +806,6 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	}
 	forget_initial_pgid();
 	neglect_all_jobs();
-	fix_temporary_variables();  // XXX do we really need to do this?
 	if (sigtype & leave) {
 	    clear_shellfds(false);
 	} else {
@@ -873,28 +876,23 @@ void search_command(
     }
 }
 
-/* Calls `do_assignments' with appropriate arguments according to the specified
- * command type. */
-bool do_assignments_for_command_type(const assign_T *asgns, enum cmdtype_T type)
+/* Determines whether the assignments should be temporary according to `type'.*/
+bool assignment_is_temporary(enum cmdtype_T type)
 {
-    bool temporary;
     switch (type) {
-	/* For external programs `temporary' should be true in theory, but
+	/* For external programs the result should be true in theory, but
 	 * actually we don't have to make the variables temporary because
 	 * the process forks. */
 	case externalprogram:
 	case specialbuiltin:
 	case function:
-	    temporary = false;
-	    break;
+	    return false;
 	case semispecialbuiltin:
 	case regularbuiltin:
-	    temporary = true;
-	    break;
+	    return true;
 	default:
 	    assert(false);
     }
-    return do_assignments(asgns, temporary, true);
 }
 
 /* Executes a command whose type is not `CT_SIMPLE'.
@@ -1055,7 +1053,7 @@ void exec_function_body(command_T *body, void **args, bool finally_exit)
 
     assert(args[0] != NULL);
     if (open_redirections(body->c_redirs, &savefd)) {
-	open_new_environment();
+	open_new_environment(false);
 	set_positional_parameters(args + 1);
 	exec_nonsimple_command(body, finally_exit);
 	if (execinfo.exception == ee_return)
@@ -1430,7 +1428,7 @@ int dot_builtin(int argc, void **argv)
 
     bool exp = xoptind < argc;
     if (exp) {
-	open_new_environment();
+	open_new_environment(false);
 	set_positional_parameters(argv + xoptind);
     }
 

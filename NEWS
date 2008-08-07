@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.0 beta1
+
+  *  The standard input is no longer buffered
+
+----------------------------------------------------------------------
 Yash 2.0 beta0
 
   +  "eval", "exec", ".", "times", "umask", "typeset", "export",

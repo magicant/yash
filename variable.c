@@ -47,7 +47,7 @@
 #include "version.h"
 
 
-const char *path_variables[PATHTCOUNT] = {
+const char *const path_variables[PATHTCOUNT] = {
     [PA_PATH] = VAR_PATH,
     [PA_CDPATH] = VAR_CDPATH,
 };
@@ -58,6 +58,7 @@ const char *path_variables[PATHTCOUNT] = {
 typedef struct environ_T {
     struct environ_T *parent;      /* parent environment */
     struct hashtable_T contents;   /* hashtable containing variables */
+    bool is_temporary;             /* for temporary assignment? */
     char **paths[PATHTCOUNT];
 } environ_T;
 /* `contents' is a hashtable from (char *) to (variable_T *).
@@ -67,7 +68,9 @@ typedef struct environ_T {
  * The positional parameter is treated as an array whose name is "=".
  * Note that the number of positional parameters is offseted by 1 against the
  * array index. */
-/* Elements of `path' are arrays of the pathnames contained in the $PATH/CDPATH
+/* An environment whose `is_temporary' is true is used for temporary variables. 
+ * Temporary variables may be exported, but cannot be readonly.
+ * Elements of `path' are arrays of the pathnames contained in the $PATH/CDPATH
  * variables. They are NULL if the corresponding variables are not set. */
 #define VAR_positional "="
 
@@ -120,7 +123,7 @@ static void init_pwd(void);
 static inline bool is_name_char(char c)
     __attribute__((const));
 
-static variable_T *search_variable(const char *name, bool temp)
+static variable_T *search_variable(const char *name)
     __attribute__((pure,nonnull));
 static void update_enrivon(const char *name)
     __attribute__((nonnull));
@@ -162,10 +165,8 @@ static void tryhash_word_as_command(const wordunit_T *w);
 
 /* the current environment */
 static environ_T *current_env;
-/* the initial environment (the farthest from the current) */
+/* the top-level environment (the farthest from the current) */
 static environ_T *top_env;
-/* whether the current environment is temporary */
-static bool current_env_is_temporary;
 
 /* Temporary variables are used when a non-special builtin is executed.
  * They are assigned in a temporary environment and valid only while the command
@@ -218,17 +219,12 @@ void varkvfree_reexport(kvpair_T kv)
     varkvfree(kv);
 }
 
-static bool initialized = false;
-
-/* Initializes the initial environment. */
+/* Initializes the top-level environment. */
 void init_variables(void)
 {
-    if (initialized)
-	return;
-    initialized = true;
-
     top_env = current_env = xmalloc(sizeof *current_env);
     current_env->parent = NULL;
+    current_env->is_temporary = false;
     ht_init(&current_env->contents, hashstr, htstrcmp);
     for (size_t i = 0; i < PATHTCOUNT; i++)
 	current_env->paths[i] = NULL;
@@ -237,24 +233,22 @@ void init_variables(void)
 
     /* add all the existing environment variables to the variable environment */
     for (char **e = environ; *e; e++) {
-	size_t namelen = strcspn(*e, "=");
-	if ((*e)[namelen] != '=')
+	wchar_t *we = malloc_mbstowcs(*e);
+	if (!we)
 	    continue;
 
-	char *name = xstrndup(*e, namelen);
-	variable_T *v = xmalloc(sizeof *v);
-	v->v_type = VF_NORMAL | VF_EXPORT;
-	v->v_value = malloc_mbstowcs(*e + namelen + 1);
-	v->v_getter = NULL;
-	if (v->v_value) {
+	size_t namelen;
+	for (namelen = 0; we[namelen] && we[namelen] != L'='; namelen++);
+
+	char *name = malloc_wcsntombs(we, namelen);
+	if (name) {
+	    variable_T *v = xmalloc(sizeof *v);
+	    v->v_type = VF_NORMAL | VF_EXPORT;
+	    v->v_value = we[namelen] == L'=' ? xwcsdup(we + namelen + 1) : NULL;
+	    v->v_getter = NULL;
 	    varkvfree(ht_set(&current_env->contents, name, v));
-	} else {
-	    xerror(0, Ngt("value of environment variable `%s' cannot be "
-		    "converted to wide-character string"),
-		    name);
-	    free(name);
-	    free(v);
 	}
+	free(we);
     }
 
     /* set $LINENO */
@@ -386,30 +380,27 @@ bool is_name(const char *s)
 /* Searches for a variable with the specified name.
  * if `temp' is false, temporary variables are ignored.
  * Returns NULL if none found. */
-variable_T *search_variable(const char *name, bool temp)
+variable_T *search_variable(const char *name)
 {
-    variable_T *var;
-    environ_T *env = current_env;
-    if (!temp && current_env_is_temporary)
-	env = env->parent;
-    while (env) {
-	var = ht_get(&env->contents, name).value;
+    for (environ_T *env = current_env; env; env = env->parent) {
+	variable_T *var = ht_get(&env->contents, name).value;
 	if (var)
 	    return var;
-	env = env->parent;
     }
     return NULL;
 }
 
-/* Update the value in `environ' for the variable with the specified name. */
+/* Update the value in `environ' for the variable with the specified name.
+ * `name' must not contain '='. */
 void update_enrivon(const char *name)
 {
     for (environ_T *env = current_env; env; env = env->parent) {
 	variable_T *var = ht_get(&env->contents, name).value;
 	if (var && (var->v_type & VF_EXPORT) && var->v_value) {
+	    assert((var->v_type & VF_MASK) == VF_NORMAL);
 	    char *value = malloc_wcstombs(var->v_value);
 	    if (value) {
-		if (setenv(name, value, true) != 0)
+		if (setenv(name, value, true) < 0)
 		    xerror(errno, Ngt("cannot set environment variable `%s'"),
 			    name);
 		free(value);
@@ -421,7 +412,8 @@ void update_enrivon(const char *name)
 	    return;
 	}
     }
-    unsetenv(name);
+    if (unsetenv(name) < 0)
+	xerror(errno, Ngt("cannot unset environment variable `%s'"), name);
 }
 
 /* Resets the locate settings for the specified variable.
@@ -433,7 +425,7 @@ void reset_locale(const char *name)
     } else if (strncmp(name, "LC_", 3) == 0) {
 	/* POSIX forbids resetting LC_CTYPE even if the value of the variable
 	 * is changed. */
-	if (strcmp(name, VAR_LC_ALL) == 0) {
+	if (strcmp(name + 3, VAR_LC_ALL + 3) == 0) {
 reset_locale_all:
 	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
 //	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
@@ -441,17 +433,17 @@ reset_locale_all:
 	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
 	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
 	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
-	} else if (strcmp(name, VAR_LC_COLLATE) == 0) {
+	} else if (strcmp(name + 3, VAR_LC_COLLATE + 3) == 0) {
 	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
-//	} else if (strcmp(name, VAR_LC_CTYPE) == 0) {
+//	} else if (strcmp(name + 3, VAR_LC_CTYPE + 3) == 0) {
 //	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
-	} else if (strcmp(name, VAR_LC_MESSAGES) == 0) {
+	} else if (strcmp(name + 3, VAR_LC_MESSAGES + 3) == 0) {
 	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
-	} else if (strcmp(name, VAR_LC_MONETARY) == 0) {
+	} else if (strcmp(name + 3, VAR_LC_MONETARY + 3) == 0) {
 	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
-	} else if (strcmp(name, VAR_LC_NUMERIC) == 0) {
+	} else if (strcmp(name + 3, VAR_LC_NUMERIC + 3) == 0) {
 	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
-	} else if (strcmp(name, VAR_LC_TIME) == 0) {
+	} else if (strcmp(name + 3, VAR_LC_TIME + 3) == 0) {
 	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
 	}
     }
@@ -479,12 +471,21 @@ void reset_locale_category(const char *name, int category)
 
 /* Creates a new scalar variable with the value unset.
  * If the variable already exists, it is returned without change.
- * So the return value may be an array variable. */
+ * So the return value may be an array variable.
+ * Temporary variables with the `name' are cleared. */
 variable_T *new_global(const char *name)
 {
-    variable_T *var = search_variable(name, false);
-    if (var)
-	return var;
+    variable_T *var;
+    for (environ_T *env = current_env; env; env = env->parent) {
+	var = ht_get(&env->contents, name).value;
+	if (var) {
+	    if (env->is_temporary) {
+		varkvfree_reexport(ht_remove(&env->contents, name));
+		continue;
+	    }
+	    return var;
+	}
+    }
     var = xmalloc(sizeof *var);
     var->v_type = VF_NORMAL;
     var->v_value = NULL;
@@ -495,12 +496,15 @@ variable_T *new_global(const char *name)
 
 /* Creates a new scalar variable with the value unset.
  * If the variable already exists, it is returned without change.
- * So the return value may be an array variable. */
+ * So the return value may be an array variable.
+ * Temporary variables with the `name' are cleared. */
 variable_T *new_local(const char *name)
 {
     environ_T *env = current_env;
-    if (current_env_is_temporary)
+    while (env->is_temporary) {
+	varkvfree_reexport(ht_remove(&env->contents, name));
 	env = env->parent;
+    }
     variable_T *var = ht_get(&env->contents, name).value;
     if (var)
 	return var;
@@ -516,11 +520,10 @@ variable_T *new_local(const char *name)
  * If the variable already exists, it is cleared and returned.
  *
  * On error, NULL is returned. Otherwise a (new) variable is returned.
- * `v_type' is the only valid member of the variable; the other members must be
- * initialized by the caller. If `v_type' of the return value has the VF_EXPORT
- * flag set, the caller must call `update_enrivon'.
- *
- * Temporary variables are ignored. */
+ * `v_type' is the only valid member of the variable and the all members
+ * (including `v_type') must be initialized by the caller. If `v_type' of the
+ * return value has the VF_EXPORT flag set, the caller must call
+ * `update_enrivon'. */
 variable_T *new_variable(const char *name, bool local)
 {
     variable_T *var = local ? new_local(name) : new_global(name);
@@ -589,10 +592,11 @@ bool set_array(const char *name, void *const *values, bool local)
  * except for a temporary environment. */
 void set_positional_parameters(void *const *values)
 {
-    set_array(VAR_positional, values, !current_env_is_temporary);
+    set_array(VAR_positional, values, true);
 }
 
 /* Does an assignment to a temporary variable.
+ * `current_env->is_temporary' must be true.
  * `value' must be a `free'able string or NULL. The caller must not modify or
  * `free' `value' hereafter, whether or not this function is successful.
  * If `export' is true, the variable is exported. `export' being false doesn't
@@ -600,10 +604,7 @@ void set_positional_parameters(void *const *values)
  * Returns true iff successful. */
 bool assign_temporary(const char *name, wchar_t *value, bool export)
 {
-    if (!current_env_is_temporary) {
-	open_new_environment();
-	current_env_is_temporary = true;
-    }
+    assert(current_env->is_temporary);
 
     variable_T *var = ht_get(&current_env->contents, name).value;
     if (!var) {
@@ -628,12 +629,16 @@ bool assign_temporary(const char *name, wchar_t *value, bool export)
 
 /* Does assignments.
  * If `shopt_xtrace' is true, traces are printed to stderr.
+ * If `temp' is true, the variables are assigned in the current environment,
+ * whose `is_temporary' must be true. Otherwise they are assigned globally.
  * If `export' is true, the variables are exported. `export' being false doesn't
  * mean the variables are no longer exported.
  * Returns true iff successful. An error on an assignment may leave some other
  * variables assigned. */
 bool do_assignments(const assign_T *assign, bool temp, bool export)
 {
+    if (temp)
+	assert(current_env->is_temporary);
     if (shopt_xtrace && assign)
 	print_prompt(4);
 
@@ -666,7 +671,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
  * is valid until the variable is re-assigned or unset. */
 const wchar_t *getvar(const char *name)
 {
-    variable_T *var = search_variable(name, true);
+    variable_T *var = search_variable(name);
     if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
 	if (var->v_getter)
 	    var->v_getter(var);
@@ -698,12 +703,12 @@ void **get_variable(const char *name, bool *concat)
 		*concat = true;
 		/* falls thru! */
 	    case '@':
-		var = search_variable(VAR_positional, false);
+		var = search_variable(VAR_positional);
 		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 		result = var->v_vals;
 		goto return_array;
 	    case '#':
-		var = search_variable(VAR_positional, false);
+		var = search_variable(VAR_positional);
 		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 		value = malloc_wprintf(L"%zu", var->v_valc);
 		goto return_single;
@@ -732,7 +737,7 @@ void **get_variable(const char *name, bool *concat)
 	long v = strtol(name, &nameend, 10);
 	if (errno || *nameend != '\0')
 	    return NULL;  /* not a number or overflow */
-	var = search_variable(VAR_positional, false);
+	var = search_variable(VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (v <= 0 || (uintmax_t) var->v_valc < (uintmax_t) v)
 	    return NULL;  /* index out of bounds */
@@ -741,7 +746,7 @@ void **get_variable(const char *name, bool *concat)
     }
 
     /* now it should be a normal variable */
-    var = search_variable(name, true);
+    var = search_variable(name);
     if (var) {
 	if (var->v_getter)
 	    var->v_getter(var);
@@ -768,10 +773,10 @@ return_array:  /* duplicate an array and return it */
     return duparray(result, copyaswcs);
 }
 
-/* Gathers all variables in the specified environment and its ancestors
+/* Gathers all variables in the specified environment and all of its ancestors
  * into the specified hashtable.
  * Local variables may hide global variables.
- * Temporary variables are ignored. */
+ * keys and values added to the hashtable must not be modified or freed. */
 void get_all_variables_rec(hashtable_T *table, environ_T *env)
 {
     if (env->parent)
@@ -785,14 +790,15 @@ void get_all_variables_rec(hashtable_T *table, environ_T *env)
 }
 
 /* Creates a new variable environment.
+ * `temp' specifies whether the new environment is for temporary assignments.
  * The current environment will be the parent of the new environment.
  * Don't forget to call `set_positional_parameters'. */
-void open_new_environment(void)
+void open_new_environment(bool temp)
 {
     environ_T *newenv = xmalloc(sizeof *newenv);
 
-    assert(!current_env_is_temporary);
     newenv->parent = current_env;
+    newenv->is_temporary = temp;
     ht_init(&newenv->contents, hashstr, htstrcmp);
     for (size_t i = 0; i < PATHTCOUNT; i++)
 	newenv->paths[i] = NULL;
@@ -800,7 +806,7 @@ void open_new_environment(void)
 }
 
 /* Closes the current variable environment.
- * The parent of the current will be the new current. */
+ * The parent of the current becomes the new current. */
 void close_current_environment(void)
 {
     environ_T *oldenv = current_env;
@@ -812,37 +818,6 @@ void close_current_environment(void)
     for (size_t i = 0; i < PATHTCOUNT; i++)
 	recfree((void **) oldenv->paths[i], free);
     free(oldenv);
-}
-
-/* Clears all temporary variables. */
-void clear_temporary_variables(void)
-{
-    if (current_env_is_temporary) {
-	current_env_is_temporary = false;
-	close_current_environment();
-    }
-}
-
-/* Makes all temporary variables permanent and exported. */
-void fix_temporary_variables(void)
-{
-    if (current_env_is_temporary) {
-	size_t i = 0;
-	kvpair_T kv;
-	while ((kv = ht_next(&current_env->contents, &i)).key) {
-	    const char *name = kv.key;
-	    variable_T *var = kv.value;
-	    variable_T *newvar = new_variable(name, true);
-	    assert(!(var->v_type & VF_ARRAY));
-	    if (newvar) {
-		newvar->v_type = var->v_type | VF_EXPORT;
-		newvar->v_value = xwcsdup(var->v_value);
-		newvar->v_getter = NULL;
-		variable_set(name, newvar);
-	    }
-	}
-	clear_temporary_variables();
-    }
 }
 
 
@@ -933,7 +908,6 @@ void variable_set(const char *name, variable_T *var)
 	    }
 	}
 	break;
-	// TODO variable: variable_set: other variables
     }
 }
 
@@ -988,8 +962,7 @@ void reset_path(path_T name, variable_T *var)
     if (name == PA_PATH)
 	clear_cmdhash();
 
-    environ_T *env = current_env;
-    while (env) {
+    for (environ_T *env = current_env; env; env = env->parent) {
 	recfree((void **) env->paths[name], free);
 
 	variable_T *v = ht_get(&env->contents, path_variables[name]).value;
@@ -1000,8 +973,7 @@ void reset_path(path_T name, variable_T *var)
 		    env->paths[name] = decompose_paths(v->v_value);
 		    break;
 		case VF_ARRAY:
-		    pl_init(&list);
-		    pl_setmax(&list, v->v_valc);
+		    pl_initwithmax(&list, v->v_valc);
 		    for (size_t i = 0; i < v->v_valc; i++) {
 			char *p = malloc_wcstombs(v->v_vals[i]);
 			if (!p)
@@ -1016,7 +988,6 @@ void reset_path(path_T name, variable_T *var)
 	} else {
 	    env->paths[name] = NULL;
 	}
-	env = env->parent;
     }
 }
 
@@ -1238,15 +1209,12 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (funcs && (export || unexport)) {
-	xerror(0, Ngt("invalid options: functions cannot be exported"));
+	xerror(0, Ngt("functions cannot be exported"));
 	return EXIT_ERROR;
     } else if (export && unexport) {
 	xerror(0, Ngt("-x and -X cannot be used at a time"));
 	return EXIT_ERROR;
     }
-
-    fix_temporary_variables();
-    assert(!current_env_is_temporary);
 
     if (xoptind == argc) {
 	kvpair_T *kvs;
@@ -1287,7 +1255,7 @@ int typeset_builtin(int argc, void **argv)
 	if (!name) {
 	    xerror(0, Ngt("unexpected error"));
 	    return EXIT_ERROR;
-	} else if (!is_name(name)) {
+	} else if (!is_name(name)) {  // TODO do away with name restriction
 	    xerror(0, Ngt("%s: invalid name"), name);
 	    err = true;
 	    goto next;
@@ -1331,11 +1299,11 @@ int typeset_builtin(int argc, void **argv)
 		var->v_type |= VF_EXPORT;
 	    else if (unexport)
 		var->v_type &= ~VF_EXPORT;
-	    if (saveexport != (var->v_type & VF_EXPORT))
+	    if (saveexport || (var->v_type & VF_EXPORT))
 		update_enrivon(name);
 	} else {
 	    /* print the variable */
-	    variable_T *var = search_variable(name, false);
+	    variable_T *var = search_variable(name);
 	    if (var) {
 		print_variable(name, var, ARGV(0), readonly, export);
 	    } else {
@@ -1486,7 +1454,6 @@ int unset_builtin(int argc, void **argv)
 	}
     }
 
-    assert(!current_env_is_temporary);
     for (; xoptind < argc; xoptind++) {
 	char *name = malloc_wcstombs(ARGV(xoptind));
 	if (!name) {
@@ -1509,8 +1476,7 @@ int unset_builtin(int argc, void **argv)
 	    }
 	} else {
 	    /* remove variable */
-	    environ_T *env = current_env;
-	    while (env) {
+	    for (environ_T *env = current_env; env; env = env->parent) {
 		kvpair_T kv = ht_remove(&env->contents, name);
 		variable_T *var = kv.value;
 		if (var) {
@@ -1527,7 +1493,6 @@ int unset_builtin(int argc, void **argv)
 		    }
 		    break;
 		}
-		env = env->parent;
 	    }
 	}
 	free(name);
@@ -1586,7 +1551,7 @@ int shift_builtin(int argc, void **argv)
 	scount = 1;
     }
 
-    variable_T *var = search_variable(VAR_positional, false);
+    variable_T *var = search_variable(VAR_positional);
     assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
     if (scount > var->v_valc) {
 	xerror(0, Ngt("%zu: cannot shift so many"), scount);

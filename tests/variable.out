@@ -28,6 +28,7 @@ export
 export
 readonly ro2='export'
 typeset -r ro='readonly'
+typeset -r ro3='ro3'
 1
 2
 3
