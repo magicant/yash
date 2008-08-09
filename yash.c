@@ -370,7 +370,7 @@ void print_help(void)
 	printf(gt("Options: -il%ls\n"), SHELLSET_OPTIONS);
     } else {
 	printf(gt("Usage:  yash [options] [filename [args...]]\n"
-		  "        yash [options] -c command [args...]\n"
+		  "        yash [options] -c command [command_name [args...]]\n"
 		  "        yash [options] -s [args...]\n"));
 	printf(gt("Options: -il%lsV\n"
 	          "         --interactive --login --noprofile "
