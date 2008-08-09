@@ -31,7 +31,7 @@ extern bool shopt_read_arg, shopt_read_stdin;
 extern const wchar_t *command_name;
 extern bool shopt_allexport, shopt_hashondef;
 extern bool shopt_errexit, shopt_nounset, shopt_noexec, shopt_ignoreeof,
-       shopt_verbose, shopt_xtrace;
+       shopt_verbose, shopt_xtrace, shopt_autocd;
 extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern bool shopt_braceexpand;

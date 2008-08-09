@@ -89,6 +89,9 @@ bool shopt_verbose;
 /* If set, print the trace of each command executed and variable assigned.
  * Corresponds to -x/--xtrace option. */
 bool shopt_xtrace;
+/* If set, the shell changes the working directory when a command is a
+ * directory rather than a executable. */
+bool shopt_autocd;
 
 /* If set, don't perform filename expansions.
  * Corresponds to -f/--noglob option. */
@@ -126,6 +129,7 @@ static const struct xoption long_options[] = {
     { L"extendedglob", xno_argument, L'E', },
     { L"nullglob",     xno_argument, L'N', },
     { L"braceexpand",  xno_argument, L'B', },
+    { L"autocd",       xno_argument, L'T', },
     { L"errexit",      xno_argument, L'e', },
     { L"nounset",      xno_argument, L'u', },
     { L"noexec",       xno_argument, L'n', },
@@ -163,6 +167,7 @@ void set_option(wchar_t c)
 	case L'E':   shopt_extendedglob = value;   break;
 	case L'N':   shopt_nullglob     = value;   break;
 	case L'B':   shopt_braceexpand  = value;   break;
+	case L'T':   shopt_autocd       = value;   break;
 	case L'e':   shopt_errexit      = value;   break;
 	case L'u':   shopt_nounset      = value;   break;
 	case L'n':   shopt_noexec       = value;   break;
@@ -292,6 +297,7 @@ void set_builtin_print_current_settings(void)
     printf("%-15ls %s\n", L"" #name, (value) ? yes : no)
 
     PRINTSETTING(allexport, shopt_allexport);
+    PRINTSETTING(autocd, shopt_autocd);
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(dotglob, shopt_dotglob);
     PRINTSETTING(errexit, shopt_errexit);
@@ -321,6 +327,7 @@ void set_builtin_print_restoring_commands(void)
     printf("set %co %ls\n", (value) ? '-' : '+', L"" #name)
 
     PRINTSETTING(allexport, shopt_allexport);
+    PRINTSETTING(autocd, shopt_autocd);
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(dotglob, shopt_dotglob);
     PRINTSETTING(errexit, shopt_errexit);
@@ -408,6 +415,10 @@ const char set_help[] = Ngt(
 "\tThis option is effective in interactive shells only.\n"
 " --braceexpand\n"
 "\tEnable brace expansion.\n"
+" --autocd\n"
+"\tIf a simple command cannot be executed but it is a directory name,\n"
+"\tthe shell performs the `cd' command to that directory.\n"
+"\t\n"
 " --posix\n"
 "\tMake the shell behave as the POSIX shell.\n"
 "To disable options, put '+' before the option characters instead of '-'.\n"

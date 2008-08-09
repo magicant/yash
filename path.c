@@ -821,6 +821,8 @@ static const struct xoption cd_pwd_options[] = {
  * -L: don't resolve symlinks (default)
  * -P: resolve symlinks
  * -L and -P are mutually exclusive: the one specified last is used. */
+/* When the `autocd' option is enabled, this builtin may be called with an
+ * argument which is a directory name rather than the string "cd". */
 int cd_builtin(int argc, void **argv)
 {
     bool logical = true;
@@ -831,16 +833,18 @@ int cd_builtin(int argc, void **argv)
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"LP", cd_pwd_options, NULL))) {
-	switch (opt) {
-	    case L'L':  logical = true;   break;
-	    case L'P':  logical = false;  break;
-	    case L'-':
-		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
-	    default:
-		fprintf(stderr, gt("Usage:  cd [-L|-P] [dir]\n"));
-		return EXIT_ERROR;
+    if (wcscmp(ARGV(0), L"cd") == 0) {
+	while ((opt = xgetopt_long(argv, L"LP", cd_pwd_options, NULL))) {
+	    switch (opt) {
+		case L'L':  logical = true;   break;
+		case L'P':  logical = false;  break;
+		case L'-':
+		    print_builtin_help(ARGV(0));
+		    return EXIT_SUCCESS;
+		default:
+		    fprintf(stderr, gt("Usage:  cd [-L|-P] [dir]\n"));
+		    return EXIT_ERROR;
+	    }
 	}
     }
 

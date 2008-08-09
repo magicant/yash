@@ -127,7 +127,7 @@ static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 static pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
-	commandinfo_T *restrict ci)
+	commandinfo_T *restrict ci, int argc)
     __attribute__((nonnull));
 static inline bool assignment_is_temporary(enum cmdtype_T type)
     __attribute__((const));
@@ -645,7 +645,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    argv0 = malloc_wcstombs(argv[0]);
 	    if (!argv0)
 		argv0 = xstrdup("");
-	    search_command(argv0, argv[0], &cmdinfo);
+	    search_command(argv0, argv[0], &cmdinfo, argc);
 
 	    /* fork for an external command.
 	     * don't fork for a built-in or a function */
@@ -837,9 +837,11 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
  * `name' and `wname' must contain the same string value. */
 void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
-	commandinfo_T *restrict ci)
+	commandinfo_T *restrict ci, int argc)
 {
     if (wcschr(wname, L'/')) {
+	if (shopt_autocd && argc == 1 && is_directory(name))
+	    goto autocd;
 	ci->type = externalprogram;
 	ci->ci_path = name;
 	return;
@@ -871,9 +873,16 @@ void search_command(
 	assert(bi->type == BI_REGULAR);
 	ci->type = regularbuiltin;
 	ci->ci_builtin = bi->body;
+    } else if (!ci->ci_path && shopt_autocd && argc == 1 && is_directory(name)){
+	goto autocd;
     } else {
 	ci->type = externalprogram;
     }
+    return;
+
+autocd:
+    ci->type = semispecialbuiltin;
+    ci->ci_builtin = cd_builtin;
 }
 
 /* Determines whether the assignments should be temporary according to `type'.*/
