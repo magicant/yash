@@ -109,7 +109,9 @@ extern int unset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int shift_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char typeset_help[], unset_help[], shift_help[];
+extern int read_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char typeset_help[], unset_help[], shift_help[], read_help[];
 
 
 #endif /* VARIABLE_H */

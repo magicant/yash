@@ -23,6 +23,7 @@
 #include <limits.h>
 #include <locale.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1147,6 +1148,8 @@ static void print_function(
 	const char *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
+static bool read_input(xwcsbuf_T *buf, bool noescape)
+    __attribute__((nonnull));
 
 /* The "typeset" builtin, which accepts the following options:
  *  -f: affect functions rather than variables
@@ -1568,6 +1571,143 @@ const char shift_help[] = Ngt(
 "Removes the first <n> positional parameters.\n"
 "If <n> is not specified, the first one positional parameter is removed.\n"
 "<n> must be a non-negative integer that is not greater than $#.\n"
+);
+
+/* The "read" builtin, which accepts the following options:
+ * -r: don't treat backslashes specially
+ */
+// TODO -A: read words to an array
+// TODO -s: don't echo back the input to the terminal. (useful for reading passwords)
+int read_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+//	{ L"array",    xno_argument, L'A', },
+	{ L"raw-mode", xno_argument, L'r', },
+//	{ L"silent",   xno_argument, L's', },
+	{ L"help",     xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    wchar_t opt;
+    bool raw = false;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"r", long_options, NULL))) {
+	switch (opt) {
+	    case L'r':  raw = true;  break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		goto print_usage;
+	}
+    }
+    if (xoptind == argc)
+	goto print_usage;
+
+    /* check if the identifiers are valid */
+    for (int i = xoptind; i < argc; i++) {
+	if (wcschr(ARGV(i), L'=')) {
+	    xerror(0, Ngt("`%ls': invalid name"), ARGV(i));
+	    return EXIT_FAILURE1;
+	}
+    }
+
+    bool err = false;
+    xwcsbuf_T buf;
+
+    /* read input and remove trailing newline */
+    wb_init(&buf);
+    if (!read_input(&buf, raw)) {
+	wb_destroy(&buf);
+	return EXIT_FAILURE1;
+    }
+    if (buf.length > 0 && buf.contents[buf.length - 1] == L'\n') {
+	wb_remove(&buf, buf.length - 1, 1);
+    } else {
+	/* no newline means the EOF was encountered */
+	err = true;
+    }
+
+    const wchar_t *s = buf.contents;
+    const wchar_t *ifs = getvar(VAR_IFS);
+    plist_T list;
+
+    /* split fields */
+    pl_init(&list);
+    for (int i = xoptind; i < argc - 1; i++)
+	pl_add(&list, split_next_field(&s, ifs, raw));
+    pl_add(&list, raw ? xwcsdup(s) : unescape(s));
+    wb_destroy(&buf);
+
+    /* assign variables */
+    assert(xoptind + list.length == (size_t) argc);
+    for (size_t i = 0; i < list.length; i++) {
+	char *name = malloc_wcstombs(ARGV(xoptind + i));
+	if (!name) {
+	    xerror(0, Ngt("unexpected error"));
+	    continue;
+	}
+	err |= !set_variable(name, list.contents[i], false, false);
+	free(name);
+    }
+
+    pl_destroy(&list);
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+
+print_usage:
+    fprintf(stderr, gt("Usage:  read [-r] var...\n"));
+    return EXIT_ERROR;
+}
+
+/* Reads input from stdin and remove line continuations if `noescape' is false.
+ * The trailing newline and all the other backslashes are not removed. */
+bool read_input(xwcsbuf_T *buf, bool noescape)
+{
+    if (noescape)
+	return read_line_from_stdin(buf, false);
+
+    size_t index;
+    bool cont;
+    bool first = true;
+    do {
+	index = buf->length;
+	cont = false;
+	if (!first && is_interactive_now && isatty(STDIN_FILENO))
+	    print_prompt(2);
+	if (!read_line_from_stdin(buf, false))
+	    return false;
+	first = false;
+	while (index < buf->length) {
+	    if (buf->contents[index] == L'\\') {
+		if (buf->contents[index + 1] == L'\n') {
+		    wb_remove(buf, index, 2);
+		    cont = true;
+		    assert(index == buf->length);
+		    break;
+		} else {
+		    index += 2;
+		    continue;
+		}
+	    }
+	    index++;
+	}
+    } while (cont);
+    return true;
+}
+
+const char read_help[] = Ngt(
+"read - read a line from standard input\n"
+"\tread [-rs] var...\n"
+"Reads a line from the standard input and splits it into words using $IFS as\n"
+"separators. <var>s are considered to be variable names and the words are\n"
+"assigned to the variables. The first word is assigned to the first <var>,\n"
+"the second word to the second <var>, and so on. If <var>s are fewer than the\n"
+"words, the leftover words are not split and assigned to the last <var>. If\n"
+"the words are fewer than <var>s, the leftover <var>s are set to empty\n"
+"strings.\n"
+"If the -r (--raw-mode) option is not specified, backslashes in the input are\n"
+"considered to be escape characters.\n"
 );
 
 

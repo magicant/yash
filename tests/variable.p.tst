@@ -114,3 +114,76 @@ loop x y z
 echo "$@"
 shift 3
 echo $# "$@"
+
+echo ===== read =====
+
+unset IFS a b c d e
+
+read a b c <<END
+1 2 3
+END
+echo "${a-error}"
+echo "${b-error}"
+echo "${c-error}"
+
+read a b c <<END
+1 2 3 4  5
+END
+echo "${a-error}"
+echo "${b-error}"
+echo "${c-error}"
+
+read a b c <<END
+1 2 3
+4 5
+END
+echo "${a-error}"
+echo "${b-error}"
+echo "${c-error}"
+
+read a b c <<END
+1 2 3\
+4  5
+6 7
+END
+echo "${a-error}"
+echo "${b-error}"
+echo "${c-error}"
+
+read a b c d e <<END
+1 2 3
+4 5
+END
+echo "${a-error}"
+echo "${b-error}"
+echo "${c-error}"
+echo "${d-error}"
+echo "${e-error}"
+
+echo =====
+
+IFS=- read a b c <<END
+1 2\-3-4 5\-6-7\-8-9
+END
+echo "${a-error}"
+echo "${b-error}"
+echo "${c-error}"
+
+IFS=- read -r a b c <<\END
+1 2\-3-4 5\-6-7\-8-9\
+0
+END
+echo "${a-error}"
+echo "${b-error}"
+echo "${c-error}"
+
+while read a b
+do
+	echo $b
+done <<END
+1 2 3 4
+5 6 7 8
+9 0 1 2
+END
+
+echo ${IFS-unset}

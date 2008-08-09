@@ -39,6 +39,10 @@ extern char *expand_single_with_glob(
 extern wchar_t *expand_string(const struct wordunit_T *w, bool esc)
     __attribute__((malloc,warn_unused_result));
 
+extern wchar_t *split_next_field(
+	const wchar_t **sp, const wchar_t *ifs, bool noescape)
+    __attribute__((nonnull(1),malloc,warn_unused_result));
+
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 extern wchar_t *escapefree(

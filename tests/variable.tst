@@ -100,5 +100,17 @@ readonly -f func
 } 2>/dev/null
 func
 
+echo ===== read =====
+
+unset a
+printf "%s" '12\' | (
+read a
+echo $? "$a"
+)
+printf "%s" '12\' | (
+read -r a
+echo $? "$a"
+)
+
 
 rm -f "${TESTTMP}/variable-a" "${TESTTMP}/variable-b"

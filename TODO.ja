@@ -21,8 +21,6 @@ gettext 対応
 	popd -n
 	printf
 	pushd -n
-	read -aprs
 	suspend -f
 	test/[
 	type
-	ulimit -acdfilmnpqstvxHNS

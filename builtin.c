@@ -87,6 +87,7 @@ void init_builtin(void)
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
     DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
     DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help);
+    DEFBUILTIN("read", read_builtin, BI_SEMISPECIAL, read_help);
 
     /* defined in "sig.c" */
     DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, trap_help);

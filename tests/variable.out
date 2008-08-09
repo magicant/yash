@@ -38,3 +38,6 @@ func () { echo ok; }
 func1 () { echo re-defined func1; }
 func2 () { echo re-defined func2; }
 ok
+===== read =====
+1 12
+1 12\
