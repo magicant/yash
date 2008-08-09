@@ -89,6 +89,8 @@ bool shopt_verbose;
 /* If set, print the trace of each command executed and variable assigned.
  * Corresponds to -x/--xtrace option. */
 bool shopt_xtrace;
+/* If set, a new asynchronous job is set to the current job when invoked. */
+bool shopt_curasync;
 /* If set, the shell changes the working directory when a command is a
  * directory rather than a executable. */
 bool shopt_autocd;
@@ -129,6 +131,7 @@ static const struct xoption long_options[] = {
     { L"extendedglob", xno_argument, L'E', },
     { L"nullglob",     xno_argument, L'N', },
     { L"braceexpand",  xno_argument, L'B', },
+    { L"curasync",     xno_argument, L'Y', },
     { L"autocd",       xno_argument, L'T', },
     { L"errexit",      xno_argument, L'e', },
     { L"nounset",      xno_argument, L'u', },
@@ -167,6 +170,7 @@ void set_option(wchar_t c)
 	case L'E':   shopt_extendedglob = value;   break;
 	case L'N':   shopt_nullglob     = value;   break;
 	case L'B':   shopt_braceexpand  = value;   break;
+	case L'Y':   shopt_curasync     = value;   break;
 	case L'T':   shopt_autocd       = value;   break;
 	case L'e':   shopt_errexit      = value;   break;
 	case L'u':   shopt_nounset      = value;   break;
@@ -299,6 +303,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(allexport, shopt_allexport);
     PRINTSETTING(autocd, shopt_autocd);
     PRINTSETTING(braceexpand, shopt_braceexpand);
+    PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
@@ -329,6 +334,7 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(allexport, shopt_allexport);
     PRINTSETTING(autocd, shopt_autocd);
     PRINTSETTING(braceexpand, shopt_braceexpand);
+    PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
@@ -415,6 +421,8 @@ const char set_help[] = Ngt(
 "\tThis option is effective in interactive shells only.\n"
 " --braceexpand\n"
 "\tEnable brace expansion.\n"
+" --curasync\n"
+"\tWhen a new background job is invoked, it becomes the current job.\n"
 " --autocd\n"
 "\tIf a simple command cannot be executed but it is a directory name,\n"
 "\tthe shell performs the `cd' command to that directory.\n"

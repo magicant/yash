@@ -594,7 +594,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 	ps[i].pr_name = command_to_wcs(cc);
 	cc = cc->next;
     }
-    add_job(type == execnormal /* TODO || shopt_curasync */);
+    add_job(type == execnormal || shopt_curasync);
 
 done:
     if (doing_job_control_now)
