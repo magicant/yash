@@ -32,6 +32,7 @@
 #include "option.h"
 #include "util.h"
 #include "strbuf.h"
+#include "mail.h"
 #include "input.h"
 #include "parser.h"
 #include "variable.h"
@@ -260,11 +261,13 @@ done:
 int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct parsestate_T *state = save_parse_state();
+    struct input_readline_info *info = inputinfo;
     if (do_job_control)
 	print_job_status(PJS_ALL, true, false, stderr);
+    if (info->type == 1)
+	check_mail();
     // TODO prompt command
 
-    struct input_readline_info *info = inputinfo;
     print_prompt(info->type);
     if (info->type == 1)
 	info->type = 2;

@@ -28,6 +28,8 @@ input.c
 input.h
 job.c
 job.h
+mail.c
+mail.h
 mksignum.c
 option.c
 option.h

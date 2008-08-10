@@ -51,6 +51,7 @@
 const char *const path_variables[PATHTCOUNT] = {
     [PA_PATH] = VAR_PATH,
     [PA_CDPATH] = VAR_CDPATH,
+    [PA_MAILPATH] = VAR_MAILPATH,
 };
 
 
@@ -262,6 +263,10 @@ void init_variables(void)
 	if (v->v_type & VF_EXPORT)
 	    update_enrivon(VAR_LINENO);
     }
+
+    /* set $MAILCHECK */
+    if (!getvar(VAR_MAILCHECK))
+	set_variable(VAR_MAILCHECK, xwcsdup(L"600"), false, false);
 
     /* set $PS1~4 */
     {
@@ -890,9 +895,15 @@ void variable_set(const char *name, variable_T *var)
 	if (strcmp(name, VAR_LANG) == 0 || strncmp(name, "LC_", 3) == 0)
 	    reset_locale(name);
 	break;
+    case 'M':
+	if (strcmp(name, VAR_MAILPATH) == 0)
+	    reset_path(PA_MAILPATH, var);
+	break;
     case 'P':
-	if (strcmp(name, VAR_PATH) == 0)
+	if (strcmp(name, VAR_PATH) == 0) {
+	    clear_cmdhash();
 	    reset_path(PA_PATH, var);
+	}
 	break;
     case 'R':
 	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
@@ -960,9 +971,6 @@ char **decompose_paths(const wchar_t *paths)
  * `var' may be NULL. */
 void reset_path(path_T name, variable_T *var)
 {
-    if (name == PA_PATH)
-	clear_cmdhash();
-
     for (environ_T *env = current_env; env; env = env->parent) {
 	recfree((void **) env->paths[name], free);
 

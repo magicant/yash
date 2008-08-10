@@ -59,9 +59,9 @@ extern char **environ;
 #define VAR_YASH_VERSION "YASH_VERSION"
 
 typedef enum path_T {
-    PA_PATH, PA_CDPATH,
+    PA_PATH, PA_CDPATH, PA_MAILPATH,
 } path_T;
-#define PATHTCOUNT 2
+#define PATHTCOUNT 3
 extern const char *const path_variables[PATHTCOUNT];
 
 

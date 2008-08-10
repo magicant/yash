@@ -1,9 +1,9 @@
+export は常に global に
 prompt command
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
 配列の解釈・代入
-メールチェック
 gettext 対応
 
 組込みコマンド

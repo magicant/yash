@@ -1581,7 +1581,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
 
     if (!parse_string(&info, &word))
 	return NULL;
-    result = expand_string(word, false);
+    result = expand_string(word, true);
     wordfree(word);
     return result;
 }
