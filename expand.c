@@ -1562,7 +1562,7 @@ addpattern:
  * arithmetic expansions in the specified string.
  * If `name' is non-NULL, it is printed in error messages on error.
  * Returns a newly malloced string if successful. Otherwise NULL is returned.
- * This function is reentrant. */
+ * This function is not reentrant in itself. */
 wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
 {
     struct input_wcs_info winfo = {
@@ -1576,15 +1576,11 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
 	.input = input_wcs,
 	.inputinfo = &winfo,
     };
-    parsestate_T *state = save_parse_state();
     wordunit_T *word;
     wchar_t *result;
 
-    if (!parse_string(&info, &word)) {
-	restore_parse_state(state);
+    if (!parse_string(&info, &word))
 	return NULL;
-    }
-    restore_parse_state(state);
     result = expand_string(word, false);
     wordfree(word);
     return result;
