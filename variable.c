@@ -1167,9 +1167,8 @@ static bool read_input(xwcsbuf_T *buf, bool noescape)
  *  -x: export variables
  *  -X: cancel exportation of variables
  * Equivalent builtins:
- *  export:   typeset -x
- *  readonly: typeset -r
- * If `posixly_correct' is on, the -g flag is on by default.
+ *  export:   typeset -gx
+ *  readonly: typeset -gr
  * The "set" builtin without any arguments is redirected to this builtin. */
 int typeset_builtin(int argc, void **argv)
 {
@@ -1185,7 +1184,7 @@ int typeset_builtin(int argc, void **argv)
     };
 
     wchar_t opt;
-    bool funcs = false, global = posixly_correct, print = false;
+    bool funcs = false, global = false, print = false;
     bool readonly = false, export = false, unexport = false;
 
     xoptind = 0, xopterr = true;
@@ -1210,10 +1209,11 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (wcscmp(ARGV(0), L"export") == 0) {
+	global = true;
 	if (!unexport)
 	    export = true;
     } else if (wcscmp(ARGV(0), L"readonly") == 0) {
-	readonly = true;
+	global = readonly = true;
     } else {
 	assert(wcscmp(ARGV(0), L"typeset") == 0
 	    || wcscmp(ARGV(0), L"set") == 0);
@@ -1406,8 +1406,8 @@ void print_function(
 const char typeset_help[] = Ngt(
 "typeset, export, readonly - set or print variables\n"
 "\ttypeset  [-fgprxX] [name[=value]...]\n"
-"\texport   [-fgprX]  [name[=value]...]\n"
-"\treadonly [-fgpxX]  [name[=value]...]\n"
+"\texport   [-fprX]   [name[=value]...]\n"
+"\treadonly [-fpxX]   [name[=value]...]\n"
 "For each operands of the form <name>, the variable of the specified name is\n"
 "created if not yet created, without assigning any value. If the -p (--print)\n"
 "option is specified, the current value and attributes of the variable is\n"
@@ -1416,9 +1416,8 @@ const char typeset_help[] = Ngt(
 "specified variable. The variable is created if necessary.\n"
 "If no operands are given, all variables are printed.\n"
 "\n"
-"By default, these builtins affect local variables. To declare global\n"
-"variables inside functions, the -g (--global) option can be used.\n"
-"In POSIXly correct mode, the -g option is always on.\n"
+"By default, the \"typeset\" builtin affects local variables. To declare\n"
+"global variables inside functions, the -g (--global) option can be used.\n"
 "The -r (--readonly) option makes the specified variables/functions readonly.\n"
 "The -x (--export) option makes the variables exported to external commands.\n"
 "The -X (--unexport) option undoes the exportation.\n"
@@ -1427,8 +1426,8 @@ const char typeset_help[] = Ngt(
 "-f option can only be used together with the -r or -p option to make\n"
 "functions readonly or print them. Functions cannot be exported.\n"
 "\n"
-"\"export\" is equivalent to \"typeset -x\".\n"
-"\"readonly\" is equivalent to \"typeset -r\".\n"
+"\"export\" is equivalent to \"typeset -gx\".\n"
+"\"readonly\" is equivalent to \"typeset -gr\".\n"
 "Note that the typeset builtin is unavailable in the POSIXly correct mode.\n"
 );
 

@@ -12,6 +12,8 @@ Yash 2.0 beta1
 
   +  "read" builtin
   +  '--autocd' and '--curasync' option
+  +  Mail check feature
+  =  The "readonly" and "export" builtins are now global by default.
   *  The standard input is no longer buffered
   *  The "typeset" builtin now allows any characters other than '='
      for variable names.
