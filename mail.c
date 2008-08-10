@@ -228,7 +228,7 @@ bool is_update(const char *path)
 void print_message(const wchar_t *message)
 {
     /* assuming the parse state is saved */
-    wchar_t *msg = parse_and_expand_string(message, NULL);
+    wchar_t *msg = parse_and_expand_string(message, NULL, true);
     if (msg) {
 	fprintf(stderr, "%ls\n", msg);
 	free(msg);

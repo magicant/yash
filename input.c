@@ -295,7 +295,7 @@ void print_prompt(int type)
     if (ps == NULL)
 	return;
 
-    wchar_t *prompt = parse_and_expand_string(ps, gt("prompt"));
+    wchar_t *prompt = parse_and_expand_string(ps, gt("prompt"), false);
     if (prompt == NULL)
 	goto just_print;
     if (posixly_correct) {

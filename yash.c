@@ -274,7 +274,8 @@ static void execute_profile(void)
     if (!is_login_shell || posixly_correct)
 	return;
 
-    wchar_t *wpath = parse_and_expand_string(L"$HOME/.yash_profile", NULL);
+    wchar_t *wpath = parse_and_expand_string(
+	    L"$HOME/.yash_profile", NULL, false);
     if (wpath) {
 	char *path = realloc_wcstombs(wpath);
 	if (path) {
@@ -302,7 +303,7 @@ static void execute_rcfile(const wchar_t *rcfile)
 	const wchar_t *env = getvar(VAR_ENV);
 	if (!env)
 	    return;
-	wpath = parse_and_expand_string(env, "$ENV");
+	wpath = parse_and_expand_string(env, "$ENV", false);
 	if (!wpath)
 	    return;
 	path = realloc_wcstombs(wpath);
@@ -310,7 +311,7 @@ static void execute_rcfile(const wchar_t *rcfile)
 	if (rcfile) {
 	    path = malloc_wcstombs(rcfile);
 	} else {
-	    wpath = parse_and_expand_string(L"$HOME/.yashrc", NULL);
+	    wpath = parse_and_expand_string(L"$HOME/.yashrc", NULL, false);
 	    if (!wpath)
 		return;
 	    path = realloc_wcstombs(wpath);

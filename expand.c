@@ -1561,9 +1561,11 @@ addpattern:
 /* Performs parameter expansions, command substitutions in "$(...)" form and
  * arithmetic expansions in the specified string.
  * If `name' is non-NULL, it is printed in error messages on error.
+ * If `esc' is true, backslashes preceding $, `, \ are removed. Otherwise,
+ * no quotations are removed.
  * Returns a newly malloced string if successful. Otherwise NULL is returned.
  * This function is not reentrant in itself. */
-wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
+wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 {
     struct input_wcs_info winfo = {
 	.src = s,
@@ -1581,7 +1583,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
 
     if (!parse_string(&info, &word))
 	return NULL;
-    result = expand_string(word, true);
+    result = expand_string(word, esc);
     wordfree(word);
     return result;
 }
