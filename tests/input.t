@@ -1,4 +1,9 @@
 echo x"$PS3"x
+PROMPT_COMMAND='echo prompt_command >&2'
+(exit \
+1)
+echo $?
+unset PROMPT_COMMAND
 PS1='${PWD##${PWD}}$(echo ?) '
 PS1='! !! $ '
 PS1='\a \e \n \r \\ $ '

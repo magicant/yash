@@ -1,4 +1,3 @@
-prompt command
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト

@@ -39,10 +39,13 @@
 #include "sig.h"
 #include "expand.h"
 #include "job.h"
+#include "exec.h"
+#include "yash.h"
 
 
 /********** Input Functions **********/
 
+static void exec_prompt_command(void);
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *expand_ps_yash(wchar_t *s)
@@ -264,9 +267,10 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     struct input_readline_info *info = inputinfo;
     if (do_job_control)
 	print_job_status(PJS_ALL, true, false, stderr);
-    if (info->type == 1)
+    if (info->type == 1) {
+	exec_prompt_command();
 	check_mail();
-    // TODO prompt command
+    }
 
     print_prompt(info->type);
     if (info->type == 1)
@@ -276,6 +280,24 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	return input_stdin(buf, NULL);
     else
 	return input_file(buf, info->fp);
+}
+
+/* Executes the prompt command.
+ * The parse state must be saved beforehand. */
+void exec_prompt_command(void)
+{
+    if (!posixly_correct) {
+	const wchar_t *pc = getvar(VAR_PROMPT_COMMAND);
+	if (pc) {
+	    /* PROMPT_COMMAND is executed as if a trap handler */
+	    wchar_t *savepc = xwcsdup(pc);
+	    savelaststatus = laststatus;
+	    exec_wcs(savepc, VAR_PROMPT_COMMAND, false);
+	    laststatus = savelaststatus;
+	    savelaststatus = -1;
+	    free(savepc);
+	}
+    }
 }
 
 /* Prints a prompt of the specified type.

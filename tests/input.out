@@ -7,4 +7,5 @@ here-document
 ok
 ===== input.t =====
 x#? x
+1
 ok

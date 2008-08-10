@@ -50,6 +50,7 @@ extern char **environ;
 #define VAR_OLDPWD	"OLDPWD"
 #define VAR_PATH	"PATH"
 #define VAR_PPID	"PPID"
+#define VAR_PROMPT_COMMAND "PROMPT_COMMAND"
 #define VAR_PS1		"PS1"
 #define VAR_PS2		"PS2"
 #define VAR_PS3		"PS3"
