@@ -1576,11 +1576,15 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name)
 	.input = input_wcs,
 	.inputinfo = &winfo,
     };
+    parsestate_T *state = save_parse_state();
     wordunit_T *word;
     wchar_t *result;
 
-    if (!parse_string(&info, &word))
+    if (!parse_string(&info, &word)) {
+	restore_parse_state(state);
 	return NULL;
+    }
+    restore_parse_state(state);
     result = expand_string(word, false);
     wordfree(word);
     return result;
