@@ -204,7 +204,9 @@ int main(int argc, char **argv)
     init_shellfds();
     init_job();
     init_builtin();
+#if ENABLE_ALIAS
     init_alias();
+#endif
 
     wchar_t *command = command;
     FILE *input = input;

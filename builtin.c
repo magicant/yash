@@ -78,8 +78,10 @@ void init_builtin(void)
     DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, umask_help);
 
     /* defined in "alias.c" */
+#if ENABLE_ALIAS
     DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help);
     DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help);
+#endif
 
     /* defined in "variable.c" */
     DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help);

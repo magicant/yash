@@ -38,7 +38,8 @@ copyrightyear="2007-2008"
 sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h resource.c resource.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
 
 # object files to be linked as `yash'
-objs="alias.o arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o resource.o sig.o strbuf.o util.o variable.o wfnmatch.o yash.o"
+objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o resource.o sig.o strbuf.o util.o variable.o wfnmatch.o yash.o"
+alias_objs="alias.o"
 
 # object file to be linked as `mksignum'
 mksignumobjs="mksignum.o"
@@ -46,8 +47,29 @@ mksignumobjs="mksignum.o"
 help="no"
 gcc=""
 debug="no"
+enable_alias="yes"
+enable_ulimit="auto"
+enable_job="yes"
 unset prefix eprefix bindir
 umask u=rwx,go=rx
+
+# TODO options:
+# --enable-{ulimit,job-control}
+
+parseenable() {
+    case "$1" in
+	*=yes|*=no|*=true|*=false) ;;
+	*=*)  echo "$0: $1: invalid option" >&2;  exit 2 ;;
+    esac
+    opt="${1#--*able-}"
+    opt="${opt%%=*}"
+    case "$opt" in
+	alias)        enable_alias=$2 ;;
+	ulimit)       enable_ulimit=$2 ;;
+	job-control)  enable_job=$2 ;;
+	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
+    esac
+}
 
 # parse options
 for i
@@ -63,6 +85,10 @@ do
 	    execprefix="${i#--exec-prefix=}" ;;
 	--bindir=*)
 	    bindir="${i#--bindir=}" ;;
+	--enable-*=no|--enable-*=false|--disable-*)
+	    parseenable "$i" "no" ;;
+	--enable-*)
+	    parseenable "$i" "yes" ;;
 	?*=*)
 	    # parse variable assignment
 	    if echo "$i" |
@@ -95,6 +121,11 @@ Installation options:
   --exec-prefix=EPREFIX  install architecture-dependent files in EPREFIX
                          [PREFIX]
   --bindir=DIR           install executable in DIR [EPREFIX/bin]
+
+Optional Features:
+  --enable-FEATURE[=ARG]      enable FEATURE [ARG=yes]
+  --disable-FEATURE           disable FEATURE (same as --enable-FEATURE=no)
+  --enable-alias              enable aliases
 
 Influential environment variables:
   CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, INSTALL_PROGRAM
@@ -392,6 +423,13 @@ then
     defconfigh "GETCWD_AUTO_MALLOC"
 else
     checked "no"
+fi
+
+# enable/disable aliases
+if [ x"$enable_alias" = x"yes" ]
+then
+    defconfigh "ENABLE_ALIAS"
+    objs="$objs $alias_objs"
 fi
 
 # check for getrlimit and setrlimit

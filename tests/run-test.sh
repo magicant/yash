@@ -41,13 +41,18 @@ failed=0
 for x in $TEST_ITEMS
 do
     x="${x%.tst}"
-    echo " * $x"
-
     if [ x"$x" = x"${x%.p}" ]
     then INVOKE=
     else INVOKE='./invoke sh'
     fi
+    case "$x" in
+	alias|alias.p)
+	    if ! PATH= $INVOKE $TESTEE -c 'alias' >/dev/null 2>&1
+	    then echo " * $x (skipped)"; continue
+	    fi ;;
+    esac
 
+    echo " * $x"
     $INVOKE $TESTEE "$x.tst" >|"${TESTTMP}/test.out" 2>|"${TESTTMP}/test.err"
 
     failure=0

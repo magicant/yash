@@ -938,8 +938,10 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     pl_init(&wordlist);
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
+#if ENABLE_ALIAS
 	substitute_alias(&cbuf, cindex, !first);
 	skip_blanks_and_comment();
+#endif
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -1084,6 +1086,7 @@ wordunit_T *parse_word(aliastype_T type)
  * false for. It is not an error if there is no characters to be a word. */
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
+#if ENABLE_ALIAS
     switch (type) {
 	case noalias:
 	    break;
@@ -1096,6 +1099,9 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	    skip_blanks_and_comment();
 	    break;
     }
+#else
+    (void) type;
+#endif /* ENABLE_ALIAS */
 
     wordunit_T *first = NULL, **lastp = &first, *wu;
     bool indq = false;  /* in double quotes? */
@@ -1428,8 +1434,10 @@ fail:
  * `cindex' points to '(' when the function is called, and ')' when returns. */
 wordunit_T *parse_cmdsubst_in_paren(void)
 {
+#if ENABLE_ALIAS
     bool save_alias_enabled = alias_enabled;
     alias_enabled = false;
+#endif
     plist_T save_pending_heredocs = pending_heredocs;
     pl_init(&pending_heredocs);
 
@@ -1453,7 +1461,9 @@ wordunit_T *parse_cmdsubst_in_paren(void)
 
     pl_destroy(&pending_heredocs);
     pending_heredocs = save_pending_heredocs;
+#if ENABLE_ALIAS
     alias_enabled = save_alias_enabled;
+#endif
     return result;
 }
 
