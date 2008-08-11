@@ -19,8 +19,8 @@
 #ifndef WFNMATCH_H
 #define WFNMATCH_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /* values for the `flags' argument of `wfnmatch' */
 enum wfnmflags {

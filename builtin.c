@@ -22,17 +22,17 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "strbuf.h"
-#include "hashtable.h"
-#include "path.h"
 #include "alias.h"
-#include "variable.h"
-#include "sig.h"
-#include "job.h"
-#include "resource.h"
 #include "builtin.h"
 #include "exec.h"
+#include "hashtable.h"
+#include "job.h"
+#include "option.h"
+#include "path.h"
+#include "resource.h"
+#include "sig.h"
+#include "strbuf.h"
+#include "variable.h"
 #include "yash.h"
 
 

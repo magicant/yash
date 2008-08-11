@@ -20,12 +20,14 @@
 #define ALIAS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
+struct xwcsbuf_T;
 
 extern bool alias_enabled;
 
 extern void init_alias(void);
-extern void substitute_alias(xwcsbuf_T *buf, size_t i, bool globalonly)
+extern void substitute_alias(struct xwcsbuf_T *buf, size_t i, bool globalonly)
     __attribute__((nonnull));
 
 extern int alias_builtin(int argc, void **argv)

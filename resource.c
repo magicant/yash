@@ -30,10 +30,10 @@
 #ifdef HAVE_RLIMIT
 # include <sys/resource.h>
 #endif
-#include "util.h"
-#include "resource.h"
 #include "builtin.h"
 #include "exec.h"
+#include "resource.h"
+#include "util.h"
 
 
 /********** Builtin **********/

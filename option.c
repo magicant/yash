@@ -25,14 +25,14 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "variable.h"
-#include "sig.h"
-#include "redir.h"
 #include "builtin.h"
 #include "exec.h"
+#include "option.h"
+#include "redir.h"
+#include "sig.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
 #include "yash.h"
 
 

@@ -32,19 +32,19 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "parser.h"
-#include "sig.h"
-#include "siglist.h"
-#include "expand.h"
-#include "redir.h"
-#include "job.h"
 #include "builtin.h"
 #include "exec.h"
-#include "yash.h"
+#include "expand.h"
+#include "job.h"
+#include "option.h"
+#include "parser.h"
+#include "redir.h"
+#include "sig.h"
+#include "siglist.h"
 #include "signum.h"
+#include "strbuf.h"
+#include "util.h"
+#include "yash.h"
 
 
 /* About the shell's signal handling:

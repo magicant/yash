@@ -22,19 +22,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <wchar.h>
-#include <sys/stat.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "util.h"
-#include "strbuf.h"
+#include "expand.h"
 #include "hashtable.h"
 #include "mail.h"
-#include "variable.h"
 #include "parser.h"
-#include "expand.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
 
 
 /* The type of objects used to remember the status of files for mail checking.*/

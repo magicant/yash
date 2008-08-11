@@ -29,17 +29,17 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "mail.h"
-#include "input.h"
-#include "parser.h"
-#include "variable.h"
-#include "sig.h"
-#include "expand.h"
-#include "job.h"
 #include "exec.h"
+#include "expand.h"
+#include "input.h"
+#include "job.h"
+#include "mail.h"
+#include "option.h"
+#include "parser.h"
+#include "sig.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
 #include "yash.h"
 
 

@@ -23,8 +23,8 @@
 #include <limits.h>
 #include <locale.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -32,20 +32,20 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "plist.h"
-#include "hashtable.h"
-#include "path.h"
-#include "input.h"
-#include "parser.h"
-#include "variable.h"
-#include "expand.h"
 #include "builtin.h"
 #include "exec.h"
-#include "yash.h"
+#include "expand.h"
+#include "hashtable.h"
+#include "input.h"
+#include "option.h"
+#include "parser.h"
+#include "path.h"
+#include "plist.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
 #include "version.h"
+#include "yash.h"
 
 
 const char *const path_variables[PATHTCOUNT] = {

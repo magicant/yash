@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "util.h"
 #include "hashtable.h"
+#include "util.h"
 
 
 /* A hashtable is a mapping from keys to values.

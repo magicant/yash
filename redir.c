@@ -25,17 +25,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/select.h>
 #include <sys/stat.h>
-#include "option.h"
-#include "util.h"
-#include "path.h"
-#include "input.h"
-#include "parser.h"
-#include "expand.h"
-#include "redir.h"
+#include <unistd.h>
 #include "exec.h"
+#include "expand.h"
+#include "input.h"
+#include "option.h"
+#include "parser.h"
+#include "path.h"
+#include "redir.h"
+#include "util.h"
 
 
 /********** Utilities **********/

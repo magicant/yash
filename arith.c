@@ -24,11 +24,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "variable.h"
 #include "arith.h"
+#include "option.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
 
 
 typedef struct word_T {

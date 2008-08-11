@@ -27,22 +27,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <sys/stat.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "plist.h"
-#include "hashtable.h"
-#include "wfnmatch.h"
-#include "path.h"
-#include "variable.h"
 #include "builtin.h"
 #include "exec.h"
+#include "hashtable.h"
+#include "option.h"
+#include "path.h"
+#include "plist.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
+#include "wfnmatch.h"
 
 
 /* Checks if `path' is a regular file. */

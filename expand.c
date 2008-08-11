@@ -24,18 +24,18 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "plist.h"
-#include "wfnmatch.h"
-#include "path.h"
-#include "input.h"
-#include "parser.h"
-#include "variable.h"
 #include "arith.h"
-#include "expand.h"
 #include "exec.h"
+#include "expand.h"
+#include "input.h"
+#include "option.h"
+#include "parser.h"
+#include "path.h"
+#include "plist.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
+#include "wfnmatch.h"
 #include "yash.h"
 
 

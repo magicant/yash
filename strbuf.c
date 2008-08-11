@@ -24,8 +24,8 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
-#include "util.h"
 #include "strbuf.h"
+#include "util.h"
 
 #define XSTRBUF_INITSIZE 15
 #define XWCSBUF_INITSIZE 15

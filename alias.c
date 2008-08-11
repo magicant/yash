@@ -26,16 +26,16 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "plist.h"
-#include "hashtable.h"
 #include "alias.h"
-#include "parser.h"
-#include "expand.h"
 #include "builtin.h"
 #include "exec.h"
+#include "expand.h"
+#include "hashtable.h"
+#include "option.h"
+#include "parser.h"
+#include "plist.h"
+#include "strbuf.h"
+#include "util.h"
 
 
 typedef enum {

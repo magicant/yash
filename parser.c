@@ -31,14 +31,14 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "plist.h"
-#include "input.h"
 #include "alias.h"
-#include "parser.h"
 #include "expand.h"
+#include "input.h"
+#include "option.h"
+#include "parser.h"
+#include "plist.h"
+#include "strbuf.h"
+#include "util.h"
 
 
 /********** Functions that Free Parse Trees **********/

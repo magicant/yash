@@ -25,20 +25,20 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "plist.h"
-#include "sig.h"
-#include "redir.h"
-#include "job.h"
 #include "builtin.h"
 #include "exec.h"
+#include "job.h"
+#include "option.h"
+#include "plist.h"
+#include "redir.h"
+#include "sig.h"
+#include "strbuf.h"
+#include "util.h"
 #include "yash.h"
 
 

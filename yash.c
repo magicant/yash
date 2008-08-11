@@ -29,22 +29,22 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "strbuf.h"
-#include "path.h"
-#include "input.h"
 #include "alias.h"
-#include "parser.h"
-#include "variable.h"
-#include "sig.h"
-#include "expand.h"
-#include "redir.h"
-#include "job.h"
 #include "builtin.h"
 #include "exec.h"
-#include "yash.h"
+#include "expand.h"
+#include "input.h"
+#include "job.h"
+#include "option.h"
+#include "parser.h"
+#include "path.h"
+#include "redir.h"
+#include "sig.h"
+#include "strbuf.h"
+#include "util.h"
+#include "variable.h"
 #include "version.h"
+#include "yash.h"
 
 
 extern int main(int argc, char **argv)

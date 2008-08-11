@@ -29,10 +29,10 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "option.h"
-#include "util.h"
-#include "plist.h"
 #include "exec.h"
+#include "option.h"
+#include "plist.h"
+#include "util.h"
 
 
 /********** General functions **********/
