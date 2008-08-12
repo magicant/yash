@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* resource.h: ulimit builtin */
+/* ulimit.h: ulimit builtin */
 /* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef RESOURCE_H
-#define RESOURCE_H
+#ifndef ULIMIT_H
+#define ULIMIT_H
 
 
 extern int ulimit_builtin(int argc, void **argv)
@@ -25,7 +25,7 @@ extern int ulimit_builtin(int argc, void **argv)
 extern const char ulimit_help[];
 
 
-#endif /* RESOURCE_H */
+#endif /* ULIMIT_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

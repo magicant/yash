@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* resource.c: ulimit builtin */
+/* ulimit.c: ulimit builtin */
 /* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -23,22 +23,18 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/resource.h>
 #include <wchar.h>
 #ifdef HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#ifdef HAVE_RLIMIT
-# include <sys/resource.h>
-#endif
 #include "builtin.h"
 #include "exec.h"
-#include "resource.h"
+#include "ulimit.h"
 #include "util.h"
 
 
 /********** Builtin **********/
-
-#ifdef HAVE_RLIMIT
 
 static const struct resource {
     wchar_t option;
@@ -322,8 +318,6 @@ const char ulimit_help[] = Ngt(
 "byte blocks, (K) in kilobytes, and (S) in seconds.\n"
 "Available resource types vary depending on your system.\n"
 );
-
-#endif /* HAVE_RLIMIT */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

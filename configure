@@ -35,11 +35,12 @@ version="2.0b0"
 copyrightyear="2007-2008"
 
 # all source files in this directory
-sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h resource.c resource.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
+sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h ulimit.c ulimit.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
 
 # object files to be linked as `yash'
-objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o resource.o sig.o strbuf.o util.o variable.o wfnmatch.o yash.o"
+objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o wfnmatch.o yash.o"
 alias_objs="alias.o"
+ulimit_objs="ulimit.o"
 
 # object file to be linked as `mksignum'
 mksignumobjs="mksignum.o"
@@ -48,13 +49,13 @@ help="no"
 gcc=""
 debug="no"
 enable_alias="yes"
-enable_ulimit="auto"
+enable_ulimit="yes"
 enable_job="yes"
 unset prefix eprefix bindir
 umask u=rwx,go=rx
 
 # TODO options:
-# --enable-{ulimit,job-control}
+# --enable-job-control
 
 parseenable() {
     case "$1" in
@@ -126,6 +127,7 @@ Optional Features:
   --enable-FEATURE[=ARG]      enable FEATURE [ARG=yes]
   --disable-FEATURE           disable FEATURE (same as --enable-FEATURE=no)
   --enable-alias              enable aliases
+  --enable-ulimit             enable the ulimit builtin
 
 Influential environment variables:
   CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, INSTALL_PROGRAM
@@ -433,8 +435,10 @@ then
 fi
 
 # check for getrlimit and setrlimit
-checking "for getrlimit and setrlimit"
-cat >"${tempsrc}" <<END
+if [ x"$enable_ulimit" = x"yes" ]
+then
+    checking "for getrlimit and setrlimit"
+    cat >"${tempsrc}" <<END
 #define _XOPEN_SOURCE 600
 #include <sys/resource.h>
 int main() {
@@ -443,18 +447,19 @@ getrlimit(RLIMIT_FSIZE, &l);
 setrlimit(RLIMIT_FSIZE, &l);
 }
 END
-if trymake
-then
-    checked "yes"
-    defconfigh "HAVE_RLIMIT"
-    rlimit="yes"
-else
-    checked "no"
-    rlimit=""
+    if trymake
+    then
+	checked "yes"
+	defconfigh "ENABLE_ULIMIT"
+	objs="$objs $ulimit_objs"
+    else
+	checked "no"
+	enable_ulimit="no"
+    fi
 fi
 
 # check for RLIMIT_***
-if [ x"${rlimit}" = x"yes" ]
+if [ x"$enable_ulimit" = x"yes" ]
 then
     for i in LOCKS MEMLOCK MSGQUEUE NICE NPROC RSS RTPRIO SIGPENDING 
     do

@@ -29,9 +29,9 @@
 #include "job.h"
 #include "option.h"
 #include "path.h"
-#include "resource.h"
 #include "sig.h"
 #include "strbuf.h"
+#include "ulimit.h"
 #include "variable.h"
 #include "yash.h"
 
@@ -102,8 +102,8 @@ void init_builtin(void)
     DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help);
     DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
 
-    /* defined in "resource.c" */
-#ifdef HAVE_RLIMIT
+    /* defined in "ulimit.c" */
+#ifdef ENABLE_ULIMIT
     DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help);
 #endif
 
