@@ -391,10 +391,10 @@ checking "if getcwd(NULL,0) returns malloc'ed string"
 cat >"${tempsrc}" <<END
 #include <errno.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 char *xgetcwd(void) {
-    size_t pwdlen = 40;
+    size_t pwdlen = 80;
     char *pwd = malloc(pwdlen);
     if (!pwd) return NULL;
     while (getcwd(pwd, pwdlen) == NULL) {
@@ -416,7 +416,7 @@ int main(void) {
     if (!wd2 || strcmp(wd1, wd2) != 0) return 1;
     char *wd11 = realloc(wd1, strlen(wd1) + 10);
     if (!wd11 || strcmp(wd11, wd2) != 0) return 1;
-    free(wd11);
+    free(wd11); free(wd2); return 0;
 }
 END
 if trymake && tryexec
