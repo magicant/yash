@@ -50,12 +50,8 @@ gcc=""
 debug="no"
 enable_alias="yes"
 enable_ulimit="yes"
-enable_job="yes"
 unset prefix eprefix bindir
 umask u=rwx,go=rx
-
-# TODO options:
-# --enable-job-control
 
 parseenable() {
     case "$1" in
@@ -67,7 +63,6 @@ parseenable() {
     case "$opt" in
 	alias)        enable_alias=$2 ;;
 	ulimit)       enable_ulimit=$2 ;;
-	job-control)  enable_job=$2 ;;
 	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
     esac
 }

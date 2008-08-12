@@ -931,6 +931,8 @@ int fg_builtin(int argc, void **argv)
  * Returns the exit code of the continued job or 0 if it is still running. */
 int continue_job(size_t jobnumber, job_T *job, bool fg)
 {
+    assert(job->j_pgid > 0);
+
     wchar_t *name = get_job_name(job);
     if (fg && posixly_correct)
 	printf("%ls\n", name);
@@ -942,7 +944,9 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     if (job->j_status != JS_DONE) {
 	if (fg)
 	    put_foreground(job->j_pgid);
-	kill(-job->j_pgid, SIGCONT);
+	if (job->j_status == JS_STOPPED || !posixly_correct)
+	    if (kill(-job->j_pgid, SIGCONT) < 0)
+		xerror(errno, "kill(%jd,CONT)", (intmax_t) -job->j_pgid);
 	job->j_status = JS_RUNNING;
     }
 
