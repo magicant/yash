@@ -154,6 +154,8 @@ static inline int xexecve(
 int laststatus = EXIT_SUCCESS;
 /* exit status of the command preceding the currently executed trap action */
 int savelaststatus = -1;  // -1 if not in a trap action
+/* exit status of the last command substitution */
+static int lastcmdsubstatus;
 /* the process ID of the last asynchronous list */
 pid_t lastasyncpid;
 
@@ -285,6 +287,9 @@ void exec_pipelines_async(const pipeline_T *p)
 	    maybe_redirect_stdin_to_devnull();
 	    exec_pipelines(p, true);
 	    assert(false);
+	} else {
+	    /* fork failure */
+	    laststatus = EXIT_NOEXEC;
 	}
     }
 }
@@ -302,7 +307,7 @@ void exec_if(const command_T *c, bool finally_exit)
 	    return;
 	}
     }
-    laststatus = 0;
+    laststatus = EXIT_SUCCESS;
 done:
     if (finally_exit)
 	exit_shell();
@@ -690,6 +695,8 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (ext)
 	restore_all_signals();
 
+    lastcmdsubstatus = EXIT_SUCCESS;
+
     /* connect pipes and close leftovers */
     connect_pipes(pi);
 
@@ -707,7 +714,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	last_assign = c->c_assigns;
 	if (argc == 0) {
 	    if (do_assignments(c->c_assigns, false, shopt_allexport))
-		laststatus = EXIT_SUCCESS;
+		laststatus = lastcmdsubstatus;
 	    else
 		laststatus = EXIT_ASSGNERR;
 	} else {
@@ -1116,6 +1123,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	/* fork failure */
 	xclose(pipefd[PIDX_IN]);
 	xclose(pipefd[PIDX_OUT]);
+	lastcmdsubstatus = EXIT_NOEXEC;
 	return NULL;
     } else if (cpid) {
 	/* parent process */
@@ -1126,6 +1134,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	if (!f) {
 	    xerror(errno, Ngt("cannot open pipe for command substitution"));
 	    xclose(pipefd[PIDX_IN]);
+	    lastcmdsubstatus = EXIT_NOEXEC;
 	    return NULL;
 	}
 
@@ -1173,7 +1182,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 
 	/* wait for the child to finish */
 	wait_for_job(ACTIVE_JOBNO, false, false, false);
-	laststatus = calc_status_of_job(job);
+	lastcmdsubstatus = calc_status_of_job(job);
 	remove_job(ACTIVE_JOBNO);
 
 	/* trim trailing newlines and return */

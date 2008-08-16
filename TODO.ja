@@ -1,4 +1,3 @@
-dummy=`false`; echo $? が非 0 にならない
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト

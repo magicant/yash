@@ -5,6 +5,10 @@ abc abc abc abc $var ${var}
 abc abc abc abc $var ${var}
 $(echo $var ${var} "$var" "${var}")
 assignments line
+echo 7
+10 foo
+12 bar
+1 0
 ===== 0 =====
 abc bc a
 ===== 1 =====
@@ -94,4 +98,4 @@ function
 2
 re-redirected
 redirected
-lineno=341
+lineno=348
