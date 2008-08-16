@@ -48,6 +48,16 @@ void alloc_failed(void)
 
 /********** String utilities **********/
 
+#if !HAVE_STRNLEN
+/* Returns min(maxlen, strlen(s)). */
+size_t xstrnlen(const char *s, size_t maxlen)
+{
+    size_t result = 0;
+    while (result < maxlen && s[result]) result++;
+    return result;
+}
+#endif
+
 /* Returns a newly malloced copy of the specified string.
  * The copy is at most `len' bytes long.
  * Returns an exact copy if (strlen(s) <= len).
@@ -60,6 +70,16 @@ char *xstrndup(const char *s, size_t len)
     result[len] = '\0';
     return memcpy(result, s, len);
 }
+
+#if !HAVE_WCSNLEN
+/* Returns min(maxlen, wcslen(s)). */
+size_t xwcsnlen(const wchar_t *s, size_t maxlen)
+{
+    size_t result = 0;
+    while (result < maxlen && s[result]) result++;
+    return result;
+}
+#endif
 
 /* Returns a newly malloced copy of the specified string.
  * The copy is at most `len' characters long.

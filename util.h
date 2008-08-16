@@ -71,13 +71,13 @@ void *xrealloc(void *ptr, size_t size)
 
 /********** String utilities **********/
 
-static inline size_t xstrnlen(const char *s, size_t maxlen)
+extern size_t xstrnlen(const char *s, size_t maxlen)
     __attribute__((pure,nonnull));
 extern char *xstrndup(const char *s, size_t maxlen)
     __attribute__((malloc,warn_unused_result,nonnull));
 static inline char *xstrdup(const char *s)
     __attribute__((malloc,warn_unused_result,nonnull));
-static inline size_t xwcsnlen(const wchar_t *s, size_t maxlen)
+extern size_t xwcsnlen(const wchar_t *s, size_t maxlen)
     __attribute__((pure,nonnull));
 extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen)
     __attribute__((malloc,warn_unused_result,nonnull));
@@ -100,37 +100,20 @@ extern void *copyaswcs(const void *p)
 extern void sort_mbs_array(void **array)
     __attribute__((nonnull));
 
-/* Returns min(maxlen, strlen(s)). */
-size_t xstrnlen(const char *s, size_t maxlen)
-{
 #if HAVE_STRNLEN
-    extern size_t strnlen(const char *s, size_t maxlen);
-    return strnlen(s, maxlen);
-#else
-    size_t result = 0;
-    while (result < maxlen && s[result]) result++;
-    return result;
+extern size_t strnlen(const char *s, size_t maxlen);
+#define xstrnlen(s,maxlen) strnlen(s,maxlen)
 #endif
-}
+#if HAVE_WCSNLEN
+extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
+#define xwcsnlen(s,maxlen) wcsnlen(s,maxlen)
+#endif
 
 /* Returns a newly malloced copy of the specified string.
  * Aborts the program if failed to allocate memory. */
 char *xstrdup(const char *s)
 {
     return xstrndup(s, SIZE_MAX);
-}
-
-/* Returns min(maxlen, wcslen(s)). */
-size_t xwcsnlen(const wchar_t *s, size_t maxlen)
-{
-#if HAVE_WCSNLEN
-    extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
-    return wcsnlen(s, maxlen);
-#else
-    size_t result = 0;
-    while (result < maxlen && s[result]) result++;
-    return result;
-#endif
 }
 
 /* Returns a newly malloced copy of the specified string.

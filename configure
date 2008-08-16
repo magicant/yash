@@ -308,9 +308,9 @@ checking "for strnlen"
 cat >"${tempsrc}" <<END
 #include <stddef.h>
 size_t strnlen(const char*, size_t);
-int main() { return (int) strnlen("", 1); }
+int main() { return strnlen("12345", 3) != 3; }
 END
-if trymake
+if trymake && tryexec
 then
     checked "yes"
     defconfigh "HAVE_STRNLEN"
@@ -323,9 +323,9 @@ checking "for wcsnlen"
 cat >"${tempsrc}" <<END
 #include <stddef.h>
 size_t wcsnlen(const wchar_t*, size_t);
-int main() { return (int) wcsnlen(L"", 1); }
+int main() { return wcsnlen(L"12345", 3) != 3; }
 END
-if trymake
+if trymake && tryexec
 then
     checked "yes"
     defconfigh "HAVE_WCSNLEN"
