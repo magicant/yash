@@ -48,6 +48,8 @@ extern char **environ;
 #define VAR_MAILPATH	"MAILPATH"
 #define VAR_NLSPATH	"NLSPATH"
 #define VAR_OLDPWD	"OLDPWD"
+#define VAR_OPTARG	"OPTARG"
+#define VAR_OPTIND	"OPTIND"
 #define VAR_PATH	"PATH"
 #define VAR_PPID	"PPID"
 #define VAR_PROMPT_COMMAND "PROMPT_COMMAND"
@@ -110,9 +112,12 @@ extern int unset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int shift_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern int getopts_builtin(int argc, void **argv)
+    __attribute__((nonnull));
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char typeset_help[], unset_help[], shift_help[], read_help[];
+extern const char typeset_help[], unset_help[], shift_help[],
+       getopts_help[], read_help[];
 
 
 #endif /* VARIABLE_H */

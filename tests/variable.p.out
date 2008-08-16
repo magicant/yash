@@ -46,6 +46,31 @@ y z
 z
 a b c
 0
+===== getopts =====
+1
+a unset
+b foo  bar
+c unset
+? 5
+=====
+a --
+a bc
+b unset
+? 6
+=====
+a unset
+b unset
+c unset
+d unset
+e unset
+? 3
+=====
+0 ? 1 unset
+=====
+0 ? unset
+0 ? a
+0 ? unset
+0 : a
 ===== read =====
 1
 2

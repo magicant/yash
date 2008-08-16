@@ -29,6 +29,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
@@ -180,6 +181,9 @@ static bool random_active;
 /* Hashtable from function names (char *) to functions (function_T *). */
 static hashtable_T functions;
 
+/* The index of the option charcter for the "getopts" builtin to parse next. */
+static unsigned optind2 = 1;
+
 
 /* Frees the value of a variable, but not the variable itself. */
 /* This function does not change the value of `*v'. */
@@ -293,6 +297,9 @@ void init_variables(void)
     /* set $PPID */
     set_variable(VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
 	    false, false);
+
+    /* set $OPTIND */
+    set_variable(VAR_OPTIND, xwcsdup(L"1"), false, false);
 
     /* set $RANDOM */
     if (!posixly_correct && !getvar(VAR_RANDOM)) {
@@ -899,6 +906,10 @@ void variable_set(const char *name, variable_T *var)
 	if (strcmp(name, VAR_MAILPATH) == 0)
 	    reset_path(PA_MAILPATH, var);
 	break;
+    case 'O':
+	if (strcmp(name, VAR_OPTIND) == 0)
+	    optind2 = 1;
+	break;
     case 'P':
 	if (strcmp(name, VAR_PATH) == 0) {
 	    clear_cmdhash();
@@ -1155,6 +1166,16 @@ static void print_variable(
 static void print_function(
 	const char *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
+    __attribute__((nonnull));
+static bool unset_function(const char *name)
+    __attribute__((nonnull));
+static bool unset_variable(const char *name)
+    __attribute__((nonnull));
+static bool check_options(const wchar_t *options)
+    __attribute__((nonnull,pure));
+static inline bool set_optind(unsigned long optind);
+static inline bool set_optarg(const wchar_t *value);
+static bool set_to(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
 static bool read_input(xwcsbuf_T *buf, bool noescape)
     __attribute__((nonnull));
@@ -1467,45 +1488,54 @@ int unset_builtin(int argc, void **argv)
 	    xerror(0, Ngt("unexpected error"));
 	    return EXIT_ERROR;
 	}
-
-	if (funcs) {
-	    /* remove function */
-	    kvpair_T kv = ht_remove(&functions, name);
-	    function_T *f = kv.value;
-	    if (f) {
-		if (!(f->f_type & VF_NODELETE)) {
-		    funckvfree(kv);
-		} else {
-		    xerror(0, Ngt("%s: readonly"), name);
-		    err = true;
-		    ht_set(&functions, kv.key, kv.value);
-		}
-	    }
-	} else {
-	    /* remove variable */
-	    for (environ_T *env = current_env; env; env = env->parent) {
-		kvpair_T kv = ht_remove(&env->contents, name);
-		variable_T *var = kv.value;
-		if (var) {
-		    if (!(var->v_type & VF_NODELETE)) {
-			bool ue = var->v_type & VF_EXPORT;
-			varkvfree(kv);
-			variable_set(name, NULL);
-			if (ue)
-			    update_enrivon(name);
-		    } else {
-			xerror(0, Ngt("%s: readonly"), name);
-			err = true;
-			ht_set(&env->contents, kv.key, kv.value);
-		    }
-		    break;
-		}
-	    }
-	}
+	err |= funcs ? unset_function(name) : unset_variable(name);
 	free(name);
     }
 
     return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+}
+
+/* Unsets the specified function.
+ * Returns true ON ERROR. */
+bool unset_function(const char *name)
+{
+    kvpair_T kv = ht_remove(&functions, name);
+    function_T *f = kv.value;
+    if (f) {
+	if (!(f->f_type & VF_NODELETE)) {
+	    funckvfree(kv);
+	} else {
+	    xerror(0, Ngt("%s: readonly"), name);
+	    ht_set(&functions, kv.key, kv.value);
+	    return true;
+	}
+    }
+    return false;
+}
+
+/* Unsets the specified variable.
+ * Returns true ON ERROR. */
+bool unset_variable(const char *name)
+{
+    for (environ_T *env = current_env; env; env = env->parent) {
+	kvpair_T kv = ht_remove(&env->contents, name);
+	variable_T *var = kv.value;
+	if (var) {
+	    if (!(var->v_type & VF_NODELETE)) {
+		bool ue = var->v_type & VF_EXPORT;
+		varkvfree(kv);
+		variable_set(name, NULL);
+		if (ue)
+		    update_enrivon(name);
+		return false;
+	    } else {
+		xerror(0, Ngt("%s: readonly"), name);
+		ht_set(&env->contents, kv.key, kv.value);
+		return true;
+	    }
+	}
+    }
+    return false;
 }
 
 const char unset_help[] = Ngt(
@@ -1578,6 +1608,228 @@ const char shift_help[] = Ngt(
 "Removes the first <n> positional parameters.\n"
 "If <n> is not specified, the first one positional parameter is removed.\n"
 "<n> must be a non-negative integer that is not greater than $#.\n"
+);
+
+/* The "getopts" builtin */
+int getopts_builtin(int argc, void **argv)
+{
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		goto print_usage;
+	}
+    }
+    if (xoptind + 2 > argc)
+	goto print_usage;
+
+    const wchar_t *options = ARGV(xoptind++);
+    const wchar_t *varname = ARGV(xoptind++);
+    void *const *args;
+    unsigned long optind;
+    const wchar_t *arg, *optp;
+    wchar_t optchar;
+
+    if (wcschr(varname, L'=')) {
+	xerror(0, Ngt("`%ls': invalid name"), varname);
+	return EXIT_FAILURE1;
+    } else if (!check_options(options)) {
+	xerror(0, Ngt("`%ls': invalid option specification"), options);
+	return EXIT_FAILURE1;
+    }
+    {
+	const wchar_t *varoptind = getvar(VAR_OPTIND);
+	wchar_t *end;
+	if (!varoptind || !varoptind[0])
+	    goto optind_invalid;
+	errno = 0;
+	optind = wcstoul(varoptind, &end, 10) - 1;
+	if (errno || *end)
+	    goto optind_invalid;
+    }
+    if (xoptind < argc) {
+	if (optind >= (unsigned long) (argc - xoptind))
+	    return EXIT_FAILURE1;
+	args = argv + xoptind;
+    } else {
+	variable_T *var = search_variable(VAR_positional);
+	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+	if (optind >= var->v_valc)
+	    return EXIT_FAILURE1;
+	args = var->v_vals;
+    }
+
+#define TRY(exp)  do { if (!(exp)) return EXIT_FAILURE1; } while (0)
+parse_arg:
+    arg = args[optind];
+    if (arg[0] != L'-' || arg[1] == L'\0') {
+	goto no_more_options;
+    } else if (arg[1] == L'-' && arg[2] == L'\0') {  /* arg == "--" */
+	set_optind(optind + 1);
+	goto no_more_options;
+    } else if (xwcsnlen(arg, optind2 + 1) <= optind2) {
+	optind++, optind2 = 1;
+	TRY(set_optind(optind));
+	goto parse_arg;
+    }
+
+    optchar = arg[optind2++];
+    assert(optchar != L'\0');
+    if (optchar == L':' || !(optp = wcschr(options, optchar))) {
+	/* invalid option */
+	TRY(set_to(varname, L'?'));
+	if (options[0] == L':') {
+	    TRY(set_optarg((wchar_t []) { optchar, L'\0' }));
+	} else {
+	    fprintf(stderr, gt("%ls: -%lc: invalid option\n"),
+		    command_name, (wint_t) optchar);
+	    TRY(!unset_variable(VAR_OPTARG));
+	}
+    } else {
+	/* valid option */
+	if (optp[1] == L':') {
+	    /* option with an argument */
+	    const wchar_t *optarg = arg + optind2;
+	    optind2 = 1;
+	    if (optarg[0]) {
+		optind++;
+		TRY(set_optind(optind));
+	    } else {
+		optind++;
+		optarg = args[optind];
+		optind++;
+		TRY(set_optind(optind));
+		if (!optarg) {
+		    /* argument is missing */
+		    if (options[0] == L':') {
+			TRY(set_to(varname, L':'));
+			TRY(set_optarg((wchar_t []) { optchar, L'\0' }));
+		    } else {
+			fprintf(stderr, gt("%ls: -%lc: argument missing\n"),
+				command_name, (wint_t) optchar);
+			TRY(set_to(varname, L'?'));
+			TRY(!unset_variable(VAR_OPTARG));
+		    }
+		    return EXIT_SUCCESS;
+		}
+	    }
+	    TRY(set_optarg(optarg));
+	} else {
+	    /* option without an argument */
+	    TRY(!unset_variable(VAR_OPTARG));
+	}
+	TRY(set_to(varname, optchar));
+    }
+    return EXIT_SUCCESS;
+#undef TRY
+
+no_more_options:
+    set_to(varname, L'?');
+    unset_variable(VAR_OPTARG);
+    return EXIT_FAILURE1;
+optind_invalid:
+    xerror(0, Ngt("$OPTIND not valid"));
+    return EXIT_FAILURE1;
+print_usage:
+    fprintf(stderr, gt("Usage:  getopts options var [arg...]\n"));
+    return EXIT_ERROR;
+}
+
+/* Checks if the `options' is valid. Returns true iff ok. */
+bool check_options(const wchar_t *options)
+{
+    if (*options == L':')
+	options++;
+    for (;;) switch (*options) {
+	case L'\0':
+	    return true;
+	case L':':
+	    return false;
+	case L'?':
+	    if (posixly_correct)
+		return false;
+	    /* falls thru! */
+	default:
+	    if (posixly_correct && !iswalpha(*options))
+		return false;
+	    options++;
+	    if (*options == L':')
+		options++;
+	    continue;
+    }
+}
+
+/* Sets $OPTIND to `optind' plus 1. */
+bool set_optind(unsigned long optind)
+{
+    return set_variable(VAR_OPTIND,
+	    malloc_wprintf(L"%lu", optind + 1),
+	    false, false);
+}
+
+/* Sets $OPTARG to `value'. */
+bool set_optarg(const wchar_t *value)
+{
+    return set_variable(VAR_OPTARG, xwcsdup(value), false, false);
+}
+
+/* Sets the specified variable to the single character `value'. */
+bool set_to(const wchar_t *varname, wchar_t value)
+{
+    bool ok;
+    char *mvarname = malloc_wcstombs(varname);
+    if (mvarname) {
+	wchar_t v[] = { value, L'\0', };
+	ok = set_variable(mvarname, xwcsdup(v), false, false);
+	free(mvarname);
+    } else {
+	ok = false;
+    }
+    return ok;
+}
+
+const char getopts_help[] = Ngt(
+"getopts - parse command options\n"
+"\tgetopts options var [arg...]\n"
+"Parses <options> that appear in <arg>s. Each time this command is invoked,\n"
+"one option is parsed and the option character is assigned to a variable\n"
+"named <var>. $OPTIND is updated to indicate the next argument to parse.\n"
+"The <options> argument is a list of option characters to parse. An option\n"
+"that takes an argument is specified by a colon following the character.\n"
+"For example, if you want -a, -b and -c options to be parsed and the -b\n"
+"option takes an argument, <options> is \"ab:c\".\n"
+"The <var> argument is the name of a variable to which the option character\n"
+"is assigned. If the parsed option appears in <options>, the option character\n"
+"is assigned to the variable. Otherwise \"?\" is assigned.\n"
+"The <arg>s arguments are arguments of a command which may contain options to\n"
+"be parsed. If no <arg>s are given, the current positional parameters are\n"
+"parsed.\n"
+"\n"
+"When an option that takes an argument is parsed, the option's argument is\n"
+"assigned to $OPTARG.\n"
+"The behavior depends on the first character of <options> when an option not\n"
+"contained in <options> is found or when an option's argument is missing:\n"
+"If <options> starts with a colon, the option character is assigned to\n"
+"$OPTARG and the variable <var> is set to \"?\" (when the option is not in\n"
+"<options>) or \":\" (when an option's argument is missing).\n"
+"Otherwise, the variable <var> is set to \"?\", $OPTARG is unset and a error\n"
+"message is printed.\n"
+"\n"
+"If an option is parsed, whether it is a valid option or not, the exit status\n"
+"is zero. If there are no more options to parse, the exit status is non-zero\n"
+"and $OPTIND is updated so that the $OPTIND'th argument of <arg>s is the\n"
+"first operand (non-option argument). If there are no operands, $OPTIND will\n"
+"be the number of <arg>s plus one.\n"
+"When this command is invoked for the first time, $OPTIND must be \"1\",\n"
+"which is assigned by default on the shell's start up. Until all the options\n"
+"are parsed, you must not change the value of $OPTIND and <options>, <var>\n"
+"and <arg>s must be all the same for all invocations of this command.\n"
+"Reset $OPTIND to \"1\" and then this command can be used with another\n"
+"<options>, <var> and <arg>s.\n"
 );
 
 /* The "read" builtin, which accepts the following options:

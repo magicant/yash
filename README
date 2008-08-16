@@ -32,6 +32,10 @@ Currently there is no manpage for yash. Sorry.
  * Some signals are assumed to have the specific numbers:
      SIGHUP=1 SIGINT=2 SIGQUIT=3 SIGABRT=6
      SIGKILL=9 SIGALRM=14 SIGTERM=15
+ * File permission flags are assumed to have the specific values:
+     0400=user read    0200=user write   0100=user execute
+	 0040=group read   0020=group write  0010=group execute
+	 0004=other read   0002=other write  0001=other execute
  * When -e (-o errexit) option is set, failure of the last command of
    an and/or list makes the shell exit. This behavior is not strictly
    POSIX-compliant, but most existing shells behave this way.

@@ -115,6 +115,57 @@ echo "$@"
 shift 3
 echo $# "$@"
 
+echo ===== getopts =====
+
+echo $OPTIND
+
+set -- -a -b "foo  bar" -c - -- -d baz
+while getopts ab:c opt
+do echo $opt "${OPTARG-unset}"
+done
+echo $opt $OPTIND
+
+echo =====
+OPTIND=1
+while getopts a:b opt -a -- -abc -b -- -a foo
+do echo $opt "${OPTARG-unset}"
+done
+echo $opt $OPTIND
+
+echo =====
+OPTIND=1
+while getopts :abcde opt -abc -de fgh
+do echo $opt "${OPTARG-unset}"
+done
+echo $opt $OPTIND
+
+echo =====
+set --
+OPTIND=1
+! getopts "" opt
+echo $? $opt $OPTIND "${OPTARG-unset}"
+
+echo =====
+set -- -a b c
+OPTIND=1
+getopts "" opt 2>/dev/null
+echo $? $opt "${OPTARG-unset}"
+
+set -- -a b c
+OPTIND=1
+getopts : opt
+echo $? $opt "${OPTARG-unset}"
+
+set -- -a
+OPTIND=1
+getopts a: opt 2>/dev/null
+echo $? $opt "${OPTARG-unset}"
+
+set -- -a
+OPTIND=1
+getopts :a: opt
+echo $? $opt "${OPTARG-unset}"
+
 echo ===== read =====
 
 unset IFS a b c d e
