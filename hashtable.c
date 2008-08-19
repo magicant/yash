@@ -346,14 +346,6 @@ hashval_T hashstr(const void *s)
     return h;
 }
 
-/* A comparison function for multibyte strings.
- * The argument is cast from (const char *) to (const void *).
- * You can use `hashstr' for a corresponding hash function. */
-int htstrcmp(const void *s1, const void *s2)
-{
-    return strcmp((const char *) s1, (const char *) s2);
-}
-
 /* A hash function for a wide string.
  * The argument is cast from (const wchar_t *) to (const void *).
  * You can use `htwcscmp' for a corresponding comparison function. */
