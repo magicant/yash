@@ -186,6 +186,9 @@ static struct execinfo {
 /* Note that `execinfo' is not reset when a subshell forks. */
 #define EXECINFO_INIT { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
+/* This flag is set while the "exec" builtin is executed. */
+static bool exec_builtin_executed;
+
 /* the last assignment. */
 static assign_T *last_assign;
 
@@ -722,6 +725,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	maybe_redirect_stdin_to_devnull();
 
     /* execute! */
+    exec_builtin_executed = false;
     if (c->c_type == CT_SIMPLE) {
 	last_assign = c->c_assigns;
 	if (argc == 0) {
@@ -751,8 +755,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (finally_exit)
 	exit_shell();
 
-    if (c->c_type == CT_SIMPLE && argc > 0 && cmdinfo.type == specialbuiltin
-	    && cmdinfo.ci_builtin == exec_builtin && laststatus == EXIT_SUCCESS)
+    if (exec_builtin_executed && laststatus == EXIT_SUCCESS)
 	clear_savefd(savefd);
     else
 	undo_redirections(savefd);
@@ -1551,6 +1554,8 @@ int exec_builtin(int argc, void **argv)
 		return EXIT_ERROR;
 	}
     }
+
+    exec_builtin_executed = true;
 
     if (xoptind == argc)
 	return EXIT_SUCCESS;

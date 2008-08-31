@@ -194,6 +194,11 @@ if command -V echo >/dev/null 2>&1; then
 	fi
 fi
 
+(
+command command exec >/dev/null
+echo not printed
+)
+
 
 echo ===== exec =====
 
