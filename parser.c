@@ -254,6 +254,43 @@ wchar_t *skip_name(const wchar_t *s)
     return (wchar_t *) s;
 }
 
+/* Returns true iff the string is a shell reserved word. */
+bool is_keyword(const wchar_t *s)
+{
+    switch (s[0]) {
+	case L'c':
+	    return s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0';
+	case L'd':
+	    return s[1] == L'o' && (s[2] == L'\0' ||
+		    (s[2] == L'n' && s[3] == L'e' && s[4] == L'\0'));
+	case L'e':
+	    return ((s[1] == L'l'
+			&& ((s[2] == L's' && s[3] == L'e')
+			    || (s[2] == L'i' && s[3] == L'f')))
+		    || (s[1] == L's' && s[2] == L'a' && s[3] == L'c'))
+		&& s[4] == L'\0';
+	case L'f':
+	    return (s[1] == L'i' && s[2] == L'\0')
+		|| (s[1] == L'o' && s[2] == L'r' && s[3] == L'\0');
+	case L'i':
+	    return (s[1] == L'f' || s[1] == L'n') && s[2] == L'\0';
+	case L't':
+	    return s[1] == L'h' && s[2] == L'e' && s[3] == L'n' && s[4]== L'\0';
+	case L'u':
+	    return s[1] == L'n' && s[2] == L't' && s[3] == L'i' && s[4] == L'l'
+		&& s[5] == L'\0';
+	case L'w':
+	    return s[1] == L'h' && s[2] == L'i' && s[3] == L'l' && s[4] == L'e'
+		&& s[5] == L'\0';
+	case L'{':
+	case L'}':
+	case L'!':
+	    return s[1] == L'\0';
+	default:
+	    return false;
+    }
+}
+
 
 /********** Parser **********/
 

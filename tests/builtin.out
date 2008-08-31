@@ -12,6 +12,55 @@ returning --
 returning --
 0
 -a b c-
+===== command =====
+if: shell keyword
+then: shell keyword
+else: shell keyword
+elif: shell keyword
+fi: shell keyword
+do: shell keyword
+done: shell keyword
+case: shell keyword
+esac: shell keyword
+while: shell keyword
+until: shell keyword
+for: shell keyword
+{: shell keyword
+}: shell keyword
+!: shell keyword
+in: shell keyword
+not found
+:: special builtin
+.: special builtin
+break: special builtin
+continue: special builtin
+eval: special builtin
+exec: special builtin
+exit: special builtin
+export: special builtin
+readonly: special builtin
+return: special builtin
+set: special builtin
+shift: special builtin
+times: special builtin
+trap: special builtin
+unset: special builtin
+bg: semi-special builtin
+cd: semi-special builtin
+command: semi-special builtin
+false: semi-special builtin
+fg: semi-special builtin
+getopts: semi-special builtin
+jobs: semi-special builtin
+kill: semi-special builtin
+pwd: semi-special builtin
+read: semi-special builtin
+true: semi-special builtin
+umask: semi-special builtin
+wait: semi-special builtin
+command -b cat = 127
+command -B exit 127 = 127
+command exit 10 = 10
 ===== exec =====
 sh
 sh

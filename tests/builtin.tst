@@ -32,6 +32,30 @@ echo $count
 echo -"$@"-
 
 
+echo ===== command =====
+
+command -V if then else elif fi do done case esac while until for { } ! in
+command -V _no_such_command_ || echo not found
+command -V : . break continue eval exec exit export readonly return set shift \
+times trap unset
+#TODO command -V fc
+#TODO command -V newgrp
+command -V bg cd command false fg getopts jobs kill pwd read true umask wait
+
+testreg() {
+	command -V $1 | grep -v "^$1: regular builtin "
+}
+testreg typeset
+testreg disown
+
+command -b cat /dev/null 2>/dev/null
+echo command -b cat = $?
+command -B exit 127 2>/dev/null
+echo command -B exit 127 = $?
+(command exit 10; echo not reached)
+echo command exit 10 = $?
+
+
 echo ===== exec =====
 
 (exec -a sh $TESTEE -c 'echo $0')

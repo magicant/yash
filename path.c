@@ -33,6 +33,9 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#if HAVE_PATHS_H
+# include <paths.h>
+#endif
 #include "builtin.h"
 #include "exec.h"
 #include "hashtable.h"
@@ -275,6 +278,9 @@ int xclosedir(DIR *dir)
 
 /********** Command Hashtable **********/
 
+static wchar_t *get_default_path(void)
+    __attribute__((malloc,warn_unused_result));
+
 /* A hashtable from command names to their full path.
  * Keys are pointers to a multibyte string containing a command name and
  * values are pointers to a multibyte string containing the commands' full path.
@@ -285,11 +291,8 @@ static hashtable_T cmdhash;
 /* Initializes the command hashtable. */
 void init_cmdhash(void)
 {
-    static bool initialized = false;
-    if (!initialized) {
-	initialized = true;
-	ht_init(&cmdhash, hashstr, htstrcmp);
-    }
+    assert(cmdhash.capacity == 0);
+    ht_init(&cmdhash, hashstr, htstrcmp);
 }
 
 /* Empties the command hashtable. */
@@ -389,6 +392,54 @@ next:;
 
 	xclosedir(dir);
     }
+}
+
+/* Last result of `get_command_path_default'. */
+static char *gcpd_value;
+/* Paths for `get_command_path_default'. */
+static char **default_path;
+
+/* Searches for the specified command using the system's default PATH.
+ * The full path of the command is returned if found, NULL otherwise.
+ * The return value is valid until the next call to this function. */
+const char *get_command_path_default(const char *name)
+{
+    assert(name != gcpd_value);
+    free(gcpd_value);
+
+    if (!default_path) {
+	wchar_t *defpath = get_default_path();
+	if (!defpath)
+	    return gcpd_value = NULL;
+	default_path = decompose_paths(defpath);
+	free(defpath);
+    }
+    return gcpd_value = which(name, default_path, is_executable);
+}
+
+/* Returns the system's default PATH as a newly malloced string.
+ * The default PATH is (assumed to be) guaranteed to contain all the standard
+ * utilities. */
+wchar_t *get_default_path(void)
+{
+#if HAVE_PATHS_H && defined _PATH_STDPATH
+    return malloc_mbstowcs(_PATH_STDPATH);
+#else
+    size_t size = 100;
+    char *buf = xmalloc(size);
+    size_t s = confstr(_CS_PATH, buf, size);
+
+    if (s > size) {
+	size = s;
+	buf = xrealloc(buf, size);
+	s = confstr(_CS_PATH, buf, size);
+    }
+    if (s == 0 || s > size) {
+	free(buf);
+	return NULL;
+    }
+    return realloc_mbstowcs(buf);
+#endif
 }
 
 

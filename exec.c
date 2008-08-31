@@ -37,6 +37,7 @@
 #if HAVE_PATHS_H
 # include <paths.h>
 #endif
+#include "alias.h"
 #include "builtin.h"
 #include "exec.h"
 #include "expand.h"
@@ -80,6 +81,15 @@ typedef struct pipeinfo_T {
 #define PIDX_IN  0   /* index of the reading end of a pipe */
 #define PIDX_OUT 1   /* index of the writing end of a pipe */
 #define PIPEINFO_INIT { -1, { -1, -1 }, -1 }  /* used to initialize `pipeinfo_T' */
+
+/* values used to specify the way of command search. */
+enum srchcmdtype_T {
+    sct_external = 1 << 0,  /* search external commands */
+    sct_builtin  = 1 << 1,  /* search builtins */
+    sct_function = 1 << 2,  /* search functions */
+    sct_defpath  = 1 << 3,  /* search the default PATH */
+    sct_argc1    = 1 << 4,  /* argc == 1 */
+};
 
 /* info about a simple command to execute */
 typedef struct commandinfo_T {
@@ -127,7 +137,7 @@ static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 static pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
-	commandinfo_T *restrict ci, int argc)
+	commandinfo_T *restrict ci, enum srchcmdtype_T type)
     __attribute__((nonnull));
 static inline bool assignment_is_temporary(enum cmdtype_T type)
     __attribute__((const));
@@ -650,7 +660,9 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    argv0 = malloc_wcstombs(argv[0]);
 	    if (!argv0)
 		argv0 = xstrdup("");
-	    search_command(argv0, argv[0], &cmdinfo, argc);
+	    search_command(argv0, argv[0], &cmdinfo,
+		    sct_external | sct_builtin | sct_function
+			| (argc == 1 ? sct_argc1 : 0));
 
 	    /* fork for an external command.
 	     * don't fork for a built-in or a function */
@@ -844,10 +856,12 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
  * `name' and `wname' must contain the same string value. */
 void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
-	commandinfo_T *restrict ci, int argc)
+	commandinfo_T *restrict ci, enum srchcmdtype_T type)
 {
     if (wcschr(wname, L'/')) {
-	if (shopt_autocd && argc == 1 && is_directory(name))
+	if (!(type & sct_external))
+	    goto notfound;
+	if (shopt_autocd && (type & sct_argc1) && is_directory(name))
 	    goto autocd;
 	ci->type = externalprogram;
 	ci->ci_path = name;
@@ -855,8 +869,8 @@ void search_command(
     }
 
     /* search builtins and functions. */
-    const builtin_T *bi = get_builtin(name);
-    command_T *funcbody = get_function(name);
+    const builtin_T *bi = (type & sct_builtin) ? get_builtin(name) : NULL;
+    command_T *funcbody = (type & sct_function) ? get_function(name) : NULL;
     if (bi && bi->type == BI_SPECIAL) {
 	ci->type = specialbuiltin;
 	ci->ci_builtin = bi->body;
@@ -875,12 +889,17 @@ void search_command(
 	return;
     }
 
-    ci->ci_path = get_command_path(name, false);
+    if (!(type & sct_external))
+	goto notfound;
+
+    ci->ci_path = (type & sct_defpath)
+	? get_command_path_default(name) : get_command_path(name, false);
     if (bi && ci->ci_path) {
 	assert(bi->type == BI_REGULAR);
 	ci->type = regularbuiltin;
 	ci->ci_builtin = bi->body;
-    } else if (!ci->ci_path && shopt_autocd && argc == 1 && is_directory(name)){
+    } else if (!ci->ci_path && shopt_autocd && (type & sct_argc1)
+	    && is_directory(name)) {
 	goto autocd;
     } else {
 	ci->type = externalprogram;
@@ -890,6 +909,11 @@ void search_command(
 autocd:
     ci->type = semispecialbuiltin;
     ci->ci_builtin = cd_builtin;
+    return;
+notfound:
+    ci->type = externalprogram;
+    ci->ci_path = NULL;
+    return;
 }
 
 /* Determines whether the assignments should be temporary according to `type'.*/
@@ -1047,7 +1071,7 @@ void exec_fall_back_on_sh(
     args[index++] = NULL;
 #if HAVE_PROC_SELF_EXE
     xexecve("/proc/self/exe", args, envp);
-#elif defined _PATH_BSHELL
+#elif HAVE_PATHS_H && defined _PATH_BSHELL
     xexecve(_PATH_BSHELL, args, envp);
 #else
     const char *shpath = get_command_path("sh", false);
@@ -1265,6 +1289,14 @@ success:
 
 static int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     __attribute__((nonnull(2)));
+static int command_builtin_execute(void **argv, enum srchcmdtype_T type)
+    __attribute__((nonnull));
+static bool print_command_info(const wchar_t *commandname)
+    __attribute__((nonnull));
+static bool print_command_info_human_friendlily(const wchar_t *commandname)
+    __attribute__((nonnull));
+static bool print_command_fullpath(const wchar_t *commandname, bool hf)
+    __attribute__((nonnull));
 
 /* "return" builtin */
 int return_builtin(int argc __attribute__((unused)), void **argv)
@@ -1643,6 +1675,269 @@ const char exec_help[] = Ngt(
 "after the command.\n"
 "In POSIXly correct mode, none of these options are available and the -f\n"
 "option is always assumed.\n"
+);
+
+/* The "command" builtin, which accepts the following options:
+ *  -b: search builtins
+ *  -B: search external commands
+ *  -p: use the default path to find the command
+ *  -v: print info about the command
+ *  -V: print info about the command in a human-friendly format */
+int command_builtin(int argc, void **argv)
+{
+    // XXX exec: command_builtin: long options
+
+    enum srchcmdtype_T type = 0;
+    enum { noinfo, formal, human, } infotype = noinfo;
+
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"pvV" : L"bBpvV",
+		    help_option, NULL))) {
+	switch (opt) {
+	    case L'b':  type |= sct_builtin;   break;
+	    case L'B':  type |= sct_external;  break;
+	    case L'p':  type |= sct_defpath;   break;
+	    case L'v':  infotype = formal;  break;
+	    case L'V':  infotype = human;   break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		goto print_usage;
+	}
+    }
+
+    if (xoptind == argc) {
+	if (posixly_correct)
+	    goto print_usage;
+	else
+	    return EXIT_SUCCESS;
+    } else if (type != 0 && infotype != noinfo) {
+	goto print_usage;
+    }
+
+    bool err = false;
+    switch (infotype) {
+	case noinfo:
+	    if (!(type & (sct_external | sct_builtin)))
+		type |= sct_external | sct_builtin;
+	    return command_builtin_execute(argv + xoptind, type);
+	case formal:
+	    for (int i = xoptind; i < argc; i++)
+		err |= !print_command_info(ARGV(i));
+	    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+	case human:
+	    for (int i = xoptind; i < argc; i++)
+		err |= !print_command_info_human_friendlily(ARGV(i));
+	    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    }
+    assert(false);
+
+print_usage:
+    if (posixly_correct)
+	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
+			   "        command [-v|-V] command...\n"));
+    else
+	fprintf(stderr, gt("Usage:  command [-bBp] command [arg...]\n"
+			   "        command [-v|-V] command...\n"));
+    return EXIT_ERROR;
+}
+
+/* Executes the specified simple command.
+ * Returns the exit status of the command. */
+int command_builtin_execute(void **argv, enum srchcmdtype_T type)
+{
+    char *argv0 = malloc_wcstombs(argv[0]);
+    commandinfo_T ci;
+    bool finally_exit = false;
+
+    if (!argv0)
+	argv0 = xstrdup("");
+    search_command(argv0, argv[0], &ci, type);
+    if (ci.type == externalprogram) {
+	pid_t cpid = fork_and_reset(0, true, leave);
+	if (cpid < 0) {
+	    free(argv0);
+	    return EXIT_NOEXEC;
+	} else if (cpid > 0) {
+	    job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+	    job->j_pgid = doing_job_control_now ? cpid : 0;
+	    job->j_status = JS_RUNNING;
+	    job->j_statuschanged = false;
+	    job->j_loop = false;
+	    job->j_pcount = 1;
+	    job->j_procs[0].pr_pid = cpid;
+	    job->j_procs[0].pr_status = JS_RUNNING;
+	    job->j_procs[0].pr_statuscode = 0;
+	    job->j_procs[0].pr_name = NULL;
+	    set_active_job(job);
+	    wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
+	    laststatus = calc_status_of_job(job);
+	    if (job->j_status == JS_DONE) {
+		notify_signaled_job(ACTIVE_JOBNO);
+		remove_job(ACTIVE_JOBNO);
+	    } else {
+		job->j_procs[0].pr_name = joinwcsarray(argv, L" ");
+		add_job(true);
+	    }
+	    if (doing_job_control_now)
+		put_foreground(shell_pgid);
+	    free(argv0);
+	    return laststatus;
+	}
+	finally_exit = true;
+    }
+    exec_simple_command(&ci, (int) plcount(argv), argv0, argv, finally_exit);
+    free(argv0);
+    return laststatus;
+}
+
+/* Prints info about the specified command in the format defined by POSIX.
+ * If the command is not found, returns false without printing anything. */
+bool print_command_info(const wchar_t *commandname)
+{
+    if (wcschr(commandname, L'/'))
+	return print_command_fullpath(commandname, false);
+    if (print_alias_if_defined(commandname, false))
+	return true;
+    if (is_keyword(commandname)) {
+	printf("%ls\n", commandname);
+	return true;
+    }
+
+    char *name = malloc_wcstombs(commandname);
+    if (!name)
+	return false;
+    if (get_function(name))
+	goto simple;
+
+    const builtin_T *bi = get_builtin(name);
+    if (bi && (bi->type == BI_SPECIAL || bi->type == BI_SEMISPECIAL))
+	goto simple;
+
+    const char *path = get_command_path(name, false);
+    if (path) {
+	puts(path);
+	free(name);
+	return true;
+    }
+
+    free(name);
+    return false;
+
+simple:
+    puts(name);
+    free(name);
+    return true;
+}
+
+/* Prints info about the specified command in a human-friendly format.
+ * If the command is not found, returns false. */
+bool print_command_info_human_friendlily(const wchar_t *commandname)
+{
+    if (wcschr(commandname, L'/'))
+	return print_command_fullpath(commandname, true);
+    if (print_alias_if_defined(commandname, true))
+	return true;
+    if (is_keyword(commandname)) {
+	printf(gt("%ls: shell keyword\n"), commandname);
+	return true;
+    }
+
+    char *name = malloc_wcstombs(commandname);
+    if (!name)
+	return false;
+    if (get_function(name)) {
+	printf(gt("%s: function\n"), name);
+	goto done;
+    }
+
+    const builtin_T *bi = get_builtin(name);
+    const char *path;
+    if (bi) switch (bi->type) {
+	case BI_SPECIAL:
+	    printf(gt("%s: special builtin\n"), name);
+	    goto done;
+	case BI_SEMISPECIAL:
+	    printf(gt("%s: semi-special builtin\n"), name);
+	    goto done;
+	case BI_REGULAR:
+	    path = get_command_path(name, false);
+	    printf(gt(path ? Ngt("%s: regular builtin at %s\n")
+			: Ngt("%s: regular builtin (not found in $PATH)\n")),
+		    name, path);
+	    goto done;
+    }
+    path = get_command_path(name, false);
+    if (path) {
+	printf(gt("%s: external command at %s\n"), name, path);
+	goto done;
+    }
+
+    free(name);
+    return false;
+done:
+    free(name);
+    return true;
+}
+
+/* If `commandname' is an executable file, prints its absolute path and returns
+ * true. Otherwise simply returns false.
+ * If `hf' is true, the output format is human-friendly. */
+bool print_command_fullpath(const wchar_t *commandname, bool hf)
+{
+    char *name = malloc_wcstombs(commandname);
+    if (!name)
+	return false;
+    if (!is_executable(name)) {
+	free(name);
+	return false;
+    }
+
+    /* print the absolute pathname according to POSIX. */
+    if (name[0] == L'/') {
+	/* If `name' starts with exactly two slashes, it is not an absolute
+	 * pathname, but we simply print it because we do not know how to
+	 * get its absolute path. */
+	puts(name);
+    } else {
+	char *cwd = xgetcwd();
+	if (!cwd) {
+	    xerror(errno, Ngt("cannot find full path of `%s'"), name);
+	    free(name);
+	    return false;
+	}
+	if (!hf)
+	    printf("%s/%s\n", cwd, name);
+	else
+	    printf(gt("%s: external command at %s/%s\n"), name, cwd, name);
+	free(cwd);
+    }
+    free(name);
+    return true;
+}
+
+const char command_help[] = Ngt(
+"command - execute or identify command\n"
+"\tcommand [-bBp] command [argument...]\n"
+"\tcommand [-v|-V] command...\n"
+"Executes or identifies the specified command.\n"
+"Without the -v or -V option, <command> is executed with given <argument>s if\n"
+"any. <command> is treated as a builtin or external command, but not a\n"
+"function or an alias. If the -p option is given, the system's default PATH\n"
+"is searched for the command instead of the current $PATH. If the -b option\n"
+"(but not -B) is given, <command> is treated as a builtin only: the external\n"
+"command is ignored. The -B option does the opposite: an external command is\n"
+"executed ignoring the builtin.\n"
+"With the -v option, identifies <command>. If the command is found in $PATH,\n"
+"its full path is printed. If it is a builtin or a function, the command name\n"
+"is simply printed. If it is an alias, it is printed in the form like\n"
+"\"alias ll='ls -l'\". If the command is not found, nothing is printed and\n"
+"the exit status is non-zero.\n"
+"With the -V option, the command is identified in the same way but the result\n"
+"is printed in a human-readable form.\n"
 );
 
 /* The "times" builtin */

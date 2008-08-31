@@ -34,6 +34,27 @@ done
 --
 returning --
 0
+===== command =====
+ok
+PATH=
+command -v
+retfunc
+if
+then
+else
+elif
+fi
+do
+done
+case
+esac
+while
+until
+for
+{
+}
+!
+in
 ===== exec =====
 exec
 126

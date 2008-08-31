@@ -55,6 +55,7 @@ static bool define_alias(const wchar_t *nameandvalue, bool global)
 static bool remove_alias(const wchar_t *name)
     __attribute__((nonnull));
 static void remove_all_aliases(void);
+static void print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
 
 
 #ifndef ALIAS_RECURSION_MAX
@@ -166,12 +167,7 @@ void substitute_alias(xwcsbuf_T *buf, size_t i, bool globalonly)
     recursion--;
 }
 
-
-/********** Builtins **********/
-
-static void print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
-
-/* Prints a alias definition to stderr. */
+/* Prints an alias definition to stdout. */
 void print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 {
     wchar_t *qvalue = quote_sq(alias->value);
@@ -185,6 +181,26 @@ void print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
     printf(format, name, qvalue);
     free(qvalue);
 }
+
+/* Prints an alias definition to stdout if defined.
+ * This function is used in the "command" builtin.
+ * Returns true iff the non-global alias is defined and printed. */
+bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
+{
+    alias_T *alias = ht_get(&aliases, aliasname).value;
+    if (alias && !(alias->flags & AF_GLOBAL)) {
+	if (!user_friendly)
+	    print_alias(aliasname, alias, true);
+	else
+	    printf(gt("%ls: alias for `%ls'\n"), aliasname, alias->value);
+	return true;
+    } else {
+	return false;
+    }
+}
+
+
+/********** Builtins **********/
 
 /* The "alias" builtin, which accepts the following options:
  * -g: define global aliases

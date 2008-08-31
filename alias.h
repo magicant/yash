@@ -29,6 +29,8 @@ extern bool alias_enabled;
 extern void init_alias(void);
 extern void substitute_alias(struct xwcsbuf_T *buf, size_t i, bool globalonly)
     __attribute__((nonnull));
+extern bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
+    __attribute__((nonnull));
 
 extern int alias_builtin(int argc, void **argv)
     __attribute__((nonnull));

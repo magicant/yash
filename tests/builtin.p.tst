@@ -142,6 +142,59 @@ echo ===== . =====
 echo $count
 
 
+echo ===== command =====
+
+echo () { :; }
+command echo ok
+
+unset -f echo
+PATH=
+command -p echo PATH=
+PATH=$savepath
+
+if command -v echo >/dev/null 2>&1; then
+	commandv='command -v'
+	if ! command -v echo | grep '^/' | grep '/echo$' >/dev/null; then
+		echo "\"command -V echo\" doesn't return a fullpath" >&2
+	fi
+	if ! command -v ./invoke | grep '^/' | grep '/invoke$' >/dev/null; then
+		echo "\"command -V ./invoke\" doesn't return a fullpath" >&2
+	fi
+	if command -v _no_such_command_; then
+		echo "\"command -v no_such_command\" returned zero status" >&2
+	fi
+else
+	commandv='echo'
+fi
+$($commandv echo) command -v
+$commandv retfunc
+$commandv if
+$commandv then
+$commandv else
+$commandv elif
+$commandv fi
+$commandv do
+$commandv done
+$commandv case
+$commandv esac
+$commandv while
+$commandv until
+$commandv for
+$commandv {
+$commandv }
+$commandv !
+$commandv in
+[ x"$($commandv cat)" = x"$($commandv $($commandv cat))" ] ||
+echo "\"command -v\" not idempotent" >&2
+
+if command -V echo >/dev/null 2>&1; then
+	if ! command -V echo | grep -F "$(command -v echo)" >/dev/null; then
+		echo "\"command -V echo\" doesn't include a fullpath" >&2
+		return 1
+	fi
+fi
+
+
 echo ===== exec =====
 
 $INVOKE $TESTEE -c 'exec echo exec'

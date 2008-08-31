@@ -312,6 +312,8 @@ extern bool parse_string(
 
 /********** Auxiliary function **********/
 
+extern bool is_keyword(const wchar_t *s)
+    __attribute__((nonnull,pure));
 extern bool is_token_delimiter_char(wchar_t c)
     __attribute__((pure));
 
