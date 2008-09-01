@@ -1002,20 +1002,22 @@ void exec_simple_command(
 	    mbsargv[argc] = NULL;
 
 	    xexecv(ci->ci_path, mbsargv);
-	    if (errno != ENOEXEC) {
-		if (errno == EACCES && is_directory(ci->ci_path))
-		    errno = EISDIR;
+	    int errno_ = errno;
+	    if (errno_ != ENOEXEC) {
+		if (errno_ == EACCES && is_directory(ci->ci_path))
+		    errno_ = EISDIR;
 		if (strcmp(mbsargv[0], ci->ci_path) == 0)
-		    xerror(errno, Ngt("cannot execute `%s'"), argv0);
+		    xerror(errno_, Ngt("cannot execute `%s'"), argv0);
 		else
-		    xerror(errno, Ngt("cannot execute `%s' (%s)"),
+		    xerror(errno_, Ngt("cannot execute `%s' (%s)"),
 			    argv0, ci->ci_path);
-	    } else {
+	    } else if (errno_ != ENOENT) {
 		exec_fall_back_on_sh(argc, mbsargv, environ, ci->ci_path);
 	    }
 	    for (int i = 1; i < argc; i++)
 		free(mbsargv[i]);
-	    exit_shell_with_status(EXIT_NOEXEC);
+	    exit_shell_with_status(
+		    errno_ == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
 	}
 	//break;
     case specialbuiltin:
