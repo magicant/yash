@@ -1690,7 +1690,15 @@ const char exec_help[] = Ngt(
  *  -V: print info about the command in a human-friendly format */
 int command_builtin(int argc, void **argv)
 {
-    // XXX exec: command_builtin: long options
+    static const struct xoption long_options[] = {
+	{ L"builtin-only",     xno_argument, L'b', },
+	{ L"external-only",    xno_argument, L'B', },
+	{ L"standard-path",    xno_argument, L'p', },
+	{ L"identify",         xno_argument, L'v', },
+	{ L"verbose-identify", xno_argument, L'V', },
+	{ L"help",             xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
 
     enum srchcmdtype_T type = 0;
     enum { noinfo, formal, human, } infotype = noinfo;
@@ -1698,8 +1706,8 @@ int command_builtin(int argc, void **argv)
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"pvV" : L"bBpvV",
-		    help_option, NULL))) {
+		    posixly_correct ? L"+pvV" : L"+bBpvV",
+		    long_options, NULL))) {
 	switch (opt) {
 	    case L'b':  type |= sct_builtin;   break;
 	    case L'B':  type |= sct_external;  break;
@@ -1931,18 +1939,19 @@ const char command_help[] = Ngt(
 "Executes or identifies the specified command.\n"
 "Without the -v or -V option, <command> is executed with given <argument>s if\n"
 "any. <command> is treated as a builtin or external command, but not a\n"
-"function or an alias. If the -p option is given, the system's default PATH\n"
-"is searched for the command instead of the current $PATH. If the -b option\n"
-"(but not -B) is given, <command> is treated as a builtin only: the external\n"
-"command is ignored. The -B option does the opposite: an external command is\n"
-"executed ignoring the builtin.\n"
-"With the -v option, identifies <command>. If the command is found in $PATH,\n"
-"its full path is printed. If it is a builtin or a function, the command name\n"
-"is simply printed. If it is an alias, it is printed in the form like\n"
-"\"alias ll='ls -l'\". If the command is not found, nothing is printed and\n"
-"the exit status is non-zero.\n"
-"With the -V option, the command is identified in the same way but the result\n"
-"is printed in a human-readable form.\n"
+"function or an alias. If the -p (--standard-path) option is given, the\n"
+"system's default PATH is searched for the command instead of the current\n"
+"$PATH. If the -b (--builtin-only) option (but not -B) is given, <command> is\n"
+"treated as a builtin only: the external command is ignored. The -B\n"
+"(--external-only) option does the opposite: an external command is executed\n"
+"ignoring the builtin.\n"
+"With the -v (--identify) option, identifies <command>. If the command is\n"
+"found in $PATH, its full path is printed. If it is a builtin or a function,\n"
+"the command name is simply printed. If it is an alias, it is printed in the\n"
+"form like \"alias ll='ls -l'\". If the command is not found, nothing is\n"
+"printed and the exit status is non-zero.\n"
+"With the -V (--verbose-identify) option, the command is identified in the\n"
+"same way but the result is printed verbosely in a human-readable form.\n"
 );
 
 /* The "times" builtin */

@@ -198,6 +198,7 @@ fi
 command command exec >/dev/null
 echo not printed
 )
+command -p cat -u /dev/null
 
 
 echo ===== exec =====
