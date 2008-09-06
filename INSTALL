@@ -16,16 +16,16 @@ A normal way to build and install Yash is:
   5. Type `make install' to install yash. By default, Yash is installed
      at /usr/local/bin/yash.
 
-The `configure' script chooses a compiler to compile Yash. GCC is
-preferred if available. If GCC is unavailable, `c99' is used, which is
-defined by POSIX.
+The `configure' script chooses a compiler to compile Yash. The default
+compiler command is `c99', which is a standard C compiler defined in
+POSIX.
 
 The `configure' script accepts following options, which affect the
 way Yash is built and installed:
 
   --debug
           Lower the optimization level of the compiler to make it easy
-		  to debug Yash. Only valid for GCC.
+		  to debug Yash. Available only when using GCC.
   --no-undefined
           Inhibit any operation whose result is not defined in the
 		  standards.
