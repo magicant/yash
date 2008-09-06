@@ -1294,7 +1294,8 @@ success:
 
 static int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     __attribute__((nonnull(2)));
-static int command_builtin_execute(void **argv, enum srchcmdtype_T type)
+static int command_builtin_execute(
+	int argc, void **argv, enum srchcmdtype_T type)
     __attribute__((nonnull));
 static bool print_command_info(const wchar_t *commandname)
     __attribute__((nonnull));
@@ -1702,8 +1703,9 @@ int command_builtin(int argc, void **argv)
 	{ NULL, 0, 0, },
     };
 
+    bool istype = wcscmp(ARGV(0), L"type") == 0;
     enum srchcmdtype_T type = 0;
-    enum { noinfo, formal, human, } infotype = noinfo;
+    enum { noinfo, formal, human, } infotype = istype ? human : noinfo;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
@@ -1738,7 +1740,8 @@ int command_builtin(int argc, void **argv)
 	case noinfo:
 	    if (!(type & (sct_external | sct_builtin)))
 		type |= sct_external | sct_builtin;
-	    return command_builtin_execute(argv + xoptind, type);
+	    return command_builtin_execute(
+		    argc - xoptind, argv + xoptind, type);
 	case formal:
 	    for (int i = xoptind; i < argc; i++)
 		err |= !print_command_info(ARGV(i));
@@ -1751,7 +1754,9 @@ int command_builtin(int argc, void **argv)
     assert(false);
 
 print_usage:
-    if (posixly_correct)
+    if (istype)
+	fprintf(stderr, gt("Usage:  type command...\n"));
+    else if (posixly_correct)
 	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
 			   "        command [-v|-V] command...\n"));
     else
@@ -1761,8 +1766,9 @@ print_usage:
 }
 
 /* Executes the specified simple command.
+ * `argc' must be positive.
  * Returns the exit status of the command. */
-int command_builtin_execute(void **argv, enum srchcmdtype_T type)
+int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 {
     char *argv0 = malloc_wcstombs(argv[0]);
     commandinfo_T ci;
@@ -1804,7 +1810,7 @@ int command_builtin_execute(void **argv, enum srchcmdtype_T type)
 	}
 	finally_exit = true;
     }
-    exec_simple_command(&ci, (int) plcount(argv), argv0, argv, finally_exit);
+    exec_simple_command(&ci, argc, argv0, argv, finally_exit);
     free(argv0);
     return laststatus;
 }
@@ -1891,6 +1897,7 @@ bool print_command_info_human_friendlily(const wchar_t *commandname)
 	goto done;
     }
 
+    xerror(0, Ngt("%s: not found"), name);
     free(name);
     return false;
 done:
@@ -1954,6 +1961,12 @@ const char command_help[] = Ngt(
 "printed and the exit status is non-zero.\n"
 "With the -V (--verbose-identify) option, the command is identified in the\n"
 "same way but the result is printed verbosely in a human-readable form.\n"
+);
+
+const char type_help[] = Ngt(
+"type - identify command\n"
+"\ttype command...\n"
+"Prints the type of <command>s. Same as \"command -V <command>...\".\n"
 );
 
 /* The "times" builtin */

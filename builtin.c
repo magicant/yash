@@ -112,6 +112,7 @@ void init_builtin(void)
     DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help);
     DEFBUILTIN("exec", exec_builtin, BI_SPECIAL, exec_help);
     DEFBUILTIN("command", command_builtin, BI_SEMISPECIAL, command_help);
+    DEFBUILTIN("type", command_builtin, BI_REGULAR, type_help);
     DEFBUILTIN("times", times_builtin, BI_SPECIAL, times_help);
 
     /* defined in "yash.c" */

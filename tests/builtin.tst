@@ -35,7 +35,7 @@ echo -"$@"-
 echo ===== command =====
 
 command -V if then else elif fi do done case esac while until for { } ! in
-command -V _no_such_command_ || echo not found
+command -V _no_such_command_ 2>/dev/null || echo not found
 command -V : . break continue eval exec exit export readonly return set shift \
 times trap unset
 #TODO command -V fc
@@ -47,6 +47,7 @@ testreg() {
 }
 testreg typeset
 testreg disown
+testreg type
 
 command -b cat /dev/null 2>/dev/null
 echo command -b cat = $?
@@ -54,6 +55,8 @@ command -B exit 127 2>/dev/null
 echo command -B exit 127 = $?
 (command exit 10; echo not reached)
 echo command exit 10 = $?
+
+type type | grep -v "^type: regular builtin"
 
 
 echo ===== exec =====
