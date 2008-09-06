@@ -10,14 +10,18 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.0 beta1
 
-  +  "read" builtin
+  +  "read", "getopts" and "command" builtins
   +  '--autocd' and '--curasync' option
   +  Mail check feature
   +  The prompt command
-  =  The "readonly" and "export" builtins are now global by default.
+  =  The "readonly" and "export" builtins now affects global variables
+     by default.
   *  The standard input is no longer buffered
   *  The "typeset" builtin now allows any characters other than '='
      for variable names.
+  *  The special parameter $? reflects the exit status of a command
+     substitution in a variable assignment.
+  *  Many other bug fixes
 
 ----------------------------------------------------------------------
 Yash 2.0 beta0
