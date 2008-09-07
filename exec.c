@@ -141,6 +141,8 @@ static void search_command(
     __attribute__((nonnull));
 static inline bool assignment_is_temporary(enum cmdtype_T type)
     __attribute__((const));
+static bool including_path_assignment(const assign_T *a)
+    __attribute__((pure));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
@@ -738,6 +740,10 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    if (temp)
 		open_new_environment(true);
 	    if (do_assignments(c->c_assigns, temp, true)) {
+		if (including_path_assignment(c->c_assigns))
+		    search_command(argv0, argv[0], &cmdinfo,
+			    sct_external | sct_builtin | sct_function
+				| (argc == 1 ? sct_argc1 : 0));
 		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
 	    } else {
 		laststatus = EXIT_ASSGNERR;
@@ -936,6 +942,15 @@ bool assignment_is_temporary(enum cmdtype_T type)
 	default:
 	    assert(false);
     }
+}
+
+/* Checks if the specified assignments include an assignment to $PATH. */
+bool including_path_assignment(const assign_T *a)
+{
+    while (a)
+	if (strcmp(a->name, VAR_PATH) == 0)
+	    return true;
+    return false;
 }
 
 /* Executes a command whose type is not `CT_SIMPLE'.

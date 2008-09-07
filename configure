@@ -250,7 +250,7 @@ then
     then
 	checked "yes"
 	gcc="yes" cc="${CC:-gcc}"
-	cflags="-std=c99 -O1 -fno-inline -ggdb -Wall -Wextra"
+	cflags="-std=c99 -pedantic -O1 -fno-inline -ggdb -Wall -Wextra"
     else
 	checked "no"
 	echo "--debug option specified but GCC is not available" 2>&1

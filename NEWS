@@ -13,6 +13,8 @@ Yash 2.0 beta2
   +  "type" builtin
   =  If the "command" builtin with the -V option fails to find a
      command, an message is printed.
+  *  Invocation of an external command with an assignent to the $PATH
+     variable caused an invalid memory access.
 
 ----------------------------------------------------------------------
 Yash 2.0 beta1

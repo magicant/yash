@@ -20,4 +20,3 @@ gettext 対応
 	pushd -n
 	suspend -f
 	test/[
-	type
