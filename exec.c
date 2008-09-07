@@ -1002,13 +1002,11 @@ void exec_simple_command(
     print_xtrace(argv);
     switch (ci->type) {
     case externalprogram:
-	assert(finally_exit);
+	assert(finally_exit || !ci->ci_path);
 	if (ci->ci_path == NULL) {
 	    xerror(0, Ngt("%s: no such command or function"), argv0);
-	    exit_shell_with_status(EXIT_NOTFOUND);
-	}
-
-	{
+	    laststatus = EXIT_NOTFOUND;
+	} else {
 	    char *mbsargv[argc + 1];
 	    mbsargv[0] = argv0;
 	    for (int i = 1; i < argc; i++) {
@@ -1033,14 +1031,13 @@ void exec_simple_command(
 	    }
 	    for (int i = 1; i < argc; i++)
 		free(mbsargv[i]);
-	    exit_shell_with_status(
-		    errno_ == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
+	    laststatus = (errno_ == ENOENT) ? EXIT_NOTFOUND : EXIT_NOEXEC;
 	}
-	//break;
+	break;
     case specialbuiltin:
     case semispecialbuiltin:
     case regularbuiltin:
-	current_builtin_name = argv[0];
+	current_builtin_name = argv[0];  // XXX not reentrant
 	laststatus = ci->ci_builtin(argc, argv);
 	current_builtin_name = NULL;
 	break;
