@@ -947,9 +947,11 @@ bool assignment_is_temporary(enum cmdtype_T type)
 /* Checks if the specified assignments include an assignment to $PATH. */
 bool including_path_assignment(const assign_T *a)
 {
-    while (a)
+    while (a) {
 	if (strcmp(a->name, VAR_PATH) == 0)
 	    return true;
+	a = a->next;
+    }
     return false;
 }
 
