@@ -56,5 +56,9 @@ umask -S
 umask "${umask}"
 [ x"${umask}" = x"$(umask)" ] && echo ok
 
+echo ===== hash builtin =====
+
+PATH= hash 2>/dev/null
+
 
 rm -fr "${TESTTMP}/path.p."* "${TESTTMP}/dir"

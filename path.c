@@ -278,6 +278,8 @@ int xclosedir(DIR *dir)
 
 /********** Command Hashtable **********/
 
+static inline void forget_command_path(const char *command)
+    __attribute__((nonnull));
 static wchar_t *get_default_path(void)
     __attribute__((malloc,warn_unused_result));
 
@@ -323,7 +325,7 @@ const char *get_command_path(const char *name, bool forcelookup)
 	assert(strcmp(name, pathname) == 0);
 	vfree(ht_set(&cmdhash, pathname, path));
     } else {
-	vfree(ht_remove(&cmdhash, name));
+	forget_command_path(name);
     }
     return path;
 }
@@ -394,6 +396,12 @@ next:;
     }
 }
 
+/* Removes the specified command from the command hashtable. */
+void forget_command_path(const char *command)
+{
+    vfree(ht_remove(&cmdhash, command));
+}
+
 /* Last result of `get_command_path_default'. */
 static char *gcpd_value;
 /* Paths for `get_command_path_default'. */
@@ -445,6 +453,11 @@ wchar_t *get_default_path(void)
 
 /********** Home Directory Cache **********/
 
+static struct passwd *xgetpwnam(const char *name)
+    __attribute__((nonnull));
+static void clear_homedirhash(void);
+static inline void forget_home_directory(const wchar_t *username);
+
 /* Calls `getpwnam' until it doesn't return EINTR. */
 struct passwd *xgetpwnam(const char *name)
 {
@@ -466,11 +479,8 @@ static hashtable_T homedirhash;
 /* Initializes the home directory hashtable. */
 void init_homedirhash(void)
 {
-    static bool initialized = false;
-    if (!initialized) {
-	initialized = true;
-	ht_init(&homedirhash, hashwcs, htwcscmp);
-    }
+    assert(homedirhash.capacity == 0);
+    ht_init(&homedirhash, hashwcs, htwcscmp);
 }
 
 /* Empties the home directory hashtable. */
@@ -499,8 +509,7 @@ const wchar_t *get_home_directory(const wchar_t *username, bool forcelookup)
 	return NULL;
 
     struct passwd *pw = xgetpwnam(mbsusername);
-    free(mbsusername);
-    if (!pw)
+    free(mbsusername); if (!pw)
 	return NULL;
 
     /* enter to the hashtable */
@@ -516,6 +525,12 @@ const wchar_t *get_home_directory(const wchar_t *username, bool forcelookup)
     wchar_t *dirname = wb_towcs(&dir);
     vfree(ht_set(&homedirhash, dirname + usernameindex, dirname));
     return dirname;
+}
+
+/* Forget the specified user's home directory. */
+void forget_home_directory(const wchar_t *username)
+{
+    vfree(ht_remove(&homedirhash, username));
 }
 
 
@@ -849,9 +864,11 @@ bool is_reentry(const struct stat *st, const plist_T *dirstack)
 
 /********** Builtins **********/
 
-static inline void print_umask_octal(mode_t mode);
-static inline void print_umask_symbolic(mode_t mode);
-static inline int set_umask(const wchar_t *newmask)
+static void print_command_paths(bool all);
+static void print_home_directories(void);
+static void print_umask_octal(mode_t mode);
+static void print_umask_symbolic(mode_t mode);
+static int set_umask(const wchar_t *newmask)
     __attribute__((nonnull));
 static inline mode_t copy_user_mask(mode_t mode)
     __attribute__((const));
@@ -1122,6 +1139,153 @@ const char pwd_help[] = Ngt(
 "If neither is specified, -L is the default.\n"
 "If the shell is in POSIXly correct mode and the -P option is specified,\n"
 "$PWD is set to the printed pathname.\n"
+);
+
+/* The "hash" builtin, which accepts the following options:
+ * -a: print all entries
+ * -d: use the directory cache
+ * -r: remove cache entries */
+int hash_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"all",       xno_argument, L'a', },
+	{ L"directory", xno_argument, L'd', },
+	{ L"remove",    xno_argument, L'r', },
+	{ L"help",      xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    bool remove = false, all = false, dir = false;
+
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, posixly_correct ? L"r" : L"adr",
+		    long_options, NULL))) {
+	switch (opt) {
+	    case L'a':  all    = true;  break;
+	    case L'd':  dir    = true;  break;
+	    case L'r':  remove = true;  break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return EXIT_SUCCESS;
+	    default:
+		goto print_usage;
+	}
+    }
+    if (all && xoptind != argc)
+	goto print_usage;
+
+    bool err = false;
+    if (dir) {
+	if (remove) {
+	    if (xoptind == argc) {  // forget all
+		clear_homedirhash();
+	    } else {                // forget the specified
+		for (int i = xoptind; i < argc; i++)
+		    forget_home_directory(ARGV(i));
+	    }
+	} else {
+	    if (xoptind == argc) {  // print all
+		print_home_directories();
+	    } else {                // remember the specified
+		for (int i = xoptind; i < argc; i++) {
+		    if (!get_home_directory(ARGV(i), true)) {
+			xerror(0, Ngt("%ls: no such user"), ARGV(i));
+			err = true;
+		    }
+		}
+	    }
+	}
+    } else {
+	if (remove) {
+	    if (xoptind == argc) {  // forget all
+		clear_cmdhash();
+	    } else {                // forget the specified
+		for (int i = xoptind; i < argc; i++) {
+		    char *cmd = malloc_wcstombs(ARGV(i));
+		    if (cmd) {
+			forget_command_path(cmd);
+			free(cmd);
+		    } else {
+			err |= true;
+		    }
+		}
+	    }
+	} else {
+	    if (xoptind == argc) {  // print all
+		print_command_paths(all);
+	    } else {                // remember the specified
+		for (int i = xoptind; i < argc; i++) {
+		    if (wcschr(ARGV(i), L'/')) {
+			xerror(0, Ngt("%ls: command name must not contain `/'"),
+				ARGV(i));
+			err = true;
+			continue;
+		    }
+
+		    char *cmd = malloc_wcstombs(ARGV(i));
+		    if (cmd) {
+			if (!get_command_path(cmd, true)) {
+			    xerror(0, Ngt("%s: not found in $PATH"), cmd);
+			    err = true;
+			}
+			free(cmd);
+		    } else {
+			err |= true;
+		    }
+		}
+	    }
+	}
+    }
+    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+
+print_usage:
+    fprintf(stderr, gt(posixly_correct
+		? Ngt("Usage:  hash [-r] [command...]\n")
+		: Ngt("Usage:  hash [-adr] [command/username...]\n")));
+    return EXIT_ERROR;
+}
+
+/* Prints the entries of the command hashtable. */
+void print_command_paths(bool all)
+{
+    kvpair_T kv;
+    size_t index = 0;
+
+    while ((kv = ht_next(&cmdhash, &index)).key)
+	if (all || !get_builtin(kv.key))
+	    puts(kv.value);
+}
+
+/* Prints the entries of the home directory hashtable. */
+void print_home_directories(void)
+{
+    kvpair_T kv;
+    size_t index = 0;
+
+    while ((kv = ht_next(&homedirhash, &index)).key)
+	printf("~%ls=%ls\n",
+		(const wchar_t *) kv.key, (const wchar_t *) kv.value);
+}
+
+const char hash_help[] = Ngt(
+"hash - remember, forget or report command locations\n"
+"\thash command...\n"
+"\thash -r [command...]\n"
+"\thash [-a]\n"
+"\thash -d user...\n"
+"\thash -d -r [user...]\n"
+"\thash -d\n"
+"The first form immediately performs command path search and caches the\n"
+"<command>s' fullpaths.\n"
+"The second form, using the -r (--remove) option, removes the paths of\n"
+"<command>s (or all the paths if none specified) from the cache. Note that an\n"
+"assignment to $PATH also removes all the paths from the cache.\n"
+"The third form prints the currently cached paths. Without the -a (--all)\n"
+"option, paths for builtin commands are not printed.\n"
+"With the -d (--directory) option, this command does the same things to the\n"
+"home directory cache, rather than the command path cache.\n"
+"In the POSIXly correct mode, the -r option is the only available option.\n"
 );
 
 /* The "umask" builtin, which accepts the following option:

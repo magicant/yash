@@ -1485,7 +1485,7 @@ int dot_builtin(int argc, void **argv)
 	    if (!posixly_correct) {
 		path = mbsfilename;
 	    } else {
-		xerror(0, "%s: not found in $PATH", mbsfilename);
+		xerror(0, Ngt("%s: not found in $PATH"), mbsfilename);
 		free(mbsfilename);
 		if (!is_interactive)
 		    exit_shell_with_status(EXIT_FAILURE1);

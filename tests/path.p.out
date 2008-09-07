@@ -10,3 +10,4 @@ cd $CDPATH 2
 ===== umask builtin =====
 u=,g=,o=
 ok
+===== hash builtin =====

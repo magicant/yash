@@ -69,10 +69,7 @@ extern const char *get_command_path_default(const char *name)
 
 /********** Home Directory Cache **********/
 
-extern struct passwd *xgetpwnam(const char *name)
-    __attribute__((nonnull));
 extern void init_homedirhash(void);
-extern void clear_homedirhash(void);
 extern const wchar_t *get_home_directory(
 	const wchar_t *username, bool forcelookup)
     __attribute__((nonnull));
@@ -102,9 +99,11 @@ extern int cd_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int pwd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern int hash_builtin(int argc, void **argv)
+    __attribute__((nonnull));
 extern int umask_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char cd_help[], pwd_help[], umask_help[];
+extern const char cd_help[], pwd_help[], hash_help[], umask_help[];
 
 
 #endif /* PATH_H */

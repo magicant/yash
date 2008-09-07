@@ -71,6 +71,7 @@ void init_builtin(void)
     /* defined in "path.c" */
     DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
     DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
+    DEFBUILTIN("hash", hash_builtin, BI_REGULAR, hash_help);
     DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, umask_help);
 
     /* defined in "alias.c" */
