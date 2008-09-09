@@ -1704,9 +1704,10 @@ command_T *parse_group(commandtype_T type)
     result->c_subcmds = parse_compound_list();
     if (!result->c_subcmds)
 	serror(Ngt("no commands in command group"));
-    if (cbuf.contents[cindex] != terminator[0])
+    if (cbuf.contents[cindex] == terminator[0])
+	cindex++;
+    else
 	print_errmsg_token_missing(terminator, cindex);
-    cindex++;
     return result;
 }
 
