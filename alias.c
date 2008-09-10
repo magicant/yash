@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -72,6 +73,7 @@ hashtable_T aliases;
 /* Initializes the alias module. */
 void init_alias(void)
 {
+    assert(aliases.capacity == 0);
     ht_init(&aliases, hashwcs, htwcscmp);
 }
 

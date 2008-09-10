@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #if HAVE_GETTEXT
@@ -53,6 +54,7 @@ static hashtable_T builtins;
 /* Initializes `builtins' */
 void init_builtin(void)
 {
+    assert(builtins.capacity == 0);
     ht_initwithcapacity(&builtins, hashstr, htstrcmp, 71);
 
 #define DEFBUILTIN(strname,func,type,help) \

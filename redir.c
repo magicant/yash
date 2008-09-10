@@ -114,10 +114,11 @@ int ttyfd = -1;
 /* Initializes shell FDs. */
 void init_shellfds(void)
 {
+#ifndef NDEBUG
     static bool initialized = false;
-    if (initialized)
-	return;
+    assert(!initialized);
     initialized = true;
+#endif
 
     FD_ZERO(&shellfds);
     reset_shellfdmin();
