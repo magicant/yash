@@ -31,6 +31,7 @@
 #endif
 #include "exec.h"
 #include "expand.h"
+#include "history.h"
 #include "input.h"
 #include "job.h"
 #include "mail.h"
@@ -276,10 +277,24 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     if (info->type == 1)
 	info->type = 2;
     restore_parse_state(state);
+
+    int result;
+    size_t oldlen = buf->length;
     if (info->fp == stdin)
-	return input_stdin(buf, NULL);
+	result = input_stdin(buf, NULL);
     else
-	return input_file(buf, info->fp);
+	result = input_file(buf, info->fp);
+#if ENABLE_HISTORY
+    if (info->type == 2)
+	if (buf->contents[oldlen] != L'\n' && buf->length > oldlen) {
+	    wchar_t savechar = buf->contents[buf->length - 1];
+	    if (savechar == L'\n')
+		buf->contents[buf->length - 1] = L'\0';
+	    add_history(buf->contents + oldlen, false);
+	    buf->contents[buf->length - 1] = savechar;
+	}
+#endif
+    return result;
 }
 
 /* Executes the prompt command.

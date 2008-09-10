@@ -1,3 +1,4 @@
+xclosedir 廃止
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
@@ -10,7 +11,6 @@ gettext 対応
 	complete
 	dirs -clpv
 	echo -eEn
-	fc -enlrs
 	help -s
 	history -acdnprsw
 	newgrp

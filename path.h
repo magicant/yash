@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <dirent.h>
+#include <sys/types.h>
 
 
 extern bool is_regular_file(const char *path)
@@ -51,6 +52,9 @@ extern char *which(
 	char *const *restrict dirs,
 	bool cond(const char *path))
     __attribute__((nonnull(1),malloc,warn_unused_result));
+
+extern int create_temporary_file(char **filename, mode_t mode)
+    __attribute__((nonnull));
 
 extern int xclosedir(DIR *dir)
     __attribute__((nonnull));

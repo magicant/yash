@@ -33,6 +33,7 @@
 #include "builtin.h"
 #include "exec.h"
 #include "expand.h"
+#include "history.h"
 #include "input.h"
 #include "job.h"
 #include "option.h"
@@ -261,6 +262,9 @@ int main(int argc, char **argv)
 	if (!norcfile)
 	    execute_rcfile(rcfile);
     }
+#if ENABLE_HISTORY
+    init_history();
+#endif
 
     if (shopt_read_arg) {
 	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
@@ -345,6 +349,9 @@ void exit_shell_with_status(int status)
     if (!exiting) {
 	exiting = true;
 	execute_exit_trap();
+#if ENABLE_HISTORY
+	write_history(NULL, false);
+#endif
     }
     finalize_shell();
     exit(exitstatus);

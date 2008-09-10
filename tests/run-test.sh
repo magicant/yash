@@ -47,7 +47,11 @@ do
     fi
     case "$x" in
 	alias|alias.p)
-	    if ! PATH= $INVOKE $TESTEE -c 'alias' >/dev/null 2>&1
+	    if ! $INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
+	    then echo " * $x (skipped)"; continue
+	    fi ;;
+	history.p|history)
+	    if ! HISTFILE= $INVOKE $TESTEE -i -c 'PATH=; fc -l' >/dev/null 2>&1
 	    then echo " * $x (skipped)"; continue
 	    fi ;;
     esac

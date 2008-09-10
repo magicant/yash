@@ -24,6 +24,8 @@ expand.c
 expand.h
 hashtable.c
 hashtable.h
+history.c
+history.h
 input.c
 input.h
 job.c
@@ -72,6 +74,10 @@ tests/expand.p.out
 tests/expand.p.tst
 tests/expand.out
 tests/expand.tst
+tests/history.err
+tests/history.out
+tests/history.t
+tests/history.tst
 tests/input.p.err
 tests/input.p.out
 tests/input.p.t

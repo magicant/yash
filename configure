@@ -35,11 +35,12 @@ version="2.0b1"
 copyrightyear="2007-2008"
 
 # all source files in this directory
-sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h ulimit.c ulimit.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
+sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h ulimit.c ulimit.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
 
 # object files to be linked as `yash'
 objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o wfnmatch.o yash.o"
 alias_objs="alias.o"
+history_objs="history.o"
 ulimit_objs="ulimit.o"
 
 # object file to be linked as `mksignum'
@@ -49,6 +50,7 @@ help="no"
 gcc=""
 debug="no"
 enable_alias="yes"
+enable_history="yes"
 enable_ulimit="yes"
 unset prefix eprefix bindir
 umask u=rwx,go=rx
@@ -62,6 +64,7 @@ parseenable() {
     opt="${opt%%=*}"
     case "$opt" in
 	alias)        enable_alias=$2 ;;
+	history)      enable_history=$2 ;;
 	ulimit)       enable_ulimit=$2 ;;
 	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
     esac
@@ -122,6 +125,7 @@ Optional Features:
   --enable-FEATURE[=ARG]      enable FEATURE [ARG=yes]
   --disable-FEATURE           disable FEATURE (same as --enable-FEATURE=no)
   --enable-alias              enable aliases
+  --enable-history            enable history
   --enable-ulimit             enable the ulimit builtin
 
 Influential environment variables:
@@ -427,6 +431,13 @@ if [ x"$enable_alias" = x"yes" ]
 then
     defconfigh "ENABLE_ALIAS"
     objs="$objs $alias_objs"
+fi
+
+# enable/disable history
+if [ x"$enable_history" = x"yes" ]
+then
+    defconfigh "ENABLE_HISTORY"
+    objs="$objs $history_objs"
 fi
 
 # check for getrlimit and setrlimit

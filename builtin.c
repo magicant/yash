@@ -26,6 +26,7 @@
 #include "builtin.h"
 #include "exec.h"
 #include "hashtable.h"
+#include "history.h"
 #include "job.h"
 #include "option.h"
 #include "path.h"
@@ -101,8 +102,13 @@ void init_builtin(void)
     DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
 
     /* defined in "ulimit.c" */
-#ifdef ENABLE_ULIMIT
+#if ENABLE_ULIMIT
     DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help);
+#endif
+
+    /* defined in "history.c" */
+#if ENABLE_HISTORY
+    DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, fc_help);
 #endif
 
     /* defined in "exec.c" */

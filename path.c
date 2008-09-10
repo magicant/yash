@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <pwd.h>
 #include <stdbool.h>
@@ -28,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 #if HAVE_GETTEXT
@@ -46,6 +48,7 @@
 #include "util.h"
 #include "variable.h"
 #include "wfnmatch.h"
+#include "yash.h"
 
 
 /* Checks if `path' is a regular file. */
@@ -264,6 +267,42 @@ char *which(
 	    return xstrdup(path);
     }
     return NULL;
+}
+
+/* Creates a new temporary file under "/tmp".
+ * `mode' is the access permission bits of the file.
+ * On successful completion, a file descriptor is returned, which is both
+ * readable and writeable regardless of `mode', and a pointer to a string
+ * containing the filename is assigned to `*filename', which should be freed by
+ * the caller.
+ * On failure, -1 is returned with `**filename' left unchanged and errno is set
+ * to the error value. */
+int create_temporary_file(char **filename, mode_t mode)
+{
+    uintmax_t seed = (uintmax_t) time(NULL);
+    uintmax_t num = shell_pid * 16777619 % 10000 * 16777619 % 10000;
+    int fd;
+    xstrbuf_T buf;
+
+    sb_init(&buf);
+    for (int i = 0; i < 100; i++) {
+	num = (num ^ seed) * 16777619;
+	sb_clear(&buf);
+	sb_printf(&buf, "/tmp/yash-%ju", num % 1000000000);
+	/* The filename must be 14 bytes long at most. */
+	fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
+	if (fd >= 0) {
+	    *filename = sb_tostr(&buf);
+	    return fd;
+	} else if (errno != EEXIST && errno != EINTR) {
+	    int saveerrno = errno;
+	    sb_destroy(&buf);
+	    errno = saveerrno;
+	    return -1;
+	}
+    }
+    errno = EAGAIN;
+    return -1;
 }
 
 /* Closes `DIR' surely;
