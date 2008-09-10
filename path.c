@@ -305,15 +305,6 @@ int create_temporary_file(char **filename, mode_t mode)
     return -1;
 }
 
-/* Closes `DIR' surely;
- * Calls `closedir' until it doesn't return EINTR. */
-int xclosedir(DIR *dir)
-{
-    int result;
-    while ((result = closedir(dir)) < 0 && errno == EINTR);
-    return result;
-}
-
 
 /********** Command Hashtable **********/
 
@@ -431,7 +422,7 @@ void fill_cmdhash(const char *prefix, bool ignorecase)
 next:;
 	}
 
-	xclosedir(dir);
+	closedir(dir);
     }
 }
 
@@ -794,7 +785,7 @@ bool wglob_search(
 	free(wentname);
     }
 
-    xclosedir(dir);
+    closedir(dir);
     return ok;
 }
 
@@ -882,7 +873,7 @@ bool wglob_recursive_search(
 	RESTORE_DIRNAME;
     }
 
-    xclosedir(dir);
+    closedir(dir);
     return ok;
 }
 

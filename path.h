@@ -56,9 +56,6 @@ extern char *which(
 extern int create_temporary_file(char **filename, mode_t mode)
     __attribute__((nonnull));
 
-extern int xclosedir(DIR *dir)
-    __attribute__((nonnull));
-
 
 /********** Command Hashtable **********/
 

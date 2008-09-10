@@ -1,4 +1,3 @@
-xclosedir 廃止
 テストスクリプト
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
