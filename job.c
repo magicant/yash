@@ -79,12 +79,9 @@ static size_t current_jobnumber, previous_jobnumber;
 /* Initializes the job list. */
 void init_job(void)
 {
-    static bool initialized = false;
-    if (!initialized) {
-	initialized = true;
-	pl_init(&joblist);
-	pl_add(&joblist, NULL);
-    }
+    assert(joblist.contents == NULL);
+    pl_init(&joblist);
+    pl_add(&joblist, NULL);
 }
 
 /* Sets the active job. */
@@ -388,6 +385,48 @@ bool wait_for_job(size_t jobnumber, bool return_on_stop,
 	unblock_sigchld_and_sigint();
     }
     return result;
+}
+
+/* Waits for a child process to finish (or stop).
+ * `cpid' is the process ID of the child process to wait for, which is not yet
+ * registered in the job list.
+ * `cpgid' is the process group ID of the child. If the child's PGID is the same
+ * as that of the parent, `cpgid' must be 0.
+ * If `return_on_stop' is false, waits for the job to finish.
+ * Otherwise, waits for the job to finish or stop.
+ * Traps are not handled in this function.
+ * There must be no active job when this function is called.
+ * If `return_on_stop' is true and the child is stopped, this function returns
+ * a pointer to a pointer to a wide string. The caller may assign a pointer to
+ * a newly malloced wide string to the variable the return value points to.
+ * This string is used as the name of the new stopped job.
+ * If the child exited, this function returns NULL.
+ * The exit status is assigned to `laststatus' anyway. */
+wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
+{
+    job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+    job->j_pgid = cpgid;
+    job->j_status = JS_RUNNING;
+    job->j_statuschanged = false;
+    job->j_loop = false;
+    job->j_pcount = 1;
+    job->j_procs[0].pr_pid = cpid;
+    job->j_procs[0].pr_status = JS_RUNNING;
+    job->j_procs[0].pr_statuscode = 0;
+    job->j_procs[0].pr_name = NULL;
+    set_active_job(job);
+    wait_for_job(ACTIVE_JOBNO, return_on_stop, false, false);
+    if (doing_job_control_now)
+	put_foreground(shell_pgid);
+    laststatus = calc_status_of_job(job);
+    if (job->j_status == JS_DONE) {
+	notify_signaled_job(ACTIVE_JOBNO);
+	remove_job(ACTIVE_JOBNO);
+	return NULL;
+    } else {
+	add_job(true);
+	return &job->j_procs[0].pr_name;
+    }
 }
 
 /* Sends the specified signal to the specified job.

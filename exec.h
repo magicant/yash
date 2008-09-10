@@ -23,6 +23,14 @@
 #include <sys/types.h>
 
 
+/* options for `fork_and_reset' */
+typedef enum sigtype_T {
+    t_quitint    = 1 << 0,
+    t_tstp       = 1 << 1,
+    t_allbutpipe = 1 << 2,
+    t_leave      = 1 << 3,
+} sigtype_T;
+
 #define EXIT_FAILURE1 1
 #define EXIT_ERROR    2
 #define EXIT_NOEXEC   126
@@ -47,6 +55,7 @@ extern bool return_pending(void)
 struct and_or_T;
 struct wordunit_T;
 extern void exec_and_or_lists(const struct and_or_T *a, bool finally_exit);
+extern pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype);
 extern wchar_t *exec_command_substitution(const wchar_t *code)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern int open_heredocument(const struct wordunit_T *content);

@@ -81,6 +81,7 @@ extern size_t stopped_job_count(void)
 extern void do_wait(void);
 extern bool wait_for_job(size_t jobnumber, bool return_on_stop,
 	bool interruptible, bool return_on_trap);
+extern wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop);
 extern int send_signal_to_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 

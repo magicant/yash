@@ -63,14 +63,6 @@ typedef enum {
     execself,    /* execution in the shell's own process */
 } exec_T;
 
-/* options for `fork_and_reset' */
-typedef enum {
-    quitint    = 1 << 0,
-    tstp       = 1 << 1,
-    allbutpipe = 1 << 2,
-    leave      = 1 << 3,
-} sigtype_T;
-
 /* info about file descriptors of pipes */
 typedef struct pipeinfo_T {
     int pi_fromprevfd;      /* reading end of the pipe from the previous process */
@@ -134,7 +126,6 @@ static inline void connect_pipes(pipeinfo_T *pi)
 static void exec_commands(command_T *c, exec_T type, bool looppipe);
 static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
-static pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
@@ -275,7 +266,7 @@ void exec_pipelines_async(const pipeline_T *p)
     if (!p->next && !p->pl_neg) {
 	exec_commands(p->pl_commands, execasync, p->pl_loop);
     } else {
-	pid_t cpid = fork_and_reset(0, false, quitint);
+	pid_t cpid = fork_and_reset(0, false, t_quitint);
 	
 	if (cpid > 0) {
 	    /* parent process: add a new job */
@@ -648,7 +639,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     early_fork = (type != execself) && (type == execasync
 	|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
     if (early_fork) {
-	sigtype_T sigtype = (type == execasync) ? quitint : 0;
+	sigtype_T sigtype = (type == execasync) ? t_quitint : 0;
 	pid_t cpid = fork_and_reset(pgid, type == execnormal, sigtype);
 	if (cpid != 0)
 	    return cpid;
@@ -702,7 +693,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     bool ext = (c->c_type == CT_SIMPLE) && (argc > 0)
 		&& (cmdinfo.type == externalprogram);
     if (later_fork) {
-	pid_t cpid = fork_and_reset(pgid, type == execnormal, ext ? leave : 0);
+	pid_t cpid = fork_and_reset(pgid, type == execnormal, ext ? t_leave :0);
 	if (cpid != 0) {
 	    recfree(argv, free);
 	    free(argv0);
@@ -795,10 +786,10 @@ redir_fail:
  * foreground process.
  * `sigtype' specifies settings of signals in the child.
  * `sigtype' is a bitwise OR of the followings:
- *   quitint: SIGQUIT and SIGINT are ignored if the parent's job control is on
- *   tstp: SIGTSTP is ignored if the parent is interactive
- *   allbutpipe: block all signals but SIGPIPE
- *   leave: don't clear traps and shellfds. This option should be used only if
+ *   t_quitint: SIGQUIT and SIGINT are ignored if the parent's job control is on
+ *   t_tstp: SIGTSTP is ignored if the parent is interactive
+ *   t_allbutpipe: block all signals but SIGPIPE
+ *   t_leave: don't clear traps and shellfds. This option should be used only if
  *          the shell is going to `exec' to an extenal program.
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
@@ -834,20 +825,20 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	}
 	forget_initial_pgid();
 	neglect_all_jobs();
-	if (sigtype & leave) {
+	if (sigtype & t_leave) {
 	    clear_shellfds(false);
 	} else {
 	    clear_shellfds(true);
 	    clear_traps();
 	}
 	is_interactive_now = false;
-	if (sigtype & quitint)
+	if (sigtype & t_quitint)
 	    if (!save_doing_job_control_now)
 		ignore_sigquit_and_sigint();
-	if (sigtype & tstp)
+	if (sigtype & t_tstp)
 	    if (save_is_interactive_now)
 		ignore_sigtstp();
-	if (sigtype & allbutpipe) {
+	if (sigtype & t_allbutpipe) {
 	    reset_sigpipe();
 	    sigfillset(&savemask);
 	    sigdelset(&savemask, SIGPIPE);
@@ -1161,7 +1152,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
     /* If the child is stopped by SIGTSTP, it can never be resumed and
      * the shell will be stuck. So we make the child unstoppable
      * by SIGTSTP. */
-    cpid = fork_and_reset(-1, false, tstp);
+    cpid = fork_and_reset(-1, false, t_tstp);
     if (cpid < 0) {
 	/* fork failure */
 	xclose(pipefd[PIDX_IN]);
@@ -1264,7 +1255,7 @@ int open_heredocument(const wordunit_T *contents)
     if (!contents)
 	goto success;
 
-    cpid = fork_and_reset(-1, false, allbutpipe | leave);
+    cpid = fork_and_reset(-1, false, t_allbutpipe | t_leave);
     if (cpid < 0) {
 	/* fork failure */
 	xerror(0, Ngt("cannot redirect to here-document"));
@@ -1792,33 +1783,17 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 	argv0 = xstrdup("");
     search_command(argv0, argv[0], &ci, type);
     if (ci.type == externalprogram) {
-	pid_t cpid = fork_and_reset(0, true, leave);
+	pid_t cpid = fork_and_reset(0, true, t_leave);
 	if (cpid < 0) {
 	    free(argv0);
 	    return EXIT_NOEXEC;
 	} else if (cpid > 0) {
-	    job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
-	    job->j_pgid = doing_job_control_now ? cpid : 0;
-	    job->j_status = JS_RUNNING;
-	    job->j_statuschanged = false;
-	    job->j_loop = false;
-	    job->j_pcount = 1;
-	    job->j_procs[0].pr_pid = cpid;
-	    job->j_procs[0].pr_status = JS_RUNNING;
-	    job->j_procs[0].pr_statuscode = 0;
-	    job->j_procs[0].pr_name = NULL;
-	    set_active_job(job);
-	    wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
-	    laststatus = calc_status_of_job(job);
-	    if (job->j_status == JS_DONE) {
-		notify_signaled_job(ACTIVE_JOBNO);
-		remove_job(ACTIVE_JOBNO);
-	    } else {
-		job->j_procs[0].pr_name = joinwcsarray(argv, L" ");
-		add_job(true);
-	    }
-	    if (doing_job_control_now)
-		put_foreground(shell_pgid);
+	    wchar_t **namep = wait_for_child(
+		    cpid,
+		    doing_job_control_now ? cpid : 0,
+		    doing_job_control_now);
+	    if (namep)
+		*namep = joinwcsarray(argv, L" ");
 	    free(argv0);
 	    return laststatus;
 	}
