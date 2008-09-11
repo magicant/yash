@@ -1327,7 +1327,7 @@ end:
 
 /********** Escaping **********/
 
-/* Unquote singlequotes in a string and adds it to the specified buffer.
+/* Unquote single quotes in a string and adds it to the specified buffer.
  * `ss' is a pointer to a pointer to the opening quote.
  * `ss' is incremented so that it points to the closing quote.
  * If `escape' is true, all the characters added are backslashed. */
@@ -1441,8 +1441,8 @@ void **reescape_full_array(void **const wcsarray)
     return wcsarray;
 }
 
-/* Quotes the specified string by singlequotes.
- * If the string contains singlequotes, they are backslashed. */
+/* Quotes the specified string by single quotes.
+ * If the string contains single quotes, they are backslashed. */
 wchar_t *quote_sq(const wchar_t *s)
 {
     xwcsbuf_T buf;

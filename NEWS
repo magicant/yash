@@ -10,11 +10,14 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.0 beta2
 
+  +  Command history
   +  "type", "hash" and "fc" builtins
   =  If the "command" builtin with the -V option fails to find a
      command, an message is printed.
   *  Invocation of an external command with an assignent to the $PATH
      variable caused an invalid memory access.
+  *  Single quote not parsed properly in some circumstances.
+  *  Other bug fixes
 
 ----------------------------------------------------------------------
 Yash 2.0 beta1

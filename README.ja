@@ -35,8 +35,8 @@ Yash をビルドしインストールする方法は INSTALL.ja ファイルを
      SIGKILL=9 SIGALRM=14 SIGTERM=15
  * ファイルアクセス権フラグは特定の値を持っていると仮定しています:
      0400=user read    0200=user write   0100=user execute
-	 0040=group read   0020=group write  0010=group execute
-	 0004=other read   0002=other write  0001=other execute
+     0040=group read   0020=group write  0010=group execute
+     0004=other read   0002=other write  0001=other execute
  * -e (-o errexit) オプションが有効な時、and/or リストの最後の
    コマンドがエラーを返すとシェルは終了します。この挙動は厳密には
    POSIX に従っていませんが、他の既存のシェルの挙動に合わせて

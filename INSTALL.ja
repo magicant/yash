@@ -15,7 +15,7 @@ Yash のビルドとインストールの方法
 
   5. `make install' を実行して yash をインストールする。
      デフォルトのインストール先は /usr/local/bin/yash です。
-	 `configure' でオプションを指定しておけばインストール先を変えられます。
+     `configure' でオプションを指定しておけばインストール先を変えられます。
 
 configure は、デフォルトで c99 をコンパイラコマンドとして使用するように設定
 します。c99 は POSIX で定められた標準の C コンパイラです.
@@ -31,6 +31,10 @@ configure スクリプトを実行する際に以下のオプションを与え�
 
   --bindir=DIR
           デフォルトの /usr/local/bin ではなく、指定した DIR にインストールする
+
+  --enable-X, --disable-X
+          機能 X を有効/無効にします。X として指定できる機能の一覧を見るには
+          `./configure --help' を実行してください。
 
 configure スクリプトは環境変数によって設定内容を変更します。
 以下の環境変数は configure スクリプトが行った通常の設定を上書きします:
@@ -50,6 +54,8 @@ configure スクリプトは環境変数によって設定内容を変更しま�
           コンパイラに追加で与えるコマンドラインオプション
   LDADDS, LIBS
           リンカに追加で与えるコマンドラインオプション
+
+`./configure --help' でも configure の簡単な使い方が見られます。
 
 
 Makefile ファイルは configure スクリプトが Makefile.in ファイルを元に生成する
