@@ -49,7 +49,6 @@ bg: semi-special builtin
 cd: semi-special builtin
 command: semi-special builtin
 false: semi-special builtin
-fc: semi-special builtin
 fg: semi-special builtin
 getopts: semi-special builtin
 jobs: semi-special builtin

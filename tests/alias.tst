@@ -16,4 +16,6 @@ alias c='cat'
 alias -g P=')|c'
 echo complex alias | (c|(c P)|c
 
+command -V alias unalias
+
 rm -f "$tmp"

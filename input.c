@@ -357,10 +357,12 @@ just_print:
 /* Expands the contents of PS1 variable in the posixly correct way.
  * The argument is `free'd in this function.
  * The return value must be `free'd by the caller. */
-/* In this function, "!" is expanded to the next history number and "!!" to "!".
- */
+/* In this function, "!" is expanded to the next history number and "!!" to "!"
+ * if the history feature is enabled. Otherwise, this function simply returns
+ * the argument. */
 wchar_t *expand_ps1_posix(wchar_t *s)
 {
+#if ENABLE_HISTORY
     wchar_t *const saves = s;
     xwcsbuf_T buf;
     wb_init(&buf);
@@ -380,6 +382,9 @@ wchar_t *expand_ps1_posix(wchar_t *s)
     }
     free(saves);
     return wb_towcs(&buf);
+#else
+    return s;
+#endif
 }
 
 /* Expands the contents of PS1/PS2 in Yash's way.
@@ -434,7 +439,9 @@ wchar_t *expand_ps_yash(wchar_t *s)
 	default:      wb_wccat(&buf, *s);        break;
 	case L'$':    wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
 	case L'j':    wb_wprintf(&buf, L"%zu", job_count());  break;
+#if ENABLE_HISTORY
 	case L'!':    wb_wprintf(&buf, L"%d", hist_next_number); break;
+#endif
 	case L'[':    // TODO  expand_ps_yash: \[ and \]
 	case L']':    break;
 	}

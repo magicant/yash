@@ -1810,8 +1810,10 @@ bool print_command_info(const wchar_t *commandname)
 {
     if (wcschr(commandname, L'/'))
 	return print_command_fullpath(commandname, false);
+#if ENABLE_ALIAS
     if (print_alias_if_defined(commandname, false))
 	return true;
+#endif
     if (is_keyword(commandname)) {
 	printf("%ls\n", commandname);
 	return true;
@@ -1849,8 +1851,10 @@ bool print_command_info_human_friendlily(const wchar_t *commandname)
 {
     if (wcschr(commandname, L'/'))
 	return print_command_fullpath(commandname, true);
+#if ENABLE_ALIAS
     if (print_alias_if_defined(commandname, true))
 	return true;
+#endif
     if (is_keyword(commandname)) {
 	printf(gt("%ls: shell keyword\n"), commandname);
 	return true;
