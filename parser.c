@@ -1193,6 +1193,9 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	    if (!indq) {
 		cindex++;
 		skip_to_next_single_quote();
+		if (cbuf.contents[cindex] == L'\'')
+		    cindex++;
+		continue;
 	    }
 	    break;
 	case L'"':
