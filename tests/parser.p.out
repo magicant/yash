@@ -4,6 +4,10 @@ $var ${var} $var ${var}
 abc abc abc abc $var ${var}
 abc abc abc abc $var ${var}
 $(echo $var ${var} "$var" "${var}")
+single 
+
+double 
+
 assignments line
 echo 7
 10 foo
@@ -98,4 +102,4 @@ function
 2
 re-redirected
 redirected
-lineno=348
+lineno=354

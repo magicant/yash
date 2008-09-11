@@ -8,6 +8,12 @@ echo \$var \${var} "\$var" "\${var}"
 echo $(echo $var ${var} "$var" "${var}" '$var' '${var}')
 echo "$(echo $var ${var} "$var" "${var}" '$var' '${var}')"
 echo '$(echo $var ${var} "$var" "${var}")'
+echo single \
+'
+'
+echo double \
+"
+"
 
 foo= bar= multiple=assignments one=line
 echo $multiple $one
