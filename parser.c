@@ -1227,10 +1227,10 @@ void skip_to_next_single_quote(void)
 	    return;
 	case L'\0':
 	    if (read_more_input() != 0) {
-		serror(Ngt("single-quote not closed"));
+		serror(Ngt("single quote not closed"));
 		return;
 	    }
-	    break;
+	    continue;
 	case L'\n':
 	    cinfo->lineno++;
 	    /* falls thru! */
@@ -2112,7 +2112,7 @@ bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
 
 /* Parses a string.
  * Parameter expansions, command substitutions and arithmetic expansions are
- * recognized, but singlequotes and doublequotes are not treated as quotes.
+ * recognized, but single quotes and doublequotes are not treated as quotes.
  * Command substitutions enclosed by backquotes are recognized iff `backquote'
  * is true. If `stoponnewline' is true, stops parsing right after the next
  * newline is parsed. Otherwise parsing continues to the EOF. */
