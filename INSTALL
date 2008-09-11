@@ -7,7 +7,7 @@ A normal way to build and install Yash is:
 
   2. Type `sh configure' to run the configuration script. This script
      checks which features are available on your system and creates
-	 files to build Yash.
+     files to build Yash.
 
   3. Type `make' to build Yash.
 
@@ -25,13 +25,18 @@ way Yash is built and installed:
 
   --debug
           Lower the optimization level of the compiler to make it easy
-		  to debug Yash. Available only when using GCC.
+          to debug Yash. Available only when using GCC.
   --no-undefined
           Inhibit any operation whose result is not defined in the
-		  standards.
+          standards.
 
   --bindir=DIR
           Install Yash in DIR, rather than /usr/local/bin.
+
+  --enable-X, --disable-X
+          Enable or disable the feature X, where X is the name of a
+          feature. Type `./configure --help' for the list of available
+          features that can be specified as X.
 
 Following environment variables override `configure' script's choices:
 
@@ -50,6 +55,8 @@ Following environment variables affect `configure' script's choices:
           Additional options given to the compiler.
   LDADDS, LIBS
           Additional options given to the linker.
+
+Type `./configure --help' to see a brief instruction of `configure'.
 
 
 Typing `make uninstall' uninstalls the program.

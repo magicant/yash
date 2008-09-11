@@ -3,7 +3,7 @@ Yash: yet another shell
 
 
 Yash is a implementation of command line shell, personally developed
-by Magicant. It is under development aiming at complete comformance to
+by Magicant. It is under development aiming at complete conformance to
 POSIX.1 (IEEE Std 1003.1, 2004 Edition).
 
 
@@ -34,14 +34,14 @@ Currently there is no manpage for yash. Sorry.
      SIGKILL=9 SIGALRM=14 SIGTERM=15
  * File permission flags are assumed to have the specific values:
      0400=user read    0200=user write   0100=user execute
-	 0040=group read   0020=group write  0010=group execute
-	 0004=other read   0002=other write  0001=other execute
+     0040=group read   0020=group write  0010=group execute
+     0004=other read   0002=other write  0001=other execute
  * When -e (-o errexit) option is set, failure of the last command of
    an and/or list makes the shell exit. This behavior is not strictly
    POSIX-compliant, but most existing shells behave this way.
  * According to POSIX, the variable 'PS1' is subject to parameter
-   expandsion. Yash also performs command substitution and arithmetic
-   expandsion on 'PS1'.
+   expansion. Yash also performs command substitution and arithmetic
+   expansion on 'PS1'.
  * Bracket expressions in filename expansion are not fully supported.
 
 

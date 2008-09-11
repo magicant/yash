@@ -121,8 +121,8 @@ Installation options:
                          [PREFIX]
   --bindir=DIR           install executable in DIR [EPREFIX/bin]
 
-Optional Features:
-  --enable-FEATURE[=ARG]      enable FEATURE [ARG=yes]
+Optional features:
+  --enable-FEATURE[=ARG]      enable or disable FEATURE [ARG=yes]
   --disable-FEATURE           disable FEATURE (same as --enable-FEATURE=no)
   --enable-alias              enable aliases
   --enable-history            enable history
