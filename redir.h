@@ -28,6 +28,10 @@ extern int xdup2(int oldfd, int newfd);
 extern int ttyfd;
 
 extern void init_shellfds(void);
+extern void add_shellfd(int fd);
+extern void remove_shellfd(int fd);
+extern bool is_shellfd(int fd)
+    __attribute__((pure));
 extern void clear_shellfds(bool leavefds);
 extern int copy_as_shellfd(int fd);
 extern FILE *reopen_with_shellfd(FILE *f, const char *mode);

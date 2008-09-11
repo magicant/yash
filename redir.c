@@ -85,10 +85,6 @@ int xdup2(int oldfd, int newfd)
 /********** Shell FD **********/
 
 static void reset_shellfdmin(void);
-static void add_shellfd(int fd);
-static void remove_shellfd(int fd);
-static bool is_shellfd(int fd)
-    __attribute__((pure));
 
 
 /* true iff stdin is redirected */

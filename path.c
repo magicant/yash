@@ -274,7 +274,7 @@ char *which(
  * On successful completion, a file descriptor is returned, which is both
  * readable and writeable regardless of `mode', and a pointer to a string
  * containing the filename is assigned to `*filename', which should be freed by
- * the caller.
+ * the caller. The filename consists of only portable filename characters.
  * On failure, -1 is returned with `**filename' left unchanged and errno is set
  * to the error value. */
 int create_temporary_file(char **filename, mode_t mode)

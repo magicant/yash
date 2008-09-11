@@ -350,7 +350,8 @@ void exit_shell_with_status(int status)
 	exiting = true;
 	execute_exit_trap();
 #if ENABLE_HISTORY
-	write_history(NULL, false);
+	if (is_interactive_now)
+	    write_history(NULL, false);
 #endif
     }
     finalize_shell();

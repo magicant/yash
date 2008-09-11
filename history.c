@@ -28,10 +28,12 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 #include <wchar.h>
 #include "builtin.h"
 #include "exec.h"
 #include "history.h"
+#include "job.h"
 #include "option.h"
 #include "path.h"
 #include "redir.h"
@@ -106,6 +108,7 @@ static histentry_T *new_entry(const char *line)
     __attribute__((nonnull));
 static void remove_entry(histentry_T *entry)
     __attribute__((nonnull));
+static void remove_last_entry(void);
 static histentry_T *replace_entry(histentry_T *entry, const char *line)
     __attribute__((nonnull));
 static histentry_T *find_entry(unsigned number, bool newer_if_not_found)
@@ -173,6 +176,15 @@ void remove_entry(histentry_T *entry)
     if (lastappended == entry)
 	lastappended = HISTLIST;
     free(entry);
+}
+
+/* Removes the newest entry and decreases `next_number'. */
+void remove_last_entry(void)
+{
+    if (histlist.count > 0) {
+	next_number = histlist.newest->number;
+	remove_entry(histlist.newest);
+    }
 }
 
 /* Replaces the value of `entry' with `line'.
@@ -335,8 +347,11 @@ bool read_history(const wchar_t *histfile)
     xstrbuf_T buf;
     sb_init(&buf);
     while (fgets(buf.contents + buf.length, buf.maxlength - buf.length + 1, f)){
-	buf.length += strlen(buf.contents + buf.length);
-	assert(buf.length > 0);
+	size_t len = strlen(buf.contents + buf.length);
+	// `len' may be 0 if a null character is input
+	if (len == 0)
+	    break;
+	buf.length += len;
 	if (buf.contents[buf.length - 1] == L'\n') {
 	    buf.contents[--buf.length] = L'\0';  // remove the trailing newline
 	    new_entry(buf.contents);
@@ -428,11 +443,15 @@ bool add_history(const wchar_t *line, bool removelast)
 
 /********** Builtins **********/
 
+enum fcprinttype_T {
+    NUMBERED, UNNUMBERED, RAW,
+};
+
 static histentry_T *fc_search_entry(const wchar_t *prefix)
     __attribute__((nonnull));
-static int fc_list_entries(
-	const histentry_T *first, const histentry_T *last,
-	bool reverse, bool nonumber)
+static int fc_print_entries(
+	FILE *f, const histentry_T *first, const histentry_T *last,
+	bool reverse, enum fcprinttype_T type)
     __attribute__((nonnull));
 static int fc_exec_entry(const histentry_T *entry,
 	const wchar_t *old, const wchar_t *new)
@@ -441,6 +460,8 @@ static int fc_edit_and_exec_entries(
 	const histentry_T *first, const histentry_T *last,
 	bool reverse, const wchar_t *editor)
     __attribute__((nonnull(1,2)));
+static void fc_read_history(const char *filename)
+    __attribute__((nonnull));
 
 /* The "fc" builtin, which accepts the following options:
  * -e: specify the editor to edit history
@@ -486,6 +507,10 @@ int fc_builtin(int argc, void **argv)
 	    || (argc - xoptind > 2))
 	goto print_usage;
 
+    /* remove the entry for this "fc" command */
+    if (!list)
+	remove_last_entry();
+
     if (histlist.count == 0) {
 	if (list) {
 	    return EXIT_SUCCESS;
@@ -494,12 +519,6 @@ int fc_builtin(int argc, void **argv)
 	    return EXIT_FAILURE1;
 	}
     }
-
-    update_time();
-
-    /* remove the entry for this "fc" command */
-    if (!list && histlist.count > 0)
-	remove_entry(histlist.newest);
 
     /* parse <old=new> */
     const wchar_t *old = NULL, *new = NULL;
@@ -593,8 +612,11 @@ int fc_builtin(int argc, void **argv)
     assert(efirst != NULL);  assert(efirst != HISTLIST);
     assert(elast  != NULL);  assert(elast  != HISTLIST);
 
+    update_time();
+
     if (list)
-	return fc_list_entries(efirst, elast, rev, nonum);
+	return fc_print_entries(stdout, efirst, elast, rev,
+		nonum ? UNNUMBERED : NUMBERED);
     else if (silent)
 	return fc_exec_entry(efirst, old, new);
     else
@@ -620,9 +642,9 @@ histentry_T *fc_search_entry(const wchar_t *prefix)
 }
 
 /* Print history entries between `first' and `last'. */
-int fc_list_entries(
-	const histentry_T *first, const histentry_T *last,
-	bool reverse, bool nonumber)
+int fc_print_entries(
+	FILE *f, const histentry_T *first, const histentry_T *last,
+	bool reverse, enum fcprinttype_T type)
 {
     const histentry_T *start, *end;
     if (!reverse)
@@ -630,10 +652,17 @@ int fc_list_entries(
     else
 	start = last, end = first;
     for (;;) {
-	if (!nonumber)
-	    printf("%u\t%s\n", start->number, start->value);
-	else
-	    printf("\t%s\n", start->value);
+	switch (type) {
+	    case NUMBERED:
+		fprintf(f, "%u\t%s\n", start->number, start->value);
+		break;
+	    case UNNUMBERED:
+		fprintf(f, "\t%s\n", start->value);
+		break;
+	    case RAW:
+		fprintf(f, "%s\n", start->value);
+		break;
+	}
 	if (start == end)
 	    break;
 	start = !reverse ? start->next : start->prev;
@@ -680,9 +709,82 @@ int fc_edit_and_exec_entries(
 	const histentry_T *first, const histentry_T *last,
 	bool reverse, const wchar_t *editor)
 {
-    // TODO
-    (void) first, (void) last, (void) reverse, (void) editor;
-    return EXIT_ERROR;
+    char *temp;
+    int fd;
+    FILE *f;
+    pid_t cpid;
+
+    fd = create_temporary_file(&temp, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+	xerror(errno, Ngt("cannot create temporary file to edit history"));
+	return EXIT_FAILURE1;
+    }
+    f = fdopen(fd, "w");
+    if (!f) {
+	xerror(errno, Ngt("cannot open temporary file to edit history"));
+	xclose(fd);
+	return EXIT_FAILURE1;
+    }
+
+    cpid = fork_and_reset(0, true, 0);
+    if (cpid < 0) {  // fork failed
+	xerror(0, Ngt("cannot invoke editor to edit history"));
+	fclose(f);
+	if (unlink(temp) < 0)
+	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
+	free(temp);
+	return EXIT_FAILURE1;
+    } else if (cpid > 0) {  // parent process
+	fclose(f);
+
+	wchar_t **namep = wait_for_child(
+		cpid,
+		doing_job_control_now ? cpid : 0,
+		doing_job_control_now);
+	if (namep) {
+	    *namep = malloc_wprintf(L"%ls %s",
+		    editor ? editor : L"${FCEDIT:-ed}", temp);
+	}
+
+	if (laststatus != EXIT_SUCCESS) {
+	    xerror(0, Ngt("editor returned non-zero status"));
+	    f = NULL;
+	} else {
+	    f = reopen_with_shellfd(fopen(temp, "r"), "r");
+	    if (f == NULL)
+		xerror(errno, Ngt("cannot read command from `%s'"), temp);
+	}
+	if (f != NULL)
+	    fc_read_history(temp);
+
+	if (unlink(temp) < 0)
+	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
+	free(temp);
+
+	if (f != NULL) {
+	    exec_input(f, "fc", false, false);
+	    remove_shellfd(fileno(f));
+	    fclose(f);
+	}
+	return laststatus;
+    } else {  // child process
+	fc_print_entries(f, first, last, reverse, RAW);
+	fclose(f);
+
+	wchar_t *command = malloc_wprintf(L"%ls %s",
+		editor ? editor : L"${FCEDIT:-ed}", temp);
+	exec_wcs(command, "fc", true);
+	assert(false);
+    }
+}
+
+void fc_read_history(const char *filename)
+{
+    wchar_t *wname = malloc_mbstowcs(filename);
+    if (wname) {
+	read_history(wname);
+	free(wname);
+    }
 }
 
 const char fc_help[] = Ngt(
