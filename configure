@@ -31,7 +31,7 @@ ldflags="${LDFLAGS}"
 ldlibs="${LDLIBS--lm}"
 target="yash"
 package="yash"
-version="2.0b1"
+version="2.0b2"
 copyrightyear="2007-2008"
 
 # all source files in this directory
@@ -112,7 +112,6 @@ Usage: ./configure [options...]
 
 Available options:
   --debug                configure for debug build (GCC required)
-  --no-undefined         inhibit any undefined operation
 
 Installation options:
   --prefix=PREFIX        install architecture-independent files in PREFIX
