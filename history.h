@@ -23,6 +23,8 @@
 #include <stdbool.h>
 
 
+extern unsigned hist_next_number;
+
 extern void init_history(void);
 extern bool read_history(const wchar_t *histfile);
 extern bool write_history(const wchar_t *histfile, bool append);

@@ -30,3 +30,7 @@ echo 123 #28
 fc -e true -- -3 28 #29-31
 FCEDIT=false #32
 fc
+echo ===== \#33
+PS1='\! ! $ ' #34
+set -o posix #35
+PS1=; echo >&2 #36

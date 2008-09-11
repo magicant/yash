@@ -370,8 +370,7 @@ wchar_t *expand_ps1_posix(wchar_t *s)
 	    if (*++s == L'!') {
 		wb_wccat(&buf, L'!');
 	    } else {
-		// TODO expand_ps1_posix: expand "!" to history number
-		wb_wprintf(&buf, L"%d", 0);
+		wb_wprintf(&buf, L"%d", hist_next_number);
 		continue;
 	    }
 	} else {
@@ -435,8 +434,7 @@ wchar_t *expand_ps_yash(wchar_t *s)
 	default:      wb_wccat(&buf, *s);        break;
 	case L'$':    wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
 	case L'j':    wb_wprintf(&buf, L"%zu", job_count());  break;
-	case L'!':    wb_wprintf(&buf, L"%d", 0); break;
-		      // TODO  expand_ps_yash: next history number
+	case L'!':    wb_wprintf(&buf, L"%d", hist_next_number); break;
 	case L'[':    // TODO  expand_ps_yash: \[ and \]
 	case L']':    break;
 	}

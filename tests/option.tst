@@ -2,7 +2,13 @@ tmp="${TESTTMP}/option"
 mkdir -p "$tmp"
 
 echo ===== -h =====
-# TODO option: -h
+set -h
+hash -r
+hoptiontest () {
+	cat /dev/null
+}
+hash | grep /cat\$ | wc -l
+set +h
 
 echo ===== nocaseglob =====
 set --nocaseglob

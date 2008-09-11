@@ -83,8 +83,8 @@ static struct {
  * They must be the first two elements of the structure so that `histlist' is
  * cast to histentry_T and they are used as `prev' and `next' properly. */
 
-/* The number of the next new entry. Must be positive. */
-static unsigned next_number = 1;
+/* The number of the next new history entry. Must be positive. */
+unsigned hist_next_number = 1;
 /* The maximum limit of the number of an entry,
  * which is always no less than `histsize' or `MIN_MAX_NUMBER'.
  * The number of any entry is not greater than this value. */
@@ -149,20 +149,21 @@ void set_histsize(unsigned newsize)
  * entry, the oldest entry is removed. */
 histentry_T *new_entry(const char *line)
 {
-    if (histlist.oldest != HISTLIST && histlist.oldest->number == next_number)
+    if (histlist.oldest != HISTLIST
+	    && histlist.oldest->number == hist_next_number)
 	remove_entry(histlist.oldest);
 
     histentry_T *new = xmalloc(sizeof *new + strlen(line) + 1);
     new->prev = histlist.newest;
     new->next = HISTLIST;
     histlist.newest = new->prev->next = new;
-    new->number = next_number++;
+    new->number = hist_next_number++;
     new->time = now;
     strcpy(new->value, line);
     histlist.count++;
 
-    if (next_number > max_number)
-	next_number = 1;
+    if (hist_next_number > max_number)
+	hist_next_number = 1;
     return new;
 }
 
@@ -178,11 +179,11 @@ void remove_entry(histentry_T *entry)
     free(entry);
 }
 
-/* Removes the newest entry and decreases `next_number'. */
+/* Removes the newest entry and decreases `hist_next_number'. */
 void remove_last_entry(void)
 {
     if (histlist.count > 0) {
-	next_number = histlist.newest->number;
+	hist_next_number = histlist.newest->number;
 	remove_entry(histlist.newest);
     }
 }
