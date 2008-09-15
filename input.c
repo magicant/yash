@@ -279,7 +279,9 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     restore_parse_state(state);
 
     int result;
+#if ENABLE_HISTORY
     size_t oldlen = buf->length;
+#endif
     if (info->fp == stdin)
 	result = input_stdin(buf, NULL);
     else
