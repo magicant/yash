@@ -2,6 +2,7 @@
 	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
 	ループパイプのテストスクリプト
 	ulimit のテスト
+alias -g a='a a' の展開で無限ループ:x
 配列の解釈・代入
 gettext 対応
 

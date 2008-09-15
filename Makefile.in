@@ -46,7 +46,7 @@ signum.h: mksignum
 	./mksignum > $@
 
 test check: $(TARGET)
-	@cd tests && $(MAKE) $(MAKEFLAGS) test-all
+	@cd tests && $(MAKE) test-all
 
 BINDIR = @BINDIR@
 install: $(TARGET) $(BINDIR)
@@ -69,7 +69,7 @@ distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	mkdir -p $@
 	for i in . $$(grep / .distfiles | sed -e 's;/[^/]*$$;;' | sort -u); do \
-		(cd $$i && $(MAKE) $(MAKEFLAGS) distcontents); \
+		(cd $$i && $(MAKE) distcontents); \
 		mkdir -p $@/$$i; \
 	done
 	while read -r i; do \
@@ -110,7 +110,7 @@ cscope.out: $(SOURCES)
 
 mostlyclean:
 	-rm -rf $(OBJS) $(MKSIGNUMOBJS) $(BYPRODUCTS) $(DISTDIR)
-	-@cd tests && $(MAKE) $(MAKEFLAGS) clean
+	-@cd tests && $(MAKE) clean
 clean: mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: clean
@@ -118,7 +118,7 @@ distclean: clean
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
-	@$(MAKE) $(MAKEFLAGS) distclean
+	@$(MAKE) distclean
 
 reconfigure:
 	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q \

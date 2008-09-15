@@ -23,7 +23,7 @@ kill -l $?
 echo
 
 # SIGINT, SIGTERM and SIGQUIT are ignored if interactive
-$INVOKE $TESTEE -si 2>/dev/null <<\END
+$INVOKE $TESTEE -si --norcfile 2>/dev/null <<\END
 kill -s INT $$
 echo INT ignored
 kill -s TERM $$

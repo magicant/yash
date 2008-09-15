@@ -1272,7 +1272,8 @@ int hash_builtin(int argc, void **argv)
 print_usage:
     fprintf(stderr, gt(posixly_correct
 		? Ngt("Usage:  hash [-r] [command...]\n")
-		: Ngt("Usage:  hash [-adr] [command/username...]\n")));
+		: Ngt("Usage:  hash [-dr] [command/username...]\n"
+		      "        hash [-adr]\n")));
     return EXIT_ERROR;
 }
 

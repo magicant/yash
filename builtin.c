@@ -57,10 +57,10 @@ void init_builtin(void)
     assert(builtins.capacity == 0);
     ht_initwithcapacity(&builtins, hashstr, htstrcmp, 71);
 
-#define DEFBUILTIN(strname,func,type,help) \
+#define DEFBUILTIN(name,func,type,help) \
     do {                                                                      \
 	static const builtin_T bi = { func, type, help, };                    \
-	ht_set(&builtins, strname, &bi);                                      \
+	ht_set(&builtins, name, &bi);                                         \
     } while (0)
 
     /* defined in "builtin.c" */

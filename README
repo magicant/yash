@@ -43,6 +43,11 @@ Currently there is no manpage for yash. Sorry.
    expansion. Yash also performs command substitution and arithmetic
    expansion on 'PS1'.
  * Bracket expressions in filename expansion are not fully supported.
+ * Some builtin is executed in a subshell, rather than the current
+   shell, if it is preceded by an assignment to $PATH affecting the
+   command path search. This inappropriate behavior is due to the
+   timings when command path search is actually performed and when
+   the shell forks.
 
 
 ======================

@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # run-test.sh: runs tests specified by $TESTEE and $TEST_ITEMS
 # (C) 2007-2008 magicant
 #
@@ -50,8 +48,9 @@ do
 	    if ! $INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
 	    then echo " * $x (skipped)"; continue
 	    fi ;;
-	history.p|history)
-	    if ! HISTFILE= $INVOKE $TESTEE -i -c 'PATH=; fc -l' >/dev/null 2>&1
+	history)
+	    if ! HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
+		>/dev/null 2>&1
 	    then echo " * $x (skipped)"; continue
 	    fi ;;
     esac

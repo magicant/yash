@@ -29,7 +29,7 @@ BYPRODUCTS = invoke
 test test-all: invoke
 	@$(SHELL) ./run-test.sh
 test-posix:
-	@$(MAKE) $(MAKEFLAGS) TEST_ITEMS='*.p.tst' test
+	@$(MAKE) TEST_ITEMS='*.p.tst' test
 
 # Though these rules are exactly the same as the default rules defined by POSIX,
 # we re-define them here for maximum portability.
@@ -43,6 +43,6 @@ invoke: $(INVOKEOBJS)
 distcontents: ;
 
 clean:
-	rm -f invoke $(INVOKEOBJS)
+	rm -f $(BYPRODUCTS) $(INVOKEOBJS)
 
 .PHONY: test-all test-posix test distcontents clean

@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # resolves dependencies of source files
 # (C) 2007-2008 magicant
 #
