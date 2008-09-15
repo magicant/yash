@@ -50,6 +50,7 @@ debug="no"
 enable_alias="yes"
 enable_history="yes"
 enable_ulimit="yes"
+options=""
 unset prefix eprefix bindir
 umask u=rwx,go=rx
 
@@ -427,6 +428,7 @@ fi
 if [ x"$enable_alias" = x"yes" ]
 then
     defconfigh "ENABLE_ALIAS"
+    options="$options alias"
     objs="$objs $alias_objs"
 fi
 
@@ -434,6 +436,7 @@ fi
 if [ x"$enable_history" = x"yes" ]
 then
     defconfigh "ENABLE_HISTORY"
+    options="$options history"
     objs="$objs $history_objs"
 fi
 
@@ -454,6 +457,7 @@ END
     then
 	checked "yes"
 	defconfigh "ENABLE_ULIMIT"
+	options="$options ulimit"
 	objs="$objs $ulimit_objs"
     else
 	checked "no"
@@ -481,6 +485,8 @@ END
 	fi
     done
 fi
+
+defconfigh "OPTION_LIST" \""${options:- none}"\"
 
 
 cflags="${cflags} -D HAVE_CONFIG_H"

@@ -397,7 +397,8 @@ void print_help(void)
 /* Prints the version info to stdout. */
 void print_version(void)
 {
-    printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
+    printf(gt("Yet another shell, version %s (options:%s)\n"),
+	    PACKAGE_VERSION, OPTION_LIST);
     printf(PACKAGE_COPYRIGHT "\n");
 }
 
