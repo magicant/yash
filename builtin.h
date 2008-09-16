@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef BUILTIN_H
-#define BUILTIN_H
+#ifndef YASH_BUILTIN_H
+#define YASH_BUILTIN_H
 
 #include <stddef.h>
 
@@ -49,7 +49,7 @@ extern int false_builtin(int argc, void **argv)
 extern const char colon_help[], true_help[], false_help[];
 
 
-#endif /* BUILTIN_H */
+#endif /* YASH_BUILTIN_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

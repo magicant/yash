@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef EXPAND_H
-#define EXPAND_H
+#ifndef YASH_EXPAND_H
+#define YASH_EXPAND_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -62,7 +62,7 @@ extern wchar_t *parse_and_expand_string(
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 
-#endif /* EXPAND_H */
+#endif /* YASH_EXPAND_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

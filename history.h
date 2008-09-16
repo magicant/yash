@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef HISTORY_H
-#define HISTORY_H
+#ifndef YASH_HISTORY_H
+#define YASH_HISTORY_H
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -37,7 +37,7 @@ extern int fc_builtin(int argc, void **argv)
 extern const char fc_help[];
 
 
-#endif /* HISTORY_H */
+#endif /* YASH_HISTORY_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

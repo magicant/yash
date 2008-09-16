@@ -864,7 +864,7 @@ int trap_builtin(int argc, void **argv)
 		break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -889,7 +889,7 @@ int trap_builtin(int argc, void **argv)
 	    print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]);
 	}
 #endif
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     } else if (print) {
 	/* print specified traps */
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -920,7 +920,7 @@ int trap_builtin(int argc, void **argv)
 	    }
 	    free(name);
 	} while (++xoptind < argc);
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     }
 
     /* set traps */
@@ -940,13 +940,13 @@ int trap_builtin(int argc, void **argv)
 	    err |= !set_trap(signum, command);
 	}
     } while (++xoptind < argc);
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
     fprintf(stderr,
 	    Ngt("Usage:  trap [action signal...]\n"
 		"        trap -p [signal...]\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 /* Prints a trap command to stdout that can be used to restore the current
@@ -986,7 +986,7 @@ int kill_builtin(int argc, void **argv)
 {
     if (!posixly_correct && argc == 2 && wcscmp(ARGV(1), L"--help") == 0) {
 	print_builtin_help(ARGV(0));
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     }
 
     wchar_t opt;
@@ -1006,12 +1006,12 @@ int kill_builtin(int argc, void **argv)
 		if (posixly_correct && wcsncmp(xoptarg, L"SIG", 3) == 0) {
 		    xerror(0, Ngt("%ls: signal name must be specified "
 				"without `SIG'"), xoptarg);
-		    return EXIT_ERROR;
+		    return Exit_ERROR;
 		}
 		signum = get_signal_number_w(xoptarg);
 		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {
 		    xerror(0, Ngt("%ls: no such signal"), xoptarg);
-		    return EXIT_FAILURE1;
+		    return Exit_FAILURE;
 		}
 		goto no_more_options;
 	    case L'l':
@@ -1095,13 +1095,13 @@ main:
 	    }
 	} while (++xoptind < argc);
     }
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
     fprintf(stderr, Ngt(
 		"Usage:  kill [-s signal] process...\n"
 		"        kill -l [number...]\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 /* Prints info about the specified signal.

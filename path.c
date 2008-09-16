@@ -718,7 +718,7 @@ bool wglob_search(
 	return true;
 
     size_t patlen = wcscspn(pattern, L"/");
-    bool isleaf = (pattern[patlen] == L'\0');
+    bool is_leaf = (pattern[patlen] == L'\0');
     wchar_t pat[patlen + 1];
     wcsncpy(pat, pattern, patlen);
     pat[patlen] = L'\0';
@@ -752,7 +752,7 @@ bool wglob_search(
 	    ok = false;
 	} else if (match != WFNM_NOMATCH) {
 	    /* matched! */
-	    if (isleaf) {
+	    if (is_leaf) {
 		/* add the matched pathname to the list */
 		wb_cat(wdirname, wentname);
 		if (flags & WGLB_MARK) {
@@ -938,10 +938,10 @@ int cd_builtin(int argc, void **argv)
 		case L'P':  logical = false;  break;
 		case L'-':
 		    print_builtin_help(ARGV(0));
-		    return EXIT_SUCCESS;
+		    return Exit_SUCCESS;
 		default:
 		    fprintf(stderr, gt("Usage:  cd [-L|-P] [dir]\n"));
-		    return EXIT_ERROR;
+		    return Exit_ERROR;
 	    }
 	}
     }
@@ -972,13 +972,13 @@ int cd_builtin(int argc, void **argv)
 	newpwd = getvar(VAR_HOME);
 	if (newpwd == NULL || newpwd[0] == L'\0') {
 	    xerror(0, Ngt("$HOME not set"));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
     } else if (wcscmp(ARGV(xoptind), L"-") == 0) {
 	newpwd = getvar(VAR_OLDPWD);
 	if (newpwd == NULL || newpwd[0] == L'\0') {
 	    xerror(0, Ngt("$OLDPWD not set"));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
 	printnewdir = true;
     } else {
@@ -994,7 +994,7 @@ int cd_builtin(int argc, void **argv)
 	if (mbsnewpwd == NULL) {
 	    wb_destroy(&curpath);
 	    xerror(0, Ngt("unexpected error"));
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	}
 	char *path = which(mbsnewpwd, get_path_array(PA_CDPATH), is_directory);
 	if (path != NULL) {
@@ -1025,12 +1025,12 @@ step7:
 	char *mbscurpath = realloc_wcstombs(wb_towcs(&curpath));
 	if (mbscurpath == NULL) {
 	    xerror(0, Ngt("unexpected error"));
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	}
 	if (chdir(mbscurpath) < 0) {
 	    xerror(errno, Ngt("`%s'"), mbscurpath);
 	    free(mbscurpath);
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
 	free(mbscurpath);
 
@@ -1040,7 +1040,7 @@ step7:
 	char *actualpwd = xgetcwd();
 	if (actualpwd == NULL) {
 	    xerror(errno, Ngt("cannot find out new working directory"));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	} else {
 	    if (printnewdir)
 		printf("%s\n", actualpwd);
@@ -1049,7 +1049,7 @@ step7:
 	    if (wactualpwd == NULL) {
 		xerror(0, Ngt("cannot convert multibyte characters "
 			    "into wide characters"));
-		return EXIT_FAILURE1;
+		return Exit_FAILURE;
 	    } else {
 		if (!set_variable(VAR_PWD, wactualpwd, false, false))
 		    err = true;
@@ -1064,13 +1064,13 @@ step7:
 	    if (mbspath == NULL) {
 		xerror(0, Ngt("unexpected error"));
 		free(path);
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	    }
 	    if (chdir(mbspath) < 0) {
 		xerror(errno, Ngt("`%s'"), mbspath);
 		free(mbspath);
 		free(path);
-		return EXIT_FAILURE1;
+		return Exit_FAILURE;
 	    }
 	    if (printnewdir)
 		printf("%s\n", mbspath);
@@ -1083,7 +1083,7 @@ step7:
 	}
     }
 
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 const char cd_help[] = Ngt(
@@ -1120,10 +1120,10 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'P':  logical = false;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1135,7 +1135,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 		if (is_same_file(mbspwd, ".")) {
 		    printf("%s\n", mbspwd);
 		    free(mbspwd);
-		    return EXIT_SUCCESS;
+		    return Exit_SUCCESS;
 		}
 		free(mbspwd);
 	    }
@@ -1145,7 +1145,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
     mbspwd = xgetcwd();
     if (mbspwd == NULL) {
 	xerror(errno, Ngt("cannot find out current directory"));
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
     printf("%s\n", mbspwd);
     if (posixly_correct) {
@@ -1154,7 +1154,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	    set_variable(VAR_PWD, pwd, false, false);
     }
     free(mbspwd);
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 }
 
 const char pwd_help[] = Ngt(
@@ -1197,7 +1197,7 @@ int hash_builtin(int argc, void **argv)
 	    case L'r':  remove = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -1267,14 +1267,14 @@ int hash_builtin(int argc, void **argv)
 	    }
 	}
     }
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
     fprintf(stderr, gt(posixly_correct
 		? Ngt("Usage:  hash [-r] [command...]\n")
 		: Ngt("Usage:  hash [-dr] [command/username...]\n"
 		      "        hash [-adr]\n")));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 /* Prints the entries of the command hashtable. */
@@ -1340,7 +1340,7 @@ int umask_builtin(int argc, void **argv)
 		break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -1358,11 +1358,11 @@ int umask_builtin(int argc, void **argv)
     } else {
 	goto print_usage;
     }
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 
 print_usage:
     fprintf(stderr, gt("Usage:  umask [-S] [mask]\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 void print_umask_octal(mode_t mode)
@@ -1403,10 +1403,10 @@ int set_umask(const wchar_t *maskstr)
 	mask = wcstoumax(maskstr, &end, 8);
 	if (errno || *end) {
 	    xerror(0, Ngt("`%ls': invalid mask"), maskstr);
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	}
 	umask((mode_t) (mask & (S_IRWXU | S_IRWXG | S_IRWXO)));
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     }
 
     /* otherwise parse as a symbolic mode specification */
@@ -1480,12 +1480,12 @@ perm_end:
     } while (1);
 parse_end:
     umask(~newmask);
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 
 err:
     umask(~origmask);
     xerror(0, Ngt("`%ls': invalid mask"), savemaskstr);
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 mode_t copy_user_mask(mode_t mode)

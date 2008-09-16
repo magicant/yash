@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef HASHTABLE_H
-#define HASHTABLE_H
+#ifndef YASH_HASHTABLE_H
+#define YASH_HASHTABLE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -104,7 +104,7 @@ hashtable_T *ht_init(hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
 }
 
 
-#endif /* HASHTABLE_H */
+#endif /* YASH_HASHTABLE_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

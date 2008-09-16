@@ -162,7 +162,7 @@ int ulimit_builtin(int argc, void **argv)
 	    case L'a':  print_all = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		for (const struct resource *r = resource_types; r->option; r++){
 		    if (r->option == opt) {
@@ -184,7 +184,7 @@ opt_ok:
 	for (resource = resource_types; resource->option; resource++) {
 	    if (getrlimit(resource->type, &rlimit) < 0) {
 		xerror(errno, Ngt("cannot get current limit"));
-		return EXIT_FAILURE1;
+		return Exit_FAILURE;
 	    }
 	    rlim_t value = (type & soft) ? rlimit.rlim_cur : rlimit.rlim_max;
 	    printf(gt("-%lc: %-30s "),
@@ -194,7 +194,7 @@ opt_ok:
 	    else
 		printf("%ju\n", (uintmax_t) (value / resource->factor));
 	}
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     }
 
     if (xoptind + 1 < argc)
@@ -209,7 +209,7 @@ opt_ok:
     assert(resource != NULL);
     if (getrlimit(resource->type, &rlimit) < 0) {
 	xerror(errno, Ngt("cannot get current limit"));
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
     if (xoptind == argc) {
 	/* print value */
@@ -239,7 +239,7 @@ opt_ok:
 	    if (value / resource->factor != v || value == RLIM_INFINITY
 		    || value == RLIM_SAVED_MAX || value == RLIM_SAVED_CUR) {
 		xerror(ERANGE, NULL);
-		return EXIT_FAILURE1;
+		return Exit_FAILURE;
 	    }
 	} else {
 	    goto err_format;
@@ -258,22 +258,22 @@ opt_ok:
 			&& rlimit.rlim_cur != RLIM_SAVED_CUR
 			&& rlimit.rlim_cur > rlimit.rlim_max))) {
 	    xerror(0, Ngt("soft limit cannot exceed hard limit"));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
 
 	if (setrlimit(resource->type, &rlimit) < 0) {
 	    xerror(errno, Ngt("cannot set limit"));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
     }
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 
 err_format:
     xerror(0, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 print_usage:
     fprintf(stderr, gt("Usage:  ulimit [-%ls] [limit]\n"), short_options);
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 const char ulimit_help[] = Ngt(

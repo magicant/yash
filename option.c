@@ -241,10 +241,10 @@ int set_builtin(int argc, void **argv)
     if (argc == 2) {
 	if (wcscmp(ARGV(1), L"-o") == 0) {
 	    set_builtin_print_current_settings();
-	    return EXIT_SUCCESS;
+	    return Exit_SUCCESS;
 	} else if (wcscmp(ARGV(1), L"+o") == 0) {
 	    set_builtin_print_restoring_commands();
-	    return EXIT_SUCCESS;
+	    return Exit_SUCCESS;
 	}
     }
 
@@ -262,12 +262,12 @@ int set_builtin(int argc, void **argv)
 		break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    case L'?':  optionerror:
 		fprintf(stderr,
 		    gt("Usage:  set [-abefhmnuvxC] [-o option] [+o option] "
 			"[arg...]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	    default:
 		if (opt == L'm') {
 		    bool value = (xoptopt == L'-');
@@ -291,7 +291,7 @@ int set_builtin(int argc, void **argv)
 	    (xoptind == argc && wcscmp(ARGV(xoptind - 1), L"--") == 0))
 	set_positional_parameters(argv + xoptind);
 
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 }
 
 void set_builtin_print_current_settings(void)

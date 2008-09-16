@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef YASH_H
-#define YASH_H
+#ifndef YASH_YASH_H
+#define YASH_YASH_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -68,7 +68,7 @@ void exit_shell(void)
 }
 
 
-#endif /* YASH_H */
+#endif /* YASH_YASH_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef ULIMIT_H
-#define ULIMIT_H
+#ifndef YASH_ULIMIT_H
+#define YASH_ULIMIT_H
 
 
 extern int ulimit_builtin(int argc, void **argv)
@@ -25,7 +25,7 @@ extern int ulimit_builtin(int argc, void **argv)
 extern const char ulimit_help[];
 
 
-#endif /* ULIMIT_H */
+#endif /* YASH_ULIMIT_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

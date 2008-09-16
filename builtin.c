@@ -78,7 +78,7 @@ void init_builtin(void)
     DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, umask_help);
 
     /* defined in "alias.c" */
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
     DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help);
     DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help);
 #endif
@@ -104,12 +104,12 @@ void init_builtin(void)
     DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
 
     /* defined in "ulimit.c" */
-#if ENABLE_ULIMIT
+#if YASH_ENABLE_ULIMIT
     DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help);
 #endif
 
     /* defined in "history.c" */
-#if ENABLE_HISTORY
+#if YASH_ENABLE_HISTORY
     DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, fc_help);
 #endif
 

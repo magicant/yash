@@ -154,7 +154,7 @@ static inline int xexecve(
 
 
 /* exit status of the last command */
-int laststatus = EXIT_SUCCESS;
+int laststatus = Exit_SUCCESS;
 /* exit status of the command preceding the currently executed trap action */
 int savelaststatus = -1;  // -1 if not in a trap action
 /* exit status of the last command substitution */
@@ -177,7 +177,7 @@ static struct execinfo {
 /* Note that n continues are equivalent to (n-1) breaks followed by one
  * continue. When `exception' is set to `ee_return', `breakcount' must be 0. */
 /* Note that `execinfo' is not reset when a subshell forks. */
-#define EXECINFO_INIT { 0, 0, ee_none }  /* used to initialize `execinfo' */
+#define INIT_EXECINFO { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
 /* This flag is set while the "exec" builtin is executed. */
 static bool exec_builtin_executed;
@@ -194,7 +194,7 @@ bool need_break(void)
 /* Resets `execinfo' to the initial state. */
 void reset_execinfo(void)
 {
-    execinfo = (struct execinfo) EXECINFO_INIT;
+    execinfo = (struct execinfo) INIT_EXECINFO;
 }
 
 /* Saves the current `execinfo' and returns it.
@@ -203,7 +203,7 @@ struct execinfo *save_execinfo(void)
 {
     struct execinfo *save = xmalloc(sizeof execinfo);
     *save = execinfo;
-    execinfo = (struct execinfo) EXECINFO_INIT;
+    execinfo = (struct execinfo) INIT_EXECINFO;
     return save;
 }
 
@@ -286,7 +286,7 @@ void exec_pipelines_async(const pipeline_T *p)
 
 	    set_active_job(job);
 	    add_job(false);
-	    laststatus = EXIT_SUCCESS;
+	    laststatus = Exit_SUCCESS;
 	    lastasyncpid = cpid;
 	} else if (cpid == 0) {
 	    /* child process: execute the commands and then exit */
@@ -295,7 +295,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    assert(false);
 	} else {
 	    /* fork failure */
-	    laststatus = EXIT_NOEXEC;
+	    laststatus = Exit_NOEXEC;
 	}
     }
 }
@@ -313,7 +313,7 @@ void exec_if(const command_T *c, bool finally_exit)
 	    return;
 	}
     }
-    laststatus = EXIT_SUCCESS;
+    laststatus = Exit_SUCCESS;
 done:
     if (finally_exit)
 	exit_shell();
@@ -327,7 +327,7 @@ bool exec_condition(const and_or_T *c)
 	supresserrexit = true;
 	exec_and_or_lists(c, false);
 	supresserrexit = savesee;
-	return laststatus == EXIT_SUCCESS;
+	return laststatus == Exit_SUCCESS;
     } else {
 	return true;
     }
@@ -345,7 +345,7 @@ void exec_for(const command_T *c, bool finally_exit)
 
     if (c->c_forwords) {
 	if (!expand_line(c->c_forwords, &count, &words)) {
-	    laststatus = EXIT_EXPERROR;
+	    laststatus = Exit_EXPERROR;
 	    goto finish;
 	}
     } else {
@@ -379,7 +379,7 @@ done:
 	free(words[i]);
     free(words);
     if (count == 0)
-	laststatus = EXIT_SUCCESS;
+	laststatus = Exit_SUCCESS;
 finish:
     if (finally_exit)
 	exit_shell();
@@ -396,7 +396,7 @@ void exec_while(const command_T *c, bool finally_exit)
     assert(!need_break());
     execinfo.loopnest++;
 
-    int status = EXIT_SUCCESS;
+    int status = Exit_SUCCESS;
     while (exec_condition(c->c_whlcond) == c->c_whltype) {
 	CHECK_LOOP;
 	exec_and_or_lists(c->c_whlcmds, false);
@@ -436,7 +436,7 @@ void exec_case(const command_T *c, bool finally_exit)
 	    }
 	}
     }
-    laststatus = EXIT_SUCCESS;
+    laststatus = Exit_SUCCESS;
 done:
     if (finally_exit)
 	exit_shell();
@@ -444,7 +444,7 @@ done:
     return;
 
 fail:
-    laststatus = EXIT_EXPERROR;
+    laststatus = Exit_EXPERROR;
     goto done;
 }
 
@@ -595,7 +595,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
 	    goto done;
 	}
     } else {
-	laststatus = EXIT_SUCCESS;
+	laststatus = Exit_SUCCESS;
 	lastasyncpid = ps[count - 1].pr_pid;
     }
 
@@ -611,7 +611,7 @@ done:
     if (doing_job_control_now)
 	put_foreground(shell_pgid); /* put the shell in the foreground */
     handle_traps();
-    if (shopt_errexit && !supresserrexit && laststatus != EXIT_SUCCESS
+    if (shopt_errexit && !supresserrexit && laststatus != Exit_SUCCESS
 	    && lasttype == CT_SIMPLE)
 	exit_shell();
 }
@@ -669,7 +669,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    if (cmdinfo.type == externalprogram && !cmdinfo.ci_path
 		    && !c->c_redirs && !c->c_assigns) {
 		xerror(0, Ngt("%s: no such command or function"), argv0);
-		laststatus = EXIT_NOTFOUND;
+		laststatus = Exit_NOTFOUND;
 		recfree(argv, free);
 		free(argv0);
 		goto done;
@@ -703,7 +703,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (ext)
 	restore_all_signals();
 
-    lastcmdsubstatus = EXIT_SUCCESS;
+    lastcmdsubstatus = Exit_SUCCESS;
 
     /* connect pipes and close leftovers */
     connect_pipes(pi);
@@ -725,7 +725,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    if (do_assignments(c->c_assigns, false, shopt_allexport))
 		laststatus = lastcmdsubstatus;
 	    else
-		laststatus = EXIT_ASSGNERR;
+		laststatus = Exit_ASSGNERR;
 	} else {
 	    bool temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
 	    if (temp)
@@ -737,7 +737,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 				| (argc == 1 ? sct_argc1 : 0));
 		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
 	    } else {
-		laststatus = EXIT_ASSGNERR;
+		laststatus = Exit_ASSGNERR;
 		if (!is_interactive && cmdinfo.type == specialbuiltin)
 		    exit_shell();
 	    }
@@ -752,20 +752,20 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     if (finally_exit)
 	exit_shell();
 
-    if (exec_builtin_executed && laststatus == EXIT_SUCCESS)
+    if (exec_builtin_executed && laststatus == Exit_SUCCESS)
 	clear_savefd(savefd);
     else
 	undo_redirections(savefd);
     return 0;
 
 exp_fail:
-    laststatus = EXIT_EXPERROR;
+    laststatus = Exit_EXPERROR;
 done:
     if (early_fork || type == execself)
 	exit_shell();
     return 0;
 redir_fail:
-    laststatus = EXIT_REDIRERR;
+    laststatus = Exit_REDIRERR;
     if (finally_exit)
 	exit_shell();
     if (posixly_correct && !is_interactive && c->c_type == CT_SIMPLE &&
@@ -972,9 +972,9 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	break;
     case CT_FUNCDEF:
 	if (define_function(c->c_funcname, c->c_funcbody))
-	    laststatus = EXIT_SUCCESS;
+	    laststatus = Exit_SUCCESS;
 	else
-	    laststatus = EXIT_ASSGNERR;
+	    laststatus = Exit_ASSGNERR;
 	if (finally_exit)
 	    exit_shell();
 	break;
@@ -996,7 +996,7 @@ void exec_simple_command(
 	assert(finally_exit || !ci->ci_path);
 	if (ci->ci_path == NULL) {
 	    xerror(0, Ngt("%s: no such command or function"), argv0);
-	    laststatus = EXIT_NOTFOUND;
+	    laststatus = Exit_NOTFOUND;
 	} else {
 	    char *mbsargv[argc + 1];
 	    mbsargv[0] = argv0;
@@ -1022,7 +1022,7 @@ void exec_simple_command(
 	    }
 	    for (int i = 1; i < argc; i++)
 		free(mbsargv[i]);
-	    laststatus = (errno_ == ENOENT) ? EXIT_NOTFOUND : EXIT_NOEXEC;
+	    laststatus = (errno_ == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
 	}
 	break;
     case specialbuiltin:
@@ -1157,7 +1157,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	/* fork failure */
 	xclose(pipefd[PIDX_IN]);
 	xclose(pipefd[PIDX_OUT]);
-	lastcmdsubstatus = EXIT_NOEXEC;
+	lastcmdsubstatus = Exit_NOEXEC;
 	return NULL;
     } else if (cpid) {
 	/* parent process */
@@ -1168,7 +1168,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	if (!f) {
 	    xerror(errno, Ngt("cannot open pipe for command substitution"));
 	    xclose(pipefd[PIDX_IN]);
-	    lastcmdsubstatus = EXIT_NOEXEC;
+	    lastcmdsubstatus = Exit_NOEXEC;
 	    return NULL;
 	}
 
@@ -1274,23 +1274,23 @@ success:
 	FILE *f = fdopen(pipefd[PIDX_OUT], "w");
 	if (!f) {
 	    xerror(errno, Ngt("cannot open pipe for here-document"));
-	    exit(EXIT_ERROR);
+	    exit(Exit_ERROR);
 	}
 
 	wchar_t *s = expand_string(contents, true);
 	if (!s)
-	    exit(EXIT_EXPERROR);
+	    exit(Exit_EXPERROR);
 	if (fputws(s, f) < 0) {
 #ifndef NDEBUG
 	    free(s);
 #endif
 	    xerror(errno, Ngt("cannot write here-document contents"));
-	    exit(EXIT_ERROR);
+	    exit(Exit_ERROR);
 	}
 #ifndef NDEBUG
 	free(s);
 #endif
-	exit(EXIT_SUCCESS);
+	exit(Exit_SUCCESS);
     }
 }
 
@@ -1319,10 +1319,10 @@ int return_builtin(int argc __attribute__((unused)), void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1361,10 +1361,10 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1378,16 +1378,16 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	count = wcstoul(countstr, &endofstr, 0);
 	if (errno || *endofstr != L'\0') {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	} else if (count == 0) {
 	    xerror(0, Ngt("%u: not a positive integer"), count);
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	}
     }
     assert(count > 0);
     if (execinfo.loopnest == 0) {
 	xerror(0, Ngt("not in loop"));
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
     if (count > execinfo.loopnest)
 	count = execinfo.loopnest;
@@ -1398,7 +1398,7 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	execinfo.breakcount = count - 1;
 	execinfo.exception = ee_continue;
     }
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 }
 
 const char break_help[] = Ngt(
@@ -1424,10 +1424,10 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  eval [arg...]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1452,10 +1452,10 @@ int dot_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  . file [arg...]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1466,7 +1466,7 @@ int dot_builtin(int argc, void **argv)
     char *mbsfilename = malloc_wcstombs(filename);
     if (!mbsfilename) {
 	xerror(0, Ngt("unexpected error"));
-	return EXIT_ERROR;
+	return Exit_ERROR;
     }
 
     char *path;
@@ -1479,8 +1479,8 @@ int dot_builtin(int argc, void **argv)
 		xerror(0, Ngt("%s: not found in $PATH"), mbsfilename);
 		free(mbsfilename);
 		if (!is_interactive)
-		    exit_shell_with_status(EXIT_FAILURE1);
-		return EXIT_FAILURE1;
+		    exit_shell_with_status(Exit_FAILURE);
+		return Exit_FAILURE;
 	    }
 	}
     } else {
@@ -1501,8 +1501,8 @@ int dot_builtin(int argc, void **argv)
 	xerror(errno, Ngt("cannot open `%s'"), mbsfilename);
 	free(mbsfilename);
 	if (!is_interactive)
-	    exit_shell_with_status(EXIT_FAILURE1);
-	return EXIT_FAILURE1;
+	    exit_shell_with_status(Exit_FAILURE);
+	return Exit_FAILURE;
     }
 
     exec_input(f, mbsfilename, false, false);
@@ -1555,18 +1555,18 @@ int exec_builtin(int argc, void **argv)
 	    case L'f':  force = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr,
 		    gt("Usage:  exec [-cf] [-a name] [command [arg...]]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
     exec_builtin_executed = true;
 
     if (xoptind == argc)
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     if (!posixly_correct && is_interactive_now && !force) {
 	size_t sjc = stopped_job_count();
 	if (sjc > 0) {
@@ -1577,7 +1577,7 @@ int exec_builtin(int argc, void **argv)
 			sjc),
 		    sjc);
 	    fprintf(stderr, gt("  Use `-f' option to exec anyway.\n"));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
     }
 
@@ -1591,7 +1591,7 @@ int exec_builtin(int argc, void **argv)
 int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 {
     int err;
-    char *tofree = NULL;
+    char *freelater = NULL;
     char *args[argc + 1];
     for (int i = 0; i < argc; i++) {
 	args[i] = malloc_wcstombs(ARGV(i));
@@ -1610,7 +1610,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	commandpath = get_command_path(args[0], false);
 	if (!commandpath) {
 	    xerror(0, Ngt("%s: no such command"), args[0]);
-	    err = EXIT_NOTFOUND;
+	    err = Exit_NOTFOUND;
 	    goto err;
 	}
     }
@@ -1631,7 +1631,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     }
 
     if (as) {
-	tofree = args[0];
+	freelater = args[0];
 	args[0] = malloc_wcstombs(as);
 	if (!args[0]) {
 	    xerror(0, Ngt("cannot convert wide characters into "
@@ -1655,18 +1655,18 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	exec_fall_back_on_sh(argc, args, envs ? envs : environ, commandpath);
     }
     if (posixly_correct || !is_interactive_now)
-	exit(EXIT_NOEXEC);
+	exit(Exit_NOEXEC);
     init_signal();
     set_signals();
     reinitialize_shell();
-    err = EXIT_NOEXEC;
+    err = Exit_NOEXEC;
 
     recfree((void **) envs, free);
 
 err:
     for (int i = 0; i < argc; i++)
 	free(args[i]);
-    free(tofree);
+    free(freelater);
     if (posixly_correct || !is_interactive_now)
 	exit_shell_with_status(err);
     return err;
@@ -1708,9 +1708,9 @@ int command_builtin(int argc, void **argv)
 	{ NULL, 0, 0, },
     };
 
-    bool istype = wcscmp(ARGV(0), L"type") == 0;
+    bool argv0istype = wcscmp(ARGV(0), L"type") == 0;
     enum srchcmdtype_T type = 0;
-    enum { noinfo, formal, human, } infotype = istype ? human : noinfo;
+    enum { noinfo, formal, human, } infotype = argv0istype ? human : noinfo;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
@@ -1725,7 +1725,7 @@ int command_builtin(int argc, void **argv)
 	    case L'V':  infotype = human;   break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -1735,7 +1735,7 @@ int command_builtin(int argc, void **argv)
 	if (posixly_correct)
 	    goto print_usage;
 	else
-	    return EXIT_SUCCESS;
+	    return Exit_SUCCESS;
     } else if (type != 0 && infotype != noinfo) {
 	goto print_usage;
     }
@@ -1750,16 +1750,16 @@ int command_builtin(int argc, void **argv)
 	case formal:
 	    for (int i = xoptind; i < argc; i++)
 		err |= !print_command_info(ARGV(i));
-	    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+	    return err ? Exit_FAILURE : Exit_SUCCESS;
 	case human:
 	    for (int i = xoptind; i < argc; i++)
 		err |= !print_command_info_human_friendlily(ARGV(i));
-	    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+	    return err ? Exit_FAILURE : Exit_SUCCESS;
     }
     assert(false);
 
 print_usage:
-    if (istype)
+    if (argv0istype)
 	fprintf(stderr, gt("Usage:  type command...\n"));
     else if (posixly_correct)
 	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
@@ -1767,7 +1767,7 @@ print_usage:
     else
 	fprintf(stderr, gt("Usage:  command [-bBp] command [arg...]\n"
 			   "        command [-v|-V] command...\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 /* Executes the specified simple command.
@@ -1786,7 +1786,7 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 	pid_t cpid = fork_and_reset(0, true, t_leave);
 	if (cpid < 0) {
 	    free(argv0);
-	    return EXIT_NOEXEC;
+	    return Exit_NOEXEC;
 	} else if (cpid > 0) {
 	    wchar_t **namep = wait_for_child(
 		    cpid,
@@ -1810,7 +1810,7 @@ bool print_command_info(const wchar_t *commandname)
 {
     if (wcschr(commandname, L'/'))
 	return print_command_fullpath(commandname, false);
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
     if (print_alias_if_defined(commandname, false))
 	return true;
 #endif
@@ -1851,7 +1851,7 @@ bool print_command_info_human_friendlily(const wchar_t *commandname)
 {
     if (wcschr(commandname, L'/'))
 	return print_command_fullpath(commandname, true);
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
     if (print_alias_if_defined(commandname, true))
 	return true;
 #endif
@@ -1971,10 +1971,10 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  times\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1993,7 +1993,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     clock = sysconf(_SC_CLK_TCK);
     if (times(&tms) == (clock_t) -1) {
 	xerror(errno, Ngt("cannot get time data"));
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
     format_time(tms.tms_utime, sum, sus);
     format_time(tms.tms_stime, ssm, sss);
@@ -2001,7 +2001,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     format_time(tms.tms_cstime, csm, css);
     printf(Ngt("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n"),
 	    sum, sus, ssm, sss, cum, cus, csm, css);
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 #undef format_time
 }
 

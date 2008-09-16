@@ -18,8 +18,8 @@
 /* This file should be included at the very first in every source file. */
 
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef YASH_COMMON_H
+#define YASH_COMMON_H
 
 #define _POSIX_C_SOURCE 200112L
 #define _XOPEN_SOURCE   600
@@ -48,7 +48,7 @@
 
 #define ARGV(i) ((wchar_t *) argv[i])
 
-#endif /* COMMON_H */
+#endif /* YASH_COMMON_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef VARIABLE_H
-#define VARIABLE_H
+#ifndef YASH_VARIABLE_H
+#define YASH_VARIABLE_H
 
 #include <stddef.h>
 
@@ -120,7 +120,7 @@ extern const char typeset_help[], unset_help[], shift_help[],
        getopts_help[], read_help[];
 
 
-#endif /* VARIABLE_H */
+#endif /* YASH_VARIABLE_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

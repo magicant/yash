@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef PLIST_H
-#define PLIST_H
+#ifndef YASH_PLIST_H
+#define YASH_PLIST_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -124,7 +124,7 @@ plist_T *pl_remove(plist_T *list, size_t i, size_t n)
 }
 
 
-#endif /* PLIST_H */
+#endif /* YASH_PLIST_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

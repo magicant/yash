@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef STRBUF_H
-#define STRBUF_H
+#ifndef YASH_STRBUF_H
+#define YASH_STRBUF_H
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -402,7 +402,7 @@ wchar_t *malloc_wprintf(const wchar_t *format, ...)
 }
 
 
-#endif /* STRBUF_H */
+#endif /* YASH_STRBUF_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

@@ -40,10 +40,10 @@
 
 
 /* characters that have special meanings in brace expansion and glob. */
-#define ESCAPED_CHARS L"\\{,}"
+#define CHARS_ESCAPED L"\\{,}"
 
 /* characters that can be escaped with a backslash inside doublequotes. */
-#define ESCAPABLE_CHARS L"$`\"\\"
+#define CHARS_ESCAPABLE L"$`\"\\"
 
 static bool expand_word_and_split(
 	const wordunit_T *restrict w, plist_T *restrict list)
@@ -147,7 +147,7 @@ bool expand_line(void *const *restrict args,
     while (*args) {
 	if (!expand_word_and_split(*args, &list1)) {
 	    if (!is_interactive)
-		exit_shell_with_status(EXIT_EXPERROR);
+		exit_shell_with_status(Exit_EXPERROR);
 	    recfree(pl_toary(&list1), free);
 	    return false;
 	}
@@ -215,7 +215,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 
     if (!expand_word(arg, tilde, &list, NULL)) {
 	if (!is_interactive)
-	    exit_shell_with_status(EXIT_EXPERROR);
+	    exit_shell_with_status(Exit_EXPERROR);
 	recfree(pl_toary(&list), free);
 	return NULL;
     }
@@ -348,7 +348,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	return wb_towcs(&buf);
     } else {
 	if (!is_interactive)
-	    exit_shell_with_status(EXIT_EXPERROR);
+	    exit_shell_with_status(Exit_EXPERROR);
 	wb_destroy(&buf);
 	return NULL;
     }
@@ -397,7 +397,7 @@ bool expand_word(
 	    if (first && tilde != tt_none) {
 		s = expand_tilde(&ss, w->next, tilde);
 		if (s) {
-		    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
+		    wb_catfree(&buf, escapefree(s, CHARS_ESCAPED));
 		    FILL_SBUF_UNSPLITTABLE;
 		}
 	    }
@@ -415,7 +415,7 @@ bool expand_word(
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\\':
-		    if (indq && !wcschr(ESCAPABLE_CHARS, ss[1])) {
+		    if (indq && !wcschr(CHARS_ESCAPABLE, ss[1])) {
 			goto default_case;
 		    } else {
 			wb_wccat(&buf, L'\\');
@@ -430,7 +430,7 @@ bool expand_word(
 			ss++;
 			s = expand_tilde(&ss, w->next, tilde);
 			if (s)
-			    wb_catfree(&buf, escapefree(s, ESCAPED_CHARS));
+			    wb_catfree(&buf, escapefree(s, CHARS_ESCAPED));
 			FILL_SBUF_UNSPLITTABLE;
 			continue;
 		    }
@@ -481,7 +481,7 @@ bool expand_word(
 		s = evaluate_arithmetic(unescapefree(s));
 	cat_s:
 	    if (s) {
-		wb_catfree(&buf, escapefree(s, indq ? NULL : ESCAPED_CHARS));
+		wb_catfree(&buf, escapefree(s, indq ? NULL : CHARS_ESCAPED));
 		FILL_SBUF_SPLITTABLE;
 	    } else {
 		ok = false;
@@ -574,7 +574,7 @@ finish:
  * If successful, the result is returned as a newly malloced array of pointers
  * to newly malloced wide strings cast to (void *). The array is
  * NULL-terminated.
- * Characters in the strings that are contained in `ESCAPED_CHARS' are
+ * Characters in the strings that are contained in `CHARS_ESCAPED' are
  * backslashed.
  * If "$@" is expanded or the result is an array, the returned array may
  * contain any number of strings. Otherwise, the array contains one string.
@@ -725,7 +725,7 @@ subst:
 
     /* backslash */
     for (size_t i = 0; list[i]; i++)
-	list[i] = escapefree(list[i], indq ? NULL : ESCAPED_CHARS);
+	list[i] = escapefree(list[i], indq ? NULL : CHARS_ESCAPED);
 
     return list;
 }
@@ -1479,7 +1479,7 @@ wchar_t *unquote(const wchar_t *s)
 	    indq = !indq;
 	    break;
 	case L'\\':
-	    if (s[1] != L'\0' && (!indq || wcschr(ESCAPABLE_CHARS, s[1]))) {
+	    if (s[1] != L'\0' && (!indq || wcschr(CHARS_ESCAPABLE, s[1]))) {
 		wb_wccat(&buf, s[1]);
 		s += 2;
 		continue;

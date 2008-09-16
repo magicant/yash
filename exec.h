@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef EXEC_H
-#define EXEC_H
+#ifndef YASH_EXEC_H
+#define YASH_EXEC_H
 
 #include <stdbool.h>
 #include <sys/types.h>
@@ -31,14 +31,15 @@ typedef enum sigtype_T {
     t_leave      = 1 << 3,
 } sigtype_T;
 
-#define EXIT_FAILURE1 1
-#define EXIT_ERROR    2
-#define EXIT_NOEXEC   126
-#define EXIT_NOTFOUND 127
-#define EXIT_SYNERROR (256 + EXIT_ERROR)
-#define EXIT_EXPERROR EXIT_ERROR
-#define EXIT_ASSGNERR EXIT_ERROR
-#define EXIT_REDIRERR EXIT_ERROR
+#define Exit_SUCCESS  0
+#define Exit_FAILURE  1
+#define Exit_ERROR    2
+#define Exit_NOEXEC   126
+#define Exit_NOTFOUND 127
+#define Exit_SYNERROR (256 + Exit_ERROR)
+#define Exit_EXPERROR Exit_ERROR
+#define Exit_ASSGNERR Exit_ERROR
+#define Exit_REDIRERR Exit_ERROR
 
 extern int laststatus, savelaststatus;
 extern pid_t lastasyncpid;
@@ -79,7 +80,7 @@ extern const char return_help[], break_help[], continue_help[],
        times_help[];
 
 
-#endif /* EXEC_H */
+#endif /* YASH_EXEC_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

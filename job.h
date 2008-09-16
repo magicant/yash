@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef JOB_H
-#define JOB_H
+#ifndef YASH_JOB_H
+#define YASH_JOB_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -107,7 +107,7 @@ extern int disown_builtin(int argc, void **argv)
 extern const char jobs_help[], fg_help[], bg_help[], wait_help[], disown_help[];
 
 
-#endif /* JOB_H */
+#endif /* YASH_JOB_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

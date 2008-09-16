@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef SIGLIST_H
-#define SIGLIST_H
+#ifndef YASH_SIGLIST_H
+#define YASH_SIGLIST_H
 
 #include <signal.h>
 
@@ -161,7 +161,7 @@ static const signal_T signals[] = {
 };
 
 
-#endif
+#endif  /* YASH_SIGLIST_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

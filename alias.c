@@ -228,12 +228,12 @@ int alias_builtin(int argc, void **argv)
 	    case L'p':  prefix = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  alias [name[=value]...]\n")
 			    : Ngt("Usage:  alias [-gp] [name[=value]...]\n")));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -244,7 +244,7 @@ int alias_builtin(int argc, void **argv)
 	for (size_t i = 0; i < aliases.count; i++)
 	    print_alias(kvs[i].key, kvs[i].value, prefix);
 	free(kvs);
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     }
     do {
 	const wchar_t *arg = ARGV(xoptind);
@@ -261,7 +261,7 @@ int alias_builtin(int argc, void **argv)
 	    }
 	}
     } while (++xoptind < argc);
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 const char alias_help[] = Ngt(
@@ -298,7 +298,7 @@ int unalias_builtin(int argc, void **argv)
 	    case L'a':  all = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -317,12 +317,12 @@ int unalias_builtin(int argc, void **argv)
 	    }
 	} while (++xoptind < argc);
     }
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
     fprintf(stderr, gt("Usage:  unalias name[...]\n"
                        "        unalias -a\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 const char unalias_help[] = Ngt(

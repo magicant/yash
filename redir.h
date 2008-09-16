@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef REDIR_H
-#define REDIR_H
+#ifndef YASH_REDIR_H
+#define YASH_REDIR_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -47,7 +47,7 @@ extern void clear_savefd(savefd_T *save);
 extern void maybe_redirect_stdin_to_devnull(void);
 
 
-#endif /* REDIR_H */
+#endif /* YASH_REDIR_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

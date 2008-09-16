@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef SIG_H
-#define SIG_H
+#ifndef YASH_SIG_H
+#define YASH_SIG_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -67,7 +67,7 @@ extern char *strsignal(int signum);
 #endif
 
 
-#endif /* SIG_H */
+#endif /* YASH_SIG_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

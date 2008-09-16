@@ -549,7 +549,7 @@ char *get_process_status_string(const process_T *p, bool *needfree)
 	if (WIFEXITED(status)) {
 	    status = WEXITSTATUS(status);
 exitstatus:
-	    if (status == EXIT_SUCCESS) {
+	    if (status == Exit_SUCCESS) {
 		*needfree = false;
 		return gt("Done");
 	    } else {
@@ -809,12 +809,12 @@ int jobs_builtin(int argc, void **argv)
 	    case L's':  stoppedonly = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  jobs [-lp] [job...]\n")
 			    : Ngt("Usage:  jobs [-lnprs] [job...]\n")));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -850,7 +850,7 @@ int jobs_builtin(int argc, void **argv)
 	}
     }
 
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 /* Prints the job status */
@@ -908,20 +908,20 @@ int fg_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt(fg ? Ngt("Usage:  fg [job]\n")
 		                      : Ngt("Usage:  bg [job...]\n")));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
     if (!doing_job_control_now) {
 	xerror(0, Ngt("job control disabled"));
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
 
-    int status = EXIT_SUCCESS;
+    int status = Exit_SUCCESS;
     job_T *job;
 
     nextforceexit = true;
@@ -963,7 +963,7 @@ int fg_builtin(int argc, void **argv)
 	}
     }
 
-    return (status != 0) ? status : err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return (status != 0) ? status : err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 /* Continues execution of the specified job.
@@ -1020,7 +1020,7 @@ int wait_builtin(int argc, void **argv)
 {
     bool jobcontrol = doing_job_control_now;
     bool err = false;
-    int status = EXIT_SUCCESS;
+    int status = Exit_SUCCESS;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -1028,10 +1028,10 @@ int wait_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  wait [job or pid...]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1064,7 +1064,7 @@ int wait_builtin(int argc, void **argv)
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
 		    || job->j_pgid < 0) {
-		status = EXIT_NOTFOUND;
+		status = Exit_NOTFOUND;
 	    } else {
 		if (wait_for_job(jobnumber, jobcontrol, jobcontrol, true)) {
 		    status = calc_status_of_job(job);
@@ -1101,7 +1101,7 @@ int wait_builtin(int argc, void **argv)
 	}
     }
 
-    return status ? status : err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return status ? status : err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 const char wait_help[] = Ngt(
@@ -1132,10 +1132,10 @@ int disown_builtin(int argc, void **argv)
 	    case L'a':  all = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  disown [job...]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1173,7 +1173,7 @@ int disown_builtin(int argc, void **argv)
 	}
     }
 
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 const char disown_help[] = Ngt(

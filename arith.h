@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef ARITH_H
-#define ARITH_H
+#ifndef YASH_ARITH_H
+#define YASH_ARITH_H
 
 #include <stddef.h>
 
@@ -26,7 +26,7 @@ extern wchar_t *evaluate_arithmetic(wchar_t *exp)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 
-#endif /* ARITH_H */
+#endif /* YASH_ARITH_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

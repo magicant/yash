@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef MAIL_H
-#define MAIL_H
+#ifndef YASH_MAIL_H
+#define YASH_MAIL_H
 
 
 void check_mail(void);
 
 
-#endif /* MAIL_H */
+#endif /* YASH_MAIL_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

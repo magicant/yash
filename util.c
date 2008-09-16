@@ -42,7 +42,7 @@
 void alloc_failed(void)
 {
     xerror(ENOMEM, NULL);
-    exit(EXIT_ERROR);
+    exit(Exit_ERROR);
 }
 
 

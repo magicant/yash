@@ -319,7 +319,7 @@ static bool is_slash_or_closing_brace(wchar_t c)
     __attribute__((const));
 static bool is_closing_brace(wchar_t c)
     __attribute__((const));
-static bool is_token_at(const wchar_t *token, size_t index)
+static bool is_token_at(const wchar_t *t, size_t index)
     __attribute__((pure,nonnull));
 static const wchar_t *check_opening_token_at(size_t index);
 static const wchar_t *check_closing_token_at(size_t index);
@@ -392,9 +392,9 @@ static bool is_end_of_heredoc_contents(
     __attribute__((nonnull));
 static wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
     __attribute__((malloc,warn_unused_result));
-static const char *get_errmsg_unexpected_token(const wchar_t *token)
+static const char *get_errmsg_unexpected_token(const wchar_t *t)
     __attribute__((nonnull));
-static void print_errmsg_token_missing(const wchar_t *token, size_t index)
+static void print_errmsg_token_missing(const wchar_t *t, size_t index)
     __attribute__((nonnull));
 
 #define QUOTES L"\"'\\"
@@ -659,13 +659,13 @@ bool is_closing_brace(wchar_t c)
     return c == L'}' || c == L'\0';
 }
 
-/* Checks if there is a `token' at the specified index in `cbuf'.
+/* Checks if there is a token `t' at the specified index in `cbuf'.
  * `index' must not be greater than `cbuf.length'.
- * `token' must not be a proper substring of another operator token.
- * `ensure_buffer(wcslen(token))' must be done beforehand. */
-bool is_token_at(const wchar_t *token, size_t index)
+ * `t' must not be a proper substring of another operator token.
+ * `ensure_buffer(wcslen(t))' must be done beforehand. */
+bool is_token_at(const wchar_t *t, size_t index)
 {
-    wchar_t *c = matchwcsprefix(cbuf.contents + index, token);
+    wchar_t *c = matchwcsprefix(cbuf.contents + index, t);
     return c && is_token_delimiter_char(*c);
 }
 
@@ -975,7 +975,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     pl_init(&wordlist);
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
 	substitute_alias(&cbuf, cindex, !first);
 	skip_blanks_and_comment();
 #endif
@@ -1123,7 +1123,7 @@ wordunit_T *parse_word(aliastype_T type)
  * false for. It is not an error if there is no characters to be a word. */
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
     switch (type) {
 	case noalias:
 	    break;
@@ -1136,9 +1136,9 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	    skip_blanks_and_comment();
 	    break;
     }
-#else
+#else /* !YASH_ENABLE_ALIAS */
     (void) type;
-#endif /* ENABLE_ALIAS */
+#endif
 
     wordunit_T *first = NULL, **lastp = &first, *wu;
     bool indq = false;  /* in double quotes? */
@@ -1474,7 +1474,7 @@ fail:
  * `cindex' points to '(' when the function is called, and ')' when returns. */
 wordunit_T *parse_cmdsubst_in_paren(void)
 {
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
     bool save_alias_enabled = alias_enabled;
     alias_enabled = false;
 #endif
@@ -1501,7 +1501,7 @@ wordunit_T *parse_cmdsubst_in_paren(void)
 
     pl_destroy(&pending_heredocs);
     pending_heredocs = save_pending_heredocs;
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
     alias_enabled = save_alias_enabled;
 #endif
     return result;
@@ -2204,9 +2204,9 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 
 /***** Error Message Auxiliaries *****/
 
-const char *get_errmsg_unexpected_token(const wchar_t *token)
+const char *get_errmsg_unexpected_token(const wchar_t *t)
 {
-    switch (token[0]) {
+    switch (t[0]) {
 	case L')': return Ngt("`%ls' without matching `('");
 	case L'}': return Ngt("`%ls' without matching `{'");
 	case L';': return Ngt("`%ls' used outside `case'");
@@ -2215,16 +2215,16 @@ const char *get_errmsg_unexpected_token(const wchar_t *token)
 	case L'f': return Ngt("`%ls' without matching `if'");
 	case L't': return Ngt("`%ls' used without `if'");
 	case L'd':
-	    assert(token[1] == L'o');
-	    if (token[2] == L'\0')
+	    assert(t[1] == L'o');
+	    if (t[2] == L'\0')
 		return Ngt("`%ls' used without `for', `while', or `until'");
 	    else
 		return Ngt("`%ls' without matching `do'");
 	case L'e':
-	    if (token[1] == L's')
+	    if (t[1] == L's')
 		return Ngt("`%ls' without matching `case'");
 	    else
-		if (token[2] == L's')
+		if (t[2] == L's')
 		    return Ngt("`%ls' used without `if'");
 		else
 		    return Ngt("`%ls' used without `if'");
@@ -2233,13 +2233,13 @@ const char *get_errmsg_unexpected_token(const wchar_t *token)
     }
 }
 
-void print_errmsg_token_missing(const wchar_t *token, size_t index)
+void print_errmsg_token_missing(const wchar_t *t, size_t index)
 {
     const wchar_t *atoken = check_closing_token_at(index);
     if (atoken)
 	serror(get_errmsg_unexpected_token(atoken), atoken);
     else
-	serror(Ngt("`%ls' missing"), token);
+	serror(Ngt("`%ls' missing"), t);
 }
 
 
@@ -2461,22 +2461,22 @@ void print_redirs(xwcsbuf_T *restrict buf, const redir_T *restrict r)
 {
     while (r) {
 	const wchar_t *s;
-	bool ishere;
+	bool here;
 
 	switch (r->rd_type) {
-	    case RT_INPUT:    s = L"<";    ishere = false;  break;
-	    case RT_OUTPUT:   s = L">";    ishere = false;  break;
-	    case RT_CLOBBER:  s = L">|";   ishere = false;  break;
-	    case RT_APPEND:   s = L">>";   ishere = false;  break;
-	    case RT_INOUT:    s = L"<>";   ishere = false;  break;
-	    case RT_DUPIN:    s = L"<&";   ishere = false;  break;
-	    case RT_DUPOUT:   s = L">&";   ishere = false;  break;
-	    case RT_HERE:     s = L"<<";   ishere = true;   break;
-	    case RT_HERERT:   s = L"<<-";  ishere = true;   break;
+	    case RT_INPUT:    s = L"<";    here = false;  break;
+	    case RT_OUTPUT:   s = L">";    here = false;  break;
+	    case RT_CLOBBER:  s = L">|";   here = false;  break;
+	    case RT_APPEND:   s = L">>";   here = false;  break;
+	    case RT_INOUT:    s = L"<>";   here = false;  break;
+	    case RT_DUPIN:    s = L"<&";   here = false;  break;
+	    case RT_DUPOUT:   s = L">&";   here = false;  break;
+	    case RT_HERE:     s = L"<<";   here = true;   break;
+	    case RT_HERERT:   s = L"<<-";  here = true;   break;
 	    default: assert(false);
 	}
 	wb_wprintf(buf, L"%d%ls", r->rd_fd, s);
-	if (!ishere)
+	if (!here)
 	    print_word(buf, r->rd_filename);
 	else
 	    wb_cat(buf, r->rd_hereend);

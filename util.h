@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef YASH_UTIL_H
+#define YASH_UTIL_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -196,7 +196,7 @@ wchar_t xgetopt(void **restrict argv, const wchar_t *restrict optstring)
 }
 
 
-#endif /* UTIL_H */
+#endif /* YASH_UTIL_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

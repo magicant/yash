@@ -20,8 +20,8 @@
  *    because identifiers prefixed "c_" conflict. */
 
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef YASH_PARSER_H
+#define YASH_PARSER_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -342,7 +342,7 @@ command_T *comsdup(command_T *c)
 }
 
 
-#endif /* PARSER_H */
+#endif /* YASH_PARSER_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

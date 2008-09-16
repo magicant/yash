@@ -169,7 +169,7 @@ static void tryhash_word_as_command(const wordunit_T *w);
 /* the current environment */
 static environ_T *current_env;
 /* the top-level environment (the farthest from the current) */
-static environ_T *top_env;
+static environ_T *first_env;
 
 /* Temporary variables are used when a non-special builtin is executed.
  * They are assigned in a temporary environment and valid only while the command
@@ -228,7 +228,7 @@ void varkvfree_reexport(kvpair_T kv)
 /* Initializes the top-level environment. */
 void init_variables(void)
 {
-    top_env = current_env = xmalloc(sizeof *current_env);
+    first_env = current_env = xmalloc(sizeof *current_env);
     current_env->parent = NULL;
     current_env->is_temporary = false;
     ht_init(&current_env->contents, hashstr, htstrcmp);
@@ -503,7 +503,7 @@ variable_T *new_global(const char *name)
     var->v_type = VF_NORMAL;
     var->v_value = NULL;
     var->v_getter = NULL;
-    ht_set(&top_env->contents, xstrdup(name), var);
+    ht_set(&first_env->contents, xstrdup(name), var);
     return var;
 }
 
@@ -824,7 +824,7 @@ void close_current_environment(void)
 {
     environ_T *oldenv = current_env;
 
-    assert(oldenv != top_env);
+    assert(oldenv != first_env);
     current_env = oldenv->parent;
     ht_clear(&oldenv->contents, varkvfree_reexport);
     ht_destroy(&oldenv->contents);
@@ -1220,12 +1220,12 @@ int typeset_builtin(int argc, void **argv)
 	    case L'X':  unexport = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr,
 			gt("Usage:  %ls [-rgprxX] [name[=value]...]\n"),
 			ARGV(0));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1242,10 +1242,10 @@ int typeset_builtin(int argc, void **argv)
 
     if (funcs && (export || unexport)) {
 	xerror(0, Ngt("functions cannot be exported"));
-	return EXIT_ERROR;
+	return Exit_ERROR;
     } else if (export && unexport) {
 	xerror(0, Ngt("-x and -X cannot be used at a time"));
-	return EXIT_ERROR;
+	return Exit_ERROR;
     }
 
     if (xoptind == argc) {
@@ -1274,7 +1274,7 @@ int typeset_builtin(int argc, void **argv)
 		print_function(kvs[i].key, kvs[i].value, ARGV(0), readonly);
 	}
 	free(kvs);
-	return EXIT_SUCCESS;
+	return Exit_SUCCESS;
     }
 
     bool err = false;
@@ -1286,7 +1286,7 @@ int typeset_builtin(int argc, void **argv)
 	char *name = malloc_wcstombs(warg);
 	if (!name) {
 	    xerror(0, Ngt("unexpected error"));
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	}
 	if (funcs) {
 	    if (wequal) {
@@ -1344,7 +1344,7 @@ next:
 	free(name);
     } while (++xoptind < argc);
 
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 /* Prints the specified variable to stdout.
@@ -1475,10 +1475,10 @@ int unset_builtin(int argc, void **argv)
 	    case L'v':  funcs = false;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  unset [-fv] name...\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1486,13 +1486,13 @@ int unset_builtin(int argc, void **argv)
 	char *name = malloc_wcstombs(ARGV(xoptind));
 	if (!name) {
 	    xerror(0, Ngt("unexpected error"));
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	}
 	err |= funcs ? unset_function(name) : unset_variable(name);
 	free(name);
     }
 
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 /* Unsets the specified function.
@@ -1559,10 +1559,10 @@ int shift_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  shift [n]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1574,10 +1574,10 @@ int shift_builtin(int argc, void **argv)
 	count = wcstol(ARGV(xoptind), &end, 10);
 	if (*end || errno) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	} else if (count < 0) {
 	    xerror(0, Ngt("%ls: value must not be negative"), ARGV(xoptind));
-	    return EXIT_ERROR;
+	    return Exit_ERROR;
 	}
 #if LONG_MAX <= SIZE_MAX
 	scount = (size_t) count;
@@ -1592,14 +1592,14 @@ int shift_builtin(int argc, void **argv)
     assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
     if (scount > var->v_valc) {
 	xerror(0, Ngt("%zu: cannot shift so many"), scount);
-	return EXIT_ERROR;
+	return Exit_ERROR;
     }
     for (size_t i = 0; i < scount; i++)
 	free(var->v_vals[i]);
     var->v_valc -= scount;
     memmove(var->v_vals, var->v_vals + scount,
 	    (var->v_valc + 1) * sizeof *var->v_vals);
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 }
 
 const char shift_help[] = Ngt(
@@ -1619,7 +1619,7 @@ int getopts_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -1636,10 +1636,10 @@ int getopts_builtin(int argc, void **argv)
 
     if (wcschr(varname, L'=')) {
 	xerror(0, Ngt("`%ls': invalid name"), varname);
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     } else if (!check_options(options)) {
 	xerror(0, Ngt("`%ls': invalid option specification"), options);
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
     {
 	const wchar_t *varoptind = getvar(VAR_OPTIND);
@@ -1653,17 +1653,17 @@ int getopts_builtin(int argc, void **argv)
     }
     if (xoptind < argc) {
 	if (optind >= (unsigned long) (argc - xoptind))
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	args = argv + xoptind;
     } else {
 	variable_T *var = search_variable(VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (optind >= var->v_valc)
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	args = var->v_vals;
     }
 
-#define TRY(exp)  do { if (!(exp)) return EXIT_FAILURE1; } while (0)
+#define TRY(exp)  do { if (!(exp)) return Exit_FAILURE; } while (0)
 parse_arg:
     arg = args[optind];
     if (arg[0] != L'-' || arg[1] == L'\0') {
@@ -1714,7 +1714,7 @@ parse_arg:
 			TRY(set_to(varname, L'?'));
 			TRY(!unset_variable(VAR_OPTARG));
 		    }
-		    return EXIT_SUCCESS;
+		    return Exit_SUCCESS;
 		}
 	    }
 	    TRY(set_optarg(optarg));
@@ -1724,19 +1724,19 @@ parse_arg:
 	}
 	TRY(set_to(varname, optchar));
     }
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 #undef TRY
 
 no_more_options:
     set_to(varname, L'?');
     unset_variable(VAR_OPTARG);
-    return EXIT_FAILURE1;
+    return Exit_FAILURE;
 optind_invalid:
     xerror(0, Ngt("$OPTIND not valid"));
-    return EXIT_FAILURE1;
+    return Exit_FAILURE;
 print_usage:
     fprintf(stderr, gt("Usage:  getopts options var [arg...]\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 /* Checks if the `options' is valid. Returns true iff ok. */
@@ -1856,7 +1856,7 @@ int read_builtin(int argc, void **argv)
 	    case L'r':  raw = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -1868,7 +1868,7 @@ int read_builtin(int argc, void **argv)
     for (int i = xoptind; i < argc; i++) {
 	if (wcschr(ARGV(i), L'=')) {
 	    xerror(0, Ngt("`%ls': invalid name"), ARGV(i));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
     }
 
@@ -1879,7 +1879,7 @@ int read_builtin(int argc, void **argv)
     wb_init(&buf);
     if (!read_input(&buf, raw)) {
 	wb_destroy(&buf);
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
     if (buf.length > 0 && buf.contents[buf.length - 1] == L'\n') {
 	wb_remove(&buf, buf.length - 1, 1);
@@ -1912,11 +1912,11 @@ int read_builtin(int argc, void **argv)
     }
 
     pl_destroy(&list);
-    return err ? EXIT_FAILURE1 : EXIT_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
     fprintf(stderr, gt("Usage:  read [-r] var...\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 /* Reads input from stdin and remove line continuations if `noescape' is false.

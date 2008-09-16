@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef PATH_H
-#define PATH_H
+#ifndef YASH_PATH_H
+#define YASH_PATH_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -107,7 +107,7 @@ extern int umask_builtin(int argc, void **argv)
 extern const char cd_help[], pwd_help[], hash_help[], umask_help[];
 
 
-#endif /* PATH_H */
+#endif /* YASH_PATH_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

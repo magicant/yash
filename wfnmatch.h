@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef WFNMATCH_H
-#define WFNMATCH_H
+#ifndef YASH_WFNMATCH_H
+#define YASH_WFNMATCH_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -60,7 +60,7 @@ bool pattern_is_nonliteral(const wchar_t *pat)
 }
 
 
-#endif /* WFNMATCH_H */
+#endif /* YASH_WFNMATCH_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

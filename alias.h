@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef ALIAS_H
-#define ALIAS_H
+#ifndef YASH_ALIAS_H
+#define YASH_ALIAS_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -39,7 +39,7 @@ extern int unalias_builtin(int argc, void **argv)
 extern const char alias_help[], unalias_help[];
 
 
-#endif /* ALIAS_H */
+#endif /* YASH_ALIAS_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

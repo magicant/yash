@@ -496,7 +496,7 @@ int fc_builtin(int argc, void **argv)
 	    case L's':  silent = true;     break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		goto print_usage;
 	}
@@ -514,10 +514,10 @@ int fc_builtin(int argc, void **argv)
 
     if (histlist.count == 0) {
 	if (list) {
-	    return EXIT_SUCCESS;
+	    return Exit_SUCCESS;
 	} else {
 	    xerror(0, Ngt("history is empty"));
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
     }
 
@@ -547,7 +547,7 @@ int fc_builtin(int argc, void **argv)
 	if (!vfirst[0] || errno || *end || first == 0) {
 	    efirst = fc_search_entry(vfirst);
 	    if (!efirst)
-		return EXIT_FAILURE1;
+		return Exit_FAILURE;
 	} else {
 	    if (first > INT_MAX)
 		first = INT_MAX;
@@ -564,7 +564,7 @@ int fc_builtin(int argc, void **argv)
 	if (!vlast[0] || errno || *end || last == 0) {
 	    elast = fc_search_entry(vlast);
 	    if (!elast)
-		return EXIT_FAILURE1;
+		return Exit_FAILURE;
 	} else {
 	    if (last > INT_MAX)
 		last = INT_MAX;
@@ -590,7 +590,7 @@ int fc_builtin(int argc, void **argv)
 	if (efirst == HISTLIST) {
 	    assert(vfirst != NULL);
 	    xerror(0, Ngt("%ls: no such entry"), vfirst);
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
     }
     if (!elast) {
@@ -603,7 +603,7 @@ int fc_builtin(int argc, void **argv)
 	if (elast == HISTLIST) {
 	    assert(vlast != NULL);
 	    xerror(0, Ngt("%ls: no such entry"), vlast);
-	    return EXIT_FAILURE1;
+	    return Exit_FAILURE;
 	}
     }
     if (is_reverse(efirst, elast)) {
@@ -627,7 +627,7 @@ print_usage:
     fprintf(stderr, gt("Usage:  fc [-r] [-e editor] [first [last]]\n"
                        "        fc -s [old=new] [first]\n"
 		       "        fc -l [-nr] [first [last]]\n"));
-    return EXIT_ERROR;
+    return Exit_ERROR;
 }
 
 histentry_T *fc_search_entry(const wchar_t *prefix)
@@ -668,7 +668,7 @@ int fc_print_entries(
 	    break;
 	start = !reverse ? start->next : start->prev;
     }
-    return EXIT_SUCCESS;
+    return Exit_SUCCESS;
 }
 
 /* Executes the value of `entry'.
@@ -680,7 +680,7 @@ int fc_exec_entry(const histentry_T *entry,
     wchar_t *code = malloc_mbstowcs(entry->value);
     if (!code) {
 	xerror(0, Ngt("unexpected error"));
-	return EXIT_ERROR;
+	return Exit_ERROR;
     }
 
     if (old) {
@@ -718,13 +718,13 @@ int fc_edit_and_exec_entries(
     fd = create_temporary_file(&temp, S_IRUSR | S_IWUSR);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot create temporary file to edit history"));
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
     f = fdopen(fd, "w");
     if (!f) {
 	xerror(errno, Ngt("cannot open temporary file to edit history"));
 	xclose(fd);
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
 
     cpid = fork_and_reset(0, true, 0);
@@ -734,7 +734,7 @@ int fc_edit_and_exec_entries(
 	if (unlink(temp) < 0)
 	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
 	free(temp);
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     } else if (cpid > 0) {  // parent process
 	fclose(f);
 
@@ -747,7 +747,7 @@ int fc_edit_and_exec_entries(
 		    editor ? editor : L"${FCEDIT:-ed}", temp);
 	}
 
-	if (laststatus != EXIT_SUCCESS) {
+	if (laststatus != Exit_SUCCESS) {
 	    xerror(0, Ngt("editor returned non-zero status"));
 	    f = NULL;
 	} else {

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef INPUT_H
-#define INPUT_H
+#ifndef YASH_INPUT_H
+#define YASH_INPUT_H
 
 #include <stdio.h>
 #include <wchar.h>
@@ -63,7 +63,7 @@ struct input_readline_info {
 };
 
 
-#endif /* INPUT_H */
+#endif /* YASH_INPUT_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

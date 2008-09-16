@@ -29,6 +29,8 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
+/* Must not include <ctype.h> or <wctype.h> because symbol names conflict.
+ * (to[a-z]*) */
 
 
 typedef struct word_T {

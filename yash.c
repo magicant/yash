@@ -183,14 +183,14 @@ int main(int argc, char **argv)
 
     if (option_error) {
 	print_help();
-	exit(EXIT_ERROR);
+	exit(Exit_ERROR);
     }
     if (version)
 	print_version();
     if (help)
 	print_help();
     if (version || help)
-	exit(EXIT_SUCCESS);
+	exit(Exit_SUCCESS);
 
     /* ignore "-" if it's the first argument */
     if (wargv[xoptind] && wcscmp(wargv[xoptind], L"-") == 0)
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
     init_shellfds();
     init_job();
     init_builtin();
-#if ENABLE_ALIAS
+#if YASH_ENABLE_ALIAS
     init_alias();
 #endif
 
@@ -215,13 +215,13 @@ int main(int argc, char **argv)
 
     if (shopt_read_arg && shopt_read_stdin) {
 	xerror(0, Ngt("both -c and -s options cannot be given at once"));
-	exit(EXIT_ERROR);
+	exit(Exit_ERROR);
     }
     if (shopt_read_arg) {
 	command = wargv[xoptind++];
 	if (!command) {
 	    xerror(0, Ngt("-c option requires an operand"));
-	    exit(EXIT_ERROR);
+	    exit(Exit_ERROR);
 	}
 	if (xoptind < argc)
 	    command_name = wargv[xoptind++];
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 	    if (!input) {
 		int errno_ = errno;
 		xerror(errno_, Ngt("cannot open `%s'"), inputname);
-		exit(errno_ == ENOENT ? EXIT_NOTFOUND : EXIT_NOEXEC);
+		exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
 	    }
 	}
     }
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 	if (!norcfile)
 	    execute_rcfile(rcfile);
     }
-#if ENABLE_HISTORY
+#if YASH_ENABLE_HISTORY
     init_history();
 #endif
 
@@ -349,7 +349,7 @@ void exit_shell_with_status(int status)
     if (!exiting) {
 	exiting = true;
 	execute_exit_trap();
-#if ENABLE_HISTORY
+#if YASH_ENABLE_HISTORY
 	if (is_interactive_now)
 	    write_history(NULL, false);
 #endif
@@ -557,7 +557,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    break;
 		}
 		if (!executed)
-		    laststatus = EXIT_SUCCESS;
+		    laststatus = Exit_SUCCESS;
 finish:
 		if (finally_exit) {
 		    wchar_t argv0[] = L"EOF";
@@ -566,7 +566,7 @@ finish:
 		    goto out;
 		break;
 	    case 1:  // syntax error
-		laststatus = EXIT_SYNERROR;
+		laststatus = Exit_SYNERROR;
 		if (pinfo->intrinput)
 		    break;
 		else if (finally_exit)
@@ -606,10 +606,10 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
 		break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
-		return EXIT_SUCCESS;
+		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
-		return EXIT_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -623,7 +623,7 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
 		sjc);
 	fprintf(stderr, gt("  Use `exit' again to exit anyway.\n"));
 	nextforceexit = true;
-	return EXIT_FAILURE1;
+	return Exit_FAILURE;
     }
 
     int status;

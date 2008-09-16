@@ -279,14 +279,14 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     restore_parse_state(state);
 
     int result;
-#if ENABLE_HISTORY
+#if YASH_ENABLE_HISTORY
     size_t oldlen = buf->length;
 #endif
     if (info->fp == stdin)
 	result = input_stdin(buf, NULL);
     else
 	result = input_file(buf, info->fp);
-#if ENABLE_HISTORY
+#if YASH_ENABLE_HISTORY
     if (info->type == 2)
 	if (buf->contents[oldlen] != L'\n' && buf->length > oldlen) {
 	    wchar_t savechar = buf->contents[buf->length - 1];
@@ -364,7 +364,7 @@ just_print:
  * the argument. */
 wchar_t *expand_ps1_posix(wchar_t *s)
 {
-#if ENABLE_HISTORY
+#if YASH_ENABLE_HISTORY
     wchar_t *const saves = s;
     xwcsbuf_T buf;
     wb_init(&buf);
@@ -384,7 +384,7 @@ wchar_t *expand_ps1_posix(wchar_t *s)
     }
     free(saves);
     return wb_towcs(&buf);
-#else
+#else /* !YASH_ENABLE_HISTORY */
     return s;
 #endif
 }
@@ -441,7 +441,7 @@ wchar_t *expand_ps_yash(wchar_t *s)
 	default:      wb_wccat(&buf, *s);        break;
 	case L'$':    wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
 	case L'j':    wb_wprintf(&buf, L"%zu", job_count());  break;
-#if ENABLE_HISTORY
+#if YASH_ENABLE_HISTORY
 	case L'!':    wb_wprintf(&buf, L"%d", hist_next_number); break;
 #endif
 	case L'[':    // TODO  expand_ps_yash: \[ and \]
