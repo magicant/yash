@@ -1513,7 +1513,7 @@ const char umask_help[] = Ngt(
 "umask - print or set file creation mask\n"
 "\tumask mode\n"
 "\tumask [-S]\n"
-"Sets the file mode creation mask of the shell to <mask>. The mask will be\n"
+"Sets the file mode creation mask of the shell to <mode>. The mask will be\n"
 "inherited by succeedingly invoked commands.\n"
 "If <mode> is not specified, the current setting of the mask is printed.\n"
 "The -S (--symbolic) option makes a symbolic output.\n"
