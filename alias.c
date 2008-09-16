@@ -130,8 +130,7 @@ void remove_all_aliases(void)
 }
 
 /* Performs alias substitution at the specified index `i' in the buffer `buf'.
- * If `globalonly' is true, only global aliases are substituted.
- * Returns true iff substitution occured. */
+ * If `globalonly' is true, only global aliases are substituted. */
 void substitute_alias(xwcsbuf_T *buf, size_t i, bool globalonly)
 {
     static unsigned recursion = 0;
