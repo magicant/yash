@@ -86,14 +86,14 @@ bool is_alias_name_char(wchar_t c)
 /* Defines an alias.
  * `nameandvalue' should be a wide string of the form "name=value".
  * If `nameandvalue' does not contain an L'=' character or the alias name is
- * invalid, false is returned. Otherwise, the specified alias is (re)defined
- * and true is returned. */
+ * invalid or the value contains a newline, false is returned. Otherwise, the
+ * specified alias is (re)defined and true is returned. */
 bool define_alias(const wchar_t *nameandvalue, bool global)
 {
     const wchar_t *equal = nameandvalue;
     while (is_alias_name_char(*equal))
 	equal++;
-    if (*equal != L'=' || *nameandvalue == L'=')
+    if (*equal != L'=' || nameandvalue[0] == L'=' || wcschr(equal, L'\n'))
 	return false;
 
     size_t namelen = equal - nameandvalue;
@@ -253,10 +253,12 @@ int alias_builtin(int argc, void **argv)
 	    if (alias) {
 		print_alias(arg, alias, prefix);
 	    } else {
-		xerror(0, wcschr(arg, L'=')
-			? Ngt("%ls: invalid alias name")
-			: Ngt("%ls: no such alias"),
-			arg);
+		if (wcschr(arg, L'\n'))
+		    xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
+		else if (wcschr(arg, L'='))
+		    xerror(0, Ngt("%ls: invalid alias name"), arg);
+		else
+		    xerror(0, Ngt("%ls: no such alias"), arg);
 		err = true;
 	    }
 	}
