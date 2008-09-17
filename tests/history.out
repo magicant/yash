@@ -103,3 +103,32 @@ echo ===== \#33
 PS1='\! ! $ ' #34
 set -o posix #35
 PS1=; echo >&2 #36
+===== 1 =====
+2
+1	PS1= PS2=; echo >&2 #1
+2	echo 2 #2
+3	history #3
+4
+4	echo 4 #4
+5	history 2 #5
+1	history #1 again
+2
+1	history #1 again
+2	echo 2 #2
+3	history -w "$HISTFILE" #3
+4	history -r #4
+5	history #1 again
+6	echo 2 #2
+7	history -w "$HISTFILE" #3
+8	echo #8
+9	history #9
+11
+=====
+history #1 again
+echo 2 #2
+history -w "$HISTFILE" #3
+echo #8
+history #9
+history -a #10
+echo 11 #11
+history -a #12

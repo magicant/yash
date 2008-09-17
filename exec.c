@@ -1763,10 +1763,10 @@ print_usage:
 	fprintf(stderr, gt("Usage:  type command...\n"));
     else if (posixly_correct)
 	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
-			   "        command [-v|-V] command...\n"));
+			   "        command -v|-V command...\n"));
     else
 	fprintf(stderr, gt("Usage:  command [-bBp] command [arg...]\n"
-			   "        command [-v|-V] command...\n"));
+			   "        command -v|-V command...\n"));
     return Exit_ERROR;
 }
 
@@ -1937,7 +1937,7 @@ bool print_command_fullpath(const wchar_t *commandname, bool hf)
 const char command_help[] = Ngt(
 "command - execute or identify command\n"
 "\tcommand [-bBp] command [argument...]\n"
-"\tcommand [-v|-V] command...\n"
+"\tcommand -v|-V command...\n"
 "Executes or identifies the specified command.\n"
 "Without the -v or -V option, <command> is executed with given <argument>s if\n"
 "any. <command> is treated as a builtin or external command, but not a\n"

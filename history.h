@@ -34,7 +34,9 @@ extern bool add_history(const wchar_t *line, bool removelast)
 
 extern int fc_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char fc_help[];
+extern int history_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char fc_help[], history_help[];
 
 
 #endif /* YASH_HISTORY_H */

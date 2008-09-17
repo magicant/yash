@@ -326,7 +326,7 @@ void init_history(void)
  * `histfile' is the pathname to the history file.
  * If `histfile' is NULL, entries are read from $HISTFILE.
  * The entries read are appended to the current history list.
- * Returns true iff successful. */
+ * Returns true iff successful. `errno' is set on failure. */
 bool read_history(const wchar_t *histfile)
 {
     if (!histfile) {
@@ -341,9 +341,12 @@ bool read_history(const wchar_t *histfile)
 	return false;
 
     FILE *f = fopen(filename, "r");
+    int errno_ = errno;
     free(filename);
-    if (!f)
+    if (!f) {
+	errno = errno_;
 	return false;
+    }
 
     xstrbuf_T buf;
     sb_init(&buf);
@@ -362,17 +365,20 @@ bool read_history(const wchar_t *histfile)
 		sb_setmax(&buf, buf.maxlength + 150);
 	}
     }
+    errno_ = ferror(f) ? errno : 0;
     sb_destroy(&buf);
     fclose(f);
 
     trim_list_size();
     lastappended = histlist.newest;
-    return true;
+    errno = errno_;
+    return !errno_;
 }
 
 /* Writes the history entries to the specified file.
  * If `histfile' is NULL, entries are written into $HISTFILE.
- * If `append' is true, entries are appended to the end of the file. */
+ * If `append' is true, entries are appended to the end of the file.
+ * Returns true iff successful. `errno' is set on failure. */
 bool write_history(const wchar_t *histfile, bool append)
 {
     if (!histfile) {
@@ -390,13 +396,18 @@ bool write_history(const wchar_t *histfile, bool append)
     int fd = open(filename,
 	    O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC),
 	    S_IRUSR | S_IWUSR);
+    int errno_ = errno;
     free(filename);
-    if (fd < 0)
+    if (fd < 0) {
+	errno = errno_;
 	return false;
+    }
 
     FILE *f = fdopen(fd, append ? "a" : "w");
+    errno_ = errno;
     if (!f) {
 	xclose(fd);
+	errno = errno_;
 	return false;
     }
 
@@ -406,7 +417,12 @@ bool write_history(const wchar_t *histfile, bool append)
 	fputc('\n', f);
     }
 
-    return fclose(f) == 0;
+    lastappended = histlist.newest;
+
+    errno_ = ferror(f) ? errno : 0;
+    if (fclose(f) == 0)
+	errno = errno_;
+    return errno == 0;
 }
 
 /* Removes all entries in the history list. */
@@ -421,6 +437,7 @@ void clear_history(void)
     histlist.oldest = histlist.newest = HISTLIST;
     histlist.count = 0;
     lastappended = HISTLIST;
+    hist_next_number = 1;
 }
 
 /* Adds the specified `line' to the history list.
@@ -793,17 +810,17 @@ const char fc_help[] = Ngt(
 "\tfc [-r] [-e editor] [first [last]]\n"
 "\tfc -s [old=new] [first]\n"
 "\tfc -l [-nr] [first [last]]\n"
-"The first form invokes an editor to edit a temporary file containing command\n"
-"history and, after the editor exited, executes commands in the file.\n"
+"The first form invokes an editor to edit a temporary file containing the\n"
+"command history and, after the editor exited, executes commands in the file.\n"
 "The second form, with the -s (--silent) option, re-executes commands in the\n"
 "history without invoking an editor. If <old=new> is given, <old> in the\n"
 "command is replaced with <new> before execution.\n"
-"The third form, with the -l (--list) option, prints command history. In this\n"
-"form commands are not re-executed.\n"
+"The third form, with the -l (--list) option, prints the command history. In\n"
+"this form commands are not re-executed.\n"
 "\n"
 "The -e (--editor) option can be used to specify the editor. If this option\n"
-"not given, the value of $FCEDIT is used as the default editor. If $FCEDIT is\n"
-"not set either, \"ed\" is the last resort.\n"
+"is not given, the value of $FCEDIT is used as the default editor. If $FCEDIT\n"
+"is not set either, \"ed\" is the last resort.\n"
 "The -n (--no-numbers) option suppresses command numbers, which would\n"
 "otherwise be printed preceding each command.\n"
 "The -r (--reverse) option reverses the order of commands to be edited or\n"
@@ -817,6 +834,175 @@ const char fc_help[] = Ngt(
 "command: it indicates the most recent command beginning with it.\n"
 "If <first> is omitted, it defaults to -16 (with -l) or -1 (without -l).\n"
 "If <last> is omitted, it defaults to -1 (with -l) or <first> (without -l).\n"
+);
+
+/* The history builtin, which accepts the following options:
+ * -a: append to history file
+ * -c: clear history
+ * -d: remove entry
+ * -r: read from file
+ * -s: add entry
+ * -w: write to file */
+int history_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"append", xno_argument, L'a', },
+	{ L"clear",  xno_argument, L'c', },
+	{ L"delete", xno_argument, L'd', },
+	{ L"read",   xno_argument, L'r', },
+	{ L"set",    xno_argument, L's', },
+	{ L"write",  xno_argument, L'w', },
+	{ L"help",   xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    enum {
+	append = 1 << 0,
+	clear  = 1 << 1,
+	delete = 1 << 2,
+	read   = 1 << 3,
+	set    = 1 << 4,
+	write  = 1 << 5,
+    } options = 0;
+
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"acdrsw", long_options, NULL))) {
+	switch (opt) {
+	    case L'a':  options |= append;  break;
+	    case L'c':  options |= clear;   break;
+	    case L'd':  options |= delete;  break;
+	    case L'r':  options |= read;    break;
+	    case L's':  options |= set;     break;
+	    case L'w':  options |= write;   break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return Exit_SUCCESS;
+	    default:
+		goto print_usage;
+	}
+    }
+    if (options && (options & (options - 1))) {
+	xerror(0, Ngt("more than one options cannot be used at a time"));
+	goto print_usage;
+    } else if (argc - xoptind > 1) {
+	goto print_usage;
+    }
+
+    const wchar_t *arg = ARGV(xoptind);
+    wchar_t *end;
+    long num;
+    switch (options) {
+	case 0:
+	    if (arg) {
+		errno = 0;
+		num = wcstol(arg, &end, 10);
+		if (!arg[0] || errno || *end) {
+		    xerror(0, Ngt("`%ls' is not a valid integer"), arg);
+		    return Exit_FAILURE;
+		}
+		if (num > (long) histlist.count)
+		    num = (long) histlist.count;
+	    } else {
+		num = (long) histlist.count;
+	    }
+	    if (num > 0)
+		fc_print_entries(stdout,
+			get_nth_newest_entry(num), histlist.newest,
+			false /* not reversed */, NUMBERED);
+	    break;
+	case clear:
+	    clear_history();
+	    break;
+	case delete:
+	    if (!arg) {
+		goto print_usage;
+	    } else {
+		histentry_T *entry;
+		errno = 0;
+		num = wcstol(arg, &end, 10);
+		if (!arg[0] || errno || *end || num == 0) {
+		    entry = fc_search_entry(arg);
+		    if (!entry)
+			return Exit_FAILURE;
+		} else if (num >= 0) {
+		    if (num > INT_MAX)
+			num = INT_MAX;
+		    entry = find_entry(num, true);
+		    if (entry != HISTLIST && num != entry->number)
+			entry = HISTLIST;
+		} else {
+		    if (num < INT_MIN)
+			num = INT_MIN;
+		    entry = get_nth_newest_entry(-num);
+		}
+		if (entry == HISTLIST) {
+		    xerror(0, Ngt("%ls: no such entry"), arg);
+		    return Exit_FAILURE;
+		}
+		remove_entry(entry);
+		break;
+	    }
+	case read:
+	    if (!read_history(arg)) {
+		xerror(errno, Ngt("cannot read history"));
+		return Exit_FAILURE;
+	    }
+	    break;
+	case append:
+	case write:
+	    if (!write_history(arg, options == append)) {
+		xerror(errno, Ngt("cannot write history"));
+		return Exit_FAILURE;
+	    }
+	    break;
+	case set:
+	    if (!arg) {
+		goto print_usage;
+	    } else {
+		char *v;
+		remove_last_entry();
+		v = malloc_wcstombs(arg);
+		if (v) {
+		    new_entry(v);
+		    free(v);
+		}
+	    }
+	    break;
+	default:
+	    assert(false);
+    }
+    return Exit_SUCCESS;
+
+print_usage:
+    fprintf(stderr, gt("Usage:  history [n]\n"
+                       "        history -c\n"
+		       "        history -d entry\n"
+		       "        history -a|-r|-w [histfile]\n"
+		       "        history -s arg\n"));
+    return Exit_ERROR;
+}
+
+const char history_help[] = Ngt(
+"history - manage command history\n"
+"\thistory [n]\n"
+"\thistory -c\n"
+"\thistory -d entry\n"
+"\thistory -a|-r|-w [histfile]\n"
+"\thistory -s arg\n"
+"Without option, prints the command history. The number of entries to print\n"
+"can be specified as <n>.\n"
+"With the -c (--clear) option, clears the command history completely.\n"
+"With the -d (--delete) option, removes <entry> from the history, where\n"
+"<entry> is the entry number.\n"
+"With the -a (--append) option, history entries that are not yet saved in the\n"
+"history file are appended to the end of the file. No entries that were in\n"
+"the file are lost.\n"
+"With the -r (--read) option, reads history entries from the file.\n"
+"With the -w (--write) option, writes all history entries in the file. The\n"
+"contents of the file are all overwritten.\n"
+"The -s (--set) option adds <arg> as a new history entry.\n"
+"For the -a, -r, -w options, <histfile> defaults to $HISTFILE if not given.\n"
 );
 
 

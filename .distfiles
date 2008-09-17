@@ -74,6 +74,7 @@ tests/expand.p.out
 tests/expand.p.tst
 tests/expand.out
 tests/expand.tst
+tests/history.2.t
 tests/history.err
 tests/history.out
 tests/history.t
