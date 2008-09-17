@@ -223,17 +223,14 @@ void open_ttyfd(void)
 	int fd = open("/dev/tty", O_RDWR);
 	if (fd >= 0) {
 	    ttyfd = copy_as_shellfd(fd);
-	    if (ttyfd < 0)
-		goto onerror;
 	    xclose(fd);
-	} else {
-	    goto onerror;
+	}
+	if (ttyfd < 0) {
+	    xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
+	    xerror(0, Ngt("job control disabled"));
+	    do_job_control = false;
 	}
     }
-    return;
-
-onerror:
-    xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
 }
 
 
