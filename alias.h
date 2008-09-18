@@ -27,7 +27,11 @@ struct xwcsbuf_T;
 extern bool alias_enabled;
 
 extern void init_alias(void);
-extern void substitute_alias(struct xwcsbuf_T *buf, size_t i, bool globalonly)
+extern struct aliaslist_T *new_aliaslist(void)
+    __attribute__((malloc,warn_unused_result));
+extern void destroy_aliaslist(struct aliaslist_T *list);
+extern void substitute_alias(struct xwcsbuf_T *buf, size_t i,
+	struct aliaslist_T *list, bool globalonly)
     __attribute__((nonnull));
 extern bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
     __attribute__((nonnull));

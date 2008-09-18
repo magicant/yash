@@ -16,6 +16,13 @@ alias c='cat'
 alias -g P=')|c'
 echo complex alias | (c|(c P)|c
 
+unalias -a
+alias -g a='a a '
+echo a a a
+alias foobar='FOO=BAR ' e='env'
+alias -g G='|grep'
+foobar e G '^FOO='
+
 command -V alias unalias
 
 rm -f "$tmp"

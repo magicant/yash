@@ -4,5 +4,7 @@ singlequote=''\'''
 pipe alias
 restored
 complex alias
+a a a a a a
+FOO=BAR
 alias: semi-special builtin
 unalias: semi-special builtin

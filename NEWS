@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.0 beta3
+
+  +  "history" builtin
+  *  Alias substitution routines were improved.
+  *  Other bug fixes
+
+----------------------------------------------------------------------
 Yash 2.0 beta2
 
   +  Command history

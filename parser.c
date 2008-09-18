@@ -301,6 +301,9 @@ struct parsestate_T {
     struct xwcsbuf_T cbuf;
     size_t cindex;
     struct plist_T pending_heredocs;
+#if YASH_ENABLE_ALIAS
+    struct aliaslist_T *caliases;
+#endif
 };
 
 typedef enum { noalias, globalonly, anyalias, } aliastype_T;
@@ -410,6 +413,10 @@ static xwcsbuf_T cbuf;
 static size_t cindex;
 /* list of here-documents whose contents are to be read */
 static plist_T pending_heredocs;
+#if YASH_ENABLE_ALIAS
+/* list of currently expanded aliases */
+static struct aliaslist_T *caliases;
+#endif
 
 
 /* Saves the current parsing state to an object and returns it.
@@ -425,6 +432,9 @@ struct parsestate_T *save_parse_state(void)
 	.cbuf = cbuf,
 	.cindex = cindex,
 	.pending_heredocs = pending_heredocs,
+#if YASH_ENABLE_ALIAS
+	.caliases = caliases,
+#endif
     };
     return result;
 }
@@ -437,6 +447,9 @@ void restore_parse_state(struct parsestate_T *state)
     cbuf = state->cbuf;
     cindex = state->cindex;
     pending_heredocs = state->pending_heredocs;
+#if YASH_ENABLE_ALIAS
+    caliases = state->caliases;
+#endif
     free(state);
 }
 
@@ -480,11 +493,13 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 	return 0;
     }
     pl_init(&pending_heredocs);
+    caliases = new_aliaslist();
 
     and_or_T *r = parse_command_list();
 
     wb_destroy(&cbuf);
     pl_destroy(&pending_heredocs);
+    destroy_aliaslist(caliases);
 
     if (cinfo->lastinputresult == 1) {
 	andorsfree(r);
@@ -934,6 +949,7 @@ command_T *parse_command(void)
 }
 
 /* Parses assignments and redirections.
+ * The first following word is subject to any-type alias substitution.
  * The results are assigned to `c->c_assigns' and `c->c_redirs'.
  * The new `redirlastp' is returned. */
 redir_T **parse_assignments_and_redirects(command_T *c)
@@ -947,6 +963,10 @@ redir_T **parse_assignments_and_redirects(command_T *c)
     c->c_redirs = NULL;
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
+#if YASH_ENABLE_ALIAS
+	substitute_alias(&cbuf, cindex, caliases, false);
+	skip_blanks_and_comment();
+#endif
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -965,7 +985,7 @@ redir_T **parse_assignments_and_redirects(command_T *c)
  * The parsing result of assignments is returned as an array of pointers to
  * word units that are cast to (void *).
  * `*redirlastp' must be initialized to NULL beforehand.
- * If `first' is true, the first word is subject to any-type alias expansion. */
+ * If `first' is true, alias substitution is not performed on the first word. */
 void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 {
     plist_T wordlist;
@@ -976,8 +996,10 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
-	substitute_alias(&cbuf, cindex, !first);
-	skip_blanks_and_comment();
+	if (!first) {
+	    substitute_alias(&cbuf, cindex, caliases, true);
+	    skip_blanks_and_comment();
+	}
 #endif
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
@@ -1128,11 +1150,11 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	case noalias:
 	    break;
 	case globalonly:
-	    substitute_alias(&cbuf, cindex, true);
+	    substitute_alias(&cbuf, cindex, caliases, true);
 	    skip_blanks_and_comment();
 	    break;
 	case anyalias:
-	    substitute_alias(&cbuf, cindex, false);
+	    substitute_alias(&cbuf, cindex, caliases, false);
 	    skip_blanks_and_comment();
 	    break;
     }
@@ -2188,11 +2210,13 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 	return false;
     }
     pl_init(&pending_heredocs);
+    //caliases = new_aliaslist();
 
     *result = parse_string_to(false, false);
 
     wb_destroy(&cbuf);
     pl_destroy(&pending_heredocs);
+    //destroy_aliaslist(caliases);
     if (cinfo->lastinputresult == 1 || cerror) {
 	wordfree(*result);
 	return false;
