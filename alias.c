@@ -51,7 +51,7 @@ typedef struct alias_T {
 
 static inline bool is_alias_name_char(wchar_t c)
     __attribute__((pure));
-static bool define_alias(const wchar_t *nameandvalue, bool global)
+static void define_alias(const wchar_t *nameandvalue, const wchar_t *equal, bool global)
     __attribute__((nonnull));
 static bool remove_alias(const wchar_t *name)
     __attribute__((nonnull));
@@ -84,17 +84,12 @@ bool is_alias_name_char(wchar_t c)
 }
 
 /* Defines an alias.
- * `nameandvalue' should be a wide string of the form "name=value".
- * If `nameandvalue' does not contain an L'=' character or the alias name is
- * invalid or the value contains a newline, false is returned. Otherwise, the
- * specified alias is (re)defined and true is returned. */
-bool define_alias(const wchar_t *nameandvalue, bool global)
+ * `nameandvalue' must be a wide string of the form "name=value" and `equal'
+ * must point to the first L'=' in `nameandvalue'.
+ * This function doesn't check if the name and the value are valid. */
+void define_alias(const wchar_t *nameandvalue, const wchar_t *equal, bool global)
 {
-    const wchar_t *equal = nameandvalue;
-    while (is_alias_name_char(*equal))
-	equal++;
-    if (*equal != L'=' || nameandvalue[0] == L'=' || wcschr(equal, L'\n'))
-	return false;
+    assert(wcschr(nameandvalue, L'=') == equal);
 
     size_t namelen = equal - nameandvalue;
     size_t valuelen = wcslen(equal + 1);
@@ -105,12 +100,12 @@ bool define_alias(const wchar_t *nameandvalue, bool global)
 	alias->flags |= AF_GLOBAL;
     if (iswblank(equal[valuelen]))
 	alias->flags |= AF_BLANKEND;
-    wcscpy(alias->value, equal + 1);
+    wmemcpy(alias->value, equal + 1, valuelen);
+    alias->value[valuelen] = L'\0';
     wmemcpy(alias->value + valuelen + 1, nameandvalue, namelen);
     alias->value[namelen + valuelen + 1] = L'\0';
 
     vfree(ht_set(&aliases, alias->value + valuelen + 1, alias));
-    return true;
 }
 
 /* Removes an alias definition with the specified name if any.
@@ -247,20 +242,29 @@ int alias_builtin(int argc, void **argv)
 	return Exit_SUCCESS;
     }
     do {
-	const wchar_t *arg = ARGV(xoptind);
-	if (!define_alias(arg, global)) {
+	wchar_t *arg = ARGV(xoptind);
+	wchar_t *nameend = arg;
+
+	while (is_alias_name_char(*nameend))
+	    nameend++;
+	if (*nameend == L'=') {
+	    if (!wcschr(nameend + 1, L'\n')) {
+		define_alias(arg, nameend, global);
+	    } else {
+		xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
+		err = true;
+	    }
+	} else if (*nameend == L'\0') {
 	    alias_T *alias = ht_get(&aliases, arg).value;
 	    if (alias) {
 		print_alias(arg, alias, prefix);
 	    } else {
-		if (wcschr(arg, L'\n'))
-		    xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
-		else if (wcschr(arg, L'='))
-		    xerror(0, Ngt("%ls: invalid alias name"), arg);
-		else
-		    xerror(0, Ngt("%ls: no such alias"), arg);
+		xerror(0, Ngt("%ls: no such alias"), arg);
 		err = true;
 	    }
+	} else {
+	    xerror(0, Ngt("`%ls': invalid alias name"), arg);
+	    err = true;
 	}
     } while (++xoptind < argc);
     return err ? Exit_FAILURE : Exit_SUCCESS;
