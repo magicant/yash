@@ -11,6 +11,7 @@ History of Yash
 Yash 2.0 beta3
 
   +  "history" builtin
+  +  Command redirection
   *  Alias substitution routines were improved.
   *  Other bug fixes
 

@@ -768,7 +768,7 @@ redir_fail:
     laststatus = Exit_REDIRERR;
     if (finally_exit)
 	exit_shell();
-    if (posixly_correct && !is_interactive && c->c_type == CT_SIMPLE &&
+    if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
 	    argc > 0 && cmdinfo.type == specialbuiltin)
 	exit_shell();
     undo_redirections(savefd);
@@ -1314,7 +1314,7 @@ static bool print_command_fullpath(const wchar_t *commandname, bool hf)
     __attribute__((nonnull));
 
 /* "return" builtin */
-int return_builtin(int argc __attribute__((unused)), void **argv)
+int return_builtin(int argc, void **argv)
 {
     wchar_t opt;
 
@@ -1324,11 +1324,14 @@ int return_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
+    if (argc - xoptind > 1)
+	goto print_usage;
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
@@ -1356,7 +1359,7 @@ const char return_help[] = Ngt(
 );
 
 /* "break" and "continue" builtin */
-int break_builtin(int argc __attribute__((unused)), void **argv)
+int break_builtin(int argc, void **argv)
 {
     wchar_t opt;
 
@@ -1366,11 +1369,14 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
+    if (argc - xoptind > 1)
+	goto print_usage;
 
     unsigned count;
     const wchar_t *countstr = ARGV(xoptind);
@@ -1382,16 +1388,19 @@ int break_builtin(int argc __attribute__((unused)), void **argv)
 	count = wcstoul(countstr, &endofstr, 0);
 	if (errno || *endofstr != L'\0') {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
+	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	} else if (count == 0) {
 	    xerror(0, Ngt("%u: not a positive integer"), count);
+	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	}
     }
     assert(count > 0);
     if (execinfo.loopnest == 0) {
 	xerror(0, Ngt("not in loop"));
-	return Exit_FAILURE;
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
     }
     if (count > execinfo.loopnest)
 	count = execinfo.loopnest;
@@ -1431,6 +1440,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  eval [arg...]\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
@@ -1459,6 +1469,7 @@ int dot_builtin(int argc, void **argv)
 		return Exit_SUCCESS;
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  . file [arg...]\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
@@ -1563,6 +1574,7 @@ int exec_builtin(int argc, void **argv)
 	    default:
 		fprintf(stderr,
 		    gt("Usage:  exec [-cf] [-a name] [command [arg...]]\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
@@ -1978,6 +1990,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  times\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }

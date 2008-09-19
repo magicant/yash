@@ -588,7 +588,7 @@ out:
 /* "exit" builtin.
  * If the shell is interactive, there are stopped jobs and the -f flag is not
  * specified, then prints a warning message and does not exit. */
-int exit_builtin(int argc __attribute__((unused)), void **argv)
+int exit_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"force", xno_argument, L'f', },
@@ -607,11 +607,14 @@ int exit_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
+    if (argc - xoptind > 1)
+	goto print_usage;
 
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {

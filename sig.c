@@ -946,6 +946,7 @@ print_usage:
     fprintf(stderr,
 	    Ngt("Usage:  trap [action signal...]\n"
 		"        trap -p [signal...]\n"));
+    SPECIAL_BI_ERROR;
     return Exit_ERROR;
 }
 

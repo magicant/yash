@@ -201,6 +201,14 @@ echo not printed
 command -p cat -u /dev/null
 
 
+echo ===== special builtins =====
+(: <"${TESTTMP}/no.such.file"; echo not reached - redir) 2>/dev/null
+(readonly ro=ro; ro=xx eval 'echo test'; echo not reached - assign) 2>/dev/null
+(unset unset; set ${unset?}; echo not reached - expansion) 2>/dev/null
+(. "${TESTTMP}/no.such.file"; echo not reached - dot not found) 2>/dev/null
+(break invalid argument; echo not reached - usage error) 2>/dev/null
+
+
 echo ===== exec =====
 
 $INVOKE $TESTEE -c 'exec echo exec'

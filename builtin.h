@@ -49,6 +49,13 @@ extern int false_builtin(int argc, void **argv)
 extern const char colon_help[], true_help[], false_help[];
 
 
+#define SPECIAL_BI_ERROR                                                      \
+    do {                                                                      \
+	if (posixly_correct && !is_interactive_now)                           \
+	    exit_shell_with_status(Exit_ERROR);                               \
+    } while (0)
+
+
 #endif /* YASH_BUILTIN_H */
 
 

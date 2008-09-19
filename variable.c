@@ -1225,6 +1225,7 @@ int typeset_builtin(int argc, void **argv)
 		fprintf(stderr,
 			gt("Usage:  %ls [-rgprxX] [name[=value]...]\n"),
 			ARGV(0));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
@@ -1242,9 +1243,11 @@ int typeset_builtin(int argc, void **argv)
 
     if (funcs && (export || unexport)) {
 	xerror(0, Ngt("functions cannot be exported"));
+	SPECIAL_BI_ERROR;
 	return Exit_ERROR;
     } else if (export && unexport) {
 	xerror(0, Ngt("-x and -X cannot be used at a time"));
+	SPECIAL_BI_ERROR;
 	return Exit_ERROR;
     }
 
@@ -1478,6 +1481,7 @@ int unset_builtin(int argc, void **argv)
 		return Exit_SUCCESS;
 	    default:
 		fprintf(stderr, gt("Usage:  unset [-fv] name...\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
@@ -1560,11 +1564,14 @@ int shift_builtin(int argc, void **argv)
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  shift [n]\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
+    if (argc - xoptind > 1)
+	goto print_usage;
 
     size_t scount;
     if (xoptind < argc) {
@@ -1574,9 +1581,11 @@ int shift_builtin(int argc, void **argv)
 	count = wcstol(ARGV(xoptind), &end, 10);
 	if (*end || errno) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
+	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	} else if (count < 0) {
 	    xerror(0, Ngt("%ls: value must not be negative"), ARGV(xoptind));
+	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	}
 #if LONG_MAX <= SIZE_MAX
@@ -1592,7 +1601,7 @@ int shift_builtin(int argc, void **argv)
     assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
     if (scount > var->v_valc) {
 	xerror(0, Ngt("%zu: cannot shift so many"), scount);
-	return Exit_ERROR;
+	return Exit_FAILURE;
     }
     for (size_t i = 0; i < scount; i++)
 	free(var->v_vals[i]);

@@ -267,6 +267,7 @@ int set_builtin(int argc, void **argv)
 		fprintf(stderr,
 		    gt("Usage:  set [-abefhmnuvxC] [-o option] [+o option] "
 			"[arg...]\n"));
+		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	    default:
 		if (opt == L'm') {
