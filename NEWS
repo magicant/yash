@@ -12,6 +12,8 @@ Yash 2.0 beta3
 
   +  "history" builtin
   +  Command redirection
+  *  A posixly-correct non-interactive shell exits when a paticular
+     error occurred on a special builtin according to POSIX.
   *  Alias substitution routines were improved.
   *  Other bug fixes
 

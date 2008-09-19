@@ -285,7 +285,8 @@ then
 int main() { return 0; }
 END
     savecflags=${cflags}
-    if cflags="-O2 -g" trycompile
+    cflags="-O2 -g"
+    if trycompile
     then
 	checked "yes"
     else
