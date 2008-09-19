@@ -233,6 +233,8 @@ typedef enum {
     RT_DUPOUT,   /* >&fd */
     RT_HERE,     /* <<END */
     RT_HERERT,   /* <<-END */
+    RT_PROCIN,   /* <(command) */
+    RT_PROCOUT,  /* >(command) */
 } redirtype_T;
 
 /* redirection */
@@ -246,11 +248,13 @@ typedef struct redir_T {
 	    wchar_t *hereend;  /* token indicating end of here-document */
 	    struct wordunit_T *herecontent;  /* contents of here-document */
 	} heredoc;
+	wchar_t *command;
     } rd_value;
 } redir_T;
 #define rd_filename    rd_value.filename
 #define rd_hereend     rd_value.heredoc.hereend
 #define rd_herecontent rd_value.heredoc.herecontent
+#define rd_command     rd_value.command
 /* For example, for "2>&1", `rd_type' = RT_DUPOUT, `rd_fd' = 2 and
  * `rd_filename' = "1".
  * For RT_HERERT, all the lines in `rd_herecontent' have the leading tabs

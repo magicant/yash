@@ -12,7 +12,6 @@ gettext 対応
 	dirs -clpv
 	echo -eEn
 	help -s
-	history -acdnprsw
 	newgrp
 	popd -n
 	printf

@@ -65,14 +65,12 @@ typedef enum {
 
 /* info about file descriptors of pipes */
 typedef struct pipeinfo_T {
-    int pi_fromprevfd;      /* reading end of the pipe from the previous process */
-    int pi_tonextfds[2];    /* both ends of the pipe to the next process */
-    int pi_loopoutfd;       /* writing end of the pipe to the first process */
+    int pi_fromprevfd;   /* reading end of the pipe from the previous process */
+    int pi_tonextfds[2]; /* both ends of the pipe to the next process */
+    int pi_loopoutfd;    /* writing end of the pipe to the first process */
     /* for each member, -1 is assigned if a pipe is unused */
 } pipeinfo_T;
-#define PIDX_IN  0   /* index of the reading end of a pipe */
-#define PIDX_OUT 1   /* index of the writing end of a pipe */
-#define PIPEINFO_INIT { -1, { -1, -1 }, -1 }  /* used to initialize `pipeinfo_T' */
+#define PIPEINFO_INIT { -1, { -1, -1 }, -1, }
 
 /* values used to specify the way of command search. */
 enum srchcmdtype_T {
@@ -700,8 +698,10 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    return cpid;
 	}
     }
-    if (ext)
-	restore_all_signals();
+    if (ext) {
+	restore_job_signals();
+	restore_interactive_signals();
+    }
 
     lastcmdsubstatus = Exit_SUCCESS;
 
@@ -739,7 +739,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    } else {
 		laststatus = Exit_ASSGNERR;
 		if (!is_interactive && cmdinfo.type == specialbuiltin)
-		    exit_shell();
+		    finally_exit = true;
 	    }
 	    if (temp)
 		close_current_environment();
@@ -1007,6 +1007,7 @@ void exec_simple_command(
 	    }
 	    mbsargv[argc] = NULL;
 
+	    restore_all_signals();
 	    xexecv(ci->ci_path, mbsargv);
 	    int errno_ = errno;
 	    if (errno_ != ENOEXEC) {
@@ -1023,6 +1024,8 @@ void exec_simple_command(
 	    for (int i = 1; i < argc; i++)
 		free(mbsargv[i]);
 	    laststatus = (errno_ == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
+	    init_signal();
+	    set_signals();
 	}
 	break;
     case specialbuiltin:
@@ -1227,7 +1230,8 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	/* child process */
 	xclose(pipefd[PIDX_IN]);
 	if (pipefd[PIDX_OUT] != STDOUT_FILENO) {  /* connect the pipe */
-	    xdup2(pipefd[PIDX_OUT], STDOUT_FILENO);
+	    if (xdup2(pipefd[PIDX_OUT], STDOUT_FILENO) < 0)
+		exit(Exit_NOEXEC);
 	    xclose(pipefd[PIDX_OUT]);
 	}
 

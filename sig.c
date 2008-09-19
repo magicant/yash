@@ -266,10 +266,10 @@ void init_signal(void)
     if (!initialized) {
 	initialized = true;
 
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
 	if (!trap_command[sigindex(SIGCHLD)]) {
+	    action.sa_flags = 0;
 	    action.sa_handler = sig_handler;
+	    sigemptyset(&action.sa_mask);
 	    sigemptyset(&savesigchld.action.sa_mask);
 	    if (sigaction(SIGCHLD, &action, &savesigchld.action) >= 0)
 		savesigchld.valid = true;

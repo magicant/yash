@@ -46,6 +46,9 @@ extern void undo_redirections(savefd_T *save);
 extern void clear_savefd(savefd_T *save);
 extern void maybe_redirect_stdin_to_devnull(void);
 
+#define PIDX_IN  0   /* index of the reading end of a pipe */
+#define PIDX_OUT 1   /* index of the writing end of a pipe */
+
 
 #endif /* YASH_REDIR_H */
 

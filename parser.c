@@ -204,6 +204,9 @@ void redirsfree(redir_T *r)
 		free(r->rd_hereend);
 		wordfree(r->rd_herecontent);
 		break;
+	    case RT_PROCIN:  case RT_PROCOUT:
+		free(r->rd_command);
+		break;
 	}
 
 	redir_T *next = r->next;
@@ -362,6 +365,8 @@ static wordunit_T *tryparse_paramexp_raw(void)
 static wordunit_T *parse_paramexp_in_brase(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *parse_cmdsubst_in_paren(void)
+    __attribute__((malloc,warn_unused_result));
+static wchar_t *extract_command_in_paren(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *parse_cmdsubst_in_backquote(void)
     __attribute__((malloc,warn_unused_result));
@@ -1101,12 +1106,26 @@ reparse:
 		result->rd_type = RT_HERE;   cindex += 2;
 	    }
 	    break;
+	case L'(':
+	    if (!posixly_correct) {
+		result->rd_type = RT_PROCIN; goto parse_command;
+	    } else {
+		result->rd_type = RT_INPUT;  cindex += 1;
+	    }
+	    break;
 	case L'>':  result->rd_type = RT_INOUT;  cindex += 2;  break;
 	case L'&':  result->rd_type = RT_DUPIN;  cindex += 2;  break;
 	default:    result->rd_type = RT_INPUT;  cindex += 1;  break;
 	}
     } else {
 	switch (cbuf.contents[cindex + 1]) {
+	case L'(':
+	    if (!posixly_correct) {
+		result->rd_type = RT_PROCOUT; goto parse_command;
+	    } else {
+		result->rd_type = RT_OUTPUT;  cindex += 1;
+	    }
+	    break;
 	case L'>':  result->rd_type = RT_APPEND;  cindex += 2;  break;
 	case L'|':  result->rd_type = RT_CLOBBER; cindex += 2;  break;
 	case L'&':  result->rd_type = RT_DUPOUT;  cindex += 2;  break;
@@ -1129,6 +1148,13 @@ reparse:
 	result->rd_herecontent = NULL;
 	pl_add(&pending_heredocs, result);
     }
+    return result;
+
+parse_command:
+    cindex += 1;
+    result->rd_command = extract_command_in_paren();
+    if (cbuf.contents[cindex] == L')')
+	cindex++;
     return result;
 }
 
@@ -1496,6 +1522,17 @@ fail:
  * `cindex' points to '(' when the function is called, and ')' when returns. */
 wordunit_T *parse_cmdsubst_in_paren(void)
 {
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_CMDSUB;
+    result->wu_cmdsub = extract_command_in_paren();
+    return result;
+}
+
+/* Extracts command between '(' and ')'.
+ * `cindex' points to '(' when the function is called, and ')' when returns. */
+wchar_t *extract_command_in_paren(void)
+{
 #if YASH_ENABLE_ALIAS
     bool save_alias_enabled = alias_enabled;
     alias_enabled = false;
@@ -1509,11 +1546,7 @@ wordunit_T *parse_cmdsubst_in_paren(void)
     andorsfree(parse_compound_list());
     assert(startindex <= cindex);
 
-    wordunit_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->wu_type = WT_CMDSUB;
-    result->wu_cmdsub = xwcsndup(
-	    cbuf.contents + startindex, cindex - startindex);
+    wchar_t *result = xwcsndup(cbuf.contents + startindex, cindex - startindex);
 
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L')')
@@ -2485,25 +2518,35 @@ void print_redirs(xwcsbuf_T *restrict buf, const redir_T *restrict r)
 {
     while (r) {
 	const wchar_t *s;
-	bool here;
+	enum { file, here, proc, } type;
 
 	switch (r->rd_type) {
-	    case RT_INPUT:    s = L"<";    here = false;  break;
-	    case RT_OUTPUT:   s = L">";    here = false;  break;
-	    case RT_CLOBBER:  s = L">|";   here = false;  break;
-	    case RT_APPEND:   s = L">>";   here = false;  break;
-	    case RT_INOUT:    s = L"<>";   here = false;  break;
-	    case RT_DUPIN:    s = L"<&";   here = false;  break;
-	    case RT_DUPOUT:   s = L">&";   here = false;  break;
-	    case RT_HERE:     s = L"<<";   here = true;   break;
-	    case RT_HERERT:   s = L"<<-";  here = true;   break;
+	    case RT_INPUT:    s = L"<";    type = file;  break;
+	    case RT_OUTPUT:   s = L">";    type = file;  break;
+	    case RT_CLOBBER:  s = L">|";   type = file;  break;
+	    case RT_APPEND:   s = L">>";   type = file;  break;
+	    case RT_INOUT:    s = L"<>";   type = file;  break;
+	    case RT_DUPIN:    s = L"<&";   type = file;  break;
+	    case RT_DUPOUT:   s = L">&";   type = file;  break;
+	    case RT_HERE:     s = L"<<";   type = here;  break;
+	    case RT_HERERT:   s = L"<<-";  type = here;  break;
+	    case RT_PROCIN:   s = L"<(";   type = proc;  break;
+	    case RT_PROCOUT:  s = L">(";   type = proc;  break;
 	    default: assert(false);
 	}
 	wb_wprintf(buf, L"%d%ls", r->rd_fd, s);
-	if (!here)
-	    print_word(buf, r->rd_filename);
-	else
-	    wb_cat(buf, r->rd_hereend);
+	switch (type) {
+	    case file:
+		print_word(buf, r->rd_filename);
+		break;
+	    case here:
+		wb_cat(buf, r->rd_hereend);
+		break;
+	    case proc:
+		wb_cat(buf, r->rd_command);
+		wb_wccat(buf, L')');
+		break;
+	}
 	wb_wccat(buf, L' ');
 
 	r = r->next;

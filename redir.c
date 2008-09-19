@@ -36,6 +36,7 @@
 #include "path.h"
 #include "redir.h"
 #include "util.h"
+#include "yash.h"
 
 
 /********** Utilities **********/
@@ -247,6 +248,8 @@ struct savefd_T {
 static void save_fd(int oldfd, savefd_T **save);
 static int parse_and_check_dup(char *num, redirtype_T type)
     __attribute__((nonnull));
+static int open_process_redirection(const wchar_t *command, redirtype_T type)
+    __attribute__((nonnull));
 
 
 /* Opens a redirection.
@@ -266,13 +269,16 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	}
 
 	/* expand rd_filename */
-	char *filename;
-	if (r->rd_type != RT_HERE && r->rd_type != RT_HERERT) {
-	    filename = expand_single_with_glob(r->rd_filename, tt_single);
-	    if (!filename)
-		return false;
-	} else {
-	    filename = NULL;
+	char *filename = filename;
+	switch (r->rd_type) {
+	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
+	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
+		filename = expand_single_with_glob(r->rd_filename, tt_single);
+		if (!filename)
+		    return false;
+		break;
+	    default:
+		break;
 	}
 
 	/* save original FD */
@@ -322,6 +328,13 @@ openwithflags:
 	case RT_HERERT:
 	    keepopen = false;
 	    fd = open_heredocument(r->rd_herecontent);
+	    if (fd < 0)
+		return false;
+	    break;
+	case RT_PROCIN:
+	case RT_PROCOUT:
+	    keepopen = false;
+	    fd = open_process_redirection(r->rd_command, r->rd_type);
 	    if (fd < 0)
 		return false;
 	    break;
@@ -417,6 +430,57 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     }
     free(num);
     return fd;
+}
+
+/* Opens a process redirection and returns a file descriptor for it.
+ * `type' must be RT_PROCIN or RT_PROCOUT.
+ * The return value is -1 if failed. */
+int open_process_redirection(const wchar_t *command, redirtype_T type)
+{
+    int pipefd[2];
+    pid_t cpid;
+
+    assert(type == RT_PROCIN || type == RT_PROCOUT);
+    if (pipe(pipefd) < 0) {
+	xerror(errno,
+		Ngt("redirection: cannot open pipe for command redirection"));
+	return -1;
+    }
+    cpid = fork_and_reset(-1, false, 0);
+    if (cpid < 0) {
+	/* fork failure */
+	xclose(pipefd[PIDX_IN]);
+	xclose(pipefd[PIDX_OUT]);
+	return -1;
+    } else if (cpid) {
+	/* parent process */
+	if (type == RT_PROCIN) {
+	    xclose(pipefd[PIDX_OUT]);
+	    return pipefd[PIDX_IN];
+	} else {
+	    xclose(pipefd[PIDX_IN]);
+	    return pipefd[PIDX_OUT];
+	}
+    } else {
+	/* child process */
+	if (type == RT_PROCIN) {
+	    xclose(pipefd[PIDX_IN]);
+	    if (pipefd[PIDX_OUT] != STDOUT_FILENO) {
+		if (xdup2(pipefd[PIDX_OUT], STDOUT_FILENO) < 0)
+		    exit(Exit_NOEXEC);
+		xclose(pipefd[PIDX_OUT]);
+	    }
+	} else {
+	    xclose(pipefd[PIDX_OUT]);
+	    if (pipefd[PIDX_IN] != STDIN_FILENO) {
+		if (xdup2(pipefd[PIDX_IN], STDIN_FILENO) < 0)
+		    exit(Exit_NOEXEC);
+		xclose(pipefd[PIDX_IN]);
+	    }
+	}
+	exec_wcs(command, gt("command redirection"), true);
+	assert(false);
+    }
 }
 
 /* Restores the saved file descriptor and frees `save'. */
