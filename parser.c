@@ -498,13 +498,17 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 	return 0;
     }
     pl_init(&pending_heredocs);
+#if YASH_ENABLE_ALIAS
     caliases = new_aliaslist();
+#endif
 
     and_or_T *r = parse_command_list();
 
     wb_destroy(&cbuf);
     pl_destroy(&pending_heredocs);
+#if YASH_ENABLE_ALIAS
     destroy_aliaslist(caliases);
+#endif
 
     if (cinfo->lastinputresult == 1) {
 	andorsfree(r);
@@ -1155,6 +1159,7 @@ parse_command:
     result->rd_command = extract_command_in_paren();
     if (cbuf.contents[cindex] == L')')
 	cindex++;
+    skip_blanks_and_comment();
     return result;
 }
 
@@ -2243,13 +2248,17 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 	return false;
     }
     pl_init(&pending_heredocs);
+#if YASH_ENABLE_ALIAS
     //caliases = new_aliaslist();
+#endif
 
     *result = parse_string_to(false, false);
 
     wb_destroy(&cbuf);
     pl_destroy(&pending_heredocs);
+#if YASH_ENABLE_ALIAS
     //destroy_aliaslist(caliases);
+#endif
     if (cinfo->lastinputresult == 1 || cerror) {
 	wordfree(*result);
 	return false;
