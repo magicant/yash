@@ -17,10 +17,10 @@ wait %2
 kill -l $?
 bg %1 %2
 kill %1 %2
-wait %1 %2
+fg %1 %2
 kill -l $?
 
-echo
+echo =====
 
 # SIGINT, SIGTERM and SIGQUIT are ignored if interactive
 $INVOKE $TESTEE -si --norcfile 2>/dev/null <<\END

@@ -1,6 +1,6 @@
+ヒアドキュメントを子プロセスではなく一時ファイルで渡すように
+fork_and_reset で sigprocmask は常に必要か？
 テストスクリプト
-	exit/jobs/fg/bg/disown/wait 組込みのテストを tests/job に
-	ループパイプのテストスクリプト
 	ulimit のテスト
 配列の解釈・代入
 gettext 対応
