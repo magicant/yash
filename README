@@ -39,6 +39,7 @@ Currently there is no manpage for yash. Sorry.
  * When -e (-o errexit) option is set, failure of the last command of
    an and/or list makes the shell exit. This behavior is not strictly
    POSIX-compliant, but most existing shells behave this way.
+ * The "nolog" option is not supported: it is silently ignored.
  * According to POSIX, the variable 'PS1' is subject to parameter
    expansion. Yash also performs command substitution and arithmetic
    expansion on 'PS1'.

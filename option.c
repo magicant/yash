@@ -139,6 +139,7 @@ static const struct xoption long_options[] = {
     { L"ignoreeof",    xno_argument, L'I', },
     { L"verbose",      xno_argument, L'v', },
     { L"xtrace",       xno_argument, L'x', },
+    { L"nolog",        xno_argument, L'L', },
     { L"monitor",      xno_argument, L'm', },
     { L"notify",       xno_argument, L'b', },
     { L"posix",        xno_argument, L'X', },
@@ -151,7 +152,7 @@ const struct xoption *const set_long_options   = long_options + 6;
 const struct xoption *const help_option
     = long_options + ((sizeof long_options / sizeof *long_options) - 2);
 
-// TODO option: unimplemented options: -o{nolog,vi,emacs}
+// TODO option: unimplemented options: -o{vi,emacs}
 
 
 /* Switches a one-character option depending on whether `xoptopt' is '-' or not.
@@ -178,6 +179,7 @@ void set_option(wchar_t c)
 	case L'I':   shopt_ignoreeof    = value;   break;
 	case L'v':   shopt_verbose      = value;   break;
 	case L'x':   shopt_xtrace       = value;   break;
+	case L'L':   /* XXX nolog unsupported */   break;
 	case L'm':   do_job_control     = value;   break;
 	case L'b':   shopt_notify       = value;   break;
 	case L'X':   posixly_correct    = value;   break;
@@ -318,6 +320,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(noclobber, shopt_noclobber);
     PRINTSETTING(noexec, shopt_noexec);
     PRINTSETTING(noglob, shopt_noglob);
+    //PRINTSETTING(nolog, shopt_nolog);
     PRINTSETTING(notify, shopt_notify);
     PRINTSETTING(nounset, shopt_nounset);
     PRINTSETTING(nullglob, shopt_nullglob);
@@ -349,6 +352,7 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(noclobber, shopt_noclobber);
     PRINTSETTING(noexec, shopt_noexec);
     PRINTSETTING(noglob, shopt_noglob);
+    //PRINTSETTING(nolog, shopt_nolog);
     PRINTSETTING(notify, shopt_notify);
     PRINTSETTING(nounset, shopt_nounset);
     PRINTSETTING(nullglob, shopt_nullglob);
