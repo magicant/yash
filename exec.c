@@ -788,17 +788,18 @@ redir_fail:
  * `sigtype' is a bitwise OR of the followings:
  *   t_quitint: SIGQUIT and SIGINT are ignored if the parent's job control is on
  *   t_tstp: SIGTSTP is ignored if the parent is interactive
- *   t_allbutpipe: block all signals but SIGPIPE
  *   t_leave: don't clear traps and shellfds. This option should be used only if
  *          the shell is going to `exec' to an extenal program.
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
     sigset_t all, savemask;
-    sigfillset(&all);
-    sigemptyset(&savemask);
-    if (sigprocmask(SIG_BLOCK, &all, &savemask) < 0)
-	xerror(errno, "sigprocmask(BLOCK, all)");
+    if (sigtype & (t_quitint | t_tstp)) {
+	sigfillset(&all);
+	sigemptyset(&savemask);
+	if (sigprocmask(SIG_BLOCK, &all, &savemask) < 0)
+	    xerror(errno, "sigprocmask(BLOCK, all)");
+    }
     restore_job_signals();
     restore_interactive_signals();
 
@@ -838,14 +839,10 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (sigtype & t_tstp)
 	    if (save_is_interactive_now)
 		ignore_sigtstp();
-	if (sigtype & t_allbutpipe) {
-	    reset_sigpipe();
-	    sigfillset(&savemask);
-	    sigdelset(&savemask, SIGPIPE);
-	}
     }
-    if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask(SETMASK, none)");
+    if (sigtype & (t_quitint | t_tstp))
+	if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0 && errno != EINTR)
+	    xerror(errno, "sigprocmask(SETMASK, none)");
     return cpid;
 }
 

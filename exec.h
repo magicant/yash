@@ -27,8 +27,7 @@
 typedef enum sigtype_T {
     t_quitint    = 1 << 0,
     t_tstp       = 1 << 1,
-    t_allbutpipe = 1 << 2,
-    t_leave      = 1 << 3,
+    t_leave      = 1 << 2,
 } sigtype_T;
 
 #define Exit_SUCCESS  0
