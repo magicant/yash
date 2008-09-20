@@ -24,6 +24,8 @@
 
 extern int xclose(int fd);
 extern int xdup2(int oldfd, int newfd);
+extern bool write_all(int fd, const void *data, size_t size)
+    __attribute__((nonnull));
 
 extern int ttyfd;
 

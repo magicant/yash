@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +36,7 @@
 #include "parser.h"
 #include "path.h"
 #include "redir.h"
+#include "strbuf.h"
 #include "util.h"
 #include "yash.h"
 
@@ -82,6 +84,21 @@ int xdup2(int oldfd, int newfd)
     return newfd;
 }
 
+/* Repeatedly calls `write' until all `data' is written.
+ * Returns true iff successful. On error, false is returned with `errno' set. */
+/* Note that this function returns a bool value, not ssize_t. */
+bool write_all(int fd, const void *data, size_t size)
+{
+    size_t done = 0;
+
+    while (done < size) {
+	ssize_t s = write(fd, (const char *) data + done, size - done);
+	if (s < 0)
+	    return false;
+	done += s;
+    }
+    return true;
+}
 
 /********** Shell FD **********/
 
@@ -248,6 +265,7 @@ struct savefd_T {
 static void save_fd(int oldfd, savefd_T **save);
 static int parse_and_check_dup(char *num, redirtype_T type)
     __attribute__((nonnull));
+static int open_heredocument(const struct wordunit_T *content);
 static int open_process_redirection(const wchar_t *command, redirtype_T type)
     __attribute__((nonnull));
 
@@ -401,7 +419,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 	long lfd = strtol(num, &end, 10);
 	if (!isxdigit(num[0]) || *end != '\0')
 	    errno = EINVAL;
-	else if (lfd < 0)
+	else if (lfd < 0 || lfd > INT_MAX)
 	    errno = ERANGE;
 	else
 	    fd = (int) lfd;
@@ -429,6 +447,69 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 	}
     }
     free(num);
+    return fd;
+}
+
+/* Opens a here-document whose contents is specified by the argument.
+ * Returns a newly opened file descriptor if successful, or -1 number on error.
+ */
+/* The contents of the here-document is passed either through a pipe or in a
+ * temporary file. */
+int open_heredocument(const wordunit_T *contents)
+{
+    int fd;
+
+    /* if contents is empty */
+    if (!contents) {
+	fd = open("/dev/null", O_RDONLY);
+	if (fd < 0)
+	    xerror(errno, Ngt("cannot open empty here-document"));
+	return fd;
+    }
+
+    wchar_t *wcontents = expand_string(contents, true);
+    if (!wcontents)
+	return -1;
+
+    char *mcontents = realloc_wcstombs(wcontents);
+    if (!mcontents) {
+	xerror(0, Ngt("cannot write here-document contents"));
+	return -1;
+    }
+
+    size_t mlen = strlen(mcontents);
+#ifdef PIPE_BUF
+    /* use a pipe if the contents is short enough */
+    if (mlen <= PIPE_BUF) {
+	int pipefd[2];
+
+	if (pipe(pipefd) >= 0) {
+	    /* It is guaranteed that all the contents is written to the pipe
+	     * at once, so we don't have to use `write_all' here. */
+	    if (write(pipefd[PIDX_OUT], mcontents, mlen) < 0)
+		xerror(errno, Ngt("cannot write here-document contents"));
+	    xclose(pipefd[PIDX_OUT]);
+	    free(mcontents);
+	    return pipefd[PIDX_IN];
+	}
+    }
+#endif /* defined(PIPE_BUF) */
+
+    char *tempfile;
+    fd = create_temporary_file(&tempfile, 0);
+    if (fd < 0) {
+	xerror(errno, Ngt("cannot create temporary file for here-document"));
+	free(mcontents);
+	return -1;
+    }
+    if (unlink(tempfile) < 0)
+	xerror(errno, Ngt("failed to remove temporary file `%s'"), tempfile);
+    free(tempfile);
+    if (!write_all(fd, mcontents, mlen))
+	xerror(errno, Ngt("cannot write here-document contents"));
+    free(mcontents);
+    if (lseek(fd, 0, SEEK_SET) != 0)
+	xerror(errno, Ngt("cannot seek temporary file for here-document"));
     return fd;
 }
 

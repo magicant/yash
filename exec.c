@@ -1240,64 +1240,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
     }
 }
 
-/* Opens a here-document whose contents is specified by the argument.
- * Returns a newly opened file descriptor if successful, or a negative number
- * on error. */
-/* The contents of the here-document is passed through a pipe. */
-int open_heredocument(const wordunit_T *contents)
-{
-    int pipefd[2];
-    pid_t cpid;
-
-    /* open a pipe to pass the contents to a process */
-    if (pipe(pipefd) < 0) {
-	xerror(errno, Ngt("cannot open pipe for here-document"));
-	return -1;
-    }
-
-    /* if contents is empty, we're done */
-    if (!contents)
-	goto success;
-
-    cpid = fork_and_reset(-1, false, t_allbutpipe | t_leave);
-    if (cpid < 0) {
-	/* fork failure */
-	xerror(0, Ngt("cannot redirect to here-document"));
-	xclose(pipefd[PIDX_IN]);
-	xclose(pipefd[PIDX_OUT]);
-	return -1;
-    } else if (cpid > 0) {
-	/* parent process */
-success:
-	xclose(pipefd[PIDX_OUT]);
-	return pipefd[PIDX_IN];
-    } else {
-	/* child process */
-	xclose(pipefd[PIDX_IN]);
-
-	FILE *f = fdopen(pipefd[PIDX_OUT], "w");
-	if (!f) {
-	    xerror(errno, Ngt("cannot open pipe for here-document"));
-	    exit(Exit_ERROR);
-	}
-
-	wchar_t *s = expand_string(contents, true);
-	if (!s)
-	    exit(Exit_EXPERROR);
-	if (fputws(s, f) < 0) {
-#ifndef NDEBUG
-	    free(s);
-#endif
-	    xerror(errno, Ngt("cannot write here-document contents"));
-	    exit(Exit_ERROR);
-	}
-#ifndef NDEBUG
-	free(s);
-#endif
-	exit(Exit_SUCCESS);
-    }
-}
-
 
 /********** Builtins **********/
 
