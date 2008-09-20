@@ -271,11 +271,11 @@ int set_builtin(int argc, void **argv)
 		return Exit_ERROR;
 	    default:
 		if (opt == L'm') {
-		    bool value = (xoptopt == L'-');
-		    if (value != do_job_control) {
+		    bool newvalue = (xoptopt == L'-');
+		    if (newvalue != do_job_control) {
 			reset_own_pgid();
-			do_job_control = value;
-			if (value && ttyfd < 0)
+			do_job_control = newvalue;
+			if (newvalue && ttyfd < 0)
 			    open_ttyfd();
 			set_signals();
 			set_own_pgid();
