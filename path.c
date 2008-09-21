@@ -279,16 +279,16 @@ char *which(
  * to the error value. */
 int create_temporary_file(char **filename, mode_t mode)
 {
-    uintmax_t seed = (uintmax_t) time(NULL);
-    uintmax_t num = shell_pid * 16777619 % 10000 * 16777619 % 10000;
+    static uintmax_t num;
     int fd;
     xstrbuf_T buf;
 
+    if (!num)
+	num = (uintmax_t) time(NULL) * 16777619 % 65537 * 16777619 % 65537;
     sb_init(&buf);
     for (int i = 0; i < 100; i++) {
-	num = (num ^ seed) * 16777619;
-	sb_clear(&buf);
-	sb_printf(&buf, "/tmp/yash-%ju", num % 1000000000);
+	num = (num ^ shell_pid) * 16777619;
+	sb_printf(&buf, "/tmp/yash-%u", (unsigned) (num / 3 % 1000000000));
 	/* The filename must be 14 bytes long at most. */
 	fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
 	if (fd >= 0) {
@@ -300,7 +300,9 @@ int create_temporary_file(char **filename, mode_t mode)
 	    errno = saveerrno;
 	    return -1;
 	}
+	sb_clear(&buf);
     }
+    sb_destroy(&buf);
     errno = EAGAIN;
     return -1;
 }

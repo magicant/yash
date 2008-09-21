@@ -1,5 +1,3 @@
-一時ファイルのファイル名の決め方を変更
-fork_and_reset で sigprocmask は常に必要か？
 テストスクリプト
 	ulimit のテスト
 配列の解釈・代入
