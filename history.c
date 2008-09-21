@@ -504,7 +504,7 @@ int fc_builtin(int argc, void **argv)
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"e:lnrs", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"-e:lnrs", long_options, NULL))) {
 	switch (opt) {
 	    case L'e':  editor = xoptarg;  break;
 	    case L'l':  list   = true;     break;

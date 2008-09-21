@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
@@ -272,7 +273,10 @@ void argshift(void **argv, int from, int to /* <= from */)
  * If `optstring' starts with L'+', options are parsed in posixly correct way.
  * If `optstring' starts with L'*', one-character options may start with L'+'
  * instead of L'-', which is allowed in "sh" and "set" command.
- * L'+' must precede L'*' when the both are specified.
+ * If `optstring' starts with L'-', negative integers like "-1" are not treated
+ * as options: if the hyphen is followed by a digit, it is treated as an
+ * argument. This is not effective if `posixly_correct' is true.
+ * More than one of L'+', L'*' and L'-' can be used if specified in this order.
  *
  * `longopts' is a pointer to an array of `struct xoption's specifying long
  * options to be recognized. The last element must be { 0, 0, 0, 0 }.
@@ -336,7 +340,9 @@ wchar_t xgetopt_long(
     int initind;
     wchar_t *arg, *arg2, argchar;
     static int aindex;
-    bool optionsfirst = posixly_correct, plusoptions = false;
+    bool optionsfirst = posixly_correct;
+    bool plusoptions = false;
+    bool ignorenegativenumbers = false;
 
     if (xoptind == 0) {  /* reset the state */
 	aindex = 1;
@@ -350,10 +356,16 @@ wchar_t xgetopt_long(
 	plusoptions = true;
 	optstring++;
     }
+    if (*optstring == L'-') {
+	ignorenegativenumbers = !posixly_correct;
+	optstring++;
+    }
 
     initind = xoptind;
     while ((arg = argv[xoptind])) {
-	if ((arg[0] != L'-' && (!plusoptions || (arg[0] != L'+'))) || !arg[1]) {
+	if ((arg[0] != L'-' && (!plusoptions || (arg[0] != L'+')))
+		|| !arg[1]
+		|| (ignorenegativenumbers && iswdigit(arg[1]))) {
 	    /* arg is not an option */
 	    if (optionsfirst)
 		break;

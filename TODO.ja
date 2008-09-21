@@ -1,3 +1,4 @@
+history: fc_builtin: fc -l -2a で assertion error
 テストスクリプト
 	ulimit のテスト
 配列の解釈・代入
@@ -11,8 +12,8 @@ gettext 対応
 	echo -eEn
 	help -s
 	newgrp
-	popd -n
+	popd -LnP
 	printf
-	pushd -n
+	pushd -LnP
 	suspend -f
 	test/[
