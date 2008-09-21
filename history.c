@@ -563,7 +563,7 @@ int fc_builtin(int argc, void **argv)
 	first = wcstol(vfirst, &end, 10);
 	if (!vfirst[0] || errno || *end || first == 0) {
 	    efirst = fc_search_entry(vfirst);
-	    if (!efirst)
+	    if (efirst == HISTLIST)
 		return Exit_FAILURE;
 	} else {
 	    if (first > INT_MAX)
@@ -580,7 +580,7 @@ int fc_builtin(int argc, void **argv)
 	last = wcstol(vlast, &end, 10);
 	if (!vlast[0] || errno || *end || last == 0) {
 	    elast = fc_search_entry(vlast);
-	    if (!elast)
+	    if (elast == HISTLIST)
 		return Exit_FAILURE;
 	} else {
 	    if (last > INT_MAX)
@@ -654,7 +654,7 @@ histentry_T *fc_search_entry(const wchar_t *prefix)
     if (s)
 	e = search_entry(s, false);
     free(s);
-    if (!e)
+    if (e == HISTLIST)
 	xerror(0, Ngt("no such entry beginning with `%ls'"), prefix);
     return e;
 }
@@ -923,7 +923,7 @@ int history_builtin(int argc, void **argv)
 		num = wcstol(arg, &end, 10);
 		if (!arg[0] || errno || *end || num == 0) {
 		    entry = fc_search_entry(arg);
-		    if (!entry)
+		    if (entry == HISTLIST)
 			return Exit_FAILURE;
 		} else if (num >= 0) {
 		    if (num > INT_MAX)
