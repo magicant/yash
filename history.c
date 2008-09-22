@@ -596,10 +596,10 @@ int fc_builtin(int argc, void **argv)
     if (!efirst) {
 	if (first >= 0) {
 	    efirst = find_entry(first, true);
-	    if (silent && efirst->number != first)
+	    if (silent && efirst->number != (unsigned) first)
 		efirst = HISTLIST;
 	} else {
-	    if (silent && -first > histlist.count)
+	    if (silent && (unsigned) -first > histlist.count)
 		efirst = HISTLIST;
 	    else
 		efirst = get_nth_newest_entry(-first);
@@ -929,7 +929,7 @@ int history_builtin(int argc, void **argv)
 		    if (num > INT_MAX)
 			num = INT_MAX;
 		    entry = find_entry(num, true);
-		    if (entry != HISTLIST && num != entry->number)
+		    if (entry != HISTLIST && num != (long) entry->number)
 			entry = HISTLIST;
 		} else {
 		    if (num < INT_MIN)
