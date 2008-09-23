@@ -61,6 +61,11 @@ wait: semi-special builtin
 command -b cat = 127
 command -B exit 127 = 127
 command exit 10 = 10
+===== suspend =====
+1
+STOP
+2
+end
 ===== exec =====
 sh
 sh

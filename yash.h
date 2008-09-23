@@ -55,7 +55,9 @@ extern bool nextforceexit;
 
 extern int exit_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char exit_help[];
+extern int suspend_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char exit_help[], suspend_help[];
 
 
 /* Exits the shell with the exit status of `laststatus'.

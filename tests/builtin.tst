@@ -58,6 +58,16 @@ echo command exit 10 = $?
 type type | grep -v "^type: regular builtin"
 
 
+echo ===== suspend =====
+
+set -m
+($INVOKE $TESTEE -imc --norc 'echo 1; suspend; echo 2'; echo end)&
+wait $!
+kill -l $?
+fg >/dev/null
+set +m
+
+
 echo ===== exec =====
 
 (exec -a sh $TESTEE -c 'echo $0')

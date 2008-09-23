@@ -358,7 +358,7 @@ void exit_shell_with_status(int status)
     exit(exitstatus);
 }
 
-/* Does what to do before exiting the shell.
+/* Does what to do before exiting/suspending the shell.
  * The EXIT trap should be executed beforehand if needed. */
 void finalize_shell(void)
 {
@@ -585,21 +585,21 @@ out:
 
 /********** Builtins **********/
 
+static const struct xoption force_help_options[] = {
+    { L"force", xno_argument, L'f', },
+    { L"help",  xno_argument, L'-', },
+    { NULL, 0, 0, },
+};
+
 /* "exit" builtin.
  * If the shell is interactive, there are stopped jobs and the -f flag is not
  * specified, then prints a warning message and does not exit. */
 int exit_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"force", xno_argument, L'f', },
-	{ L"help",  xno_argument, L'-', },
-	{ NULL, 0, 0, },
-    };
-
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"f", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"f", force_help_options, NULL))) {
 	switch (opt) {
 	    case L'f':
 		forceexit = true;
@@ -655,6 +655,46 @@ const char exit_help[] = Ngt(
 "If the shell is interactive and you have any stopped jobs, the shell prints\n"
 "a warning message and does not exit. Use the -f option or use `exit' twice \n"
 "in a row to avoid the warning and really exit.\n"
+);
+
+/* The "suspend" builtin */
+/* This builtin accepts the -f (--force) option, which is silently ignored for
+ * bash-compatibility. Yash's "suspend" builtin always suspends the shell
+ * whether or not it is a login shell. */
+int suspend_builtin(int argc, void **argv)
+{
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"f", force_help_options, NULL))) {
+	switch (opt) {
+	    case L'f':
+		break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return Exit_SUCCESS;
+	    default:  print_usage:
+		fprintf(stderr, gt("Usage:  suspend\n"));
+		return Exit_ERROR;
+	}
+    }
+    if (argc != xoptind)
+	goto print_usage;
+
+    bool ok;
+
+    finalize_shell();
+    ok = send_sigstop_to_myself();
+    if (!ok)
+	xerror(errno, Ngt("cannot send SIGSTOP signal"));
+    reinitialize_shell();
+    return ok ? Exit_SUCCESS : Exit_FAILURE;
+}
+
+const char suspend_help[] = Ngt(
+"suspend - suspend shell\n"
+"\tsuspend\n"
+"Suspends the shell until it receives a SIGCONT signal.\n"
 );
 
 

@@ -467,6 +467,13 @@ void reset_sigpipe(void)
 	xerror(errno, "sigaction(SIGPIPE)");
 }
 
+/* Sends SIGSTOP to the shell process.
+ * Returns true iff successful. `errno' is set on failure. */
+bool send_sigstop_to_myself(void)
+{
+    return kill(0, SIGSTOP) == 0;
+}
+
 /* general signal handler */
 void sig_handler(int signum)
 {

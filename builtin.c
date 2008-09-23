@@ -127,6 +127,7 @@ void init_builtin(void)
 
     /* defined in "yash.c" */
     DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
+    DEFBUILTIN("suspend", suspend_builtin, BI_REGULAR, suspend_help);
 
 #undef DEFBUILTIN
 }
