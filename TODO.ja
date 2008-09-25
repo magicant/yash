@@ -14,5 +14,4 @@ gettext 対応
 	popd -LnP
 	printf
 	pushd -LnP
-	suspend -f
 	test/[

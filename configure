@@ -29,7 +29,7 @@ ldflags="${LDFLAGS}"
 ldlibs="${LDLIBS--lm}"
 target="yash"
 package="yash"
-version="2.0b2"
+version="2.0"
 copyrightyear="2007-2008"
 
 # all source files in this directory
@@ -580,4 +580,4 @@ if [ -z "${posix}" ]; then
 fi
 
 
-# vim: set ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
