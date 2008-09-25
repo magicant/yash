@@ -397,6 +397,9 @@ void print_help(void)
 /* Prints the version info to stdout. */
 void print_version(void)
 {
+#ifndef OPTION_LIST
+#define OPTION_LIST " n/a"
+#endif
     printf(gt("Yet another shell, version %s\n\t(options:%s)\n"),
 	    PACKAGE_VERSION, OPTION_LIST);
     printf(PACKAGE_COPYRIGHT "\n");
