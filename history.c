@@ -792,6 +792,9 @@ int fc_edit_and_exec_entries(
 	wchar_t *command = malloc_wprintf(L"%ls %s",
 		editor ? editor : L"${FCEDIT:-ed}", temp);
 	exec_wcs(command, "fc", true);
+#ifndef NDEBUG
+	free(command);
+#endif
 	assert(false);
     }
 }
