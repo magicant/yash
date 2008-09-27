@@ -174,6 +174,8 @@ void paramfree(paramexp_T *p)
 	    wordfree(p->pe_nest);
 	else
 	    free(p->pe_name);
+	wordfree(p->pe_start);
+	wordfree(p->pe_end);
 	wordfree(p->pe_match);
 	wordfree(p->pe_subst);
 	free(p);
@@ -320,6 +322,8 @@ static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
 static bool is_command_delimiter_char(wchar_t c)
+    __attribute__((const));
+static bool is_comma_or_closing_bracket(wchar_t c)
     __attribute__((const));
 static bool is_slash_or_closing_brace(wchar_t c)
     __attribute__((const));
@@ -671,6 +675,11 @@ bool is_command_delimiter_char(wchar_t c)
 {
     return c == L'\0' || c == L'\n'
 	|| c == L';' || c == L'&' || c == L'|' || c == L'(' || c == L')';
+}
+
+bool is_comma_or_closing_bracket(wchar_t c)
+{
+    return c == L']' || c == L',' || c == L'\0';
 }
 
 bool is_slash_or_closing_brace(wchar_t c)
@@ -1040,6 +1049,8 @@ void parse_redirect_list(redir_T **lastp)
  * Otherwise, does nothing and returns NULL. */
 assign_T *tryparse_assignment(void)
 {
+    //TODO
+    //配列の代入
     size_t namelen;
 
     do
@@ -1361,7 +1372,7 @@ success:
     pe->pe_type = PT_NONE;
     pe->pe_name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
     assert(pe->pe_name != NULL);
-    pe->pe_match = pe->pe_subst = NULL;
+    pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
 
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -1382,7 +1393,7 @@ wordunit_T *parse_paramexp_in_brase(void)
     paramexp_T *pe = xmalloc(sizeof *pe);
     pe->pe_type = 0;
     pe->pe_name = NULL;
-    pe->pe_match = pe->pe_subst = NULL;
+    pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
 
     assert(cbuf.contents[cindex] == L'{');
     cindex++;
@@ -1433,8 +1444,27 @@ make_name:
 	assert(pe->pe_name != NULL);
     }
 
-    /* parse PT_COLON */
+    /* parse indices */
     ensure_buffer(3);
+    if (!posixly_correct && cbuf.contents[cindex] == L'[') {
+	cindex++;
+	pe->pe_start = parse_word_to(noalias, is_comma_or_closing_bracket);
+	if (!pe->pe_start)
+	    serror(Ngt("index missing"));
+	if (cbuf.contents[cindex] == L',') {
+	    cindex++;
+	    pe->pe_end = parse_word_to(noalias, is_comma_or_closing_bracket);
+	    if (!pe->pe_end)
+		serror(Ngt("index missing"));
+	}
+	if (cbuf.contents[cindex] == L']')
+	    cindex++;
+	else
+	    serror(Ngt("`%ls' missing"), L"]");
+	ensure_buffer(3);
+    }
+
+    /* parse PT_COLON */
     if (cbuf.contents[cindex] == L':') {
 	pe->pe_type |= PT_COLON;
 	cindex++;
@@ -2598,6 +2628,15 @@ void print_paramexp(xwcsbuf_T *restrict buf, const paramexp_T *restrict p)
 	print_word(buf, p->pe_nest);
     else
 	wb_mbscat(buf, p->pe_name);
+    if (p->pe_start) {
+	wb_wccat(buf, L'[');
+	print_word(buf, p->pe_start);
+	if (p->pe_end) {
+	    wb_wccat(buf, L',');
+	    print_word(buf, p->pe_end);
+	}
+	wb_wccat(buf, L']');
+    }
     if (p->pe_type & PT_COLON)
 	wb_wccat(buf, L':');
     switch (p->pe_type & PT_MASK) {

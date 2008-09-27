@@ -86,10 +86,15 @@ struct assign_T;
 extern bool do_assignments(
 	const struct assign_T *assigns, bool temp, bool export);
 
+struct get_variable {
+    enum { GV_NOTFOUND, GV_SCALAR, GV_ARRAY, GV_ARRAY_CONCAT, } type;
+    size_t count;
+    void **values;
+};
 extern const wchar_t *getvar(const char *name)
     __attribute__((pure,nonnull));
-extern void **get_variable(const char *name, bool *concat)
-    __attribute__((nonnull,malloc,warn_unused_result));
+extern struct get_variable get_variable(const char *name)
+    __attribute__((nonnull,warn_unused_result));
 
 extern void open_new_environment(bool temp);
 extern void close_current_environment(void);

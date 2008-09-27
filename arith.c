@@ -20,8 +20,10 @@
 #include <assert.h>
 #include <errno.h>
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include "arith.h"
@@ -137,7 +139,7 @@ static void next_token(evalinfo_T *info)
     __attribute__((nonnull));
 
 
-/* Evaluate the specified string as an arithmetic expression.
+/* Evaluates the specified string as an arithmetic expression.
  * The argument string is freed in this function.
  * The result is converted into a string and returned as a newly-malloced
  * string. On error, an error message is printed to stderr and NULL is
@@ -169,6 +171,51 @@ wchar_t *evaluate_arithmetic(wchar_t *exp)
     }
     free(exp);
     return resultstr;
+}
+
+/* Evaluates the specified string as an arithmetic expression.
+ * The argument string is freed in this function.
+ * The expression must yield a valid positive integer value, which is assigned
+ * to `*valuep'.
+ * Otherwise an error message is printed.
+ * Returns true iff successful. */
+bool evaluate_index(wchar_t *exp, size_t *valuep)
+{
+    value_T result;
+    evalinfo_T info;
+
+    info.exp = exp;
+    info.index = 0;
+    info.parseonly = false;
+    info.error = false;
+
+    next_token(&info);
+    parse_assignment(&info, &result);
+    coerce_number(&info, &result);
+
+    bool ok;
+    if (info.error) {
+	ok = false;
+    } else if (info.token.type == TT_NULL) {
+	if (result.type == VT_LONG && result.v_long > 0) {
+#if LONG_MAX > SIZE_MAX
+	    if (result.v_long > (long) SIZE_MAX)
+		*valuep = SIZE_MAX;
+	    else
+#endif
+		*valuep = result.v_long;
+	    ok = true;
+	} else {
+	    xerror(0, Ngt("index: not a positive integer"));
+	    ok = false;
+	}
+    } else {
+	if (info.token.type != TT_INVALID)
+	    xerror(0, Ngt("arithmetic: invalid syntax"));
+	ok = false;
+    }
+    free(exp);
+    return ok;
 }
 
 /* Parses an assignment expression.

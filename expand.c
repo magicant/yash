@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <wchar.h>
@@ -60,6 +61,10 @@ static wchar_t *expand_tilde(const wchar_t **ss,
 
 static void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     __attribute__((nonnull,malloc,warn_unused_result));
+static wchar_t *trim_wstring(wchar_t *s, size_t startindex, size_t endindex)
+    __attribute__((nonnull));
+static void **trim_array(void **a, size_t startindex, size_t endindex)
+    __attribute__((nonnull));
 static void print_subst_as_error(const paramexp_T *p)
     __attribute__((nonnull));
 static void match_each(
@@ -582,10 +587,35 @@ finish:
  * On error, NULL is returned. */
 void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 {
+    struct get_variable v;
     void **list;  /* array of (wchar_t *) cast to (void *) */
+    bool save;    /* need to copy the array? */
     bool concat;  /* concatenate? */
     bool unset;   /* parameter is not set? */
+    size_t startindex, endindex;
     wchar_t *match, *subst;
+
+    /* parse indexes first */
+    if (!p->pe_start) {
+	startindex = 0, endindex = SIZE_MAX;
+    } else {
+	wchar_t *e = expand_single(p->pe_start, tt_none);
+	if (!e || !evaluate_index(e, &startindex))
+	    return NULL;
+	assert(startindex > 0);
+	startindex--;
+
+	if (!p->pe_end) {
+	    endindex = startindex + 1;
+	} else {
+	    e = expand_single(p->pe_end, tt_none);
+	    if (!e || !evaluate_index(e, &endindex))
+		return NULL;
+	    if (endindex < startindex)
+		endindex = startindex;
+	}
+    }
+    assert(startindex <= endindex);
 
     /* get the value of parameter or nested expansion */
     if (p->pe_type & PT_NEST) {
@@ -595,29 +625,65 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	    recfree(pl_toary(&plist), free);
 	    return NULL;
 	}
-	list = pl_toary(&plist);
-	concat = true;
+	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
+	v.count = plist.length;
+	v.values = pl_toary(&plist);
+	save = false;
 	unset = false;
-	for (size_t i = 0; list[i]; i++)
-	    list[i] = unescapefree(list[i]);
+	for (size_t i = 0; v.values[i]; i++)
+	    v.values[i] = unescapefree(v.values[i]);
     } else {
-	list = get_variable(p->pe_name, &concat);
-	if (list) {
+	v = get_variable(p->pe_name);
+	save = (v.type == GV_ARRAY || v.type == GV_ARRAY_CONCAT);
+	if (v.type != GV_NOTFOUND) {
 	    unset = false;
 	} else {
 	    /* if parameter is not set, return empty string */
-	    plist_T plist;
-	    list = pl_toary(pl_add(pl_init(&plist), xwcsdup(L"")));
+	    v.type = GV_SCALAR;
+	    v.count = 1;
+	    v.values = xmalloc(2 * sizeof *v.values);
+	    v.values[0] = xwcsdup(L"");
+	    v.values[1] = NULL;
 	    unset = true;
 	}
     }
 
-    /* here, the contents of `list' are not backslashed. */
+    /* here, the contents of `v.values' are not backslashed. */
+
+    /* treat indices */
+    switch (v.type) {
+	case GV_NOTFOUND:
+	    assert(v.values == NULL);
+	    list = NULL, concat = false;
+	    break;
+	case GV_SCALAR:
+	    assert(v.values && v.values[0] && !v.values[1]);
+	    assert(!save);
+	    trim_wstring(v.values[0], startindex, endindex);
+	    list = v.values, concat = false;
+	    break;
+	case GV_ARRAY:
+	    concat = false;
+	    goto treat_array;
+	case GV_ARRAY_CONCAT:
+	    concat = true;
+treat_array:
+	    if (startindex > v.count)
+		startindex = v.count;
+	    if (save)
+		list = duparrayn(v.values + startindex, endindex - startindex,
+			copyaswcs);
+	    else
+		list = trim_array(v.values, startindex, endindex);
+	    break;
+	default:
+	    assert(false);
+    }
 
     /* if `PT_COLON' is true, empty string is treated as unset */
-    if ((p->pe_type & PT_COLON)
-	    && (!list[0] || (!((char *) list[0])[0] && !list[1])))
-	unset = true;
+    if (p->pe_type & PT_COLON)
+	if (!list[0] || (!((wchar_t *) list[0])[0] && !list[1]))
+	    unset = true;
 
     /* PT_PLUS, PT_MINUS, PT_ASSIGN, PT_ERROR */
     switch (p->pe_type & PT_MASK) {
@@ -728,6 +794,56 @@ subst:
 	list[i] = escapefree(list[i], indq ? NULL : CHARS_ESCAPED);
 
     return list;
+}
+
+/* Trims some leading and trailing characters of the wide string.
+ * Characters in the range [`startindex', `endindex') remain.
+ * Returns the string `s'. */
+wchar_t *trim_wstring(wchar_t *s, size_t startindex, size_t endindex)
+{
+    assert(startindex <= endindex);
+    if (startindex == 0 && endindex == SIZE_MAX)
+	return s;
+
+    size_t len = endindex - startindex;
+    for (size_t i = 0; i < startindex; i++)
+	if (s[i] == L'\0') {
+	    s[0] = L'\0';
+	    return s;
+	}
+    for (size_t i = 0; i < len; i++)
+	if ((s[i] = s[startindex + i]) == L'\0')
+	    return s;
+    s[len] = L'\0';
+    return s;
+}
+
+/* Trims some leading and trailing elements of the NULL-terminated array of
+ * pointers.
+ * Elements in the range [`startindex', `endindex') remain.
+ * Removed elements are freed.
+ * Returns the array `a'. */
+void **trim_array(void **a, size_t startindex, size_t endindex)
+{
+    assert(startindex <= endindex);
+    if (startindex == 0 && endindex == SIZE_MAX)
+	return a;
+
+    size_t len = endindex - startindex;
+    for (size_t i = 0; i < startindex; i++) {
+	if (a[i] == NULL) {
+	    a[0] = NULL;
+	    return a;
+	}
+	free(a[i]);
+    }
+    for (size_t i = 0; i < len; i++)
+	if ((a[i] = a[startindex + i]) == NULL)
+	    return a;
+    for (size_t i = endindex; a[i]; i++)
+	free(a[i]);
+    a[len] = NULL;
+    return a;
 }
 
 /* Expands `p->pe_subst' and prints it as an error message. */

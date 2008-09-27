@@ -204,14 +204,18 @@ typedef struct paramexp_T {
 	char              *name;
 	struct wordunit_T *nest;
     } pe_value;
+    struct wordunit_T *pe_start, *pe_end;
     struct wordunit_T *pe_match, *pe_subst;
 } paramexp_T;
 #define pe_name pe_value.name
 #define pe_nest pe_value.nest
 /* pe_name:  name of parameter
  * pe_nest:  nested parameter expansion
+ * pe_start: index of the first element in the range
+ * pe_end:   index of the last element in the range
  * pe_match: word to be matched with the value of the parameter
  * pe_subst: word to to substitute the matched string with
+ * `pe_start' and `pe_end' is NULL if the indices are not specified.
  * `pe_match' and `pe_subst' may be NULL to denote an empty string. */
 
 /* assignment */

@@ -20,10 +20,13 @@
 #define YASH_ARITH_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 
 extern wchar_t *evaluate_arithmetic(wchar_t *exp)
     __attribute__((nonnull,malloc,warn_unused_result));
+extern bool evaluate_index(wchar_t *exp, size_t *valuep)
+    __attribute__((nonnull));
 
 
 #endif /* YASH_ARITH_H */

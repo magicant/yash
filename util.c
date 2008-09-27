@@ -97,21 +97,24 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
 
 /* Clones a NULL-terminated array of pointers.
  * Each pointer element is passed to `copy' function and the return value is
- * assigned to the new array element. */
+ * assigned to the new array element.
+ * If the array contains more than `count' elements, only the first `count'
+ * elements are copied.
+ * If `array' is NULL, simply returns NULL. */
 /* `xstrdup' and `copyaswcs' are suitable for `copy'. */
-void **duparray(void *const *array, void *copy(const void *p))
+void **duparrayn(void *const *array, size_t count, void *copy(const void *p))
 {
     if (!array)
 	return NULL;
 
-    size_t count = 0;
-    for (void *const *a = array; *a; a++)
-	count++;
+    size_t realcount = 0;
+    for (void *const *a = array; *a != NULL && realcount < count; a++)
+	realcount++;
 
-    void **result = xmalloc((count + 1) * sizeof *result);
-    for (size_t i = 0; i < count; i++)
+    void **result = xmalloc((realcount + 1) * sizeof *result);
+    for (size_t i = 0; i < realcount; i++)
 	result[i] = copy(array[i]);
-    result[count] = NULL;
+    result[realcount] = NULL;
     return result;
 }
 

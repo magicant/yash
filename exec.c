@@ -347,9 +347,9 @@ void exec_for(const command_T *c, bool finally_exit)
 	    goto finish;
 	}
     } else {
-	bool concat;
-	words = get_variable("@", &concat);
-	assert(words != NULL && !concat);
+	struct get_variable v = get_variable("@");
+	assert(v.type == GV_ARRAY && v.values != NULL);
+	words = duparray(v.values, copyaswcs);
 	count = plcount(words);
     }
 

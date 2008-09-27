@@ -693,33 +693,43 @@ const wchar_t *getvar(const char *name)
     return NULL;
 }
 
-/* Gets the value(s) of the specified variable as an array.
- * A scalar value is returned as a one-element array.
- * The returned array is a newly-malloced NULL-terminated array of pointers to
- * newly-malloced wide characters cast to (void *).
- * If no such variable is found, NULL is returned.
- * If `name' is "*", true is assigned to `*concat' to indicate the array
- * elements should be concatenated by the caller. Otherwise false is assigned.*/
-void **get_variable(const char *name, bool *concat)
+/* Returns the value(s) of the specified variable/array as an array.
+ * The return value's type is `struct get_variable'. It has three members:
+ * `type', `count' and `values'. `type' is the type of variable/array:
+ *    GV_NOTFOUND:     no such variable/array
+ *    GV_SCALAR:       a normal scalar variable
+ *    GV_ARRAY:        an array of zero or more values
+ *    GV_ARRAY_CONCAT: an array whose values should be concatenated by caller
+ * `values' is the array containing the values of the variable/array.
+ * A scalar value (GV_SCALAR) is returned as a newly-malloced array containing
+ * exactly one newly-malloced wide string. An array (GV_ARRAY*) is returned as
+ * a NULL-terminated array of pointers to wide strings, which must not be
+ * changed or freed.  If no such variable is found (GV_NOTFOUND), the result
+ * array will be NULL.
+ * `count' is the number of elements in the `values'. */
+struct get_variable get_variable(const char *name)
 {
-    void **result;
+    struct get_variable result = {
+	.type = GV_NOTFOUND, .count = 0, .values = NULL, };
     wchar_t *value;
     variable_T *var;
 
-    *concat = false;
     if (!name[0])
-	return NULL;
+	return result;
     if (!name[1]) {
 	/* `name' is one-character long: check if it's a special parameter */
 	switch (name[0]) {
 	    case '*':
-		*concat = true;
-		/* falls thru! */
+		result.type = GV_ARRAY_CONCAT;
+		goto positional_parameters;
 	    case '@':
+		result.type = GV_ARRAY;
+positional_parameters:
 		var = search_variable(VAR_positional);
 		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
-		result = var->v_vals;
-		goto return_array;
+		result.count = var->v_valc;
+		result.values = var->v_vals;
+		return result;
 	    case '#':
 		var = search_variable(VAR_positional);
 		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
@@ -749,11 +759,11 @@ void **get_variable(const char *name, bool *concat)
 	errno = 0;
 	long v = strtol(name, &nameend, 10);
 	if (errno || *nameend != '\0')
-	    return NULL;  /* not a number or overflow */
+	    return result;  /* not a number or overflow */
 	var = search_variable(VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (v <= 0 || (uintmax_t) var->v_valc < (uintmax_t) v)
-	    return NULL;  /* index out of bounds */
+	    return result;  /* index out of bounds */
 	value = xwcsdup(var->v_vals[v - 1]);
 	goto return_single;
     }
@@ -768,22 +778,23 @@ void **get_variable(const char *name, bool *concat)
 		value = var->v_value ? xwcsdup(var->v_value) : NULL;
 		goto return_single;
 	    case VF_ARRAY:
-		result = var->v_vals;
-		goto return_array;
+		result.type = GV_ARRAY;
+		result.count = var->v_valc;
+		result.values = var->v_vals;
+		return result;
 	}
     }
-    return NULL;
+    return result;
 
 return_single:  /* return a scalar as a one-element array */
     if (!value)
-	return NULL;
-    result = xmalloc(2 * sizeof *result);
-    result[0] = value;
-    result[1] = NULL;
+	return result;
+    result.type = GV_SCALAR;
+    result.count = 1;
+    result.values = xmalloc(2 * sizeof *result.values);
+    result.values[0] = value;
+    result.values[1] = NULL;
     return result;
-
-return_array:  /* duplicate an array and return it */
-    return duparray(result, copyaswcs);
 }
 
 /* Gathers all variables in the specified environment and all of its ancestors
