@@ -722,7 +722,7 @@ subst:
 	    if (!subst)
 		return NULL;
 	    subst = unescapefree(subst);
-	    if (!set_variable(p->pe_name, xwcsdup(subst), false, false)) {
+	    if (!set_variable(p->pe_name, xwcsdup(subst), SCOPE_GLOBAL, false)){
 		free(subst);
 		return NULL;
 	    }

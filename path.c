@@ -957,7 +957,7 @@ int cd_builtin(int argc, void **argv)
 	} else {
 	    wchar_t *wpwd = realloc_mbstowcs(pwd);
 	    if (wpwd != NULL) {
-		if (!set_variable(VAR_PWD, wpwd, false, false))
+		if (!set_variable(VAR_PWD, wpwd, SCOPE_GLOBAL, false))
 		    err = true;
 		oldpwd = getvar(VAR_PWD);
 	    } else {
@@ -1036,7 +1036,7 @@ step7:
 	}
 	free(mbscurpath);
 
-	if (!set_variable(VAR_OLDPWD, xwcsdup(oldpwd), false, false))
+	if (!set_variable(VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
 	    err = true;
 
 	char *actualpwd = xgetcwd();
@@ -1053,7 +1053,7 @@ step7:
 			    "into wide characters"));
 		return Exit_FAILURE;
 	    } else {
-		if (!set_variable(VAR_PWD, wactualpwd, false, false))
+		if (!set_variable(VAR_PWD, wactualpwd, SCOPE_GLOBAL, false))
 		    err = true;
 	    }
 	}
@@ -1078,9 +1078,9 @@ step7:
 		printf("%s\n", mbspath);
 	    free(mbspath);
 
-	    if (!set_variable(VAR_OLDPWD, xwcsdup(oldpwd), false, false))
+	    if (!set_variable(VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
 		err = true;
-	    if (!set_variable(VAR_PWD, path, false, false))
+	    if (!set_variable(VAR_PWD, path, SCOPE_GLOBAL, false))
 		err = true;
 	}
     }

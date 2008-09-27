@@ -138,10 +138,10 @@ static variable_T *new_global(const char *name)
     __attribute__((nonnull));
 static variable_T *new_local(const char *name)
     __attribute__((nonnull));
-static variable_T *new_variable(const char *name, bool local)
+static variable_T *new_temporary(const char *name)
     __attribute__((nonnull));
-static bool assign_temporary(const char *name, wchar_t *value, bool export)
-    __attribute__((nonnull(1)));
+static variable_T *new_variable(const char *name, scope_T scope)
+    __attribute__((nonnull));
 static void get_all_variables_rec(hashtable_T *table, environ_T *env)
     __attribute__((nonnull));
 
@@ -270,17 +270,17 @@ void init_variables(void)
 
     /* set $MAILCHECK */
     if (!getvar(VAR_MAILCHECK))
-	set_variable(VAR_MAILCHECK, xwcsdup(L"600"), false, false);
+	set_variable(VAR_MAILCHECK, xwcsdup(L"600"), SCOPE_GLOBAL, false);
 
     /* set $PS1~4 */
     {
 	const wchar_t *ps1 =
 	    !posixly_correct ? L"\\$ " : (geteuid() != 0) ? L"$ " : L"# ";
-	set_variable(VAR_PS1, xwcsdup(ps1),    false, false);
-	set_variable(VAR_PS2, xwcsdup(L"> "),  false, false);
+	set_variable(VAR_PS1, xwcsdup(ps1),   SCOPE_GLOBAL, false);
+	set_variable(VAR_PS2, xwcsdup(L"> "), SCOPE_GLOBAL, false);
 	if (!posixly_correct)
-	    set_variable(VAR_PS3, xwcsdup(L"#? "), false, false);
-	set_variable(VAR_PS4, xwcsdup(L"+ "),  false, false);
+	    set_variable(VAR_PS3, xwcsdup(L"#? "), SCOPE_GLOBAL, false);
+	set_variable(VAR_PS4, xwcsdup(L"+ "), SCOPE_GLOBAL, false);
     }
 
     /* set $PWD */
@@ -296,10 +296,10 @@ void init_variables(void)
 
     /* set $PPID */
     set_variable(VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
-	    false, false);
+	    SCOPE_GLOBAL, false);
 
     /* set $OPTIND */
-    set_variable(VAR_OPTIND, xwcsdup(L"1"), false, false);
+    set_variable(VAR_OPTIND, xwcsdup(L"1"), SCOPE_GLOBAL, false);
 
     /* set $RANDOM */
     if (!posixly_correct && !getvar(VAR_RANDOM)) {
@@ -315,7 +315,8 @@ void init_variables(void)
     }
 
     /* set $YASH_VERSION */
-    set_variable(VAR_YASH_VERSION, xwcsdup(L"" PACKAGE_VERSION), false, false);
+    set_variable(VAR_YASH_VERSION, xwcsdup(L"" PACKAGE_VERSION),
+	    SCOPE_GLOBAL, false);
 
     /* initialize path according to $PATH/CDPATH */
     for (size_t i = 0; i < PATHTCOUNT; i++)
@@ -354,7 +355,7 @@ set:
 	xerror(0, Ngt("cannot set $PWD"));
 	return;
     }
-    set_variable(VAR_PWD, wnewpwd, false, true);
+    set_variable(VAR_PWD, wnewpwd, SCOPE_GLOBAL, true);
 }
 
 /* Checks if the specified character can be used in a variable name in an
@@ -391,7 +392,6 @@ bool is_name(const char *s)
 }
 
 /* Searches for a variable with the specified name.
- * if `temp' is false, temporary variables are ignored.
  * Returns NULL if none found. */
 variable_T *search_variable(const char *name)
 {
@@ -529,6 +529,33 @@ variable_T *new_local(const char *name)
     return var;
 }
 
+/* Creates a new scalar variable with the value unset.
+ * If the variable already exists, it is returned without change.
+ * So the return value may be an array variable.
+ * The current environment must be a temporary environment.
+ * If there is a readonly non-temporary variable with the specified name, it is
+ * returned (no new temporary variable is created). */
+variable_T *new_temporary(const char *name)
+{
+    environ_T *env = current_env;
+    assert(env->is_temporary);
+
+    /* check if readonly */
+    variable_T *var = search_variable(name);
+    if (var && (var->v_type & VF_READONLY))
+	return var;
+
+    var = ht_get(&env->contents, name).value;
+    if (var)
+	return var;
+    var = xmalloc(sizeof *var);
+    var->v_type = VF_NORMAL;
+    var->v_value = NULL;
+    var->v_getter = NULL;
+    ht_set(&env->contents, xstrdup(name), var);
+    return var;
+}
+
 /* Creates a new variable if there is none.
  * If the variable already exists, it is cleared and returned.
  *
@@ -537,9 +564,16 @@ variable_T *new_local(const char *name)
  * (including `v_type') must be initialized by the caller. If `v_type' of the
  * return value has the VF_EXPORT flag set, the caller must call
  * `update_enrivon'. */
-variable_T *new_variable(const char *name, bool local)
+variable_T *new_variable(const char *name, scope_T scope)
 {
-    variable_T *var = local ? new_local(name) : new_global(name);
+    variable_T *var;
+
+    switch (scope) {
+	case SCOPE_GLOBAL:  var = new_global(name);     break;
+	case SCOPE_LOCAL:   var = new_local(name);      break;
+	case SCOPE_TEMP:    var = new_temporary(name);  break;
+	default:            assert(false);
+    }
     if (var->v_type & VF_READONLY) {
 	xerror(0, Ngt("%s: readonly"), name);
 	return NULL;
@@ -555,9 +589,9 @@ variable_T *new_variable(const char *name, bool local)
  * If `export' is true, the variable is exported. `export' being false doesn't
  * mean the variable is no longer exported.
  * Returns true iff successful. */
-bool set_variable(const char *name, wchar_t *value, bool local, bool export)
+bool set_variable(const char *name, wchar_t *value, scope_T scope, bool export)
 {
-    variable_T *var = new_variable(name, local);
+    variable_T *var = new_variable(name, scope);
     if (!var) {
 	free(value);
 	return false;
@@ -578,9 +612,9 @@ bool set_variable(const char *name, wchar_t *value, bool local, bool export)
 /* Creates an array variable with the specified name and values.
  * `values' is a NULL-terminated array of pointers to wide strings.
  * Returns true iff successful. */
-bool set_array(const char *name, void *const *values, bool local)
+bool set_array(const char *name, void *const *values, scope_T scope)
 {
-    variable_T *var = new_variable(name, local);
+    variable_T *var = new_variable(name, scope);
     if (!var)
 	return false;
 
@@ -605,39 +639,7 @@ bool set_array(const char *name, void *const *values, bool local)
  * except for a temporary environment. */
 void set_positional_parameters(void *const *values)
 {
-    set_array(VAR_positional, values, true);
-}
-
-/* Does an assignment to a temporary variable.
- * `current_env->is_temporary' must be true.
- * `value' must be a `free'able string or NULL. The caller must not modify or
- * `free' `value' hereafter, whether or not this function is successful.
- * If `export' is true, the variable is exported. `export' being false doesn't
- * mean the variable is no longer exported.
- * Returns true iff successful. */
-bool assign_temporary(const char *name, wchar_t *value, bool export)
-{
-    assert(current_env->is_temporary);
-
-    variable_T *var = ht_get(&current_env->contents, name).value;
-    if (!var) {
-	var = xmalloc(sizeof *var);
-	var->v_type = 0;
-	ht_set(&current_env->contents, xstrdup(name), var);
-    } else {
-	varvaluefree(var);
-    }
-
-    var->v_type = VF_NORMAL;
-    var->v_value = value;
-    var->v_getter = NULL;
-
-    variable_set(name, var);
-    if (export) {
-	var->v_type |= VF_EXPORT;
-	update_enrivon(name);
-    }
-    return true;
+    set_array(VAR_positional, values, SCOPE_LOCAL);
 }
 
 /* Does assignments.
@@ -664,12 +666,8 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 	    fprintf(stderr, "%s=%ls%c",
 		    assign->name, value, (assign->next ? ' ' : '\n'));
 
-	bool ok;
-	if (temp)
-	    ok = assign_temporary(assign->name, value, export);
-	else
-	    ok = set_variable(assign->name, value, false, export);
-	if (!ok)
+	scope_T scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
+	if (!set_variable(assign->name, value, scope, export))
 	    return false;
 
 	assign = assign->next;
@@ -1788,13 +1786,13 @@ bool set_optind(unsigned long optind)
 {
     return set_variable(VAR_OPTIND,
 	    malloc_wprintf(L"%lu", optind + 1),
-	    false, false);
+	    SCOPE_GLOBAL, false);
 }
 
 /* Sets $OPTARG to `value'. */
 bool set_optarg(const wchar_t *value)
 {
-    return set_variable(VAR_OPTARG, xwcsdup(value), false, false);
+    return set_variable(VAR_OPTARG, xwcsdup(value), SCOPE_GLOBAL, false);
 }
 
 /* Sets the specified variable to the single character `value'. */
@@ -1804,7 +1802,7 @@ bool set_to(const wchar_t *varname, wchar_t value)
     char *mvarname = malloc_wcstombs(varname);
     if (mvarname) {
 	wchar_t v[] = { value, L'\0', };
-	ok = set_variable(mvarname, xwcsdup(v), false, false);
+	ok = set_variable(mvarname, xwcsdup(v), SCOPE_GLOBAL, false);
 	free(mvarname);
     } else {
 	ok = false;
@@ -1927,7 +1925,7 @@ int read_builtin(int argc, void **argv)
 	    xerror(0, Ngt("unexpected error"));
 	    continue;
 	}
-	err |= !set_variable(name, list.contents[i], false, false);
+	err |= !set_variable(name, list.contents[i], SCOPE_GLOBAL, false);
 	free(name);
     }
 

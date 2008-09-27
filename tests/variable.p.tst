@@ -78,6 +78,8 @@ echo $var $ro -$empty-
 (var=no; echo $var) 2>/dev/null
 (empty=no; echo -$empty-) 2>/dev/null
 (unset var; echo $var) 2>/dev/null
+(var=no sleep 0 && echo not reached - sleep) 2>/dev/null
+(var=no cd && echo not reached - cd) 2>/dev/null
 export readonlyvar="$(readonly | grep -E '^readonly[[:blank:]]+var=')"
 $INVOKE $TESTEE -s <<\END
 eval $readonlyvar

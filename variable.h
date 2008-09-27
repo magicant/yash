@@ -75,10 +75,13 @@ extern void init_variables(void);
 extern bool is_name(const char *s)
     __attribute__((nonnull,pure));
 
+typedef enum scope_T {
+    SCOPE_GLOBAL, SCOPE_LOCAL, SCOPE_TEMP,
+} scope_T;
 extern bool set_variable(
-	const char *name, wchar_t *value, bool local, bool export)
+	const char *name, wchar_t *value, scope_T scope, bool export)
     __attribute__((nonnull(1)));
-extern bool set_array(const char *name, void *const *values, bool local)
+extern bool set_array(const char *name, void *const *values, scope_T scope)
     __attribute__((nonnull));
 extern void set_positional_parameters(void *const *values)
     __attribute__((nonnull));

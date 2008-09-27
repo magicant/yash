@@ -281,7 +281,7 @@ bool do_assignment(const word_T *word, const value_T *value)
 	return false;
     }
 
-    bool succ = set_variable(name, vstr, false, false);
+    bool succ = set_variable(name, vstr, SCOPE_GLOBAL, false);
     free(name);
     return succ;
 }
