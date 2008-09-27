@@ -595,6 +595,7 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     size_t startindex, endindex;
     wchar_t *match, *subst;
 
+    //TODO [@] [*] [#]
     /* parse indexes first */
     if (!p->pe_start) {
 	startindex = 0, endindex = SIZE_MAX;

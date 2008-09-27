@@ -185,8 +185,11 @@ void paramfree(paramexp_T *p)
 void assignsfree(assign_T *a)
 {
     while (a) {
-	free(a->name);
-	wordfree(a->value);
+	free(a->a_name);
+	switch (a->a_type) {
+	    case A_SCALAR:  wordfree(a->a_scalar);             break;
+	    case A_ARRAY:   recfree(a->a_array, wordfree_vp);  break;
+	}
 
 	assign_T *next = a->next;
 	free(a);
@@ -354,6 +357,8 @@ static void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 static void parse_redirect_list(redir_T **lastp)
     __attribute__((nonnull));
 static assign_T *tryparse_assignment(void)
+    __attribute__((malloc,warn_unused_result));
+static void **parse_words_to_paren(void)
     __attribute__((malloc,warn_unused_result));
 static redir_T *tryparse_redirect(void)
     __attribute__((malloc,warn_unused_result));
@@ -1049,8 +1054,6 @@ void parse_redirect_list(redir_T **lastp)
  * Otherwise, does nothing and returns NULL. */
 assign_T *tryparse_assignment(void)
 {
-    //TODO
-    //配列の代入
     size_t namelen;
 
     do
@@ -1061,18 +1064,50 @@ assign_T *tryparse_assignment(void)
 
     assign_T *result = xmalloc(sizeof *result);
     result->next = NULL;
-    result->name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
-    assert(result->name != NULL);
+    result->a_name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
+    assert(result->a_name != NULL);
     cindex += namelen + 1;
 
     ensure_buffer(1);
-    if (is_token_delimiter_char(cbuf.contents[cindex])) {
-	skip_blanks_and_comment();
-	result->value = NULL;
+    if (cbuf.contents[cindex] != L'(') {
+	result->a_type = A_SCALAR;
+	if (is_token_delimiter_char(cbuf.contents[cindex])) {
+	    skip_blanks_and_comment();
+	    result->a_scalar = NULL;
+	} else {
+	    result->a_scalar = parse_word(noalias);
+	}
     } else {
-	result->value = parse_word(noalias);
+	cindex++;
+	skip_to_next_token();
+	result->a_type = A_ARRAY;
+	result->a_array = parse_words_to_paren();
+	if (cbuf.contents[cindex] == L')')
+	    cindex++;
+	else
+	    serror(Ngt("`%ls' missing"), L")");
+	skip_blanks_and_comment();
     }
     return result;
+}
+
+/* Parses words until the next closing parentheses.
+ * Delimiter characters other than ')' and '\n' are not allowed.
+ * Returns a newly malloced array of pointers to newly malloced wordunit_T. */
+void **parse_words_to_paren(void)
+{
+    plist_T list;
+
+    pl_init(&list);
+    while (cbuf.contents[cindex] != L')') {
+	wordunit_T *word = parse_word(globalonly);
+	if (word)
+	    pl_add(&list, word);
+	else
+	    break;
+	skip_to_next_token();
+    }
+    return pl_toary(&list);
 }
 
 /* If there is a redirection at the current index, parses and returns it.
@@ -2545,9 +2580,22 @@ void print_caseitems(xwcsbuf_T *restrict buf, const caseitem_T *restrict i)
 void print_assigns(xwcsbuf_T *restrict buf, const assign_T *restrict a)
 {
     while (a) {
-	wb_mbscat(buf, a->name);
+	wb_mbscat(buf, a->a_name);
 	wb_wccat(buf, L'=');
-	print_word(buf, a->value);
+	switch (a->a_type) {
+	    case A_SCALAR:
+		print_word(buf, a->a_scalar);
+		break;
+	    case A_ARRAY:
+		wb_wccat(buf, L'(');
+		for (void **w = a->a_array; *w; w++) {
+		    print_word(buf, *w);
+		    if (*(w + 1))
+			wb_wccat(buf, L' ');
+		}
+		wb_wccat(buf, L')');
+		break;
+	}
 	wb_wccat(buf, L' ');
 	a = a->next;
     }

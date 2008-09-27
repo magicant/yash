@@ -937,7 +937,7 @@ bool assignment_is_temporary(enum cmdtype_T type)
 bool including_path_assignment(const assign_T *a)
 {
     while (a) {
-	if (strcmp(a->name, VAR_PATH) == 0)
+	if (strcmp(a->a_name, VAR_PATH) == 0)
 	    return true;
 	a = a->next;
     }
@@ -1577,9 +1577,9 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	
 	pl_init(&list);
 	for (assign_T *assign = last_assign; assign; assign = assign->next) {
-	    const char *envval = getenv(assign->name);
+	    const char *envval = getenv(assign->a_name);
 	    pl_add(&list, malloc_printf(
-			"%s=%s", assign->name, envval ? envval : ""));
+			"%s=%s", assign->a_name, envval ? envval : ""));
 	}
 	envs = (char **) pl_toary(&list);
     } else {

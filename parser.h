@@ -218,13 +218,25 @@ typedef struct paramexp_T {
  * `pe_start' and `pe_end' is NULL if the indices are not specified.
  * `pe_match' and `pe_subst' may be NULL to denote an empty string. */
 
+/* type of assignment */
+typedef enum {
+    A_SCALAR, A_ARRAY,
+} assigntype_T;
+
 /* assignment */
 typedef struct assign_T {
     struct assign_T *next;
-    char *name;                /* name of variable */
-    struct wordunit_T *value;  /* value to assign */
+    assigntype_T a_type;
+    char *a_name;
+    union {
+	struct wordunit_T *scalar;
+	void **array;          
+    } a_value;  /* value to assign */
 } assign_T;
-/* `value' may be NULL to denote an empty string. */
+#define a_scalar a_value.scalar
+#define a_array  a_value.array
+/* `a_scalar' may be NULL to denote an empty string.
+ * `a_array' is an array of pointers to wordunit_T. */
 
 /* type of redirection */
 typedef enum {

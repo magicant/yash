@@ -142,6 +142,8 @@ static variable_T *new_temporary(const char *name)
     __attribute__((nonnull));
 static variable_T *new_variable(const char *name, scope_T scope)
     __attribute__((nonnull));
+static void print_array_trace(const char *name, void *const *values, bool next)
+    __attribute__((nonnull));
 static void get_all_variables_rec(hashtable_T *table, environ_T *env)
     __attribute__((nonnull));
 
@@ -610,19 +612,26 @@ bool set_variable(const char *name, wchar_t *value, scope_T scope, bool export)
 }
 
 /* Creates an array variable with the specified name and values.
- * `values' is a NULL-terminated array of pointers to wide strings.
+ * `values' is a NULL-terminated array of pointers to wide strings. It is used
+ * as the contents of the array variable hereafter, so you must not modify or
+ * free the array or its elements whether or not this function succeeds.
+ * `values' and its elements must be freeable.
+ * `count' is the number of elements in `values'. If `count' is zero, the
+ * number is counted in this function.
  * Returns true iff successful. */
-bool set_array(const char *name, void *const *values, scope_T scope)
+bool set_array(const char *name, size_t count, void **values, scope_T scope)
 {
     variable_T *var = new_variable(name, scope);
-    if (!var)
+    if (!var) {
+	recfree(values, free);
 	return false;
+    }
 
     bool needupdate = (var->v_type & VF_EXPORT);
 
     var->v_type = VF_ARRAY | (var->v_type & VF_NODELETE);
-    var->v_vals = duparray(values, copyaswcs);
-    var->v_valc = plcount(var->v_vals);
+    var->v_vals = values;
+    var->v_valc = count ? count : plcount(var->v_vals);
     var->v_getter = NULL;
 
     variable_set(name, var);
@@ -639,7 +648,7 @@ bool set_array(const char *name, void *const *values, scope_T scope)
  * except for a temporary environment. */
 void set_positional_parameters(void *const *values)
 {
-    set_array(VAR_positional, values, SCOPE_LOCAL);
+    set_array(VAR_positional, 0, duparray(values, copyaswcs), SCOPE_LOCAL);
 }
 
 /* Does assignments.
@@ -658,21 +667,57 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 	print_prompt(4);
 
     while (assign) {
-	wchar_t *value = expand_single(assign->value, tt_multi);
-	if (!value)
-	    return false;
-	value = unescapefree(value);
-	if (shopt_xtrace)
-	    fprintf(stderr, "%s=%ls%c",
-		    assign->name, value, (assign->next ? ' ' : '\n'));
+	wchar_t *value;
+	int count;
+	void **values;
+	scope_T scope;
 
-	scope_T scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
-	if (!set_variable(assign->name, value, scope, export))
-	    return false;
-
+	switch (assign->a_type) {
+	    case A_SCALAR:
+		value = expand_single(assign->a_scalar, tt_multi);
+		if (!value)
+		    return false;
+		value = unescapefree(value);
+		if (shopt_xtrace)
+		    fprintf(stderr, "%s=%ls%c",
+			    assign->a_name, value, (assign->next ? ' ' : '\n'));
+		scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
+		if (!set_variable(assign->a_name, value, scope, export))
+		    return false;
+		break;
+	    case A_ARRAY:
+		if (!expand_line(assign->a_array, &count, &values))
+		    return false;
+		assert(values != NULL);
+		if (shopt_xtrace)
+		    print_array_trace(
+			    assign->a_name, values, assign->next != NULL);
+		scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
+		if (!set_array(assign->a_name, count, values, scope))
+		    return false;
+		break;
+	}
 	assign = assign->next;
     }
     return true;
+}
+
+/* Prints trace of an array assignment.
+ * `next' is true if there is another assignment after this assignment. */
+void print_array_trace(const char *name, void *const *values, bool next)
+{
+    fprintf(stderr, "%s=(", name);
+    if (*values) {
+	for (;;) {
+	    fprintf(stderr, "%ls", (wchar_t *) *values);
+	    values++;
+	    if (!*values)
+		break;
+	    fputc(' ', stderr);
+	}
+    }
+    fputc(')', stderr);
+    fputc(next ? ' ' : '\n', stderr);
 }
 
 /* Gets the value of the specified scalar variable.
