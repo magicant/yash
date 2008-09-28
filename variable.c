@@ -87,7 +87,7 @@ typedef enum vartype_T {
 } vartype_T;
 #define VF_MASK ((1 << 2) - 1)
 /* For all variables, the variable type is either of VF_NORMAL and VF_ARRAY,
- * possibly OR'ed with other flags. VF_EXPORT is only valid for VF_NORMAL. */
+ * possibly OR'ed with other flags. */
 
 /* shell variable */
 typedef struct variable_T {
@@ -411,9 +411,20 @@ void update_enrivon(const char *name)
 {
     for (environ_T *env = current_env; env; env = env->parent) {
 	variable_T *var = ht_get(&env->contents, name).value;
-	if (var && (var->v_type & VF_EXPORT) && var->v_value) {
-	    assert((var->v_type & VF_MASK) == VF_NORMAL);
-	    char *value = malloc_wcstombs(var->v_value);
+	if (var && (var->v_type & VF_EXPORT)) {
+	    char *value;
+	    switch (var->v_type & VF_MASK) {
+		case VF_NORMAL:
+		    if (!var->v_value)
+			continue;
+		    value = malloc_wcstombs(var->v_value);
+		    break;
+		case VF_ARRAY:
+		    value = realloc_wcstombs(joinwcsarray(var->v_vals, L":"));
+		    break;
+		default:
+		    assert(false);
+	    }
 	    if (value) {
 		if (setenv(name, value, true) < 0)
 		    xerror(errno, Ngt("cannot set environment variable `%s'"),
@@ -627,15 +638,13 @@ bool set_array(const char *name, size_t count, void **values, scope_T scope)
 	return false;
     }
 
-    bool needupdate = (var->v_type & VF_EXPORT);
-
-    var->v_type = VF_ARRAY | (var->v_type & VF_NODELETE);
+    var->v_type = VF_ARRAY | (var->v_type & (VF_EXPORT | VF_NODELETE));
     var->v_vals = values;
     var->v_valc = count ? count : plcount(var->v_vals);
     var->v_getter = NULL;
 
     variable_set(name, var);
-    if (needupdate)
+    if (var->v_type & VF_EXPORT)
 	update_enrivon(name);
     return true;
 }
@@ -1384,7 +1393,8 @@ int typeset_builtin(int argc, void **argv)
 		var->v_type |= VF_EXPORT;
 	    else if (unexport)
 		var->v_type &= ~VF_EXPORT;
-	    if (saveexport || (var->v_type & VF_EXPORT))
+	    if (saveexport != (var->v_type & VF_EXPORT)
+		    || (wequal && (var->v_type & VF_EXPORT)))
 		update_enrivon(name);
 	} else {
 	    /* print the variable */
@@ -1417,7 +1427,7 @@ static void print_variable(
 	return;
     if (export && !(var->v_type & VF_EXPORT))
 	return;
-    if ((var->v_type & VF_MASK) == VF_ARRAY)
+    if ((var->v_type & VF_MASK) != VF_NORMAL)
 	return;
 
     wchar_t *qvalue = var->v_value ? quote_sq(var->v_value) : NULL;
