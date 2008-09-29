@@ -51,16 +51,20 @@ static bool expand_word_and_split(
     __attribute__((nonnull(2)));
 
 static bool expand_word(
-	const wordunit_T *restrict w, tildetype_T tilde,
+	const wordunit_T *restrict w, tildetype_T tilde, bool recur,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
-    __attribute__((nonnull(3)));
+    __attribute__((nonnull(4)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
 	bool hasnextwordunit, tildetype_T tt)
     __attribute__((nonnull,malloc,warn_unused_result));
 
+enum indextype_T { idx_none, idx_all, idx_concat, idx_number, };
+
 static void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     __attribute__((nonnull,malloc,warn_unused_result));
+static enum indextype_T parse_indextype(const wchar_t *indexstr)
+    __attribute__((nonnull,pure));
 static wchar_t *trim_wstring(wchar_t *s, size_t startindex, size_t endindex)
     __attribute__((nonnull));
 static void **trim_array(void **a, size_t startindex, size_t endindex)
@@ -182,7 +186,7 @@ bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
     pl_init(&splitlist1);
 
     /* four expansions (w -> list1) */
-    if (!expand_word(w, tt_single, &valuelist1, &splitlist1)) {
+    if (!expand_word(w, tt_single, false, &valuelist1, &splitlist1)) {
 	recfree(pl_toary(&valuelist1), free);
 	recfree(pl_toary(&splitlist1), free);
 	return false;
@@ -218,7 +222,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     plist_T list;
     pl_init(&list);
 
-    if (!expand_word(arg, tilde, &list, NULL)) {
+    if (!expand_word(arg, tilde, false, &list, NULL)) {
 	if (!is_interactive)
 	    exit_shell_with_status(Exit_EXPERROR);
 	recfree(pl_toary(&list), free);
@@ -365,6 +369,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 /* Does four expansions in a single word.
  * `w' is the word in which expansions occur.
  * `tilde' is type of tilde expansion that occurs.
+ * `recur' is a flag to indicate that this is a recursive expansion.
  * The expanded word is added to `valuelist' as a newly malloced wide string.
  * The splittability string is added to `splitlist' if `splitlist' is non-NULL.
  * Single- or double-quoted characters are unquoted and backslashed.
@@ -372,11 +377,11 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
  * If the word contains "$@", the result may be any number of strings.
  * The return value is true iff successful. */
 bool expand_word(
-	const wordunit_T *restrict w, tildetype_T tilde,
+	const wordunit_T *restrict w, tildetype_T tilde, bool recur,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
     bool ok = true;
-    bool indq = false;     /* in a doublequote? */
+    bool indq = recur;     /* in a doublequote? */
     bool first = true;     /* is the first word unit? */
     bool force = false;    /* don't ignore empty string? */
     bool suppress = false; /* ignore empty string anyway? */
@@ -594,26 +599,38 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     bool unset;   /* parameter is not set? */
     size_t startindex, endindex;
     wchar_t *match, *subst;
+    enum indextype_T indextype;
 
-    //TODO [@] [*] [#]
     /* parse indexes first */
     if (!p->pe_start) {
-	startindex = 0, endindex = SIZE_MAX;
+	startindex = 0, endindex = SIZE_MAX, indextype = idx_none;
     } else {
 	wchar_t *e = expand_single(p->pe_start, tt_none);
-	if (!e || !evaluate_index(e, &startindex))
+	if (!e)
 	    return NULL;
-	assert(startindex > 0);
-	startindex--;
-
-	if (!p->pe_end) {
-	    endindex = startindex + 1;
-	} else {
-	    e = expand_single(p->pe_end, tt_none);
-	    if (!e || !evaluate_index(e, &endindex))
+	indextype = parse_indextype(e);
+	if (indextype != idx_none) {
+	    startindex = 0, endindex = SIZE_MAX;
+	    free(e);
+	    if (p->pe_end) {
+		xerror(0, Ngt("invalid parameter index"));
 		return NULL;
-	    if (endindex < startindex)
-		endindex = startindex;
+	    }
+	} else {
+	    if (!evaluate_index(e, &startindex))
+		return NULL;
+	    assert(startindex > 0);
+	    startindex--;
+
+	    if (!p->pe_end) {
+		endindex = startindex + 1;
+	    } else {
+		e = expand_single(p->pe_end, tt_none);
+		if (!e || !evaluate_index(e, &endindex))
+		    return NULL;
+		if (endindex < startindex)
+		    endindex = startindex;
+	    }
 	}
     }
     assert(startindex <= endindex);
@@ -622,7 +639,7 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
 	pl_init(&plist);
-	if (!expand_word(p->pe_nest, tilde, &plist, NULL)) {
+	if (!expand_word(p->pe_nest, tilde, true, &plist, NULL)) {
 	    recfree(pl_toary(&plist), free);
 	    return NULL;
 	}
@@ -658,9 +675,15 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	    list = NULL, concat = false;
 	    break;
 	case GV_SCALAR:
-	    assert(v.values && v.values[0] && !v.values[1]);
+	    assert(v.values && v.count == 1);
 	    assert(!save);
-	    trim_wstring(v.values[0], startindex, endindex);
+	    if (indextype != idx_number) {
+		trim_wstring(v.values[0], startindex, endindex);
+	    } else {
+		size_t len = wcslen(v.values[0]);
+		free(v.values[0]);
+		v.values[0] = malloc_wprintf(L"%zu", len);
+	    }
 	    list = v.values, concat = false;
 	    break;
 	case GV_ARRAY:
@@ -669,13 +692,31 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	case GV_ARRAY_CONCAT:
 	    concat = true;
 treat_array:
-	    if (startindex > v.count)
-		startindex = v.count;
-	    if (save)
-		list = duparrayn(v.values + startindex, endindex - startindex,
-			copyaswcs);
-	    else
-		list = trim_array(v.values, startindex, endindex);
+	    switch (indextype) {
+	    case idx_concat:
+		concat = true;
+		/* falls thru! */
+	    case idx_none:
+	    case idx_all:
+		if (startindex > v.count)
+		    startindex = v.count;
+		if (save)
+		    list = duparrayn(v.values + startindex,
+			    endindex - startindex, copyaswcs);
+		else
+		    list = trim_array(v.values, startindex, endindex);
+		break;
+	    case idx_number:
+		if (!save)
+		    recfree(v.values, free);
+		list = xmalloc(2 * sizeof *list);
+		list[0] = malloc_wprintf(L"%zu", v.count);
+		list[1] = NULL;
+		concat = false;
+		break;
+	    default:
+		assert(false);
+	    }
 	    break;
 	default:
 	    assert(false);
@@ -699,7 +740,7 @@ treat_array:
 subst:
 	    recfree(list, free);
 	    pl_init(&plist);
-	    if (expand_word(p->pe_subst, tt_single, &plist, NULL)) {
+	    if (expand_word(p->pe_subst, tt_single, false, &plist, NULL)) {
 		list = pl_toary(&plist);
 		return indq ? reescape_full_array(list) : list;
 	    } else {
@@ -795,6 +836,20 @@ subst:
 	list[i] = escapefree(list[i], indq ? NULL : CHARS_ESCAPED);
 
     return list;
+}
+
+/* Returns `idx_all', `idx_concat', `idx_number' if `indexstr' is L"@", L"*",
+ * L"#" respectively. Otherwise returns `idx_none'. */
+enum indextype_T parse_indextype(const wchar_t *indexstr)
+{
+    if (indexstr[0] != L'\0' && indexstr[1] == L'\0') {
+	switch (indexstr[0]) {
+	    case L'@':  return idx_all;
+	    case L'*':  return idx_concat;
+	    case L'#':  return idx_number;
+	}
+    }
+    return idx_none;
 }
 
 /* Trims some leading and trailing characters of the wide string.

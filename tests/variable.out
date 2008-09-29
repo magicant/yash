@@ -6,6 +6,23 @@ func2
 re-defined.
 re-defined func2
 re-defined func1
+===== 2 =====
+123
+1
+22
+3  3
+4   4
+5
+456
+99
+8
+8
+8
+7
+4
+6
+i unset
+ary0 unset
 ===== typeset export =====
 abcdef
 abcxyz
@@ -18,6 +35,9 @@ typeset -x baz
 typeset -x qux='global'
 unset
 global
+ary=('test' 'of' 'array')
+export ary
+ary=test:of:array
 ===== unset readonly =====
 unset unset unset unset
 readonly
@@ -32,8 +52,14 @@ typeset -r ro3='ro3'
 1
 2
 3
+ary=('test' 'of' 'array')
+readonly ary
+ary=('test' 'of' 'array')
+typeset -xr ary
+test of array
 ===== function typeset =====
 func () { echo ok; }
+echol () { typeset i; for i; do printf "%s\n" "${i}"; done; }
 func () { echo ok; }
 func1 () { echo re-defined func1; }
 func2 () { echo re-defined func2; }

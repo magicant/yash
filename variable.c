@@ -1415,7 +1415,7 @@ next:
 }
 
 /* Prints the specified variable to stdout.
- * This function does not print an array.
+ * This function does not print special variables whose name begins with an '='.
  * If `readonly'/`export' is true, the variable is printed only if it is
  * readonly/exported. */
 /* Note that `name' is never quoted even if it contains unusual symbol chars. */
@@ -1423,13 +1423,18 @@ static void print_variable(
 	const char *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
 {
+    if (name[0] == '=')
+	return;
     if (readonly && !(var->v_type & VF_READONLY))
 	return;
     if (export && !(var->v_type & VF_EXPORT))
 	return;
-    if ((var->v_type & VF_MASK) != VF_NORMAL)
-	return;
+    switch (var->v_type & VF_MASK) {
+	case VF_NORMAL:  goto print_variable;
+	case VF_ARRAY:   goto print_array;
+    }
 
+print_variable:;
     wchar_t *qvalue = var->v_value ? quote_sq(var->v_value) : NULL;
     xstrbuf_T opts;
     switch (argv0[0]) {
@@ -1462,6 +1467,44 @@ static void print_variable(
 	    assert(false);
     }
     free(qvalue);
+    return;
+
+print_array:
+    printf("%s=(", name);
+    for (void **values = var->v_vals; *values; values++) {
+	wchar_t *qvalue = quote_sq(*values);
+	printf("%ls", qvalue);
+	free(qvalue);
+	if (*(values + 1))
+	    printf(" ");
+    }
+    printf(")\n");
+    switch (argv0[0]) {
+	case L's':
+	    assert(wcscmp(argv0, L"set") == 0);
+	    break;
+	case L'e':
+	case L'r':
+	    assert(wcscmp(argv0, L"export") == 0
+		    || wcscmp(argv0, L"readonly") == 0);
+	    printf("%ls %s\n", argv0, name);
+	    break;
+	case L't':
+	    assert(wcscmp(argv0, L"typeset") == 0);
+	    sb_init(&opts);
+	    if (var->v_type & VF_EXPORT)
+		sb_ccat(&opts, 'x');
+	    if (var->v_type & VF_READONLY)
+		sb_ccat(&opts, 'r');
+	    if (opts.length > 0)
+		sb_insert(&opts, 0, " -");
+	    printf("%ls%s %s\n", argv0, opts.contents, name);
+	    sb_destroy(&opts);
+	    break;
+	default:
+	    assert(false);
+    }
+    return;
 }
 
 void print_function(
