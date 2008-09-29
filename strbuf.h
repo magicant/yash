@@ -20,8 +20,9 @@
 #define YASH_STRBUF_H
 
 #include <stdarg.h>
-#include <stdint.h>
 #include <wchar.h>
+
+#define Size_max ((size_t) -1)  // = SIZE_MAX
 
 
 typedef struct xstrbuf_T {
@@ -204,7 +205,7 @@ xstrbuf_T *sb_ninsert(
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_insert(xstrbuf_T *restrict buf, size_t i, const char *restrict s)
 {
-    return sb_replace(buf, i, 0, s, SIZE_MAX);
+    return sb_replace(buf, i, 0, s, Size_max);
 }
 
 /* Appends the first `n' bytes of a multibyte string `s' to the buffer `buf'.
@@ -221,14 +222,14 @@ xstrbuf_T *sb_ncat_force(
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ncat(xstrbuf_T *restrict buf, const char *restrict s, size_t n)
 {
-    return sb_replace(buf, SIZE_MAX, 0, s, n);
+    return sb_replace(buf, Size_max, 0, s, n);
 }
 
 /* Appends a multibyte string `s' to the buffer `buf'.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_cat(xstrbuf_T *restrict buf, const char *restrict s)
 {
-    return sb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
+    return sb_replace(buf, Size_max, 0, s, Size_max);
 }
 
 /* Appends a multibyte string `s' to the buffer `buf' and free the string.
@@ -277,7 +278,7 @@ xwcsbuf_T *wb_ninsert(
 xwcsbuf_T *wb_insert(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
 {
-    return wb_replace(buf, i, 0, s, SIZE_MAX);
+    return wb_replace(buf, i, 0, s, Size_max);
 }
 
 /* Appends the first `n' characters of a wide string `s' to the buffer `buf'.
@@ -294,14 +295,14 @@ xwcsbuf_T *wb_ncat_force(
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ncat(xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
 {
-    return wb_replace(buf, SIZE_MAX, 0, s, n);
+    return wb_replace(buf, Size_max, 0, s, n);
 }
 
 /* Appends a wide string `s' to the buffer `buf'.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_cat(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
 {
-    return wb_replace(buf, SIZE_MAX, 0, s, SIZE_MAX);
+    return wb_replace(buf, Size_max, 0, s, Size_max);
 }
 
 /* Appends a wide string `s' to the buffer and free the string.
@@ -328,7 +329,7 @@ xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
  * The resulting string starts and ends in the initial shift state.*/
 char *malloc_wcstombs(const wchar_t *s)
 {
-    return malloc_wcsntombs(s, SIZE_MAX);
+    return malloc_wcsntombs(s, Size_max);
 }
 
 /* Converts a wide string to a newly malloced multibyte string and free the
@@ -347,7 +348,7 @@ char *realloc_wcstombs(wchar_t *s)
  * Returns NULL on error. */
 wchar_t *malloc_mbstowcs(const char *s)
 {
-    return malloc_mbsntowcs(s, SIZE_MAX);
+    return malloc_mbsntowcs(s, Size_max);
 }
 
 /* Converts a multibyte string to a newly malloced wide string and free the
@@ -401,6 +402,8 @@ wchar_t *malloc_wprintf(const wchar_t *format, ...)
     return result;
 }
 
+
+#undef Size_max
 
 #endif /* YASH_STRBUF_H */
 

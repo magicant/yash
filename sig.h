@@ -19,7 +19,6 @@
 #ifndef YASH_SIG_H
 #define YASH_SIG_H
 
-#include <stdbool.h>
 #include <stddef.h>
 
 
@@ -30,7 +29,7 @@ extern int get_signal_number(const char *name)
 extern int get_signal_number_w(wchar_t *name)
     __attribute__((nonnull));
 
-extern bool any_trap_set;
+extern _Bool any_trap_set;
 
 extern void init_fixed_trap_set(void);
 extern void init_signal(void);
@@ -45,15 +44,15 @@ extern void ignore_sigtstp(void);
 extern void block_sigttou(void);
 extern void unblock_sigttou(void);
 extern void reset_sigpipe(void);
-extern bool send_sigstop_to_myself(void);
+extern _Bool send_sigstop_to_myself(void);
 
 extern void block_sigchld_and_sigint(void);
 extern void unblock_sigchld_and_sigint(void);
-extern bool wait_for_sigchld(bool interruptible, bool return_on_trap);
-extern void wait_for_input(int fd, bool trap);
+extern _Bool wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
+extern void wait_for_input(int fd, _Bool trap);
 
 extern void handle_sigchld(void);
-extern bool handle_traps(void);
+extern _Bool handle_traps(void);
 extern void execute_exit_trap(void);
 extern void clear_traps(void);
 

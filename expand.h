@@ -19,14 +19,13 @@
 #ifndef YASH_EXPAND_H
 #define YASH_EXPAND_H
 
-#include <stdbool.h>
 #include <stddef.h>
 
 /* type of tilde expansion */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 
 struct wordunit_T;
-extern bool expand_line(
+extern _Bool expand_line(
 	void *const *restrict args,
 	int *restrict argcp,
 	void ***restrict argvp)
@@ -36,11 +35,11 @@ extern wchar_t *expand_single(const struct wordunit_T *arg, tildetype_T tilde)
 extern char *expand_single_with_glob(
 	const struct wordunit_T *arg, tildetype_T tilde)
     __attribute__((malloc,warn_unused_result));
-extern wchar_t *expand_string(const struct wordunit_T *w, bool esc)
+extern wchar_t *expand_string(const struct wordunit_T *w, _Bool esc)
     __attribute__((malloc,warn_unused_result));
 
 extern wchar_t *split_next_field(
-	const wchar_t **sp, const wchar_t *ifs, bool noescape)
+	const wchar_t **sp, const wchar_t *ifs, _Bool noescape)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
@@ -58,7 +57,7 @@ extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 extern wchar_t *parse_and_expand_string(
-	const wchar_t *s, const char *name, bool esc)
+	const wchar_t *s, const char *name, _Bool esc)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 

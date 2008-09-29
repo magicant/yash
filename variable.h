@@ -72,23 +72,23 @@ extern unsigned long current_lineno;
 
 extern void init_variables(void);
 
-extern bool is_name(const char *s)
+extern _Bool is_name(const char *s)
     __attribute__((nonnull,pure));
 
 typedef enum scope_T {
     SCOPE_GLOBAL, SCOPE_LOCAL, SCOPE_TEMP,
 } scope_T;
-extern bool set_variable(
-	const char *name, wchar_t *value, scope_T scope, bool export)
+extern _Bool set_variable(
+	const char *name, wchar_t *value, scope_T scope, _Bool export)
     __attribute__((nonnull(1)));
-extern bool set_array(
+extern _Bool set_array(
 	const char *name, size_t count, void **values, scope_T scope)
     __attribute__((nonnull));
 extern void set_positional_parameters(void *const *values)
     __attribute__((nonnull));
 struct assign_T;
-extern bool do_assignments(
-	const struct assign_T *assigns, bool temp, bool export);
+extern _Bool do_assignments(
+	const struct assign_T *assigns, _Bool temp, _Bool export);
 
 struct get_variable {
     enum { GV_NOTFOUND, GV_SCALAR, GV_ARRAY, GV_ARRAY_CONCAT, } type;
@@ -100,7 +100,7 @@ extern const wchar_t *getvar(const char *name)
 extern struct get_variable get_variable(const char *name)
     __attribute__((nonnull,warn_unused_result));
 
-extern void open_new_environment(bool temp);
+extern void open_new_environment(_Bool temp);
 extern void close_current_environment(void);
 
 extern char **decompose_paths(const wchar_t *paths)
@@ -110,7 +110,7 @@ extern char *const *get_path_array(path_T name);
 extern void clear_all_functions(void);
 
 struct command_T;
-extern bool define_function(const char *name, struct command_T *body)
+extern _Bool define_function(const char *name, struct command_T *body)
     __attribute__((nonnull));
 extern struct command_T *get_function(const char *name)
     __attribute__((nonnull));

@@ -19,23 +19,22 @@
 #ifndef YASH_OPTION_H
 #define YASH_OPTION_H
 
-#include <stdbool.h>
 #include <stddef.h>
 
 
-extern bool posixly_correct;
-extern bool is_login_shell;
-extern bool is_interactive, is_interactive_now;
-extern bool do_job_control, shopt_notify;
-extern bool shopt_read_arg, shopt_read_stdin;
+extern _Bool posixly_correct;
+extern _Bool is_login_shell;
+extern _Bool is_interactive, is_interactive_now;
+extern _Bool do_job_control, shopt_notify;
+extern _Bool shopt_read_arg, shopt_read_stdin;
 extern const wchar_t *command_name;
-extern bool shopt_allexport, shopt_hashondef;
-extern bool shopt_errexit, shopt_nounset, shopt_noexec, shopt_ignoreeof,
+extern _Bool shopt_allexport, shopt_hashondef;
+extern _Bool shopt_errexit, shopt_nounset, shopt_noexec, shopt_ignoreeof,
        shopt_verbose, shopt_xtrace, shopt_curasync, shopt_autocd;
-extern bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
+extern _Bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
-extern bool shopt_braceexpand;
-extern bool shopt_noclobber;
+extern _Bool shopt_braceexpand;
+extern _Bool shopt_noclobber;
 
 #define SHELLSET_OPTIONS L"abefhmnuvxC"
 
@@ -43,7 +42,7 @@ extern const struct xoption
     *const shell_long_options, *const set_long_options, *const help_option;
 
 extern void set_option(wchar_t c);
-extern bool set_long_option(const wchar_t *s)
+extern _Bool set_long_option(const wchar_t *s)
     __attribute__((nonnull));
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));

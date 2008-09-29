@@ -19,7 +19,6 @@
 #ifndef YASH_YASH_H
 #define YASH_YASH_H
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -40,18 +39,18 @@ extern void exit_shell_with_status(int status)
 
 struct parseinfo_T;
 
-extern void exec_mbs(const char *code, const char *name, bool finally_exit)
+extern void exec_mbs(const char *code, const char *name, _Bool finally_exit)
     __attribute__((nonnull(1)));
-extern void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
+extern void exec_wcs(const wchar_t *code, const char *name, _Bool finally_exit)
     __attribute__((nonnull(1)));
 extern void exec_input(FILE *f, const char *name,
-	bool intrinput, bool finally_exit)
+	_Bool intrinput, _Bool finally_exit)
     __attribute__((nonnull(1)));
-extern void parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
+extern void parse_and_exec(struct parseinfo_T *pinfo, _Bool finally_exit)
     __attribute__((nonnull(1)));
 
 
-extern bool nextforceexit;
+extern _Bool nextforceexit;
 
 extern int exit_builtin(int argc, void **argv)
     __attribute__((nonnull));

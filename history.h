@@ -20,16 +20,15 @@
 #define YASH_HISTORY_H
 
 #include <stddef.h>
-#include <stdbool.h>
 
 
 extern unsigned hist_next_number;
 
 extern void init_history(void);
-extern bool read_history(const wchar_t *histfile);
-extern bool write_history(const wchar_t *histfile, bool append);
+extern _Bool read_history(const wchar_t *histfile);
+extern _Bool write_history(const wchar_t *histfile, _Bool append);
 extern void clear_history(void);
-extern bool add_history(const wchar_t *line, bool removelast)
+extern _Bool add_history(const wchar_t *line, _Bool removelast)
     __attribute__((nonnull));
 
 extern int fc_builtin(int argc, void **argv)

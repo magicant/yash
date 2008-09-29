@@ -19,7 +19,6 @@
 #ifndef YASH_JOB_H
 #define YASH_JOB_H
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -45,8 +44,8 @@ typedef struct process_T {
 typedef struct job_T {
     pid_t             j_pgid;          /* process group ID */
     enum jobstatus_T  j_status;
-    bool              j_statuschanged; /* job's status not yet reported? */
-    bool              j_loop;          /* loop pipe? */
+    _Bool             j_statuschanged; /* job's status not yet reported? */
+    _Bool             j_loop;          /* loop pipe? */
     size_t            j_pcount;        /* # of processes in `j_procs' */
     struct process_T  j_procs[];       /* info about processes */
 } job_T;
@@ -68,7 +67,7 @@ extern void init_job(void);
 
 extern void set_active_job(job_T *job)
     __attribute__((nonnull));
-extern void add_job(bool current);
+extern void add_job(_Bool current);
 extern void remove_job(size_t jobnumber);
 extern void remove_job_nofitying_signal(size_t jobnumber);
 extern void remove_all_jobs(void);
@@ -79,9 +78,9 @@ extern size_t stopped_job_count(void)
     __attribute__((pure));
 
 extern void do_wait(void);
-extern bool wait_for_job(size_t jobnumber, bool return_on_stop,
-	bool interruptible, bool return_on_trap);
-extern wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop);
+extern _Bool wait_for_job(size_t jobnumber, _Bool return_on_stop,
+	_Bool interruptible, _Bool return_on_trap);
+extern wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, _Bool return_on_stop);
 extern int send_signal_to_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
@@ -92,7 +91,7 @@ extern int calc_status_of_job(const job_T *job)
 
 #define PJS_ALL 0  /* stands for all the jobs */
 extern void print_job_status(
-	size_t jobnumber, bool changedonly, bool verbose, FILE *f)
+	size_t jobnumber, _Bool changedonly, _Bool verbose, FILE *f)
     __attribute__((nonnull));
 extern void notify_signaled_job(size_t jobnumber);
 

@@ -23,7 +23,6 @@
 #ifndef YASH_PARSER_H
 #define YASH_PARSER_H
 
-#include <stdbool.h>
 #include <stddef.h>
 
 
@@ -36,14 +35,14 @@
 typedef struct and_or_T {
     struct and_or_T   *next;
     struct pipeline_T *ao_pipelines;  /* pipelines in this and/or list */
-    bool               ao_async;      /* an asynchronous list? */
+    _Bool              ao_async;      /* an asynchronous list? */
 } and_or_T;
 
 /* pipeline */
 typedef struct pipeline_T {
     struct pipeline_T *next;
     struct command_T  *pl_commands;  /* commands in this pipeline */
-    bool               pl_neg, pl_loop, pl_cond;
+    _Bool              pl_neg, pl_loop, pl_cond;
 } pipeline_T;
 /* pl_neg:  whether the exit status of the pipeline is inverted.
  * pl_loop: whether the pipeline is a loop.
@@ -82,7 +81,7 @@ typedef struct command_T {
 	    struct and_or_T *forcmds;  /* commands executed in for loop */
 	} forcontent;
 	struct {
-	    bool             whltype;  /* 1 for while loop, 0 for until */
+	    _Bool            whltype;  /* 1 for while loop, 0 for until */
 	    struct and_or_T *whlcond;  /* loop condition of while/until loop */
 	    struct and_or_T *whlcmds;  /* commands executed in loop */
 	} whilecontent;
@@ -299,14 +298,14 @@ typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 /* object containing the info for parsing */
 typedef struct parseinfo_T {
-    bool print_errmsg;    /* print error messages? */
-    bool enable_verbose;  /* echo input if `shopt_verbose' is true? */
+    _Bool print_errmsg;   /* print error messages? */
+    _Bool enable_verbose; /* echo input if `shopt_verbose' is true? */
     const char *filename; /* the input filename, which may be NULL */
     unsigned long lineno; /* line number, which should be initialized to 1 */
     inputfunc_T *input;   /* input function */
     void *inputinfo;      /* pointer passed to the input function */
-    bool intrinput;       /* input is interactive? */
-    bool inputisatty;     /* input is from interactive terminal? */
+    _Bool intrinput;      /* input is interactive? */
+    _Bool inputisatty;    /* input is from interactive terminal? */
     int lastinputresult;  /* last return value of input function */
 } parseinfo_T;
 /* If `intrinput' is true, `input' is `input_readline' and `inputinfo' is a
@@ -325,16 +324,16 @@ extern int read_and_parse(
 	parseinfo_T *restrict info, and_or_T **restrict result)
     __attribute__((nonnull));
 
-extern bool parse_string(
+extern _Bool parse_string(
 	parseinfo_T *restrict info, wordunit_T **restrict result)
     __attribute__((nonnull));
 
 
 /********** Auxiliary function **********/
 
-extern bool is_keyword(const wchar_t *s)
+extern _Bool is_keyword(const wchar_t *s)
     __attribute__((nonnull,pure));
-extern bool is_token_delimiter_char(wchar_t c)
+extern _Bool is_token_delimiter_char(wchar_t c)
     __attribute__((pure));
 
 

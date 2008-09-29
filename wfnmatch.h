@@ -19,8 +19,8 @@
 #ifndef YASH_WFNMATCH_H
 #define YASH_WFNMATCH_H
 
-#include <stdbool.h>
 #include <stddef.h>
+
 
 /* values for the `flags' argument of `wfnmatch' */
 enum wfnmflags {
@@ -46,14 +46,14 @@ extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
     __attribute__((nonnull));
 extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
     __attribute__((nonnull));
-static inline bool pattern_is_nonliteral(const wchar_t *pat)
+static inline _Bool pattern_is_nonliteral(const wchar_t *pat)
     __attribute__((pure,nonnull));
-extern bool pattern_has_special_char(const wchar_t *pat)
+extern _Bool pattern_has_special_char(const wchar_t *pat)
     __attribute__((pure,nonnull));
 
 /* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
  * If the result is false, the pattern matches only to itself. */
-bool pattern_is_nonliteral(const wchar_t *pat)
+_Bool pattern_is_nonliteral(const wchar_t *pat)
 {
     extern wchar_t *wcspbrk(const wchar_t *, const wchar_t *);
     return wcspbrk(pat, L"*?[\\") != NULL;

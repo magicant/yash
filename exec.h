@@ -19,7 +19,6 @@
 #ifndef YASH_EXEC_H
 #define YASH_EXEC_H
 
-#include <stdbool.h>
 #include <sys/types.h>
 
 
@@ -49,13 +48,13 @@ extern struct execinfo *save_execinfo(void)
     __attribute__((malloc,warn_unused_result));
 extern void load_execinfo(struct execinfo *save)
     __attribute__((nonnull));
-extern bool return_pending(void)
+extern _Bool return_pending(void)
     __attribute__((pure));
 
 struct and_or_T;
 struct wordunit_T;
-extern void exec_and_or_lists(const struct and_or_T *a, bool finally_exit);
-extern pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype);
+extern void exec_and_or_lists(const struct and_or_T *a, _Bool finally_exit);
+extern pid_t fork_and_reset(pid_t pgid, _Bool fg, sigtype_T sigtype);
 extern wchar_t *exec_command_substitution(const wchar_t *code)
     __attribute__((nonnull,malloc,warn_unused_result));
 

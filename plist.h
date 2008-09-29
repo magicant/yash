@@ -20,7 +20,9 @@
 #define YASH_PLIST_H
 
 #include <stddef.h>
-#include <stdint.h>
+
+#define Size_max ((size_t) -1)  // = SIZE_MAX
+
 
 typedef struct plist_T {
     void **contents;
@@ -104,7 +106,7 @@ plist_T *pl_insert(plist_T *restrict list, size_t i, void *const *restrict a)
  * `a' must not be a part of `list->contents'. */
 plist_T *pl_ncat(plist_T *restrict list, void *const *restrict a, size_t n)
 {
-    return pl_replace(list, SIZE_MAX, 0, a, n);
+    return pl_replace(list, Size_max, 0, a, n);
 }
 
 /* Inserts the elements of the array `a' to the pointer list `list'.
@@ -112,7 +114,7 @@ plist_T *pl_ncat(plist_T *restrict list, void *const *restrict a, size_t n)
  * `a' must not be a part of `list->contents'. */
 plist_T *pl_cat(plist_T *restrict list, void *const *restrict a)
 {
-    return pl_replace(list, SIZE_MAX, 0, a, plcount(a));
+    return pl_replace(list, Size_max, 0, a, plcount(a));
 }
 
 /* Removes the `n' elements at the offset `i' in the pointer list `list'.
@@ -123,6 +125,8 @@ plist_T *pl_remove(plist_T *list, size_t i, size_t n)
     return pl_replace(list, i, n, (void *[]) { NULL, }, 0);
 }
 
+
+#undef Size_max
 
 #endif /* YASH_PLIST_H */
 

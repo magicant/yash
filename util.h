@@ -19,9 +19,9 @@
 #ifndef YASH_UTIL_H
 #define YASH_UTIL_H
 
-#include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
+
+#define Size_max ((size_t) -1)  // = SIZE_MAX
 
 
 /********** General functions **********/
@@ -116,14 +116,14 @@ extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
  * Aborts the program if failed to allocate memory. */
 char *xstrdup(const char *s)
 {
-    return xstrndup(s, SIZE_MAX);
+    return xstrndup(s, Size_max);
 }
 
 /* Returns a newly malloced copy of the specified string.
  * Aborts the program if failed to allocate memory. */
 wchar_t *xwcsdup(const wchar_t *s)
 {
-    return xwcsndup(s, SIZE_MAX);
+    return xwcsndup(s, Size_max);
 }
 
 /* Clones a NULL-terminated array of pointers.
@@ -132,7 +132,7 @@ wchar_t *xwcsdup(const wchar_t *s)
 /* `xstrdup' and `copyaswcs' are suitable for `copy'. */
 void **duparray(void *const *array, void *copy(const void *p))
 {
-    return duparrayn(array, SIZE_MAX, copy);
+    return duparrayn(array, Size_max, copy);
 }
 
 
@@ -182,7 +182,7 @@ extern void xerror(int errno_, const char *restrict format, ...)
 extern wchar_t *xoptarg;
 extern int xoptind;
 extern wchar_t xoptopt;
-extern bool xopterr;
+extern _Bool xopterr;
 
 struct xoption {
     const wchar_t *name;
@@ -207,6 +207,8 @@ wchar_t xgetopt(void **restrict argv, const wchar_t *restrict optstring)
     return xgetopt_long(argv, optstring, NULL, NULL);
 }
 
+
+#undef Size_max
 
 #endif /* YASH_UTIL_H */
 

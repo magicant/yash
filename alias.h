@@ -19,21 +19,21 @@
 #ifndef YASH_ALIAS_H
 #define YASH_ALIAS_H
 
-#include <stdbool.h>
 #include <stddef.h>
 
 struct xwcsbuf_T;
 
-extern bool alias_enabled;
+extern _Bool alias_enabled;
 
 extern void init_alias(void);
 extern struct aliaslist_T *new_aliaslist(void)
     __attribute__((malloc,warn_unused_result));
 extern void destroy_aliaslist(struct aliaslist_T *list);
 extern void substitute_alias(struct xwcsbuf_T *buf, size_t i,
-	struct aliaslist_T *list, bool globalonly)
+	struct aliaslist_T *list, _Bool globalonly)
     __attribute__((nonnull));
-extern bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
+extern _Bool print_alias_if_defined(
+	const wchar_t *aliasname, _Bool user_friendly)
     __attribute__((nonnull));
 
 extern int alias_builtin(int argc, void **argv)

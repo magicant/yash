@@ -19,29 +19,28 @@
 #ifndef YASH_PATH_H
 #define YASH_PATH_H
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <dirent.h>
 #include <sys/types.h>
 
 
-extern bool is_regular_file(const char *path)
+extern _Bool is_regular_file(const char *path)
     __attribute__((nonnull));
-extern bool is_irregular_file(const char *path)
+extern _Bool is_irregular_file(const char *path)
     __attribute__((nonnull));
-extern bool is_readable(const char *path)
+extern _Bool is_readable(const char *path)
     __attribute__((nonnull));
-extern bool is_executable(const char *path)
+extern _Bool is_executable(const char *path)
     __attribute__((nonnull));
-extern bool is_directory(const char *path)
+extern _Bool is_directory(const char *path)
     __attribute__((nonnull));
 
-extern bool is_same_file(const char *path1, const char *path2)
+extern _Bool is_same_file(const char *path1, const char *path2)
     __attribute__((nonnull));
 
 extern wchar_t *canonicalize_path(const wchar_t *path)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern bool is_canonicalized(const wchar_t *path)
+extern _Bool is_canonicalized(const wchar_t *path)
     __attribute__((nonnull));
 
 extern char *xgetcwd(void)
@@ -50,7 +49,7 @@ extern char *xgetcwd(void)
 extern char *which(
 	const char *restrict name,
 	char *const *restrict dirs,
-	bool cond(const char *path))
+	_Bool cond(const char *path))
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 extern int create_temporary_file(char **filename, mode_t mode)
@@ -61,9 +60,9 @@ extern int create_temporary_file(char **filename, mode_t mode)
 
 extern void init_cmdhash(void);
 extern void clear_cmdhash(void);
-extern const char *get_command_path(const char *name, bool forcelookup)
+extern const char *get_command_path(const char *name, _Bool forcelookup)
     __attribute__((nonnull));
-extern void fill_cmdhash(const char *prefix, bool ignorecase);
+extern void fill_cmdhash(const char *prefix, _Bool ignorecase);
 extern const char *get_command_path_default(const char *name)
     __attribute__((nonnull));
 
@@ -72,7 +71,7 @@ extern const char *get_command_path_default(const char *name)
 
 extern void init_homedirhash(void);
 extern const wchar_t *get_home_directory(
-	const wchar_t *username, bool forcelookup)
+	const wchar_t *username, _Bool forcelookup)
     __attribute__((nonnull));
 
 
@@ -89,7 +88,7 @@ enum wglbflags {
 
 struct plist_T;
 
-extern bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
+extern _Bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	struct plist_T *restrict list)
     __attribute__((nonnull));
 
