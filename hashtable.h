@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
+
 
 #if defined UINT64_MAX && UINT64_MAX == UINT_FAST32_MAX
 typedef uint64_t hashval_T;
@@ -82,6 +82,8 @@ extern kvpair_T *ht_tokvarray(hashtable_T *ht)
 
 extern hashval_T hashstr(const void *s)             __attribute__((pure));
 //extern int htstrcmp(const void *s1, const void *s2) __attribute__((pure));
+extern int strcmp(const char *s1, const char *s2)
+    __attribute__((nonnull,pure));
 #define htstrcmp ((keycmp_T *) strcmp)
 extern hashval_T hashwcs(const void *s)             __attribute__((pure));
 extern int htwcscmp(const void *s1, const void *s2) __attribute__((pure));

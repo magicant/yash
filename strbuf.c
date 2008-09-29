@@ -57,12 +57,6 @@ xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
     return buf;
 }
 
-/* Frees a multibyte string buffer, abandoning the contents. */
-void sb_destroy(xstrbuf_T *buf)
-{
-    free(buf->contents);
-}
-
 /* Frees a multibyte string buffer and returns the contents.
  * The caller must `free' the return value. */
 char *sb_tostr(xstrbuf_T *buf)
@@ -289,12 +283,6 @@ xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
     buf->contents = s;
     buf->length = buf->maxlength = wcslen(s);
     return buf;
-}
-
-/* Frees a wide string buffer, abandoning the contents. */
-void wb_destroy(xwcsbuf_T *buf)
-{
-    free(buf->contents);
 }
 
 /* Frees a wide string buffer and returns the contents.
