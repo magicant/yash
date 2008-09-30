@@ -410,7 +410,7 @@ void print_version(void)
  * process ID. */
 void set_own_pgid(void)
 {
-    if (doing_job_control_now && initial_pgid > 0) {
+    if (doing_job_control_now && initial_pgid > 0 && shell_pgid != shell_pid) {
 	if (setpgid(0, 0) == 0) {
 	    shell_pgid = shell_pid;
 	    put_foreground(shell_pgid);
@@ -422,7 +422,8 @@ void set_own_pgid(void)
  * The initial process group ID is restored. */
 void reset_own_pgid(void)
 {
-    if (doing_job_control_now && initial_pgid > 0) {
+    if (doing_job_control_now && initial_pgid > 0
+	    && initial_pgid != shell_pgid) {
 	if (setpgid(0, initial_pgid) == 0) {
 	    shell_pgid = initial_pgid;
 	    put_foreground(shell_pgid);
