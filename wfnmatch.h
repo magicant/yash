@@ -19,7 +19,7 @@
 #ifndef YASH_WFNMATCH_H
 #define YASH_WFNMATCH_H
 
-#include <stddef.h>
+#include <wchar.h>
 
 
 /* values for the `flags' argument of `wfnmatch' */
@@ -55,7 +55,6 @@ extern _Bool pattern_has_special_char(const wchar_t *pat)
  * If the result is false, the pattern matches only to itself. */
 _Bool pattern_is_nonliteral(const wchar_t *pat)
 {
-    extern wchar_t *wcspbrk(const wchar_t *, const wchar_t *);
     return wcspbrk(pat, L"*?[\\") != NULL;
 }
 

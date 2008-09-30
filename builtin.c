@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif

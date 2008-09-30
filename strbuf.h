@@ -20,6 +20,7 @@
 #define YASH_STRBUF_H
 
 #include <stdarg.h>
+#include <stdlib.h>
 #include <wchar.h>
 
 #define Size_max ((size_t) -1)  // = SIZE_MAX
@@ -242,8 +243,6 @@ xstrbuf_T *sb_cat(xstrbuf_T *restrict buf, const char *restrict s)
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_catfree(xstrbuf_T *restrict buf, char *restrict s)
 {
-    extern void free(void *ptr);
-
     sb_cat(buf, s);
     free(s);
     return buf;
@@ -321,8 +320,6 @@ xwcsbuf_T *wb_cat(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_catfree(xwcsbuf_T *restrict buf, wchar_t *restrict s)
 {
-    extern void free(void *ptr);
-
     wb_cat(buf, s);
     free(s);
     return buf;
@@ -350,7 +347,6 @@ char *malloc_wcstombs(const wchar_t *s)
  * The resulting string starts and ends in the initial shift state.*/
 char *realloc_wcstombs(wchar_t *s)
 {
-    extern void free(void *ptr);
     char *result = malloc_wcstombs(s);
     free(s);
     return result;
@@ -368,7 +364,6 @@ wchar_t *malloc_mbstowcs(const char *s)
  * Returns NULL on error. The multibyte string is freed anyway. */
 wchar_t *realloc_mbstowcs(char *s)
 {
-    extern void free(void *ptr);
     wchar_t *result = malloc_mbstowcs(s);
     free(s);
     return result;

@@ -82,8 +82,7 @@ extern kvpair_T *ht_tokvarray(hashtable_T *ht)
 
 extern hashval_T hashstr(const void *s)             __attribute__((pure));
 //extern int htstrcmp(const void *s1, const void *s2) __attribute__((pure));
-extern int strcmp(const char *s1, const char *s2)
-    __attribute__((nonnull,pure));
+// Also include <string.h> to use `htstrcmp'.
 #define htstrcmp ((keycmp_T *) strcmp)
 extern hashval_T hashwcs(const void *s)             __attribute__((pure));
 extern int htwcscmp(const void *s1, const void *s2) __attribute__((pure));

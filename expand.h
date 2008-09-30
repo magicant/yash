@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 
+
 /* type of tilde expansion */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 

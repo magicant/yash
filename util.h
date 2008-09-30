@@ -19,7 +19,7 @@
 #ifndef YASH_UTIL_H
 #define YASH_UTIL_H
 
-#include <stddef.h>
+#include <stdlib.h>
 
 #define Size_max ((size_t) -1)  // = SIZE_MAX
 
@@ -38,8 +38,6 @@ extern void alloc_failed(void)
 /* Attempts a `calloc' and abort the program on failure. */
 void *xcalloc(size_t nmemb, size_t size)
 {
-    extern void *calloc(size_t nmemb, size_t size)
-	__attribute__((malloc,warn_unused_result));
     void *result = calloc(nmemb, size);
     if (!result)
 	alloc_failed();
@@ -49,8 +47,6 @@ void *xcalloc(size_t nmemb, size_t size)
 /* Attempts a `malloc' and abort the program on failure. */
 void *xmalloc(size_t size)
 {
-    extern void *malloc(size_t size)
-	__attribute__((malloc,warn_unused_result));
     void *result = malloc(size);
     if (!result)
 	alloc_failed();
@@ -60,8 +56,6 @@ void *xmalloc(size_t size)
 /* Attempts a `realloc' and abort the program on failure. */
 void *xrealloc(void *ptr, size_t size)
 {
-    extern void *realloc(void *ptr, size_t size)
-	__attribute__((malloc,warn_unused_result));
     void *result = realloc(ptr, size);
     if (!result)
 	alloc_failed();
