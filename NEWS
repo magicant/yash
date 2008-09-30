@@ -8,6 +8,16 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.1
+
+  +  Array variables
+  *  The colon flag in a parameter expansion like "${FOO:-bar}" was
+     ignored if the value of the parameter begins with a certain
+     character.
+  *  The readonly attribute was ignored when an assignment occurs
+     against a command invocation
+
+----------------------------------------------------------------------
 Yash 2.0
 
   +  "history" builtin
