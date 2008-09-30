@@ -44,11 +44,11 @@ do
     else INVOKE='./invoke sh'
     fi
     case "$x" in
-	alias|alias.p)
+	alias.y|alias.p)
 	    if ! $INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
 	    then echo " * $x (skipped)"; continue
 	    fi ;;
-	history)
+	history.y)
 	    if ! HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
 		>/dev/null 2>&1
 	    then echo " * $x (skipped)"; continue

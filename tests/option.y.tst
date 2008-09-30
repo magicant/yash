@@ -12,9 +12,9 @@ set +h
 
 echo ===== nocaseglob =====
 set --nocaseglob
-echo O[OPQ]T*ON.tst
+echo O[OPQ]T*ON.y.tst
 set +o nocaseglob
-echo O[OPQ]T*ON.tst
+echo O[OPQ]T*ON.y.tst
 
 cd "$tmp"
 

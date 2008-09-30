@@ -1,8 +1,8 @@
 ===== -h =====
 1
 ===== nocaseglob =====
-option.tst
-O[OPQ]T*ON.tst
+option.y.tst
+O[OPQ]T*ON.y.tst
 ===== dotglob =====
 .dotfile
 *
