@@ -153,5 +153,83 @@ read -r a
 echo $? "$a"
 )
 
+echo =====
+
+unset IFS a b c d e
+
+read -A a b c <<END
+1 2 33
+END
+echo "${a}" "${b}" "${c}" "${c[#]}" "${{c[1]}[#]}"
+
+read --array a b c <<END
+1 2 3 4  5
+END
+echo "${a}" "${b}" "${c}"
+echo "${c[1]}"
+echo "${c[2]}"
+echo "${c[3]}"
+echo "${c[#]}"
+
+read -A a b c <<END
+1 2 3
+4 5
+END
+echo "${a}" "${b}" "${c}"
+
+read --array a b c <<END
+1 2 3\
+4  5
+6 7
+END
+echo "${a}"
+echo "${b}"
+echo "${c[1]}"
+echo "${c[2]}"
+echo "${c[#]}"
+
+read -A a b c d e <<END
+1 2 3
+4 5
+END
+echo "${a}"
+echo "${b}"
+echo "${c}"
+echo "${d}"
+echo "${e[#]}"
+
+echo =====
+
+IFS=- read --array a <<END
+1 2\-3-4 5\-6-7\-8-9
+END
+echo "${a[1]}"
+echo "${a[2]}"
+echo "${a[3]}"
+echo "${a[4]}"
+echo "${a[#]}"
+
+IFS=- read -Ar a <<\END
+1 2\-3-4 5\-6-7\-8-9\
+0
+END
+echo "${a[1]}"
+echo "${a[2]}"
+echo "${a[3]}"
+echo "${a[4]}"
+echo "${a[5]}"
+echo "${a[6]}"
+echo "${a[7]}"
+echo "${a[#]}"
+
+while read a b -A
+do
+	echo "$b" ${b[#]}
+done <<END
+1 2 3 4
+5 6 7 8
+9 0 1
+END
+
 
 rm -f "${TESTTMP}/variable-a" "${TESTTMP}/variable-b"

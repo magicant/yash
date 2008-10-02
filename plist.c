@@ -79,6 +79,8 @@ void pl_destroy(plist_T *list)
 
 /* Frees a pointer list and returns the contents.
  * The caller must `free' the return value and its elements if needed.
+ * This function does not change the value of `list->length'. The other members
+ * of `*list' are no longer valid after this function.
  * If all the elements are pointers to a byte string, the return value can be
  * safely cast to (char **). */
 void **pl_toary(plist_T *list)

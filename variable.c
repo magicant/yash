@@ -1242,6 +1242,9 @@ static bool set_to(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
 static bool read_input(xwcsbuf_T *buf, bool noescape)
     __attribute__((nonnull));
+static bool split_and_assign_array(const char *name, wchar_t *values,
+	const wchar_t *ifs, bool raw)
+    __attribute__((nonnull));
 
 /* The "typeset" builtin, which accepts the following options:
  *  -f: affect functions rather than variables
@@ -1949,14 +1952,14 @@ const char getopts_help[] = Ngt(
 );
 
 /* The "read" builtin, which accepts the following options:
+ * -A: assign values to array
  * -r: don't treat backslashes specially
  */
-// TODO -A: read words to an array
 // TODO -s: don't echo back the input to the terminal. (useful for reading passwords)
 int read_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-//	{ L"array",    xno_argument, L'A', },
+	{ L"array",    xno_argument, L'A', },
 	{ L"raw-mode", xno_argument, L'r', },
 //	{ L"silent",   xno_argument, L's', },
 	{ L"help",     xno_argument, L'-', },
@@ -1964,12 +1967,15 @@ int read_builtin(int argc, void **argv)
     };
 
     wchar_t opt;
-    bool raw = false;
+    bool array = false, raw = false;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"r", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"r" : L"Ar",
+		    long_options, NULL))) {
 	switch (opt) {
-	    case L'r':  raw = true;  break;
+	    case L'A':  array = true;  break;
+	    case L'r':  raw   = true;  break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
@@ -2012,7 +2018,7 @@ int read_builtin(int argc, void **argv)
     pl_init(&list);
     for (int i = xoptind; i < argc - 1; i++)
 	pl_add(&list, split_next_field(&s, ifs, raw));
-    pl_add(&list, raw ? xwcsdup(s) : unescape(s));
+    pl_add(&list, (raw || array) ? xwcsdup(s) : unescape(s));
     wb_destroy(&buf);
 
     /* assign variables */
@@ -2023,7 +2029,10 @@ int read_builtin(int argc, void **argv)
 	    xerror(0, Ngt("unexpected error"));
 	    continue;
 	}
-	err |= !set_variable(name, list.contents[i], SCOPE_GLOBAL, false);
+	if (!array || i + 1 < list.length)
+	    err |= !set_variable(name, list.contents[i], SCOPE_GLOBAL, false);
+	else
+	    err |= !split_and_assign_array(name, list.contents[i], ifs, raw);
 	free(name);
     }
 
@@ -2031,7 +2040,10 @@ int read_builtin(int argc, void **argv)
     return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
-    fprintf(stderr, gt("Usage:  read [-r] var...\n"));
+    if (posixly_correct)
+	fprintf(stderr, gt("Usage:  read [-r] var...\n"));
+    else
+	fprintf(stderr, gt("Usage:  read [-Ar] var...\n"));
     return Exit_ERROR;
 }
 
@@ -2071,9 +2083,35 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
     return true;
 }
 
+/* Word-splits `values' and assigns them to the array named `name'.
+ * `values' is freed in this function. */
+bool split_and_assign_array(const char *name, wchar_t *values,
+	const wchar_t *ifs, bool raw)
+{
+    plist_T list;
+
+    pl_init(&list);
+    if (values[0]) {
+	const wchar_t *v = values;
+	while (*v)
+	    pl_add(&list, split_next_field(&v, ifs, raw));
+
+	if (list.length > 0
+		&& ((wchar_t *) list.contents[list.length - 1])[0] == L'\0') {
+	    free(list.contents[list.length - 1]);
+	    pl_remove(&list, list.length - 1, 1);
+	}
+    }
+
+    bool ok = set_array(name, list.length, pl_toary(&list), SCOPE_GLOBAL);
+
+    free(values);
+    return ok;
+}
+
 const char read_help[] = Ngt(
 "read - read a line from standard input\n"
-"\tread [-rs] var...\n"
+"\tread [-Ar] var...\n"
 "Reads a line from the standard input and splits it into words using $IFS as\n"
 "separators. <var>s are considered to be variable names and the words are\n"
 "assigned to the variables. The first word is assigned to the first <var>,\n"
@@ -2083,6 +2121,9 @@ const char read_help[] = Ngt(
 "strings.\n"
 "If the -r (--raw-mode) option is not specified, backslashes in the input are\n"
 "considered to be escape characters.\n"
+"If the -A (--array) option is specified, the leftover words are assigned to\n"
+"the last <var> as array elements, rather than as a single variable.\n"
+"The -A option is not available in the POSIXly-correct mode.\n"
 );
 
 
