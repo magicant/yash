@@ -35,6 +35,8 @@ extern void recfree(void **ary, void freer(void *elem));
 
 static inline plist_T *pl_init(plist_T *list)
     __attribute__((nonnull));
+static inline plist_T *pl_initwith(plist_T *list, void **array, size_t length)
+    __attribute__((nonnull));
 extern plist_T *pl_initwithmax(plist_T *list, size_t max)
     __attribute__((nonnull));
 extern void pl_destroy(plist_T *list)
@@ -78,6 +80,17 @@ extern void *pl_pop(plist_T *list)
 plist_T *pl_init(plist_T *list)
 {
     return pl_initwithmax(list, PLIST_DEFAULT_MAX);
+}
+
+/* Initializes a pointer list with the specified array.
+ * `array' must be a NULL-terminated array of pointers to void containing
+ * exactly `length' elements and must be allocated by malloc.
+ * `array' must not be modified or freed after the call to this function. */
+plist_T *pl_initwith(plist_T *list, void **array, size_t length)
+{
+    list->contents = array;
+    list->length = list->maxlength = length;
+    return list;
 }
 
 /* Inserts the first `n' elements of the array `a' at the offset `i'

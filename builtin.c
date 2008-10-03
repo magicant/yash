@@ -88,6 +88,7 @@ void init_builtin(void)
     DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help);
     DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help);
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
+    DEFBUILTIN("array", array_builtin, BI_REGULAR, array_help);
     DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
     DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help);
     DEFBUILTIN("getopts", getopts_builtin, BI_SEMISPECIAL, getopts_help);

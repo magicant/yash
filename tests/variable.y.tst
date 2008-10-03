@@ -141,6 +141,34 @@ readonly -f func
 } 2>/dev/null
 func
 
+echo ===== array =====
+
+array aaa 1 2 3 4 5 6 7 8 9
+array
+array -d aaa 6 2 10 2 8
+echo $aaa
+array -d aaa -1 -5 -20 0
+echo $aaa
+array -i aaa 0 0
+echo $aaa
+array -i aaa 2 2 3
+echo $aaa
+array -i aaa 6 6
+echo $aaa
+array -i aaa -1 8
+echo $aaa
+array -i aaa 100 9
+echo $aaa
+array -i aaa -100 !
+echo $aaa
+array -s aaa 1 0
+array -s aaa 2 1
+array -s aaa 10 -
+echo $aaa
+array -s aaa 100 x 2>/dev/null ||
+array -s aaa -100 x 2>/dev/null ||
+echo $aaa
+
 echo ===== read =====
 
 unset a

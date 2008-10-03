@@ -1230,6 +1230,17 @@ static void print_function(
 	const char *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
+static bool array_remove_elements(
+	variable_T *array, size_t count, void *const *indexwcss)
+    __attribute__((nonnull));
+static int compare_long(const void *lp1, const void *lp2)
+    __attribute__((nonnull,pure));
+static bool array_insert_elements(
+	variable_T *array, size_t count, void *const *values)
+    __attribute__((nonnull));
+static bool array_set_element(const char *name, variable_T *array,
+	const wchar_t *indexword, const wchar_t *value)
+    __attribute__((nonnull));
 static bool unset_function(const char *name)
     __attribute__((nonnull));
 static bool unset_variable(const char *name)
@@ -1483,6 +1494,9 @@ print_array:
     }
     printf(")\n");
     switch (argv0[0]) {
+	case L'a':
+	    assert(wcscmp(argv0, L"array") == 0);
+	    break;
 	case L's':
 	    assert(wcscmp(argv0, L"set") == 0);
 	    break;
@@ -1563,6 +1577,301 @@ const char typeset_help[] = Ngt(
 "\"export\" is equivalent to \"typeset -gx\".\n"
 "\"readonly\" is equivalent to \"typeset -gr\".\n"
 "Note that the typeset builtin is unavailable in the POSIXly correct mode.\n"
+);
+
+/* The "array" builtin */
+int array_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"delete", xno_argument, L'd', },
+	{ L"insert", xno_argument, L'i', },
+	{ L"set",    xno_argument, L's', },
+	{ L"help",   xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    enum {
+	delete = 1 << 0,
+	insert = 1 << 1,
+	set    = 1 << 2,
+    } options = 0;
+
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"-dis", long_options, NULL))) {
+	switch (opt) {
+	    case L'd':  options |= delete;  break;
+	    case L'i':  options |= insert;  break;
+	    case L's':  options |= set;     break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return Exit_SUCCESS;
+	    default:  print_usage:
+		fprintf(stderr, gt("Usage:  array [name [value...]]\n"
+		                   "        array -d name index...\n"
+				   "        array -i name index value...\n"
+				   "        array -s name index value\n"));
+		return Exit_ERROR;
+	}
+    }
+    if (options && (options & (options - 1))) {
+	xerror(0, Ngt("more than one options cannot be used at a time"));
+	return Exit_ERROR;
+    }
+
+    if (xoptind == argc) {
+	/* print all arrays */
+	if (options != 0)
+	    goto print_usage;
+
+	hashtable_T table;
+	ht_init(&table, hashstr, htstrcmp);
+	get_all_variables_rec(&table, current_env);
+
+	kvpair_T *kvs = ht_tokvarray(&table);
+	size_t count = table.count;
+	ht_destroy(&table);
+	qsort(kvs, count, sizeof *kvs, keystrcoll);
+	for (size_t i = 0; i < count; i++)
+	    if ((((variable_T *) kvs[i].value)->v_type & VF_MASK) == VF_ARRAY)
+		print_variable(kvs[i].key, kvs[i].value, ARGV(0), false, false);
+	free(kvs);
+	return Exit_SUCCESS;
+    } else {
+	bool ok;
+	const wchar_t *wname = ARGV(xoptind++);
+	if (wcschr(wname, L'=')) {
+	    xerror(0, Ngt("`%ls': invalid name"), wname);
+	    return Exit_FAILURE;
+	}
+	char *name = malloc_wcstombs(wname);
+	if (!name) {
+	    xerror(0, Ngt("unexpected error"));
+	    return Exit_ERROR;
+	}
+
+	if (options == 0) {
+	    ok = set_array(name, argc - xoptind,
+		    duparray(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
+	    free(name);
+	} else {
+	    variable_T *array = search_variable(name);
+	    if (array == NULL || (array->v_type & VF_MASK) != VF_ARRAY) {
+		xerror(0, Ngt("%s: no such array"), name);
+		free(name);
+		return Exit_FAILURE;
+	    } else if (array->v_type & VF_READONLY) {
+		xerror(0, Ngt("%s: readonly"), name);
+		free(name);
+		return Exit_FAILURE;
+	    }
+	    switch (options) {
+		case delete:
+		    free(name);
+		    ok = array_remove_elements(
+			    array, argc - xoptind, argv + xoptind);
+		    break;
+		case insert:
+		    free(name);
+		    if (xoptind == argc)
+			goto print_usage;
+		    ok = array_insert_elements(
+			    array, argc - xoptind, argv + xoptind);
+		    break;
+		case set:
+		    if (xoptind + 2 != argc) {
+			free(name);
+			goto print_usage;
+		    }
+		    ok = array_set_element(
+			    name, array, ARGV(xoptind), ARGV(xoptind + 1));
+		    free(name);
+		    break;
+		default:
+		    assert(false);
+	    }
+	}
+	return ok ? Exit_SUCCESS : Exit_FAILURE;
+    }
+}
+
+#if LONG_MAX < SIZE_MAX
+# define LONG_LT_SIZE(longvalue,sizevalue) \
+    ((size_t) (longvalue) < (sizevalue))
+#else
+# define LONG_LT_SIZE(longvalue,sizevalue) \
+    ((longvalue) < (long) (sizevalue))
+#endif
+
+/* Removes elements from `array'.
+ * `*indexwcss' is an NULL-terminated array of pointers to wide strings,
+ * which are parsed as indices of elements to be removed.
+ * `count' is the number of elements in `*indexwcss'.
+ * Returns true iff successful. */
+bool array_remove_elements(
+	variable_T *array, size_t count, void *const *indexwcss)
+{
+    long indices[count], lastindex;
+    plist_T list;
+
+    assert((array->v_type & VF_MASK) == VF_ARRAY);
+
+    /* convert all the strings into long integers */
+    for (size_t i = 0; i < count; i++) {
+	const wchar_t *indexwcs = indexwcss[i];
+	wchar_t *end;
+	errno = 0;
+	indices[i] = wcstol(indexwcs, &end, 10);
+	if (errno || !indexwcs[0] || end[0]) {
+	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexwcs);
+	    return false;
+	}
+    }
+
+    /* sort all the indices and remove elements in the descending order so that
+     * an earlier removal does not affect the indices for later removals. */
+    if (count > 1)
+	qsort(indices, count, sizeof *indices, compare_long);
+
+    pl_initwith(&list, array->v_vals, array->v_valc);
+    lastindex = LONG_MIN;
+    for (size_t i = count; i-- != 0; ) {
+	long index = indices[i];
+	if (index == lastindex)
+	    continue;
+	if (index > 0) {
+	    if (LONG_LT_SIZE(index - 1, list.length)) {
+		free(list.contents[index - 1]);
+		pl_remove(&list, index - 1, 1);
+	    }
+	} else if (index < 0) {
+	    index += array->v_valc;
+	    if (index >= 0) {
+		assert(LONG_LT_SIZE(index, list.length));
+		free(list.contents[index]);
+		pl_remove(&list, index, 1);
+	    }
+	}
+	lastindex = index;
+    }
+    array->v_valc = list.length;
+    array->v_vals = pl_toary(&list);
+    return true;
+}
+
+int compare_long(const void *lp1, const void *lp2)
+{
+    long l1 = *(const long *) lp1, l2 = *(const long *) lp2;
+    return l1 == l2 ? 0 : l1 < l2 ? -1 : 1;
+}
+
+/* Inserts elements into `array'.
+ * `*values' is an NULL-terminated array of pointers to wide strings.
+ * The first string in `*values' is parsed as the integer index that is
+ * specifying where to insert elements. The other strings are inserted to the
+ * array. `count' is the number of strings in `*values' including the first
+ * index string.
+ * Returns true iff successful. */
+bool array_insert_elements(
+	variable_T *array, size_t count, void *const *values)
+{
+    long index;
+    plist_T list;
+
+    assert((array->v_type & VF_MASK) == VF_ARRAY);
+    assert(count > 0);
+    assert(values[0] != NULL);
+    {
+	const wchar_t *indexword = *values;
+	wchar_t *end;
+	errno = 0;
+	index = wcstol(indexword, &end, 10);
+	if (errno || !indexword[0] || end[0]) {
+	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexword);
+	    return false;
+	}
+    }
+    count--, values++;
+    assert(plcount(values) == count);
+
+    size_t uindex;
+    if (index < 0) {
+	index += array->v_valc + 1;
+	if (index < 0)
+	    index = 0;
+    }
+    uindex = LONG_LT_SIZE(index, array->v_valc) ? (size_t)index : array->v_valc;
+
+    pl_initwith(&list, array->v_vals, array->v_valc);
+    pl_insert(&list, uindex, values);
+    for (size_t i = 0; i < count; i++)
+	list.contents[uindex + i] = xwcsdup(list.contents[uindex + i]);
+    array->v_valc = list.length;
+    array->v_vals = pl_toary(&list);
+    return true;
+}
+
+/* Sets the value of a single element of `array'.
+ * `name' is the name of the array variable.
+ * `indexword' is parsed as the integer index of the element. */
+bool array_set_element(const char *name, variable_T *array,
+	const wchar_t *indexword, const wchar_t *value)
+{
+    long index;
+
+    assert((array->v_type & VF_MASK) == VF_ARRAY);
+    {
+	wchar_t *end;
+	errno = 0;
+	index = wcstol(indexword, &end, 10);
+	if (errno || !indexword[0] || end[0]) {
+	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexword);
+	    return false;
+	}
+    }
+
+    size_t uindex;
+    if (index < 0) {
+	index += array->v_valc;
+	if (index < 0)
+	    goto invalid_index;
+	assert(LONG_LT_SIZE(index, array->v_valc));
+	uindex = (size_t) index;
+    } else if (index > 0) {
+	if (!LONG_LT_SIZE(index - 1, array->v_valc))
+	    goto invalid_index;
+	uindex = (size_t) index - 1;
+    } else {
+	goto invalid_index;
+    }
+    assert(uindex < array->v_valc);
+    free(array->v_vals[uindex]);
+    array->v_vals[uindex] = xwcsdup(value);
+    return true;
+
+invalid_index:
+    xerror(0, Ngt("%ls: index out of range (actual size of array `%s' is %zu)"),
+	    indexword, name, array->v_valc);
+    return false;
+}
+
+const char array_help[] = Ngt(
+"array - manipulate array\n"
+"\tarray\n"
+"\tarray name [value...]\n"
+"\tarray -d name index...\n"
+"\tarray -i name index value...\n"
+"\tarray -s name index value\n"
+"The first form (without arguments) prints all existing arrays.\n"
+"The second form sets the values of an array. This is equivalent to an\n"
+"assignment by \"name=(values)\".\n"
+"The third form (with the -d (--delete) option) removes the elements speci-\n"
+"fied by <index>es from the array.\n"
+"The fourth form (with the -i (--insert) option) inserts elements after the\n"
+"element specified by <index> in the array. The zero index means the elements\n"
+"are inserted at the head of the array.\n"
+"The fifth form (with the -s (--set) option) sets the value of the single\n"
+"element of the array.\n"
 );
 
 /* The "unset" builtin, which accepts the following options:

@@ -117,6 +117,8 @@ extern struct command_T *get_function(const char *name)
 
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern int array_builtin(int argc, void **argv)
+    __attribute__((nonnull));
 extern int unset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int shift_builtin(int argc, void **argv)
@@ -125,7 +127,7 @@ extern int getopts_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char typeset_help[], unset_help[], shift_help[],
+extern const char typeset_help[], array_help[], unset_help[], shift_help[],
        getopts_help[], read_help[];
 
 
