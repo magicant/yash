@@ -11,11 +11,16 @@ History of Yash
 Yash 2.1
 
   +  Array variables
+  +  "array" builtin
+  +  The -A option for the "read" builtin
   *  The colon flag in a parameter expansion like "${FOO:-bar}" was
      ignored if the value of the parameter begins with a certain
      character.
   *  The readonly attribute was ignored when an assignment occurs
      against a command invocation
+  *  Passing "=" as a name to the "unset" builtin incorrectly unset
+     the positional parameters and caused a potential invalid memory
+     access.
 
 ----------------------------------------------------------------------
 Yash 2.0

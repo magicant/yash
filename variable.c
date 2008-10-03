@@ -1912,6 +1912,12 @@ int unset_builtin(int argc, void **argv)
     }
 
     for (; xoptind < argc; xoptind++) {
+	const wchar_t *wname = ARGV(xoptind);
+	if (wcschr(wname, L'=')) {
+	    xerror(0, Ngt("`%ls': invalid name"), wname);
+	    err = true;
+	    continue;
+	}
 	char *name = malloc_wcstombs(ARGV(xoptind));
 	if (!name) {
 	    xerror(0, Ngt("unexpected error"));
