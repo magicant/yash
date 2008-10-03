@@ -48,6 +48,7 @@ help="no"
 gcc=""
 debug="no"
 enable_alias="yes"
+enable_array="yes"
 enable_history="yes"
 enable_ulimit="yes"
 options=""
@@ -63,6 +64,7 @@ parseenable() {
     opt="${opt%%=*}"
     case "$opt" in
 	alias)        enable_alias=$2 ;;
+	array)        enable_array=$2 ;;
 	history)      enable_history=$2 ;;
 	ulimit)       enable_ulimit=$2 ;;
 	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
@@ -123,6 +125,7 @@ Optional features:
   --enable-FEATURE[=ARG]      enable or disable FEATURE [ARG=yes]
   --disable-FEATURE           disable FEATURE (same as --enable-FEATURE=no)
   --enable-alias              enable aliases
+  --enable-array              enable the array builtin
   --enable-history            enable history
   --enable-ulimit             enable the ulimit builtin
 
@@ -431,6 +434,13 @@ then
     defconfigh "YASH_ENABLE_ALIAS"
     options="$options alias"
     objs="$objs $alias_objs"
+fi
+
+# enable/disable the array builtin
+if [ x"$enable_array" = x"yes" ]
+then
+    defconfigh "YASH_ENABLE_ARRAY"
+    options="$options array"
 fi
 
 # enable/disable history

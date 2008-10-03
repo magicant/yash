@@ -1230,6 +1230,7 @@ static void print_function(
 	const char *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
+#if YASH_ENABLE_ARRAY
 static bool array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
     __attribute__((nonnull));
@@ -1241,6 +1242,7 @@ static bool array_insert_elements(
 static bool array_set_element(const char *name, variable_T *array,
 	const wchar_t *indexword, const wchar_t *value)
     __attribute__((nonnull));
+#endif /* YASH_ENABLE_ARRAY */
 static bool unset_function(const char *name)
     __attribute__((nonnull));
 static bool unset_variable(const char *name)
@@ -1579,6 +1581,8 @@ const char typeset_help[] = Ngt(
 "Note that the typeset builtin is unavailable in the POSIXly correct mode.\n"
 );
 
+#if YASH_ENABLE_ARRAY
+
 /* The "array" builtin */
 int array_builtin(int argc, void **argv)
 {
@@ -1873,6 +1877,8 @@ const char array_help[] = Ngt(
 "The fifth form (with the -s (--set) option) sets the value of the single\n"
 "element of the array.\n"
 );
+
+#endif /* YASH_ENABLE_ARRAY */
 
 /* The "unset" builtin, which accepts the following options:
  * -f: deletes functions
