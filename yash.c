@@ -397,12 +397,25 @@ void print_help(void)
 /* Prints the version info to stdout. */
 void print_version(void)
 {
-#ifndef OPTION_LIST
-#define OPTION_LIST " n/a"
-#endif
-    printf(gt("Yet another shell, version %s\n\t(options:%s)\n"),
-	    PACKAGE_VERSION, OPTION_LIST);
+    printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
     printf(PACKAGE_COPYRIGHT "\n");
+    if (shopt_verbose) {
+	printf(gt("Compiled %s %s\n"), __DATE__, __TIME__);
+	printf(""
+#if YASH_ENABLE_ALIAS
+		" * alias\n"
+#endif
+#if YASH_ENABLE_ARRAY
+		" * array\n"
+#endif
+#if YASH_ENABLE_HISTORY
+		" * history\n"
+#endif
+#if YASH_ENABLE_ULIMIT
+		" * ulimit\n"
+#endif
+	      );
+    }
 }
 
 
