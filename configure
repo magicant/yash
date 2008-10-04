@@ -50,6 +50,7 @@ debug="no"
 enable_alias="yes"
 enable_array="yes"
 enable_history="yes"
+enable_socket="yes"
 enable_ulimit="yes"
 unset prefix eprefix bindir
 umask u=rwx,go=rx
@@ -65,6 +66,7 @@ parseenable() {
 	alias)        enable_alias=$2 ;;
 	array)        enable_array=$2 ;;
 	history)      enable_history=$2 ;;
+	socket)       enable_socket=$2 ;;
 	ulimit)       enable_ulimit=$2 ;;
 	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
     esac
@@ -126,6 +128,7 @@ Optional features:
   --enable-alias              enable aliases
   --enable-array              enable the array builtin
   --enable-history            enable history
+  --enable-socket             enable socket redirection by /dev/tcp, /dev/udp
   --enable-ulimit             enable the ulimit builtin
 
 Influential environment variables:
@@ -445,6 +448,12 @@ if [ x"$enable_history" = x"yes" ]
 then
     defconfigh "YASH_ENABLE_HISTORY"
     objs="$objs $history_objs"
+fi
+
+# enable/disable socket redirection
+if [ x"$enable_socket" = x"yes" ]
+then
+    defconfigh "YASH_ENABLE_SOCKET"
 fi
 
 # check for getrlimit and setrlimit

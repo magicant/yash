@@ -29,6 +29,10 @@
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if YASH_ENABLE_SOCKET
+# include <netdb.h>
+# include <sys/socket.h>
+#endif
 #include "exec.h"
 #include "expand.h"
 #include "input.h"
@@ -36,6 +40,7 @@
 #include "parser.h"
 #include "path.h"
 #include "redir.h"
+#include "sig.h"
 #include "strbuf.h"
 #include "util.h"
 #include "yash.h"
@@ -263,6 +268,12 @@ struct savefd_T {
 };
 
 static void save_fd(int oldfd, savefd_T **save);
+static int open_file(const char *path, int oflag)
+    __attribute__((nonnull));
+#if YASH_ENABLE_SOCKET
+static int open_socket(const char *hostandport, int socktype)
+    __attribute__((nonnull));
+#endif
 static int parse_and_check_dup(char *num, redirtype_T type)
     __attribute__((nonnull));
 static int open_heredocument(const struct wordunit_T *content);
@@ -326,8 +337,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    goto openwithflags;
 openwithflags:
 	    keepopen = false;
-	    fd = open(filename, flags,
-		    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	    fd = open_file(filename, flags);
 	    if (fd < 0) {
 		xerror(errno, Ngt("redirection: cannot open `%s'"), filename);
 		free(filename);
@@ -401,6 +411,104 @@ void save_fd(int fd, savefd_T **save)
     /* note: if `fd' is formerly unused, `sf_copyfd' is -1. */
     *save = s;
 }
+
+/* Opens the file for a redirection.
+ * `path' and `oflag' are the first and second argument to the `open' function.
+ * If the socket redirection feature is enabled and `path' begins with
+ * "/dev/tcp/" or "/dev/udp/", then a socket is opened.
+ * Returns a new file descriptor if successful. Otherwise `errno' is set and
+ * -1 is returned. */
+int open_file(const char *path, int oflag)
+{
+    int fd;
+
+    fd = open(path, oflag,
+	    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+#if YASH_ENABLE_SOCKET
+    if (fd < 0) {
+	const char *hostandport = matchstrprefix(path, "/dev/tcp/");
+	if (hostandport)
+	    fd = open_socket(hostandport, SOCK_STREAM);
+    }
+    if (fd < 0) {
+	const char *hostandport = matchstrprefix(path, "/dev/udp/");
+	if (hostandport)
+	    fd = open_socket(hostandport, SOCK_DGRAM);
+    }
+#endif /* YASH_ENABLE_SOCKET */
+    return fd;
+}
+
+#if YASH_ENABLE_SOCKET
+
+/* Opens a socket.
+ * `hostandport' is the name and the port of the host to connect, concatenated
+ * by a slash. `socktype' specifies the type of the socket, which should be
+ * `SOCK_STREAM' for TCP or `SOCK_DGRAM' for UDP. */
+int open_socket(const char *hostandport, int socktype)
+{
+    struct addrinfo hints, *ai;
+    int err, saveerrno;
+    char *hostname, *port;
+    int fd;
+
+    saveerrno = errno;
+
+    /* decompose `hostandport' into `hostname' and `port' */
+    {
+	wchar_t *whostandport;
+	const wchar_t *wport;
+
+	whostandport = malloc_mbstowcs(hostandport);
+	if (!whostandport) {
+	    errno = saveerrno;
+	    return -1;
+	}
+	wport = wcschr(whostandport, L'/');
+	if (wport) {
+	    hostname = malloc_wcsntombs(whostandport, wport - whostandport);
+	    port = malloc_wcstombs(wport + 1);
+	} else {
+	    hostname = xstrdup(hostandport);
+	    port = NULL;
+	}
+	free(whostandport);
+    }
+
+    set_interruptible_by_sigint(true);
+
+    hints.ai_flags = 0;
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = socktype;
+    hints.ai_protocol = 0;
+    hints.ai_addrlen = 0;
+    hints.ai_addr = NULL;
+    hints.ai_canonname = NULL;
+    hints.ai_next = NULL;
+    err = getaddrinfo(hostname, port, &hints, &ai);
+    free(hostname);
+    free(port);
+    if (err != 0) {
+	xerror(0, Ngt("socket redirection: cannot resolve address of %s: %s"),
+		hostandport, gai_strerror(err));
+	set_interruptible_by_sigint(false);
+	errno = saveerrno;
+	return -1;
+    }
+
+    fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if (fd >= 0 && connect(fd, ai->ai_addr, ai->ai_addrlen) < 0) {
+	xclose(fd);
+	fd = -1;
+    }
+    saveerrno = errno;
+    freeaddrinfo(ai);
+    set_interruptible_by_sigint(false);
+    errno = saveerrno;
+    return fd;
+}
+
+#endif /* YASH_ENABLE_SOCKET */
 
 /* Parses the argument to `RT_DUPIN'/`RT_DUPOUT'.
  * `num' is the argument to parse, which is expected to be "-" or numeric.

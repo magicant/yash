@@ -1,7 +1,7 @@
 テストスクリプト
 	ulimit のテスト
+	/dev/tcp, /dev/udp のテスト
 gettext 対応
-/dev/tcp, /dev/udp リダイレクト
 
 組込みコマンド
 	bind

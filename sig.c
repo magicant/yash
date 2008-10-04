@@ -406,6 +406,24 @@ void restore_interactive_signals(void)
     }
 }
 
+/* Sets SIGINT to be caught if the shell is interactive (`onoff' = 1).
+ * Restores SIGINT (`onoff' = 0).
+ * SIGINT must be restored before any other signal handling. */
+void set_interruptible_by_sigint(bool onoff)
+{
+    if (interactive_initialized) {
+	const wchar_t *siginttrap = trap_command[sigindex(SIGINT)];
+	if (!siginttrap || !siginttrap[0]) {
+	    struct sigaction action;
+	    sigemptyset(&action.sa_mask);
+	    action.sa_flags = 0;
+	    action.sa_handler = onoff ? sig_handler : SIG_IGN;
+	    if (sigaction(SIGINT, &action, NULL) < 0)
+		xerror(errno, "sigaction(SIGINT)");
+	}
+    }
+}
+
 /* Sets the action of SIGQUIT and SIGINT to ignoring the signals
  * to prevent an asynchronous job from being killed by these signals. */
 void ignore_sigquit_and_sigint(void)

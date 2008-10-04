@@ -39,6 +39,7 @@ extern void set_interactive_signals(void);
 extern void restore_all_signals(void);
 extern void restore_job_signals(void);
 extern void restore_interactive_signals(void);
+extern void set_interruptible_by_sigint(_Bool onoff);
 extern void ignore_sigquit_and_sigint(void);
 extern void ignore_sigtstp(void);
 extern void block_sigttou(void);

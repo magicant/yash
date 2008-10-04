@@ -151,7 +151,8 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 }
 
 /* If the string `s' starts with the `prefix', returns a pointer to the
- * byte right after the prefix in `s'. Otherwise returns NULL. */
+ * byte right after the prefix in `s'. Otherwise returns NULL.
+ * This function does not change the value of `errno'. */
 char *matchstrprefix(const char *s, const char *prefix)
 {
     while (*prefix) {
@@ -164,7 +165,8 @@ char *matchstrprefix(const char *s, const char *prefix)
 }
 
 /* If the string `s' starts with the `prefix', returns a pointer to the
- * character right after the prefix in `s'. Otherwise returns NULL. */
+ * character right after the prefix in `s'. Otherwise returns NULL.
+ * This function does not change the value of `errno'. */
 wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 {
     while (*prefix) {
