@@ -19,6 +19,7 @@
 #ifndef YASH_EXEC_H
 #define YASH_EXEC_H
 
+#include <stddef.h>
 #include <sys/types.h>
 
 
