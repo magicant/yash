@@ -207,7 +207,7 @@ fail () {
 }
 
 # check OS type
-checking "operation system"
+checking "operating system"
 ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
 checked "${ostype}"
 case "${ostype}" in
