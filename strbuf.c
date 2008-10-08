@@ -186,8 +186,10 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
     } else {
 	mbstate_t saveps = *ps;
 	count = wcrtomb(NULL, L'\0', &saveps);
-	if (count == (size_t) -1)
+	if (count == (size_t) -1) {
+	    buf->contents[buf->length] = '\0';
 	    return NULL;
+	}
 	sb_ensuremax(buf, buf->length + count - 1);
 	count = wcrtomb(buf->contents + buf->length, L'\0', ps);
 	assert(0 < count && count - 1 <= buf->maxlength - buf->length);
