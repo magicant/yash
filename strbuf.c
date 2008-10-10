@@ -19,6 +19,7 @@
 #include "common.h"
 #include <assert.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -157,6 +158,26 @@ xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
     buf->length += n;
     buf->contents[buf->length] = '\0';
     return buf;
+}
+
+/* Converts a wide character to a multibyte character and appends it to the
+ * buffer. The shift state `*ps' is updated to describe the new state.
+ * Returns true iff successful.
+ * If `c' is a null character, the shift state is reset to the initial state. */
+bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
+{
+    size_t count;
+
+    sb_ensuremax(buf, buf->length + MB_CUR_MAX);
+    count = wcrtomb(buf->contents + buf->length, c, ps);
+    if (count == (size_t) -1) {
+	buf->contents[buf->length] = '\0';
+	return false;
+    }
+    assert(0 < count && count <= buf->maxlength - buf->length);
+    buf->length += count;
+    buf->contents[buf->length] = '\0';
+    return true;
 }
 
 /* Converts a wide string to a multibyte string and appends it to the buffer.

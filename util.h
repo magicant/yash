@@ -148,6 +148,11 @@ void **duparray(void *const *array, void *copy(const void *p))
 #define xtolower(c)  (tolower((unsigned char) (c)))
 
 
+/* Casts scalar to char safely. */
+#define TO_CHAR(value) \
+    ((union { char c; unsigned char uc; }) { .uc = (unsigned char) (value), }.c)
+
+
 /********** Arithmetic utilities **********/
 
 /* Whether an integral type `type' is signed. */

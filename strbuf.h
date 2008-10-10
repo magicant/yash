@@ -84,6 +84,9 @@ extern xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
     __attribute__((nonnull));
+extern _Bool sb_wccat(
+	xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
+    __attribute__((nonnull));
 extern wchar_t *sb_wcscat(
 	xstrbuf_T *restrict buf,
 	const wchar_t *restrict s, mbstate_t *restrict ps)

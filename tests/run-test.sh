@@ -35,6 +35,21 @@ export INVOKE TESTEE LC_ALL TESTTMP
 unset ENV IFS failed
 umask u=rwx,go=
 
+checkskip()
+case "$1" in
+    alias.y|alias.p)
+	$INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
+	;;
+    history.y)
+	HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
+	    >/dev/null 2>&1
+	;;
+    printf.y)
+	$INVOKE $TESTEE -c 'type printf' 2>/dev/null | \
+	    grep '^printf: regular builtin' >/dev/null
+	;;
+esac
+
 failed=0
 for x in $TEST_ITEMS
 do
@@ -43,17 +58,11 @@ do
     then INVOKE=
     else INVOKE='./invoke sh'
     fi
-    case "$x" in
-	alias.y|alias.p)
-	    if ! $INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
-	    then echo " * $x (skipped)"; continue
-	    fi ;;
-	history.y)
-	    if ! HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
-		>/dev/null 2>&1
-	    then echo " * $x (skipped)"; continue
-	    fi ;;
-    esac
+    if ! checkskip "$x"
+    then
+	echo " * $x (skipped)"
+	continue
+    fi
 
     echo " * $x"
     $INVOKE $TESTEE "$x.tst" >|"${TESTTMP}/test.out" 2>|"${TESTTMP}/test.err"

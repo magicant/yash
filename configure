@@ -39,6 +39,7 @@ sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exe
 objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o wfnmatch.o yash.o"
 alias_objs="alias.o"
 history_objs="history.o"
+printf_objs="printf.o"
 ulimit_objs="ulimit.o"
 
 # object file to be linked as `mksignum'
@@ -50,6 +51,7 @@ debug="no"
 enable_alias="yes"
 enable_array="yes"
 enable_history="yes"
+enable_printf="yes"
 enable_socket="yes"
 enable_ulimit="yes"
 unset prefix eprefix bindir
@@ -66,6 +68,7 @@ parseenable() {
 	alias)        enable_alias=$2 ;;
 	array)        enable_array=$2 ;;
 	history)      enable_history=$2 ;;
+	printf)       enable_printf=$2 ;;
 	socket)       enable_socket=$2 ;;
 	ulimit)       enable_ulimit=$2 ;;
 	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
@@ -128,6 +131,7 @@ Optional features:
   --enable-alias              enable aliases
   --enable-array              enable the array builtin
   --enable-history            enable history
+  --enable-printf             enable the echo/printf builtins
   --enable-socket             enable socket redirection by /dev/tcp, /dev/udp
   --enable-ulimit             enable the ulimit builtin
 
@@ -448,6 +452,13 @@ if [ x"$enable_history" = x"yes" ]
 then
     defconfigh "YASH_ENABLE_HISTORY"
     objs="$objs $history_objs"
+fi
+
+# enable/disable the echo/printf builtins
+if [ x"$enable_printf" = x"yes" ]
+then
+    defconfigh "YASH_ENABLE_PRINTF"
+    objs="$objs $printf_objs"
 fi
 
 # enable/disable socket redirection

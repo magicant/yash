@@ -11,7 +11,7 @@ History of Yash
 Yash 2.1
 
   +  Array variables
-  +  "array" builtin
+  +  "array", "echo", "printf" builtins
   +  The -A option for the "read" builtin
   *  The colon flag in a parameter expansion like "${FOO:-bar}" was
      ignored if the value of the parameter begins with a certain

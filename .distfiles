@@ -41,6 +41,8 @@ path.c
 path.h
 plist.c
 plist.h
+printf.c
+printf.h
 redir.c
 redir.h
 sig.c
@@ -98,6 +100,8 @@ tests/parser.p.out
 tests/parser.p.tst
 tests/path.p.out
 tests/path.p.tst
+tests/printf.y.out
+tests/printf.y.tst
 tests/redir.p.out
 tests/redir.p.tst
 tests/redir.y.out

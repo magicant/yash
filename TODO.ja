@@ -7,8 +7,6 @@ gettext 対応
 	bind
 	compgen
 	complete
-	echo -eEn
 	help -s
 	newgrp
-	printf
 	test/[
