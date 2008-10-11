@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
-.SUFFIXES: .c .h .o
+.SUFFIXES: .c .h .o .a
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -40,6 +40,8 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+builtins/builtins.a: _PHONY
+	@cd builtins && $(MAKE)
 mksignum: $(MKSIGNUMOBJS)
 	$(CC) $(LDFLAGS) -o $@ $(MKSIGNUMOBJS) $(LDLIBS)
 signum.h: mksignum
@@ -110,9 +112,13 @@ cscope.out: $(SOURCES)
 mostlyclean:
 	-rm -rf $(OBJS) $(MKSIGNUMOBJS) $(BYPRODUCTS) $(DISTDIR)
 	-@cd tests && $(MAKE) clean
-clean: mostlyclean
+clean: _clean
+	-@cd builtins && $(MAKE) clean
+_clean: mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
-distclean: clean
+distclean: _distclean
+	-@cd builtins && $(MAKE) distclean
+_distclean: _clean
 	-rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
@@ -129,5 +135,29 @@ reconfigure:
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	echo Cannot read \"config.log\". Try usual \"./configure\" >&2
 
-.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean distclean maintainer-clean _deps reconfigure
+.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean _clean distclean _distclean maintainer-clean _deps reconfigure
+_PHONY:
 
+# source file dependencies
+alias.o: alias.h builtin.h common.h config.h exec.h expand.h hashtable.h option.h parser.h plist.h strbuf.h util.h
+arith.o: arith.h common.h config.h option.h strbuf.h util.h variable.h
+builtin.o: alias.h builtin.h builtins/printf.h builtins/ulimit.h common.h config.h exec.h hashtable.h history.h job.h option.h path.h sig.h strbuf.h variable.h yash.h
+exec.o: alias.h builtin.h common.h config.h exec.h expand.h input.h job.h option.h parser.h path.h plist.h redir.h sig.h strbuf.h util.h variable.h wfnmatch.h yash.h
+expand.o: arith.h common.h config.h exec.h expand.h input.h option.h parser.h path.h plist.h strbuf.h util.h variable.h wfnmatch.h yash.h
+hashtable.o: common.h config.h hashtable.h util.h
+history.o: builtin.h common.h config.h exec.h history.h job.h option.h path.h redir.h strbuf.h util.h variable.h yash.h
+job.o: builtin.h common.h config.h exec.h job.h option.h plist.h redir.h sig.h strbuf.h util.h yash.h
+input.o: common.h config.h exec.h expand.h history.h input.h job.h mail.h option.h parser.h sig.h strbuf.h util.h variable.h yash.h
+option.o: builtin.h common.h config.h exec.h option.h redir.h sig.h strbuf.h util.h variable.h yash.h
+mail.o: common.h config.h expand.h hashtable.h mail.h parser.h strbuf.h util.h variable.h
+mksignum.o: common.h config.h siglist.h
+parser.o: alias.h common.h config.h expand.h input.h option.h parser.h plist.h strbuf.h util.h
+path.o: builtin.h common.h config.h exec.h hashtable.h option.h path.h plist.h strbuf.h util.h variable.h wfnmatch.h yash.h
+plist.o: common.h config.h plist.h util.h
+redir.o: common.h config.h exec.h expand.h input.h option.h parser.h path.h redir.h sig.h strbuf.h util.h yash.h
+sig.o: builtin.h common.h config.h exec.h expand.h job.h option.h parser.h redir.h sig.h siglist.h signum.h strbuf.h util.h yash.h
+strbuf.o: common.h config.h strbuf.h util.h
+util.o: common.h config.h exec.h option.h plist.h util.h
+variable.o: builtin.h common.h config.h exec.h expand.h hashtable.h input.h option.h parser.h path.h plist.h strbuf.h util.h variable.h version.h yash.h
+wfnmatch.o: common.h config.h strbuf.h wfnmatch.h
+yash.o: alias.h builtin.h common.h config.h exec.h expand.h history.h input.h job.h option.h parser.h path.h redir.h sig.h strbuf.h util.h variable.h version.h yash.h

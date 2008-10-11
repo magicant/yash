@@ -9,7 +9,6 @@ README.ja
 TODO.ja
 Makefile.in
 configure
-makedepend
 install-sh
 common.h
 alias.c
@@ -41,8 +40,6 @@ path.c
 path.h
 plist.c
 plist.h
-printf.c
-printf.h
 redir.c
 redir.h
 sig.c
@@ -50,8 +47,6 @@ sig.h
 siglist.h
 strbuf.c
 strbuf.h
-ulimit.c
-ulimit.h
 util.c
 util.h
 variable.c
@@ -60,6 +55,11 @@ wfnmatch.c
 wfnmatch.h
 yash.c
 yash.h
+builtins/Makefile.in
+builtins/printf.c
+builtins/printf.h
+builtins/ulimit.c
+builtins/ulimit.h
 tests/Makefile
 tests/run-test.sh
 tests/invoke.c

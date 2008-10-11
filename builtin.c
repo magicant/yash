@@ -32,12 +32,16 @@
 #include "job.h"
 #include "option.h"
 #include "path.h"
-#include "printf.h"
 #include "sig.h"
 #include "strbuf.h"
-#include "ulimit.h"
 #include "variable.h"
 #include "yash.h"
+#if YASH_ENABLE_PRINTF
+# include "builtins/printf.h"
+#endif
+#if YASH_ENABLE_ULIMIT
+# include "builtins/ulimit.h"
+#endif
 
 
 /* Rules about builtin commands:
@@ -108,21 +112,10 @@ void init_builtin(void)
     DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help);
     DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
 
-    /* defined in "ulimit.c" */
-#if YASH_ENABLE_ULIMIT
-    DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help);
-#endif
-
     /* defined in "history.c" */
 #if YASH_ENABLE_HISTORY
     DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, fc_help);
     DEFBUILTIN("history", history_builtin, BI_REGULAR, history_help);
-#endif
-
-    /* defined in "printf.c" */
-#if YASH_ENABLE_PRINTF
-    DEFBUILTIN("echo", echo_builtin, BI_REGULAR, echo_help);
-    DEFBUILTIN("printf", printf_builtin, BI_REGULAR, printf_help);
 #endif
 
     /* defined in "exec.c" */
@@ -139,6 +132,17 @@ void init_builtin(void)
     /* defined in "yash.c" */
     DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
     DEFBUILTIN("suspend", suspend_builtin, BI_REGULAR, suspend_help);
+
+    /* defined in "builtins/ulimit.c" */
+#if YASH_ENABLE_ULIMIT
+    DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help);
+#endif
+
+    /* defined in "builtins/printf.c" */
+#if YASH_ENABLE_PRINTF
+    DEFBUILTIN("echo", echo_builtin, BI_REGULAR, echo_help);
+    DEFBUILTIN("printf", printf_builtin, BI_REGULAR, printf_help);
+#endif
 
 #undef DEFBUILTIN
 }

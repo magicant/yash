@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#include "common.h"
+#include "../common.h"
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -28,10 +28,10 @@
 #ifdef HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "builtin.h"
-#include "exec.h"
+#include "../builtin.h"
+#include "../exec.h"
+#include "../util.h"
 #include "ulimit.h"
-#include "util.h"
 
 
 /********** Builtin **********/
