@@ -109,12 +109,14 @@ cscope: cscope.out
 cscope.out: $(SOURCES)
 	cscope -b
 
-mostlyclean:
+mostlyclean: _mostlyclean
+	-@cd builtins && $(MAKE) mostlyclean
+_mostlyclean:
 	-rm -rf $(OBJS) $(MKSIGNUMOBJS) $(BYPRODUCTS) $(DISTDIR)
 	-@cd tests && $(MAKE) clean
 clean: _clean
 	-@cd builtins && $(MAKE) clean
-_clean: mostlyclean
+_clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean
 	-@cd builtins && $(MAKE) distclean
@@ -135,7 +137,7 @@ reconfigure:
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	echo Cannot read \"config.log\". Try usual \"./configure\" >&2
 
-.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean clean _clean distclean _distclean maintainer-clean _deps reconfigure
+.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean _deps reconfigure
 _PHONY:
 
 # source file dependencies
