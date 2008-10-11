@@ -15,45 +15,61 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-tmp=".deptmp"
-trap 'rm -rf "${tmp}"' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
-umask u=rwx,go=rx
-mkdir "${tmp}"
+umask u=rwx,go=
+
+unset tmp IFS
+trap 'rm -rf "${tmp}"' EXIT
+trap 'rm -rf "${tmp}"; exit 1' HUP INT QUIT ABRT TERM PIPE USR1 USR2
+trap '' ALRM
+
+# create a temporary directory
+if ! mkdir "${tmp=/tmp/deptmp.$$}"
+then
+    echo 'cannot create temporary directory'
+    exit 1
+fi
+
+deps="${tmp}/deps"
+done="${tmp}/done"
+>"${deps}"
+>"${done}"
 
 csearch () {
-    if ! [ -r "$1" ]
+    if ! grep -Fqx "$1" "${done}"
     then
-	return
-    fi
-    if [ -r "${tmp}/$1" ]
-    then
-	cat "${tmp}/$1"
-    else
-	rm -rf "${tmp}/$1"
-	sed -e '
-	    /^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
-	      s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
-	      p
+	printf "%s\n" "$1" >>"${done}"
+	if [ -r "$1" ]
+	then
+	    sed -e '
+		/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"[^"]*"$/ {
+		s/^[[:blank:]]*#[[:blank:]]*include[[:blank:]]*"\([^"]*\)"/\1/
+		p
 	    }
 	    d
 	    ' "$1" | \
-	while read -r dep
-	do
-	    echo "${dep}"
-	    csearch "${dep}"
-	done | \
-	tee "${tmp}/$1"
+	    while read -r dep
+	    do
+		printf "%s\t%s\n" "$1" "${dep}"
+		csearch "${dep}"
+		grep -F "${dep}	" "${deps}" | sed -e "s|^.*	|$1	|"
+	    done
+	fi
     fi
+} >>"${deps}"
+
+printresult () {
+    grep -F "$1	" "${deps}" | cut -f 2 | sort -u
 }
 
 for source
 do
     case "${source}" in
 	*.c)
-	csearch "${source}" | sort -u | xargs echo "${source%.c}.o:"
+	csearch "${source}"
+	printresult "${source}" | xargs echo "${source%.c}.o:"
 	;;
     esac
 done
 
 
-# vim: set ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
