@@ -2,6 +2,7 @@
 	ulimit のテスト
 	/dev/tcp, /dev/udp のテスト
 gettext 対応
+configure にキャッシュ機能を付ける
 
 組込みコマンド
 	bind
