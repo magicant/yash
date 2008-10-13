@@ -161,7 +161,7 @@ if command -v echo >/dev/null 2>&1; then
 		echo "\"command -V ./invoke\" doesn't return a fullpath" >&2
 	fi
 	if command -v _no_such_command_; then
-		echo "\"command -v no_such_command\" returned zero status" >&2
+		echo "\"command -v _no_such_command_\" returned zero status" >&2
 	fi
 else
 	commandv='echo'

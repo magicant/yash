@@ -47,6 +47,7 @@ builtins_archive="builtins.a"
 alias_objs="alias.o"
 history_objs="history.o"
 printf_objs="printf.o"
+test_objs="test.o"
 ulimit_objs="ulimit.o"
 
 help="no"
@@ -57,6 +58,7 @@ enable_array="yes"
 enable_history="yes"
 enable_printf="yes"
 enable_socket="yes"
+enable_test="yes"
 enable_ulimit="yes"
 unset prefix eprefix bindir
 umask u=rwx,go=rx
@@ -74,6 +76,7 @@ parseenable() {
 	history)      enable_history=$2 ;;
 	printf)       enable_printf=$2 ;;
 	socket)       enable_socket=$2 ;;
+	test)         enable_test=$2 ;;
 	ulimit)       enable_ulimit=$2 ;;
 	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
     esac
@@ -137,6 +140,7 @@ Optional features:
   --enable-history            enable history
   --enable-printf             enable the echo/printf builtins
   --enable-socket             enable socket redirection by /dev/tcp, /dev/udp
+  --enable-test               enable the test builtin
   --enable-ulimit             enable the ulimit builtin
 
 Influential environment variables:
@@ -353,6 +357,22 @@ else
     checked "no"
 fi
 
+# check if sys/stat.h defines S_ISVTX
+checking "if <sys/stat.h> defines S_ISVTX"
+cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE 200112
+#define _XOPEN_SOURCE   600
+#include <sys/stat.h>
+int main() { return S_ISVTX & 0; }
+END
+if trymake
+then
+    checked "yes"
+    defconfigh "HAVE_S_ISVTX"
+else
+    checked "no"
+fi
+
 # check for mkstemp
 checking "for mkstemp"
 cat >"${tempsrc}" <<END
@@ -473,6 +493,13 @@ fi
 if [ x"$enable_socket" = x"yes" ]
 then
     defconfigh "YASH_ENABLE_SOCKET"
+fi
+
+# enable/disable the test builtin
+if [ x"$enable_test" = x"yes" ]
+then
+    defconfigh "YASH_ENABLE_TEST"
+    builtin_objs="$builtin_objs $test_objs"
 fi
 
 # check for getrlimit and setrlimit

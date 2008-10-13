@@ -48,6 +48,10 @@ case "$1" in
 	$INVOKE $TESTEE -c 'type printf' 2>/dev/null | \
 	    grep '^printf: regular builtin' >/dev/null
 	;;
+    test.y)
+	$INVOKE $TESTEE -c 'type test' 2>/dev/null | \
+	    grep '^test: regular builtin' >/dev/null
+	;;
 esac
 
 failed=0

@@ -23,7 +23,7 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = printf.c printf.h ulimit.c ulimit.h
+SOURCES = printf.c printf.h test.c test.h ulimit.c ulimit.h
 OBJS = @BUILTIN_OBJS@
 TARGET = @BUILTINS_ARCHIVE@
 
@@ -64,4 +64,5 @@ distclean: clean
 
 # source file dependencies
 printf.o: ../builtin.h ../common.h ../config.h ../exec.h ../option.h ../strbuf.h ../util.h ../variable.h printf.h
+test.o: ../common.h ../config.h ../path.h ../plist.h ../strbuf.h ../util.h test.h
 ulimit.o: ../builtin.h ../common.h ../config.h ../exec.h ../util.h ulimit.h

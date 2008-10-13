@@ -1426,7 +1426,8 @@ int dot_builtin(int argc, void **argv)
 
     char *path;
     if (!wcschr(filename, L'/')) {
-	path = which(mbsfilename, get_path_array(PA_PATH), is_readable);
+	path = which(mbsfilename, get_path_array(PA_PATH),
+		is_readable_regular);
 	if (!path) {
 	    if (!posixly_correct) {
 		path = mbsfilename;
@@ -1862,7 +1863,7 @@ bool print_command_fullpath(const wchar_t *commandname, bool hf)
     char *name = malloc_wcstombs(commandname);
     if (!name)
 	return false;
-    if (!is_executable(name)) {
+    if (!is_executable_regular(name)) {
 	free(name);
 	return false;
     }

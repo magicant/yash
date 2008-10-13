@@ -39,6 +39,9 @@
 #if YASH_ENABLE_PRINTF
 # include "builtins/printf.h"
 #endif
+#if YASH_ENABLE_TEST
+# include "builtins/test.h"
+#endif
 #if YASH_ENABLE_ULIMIT
 # include "builtins/ulimit.h"
 #endif
@@ -142,6 +145,12 @@ void init_builtin(void)
 #if YASH_ENABLE_PRINTF
     DEFBUILTIN("echo", echo_builtin, BI_REGULAR, echo_help);
     DEFBUILTIN("printf", printf_builtin, BI_REGULAR, printf_help);
+#endif
+
+    /* defined in "builtins/test.c" */
+#if YASH_ENABLE_TEST
+    DEFBUILTIN("test", test_builtin, BI_REGULAR, test_help);
+    DEFBUILTIN("[", test_builtin, BI_REGULAR, test_help);
 #endif
 
 #undef DEFBUILTIN

@@ -65,14 +65,32 @@ bool is_irregular_file(const char *path)
     return (stat(path, &st) == 0) && !S_ISREG(st.st_mode);
 }
 
-/* Checks if `path' is a readable regular file. */
+/* Checks if `path' is a readable file. */
 bool is_readable(const char *path)
 {
-    return is_regular_file(path) && access(path, R_OK) == 0;
+    return access(path, R_OK) == 0;
+}
+
+/* Checks if `path' is a writable file. */
+bool is_writable(const char *path)
+{
+    return access(path, W_OK) == 0;
+}
+
+/* Checks if `path' is an executable file (or a searchable directory). */
+bool is_executable(const char *path)
+{
+    return access(path, X_OK) == 0;
+}
+
+/* Checks if `path' is a readable regular file. */
+bool is_readable_regular(const char *path)
+{
+    return is_regular_file(path) && is_readable(path);
 }
 
 /* Checks if `path' is an executable regular file. */
-bool is_executable(const char *path)
+bool is_executable_regular(const char *path)
 {
     return is_regular_file(path) && access(path, X_OK) == 0;
 }
@@ -346,11 +364,11 @@ const char *get_command_path(const char *name, bool forcelookup)
 
     if (!forcelookup) {
 	path = ht_get(&cmdhash, name).value;
-	if (path && is_executable(path))
+	if (path && is_executable_regular(path))
 	    return path;
     }
 
-    path = which(name, get_path_array(PA_PATH), is_executable);
+    path = which(name, get_path_array(PA_PATH), is_executable_regular);
     if (path && path[0] == '/') {
 	size_t namelen = strlen(name), pathlen = strlen(path);
 	const char *pathname = path + pathlen - namelen;
@@ -417,7 +435,7 @@ void fill_cmdhash(const char *prefix, bool ignorecase)
 	    strcpy(path + dirpathlen + 1, de->d_name);
 
 	    /* enter to hashtable if it is executable */
-	    if (is_executable(path))
+	    if (is_executable_regular(path))
 		vfree(ht_set(&cmdhash, path + dirpathlen + 1, path));
 	    else
 		free(path);
@@ -454,7 +472,7 @@ const char *get_command_path_default(const char *name)
 	default_path = decompose_paths(defpath);
 	free(defpath);
     }
-    return gcpd_value = which(name, default_path, is_executable);
+    return gcpd_value = which(name, default_path, is_executable_regular);
 }
 
 /* Returns the system's default PATH as a newly malloced string.

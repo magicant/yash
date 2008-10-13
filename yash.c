@@ -417,6 +417,9 @@ void print_version(void)
 #if YASH_ENABLE_SOCKET
 		" * socket\n"
 #endif
+#if YASH_ENABLE_TEST
+		" * test\n"
+#endif
 #if YASH_ENABLE_ULIMIT
 		" * ulimit\n"
 #endif

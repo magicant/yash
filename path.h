@@ -30,7 +30,13 @@ extern _Bool is_irregular_file(const char *path)
     __attribute__((nonnull));
 extern _Bool is_readable(const char *path)
     __attribute__((nonnull));
+extern _Bool is_writable(const char *path)
+    __attribute__((nonnull));
 extern _Bool is_executable(const char *path)
+    __attribute__((nonnull));
+extern _Bool is_readable_regular(const char *path)
+    __attribute__((nonnull));
+extern _Bool is_executable_regular(const char *path)
     __attribute__((nonnull));
 extern _Bool is_directory(const char *path)
     __attribute__((nonnull));

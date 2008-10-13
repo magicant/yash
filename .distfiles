@@ -58,6 +58,8 @@ yash.h
 builtins/Makefile.in
 builtins/printf.c
 builtins/printf.h
+builtins/test.c
+builtins/test.h
 builtins/ulimit.c
 builtins/ulimit.h
 tests/Makefile
@@ -110,6 +112,8 @@ tests/sig.p.out
 tests/sig.p.tst
 tests/sig.y.out
 tests/sig.y.tst
+tests/test.y.out
+tests/test.y.tst
 tests/variable.p.out
 tests/variable.p.tst
 tests/variable.y.out
