@@ -19,14 +19,12 @@ echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
 echo "Any output from the tests indicates a possible malfunction"
 
 # make temporary directory
-: ${TMPDIR:=/tmp}
-if [ x"${TMPDIR}" = x"${TMPDIR#/}" ]; then
-    TMPDIR=/tmp
-fi
-TESTTMP="${TMPDIR}/yashtest.$$"
+: ${TMPDIR:=$PWD}
+TESTTMP="${TMPDIR}/test.$$"
 trap 'rm -rf $TESTTMP' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
     echo Cannot create temporary directory
+    trap - EXIT
     exit 1
 fi
 
