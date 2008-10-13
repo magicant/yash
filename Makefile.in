@@ -65,7 +65,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in makedepend install-sh
+DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in install-sh
 distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	mkdir -p $@
@@ -127,17 +127,12 @@ maintainer-clean:
 	@echo 'it deletes files that may need special tools to rebuild.'
 	@$(MAKE) distclean
 
-_deps:
-	if ! grep -q "^#dependencies" Makefile; then { \
-		echo "#dependencies resolved by makedepend"; \
-		./makedepend $(SOURCES); \
-		} >> Makefile; fi
 reconfigure:
 	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q \
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	echo Cannot read \"config.log\". Try usual \"./configure\" >&2
 
-.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean _deps reconfigure
+.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
 
 # source file dependencies

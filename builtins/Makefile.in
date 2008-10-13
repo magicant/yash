@@ -60,13 +60,7 @@ clean: mostlyclean
 distclean: clean
 	-rm -rf Makefile tags TAGS cscope.out
 
-_deps:
-	if ! grep -q "^#dependencies" Makefile; then { \
-		echo "#dependencies resolved by makedepend"; \
-		../makedepend $(SOURCES); \
-		} >> Makefile; fi
-
-.PHONY: all distcontents cscope mostlyclean clean distclean _deps
+.PHONY: all distcontents cscope mostlyclean clean distclean
 
 # source file dependencies
 printf.o: ../builtin.h ../common.h ../config.h ../exec.h ../option.h ../strbuf.h ../util.h ../variable.h printf.h
