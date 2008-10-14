@@ -8,11 +8,13 @@ echo \~home ~h\ome ~\/dir ~/\dir
 
 echo ===== parameter expansion =====
 
-var=123/456/789 asterisks='*****' null=
+var=123/456/789 asterisks='*****' null= space=' '
 unset unset
 echo $var ${var} "$var" "${var}"
 echo 1 $null 2
 echo 1 "$null" 2
+echo 1 $space 2
+echo 1 "$space" 2
 echo ${unset-"unset  variable"} and ${var+"set  variable"}
 echo 1 ${null:-null variable} 2 ${null:+null variable} 3
 

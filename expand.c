@@ -1375,7 +1375,6 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
     size_t index = 0, startindex = 0;
-    size_t savedestlen = dest->length;
 
     while (s[index]) {
 	if (s[index] == L'\\') {
@@ -1409,13 +1408,15 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 	    index++;
 	}
     }
-    if (savedestlen == dest->length) {
-	/* if there were no splittings, simply add the original string */
-	assert(startindex == 0);
-	pl_add(dest, s);
-    } else {
-	if (startindex < index)
+    if (startindex < index || index == 0) {
+	/* if we have some leftover or the string is empty at all, add it. */
+	if (startindex == 0) {
+	    pl_add(dest, s);
+	} else {
 	    pl_add(dest, xwcsndup(s + startindex, index - startindex));
+	    free(s);
+	}
+    } else {
 	free(s);
     }
     free(split);

@@ -402,6 +402,9 @@ void print_version(void)
     if (shopt_verbose) {
 	printf(gt("Compiled %s %s\n"), __DATE__, __TIME__);
 	printf(""
+#ifndef NDEBUG
+		" * DEBUG\n"
+#endif
 #if YASH_ENABLE_ALIAS
 		" * alias\n"
 #endif
