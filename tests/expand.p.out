@@ -8,6 +8,19 @@ path=~:~
 1  2
 1 2
 1   2
+1
+--
+2
+1
+--
+2
+1
+-
+-
+2
+1
+- -
+2
 unset  variable and set  variable
 1 null variable 2 3
 unset variable error

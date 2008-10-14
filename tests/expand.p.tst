@@ -1,3 +1,5 @@
+echol () for i; do printf "%s\n" "$i"; done
+
 echo ===== tilde expansion =====
 
 HOME=/tmp/home
@@ -15,6 +17,10 @@ echo 1 $null 2
 echo 1 "$null" 2
 echo 1 $space 2
 echo 1 "$space" 2
+echol 1 -$null- 2
+echol 1 "-$null-" 2
+echol 1 -$space- 2
+echol 1 "-$space-" 2
 echo ${unset-"unset  variable"} and ${var+"set  variable"}
 echo 1 ${null:-null variable} 2 ${null:+null variable} 3
 
@@ -127,8 +133,6 @@ set $foo bar '' xyz ''$foo'' abc
 for i; do echo "-$i-"; done
 
 echo =====
-
-echol () for i; do printf "%s\n" "$i"; done
 
 set "" "" ""
 echol [ "$@" ]
