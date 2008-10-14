@@ -15,18 +15,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
-echo "Any output from the tests indicates a possible malfunction"
-
 # make temporary directory
 : ${TMPDIR:=$PWD}
+if [ x"${TMPDIR}" = x"${TMPDIR#/}" ]; then
+    echo \$TMPDIR must be an absolute path >&2
+    exit 1
+fi
 TESTTMP="${TMPDIR}/test.$$"
 trap 'rm -rf $TESTTMP' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
-    echo Cannot create temporary directory
+    echo Cannot create temporary directory >&2
     trap - EXIT
     exit 1
 fi
+
+echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
+echo "Any output from the tests indicates a possible malfunction"
 
 LC_ALL=C
 export INVOKE TESTEE LC_ALL TESTTMP
