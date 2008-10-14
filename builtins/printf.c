@@ -507,12 +507,13 @@ parse_width:
 	    sb_destroy(&buf);
 	    return NULL;
 	default:  conv_error:
-	    xerror(0, Ngt("`%lc': invalid conversion specifier"), *format);
+	    xerror(0, Ngt("`%lc': invalid conversion specifier"),
+		    (wint_t) *format);
 	    sb_destroy(&buf);
 	    return NULL;
 flag_error:
 	    xerror(0, Ngt("invalid flag for conversion specifier `%lc'"),
-		    *format);
+		    (wint_t) *format);
 	    sb_destroy(&buf);
 	    return NULL;
     }
