@@ -21,6 +21,10 @@ Yash 2.1
   *  Passing "=" as a name to the "unset" builtin incorrectly unset
      the positional parameters and caused a potential invalid memory
      access.
+  *  Field splitting on variable values that consist only of spaces
+     produced wrong results.
+  *  Test of file access permission now uses the effective user/group
+     IDs rather than the real user/group IDs.
 
 ----------------------------------------------------------------------
 Yash 2.0

@@ -149,7 +149,7 @@ option.o: builtin.h common.h config.h exec.h option.h redir.h sig.h strbuf.h uti
 mail.o: common.h config.h expand.h hashtable.h mail.h parser.h strbuf.h util.h variable.h
 mksignum.o: common.h config.h siglist.h
 parser.o: alias.h common.h config.h expand.h input.h option.h parser.h plist.h strbuf.h util.h
-path.o: builtin.h common.h config.h exec.h hashtable.h option.h path.h plist.h strbuf.h util.h variable.h wfnmatch.h yash.h
+path.o: builtin.h common.h config.h exec.h hashtable.h option.h path.h plist.h redir.h strbuf.h util.h variable.h wfnmatch.h yash.h
 plist.o: common.h config.h plist.h util.h
 redir.o: common.h config.h exec.h expand.h input.h option.h parser.h path.h redir.h sig.h strbuf.h util.h yash.h
 sig.o: builtin.h common.h config.h exec.h expand.h job.h option.h parser.h redir.h sig.h siglist.h signum.h strbuf.h util.h yash.h

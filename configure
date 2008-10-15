@@ -373,18 +373,18 @@ else
     checked "no"
 fi
 
-# check for mkstemp
-checking "for mkstemp"
+# check for eaccess
+checking "for eaccess"
 cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE 200112
-#define _XOPEN_SOURCE   600
-#include <stdlib.h>
-int main() { return mkstemp((char []) { "" }); }
+#include <unistd.h>
+extern int eaccess(const char *, int);
+int main() { (void) eaccess(".", F_OK | R_OK | W_OK | X_OK); }
 END
 if trymake
 then
     checked "yes"
-    defconfigh "HAVE_MKSTEMP"
+    defconfigh "HAVE_EACCESS"
 else
     checked "no"
 fi
@@ -393,10 +393,9 @@ fi
 checking "for strsingal"
 cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE 200112
-#include <stdio.h>
 #include <signal.h>
 extern char *strsignal(int);
-int main() { printf("%s\n", strsignal(SIGKILL)); }
+int main() { (void) strsignal(SIGKILL); }
 END
 if trymake
 then

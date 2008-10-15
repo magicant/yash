@@ -29,8 +29,8 @@
 #include "../exec.h"
 #include "../option.h"
 #include "../strbuf.h"
-#include "../variable.h"
 #include "../util.h"
+#include "../variable.h"
 #include "printf.h"
 
 

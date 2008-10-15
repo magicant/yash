@@ -44,12 +44,21 @@
 #include "option.h"
 #include "path.h"
 #include "plist.h"
+#include "redir.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
 #include "wfnmatch.h"
 #include "yash.h"
 
+
+#if HAVE_EACCESS
+extern int eaccess(const char *path, int amode)
+    __attribute__((nonnull));
+#else
+static bool check_access(const char *path, mode_t mode)
+    __attribute__((nonnull));
+#endif
 
 /* Checks if `path' is a regular file. */
 bool is_regular_file(const char *path)
@@ -68,20 +77,78 @@ bool is_irregular_file(const char *path)
 /* Checks if `path' is a readable file. */
 bool is_readable(const char *path)
 {
-    return access(path, R_OK) == 0;
+#if HAVE_EACCESS
+    return eaccess(path, R_OK) == 0;
+#else
+    return check_access(path, S_IRUSR | S_IRGRP | S_IROTH);
+#endif
 }
 
 /* Checks if `path' is a writable file. */
 bool is_writable(const char *path)
 {
-    return access(path, W_OK) == 0;
+#if HAVE_EACCESS
+    return eaccess(path, W_OK) == 0;
+#else
+    return check_access(path, S_IWUSR | S_IWGRP | S_IWOTH);
+#endif
 }
 
 /* Checks if `path' is an executable file (or a searchable directory). */
 bool is_executable(const char *path)
 {
-    return access(path, X_OK) == 0;
+#if HAVE_EACCESS
+    return eaccess(path, X_OK) == 0;
+#else
+    return check_access(path, S_IXUSR | S_IXGRP | S_IXOTH);
+#endif
 }
+
+#if !HAVE_EACCESS
+/* Checks if this process has a proper permission to access the file.
+ * Returns false if the file does not exist. */
+bool check_access(const char *path, mode_t mode)
+{
+    /* The algorithm below is not fully valid for all POSIX systems. */
+    struct stat st;
+    uid_t uid;
+    gid_t gid;
+
+    if (stat(path, &st) < 0)
+	return false;
+
+    uid = geteuid();
+#if !YASH_DISABLE_SUPERUSER
+    if (uid == 0) {
+	/* the "root" user has special permissions */
+	return (mode & (S_IRUSR | S_IRGRP | S_IROTH
+	              | S_IWUSR | S_IWGRP | S_IWOTH))
+	    || S_ISDIR(st.st_mode)
+	    || (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH));
+    }
+#endif
+
+    st.st_mode &= mode;
+    if (uid == st.st_uid)
+	return st.st_mode & S_IRWXU;
+    gid = getegid();
+    if (gid == st.st_gid)
+	return st.st_mode & S_IRWXG;
+
+    int gcount = getgroups(0, &gid);  /* the second argument is a dummy */
+    if (gcount > 0) {
+	gid_t groups[gcount];
+	gcount = getgroups(gcount, groups);
+	if (gcount > 0) {
+	    for (int i = 0; i < gcount; i++)
+		if (gid == groups[i])
+		    return st.st_mode & S_IRWXG;
+	}
+    }
+
+    return st.st_mode & S_IRWXO;
+}
+#endif /* !HAVE_EACCESS */
 
 /* Checks if `path' is a readable regular file. */
 bool is_readable_regular(const char *path)

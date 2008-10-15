@@ -1,4 +1,3 @@
-path: access をそのまま使用しない
 テストスクリプト
 	ulimit のテスト
 	/dev/tcp, /dev/udp のテスト
@@ -11,3 +10,4 @@ configure にキャッシュ機能を付ける
 	complete
 	help -s
 	newgrp
+	dirs, pushd, popd
