@@ -25,15 +25,9 @@ tempo=".temp.o"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
 
-cc="${CC:-c99}"
-cflags="${CFLAGS--O1 -g}"
-ldflags="${LDFLAGS}"
-ldlibs="${LDLIBS--lm}"
-ar="${AR:-ar}"
-arflags="${ARFLAGS--rc}"
 target="yash"
 package="yash"
-version="2.1"
+version="2.1.1"
 copyrightyear="2007-2008"
 
 # all source files in this directory
@@ -156,11 +150,13 @@ trap 'rm -f "${tempsrc}" "${tempo}" "${tempout}" "${temptxt}"; exit 1' \
     HUP INT QUIT ABRT TERM PIPE USR1 USR2
 trap '' ALRM
 
-if [ -r "${configcache}" ]
+if [ -r "${configcache}" ] &&
+    grep -Fqx "uname -a	$(uname -a)" "${configcache}"
 then
     havecache="yes"
 else
     havecache="no"
+    printf "uname -a\t%s\n" "$(uname -a)" >"${configcache}"
 fi
 
 exec 4>>"${configcache}"
@@ -262,6 +258,13 @@ fail () {
     echo "configuration failed" >&2
     exit 1
 }
+
+cc="${CC:-c99}"
+cflags="${CFLAGS--O1 -g}"
+ldflags="${LDFLAGS}"
+ldlibs="${LDLIBS--lm}"
+ar="${AR:-ar}"
+arflags="${ARFLAGS--rc}"
 
 # check OS type
 checking "operating system"
