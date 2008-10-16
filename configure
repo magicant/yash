@@ -33,7 +33,7 @@ ar="${AR:-ar}"
 arflags="${ARFLAGS--rc}"
 target="yash"
 package="yash"
-version="2.0"
+version="2.1"
 copyrightyear="2007-2008"
 
 # all source files in this directory
