@@ -16,6 +16,7 @@
 
 makefile="Makefile"
 makefilein="Makefile.in"
+configcache="config.cache"
 configlog="config.log"
 configh="config.h"
 versionh="version.h"
@@ -32,7 +33,7 @@ ar="${AR:-ar}"
 arflags="${ARFLAGS--rc}"
 target="yash"
 package="yash"
-version="2.0"
+version="2.1"
 copyrightyear="2007-2008"
 
 # all source files in this directory
@@ -60,7 +61,7 @@ enable_printf="yes"
 enable_socket="yes"
 enable_test="yes"
 enable_ulimit="yes"
-unset prefix eprefix bindir
+unset prefix eprefix bindir cacheentry cachekey checkresult
 umask u=rwx,go=rx
 
 parseenable() {
@@ -155,6 +156,14 @@ trap 'rm -f "${tempsrc}" "${tempo}" "${tempout}" "${temptxt}"; exit 1' \
     HUP INT QUIT ABRT TERM PIPE USR1 USR2
 trap '' ALRM
 
+if [ -r "${configcache}" ]
+then
+    havecache="yes"
+else
+    havecache="no"
+fi
+
+exec 4>>"${configcache}"
 exec 5>"${configlog}"
 exec 6>"${configh}"
 
@@ -185,33 +194,65 @@ checking () {
     printf "%s" "checking $1... "
     echo >&5
     echo "# checking $1..." >&5
+    if [ $# -ge 2 ]
+    then
+	cachekey="$2"
+    else
+	unset cachekey
+    fi
+    unset cacheentry checkresult
+}
+getcache () {
+    if [ x"${havecache}" = x"no" ] || [ x"${cachekey+set}" != x"set" ]
+    then
+	return 1
+    fi
+    if cacheentry="$(grep -F "${cachekey}	" "${configcache}")"
+    then
+	printf "(cached) "
+	checkresult="${cacheentry#*	}"
+    else
+	unset cacheentry
+	return 1
+    fi
 }
 checkby () {
     echo "%" "$@" >&5
     eval "$@" >&5 2>&1
+    laststatus=$?
+    if [ ${laststatus} -eq 0 ]
+    then
+	checkresult="yes"
+    else
+	echo "# exit status: ${laststatus}" >&5
+	checkresult="no"
+	return ${laststatus}
+    fi
 }
 trymake () {
-    echo "%" ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
-	"${tempsrc}" "$@" ${ldlibs} >&5
-    ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
-	"${tempsrc}" "$@" ${ldlibs} >&5 2>&1
+    checkby ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
+	"${tempsrc}" "$@" ${ldlibs}
 }
 trycompile () {
-    echo "%" ${cc} ${cflags} ${CADDS} -c -o "${tempo}" "${tempsrc}" "$@" >&5
-    ${cc} ${cflags} ${CADDS} -c -o "${tempo}" "${tempsrc}" "$@" >&5 2>&1
+    checkby ${cc} ${cflags} ${CADDS} -c -o "${tempo}" "${tempsrc}" "$@"
 }
 trylink () {
-    echo "%" ${cc} ${ldflags} ${LDADDS} -o "${tempout}" \
-	"${tempo}" "$@" ${ldlibs} >&5
-    ${cc} ${ldflags} ${LDADDS} -o "${tempout}" \
-	"${tempo}" "$@" ${ldlibs} >&5 2>&1
+    checkby ${cc} ${ldflags} ${LDADDS} -o "${tempout}" "${tempo}" "$@" ${ldlibs}
 }
 tryexec () {
     checkby "${tempout}"
 }
 checked () {
-    echo "$1"
-    echo "# result: $1" >&5
+    if [ $# -ge 1 ]
+    then
+	checkresult="$1"
+    fi
+    echo "${checkresult}"
+    echo "# result: ${checkresult}" >&5
+    if [ x"${cachekey+set}" = x"set" ] && [ x"${cacheentry+set}" != x"set" ]
+    then
+	printf "%s\t%s\n" "${cachekey}" "${checkresult}" >&4
+    fi
 }
 defconfigh () {
     echo "#define" $1 ${2-1} >&6
@@ -328,101 +369,130 @@ else
 fi
 
 # check for strnlen
-checking "for strnlen"
-cat >"${tempsrc}" <<END
+checking "for strnlen" strnlen
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
 #include <stddef.h>
 size_t strnlen(const char*, size_t);
 int main() { return strnlen("12345", 3) != 3; }
 END
-if trymake && tryexec
+	trymake && tryexec
+    fi
 then
-    checked "yes"
     defconfigh "HAVE_STRNLEN"
-else
-    checked "no"
 fi
+checked
 
 # check for wcsnlen
-checking "for wcsnlen"
-cat >"${tempsrc}" <<END
+checking "for wcsnlen" wcsnlen
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
 #include <stddef.h>
 size_t wcsnlen(const wchar_t*, size_t);
 int main() { return wcsnlen(L"12345", 3) != 3; }
 END
-if trymake && tryexec
+	trymake && tryexec
+    fi
 then
-    checked "yes"
     defconfigh "HAVE_WCSNLEN"
-else
-    checked "no"
 fi
+checked
 
 # check if sys/stat.h defines S_ISVTX
-checking "if <sys/stat.h> defines S_ISVTX"
-cat >"${tempsrc}" <<END
+checking "if <sys/stat.h> defines S_ISVTX" S_ISVTX
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE 200112
 #define _XOPEN_SOURCE   600
 #include <sys/stat.h>
 int main() { return S_ISVTX & 0; }
 END
-if trymake
+	trymake
+    fi
 then
-    checked "yes"
     defconfigh "HAVE_S_ISVTX"
-else
-    checked "no"
 fi
+checked
 
 # check for eaccess
-checking "for eaccess"
-cat >"${tempsrc}" <<END
+checking "for eaccess" eaccess
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE 200112
 #include <unistd.h>
 extern int eaccess(const char *, int);
 int main() { (void) eaccess(".", F_OK | R_OK | W_OK | X_OK); }
 END
-if trymake
+	trymake
+    fi
 then
-    checked "yes"
     defconfigh "HAVE_EACCESS"
-else
-    checked "no"
 fi
+checked
 
 # check for strsignal
-checking "for strsingal"
-cat >"${tempsrc}" <<END
+checking "for strsingal" strsignal
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE 200112
 #include <signal.h>
 extern char *strsignal(int);
 int main() { (void) strsignal(SIGKILL); }
 END
-if trymake
+	trymake
+    fi
 then
-    checked "yes"
     defconfigh "HAVE_STRSIGNAL"
-else
-    checked "no"
 fi
+checked
 
 # check for paths.h
-checking "for paths.h"
-cat >"${tempsrc}" <<END
+checking "for paths.h" paths.h
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
 #include <paths.h>
 #include <stdio.h>
 int main() { printf("%s\n", _PATH_BSHELL); }
 END
-if trycompile
+	trycompile
+    fi
 then
-    checked "yes"
     defconfigh "HAVE_PATHS_H"
-else
-    checked "no"
 fi
+checked
 
 # check if getcwd accepts (NULL,0) as argument
-checking "if getcwd(NULL,0) returns malloc'ed string"
-cat >"${tempsrc}" <<END
+checking "if getcwd(NULL,0) returns malloc'ed string" getcwd:automalloc
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -453,13 +523,12 @@ int main(void) {
     free(wd11); free(wd2); return 0;
 }
 END
-if trymake && tryexec
+	trymake && tryexec
+    fi
 then
-    checked "yes"
     defconfigh "GETCWD_AUTO_MALLOC"
-else
-    checked "no"
 fi
+checked
 
 # enable/disable aliases
 if [ x"$enable_alias" = x"yes" ]
@@ -504,8 +573,13 @@ fi
 # check for getrlimit and setrlimit
 if [ x"$enable_ulimit" = x"yes" ]
 then
-    checking "for getrlimit and setrlimit"
-    cat >"${tempsrc}" <<END
+    checking "for getrlimit and setrlimit" getrlimit_setrlimit
+    if
+	if getcache
+	then
+	    [ x"${checkresult}" = x"yes" ]
+	else
+	    cat >"${tempsrc}" <<END
 #define _XOPEN_SOURCE 600
 #include <sys/resource.h>
 int main() {
@@ -514,35 +588,40 @@ getrlimit(RLIMIT_FSIZE, &l);
 setrlimit(RLIMIT_FSIZE, &l);
 }
 END
-    if trymake
+	    trymake
+	fi
     then
-	checked "yes"
 	defconfigh "YASH_ENABLE_ULIMIT"
 	builtin_objs="$builtin_objs $ulimit_objs"
     else
-	checked "no"
 	enable_ulimit="no"
     fi
 fi
+checked
 
 # check for RLIMIT_***
 if [ x"$enable_ulimit" = x"yes" ]
 then
-    for i in LOCKS MEMLOCK MSGQUEUE NICE NPROC RSS RTPRIO SIGPENDING 
+    for i in LOCKS MEMLOCK MSGQUEUE NICE NPROC RSS RTPRIO SIGPENDING
     do
-	checking "for RLIMIT_${i}"
-	cat >"${tempsrc}" <<END
+	checking "for RLIMIT_${i}" "RLIMIT_${i}"
+	if
+	    if getcache
+	    then
+		[ x"${checkresult}" = x"yes" ]
+	    else
+		cat >"${tempsrc}" <<END
+#define _XOPEN_SOURCE 600
 #include "${configh}"
 #include <sys/resource.h>
 int main() { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
 END
-	if trymake && tryexec
+		trymake && tryexec
+	    fi
 	then
-	    checked "yes"
 	    defconfigh "HAVE_RLIMIT_${i}"
-	else
-	    checked "no"
 	fi
+	checked
     done
 fi
 
