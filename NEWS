@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.2
+
+  =  The value of $PWD set by the "cd" builtin is fixed. It now has a
+     correct value when changing to a relative path from the root
+     directory.
+
+----------------------------------------------------------------------
 Yash 2.1
 
   +  Array variables

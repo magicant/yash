@@ -1090,8 +1090,12 @@ int cd_builtin(int argc, void **argv)
 
 	    /* If `path' is not an absolute path, we prepend `oldpwd' to make it
 	     * absolute, although POSIX doesn't provide that we do this. */
-	    if (path[0] != L'/')
-		wb_wccat(wb_cat(&curpath, oldpwd), L'/');
+	    if (path[0] != L'/') {
+		wb_cat(&curpath, oldpwd);
+		if (curpath.length == 0   /* see note below step 6 */
+			|| curpath.contents[curpath.length - 1] != L'/')
+		    wb_wccat(&curpath, L'/');
+	    }
 
 	    wb_mbscat(&curpath, path);
 	    free(mbsnewpwd);
@@ -1103,8 +1107,11 @@ int cd_builtin(int argc, void **argv)
 
     /* step 6: concatenate PWD, a slash and the operand */
     wb_cat(&curpath, oldpwd);
-    wb_wccat(&curpath, L'/');
+    if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
+	wb_wccat(&curpath, L'/');
     wb_cat(&curpath, newpwd);
+    /* We don't append a slash if there is already one. This isn't mandated by
+     * POSIX, but we should avoid appending one more slash to the root dir. */
 
 step7:
     if (!logical) {
