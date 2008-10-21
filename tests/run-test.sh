@@ -32,9 +32,9 @@ fi
 echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
 echo "Any output from the tests indicates a possible malfunction"
 
-LC_ALL=C
-export INVOKE TESTEE LC_ALL TESTTMP
-unset ENV IFS failed
+export INVOKE TESTEE TESTTMP
+export LC_MESSAGES=POSIX LC_CTYPE="${LC_ALL-${LC_CTYPE-${LANG}}}" LANG=POSIX
+unset ENV IFS LC_ALL failed
 umask u=rwx,go=
 
 checkskip()

@@ -351,8 +351,7 @@ set:
 	xerror(errno, Ngt("cannot set $PWD"));
 	return;
     }
-    wnewpwd = malloc_mbstowcs(newpwd);
-    free(newpwd);
+    wnewpwd = realloc_mbstowcs(newpwd);
     if (!wnewpwd) {
 	xerror(0, Ngt("cannot set $PWD"));
 	return;
