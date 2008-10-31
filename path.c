@@ -825,9 +825,6 @@ bool wglob_search(
     struct dirent *de;
     bool ok = true;
     while (ok && (de = readdir(dir))) {
-	if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
-	    continue;
-
 	wchar_t *wentname = malloc_mbstowcs(de->d_name);
 	if (!wentname)
 	    continue;

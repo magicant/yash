@@ -4,7 +4,7 @@
 option.y.tst
 O[OPQ]T*ON.y.tst
 ===== dotglob =====
-.dotfile
+. .. .dotfile
 *
 ===== markdirs =====
 dir/
