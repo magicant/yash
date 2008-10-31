@@ -414,6 +414,9 @@ void print_version(void)
 #if YASH_ENABLE_DIRSTACK
 		" * dirstack\n"
 #endif
+#if YASH_ENABLE_HELP
+		" * help\n"
+#endif
 #if YASH_ENABLE_HISTORY
 		" * history\n"
 #endif
