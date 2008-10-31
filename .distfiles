@@ -73,6 +73,8 @@ tests/builtin.p.out
 tests/builtin.p.tst
 tests/builtin.y.out
 tests/builtin.y.tst
+tests/dirstack.y.out
+tests/dirstack.y.tst
 tests/dot.t
 tests/expand.p.out
 tests/expand.p.tst

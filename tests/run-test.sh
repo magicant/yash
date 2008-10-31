@@ -42,6 +42,10 @@ case "$1" in
     alias.y|alias.p)
 	$INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
 	;;
+    dirstack.y)
+	$INVOKE $TESTEE -c 'type pushd' 2>/dev/null | \
+	    grep '^pushd: regular builtin' >/dev/null
+	;;
     history.y)
 	HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
 	    >/dev/null 2>&1

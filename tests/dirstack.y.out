@@ -1,0 +1,49 @@
+f4
+f3
+f2
+f1
+ok
+1/f1 2/f2 3/f3 4/f4
+1/f1 2/f2 3/f3 4/f4
+===== 1 =====
+4
+3
+2
+1
+dirstack.y
++0	-4	4
++1	-3	3
++2	-2	2
++3	-1	1
++4	-0	dirstack.y
+===== 2 =====
+3
+4
+2
+1
+dirstack.y
+4
+3
+2
+1
+dirstack.y
+===== 3 =====
+3
+1
+4
+2
+dirstack.y
+===== 4 =====
+3
+2
+dirstack.y
+===== 5 =====
+3
+2
+dirstack.y
+===== 6 =====
+exit 1
+dirstack.y
+exit 1
+2
+dirstack.y

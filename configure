@@ -50,6 +50,7 @@ gcc=""
 debug="no"
 enable_alias="yes"
 enable_array="yes"
+enable_dirstack="yes"
 enable_history="yes"
 enable_printf="yes"
 enable_socket="yes"
@@ -68,6 +69,7 @@ parseenable() {
     case "$opt" in
 	alias)        enable_alias=$2 ;;
 	array)        enable_array=$2 ;;
+	dirstack)     enable_dirstack=$2 ;;
 	history)      enable_history=$2 ;;
 	printf)       enable_printf=$2 ;;
 	socket)       enable_socket=$2 ;;
@@ -132,6 +134,7 @@ Optional features:
   --disable-FEATURE           disable FEATURE (same as --enable-FEATURE=no)
   --enable-alias              enable aliases
   --enable-array              enable the array builtin
+  --enable-dirstack           enable the directory stack (pushd, popd, dirs)
   --enable-history            enable history
   --enable-printf             enable the echo/printf builtins
   --enable-socket             enable socket redirection by /dev/tcp, /dev/udp
@@ -544,6 +547,12 @@ fi
 if [ x"$enable_array" = x"yes" ]
 then
     defconfigh "YASH_ENABLE_ARRAY"
+fi
+
+# enable/disable the directory stack
+if [ x"$enable_dirstack" = x"yes" ]
+then
+    defconfigh "YASH_ENABLE_DIRSTACK"
 fi
 
 # enable/disable history

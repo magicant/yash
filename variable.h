@@ -27,6 +27,7 @@ extern char **environ;
 /* variable names */
 #define VAR_CDPATH	"CDPATH"
 #define VAR_COLUMNS	"COLUMNS"
+#define VAR_DIRSTACK	"DIRSTACK"
 #define VAR_ENV		"ENV"
 #define VAR_FCEDIT	"FCEDIT"
 #define VAR_HISTFILE	"HISTFILE"
@@ -115,6 +116,15 @@ extern _Bool define_function(const char *name, struct command_T *body)
 extern struct command_T *get_function(const char *name)
     __attribute__((nonnull));
 
+extern size_t get_dirstack_size(void);
+extern _Bool parse_dirstack_index(const wchar_t *indexstr,
+	size_t *indexp, const wchar_t **entryp, _Bool printerror)
+    __attribute__((nonnull));
+extern _Bool push_dirstack(wchar_t *value)
+    __attribute__((nonnull));
+extern wchar_t *pop_dirstack(void);
+extern _Bool remove_dirstack_entry(size_t index);
+
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int array_builtin(int argc, void **argv)
@@ -127,8 +137,10 @@ extern int getopts_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern int dirs_builtin(int argc, void **argv)
+    __attribute__((nonnull));
 extern const char typeset_help[], array_help[], unset_help[], shift_help[],
-       getopts_help[], read_help[];
+       getopts_help[], read_help[], dirs_help[];
 
 
 #endif /* YASH_VARIABLE_H */

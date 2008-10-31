@@ -85,6 +85,10 @@ void init_builtin(void)
     DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
     DEFBUILTIN("hash", hash_builtin, BI_REGULAR, hash_help);
     DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, umask_help);
+#if YASH_ENABLE_DIRSTACK
+    DEFBUILTIN("pushd", pushd_builtin, BI_REGULAR, pushd_help);
+    DEFBUILTIN("popd", popd_builtin, BI_REGULAR, popd_help);
+#endif
 
     /* defined in "alias.c" */
 #if YASH_ENABLE_ALIAS
@@ -103,6 +107,9 @@ void init_builtin(void)
     DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help);
     DEFBUILTIN("getopts", getopts_builtin, BI_SEMISPECIAL, getopts_help);
     DEFBUILTIN("read", read_builtin, BI_SEMISPECIAL, read_help);
+#if YASH_ENABLE_DIRSTACK
+    DEFBUILTIN("dirs", dirs_builtin, BI_REGULAR, dirs_help);
+#endif
 
     /* defined in "sig.c" */
     DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, trap_help);

@@ -562,13 +562,28 @@ wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
 	return NULL;
     }
     if (!posixly_correct) {
-	if (wcscmp(username, L"+") == 0) {
-	    home = getvar(VAR_PWD);
-	    goto finish;
-	} else if (wcscmp(username, L"-") == 0) {
-	    home = getvar(VAR_OLDPWD);
-	    goto finish;
-	}  // TODO expand: expand_tilde: directory stack
+	size_t index = index;
+	if (username[0] == L'+') {
+	    if (username[1] == L'\0') {
+		home = getvar(VAR_PWD);
+		goto finish;
+#if YASH_ENABLE_DIRSTACK
+	    } else if (parse_dirstack_index(username, &index, &home, false)
+		    && index != SIZE_MAX) {
+		goto finish;
+#endif
+	    }
+	} else if (username[0] == L'-') {
+	    if (username[1] == L'\0') {
+		home = getvar(VAR_OLDPWD);
+		goto finish;
+#if YASH_ENABLE_DIRSTACK
+	    } else if (parse_dirstack_index(username, &index, &home, false)
+		    && index != SIZE_MAX) {
+		goto finish;
+#endif
+	    }
+	}
     }
     home = get_home_directory(username, false);
 finish:

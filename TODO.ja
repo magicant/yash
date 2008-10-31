@@ -1,8 +1,8 @@
+./* や ../* が正しく glob されない
 テストスクリプト
 	ulimit のテスト
 	/dev/tcp, /dev/udp のテスト
 gettext 対応
-configure にキャッシュ機能を付ける
 
 組込みコマンド
 	bind
@@ -10,4 +10,3 @@ configure にキャッシュ機能を付ける
 	complete
 	help -s
 	newgrp
-	dirs, pushd, popd
