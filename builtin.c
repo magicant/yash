@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,7 @@
 #include "path.h"
 #include "sig.h"
 #include "strbuf.h"
+#include "util.h"
 #include "variable.h"
 #include "yash.h"
 #if YASH_ENABLE_PRINTF
@@ -76,6 +78,9 @@ void init_builtin(void)
     DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help);
     DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, true_help);
     DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help);
+#if YASH_ENABLE_HELP
+    DEFBUILTIN("help", help_builtin, BI_REGULAR, help_help);
+#endif
 
     /* defined in "option.c" */
     DEFBUILTIN("set", set_builtin, BI_SPECIAL, set_help);
@@ -221,6 +226,43 @@ const char false_help[] = Ngt(
 "Any arguments are ignored and the exit status is always non-zero.\n"
 "Naturally the opposite of this command is the \"true\" command.\n"
 );
+
+#if YASH_ENABLE_HELP
+
+/* The "help" builtin. */
+int help_builtin(int argc, void **argv)
+{
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+	switch (opt) {
+	    case L'-':  print_help:
+		print_builtin_help(ARGV(0));
+		return Exit_SUCCESS;
+	    default:
+		fprintf(stderr, gt("Usage:  help command...\n"));
+		return Exit_ERROR;
+	}
+    }
+
+    if (xoptind == argc)
+	goto print_help;
+
+    while (xoptind < argc) {
+	print_builtin_help(ARGV(xoptind));
+	xoptind++;
+    }
+    return Exit_SUCCESS;
+}
+
+const char help_help[] = Ngt(
+"help - print usage of builtin\n"
+"\thelp command...\n"
+"Prints a description of <command>s.\n"
+);
+
+#endif /* YASH_ENABLE_HELP */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

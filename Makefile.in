@@ -138,7 +138,7 @@ _PHONY:
 # source file dependencies
 alias.o: alias.h builtin.h common.h config.h exec.h expand.h hashtable.h option.h parser.h plist.h strbuf.h util.h
 arith.o: arith.h common.h config.h option.h strbuf.h util.h variable.h
-builtin.o: alias.h builtin.h builtins/printf.h builtins/test.h builtins/ulimit.h common.h config.h exec.h hashtable.h history.h job.h option.h path.h sig.h strbuf.h variable.h yash.h
+builtin.o: alias.h builtin.h builtins/printf.h builtins/test.h builtins/ulimit.h common.h config.h exec.h hashtable.h history.h job.h option.h path.h sig.h strbuf.h util.h variable.h yash.h
 exec.o: alias.h builtin.h common.h config.h exec.h expand.h input.h job.h option.h parser.h path.h plist.h redir.h sig.h strbuf.h util.h variable.h wfnmatch.h yash.h
 expand.o: arith.h common.h config.h exec.h expand.h input.h option.h parser.h path.h plist.h strbuf.h util.h variable.h wfnmatch.h yash.h
 hashtable.o: common.h config.h hashtable.h util.h

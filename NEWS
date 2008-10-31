@@ -10,7 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.2
 
-  +  "pushd", "popd" and "dirs" builtins
+  +  "help", "pushd", "popd" and "dirs" builtins
   =  The value of $PWD set by the "cd" builtin is fixed. It now has a
      correct value when changing to a relative path from the root
      directory.

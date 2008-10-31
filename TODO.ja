@@ -1,4 +1,3 @@
-./* や ../* が正しく glob されない
 テストスクリプト
 	ulimit のテスト
 	/dev/tcp, /dev/udp のテスト
@@ -8,5 +7,4 @@ gettext 対応
 	bind
 	compgen
 	complete
-	help -s
 	newgrp
