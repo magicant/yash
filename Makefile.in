@@ -40,7 +40,7 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
-builtins/builtins.a: _PHONY
+builtins/@BUILTINS_ARCHIVE@: _PHONY
 	@cd builtins && $(MAKE)
 mksignum: $(MKSIGNUMOBJS)
 	$(CC) $(LDFLAGS) -o $@ $(MKSIGNUMOBJS) $(LDLIBS)

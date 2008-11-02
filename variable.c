@@ -1221,7 +1221,7 @@ void tryhash_word_as_command(const wordunit_T *w)
 
 /********** Directory Stack **********/
 
-#if YASH_ENABLE_ARRAY
+#if YASH_ENABLE_DIRSTACK
 
 static variable_T *get_dirstack(void);
 
