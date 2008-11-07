@@ -23,8 +23,8 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = lineedit.c lineedit.h
-OBJS = lineedit.o
+SOURCES = lineedit.c lineedit.h terminfo.c terminfo.h
+OBJS = lineedit.o terminfo.o
 TARGET = @LINEEDIT_ARCHIVE@
 
 BYPRODUCTS = 
@@ -63,4 +63,5 @@ distclean: clean
 .PHONY: all distcontents cscope mostlyclean clean distclean
 
 # source file dependencies
-lineedit.o: ../common.h ../config.h ../option.h ../util.h lineedit.h
+lineedit.o: ../common.h ../config.h ../history.h ../job.h ../option.h ../strbuf.h ../util.h lineedit.h terminfo.h
+terminfo.o: ../common.h ../config.h terminfo.h

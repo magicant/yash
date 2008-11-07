@@ -62,6 +62,11 @@ builtins/test.c
 builtins/test.h
 builtins/ulimit.c
 builtins/ulimit.h
+lineedit/Makefile.in
+lineedit/lineedit.c
+lineedit/lineedit.h
+lineedit/terminfo.c
+lineedit/terminfo.h
 tests/Makefile
 tests/run-test.sh
 tests/invoke.c
