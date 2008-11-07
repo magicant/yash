@@ -63,4 +63,4 @@ distclean: clean
 .PHONY: all distcontents cscope mostlyclean clean distclean
 
 # source file dependencies
-lineedit.o: ../common.h ../config.h ../util.h lineedit.h
+lineedit.o: ../common.h ../config.h ../option.h ../util.h lineedit.h

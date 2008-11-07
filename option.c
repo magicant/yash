@@ -111,6 +111,11 @@ bool shopt_braceexpand;
  * Corresponds to -C/--noclobber option. */
 bool shopt_noclobber;
 
+#if YASH_ENABLE_LINEEDIT
+/* Type of line editing keybind. */
+enum shopt_lineedit shopt_lineedit = shopt_nolineedit;
+#endif
+
 
 /* Long options for the shell and set builtin */
 static const struct xoption long_options[] = {
@@ -143,7 +148,11 @@ static const struct xoption long_options[] = {
     { L"monitor",      xno_argument, L'm', },
     { L"notify",       xno_argument, L'b', },
     { L"posix",        xno_argument, L'X', },
-    { L"help",         xno_argument, L'-', },
+#if YASH_ENABLE_LINEEDIT
+    { L"vi",           xno_argument, L'1', },
+    { L"emacs",        xno_argument, L'2', },
+#endif
+    { L"help",         xno_argument, L'-', }, /* this one must be the last */
     { NULL,            0,            0,   },
 };
 
@@ -151,8 +160,6 @@ const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + 6;
 const struct xoption *const help_option
     = long_options + ((sizeof long_options / sizeof *long_options) - 2);
-
-// TODO option: unimplemented options: -o{vi,emacs}
 
 
 /* Switches a one-character option depending on whether `xoptopt' is '-' or not.
@@ -183,6 +190,22 @@ void set_option(wchar_t c)
 	case L'm':   do_job_control     = value;   break;
 	case L'b':   shopt_notify       = value;   break;
 	case L'X':   posixly_correct    = value;   break;
+	case L'1':
+	    if (value) {
+		shopt_lineedit = shopt_vi;
+	    } else {
+		if (shopt_lineedit == shopt_vi)
+		    shopt_lineedit = shopt_nolineedit;
+	    }
+	    break;
+	case L'2':
+	    if (value) {
+		shopt_lineedit = shopt_emacs;
+	    } else {
+		if (shopt_lineedit == shopt_emacs)
+		    shopt_lineedit = shopt_nolineedit;
+	    }
+	    break;
     }
 }
 
@@ -308,6 +331,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
+    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
     PRINTSETTING(hashondef, shopt_hashondef);
@@ -326,6 +350,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(nullglob, shopt_nullglob);
     PRINTSETTING(posix, posixly_correct);
     PRINTSETTING(verbose, shopt_verbose);
+    PRINTSETTING(vi, shopt_lineedit == shopt_vi);
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
 }
@@ -340,6 +365,7 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
+    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
     PRINTSETTING(hashondef, shopt_hashondef);
@@ -358,6 +384,7 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(nullglob, shopt_nullglob);
     PRINTSETTING(posix, posixly_correct);
     PRINTSETTING(verbose, shopt_verbose);
+    PRINTSETTING(vi, shopt_lineedit == shopt_vi);
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
 }
@@ -434,6 +461,10 @@ const char set_help[] = Ngt(
 "\t\n"
 " --posix\n"
 "\tMake the shell behave as the POSIX shell.\n"
+" --vi\n"
+"\tEnable vi-like editing.\n"
+" --emacs\n"
+"\tEnable emacs-like editing.\n"
 "To disable options, put '+' before the option characters instead of '-'.\n"
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
 "Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"

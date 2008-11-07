@@ -22,6 +22,12 @@
 #include <stddef.h>
 
 
+enum shopt_lineedit {
+    shopt_nolineedit,
+    shopt_vi,
+    shopt_emacs,
+};
+
 extern _Bool posixly_correct;
 extern _Bool is_login_shell;
 extern _Bool is_interactive, is_interactive_now;
@@ -35,6 +41,7 @@ extern _Bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern _Bool shopt_braceexpand;
 extern _Bool shopt_noclobber;
+extern enum shopt_lineedit shopt_lineedit;
 
 #define SHELLSET_OPTIONS L"abefhmnuvxC"
 

@@ -160,6 +160,6 @@ redir.o: common.h config.h exec.h expand.h input.h option.h parser.h path.h redi
 sig.o: builtin.h common.h config.h exec.h expand.h job.h option.h parser.h redir.h sig.h siglist.h signum.h strbuf.h util.h yash.h
 strbuf.o: common.h config.h strbuf.h util.h
 util.o: common.h config.h exec.h option.h plist.h util.h
-variable.o: builtin.h common.h config.h exec.h expand.h hashtable.h input.h option.h parser.h path.h plist.h strbuf.h util.h variable.h version.h yash.h
+variable.o: builtin.h common.h config.h exec.h expand.h hashtable.h input.h option.h parser.h path.h plist.h strbuf.h util.h variable.h version.h yash.h lineedit/lineedit.h
 wfnmatch.o: common.h config.h strbuf.h wfnmatch.h
 yash.o: alias.h builtin.h common.h config.h exec.h expand.h history.h input.h job.h option.h parser.h path.h redir.h sig.h strbuf.h util.h variable.h version.h yash.h

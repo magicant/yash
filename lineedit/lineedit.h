@@ -24,6 +24,8 @@
 
 extern _Bool yle_need_term_reset;
 
+extern _Bool yle_init(void);
+
 extern wchar_t *yle_readline(const wchar_t *prompt)
     __attribute__((malloc,warn_unused_result));
 

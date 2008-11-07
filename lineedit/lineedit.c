@@ -17,36 +17,56 @@
 
 
 #include "../common.h"
+#include <assert.h>
 #include <curses.h>
 #include <stdbool.h>
 #include <term.h>
 #include <unistd.h>
+#include "../option.h"
 #include "../util.h"
 #include "lineedit.h"
 
 
-/* True if `setupterm' should be called in the next call to `yle_readline'. */
+/* True if `setupterm' should be called in the next call to `yle_init'. */
 bool yle_need_term_reset = true;
 
 
+/* Initializes line editing.
+ * Must be called before each call to `yle_readline'.
+ * Returns true iff successful.
+ * If this function returns false, the vi/emacs option is unset and
+ * `yle_readline' must not be called. */
+bool yle_init(void)
+{
+    if (!yle_need_term_reset)
+	return true;
+    if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
+	goto fail;
+
+    int err;
+    if (setupterm(NULL, STDERR_FILENO, &err) == OK) {
+	// XXX should we do some more checks?
+	yle_need_term_reset = false;
+	return true;
+    }
+
+fail:
+    shopt_lineedit = shopt_nolineedit;
+    return false;
+}
+
 /* Prints the specified `prompt' and reads one line from stdin.
- * Both `stdin' and `stderr' must be connected to a terminal.
+ * This function can be called only after `yle_init' succeeded.
  * The `prompt' may contain backslash escapes specified in "input.c".
  * The result is returned as a newly malloced wide string, including the
- * trailing newline. When EOF is encountered, an empty string is returned.
- * NULL is returned on error. */
+ * trailing newline. When EOF is encountered or on error, an empty string is
+ * returned. NULL is returned when SIGINT is caught. */
 wchar_t *yle_readline(const wchar_t *prompt)
 {
-    if (yle_need_term_reset) {
-	int err;
-	yle_need_term_reset = false;
-	if (setupterm(NULL, STDERR_FILENO, &err) != OK) {
-	    xerror(0, Ngt("cannot setup terminal"));
-	    return NULL;
-	}
-    }
+    assert(!yle_need_term_reset);
+
     (void) prompt;
-    return NULL;
+    return xwcsdup(L"");
 }
 
 
