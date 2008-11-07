@@ -113,7 +113,7 @@ bool shopt_noclobber;
 
 #if YASH_ENABLE_LINEEDIT
 /* Type of line editing keybind. */
-enum shopt_lineedit shopt_lineedit = shopt_nolineedit;
+enum shopt_lineedit_T shopt_lineedit = shopt_nolineedit;
 #endif
 
 
