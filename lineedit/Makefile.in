@@ -1,0 +1,66 @@
+# Makefile.in for yash: yet another shell
+# (C) 2007-2008 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.POSIX:
+.SUFFIXES: .c .h .o .a
+
+CC = @CC@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LDLIBS = @LDLIBS@
+AR = @AR@
+ARFLAGS = @ARFLAGS@
+SOURCES = lineedit.c lineedit.h
+OBJS = lineedit.o
+TARGET = @LINEEDIT_ARCHIVE@
+
+BYPRODUCTS = 
+
+all: $(TARGET)
+
+# Though these rules are exactly the same as the default rules defined by POSIX,
+# we re-define them here because at least GNU Make is not fully compliant.
+.c:
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+$(TARGET): $(OBJS)
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+
+DISTCONTENTS = $(SOURCES) Makefile.in
+distcontents: $(DISTCONTENTS)
+
+# ctags conforms to POSIX, but etags and cscope do not.
+tags: $(SOURCES)
+	ctags $(SOURCES)
+TAGS: $(SOURCES)
+	etags $(SOURCES)
+cscope: cscope.out
+cscope.out: $(SOURCES)
+	cscope -b
+
+mostlyclean:
+	-rm -rf $(OBJS) $(BYPRODUCTS)
+clean: mostlyclean
+	-rm -rf $(TARGET)
+distclean: clean
+	-rm -rf Makefile tags TAGS cscope.out
+
+.PHONY: all distcontents cscope mostlyclean clean distclean
+
+# source file dependencies
+lineedit.o: ../common.h ../config.h ../util.h lineedit.h
