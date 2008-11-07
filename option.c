@@ -190,6 +190,7 @@ void set_option(wchar_t c)
 	case L'm':   do_job_control     = value;   break;
 	case L'b':   shopt_notify       = value;   break;
 	case L'X':   posixly_correct    = value;   break;
+#if YASH_ENABLE_LINEEDIT
 	case L'1':
 	    if (value) {
 		shopt_lineedit = shopt_vi;
@@ -206,6 +207,7 @@ void set_option(wchar_t c)
 		    shopt_lineedit = shopt_nolineedit;
 	    }
 	    break;
+#endif /* YASH_ENABLE_LINEEDIT */
     }
 }
 
@@ -331,7 +333,9 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
+#if YASH_ENABLE_LINEEDIT
     PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
+#endif
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
     PRINTSETTING(hashondef, shopt_hashondef);
@@ -350,7 +354,9 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(nullglob, shopt_nullglob);
     PRINTSETTING(posix, posixly_correct);
     PRINTSETTING(verbose, shopt_verbose);
+#if YASH_ENABLE_LINEEDIT
     PRINTSETTING(vi, shopt_lineedit == shopt_vi);
+#endif
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
 }
@@ -365,7 +371,9 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
+#if YASH_ENABLE_LINEEDIT
     PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
+#endif
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
     PRINTSETTING(hashondef, shopt_hashondef);
@@ -384,7 +392,9 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(nullglob, shopt_nullglob);
     PRINTSETTING(posix, posixly_correct);
     PRINTSETTING(verbose, shopt_verbose);
+#if YASH_ENABLE_LINEEDIT
     PRINTSETTING(vi, shopt_lineedit == shopt_vi);
+#endif
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
 }
