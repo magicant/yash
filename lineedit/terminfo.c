@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* terminfo.c: interface to terminfo */
+/* terminfo.c: interface to terminfo and termios */
 /* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -22,8 +22,12 @@
 #include <curses.h>
 #include <stdio.h>
 #include <term.h>
+#include <termios.h>
 #include <unistd.h>
 #include "terminfo.h"
+
+
+/********** TERMINFO **********/
 
 
 /* Number of lines and columns in the current terminal. */
@@ -104,6 +108,60 @@ void yle_print_setbg(int color)
 int putchar_stderr(int c)
 {
     return fputc(c, stderr);
+}
+
+
+/********** TERMIOS **********/
+
+static struct termios original_terminal_state;
+
+/* Sets the terminal to the "raw" mode.
+ * The current state is saved as `original_terminal_state'.
+ * `stdin' must be the terminal.
+ * Returns true iff successful. */
+_Bool yle_set_terminal(void)
+{
+    struct termios term;
+
+    if (tcgetattr(STDIN_FILENO, &term) != 0)
+	return 0;
+    original_terminal_state = term;
+
+    /* set attributes */
+    term.c_iflag &= ~(IGNBRK | ISTRIP | INLCR | IGNCR | ICRNL);
+    term.c_iflag |= BRKINT;
+    term.c_oflag &= ~OPOST;
+    term.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN);
+    term.c_lflag |= ISIG;
+    term.c_cflag &= ~CSIZE;
+    term.c_cflag |= CS8;
+    if (tcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
+	goto fail;
+
+    /* check if the attributes are properly set */
+    if (tcgetattr(STDIN_FILENO, &term) != 0)
+	goto fail;
+    if ((term.c_iflag & (IGNBRK | ISTRIP | INLCR | IGNCR | ICRNL))
+	    || !(term.c_iflag & BRKINT)
+	    ||  (term.c_oflag & OPOST)
+	    ||  (term.c_lflag & (ECHO | ECHONL | ICANON | IEXTEN))
+	    || !(term.c_lflag & ISIG)
+	    ||  ((term.c_cflag & CSIZE) != CS8))
+	goto fail;
+
+    return 1;
+
+fail:
+    tcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state);
+    return 0;
+}
+
+/* Restores the terminal to the original state.
+ * `stdin' must be the terminal.
+ * Returns true iff successful. */
+_Bool yle_restore_terminal(void)
+{
+    return tcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) == 0;
 }
 
 

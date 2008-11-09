@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* terminfo.h: interface to terminfo */
+/* terminfo.h: interface to terminfo and termios */
 /* (C) 2007-2008 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@
 
 extern int yle_lines, yle_columns;
 
-
 extern _Bool yle_setupterm(void);
 
 extern void yle_print_sgr(long standout, long underline, long reverse,
@@ -40,6 +39,10 @@ extern void yle_print_sgr(long standout, long underline, long reverse,
 extern void yle_print_op(void);
 extern void yle_print_setfg(int color);
 extern void yle_print_setbg(int color);
+
+
+extern _Bool yle_set_terminal(void);
+extern _Bool yle_restore_terminal(void);
 
 
 #endif /* YASH_TERMINFO_H */

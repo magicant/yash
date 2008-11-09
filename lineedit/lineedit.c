@@ -86,7 +86,13 @@ wchar_t *yle_readline(const wchar_t *prompt)
 
     yle_line = yle_column = 0;
 
+    yle_set_terminal();
+
     yle_print_prompt(prompt);
+    //TODO
+
+    yle_restore_terminal();
+
     return xwcsdup(L"");
 }
 
