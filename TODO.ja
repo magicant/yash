@@ -1,3 +1,4 @@
+set ""; echol ${1+"$@"} が何も出力しない
 テストスクリプト
 	ulimit のテスト
 	/dev/tcp, /dev/udp のテスト

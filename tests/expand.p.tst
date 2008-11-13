@@ -23,6 +23,14 @@ echol 1 -$space- 2
 echol 1 "-$space-" 2
 echo ${unset-"unset  variable"} and ${var+"set  variable"}
 echo 1 ${null:-null variable} 2 ${null:+null variable} 3
+echo 1 ${unset-} 2 "${unset-}" 3
+echo 1 ${unset-""} 2 "${unset-""}" 3
+echo 1 ${unset-unset  var} 2 "${unset-unset  var}" 3
+echo 1 ${unset-"unset  var"} 2
+echo 1 ${var+} 2 "${var+}" 3
+echo 1 ${var+""} 2 "${var+""}" 3
+echo 1 ${var+set  var} 2 "${var+set  var}" 3
+echo 1 ${var+"set  var"} 2
 
 (: ${unset?"unset variable error"}) 2>&1 |
 grep "unset variable error" >/dev/null &&

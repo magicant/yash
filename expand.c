@@ -369,7 +369,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 /* Does four expansions in a single word.
  * `w' is the word in which expansions occur.
  * `tilde' is type of tilde expansion that occurs.
- * `recur' is a flag to indicate that this is a recursive expansion.
+ * `forcequote' makes it treated as if it is quoted.
  * The expanded word is added to `valuelist' as a newly malloced wide string.
  * The splittability string is added to `splitlist' if `splitlist' is non-NULL.
  * Single- or double-quoted characters are unquoted and backslashed.
@@ -377,14 +377,14 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
  * If the word contains "$@", the result may be any number of strings.
  * The return value is true iff successful. */
 bool expand_word(
-	const wordunit_T *restrict w, tildetype_T tilde, bool recur,
+	const wordunit_T *restrict w, tildetype_T tilde, bool forcequote,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
     bool ok = true;
-    bool indq = recur;     /* in a doublequote? */
-    bool first = true;     /* is the first word unit? */
-    bool force = false;    /* don't ignore empty string? */
-    bool suppress = false; /* ignore empty string anyway? */
+    bool indq = false;        /* in a doublequote? */
+    bool first = true;        /* is the first word unit? */
+    bool force = forcequote;  /* don't ignore empty string? */
+    bool suppress = false;    /* ignore empty string anyway? */
     xwcsbuf_T buf;
     xstrbuf_T sbuf;
     const wchar_t *ss;
@@ -446,7 +446,7 @@ bool expand_word(
 		    }
 		    /* falls thru! */
 		default:  default_case:
-		    if (indq)
+		    if (indq || forcequote)
 			wb_wccat(&buf, L'\\');
 		    wb_wccat(&buf, *ss);
 		    FILL_SBUF_UNSPLITTABLE;
@@ -456,7 +456,7 @@ bool expand_word(
 	    }
 	    break;
 	case WT_PARAM:
-	    array = expand_param(w->wu_param, indq, tilde);
+	    array = expand_param(w->wu_param, indq || forcequote, tilde);
 	    if (array) {
 		if (!array[0]) {
 		    suppress = true;
@@ -491,7 +491,8 @@ bool expand_word(
 		s = evaluate_arithmetic(unescapefree(s));
 	cat_s:
 	    if (s) {
-		wb_catfree(&buf, escapefree(s, indq ? NULL : CHARS_ESCAPED));
+		wb_catfree(&buf, escapefree(s,
+			    (indq || forcequote) ? NULL : CHARS_ESCAPED));
 		FILL_SBUF_SPLITTABLE;
 	    } else {
 		ok = false;
@@ -755,7 +756,7 @@ treat_array:
 subst:
 	    recfree(list, free);
 	    pl_init(&plist);
-	    if (expand_word(p->pe_subst, tt_single, false, &plist, NULL)) {
+	    if (expand_word(p->pe_subst, tt_single, indq, &plist, NULL)) {
 		list = pl_toary(&plist);
 		return indq ? reescape_full_array(list) : list;
 	    } else {
