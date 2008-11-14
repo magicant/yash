@@ -65,7 +65,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in install-sh
+DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
 distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	mkdir -p $@
