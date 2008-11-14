@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -50,10 +51,21 @@ static bool expand_word_and_split(
 	const wordunit_T *restrict w, plist_T *restrict list)
     __attribute__((nonnull(2)));
 
+struct expand_word_T {
+    plist_T *valuelist, *splitlist;
+    xwcsbuf_T valuebuf;
+    xstrbuf_T splitbuf;
+    bool putempty;
+};
+
 static bool expand_word(
-	const wordunit_T *restrict w, tildetype_T tilde, bool recur,
+	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull(4)));
+static bool expand_word_inner(
+	const wordunit_T *restrict w, tildetype_T tilde, bool quoted, bool rec,
+	struct expand_word_T *e)
+    __attribute__((nonnull(5)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
 	bool hasnextwordunit, tildetype_T tt)
@@ -61,7 +73,10 @@ static wchar_t *expand_tilde(const wchar_t **ss,
 
 enum indextype_T { idx_none, idx_all, idx_concat, idx_number, };
 
-static void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
+static bool expand_param(
+	const paramexp_T *p, bool indq, struct expand_word_T *e)
+    __attribute__((nonnull));
+static wchar_t *expand_param_simple(const paramexp_T *p)
     __attribute__((nonnull,malloc,warn_unused_result));
 static enum indextype_T parse_indextype(const wchar_t *indexstr)
     __attribute__((nonnull,pure));
@@ -120,10 +135,6 @@ static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
 
 static inline void add_sq(
 	const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
-    __attribute__((nonnull));
-static wchar_t *reescape(const wchar_t *s)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static void **reescape_full_array(void **wcsarray)
     __attribute__((nonnull));
 static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
     __attribute__((nonnull));
@@ -298,7 +309,6 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
     xwcsbuf_T buf;
     const wchar_t *ss;
     wchar_t *s;
-    void **array;
 
     wb_init(&buf);
     while (w) {
@@ -318,24 +328,8 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	    }
 	    break;
 	case WT_PARAM:
-	    array = expand_param(w->wu_param, false, tt_none);
-	    if (array) {
-		if (array[0]) {
-		    for (void **a = array; *a; a++)
-			*a = unescapefree(*a);
-		    if (!array[1]) {
-			wb_cat(&buf, array[0]);
-		    } else {
-			const wchar_t *ifs = getvar(VAR_IFS);
-			wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
-			wb_catfree(&buf, joinwcsarray(array, padding));
-		    }
-		}
-		recfree(array, free);
-	    } else {
-		ok = false;
-	    }
-	    break;
+	    s = expand_param_simple(w->wu_param);
+	    goto cat_s;
 	case WT_CMDSUB:
 	    s = exec_command_substitution(w->wu_cmdsub);
 	    goto cat_s;
@@ -369,7 +363,8 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 /* Does four expansions in a single word.
  * `w' is the word in which expansions occur.
  * `tilde' is type of tilde expansion that occurs.
- * `forcequote' makes it treated as if it is quoted.
+ * If `quoted' is true, the expanded words are all backslashed as if the entire
+ * expansion is quoted.
  * The expanded word is added to `valuelist' as a newly malloced wide string.
  * The splittability string is added to `splitlist' if `splitlist' is non-NULL.
  * Single- or double-quoted characters are unquoted and backslashed.
@@ -377,28 +372,70 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
  * If the word contains "$@", the result may be any number of strings.
  * The return value is true iff successful. */
 bool expand_word(
-	const wordunit_T *restrict w, tildetype_T tilde, bool forcequote,
+	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
+    struct expand_word_T expand;
+
+    expand.valuelist = valuelist;
+    wb_init(&expand.valuebuf);
+    expand.splitlist = splitlist;
+    if (expand.splitlist)
+	sb_init(&expand.splitbuf);
+    expand.putempty = false;
+
+    bool ok = expand_word_inner(w, tilde, quoted, false, &expand);
+
+    if (expand.splitlist)
+	assert(expand.valuebuf.length == expand.splitbuf.length);
+
+    /* A quoted empty word, if any, is added to the list here.
+     * It is indicated by the `putempty' flag, which is set when a quote is
+     * found. */
+    if (expand.valuebuf.length > 0 || expand.putempty) {
+	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
+	if (expand.splitlist)
+	    pl_add(expand.splitlist, sb_tostr(&expand.splitbuf));
+    } else {
+	wb_destroy(&expand.valuebuf);
+	if (expand.splitlist)
+	    sb_destroy(&expand.splitbuf);
+    }
+
+    return ok;
+}
+
+/* Does four expansions in a single word.
+ * `w' is the word in which expansions occur.
+ * `tilde' specifies the type of tilde expansion that occurs.
+ * If `quoted' is true, the expanded words are all backslashed as if the entire
+ * expansion is quoted.
+ * `rec' is true if this expansion is part of another expansion.
+ * `e->valuebuf' must be initialized before calling this function and is used to
+ * expand the current word. If `w' expands to multiple words, the last word is
+ * put in `e->valuebuf' and the others are inserted to `e->valuelist'.
+ * The splittability strings are put in `e->splitbuf' and `e->splitlist'
+ * accordingly if `e->splitlist' is non-NULL.
+ * Single- or double-quoted characters are unquoted and backslashed.
+ * The return value is true iff successful. */
+bool expand_word_inner(
+	const wordunit_T *restrict w, tildetype_T tilde, bool quoted, bool rec,
+	struct expand_word_T *e)
+{
     bool ok = true;
-    bool indq = false;        /* in a doublequote? */
-    bool first = true;        /* is the first word unit? */
-    bool force = forcequote;  /* don't ignore empty string? */
-    bool suppress = false;    /* ignore empty string anyway? */
-    xwcsbuf_T buf;
-    xstrbuf_T sbuf;
+    bool indq = false;  /* in a doublequote? */
+    bool first = true;  /* is the first word unit? */
     const wchar_t *ss;
     wchar_t *s;
-    void **array;
 
-    wb_init(&buf);
-    if (splitlist)
-	sb_init(&sbuf);
-
-#define FILL_SBUF(c) \
-    ((void) (splitlist && sb_ccat_repeat(&sbuf, c, buf.length - sbuf.length)))
+#define FILL_SBUF(c)                                            \
+    do {                                                        \
+	if (e->splitlist)                                       \
+	    sb_ccat_repeat(&e->splitbuf, c,                     \
+		    e->valuebuf.length - e->splitbuf.length);   \
+    } while (0)
 #define FILL_SBUF_SPLITTABLE    FILL_SBUF(1)
-#define FILL_SBUF_UNSPLITTABLE  FILL_SBUF(0)
+#define FILL_SBUF_UNSPLITTABLE  FILL_SBUF(rec)
 
     while (w) {
 	switch (w->wu_type) {
@@ -407,7 +444,7 @@ bool expand_word(
 	    if (first && tilde != tt_none) {
 		s = expand_tilde(&ss, w->next, tilde);
 		if (s) {
-		    wb_catfree(&buf, escapefree(s, CHARS_ESCAPED));
+		    wb_catfree(&e->valuebuf, escapefree(s, CHARS_ESCAPED));
 		    FILL_SBUF_UNSPLITTABLE;
 		}
 	    }
@@ -415,40 +452,41 @@ bool expand_word(
 		switch (*ss) {
 		case L'"':
 		    indq = !indq;
-		    force = true;
+		    e->putempty |= indq;
 		    break;
 		case L'\'':
 		    if (indq)
 			goto default_case;
-		    force = true;
-		    add_sq(&ss, &buf, true);
+		    e->putempty = true;
+		    add_sq(&ss, &e->valuebuf, true);
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\\':
 		    if (indq && !wcschr(CHARS_ESCAPABLE, ss[1])) {
 			goto default_case;
 		    } else {
-			wb_wccat(&buf, L'\\');
+			wb_wccat(&e->valuebuf, L'\\');
 			if (*++ss)
-			    wb_wccat(&buf, *ss++);
+			    wb_wccat(&e->valuebuf, *ss++);
 			FILL_SBUF_UNSPLITTABLE;
 			continue;
 		    }
 		case L':':
 		    if (!indq && tilde == tt_multi) {
-			wb_wccat(&buf, L':');
+			wb_wccat(&e->valuebuf, L':');
 			ss++;
 			s = expand_tilde(&ss, w->next, tilde);
 			if (s)
-			    wb_catfree(&buf, escapefree(s, CHARS_ESCAPED));
+			    wb_catfree(&e->valuebuf,
+				    escapefree(s, CHARS_ESCAPED));
 			FILL_SBUF_UNSPLITTABLE;
 			continue;
 		    }
 		    /* falls thru! */
 		default:  default_case:
-		    if (indq || forcequote)
-			wb_wccat(&buf, L'\\');
-		    wb_wccat(&buf, *ss);
+		    if (indq || quoted)
+			wb_wccat(&e->valuebuf, L'\\');
+		    wb_wccat(&e->valuebuf, *ss);
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		}
@@ -456,31 +494,8 @@ bool expand_word(
 	    }
 	    break;
 	case WT_PARAM:
-	    array = expand_param(w->wu_param, indq || forcequote, tilde);
-	    if (array) {
-		if (!array[0]) {
-		    suppress = true;
-		} else {
-		    if (array[1] /* plcount(array) >= 2 */)
-			force = true;
-		    for (void **a = array; ; ) {
-			wb_catfree(&buf, *a);
-			FILL_SBUF_SPLITTABLE;
-			a++;
-			if (!*a)
-			    break;
-			pl_add(valuelist, wb_towcs(&buf));
-			wb_init(&buf);
-			if (splitlist) {
-			    pl_add(splitlist, sb_tostr(&sbuf));
-			    sb_init(&sbuf);
-			}
-		    }
-		}
-		free(array);
-	    } else {
+	    if (!expand_param(w->wu_param, indq || quoted, e))
 		ok = false;
-	    }
 	    break;
 	case WT_CMDSUB:
 	    s = exec_command_substitution(w->wu_cmdsub);
@@ -491,8 +506,8 @@ bool expand_word(
 		s = evaluate_arithmetic(unescapefree(s));
 	cat_s:
 	    if (s) {
-		wb_catfree(&buf, escapefree(s,
-			    (indq || forcequote) ? NULL : CHARS_ESCAPED));
+		wb_catfree(&e->valuebuf, escapefree(s,
+			    (indq || quoted) ? NULL : CHARS_ESCAPED));
 		FILL_SBUF_SPLITTABLE;
 	    } else {
 		ok = false;
@@ -503,24 +518,8 @@ bool expand_word(
 	first = false;
     }
 
-    /* A quoted empty word is added to the list here.
-     * It is indicated by the `force' flag, which is set when a quote is found.
-     * An exception is "$@", which is not added even if it is quoted when there
-     * are no positional parameters. This is indicated by the `suppress' flag.
-     */
-    if (buf.length > 0 || (force && !suppress)) {
-	pl_add(valuelist, wb_towcs(&buf));
-	if (splitlist)
-	    pl_add(splitlist, sb_tostr(&sbuf));
-    } else {
-	wb_destroy(&buf);
-	if (splitlist)
-	    sb_destroy(&sbuf);
-    }
     return ok;
 
-#undef FILL_SBUF
-#undef FILL_SBUF_SPLITTABLE
 #undef FILL_SBUF_UNSPLITTABLE
 }
 
@@ -606,7 +605,7 @@ finish:
  * contain any number of strings. Otherwise, the array contains one string.
  * If "$*" is expanded, the result is a single concatenated string.
  * On error, NULL is returned. */
-void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
+bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 {
     struct get_variable v;
     void **list;  /* array of (wchar_t *) cast to (void *) */
@@ -623,18 +622,18 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     } else {
 	wchar_t *e = expand_single(p->pe_start, tt_none);
 	if (!e)
-	    return NULL;
+	    return false;
 	indextype = parse_indextype(e);
 	if (indextype != idx_none) {
 	    startindex = 0, endindex = SIZE_MAX;
 	    free(e);
 	    if (p->pe_end) {
 		xerror(0, Ngt("invalid parameter index"));
-		return NULL;
+		return false;
 	    }
 	} else {
 	    if (!evaluate_index(e, &startindex))
-		return NULL;
+		return false;
 	    assert(startindex > 0);
 	    startindex--;
 
@@ -643,7 +642,7 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
 	    } else {
 		e = expand_single(p->pe_end, tt_none);
 		if (!e || !evaluate_index(e, &endindex))
-		    return NULL;
+		    return false;
 		if (endindex < startindex)
 		    endindex = startindex;
 	    }
@@ -655,9 +654,9 @@ void **expand_param(const paramexp_T *p, bool indq, tildetype_T tilde)
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
 	pl_init(&plist);
-	if (!expand_word(p->pe_nest, tilde, true, &plist, NULL)) {
+	if (!expand_word(p->pe_nest, tt_none, true, &plist, NULL)) {
 	    recfree(pl_toary(&plist), free);
-	    return NULL;
+	    return false;
 	}
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
 	v.count = plist.length;
@@ -752,17 +751,9 @@ treat_array:
 	break;
     case PT_MINUS:
 	if (unset) {
-	    plist_T plist;
 subst:
 	    recfree(list, free);
-	    pl_init(&plist);
-	    if (expand_word(p->pe_subst, tt_single, indq, &plist, NULL)) {
-		list = pl_toary(&plist);
-		return indq ? reescape_full_array(list) : list;
-	    } else {
-		recfree(pl_toary(&plist), free);
-		return NULL;
-	    }
+	    return expand_word_inner(p->pe_subst, tt_single, indq, true, e);
 	}
 	break;
     case PT_ASSIGN:
@@ -770,19 +761,19 @@ subst:
 	    recfree(list, free);
 	    if (p->pe_type & PT_NEST) {
 		xerror(0, Ngt("invalid assignment in parameter expansion"));
-		return NULL;
+		return false;
 	    } else if (!is_name(p->pe_name)) {
 		xerror(0, Ngt("cannot assign to `%s' in parameter expansion"),
 			p->pe_name);
-		return NULL;
+		return false;
 	    }
 	    subst = expand_single(p->pe_subst, tt_single);
 	    if (!subst)
-		return NULL;
+		return false;
 	    subst = unescapefree(subst);
 	    if (!set_variable(p->pe_name, xwcsdup(subst), SCOPE_GLOBAL, false)){
 		free(subst);
-		return NULL;
+		return false;
 	    }
 	    list = xmalloc(2 * sizeof *list);
 	    list[0] = subst;
@@ -794,7 +785,7 @@ subst:
 	if (unset) {
 	    recfree(list, free);
 	    print_subst_as_error(p);
-	    return NULL;
+	    return false;
 	}
 	break;
     }
@@ -802,7 +793,7 @@ subst:
     if (shopt_nounset && unset) {
 	recfree(list, free);
 	xerror(0, Ngt("%s: parameter not set"), p->pe_name);
-	return NULL;
+	return false;
     }
 
     /* PT_MATCH, PT_SUBST */
@@ -811,7 +802,7 @@ subst:
 	match = expand_single(p->pe_match, tt_single);
 	if (!match) {
 	    recfree(list, free);
-	    return NULL;
+	    return false;
 	}
 	match_each(list, match, p->pe_type);
 	free(match);
@@ -823,7 +814,7 @@ subst:
 	    free(match);
 	    free(subst);
 	    recfree(list, free);
-	    return NULL;
+	    return false;
 	}
 	subst = unescapefree(subst);
 	subst_each(list, match, subst, p->pe_type);
@@ -851,7 +842,72 @@ subst:
     for (size_t i = 0; list[i]; i++)
 	list[i] = escapefree(list[i], indq ? NULL : CHARS_ESCAPED);
 
-    return list;
+    /* add list elements */
+    if (!list[0]) {
+	e->putempty = false;
+    } else {
+	void **l = list;
+
+	/* add the first element */
+	wb_catfree(&e->valuebuf, *l);
+	FILL_SBUF_SPLITTABLE;
+	l++;
+	if (*l) {
+	    pl_add(e->valuelist, wb_towcs(&e->valuebuf));
+	    if (e->splitlist)
+		pl_add(e->splitlist, sb_tostr(&e->splitbuf));
+
+	    /* add the remaining but last */
+	    while (*(l + 1)) {
+		pl_add(e->valuelist, *l);
+		if (e->splitlist) {
+		    size_t len = wcslen(*l);
+		    pl_add(e->splitlist, memset(xmalloc(len), 1, len));
+		}
+		l++;
+	    }
+
+	    /* add the last element */
+	    wb_initwith(&e->valuebuf, *l);
+	    if (e->splitlist)
+		sb_ccat_repeat(sb_init(&e->splitbuf), 1, e->valuebuf.length);
+	}
+    }
+    free(list);
+
+    return true;
+}
+
+/* Performs parameter expansion and returns the resulting word.
+ * If multiple words result, they are concatenated into a single string, each
+ * separated by a space.
+ * If successful, returns a newly-malloced wide string.
+ * On error, returns NULL. */
+wchar_t *expand_param_simple(const paramexp_T *p)
+{
+    plist_T valuelist;
+    struct expand_word_T expand;
+
+    expand.valuelist = pl_init(&valuelist);
+    wb_init(&expand.valuebuf);
+    expand.splitlist = NULL;
+    expand.putempty = false;
+
+    bool ok = expand_param(p, false, &expand);
+
+    /* A quoted empty word, if any, is added to the list here.
+     * It is indicated by the `putempty' flag, which is set when a quote is
+     * found. */
+    if (expand.valuebuf.length > 0 || expand.putempty) {
+	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
+    } else {
+	wb_destroy(&expand.valuebuf);
+    }
+
+    void **results = pl_toary(expand.valuelist);
+    wchar_t *result = ok ? joinwcsarray(results, L" ") : NULL;
+    recfree(results, free);
+    return result;
 }
 
 /* Returns `idx_all', `idx_concat', `idx_number' if `indexstr' is L"@", L"*",
@@ -1595,39 +1651,6 @@ wchar_t *unescapefree(wchar_t *s)
 	free(s);
 	return result;
     }
-}
-
-/* Backslashes all the characters in the specified string.
- * Some characters of the string may be already backslashed;
- * they are not re-backslashed. The result is a newly malloced string. */
-wchar_t *reescape(const wchar_t *s)
-{
-    xwcsbuf_T buf;
-
-    wb_init(&buf);
-    while (*s) {
-	wb_wccat(&buf, L'\\');
-	if (*s == L'\\')
-	    s++;
-	if (*s)
-	    wb_wccat(&buf, *s++);
-    }
-    return wb_towcs(&buf);
-}
-
-/* Applies `reescape' to each element of the specified array.
- * All the original elements are freed and substituted with newly malloced
- * results. */
-void **reescape_full_array(void **const wcsarray)
-{
-    void **ary = wcsarray;
-    while (*ary) {
-	wchar_t *esc = reescape(*ary);
-	free(*ary);
-	*ary = esc;
-	ary++;
-    }
-    return wcsarray;
 }
 
 /* Quotes the specified string by single quotes.

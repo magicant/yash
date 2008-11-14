@@ -165,6 +165,8 @@ echol [ "-$@-" ]
 
 echo =====
 
-set 1 2 3
+set 1 '2  2' 3
+echo $*
+echo "$*"
 IFS=""
 echo "$*"
