@@ -188,7 +188,8 @@ bool expand_line(void *const *restrict args,
 }
 
 /* Does four expansions, brace expansion and field splitting in a word.
- * Returns true iff successful. Resulting words are added to `list'.
+ * Returns true iff successful. The resulting words are added to `list', which
+ * may include backslash escapes.
  * Tilde expansion is performed with `tt_single'. */
 bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
 {
@@ -224,7 +225,8 @@ bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
 /* Expands a single word: four expansions and quote removal.
  * This function doesn't perform brace expansion, field splitting, globbing and
  * unescaping.
- * If successful, the resulting word is returned as a newly malloced string.
+ * If successful, the resulting word is returned as a newly malloced string,
+ * which may include backslash escapes.
  * On error, an error message is printed and NULL is returned.
  * On error in a non-interactive shell, the shell exits. */
 wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
@@ -904,6 +906,9 @@ wchar_t *expand_param_simple(const paramexp_T *p)
 	wb_destroy(&expand.valuebuf);
     }
 
+    for (size_t i = 0; i < valuelist.length; i++)
+	valuelist.contents[i] = unescapefree(valuelist.contents[i]);
+
     void **results = pl_toary(expand.valuelist);
     wchar_t *result = ok ? joinwcsarray(results, L" ") : NULL;
     recfree(results, free);
@@ -1431,8 +1436,6 @@ bool has_leading_zero(const wchar_t *s, bool *sign)
 
 
 /********** Word Splitting **********/
-
-/* Word splitting functions also perform backslash removal. */
 
 #define DEFAULT_IFS L" \t\n"
 

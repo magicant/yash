@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.3
+
+  *  Fixed parameter expansion: empty words are now expanded properly.
+
+----------------------------------------------------------------------
 Yash 2.2
 
   +  "help", "pushd", "popd" and "dirs" builtins
