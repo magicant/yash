@@ -23,11 +23,20 @@
 #include "../strbuf.h"
 
 
+typedef enum {
+    YLE_STATE_EDITING,     // editing is on-going
+    YLE_STATE_DONE,        // `yle_readline' should return (successful)
+    YLE_STATE_ERROR,       // `yle_readline' should return (unsuccessful)
+    YLE_STATE_INTERRUPTED, // `yle_readline' should return (interrupted)
+} yle_state_T;
+
+
 extern _Bool yle_need_term_reset;
 
 extern int yle_line, yle_column;
 extern _Bool yle_counting;
 
+extern yle_state_T yle_state;
 extern xwcsbuf_T yle_main_buffer;
 extern size_t yle_main_buffer_index;
 
@@ -35,6 +44,15 @@ extern _Bool yle_init(void);
 
 extern wchar_t *yle_readline(const wchar_t *prompt)
     __attribute__((nonnull,malloc,warn_unused_result));
+extern void yle_suspend_readline(void);
+extern void yle_resume_readline(void);
+#if YASH_ENABLE_LINEEDIT
+# define YLE_SUSPEND_READLINE yle_suspend_readline
+# define YLE_RESUME_READLINE  yle_resume_readline
+#else
+# define YLE_SUSPEND_READLINE() ((void) 0)
+# define YLE_RESUME_READLINE()  ((void) 0)
+#endif
 
 extern void yle_print_wc(wchar_t c);
 extern void yle_print_ws(const wchar_t *s, size_t n)

@@ -45,6 +45,7 @@
 #include "strbuf.h"
 #include "util.h"
 #include "yash.h"
+#include "lineedit/lineedit.h"
 
 
 /* About the shell's signal handling:
@@ -628,8 +629,9 @@ void handle_sigchld(void)
         sigchld_received = false;
         do_wait();
 	if (shopt_notify) {
+	    YLE_SUSPEND_READLINE();
 	    print_job_status(PJS_ALL, true, false, stderr);
-	    // XXX redisplay prompt if lineedit is active
+	    YLE_RESUME_READLINE();
 	}
     }
 }
@@ -644,6 +646,8 @@ bool handle_traps(void)
      * The EXIT trap may be executed inside another trap. */
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return false;
+
+    YLE_SUSPEND_READLINE();
 
     /* we reset this before executing signal commands to avoid race */
     any_signal_received = false;
@@ -686,6 +690,9 @@ bool handle_traps(void)
 	}
     }
 #endif
+
+    YLE_RESUME_READLINE();
+
     savelaststatus = -1;
     handled_signal = -1;
     if (state) {

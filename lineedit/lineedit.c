@@ -18,6 +18,7 @@
 
 #include "../common.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -29,6 +30,7 @@
 #include "../history.h"
 #include "../job.h"
 #include "../option.h"
+#include "../sig.h"
 #include "../strbuf.h"
 #include "../util.h"
 #include "lineedit.h"
@@ -42,6 +44,7 @@ static void print_color_seq(const wchar_t **sp)
 
 static void reader_init(void);
 static void reader_finalize(void);
+static void read_next(void);
 
 
 /* True if `yle_setupterm' should be called in the next call to `yle_init'. */
@@ -63,6 +66,11 @@ bool yle_cursor_appendable;
  * prompt. */
 int yle_editbase_line, yle_editbase_column;
 
+
+/* The state of lineedit. */
+static enum { MODE_INACTIVE, MODE_ACTIVE, MODE_SUSPENDED, } mode;
+/* The state of editing. */
+yle_state_T yle_state;
 
 /* The main buffer where the command line is edited. */
 xwcsbuf_T yle_main_buffer;
@@ -98,28 +106,62 @@ fail:
  * The `prompt' may contain backslash escapes specified in "input.c".
  * The result is returned as a newly malloced wide string, including the
  * trailing newline. When EOF is encountered or on error, an empty string is
- * returned. NULL is returned when SIGINT is caught. */
+ * returned. NULL is returned when interrupted. */
 wchar_t *yle_readline(const wchar_t *prompt)
 {
+    assert(is_interactive_now);
     assert(!yle_need_term_reset);
+
+    if (mode != MODE_INACTIVE)
+	return xwcsdup(L"");
 
     yle_line = yle_column = 0;
     yle_cursor_appendable = true;
 
+    yle_state = YLE_STATE_EDITING;
+
     wb_init(&yle_main_buffer);
     yle_main_buffer_index = 0;
 
+    mode = MODE_ACTIVE;
     yle_set_terminal();
     reader_init();
 
     yle_print_prompt(prompt);
+    fflush(stderr);
     yle_editbase_line = yle_line, yle_editbase_column = yle_column;
     //TODO
 
     reader_finalize();
     yle_restore_terminal();
+    mode = MODE_INACTIVE;
 
-    return wb_towcs(&yle_main_buffer);
+    if (yle_state == YLE_STATE_INTERRUPTED) {
+	wb_destroy(&yle_main_buffer);
+	return NULL;
+    } else {
+	return wb_towcs(&yle_main_buffer);
+    }
+}
+
+/* Restores the terminal state and clears the whole display temporarily. */
+void yle_suspend_readline(void)
+{
+    if (mode == MODE_ACTIVE) {
+	mode = MODE_SUSPENDED;
+	//TODO yle_suspend_readline: clear the display
+	yle_restore_terminal();
+    }
+}
+
+/* Resumes line editing suspended by `yle_suspend_readline'. */
+void yle_resume_readline(void)
+{
+    if (mode == MODE_SUSPENDED) {
+	mode = MODE_ACTIVE;
+	yle_set_terminal();
+	//TODO yle_resume_readline: rewrite the display
+    }
 }
 
 
@@ -269,22 +311,93 @@ done:
 /********** Input Reading **********/
 
 /* The temporary buffer for bytes before conversion to wide characters. */
-static xstrbuf_T reader_buffer;
+static xstrbuf_T reader_first_buffer;
 /* The conversion state used in reading input. */
 static mbstate_t reader_state;
+/* The temporary buffer for converted characters. */
+static xwcsbuf_T reader_second_buffer;
 
 /* Initializes the state of the reader.
  * Called for each invocation of `yle_readline'. */
 void reader_init(void)
 {
-    sb_init(&reader_buffer);
+    sb_init(&reader_first_buffer);
     memset(&reader_state, 0, sizeof reader_state);
+    wb_init(&reader_second_buffer);
 }
 
 /* Frees memory used by the reader. */
 void reader_finalize(void)
 {
-    sb_destroy(&reader_buffer);
+    sb_destroy(&reader_first_buffer);
+    wb_destroy(&reader_second_buffer);
+}
+
+/* Reads the next byte from stdin and take all the corresponding actions.
+ * May return without doing anything if a signal is caught, etc.
+ * The caller must check `yle_state' after return from this function;
+ * This function must be called repeatedly while it is `YLE_STATE_EDITING'. */
+void read_next(void)
+{
+    assert(yle_state == YLE_STATE_EDITING);
+
+    /* wait for and read the next byte */
+    block_sigchld_and_sigint();
+    wait_for_input(STDIN_FILENO, true);
+    unblock_sigchld_and_sigint();
+
+    char c;
+    switch (read(STDIN_FILENO, &c, 1)) {
+	case 0:
+	    return;
+	case 1:
+	    break;
+	case -1:
+	    switch (errno) {
+		case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+		case EWOULDBLOCK:
+#endif
+		case EINTR:
+		    return;
+		default:
+		    xerror(errno, Ngt("cannot read input"));
+		    yle_state = YLE_STATE_ERROR;
+		    return;
+	    }
+	default:
+	    assert(false);
+    }
+    sb_ccat(&reader_first_buffer, c);
+
+    /** process the content in the buffer **/
+    while (reader_first_buffer.length > 0) {
+	/* check if `reader_first_buffer' is a special sequence */
+	//TODO read_next: check if `reader_first_buffer' is a special sequence
+
+	/* convert bytes into wide characters */
+	wchar_t wc;
+	size_t n = mbrtowc(&wc, reader_first_buffer.contents,
+		reader_first_buffer.length, &reader_state);
+	switch (n) {
+	    case 0:            // read null character
+		return;
+	    case (size_t) -1:  // conversion error
+		yle_alert();
+		memset(&reader_state, 0, sizeof reader_state);
+		return;
+	    case (size_t) -2:  // more bytes needed
+		goto process_wide;
+	    default:
+		wb_wccat(&reader_second_buffer, wc);
+		sb_remove(&reader_first_buffer, 0, n);
+		break;
+	}
+    }
+process_wide:
+    /* process key mapping for wide characters */
+    //TODO read_next: process key mapping for wide characters
+    ;
 }
 
 

@@ -110,8 +110,17 @@ int putchar_stderr(int c)
     return fputc(c, stderr);
 }
 
+/* Alerts the user by flash or bell, without moving the cursor. */
+void yle_alert(void)
+{
+    putchar_stderr('\a');
+}
+
 
 /********** TERMIOS **********/
+
+/* Special characters. */
+char yle_eof_char, yle_kill_char, yle_interrupt_char, yle_erase_char;
 
 static struct termios original_terminal_state;
 
@@ -126,6 +135,10 @@ _Bool yle_set_terminal(void)
     if (tcgetattr(STDIN_FILENO, &term) != 0)
 	return 0;
     original_terminal_state = term;
+    yle_eof_char       = term.c_cc[VEOF];
+    yle_kill_char      = term.c_cc[VKILL];
+    yle_interrupt_char = term.c_cc[VINTR];
+    yle_erase_char     = term.c_cc[VERASE];
 
     /* set attributes */
     term.c_iflag &= ~(IGNBRK | ISTRIP | INLCR | IGNCR | ICRNL);
@@ -136,7 +149,7 @@ _Bool yle_set_terminal(void)
     term.c_cflag &= ~CSIZE;
     term.c_cflag |= CS8;
     term.c_cc[VTIME] = 0;
-    term.c_cc[VMIN] = 1;
+    term.c_cc[VMIN] = 0;
     if (tcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
 	goto fail;
 
@@ -150,7 +163,7 @@ _Bool yle_set_terminal(void)
 	    || !(term.c_lflag & ISIG)
 	    ||  ((term.c_cflag & CSIZE) != CS8)
 	    ||  (term.c_cc[VTIME] != 0)
-	    ||  (term.c_cc[VMIN] != 1))
+	    ||  (term.c_cc[VMIN] != 0))
 	goto fail;
 
     return 1;

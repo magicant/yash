@@ -39,7 +39,10 @@ extern void yle_print_sgr(long standout, long underline, long reverse,
 extern void yle_print_op(void);
 extern void yle_print_setfg(int color);
 extern void yle_print_setbg(int color);
+extern void yle_alert(void);
 
+
+extern char yle_eof_char, yle_kill_char, yle_interrupt_char, yle_erase_char;
 
 extern _Bool yle_set_terminal(void);
 extern _Bool yle_restore_terminal(void);
