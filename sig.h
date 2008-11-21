@@ -44,7 +44,6 @@ extern void ignore_sigquit_and_sigint(void);
 extern void ignore_sigtstp(void);
 extern void block_sigttou(void);
 extern void unblock_sigttou(void);
-extern void reset_sigpipe(void);
 extern _Bool send_sigstop_to_myself(void);
 
 extern void block_sigchld_and_sigint(void);

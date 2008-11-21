@@ -50,15 +50,13 @@
 /* About the shell's signal handling:
  *
  * Yash always catches SIGCHLD.
- * When job control is active, SIGTTOU and SIGTSTP are also ignored.
+ * When job control is active, SIGTTOU and SIGTSTP are ignored.
  * If the shell is interactive, SIGINT, SIGTERM and SIGQUIT are also ignored.
  * Other signals are caught if a trap for the signals are set.
  *
  * SIGQUIT and SIGINT are ignored in an asynchronous list.
  * SIGTSTP is ignored in a command substitution in an interactive shell.
  * SIGTTOU is blocked during `tcsetpgrp'.
- * all signals other than SIGPIPE is blocked when writing the contents of a
- * here-document to a pipe.
  * SIGCHLD and SIGINT are blocked to avoid a race condition
  *  - while reading the output of a command substitution, or
  *  - in `wait_for_job'. */
@@ -472,17 +470,6 @@ void unblock_sigttou(void)
     sigaddset(&ss, SIGTTOU);
     if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0 && errno != EINTR)
 	xerror(errno, "sigprocmask(UNBLOCK, TTOU)");
-}
-
-/* Sets the action of SIGPIPE to the default. */
-void reset_sigpipe(void)
-{
-    struct sigaction action;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-    action.sa_handler = SIG_DFL;
-    if (sigaction(SIGPIPE, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIGPIPE)");
 }
 
 /* Sends SIGSTOP to the shell process.
