@@ -135,6 +135,8 @@ _Bool yle_set_terminal(void)
     term.c_lflag |= ISIG;
     term.c_cflag &= ~CSIZE;
     term.c_cflag |= CS8;
+    term.c_cc[VTIME] = 0;
+    term.c_cc[VMIN] = 1;
     if (tcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
 	goto fail;
 
@@ -146,7 +148,9 @@ _Bool yle_set_terminal(void)
 	    ||  (term.c_oflag & OPOST)
 	    ||  (term.c_lflag & (ECHO | ECHONL | ICANON | IEXTEN))
 	    || !(term.c_lflag & ISIG)
-	    ||  ((term.c_cflag & CSIZE) != CS8))
+	    ||  ((term.c_cflag & CSIZE) != CS8)
+	    ||  (term.c_cc[VTIME] != 0)
+	    ||  (term.c_cc[VMIN] != 1))
 	goto fail;
 
     return 1;

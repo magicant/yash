@@ -20,12 +20,16 @@
 #define YASH_LINEEDIT_H
 
 #include <stddef.h>
+#include "../strbuf.h"
 
 
 extern _Bool yle_need_term_reset;
 
 extern int yle_line, yle_column;
 extern _Bool yle_counting;
+
+extern xwcsbuf_T yle_main_buffer;
+extern size_t yle_main_buffer_index;
 
 extern _Bool yle_init(void);
 

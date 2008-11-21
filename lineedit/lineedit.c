@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <wchar.h>
 #include "../history.h"
@@ -39,6 +40,9 @@ static void yle_wprintf(const wchar_t *format, ...)
 static void print_color_seq(const wchar_t **sp)
     __attribute__((nonnull));
 
+static void reader_init(void);
+static void reader_finalize(void);
+
 
 /* True if `yle_setupterm' should be called in the next call to `yle_init'. */
 bool yle_need_term_reset = true;
@@ -50,6 +54,21 @@ int yle_line, yle_column;
 /* If false, `yle_line' and `yle_column' are not changed when characters are
  * printed. */
 bool yle_counting = true;
+/* If true, there are no characters printed after the cursor.
+ * In this case, when a character is inserted at the cursor, redraw is not
+ * needed after the cursor: we can simply echo the inserted character. */
+bool yle_cursor_appendable;
+
+/* The cursor position of the first character of the edit line, just after the
+ * prompt. */
+int yle_editbase_line, yle_editbase_column;
+
+
+/* The main buffer where the command line is edited. */
+xwcsbuf_T yle_main_buffer;
+/* The position of the cursor on the command line. */
+/* 0 <= yle_main_buffer_index <= yle_main_buffer.length */
+size_t yle_main_buffer_index;
 
 
 /* Initializes line editing.
@@ -85,34 +104,51 @@ wchar_t *yle_readline(const wchar_t *prompt)
     assert(!yle_need_term_reset);
 
     yle_line = yle_column = 0;
+    yle_cursor_appendable = true;
+
+    wb_init(&yle_main_buffer);
+    yle_main_buffer_index = 0;
 
     yle_set_terminal();
+    reader_init();
 
     yle_print_prompt(prompt);
+    yle_editbase_line = yle_line, yle_editbase_column = yle_column;
     //TODO
 
+    reader_finalize();
     yle_restore_terminal();
 
-    return xwcsdup(L"");
+    return wb_towcs(&yle_main_buffer);
 }
+
+
+/********** Printing **********/
 
 /* Prints the given wide character to the terminal. */
 void yle_print_wc(wchar_t c)
 {
+    /* Special characters like L'\t' and L'\f' will make yle_{line,column}
+     * counted wrong. */
+    if (c == L'\n') {
+	yle_line++, yle_column = 0;
+    } else if (c == L'\r') {
+	yle_column = 0;
+    } else {
 #if HAVE_WCWIDTH
-    int width = wcwidth(c);
+	int width = wcwidth(c);
 #else
-    int width = (c == L'\0') ? 0 : 1;
+	int width = (c == L'\0') ? 0 : 1;
 #endif
-
-    if (width > 0) {
-	int new_column = yle_column + width;
-	if (new_column < yle_columns)
-	    yle_column = new_column;
-	else if (new_column == yle_columns)
-	    yle_line++, yle_column = 0;
-	else
-	    yle_line++, yle_column = width;
+	if (width > 0) {
+	    int new_column = yle_column + width;
+	    if (new_column < yle_columns)
+		yle_column = new_column;
+	    else if (new_column == yle_columns)
+		yle_line++, yle_column = 0;
+	    else
+		yle_line++, yle_column = width;
+	}
     }
     fprintf(stderr, "%lc", (wint_t) c);
 }
@@ -227,6 +263,28 @@ done:
     if (bg >= 0) { /* set background color */
 	yle_print_setbg(bg);
     }
+}
+
+
+/********** Input Reading **********/
+
+/* The temporary buffer for bytes before conversion to wide characters. */
+static xstrbuf_T reader_buffer;
+/* The conversion state used in reading input. */
+static mbstate_t reader_state;
+
+/* Initializes the state of the reader.
+ * Called for each invocation of `yle_readline'. */
+void reader_init(void)
+{
+    sb_init(&reader_buffer);
+    memset(&reader_state, 0, sizeof reader_state);
+}
+
+/* Frees memory used by the reader. */
+void reader_finalize(void)
+{
+    sb_destroy(&reader_buffer);
 }
 
 
