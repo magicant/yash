@@ -67,6 +67,8 @@ lineedit/lineedit.c
 lineedit/lineedit.h
 lineedit/terminfo.c
 lineedit/terminfo.h
+lineedit/trie.c
+lineedit/trie.h
 tests/Makefile
 tests/run-test.sh
 tests/invoke.c

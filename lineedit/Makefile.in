@@ -23,8 +23,8 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = lineedit.c lineedit.h terminfo.c terminfo.h
-OBJS = lineedit.o terminfo.o
+SOURCES = lineedit.c lineedit.h terminfo.c terminfo.h trie.c trie.h
+OBJS = lineedit.o terminfo.o trie.o
 TARGET = @LINEEDIT_ARCHIVE@
 
 BYPRODUCTS = 
@@ -65,3 +65,4 @@ distclean: clean
 # source file dependencies
 lineedit.o: ../common.h ../config.h ../history.h ../job.h ../option.h ../sig.h ../strbuf.h ../util.h lineedit.h terminfo.h
 terminfo.o: ../common.h ../config.h terminfo.h
+trie.o: ../common.h ../config.h ../util.h trie.h
