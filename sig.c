@@ -529,7 +529,7 @@ void unblock_sigchld_and_sigint(void)
  * SIGCHLD and SIGINT must be blocked when this function is called.
  * If SIGCHLD is already caught, this function doesn't wait.
  * If `interruptible' is true, this function can be canceled by SIGINT.
- * If `return_on_trap' is ture, this function returns false immediately after
+ * If `return_on_trap' is true, this function returns false immediately after
  * trap actions are performed. Otherwise, traps are not handled.
  * Returns false iff interrupted. */
 bool wait_for_sigchld(bool interruptible, bool return_on_trap)
@@ -581,8 +581,6 @@ bool wait_for_sigchld(bool interruptible, bool return_on_trap)
  * If SIGCHLD is caught while waiting, `handle_sigchld' is called.
  * SIGCHLD must be blocked when this function is called.
  * If `trap' is true, traps are also handled while waiting. */
-/* Note: some functions call this function without blocking SIGCHLD when the
- * race condition is not a severe problem. */
 void wait_for_input(int fd, bool trap)
 {
     sigset_t ss;
@@ -592,6 +590,12 @@ void wait_for_input(int fd, bool trap)
 	handle_sigchld();
 	if (trap)
 	    handle_traps();
+
+#ifndef NDEBUG
+	sigset_t tmp;
+	sigprocmask(SIG_BLOCK, NULL, &tmp);
+	assert(sigismember(&tmp, SIGCHLD));
+#endif
 
 	fd_set fdset;
 	FD_ZERO(&fdset);
@@ -635,6 +639,7 @@ bool handle_traps(void)
     /* we reset this before executing signal commands to avoid race */
     any_signal_received = false;
 
+    sigset_t emptyset, origset;
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
     for (const signal_T *s = signals; s->no; s++) {
@@ -643,8 +648,14 @@ bool handle_traps(void)
 	    signal_received[i] = false;
 	    wchar_t *command = trap_command[i];
 	    if (command && command[0]) {
-		if (!state)
+		if (!state) {
 		    state = save_parse_state();
+		    sigemptyset(&emptyset);
+		    sigemptyset(&origset);
+		    if (sigprocmask(SIG_SETMASK, &emptyset, &origset) < 0
+			    && errno != EINTR)
+			xerror(errno, "sigprocmask(SETMASK, none)");
+		}
 		handled_signal = s->no;
 		exec_wcs(command, "trap", false);
 		laststatus = savelaststatus;
@@ -662,8 +673,14 @@ bool handle_traps(void)
 	    rtsignal_received[i] = false;
 	    wchar_t *command = rttrap_command[i];
 	    if (command && command[0]) {
-		if (!state)
+		if (!state) {
 		    state = save_parse_state();
+		    sigemptyset(&emptyset);
+		    sigemptyset(&origset);
+		    if (sigprocmask(SIG_SETMASK, &emptyset, &origset) < 0
+			    && errno != EINTR)
+			xerror(errno, "sigprocmask(SETMASK, none)");
+		}
 		handled_signal = sigrtmin + i;
 		exec_wcs(command, "trap", false);
 		laststatus = savelaststatus;
@@ -677,6 +694,8 @@ bool handle_traps(void)
     handled_signal = -1;
     if (state) {
 	restore_parse_state(state);
+	if (sigprocmask(SIG_SETMASK, &origset, NULL) < 0 && errno != EINTR)
+	    xerror(errno, "sigprocmask(SETMASK)");
 	return true;
     } else {
 	return false;
