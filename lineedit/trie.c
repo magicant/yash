@@ -49,13 +49,13 @@ static inline bool isempty(const trienode_T *node)
     __attribute__((nonnull,pure));
 static trienode_T *ensure_size(trienode_T *node, size_t count)
     __attribute__((nonnull,malloc,warn_unused_result));
-static inline ssize_t search(trienode_T *node, char c)
+static inline ssize_t search(const trienode_T *node, char c)
     __attribute__((nonnull,pure));
-static ssize_t binarysearch(trieentry_T *e, size_t count, char key)
+static ssize_t binarysearch(const trieentry_T *e, size_t count, char key)
     __attribute__((nonnull,pure));
-static inline ssize_t searchw(trienode_T *node, wchar_t c)
+static inline ssize_t searchw(const trienode_T *node, wchar_t c)
     __attribute__((nonnull,pure));
-static ssize_t binarysearchw(trieentry_T *e, size_t count, wchar_t key)
+static ssize_t binarysearchw(const trieentry_T *e, size_t count, wchar_t key)
     __attribute__((nonnull,pure));
 
 
@@ -90,12 +90,12 @@ trienode_T *ensure_size(trienode_T *node, size_t count)
  * If the entry is found, the index to it is returned.
  * If not found, the negation of the index that the not-found entry would have
  * minus one is returned. */
-ssize_t search(trienode_T *node, char key)
+ssize_t search(const trienode_T *node, char key)
 {
     return binarysearch(node->entries, node->count, key);
 }
 
-ssize_t binarysearch(trieentry_T *e, size_t count, char key)
+ssize_t binarysearch(const trieentry_T *e, size_t count, char key)
 {
     ssize_t offset = 0;
 
@@ -117,12 +117,12 @@ ssize_t binarysearch(trieentry_T *e, size_t count, char key)
  * If the entry is found, the index to it is returned.
  * If not found, the negation of the index that the not-found entry would have
  * minus one is returned. */
-ssize_t searchw(trienode_T *node, wchar_t key)
+ssize_t searchw(const trienode_T *node, wchar_t key)
 {
     return binarysearchw(node->entries, node->count, key);
 }
 
-ssize_t binarysearchw(trieentry_T *e, size_t count, wchar_t key)
+ssize_t binarysearchw(const trieentry_T *e, size_t count, wchar_t key)
 {
     ssize_t offset = 0;
 
@@ -240,7 +240,7 @@ trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
 
 /* Matches `keystr' with the entries of the trie.
  * `value' of the return value is valid only if `type' is TG_UNIQUE. */
-trieget_T trie_get(trienode_T *t, const char *keystr)
+trieget_T trie_get(const trienode_T *t, const char *keystr)
 {
     trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
 
@@ -280,7 +280,7 @@ trieget_T trie_get(trienode_T *t, const char *keystr)
 
 /* Matches `keywcs' with the entries of the trie.
  * `value' of the return value is valid only if `type' is TG_UNIQUE. */
-trieget_T trie_getw(trienode_T *t, const wchar_t *keywcs)
+trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 {
     trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
 

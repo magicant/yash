@@ -43,9 +43,9 @@ extern trie_T *trie_remove(trie_T *t, const char *keystr)
     __attribute__((nonnull(1,2),malloc,warn_unused_result));
 extern trie_T *trie_removew(trie_T *t, const wchar_t *keywcs)
     __attribute__((nonnull(1,2),malloc,warn_unused_result));
-extern trieget_T trie_get(trie_T *t, const char *keystr)
+extern trieget_T trie_get(const trie_T *t, const char *keystr)
     __attribute__((nonnull));
-extern trieget_T trie_getw(trie_T *t, const wchar_t *keywcs)
+extern trieget_T trie_getw(const trie_T *t, const wchar_t *keywcs)
     __attribute__((nonnull));
 extern void trie_destroy(trie_T *t);
 
