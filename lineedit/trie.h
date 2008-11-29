@@ -47,6 +47,7 @@ extern trieget_T trie_get(trie_T *t, const char *keystr)
     __attribute__((nonnull));
 extern trieget_T trie_getw(trie_T *t, const wchar_t *keywcs)
     __attribute__((nonnull));
+extern void trie_destroy(trie_T *t);
 
 
 #endif /* YASH_TRIE_H */

@@ -88,8 +88,8 @@ trienode_T *ensure_size(trienode_T *node, size_t count)
 
 /* Search the node for the entry of the specified key.
  * If the entry is found, the index to it is returned.
- * If not found, the logical negation of the index that the not-found entry
- * would have is returned. */
+ * If not found, the negation of the index that the not-found entry would have
+ * minus one is returned. */
 ssize_t search(trienode_T *node, char key)
 {
     return binarysearch(node->entries, node->count, key);
@@ -110,13 +110,13 @@ ssize_t binarysearch(trieentry_T *e, size_t count, char key)
 	else
 	    offset += i + 1, count -= i + 1;
     }
-    return ~offset;
+    return -offset - 1;
 }
 
 /* Search the node for the entry of the specified key.
  * If the entry is found, the index to it is returned.
- * If not found, the logical negation of the index that the not-found entry
- * would have is returned. */
+ * If not found, the negation of the index that the not-found entry would have
+ * minus one is returned. */
 ssize_t searchw(trienode_T *node, wchar_t key)
 {
     return binarysearchw(node->entries, node->count, key);
@@ -137,7 +137,7 @@ ssize_t binarysearchw(trieentry_T *e, size_t count, wchar_t key)
 	else
 	    offset += i + 1, count -= i + 1;
     }
-    return ~offset;
+    return -offset - 1;
 }
 
 /* Adds a mapping from `keystr' to `v'.
@@ -151,7 +151,7 @@ trienode_T *trie_set(trienode_T *node, const char *keystr, trievalue_T v)
 	ssize_t index = search(node, keystr[0]);
 
 	if (index < 0) {
-	    index = ~index;
+	    index = -(index + 1);
 	    assert(0 <= index && (size_t) index <= node->count);
 	    node = ensure_size(node, node->count + 1);
 	    memmove(node->entries + index + 1, node->entries + index,
@@ -177,7 +177,7 @@ trienode_T *trie_setw(trienode_T *node, const wchar_t *keywcs, trievalue_T v)
 	ssize_t index = searchw(node, keywcs[0]);
 
 	if (index < 0) {
-	    index = ~index;
+	    index = -(index + 1);
 	    assert(0 <= index && (size_t) index <= node->count);
 	    node = ensure_size(node, node->count + 1);
 	    memmove(node->entries + index + 1, node->entries + index,
@@ -253,7 +253,7 @@ trieget_T trie_get(trienode_T *t, const char *keystr)
     }
 
     ssize_t index = search(t, keystr[0]);
-    if (index <= 0) {
+    if (index < 0) {
 	if (t->valuevalid)
 	    result.type = TG_UNIQUE, result.value = t->value;
 	return result;
@@ -293,7 +293,7 @@ trieget_T trie_getw(trienode_T *t, const wchar_t *keywcs)
     }
 
     ssize_t index = searchw(t, keywcs[0]);
-    if (index <= 0) {
+    if (index < 0) {
 	if (t->valuevalid)
 	    result.type = TG_UNIQUE, result.value = t->value;
 	return result;
@@ -316,6 +316,17 @@ trieget_T trie_getw(trienode_T *t, const wchar_t *keywcs)
 	    assert(false);
     }
     return result;
+}
+
+/* Destroys the whole tree.
+ * All the stored data are lost. */
+void trie_destroy(trienode_T *node)
+{
+    if (node) {
+	for (size_t i = 0; i < node->count; i++)
+	    trie_destroy(node->entries[i].child);
+	free(node);
+    }
 }
 
 
