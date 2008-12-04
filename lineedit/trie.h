@@ -23,7 +23,7 @@
 
 
 typedef union trievalue_T {
-    wchar_t *keyseq;
+    const wchar_t *keyseq;
 } trievalue_T;
 typedef struct trienode_T trie_T;
 typedef struct trieget_T {
@@ -37,13 +37,15 @@ extern trie_T *trie_create(void)
     __attribute__((malloc,warn_unused_result));
 extern trie_T *trie_set(trie_T *t, const char *keystr, trievalue_T v)
     __attribute__((nonnull(1,2),malloc,warn_unused_result));
+extern trie_T *trie_set_null(trie_T *t, trievalue_T v)
+    __attribute__((nonnull(1),malloc,warn_unused_result));
 extern trie_T *trie_setw(trie_T *t, const wchar_t *keywcs, trievalue_T v)
     __attribute__((nonnull(1,2),malloc,warn_unused_result));
 extern trie_T *trie_remove(trie_T *t, const char *keystr)
     __attribute__((nonnull(1,2),malloc,warn_unused_result));
 extern trie_T *trie_removew(trie_T *t, const wchar_t *keywcs)
     __attribute__((nonnull(1,2),malloc,warn_unused_result));
-extern trieget_T trie_get(const trie_T *t, const char *keystr)
+extern trieget_T trie_get(const trie_T *t, const char *keystr, size_t keylen)
     __attribute__((nonnull));
 extern trieget_T trie_getw(const trie_T *t, const wchar_t *keywcs)
     __attribute__((nonnull));

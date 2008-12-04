@@ -57,6 +57,8 @@ static inline ssize_t searchw(const trienode_T *node, wchar_t c)
     __attribute__((nonnull,pure));
 static ssize_t binarysearchw(const trieentry_T *e, size_t count, wchar_t key)
     __attribute__((nonnull,pure));
+static trienode_T *insert_entry(trienode_T *node, size_t index, triekey_T key)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 
 /* Creates a new empty trie. */
@@ -140,6 +142,20 @@ ssize_t binarysearchw(const trieentry_T *e, size_t count, wchar_t key)
     return -offset - 1;
 }
 
+/* Creates a new child at `index'. */
+trienode_T *insert_entry(trienode_T *node, size_t index, triekey_T key)
+{
+    assert(index <= node->count);
+    node = ensure_size(node, node->count + 1);
+    if (index < node->count)
+	memmove(node->entries + index + 1, node->entries + index,
+		sizeof(trieentry_T) * (node->count - index));
+    node->entries[index].key = key;
+    node->entries[index].child = trie_create();
+    node->count++;
+    return node;
+}
+
 /* Adds a mapping from `keystr' to `v'.
  * The existing mapping for `keystr' is lost if any. */
 trienode_T *trie_set(trienode_T *node, const char *keystr, trievalue_T v)
@@ -152,17 +168,28 @@ trienode_T *trie_set(trienode_T *node, const char *keystr, trievalue_T v)
 
 	if (index < 0) {
 	    index = -(index + 1);
-	    assert(0 <= index && (size_t) index <= node->count);
-	    node = ensure_size(node, node->count + 1);
-	    memmove(node->entries + index + 1, node->entries + index,
-		    sizeof(trieentry_T) * (node->count - index));
-	    node->entries[index].key.as_char = keystr[0];
-	    node->entries[index].child = trie_create();
-	    node->count++;
+	    node = insert_entry(node, (size_t) index,
+		    (triekey_T) { .as_char = keystr[0] });
 	}
 	node->entries[index].child =
 	    trie_set(node->entries[index].child, keystr + 1, v);
     }
+    return node;
+}
+
+/* Adds a mapping from "\0" to `v'.
+ * The existing mapping for `keystr' is lost if any. */
+trienode_T *trie_set_null(trienode_T *node, trievalue_T v)
+{
+    ssize_t index = search(node, '\0');
+
+    if (index < 0) {
+	index = -(index + 1);
+	node = insert_entry(node, (size_t) index,
+		(triekey_T) { .as_char = '\0' });
+    }
+    node->entries[index].child =
+	trie_set(node->entries[index].child, "", v);
     return node;
 }
 
@@ -178,13 +205,8 @@ trienode_T *trie_setw(trienode_T *node, const wchar_t *keywcs, trievalue_T v)
 
 	if (index < 0) {
 	    index = -(index + 1);
-	    assert(0 <= index && (size_t) index <= node->count);
-	    node = ensure_size(node, node->count + 1);
-	    memmove(node->entries + index + 1, node->entries + index,
-		    sizeof(trieentry_T) * (node->count - index));
-	    node->entries[index].key.as_wchar = keywcs[0];
-	    node->entries[index].child = trie_create();
-	    node->count++;
+	    node = insert_entry(node, (size_t) index,
+		    (triekey_T) { .as_char = keywcs[0] });
 	}
 	node->entries[index].child =
 	    trie_setw(node->entries[index].child, keywcs + 1, v);
@@ -239,12 +261,14 @@ trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
 }
 
 /* Matches `keystr' with the entries of the trie.
+ * This function does not treat '\0' as end of string. The length of `keystr' is
+ * given by `keylen'.
  * `value' of the return value is valid only if `type' is TG_UNIQUE. */
-trieget_T trie_get(const trienode_T *t, const char *keystr)
+trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 {
     trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
 
-    if (keystr[0] == '\0') {
+    if (keylen == 0) {
 	if (t->count > 0)
 	    result.type = TG_AMBIGUOUS;
 	else if (t->valuevalid)
@@ -259,7 +283,7 @@ trieget_T trie_get(const trienode_T *t, const char *keystr)
 	return result;
     }
 
-    result = trie_get(t->entries[index].child, keystr + 1);
+    result = trie_get(t->entries[index].child, keystr + 1, keylen - 1);
     switch (result.type) {
 	case TG_NOMATCH:
 	    if (t->valuevalid) {
