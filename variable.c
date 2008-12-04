@@ -450,27 +450,30 @@ void reset_locale(const char *name)
 	goto reset_locale_all;
     } else if (strncmp(name, "LC_", 3) == 0) {
 	/* POSIX forbids resetting LC_CTYPE even if the value of the variable
-	 * is changed. */
+	 * is changed, but we do reset LC_CTYPE if the shell is interactive and
+	 * not in the POSIXly-correct mode. */
 	if (strcmp(name + 3, VAR_LC_ALL + 3) == 0) {
 reset_locale_all:
-	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
-//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	    reset_locale_category(VAR_LC_COLLATE, LC_COLLATE);
+	    if (!posixly_correct && is_interactive_now)
+		reset_locale_category(VAR_LC_CTYPE, LC_CTYPE);
 	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
 	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
-	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
-	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	    reset_locale_category(VAR_LC_NUMERIC, LC_NUMERIC);
+	    reset_locale_category(VAR_LC_TIME, LC_TIME);
 	} else if (strcmp(name + 3, VAR_LC_COLLATE + 3) == 0) {
-	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
-//	} else if (strcmp(name + 3, VAR_LC_CTYPE + 3) == 0) {
-//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	    reset_locale_category(VAR_LC_COLLATE, LC_COLLATE);
+	} else if (strcmp(name + 3, VAR_LC_CTYPE + 3) == 0) {
+	    if (!posixly_correct && is_interactive_now)
+		reset_locale_category(VAR_LC_CTYPE, LC_CTYPE);
 	} else if (strcmp(name + 3, VAR_LC_MESSAGES + 3) == 0) {
 	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
 	} else if (strcmp(name + 3, VAR_LC_MONETARY + 3) == 0) {
 	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
 	} else if (strcmp(name + 3, VAR_LC_NUMERIC + 3) == 0) {
-	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
+	    reset_locale_category(VAR_LC_NUMERIC, LC_NUMERIC);
 	} else if (strcmp(name + 3, VAR_LC_TIME + 3) == 0) {
-	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	    reset_locale_category(VAR_LC_TIME, LC_TIME);
 	}
     }
 }

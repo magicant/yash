@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.3
 
+  =  Now changing LC_CTYPE immediately takes effect if the shell is
+     interactive and not in the posixly-correct mode.
   *  Fixed parameter expansion: empty words are now expanded properly.
   *  Fixed a race condition, which was causing some signals ignored.
   *  Assignments using the typeset/readonly/export builtins failed to
