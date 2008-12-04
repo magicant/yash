@@ -266,6 +266,7 @@ void init_variables(void)
 	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
 	v->v_value = NULL;
 	v->v_getter = lineno_getter;
+	// variable_set(VAR_LINENO, v);
 	if (v->v_type & VF_EXPORT)
 	    update_enrivon(VAR_LINENO);
     }
@@ -907,6 +908,7 @@ void lineno_getter(variable_T *var)
     assert((var->v_type & VF_MASK) == VF_NORMAL);
     free(var->v_value);
     var->v_value = malloc_wprintf(L"%lu", current_lineno);
+    // variable_set(VAR_LINENO, var);
     if (var->v_type & VF_EXPORT)
 	update_enrivon(VAR_LINENO);
 }
@@ -917,6 +919,7 @@ void random_getter(variable_T *var)
     assert((var->v_type & VF_MASK) == VF_NORMAL);
     free(var->v_value);
     var->v_value = malloc_wprintf(L"%u", next_random());
+    // variable_set(VAR_RANDOM, var);
     if (var->v_type & VF_EXPORT)
 	update_enrivon(VAR_RANDOM);
 }
@@ -1593,6 +1596,7 @@ int typeset_builtin(int argc, void **argv)
 		var->v_type |= VF_EXPORT;
 	    else if (unexport)
 		var->v_type &= ~VF_EXPORT;
+	    variable_set(name, var);
 	    if (saveexport != (var->v_type & VF_EXPORT)
 		    || (wequal && (var->v_type & VF_EXPORT)))
 		update_enrivon(name);

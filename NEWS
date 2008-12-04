@@ -11,6 +11,10 @@ History of Yash
 Yash 2.3
 
   *  Fixed parameter expansion: empty words are now expanded properly.
+  *  Fixed a race condition, which was causing some signals ignored.
+  *  Assignments using the typeset/readonly/export builtins failed to
+     update the shell's internal data. This caused the shell to keep
+     using the old PATH after the PATH has been changed.
 
 ----------------------------------------------------------------------
 Yash 2.2
