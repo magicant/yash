@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.4
+
+  =  The long option for the -p option of the "jobs" builtin has been
+     changed from "--pid-only" to "--pgid-only".
+
+----------------------------------------------------------------------
 Yash 2.3
 
   =  Now changing LC_CTYPE immediately takes effect if the shell is

@@ -62,7 +62,7 @@ static size_t get_jobnumber_from_pid(pid_t pid)
     __attribute__((pure));
 
 static void jobs_builtin_print_job(size_t jobnumber,
-	bool verbose, bool changedonly, bool pidonly,
+	bool verbose, bool changedonly, bool pgidonly,
 	bool runningonly, bool stoppedonly);
 static int continue_job(size_t jobnumber, job_T *job, bool fg)
     __attribute__((nonnull));
@@ -785,14 +785,14 @@ int jobs_builtin(int argc, void **argv)
     static const struct xoption long_options[] = {
 	{ L"verbose",      xno_argument, L'l', },
 	{ L"new",          xno_argument, L'n', },
-	{ L"pid-only",     xno_argument, L'p', },
+	{ L"pgid-only",    xno_argument, L'p', },
 	{ L"running-only", xno_argument, L'r', },
 	{ L"stopped-only", xno_argument, L's', },
 	{ L"help",         xno_argument, L'-', },
 	{ NULL, 0, 0, },
     };
 
-    bool verbose = false, changedonly = false, pidonly = false;
+    bool verbose = false, changedonly = false, pgidonly = false;
     bool runningonly = false, stoppedonly = false;
     bool err = false;
     wchar_t opt;
@@ -804,7 +804,7 @@ int jobs_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'l':  verbose     = true;  break;
 	    case L'n':  changedonly = true;  break;
-	    case L'p':  pidonly     = true;  break;
+	    case L'p':  pgidonly    = true;  break;
 	    case L'r':  runningonly = true;  break;
 	    case L's':  stoppedonly = true;  break;
 	    case L'-':
@@ -838,14 +838,14 @@ int jobs_builtin(int argc, void **argv)
 		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
 		err = true;
 	    } else {
-		jobs_builtin_print_job(jobnumber, verbose, changedonly, pidonly,
-			runningonly, stoppedonly);
+		jobs_builtin_print_job(jobnumber, verbose, changedonly,
+			pgidonly, runningonly, stoppedonly);
 	    }
 	} while (++xoptind < argc);
     } else {
 	/* print all jobs */
 	for (size_t i = 1; i < joblist.length; i++) {
-	    jobs_builtin_print_job(i, verbose, changedonly, pidonly,
+	    jobs_builtin_print_job(i, verbose, changedonly, pgidonly,
 		    runningonly, stoppedonly);
 	}
     }
@@ -855,7 +855,7 @@ int jobs_builtin(int argc, void **argv)
 
 /* Prints the job status */
 void jobs_builtin_print_job(size_t jobnumber,
-	bool verbose, bool changedonly, bool pidonly,
+	bool verbose, bool changedonly, bool pgidonly,
 	bool runningonly, bool stoppedonly)
 {
     job_T *job = get_job(jobnumber);
@@ -867,7 +867,7 @@ void jobs_builtin_print_job(size_t jobnumber,
     if (stoppedonly && job->j_status != JS_STOPPED)
 	return;
 
-    if (pidonly) {
+    if (pgidonly) {
 	if (changedonly && !job->j_statuschanged)
 	    return;
 	printf("%jd\n", imaxabs(job->j_pgid));
@@ -887,7 +887,7 @@ const char jobs_help[] = Ngt(
 "\tprint info for each process in the job, including process ID\n"
 " -n --new\n"
 "\tprint jobs whose status have changed only\n"
-" -p --pid-only\n"
+" -p --pgid-only\n"
 "\tprint process group IDs only\n"
 " -r --running-only\n"
 "\tprint running jobs only\n"
