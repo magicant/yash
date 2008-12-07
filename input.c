@@ -283,34 +283,38 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 
 #if YASH_ENABLE_LINEEDIT
     /* read a line using line edit */
-    if ((shopt_lineedit != shopt_nolineedit) && yle_init()) {
-	wchar_t *prompt = get_prompt(info->type);
-	wchar_t *line = yle_readline(prompt);
-	free(prompt);
-	if (line) {
-	    if (info->type == 1)
-		info->type = 2;
-	    restore_parse_state(state);
-	    if (line[0]) {
-		size_t len = wcslen(line);
-		assert(len > 0);
+    if (shopt_lineedit != shopt_nolineedit) {
+	if (yle_init()) {
+	    wchar_t *prompt = get_prompt(info->type);
+	    wchar_t *line = yle_readline(prompt);
+	    free(prompt);
+	    if (line) {
+		if (info->type == 1)
+		    info->type = 2;
+		restore_parse_state(state);
+		if (line[0]) {
+		    size_t len = wcslen(line);
+		    assert(len > 0);
 #if YASH_ENABLE_HISTORY
-		if (info->type == 2) {
-		    wchar_t lastchar = line[len - 1];
-		    if (lastchar == L'\n')
-			line[len - 1] = L'\0';
-		    add_history(line, false);
-		    line[len - 1] = lastchar;
-		}
+		    if (info->type == 2) {
+			wchar_t lastchar = line[len - 1];
+			if (lastchar == L'\n')
+			    line[len - 1] = L'\0';
+			add_history(line, false);
+			line[len - 1] = lastchar;
+		    }
 #endif /* YASH_ENABLE_HISTORY */
-		wb_catfree(buf, line);
-		return 0;
+		    wb_catfree(buf, line);
+		    return 0;
+		} else {
+		    free(line);
+		    return EOF;
+		}
 	    } else {
-		free(line);
-		return EOF;
+		return 1;
 	    }
 	} else {
-	    return 1;
+	    shopt_lineedit = shopt_nolineedit;
 	}
     }
 #endif /* YASH_ENABLE_LINEEDIT */

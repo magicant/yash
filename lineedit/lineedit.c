@@ -27,14 +27,17 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 #include "../history.h"
 #include "../job.h"
 #include "../option.h"
 #include "../sig.h"
 #include "../strbuf.h"
 #include "../util.h"
+#include "key.h"
 #include "lineedit.h"
 #include "terminfo.h"
+#include "trie.h"
 
 
 static void yle_wprintf(const wchar_t *format, ...)
@@ -45,6 +48,8 @@ static void print_color_seq(const wchar_t **sp)
 static void reader_init(void);
 static void reader_finalize(void);
 static void read_next(void);
+static inline trieget_T make_trieget(const wchar_t *keyseq)
+    __attribute__((nonnull,const));
 
 
 /* True if `yle_setupterm' should be called in the next call to `yle_init'. */
@@ -86,18 +91,15 @@ size_t yle_main_buffer_index;
  * `yle_readline' must not be called. */
 bool yle_init(void)
 {
+    if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
+	return false;
     if (!yle_need_term_reset)
 	return true;
-    if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
-	goto fail;
 
     if (yle_setupterm()) {
 	yle_need_term_reset = false;
 	return true;
     }
-
-fail:
-    shopt_lineedit = shopt_nolineedit;
     return false;
 }
 
@@ -339,6 +341,8 @@ void reader_finalize(void)
  * This function must be called repeatedly while it is `YLE_STATE_EDITING'. */
 void read_next(void)
 {
+    static bool incomplete_wchar = false;
+
     assert(yle_state == YLE_STATE_EDITING);
 
     /* wait for and read the next byte */
@@ -368,36 +372,93 @@ void read_next(void)
 	default:
 	    assert(false);
     }
-    sb_ccat(&reader_first_buffer, c);
+    if (yle_meta_bit8 && (c & META_BIT))
+	sb_ccat(sb_ccat(&reader_first_buffer, ESCAPE_CHAR), c & ~META_BIT);
+    else
+	sb_ccat(&reader_first_buffer, c);
 
     /** process the content in the buffer **/
-    while (reader_first_buffer.length > 0) {
-	/* check if `reader_first_buffer' is a special sequence */
-	//TODO read_next: check if `reader_first_buffer' is a special sequence
+    if (!incomplete_wchar) {
+	while (reader_first_buffer.length > 0) {
+	    /* check if `reader_first_buffer' is a special sequence */
+	    trieget_T tg;
+	    if (reader_first_buffer.contents[0] == yle_interrupt_char)
+		tg = make_trieget(Key_interrupt);
+	    else if (reader_first_buffer.contents[0] == yle_eof_char)
+		tg = make_trieget(Key_eof);
+	    else if (reader_first_buffer.contents[0] == yle_kill_char)
+		tg = make_trieget(Key_kill);
+	    else if (reader_first_buffer.contents[0] == yle_erase_char)
+		tg = make_trieget(Key_erase);
+	    else if (reader_first_buffer.contents[0] == '\\')
+		tg = make_trieget(Key_backslash);
+	    else
+		tg = trie_get(yle_keycodes,
+		    reader_first_buffer.contents, reader_first_buffer.length);
+	    switch (tg.type) {
+		case TG_NOMATCH:
+		    goto process_wide;
+		case TG_UNIQUE:
+		    sb_remove(&reader_first_buffer, 0, tg.matchlength);
+		    wb_cat(&reader_second_buffer, tg.value.keyseq);
+		    break;
+		case TG_AMBIGUOUS:
+		    return;
+	    }
+	}
+    }
 
-	/* convert bytes into wide characters */
+    /* convert bytes into wide characters */
+process_wide:
+    if (reader_first_buffer.length > 0) {
 	wchar_t wc;
 	size_t n = mbrtowc(&wc, reader_first_buffer.contents,
 		reader_first_buffer.length, &reader_state);
+	incomplete_wchar = false;
 	switch (n) {
 	    case 0:            // read null character
+		sb_clear(&reader_first_buffer);
+		wb_cat(&reader_second_buffer, Key_c_at);
 		return;
 	    case (size_t) -1:  // conversion error
 		yle_alert();
 		memset(&reader_state, 0, sizeof reader_state);
-		return;
+		sb_clear(&reader_first_buffer);
+		break;
 	    case (size_t) -2:  // more bytes needed
+		incomplete_wchar = true;
 		goto process_wide;
 	    default:
-		wb_wccat(&reader_second_buffer, wc);
 		sb_remove(&reader_first_buffer, 0, n);
+		wb_wccat(&reader_second_buffer, wc);
 		break;
 	}
     }
-process_wide:
+
     /* process key mapping for wide characters */
-    //TODO read_next: process key mapping for wide characters
-    ;
+    while (reader_second_buffer.length > 0) {
+	trieget_T tg = trie_getw(NULL /*TODO*/, reader_second_buffer.contents);
+	switch (tg.type) {
+	    case TG_NOMATCH:
+		//TODO
+		break;
+	    case TG_UNIQUE:
+		wb_remove(&reader_second_buffer, 0, tg.matchlength);
+		//TODO
+		break;
+	    case TG_AMBIGUOUS:
+		return;
+	}
+    }
+}
+
+trieget_T make_trieget(const wchar_t *keyseq)
+{
+    return (trieget_T) {
+	.type = TG_UNIQUE,
+	.matchlength = 1,
+	.value.keyseq = keyseq,
+    };
 }
 
 
