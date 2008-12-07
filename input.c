@@ -51,6 +51,8 @@ static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *expand_ps_yash(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
+static inline void skip_alnum(wchar_t **sp)
+    __attribute__((nonnull));
 
 /* An input function that inputs from a multibyte string.
  * `inputinfo' is a pointer to a `struct input_mbs_info'.
@@ -448,7 +450,8 @@ wchar_t *expand_ps_yash(wchar_t *s)
 #if YASH_ENABLE_HISTORY
 	case L'!':    wb_wprintf(&buf, L"%d", hist_next_number); break;
 #endif
-	case L'[':    // TODO  expand_ps_yash: \[ and \]
+	case L'f':    skip_alnum(&s);  break;
+	case L'[':    break;
 	case L']':    break;
 	}
 	s++;
@@ -456,6 +459,14 @@ wchar_t *expand_ps_yash(wchar_t *s)
 done:
     free(saves);
     return wb_towcs(&buf);
+}
+
+void skip_alnum(wchar_t **sp)
+{
+    while (iswalnum(**sp))
+	(*sp)++;
+    if (**sp != L'.')
+	(*sp)--;
 }
 
 /* Sets O_NONBLOCK flag of the specified file descriptor.

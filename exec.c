@@ -1647,7 +1647,7 @@ const char exec_help[] = Ngt(
 "option is always assumed.\n"
 );
 
-/* The "command" builtin, which accepts the following options:
+/* The "command"/"type" builtin, which accepts the following options:
  *  -b: search builtins
  *  -B: search external commands
  *  -p: use the default path to find the command
