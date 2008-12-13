@@ -594,12 +594,14 @@ bool handle_traps(void)
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return false;
 
-    /* we reset this before executing signal commands to avoid race */
-    any_signal_received = false;
-
     sigset_t emptyset, origset;
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
+
+exec_handlers:
+    /* we reset this before executing signal commands to avoid race */
+    any_signal_received = false;
+
     for (const signal_T *s = signals; s->no; s++) {
 	size_t i = sigindex(s->no);
 	if (signal_received[i]) {
@@ -648,6 +650,8 @@ bool handle_traps(void)
 	}
     }
 #endif
+    if (any_signal_received)
+	goto exec_handlers;
     savelaststatus = -1;
     handled_signal = -1;
     if (state) {
