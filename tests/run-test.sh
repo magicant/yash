@@ -34,7 +34,7 @@ echo "Any output from the tests indicates a possible malfunction"
 
 export INVOKE TESTEE TESTTMP
 export LC_MESSAGES=POSIX LC_CTYPE="${LC_ALL-${LC_CTYPE-${LANG}}}" LANG=POSIX
-unset ENV IFS LC_ALL failed
+unset ENV HISTFILE HISTSIZE MAIL MAILCHECK MAILPATH IFS LC_ALL failed
 umask u=rwx,go=
 
 checkskip()
