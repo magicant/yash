@@ -795,14 +795,14 @@ redir_fail:
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
     sigset_t all, savemask;
-    if (sigtype & (t_quitint | t_tstp)) {
+    bool sigblock = is_interactive_now || doing_job_control_now
+	|| (sigtype & (t_quitint | t_tstp));
+    if (sigblock) {
 	sigfillset(&all);
 	sigemptyset(&savemask);
 	if (sigprocmask(SIG_BLOCK, &all, &savemask) < 0)
-	    xerror(errno, "sigprocmask(BLOCK, all)");
+	    xerror(errno, "sigprocmask");
     }
-    restore_job_signals();
-    restore_interactive_signals();
 
     pid_t cpid = fork();
 
@@ -815,7 +815,6 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (doing_job_control_now && pgid >= 0)
 		setpgid(cpid, pgid);
 	}
-	set_signals();
     } else {
 	/* child process */
 	bool save_is_interactive_now = is_interactive_now;
@@ -827,6 +826,8 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	}
 	forget_initial_pgid();
 	neglect_all_jobs();
+	restore_job_signals();
+	restore_interactive_signals();
 	if (sigtype & t_leave) {
 	    clear_shellfds(false);
 	} else {
@@ -841,7 +842,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (save_is_interactive_now)
 		ignore_sigtstp();
     }
-    if (sigtype & (t_quitint | t_tstp))
+    if (sigblock)
 	if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0 && errno != EINTR)
 	    xerror(errno, "sigprocmask");
     return cpid;

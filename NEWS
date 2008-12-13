@@ -12,6 +12,10 @@ Yash 2.4
 
   =  The long option for the -p option of the "jobs" builtin has been
      changed from "--pid-only" to "--pgid-only".
+  *  Trap of SIGCHLD, SIGINT, SIGTERM, SIGQUIT, SIGTSTP, SIGTTOU were
+     wrongly set to "ignore" in some condition.
+  *  Signal handlers for SIGINT, SIGTERM, SIGQUIT, SIGTSTP, SIGTTOU
+     were mistakenly reset in some moments.
 
 ----------------------------------------------------------------------
 Yash 2.3

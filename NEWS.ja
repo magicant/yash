@@ -12,6 +12,10 @@ Yash 2.4
 
   =  "jobs" 組込みの -p オプションに対応する長いオプションを
      --pid-only から --pgid-only に変更
+  *  SIGCHLD, SIGINT, SIGTERM, SIGQUIT, SIGTSTP, SIGTTOU のトラップが
+     誤って無視されることがあった
+  *  SIGINT, SIGTERM, SIGQUIT, SIGTSTP, SIGTTOU のシグナルハンドラが
+     誤って解除されている瞬間があった
 
 ----------------------------------------------------------------------
 Yash 2.3
