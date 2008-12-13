@@ -47,11 +47,11 @@ extern _Bool send_sigstop_to_myself(void);
 
 extern void block_sigchld_and_sigint(void);
 extern void unblock_sigchld_and_sigint(void);
-extern _Bool wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
+extern int wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
 extern void wait_for_input(int fd, _Bool trap);
 
 extern void handle_sigchld(void);
-extern _Bool handle_traps(void);
+extern int handle_traps(void);
 extern void execute_exit_trap(void);
 extern void clear_traps(void);
 

@@ -489,10 +489,10 @@ void unblock_sigchld_and_sigint(void)
  * If `interruptible' is true, this function can be canceled by SIGINT.
  * If `return_on_trap' is true, this function returns false immediately after
  * trap actions are performed. Otherwise, traps are not handled.
- * Returns false iff interrupted. */
-bool wait_for_sigchld(bool interruptible, bool return_on_trap)
+ * Returns the signal number if interrupted, or zero if successful. */
+int wait_for_sigchld(bool interruptible, bool return_on_trap)
 {
-    bool result = true;
+    int result = 0;
     struct sigaction action, saveaction;
     if (interruptible) {
 	sigemptyset(&action.sa_mask);
@@ -509,10 +509,8 @@ bool wait_for_sigchld(bool interruptible, bool return_on_trap)
     sigset_t ss;
     sigemptyset(&ss);
     while (!sigchld_received) {
-	if (return_on_trap && handle_traps()) {
-	    result = false;
-	    break;
-	}
+	if (return_on_trap && (result = handle_traps()))
+	    return result;
 	if (sigsuspend(&ss) < 0) {
 	    if (errno == EINTR) {
 		if (interruptible && sigint_received)
@@ -526,7 +524,7 @@ bool wait_for_sigchld(bool interruptible, bool return_on_trap)
 
     if (interruptible) {
 	if (sigint_received)
-	    result = false;
+	    result = SIGINT;
 	if (sigaction(SIGINT, &saveaction, NULL) < 0)
 	    xerror(errno, "sigaction(SIG%s)", "INT");
     }
@@ -585,8 +583,10 @@ void handle_sigchld(void)
 
 /* Executes trap commands for trapped signals if any.
  * There must not be an active job when this function is called.
- * Returns true iff at least one signal is handled. */
-bool handle_traps(void)
+ * Returns the signal number if any handler is executed, zero otherwise.
+ * Note that, if more than one signal are caught, only one of their numbers is
+ * returned. */
+int handle_traps(void)
 {
     /* Signal handler execution is not reentrant because the value of
      * `savelaststatus' is lost. But the EXIT is the only exception:
@@ -594,6 +594,7 @@ bool handle_traps(void)
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return false;
 
+    int signum = 0;
     sigset_t emptyset, origset;
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
@@ -616,7 +617,7 @@ exec_handlers:
 			    && errno != EINTR)
 			xerror(errno, "sigprocmask");
 		}
-		handled_signal = s->no;
+		signum = handled_signal = s->no;
 		exec_wcs(command, "trap", false);
 		laststatus = savelaststatus;
 		if (command != trap_command[i])
@@ -641,7 +642,7 @@ exec_handlers:
 			    && errno != EINTR)
 			xerror(errno, "sigprocmask");
 		}
-		handled_signal = sigrtmin + i;
+		signum = handled_signal = sigrtmin + i;
 		exec_wcs(command, "trap", false);
 		laststatus = savelaststatus;
 		if (command != rttrap_command[i])
@@ -658,10 +659,8 @@ exec_handlers:
 	restore_parse_state(state);
 	if (sigprocmask(SIG_SETMASK, &origset, NULL) < 0 && errno != EINTR)
 	    xerror(errno, "sigprocmask");
-	return true;
-    } else {
-	return false;
     }
+    return signum;
 }
 
 /* Executes the EXIT trap if any. */
