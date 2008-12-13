@@ -97,7 +97,6 @@ echo 28
 
 echo ===== trap =====
 
-# in subshell traps other than ignore are cleared
 set -m
 trap 'echo trapped' USR1
 trap '' USR2

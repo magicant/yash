@@ -843,7 +843,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
     }
     if (sigtype & (t_quitint | t_tstp))
 	if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0 && errno != EINTR)
-	    xerror(errno, "sigprocmask(SETMASK, none)");
+	    xerror(errno, "sigprocmask");
     return cpid;
 }
 

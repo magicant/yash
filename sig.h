@@ -31,7 +31,6 @@ extern int get_signal_number_w(wchar_t *name)
 
 extern _Bool any_trap_set;
 
-extern void init_fixed_trap_set(void);
 extern void init_signal(void);
 extern void set_signals(void);
 extern void set_job_signals(void);

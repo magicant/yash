@@ -62,6 +62,11 @@
  *  - in `wait_for_job'. */
 
 
+static void set_special_handler(int signum, void (*handler)(int signum))
+    __attribute__((nonnull));
+static void reset_special_handler(int signum);
+static inline bool is_ignored(int signum)
+    __attribute__((pure));
 static void sig_handler(int signum);
 static bool set_trap(int signum, const wchar_t *command);
 
@@ -206,20 +211,19 @@ static volatile sig_atomic_t rtsignal_received[RTSIZE];
 static wchar_t *rttrap_command[RTSIZE];
 #endif
 
-/* set of signals for which trap cannot be set */
-static sigset_t fixed_trap_set;
+/* Set of signals whose handler was SIG_IGN when the shell is invoked but
+ * currently is substituted with the shell's handler.
+ * The handler of these signals must be reset to SIG_IGN before the shell
+ * invokes another command so that the command inherits SIG_IGN as the handler.
+ * A signal is added to this set also when its trap handler is set to "ignore."
+ */
+static sigset_t ignored_signals;
 
 /* This flag is set to true as well as `signal_received[sigindex(SIGCHLD/INT)]'
  * when SIGCHLD/SIGINT is caught.
  * This flag is used for job control while `signal_received[...]' is for trap
  * handling. */
 static volatile sig_atomic_t sigchld_received, sigint_received;
-
-/* Actions of SIGCHLD/QUIT/TTOU/TSTP/TERM/INT to be restored before `execve'. */
-static struct {
-    bool valid;
-    struct sigaction action;
-} savesigchld, savesigttou, savesigtstp, savesigterm, savesigint, savesigquit;
 
 /* true iff SIGCHLD is handled. */
 static bool initialized = false;
@@ -228,56 +232,21 @@ static bool job_initialized = false;
 /* true iff SIGTERM/INT/QUIT are ignored. */
 static bool interactive_initialized = false;
 
-/* Initializes `fixed_trap_set'.
- * This function is called by `main' only once on startup. */
-void init_fixed_trap_set(void)
-{
-    sigemptyset(&fixed_trap_set);
-    if (!is_interactive) {
-	for (const signal_T *s = signals; s->no; s++) {
-	    struct sigaction action;
-	    sigemptyset(&action.sa_mask);
-	    if (sigaction(s->no, NULL, &action) >= 0
-		    && action.sa_handler == SIG_IGN)
-		sigaddset(&fixed_trap_set, s->no);
-	}
-#if defined SIGRTMIN && defined SIGRTMAX
-	int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
-	for (int signum = sigrtmin; signum <= sigrtmax; signum++) {
-	    struct sigaction action;
-	    sigemptyset(&action.sa_mask);
-	    if (sigaction(signum, NULL, &action) >= 0
-		    && action.sa_handler == SIG_IGN)
-		sigaddset(&fixed_trap_set, signum);
-	}
-#endif
-    }
-}
-
 /* Initializes signal handling.
  * May be called more than once. */
 void init_signal(void)
 {
-    struct sigaction action;
-    sigset_t ss;
-
     if (!initialized) {
-	initialized = true;
+	sigset_t ss;
 
-	if (!trap_command[sigindex(SIGCHLD)]) {
-	    action.sa_flags = 0;
-	    action.sa_handler = sig_handler;
-	    sigemptyset(&action.sa_mask);
-	    sigemptyset(&savesigchld.action.sa_mask);
-	    if (sigaction(SIGCHLD, &action, &savesigchld.action) >= 0)
-		savesigchld.valid = true;
-	    else
-		xerror(errno, "sigaction(SIGCHLD)");
-	}
+	initialized = true;
+	assert(!job_initialized && !interactive_initialized);
+	sigemptyset(&ignored_signals);
+	set_special_handler(SIGCHLD, sig_handler);
 
 	sigemptyset(&ss);
 	if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0 && errno != EINTR)
-	    xerror(errno, "sigprocmask(SETMASK, none)");
+	    xerror(errno, "sigprocmask");
     }
 }
 
@@ -300,25 +269,8 @@ void set_job_signals(void)
 {
     if (!job_initialized) {
 	job_initialized = true;
-
-	struct sigaction action;
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-	action.sa_handler = SIG_IGN;
-	if (!trap_command[sigindex(SIGTTOU)]) {
-	    sigemptyset(&savesigttou.action.sa_mask);
-	    if (sigaction(SIGTTOU, &action, &savesigttou.action) >= 0)
-		savesigttou.valid = true;
-	    else
-		xerror(errno, "sigaction(SIGTTOU, SIG_IGN)");
-	}
-	if (!trap_command[sigindex(SIGTSTP)]) {
-	    sigemptyset(&savesigtstp.action.sa_mask);
-	    if (sigaction(SIGTSTP, &action, &savesigtstp.action) >= 0)
-		savesigtstp.valid = true;
-	    else
-		xerror(errno, "sigaction(SIGTSTP, SIG_IGN)");
-	}
+	set_special_handler(SIGTTOU, SIG_IGN);
+	set_special_handler(SIGTSTP, SIG_IGN);
     }
 }
 
@@ -327,33 +279,9 @@ void set_interactive_signals(void)
 {
     if (!interactive_initialized) {
 	interactive_initialized = true;
-
-	struct sigaction action;
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-	action.sa_handler = SIG_IGN;
-	if (!trap_command[sigindex(SIGINT)]) {
-	    sigemptyset(&savesigint.action.sa_mask);
-	    if (sigaction(SIGINT, &action, &savesigint.action) >= 0)
-		savesigint.valid = true;
-	    else
-		xerror(errno, "sigaction(SIGINT, SIG_IGN)");
-	}
-	if (!trap_command[sigindex(SIGTERM)]) {
-	    sigemptyset(&savesigterm.action.sa_mask);
-	    if (sigaction(SIGTERM, &action, &savesigterm.action) >= 0)
-		savesigterm.valid = true;
-	    else
-		xerror(errno, "sigaction(SIGTERM, SIG_IGN)");
-	}
-	if (!trap_command[sigindex(SIGQUIT)]) {
-	    action.sa_handler = SIG_IGN;
-	    sigemptyset(&savesigquit.action.sa_mask);
-	    if (sigaction(SIGQUIT, &action, &savesigquit.action) >= 0)
-		savesigquit.valid = true;
-	    else
-		xerror(errno, "sigaction(SIGQUIT, SIG_IGN)");
-	}
+	set_special_handler(SIGINT, SIG_IGN);
+	set_special_handler(SIGTERM, SIG_IGN);
+	set_special_handler(SIGQUIT, SIG_IGN);
     }
 }
 
@@ -364,10 +292,7 @@ void restore_all_signals(void)
     restore_interactive_signals();
     if (initialized) {
 	initialized = false;
-	if (savesigchld.valid)
-	    if (sigaction(SIGCHLD, &savesigchld.action, NULL) < 0)
-		xerror(errno, "sigaction(SIGCHLD)");
-	savesigchld.valid = false;
+	reset_special_handler(SIGCHLD);
     }
 }
 
@@ -376,32 +301,64 @@ void restore_job_signals(void)
 {
     if (job_initialized) {
 	job_initialized = false;
-	if (savesigttou.valid)
-	    if (sigaction(SIGTTOU, &savesigttou.action, NULL) < 0)
-		xerror(errno, "sigaction(SIGTTOU)");
-	if (savesigtstp.valid)
-	    if (sigaction(SIGTSTP, &savesigtstp.action, NULL) < 0)
-		xerror(errno, "sigaction(SIGTSTP)");
-	savesigttou.valid = savesigtstp.valid = false;
+	reset_special_handler(SIGTTOU);
+	reset_special_handler(SIGTSTP);
     }
 }
 
-/* Restores the initial signal actions for SIGINT/TERM. */
+/* Restores the initial signal actions for SIGINT/TERM/QUIT. */
 void restore_interactive_signals(void)
 {
     if (interactive_initialized) {
 	interactive_initialized = false;
-	if (savesigint.valid)
-	    if (sigaction(SIGINT, &savesigint.action, NULL) < 0)
-		xerror(errno, "sigaction(SIGINT)");
-	if (savesigterm.valid)
-	    if (sigaction(SIGTERM, &savesigterm.action, NULL) < 0)
-		xerror(errno, "sigaction(SIGTERM)");
-	if (savesigquit.valid)
-	    if (sigaction(SIGQUIT, &savesigquit.action, NULL) < 0)
-		xerror(errno, "sigaction(SIGQUIT)");
-	savesigint.valid = savesigterm.valid = savesigquit.valid = false;
+	reset_special_handler(SIGINT);
+	reset_special_handler(SIGTERM);
+	reset_special_handler(SIGQUIT);
     }
+}
+
+/* Sets the signal handler of `signum' to `handler'.
+ * If the current handler is SIG_IGN, `signum' is added to `ignored_signals'. */
+void set_special_handler(int signum, void (*handler)(int signum))
+{
+    if (!trap_command[sigindex(signum)]) {
+	struct sigaction action, oldaction;
+	action.sa_flags = 0;
+	action.sa_handler = handler;
+	sigemptyset(&action.sa_mask);
+	sigemptyset(&oldaction.sa_mask);
+	if (sigaction(signum, &action, &oldaction) >= 0) {
+	    if (oldaction.sa_handler == SIG_IGN)
+		sigaddset(&ignored_signals, signum);
+	} else {
+	    xerror(errno, "sigaction(SIG%s)", get_signal_name(signum));
+	}
+    }
+}
+
+/* Resets the signal handler of `signum' to what it should be. */
+void reset_special_handler(int signum)
+{
+    struct sigaction action;
+    action.sa_flags = 0;
+    if (sigismember(&ignored_signals, signum))
+	action.sa_handler = SIG_IGN;
+    else if (trap_command[sigindex(signum)])
+	return;
+    else
+	action.sa_handler = SIG_DFL;
+    sigemptyset(&action.sa_mask);
+    if (sigaction(signum, &action, NULL) < 0)
+	xerror(errno, "sigaction(SIG%s)", get_signal_name(signum));
+}
+
+/* Checks if the specified signal is ignored. */
+bool is_ignored(int signum)
+{
+    struct sigaction action;
+    sigemptyset(&action.sa_mask);
+    return sigaction(signum, NULL, &action) >= 0
+	&& action.sa_handler == SIG_IGN;
 }
 
 /* Sets SIGINT to be caught if the shell is interactive (`onoff' = 1).
@@ -417,7 +374,7 @@ void set_interruptible_by_sigint(bool onoff)
 	    action.sa_flags = 0;
 	    action.sa_handler = onoff ? sig_handler : SIG_IGN;
 	    if (sigaction(SIGINT, &action, NULL) < 0)
-		xerror(errno, "sigaction(SIGINT)");
+		xerror(errno, "sigaction(SIG%s)", "INT");
 	}
     }
 }
@@ -432,10 +389,11 @@ void ignore_sigquit_and_sigint(void)
     action.sa_flags = 0;
     action.sa_handler = SIG_IGN;
     if (sigaction(SIGQUIT, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIGQUIT, SIG_IGN)");
+	xerror(errno, "sigaction(SIG%s)", "QUIT");
     if (sigaction(SIGINT, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIGINT, SIG_IGN)");
-    savesigquit.valid = savesigint.valid = false;
+	xerror(errno, "sigaction(SIG%s)", "INT");
+    sigaddset(&ignored_signals, SIGQUIT);
+    sigaddset(&ignored_signals, SIGINT);
 }
 
 /* Sets the action of SIGTSTP to ignoring the signal
@@ -448,8 +406,8 @@ void ignore_sigtstp(void)
     action.sa_flags = 0;
     action.sa_handler = SIG_IGN;
     if (sigaction(SIGTSTP, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIGTSTP, SIG_IGN)");
-    savesigtstp.valid = false;
+	xerror(errno, "sigaction(SIG%s)", "TSTP");
+    sigaddset(&ignored_signals, SIGTSTP);
 }
 
 /* Blocks SIGTTOU. */
@@ -459,7 +417,7 @@ void block_sigttou(void)
     sigemptyset(&ss);
     sigaddset(&ss, SIGTTOU);
     if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask(BLOCK, TTOU)");
+	xerror(errno, "sigprocmask");
 }
 
 /* Unblocks SIGTTOU. */
@@ -469,7 +427,7 @@ void unblock_sigttou(void)
     sigemptyset(&ss);
     sigaddset(&ss, SIGTTOU);
     if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask(UNBLOCK, TTOU)");
+	xerror(errno, "sigprocmask");
 }
 
 /* Sends SIGSTOP to the shell process.
@@ -510,7 +468,7 @@ void block_sigchld_and_sigint(void)
     sigaddset(&ss, SIGCHLD);
     sigaddset(&ss, SIGINT);
     if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask(BLOCK, CHLD|INT)");
+	xerror(errno, "sigprocmask");
 }
 
 /* Unblocks SIGCHLD and SIGINT. */
@@ -522,7 +480,7 @@ void unblock_sigchld_and_sigint(void)
     sigaddset(&ss, SIGCHLD);
     sigaddset(&ss, SIGINT);
     if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask(UNBLOCK, CHLD|INT)");
+	xerror(errno, "sigprocmask");
 }
 
 /* Waits for SIGCHLD to be caught and call `handle_sigchld'.
@@ -542,7 +500,7 @@ bool wait_for_sigchld(bool interruptible, bool return_on_trap)
 	action.sa_handler = sig_handler;
 	sigemptyset(&saveaction.sa_mask);
 	if (sigaction(SIGINT, &action, &saveaction) < 0) {
-	    xerror(errno, "sigaction(SIGINT)");
+	    xerror(errno, "sigaction(SIG%s)", "INT");
 	    interruptible = false;
 	}
 	sigint_received = false;
@@ -570,7 +528,7 @@ bool wait_for_sigchld(bool interruptible, bool return_on_trap)
 	if (sigint_received)
 	    result = false;
 	if (sigaction(SIGINT, &saveaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIGINT)");
+	    xerror(errno, "sigaction(SIG%s)", "INT");
     }
 
     handle_sigchld();
@@ -654,7 +612,7 @@ bool handle_traps(void)
 		    sigemptyset(&origset);
 		    if (sigprocmask(SIG_SETMASK, &emptyset, &origset) < 0
 			    && errno != EINTR)
-			xerror(errno, "sigprocmask(SETMASK, none)");
+			xerror(errno, "sigprocmask");
 		}
 		handled_signal = s->no;
 		exec_wcs(command, "trap", false);
@@ -679,7 +637,7 @@ bool handle_traps(void)
 		    sigemptyset(&origset);
 		    if (sigprocmask(SIG_SETMASK, &emptyset, &origset) < 0
 			    && errno != EINTR)
-			xerror(errno, "sigprocmask(SETMASK, none)");
+			xerror(errno, "sigprocmask");
 		}
 		handled_signal = sigrtmin + i;
 		exec_wcs(command, "trap", false);
@@ -695,7 +653,7 @@ bool handle_traps(void)
     if (state) {
 	restore_parse_state(state);
 	if (sigprocmask(SIG_SETMASK, &origset, NULL) < 0 && errno != EINTR)
-	    xerror(errno, "sigprocmask(SETMASK)");
+	    xerror(errno, "sigprocmask");
 	return true;
     } else {
 	return false;
@@ -729,15 +687,7 @@ void execute_exit_trap(void)
  * Returns true iff successful. */
 bool set_trap(int signum, const wchar_t *command)
 {
-    if (!is_interactive && sigismember(&fixed_trap_set, signum) > 0) {
-#if FIXED_SIGNAL_AS_ERROR
-	xerror(0, Ngt("SIG%s: this signal is fixed to be ignored"),
-		get_signal_name(signum));
-	return false;
-#else
-	return true;
-#endif
-    } else if (signum == SIGKILL || signum == SIGSTOP) {
+    if (signum == SIGKILL || signum == SIGSTOP) {
 	xerror(0, Ngt("SIG%s: cannot be trapped"),
 		signum == SIGKILL ? "KILL" : "STOP");
 	return false;
@@ -768,6 +718,17 @@ bool set_trap(int signum, const wchar_t *command)
 	oldhandler = SIG_IGN;
     else
 	oldhandler = sig_handler;
+    if (!is_interactive && oldhandler == SIG_DFL && is_ignored(signum)) {
+	/* Signals that were ignored on entry to a non-interactive shell cannot
+	 * be trapped or reset. (POSIX) */
+#if FIXED_SIGNAL_AS_ERROR
+	xerror(0, Ngt("SIG%s: cannot be reset"),
+		get_signal_name(signum));
+	return false;
+#else
+	return true;
+#endif
+    }
 
     /* If `*commandp' is currently executed, we must not free it. */
     if (signum != handled_signal && (signum != 0 || !exit_handled))
@@ -789,33 +750,35 @@ bool set_trap(int signum, const wchar_t *command)
 	action.sa_handler = SIG_IGN;
     else
 	action.sa_handler = sig_handler;
+
+    if (action.sa_handler == oldhandler)
+	return true;
+
+    if (action.sa_handler == SIG_IGN)
+	sigaddset(&ignored_signals, signum);
+    else
+	sigdelset(&ignored_signals, signum);
     switch (signum) {
 	case SIGCHLD:
-	    savesigchld.valid = false;
 	    /* SIGCHLD's signal handler is always `sig_handler' */
 	    return true;
 	case SIGTTOU:
-	    savesigttou.valid = false;
 	    if (job_initialized)
 		goto nodefault;
 	    break;
 	case SIGTSTP:
-	    savesigtstp.valid = false;
 	    if (job_initialized)
 		goto nodefault;
 	    break;
 	case SIGINT:
-	    savesigint.valid = false;
 	    if (interactive_initialized)
 		goto nodefault;
 	    break;
 	case SIGTERM:
-	    savesigterm.valid = false;
 	    if (interactive_initialized)
 		goto nodefault;
 	    break;
 	case SIGQUIT:
-	    savesigquit.valid = false;
 	    if (interactive_initialized)
 		goto nodefault;
 	    break;
@@ -825,15 +788,12 @@ nodefault:
 	    break;
     }
 
-    if (action.sa_handler == oldhandler)
-	return true;
-
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     if (sigaction(signum, &action, NULL) >= 0) {
 	return true;
     } else {
-	xerror(errno, "trap: sigaction(%s)", get_signal_name(signum));
+	xerror(errno, "sigaction(SIG%s)", get_signal_name(signum));
 	return false;
     }
 }
