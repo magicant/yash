@@ -16,6 +16,9 @@ Yash 2.4
      wrongly set to "ignore" in some condition.
   *  Signal handlers for SIGINT, SIGTERM, SIGQUIT, SIGTSTP, SIGTTOU
      were mistakenly reset in some moments.
+  *  Fixed the exit status of the "wait" builtin returned when
+     interrupted by a signal.
+  *  Fixed file access permission test
 
 ----------------------------------------------------------------------
 Yash 2.3
