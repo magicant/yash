@@ -45,10 +45,12 @@ DISTCONTENTS = $(SOURCES) Makefile.in
 distcontents: $(DISTCONTENTS)
 
 # ctags conforms to POSIX, but etags and cscope do not.
+CTAGSARGS = --recurse
+ETAGSARGS = *.[ch]
 tags: $(SOURCES)
-	ctags $(SOURCES)
+	ctags $(CTAGSARGS)
 TAGS: $(SOURCES)
-	etags $(SOURCES)
+	etags $(ETAGSARGS)
 cscope: cscope.out
 cscope.out: $(SOURCES)
 	cscope -b

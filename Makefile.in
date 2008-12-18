@@ -101,10 +101,12 @@ $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
+CTAGSARGS = @CTAGSARGS@
+ETAGSARGS = @ETAGSARGS@
 tags: $(SOURCES)
-	ctags $(SOURCES)
+	ctags $(CTAGSARGS)
 TAGS: $(SOURCES)
-	etags $(SOURCES)
+	etags $(ETAGSARGS)
 cscope: cscope.out
 cscope.out: $(SOURCES)
 	cscope -b
