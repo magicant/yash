@@ -40,7 +40,8 @@ extern yle_state_T yle_state;
 extern xwcsbuf_T yle_main_buffer;
 extern size_t yle_main_buffer_index;
 
-extern _Bool yle_init(void);
+extern void yle_init(void);
+extern _Bool yle_setup(void);
 
 extern wchar_t *yle_readline(const wchar_t *prompt)
     __attribute__((nonnull,malloc,warn_unused_result));

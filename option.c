@@ -34,6 +34,7 @@
 #include "util.h"
 #include "variable.h"
 #include "yash.h"
+#include "lineedit/lineedit.h"
 
 
 /* If set, the shell behaves strictly as defined in POSIX.
@@ -194,6 +195,7 @@ void set_option(wchar_t c)
 	case L'1':
 	    if (value) {
 		shopt_lineedit = shopt_vi;
+		yle_init();
 	    } else {
 		if (shopt_lineedit == shopt_vi)
 		    shopt_lineedit = shopt_nolineedit;
@@ -202,6 +204,7 @@ void set_option(wchar_t c)
 	case L'2':
 	    if (value) {
 		shopt_lineedit = shopt_emacs;
+		yle_init();
 	    } else {
 		if (shopt_lineedit == shopt_emacs)
 		    shopt_lineedit = shopt_nolineedit;

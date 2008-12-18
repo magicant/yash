@@ -35,6 +35,7 @@
 #include "../strbuf.h"
 #include "../util.h"
 #include "key.h"
+#include "keymap.h"
 #include "lineedit.h"
 #include "terminfo.h"
 #include "trie.h"
@@ -52,7 +53,7 @@ static inline trieget_T make_trieget(const wchar_t *keyseq)
     __attribute__((nonnull,const));
 
 
-/* True if `yle_setupterm' should be called in the next call to `yle_init'. */
+/* True if `yle_setupterm' should be called in the next call to `yle_setup'. */
 bool yle_need_term_reset = true;
 
 
@@ -66,6 +67,10 @@ bool yle_counting = true;
  * In this case, when a character is inserted at the cursor, redraw is not
  * needed after the cursor: we can simply echo the inserted character. */
 bool yle_cursor_appendable;
+/* If true, some information is printed below the edit line.
+ * A typical example of such info is completion candidates.
+ * This info must be cleared when editing is finished. */
+bool yle_additional_info_printed;
 
 /* The cursor position of the first character of the edit line, just after the
  * prompt. */
@@ -85,11 +90,25 @@ size_t yle_main_buffer_index;
 
 
 /* Initializes line editing.
+ * Must be called at least once before call to `yle_setup'.
+ * May be called more than once, but does nothing for the second call or later.
+ */
+void yle_init(void)
+{
+    static bool initialized = false;
+
+    if (initialized)
+	return;
+    initialized = true;
+    yle_init_keymap();
+}
+
+/* Initializes line editing.
  * Must be called before each call to `yle_readline'.
  * Returns true iff successful.
  * If this function returns false, the vi/emacs option is unset and
  * `yle_readline' must not be called. */
-bool yle_init(void)
+bool yle_setup(void)
 {
     if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
 	return false;
@@ -104,7 +123,7 @@ bool yle_init(void)
 }
 
 /* Prints the specified `prompt' and reads one line from stdin.
- * This function can be called only after `yle_init' succeeded.
+ * This function can be called only after `yle_setup' succeeded.
  * The `prompt' may contain backslash escapes specified in "input.c".
  * The result is returned as a newly malloced wide string, including the
  * trailing newline. When EOF is encountered or on error, an empty string is
@@ -125,6 +144,15 @@ wchar_t *yle_readline(const wchar_t *prompt)
     wb_init(&yle_main_buffer);
     yle_main_buffer_index = 0;
 
+    switch (shopt_lineedit) {
+	case shopt_vi:
+	case shopt_emacs:  // TODO currently, emacs is the same as vi
+	    yle_set_mode(YLE_MODE_VI_INSERT);
+	    break;
+	default:
+	    assert(false);
+    }
+
     mode = MODE_ACTIVE;
     yle_set_terminal();
     reader_init();
@@ -132,7 +160,10 @@ wchar_t *yle_readline(const wchar_t *prompt)
     yle_print_prompt(prompt);
     fflush(stderr);
     yle_editbase_line = yle_line, yle_editbase_column = yle_column;
-    //TODO
+
+    do
+	read_next();
+    while (yle_state == YLE_STATE_EDITING);
 
     reader_finalize();
     yle_restore_terminal();
@@ -437,7 +468,8 @@ process_wide:
 
     /* process key mapping for wide characters */
     while (reader_second_buffer.length > 0) {
-	trieget_T tg = trie_getw(NULL /*TODO*/, reader_second_buffer.contents);
+	trieget_T tg = trie_getw(
+		yle_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
 	    case TG_NOMATCH:
 		//TODO

@@ -284,7 +284,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 #if YASH_ENABLE_LINEEDIT
     /* read a line using line edit */
     if (shopt_lineedit != shopt_nolineedit) {
-	if (yle_init()) {
+	if (yle_setup()) {
 	    wchar_t *prompt = get_prompt(info->type);
 	    wchar_t *line = yle_readline(prompt);
 	    free(prompt);

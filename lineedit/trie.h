@@ -20,10 +20,12 @@
 #define YASH_TRIE_H
 
 #include <stddef.h>
+#include "key.h"
 
 
 typedef union trievalue_T {
     const wchar_t *keyseq;
+    yle_command_func_T *cmdfunc;
 } trievalue_T;
 typedef struct trienode_T trie_T;
 typedef struct trieget_T {

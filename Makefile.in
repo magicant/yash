@@ -150,7 +150,7 @@ hashtable.o: common.h config.h hashtable.h util.h
 history.o: builtin.h common.h config.h exec.h history.h job.h option.h path.h redir.h strbuf.h util.h variable.h yash.h
 job.o: builtin.h common.h config.h exec.h job.h option.h plist.h redir.h sig.h strbuf.h util.h yash.h
 input.o: common.h config.h exec.h expand.h history.h input.h job.h mail.h option.h parser.h sig.h strbuf.h util.h variable.h yash.h lineedit/lineedit.h
-option.o: builtin.h common.h config.h exec.h option.h redir.h sig.h strbuf.h util.h variable.h yash.h
+option.o: builtin.h common.h config.h exec.h option.h redir.h sig.h strbuf.h util.h variable.h yash.h lineedit/lineedit.h
 mail.o: common.h config.h expand.h hashtable.h mail.h parser.h strbuf.h util.h variable.h
 mksignum.o: common.h config.h siglist.h
 parser.o: alias.h common.h config.h expand.h input.h option.h parser.h plist.h strbuf.h util.h

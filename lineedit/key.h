@@ -213,6 +213,9 @@
 #define META_BIT    0x80
 #define ESCAPE_CHAR '\33'
 
+/* The type of functions that implement commands. */
+typedef void yle_command_func_T(int count, wchar_t wc);
+
 
 #endif /* YASH_KEY_H */
 
