@@ -19,6 +19,8 @@ Yash 2.4
   *  Fixed the exit status of the "wait" builtin returned when
      interrupted by a signal.
   *  Fixed file access permission test
+  *  "command -V xxx/yyy" now prints an error message if "xxx/yyy" is
+     not a valid command.
 
 ----------------------------------------------------------------------
 Yash 2.3

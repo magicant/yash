@@ -27,7 +27,7 @@ temptxt="./.temp.txt"
 
 target="yash"
 package="yash"
-version="2.3"
+version="2.4"
 copyrightyear="2007-2008"
 
 # all source files in this directory
