@@ -1848,7 +1848,7 @@ bool print_command_info_human_friendlily(const wchar_t *commandname)
 	goto done;
     }
 
-    xerror(0, Ngt("%s: not found"), name);
+    xerror(0, Ngt("%s: no such command or function"), name);
     free(name);
     return false;
 done:
@@ -1865,6 +1865,8 @@ bool print_command_fullpath(const wchar_t *commandname, bool hf)
     if (!name)
 	return false;
     if (!is_executable_regular(name)) {
+	if (hf)
+	    xerror(0, Ngt("%s: no such command or function"), name);
 	free(name);
 	return false;
     }
