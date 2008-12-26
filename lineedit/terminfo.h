@@ -26,6 +26,14 @@ extern struct trienode_T /* trie_T */ *yle_keycodes;
 
 extern _Bool yle_setupterm(void);
 
+extern void yle_print_cr(void);
+extern void yle_print_nel(void);
+extern void yle_print_cub(long count);
+extern void yle_print_cuf(long count);
+extern void yle_print_cud(long count);
+extern void yle_print_cuu(long count);
+extern void yle_print_el(void);
+extern void yle_print_ed(void);
 extern void yle_print_sgr(long standout, long underline, long reverse,
 	long blink, long dim, long bold, long invisible);
 extern void yle_print_op(void);

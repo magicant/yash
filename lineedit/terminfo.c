@@ -21,7 +21,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <curses.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <term.h>
@@ -37,6 +36,17 @@
 
 
 /* terminfo capabilities */
+#define TI_cr      "cr"
+#define TI_cub     "cub"
+#define TI_cub1    "cub1"
+#define TI_cud     "cud"
+#define TI_cud1    "cud1"
+#define TI_cuf     "cuf"
+#define TI_cuf1    "cuf1"
+#define TI_cuu     "cuu"
+#define TI_cuu1    "cuu1"
+#define TI_ed      "ed"
+#define TI_el      "el"
 #define TI_ka1     "ka1"
 #define TI_ka3     "ka3"
 #define TI_kb2     "kb2"
@@ -190,6 +200,7 @@
 #define TI_cols    "cols"
 #define TI_km      "km"
 #define TI_lines   "lines"
+#define TI_nel     "nel"
 #define TI_op      "op"
 #define TI_setab   "setab"
 #define TI_setaf   "setaf"
@@ -203,16 +214,26 @@
 int yle_lines, yle_columns;
 
 /* True if the meta key inputs character whose 8th bit is set. */
-bool yle_meta_bit8;
+_Bool yle_meta_bit8;
 
 /* Strings sent by terminal when special key is pressed.
  * Values of entries are `keyseq'. */
 trie_T *yle_keycodes = NULL;
 
 
+static inline int is_strcap_valid(const char *s)
+    __attribute__((const));
 static void set_up_keycodes(void);
+static void move_cursor(char *capone, char *capmul, long count, int affcnt)
+    __attribute__((nonnull));
 static int putchar_stderr(int c);
 
+
+/* Checks if the result of `tigetstr' is valid. */
+int is_strcap_valid(const char *s)
+{
+    return s != NULL && s != (const char *) -1;
+}
 
 /* Calls `setupterm' and checks if terminfo data is available.
  * Returns true iff successful. */
@@ -223,7 +244,13 @@ _Bool yle_setupterm(void)
     if (setupterm(NULL, STDERR_FILENO, &err) != OK)
 	return 0;
 
-    // XXX should we do some more checks?
+    if (!is_strcap_valid(tigetstr(TI_cr))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cub1))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cuf1))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cud1))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cuu1))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_el))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_ed))) return 0;
 
     yle_lines = tigetnum(TI_lines);
     yle_columns = tigetnum(TI_cols);
@@ -427,24 +454,116 @@ void set_up_keycodes(void)
     yle_keycodes = t;
 }
 
-/* Prints "sgr" variable. */
+/* Prints "cr" variable. (carriage return: move cursor to first char of line) */
+void yle_print_cr(void)
+{
+    char *v = tigetstr(TI_cr);
+    if (is_strcap_valid(v))
+	tputs(v, 1, putchar_stderr);
+    else
+	fputc('\r', stderr);
+}
+
+/* Prints "nel" variable. (newline: move cursor to first char of next line) */
+void yle_print_nel(void)
+{
+    char *v = tigetstr(TI_nel);
+    if (is_strcap_valid(v))
+	tputs(v, 1, putchar_stderr);
+    else
+	fputc('\n', stderr);
+}
+
+/* Moves the cursor.
+ * `capone' must be one of "cub1", "cuf1", "cud1", "cuu1".
+ * `capmul' must be one of "cub", "cuf", "cud", "cuu". */
+void move_cursor(char *capone, char *capmul, long count, int affcnt)
+{
+    if (count > 0) {
+	char *v;
+
+	if (count > 1) {
+	    v = tigetstr(capmul);
+	    if (is_strcap_valid(v)) {
+		v = tparm(v, count, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
+		if (v) {
+		    tputs(v, affcnt, putchar_stderr);
+		    return;
+		}
+	    }
+	}
+
+	v = tigetstr(capone);
+	if (is_strcap_valid(v)) {
+	    do
+		tputs(v, 1, putchar_stderr);
+	    while (--count > 0);
+	}
+    }
+}
+
+/* Prints "cub"/"cub1" variable. (move cursor backward by `count' columns) */
+/* `count' must be small enough not to go beyond screen bounds. */
+void yle_print_cub(long count)
+{
+    move_cursor(TI_cub1, TI_cub, count, 1);
+}
+
+/* Prints "cuf"/"cuf1" variable. (move cursor forward by `count' columns) */
+/* `count' must be small enough not to go beyond screen bounds .*/
+void yle_print_cuf(long count)
+{
+    move_cursor(TI_cuf1, TI_cuf, count, 1);
+}
+
+/* Prints "cud"/"cud1" variable. (move cursor down by `count' lines) */
+/* `count' must be small enough not to go beyond screen bounds .*/
+void yle_print_cud(long count)
+{
+    move_cursor(TI_cud1, TI_cud, count, count + 1);
+}
+
+/* Prints "cuu"/"cuu1" variable. (move cursor up by `count' lines) */
+/* `count' must be small enough not to go beyond screen bounds .*/
+void yle_print_cuu(long count)
+{
+    move_cursor(TI_cuu1, TI_cuu, count, count + 1);
+}
+
+/* Prints "el" variable. (clear to end of line) */
+void yle_print_el(void)
+{
+    char *v = tigetstr(TI_el);
+    if (is_strcap_valid(v))
+	tputs(v, 1, putchar_stderr);
+}
+
+/* Prints "ed" variable. (clear to end of screen) */
+void yle_print_ed(void)
+{
+    char *v = tigetstr(TI_ed);
+    if (is_strcap_valid(v))
+	tputs(v, 1, putchar_stderr);
+}
+
+/* Prints "sgr" variable. Every argument must be 0 or 1. */
 void yle_print_sgr(long standout, long underline, long reverse, long blink,
 	long dim, long bold, long invisible)
 {
     char *v = tigetstr(TI_sgr);
-    if (v) {
+    if (is_strcap_valid(v)) {
 	v = tparm(v, standout, underline, reverse, blink, dim, bold, invisible,
-		0, 0);
+		0L, 0L);
 	if (v)
 	    tputs(v, 1, putchar_stderr);
     }
 }
 
-/* Prints "op" variable. */
+/* Prints "op" variable. (set color pairs to default) */
 void yle_print_op(void)
 {
     char *v = tigetstr(TI_op);
-    if (v)
+    if (is_strcap_valid(v))
 	tputs(v, 1, putchar_stderr);
 }
 
@@ -452,10 +571,10 @@ void yle_print_op(void)
 void yle_print_setfg(int color)
 {
     char *v = tigetstr(TI_setaf);
-    if (!v)
+    if (!is_strcap_valid(v))
 	v = tigetstr(TI_setf);
-    if (v) {
-	v = tparm(v, color);
+    if (is_strcap_valid(v)) {
+	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
 	if (v)
 	    tputs(v, 1, putchar_stderr);
     }
@@ -465,10 +584,10 @@ void yle_print_setfg(int color)
 void yle_print_setbg(int color)
 {
     char *v = tigetstr(TI_setab);
-    if (!v)
+    if (!is_strcap_valid(v))
 	v = tigetstr(TI_setb);
-    if (v) {
-	v = tparm(v, color);
+    if (is_strcap_valid(v)) {
+	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
 	if (v)
 	    tputs(v, 1, putchar_stderr);
     }

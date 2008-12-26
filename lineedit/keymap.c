@@ -41,7 +41,7 @@ void yle_init_keymap(void)
 {
     trie_T *t;
 
-    yle_modes[YLE_MODE_VI_INSERT].default_command = cmd_self_insert; //TODO
+    yle_modes[YLE_MODE_VI_INSERT].default_command = cmd_self_insert;
     t = trie_create();
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_goto_vicommand));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
@@ -50,7 +50,7 @@ void yle_init_keymap(void)
     //TODO
     yle_modes[YLE_MODE_VI_INSERT].keymap = t;
 
-    yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert; //TODO
+    yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, L"i", CMDENTRY(cmd_goto_viinsert));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
