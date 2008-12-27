@@ -89,8 +89,7 @@ void cmd_self_insert(
 	int count __attribute__((unused)), wchar_t c)
 {
     if (c != L'\0') {
-	wb_ninsert_force(&yle_main_buffer, yle_main_buffer_index++, &c, 1);
-	//TODO redraw
+	//TODO insert character and redraw
     }
 }
 

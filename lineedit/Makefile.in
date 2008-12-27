@@ -23,8 +23,8 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = key.h keymap.c keymap.h lineedit.c lineedit.h terminfo.c terminfo.h trie.c trie.h
-OBJS = keymap.o lineedit.o terminfo.o trie.o
+SOURCES = display.c display.h key.h keymap.c keymap.h lineedit.c lineedit.h terminfo.c terminfo.h trie.c trie.h
+OBJS = display.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = @LINEEDIT_ARCHIVE@
 
 BYPRODUCTS = 
@@ -64,7 +64,8 @@ distclean: clean
 .PHONY: all distcontents cscope mostlyclean clean distclean
 
 # source file dependencies
-keymap.o: ../common.h ../config.h ../hashtable.h ../strbuf.h key.h keymap.h lineedit.h terminfo.h trie.h
-lineedit.o: ../common.h ../config.h ../history.h ../job.h ../option.h ../sig.h ../strbuf.h ../util.h key.h lineedit.h terminfo.h trie.h
+display.o: ../common.h ../config.h ../history.c ../job.h ../strbuf.h display.h lineedit.h terminfo.h
+keymap.o: ../common.h ../config.h ../hashtable.h key.h keymap.h lineedit.h terminfo.h trie.h
+lineedit.o: ../common.h ../config.h ../option.h ../sig.h ../strbuf.h ../util.h display.h key.h keymap.h lineedit.h terminfo.h trie.h
 terminfo.o: ../common.h ../config.h ../util.h key.h terminfo.h trie.h
 trie.o: ../common.h ../config.h ../util.h key.h trie.h

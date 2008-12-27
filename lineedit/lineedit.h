@@ -20,7 +20,6 @@
 #define YASH_LINEEDIT_H
 
 #include <stddef.h>
-#include "../strbuf.h"
 
 
 typedef enum {
@@ -37,8 +36,6 @@ extern int yle_line, yle_column;
 extern _Bool yle_counting;
 
 extern yle_state_T yle_state;
-extern xwcsbuf_T yle_main_buffer;
-extern size_t yle_main_buffer_index;
 
 extern void yle_init(void);
 extern _Bool yle_setup(void);
@@ -54,13 +51,6 @@ extern void yle_resume_readline(void);
 # define YLE_SUSPEND_READLINE() ((void) 0)
 # define YLE_RESUME_READLINE()  ((void) 0)
 #endif
-
-extern void yle_print_wc(wchar_t c);
-extern void yle_print_ws(const wchar_t *s, size_t n)
-    __attribute__((nonnull));
-
-extern void yle_print_prompt(const wchar_t *prompt)
-    __attribute__((nonnull));
 
 
 #endif /* YASH_LINEEDIT_H */
