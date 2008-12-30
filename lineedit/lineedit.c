@@ -51,26 +51,6 @@ static inline trieget_T make_trieget(const wchar_t *keyseq)
 bool yle_need_term_reset = true;
 
 
-/* The current cursor position. */
-/* 0 <= yle_line < lines, 0 <= yle_column < columns */
-int yle_line, yle_column;
-/* If false, `yle_line' and `yle_column' are not changed when characters are
- * printed. */
-bool yle_counting = true;
-/* If true, there are no characters printed after the cursor.
- * In this case, when a character is inserted at the cursor, redraw is not
- * needed after the cursor: we can simply echo the inserted character. */
-bool yle_cursor_appendable;
-/* If true, some information is printed below the edit line.
- * A typical example of such info is completion candidates.
- * This info must be cleared when editing is finished. */
-bool yle_additional_info_printed;
-
-/* The cursor position of the first character of the edit line, just after the
- * prompt. */
-int yle_editbase_line, yle_editbase_column;
-
-
 /* The state of lineedit. */
 static enum { MODE_INACTIVE, MODE_ACTIVE, MODE_SUSPENDED, } mode;
 /* The state of editing. */
@@ -100,6 +80,8 @@ bool yle_setup(void)
 {
     if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
 	return false;
+    if (mode != MODE_INACTIVE)
+	return false;
     if (!yle_need_term_reset)
 	return true;
 
@@ -118,19 +100,11 @@ bool yle_setup(void)
  * returned. NULL is returned when interrupted. */
 wchar_t *yle_readline(const wchar_t *prompt)
 {
+    wchar_t *resultline;
+
     assert(is_interactive_now);
     assert(!yle_need_term_reset);
-
-    if (mode != MODE_INACTIVE)
-	return xwcsdup(L"");
-
-    yle_line = yle_column = 0;
-    yle_cursor_appendable = true;
-
-    yle_state = YLE_STATE_EDITING;
-
-    wb_init(&yle_main_buffer);
-    yle_main_buffer_index = 0;
+    assert(mode == MODE_INACTIVE);
 
     switch (shopt_lineedit) {
 	case shopt_vi:
@@ -143,26 +117,33 @@ wchar_t *yle_readline(const wchar_t *prompt)
 
     mode = MODE_ACTIVE;
     yle_set_terminal();
+    yle_display_init(prompt);
     reader_init();
-
-    yle_print_prompt(prompt);
-    fflush(stderr);
-    yle_editbase_line = yle_line, yle_editbase_column = yle_column;
+    yle_state = YLE_STATE_EDITING;
 
     do
 	read_next();
     while (yle_state == YLE_STATE_EDITING);
 
     reader_finalize();
+    resultline = yle_display_finalize();
     yle_restore_terminal();
     mode = MODE_INACTIVE;
 
-    if (yle_state == YLE_STATE_INTERRUPTED) {
-	wb_destroy(&yle_main_buffer);
-	return NULL;
-    } else {
-	return wb_towcs(&yle_main_buffer);
+    switch (yle_state) {
+	case YLE_STATE_EDITING:
+	    assert(false);
+	case YLE_STATE_DONE:
+	    break;
+	case YLE_STATE_ERROR:
+	    resultline[0] = L'\0';
+	    break;
+	case YLE_STATE_INTERRUPTED:
+	    free(resultline);
+	    resultline = NULL;
+	    break;
     }
+    return resultline;
 }
 
 /* Restores the terminal state and clears the whole display temporarily. */
@@ -170,7 +151,8 @@ void yle_suspend_readline(void)
 {
     if (mode == MODE_ACTIVE) {
 	mode = MODE_SUSPENDED;
-	//TODO yle_suspend_readline: clear the display
+	fflush(stderr);
+	yle_display_clear();
 	yle_restore_terminal();
     }
 }
@@ -181,7 +163,7 @@ void yle_resume_readline(void)
     if (mode == MODE_SUSPENDED) {
 	mode = MODE_ACTIVE;
 	yle_set_terminal();
-	//TODO yle_resume_readline: rewrite the display
+	yle_display_print_all();
     }
 }
 
@@ -223,6 +205,7 @@ void read_next(void)
 
     /* wait for and read the next byte */
     block_sigchld_and_sigint();
+    fflush(stderr);
     wait_for_input(STDIN_FILENO, true);
     unblock_sigchld_and_sigint();
 

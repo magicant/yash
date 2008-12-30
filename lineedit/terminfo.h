@@ -28,6 +28,7 @@ extern _Bool yle_setupterm(void);
 
 extern void yle_print_cr(void);
 extern void yle_print_nel(void);
+extern void yle_print_nel_if_no_auto_margin(void);
 extern void yle_print_cub(long count);
 extern void yle_print_cuf(long count);
 extern void yle_print_cud(long count);

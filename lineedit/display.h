@@ -23,15 +23,11 @@
 #include "../strbuf.h"
 
 
-extern xwcsbuf_T yle_main_buffer;
-extern size_t yle_main_buffer_index;
-
-extern void yle_print_wc(wchar_t c);
-extern void yle_print_ws(const wchar_t *s, size_t n)
+extern void yle_display_init(const wchar_t *prompt)
     __attribute__((nonnull));
-
-extern void yle_print_prompt(const wchar_t *prompt)
-    __attribute__((nonnull));
+extern wchar_t *yle_display_finalize(void);
+extern void yle_display_clear(void);
+extern void yle_display_print_all(void);
 
 
 #endif /* YASH_DISPLAY_H */

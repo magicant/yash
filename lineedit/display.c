@@ -18,10 +18,11 @@
 
 #include "../common.h"
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <wchar.h>
+#include <wctype.h>
 #include "../history.h"
 #include "../job.h"
 #include "display.h"
@@ -29,104 +30,233 @@
 #include "terminfo.h"
 
 
-static void yle_wprintf(const wchar_t *format, ...)
+static void go_to(int line, int column);
+static void tputwc(wchar_t c);
+static void tputws(const wchar_t *s, size_t n)
+    __attribute__((nonnull));
+
+static void twprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1)));
+static void print_prompt(void);
 static void print_color_seq(const wchar_t **sp)
     __attribute__((nonnull));
 
 
-/* The main buffer where the command line is edited. */
-xwcsbuf_T yle_main_buffer;
-/* The position of the cursor on the command line. */
-/* 0 <= yle_main_buffer_index <= yle_main_buffer.length */
-size_t yle_main_buffer_index;
+/* The current cursor position. */
+/* 0 <= current_line < lines, 0 <= current_column <= columns */
+static int current_line, current_column;
+/* If false, `current_line' and `current_column' are not changed when characters
+ * are printed. */
+static bool trace_position = true;
+/* Normally, control characters are printed like "^X".
+ * If `convert_all_control' is false, '\a', '\n', '\r' are printed in a
+ * different way by `tputwc'. */
+static bool convert_all_control;
+/* If true, some information is printed below the edit line.
+ * A typical example of such info is completion candidates.
+ * This info must be cleared when editing is finished. */
+//static bool additional_info_printed;
 
+/* The main buffer where the command line is edited. */
+static xwcsbuf_T main_buffer;
+/* The position of the cursor on the command line. */
+/* 0 <= main_buffer_index <= main_buffer.length */
+static size_t main_buffer_index;
+
+/* String that is printed as the prompt.
+ * May contain escape sequences. */
+static const wchar_t *promptstring;
+/* The cursor position of the first character of the edit line, just after the
+ * prompt. */
+static int yle_editbase_line, yle_editbase_column;
+
+
+/* Initializes the display module. */
+void yle_display_init(const wchar_t *prompt)
+{
+    current_line = current_column = 0;
+
+    wb_init(&main_buffer);
+    main_buffer_index = 0;
+
+    promptstring = prompt;
+    yle_display_print_all();
+}
+
+/* Finalizes the display module.
+ * Returns the content of the main buffer, which must be freed by the caller. */
+wchar_t *yle_display_finalize(void)
+{
+    //TODO move cursor to last char of buffer
+    yle_print_nel();
+    yle_print_ed();
+    return wb_towcs(&main_buffer);
+}
+
+/* Clears everything printed by lineedit, restoreing the state before lineedit
+ * is started. */
+void yle_display_clear(void)
+{
+    go_to(0, 0);
+    yle_print_ed();
+}
+
+/* Prints everything and moves the cursor to the proper position.
+ * This function assumes that the cursor is at the origin and the screen is
+ * cleared. */
+void yle_display_print_all(void)
+{
+    print_prompt();
+    //TODO redraw properly
+    //additional_info_printed = XXX;
+}
+
+
+/* Moves the cursor to the specified position. */
+static void go_to(int line, int column)
+{
+    yle_print_cr();
+    current_column = 0;
+    if (current_line < line) {
+	yle_print_cud(line - current_line);
+    } else if (current_line > line) {
+	yle_print_cuu(current_line - line);
+    }
+    current_line = line;
+    if (column > 0) {
+	yle_print_cuf(column);
+	current_column = column;
+    }
+}
+
+/* Counts the width of the character `c' as printed by `fputwc'. */
+int count_width(wchar_t c)
+{
+#if HAVE_WCWIDTH
+    int width = wcwidth(c);
+    if (width > 0)
+	return width;
+#else
+    if (iswprint(c))
+	return 1;
+#endif
+    if (!convert_all_control) switch (c) {
+	case L'\a':  case L'\n':  case L'\r':
+	    return 0;
+    }
+    if (c < L'\040') {
+	return count_width(L'^') + count_width(c + L'\100');
+    } else {
+	return 0;
+    }
+}
+
+/* Counts the width of the first 'n' characters in `s' as printed by `fputws'.*/
+int count_width_ws(const wchar_t *s, size_t n)
+{
+    int count = 0;
+
+    for (size_t i = 0; i < n && s[n] != L'\0'; i++)
+	count += count_width(s[n]);
+    return count;
+}
 
 /* Prints the given wide character to the terminal. */
-void yle_print_wc(wchar_t c)
+void tputwc(wchar_t c)
 {
-    /* Special characters like L'\t' and L'\f' will make yle_{line,column}
-     * counted wrong. */
-    if (c == L'\n') {
-	yle_line++, yle_column = 0;
-    } else if (c == L'\r') {
-	yle_column = 0;
-    } else {
 #if HAVE_WCWIDTH
-	int width = wcwidth(c);
+    int width = wcwidth(c);
 #else
-	int width = (c == L'\0') ? 0 : 1;
+    int width = iswprint(c) ? 1 : 0;
 #endif
-	if (width > 0) {
-	    int new_column = yle_column + width;
-	    if (new_column < yle_columns)
-		yle_column = new_column;
-	    else if (new_column == yle_columns)
-		yle_line++, yle_column = 0;
-	    else
-		yle_line++, yle_column = width;
+    if (width > 0) {
+	int new_column = current_column + width;
+	if (new_column <= yle_columns) {
+	    current_column = new_column;
+	} else {
+	    yle_print_nel_if_no_auto_margin();
+	    current_line++, current_column = width;
+	}
+	fprintf(stderr, "%lc", (wint_t) c);
+    } else {
+	if (!convert_all_control) switch (c) {
+	    case L'\a':
+		yle_alert();
+		return;
+	    case L'\n':
+		yle_print_nel();
+		current_line++, current_column = 0;
+		return;
+	    case L'\r':
+		yle_print_cr();
+		current_column = 0;
+		return;
+	}
+	if (c < L'\040') {  // XXX ascii-compatible coding assumed
+	    tputwc(L'^');
+	    tputwc(c + L'\100');
 	}
     }
-    fprintf(stderr, "%lc", (wint_t) c);
 }
 
 /* Prints the given string to the terminal.
  * The first `n' characters are printed at most. */
-void yle_print_ws(const wchar_t *s, size_t n)
+void tputws(const wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n && s[n] != L'\0'; i++)
-	yle_print_wc(s[n]);
+	tputwc(s[n]);
 }
 
 /* Formats and prints the given string. */
-void yle_wprintf(const wchar_t *format, ...)
+void twprintf(const wchar_t *format, ...)
 {
     va_list args;
 
     va_start(args, format);
 
     wchar_t *s = malloc_vwprintf(format, args);
-    yle_print_ws(s, SIZE_MAX);
+    tputws(s, SIZE_MAX);
     free(s);
 
     va_end(args);
 }
 
 /* Prints the given prompt, which may contain backslash escapes. */
-void yle_print_prompt(const wchar_t *prompt)
+void print_prompt(void)
 {
     /* The backslash escapes are defined in "../input.c". */
 
-    yle_counting = true;
+    trace_position = true;
 
-    //assert(yle_line == 0);
-    //assert(yle_column == 0);
+    //assert(current_line == 0);
+    //assert(current_column == 0);
 
-    const wchar_t *s = prompt;
+    const wchar_t *s = promptstring;
     while (*s) {
 	if (*s != L'\\') {
-	    yle_print_wc(*s);
+	    tputwc(*s);
 	} else switch (*++s) {
-	case L'\0':   yle_print_wc(L'\\');  goto done;
-	//case L'\\':   yle_print_wc(L'\\');  break;
-	case L'a':    yle_print_wc(L'\a');  break;
-	case L'e':    yle_print_wc(L'\033');  break;
-	case L'n':    yle_print_wc(L'\n');  break;
-	case L'r':    yle_print_wc(L'\r');  break;
-	case L'$':    yle_print_wc(geteuid() ? L'$' : L'#');  break;
-	default:      yle_print_wc(*s);  break;
-	case L'j':    yle_wprintf(L"%zu", job_count());  break;
+	case L'\0':   tputwc(L'\\');  goto done;
+	//case L'\\':   tputwc(L'\\');  break;
+	case L'a':    tputwc(L'\a');  break;
+	case L'e':    tputwc(L'\033');  break;
+	case L'n':    tputwc(L'\n');  break;
+	case L'r':    tputwc(L'\r');  break;
+	case L'$':    tputwc(geteuid() ? L'$' : L'#');  break;
+	default:      tputwc(*s);  break;
+	case L'j':    twprintf(L"%zu", job_count());  break;
 #if YASH_ENABLE_HISTORY
-	case L'!':    yle_wprintf(L"%d", hist_next_number);  break;
+	case L'!':    twprintf(L"%d", hist_next_number);  break;
 #endif
-	case L'[':    yle_counting = false;  break;
-	case L']':    yle_counting = true;   break;
+	case L'[':    trace_position = false;  break;
+	case L']':    trace_position = true;   break;
 	case L'f':    print_color_seq(&s);   continue;
 	}
 	s++;
     }
 done:
-    yle_counting = true;
+    trace_position = true;
+    yle_editbase_line = current_line, yle_editbase_column = current_column;
 }
 
 /* Prints a sequence to change the terminal font.

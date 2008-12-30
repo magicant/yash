@@ -36,6 +36,8 @@
 
 
 /* terminfo capabilities */
+#define TI_am      "am"
+#define TI_bel     "bel"
 #define TI_cr      "cr"
 #define TI_cub     "cub"
 #define TI_cub1    "cub1"
@@ -47,6 +49,7 @@
 #define TI_cuu1    "cuu1"
 #define TI_ed      "ed"
 #define TI_el      "el"
+#define TI_flash   "flash"
 #define TI_ka1     "ka1"
 #define TI_ka3     "ka3"
 #define TI_kb2     "kb2"
@@ -474,6 +477,13 @@ void yle_print_nel(void)
 	fputc('\n', stderr);
 }
 
+/* Prints "nel" variable if "am" variable is false. */
+void yle_print_nel_if_no_auto_margin(void)
+{
+    if(tigetflag(TI_am) <= 0)
+	yle_print_nel();
+}
+
 /* Moves the cursor.
  * `capone' must be one of "cub1", "cuf1", "cud1", "cuu1".
  * `capmul' must be one of "cub", "cuf", "cud", "cuu". */
@@ -602,7 +612,13 @@ int putchar_stderr(int c)
 /* Alerts the user by flash or bell, without moving the cursor. */
 void yle_alert(void)
 {
-    putchar_stderr('\a');
+    char *v = tigetstr(TI_bel);
+    if (!is_strcap_valid(v))
+	v = tigetstr(TI_flash);
+    if (is_strcap_valid(v))
+	tputs(v, 1, putchar_stderr);
+    else
+	putchar_stderr('\a');
 }
 
 

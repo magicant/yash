@@ -32,9 +32,6 @@ typedef enum {
 
 extern _Bool yle_need_term_reset;
 
-extern int yle_line, yle_column;
-extern _Bool yle_counting;
-
 extern yle_state_T yle_state;
 
 extern void yle_init(void);
