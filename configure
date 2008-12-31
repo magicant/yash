@@ -61,6 +61,7 @@ ctags_args=""
 etags_args=""
 unset prefix eprefix bindir cacheentry cachekey checkresult
 umask u=rwx,go=rx
+cd "$(dirname "$0")"
 
 parseenable() {
     case "$1" in

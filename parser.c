@@ -1183,17 +1183,21 @@ reparse:
 	}
     }
     skip_blanks_and_comment();
-    if (is_command_delimiter_char(cbuf.contents[cindex])) {
-	serror(Ngt("redirect target not specified"));
-	free(result);
-	return NULL;
-    }
     if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
 	result->rd_filename = parse_word(globalonly);
+	if (!result->rd_filename) {
+	    serror(Ngt("redirect target not specified"));
+	    free(result);
+	    return NULL;
+	}
     } else {
 	size_t index = cindex;
 	wchar_t *endofheredoc = parse_word_as_wcs();
-	assert(index != cindex);
+	if (index == cindex) {
+	    serror(Ngt("here-document delimiter not specified"));
+	    free(result);
+	    return NULL;
+	}
 	result->rd_hereend = endofheredoc;
 	result->rd_herecontent = NULL;
 	pl_add(&pending_heredocs, result);
@@ -1219,7 +1223,8 @@ wordunit_T *parse_word(aliastype_T type)
  * `testfunc' is a function that determines if a character is a word delimiter.
  * It must return true for L'\0'.
  * The parsing process proceeds up to an unescaped character `testfunc' returns
- * false for. It is not an error if there is no characters to be a word. */
+ * false for. It is not an error if there is no characters to be a word, in
+ * which case NULL is returned. */
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
 #if YASH_ENABLE_ALIAS

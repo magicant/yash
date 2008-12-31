@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.5
+
+  *  Some redirection syntax errors were overlooked.
+
+----------------------------------------------------------------------
 Yash 2.4
 
   =  The long option for the -p option of the "jobs" builtin has been
