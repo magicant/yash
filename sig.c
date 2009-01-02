@@ -348,8 +348,10 @@ void reset_special_handler(int signum)
     else
 	action.sa_handler = SIG_DFL;
     sigemptyset(&action.sa_mask);
-    if (sigaction(signum, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIG%s)", get_signal_name(signum));
+    if (sigaction(signum, &action, NULL) < 0) {
+	int saveerrno = errno;
+	xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
+    }
 }
 
 /* Checks if the specified signal is ignored. */
@@ -804,27 +806,32 @@ nodefault:
 /* Clears all traps except that are set to SIG_IGN. */
 void clear_traps(void)
 {
-    if (!any_trap_set)
+    if (!any_trap_set && !any_signal_received)
 	return;
 
     {
-	wchar_t *command = trap_command[sigindex(0)];
+	size_t index = sigindex(0);
+	wchar_t *command = trap_command[index];
 	if (command && command[0])
 	    set_trap(0, NULL);
+	signal_received[index] = false;
     }
     for (const signal_T *s = signals; s->no; s++) {
-	wchar_t *command = trap_command[sigindex(s->no)];
+	size_t index = sigindex(s->no);
+	wchar_t *command = trap_command[index];
 	if (command && command[0])
 	    set_trap(s->no, NULL);
+	signal_received[index] = false;
     }
 #if defined SIGRTMIN && defined SIGRTMAX
     for (int sigrtmin = SIGRTMIN, i = 0; i < RTSIZE; i++) {
 	wchar_t *command = rttrap_command[i];
 	if (command && command[0])
 	    set_trap(sigrtmin + i, NULL);
+	rtsignal_received[i] = false;
     }
 #endif
-    any_trap_set = false;
+    any_trap_set = any_signal_received = false;
 }
 
 
