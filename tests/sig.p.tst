@@ -1,7 +1,5 @@
 tmp="${TESTTMP}/sig.p"
 
-set -m
-
 echo ===== kill =====
 
 kill -l >/dev/null

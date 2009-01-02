@@ -10,7 +10,9 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.5
 
+  =  Redirection of FDs used by the shell is now error.
   *  Some redirection syntax errors were overlooked.
+  *  Fixed the "sig.y" test failure.
 
 ----------------------------------------------------------------------
 Yash 2.4

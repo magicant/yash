@@ -1,24 +1,35 @@
+export TFIFO="${TESTTMP}/sig.y"
+
+mkfifo "$TFIFO"
+
 echo ===== kill =====
 
 # SIGTTOU and SIGTSTP are ignored when job control is active
 set -m
+
 kill -s TTOU $$
 echo TTOU ignored
 kill -s TSTP $$
 echo TSTP ignored
 
-sleep 30 &
+sleep 30 >"$TFIFO" &
+exec 3<"$TFIFO"
 kill -s TTOU %1
 wait %1
 kill -l $?
-sleep 30 &
+exec 3<&-
+sleep 30 >"$TFIFO"&
+exec 3<"$TFIFO"
 kill -s TSTP %2
 wait %2
 kill -l $?
+exec 3<&-
 bg %1 %2
 kill %1 %2
 fg %1 %2 2>/dev/null # some systems don't allow to send a signal to zombies
 kill -l $?
+
+set +m
 
 echo =====
 
@@ -31,7 +42,8 @@ echo TERM ignored
 kill -s QUIT $$
 echo QUIT ignored
 
-sleep 30 &
+sleep 30 >"$TFIFO" &
+exec 3<"$TFIFO"
 kill -s TERM %1
 wait %1 >/dev/null
 kill -l $?
@@ -103,3 +115,6 @@ trap '' USR2
 kill -s USR2 0 && kill -s USR1 0&
 wait %1
 kill -l $?
+set +m
+
+rm -f "$TFIFO"
