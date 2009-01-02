@@ -13,6 +13,9 @@ Yash 2.5
   =  Redirection of FDs used by the shell is now error.
   *  Some redirection syntax errors were overlooked.
   *  Fixed the "sig.y" test failure.
+  *  When an "exec" command with redirections is enclosed in a brace
+     with redirections, the redirections to the brace are now properly
+     closed after execution.
 
 ----------------------------------------------------------------------
 Yash 2.4

@@ -178,7 +178,7 @@ static struct execinfo {
 #define INIT_EXECINFO { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
 /* This flag is set while the "exec" builtin is executed. */
-static bool exec_builtin_executed;
+static bool exec_builtin_executed = false;
 
 /* the last assignment. */
 static assign_T *last_assign;
@@ -719,7 +719,6 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	maybe_redirect_stdin_to_devnull();
 
     /* execute! */
-    exec_builtin_executed = false;
     if (c->c_type == CT_SIMPLE) {
 	last_assign = c->c_assigns;
 	if (argc == 0) {
@@ -757,6 +756,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	clear_savefd(savefd);
     else
 	undo_redirections(savefd);
+    exec_builtin_executed = false;
     return 0;
 
 exp_fail:

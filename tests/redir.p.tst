@@ -37,6 +37,12 @@ echo exec redirect
 exec 4<>/dev/null
 cat >&4 <&4 # prints nothing
 
+$INVOKE $TESTEE -c 'exec >&5; echo not printed' 2>/dev/null
+$INVOKE $TESTEE -c 'command exec >&5; echo printed' 2>/dev/null
+{ exec 4>&1; } 5>&1
+echo exec in group >&4
+{ echo error >&5; } 2>/dev/null || echo file descriptor closed
+
 echo ===== 2 =====
 
 cat <<END >"$tmp"
