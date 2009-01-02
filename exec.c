@@ -829,9 +829,9 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	restore_job_signals();
 	restore_interactive_signals();
 	if (sigtype & t_leave) {
-	    clear_shellfds(false);
-	} else {
 	    clear_shellfds(true);
+	} else {
+	    clear_shellfds(false);
 	    clear_traps();
 	}
 	is_interactive_now = false;

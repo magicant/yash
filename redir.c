@@ -198,12 +198,13 @@ bool is_shellfd(int fd)
  * If `leavefds' is true, the file descriptors are actually not closed. */
 void clear_shellfds(bool leavefds)
 {
-    if (!leavefds)
+    if (!leavefds) {
 	for (int fd = 0; fd <= shellfdmax; fd++)
 	    if (FD_ISSET(fd, &shellfds))
 		xclose(fd);
-    FD_ZERO(&shellfds);
-    shellfdmax = -1;
+	FD_ZERO(&shellfds);
+	shellfdmax = -1;
+    }
     ttyfd = -1;
 }
 
@@ -535,7 +536,10 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 	    xerror(errno, Ngt("redirection: %s"), num);
 	    fd = -2;
 	} else {
-	    if (posixly_correct) {
+	    if (is_shellfd(fd)) {
+		xerror(EBADF, Ngt("redirection: %d"), fd);
+		fd = -2;
+	    } else if (posixly_correct) {
 		/* check the read/write permission */
 		int flags = fcntl(fd, F_GETFL);
 		if (flags < 0) {
