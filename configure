@@ -384,8 +384,8 @@ then
 #include <term.h>
 int main() {
 setupterm((char*)0, 1, (int*)0);
-putp(tigetflag(""));
-putp(tigetnum(""));
+tigetflag("");
+tigetnum("");
 tputs(tigetstr(""), 1, putchar);
 }
 END
@@ -504,7 +504,7 @@ if
 	cat >"${tempsrc}" <<END
 #define _XOPEN_SOURCE 600
 #include <wchar.h>
-int main() { return wcswidth(L"\0"); }
+int main() { return wcswidth(L"\0", 0); }
 END
 	trymake && tryexec
     fi
