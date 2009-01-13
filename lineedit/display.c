@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -30,16 +31,38 @@
 #include "terminfo.h"
 
 
+/* Characters displayed on the screen by lineedit are divided into three parts:
+ * the prompt, the edit line and the completion candidates.
+ * The prompt is immediately followed by the edit line (on the same line) but
+ * the candidates are always on separate lines.
+ * The three parts are printed in this order, from upper to lower.
+ * The `tputwc' function is the main function for displaying. It prints one
+ * character for each call, tracking the cursor position.
+ * In most terminals, when characters are printed as many as the number of
+ * the columns, the cursor temporarily sticks to the end of the line. The cursor
+ * moves to the next line immediately before the next character is printed. So
+ * we must take care not to move the cursor (by the cub1 capability, etc.) when
+ * it is sticking, or we cannot track the correct cursor position. In other
+ * words, when the cursor reaches the end of the line, we must immediately
+ * print the next character (or a dummy character) so that the cursor is no
+ * longer sticking. Since we print characters in the order of normal text flow,
+ * the problem becomes rather simple: All we have to do is to print a dummy
+ * character and erase it if we finish printing the edit line at the end of the
+ * line. */
+
+
 static void go_to(int line, int column);
 static void tputwc(wchar_t c);
 static void tputws(const wchar_t *s, size_t n)
     __attribute__((nonnull));
-
 static void twprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1)));
+
 static void print_prompt(void);
 static void print_color_seq(const wchar_t **sp)
     __attribute__((nonnull));
+
+static void print_editline(bool keepstuck);
 
 
 /* The current cursor position. */
@@ -57,23 +80,42 @@ static bool convert_all_control;
  * This info must be cleared when editing is finished. */
 //static bool additional_info_printed;
 
+/* String that is printed as the prompt.
+ * May contain escape sequences. */
+static const wchar_t *promptstring;
+/* The position of the first character of the edit line, just after the prompt.
+ */
+static int editbase_line, editbase_column;
+
 /* The main buffer where the command line is edited. */
 static xwcsbuf_T main_buffer;
 /* The position of the cursor on the command line. */
 /* 0 <= main_buffer_index <= main_buffer.length */
 static size_t main_buffer_index;
+/* The current cursor position on the edit line in the screen. */
+static int cursor_line, cursor_column;
 
-/* String that is printed as the prompt.
- * May contain escape sequences. */
-static const wchar_t *promptstring;
-/* The cursor position of the first character of the edit line, just after the
- * prompt. */
-static int yle_editbase_line, yle_editbase_column;
+
+#if !HAVE_WCWIDTH
+# undef wcwidth
+# define wcwidth(c) (iswprint(c) ? 1 : 0)
+#endif
 
 
 /* Initializes the display module. */
 void yle_display_init(const wchar_t *prompt)
 {
+#if !YASH_DISABLE_PROMPT_ADJUST
+    /* print dummy string to make sure the cursor is at the beginning of line */
+    yle_print_sgr(1, 0, 0, 0, 0, 0, 0);
+    fputc('%', stderr);
+    yle_print_sgr(0, 0, 0, 0, 0, 0, 0);
+    for (int i = 1; i < yle_columns; i++)
+	fputc(' ', stderr);
+    yle_print_cr();
+    yle_print_ed();
+#endif
+
     current_line = current_column = 0;
 
     wb_init(&main_buffer);
@@ -87,7 +129,10 @@ void yle_display_init(const wchar_t *prompt)
  * Returns the content of the main buffer, which must be freed by the caller. */
 wchar_t *yle_display_finalize(void)
 {
-    //TODO move cursor to last char of buffer
+    if (main_buffer.length != main_buffer_index) {
+	go_to(editbase_line, editbase_column);
+	print_editline(true);
+    }
     yle_print_nel();
     yle_print_ed();
     return wb_towcs(&main_buffer);
@@ -107,7 +152,8 @@ void yle_display_clear(void)
 void yle_display_print_all(void)
 {
     print_prompt();
-    //TODO redraw properly
+    print_editline(false);
+    go_to(cursor_line, cursor_column);
     //additional_info_printed = XXX;
 }
 
@@ -115,13 +161,24 @@ void yle_display_print_all(void)
 /* Moves the cursor to the specified position. */
 static void go_to(int line, int column)
 {
+    assert(line < yle_lines);
+    assert(column < yle_columns);
+
+    if (line == current_line) {
+	if (current_column < column)
+	    yle_print_cuf(column - current_column);
+	else if (current_column > column)
+	    yle_print_cub(current_column - column);
+	current_column = column;
+	return;
+    }
+
     yle_print_cr();
     current_column = 0;
-    if (current_line < line) {
+    if (current_line < line)
 	yle_print_cud(line - current_line);
-    } else if (current_line > line) {
+    else if (current_line > line)
 	yle_print_cuu(current_line - line);
-    }
     current_line = line;
     if (column > 0) {
 	yle_print_cuf(column);
@@ -132,14 +189,9 @@ static void go_to(int line, int column)
 /* Counts the width of the character `c' as printed by `fputwc'. */
 int count_width(wchar_t c)
 {
-#if HAVE_WCWIDTH
     int width = wcwidth(c);
     if (width > 0)
 	return width;
-#else
-    if (iswprint(c))
-	return 1;
-#endif
     if (!convert_all_control) switch (c) {
 	case L'\a':  case L'\n':  case L'\r':
 	    return 0;
@@ -164,11 +216,12 @@ int count_width_ws(const wchar_t *s, size_t n)
 /* Prints the given wide character to the terminal. */
 void tputwc(wchar_t c)
 {
-#if HAVE_WCWIDTH
+    if (!trace_position) {
+	fprintf(stderr, "%lc", (wint_t) c);
+	return;
+    }
+
     int width = wcwidth(c);
-#else
-    int width = iswprint(c) ? 1 : 0;
-#endif
     if (width > 0) {
 	int new_column = current_column + width;
 	if (new_column <= yle_columns) {
@@ -192,7 +245,7 @@ void tputwc(wchar_t c)
 		current_column = 0;
 		return;
 	}
-	if (c < L'\040') {  // XXX ascii-compatible coding assumed
+	if (c < L'\040') {  // XXX ascii-compatible encoding assumed
 	    tputwc(L'^');
 	    tputwc(c + L'\100');
 	}
@@ -227,9 +280,10 @@ void print_prompt(void)
     /* The backslash escapes are defined in "../input.c". */
 
     trace_position = true;
+    convert_all_control = false;
 
-    //assert(current_line == 0);
-    //assert(current_column == 0);
+    assert(current_line == 0);
+    assert(current_column == 0);
 
     const wchar_t *s = promptstring;
     while (*s) {
@@ -255,8 +309,7 @@ void print_prompt(void)
 	s++;
     }
 done:
-    trace_position = true;
-    yle_editbase_line = current_line, yle_editbase_column = current_column;
+    editbase_line = current_line, editbase_column = current_column;
 }
 
 /* Prints a sequence to change the terminal font.
@@ -309,6 +362,32 @@ done:
     }
     if (bg >= 0) { /* set background color */
 	yle_print_setbg(bg);
+    }
+}
+
+/* Prints the whole content of the edit line and updates `cursor_line' and
+ * `cursor_column'.
+ * Must be called right after the prompt is printed.
+ * if `keepstuck' is false, a dummy character is printed if needed so that the
+ * cursor is not sticking at the end of the line. */
+void print_editline(bool keepstuck)
+{
+    assert(current_line == editbase_line);
+    assert(current_column == editbase_column);
+    trace_position = convert_all_control = true;
+
+    tputws(main_buffer.contents, main_buffer_index);
+    cursor_line = current_line, cursor_column = current_column;
+    if (cursor_column >= yle_columns)
+	cursor_line++, cursor_column = 0;
+
+    tputws(main_buffer.contents + main_buffer_index, SIZE_MAX);
+    if (!keepstuck && current_column >= yle_columns) {
+	/* print a dummy space to move the cursor to the next line */
+	tputwc(L' ');
+	yle_print_cr();
+	yle_print_el();
+	current_column = 0;
     }
 }
 
