@@ -1935,7 +1935,7 @@ command_T *parse_for(void)
 	skip_blanks_and_comment();
 	result->c_forwords = parse_words_and_redirects(&redirs, false);
 	if (redirs) {
-	    serror(Ngt("redirections not allowed after `in'"));
+	    serror(Ngt("redirection not allowed after `in'"));
 	    redirsfree(redirs);
 	}
     } else {
