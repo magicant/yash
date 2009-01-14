@@ -16,6 +16,8 @@ Yash 2.5
   *  When an "exec" command with redirections is enclosed in a brace
      with redirections, the redirections to the brace are now properly
      closed after execution.
+  *  Fixed parsing error of a comment after the identifier of a for
+     statement.
 
 ----------------------------------------------------------------------
 Yash 2.4

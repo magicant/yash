@@ -1029,6 +1029,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 	    redirlastp = &redir->next;
 	} else if ((word = parse_word(noalias))) {
 	    pl_add(&wordlist, word);
+	    skip_blanks_and_comment();
 	    first = false;
 	} else {
 	    break;
@@ -1071,12 +1072,7 @@ assign_T *tryparse_assignment(void)
     ensure_buffer(1);
     if (cbuf.contents[cindex] != L'(') {
 	result->a_type = A_SCALAR;
-	if (is_token_delimiter_char(cbuf.contents[cindex])) {
-	    skip_blanks_and_comment();
-	    result->a_scalar = NULL;
-	} else {
-	    result->a_scalar = parse_word(noalias);
-	}
+	result->a_scalar = parse_word(noalias);
     } else {
 	cindex++;
 	skip_to_next_token();
@@ -1086,8 +1082,8 @@ assign_T *tryparse_assignment(void)
 	    cindex++;
 	else
 	    serror(Ngt("`%ls' missing"), L")");
-	skip_blanks_and_comment();
     }
+    skip_blanks_and_comment();
     return result;
 }
 
@@ -1191,9 +1187,8 @@ reparse:
 	    return NULL;
 	}
     } else {
-	size_t index = cindex;
 	wchar_t *endofheredoc = parse_word_as_wcs();
-	if (index == cindex) {
+	if (endofheredoc[0] == L'\0') {
 	    serror(Ngt("here-document delimiter not specified"));
 	    free(result);
 	    return NULL;
@@ -1202,6 +1197,7 @@ reparse:
 	result->rd_herecontent = NULL;
 	pl_add(&pending_heredocs, result);
     }
+    skip_blanks_and_comment();
     return result;
 
 parse_command:
@@ -1315,7 +1311,6 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
     if (indq)
 	serror(Ngt("double-quote not closed"));
 
-    skip_blanks_and_comment();
     return first;
 }
 
@@ -1566,7 +1561,7 @@ parse_match:
 	pe->pe_match = parse_word_to(noalias, is_slash_or_closing_brace);
     }
 
-    /* ensure_buffer(1); */
+    ensure_buffer(1);
     if (cbuf.contents[cindex] != L'/')
 	goto check_closing_paren_and_finish;
 parse_subst:
@@ -1574,7 +1569,7 @@ parse_subst:
     pe->pe_subst = parse_word_to(noalias, is_closing_brace);
 
 check_closing_paren_and_finish:
-    /* ensure_buffer(1); */
+    ensure_buffer(1);
     if (cbuf.contents[cindex] == L'}')
 	cindex++;
     else
@@ -1758,20 +1753,14 @@ fail:
 }
 
 /* Returns a word token at the current index as a newly malloced string.
- * `cindex' is advanced to the next token by `skip_blanks_and_comment'.
- * This function never returns NULL. */
+ * `cindex' proceeds to just after the word.
+ * This function never returns NULL, but may return an empty string. */
 wchar_t *parse_word_as_wcs(void)
 {
-    size_t index = cindex;
+    size_t startindex = cindex;
     wordfree(parse_word(globalonly));
-
-    /* create a copy of the word */
-    wchar_t *result = xwcsndup(cbuf.contents + index, cindex - index);
-    /* remove the trailing blanks of the word */
-    index = cindex - index;
-    while (index-- > 0 && iswblank(result[index]));
-    result[++index] = L'\0';
-    return result;
+    assert(startindex <= cindex);
+    return xwcsndup(cbuf.contents + startindex, cindex - startindex);
 }
 
 /* Parses a compound command.
@@ -2069,6 +2058,7 @@ void **parse_case_patterns(void)
 	    serror(Ngt("invalid character `%lc' in case pattern"),
 		    (wint_t) cbuf.contents[cindex]);
 	pl_add(&wordlist, parse_word(globalonly));
+	skip_blanks_and_comment();
 	ensure_buffer(1);
 	if (cbuf.contents[cindex] == L'|') {
 	    cindex++;
