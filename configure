@@ -1,5 +1,5 @@
 # Manually written configuration script for yash
-# (C) 2007-2008 magicant
+# (C) 2007-2009 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@ temptxt="./.temp.txt"
 
 target="yash"
 package="yash"
-version="2.4"
-copyrightyear="2007-2008"
+version="2.5"
+copyrightyear="2007-2009"
 
 # all source files in this directory
 sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
