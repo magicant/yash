@@ -1,4 +1,4 @@
-echol () for i; do printf "%s\n" "$i"; done
+echol () for i do printf "%s\n" "$i"; done
 
 echo ===== tilde expansion =====
 
@@ -138,7 +138,7 @@ echo +${foo-1+2}+${bar-3+4}+
 echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 
 set $foo bar '' xyz ''$foo'' abc
-for i; do echo "-$i-"; done
+for i do echo "-$i-"; done
 
 echo =====
 
