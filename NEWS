@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.6
+
+  *  "alias -p" now prints commands with proper escape.
+
+----------------------------------------------------------------------
 Yash 2.5
 
   =  Redirection of FDs used by the shell is now error.
