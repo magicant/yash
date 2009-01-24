@@ -1,7 +1,7 @@
 tmp="${TESTTMP}/alias.tmp"
 
-alias -g A=a B=b C=c singlequote=\'
-echo C B A -A- -B- -C- \A "B" 'C'
+alias -g A=a B=b C=c singlequote=\' -- ---=-
+echo C B A -A- -B- -C- \A "B" 'C' ---
 alias --global \C \singlequote C='| cat'
 echo pipe alias C
 

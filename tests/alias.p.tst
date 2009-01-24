@@ -18,9 +18,12 @@ alias if=: then=: fi=: 2>/dev/null
 if true; then echo reserved words; fi
 unalias if then fi 2>/dev/null
 
+alias -- -=echo
+- hyphen
+
 alias | sort >"$tmp"
 \unalias -a
-eval alias $(cat "$tmp")
+eval alias -- $(cat "$tmp")
 alias | sort | diff - "$tmp" && echo restored
 
 echo =====
