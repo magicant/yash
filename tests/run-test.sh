@@ -21,7 +21,7 @@ if [ x"${TMPDIR}" = x"${TMPDIR#/}" ]; then
     echo \$TMPDIR must be an absolute path >&2
     exit 1
 fi
-TESTTMP="${TMPDIR}/test.$$"
+TESTTMP="$(cd ${TMPDIR}; pwd)/test.$$"
 trap 'rm -rf $TESTTMP' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
     echo Cannot create temporary directory >&2
