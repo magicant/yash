@@ -472,13 +472,15 @@ static int fc_print_entries(
 	bool reverse, enum fcprinttype_T type)
     __attribute__((nonnull));
 static int fc_exec_entry(const histentry_T *entry,
-	const wchar_t *old, const wchar_t *new)
+	const wchar_t *old, const wchar_t *new, bool quiet)
     __attribute__((nonnull(1)));
 static int fc_edit_and_exec_entries(
 	const histentry_T *first, const histentry_T *last,
-	bool reverse, const wchar_t *editor)
+	bool reverse, const wchar_t *editor, bool quiet)
     __attribute__((nonnull(1,2)));
 static void fc_read_history(const char *filename)
+    __attribute__((nonnull));
+static void fc_print_file(FILE *f)
     __attribute__((nonnull));
 
 /* The "fc" builtin, which accepts the following options:
@@ -493,6 +495,7 @@ int fc_builtin(int argc, void **argv)
 	{ L"editor",     xrequired_argument, L'e', },
 	{ L"list",       xno_argument,       L'l', },
 	{ L"no-numbers", xno_argument,       L'n', },
+	{ L"quiet",      xno_argument,       L'q', },
 	{ L"reverse",    xno_argument,       L'r', },
 	{ L"silent",     xno_argument,       L's', },
 	{ L"help",       xno_argument,       L'-', },
@@ -500,15 +503,19 @@ int fc_builtin(int argc, void **argv)
     };
 
     const wchar_t *editor = NULL;
-    bool list = false, nonum = false, rev = false, silent = false;
+    bool list = false, nonum = false, quiet = false,
+	 rev = false, silent = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-e:lnrs", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"-e:lnrs" : L"-e:lnqrs",
+		    long_options, NULL))) {
 	switch (opt) {
 	    case L'e':  editor = xoptarg;  break;
 	    case L'l':  list   = true;     break;
 	    case L'n':  nonum  = true;     break;
+	    case L'q':  quiet  = true;     break;
 	    case L'r':  rev    = true;     break;
 	    case L's':  silent = true;     break;
 	    case L'-':
@@ -519,7 +526,7 @@ int fc_builtin(int argc, void **argv)
 	}
     }
     if ((editor && (list || silent))
-	    || (list && silent)
+	    || (list && (quiet || silent))
 	    || (rev && silent)
 	    || (nonum && !list)
 	    || (argc - xoptind > 2))
@@ -636,14 +643,19 @@ int fc_builtin(int argc, void **argv)
 	return fc_print_entries(stdout, efirst, elast, rev,
 		nonum ? UNNUMBERED : NUMBERED);
     else if (silent)
-	return fc_exec_entry(efirst, old, new);
+	return fc_exec_entry(efirst, old, new, quiet);
     else
-	return fc_edit_and_exec_entries(efirst, elast, rev, editor);
+	return fc_edit_and_exec_entries(efirst, elast, rev, editor, quiet);
 
 print_usage:
-    fprintf(stderr, gt("Usage:  fc [-r] [-e editor] [first [last]]\n"
-                       "        fc -s [old=new] [first]\n"
-		       "        fc -l [-nr] [first [last]]\n"));
+    if (posixly_correct)
+	fprintf(stderr, gt("Usage:  fc [-r] [-e editor] [first [last]]\n"
+	                   "        fc -s [old=new] [first]\n"
+	                   "        fc -l [-nr] [first [last]]\n"));
+    else
+	fprintf(stderr, gt("Usage:  fc [-qr] [-e editor] [first [last]]\n"
+	                   "        fc -qs [old=new] [first]\n"
+	                   "        fc -l [-nr] [first [last]]\n"));
     return Exit_ERROR;
 }
 
@@ -690,9 +702,10 @@ int fc_print_entries(
 
 /* Executes the value of `entry'.
  * If `old' is not NULL, the first occurrence of `old' in the command is
- * replaced with `new' before execution (but the entry's value is unchanged). */
+ * replaced with `new' before execution (but the entry's value is unchanged).
+ * If `quiet' is false, prints the command before execution. */
 int fc_exec_entry(const histentry_T *entry,
-	const wchar_t *old, const wchar_t *new)
+	const wchar_t *old, const wchar_t *new, bool quiet)
 {
     wchar_t *code = malloc_mbstowcs(entry->value);
     if (!code) {
@@ -718,6 +731,8 @@ int fc_exec_entry(const histentry_T *entry,
 	new_entry(entry->value);
     }
 
+    if (!quiet)
+	fprintf(stderr, "%ls\n", code);
     exec_wcs(code, "fc", false);
     free(code);
     return laststatus;
@@ -725,7 +740,7 @@ int fc_exec_entry(const histentry_T *entry,
 
 int fc_edit_and_exec_entries(
 	const histentry_T *first, const histentry_T *last,
-	bool reverse, const wchar_t *editor)
+	bool reverse, const wchar_t *editor, bool quiet)
 {
     char *temp;
     int fd;
@@ -780,6 +795,8 @@ int fc_edit_and_exec_entries(
 	free(temp);
 
 	if (f != NULL) {
+	    if (!quiet)
+		fc_print_file(f);
 	    exec_input(f, "fc", false, false);
 	    remove_shellfd(fileno(f));
 	    fclose(f);
@@ -808,10 +825,20 @@ void fc_read_history(const char *filename)
     }
 }
 
+void fc_print_file(FILE *f)
+{
+    wchar_t buf[1000];
+
+    while (fgetws(buf, sizeof buf / sizeof *buf, f))
+	fprintf(stderr, "%ls", buf);
+    fseek(f, 0, SEEK_SET);
+    fflush(stderr);
+}
+
 const char fc_help[] = Ngt(
 "fc - list or re-execute command history\n"
-"\tfc [-r] [-e editor] [first [last]]\n"
-"\tfc -s [old=new] [first]\n"
+"\tfc [-qr] [-e editor] [first [last]]\n"
+"\tfc -qs [old=new] [first]\n"
 "\tfc -l [-nr] [first [last]]\n"
 "The first form invokes an editor to edit a temporary file containing the\n"
 "command history and, after the editor exited, executes commands in the file.\n"
@@ -826,6 +853,7 @@ const char fc_help[] = Ngt(
 "is not set either, \"ed\" is the last resort.\n"
 "The -n (--no-numbers) option suppresses command numbers, which would\n"
 "otherwise be printed preceding each command.\n"
+"The -q (--quiet) option suppresses echoing the executed command.\n"
 "The -r (--reverse) option reverses the order of commands to be edited or\n"
 "printed.\n"
 "\n"
