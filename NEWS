@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.6
 
+  +  Added the -q option to the fc builtin.
   *  "alias -p" now prints commands with proper escape.
 
 ----------------------------------------------------------------------

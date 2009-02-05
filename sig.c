@@ -831,7 +831,7 @@ void clear_traps(void)
 	rtsignal_received[i] = false;
     }
 #endif
-    any_trap_set = any_signal_received = false;
+    any_trap_set = false, any_signal_received = false;
 }
 
 
