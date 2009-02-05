@@ -12,6 +12,8 @@ Yash 2.6
 
   +  Added the -q option to the fc builtin.
   *  "alias -p" now prints commands with proper escape.
+  *  In posixly-correct mode, a semicolon followed by the identifier
+     followed by "for" is now treated as an error.
 
 ----------------------------------------------------------------------
 Yash 2.5

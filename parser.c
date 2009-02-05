@@ -1517,7 +1517,8 @@ make_name:
     case L'}':
 	pe->pe_type |= PT_NONE;
 	if (pe->pe_type & PT_COLON)
-	    serror(Ngt("invalid use of `:' in parameter expansion"));
+	    serror(Ngt("invalid use of `%lc' in parameter expansion"),
+		    (wint_t) L':');
 	goto check_closing_paren_and_finish;
     case L'\0':  case L'\n':
 	serror(Ngt("`%ls' missing"), L"}");
@@ -1533,7 +1534,8 @@ parse_match:
 	if ((pe->pe_type & PT_MASK) == PT_SUBST)
 	    pe->pe_type |= PT_MATCHHEAD | PT_MATCHTAIL;
 	else
-	    serror(Ngt("invalid use of `:' in parameter expansion"));
+	    serror(Ngt("invalid use of `%lc' in parameter expansion"),
+		    (wint_t) L':');
 	cindex += 1;
     } else if (cbuf.contents[cindex] == cbuf.contents[cindex + 1]) {
 	if ((pe->pe_type & PT_MASK) == PT_MATCH)
@@ -1575,7 +1577,8 @@ check_closing_paren_and_finish:
     else
 	serror(Ngt("`%ls' missing"), L"}");
     if ((pe->pe_type & PT_NUMBER) && (pe->pe_type & PT_MASK) != PT_NONE)
-	serror(Ngt("invalid use of `#' flag in parameter expansion"));
+	serror(Ngt("invalid use of `%lc' in parameter expansion"),
+		(wint_t) L'#');
 
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -1824,7 +1827,7 @@ command_T *parse_group(commandtype_T type)
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
     result->c_subcmds = parse_compound_list();
-    if (!result->c_subcmds)
+    if (posixly_correct && !result->c_subcmds)
 	serror(Ngt("no commands in command group"));
     if (cbuf.contents[cindex] == terminator[0])
 	cindex++;
@@ -1856,7 +1859,8 @@ command_T *parse_if(void)
 	if (!els) {
 	    ic->ic_condition = parse_compound_list();
 	    if (!ic->ic_condition)
-		serror(Ngt("no commands between `if' and `then'"));
+		serror(Ngt("no commands between `%ls' and `%ls'"),
+			L"if", L"then");
 	    ensure_buffer(5);
 	    if (is_token_at(L"then", cindex))
 		cindex += 4;
@@ -1946,7 +1950,7 @@ command_T *parse_for(void)
 	print_errmsg_token_missing(L"do", cindex);
     result->c_forcmds = parse_compound_list();
     if (!result->c_forcmds)
-	serror(Ngt("no commands between `do' and `done'"));
+	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))
 	cindex += 4;
@@ -1978,7 +1982,7 @@ command_T *parse_while(bool whltype)
 	print_errmsg_token_missing(L"do", cindex);
     result->c_whlcmds = parse_compound_list();
     if (!result->c_whlcmds)
-	serror(Ngt("no commands between `do' and `done'"));
+	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))
 	cindex += 4;
