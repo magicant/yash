@@ -227,6 +227,13 @@ e
 
 for in in in; do echo $in; done
 
+false
+for i in; do :; done
+echo $?
+(exit 2)
+for i in 1; do (exit 1); done
+echo $?
+
 echo ===== 7 =====
 
 false

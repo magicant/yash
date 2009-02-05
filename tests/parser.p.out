@@ -79,6 +79,8 @@ parser.p.tst
 3
 3
 in
+0
+1
 ===== 7 =====
 0
 ok
@@ -103,4 +105,4 @@ function
 2
 re-redirected
 redirected
-lineno=364
+lineno=371

@@ -11,9 +11,11 @@ History of Yash
 Yash 2.6
 
   +  Added the -q option to the fc builtin.
+  +  Compound commands may now contain no commands inside.
   *  "alias -p" now prints commands with proper escape.
   *  In posixly-correct mode, a semicolon followed by the identifier
      followed by "for" is now treated as an error.
+  *  Global aliases are now allowed after compound commands.
 
 ----------------------------------------------------------------------
 Yash 2.5

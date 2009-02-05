@@ -1866,7 +1866,7 @@ command_T *parse_if(void)
 	ic->next = NULL;
 	if (!els) {
 	    ic->ic_condition = parse_compound_list();
-	    if (!ic->ic_condition)
+	    if (posixly_correct && !ic->ic_condition)
 		serror(Ngt("no commands between `%ls' and `%ls'"),
 			L"if", L"then");
 	    ensure_buffer(5);
@@ -1878,7 +1878,7 @@ command_T *parse_if(void)
 	    ic->ic_condition = NULL;
 	}
 	ic->ic_commands = parse_compound_list();
-	if (!ic->ic_commands)
+	if (posixly_correct && !ic->ic_commands)
 	    serror(Ngt("no commands after `%ls'"), els ? L"else" : L"then");
 	ensure_buffer(5);
 	if (!els) {
@@ -1957,7 +1957,7 @@ command_T *parse_for(void)
     else
 	print_errmsg_token_missing(L"do", cindex);
     result->c_forcmds = parse_compound_list();
-    if (!result->c_forcmds)
+    if (posixly_correct && !result->c_forcmds)
 	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))
@@ -1981,7 +1981,7 @@ command_T *parse_while(bool whltype)
     result->c_redirs = NULL;
     result->c_whltype = whltype;
     result->c_whlcond = parse_compound_list();
-    if (!result->c_whlcond)
+    if (posixly_correct && !result->c_whlcond)
 	serror(Ngt("no commands after `%ls'"), whltype ? L"while" : L"until");
     ensure_buffer(3);
     if (is_token_at(L"do", cindex))
@@ -1989,7 +1989,7 @@ command_T *parse_while(bool whltype)
     else
 	print_errmsg_token_missing(L"do", cindex);
     result->c_whlcmds = parse_compound_list();
-    if (!result->c_whlcmds)
+    if (posixly_correct && !result->c_whlcmds)
 	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))

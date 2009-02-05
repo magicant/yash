@@ -308,6 +308,7 @@ void exec_if(const command_T *c, bool finally_exit)
 	    goto done;
 	if (exec_condition(cmds->ic_condition)) {
 	    exec_and_or_lists(cmds->ic_commands, finally_exit);
+	    assert(!finally_exit);
 	    return;
 	}
     }
@@ -377,7 +378,7 @@ done:
     while (++i < count)
 	free(words[i]);
     free(words);
-    if (count == 0)
+    if (count == 0 && c->c_forcmds)
 	laststatus = Exit_SUCCESS;
 finish:
     if (finally_exit)
