@@ -1927,11 +1927,17 @@ command_T *parse_for(void)
 	    serror(Ngt("redirection not allowed after `in'"));
 	    redirsfree(redirs);
 	}
+	if (cbuf.contents[cindex] == L';')
+	    cindex++;
     } else {
 	result->c_forwords = NULL;
+	if (cbuf.contents[cindex] == L';') {
+	    cindex++;
+	    if (posixly_correct)
+		serror(Ngt("`;' not allowed "
+			    "just after identifier in for loop"));
+	}
     }
-    if (cbuf.contents[cindex] == L';')
-	cindex++;
     skip_to_next_token();
     ensure_buffer(3);
     if (is_token_at(L"do", cindex))
