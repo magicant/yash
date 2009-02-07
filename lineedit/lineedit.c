@@ -130,6 +130,7 @@ wchar_t *yle_readline(const wchar_t *prompt)
 
     reader_finalize();
     resultline = yle_display_finalize();
+    fflush(stderr);
     yle_restore_terminal();
     mode = MODE_INACTIVE;
 
@@ -154,8 +155,8 @@ void yle_suspend_readline(void)
 {
     if (mode == MODE_ACTIVE) {
 	mode = MODE_SUSPENDED;
-	fflush(stderr);
 	yle_display_clear();
+	fflush(stderr);
 	yle_restore_terminal();
     }
 }
@@ -167,6 +168,7 @@ void yle_resume_readline(void)
 	mode = MODE_ACTIVE;
 	yle_set_terminal();
 	yle_display_print_all();
+	fflush(stderr);
     }
 }
 

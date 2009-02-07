@@ -112,17 +112,6 @@ static int last_edit_line;
 /* Initializes the display module. */
 void yle_display_init(const wchar_t *prompt)
 {
-#if !YASH_DISABLE_PROMPT_ADJUST
-    /* print dummy string to make sure the cursor is at the beginning of line */
-    yle_print_sgr(1, 0, 0, 0, 0, 0, 0);
-    fputc('%', stderr);
-    yle_print_sgr(0, 0, 0, 0, 0, 0, 0);
-    for (int i = 1; i < yle_columns; i++)
-	fputc(' ', stderr);
-    yle_print_cr();
-    yle_print_ed();
-#endif
-
     current_line = current_column = 0;
 
     wb_init(&yle_main_buffer);
@@ -164,6 +153,17 @@ void yle_display_clear(void)
  * cleared. */
 void yle_display_print_all(void)
 {
+#if !YASH_DISABLE_PROMPT_ADJUST
+    /* print dummy string to make sure the cursor is at the beginning of line */
+    yle_print_sgr(1, 0, 0, 0, 0, 0, 0);
+    fputc('%', stderr);
+    yle_print_sgr(0, 0, 0, 0, 0, 0, 0);
+    for (int i = 1; i < yle_columns; i++)
+	fputc(' ', stderr);
+    yle_print_cr();
+    yle_print_ed();
+#endif
+
     print_prompt();
     yle_display_reprint_buffer();
 }
