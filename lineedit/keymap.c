@@ -41,6 +41,10 @@ static struct {
 } state;
 
 
+static inline void reset_count(void);
+static inline int get_count(int default_value);
+
+
 /* Initializes `yle_modes'.
  * Must not be called more than once. */
 void yle_keymap_init(void)
@@ -77,7 +81,20 @@ void yle_set_mode(yle_mode_id_T id)
 /* Resets the state of keymap. */
 void yle_keymap_reset(void)
 {
+    reset_count();
+}
+
+/* Resets `state.count' */
+void reset_count(void)
+{
     state.count = -1;
+}
+
+/* Returns the count value.
+ * If the count is not set, returns the `default_value'. */
+int get_count(int default_value)
+{
+    return state.count < 0 ? default_value : state.count;
 }
 
 
@@ -86,27 +103,38 @@ void yle_keymap_reset(void)
 /* Does nothing. */
 void cmd_noop(wchar_t c __attribute__((unused)))
 {
+    reset_count();
 }
 
 /* Same as `cmd_noop', but causes alert. */
 void cmd_alert(wchar_t c __attribute__((unused)))
 {
     yle_alert();
+    reset_count();
 }
 
 /* Inserts one character in the buffer. */
 void cmd_self_insert(wchar_t c)
 {
     if (c != L'\0') {
-	wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
+	int count = get_count(1);
+
+	while (--count >= 0)
+	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
 	yle_display_reprint_buffer();
     }
+    reset_count();
 }
 
+/* Inserts the backslash character. */
 void cmd_insert_backslash(wchar_t c __attribute__((unused)))
 {
-    wb_ninsert_force(&yle_main_buffer, yle_main_index++, L"\\", 1);
+    int count = get_count(1);
+
+    while (--count >= 0)
+	wb_ninsert_force(&yle_main_buffer, yle_main_index++, L"\\", 1);
     yle_display_reprint_buffer();
+    reset_count();
 }
 
 /* Accepts the current line.
@@ -114,6 +142,7 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
 void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_DONE;
+    reset_count();
 }
 
 /* Aborts the current line.
@@ -121,18 +150,21 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_INTERRUPTED;
+    reset_count();
 }
 
 /* Changes the editing mode to "vi insert". */
 void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
     yle_set_mode(YLE_MODE_VI_INSERT);
+    reset_count();
 }
 
 /* Changes the editing mode to "vi command". */
 void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 {
     yle_set_mode(YLE_MODE_VI_COMMAND);
+    reset_count();
 }
 
 
