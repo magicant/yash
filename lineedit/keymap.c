@@ -49,6 +49,7 @@ void yle_keymap_init(void)
 
     yle_modes[YLE_MODE_VI_INSERT].default_command = cmd_self_insert;
     t = trie_create();
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_setmode_vicommand));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
@@ -110,6 +111,13 @@ void cmd_self_insert(
 	wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
 	yle_display_reprint_buffer();
     }
+}
+
+void cmd_insert_backslash(
+	int count __attribute__((unused)), wchar_t c __attribute__((unused)))
+{
+    wb_ninsert_force(&yle_main_buffer, yle_main_index++, L"\\", 1);
+    yle_display_reprint_buffer();
 }
 
 /* Accepts the current line.

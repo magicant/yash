@@ -45,7 +45,7 @@ static void reader_finalize(void);
 static void read_next(void);
 static inline trieget_T make_trieget(const wchar_t *keyseq)
     __attribute__((nonnull,const));
-static inline wchar_t wb_last_char(const xwcsbuf_T *buf)
+static inline wchar_t wb_get_char(const xwcsbuf_T *buf)
     __attribute__((nonnull,pure));
 
 
@@ -306,12 +306,12 @@ process_wide:
 	switch (tg.type) {
 	    case TG_NOMATCH:
 		yle_keymap_invoke(yle_current_mode->default_command,
-			wb_last_char(&reader_second_buffer));
+			wb_get_char(&reader_second_buffer));
 		wb_clear(&reader_second_buffer);
 		break;
 	    case TG_UNIQUE:
 		yle_keymap_invoke(tg.value.cmdfunc,
-			wb_last_char(&reader_second_buffer));
+			wb_get_char(&reader_second_buffer));
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;
 	    case TG_AMBIGUOUS:
@@ -329,10 +329,10 @@ trieget_T make_trieget(const wchar_t *keyseq)
     };
 }
 
-wchar_t wb_last_char(const xwcsbuf_T *buf)
+wchar_t wb_get_char(const xwcsbuf_T *buf)
 {
     assert(buf->length > 0);
-    return buf->contents[buf->length - 1];
+    return buf->length > 1 ? L'\0' : buf->contents[0];
 }
 
 
