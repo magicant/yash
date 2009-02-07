@@ -20,6 +20,7 @@
 #include <assert.h>
 #include "../hashtable.h"
 #include "../strbuf.h"
+#include "display.h"
 #include "key.h"
 #include "keymap.h"
 #include "lineedit.h"
@@ -34,16 +35,21 @@ static yle_mode_T yle_modes[YLE_MODE_N];
  * Points to one of `yle_modes'. */
 const yle_mode_T *yle_current_mode;
 
+/* The keymap state. */
+static struct {
+    int count;
+} state;
+
 
 /* Initializes `yle_modes'.
  * Must not be called more than once. */
-void yle_init_keymap(void)
+void yle_keymap_init(void)
 {
     trie_T *t;
 
     yle_modes[YLE_MODE_VI_INSERT].default_command = cmd_self_insert;
     t = trie_create();
-    t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_goto_vicommand));
+    t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_setmode_vicommand));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
@@ -52,7 +58,7 @@ void yle_init_keymap(void)
 
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
-    t = trie_setw(t, L"i", CMDENTRY(cmd_goto_viinsert));
+    t = trie_setw(t, L"i", CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
@@ -65,7 +71,19 @@ void yle_set_mode(yle_mode_id_T id)
 {
     assert(id < YLE_MODE_N);
     yle_current_mode = &yle_modes[id];
-    //TODO reset state
+    yle_keymap_reset();
+}
+
+/* Resets the state of keymap. */
+void yle_keymap_reset(void)
+{
+    state.count = -1;
+}
+
+/* Invokes the command `cmd' with the argument `c'. */
+void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t c)
+{
+    cmd(state.count, c);
 }
 
 
@@ -89,39 +107,36 @@ void cmd_self_insert(
 	int count __attribute__((unused)), wchar_t c)
 {
     if (c != L'\0') {
-	//TODO insert character and redraw
+	wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
+	yle_display_reprint_buffer();
     }
 }
 
 /* Accepts the current line.
- * The cursor is moved to the next line.
  * `yle_state' is set to YLE_STATE_DONE and `yle_readline' returns. */
 void cmd_accept_line(
 	int count __attribute__((unused)), wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_DONE;
-    // TODO Move cursor to next line. Redraw if necessary.
 }
 
 /* Aborts the current line.
- * The cursor is moved to the next line.
  * `yle_state' is set to YLE_STATE_INTERRUPTED and `yle_readline' returns. */
 void cmd_abort_line(
 	int count __attribute__((unused)), wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_INTERRUPTED;
-    // TODO Move cursor to next line. Redraw if necessary.
 }
 
 /* Changes the editing mode to "vi insert". */
-void cmd_goto_viinsert(
+void cmd_setmode_viinsert(
 	int count __attribute__((unused)), wchar_t c __attribute__((unused)))
 {
     yle_set_mode(YLE_MODE_VI_INSERT);
 }
 
 /* Changes the editing mode to "vi command". */
-void cmd_goto_vicommand(
+void cmd_setmode_vicommand(
 	int count __attribute__((unused)), wchar_t c __attribute__((unused)))
 {
     yle_set_mode(YLE_MODE_VI_COMMAND);

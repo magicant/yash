@@ -38,10 +38,12 @@ typedef enum yle_mode_id_T {
 } yle_mode_id_T;
 
 
-extern const yle_mode_T* yle_current_mode;
+extern const yle_mode_T *yle_current_mode;
 
-extern void yle_init_keymap(void);
+extern void yle_keymap_init(void);
 extern void yle_set_mode(yle_mode_id_T id);
+extern void yle_keymap_reset(void);
+extern void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t c);
 
 
 #define CMDENTRY(cmdfunc_) \
@@ -56,8 +58,8 @@ extern yle_command_func_T
     cmd_self_insert,
     cmd_accept_line,
     cmd_abort_line,
-    cmd_goto_viinsert,
-    cmd_goto_vicommand;
+    cmd_setmode_viinsert,
+    cmd_setmode_vicommand;
 
 
 #endif /* YASH_KEYMAP_H */

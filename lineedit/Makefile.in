@@ -64,8 +64,8 @@ distclean: clean
 .PHONY: all distcontents cscope mostlyclean clean distclean
 
 # source file dependencies
-display.o: ../common.h ../config.h ../history.c ../job.h ../strbuf.h display.h lineedit.h terminfo.h
-keymap.o: ../common.h ../config.h ../hashtable.h key.h keymap.h lineedit.h terminfo.h trie.h
+display.o: ../common.h ../config.h ../history.c ../job.h ../strbuf.h ../util.h display.h lineedit.h terminfo.h
+keymap.o: ../common.h ../config.h ../hashtable.h display.h key.h keymap.h lineedit.h terminfo.h trie.h
 lineedit.o: ../common.h ../config.h ../option.h ../sig.h ../strbuf.h ../util.h display.h key.h keymap.h lineedit.h terminfo.h trie.h
 terminfo.o: ../common.h ../config.h ../util.h key.h terminfo.h trie.h
 trie.o: ../common.h ../config.h ../util.h key.h trie.h

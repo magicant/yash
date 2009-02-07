@@ -45,6 +45,8 @@ static void reader_finalize(void);
 static void read_next(void);
 static inline trieget_T make_trieget(const wchar_t *keyseq)
     __attribute__((nonnull,const));
+static inline wchar_t wb_last_char(const xwcsbuf_T *buf)
+    __attribute__((nonnull,pure));
 
 
 /* True if `yle_setupterm' should be called in the next call to `yle_setup'. */
@@ -68,7 +70,7 @@ void yle_init(void)
     if (initialized)
 	return;
     initialized = true;
-    yle_init_keymap();
+    yle_keymap_init();
 }
 
 /* Initializes line editing.
@@ -118,6 +120,7 @@ wchar_t *yle_readline(const wchar_t *prompt)
     mode = MODE_ACTIVE;
     yle_set_terminal();
     yle_display_init(prompt);
+    yle_keymap_reset();
     reader_init();
     yle_state = YLE_STATE_EDITING;
 
@@ -300,11 +303,14 @@ process_wide:
 		yle_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
 	    case TG_NOMATCH:
-		//TODO
+		yle_keymap_invoke(yle_current_mode->default_command,
+			wb_last_char(&reader_second_buffer));
+		wb_clear(&reader_second_buffer);
 		break;
 	    case TG_UNIQUE:
+		yle_keymap_invoke(tg.value.cmdfunc,
+			wb_last_char(&reader_second_buffer));
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
-		//TODO
 		break;
 	    case TG_AMBIGUOUS:
 		return;
@@ -319,6 +325,12 @@ trieget_T make_trieget(const wchar_t *keyseq)
 	.matchlength = 1,
 	.value.keyseq = keyseq,
     };
+}
+
+wchar_t wb_last_char(const xwcsbuf_T *buf)
+{
+    assert(buf->length > 0);
+    return buf->contents[buf->length - 1];
 }
 
 

@@ -23,11 +23,16 @@
 #include "../strbuf.h"
 
 
+extern xwcsbuf_T yle_main_buffer;
+extern size_t yle_main_index;
+
 extern void yle_display_init(const wchar_t *prompt)
     __attribute__((nonnull));
 extern wchar_t *yle_display_finalize(void);
 extern void yle_display_clear(void);
 extern void yle_display_print_all(void);
+extern void yle_display_reprint_buffer(void);
+extern void yle_display_reposition_cursor(void);
 
 
 #endif /* YASH_DISPLAY_H */

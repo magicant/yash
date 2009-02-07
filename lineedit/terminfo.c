@@ -474,7 +474,7 @@ void yle_print_nel(void)
     if (is_strcap_valid(v))
 	tputs(v, 1, putchar_stderr);
     else
-	fputc('\n', stderr);
+	fputc('\r', stderr), fputc('\n', stderr);
 }
 
 /* Prints "nel" variable if "am" variable is false. */

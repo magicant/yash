@@ -26,15 +26,16 @@
 #include <wctype.h>
 #include "../history.h"
 #include "../job.h"
+#include "../util.h"
 #include "display.h"
 #include "lineedit.h"
 #include "terminfo.h"
 
 
 /* Characters displayed on the screen by lineedit are divided into three parts:
- * the prompt, the edit line and the completion candidates.
+ * the prompt, the edit line and the info area.
  * The prompt is immediately followed by the edit line (on the same line) but
- * the candidates are always on separate lines.
+ * the info area are always on separate lines.
  * The three parts are printed in this order, from upper to lower.
  * The `tputwc' function is the main function for displaying. It prints one
  * character for each call, tracking the cursor position.
@@ -52,6 +53,7 @@
 
 
 static void go_to(int line, int column);
+static void go_to_index(size_t i);
 static void tputwc(wchar_t c);
 static void tputws(const wchar_t *s, size_t n)
     __attribute__((nonnull));
@@ -63,6 +65,7 @@ static void print_color_seq(const wchar_t **sp)
     __attribute__((nonnull));
 
 static void print_editline(bool keepstuck);
+static void clear_editline(void);
 
 
 /* The current cursor position. */
@@ -88,12 +91,16 @@ static const wchar_t *promptstring;
 static int editbase_line, editbase_column;
 
 /* The main buffer where the command line is edited. */
-static xwcsbuf_T main_buffer;
+xwcsbuf_T yle_main_buffer;
 /* The position of the cursor on the command line. */
-/* 0 <= main_buffer_index <= main_buffer.length */
-static size_t main_buffer_index;
-/* The current cursor position on the edit line in the screen. */
-static int cursor_line, cursor_column;
+/* 0 <= yle_main_index <= yle_main_buffer.length */
+size_t yle_main_index;
+/* Array of cursor positions in the screen.
+ * If the nth character in the main buffer is positioned at line `l', column `c'
+ * on the screen, then cursor_positions[n] == l * yle_columns + c. */
+static int *cursor_positions;
+/* The line number of the last edit line. */
+static int last_edit_line;
 
 
 #if !HAVE_WCWIDTH
@@ -118,8 +125,8 @@ void yle_display_init(const wchar_t *prompt)
 
     current_line = current_column = 0;
 
-    wb_init(&main_buffer);
-    main_buffer_index = 0;
+    wb_init(&yle_main_buffer);
+    yle_main_index = 0;
 
     promptstring = prompt;
     yle_display_print_all();
@@ -129,13 +136,19 @@ void yle_display_init(const wchar_t *prompt)
  * Returns the content of the main buffer, which must be freed by the caller. */
 wchar_t *yle_display_finalize(void)
 {
-    if (main_buffer.length != main_buffer_index) {
+    if (yle_main_buffer.length != yle_main_index) {
 	go_to(editbase_line, editbase_column);
 	print_editline(true);
     }
+
+    free(cursor_positions);
+    cursor_positions = NULL;
+
     yle_print_nel();
     yle_print_ed();
-    return wb_towcs(&main_buffer);
+
+    wb_wccat(&yle_main_buffer, L'\n');
+    return wb_towcs(&yle_main_buffer);
 }
 
 /* Clears everything printed by lineedit, restoreing the state before lineedit
@@ -152,9 +165,29 @@ void yle_display_clear(void)
 void yle_display_print_all(void)
 {
     print_prompt();
+    yle_display_reprint_buffer();
+}
+
+/* Reprints the main buffer and the info area then moves the cursor to the
+ * proper position.
+ * The prompt is not reprinted.
+ * This function must be called after the main buffer is changed. */
+void yle_display_reprint_buffer(void)
+{
+    go_to(editbase_line, editbase_column);
+    clear_editline();
     print_editline(false);
-    go_to(cursor_line, cursor_column);
+    yle_display_reposition_cursor();
     //additional_info_printed = XXX;
+}
+
+/* Moves the cursor to the proper position on the screen.
+ * This function must be called after `yle_main_index' is changed (but the
+ * content of the main buffer is not changed). The content of the buffer is not
+ * reprinted. */
+void yle_display_reposition_cursor(void)
+{
+    go_to_index(yle_main_index);
 }
 
 
@@ -184,6 +217,17 @@ static void go_to(int line, int column)
 	yle_print_cuf(column);
 	current_column = column;
     }
+}
+
+/* Moves the cursor to the character of the specified index in the main buffer.
+ * This function relies on `cursor_positions', so `print_editline(false)' must
+ * have been called beforehand. */
+void go_to_index(size_t i)
+{
+    assert(i <= yle_main_index);
+
+    int pos = cursor_positions[i];
+    go_to(pos / yle_columns, pos % yle_columns);
 }
 
 /* Counts the width of the character `c' as printed by `fputwc'. */
@@ -365,9 +409,9 @@ done:
     }
 }
 
-/* Prints the whole content of the edit line and updates `cursor_line' and
- * `cursor_column'.
- * Must be called right after the prompt is printed.
+/* Prints the whole content of the edit line and updates `cursor_positions' and
+ * `last_edit_line'.
+ * The cursor must be right after the prompt.
  * if `keepstuck' is false, a dummy character is printed if needed so that the
  * cursor is not sticking at the end of the line. */
 void print_editline(bool keepstuck)
@@ -376,12 +420,15 @@ void print_editline(bool keepstuck)
     assert(current_column == editbase_column);
     trace_position = convert_all_control = true;
 
-    tputws(main_buffer.contents, main_buffer_index);
-    cursor_line = current_line, cursor_column = current_column;
-    if (cursor_column >= yle_columns)
-	cursor_line++, cursor_column = 0;
+    cursor_positions = xrealloc(cursor_positions,
+	    sizeof *cursor_positions * (yle_main_buffer.length + 1));
+    for (size_t i = 0; i < yle_main_buffer.length; i++) {
+	cursor_positions[i] = current_line * yle_columns + current_column;
+	tputwc(yle_main_buffer.contents[i]);
+    }
+    cursor_positions[yle_main_buffer.length] =
+	current_line * yle_columns + current_column;
 
-    tputws(main_buffer.contents + main_buffer_index, SIZE_MAX);
     if (!keepstuck && current_column >= yle_columns) {
 	/* print a dummy space to move the cursor to the next line */
 	tputwc(L' ');
@@ -389,6 +436,25 @@ void print_editline(bool keepstuck)
 	yle_print_el();
 	current_column = 0;
     }
+
+    last_edit_line = current_line;
+}
+
+/* Clears the edit line(s) on the screen.
+ * The prompt and the info area are not cleared.
+ * The cursor must be right after the prompt. */
+void clear_editline(void)
+{
+    assert(current_line == editbase_line);
+    assert(current_column == editbase_column);
+
+    yle_print_el();
+    while (current_line < last_edit_line) {
+	yle_print_nel();
+	yle_print_el();
+	current_line++;
+    }
+    go_to(editbase_line, editbase_column);
 }
 
 
