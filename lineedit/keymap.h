@@ -56,8 +56,10 @@ extern yle_command_func_T
     cmd_alert,
     cmd_self_insert,
     cmd_insert_backslash,
+    cmd_backward_delete_char,
     cmd_accept_line,
     cmd_abort_line,
+    cmd_eof_or_delete,
     cmd_setmode_viinsert,
     cmd_setmode_vicommand;
 

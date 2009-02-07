@@ -58,6 +58,11 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_or_delete));
+    t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_erase, CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_c_h, CMDENTRY(cmd_backward_delete_char));
     //TODO
     yle_modes[YLE_MODE_VI_INSERT].keymap = t;
 
@@ -67,6 +72,8 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_or_delete));
     //TODO
     yle_modes[YLE_MODE_VI_COMMAND].keymap = t;
 }
@@ -137,6 +144,21 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
     reset_count();
 }
 
+/* Removes the character behind the cursor.
+ * If the count is set, `count' characters are killed. */
+void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
+{
+    if (state.count < 0) {
+	if (yle_main_index > 0) {
+	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
+	    yle_display_reprint_buffer();
+	}
+    } else {
+	// TODO cmd_backward_delete_char: kill characters
+	reset_count();
+    }
+}
+
 /* Accepts the current line.
  * `yle_state' is set to YLE_STATE_DONE and `yle_readline' returns. */
 void cmd_accept_line(wchar_t c __attribute__((unused)))
@@ -150,6 +172,21 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_INTERRUPTED;
+    reset_count();
+}
+
+/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
+ * Otherwise, deletes the character under the cursor. */
+void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
+{
+    if (yle_main_buffer.length == 0) {
+	yle_state = YLE_STATE_ERROR;
+    } else {
+	wb_remove(&yle_main_buffer, yle_main_index, get_count(1));
+	if (yle_main_index > yle_main_buffer.length)
+	    yle_main_index = yle_main_buffer.length;
+	yle_display_reprint_buffer();
+    }
     reset_count();
 }
 
