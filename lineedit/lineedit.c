@@ -305,13 +305,12 @@ process_wide:
 		yle_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
 	    case TG_NOMATCH:
-		yle_keymap_invoke(yle_current_mode->default_command,
+		yle_current_mode->default_command(
 			wb_get_char(&reader_second_buffer));
 		wb_clear(&reader_second_buffer);
 		break;
 	    case TG_UNIQUE:
-		yle_keymap_invoke(tg.value.cmdfunc,
-			wb_get_char(&reader_second_buffer));
+		tg.value.cmdfunc(wb_get_char(&reader_second_buffer));
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;
 	    case TG_AMBIGUOUS:
