@@ -291,6 +291,7 @@ process_wide:
 		break;
 	    case (size_t) -2:  // more bytes needed
 		incomplete_wchar = true;
+		sb_clear(&reader_first_buffer);
 		goto process_wide;
 	    default:
 		sb_remove(&reader_first_buffer, 0, n);
