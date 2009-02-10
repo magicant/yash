@@ -476,7 +476,7 @@ int calc_status(int status)
 	return WSTOPSIG(status) + TERMSIGOFFSET;
 #ifdef WIFCONTINUED
     if (WIFCONTINUED(status))
-	return 0;
+	return Exit_SUCCESS;
 #endif
     assert(false);
 }
@@ -989,7 +989,8 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 
     if (fg)
 	wait_for_job(jobnumber, true, false, false);
-    int status = (job->j_status == JS_RUNNING) ? 0 : calc_status_of_job(job);
+    int status = (job->j_status == JS_RUNNING)
+	? Exit_SUCCESS : calc_status_of_job(job);
     if (job->j_status == JS_DONE) {
 	notify_signaled_job(jobnumber);
 	remove_job(jobnumber);
