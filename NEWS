@@ -8,6 +8,56 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.6
+
+  +  Added the -q option to the fc builtin.
+  +  Compound commands may now contain no commands inside.
+  *  "alias -p" now prints commands with proper escape.
+  *  In posixly-correct mode, a semicolon followed by the identifier
+     followed by "for" is now treated as an error.
+  *  Global aliases are now allowed after compound commands.
+  *  The "fg" and "wait" builtins were causing invalid memory access
+     when the "-o notify" option is enabled.
+
+----------------------------------------------------------------------
+Yash 2.5
+
+  =  Redirection of FDs used by the shell is now error.
+  *  Some redirection syntax errors were overlooked.
+  *  Fixed the "sig.y" test failure.
+  *  When an "exec" command with redirections is enclosed in a brace
+     with redirections, the redirections to the brace are now properly
+     closed after execution.
+  *  Fixed parsing error of a comment after the identifier of a for
+     statement.
+
+----------------------------------------------------------------------
+Yash 2.4
+
+  =  The long option for the -p option of the "jobs" builtin has been
+     changed from "--pid-only" to "--pgid-only".
+  *  Trap of SIGCHLD, SIGINT, SIGTERM, SIGQUIT, SIGTSTP, SIGTTOU were
+     wrongly set to "ignore" in some condition.
+  *  Signal handlers for SIGINT, SIGTERM, SIGQUIT, SIGTSTP, SIGTTOU
+     were mistakenly reset in some moments.
+  *  Fixed the exit status of the "wait" builtin returned when
+     interrupted by a signal.
+  *  Fixed file access permission test
+  *  "command -V xxx/yyy" now prints an error message if "xxx/yyy" is
+     not a valid command.
+
+----------------------------------------------------------------------
+Yash 2.3
+
+  =  Now changing LC_CTYPE immediately takes effect if the shell is
+     interactive and not in the posixly-correct mode.
+  *  Fixed parameter expansion: empty words are now expanded properly.
+  *  Fixed a race condition, which was causing some signals ignored.
+  *  Assignments using the typeset/readonly/export builtins failed to
+     update the shell's internal data. This caused the shell to keep
+     using the old PATH after the PATH has been changed.
+
+----------------------------------------------------------------------
 Yash 2.2
 
   +  "help", "pushd", "popd" and "dirs" builtins

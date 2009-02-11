@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1029,6 +1029,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 	    redirlastp = &redir->next;
 	} else if ((word = parse_word(noalias))) {
 	    pl_add(&wordlist, word);
+	    skip_blanks_and_comment();
 	    first = false;
 	} else {
 	    break;
@@ -1042,9 +1043,17 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
  * `*redirlastp' must be initialized to NULL beforehand. */
 void parse_redirect_list(redir_T **lastp)
 {
-    redir_T *redir;
+    for (;;) {
+	if (!posixly_correct) {
+	    wchar_t *nameend;
+	    while (*(nameend = skip_name(cbuf.contents + cindex)) == L'\0'
+		    && read_more_input() == 0);
+	    substitute_alias(&cbuf, cindex, caliases, true);
+	}
 
-    while ((redir = tryparse_redirect())) {
+	redir_T *redir = tryparse_redirect();
+	if (!redir)
+	    break;
 	*lastp = redir;
 	lastp = &redir->next;
     }
@@ -1071,12 +1080,7 @@ assign_T *tryparse_assignment(void)
     ensure_buffer(1);
     if (cbuf.contents[cindex] != L'(') {
 	result->a_type = A_SCALAR;
-	if (is_token_delimiter_char(cbuf.contents[cindex])) {
-	    skip_blanks_and_comment();
-	    result->a_scalar = NULL;
-	} else {
-	    result->a_scalar = parse_word(noalias);
-	}
+	result->a_scalar = parse_word(noalias);
     } else {
 	cindex++;
 	skip_to_next_token();
@@ -1086,8 +1090,8 @@ assign_T *tryparse_assignment(void)
 	    cindex++;
 	else
 	    serror(Ngt("`%ls' missing"), L")");
-	skip_blanks_and_comment();
     }
+    skip_blanks_and_comment();
     return result;
 }
 
@@ -1183,21 +1187,25 @@ reparse:
 	}
     }
     skip_blanks_and_comment();
-    if (is_command_delimiter_char(cbuf.contents[cindex])) {
-	serror(Ngt("redirect target not specified"));
-	free(result);
-	return NULL;
-    }
     if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
 	result->rd_filename = parse_word(globalonly);
+	if (!result->rd_filename) {
+	    serror(Ngt("redirect target not specified"));
+	    free(result);
+	    return NULL;
+	}
     } else {
-	size_t index = cindex;
 	wchar_t *endofheredoc = parse_word_as_wcs();
-	assert(index != cindex);
+	if (endofheredoc[0] == L'\0') {
+	    serror(Ngt("here-document delimiter not specified"));
+	    free(result);
+	    return NULL;
+	}
 	result->rd_hereend = endofheredoc;
 	result->rd_herecontent = NULL;
 	pl_add(&pending_heredocs, result);
     }
+    skip_blanks_and_comment();
     return result;
 
 parse_command:
@@ -1219,7 +1227,8 @@ wordunit_T *parse_word(aliastype_T type)
  * `testfunc' is a function that determines if a character is a word delimiter.
  * It must return true for L'\0'.
  * The parsing process proceeds up to an unescaped character `testfunc' returns
- * false for. It is not an error if there is no characters to be a word. */
+ * false for. It is not an error if there is no characters to be a word, in
+ * which case NULL is returned. */
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
 #if YASH_ENABLE_ALIAS
@@ -1310,7 +1319,6 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
     if (indq)
 	serror(Ngt("double-quote not closed"));
 
-    skip_blanks_and_comment();
     return first;
 }
 
@@ -1517,7 +1525,8 @@ make_name:
     case L'}':
 	pe->pe_type |= PT_NONE;
 	if (pe->pe_type & PT_COLON)
-	    serror(Ngt("invalid use of `:' in parameter expansion"));
+	    serror(Ngt("invalid use of `%lc' in parameter expansion"),
+		    (wint_t) L':');
 	goto check_closing_paren_and_finish;
     case L'\0':  case L'\n':
 	serror(Ngt("`%ls' missing"), L"}");
@@ -1533,7 +1542,8 @@ parse_match:
 	if ((pe->pe_type & PT_MASK) == PT_SUBST)
 	    pe->pe_type |= PT_MATCHHEAD | PT_MATCHTAIL;
 	else
-	    serror(Ngt("invalid use of `:' in parameter expansion"));
+	    serror(Ngt("invalid use of `%lc' in parameter expansion"),
+		    (wint_t) L':');
 	cindex += 1;
     } else if (cbuf.contents[cindex] == cbuf.contents[cindex + 1]) {
 	if ((pe->pe_type & PT_MASK) == PT_MATCH)
@@ -1561,7 +1571,7 @@ parse_match:
 	pe->pe_match = parse_word_to(noalias, is_slash_or_closing_brace);
     }
 
-    /* ensure_buffer(1); */
+    ensure_buffer(1);
     if (cbuf.contents[cindex] != L'/')
 	goto check_closing_paren_and_finish;
 parse_subst:
@@ -1569,13 +1579,14 @@ parse_subst:
     pe->pe_subst = parse_word_to(noalias, is_closing_brace);
 
 check_closing_paren_and_finish:
-    /* ensure_buffer(1); */
+    ensure_buffer(1);
     if (cbuf.contents[cindex] == L'}')
 	cindex++;
     else
 	serror(Ngt("`%ls' missing"), L"}");
     if ((pe->pe_type & PT_NUMBER) && (pe->pe_type & PT_MASK) != PT_NONE)
-	serror(Ngt("invalid use of `#' flag in parameter expansion"));
+	serror(Ngt("invalid use of `%lc' in parameter expansion"),
+		(wint_t) L'#');
 
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -1753,20 +1764,14 @@ fail:
 }
 
 /* Returns a word token at the current index as a newly malloced string.
- * `cindex' is advanced to the next token by `skip_blanks_and_comment'.
- * This function never returns NULL. */
+ * `cindex' proceeds to just after the word.
+ * This function never returns NULL, but may return an empty string. */
 wchar_t *parse_word_as_wcs(void)
 {
-    size_t index = cindex;
+    size_t startindex = cindex;
     wordfree(parse_word(globalonly));
-
-    /* create a copy of the word */
-    wchar_t *result = xwcsndup(cbuf.contents + index, cindex - index);
-    /* remove the trailing blanks of the word */
-    index = cindex - index;
-    while (index-- > 0 && iswblank(result[index]));
-    result[++index] = L'\0';
-    return result;
+    assert(startindex <= cindex);
+    return xwcsndup(cbuf.contents + startindex, cindex - startindex);
 }
 
 /* Parses a compound command.
@@ -1830,7 +1835,7 @@ command_T *parse_group(commandtype_T type)
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
     result->c_subcmds = parse_compound_list();
-    if (!result->c_subcmds)
+    if (posixly_correct && !result->c_subcmds)
 	serror(Ngt("no commands in command group"));
     if (cbuf.contents[cindex] == terminator[0])
 	cindex++;
@@ -1861,8 +1866,9 @@ command_T *parse_if(void)
 	ic->next = NULL;
 	if (!els) {
 	    ic->ic_condition = parse_compound_list();
-	    if (!ic->ic_condition)
-		serror(Ngt("no commands between `if' and `then'"));
+	    if (posixly_correct && !ic->ic_condition)
+		serror(Ngt("no commands between `%ls' and `%ls'"),
+			L"if", L"then");
 	    ensure_buffer(5);
 	    if (is_token_at(L"then", cindex))
 		cindex += 4;
@@ -1872,7 +1878,7 @@ command_T *parse_if(void)
 	    ic->ic_condition = NULL;
 	}
 	ic->ic_commands = parse_compound_list();
-	if (!ic->ic_commands)
+	if (posixly_correct && !ic->ic_commands)
 	    serror(Ngt("no commands after `%ls'"), els ? L"else" : L"then");
 	ensure_buffer(5);
 	if (!els) {
@@ -1930,14 +1936,20 @@ command_T *parse_for(void)
 	skip_blanks_and_comment();
 	result->c_forwords = parse_words_and_redirects(&redirs, false);
 	if (redirs) {
-	    serror(Ngt("redirections not allowed after `in'"));
+	    serror(Ngt("redirection not allowed after `in'"));
 	    redirsfree(redirs);
 	}
+	if (cbuf.contents[cindex] == L';')
+	    cindex++;
     } else {
 	result->c_forwords = NULL;
+	if (cbuf.contents[cindex] == L';') {
+	    cindex++;
+	    if (posixly_correct)
+		serror(Ngt("`;' not allowed "
+			    "just after identifier in for loop"));
+	}
     }
-    if (cbuf.contents[cindex] == L';')
-	cindex++;
     skip_to_next_token();
     ensure_buffer(3);
     if (is_token_at(L"do", cindex))
@@ -1945,8 +1957,8 @@ command_T *parse_for(void)
     else
 	print_errmsg_token_missing(L"do", cindex);
     result->c_forcmds = parse_compound_list();
-    if (!result->c_forcmds)
-	serror(Ngt("no commands between `do' and `done'"));
+    if (posixly_correct && !result->c_forcmds)
+	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))
 	cindex += 4;
@@ -1969,7 +1981,7 @@ command_T *parse_while(bool whltype)
     result->c_redirs = NULL;
     result->c_whltype = whltype;
     result->c_whlcond = parse_compound_list();
-    if (!result->c_whlcond)
+    if (posixly_correct && !result->c_whlcond)
 	serror(Ngt("no commands after `%ls'"), whltype ? L"while" : L"until");
     ensure_buffer(3);
     if (is_token_at(L"do", cindex))
@@ -1977,8 +1989,8 @@ command_T *parse_while(bool whltype)
     else
 	print_errmsg_token_missing(L"do", cindex);
     result->c_whlcmds = parse_compound_list();
-    if (!result->c_whlcmds)
-	serror(Ngt("no commands between `do' and `done'"));
+    if (posixly_correct && !result->c_whlcmds)
+	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))
 	cindex += 4;
@@ -2064,6 +2076,7 @@ void **parse_case_patterns(void)
 	    serror(Ngt("invalid character `%lc' in case pattern"),
 		    (wint_t) cbuf.contents[cindex]);
 	pl_add(&wordlist, parse_word(globalonly));
+	skip_blanks_and_comment();
 	ensure_buffer(1);
 	if (cbuf.contents[cindex] == L'|') {
 	    cindex++;

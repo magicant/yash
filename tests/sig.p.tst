@@ -1,7 +1,5 @@
 tmp="${TESTTMP}/sig.p"
 
-set -m
-
 echo ===== kill =====
 
 kill -l >/dev/null
@@ -36,5 +34,13 @@ trap command2 USR2
 kill -s USR1 $$
 kill -s USR2 $$
 
+# in subshell traps other than ignore are cleared
+trap '' USR1
+(trap | grep -v USR1)
+
+# signals that were ignored on entry to a non-interactive shell cannot be
+# trapped or reset
+$INVOKE $TESTEE -c 'trap - USR1 2>/dev/null; kill -USR1 $$; kill -USR2 $$'
+kill -l $?  # prints USR2. USR1 is still ignored
 
 rm -f "$tmp"

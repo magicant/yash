@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ static size_t get_jobnumber_from_pid(pid_t pid)
     __attribute__((pure));
 
 static void jobs_builtin_print_job(size_t jobnumber,
-	bool verbose, bool changedonly, bool pidonly,
+	bool verbose, bool changedonly, bool pgidonly,
 	bool runningonly, bool stoppedonly);
 static int continue_job(size_t jobnumber, job_T *job, bool fg)
     __attribute__((nonnull));
@@ -361,30 +361,30 @@ out_of_loop:
  * If `return_on_stop' is false, waits for the job to finish.
  * Otherwise, waits for the job to finish or stop.
  * If `interruptible' is true, this function can be canceled by SIGINT.
- * If `return_on_trap' is ture, this function returns false immediately after
+ * If `return_on_trap' is true, this function returns false immediately after
  * trap actions are performed. Otherwise, traps are not handled.
  * This function returns immediately if the job is already finished/stopped or
  * is not a child of this shell process.
- * Returns false iff interrupted. */
-bool wait_for_job(size_t jobnumber, bool return_on_stop,
+ * Returns the signal number if interrupted, or zero if successful. */
+int wait_for_job(size_t jobnumber, bool return_on_stop,
 	bool interruptible, bool return_on_trap)
 {
-    bool result = true;
+    int signum = 0;
     job_T *job = joblist.contents[jobnumber];
+    bool savenonotify = job->j_nonotify;
 
+    job->j_nonotify = true;
     if (job->j_pgid >= 0 && job->j_status != JS_DONE
 	    && (!return_on_stop || job->j_status != JS_STOPPED)) {
 	block_sigchld_and_sigint();
 	do {
-	    if (!wait_for_sigchld(interruptible, return_on_trap)) {
-		result = false;
-		break;
-	    }
-	} while (job->j_status != JS_DONE
-		&& (!return_on_stop || job->j_status != JS_STOPPED));
+	    signum = wait_for_sigchld(interruptible, return_on_trap);
+	} while (signum == 0 && job->j_status != JS_DONE &&
+		(!return_on_stop || job->j_status != JS_STOPPED));
 	unblock_sigchld_and_sigint();
     }
-    return result;
+    job->j_nonotify = savenonotify;
+    return signum;
 }
 
 /* Waits for a child process to finish (or stop).
@@ -408,6 +408,7 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
     job->j_pgid = cpgid;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = false;
+    job->j_nonotify = false;
     job->j_loop = false;
     job->j_pcount = 1;
     job->j_procs[0].pr_pid = cpid;
@@ -478,7 +479,7 @@ int calc_status(int status)
 	return WSTOPSIG(status) + TERMSIGOFFSET;
 #ifdef WIFCONTINUED
     if (WIFCONTINUED(status))
-	return 0;
+	return Exit_SUCCESS;
 #endif
     assert(false);
 }
@@ -597,21 +598,14 @@ char *get_job_status_string(const job_T *job, bool *needfree)
 
 /* Prints the status of job(s).
  * Finished jobs are removed from the job list after the status is printed.
- * If `jobnumber' is PJS_ALL, all the jobs are printed. If the specified job
- * doesn't exist, nothing is printed (it isn't an error).
+ * If the specified job doesn't exist, nothing is printed (it isn't an error).
  * If `changedonly' is true, only jobs whose `j_statuschanged' is true is
  * printed. If `verbose' is true, the status is printed in the process-wise
  * format rather than the usual job-wise format. */
 void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 {
-    if (jobnumber == PJS_ALL) {
-	for (size_t i = 1; i < joblist.length; i++)
-	    print_job_status(i, changedonly, verbose, f);
-	return;
-    }
-
     job_T *job = get_job(jobnumber);
-    if (!job || (changedonly && !job->j_statuschanged))
+    if (!job || (changedonly && !job->j_statuschanged) || job->j_nonotify)
 	return;
 
     char current;
@@ -668,6 +662,13 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     job->j_statuschanged = false;
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
+}
+
+/* Prints the status of all jobs. */
+void print_job_status_all(bool changedonly, bool verbose, FILE *f)
+{
+    for (size_t i = 1; i < joblist.length; i++)
+	print_job_status(i, changedonly, verbose, f);
 }
 
 /* If the shell is interactive and the specified job has been killed by a
@@ -785,14 +786,14 @@ int jobs_builtin(int argc, void **argv)
     static const struct xoption long_options[] = {
 	{ L"verbose",      xno_argument, L'l', },
 	{ L"new",          xno_argument, L'n', },
-	{ L"pid-only",     xno_argument, L'p', },
+	{ L"pgid-only",    xno_argument, L'p', },
 	{ L"running-only", xno_argument, L'r', },
 	{ L"stopped-only", xno_argument, L's', },
 	{ L"help",         xno_argument, L'-', },
 	{ NULL, 0, 0, },
     };
 
-    bool verbose = false, changedonly = false, pidonly = false;
+    bool verbose = false, changedonly = false, pgidonly = false;
     bool runningonly = false, stoppedonly = false;
     bool err = false;
     wchar_t opt;
@@ -804,7 +805,7 @@ int jobs_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'l':  verbose     = true;  break;
 	    case L'n':  changedonly = true;  break;
-	    case L'p':  pidonly     = true;  break;
+	    case L'p':  pgidonly    = true;  break;
 	    case L'r':  runningonly = true;  break;
 	    case L's':  stoppedonly = true;  break;
 	    case L'-':
@@ -838,14 +839,14 @@ int jobs_builtin(int argc, void **argv)
 		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
 		err = true;
 	    } else {
-		jobs_builtin_print_job(jobnumber, verbose, changedonly, pidonly,
-			runningonly, stoppedonly);
+		jobs_builtin_print_job(jobnumber, verbose, changedonly,
+			pgidonly, runningonly, stoppedonly);
 	    }
 	} while (++xoptind < argc);
     } else {
 	/* print all jobs */
 	for (size_t i = 1; i < joblist.length; i++) {
-	    jobs_builtin_print_job(i, verbose, changedonly, pidonly,
+	    jobs_builtin_print_job(i, verbose, changedonly, pgidonly,
 		    runningonly, stoppedonly);
 	}
     }
@@ -855,7 +856,7 @@ int jobs_builtin(int argc, void **argv)
 
 /* Prints the job status */
 void jobs_builtin_print_job(size_t jobnumber,
-	bool verbose, bool changedonly, bool pidonly,
+	bool verbose, bool changedonly, bool pgidonly,
 	bool runningonly, bool stoppedonly)
 {
     job_T *job = get_job(jobnumber);
@@ -867,7 +868,7 @@ void jobs_builtin_print_job(size_t jobnumber,
     if (stoppedonly && job->j_status != JS_STOPPED)
 	return;
 
-    if (pidonly) {
+    if (pgidonly) {
 	if (changedonly && !job->j_statuschanged)
 	    return;
 	printf("%jd\n", imaxabs(job->j_pgid));
@@ -887,7 +888,7 @@ const char jobs_help[] = Ngt(
 "\tprint info for each process in the job, including process ID\n"
 " -n --new\n"
 "\tprint jobs whose status have changed only\n"
-" -p --pid-only\n"
+" -p --pgid-only\n"
 "\tprint process group IDs only\n"
 " -r --running-only\n"
 "\tprint running jobs only\n"
@@ -991,7 +992,8 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 
     if (fg)
 	wait_for_job(jobnumber, true, false, false);
-    int status = (job->j_status == JS_RUNNING) ? 0 : calc_status_of_job(job);
+    int status = (job->j_status == JS_RUNNING)
+	? Exit_SUCCESS : calc_status_of_job(job);
     if (job->j_status == JS_DONE) {
 	notify_signaled_job(jobnumber);
 	remove_job(jobnumber);
@@ -1066,11 +1068,12 @@ int wait_builtin(int argc, void **argv)
 		    || job->j_pgid < 0) {
 		status = Exit_NOTFOUND;
 	    } else {
-		if (wait_for_job(jobnumber, jobcontrol, jobcontrol, true)) {
+		status = wait_for_job(jobnumber, jobcontrol, jobcontrol, true);
+		if (!status) {
 		    status = calc_status_of_job(job);
 		} else {
 		    assert(TERMSIGOFFSET > 128);
-		    status = TERMSIGOFFSET;
+		    status += TERMSIGOFFSET;
 		    break;
 		}
 		if (job->j_status == JS_DONE) {
@@ -1086,9 +1089,10 @@ int wait_builtin(int argc, void **argv)
 	for (size_t i = 1; i < joblist.length; i++) {
 	    job = joblist.contents[i];
 	    if (job != NULL && job->j_pgid >= 0) {
-		if (!wait_for_job(i, jobcontrol, jobcontrol, true)) {
+		status = wait_for_job(i, jobcontrol, jobcontrol, true);
+		if (status) {
 		    assert(TERMSIGOFFSET > 128);
-		    status = TERMSIGOFFSET;
+		    status += TERMSIGOFFSET;
 		    break;
 		}
 		if (job->j_status == JS_DONE) {

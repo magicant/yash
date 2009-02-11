@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.h: job control */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +45,7 @@ typedef struct job_T {
     pid_t             j_pgid;          /* process group ID */
     enum jobstatus_T  j_status;
     _Bool             j_statuschanged; /* job's status not yet reported? */
+    _Bool             j_nonotify;      /* supress printing job status? */
     _Bool             j_loop;          /* loop pipe? */
     size_t            j_pcount;        /* # of processes in `j_procs' */
     struct process_T  j_procs[];       /* info about processes */
@@ -78,7 +79,7 @@ extern size_t stopped_job_count(void)
     __attribute__((pure));
 
 extern void do_wait(void);
-extern _Bool wait_for_job(size_t jobnumber, _Bool return_on_stop,
+extern int wait_for_job(size_t jobnumber, _Bool return_on_stop,
 	_Bool interruptible, _Bool return_on_trap);
 extern wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, _Bool return_on_stop);
 extern int send_signal_to_job(int signum, const wchar_t *jobname)
@@ -89,9 +90,10 @@ extern void put_foreground(pid_t pgrp);
 extern int calc_status_of_job(const job_T *job)
     __attribute__((pure,nonnull));
 
-#define PJS_ALL 0  /* stands for all the jobs */
 extern void print_job_status(
 	size_t jobnumber, _Bool changedonly, _Bool verbose, FILE *f)
+    __attribute__((nonnull));
+extern void print_job_status_all(_Bool changedonly, _Bool verbose, FILE *f)
     __attribute__((nonnull));
 extern void notify_signaled_job(size_t jobnumber);
 

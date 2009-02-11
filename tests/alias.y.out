@@ -1,4 +1,4 @@
-c b a -A- -B- -C- A B C
+c b a -A- -B- -C- A B C -
 C='c'
 singlequote=''\'''
 pipe alias
@@ -6,5 +6,6 @@ restored
 complex alias
 a a a a a a
 FOO=BAR
+alias -g N='>/dev/null'
 alias: semi-special builtin
 unalias: semi-special builtin

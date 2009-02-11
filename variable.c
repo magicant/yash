@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -267,6 +267,7 @@ void init_variables(void)
 	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
 	v->v_value = NULL;
 	v->v_getter = lineno_getter;
+	// variable_set(VAR_LINENO, v);
 	if (v->v_type & VF_EXPORT)
 	    update_enrivon(VAR_LINENO);
     }
@@ -450,27 +451,30 @@ void reset_locale(const char *name)
 	goto reset_locale_all;
     } else if (strncmp(name, "LC_", 3) == 0) {
 	/* POSIX forbids resetting LC_CTYPE even if the value of the variable
-	 * is changed. */
+	 * is changed, but we do reset LC_CTYPE if the shell is interactive and
+	 * not in the POSIXly-correct mode. */
 	if (strcmp(name + 3, VAR_LC_ALL + 3) == 0) {
 reset_locale_all:
-	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
-//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	    reset_locale_category(VAR_LC_COLLATE, LC_COLLATE);
+	    if (!posixly_correct && is_interactive_now)
+		reset_locale_category(VAR_LC_CTYPE, LC_CTYPE);
 	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
 	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
-	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
-	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	    reset_locale_category(VAR_LC_NUMERIC, LC_NUMERIC);
+	    reset_locale_category(VAR_LC_TIME, LC_TIME);
 	} else if (strcmp(name + 3, VAR_LC_COLLATE + 3) == 0) {
-	    reset_locale_category(VAR_LC_COLLATE,  LC_COLLATE);
-//	} else if (strcmp(name + 3, VAR_LC_CTYPE + 3) == 0) {
-//	    reset_locale_category(VAR_LC_CTYPE,    LC_CTYPE);
+	    reset_locale_category(VAR_LC_COLLATE, LC_COLLATE);
+	} else if (strcmp(name + 3, VAR_LC_CTYPE + 3) == 0) {
+	    if (!posixly_correct && is_interactive_now)
+		reset_locale_category(VAR_LC_CTYPE, LC_CTYPE);
 	} else if (strcmp(name + 3, VAR_LC_MESSAGES + 3) == 0) {
 	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
 	} else if (strcmp(name + 3, VAR_LC_MONETARY + 3) == 0) {
 	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
 	} else if (strcmp(name + 3, VAR_LC_NUMERIC + 3) == 0) {
-	    reset_locale_category(VAR_LC_NUMERIC,  LC_NUMERIC);
+	    reset_locale_category(VAR_LC_NUMERIC, LC_NUMERIC);
 	} else if (strcmp(name + 3, VAR_LC_TIME + 3) == 0) {
-	    reset_locale_category(VAR_LC_TIME,     LC_TIME);
+	    reset_locale_category(VAR_LC_TIME, LC_TIME);
 	}
     }
 }
@@ -908,6 +912,7 @@ void lineno_getter(variable_T *var)
     assert((var->v_type & VF_MASK) == VF_NORMAL);
     free(var->v_value);
     var->v_value = malloc_wprintf(L"%lu", current_lineno);
+    // variable_set(VAR_LINENO, var);
     if (var->v_type & VF_EXPORT)
 	update_enrivon(VAR_LINENO);
 }
@@ -918,6 +923,7 @@ void random_getter(variable_T *var)
     assert((var->v_type & VF_MASK) == VF_NORMAL);
     free(var->v_value);
     var->v_value = malloc_wprintf(L"%u", next_random());
+    // variable_set(VAR_RANDOM, var);
     if (var->v_type & VF_EXPORT)
 	update_enrivon(VAR_RANDOM);
 }
@@ -1228,7 +1234,7 @@ void tryhash_word_as_command(const wordunit_T *w)
 
 /********** Directory Stack **********/
 
-#if YASH_ENABLE_ARRAY
+#if YASH_ENABLE_DIRSTACK
 
 static variable_T *get_dirstack(void);
 
@@ -1600,6 +1606,7 @@ int typeset_builtin(int argc, void **argv)
 		var->v_type |= VF_EXPORT;
 	    else if (unexport)
 		var->v_type &= ~VF_EXPORT;
+	    variable_set(name, var);
 	    if (saveexport != (var->v_type & VF_EXPORT)
 		    || (wequal && (var->v_type & VF_EXPORT)))
 		update_enrivon(name);

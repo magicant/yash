@@ -6,7 +6,6 @@ NEWS
 NEWS.ja
 README
 README.ja
-TODO.ja
 Makefile.in
 configure
 install-sh
@@ -110,6 +109,8 @@ tests/option.y.out
 tests/option.y.tst
 tests/parser.p.out
 tests/parser.p.tst
+tests/parser.y.out
+tests/parser.y.tst
 tests/path.p.out
 tests/path.p.tst
 tests/printf.y.out

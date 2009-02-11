@@ -34,9 +34,7 @@ echo ===== 2 =====
 
 echol () {
 	typeset i  # local
-	for i
-	do printf "%s\n" "$i"
-	done
+	for i; do printf "%s\n" "$i"; done
 }
 
 ary=(1 22 '3  3' 4"   "4 5)

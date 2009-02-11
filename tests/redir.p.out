@@ -13,6 +13,9 @@ not writable
 not readable
 exec redirect
 exec redirect
+printed
+exec in group
+file descriptor closed
 ===== 2 =====
 Test of here-document.
 		<"">

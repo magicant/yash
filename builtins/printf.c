@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* printf.c: echo/printf builtins */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -538,8 +538,8 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 {
     switch (format->type) {
 	case ft_none:
-	    assert(format->convspec[0] == '%');
-	    printf(format->convspec);
+	    assert(strcmp(format->convspec, "%%") == 0);
+	    putchar('%');
 	    return false;
 	case ft_raw:
 	    assert(format->convspec[0] != '%');

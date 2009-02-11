@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.h: signal handling */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ extern int get_signal_number_w(wchar_t *name)
 
 extern _Bool any_trap_set;
 
-extern void init_fixed_trap_set(void);
 extern void init_signal(void);
 extern void set_signals(void);
 extern void set_job_signals(void);
@@ -44,16 +43,15 @@ extern void ignore_sigquit_and_sigint(void);
 extern void ignore_sigtstp(void);
 extern void block_sigttou(void);
 extern void unblock_sigttou(void);
-extern void reset_sigpipe(void);
 extern _Bool send_sigstop_to_myself(void);
 
 extern void block_sigchld_and_sigint(void);
 extern void unblock_sigchld_and_sigint(void);
-extern _Bool wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
+extern int wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
 extern void wait_for_input(int fd, _Bool trap);
 
 extern void handle_sigchld(void);
-extern _Bool handle_traps(void);
+extern int handle_traps(void);
 extern void execute_exit_trap(void);
 extern void clear_traps(void);
 

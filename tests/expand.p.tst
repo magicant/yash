@@ -1,4 +1,4 @@
-echol () for i; do printf "%s\n" "$i"; done
+echol () for i do printf "%s\n" "$i"; done
 
 echo ===== tilde expansion =====
 
@@ -23,6 +23,14 @@ echol 1 -$space- 2
 echol 1 "-$space-" 2
 echo ${unset-"unset  variable"} and ${var+"set  variable"}
 echo 1 ${null:-null variable} 2 ${null:+null variable} 3
+echo 1 ${unset-} 2 "${unset-}" 3
+echo 1 ${unset-""} 2 "${unset-""}" 3
+echo 1 ${unset-unset  var} 2 "${unset-unset  var}" 3
+echo 1 ${unset-"unset  var"} 2
+echo 1 ${var+} 2 "${var+}" 3
+echo 1 ${var+""} 2 "${var+""}" 3
+echo 1 ${var+set  var} 2 "${var+set  var}" 3
+echo 1 ${var+"set  var"} 2
 
 (: ${unset?"unset variable error"}) 2>&1 |
 grep "unset variable error" >/dev/null &&
@@ -130,7 +138,7 @@ echo +${foo-1+2}+${bar-3+4}+
 echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 
 set $foo bar '' xyz ''$foo'' abc
-for i; do echo "-$i-"; done
+for i do echo "-$i-"; done
 
 echo =====
 
@@ -157,6 +165,8 @@ echol [ "-$@-" ]
 
 echo =====
 
-set 1 2 3
+set 1 '2  2' 3
+echo $*
+echo "$*"
 IFS=""
 echo "$*"

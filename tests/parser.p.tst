@@ -17,6 +17,11 @@ echo double \
 
 foo= bar= multiple=assignments one=line
 echo $multiple $one
+multiple=foo ;
+one=&
+(one\
+=bar)
+echo $multiple $one
 
 echo $(echo echo) $((1 + 2 * 3))
 
@@ -116,7 +121,7 @@ cat;)
 echo ===== 4 =====
 
 if true; then echo if construct; fi
-if
+if # comment ok
 	echo dummy
 	false
 then
@@ -165,7 +170,7 @@ until true; do true; done; echo $?
 while [ $? = 0 ]; do (exit 10) done; echo $?
 until ! [ $? = 0 ]; do (exit 10) done; echo $?
 set 1 '2  2' 3
-while
+while # comment ok
 	[ $# != 0 ]
 do
 	echo $# $1
@@ -190,11 +195,11 @@ e
 echo ===== 6 =====
 
 for i in 1 '2   2' 3; do echo $i; echo "$i"; done
-for i
-	in parser.p.*
-do
-	echo $i
-done
+for i             # comment
+	in parser.p.* # comment
+do                # comment
+	echo $i       # comment
+done              # comment
 
 # for index in 1 '2  2' 3;do echo $index; echo "$index";done
 f\
@@ -222,6 +227,13 @@ e
 
 for in in in; do echo $in; done
 
+false
+for i in; do :; done
+echo $?
+(exit 2)
+for i in 1; do (exit 1); done
+echo $?
+
 echo ===== 7 =====
 
 false
@@ -232,9 +244,13 @@ case 123
 	in
 esac
 
+case 123 in
+	* | esac )
+esac
+
 i=''
-case 123
-	in
+case 123 # comment ok
+	in   # comment ok
 	${i:=2}) echo ng\;;;
 	(x|y|z) echo ng;;
 	(dummy) ;;
@@ -243,7 +259,7 @@ case 123
 esac
 if [ $? != 0 ]; then echo $i; fi
 
-case '*' in
+case '*' in # comment ok
 	'*')
 	echo '*'
 	;;
@@ -344,7 +360,8 @@ funcredir () {
 funcredir 3>&1 >/dev/null
 cat "$tmp"
 
-funcredir2 () {
+funcredir2 ( ) # comment
+{
 	echo not-redirected
 }
 

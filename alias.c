@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* alias.c: alias substitution */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -304,9 +304,15 @@ void print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
     if (!prefix)
 	format = "%ls=%ls\n";
     else if (alias->flags & AF_GLOBAL)
-	format = "alias -g %ls=%ls\n";
+	if (name[0] == L'-')
+	    format = "alias -g -- %ls=%ls\n";
+	else
+	    format = "alias -g %ls=%ls\n";
     else
-	format = "alias %ls=%ls\n";
+	if (name[0] == L'-')
+	    format = "alias -- %ls=%ls\n";
+	else
+	    format = "alias %ls=%ls\n";
     printf(format, name, qvalue);
     free(qvalue);
 }
@@ -414,7 +420,7 @@ const char alias_help[] = Ngt(
 "If the -p (--prefix) option is specified, the output format is suitable for\n"
 "re-input to the shell.\n"
 "If no operands are given, all alias definitions are printed.\n"
-"All the options are available in POSIXly correct mode only.\n"
+"No options are available in POSIXly correct mode.\n"
 );
 
 /* The "unalias" builtin, which accepts the following option:

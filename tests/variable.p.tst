@@ -44,7 +44,7 @@ echo $var
 
 echo ===== set export =====
 
-export save="$(env -i LC_CTYPE="$LC_CTYPE" foo=123 $INVOKE $TESTEE -c 'bar=456; set')"
+export save="$(env -i PATH="$PATH" LC_CTYPE="$LC_CTYPE" foo=123 $INVOKE $TESTEE -c 'bar=456; set')"
 $INVOKE $TESTEE -c 'eval $save; echo $foo $bar'
 
 unset save

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -252,7 +252,6 @@ int main(int argc, char **argv)
 	do_job_control = is_interactive;
     if (is_interactive || do_job_control)
 	open_ttyfd();
-    init_fixed_trap_set();
     set_signals();
     set_own_pgid();
     set_positional_parameters(wargv + xoptind);

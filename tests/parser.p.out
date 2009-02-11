@@ -9,6 +9,7 @@ single
 double 
 
 assignments line
+foo line
 echo 7
 10 foo
 12 bar
@@ -78,6 +79,8 @@ parser.p.tst
 3
 3
 in
+0
+1
 ===== 7 =====
 0
 ok
@@ -102,4 +105,4 @@ function
 2
 re-redirected
 redirected
-lineno=354
+lineno=371

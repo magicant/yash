@@ -1,5 +1,5 @@
 # run-test.sh: runs tests specified by $TESTEE and $TEST_ITEMS
-# (C) 2007-2008 magicant
+# (C) 2007-2009 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ if [ x"${TMPDIR}" = x"${TMPDIR#/}" ]; then
     echo \$TMPDIR must be an absolute path >&2
     exit 1
 fi
-TESTTMP="${TMPDIR}/test.$$"
+TESTTMP="$(cd ${TMPDIR}; pwd)/test.$$"
 trap 'rm -rf $TESTTMP' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
     echo Cannot create temporary directory >&2
@@ -34,7 +34,7 @@ echo "Any output from the tests indicates a possible malfunction"
 
 export INVOKE TESTEE TESTTMP
 export LC_MESSAGES=POSIX LC_CTYPE="${LC_ALL-${LC_CTYPE-${LANG}}}" LANG=POSIX
-unset ENV IFS LC_ALL failed
+unset ENV HISTFILE HISTSIZE MAIL MAILCHECK MAILPATH IFS LC_ALL failed
 umask u=rwx,go=
 
 checkskip()

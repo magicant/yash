@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2008 magicant
+# (C) 2007-2009 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
-builtins/builtins.a: _PHONY
+builtins/@BUILTINS_ARCHIVE@: _PHONY
 	@cd builtins && $(MAKE)
 lineedit/@LINEEDIT_ARCHIVE@: _PHONY
 	@cd lineedit && $(MAKE)
@@ -67,7 +67,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja TODO.ja configure Makefile.in install-sh
+DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
 distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	mkdir -p $@
@@ -103,10 +103,12 @@ $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
+CTAGSARGS = @CTAGSARGS@
+ETAGSARGS = @ETAGSARGS@
 tags: $(SOURCES)
-	ctags $(SOURCES)
+	ctags $(CTAGSARGS)
 TAGS: $(SOURCES)
-	etags $(SOURCES)
+	etags $(ETAGSARGS)
 cscope: cscope.out
 cscope.out: $(SOURCES)
 	cscope -b

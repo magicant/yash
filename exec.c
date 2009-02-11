@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2008 magicant */
+/* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -178,7 +178,7 @@ static struct execinfo {
 #define INIT_EXECINFO { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
 /* This flag is set while the "exec" builtin is executed. */
-static bool exec_builtin_executed;
+static bool exec_builtin_executed = false;
 
 /* the last assignment. */
 static assign_T *last_assign;
@@ -279,6 +279,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    job->j_pgid = doing_job_control_now ? cpid : 0;
 	    job->j_status = JS_RUNNING;
 	    job->j_statuschanged = true;
+	    job->j_nonotify = false;
 	    job->j_loop = false;
 	    job->j_pcount = 1;
 
@@ -308,6 +309,7 @@ void exec_if(const command_T *c, bool finally_exit)
 	    goto done;
 	if (exec_condition(cmds->ic_condition)) {
 	    exec_and_or_lists(cmds->ic_commands, finally_exit);
+	    assert(!finally_exit);
 	    return;
 	}
     }
@@ -377,7 +379,7 @@ done:
     while (++i < count)
 	free(words[i]);
     free(words);
-    if (count == 0)
+    if (count == 0 && c->c_forcmds)
 	laststatus = Exit_SUCCESS;
 finish:
     if (finally_exit)
@@ -582,6 +584,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     job->j_pgid = doing_job_control_now ? pgid : 0;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = true;
+    job->j_nonotify = false;
     job->j_loop = looppipe;
     job->j_pcount = count;
     set_active_job(job);
@@ -719,7 +722,6 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	maybe_redirect_stdin_to_devnull();
 
     /* execute! */
-    exec_builtin_executed = false;
     if (c->c_type == CT_SIMPLE) {
 	last_assign = c->c_assigns;
 	if (argc == 0) {
@@ -757,6 +759,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	clear_savefd(savefd);
     else
 	undo_redirections(savefd);
+    exec_builtin_executed = false;
     return 0;
 
 exp_fail:
@@ -795,14 +798,14 @@ redir_fail:
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
     sigset_t all, savemask;
-    if (sigtype & (t_quitint | t_tstp)) {
+    bool sigblock = is_interactive_now || doing_job_control_now
+	|| (sigtype & (t_quitint | t_tstp));
+    if (sigblock) {
 	sigfillset(&all);
 	sigemptyset(&savemask);
 	if (sigprocmask(SIG_BLOCK, &all, &savemask) < 0)
-	    xerror(errno, "sigprocmask(BLOCK, all)");
+	    xerror(errno, "sigprocmask");
     }
-    restore_job_signals();
-    restore_interactive_signals();
 
     pid_t cpid = fork();
 
@@ -815,22 +818,26 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (doing_job_control_now && pgid >= 0)
 		setpgid(cpid, pgid);
 	}
-	set_signals();
     } else {
 	/* child process */
 	bool save_is_interactive_now = is_interactive_now;
 	bool save_doing_job_control_now = doing_job_control_now;
 	if (save_doing_job_control_now && pgid >= 0) {
 	    setpgid(0, pgid);
-	    if (fg)
-		put_foreground(getpgrp());
+	    if (fg) {
+		if (pgid == 0)
+		    pgid = getpgrp();
+		put_foreground(pgid);
+	    }
 	}
 	forget_initial_pgid();
 	neglect_all_jobs();
+	restore_job_signals();
+	restore_interactive_signals();
 	if (sigtype & t_leave) {
-	    clear_shellfds(false);
-	} else {
 	    clear_shellfds(true);
+	} else {
+	    clear_shellfds(false);
 	    clear_traps();
 	}
 	is_interactive_now = false;
@@ -841,9 +848,9 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (save_is_interactive_now)
 		ignore_sigtstp();
     }
-    if (sigtype & (t_quitint | t_tstp))
+    if (sigblock)
 	if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0 && errno != EINTR)
-	    xerror(errno, "sigprocmask(SETMASK, none)");
+	    xerror(errno, "sigprocmask");
     return cpid;
 }
 
@@ -1178,6 +1185,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	job->j_pgid = 0;
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = false;
+	job->j_nonotify = false;
 	job->j_loop = false;
 	job->j_pcount = 1;
 	job->j_procs[0].pr_pid = cpid;
@@ -1647,7 +1655,7 @@ const char exec_help[] = Ngt(
 "option is always assumed.\n"
 );
 
-/* The "command" builtin, which accepts the following options:
+/* The "command"/"type" builtin, which accepts the following options:
  *  -b: search builtins
  *  -B: search external commands
  *  -p: use the default path to find the command
@@ -1847,7 +1855,7 @@ bool print_command_info_human_friendlily(const wchar_t *commandname)
 	goto done;
     }
 
-    xerror(0, Ngt("%s: not found"), name);
+    xerror(0, Ngt("%s: no such command or function"), name);
     free(name);
     return false;
 done:
@@ -1864,6 +1872,8 @@ bool print_command_fullpath(const wchar_t *commandname, bool hf)
     if (!name)
 	return false;
     if (!is_executable_regular(name)) {
+	if (hf)
+	    xerror(0, Ngt("%s: no such command or function"), name);
 	free(name);
 	return false;
     }

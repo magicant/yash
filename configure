@@ -1,5 +1,5 @@
 # Manually written configuration script for yash
-# (C) 2007-2008 magicant
+# (C) 2007-2009 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@ temptxt="./.temp.txt"
 
 target="yash"
 package="yash"
-version="2.2.1"
-copyrightyear="2007-2008"
+version="2.6"
+copyrightyear="2007-2009"
 
 # all source files in this directory
 sources="alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c" 
@@ -59,8 +59,11 @@ enable_printf="yes"
 enable_socket="yes"
 enable_test="yes"
 enable_ulimit="yes"
+ctags_args=""
+etags_args=""
 unset prefix eprefix bindir cacheentry cachekey checkresult
 umask u=rwx,go=rx
+cd "$(dirname "$0")"
 
 parseenable() {
     case "$1" in
@@ -744,6 +747,20 @@ END
     done
 fi
 
+# check if ctags/etags accepts the --recurse option
+if ctags --recurse -f /dev/null /dev/null >/dev/null 2>&1
+then
+    ctags_args='--recurse'
+else
+    ctags_args='*.[ch]'
+fi
+if etags --recurse -o /dev/null /dev/null >/dev/null 2>&1
+then
+    etags_args='--recurse'
+else
+    etags_args='*.[ch]'
+fi
+
 
 if [ -n "${builtin_objs}" ]
 then
@@ -762,6 +779,8 @@ LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
 ARFLAGS="${ARFLAGS-${arflags}}"
+CTAGSARGS="${ctags_args}"
+ETAGSARGS="${etags_args}"
 SOURCES="${sources}"
 OBJS="${objs}"
 BUILTIN_OBJS="${builtin_objs}"
@@ -792,6 +811,8 @@ s!@LDFLAGS@!${LDFLAGS}!g
 s!@LDLIBS@!${LDLIBS}!g
 s!@AR@!${AR}!g
 s!@ARFLAGS@!${ARFLAGS}!g
+s!@CTAGSARGS@!${CTAGSARGS}!g
+s!@ETAGSARGS@!${ETAGSARGS}!g
 s!@SOURCES@!${SOURCES}!g
 s!@OBJS@!${OBJS}!g
 s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
@@ -819,6 +840,8 @@ echo LDFLAGS="'${LDFLAGS}'" >&5
 echo LDLIBS="'${LDLIBS}'" >&5
 echo AR="'${AR}'" >&5
 echo ARFLAGS="'${ARFLAGS}'" >&5
+echo CTAGSARGS="'${CTAGSARGS}'" >&5
+echo ETAGSARGS="'${ETAGSARGS}'" >&5
 echo SOURCES="'${SOURCES}'" >&5
 echo OBJS="'${OBJS}'" >&5
 echo BUILTIN_OBJS="'${BUILTIN_OBJS}'" >&5
