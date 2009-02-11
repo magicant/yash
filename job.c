@@ -598,19 +598,12 @@ char *get_job_status_string(const job_T *job, bool *needfree)
 
 /* Prints the status of job(s).
  * Finished jobs are removed from the job list after the status is printed.
- * If `jobnumber' is PJS_ALL, all the jobs are printed. If the specified job
- * doesn't exist, nothing is printed (it isn't an error).
+ * If the specified job doesn't exist, nothing is printed (it isn't an error).
  * If `changedonly' is true, only jobs whose `j_statuschanged' is true is
  * printed. If `verbose' is true, the status is printed in the process-wise
  * format rather than the usual job-wise format. */
 void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 {
-    if (jobnumber == PJS_ALL) {
-	for (size_t i = 1; i < joblist.length; i++)
-	    print_job_status(i, changedonly, verbose, f);
-	return;
-    }
-
     job_T *job = get_job(jobnumber);
     if (!job || (changedonly && !job->j_statuschanged) || job->j_nonotify)
 	return;
@@ -669,6 +662,13 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     job->j_statuschanged = false;
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
+}
+
+/* Prints the status of all jobs. */
+void print_job_status_all(bool changedonly, bool verbose, FILE *f)
+{
+    for (size_t i = 1; i < joblist.length; i++)
+	print_job_status(i, changedonly, verbose, f);
 }
 
 /* If the shell is interactive and the specified job has been killed by a

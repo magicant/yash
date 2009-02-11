@@ -90,9 +90,10 @@ extern void put_foreground(pid_t pgrp);
 extern int calc_status_of_job(const job_T *job)
     __attribute__((pure,nonnull));
 
-#define PJS_ALL 0  /* stands for all the jobs */
 extern void print_job_status(
 	size_t jobnumber, _Bool changedonly, _Bool verbose, FILE *f)
+    __attribute__((nonnull));
+extern void print_job_status_all(_Bool changedonly, _Bool verbose, FILE *f)
     __attribute__((nonnull));
 extern void notify_signaled_job(size_t jobnumber);
 

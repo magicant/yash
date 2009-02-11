@@ -577,7 +577,7 @@ void handle_sigchld(void)
         sigchld_received = false;
         do_wait();
 	if (shopt_notify) {
-	    print_job_status(PJS_ALL, true, false, stderr);
+	    print_job_status_all(true, false, stderr);
 	    // XXX redisplay prompt if lineedit is active
 	}
     }

@@ -273,7 +273,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     struct parsestate_T *state = save_parse_state();
     struct input_readline_info *info = inputinfo;
     if (do_job_control)
-	print_job_status(PJS_ALL, true, false, stderr);
+	print_job_status_all(true, false, stderr);
     if (info->type == 1) {
 	exec_prompt_command();
 	check_mail();
