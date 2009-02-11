@@ -369,20 +369,19 @@ out_of_loop:
 int wait_for_job(size_t jobnumber, bool return_on_stop,
 	bool interruptible, bool return_on_trap)
 {
+    int signum = 0;
     job_T *job = joblist.contents[jobnumber];
 
     if (job->j_pgid >= 0 && job->j_status != JS_DONE
 	    && (!return_on_stop || job->j_status != JS_STOPPED)) {
 	block_sigchld_and_sigint();
 	do {
-	    int signum = wait_for_sigchld(interruptible, return_on_trap);
-	    if (signum)
-		return signum;
-	} while (job->j_status != JS_DONE
-		&& (!return_on_stop || job->j_status != JS_STOPPED));
+	    signum = wait_for_sigchld(interruptible, return_on_trap);
+	} while (signum == 0 && job->j_status != JS_DONE &&
+		(!return_on_stop || job->j_status != JS_STOPPED));
 	unblock_sigchld_and_sigint();
     }
-    return 0;
+    return signum;
 }
 
 /* Waits for a child process to finish (or stop).
