@@ -217,6 +217,7 @@ void read_next(void)
     char c;
     switch (read(STDIN_FILENO, &c, 1)) {
 	case 0:
+	    yle_state = YLE_STATE_ERROR;
 	    return;
 	case 1:
 	    break;
