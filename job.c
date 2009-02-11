@@ -371,7 +371,9 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
 {
     int signum = 0;
     job_T *job = joblist.contents[jobnumber];
+    bool savenonotify = job->j_nonotify;
 
+    job->j_nonotify = true;
     if (job->j_pgid >= 0 && job->j_status != JS_DONE
 	    && (!return_on_stop || job->j_status != JS_STOPPED)) {
 	block_sigchld_and_sigint();
@@ -381,6 +383,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
 		(!return_on_stop || job->j_status != JS_STOPPED));
 	unblock_sigchld_and_sigint();
     }
+    job->j_nonotify = savenonotify;
     return signum;
 }
 
@@ -405,6 +408,7 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
     job->j_pgid = cpgid;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = false;
+    job->j_nonotify = false;
     job->j_loop = false;
     job->j_pcount = 1;
     job->j_procs[0].pr_pid = cpid;
@@ -608,7 +612,7 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     }
 
     job_T *job = get_job(jobnumber);
-    if (!job || (changedonly && !job->j_statuschanged))
+    if (!job || (changedonly && !job->j_statuschanged) || job->j_nonotify)
 	return;
 
     char current;

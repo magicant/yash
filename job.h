@@ -45,6 +45,7 @@ typedef struct job_T {
     pid_t             j_pgid;          /* process group ID */
     enum jobstatus_T  j_status;
     _Bool             j_statuschanged; /* job's status not yet reported? */
+    _Bool             j_nonotify;      /* supress printing job status? */
     _Bool             j_loop;          /* loop pipe? */
     size_t            j_pcount;        /* # of processes in `j_procs' */
     struct process_T  j_procs[];       /* info about processes */

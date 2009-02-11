@@ -279,6 +279,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    job->j_pgid = doing_job_control_now ? cpid : 0;
 	    job->j_status = JS_RUNNING;
 	    job->j_statuschanged = true;
+	    job->j_nonotify = false;
 	    job->j_loop = false;
 	    job->j_pcount = 1;
 
@@ -583,6 +584,7 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     job->j_pgid = doing_job_control_now ? pgid : 0;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = true;
+    job->j_nonotify = false;
     job->j_loop = looppipe;
     job->j_pcount = count;
     set_active_job(job);
@@ -1183,6 +1185,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	job->j_pgid = 0;
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = false;
+	job->j_nonotify = false;
 	job->j_loop = false;
 	job->j_pcount = 1;
 	job->j_procs[0].pr_pid = cpid;
