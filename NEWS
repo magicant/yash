@@ -16,6 +16,8 @@ Yash 2.6
   *  In posixly-correct mode, a semicolon followed by the identifier
      followed by "for" is now treated as an error.
   *  Global aliases are now allowed after compound commands.
+  *  The "fg" and "wait" builtins were causing invalid memory access
+     when the "-o notify" option is enabled.
 
 ----------------------------------------------------------------------
 Yash 2.5
