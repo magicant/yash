@@ -205,11 +205,13 @@
 #define TI_lines   "lines"
 #define TI_nel     "nel"
 #define TI_op      "op"
+#define TI_rmkx    "rmkx"
 #define TI_setab   "setab"
 #define TI_setaf   "setaf"
 #define TI_setb    "setb"
 #define TI_setf    "setf"
 #define TI_sgr     "sgr"
+#define TI_smkx    "smkx"
 
 
 /* Number of lines and columns in the current terminal. */
@@ -229,6 +231,8 @@ static inline int is_strcap_valid(const char *s)
 static void set_up_keycodes(void);
 static void move_cursor(char *capone, char *capmul, long count, int affcnt)
     __attribute__((nonnull));
+static void print_smkx(void);
+static void print_rmkx(void);
 static int putchar_stderr(int c);
 
 
@@ -450,7 +454,7 @@ void set_up_keycodes(void)
     }
     for (size_t i = 0; i < sizeof keymap / sizeof *keymap; i++) {
 	const char *seq = tigetstr(keymap[i].capability);
-	if (seq != NULL && seq != (char *) -1)
+	if (is_strcap_valid(seq))
 	    t = trie_set(t, seq, (trievalue_T) { .keyseq = keymap[i].keyseq });
     }
 
@@ -603,6 +607,22 @@ void yle_print_setbg(int color)
     }
 }
 
+/* Prints "smkx" variable. */
+void print_smkx(void)
+{
+    char *v = tigetstr(TI_smkx);
+    if (is_strcap_valid(v))
+	tputs(v, 1, putchar_stderr);
+}
+
+/* Prints "rmkx" variable. */
+void print_rmkx(void)
+{
+    char *v = tigetstr(TI_rmkx);
+    if (is_strcap_valid(v))
+	tputs(v, 1, putchar_stderr);
+}
+
 /* Like `putchar', but prints to `stderr'. */
 int putchar_stderr(int c)
 {
@@ -671,6 +691,9 @@ _Bool yle_set_terminal(void)
 	    ||  (term.c_cc[VMIN] != 0))
 	goto fail;
 
+    // XXX it should be configurable whether we print smkx/rmkx or not.
+    print_smkx();
+
     return 1;
 
 fail:
@@ -683,6 +706,7 @@ fail:
  * Returns true iff successful. */
 _Bool yle_restore_terminal(void)
 {
+    print_rmkx();
     return tcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) == 0;
 }
 
