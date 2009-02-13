@@ -242,40 +242,41 @@ void read_next(void)
     else
 	sb_ccat(&reader_first_buffer, c);
 
+    if (incomplete_wchar)
+	goto process_wide;
+
     /** process the content in the buffer **/
-    if (!incomplete_wchar) {
-	while (reader_first_buffer.length > 0) {
-	    /* check if `reader_first_buffer' is a special sequence */
-	    trieget_T tg;
-	    if (reader_first_buffer.contents[0] == yle_interrupt_char)
-		tg = make_trieget(Key_interrupt);
-	    else if (reader_first_buffer.contents[0] == yle_eof_char)
-		tg = make_trieget(Key_eof);
-	    else if (reader_first_buffer.contents[0] == yle_kill_char)
-		tg = make_trieget(Key_kill);
-	    else if (reader_first_buffer.contents[0] == yle_erase_char)
-		tg = make_trieget(Key_erase);
-	    else if (reader_first_buffer.contents[0] == '\\')
-		tg = make_trieget(Key_backslash);
-	    else
-		tg = trie_get(yle_keycodes,
-		    reader_first_buffer.contents, reader_first_buffer.length);
-	    switch (tg.type) {
-		case TG_NOMATCH:
-		    goto process_wide;
-		case TG_UNIQUE:
-		    sb_remove(&reader_first_buffer, 0, tg.matchlength);
-		    wb_cat(&reader_second_buffer, tg.value.keyseq);
-		    break;
-		case TG_AMBIGUOUS:
-		    return;
-	    }
+    while (reader_first_buffer.length > 0) {
+	/* check if `reader_first_buffer' is a special sequence */
+	trieget_T tg;
+	if (reader_first_buffer.contents[0] == yle_interrupt_char)
+	    tg = make_trieget(Key_interrupt);
+	else if (reader_first_buffer.contents[0] == yle_eof_char)
+	    tg = make_trieget(Key_eof);
+	else if (reader_first_buffer.contents[0] == yle_kill_char)
+	    tg = make_trieget(Key_kill);
+	else if (reader_first_buffer.contents[0] == yle_erase_char)
+	    tg = make_trieget(Key_erase);
+	else if (reader_first_buffer.contents[0] == '\\')
+	    tg = make_trieget(Key_backslash);
+	else
+	    tg = trie_get(yle_keycodes,
+		reader_first_buffer.contents, reader_first_buffer.length);
+	switch (tg.type) {
+	    case TG_NOMATCH:
+		goto process_wide;
+	    case TG_UNIQUE:
+		sb_remove(&reader_first_buffer, 0, tg.matchlength);
+		wb_cat(&reader_second_buffer, tg.value.keyseq);
+		break;
+	    case TG_AMBIGUOUS:
+		goto process_keymap;
 	}
     }
 
     /* convert bytes into wide characters */
 process_wide:
-    if (reader_first_buffer.length > 0) {
+    while (reader_first_buffer.length > 0) {
 	wchar_t wc;
 	size_t n = mbrtowc(&wc, reader_first_buffer.contents,
 		reader_first_buffer.length, &reader_state);
@@ -284,16 +285,16 @@ process_wide:
 	    case 0:            // read null character
 		sb_clear(&reader_first_buffer);
 		wb_cat(&reader_second_buffer, Key_c_at);
-		return;
+		break;
 	    case (size_t) -1:  // conversion error
 		yle_alert();
 		memset(&reader_state, 0, sizeof reader_state);
 		sb_clear(&reader_first_buffer);
-		break;
+		goto process_keymap;
 	    case (size_t) -2:  // more bytes needed
 		incomplete_wchar = true;
 		sb_clear(&reader_first_buffer);
-		goto process_wide;
+		goto process_keymap;
 	    default:
 		sb_remove(&reader_first_buffer, 0, n);
 		wb_wccat(&reader_second_buffer, wc);
@@ -302,22 +303,26 @@ process_wide:
     }
 
     /* process key mapping for wide characters */
+process_keymap:
     while (reader_second_buffer.length > 0) {
 	trieget_T tg = trie_getw(
 		yle_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
 	    case TG_NOMATCH:
-		yle_current_mode->default_command(
+		yle_keymap_invoke(yle_current_mode->default_command,
 			wb_get_char(&reader_second_buffer));
 		wb_clear(&reader_second_buffer);
 		break;
 	    case TG_UNIQUE:
-		tg.value.cmdfunc(wb_get_char(&reader_second_buffer));
+		yle_keymap_invoke(tg.value.cmdfunc,
+			wb_get_char(&reader_second_buffer));
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;
 	    case TG_AMBIGUOUS:
 		return;
 	}
+	if (yle_state != YLE_STATE_EDITING)
+	    break;
     }
 }
 

@@ -433,9 +433,9 @@ void print_editline(bool keepstuck)
 	/* print a dummy space to move the cursor to the next line */
 	tputwc(L' ');
 	yle_print_cr();
-	yle_print_el();
 	current_column = 0;
     }
+    yle_print_el();
 
     last_edit_line = current_line;
 }

@@ -68,6 +68,7 @@ void yle_keymap_init(void)
 
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
+    t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_noop));
     t = trie_setw(t, L"i", CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
@@ -89,6 +90,19 @@ void yle_set_mode(yle_mode_id_T id)
 void yle_keymap_reset(void)
 {
     reset_count();
+}
+
+/* Invokes the given command. */
+void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t arg)
+{
+    cmd(arg);
+
+    if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
+	if (yle_main_index > 0 && yle_main_index == yle_main_buffer.length) {
+	    yle_main_index--;
+	    yle_display_reposition_cursor();
+	}
+    }
 }
 
 /* Resets `state.count' */

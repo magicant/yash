@@ -64,19 +64,21 @@ int main(int argc, char **argv)
 	print_null(t);
 	print(t, "");
 
-	t = trie_set_null(t, (trievalue_T) (const wchar_t *) L"Null");
-	t = trie_set(t, "abc", (trievalue_T) (const wchar_t *) L"ABC");
-	t = trie_set(t, "abca", (trievalue_T) (const wchar_t *) L"ABCA");
-	t = trie_set(t, "abcb", (trievalue_T) (const wchar_t *) L"ABCB");
-	t = trie_set(t, "abcc", (trievalue_T) (const wchar_t *) L"ABCC");
-	t = trie_set(t, "abcd", (trievalue_T) (const wchar_t *) L"");
-	t = trie_set(t, "abcd", (trievalue_T) (const wchar_t *) L"ABCD");
-	t = trie_set(t, "abcde", (trievalue_T) (const wchar_t *) L"ABCDE");
-	t = trie_set(t, "abce", (trievalue_T) (const wchar_t *) L"ABCE");
-	t = trie_set(t, "abcf", (trievalue_T) (const wchar_t *) L"ABCF");
-	t = trie_set(t, "abcg", (trievalue_T) (const wchar_t *) L"ABCG");
-	t = trie_set(t, "abch", (trievalue_T) (const wchar_t *) L"ABCH");
-	t = trie_set(t, "b", (trievalue_T) (const wchar_t *) L"B");
+#define make_trievalue(s) ((trievalue_T) { .keyseq = (s) })
+
+	t = trie_set_null(t, make_trievalue(L"Null"));
+	t = trie_set(t, "abc", make_trievalue(L"ABC"));
+	t = trie_set(t, "abca", make_trievalue(L"ABCA"));
+	t = trie_set(t, "abcb", make_trievalue(L"ABCB"));
+	t = trie_set(t, "abcc", make_trievalue(L"ABCC"));
+	t = trie_set(t, "abcd", make_trievalue(L""));
+	t = trie_set(t, "abcd", make_trievalue(L"ABCD"));
+	t = trie_set(t, "abcde", make_trievalue(L"ABCDE"));
+	t = trie_set(t, "abce", make_trievalue(L"ABCE"));
+	t = trie_set(t, "abcf", make_trievalue(L"ABCF"));
+	t = trie_set(t, "abcg", make_trievalue(L"ABCG"));
+	t = trie_set(t, "abch", make_trievalue(L"ABCH"));
+	t = trie_set(t, "b", make_trievalue(L"B"));
 
 	print_null(t);
 	print(t, "");
@@ -94,7 +96,7 @@ int main(int argc, char **argv)
 
 	t = trie_remove(t, "b");
 	t = trie_remove(t, "c");
-	t = trie_set(t, "a", (trievalue_T) (const wchar_t *) L"A");
+	t = trie_set(t, "a", make_trievalue(L"A"));
 
 	print(t, "a");
 	print(t, "ax");

@@ -41,18 +41,20 @@ int main(int argc, char **argv)
 
 	print(t, L"");
 
-	t = trie_setw(t, L"abc", (trievalue_T) L"ABC");
-	t = trie_setw(t, L"abca", (trievalue_T) L"ABCA");
-	t = trie_setw(t, L"abcb", (trievalue_T) L"ABCB");
-	t = trie_setw(t, L"abcc", (trievalue_T) L"ABCC");
-	t = trie_setw(t, L"abcd", (trievalue_T) L"");
-	t = trie_setw(t, L"abcd", (trievalue_T) L"ABCD");
-	t = trie_setw(t, L"abcde", (trievalue_T) L"ABCDE");
-	t = trie_setw(t, L"abce", (trievalue_T) L"ABCE");
-	t = trie_setw(t, L"abcf", (trievalue_T) L"ABCF");
-	t = trie_setw(t, L"abcg", (trievalue_T) L"ABCG");
-	t = trie_setw(t, L"abch", (trievalue_T) L"ABCH");
-	t = trie_setw(t, L"b", (trievalue_T) L"B");
+#define make_trievalue(s) ((trievalue_T) { .keyseq = (s) })
+
+	t = trie_setw(t, L"abc", make_trievalue(L"ABC"));
+	t = trie_setw(t, L"abca", make_trievalue(L"ABCA"));
+	t = trie_setw(t, L"abcb", make_trievalue(L"ABCB"));
+	t = trie_setw(t, L"abcc", make_trievalue(L"ABCC"));
+	t = trie_setw(t, L"abcd", make_trievalue(L""));
+	t = trie_setw(t, L"abcd", make_trievalue(L"ABCD"));
+	t = trie_setw(t, L"abcde", make_trievalue(L"ABCDE"));
+	t = trie_setw(t, L"abce", make_trievalue(L"ABCE"));
+	t = trie_setw(t, L"abcf", make_trievalue(L"ABCF"));
+	t = trie_setw(t, L"abcg", make_trievalue(L"ABCG"));
+	t = trie_setw(t, L"abch", make_trievalue(L"ABCH"));
+	t = trie_setw(t, L"b", make_trievalue(L"B"));
 
 	print(t, L"");
 	print(t, L"ab");
@@ -69,7 +71,7 @@ int main(int argc, char **argv)
 
 	t = trie_removew(t, L"b");
 	t = trie_removew(t, L"c");
-	t = trie_setw(t, L"a", (trievalue_T) L"A");
+	t = trie_setw(t, L"a", make_trievalue(L"A"));
 
 	print(t, L"a");
 	print(t, L"ax");

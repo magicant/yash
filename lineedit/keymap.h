@@ -43,6 +43,8 @@ extern const yle_mode_T *yle_current_mode;
 extern void yle_keymap_init(void);
 extern void yle_set_mode(yle_mode_id_T id);
 extern void yle_keymap_reset(void);
+extern void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t arg)
+    __attribute__((nonnull));
 
 
 #define CMDENTRY(cmdfunc_) \
