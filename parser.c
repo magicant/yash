@@ -1044,12 +1044,14 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 void parse_redirect_list(redir_T **lastp)
 {
     for (;;) {
+#if YASH_ENABLE_ALIAS
 	if (!posixly_correct) {
 	    wchar_t *nameend;
 	    while (*(nameend = skip_name(cbuf.contents + cindex)) == L'\0'
 		    && read_more_input() == 0);
 	    substitute_alias(&cbuf, cindex, caliases, true);
 	}
+#endif
 
 	redir_T *redir = tryparse_redirect();
 	if (!redir)
