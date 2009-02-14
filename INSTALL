@@ -63,4 +63,40 @@ Type `./configure --help' to see a brief instruction of `configure'.
 Typing `make uninstall' uninstalls the program.
 Typing `make clean' deletes object files and executables.
 Typing `make distclean' deletes any files that are made by `configure'
-or during build.
+and during build.
+
+
+======================================================================
+
+Below is a list of preprocessor macros that are recognized during
+compilation. These macros can be additionally defined by hand in
+"config.h" for further configuration.
+To enable an option, define the corresponding macro as a non-zero
+integer. To disable, define the macro as zero or leave it undefined.
+The list below does not contain macros that are set by the `configure'
+script.
+
+#define DOUBLE_DIVISION_BY_ZERO_ERROR 1
+When this macro is set to non-zero, division by zero in floating-point
+arithmetic is treated as an error. Otherwise, division by zero is
+assumed to return a valid result (like infinity).
+
+#define YASH_DISABLE_SUPERUSER
+When this macro is set to non-zero, the user whose UID is zero is not
+treated as the superuser, who is otherwise considered to have
+special privilege about file access.
+
+#define SHELLFDMINMAX 100
+This macro must be defined as an integer no less than 10 and the
+default value for it is 100. When the shell needs to open a file to
+read/write the history file, etc., it tries to make the file
+descriptor for the file around the value of this macro.
+
+#define FIXED_SIGNAL_AS_ERROR 1
+This macro changes the behavior of the "trap" command in a non-
+interactive shell which tries to change a signal handler which has
+been set to "ignore the signal" when the shell is invoked.
+If this macro is set to non-zero, the "trap" command results in an
+error. Otherwise, the command returns the exit status of success.
+Note that the signal handler is not changed in such cases whether
+this macro is defined or not.
