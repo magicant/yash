@@ -86,14 +86,13 @@ size_t wfnmatch(const wchar_t *pat, const wchar_t *s,
 size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 	enum wfnmflags flags, enum wfnmtype type, size_t minlen)
 {
-    const wchar_t *const saves = s;
-
     if (!pat[0])
 	return s[0] ? WFNM_NOMATCH : 0;
 
     /* check a period at the head */
-    if (PERIOD && FOLD(s[0]) == L'.' && pat[0] != L'.')
-	return WFNM_NOMATCH;
+    if (PERIOD && FOLD(s[0]) == L'.')
+	if (pat[0] != L'.' && (pat[0] != L'\\' || pat[1] != L'.'))
+	    return WFNM_NOMATCH;
 
     size_t slen = wcslen(s);
     if (slen < minlen)
@@ -113,11 +112,7 @@ size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
 	}
     }
 
-    size_t r = wfnmatchn(pat, s, slen - minlen, flags, type);
-    if (r == WFNM_NOMATCH || r == WFNM_ERROR)
-	return r;
-    else
-	return r + (s - saves);
+    return wfnmatchn(pat, s, slen - minlen, flags, type);
 }
 
 /* Counts the minimum number of characters that `pat' matches. */
