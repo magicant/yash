@@ -18,6 +18,7 @@
 
 #include "../common.h"
 #include <assert.h>
+#include <stdbool.h>
 #include "../hashtable.h"
 #include "../strbuf.h"
 #include "display.h"
@@ -54,6 +55,7 @@ void yle_keymap_init(void)
     yle_modes[YLE_MODE_VI_INSERT].default_command = cmd_self_insert;
     t = trie_create();
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
+    t = trie_setw(t, Key_c_v, CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_setmode_vicommand));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
@@ -145,6 +147,11 @@ void cmd_self_insert(wchar_t c)
 	yle_display_reprint_buffer();
     }
     reset_count();
+}
+
+void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
+{
+    yle_next_verbatim = true;
 }
 
 /* Inserts the backslash character. */

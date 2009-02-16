@@ -57,6 +57,7 @@ extern yle_command_func_T
     cmd_noop,
     cmd_alert,
     cmd_self_insert,
+    cmd_expect_verbatim,
     cmd_insert_backslash,
     cmd_backward_delete_char,
     cmd_accept_line,

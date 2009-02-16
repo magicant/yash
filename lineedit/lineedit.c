@@ -45,6 +45,7 @@ static void reader_finalize(void);
 static void read_next(void);
 static inline trieget_T make_trieget(const wchar_t *keyseq)
     __attribute__((nonnull,const));
+static void append_to_second_buffer(wchar_t wc);
 static inline wchar_t wb_get_char(const xwcsbuf_T *buf)
     __attribute__((nonnull,pure));
 
@@ -181,6 +182,8 @@ static xstrbuf_T reader_first_buffer;
 static mbstate_t reader_state;
 /* The temporary buffer for converted characters. */
 static xwcsbuf_T reader_second_buffer;
+/* If true, next input will be inserted directly to the main buffer. */
+bool yle_next_verbatim;
 
 /* Initializes the state of the reader.
  * Called for each invocation of `yle_readline'. */
@@ -189,6 +192,7 @@ void reader_init(void)
     sb_init(&reader_first_buffer);
     memset(&reader_state, 0, sizeof reader_state);
     wb_init(&reader_second_buffer);
+    yle_next_verbatim = false;
 }
 
 /* Frees memory used by the reader. */
@@ -242,7 +246,7 @@ void read_next(void)
     else
 	sb_ccat(&reader_first_buffer, c);
 
-    if (incomplete_wchar)
+    if (incomplete_wchar || yle_next_verbatim)
 	goto process_wide;
 
     /** process the content in the buffer **/
@@ -284,12 +288,13 @@ process_wide:
 	switch (n) {
 	    case 0:            // read null character
 		sb_clear(&reader_first_buffer);
-		wb_cat(&reader_second_buffer, Key_c_at);
+		append_to_second_buffer(L'\0');
 		break;
 	    case (size_t) -1:  // conversion error
 		yle_alert();
 		memset(&reader_state, 0, sizeof reader_state);
 		sb_clear(&reader_first_buffer);
+		yle_next_verbatim = false;
 		goto process_keymap;
 	    case (size_t) -2:  // more bytes needed
 		incomplete_wchar = true;
@@ -297,7 +302,7 @@ process_wide:
 		goto process_keymap;
 	    default:
 		sb_remove(&reader_first_buffer, 0, n);
-		wb_wccat(&reader_second_buffer, wc);
+		append_to_second_buffer(wc);
 		break;
 	}
     }
@@ -333,6 +338,19 @@ trieget_T make_trieget(const wchar_t *keyseq)
 	.matchlength = 1,
 	.value.keyseq = keyseq,
     };
+}
+
+void append_to_second_buffer(wchar_t wc)
+{
+    if (wc != L'\0') {
+	if (yle_next_verbatim) {
+	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &wc, 1);
+	    yle_display_reprint_buffer();
+	} else {
+	    wb_wccat(&reader_second_buffer, wc);
+	}
+    }
+    yle_next_verbatim = false;
 }
 
 wchar_t wb_get_char(const xwcsbuf_T *buf)

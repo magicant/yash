@@ -49,6 +49,8 @@
 /********** Input Functions **********/
 
 static void exec_prompt_command(void);
+static wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *expand_ps_yash(wchar_t *s)
@@ -276,6 +278,14 @@ done:
  * If `inputinfo->type' is 1, this function changes its value to 2. */
 int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
+#if YASH_ENABLE_LINEEDIT
+    static wchar_t *linebuffer = NULL;
+    if (linebuffer) {
+	linebuffer = forward_line(linebuffer, buf);
+	return 0;
+    }
+#endif
+
     struct parsestate_T *state = save_parse_state();
     struct input_readline_info *info = inputinfo;
     if (do_job_control)
@@ -293,10 +303,10 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	    wchar_t *prompt = get_prompt(info->type);
 	    wchar_t *line = yle_readline(prompt);
 	    free(prompt);
+	    restore_parse_state(state);
 	    if (line) {
 		if (info->type == 1)
 		    info->type = 2;
-		restore_parse_state(state);
 		if (line[0]) {
 		    size_t len = wcslen(line);
 		    assert(len > 0);
@@ -309,7 +319,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 			line[len - 1] = lastchar;
 		    }
 #endif /* YASH_ENABLE_HISTORY */
-		    wb_catfree(buf, line);
+		    linebuffer = forward_line(line, buf);
 		    return 0;
 		} else {
 		    free(line);
@@ -366,6 +376,26 @@ void exec_prompt_command(void)
 	    savelaststatus = -1;
 	    free(savepc);
 	}
+    }
+}
+
+/* Processes the line buffer.
+ * If `linebuffer' contains one line, appends it to `buf' and returns NULL.
+ * If `linebuffer' contains more than one line, only the first line is appended
+ * and the rest is returned.
+ * `linebuffer' is freed in this function anyway and the result is a newly
+ * malloced buffer. */
+wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
+{
+    wchar_t *nl = wcschr(linebuffer, L'\n');
+    assert(nl != NULL);
+    nl++;
+    if (*nl == L'\0') {
+	wb_catfree(buf, linebuffer);
+	return NULL;
+    } else {
+	wb_ncat_force(buf, linebuffer, nl - linebuffer);
+	return wmemmove(linebuffer, nl, wcslen(nl) + 1);
     }
 }
 

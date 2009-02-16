@@ -42,12 +42,14 @@ extern wchar_t *yle_readline(const wchar_t *prompt)
 extern void yle_suspend_readline(void);
 extern void yle_resume_readline(void);
 #if YASH_ENABLE_LINEEDIT
-# define YLE_SUSPEND_READLINE yle_suspend_readline
-# define YLE_RESUME_READLINE  yle_resume_readline
+# define YLE_SUSPEND_READLINE() yle_suspend_readline()
+# define YLE_RESUME_READLINE()  yle_resume_readline()
 #else
 # define YLE_SUSPEND_READLINE() ((void) 0)
 # define YLE_RESUME_READLINE()  ((void) 0)
 #endif
+
+extern _Bool yle_next_verbatim;
 
 
 #endif /* YASH_LINEEDIT_H */
