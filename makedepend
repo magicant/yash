@@ -19,22 +19,22 @@
 
 if ! [ "$YASH_VERSION" ]; then
     echo This script must be run by yash.
-    exit 1
+    exit 2
 fi
 if [ $# -eq 0 ]; then
     echo $0: Arguments not specified.
-    exit 1
+    exit 2
 fi
 
 unset deptemp IFS
 trap 'rm -rf "$deptemp"' EXIT
-trap 'rm -rf "$deptemp"; exit 1' HUP INT QUIT ABRT TERM PIPE USR1 USR2
+trap 'rm -rf "$deptemp"; exit 2' HUP INT QUIT ABRT TERM PIPE USR1 USR2
 trap '' ALRM
 
 maketempdir () {
     if [ x"${deptemp+set}" != x"set" ]; then
-	mkdir "${deptemp=/tmp/mkdep$$}" || exit
-	(cd "$deptemp" && mkdir -p "$@") || exit
+	mkdir "${deptemp=/tmp/mkdep$$}" || exit 2
+	(cd "$deptemp" && mkdir -p "$@") || exit 2
     fi
 }
 filter () {

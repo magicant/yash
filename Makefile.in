@@ -53,7 +53,7 @@ depends: $(TARGET)
 	@./$(TARGET) makedepend $(DIRS); \
 		if [ $$? -eq 1 ]; then $(MAKE) $(TARGET); fi
 
-test check: $(TARGET)
+test check: all
 	@cd tests && $(MAKE) test-all
 
 BINDIR = @BINDIR@
