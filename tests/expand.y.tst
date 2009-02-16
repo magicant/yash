@@ -18,8 +18,8 @@ $INVOKE $TESTEE -c 'echo "${#@}"' x 1 22 333 4444 55555
 
 echo $((echo foo); (echo bar))
 
-var=1-2-3
-echo $var ${IFS= -} $var
+var=1-2-3 IFS=
+echo $var ${IFS:= -} $var
 unset IFS
 
 echo ===== 1 =====

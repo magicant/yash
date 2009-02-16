@@ -186,6 +186,9 @@ static hashtable_T functions;
 /* The index of the option charcter for the "getopts" builtin to parse next. */
 static unsigned optind2 = 1;
 
+/* The default value for $IFS */
+#define DEFAULT_IFS L" \t\n"
+
 
 /* Frees the value of a variable, but not the variable itself. */
 /* This function does not change the value of `*v'. */
@@ -239,11 +242,16 @@ void init_variables(void)
 
     ht_init(&functions, hashstr, htstrcmp);
 
-    /* add all the existing environment variables to the variable environment */
+    /* add all the existing environment variables except $IFS
+     * to the variable environment */
     for (char **e = environ; *e; e++) {
 	wchar_t *we = malloc_mbstowcs(*e);
 	if (!we)
 	    continue;
+	if (wcsncmp(we, VAR_IFS L"=", 4) == 0) {
+	    free(we);
+	    continue;
+	}
 
 	size_t namelen;
 	for (namelen = 0; we[namelen] && we[namelen] != L'='; namelen++);
@@ -737,14 +745,18 @@ void print_array_trace(const char *name, void *const *values, bool next)
  * Returns the value of the variable, or NULL if not found.
  * The return value must not be modified or `free'ed by the caller and
  * is valid until the variable is re-assigned or unset. */
+/* If $IFS is unset, getvar("IFS") returns L" \t\n". */
 const wchar_t *getvar(const char *name)
 {
     variable_T *var = search_variable(name);
     if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
 	if (var->v_getter)
 	    var->v_getter(var);
-	return var->v_value;
+	if (var->v_value)
+	    return var->v_value;
     }
+    if (strcmp(name, VAR_IFS) == 0)
+	return DEFAULT_IFS;
     return NULL;
 }
 
@@ -762,6 +774,7 @@ const wchar_t *getvar(const char *name)
  * changed or freed.  If no such variable is found (GV_NOTFOUND), the result
  * array will be NULL.
  * `count' is the number of elements in the `values'. */
+/* If $IFS is unset, this function returns " \t\n" as the value of it. */
 struct get_variable get_variable(const char *name)
 {
     struct get_variable result = {
@@ -839,11 +852,15 @@ positional_parameters:
 		return result;
 	}
     }
-    return result;
+    value = NULL;
 
 return_single:  /* return a scalar as a one-element array */
-    if (!value)
-	return result;
+    if (!value) {
+	if (strcmp(name, VAR_IFS) != 0)
+	    return result;
+	else
+	    value = xwcsdup(DEFAULT_IFS);
+    }
     result.type = GV_SCALAR;
     result.count = 1;
     result.values = xmalloc(2 * sizeof *result.values);
@@ -2527,6 +2544,7 @@ int read_builtin(int argc, void **argv)
     plist_T list;
 
     /* split fields */
+    assert(ifs != NULL);
     pl_init(&list);
     for (int i = xoptind; i < argc - 1; i++)
 	pl_add(&list, split_next_field(&s, ifs, raw));

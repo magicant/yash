@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.7
 
+  =  The shell now always unsets $IFS on invocation.
+  *  $IFS now expands to the default value if unset.
   *  A quoted period at the beginning of a filename was not properly
      matching during filename expansion.
 
