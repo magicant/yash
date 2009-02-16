@@ -666,12 +666,11 @@ _Bool yle_set_terminal(void)
     yle_erase_char     = TO_CHAR(term.c_cc[VERASE]);
 
     /* set attributes */
-    term.c_iflag &= ~(IGNBRK | ISTRIP | INLCR | IGNCR | ICRNL);
-    term.c_iflag |= BRKINT;
+    term.c_iflag &= ~(IGNBRK | BRKINT | INPCK | ISTRIP
+                     | INLCR | IGNCR | ICRNL | IXON);
     term.c_oflag &= ~OPOST;
-    term.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN);
-    term.c_lflag |= ISIG;
-    term.c_cflag &= ~CSIZE;
+    term.c_lflag &= ~(ISIG | ECHO | ICANON | IEXTEN);
+    term.c_cflag &= ~(CSIZE | PARENB);
     term.c_cflag |= CS8;
     term.c_cc[VTIME] = 0;
     term.c_cc[VMIN] = 0;
@@ -681,11 +680,11 @@ _Bool yle_set_terminal(void)
     /* check if the attributes are properly set */
     if (tcgetattr(STDIN_FILENO, &term) != 0)
 	goto fail;
-    if ((term.c_iflag & (IGNBRK | ISTRIP | INLCR | IGNCR | ICRNL))
-	    || !(term.c_iflag & BRKINT)
+    if ((term.c_iflag & (IGNBRK | BRKINT | INPCK | ISTRIP
+		    | INLCR | IGNCR | ICRNL | IXON))
 	    ||  (term.c_oflag & OPOST)
-	    ||  (term.c_lflag & (ECHO | ECHONL | ICANON | IEXTEN))
-	    || !(term.c_lflag & ISIG)
+	    ||  (term.c_lflag & (ISIG | ECHO | ICANON | IEXTEN))
+	    ||  (term.c_cflag & PARENB)
 	    ||  ((term.c_cflag & CSIZE) != CS8)
 	    ||  (term.c_cc[VTIME] != 0)
 	    ||  (term.c_cc[VMIN] != 0))
