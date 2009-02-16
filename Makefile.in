@@ -22,14 +22,15 @@ CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
-SOURCES = @SOURCES@
+DIRS = @DIRS@
+SOURCES = alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h job.c job.h input.c input.h option.c option.h mail.c mail.h mksignum.c parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h wfnmatch.c wfnmatch.h yash.h yash.c
 OBJS = @OBJS@
 TARGET = @TARGET@
 MKSIGNUMOBJS = mksignum.o
 
 BYPRODUCTS = mksignum signum.h
 
-all: $(TARGET)
+all: $(TARGET) depends
 
 # Though these rules are exactly the same as the default rules defined by POSIX,
 # we re-define them here because at least GNU Make is not fully compliant.
@@ -46,6 +47,11 @@ mksignum: $(MKSIGNUMOBJS)
 	$(CC) $(LDFLAGS) -o $@ $(MKSIGNUMOBJS) $(LDLIBS)
 signum.h: mksignum
 	./mksignum > $@
+sig.o: signum.h
+
+depends: $(TARGET)
+	@./$(TARGET) makedepend $(DIRS); \
+		if [ $$? -eq 1 ]; then $(MAKE) $(TARGET); fi
 
 test check: $(TARGET)
 	@cd tests && $(MAKE) test-all
@@ -70,7 +76,7 @@ distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	mkdir -p $@
 	for i in . $$(grep / .distfiles | sed -e 's;/[^/]*$$;;' | sort -u); do \
-		(cd $$i && $(MAKE) distcontents); \
+		(cd $$i && [ -e Makefile ] && $(MAKE) distcontents); \
 		mkdir -p $@/$$i; \
 	done
 	while read -r i; do \
@@ -134,29 +140,5 @@ reconfigure:
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	echo Cannot read \"config.log\". Try usual \"./configure\" >&2
 
-.PHONY: all test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
+.PHONY: all depends test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
-
-# source file dependencies
-alias.o: alias.h builtin.h common.h config.h exec.h expand.h hashtable.h option.h parser.h plist.h strbuf.h util.h
-arith.o: arith.h common.h config.h option.h strbuf.h util.h variable.h
-builtin.o: alias.h builtin.h builtins/printf.h builtins/test.h builtins/ulimit.h common.h config.h exec.h hashtable.h history.h job.h option.h path.h sig.h strbuf.h util.h variable.h yash.h
-exec.o: alias.h builtin.h common.h config.h exec.h expand.h input.h job.h option.h parser.h path.h plist.h redir.h sig.h strbuf.h util.h variable.h wfnmatch.h yash.h
-expand.o: arith.h common.h config.h exec.h expand.h input.h option.h parser.h path.h plist.h strbuf.h util.h variable.h wfnmatch.h yash.h
-hashtable.o: common.h config.h hashtable.h util.h
-history.o: builtin.h common.h config.h exec.h history.h job.h option.h path.h redir.h strbuf.h util.h variable.h yash.h
-job.o: builtin.h common.h config.h exec.h job.h option.h plist.h redir.h sig.h strbuf.h util.h yash.h
-input.o: common.h config.h exec.h expand.h history.h input.h job.h mail.h option.h parser.h sig.h strbuf.h util.h variable.h yash.h
-option.o: builtin.h common.h config.h exec.h option.h redir.h sig.h strbuf.h util.h variable.h yash.h
-mail.o: common.h config.h expand.h hashtable.h mail.h parser.h strbuf.h util.h variable.h
-mksignum.o: common.h config.h siglist.h
-parser.o: alias.h common.h config.h expand.h input.h option.h parser.h plist.h strbuf.h util.h
-path.o: builtin.h common.h config.h exec.h hashtable.h option.h path.h plist.h redir.h strbuf.h util.h variable.h wfnmatch.h yash.h
-plist.o: common.h config.h plist.h util.h
-redir.o: common.h config.h exec.h expand.h input.h option.h parser.h path.h redir.h sig.h strbuf.h util.h yash.h
-sig.o: builtin.h common.h config.h exec.h expand.h job.h option.h parser.h redir.h sig.h siglist.h signum.h strbuf.h util.h yash.h
-strbuf.o: common.h config.h strbuf.h util.h
-util.o: common.h config.h exec.h option.h plist.h util.h
-variable.o: builtin.h common.h config.h exec.h expand.h hashtable.h input.h option.h parser.h path.h plist.h strbuf.h util.h variable.h version.h yash.h
-wfnmatch.o: common.h config.h strbuf.h wfnmatch.h
-yash.o: alias.h builtin.h common.h config.h exec.h expand.h history.h input.h job.h option.h parser.h path.h redir.h sig.h strbuf.h util.h variable.h version.h yash.h
