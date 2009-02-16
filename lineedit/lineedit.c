@@ -76,7 +76,8 @@ void yle_init(void)
 
 /* Initializes line editing.
  * Must be called before each call to `yle_readline'.
- * Returns true iff successful.
+ * Returns true iff successful, in which case `yle_readline' must be called
+ * afterward.
  * If this function returns false, the vi/emacs option is unset and
  * `yle_readline' must not be called. */
 bool yle_setup(void)
@@ -85,18 +86,16 @@ bool yle_setup(void)
 	return false;
     if (mode != MODE_INACTIVE)
 	return false;
-    if (!yle_need_term_reset)
-	return true;
-
-    if (yle_setupterm()) {
+    if (yle_need_term_reset) {
+	if (!yle_setupterm())
+	    return false;
 	yle_need_term_reset = false;
-	return true;
     }
-    return false;
+    return yle_set_terminal();
 }
 
 /* Prints the specified `prompt' and reads one line from stdin.
- * This function can be called only after `yle_setup' succeeded.
+ * This function can be called after and only after `yle_setup' succeeded.
  * The `prompt' may contain backslash escapes specified in "input.c".
  * The result is returned as a newly malloced wide string, including the
  * trailing newline. When EOF is encountered or on error, an empty string is
@@ -119,7 +118,6 @@ wchar_t *yle_readline(const wchar_t *prompt)
     }
 
     mode = MODE_ACTIVE;
-    yle_set_terminal();
     yle_display_init(prompt);
     yle_keymap_reset();
     reader_init();
