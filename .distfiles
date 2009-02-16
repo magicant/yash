@@ -9,6 +9,7 @@ README.ja
 Makefile.in
 configure
 install-sh
+makedepend
 common.h
 alias.c
 alias.h

@@ -124,6 +124,8 @@ static int shellfdmax;
 
 #ifndef SHELLFDMINMAX
 #define SHELLFDMINMAX 100  /* maximum for `shellfdmin' */
+#elif SHELLFDMINMAX < 10
+#error SHELLFDMINMAX too little
 #endif
 
 /* file descriptor associated with the controlling terminal */

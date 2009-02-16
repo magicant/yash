@@ -1172,6 +1172,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	FILE *f;
 
 	xclose(pipefd[PIDX_OUT]);
+	set_nonblocking(pipefd[PIDX_IN]);
 	f = fdopen(pipefd[PIDX_IN], "r");
 	if (!f) {
 	    xerror(errno, Ngt("cannot open pipe for command substitution"));
@@ -1197,7 +1198,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	/* read output from the command */
 	xwcsbuf_T buf;
 	wb_init(&buf);
-	set_nonblocking(pipefd[PIDX_IN]);
 	block_sigchld_and_sigint();
 	handle_sigchld();
 	for (;;) {

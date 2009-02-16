@@ -45,8 +45,8 @@ DISTCONTENTS = $(SOURCES) Makefile.in
 distcontents: $(DISTCONTENTS)
 
 # ctags conforms to POSIX, but etags and cscope do not.
-CTAGSARGS = --recurse
-ETAGSARGS = *.[ch]
+CTAGSARGS = @CTAGSARGS@
+ETAGSARGS = @ETAGSARGS@
 tags: $(SOURCES)
 	ctags $(CTAGSARGS)
 TAGS: $(SOURCES)
@@ -63,8 +63,3 @@ distclean: clean
 	-rm -rf Makefile tags TAGS cscope.out
 
 .PHONY: all distcontents cscope mostlyclean clean distclean
-
-# source file dependencies
-printf.o: ../builtin.h ../common.h ../config.h ../exec.h ../option.h ../strbuf.h ../util.h ../variable.h printf.h
-test.o: ../common.h ../config.h ../path.h ../plist.h ../strbuf.h ../util.h test.h
-ulimit.o: ../builtin.h ../common.h ../config.h ../exec.h ../util.h ulimit.h

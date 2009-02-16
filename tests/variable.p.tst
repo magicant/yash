@@ -20,6 +20,8 @@ printlineno () {
 printlineno
 echo $LINENO
 
+echo "IFS=[$IFS]"
+
 echo ===== 1 =====
 
 var=var
@@ -238,5 +240,3 @@ done <<END
 5 6 7 8
 9 0 1 2
 END
-
-echo ${IFS-unset}

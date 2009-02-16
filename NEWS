@@ -8,6 +8,14 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.7
+
+  =  The shell now always unsets $IFS on invocation.
+  *  $IFS now expands to the default value if unset.
+  *  A quoted period at the beginning of a filename was not properly
+     matching during filename expansion.
+
+----------------------------------------------------------------------
 Yash 2.6
 
   +  Added the -q option to the fc builtin.
