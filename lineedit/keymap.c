@@ -65,6 +65,8 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_erase, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_h, CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_kill, CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_c_u, CMDENTRY(cmd_backward_delete_line));
     //TODO
     yle_modes[YLE_MODE_VI_INSERT].keymap = t;
 
@@ -165,6 +167,21 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
     reset_count();
 }
 
+/* Removes the character under the cursor.
+ * If the count is set, `count' characters are killed. */
+void cmd_delete_char(wchar_t c __attribute__((unused)))
+{
+    if (state.count < 0) {
+	if (yle_main_index < yle_main_buffer.length) {
+	    wb_remove(&yle_main_buffer, yle_main_index, 1);
+	    yle_display_reprint_buffer();
+	}
+    } else {
+	// TODO cmd_backward_delete_char: kill characters
+	reset_count();
+    }
+}
+
 /* Removes the character behind the cursor.
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
@@ -172,12 +189,23 @@ void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
     if (state.count < 0) {
 	if (yle_main_index > 0) {
 	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
-	    yle_display_reprint_buffer();
+	    yle_display_reprint_buffer(); // XXX
 	}
     } else {
 	// TODO cmd_backward_delete_char: kill characters
 	reset_count();
     }
+}
+
+/* Removes all characters behind the cursor. */
+void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
+{
+    if (yle_main_index > 0) {
+	wb_remove(&yle_main_buffer, 0, yle_main_index);
+	yle_main_index = 0;
+	yle_display_reprint_buffer();
+    }
+    reset_count();
 }
 
 /* Accepts the current line.
@@ -198,17 +226,14 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
 
 /* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
  * Otherwise, deletes the character under the cursor. */
-void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
+void cmd_eof_or_delete(wchar_t c)
 {
     if (yle_main_buffer.length == 0) {
 	yle_state = YLE_STATE_ERROR;
+	reset_count();
     } else {
-	wb_remove(&yle_main_buffer, yle_main_index, get_count(1));
-	if (yle_main_index > yle_main_buffer.length)
-	    yle_main_index = yle_main_buffer.length;
-	yle_display_reprint_buffer();
+	cmd_delete_char(c);
     }
-    reset_count();
 }
 
 /* Changes the editing mode to "vi insert". */
