@@ -231,6 +231,10 @@ static inline int is_strcap_valid(const char *s)
 static void set_up_keycodes(void);
 static void move_cursor(char *capone, char *capmul, long count, int affcnt)
     __attribute__((nonnull));
+static _Bool move_cursor_1(char *capone, long count)
+    __attribute__((nonnull));
+static _Bool move_cursor_mul(char *capmul, long count, int affcnt)
+    __attribute__((nonnull));
 static void print_smkx(void);
 static void print_rmkx(void);
 static int putchar_stderr(int c);
@@ -251,7 +255,6 @@ _Bool yle_setupterm(void)
     if (setupterm(NULL, STDERR_FILENO, &err) != OK)
 	return 0;
 
-    if (!is_strcap_valid(tigetstr(TI_cr))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cub1))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cuf1))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cud1))) return 0;
@@ -494,26 +497,40 @@ void yle_print_nel_if_no_auto_margin(void)
 void move_cursor(char *capone, char *capmul, long count, int affcnt)
 {
     if (count > 0) {
-	char *v;
-
-	if (count > 1) {
-	    v = tigetstr(capmul);
-	    if (is_strcap_valid(v)) {
-		v = tparm(v, count, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
-		if (v) {
-		    tputs(v, affcnt, putchar_stderr);
-		    return;
-		}
-	    }
-	}
-
-	v = tigetstr(capone);
-	if (is_strcap_valid(v)) {
-	    do
-		tputs(v, 1, putchar_stderr);
-	    while (--count > 0);
+	if (count == 1) {
+	    if (!move_cursor_1(capone, 1))
+		move_cursor_mul(capmul, 1, affcnt);
+	} else {
+	    if (!move_cursor_mul(capmul, count, affcnt))
+		move_cursor_1(capone, count);
 	}
     }
+}
+
+_Bool move_cursor_1(char *capone, long count)
+{
+    char *v = tigetstr(capone);
+    if (is_strcap_valid(v)) {
+	do
+	    tputs(v, 1, putchar_stderr);
+	while (--count > 0);
+	return 1;
+    } else {
+	return 0;
+    }
+}
+
+_Bool move_cursor_mul(char *capmul, long count, int affcnt)
+{
+    char *v = tigetstr(capmul);
+    if (is_strcap_valid(v)) {
+	v = tparm(v, count, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
+	if (v) {
+	    tputs(v, affcnt, putchar_stderr);
+	    return 1;
+	}
+    }
+    return 0;
 }
 
 /* Prints "cub"/"cub1" variable. (move cursor backward by `count' columns) */
