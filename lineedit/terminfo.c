@@ -255,12 +255,15 @@ _Bool yle_setupterm(void)
     if (setupterm(NULL, STDERR_FILENO, &err) != OK)
 	return 0;
 
-    if (!is_strcap_valid(tigetstr(TI_cub1))) return 0;
-    if (!is_strcap_valid(tigetstr(TI_cuf1))) return 0;
-    if (!is_strcap_valid(tigetstr(TI_cud1))) return 0;
-    if (!is_strcap_valid(tigetstr(TI_cuu1))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cub1))
+	    || !is_strcap_valid(tigetstr(TI_cub))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cuf1))
+	    || !is_strcap_valid(tigetstr(TI_cuf))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cud1))
+	    || !is_strcap_valid(tigetstr(TI_cud))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_cuu1))
+	    || !is_strcap_valid(tigetstr(TI_cuu))) return 0;
     if (!is_strcap_valid(tigetstr(TI_el))) return 0;
-    if (!is_strcap_valid(tigetstr(TI_ed))) return 0;
 
     yle_lines = tigetnum(TI_lines);
     yle_columns = tigetnum(TI_cols);
@@ -569,12 +572,15 @@ void yle_print_el(void)
 	tputs(v, 1, putchar_stderr);
 }
 
-/* Prints "ed" variable. (clear to end of screen) */
-void yle_print_ed(void)
+/* Prints "ed" variable if available. (clear to end of screen)
+ * Returns true iff successful. */
+_Bool yle_print_ed(void)
 {
     char *v = tigetstr(TI_ed);
     if (is_strcap_valid(v))
-	tputs(v, 1, putchar_stderr);
+	return tputs(v, 1, putchar_stderr) != ERR;
+    else
+	return 0;
 }
 
 /* Prints "sgr" variable. Every argument must be 0 or 1. */

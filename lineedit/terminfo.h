@@ -34,7 +34,7 @@ extern void yle_print_cuf(long count);
 extern void yle_print_cud(long count);
 extern void yle_print_cuu(long count);
 extern void yle_print_el(void);
-extern void yle_print_ed(void);
+extern _Bool yle_print_ed(void);
 extern void yle_print_sgr(long standout, long underline, long reverse,
 	long blink, long dim, long bold, long invisible);
 extern void yle_print_op(void);

@@ -52,6 +52,7 @@
  * line. */
 
 
+static void clear_to_end_of_screen(void);
 static void go_to(int line, int column);
 static void go_to_index(size_t i);
 static void tputwc(wchar_t c);
@@ -71,6 +72,8 @@ static void clear_editline(void);
 /* The current cursor position. */
 /* 0 <= current_line < lines, 0 <= current_column <= columns */
 static int current_line, current_column;
+/* The maximum value of `current_line' in the current editing. */
+static int current_line_max;
 /* If false, `current_line' and `current_column' are not changed when characters
  * are printed. */
 static bool trace_position = true;
@@ -82,6 +85,11 @@ static bool convert_all_control;
  * A typical example of such info is completion candidates.
  * This info must be cleared when editing is finished. */
 //static bool additional_info_printed;
+/* Updates `current_line_max'. */
+#define CHECK_CURRENT_LINE_MAX \
+    do if (current_line_max < current_line) \
+	   current_line_max = current_line; \
+    while (0)
 
 /* String that is printed as the prompt.
  * May contain escape sequences. */
@@ -112,7 +120,8 @@ static int last_edit_line;
 /* Initializes the display module. */
 void yle_display_init(const wchar_t *prompt)
 {
-    current_line = current_column = 0;
+    current_line = current_column = current_line_max = 0;
+    last_edit_line = 0;
 
     wb_init(&yle_main_buffer);
     yle_main_index = 0;
@@ -134,7 +143,9 @@ wchar_t *yle_display_finalize(void)
     cursor_positions = NULL;
 
     yle_print_nel();
-    yle_print_ed();
+    current_line++, current_column = 0;
+    CHECK_CURRENT_LINE_MAX;
+    clear_to_end_of_screen();
 
     wb_wccat(&yle_main_buffer, L'\n');
     return wb_towcs(&yle_main_buffer);
@@ -145,7 +156,25 @@ wchar_t *yle_display_finalize(void)
 void yle_display_clear(void)
 {
     go_to(0, 0);
-    yle_print_ed();
+    clear_to_end_of_screen();
+}
+
+/* Clears display area below the cursor.
+ * The cursor must be at the beginning of the line. */
+void clear_to_end_of_screen(void)
+{
+    assert(current_column == 0);
+    if (yle_print_ed())  /* if the terminal has "ed" capability, just use it */
+	return;
+
+    int saveline = current_line;
+    while (current_line < current_line_max) {
+	yle_print_el();
+	yle_print_nel();
+	current_line++;
+    }
+    yle_print_el();
+    go_to(saveline, 0);
 }
 
 /* Prints everything and moves the cursor to the proper position.
@@ -213,6 +242,7 @@ static void go_to(int line, int column)
     else if (current_line > line)
 	yle_print_cuu(current_line - line);
     current_line = line;
+    assert(current_line <= current_line_max);
     if (column > 0) {
 	yle_print_cuf(column);
 	current_column = column;
@@ -273,6 +303,7 @@ void tputwc(wchar_t c)
 	} else {
 	    yle_print_nel_if_no_auto_margin();
 	    current_line++, current_column = width;
+	    CHECK_CURRENT_LINE_MAX;
 	}
 	fprintf(stderr, "%lc", (wint_t) c);
     } else {
@@ -283,6 +314,7 @@ void tputwc(wchar_t c)
 	    case L'\n':
 		yle_print_nel();
 		current_line++, current_column = 0;
+		CHECK_CURRENT_LINE_MAX;
 		return;
 	    case L'\r':
 		yle_print_cr();
@@ -292,6 +324,9 @@ void tputwc(wchar_t c)
 	if (c < L'\040') {  // XXX ascii-compatible encoding assumed
 	    tputwc(L'^');
 	    tputwc(c + L'\100');
+	} else if (c == L'\177') {
+	    tputwc(L'^');
+	    tputwc(L'?');
 	}
     }
 }
@@ -453,6 +488,7 @@ void clear_editline(void)
 	yle_print_nel();
 	yle_print_el();
 	current_line++;
+	assert(current_line <= current_line_max);
     }
     go_to(editbase_line, editbase_column);
 }
