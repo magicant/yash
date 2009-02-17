@@ -227,7 +227,9 @@ static void go_to(int line, int column)
     assert(column < yle_columns);
 
     if (line == current_line) {
-	if (current_column < column)
+	if (column == 0)
+	    yle_print_cr();
+	else if (current_column < column)
 	    yle_print_cuf(column - current_column);
 	else if (current_column > column)
 	    yle_print_cub(current_column - column);

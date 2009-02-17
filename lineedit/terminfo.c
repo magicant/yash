@@ -552,6 +552,7 @@ void yle_print_cuf(long count)
 
 /* Prints "cud"/"cud1" variable. (move cursor down by `count' lines) */
 /* `count' must be small enough not to go beyond screen bounds .*/
+/* Note that this function may put the cursor at column 0 as side effect. */
 void yle_print_cud(long count)
 {
     move_cursor(TI_cud1, TI_cud, count, count + 1);
@@ -559,6 +560,7 @@ void yle_print_cud(long count)
 
 /* Prints "cuu"/"cuu1" variable. (move cursor up by `count' lines) */
 /* `count' must be small enough not to go beyond screen bounds .*/
+/* Note that this function may put the cursor at column 0 as side effect. */
 void yle_print_cuu(long count)
 {
     move_cursor(TI_cuu1, TI_cuu, count, count + 1);
@@ -691,7 +693,6 @@ _Bool yle_set_terminal(void)
     /* set attributes */
     term.c_iflag &= ~(IGNBRK | BRKINT | INPCK | ISTRIP
                      | INLCR | IGNCR | ICRNL | IXON);
-    term.c_oflag &= ~OPOST;
     term.c_lflag &= ~(ISIG | ECHO | ICANON | IEXTEN);
     term.c_cflag &= ~(CSIZE | PARENB);
     term.c_cflag |= CS8;
@@ -705,12 +706,11 @@ _Bool yle_set_terminal(void)
 	goto fail;
     if ((term.c_iflag & (IGNBRK | BRKINT | INPCK | ISTRIP
 		    | INLCR | IGNCR | ICRNL | IXON))
-	    ||  (term.c_oflag & OPOST)
-	    ||  (term.c_lflag & (ISIG | ECHO | ICANON | IEXTEN))
-	    ||  (term.c_cflag & PARENB)
-	    ||  ((term.c_cflag & CSIZE) != CS8)
-	    ||  (term.c_cc[VTIME] != 0)
-	    ||  (term.c_cc[VMIN] != 0))
+	    || (term.c_lflag & (ISIG | ECHO | ICANON | IEXTEN))
+	    || (term.c_cflag & PARENB)
+	    || ((term.c_cflag & CSIZE) != CS8)
+	    || (term.c_cc[VTIME] != 0)
+	    || (term.c_cc[VMIN] != 0))
 	goto fail;
 
     // XXX it should be configurable whether we print smkx/rmkx or not.
