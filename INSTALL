@@ -100,3 +100,8 @@ If this macro is set to non-zero, the "trap" command results in an
 error. Otherwise, the command returns the exit status of success.
 Note that the signal handler is not changed in such cases whether
 this macro is defined or not.
+
+#define YASH_DISABLE_PROMPT_ADJUST 1
+By default, the shell prints a special character sequence to ensure
+that the prompt is printed at the beginning of the line if line
+editing is enabled. This option disables it.
