@@ -49,8 +49,10 @@
 /********** Input Functions **********/
 
 static void exec_prompt_command(void);
+#if YASH_ENABLE_LINEEDIT
 static wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
     __attribute__((nonnull,malloc,warn_unused_result));
+#endif
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *expand_ps_yash(wchar_t *s)
@@ -379,6 +381,8 @@ void exec_prompt_command(void)
     }
 }
 
+#if YASH_ENABLE_LINEEDIT
+
 /* Processes the line buffer.
  * If `linebuffer' contains one line, appends it to `buf' and returns NULL.
  * If `linebuffer' contains more than one line, only the first line is appended
@@ -398,6 +402,8 @@ wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
 	return wmemmove(linebuffer, nl, wcslen(nl) + 1);
     }
 }
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 /* Prints a prompt of the specified type.
  * `type' must be between 1 and 4 inclusive.

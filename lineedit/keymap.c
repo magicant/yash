@@ -147,10 +147,15 @@ void cmd_self_insert(wchar_t c)
 	while (--count >= 0)
 	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
 	yle_display_reprint_buffer();
+    } else {
+	yle_alert();
     }
     reset_count();
 }
 
+/* Sets the `yle_next_verbatim' flag.
+ * The next character will be input to the main buffer even if it's a special
+ * character. */
 void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
 {
     yle_next_verbatim = true;
@@ -175,6 +180,8 @@ void cmd_delete_char(wchar_t c __attribute__((unused)))
 	if (yle_main_index < yle_main_buffer.length) {
 	    wb_remove(&yle_main_buffer, yle_main_index, 1);
 	    yle_display_reprint_buffer();
+	} else {
+	    yle_alert();
 	}
     } else {
 	// TODO cmd_backward_delete_char: kill characters
@@ -190,6 +197,8 @@ void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
 	if (yle_main_index > 0) {
 	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
 	    yle_display_reprint_buffer(); // XXX
+	} else {
+	    yle_alert();
 	}
     } else {
 	// TODO cmd_backward_delete_char: kill characters
