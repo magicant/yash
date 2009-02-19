@@ -66,7 +66,8 @@ extern yle_command_func_T
     cmd_abort_line,
     cmd_eof_or_delete,
     cmd_setmode_viinsert,
-    cmd_setmode_vicommand;
+    cmd_setmode_vicommand,
+    cmd_redraw_all;
 
 
 #endif /* YASH_KEYMAP_H */

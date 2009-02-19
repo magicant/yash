@@ -56,6 +56,7 @@ void yle_keymap_init(void)
     t = trie_create();
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_c_v, CMDENTRY(cmd_expect_verbatim));
+    t = trie_setw(t, Key_c_l, CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_setmode_vicommand));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
@@ -73,6 +74,7 @@ void yle_keymap_init(void)
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_noop));
+    t = trie_setw(t, Key_c_l, CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, L"i", CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
@@ -257,6 +259,13 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 {
     yle_set_mode(YLE_MODE_VI_COMMAND);
     reset_count();
+}
+
+/* Redraw everything. */
+void cmd_redraw_all(wchar_t c __attribute__((unused)))
+{
+    yle_display_clear();
+    yle_display_print_all();
 }
 
 
