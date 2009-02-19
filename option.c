@@ -151,7 +151,7 @@ static const struct xoption long_options[] = {
     { L"posix",        xno_argument, L'X', },
 #if YASH_ENABLE_LINEEDIT
     { L"vi",           xno_argument, L'1', },
-    { L"emacs",        xno_argument, L'2', },
+    // { L"emacs",        xno_argument, L'2', },
 #endif
     { L"help",         xno_argument, L'-', }, /* this one must be the last */
     { NULL,            0,            0,   },
@@ -337,7 +337,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
 #if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
+    //PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
 #endif
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
@@ -375,7 +375,7 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
 #if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
+    //PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
 #endif
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
@@ -476,8 +476,8 @@ const char set_help[] = Ngt(
 "\tMake the shell behave as the POSIX shell.\n"
 " --vi\n"
 "\tEnable vi-like editing.\n"
-" --emacs\n"
-"\tEnable emacs-like editing.\n"
+//" --emacs\n"
+//"\tEnable emacs-like editing.\n"
 "To disable options, put '+' before the option characters instead of '-'.\n"
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
 "Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"
