@@ -58,34 +58,34 @@ void yle_keymap_init(void)
 
     yle_modes[YLE_MODE_VI_INSERT].default_command = cmd_self_insert;
     t = trie_create();
-    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_c_v, CMDENTRY(cmd_expect_verbatim));
-    t = trie_setw(t, Key_c_l, CMDENTRY(cmd_redraw_all));
-    t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_setmode_vicommand));
-    t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
-    t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
-    t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
-    t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
-    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_if_empty));
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_erase, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_h, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_w, CMDENTRY(cmd_backward_delete_semiword));
     t = trie_setw(t, Key_kill, CMDENTRY(cmd_backward_delete_line));
     t = trie_setw(t, Key_c_u, CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
+    t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
+    t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_if_empty));
+    t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_setmode_vicommand));
+    t = trie_setw(t, Key_c_l, CMDENTRY(cmd_redraw_all));
     //TODO
     yle_modes[YLE_MODE_VI_INSERT].keymap = t;
 
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_noop));
-    t = trie_setw(t, Key_c_l, CMDENTRY(cmd_redraw_all));
-    t = trie_setw(t, L"i", CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_if_empty));
+    t = trie_setw(t, L"i", CMDENTRY(cmd_setmode_viinsert));
+    t = trie_setw(t, Key_c_l, CMDENTRY(cmd_redraw_all));
     //TODO
     yle_modes[YLE_MODE_VI_COMMAND].keymap = t;
 }
@@ -153,7 +153,7 @@ void cmd_self_insert(wchar_t c)
 
 	while (--count >= 0)
 	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
-	yle_display_reprint_buffer();
+	yle_display_reprint_buffer(); // XXX
     } else {
 	yle_alert();
     }
@@ -175,7 +175,7 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
 
     while (--count >= 0)
 	wb_ninsert_force(&yle_main_buffer, yle_main_index++, L"\\", 1);
-    yle_display_reprint_buffer();
+    yle_display_reprint_buffer(); // XXX
     reset_count();
 }
 
@@ -186,7 +186,7 @@ void cmd_delete_char(wchar_t c __attribute__((unused)))
     if (state.count < 0) {
 	if (yle_main_index < yle_main_buffer.length) {
 	    wb_remove(&yle_main_buffer, yle_main_index, 1);
-	    yle_display_reprint_buffer();
+	    yle_display_reprint_buffer(); // XXX
 	} else {
 	    yle_alert();
 	}
