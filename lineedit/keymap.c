@@ -19,6 +19,8 @@
 #include "../common.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <wctype.h>
 #include "../hashtable.h"
 #include "../strbuf.h"
 #include "display.h"
@@ -44,6 +46,8 @@ static struct {
 
 static inline void reset_count(void);
 static inline int get_count(int default_value);
+static inline bool is_blank_or_punct(wchar_t c)
+    __attribute__((pure));
 
 
 /* Initializes `yle_modes'.
@@ -62,10 +66,11 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
-    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_or_delete));
+    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_if_empty));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_erase, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_h, CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_c_w, CMDENTRY(cmd_backward_delete_semiword));
     t = trie_setw(t, Key_kill, CMDENTRY(cmd_backward_delete_line));
     t = trie_setw(t, Key_c_u, CMDENTRY(cmd_backward_delete_line));
     //TODO
@@ -80,7 +85,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
-    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_or_delete));
+    t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_if_empty));
     //TODO
     yle_modes[YLE_MODE_VI_COMMAND].keymap = t;
 }
@@ -208,6 +213,38 @@ void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
     }
 }
 
+/* Removes the semiword behind the cursor.
+ * If the count is set, `count' semiwords are removed. */
+/* A "semiword" is a sequence of characters that are not <blank> or <punct>. */
+void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
+{
+    size_t bound = yle_main_index;
+
+    for (int count = get_count(1); --count >= 0; ) {
+	do {
+	    if (bound == 0)
+		goto done;
+	} while (is_blank_or_punct(yle_main_buffer.contents[--bound]));
+	do {
+	    if (bound == 0)
+		goto done;
+	} while (!is_blank_or_punct(yle_main_buffer.contents[--bound]));
+    }
+    bound++;
+done:
+    if (bound < yle_main_index) {
+	wb_remove(&yle_main_buffer, bound, yle_main_index - bound);
+	yle_main_index = bound;
+	yle_display_reprint_buffer(); // XXX
+    }
+    reset_count();
+}
+
+bool is_blank_or_punct(wchar_t c)
+{
+    return iswblank(c) || iswpunct(c);
+}
+
 /* Removes all characters behind the cursor. */
 void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 {
@@ -233,6 +270,18 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_INTERRUPTED;
     reset_count();
+}
+
+/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
+ * Otherwise, causes alert. */
+void cmd_eof_if_empty(wchar_t c)
+{
+    if (yle_main_buffer.length == 0) {
+	yle_state = YLE_STATE_ERROR;
+	reset_count();
+    } else {
+	cmd_alert(c);
+    }
 }
 
 /* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
