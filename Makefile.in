@@ -135,10 +135,10 @@ maintainer-clean:
 	@echo 'it deletes files that may need special tools to rebuild.'
 	@$(MAKE) distclean
 
-reconfigure:
+reconfigure: mostlyclean
 	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q \
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
-	echo Cannot read \"config.log\". Try usual \"./configure\" >&2
+	{ echo Cannot read \"config.log\". Try usual \"./configure\" >&2; false; }
 
 .PHONY: all depends test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
