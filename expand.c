@@ -1453,8 +1453,6 @@ bool has_leading_zero(const wchar_t *s, bool *sign)
 
 /********** Word Splitting **********/
 
-#define DEFAULT_IFS L" \t\n"
-
 /* Performs word splitting.
  * `str' is the word to split and freed in this function.
  * `split' is the splittability string corresponding to `str' and also freed.

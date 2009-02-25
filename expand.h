@@ -22,6 +22,8 @@
 #include <stddef.h>
 
 
+#define DEFAULT_IFS L" \t\n"
+
 /* type of tilde expansion */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 

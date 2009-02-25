@@ -1,3 +1,12 @@
+echo IFS=["$IFS"]
+IFS= $INVOKE $TESTEE -c 'echo IFS=["$IFS"]'
+(unset IFS; $INVOKE $TESTEE -c 'echo IFS ${IFS+set}')
+(
+unset IFS
+v='1  2  3'
+echo $v "${IFS=-}" $v
+)
+
 RANDOM=123
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456

@@ -261,6 +261,9 @@ void init_variables(void)
 	free(we);
     }
 
+    /* set $IFS */
+    set_variable(VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_GLOBAL, false);
+
     /* set $LINENO */
     {
 	variable_T *v = new_variable(VAR_LINENO, false);
