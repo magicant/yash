@@ -768,14 +768,29 @@ subst:
 		xerror(0, Ngt("cannot assign to `%s' in parameter expansion"),
 			p->pe_name);
 		return false;
+	    } else if ((v.type == GV_ARRAY_CONCAT)
+		    || (v.type == GV_ARRAY && startindex + 1 != endindex)) {
+		xerror(0, Ngt("cannot assign to array range `%s[...]' "
+			    "in parameter expansion"),
+			p->pe_name);
+		return false;
 	    }
 	    subst = expand_single(p->pe_subst, tt_single);
 	    if (!subst)
 		return false;
 	    subst = unescapefree(subst);
-	    if (!set_variable(p->pe_name, xwcsdup(subst), SCOPE_GLOBAL, false)){
-		free(subst);
-		return false;
+	    if (v.type != GV_ARRAY) {
+		assert(v.type == GV_NOTFOUND || v.type == GV_SCALAR);
+		if (!set_variable(
+			    p->pe_name, xwcsdup(subst), SCOPE_GLOBAL, false)) {
+		    free(subst);
+		    return false;
+		}
+	    } else {
+		if (!set_array_element(p->pe_name, startindex, xwcsdup(subst))){
+		    free(subst);
+		    return false;
+		}
 	    }
 	    list = xmalloc(2 * sizeof *list);
 	    list[0] = subst;
@@ -956,6 +971,7 @@ wchar_t *trim_wstring(wchar_t *s, size_t startindex, size_t endindex)
  * Elements in the range [`startindex', `endindex') remain.
  * Removed elements are freed.
  * Returns the array `a'. */
+/* `startindex' and/or `endindex' may be >= the length of the array. */
 void **trim_array(void **a, size_t startindex, size_t endindex)
 {
     assert(startindex <= endindex);

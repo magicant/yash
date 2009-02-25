@@ -128,6 +128,8 @@ static inline bool is_name_char(char c)
 
 static variable_T *search_variable(const char *name)
     __attribute__((pure,nonnull));
+static variable_T *search_array_and_check_if_changeable(const char *name)
+    __attribute__((pure,nonnull));
 static void update_enrivon(const char *name)
     __attribute__((nonnull));
 static void reset_locale(const char *name)
@@ -413,6 +415,21 @@ variable_T *search_variable(const char *name)
     return NULL;
 }
 
+/* Searches for an array with the specified name and checks if it is not read
+ * only. If unsuccessful, prints an error message and returns NULL. */
+variable_T *search_array_and_check_if_changeable(const char *name)
+{
+    variable_T *array = search_variable(name);
+    if (!array || (array->v_type & VF_MASK) != VF_ARRAY) {
+	xerror(0, Ngt("%s: no such array"), name);
+	return NULL;
+    } else if (array->v_type & VF_READONLY) {
+	xerror(0, Ngt("%s: readonly"), name);
+	return NULL;
+    }
+    return array;
+}
+
 /* Update the value in `environ' for the variable with the specified name.
  * `name' must not contain '='. */
 void update_enrivon(const char *name)
@@ -658,6 +675,35 @@ bool set_array(const char *name, size_t count, void **values, scope_T scope)
     if (var->v_type & VF_EXPORT)
 	update_enrivon(name);
     return true;
+}
+
+/* Changes the value of an element of an existing array.
+ * `name' must be the name of an existing array.
+ * `index' is the index of the element (counted from zero).
+ * `value' is the new value, which must be a freeable string. Since `value' is
+ * used as the contents of the array element, you must not modify or free
+ * `value' after this function returned (whether successful or not).
+ * Returns true iff successful. An error message is printed on failure. */
+bool set_array_element(const char *name, size_t index, wchar_t *value)
+{
+    variable_T *array = search_array_and_check_if_changeable(name);
+    if (!array)
+	goto fail;
+    if (array->v_valc <= index)
+	goto invalid_index;
+
+    free(array->v_vals[index]);
+    array->v_vals[index] = value;
+    if (array->v_type & VF_EXPORT)
+	update_enrivon(name);
+    return true;
+
+invalid_index:
+    xerror(0, Ngt("%zu: index out of range (actual size of array `%s' is %zu)"),
+	    index + 1, name, array->v_valc);
+fail:
+    free(value);
+    return false;
 }
 
 /* Sets the positional parameters of the current environment.
@@ -1867,13 +1913,8 @@ int array_builtin(int argc, void **argv)
 		    duparray(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
 	    free(name);
 	} else {
-	    variable_T *array = search_variable(name);
-	    if (array == NULL || (array->v_type & VF_MASK) != VF_ARRAY) {
-		xerror(0, Ngt("%s: no such array"), name);
-		free(name);
-		return Exit_FAILURE;
-	    } else if (array->v_type & VF_READONLY) {
-		xerror(0, Ngt("%s: readonly"), name);
+	    variable_T *array = search_array_and_check_if_changeable(name);
+	    if (!array) {
 		free(name);
 		return Exit_FAILURE;
 	    }
