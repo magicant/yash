@@ -367,11 +367,12 @@ void exec_for(const command_T *c, bool finally_exit)
     } else (void) 0
 
     int i;
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < count; ) {
 	if (!set_variable(c->c_forname, words[i],
 		    posixly_correct ? SCOPE_GLOBAL : SCOPE_LOCAL, false))
 	    goto done;
-	exec_and_or_lists(c->c_forcmds, false);
+	i++;
+	exec_and_or_lists(c->c_forcmds, finally_exit && i == count);
 	CHECK_LOOP;
     }
 
