@@ -41,7 +41,7 @@ extern wchar_t *expand_string(const struct wordunit_T *w, _Bool esc)
 
 extern wchar_t *split_next_field(
 	const wchar_t **sp, const wchar_t *ifs, _Bool noescape)
-    __attribute__((nonnull,malloc,warn_unused_result));
+    __attribute__((nonnull(1),malloc,warn_unused_result));
 
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));

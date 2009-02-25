@@ -244,7 +244,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     if (list.length != 1) {
 	/* concatenate multiple words to a single */
 	const wchar_t *ifs = getvar(VAR_IFS);
-	wchar_t padding[] = { ifs[0], L'\0' };
+	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	result = joinwcsarray(list.contents, padding);
 	recfree(pl_toary(&list), free);
     } else {
@@ -843,7 +843,7 @@ subst:
     /* concatenate `list' elements */
     if (concat || !indq) {
 	const wchar_t *ifs = getvar(VAR_IFS);
-	wchar_t padding[] = { ifs[0], L'\0' };
+	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	wchar_t *chain = joinwcsarray(list, padding);
 	recfree(list, free);
 	list = xmalloc(2 * sizeof *list);
@@ -1453,6 +1453,8 @@ bool has_leading_zero(const wchar_t *s, bool *sign)
 
 /********** Word Splitting **********/
 
+#define DEFAULT_IFS L" \t\n"
+
 /* Performs word splitting.
  * `str' is the word to split and freed in this function.
  * `split' is the splittability string corresponding to `str' and also freed.
@@ -1521,6 +1523,8 @@ void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
 {
     void **s = valuelist, **t = splitlist;
     const wchar_t *ifs = getvar(VAR_IFS);
+    if (!ifs)
+	ifs = DEFAULT_IFS;
     while (*s) {
 	fieldsplit(*s, *t, ifs, dest);
 	s++, t++;
@@ -1533,7 +1537,7 @@ void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
  * The pointer `*sp' is advanced to the first character of the next field or
  * to the end of string (L'\0') if none. If `**sp' is already L'\0', an empty
  * string is returned.
- * `ifs' is the separator, which must not be NULL.
+ * If `ifs' is NULL, the default separator is used.
  * If `noescape' is false, backslashes are treaded as escape characters.
  * The returned string is a newly malloced string. */
 wchar_t *split_next_field(const wchar_t **sp, const wchar_t *ifs, bool noescape)
@@ -1542,6 +1546,8 @@ wchar_t *split_next_field(const wchar_t **sp, const wchar_t *ifs, bool noescape)
     const wchar_t *s = *sp;
     wchar_t *result;
 
+    if (!ifs)
+	ifs = DEFAULT_IFS;
     while (*s && wcschr(ifs, *s) && iswspace(*s))
 	s++;
     if (*s && wcschr(ifs, *s) && !iswspace(*s)) {
