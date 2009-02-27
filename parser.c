@@ -880,16 +880,6 @@ pipeline_T *parse_pipeline(void)
 	result->pl_neg = false;
     }
 
-    ensure_buffer(2);
-    if (!posixly_correct && cbuf.contents[cindex    ] == L'|'
-			 && cbuf.contents[cindex + 1] != L'|') {
-	result->pl_loop = true;
-	cindex++;
-	skip_blanks_and_comment();
-    } else {
-	result->pl_loop = false;
-    }
-
     result->pl_commands = parse_commands_in_pipeline();
     return result;
 }
@@ -2479,8 +2469,6 @@ void print_pipelines(xwcsbuf_T *restrict buf, const pipeline_T *restrict p)
 	    wb_cat(buf, p->pl_cond ? L"&& " : L"|| ");
 	if (p->pl_neg)
 	    wb_cat(buf, L"! ");
-	if (p->pl_loop)
-	    wb_cat(buf, L"| ");
 	print_commands(buf, p->pl_commands);
     }
 }

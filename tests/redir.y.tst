@@ -1,14 +1,6 @@
 temp="${TESTTMP}/redir"
 
 
-echo ===== loop pipe =====
-
-| (while read i; do
-	if [ $i -lt 5 ]; then echo $((i+1)); else exit; fi
-done) | { echo 0; tee "$temp"; }
-cat "$temp"
-
-
 echo ===== command redirection =====
 
 cat <(echo 1)

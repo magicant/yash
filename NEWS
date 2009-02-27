@@ -12,6 +12,7 @@ Yash 2.7
 
   +  Parameter expansion ${array[index]:=value} now allows assignment
      to an empty array element.
+  -  Loop pipes no longer supported.
   =  The $IFS variable is always initialized to the default value when
      the shell is invoked.
   *  A quoted period at the beginning of a filename was not properly

@@ -409,7 +409,6 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
     job->j_status = JS_RUNNING;
     job->j_statuschanged = false;
     job->j_nonotify = false;
-    job->j_loop = false;
     job->j_pcount = 1;
     job->j_procs[0].pr_pid = cpid;
     job->j_procs[0].pr_status = JS_RUNNING;
@@ -506,19 +505,16 @@ int calc_status_of_job(const job_T *job)
 }
 
 /* Returns the name of the specified job.
- * If the job has only one process and is not a loop pipe,
- * `job->j_procs[0].pr_name' is returned.
+ * If the job has only one process, `job->j_procs[0].pr_name' is returned.
  * Otherwise, the names of all the process are concatenated and returned, which
  * must be freed by the caller. */
 wchar_t *get_job_name(const job_T *job)
 {
-    if (job->j_pcount == 1 && !job->j_loop)
+    if (job->j_pcount == 1)
 	return job->j_procs[0].pr_name;
 
     xwcsbuf_T buf;
     wb_init(&buf);
-    if (job->j_loop)
-	wb_cat(&buf, L"| ");
     for (size_t i = 0; i < job->j_pcount; i++) {
 	if (i > 0)
 	    wb_cat(&buf, L" | ");
@@ -634,14 +630,13 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	char *status = get_process_status_string(
 		&job->j_procs[posixly_correct ? job->j_pcount - 1 : 0],
 		&needfree);
-	char looppipe = job->j_loop ? '|' : ' ';
 	wchar_t *jobname = job->j_procs[0].pr_name;
 
 	/* TRANSLATORS: the translated format string can be different 
 	 * from the original only in the number of spaces. This is required
 	 * for POSIX compliance. */
-	fprintf(f, gt("[%zu] %c %5jd %-20s %c %ls\n"),
-		jobnumber, current, (intmax_t) pid, status, looppipe, jobname);
+	fprintf(f, gt("[%zu] %c %5jd %-20s   %ls\n"),
+		jobnumber, current, (intmax_t) pid, status, jobname);
 	if (needfree)
 	    free(status);
 
