@@ -59,6 +59,7 @@ extern yle_command_func_T
     cmd_self_insert,
     cmd_expect_verbatim,
     cmd_insert_backslash,
+    cmd_digit_argument,
     cmd_forward_char,
     cmd_backward_char,
     cmd_delete_char,

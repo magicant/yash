@@ -88,6 +88,16 @@ void yle_keymap_init(void)
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_noop));
+    t = trie_setw(t, L"0", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"1", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"2", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"3", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"4", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"5", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"6", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"7", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"8", CMDENTRY(cmd_digit_argument));
+    t = trie_setw(t, L"9", CMDENTRY(cmd_digit_argument));
     t = trie_setw(t, L"l", CMDENTRY(cmd_forward_char));
     t = trie_setw(t, L" ", CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_right, CMDENTRY(cmd_forward_char));
@@ -240,6 +250,21 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
 	wb_ninsert_force(&yle_main_buffer, yle_main_index++, L"\\", 1);
     yle_display_reprint_buffer(); // XXX
     reset_count();
+}
+
+/* Adds the specified digit `c' to the accumulating argument. */
+/* If `c' is not a digit, does nothing. */
+void cmd_digit_argument(wchar_t c)
+{
+    if (L'0' <= c && c <= L'9') {
+	if (state.count >= 1000000000) {
+	    cmd_alert(c);  // argument too large
+	    return;
+	}
+	if (state.count < 0)
+	    state.count = 0;
+	state.count = state.count * 10 + (int) (c - L'0');
+    }
 }
 
 /* Moves forward one character.
