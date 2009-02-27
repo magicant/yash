@@ -18,8 +18,10 @@
 
 #include "../common.h"
 #include <assert.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <wctype.h>
 #include "../hashtable.h"
 #include "../strbuf.h"
@@ -46,6 +48,10 @@ static struct {
 
 static inline void reset_count(void);
 static inline int get_count(int default_value);
+static void exec_motion_command(size_t index, bool inclusive);
+
+static bool alert_if_first(void);
+static bool alert_if_last(void);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 
@@ -60,6 +66,9 @@ void yle_keymap_init(void)
     t = trie_create();
     t = trie_setw(t, Key_c_v, CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
+    t = trie_setw(t, Key_right, CMDENTRY(cmd_forward_char));
+    t = trie_setw(t, Key_left, CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_delete, CMDENTRY(cmd_delete_char));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_erase, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_h, CMDENTRY(cmd_backward_delete_char));
@@ -79,6 +88,14 @@ void yle_keymap_init(void)
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, Key_c_lb, CMDENTRY(cmd_noop));
+    t = trie_setw(t, L"l", CMDENTRY(cmd_forward_char));
+    t = trie_setw(t, L" ", CMDENTRY(cmd_forward_char));
+    t = trie_setw(t, Key_right, CMDENTRY(cmd_forward_char));
+    t = trie_setw(t, L"h", CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_left, CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_erase, CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_delete, CMDENTRY(cmd_delete_char));
     t = trie_setw(t, Key_c_j, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m, CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
@@ -129,6 +146,23 @@ int get_count(int default_value)
     return state.count < 0 ? default_value : state.count;
 }
 
+/* Applies the current pending editing command to the range between the current
+ * cursor index and the given `index'. If no editing command is pending, simply
+ * moves the cursor to the `index'. */
+/* This function is used for all cursor-moving commands, even when not in the
+ * vi mode. */
+void exec_motion_command(size_t index, bool inclusive)
+{
+    assert(index <= yle_main_buffer.length);
+    //TODO no editing commands for now
+    (void) inclusive;
+    {
+	yle_main_index = index;
+	yle_display_reposition_cursor();
+    }
+    reset_count();
+}
+
 
 /********** Basic Commands **********/
 
@@ -143,6 +177,36 @@ void cmd_alert(wchar_t c __attribute__((unused)))
 {
     yle_alert();
     reset_count();
+}
+
+/* Invoke `cmd_alert' and `reset', and returns true if the cursor is at the
+ * first character */
+bool alert_if_first(void)
+{
+    if (yle_main_index > 0)
+	return false;
+
+    cmd_alert(L'\a');
+    reset_count();
+    return true;
+}
+
+/* Invoke `cmd_alert' and `reset', and returns true if the cursor is at the
+ * last character */
+bool alert_if_last(void)
+{
+    if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
+	if (yle_main_buffer.length > 0
+		&& yle_main_index < yle_main_buffer.length - 1)
+	    return false;
+    } else {
+	if (yle_main_index < yle_main_buffer.length)
+	    return false;
+    }
+
+    cmd_alert(L'\a');
+    reset_count();
+    return true;
 }
 
 /* Inserts one character in the buffer. */
@@ -177,6 +241,48 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
 	wb_ninsert_force(&yle_main_buffer, yle_main_index++, L"\\", 1);
     yle_display_reprint_buffer(); // XXX
     reset_count();
+}
+
+/* Moves forward one character.
+ * If the count is set, moves forward `count' character. */
+/* exclusive motion command */
+void cmd_forward_char(wchar_t c __attribute__((unused)))
+{
+    if (alert_if_last())
+	return;
+
+    int count = get_count(1);
+#if INT_MAX > SIZE_MAX
+    if (count > SIZE_MAX)
+	count = SIZE_MAX;
+#endif
+    size_t newindex;
+    if (yle_main_buffer.length - yle_main_index < (size_t) count)
+	newindex = yle_main_buffer.length;
+    else
+	newindex = yle_main_index + count;
+    exec_motion_command(newindex, false);
+}
+
+/* Moves backward one character.
+ * If the count is set, moves backward `count' character. */
+/* exclusive motion command */
+void cmd_backward_char(wchar_t c __attribute__((unused)))
+{
+    if (alert_if_first())
+	return;
+
+    int count = get_count(1);
+    size_t newindex;
+#if INT_MAX > SIZE_MAX
+    if ((int) yle_main_index <= count)
+#else
+    if (yle_main_index <= (size_t) count)
+#endif
+	newindex = 0;
+    else
+	newindex = yle_main_index - count;
+    exec_motion_command(newindex, false);
 }
 
 /* Removes the character under the cursor.

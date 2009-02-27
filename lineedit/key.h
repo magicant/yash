@@ -19,6 +19,8 @@
 #ifndef YASH_KEY_H
 #define YASH_KEY_H
 
+#include <stddef.h>
+
 
 /* Strings representing special keys */
 #define Key_a1        L"\\a1"   // upper left of keypad

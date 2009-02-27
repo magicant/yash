@@ -63,7 +63,11 @@ builtins/test.h
 builtins/ulimit.c
 builtins/ulimit.h
 lineedit/Makefile.in
+lineedit/display.c
+lineedit/display.h
 lineedit/key.h
+lineedit/keymap.c
+lineedit/keymap.h
 lineedit/lineedit.c
 lineedit/lineedit.h
 lineedit/terminfo.c
