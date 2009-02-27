@@ -102,6 +102,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_c, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_eof, CMDENTRY(cmd_eof_if_empty));
     t = trie_setw(t, L"i", CMDENTRY(cmd_setmode_viinsert));
+    t = trie_setw(t, Key_insert, CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_l, CMDENTRY(cmd_redraw_all));
     //TODO
     yle_modes[YLE_MODE_VI_COMMAND].keymap = t;
@@ -133,7 +134,7 @@ void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t arg)
     }
 }
 
-/* Resets `state.count' */
+/* Resets `state.count'. */
 void reset_count(void)
 {
     state.count = -1;
@@ -179,20 +180,19 @@ void cmd_alert(wchar_t c __attribute__((unused)))
     reset_count();
 }
 
-/* Invoke `cmd_alert' and `reset', and returns true if the cursor is at the
- * first character */
+/* Invoke `cmd_alert', and returns true if the cursor is at the first character.
+ */
 bool alert_if_first(void)
 {
     if (yle_main_index > 0)
 	return false;
 
     cmd_alert(L'\a');
-    reset_count();
     return true;
 }
 
-/* Invoke `cmd_alert' and `reset', and returns true if the cursor is at the
- * last character */
+/* Invoke `cmd_alert', and returns true if the cursor is at the last character.
+ */
 bool alert_if_last(void)
 {
     if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
@@ -205,7 +205,6 @@ bool alert_if_last(void)
     }
 
     cmd_alert(L'\a');
-    reset_count();
     return true;
 }
 
