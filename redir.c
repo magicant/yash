@@ -282,6 +282,8 @@ static int parse_and_check_dup(char *num, redirtype_T type)
 static int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
     __attribute__((nonnull));
 static int open_heredocument(const struct wordunit_T *content);
+static int open_herestring(char *s, bool appendnewline)
+    __attribute__((nonnull));
 static int open_process_redirection(const wchar_t *command, redirtype_T type)
     __attribute__((nonnull));
 
@@ -307,6 +309,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	switch (r->rd_type) {
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
 	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
+	    case RT_HERESTR:
 		filename = expand_single_with_glob(r->rd_filename, tt_single);
 		if (!filename)
 		    return false;
@@ -367,6 +370,12 @@ openwithflags:
 	case RT_HERERT:
 	    keepopen = false;
 	    fd = open_heredocument(r->rd_herecontent);
+	    if (fd < 0)
+		return false;
+	    break;
+	case RT_HERESTR:
+	    keepopen = false;
+	    fd = open_herestring(filename, true);
 	    if (fd < 0)
 		return false;
 	    break;
@@ -655,39 +664,54 @@ error:
  * temporary file. */
 int open_heredocument(const wordunit_T *contents)
 {
-    int fd;
-
-    /* if contents is empty */
-    if (!contents) {
-	fd = open("/dev/null", O_RDONLY);
-	if (fd < 0)
-	    xerror(errno, Ngt("cannot open empty here-document"));
-	return fd;
-    }
-
     wchar_t *wcontents = expand_string(contents, true);
     if (!wcontents)
 	return -1;
 
     char *mcontents = realloc_wcstombs(wcontents);
     if (!mcontents) {
-	xerror(0, Ngt("cannot write here-document contents"));
+	xerror(EILSEQ, Ngt("cannot write here-document contents"));
 	return -1;
     }
 
-    size_t mlen = strlen(mcontents);
+    return open_herestring(mcontents, false);
+}
+
+/* Opens a here-string whose contents is specified by the argument.
+ * If `appendnewline' is true, a newline is appended to the value of `s'.
+ * Returns a newly opened file descriptor if successful, or -1 number on error.
+ * `s' is freed in this function. */
+/* The contents of the here-document is passed either through a pipe or in a
+ * temporary file. */
+int open_herestring(char *s, bool appendnewline)
+{
+    int fd;
+
+    /* if contents is empty */
+    if (s[0] == '\0') {
+	fd = open("/dev/null", O_RDONLY);
+	if (fd < 0)
+	    xerror(errno, Ngt("cannot open empty here-document"));
+	free(s);
+	return fd;
+    }
+
+    size_t len = strlen(s);
+    if (appendnewline)
+	s[len++] = '\n';
+
 #ifdef PIPE_BUF
     /* use a pipe if the contents is short enough */
-    if (mlen <= PIPE_BUF) {
+    if (len <= PIPE_BUF) {
 	int pipefd[2];
 
 	if (pipe(pipefd) >= 0) {
 	    /* It is guaranteed that all the contents is written to the pipe
 	     * at once, so we don't have to use `write_all' here. */
-	    if (write(pipefd[PIDX_OUT], mcontents, mlen) < 0)
+	    if (write(pipefd[PIDX_OUT], s, len) < 0)
 		xerror(errno, Ngt("cannot write here-document contents"));
 	    xclose(pipefd[PIDX_OUT]);
-	    free(mcontents);
+	    free(s);
 	    return pipefd[PIDX_IN];
 	}
     }
@@ -697,15 +721,15 @@ int open_heredocument(const wordunit_T *contents)
     fd = create_temporary_file(&tempfile, 0);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot create temporary file for here-document"));
-	free(mcontents);
+	free(s);
 	return -1;
     }
     if (unlink(tempfile) < 0)
 	xerror(errno, Ngt("failed to remove temporary file `%s'"), tempfile);
     free(tempfile);
-    if (!write_all(fd, mcontents, mlen))
+    if (!write_all(fd, s, len))
 	xerror(errno, Ngt("cannot write here-document contents"));
-    free(mcontents);
+    free(s);
     if (lseek(fd, 0, SEEK_SET) != 0)
 	xerror(errno, Ngt("cannot seek temporary file for here-document"));
     return fd;

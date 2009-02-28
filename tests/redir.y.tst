@@ -16,6 +16,8 @@ exec 3>>|4; echo 3-4 >&3; exec 3>&-; cat <&4; exec 4<&-
 { echo 0; tee -a "$temp"; }) >>|0
 cat "$temp"
 
+rm -f "$temp"
+
 
 echo ===== command redirection =====
 
@@ -38,4 +40,10 @@ grep 5 <(seq 5)
 echo $?
 
 
-rm -f "$temp"
+echo ===== here-string =====
+
+var=foo
+cat <<<123
+cat <<< "$var"
+cat <<< "-
+-"

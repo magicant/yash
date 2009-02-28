@@ -248,6 +248,7 @@ typedef enum {
     RT_PIPE,     /* >>|fd */
     RT_HERE,     /* <<END */
     RT_HERERT,   /* <<-END */
+    RT_HERESTR,  /* <<<str */
     RT_PROCIN,   /* <(command) */
     RT_PROCOUT,  /* >(command) */
 } redirtype_T;
