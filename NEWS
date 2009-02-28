@@ -16,6 +16,8 @@ Yash 2.7
   -  Loop pipes no longer supported.
   =  The $IFS variable is always initialized to the default value when
      the shell is invoked.
+  *  The "echo" and "printf" builtins now print an error message on
+     failure.
   *  A quoted period at the beginning of a filename was not properly
      matching during filename expansion.
 
