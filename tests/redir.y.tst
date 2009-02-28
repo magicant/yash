@@ -11,9 +11,8 @@ exec 5>>|4; echo 5-4 >&5; exec 5>&-; cat <&4; exec 4<&-
 exec 3>>|6; echo 3-6 >&3; exec 3>&-; cat <&6; exec 6<&-
 exec 3>>|4; echo 3-4 >&3; exec 3>&-; cat <&4; exec 4<&-
 
-(cat >"$temp" | echo loop) >>|0
 (while read i; do if [ $i -lt 5 ]; then echo $((i+1)); else exit; fi done |
-{ echo 0; tee -a "$temp"; }) >>|0
+{ echo 0; tee "$temp"; }) >>|0
 cat "$temp"
 
 rm -f "$temp"
