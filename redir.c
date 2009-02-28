@@ -265,9 +265,9 @@ void open_ttyfd(void)
 /* info used to undo redirection */
 struct savefd_T {
     struct savefd_T *next;
-    int   sf_origfd;            /* original file descriptor */
-    int   sf_copyfd;            /* copied file descriptor */
-    bool  sf_stdin_redirected;  /* original `is_stdin_redirected' */
+    int  sf_origfd;            /* original file descriptor */
+    int  sf_copyfd;            /* copied file descriptor */
+    bool sf_stdin_redirected;  /* original `is_stdin_redirected' */
 };
 
 static void save_fd(int oldfd, savefd_T **save);
@@ -278,6 +278,8 @@ static int open_socket(const char *hostandport, int socktype)
     __attribute__((nonnull));
 #endif
 static int parse_and_check_dup(char *num, redirtype_T type)
+    __attribute__((nonnull));
+static int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
     __attribute__((nonnull));
 static int open_heredocument(const struct wordunit_T *content);
 static int open_process_redirection(const wchar_t *command, redirtype_T type)
@@ -304,7 +306,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	char *filename = filename;
 	switch (r->rd_type) {
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
-	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
+	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
 		filename = expand_single_with_glob(r->rd_filename, tt_single);
 		if (!filename)
 		    return false;
@@ -352,6 +354,12 @@ openwithflags:
 	case RT_DUPOUT:
 	    keepopen = true;
 	    fd = parse_and_check_dup(filename, r->rd_type);
+	    if (fd < -1)
+		return false;
+	    break;
+	case RT_PIPE:
+	    keepopen = false;
+	    fd = parse_and_exec_pipe(r->rd_fd, filename, save);
 	    if (fd < -1)
 		return false;
 	    break;
@@ -521,7 +529,8 @@ int open_socket(const char *hostandport, int socktype)
  * Otherwise, a negative value other than -1 is returned. */
 int parse_and_check_dup(char *const num, redirtype_T type)
 {
-    int fd = fd;
+    int fd;
+
     if (strcmp(num, "-") == 0) {
 	fd = -1;
     } else {
@@ -539,7 +548,8 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 	    fd = -2;
 	} else {
 	    if (is_shellfd(fd)) {
-		xerror(EBADF, Ngt("redirection: %d"), fd);
+		xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+			fd);
 		fd = -2;
 	    } else if (posixly_correct) {
 		/* check the read/write permission */
@@ -562,6 +572,80 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     }
     free(num);
     return fd;
+}
+
+/* Parses the argument to `RT_PIPE' and opens a pipe.
+ * `outputfd' is the file descriptor of the output side of the pipe.
+ * `num' is the argument to parse, which is expected to be a positive integer
+ * that is the file descriptor of the input side of the pipe.
+ * `num' is freed in this function.
+ * If successful, the actual file descriptor of the output side of the pipe is
+ * returned, which may differ from `outputfd'. Otherwise, a negative value other
+ * than -1 is returned. */
+/* The input side FD is saved in this function. */
+int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
+{
+    int fd, inputfd;
+    char *end;
+    long lfd;
+
+    assert(outputfd >= 0);
+
+    errno = 0;
+    lfd = strtol(num, &end, 10);
+    if (!isxdigit(num[0]) || *end != '\0')
+	errno = EINVAL;
+    else if (lfd < 0 || lfd > INT_MAX)
+	errno = ERANGE;
+    else
+	inputfd = (int) lfd;
+    if (errno) {
+	xerror(errno, Ngt("redirection: %s"), num);
+	fd = -2;
+    } else if (outputfd == inputfd) {
+	xerror(0, Ngt("redirection: %d>>|%d: "
+		    "same input and output file descriptor"),
+		outputfd, inputfd);
+	fd = -2;
+    } else if (is_shellfd(inputfd)) {
+	xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+		inputfd);
+	fd = -2;
+    } else {
+	int pipefd[2];
+
+	save_fd(inputfd, save);
+	if (pipe(pipefd) < 0)
+	    goto error;
+
+	/* First, move the output side from what is to be the input side. */
+	if (pipefd[PIDX_OUT] == inputfd) {
+	    int newfd = dup(pipefd[PIDX_OUT]);
+	    if (newfd < 0)
+		goto error;
+	    xclose(pipefd[PIDX_OUT]);
+	    pipefd[PIDX_OUT] = newfd;
+	}
+
+	/* Next, move the input side to where it should be. */
+	if (pipefd[PIDX_IN] != inputfd) {
+	    if (xdup2(pipefd[PIDX_IN], inputfd) < 0)
+		goto error;
+	    xclose(pipefd[PIDX_IN]);
+	    // pipefd[PIDX_IN] = inputfd;
+	}
+
+	/* The output side is not moved in this function. */
+	fd = pipefd[PIDX_OUT];
+    }
+end:
+    free(num);
+    return fd;
+
+error:
+    xerror(errno, Ngt("redirection: %d>>|%d"), outputfd, inputfd);
+    fd = -2;
+    goto end;
 }
 
 /* Opens a here-document whose contents is specified by the argument.

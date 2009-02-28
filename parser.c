@@ -202,7 +202,7 @@ void redirsfree(redir_T *r)
     while (r) {
 	switch (r->rd_type) {
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
-	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
+	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
 		wordfree(r->rd_filename);
 		break;
 	    case RT_HERE:  case RT_HERERT:
@@ -1172,7 +1172,13 @@ reparse:
 		result->rd_type = RT_OUTPUT;  cindex += 1;
 	    }
 	    break;
-	case L'>':  result->rd_type = RT_APPEND;  cindex += 2;  break;
+	case L'>':
+	    if (!posixly_correct && cbuf.contents[cindex + 2] == L'|') {
+		result->rd_type = RT_PIPE;    cindex += 3;
+	    } else {
+		result->rd_type = RT_APPEND;  cindex += 2;
+	    }
+	    break;
 	case L'|':  result->rd_type = RT_CLOBBER; cindex += 2;  break;
 	case L'&':  result->rd_type = RT_DUPOUT;  cindex += 2;  break;
 	default:    result->rd_type = RT_OUTPUT;  cindex += 1;  break;
@@ -2618,6 +2624,7 @@ void print_redirs(xwcsbuf_T *restrict buf, const redir_T *restrict r)
 	    case RT_INOUT:    s = L"<>";   type = file;  break;
 	    case RT_DUPIN:    s = L"<&";   type = file;  break;
 	    case RT_DUPOUT:   s = L">&";   type = file;  break;
+	    case RT_PIPE:     s = L">>|";  type = file;  break;
 	    case RT_HERE:     s = L"<<";   type = here;  break;
 	    case RT_HERERT:   s = L"<<-";  type = here;  break;
 	    case RT_PROCIN:   s = L"<(";   type = proc;  break;

@@ -245,6 +245,7 @@ typedef enum {
     RT_INOUT,    /* <>file */
     RT_DUPIN,    /* <&fd */
     RT_DUPOUT,   /* >&fd */
+    RT_PIPE,     /* >>|fd */
     RT_HERE,     /* <<END */
     RT_HERERT,   /* <<-END */
     RT_PROCIN,   /* <(command) */
