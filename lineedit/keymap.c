@@ -133,6 +133,8 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, L"x",          CMDENTRY(cmd_kill_char));
     t = trie_setw(t, Key_delete,    CMDENTRY(cmd_kill_char));
+    t = trie_setw(t, L"P",          CMDENTRY(cmd_put_before));
+    t = trie_setw(t, L"p",          CMDENTRY(cmd_put));
     //TODO
     // #
     // =
@@ -164,7 +166,6 @@ void yle_keymap_init(void)
     // D
     // y motion
     // Y
-    // p/P
     // u
     // U
     // k/-
@@ -608,6 +609,39 @@ void cmd_backward_kill_char(wchar_t c)
     else
 	yle_main_index = 0;
     cmd_kill_char(c);
+}
+
+/* Inserts the last-killed string before the cursor.
+ * If the count is set, inserts `count' times. */
+void cmd_put_before(wchar_t c)
+{
+    last_put_index = (next_kill_index - 1) % KILL_RING_SIZE;
+
+    const wchar_t *s = kill_ring[last_put_index];
+    if (s == NULL) {
+	cmd_alert(c);
+	return;
+    } else if (s[0] == L'\0') {
+	reset_count();
+	return;
+    }
+
+    size_t offset = yle_main_buffer.length - yle_main_index;
+    for (int count = get_count(1); --count >= 0; )
+	wb_insert(&yle_main_buffer, yle_main_index, s);
+    assert(yle_main_buffer.length >= offset + 1);
+    yle_main_index = yle_main_buffer.length - offset - 1;
+    yle_display_reprint_buffer();
+    reset_count();
+}
+
+/* Inserts the last-killed string after the cursor.
+ * If the count is set, inserts `count' times. */
+void cmd_put(wchar_t c)
+{
+    if (yle_main_index < yle_main_buffer.length)
+	yle_main_index++;
+    cmd_put_before(c);
 }
 
 
