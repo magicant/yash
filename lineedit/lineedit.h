@@ -34,7 +34,6 @@ extern _Bool yle_need_term_reset;
 
 extern yle_state_T yle_state;
 
-extern void yle_init(void);
 extern _Bool yle_setup(void);
 
 extern wchar_t *yle_readline(const wchar_t *prompt)

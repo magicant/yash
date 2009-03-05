@@ -247,6 +247,14 @@ int main(int argc, char **argv)
 	}
     }
 
+#if YASH_ENABLE_LINEEDIT
+    /* enable lineedit if interactive and connected to a terminal */
+    if (is_interactive)
+	if (!is_interactive_set
+		|| (isatty(STDIN_FILENO) && isatty(STDERR_FILENO)))
+	    shopt_lineedit = shopt_vi;
+#endif
+
     is_interactive_now = is_interactive;
     if (!do_job_control_set)
 	do_job_control = is_interactive;

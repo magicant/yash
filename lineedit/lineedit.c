@@ -61,20 +61,6 @@ yle_state_T yle_state;
 
 
 /* Initializes line editing.
- * Must be called at least once before call to `yle_setup'.
- * May be called more than once, but does nothing for the second call or later.
- */
-void yle_init(void)
-{
-    static bool initialized = false;
-
-    if (initialized)
-	return;
-    initialized = true;
-    yle_keymap_init();
-}
-
-/* Initializes line editing.
  * Must be called before each call to `yle_readline'.
  * Returns true iff successful, in which case `yle_readline' must be called
  * afterward.
@@ -82,6 +68,12 @@ void yle_init(void)
  * `yle_readline' must not be called. */
 bool yle_setup(void)
 {
+    static bool initialized = false;
+    if (!initialized) {
+	initialized = true;
+	yle_keymap_init();
+    }
+
     if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
 	return false;
     if (mode != MODE_INACTIVE)

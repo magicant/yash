@@ -330,8 +330,6 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	    } else {
 		return 1;
 	    }
-	} else {
-	    shopt_lineedit = shopt_nolineedit;
 	}
     }
 #endif /* YASH_ENABLE_LINEEDIT */
