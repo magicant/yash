@@ -22,9 +22,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <wctype.h>
 #include "../hashtable.h"
 #include "../strbuf.h"
+#include "../util.h"
 #include "display.h"
 #include "key.h"
 #include "keymap.h"
@@ -45,10 +47,20 @@ static struct {
     int count;
 } state;
 
+/* The kill ring */
+#define KILL_RING_SIZE 30
+static wchar_t *kill_ring[KILL_RING_SIZE];
+/* The index of the element to which next killed string is assigned. */
+static size_t next_kill_index = 0;
+/* The index of the element which was put last. */
+static size_t last_put_index = 0;
+
 
 static inline void reset_count(void);
 static inline int get_count(int default_value);
 static void exec_motion_command(size_t index, bool inclusive);
+static void add_to_kill_ring(const wchar_t *s, size_t n)
+    __attribute__((nonnull));
 
 static bool alert_if_first(void);
 static bool alert_if_last(void);
@@ -119,7 +131,8 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"i",          CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_insert,    CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
-    t = trie_setw(t, Key_delete,    CMDENTRY(cmd_delete_char));
+    t = trie_setw(t, L"x",          CMDENTRY(cmd_kill_char));
+    t = trie_setw(t, Key_delete,    CMDENTRY(cmd_kill_char));
     //TODO
     // #
     // =
@@ -146,7 +159,6 @@ void yle_keymap_init(void)
     // S
     // r char
     // _
-    // x
     // X
     // d motion
     // D
@@ -220,6 +232,15 @@ void exec_motion_command(size_t index, bool inclusive)
 	yle_display_reposition_cursor();
     }
     reset_count();
+}
+
+/* Adds the specified string to the kill ring.
+ * The maximum number of characters that are added is specified by `n'. */
+void add_to_kill_ring(const wchar_t *s, size_t n)
+{
+    free(kill_ring[next_kill_index]);
+    kill_ring[next_kill_index] = xwcsndup(s, n);
+    next_kill_index = (next_kill_index + 1) % KILL_RING_SIZE;
 }
 
 
@@ -550,6 +571,43 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 	yle_display_reprint_buffer();
     }
     reset_count();
+}
+
+/* Kills the character under the cursor.
+ * If the count is set, `count' characters are killed. */
+void cmd_kill_char(wchar_t c)
+{
+    size_t n = get_count(1);
+
+    assert(yle_main_index <= yle_main_buffer.length);
+    if (yle_main_buffer.length == 0) {
+	cmd_alert(c);
+	return;
+    }
+
+    add_to_kill_ring(yle_main_buffer.contents + yle_main_index, n);
+    wb_remove(&yle_main_buffer, yle_main_index, n);
+    yle_display_reprint_buffer();
+    reset_count();
+}
+
+/* Kills the character behind the cursor.
+ * If the count is set, `count' characters are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_kill_char(wchar_t c)
+{
+    if (yle_main_index == 0) {
+	cmd_alert(c);
+	return;
+    }
+
+    size_t n = get_count(1);
+
+    if (n <= yle_main_index)
+	yle_main_index -= n;
+    else
+	yle_main_index = 0;
+    cmd_kill_char(c);
 }
 
 

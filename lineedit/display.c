@@ -453,6 +453,7 @@ done:
  * cursor is not sticking at the end of the line. */
 void print_editline(bool keepstuck)
 {
+    assert(yle_main_index <= yle_main_buffer.length);
     assert(current_line == editbase_line);
     assert(current_column == editbase_column);
     trace_position = convert_all_control = true;

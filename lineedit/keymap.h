@@ -82,7 +82,9 @@ extern yle_command_func_T
     cmd_backward_delete_semiword,
     cmd_delete_line,
     cmd_forward_delete_line,
-    cmd_backward_delete_line;
+    cmd_backward_delete_line,
+    cmd_kill_char,
+    cmd_backward_kill_char;
 
 
 #endif /* YASH_KEYMAP_H */
