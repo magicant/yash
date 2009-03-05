@@ -68,13 +68,8 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_right,     CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
-    t = trie_setw(t, Key_delete,    CMDENTRY(cmd_delete_char));
-    t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
-    t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_delete_char));
-    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_delete_char));
-    t = trie_setw(t, Key_c_w,       CMDENTRY(cmd_backward_delete_semiword));
-    t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_delete_line));
-    t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
+    t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
     t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m,       CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
@@ -82,13 +77,20 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_eof,       CMDENTRY(cmd_eof_if_empty));
     t = trie_setw(t, Key_c_lb,      CMDENTRY(cmd_setmode_vicommand));
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
+    t = trie_setw(t, Key_delete,    CMDENTRY(cmd_delete_char));
+    t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_c_w,       CMDENTRY(cmd_backward_delete_semiword));
+    t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_delete_line));
     //TODO
     yle_modes[YLE_MODE_VI_INSERT].keymap = t;
 
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, Key_c_lb,      CMDENTRY(cmd_noop));
-    t = trie_setw(t, L"0",          CMDENTRY(cmd_digit_argument)); // XXX
+    t = trie_setw(t, L"0",          CMDENTRY(cmd_bol_or_digit));
     t = trie_setw(t, L"1",          CMDENTRY(cmd_digit_argument));
     t = trie_setw(t, L"2",          CMDENTRY(cmd_digit_argument));
     t = trie_setw(t, L"3",          CMDENTRY(cmd_digit_argument));
@@ -105,7 +107,9 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_char));
-    t = trie_setw(t, Key_delete,    CMDENTRY(cmd_delete_char));
+    t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
+    t = trie_setw(t, L"$",          CMDENTRY(cmd_end_of_line));
+    t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
     t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m,       CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
@@ -114,6 +118,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"i",          CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_insert,    CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
+    t = trie_setw(t, Key_delete,    CMDENTRY(cmd_delete_char));
     //TODO
     // #
     // =
@@ -352,6 +357,30 @@ void cmd_backward_char(wchar_t c __attribute__((unused)))
     else
 	newindex = yle_main_index - count;
     exec_motion_command(newindex, false);
+}
+
+/* Moves the cursor to the beginning of line. */
+/* exclusive motion command */
+void cmd_beginning_of_line(wchar_t c __attribute__((unused)))
+{
+    exec_motion_command(0, false);
+}
+
+/* Moves the cursor to the end of line. */
+/* inclusive motion command */
+void cmd_end_of_line(wchar_t c __attribute__((unused)))
+{
+    exec_motion_command(yle_main_buffer.length, true);
+}
+
+/* If the count is not set, moves the cursor to the beginning of line.
+ * Otherwise, adds the given digit to the count. */
+void cmd_bol_or_digit(wchar_t c)
+{
+    if (state.count < 0)
+	cmd_beginning_of_line(c);
+    else
+	cmd_digit_argument(c);
 }
 
 /* Accepts the current line.
