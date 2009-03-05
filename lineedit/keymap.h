@@ -66,6 +66,7 @@ extern yle_command_func_T
     cmd_beginning_of_line,
     cmd_end_of_line,
     cmd_bol_or_digit,
+    cmd_first_nonblank,
     cmd_accept_line,
     cmd_abort_line,
     cmd_eof_if_empty,

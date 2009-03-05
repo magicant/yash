@@ -90,7 +90,6 @@ void yle_keymap_init(void)
     yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, Key_c_lb,      CMDENTRY(cmd_noop));
-    t = trie_setw(t, L"0",          CMDENTRY(cmd_bol_or_digit));
     t = trie_setw(t, L"1",          CMDENTRY(cmd_digit_argument));
     t = trie_setw(t, L"2",          CMDENTRY(cmd_digit_argument));
     t = trie_setw(t, L"3",          CMDENTRY(cmd_digit_argument));
@@ -110,6 +109,8 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, L"$",          CMDENTRY(cmd_end_of_line));
     t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
+    t = trie_setw(t, L"0",          CMDENTRY(cmd_bol_or_digit));
+    t = trie_setw(t, L"^",          CMDENTRY(cmd_first_nonblank));
     t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_c_m,       CMDENTRY(cmd_accept_line));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
@@ -131,9 +132,6 @@ void yle_keymap_init(void)
     // w/W
     // e/E
     // b/B
-    // ^
-    // $
-    // 0
     // |
     // f/F char
     // t/T char
@@ -381,6 +379,17 @@ void cmd_bol_or_digit(wchar_t c)
 	cmd_beginning_of_line(c);
     else
 	cmd_digit_argument(c);
+}
+
+/* Moves the cursor to the first non-blank character. */
+/* exclusive motion command */
+void cmd_first_nonblank(wchar_t c __attribute__((unused)))
+{
+    size_t i = 0;
+
+    while (c = yle_main_buffer.contents[i], c != L'\0' && iswblank(c))
+	i++;
+    exec_motion_command(i, false);
 }
 
 /* Accepts the current line.
