@@ -51,8 +51,9 @@ extern void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t arg)
     ((trievalue_T) { .cmdfunc = (cmdfunc_) })
 
 
-/********** Basic Commands **********/
+/********** Commands **********/
 
+/* basic commands */
 extern yle_command_func_T
     cmd_noop,
     cmd_alert,
@@ -62,10 +63,6 @@ extern yle_command_func_T
     cmd_digit_argument,
     cmd_forward_char,
     cmd_backward_char,
-    cmd_delete_char,
-    cmd_backward_delete_char,
-    cmd_backward_delete_semiword,
-    cmd_backward_delete_line,
     cmd_accept_line,
     cmd_abort_line,
     cmd_eof_if_empty,
@@ -73,6 +70,15 @@ extern yle_command_func_T
     cmd_setmode_viinsert,
     cmd_setmode_vicommand,
     cmd_redraw_all;
+
+/* editing commands */
+extern yle_command_func_T
+    cmd_delete_char,
+    cmd_backward_delete_char,
+    cmd_backward_delete_semiword,
+    cmd_delete_line,
+    cmd_forward_delete_line,
+    cmd_backward_delete_line;
 
 
 #endif /* YASH_KEYMAP_H */

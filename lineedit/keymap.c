@@ -354,6 +354,70 @@ void cmd_backward_char(wchar_t c __attribute__((unused)))
     exec_motion_command(newindex, false);
 }
 
+/* Accepts the current line.
+ * `yle_state' is set to YLE_STATE_DONE and `yle_readline' returns. */
+void cmd_accept_line(wchar_t c __attribute__((unused)))
+{
+    yle_state = YLE_STATE_DONE;
+    reset_count();
+}
+
+/* Aborts the current line.
+ * `yle_state' is set to YLE_STATE_INTERRUPTED and `yle_readline' returns. */
+void cmd_abort_line(wchar_t c __attribute__((unused)))
+{
+    yle_state = YLE_STATE_INTERRUPTED;
+    reset_count();
+}
+
+/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
+ * Otherwise, causes alert. */
+void cmd_eof_if_empty(wchar_t c)
+{
+    if (yle_main_buffer.length == 0) {
+	yle_state = YLE_STATE_ERROR;
+	reset_count();
+    } else {
+	cmd_alert(c);
+    }
+}
+
+/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
+ * Otherwise, deletes the character under the cursor. */
+void cmd_eof_or_delete(wchar_t c)
+{
+    if (yle_main_buffer.length == 0) {
+	yle_state = YLE_STATE_ERROR;
+	reset_count();
+    } else {
+	cmd_delete_char(c);
+    }
+}
+
+/* Changes the editing mode to "vi insert". */
+void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
+{
+    yle_set_mode(YLE_MODE_VI_INSERT);
+    reset_count();
+}
+
+/* Changes the editing mode to "vi command". */
+void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
+{
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+    reset_count();
+}
+
+/* Redraw everything. */
+void cmd_redraw_all(wchar_t c __attribute__((unused)))
+{
+    yle_display_clear();
+    yle_display_print_all();
+}
+
+
+/********** Editing Commands **********/
+
 /* Removes the character under the cursor.
  * If the count is set, `count' characters are killed. */
 void cmd_delete_char(wchar_t c __attribute__((unused)))
@@ -420,6 +484,25 @@ bool is_blank_or_punct(wchar_t c)
     return iswblank(c) || iswpunct(c);
 }
 
+/* Removes all characters in the edit line. */
+void cmd_delete_line(wchar_t c __attribute__((unused)))
+{
+    wb_clear(&yle_main_buffer);
+    yle_main_index = 0;
+    yle_display_reprint_buffer();
+    reset_count();
+}
+
+/* Removes all characters after the cursor. */
+void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
+{
+    if (yle_main_index < yle_main_buffer.length) {
+	wb_remove(&yle_main_buffer, yle_main_index, SIZE_MAX);
+	yle_display_reprint_buffer();
+    }
+    reset_count();
+}
+
 /* Removes all characters behind the cursor. */
 void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 {
@@ -429,67 +512,6 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 	yle_display_reprint_buffer();
     }
     reset_count();
-}
-
-/* Accepts the current line.
- * `yle_state' is set to YLE_STATE_DONE and `yle_readline' returns. */
-void cmd_accept_line(wchar_t c __attribute__((unused)))
-{
-    yle_state = YLE_STATE_DONE;
-    reset_count();
-}
-
-/* Aborts the current line.
- * `yle_state' is set to YLE_STATE_INTERRUPTED and `yle_readline' returns. */
-void cmd_abort_line(wchar_t c __attribute__((unused)))
-{
-    yle_state = YLE_STATE_INTERRUPTED;
-    reset_count();
-}
-
-/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
- * Otherwise, causes alert. */
-void cmd_eof_if_empty(wchar_t c)
-{
-    if (yle_main_buffer.length == 0) {
-	yle_state = YLE_STATE_ERROR;
-	reset_count();
-    } else {
-	cmd_alert(c);
-    }
-}
-
-/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
- * Otherwise, deletes the character under the cursor. */
-void cmd_eof_or_delete(wchar_t c)
-{
-    if (yle_main_buffer.length == 0) {
-	yle_state = YLE_STATE_ERROR;
-	reset_count();
-    } else {
-	cmd_delete_char(c);
-    }
-}
-
-/* Changes the editing mode to "vi insert". */
-void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
-{
-    yle_set_mode(YLE_MODE_VI_INSERT);
-    reset_count();
-}
-
-/* Changes the editing mode to "vi command". */
-void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
-{
-    yle_set_mode(YLE_MODE_VI_COMMAND);
-    reset_count();
-}
-
-/* Redraw everything. */
-void cmd_redraw_all(wchar_t c __attribute__((unused)))
-{
-    yle_display_clear();
-    yle_display_print_all();
 }
 
 
