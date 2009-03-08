@@ -41,7 +41,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
 
-DISTCONTENTS = $(SOURCES) Makefile.in
+DISTCONTENTS = $(SOURCES) Makefile.in Makefile.deps
 distcontents: $(DISTCONTENTS)
 
 # ctags conforms to POSIX, but etags and cscope do not.
