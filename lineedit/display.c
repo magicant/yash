@@ -65,7 +65,7 @@ static void print_prompt(void);
 static void print_color_seq(const wchar_t **sp)
     __attribute__((nonnull));
 
-static void print_editline(size_t index, bool keepstuck);
+static void print_editline(size_t index);
 static void clear_editline(void);
 
 
@@ -135,15 +135,13 @@ void yle_display_init(const wchar_t *prompt)
  * Returns the content of the main buffer, which must be freed by the caller. */
 wchar_t *yle_display_finalize(void)
 {
-    if (yle_main_buffer.length != yle_main_index) {
-	go_to(editbase_line, editbase_column);
-	print_editline(0, true);
-    }
+    go_to_index(yle_main_buffer.length);
 
     free(cursor_positions);
     cursor_positions = NULL;
 
-    yle_print_nel();
+    if (current_column != 0)
+	yle_print_nel();
     current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();
@@ -216,7 +214,7 @@ void yle_display_reprint_buffer(size_t index, bool noclear)
 	go_to_index(index);
     if (!noclear)
 	clear_editline();
-    print_editline(index, false);
+    print_editline(index);
 }
 
 /* Moves the cursor to the proper position on the screen.
@@ -261,8 +259,8 @@ static void go_to(int line, int column)
 }
 
 /* Moves the cursor to the character of the specified index in the main buffer.
- * This function relies on `cursor_positions', so `print_editline(0, false)'
- * must have been called beforehand. */
+ * This function relies on `cursor_positions', so `print_editline(0)' must have
+ * been called beforehand. */
 void go_to_index(size_t i)
 {
     assert(i <= yle_main_buffer.length);
@@ -457,10 +455,8 @@ done:
 
 /* Prints the content of the edit line from the `index'th character to the end,
  * updating `cursor_positions' and `last_edit_line'.
- * The cursor must have been moved to the `index'th character.
- * if `keepstuck' is false, a dummy character is printed if needed so that the
- * cursor is not sticking at the end of the line on the screen. */
-void print_editline(size_t index, bool keepstuck)
+ * The cursor must have been moved to the `index'th character. */
+void print_editline(size_t index)
 {
     assert(yle_main_index <= yle_main_buffer.length);
     assert(index <= yle_main_buffer.length);
@@ -482,7 +478,7 @@ void print_editline(size_t index, bool keepstuck)
     cursor_positions[yle_main_buffer.length] =
 	current_line * yle_columns + current_column;
 
-    if (!keepstuck && current_column >= yle_columns) {
+    if (current_column >= yle_columns) {
 	/* print a dummy space to move the cursor to the next line */
 	tputwc(L' ');
 	yle_print_cr();
