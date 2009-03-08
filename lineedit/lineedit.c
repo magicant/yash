@@ -159,6 +159,7 @@ void yle_resume_readline(void)
 	mode = MODE_ACTIVE;
 	yle_set_terminal();
 	yle_display_print_all();
+	yle_display_reposition_cursor();
 	fflush(stderr);
     }
 }
@@ -334,8 +335,10 @@ void append_to_second_buffer(wchar_t wc)
 {
     if (wc != L'\0') {
 	if (yle_next_verbatim) {
+	    size_t old_index = yle_main_index;
 	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &wc, 1);
-	    yle_display_reprint_buffer();
+	    yle_display_reprint_buffer(old_index,
+		    yle_main_index == yle_main_buffer.length);
 	} else {
 	    wb_wccat(&reader_second_buffer, wc);
 	}

@@ -200,9 +200,9 @@ void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t arg)
     if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
 	if (yle_main_index > 0 && yle_main_index == yle_main_buffer.length) {
 	    yle_main_index--;
-	    yle_display_reposition_cursor();
 	}
     }
+    yle_display_reposition_cursor();
 }
 
 /* Resets `state.count'. */
@@ -230,7 +230,6 @@ void exec_motion_command(size_t index, bool inclusive)
     (void) inclusive;
     {
 	yle_main_index = index;
-	yle_display_reposition_cursor();
     }
     reset_count();
 }
@@ -293,10 +292,12 @@ void cmd_self_insert(wchar_t c)
 {
     if (c != L'\0') {
 	int count = get_count(1);
+	size_t old_index = yle_main_index;
 
 	while (--count >= 0)
 	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
-	yle_display_reprint_buffer(); // XXX
+	yle_display_reprint_buffer(old_index,
+		yle_main_index == yle_main_buffer.length);
     } else {
 	yle_alert();
     }
@@ -314,12 +315,7 @@ void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
 /* Inserts the backslash character. */
 void cmd_insert_backslash(wchar_t c __attribute__((unused)))
 {
-    int count = get_count(1);
-
-    while (--count >= 0)
-	wb_ninsert_force(&yle_main_buffer, yle_main_index++, L"\\", 1);
-    yle_display_reprint_buffer(); // XXX
-    reset_count();
+    cmd_self_insert(L'\\');
 }
 
 /* Adds the specified digit `c' to the accumulating argument. */
@@ -485,7 +481,7 @@ void cmd_delete_char(wchar_t c __attribute__((unused)))
     if (state.count < 0) {
 	if (yle_main_index < yle_main_buffer.length) {
 	    wb_remove(&yle_main_buffer, yle_main_index, 1);
-	    yle_display_reprint_buffer(); // XXX
+	    yle_display_reprint_buffer(yle_main_index, false);
 	} else {
 	    yle_alert();
 	}
@@ -502,7 +498,7 @@ void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
     if (state.count < 0) {
 	if (yle_main_index > 0) {
 	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
-	    yle_display_reprint_buffer(); // XXX
+	    yle_display_reprint_buffer(yle_main_index, false);
 	} else {
 	    yle_alert();
 	}
@@ -534,7 +530,7 @@ done:
     if (bound < yle_main_index) {
 	wb_remove(&yle_main_buffer, bound, yle_main_index - bound);
 	yle_main_index = bound;
-	yle_display_reprint_buffer(); // XXX
+	yle_display_reprint_buffer(yle_main_index, false);
     }
     reset_count();
 }
@@ -549,7 +545,7 @@ void cmd_delete_line(wchar_t c __attribute__((unused)))
 {
     wb_clear(&yle_main_buffer);
     yle_main_index = 0;
-    yle_display_reprint_buffer();
+    yle_display_reprint_buffer(0, false);
     reset_count();
 }
 
@@ -558,7 +554,7 @@ void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 {
     if (yle_main_index < yle_main_buffer.length) {
 	wb_remove(&yle_main_buffer, yle_main_index, SIZE_MAX);
-	yle_display_reprint_buffer();
+	yle_display_reprint_buffer(yle_main_index, false);
     }
     reset_count();
 }
@@ -569,7 +565,7 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
     if (yle_main_index > 0) {
 	wb_remove(&yle_main_buffer, 0, yle_main_index);
 	yle_main_index = 0;
-	yle_display_reprint_buffer();
+	yle_display_reprint_buffer(0, false);
     }
     reset_count();
 }
@@ -588,7 +584,7 @@ void cmd_kill_char(wchar_t c)
 
     add_to_kill_ring(yle_main_buffer.contents + yle_main_index, n);
     wb_remove(&yle_main_buffer, yle_main_index, n);
-    yle_display_reprint_buffer();
+    yle_display_reprint_buffer(yle_main_index, false);
     reset_count();
 }
 
@@ -627,11 +623,12 @@ void cmd_put_before(wchar_t c)
     }
 
     size_t offset = yle_main_buffer.length - yle_main_index;
+    size_t old_index = yle_main_index;
     for (int count = get_count(1); --count >= 0; )
 	wb_insert(&yle_main_buffer, yle_main_index, s);
     assert(yle_main_buffer.length >= offset + 1);
     yle_main_index = yle_main_buffer.length - offset - 1;
-    yle_display_reprint_buffer();
+    yle_display_reprint_buffer(old_index, offset == 0);
     reset_count();
 }
 

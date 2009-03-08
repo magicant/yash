@@ -31,7 +31,7 @@ extern void yle_display_init(const wchar_t *prompt)
 extern wchar_t *yle_display_finalize(void);
 extern void yle_display_clear(void);
 extern void yle_display_print_all(void);
-extern void yle_display_reprint_buffer(void);
+extern void yle_display_reprint_buffer(size_t index, _Bool noclear);
 extern void yle_display_reposition_cursor(void);
 
 
