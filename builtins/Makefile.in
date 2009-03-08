@@ -61,5 +61,7 @@ clean: mostlyclean
 	-rm -rf $(TARGET)
 distclean: clean
 	-rm -rf Makefile tags TAGS cscope.out
+maintainer-clean: distclean
+	-rm -rf Makefile.deps
 
-.PHONY: all distcontents cscope mostlyclean clean distclean
+.PHONY: all distcontents cscope mostlyclean clean distclean maintainer-clean
