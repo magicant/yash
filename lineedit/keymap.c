@@ -460,6 +460,9 @@ void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 /* Changes the editing mode to "vi command". */
 void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 {
+    if (yle_current_mode == &yle_modes[YLE_MODE_VI_INSERT])
+	if (yle_main_index > 0)
+	    yle_main_index--;
     yle_set_mode(YLE_MODE_VI_COMMAND);
     reset_count();
 }
