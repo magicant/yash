@@ -7,7 +7,7 @@ hash -r
 hoptiontest () {
 	cat /dev/null
 }
-hash | grep /cat\$ | wc -l
+echo $(hash | grep /cat\$ | wc -l)
 set +h
 
 echo ===== nocaseglob =====

@@ -274,4 +274,4 @@ echo =====
 printf '%d\n' not_a_integer >/dev/null 2>&1
 echo $?
 
-printf '%d\n' not_a_integer 2>/dev/null | wc -l
+echo $(printf '%d\n' not_a_integer 2>/dev/null | wc -l)
