@@ -33,7 +33,7 @@ trap '' ALRM
 
 maketempdir () {
     if [ x"${deptemp+set}" != x"set" ]; then
-	mkdir "${deptemp=/tmp/mkdep$$}" || exit 2
+	mkdir "${deptemp=$PWD/.mkdeptmp}" || exit 2
 	(cd "$deptemp" && mkdir -p "$@") || exit 2
     fi
 }
@@ -68,22 +68,17 @@ printresult () {
 
 template="#=#=# dependencies resolved by makedepend #=#=#"
 for dir do
-    if ! grep -q "$template" "$dir/Makefile"; then
-	maketempdir "$@"
-	printf 'Resolving dependencies of source files in "%s"... ' "$dir"
-	{
-	    printf '\n\n%s\n' "$template"
-	    for src in "$dir"/*.c; do
-		src="${src##*/}"
-		printresult "$src" "$dir" | sort -u | xargs echo "${src%.c}.o:"
-	    done
-	} >>"$dir/Makefile"
-	echo done
-    fi
+    maketempdir "$@"
+    printf 'Resolving dependencies of source files in "%s"... ' "$dir"
+    {
+	printf '\n\n%s\n' "$template"
+	for src in "$dir"/*.c; do
+	    src="${src##*/}"
+	    printresult "$src" "$dir" | sort -u | xargs echo "${src%.c}.o:"
+	done
+    } >"$dir/Makefile.deps"
+    echo done
 done
-
-# return true if dependencies were already resolved
-! [ -d "$deptemp" ]
 
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

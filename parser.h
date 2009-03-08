@@ -42,10 +42,9 @@ typedef struct and_or_T {
 typedef struct pipeline_T {
     struct pipeline_T *next;
     struct command_T  *pl_commands;  /* commands in this pipeline */
-    _Bool              pl_neg, pl_loop, pl_cond;
+    _Bool              pl_neg, pl_cond;
 } pipeline_T;
 /* pl_neg:  whether the exit status of the pipeline is inverted.
- * pl_loop: whether the pipeline is a loop.
  * pl_cond: true for "&&", false for "||". Ignored for the first pipeline in an
  *          and/or list. */
 
@@ -246,8 +245,10 @@ typedef enum {
     RT_INOUT,    /* <>file */
     RT_DUPIN,    /* <&fd */
     RT_DUPOUT,   /* >&fd */
+    RT_PIPE,     /* >>|fd */
     RT_HERE,     /* <<END */
     RT_HERERT,   /* <<-END */
+    RT_HERESTR,  /* <<<str */
     RT_PROCIN,   /* <(command) */
     RT_PROCOUT,  /* >(command) */
 } redirtype_T;

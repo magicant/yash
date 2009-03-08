@@ -129,6 +129,7 @@ int echo_builtin(int argc, void **argv)
     }
 
     /* print arguments */
+    clearerr(stdout);
     if (index < argc) {
 	for (;;) {
 	    if (escape) {
@@ -159,6 +160,10 @@ int echo_builtin(int argc, void **argv)
     else
 	fflush(stdout);
 
+    if (ferror(stdout)) {
+	xerror(errno, Ngt("write error"));
+	return Exit_FAILURE;
+    }
     return Exit_SUCCESS;
 }
 
@@ -291,6 +296,7 @@ int printf_builtin(int argc, void **argv)
 
     struct format_T *format = NULL;
     printf_error = false;
+    clearerr(stdout);
     if (printf_parse_format(ARGV(xoptind), &format)) {
 	int oldoptind;
 	struct format_T *f;
@@ -307,6 +313,10 @@ int printf_builtin(int argc, void **argv)
 	} while (xoptind < argc && xoptind != oldoptind);
 end:
 	fflush(stdout);
+	if (ferror(stdout)) {
+	    xerror(errno, Ngt("write error"));
+	    printf_error = true;
+	}
     } else {
 	printf_error = true;
     }

@@ -202,7 +202,8 @@ void redirsfree(redir_T *r)
     while (r) {
 	switch (r->rd_type) {
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
-	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
+	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
+	    case RT_HERESTR:
 		wordfree(r->rd_filename);
 		break;
 	    case RT_HERE:  case RT_HERERT:
@@ -880,16 +881,6 @@ pipeline_T *parse_pipeline(void)
 	result->pl_neg = false;
     }
 
-    ensure_buffer(2);
-    if (!posixly_correct && cbuf.contents[cindex    ] == L'|'
-			 && cbuf.contents[cindex + 1] != L'|') {
-	result->pl_loop = true;
-	cindex++;
-	skip_blanks_and_comment();
-    } else {
-	result->pl_loop = false;
-    }
-
     result->pl_commands = parse_commands_in_pipeline();
     return result;
 }
@@ -1157,9 +1148,11 @@ reparse:
 	switch (cbuf.contents[cindex + 1]) {
 	case L'<':
 	    if (cbuf.contents[cindex + 2] == L'-') {
-		result->rd_type = RT_HERERT; cindex += 3;
+		result->rd_type = RT_HERERT;  cindex += 3;
+	    } else if (!posixly_correct && cbuf.contents[cindex + 2] == L'<') {
+		result->rd_type = RT_HERESTR; cindex += 3;
 	    } else {
-		result->rd_type = RT_HERE;   cindex += 2;
+		result->rd_type = RT_HERE;    cindex += 2;
 	    }
 	    break;
 	case L'(':
@@ -1182,7 +1175,13 @@ reparse:
 		result->rd_type = RT_OUTPUT;  cindex += 1;
 	    }
 	    break;
-	case L'>':  result->rd_type = RT_APPEND;  cindex += 2;  break;
+	case L'>':
+	    if (!posixly_correct && cbuf.contents[cindex + 2] == L'|') {
+		result->rd_type = RT_PIPE;    cindex += 3;
+	    } else {
+		result->rd_type = RT_APPEND;  cindex += 2;
+	    }
+	    break;
 	case L'|':  result->rd_type = RT_CLOBBER; cindex += 2;  break;
 	case L'&':  result->rd_type = RT_DUPOUT;  cindex += 2;  break;
 	default:    result->rd_type = RT_OUTPUT;  cindex += 1;  break;
@@ -2479,8 +2478,6 @@ void print_pipelines(xwcsbuf_T *restrict buf, const pipeline_T *restrict p)
 	    wb_cat(buf, p->pl_cond ? L"&& " : L"|| ");
 	if (p->pl_neg)
 	    wb_cat(buf, L"! ");
-	if (p->pl_loop)
-	    wb_cat(buf, L"| ");
 	print_commands(buf, p->pl_commands);
     }
 }
@@ -2630,8 +2627,10 @@ void print_redirs(xwcsbuf_T *restrict buf, const redir_T *restrict r)
 	    case RT_INOUT:    s = L"<>";   type = file;  break;
 	    case RT_DUPIN:    s = L"<&";   type = file;  break;
 	    case RT_DUPOUT:   s = L">&";   type = file;  break;
+	    case RT_PIPE:     s = L">>|";  type = file;  break;
 	    case RT_HERE:     s = L"<<";   type = here;  break;
 	    case RT_HERERT:   s = L"<<-";  type = here;  break;
+	    case RT_HERESTR:  s = L"<<<";  type = file;  break;
 	    case RT_PROCIN:   s = L"<(";   type = proc;  break;
 	    case RT_PROCOUT:  s = L">(";   type = proc;  break;
 	    default: assert(false);

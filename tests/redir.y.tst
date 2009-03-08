@@ -1,12 +1,21 @@
 temp="${TESTTMP}/redir"
 
+echo ===== pipe redirection =====
 
-echo ===== loop pipe =====
+exec 3>&- 4>&- 5>&- 6>&-
+exec 4>>|3; echo 4-3 >&4; exec 4>&-; cat <&3; exec 3<&-
+exec 4>>|6; echo 4-6 >&4; exec 4>&-; cat <&6; exec 6<&-
+exec 5>>|3; echo 5-3 >&5; exec 5>&-; cat <&3; exec 3<&-
+exec 5>>|6; echo 5-6 >&5; exec 5>&-; cat <&6; exec 6<&-
+exec 5>>|4; echo 5-4 >&5; exec 5>&-; cat <&4; exec 4<&-
+exec 3>>|6; echo 3-6 >&3; exec 3>&-; cat <&6; exec 6<&-
+exec 3>>|4; echo 3-4 >&3; exec 3>&-; cat <&4; exec 4<&-
 
-| (while read i; do
-	if [ $i -lt 5 ]; then echo $((i+1)); else exit; fi
-done) | { echo 0; tee "$temp"; }
+(while read i; do if [ $i -lt 5 ]; then echo $((i+1)); else exit; fi done |
+{ echo 0; tee "$temp"; }) >>|0
 cat "$temp"
+
+rm -f "$temp"
 
 
 echo ===== command redirection =====
@@ -30,4 +39,10 @@ grep 5 <(seq 5)
 echo $?
 
 
-rm -f "$temp"
+echo ===== here-string =====
+
+var=foo
+cat <<<123
+cat <<< "$var"
+cat <<< "-
+-"

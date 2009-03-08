@@ -86,6 +86,8 @@ extern _Bool set_variable(
 extern _Bool set_array(
 	const char *name, size_t count, void **values, scope_T scope)
     __attribute__((nonnull));
+extern bool set_array_element(const char *name, size_t index, wchar_t *value)
+    __attribute__((nonnull));
 extern void set_positional_parameters(void *const *values)
     __attribute__((nonnull));
 struct assign_T;

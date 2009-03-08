@@ -111,3 +111,22 @@ echol ${*[@]} -31-
 echo ===== 5 =====
 
 echol "${@[1 + (4 / 2), 5 - 1]}"
+
+echo ===== 6 =====
+
+ary=('' '' '')
+printf '[%s]' "${ary[@]}"; echo
+echo - ${ary[1]=1} ${ary[2]=2} ${ary[3]=3}
+echo - ${ary[1]:=1}
+printf '[%s]' "${ary[@]}"; echo
+echo - ${ary[2]:=2}
+echo - ${ary[1]:=X}
+printf '[%s]' "${ary[@]}"; echo
+
+readonly ary
+( echo - ${ary[3]:=3} ) 2>/dev/null
+[ $? -ne 0 ]; echo $?
+printf '[%s]' "${ary[@]}"; echo
+
+export ary
+env | grep ^ary=

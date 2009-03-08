@@ -129,6 +129,8 @@ static inline bool is_name_char(char c)
 
 static variable_T *search_variable(const char *name)
     __attribute__((pure,nonnull));
+static variable_T *search_array_and_check_if_changeable(const char *name)
+    __attribute__((pure,nonnull));
 static void update_enrivon(const char *name)
     __attribute__((nonnull));
 static void reset_locale(const char *name)
@@ -187,9 +189,6 @@ static hashtable_T functions;
 /* The index of the option charcter for the "getopts" builtin to parse next. */
 static unsigned optind2 = 1;
 
-/* The default value for $IFS */
-#define DEFAULT_IFS L" \t\n"
-
 
 /* Frees the value of a variable, but not the variable itself. */
 /* This function does not change the value of `*v'. */
@@ -243,16 +242,11 @@ void init_variables(void)
 
     ht_init(&functions, hashstr, htstrcmp);
 
-    /* add all the existing environment variables except $IFS
-     * to the variable environment */
+    /* add all the existing environment variables to the variable environment */
     for (char **e = environ; *e; e++) {
 	wchar_t *we = malloc_mbstowcs(*e);
 	if (!we)
 	    continue;
-	if (wcsncmp(we, VAR_IFS L"=", 4) == 0) {
-	    free(we);
-	    continue;
-	}
 
 	size_t namelen;
 	for (namelen = 0; we[namelen] && we[namelen] != L'='; namelen++);
@@ -267,6 +261,9 @@ void init_variables(void)
 	}
 	free(we);
     }
+
+    /* set $IFS */
+    set_variable(VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_GLOBAL, false);
 
     /* set $LINENO */
     {
@@ -412,6 +409,21 @@ variable_T *search_variable(const char *name)
 	    return var;
     }
     return NULL;
+}
+
+/* Searches for an array with the specified name and checks if it is not read
+ * only. If unsuccessful, prints an error message and returns NULL. */
+variable_T *search_array_and_check_if_changeable(const char *name)
+{
+    variable_T *array = search_variable(name);
+    if (!array || (array->v_type & VF_MASK) != VF_ARRAY) {
+	xerror(0, Ngt("%s: no such array"), name);
+	return NULL;
+    } else if (array->v_type & VF_READONLY) {
+	xerror(0, Ngt("%s: readonly"), name);
+	return NULL;
+    }
+    return array;
 }
 
 /* Update the value in `environ' for the variable with the specified name.
@@ -661,6 +673,35 @@ bool set_array(const char *name, size_t count, void **values, scope_T scope)
     return true;
 }
 
+/* Changes the value of an element of an existing array.
+ * `name' must be the name of an existing array.
+ * `index' is the index of the element (counted from zero).
+ * `value' is the new value, which must be a freeable string. Since `value' is
+ * used as the contents of the array element, you must not modify or free
+ * `value' after this function returned (whether successful or not).
+ * Returns true iff successful. An error message is printed on failure. */
+bool set_array_element(const char *name, size_t index, wchar_t *value)
+{
+    variable_T *array = search_array_and_check_if_changeable(name);
+    if (!array)
+	goto fail;
+    if (array->v_valc <= index)
+	goto invalid_index;
+
+    free(array->v_vals[index]);
+    array->v_vals[index] = value;
+    if (array->v_type & VF_EXPORT)
+	update_enrivon(name);
+    return true;
+
+invalid_index:
+    xerror(0, Ngt("%zu: index out of range (actual size of array `%s' is %zu)"),
+	    index + 1, name, array->v_valc);
+fail:
+    free(value);
+    return false;
+}
+
 /* Sets the positional parameters of the current environment.
  * The existent parameters are cleared.
  * `values' is an NULL-terminated array of pointers to wide strings.
@@ -746,18 +787,14 @@ void print_array_trace(const char *name, void *const *values, bool next)
  * Returns the value of the variable, or NULL if not found.
  * The return value must not be modified or `free'ed by the caller and
  * is valid until the variable is re-assigned or unset. */
-/* If $IFS is unset, getvar("IFS") returns L" \t\n". */
 const wchar_t *getvar(const char *name)
 {
     variable_T *var = search_variable(name);
     if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
 	if (var->v_getter)
 	    var->v_getter(var);
-	if (var->v_value)
-	    return var->v_value;
+	return var->v_value;
     }
-    if (strcmp(name, VAR_IFS) == 0)
-	return DEFAULT_IFS;
     return NULL;
 }
 
@@ -775,7 +812,6 @@ const wchar_t *getvar(const char *name)
  * changed or freed.  If no such variable is found (GV_NOTFOUND), the result
  * array will be NULL.
  * `count' is the number of elements in the `values'. */
-/* If $IFS is unset, this function returns " \t\n" as the value of it. */
 struct get_variable get_variable(const char *name)
 {
     struct get_variable result = {
@@ -853,15 +889,11 @@ positional_parameters:
 		return result;
 	}
     }
-    value = NULL;
+    return result;
 
 return_single:  /* return a scalar as a one-element array */
-    if (!value) {
-	if (strcmp(name, VAR_IFS) != 0)
-	    return result;
-	else
-	    value = xwcsdup(DEFAULT_IFS);
-    }
+    if (!value)
+	return result;
     result.type = GV_SCALAR;
     result.count = 1;
     result.values = xmalloc(2 * sizeof *result.values);
@@ -1874,13 +1906,8 @@ int array_builtin(int argc, void **argv)
 		    duparray(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
 	    free(name);
 	} else {
-	    variable_T *array = search_variable(name);
-	    if (array == NULL || (array->v_type & VF_MASK) != VF_ARRAY) {
-		xerror(0, Ngt("%s: no such array"), name);
-		free(name);
-		return Exit_FAILURE;
-	    } else if (array->v_type & VF_READONLY) {
-		xerror(0, Ngt("%s: readonly"), name);
+	    variable_T *array = search_array_and_check_if_changeable(name);
+	    if (!array) {
 		free(name);
 		return Exit_FAILURE;
 	    }
@@ -2551,7 +2578,6 @@ int read_builtin(int argc, void **argv)
     plist_T list;
 
     /* split fields */
-    assert(ifs != NULL);
     pl_init(&list);
     for (int i = xoptind; i < argc - 1; i++)
 	pl_add(&list, split_next_field(&s, ifs, raw));

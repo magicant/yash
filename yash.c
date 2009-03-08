@@ -214,13 +214,13 @@ int main(int argc, char **argv)
     const char *inputname = inputname;
 
     if (shopt_read_arg && shopt_read_stdin) {
-	xerror(0, Ngt("both -c and -s options cannot be given at once"));
+	xerror(0, Ngt("both of -c and -s options cannot be used at once"));
 	exit(Exit_ERROR);
     }
     if (shopt_read_arg) {
 	command = wargv[xoptind++];
 	if (!command) {
-	    xerror(0, Ngt("-c option requires an operand"));
+	    xerror(0, Ngt("-c option specified but no command given"));
 	    exit(Exit_ERROR);
 	}
 	if (xoptind < argc)

@@ -6,6 +6,7 @@ NEWS
 NEWS.ja
 README
 README.ja
+Makefile.deps
 Makefile.in
 configure
 install-sh
@@ -55,6 +56,7 @@ wfnmatch.c
 wfnmatch.h
 yash.c
 yash.h
+builtins/Makefile.deps
 builtins/Makefile.in
 builtins/printf.c
 builtins/printf.h
@@ -62,6 +64,7 @@ builtins/test.c
 builtins/test.h
 builtins/ulimit.c
 builtins/ulimit.h
+lineedit/Makefile.deps
 lineedit/Makefile.in
 lineedit/display.c
 lineedit/display.h

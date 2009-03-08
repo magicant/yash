@@ -10,8 +10,15 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.7
 
-  =  The shell now always unsets $IFS on invocation.
-  *  $IFS now expands to the default value if unset.
+  +  Parameter expansion ${array[index]:=value} now allows assignment
+     to an empty array element.
+  +  Here-string by the "<<<" operator.
+  +  New redirection operator ">>|" opens a pipe.
+  -  Loop pipes no longer supported.
+  =  The $IFS variable is always initialized to the default value when
+     the shell is invoked.
+  *  The "echo" and "printf" builtins now print an error message on
+     failure.
   *  A quoted period at the beginning of a filename was not properly
      matching during filename expansion.
 

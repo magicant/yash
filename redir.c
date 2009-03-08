@@ -265,9 +265,9 @@ void open_ttyfd(void)
 /* info used to undo redirection */
 struct savefd_T {
     struct savefd_T *next;
-    int   sf_origfd;            /* original file descriptor */
-    int   sf_copyfd;            /* copied file descriptor */
-    bool  sf_stdin_redirected;  /* original `is_stdin_redirected' */
+    int  sf_origfd;            /* original file descriptor */
+    int  sf_copyfd;            /* copied file descriptor */
+    bool sf_stdin_redirected;  /* original `is_stdin_redirected' */
 };
 
 static void save_fd(int oldfd, savefd_T **save);
@@ -279,7 +279,11 @@ static int open_socket(const char *hostandport, int socktype)
 #endif
 static int parse_and_check_dup(char *num, redirtype_T type)
     __attribute__((nonnull));
+static int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
+    __attribute__((nonnull));
 static int open_heredocument(const struct wordunit_T *content);
+static int open_herestring(char *s, bool appendnewline)
+    __attribute__((nonnull));
 static int open_process_redirection(const wchar_t *command, redirtype_T type)
     __attribute__((nonnull));
 
@@ -304,7 +308,8 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	char *filename = filename;
 	switch (r->rd_type) {
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
-	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:
+	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
+	    case RT_HERESTR:
 		filename = expand_single_with_glob(r->rd_filename, tt_single);
 		if (!filename)
 		    return false;
@@ -355,10 +360,22 @@ openwithflags:
 	    if (fd < -1)
 		return false;
 	    break;
+	case RT_PIPE:
+	    keepopen = false;
+	    fd = parse_and_exec_pipe(r->rd_fd, filename, save);
+	    if (fd < -1)
+		return false;
+	    break;
 	case RT_HERE:
 	case RT_HERERT:
 	    keepopen = false;
 	    fd = open_heredocument(r->rd_herecontent);
+	    if (fd < 0)
+		return false;
+	    break;
+	case RT_HERESTR:
+	    keepopen = false;
+	    fd = open_herestring(filename, true);
 	    if (fd < 0)
 		return false;
 	    break;
@@ -521,7 +538,8 @@ int open_socket(const char *hostandport, int socktype)
  * Otherwise, a negative value other than -1 is returned. */
 int parse_and_check_dup(char *const num, redirtype_T type)
 {
-    int fd = fd;
+    int fd;
+
     if (strcmp(num, "-") == 0) {
 	fd = -1;
     } else {
@@ -539,7 +557,8 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 	    fd = -2;
 	} else {
 	    if (is_shellfd(fd)) {
-		xerror(EBADF, Ngt("redirection: %d"), fd);
+		xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+			fd);
 		fd = -2;
 	    } else if (posixly_correct) {
 		/* check the read/write permission */
@@ -564,6 +583,80 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     return fd;
 }
 
+/* Parses the argument to `RT_PIPE' and opens a pipe.
+ * `outputfd' is the file descriptor of the output side of the pipe.
+ * `num' is the argument to parse, which is expected to be a positive integer
+ * that is the file descriptor of the input side of the pipe.
+ * `num' is freed in this function.
+ * If successful, the actual file descriptor of the output side of the pipe is
+ * returned, which may differ from `outputfd'. Otherwise, a negative value other
+ * than -1 is returned. */
+/* The input side FD is saved in this function. */
+int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
+{
+    int fd, inputfd;
+    char *end;
+    long lfd;
+
+    assert(outputfd >= 0);
+
+    errno = 0;
+    lfd = strtol(num, &end, 10);
+    if (!isxdigit(num[0]) || *end != '\0')
+	errno = EINVAL;
+    else if (lfd < 0 || lfd > INT_MAX)
+	errno = ERANGE;
+    else
+	inputfd = (int) lfd;
+    if (errno) {
+	xerror(errno, Ngt("redirection: %s"), num);
+	fd = -2;
+    } else if (outputfd == inputfd) {
+	xerror(0, Ngt("redirection: %d>>|%d: "
+		    "same input and output file descriptor"),
+		outputfd, inputfd);
+	fd = -2;
+    } else if (is_shellfd(inputfd)) {
+	xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+		inputfd);
+	fd = -2;
+    } else {
+	int pipefd[2];
+
+	save_fd(inputfd, save);
+	if (pipe(pipefd) < 0)
+	    goto error;
+
+	/* First, move the output side from what is to be the input side. */
+	if (pipefd[PIDX_OUT] == inputfd) {
+	    int newfd = dup(pipefd[PIDX_OUT]);
+	    if (newfd < 0)
+		goto error;
+	    xclose(pipefd[PIDX_OUT]);
+	    pipefd[PIDX_OUT] = newfd;
+	}
+
+	/* Next, move the input side to where it should be. */
+	if (pipefd[PIDX_IN] != inputfd) {
+	    if (xdup2(pipefd[PIDX_IN], inputfd) < 0)
+		goto error;
+	    xclose(pipefd[PIDX_IN]);
+	    // pipefd[PIDX_IN] = inputfd;
+	}
+
+	/* The output side is not moved in this function. */
+	fd = pipefd[PIDX_OUT];
+    }
+end:
+    free(num);
+    return fd;
+
+error:
+    xerror(errno, Ngt("redirection: %d>>|%d"), outputfd, inputfd);
+    fd = -2;
+    goto end;
+}
+
 /* Opens a here-document whose contents is specified by the argument.
  * Returns a newly opened file descriptor if successful, or -1 number on error.
  */
@@ -571,39 +664,54 @@ int parse_and_check_dup(char *const num, redirtype_T type)
  * temporary file. */
 int open_heredocument(const wordunit_T *contents)
 {
-    int fd;
-
-    /* if contents is empty */
-    if (!contents) {
-	fd = open("/dev/null", O_RDONLY);
-	if (fd < 0)
-	    xerror(errno, Ngt("cannot open empty here-document"));
-	return fd;
-    }
-
     wchar_t *wcontents = expand_string(contents, true);
     if (!wcontents)
 	return -1;
 
     char *mcontents = realloc_wcstombs(wcontents);
     if (!mcontents) {
-	xerror(0, Ngt("cannot write here-document contents"));
+	xerror(EILSEQ, Ngt("cannot write here-document contents"));
 	return -1;
     }
 
-    size_t mlen = strlen(mcontents);
+    return open_herestring(mcontents, false);
+}
+
+/* Opens a here-string whose contents is specified by the argument.
+ * If `appendnewline' is true, a newline is appended to the value of `s'.
+ * Returns a newly opened file descriptor if successful, or -1 number on error.
+ * `s' is freed in this function. */
+/* The contents of the here-document is passed either through a pipe or in a
+ * temporary file. */
+int open_herestring(char *s, bool appendnewline)
+{
+    int fd;
+
+    /* if contents is empty */
+    if (s[0] == '\0') {
+	fd = open("/dev/null", O_RDONLY);
+	if (fd < 0)
+	    xerror(errno, Ngt("cannot open empty here-document"));
+	free(s);
+	return fd;
+    }
+
+    size_t len = strlen(s);
+    if (appendnewline)
+	s[len++] = '\n';
+
 #ifdef PIPE_BUF
     /* use a pipe if the contents is short enough */
-    if (mlen <= PIPE_BUF) {
+    if (len <= PIPE_BUF) {
 	int pipefd[2];
 
 	if (pipe(pipefd) >= 0) {
 	    /* It is guaranteed that all the contents is written to the pipe
 	     * at once, so we don't have to use `write_all' here. */
-	    if (write(pipefd[PIDX_OUT], mcontents, mlen) < 0)
+	    if (write(pipefd[PIDX_OUT], s, len) < 0)
 		xerror(errno, Ngt("cannot write here-document contents"));
 	    xclose(pipefd[PIDX_OUT]);
-	    free(mcontents);
+	    free(s);
 	    return pipefd[PIDX_IN];
 	}
     }
@@ -613,15 +721,15 @@ int open_heredocument(const wordunit_T *contents)
     fd = create_temporary_file(&tempfile, 0);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot create temporary file for here-document"));
-	free(mcontents);
+	free(s);
 	return -1;
     }
     if (unlink(tempfile) < 0)
 	xerror(errno, Ngt("failed to remove temporary file `%s'"), tempfile);
     free(tempfile);
-    if (!write_all(fd, mcontents, mlen))
+    if (!write_all(fd, s, len))
 	xerror(errno, Ngt("cannot write here-document contents"));
-    free(mcontents);
+    free(s);
     if (lseek(fd, 0, SEEK_SET) != 0)
 	xerror(errno, Ngt("cannot seek temporary file for here-document"));
     return fd;

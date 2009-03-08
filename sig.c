@@ -1107,9 +1107,14 @@ main:
     return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
-    fprintf(stderr, Ngt(
-		"Usage:  kill [-s signal] process...\n"
-		"        kill -l [number...]\n"));
+    if (posixly_correct)
+	fprintf(stderr, Ngt(
+		    "Usage:  kill [-s signal] process...\n"
+		    "        kill -l [number...]\n"));
+    else
+	fprintf(stderr, Ngt(
+		    "Usage:  kill [-s signal | -n signum] process...\n"
+		    "        kill -l [-v] [number...]\n"));
     return Exit_ERROR;
 }
 

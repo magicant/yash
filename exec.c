@@ -67,10 +67,9 @@ typedef enum {
 typedef struct pipeinfo_T {
     int pi_fromprevfd;   /* reading end of the pipe from the previous process */
     int pi_tonextfds[2]; /* both ends of the pipe to the next process */
-    int pi_loopoutfd;    /* writing end of the pipe to the first process */
     /* for each member, -1 is assigned if a pipe is unused */
 } pipeinfo_T;
-#define PIPEINFO_INIT { -1, { -1, -1 }, -1, }
+#define PIPEINFO_INIT { -1, { -1, -1 }, }
 
 /* values used to specify the way of command search. */
 enum srchcmdtype_T {
@@ -121,7 +120,7 @@ static inline void next_pipe(pipeinfo_T *pi, bool next)
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
 
-static void exec_commands(command_T *c, exec_T type, bool looppipe);
+static void exec_commands(command_T *c, exec_T type);
 static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     __attribute__((nonnull));
 static void search_command(
@@ -246,7 +245,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	supresserrexit |= p->pl_neg || p->next;
 
 	bool self = finally_exit && !p->next && !p->pl_neg && !any_trap_set;
-	exec_commands(p->pl_commands, self ? execself : execnormal, p->pl_loop);
+	exec_commands(p->pl_commands, self ? execself : execnormal);
 	if (p->pl_neg)
 	    laststatus = !laststatus;
 
@@ -262,7 +261,7 @@ void exec_pipelines_async(const pipeline_T *p)
     assert(!need_break());
 
     if (!p->next && !p->pl_neg) {
-	exec_commands(p->pl_commands, execasync, p->pl_loop);
+	exec_commands(p->pl_commands, execasync);
     } else {
 	pid_t cpid = fork_and_reset(0, false, t_quitint);
 	
@@ -280,7 +279,6 @@ void exec_pipelines_async(const pipeline_T *p)
 	    job->j_status = JS_RUNNING;
 	    job->j_statuschanged = true;
 	    job->j_nonotify = false;
-	    job->j_loop = false;
 	    job->j_pcount = 1;
 
 	    set_active_job(job);
@@ -367,11 +365,12 @@ void exec_for(const command_T *c, bool finally_exit)
     } else (void) 0
 
     int i;
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < count; ) {
 	if (!set_variable(c->c_forname, words[i],
 		    posixly_correct ? SCOPE_GLOBAL : SCOPE_LOCAL, false))
 	    goto done;
-	exec_and_or_lists(c->c_forcmds, false);
+	i++;
+	exec_and_or_lists(c->c_forcmds, finally_exit && i == count);
 	CHECK_LOOP;
     }
 
@@ -452,10 +451,8 @@ fail:
 /* Updates the contents of a `pipeinfo_T' to proceed to the next process
  * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIDX_OUT]' are closed,
  * `pi->pi_tonextfds[PIDX_IN]' is moved to `pi->pi_fromprevfd', and,
- * if `next' is true, a new pipe is opened in `pi->pi_tonextfds'.
- * if `next' is false, `pi->pi_loopoutfd' is moved to
- * `pi->pi_tonextfds[PIDX_OUT]' and `pi->pi_loopoutfd' and
- * `pi->pi_tonextfds[PIDX_IN]' are assigned -1.
+ * if `next' is true, a new pipe is opened in `pi->pi_tonextfds' or
+ * if `next' is false, `pi->pi_tonextfds' is assigned -1.
  * Returns true iff successful. */
 void next_pipe(pipeinfo_T *pi, bool next)
 {
@@ -482,9 +479,7 @@ void next_pipe(pipeinfo_T *pi, bool next)
 	    xclose(dummy[PIDX_OUT]);
 	}
     } else {
-	pi->pi_tonextfds[PIDX_IN] = -1;
-	pi->pi_tonextfds[PIDX_OUT] = pi->pi_loopoutfd;
-	pi->pi_loopoutfd = -1;
+	pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
     }
     return;
 
@@ -506,12 +501,10 @@ void connect_pipes(pipeinfo_T *pi)
     }
     if (pi->pi_tonextfds[PIDX_IN] >= 0)
 	xclose(pi->pi_tonextfds[PIDX_IN]);
-    if (pi->pi_loopoutfd >= 0)
-	xclose(pi->pi_loopoutfd);
 }
 
 /* Executes commands in a pipeline. */
-void exec_commands(command_T *c, exec_T type, bool looppipe)
+void exec_commands(command_T *c, exec_T type)
 {
     size_t count;
     pid_t pgid;
@@ -528,16 +521,6 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     for (cc = c; cc; cc = cc->next)
 	count++;
     assert(count > 0);
-
-    if (looppipe) {  /* open a pipe to connect the both ends */
-	int fds[2];
-	if (pipe(fds) < 0) {
-	    xerror(errno, Ngt("cannot open pipe"));
-	} else {
-	    pinfo.pi_tonextfds[PIDX_IN] = fds[PIDX_IN];
-	    pinfo.pi_loopoutfd = fds[PIDX_OUT];
-	}
-    }
 
     job = xmalloc(sizeof *job + count * sizeof *job->j_procs);
     ps = job->j_procs;
@@ -570,7 +553,6 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     assert(cc == NULL);
     assert(type != execself); /* `exec_process' doesn't return for `execself' */
     assert(pinfo.pi_tonextfds[PIDX_IN] < 0);
-    assert(pinfo.pi_loopoutfd < 0);
     if (pinfo.pi_fromprevfd >= 0)
 	xclose(pinfo.pi_fromprevfd);           /* close leftover pipes */
     if (pinfo.pi_tonextfds[PIDX_OUT] >= 0)
@@ -585,7 +567,6 @@ void exec_commands(command_T *c, exec_T type, bool looppipe)
     job->j_status = JS_RUNNING;
     job->j_statuschanged = true;
     job->j_nonotify = false;
-    job->j_loop = looppipe;
     job->j_pcount = count;
     set_active_job(job);
     if (type == execnormal) {   /* wait for job to finish */
@@ -1187,7 +1168,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = false;
 	job->j_nonotify = false;
-	job->j_loop = false;
 	job->j_pcount = 1;
 	job->j_procs[0].pr_pid = cpid;
 	job->j_procs[0].pr_status = JS_RUNNING;

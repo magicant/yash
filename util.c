@@ -99,7 +99,8 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
  * Each pointer element is passed to `copy' function and the return value is
  * assigned to the new array element.
  * If the array contains more than `count' elements, only the first `count'
- * elements are copied.
+ * elements are copied. If the array contains elements fewer than `count', the
+ * whole array is copied.
  * If `array' is NULL, simply returns NULL. */
 /* `xstrdup' and `copyaswcs' are suitable for `copy'. */
 void **duparrayn(void *const *array, size_t count, void *copy(const void *p))
