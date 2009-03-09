@@ -519,7 +519,7 @@ void cmd_redraw_all(wchar_t c __attribute__((unused)))
 
 /* Removes the character under the cursor.
  * If the count is set, `count' characters are killed. */
-void cmd_delete_char(wchar_t c __attribute__((unused)))
+void cmd_delete_char(wchar_t c)
 {
     if (state.count.sign == 0) {
 	if (yle_main_index < yle_main_buffer.length) {
@@ -528,15 +528,15 @@ void cmd_delete_char(wchar_t c __attribute__((unused)))
 	} else {
 	    yle_alert();
 	}
-    } else {
-	// TODO cmd_backward_delete_char: kill characters
 	reset_count();
+    } else {
+	cmd_kill_char(c);
     }
 }
 
 /* Removes the character behind the cursor.
  * If the count is set, `count' characters are killed. */
-void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
+void cmd_backward_delete_char(wchar_t c)
 {
     if (state.count.sign == 0) {
 	if (yle_main_index > 0) {
@@ -545,9 +545,9 @@ void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
 	} else {
 	    yle_alert();
 	}
-    } else {
-	// TODO cmd_backward_delete_char: kill characters
 	reset_count();
+    } else {
+	cmd_backward_kill_char(c);
     }
 }
 
