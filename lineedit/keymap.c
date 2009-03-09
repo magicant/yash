@@ -18,7 +18,6 @@
 
 #include "../common.h"
 #include <assert.h>
-#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -44,7 +43,14 @@ const yle_mode_T *yle_current_mode;
 
 /* The keymap state. */
 static struct {
-    int count;
+    struct {
+	/* When count is not specified, `sign' and `abs' is 0.
+	 * Otherwise, `sign' is 1 or -1.
+	 * When the negative sign is specified but digits are not, `abs' is 0.*/
+	int sign;
+	unsigned abs;
+#define COUNT_ABS_MAX 999999999
+    } count;
 } state;
 
 /* The kill ring */
@@ -64,6 +70,9 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
 
 static bool alert_if_first(void);
 static bool alert_if_last(void);
+static void move_cursor_forward(int offset);
+static void move_cursor_backward(int offset);
+static void kill_chars(bool backward);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 
@@ -186,7 +195,7 @@ void yle_set_mode(yle_mode_id_T id)
     yle_current_mode = &yle_modes[id];
 }
 
-/* Resets the state of keymap. */
+/* Resets the state of keymap before starting editing. */
 void yle_keymap_reset(void)
 {
     reset_count();
@@ -208,14 +217,19 @@ void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t arg)
 /* Resets `state.count'. */
 void reset_count(void)
 {
-    state.count = -1;
+    state.count.sign = 0;
+    state.count.abs = 0;
 }
 
 /* Returns the count value.
  * If the count is not set, returns the `default_value'. */
 int get_count(int default_value)
 {
-    return state.count < 0 ? default_value : state.count;
+    if (state.count.sign == 0)
+	return default_value;
+    if (state.count.sign < 0 && state.count.abs == 0)
+	return -1;
+    return state.count.sign * (int) state.count.abs;
 }
 
 /* Applies the current pending editing command to the range between the current
@@ -323,18 +337,23 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
 void cmd_digit_argument(wchar_t c)
 {
     if (L'0' <= c && c <= L'9') {
-	if (state.count >= 1000000000) {
+	if (state.count.abs > COUNT_ABS_MAX / 10) {
 	    cmd_alert(c);  // argument too large
 	    return;
 	}
-	if (state.count < 0)
-	    state.count = 0;
-	state.count = state.count * 10 + (int) (c - L'0');
+	if (state.count.sign == 0)
+	    state.count.sign = 1;
+	state.count.abs = state.count.abs * 10 + (unsigned) (c - L'0');
+    } else if (c == L'-') {
+	if (state.count.sign == 0)
+	    state.count.sign = -1;
+	else
+	    state.count.sign = -state.count.sign;
     }
 }
 
 /* Moves forward one character.
- * If the count is set, moves forward `count' character. */
+ * If the count is set, moves forward `count' characters. */
 /* exclusive motion command */
 void cmd_forward_char(wchar_t c __attribute__((unused)))
 {
@@ -342,20 +361,14 @@ void cmd_forward_char(wchar_t c __attribute__((unused)))
 	return;
 
     int count = get_count(1);
-#if INT_MAX > SIZE_MAX
-    if (count > SIZE_MAX)
-	count = SIZE_MAX;
-#endif
-    size_t newindex;
-    if (yle_main_buffer.length - yle_main_index < (size_t) count)
-	newindex = yle_main_buffer.length;
+    if (count >= 0)
+	move_cursor_forward(count);
     else
-	newindex = yle_main_index + count;
-    exec_motion_command(newindex, false);
+	move_cursor_backward(-count);
 }
 
 /* Moves backward one character.
- * If the count is set, moves backward `count' character. */
+ * If the count is set, moves backward `count' characters. */
 /* exclusive motion command */
 void cmd_backward_char(wchar_t c __attribute__((unused)))
 {
@@ -363,15 +376,42 @@ void cmd_backward_char(wchar_t c __attribute__((unused)))
 	return;
 
     int count = get_count(1);
+    if (count >= 0)
+	move_cursor_backward(count);
+    else
+	move_cursor_forward(-count);
+}
+
+/* Moves the cursor forward by `offset', relative to the current position.
+ * The `offset' must not be negative. */
+void move_cursor_forward(int offset)
+{
+#if COUNT_ABS_MAX > SIZE_MAX
+    if (offset > SIZE_MAX)
+	offset = SIZE_MAX;
+#endif
+
     size_t newindex;
-#if INT_MAX > SIZE_MAX
-    if ((int) yle_main_index <= count)
+    if (yle_main_buffer.length - yle_main_index < (size_t) offset)
+	newindex = yle_main_buffer.length;
+    else
+	newindex = yle_main_index + offset;
+    exec_motion_command(newindex, false);
+}
+
+/* Moves the cursor backward by `offset', relative to the current position.
+ * The `offset' must not be negative. */
+void move_cursor_backward(int offset)
+{
+    size_t newindex;
+#if COUNT_ABS_MAX > SIZE_MAX
+    if ((int) yle_main_index <= offset)
 #else
-    if (yle_main_index <= (size_t) count)
+    if (yle_main_index <= (size_t) offset)
 #endif
 	newindex = 0;
     else
-	newindex = yle_main_index - count;
+	newindex = yle_main_index - offset;
     exec_motion_command(newindex, false);
 }
 
@@ -393,7 +433,7 @@ void cmd_end_of_line(wchar_t c __attribute__((unused)))
  * Otherwise, adds the given digit to the count. */
 void cmd_bol_or_digit(wchar_t c)
 {
-    if (state.count < 0)
+    if (state.count.sign == 0)
 	cmd_beginning_of_line(c);
     else
 	cmd_digit_argument(c);
@@ -481,7 +521,7 @@ void cmd_redraw_all(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_delete_char(wchar_t c __attribute__((unused)))
 {
-    if (state.count < 0) {
+    if (state.count.sign == 0) {
 	if (yle_main_index < yle_main_buffer.length) {
 	    wb_remove(&yle_main_buffer, yle_main_index, 1);
 	    yle_display_reprint_buffer(yle_main_index, false);
@@ -498,7 +538,7 @@ void cmd_delete_char(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
 {
-    if (state.count < 0) {
+    if (state.count.sign == 0) {
 	if (yle_main_index > 0) {
 	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
 	    yle_display_reprint_buffer(yle_main_index, false);
@@ -577,18 +617,13 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_kill_char(wchar_t c)
 {
-    size_t n = get_count(1);
-
     assert(yle_main_index <= yle_main_buffer.length);
-    if (yle_main_buffer.length == 0) {
+    if (yle_main_index == yle_main_buffer.length) {
 	cmd_alert(c);
 	return;
     }
 
-    add_to_kill_ring(yle_main_buffer.contents + yle_main_index, n);
-    wb_remove(&yle_main_buffer, yle_main_index, n);
-    yle_display_reprint_buffer(yle_main_index, false);
-    reset_count();
+    kill_chars(false);
 }
 
 /* Kills the character behind the cursor.
@@ -596,18 +631,41 @@ void cmd_kill_char(wchar_t c)
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_kill_char(wchar_t c)
 {
+    assert(yle_main_index <= yle_main_buffer.length);
     if (yle_main_index == 0) {
 	cmd_alert(c);
 	return;
     }
 
-    size_t n = get_count(1);
+    kill_chars(true);
+}
 
-    if (n <= yle_main_index)
-	yle_main_index -= n;
-    else
-	yle_main_index = 0;
-    cmd_kill_char(c);
+void kill_chars(bool backward)
+{
+    int n = get_count(1);
+    size_t offset;
+    if (backward)
+	n = -n;
+    if (n >= 0) {
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (n > SIZE_MAX)
+	    n = SIZE_MAX;
+#endif
+	offset = yle_main_index;
+    } else {
+	n = -n;
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (n >= (int) yle_main_index)
+#else
+	if ((size_t) n >= yle_main_index)
+#endif
+	    n = yle_main_index;
+	offset = yle_main_index - n;
+    }
+    add_to_kill_ring(yle_main_buffer.contents + offset, n);
+    wb_remove(&yle_main_buffer, offset, n);
+    yle_display_reprint_buffer(offset, false);
+    reset_count();
 }
 
 /* Inserts the last-killed string before the cursor.
