@@ -1049,12 +1049,6 @@ void variable_set(const char *name, variable_T *var)
 	    }
 	}
 	break;
-    case 'T':
-#if YASH_ENABLE_LINEEDIT
-	if (strcmp(name, VAR_TERM) == 0)
-	    yle_need_term_reset = true;
-#endif /* YASH_ENABLE_LINEEDIT */
-	break;
     }
 }
 

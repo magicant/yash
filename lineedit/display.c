@@ -230,7 +230,7 @@ inline void yle_display_reposition_cursor(void)
 /* Moves the cursor to the specified position. */
 static void go_to(int line, int column)
 {
-    assert(line < yle_lines);
+    // assert(line < yle_lines);
     assert(column < yle_columns);
 
     if (line == current_line) {

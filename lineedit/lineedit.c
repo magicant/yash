@@ -50,10 +50,6 @@ static inline wchar_t wb_get_char(const xwcsbuf_T *buf)
     __attribute__((nonnull,pure));
 
 
-/* True if `yle_setupterm' should be called in the next call to `yle_setup'. */
-bool yle_need_term_reset = true;
-
-
 /* The state of lineedit. */
 static enum { MODE_INACTIVE, MODE_ACTIVE, MODE_SUSPENDED, } mode;
 /* The state of editing. */
@@ -78,11 +74,8 @@ bool yle_setup(void)
 	return false;
     if (mode != MODE_INACTIVE)
 	return false;
-    if (yle_need_term_reset) {
-	if (!yle_setupterm())
-	    return false;
-	yle_need_term_reset = false;
-    }
+    if (!yle_setupterm())
+	return false;
     return yle_set_terminal();
 }
 
@@ -97,7 +90,6 @@ wchar_t *yle_readline(const wchar_t *prompt)
     wchar_t *resultline;
 
     assert(is_interactive_now);
-    assert(!yle_need_term_reset);
     assert(mode == MODE_INACTIVE);
 
     switch (shopt_lineedit) {
