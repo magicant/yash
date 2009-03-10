@@ -53,7 +53,14 @@ depends: Makefile.deps
 Makefile.deps: _PHONY
 	@$(MAKE) $(TARGET)
 	./$(TARGET) makedepend $(DIRS)
-	@$(MAKE) reconfigure
+	@echo Remaking Makefiles...; \
+	for d in $(DIRS); do \
+		mv $$d/Makefile $$d/Makefile.old && \
+		sed -n -e '/^#=#=#.*makedepend/q' -e 'p' \
+			$$d/Makefile.old >$$d/Makefile && \
+		rm -f $$d/Makefile.old && \
+		cat $$d/Makefile.deps >>$$d/Makefile; \
+	done
 
 test check: all
 	@cd tests && $(MAKE) test-all
@@ -146,3 +153,5 @@ reconfigure:
 
 .PHONY: all depends test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
+
+
