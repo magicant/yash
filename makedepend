@@ -71,7 +71,7 @@ for dir do
     maketempdir "$@"
     printf 'Resolving dependencies of source files in "%s"... ' "$dir"
     {
-	printf '\n\n%s\n' "$template"
+	printf '%s\n' "$template"
 	for src in "$dir"/*.c; do
 	    src="${src##*/}"
 	    printresult "$src" "$dir" | sort -u | xargs echo "${src%.c}.o:"

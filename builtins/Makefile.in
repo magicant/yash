@@ -41,7 +41,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
 
-DISTCONTENTS = $(SOURCES) Makefile.in
+DISTCONTENTS = $(SOURCES) Makefile.in Makefile.deps
 distcontents: $(DISTCONTENTS)
 
 # ctags conforms to POSIX, but etags and cscope do not.
@@ -65,3 +65,5 @@ maintainer-clean: distclean
 	-rm -rf Makefile.deps
 
 .PHONY: all distcontents cscope mostlyclean clean distclean maintainer-clean
+
+
