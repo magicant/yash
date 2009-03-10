@@ -47,7 +47,6 @@
 #include "variable.h"
 #include "version.h"
 #include "yash.h"
-#include "lineedit/lineedit.h"
 
 
 const char *const path_variables[PATHTCOUNT] = {
