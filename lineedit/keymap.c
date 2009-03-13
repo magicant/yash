@@ -49,8 +49,12 @@ static struct {
 	 * When the negative sign is specified but digits are not, `abs' is 0.*/
 	int sign;
 	unsigned abs;
+	int multiplier;
 #define COUNT_ABS_MAX 999999999
     } count;
+    enum edit_command {
+	CMD_NONE, CMD_COPY, CMD_KILL, CMD_CHANGE, CMD_COPYCHANGE,
+    } pending_command;
 } state;
 
 /* If true, characters are overwritten rather than inserted. */
@@ -65,7 +69,7 @@ static size_t next_kill_index = 0;
 static size_t last_put_index = 0;
 
 
-static inline void reset_count(void);
+static inline void reset_state(void);
 static inline int get_count(int default_value);
 static void exec_motion_command(size_t index, bool inclusive);
 static void add_to_kill_ring(const wchar_t *s, size_t n)
@@ -94,6 +98,7 @@ static size_t previous_word_index(const wchar_t *s, size_t i)
 static void kill_chars(bool backward);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
+static void exec_edit_command(enum edit_command cmd);
 
 
 /* Initializes `yle_modes'.
@@ -175,6 +180,9 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"A",          CMDENTRY(cmd_vi_append_end));
     t = trie_setw(t, L"R",          CMDENTRY(cmd_vi_replace));
     t = trie_setw(t, L"~",          CMDENTRY(cmd_vi_change_case));
+    t = trie_setw(t, L"y",          CMDENTRY(cmd_vi_yank));
+    t = trie_setw(t, L"d",          CMDENTRY(cmd_vi_delete));
+    t = trie_setw(t, L"c",          CMDENTRY(cmd_vi_change));
     //TODO
     // =
     // \ 
@@ -187,15 +195,12 @@ void yle_keymap_init(void)
     // t/T char
     // ;
     // ,
-    // c motion
     // C
     // S
     // r char
     // _
     // X
-    // d motion
     // D
-    // y motion
     // Y
     // u
     // U
@@ -220,7 +225,7 @@ void yle_set_mode(yle_mode_id_T id)
 /* Resets the state of keymap before starting editing. */
 void yle_keymap_reset(void)
 {
-    reset_count();
+    reset_state();
     overwrite = false;
 }
 
@@ -238,10 +243,12 @@ void yle_keymap_invoke(yle_command_func_T *cmd, wchar_t arg)
 }
 
 /* Resets `state.count'. */
-void reset_count(void)
+void reset_state(void)
 {
     state.count.sign = 0;
     state.count.abs = 0;
+    state.count.multiplier = 1;
+    state.pending_command = CMD_NONE;
 }
 
 /* Returns the count value.
@@ -249,10 +256,10 @@ void reset_count(void)
 int get_count(int default_value)
 {
     if (state.count.sign == 0)
-	return default_value;
+	return default_value * state.count.multiplier;
     if (state.count.sign < 0 && state.count.abs == 0)
-	return -1;
-    return state.count.sign * (int) state.count.abs;
+	return -state.count.multiplier;
+    return state.count.sign * (int) state.count.abs * state.count.multiplier;
 }
 
 /* Applies the current pending editing command to the range between the current
@@ -263,12 +270,44 @@ int get_count(int default_value)
 void exec_motion_command(size_t index, bool inclusive)
 {
     assert(index <= yle_main_buffer.length);
-    //TODO no editing commands for now
-    (void) inclusive;
-    {
-	yle_main_index = index;
+
+    size_t start_index, end_index;
+    if (yle_main_index <= index)
+	start_index = yle_main_index, end_index = index;
+    else
+	start_index = index, end_index = yle_main_index;
+    if (inclusive && end_index < yle_main_buffer.length)
+	end_index++;
+    switch (state.pending_command) {
+	case CMD_NONE:
+	    yle_main_index = index;
+	    break;
+	case CMD_COPY:
+	    add_to_kill_ring(yle_main_buffer.contents + start_index,
+		    end_index - start_index);
+	    break;
+	case CMD_KILL:
+	    add_to_kill_ring(yle_main_buffer.contents + start_index,
+		    end_index - start_index);
+	    wb_remove(&yle_main_buffer, start_index, end_index - start_index);
+	    yle_main_index = start_index;
+	    yle_display_reprint_buffer(start_index, false);
+	    break;
+	case CMD_COPYCHANGE:
+	    add_to_kill_ring(yle_main_buffer.contents + start_index,
+		    end_index - start_index);
+	    /* falls thru */
+	case CMD_CHANGE:
+	    wb_remove(&yle_main_buffer, start_index, end_index - start_index);
+	    yle_main_index = start_index;
+	    yle_display_reprint_buffer(start_index, false);
+	    yle_set_mode(YLE_MODE_VI_INSERT);
+	    overwrite = false;
+	    break;
+	default:
+	    assert(false);
     }
-    reset_count();
+    reset_state();
 }
 
 /* Adds the specified string to the kill ring.
@@ -286,14 +325,14 @@ void add_to_kill_ring(const wchar_t *s, size_t n)
 /* Does nothing. */
 void cmd_noop(wchar_t c __attribute__((unused)))
 {
-    reset_count();
+    reset_state();
 }
 
 /* Same as `cmd_noop', but causes alert. */
 void cmd_alert(wchar_t c __attribute__((unused)))
 {
     yle_alert();
-    reset_count();
+    reset_state();
 }
 
 /* Invoke `cmd_alert' and returns true if the cursor is at the first character.
@@ -341,7 +380,7 @@ void cmd_self_insert(wchar_t c)
     } else {
 	yle_alert();
     }
-    reset_count();
+    reset_state();
 }
 
 /* Sets the `yle_next_verbatim' flag.
@@ -752,7 +791,7 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
 void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_DONE;
-    reset_count();
+    reset_state();
 }
 
 /* Aborts the current line.
@@ -760,7 +799,7 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
     yle_state = YLE_STATE_INTERRUPTED;
-    reset_count();
+    reset_state();
 }
 
 /* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
@@ -769,7 +808,7 @@ void cmd_eof_if_empty(wchar_t c)
 {
     if (yle_main_buffer.length == 0) {
 	yle_state = YLE_STATE_ERROR;
-	reset_count();
+	reset_state();
     } else {
 	cmd_alert(c);
     }
@@ -781,7 +820,7 @@ void cmd_eof_or_delete(wchar_t c)
 {
     if (yle_main_buffer.length == 0) {
 	yle_state = YLE_STATE_ERROR;
-	reset_count();
+	reset_state();
     } else {
 	cmd_delete_char(c);
     }
@@ -799,7 +838,7 @@ void cmd_accept_with_hash(wchar_t c)
 void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
     yle_set_mode(YLE_MODE_VI_INSERT);
-    reset_count();
+    reset_state();
     overwrite = false;
 }
 
@@ -810,7 +849,7 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 	if (yle_main_index > 0)
 	    yle_main_index--;
     yle_set_mode(YLE_MODE_VI_COMMAND);
-    reset_count();
+    reset_state();
     overwrite = false;
 }
 
@@ -835,7 +874,7 @@ void cmd_delete_char(wchar_t c)
 	} else {
 	    yle_alert();
 	}
-	reset_count();
+	reset_state();
     } else {
 	cmd_kill_char(c);
     }
@@ -852,7 +891,7 @@ void cmd_backward_delete_char(wchar_t c)
 	} else {
 	    yle_alert();
 	}
-	reset_count();
+	reset_state();
     } else {
 	cmd_backward_kill_char(c);
     }
@@ -882,7 +921,7 @@ done:
 	yle_main_index = bound;
 	yle_display_reprint_buffer(yle_main_index, false);
     }
-    reset_count();
+    reset_state();
 }
 
 bool is_blank_or_punct(wchar_t c)
@@ -896,7 +935,7 @@ void cmd_delete_line(wchar_t c __attribute__((unused)))
     wb_clear(&yle_main_buffer);
     yle_main_index = 0;
     yle_display_reprint_buffer(0, false);
-    reset_count();
+    reset_state();
 }
 
 /* Removes all characters after the cursor. */
@@ -906,7 +945,7 @@ void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 	wb_remove(&yle_main_buffer, yle_main_index, SIZE_MAX);
 	yle_display_reprint_buffer(yle_main_index, false);
     }
-    reset_count();
+    reset_state();
 }
 
 /* Removes all characters behind the cursor. */
@@ -917,7 +956,7 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 	yle_main_index = 0;
 	yle_display_reprint_buffer(0, false);
     }
-    reset_count();
+    reset_state();
 }
 
 /* Kills the character under the cursor.
@@ -972,7 +1011,7 @@ void kill_chars(bool backward)
     add_to_kill_ring(yle_main_buffer.contents + offset, n);
     wb_remove(&yle_main_buffer, offset, n);
     yle_display_reprint_buffer(offset, false);
-    reset_count();
+    reset_state();
 }
 
 /* Inserts the last-killed string before the cursor.
@@ -986,7 +1025,7 @@ void cmd_put_before(wchar_t c)
 	cmd_alert(c);
 	return;
     } else if (s[0] == L'\0') {
-	reset_count();
+	reset_state();
 	return;
     }
 
@@ -997,7 +1036,7 @@ void cmd_put_before(wchar_t c)
     assert(yle_main_buffer.length >= offset + 1);
     yle_main_index = yle_main_buffer.length - offset - 1;
     yle_display_reprint_buffer(old_index, offset == 0);
-    reset_count();
+    reset_state();
 }
 
 /* Inserts the last-killed string after the cursor.
@@ -1061,7 +1100,64 @@ void cmd_vi_change_case(wchar_t c)
 	    break;
     }
     yle_display_reprint_buffer(old_index, false);
-    reset_count();
+    reset_state();
+}
+
+/* Sets the pending command to `CMD_COPY'.
+ * The count multiplier is set to the current count.
+ * If the pending command is already set to `CMD_COPY', the whole line is copied
+ * to the kill ring. */
+void cmd_vi_yank(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command(CMD_COPY);
+}
+
+/* Sets the pending command to `CMD_KILL'.
+ * The count multiplier is set to the current count. 
+ * If the pending command is already set to `CMD_KILL', the whole line is moved
+ * to the kill ring. */
+void cmd_vi_delete(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command(CMD_KILL);
+}
+
+/* Sets the pending command to `CMD_CHANGE'.
+ * The count multiplier is set to the current count. 
+ * If the pending command is already set to `CMD_CHANGE', the whole line is
+ * deleted to the kill ring and the editing mode is set to "vi insert". */
+void cmd_vi_change(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command(CMD_CHANGE);
+}
+
+/* Sets the pending command to `CMD_COPYCHANGE'.
+ * The count multiplier is set to the current count. 
+ * If the pending command is already set to `CMD_COPYCHANGE', the whole line is
+ * moved to the kill ring and the editing mode is set to "vi insert". */
+void cmd_vi_yank_and_change(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command(CMD_COPYCHANGE);
+}
+
+/* Executes the specified command. */
+void exec_edit_command(enum edit_command cmd)
+{
+    if (state.pending_command != CMD_NONE) {
+	if (state.pending_command == cmd) {
+	    size_t old_index = yle_main_index;
+	    yle_main_index = 0;
+	    exec_motion_command(yle_main_buffer.length, true);
+	    if (old_index <= yle_main_buffer.length)
+		yle_main_index = old_index;
+	} else {
+	    cmd_alert(L'\a');
+	}
+    } else {
+	state.count.multiplier = get_count(1);
+	state.count.sign = 0;
+	state.count.abs = 0;
+	state.pending_command = cmd;
+    }
 }
 
 
