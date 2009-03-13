@@ -97,6 +97,7 @@ extern yle_command_func_T
 
 /* vi-mode specific commands */
 extern yle_command_func_T
+    cmd_vi_column,
     cmd_vi_insert_beginning,
     cmd_vi_append,
     cmd_vi_append_end,
@@ -108,8 +109,11 @@ extern yle_command_func_T
     cmd_vi_delete_to_eol,
     cmd_vi_change,
     cmd_vi_change_to_eol,
+    cmd_vi_change_all,
     cmd_vi_yank_and_change,
-    cmd_vi_yank_and_change_to_eol;
+    cmd_vi_yank_and_change_to_eol,
+    cmd_vi_yank_and_change_all,
+    cmd_vi_substitute;
 
 
 #endif /* YASH_KEYMAP_H */

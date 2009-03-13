@@ -181,6 +181,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"X",          CMDENTRY(cmd_backward_kill_char));
     t = trie_setw(t, L"P",          CMDENTRY(cmd_put_before));
     t = trie_setw(t, L"p",          CMDENTRY(cmd_put));
+    t = trie_setw(t, L"|",          CMDENTRY(cmd_vi_column));
     t = trie_setw(t, L"I",          CMDENTRY(cmd_vi_insert_beginning));
     t = trie_setw(t, L"a",          CMDENTRY(cmd_vi_append));
     t = trie_setw(t, L"A",          CMDENTRY(cmd_vi_append_end));
@@ -192,6 +193,8 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"D",          CMDENTRY(cmd_vi_delete_to_eol));
     t = trie_setw(t, L"c",          CMDENTRY(cmd_vi_change));
     t = trie_setw(t, L"C",          CMDENTRY(cmd_vi_change_to_eol));
+    t = trie_setw(t, L"S",          CMDENTRY(cmd_vi_change_all));
+    t = trie_setw(t, L"s",          CMDENTRY(cmd_vi_substitute));
     //TODO
     // =
     // \ 
@@ -199,15 +202,12 @@ void yle_keymap_init(void)
     // @ char
     // .
     // v
-    // |
     // f/F char
     // t/T char
     // ;
     // ,
-    // S
     // r char
     // _
-    // X
     // u
     // U
     // k/-
@@ -1104,6 +1104,24 @@ void cmd_put(wchar_t c)
 
 /********** Vi-Mode Specific Commands **********/
 
+/* Moves the cursor to the `count'th character in the edit line.
+ * If the count is not set, moves to the beginning of the line. */
+/* exclusive motion command */
+void cmd_vi_column(wchar_t c __attribute__((unused)))
+{
+    int index = get_count(1) - 1;
+
+    if (index < 0)
+	index = 0;
+#if COUNT_ABS_MAX > SIZE_MAX
+    else if (index > (int) yle_main_buffer.length)
+#else
+    else if ((size_t) index > yle_main_buffer.length)
+#endif
+	index = yle_main_buffer.length;
+    exec_motion_command(index, false);
+}
+
 /* Moves the cursor to the beginning of line and sets the editing mode to
  * "vi insert". */
 void cmd_vi_insert_beginning(wchar_t c)
@@ -1213,6 +1231,15 @@ void cmd_vi_change_to_eol(wchar_t c __attribute__((unused)))
     exec_edit_command_to_eol(CMD_CHANGE);
 }
 
+/* Deletes all the content of the edit line and sets the editing mode to
+ * "vi insert". */
+void cmd_vi_change_all(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    yle_main_index = 0;
+    exec_edit_command_to_eol(CMD_CHANGE);
+}
+
 /* Sets the pending command to `CMD_COPYCHANGE'.
  * The count multiplier is set to the current count. 
  * If the pending command is already set to `CMD_COPYCHANGE', the whole line is
@@ -1226,6 +1253,15 @@ void cmd_vi_yank_and_change(wchar_t c __attribute__((unused)))
  * it in the kill ring, and sets the editing mode to "vi insert". */
 void cmd_vi_yank_and_change_to_eol(wchar_t c __attribute__((unused)))
 {
+    exec_edit_command_to_eol(CMD_COPYCHANGE);
+}
+
+/* Deletes all the content of the edit line, put it in the kill ring, and sets the
+ * editing mode to "vi insert". */
+void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    yle_main_index = 0;
     exec_edit_command_to_eol(CMD_COPYCHANGE);
 }
 
@@ -1257,6 +1293,23 @@ void exec_edit_command_to_eol(enum edit_command cmd)
     ALERT_AND_RETURN_IF_PENDING;
     state.pending_command = cmd;
     exec_motion_command(yle_main_buffer.length, false);
+}
+
+/* Kills the character under the cursor and sets the editing mode to "vi insert".
+ * If the count is set, `count' characters are killed. */
+void cmd_vi_substitute(wchar_t c)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    assert(yle_main_index <= yle_main_buffer.length);
+    if (yle_main_index == 0) {
+	cmd_alert(c);
+	return;
+    }
+
+    kill_chars(false);
+    yle_set_mode(YLE_MODE_VI_INSERT);
+    overwrite = false;
 }
 
 
