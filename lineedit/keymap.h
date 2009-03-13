@@ -93,7 +93,8 @@ extern yle_command_func_T
 extern yle_command_func_T
     cmd_vi_insert_beginning,
     cmd_vi_append,
-    cmd_vi_append_end;
+    cmd_vi_append_end,
+    cmd_vi_replace;
 
 
 #endif /* YASH_KEYMAP_H */

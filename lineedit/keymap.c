@@ -53,6 +53,9 @@ static struct {
     } count;
 } state;
 
+/* If true, characters are overwritten rather than inserted. */
+static bool overwrite = false;
+
 /* The kill ring */
 #define KILL_RING_SIZE 30
 static wchar_t *kill_ring[KILL_RING_SIZE];
@@ -148,6 +151,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"I",          CMDENTRY(cmd_vi_insert_beginning));
     t = trie_setw(t, L"a",          CMDENTRY(cmd_vi_append));
     t = trie_setw(t, L"A",          CMDENTRY(cmd_vi_append_end));
+    t = trie_setw(t, L"R",          CMDENTRY(cmd_vi_replace));
     //TODO
     // =
     // \ 
@@ -164,7 +168,6 @@ void yle_keymap_init(void)
     // t/T char
     // ;
     // ,
-    // R
     // c motion
     // C
     // S
@@ -199,6 +202,7 @@ void yle_set_mode(yle_mode_id_T id)
 void yle_keymap_reset(void)
 {
     reset_count();
+    overwrite = false;
 }
 
 /* Invokes the given command. */
@@ -309,9 +313,12 @@ void cmd_self_insert(wchar_t c)
 	size_t old_index = yle_main_index;
 
 	while (--count >= 0)
-	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
+	    if (overwrite && yle_main_index < yle_main_buffer.length)
+		yle_main_buffer.contents[yle_main_index++] = c;
+	    else
+		wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
 	yle_display_reprint_buffer(old_index,
-		yle_main_index == yle_main_buffer.length);
+		!overwrite && yle_main_index == yle_main_buffer.length);
     } else {
 	yle_alert();
     }
@@ -503,6 +510,7 @@ void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
     yle_set_mode(YLE_MODE_VI_INSERT);
     reset_count();
+    overwrite = false;
 }
 
 /* Changes the editing mode to "vi command". */
@@ -513,6 +521,7 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 	    yle_main_index--;
     yle_set_mode(YLE_MODE_VI_COMMAND);
     reset_count();
+    overwrite = false;
 }
 
 /* Redraw everything. */
@@ -734,6 +743,13 @@ void cmd_vi_append_end(wchar_t c)
 {
     yle_main_index = yle_main_buffer.length;
     cmd_setmode_viinsert(c);
+}
+
+/* Sets the editing mode to "vi insert", with the `overwrite' flag true. */
+void cmd_vi_replace(wchar_t c)
+{
+    cmd_setmode_viinsert(c);
+    overwrite = true;
 }
 
 
