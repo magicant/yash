@@ -152,12 +152,12 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"a",          CMDENTRY(cmd_vi_append));
     t = trie_setw(t, L"A",          CMDENTRY(cmd_vi_append_end));
     t = trie_setw(t, L"R",          CMDENTRY(cmd_vi_replace));
+    t = trie_setw(t, L"~",          CMDENTRY(cmd_vi_change_case));
     //TODO
     // =
     // \ 
     // *
     // @ char
-    // ~
     // .
     // v
     // w/W
@@ -750,6 +750,28 @@ void cmd_vi_replace(wchar_t c)
 {
     cmd_setmode_viinsert(c);
     overwrite = true;
+}
+
+/* Changes the case of the character under the cursor and advances the cursor.
+ * If the count is set, `count' characters are changed. */
+void cmd_vi_change_case(wchar_t c)
+{
+    size_t old_index = yle_main_index;
+
+    if (yle_main_index == yle_main_buffer.length) {
+	cmd_alert(c);
+	return;
+    }
+    for (int count = get_count(1); --count >= 0; ) {
+	wchar_t c = yle_main_buffer.contents[yle_main_index];
+	yle_main_buffer.contents[yle_main_index]
+	    = (iswlower(c) ? towupper : towlower)(c);
+	yle_main_index++;
+	if (yle_main_index == yle_main_buffer.length)
+	    break;
+    }
+    yle_display_reprint_buffer(old_index, false);
+    reset_count();
 }
 
 
