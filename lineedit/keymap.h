@@ -71,6 +71,7 @@ extern yle_command_func_T
     cmd_abort_line,
     cmd_eof_if_empty,
     cmd_eof_or_delete,
+    cmd_accept_with_hash,
     cmd_setmode_viinsert,
     cmd_setmode_vicommand,
     cmd_redraw_all;
@@ -87,6 +88,12 @@ extern yle_command_func_T
     cmd_backward_kill_char,
     cmd_put_before,
     cmd_put;
+
+/* vi-mode specific commands */
+extern yle_command_func_T
+    cmd_vi_insert_beginning,
+    cmd_vi_append,
+    cmd_vi_append_end;
 
 
 #endif /* YASH_KEYMAP_H */

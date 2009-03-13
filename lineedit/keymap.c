@@ -137,6 +137,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_eof,       CMDENTRY(cmd_eof_if_empty));
+    t = trie_setw(t, L"#",          CMDENTRY(cmd_accept_with_hash));
     t = trie_setw(t, L"i",          CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_insert,    CMDENTRY(cmd_setmode_viinsert));
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
@@ -144,8 +145,10 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_delete,    CMDENTRY(cmd_kill_char));
     t = trie_setw(t, L"P",          CMDENTRY(cmd_put_before));
     t = trie_setw(t, L"p",          CMDENTRY(cmd_put));
+    t = trie_setw(t, L"I",          CMDENTRY(cmd_vi_insert_beginning));
+    t = trie_setw(t, L"a",          CMDENTRY(cmd_vi_append));
+    t = trie_setw(t, L"A",          CMDENTRY(cmd_vi_append_end));
     //TODO
-    // #
     // =
     // \ 
     // *
@@ -161,9 +164,6 @@ void yle_keymap_init(void)
     // t/T char
     // ;
     // ,
-    // a
-    // A
-    // I
     // R
     // c motion
     // C
@@ -490,6 +490,14 @@ void cmd_eof_or_delete(wchar_t c)
     }
 }
 
+/* Inserts a hash sign ('#') at the beginning of the line and accepts the line. */
+void cmd_accept_with_hash(wchar_t c)
+{
+    wb_insert(&yle_main_buffer, 0, L"#");
+    yle_display_reprint_buffer(0, false);
+    cmd_accept_line(c);
+}
+
 /* Changes the editing mode to "vi insert". */
 void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
@@ -700,6 +708,32 @@ void cmd_put(wchar_t c)
     if (yle_main_index < yle_main_buffer.length)
 	yle_main_index++;
     cmd_put_before(c);
+}
+
+
+/********** Vi-Mode Specific Commands **********/
+
+/* Moves the cursor to the beginning of line and sets the editing mode to
+ * "vi insert". */
+void cmd_vi_insert_beginning(wchar_t c)
+{
+    yle_main_index = 0;
+    cmd_setmode_viinsert(c);
+}
+
+/* Moves the cursor by one character and sets the editing mode to "vi insert". */
+void cmd_vi_append(wchar_t c)
+{
+    if (yle_main_index < yle_main_buffer.length)
+	yle_main_index++;
+    cmd_setmode_viinsert(c);
+}
+
+/* Moves the cursor to the end of line and sets the editing mode to "vi insert".*/
+void cmd_vi_append_end(wchar_t c)
+{
+    yle_main_index = yle_main_buffer.length;
+    cmd_setmode_viinsert(c);
 }
 
 
