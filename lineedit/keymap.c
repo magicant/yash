@@ -73,8 +73,24 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
 
 static bool alert_if_first(void);
 static bool alert_if_last(void);
-static void move_cursor_forward(int offset);
-static void move_cursor_backward(int offset);
+static void move_cursor_forward_char(int offset);
+static void move_cursor_backward_char(int offset);
+static void move_cursor_forward_bigword(int count);
+static void move_cursor_backward_bigword(int count);
+static void move_cursor_forward_word(int count);
+static void move_cursor_backward_word(int count);
+static size_t next_bigword_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static size_t next_end_of_bigword_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static size_t previous_bigword_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static size_t next_word_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static size_t next_end_of_word_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static size_t previous_word_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
 static void kill_chars(bool backward);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
@@ -130,6 +146,12 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, L"W",          CMDENTRY(cmd_forward_bigword));
+    t = trie_setw(t, L"E",          CMDENTRY(cmd_end_of_bigword));
+    t = trie_setw(t, L"B",          CMDENTRY(cmd_backward_bigword));
+    t = trie_setw(t, L"w",          CMDENTRY(cmd_forward_word));
+    t = trie_setw(t, L"e",          CMDENTRY(cmd_end_of_word));
+    t = trie_setw(t, L"b",          CMDENTRY(cmd_backward_word));
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, L"$",          CMDENTRY(cmd_end_of_line));
     t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
@@ -160,9 +182,6 @@ void yle_keymap_init(void)
     // @ char
     // .
     // v
-    // w/W
-    // e/E
-    // b/B
     // |
     // f/F char
     // t/T char
@@ -277,7 +296,7 @@ void cmd_alert(wchar_t c __attribute__((unused)))
     reset_count();
 }
 
-/* Invoke `cmd_alert', and returns true if the cursor is at the first character.
+/* Invoke `cmd_alert' and returns true if the cursor is at the first character.
  */
 bool alert_if_first(void)
 {
@@ -288,7 +307,7 @@ bool alert_if_first(void)
     return true;
 }
 
-/* Invoke `cmd_alert', and returns true if the cursor is at the last character.
+/* Invoke `cmd_alert' and returns true if the cursor is at the last character.
  */
 bool alert_if_last(void)
 {
@@ -359,19 +378,15 @@ void cmd_digit_argument(wchar_t c)
     }
 }
 
-/* Moves forward one character.
- * If the count is set, moves forward `count' characters. */
+/* Moves forward one character (or `count' characters if the count is set). */
 /* exclusive motion command */
 void cmd_forward_char(wchar_t c __attribute__((unused)))
 {
-    if (alert_if_last())
-	return;
-
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward(count);
+	move_cursor_forward_char(count);
     else
-	move_cursor_backward(-count);
+	move_cursor_backward_char(-count);
 }
 
 /* Moves backward one character.
@@ -379,47 +394,322 @@ void cmd_forward_char(wchar_t c __attribute__((unused)))
 /* exclusive motion command */
 void cmd_backward_char(wchar_t c __attribute__((unused)))
 {
-    if (alert_if_first())
-	return;
-
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward(count);
+	move_cursor_backward_char(count);
     else
-	move_cursor_forward(-count);
+	move_cursor_forward_char(-count);
 }
 
 /* Moves the cursor forward by `offset', relative to the current position.
  * The `offset' must not be negative. */
-void move_cursor_forward(int offset)
+void move_cursor_forward_char(int offset)
 {
+    assert(offset >= 0);
+    if (alert_if_last())
+	return;
+
 #if COUNT_ABS_MAX > SIZE_MAX
     if (offset > SIZE_MAX)
 	offset = SIZE_MAX;
 #endif
 
-    size_t newindex;
+    size_t new_index;
     if (yle_main_buffer.length - yle_main_index < (size_t) offset)
-	newindex = yle_main_buffer.length;
+	new_index = yle_main_buffer.length;
     else
-	newindex = yle_main_index + offset;
-    exec_motion_command(newindex, false);
+	new_index = yle_main_index + offset;
+    exec_motion_command(new_index, false);
 }
 
 /* Moves the cursor backward by `offset', relative to the current position.
  * The `offset' must not be negative. */
-void move_cursor_backward(int offset)
+void move_cursor_backward_char(int offset)
 {
-    size_t newindex;
+    assert(offset >= 0);
+    if (alert_if_first())
+	return;
+
+    size_t new_index;
 #if COUNT_ABS_MAX > SIZE_MAX
     if ((int) yle_main_index <= offset)
 #else
     if (yle_main_index <= (size_t) offset)
 #endif
-	newindex = 0;
+	new_index = 0;
     else
-	newindex = yle_main_index - offset;
-    exec_motion_command(newindex, false);
+	new_index = yle_main_index - offset;
+    exec_motion_command(new_index, false);
+}
+
+/* Moves forward one bigword (or `count' bigwords if the count is set). */
+/* exclusive motion command */
+void cmd_forward_bigword(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_forward_bigword(count);
+    else
+	move_cursor_backward_bigword(-count);
+}
+
+/* Moves the cursor to the end of the current bigword (or the next bigword if
+ * already at the end). If the count is set, moves to the end of `count'th
+ * bigword. */
+/* inclusive motion command */
+void cmd_end_of_bigword(wchar_t c __attribute__((unused)))
+{
+    if (alert_if_last())
+	return;
+
+    int count = get_count(1);
+    size_t new_index = yle_main_index;
+    while (--count >= 0 && new_index < yle_main_buffer.length)
+	new_index = next_end_of_bigword_index(yle_main_buffer.contents,new_index);
+    exec_motion_command(new_index, true);
+}
+
+/* Moves backward one bigword (or `count' bigwords if the count is set). */
+/* exclusive motion command */
+void cmd_backward_bigword(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_backward_bigword(count);
+    else
+	move_cursor_forward_bigword(-count);
+}
+
+/* Moves the cursor forward `count' bigwords, relative to the current position.
+ * If `count' is negative, the cursor is not moved. */
+void move_cursor_forward_bigword(int count)
+{
+    if (alert_if_last())
+	return;
+
+    size_t new_index = yle_main_index;
+    while (--count >= 0 && new_index < yle_main_buffer.length)
+	new_index = next_bigword_index(yle_main_buffer.contents, new_index);
+    exec_motion_command(new_index, false);
+}
+
+/* Moves the cursor backward `count' bigwords, relative to the current position.
+ * If `count' is negative, the cursor is not moved. */
+void move_cursor_backward_bigword(int count)
+{
+    if (alert_if_first())
+	return;
+
+    size_t new_index = yle_main_index;
+    while (--count >= 0 && new_index > 0)
+	new_index = previous_bigword_index(yle_main_buffer.contents, new_index);
+    exec_motion_command(new_index, false);
+}
+
+/* Returns the index of the next bigword in the string `s', counted from the index
+ * `i'. The return value is greater than `i' unless `s[i]' is a null character. */
+/* A bigword is a sequence of non-blank characters. */
+size_t next_bigword_index(const wchar_t *s, size_t i)
+{
+    while (s[i] != L'\0' && !iswblank(s[i]))
+	i++;
+    while (s[i] != L'\0' && iswblank(s[i]))
+	i++;
+    return i;
+}
+
+/* Returns the index of the end of a bigword in the string `s', counted from index
+ * `i'. If `i' is at the end of a bigword, the end of the next bigword is
+ * returned. The return value is greater than `i' unless `s[i]' is a null
+ * character. */
+size_t next_end_of_bigword_index(const wchar_t *s, size_t i)
+{
+    const size_t init = i;
+start:
+    if (s[i] == L'\0')
+	return i;
+    while (s[i] != L'\0' && iswblank(s[i]))
+	i++;
+    while (s[i] != L'\0' && !iswblank(s[i]))
+	i++;
+    i--;
+    if (i > init) {
+	return i;
+    } else {
+	i++;
+	goto start;
+    }
+}
+
+/* Returns the index of the previous bigword in the string `s', counted from the
+ * index `i'. The return value is less than `i' unless `i' is zero. */
+size_t previous_bigword_index(const wchar_t *s, size_t i)
+{
+    const size_t init = i;
+start:
+    while (i > 0 && iswblank(s[i]))
+	i--;
+    while (i > 0 && !iswblank(s[i]))
+	i--;
+    if (i == 0)
+	return i;
+    i++;
+    if (i < init) {
+	return i;
+    } else {
+	i--;
+	goto start;
+    }
+}
+
+/* Moves forward one word (or `count' words if the count is set). */
+/* exclusive motion command */
+void cmd_forward_word(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_forward_word(count);
+    else
+	move_cursor_backward_word(-count);
+}
+
+/* Moves the cursor to the end of the current word (or the next word if already at
+ * the end). If the count is set, moves to the end of the `count'th word. */
+/* inclusive motion command */
+void cmd_end_of_word(wchar_t c __attribute__((unused)))
+{
+    if (alert_if_last())
+	return;
+
+    int count = get_count(1);
+    size_t new_index = yle_main_index;
+    while (--count >= 0 && new_index < yle_main_buffer.length)
+	new_index = next_end_of_word_index(yle_main_buffer.contents, new_index);
+    exec_motion_command(new_index, true);
+}
+
+/* Moves backward one word (or `count' words if the count is set). */
+/* exclusive motion command */
+void cmd_backward_word(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_backward_word(count);
+    else
+	move_cursor_forward_word(-count);
+}
+
+/* Moves the cursor forward `count' words, relative to the current position.
+ * If `count' is negative, the cursor is not moved. */
+void move_cursor_forward_word(int count)
+{
+    if (alert_if_last())
+	return;
+
+    size_t new_index = yle_main_index;
+    while (--count >= 0 && new_index < yle_main_buffer.length)
+	new_index = next_word_index(yle_main_buffer.contents, new_index);
+    exec_motion_command(new_index, false);
+}
+
+/* Moves the cursor backward `count' words, relative to the current position.
+ * If `count' is negative, the cursor is not moved. */
+void move_cursor_backward_word(int count)
+{
+    if (alert_if_first())
+	return;
+
+    size_t new_index = yle_main_index;
+    while (--count >= 0 && new_index > 0)
+	new_index = previous_word_index(yle_main_buffer.contents, new_index);
+    exec_motion_command(new_index, false);
+}
+
+/* Returns the index of the next word in the string `s', counted from the index
+ * `i'. The return value is greater than `i' unless `s[i]' is a null character. */
+/* A word is a sequence of alphanumeric characters and underscores, or a sequence
+ * of other non-blank characters. */
+size_t next_word_index(const wchar_t *s, size_t i)
+{
+    if (s[i] == L'_' || iswalnum(s[i])) {
+	do
+	    i++;
+	while (s[i] == L'_' || iswalnum(s[i]));
+	if (!iswblank(s[i]))
+	    return i;
+    } else if (!iswblank(s[i])) {
+	for (;;) {
+	    if (s[i] == L'\0')
+		return i;
+	    i++;
+	    if (s[i] == L'_' || iswalnum(s[i]))
+		return i;
+	    if (iswblank(s[i]))
+		break;
+	}
+    }
+    /* find the first non-blank character */
+    while (iswblank(s[++i]));
+    return i;
+}
+
+/* Returns the index of the end of a word in the string `s', counted from index
+ * `i'. If `i' is at the end of a word, the end of the next word is returned.
+ * The return value is greater than `i' unless `s[i]' is a null character. */
+size_t next_end_of_word_index(const wchar_t *s, size_t i)
+{
+    const size_t init = i;
+start:
+    while (iswblank(s[i]))
+	i++;
+    if (s[i] == L'\0')
+	return i;
+    if (s[i] == L'_' || iswalnum(s[i])) {
+	do
+	    i++;
+	while (s[i] == L'_' || iswalnum(s[i]));
+    } else {
+	do
+	    i++;
+	while (!iswblank(s[i]) && !(s[i] == L'_' || iswalnum(s[i])));
+    }
+    i--;
+    if (i > init) {
+	return i;
+    } else {
+	i++;
+	goto start;
+    }
+}
+
+/* Returns the index of the previous word in the string `s', counted form the
+ * index `i'. The return value is less than `i' unless `i' is zero. */
+size_t previous_word_index(const wchar_t *s, size_t i)
+{
+    const size_t init = i;
+start:
+    while (i > 0 && iswblank(s[i]))
+	i--;
+    if (s[i] == L'_' || iswalnum(s[i])) {
+	do {
+	    if (i == 0)
+		return 0;
+	    i--;
+	} while (s[i] == L'_' || iswalnum(s[i]));
+    } else {
+	do {
+	    if (i == 0)
+		return 0;
+	    i--;
+	} while (!iswblank(s[i]) && !(s[i] == L'_' || iswalnum(s[i])));
+    }
+    i++;
+    if (i < init) {
+	return i;
+    } else {
+	i--;
+	goto start;
+    }
 }
 
 /* Moves the cursor to the beginning of line. */
