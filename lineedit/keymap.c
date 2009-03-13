@@ -178,6 +178,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, L"x",          CMDENTRY(cmd_kill_char));
     t = trie_setw(t, Key_delete,    CMDENTRY(cmd_kill_char));
+    t = trie_setw(t, L"X",          CMDENTRY(cmd_backward_kill_char));
     t = trie_setw(t, L"P",          CMDENTRY(cmd_put_before));
     t = trie_setw(t, L"p",          CMDENTRY(cmd_put));
     t = trie_setw(t, L"I",          CMDENTRY(cmd_vi_insert_beginning));
@@ -203,13 +204,10 @@ void yle_keymap_init(void)
     // t/T char
     // ;
     // ,
-    // C
     // S
     // r char
     // _
     // X
-    // D
-    // Y
     // u
     // U
     // k/-
@@ -1062,6 +1060,7 @@ void kill_chars(bool backward)
     }
     add_to_kill_ring(yle_main_buffer.contents + offset, n);
     wb_remove(&yle_main_buffer, offset, n);
+    yle_main_index = offset;
     yle_display_reprint_buffer(offset, false);
     reset_state();
 }
