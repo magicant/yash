@@ -77,6 +77,7 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
 
 static bool alert_if_first(void);
 static bool alert_if_last(void);
+static bool alert_if_pending(void);
 static void move_cursor_forward_char(int offset);
 static void move_cursor_backward_char(int offset);
 static void move_cursor_forward_bigword(int count);
@@ -100,6 +101,9 @@ static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 static void exec_edit_command(enum edit_command cmd);
 static inline void exec_edit_command_to_eol(enum edit_command cmd);
+
+#define ALERT_AND_RETURN_IF_PENDING \
+    do if (alert_if_pending()) return; while (0)
 
 
 /* Initializes `yle_modes'.
@@ -339,7 +343,7 @@ void cmd_alert(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
-/* Invoke `cmd_alert' and returns true if the cursor is at the first character.
+/* Invokes `cmd_alert' and returns true if the cursor is at the first character.
  */
 bool alert_if_first(void)
 {
@@ -350,7 +354,7 @@ bool alert_if_first(void)
     return true;
 }
 
-/* Invoke `cmd_alert' and returns true if the cursor is at the last character.
+/* Invokes `cmd_alert' and returns true if the cursor is at the last character.
  */
 bool alert_if_last(void)
 {
@@ -367,9 +371,22 @@ bool alert_if_last(void)
     return true;
 }
 
+/* Invokes `cmd_alert' and returns true if the pending command is set. */
+bool alert_if_pending(void)
+{
+    if (state.pending_command != CMD_NONE) {
+	cmd_alert(L'\a');
+	return true;
+    } else {
+	return false;
+    }
+}
+
 /* Inserts one character in the buffer. */
 void cmd_self_insert(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (c != L'\0') {
 	int count = get_count(1);
 	size_t old_index = yle_main_index;
@@ -392,6 +409,7 @@ void cmd_self_insert(wchar_t c)
  * character. */
 void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
     yle_next_verbatim = true;
 }
 
@@ -794,6 +812,8 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
  * `yle_state' is set to YLE_STATE_DONE and `yle_readline' returns. */
 void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     yle_state = YLE_STATE_DONE;
     reset_state();
 }
@@ -802,6 +822,8 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
  * `yle_state' is set to YLE_STATE_INTERRUPTED and `yle_readline' returns. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     yle_state = YLE_STATE_INTERRUPTED;
     reset_state();
 }
@@ -810,6 +832,8 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
  * Otherwise, causes alert. */
 void cmd_eof_if_empty(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (yle_main_buffer.length == 0) {
 	yle_state = YLE_STATE_ERROR;
 	reset_state();
@@ -822,6 +846,8 @@ void cmd_eof_if_empty(wchar_t c)
  * Otherwise, deletes the character under the cursor. */
 void cmd_eof_or_delete(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (yle_main_buffer.length == 0) {
 	yle_state = YLE_STATE_ERROR;
 	reset_state();
@@ -833,6 +859,8 @@ void cmd_eof_or_delete(wchar_t c)
 /* Inserts a hash sign ('#') at the beginning of the line and accepts the line. */
 void cmd_accept_with_hash(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     wb_insert(&yle_main_buffer, 0, L"#");
     yle_display_reprint_buffer(0, false);
     cmd_accept_line(c);
@@ -841,6 +869,8 @@ void cmd_accept_with_hash(wchar_t c)
 /* Changes the editing mode to "vi insert". */
 void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     yle_set_mode(YLE_MODE_VI_INSERT);
     reset_state();
     overwrite = false;
@@ -849,6 +879,8 @@ void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 /* Changes the editing mode to "vi command". */
 void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (yle_current_mode == &yle_modes[YLE_MODE_VI_INSERT])
 	if (yle_main_index > 0)
 	    yle_main_index--;
@@ -871,6 +903,8 @@ void cmd_redraw_all(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_delete_char(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (state.count.sign == 0) {
 	if (yle_main_index < yle_main_buffer.length) {
 	    wb_remove(&yle_main_buffer, yle_main_index, 1);
@@ -888,6 +922,8 @@ void cmd_delete_char(wchar_t c)
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (state.count.sign == 0) {
 	if (yle_main_index > 0) {
 	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
@@ -906,6 +942,8 @@ void cmd_backward_delete_char(wchar_t c)
 /* A "semiword" is a sequence of characters that are not <blank> or <punct>. */
 void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     size_t bound = yle_main_index;
 
     for (int count = get_count(1); --count >= 0; ) {
@@ -936,6 +974,8 @@ bool is_blank_or_punct(wchar_t c)
 /* Removes all characters in the edit line. */
 void cmd_delete_line(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     wb_clear(&yle_main_buffer);
     yle_main_index = 0;
     yle_display_reprint_buffer(0, false);
@@ -945,6 +985,8 @@ void cmd_delete_line(wchar_t c __attribute__((unused)))
 /* Removes all characters after the cursor. */
 void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (yle_main_index < yle_main_buffer.length) {
 	wb_remove(&yle_main_buffer, yle_main_index, SIZE_MAX);
 	yle_display_reprint_buffer(yle_main_index, false);
@@ -955,6 +997,8 @@ void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 /* Removes all characters behind the cursor. */
 void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (yle_main_index > 0) {
 	wb_remove(&yle_main_buffer, 0, yle_main_index);
 	yle_main_index = 0;
@@ -967,6 +1011,8 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_kill_char(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     assert(yle_main_index <= yle_main_buffer.length);
     if (yle_main_index == yle_main_buffer.length) {
 	cmd_alert(c);
@@ -981,6 +1027,8 @@ void cmd_kill_char(wchar_t c)
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_kill_char(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     assert(yle_main_index <= yle_main_buffer.length);
     if (yle_main_index == 0) {
 	cmd_alert(c);
@@ -1022,6 +1070,8 @@ void kill_chars(bool backward)
  * If the count is set, inserts `count' times. */
 void cmd_put_before(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     last_put_index = (next_kill_index - 1) % KILL_RING_SIZE;
 
     const wchar_t *s = kill_ring[last_put_index];
@@ -1059,6 +1109,8 @@ void cmd_put(wchar_t c)
  * "vi insert". */
 void cmd_vi_insert_beginning(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     yle_main_index = 0;
     cmd_setmode_viinsert(c);
 }
@@ -1066,6 +1118,8 @@ void cmd_vi_insert_beginning(wchar_t c)
 /* Moves the cursor by one character and sets the editing mode to "vi insert". */
 void cmd_vi_append(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     if (yle_main_index < yle_main_buffer.length)
 	yle_main_index++;
     cmd_setmode_viinsert(c);
@@ -1074,6 +1128,8 @@ void cmd_vi_append(wchar_t c)
 /* Moves the cursor to the end of line and sets the editing mode to "vi insert".*/
 void cmd_vi_append_end(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     yle_main_index = yle_main_buffer.length;
     cmd_setmode_viinsert(c);
 }
@@ -1081,6 +1137,8 @@ void cmd_vi_append_end(wchar_t c)
 /* Sets the editing mode to "vi insert", with the `overwrite' flag true. */
 void cmd_vi_replace(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     cmd_setmode_viinsert(c);
     overwrite = true;
 }
@@ -1089,6 +1147,8 @@ void cmd_vi_replace(wchar_t c)
  * If the count is set, `count' characters are changed. */
 void cmd_vi_change_case(wchar_t c)
 {
+    ALERT_AND_RETURN_IF_PENDING;
+
     size_t old_index = yle_main_index;
 
     if (yle_main_index == yle_main_buffer.length) {
@@ -1195,6 +1255,7 @@ void exec_edit_command(enum edit_command cmd)
  * the end of the line. */
 void exec_edit_command_to_eol(enum edit_command cmd)
 {
+    ALERT_AND_RETURN_IF_PENDING;
     state.pending_command = cmd;
     exec_motion_command(yle_main_buffer.length, false);
 }
