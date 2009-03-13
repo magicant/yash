@@ -99,6 +99,7 @@ static void kill_chars(bool backward);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 static void exec_edit_command(enum edit_command cmd);
+static inline void exec_edit_command_to_eol(enum edit_command cmd);
 
 
 /* Initializes `yle_modes'.
@@ -181,8 +182,11 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"R",          CMDENTRY(cmd_vi_replace));
     t = trie_setw(t, L"~",          CMDENTRY(cmd_vi_change_case));
     t = trie_setw(t, L"y",          CMDENTRY(cmd_vi_yank));
+    t = trie_setw(t, L"Y",          CMDENTRY(cmd_vi_yank_to_eol));
     t = trie_setw(t, L"d",          CMDENTRY(cmd_vi_delete));
+    t = trie_setw(t, L"D",          CMDENTRY(cmd_vi_delete_to_eol));
     t = trie_setw(t, L"c",          CMDENTRY(cmd_vi_change));
+    t = trie_setw(t, L"C",          CMDENTRY(cmd_vi_change_to_eol));
     //TODO
     // =
     // \ 
@@ -1112,6 +1116,12 @@ void cmd_vi_yank(wchar_t c __attribute__((unused)))
     exec_edit_command(CMD_COPY);
 }
 
+/* Copies the content of the edit line from the current position to the end. */
+void cmd_vi_yank_to_eol(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command_to_eol(CMD_COPY);
+}
+
 /* Sets the pending command to `CMD_KILL'.
  * The count multiplier is set to the current count. 
  * If the pending command is already set to `CMD_KILL', the whole line is moved
@@ -1119,6 +1129,13 @@ void cmd_vi_yank(wchar_t c __attribute__((unused)))
 void cmd_vi_delete(wchar_t c __attribute__((unused)))
 {
     exec_edit_command(CMD_KILL);
+}
+
+/* Deletes the content of the edit line from the current position to the end and
+ * put it in the kill ring. */
+void cmd_vi_delete_to_eol(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command_to_eol(CMD_KILL);
 }
 
 /* Sets the pending command to `CMD_CHANGE'.
@@ -1130,6 +1147,13 @@ void cmd_vi_change(wchar_t c __attribute__((unused)))
     exec_edit_command(CMD_CHANGE);
 }
 
+/* Deletes the content of the edit line from the current position to the end and
+ * sets the editing mode to "vi insert". */
+void cmd_vi_change_to_eol(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command_to_eol(CMD_CHANGE);
+}
+
 /* Sets the pending command to `CMD_COPYCHANGE'.
  * The count multiplier is set to the current count. 
  * If the pending command is already set to `CMD_COPYCHANGE', the whole line is
@@ -1137,6 +1161,13 @@ void cmd_vi_change(wchar_t c __attribute__((unused)))
 void cmd_vi_yank_and_change(wchar_t c __attribute__((unused)))
 {
     exec_edit_command(CMD_COPYCHANGE);
+}
+
+/* Deletes the content of the edit line from the current position to the end, put
+ * it in the kill ring, and sets the editing mode to "vi insert". */
+void cmd_vi_yank_and_change_to_eol(wchar_t c __attribute__((unused)))
+{
+    exec_edit_command_to_eol(CMD_COPYCHANGE);
 }
 
 /* Executes the specified command. */
@@ -1158,6 +1189,14 @@ void exec_edit_command(enum edit_command cmd)
 	state.count.abs = 0;
 	state.pending_command = cmd;
     }
+}
+
+/* Executes the specified command on the range from the current cursor position to
+ * the end of the line. */
+void exec_edit_command_to_eol(enum edit_command cmd)
+{
+    state.pending_command = cmd;
+    exec_motion_command(yle_main_buffer.length, false);
 }
 
 

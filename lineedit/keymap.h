@@ -103,9 +103,13 @@ extern yle_command_func_T
     cmd_vi_replace,
     cmd_vi_change_case,
     cmd_vi_yank,
+    cmd_vi_yank_to_eol,
     cmd_vi_delete,
+    cmd_vi_delete_to_eol,
     cmd_vi_change,
-    cmd_vi_yank_and_change;
+    cmd_vi_change_to_eol,
+    cmd_vi_yank_and_change,
+    cmd_vi_yank_and_change_to_eol;
 
 
 #endif /* YASH_KEYMAP_H */
