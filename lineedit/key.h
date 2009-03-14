@@ -210,6 +210,7 @@
 #define Key_eof       L"\\#"    // EOF
 #define Key_kill      L"\\$"    // KILL
 #define Key_erase     L"\\?"    // ERASE
+#define Key_escape    Key_c_lb
 #define Key_backslash L"\\\\"
 
 #define META_BIT    0x80
