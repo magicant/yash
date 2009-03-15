@@ -391,6 +391,7 @@ setupterm((char*)0, 1, (int*)0);
 tigetflag("");
 tigetnum("");
 tputs(tigetstr(""), 1, putchar);
+del_curterm(cur_term);
 }
 END
     saveldlibs="${ldlibs}"

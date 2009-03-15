@@ -250,10 +250,14 @@ int is_strcap_valid(const char *s)
  * Returns true iff successful. */
 _Bool yle_setupterm(void)
 {
+    static _Bool once = 0;
     int err;
 
+    if (once)
+	del_curterm(cur_term);
     if (setupterm(NULL, STDERR_FILENO, &err) != OK)
 	return 0;
+    once = 1;
 
     if (!is_strcap_valid(tigetstr(TI_cub1))
 	    || !is_strcap_valid(tigetstr(TI_cub))) return 0;
@@ -729,6 +733,7 @@ fail:
 _Bool yle_restore_terminal(void)
 {
     print_rmkx();
+    fflush(stderr);
     return tcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) == 0;
 }
 
