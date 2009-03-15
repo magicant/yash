@@ -313,10 +313,10 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 		    size_t len = wcslen(line);
 		    assert(len > 0);
 #if YASH_ENABLE_HISTORY
-		    if (info->type == 2) {
+		    if (info->type == 2 && len > 1) {
 			wchar_t lastchar = line[len - 1];
-			if (lastchar == L'\n')
-			    line[len - 1] = L'\0';
+			assert(lastchar == L'\n');
+			line[len - 1] = L'\0';
 			add_history(line, false);
 			line[len - 1] = lastchar;
 		    }
