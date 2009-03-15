@@ -33,6 +33,7 @@
 #include "../strbuf.h"
 #include "../util.h"
 #include "display.h"
+#include "editing.h"
 #include "key.h"
 #include "keymap.h"
 #include "lineedit.h"
@@ -102,8 +103,8 @@ wchar_t *yle_readline(const wchar_t *prompt)
     }
 
     mode = MODE_ACTIVE;
+    yle_editing_init();
     yle_display_init(prompt);
-    yle_keymap_reset();
     reader_init();
     yle_state = YLE_STATE_EDITING;
 
@@ -112,7 +113,8 @@ wchar_t *yle_readline(const wchar_t *prompt)
     while (yle_state == YLE_STATE_EDITING);
 
     reader_finalize();
-    resultline = yle_display_finalize();
+    yle_display_finalize();
+    resultline = yle_editing_finalize();
     fflush(stderr);
     yle_restore_terminal();
     mode = MODE_INACTIVE;
@@ -297,12 +299,12 @@ process_keymap:
 		yle_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
 	    case TG_NOMATCH:
-		yle_keymap_invoke(yle_current_mode->default_command,
+		yle_invoke_command(yle_current_mode->default_command,
 			wb_get_char(&reader_second_buffer));
 		wb_clear(&reader_second_buffer);
 		break;
 	    case TG_UNIQUE:
-		yle_keymap_invoke(tg.value.cmdfunc,
+		yle_invoke_command(tg.value.cmdfunc,
 			wb_get_char(&reader_second_buffer));
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;

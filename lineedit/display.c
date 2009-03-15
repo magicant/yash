@@ -28,6 +28,7 @@
 #include "../job.h"
 #include "../util.h"
 #include "display.h"
+#include "editing.h"
 #include "lineedit.h"
 #include "terminfo.h"
 
@@ -98,11 +99,6 @@ static const wchar_t *promptstring;
  */
 static int editbase_line, editbase_column;
 
-/* The main buffer where the command line is edited. */
-xwcsbuf_T yle_main_buffer;
-/* The position of the cursor on the command line. */
-/* 0 <= yle_main_index <= yle_main_buffer.length */
-size_t yle_main_index;
 /* Array of cursor positions in the screen.
  * If the nth character in the main buffer is positioned at line `l', column `c'
  * on the screen, then cursor_positions[n] == l * yle_columns + c. */
@@ -117,14 +113,12 @@ static int last_edit_line;
 #endif
 
 
-/* Initializes the display module. */
+/* Initializes the display module.
+ * Must be called after `yle_editing_init'. */
 void yle_display_init(const wchar_t *prompt)
 {
     current_line = current_column = current_line_max = 0;
     last_edit_line = 0;
-
-    wb_init(&yle_main_buffer);
-    yle_main_index = 0;
 
     promptstring = prompt;
     yle_display_print_all();
@@ -132,8 +126,8 @@ void yle_display_init(const wchar_t *prompt)
 }
 
 /* Finalizes the display module.
- * Returns the content of the main buffer, which must be freed by the caller. */
-wchar_t *yle_display_finalize(void)
+ * Must be called before `yle_editing_finalize'. */
+void yle_display_finalize(void)
 {
     go_to_index(yle_main_buffer.length);
 
@@ -145,9 +139,6 @@ wchar_t *yle_display_finalize(void)
     current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();
-
-    wb_wccat(&yle_main_buffer, L'\n');
-    return wb_towcs(&yle_main_buffer);
 }
 
 /* Clears everything printed by lineedit, restoreing the state before lineedit

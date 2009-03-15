@@ -68,6 +68,8 @@ lineedit/Makefile.deps
 lineedit/Makefile.in
 lineedit/display.c
 lineedit/display.h
+lineedit/editing.c
+lineedit/editing.h
 lineedit/key.h
 lineedit/keymap.c
 lineedit/keymap.h

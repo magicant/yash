@@ -23,8 +23,8 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = display.c display.h key.h keymap.c keymap.h lineedit.c lineedit.h terminfo.c terminfo.h trie.c trie.h
-OBJS = display.o keymap.o lineedit.o terminfo.o trie.o
+SOURCES = display.c display.h editing.c editing.h key.h keymap.c keymap.h lineedit.c lineedit.h terminfo.c terminfo.h trie.c trie.h
+OBJS = display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = @LINEEDIT_ARCHIVE@
 
 BYPRODUCTS = 
