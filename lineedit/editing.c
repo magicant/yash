@@ -38,6 +38,12 @@ xwcsbuf_T yle_main_buffer;
 /* 0 <= yle_main_index <= yle_main_buffer.length */
 size_t yle_main_index;
 
+/* The last executed command. */
+static struct {
+    yle_command_func_T *func;
+    wchar_t arg;
+} last_command;
+
 /* The keymap state. */
 static struct {
     struct {
@@ -47,7 +53,7 @@ static struct {
 	int sign;
 	unsigned abs;
 	int multiplier;
-#define COUNT_ABS_MAX 999999999
+#define COUNT_ABS_MAX 9999
     } count;
     enum edit_command {
 	CMD_NONE, CMD_COPY, CMD_KILL, CMD_CHANGE, CMD_COPYCHANGE,
@@ -93,9 +99,9 @@ static size_t next_end_of_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t previous_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
-static void kill_chars(bool backward);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
+static void kill_chars(bool backward);
 static void exec_edit_command(enum edit_command cmd);
 static inline void exec_edit_command_to_eol(enum edit_command cmd);
 
@@ -108,6 +114,9 @@ void yle_editing_init(void)
 {
     wb_init(&yle_main_buffer);
     yle_main_index = 0;
+
+    last_command.func = 0;
+    last_command.arg = L'\0';
 
     reset_state();
     overwrite = false;
@@ -125,6 +134,9 @@ wchar_t *yle_editing_finalize(void)
 void yle_invoke_command(yle_command_func_T *cmd, wchar_t arg)
 {
     cmd(arg);
+
+    last_command.func = cmd;
+    last_command.arg = arg;
 
     if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
 	if (yle_main_index > 0 && yle_main_index == yle_main_buffer.length) {
@@ -451,8 +463,9 @@ void move_cursor_backward_bigword(int count)
     exec_motion_command(new_index, false);
 }
 
-/* Returns the index of the next bigword in the string `s', counted from the index
- * `i'. The return value is greater than `i' unless `s[i]' is a null character. */
+/* Returns the index of the next bigword in the string `s', counted from the
+ * index `i'. The return value is greater than `i' unless `s[i]' is a null
+ * character. */
 /* A bigword is a sequence of non-blank characters. */
 size_t next_bigword_index(const wchar_t *s, size_t i)
 {
@@ -463,8 +476,8 @@ size_t next_bigword_index(const wchar_t *s, size_t i)
     return i;
 }
 
-/* Returns the index of the end of a bigword in the string `s', counted from index
- * `i'. If `i' is at the end of a bigword, the end of the next bigword is
+/* Returns the index of the end of a bigword in the string `s', counted from
+ * index `i'. If `i' is at the end of a bigword, the end of the next bigword is
  * returned. The return value is greater than `i' unless `s[i]' is a null
  * character. */
 size_t next_end_of_bigword_index(const wchar_t *s, size_t i)
@@ -518,8 +531,8 @@ void cmd_forward_word(wchar_t c __attribute__((unused)))
 	move_cursor_backward_word(-count);
 }
 
-/* Moves the cursor to the end of the current word (or the next word if already at
- * the end). If the count is set, moves to the end of the `count'th word. */
+/* Moves the cursor to the end of the current word (or the next word if already
+ * at the end). If the count is set, moves to the end of the `count'th word. */
 /* inclusive motion command */
 void cmd_end_of_word(wchar_t c __attribute__((unused)))
 {
@@ -571,9 +584,10 @@ void move_cursor_backward_word(int count)
 }
 
 /* Returns the index of the next word in the string `s', counted from the index
- * `i'. The return value is greater than `i' unless `s[i]' is a null character. */
-/* A word is a sequence of alphanumeric characters and underscores, or a sequence
- * of other non-blank characters. */
+ * `i'. The return value is greater than `i' unless `s[i]' is a null character.
+ */
+/* A word is a sequence of alphanumeric characters and underscores, or a
+ * sequence of other non-blank characters. */
 size_t next_word_index(const wchar_t *s, size_t i)
 {
     if (s[i] == L'_' || iswalnum(s[i])) {
@@ -740,7 +754,8 @@ void cmd_eof_or_delete(wchar_t c)
     }
 }
 
-/* Inserts a hash sign ('#') at the beginning of the line and accepts the line. */
+/* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
+ */
 void cmd_accept_with_hash(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -1018,7 +1033,8 @@ void cmd_vi_insert_beginning(wchar_t c)
     cmd_setmode_viinsert(c);
 }
 
-/* Moves the cursor by one character and sets the editing mode to "vi insert". */
+/* Moves the cursor by one character and sets the editing mode to "vi insert".
+ */
 void cmd_vi_append(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -1028,7 +1044,8 @@ void cmd_vi_append(wchar_t c)
     cmd_setmode_viinsert(c);
 }
 
-/* Moves the cursor to the end of line and sets the editing mode to "vi insert".*/
+/* Moves the cursor to the end of line and sets the editing mode to
+ * "vi insert".*/
 void cmd_vi_append_end(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -1135,15 +1152,15 @@ void cmd_vi_yank_and_change(wchar_t c __attribute__((unused)))
     exec_edit_command(CMD_COPYCHANGE);
 }
 
-/* Deletes the content of the edit line from the current position to the end, put
- * it in the kill ring, and sets the editing mode to "vi insert". */
+/* Deletes the content of the edit line from the current position to the end,
+ * put it in the kill ring, and sets the editing mode to "vi insert". */
 void cmd_vi_yank_and_change_to_eol(wchar_t c __attribute__((unused)))
 {
     exec_edit_command_to_eol(CMD_COPYCHANGE);
 }
 
-/* Deletes all the content of the edit line, put it in the kill ring, and sets the
- * editing mode to "vi insert". */
+/* Deletes all the content of the edit line, put it in the kill ring, and sets
+ * the editing mode to "vi insert". */
 void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -1172,8 +1189,8 @@ void exec_edit_command(enum edit_command cmd)
     }
 }
 
-/* Executes the specified command on the range from the current cursor position to
- * the end of the line. */
+/* Executes the specified command on the range from the current cursor position
+ * to the end of the line. */
 void exec_edit_command_to_eol(enum edit_command cmd)
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -1181,8 +1198,8 @@ void exec_edit_command_to_eol(enum edit_command cmd)
     exec_motion_command(yle_main_buffer.length, false);
 }
 
-/* Kills the character under the cursor and sets the editing mode to "vi insert".
- * If the count is set, `count' characters are killed. */
+/* Kills the character under the cursor and sets the editing mode to
+ * "vi insert". If the count is set, `count' characters are killed. */
 void cmd_vi_substitute(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
