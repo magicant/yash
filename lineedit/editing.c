@@ -86,8 +86,8 @@ static size_t next_kill_index = 0;
 static size_t last_put_index = 0;
 
 
-static inline void reset_state(void);
-static inline int get_count(int default_value);
+static void reset_state(void);
+static int get_count(int default_value);
 static void save_undo_history(void);
 static void maybe_save_undo_history(void);
 static void exec_motion_command(size_t index, bool inclusive);
