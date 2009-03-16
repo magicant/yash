@@ -58,8 +58,11 @@ static struct state {
 	int multiplier;
 #define COUNT_ABS_MAX 9999
     } count;
-    enum edit_command {
-	CMD_NONE, CMD_COPY, CMD_KILL, CMD_CHANGE, CMD_COPYCHANGE,
+    union {
+	enum motion_expect_command {
+	    MEC_NONE, MEC_COPY, MEC_KILL, MEC_CHANGE, MEC_COPYCHANGE,
+	} motion;
+	yle_command_func_T *chr;
     } pending_command;
 } state;
 
@@ -128,8 +131,9 @@ static inline bool is_blank_or_punct(wchar_t c)
 static void kill_chars(bool backward);
 static void insert_killed_string(bool cursor_on_last_char);
 static void cancel_undo(int offset);
-static void exec_edit_command(enum edit_command cmd);
-static inline void exec_edit_command_to_eol(enum edit_command cmd);
+static void vi_find(wchar_t c);
+static void exec_edit_command(enum motion_expect_command cmd);
+static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 
 #define ALERT_AND_RETURN_IF_PENDING \
     do if (alert_if_pending()) return; while (0)
@@ -196,7 +200,7 @@ void reset_state(void)
     state.count.sign = 0;
     state.count.abs = 0;
     state.count.multiplier = 1;
-    state.pending_command = CMD_NONE;
+    state.pending_command.motion = MEC_NONE;
 }
 
 /* Returns the count value.
@@ -272,15 +276,15 @@ void exec_motion_command(size_t index, bool inclusive)
 	start_index = index, end_index = yle_main_index;
     if (inclusive && end_index < yle_main_buffer.length)
 	end_index++;
-    switch (state.pending_command) {
-	case CMD_NONE:
+    switch (state.pending_command.motion) {
+	case MEC_NONE:
 	    yle_main_index = index;
 	    break;
-	case CMD_COPY:
+	case MEC_COPY:
 	    add_to_kill_ring(yle_main_buffer.contents + start_index,
 		    end_index - start_index);
 	    break;
-	case CMD_KILL:
+	case MEC_KILL:
 	    save_current_edit_command();
 	    add_to_kill_ring(yle_main_buffer.contents + start_index,
 		    end_index - start_index);
@@ -288,11 +292,11 @@ void exec_motion_command(size_t index, bool inclusive)
 	    yle_main_index = start_index;
 	    yle_display_reprint_buffer(start_index, false);
 	    break;
-	case CMD_COPYCHANGE:
+	case MEC_COPYCHANGE:
 	    add_to_kill_ring(yle_main_buffer.contents + start_index,
 		    end_index - start_index);
 	    /* falls thru */
-	case CMD_CHANGE:
+	case MEC_CHANGE:
 	    save_current_edit_command();
 	    wb_remove(&yle_main_buffer, start_index, end_index - start_index);
 	    yle_main_index = start_index;
@@ -362,7 +366,7 @@ bool alert_if_last(void)
 /* Invokes `cmd_alert' and returns true if the pending command is set. */
 bool alert_if_pending(void)
 {
-    if (state.pending_command != CMD_NONE) {
+    if (state.pending_command.motion != MEC_NONE) {
 	cmd_alert(L'\a');
 	return true;
     } else {
@@ -397,7 +401,6 @@ void cmd_self_insert(wchar_t c)
  * character. */
 void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
     yle_next_verbatim = true;
 }
 
@@ -812,8 +815,6 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
  * `yle_state' is set to YLE_STATE_INTERRUPTED and `yle_readline' returns. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
     yle_state = YLE_STATE_INTERRUPTED;
     reset_state();
 }
@@ -880,6 +881,20 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
     yle_set_mode(YLE_MODE_VI_COMMAND);
     reset_state();
     overwrite = false;
+}
+
+/* Executes a command that expects a character as an argument. */
+void cmd_expect_char(wchar_t c)
+{
+    state.pending_command.chr(c);
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+}
+
+/* Cancels a command that expects a character as an argument. */
+void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
+{
+    reset_state();
+    yle_set_mode(YLE_MODE_VI_COMMAND);
 }
 
 /* Redraw everything. */
@@ -1232,6 +1247,43 @@ void cmd_vi_column(wchar_t c __attribute__((unused)))
     exec_motion_command(index, false);
 }
 
+/* Sets the editing mode to "vi expect" and the pending command to `vi_find'. */
+void cmd_vi_find(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    yle_set_mode(YLE_MODE_VI_EXPECT);
+    state.pending_command.chr = vi_find;
+}
+
+/* Moves the cursor to the `count'th occurrence of `c' after the current
+ * position. */
+/* inclusive motion command */
+void vi_find(wchar_t c)
+{
+    if (alert_if_last())
+	return;
+    assert(yle_main_index < yle_main_buffer.length);
+    if (c == L'\0')
+	goto error;
+
+    size_t new_index = yle_main_index;
+    for (int i = get_count(1); --i >= 0; ) {
+	wchar_t *cp = wcschr(yle_main_buffer.contents + new_index + 1, c);
+	if (!cp)
+	    goto error;
+	new_index = cp - yle_main_buffer.contents;
+    }
+    state.pending_command.motion = MEC_NONE;
+    exec_motion_command(new_index, true);
+    return;
+
+error:
+    cmd_alert(c);
+    return;
+}
+
 /* Moves the cursor to the beginning of line and sets the editing mode to
  * "vi insert". */
 void cmd_vi_insert_beginning(wchar_t c)
@@ -1298,51 +1350,51 @@ void cmd_vi_change_case(wchar_t c)
     reset_state();
 }
 
-/* Sets the pending command to `CMD_COPY'.
+/* Sets the pending command to `MEC_COPY'.
  * The count multiplier is set to the current count.
- * If the pending command is already set to `CMD_COPY', the whole line is copied
+ * If the pending command is already set to `MEC_COPY', the whole line is copied
  * to the kill ring. */
 void cmd_vi_yank(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(CMD_COPY);
+    exec_edit_command(MEC_COPY);
 }
 
 /* Copies the content of the edit line from the current position to the end. */
 void cmd_vi_yank_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(CMD_COPY);
+    exec_edit_command_to_eol(MEC_COPY);
 }
 
-/* Sets the pending command to `CMD_KILL'.
+/* Sets the pending command to `MEC_KILL'.
  * The count multiplier is set to the current count. 
- * If the pending command is already set to `CMD_KILL', the whole line is moved
+ * If the pending command is already set to `MEC_KILL', the whole line is moved
  * to the kill ring. */
 void cmd_vi_delete(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(CMD_KILL);
+    exec_edit_command(MEC_KILL);
 }
 
 /* Deletes the content of the edit line from the current position to the end and
  * put it in the kill ring. */
 void cmd_vi_delete_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(CMD_KILL);
+    exec_edit_command_to_eol(MEC_KILL);
 }
 
-/* Sets the pending command to `CMD_CHANGE'.
+/* Sets the pending command to `MEC_CHANGE'.
  * The count multiplier is set to the current count. 
- * If the pending command is already set to `CMD_CHANGE', the whole line is
+ * If the pending command is already set to `MEC_CHANGE', the whole line is
  * deleted to the kill ring and the editing mode is set to "vi insert". */
 void cmd_vi_change(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(CMD_CHANGE);
+    exec_edit_command(MEC_CHANGE);
 }
 
 /* Deletes the content of the edit line from the current position to the end and
  * sets the editing mode to "vi insert". */
 void cmd_vi_change_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(CMD_CHANGE);
+    exec_edit_command_to_eol(MEC_CHANGE);
 }
 
 /* Deletes all the content of the edit line and sets the editing mode to
@@ -1352,23 +1404,23 @@ void cmd_vi_change_all(wchar_t c __attribute__((unused)))
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
     yle_main_index = 0;
-    exec_edit_command_to_eol(CMD_CHANGE);
+    exec_edit_command_to_eol(MEC_CHANGE);
 }
 
-/* Sets the pending command to `CMD_COPYCHANGE'.
+/* Sets the pending command to `MEC_COPYCHANGE'.
  * The count multiplier is set to the current count. 
- * If the pending command is already set to `CMD_COPYCHANGE', the whole line is
+ * If the pending command is already set to `MEC_COPYCHANGE', the whole line is
  * moved to the kill ring and the editing mode is set to "vi insert". */
 void cmd_vi_yank_and_change(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(CMD_COPYCHANGE);
+    exec_edit_command(MEC_COPYCHANGE);
 }
 
 /* Deletes the content of the edit line from the current position to the end,
  * put it in the kill ring, and sets the editing mode to "vi insert". */
 void cmd_vi_yank_and_change_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(CMD_COPYCHANGE);
+    exec_edit_command_to_eol(MEC_COPYCHANGE);
 }
 
 /* Deletes all the content of the edit line, put it in the kill ring, and sets
@@ -1378,14 +1430,14 @@ void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
     yle_main_index = 0;
-    exec_edit_command_to_eol(CMD_COPYCHANGE);
+    exec_edit_command_to_eol(MEC_COPYCHANGE);
 }
 
 /* Executes the specified command. */
-void exec_edit_command(enum edit_command cmd)
+void exec_edit_command(enum motion_expect_command cmd)
 {
-    if (state.pending_command != CMD_NONE) {
-	if (state.pending_command == cmd) {
+    if (state.pending_command.motion != MEC_NONE) {
+	if (state.pending_command.motion == cmd) {
 	    size_t old_index = yle_main_index;
 	    yle_main_index = 0;
 	    exec_motion_command(yle_main_buffer.length, true);
@@ -1398,17 +1450,17 @@ void exec_edit_command(enum edit_command cmd)
 	state.count.multiplier = get_count(1);
 	state.count.sign = 0;
 	state.count.abs = 0;
-	state.pending_command = cmd;
+	state.pending_command.motion = cmd;
     }
 }
 
 /* Executes the specified command on the range from the current cursor position
  * to the end of the line. */
-void exec_edit_command_to_eol(enum edit_command cmd)
+void exec_edit_command_to_eol(enum motion_expect_command cmd)
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command = cmd;
+    state.pending_command.motion = cmd;
     exec_motion_command(yle_main_buffer.length, false);
 }
 

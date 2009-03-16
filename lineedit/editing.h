@@ -63,6 +63,8 @@ extern yle_command_func_T
     cmd_accept_with_hash,
     cmd_setmode_viinsert,
     cmd_setmode_vicommand,
+    cmd_expect_char,
+    cmd_abort_expect_char,
     cmd_redraw_all;
 
 /* editing commands */
@@ -86,6 +88,7 @@ extern yle_command_func_T
 /* vi-mode specific commands */
 extern yle_command_func_T
     cmd_vi_column,
+    cmd_vi_find,
     cmd_vi_insert_beginning,
     cmd_vi_append,
     cmd_vi_append_end,

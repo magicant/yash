@@ -33,6 +33,7 @@ typedef struct yle_mode_T {
 typedef enum yle_mode_id_T {
     YLE_MODE_VI_INSERT,
     YLE_MODE_VI_COMMAND,
+    YLE_MODE_VI_EXPECT,
     //TODO currently, no emacs mode
     YLE_MODE_N,  // number of modes
 } yle_mode_id_T;

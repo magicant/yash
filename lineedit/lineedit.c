@@ -318,15 +318,10 @@ trieget_T make_trieget(const wchar_t *keyseq)
 
 void append_to_second_buffer(wchar_t wc)
 {
-    if (wc != L'\0') {
-	if (yle_next_verbatim) {
-	    size_t old_index = yle_main_index;
-	    wb_ninsert_force(&yle_main_buffer, yle_main_index++, &wc, 1);
-	    yle_display_reprint_buffer(old_index,
-		    yle_main_index == yle_main_buffer.length);
-	} else {
-	    wb_wccat(&reader_second_buffer, wc);
-	}
+    if (yle_next_verbatim) {
+	yle_invoke_command(yle_current_mode->default_command, wc);
+    } else if (wc != L'\0') {
+	wb_wccat(&reader_second_buffer, wc);
     }
     yle_next_verbatim = false;
 }

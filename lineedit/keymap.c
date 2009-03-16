@@ -114,6 +114,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"U",          CMDENTRY(cmd_undo_all));
     t = trie_setw(t, L".",          CMDENTRY(cmd_redo));
     t = trie_setw(t, L"|",          CMDENTRY(cmd_vi_column));
+    t = trie_setw(t, L"f",          CMDENTRY(cmd_vi_find));
     t = trie_setw(t, L"I",          CMDENTRY(cmd_vi_insert_beginning));
     t = trie_setw(t, L"a",          CMDENTRY(cmd_vi_append));
     t = trie_setw(t, L"A",          CMDENTRY(cmd_vi_append_end));
@@ -148,6 +149,14 @@ void yle_keymap_init(void)
     // n
     // N
     yle_modes[YLE_MODE_VI_COMMAND].keymap = t;
+
+    yle_modes[YLE_MODE_VI_EXPECT].default_command = cmd_expect_char;
+    t = trie_create();
+    t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
+    t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_escape,    CMDENTRY(cmd_abort_expect_char));
+    yle_modes[YLE_MODE_VI_EXPECT].keymap = t;
 }
 
 /* Sets the editing mode to the one specified by `id'. */
