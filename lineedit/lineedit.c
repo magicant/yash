@@ -93,15 +93,6 @@ wchar_t *yle_readline(const wchar_t *prompt)
     assert(is_interactive_now);
     assert(mode == MODE_INACTIVE);
 
-    switch (shopt_lineedit) {
-	case shopt_vi:
-	case shopt_emacs:  // TODO currently, emacs is the same as vi
-	    yle_set_mode(YLE_MODE_VI_INSERT);
-	    break;
-	default:
-	    assert(false);
-    }
-
     mode = MODE_ACTIVE;
     yle_editing_init();
     yle_display_init(prompt);

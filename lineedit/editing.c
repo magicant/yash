@@ -22,7 +22,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <wctype.h>
+#include "../option.h"
+#include "../plist.h"
 #include "../strbuf.h"
 #include "../util.h"
 #include "display.h"
@@ -63,6 +66,17 @@ static struct {
 /* If true, characters are overwritten rather than inserted. */
 static bool overwrite = false;
 
+/* History of the edit line between editing commands. */
+static plist_T undo_history;
+/* Index of the current state in the history.
+ * If the current state is the newest, the index is `undo_history.length'. */
+static size_t undo_index;
+/* Structure of history entries */
+struct undo_history {
+    size_t index;         /* index of the cursor */
+    wchar_t contents[];  /* contents of the edit line */
+};
+
 /* The kill ring */
 #define KILL_RING_SIZE 30
 static wchar_t *kill_ring[KILL_RING_SIZE];
@@ -74,6 +88,8 @@ static size_t last_put_index = 0;
 
 static inline void reset_state(void);
 static inline int get_count(int default_value);
+static void save_undo_history(void);
+static void maybe_save_undo_history(void);
 static void exec_motion_command(size_t index, bool inclusive);
 static void add_to_kill_ring(const wchar_t *s, size_t n)
     __attribute__((nonnull));
@@ -102,6 +118,8 @@ static size_t previous_word_index(const wchar_t *s, size_t i)
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 static void kill_chars(bool backward);
+static void insert_killed_string(bool cursor_on_last_char);
+static void cancel_undo(int offset);
 static void exec_edit_command(enum edit_command cmd);
 static inline void exec_edit_command_to_eol(enum edit_command cmd);
 
@@ -115,8 +133,21 @@ void yle_editing_init(void)
     wb_init(&yle_main_buffer);
     yle_main_index = 0;
 
+    switch (shopt_lineedit) {
+	case shopt_vi:
+	case shopt_emacs:  // TODO currently, emacs is the same as vi
+	    yle_set_mode(YLE_MODE_VI_INSERT);
+	    break;
+	default:
+	    assert(false);
+    }
+
     last_command.func = 0;
     last_command.arg = L'\0';
+
+    pl_init(&undo_history);
+    undo_index = 0;
+    save_undo_history();
 
     reset_state();
     overwrite = false;
@@ -126,6 +157,8 @@ void yle_editing_init(void)
  * Returns the content of the main buffer, which must be freed by the caller. */
 wchar_t *yle_editing_finalize(void)
 {
+    recfree(pl_toary(&undo_history), free);
+
     wb_wccat(&yle_main_buffer, L'\n');
     return wb_towcs(&yle_main_buffer);
 }
@@ -166,6 +199,39 @@ int get_count(int default_value)
     return state.count.sign * (int) state.count.abs * state.count.multiplier;
 }
 
+/* Saves the current contents of the edit line to the undo history.
+ * History entries at the current `undo_index' and newer are removed before
+ * saving the current. */
+void save_undo_history(void)
+{
+    for (size_t i = undo_index; i < undo_history.length; i++)
+	free(undo_history.contents[i]);
+    pl_remove(&undo_history, undo_index, SIZE_MAX);
+
+    struct undo_history *e = xmalloc(sizeof *e +
+	    (yle_main_buffer.length + 1) * sizeof *e->contents);
+    e->index = yle_main_index;
+    wcscpy(e->contents, yle_main_buffer.contents);
+    pl_add(&undo_history, e);
+    assert(undo_index == undo_history.length - 1);
+}
+
+/* Calls `save_undo_history' if the current contents of the edit line is not
+ * saved. */
+void maybe_save_undo_history(void)
+{
+    assert(undo_index <= undo_history.length);
+    if (undo_index < undo_history.length) {
+	struct undo_history *h = undo_history.contents[undo_index];
+	if (wcscmp(yle_main_buffer.contents, h->contents) == 0) {
+	    h->index = yle_main_index;
+	    return;
+	}
+	undo_index++;
+    }
+    save_undo_history();
+}
+
 /* Applies the current pending editing command to the range between the current
  * cursor index and the given `index'. If no editing command is pending, simply
  * moves the cursor to the `index'. */
@@ -174,6 +240,8 @@ int get_count(int default_value)
 void exec_motion_command(size_t index, bool inclusive)
 {
     assert(index <= yle_main_buffer.length);
+
+    maybe_save_undo_history();
 
     size_t start_index, end_index;
     if (yle_main_index <= index)
@@ -769,6 +837,7 @@ void cmd_accept_with_hash(wchar_t c)
 void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     yle_set_mode(YLE_MODE_VI_INSERT);
     reset_state();
@@ -779,6 +848,7 @@ void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     if (yle_current_mode == &yle_modes[YLE_MODE_VI_INSERT])
 	if (yle_main_index > 0)
@@ -802,9 +872,10 @@ void cmd_redraw_all(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_delete_char(wchar_t c)
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
     if (state.count.sign == 0) {
+	ALERT_AND_RETURN_IF_PENDING;
+	maybe_save_undo_history();
+
 	if (yle_main_index < yle_main_buffer.length) {
 	    wb_remove(&yle_main_buffer, yle_main_index, 1);
 	    yle_display_reprint_buffer(yle_main_index, false);
@@ -821,9 +892,10 @@ void cmd_delete_char(wchar_t c)
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c)
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
     if (state.count.sign == 0) {
+	ALERT_AND_RETURN_IF_PENDING;
+	maybe_save_undo_history();
+
 	if (yle_main_index > 0) {
 	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
 	    yle_display_reprint_buffer(yle_main_index, false);
@@ -842,6 +914,7 @@ void cmd_backward_delete_char(wchar_t c)
 void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     size_t bound = yle_main_index;
 
@@ -874,6 +947,7 @@ bool is_blank_or_punct(wchar_t c)
 void cmd_delete_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     wb_clear(&yle_main_buffer);
     yle_main_index = 0;
@@ -885,6 +959,7 @@ void cmd_delete_line(wchar_t c __attribute__((unused)))
 void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     if (yle_main_index < yle_main_buffer.length) {
 	wb_remove(&yle_main_buffer, yle_main_index, SIZE_MAX);
@@ -897,6 +972,7 @@ void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     if (yle_main_index > 0) {
 	wb_remove(&yle_main_buffer, 0, yle_main_index);
@@ -911,6 +987,7 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 void cmd_kill_char(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     assert(yle_main_index <= yle_main_buffer.length);
     if (yle_main_index == yle_main_buffer.length) {
@@ -927,6 +1004,7 @@ void cmd_kill_char(wchar_t c)
 void cmd_backward_kill_char(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     assert(yle_main_index <= yle_main_buffer.length);
     if (yle_main_index == 0) {
@@ -937,6 +1015,8 @@ void cmd_backward_kill_char(wchar_t c)
     kill_chars(true);
 }
 
+/* Removes `count' characters from the current position and puts it in the kill
+ * ring. If `backward' is true, characters before the cursor are removed. */
 void kill_chars(bool backward)
 {
     int n = get_count(1);
@@ -968,15 +1048,34 @@ void kill_chars(bool backward)
 
 /* Inserts the last-killed string before the cursor.
  * If the count is set, inserts `count' times. */
-void cmd_put_before(wchar_t c)
+void cmd_put_before(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    insert_killed_string(true);
+}
+
+/* Inserts the last-killed string after the cursor.
+ * If the count is set, inserts `count' times. */
+void cmd_put(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (yle_main_index < yle_main_buffer.length)
+	yle_main_index++;
+    insert_killed_string(true);
+}
+
+/* Inserts the last-killed string before the cursor (`count' times).
+ * If `cursor_on_last_char' is true, the cursor is left on the last character
+ * inserted. Otherwise, the cursor is left after the inserted string. */
+void insert_killed_string(bool cursor_on_last_char)
+{
+    maybe_save_undo_history();
 
     last_put_index = (next_kill_index - 1) % KILL_RING_SIZE;
 
     const wchar_t *s = kill_ring[last_put_index];
     if (s == NULL) {
-	cmd_alert(c);
+	cmd_alert(L'\a');
 	return;
     } else if (s[0] == L'\0') {
 	reset_state();
@@ -988,18 +1087,66 @@ void cmd_put_before(wchar_t c)
     for (int count = get_count(1); --count >= 0; )
 	wb_insert(&yle_main_buffer, yle_main_index, s);
     assert(yle_main_buffer.length >= offset + 1);
-    yle_main_index = yle_main_buffer.length - offset - 1;
+    yle_main_index = yle_main_buffer.length - offset - cursor_on_last_char;
     yle_display_reprint_buffer(old_index, offset == 0);
     reset_state();
 }
 
-/* Inserts the last-killed string after the cursor.
- * If the count is set, inserts `count' times. */
-void cmd_put(wchar_t c)
+/* Undoes the last editing command. */
+void cmd_undo(wchar_t c __attribute__((unused)))
 {
-    if (yle_main_index < yle_main_buffer.length)
-	yle_main_index++;
-    cmd_put_before(c);
+    cancel_undo(-get_count(1));
+}
+
+/* Cancels the last undo. */
+void cmd_cancel_undo(wchar_t c __attribute__((unused)))
+{
+    cancel_undo(get_count(1));
+}
+
+/* Performs "undo"/"cancel undo".
+ * `undo_index' is increased by `offset' and the contents of the history entry
+ * of the new index is set to the edit line. */
+void cancel_undo(int offset)
+{
+    maybe_save_undo_history();
+
+    if (offset < 0) {
+	if (undo_index == 0)
+	    goto error;
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (-offset > (int) undo_index)
+#else
+	if ((size_t) -offset > undo_index)
+#endif
+	    undo_index = 0;
+	else
+	    undo_index += offset;
+    } else {
+	if (undo_index + 1 >= undo_history.length)
+	    goto error;
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (offset >= (int) (undo_history.length - undo_index))
+#else
+	if ((size_t) offset >= undo_history.length - undo_index)
+#endif
+	    undo_index = undo_history.length - 1;
+	else
+	    undo_index += offset;
+    }
+
+    const struct undo_history *entry = undo_history.contents[undo_index];
+    wb_replace(&yle_main_buffer, 0, SIZE_MAX, entry->contents, SIZE_MAX);
+    assert(entry->index <= yle_main_buffer.length);
+    yle_main_index = entry->index;
+
+    yle_display_reprint_buffer(0, false);
+    reset_state();
+    return;
+
+error:
+    cmd_alert(L'\a');
+    return;
 }
 
 
@@ -1068,6 +1215,7 @@ void cmd_vi_replace(wchar_t c)
 void cmd_vi_change_case(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     size_t old_index = yle_main_index;
 
@@ -1203,6 +1351,7 @@ void exec_edit_command_to_eol(enum edit_command cmd)
 void cmd_vi_substitute(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
 
     assert(yle_main_index <= yle_main_buffer.length);
     if (yle_main_index == 0) {
