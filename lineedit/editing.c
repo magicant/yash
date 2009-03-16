@@ -1098,15 +1098,28 @@ void cmd_undo(wchar_t c __attribute__((unused)))
     cancel_undo(-get_count(1));
 }
 
+/* Undoes all changes to the edit line. */
+void cmd_undo_all(wchar_t c __attribute__((unused)))
+{
+    cancel_undo(-COUNT_ABS_MAX);
+}
+
 /* Cancels the last undo. */
 void cmd_cancel_undo(wchar_t c __attribute__((unused)))
 {
     cancel_undo(get_count(1));
 }
 
+/* Cancels all previous undo. */
+void cmd_cancel_undo_all(wchar_t c __attribute__((unused)))
+{
+    cancel_undo(COUNT_ABS_MAX);
+}
+
 /* Performs "undo"/"cancel undo".
  * `undo_index' is increased by `offset' and the contents of the history entry
- * of the new index is set to the edit line. */
+ * of the new index is set to the edit line.
+ * `offset' must be between `-COUNT_ABS_MAX' and `COUNT_ABS_MAX'. */
 void cancel_undo(int offset)
 {
     maybe_save_undo_history();

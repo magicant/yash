@@ -78,7 +78,9 @@ extern yle_command_func_T
     cmd_put_before,
     cmd_put,
     cmd_undo,
-    cmd_cancel_undo;
+    cmd_undo_all,
+    cmd_cancel_undo,
+    cmd_cancel_undo_all;
 
 /* vi-mode specific commands */
 extern yle_command_func_T
