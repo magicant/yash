@@ -41,14 +41,14 @@ xwcsbuf_T yle_main_buffer;
 /* 0 <= yle_main_index <= yle_main_buffer.length */
 size_t yle_main_index;
 
-/* The last executed command. */
-static struct {
+/* The last executed command and the currently executing command. */
+static struct command {
     yle_command_func_T *func;
     wchar_t arg;
-} last_command;
+} last_command, current_command;
 
 /* The keymap state. */
-static struct {
+static struct state {
     struct {
 	/* When count is not specified, `sign' and `abs' is 0.
 	 * Otherwise, `sign' is 1 or -1.
@@ -62,6 +62,13 @@ static struct {
 	CMD_NONE, CMD_COPY, CMD_KILL, CMD_CHANGE, CMD_COPYCHANGE,
     } pending_command;
 } state;
+
+/* The last executed editing command and the then state. */
+/* `last_edit_command' is valid iff `.command.func' is non-null. */
+static struct {
+    struct command command;
+    struct state state;
+} last_edit_command;
 
 /* If true, characters are overwritten rather than inserted. */
 static bool overwrite = false;
@@ -88,6 +95,7 @@ static size_t last_put_index = 0;
 
 static void reset_state(void);
 static int get_count(int default_value);
+static void save_current_edit_command(void);
 static void save_undo_history(void);
 static void maybe_save_undo_history(void);
 static void exec_motion_command(size_t index, bool inclusive);
@@ -166,6 +174,9 @@ wchar_t *yle_editing_finalize(void)
 /* Invokes the specified command. */
 void yle_invoke_command(yle_command_func_T *cmd, wchar_t arg)
 {
+    current_command.func = cmd;
+    current_command.arg = arg;
+
     cmd(arg);
 
     last_command.func = cmd;
@@ -197,6 +208,17 @@ int get_count(int default_value)
     if (state.count.sign < 0 && state.count.abs == 0)
 	return -state.count.multiplier;
     return state.count.sign * (int) state.count.abs * state.count.multiplier;
+}
+
+/* Saves the currently executing command and the current state in
+ * `last_edit_command' if we are not redoing and the mode is not "vi insert". */
+void save_current_edit_command(void)
+{
+    if (current_command.func != cmd_redo
+	    && yle_current_mode != &yle_modes[YLE_MODE_VI_INSERT]) {
+	last_edit_command.command = current_command;
+	last_edit_command.state = state;
+    }
 }
 
 /* Saves the current contents of the edit line to the undo history.
@@ -259,6 +281,7 @@ void exec_motion_command(size_t index, bool inclusive)
 		    end_index - start_index);
 	    break;
 	case CMD_KILL:
+	    save_current_edit_command();
 	    add_to_kill_ring(yle_main_buffer.contents + start_index,
 		    end_index - start_index);
 	    wb_remove(&yle_main_buffer, start_index, end_index - start_index);
@@ -270,6 +293,7 @@ void exec_motion_command(size_t index, bool inclusive)
 		    end_index - start_index);
 	    /* falls thru */
 	case CMD_CHANGE:
+	    save_current_edit_command();
 	    wb_remove(&yle_main_buffer, start_index, end_index - start_index);
 	    yle_main_index = start_index;
 	    yle_display_reprint_buffer(start_index, false);
@@ -874,6 +898,7 @@ void cmd_delete_char(wchar_t c)
 {
     if (state.count.sign == 0) {
 	ALERT_AND_RETURN_IF_PENDING;
+	save_current_edit_command();
 	maybe_save_undo_history();
 
 	if (yle_main_index < yle_main_buffer.length) {
@@ -894,6 +919,7 @@ void cmd_backward_delete_char(wchar_t c)
 {
     if (state.count.sign == 0) {
 	ALERT_AND_RETURN_IF_PENDING;
+	save_current_edit_command();
 	maybe_save_undo_history();
 
 	if (yle_main_index > 0) {
@@ -914,6 +940,7 @@ void cmd_backward_delete_char(wchar_t c)
 void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     size_t bound = yle_main_index;
@@ -947,6 +974,7 @@ bool is_blank_or_punct(wchar_t c)
 void cmd_delete_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     wb_clear(&yle_main_buffer);
@@ -959,6 +987,7 @@ void cmd_delete_line(wchar_t c __attribute__((unused)))
 void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     if (yle_main_index < yle_main_buffer.length) {
@@ -972,6 +1001,7 @@ void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     if (yle_main_index > 0) {
@@ -987,6 +1017,7 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 void cmd_kill_char(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     assert(yle_main_index <= yle_main_buffer.length);
@@ -1004,6 +1035,7 @@ void cmd_kill_char(wchar_t c)
 void cmd_backward_kill_char(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     assert(yle_main_index <= yle_main_buffer.length);
@@ -1069,6 +1101,7 @@ void cmd_put(wchar_t c __attribute__((unused)))
  * inserted. Otherwise, the cursor is left after the inserted string. */
 void insert_killed_string(bool cursor_on_last_char)
 {
+    save_current_edit_command();
     maybe_save_undo_history();
 
     last_put_index = (next_kill_index - 1) % KILL_RING_SIZE;
@@ -1162,6 +1195,22 @@ error:
     return;
 }
 
+/* Redoes the last editing command. */
+/* XXX: currently vi's "i" command cannot be redone. */
+void cmd_redo(wchar_t c)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (!last_edit_command.command.func) {
+	cmd_alert(c);
+	return;
+    }
+
+    if (state.count.sign != 0)
+	last_edit_command.state.count = state.count;
+    state = last_edit_command.state;
+    last_edit_command.command.func(last_edit_command.command.arg);
+}
+
 
 /********** Vi-Mode Specific Commands **********/
 
@@ -1228,6 +1277,7 @@ void cmd_vi_replace(wchar_t c)
 void cmd_vi_change_case(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     size_t old_index = yle_main_index;
@@ -1299,7 +1349,8 @@ void cmd_vi_change_to_eol(wchar_t c __attribute__((unused)))
  * "vi insert". */
 void cmd_vi_change_all(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
     yle_main_index = 0;
     exec_edit_command_to_eol(CMD_CHANGE);
 }
@@ -1324,7 +1375,8 @@ void cmd_vi_yank_and_change_to_eol(wchar_t c __attribute__((unused)))
  * the editing mode to "vi insert". */
 void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
     yle_main_index = 0;
     exec_edit_command_to_eol(CMD_COPYCHANGE);
 }
@@ -1354,7 +1406,8 @@ void exec_edit_command(enum edit_command cmd)
  * to the end of the line. */
 void exec_edit_command_to_eol(enum edit_command cmd)
 {
-    ALERT_AND_RETURN_IF_PENDING;
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
     state.pending_command = cmd;
     exec_motion_command(yle_main_buffer.length, false);
 }
@@ -1364,6 +1417,7 @@ void exec_edit_command_to_eol(enum edit_command cmd)
 void cmd_vi_substitute(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
     maybe_save_undo_history();
 
     assert(yle_main_index <= yle_main_buffer.length);

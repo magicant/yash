@@ -112,6 +112,7 @@ void yle_keymap_init(void)
     t = trie_setw(t, L"p",          CMDENTRY(cmd_put));
     t = trie_setw(t, L"u",          CMDENTRY(cmd_undo));
     t = trie_setw(t, L"U",          CMDENTRY(cmd_undo_all));
+    t = trie_setw(t, L".",          CMDENTRY(cmd_redo));
     t = trie_setw(t, L"|",          CMDENTRY(cmd_vi_column));
     t = trie_setw(t, L"I",          CMDENTRY(cmd_vi_insert_beginning));
     t = trie_setw(t, L"a",          CMDENTRY(cmd_vi_append));
@@ -131,7 +132,6 @@ void yle_keymap_init(void)
     // \ 
     // *
     // @ char
-    // .
     // v
     // f/F char
     // t/T char
