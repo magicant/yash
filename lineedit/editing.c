@@ -127,7 +127,7 @@ static size_t previous_word_index(const wchar_t *s, size_t i)
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 static void kill_chars(bool backward);
-static void insert_killed_string(bool cursor_on_last_char);
+static void insert_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void cancel_undo(int offset);
 static void vi_find(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
@@ -1098,7 +1098,7 @@ void kill_chars(bool backward)
 void cmd_put_before(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    insert_killed_string(true);
+    insert_killed_string(false, true);
 }
 
 /* Inserts the last-killed string after the cursor.
@@ -1106,15 +1106,15 @@ void cmd_put_before(wchar_t c __attribute__((unused)))
 void cmd_put(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (yle_main_index < yle_main_buffer.length)
-	yle_main_index++;
-    insert_killed_string(true);
+    insert_killed_string(true, true);
 }
 
-/* Inserts the last-killed string before the cursor (`count' times).
+/* Inserts the last-killed text before the cursor (`count' times).
+ * If `after_cursor' is true, the text is inserted after the current cursor
+ * position. Otherwise, before the current position.
  * If `cursor_on_last_char' is true, the cursor is left on the last character
- * inserted. Otherwise, the cursor is left after the inserted string. */
-void insert_killed_string(bool cursor_on_last_char)
+ * inserted. Otherwise, the cursor is left after the inserted text. */
+void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
 {
     save_current_edit_command();
     maybe_save_undo_history();
@@ -1129,6 +1129,9 @@ void insert_killed_string(bool cursor_on_last_char)
 	reset_state();
 	return;
     }
+
+    if (after_cursor && yle_main_index < yle_main_buffer.length)
+	yle_main_index++;
 
     size_t offset = yle_main_buffer.length - yle_main_index;
     size_t old_index = yle_main_index;
