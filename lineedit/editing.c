@@ -91,7 +91,9 @@ static wchar_t *kill_ring[KILL_RING_SIZE];
 /* The index of the element to which next killed string is assigned. */
 static size_t next_kill_index = 0;
 /* The index of the element which was put last. */
-static size_t last_put_index = 0;
+static size_t last_put_elem = 0;  /* < KILL_RING_SIZE */
+/* The position and length of the last-put string. */
+static size_t last_put_range_start, last_put_range_length;
 
 
 static void reset_state(void);
@@ -1094,7 +1096,8 @@ void kill_chars(bool backward)
 }
 
 /* Inserts the last-killed string before the cursor.
- * If the count is set, inserts `count' times. */
+ * If the count is set, inserts `count' times.
+ * The cursor is left on the last character inserted. */
 void cmd_put_before(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -1102,11 +1105,21 @@ void cmd_put_before(wchar_t c __attribute__((unused)))
 }
 
 /* Inserts the last-killed string after the cursor.
- * If the count is set, inserts `count' times. */
+ * If the count is set, inserts `count' times.
+ * The cursor is left on the last character inserted. */
 void cmd_put(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     insert_killed_string(true, true);
+}
+
+/* Inserts the last-killed string before the cursor.
+ * If the count is set, inserts `count' times.
+ * The cursor is left after the inserted string. */
+void cmd_put_left(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    insert_killed_string(false, false);
 }
 
 /* Inserts the last-killed text before the cursor (`count' times).
@@ -1119,9 +1132,9 @@ void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
     save_current_edit_command();
     maybe_save_undo_history();
 
-    last_put_index = (next_kill_index - 1) % KILL_RING_SIZE;
+    last_put_elem = (next_kill_index - 1) % KILL_RING_SIZE;
 
-    const wchar_t *s = kill_ring[last_put_index];
+    const wchar_t *s = kill_ring[last_put_elem];
     if (s == NULL) {
 	cmd_alert(L'\a');
 	return;
@@ -1138,9 +1151,34 @@ void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
     for (int count = get_count(1); --count >= 0; )
 	wb_insert(&yle_main_buffer, yle_main_index, s);
     assert(yle_main_buffer.length >= offset + 1);
-    yle_main_index = yle_main_buffer.length - offset - cursor_on_last_char;
+
+    last_put_range_start = yle_main_index;
+    yle_main_index = yle_main_buffer.length - offset;
+    last_put_range_length = yle_main_index - last_put_range_start;
+    yle_main_index -= cursor_on_last_char;
+
     yle_display_reprint_buffer(old_index, offset == 0);
     reset_state();
+}
+
+/* Replaces the string just inserted by `cmd_put_left' with the previously
+ * killed string. */
+void cmd_put_pop(wchar_t c)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (last_command.func != cmd_put_left
+	    && last_command.func != cmd_put
+	    && last_command.func != cmd_put_before) {
+	cmd_alert(c);
+	return;
+    }
+    const wchar_t *s = kill_ring[last_put_elem];
+    if (s == NULL || s[0] == L'\0') {
+	cmd_alert(c);
+	return;
+    }
+    save_current_edit_command();
+    //TODO
 }
 
 /* Undoes the last editing command. */

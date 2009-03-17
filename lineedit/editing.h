@@ -79,6 +79,8 @@ extern yle_command_func_T
     cmd_backward_kill_char,
     cmd_put_before,
     cmd_put,
+    cmd_put_left,
+    cmd_put_pop,
     cmd_undo,
     cmd_undo_all,
     cmd_cancel_undo,
