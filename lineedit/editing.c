@@ -58,12 +58,10 @@ static struct state {
 	int multiplier;
 #define COUNT_ABS_MAX 9999
     } count;
-    union {
-	enum motion_expect_command {
-	    MEC_NONE, MEC_COPY, MEC_KILL, MEC_CHANGE, MEC_COPYCHANGE,
-	} motion;
-	yle_command_func_T *chr;
-    } pending_command;
+    enum motion_expect_command {
+	MEC_NONE, MEC_COPY, MEC_KILL, MEC_CHANGE, MEC_COPYCHANGE,
+    } pending_command_motion;
+    yle_command_func_T *pending_command_char;
 } state;
 
 /* The last executed editing command and the then state. */
@@ -183,8 +181,7 @@ void yle_invoke_command(yle_command_func_T *cmd, wchar_t arg)
 
     cmd(arg);
 
-    last_command.func = cmd;
-    last_command.arg = arg;
+    last_command = current_command;
 
     if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
 	if (yle_main_index > 0 && yle_main_index == yle_main_buffer.length) {
@@ -200,7 +197,8 @@ void reset_state(void)
     state.count.sign = 0;
     state.count.abs = 0;
     state.count.multiplier = 1;
-    state.pending_command.motion = MEC_NONE;
+    state.pending_command_motion = MEC_NONE;
+    state.pending_command_char = 0;
 }
 
 /* Returns the count value.
@@ -276,7 +274,7 @@ void exec_motion_command(size_t index, bool inclusive)
 	start_index = index, end_index = yle_main_index;
     if (inclusive && end_index < yle_main_buffer.length)
 	end_index++;
-    switch (state.pending_command.motion) {
+    switch (state.pending_command_motion) {
 	case MEC_NONE:
 	    yle_main_index = index;
 	    break;
@@ -366,7 +364,7 @@ bool alert_if_last(void)
 /* Invokes `cmd_alert' and returns true if the pending command is set. */
 bool alert_if_pending(void)
 {
-    if (state.pending_command.motion != MEC_NONE) {
+    if (state.pending_command_motion != MEC_NONE) {
 	cmd_alert(L'\a');
 	return true;
     } else {
@@ -886,8 +884,10 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 /* Executes a command that expects a character as an argument. */
 void cmd_expect_char(wchar_t c)
 {
-    state.pending_command.chr(c);
-    yle_set_mode(YLE_MODE_VI_COMMAND);
+    if (state.pending_command_char) {
+	current_command.func = state.pending_command_char;
+	state.pending_command_char(c);
+    }
 }
 
 /* Cancels a command that expects a character as an argument. */
@@ -1250,11 +1250,10 @@ void cmd_vi_column(wchar_t c __attribute__((unused)))
 /* Sets the editing mode to "vi expect" and the pending command to `vi_find'. */
 void cmd_vi_find(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
     yle_set_mode(YLE_MODE_VI_EXPECT);
-    state.pending_command.chr = vi_find;
+    state.pending_command_char = vi_find;
 }
 
 /* Moves the cursor to the `count'th occurrence of `c' after the current
@@ -1262,10 +1261,8 @@ void cmd_vi_find(wchar_t c __attribute__((unused)))
 /* inclusive motion command */
 void vi_find(wchar_t c)
 {
-    if (alert_if_last())
-	return;
-    assert(yle_main_index < yle_main_buffer.length);
-    if (c == L'\0')
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+    if (c == L'\0' || yle_main_index >= yle_main_buffer.length)
 	goto error;
 
     size_t new_index = yle_main_index;
@@ -1275,7 +1272,6 @@ void vi_find(wchar_t c)
 	    goto error;
 	new_index = cp - yle_main_buffer.contents;
     }
-    state.pending_command.motion = MEC_NONE;
     exec_motion_command(new_index, true);
     return;
 
@@ -1436,8 +1432,8 @@ void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
 /* Executes the specified command. */
 void exec_edit_command(enum motion_expect_command cmd)
 {
-    if (state.pending_command.motion != MEC_NONE) {
-	if (state.pending_command.motion == cmd) {
+    if (state.pending_command_motion != MEC_NONE) {
+	if (state.pending_command_motion == cmd) {
 	    size_t old_index = yle_main_index;
 	    yle_main_index = 0;
 	    exec_motion_command(yle_main_buffer.length, true);
@@ -1450,7 +1446,7 @@ void exec_edit_command(enum motion_expect_command cmd)
 	state.count.multiplier = get_count(1);
 	state.count.sign = 0;
 	state.count.abs = 0;
-	state.pending_command.motion = cmd;
+	state.pending_command_motion = cmd;
     }
 }
 
@@ -1460,7 +1456,7 @@ void exec_edit_command_to_eol(enum motion_expect_command cmd)
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command.motion = cmd;
+    state.pending_command_motion = cmd;
     exec_motion_command(yle_main_buffer.length, false);
 }
 
