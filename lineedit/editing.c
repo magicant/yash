@@ -132,6 +132,7 @@ static void kill_chars(bool backward);
 static void insert_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void cancel_undo(int offset);
 static void vi_find(wchar_t c);
+static void vi_find_rev(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 
@@ -1314,6 +1315,42 @@ void vi_find(wchar_t c)
 	new_index = cp - yle_main_buffer.contents;
     }
     exec_motion_command(new_index, true);
+    return;
+
+error:
+    cmd_alert(c);
+    return;
+}
+
+/* Sets the editing mode to "vi expect" and the pending command to
+ * `vi_find_rev'. */
+void cmd_vi_find_rev(wchar_t c __attribute__((unused)))
+{
+    maybe_save_undo_history();
+
+    yle_set_mode(YLE_MODE_VI_EXPECT);
+    state.pending_command_char = vi_find_rev;
+}
+
+/* Moves the cursor to the `count'th occurrence of `c' before the current
+ * position. */
+/* exclusive motion command */
+void vi_find_rev(wchar_t c)
+{
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+    if (c == L'\0' || yle_main_index == 0)
+	goto error;
+
+    size_t new_index = yle_main_index;
+    int count = get_count(1);
+    while (count > 0 && new_index > 0) {
+	new_index--;
+	if (yle_main_buffer.contents[new_index] == c)
+	    count--;
+    }
+    if (count > 0)
+	goto error;
+    exec_motion_command(new_index, false);
     return;
 
 error:
