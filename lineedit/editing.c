@@ -133,6 +133,7 @@ static void insert_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void cancel_undo(int offset);
 static void vi_find(wchar_t c);
 static void vi_find_rev(wchar_t c);
+static size_t find_nth_occurence(wchar_t c, int n);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 
@@ -1304,22 +1305,12 @@ void cmd_vi_find(wchar_t c __attribute__((unused)))
 void vi_find(wchar_t c)
 {
     yle_set_mode(YLE_MODE_VI_COMMAND);
-    if (c == L'\0' || yle_main_index >= yle_main_buffer.length)
-	goto error;
 
-    size_t new_index = yle_main_index;
-    for (int i = get_count(1); --i >= 0; ) {
-	wchar_t *cp = wcschr(yle_main_buffer.contents + new_index + 1, c);
-	if (!cp)
-	    goto error;
-	new_index = cp - yle_main_buffer.contents;
-    }
-    exec_motion_command(new_index, true);
-    return;
-
-error:
-    cmd_alert(c);
-    return;
+    size_t new_index = find_nth_occurence(c, get_count(1));
+    if (new_index == SIZE_MAX)
+	cmd_alert(c);
+    else
+	exec_motion_command(new_index, true);
 }
 
 /* Sets the editing mode to "vi expect" and the pending command to
@@ -1338,24 +1329,41 @@ void cmd_vi_find_rev(wchar_t c __attribute__((unused)))
 void vi_find_rev(wchar_t c)
 {
     yle_set_mode(YLE_MODE_VI_COMMAND);
-    if (c == L'\0' || yle_main_index == 0)
-	goto error;
 
-    size_t new_index = yle_main_index;
-    int count = get_count(1);
-    while (count > 0 && new_index > 0) {
-	new_index--;
-	if (yle_main_buffer.contents[new_index] == c)
-	    count--;
+    size_t new_index = find_nth_occurence(c, -get_count(1));
+    if (new_index == SIZE_MAX)
+	cmd_alert(c);
+    else
+	exec_motion_command(new_index, false);
+}
+
+/* Finds the position of the nth occurrence of `c' in the edit line from the
+ * current position. Returns `SIZE_MAX' on failure (no such occurrence). */
+size_t find_nth_occurence(wchar_t c, int n)
+{
+    size_t i = yle_main_index;
+
+    if (n == 0) {
+	return i;
+    } else if (c == L'\0') {
+	return SIZE_MAX;  /* no such occurrence */
+    } else if (n >= 0) {
+	while (n > 0 && i < yle_main_buffer.length) {
+	    i++;
+	    if (yle_main_buffer.contents[i] == c)
+		n--;
+	}
+    } else {
+	while (n < 0 && i > 0) {
+	    i--;
+	    if (yle_main_buffer.contents[i] == c)
+		n++;
+	}
     }
-    if (count > 0)
-	goto error;
-    exec_motion_command(new_index, false);
-    return;
-
-error:
-    cmd_alert(c);
-    return;
+    if (n != 0)
+	return SIZE_MAX;  /* no such occurrence */
+    else
+	return i;
 }
 
 /* Moves the cursor to the beginning of line and sets the editing mode to
