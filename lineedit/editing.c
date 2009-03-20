@@ -136,6 +136,7 @@ static void vi_find_rev(wchar_t c);
 static void vi_till(wchar_t c);
 static void vi_till_rev(wchar_t c);
 static size_t find_nth_occurence(wchar_t c, int n);
+static void vi_replace_char(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 
@@ -378,7 +379,9 @@ bool alert_if_pending(void)
     }
 }
 
-/* Inserts one character in the buffer. */
+/* Inserts one character in the buffer.
+ * If the count is set, inserts `count' times.
+ * If `overwrite' is true, overwrites the character instead of inserting. */
 void cmd_self_insert(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -394,10 +397,10 @@ void cmd_self_insert(wchar_t c)
 		wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
 	yle_display_reprint_buffer(old_index,
 		!overwrite && yle_main_index == yle_main_buffer.length);
+	reset_state();
     } else {
-	yle_alert();
+	cmd_alert(c);
     }
-    reset_state();
 }
 
 /* Sets the `yle_next_verbatim' flag.
@@ -1413,6 +1416,40 @@ size_t find_nth_occurence(wchar_t c, int n)
 	return SIZE_MAX;  /* no such occurrence */
     else
 	return i;
+}
+
+/* Sets the editing mode to "vi expect" and the pending command to
+ * `vi_replace_char'. */
+void cmd_vi_replace_char(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    yle_set_mode(YLE_MODE_VI_EXPECT);
+    state.pending_command_char = vi_replace_char;
+}
+
+/* Replaces the character under the cursor with `c'.
+ * If the count is set, the `count' characters are replaced. */
+void vi_replace_char(wchar_t c)
+{
+    save_current_edit_command();
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+
+    if (c != L'\0') {
+	int count = get_count(1);
+	size_t old_index = yle_main_index;
+
+	if (--count >= 0 && yle_main_index < yle_main_buffer.length) {
+	    yle_main_buffer.contents[yle_main_index] = c;
+	    while (--count >= 0 && yle_main_index < yle_main_buffer.length)
+		    yle_main_buffer.contents[++yle_main_index] = c;
+	}
+	yle_display_reprint_buffer(old_index, false);
+	reset_state();
+    } else {
+	cmd_alert(c);
+    }
 }
 
 /* Moves the cursor to the beginning of line and sets the editing mode to
