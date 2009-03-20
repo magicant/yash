@@ -133,6 +133,8 @@ static void insert_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void cancel_undo(int offset);
 static void vi_find(wchar_t c);
 static void vi_find_rev(wchar_t c);
+static void vi_till(wchar_t c);
+static void vi_till_rev(wchar_t c);
 static size_t find_nth_occurence(wchar_t c, int n);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
@@ -1335,6 +1337,53 @@ void vi_find_rev(wchar_t c)
 	cmd_alert(c);
     else
 	exec_motion_command(new_index, false);
+}
+
+/* Sets the editing mode to "vi expect" and the pending command to `vi_till'. */
+void cmd_vi_till(wchar_t c __attribute__((unused)))
+{
+    maybe_save_undo_history();
+
+    yle_set_mode(YLE_MODE_VI_EXPECT);
+    state.pending_command_char = vi_till;
+}
+
+/* Moves the cursor to the character just before `count'th occurrence of `c'
+ * after the current position. */
+/* inclusive motion command */
+void vi_till(wchar_t c)
+{
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+
+    size_t new_index = find_nth_occurence(c, get_count(1));
+    if (new_index == SIZE_MAX || new_index == 0)
+	cmd_alert(c);
+    else
+	exec_motion_command(new_index - 1, true);
+}
+
+/* Sets the editing mode to "vi expect" and the pending command to
+ * `vi_till_rev'. */
+void cmd_vi_till_rev(wchar_t c __attribute__((unused)))
+{
+    maybe_save_undo_history();
+
+    yle_set_mode(YLE_MODE_VI_EXPECT);
+    state.pending_command_char = vi_till_rev;
+}
+
+/* Moves the cursor to the character just after `count'th occurrence of `c'
+ * before the current position. */
+/* exclusive motion command */
+void vi_till_rev(wchar_t c)
+{
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+
+    size_t new_index = find_nth_occurence(c, -get_count(1));
+    if (new_index >= yle_main_buffer.length)
+	cmd_alert(c);
+    else
+	exec_motion_command(new_index + 1, false);
 }
 
 /* Finds the position of the nth occurrence of `c' in the edit line from the
