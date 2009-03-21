@@ -71,6 +71,10 @@ static struct {
     struct state state;
 } last_edit_command;
 
+/* The last executed find/till command and the then state. */
+/* `last_find_command' is valid iff `.func' is non-null. */
+static struct command last_find_command;
+
 /* If true, characters are overwritten rather than inserted. */
 static bool overwrite = false;
 
@@ -99,6 +103,7 @@ static size_t last_put_range_start, last_put_range_length;
 static void reset_state(void);
 static int get_count(int default_value);
 static void save_current_edit_command(void);
+static void save_current_find_command(void);
 static void save_undo_history(void);
 static void maybe_save_undo_history(void);
 static void exec_motion_command(size_t index, bool inclusive);
@@ -135,6 +140,7 @@ static void vi_find(wchar_t c);
 static void vi_find_rev(wchar_t c);
 static void vi_till(wchar_t c);
 static void vi_till_rev(wchar_t c);
+static void exec_find(wchar_t c, int count, bool till);
 static size_t find_nth_occurence(wchar_t c, int n);
 static void vi_replace_char(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
@@ -228,6 +234,16 @@ void save_current_edit_command(void)
 	last_edit_command.command = current_command;
 	last_edit_command.state = state;
     }
+}
+
+/* Saves the currently executing command and the current state in
+ * `last_find_command' if we are not redoing/refinding. */
+void save_current_find_command(void)
+{
+    if (current_command.func != cmd_vi_refind
+	    && current_command.func != cmd_vi_refind_rev
+	    && current_command.func != cmd_redo)
+	last_find_command = current_command;
 }
 
 /* Saves the current contents of the edit line to the undo history.
@@ -1309,13 +1325,7 @@ void cmd_vi_find(wchar_t c __attribute__((unused)))
 /* inclusive motion command */
 void vi_find(wchar_t c)
 {
-    yle_set_mode(YLE_MODE_VI_COMMAND);
-
-    size_t new_index = find_nth_occurence(c, get_count(1));
-    if (new_index == SIZE_MAX)
-	cmd_alert(c);
-    else
-	exec_motion_command(new_index, true);
+    exec_find(c, get_count(1), false);
 }
 
 /* Sets the editing mode to "vi expect" and the pending command to
@@ -1333,13 +1343,7 @@ void cmd_vi_find_rev(wchar_t c __attribute__((unused)))
 /* exclusive motion command */
 void vi_find_rev(wchar_t c)
 {
-    yle_set_mode(YLE_MODE_VI_COMMAND);
-
-    size_t new_index = find_nth_occurence(c, -get_count(1));
-    if (new_index == SIZE_MAX)
-	cmd_alert(c);
-    else
-	exec_motion_command(new_index, false);
+    exec_find(c, -get_count(1), false);
 }
 
 /* Sets the editing mode to "vi expect" and the pending command to `vi_till'. */
@@ -1356,13 +1360,7 @@ void cmd_vi_till(wchar_t c __attribute__((unused)))
 /* inclusive motion command */
 void vi_till(wchar_t c)
 {
-    yle_set_mode(YLE_MODE_VI_COMMAND);
-
-    size_t new_index = find_nth_occurence(c, get_count(1));
-    if (new_index == SIZE_MAX || new_index == 0)
-	cmd_alert(c);
-    else
-	exec_motion_command(new_index - 1, true);
+    exec_find(c, get_count(1), true);
 }
 
 /* Sets the editing mode to "vi expect" and the pending command to
@@ -1380,13 +1378,35 @@ void cmd_vi_till_rev(wchar_t c __attribute__((unused)))
 /* exclusive motion command */
 void vi_till_rev(wchar_t c)
 {
-    yle_set_mode(YLE_MODE_VI_COMMAND);
+    exec_find(c, -get_count(1), true);
+}
 
-    size_t new_index = find_nth_occurence(c, -get_count(1));
-    if (new_index >= yle_main_buffer.length)
-	cmd_alert(c);
-    else
-	exec_motion_command(new_index + 1, false);
+/* Executes the find/till command. */
+void exec_find(wchar_t c, int count, bool till)
+{
+    yle_set_mode(YLE_MODE_VI_COMMAND);
+    save_current_find_command();
+
+    size_t new_index = find_nth_occurence(c, count);
+    if (new_index == SIZE_MAX)
+	goto error;
+    if (till) {
+	if (new_index >= yle_main_index) {
+	    if (new_index == 0)
+		goto error;
+	    new_index--;
+	} else {
+	    if (new_index == yle_main_buffer.length)
+		goto error;
+	    new_index++;
+	}
+    }
+    exec_motion_command(new_index, new_index >= yle_main_index);
+    return;
+
+error:
+    cmd_alert(c);
+    return;
 }
 
 /* Finds the position of the nth occurrence of `c' in the edit line from the
@@ -1418,6 +1438,34 @@ size_t find_nth_occurence(wchar_t c, int n)
 	return i;
 }
 
+/* Redoes the last find/till command. */
+void cmd_vi_refind(wchar_t c)
+{
+    if (!last_find_command.func) {
+	cmd_alert(c);
+	return;
+    }
+
+    last_find_command.func(last_find_command.arg);
+}
+
+/* Redoes the last find/till command in the reverse direction. */
+void cmd_vi_refind_rev(wchar_t c)
+{
+    if (!last_find_command.func) {
+	cmd_alert(c);
+	return;
+    }
+
+    if (state.count.sign == 0)
+	state.count.sign = -1, state.count.abs = 1;
+    else if (state.count.sign >= 0)
+	state.count.sign = -1;
+    else
+	state.count.sign = 1;
+    last_find_command.func(last_find_command.arg);
+}
+
 /* Sets the editing mode to "vi expect" and the pending command to
  * `vi_replace_char'. */
 void cmd_vi_replace_char(wchar_t c __attribute__((unused)))
@@ -1443,7 +1491,7 @@ void vi_replace_char(wchar_t c)
 	if (--count >= 0 && yle_main_index < yle_main_buffer.length) {
 	    yle_main_buffer.contents[yle_main_index] = c;
 	    while (--count >= 0 && yle_main_index < yle_main_buffer.length)
-		    yle_main_buffer.contents[++yle_main_index] = c;
+		yle_main_buffer.contents[++yle_main_index] = c;
 	}
 	yle_display_reprint_buffer(old_index, false);
 	reset_state();

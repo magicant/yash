@@ -94,6 +94,8 @@ extern yle_command_func_T
     cmd_vi_find_rev,
     cmd_vi_till,
     cmd_vi_till_rev,
+    cmd_vi_refind,
+    cmd_vi_refind_rev,
     cmd_vi_replace_char,
     cmd_vi_insert_beginning,
     cmd_vi_append,
