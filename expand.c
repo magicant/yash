@@ -1356,7 +1356,7 @@ done:;
 }
 
 /* Tries numeric brace expansion like "{01..05}".
- * If unsuccessful, this function has no side effects and returns false.
+ * If unsuccessful, this function returns false without any side effects.
  * If successful, `word' and `split' are freed and the full expansion results
  * are added to `valuelist' and `splitlist'.
  * `startc' is a pointer to the character immediately succeeding L'{' in `word'.
@@ -1365,8 +1365,8 @@ bool tryexpand_brace_sequence(
 	wchar_t *word, char *split, wchar_t *startc,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
-    long start, end, value;
-    wchar_t *dotexpect, *braceexpect, *c;
+    long start, end, delta, value;
+    wchar_t *dotp, *dotbracep, *bracep, *c;
     int startlen, endlen, len, wordlen;
     bool sign = false;
 
@@ -1374,32 +1374,53 @@ bool tryexpand_brace_sequence(
     c = startc;
 
     /* parse the starting point */
-    dotexpect = wcschr(c, L'.');
-    if (!dotexpect || c == dotexpect)
+    dotp = wcschr(c, L'.');
+    if (!dotp || c == dotp || dotp[1] != L'.')
 	return false;
-    startlen = has_leading_zero(c, &sign) ? (dotexpect - c) : 0;
+    startlen = has_leading_zero(c, &sign) ? (dotp - c) : 0;
     errno = 0;
     start = wcstol(c, &c, 0);
-    if (errno || c != dotexpect || c[1] != L'.')
+    if (errno || c != dotp)
 	return false;
 
-    c += 2;
+    c = dotp + 2;
 
     /* parse the ending point */
-    braceexpect = wcschr(c, L'}');
-    if (!braceexpect || c == braceexpect)
+    dotbracep = wcspbrk(c, L".}");
+    if (!dotbracep || c == dotbracep ||
+	    (dotbracep[0] == L'.' && dotbracep[1] != L'.'))
 	return false;
-    endlen = has_leading_zero(c, &sign) ? (braceexpect - c) : 0;
+    endlen = has_leading_zero(c, &sign) ? (dotbracep - c) : 0;
     errno = 0;
     end = wcstol(c, &c, 0);
-    if (errno || c != braceexpect)
+    if (errno || c != dotbracep)
 	return false;
+
+    /* parse the delta */
+    if (dotbracep[0] == L'.') {
+	assert(dotbracep[1] == L'.');
+	c = dotbracep + 2;
+	bracep = wcschr(c, L'}');
+	if (!bracep || c == bracep)
+	    return false;
+	errno = 0;
+	delta = wcstol(c, &c, 0);
+	if (delta == 0 || errno || c != bracep)
+	    return false;
+    } else {
+	assert(dotbracep[0] == L'}');
+	bracep = dotbracep;
+	if (start <= end)
+	    delta = 1;
+	else
+	    delta = -1;
+    }
 
     /* expand the sequence */
     value = start;
     len = (startlen > endlen) ? startlen : endlen;
     wordlen = wcslen(word);
-    for (;;) {
+    do {
 	xwcsbuf_T buf;
 	xstrbuf_T sbuf;
 	wb_init(&buf);
@@ -1412,22 +1433,17 @@ bool tryexpand_brace_sequence(
 	if (plen > 0)
 	    sb_ccat_repeat(&sbuf, 0, plen);
 
-	wb_cat(&buf, braceexpect + 1);
+	wb_cat(&buf, bracep + 1);
 	sb_ncat_force(&sbuf,
-		split + (braceexpect + 1 - word),
-		wordlen - (braceexpect + 1 - word));
+		split + (bracep + 1 - word),
+		wordlen - (bracep + 1 - word));
 	assert(buf.length == sbuf.length || plen < 0);
 
 	/* expand the remaining portion recursively */
 	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
 
-	if (value == end)
-	    break;
-	if (start < end)
-	    value++;
-	else
-	    value--;
-    }
+	value += delta;
+    } while (delta >= 0 ? value <= end : value >= end);
     free(word);
     free(split);
     return true;
