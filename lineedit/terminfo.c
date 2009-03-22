@@ -215,15 +215,15 @@
 
 
 /* Number of lines and columns in the current terminal. */
-/* Initialized by `yle_setupterm'. */
-int yle_lines, yle_columns;
+/* Initialized by `le_setupterm'. */
+int le_lines, le_columns;
 
 /* True if the meta key inputs character whose 8th bit is set. */
-_Bool yle_meta_bit8;
+_Bool le_meta_bit8;
 
 /* Strings sent by terminal when special key is pressed.
  * Values of entries are `keyseq'. */
-trie_T *yle_keycodes = NULL;
+trie_T *le_keycodes = NULL;
 
 
 static inline int is_strcap_valid(const char *s)
@@ -248,7 +248,7 @@ int is_strcap_valid(const char *s)
 
 /* Calls `setupterm' and checks if terminfo data is available.
  * Returns true iff successful. */
-_Bool yle_setupterm(void)
+_Bool le_setupterm(void)
 {
     static _Bool once = 0;
     int err;
@@ -269,10 +269,10 @@ _Bool yle_setupterm(void)
 	    || !is_strcap_valid(tigetstr(TI_cuu))) return 0;
     if (!is_strcap_valid(tigetstr(TI_el))) return 0;
 
-    yle_lines = tigetnum(TI_lines);
-    yle_columns = tigetnum(TI_cols);
-    yle_meta_bit8 = tigetflag(TI_km) > 0;
-    if (yle_lines <= 0 || yle_columns <= 0)
+    le_lines = tigetnum(TI_lines);
+    le_columns = tigetnum(TI_cols);
+    le_meta_bit8 = tigetflag(TI_km) > 0;
+    if (le_lines <= 0 || le_columns <= 0)
 	return 0;
 
     set_up_keycodes();
@@ -280,10 +280,10 @@ _Bool yle_setupterm(void)
     return 1;
 }
 
-/* Initialized `yle_keycodes'. */
+/* Initialized `le_keycodes'. */
 void set_up_keycodes(void)
 {
-    trie_destroy(yle_keycodes);
+    trie_destroy(le_keycodes);
 
     trie_T *t = trie_create();
     static const struct charmap {
@@ -468,11 +468,11 @@ void set_up_keycodes(void)
 	    t = trie_set(t, seq, (trievalue_T) { .keyseq = keymap[i].keyseq });
     }
 
-    yle_keycodes = t;
+    le_keycodes = t;
 }
 
 /* Prints "cr" variable. (carriage return: move cursor to first char of line) */
-void yle_print_cr(void)
+void le_print_cr(void)
 {
     char *v = tigetstr(TI_cr);
     if (is_strcap_valid(v))
@@ -482,7 +482,7 @@ void yle_print_cr(void)
 }
 
 /* Prints "nel" variable. (newline: move cursor to first char of next line) */
-void yle_print_nel(void)
+void le_print_nel(void)
 {
     char *v = tigetstr(TI_nel);
     if (is_strcap_valid(v))
@@ -492,10 +492,10 @@ void yle_print_nel(void)
 }
 
 /* Prints "nel" variable if "am" variable is false. */
-void yle_print_nel_if_no_auto_margin(void)
+void le_print_nel_if_no_auto_margin(void)
 {
     if(tigetflag(TI_am) <= 0)
-	yle_print_nel();
+	le_print_nel();
 }
 
 /* Moves the cursor.
@@ -542,14 +542,14 @@ _Bool move_cursor_mul(char *capmul, long count, int affcnt)
 
 /* Prints "cub"/"cub1" variable. (move cursor backward by `count' columns) */
 /* `count' must be small enough not to go beyond screen bounds. */
-void yle_print_cub(long count)
+void le_print_cub(long count)
 {
     move_cursor(TI_cub1, TI_cub, count, 1);
 }
 
 /* Prints "cuf"/"cuf1" variable. (move cursor forward by `count' columns) */
 /* `count' must be small enough not to go beyond screen bounds .*/
-void yle_print_cuf(long count)
+void le_print_cuf(long count)
 {
     move_cursor(TI_cuf1, TI_cuf, count, 1);
 }
@@ -557,7 +557,7 @@ void yle_print_cuf(long count)
 /* Prints "cud"/"cud1" variable. (move cursor down by `count' lines) */
 /* `count' must be small enough not to go beyond screen bounds .*/
 /* Note that this function may put the cursor at column 0 as side effect. */
-void yle_print_cud(long count)
+void le_print_cud(long count)
 {
     move_cursor(TI_cud1, TI_cud, count, count + 1);
 }
@@ -565,13 +565,13 @@ void yle_print_cud(long count)
 /* Prints "cuu"/"cuu1" variable. (move cursor up by `count' lines) */
 /* `count' must be small enough not to go beyond screen bounds .*/
 /* Note that this function may put the cursor at column 0 as side effect. */
-void yle_print_cuu(long count)
+void le_print_cuu(long count)
 {
     move_cursor(TI_cuu1, TI_cuu, count, count + 1);
 }
 
 /* Prints "el" variable. (clear to end of line) */
-void yle_print_el(void)
+void le_print_el(void)
 {
     char *v = tigetstr(TI_el);
     if (is_strcap_valid(v))
@@ -580,7 +580,7 @@ void yle_print_el(void)
 
 /* Prints "ed" variable if available. (clear to end of screen)
  * Returns true iff successful. */
-_Bool yle_print_ed(void)
+_Bool le_print_ed(void)
 {
     char *v = tigetstr(TI_ed);
     if (is_strcap_valid(v))
@@ -590,7 +590,7 @@ _Bool yle_print_ed(void)
 }
 
 /* Prints "sgr" variable. Every argument must be 0 or 1. */
-void yle_print_sgr(long standout, long underline, long reverse, long blink,
+void le_print_sgr(long standout, long underline, long reverse, long blink,
 	long dim, long bold, long invisible)
 {
     char *v = tigetstr(TI_sgr);
@@ -603,7 +603,7 @@ void yle_print_sgr(long standout, long underline, long reverse, long blink,
 }
 
 /* Prints "op" variable. (set color pairs to default) */
-void yle_print_op(void)
+void le_print_op(void)
 {
     char *v = tigetstr(TI_op);
     if (is_strcap_valid(v))
@@ -611,7 +611,7 @@ void yle_print_op(void)
 }
 
 /* Prints "setf"/"setaf" variable. */
-void yle_print_setfg(int color)
+void le_print_setfg(int color)
 {
     char *v = tigetstr(TI_setaf);
     if (!is_strcap_valid(v))
@@ -624,7 +624,7 @@ void yle_print_setfg(int color)
 }
 
 /* Prints "setb"/"setab" variable. */
-void yle_print_setbg(int color)
+void le_print_setbg(int color)
 {
     char *v = tigetstr(TI_setab);
     if (!is_strcap_valid(v))
@@ -659,7 +659,7 @@ int putchar_stderr(int c)
 }
 
 /* Alerts the user by flash or bell, without moving the cursor. */
-void yle_alert(void)
+void le_alert(void)
 {
     char *v = tigetstr(TI_bel);
     if (!is_strcap_valid(v))
@@ -674,7 +674,7 @@ void yle_alert(void)
 /********** TERMIOS **********/
 
 /* Special characters. */
-char yle_eof_char, yle_kill_char, yle_interrupt_char, yle_erase_char;
+char le_eof_char, le_kill_char, le_interrupt_char, le_erase_char;
 
 static struct termios original_terminal_state;
 
@@ -682,17 +682,17 @@ static struct termios original_terminal_state;
  * The current state is saved as `original_terminal_state'.
  * `stdin' must be the terminal.
  * Returns true iff successful. */
-_Bool yle_set_terminal(void)
+_Bool le_set_terminal(void)
 {
     struct termios term;
 
     if (tcgetattr(STDIN_FILENO, &term) != 0)
 	return 0;
     original_terminal_state = term;
-    yle_eof_char       = TO_CHAR(term.c_cc[VEOF]);
-    yle_kill_char      = TO_CHAR(term.c_cc[VKILL]);
-    yle_interrupt_char = TO_CHAR(term.c_cc[VINTR]);
-    yle_erase_char     = TO_CHAR(term.c_cc[VERASE]);
+    le_eof_char       = TO_CHAR(term.c_cc[VEOF]);
+    le_kill_char      = TO_CHAR(term.c_cc[VKILL]);
+    le_interrupt_char = TO_CHAR(term.c_cc[VINTR]);
+    le_erase_char     = TO_CHAR(term.c_cc[VERASE]);
 
     /* set attributes */
     term.c_iflag &= ~(IGNBRK | BRKINT | INPCK | ISTRIP
@@ -730,7 +730,7 @@ fail:
 /* Restores the terminal to the original state.
  * `stdin' must be the terminal.
  * Returns true iff successful. */
-_Bool yle_restore_terminal(void)
+_Bool le_restore_terminal(void)
 {
     print_rmkx();
     fflush(stderr);

@@ -101,7 +101,7 @@ static int editbase_line, editbase_column;
 
 /* Array of cursor positions in the screen.
  * If the nth character in the main buffer is positioned at line `l', column `c'
- * on the screen, then cursor_positions[n] == l * yle_columns + c. */
+ * on the screen, then cursor_positions[n] == l * le_columns + c. */
 static int *cursor_positions;
 /* The line number of the last edit line. */
 static int last_edit_line;
@@ -114,28 +114,28 @@ static int last_edit_line;
 
 
 /* Initializes the display module.
- * Must be called after `yle_editing_init'. */
-void yle_display_init(const wchar_t *prompt)
+ * Must be called after `le_editing_init'. */
+void le_display_init(const wchar_t *prompt)
 {
     current_line = current_column = current_line_max = 0;
     last_edit_line = 0;
 
     promptstring = prompt;
-    yle_display_print_all();
-    yle_display_reposition_cursor();
+    le_display_print_all();
+    le_display_reposition_cursor();
 }
 
 /* Finalizes the display module.
- * Must be called before `yle_editing_finalize'. */
-void yle_display_finalize(void)
+ * Must be called before `le_editing_finalize'. */
+void le_display_finalize(void)
 {
-    go_to_index(yle_main_buffer.length);
+    go_to_index(le_main_buffer.length);
 
     free(cursor_positions);
     cursor_positions = NULL;
 
     if (current_column != 0)
-	yle_print_nel();
+	le_print_nel();
     current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();
@@ -143,7 +143,7 @@ void yle_display_finalize(void)
 
 /* Clears everything printed by lineedit, restoreing the state before lineedit
  * is started. */
-void yle_display_clear(void)
+void le_display_clear(void)
 {
     go_to(0, 0);
     clear_to_end_of_screen();
@@ -154,16 +154,16 @@ void yle_display_clear(void)
 void clear_to_end_of_screen(void)
 {
     assert(current_column == 0);
-    if (yle_print_ed())  /* if the terminal has "ed" capability, just use it */
+    if (le_print_ed())  /* if the terminal has "ed" capability, just use it */
 	return;
 
     int saveline = current_line;
     while (current_line < current_line_max) {
-	yle_print_el();
-	yle_print_nel();
+	le_print_el();
+	le_print_nel();
 	current_line++;
     }
-    yle_print_el();
+    le_print_el();
     go_to(saveline, 0);
 }
 
@@ -172,21 +172,21 @@ void clear_to_end_of_screen(void)
  * cleared. */
 /* Note that the cursor is not positioned at the current index on the edit line
  * after this function. */
-void yle_display_print_all(void)
+void le_display_print_all(void)
 {
 #if !YASH_DISABLE_PROMPT_ADJUST
     /* print dummy string to make sure the cursor is at the beginning of line */
-    yle_print_sgr(1, 0, 0, 0, 0, 0, 0);
+    le_print_sgr(1, 0, 0, 0, 0, 0, 0);
     fputc('%', stderr);
-    yle_print_sgr(0, 0, 0, 0, 0, 0, 0);
-    for (int i = 1; i < yle_columns; i++)
+    le_print_sgr(0, 0, 0, 0, 0, 0, 0);
+    for (int i = 1; i < le_columns; i++)
 	fputc(' ', stderr);
-    yle_print_cr();
-    yle_print_ed();
+    le_print_cr();
+    le_print_ed();
 #endif
 
     print_prompt();
-    yle_display_reprint_buffer(0, false);
+    le_display_reprint_buffer(0, false);
     // XXX print info area
 }
 
@@ -197,7 +197,7 @@ void yle_display_print_all(void)
  * change in the buffer is appending of characters only (or the display will be
  * messed up). */
 /* This function must be called after the main buffer is changed. */
-void yle_display_reprint_buffer(size_t index, bool noclear)
+void le_display_reprint_buffer(size_t index, bool noclear)
 {
     if (index == 0)
 	go_to(editbase_line, editbase_column);
@@ -209,42 +209,42 @@ void yle_display_reprint_buffer(size_t index, bool noclear)
 }
 
 /* Moves the cursor to the proper position on the screen.
- * This function must be called after `yle_main_index' is changed (but the
+ * This function must be called after `le_main_index' is changed (but the
  * content of the main buffer is not changed). The content of the buffer is not
  * reprinted. */
-inline void yle_display_reposition_cursor(void)
+inline void le_display_reposition_cursor(void)
 {
-    go_to_index(yle_main_index);
+    go_to_index(le_main_index);
 }
 
 
 /* Moves the cursor to the specified position. */
 static void go_to(int line, int column)
 {
-    // assert(line < yle_lines);
-    assert(column < yle_columns);
+    // assert(line < le_lines);
+    assert(column < le_columns);
 
     if (line == current_line) {
 	if (column == 0)
-	    yle_print_cr();
+	    le_print_cr();
 	else if (current_column < column)
-	    yle_print_cuf(column - current_column);
+	    le_print_cuf(column - current_column);
 	else if (current_column > column)
-	    yle_print_cub(current_column - column);
+	    le_print_cub(current_column - column);
 	current_column = column;
 	return;
     }
 
-    yle_print_cr();
+    le_print_cr();
     current_column = 0;
     if (current_line < line)
-	yle_print_cud(line - current_line);
+	le_print_cud(line - current_line);
     else if (current_line > line)
-	yle_print_cuu(current_line - line);
+	le_print_cuu(current_line - line);
     current_line = line;
     assert(current_line <= current_line_max);
     if (column > 0) {
-	yle_print_cuf(column);
+	le_print_cuf(column);
 	current_column = column;
     }
 }
@@ -254,10 +254,10 @@ static void go_to(int line, int column)
  * been called beforehand. */
 void go_to_index(size_t i)
 {
-    assert(i <= yle_main_buffer.length);
+    assert(i <= le_main_buffer.length);
 
     int pos = cursor_positions[i];
-    go_to(pos / yle_columns, pos % yle_columns);
+    go_to(pos / le_columns, pos % le_columns);
 }
 
 /* Counts the width of the character `c' as printed by `fputwc'. */
@@ -298,10 +298,10 @@ void tputwc(wchar_t c)
     int width = wcwidth(c);
     if (width > 0) {
 	int new_column = current_column + width;
-	if (new_column <= yle_columns) {
+	if (new_column <= le_columns) {
 	    current_column = new_column;
 	} else {
-	    yle_print_nel_if_no_auto_margin();
+	    le_print_nel_if_no_auto_margin();
 	    current_line++, current_column = width;
 	    CHECK_CURRENT_LINE_MAX;
 	}
@@ -309,15 +309,15 @@ void tputwc(wchar_t c)
     } else {
 	if (!convert_all_control) switch (c) {
 	    case L'\a':
-		yle_alert();
+		le_alert();
 		return;
 	    case L'\n':
-		yle_print_nel();
+		le_print_nel();
 		current_line++, current_column = 0;
 		CHECK_CURRENT_LINE_MAX;
 		return;
 	    case L'\r':
-		yle_print_cr();
+		le_print_cr();
 		current_column = 0;
 		return;
 	}
@@ -432,15 +432,15 @@ done:
     if (**sp == L'.')
 	(*sp)++;
 
-    yle_print_sgr(standout, underline, reverse, blink, dim, bold, invisible);
+    le_print_sgr(standout, underline, reverse, blink, dim, bold, invisible);
     if (op) {  /* restore original color pair */
-	yle_print_op();
+	le_print_op();
     }
     if (fg >= 0) { /* set foreground color */
-	yle_print_setfg(fg);
+	le_print_setfg(fg);
     }
     if (bg >= 0) { /* set background color */
-	yle_print_setbg(bg);
+	le_print_setbg(bg);
     }
 }
 
@@ -449,30 +449,30 @@ done:
  * The cursor must have been moved to the `index'th character. */
 void print_editline(size_t index)
 {
-    assert(yle_main_index <= yle_main_buffer.length);
-    assert(index <= yle_main_buffer.length);
+    assert(le_main_index <= le_main_buffer.length);
+    assert(index <= le_main_buffer.length);
     if (index == 0) {
 	assert(current_line == editbase_line);
 	assert(current_column == editbase_column);
     } else {
 	assert(cursor_positions[index] ==
-		current_line * yle_columns + current_column);
+		current_line * le_columns + current_column);
     }
 
     trace_position = convert_all_control = true;
     cursor_positions = xrealloc(cursor_positions,
-	    sizeof *cursor_positions * (yle_main_buffer.length + 1));
-    for (size_t i = index; i < yle_main_buffer.length; i++) {
-	cursor_positions[i] = current_line * yle_columns + current_column;
-	tputwc(yle_main_buffer.contents[i]);
+	    sizeof *cursor_positions * (le_main_buffer.length + 1));
+    for (size_t i = index; i < le_main_buffer.length; i++) {
+	cursor_positions[i] = current_line * le_columns + current_column;
+	tputwc(le_main_buffer.contents[i]);
     }
-    cursor_positions[yle_main_buffer.length] =
-	current_line * yle_columns + current_column;
+    cursor_positions[le_main_buffer.length] =
+	current_line * le_columns + current_column;
 
-    if (current_column >= yle_columns) {
+    if (current_column >= le_columns) {
 	/* print a dummy space to move the cursor to the next line */
 	tputwc(L' ');
-	yle_print_cr();
+	le_print_cr();
 	current_column = 0;
     }
 
@@ -491,10 +491,10 @@ void clear_editline(void)
 
     int save_line = current_line, save_column = current_column;
 
-    yle_print_el();
+    le_print_el();
     while (current_line < last_edit_line) {
-	yle_print_nel();
-	yle_print_el();
+	le_print_nel();
+	le_print_el();
 	current_line++;
 	assert(current_line <= current_line_max);
     }

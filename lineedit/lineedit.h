@@ -23,30 +23,30 @@
 
 
 typedef enum {
-    YLE_STATE_EDITING,     // editing is on-going
-    YLE_STATE_DONE,        // `yle_readline' should return (successful)
-    YLE_STATE_ERROR,       // `yle_readline' should return (unsuccessful)
-    YLE_STATE_INTERRUPTED, // `yle_readline' should return (interrupted)
-} yle_state_T;
+    LE_STATE_EDITING,     // editing is on-going
+    LE_STATE_DONE,        // `le_readline' should return (successful)
+    LE_STATE_ERROR,       // `le_readline' should return (unsuccessful)
+    LE_STATE_INTERRUPTED, // `le_readline' should return (interrupted)
+} le_state_T;
 
 
-extern yle_state_T yle_state;
+extern le_state_T le_state;
 
-extern _Bool yle_setup(void);
+extern _Bool le_setup(void);
 
-extern wchar_t *yle_readline(const wchar_t *prompt)
+extern wchar_t *le_readline(const wchar_t *prompt)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern void yle_suspend_readline(void);
-extern void yle_resume_readline(void);
+extern void le_suspend_readline(void);
+extern void le_resume_readline(void);
 #if YASH_ENABLE_LINEEDIT
-# define YLE_SUSPEND_READLINE() yle_suspend_readline()
-# define YLE_RESUME_READLINE()  yle_resume_readline()
+# define LE_SUSPEND_READLINE() le_suspend_readline()
+# define LE_RESUME_READLINE()  le_resume_readline()
 #else
-# define YLE_SUSPEND_READLINE() ((void) 0)
-# define YLE_RESUME_READLINE()  ((void) 0)
+# define LE_SUSPEND_READLINE() ((void) 0)
+# define LE_RESUME_READLINE()  ((void) 0)
 #endif
 
-extern _Bool yle_next_verbatim;
+extern _Bool le_next_verbatim;
 
 
 #endif /* YASH_LINEEDIT_H */

@@ -578,9 +578,9 @@ void handle_sigchld(void)
         sigchld_received = false;
         do_wait();
 	if (shopt_notify) {
-	    YLE_SUSPEND_READLINE();
+	    LE_SUSPEND_READLINE();
 	    print_job_status_all(true, false, stderr);
-	    YLE_RESUME_READLINE();
+	    LE_RESUME_READLINE();
 	}
     }
 }
@@ -598,7 +598,7 @@ int handle_traps(void)
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return false;
 
-    YLE_SUSPEND_READLINE();
+    LE_SUSPEND_READLINE();
 
     int signum = 0;
     sigset_t emptyset, origset;
@@ -658,7 +658,7 @@ exec_handlers:
     }
 #endif
 
-    YLE_RESUME_READLINE();
+    LE_RESUME_READLINE();
 
     if (any_signal_received)
 	goto exec_handlers;

@@ -24,28 +24,28 @@
 
 
 /* This structure describes an editing mode. */
-typedef struct yle_mode_T {
-    yle_command_func_T *default_command;
+typedef struct le_mode_T {
+    le_command_func_T *default_command;
     struct trienode_T /* trie_T */ *keymap;
-} yle_mode_T;
+} le_mode_T;
 
 /* mode indeces */
-typedef enum yle_mode_id_T {
-    YLE_MODE_VI_INSERT,
-    YLE_MODE_VI_COMMAND,
-    YLE_MODE_VI_EXPECT,
+typedef enum le_mode_id_T {
+    LE_MODE_VI_INSERT,
+    LE_MODE_VI_COMMAND,
+    LE_MODE_VI_EXPECT,
     //TODO currently, no emacs mode
-    YLE_MODE_N,  // number of modes
-} yle_mode_id_T;
+    LE_MODE_N,  // number of modes
+} le_mode_id_T;
 
 
-extern yle_mode_T yle_modes[YLE_MODE_N];
-extern yle_mode_T *yle_current_mode;
+extern le_mode_T le_modes[LE_MODE_N];
+extern le_mode_T *le_current_mode;
 
-extern void yle_keymap_init(void);
-extern const yle_mode_T *yle_get_mode(yle_mode_id_T id)
+extern void le_keymap_init(void);
+extern const le_mode_T *le_get_mode(le_mode_id_T id)
     __attribute__((const));
-extern void yle_set_mode(yle_mode_id_T id);
+extern void le_set_mode(le_mode_id_T id);
 
 
 #define CMDENTRY(cmdfunc_) \

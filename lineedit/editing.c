@@ -36,14 +36,14 @@
 
 
 /* The main buffer where the command line is edited. */
-xwcsbuf_T yle_main_buffer;
+xwcsbuf_T le_main_buffer;
 /* The position of the cursor on the command line. */
-/* 0 <= yle_main_index <= yle_main_buffer.length */
-size_t yle_main_index;
+/* 0 <= le_main_index <= le_main_buffer.length */
+size_t le_main_index;
 
 /* The last executed command and the currently executing command. */
 static struct command {
-    yle_command_func_T *func;
+    le_command_func_T *func;
     wchar_t arg;
 } last_command, current_command;
 
@@ -61,7 +61,7 @@ static struct state {
     enum motion_expect_command {
 	MEC_NONE, MEC_COPY, MEC_KILL, MEC_CHANGE, MEC_COPYCHANGE,
     } pending_command_motion;
-    yle_command_func_T *pending_command_char;
+    le_command_func_T *pending_command_char;
 } state;
 
 /* The last executed editing command and the then state. */
@@ -151,15 +151,15 @@ static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 
 
 /* Initializes the editing module before starting editing. */
-void yle_editing_init(void)
+void le_editing_init(void)
 {
-    wb_init(&yle_main_buffer);
-    yle_main_index = 0;
+    wb_init(&le_main_buffer);
+    le_main_index = 0;
 
     switch (shopt_lineedit) {
 	case shopt_vi:
 	case shopt_emacs:  // TODO currently, emacs is the same as vi
-	    yle_set_mode(YLE_MODE_VI_INSERT);
+	    le_set_mode(LE_MODE_VI_INSERT);
 	    break;
 	default:
 	    assert(false);
@@ -178,16 +178,16 @@ void yle_editing_init(void)
 
 /* Finalizes the editing module when editing is finished.
  * Returns the content of the main buffer, which must be freed by the caller. */
-wchar_t *yle_editing_finalize(void)
+wchar_t *le_editing_finalize(void)
 {
     recfree(pl_toary(&undo_history), free);
 
-    wb_wccat(&yle_main_buffer, L'\n');
-    return wb_towcs(&yle_main_buffer);
+    wb_wccat(&le_main_buffer, L'\n');
+    return wb_towcs(&le_main_buffer);
 }
 
 /* Invokes the specified command. */
-void yle_invoke_command(yle_command_func_T *cmd, wchar_t arg)
+void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 {
     current_command.func = cmd;
     current_command.arg = arg;
@@ -196,12 +196,12 @@ void yle_invoke_command(yle_command_func_T *cmd, wchar_t arg)
 
     last_command = current_command;
 
-    if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
-	if (yle_main_index > 0 && yle_main_index == yle_main_buffer.length) {
-	    yle_main_index--;
+    if (le_current_mode == &le_modes[LE_MODE_VI_COMMAND]) {
+	if (le_main_index > 0 && le_main_index == le_main_buffer.length) {
+	    le_main_index--;
 	}
     }
-    yle_display_reposition_cursor();
+    le_display_reposition_cursor();
 }
 
 /* Resets `state.count'. */
@@ -230,7 +230,7 @@ int get_count(int default_value)
 void save_current_edit_command(void)
 {
     if (current_command.func != cmd_redo
-	    && yle_current_mode != &yle_modes[YLE_MODE_VI_INSERT]) {
+	    && le_current_mode != &le_modes[LE_MODE_VI_INSERT]) {
 	last_edit_command.command = current_command;
 	last_edit_command.state = state;
     }
@@ -256,9 +256,9 @@ void save_undo_history(void)
     pl_remove(&undo_history, undo_index, SIZE_MAX);
 
     struct undo_history *e = xmalloc(sizeof *e +
-	    (yle_main_buffer.length + 1) * sizeof *e->contents);
-    e->index = yle_main_index;
-    wcscpy(e->contents, yle_main_buffer.contents);
+	    (le_main_buffer.length + 1) * sizeof *e->contents);
+    e->index = le_main_index;
+    wcscpy(e->contents, le_main_buffer.contents);
     pl_add(&undo_history, e);
     assert(undo_index == undo_history.length - 1);
 }
@@ -270,8 +270,8 @@ void maybe_save_undo_history(void)
     assert(undo_index <= undo_history.length);
     if (undo_index < undo_history.length) {
 	struct undo_history *h = undo_history.contents[undo_index];
-	if (wcscmp(yle_main_buffer.contents, h->contents) == 0) {
-	    h->index = yle_main_index;
+	if (wcscmp(le_main_buffer.contents, h->contents) == 0) {
+	    h->index = le_main_index;
 	    return;
 	}
 	undo_index++;
@@ -286,43 +286,43 @@ void maybe_save_undo_history(void)
  * vi mode. */
 void exec_motion_command(size_t index, bool inclusive)
 {
-    assert(index <= yle_main_buffer.length);
+    assert(index <= le_main_buffer.length);
 
     maybe_save_undo_history();
 
     size_t start_index, end_index;
-    if (yle_main_index <= index)
-	start_index = yle_main_index, end_index = index;
+    if (le_main_index <= index)
+	start_index = le_main_index, end_index = index;
     else
-	start_index = index, end_index = yle_main_index;
-    if (inclusive && end_index < yle_main_buffer.length)
+	start_index = index, end_index = le_main_index;
+    if (inclusive && end_index < le_main_buffer.length)
 	end_index++;
     switch (state.pending_command_motion) {
 	case MEC_NONE:
-	    yle_main_index = index;
+	    le_main_index = index;
 	    break;
 	case MEC_COPY:
-	    add_to_kill_ring(yle_main_buffer.contents + start_index,
+	    add_to_kill_ring(le_main_buffer.contents + start_index,
 		    end_index - start_index);
 	    break;
 	case MEC_KILL:
 	    save_current_edit_command();
-	    add_to_kill_ring(yle_main_buffer.contents + start_index,
+	    add_to_kill_ring(le_main_buffer.contents + start_index,
 		    end_index - start_index);
-	    wb_remove(&yle_main_buffer, start_index, end_index - start_index);
-	    yle_main_index = start_index;
-	    yle_display_reprint_buffer(start_index, false);
+	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
+	    le_main_index = start_index;
+	    le_display_reprint_buffer(start_index, false);
 	    break;
 	case MEC_COPYCHANGE:
-	    add_to_kill_ring(yle_main_buffer.contents + start_index,
+	    add_to_kill_ring(le_main_buffer.contents + start_index,
 		    end_index - start_index);
 	    /* falls thru */
 	case MEC_CHANGE:
 	    save_current_edit_command();
-	    wb_remove(&yle_main_buffer, start_index, end_index - start_index);
-	    yle_main_index = start_index;
-	    yle_display_reprint_buffer(start_index, false);
-	    yle_set_mode(YLE_MODE_VI_INSERT);
+	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
+	    le_main_index = start_index;
+	    le_display_reprint_buffer(start_index, false);
+	    le_set_mode(LE_MODE_VI_INSERT);
 	    overwrite = false;
 	    break;
 	default:
@@ -352,7 +352,7 @@ void cmd_noop(wchar_t c __attribute__((unused)))
 /* Same as `cmd_noop', but causes alert. */
 void cmd_alert(wchar_t c __attribute__((unused)))
 {
-    yle_alert();
+    le_alert();
     reset_state();
 }
 
@@ -360,7 +360,7 @@ void cmd_alert(wchar_t c __attribute__((unused)))
  */
 bool alert_if_first(void)
 {
-    if (yle_main_index > 0)
+    if (le_main_index > 0)
 	return false;
 
     cmd_alert(L'\a');
@@ -371,12 +371,12 @@ bool alert_if_first(void)
  */
 bool alert_if_last(void)
 {
-    if (yle_current_mode == &yle_modes[YLE_MODE_VI_COMMAND]) {
-	if (yle_main_buffer.length > 0
-		&& yle_main_index < yle_main_buffer.length - 1)
+    if (le_current_mode == &le_modes[LE_MODE_VI_COMMAND]) {
+	if (le_main_buffer.length > 0
+		&& le_main_index < le_main_buffer.length - 1)
 	    return false;
     } else {
-	if (yle_main_index < yle_main_buffer.length)
+	if (le_main_index < le_main_buffer.length)
 	    return false;
     }
 
@@ -404,27 +404,27 @@ void cmd_self_insert(wchar_t c)
 
     if (c != L'\0') {
 	int count = get_count(1);
-	size_t old_index = yle_main_index;
+	size_t old_index = le_main_index;
 
 	while (--count >= 0)
-	    if (overwrite && yle_main_index < yle_main_buffer.length)
-		yle_main_buffer.contents[yle_main_index++] = c;
+	    if (overwrite && le_main_index < le_main_buffer.length)
+		le_main_buffer.contents[le_main_index++] = c;
 	    else
-		wb_ninsert_force(&yle_main_buffer, yle_main_index++, &c, 1);
-	yle_display_reprint_buffer(old_index,
-		!overwrite && yle_main_index == yle_main_buffer.length);
+		wb_ninsert_force(&le_main_buffer, le_main_index++, &c, 1);
+	le_display_reprint_buffer(old_index,
+		!overwrite && le_main_index == le_main_buffer.length);
 	reset_state();
     } else {
 	cmd_alert(c);
     }
 }
 
-/* Sets the `yle_next_verbatim' flag.
+/* Sets the `le_next_verbatim' flag.
  * The next character will be input to the main buffer even if it's a special
  * character. */
 void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
 {
-    yle_next_verbatim = true;
+    le_next_verbatim = true;
 }
 
 /* Inserts the backslash character. */
@@ -490,10 +490,10 @@ void move_cursor_forward_char(int offset)
 #endif
 
     size_t new_index;
-    if (yle_main_buffer.length - yle_main_index < (size_t) offset)
-	new_index = yle_main_buffer.length;
+    if (le_main_buffer.length - le_main_index < (size_t) offset)
+	new_index = le_main_buffer.length;
     else
-	new_index = yle_main_index + offset;
+	new_index = le_main_index + offset;
     exec_motion_command(new_index, false);
 }
 
@@ -507,13 +507,13 @@ void move_cursor_backward_char(int offset)
 
     size_t new_index;
 #if COUNT_ABS_MAX > SIZE_MAX
-    if ((int) yle_main_index <= offset)
+    if ((int) le_main_index <= offset)
 #else
-    if (yle_main_index <= (size_t) offset)
+    if (le_main_index <= (size_t) offset)
 #endif
 	new_index = 0;
     else
-	new_index = yle_main_index - offset;
+	new_index = le_main_index - offset;
     exec_motion_command(new_index, false);
 }
 
@@ -538,9 +538,9 @@ void cmd_end_of_bigword(wchar_t c __attribute__((unused)))
 	return;
 
     int count = get_count(1);
-    size_t new_index = yle_main_index;
-    while (--count >= 0 && new_index < yle_main_buffer.length)
-	new_index = next_end_of_bigword_index(yle_main_buffer.contents,new_index);
+    size_t new_index = le_main_index;
+    while (--count >= 0 && new_index < le_main_buffer.length)
+	new_index = next_end_of_bigword_index(le_main_buffer.contents,new_index);
     exec_motion_command(new_index, true);
 }
 
@@ -562,9 +562,9 @@ void move_cursor_forward_bigword(int count)
     if (alert_if_last())
 	return;
 
-    size_t new_index = yle_main_index;
-    while (--count >= 0 && new_index < yle_main_buffer.length)
-	new_index = next_bigword_index(yle_main_buffer.contents, new_index);
+    size_t new_index = le_main_index;
+    while (--count >= 0 && new_index < le_main_buffer.length)
+	new_index = next_bigword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -575,9 +575,9 @@ void move_cursor_backward_bigword(int count)
     if (alert_if_first())
 	return;
 
-    size_t new_index = yle_main_index;
+    size_t new_index = le_main_index;
     while (--count >= 0 && new_index > 0)
-	new_index = previous_bigword_index(yle_main_buffer.contents, new_index);
+	new_index = previous_bigword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -658,9 +658,9 @@ void cmd_end_of_word(wchar_t c __attribute__((unused)))
 	return;
 
     int count = get_count(1);
-    size_t new_index = yle_main_index;
-    while (--count >= 0 && new_index < yle_main_buffer.length)
-	new_index = next_end_of_word_index(yle_main_buffer.contents, new_index);
+    size_t new_index = le_main_index;
+    while (--count >= 0 && new_index < le_main_buffer.length)
+	new_index = next_end_of_word_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, true);
 }
 
@@ -682,9 +682,9 @@ void move_cursor_forward_word(int count)
     if (alert_if_last())
 	return;
 
-    size_t new_index = yle_main_index;
-    while (--count >= 0 && new_index < yle_main_buffer.length)
-	new_index = next_word_index(yle_main_buffer.contents, new_index);
+    size_t new_index = le_main_index;
+    while (--count >= 0 && new_index < le_main_buffer.length)
+	new_index = next_word_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -695,9 +695,9 @@ void move_cursor_backward_word(int count)
     if (alert_if_first())
 	return;
 
-    size_t new_index = yle_main_index;
+    size_t new_index = le_main_index;
     while (--count >= 0 && new_index > 0)
-	new_index = previous_word_index(yle_main_buffer.contents, new_index);
+	new_index = previous_word_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -800,7 +800,7 @@ void cmd_beginning_of_line(wchar_t c __attribute__((unused)))
 /* inclusive motion command */
 void cmd_end_of_line(wchar_t c __attribute__((unused)))
 {
-    exec_motion_command(yle_main_buffer.length, true);
+    exec_motion_command(le_main_buffer.length, true);
 }
 
 /* If the count is not set, moves the cursor to the beginning of line.
@@ -819,51 +819,51 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
 {
     size_t i = 0;
 
-    while (c = yle_main_buffer.contents[i], c != L'\0' && iswblank(c))
+    while (c = le_main_buffer.contents[i], c != L'\0' && iswblank(c))
 	i++;
     exec_motion_command(i, false);
 }
 
 /* Accepts the current line.
- * `yle_state' is set to YLE_STATE_DONE and `yle_readline' returns. */
+ * `le_state' is set to LE_STATE_DONE and `le_readline' returns. */
 void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    yle_state = YLE_STATE_DONE;
+    le_state = LE_STATE_DONE;
     reset_state();
 }
 
 /* Aborts the current line.
- * `yle_state' is set to YLE_STATE_INTERRUPTED and `yle_readline' returns. */
+ * `le_state' is set to LE_STATE_INTERRUPTED and `le_readline' returns. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
-    yle_state = YLE_STATE_INTERRUPTED;
+    le_state = LE_STATE_INTERRUPTED;
     reset_state();
 }
 
-/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
+/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
  * Otherwise, causes alert. */
 void cmd_eof_if_empty(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    if (yle_main_buffer.length == 0) {
-	yle_state = YLE_STATE_ERROR;
+    if (le_main_buffer.length == 0) {
+	le_state = LE_STATE_ERROR;
 	reset_state();
     } else {
 	cmd_alert(c);
     }
 }
 
-/* If the edit line is empty, sets `yle_state' to YLE_STATE_ERROR (return EOF).
+/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
  * Otherwise, deletes the character under the cursor. */
 void cmd_eof_or_delete(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    if (yle_main_buffer.length == 0) {
-	yle_state = YLE_STATE_ERROR;
+    if (le_main_buffer.length == 0) {
+	le_state = LE_STATE_ERROR;
 	reset_state();
     } else {
 	cmd_delete_char(c);
@@ -876,8 +876,8 @@ void cmd_accept_with_hash(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    wb_insert(&yle_main_buffer, 0, L"#");
-    yle_display_reprint_buffer(0, false);
+    wb_insert(&le_main_buffer, 0, L"#");
+    le_display_reprint_buffer(0, false);
     cmd_accept_line(c);
 }
 
@@ -887,7 +887,7 @@ void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
-    yle_set_mode(YLE_MODE_VI_INSERT);
+    le_set_mode(LE_MODE_VI_INSERT);
     reset_state();
     overwrite = false;
 }
@@ -898,10 +898,10 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
-    if (yle_current_mode == &yle_modes[YLE_MODE_VI_INSERT])
-	if (yle_main_index > 0)
-	    yle_main_index--;
-    yle_set_mode(YLE_MODE_VI_COMMAND);
+    if (le_current_mode == &le_modes[LE_MODE_VI_INSERT])
+	if (le_main_index > 0)
+	    le_main_index--;
+    le_set_mode(LE_MODE_VI_COMMAND);
     reset_state();
     overwrite = false;
 }
@@ -919,14 +919,14 @@ void cmd_expect_char(wchar_t c)
 void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 {
     reset_state();
-    yle_set_mode(YLE_MODE_VI_COMMAND);
+    le_set_mode(LE_MODE_VI_COMMAND);
 }
 
 /* Redraw everything. */
 void cmd_redraw_all(wchar_t c __attribute__((unused)))
 {
-    yle_display_clear();
-    yle_display_print_all();
+    le_display_clear();
+    le_display_print_all();
 }
 
 
@@ -941,11 +941,11 @@ void cmd_delete_char(wchar_t c)
 	save_current_edit_command();
 	maybe_save_undo_history();
 
-	if (yle_main_index < yle_main_buffer.length) {
-	    wb_remove(&yle_main_buffer, yle_main_index, 1);
-	    yle_display_reprint_buffer(yle_main_index, false);
+	if (le_main_index < le_main_buffer.length) {
+	    wb_remove(&le_main_buffer, le_main_index, 1);
+	    le_display_reprint_buffer(le_main_index, false);
 	} else {
-	    yle_alert();
+	    le_alert();
 	}
 	reset_state();
     } else {
@@ -962,11 +962,11 @@ void cmd_backward_delete_char(wchar_t c)
 	save_current_edit_command();
 	maybe_save_undo_history();
 
-	if (yle_main_index > 0) {
-	    wb_remove(&yle_main_buffer, --yle_main_index, 1);
-	    yle_display_reprint_buffer(yle_main_index, false);
+	if (le_main_index > 0) {
+	    wb_remove(&le_main_buffer, --le_main_index, 1);
+	    le_display_reprint_buffer(le_main_index, false);
 	} else {
-	    yle_alert();
+	    le_alert();
 	}
 	reset_state();
     } else {
@@ -983,24 +983,24 @@ void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
     save_current_edit_command();
     maybe_save_undo_history();
 
-    size_t bound = yle_main_index;
+    size_t bound = le_main_index;
 
     for (int count = get_count(1); --count >= 0; ) {
 	do {
 	    if (bound == 0)
 		goto done;
-	} while (is_blank_or_punct(yle_main_buffer.contents[--bound]));
+	} while (is_blank_or_punct(le_main_buffer.contents[--bound]));
 	do {
 	    if (bound == 0)
 		goto done;
-	} while (!is_blank_or_punct(yle_main_buffer.contents[--bound]));
+	} while (!is_blank_or_punct(le_main_buffer.contents[--bound]));
     }
     bound++;
 done:
-    if (bound < yle_main_index) {
-	wb_remove(&yle_main_buffer, bound, yle_main_index - bound);
-	yle_main_index = bound;
-	yle_display_reprint_buffer(yle_main_index, false);
+    if (bound < le_main_index) {
+	wb_remove(&le_main_buffer, bound, le_main_index - bound);
+	le_main_index = bound;
+	le_display_reprint_buffer(le_main_index, false);
     }
     reset_state();
 }
@@ -1017,9 +1017,9 @@ void cmd_delete_line(wchar_t c __attribute__((unused)))
     save_current_edit_command();
     maybe_save_undo_history();
 
-    wb_clear(&yle_main_buffer);
-    yle_main_index = 0;
-    yle_display_reprint_buffer(0, false);
+    wb_clear(&le_main_buffer);
+    le_main_index = 0;
+    le_display_reprint_buffer(0, false);
     reset_state();
 }
 
@@ -1030,9 +1030,9 @@ void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
     save_current_edit_command();
     maybe_save_undo_history();
 
-    if (yle_main_index < yle_main_buffer.length) {
-	wb_remove(&yle_main_buffer, yle_main_index, SIZE_MAX);
-	yle_display_reprint_buffer(yle_main_index, false);
+    if (le_main_index < le_main_buffer.length) {
+	wb_remove(&le_main_buffer, le_main_index, SIZE_MAX);
+	le_display_reprint_buffer(le_main_index, false);
     }
     reset_state();
 }
@@ -1044,10 +1044,10 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
     save_current_edit_command();
     maybe_save_undo_history();
 
-    if (yle_main_index > 0) {
-	wb_remove(&yle_main_buffer, 0, yle_main_index);
-	yle_main_index = 0;
-	yle_display_reprint_buffer(0, false);
+    if (le_main_index > 0) {
+	wb_remove(&le_main_buffer, 0, le_main_index);
+	le_main_index = 0;
+	le_display_reprint_buffer(0, false);
     }
     reset_state();
 }
@@ -1060,8 +1060,8 @@ void cmd_kill_char(wchar_t c)
     save_current_edit_command();
     maybe_save_undo_history();
 
-    assert(yle_main_index <= yle_main_buffer.length);
-    if (yle_main_index == yle_main_buffer.length) {
+    assert(le_main_index <= le_main_buffer.length);
+    if (le_main_index == le_main_buffer.length) {
 	cmd_alert(c);
 	return;
     }
@@ -1078,8 +1078,8 @@ void cmd_backward_kill_char(wchar_t c)
     save_current_edit_command();
     maybe_save_undo_history();
 
-    assert(yle_main_index <= yle_main_buffer.length);
-    if (yle_main_index == 0) {
+    assert(le_main_index <= le_main_buffer.length);
+    if (le_main_index == 0) {
 	cmd_alert(c);
 	return;
     }
@@ -1100,21 +1100,21 @@ void kill_chars(bool backward)
 	if (n > SIZE_MAX)
 	    n = SIZE_MAX;
 #endif
-	offset = yle_main_index;
+	offset = le_main_index;
     } else {
 	n = -n;
 #if COUNT_ABS_MAX > SIZE_MAX
-	if (n >= (int) yle_main_index)
+	if (n >= (int) le_main_index)
 #else
-	if ((size_t) n >= yle_main_index)
+	if ((size_t) n >= le_main_index)
 #endif
-	    n = yle_main_index;
-	offset = yle_main_index - n;
+	    n = le_main_index;
+	offset = le_main_index - n;
     }
-    add_to_kill_ring(yle_main_buffer.contents + offset, n);
-    wb_remove(&yle_main_buffer, offset, n);
-    yle_main_index = offset;
-    yle_display_reprint_buffer(offset, false);
+    add_to_kill_ring(le_main_buffer.contents + offset, n);
+    wb_remove(&le_main_buffer, offset, n);
+    le_main_index = offset;
+    le_display_reprint_buffer(offset, false);
     reset_state();
 }
 
@@ -1166,21 +1166,21 @@ void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
 	return;
     }
 
-    if (after_cursor && yle_main_index < yle_main_buffer.length)
-	yle_main_index++;
+    if (after_cursor && le_main_index < le_main_buffer.length)
+	le_main_index++;
 
-    size_t offset = yle_main_buffer.length - yle_main_index;
-    size_t old_index = yle_main_index;
+    size_t offset = le_main_buffer.length - le_main_index;
+    size_t old_index = le_main_index;
     for (int count = get_count(1); --count >= 0; )
-	wb_insert(&yle_main_buffer, yle_main_index, s);
-    assert(yle_main_buffer.length >= offset + 1);
+	wb_insert(&le_main_buffer, le_main_index, s);
+    assert(le_main_buffer.length >= offset + 1);
 
-    last_put_range_start = yle_main_index;
-    yle_main_index = yle_main_buffer.length - offset;
-    last_put_range_length = yle_main_index - last_put_range_start;
-    yle_main_index -= cursor_on_last_char;
+    last_put_range_start = le_main_index;
+    le_main_index = le_main_buffer.length - offset;
+    last_put_range_length = le_main_index - last_put_range_start;
+    le_main_index -= cursor_on_last_char;
 
-    yle_display_reprint_buffer(old_index, offset == 0);
+    le_display_reprint_buffer(old_index, offset == 0);
     reset_state();
 }
 
@@ -1261,11 +1261,11 @@ void cancel_undo(int offset)
     }
 
     const struct undo_history *entry = undo_history.contents[undo_index];
-    wb_replace(&yle_main_buffer, 0, SIZE_MAX, entry->contents, SIZE_MAX);
-    assert(entry->index <= yle_main_buffer.length);
-    yle_main_index = entry->index;
+    wb_replace(&le_main_buffer, 0, SIZE_MAX, entry->contents, SIZE_MAX);
+    assert(entry->index <= le_main_buffer.length);
+    le_main_index = entry->index;
 
-    yle_display_reprint_buffer(0, false);
+    le_display_reprint_buffer(0, false);
     reset_state();
     return;
 
@@ -1303,11 +1303,11 @@ void cmd_vi_column(wchar_t c __attribute__((unused)))
     if (index < 0)
 	index = 0;
 #if COUNT_ABS_MAX > SIZE_MAX
-    else if (index > (int) yle_main_buffer.length)
+    else if (index > (int) le_main_buffer.length)
 #else
-    else if ((size_t) index > yle_main_buffer.length)
+    else if ((size_t) index > le_main_buffer.length)
 #endif
-	index = yle_main_buffer.length;
+	index = le_main_buffer.length;
     exec_motion_command(index, false);
 }
 
@@ -1316,7 +1316,7 @@ void cmd_vi_find(wchar_t c __attribute__((unused)))
 {
     maybe_save_undo_history();
 
-    yle_set_mode(YLE_MODE_VI_EXPECT);
+    le_set_mode(LE_MODE_VI_EXPECT);
     state.pending_command_char = vi_find;
 }
 
@@ -1334,7 +1334,7 @@ void cmd_vi_find_rev(wchar_t c __attribute__((unused)))
 {
     maybe_save_undo_history();
 
-    yle_set_mode(YLE_MODE_VI_EXPECT);
+    le_set_mode(LE_MODE_VI_EXPECT);
     state.pending_command_char = vi_find_rev;
 }
 
@@ -1351,7 +1351,7 @@ void cmd_vi_till(wchar_t c __attribute__((unused)))
 {
     maybe_save_undo_history();
 
-    yle_set_mode(YLE_MODE_VI_EXPECT);
+    le_set_mode(LE_MODE_VI_EXPECT);
     state.pending_command_char = vi_till;
 }
 
@@ -1369,7 +1369,7 @@ void cmd_vi_till_rev(wchar_t c __attribute__((unused)))
 {
     maybe_save_undo_history();
 
-    yle_set_mode(YLE_MODE_VI_EXPECT);
+    le_set_mode(LE_MODE_VI_EXPECT);
     state.pending_command_char = vi_till_rev;
 }
 
@@ -1384,24 +1384,24 @@ void vi_till_rev(wchar_t c)
 /* Executes the find/till command. */
 void exec_find(wchar_t c, int count, bool till)
 {
-    yle_set_mode(YLE_MODE_VI_COMMAND);
+    le_set_mode(LE_MODE_VI_COMMAND);
     save_current_find_command();
 
     size_t new_index = find_nth_occurence(c, count);
     if (new_index == SIZE_MAX)
 	goto error;
     if (till) {
-	if (new_index >= yle_main_index) {
+	if (new_index >= le_main_index) {
 	    if (new_index == 0)
 		goto error;
 	    new_index--;
 	} else {
-	    if (new_index == yle_main_buffer.length)
+	    if (new_index == le_main_buffer.length)
 		goto error;
 	    new_index++;
 	}
     }
-    exec_motion_command(new_index, new_index >= yle_main_index);
+    exec_motion_command(new_index, new_index >= le_main_index);
     return;
 
 error:
@@ -1413,22 +1413,22 @@ error:
  * current position. Returns `SIZE_MAX' on failure (no such occurrence). */
 size_t find_nth_occurence(wchar_t c, int n)
 {
-    size_t i = yle_main_index;
+    size_t i = le_main_index;
 
     if (n == 0) {
 	return i;
     } else if (c == L'\0') {
 	return SIZE_MAX;  /* no such occurrence */
     } else if (n >= 0) {
-	while (n > 0 && i < yle_main_buffer.length) {
+	while (n > 0 && i < le_main_buffer.length) {
 	    i++;
-	    if (yle_main_buffer.contents[i] == c)
+	    if (le_main_buffer.contents[i] == c)
 		n--;
 	}
     } else {
 	while (n < 0 && i > 0) {
 	    i--;
-	    if (yle_main_buffer.contents[i] == c)
+	    if (le_main_buffer.contents[i] == c)
 		n++;
 	}
     }
@@ -1473,7 +1473,7 @@ void cmd_vi_replace_char(wchar_t c __attribute__((unused)))
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
-    yle_set_mode(YLE_MODE_VI_EXPECT);
+    le_set_mode(LE_MODE_VI_EXPECT);
     state.pending_command_char = vi_replace_char;
 }
 
@@ -1482,18 +1482,18 @@ void cmd_vi_replace_char(wchar_t c __attribute__((unused)))
 void vi_replace_char(wchar_t c)
 {
     save_current_edit_command();
-    yle_set_mode(YLE_MODE_VI_COMMAND);
+    le_set_mode(LE_MODE_VI_COMMAND);
 
     if (c != L'\0') {
 	int count = get_count(1);
-	size_t old_index = yle_main_index;
+	size_t old_index = le_main_index;
 
-	if (--count >= 0 && yle_main_index < yle_main_buffer.length) {
-	    yle_main_buffer.contents[yle_main_index] = c;
-	    while (--count >= 0 && yle_main_index < yle_main_buffer.length)
-		yle_main_buffer.contents[++yle_main_index] = c;
+	if (--count >= 0 && le_main_index < le_main_buffer.length) {
+	    le_main_buffer.contents[le_main_index] = c;
+	    while (--count >= 0 && le_main_index < le_main_buffer.length)
+		le_main_buffer.contents[++le_main_index] = c;
 	}
-	yle_display_reprint_buffer(old_index, false);
+	le_display_reprint_buffer(old_index, false);
 	reset_state();
     } else {
 	cmd_alert(c);
@@ -1506,7 +1506,7 @@ void cmd_vi_insert_beginning(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    yle_main_index = 0;
+    le_main_index = 0;
     cmd_setmode_viinsert(c);
 }
 
@@ -1516,8 +1516,8 @@ void cmd_vi_append(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    if (yle_main_index < yle_main_buffer.length)
-	yle_main_index++;
+    if (le_main_index < le_main_buffer.length)
+	le_main_index++;
     cmd_setmode_viinsert(c);
 }
 
@@ -1527,7 +1527,7 @@ void cmd_vi_append_end(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    yle_main_index = yle_main_buffer.length;
+    le_main_index = le_main_buffer.length;
     cmd_setmode_viinsert(c);
 }
 
@@ -1548,21 +1548,21 @@ void cmd_vi_change_case(wchar_t c)
     save_current_edit_command();
     maybe_save_undo_history();
 
-    size_t old_index = yle_main_index;
+    size_t old_index = le_main_index;
 
-    if (yle_main_index == yle_main_buffer.length) {
+    if (le_main_index == le_main_buffer.length) {
 	cmd_alert(c);
 	return;
     }
     for (int count = get_count(1); --count >= 0; ) {
-	wchar_t c = yle_main_buffer.contents[yle_main_index];
-	yle_main_buffer.contents[yle_main_index]
+	wchar_t c = le_main_buffer.contents[le_main_index];
+	le_main_buffer.contents[le_main_index]
 	    = (iswlower(c) ? towupper : towlower)(c);
-	yle_main_index++;
-	if (yle_main_index == yle_main_buffer.length)
+	le_main_index++;
+	if (le_main_index == le_main_buffer.length)
 	    break;
     }
-    yle_display_reprint_buffer(old_index, false);
+    le_display_reprint_buffer(old_index, false);
     reset_state();
 }
 
@@ -1619,7 +1619,7 @@ void cmd_vi_change_all(wchar_t c __attribute__((unused)))
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
-    yle_main_index = 0;
+    le_main_index = 0;
     exec_edit_command_to_eol(MEC_CHANGE);
 }
 
@@ -1645,7 +1645,7 @@ void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
-    yle_main_index = 0;
+    le_main_index = 0;
     exec_edit_command_to_eol(MEC_COPYCHANGE);
 }
 
@@ -1654,11 +1654,11 @@ void exec_edit_command(enum motion_expect_command cmd)
 {
     if (state.pending_command_motion != MEC_NONE) {
 	if (state.pending_command_motion == cmd) {
-	    size_t old_index = yle_main_index;
-	    yle_main_index = 0;
-	    exec_motion_command(yle_main_buffer.length, true);
-	    if (old_index <= yle_main_buffer.length)
-		yle_main_index = old_index;
+	    size_t old_index = le_main_index;
+	    le_main_index = 0;
+	    exec_motion_command(le_main_buffer.length, true);
+	    if (old_index <= le_main_buffer.length)
+		le_main_index = old_index;
 	} else {
 	    cmd_alert(L'\a');
 	}
@@ -1677,7 +1677,7 @@ void exec_edit_command_to_eol(enum motion_expect_command cmd)
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
     state.pending_command_motion = cmd;
-    exec_motion_command(yle_main_buffer.length, false);
+    exec_motion_command(le_main_buffer.length, false);
 }
 
 /* Kills the character under the cursor and sets the editing mode to
@@ -1688,14 +1688,14 @@ void cmd_vi_substitute(wchar_t c)
     save_current_edit_command();
     maybe_save_undo_history();
 
-    assert(yle_main_index <= yle_main_buffer.length);
-    if (yle_main_index == 0) {
+    assert(le_main_index <= le_main_buffer.length);
+    if (le_main_index == 0) {
 	cmd_alert(c);
 	return;
     }
 
     kill_chars(false);
-    yle_set_mode(YLE_MODE_VI_INSERT);
+    le_set_mode(LE_MODE_VI_INSERT);
     overwrite = false;
 }
 

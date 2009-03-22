@@ -29,20 +29,20 @@
 
 
 /* Definition of editing modes. */
-yle_mode_T yle_modes[YLE_MODE_N];
+le_mode_T le_modes[LE_MODE_N];
 
 /* The current editing mode.
- * Points to one of `yle_modes'. */
-yle_mode_T *yle_current_mode;
+ * Points to one of `le_modes'. */
+le_mode_T *le_current_mode;
 
 
-/* Initializes `yle_modes'.
+/* Initializes `le_modes'.
  * Must not be called more than once. */
-void yle_keymap_init(void)
+void le_keymap_init(void)
 {
     trie_T *t;
 
-    yle_modes[YLE_MODE_VI_INSERT].default_command = cmd_self_insert;
+    le_modes[LE_MODE_VI_INSERT].default_command = cmd_self_insert;
     t = trie_create();
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
@@ -64,9 +64,9 @@ void yle_keymap_init(void)
     t = trie_setw(t, Key_c_w,       CMDENTRY(cmd_backward_delete_semiword));
     t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_delete_line));
     t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_delete_line));
-    yle_modes[YLE_MODE_VI_INSERT].keymap = t;
+    le_modes[LE_MODE_VI_INSERT].keymap = t;
 
-    yle_modes[YLE_MODE_VI_COMMAND].default_command = cmd_alert;
+    le_modes[LE_MODE_VI_COMMAND].default_command = cmd_alert;
     t = trie_create();
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_noop));
     t = trie_setw(t, L"1",          CMDENTRY(cmd_digit_argument));
@@ -149,22 +149,22 @@ void yle_keymap_init(void)
     // ?
     // n
     // N
-    yle_modes[YLE_MODE_VI_COMMAND].keymap = t;
+    le_modes[LE_MODE_VI_COMMAND].keymap = t;
 
-    yle_modes[YLE_MODE_VI_EXPECT].default_command = cmd_expect_char;
+    le_modes[LE_MODE_VI_EXPECT].default_command = cmd_expect_char;
     t = trie_create();
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_abort_expect_char));
-    yle_modes[YLE_MODE_VI_EXPECT].keymap = t;
+    le_modes[LE_MODE_VI_EXPECT].keymap = t;
 }
 
 /* Sets the editing mode to the one specified by `id'. */
-void yle_set_mode(yle_mode_id_T id)
+void le_set_mode(le_mode_id_T id)
 {
-    assert(id < YLE_MODE_N);
-    yle_current_mode = &yle_modes[id];
+    assert(id < LE_MODE_N);
+    le_current_mode = &le_modes[id];
 }
 
 

@@ -54,39 +54,39 @@ static inline wchar_t wb_get_char(const xwcsbuf_T *buf)
 /* The state of lineedit. */
 static enum { MODE_INACTIVE, MODE_ACTIVE, MODE_SUSPENDED, } mode;
 /* The state of editing. */
-yle_state_T yle_state;
+le_state_T le_state;
 
 
 /* Initializes line editing.
- * Must be called before each call to `yle_readline'.
- * Returns true iff successful, in which case `yle_readline' must be called
+ * Must be called before each call to `le_readline'.
+ * Returns true iff successful, in which case `le_readline' must be called
  * afterward.
  * If this function returns false, the vi/emacs option is unset and
- * `yle_readline' must not be called. */
-bool yle_setup(void)
+ * `le_readline' must not be called. */
+bool le_setup(void)
 {
     static bool initialized = false;
     if (!initialized) {
 	initialized = true;
-	yle_keymap_init();
+	le_keymap_init();
     }
 
     if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
 	return false;
     if (mode != MODE_INACTIVE)
 	return false;
-    if (!yle_setupterm())
+    if (!le_setupterm())
 	return false;
-    return yle_set_terminal();
+    return le_set_terminal();
 }
 
 /* Prints the specified `prompt' and reads one line from stdin.
- * This function can be called after and only after `yle_setup' succeeded.
+ * This function can be called after and only after `le_setup' succeeded.
  * The `prompt' may contain backslash escapes specified in "input.c".
  * The result is returned as a newly malloced wide string, including the
  * trailing newline. When EOF is encountered or on error, an empty string is
  * returned. NULL is returned when interrupted. */
-wchar_t *yle_readline(const wchar_t *prompt)
+wchar_t *le_readline(const wchar_t *prompt)
 {
     wchar_t *resultline;
 
@@ -94,31 +94,31 @@ wchar_t *yle_readline(const wchar_t *prompt)
     assert(mode == MODE_INACTIVE);
 
     mode = MODE_ACTIVE;
-    yle_editing_init();
-    yle_display_init(prompt);
+    le_editing_init();
+    le_display_init(prompt);
     reader_init();
-    yle_state = YLE_STATE_EDITING;
+    le_state = LE_STATE_EDITING;
 
     do
 	read_next();
-    while (yle_state == YLE_STATE_EDITING);
+    while (le_state == LE_STATE_EDITING);
 
     reader_finalize();
-    yle_display_finalize();
-    resultline = yle_editing_finalize();
+    le_display_finalize();
+    resultline = le_editing_finalize();
     fflush(stderr);
-    yle_restore_terminal();
+    le_restore_terminal();
     mode = MODE_INACTIVE;
 
-    switch (yle_state) {
-	case YLE_STATE_EDITING:
+    switch (le_state) {
+	case LE_STATE_EDITING:
 	    assert(false);
-	case YLE_STATE_DONE:
+	case LE_STATE_DONE:
 	    break;
-	case YLE_STATE_ERROR:
+	case LE_STATE_ERROR:
 	    resultline[0] = L'\0';
 	    break;
-	case YLE_STATE_INTERRUPTED:
+	case LE_STATE_INTERRUPTED:
 	    free(resultline);
 	    resultline = NULL;
 	    break;
@@ -127,24 +127,24 @@ wchar_t *yle_readline(const wchar_t *prompt)
 }
 
 /* Restores the terminal state and clears the whole display temporarily. */
-void yle_suspend_readline(void)
+void le_suspend_readline(void)
 {
     if (mode == MODE_ACTIVE) {
 	mode = MODE_SUSPENDED;
-	yle_display_clear();
+	le_display_clear();
 	fflush(stderr);
-	yle_restore_terminal();
+	le_restore_terminal();
     }
 }
 
-/* Resumes line editing suspended by `yle_suspend_readline'. */
-void yle_resume_readline(void)
+/* Resumes line editing suspended by `le_suspend_readline'. */
+void le_resume_readline(void)
 {
     if (mode == MODE_SUSPENDED) {
 	mode = MODE_ACTIVE;
-	yle_set_terminal();
-	yle_display_print_all();
-	yle_display_reposition_cursor();
+	le_set_terminal();
+	le_display_print_all();
+	le_display_reposition_cursor();
 	fflush(stderr);
     }
 }
@@ -159,16 +159,16 @@ static mbstate_t reader_state;
 /* The temporary buffer for converted characters. */
 static xwcsbuf_T reader_second_buffer;
 /* If true, next input will be inserted directly to the main buffer. */
-bool yle_next_verbatim;
+bool le_next_verbatim;
 
 /* Initializes the state of the reader.
- * Called for each invocation of `yle_readline'. */
+ * Called for each invocation of `le_readline'. */
 void reader_init(void)
 {
     sb_init(&reader_first_buffer);
     memset(&reader_state, 0, sizeof reader_state);
     wb_init(&reader_second_buffer);
-    yle_next_verbatim = false;
+    le_next_verbatim = false;
 }
 
 /* Frees memory used by the reader. */
@@ -180,13 +180,13 @@ void reader_finalize(void)
 
 /* Reads the next byte from stdin and take all the corresponding actions.
  * May return without doing anything if a signal is caught, etc.
- * The caller must check `yle_state' after return from this function;
- * This function must be called repeatedly while it is `YLE_STATE_EDITING'. */
+ * The caller must check `le_state' after return from this function;
+ * This function must be called repeatedly while it is `LE_STATE_EDITING'. */
 void read_next(void)
 {
     static bool incomplete_wchar = false;
 
-    assert(yle_state == YLE_STATE_EDITING);
+    assert(le_state == LE_STATE_EDITING);
 
     /* wait for and read the next byte */
     block_sigchld_and_sigint();
@@ -197,7 +197,7 @@ void read_next(void)
     char c;
     switch (read(STDIN_FILENO, &c, 1)) {
 	case 0:
-	    yle_state = YLE_STATE_ERROR;
+	    le_state = LE_STATE_ERROR;
 	    return;
 	case 1:
 	    break;
@@ -211,36 +211,36 @@ void read_next(void)
 		    return;
 		default:
 		    xerror(errno, Ngt("cannot read input"));
-		    yle_state = YLE_STATE_ERROR;
+		    le_state = LE_STATE_ERROR;
 		    return;
 	    }
 	default:
 	    assert(false);
     }
-    if (yle_meta_bit8 && (c & META_BIT))
+    if (le_meta_bit8 && (c & META_BIT))
 	sb_ccat(sb_ccat(&reader_first_buffer, ESCAPE_CHAR), c & ~META_BIT);
     else
 	sb_ccat(&reader_first_buffer, c);
 
-    if (incomplete_wchar || yle_next_verbatim)
+    if (incomplete_wchar || le_next_verbatim)
 	goto process_wide;
 
     /** process the content in the buffer **/
     while (reader_first_buffer.length > 0) {
 	/* check if `reader_first_buffer' is a special sequence */
 	trieget_T tg;
-	if (reader_first_buffer.contents[0] == yle_interrupt_char)
+	if (reader_first_buffer.contents[0] == le_interrupt_char)
 	    tg = make_trieget(Key_interrupt);
-	else if (reader_first_buffer.contents[0] == yle_eof_char)
+	else if (reader_first_buffer.contents[0] == le_eof_char)
 	    tg = make_trieget(Key_eof);
-	else if (reader_first_buffer.contents[0] == yle_kill_char)
+	else if (reader_first_buffer.contents[0] == le_kill_char)
 	    tg = make_trieget(Key_kill);
-	else if (reader_first_buffer.contents[0] == yle_erase_char)
+	else if (reader_first_buffer.contents[0] == le_erase_char)
 	    tg = make_trieget(Key_erase);
 	else if (reader_first_buffer.contents[0] == '\\')
 	    tg = make_trieget(Key_backslash);
 	else
-	    tg = trie_get(yle_keycodes,
+	    tg = trie_get(le_keycodes,
 		reader_first_buffer.contents, reader_first_buffer.length);
 	switch (tg.type) {
 	    case TG_NOMATCH:
@@ -267,10 +267,10 @@ process_wide:
 		append_to_second_buffer(L'\0');
 		break;
 	    case (size_t) -1:  // conversion error
-		yle_alert();
+		le_alert();
 		memset(&reader_state, 0, sizeof reader_state);
 		sb_clear(&reader_first_buffer);
-		yle_next_verbatim = false;
+		le_next_verbatim = false;
 		goto process_keymap;
 	    case (size_t) -2:  // more bytes needed
 		incomplete_wchar = true;
@@ -287,22 +287,22 @@ process_wide:
 process_keymap:
     while (reader_second_buffer.length > 0) {
 	trieget_T tg = trie_getw(
-		yle_current_mode->keymap, reader_second_buffer.contents);
+		le_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
 	    case TG_NOMATCH:
-		yle_invoke_command(yle_current_mode->default_command,
+		le_invoke_command(le_current_mode->default_command,
 			wb_get_char(&reader_second_buffer));
 		wb_clear(&reader_second_buffer);
 		break;
 	    case TG_UNIQUE:
-		yle_invoke_command(tg.value.cmdfunc,
+		le_invoke_command(tg.value.cmdfunc,
 			wb_get_char(&reader_second_buffer));
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;
 	    case TG_AMBIGUOUS:
 		return;
 	}
-	if (yle_state != YLE_STATE_EDITING)
+	if (le_state != LE_STATE_EDITING)
 	    break;
     }
 }
@@ -318,12 +318,12 @@ trieget_T make_trieget(const wchar_t *keyseq)
 
 void append_to_second_buffer(wchar_t wc)
 {
-    if (yle_next_verbatim) {
-	yle_invoke_command(yle_current_mode->default_command, wc);
+    if (le_next_verbatim) {
+	le_invoke_command(le_current_mode->default_command, wc);
     } else if (wc != L'\0') {
 	wb_wccat(&reader_second_buffer, wc);
     }
-    yle_next_verbatim = false;
+    le_next_verbatim = false;
 }
 
 wchar_t wb_get_char(const xwcsbuf_T *buf)

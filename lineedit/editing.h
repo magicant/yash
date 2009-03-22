@@ -24,20 +24,20 @@
 #include "key.h"
 
 
-extern xwcsbuf_T yle_main_buffer;
-extern size_t yle_main_index;
+extern xwcsbuf_T le_main_buffer;
+extern size_t le_main_index;
 
-extern void yle_editing_init(void);
-extern wchar_t *yle_editing_finalize(void)
+extern void le_editing_init(void);
+extern wchar_t *le_editing_finalize(void)
     __attribute__((malloc,warn_unused_result));
-extern void yle_invoke_command(yle_command_func_T *cmd, wchar_t arg)
+extern void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
     __attribute__((nonnull));
 
 
 /********** Commands **********/
 
 /* basic commands */
-extern yle_command_func_T
+extern le_command_func_T
     cmd_noop,
     cmd_alert,
     cmd_self_insert,
@@ -68,7 +68,7 @@ extern yle_command_func_T
     cmd_redraw_all;
 
 /* editing commands */
-extern yle_command_func_T
+extern le_command_func_T
     cmd_delete_char,
     cmd_backward_delete_char,
     cmd_backward_delete_semiword,
@@ -88,7 +88,7 @@ extern yle_command_func_T
     cmd_redo;
 
 /* vi-mode specific commands */
-extern yle_command_func_T
+extern le_command_func_T
     cmd_vi_column,
     cmd_vi_find,
     cmd_vi_find_rev,

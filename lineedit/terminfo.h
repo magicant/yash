@@ -20,33 +20,33 @@
 #define YASH_TERMINFO_H
 
 
-extern int yle_lines, yle_columns;
-extern _Bool yle_meta_bit8;
-extern struct trienode_T /* trie_T */ *yle_keycodes;
+extern int le_lines, le_columns;
+extern _Bool le_meta_bit8;
+extern struct trienode_T /* trie_T */ *le_keycodes;
 
-extern _Bool yle_setupterm(void);
+extern _Bool le_setupterm(void);
 
-extern void yle_print_cr(void);
-extern void yle_print_nel(void);
-extern void yle_print_nel_if_no_auto_margin(void);
-extern void yle_print_cub(long count);
-extern void yle_print_cuf(long count);
-extern void yle_print_cud(long count);
-extern void yle_print_cuu(long count);
-extern void yle_print_el(void);
-extern _Bool yle_print_ed(void);
-extern void yle_print_sgr(long standout, long underline, long reverse,
+extern void le_print_cr(void);
+extern void le_print_nel(void);
+extern void le_print_nel_if_no_auto_margin(void);
+extern void le_print_cub(long count);
+extern void le_print_cuf(long count);
+extern void le_print_cud(long count);
+extern void le_print_cuu(long count);
+extern void le_print_el(void);
+extern _Bool le_print_ed(void);
+extern void le_print_sgr(long standout, long underline, long reverse,
 	long blink, long dim, long bold, long invisible);
-extern void yle_print_op(void);
-extern void yle_print_setfg(int color);
-extern void yle_print_setbg(int color);
-extern void yle_alert(void);
+extern void le_print_op(void);
+extern void le_print_setfg(int color);
+extern void le_print_setbg(int color);
+extern void le_alert(void);
 
 
-extern char yle_eof_char, yle_kill_char, yle_interrupt_char, yle_erase_char;
+extern char le_eof_char, le_kill_char, le_interrupt_char, le_erase_char;
 
-extern _Bool yle_set_terminal(void);
-extern _Bool yle_restore_terminal(void);
+extern _Bool le_set_terminal(void);
+extern _Bool le_restore_terminal(void);
 
 
 #endif /* YASH_TERMINFO_H */
