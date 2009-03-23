@@ -44,6 +44,7 @@
 static void reader_init(void);
 static void reader_finalize(void);
 static void read_next(void);
+static char pop_prebuffer(void);
 static inline trieget_T make_trieget(const wchar_t *keyseq)
     __attribute__((nonnull,const));
 static void append_to_second_buffer(wchar_t wc);
@@ -152,11 +153,13 @@ void le_resume_readline(void)
 
 /********** Input Reading **********/
 
-/* The temporary buffer for bytes before conversion to wide characters. */
+/* Temporary buffer for bytes that are treated as input. */
+static xstrbuf_T reader_prebuffer;
+/* Temporary buffer for bytes before conversion to wide characters. */
 static xstrbuf_T reader_first_buffer;
-/* The conversion state used in reading input. */
+/* Conversion state used in reading input. */
 static mbstate_t reader_state;
-/* The temporary buffer for converted characters. */
+/* Temporary buffer for converted characters. */
 static xwcsbuf_T reader_second_buffer;
 /* If true, next input will be inserted directly to the main buffer. */
 bool le_next_verbatim;
@@ -188,13 +191,16 @@ void read_next(void)
 
     assert(le_state == LE_STATE_EDITING);
 
+    char c = pop_prebuffer();
+    if (c)
+	goto direct_first_buffer;
+
     /* wait for and read the next byte */
     block_sigchld_and_sigint();
     fflush(stderr);
     wait_for_input(STDIN_FILENO, true);
     unblock_sigchld_and_sigint();
 
-    char c;
     switch (read(STDIN_FILENO, &c, 1)) {
 	case 0:
 	    le_state = LE_STATE_ERROR;
@@ -220,6 +226,7 @@ void read_next(void)
     if (le_meta_bit8 && (c & META_BIT))
 	sb_ccat(sb_ccat(&reader_first_buffer, ESCAPE_CHAR), c & ~META_BIT);
     else
+direct_first_buffer:
 	sb_ccat(&reader_first_buffer, c);
 
     if (incomplete_wchar || le_next_verbatim)
@@ -305,6 +312,31 @@ process_keymap:
 	if (le_state != LE_STATE_EDITING)
 	    break;
     }
+}
+
+/* Appends `s' to the prebuffer. The string `s' is freed in this function. */
+void append_to_prebuffer(char *s)
+{
+    if (reader_prebuffer.contents == NULL)
+	sb_initwith(&reader_prebuffer, s);
+    else
+	sb_catfree(&reader_prebuffer, s);
+}
+
+/* Removes and returns the next character in the prebuffer if available, or '\0'
+ * otherwise. */
+char pop_prebuffer(void)
+{
+    if (reader_prebuffer.contents) {
+	char result = reader_prebuffer.contents[0];
+	sb_remove(&reader_prebuffer, 0, 1);
+	if (reader_prebuffer.length == 0) {
+	    sb_destroy(&reader_prebuffer);
+	    reader_prebuffer.contents = NULL;
+	}
+	return result;
+    }
+    return '\0';
 }
 
 trieget_T make_trieget(const wchar_t *keyseq)

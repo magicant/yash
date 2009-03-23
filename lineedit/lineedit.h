@@ -48,6 +48,9 @@ extern void le_resume_readline(void);
 
 extern _Bool le_next_verbatim;
 
+void append_to_prebuffer(char *s)
+    __attribute__((nonnull));
+
 
 #endif /* YASH_LINEEDIT_H */
 

@@ -24,6 +24,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
+#if YASH_ENABLE_ALIAS
+#include "../alias.h"
+#endif
 #include "../option.h"
 #include "../plist.h"
 #include "../strbuf.h"
@@ -145,6 +148,7 @@ static size_t find_nth_occurence(wchar_t c, int n);
 static void vi_replace_char(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
+static void vi_exec_alias(wchar_t c);
 
 #define ALERT_AND_RETURN_IF_PENDING \
     do if (alert_if_pending()) return; while (0)
@@ -1697,6 +1701,38 @@ void cmd_vi_substitute(wchar_t c)
     kill_chars(false);
     le_set_mode(LE_MODE_VI_INSERT);
     overwrite = false;
+}
+
+/* Sets the editing mode to "vi expect" and the pending command to
+ * `vi_exec_alias'. */
+void cmd_vi_exec_alias(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    le_set_mode(LE_MODE_VI_EXPECT);
+    state.pending_command_char = vi_exec_alias;
+}
+
+/* Appends the value of the alias `_c' to the pre-buffer so that the alias value
+ * is interpreted as commands, where `c' in the alias name is the argument of this
+ * command. */
+void vi_exec_alias(wchar_t c)
+{
+    le_set_mode(LE_MODE_VI_COMMAND);
+    state.pending_command_char = 0;
+
+#if YASH_ENABLE_ALIAS
+    wchar_t aliasname[3] = { L'_', c, L'\0', };
+    const wchar_t *aliasvalue = get_alias_value(aliasname);
+    if (aliasvalue) {
+	char *mbaliasvalue = malloc_wcstombs(aliasvalue);
+	if (mbaliasvalue) {
+	    append_to_prebuffer(mbaliasvalue);
+	    return;
+	}
+    }
+#endif
+    cmd_alert(c);
 }
 
 

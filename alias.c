@@ -164,6 +164,17 @@ void remove_all_aliases(void)
     ht_clear(&aliases, vfreealias);
 }
 
+/* Returns the value of the specified alias (or null if there is no such). */
+const wchar_t *get_alias_value(const wchar_t *aliasname)
+{
+    alias_T *alias = ht_get(&aliases, aliasname).value;
+
+    if (alias)
+	return alias->value;
+    else
+	return NULL;
+}
+
 /* Returns a new `aliaslist_T' object. */
 aliaslist_T *new_aliaslist(void)
 {
