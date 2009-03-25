@@ -273,14 +273,13 @@ void do_wait(void)
 {
     pid_t pid;
     int status;
-#ifdef HAVE_WCONTINUED
-    static int waitopts = WUNTRACED | WCONTINUED | WNOHANG;
-#else
-    static int waitopts = WUNTRACED | WNOHANG;
-#endif
 
 start:
-    pid = waitpid(-1, &status, waitopts);
+#ifdef HAVE_WCONTINUED
+    pid = waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG);
+#else
+    pid = waitpid(-1, &status, WUNTRACED | WNOHANG);
+#endif
     if (pid < 0) {
 	switch (errno) {
 	    case EINTR:
