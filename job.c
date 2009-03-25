@@ -273,7 +273,7 @@ void do_wait(void)
 {
     pid_t pid;
     int status;
-#ifdef WIFCONTINUED
+#ifdef HAVE_WCONTINUED
     static int waitopts = WUNTRACED | WCONTINUED | WNOHANG;
 #else
     static int waitopts = WUNTRACED | WNOHANG;
@@ -287,17 +287,6 @@ start:
 		goto start;  /* try again */
 	    case ECHILD:
 		return;      /* there are no child processes */
-	    case EINVAL:
-#ifdef WIFCONTINUED
-		/* According to the Bash source:
-		 *     WCONTINUED may be rejected by waitpid as invalid even
-		 *     when defined
-		 * -> retry without WCONTINUED. */
-		if (waitopts & WCONTINUED) {
-		    waitopts = WUNTRACED | WNOHANG;
-		    goto start;
-		}
-#endif
 		/* falls thru! */
 	    default:
 		xerror(errno, "waitpid");
@@ -329,7 +318,7 @@ found:
 	pr->pr_status = JS_DONE;
     else if (WIFSTOPPED(status))
 	pr->pr_status = JS_STOPPED;
-#ifdef WIFCONTINUED
+#ifdef HAVE_WCONTINUED
     else if (WIFCONTINUED(status))
 	pr->pr_status = JS_RUNNING;
 #endif
