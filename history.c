@@ -746,6 +746,7 @@ int fc_edit_and_exec_entries(
     int fd;
     FILE *f;
     pid_t cpid;
+    int savelaststatus;
 
     fd = create_temporary_file(&temp, S_IRUSR | S_IWUSR);
     if (fd < 0) {
@@ -759,6 +760,7 @@ int fc_edit_and_exec_entries(
 	return Exit_FAILURE;
     }
 
+    savelaststatus = laststatus;
     cpid = fork_and_reset(0, true, 0);
     if (cpid < 0) {  // fork failed
 	xerror(0, Ngt("cannot invoke editor to edit history"));
@@ -795,6 +797,7 @@ int fc_edit_and_exec_entries(
 	free(temp);
 
 	if (f != NULL) {
+	    laststatus = savelaststatus;
 	    if (!quiet)
 		fc_print_file(f);
 	    exec_input(f, "fc", false, false);

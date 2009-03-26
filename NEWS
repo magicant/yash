@@ -11,6 +11,9 @@ History of Yash
 Yash 2.8
 
   +  Brace expansion with delta: {a..b..c}
+  *  When executing commands edited by the "fc" builtin, the $?
+     variable was incorrectly assigned the exit status of the editor
+     invoked by "fc".
 
 ----------------------------------------------------------------------
 Yash 2.7
