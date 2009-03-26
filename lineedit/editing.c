@@ -437,6 +437,12 @@ void cmd_insert_backslash(wchar_t c __attribute__((unused)))
     cmd_self_insert(L'\\');
 }
 
+/* Inserts the tab character. */
+void cmd_insert_tab(wchar_t c __attribute__((unused)))
+{
+    cmd_self_insert(L'\t');
+}
+
 /* Adds the specified digit `c' to the accumulating argument. */
 /* If `c' is not a digit, does nothing. */
 void cmd_digit_argument(wchar_t c)

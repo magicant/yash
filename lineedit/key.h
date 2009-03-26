@@ -210,6 +210,9 @@
 #define Key_eof       L"\\#"    // EOF
 #define Key_kill      L"\\$"    // KILL
 #define Key_erase     L"\\?"    // ERASE
+#define Key_tab       Key_c_i
+#define Key_newline   Key_c_j
+#define Key_cr        Key_c_m
 #define Key_escape    Key_c_lb
 #define Key_backslash L"\\\\"
 
