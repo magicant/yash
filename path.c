@@ -365,14 +365,18 @@ char *which(
 int create_temporary_file(char **filename, mode_t mode)
 {
     static uintmax_t num;
+    uintmax_t n;
     int fd;
     xstrbuf_T buf;
 
+    n = shell_pid;
+    if ((n & 0xFFFFFF) == 0)
+	n = (n >> 23) | 1;
     if (!num)
 	num = (uintmax_t) time(NULL) * 16777619 % 65537 * 16777619 % 65537;
     sb_init(&buf);
     for (int i = 0; i < 100; i++) {
-	num = (num ^ shell_pid) * 16777619;
+	num = (num ^ n) * 16777619;
 	sb_printf(&buf, "/tmp/yash-%u", (unsigned) (num / 3 % 1000000000));
 	/* The filename must be 14 bytes long at most. */
 	fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
