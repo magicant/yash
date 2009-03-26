@@ -18,19 +18,28 @@
 
 #include "../common.h"
 #include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
 #if YASH_ENABLE_ALIAS
 #include "../alias.h"
 #endif
+#include "../exec.h"
+#include "../job.h"
 #include "../option.h"
+#include "../path.h"
 #include "../plist.h"
+#include "../redir.h"
 #include "../strbuf.h"
 #include "../util.h"
+#include "../yash.h"
 #include "display.h"
 #include "editing.h"
 #include "keymap.h"
@@ -1739,6 +1748,91 @@ void vi_exec_alias(wchar_t c)
     }
 #endif
     cmd_alert(c);
+}
+
+/* Invokes an external command to edit the current line and accepts the result.
+ * If the editor returns a non-zero status, the line is not accepted. */
+/* cf. history.c:fc_edit_and_exec_entries */
+void cmd_vi_edit_and_accept(wchar_t c)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    char *tempfile;
+    int fd;
+    FILE *f;
+    pid_t cpid;
+    int savelaststatus;
+
+    fd = create_temporary_file(&tempfile, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+	cmd_alert(c);
+	return;
+    }
+    f = fdopen(fd, "w");
+    if (f == NULL) {
+	xclose(fd);
+	cmd_alert(c);
+	return;
+    }
+    le_suspend_readline();
+
+    savelaststatus = laststatus;
+    cpid = fork_and_reset(0, true, 0);
+    if (cpid < 0) { // fork failed
+	fclose(f);
+	unlink(tempfile);
+	free(tempfile);
+	le_display_print_all();
+	cmd_alert(c);
+    } else if (cpid > 0) {  // parent process
+	fclose(f);
+
+	wchar_t **namep = wait_for_child(cpid,
+		doing_job_control_now ? cpid : 0,
+		doing_job_control_now);
+	if (namep)
+	    *namep = malloc_wprintf(L"vi %s", tempfile);
+	if (laststatus != Exit_SUCCESS)
+	    goto end;
+
+	f = fopen(tempfile, "r");
+	if (f == NULL) {
+	    cmd_alert(c);
+	} else {
+	    wint_t c;
+
+	    le_main_index = 0;
+	    wb_clear(&le_main_buffer);
+	    while ((c = fgetwc(f)) != WEOF)
+		wb_wccat(&le_main_buffer, (wchar_t) c);
+	    fclose(f);
+
+	    /* remove trailing newline */
+	    while (le_main_buffer.length > 0 &&
+		    le_main_buffer.contents[le_main_buffer.length - 1] == L'\n')
+		wb_remove(&le_main_buffer, le_main_buffer.length - 1, 1);
+
+	    le_state = LE_STATE_DONE;
+	    reset_state();
+	}
+
+end:
+	unlink(tempfile);
+	free(tempfile);
+	le_resume_readline();
+    } else {  // child process
+	fputws(le_main_buffer.contents, f);
+	fputwc(L'\n', f);
+	fclose(f);
+
+	wchar_t *command = malloc_wprintf(L"vi %s", tempfile);
+	free(tempfile);
+	exec_wcs(command, gt("lineedit"), true);
+#ifndef NDEBUG
+	free(command);
+#endif
+	assert(false);
+    }
 }
 
 

@@ -114,7 +114,8 @@ extern le_command_func_T
     cmd_vi_yank_and_change_to_eol,
     cmd_vi_yank_and_change_all,
     cmd_vi_substitute,
-    cmd_vi_exec_alias;
+    cmd_vi_exec_alias,
+    cmd_vi_edit_and_accept;
 
 
 #endif /* YASH_EDITING_H */

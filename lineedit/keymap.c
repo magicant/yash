@@ -135,11 +135,11 @@ void le_keymap_init(void)
     t = trie_setw(t, L"S",          CMDENTRY(cmd_vi_change_all));
     t = trie_setw(t, L"s",          CMDENTRY(cmd_vi_substitute));
     t = trie_setw(t, L"@",          CMDENTRY(cmd_vi_exec_alias));
+    t = trie_setw(t, L"v",          CMDENTRY(cmd_vi_edit_and_accept));
     //TODO
     // =
     // \ 
     // *
-    // v
     // _
     // k/-
     // j/+
