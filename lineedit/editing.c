@@ -1801,7 +1801,6 @@ void cmd_vi_edit_and_accept(wchar_t c)
 	} else {
 	    wint_t c;
 
-	    le_main_index = 0;
 	    wb_clear(&le_main_buffer);
 	    while ((c = fgetwc(f)) != WEOF)
 		wb_wccat(&le_main_buffer, (wchar_t) c);
@@ -1812,8 +1811,11 @@ void cmd_vi_edit_and_accept(wchar_t c)
 		    le_main_buffer.contents[le_main_buffer.length - 1] == L'\n')
 		wb_remove(&le_main_buffer, le_main_buffer.length - 1, 1);
 
+	    le_main_index = le_main_buffer.length;
+
 	    le_state = LE_STATE_DONE;
 	    reset_state();
+	    // XXX: clear info area
 	}
 
 end:
