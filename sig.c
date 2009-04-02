@@ -699,12 +699,14 @@ bool set_trap(int signum, const wchar_t *command)
     }
 
     wchar_t **commandp;
+    volatile sig_atomic_t *receivedp;
 #if defined SIGRTMIN && defined SIGRTMAX
     int sigrtmin = SIGRTMIN;
     if (sigrtmin <= signum && signum <= SIGRTMAX) {
 	size_t index = signum - sigrtmin;
 	if (index < RTSIZE) {
 	    commandp = &rttrap_command[index];
+	    receivedp = &rtsignal_received[index];
 	} else {
 	    xerror(0, Ngt("SIG%s: unsupported real-time signal"),
 		    get_signal_name(signum));
@@ -713,7 +715,9 @@ bool set_trap(int signum, const wchar_t *command)
     } else
 #endif
     {
-	commandp = &trap_command[sigindex(signum)];
+	size_t index = sigindex(signum);
+	commandp = &trap_command[index];
+	receivedp = &signal_received[index];
     }
 
     void (*oldhandler)(int);
@@ -745,6 +749,7 @@ bool set_trap(int signum, const wchar_t *command)
     } else {
 	*commandp = NULL;
     }
+    *receivedp = false;
     if (signum == 0)
 	return true;
 
