@@ -61,9 +61,7 @@ le_state_T le_state;
 /* Initializes line editing.
  * Must be called before each call to `le_readline'.
  * Returns true iff successful, in which case `le_readline' must be called
- * afterward.
- * If this function returns false, the vi/emacs option is unset and
- * `le_readline' must not be called. */
+ * afterward. */
 bool le_setup(void)
 {
     static bool initialized = false;
@@ -72,13 +70,9 @@ bool le_setup(void)
 	le_keymap_init();
     }
 
-    if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO))
-	return false;
-    if (mode != MODE_INACTIVE)
-	return false;
-    if (!le_setupterm())
-	return false;
-    return le_set_terminal();
+    return isatty(STDIN_FILENO) && isatty(STDERR_FILENO)
+	&& le_setupterm()
+	&& le_set_terminal();
 }
 
 /* Prints the specified `prompt' and reads one line from stdin.
@@ -143,6 +137,7 @@ void le_resume_readline(void)
 {
     if (mode == MODE_SUSPENDED) {
 	mode = MODE_ACTIVE;
+	le_setupterm();
 	le_set_terminal();
 	le_display_print_all();
 	le_display_reposition_cursor();

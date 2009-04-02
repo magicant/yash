@@ -494,7 +494,7 @@ void le_print_nel(void)
 /* Prints "nel" variable if "am" variable is false. */
 void le_print_nel_if_no_auto_margin(void)
 {
-    if(tigetflag(TI_am) <= 0)
+    if (tigetflag(TI_am) <= 0)
 	le_print_nel();
 }
 
