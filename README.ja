@@ -4,7 +4,7 @@ Yash: yet another shell
 
 Yash は Magicant が個人的に開発しているコマンドラインシェルの
 実装です。
-POSIX.1 (IEEE Std 1003.1, 2004 Edition) に(ほぼ)準拠しています。
+POSIX.1 (IEEE Std 1003.1, 2008 Edition) に(ほぼ)準拠しています。
 
 
 Yash は GPL の元で配布されるフリーソフトウェアです。詳細は

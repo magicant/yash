@@ -269,13 +269,22 @@ wchar_t *canonicalize_path(const wchar_t *path)
     return wb_towcs(&result);
 }
 
-/* Checks if the specified `path' is already canonicalized. */
-bool is_canonicalized(const wchar_t *path)
+/* Checks if the specified `path' is normalized, that is, containing no "."
+ * or ".." in it. */
+/* Note that a normalized path may contain redundant slashes. */
+bool is_normalized_path(const wchar_t *path)
 {
-    wchar_t *canon = canonicalize_path(path);
-    bool result = wcscmp(path, canon) == 0;
-    free(canon);
-    return result;
+    while (path[0] != L'\0') {
+	if (path[0] == L'.' &&
+		(path[1] == L'\0' || path[1] == L'/' ||
+		 (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/'))))
+	    return false;
+	path = wcschr(path, L'/');
+	if (!path)
+	    break;
+	path++;
+    }
+    return true;
 }
 
 /* Returns the result of `getcwd' as a newly malloced string.
@@ -1093,7 +1102,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 
     if (newpwd[0] != L'.' || (newpwd[1] != L'\0' && newpwd[1] != L'/' &&
 	    (newpwd[1] != L'.' || (newpwd[2] != L'\0' && newpwd[2] != L'/')))) {
-	/* step 5: `newpwd' doesn't start with neither "." nor ".." */
+	/* step 5: `newpwd' doesn't start with either "." or ".." */
 	char *mbsnewpwd = malloc_wcstombs(newpwd);
 	if (mbsnewpwd == NULL) {
 	    wb_destroy(&curpath);
@@ -1385,7 +1394,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 
     if (logical) {
 	const wchar_t *pwd = getvar(VAR_PWD);
-	if (pwd != NULL && pwd[0] == L'/' && is_canonicalized(pwd)) {
+	if (pwd != NULL && pwd[0] == L'/' && is_normalized_path(pwd)) {
 	    mbspwd = malloc_wcstombs(pwd);
 	    if (mbspwd != NULL) {
 		if (is_same_file(mbspwd, ".")) {
@@ -1404,11 +1413,6 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	return Exit_FAILURE;
     }
     printf("%s\n", mbspwd);
-    if (posixly_correct) {
-	wchar_t *pwd = malloc_mbstowcs(mbspwd);
-	if (pwd != NULL)
-	    set_variable(VAR_PWD, pwd, false, false);
-    }
     free(mbspwd);
     return Exit_SUCCESS;
 }

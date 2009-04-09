@@ -345,7 +345,7 @@ void init_pwd(void)
     if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
 	goto set;
     const wchar_t *wpwd = getvar(VAR_PWD);
-    if (!wpwd || !is_canonicalized(wpwd))
+    if (!wpwd || !is_normalized_path(wpwd))
 	goto set;
     return;
 
