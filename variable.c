@@ -332,15 +332,12 @@ void init_variables(void)
 }
 
 /* Reset the value of $PWD if
- *  - `posixly_correct' is true, or
  *  - $PWD doesn't exist, or
  *  - the value of $PWD isn't an absolute path, or
  *  - the value of $PWD isn't the actual current directory, or
  *  - the value of $PWD isn't canonicalized. */
 void init_pwd(void)
 {
-    if (posixly_correct)
-	goto set;
     const char *pwd = getenv(VAR_PWD);
     if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
 	goto set;
