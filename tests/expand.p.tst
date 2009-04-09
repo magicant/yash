@@ -140,8 +140,27 @@ echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 set $foo bar '' xyz ''$foo'' abc
 for i do echo "-$i-"; done
 
+IFS=/
+echo ~
+echo ${foo-~}
+
+IFS='\'
+bar='1\2\3'
+echol ${foo-1\\\\2'\'3"\\"4}
+echol "${foo-1\\2}"
+echol [ $bar ]
+
+IFS=,
+echol ${foo-4,5\,6}
+echol "${foo-4,5\,6}"
+
+IFS=0
+echol $(echo 'command0subst')
+echol $((99+2))
+
 echo =====
 
+IFS=" "
 set "" "" ""
 echol [ "$@" ]
 set 1 "" "" "" 5

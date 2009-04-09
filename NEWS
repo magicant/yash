@@ -14,6 +14,8 @@ Yash 2.8
   *  When executing commands edited by the "fc" builtin, the $?
      variable was incorrectly assigned the exit status of the editor
      invoked by "fc".
+  *  Backslashes, commas and braces in $IFS were incorrectly ignored
+     in field splitting.
 
 ----------------------------------------------------------------------
 Yash 2.7

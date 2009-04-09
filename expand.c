@@ -436,8 +436,8 @@ bool expand_word_inner(
 	    sb_ccat_repeat(&e->splitbuf, c,                     \
 		    e->valuebuf.length - e->splitbuf.length);   \
     } while (0)
-#define FILL_SBUF_SPLITTABLE    FILL_SBUF(1)
-#define FILL_SBUF_UNSPLITTABLE  FILL_SBUF(rec)
+#define FILL_SBUF_SPLITTABLE   FILL_SBUF(1)
+#define FILL_SBUF_UNSPLITTABLE FILL_SBUF(0)
 
     while (w) {
 	switch (w->wu_type) {
@@ -447,7 +447,7 @@ bool expand_word_inner(
 		s = expand_tilde(&ss, w->next, tilde);
 		if (s) {
 		    wb_catfree(&e->valuebuf, escapefree(s, CHARS_ESCAPED));
-		    FILL_SBUF_UNSPLITTABLE;
+		    FILL_SBUF(rec && !indq && !quoted);
 		}
 	    }
 	    while (*ss) {
@@ -481,7 +481,7 @@ bool expand_word_inner(
 			if (s)
 			    wb_catfree(&e->valuebuf,
 				    escapefree(s, CHARS_ESCAPED));
-			FILL_SBUF_UNSPLITTABLE;
+			FILL_SBUF(rec && !indq && !quoted);
 			continue;
 		    }
 		    /* falls thru! */
@@ -489,7 +489,7 @@ bool expand_word_inner(
 		    if (indq || quoted)
 			wb_wccat(&e->valuebuf, L'\\');
 		    wb_wccat(&e->valuebuf, *ss);
-		    FILL_SBUF_UNSPLITTABLE;
+		    FILL_SBUF(rec && !indq && !quoted);
 		    break;
 		}
 		ss++;
@@ -506,11 +506,11 @@ bool expand_word_inner(
 	    s = expand_single(w->wu_arith, tt_none);
 	    if (s)
 		s = evaluate_arithmetic(unescapefree(s));
-	cat_s:
+cat_s:
 	    if (s) {
 		wb_catfree(&e->valuebuf, escapefree(s,
 			    (indq || quoted) ? NULL : CHARS_ESCAPED));
-		FILL_SBUF_SPLITTABLE;
+		FILL_SBUF(!indq && !quoted);
 	    } else {
 		ok = false;
 	    }
@@ -521,8 +521,6 @@ bool expand_word_inner(
     }
 
     return ok;
-
-#undef FILL_SBUF_UNSPLITTABLE
 }
 
 /* Does tilde expansion.
@@ -867,7 +865,7 @@ subst:
 
 	/* add the first element */
 	wb_catfree(&e->valuebuf, *l);
-	FILL_SBUF_SPLITTABLE;
+	FILL_SBUF(!indq);
 	l++;
 	if (*l) {
 	    pl_add(e->valuelist, wb_towcs(&e->valuebuf));
@@ -879,15 +877,17 @@ subst:
 		pl_add(e->valuelist, *l);
 		if (e->splitlist) {
 		    size_t len = wcslen(*l);
-		    pl_add(e->splitlist, memset(xmalloc(len), 1, len));
+		    pl_add(e->splitlist, memset(xmalloc(len), !indq, len));
 		}
 		l++;
 	    }
 
 	    /* add the last element */
 	    wb_initwith(&e->valuebuf, *l);
-	    if (e->splitlist)
-		sb_ccat_repeat(sb_init(&e->splitbuf), 1, e->valuebuf.length);
+	    if (e->splitlist) {
+		sb_init(&e->splitbuf);
+		sb_ccat_repeat(&e->splitbuf, !indq, e->valuebuf.length);
+	    }
 	}
     }
     free(list);
@@ -1474,24 +1474,24 @@ bool has_leading_zero(const wchar_t *s, bool *sign)
  * `split' is the splittability string corresponding to `str' and also freed.
  * The results are added to `dest' as newly malloced wide strings.
  * `ifs' must not be NULL.
- * The word is split at non-backslashed characters that are contained in `ifs'
- * and whose corresponding character in the splittability string is non-zero. */
+ * The word is split at characters that are contained in `ifs' and whose
+ * corresponding character in the splittability string is non-zero. */
 void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
-    size_t index = 0, startindex = 0;
+    size_t index = 0, charindex = 0, startindex = 0;
 
-    while (s[index]) {
-	if (s[index] == L'\\') {
+    for (;;) {
+	charindex = index;
+	if (s[index] == L'\\')
 	    index++;
-	    if (!s[index])
-		break;
-	    index++;
-	} else if (split[index] && wcschr(ifs, s[index])) {
+	if (!s[index])
+	    break;
+	if (split[index] && wcschr(ifs, s[index])) {
 	    /* the character is in `ifs', so do splitting */
 	    bool splitonnonspace = false, nonspace = false;
-	    if (startindex < index)
-		pl_add(dest, xwcsndup(s + startindex, index - startindex));
+	    if (startindex < charindex)
+		pl_add(dest, xwcsndup(s + startindex, charindex - startindex));
 	    else
 		splitonnonspace = true;
 	    do {
@@ -1502,8 +1502,11 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 		    nonspace = true;
 		}
 		index++;
+		charindex = index;
+		if (s[index] == L'\\')
+		    index++;
 		if (!s[index]) {
-		    if (nonspace && startindex < index)
+		    if (nonspace && startindex < charindex)
 			pl_add(dest, xwcsdup(L""));
 		    break;
 		}
@@ -1513,12 +1516,12 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 	    index++;
 	}
     }
-    if (startindex < index || index == 0) {
+    if (startindex < charindex || charindex == 0) {
 	/* if we have some leftover or the string is empty at all, add it. */
 	if (startindex == 0) {
 	    pl_add(dest, s);
 	} else {
-	    pl_add(dest, xwcsndup(s + startindex, index - startindex));
+	    pl_add(dest, xwcsndup(s + startindex, charindex - startindex));
 	    free(s);
 	}
     } else {
