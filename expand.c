@@ -446,8 +446,8 @@ bool expand_word_inner(
 	    if (first && tilde != tt_none) {
 		s = expand_tilde(&ss, w->next, tilde);
 		if (s) {
-		    wb_catfree(&e->valuebuf, escapefree(s, CHARS_ESCAPED));
-		    FILL_SBUF(rec && !indq && !quoted);
+		    wb_catfree(&e->valuebuf, escapefree(s, NULL));
+		    FILL_SBUF_UNSPLITTABLE;
 		}
 	    }
 	    while (*ss) {
@@ -478,10 +478,10 @@ bool expand_word_inner(
 			wb_wccat(&e->valuebuf, L':');
 			ss++;
 			s = expand_tilde(&ss, w->next, tilde);
-			if (s)
-			    wb_catfree(&e->valuebuf,
-				    escapefree(s, CHARS_ESCAPED));
-			FILL_SBUF(rec && !indq && !quoted);
+			if (s) {
+			    wb_catfree(&e->valuebuf, escapefree(s, NULL));
+			    FILL_SBUF_UNSPLITTABLE;
+			}
 			continue;
 		    }
 		    /* falls thru! */
@@ -595,7 +595,6 @@ finish:
 }
 
 /* Does a parameter expansion.
- * `tilde' is type of tilde expansion that is done in the nested expansion.
  * If successful, the result is returned as a newly malloced array of pointers
  * to newly malloced wide strings cast to (void *). The array is
  * NULL-terminated.

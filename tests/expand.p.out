@@ -92,7 +92,7 @@ lor-cond-assign 1 0 3 3 1 1 3 3
 --
 -abc-
 /tmp/home
- tmp home
+/tmp/home
 1\\2\3\4
 1\2
 [
