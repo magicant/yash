@@ -2582,6 +2582,8 @@ int read_builtin(int argc, void **argv)
 	    xerror(0, Ngt("unexpected error"));
 	    continue;
 	}
+	if (i + 1 == list.length)
+	    trim_trailing_ifsws(list.contents[i], ifs);
 	if (!array || i + 1 < list.length)
 	    err |= !set_variable(name, list.contents[i], SCOPE_GLOBAL, false);
 	else

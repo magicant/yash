@@ -1604,6 +1604,24 @@ end:
     return result;
 }
 
+/* Removes IFS white spaces at the end of the string `s' by replacing them with
+ * null characters. */
+void trim_trailing_ifsws(wchar_t *s, const wchar_t *ifs)
+{
+    wchar_t *const base = s;
+
+    if (!ifs)
+	ifs = DEFAULT_IFS;
+    s += wcslen(s);
+    while (base < s) {
+	s--;
+	if (wcschr(ifs, *s) && iswspace(*s))
+	    *s = L'\0';
+	else
+	    break;
+    }
+}
+
 
 /********** Escaping **********/
 
