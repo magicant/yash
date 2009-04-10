@@ -37,7 +37,9 @@
 #if HAVE_PATHS_H
 # include <paths.h>
 #endif
-#include "alias.h"
+#if YASH_ENABLE_ALIAS
+# include "alias.h"
+#endif
 #include "builtin.h"
 #include "exec.h"
 #include "expand.h"

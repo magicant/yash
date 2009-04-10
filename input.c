@@ -31,7 +31,9 @@
 #endif
 #include "exec.h"
 #include "expand.h"
-#include "history.h"
+#if YASH_ENABLE_HISTORY
+# include "history.h"
+#endif
 #include "input.h"
 #include "job.h"
 #include "mail.h"
