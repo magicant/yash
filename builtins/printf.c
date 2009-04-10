@@ -584,7 +584,10 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 		else
 		    arg = L"0";
 		errno = 0;
-		value = wcstold(arg, &end);
+		if (posixly_correct)
+		    value = wcstod(arg, &end);
+		else
+		    value = wcstold(arg, &end);
 		if (errno || !arg[0] || *end) {
 		    xerror(errno, Ngt("`%ls' is not a valid number"), arg);
 		    printf_error = true;
