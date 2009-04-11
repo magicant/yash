@@ -11,6 +11,15 @@ History of Yash
 Yash 2.8
 
   +  Brace expansion with delta: {a..b..c}
+  =  Yash now conforms to POSIX.1-2008.
+    .  The "read" builtin now always removes trailing white-spaces from
+       the input.
+    .  The results of tilde expansion are no longer subject to field
+       splitting and pathname expansion.
+    .  The "pwd" builtin with the -P option no longer sets the $PWD
+       variable.
+    .  "cd -L foo/.." is no more the same as "cd -L ." in that it is
+	   an error when the directory "foo" does not exist.
   *  When executing commands edited by the "fc" builtin, the $?
      variable was incorrectly assigned the exit status of the editor
      invoked by "fc".

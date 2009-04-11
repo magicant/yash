@@ -59,6 +59,8 @@ extern int eaccess(const char *path, int amode)
 static bool check_access(const char *path, mode_t mode)
     __attribute__((nonnull));
 #endif
+static inline bool not_dotdot(const wchar_t *p)
+    __attribute__((nonnull,pure));
 
 /* Checks if `path' is a regular file. */
 bool is_regular_file(const char *path)
@@ -178,95 +180,103 @@ bool is_same_file(const char *path1, const char *path2)
 }
 
 /* Canonicalizes a pathname.
- * This is only a string manipulation function; the actual file system doesn't
- * affect the result.
- * `path' must not be NULL and the result is a newly malloced string. */
+ *  * Dot components are removed.
+ *  * Dot-dot components are removed together with the preceding components. If
+ *    any of the preceding components is not a directory, it is an error.
+ *  * Redundant slashes are removed.
+ * `path' must not be NULL.
+ * The result is a newly malloced string if successful. On error, an error
+ * message is printed and NULL is returned. */
 wchar_t *canonicalize_path(const wchar_t *path)
 {
-    if (!path[0])
-	return xwcsdup(path);
+    const wchar_t *const origpath = path;
+    wchar_t *const canon = xmalloc((wcslen(path) + 1) * sizeof *canon);
+    size_t len = 0;
+    plist_T clist;
 
-    /* count the number of leading L'/'s */
-    size_t leadingslashcount = 0;
-    while (path[0] == L'/') {
-	leadingslashcount++;
+    pl_init(&clist);
+
+    if (*path == L'/') {  /* first slash */
 	path++;
-    }
-
-    plist_T list;
-    wchar_t p[wcslen(path) + 1];
-    wcscpy(p, path);
-    pl_init(&list);
-
-    /* add each pathname component to `list', replacing each L'/' with L'\0'
-     * in `p'. */
-    pl_add(&list, p);
-    for (wchar_t *pp = p; *pp; pp++) {
-	if (*pp == L'/') {
-	    *pp = L'\0';
-	    pl_add(&list, pp + 1);
+	canon[len++] = '/';
+	if (*path == L'/') {  /* second slash */
+	    path++;
+	    if (*path != L'/')  /* third slash */
+		canon[len++] = '/';
 	}
     }
 
-    /* firstly, remove L""s and L"."s from the list */
-    for (size_t i = 0; i < list.length; ) {
-	if (wcscmp(list.contents[i], L"") == 0
-		|| wcscmp(list.contents[i], L".") == 0) {
-	    pl_remove(&list, i, 1);
-	} else {
-	    i++;
-	}
-    }
-
-    /* next, remove L".."s and their parent */
-    for (size_t i = 0; i < list.length; ) {
-	if (wcscmp(list.contents[i], L"..") == 0) {
-	    if (i == 0) {
-		/* Speaking posixly correctly, L".." must not be removed if it
-		 * is the first pathname component. However, in this rule,
-		 * L"/../" is not canonicalized to L"/", which is an unnatural
-		 * behavior. So if `posixly_correct' is false, we remove L".."s
-		 * following the root. */
-		if (!posixly_correct && leadingslashcount > 0) {
-		    pl_remove(&list, i, 1);
-		    continue;
-		}
-	    } else {
-		/* If L".." is not the first component, we remove it and its
-		 * parent, except when the parent is also L"..". */
-		if (wcscmp(list.contents[i - 1], L"..") != 0) {
-		    pl_remove(&list, i - 1, 2);
-		    i--;
-		    continue;
+    for (;;) {
+	canon[len] = L'\0';
+	while (*path == L'/')
+	    path++;
+	if (path[0] == L'\0')
+	    break;
+	if (path[0] == L'.') {
+	    if (path[1] == L'\0') {
+		/* ignore trailing dot component */
+		break;
+	    } else if (path[1] == L'/') {
+		/* skip dot component */
+		path += 2;
+		continue;
+	    } else if (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/')
+		    && clist.length > 0) {
+		/* dot-dot component */
+		wchar_t *prec = clist.contents[clist.length - 1];
+		if (not_dotdot(prec)) {
+		    char *mbsprec = malloc_wcstombs(canon);
+		    bool isdir = mbsprec != NULL && is_directory(mbsprec);
+		    free(mbsprec);
+		    if (isdir) {
+			len = prec - canon;
+			/* canon[len] = L'\0'; */
+			pl_remove(&clist, clist.length - 1, 1);
+			path += 2;
+			continue;
+		    } else {
+			goto error;
+		    }
 		}
 	    }
 	}
-	i++;
-    }
 
-    /* finally, concatenate all the components in the list */
-    xwcsbuf_T result;
-    wb_init(&result);
-    switch (leadingslashcount) {  /* put the leading slash(es) */
-	case 0:
-	    break;
-	case 2:
-	    wb_cat(&result, L"//");
-	    break;
-	default:  /* more than 2 slashes are canonicalized to a single slash */
-	    wb_wccat(&result, L'/');
-	    break;
+	/* others */
+	pl_add(&clist, canon + len);
+	if (clist.length > 1)
+	    canon[len++] = L'/';
+	while (*path != L'\0' && *path != L'/')  /* copy next component */
+	    canon[len++] = *path++;
     }
-    for (size_t i = 0; i < list.length; i++) {
-	wb_cat(&result, list.contents[i]);
-	if (i < list.length - 1)
-	    wb_wccat(&result, L'/');
+    pl_destroy(&clist);
+    assert(canon[len] == L'\0');
+    return canon;
+
+    const wchar_t *pwd, *p;
+    /* print sweet error message */
+error:
+    pwd = getvar(VAR_PWD);
+    p = (pwd != NULL) ? matchwcsprefix(origpath, pwd) : NULL;
+    if (p != NULL && *p == L'/') {
+	do p++; while (*p == L'/');
+	if (*p != L'\0')
+	    xerror(ENOTDIR, "%ls", p);
+	else
+	    goto error_printall;
+    } else {
+error_printall:
+	xerror(ENOTDIR, "%ls", origpath);
     }
-    pl_destroy(&list);
-    if (result.length == 0)
-	/* if the result is empty, we return L"." instead */
-	wb_wccat(&result, L'.');
-    return wb_towcs(&result);
+    pl_destroy(&clist);
+    free(canon);
+    return NULL;
+}
+
+bool not_dotdot(const wchar_t *p)
+{
+    if (*p == L'/')
+	p++;
+    return wcscmp(p, L"..") != 0;
 }
 
 /* Checks if the specified `path' is normalized, that is, containing no "."
@@ -1179,6 +1189,8 @@ step7:
 	/* step 8-9 */
 	wchar_t *path = canonicalize_path(curpath.contents);
 	wb_destroy(&curpath);
+	if (path == NULL)
+	    return Exit_FAILURE;
 	if (path[0] != L'\0') {
 	    char *mbspath = malloc_wcstombs(path);
 	    if (mbspath == NULL) {
