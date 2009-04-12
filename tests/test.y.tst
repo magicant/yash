@@ -71,7 +71,7 @@ tt -h fifolink
 tt -h reglink
 tt -h gid
 tt -h no_such_file
-tt -k sticky
+#tt -k sticky
 tt -k gid
 tt -L fifolink
 tt -L reglink

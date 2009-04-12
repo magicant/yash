@@ -295,8 +295,10 @@ char *xgetcwd(void)
 	    pwdlen *= 2;
 	    pwd = xrealloc(pwd, pwdlen);
 	} else {
+	    int saveerrno = errno;
 	    free(pwd);
 	    pwd = NULL;
+	    errno = saveerrno;
 	    break;
 	}
     }
