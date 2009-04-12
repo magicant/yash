@@ -929,14 +929,25 @@ int trap_builtin(int argc, void **argv)
 	return Exit_SUCCESS;
     }
 
-    /* set traps */
     bool err = false;
-    const wchar_t *command = ARGV(xoptind++);
-    if (xoptind == argc)
-	goto print_usage;
-    if (wcscmp(command, L"-") == 0)
-	command = NULL;
+    const wchar_t *command;
 
+    /* check if the first operand is an integer */
+    wchar_t *end;
+    errno = 0;
+    wcstoul(ARGV(xoptind), &end, 10);
+    if (ARGV(xoptind)[0] != L'\0' && *end == L'\0') {
+	command = NULL;
+	goto set_traps;
+    } else {
+	command = ARGV(xoptind++);
+	if (xoptind == argc)
+	    goto print_usage;
+	if (wcscmp(command, L"-") == 0)
+	    command = NULL;
+    }
+
+set_traps:
     do {
 	wchar_t *name = ARGV(xoptind);
 	int signum = get_signal_number_w(name);
@@ -951,6 +962,7 @@ int trap_builtin(int argc, void **argv)
 print_usage:
     fprintf(stderr,
 	    Ngt("Usage:  trap [action signal...]\n"
+		"        trap signum [signal...]\n"
 		"        trap -p [signal...]\n"));
     SPECIAL_BI_ERROR;
     return Exit_ERROR;
