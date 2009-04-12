@@ -185,11 +185,10 @@ bool is_same_file(const char *path1, const char *path2)
  *    any of the preceding components is not a directory, it is an error.
  *  * Redundant slashes are removed.
  * `path' must not be NULL.
- * The result is a newly malloced string if successful. On error, an error
- * message is printed and NULL is returned. */
+ * The result is a newly malloced string if successful. NULL is returned on
+ * error. */
 wchar_t *canonicalize_path(const wchar_t *path)
 {
-    const wchar_t *const origpath = path;
     wchar_t *const canon = xmalloc((wcslen(path) + 1) * sizeof *canon);
     size_t len = 0;
     plist_T clist;
@@ -235,7 +234,10 @@ wchar_t *canonicalize_path(const wchar_t *path)
 			path += 2;
 			continue;
 		    } else {
-			goto error;
+			/* error */
+			pl_destroy(&clist);
+			free(canon);
+			return NULL;
 		    }
 		}
 	    }
@@ -251,25 +253,6 @@ wchar_t *canonicalize_path(const wchar_t *path)
     pl_destroy(&clist);
     assert(canon[len] == L'\0');
     return canon;
-
-    const wchar_t *pwd, *p;
-    /* print sweet error message */
-error:
-    pwd = getvar(VAR_PWD);
-    p = (pwd != NULL) ? matchwcsprefix(origpath, pwd) : NULL;
-    if (p != NULL && *p == L'/') {
-	do p++; while (*p == L'/');
-	if (*p != L'\0')
-	    xerror(ENOTDIR, "%ls", p);
-	else
-	    goto error_printall;
-    } else {
-error_printall:
-	xerror(ENOTDIR, "%ls", origpath);
-    }
-    pl_destroy(&clist);
-    free(canon);
-    return NULL;
 }
 
 bool not_dotdot(const wchar_t *p)
@@ -1003,7 +986,7 @@ bool is_reentry(const struct stat *st, const plist_T *dirstack)
 
 static int change_directory(
 	const wchar_t *newpwd, bool printnewdir, bool logical)
-    __attribute__((nonnull));
+    __attribute__((nonnull,warn_unused_result));
 static void print_command_paths(bool all);
 static void print_home_directories(void);
 static void print_umask_octal(mode_t mode);
@@ -1083,36 +1066,54 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 {
     const wchar_t *oldpwd;
     xwcsbuf_T curpath;
+    size_t curpathoffset = 0;
     bool err = false;
 
     /* get the current value of $PWD as `oldpwd' */
     oldpwd = getvar(VAR_PWD);
     if (oldpwd == NULL || oldpwd[0] != L'/') {
+	if (oldpwd == newpwd) {
+	    xerror(0, Ngt("invalid $PWD value"));
+	    return Exit_FAILURE;
+	}
+	/* we have to assure `oldpwd != newpwd' because we're going to
+	 * re-assign $PWD */
+
 	char *pwd = xgetcwd();
 	if (pwd == NULL) {
-	    xerror(errno, Ngt("cannot find out current directory"));
+	    xerror(errno, Ngt("cannot determine current directory"));
 	    err = true;
 	} else {
 	    wchar_t *wpwd = realloc_mbstowcs(pwd);
 	    if (wpwd != NULL) {
-		if (!set_variable(VAR_PWD, wpwd, SCOPE_GLOBAL, false))
-		    err = true;
-		oldpwd = getvar(VAR_PWD);
+		if (set_variable(VAR_PWD, wpwd, SCOPE_GLOBAL, false))
+		    oldpwd = getvar(VAR_PWD);
+		else
+		    logical = false, oldpwd = NULL;
 	    } else {
-		xerror(0, Ngt("name of current directory contains "
-			    "invalid characters"));
-		err = true;
+		xerror(EILSEQ, Ngt("unexpected error"));
+		return Exit_ERROR;
 	    }
 	}
-	if (oldpwd == NULL)
-	    oldpwd = L".";  /* final resort */
     }
+    assert(!logical || oldpwd != NULL);
+    assert(oldpwd == NULL || oldpwd[0] == L'/');
 
     wb_init(&curpath);
+    
+    /* step 3 */
+    if (newpwd[0] == L'/') {
+	wb_cat(&curpath, newpwd);
+	goto step7;
+    }
 
-    if (newpwd[0] != L'.' || (newpwd[1] != L'\0' && newpwd[1] != L'/' &&
-	    (newpwd[1] != L'.' || (newpwd[2] != L'\0' && newpwd[2] != L'/')))) {
-	/* step 5: `newpwd' doesn't start with either "." or ".." */
+    /* step 4: check if `newpwd' starts with "." or ".." */
+    if (newpwd[0] == L'.' && (newpwd[1] == L'\0' || newpwd[1] == L'/' ||
+	    (newpwd[1] == L'.' && (newpwd[2] == L'\0' || newpwd[2] == L'/'))))
+	goto step6;
+
+    /* step 5: search $CDPATH */
+    {
 	char *mbsnewpwd = malloc_wcstombs(newpwd);
 	if (mbsnewpwd == NULL) {
 	    wb_destroy(&curpath);
@@ -1123,16 +1124,6 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	if (path != NULL) {
 	    if (strcmp(mbsnewpwd, path) != 0)
 		printnewdir = true;
-
-	    /* If `path' is not an absolute path, we prepend `oldpwd' to make it
-	     * absolute, although POSIX doesn't provide that we do this. */
-	    if (path[0] != L'/') {
-		wb_cat(&curpath, oldpwd);
-		if (curpath.length == 0   /* see note below step 6 */
-			|| curpath.contents[curpath.length - 1] != L'/')
-		    wb_wccat(&curpath, L'/');
-	    }
-
 	    wb_mbscat(&curpath, path);
 	    free(mbsnewpwd);
 	    free(path);
@@ -1141,77 +1132,103 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	free(mbsnewpwd);
     }
 
-    /* step 6: concatenate PWD, a slash and the operand */
-    wb_cat(&curpath, oldpwd);
-    if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
-	wb_wccat(&curpath, L'/');
+step6:
+    assert(newpwd[0] != L'/');
+    assert(curpath.length == 0);
+    if (logical) {
+	wb_cat(&curpath, oldpwd);
+	if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
+	    wb_wccat(&curpath, L'/');
+    }
     wb_cat(&curpath, newpwd);
-    /* We don't append a slash if there is already one. This isn't mandated by
-     * POSIX, but we should avoid appending one more slash to the root dir. */
 
 step7:
-    if (!logical) {
-	/* step 7 */
-	char *mbscurpath = realloc_wcstombs(wb_towcs(&curpath));
+    if (!logical)
+	goto step10;
+    if (curpath.contents[0] != L'/') {
+	wchar_t *oldcurpath = wb_towcs(&curpath);
+	wb_init(&curpath);
+	wb_cat(&curpath, oldpwd);
+	if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
+	    wb_wccat(&curpath, L'/');
+	wb_catfree(&curpath, oldcurpath);
+    }
+
+    /* step 8: canonicalization */
+    assert(logical);
+    {
+	wchar_t *oldcurpath = wb_towcs(&curpath);
+	wchar_t *canon = canonicalize_path(oldcurpath);
+	free(oldcurpath);
+	if (canon == NULL) {
+	    xerror(ENOTDIR, "%ls", newpwd);
+	    return Exit_FAILURE;
+	}
+	wb_initwith(&curpath, canon);
+    }
+
+    /* step 9: determine `curpathoffset' */
+    assert(logical);
+    {
+	wchar_t *s = matchwcsprefix(curpath.contents, oldpwd);
+	if (s != NULL && *s == L'/') {
+	    s++;
+	    assert(*s != L'/');
+	    curpathoffset = s - curpath.contents;
+	}
+    }
+
+step10:  /* do chdir */
+    assert(curpathoffset <= curpath.length);
+    {
+	char *mbscurpath = malloc_wcstombs(curpath.contents + curpathoffset);
 	if (mbscurpath == NULL) {
-	    xerror(0, Ngt("unexpected error"));
+	    xerror(EILSEQ, Ngt("unexpected error"));
+	    wb_destroy(&curpath);
 	    return Exit_ERROR;
 	}
 	if (chdir(mbscurpath) < 0) {
 	    xerror(errno, Ngt("`%s'"), mbscurpath);
 	    free(mbscurpath);
+	    wb_destroy(&curpath);
 	    return Exit_FAILURE;
 	}
 	free(mbscurpath);
+    }
 
+#ifndef NDEBUG
+    newpwd = NULL;  /* `newpwd' must not be used any more */
+#endif
+
+    /* set $OLDPWD and $PWD */
+    if (oldpwd != NULL)
 	if (!set_variable(VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
 	    err = true;
+    if (logical) {
+	if (printnewdir)
+	    printf("%ls\n", curpath.contents);
+	if (!set_variable(VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false))
+	    err = true;
+    } else {
+	wb_destroy(&curpath);
 
-	char *actualpwd = xgetcwd();
-	if (actualpwd == NULL) {
-	    xerror(errno, Ngt("cannot find out new working directory"));
-	    return Exit_FAILURE;
+	char *mbsnewpwd = xgetcwd();
+	if (mbsnewpwd == NULL) {
+	    xerror(errno, Ngt("cannot determine new working directory"));
+	    err = true;
 	} else {
 	    if (printnewdir)
-		printf("%s\n", actualpwd);
+		printf("%s\n", mbsnewpwd);
 
-	    wchar_t *wactualpwd = realloc_mbstowcs(actualpwd);
-	    if (wactualpwd == NULL) {
+	    wchar_t *wcsnewpwd = realloc_mbstowcs(mbsnewpwd);
+	    if (wcsnewpwd == NULL) {
 		xerror(0, Ngt("cannot convert multibyte characters "
 			    "into wide characters"));
-		return Exit_FAILURE;
+		err = true;
 	    } else {
-		if (!set_variable(VAR_PWD, wactualpwd, SCOPE_GLOBAL, false))
+		if (!set_variable(VAR_PWD, wcsnewpwd, SCOPE_GLOBAL, false))
 		    err = true;
 	    }
-	}
-    } else {
-	/* step 8-9 */
-	wchar_t *path = canonicalize_path(curpath.contents);
-	wb_destroy(&curpath);
-	if (path == NULL)
-	    return Exit_FAILURE;
-	if (path[0] != L'\0') {
-	    char *mbspath = malloc_wcstombs(path);
-	    if (mbspath == NULL) {
-		xerror(0, Ngt("unexpected error"));
-		free(path);
-		return Exit_ERROR;
-	    }
-	    if (chdir(mbspath) < 0) {
-		xerror(errno, Ngt("`%s'"), mbspath);
-		free(mbspath);
-		free(path);
-		return Exit_FAILURE;
-	    }
-	    if (printnewdir)
-		printf("%s\n", mbspath);
-	    free(mbspath);
-
-	    if (!set_variable(VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
-		err = true;
-	    if (!set_variable(VAR_PWD, path, SCOPE_GLOBAL, false))
-		err = true;
 	}
     }
 
@@ -1421,7 +1438,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 
     mbspwd = xgetcwd();
     if (mbspwd == NULL) {
-	xerror(errno, Ngt("cannot find out current directory"));
+	xerror(errno, Ngt("cannot determine current directory"));
 	return Exit_FAILURE;
     }
     printf("%s\n", mbspwd);
