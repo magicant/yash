@@ -40,6 +40,7 @@
 #endif
 #include "builtin.h"
 #include "exec.h"
+#include "expand.h"
 #include "hashtable.h"
 #include "option.h"
 #include "path.h"
@@ -773,6 +774,7 @@ bool wglob_search(
 {
     const size_t savedirlen = dirname->length;
     const size_t savewdirlen = wdirname->length;
+    bool ok = true;
 #define RESTORE_DIRNAME \
     ((void) (dirname->contents[dirname->length = savedirlen] = '\0'))
 #define RESTORE_WDIRNAME \
@@ -808,38 +810,62 @@ bool wglob_search(
 	}
     }
 
-    DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
-    if (!dir)
-	return true;
-
     size_t patlen = wcscspn(pattern, L"/");
     bool is_leaf = (pattern[patlen] == L'\0');
     wchar_t pat[patlen + 1];
     wcsncpy(pat, pattern, patlen);
     pat[patlen] = L'\0';
 
-    enum wfnmflags wfnmflags = wfnmflags;
-    size_t sml = sml;
-    /* If the pattern is literal, we can use `wcscmp' instead of `wfnmatchl'. */
-    bool domatch = pattern_is_nonliteral(pat);
-    if (domatch) {
-	wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
-	if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;
-	if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
-	if (flags & WGLB_PERIOD)   wfnmflags &= ~WFNM_PERIOD;
-	sml = shortest_match_length(pat, wfnmflags);
+    /* IF the pattern doesn't contain any pattern character, upescape the pattern
+     * and check for the file. */
+    if (!pattern_has_special_char(pat)) {
+	struct stat st;
+	wchar_t *wentname = unescape(pat);
+	char *entname = malloc_wcstombs(wentname);
+	sb_catfree(dirname, entname);
+	wb_catfree(wdirname, wentname);
+	if (is_leaf) {
+	    if (stat(dirname->contents, &st) >= 0) {
+		if ((flags & WGLB_MARK) && S_ISDIR(st.st_mode))
+		    wb_wccat(wdirname, L'/');
+		pl_add(list, xwcsdup(wdirname->contents));
+	    }
+	} else {
+	    assert(pattern[patlen] == L'/');
+	    sb_ccat(dirname, '/');
+	    wb_wccat(wdirname, L'/');
+	    const wchar_t *subpat = pattern + patlen + 1;
+	    while (*subpat == L'/') {
+		sb_ccat(dirname, '/');
+		wb_wccat(wdirname, L'/');
+		subpat++;
+	    }
+	    ok = wglob_search(
+		    subpat, flags, dirname, wdirname, dirstack, list);
+	}
+	RESTORE_DIRNAME;
+	RESTORE_WDIRNAME;
+	return true;
     }
 
+    DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
+    if (!dir)
+	return true;
+
+    enum wfnmflags wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
+    if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;
+    if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
+    if (flags & WGLB_PERIOD)   wfnmflags &= ~WFNM_PERIOD;
+
+    size_t sml = shortest_match_length(pat, wfnmflags);
+
     struct dirent *de;
-    bool ok = true;
     while (ok && (de = readdir(dir))) {
 	wchar_t *wentname = malloc_mbstowcs(de->d_name);
 	if (!wentname)
 	    continue;
 
-	size_t match = domatch
-	    ? wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml)
-	    : ((wcscmp(pat, wentname) == 0) ? 1 : WFNM_NOMATCH);
+	size_t match = wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml);
 	if (match == WFNM_ERROR) {
 	    ok = false;
 	} else if (match != WFNM_NOMATCH) {

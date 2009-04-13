@@ -187,7 +187,7 @@ wchar_t *skip_bracket(const wchar_t *pat, enum wfnmflags flags)
 		    return (wchar_t *) pat + 1;
 		break;
 	    case L'/':
-		/* L'/' is not allowed inside a bracket expr. if PATHNAME */
+		/* L'/' is not allowed inside a bracket expr if PATHNAME. */
 		if (PATHNAME)
 		    goto fail;
 		break;

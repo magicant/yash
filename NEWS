@@ -25,6 +25,9 @@ Yash 2.8
      invoked by "fc".
   *  Backslashes, commas and braces in $IFS were incorrectly ignored
      in field splitting.
+  *  Pathname expansion failed if we do not have the read permission
+     for the specified directory even when we only need the search
+     permission.
 
 ----------------------------------------------------------------------
 Yash 2.7

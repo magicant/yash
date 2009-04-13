@@ -46,17 +46,8 @@ extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
     __attribute__((nonnull));
 extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
     __attribute__((nonnull));
-static inline _Bool pattern_is_nonliteral(const wchar_t *pat)
-    __attribute__((pure,nonnull));
 extern _Bool pattern_has_special_char(const wchar_t *pat)
     __attribute__((pure,nonnull));
-
-/* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
- * If the result is false, the pattern matches only to itself. */
-_Bool pattern_is_nonliteral(const wchar_t *pat)
-{
-    return wcspbrk(pat, L"*?[\\") != NULL;
-}
 
 
 #endif /* YASH_WFNMATCH_H */

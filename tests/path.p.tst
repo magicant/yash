@@ -1,3 +1,24 @@
+echo ===== pathname expansion =====
+
+(
+cd "${TESTTMP}"
+mkdir -p "pathexp/unreadable"
+>"pathexp/unreadable/file"
+echo 1 pathexp/un*able/file
+echo 2 pathexp/un*able/f*le
+echo 3 pathexp/unreadable/f*le
+chmod a-r pathexp/unreadable
+echo 4 pathexp/un*able/file
+echo 5 pathexp/un*able/f*le
+echo 6 pathexp/unreadable/f*le
+chmod a-x pathexp/unreadable
+echo 7 pathexp/un*able/file
+echo 8 pathexp/un*able/f*le
+echo 9 pathexp/unreadable/f*le
+chmod a+rx pathexp/unreadable
+)
+
+
 echo ===== cd builtin =====
 
 HOME=/
@@ -61,4 +82,4 @@ echo ===== hash builtin =====
 PATH= hash 2>/dev/null
 
 
-rm -fr "${TESTTMP}/path.p."* "${TESTTMP}/dir"
+rm -fr "${TESTTMP}/pathexp" "${TESTTMP}/path.p."* "${TESTTMP}/dir"
