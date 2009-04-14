@@ -1676,7 +1676,9 @@ wchar_t *escapefree(wchar_t *restrict s, const wchar_t *restrict t)
     }
 }
 
-/* Removes backslash escapes. The result is a newly malloced string. */
+/* Removes backslash escapes. The result is a newly malloced string.
+ * If there is an unescaped backslash before the null character, the backslash
+ * is ignored. */
 wchar_t *unescape(const wchar_t *s)
 {
     xwcsbuf_T buf;
