@@ -1248,13 +1248,13 @@ step10:  /* do chdir */
 	    if (printnewdir)
 		printf("%s\n", mbsnewpwd);
 
-	    wchar_t *wcsnewpwd = realloc_mbstowcs(mbsnewpwd);
-	    if (wcsnewpwd == NULL) {
+	    wchar_t *wnewpwd = realloc_mbstowcs(mbsnewpwd);
+	    if (wnewpwd == NULL) {
 		xerror(0, Ngt("cannot convert multibyte characters "
 			    "into wide characters"));
 		err = true;
 	    } else {
-		if (!set_variable(VAR_PWD, wcsnewpwd, SCOPE_GLOBAL, false))
+		if (!set_variable(VAR_PWD, wnewpwd, SCOPE_GLOBAL, false))
 		    err = true;
 	    }
 	}
