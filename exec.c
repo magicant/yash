@@ -1864,12 +1864,23 @@ bool print_command_fullpath(const wchar_t *commandname, bool hf)
 	 * get its absolute path. */
 	puts(name);
     } else {
-	char *cwd = xgetcwd();
-	if (!cwd) {
-	    xerror(errno, Ngt("cannot find full path of `%s'"), name);
-	    free(name);
-	    return false;
+	const wchar_t *wcwd = getvar(VAR_PWD);
+	char *cwd = NULL;
+	if (wcwd)
+	    cwd = malloc_wcstombs(wcwd);
+	if (cwd && !is_same_file(cwd, ".")) {
+	    free(cwd);
+	    cwd = NULL;
 	}
+	if (!cwd) {
+	    cwd = xgetcwd();
+	    if (!cwd) {
+		xerror(errno, Ngt("cannot find full path of `%s'"), name);
+		free(name);
+		return false;
+	    }
+	}
+
 	if (!hf)
 	    printf("%s/%s\n", cwd, name);
 	else
