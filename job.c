@@ -362,14 +362,9 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
     bool savenonotify = job->j_nonotify;
 
     job->j_nonotify = true;
-    if (job->j_pgid >= 0 && job->j_status != JS_DONE
+    while (job->j_pgid >= 0 && job->j_status != JS_DONE
 	    && (!return_on_stop || job->j_status != JS_STOPPED)) {
-	block_sigchld_and_sigint();
-	do {
-	    signum = wait_for_sigchld(interruptible, return_on_trap);
-	} while (signum == 0 && job->j_status != JS_DONE &&
-		(!return_on_stop || job->j_status != JS_STOPPED));
-	unblock_sigchld_and_sigint();
+	signum = wait_for_sigchld(interruptible, return_on_trap);
     }
     job->j_nonotify = savenonotify;
     return signum;
@@ -443,16 +438,26 @@ int send_signal_to_job(int signum, const wchar_t *jobname)
     return 0;
 }
 
-/* Put the specified process group in the foreground.
+/* Puts the specified process group in the foreground.
  * `pgrp' must be a valid process group ID and `doing_job_control_now' must be
  * true. */
 void put_foreground(pid_t pgrp)
 {
+    bool saveok;
+    sigset_t blockss, savess;
+
     assert(doing_job_control_now);
     assert(pgrp > 0);
-    block_sigttou();
+
+    sigemptyset(&blockss);
+    sigaddset(&blockss, SIGTTOU);
+    sigemptyset(&savess);
+    saveok = sigprocmask(SIG_BLOCK, &blockss, &savess) >= 0;
+
     tcsetpgrp(ttyfd, pgrp);
-    unblock_sigttou();
+
+    if (saveok)
+	sigprocmask(SIG_SETMASK, &savess, NULL);
 }
 
 /* Computes the exit status from the status code returned by `waitpid'. */

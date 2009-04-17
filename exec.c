@@ -773,7 +773,7 @@ redir_fail:
  * foreground process.
  * `sigtype' specifies settings of signals in the child.
  * `sigtype' is a bitwise OR of the followings:
- *   t_quitint: SIGQUIT and SIGINT are ignored if the parent's job control is on
+ *   t_quitint: SIGQUIT & SIGINT are ignored if the parent's job control is off
  *   t_tstp: SIGTSTP is ignored if the parent is interactive
  *   t_leave: don't clear traps and shellfds. This option should be used only if
  *          the shell is going to `exec' to an extenal program.
@@ -787,7 +787,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	sigfillset(&all);
 	sigemptyset(&savemask);
 	if (sigprocmask(SIG_BLOCK, &all, &savemask) < 0)
-	    xerror(errno, "sigprocmask");
+	    xerror(errno, "sigprocmask"), sigblock = false;
     }
 
     pid_t cpid = fork();
@@ -825,14 +825,14 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	}
 	is_interactive_now = false;
 	if (sigtype & t_quitint)
-	    if (!save_doing_job_control_now)
+	    if (posixly_correct || !save_doing_job_control_now)
 		ignore_sigquit_and_sigint();
 	if (sigtype & t_tstp)
 	    if (save_is_interactive_now)
 		ignore_sigtstp();
     }
     if (sigblock)
-	if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0 && errno != EINTR)
+	if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0)
 	    xerror(errno, "sigprocmask");
     return cpid;
 }
@@ -1180,8 +1180,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	/* read output from the command */
 	xwcsbuf_T buf;
 	wb_init(&buf);
-	block_sigchld_and_sigint();
-	handle_sigchld();
 	for (;;) {
 	    wint_t c = fgetwc(f);
 	    if (c == WEOF) {
@@ -1202,7 +1200,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 		wb_wccat(&buf, c);
 	    }
 	}
-	unblock_sigchld_and_sigint();
 	fclose(f);
 
 	/* wait for the child to finish */
