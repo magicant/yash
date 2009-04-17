@@ -80,6 +80,7 @@ enum srchcmdtype_T {
     sct_function = 1 << 2,  /* search functions */
     sct_defpath  = 1 << 3,  /* search the default PATH */
     sct_argc1    = 1 << 4,  /* argc == 1 */
+    sct_rbpath   = 1 << 5,  /* return path of regular builtin */
 };
 
 /* info about a simple command to execute */
@@ -842,6 +843,10 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
  * If the command is not found, `ci->type' is `externalprogram' and
  * `ci->ci_path' is NULL.
  * `name' and `wname' must contain the same string value. */
+/* When the result type `ci->type' is `regularbuiltin', the result value is
+ * either a function pointer to the builtin (if the `sct_rbpath' flag is not
+ * specified in `type') or the path of the corresponding external command
+ * (otherwise). */
 void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
@@ -871,7 +876,7 @@ void search_command(
 	ci->type = semispecialbuiltin;
 	ci->ci_builtin = bi->body;
 	return;
-    } else if (bi && !posixly_correct) {
+    } else if (bi && !posixly_correct && !(type & sct_rbpath)) {
 	ci->type = regularbuiltin;
 	ci->ci_builtin = bi->body;
 	return;
@@ -882,10 +887,11 @@ void search_command(
 
     ci->ci_path = (type & sct_defpath)
 	? get_command_path_default(name) : get_command_path(name, false);
-    if (bi && ci->ci_path) {
+    if (bi && (ci->ci_path || (!posixly_correct && (type & sct_rbpath)))) {
 	assert(bi->type == BI_REGULAR);
 	ci->type = regularbuiltin;
-	ci->ci_builtin = bi->body;
+	if (!(type & sct_rbpath))
+	    ci->ci_builtin = bi->body;
     } else if (!ci->ci_path && shopt_autocd && (type & sct_argc1)
 	    && is_directory(name)) {
 	goto autocd;
@@ -1233,11 +1239,8 @@ static int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 static int command_builtin_execute(
 	int argc, void **argv, enum srchcmdtype_T type)
     __attribute__((nonnull));
-static bool print_command_info(const wchar_t *commandname)
-    __attribute__((nonnull));
-static bool print_command_info_human_friendlily(const wchar_t *commandname)
-    __attribute__((nonnull));
-static bool print_command_fullpath(const wchar_t *commandname, bool hf)
+static bool print_command_info(const wchar_t *commandname,
+	enum srchcmdtype_T type, bool humanfriendly)
     __attribute__((nonnull));
 
 /* "return" builtin */
@@ -1653,8 +1656,8 @@ int command_builtin(int argc, void **argv)
     };
 
     bool argv0istype = wcscmp(ARGV(0), L"type") == 0;
+    bool printinfo = argv0istype, humanfriendly = argv0istype;
     enum srchcmdtype_T type = 0;
-    enum { noinfo, formal, human, } infotype = argv0istype ? human : noinfo;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
@@ -1665,8 +1668,8 @@ int command_builtin(int argc, void **argv)
 	    case L'b':  type |= sct_builtin;   break;
 	    case L'B':  type |= sct_external;  break;
 	    case L'p':  type |= sct_defpath;   break;
-	    case L'v':  infotype = formal;  break;
-	    case L'V':  infotype = human;   break;
+	    case L'v':  printinfo = true;  humanfriendly = false;  break;
+	    case L'V':  printinfo = true;  humanfriendly = true;   break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
@@ -1680,37 +1683,32 @@ int command_builtin(int argc, void **argv)
 	    goto print_usage;
 	else
 	    return Exit_SUCCESS;
-    } else if (type != 0 && infotype != noinfo) {
+    } else if (posixly_correct && (type & (sct_builtin | sct_external))) {
 	goto print_usage;
     }
 
-    bool err = false;
-    switch (infotype) {
-	case noinfo:
-	    if (!(type & (sct_external | sct_builtin)))
-		type |= sct_external | sct_builtin;
-	    return command_builtin_execute(
-		    argc - xoptind, argv + xoptind, type);
-	case formal:
-	    for (int i = xoptind; i < argc; i++)
-		err |= !print_command_info(ARGV(i));
-	    return err ? Exit_FAILURE : Exit_SUCCESS;
-	case human:
-	    for (int i = xoptind; i < argc; i++)
-		err |= !print_command_info_human_friendlily(ARGV(i));
-	    return err ? Exit_FAILURE : Exit_SUCCESS;
+    if (!(type & (sct_external | sct_builtin)))
+	type |= sct_external | sct_builtin;
+    if (!printinfo) {
+	return command_builtin_execute(
+		argc - xoptind, argv + xoptind, type);
+    } else {
+	bool err = false;
+	type |= sct_function | sct_argc1;
+	for (int i = xoptind; i < argc; i++)
+	    err |= !print_command_info(ARGV(i), type, humanfriendly);
+	return err ? Exit_FAILURE : Exit_SUCCESS;
     }
-    assert(false);
 
 print_usage:
     if (argv0istype)
 	fprintf(stderr, gt("Usage:  type command...\n"));
     else if (posixly_correct)
 	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
-			   "        command -v|-V command...\n"));
+			   "        command -v|-V [-p] command...\n"));
     else
 	fprintf(stderr, gt("Usage:  command [-bBp] command [arg...]\n"
-			   "        command -v|-V command...\n"));
+			   "        command -v|-V [-bBp] command...\n"));
     return Exit_ERROR;
 }
 
@@ -1748,6 +1746,84 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     return laststatus;
 }
 
+/* Prints info about the specified command.
+ * If the command is not found, returns false. */
+bool print_command_info(
+	const wchar_t *commandname, enum srchcmdtype_T type, bool humanfriendly)
+{
+#if YASH_ENABLE_ALIAS
+    if (print_alias_if_defined(commandname, humanfriendly))
+	return true;
+#endif
+    if (is_keyword(commandname)) {
+	printf(humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n",
+		commandname);
+	return true;
+    }
+
+    char *name = malloc_wcstombs(commandname);
+    if (!name)
+	return false;
+
+    commandinfo_T ci;
+    search_command(name, commandname, &ci, type | sct_rbpath);
+    switch (ci.type) {
+	case externalprogram:
+	    if (ci.ci_path) {
+		// TODO print absolute path
+		if (humanfriendly)
+		    printf(gt("%s: external command at %s\n"), name,ci.ci_path);
+		else
+		    puts(ci.ci_path);
+		goto ok;
+	    } else {
+		if (humanfriendly)
+		    xerror(0, gt("%s: no such command or function"), name);
+		goto error;
+	    }
+	case specialbuiltin:
+	    if (humanfriendly)
+		printf(gt("%s: special builtin\n"), name);
+	    else
+		puts(name);
+	    goto ok;
+	case semispecialbuiltin:
+	    if (humanfriendly)
+		printf(gt("%s: semi-special builtin\n"), name);
+	    else
+		puts(name);
+	    goto ok;
+	case regularbuiltin:
+	    if (ci.ci_path) {
+		if (humanfriendly)
+		    printf(gt("%s: regular builtin at %s\n"), name, ci.ci_path);
+		else
+		    puts(ci.ci_path);
+	    } else {
+		if (humanfriendly)
+		    printf(gt("%s: regular builtin (not found in $PATH)\n"),
+			    name);
+		else
+		    puts(name);
+	    }
+	    goto ok;
+	case function:
+	    if (humanfriendly)
+		printf(gt("%s: function\n"), name);
+	    else
+		puts(name);
+	    goto ok;
+    }
+
+ok:
+    free(name);
+    return true;
+error:
+    free(name);
+    return false;
+}
+
+#if 0
 /* Prints info about the specified command in the format defined by POSIX.
  * If the command is not found, returns false without printing anything. */
 bool print_command_info(const wchar_t *commandname)
@@ -1890,11 +1966,12 @@ bool print_command_fullpath(const wchar_t *commandname, bool hf)
     free(name);
     return true;
 }
+#endif
 
 const char command_help[] = Ngt(
 "command - execute or identify command\n"
 "\tcommand [-bBp] command [argument...]\n"
-"\tcommand -v|-V command...\n"
+"\tcommand -v|-V [-bBp] command...\n"
 "Executes or identifies the specified command.\n"
 "Without the -v or -V option, <command> is executed with given <argument>s if\n"
 "any. <command> is treated as a builtin or external command, but not a\n"
