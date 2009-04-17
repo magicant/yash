@@ -71,7 +71,7 @@ static void define_alias(
 static bool remove_alias(const wchar_t *name)
     __attribute__((nonnull));
 static void remove_all_aliases(void);
-static aliaslist_T *close_aliaslist(const aliaslist_T *list)
+static aliaslist_T *clone_aliaslist(const aliaslist_T *list)
     __attribute__((nonnull));
 static bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
     __attribute__((nonnull(1)));
@@ -184,7 +184,7 @@ aliaslist_T *new_aliaslist(void)
 }
 
 /* Creates a copy of the alias list. */
-aliaslist_T *close_aliaslist(const aliaslist_T *list)
+aliaslist_T *clone_aliaslist(const aliaslist_T *list)
 {
     aliaslist_T *new = xmalloc(sizeof *new);
     *new = *list;
@@ -285,7 +285,7 @@ substitute_alias:
 	    /* see note below */
 	    if ((alias->flags & AF_BLANKEND) && !(alias->flags & AF_GLOBAL)) {
 		size_t ii = i + alias->valuelen;
-		aliaslist_T *savelist = close_aliaslist(list);
+		aliaslist_T *savelist = clone_aliaslist(list);
 		while (iswblank(buf->contents[ii]))
 		    ii++;
 		substitute_alias(buf, ii, savelist, globalonly);

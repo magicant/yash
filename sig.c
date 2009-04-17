@@ -212,6 +212,10 @@ static volatile sig_atomic_t rtsignal_received[RTSIZE];
 static wchar_t *rttrap_command[RTSIZE];
 #endif
 
+/* The signal mask the shell inherited on invocation.
+ * This mask must be inherited by commands the shell invokes.
+ * When a signal's trap is set, the signal is removed from this mask. */
+static sigset_t blocked_signals;
 /* Set of signals whose handler was SIG_IGN when the shell is invoked but
  * currently is substituted with the shell's handler.
  * The handler of these signals must be reset to SIG_IGN before the shell
@@ -241,13 +245,20 @@ void init_signal(void)
 	sigset_t ss;
 
 	initialized = true;
-	assert(!job_initialized && !interactive_initialized);
-	sigemptyset(&ignored_signals);
-	set_special_handler(SIGCHLD, sig_handler);
+	assert(!job_initialized);
+	assert(!interactive_initialized);
 
+	sigemptyset(&ignored_signals);
+
+	sigemptyset(&blocked_signals);
 	sigemptyset(&ss);
-	if (sigprocmask(SIG_SETMASK, &ss, NULL) < 0 && errno != EINTR)
+	sigaddset(&ss, SIGCHLD);
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	sigaddset(&ss, SIGWINCH);
+#endif
+	if (sigprocmask(SIG_UNBLOCK, &ss, &blocked_signals) < 0)
 	    xerror(errno, "sigprocmask");
+	set_special_handler(SIGCHLD, sig_handler);
     }
 }
 
@@ -272,6 +283,7 @@ void set_job_signals(void)
 	job_initialized = true;
 	set_special_handler(SIGTTOU, SIG_IGN);
 	set_special_handler(SIGTSTP, SIG_IGN);
+	/* don't have to unblock these signals because they are ignored anyway*/
     }
 }
 
@@ -283,10 +295,12 @@ void set_interactive_signals(void)
 	set_special_handler(SIGINT, SIG_IGN);
 	set_special_handler(SIGTERM, SIG_IGN);
 	set_special_handler(SIGQUIT, SIG_IGN);
+	/* don't have to unblock these signals because they are ignored anyway*/
     }
 }
 
-/* Restores the initial signal actions for all signals. */
+/* Restores the initial signal actions and the signal mask for all signals. */
+/* This function is called before calling the `exec' function. */
 void restore_all_signals(void)
 {
     restore_job_signals();
@@ -294,6 +308,9 @@ void restore_all_signals(void)
     if (initialized) {
 	initialized = false;
 	reset_special_handler(SIGCHLD);
+
+	if (sigprocmask(SIG_SETMASK, &blocked_signals, NULL) < 0)
+	    xerror(errno, "sigprocmask");
     }
 }
 
@@ -320,6 +337,7 @@ void restore_interactive_signals(void)
 
 /* Sets the signal handler of `signum' to `handler'.
  * If the current handler is SIG_IGN, `signum' is added to `ignored_signals'. */
+/* Note that this function does not unblock the specified signal. */
 void set_special_handler(int signum, void (*handler)(int signum))
 {
     if (!trap_command[sigindex(signum)]) {
@@ -332,7 +350,8 @@ void set_special_handler(int signum, void (*handler)(int signum))
 	    if (oldaction.sa_handler == SIG_IGN)
 		sigaddset(&ignored_signals, signum);
 	} else {
-	    xerror(errno, "sigaction(SIG%s)", get_signal_name(signum));
+	    int saveerrno = errno;
+	    xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
 	}
     }
 }
@@ -365,8 +384,9 @@ bool is_ignored(int signum)
 }
 
 /* Sets SIGINT to be caught if the shell is interactive (`onoff' = 1).
- * Restores SIGINT (`onoff' = 0).
- * SIGINT must be restored before any other signal handling. */
+ * Restores SIGINT otherwise (`onoff' = 0).
+ * The signal action for SIGINT set by this function must be restored before
+ * any other signal handling. */
 void set_interruptible_by_sigint(bool onoff)
 {
     if (interactive_initialized) {
@@ -378,6 +398,14 @@ void set_interruptible_by_sigint(bool onoff)
 	    action.sa_handler = onoff ? sig_handler : SIG_IGN;
 	    if (sigaction(SIGINT, &action, NULL) < 0)
 		xerror(errno, "sigaction(SIG%s)", "INT");
+	    if (onoff && sigismember(&blocked_signals, SIGINT)) {
+		/* assert(sigisemptyset(&action.sa_mask)); */
+		sigaddset(&action.sa_mask, SIGINT);
+		if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) < 0)
+		    xerror(errno, "sigprocmask");
+	    }
+	} else {
+	    /* If trap for SIGINT is set, SIGINT is already set to be caught. */
 	}
     }
 }
@@ -413,26 +441,6 @@ void ignore_sigtstp(void)
     sigaddset(&ignored_signals, SIGTSTP);
 }
 
-/* Blocks SIGTTOU. */
-void block_sigttou(void)
-{
-    sigset_t ss;
-    sigemptyset(&ss);
-    sigaddset(&ss, SIGTTOU);
-    if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask");
-}
-
-/* Unblocks SIGTTOU. */
-void unblock_sigttou(void)
-{
-    sigset_t ss;
-    sigemptyset(&ss);
-    sigaddset(&ss, SIGTTOU);
-    if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask");
-}
-
 /* Sends SIGSTOP to the shell process.
  * Returns true iff successful. `errno' is set on failure. */
 bool send_sigstop_to_myself(void)
@@ -462,32 +470,7 @@ void sig_handler(int signum)
     }
 }
 
-/* Blocks SIGCHLD and SIGINT. */
-void block_sigchld_and_sigint(void)
-{
-    sigset_t ss;
-
-    sigemptyset(&ss);
-    sigaddset(&ss, SIGCHLD);
-    sigaddset(&ss, SIGINT);
-    if (sigprocmask(SIG_BLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask");
-}
-
-/* Unblocks SIGCHLD and SIGINT. */
-void unblock_sigchld_and_sigint(void)
-{
-    sigset_t ss;
-
-    sigemptyset(&ss);
-    sigaddset(&ss, SIGCHLD);
-    sigaddset(&ss, SIGINT);
-    if (sigprocmask(SIG_UNBLOCK, &ss, NULL) < 0 && errno != EINTR)
-	xerror(errno, "sigprocmask");
-}
-
 /* Waits for SIGCHLD to be caught and call `handle_sigchld'.
- * SIGCHLD and SIGINT must be blocked when this function is called.
  * If SIGCHLD is already caught, this function doesn't wait.
  * If `interruptible' is true, this function can be canceled by SIGINT.
  * If `return_on_trap' is true, this function returns false immediately after
@@ -496,25 +479,32 @@ void unblock_sigchld_and_sigint(void)
 int wait_for_sigchld(bool interruptible, bool return_on_trap)
 {
     int result = 0;
+    if (sigchld_received)
+	goto finish;
+
+    sigset_t ss, savess;
+    sigfillset(&ss);
+    sigemptyset(&savess);
+    if (sigprocmask(SIG_BLOCK, &ss, &savess) < 0)
+	xerror(errno, "sigprocmask");
+
     struct sigaction action, saveaction;
     if (interruptible) {
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 	action.sa_handler = sig_handler;
 	sigemptyset(&saveaction.sa_mask);
+	sigint_received = false;
 	if (sigaction(SIGINT, &action, &saveaction) < 0) {
 	    xerror(errno, "sigaction(SIG%s)", "INT");
 	    interruptible = false;
 	}
-	sigint_received = false;
     }
 
-    sigset_t ss;
-    sigemptyset(&ss);
     while (!sigchld_received) {
-	if (return_on_trap && (result = handle_traps()))
-	    return result;
-	if (sigsuspend(&ss) < 0) {
+	if (return_on_trap && have_unhandled_traps())
+	    break;
+	if (sigsuspend(&savess) < 0) {
 	    if (errno == EINTR) {
 		if (interruptible && sigint_received)
 		    break;
@@ -525,50 +515,58 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
 	}
     }
 
-    if (interruptible) {
-	if (sigint_received)
-	    result = SIGINT;
+    if (interruptible)
 	if (sigaction(SIGINT, &saveaction, NULL) < 0)
 	    xerror(errno, "sigaction(SIG%s)", "INT");
-    }
-
+    if (sigprocmask(SIG_SETMASK, &savess, NULL) < 0)
+	xerror(errno, "sigprocmask");
+finish:
+    if (return_on_trap)
+	result = handle_traps();
+    if (interruptible && sigint_received)
+	result = SIGINT;
     handle_sigchld();
     return result;
 }
 
 /* Waits for the specified file descriptor to be available for reading.
  * If SIGCHLD is caught while waiting, `handle_sigchld' is called.
- * SIGCHLD must be blocked when this function is called.
  * If `trap' is true, traps are also handled while waiting. */
 void wait_for_input(int fd, bool trap)
 {
-    sigset_t ss;
+    sigset_t ss, savess;
 
-    sigemptyset(&ss);
+start:
+    sigfillset(&ss);
+    sigemptyset(&savess);
+    if (sigprocmask(SIG_BLOCK, &ss, &savess) < 0)
+	xerror(errno, "sigprocmask");
+
     for (;;) {
 	handle_sigchld();
-	if (trap)
+	if (trap && have_unhandled_traps()) {
+	    if (sigprocmask(SIG_SETMASK, &savess, NULL) < 0)
+		xerror(errno, "sigprocmask");
 	    handle_traps();
-
-#ifndef NDEBUG
-	sigset_t tmp;
-	sigprocmask(SIG_BLOCK, NULL, &tmp);
-	assert(sigismember(&tmp, SIGCHLD));
-#endif
+	    goto start;
+	}
 
 	fd_set fdset;
 	FD_ZERO(&fdset);
 	FD_SET(fd, &fdset);
-	if (pselect(fd + 1, &fdset, NULL, NULL, NULL, &ss) >= 0) {
+	if (pselect(fd + 1, &fdset, NULL, NULL, NULL, &savess) >= 0) {
 	    if (FD_ISSET(fd, &fdset))
-		return;
+		break;
 	} else {
 	    if (errno != EINTR) {
 		xerror(errno, "pselect");
-		return;
+		break;
 	    }
 	}
     }
+
+    if (sigprocmask(SIG_SETMASK, &savess, NULL) < 0)
+	xerror(errno, "sigprocmask");
 }
 
 /* Handles SIGCHLD if caught. */
@@ -585,15 +583,41 @@ void handle_sigchld(void)
     }
 }
 
+/* Checks if there are unhandled traps (signals have been caught but the
+ * associated trap commands have not been executed). */
+bool have_unhandled_traps(void)
+{
+    if (!any_trap_set || !any_signal_received)
+	return false;
+
+    for (const signal_T *s = signals; s->no; s++) {
+	size_t i = sigindex(s->no);
+	wchar_t *command = trap_command[i];
+	if (signal_received[i] && command && command[0])
+	    return true;
+    }
+#if defined SIGRTMIN && defined SIGRTMAX
+    int sigrtmin = SIGRTMIN, range = SIGRTMAX - sigrtmin + 1;
+    if (range > RTSIZE)
+	range = RTSIZE;
+    for (int i = 0; i < range; i++) {
+	wchar_t *command = rttrap_command[i];
+	if (rtsignal_received[i] && command && command[0])
+	    return true;
+    }
+#endif
+    return false;
+}
+
 /* Executes trap commands for trapped signals if any.
  * There must not be an active job when this function is called.
  * Returns the signal number if any handler is executed, zero otherwise.
- * Note that, if more than one signal are caught, only one of their numbers is
+ * Note that, if more than one signal is caught, only one of their numbers is
  * returned. */
 int handle_traps(void)
 {
     /* Signal handler execution is not reentrant because the value of
-     * `savelaststatus' is lost. But the EXIT is the only exception:
+     * `savelaststatus' would be lost. But the EXIT is the only exception:
      * The EXIT trap may be executed inside another trap. */
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return false;
@@ -601,7 +625,6 @@ int handle_traps(void)
     LE_SUSPEND_READLINE();
 
     int signum = 0;
-    sigset_t emptyset, origset;
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
 
@@ -615,14 +638,8 @@ exec_handlers:
 	    signal_received[i] = false;
 	    wchar_t *command = trap_command[i];
 	    if (command && command[0]) {
-		if (!state) {
+		if (!state)
 		    state = save_parse_state();
-		    sigemptyset(&emptyset);
-		    sigemptyset(&origset);
-		    if (sigprocmask(SIG_SETMASK, &emptyset, &origset) < 0
-			    && errno != EINTR)
-			xerror(errno, "sigprocmask");
-		}
 		signum = handled_signal = s->no;
 		exec_wcs(command, "trap", false);
 		laststatus = savelaststatus;
@@ -640,14 +657,8 @@ exec_handlers:
 	    rtsignal_received[i] = false;
 	    wchar_t *command = rttrap_command[i];
 	    if (command && command[0]) {
-		if (!state) {
+		if (!state)
 		    state = save_parse_state();
-		    sigemptyset(&emptyset);
-		    sigemptyset(&origset);
-		    if (sigprocmask(SIG_SETMASK, &emptyset, &origset) < 0
-			    && errno != EINTR)
-			xerror(errno, "sigprocmask");
-		}
 		signum = handled_signal = sigrtmin + i;
 		exec_wcs(command, "trap", false);
 		laststatus = savelaststatus;
@@ -664,11 +675,8 @@ exec_handlers:
 	goto exec_handlers;
     savelaststatus = -1;
     handled_signal = -1;
-    if (state) {
+    if (state)
 	restore_parse_state(state);
-	if (sigprocmask(SIG_SETMASK, &origset, NULL) < 0 && errno != EINTR)
-	    xerror(errno, "sigprocmask");
-    }
     return signum;
 }
 
@@ -706,12 +714,14 @@ bool set_trap(int signum, const wchar_t *command)
     }
 
     wchar_t **commandp;
+    volatile sig_atomic_t *receivedp;
 #if defined SIGRTMIN && defined SIGRTMAX
     int sigrtmin = SIGRTMIN;
     if (sigrtmin <= signum && signum <= SIGRTMAX) {
 	size_t index = signum - sigrtmin;
 	if (index < RTSIZE) {
 	    commandp = &rttrap_command[index];
+	    receivedp = &rtsignal_received[index];
 	} else {
 	    xerror(0, Ngt("SIG%s: unsupported real-time signal"),
 		    get_signal_name(signum));
@@ -720,7 +730,9 @@ bool set_trap(int signum, const wchar_t *command)
     } else
 #endif
     {
-	commandp = &trap_command[sigindex(signum)];
+	size_t index = sigindex(signum);
+	commandp = &trap_command[index];
+	receivedp = &signal_received[index];
     }
 
     void (*oldhandler)(int);
@@ -752,6 +764,7 @@ bool set_trap(int signum, const wchar_t *command)
     } else {
 	*commandp = NULL;
     }
+    *receivedp = false;
     if (signum == 0)
 	return true;
 
@@ -800,12 +813,23 @@ nodefault:
 	    break;
     }
 
+    if (sigismember(&blocked_signals, signum)) {
+	sigemptyset(&action.sa_mask);
+	sigaddset(&action.sa_mask, signum);
+	if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) < 0) {
+	    xerror(errno, "sigprocmask");
+	} else {
+	    sigdelset(&blocked_signals, signum);
+	}
+    }
+
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     if (sigaction(signum, &action, NULL) >= 0) {
 	return true;
     } else {
-	xerror(errno, "sigaction(SIG%s)", get_signal_name(signum));
+	int saveerrno = errno;
+	xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
 	return false;
     }
 }
@@ -931,14 +955,25 @@ int trap_builtin(int argc, void **argv)
 	return Exit_SUCCESS;
     }
 
-    /* set traps */
     bool err = false;
-    const wchar_t *command = ARGV(xoptind++);
-    if (xoptind == argc)
-	goto print_usage;
-    if (wcscmp(command, L"-") == 0)
-	command = NULL;
+    const wchar_t *command;
 
+    /* check if the first operand is an integer */
+    wchar_t *end;
+    errno = 0;
+    wcstoul(ARGV(xoptind), &end, 10);
+    if (ARGV(xoptind)[0] != L'\0' && *end == L'\0') {
+	command = NULL;
+	goto set_traps;
+    } else {
+	command = ARGV(xoptind++);
+	if (xoptind == argc)
+	    goto print_usage;
+	if (wcscmp(command, L"-") == 0)
+	    command = NULL;
+    }
+
+set_traps:
     do {
 	wchar_t *name = ARGV(xoptind);
 	int signum = get_signal_number_w(name);
@@ -953,6 +988,7 @@ int trap_builtin(int argc, void **argv)
 print_usage:
     fprintf(stderr,
 	    Ngt("Usage:  trap [action signal...]\n"
+		"        trap signum [signal...]\n"
 		"        trap -p [signal...]\n"));
     SPECIAL_BI_ERROR;
     return Exit_ERROR;

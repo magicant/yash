@@ -8,6 +8,38 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.8
+
+  +  Brace expansion with delta: {a..b..c}
+  +  The "command" builtin's -b and -B options now can be used with
+     the -v and -V options.
+  =  Yash now conforms to POSIX.1-2008.
+    .  The "read" builtin now always removes trailing white-spaces
+       from the input.
+    .  The results of tilde expansion are no longer subject to field
+       splitting and pathname expansion.
+    .  The "pwd" builtin with the -P option no longer sets the $PWD
+       variable.
+    .  "cd -L foo/.." is no more the same as "cd -L ." in that it is
+       an error when the directory "foo" does not exist.
+    .  The "command" builtin's -p option now can be used with the -v
+       and -V options.
+    .  In posixly-correct mode, all asynchronous commands now ignore
+       SIGINT and SIGQUIT (even when job control is active).
+  *  When executing commands edited by the "fc" builtin, the $?
+     variable was incorrectly assigned the exit status of the editor
+     invoked by "fc".
+  *  Backslashes, commas and braces in $IFS were incorrectly ignored
+     in field splitting.
+  *  Pathname expansion failed if we do not have the read permission
+     for the specified directory even when we only need the search
+     permission.
+  *  The signal mask of commands invoked by the shell now inherits
+     that of the shell (except for trapped signals).
+  *  The "command" builtin now properly handles directories given as
+     the commands when the "autocd" option is on.
+
+----------------------------------------------------------------------
 Yash 2.7
 
   +  Parameter expansion ${array[index]:=value} now allows assignment

@@ -130,3 +130,32 @@ printf '[%s]' "${ary[@]}"; echo
 
 export ary
 env | grep ^ary=
+
+echo ===== 7 =====
+
+set -o braceexpand
+echo {1..9 {1.9} 1..9}
+echo {1..9}
+echo {9..11}
+echo {111..123}
+echo {9..1}
+echo {11..9}
+echo {123..111}
+echo {1..5..2}
+echo {1..19..3}
+echo {1..2..3}
+echo {1..1..1}
+echo {0..0..0}
+echo {5..1..-2}
+echo {19..1..-3}
+echo {1..1..-1}
+echo {-11..-19..-2}
+echo a{1..4}b
+echo a{1,2,3,4,,555}b
+echo a{1,2}b{3,4}c
+echo a{b{1,2}c,3}d
+echo a{b{1..2}c,3}d
+echo {1,,2}
+echo a{1\'\\\"2,3}b
+echo \{1,2,3} {4,5,6\}
+echo a{,}b

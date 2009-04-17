@@ -58,6 +58,8 @@ read: semi-special builtin
 true: semi-special builtin
 umask: semi-special builtin
 wait: semi-special builtin
+command: sh: no such command or function
+ok
 command -b cat = 127
 command -B exit 127 = 127
 command exit 10 = 10

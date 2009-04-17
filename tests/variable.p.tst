@@ -180,7 +180,7 @@ echo "${b-error}"
 echo "${c-error}"
 
 read a b c <<END
-1 2 3 4  5
+1 2 3 4  5  
 END
 echo "${a-error}"
 echo "${b-error}"

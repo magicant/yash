@@ -332,20 +332,17 @@ void init_variables(void)
 }
 
 /* Reset the value of $PWD if
- *  - `posixly_correct' is true, or
  *  - $PWD doesn't exist, or
  *  - the value of $PWD isn't an absolute path, or
  *  - the value of $PWD isn't the actual current directory, or
  *  - the value of $PWD isn't canonicalized. */
 void init_pwd(void)
 {
-    if (posixly_correct)
-	goto set;
     const char *pwd = getenv(VAR_PWD);
     if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
 	goto set;
     const wchar_t *wpwd = getvar(VAR_PWD);
-    if (!wpwd || !is_canonicalized(wpwd))
+    if (!wpwd || !is_normalized_path(wpwd))
 	goto set;
     return;
 
@@ -2585,6 +2582,8 @@ int read_builtin(int argc, void **argv)
 	    xerror(0, Ngt("unexpected error"));
 	    continue;
 	}
+	if (i + 1 == list.length)
+	    trim_trailing_ifsws(list.contents[i], ifs);
 	if (!array || i + 1 < list.length)
 	    err |= !set_variable(name, list.contents[i], SCOPE_GLOBAL, false);
 	else

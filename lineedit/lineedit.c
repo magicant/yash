@@ -191,11 +191,8 @@ void read_next(void)
 	goto direct_first_buffer;
 
     /* wait for and read the next byte */
-    block_sigchld_and_sigint();
     fflush(stderr);
     wait_for_input(STDIN_FILENO, true);
-    unblock_sigchld_and_sigint();
-
     switch (read(STDIN_FILENO, &c, 1)) {
 	case 0:
 	    le_state = LE_STATE_ERROR;

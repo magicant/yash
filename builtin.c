@@ -25,11 +25,15 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "alias.h"
+#if YASH_ENABLE_ALIAS
+# include "alias.h"
+#endif
 #include "builtin.h"
 #include "exec.h"
 #include "hashtable.h"
-#include "history.h"
+#if YASH_ENABLE_HISTORY
+# include "history.h"
+#endif
 #include "job.h"
 #include "option.h"
 #include "path.h"

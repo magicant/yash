@@ -26,7 +26,6 @@
 -h reglink: 0 0
 -h gid: 1 1
 -h no_such_file: 1 1
--k sticky: 0 0
 -k gid: 1 1
 -L fifolink: 0 0
 -L reglink: 0 0

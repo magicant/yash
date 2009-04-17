@@ -32,7 +32,9 @@
 #endif
 #include "exec.h"
 #include "expand.h"
-#include "history.h"
+#if YASH_ENABLE_HISTORY
+# include "history.h"
+#endif
 #include "input.h"
 #include "job.h"
 #include "mail.h"
@@ -159,7 +161,6 @@ int input_file(struct xwcsbuf_T *buf, void *inputinfo)
     int fd = fileno(f);
     size_t initlen = buf->length;
 
-    block_sigchld_and_sigint();
 start:
     wb_ensuremax(buf, buf->length + 100);
     if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
@@ -192,7 +193,6 @@ start:
 	}
     }
 end:
-    unblock_sigchld_and_sigint();
     return (initlen == buf->length) ? EOF : 0;
 }
 
@@ -228,7 +228,6 @@ bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
 
     if (!set_nonblocking(STDIN_FILENO))
 	return false;
-    block_sigchld_and_sigint();
     while (ok) {
 	char c;
 	ssize_t n = read(STDIN_FILENO, &c, 1);
@@ -268,7 +267,6 @@ bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
 	}
     }
 done:
-    unblock_sigchld_and_sigint();
     unset_nonblocking(STDIN_FILENO);
     return ok;
 }

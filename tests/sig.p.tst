@@ -44,3 +44,9 @@ $INVOKE $TESTEE -c 'trap - USR1 2>/dev/null; kill -USR1 $$; kill -USR2 $$'
 kill -l $?  # prints USR2. USR1 is still ignored
 
 rm -f "$tmp"
+
+# if the first operand is integer, all operands are considered as signal
+# specification and these signals' handlers are cancelled
+trap 2 USR1
+$INVOKE $TESTEE -c 'kill -s USR1 $$; echo "not printed"'
+kill -l $?  # prints USR1

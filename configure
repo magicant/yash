@@ -29,7 +29,7 @@ dirs=". builtins lineedit"
 
 target="yash"
 package="yash"
-version="2.7"
+version="2.8"
 copyrightyear="2007-2009"
 
 # object files to be linked as `yash'
@@ -535,6 +535,30 @@ END
     fi
 then
     defconfigh "HAVE_S_ISVTX"
+fi
+checked
+
+# check if WCONTINUED and WIFCONTINUED are available
+checking "for WCONTINUED and WIFCONTINUED" WCONTINUED
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE 200112
+#include <errno.h>
+#include <sys/wait.h>
+static int s;
+int main() {
+    return waitpid(-1, &s, WNOHANG|WCONTINUED) < 0 && errno == EINVAL;
+    WIFCONTINUED(s);
+}
+END
+	trymake && tryexec
+    fi
+then
+    defconfigh "HAVE_WCONTINUED"
 fi
 checked
 
