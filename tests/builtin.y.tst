@@ -48,6 +48,8 @@ testreg typeset
 testreg disown
 testreg type
 
+command -Vb sh 2>&1 || PATH= command -vp sh >/dev/null && echo ok
+
 command -b cat /dev/null 2>/dev/null
 echo command -b cat = $?
 command -B exit 127 2>/dev/null

@@ -1242,6 +1242,9 @@ static int command_builtin_execute(
 static bool print_command_info(const wchar_t *commandname,
 	enum srchcmdtype_T type, bool humanfriendly)
     __attribute__((nonnull));
+static void print_command_absolute_path(
+	const char *name, const char *path, bool humanfriendly)
+    __attribute__((nonnull));
 
 /* "return" builtin */
 int return_builtin(int argc, void **argv)
@@ -1769,12 +1772,8 @@ bool print_command_info(
     search_command(name, commandname, &ci, type | sct_rbpath);
     switch (ci.type) {
 	case externalprogram:
-	    if (ci.ci_path) {
-		// TODO print absolute path
-		if (humanfriendly)
-		    printf(gt("%s: external command at %s\n"), name,ci.ci_path);
-		else
-		    puts(ci.ci_path);
+	    if (ci.ci_path && is_executable_regular(ci.ci_path)) {
+		print_command_absolute_path(name, ci.ci_path, humanfriendly);
 		goto ok;
 	    } else {
 		if (humanfriendly)
@@ -1789,7 +1788,10 @@ bool print_command_info(
 	    goto ok;
 	case semispecialbuiltin:
 	    if (humanfriendly)
-		printf(gt("%s: semi-special builtin\n"), name);
+		if (ci.ci_builtin == cd_builtin && strcmp(name, "cd") != 0)
+		    printf(gt("%s: directory\n"), name);
+		else
+		    printf(gt("%s: semi-special builtin\n"), name);
 	    else
 		puts(name);
 	    goto ok;
@@ -1821,6 +1823,42 @@ ok:
 error:
     free(name);
     return false;
+}
+
+/* Prints the absolute path of the specified command. */
+void print_command_absolute_path(
+	const char *name, const char *path, bool humanfriendly)
+{
+    if (path[0] == L'/') {
+	/* the path is already absolute */
+	if (humanfriendly)
+	    printf(gt("%s: external command at %s\n"), name, path);
+	else
+	    puts(path);
+	return;
+    }
+
+    const wchar_t *wpwd = getvar(VAR_PWD);
+    char *pwd = NULL;
+    if (wpwd) {
+	pwd = malloc_wcstombs(wpwd);
+	if (!is_same_file(pwd, ".")) {
+	    free(pwd);
+	    pwd = NULL;
+	}
+    }
+    if (!pwd) {
+	pwd = xgetcwd();
+	if (!pwd)
+	    pwd = xstrdup(".");  /* last resort */
+    }
+
+    if (humanfriendly)
+	printf(gt("%s: external command at %s/%s\n"), name, pwd, path);
+    else
+	printf("%s/%s\n", pwd, path);
+    free(pwd);
+    return;
 }
 
 #if 0
