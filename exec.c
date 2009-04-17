@@ -1726,6 +1726,8 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 
     if (!argv0)
 	argv0 = xstrdup("");
+    if (argc == 1)
+	type |= sct_argc1;
     search_command(argv0, argv[0], &ci, type);
     if (ci.type == externalprogram) {
 	pid_t cpid = fork_and_reset(0, true, t_leave);

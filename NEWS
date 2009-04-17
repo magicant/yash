@@ -36,6 +36,8 @@ Yash 2.8
      permission.
   *  The signal mask of commands invoked by the shell now inherits
      that of the shell (except for trapped signals).
+  *  The "command" builtin now properly handles directories given as
+     the commands when the "autocd" option is on.
 
 ----------------------------------------------------------------------
 Yash 2.7
