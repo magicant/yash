@@ -124,7 +124,7 @@ TAGS: $(SOURCES)
 	etags $(ETAGSARGS)
 cscope: cscope.out
 cscope.out: $(SOURCES)
-	cscope -b
+	cscope -bR
 
 mostlyclean: _mostlyclean
 	-@cd builtins && $(MAKE) mostlyclean
