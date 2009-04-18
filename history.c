@@ -175,7 +175,7 @@ void remove_entry(histentry_T *entry)
     entry->next->prev = entry->prev;
     histlist.count--;
     if (lastappended == entry)
-	lastappended = HISTLIST;
+	lastappended = entry->prev;
     free(entry);
 }
 
