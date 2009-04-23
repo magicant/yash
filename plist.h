@@ -47,8 +47,8 @@ extern plist_T *pl_setmax(plist_T *list, size_t newmax)
     __attribute__((nonnull));
 extern plist_T *pl_ensuremax(plist_T *list, size_t max)
     __attribute__((nonnull));
-extern plist_T *pl_clear(plist_T *list)
-    __attribute__((nonnull));
+extern plist_T *pl_clear(plist_T *list, void freer(void *elem))
+    __attribute__((nonnull(1)));
 extern plist_T *pl_replace(
 	plist_T *restrict list, size_t i, size_t ln,
 	void *const *restrict a, size_t an)

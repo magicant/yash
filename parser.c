@@ -665,7 +665,7 @@ void next_line(void)
 
     for (size_t i = 0; i < pending_heredocs.length; i++)
 	read_heredoc_contents(pending_heredocs.contents[i]);
-    pl_clear(&pending_heredocs);
+    pl_clear(&pending_heredocs, 0);
 }
 
 /* Checks if the specified character is a token separator */

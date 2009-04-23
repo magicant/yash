@@ -119,9 +119,12 @@ inline plist_T *pl_ensuremax(plist_T *list, size_t max)
 }
 
 /* Clears the contents of a pointer list, preserving its `maxlength'.
- * Note that the list elements are not `free'd in this function. */
-plist_T *pl_clear(plist_T *list)
+ * If `freer' is non-null, `freer' is called for each element in the list. */
+plist_T *pl_clear(plist_T *list, void freer(void *elem))
 {
+    if (freer)
+	for (size_t i = 0; i < list->length; i++)
+	    freer(list->contents[i]);
     list->contents[list->length = 0] = NULL;
     return list;
 }
