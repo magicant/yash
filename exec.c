@@ -368,12 +368,11 @@ void exec_for(const command_T *c, bool finally_exit)
     } else (void) 0
 
     int i;
-    for (i = 0; i < count; ) {
+    for (i = 0; i < count; i++) {
 	if (!set_variable(c->c_forname, words[i],
 		    posixly_correct ? SCOPE_GLOBAL : SCOPE_LOCAL, false))
 	    goto done;
-	i++;
-	exec_and_or_lists(c->c_forcmds, finally_exit && i == count);
+	exec_and_or_lists(c->c_forcmds, finally_exit && i + 1 == count);
 	CHECK_LOOP;
     }
 
@@ -384,9 +383,9 @@ done:
     if (count == 0 && c->c_forcmds)
 	laststatus = Exit_SUCCESS;
 finish:
+    execinfo.loopnest--;
     if (finally_exit)
 	exit_shell();
-    execinfo.loopnest--;
 }
 
 /* Executes a while/until command. */
@@ -409,9 +408,9 @@ void exec_while(const command_T *c, bool finally_exit)
 
     laststatus = status;
 done:
+    execinfo.loopnest--;
     if (finally_exit)
 	exit_shell();
-    execinfo.loopnest--;
 }
 #undef CHECK_LOOP
 
