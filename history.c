@@ -53,14 +53,20 @@
 #define DEFAULT_HISTSIZE 500
 
 
-typedef struct histentry_T {
+struct histlink_T {
     struct histentry_T *prev, *next;
+};
+/* `prev' and `next' are always non-NULL: the newest entry's `next' and the
+ * oldest entry's `prev' point to `histlist'. */
+
+#define Prev link.prev
+#define Next link.next
+typedef struct histentry_T {
+    struct histlink_T link;
     unsigned number;
     time_t time;
     char value[];
 } histentry_T;
-/* `prev' and `next' are always non-NULL: the newest entry's `next' and the
- * oldest entry's `prev' point to `histlist'. */
 /* The value is stored as a multibyte string rather than a wide string to save
  * memory space. The value does not have a newline at the end. */
 /* Basically the `number' is increased for each entry, but the numbers are
@@ -70,18 +76,19 @@ typedef struct histentry_T {
  * numbers anyway. */
 
 /* The main history list. */
-#define HISTLIST ((histentry_T *) &histlist)
+#define Histlist ((histentry_T *) &histlist)
+#define Newest link.prev
+#define Oldest link.next
 static struct {
-    histentry_T *newest, *oldest;
+    struct histlink_T link;
     unsigned count;
 } histlist = {
-    .newest = HISTLIST,
-    .oldest = HISTLIST,
+    .link = { Histlist, Histlist, },
     .count = 0,
 };
-/* `newest' and `oldest' correspond to `prev' and `next' of a histentry_T.
- * They must be the first two elements of the structure so that `histlist' is
- * cast to histentry_T and they are used as `prev' and `next' properly. */
+/* `Newest' (`link.prev') points to the newest entry and `Oldest' (`link.next')
+ * points to the oldest entry. When there's no entries, `Newest' and `Oldest'
+ * point to `histlist' itself. */
 
 /* The number of the next new history entry. Must be positive. */
 unsigned hist_next_number = 1;
@@ -99,7 +106,7 @@ static time_t now = (time_t) -1;
  * This entry is (considered to be) the last entry in the history file.
  * When `write_history' is called with the append flag set, entries after this
  * entry are written to the file. */
-static histentry_T *lastappended = HISTLIST;
+static histentry_T *lastappended = Histlist;
 
 
 static void update_time(void);
@@ -149,14 +156,14 @@ void set_histsize(unsigned newsize)
  * entry, the oldest entry is removed. */
 histentry_T *new_entry(const char *line)
 {
-    if (histlist.oldest != HISTLIST
-	    && histlist.oldest->number == hist_next_number)
-	remove_entry(histlist.oldest);
+    if (histlist.Oldest != Histlist
+	    && histlist.Oldest->number == hist_next_number)
+	remove_entry(histlist.Oldest);
 
     histentry_T *new = xmalloc(sizeof *new + strlen(line) + 1);
-    new->prev = histlist.newest;
-    new->next = HISTLIST;
-    histlist.newest = new->prev->next = new;
+    new->Prev = histlist.Newest;
+    new->Next = Histlist;
+    histlist.Newest = new->Prev->Next = new;
     new->number = hist_next_number++;
     new->time = now;
     strcpy(new->value, line);
@@ -170,12 +177,12 @@ histentry_T *new_entry(const char *line)
 /* Removes the specified entry from the history */
 void remove_entry(histentry_T *entry)
 {
-    assert(entry != NULL && entry != HISTLIST);
-    entry->prev->next = entry->next;
-    entry->next->prev = entry->prev;
+    assert(entry != NULL && entry != Histlist);
+    entry->Prev->Next = entry->Next;
+    entry->Next->Prev = entry->Prev;
     histlist.count--;
     if (lastappended == entry)
-	lastappended = entry->prev;
+	lastappended = entry->Prev;
     free(entry);
 }
 
@@ -183,8 +190,8 @@ void remove_entry(histentry_T *entry)
 void remove_last_entry(void)
 {
     if (histlist.count > 0) {
-	hist_next_number = histlist.newest->number;
-	remove_entry(histlist.newest);
+	hist_next_number = histlist.Newest->number;
+	remove_entry(histlist.Newest);
     }
 }
 
@@ -195,7 +202,7 @@ void remove_last_entry(void)
 histentry_T *replace_entry(histentry_T *entry, const char *line)
 {
     entry = xrealloc(entry, sizeof *entry + strlen(line) + 1);
-    entry->prev->next = entry->next->prev = entry;
+    entry->Prev->Next = entry->Next->Prev = entry;
     entry->time = now;
     strcpy(entry->value, line);
     return entry;
@@ -203,16 +210,16 @@ histentry_T *replace_entry(histentry_T *entry, const char *line)
 
 /* Returns the entry that has the specified `number'.
  * If not found, the nearest neighbor entry is returned, newer or older
- * according to `newer_if_not_found'. If there is no neighbor either, HISTLIST
+ * according to `newer_if_not_found'. If there is no neighbor either, Histlist
  * is returned. */
 histentry_T *find_entry(unsigned number, bool newer_if_not_found)
 {
     if (histlist.count == 0)
-	return HISTLIST;
+	return Histlist;
 
     unsigned oldestnum, nnewestnum, nnumber;
-    oldestnum = histlist.oldest->number;
-    nnewestnum = histlist.newest->number;
+    oldestnum = histlist.Oldest->number;
+    nnewestnum = histlist.Newest->number;
     nnumber = number;
     if (nnewestnum < oldestnum) {
 	if (nnumber <= nnewestnum)
@@ -221,58 +228,58 @@ histentry_T *find_entry(unsigned number, bool newer_if_not_found)
     }
 
     if (nnumber < oldestnum)
-	return newer_if_not_found ? histlist.oldest : HISTLIST;
+	return newer_if_not_found ? histlist.Oldest : Histlist;
     if (nnumber > nnewestnum)
-	return newer_if_not_found ? HISTLIST : histlist.newest;
+	return newer_if_not_found ? Histlist : histlist.Newest;
 
     histentry_T *e;
     if (2 * (nnumber - oldestnum) < nnewestnum - oldestnum) {
 	/* search from the oldest */
-	e = histlist.oldest;
+	e = histlist.Oldest;
 	while (number < e->number)
-	    e = e->next;
+	    e = e->Next;
 	while (number > e->number)
-	    e = e->next;
+	    e = e->Next;
 	if (number != e->number && !newer_if_not_found)
-	    e = e->prev;
+	    e = e->Prev;
     } else {
 	/* search from the newest */
-	e = histlist.newest;
+	e = histlist.Newest;
 	while (number > e->number)
-	    e = e->prev;
+	    e = e->Prev;
 	while (number < e->number)
-	    e = e->prev;
+	    e = e->Prev;
 	if (number != e->number && newer_if_not_found)
-	    e = e->next;
+	    e = e->Next;
     }
     return e;
 }
 
 /* Returns the nth newest entry (or the oldest entry if `n' is too big).
- * Returns HISTLIST if `n' is zero. */
+ * Returns `Histlist' if `n' is zero. */
 histentry_T *get_nth_newest_entry(unsigned n)
 {
-    histentry_T *e = HISTLIST;
+    histentry_T *e = Histlist;
 
     if (histlist.count <= n)
-	return histlist.oldest;
+	return histlist.Oldest;
     while (n > 0)
-	e = e->prev, n--;
+	e = e->Prev, n--;
     return e;
 }
 
 /* Searches for the newest entry whose value begins with `s' (if not `exact') or
  * whose value is equal to `s' (if `exact').
- * Returns HISTLIST if not found. */
+ * Returns `Histlist' if not found. */
 histentry_T *search_entry(const char *s, bool exact)
 {
-    histentry_T *e = histlist.newest;
+    histentry_T *e = histlist.Newest;
 
-    while (e != HISTLIST) {
+    while (e != Histlist) {
 	if (exact ? strcmp(e->value, s) == 0
 		: matchstrprefix(e->value, s) != NULL)
 	    break;
-	e = e->prev;
+	e = e->Prev;
     }
     return e;
 }
@@ -281,7 +288,7 @@ histentry_T *search_entry(const char *s, bool exact)
 void trim_list_size(void)
 {
     while (histlist.count > histsize)
-	remove_entry(histlist.oldest);
+	remove_entry(histlist.Oldest);
 }
 
 /* Returns true iff `e1' is newer than `e2'. */
@@ -291,8 +298,8 @@ bool is_reverse(const histentry_T *e1, const histentry_T *e2)
 
     unsigned n1 = e1->number;
     unsigned n2 = e2->number;
-    unsigned newest = histlist.newest->number;
-    unsigned oldest = histlist.oldest->number;
+    unsigned newest = histlist.Newest->number;
+    unsigned oldest = histlist.Oldest->number;
 
     return (n1 <= newest && newest < oldest && oldest <= n2)
 	|| (n2 <= n1 && (oldest <= n2 || n1 <= newest));
@@ -370,7 +377,7 @@ bool read_history(const wchar_t *histfile)
     fclose(f);
 
     trim_list_size();
-    lastappended = histlist.newest;
+    lastappended = histlist.Newest;
     errno = errno_;
     return !errno_;
 }
@@ -411,13 +418,13 @@ bool write_history(const wchar_t *histfile, bool append)
 	return false;
     }
 
-    const histentry_T *e = append ? lastappended : HISTLIST;
-    while ((e = e->next) != HISTLIST) {
+    const histentry_T *e = append ? lastappended : Histlist;
+    while ((e = e->Next) != Histlist) {
 	fputs(e->value, f);
 	fputc('\n', f);
     }
 
-    lastappended = histlist.newest;
+    lastappended = histlist.Newest;
 
     errno_ = ferror(f) ? errno : 0;
     if (fclose(f) == 0)
@@ -428,15 +435,15 @@ bool write_history(const wchar_t *histfile, bool append)
 /* Removes all entries in the history list. */
 void clear_history(void)
 {
-    histentry_T *e = histlist.oldest;
-    while (e != HISTLIST) {
-	histentry_T *next = e->next;
+    histentry_T *e = histlist.Oldest;
+    while (e != Histlist) {
+	histentry_T *next = e->Next;
 	free(e);
 	e = next;
     }
-    histlist.oldest = histlist.newest = HISTLIST;
+    histlist.Oldest = histlist.Newest = Histlist;
     histlist.count = 0;
-    lastappended = HISTLIST;
+    lastappended = Histlist;
     hist_next_number = 1;
 }
 
@@ -449,8 +456,8 @@ bool add_history(const wchar_t *line, bool removelast)
 	return false;
 
     update_time();
-    if (removelast && histlist.newest != HISTLIST)
-	replace_entry(histlist.newest, l);
+    if (removelast && histlist.Newest != Histlist)
+	replace_entry(histlist.Newest, l);
     else
 	new_entry(l);
     free(l);
@@ -570,7 +577,7 @@ int fc_builtin(int argc, void **argv)
 	first = wcstol(vfirst, &end, 10);
 	if (!vfirst[0] || errno || *end || first == 0) {
 	    efirst = fc_search_entry(vfirst);
-	    if (efirst == HISTLIST)
+	    if (efirst == Histlist)
 		return Exit_FAILURE;
 	} else {
 	    if (first > INT_MAX)
@@ -587,7 +594,7 @@ int fc_builtin(int argc, void **argv)
 	last = wcstol(vlast, &end, 10);
 	if (!vlast[0] || errno || *end || last == 0) {
 	    elast = fc_search_entry(vlast);
-	    if (elast == HISTLIST)
+	    if (elast == Histlist)
 		return Exit_FAILURE;
 	} else {
 	    if (last > INT_MAX)
@@ -604,14 +611,14 @@ int fc_builtin(int argc, void **argv)
 	if (first >= 0) {
 	    efirst = find_entry(first, true);
 	    if (silent && efirst->number != (unsigned) first)
-		efirst = HISTLIST;
+		efirst = Histlist;
 	} else {
 	    if (silent && (unsigned) -first > histlist.count)
-		efirst = HISTLIST;
+		efirst = Histlist;
 	    else
 		efirst = get_nth_newest_entry(-first);
 	}
-	if (efirst == HISTLIST) {
+	if (efirst == Histlist) {
 	    assert(vfirst != NULL);
 	    xerror(0, Ngt("%ls: no such entry"), vfirst);
 	    return Exit_FAILURE;
@@ -624,7 +631,7 @@ int fc_builtin(int argc, void **argv)
 	    elast = find_entry(last, false);
 	else
 	    elast = get_nth_newest_entry(-last);
-	if (elast == HISTLIST) {
+	if (elast == Histlist) {
 	    assert(vlast != NULL);
 	    xerror(0, Ngt("%ls: no such entry"), vlast);
 	    return Exit_FAILURE;
@@ -634,8 +641,8 @@ int fc_builtin(int argc, void **argv)
 	const histentry_T *temp = efirst;  efirst = elast;  elast = temp;
 	rev = !rev;
     }
-    assert(efirst != NULL);  assert(efirst != HISTLIST);
-    assert(elast  != NULL);  assert(elast  != HISTLIST);
+    assert(efirst != NULL);  assert(efirst != Histlist);
+    assert(elast  != NULL);  assert(elast  != Histlist);
 
     update_time();
 
@@ -666,7 +673,7 @@ histentry_T *fc_search_entry(const wchar_t *prefix)
     if (s)
 	e = search_entry(s, false);
     free(s);
-    if (e == HISTLIST)
+    if (e == Histlist)
 	xerror(0, Ngt("no such entry beginning with `%ls'"), prefix);
     return e;
 }
@@ -695,7 +702,7 @@ int fc_print_entries(
 	}
 	if (start == end)
 	    break;
-	start = !reverse ? start->next : start->prev;
+	start = !reverse ? start->Next : start->Prev;
     }
     return Exit_SUCCESS;
 }
@@ -943,7 +950,7 @@ int history_builtin(int argc, void **argv)
 	    }
 	    if (num > 0)
 		fc_print_entries(stdout,
-			get_nth_newest_entry(num), histlist.newest,
+			get_nth_newest_entry(num), histlist.Newest,
 			false /* not reversed */, NUMBERED);
 	    break;
 	case clear:
@@ -958,20 +965,20 @@ int history_builtin(int argc, void **argv)
 		num = wcstol(arg, &end, 10);
 		if (!arg[0] || errno || *end || num == 0) {
 		    entry = fc_search_entry(arg);
-		    if (entry == HISTLIST)
+		    if (entry == Histlist)
 			return Exit_FAILURE;
 		} else if (num >= 0) {
 		    if (num > INT_MAX)
 			num = INT_MAX;
 		    entry = find_entry(num, true);
-		    if (entry != HISTLIST && num != (long) entry->number)
-			entry = HISTLIST;
+		    if (entry != Histlist && num != (long) entry->number)
+			entry = Histlist;
 		} else {
 		    if (num < INT_MIN)
 			num = INT_MIN;
 		    entry = get_nth_newest_entry(-num);
 		}
-		if (entry == HISTLIST) {
+		if (entry == Histlist) {
 		    xerror(0, Ngt("%ls: no such entry"), arg);
 		    return Exit_FAILURE;
 		}
