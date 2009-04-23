@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.9
+
+  *  The "help" builtin now prints an error message if the specified
+     builtin is not found.
+  *  Fixed the help message for the "pwd" builtin
+
+----------------------------------------------------------------------
 Yash 2.8
 
   +  Brace expansion with delta: {a..b..c}

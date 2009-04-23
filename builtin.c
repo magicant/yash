@@ -179,14 +179,20 @@ const builtin_T *get_builtin(const char *name)
     return ht_get(&builtins, name).value;
 }
 
-/* Prints usage description of the specified builtin to stdout. */
-void print_builtin_help(const wchar_t *name)
+/* Prints usage description of the specified builtin to stdout.
+ * Returns true iff the builtin is found and the help is printed. Returns false
+ * if no help is printed. */
+bool print_builtin_help(const wchar_t *name)
 {
     char *mbsname = malloc_wcstombs(name);
     const builtin_T *bi = get_builtin(mbsname);
     free(mbsname);
-    if (bi)
+    if (bi) {
 	fputs(gt(bi->help), stdout);
+	return true;
+    } else {
+	return false;
+    }
 }
 
 
@@ -220,7 +226,7 @@ const char true_help[] = Ngt(
 "Any arguments are ignored and the exit status is always zero.\n"
 "This command has the same effect as the \":\" command, but \":\" is a\n"
 "special builtin while \"true\" is a semi-special.\n"
-"Naturally the opposite of this command is the \"false\" command.\n"
+"Naturally, the opposite of this command is the \"false\" command.\n"
 );
 
 const char false_help[] = Ngt(
@@ -228,7 +234,7 @@ const char false_help[] = Ngt(
 "\tfalse\n"
 "Does nothing unsuccessfully.\n"
 "Any arguments are ignored and the exit status is always non-zero.\n"
-"Naturally the opposite of this command is the \"true\" command.\n"
+"Naturally, the opposite of this command is the \"true\" command.\n"
 );
 
 #if YASH_ENABLE_HELP
@@ -253,11 +259,15 @@ int help_builtin(int argc, void **argv)
     if (xoptind == argc)
 	goto print_help;
 
+    bool err = false;
     while (xoptind < argc) {
-	print_builtin_help(ARGV(xoptind));
+	if (!print_builtin_help(ARGV(xoptind))) {
+	    xerror(0, Ngt("%ls: no such builtin"), ARGV(xoptind));
+	    err = true;
+	}
 	xoptind++;
     }
-    return Exit_SUCCESS;
+    return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
 const char help_help[] = Ngt(

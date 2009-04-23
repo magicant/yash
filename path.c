@@ -1276,7 +1276,7 @@ const char cd_help[] = Ngt(
 "When the -L (--logical) option is specified, symbolic links in $PWD are left\n"
 "unchanged. When the -P (--physical) option is specified, symbolic links are\n"
 "resolved so that $PWD does not contain any symbolic links.\n"
-"-L and -P are mutually exclusive: the one specified last is used.\n"
+"-L and -P are mutually exclusive: the last specified one is used.\n"
 "If neither is specified, -L is the default.\n"
 );
 
@@ -1482,10 +1482,8 @@ const char pwd_help[] = Ngt(
 "correct. It may contain symbolic links in the pathname.\n"
 "When the -P (--physical) option is specified, the printed pathname does not\n"
 "contain any symbolic links.\n"
-"-L and -P are mutually exclusive: the one specified last is used.\n"
+"-L and -P are mutually exclusive: the last specified one is used.\n"
 "If neither is specified, -L is the default.\n"
-"If the shell is in POSIXly correct mode and the -P option is specified,\n"
-"$PWD is set to the printed pathname.\n"
 );
 
 /* The "hash" builtin, which accepts the following options:

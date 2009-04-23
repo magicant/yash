@@ -472,7 +472,7 @@ print_usage:
 
 const char unalias_help[] = Ngt(
 "unalias - undefine aliases\n"
-"\tunalias name[...]\n"
+"\tunalias name...\n"
 "\tunalias -a\n"
 "Removes the specified alias definitions.\n"
 "If the -a option is specified, all definitions are removed.\n"

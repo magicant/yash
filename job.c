@@ -1170,7 +1170,8 @@ int disown_builtin(int argc, void **argv)
 
 const char disown_help[] = Ngt(
 "disown - disown jobs\n"
-"\tdisown [-a|job...]\n"
+"\tdisown [job...]\n"
+"\tdisown -a\n"
 "Removes the specified jobs from the job list.\n"
 "The status of the disowned jobs is no longer reported and the jobs can no\n"
 "longer be put back in the foreground.\n"

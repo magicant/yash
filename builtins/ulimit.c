@@ -277,14 +277,15 @@ print_usage:
 }
 
 const char ulimit_help[] = Ngt(
-"ulimit  - set or print resource limitation\n"
+"ulimit - set or print resource limitation\n"
 "\tulimit [-HSaefilnqrstuvx] [limit]\n"
 "Sets a resource limit to <limit>. The resource type can be specified by the\n"
-"options listed below. For each resource type, there are two limit values:\n"
-"the hard limit and the soft limit. You can change a soft limit freely as\n"
-"long as it does not exceed the hard limit. You can decrease a hard limit,\n"
-"but cannot increase it without a proper permission. <limit> must be a\n"
-"non-negative integer, \"hard\", \"soft\" or \"unlimited\".\n"
+"options listed below.\n"
+"For each resource type, there are two limit values: the hard limit and the\n"
+"soft limit. You can change a soft limit freely as long as it does not exceed\n"
+"the hard limit. You can decrease a hard limit, but cannot increase it\n"
+"without a proper permission. <limit> must be a non-negative integer or one\n"
+"of \"hard\", \"soft\" and \"unlimited\".\n"
 "The resource limits will affect the current shell process and all\n"
 "succeedingly invoked commands.\n"
 "If <limit> is not specified, the current limit is printed.\n"
