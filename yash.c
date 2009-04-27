@@ -267,9 +267,6 @@ int main(int argc, char **argv)
 	if (!norcfile)
 	    execute_rcfile(rcfile);
     }
-#if YASH_ENABLE_HISTORY
-    init_history();
-#endif
 
     if (shopt_read_arg) {
 	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
@@ -356,7 +353,7 @@ void exit_shell_with_status(int status)
 	execute_exit_trap();
 #if YASH_ENABLE_HISTORY
 	if (is_interactive_now)
-	    write_history(NULL, false);
+	    finalize_history();
 #endif
     }
     finalize_shell();

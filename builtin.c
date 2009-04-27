@@ -134,7 +134,6 @@ void init_builtin(void)
     /* defined in "history.c" */
 #if YASH_ENABLE_HISTORY
     DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, fc_help);
-    DEFBUILTIN("history", history_builtin, BI_REGULAR, history_help);
 #endif
 
     /* defined in "exec.c" */
