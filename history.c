@@ -691,6 +691,9 @@ void maybe_refresh_file(void)
 #ifndef HISTORY_REFRESH_INTERVAL
 #define HISTORY_REFRESH_INTERVAL 100
 #endif
+#if HISTORY_REFRESH_INTERVAL <= 0
+#error invalid HISTORY_REFRESH_INTERVAL
+#endif
     assert(histfile != NULL);
     if (hist_next_number % HISTORY_REFRESH_INTERVAL == 0) {
 	check_histfile_pid();
@@ -1263,7 +1266,7 @@ int fc_exec_entry(const histentry_T *entry,
 
     add_history(code);
     if (!quiet)
-	fprintf(stderr, "%ls\n", code);
+	printf("%ls\n", code);
     exec_wcs(code, "fc", false);
     free(code);
     return laststatus;
