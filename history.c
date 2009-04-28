@@ -642,7 +642,9 @@ void parse_process_id(const wchar_t *numstr)
  * shell's history. The current data in this shell's history may be changed.
  * If `refresh' is true, this function may call `refresh_file'.
  * On failure, `histfile' is closed and set to NULL.
- * `update_time' must be called before calling this function. */
+ * `update_time' must be called before calling this function.
+ * After calling this function, `histfile' must not be read before
+ * repositioning. */
 /* The history file `histfile' should be locked (F_WRLCK if `refresh' is true or
  * F_RDLCK if `refresh' is false).
  * This function must be called just before writing to the history file. */
@@ -879,12 +881,14 @@ void finalize_history(void)
     lock_file(fileno(histfile), F_WRLCK);
     update_history(true);
     remove_histfile_pid(shell_pid);
-    fwprintf(histfile, L"p%jd\n", (intmax_t) -shell_pid);
-    fflush(histfile);
-    lock_file(fileno(histfile), F_UNLCK);
-    remove_shellfd(fileno(histfile));
-    fclose(histfile);
-    histfile = NULL;
+    if (histfile) {
+	fwprintf(histfile, L"p%jd\n", (intmax_t) -shell_pid);
+	fflush(histfile);
+	lock_file(fileno(histfile), F_UNLCK);
+	remove_shellfd(fileno(histfile));
+	fclose(histfile);
+	histfile = NULL;
+    }
 }
 
 /* Adds the specified `line' to the history.
@@ -1011,6 +1015,17 @@ int fc_builtin(int argc, void **argv)
 	goto print_usage;
 
     maybe_init_history();
+    if (list) {
+	if (histfile) {
+	    lock_file(fileno(histfile), F_RDLCK);
+	    update_history(false);
+	    if (histfile)
+		lock_file(fileno(histfile), F_UNLCK);
+	}
+    } else {
+	/* remove the entry for this "fc" command */
+	fc_remove_last_entry();
+    }
 
     if (histlist.count == 0) {
 	if (list) {
@@ -1020,10 +1035,6 @@ int fc_builtin(int argc, void **argv)
 	    return Exit_FAILURE;
 	}
     }
-
-    /* remove the entry for this "fc" command */
-    if (!list)
-	fc_remove_last_entry();
 
     /* parse <old=new> */
     const wchar_t *old = NULL, *new = NULL;
