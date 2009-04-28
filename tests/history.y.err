@@ -1,8 +1,0 @@
-$ 
-echo 3 #6
-echo 1 #26
-echo 12 #27
-echo 123 #28
-fc: editor returned non-zero status
-35 ! $ \36 36 $ 
-$ 

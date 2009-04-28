@@ -24,11 +24,9 @@
 
 extern unsigned hist_next_number;
 
-extern void init_history(void);
-extern _Bool read_history(const wchar_t *histfile);
-extern _Bool write_history(const wchar_t *histfile, _Bool append);
-extern void clear_history(void);
-extern _Bool add_history(const wchar_t *line, _Bool removelast)
+extern void maybe_init_history(void);
+extern void finalize_history(void);
+extern void add_history(const wchar_t *line)
     __attribute__((nonnull));
 
 extern int fc_builtin(int argc, void **argv)

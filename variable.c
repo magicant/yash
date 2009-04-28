@@ -2099,14 +2099,14 @@ const char array_help[] = Ngt(
 "\tarray -i name index value...\n"
 "\tarray -s name index value\n"
 "The first form (without arguments) prints all existing arrays.\n"
-"The second form sets the values of an array. This is equivalent to an\n"
-"assignment by \"name=(values)\".\n"
-"The third form (with the -d (--delete) option) removes the elements speci-\n"
-"fied by <index>es from the array.\n"
+"The second form sets values of an array. This is equivalent to an assignment\n"
+"by \"name=(values)\".\n"
+"The third form (with the -d (--delete) option) removes elements specified by\n"
+"<index>es from the array.\n"
 "The fourth form (with the -i (--insert) option) inserts elements after the\n"
 "element specified by <index> in the array. The zero index means the elements\n"
 "are inserted at the head of the array.\n"
-"The fifth form (with the -s (--set) option) sets the value of the single\n"
+"The fifth form (with the -s (--set) option) sets the value of a single\n"
 "element of the array.\n"
 );
 
@@ -2212,7 +2212,7 @@ const char unset_help[] = Ngt(
 "When the -f (--functions) options is specified, this command removes\n"
 "functions. When the -v (--variables) option is specified, this command\n"
 "removes variables.\n"
-"-f and -v are mutually exclusive: the one specified last is used.\n"
+"-f and -v are mutually exclusive: the last specified one is used.\n"
 "If neither is specified, -v is the default.\n"
 );
 
@@ -2497,7 +2497,7 @@ const char getopts_help[] = Ngt(
 "first operand (non-option argument). If there are no operands, $OPTIND will\n"
 "be the number of <arg>s plus one.\n"
 "When this command is invoked for the first time, $OPTIND must be \"1\",\n"
-"which is assigned by default on the shell's start up. Until all the options\n"
+"which is the default value of the $OPTIND variable. Until all the options\n"
 "are parsed, you must not change the value of $OPTIND and <options>, <var>\n"
 "and <arg>s must be all the same for all invocations of this command.\n"
 "Reset $OPTIND to \"1\" and then this command can be used with another\n"

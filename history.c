@@ -18,11 +18,13 @@
 
 #include "common.h"
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,45 +45,54 @@
 #include "yash.h"
 
 
-/* The maximum size of history list (<= INT_MAX) */
-#define MAX_HISTORY      1000000
+/* The maximum size of history list (<= INT_MAX / 10) */
+#define MAX_HISTSIZE     1000000
 /* The minimum value of `max_number',
  * which must be at least 32768 according to POSIX. */
+/* Must be a power of 10. */
 #define MIN_MAX_NUMBER   100000
 /* The default size of the history list,
  * which must be at least 128 according to POSIX. */
 #define DEFAULT_HISTSIZE 500
 
 
-typedef struct histentry_T {
+struct histlink_T {
     struct histentry_T *prev, *next;
+};
+/* `prev' and `next' are always non-NULL: the newest entry's `next' and the
+ * oldest entry's `prev' point to `histlist'. */
+
+#define Prev link.prev
+#define Next link.next
+typedef struct histentry_T {
+    struct histlink_T link;
     unsigned number;
     time_t time;
     char value[];
 } histentry_T;
-/* `prev' and `next' are always non-NULL: the newest entry's `next' and the
- * oldest entry's `prev' point to `histlist'. */
 /* The value is stored as a multibyte string rather than a wide string to save
- * memory space. The value does not have a newline at the end. */
+ * memory space. The value must not contain newlines. */
 /* Basically the `number' is increased for each entry, but the numbers are
  * limited to some extent. If the number exceeds the limit, it is wrapped
  * around to 1, so a newer entry may have a smaller number than that of a older
  * entry. The limit is no less than $HISTSIZE, so all the entries have different
  * numbers anyway. */
+/* When the time is unknown, `time' is -1. */
 
 /* The main history list. */
-#define HISTLIST ((histentry_T *) &histlist)
+#define Histlist ((histentry_T *) &histlist)
+#define Newest link.prev
+#define Oldest link.next
 static struct {
-    histentry_T *newest, *oldest;
+    struct histlink_T link;
     unsigned count;
 } histlist = {
-    .newest = HISTLIST,
-    .oldest = HISTLIST,
+    .link = { Histlist, Histlist, },
     .count = 0,
 };
-/* `newest' and `oldest' correspond to `prev' and `next' of a histentry_T.
- * They must be the first two elements of the structure so that `histlist' is
- * cast to histentry_T and they are used as `prev' and `next' properly. */
+/* `Newest' (`link.prev') points to the newest entry and `Oldest' (`link.next')
+ * points to the oldest entry. When there's no entries, `Newest' and `Oldest'
+ * point to `histlist' itself. */
 
 /* The number of the next new history entry. Must be positive. */
 unsigned hist_next_number = 1;
@@ -92,34 +103,106 @@ static unsigned max_number = MIN_MAX_NUMBER;
 /* The size limit of the history list. */
 static unsigned histsize = DEFAULT_HISTSIZE;
 
+/* File stream for the history file. */
+static FILE *histfile = NULL;
+/* The revision number of the history file. Valid if non-negative. */
+static long histfilerev = -1;
+/* The process IDs of processes that share the history file. */
+static struct pidlist_T *histfilepids = NULL;
+
 /* The current time returned by `time' */
 static time_t now = (time_t) -1;
-
-/* A pointer to the last appended entry. Must be non-NULL.
- * This entry is (considered to be) the last entry in the history file.
- * When `write_history' is called with the append flag set, entries after this
- * entry are written to the file. */
-static histentry_T *lastappended = HISTLIST;
 
 
 static void update_time(void);
 static void set_histsize(unsigned newsize);
-static histentry_T *new_entry(const char *line)
+static histentry_T *new_entry(unsigned number, time_t time, const char *line)
     __attribute__((nonnull));
-static void remove_entry(histentry_T *entry)
+static bool need_remove_entry(unsigned number)
+    __attribute__((pure));
+static void remove_entry(histentry_T *e)
     __attribute__((nonnull));
 static void remove_last_entry(void);
-static histentry_T *replace_entry(histentry_T *entry, const char *line)
-    __attribute__((nonnull));
+static void clear_all_entries(void);
 static histentry_T *find_entry(unsigned number, bool newer_if_not_found)
     __attribute__((pure));
 static histentry_T *get_nth_newest_entry(unsigned n)
     __attribute__((pure));
 static histentry_T *search_entry(const char *s, bool exact)
     __attribute__((nonnull,pure));
-static void trim_list_size(void);
-static bool is_reverse(const histentry_T *e1, const histentry_T *e2)
+static bool is_newer(const histentry_T *e1, const histentry_T *e2)
     __attribute__((nonnull,pure));
+
+static FILE *open_histfile(void);
+static bool lock_file(int fd, short type)
+    __attribute__((nonnull));
+static bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
+    __attribute__((nonnull));
+static long read_signature(FILE *f)
+    __attribute__((nonnull));
+static void read_history(FILE *f)
+    __attribute__((nonnull));
+static void parse_history_entry(const wchar_t *line)
+    __attribute__((nonnull));
+static void parse_removed_entry(const wchar_t *numstr)
+    __attribute__((nonnull));
+static void parse_process_id(const wchar_t *numstr)
+    __attribute__((nonnull));
+static void update_history(bool refresh);
+static void maybe_refresh_file(void);
+static void write_signature(FILE *f)
+    __attribute__((nonnull));
+static void write_history_entry(
+	const histentry_T *restrict entry, FILE *restrict f)
+    __attribute__((nonnull));
+static void refresh_file(FILE *f)
+    __attribute__((nonnull));
+
+static void add_histfile_pid(pid_t pid);
+static void remove_histfile_pid(pid_t pid);
+static void clear_histfile_pids(void);
+static void check_histfile_pid(void);
+static void write_histfile_pids(FILE *f)
+    __attribute__((nonnull));
+
+static void really_add_history(const wchar_t *line)
+    __attribute__((nonnull));
+
+
+/***** FORMAT OF THE HISTORY FILE *****
+ *
+ * The first line of the history file has the following form:
+ *    #$# yash history v0 rXXX
+ * where `XXX' is the revision number of the file. The revision number is
+ * incremented each time the file is revised.
+ * 
+ * The rest of the file consists of lines containing history data, each entry
+ * per line. The type of entry is determined by the first character of the line:
+ *    0-9 or A-F    history entry
+ *    c             history entry cancellation
+ *    d             history entry deletion
+ *    p             shell process addition/elimination info
+ *    others        ignored line
+ *
+ * A history entry has the following form:
+ *    NNN:TTT COMMAND
+ * where `NNN' is the entry number, `TTT' is the time of the command, and
+ * `COMMAND' is the command. Both `NNN' and `TTT' are uppercase hexadecimal
+ * non-negative numbers. `COMMAND' may contain any characters except newline and
+ * null.
+ *
+ * A history entry cancellation consists of a single character `c'. It cancels
+ * the previous history entry.
+ *
+ * A history entry deletion has the form:
+ *    dNNN
+ * where `NNN' is the number of the entry to be removed (hexadecimal).
+ *
+ * A shell process addition/elimination is in the form:
+ *    pXXX
+ * where `XXX' is the process id (decimal integer). For addition `XXX' is
+ * positive and for elimination `XXX' is negative.
+ */
 
 
 /* Updates the value of `now'. */
@@ -128,54 +211,66 @@ void update_time(void)
     now = time(NULL);
 }
 
-/* Changes `histsize' to `newsize' and `max_number' accordingly. */
+/* Changes `histsize' to `newsize' and accordingly `max_number'. */
 /* `histsize' is set only once in initialization. */
 void set_histsize(unsigned newsize)
 {
+    assert(newsize <= MAX_HISTSIZE);
     histsize = newsize;
 
-    max_number = 10;
+    max_number = MIN_MAX_NUMBER;
     while (max_number < 2 * histsize)
 	max_number *= 10;
     /* `max_number' is the smallest power of 10 that is not less than
      * 2 * histsize. */
-    if (max_number < MIN_MAX_NUMBER)
-	max_number = MIN_MAX_NUMBER;
 }
 
-/* Add a new entry at the end of the list and returns it.
- * `line' is the value of the new entry.
- * If the number of the new entry is the same as that of the oldest existing
- * entry, the oldest entry is removed. */
-histentry_T *new_entry(const char *line)
+/* Adds a new history entry to the end of `histlist'.
+ * `hist_next_number' is updated in this function.
+ * Some oldest entries may be removed in this function if they conflict with the
+ * new one or the list is full. */
+histentry_T *new_entry(unsigned number, time_t time, const char *line)
 {
-    if (histlist.oldest != HISTLIST
-	    && histlist.oldest->number == hist_next_number)
-	remove_entry(histlist.oldest);
+    assert(number > 0);
+    assert(number <= max_number);
+
+    while (need_remove_entry(number))
+	remove_entry(histlist.Oldest);
 
     histentry_T *new = xmalloc(sizeof *new + strlen(line) + 1);
-    new->prev = histlist.newest;
-    new->next = HISTLIST;
-    histlist.newest = new->prev->next = new;
-    new->number = hist_next_number++;
-    new->time = now;
+    new->Prev = histlist.Newest;
+    new->Next = Histlist;
+    histlist.Newest = new->Prev->Next = new;
+    new->number = number;
+    new->time = time;
     strcpy(new->value, line);
     histlist.count++;
-
-    if (hist_next_number > max_number)
-	hist_next_number = 1;
+    hist_next_number = (number == max_number) ? 1 : number + 1;
     return new;
 }
 
-/* Removes the specified entry from the history */
+bool need_remove_entry(unsigned number)
+{
+    if (histlist.count == 0)
+	return false;
+    if (histlist.count >= histsize)
+	return true;
+
+    unsigned oldest = histlist.Oldest->number;
+    unsigned newest = histlist.Newest->number;
+    if (oldest <= newest)
+	return oldest <= number && number <= newest;
+    else
+	return oldest <= number || number <= newest;
+}
+
+/* Removes a history entry from `histlist'. */
 void remove_entry(histentry_T *entry)
 {
-    assert(entry != NULL && entry != HISTLIST);
-    entry->prev->next = entry->next;
-    entry->next->prev = entry->prev;
+    assert(entry != Histlist);
+    entry->Prev->Next = entry->Next;
+    entry->Next->Prev = entry->Prev;
     histlist.count--;
-    if (lastappended == entry)
-	lastappended = HISTLIST;
     free(entry);
 }
 
@@ -183,36 +278,54 @@ void remove_entry(histentry_T *entry)
 void remove_last_entry(void)
 {
     if (histlist.count > 0) {
-	hist_next_number = histlist.newest->number;
-	remove_entry(histlist.newest);
+	hist_next_number = histlist.Newest->number;
+	remove_entry(histlist.Newest);
     }
 }
 
-/* Replaces the value of `entry' with `line'.
- * `entry->time' is set to `now'. `entry->number' is not changed.
- * `entry' is `realloc'ed in this function.
- * Returns the new address of the entry. */
-histentry_T *replace_entry(histentry_T *entry, const char *line)
+/* Renumbers all the entries in `histlist', starting from 1. */
+void renumber_all_entries(void)
 {
-    entry = xrealloc(entry, sizeof *entry + strlen(line) + 1);
-    entry->prev->next = entry->next->prev = entry;
-    entry->time = now;
-    strcpy(entry->value, line);
-    return entry;
+    unsigned num = 0;
+
+    for (histentry_T *e = histlist.Oldest; e != Histlist; e = e->Next)
+	e->number = ++num;
+
+    if (histlist.count > 0) {
+	hist_next_number = histlist.Newest->number + 1;
+	if (hist_next_number >= max_number)
+	    hist_next_number = 1;
+    } else {
+	hist_next_number = 1;
+    }
+}
+
+/* Removes all entries in the history list. */
+void clear_all_entries(void)
+{
+    histentry_T *e = histlist.Oldest;
+    while (e != Histlist) {
+	histentry_T *next = e->Next;
+	free(e);
+	e = next;
+    }
+    histlist.Oldest = histlist.Newest = Histlist;
+    histlist.count = 0;
+    hist_next_number = 1;
 }
 
 /* Returns the entry that has the specified `number'.
  * If not found, the nearest neighbor entry is returned, newer or older
- * according to `newer_if_not_found'. If there is no neighbor either, HISTLIST
+ * according to `newer_if_not_found'. If there is no neighbor either, Histlist
  * is returned. */
 histentry_T *find_entry(unsigned number, bool newer_if_not_found)
 {
     if (histlist.count == 0)
-	return HISTLIST;
+	return Histlist;
 
     unsigned oldestnum, nnewestnum, nnumber;
-    oldestnum = histlist.oldest->number;
-    nnewestnum = histlist.newest->number;
+    oldestnum = histlist.Oldest->number;
+    nnewestnum = histlist.Newest->number;
     nnumber = number;
     if (nnewestnum < oldestnum) {
 	if (nnumber <= nnewestnum)
@@ -221,256 +334,639 @@ histentry_T *find_entry(unsigned number, bool newer_if_not_found)
     }
 
     if (nnumber < oldestnum)
-	return newer_if_not_found ? histlist.oldest : HISTLIST;
+	return newer_if_not_found ? histlist.Oldest : Histlist;
     if (nnumber > nnewestnum)
-	return newer_if_not_found ? HISTLIST : histlist.newest;
+	return newer_if_not_found ? Histlist : histlist.Newest;
 
     histentry_T *e;
     if (2 * (nnumber - oldestnum) < nnewestnum - oldestnum) {
 	/* search from the oldest */
-	e = histlist.oldest;
+	e = histlist.Oldest;
 	while (number < e->number)
-	    e = e->next;
+	    e = e->Next;
 	while (number > e->number)
-	    e = e->next;
+	    e = e->Next;
 	if (number != e->number && !newer_if_not_found)
-	    e = e->prev;
+	    e = e->Prev;
     } else {
 	/* search from the newest */
-	e = histlist.newest;
+	e = histlist.Newest;
 	while (number > e->number)
-	    e = e->prev;
+	    e = e->Prev;
 	while (number < e->number)
-	    e = e->prev;
+	    e = e->Prev;
 	if (number != e->number && newer_if_not_found)
-	    e = e->next;
+	    e = e->Next;
     }
     return e;
 }
 
 /* Returns the nth newest entry (or the oldest entry if `n' is too big).
- * Returns HISTLIST if `n' is zero. */
+ * Returns `Histlist' if `n' is zero. */
 histentry_T *get_nth_newest_entry(unsigned n)
 {
-    histentry_T *e = HISTLIST;
+    histentry_T *e = Histlist;
 
     if (histlist.count <= n)
-	return histlist.oldest;
-    while (n > 0)
-	e = e->prev, n--;
+	return histlist.Oldest;
+    while (n-- > 0)
+	e = e->Prev;
     return e;
 }
 
 /* Searches for the newest entry whose value begins with `s' (if not `exact') or
  * whose value is equal to `s' (if `exact').
- * Returns HISTLIST if not found. */
+ * Returns `Histlist' if not found. */
 histentry_T *search_entry(const char *s, bool exact)
 {
-    histentry_T *e = histlist.newest;
+    histentry_T *e = histlist.Newest;
 
-    while (e != HISTLIST) {
+    while (e != Histlist) {
 	if (exact ? strcmp(e->value, s) == 0
 		: matchstrprefix(e->value, s) != NULL)
 	    break;
-	e = e->prev;
+	e = e->Prev;
     }
     return e;
 }
 
-/* Removes oldest entries so that the list size is no greater than `histsize'.*/
-void trim_list_size(void)
-{
-    while (histlist.count > histsize)
-	remove_entry(histlist.oldest);
-}
-
 /* Returns true iff `e1' is newer than `e2'. */
-bool is_reverse(const histentry_T *e1, const histentry_T *e2)
+bool is_newer(const histentry_T *e1, const histentry_T *e2)
 {
     assert(histlist.count > 0);
 
     unsigned n1 = e1->number;
     unsigned n2 = e2->number;
-    unsigned newest = histlist.newest->number;
-    unsigned oldest = histlist.oldest->number;
+    unsigned newest = histlist.Newest->number;
+    unsigned oldest = histlist.Oldest->number;
 
     return (n1 <= newest && newest < oldest && oldest <= n2)
 	|| (n2 <= n1 && (oldest <= n2 || n1 <= newest));
 }
 
 
-/********** External functions **********/
+/********** History file functions **********/
 
-/* Initializes history function.
- * Called just once after the yashrc file is sourced.
- * Does nothing if the shell is not interactive. */
-void init_history(void)
+/* Opens the history file.
+ * Returns NULL on failure. */
+FILE *open_histfile(void)
 {
-    if (!is_interactive)
+    const wchar_t *vhistfile = getvar(VAR_HISTFILE);
+    if (!vhistfile)
+	return NULL;
+
+    char *mbshistfile = malloc_wcstombs(vhistfile);
+    if (!mbshistfile)
+	return NULL;
+
+    int fd = open(mbshistfile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    free(mbshistfile);
+    if (fd < 0)
+	return NULL;
+
+    struct stat st;
+    if (fstat(fd, &st) < 0 || !S_ISREG(st.st_mode)
+	    || (st.st_mode & (S_IRWXG | S_IRWXO))) {
+	xclose(fd);
+	return NULL;
+    }
+
+    int newfd = copy_as_shellfd(fd);
+    xclose(fd);
+    if (newfd < 0)
+	return NULL;
+
+    FILE *f = fdopen(newfd, "r+");
+    if (!f) {
+	remove_shellfd(newfd);
+	xclose(newfd);
+    }
+    return f;
+}
+
+/* Locks the file referred to by the file descriptor `fd'.
+ * `type' must be one of `F_RDLCK', `F_WRLCK' and `F_UNLCK'.
+ * When another process is holding a lock for the file, this process will be
+ * blocked until the lock becomes available. */
+bool lock_file(int fd, short type)
+{
+    struct flock flock = {
+	.l_type   = type,
+	.l_whence = SEEK_SET,
+	.l_start  = 0,
+	.l_len    = 0, /* to the end of file */
+    };
+    int result;
+
+    while ((result = fcntl(fd, F_SETLKW, &flock)) == -1 && errno == EINTR);
+    return result != -1;
+}
+
+/* Reads one line from the file `f'.
+ * The line is appended to the buffer `buf', which must have been initialized.
+ * The terminating newline is not left in `buf'.
+ * On failure, false is returned, in which case the contents of `buf' is
+ * unspecified.
+ * If there is no more line in the file, false is returned. */
+bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
+{
+    while (fgetws(buf->contents + buf->length,
+		buf->maxlength - buf->length + 1, f)) {
+	size_t len = wcslen(buf->contents + buf->length);
+	if (len == 0)
+	    return false;
+	buf->length += len;
+	if (buf->contents[buf->length - 1] == L'\n') {
+	    buf->contents[--buf->length] = L'\0';
+	    return true;
+	}
+	if (buf->length > LINE_MAX)
+	    return false;  /* Too long line. Give up. */
+	if (buf->maxlength - buf->length < 80)
+	    wb_setmax(buf, buf->maxlength + 100);
+    }
+    return false;
+}
+
+/* Reads the signature of the history file and checks if it is a valid
+ * signature.
+ * If valid:
+ *   - the file `f' is positioned just after the signature,
+ *   - the return value is the revision of the file (non-negative).
+ * Otherwise:
+ *   - the file `f' is positioned at an unspecified place,
+ *   - the return value is negative. */
+/* The file `f' should be locked. */
+long read_signature(FILE *f)
+{
+    xwcsbuf_T buf;
+    long rev = -1;
+    const wchar_t *s;
+    wchar_t *end;
+
+    wb_init(&buf);
+    rewind(f);
+    if (!read_line(f, &buf))
+	goto end;
+    
+    s = matchwcsprefix(buf.contents, L"#$# yash history v0 r");
+    if (!s || !iswdigit(s[0]))
+	goto end;
+
+    errno = 0;
+    rev = wcstol(s, &end, 10);
+    if (errno || *end != L'\0')
+	rev = -1;
+end:
+    wb_destroy(&buf);
+    return rev;
+}
+
+/* Reads history entries from the specified file.
+ * The file is read from the current position.
+ * The entries that were read from the file are appended to `histlist'.
+ * On failure, and false is returned.
+ * `update_time' must be called before calling this function. */
+/* The file `f' should be locked. */
+/* This function does not return any error status. The caller should check
+ * `ferror' and/or `feof' for the file. */
+void read_history(FILE *f)
+{
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    while (read_line(f, &buf)) {
+	switch (buf.contents[0]) {
+	    case L'0': case L'1': case L'2': case L'3': case L'4':
+	    case L'5': case L'6': case L'7': case L'8': case L'9':
+	    case L'A': case L'B': case L'C': case L'D': case L'E': case L'F':
+		parse_history_entry(buf.contents);
+		break;
+	    case L'c':
+		remove_last_entry();
+		break;
+	    case L'd':
+		parse_removed_entry(buf.contents + 1);
+		break;
+	    case L'p':
+		parse_process_id(buf.contents + 1);
+		break;
+	}
+	wb_clear(&buf);
+    }
+    wb_destroy(&buf);
+}
+
+void parse_history_entry(const wchar_t *line)
+{
+    unsigned long num;
+    time_t time;
+    wchar_t *end;
+    char *value;
+
+    assert(iswxdigit(line[0]));
+
+    errno = 0;
+    num = wcstoul(line, &end, 0x10);
+    if (errno || *end == L'\0' || num > max_number)
 	return;
 
+    if (end[0] == L':' && iswxdigit(end[1])) {
+	unsigned long long t;
+
+	errno = 0;
+	t = wcstoull(end + 1, &end, 0x10);
+	if (errno || *end == L'\0')
+	    time = -1;
+	else if (t > (unsigned long long) now)
+	    time = now;
+	else
+	    time = (time_t) t;
+    } else {
+	time = -1;
+    }
+
+    if (*end != L' ')
+	return;
+    end++;
+    value = malloc_wcstombs(end);
+    if (value) {
+	new_entry((unsigned) num, time, value);
+	free(value);
+    }
+}
+
+void parse_removed_entry(const wchar_t *numstr)
+{
+    unsigned long i;
+    wchar_t *end;
+
+    if (numstr[0] == L'\0')
+	return;
+
+    errno = 0;
+    i = wcstoul(numstr, &end, 0x10);
+    if (errno || (*end != L'\0' && !iswspace(*end)))
+	return;
+
+    if (i <= max_number) {
+	unsigned num = (unsigned) i;
+	histentry_T *e = find_entry(num, false);
+	if (e != Histlist && e->number == num)
+	    remove_entry(e);
+    }
+}
+
+void parse_process_id(const wchar_t *numstr)
+{
+    intmax_t i;
+    wchar_t *end;
+
+    if (numstr[0] == L'\0')
+	return;
+
+    errno = 0;
+    i = wcstoimax(numstr, &end, 10);
+    if (errno || (*end != L'\0' && !iswspace(*end)))
+	return;
+
+    if (i > 0)
+	add_histfile_pid((pid_t) i);
+    else if (i < 0)
+	remove_histfile_pid((pid_t) -i);
+    /* XXX: this cast and negation may be unsafe */
+}
+
+/* Re-read the history from the main history file.
+ * Changes made to the file by other shell processes are brought into this
+ * shell's history. The current data in this shell's history may be changed.
+ * If `refresh' is true, this function may call `refresh_file'.
+ * On failure, `histfile' is closed and set to NULL.
+ * `update_time' must be called before calling this function.
+ * After calling this function, `histfile' must not be read before
+ * repositioning. */
+/* The history file `histfile' should be locked (F_WRLCK if `refresh' is true or
+ * F_RDLCK if `refresh' is false).
+ * This function must be called just before writing to the history file. */
+void update_history(bool refresh)
+{
+    bool posfail;
+    fpos_t pos;
+    long rev;
+
+    if (!histfile)
+	return;
+
+    clearerr(histfile);
+    posfail = fgetpos(histfile, &pos);
+    rev = read_signature(histfile);
+    if (rev < 0) {
+	return;
+    } else if (!posfail && rev == histfilerev) {
+	/* The revision has not been changed. Just read new entries. */
+	fsetpos(histfile, &pos);
+    } else {
+	/* The revision has been changed. Re-read everything. */
+	clear_all_entries();
+	clear_histfile_pids();
+	histfilerev = rev;
+    }
+    read_history(histfile);
+    if (ferror(histfile) || !feof(histfile)) {
+	lock_file(fileno(histfile), F_UNLCK);
+	remove_shellfd(fileno(histfile));
+	fclose(histfile);
+	histfile = NULL;
+	return;
+    }
+
+    if (refresh)
+	maybe_refresh_file();
+}
+
+/* Refreshes the history file or does nothing.
+ * `histfile' must not be null. */
+void maybe_refresh_file(void)
+{
+#ifndef HISTORY_REFRESH_INTERVAL
+#define HISTORY_REFRESH_INTERVAL 100
+#endif
+#if HISTORY_REFRESH_INTERVAL <= 0
+#error invalid HISTORY_REFRESH_INTERVAL
+#endif
+    assert(histfile != NULL);
+    if (hist_next_number % HISTORY_REFRESH_INTERVAL == 0) {
+	check_histfile_pid();
+	refresh_file(histfile);
+    }
+}
+
+/* Writes the signature with an incremented revision number, after emptying the
+ * file. */
+/* This function does not return any error status. The caller should check
+ * `ferror' for the file. */
+void write_signature(FILE *f)
+{
+    rewind(f);
+    while (ftruncate(fileno(f), 0) < 0 && errno == EINTR);
+
+    if (histfilerev < 0 || histfilerev == LONG_MAX)
+	histfilerev = 0;
+    else
+	histfilerev++;
+    fwprintf(f, L"#$# yash history v0 r%ld\n", histfilerev);
+}
+
+/* Writes the specified entry to the file `f'. */
+/* The file `f' should be locked. */
+/* This function does not return any error status. The caller should check
+ * `ferror' for the file. */
+void write_history_entry(const histentry_T *restrict entry, FILE *restrict f)
+{
+    if (entry->time >= 0)
+	fwprintf(f, L"%X:%lX %s\n",
+		entry->number, (unsigned long) entry->time, entry->value);
+    else
+	fwprintf(f, L"%X %s\n",
+		entry->number, entry->value);
+}
+
+/* Clears and rewrites the contents of the history file.
+ * The file will have a new revision number. */
+/* The file `f' should be locked. */
+/* This function does not return any error status. The caller should check
+ * `ferror' for the file. */
+void refresh_file(FILE *f)
+{
+    write_signature(f);
+    write_histfile_pids(f);
+    for (const histentry_T *e = histlist.Oldest; e != Histlist; e = e->Next)
+	write_history_entry(e, f);
+}
+
+
+/********** Process ID list **********/
+
+/* The process ID list is sorted in the ascending order. */
+
+struct pidlist_T {
+    struct pidlist_T *next;
+    pid_t pid;
+};
+
+/* Adds `pid' to `histfilepids'. `pid' must be positive. */
+void add_histfile_pid(pid_t pid)
+{
+    struct pidlist_T **last, *list, *new;
+
+    assert(pid > 0);
+    last = &histfilepids, list = histfilepids;
+    while (list != NULL)
+	if (list->pid < pid)
+	    last = &list->next, list = list->next;
+	else if (list->pid == pid)
+	    return;
+	else
+	    break;
+    new = xmalloc(sizeof *new);
+    new->next = list;
+    new->pid = pid;
+    *last = new;
+}
+
+/* Removes `pid' from `histfilepids'. */
+void remove_histfile_pid(pid_t pid)
+{
+    struct pidlist_T **last, *list;
+
+    last = &histfilepids, list = histfilepids;
+    for (;;)
+	if (list == NULL || list->pid > pid)
+	    return;
+	else if (list->pid < pid)
+	    last = &list->next, list = list->next;
+	else
+	    break;
+    *last = list->next;
+    free(list);
+}
+
+/* Clears `histfilepids'. */
+void clear_histfile_pids(void)
+{
+    struct pidlist_T *list = histfilepids;
+    while (list != NULL) {
+	struct pidlist_T *next = list->next;
+	free(list);
+	list = next;
+    }
+    histfilepids = NULL;
+}
+
+/* Checks the process IDs in `histfilepids'.
+ * Process IDs of non-existent process are removed from the list. */
+void check_histfile_pid(void)
+{
+    struct pidlist_T **last, *list;
+
+    last = &histfilepids, list = histfilepids;
+    while (list != NULL) {
+	assert(list->pid > 0);
+	if (kill(list->pid, 0) < 0 && errno == ESRCH) {
+	    /* invalid process id: no such process */
+	    *last = list->next;
+	    free(list);
+	    list = *last;
+	} else {
+	    /* valid process id */
+	    last = &list->next, list = list->next;
+	}
+    }
+}
+
+/* Writes process IDs in `histfilepids' to the file `f'. */
+/* This function does not return any error status. The caller should check
+ * `ferror' for the file. */
+void write_histfile_pids(FILE *f)
+{
+    for (struct pidlist_T *list = histfilepids; list != NULL; list = list->next)
+	fwprintf(f, L"p%jd\n", (intmax_t) list->pid);
+}
+
+
+/********** External functions **********/
+
+/* Initializes history function if not yet initialized.
+ * If the shell is not interactive, history is never initialized. */
+void maybe_init_history(void)
+{
+    static bool initialized = false;
+
+    if (!is_interactive_now || initialized)
+	return;
+    initialized = true;
+
+    /* set `histsize' */
     const wchar_t *vhistsize = getvar(VAR_HISTSIZE);
     if (vhistsize && vhistsize[0]) {
-	unsigned size;
+	unsigned long size;
 	wchar_t *end;
 	errno = 0;
 	size = wcstoul(vhistsize, &end, 10);
 	if (!errno && !*end)
-	    set_histsize(size);
+	    set_histsize(size <= MAX_HISTSIZE ? size : MAX_HISTSIZE);
     }
 
-    read_history(NULL);
-}
-
-/* Reads history entries from a history file.
- * `histfile' is the pathname to the history file.
- * If `histfile' is NULL, entries are read from $HISTFILE.
- * The entries read are appended to the current history list.
- * Returns true iff successful. `errno' is set on failure. */
-bool read_history(const wchar_t *histfile)
-{
-    if (!histfile) {
-	histfile = getvar(VAR_HISTFILE);
-	if (!histfile)
-	    return true;
-    }
     update_time();
 
-    char *filename = malloc_wcstombs(histfile);
-    if (!filename)
-	return false;
-
-    FILE *f = fopen(filename, "r");
-    int errno_ = errno;
-    free(filename);
-    if (!f) {
-	errno = errno_;
-	return false;
-    }
-
-    xstrbuf_T buf;
-    sb_init(&buf);
-    while (fgets(buf.contents + buf.length, buf.maxlength - buf.length + 1, f)){
-	size_t len = strlen(buf.contents + buf.length);
-	// `len' may be 0 if a null character is input
-	if (len == 0)
-	    break;
-	buf.length += len;
-	if (buf.contents[buf.length - 1] == L'\n') {
-	    buf.contents[--buf.length] = L'\0';  // remove the trailing newline
-	    new_entry(buf.contents);
-	    sb_clear(&buf);
+    /* open the history file and read it */
+    histfile = open_histfile();
+    if (histfile) {
+	lock_file(fileno(histfile), F_WRLCK);
+	histfilerev = read_signature(histfile);
+	if (histfilerev < 0)
+	    goto refresh;
+	read_history(histfile);
+	if (ferror(histfile) || !feof(histfile)) {
+	    lock_file(fileno(histfile), F_UNLCK);
+	    remove_shellfd(fileno(histfile));
+	    fclose(histfile);
+	    histfile = NULL;
 	} else {
-	    if (buf.maxlength - buf.length < 80)
-		sb_setmax(&buf, buf.maxlength + 150);
+	    check_histfile_pid();
+	    if (!histfilepids) {
+		renumber_all_entries();
+refresh:
+		refresh_file(histfile);
+	    }
+	    add_histfile_pid(shell_pid);
+	    fwprintf(histfile, L"p%jd\n", (intmax_t) shell_pid);
+	    fflush(histfile);
+	    lock_file(fileno(histfile), F_UNLCK);
 	}
     }
-    errno_ = ferror(f) ? errno : 0;
-    sb_destroy(&buf);
-    fclose(f);
-
-    trim_list_size();
-    lastappended = histlist.newest;
-    errno = errno_;
-    return !errno_;
 }
 
-/* Writes the history entries to the specified file.
- * If `histfile' is NULL, entries are written into $HISTFILE.
- * If `append' is true, entries are appended to the end of the file.
- * Returns true iff successful. `errno' is set on failure. */
-bool write_history(const wchar_t *histfile, bool append)
+/* If the history file is open, close it. */
+void finalize_history(void)
 {
-    if (!histfile) {
-	histfile = getvar(VAR_HISTFILE);
-	if (!histfile)
-	    return true;
+    if (!is_interactive_now || !histfile)
+	return;
+
+    lock_file(fileno(histfile), F_WRLCK);
+    update_history(true);
+    remove_histfile_pid(shell_pid);
+    if (histfile) {
+	fwprintf(histfile, L"p%jd\n", (intmax_t) -shell_pid);
+	fflush(histfile);
+	lock_file(fileno(histfile), F_UNLCK);
+	remove_shellfd(fileno(histfile));
+	fclose(histfile);
+	histfile = NULL;
     }
-
-    char *filename = malloc_wcstombs(histfile);
-    if (!filename)
-	return false;
-
-    /* The history file should not be readable by other users for privacy
-     * reasons, hence such default permissions. */
-    int fd = open(filename,
-	    O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC),
-	    S_IRUSR | S_IWUSR);
-    int errno_ = errno;
-    free(filename);
-    if (fd < 0) {
-	errno = errno_;
-	return false;
-    }
-
-    FILE *f = fdopen(fd, append ? "a" : "w");
-    errno_ = errno;
-    if (!f) {
-	xclose(fd);
-	errno = errno_;
-	return false;
-    }
-
-    const histentry_T *e = append ? lastappended : HISTLIST;
-    while ((e = e->next) != HISTLIST) {
-	fputs(e->value, f);
-	fputc('\n', f);
-    }
-
-    lastappended = histlist.newest;
-
-    errno_ = ferror(f) ? errno : 0;
-    if (fclose(f) == 0)
-	errno = errno_;
-    return errno == 0;
 }
 
-/* Removes all entries in the history list. */
-void clear_history(void)
-{
-    histentry_T *e = histlist.oldest;
-    while (e != HISTLIST) {
-	histentry_T *next = e->next;
-	free(e);
-	e = next;
-    }
-    histlist.oldest = histlist.newest = HISTLIST;
-    histlist.count = 0;
-    lastappended = HISTLIST;
-    hist_next_number = 1;
-}
-
-/* Adds the specified `line' to the history list.
+/* Adds the specified `line' to the history.
+ * If `line' contains newlines, `line' is separated into multiple entries.
  * If `removelast' is true, the last entry is removed before addition. */
-bool add_history(const wchar_t *line, bool removelast)
+void add_history(const wchar_t *line)
 {
-    char *l = malloc_wcstombs(line);
-    if (!l)
-	return false;
+    maybe_init_history();
 
+    if (histfile) {
+	lock_file(fileno(histfile), F_WRLCK);
+	update_history(true);
+    }
     update_time();
-    if (removelast && histlist.newest != HISTLIST)
-	replace_entry(histlist.newest, l);
-    else
-	new_entry(l);
-    free(l);
-    trim_list_size();
-    return true;
+
+    const wchar_t *nl = wcschr(line, L'\n');
+    while ((nl = wcschr(line, L'\n')) != NULL) {
+	wchar_t *line1 = xwcsndup(line, nl - line);
+	really_add_history(line1);
+	free(line1);
+	line = nl + 1;
+    }
+    really_add_history(line);
+
+    if (histfile) {
+	fflush(histfile);
+	lock_file(fileno(histfile), F_UNLCK);
+    }
+}
+
+/* Adds the specified `line' to the history.
+ * `line' must not contain newlines.
+ * `histfile' must be locked and `update_time' and `update_history' must have
+ * been called. */
+void really_add_history(const wchar_t *line)
+{
+    char *mbsline = malloc_wcstombs(line);
+    if (mbsline) {
+	histentry_T *entry = new_entry(hist_next_number, now, mbsline);
+
+	if (histfile)
+	    write_history_entry(entry, histfile);
+
+	free(mbsline);
+    }
 }
 
 
 /********** Builtins **********/
 
 enum fcprinttype_T {
-    NUMBERED, UNNUMBERED, RAW,
+    FC_FULL, FC_NUMBERED, FC_UNNUMBERED, FC_RAW,
 };
 
+static void fc_remove_last_entry(void);
 static histentry_T *fc_search_entry(const wchar_t *prefix)
     __attribute__((nonnull));
 static int fc_print_entries(
 	FILE *f, const histentry_T *first, const histentry_T *last,
 	bool reverse, enum fcprinttype_T type)
     __attribute__((nonnull));
+static const char *fc_time_to_str(time_t time)
+    __attribute__((pure));
 static int fc_exec_entry(const histentry_T *entry,
 	const wchar_t *old, const wchar_t *new, bool quiet)
     __attribute__((nonnull(1)));
@@ -478,9 +974,7 @@ static int fc_edit_and_exec_entries(
 	const histentry_T *first, const histentry_T *last,
 	bool reverse, const wchar_t *editor, bool quiet)
     __attribute__((nonnull(1,2)));
-static void fc_read_history(const char *filename)
-    __attribute__((nonnull));
-static void fc_print_file(FILE *f)
+static void fc_read_history(FILE *f, bool quiet)
     __attribute__((nonnull));
 
 /* The "fc" builtin, which accepts the following options:
@@ -488,7 +982,8 @@ static void fc_print_file(FILE *f)
  * -l: list history
  * -n: suppress numbering entries
  * -r: reverse entry order
- * -s: execute without editing */
+ * -s: execute without editing
+ * -v: print time for each entry */
 int fc_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -498,26 +993,28 @@ int fc_builtin(int argc, void **argv)
 	{ L"quiet",      xno_argument,       L'q', },
 	{ L"reverse",    xno_argument,       L'r', },
 	{ L"silent",     xno_argument,       L's', },
+	{ L"verbose",    xno_argument,       L'v', },
 	{ L"help",       xno_argument,       L'-', },
 	{ NULL, 0, 0, },
     };
 
     const wchar_t *editor = NULL;
-    bool list = false, nonum = false, quiet = false,
-	 rev = false, silent = false;
+    bool list = false, quiet = false, rev = false, silent = false;
+    enum fcprinttype_T ptype = FC_NUMBERED;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"-e:lnrs" : L"-e:lnqrs",
+		    posixly_correct ? L"-e:lnrs" : L"-e:lnqrsv",
 		    long_options, NULL))) {
 	switch (opt) {
-	    case L'e':  editor = xoptarg;  break;
-	    case L'l':  list   = true;     break;
-	    case L'n':  nonum  = true;     break;
-	    case L'q':  quiet  = true;     break;
-	    case L'r':  rev    = true;     break;
-	    case L's':  silent = true;     break;
+	    case L'e':  editor = xoptarg;        break;
+	    case L'l':  list   = true;           break;
+	    case L'n':  ptype  = FC_UNNUMBERED;  break;
+	    case L'q':  quiet  = true;           break;
+	    case L'r':  rev    = true;           break;
+	    case L's':  silent = true;           break;
+	    case L'v':  ptype  = FC_FULL;        break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
@@ -528,13 +1025,22 @@ int fc_builtin(int argc, void **argv)
     if ((editor && (list || silent))
 	    || (list && (quiet || silent))
 	    || (rev && silent)
-	    || (nonum && !list)
+	    || (ptype != FC_NUMBERED && !list)
 	    || (argc - xoptind > 2))
 	goto print_usage;
 
-    /* remove the entry for this "fc" command */
-    if (!list)
-	remove_last_entry();
+    maybe_init_history();
+    if (list) {
+	if (histfile) {
+	    lock_file(fileno(histfile), F_RDLCK);
+	    update_history(false);
+	    if (histfile)
+		lock_file(fileno(histfile), F_UNLCK);
+	}
+    } else {
+	/* remove the entry for this "fc" command */
+	fc_remove_last_entry();
+    }
 
     if (histlist.count == 0) {
 	if (list) {
@@ -570,7 +1076,7 @@ int fc_builtin(int argc, void **argv)
 	first = wcstol(vfirst, &end, 10);
 	if (!vfirst[0] || errno || *end || first == 0) {
 	    efirst = fc_search_entry(vfirst);
-	    if (efirst == HISTLIST)
+	    if (efirst == Histlist)
 		return Exit_FAILURE;
 	} else {
 	    if (first > INT_MAX)
@@ -587,7 +1093,7 @@ int fc_builtin(int argc, void **argv)
 	last = wcstol(vlast, &end, 10);
 	if (!vlast[0] || errno || *end || last == 0) {
 	    elast = fc_search_entry(vlast);
-	    if (elast == HISTLIST)
+	    if (elast == Histlist)
 		return Exit_FAILURE;
 	} else {
 	    if (last > INT_MAX)
@@ -604,14 +1110,14 @@ int fc_builtin(int argc, void **argv)
 	if (first >= 0) {
 	    efirst = find_entry(first, true);
 	    if (silent && efirst->number != (unsigned) first)
-		efirst = HISTLIST;
+		efirst = Histlist;
 	} else {
 	    if (silent && (unsigned) -first > histlist.count)
-		efirst = HISTLIST;
+		efirst = Histlist;
 	    else
 		efirst = get_nth_newest_entry(-first);
 	}
-	if (efirst == HISTLIST) {
+	if (efirst == Histlist) {
 	    assert(vfirst != NULL);
 	    xerror(0, Ngt("%ls: no such entry"), vfirst);
 	    return Exit_FAILURE;
@@ -624,24 +1130,21 @@ int fc_builtin(int argc, void **argv)
 	    elast = find_entry(last, false);
 	else
 	    elast = get_nth_newest_entry(-last);
-	if (elast == HISTLIST) {
+	if (elast == Histlist) {
 	    assert(vlast != NULL);
 	    xerror(0, Ngt("%ls: no such entry"), vlast);
 	    return Exit_FAILURE;
 	}
     }
-    if (is_reverse(efirst, elast)) {
+    if (is_newer(efirst, elast)) {
 	const histentry_T *temp = efirst;  efirst = elast;  elast = temp;
 	rev = !rev;
     }
-    assert(efirst != NULL);  assert(efirst != HISTLIST);
-    assert(elast  != NULL);  assert(elast  != HISTLIST);
-
-    update_time();
+    assert(efirst != NULL);  assert(efirst != Histlist);
+    assert(elast  != NULL);  assert(elast  != Histlist);
 
     if (list)
-	return fc_print_entries(stdout, efirst, elast, rev,
-		nonum ? UNNUMBERED : NUMBERED);
+	return fc_print_entries(stdout, efirst, elast, rev, ptype);
     else if (silent)
 	return fc_exec_entry(efirst, old, new, quiet);
     else
@@ -655,8 +1158,24 @@ print_usage:
     else
 	fprintf(stderr, gt("Usage:  fc [-qr] [-e editor] [first [last]]\n"
 	                   "        fc -qs [old=new] [first]\n"
-	                   "        fc -l [-nr] [first [last]]\n"));
+	                   "        fc -l [-nrv] [first [last]]\n"));
     return Exit_ERROR;
+}
+
+void fc_remove_last_entry(void)
+{
+    if (histfile) {
+	lock_file(fileno(histfile), F_WRLCK);
+	update_history(false);
+	remove_last_entry();
+	if (histfile) {
+	    fputws(L"c\n", histfile);
+	    fflush(histfile);
+	    lock_file(fileno(histfile), F_UNLCK);
+	}
+    } else {
+	remove_last_entry();
+    }
 }
 
 histentry_T *fc_search_entry(const wchar_t *prefix)
@@ -666,7 +1185,7 @@ histentry_T *fc_search_entry(const wchar_t *prefix)
     if (s)
 	e = search_entry(s, false);
     free(s);
-    if (e == HISTLIST)
+    if (e == Histlist)
 	xerror(0, Ngt("no such entry beginning with `%ls'"), prefix);
     return e;
 }
@@ -676,28 +1195,49 @@ int fc_print_entries(
 	FILE *f, const histentry_T *first, const histentry_T *last,
 	bool reverse, enum fcprinttype_T type)
 {
-    const histentry_T *start, *end;
+    const histentry_T *start, *end, *e;
     if (!reverse)
 	start = first, end = last;
     else
 	start = last, end = first;
+    e = start;
     for (;;) {
 	switch (type) {
-	    case NUMBERED:
-		fprintf(f, "%u\t%s\n", start->number, start->value);
+	    case FC_FULL:
+		fprintf(f, "%u\t%s\t%s\n",
+			e->number, fc_time_to_str(e->time), e->value);
 		break;
-	    case UNNUMBERED:
-		fprintf(f, "\t%s\n", start->value);
+	    case FC_NUMBERED:
+		fprintf(f, "%u\t%s\n", e->number, e->value);
 		break;
-	    case RAW:
-		fprintf(f, "%s\n", start->value);
+	    case FC_UNNUMBERED:
+		fprintf(f, "\t%s\n", e->value);
+		break;
+	    case FC_RAW:
+		fprintf(f, "%s\n", e->value);
 		break;
 	}
-	if (start == end)
+	if (e == end)
 	    break;
-	start = !reverse ? start->next : start->prev;
+	e = !reverse ? e->Next : e->Prev;
     }
     return Exit_SUCCESS;
+}
+
+/* Converts time to a string.
+ * The return value is valid until the next call to this function. */
+const char *fc_time_to_str(time_t time)
+{
+    static char s[40];
+    size_t size;
+
+    if (time >= 0) {
+	size = strftime(s, sizeof s, "%c", localtime(&time));
+	if (size > 0)
+	    return s;
+    }
+    s[0] = '?', s[1] = '\0';
+    return s;
 }
 
 /* Executes the value of `entry'.
@@ -722,17 +1262,11 @@ int fc_exec_entry(const histentry_T *entry,
 	if (p)
 	    wb_replace(&buf, p - buf.contents, wcslen(old), new, SIZE_MAX);
 	code = wb_towcs(&buf);
-
-	char *mbscode = malloc_wcstombs(code);
-	if (mbscode)
-	    new_entry(mbscode);
-	free(mbscode);
-    } else {
-	new_entry(entry->value);
     }
 
+    add_history(code);
     if (!quiet)
-	fprintf(stderr, "%ls\n", code);
+	printf("%ls\n", code);
     exec_wcs(code, "fc", false);
     free(code);
     return laststatus;
@@ -789,24 +1323,23 @@ int fc_edit_and_exec_entries(
 	    if (f == NULL)
 		xerror(errno, Ngt("cannot read command from `%s'"), temp);
 	}
-	if (f != NULL)
-	    fc_read_history(temp);
-
 	if (unlink(temp) < 0)
 	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
 	free(temp);
 
 	if (f != NULL) {
+	    int fd = fileno(f);
+	    fc_read_history(f, quiet);
+	    rewind(f);
 	    laststatus = savelaststatus;
-	    if (!quiet)
-		fc_print_file(f);
 	    exec_input(f, "fc", false, false);
-	    remove_shellfd(fileno(f));
+	    remove_shellfd(fd);
 	    fclose(f);
+	    return laststatus;
 	}
-	return laststatus;
+	return Exit_FAILURE;
     } else {  // child process
-	fc_print_entries(f, first, last, reverse, RAW);
+	fc_print_entries(f, first, last, reverse, FC_RAW);
 	fclose(f);
 
 	wchar_t *command = malloc_wprintf(L"%ls %s",
@@ -820,30 +1353,38 @@ int fc_edit_and_exec_entries(
     }
 }
 
-void fc_read_history(const char *filename)
+void fc_read_history(FILE *f, bool quiet)
 {
-    wchar_t *wname = malloc_mbstowcs(filename);
-    if (wname) {
-	read_history(wname);
-	free(wname);
+    xwcsbuf_T buf;
+
+    if (histfile) {
+	lock_file(fileno(histfile), F_WRLCK);
+	update_history(false);
     }
-}
+    update_time();
 
-void fc_print_file(FILE *f)
-{
-    wchar_t buf[1000];
+    wb_init(&buf);
+    while (read_line(f, &buf)) {
+	if (!quiet)
+	    printf("%ls\n", buf.contents);
+	if (histfile)
+	    maybe_refresh_file();
+	really_add_history(buf.contents);
+	wb_clear(&buf);
+    }
+    wb_destroy(&buf);
 
-    while (fgetws(buf, sizeof buf / sizeof *buf, f))
-	fprintf(stderr, "%ls", buf);
-    fseek(f, 0, SEEK_SET);
-    fflush(stderr);
+    if (histfile) {
+	fflush(histfile);
+	lock_file(fileno(histfile), F_UNLCK);
+    }
 }
 
 const char fc_help[] = Ngt(
 "fc - list or re-execute command history\n"
 "\tfc [-qr] [-e editor] [first [last]]\n"
 "\tfc -qs [old=new] [first]\n"
-"\tfc -l [-nr] [first [last]]\n"
+"\tfc -l [-nrv] [first [last]]\n"
 "The first form invokes an editor to edit a temporary file containing the\n"
 "command history and, after the editor exited, executes commands in the file.\n"
 "The second form, with the -s (--silent) option, re-executes commands in the\n"
@@ -860,6 +1401,7 @@ const char fc_help[] = Ngt(
 "The -q (--quiet) option suppresses echoing the executed command.\n"
 "The -r (--reverse) option reverses the order of commands to be edited or\n"
 "printed.\n"
+"The -v (--verbose) option makes the listing more detailed.\n"
 "\n"
 "The range of command history to be edited or printed can be specified by\n"
 "parameters <first> and <last>. If the value of <first> or <last> is an\n"
@@ -869,175 +1411,8 @@ const char fc_help[] = Ngt(
 "command: it indicates the most recent command beginning with it.\n"
 "If <first> is omitted, it defaults to -16 (with -l) or -1 (without -l).\n"
 "If <last> is omitted, it defaults to -1 (with -l) or <first> (without -l).\n"
-);
-
-/* The history builtin, which accepts the following options:
- * -a: append to history file
- * -c: clear history
- * -d: remove entry
- * -r: read from file
- * -s: add entry
- * -w: write to file */
-int history_builtin(int argc, void **argv)
-{
-    static const struct xoption long_options[] = {
-	{ L"append", xno_argument, L'a', },
-	{ L"clear",  xno_argument, L'c', },
-	{ L"delete", xno_argument, L'd', },
-	{ L"read",   xno_argument, L'r', },
-	{ L"set",    xno_argument, L's', },
-	{ L"write",  xno_argument, L'w', },
-	{ L"help",   xno_argument, L'-', },
-	{ NULL, 0, 0, },
-    };
-
-    enum {
-	append = 1 << 0,
-	clear  = 1 << 1,
-	delete = 1 << 2,
-	read   = 1 << 3,
-	set    = 1 << 4,
-	write  = 1 << 5,
-    } options = 0;
-
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"acdrsw", long_options, NULL))) {
-	switch (opt) {
-	    case L'a':  options |= append;  break;
-	    case L'c':  options |= clear;   break;
-	    case L'd':  options |= delete;  break;
-	    case L'r':  options |= read;    break;
-	    case L's':  options |= set;     break;
-	    case L'w':  options |= write;   break;
-	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
-	    default:
-		goto print_usage;
-	}
-    }
-    if (options && (options & (options - 1))) {
-	xerror(0, Ngt("more than one options cannot be used at a time"));
-	goto print_usage;
-    } else if (argc - xoptind > 1) {
-	goto print_usage;
-    }
-
-    const wchar_t *arg = ARGV(xoptind);
-    wchar_t *end;
-    long num;
-    switch (options) {
-	case 0:
-	    if (arg) {
-		errno = 0;
-		num = wcstol(arg, &end, 10);
-		if (!arg[0] || errno || *end) {
-		    xerror(0, Ngt("`%ls' is not a valid integer"), arg);
-		    return Exit_FAILURE;
-		}
-		if (num > (long) histlist.count)
-		    num = (long) histlist.count;
-	    } else {
-		num = (long) histlist.count;
-	    }
-	    if (num > 0)
-		fc_print_entries(stdout,
-			get_nth_newest_entry(num), histlist.newest,
-			false /* not reversed */, NUMBERED);
-	    break;
-	case clear:
-	    clear_history();
-	    break;
-	case delete:
-	    if (!arg) {
-		goto print_usage;
-	    } else {
-		histentry_T *entry;
-		errno = 0;
-		num = wcstol(arg, &end, 10);
-		if (!arg[0] || errno || *end || num == 0) {
-		    entry = fc_search_entry(arg);
-		    if (entry == HISTLIST)
-			return Exit_FAILURE;
-		} else if (num >= 0) {
-		    if (num > INT_MAX)
-			num = INT_MAX;
-		    entry = find_entry(num, true);
-		    if (entry != HISTLIST && num != (long) entry->number)
-			entry = HISTLIST;
-		} else {
-		    if (num < INT_MIN)
-			num = INT_MIN;
-		    entry = get_nth_newest_entry(-num);
-		}
-		if (entry == HISTLIST) {
-		    xerror(0, Ngt("%ls: no such entry"), arg);
-		    return Exit_FAILURE;
-		}
-		remove_entry(entry);
-		break;
-	    }
-	case read:
-	    if (!read_history(arg)) {
-		xerror(errno, Ngt("cannot read history"));
-		return Exit_FAILURE;
-	    }
-	    break;
-	case append:
-	case write:
-	    if (!write_history(arg, options == append)) {
-		xerror(errno, Ngt("cannot write history"));
-		return Exit_FAILURE;
-	    }
-	    break;
-	case set:
-	    if (!arg) {
-		goto print_usage;
-	    } else {
-		char *v;
-		remove_last_entry();
-		v = malloc_wcstombs(arg);
-		if (v) {
-		    new_entry(v);
-		    free(v);
-		}
-	    }
-	    break;
-	default:
-	    assert(false);
-    }
-    return Exit_SUCCESS;
-
-print_usage:
-    fprintf(stderr, gt("Usage:  history [n]\n"
-                       "        history -c\n"
-		       "        history -d entry\n"
-		       "        history -a|-r|-w [histfile]\n"
-		       "        history -s arg\n"));
-    return Exit_ERROR;
-}
-
-const char history_help[] = Ngt(
-"history - manage command history\n"
-"\thistory [n]\n"
-"\thistory -c\n"
-"\thistory -d entry\n"
-"\thistory -a|-r|-w [histfile]\n"
-"\thistory -s arg\n"
-"Without option, prints the command history. The number of entries to print\n"
-"can be specified as <n>.\n"
-"With the -c (--clear) option, clears the command history completely.\n"
-"With the -d (--delete) option, removes <entry> from the history, where\n"
-"<entry> is the entry number.\n"
-"With the -a (--append) option, history entries that are not yet saved in the\n"
-"history file are appended to the end of the file. No entries that were in\n"
-"the file are lost.\n"
-"With the -r (--read) option, reads history entries from the file.\n"
-"With the -w (--write) option, writes all history entries in the file. The\n"
-"contents of the file are all overwritten.\n"
-"The -s (--set) option adds <arg> as a new history entry.\n"
-"For the -a, -r, -w options, <histfile> defaults to $HISTFILE if not given.\n"
+"\n"
+"In POSIXly correct mode, the -q and -v options are not available.\n"
 );
 
 

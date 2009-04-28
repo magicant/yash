@@ -368,12 +368,11 @@ void exec_for(const command_T *c, bool finally_exit)
     } else (void) 0
 
     int i;
-    for (i = 0; i < count; ) {
+    for (i = 0; i < count; i++) {
 	if (!set_variable(c->c_forname, words[i],
 		    posixly_correct ? SCOPE_GLOBAL : SCOPE_LOCAL, false))
 	    goto done;
-	i++;
-	exec_and_or_lists(c->c_forcmds, finally_exit && i == count);
+	exec_and_or_lists(c->c_forcmds, finally_exit && i + 1 == count);
 	CHECK_LOOP;
     }
 
@@ -384,9 +383,9 @@ done:
     if (count == 0 && c->c_forcmds)
 	laststatus = Exit_SUCCESS;
 finish:
+    execinfo.loopnest--;
     if (finally_exit)
 	exit_shell();
-    execinfo.loopnest--;
 }
 
 /* Executes a while/until command. */
@@ -409,9 +408,9 @@ void exec_while(const command_T *c, bool finally_exit)
 
     laststatus = status;
 done:
+    execinfo.loopnest--;
     if (finally_exit)
 	exit_shell();
-    execinfo.loopnest--;
 }
 #undef CHECK_LOOP
 
@@ -1286,7 +1285,7 @@ int return_builtin(int argc, void **argv)
 const char return_help[] = Ngt(
 "return - return from function\n"
 "\treturn [n]\n"
-"Exits the currently executed function or script file with the exit status\n"
+"Exits the currently executing function or script file with the exit status\n"
 "of <n>. If <n> is not specified, it defaults to the exit status of the last\n"
 "executed command. <n> should be between 0 and 255 inclusive.\n"
 );
@@ -1350,14 +1349,14 @@ int break_builtin(int argc, void **argv)
 const char break_help[] = Ngt(
 "break - exit loop\n"
 "\tbreak [n]\n"
-"Exits the currently executed for, while or until loop.\n"
+"Exits the currently executing for, while or until loop.\n"
 "If <n> is specified, exits the <n>th outer loop.\n"
 );
 
 const char continue_help[] = Ngt(
 "continue - continue loop\n"
 "\tcontinue [n]\n"
-"Returns to the top of the currently executed for, while or until loop.\n"
+"Returns to the top of the currently executing for, while or until loop.\n"
 "If <n> is specified, returns to that of the <n>th outer loop.\n"
 );
 
@@ -1883,6 +1882,7 @@ const char command_help[] = Ngt(
 "printed and the exit status is non-zero.\n"
 "With the -V (--verbose-identify) option, the command is identified in the\n"
 "same way but the result is printed verbosely in a human-readable form.\n"
+"In the POSIXly correct mode, the -b and -B options are not available.\n"
 );
 
 const char type_help[] = Ngt(

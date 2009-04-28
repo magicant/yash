@@ -315,7 +315,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 			wchar_t lastchar = line[len - 1];
 			assert(lastchar == L'\n');
 			line[len - 1] = L'\0';
-			add_history(line, false);
+			add_history(line);
 			line[len - 1] = lastchar;
 		    }
 #endif /* YASH_ENABLE_HISTORY */
@@ -352,7 +352,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	    wchar_t savechar = buf->contents[buf->length - 1];
 	    if (savechar == L'\n')
 		buf->contents[buf->length - 1] = L'\0';
-	    add_history(buf->contents + oldlen, false);
+	    add_history(buf->contents + oldlen);
 	    buf->contents[buf->length - 1] = savechar;
 	}
 #endif

@@ -58,6 +58,8 @@ static void execute_profile(void);
 static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
 static void print_version(void);
+static bool input_is_interactive_terminal(const parseinfo_T *pinfo)
+    __attribute__((nonnull));
 
 /* the process ID of the shell */
 pid_t shell_pid;
@@ -273,9 +275,6 @@ int main(int argc, char **argv)
 	if (!norcfile)
 	    execute_rcfile(rcfile);
     }
-#if YASH_ENABLE_HISTORY
-    init_history();
-#endif
 
     if (shopt_read_arg) {
 	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
@@ -362,7 +361,7 @@ void exit_shell_with_status(int status)
 	execute_exit_trap();
 #if YASH_ENABLE_HISTORY
 	if (is_interactive_now)
-	    write_history(NULL, false);
+	    finalize_history();
 #endif
     }
     finalize_shell();
@@ -504,7 +503,6 @@ void exec_mbs(const char *code, const char *name, bool finally_exit)
 	.input = input_mbs,
 	.inputinfo = &iinfo,
 	.intrinput = false,
-	.inputisatty = false,
 	.lastinputresult = 0,
     };
     memset(&iinfo.state, 0, sizeof iinfo.state);  // initialize the shift state
@@ -528,7 +526,6 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.input = input_wcs,
 	.inputinfo = &iinfo,
 	.intrinput = false,
-	.inputisatty = false,
 	.lastinputresult = 0,
     };
 
@@ -556,11 +553,9 @@ void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 	rlinfo.type = 1;
 	pinfo.input = input_readline;
 	pinfo.inputinfo = &rlinfo;
-	pinfo.inputisatty = isatty(fileno(f));
     } else {
 	pinfo.input = (f == stdin) ? input_stdin : input_file;
 	pinfo.inputinfo = f;
-	pinfo.inputisatty = false;
     }
     parse_and_exec(&pinfo, finally_exit);
 }
@@ -582,10 +577,14 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	nextforceexit = false;
 	if (return_pending()) {
 	    reset_execinfo();
-	    if (pinfo->intrinput)
+	    if (pinfo->intrinput) {
 		xerror(0, Ngt("return: not in function or sourced file"));
-	    else
-		goto finish;
+	    } else if (finally_exit) {
+		wchar_t argv0[] = L"return";
+		exit_builtin(1, (void *[]) { argv0, NULL });
+		continue;
+	    } else
+		goto out;
 	}
 
 	switch (read_and_parse(pinfo, &commands)) {
@@ -601,13 +600,12 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		}
 		break;
 	    case EOF:
-		if (shopt_ignoreeof && pinfo->inputisatty) {
+		if (shopt_ignoreeof && input_is_interactive_terminal(pinfo)) {
 		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
 		    break;
 		}
 		if (!executed)
 		    laststatus = Exit_SUCCESS;
-finish:
 		if (finally_exit) {
 		    wchar_t argv0[] = L"EOF";
 		    exit_builtin(1, (void *[]) { argv0, NULL });
@@ -628,7 +626,18 @@ finish:
      * We don't set it at first because the value of "$?" gets wrong in
      * execution. */
 out:
+    assert(!finally_exit);
     load_execinfo(ei);
+}
+
+bool input_is_interactive_terminal(const parseinfo_T *pinfo)
+{
+    struct input_readline_info *ir;
+
+    if (!pinfo->intrinput)
+	return false;
+    ir = pinfo->inputinfo;
+    return isatty(fileno(ir->fp));
 }
 
 
@@ -702,8 +711,8 @@ const char exit_help[] = Ngt(
 "If <n> is not specified, it defaults to the exit status of the last executed\n"
 "command. <n> should be between 0 and 255 inclusive.\n"
 "If the shell is interactive and you have any stopped jobs, the shell prints\n"
-"a warning message and does not exit. Use the -f option or use `exit' twice \n"
-"in a row to avoid the warning and really exit.\n"
+"a warning message and does not exit. Use the -f (--force) option or use\n"
+"`exit' twice in a row to avoid the warning and really exit.\n"
 );
 
 /* The "suspend" builtin */

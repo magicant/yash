@@ -488,7 +488,7 @@ const char test_help[] = Ngt(
 "shell's compound commands.\n"
 "\n"
 "If the expression is a single word without operators, the -n operator is\n"
-"assumed. An empty expression evaluates false.\n"
+"assumed. An empty expression evaluates to false.\n"
 );
 
 

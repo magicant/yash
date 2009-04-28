@@ -306,14 +306,11 @@ typedef struct parseinfo_T {
     inputfunc_T *input;   /* input function */
     void *inputinfo;      /* pointer passed to the input function */
     _Bool intrinput;      /* input is interactive? */
-    _Bool inputisatty;    /* input is from interactive terminal? */
     int lastinputresult;  /* last return value of input function */
 } parseinfo_T;
 /* If `intrinput' is true, `input' is `input_readline' and `inputinfo' is a
- * pointer to a `struct input_readline' object.
- * Note that input may not be from a terminal even if `intrinput' is true.
- * Iff `intrinput' is true and input is actually from a terminal, `inputisatty'
- * is true. */
+ * pointer to a `struct input_readline_info' object.
+ * Note that input may not be from a terminal even if `intrinput' is true. */
 
 extern struct parsestate_T *save_parse_state(void)
     __attribute__((malloc,warn_unused_result));
