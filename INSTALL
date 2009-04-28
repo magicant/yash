@@ -100,3 +100,8 @@ If this macro is set to non-zero, the "trap" command results in an
 error. Otherwise, the command returns the exit status of success.
 Note that the signal handler is not changed in such cases whether
 this macro is defined or not.
+
+#define HISTORY_REFRESH_INTERVAL 100
+This macro specifies the interval the shell refreshes the history
+file. The file is refreshed every time the shell executes as many
+commands as this number.

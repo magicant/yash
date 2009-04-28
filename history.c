@@ -148,8 +148,8 @@ static void parse_removed_entry(const wchar_t *numstr)
     __attribute__((nonnull));
 static void parse_process_id(const wchar_t *numstr)
     __attribute__((nonnull));
-static void update_history(bool refresh)
-    __attribute__((nonnull));
+static void update_history(bool refresh);
+static void maybe_refresh_file(void);
 static void write_signature(FILE *f)
     __attribute__((nonnull));
 static void write_history_entry(
@@ -680,7 +680,19 @@ void update_history(bool refresh)
 	return;
     }
 
-    if (refresh && hist_next_number % 100 == 0) {
+    if (refresh)
+	maybe_refresh_file();
+}
+
+/* Refreshes the history file or does nothing.
+ * `histfile' must not be null. */
+void maybe_refresh_file(void)
+{
+#ifndef HISTORY_REFRESH_INTERVAL
+#define HISTORY_REFRESH_INTERVAL 100
+#endif
+    assert(histfile != NULL);
+    if (hist_next_number % HISTORY_REFRESH_INTERVAL == 0) {
 	check_histfile_pid();
 	refresh_file(histfile);
     }
@@ -1352,10 +1364,8 @@ void fc_read_history(FILE *f, bool quiet)
     while (read_line(f, &buf)) {
 	if (!quiet)
 	    printf("%ls\n", buf.contents);
-	if (histfile && hist_next_number % 100 == 0) {
-	    check_histfile_pid();
-	    refresh_file(histfile);
-	}
+	if (histfile)
+	    maybe_refresh_file();
 	really_add_history(buf.contents);
 	wb_clear(&buf);
     }
