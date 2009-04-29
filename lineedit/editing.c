@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -68,7 +69,7 @@ static struct state {
 	int sign;
 	unsigned abs;
 	int multiplier;
-#define COUNT_ABS_MAX 9999
+#define COUNT_ABS_MAX 999999999
     } count;
     enum motion_expect_command {
 	MEC_NONE, MEC_COPY, MEC_KILL, MEC_CHANGE, MEC_COPYCHANGE,
@@ -231,11 +232,21 @@ void reset_state(void)
  * If the count is not set, returns the `default_value'. */
 int get_count(int default_value)
 {
+    long long result;
+
     if (state.count.sign == 0)
-	return default_value * state.count.multiplier;
-    if (state.count.sign < 0 && state.count.abs == 0)
-	return -state.count.multiplier;
-    return state.count.sign * (int) state.count.abs * state.count.multiplier;
+	result = (long long) default_value * state.count.multiplier;
+    else if (state.count.sign < 0 && state.count.abs == 0)
+	result = (long long) -state.count.multiplier;
+    else
+	result = (long long) state.count.abs * state.count.sign *
+	    state.count.multiplier;
+
+    if (result < -COUNT_ABS_MAX)
+	result = -COUNT_ABS_MAX;
+    else if (result > COUNT_ABS_MAX)
+	result = COUNT_ABS_MAX;
+    return result;
 }
 
 /* Saves the currently executing command and the current state in
