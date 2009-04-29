@@ -33,6 +33,9 @@
 #include "../alias.h"
 #endif
 #include "../exec.h"
+#if YASH_ENABLE_HISTORY
+#include "../history.h"
+#endif
 #include "../job.h"
 #include "../option.h"
 #include "../path.h"
@@ -182,6 +185,10 @@ void le_editing_init(void)
     last_command.func = 0;
     last_command.arg = L'\0';
 
+#if YASH_ENABLE_HISTORY
+    start_using_history();
+#endif
+
     pl_init(&undo_history);
     undo_index = 0;
     save_undo_history();
@@ -195,6 +202,10 @@ void le_editing_init(void)
 wchar_t *le_editing_finalize(void)
 {
     recfree(pl_toary(&undo_history), free);
+
+#if YASH_ENABLE_HISTORY
+    end_using_history();
+#endif
 
     wb_wccat(&le_main_buffer, L'\n');
     return wb_towcs(&le_main_buffer);
