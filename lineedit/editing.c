@@ -56,6 +56,14 @@ xwcsbuf_T le_main_buffer;
 /* The position of the cursor on the command line. */
 /* 0 <= le_main_index <= le_main_buffer.length */
 size_t le_main_index;
+#if YASH_ENABLE_HISTORY
+/* The history entry that is being edited now.
+ * When we're editing no history entry, `main_history_entry' is a pointer to
+ * `histlist'. */
+static const histentry_T *main_history_entry;
+/* The original value of `main_history_entry', converted into a wide string. */
+static wchar_t *main_history_value;
+#endif
 
 /* The last executed command and the currently executing command. */
 static struct command {
@@ -99,9 +107,16 @@ static plist_T undo_history;
 /* Index of the current state in the history.
  * If the current state is the newest, the index is `undo_history.length'. */
 static size_t undo_index;
+#if YASH_ENABLE_HISTORY
+/* The history entry that is saved in the undo history. */
+static const histentry_T *undo_history_entry;
+/* The index that is to be the value of the `index' member of the next undo
+ * history entry. */
+static size_t undo_save_index;
+#endif
 /* Structure of history entries */
 struct undo_history {
-    size_t index;         /* index of the cursor */
+    size_t index;        /* index of the cursor */
     wchar_t contents[];  /* contents of the edit line */
 };
 
@@ -163,6 +178,12 @@ static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
 
+static void go_to_history_relative(int offset, bool cursorend);
+#if YASH_ENABLE_HISTORY
+static void go_to_history(const histentry_T *e, bool cursorend)
+    __attribute__((nonnull));
+#endif
+
 #define ALERT_AND_RETURN_IF_PENDING \
     do if (alert_if_pending()) return; while (0)
 
@@ -172,6 +193,10 @@ void le_editing_init(void)
 {
     wb_init(&le_main_buffer);
     le_main_index = 0;
+#if YASH_ENABLE_HISTORY
+    main_history_entry = Histlist;
+    main_history_value = xwcsdup(L"");
+#endif
 
     switch (shopt_lineedit) {
 	case shopt_vi:
@@ -191,6 +216,10 @@ void le_editing_init(void)
 
     pl_init(&undo_history);
     undo_index = 0;
+#if YASH_ENABLE_HISTORY
+    undo_save_index = le_main_index;
+    undo_history_entry = Histlist;
+#endif
     save_undo_history();
 
     reset_state();
@@ -205,6 +234,7 @@ wchar_t *le_editing_finalize(void)
 
 #if YASH_ENABLE_HISTORY
     end_using_history();
+    free(main_history_value);
 #endif
 
     wb_wccat(&le_main_buffer, L'\n');
@@ -283,7 +313,8 @@ void save_current_find_command(void)
 
 /* Saves the current contents of the edit line to the undo history.
  * History entries at the current `undo_index' and newer are removed before
- * saving the current. */
+ * saving the current. If `undo_history_entry' is different from
+ * `main_history_entry', all undo history entries are removed. */
 void save_undo_history(void)
 {
     for (size_t i = undo_index; i < undo_history.length; i++)
@@ -296,6 +327,9 @@ void save_undo_history(void)
     wcscpy(e->contents, le_main_buffer.contents);
     pl_add(&undo_history, e);
     assert(undo_index == undo_history.length - 1);
+#if YASH_ENABLE_HISTORY
+    undo_history_entry = main_history_entry;
+#endif
 }
 
 /* Calls `save_undo_history' if the current contents of the edit line is not
@@ -303,14 +337,37 @@ void save_undo_history(void)
 void maybe_save_undo_history(void)
 {
     assert(undo_index <= undo_history.length);
-    if (undo_index < undo_history.length) {
-	struct undo_history *h = undo_history.contents[undo_index];
-	if (wcscmp(le_main_buffer.contents, h->contents) == 0) {
-	    h->index = le_main_index;
-	    return;
+#if YASH_ENABLE_HISTORY
+    undo_save_index = le_main_index;
+    if (undo_history_entry == main_history_entry) {
+#endif
+	if (undo_index < undo_history.length) {
+	    struct undo_history *h = undo_history.contents[undo_index];
+	    if (wcscmp(le_main_buffer.contents, h->contents) == 0) {
+		h->index = le_main_index;
+		return;
+	    }
+	    undo_index++;
 	}
-	undo_index++;
+#if YASH_ENABLE_HISTORY
+    } else {
+	if (wcscmp(le_main_buffer.contents, main_history_value) == 0)
+	    return;
+
+	/* The contents of the buffer has been changed from the value of the
+	 * history entry, but it's not yet saved in the undo history. We first
+	 * save the original history value and then save the current buffer
+	 * contents. */
+	struct undo_history *h;
+	pl_clear(&undo_history, free);
+	h = xmalloc(sizeof *h +
+		(wcslen(main_history_value) + 1) * sizeof *h->contents);
+	h->index = undo_save_index;
+	wcscpy(h->contents, main_history_value);
+	pl_add(&undo_history, h);
+	undo_index = 1;
     }
+#endif /* YASH_ENABLE_HISTORY */
     save_undo_history();
 }
 
@@ -1858,6 +1915,104 @@ end:
 	assert(false);
     }
 }
+
+
+/********** History-Related Commands **********/
+
+/* Goes to the `count'th next history entry.
+ * The cursor is put at the beginning of line. */
+void cmd_next_history(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(get_count(1), false);
+}
+
+/* Goes to the `count'th previous history entry.
+ * The cursor is put at the beginning of line. */
+void cmd_prev_history(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(-get_count(1), false);
+}
+
+/* Goes to the `count'th next history entry.
+ * The cursor is put at the end of line. */
+void cmd_next_history_eol(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(get_count(1), true);
+}
+
+/* Goes to the `count'th previous history entry.
+ * The cursor is put at the end of line. */
+void cmd_prev_history_eol(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(-get_count(1), true);
+}
+
+/* Goes to the `offset'th next history entry.
+ * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
+ * the beginning of line. */
+void go_to_history_relative(int offset, bool cursorend)
+{
+#if YASH_ENABLE_HISTORY
+    const histentry_T *e = main_history_entry;
+    if (offset > 0) {
+	do {
+	    if (e == Histlist)
+		goto alert;
+	    e = e->Next;
+	} while (--offset > 0);
+    } else if (offset < 0) {
+	do {
+	    e = e->Prev;
+	    if (e == Histlist)
+		goto alert;
+	} while (++offset < 0);
+    }
+    go_to_history(e, cursorend);
+    return;
+alert:
+    cmd_alert(L'\a');
+    return;
+#else
+    (void) offset, (void) cursorend;
+    cmd_alert(L'\a');
+#endif /* YASH_ENABLE_HISTORY */
+}
+
+#if YASH_ENABLE_HISTORY
+
+/* Sets the value of the specified history entry to the main buffer.
+ * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
+ * the beginning of line. */
+void go_to_history(const histentry_T *e, bool cursorend)
+{
+    maybe_save_undo_history();
+
+    free(main_history_value);
+    wb_clear(&le_main_buffer);
+    if (e == undo_history_entry && undo_index < undo_history.length) {
+	struct undo_history *h = undo_history.contents[undo_index];
+	wb_cat(&le_main_buffer, h->contents);
+	assert(h->index <= le_main_buffer.length);
+	le_main_index = h->index;
+    } else if (e != Histlist) {
+	wb_mbscat(&le_main_buffer, e->value);
+	le_main_index = cursorend ? le_main_buffer.length : 0;
+    } else {
+	le_main_index = 0;
+    }
+    main_history_entry = e;
+    main_history_value = xwcsdup(le_main_buffer.contents);
+    undo_save_index = le_main_index;
+
+    le_display_reprint_buffer(0, false);
+    reset_state();
+}
+
+#endif /* YASH_ENABLE_HISTORY */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet: */

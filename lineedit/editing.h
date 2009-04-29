@@ -117,6 +117,13 @@ extern le_command_func_T
     cmd_vi_exec_alias,
     cmd_vi_edit_and_accept;
 
+/* history-related commands */
+extern le_command_func_T
+    cmd_next_history,
+    cmd_prev_history,
+    cmd_next_history_eol,
+    cmd_prev_history_eol;
+
 
 #endif /* YASH_EDITING_H */
 

@@ -56,6 +56,8 @@ typedef struct histlist_T {
     unsigned count;
 } histlist_T;
 
+extern histlist_T histlist;
+
 extern unsigned hist_next_number;
 
 extern void maybe_init_history(void);
