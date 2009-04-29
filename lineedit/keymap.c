@@ -47,7 +47,9 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_right,     CMDENTRY(cmd_forward_char));
+    t = trie_setw(t, Key_c_f,       CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_c_b,       CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
     t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_accept_line));
@@ -64,7 +66,9 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_w,       CMDENTRY(cmd_backward_delete_semiword));
     t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_delete_line));
     t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_down,      CMDENTRY(cmd_next_history_eol));
     t = trie_setw(t, Key_c_n,       CMDENTRY(cmd_next_history_eol));
+    t = trie_setw(t, Key_up,        CMDENTRY(cmd_prev_history_eol));
     t = trie_setw(t, Key_c_p,       CMDENTRY(cmd_prev_history_eol));
     le_modes[LE_MODE_VI_INSERT].keymap = t;
 
@@ -140,9 +144,11 @@ void le_keymap_init(void)
     t = trie_setw(t, L"v",          CMDENTRY(cmd_vi_edit_and_accept));
     t = trie_setw(t, L"j",          CMDENTRY(cmd_next_history));
     t = trie_setw(t, L"+",          CMDENTRY(cmd_next_history));
+    t = trie_setw(t, Key_down,      CMDENTRY(cmd_next_history));
     t = trie_setw(t, Key_c_n,       CMDENTRY(cmd_next_history));
     t = trie_setw(t, L"k",          CMDENTRY(cmd_prev_history));
     t = trie_setw(t, L"-",          CMDENTRY(cmd_prev_history));
+    t = trie_setw(t, Key_up,        CMDENTRY(cmd_prev_history));
     t = trie_setw(t, Key_c_p,       CMDENTRY(cmd_prev_history));
     //TODO
     // =

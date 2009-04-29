@@ -940,10 +940,14 @@ void really_add_history(const wchar_t *line)
 void start_using_history(void)
 {
     if (!hist_lock) {
-	if (histfile)
+	if (histfile) {
+	    lock_file(fileno(histfile), F_RDLCK);
 	    update_history(false);
-	else
+	    if (histfile)
+		lock_file(fileno(histfile), F_UNLCK);
+	} else {
 	    maybe_init_history();
+	}
 	hist_lock = true;
     }
 }
