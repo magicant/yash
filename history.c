@@ -907,8 +907,7 @@ void finalize_history(void)
 }
 
 /* Adds the specified `line' to the history.
- * If `line' contains newlines, `line' is separated into multiple entries.
- * If `removelast' is true, the last entry is removed before addition. */
+ * If `line' contains newlines, `line' is separated into multiple entries. */
 void add_history(const wchar_t *line)
 {
     maybe_init_history();
