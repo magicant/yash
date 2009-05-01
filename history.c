@@ -657,13 +657,18 @@ void update_history(bool refresh)
     if (!histfile)
 	return;
 
-    clearerr(histfile);
+#ifdef __GNU_LIBRARY__
+    fflush(histfile);
+#endif
     posfail = fgetpos(histfile, &pos);
     rev = read_signature(histfile);
     if (rev < 0) {
 	return;
     } else if (!posfail && rev == histfilerev) {
 	/* The revision has not been changed. Just read new entries. */
+#ifdef __GNU_LIBRARY__
+	fflush(histfile);
+#endif
 	fsetpos(histfile, &pos);
     } else {
 	/* The revision has been changed. Re-read everything. */
