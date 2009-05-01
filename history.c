@@ -638,18 +638,17 @@ void update_history(bool refresh)
 	return;
     assert(!hist_lock);
 
-#ifdef __GNU_LIBRARY__
-    fflush(histfile);
-#endif
+#define WIO_BROKEN 1
+#if WIO_BROKEN
+    posfail = true;
+#else
     posfail = fgetpos(histfile, &pos);
+#endif
     rev = read_signature(histfile);
     if (rev < 0) {
 	return;
     } else if (!posfail && rev == histfilerev) {
 	/* The revision has not been changed. Just read new entries. */
-#ifdef __GNU_LIBRARY__
-	fflush(histfile);
-#endif
 	fsetpos(histfile, &pos);
     } else {
 	/* The revision has been changed. Re-read everything. */

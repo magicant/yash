@@ -666,6 +666,40 @@ then
 fi
 checked
 
+# check if wide-oriented I/O is working
+checking "if wide-oriented I/O is fully working" wideio:working
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
+#include <stdio.h>
+int main(void)
+{
+    FILE *f = fopen("${tempsrc}", "w+");
+    fpos_t pos;
+    if (fputws(L"123\n", f) < 0)    return 1;
+    if (fseek(f, 0, SEEK_SET) != 0) return 1;
+    if (fgetwc(f) != L'1')          return 1;
+    if (fgetwc(f) != L'2')          return 1;
+    if (fgetpos(f, &pos) != 0)      return 1;
+    if (fseek(f, 0, SEEK_SET) != 0) return 1;
+    if (fgetwc(f) != L'1')          return 1;
+    if (fsetpos(f, &pos) != 0)      return 1;
+    if (fgetwc(f) != L'3')          return 1;
+    return 0;
+}
+END
+	trymake && tryexec
+    fi
+then
+    :
+else
+    defconfigh "WIO_BROKEN"
+fi
+checked
+
 # enable/disable aliases
 if [ x"$enable_alias" = x"yes" ]
 then
