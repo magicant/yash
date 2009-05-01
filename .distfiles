@@ -82,10 +82,7 @@ tests/expand.p.out
 tests/expand.p.tst
 tests/expand.y.out
 tests/expand.y.tst
-tests/history.y.2.t
-tests/history.y.err
 tests/history.y.out
-tests/history.y.t
 tests/history.y.tst
 tests/input.p.err
 tests/input.p.out
