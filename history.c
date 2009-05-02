@@ -657,7 +657,6 @@ void update_history(bool refresh)
     if (!histfile)
 	return;
 
-#define WIO_BROKEN 1
 #if WIO_BROKEN
     posfail = true;
 #else
