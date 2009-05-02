@@ -740,7 +740,7 @@ _Bool le_restore_terminal(void)
 {
     print_rmkx();
     fflush(stderr);
-    return tcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) == 0;
+    return xtcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) == 0;
 }
 
 /* Calls `tcsetattr'.
