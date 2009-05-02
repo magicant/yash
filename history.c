@@ -140,6 +140,8 @@ static bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
     __attribute__((nonnull));
 static long read_signature(FILE *f)
     __attribute__((nonnull));
+static void read_history_raw(FILE *f)
+    __attribute__((nonnull));
 static void read_history(FILE *f)
     __attribute__((nonnull));
 static void parse_history_entry(const wchar_t *line)
@@ -523,9 +525,31 @@ end:
 }
 
 /* Reads history entries from the specified file.
+ * The file format is assumed a simple text, one entry per line.
+ * The file is read from the current position.
+ * The entries that were read from the file are appended to `histlist'. */
+/* The file `f' should be locked. */
+/* This function does not return any error status. The caller should check
+ * `ferror' and/or `feof' for the file. */
+void read_history_raw(FILE *f)
+{
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    while (read_line(f, &buf)) {
+	char *line = malloc_wcstombs(buf.contents);
+	if (line) {
+	    new_entry(hist_next_number, -1, line);
+	    free(line);
+	}
+	wb_clear(&buf);
+    }
+    wb_destroy(&buf);
+}
+
+/* Reads history entries from the specified file.
  * The file is read from the current position.
  * The entries that were read from the file are appended to `histlist'.
- * On failure, and false is returned.
  * `update_time' must be called before calling this function. */
 /* The file `f' should be locked. */
 /* This function does not return any error status. The caller should check
@@ -867,8 +891,11 @@ void maybe_init_history(void)
     if (histfile) {
 	lock_file(fileno(histfile), F_WRLCK);
 	histfilerev = read_signature(histfile);
-	if (histfilerev < 0)
+	if (histfilerev < 0) {
+	    rewind(histfile);
+	    read_history_raw(histfile);
 	    goto refresh;
+	}
 	read_history(histfile);
 	if (ferror(histfile) || !feof(histfile)) {
 	    lock_file(fileno(histfile), F_UNLCK);
