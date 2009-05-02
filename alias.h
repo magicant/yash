@@ -26,6 +26,8 @@ struct xwcsbuf_T;
 extern _Bool alias_enabled;
 
 extern void init_alias(void);
+extern const wchar_t *get_alias_value(const wchar_t *aliasname)
+    __attribute__((nonnull,pure));
 extern struct aliaslist_T *new_aliaslist(void)
     __attribute__((malloc,warn_unused_result));
 extern void destroy_aliaslist(struct aliaslist_T *list);

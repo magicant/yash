@@ -56,37 +56,8 @@
 #define DEFAULT_HISTSIZE 500
 
 
-struct histlink_T {
-    struct histentry_T *prev, *next;
-};
-/* `prev' and `next' are always non-NULL: the newest entry's `next' and the
- * oldest entry's `prev' point to `histlist'. */
-
-#define Prev link.prev
-#define Next link.next
-typedef struct histentry_T {
-    struct histlink_T link;
-    unsigned number;
-    time_t time;
-    char value[];
-} histentry_T;
-/* The value is stored as a multibyte string rather than a wide string to save
- * memory space. The value must not contain newlines. */
-/* Basically the `number' is increased for each entry, but the numbers are
- * limited to some extent. If the number exceeds the limit, it is wrapped
- * around to 1, so a newer entry may have a smaller number than that of a older
- * entry. The limit is no less than $HISTSIZE, so all the entries have different
- * numbers anyway. */
-/* When the time is unknown, `time' is -1. */
-
 /* The main history list. */
-#define Histlist ((histentry_T *) &histlist)
-#define Newest link.prev
-#define Oldest link.next
-static struct {
-    struct histlink_T link;
-    unsigned count;
-} histlist = {
+histlist_T histlist = {
     .link = { Histlist, Histlist, },
     .count = 0,
 };
@@ -112,6 +83,9 @@ static struct pidlist_T *histfilepids = NULL;
 
 /* The current time returned by `time' */
 static time_t now = (time_t) -1;
+
+/* If true, the history is locked, that is, readonly. */
+static bool hist_lock = false;
 
 
 static void update_time(void);
@@ -233,6 +207,7 @@ void set_histsize(unsigned newsize)
  * new one or the list is full. */
 histentry_T *new_entry(unsigned number, time_t time, const char *line)
 {
+    assert(!hist_lock);
     assert(number > 0);
     assert(number <= max_number);
 
@@ -269,6 +244,7 @@ bool need_remove_entry(unsigned number)
 /* Removes a history entry from `histlist'. */
 void remove_entry(histentry_T *entry)
 {
+    assert(!hist_lock);
     assert(entry != Histlist);
     entry->Prev->Next = entry->Next;
     entry->Next->Prev = entry->Prev;
@@ -288,6 +264,8 @@ void remove_last_entry(void)
 /* Renumbers all the entries in `histlist', starting from 1. */
 void renumber_all_entries(void)
 {
+    assert(!hist_lock);
+
     unsigned num = 0;
 
     for (histentry_T *e = histlist.Oldest; e != Histlist; e = e->Next)
@@ -305,6 +283,8 @@ void renumber_all_entries(void)
 /* Removes all entries in the history list. */
 void clear_all_entries(void)
 {
+    assert(!hist_lock);
+
     histentry_T *e = histlist.Oldest;
     while (e != Histlist) {
 	histentry_T *next = e->Next;
@@ -680,6 +660,7 @@ void update_history(bool refresh)
 
     if (!histfile)
 	return;
+    assert(!hist_lock);
 
 #if WIO_BROKEN
     posfail = true;
@@ -923,6 +904,7 @@ void finalize_history(void)
     if (!is_interactive_now || !histfile)
 	return;
 
+    hist_lock = false;
     lock_file(fileno(histfile), F_WRLCK);
     update_history(true);
     remove_histfile_pid(shell_pid);
@@ -937,6 +919,7 @@ void finalize_history(void)
 }
 
 /* Adds the specified `line' to the history.
+ * Must not be called while the history is locked.
  * If `line' contains newlines, `line' is separated into multiple entries. */
 void add_history(const wchar_t *line)
 {
@@ -979,6 +962,42 @@ void really_add_history(const wchar_t *line)
 	free(mbsline);
     }
 }
+
+/* Returns the history entry that has the specified `number', or NULL if there
+ * is no such entry. */
+const histentry_T *get_history_entry(unsigned number)
+{
+    const histentry_T *e = find_entry(number, false);
+    if (e == Histlist || e->number != number)
+	return NULL;
+    return e;
+}
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Calls `maybe_init_history' or `update_history' and locks the history. */
+void start_using_history(void)
+{
+    if (!hist_lock) {
+	if (histfile) {
+	    lock_file(fileno(histfile), F_RDLCK);
+	    update_history(false);
+	    if (histfile)
+		lock_file(fileno(histfile), F_UNLCK);
+	} else {
+	    maybe_init_history();
+	}
+	hist_lock = true;
+    }
+}
+
+/* Unlocks the history. */
+void end_using_history(void)
+{
+    hist_lock = false;
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Builtins **********/
@@ -1057,6 +1076,10 @@ int fc_builtin(int argc, void **argv)
 	    || (ptype != FC_NUMBERED && !list)
 	    || (argc - xoptind > 2))
 	goto print_usage;
+    if (hist_lock) {
+	xerror(0, Ngt("cannot be used during line-editing"));
+	return Exit_FAILURE;
+    }
 
     maybe_init_history();
     if (list) {

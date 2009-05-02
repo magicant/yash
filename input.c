@@ -26,6 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
@@ -44,17 +45,26 @@
 #include "util.h"
 #include "variable.h"
 #include "yash.h"
+#include "lineedit/lineedit.h"
 
 
 /********** Input Functions **********/
 
 static void exec_prompt_command(void);
+#if YASH_ENABLE_LINEEDIT
+static wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
+    __attribute__((nonnull,malloc,warn_unused_result));
+#endif
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *expand_ps_yash(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline void skip_alnum(wchar_t **sp)
     __attribute__((nonnull));
+#if YASH_ENABLE_LINEEDIT
+static wchar_t *get_prompt(int type)
+    __attribute__((malloc,warn_unused_result));
+#endif
 
 /* An input function that inputs from a multibyte string.
  * `inputinfo' is a pointer to a `struct input_mbs_info'.
@@ -268,6 +278,14 @@ done:
  * If `inputinfo->type' is 1, this function changes its value to 2. */
 int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
+#if YASH_ENABLE_LINEEDIT
+    static wchar_t *linebuffer = NULL;
+    if (linebuffer) {
+	linebuffer = forward_line(linebuffer, buf);
+	return 0;
+    }
+#endif
+
     struct parsestate_T *state = save_parse_state();
     struct input_readline_info *info = inputinfo;
     if (do_job_control)
@@ -277,6 +295,44 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	check_mail();
     }
 
+#if YASH_ENABLE_LINEEDIT
+    /* read a line using line edit */
+    if (shopt_lineedit != shopt_nolineedit) {
+	unset_nonblocking(STDIN_FILENO);
+	if (le_setup()) {
+	    wchar_t *prompt = get_prompt(info->type);
+	    wchar_t *line = le_readline(prompt);
+	    free(prompt);
+	    restore_parse_state(state);
+	    if (line) {
+		if (info->type == 1)
+		    info->type = 2;
+		if (line[0]) {
+		    size_t len = wcslen(line);
+		    assert(len > 0);
+#if YASH_ENABLE_HISTORY
+		    if (info->type == 2 && len > 1) {
+			wchar_t lastchar = line[len - 1];
+			assert(lastchar == L'\n');
+			line[len - 1] = L'\0';
+			add_history(line);
+			line[len - 1] = lastchar;
+		    }
+#endif /* YASH_ENABLE_HISTORY */
+		    linebuffer = forward_line(line, buf);
+		    return 0;
+		} else {
+		    free(line);
+		    return EOF;
+		}
+	    } else {
+		return 1;
+	    }
+	}
+    }
+#endif /* YASH_ENABLE_LINEEDIT */
+
+    /* read a line without using line edit */
     print_prompt(info->type);
     if (info->type == 1)
 	info->type = 2;
@@ -320,6 +376,30 @@ void exec_prompt_command(void)
 	}
     }
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Processes the line buffer.
+ * If `linebuffer' contains one line, appends it to `buf' and returns NULL.
+ * If `linebuffer' contains more than one line, only the first line is appended
+ * and the rest is returned.
+ * `linebuffer' is freed in this function anyway and the result is a newly
+ * malloced buffer. */
+wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
+{
+    wchar_t *nl = wcschr(linebuffer, L'\n');
+    assert(nl != NULL);
+    nl++;
+    if (*nl == L'\0') {
+	wb_catfree(buf, linebuffer);
+	return NULL;
+    } else {
+	wb_ncat_force(buf, linebuffer, nl - linebuffer);
+	return wmemmove(linebuffer, nl, wcslen(nl) + 1);
+    }
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 /* Prints a prompt of the specified type.
  * `type' must be between 1 and 4 inclusive.
@@ -399,17 +479,17 @@ wchar_t *expand_ps1_posix(wchar_t *s)
 /* In this function, the following backslash escapes are expanded:
  *   \a    a bell character: L'\a' (L'\07')
  *   \e    an escape code: L'\033'
- *   \fX   change color
  *   \j    the number of jobs
  *   \n    newline: L'\n'
  *   \r    carriage return: L'\r'
  *   \!    next history number
  *   \$    L'#' if the effective uid is 0, L'$' otherwise
  *   \\    a backslash
+ *
+ * In line edit, the followings are also available:
+ *   \fX   change color
  *   \[    start of substring not to be counted as printable characters
  *   \]    end of substring not to be counted as printable characters
- *
- * TODO expand_ps_yash: change color sequence
  * "X" in "\fX" is any number of flags from the following:
  *   (foreground color)
  *     k (black)    r (red)        g (green)    y (yellow)
@@ -425,6 +505,7 @@ wchar_t *expand_ps1_posix(wchar_t *s)
  *   o (bold)
  *   x (invisible)
  *   . (end: omittable)
+ * These are ignored in `expand_ps_yash'.
  * */
 wchar_t *expand_ps_yash(wchar_t *s)
 {
@@ -466,6 +547,46 @@ void skip_alnum(wchar_t **sp)
     if (**sp != L'.')
 	(*sp)--;
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Returns the prompt string, possibly containing backslash escapes.
+ * `type' must be between 1 and 4, which specifies $PS1...$PS4 respectively.
+ * This function never fails. A newly malloced string is always returned.
+ * `save_parse_state' must be called before calling this function because this
+ * function calls `parse_string'. */
+wchar_t *get_prompt(int type)
+{
+    const wchar_t *ps;
+    switch (type) {
+	case 1:   ps = getvar(VAR_PS1);   break;
+	case 2:   ps = getvar(VAR_PS2);   break;
+	case 3:   ps = getvar(VAR_PS3);   goto return_raw;
+	case 4:   ps = getvar(VAR_PS4);   break;
+	default:  assert(false);
+    }
+    if (ps == NULL)
+	goto return_raw;
+
+    wchar_t *prompt = parse_and_expand_string(ps, gt("prompt"), false);
+    if (!prompt)
+	goto return_raw;
+    if (posixly_correct) {
+	if (type == 1)
+	    prompt = expand_ps1_posix(prompt);
+    } else {
+	if (type == 1 || type == 2)
+	    return prompt;
+    }
+    return escapefree(prompt, L"\\");
+
+return_raw:
+    if (!ps)
+	ps = L"";
+    return escape(ps, L"\\");
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 /* Sets O_NONBLOCK flag of the specified file descriptor.
  * If `fd' is negative, does nothing.

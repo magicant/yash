@@ -25,7 +25,7 @@ tempsrc=".temp.c"
 tempo=".temp.o"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
-dirs=". builtins"
+dirs=". builtins lineedit"
 
 target="yash"
 package="yash"
@@ -37,6 +37,7 @@ objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.
 # object files compiled into builtins.a
 builtin_objs=""
 builtins_archive="builtins.a"
+lineedit_archive="lineedit.a"
 
 alias_objs="alias.o"
 history_objs="history.o"
@@ -52,6 +53,7 @@ enable_array="yes"
 enable_dirstack="yes"
 enable_help="yes"
 enable_history="yes"
+enable_lineedit="yes"
 enable_printf="yes"
 enable_socket="yes"
 enable_test="yes"
@@ -75,6 +77,7 @@ parseenable() {
 	dirstack)     enable_dirstack=$2 ;;
 	help)         enable_help=$2 ;;
 	history)      enable_history=$2 ;;
+	lineedit)     enable_lineedit=$2 ;;
 	printf)       enable_printf=$2 ;;
 	socket)       enable_socket=$2 ;;
 	test)         enable_test=$2 ;;
@@ -141,6 +144,7 @@ Optional features:
   --enable-dirstack           enable the directory stack (pushd, popd, dirs)
   --enable-help               enable the help builtin
   --enable-history            enable history
+  --enable-lineedit           enable command line editing
   --enable-printf             enable the echo/printf builtins
   --enable-socket             enable socket redirection by /dev/tcp, /dev/udp
   --enable-test               enable the test builtin
@@ -371,6 +375,63 @@ END
     unset savecflags
 fi
 
+# check if terminfo is available
+if [ x"${enable_lineedit}" = x"yes" ]
+then
+    checking "for terminfo library" terminfo
+    cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE 200112
+#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <stdio.h>
+#include <curses.h>
+#include <term.h>
+int main() {
+setupterm((char*)0, 1, (int*)0);
+tigetflag("");
+tigetnum("");
+tputs(tigetstr(""), 1, putchar);
+del_curterm(cur_term);
+}
+END
+    saveldlibs="${ldlibs}"
+    if getcache
+    then
+	checked
+    else
+	if trymake
+	then
+	    checked "yes"
+	else
+	    for lib in tinfo curses ncurses
+	    do
+		ldlibs="${saveldlibs} -l${lib}"
+		if trymake
+		then
+		    checked "with -l${lib}"
+		    break
+		fi
+	    done
+	fi
+    fi
+    case "${checkresult}" in
+    yes)
+	ldlibs="${saveldlibs}"
+	defconfigh "YASH_ENABLE_LINEEDIT"
+	;;
+    with*)
+	ldlibs="${saveldlibs} ${checkresult#with }"
+	defconfigh "YASH_ENABLE_LINEEDIT"
+	;;
+    no)
+	checked
+	echo "terminfo library unavailable: lineedit is disabled" >&2
+	ldlibs="${saveldlibs}"
+	enable_lineedit="no"
+	;;
+    esac
+fi
+
 # check whether system has /proc/self/exe
 checking "whether system has /proc/self/exe"
 if [ -x /proc/self/exe ]
@@ -416,6 +477,44 @@ END
     fi
 then
     defconfigh "HAVE_WCSNLEN"
+fi
+checked
+
+# check for wcwidth
+checking "for wcwidth" wcwidth
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
+#define _XOPEN_SOURCE 600
+#include <wchar.h>
+int main() { return wcwidth(L'\0'); }
+END
+	trymake && tryexec
+    fi
+then
+    defconfigh "HAVE_WCWIDTH"
+fi
+checked
+
+# check for wcswidth
+checking "for wcswidth" wcswidth
+if
+    if getcache
+    then
+	[ x"${checkresult}" = x"yes" ]
+    else
+	cat >"${tempsrc}" <<END
+#define _XOPEN_SOURCE 600
+#include <wchar.h>
+int main() { return wcswidth(L"\0", 0); }
+END
+	trymake && tryexec
+    fi
+then
+    defconfigh "HAVE_WCSWIDTH"
 fi
 checked
 
@@ -731,6 +830,10 @@ if [ -n "${builtin_objs}" ]
 then
     objs="${objs} builtins/${builtins_archive}"
 fi
+if [ x"${enable_lineedit}" = x"yes" ]
+then
+    objs="${objs} lineedit/${lineedit_archive}"
+fi
 
 cflags="${cflags} -D HAVE_CONFIG_H"
 
@@ -746,6 +849,7 @@ DIRS="${dirs}"
 OBJS="${objs}"
 BUILTIN_OBJS="${builtin_objs}"
 BUILTINS_ARCHIVE="${builtins_archive}"
+LINEEDIT_ARCHIVE="${lineedit_archive}"
 PACKAGE="${package}"
 TARGET="${target}"
 VERSION="${version}"
@@ -781,6 +885,7 @@ s!@DIRS@!${DIRS}!g
 s!@OBJS@!${OBJS}!g
 s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
 s!@BUILTINS_ARCHIVE@!${BUILTINS_ARCHIVE}!g
+s!@LINEEDIT_ARCHIVE@!${LINEEDIT_ARCHIVE}!g
 s!@PACKAGE@!${PACKAGE}!g
 s!@TARGET@!${TARGET}!g
 s!@VERSION@!${VERSION}!g
@@ -810,6 +915,7 @@ done
     echo OBJS="'${OBJS}'"
     echo BUILTIN_OBJS="'${BUILTIN_OBJS}'"
     echo BUILTINS_ARCHIVE="'${BUILTINS_ARCHIVE}'"
+    echo LINEEDIT_ARCHIVE="'${LINEEDIT_ARCHIVE}'"
     echo PACKAGE="'${PACKAGE}'"
     echo TARGET="'${TARGET}'"
     echo VERSION="'${VERSION}'"

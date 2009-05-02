@@ -105,3 +105,8 @@ this macro is defined or not.
 This macro specifies the interval the shell refreshes the history
 file. The file is refreshed every time the shell executes as many
 commands as this number.
+
+#define YASH_DISABLE_PROMPT_ADJUST 1
+By default, the shell prints a special character sequence to ensure
+that the prompt is printed at the beginning of the line if line
+editing is enabled. This option disables it.

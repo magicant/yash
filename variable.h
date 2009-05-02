@@ -60,6 +60,7 @@ extern char **environ;
 #define VAR_PS4		"PS4"
 #define VAR_PWD		"PWD"
 #define VAR_RANDOM	"RANDOM"
+#define VAR_TERM	"TERM"
 #define VAR_YASH_VERSION "YASH_VERSION"
 
 typedef enum path_T {

@@ -43,6 +43,8 @@ $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 builtins/@BUILTINS_ARCHIVE@: _PHONY
 	@cd builtins && $(MAKE)
+lineedit/@LINEEDIT_ARCHIVE@: _PHONY
+	@cd lineedit && $(MAKE)
 mksignum: $(MKSIGNUMOBJS)
 	$(CC) $(LDFLAGS) -o $@ $(MKSIGNUMOBJS) $(LDLIBS)
 signum.h: mksignum
@@ -128,15 +130,18 @@ cscope.out: $(SOURCES)
 
 mostlyclean: _mostlyclean
 	-@cd builtins && $(MAKE) mostlyclean
+	-@cd lineedit && $(MAKE) mostlyclean
 _mostlyclean:
 	-rm -rf $(OBJS) $(MKSIGNUMOBJS) $(BYPRODUCTS) $(DISTDIR)
 	-@cd tests && $(MAKE) clean
 clean: _clean
 	-@cd builtins && $(MAKE) clean
+	-@cd lineedit && $(MAKE) clean
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean
 	-@cd builtins && $(MAKE) distclean
+	-@cd lineedit && $(MAKE) distclean
 _distclean: _clean
 	-rm -rf Makefile config.cache config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
@@ -145,6 +150,7 @@ maintainer-clean:
 	-rm -rf Makefile.deps
 	@$(MAKE) _distclean
 	-@cd builtins && $(MAKE) maintainer-clean
+	-@cd lineedit && $(MAKE) maintainer-clean
 
 reconfigure:
 	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q \

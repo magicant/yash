@@ -45,6 +45,7 @@
 #include "strbuf.h"
 #include "util.h"
 #include "yash.h"
+#include "lineedit/lineedit.h"
 
 
 /* About the shell's signal handling:
@@ -252,6 +253,9 @@ void init_signal(void)
 	sigemptyset(&blocked_signals);
 	sigemptyset(&ss);
 	sigaddset(&ss, SIGCHLD);
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	sigaddset(&ss, SIGWINCH);
+#endif
 	if (sigprocmask(SIG_UNBLOCK, &ss, &blocked_signals) < 0)
 	    xerror(errno, "sigprocmask");
 	set_special_handler(SIGCHLD, sig_handler);
@@ -572,8 +576,9 @@ void handle_sigchld(void)
         sigchld_received = false;
         do_wait();
 	if (shopt_notify) {
+	    LE_SUSPEND_READLINE();
 	    print_job_status_all(true, false, stderr);
-	    // XXX redisplay prompt if lineedit is active
+	    LE_RESUME_READLINE();
 	}
     }
 }
@@ -616,6 +621,8 @@ int handle_traps(void)
      * The EXIT trap may be executed inside another trap. */
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return false;
+
+    LE_SUSPEND_READLINE();
 
     int signum = 0;
     struct parsestate_T *state = NULL;
@@ -661,6 +668,9 @@ exec_handlers:
 	}
     }
 #endif
+
+    LE_RESUME_READLINE();
+
     if (any_signal_received)
 	goto exec_handlers;
     savelaststatus = -1;
