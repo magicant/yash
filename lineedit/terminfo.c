@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <curses.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <term.h>
@@ -238,6 +239,11 @@ static _Bool move_cursor_mul(char *capmul, long count, int affcnt)
 static void print_smkx(void);
 static void print_rmkx(void);
 static int putchar_stderr(int c);
+
+static inline int xtcsetattr(int fd, int opt, const struct termios *term)
+    __attribute__((nonnull));
+static inline int xtcgetattr(int fd, struct termios *term)
+    __attribute__((nonnull));
 
 
 /* Checks if the result of `tigetstr' is valid. */
@@ -686,7 +692,7 @@ _Bool le_set_terminal(void)
 {
     struct termios term;
 
-    if (tcgetattr(STDIN_FILENO, &term) != 0)
+    if (xtcgetattr(STDIN_FILENO, &term) != 0)
 	return 0;
     original_terminal_state = term;
     le_eof_char       = TO_CHAR(term.c_cc[VEOF]);
@@ -702,11 +708,11 @@ _Bool le_set_terminal(void)
     term.c_cflag |= CS8;
     term.c_cc[VTIME] = 0;
     term.c_cc[VMIN] = 0;
-    if (tcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
+    if (xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
 	goto fail;
 
     /* check if the attributes are properly set */
-    if (tcgetattr(STDIN_FILENO, &term) != 0)
+    if (xtcgetattr(STDIN_FILENO, &term) != 0)
 	goto fail;
     if ((term.c_iflag & (IGNBRK | BRKINT | INPCK | ISTRIP
 		    | INLCR | IGNCR | ICRNL | IXON))
@@ -723,7 +729,7 @@ _Bool le_set_terminal(void)
     return 1;
 
 fail:
-    tcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state);
+    xtcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state);
     return 0;
 }
 
@@ -735,6 +741,28 @@ _Bool le_restore_terminal(void)
     print_rmkx();
     fflush(stderr);
     return tcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) == 0;
+}
+
+/* Calls `tcsetattr'.
+ * If it returns `EINTR' error, re-calls it. */
+int xtcsetattr(int fd, int opt, const struct termios *term)
+{
+    int result;
+    do
+	result = tcsetattr(fd, opt, term);
+    while (result != 0 && errno == EINTR);
+    return result;
+}
+
+/* Calls `tcgetattr'.
+ * If it returns `EINTR' error, re-calls it. */
+int xtcgetattr(int fd, struct termios *term)
+{
+    int result;
+    do
+	result = tcgetattr(fd, term);
+    while (result != 0 && errno == EINTR);
+    return result;
 }
 
 
