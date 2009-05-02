@@ -178,10 +178,10 @@ static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
 
+#if YASH_ENABLE_HISTORY
 static void go_to_history_absolute(const histentry_T *e)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, bool cursorend);
-#if YASH_ENABLE_HISTORY
 static void go_to_history(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
 #endif
@@ -1925,28 +1925,45 @@ end:
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
  * The cursor is put at the beginning of line. */
-void cmd_oldest_history(wchar_t c __attribute__((unused)))
+void cmd_oldest_history(wchar_t c)
 {
+#if YASH_ENABLE_HISTORY
+    (void) c;
     go_to_history_absolute(histlist.Oldest);
+#else
+    cmd_alert(c);
+#endif
 }
 
 /* Goes to the newest history entry.
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
  * The cursor is put at the beginning of line. */
-void cmd_newest_history(wchar_t c __attribute__((unused)))
+void cmd_newest_history(wchar_t c)
 {
+#if YASH_ENABLE_HISTORY
+    (void) c;
     go_to_history_absolute(histlist.Newest);
+#else
+    cmd_alert(c);
+#endif
 }
 
 /* Goes to the newest history entry.
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
  * The cursor is put at the beginning of line. */
-void cmd_return_history(wchar_t c __attribute__((unused)))
+void cmd_return_history(wchar_t c)
 {
+#if YASH_ENABLE_HISTORY
+    (void) c;
     go_to_history_absolute(Histlist);
+#else
+    cmd_alert(c);
+#endif
 }
+
+#if YASH_ENABLE_HISTORY
 
 /* Goes to the specified history entry `e'.
  * If the `count' is specified, goes to the history entry whose number is
@@ -1954,7 +1971,6 @@ void cmd_return_history(wchar_t c __attribute__((unused)))
  * The cursor is put at the beginning of line. */
 void go_to_history_absolute(const histentry_T *e)
 {
-#if YASH_ENABLE_HISTORY
     ALERT_AND_RETURN_IF_PENDING;
 
     if (state.count.sign == 0) {
@@ -1974,50 +1990,69 @@ void go_to_history_absolute(const histentry_T *e)
 alert:
     cmd_alert(L'\a');
     return;
+}
+
+#endif /* YASH_ENABLE_HISTORY */
+
+/* Goes to the `count'th next history entry.
+ * The cursor is put at the beginning of line. */
+void cmd_next_history(wchar_t c)
+{
+#if YASH_ENABLE_HISTORY
+    (void) c;
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(get_count(1), false);
 #else
-    (void) e;
-    cmd_alert(L'\a');
+    cmd_alert(c);
+#endif
+}
+
+/* Goes to the `count'th previous history entry.
+ * The cursor is put at the beginning of line. */
+void cmd_prev_history(wchar_t c)
+{
+#if YASH_ENABLE_HISTORY
+    (void) c;
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(-get_count(1), false);
+#else
+    cmd_alert(c);
 #endif
 }
 
 /* Goes to the `count'th next history entry.
- * The cursor is put at the beginning of line. */
-void cmd_next_history(wchar_t c __attribute__((unused)))
-{
-    ALERT_AND_RETURN_IF_PENDING;
-    go_to_history_relative(get_count(1), false);
-}
-
-/* Goes to the `count'th previous history entry.
- * The cursor is put at the beginning of line. */
-void cmd_prev_history(wchar_t c __attribute__((unused)))
-{
-    ALERT_AND_RETURN_IF_PENDING;
-    go_to_history_relative(-get_count(1), false);
-}
-
-/* Goes to the `count'th next history entry.
  * The cursor is put at the end of line. */
-void cmd_next_history_eol(wchar_t c __attribute__((unused)))
+void cmd_next_history_eol(wchar_t c)
 {
+#if YASH_ENABLE_HISTORY
+    (void) c;
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(get_count(1), true);
+#else
+    cmd_alert(c);
+#endif
 }
 
 /* Goes to the `count'th previous history entry.
  * The cursor is put at the end of line. */
-void cmd_prev_history_eol(wchar_t c __attribute__((unused)))
+void cmd_prev_history_eol(wchar_t c)
 {
+#if YASH_ENABLE_HISTORY
+    (void) c;
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(-get_count(1), true);
+#else
+    cmd_alert(c);
+#endif
 }
+
+#if YASH_ENABLE_HISTORY
 
 /* Goes to the `offset'th next history entry.
  * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
  * the beginning of line. */
 void go_to_history_relative(int offset, bool cursorend)
 {
-#if YASH_ENABLE_HISTORY
     const histentry_T *e = main_history_entry;
     if (offset > 0) {
 	do {
@@ -2037,13 +2072,7 @@ void go_to_history_relative(int offset, bool cursorend)
 alert:
     cmd_alert(L'\a');
     return;
-#else
-    (void) offset, (void) cursorend;
-    cmd_alert(L'\a');
-#endif /* YASH_ENABLE_HISTORY */
 }
-
-#if YASH_ENABLE_HISTORY
 
 /* Sets the value of the specified history entry to the main buffer.
  * If `cursorend' is true, the cursor is put at the end of line; otherwise, at

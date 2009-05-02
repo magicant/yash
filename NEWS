@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.9
 
+  +  Line-editing in the interactive mode.
   +  Multiple instances of shell that use the same file for the
      history file now share the history.
   -  The "history" builtin has been removed.
