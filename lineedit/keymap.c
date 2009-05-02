@@ -142,6 +142,8 @@ void le_keymap_init(void)
     t = trie_setw(t, L"s",          CMDENTRY(cmd_vi_substitute));
     t = trie_setw(t, L"@",          CMDENTRY(cmd_vi_exec_alias));
     t = trie_setw(t, L"v",          CMDENTRY(cmd_vi_edit_and_accept));
+    t = trie_setw(t, L"G",          CMDENTRY(cmd_oldest_history));
+    t = trie_setw(t, L"g",          CMDENTRY(cmd_return_history));
     t = trie_setw(t, L"j",          CMDENTRY(cmd_next_history));
     t = trie_setw(t, L"+",          CMDENTRY(cmd_next_history));
     t = trie_setw(t, Key_down,      CMDENTRY(cmd_next_history));
@@ -155,8 +157,6 @@ void le_keymap_init(void)
     // \ 
     // *
     // _
-    // g
-    // G
     // /
     // ?
     // n

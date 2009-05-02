@@ -937,6 +937,16 @@ void really_add_history(const wchar_t *line)
     }
 }
 
+/* Returns the history entry that has the specified `number', or NULL if there
+ * is no such entry. */
+const histentry_T *get_history_entry(unsigned number)
+{
+    const histentry_T *e = find_entry(number, false);
+    if (e == Histlist || e->number != number)
+	return NULL;
+    return e;
+}
+
 #if YASH_ENABLE_LINEEDIT
 
 /* Calls `maybe_init_history' or `update_history' and locks the history. */

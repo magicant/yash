@@ -64,6 +64,8 @@ extern void maybe_init_history(void);
 extern void finalize_history(void);
 extern void add_history(const wchar_t *line)
     __attribute__((nonnull));
+const histentry_T *get_history_entry(unsigned number)
+    __attribute__((pure));
 extern void start_using_history(void);
 extern void end_using_history(void);
 

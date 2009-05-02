@@ -178,6 +178,8 @@ static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
 
+static void go_to_history_absolute(const histentry_T *e)
+    __attribute__((nonnull));
 static void go_to_history_relative(int offset, bool cursorend);
 #if YASH_ENABLE_HISTORY
 static void go_to_history(const histentry_T *e, bool cursorend)
@@ -1918,6 +1920,65 @@ end:
 
 
 /********** History-Related Commands **********/
+
+/* Goes to the oldest history entry.
+ * If the `count' is specified, goes to the history entry whose number is
+ * `count'. If the specified entry is not found, make an alert.
+ * The cursor is put at the beginning of line. */
+void cmd_oldest_history(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(histlist.Oldest);
+}
+
+/* Goes to the newest history entry.
+ * If the `count' is specified, goes to the history entry whose number is
+ * `count'. If the specified entry is not found, make an alert.
+ * The cursor is put at the beginning of line. */
+void cmd_newest_history(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(histlist.Newest);
+}
+
+/* Goes to the newest history entry.
+ * If the `count' is specified, goes to the history entry whose number is
+ * `count'. If the specified entry is not found, make an alert.
+ * The cursor is put at the beginning of line. */
+void cmd_return_history(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(Histlist);
+}
+
+/* Goes to the specified history entry `e'.
+ * If the `count' is specified, goes to the history entry whose number is
+ * `count'. If the specified entry is not found, make an alert.
+ * The cursor is put at the beginning of line. */
+void go_to_history_absolute(const histentry_T *e)
+{
+#if YASH_ENABLE_HISTORY
+    ALERT_AND_RETURN_IF_PENDING;
+
+    if (state.count.sign == 0) {
+	if (histlist.count == 0)
+	    goto alert;
+    } else {
+	int num = get_count(0);
+	if (num <= 0)
+	    goto alert;
+	e = get_history_entry((unsigned) num);
+	if (e == NULL)
+	    goto alert;
+    }
+    go_to_history(e, false);
+    return;
+
+alert:
+    cmd_alert(L'\a');
+    return;
+#else
+    (void) e;
+    cmd_alert(L'\a');
+#endif
+}
 
 /* Goes to the `count'th next history entry.
  * The cursor is put at the beginning of line. */

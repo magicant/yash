@@ -119,6 +119,9 @@ extern le_command_func_T
 
 /* history-related commands */
 extern le_command_func_T
+    cmd_oldest_history,
+    cmd_newest_history,
+    cmd_return_history,
     cmd_next_history,
     cmd_prev_history,
     cmd_next_history_eol,
