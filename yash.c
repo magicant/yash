@@ -149,6 +149,7 @@ int main(int argc, char **argv)
 	    set_option();
 	    break;
 	case L'o':
+	    do_job_control_set |= wcscmp(xoptarg, L"monitor") == 0;
 	    if (!set_long_option(xoptarg)) {
 		xerror(0, Ngt("%lco %ls: invalid option"),
 			(wint_t) xoptopt, xoptarg);
@@ -181,6 +182,9 @@ int main(int argc, char **argv)
 	case L'?':
 	    option_error = true;
 	    break;
+	case L'm':
+	    do_job_control_set = true;
+	    /* falls thru! */
 	default:
 	    set_single_option(opt);
 	    break;
