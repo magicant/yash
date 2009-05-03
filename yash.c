@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 	    (opt = xgetopt_long(wargv,
 		    L"+*cilo:sV" SHELLSET_OPTIONS,
 		    shell_long_options,
-		    NULL))) {
+		    &setoptindex))) {
 	switch (opt) {
 	case L'c':
 	    if (xoptopt != L'-') {
@@ -144,6 +144,9 @@ int main(int argc, char **argv)
 	    break;
 	case L'l':
 	    is_login_shell = (xoptopt == L'-');
+	    break;
+	case L'L':
+	    set_option();
 	    break;
 	case L'o':
 	    if (!set_long_option(xoptarg)) {
@@ -178,11 +181,8 @@ int main(int argc, char **argv)
 	case L'?':
 	    option_error = true;
 	    break;
-	case L'm':
-	    do_job_control_set = true;
-	    /* falls thru! */
 	default:
-	    set_option(opt);
+	    set_single_option(opt);
 	    break;
 	}
     }
@@ -202,6 +202,8 @@ int main(int argc, char **argv)
     if (wargv[xoptind] && wcscmp(wargv[xoptind], L"-") == 0)
 	xoptind++;
 
+    /* `shell_pid' must be initialized after the options have been parsed.
+     * This is required for the `set_monitor_option' function to work. */
     shell_pid = getpid();
     initial_pgid = shell_pgid = getpgrp();
     init_cmdhash();

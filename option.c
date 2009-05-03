@@ -36,6 +36,18 @@
 #include "yash.h"
 
 
+typedef void setoptfunc_T(void *argp);
+struct setoptinfo_T {
+    setoptfunc_T *func;
+    void *argp;
+};
+
+static void set_ignore_option(void *argp);
+static void set_bool_option(void *argp);
+static void set_monitor_option(void *argp);
+static void set_lineedit_option(void *argp);
+
+
 /* If set, the shell behaves strictly as defined in POSIX.
  * Corresponds to --posix option. */
 bool posixly_correct;
@@ -117,115 +129,197 @@ enum shopt_lineedit_T shopt_lineedit = shopt_nolineedit;
 #endif
 
 
+typedef enum shopt_index_T {
+    SHOPT_INTERACTIVE, SHOPT_LOGIN, SHOPT_NOPROFILE, SHOPT_NORCFILE,
+    SHOPT_RCFILE, SHOPT_VERSION,
+    SHOPT_ALLEXPORT, SHOPT_HASHONDEF, SHOPT_NOCLOBBER, SHOPT_NOGLOB,
+    SHOPT_NOCASEGLOB, SHOPT_DOTGLOB, SHOPT_MARKDIRS, SHOPT_EXTENDEDGLOB,
+    SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_AUTOCD,
+    SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
+    SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY, SHOPT_POSIX,
+    SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_HELP,
+    SHOPT_setopt = SHOPT_ALLEXPORT,
+} shopt_index_T;
+
+
 /* Long options for the shell and set builtin */
 static const struct xoption long_options[] = {
-    { L"interactive",  xno_argument, L'i', },
-    { L"login",        xno_argument, L'l', },
-    { L"noprofile",    xno_argument, L'(', },
-    { L"norcfile",     xno_argument, L')', },
-    { L"rcfile",       xrequired_argument, L'!', },
-    { L"version",      xno_argument, L'V', },
+    [SHOPT_INTERACTIVE]  = { L"interactive",  xno_argument, L'i', },
+    [SHOPT_LOGIN]        = { L"login",        xno_argument, L'l', },
+    [SHOPT_NOPROFILE]    = { L"noprofile",    xno_argument, L'(', },
+    [SHOPT_NORCFILE]     = { L"norcfile",     xno_argument, L')', },
+    [SHOPT_RCFILE]       = { L"rcfile",       xrequired_argument, L'!', },
+    [SHOPT_VERSION]      = { L"version",      xno_argument, L'V', },
     /* Options above cannot be used in set builtin */
-    { L"allexport",    xno_argument, L'a', },
-    { L"hashondef",    xno_argument, L'h', },
-    { L"noclobber",    xno_argument, L'C', },
-    { L"noglob",       xno_argument, L'f', },
-    { L"nocaseglob",   xno_argument, L'S', },
-    { L"dotglob",      xno_argument, L'D', },
-    { L"markdirs",     xno_argument, L'M', },
-    { L"extendedglob", xno_argument, L'E', },
-    { L"nullglob",     xno_argument, L'N', },
-    { L"braceexpand",  xno_argument, L'B', },
-    { L"curasync",     xno_argument, L'Y', },
-    { L"autocd",       xno_argument, L'T', },
-    { L"errexit",      xno_argument, L'e', },
-    { L"nounset",      xno_argument, L'u', },
-    { L"noexec",       xno_argument, L'n', },
-    { L"ignoreeof",    xno_argument, L'I', },
-    { L"verbose",      xno_argument, L'v', },
-    { L"xtrace",       xno_argument, L'x', },
-    { L"nolog",        xno_argument, L'L', },
-    { L"monitor",      xno_argument, L'm', },
-    { L"notify",       xno_argument, L'b', },
-    { L"posix",        xno_argument, L'X', },
+    [SHOPT_ALLEXPORT]    = { L"allexport",    xno_argument, L'a', },
+    [SHOPT_HASHONDEF]    = { L"hashondef",    xno_argument, L'h', },
+    [SHOPT_NOCLOBBER]    = { L"noclobber",    xno_argument, L'C', },
+    [SHOPT_NOGLOB]       = { L"noglob",       xno_argument, L'f', },
+    [SHOPT_NOCASEGLOB]   = { L"nocaseglob",   xno_argument, L'L', },
+    [SHOPT_DOTGLOB]      = { L"dotglob",      xno_argument, L'L', },
+    [SHOPT_MARKDIRS]     = { L"markdirs",     xno_argument, L'L', },
+    [SHOPT_EXTENDEDGLOB] = { L"extendedglob", xno_argument, L'L', },
+    [SHOPT_NULLGLOB]     = { L"nullglob",     xno_argument, L'L', },
+    [SHOPT_BRACEEXPAND]  = { L"braceexpand",  xno_argument, L'L', },
+    [SHOPT_CURASYNC]     = { L"curasync",     xno_argument, L'L', },
+    [SHOPT_AUTOCD]       = { L"autocd",       xno_argument, L'L', },
+    [SHOPT_ERREXIT]      = { L"errexit",      xno_argument, L'e', },
+    [SHOPT_NOUNSET]      = { L"nounset",      xno_argument, L'u', },
+    [SHOPT_NOEXEC]       = { L"noexec",       xno_argument, L'n', },
+    [SHOPT_IGNOREEOF]    = { L"ignoreeof",    xno_argument, L'L', },
+    [SHOPT_VERBOSE]      = { L"verbose",      xno_argument, L'v', },
+    [SHOPT_XTRACE]       = { L"xtrace",       xno_argument, L'x', },
+    [SHOPT_NOLOG]        = { L"nolog",        xno_argument, L'L', },
+    [SHOPT_MONITOR]      = { L"monitor",      xno_argument, L'm', },
+    [SHOPT_NOTIFY]       = { L"notify",       xno_argument, L'b', },
+    [SHOPT_POSIX]        = { L"posix",        xno_argument, L'L', },
 #if YASH_ENABLE_LINEEDIT
-    { L"vi",           xno_argument, L'1', },
-    // { L"emacs",        xno_argument, L'2', },
+    [SHOPT_VI]           = { L"vi",           xno_argument, L'L', },
+    // [SHOPT_EMACS]        = { L"emacs",        xno_argument, L'L', },
 #endif
-    { L"help",         xno_argument, L'-', }, /* this one must be the last */
-    { NULL,            0,            0,   },
+    [SHOPT_HELP]         = { L"help",         xno_argument, L'-', },
+    /* this one must be the last for `help_option' */
+    { NULL, 0, 0, },
+};
+
+static const struct setoptinfo_T setoptinfo[] = {
+    [SHOPT_ALLEXPORT]    = { set_bool_option, &shopt_allexport, },
+    [SHOPT_HASHONDEF]    = { set_bool_option, &shopt_hashondef, },
+    [SHOPT_NOCLOBBER]    = { set_bool_option, &shopt_noclobber, },
+    [SHOPT_NOGLOB]       = { set_bool_option, &shopt_noglob, },
+    [SHOPT_NOCASEGLOB]   = { set_bool_option, &shopt_nocaseglob, },
+    [SHOPT_DOTGLOB]      = { set_bool_option, &shopt_dotglob, },
+    [SHOPT_MARKDIRS]     = { set_bool_option, &shopt_markdirs, },
+    [SHOPT_EXTENDEDGLOB] = { set_bool_option, &shopt_extendedglob, },
+    [SHOPT_NULLGLOB]     = { set_bool_option, &shopt_nullglob, },
+    [SHOPT_BRACEEXPAND]  = { set_bool_option, &shopt_braceexpand, },
+    [SHOPT_CURASYNC]     = { set_bool_option, &shopt_curasync, },
+    [SHOPT_AUTOCD]       = { set_bool_option, &shopt_autocd, },
+    [SHOPT_ERREXIT]      = { set_bool_option, &shopt_errexit, },
+    [SHOPT_NOUNSET]      = { set_bool_option, &shopt_nounset, },
+    [SHOPT_NOEXEC]       = { set_bool_option, &shopt_noexec, },
+    [SHOPT_IGNOREEOF]    = { set_bool_option, &shopt_ignoreeof, },
+    [SHOPT_VERBOSE]      = { set_bool_option, &shopt_verbose, },
+    [SHOPT_XTRACE]       = { set_bool_option, &shopt_xtrace, },
+    [SHOPT_NOLOG]        = { set_ignore_option, NULL, },
+    [SHOPT_MONITOR]      = { set_monitor_option, NULL, },
+    [SHOPT_NOTIFY]       = { set_bool_option, &shopt_notify, },
+    [SHOPT_POSIX]        = { set_bool_option, &posixly_correct, },
+#if YASH_ENABLE_LINEEDIT
+    [SHOPT_VI]           = { set_lineedit_option, NULL, },
+    //[SHOPT_EMACS]        = { set_lineedit_option, NULL, },
+#endif
+    //[SHOPT_HELP]
+    { 0, NULL, },
 };
 
 const struct xoption *const shell_long_options = long_options;
-const struct xoption *const set_long_options   = long_options + 6;
-const struct xoption *const help_option
-    = long_options + ((sizeof long_options / sizeof *long_options) - 2);
+const struct xoption *const set_long_options   = long_options + SHOPT_setopt;
+const struct xoption *const help_option        = long_options + SHOPT_HELP;
+
+/* The index of the currently parsing option in the `long_options' and
+ * `setoptinfo' arrays. */
+int setoptindex;
 
 
-/* Switches a one-character option depending on whether `xoptopt' is '-' or not.
- * Option characters that can only be used in shell invokation are ignored. */
-void set_option(wchar_t c)
+/* Sets the option specified by `setoptindex'. */
+void set_option(void)
 {
-    bool value = (xoptopt == L'-');
-    switch (c) {
-	case L'a':   shopt_allexport    = value;   break;
-	case L'h':   shopt_hashondef    = value;   break;
-	case L'C':   shopt_noclobber    = value;   break;
-	case L'f':   shopt_noglob       = value;   break;
-	case L'S':   shopt_nocaseglob   = value;   break;
-	case L'D':   shopt_dotglob      = value;   break;
-	case L'M':   shopt_markdirs     = value;   break;
-	case L'E':   shopt_extendedglob = value;   break;
-	case L'N':   shopt_nullglob     = value;   break;
-	case L'B':   shopt_braceexpand  = value;   break;
-	case L'Y':   shopt_curasync     = value;   break;
-	case L'T':   shopt_autocd       = value;   break;
-	case L'e':   shopt_errexit      = value;   break;
-	case L'u':   shopt_nounset      = value;   break;
-	case L'n':   shopt_noexec       = value;   break;
-	case L'I':   shopt_ignoreeof    = value;   break;
-	case L'v':   shopt_verbose      = value;   break;
-	case L'x':   shopt_xtrace       = value;   break;
-	case L'L':   /* XXX nolog unsupported */   break;
-	case L'm':   do_job_control     = value;   break;
-	case L'b':   shopt_notify       = value;   break;
-	case L'X':   posixly_correct    = value;   break;
-#if YASH_ENABLE_LINEEDIT
-	case L'1':
-	    if (value) {
-		shopt_lineedit = shopt_vi;
-	    } else {
-		if (shopt_lineedit == shopt_vi)
-		    shopt_lineedit = shopt_nolineedit;
-	    }
-	    break;
-	case L'2':
-	    if (value) {
-		shopt_lineedit = shopt_emacs;
-	    } else {
-		if (shopt_lineedit == shopt_emacs)
-		    shopt_lineedit = shopt_nolineedit;
-	    }
-	    break;
-#endif /* YASH_ENABLE_LINEEDIT */
-    }
+    const struct setoptinfo_T *info = &setoptinfo[setoptindex];
+    info->func(info->argp);
 }
 
-/* Switches the setting of a specified long option according to `xoptopt'.
- * Options that can only be used in shell invokation are ignored.
+/* Sets the option specified by the character `c'.
+ * An unrecognized character is ignored. */
+void set_single_option(wchar_t c)
+{
+    switch (c) {
+	case L'a':  setoptindex = SHOPT_ALLEXPORT;  break;
+	case L'h':  setoptindex = SHOPT_HASHONDEF;  break;
+	case L'C':  setoptindex = SHOPT_NOCLOBBER;  break;
+	case L'f':  setoptindex = SHOPT_NOGLOB;     break;
+	case L'e':  setoptindex = SHOPT_ERREXIT;    break;
+	case L'u':  setoptindex = SHOPT_NOUNSET;    break;
+	case L'n':  setoptindex = SHOPT_NOEXEC;     break;
+	case L'v':  setoptindex = SHOPT_VERBOSE;    break;
+	case L'x':  setoptindex = SHOPT_XTRACE;     break;
+	case L'm':  setoptindex = SHOPT_MONITOR;    break;
+	case L'b':  setoptindex = SHOPT_NOTIFY;     break;
+	default:    return;
+    }
+    set_option();
+}
+
+/* Switches the setting of a specified long option.
+ * Options that can only be used in shell invocation are ignored.
  * Returns true if successful, false for invalid options. */
 bool set_long_option(const wchar_t *s)
 {
-    const struct xoption *opt = set_long_options;
-
-    while (opt->name) {
-	if (wcscmp(s, opt->name) == 0) {
-	    set_option(opt->val);
-	    return true;
+    for (const struct xoption *optp = set_long_options; optp->name; optp++) {
+	if (wcscmp(s, optp->name) == 0) {
+	    if (optp->has_arg == xno_argument) {
+		setoptindex = optp - long_options;
+		set_option();
+		return true;
+	    } else {
+		return false;
+	    }
 	}
-	opt++;
     }
     return false;
+}
+
+/* This function does nothing. */
+void set_ignore_option(void *argp __attribute__((unused))) { }
+
+/* Changes the setting of a boolean option according to the current `xoptopt'.
+ * `argp' must be a pointer to a boolean value. */
+void set_bool_option(void *argp)
+{
+    bool *optp = argp;
+    *optp = (xoptopt == L'-');
+}
+
+/* Changes the setting of the `-m' (--monitor) option.
+ * This function's behavior depends on the value of `shell_pid'. */
+void set_monitor_option(void *argp __attribute__((unused)))
+{
+    bool newvalue = (xoptopt == L'-');
+    if (shell_pid == 0) {
+	do_job_control = newvalue;
+    } else {
+	if (newvalue != do_job_control) {
+	    reset_own_pgid();
+	    do_job_control = newvalue;
+	    if (newvalue && ttyfd < 0)
+		open_ttyfd();
+	    set_signals();
+	    set_own_pgid();
+	}
+    }
+    /* When `shell_pid' is zero, the shell is under initialization;
+     * `set_own_pgid' and other functions are called later in the `main'
+     * function. */
+}
+
+/* Changes the setting of the vi/emacs option. */
+void set_lineedit_option(void *argp __attribute__((unused)))
+{
+    enum shopt_lineedit_T opt;
+
+    switch (setoptindex) {
+	case SHOPT_VI:     opt = shopt_vi;     break;
+	//case SHOPT_EMACS:  opt = shopt_emacs;  break;
+	default:           return;
+    }
+    if (xoptopt == L'-') {
+	shopt_lineedit = opt;
+	/* turn on lineedit */
+    } else {
+	/* turn off lineedit */
+	if (shopt_lineedit == opt)
+	    shopt_lineedit = shopt_nolineedit;
+    }
 }
 
 /* Return current value of special parameter $- as a newly malloced string. */
@@ -276,10 +370,16 @@ int set_builtin(int argc, void **argv)
     }
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(
-		    argv, L"+*o:" SHELLSET_OPTIONS, set_long_options, NULL)))
+    while ((opt = xgetopt_long(argv,
+		    L"+*o:" SHELLSET_OPTIONS,
+		    set_long_options,
+		    &setoptindex)))
     {
 	switch (opt) {
+	    case L'L':
+		setoptindex += SHOPT_setopt;
+		set_option();
+		break;
 	    case L'o':
 		if (!set_long_option(xoptarg)) {
 		    xerror(0, Ngt("%lco %ls: invalid option"),
@@ -297,19 +397,7 @@ int set_builtin(int argc, void **argv)
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	    default:
-		if (opt == L'm') {
-		    bool newvalue = (xoptopt == L'-');
-		    if (newvalue != do_job_control) {
-			reset_own_pgid();
-			do_job_control = newvalue;
-			if (newvalue && ttyfd < 0)
-			    open_ttyfd();
-			set_signals();
-			set_own_pgid();
-		    }
-		} else {
-		    set_option(opt);
-		}
+		set_single_option(opt);
 		break;
 	}
     }

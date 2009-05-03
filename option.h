@@ -47,8 +47,10 @@ extern enum shopt_lineedit_T shopt_lineedit;
 
 extern const struct xoption
     *const shell_long_options, *const set_long_options, *const help_option;
+extern int setoptindex;
 
-extern void set_option(wchar_t c);
+extern void set_option(void);
+extern void set_single_option(wchar_t c);
 extern _Bool set_long_option(const wchar_t *s)
     __attribute__((nonnull));
 extern wchar_t *get_hyphen_parameter(void)
