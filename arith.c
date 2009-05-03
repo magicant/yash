@@ -243,7 +243,7 @@ void parse_assignment(evalinfo_T *info, value_T *result)
 				    result->v_long, rhs.v_long);
 			    break;
 			case VT_DOUBLE:
-			    result->v_long = do_double_calculation(ttype,
+			    result->v_double = do_double_calculation(ttype,
 				    result->v_double, rhs.v_double);
 			    break;
 			case VT_INVALID:
@@ -612,8 +612,9 @@ void parse_equality(evalinfo_T *info, value_T *result)
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
-			result->v_double = do_double_comparison(ttype,
+			result->v_long = do_double_comparison(ttype,
 				result->v_double, rhs.v_double);
+			result->type = VT_LONG;
 			break;
 		    case VT_INVALID:
 			result->type = VT_INVALID;
@@ -647,8 +648,9 @@ void parse_relational(evalinfo_T *info, value_T *result)
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
-			result->v_double = do_double_comparison(ttype,
+			result->v_long = do_double_comparison(ttype,
 				result->v_double, rhs.v_double);
+			result->type = VT_LONG;
 			break;
 		    case VT_INVALID:
 			result->type = VT_INVALID;

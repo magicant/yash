@@ -14,8 +14,9 @@ Yash 2.9
   +  Multiple instances of shell that use the same file for the
      history file now share the history.
   -  The "history" builtin has been removed.
-  *  The "help" builtin now prints an error message if the specified
+  =  The "help" builtin now prints an error message if the specified
      builtin is not found.
+  *  Fixed floating-point arithmetics in arithmetic expansions.
   *  Fixed the help message for the "pwd" builtin.
 
 ----------------------------------------------------------------------
