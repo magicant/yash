@@ -53,9 +53,9 @@ static inline wchar_t wb_get_char(const xwcsbuf_T *buf)
 
 
 /* The state of lineedit. */
-static enum { MODE_INACTIVE, MODE_ACTIVE, MODE_SUSPENDED, } mode;
+enum { LE_STATE_INACTIVE, LE_STATE_ACTIVE, LE_STATE_SUSPENDED, } le_state;
 /* The state of editing. */
-le_state_T le_state;
+enum le_editstate_T le_editstate;
 
 
 /* Initializes line editing.
@@ -86,34 +86,34 @@ wchar_t *le_readline(const wchar_t *prompt)
     wchar_t *resultline;
 
     assert(is_interactive_now);
-    assert(mode == MODE_INACTIVE);
+    assert(le_state == LE_STATE_INACTIVE);
 
-    mode = MODE_ACTIVE;
+    le_state = LE_STATE_ACTIVE;
     le_editing_init();
     le_display_init(prompt);
     reader_init();
-    le_state = LE_STATE_EDITING;
+    le_editstate = LE_EDITSTATE_EDITING;
 
     do
 	read_next();
-    while (le_state == LE_STATE_EDITING);
+    while (le_editstate == LE_EDITSTATE_EDITING);
 
     reader_finalize();
     le_display_finalize();
     resultline = le_editing_finalize();
     fflush(stderr);
     le_restore_terminal();
-    mode = MODE_INACTIVE;
+    le_state = LE_STATE_INACTIVE;
 
-    switch (le_state) {
-	case LE_STATE_EDITING:
+    switch (le_editstate) {
+	case LE_EDITSTATE_EDITING:
 	    assert(false);
-	case LE_STATE_DONE:
+	case LE_EDITSTATE_DONE:
 	    break;
-	case LE_STATE_ERROR:
+	case LE_EDITSTATE_ERROR:
 	    resultline[0] = L'\0';
 	    break;
-	case LE_STATE_INTERRUPTED:
+	case LE_EDITSTATE_INTERRUPTED:
 	    free(resultline);
 	    resultline = NULL;
 	    break;
@@ -124,8 +124,8 @@ wchar_t *le_readline(const wchar_t *prompt)
 /* Restores the terminal state and clears the whole display temporarily. */
 void le_suspend_readline(void)
 {
-    if (mode == MODE_ACTIVE) {
-	mode = MODE_SUSPENDED;
+    if (le_state == LE_STATE_ACTIVE) {
+	le_state = LE_STATE_SUSPENDED;
 	le_display_clear();
 	fflush(stderr);
 	le_restore_terminal();
@@ -135,8 +135,8 @@ void le_suspend_readline(void)
 /* Resumes line editing suspended by `le_suspend_readline'. */
 void le_resume_readline(void)
 {
-    if (mode == MODE_SUSPENDED) {
-	mode = MODE_ACTIVE;
+    if (le_state == LE_STATE_SUSPENDED) {
+	le_state = LE_STATE_ACTIVE;
 	le_setupterm();
 	le_set_terminal();
 	le_display_print_all();
@@ -184,7 +184,7 @@ void read_next(void)
 {
     static bool incomplete_wchar = false;
 
-    assert(le_state == LE_STATE_EDITING);
+    assert(le_editstate == LE_EDITSTATE_EDITING);
 
     char c = pop_prebuffer();
     if (c)
@@ -195,7 +195,7 @@ void read_next(void)
     wait_for_input(STDIN_FILENO, true);
     switch (read(STDIN_FILENO, &c, 1)) {
 	case 0:
-	    le_state = LE_STATE_ERROR;
+	    le_editstate = LE_EDITSTATE_ERROR;
 	    return;
 	case 1:
 	    break;
@@ -209,7 +209,7 @@ void read_next(void)
 		    return;
 		default:
 		    xerror(errno, Ngt("cannot read input"));
-		    le_state = LE_STATE_ERROR;
+		    le_editstate = LE_EDITSTATE_ERROR;
 		    return;
 	    }
 	default:
@@ -301,7 +301,7 @@ process_keymap:
 	    case TG_AMBIGUOUS:
 		return;
 	}
-	if (le_state != LE_STATE_EDITING)
+	if (le_editstate != LE_EDITSTATE_EDITING)
 	    break;
     }
 }

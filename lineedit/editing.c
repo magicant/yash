@@ -930,7 +930,7 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    le_state = LE_STATE_DONE;
+    le_editstate = LE_EDITSTATE_DONE;
     reset_state();
 }
 
@@ -938,7 +938,7 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
  * `le_state' is set to LE_STATE_INTERRUPTED and `le_readline' returns. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
-    le_state = LE_STATE_INTERRUPTED;
+    le_editstate = LE_EDITSTATE_INTERRUPTED;
     reset_state();
 }
 
@@ -949,7 +949,7 @@ void cmd_eof_if_empty(wchar_t c)
     ALERT_AND_RETURN_IF_PENDING;
 
     if (le_main_buffer.length == 0) {
-	le_state = LE_STATE_ERROR;
+	le_editstate = LE_EDITSTATE_ERROR;
 	reset_state();
     } else {
 	cmd_alert(c);
@@ -963,7 +963,7 @@ void cmd_eof_or_delete(wchar_t c)
     ALERT_AND_RETURN_IF_PENDING;
 
     if (le_main_buffer.length == 0) {
-	le_state = LE_STATE_ERROR;
+	le_editstate = LE_EDITSTATE_ERROR;
 	reset_state();
     } else {
 	cmd_delete_char(c);
@@ -1894,7 +1894,7 @@ void cmd_vi_edit_and_accept(wchar_t c)
 
 	    le_main_index = le_main_buffer.length;
 
-	    le_state = LE_STATE_DONE;
+	    le_editstate = LE_EDITSTATE_DONE;
 	    reset_state();
 	    // XXX: clear info area
 	}

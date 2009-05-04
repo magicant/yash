@@ -22,15 +22,15 @@
 #include <stddef.h>
 
 
-typedef enum {
-    LE_STATE_EDITING,     // editing is on-going
-    LE_STATE_DONE,        // `le_readline' should return (successful)
-    LE_STATE_ERROR,       // `le_readline' should return (unsuccessful)
-    LE_STATE_INTERRUPTED, // `le_readline' should return (interrupted)
-} le_state_T;
+enum le_editstate_T {
+    LE_EDITSTATE_EDITING,     // editing is on-going
+    LE_EDITSTATE_DONE,        // `le_readline' should return (successful)
+    LE_EDITSTATE_ERROR,       // `le_readline' should return (unsuccessful)
+    LE_EDITSTATE_INTERRUPTED, // `le_readline' should return (interrupted)
+};
 
 
-extern le_state_T le_state;
+extern enum le_editstate_T le_editstate;
 
 extern _Bool le_setup(void);
 
