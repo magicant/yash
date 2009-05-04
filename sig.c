@@ -575,11 +575,17 @@ void handle_sigchld(void)
     if (sigchld_received) {
         sigchld_received = false;
         do_wait();
-	if (shopt_notify) {
-	    LE_SUSPEND_READLINE();
+#if YASH_ENABLE_LINEEDIT
+	if (shopt_notify || (shopt_notifyle && le_state == LE_STATE_ACTIVE)) {
+	    le_suspend_readline();
 	    print_job_status_all(true, false, stderr);
-	    LE_RESUME_READLINE();
+	    le_resume_readline();
 	}
+#else
+	if (shopt_notify) {
+	    print_job_status_all(true, false, stderr);
+	}
+#endif
     }
 }
 
@@ -622,7 +628,9 @@ int handle_traps(void)
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return false;
 
-    LE_SUSPEND_READLINE();
+#if YASH_ENABLE_LINEEDIT
+    le_suspend_readline();
+#endif
 
     int signum = 0;
     struct parsestate_T *state = NULL;
@@ -669,7 +677,11 @@ exec_handlers:
     }
 #endif
 
-    LE_RESUME_READLINE();
+#if YASH_ENABLE_LINEEDIT
+    if (shopt_notifyle && le_state == LE_STATE_SUSPENDED)
+	print_job_status_all(true, false, stderr);
+    le_resume_readline();
+#endif
 
     if (any_signal_received)
 	goto exec_handlers;

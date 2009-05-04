@@ -53,7 +53,7 @@ static inline wchar_t wb_get_char(const xwcsbuf_T *buf)
 
 
 /* The state of lineedit. */
-enum { LE_STATE_INACTIVE, LE_STATE_ACTIVE, LE_STATE_SUSPENDED, } le_state;
+enum le_state_T le_state;
 /* The state of editing. */
 enum le_editstate_T le_editstate;
 

@@ -22,6 +22,11 @@
 #include <stddef.h>
 
 
+enum le_state_T {
+    LE_STATE_INACTIVE,
+    LE_STATE_ACTIVE,
+    LE_STATE_SUSPENDED,
+};
 enum le_editstate_T {
     LE_EDITSTATE_EDITING,     // editing is on-going
     LE_EDITSTATE_DONE,        // `le_readline' should return (successful)
@@ -30,6 +35,7 @@ enum le_editstate_T {
 };
 
 
+extern enum le_state_T le_state;
 extern enum le_editstate_T le_editstate;
 
 extern _Bool le_setup(void);
@@ -38,13 +44,6 @@ extern wchar_t *le_readline(const wchar_t *prompt)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern void le_suspend_readline(void);
 extern void le_resume_readline(void);
-#if YASH_ENABLE_LINEEDIT
-# define LE_SUSPEND_READLINE() le_suspend_readline()
-# define LE_RESUME_READLINE()  le_resume_readline()
-#else
-# define LE_SUSPEND_READLINE() ((void) 0)
-# define LE_RESUME_READLINE()  ((void) 0)
-#endif
 
 extern _Bool le_next_verbatim;
 

@@ -31,7 +31,7 @@ enum shopt_lineedit_T {
 extern _Bool posixly_correct;
 extern _Bool is_login_shell;
 extern _Bool is_interactive, is_interactive_now;
-extern _Bool do_job_control, shopt_notify;
+extern _Bool do_job_control, shopt_notify, shopt_notifyle;
 extern _Bool shopt_read_arg, shopt_read_stdin;
 extern const wchar_t *command_name;
 extern _Bool shopt_allexport, shopt_hashondef;

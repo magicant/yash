@@ -45,7 +45,9 @@ struct setoptinfo_T {
 static void set_ignore_option(void *argp);
 static void set_bool_option(void *argp);
 static void set_monitor_option(void *argp);
+#if YASH_ENABLE_LINEEDIT
 static void set_lineedit_option(void *argp);
+#endif
 
 
 /* If set, the shell behaves strictly as defined in POSIX.
@@ -68,6 +70,11 @@ bool do_job_control;
 /* If set, the shell immediately notifies on a change of job status.
  * Corresponds to -b/--notify option. */
 bool shopt_notify;
+#if YASH_ENABLE_LINEEDIT
+/* If set, the shell immediately notifies on a change of job status during line-
+ * editing. Ignored if `shopt_notify' is set. Corresponds to --notifyle option. */
+bool shopt_notifyle;
+#endif
 
 /* Set if commands are read from argument and stdin respectively.
  * Correspond to -c and -s options respectively. */
@@ -136,8 +143,8 @@ typedef enum shopt_index_T {
     SHOPT_NOCASEGLOB, SHOPT_DOTGLOB, SHOPT_MARKDIRS, SHOPT_EXTENDEDGLOB,
     SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_AUTOCD,
     SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
-    SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY, SHOPT_POSIX,
-    SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_HELP,
+    SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY, SHOPT_NOTIFYLE,
+    SHOPT_POSIX, SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_HELP,
     SHOPT_setopt = SHOPT_ALLEXPORT,
 } shopt_index_T;
 
@@ -172,6 +179,7 @@ static const struct xoption long_options[] = {
     [SHOPT_NOLOG]        = { L"nolog",        xno_argument, L'L', },
     [SHOPT_MONITOR]      = { L"monitor",      xno_argument, L'm', },
     [SHOPT_NOTIFY]       = { L"notify",       xno_argument, L'L', },
+    [SHOPT_NOTIFYLE]     = { L"notifyle",     xno_argument, L'L', },
     [SHOPT_POSIX]        = { L"posix",        xno_argument, L'L', },
 #if YASH_ENABLE_LINEEDIT
     [SHOPT_VI]           = { L"vi",           xno_argument, L'L', },
@@ -204,6 +212,9 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_NOLOG]        = { set_ignore_option, NULL, },
     [SHOPT_MONITOR]      = { set_monitor_option, NULL, },
     [SHOPT_NOTIFY]       = { set_bool_option, &shopt_notify, },
+#if YASH_ENABLE_LINEEDIT
+    [SHOPT_NOTIFYLE]     = { set_bool_option, &shopt_notifyle, },
+#endif
     [SHOPT_POSIX]        = { set_bool_option, &posixly_correct, },
 #if YASH_ENABLE_LINEEDIT
     [SHOPT_VI]           = { set_lineedit_option, NULL, },
@@ -302,6 +313,8 @@ void set_monitor_option(void *argp __attribute__((unused)))
      * function. */
 }
 
+#if YASH_ENABLE_LINEEDIT
+
 /* Changes the setting of the vi/emacs option. */
 void set_lineedit_option(void *argp __attribute__((unused)))
 {
@@ -321,6 +334,8 @@ void set_lineedit_option(void *argp __attribute__((unused)))
 	    shopt_lineedit = shopt_nolineedit;
     }
 }
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 /* Return current value of special parameter $- as a newly malloced string. */
 wchar_t *get_hyphen_parameter(void)
@@ -438,6 +453,9 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(noglob, shopt_noglob);
     //PRINTSETTING(nolog, shopt_nolog);
     PRINTSETTING(notify, shopt_notify);
+#if YASH_ENABLE_LINEEDIT
+    PRINTSETTING(notifyle, shopt_notifyle);
+#endif
     PRINTSETTING(nounset, shopt_nounset);
     PRINTSETTING(nullglob, shopt_nullglob);
     PRINTSETTING(posix, posixly_correct);
@@ -476,6 +494,9 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(noglob, shopt_noglob);
     //PRINTSETTING(nolog, shopt_nolog);
     PRINTSETTING(notify, shopt_notify);
+#if YASH_ENABLE_LINEEDIT
+    PRINTSETTING(notifyle, shopt_notifyle);
+#endif
     PRINTSETTING(nounset, shopt_nounset);
     PRINTSETTING(nullglob, shopt_nullglob);
     PRINTSETTING(posix, posixly_correct);
@@ -507,6 +528,9 @@ const char set_help[] = Ngt(
 "\tAny variable is exported when assigned.\n"
 " -b --notify\n"
 "\tWhen the status of a job is changed, it is notified immediately.\n"
+" --notifyle\n"
+"\tSimilar to -b, but only notify during line-editing. Ignored if -b is\n"
+"\tset.\n"
 " -e --errexit\n"
 "\tExit the shell immediately when any simple command returns a\n"
 "\tnon-zero status.\n"
