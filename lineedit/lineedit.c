@@ -45,6 +45,8 @@ static void reader_init(void);
 static void reader_finalize(void);
 static void read_next(void);
 static char pop_prebuffer(void);
+static inline bool has_meta_bit(char c)
+    __attribute__((pure));
 static inline trieget_T make_trieget(const wchar_t *keyseq)
     __attribute__((nonnull,const));
 static void append_to_second_buffer(wchar_t wc);
@@ -215,7 +217,7 @@ void read_next(void)
 	default:
 	    assert(false);
     }
-    if (le_meta_bit8 && (c & META_BIT))
+    if (has_meta_bit(c))
 	sb_ccat(sb_ccat(&reader_first_buffer, ESCAPE_CHAR), c & ~META_BIT);
     else
 direct_first_buffer:
@@ -329,6 +331,22 @@ char pop_prebuffer(void)
 	return result;
     }
     return '\0';
+}
+
+bool has_meta_bit(char c)
+{
+    switch (shopt_le_convmeta) {
+	case shopt_yes:
+	    break;
+	case shopt_no:
+	    return false;
+	case shopt_auto:
+	    if (le_meta_bit8)
+		break;
+	    else
+		return false;
+    }
+    return c & META_BIT;
 }
 
 trieget_T make_trieget(const wchar_t *keyseq)

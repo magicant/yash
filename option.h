@@ -27,6 +27,11 @@ enum shopt_lineedit_T {
     shopt_vi,
     shopt_emacs,
 };
+enum shopt_yesnoauto_T {
+    shopt_yes,
+    shopt_no,
+    shopt_auto,
+};
 
 extern _Bool posixly_correct;
 extern _Bool is_login_shell;
@@ -42,6 +47,7 @@ extern _Bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
 extern _Bool shopt_braceexpand;
 extern _Bool shopt_noclobber;
 extern enum shopt_lineedit_T shopt_lineedit;
+extern enum shopt_yesnoauto_T shopt_le_convmeta;
 
 #define SHELLSET_OPTIONS L"abefhmnuvxC"
 

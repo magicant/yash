@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +45,9 @@ struct setoptinfo_T {
 
 static void set_ignore_option(void *argp);
 static void set_bool_option(void *argp);
+#if YASH_ENABLE_LINEEDIT
+static void set_yesnoauto_option(void *argp);
+#endif
 static void set_monitor_option(void *argp);
 #if YASH_ENABLE_LINEEDIT
 static void set_lineedit_option(void *argp);
@@ -133,6 +137,8 @@ bool shopt_noclobber;
 #if YASH_ENABLE_LINEEDIT
 /* Type of line editing keybind. */
 enum shopt_lineedit_T shopt_lineedit = shopt_nolineedit;
+/* Defines treatment of the 8th bit of input characters. */
+enum shopt_yesnoauto_T shopt_le_convmeta = shopt_auto;
 #endif
 
 
@@ -144,7 +150,7 @@ typedef enum shopt_index_T {
     SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_AUTOCD,
     SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
     SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY, SHOPT_NOTIFYLE,
-    SHOPT_POSIX, SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_HELP,
+    SHOPT_POSIX, SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_LE_CONVMETA, SHOPT_HELP,
     SHOPT_setopt = SHOPT_ALLEXPORT,
 } shopt_index_T;
 
@@ -184,6 +190,7 @@ static const struct xoption long_options[] = {
 #if YASH_ENABLE_LINEEDIT
     [SHOPT_VI]           = { L"vi",           xno_argument, L'L', },
     // [SHOPT_EMACS]        = { L"emacs",        xno_argument, L'L', },
+    [SHOPT_LE_CONVMETA]  = { L"le-convmeta",  xrequired_argument, L'L', },
 #endif
     [SHOPT_HELP]         = { L"help",         xno_argument, L'-', },
     /* this one must be the last for `help_option' */
@@ -219,6 +226,7 @@ static const struct setoptinfo_T setoptinfo[] = {
 #if YASH_ENABLE_LINEEDIT
     [SHOPT_VI]           = { set_lineedit_option, NULL, },
     //[SHOPT_EMACS]        = { set_lineedit_option, NULL, },
+    [SHOPT_LE_CONVMETA]  = { set_yesnoauto_option, &shopt_le_convmeta, },
 #endif
     //[SHOPT_HELP]
     { 0, NULL, },
@@ -290,6 +298,24 @@ void set_bool_option(void *argp)
     bool *optp = argp;
     *optp = (xoptopt == L'-');
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Changes the setting of a yes-no-auto option according to the current `xoptarg'.
+ * `argp' must be a pointer to a yes-no-auto value. */
+void set_yesnoauto_option(void *argp)
+{
+    enum shopt_yesnoauto_T *optp = argp;
+    
+    assert(xoptarg != NULL);
+    switch (xoptarg[0]) {
+	case L'Y':  case L'y':  *optp = shopt_yes;   break;
+	case L'N':  case L'n':  *optp = shopt_no;    break;
+	case L'A':  case L'a':  *optp = shopt_auto;  break;
+    }
+}
+
+#endif
 
 /* Changes the setting of the `-m' (--monitor) option.
  * This function's behavior depends on the value of `shell_pid'. */
@@ -427,9 +453,15 @@ int set_builtin(int argc, void **argv)
 
 void set_builtin_print_current_settings(void)
 {
-    const char *yes = gt("yes"), *no = gt("no");
+    const char *vals[] = {
+	[shopt_yes]  = gt("yes"),
+	[shopt_no]   = gt("no"),
+	[shopt_auto] = gt("auto"),
+    };
 #define PRINTSETTING(name,value) \
-    printf("%-15ls %s\n", L"" #name, (value) ? yes : no)
+    printf("%-15ls %s\n", L"" #name, (value) ? vals[shopt_yes] : vals[shopt_no])
+#define PRINTSETTING_YNA(name,value) \
+    printf("%-15ls %s\n", L"" #name, vals[value])
 
     PRINTSETTING(allexport, shopt_allexport);
     PRINTSETTING(autocd, shopt_autocd);
@@ -444,6 +476,9 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(hashondef, shopt_hashondef);
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     PRINTSETTING(interactive, is_interactive);
+#if YASH_ENABLE_LINEEDIT
+    PRINTSETTING_YNA(le-convmeta, shopt_le_convmeta);
+#endif
     PRINTSETTING(login, is_login_shell);
     PRINTSETTING(markdirs, shopt_markdirs);
     PRINTSETTING(monitor, do_job_control);
@@ -465,6 +500,7 @@ void set_builtin_print_current_settings(void)
 #endif
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
+#undef PRINTSETTING_YNA
 }
 
 void set_builtin_print_restoring_commands(void)
@@ -587,6 +623,8 @@ const char set_help[] = Ngt(
 "\tEnable vi-like editing.\n"
 //" --emacs\n"
 //"\tEnable emacs-like editing.\n"
+" --le-convmeta=<yes|no|auto>\n"
+"\tTreat 8th bit of input as a meta-key flag.\n"
 "To disable options, put '+' before the option characters instead of '-'.\n"
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
 "Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"

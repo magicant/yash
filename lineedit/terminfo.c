@@ -220,6 +220,7 @@
 int le_lines, le_columns;
 
 /* True if the meta key inputs character whose 8th bit is set. */
+/* Used only if the `shopt_le_convmeta' option is "auto". */
 _Bool le_meta_bit8;
 
 /* Strings sent by terminal when special key is pressed.
