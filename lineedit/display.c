@@ -26,6 +26,7 @@
 #include <wctype.h>
 #include "../history.h"
 #include "../job.h"
+#include "../option.h"
 #include "../util.h"
 #include "display.h"
 #include "editing.h"
@@ -174,18 +175,16 @@ void clear_to_end_of_screen(void)
  * after this function. */
 void le_display_print_all(void)
 {
-#if !YASH_DISABLE_PROMPT_ADJUST
     /* print dummy string to make sure the cursor is at the beginning of line */
-    if (le_ti_am) {
+    if (shopt_le_promptsp && le_ti_am) {
 	le_print_sgr(1, 0, 0, 0, 0, 0, 0);
-	fputc('%', stderr);
+	fputc('$', stderr);
 	le_print_sgr(0, 0, 0, 0, 0, 0, 0);
 	for (int i = le_ti_xenl ? 1 : 2; i < le_columns; i++)
 	    fputc(' ', stderr);
 	le_print_cr();
 	le_print_ed();
     }
-#endif
 
     print_prompt();
     le_display_reprint_buffer(0, false);

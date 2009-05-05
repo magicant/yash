@@ -139,6 +139,9 @@ bool shopt_noclobber;
 enum shopt_lineedit_T shopt_lineedit = shopt_nolineedit;
 /* Defines treatment of the 8th bit of input characters. */
 enum shopt_yesnoauto_T shopt_le_convmeta = shopt_auto;
+/* If set, a special character sequence is printed when starting line-editing
+ * to make sure the prompt starts at the beginning of line. */
+bool shopt_le_promptsp = true;
 #endif
 
 
@@ -150,7 +153,8 @@ typedef enum shopt_index_T {
     SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_AUTOCD,
     SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
     SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY, SHOPT_NOTIFYLE,
-    SHOPT_POSIX, SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_LE_CONVMETA, SHOPT_HELP,
+    SHOPT_POSIX, SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_LE_CONVMETA,
+    SHOPT_LE_PROMPTSP, SHOPT_HELP,
     SHOPT_setopt = SHOPT_ALLEXPORT,
 } shopt_index_T;
 
@@ -191,6 +195,7 @@ static const struct xoption long_options[] = {
     [SHOPT_VI]           = { L"vi",           xno_argument, L'L', },
     // [SHOPT_EMACS]        = { L"emacs",        xno_argument, L'L', },
     [SHOPT_LE_CONVMETA]  = { L"le-convmeta",  xrequired_argument, L'L', },
+    [SHOPT_LE_PROMPTSP]  = { L"le-promptsp",  xno_argument, L'L', },
 #endif
     [SHOPT_HELP]         = { L"help",         xno_argument, L'-', },
     /* this one must be the last for `help_option' */
@@ -227,6 +232,7 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_VI]           = { set_lineedit_option, NULL, },
     //[SHOPT_EMACS]        = { set_lineedit_option, NULL, },
     [SHOPT_LE_CONVMETA]  = { set_yesnoauto_option, &shopt_le_convmeta, },
+    [SHOPT_LE_PROMPTSP]  = { set_bool_option, &shopt_le_promptsp, },
 #endif
     //[SHOPT_HELP]
     { 0, NULL, },
@@ -478,6 +484,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
     PRINTSETTING_YNA(le-convmeta, shopt_le_convmeta);
+    PRINTSETTING(le-promptsp, shopt_le_promptsp);
 #endif
     PRINTSETTING(login, is_login_shell);
     PRINTSETTING(markdirs, shopt_markdirs);
@@ -521,6 +528,9 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(hashondef, shopt_hashondef);
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     //PRINTSETTING(interactive, is_interactive);
+#if YASH_ENABLE_LINEEDIT
+    PRINTSETTING(le-promptsp, shopt_le_promptsp);
+#endif
     //PRINTSETTING(login, is_login_shell);
     PRINTSETTING(markdirs, shopt_markdirs);
     PRINTSETTING(monitor, do_job_control);
@@ -625,6 +635,9 @@ const char set_help[] = Ngt(
 //"\tEnable emacs-like editing.\n"
 " --le-convmeta=<yes|no|auto>\n"
 "\tTreat 8th bit of input as a meta-key flag.\n"
+" --le-promptsp\n"
+"\tMove cursor to beginning of line each time when starting\n"
+"\tline-editing. (enabled by default)\n"
 "To disable options, put '+' before the option characters instead of '-'.\n"
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
 "Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"
