@@ -47,9 +47,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_right,     CMDENTRY(cmd_forward_char));
-    t = trie_setw(t, Key_c_f,       CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
-    t = trie_setw(t, Key_c_b,       CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
     t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_accept_line));
