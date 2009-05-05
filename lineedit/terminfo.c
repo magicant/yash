@@ -213,11 +213,15 @@
 #define TI_setf    "setf"
 #define TI_sgr     "sgr"
 #define TI_smkx    "smkx"
+#define TI_xenl    "xenl"
 
 
 /* Number of lines and columns in the current terminal. */
 /* Initialized by `le_setupterm'. */
 int le_lines, le_columns;
+
+/* Whether the terminal has the "am" and "xenl" flags set, respectively. */
+_Bool le_ti_am, le_ti_xenl;
 
 /* True if the meta key inputs character whose 8th bit is set. */
 /* Used only if the `shopt_le_convmeta' option is "auto". */
@@ -278,6 +282,8 @@ _Bool le_setupterm(void)
 
     le_lines = tigetnum(TI_lines);
     le_columns = tigetnum(TI_cols);
+    le_ti_am = tigetflag(TI_am) > 0;
+    le_ti_xenl = tigetflag(TI_xenl) > 0;
     le_meta_bit8 = tigetflag(TI_km) > 0;
     if (le_lines <= 0 || le_columns <= 0)
 	return 0;
@@ -496,13 +502,6 @@ void le_print_nel(void)
 	tputs(v, 1, putchar_stderr);
     else
 	fputc('\r', stderr), fputc('\n', stderr);
-}
-
-/* Prints "nel" variable if "am" variable is false. */
-void le_print_nel_if_no_auto_margin(void)
-{
-    if (tigetflag(TI_am) <= 0)
-	le_print_nel();
 }
 
 /* Moves the cursor.

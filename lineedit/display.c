@@ -176,13 +176,15 @@ void le_display_print_all(void)
 {
 #if !YASH_DISABLE_PROMPT_ADJUST
     /* print dummy string to make sure the cursor is at the beginning of line */
-    le_print_sgr(1, 0, 0, 0, 0, 0, 0);
-    fputc('%', stderr);
-    le_print_sgr(0, 0, 0, 0, 0, 0, 0);
-    for (int i = 1; i < le_columns; i++)
-	fputc(' ', stderr);
-    le_print_cr();
-    le_print_ed();
+    if (le_ti_am) {
+	le_print_sgr(1, 0, 0, 0, 0, 0, 0);
+	fputc('%', stderr);
+	le_print_sgr(0, 0, 0, 0, 0, 0, 0);
+	for (int i = le_ti_xenl ? 1 : 2; i < le_columns; i++)
+	    fputc(' ', stderr);
+	le_print_cr();
+	le_print_ed();
+    }
 #endif
 
     print_prompt();
@@ -298,10 +300,11 @@ void tputwc(wchar_t c)
     int width = wcwidth(c);
     if (width > 0) {
 	int new_column = current_column + width;
-	if (new_column <= le_columns) {
+	if (le_ti_xenl ? new_column <= le_columns : new_column < le_columns) {
 	    current_column = new_column;
 	} else {
-	    le_print_nel_if_no_auto_margin();
+	    if (!le_ti_am)
+		le_print_nel();
 	    current_line++, current_column = width;
 	    CHECK_CURRENT_LINE_MAX;
 	}

@@ -21,6 +21,7 @@
 
 
 extern int le_lines, le_columns;
+extern _Bool le_ti_am, le_ti_xenl;
 extern _Bool le_meta_bit8;
 extern struct trienode_T /* trie_T */ *le_keycodes;
 
@@ -28,7 +29,6 @@ extern _Bool le_setupterm(void);
 
 extern void le_print_cr(void);
 extern void le_print_nel(void);
-extern void le_print_nel_if_no_auto_margin(void);
 extern void le_print_cub(long count);
 extern void le_print_cuf(long count);
 extern void le_print_cud(long count);

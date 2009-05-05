@@ -778,8 +778,8 @@ END
     else
 	enable_ulimit="no"
     fi
+    checked
 fi
-checked
 
 # check for RLIMIT_***
 if [ x"$enable_ulimit" = x"yes" ]
