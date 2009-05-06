@@ -1145,7 +1145,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	char *mbsnewpwd = malloc_wcstombs(newpwd);
 	if (mbsnewpwd == NULL) {
 	    wb_destroy(&curpath);
-	    xerror(0, Ngt("unexpected error"));
+	    xerror(EILSEQ, Ngt("unexpected error"));
 	    return Exit_ERROR;
 	}
 	char *path = which(mbsnewpwd, get_path_array(PA_CDPATH), is_directory);
@@ -1250,7 +1250,7 @@ step10:  /* do chdir */
 
 	    wchar_t *wnewpwd = realloc_mbstowcs(mbsnewpwd);
 	    if (wnewpwd == NULL) {
-		xerror(0, Ngt("cannot convert multibyte characters "
+		xerror(EILSEQ, Ngt("cannot convert multibyte characters "
 			    "into wide characters"));
 		err = true;
 	    } else {

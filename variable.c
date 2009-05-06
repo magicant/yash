@@ -451,8 +451,7 @@ void update_environment(const wchar_t *name)
 			    mname);
 		free(value);
 	    } else {
-		xerror(0, Ngt("environment variable `%s' contains characters "
-			    "that cannot be converted from wide characters"),
+		xerror(EILSEQ, Ngt("cannot set environment variable `%s'"),
 			mname);
 	    }
 	    goto done;

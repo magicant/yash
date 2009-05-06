@@ -274,7 +274,7 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 noglob:
 	result = realloc_wcstombs(unescapefree(exp));
 	if (!result)
-	    xerror(0, Ngt("cannot convert multibyte characters "
+	    xerror(EILSEQ, Ngt("cannot convert multibyte characters "
 			"into wide characters: replaced with empty string"));
     } else {
 	plist_T list;

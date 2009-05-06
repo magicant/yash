@@ -2146,11 +2146,6 @@ readname:
     result->c_redirs = NULL;
     result->c_funcname = xwcsndup(cbuf.contents + savecindex, namelen);
     result->c_funcbody = body;
-    if (!result->c_funcname) {
-	cerror = true;
-	xerror(0, Ngt("cannot convert wide characters "
-		    "into multibyte characters"));
-    }
     return result;
 
 fail:

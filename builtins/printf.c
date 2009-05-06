@@ -407,7 +407,7 @@ put_char:
 	default:  normal:
 	    {
 		if (!sb_wccat(&buf, *format, &state)) {
-		    xerror(0, Ngt("unexpected error"));
+		    xerror(EILSEQ, Ngt("unexpected error"));
 		    sb_destroy(&buf);
 		    return false;
 		}

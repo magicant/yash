@@ -1412,7 +1412,7 @@ int dot_builtin(int argc, void **argv)
 
     char *mbsfilename = malloc_wcstombs(filename);
     if (!mbsfilename) {
-	xerror(0, Ngt("unexpected error"));
+	xerror(EILSEQ, Ngt("unexpected error"));
 	return Exit_ERROR;
     }
 
@@ -1545,7 +1545,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     for (int i = 0; i < argc; i++) {
 	args[i] = malloc_wcstombs(ARGV(i));
 	if (!args[i]) {
-	    xerror(0, Ngt("cannot convert wide characters into "
+	    xerror(EILSEQ, Ngt("cannot convert wide characters into "
 			"multibyte characters: replaced with empty string"));
 	    args[i] = xstrdup("");
 	}
@@ -1583,7 +1583,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	freelater = args[0];
 	args[0] = malloc_wcstombs(as);
 	if (!args[0]) {
-	    xerror(0, Ngt("cannot convert wide characters into "
+	    xerror(EILSEQ, Ngt("cannot convert wide characters into "
 			"multibyte characters: replaced with empty string"));
 	    args[0] = xstrdup("");
 	}

@@ -1301,7 +1301,7 @@ int fc_exec_entry(const histentry_T *entry,
 {
     wchar_t *code = malloc_mbstowcs(entry->value);
     if (!code) {
-	xerror(0, Ngt("unexpected error"));
+	xerror(EILSEQ, Ngt("unexpected error"));
 	return Exit_ERROR;
     }
 
