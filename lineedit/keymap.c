@@ -89,6 +89,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_char));
     t = trie_setw(t, L"W",          CMDENTRY(cmd_forward_bigword));
     t = trie_setw(t, L"E",          CMDENTRY(cmd_end_of_bigword));
     t = trie_setw(t, L"B",          CMDENTRY(cmd_backward_bigword));
