@@ -266,6 +266,10 @@ wchar_t *skip_name(const wchar_t *s)
 /* Returns true iff the string is a shell reserved word. */
 bool is_keyword(const wchar_t *s)
 {
+    /* List of keywords:
+     *    case do done elif else esac fi for if in then until while { } !
+     * The following words are currently not keywords:
+     *    [[ ]] function select */
     switch (s[0]) {
 	case L'c':
 	    return s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0';

@@ -1248,6 +1248,8 @@ void next_token(evalinfo_T *info)
 	    info->token.type = TT_COLON;
 	    info->index++;
 	    break;
+	case L'_':
+	    goto parse_identifier;
 	default:
 	    assert(!iswspace(c));
 	    if (c == L'.' || iswdigit(c)) {
@@ -1266,7 +1268,7 @@ parse_num:
 		info->token.word.contents = &info->exp[startindex];
 		info->token.word.length = info->index - startindex;
 	    } else if (iswalpha(c)) {
-		/* identifier */
+parse_identifier:;
 		size_t startindex = info->index;
 		do
 		    c = info->exp[++info->index];

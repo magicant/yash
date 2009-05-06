@@ -49,7 +49,7 @@
 #include "yash.h"
 
 
-const char *const path_variables[PATHTCOUNT] = {
+static const char *const path_variables[PA_count] = {
     [PA_PATH] = VAR_PATH,
     [PA_CDPATH] = VAR_CDPATH,
     [PA_MAILPATH] = VAR_MAILPATH,
@@ -62,7 +62,7 @@ typedef struct environ_T {
     struct environ_T *parent;      /* parent environment */
     struct hashtable_T contents;   /* hashtable containing variables */
     bool is_temporary;             /* for temporary assignment? */
-    char **paths[PATHTCOUNT];
+    char **paths[PA_count];
 } environ_T;
 /* `contents' is a hashtable from (char *) to (variable_T *).
  * A variable name may contain any characters except '\0' and '=', though
@@ -236,7 +236,7 @@ void init_variables(void)
     current_env->parent = NULL;
     current_env->is_temporary = false;
     ht_init(&current_env->contents, hashstr, htstrcmp);
-    for (size_t i = 0; i < PATHTCOUNT; i++)
+    for (size_t i = 0; i < PA_count; i++)
 	current_env->paths[i] = NULL;
 
     ht_init(&functions, hashstr, htstrcmp);
@@ -327,7 +327,7 @@ void init_variables(void)
 	    SCOPE_GLOBAL, false);
 
     /* initialize path according to $PATH/CDPATH */
-    for (size_t i = 0; i < PATHTCOUNT; i++)
+    for (size_t i = 0; i < PA_count; i++)
 	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
 }
 
@@ -928,7 +928,7 @@ void open_new_environment(bool temp)
     newenv->parent = current_env;
     newenv->is_temporary = temp;
     ht_init(&newenv->contents, hashstr, htstrcmp);
-    for (size_t i = 0; i < PATHTCOUNT; i++)
+    for (size_t i = 0; i < PA_count; i++)
 	newenv->paths[i] = NULL;
     current_env = newenv;
 }
@@ -943,7 +943,7 @@ void close_current_environment(void)
     current_env = oldenv->parent;
     ht_clear(&oldenv->contents, varkvfree_reexport);
     ht_destroy(&oldenv->contents);
-    for (size_t i = 0; i < PATHTCOUNT; i++)
+    for (size_t i = 0; i < PA_count; i++)
 	recfree((void **) oldenv->paths[i], free);
     free(oldenv);
 }
@@ -1104,8 +1104,8 @@ void reset_path(path_T name, variable_T *var)
 
 	variable_T *v = ht_get(&env->contents, path_variables[name]).value;
 	if (v) {
+	    plist_T list;
 	    switch (v->v_type & VF_MASK) {
-		    plist_T list;
 		case VF_NORMAL:
 		    env->paths[name] = decompose_paths(v->v_value);
 		    break;
@@ -1133,12 +1133,9 @@ void reset_path(path_T name, variable_T *var)
  * The caller must not make any change to the returned array. */
 char *const *get_path_array(path_T name)
 {
-    environ_T *env = current_env;
-    while (env) {
+    for (environ_T *env = current_env; env != NULL; env = env->parent)
 	if (env->paths[name])
 	    return env->paths[name];
-	env = env->parent;
-    }
     return NULL;
 }
 
@@ -1163,12 +1160,6 @@ void funckvfree(kvpair_T kv)
 {
     free(kv.key);
     funcfree(kv.value);
-}
-
-/* Clears all functions ignoring VF_READONLY/VF_NODELETE flags. */
-void clear_all_functions(void)
-{
-    ht_clear(&functions, funckvfree);
 }
 
 /* Defines a function.
@@ -1206,7 +1197,7 @@ command_T *get_function(const char *name)
 /* Registers all the commands in the argument to the command hashtable. */
 void hash_all_commands_recursively(const command_T *c)
 {
-    while (c) {
+    for (; c; c = c->next) {
 	switch (c->c_type) {
 	    case CT_SIMPLE:
 		if (c->c_words)
@@ -1232,7 +1223,6 @@ void hash_all_commands_recursively(const command_T *c)
 	    case CT_FUNCDEF:
 		break;
 	}
-	c = c->next;
     }
 }
 
@@ -1859,7 +1849,7 @@ int array_builtin(int argc, void **argv)
 	}
     }
     if (options && (options & (options - 1))) {
-	xerror(0, Ngt("more than one options cannot be used at a time"));
+	xerror(0, Ngt("more than one option cannot be used at a time"));
 	return Exit_ERROR;
     }
 

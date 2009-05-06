@@ -65,9 +65,8 @@ extern char **environ;
 
 typedef enum path_T {
     PA_PATH, PA_CDPATH, PA_MAILPATH,
+    PA_count,
 } path_T;
-#define PATHTCOUNT 3
-extern const char *const path_variables[PATHTCOUNT];
 
 
 extern unsigned long current_lineno;
@@ -110,8 +109,6 @@ extern void close_current_environment(void);
 extern char **decompose_paths(const wchar_t *paths)
     __attribute__((malloc,warn_unused_result));
 extern char *const *get_path_array(path_T name);
-
-extern void clear_all_functions(void);
 
 struct command_T;
 extern _Bool define_function(const char *name, struct command_T *body)

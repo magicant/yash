@@ -17,6 +17,8 @@ Yash 2.9
   =  The "help" builtin now prints an error message if the specified
      builtin is not found.
   *  Fixed floating-point arithmetics in arithmetic expansions.
+  *  Fixed parser for arithmetic expansions that was incorrectly
+     rejecting identifiers that start with underscores.
   *  Fixed the help message for the "pwd" builtin.
 
 ----------------------------------------------------------------------
