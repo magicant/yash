@@ -787,8 +787,11 @@ const wchar_t *getvar(const char *name)
 {
     variable_T *var = search_variable(name);
     if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
-	if (var->v_getter)
+	if (var->v_getter) {
 	    var->v_getter(var);
+	    if ((var->v_type & VF_MASK) != VF_NORMAL)
+		return NULL;
+	}
 	return var->v_value;
     }
     return NULL;
