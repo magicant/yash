@@ -1070,8 +1070,7 @@ assign_T *tryparse_assignment(void)
 
     assign_T *result = xmalloc(sizeof *result);
     result->next = NULL;
-    result->a_name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
-    assert(result->a_name != NULL);
+    result->a_name = xwcsndup(cbuf.contents + cindex, namelen);
     cindex += namelen + 1;
 
     ensure_buffer(1);
@@ -1418,8 +1417,7 @@ findnamelen:
 success:
     pe = xmalloc(sizeof *pe);
     pe->pe_type = PT_NONE;
-    pe->pe_name = malloc_wcsntombs(cbuf.contents + cindex, namelen);
-    assert(pe->pe_name != NULL);
+    pe->pe_name = xwcsndup(cbuf.contents + cindex, namelen);
     pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
 
     wordunit_T *result = xmalloc(sizeof *result);
@@ -1487,7 +1485,7 @@ parse_name:;
 	    goto fail;
 	}
 make_name:
-	pe->pe_name = malloc_wcsntombs(
+	pe->pe_name = xwcsndup(
 		cbuf.contents + namestartindex, cindex - namestartindex);
 	assert(pe->pe_name != NULL);
     }
@@ -1929,9 +1927,7 @@ command_T *parse_for(void)
 	serror(Ngt("no identifier after `for'"));
     else if (*skip_name(name) != L'\0')
 	serror(Ngt("`%ls' is not valid identifier"), name);
-    result->c_forname = realloc_wcstombs(name);
-    if (!result->c_forname)
-	serror(Ngt("cannot convert wide characters into multibyte characters"));
+    result->c_forname = name;
 
     skip_to_next_token();
     ensure_buffer(3);
@@ -2148,8 +2144,7 @@ readname:
     result->c_type = CT_FUNCDEF;
     result->c_lineno = lineno;
     result->c_redirs = NULL;
-    result->c_funcname = realloc_wcstombs(
-	    xwcsndup(cbuf.contents + savecindex, namelen));
+    result->c_funcname = xwcsndup(cbuf.contents + savecindex, namelen);
     result->c_funcbody = body;
     if (!result->c_funcname) {
 	cerror = true;
@@ -2539,7 +2534,7 @@ void print_command_content(xwcsbuf_T *restrict buf, const command_T *restrict c)
 	break;
     case CT_FOR:
 	wb_cat(buf, L"for ");
-	wb_mbscat(buf, c->c_forname);
+	wb_cat(buf, c->c_forname);
 	if (c->c_forwords) {
 	    wb_cat(buf, L" in");
 	    for (void **w = c->c_forwords; *w; w++) {
@@ -2566,7 +2561,7 @@ void print_command_content(xwcsbuf_T *restrict buf, const command_T *restrict c)
 	wb_cat(buf, L"esac ");
 	break;
     case CT_FUNCDEF:
-	wb_mbscat(buf, c->c_funcname);
+	wb_cat(buf, c->c_funcname);
 	wb_cat(buf, L" () ");
 	print_commands(buf, c->c_funcbody);
 	break;
@@ -2596,7 +2591,7 @@ void print_caseitems(xwcsbuf_T *restrict buf, const caseitem_T *restrict i)
 void print_assigns(xwcsbuf_T *restrict buf, const assign_T *restrict a)
 {
     while (a) {
-	wb_mbscat(buf, a->a_name);
+	wb_cat(buf, a->a_name);
 	wb_wccat(buf, L'=');
 	switch (a->a_type) {
 	    case A_SCALAR:
@@ -2693,7 +2688,7 @@ void print_paramexp(xwcsbuf_T *restrict buf, const paramexp_T *restrict p)
     if (p->pe_type & PT_NEST)
 	print_word(buf, p->pe_nest);
     else
-	wb_mbscat(buf, p->pe_name);
+	wb_cat(buf, p->pe_name);
     if (p->pe_start) {
 	wb_wccat(buf, L'[');
 	print_word(buf, p->pe_start);

@@ -1066,13 +1066,13 @@ int cd_builtin(int argc, void **argv)
     }
 
     if (argc <= xoptind) {  /* step 1-2 */
-	newpwd = getvar(VAR_HOME);
+	newpwd = getvar(L VAR_HOME);
 	if (newpwd == NULL || newpwd[0] == L'\0') {
 	    xerror(0, Ngt("$HOME not set"));
 	    return Exit_FAILURE;
 	}
     } else if (wcscmp(ARGV(xoptind), L"-") == 0) {
-	newpwd = getvar(VAR_OLDPWD);
+	newpwd = getvar(L VAR_OLDPWD);
 	if (newpwd == NULL || newpwd[0] == L'\0') {
 	    xerror(0, Ngt("$OLDPWD not set"));
 	    return Exit_FAILURE;
@@ -1098,7 +1098,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
     bool err = false;
 
     /* get the current value of $PWD as `oldpwd' */
-    oldpwd = getvar(VAR_PWD);
+    oldpwd = getvar(L VAR_PWD);
     if (oldpwd == NULL || oldpwd[0] != L'/') {
 	if (oldpwd == newpwd) {
 	    xerror(0, Ngt("invalid $PWD value"));
@@ -1114,8 +1114,8 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	} else {
 	    wchar_t *wpwd = realloc_mbstowcs(pwd);
 	    if (wpwd != NULL) {
-		if (set_variable(VAR_PWD, wpwd, SCOPE_GLOBAL, false))
-		    oldpwd = getvar(VAR_PWD);
+		if (set_variable(L VAR_PWD, wpwd, SCOPE_GLOBAL, false))
+		    oldpwd = getvar(L VAR_PWD);
 		else
 		    logical = false, oldpwd = NULL;
 	    } else {
@@ -1230,12 +1230,12 @@ step10:  /* do chdir */
 
     /* set $OLDPWD and $PWD */
     if (oldpwd != NULL)
-	if (!set_variable(VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
+	if (!set_variable(L VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
 	    err = true;
     if (logical) {
 	if (printnewdir)
 	    printf("%ls\n", curpath.contents);
-	if (!set_variable(VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false))
+	if (!set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false))
 	    err = true;
     } else {
 	wb_destroy(&curpath);
@@ -1254,7 +1254,7 @@ step10:  /* do chdir */
 			    "into wide characters"));
 		err = true;
 	    } else {
-		if (!set_variable(VAR_PWD, wnewpwd, SCOPE_GLOBAL, false))
+		if (!set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false))
 		    err = true;
 	    }
 	}
@@ -1304,7 +1304,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	}
     }
 
-    const wchar_t *oldpwd = getvar(VAR_PWD);
+    const wchar_t *oldpwd = getvar(L VAR_PWD);
     if (!oldpwd) {
 	xerror(0, Ngt("$PWD not set"));
 	return Exit_FAILURE;
@@ -1319,7 +1319,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     if (wcscmp(arg, L"-") == 0) {
 	printnewdir = true;
 	stackindex = SIZE_MAX;
-	newpwd = getvar(VAR_OLDPWD);
+	newpwd = getvar(L VAR_OLDPWD);
 	if (!newpwd) {
 	    xerror(0, Ngt("$OLDPWD not set"));
 	    return Exit_FAILURE;
@@ -1450,7 +1450,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
     }
 
     if (logical) {
-	const wchar_t *pwd = getvar(VAR_PWD);
+	const wchar_t *pwd = getvar(L VAR_PWD);
 	if (pwd != NULL && pwd[0] == L'/' && is_normalized_path(pwd)) {
 	    mbspwd = malloc_wcstombs(pwd);
 	    if (mbspwd != NULL) {

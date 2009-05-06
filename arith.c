@@ -274,16 +274,10 @@ bool do_assignment(const word_T *word, const value_T *value)
     if (!vstr)
 	return false;
 
-    char *name = malloc_wcsntombs(word->contents, word->length);
-    if (!name) {
-	xerror(0, Ngt("cannot convert wide characters "
-		    "into multibyte characters"));
-	return false;
-    }
-
-    bool succ = set_variable(name, vstr, SCOPE_GLOBAL, false);
-    free(name);
-    return succ;
+    wchar_t name[word->length + 1];
+    wmemcpy(name, word->contents, word->length);
+    name[word->length] = L'\0';
+    return set_variable(name, vstr, SCOPE_GLOBAL, false);
 }
 
 /* Converts `value' to a newly-malloced wide string.
@@ -299,15 +293,10 @@ wchar_t *value_to_string(const value_T *value)
 	    return malloc_wprintf(L"%.*g", DBL_DIG, value->v_double);
 	case VT_VAR:
 	    {
-		char *name = malloc_wcsntombs(
-			value->v_var.contents, value->v_var.length);
-		if (!name) {
-		    xerror(0, Ngt("cannot convert wide characters "
-				"into multibyte characters"));
-		    return NULL;
-		}
+		wchar_t name[value->v_var.length + 1];
+		wmemcpy(name, value->v_var.contents, value->v_var.length);
+		name[value->v_var.length] = L'\0';
 		const wchar_t *var = getvar(name);
-		free(name);
 		return var ? xwcsdup(var) : NULL;
 	    }
 	default:
@@ -970,17 +959,13 @@ void coerce_number(evalinfo_T *info, value_T *value)
     // TODO: arith: coerce_number: recursively parse the value of the variable
     //                             as an expression
 
-    char *name = malloc_wcsntombs(value->v_var.contents, value->v_var.length);
-    if (!name) {
-	xerror(0, Ngt("cannot convert wide characters "
-		    "into multibyte characters"));
-	info->error = true;
-	value->type = VT_INVALID;
-	return;
+    const wchar_t *v;
+    {
+	wchar_t name[value->v_var.length + 1];
+	wmemcpy(name, value->v_var.contents, value->v_var.length);
+	name[value->v_var.length] = L'\0';
+	v = getvar(name);
     }
-
-    const wchar_t *v = getvar(name);
-    free(name);
     if (!v || !v[0]) {
 	value->type = VT_LONG;
 	value->v_long = 0;

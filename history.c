@@ -393,7 +393,7 @@ bool is_newer(const histentry_T *e1, const histentry_T *e2)
  * Returns NULL on failure. */
 FILE *open_histfile(void)
 {
-    const wchar_t *vhistfile = getvar(VAR_HISTFILE);
+    const wchar_t *vhistfile = getvar(L VAR_HISTFILE);
     if (!vhistfile)
 	return NULL;
 
@@ -855,7 +855,7 @@ void maybe_init_history(void)
     initialized = true;
 
     /* set `histsize' */
-    const wchar_t *vhistsize = getvar(VAR_HISTSIZE);
+    const wchar_t *vhistsize = getvar(L VAR_HISTSIZE);
     if (vhistsize && vhistsize[0]) {
 	unsigned long size;
 	wchar_t *end;

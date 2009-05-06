@@ -81,7 +81,7 @@ int echo_builtin(int argc, void **argv)
      *   SYSV, XSI, BSD, GNU, ZSH, DASH, RAW
      * But we only care about the first character of it. */
     nonewline = false;
-    echo_style = getvar(VAR_ECHO_STYLE);
+    echo_style = getvar(L VAR_ECHO_STYLE);
     switch (echo_style ? echo_style[0] : L'\0') {
 	case L'S':  case L's':  case L'X':  case L'x':  default:
 	    escape = true, noption = false, eoption = false;

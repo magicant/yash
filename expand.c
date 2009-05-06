@@ -243,7 +243,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     }
     if (list.length != 1) {
 	/* concatenate multiple words to a single */
-	const wchar_t *ifs = getvar(VAR_IFS);
+	const wchar_t *ifs = getvar(L VAR_IFS);
 	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	result = joinwcsarray(list.contents, padding);
 	pl_destroy(pl_clear(&list, free));
@@ -554,7 +554,7 @@ wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
     username = xwcsndup(s, usernamelen);
     if (username[0] == L'\0') {
 	/* empty user name: use $HOME */
-	home = getvar(VAR_HOME);
+	home = getvar(L VAR_HOME);
 	goto finish;
     } else if (wcspbrk(username, L"\"'\\") != 0) {
 	/* don't expand if the user name is quoted */
@@ -565,7 +565,7 @@ wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
 	size_t index = index;
 	if (username[0] == L'+') {
 	    if (username[1] == L'\0') {
-		home = getvar(VAR_PWD);
+		home = getvar(L VAR_PWD);
 		goto finish;
 #if YASH_ENABLE_DIRSTACK
 	    } else if (parse_dirstack_index(username, &index, &home, false)
@@ -575,7 +575,7 @@ wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
 	    }
 	} else if (username[0] == L'-') {
 	    if (username[1] == L'\0') {
-		home = getvar(VAR_OLDPWD);
+		home = getvar(L VAR_OLDPWD);
 		goto finish;
 #if YASH_ENABLE_DIRSTACK
 	    } else if (parse_dirstack_index(username, &index, &home, false)
@@ -762,12 +762,12 @@ subst:
 		xerror(0, Ngt("invalid assignment in parameter expansion"));
 		return false;
 	    } else if (!is_name(p->pe_name)) {
-		xerror(0, Ngt("cannot assign to `%s' in parameter expansion"),
+		xerror(0, Ngt("cannot assign to `%ls' in parameter expansion"),
 			p->pe_name);
 		return false;
 	    } else if ((v.type == GV_ARRAY_CONCAT)
 		    || (v.type == GV_ARRAY && startindex + 1 != endindex)) {
-		xerror(0, Ngt("cannot assign to array range `%s[...]' "
+		xerror(0, Ngt("cannot assign to array range `%ls[...]' "
 			    "in parameter expansion"),
 			p->pe_name);
 		return false;
@@ -806,7 +806,7 @@ subst:
 
     if (shopt_nounset && unset) {
 	recfree(list, free);
-	xerror(0, Ngt("%s: parameter not set"), p->pe_name);
+	xerror(0, Ngt("%ls: parameter not set"), p->pe_name);
 	return false;
     }
 
@@ -839,7 +839,7 @@ subst:
 
     /* concatenate `list' elements */
     if (concat || !indq) {
-	const wchar_t *ifs = getvar(VAR_IFS);
+	const wchar_t *ifs = getvar(L VAR_IFS);
 	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	wchar_t *chain = joinwcsarray(list, padding);
 	recfree(list, free);
@@ -1004,7 +1004,7 @@ void print_subst_as_error(const paramexp_T *p)
 	    if (p->pe_type & PT_NEST)
 		xerror(0, "%ls", subst);
 	    else
-		xerror(0, "%s: %ls", p->pe_name, subst);
+		xerror(0, "%ls: %ls", p->pe_name, subst);
 	    free(subst);
 	}
     } else {
@@ -1012,8 +1012,8 @@ void print_subst_as_error(const paramexp_T *p)
 	    xerror(0, Ngt("parameter null"));
 	else
 	    xerror(0, (p->pe_type & PT_COLON)
-		    ? Ngt("%s: parameter null or not set")
-		    : Ngt("%s: parameter not set"),
+		    ? Ngt("%ls: parameter null or not set")
+		    : Ngt("%ls: parameter not set"),
 		    p->pe_name);
     }
 }
@@ -1538,7 +1538,7 @@ void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
 	plist_T *restrict dest)
 {
     void **s = valuelist, **t = splitlist;
-    const wchar_t *ifs = getvar(VAR_IFS);
+    const wchar_t *ifs = getvar(L VAR_IFS);
     if (!ifs)
 	ifs = DEFAULT_IFS;
     while (*s) {

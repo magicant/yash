@@ -103,7 +103,7 @@ void inactivate(void)
  * Calls `inactivate' if $MAILCHECK is not a valid integer. */
 bool is_time_to_check_mail(void)
 {
-    const wchar_t *mailcheck = getvar(VAR_MAILCHECK);
+    const wchar_t *mailcheck = getvar(L VAR_MAILCHECK);
     if (!mailcheck || !mailcheck[0]) {
 	inactivate();
 	return false;
@@ -132,7 +132,7 @@ void check_mail_and_print_message(void)
     char *const *mailpath = get_path_array(PA_MAILPATH);
 
     if (!mailpath) {
-	const wchar_t *mail = getvar(VAR_MAIL);
+	const wchar_t *mail = getvar(L VAR_MAIL);
 	if (mail) {
 	    activate();
 

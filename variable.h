@@ -62,6 +62,7 @@ extern char **environ;
 #define VAR_RANDOM	"RANDOM"
 #define VAR_TERM	"TERM"
 #define VAR_YASH_VERSION "YASH_VERSION"
+#define L               L""
 
 typedef enum path_T {
     PA_PATH, PA_CDPATH, PA_MAILPATH,
@@ -73,19 +74,19 @@ extern unsigned long current_lineno;
 
 extern void init_variables(void);
 
-extern _Bool is_name(const char *s)
+extern _Bool is_name(const wchar_t *s)
     __attribute__((nonnull,pure));
 
 typedef enum scope_T {
     SCOPE_GLOBAL, SCOPE_LOCAL, SCOPE_TEMP,
 } scope_T;
 extern _Bool set_variable(
-	const char *name, wchar_t *value, scope_T scope, _Bool export)
+	const wchar_t *name, wchar_t *value, scope_T scope, _Bool export)
     __attribute__((nonnull(1)));
 extern _Bool set_array(
-	const char *name, size_t count, void **values, scope_T scope)
+	const wchar_t *name, size_t count, void **values, scope_T scope)
     __attribute__((nonnull));
-extern bool set_array_element(const char *name, size_t index, wchar_t *value)
+extern bool set_array_element(const wchar_t *name, size_t index, wchar_t *value)
     __attribute__((nonnull));
 extern void set_positional_parameters(void *const *values)
     __attribute__((nonnull));
@@ -98,9 +99,9 @@ struct get_variable {
     size_t count;
     void **values;
 };
-extern const wchar_t *getvar(const char *name)
+extern const wchar_t *getvar(const wchar_t *name)
     __attribute__((pure,nonnull));
-extern struct get_variable get_variable(const char *name)
+extern struct get_variable get_variable(const wchar_t *name)
     __attribute__((nonnull,warn_unused_result));
 
 extern void open_new_environment(_Bool temp);
@@ -111,9 +112,9 @@ extern char **decompose_paths(const wchar_t *paths)
 extern char *const *get_path_array(path_T name);
 
 struct command_T;
-extern _Bool define_function(const char *name, struct command_T *body)
+extern _Bool define_function(const wchar_t *name, struct command_T *body)
     __attribute__((nonnull));
-extern struct command_T *get_function(const char *name)
+extern struct command_T *get_function(const wchar_t *name)
     __attribute__((nonnull));
 
 extern size_t get_dirstack_size(void);

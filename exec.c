@@ -350,7 +350,7 @@ void exec_for(const command_T *c, bool finally_exit)
 	    goto finish;
 	}
     } else {
-	struct get_variable v = get_variable("@");
+	struct get_variable v = get_variable(L"@");
 	assert(v.type == GV_ARRAY && v.values != NULL);
 	words = duparray(v.values, copyaswcs);
 	count = plcount(words);
@@ -862,7 +862,7 @@ void search_command(
 
     /* search builtins and functions. */
     const builtin_T *bi = (type & sct_builtin) ? get_builtin(name) : NULL;
-    command_T *funcbody = (type & sct_function) ? get_function(name) : NULL;
+    command_T *funcbody = (type & sct_function) ? get_function(wname) : NULL;
     if (bi && bi->type == BI_SPECIAL) {
 	ci->type = specialbuiltin;
 	ci->ci_builtin = bi->body;
@@ -932,7 +932,7 @@ bool assignment_is_temporary(enum cmdtype_T type)
 bool including_path_assignment(const assign_T *a)
 {
     while (a) {
-	if (strcmp(a->a_name, VAR_PATH) == 0)
+	if (wcscmp(a->a_name, L VAR_PATH) == 0)
 	    return true;
 	a = a->next;
     }
@@ -1570,9 +1570,9 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	
 	pl_init(&list);
 	for (assign_T *assign = last_assign; assign; assign = assign->next) {
-	    const char *envval = getenv(assign->a_name);
+	    const wchar_t *val = getvar(assign->a_name);
 	    pl_add(&list, malloc_printf(
-			"%s=%s", assign->a_name, envval ? envval : ""));
+			"%ls=%ls", assign->a_name, val ? val : L""));
 	}
 	envs = (char **) pl_toary(&list);
     } else {
@@ -1839,7 +1839,7 @@ void print_command_absolute_path(
 	return;
     }
 
-    const wchar_t *wpwd = getvar(VAR_PWD);
+    const wchar_t *wpwd = getvar(L VAR_PWD);
     char *pwd = NULL;
     if (wpwd) {
 	pwd = malloc_wcstombs(wpwd);

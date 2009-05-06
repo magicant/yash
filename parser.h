@@ -75,7 +75,7 @@ typedef struct command_T {
 	struct and_or_T     *subcmds;  /* contents of command group */
 	struct ifcommand_T  *ifcmds;   /* contents of if command */
 	struct {
-	    char            *forname;  /* loop variable of for loop */
+	    wchar_t         *forname;  /* loop variable of for loop */
 	    void           **forwords; /* words assigned to loop variable */
 	    struct and_or_T *forcmds;  /* commands executed in for loop */
 	} forcontent;
@@ -89,7 +89,7 @@ typedef struct command_T {
 	    struct caseitem_T *casitems;  /* pairs of patterns and commands */
 	} casecontent;
 	struct {
-	    char             *funcname;  /* name of function */
+	    wchar_t          *funcname;  /* name of function */
 	    struct command_T *funcbody;  /* body of function */
 	} funcdef;
     } c_content;
@@ -199,7 +199,7 @@ typedef enum {
 typedef struct paramexp_T {
     paramexptype_T pe_type;
     union {
-	char              *name;
+	wchar_t           *name;
 	struct wordunit_T *nest;
     } pe_value;
     struct wordunit_T *pe_start, *pe_end;
@@ -225,7 +225,7 @@ typedef enum {
 typedef struct assign_T {
     struct assign_T *next;
     assigntype_T a_type;
-    char *a_name;
+    wchar_t *a_name;
     union {
 	struct wordunit_T *scalar;
 	void **array;          

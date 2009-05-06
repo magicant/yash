@@ -49,10 +49,10 @@
 #include "yash.h"
 
 
-static const char *const path_variables[PA_count] = {
-    [PA_PATH] = VAR_PATH,
-    [PA_CDPATH] = VAR_CDPATH,
-    [PA_MAILPATH] = VAR_MAILPATH,
+const wchar_t *const path_variables[PA_count] = {
+    [PA_PATH]     = L VAR_PATH,
+    [PA_CDPATH]   = L VAR_CDPATH,
+    [PA_MAILPATH] = L VAR_MAILPATH,
 };
 
 
@@ -64,11 +64,11 @@ typedef struct environ_T {
     bool is_temporary;             /* for temporary assignment? */
     char **paths[PA_count];
 } environ_T;
-/* `contents' is a hashtable from (char *) to (variable_T *).
- * A variable name may contain any characters except '\0' and '=', though
+/* `contents' is a hashtable from (wchar_t *) to (variable_T *).
+ * A variable name may contain any characters except L'\0' and L'=', though
  * assignment syntax allows only limited characters.
- * Variable names starting with '=' are used for special purposes.
- * The positional parameter is treated as an array whose name is "=".
+ * Variable names starting with L'=' are used for special purposes.
+ * The positional parameter is treated as an array whose name is L"=".
  * Note that the number of positional parameters is offseted by 1 against the
  * array index. */
 /* An environment whose `is_temporary' is true is used for temporary variables. 
@@ -123,28 +123,30 @@ static void varkvfree_reexport(kvpair_T kv);
 
 static void init_pwd(void);
 
-static inline bool is_name_char(char c)
+static inline bool is_name_char(wchar_t c)
     __attribute__((const));
 
-static variable_T *search_variable(const char *name)
+static variable_T *search_variable(const wchar_t *name)
     __attribute__((pure,nonnull));
-static variable_T *search_array_and_check_if_changeable(const char *name)
+static variable_T *search_array_and_check_if_changeable(const wchar_t *name)
     __attribute__((pure,nonnull));
-static void update_enrivon(const char *name)
+static void update_environment(const wchar_t *name)
     __attribute__((nonnull));
-static void reset_locale(const char *name)
+static void reset_locale(const wchar_t *name)
     __attribute__((nonnull));
-static void reset_locale_category(const char *name, int category)
+static void reset_locale_category(const wchar_t *name, int category)
     __attribute__((nonnull));
-static variable_T *new_global(const char *name)
+static variable_T *new_global(const wchar_t *name)
     __attribute__((nonnull));
-static variable_T *new_local(const char *name)
+static variable_T *new_local(const wchar_t *name)
     __attribute__((nonnull));
-static variable_T *new_temporary(const char *name)
+static variable_T *new_temporary(const wchar_t *name)
     __attribute__((nonnull));
-static variable_T *new_variable(const char *name, scope_T scope)
+static variable_T *new_variable(const wchar_t *name, scope_T scope)
     __attribute__((nonnull));
-static void print_array_trace(const char *name, void *const *values, bool next)
+static void print_variable_trace(const wchar_t *name, const wchar_t *value)
+    __attribute__((nonnull));
+static void print_array_trace(const wchar_t *name, void *const *values)
     __attribute__((nonnull));
 static void get_all_variables_rec(hashtable_T *table, environ_T *env)
     __attribute__((nonnull));
@@ -155,7 +157,7 @@ static void random_getter(variable_T *var)
     __attribute__((nonnull));
 static unsigned next_random(void);
 
-static void variable_set(const char *name, variable_T *var)
+static void variable_set(const wchar_t *name, variable_T *var)
     __attribute__((nonnull(1)));
 
 static void reset_path(path_T name, variable_T *var);
@@ -219,13 +221,13 @@ void varkvfree(kvpair_T kv)
     varfree(kv.value);
 }
 
-/* Calls `variable_set' and `update_enrivon' for `kv.key' and
+/* Calls `variable_set' and `update_environment' for `kv.key' and
  * frees the variable. */
 void varkvfree_reexport(kvpair_T kv)
 {
     variable_set(kv.key, NULL);
     if (((variable_T *) kv.value)->v_type & VF_EXPORT)
-	update_enrivon(kv.key);
+	update_environment(kv.key);
     varkvfree(kv);
 }
 
@@ -235,11 +237,11 @@ void init_variables(void)
     first_env = current_env = xmalloc(sizeof *current_env);
     current_env->parent = NULL;
     current_env->is_temporary = false;
-    ht_init(&current_env->contents, hashstr, htstrcmp);
+    ht_init(&current_env->contents, hashwcs, htwcscmp);
     for (size_t i = 0; i < PA_count; i++)
 	current_env->paths[i] = NULL;
 
-    ht_init(&functions, hashstr, htstrcmp);
+    ht_init(&functions, hashwcs, htwcscmp);
 
     /* add all the existing environment variables to the variable environment */
     for (char **e = environ; *e; e++) {
@@ -247,48 +249,46 @@ void init_variables(void)
 	if (!we)
 	    continue;
 
-	size_t namelen;
-	for (namelen = 0; we[namelen] && we[namelen] != L'='; namelen++);
-
-	char *name = malloc_wcsntombs(we, namelen);
-	if (name) {
-	    variable_T *v = xmalloc(sizeof *v);
-	    v->v_type = VF_NORMAL | VF_EXPORT;
-	    v->v_value = we[namelen] == L'=' ? xwcsdup(we + namelen + 1) : NULL;
-	    v->v_getter = NULL;
-	    varkvfree(ht_set(&current_env->contents, name, v));
+	wchar_t *eqp = wcschr(we, L'=');
+	variable_T *v = xmalloc(sizeof *v);
+	v->v_type = VF_NORMAL | VF_EXPORT;
+	v->v_value = eqp ? xwcsdup(eqp + 1) : NULL;
+	v->v_getter = NULL;
+	if (eqp) {
+	    *eqp = L'\0';
+	    we = xrealloc(we, sizeof *we * (eqp - we + 1));
 	}
-	free(we);
+	varkvfree(ht_set(&current_env->contents, we, v));
     }
 
     /* set $IFS */
-    set_variable(VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_GLOBAL, false);
+    set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_GLOBAL, false);
 
     /* set $LINENO */
     {
-	variable_T *v = new_variable(VAR_LINENO, false);
+	variable_T *v = new_variable(L VAR_LINENO, false);
 	assert(v != NULL);
 	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
 	v->v_value = NULL;
 	v->v_getter = lineno_getter;
 	// variable_set(VAR_LINENO, v);
 	if (v->v_type & VF_EXPORT)
-	    update_enrivon(VAR_LINENO);
+	    update_environment(L VAR_LINENO);
     }
 
     /* set $MAILCHECK */
-    if (!getvar(VAR_MAILCHECK))
-	set_variable(VAR_MAILCHECK, xwcsdup(L"600"), SCOPE_GLOBAL, false);
+    if (!getvar(L VAR_MAILCHECK))
+	set_variable(L VAR_MAILCHECK, xwcsdup(L"600"), SCOPE_GLOBAL, false);
 
     /* set $PS1~4 */
     {
 	const wchar_t *ps1 =
 	    !posixly_correct ? L"\\$ " : (geteuid() != 0) ? L"$ " : L"# ";
-	set_variable(VAR_PS1, xwcsdup(ps1),   SCOPE_GLOBAL, false);
-	set_variable(VAR_PS2, xwcsdup(L"> "), SCOPE_GLOBAL, false);
+	set_variable(L VAR_PS1, xwcsdup(ps1),   SCOPE_GLOBAL, false);
+	set_variable(L VAR_PS2, xwcsdup(L"> "), SCOPE_GLOBAL, false);
 	if (!posixly_correct)
-	    set_variable(VAR_PS3, xwcsdup(L"#? "), SCOPE_GLOBAL, false);
-	set_variable(VAR_PS4, xwcsdup(L"+ "), SCOPE_GLOBAL, false);
+	    set_variable(L VAR_PS3, xwcsdup(L"#? "), SCOPE_GLOBAL, false);
+	set_variable(L VAR_PS4, xwcsdup(L"+ "), SCOPE_GLOBAL, false);
     }
 
     /* set $PWD */
@@ -296,22 +296,22 @@ void init_variables(void)
 
     /* export $OLDPWD */
     {
-	variable_T *v = new_global(VAR_OLDPWD);
+	variable_T *v = new_global(L VAR_OLDPWD);
 	assert(v != NULL);
 	v->v_type |= VF_EXPORT;
-	variable_set(VAR_OLDPWD, v);
+	variable_set(L VAR_OLDPWD, v);
     }
 
     /* set $PPID */
-    set_variable(VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
+    set_variable(L VAR_PPID, malloc_wprintf(L"%jd", (intmax_t) getppid()),
 	    SCOPE_GLOBAL, false);
 
     /* set $OPTIND */
-    set_variable(VAR_OPTIND, xwcsdup(L"1"), SCOPE_GLOBAL, false);
+    set_variable(L VAR_OPTIND, xwcsdup(L"1"), SCOPE_GLOBAL, false);
 
     /* set $RANDOM */
-    if (!posixly_correct && !getvar(VAR_RANDOM)) {
-	variable_T *v = new_variable(VAR_RANDOM, false);
+    if (!posixly_correct && !getvar(L VAR_RANDOM)) {
+	variable_T *v = new_variable(L VAR_RANDOM, false);
 	assert(v != NULL);
 	v->v_type = VF_NORMAL;
 	v->v_value = NULL;
@@ -323,7 +323,7 @@ void init_variables(void)
     }
 
     /* set $YASH_VERSION */
-    set_variable(VAR_YASH_VERSION, xwcsdup(L"" PACKAGE_VERSION),
+    set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
 	    SCOPE_GLOBAL, false);
 
     /* initialize path according to $PATH/CDPATH */
@@ -341,7 +341,7 @@ void init_pwd(void)
     const char *pwd = getenv(VAR_PWD);
     if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
 	goto set;
-    const wchar_t *wpwd = getvar(VAR_PWD);
+    const wchar_t *wpwd = getvar(L VAR_PWD);
     if (!wpwd || !is_normalized_path(wpwd))
 	goto set;
     return;
@@ -359,26 +359,26 @@ set:
 	xerror(0, Ngt("cannot set $PWD"));
 	return;
     }
-    set_variable(VAR_PWD, wnewpwd, SCOPE_GLOBAL, true);
+    set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, true);
 }
 
 /* Checks if the specified character can be used in a variable name in an
  * assignment. */
-bool is_name_char(char c)
+bool is_name_char(wchar_t c)
 {
     switch (c) {
-    case '0':  case '1':  case '2':  case '3':  case '4':
-    case '5':  case '6':  case '7':  case '8':  case '9':
-    case 'a':  case 'b':  case 'c':  case 'd':  case 'e':  case 'f':
-    case 'g':  case 'h':  case 'i':  case 'j':  case 'k':  case 'l':
-    case 'm':  case 'n':  case 'o':  case 'p':  case 'q':  case 'r':
-    case 's':  case 't':  case 'u':  case 'v':  case 'w':  case 'x':
-    case 'y':  case 'z':
-    case 'A':  case 'B':  case 'C':  case 'D':  case 'E':  case 'F':
-    case 'G':  case 'H':  case 'I':  case 'J':  case 'K':  case 'L':
-    case 'M':  case 'N':  case 'O':  case 'P':  case 'Q':  case 'R':
-    case 'S':  case 'T':  case 'U':  case 'V':  case 'W':  case 'X':
-    case 'Y':  case 'Z':  case '_':
+    case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
+    case L'5':  case L'6':  case L'7':  case L'8':  case L'9':
+    case L'a':  case L'b':  case L'c':  case L'd':  case L'e':  case L'f':
+    case L'g':  case L'h':  case L'i':  case L'j':  case L'k':  case L'l':
+    case L'm':  case L'n':  case L'o':  case L'p':  case L'q':  case L'r':
+    case L's':  case L't':  case L'u':  case L'v':  case L'w':  case L'x':
+    case L'y':  case L'z':
+    case L'A':  case L'B':  case L'C':  case L'D':  case L'E':  case L'F':
+    case L'G':  case L'H':  case L'I':  case L'J':  case L'K':  case L'L':
+    case L'M':  case L'N':  case L'O':  case L'P':  case L'Q':  case L'R':
+    case L'S':  case L'T':  case L'U':  case L'V':  case L'W':  case L'X':
+    case L'Y':  case L'Z':  case L'_':
 	return true;
     default:
 	return false;
@@ -387,9 +387,9 @@ bool is_name_char(char c)
 
 /* Checks if the specified string is a valid variable name.
  * Note that parameters are not variables. */
-bool is_name(const char *s)
+bool is_name(const wchar_t *s)
 {
-    if (!xisdigit(*s))
+    if (!iswdigit(*s))
 	while (is_name_char(*s))
 	    s++;
     return !*s;
@@ -397,7 +397,7 @@ bool is_name(const char *s)
 
 /* Searches for a variable with the specified name.
  * Returns NULL if none found. */
-variable_T *search_variable(const char *name)
+variable_T *search_variable(const wchar_t *name)
 {
     for (environ_T *env = current_env; env; env = env->parent) {
 	variable_T *var = ht_get(&env->contents, name).value;
@@ -409,14 +409,14 @@ variable_T *search_variable(const char *name)
 
 /* Searches for an array with the specified name and checks if it is not read
  * only. If unsuccessful, prints an error message and returns NULL. */
-variable_T *search_array_and_check_if_changeable(const char *name)
+variable_T *search_array_and_check_if_changeable(const wchar_t *name)
 {
     variable_T *array = search_variable(name);
     if (!array || (array->v_type & VF_MASK) != VF_ARRAY) {
-	xerror(0, Ngt("%s: no such array"), name);
+	xerror(0, Ngt("%ls: no such array"), name);
 	return NULL;
     } else if (array->v_type & VF_READONLY) {
-	xerror(0, Ngt("%s: readonly"), name);
+	xerror(0, Ngt("%ls: readonly"), name);
 	return NULL;
     }
     return array;
@@ -424,8 +424,11 @@ variable_T *search_array_and_check_if_changeable(const char *name)
 
 /* Update the value in `environ' for the variable with the specified name.
  * `name' must not contain '='. */
-void update_enrivon(const char *name)
+void update_environment(const wchar_t *name)
 {
+    char *mname = malloc_wcstombs(name);
+    if (!mname)
+	return;
     for (environ_T *env = current_env; env; env = env->parent) {
 	variable_T *var = ht_get(&env->contents, name).value;
 	if (var && (var->v_type & VF_EXPORT)) {
@@ -443,67 +446,69 @@ void update_enrivon(const char *name)
 		    assert(false);
 	    }
 	    if (value) {
-		if (setenv(name, value, true) < 0)
+		if (setenv(mname, value, true) < 0)
 		    xerror(errno, Ngt("cannot set environment variable `%s'"),
-			    name);
+			    mname);
 		free(value);
 	    } else {
 		xerror(0, Ngt("environment variable `%s' contains characters "
 			    "that cannot be converted from wide characters"),
-			name);
+			mname);
 	    }
-	    return;
+	    goto done;
 	}
     }
-    if (unsetenv(name) < 0)
-	xerror(errno, Ngt("cannot unset environment variable `%s'"), name);
+    if (unsetenv(mname) < 0)
+	xerror(errno, Ngt("cannot unset environment variable `%s'"), mname);
+done:
+    free(mname);
 }
 
 /* Resets the locate settings for the specified variable.
  * If `name' is not any of "LANG", "LC_ALL", etc., does nothing. */
-void reset_locale(const char *name)
+void reset_locale(const wchar_t *name)
 {
-    if (strcmp(name, VAR_LANG) == 0) {
+    if (wcscmp(name, L VAR_LANG) == 0) {
 	goto reset_locale_all;
-    } else if (strncmp(name, "LC_", 3) == 0) {
+    } else if (wcsncmp(name, L"LC_", 3) == 0) {
 	/* POSIX forbids resetting LC_CTYPE even if the value of the variable
 	 * is changed, but we do reset LC_CTYPE if the shell is interactive and
 	 * not in the POSIXly-correct mode. */
-	if (strcmp(name + 3, VAR_LC_ALL + 3) == 0) {
+	if (wcscmp(name + 3, L VAR_LC_ALL + 3) == 0) {
 reset_locale_all:
-	    reset_locale_category(VAR_LC_COLLATE, LC_COLLATE);
+	    reset_locale_category(L VAR_LC_COLLATE, LC_COLLATE);
 	    if (!posixly_correct && is_interactive_now)
-		reset_locale_category(VAR_LC_CTYPE, LC_CTYPE);
-	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
-	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
-	    reset_locale_category(VAR_LC_NUMERIC, LC_NUMERIC);
-	    reset_locale_category(VAR_LC_TIME, LC_TIME);
-	} else if (strcmp(name + 3, VAR_LC_COLLATE + 3) == 0) {
-	    reset_locale_category(VAR_LC_COLLATE, LC_COLLATE);
-	} else if (strcmp(name + 3, VAR_LC_CTYPE + 3) == 0) {
+		reset_locale_category(L VAR_LC_CTYPE, LC_CTYPE);
+	    reset_locale_category(L VAR_LC_MESSAGES, LC_MESSAGES);
+	    reset_locale_category(L VAR_LC_MONETARY, LC_MONETARY);
+	    reset_locale_category(L VAR_LC_NUMERIC, LC_NUMERIC);
+	    reset_locale_category(L VAR_LC_TIME, LC_TIME);
+	} else if (wcscmp(name + 3, L VAR_LC_COLLATE + 3) == 0) {
+	    reset_locale_category(L VAR_LC_COLLATE, LC_COLLATE);
+	} else if (wcscmp(name + 3, L VAR_LC_CTYPE + 3) == 0) {
 	    if (!posixly_correct && is_interactive_now)
-		reset_locale_category(VAR_LC_CTYPE, LC_CTYPE);
-	} else if (strcmp(name + 3, VAR_LC_MESSAGES + 3) == 0) {
-	    reset_locale_category(VAR_LC_MESSAGES, LC_MESSAGES);
-	} else if (strcmp(name + 3, VAR_LC_MONETARY + 3) == 0) {
-	    reset_locale_category(VAR_LC_MONETARY, LC_MONETARY);
-	} else if (strcmp(name + 3, VAR_LC_NUMERIC + 3) == 0) {
-	    reset_locale_category(VAR_LC_NUMERIC, LC_NUMERIC);
-	} else if (strcmp(name + 3, VAR_LC_TIME + 3) == 0) {
-	    reset_locale_category(VAR_LC_TIME, LC_TIME);
+		reset_locale_category(L VAR_LC_CTYPE, LC_CTYPE);
+	} else if (wcscmp(name + 3, L VAR_LC_MESSAGES + 3) == 0) {
+	    reset_locale_category(L VAR_LC_MESSAGES, LC_MESSAGES);
+	} else if (wcscmp(name + 3, L VAR_LC_MONETARY + 3) == 0) {
+	    reset_locale_category(L VAR_LC_MONETARY, LC_MONETARY);
+	} else if (wcscmp(name + 3, L VAR_LC_NUMERIC + 3) == 0) {
+	    reset_locale_category(L VAR_LC_NUMERIC, LC_NUMERIC);
+	} else if (wcscmp(name + 3, L VAR_LC_TIME + 3) == 0) {
+	    reset_locale_category(L VAR_LC_TIME, LC_TIME);
 	}
     }
 }
 
 /* Resets the locale of the specified category.
  * `name' must be one of the `LC_*' constants except LC_ALL. */
-void reset_locale_category(const char *name, int category)
+void reset_locale_category(const wchar_t *name, int category)
 {
-    const wchar_t *v = getvar(VAR_LC_ALL);
+    const wchar_t *v = getvar(L VAR_LC_ALL);
     if (!v) {
 	v = getvar(name);
 	if (!v) {
-	    v = getvar(VAR_LANG);
+	    v = getvar(L VAR_LANG);
 	    if (!v)
 		v = L"";
 	}
@@ -519,7 +524,7 @@ void reset_locale_category(const char *name, int category)
  * If the variable already exists, it is returned without change.
  * So the return value may be an array variable.
  * Temporary variables with the `name' are cleared. */
-variable_T *new_global(const char *name)
+variable_T *new_global(const wchar_t *name)
 {
     variable_T *var;
     for (environ_T *env = current_env; env; env = env->parent) {
@@ -536,7 +541,7 @@ variable_T *new_global(const char *name)
     var->v_type = VF_NORMAL;
     var->v_value = NULL;
     var->v_getter = NULL;
-    ht_set(&first_env->contents, xstrdup(name), var);
+    ht_set(&first_env->contents, xwcsdup(name), var);
     return var;
 }
 
@@ -544,7 +549,7 @@ variable_T *new_global(const char *name)
  * If the variable already exists, it is returned without change.
  * So the return value may be an array variable.
  * Temporary variables with the `name' are cleared. */
-variable_T *new_local(const char *name)
+variable_T *new_local(const wchar_t *name)
 {
     environ_T *env = current_env;
     while (env->is_temporary) {
@@ -558,7 +563,7 @@ variable_T *new_local(const char *name)
     var->v_type = VF_NORMAL;
     var->v_value = NULL;
     var->v_getter = NULL;
-    ht_set(&env->contents, xstrdup(name), var);
+    ht_set(&env->contents, xwcsdup(name), var);
     return var;
 }
 
@@ -568,7 +573,7 @@ variable_T *new_local(const char *name)
  * The current environment must be a temporary environment.
  * If there is a readonly non-temporary variable with the specified name, it is
  * returned (no new temporary variable is created). */
-variable_T *new_temporary(const char *name)
+variable_T *new_temporary(const wchar_t *name)
 {
     environ_T *env = current_env;
     assert(env->is_temporary);
@@ -585,7 +590,7 @@ variable_T *new_temporary(const char *name)
     var->v_type = VF_NORMAL;
     var->v_value = NULL;
     var->v_getter = NULL;
-    ht_set(&env->contents, xstrdup(name), var);
+    ht_set(&env->contents, xwcsdup(name), var);
     return var;
 }
 
@@ -596,8 +601,8 @@ variable_T *new_temporary(const char *name)
  * `v_type' is the only valid member of the variable and the all members
  * (including `v_type') must be initialized by the caller. If `v_type' of the
  * return value has the VF_EXPORT flag set, the caller must call
- * `update_enrivon'. */
-variable_T *new_variable(const char *name, scope_T scope)
+ * `update_environment'. */
+variable_T *new_variable(const wchar_t *name, scope_T scope)
 {
     variable_T *var;
 
@@ -608,7 +613,7 @@ variable_T *new_variable(const char *name, scope_T scope)
 	default:            assert(false);
     }
     if (var->v_type & VF_READONLY) {
-	xerror(0, Ngt("%s: readonly"), name);
+	xerror(0, Ngt("%ls: readonly"), name);
 	return NULL;
     } else {
 	varvaluefree(var);
@@ -622,7 +627,8 @@ variable_T *new_variable(const char *name, scope_T scope)
  * If `export' is true, the variable is exported. `export' being false doesn't
  * mean the variable is no longer exported.
  * Returns true iff successful. */
-bool set_variable(const char *name, wchar_t *value, scope_T scope, bool export)
+bool set_variable(
+	const wchar_t *name, wchar_t *value, scope_T scope, bool export)
 {
     variable_T *var = new_variable(name, scope);
     if (!var) {
@@ -638,7 +644,7 @@ bool set_variable(const char *name, wchar_t *value, scope_T scope, bool export)
 
     variable_set(name, var);
     if (var->v_type & VF_EXPORT)
-	update_enrivon(name);
+	update_environment(name);
     return true;
 }
 
@@ -650,7 +656,7 @@ bool set_variable(const char *name, wchar_t *value, scope_T scope, bool export)
  * `count' is the number of elements in `values'. If `count' is zero, the
  * number is counted in this function.
  * Returns true iff successful. */
-bool set_array(const char *name, size_t count, void **values, scope_T scope)
+bool set_array(const wchar_t *name, size_t count, void **values, scope_T scope)
 {
     variable_T *var = new_variable(name, scope);
     if (!var) {
@@ -665,7 +671,7 @@ bool set_array(const char *name, size_t count, void **values, scope_T scope)
 
     variable_set(name, var);
     if (var->v_type & VF_EXPORT)
-	update_enrivon(name);
+	update_environment(name);
     return true;
 }
 
@@ -676,7 +682,7 @@ bool set_array(const char *name, size_t count, void **values, scope_T scope)
  * used as the contents of the array element, you must not modify or free
  * `value' after this function returned (whether successful or not).
  * Returns true iff successful. An error message is printed on failure. */
-bool set_array_element(const char *name, size_t index, wchar_t *value)
+bool set_array_element(const wchar_t *name, size_t index, wchar_t *value)
 {
     variable_T *array = search_array_and_check_if_changeable(name);
     if (!array)
@@ -687,11 +693,12 @@ bool set_array_element(const char *name, size_t index, wchar_t *value)
     free(array->v_vals[index]);
     array->v_vals[index] = value;
     if (array->v_type & VF_EXPORT)
-	update_enrivon(name);
+	update_environment(name);
     return true;
 
 invalid_index:
-    xerror(0, Ngt("%zu: index out of range (actual size of array `%s' is %zu)"),
+    xerror(0,
+	    Ngt("%zu: index out of range (actual size of array `%ls' is %zu)"),
 	    index + 1, name, array->v_valc);
 fail:
     free(value);
@@ -706,10 +713,10 @@ fail:
  * except for a temporary environment. */
 void set_positional_parameters(void *const *values)
 {
-    set_array(VAR_positional, 0, duparray(values, copyaswcs), SCOPE_LOCAL);
+    set_array(L VAR_positional, 0, duparray(values, copyaswcs), SCOPE_LOCAL);
 }
 
-/* Does assignments.
+/* Performs assignments.
  * If `shopt_xtrace' is true, traces are printed to stderr.
  * If `temp' is true, the variables are assigned in the current environment,
  * whose `is_temporary' must be true. Otherwise they are assigned globally.
@@ -721,14 +728,12 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 {
     if (temp)
 	assert(current_env->is_temporary);
-    if (shopt_xtrace && assign)
-	print_prompt(4);
 
+    scope_T scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
     while (assign) {
 	wchar_t *value;
 	int count;
 	void **values;
-	scope_T scope;
 
 	switch (assign->a_type) {
 	    case A_SCALAR:
@@ -737,9 +742,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 		    return false;
 		value = unescapefree(value);
 		if (shopt_xtrace)
-		    fprintf(stderr, "%s=%ls%c",
-			    assign->a_name, value, (assign->next ? ' ' : '\n'));
-		scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
+		    print_variable_trace(assign->a_name, value);
 		if (!set_variable(assign->a_name, value, scope, export))
 		    return false;
 		break;
@@ -748,9 +751,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 		    return false;
 		assert(values != NULL);
 		if (shopt_xtrace)
-		    print_array_trace(
-			    assign->a_name, values, assign->next != NULL);
-		scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
+		    print_array_trace(assign->a_name, values);
 		if (!set_array(assign->a_name, count, values, scope))
 		    return false;
 		break;
@@ -760,11 +761,18 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
     return true;
 }
 
-/* Prints trace of an array assignment.
- * `next' is true if there is another assignment after this assignment. */
-void print_array_trace(const char *name, void *const *values, bool next)
+/* Prints trace of an variable assignment. */
+void print_variable_trace(const wchar_t *name, const wchar_t *value)
 {
-    fprintf(stderr, "%s=(", name);
+    print_prompt(4);
+    fprintf(stderr, "%ls=%ls\n", name, value);
+}
+
+/* Prints trace of an array assignment. */
+void print_array_trace(const wchar_t *name, void *const *values)
+{
+    print_prompt(4);
+    fprintf(stderr, "%ls=(", name);
     if (*values) {
 	for (;;) {
 	    fprintf(stderr, "%ls", (wchar_t *) *values);
@@ -774,8 +782,7 @@ void print_array_trace(const char *name, void *const *values, bool next)
 	    fputc(' ', stderr);
 	}
     }
-    fputc(')', stderr);
-    fputc(next ? ' ' : '\n', stderr);
+    fputs(")\n", stderr);
 }
 
 /* Gets the value of the specified scalar variable.
@@ -783,7 +790,7 @@ void print_array_trace(const char *name, void *const *values, bool next)
  * Returns the value of the variable, or NULL if not found.
  * The return value must not be modified or `free'ed by the caller and
  * is valid until the variable is re-assigned or unset. */
-const wchar_t *getvar(const char *name)
+const wchar_t *getvar(const wchar_t *name)
 {
     variable_T *var = search_variable(name);
     if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
@@ -811,7 +818,7 @@ const wchar_t *getvar(const char *name)
  * changed or freed.  If no such variable is found (GV_NOTFOUND), the result
  * array will be NULL.
  * `count' is the number of elements in the `values'. */
-struct get_variable get_variable(const char *name)
+struct get_variable get_variable(const wchar_t *name)
 {
     struct get_variable result = {
 	.type = GV_NOTFOUND, .count = 0, .values = NULL, };
@@ -823,48 +830,48 @@ struct get_variable get_variable(const char *name)
     if (!name[1]) {
 	/* `name' is one-character long: check if it's a special parameter */
 	switch (name[0]) {
-	    case '*':
+	    case L'*':
 		result.type = GV_ARRAY_CONCAT;
 		goto positional_parameters;
-	    case '@':
+	    case L'@':
 		result.type = GV_ARRAY;
 positional_parameters:
-		var = search_variable(VAR_positional);
+		var = search_variable(L VAR_positional);
 		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 		result.count = var->v_valc;
 		result.values = var->v_vals;
 		return result;
-	    case '#':
-		var = search_variable(VAR_positional);
+	    case L'#':
+		var = search_variable(L VAR_positional);
 		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 		value = malloc_wprintf(L"%zu", var->v_valc);
 		goto return_single;
-	    case '?':
+	    case L'?':
 		value = malloc_wprintf(L"%d", laststatus);
 		goto return_single;
-	    case '-':
+	    case L'-':
 		value = get_hyphen_parameter();
 		goto return_single;
-	    case '$':
+	    case L'$':
 		value = malloc_wprintf(L"%jd", (intmax_t) shell_pid);
 		goto return_single;
-	    case '!':
+	    case L'!':
 		value = malloc_wprintf(L"%jd", (intmax_t) lastasyncpid);
 		goto return_single;
-	    case '0':
+	    case L'0':
 		value = xwcsdup(command_name);
 		goto return_single;
 	}
     }
 
-    if (xisdigit(name[0])) {
+    if (iswdigit(name[0])) {
 	/* `name' starts with a digit: a positional parameter */
-	char *nameend;
+	wchar_t *nameend;
 	errno = 0;
-	long v = strtol(name, &nameend, 10);
-	if (errno || *nameend != '\0')
+	long v = wcstol(name, &nameend, 10);
+	if (errno || *nameend != L'\0')
 	    return result;  /* not a number or overflow */
-	var = search_variable(VAR_positional);
+	var = search_variable(L VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (v <= 0 || (uintmax_t) var->v_valc < (uintmax_t) v)
 	    return result;  /* index out of bounds */
@@ -927,7 +934,7 @@ void open_new_environment(bool temp)
 
     newenv->parent = current_env;
     newenv->is_temporary = temp;
-    ht_init(&newenv->contents, hashstr, htstrcmp);
+    ht_init(&newenv->contents, hashwcs, htwcscmp);
     for (size_t i = 0; i < PA_count; i++)
 	newenv->paths[i] = NULL;
     current_env = newenv;
@@ -962,7 +969,7 @@ void lineno_getter(variable_T *var)
     var->v_value = malloc_wprintf(L"%lu", current_lineno);
     // variable_set(VAR_LINENO, var);
     if (var->v_type & VF_EXPORT)
-	update_enrivon(VAR_LINENO);
+	update_environment(L VAR_LINENO);
 }
 
 /* getter for $RANDOM */
@@ -973,7 +980,7 @@ void random_getter(variable_T *var)
     var->v_value = malloc_wprintf(L"%u", next_random());
     // variable_set(VAR_RANDOM, var);
     if (var->v_type & VF_EXPORT)
-	update_enrivon(VAR_RANDOM);
+	update_environment(L VAR_RANDOM);
 }
 
 /* Returns a random number between 0 and 32767 using `rand'. */
@@ -1008,33 +1015,33 @@ unsigned next_random(void)
 
 /* general callback that is called after an assignment.
  * `var' is NULL when the variable is unset. */
-void variable_set(const char *name, variable_T *var)
+void variable_set(const wchar_t *name, variable_T *var)
 {
     switch (name[0]) {
-    case 'C':
-	if (strcmp(name, VAR_CDPATH) == 0)
+    case L'C':
+	if (wcscmp(name, L VAR_CDPATH) == 0)
 	    reset_path(PA_CDPATH, var);
 	break;
-    case 'L':
-	if (strcmp(name, VAR_LANG) == 0 || strncmp(name, "LC_", 3) == 0)
+    case L'L':
+	if (wcscmp(name, L VAR_LANG) == 0 || wcsncmp(name, L"LC_", 3) == 0)
 	    reset_locale(name);
 	break;
-    case 'M':
-	if (strcmp(name, VAR_MAILPATH) == 0)
+    case L'M':
+	if (wcscmp(name, L VAR_MAILPATH) == 0)
 	    reset_path(PA_MAILPATH, var);
 	break;
-    case 'O':
-	if (strcmp(name, VAR_OPTIND) == 0)
+    case L'O':
+	if (wcscmp(name, L VAR_OPTIND) == 0)
 	    optind2 = 1;
 	break;
-    case 'P':
-	if (strcmp(name, VAR_PATH) == 0) {
+    case L'P':
+	if (wcscmp(name, L VAR_PATH) == 0) {
 	    clear_cmdhash();
 	    reset_path(PA_PATH, var);
 	}
 	break;
-    case 'R':
-	if (random_active && strcmp(name, VAR_RANDOM) == 0) {
+    case L'R':
+	if (random_active && wcscmp(name, L VAR_RANDOM) == 0) {
 	    random_active = false;
 	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
 		wchar_t *end;
@@ -1165,11 +1172,11 @@ void funckvfree(kvpair_T kv)
 /* Defines a function.
  * It is an error to re-define a readonly function.
  * Returns true iff successful. */
-bool define_function(const char *name, command_T *body)
+bool define_function(const wchar_t *name, command_T *body)
 {
     function_T *f = ht_get(&functions, name).value;
     if (f != NULL && (f->f_type & VF_READONLY)) {
-	xerror(0, Ngt("cannot re-define readonly function `%s'"), name);
+	xerror(0, Ngt("cannot re-define readonly function `%ls'"), name);
 	return false;
     }
 
@@ -1178,13 +1185,13 @@ bool define_function(const char *name, command_T *body)
     f->f_body = comsdup(body);
     if (shopt_hashondef)
 	hash_all_commands_recursively(body);
-    funckvfree(ht_set(&functions, xstrdup(name), f));
+    funckvfree(ht_set(&functions, xwcsdup(name), f));
     return true;
 }
 
 /* Gets the body of the function with the specified name.
  * Returns NULL if there is no such a function. */
-command_T *get_function(const char *name)
+command_T *get_function(const wchar_t *name)
 {
     function_T *f = ht_get(&functions, name).value;
     if (f)
@@ -1277,7 +1284,7 @@ static variable_T *get_dirstack(void);
  * case NULL is returned. */
 variable_T *get_dirstack(void)
 {
-    variable_T *var = search_variable(VAR_DIRSTACK);
+    variable_T *var = search_variable(L VAR_DIRSTACK);
     if (var) {
 	if (((var->v_type & VF_MASK) == VF_ARRAY)
 		&& !(var->v_type & VF_READONLY))
@@ -1288,8 +1295,8 @@ variable_T *get_dirstack(void)
 
     void **ary = xmalloc(1 * sizeof *ary);
     ary[0] = NULL;
-    if (set_array(VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL)) {
-	var = search_variable(VAR_DIRSTACK);
+    if (set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL)) {
+	var = search_variable(L VAR_DIRSTACK);
 	assert(var != NULL);
 	assert((var->v_type & VF_MASK) == VF_ARRAY);
 	assert(!(var->v_type & VF_READONLY));
@@ -1302,7 +1309,7 @@ variable_T *get_dirstack(void)
 /* Returns the number of elements in $DIRSTACK. */
 size_t get_dirstack_size(void)
 {
-    variable_T *var = search_variable(VAR_DIRSTACK);
+    variable_T *var = search_variable(L VAR_DIRSTACK);
     if (!var || ((var->v_type & VF_MASK) != VF_ARRAY))
 	return 0;
     return var->v_valc;
@@ -1332,7 +1339,7 @@ bool parse_dirstack_index(const wchar_t *indexstr,
     if (errno || *end)
 	goto not_index;
 
-    variable_T *var = search_variable(VAR_DIRSTACK);
+    variable_T *var = search_variable(L VAR_DIRSTACK);
     if (!var || ((var->v_type & VF_MASK) != VF_ARRAY)) {
 	if (num == 0)
 	    goto return_pwd;
@@ -1372,7 +1379,7 @@ bool parse_dirstack_index(const wchar_t *indexstr,
 
     const wchar_t *pwd;
 return_pwd:
-    pwd = getvar(VAR_PWD);
+    pwd = getvar(L VAR_PWD);
     if (!pwd) {
 	if (printerror)
 	    xerror(0, Ngt("$PWD not set"));
@@ -1414,7 +1421,7 @@ bool push_dirstack(wchar_t *value)
  * Returns NULL on error. */
 wchar_t *pop_dirstack(void)
 {
-    variable_T *var = search_variable(VAR_DIRSTACK);
+    variable_T *var = search_variable(L VAR_DIRSTACK);
     if (!var || ((var->v_type & VF_MASK) != VF_ARRAY)
 	    || (var->v_type & VF_READONLY) || (var->v_valc == 0))
 	return NULL;
@@ -1429,7 +1436,7 @@ wchar_t *pop_dirstack(void)
  */
 bool remove_dirstack_entry(size_t index)
 {
-    variable_T *var = search_variable(VAR_DIRSTACK);
+    variable_T *var = search_variable(L VAR_DIRSTACK);
     if (!var || ((var->v_type & VF_MASK) != VF_ARRAY))
 	return true;
     if (var->v_type & VF_READONLY) {
@@ -1452,11 +1459,11 @@ bool remove_dirstack_entry(size_t index)
 /********** Builtins **********/
 
 static void print_variable(
-	const char *name, const variable_T *var,
+	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
     __attribute__((nonnull));
 static void print_function(
-	const char *name, const function_T *func,
+	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
 #if YASH_ENABLE_ARRAY
@@ -1468,13 +1475,13 @@ static int compare_long(const void *lp1, const void *lp2)
 static bool array_insert_elements(
 	variable_T *array, size_t count, void *const *values)
     __attribute__((nonnull));
-static bool array_set_element(const char *name, variable_T *array,
+static bool array_set_element(const wchar_t *name, variable_T *array,
 	const wchar_t *indexword, const wchar_t *value)
     __attribute__((nonnull));
 #endif /* YASH_ENABLE_ARRAY */
-static bool unset_function(const char *name)
+static bool unset_function(const wchar_t *name)
     __attribute__((nonnull));
-static bool unset_variable(const char *name)
+static bool unset_variable(const wchar_t *name)
     __attribute__((nonnull));
 static bool check_options(const wchar_t *options)
     __attribute__((nonnull,pure));
@@ -1484,7 +1491,7 @@ static bool set_to(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
 static bool read_input(xwcsbuf_T *buf, bool noescape)
     __attribute__((nonnull));
-static bool split_and_assign_array(const char *name, wchar_t *values,
+static bool split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
     __attribute__((nonnull));
 
@@ -1567,12 +1574,12 @@ int typeset_builtin(int argc, void **argv)
 	    /* print all variables */
 	    hashtable_T table;
 
-	    ht_init(&table, hashstr, htstrcmp);
+	    ht_init(&table, hashwcs, htwcscmp);
 	    get_all_variables_rec(&table, current_env);
 	    kvs = ht_tokvarray(&table);
 	    count = table.count;
 	    ht_destroy(&table);
-	    qsort(kvs, count, sizeof *kvs, keystrcoll);
+	    qsort(kvs, count, sizeof *kvs, keywcscoll);
 	    for (size_t i = 0; i < count; i++)
 		print_variable(kvs[i].key, kvs[i].value, ARGV(0),
 			readonly, export);
@@ -1580,7 +1587,7 @@ int typeset_builtin(int argc, void **argv)
 	    /* print all functions */
 	    kvs = ht_tokvarray(&functions);
 	    count = functions.count;
-	    qsort(kvs, count, sizeof *kvs, keystrcoll);
+	    qsort(kvs, count, sizeof *kvs, keywcscoll);
 	    for (size_t i = 0; i < count; i++)
 		print_function(kvs[i].key, kvs[i].value, ARGV(0), readonly);
 	}
@@ -1590,40 +1597,35 @@ int typeset_builtin(int argc, void **argv)
 
     bool err = false;
     do {
-	wchar_t *warg = ARGV(xoptind);
-	wchar_t *wequal = wcschr(warg, L'=');
+	wchar_t *arg = ARGV(xoptind);
+	wchar_t *wequal = wcschr(arg, L'=');
 	if (wequal)
 	    *wequal = L'\0';
-	char *name = malloc_wcstombs(warg);
-	if (!name) {
-	    xerror(0, Ngt("unexpected error"));
-	    return Exit_ERROR;
-	}
 	if (funcs) {
 	    if (wequal) {
 		xerror(0, Ngt("cannot assign function"));
 		err = true;
-		goto next;
+		continue;
 	    }
 
-	    function_T *f = ht_get(&functions, name).value;
+	    function_T *f = ht_get(&functions, arg).value;
 	    if (f) {
 		if (readonly)
 		    f->f_type |= VF_READONLY | VF_NODELETE;
 		if (print)
-		    print_function(name, f, ARGV(0), readonly);
+		    print_function(arg, f, ARGV(0), readonly);
 	    } else {
-		xerror(0, Ngt("%s: no such function"), name);
+		xerror(0, Ngt("%ls: no such function"), arg);
 		err = true;
-		goto next;
+		continue;
 	    }
 	} else if (wequal || !print) {
 	    /* create/assign variable */
-	    variable_T *var = global ? new_global(name) : new_local(name);
+	    variable_T *var = global ? new_global(arg) : new_local(arg);
 	    vartype_T saveexport = var->v_type & VF_EXPORT;
 	    if (wequal) {
 		if (var->v_type & VF_READONLY) {
-		    xerror(0, Ngt("%s: readonly"), name);
+		    xerror(0, Ngt("%ls: readonly"), arg);
 		    err = true;
 		} else {
 		    varvaluefree(var);
@@ -1638,23 +1640,21 @@ int typeset_builtin(int argc, void **argv)
 		var->v_type |= VF_EXPORT;
 	    else if (unexport)
 		var->v_type &= ~VF_EXPORT;
-	    variable_set(name, var);
+	    variable_set(arg, var);
 	    if (saveexport != (var->v_type & VF_EXPORT)
 		    || (wequal && (var->v_type & VF_EXPORT)))
-		update_enrivon(name);
+		update_environment(arg);
 	} else {
 	    /* print the variable */
-	    variable_T *var = search_variable(name);
+	    variable_T *var = search_variable(arg);
 	    if (var) {
-		print_variable(name, var, ARGV(0), readonly, export);
+		print_variable(arg, var, ARGV(0), readonly, export);
 	    } else {
-		xerror(0, Ngt("%s: no such variable"), name);
+		xerror(0, Ngt("%ls: no such variable"), arg);
 		err = true;
-		goto next;
+		continue;
 	    }
 	}
-next:
-	free(name);
     } while (++xoptind < argc);
 
     return err ? Exit_FAILURE : Exit_SUCCESS;
@@ -1666,10 +1666,10 @@ next:
  * readonly/exported. */
 /* Note that `name' is never quoted even if it contains unusual symbol chars. */
 static void print_variable(
-	const char *name, const variable_T *var,
+	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
 {
-    if (name[0] == '=')
+    if (name[0] == L'=')
 	return;
     if (readonly && !(var->v_type & VF_READONLY))
 	return;
@@ -1687,13 +1687,13 @@ print_variable:;
 	case L's':
 	    assert(wcscmp(argv0, L"set") == 0);
 	    if (qvalue)
-		printf("%s=%ls\n", name, qvalue);
+		printf("%ls=%ls\n", name, qvalue);
 	    break;
 	case L'e':
 	case L'r':
 	    assert(wcscmp(argv0, L"export") == 0
 		    || wcscmp(argv0, L"readonly") == 0);
-	    printf(qvalue ? "%ls %s=%ls\n" : "%ls %s\n",
+	    printf(qvalue ? "%ls %ls=%ls\n" : "%ls %ls\n",
 		    argv0, name, qvalue);
 	    break;
 	case L't':
@@ -1705,7 +1705,7 @@ print_variable:;
 		sb_ccat(&opts, 'r');
 	    if (opts.length > 0)
 		sb_insert(&opts, 0, " -");
-	    printf(qvalue ? "%ls%s %s=%ls\n" : "%ls%s %s\n",
+	    printf(qvalue ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n",
 		    argv0, opts.contents, name, qvalue);
 	    sb_destroy(&opts);
 	    break;
@@ -1716,7 +1716,7 @@ print_variable:;
     return;
 
 print_array:
-    printf("%s=(", name);
+    printf("%ls=(", name);
     for (void **values = var->v_vals; *values; values++) {
 	wchar_t *qvalue = quote_sq(*values);
 	printf("%ls", qvalue);
@@ -1736,7 +1736,7 @@ print_array:
 	case L'r':
 	    assert(wcscmp(argv0, L"export") == 0
 		    || wcscmp(argv0, L"readonly") == 0);
-	    printf("%ls %s\n", argv0, name);
+	    printf("%ls %ls\n", argv0, name);
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
@@ -1747,7 +1747,7 @@ print_array:
 		sb_ccat(&opts, 'r');
 	    if (opts.length > 0)
 		sb_insert(&opts, 0, " -");
-	    printf("%ls%s %s\n", argv0, opts.contents, name);
+	    printf("%ls%s %ls\n", argv0, opts.contents, name);
 	    sb_destroy(&opts);
 	    break;
 	default:
@@ -1757,26 +1757,26 @@ print_array:
 }
 
 void print_function(
-	const char *name, const function_T *func,
+	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
 {
     if (readonly && !(func->f_type & VF_READONLY))
 	return;
 
     wchar_t *value = command_to_wcs(func->f_body);
-    printf("%s () %ls\n", name, value);
+    printf("%ls () %ls\n", name, value);
     free(value);
 
     switch (argv0[0]) {
 	case L'r':
 	    assert(wcscmp(argv0, L"readonly") == 0);
 	    if (func->f_type & VF_READONLY)
-		printf("%ls -f %s\n", argv0, name);
+		printf("%ls -f %ls\n", argv0, name);
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
 	    if (func->f_type & VF_READONLY)
-		printf("%ls -fr %s\n", argv0, name);
+		printf("%ls -fr %ls\n", argv0, name);
 	    break;
 	default:
 	    assert(false);
@@ -1859,13 +1859,13 @@ int array_builtin(int argc, void **argv)
 	    goto print_usage;
 
 	hashtable_T table;
-	ht_init(&table, hashstr, htstrcmp);
+	ht_init(&table, hashwcs, htwcscmp);
 	get_all_variables_rec(&table, current_env);
 
 	kvpair_T *kvs = ht_tokvarray(&table);
 	size_t count = table.count;
 	ht_destroy(&table);
-	qsort(kvs, count, sizeof *kvs, keystrcoll);
+	qsort(kvs, count, sizeof *kvs, keywcscoll);
 	for (size_t i = 0; i < count; i++)
 	    if ((((variable_T *) kvs[i].value)->v_type & VF_MASK) == VF_ARRAY)
 		print_variable(kvs[i].key, kvs[i].value, ARGV(0), false, false);
@@ -1873,48 +1873,36 @@ int array_builtin(int argc, void **argv)
 	return Exit_SUCCESS;
     } else {
 	bool ok;
-	const wchar_t *wname = ARGV(xoptind++);
-	if (wcschr(wname, L'=')) {
-	    xerror(0, Ngt("`%ls': invalid name"), wname);
+	const wchar_t *name = ARGV(xoptind++);
+	if (wcschr(name, L'=')) {
+	    xerror(0, Ngt("`%ls': invalid name"), name);
 	    return Exit_FAILURE;
-	}
-	char *name = malloc_wcstombs(wname);
-	if (!name) {
-	    xerror(0, Ngt("unexpected error"));
-	    return Exit_ERROR;
 	}
 
 	if (options == 0) {
 	    ok = set_array(name, argc - xoptind,
 		    duparray(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
-	    free(name);
 	} else {
 	    variable_T *array = search_array_and_check_if_changeable(name);
 	    if (!array) {
-		free(name);
 		return Exit_FAILURE;
 	    }
 	    switch (options) {
 		case delete:
-		    free(name);
 		    ok = array_remove_elements(
 			    array, argc - xoptind, argv + xoptind);
 		    break;
 		case insert:
-		    free(name);
 		    if (xoptind == argc)
 			goto print_usage;
 		    ok = array_insert_elements(
 			    array, argc - xoptind, argv + xoptind);
 		    break;
 		case set:
-		    if (xoptind + 2 != argc) {
-			free(name);
+		    if (xoptind + 2 != argc)
 			goto print_usage;
-		    }
 		    ok = array_set_element(
 			    name, array, ARGV(xoptind), ARGV(xoptind + 1));
-		    free(name);
 		    break;
 		default:
 		    assert(false);
@@ -2043,7 +2031,7 @@ bool array_insert_elements(
 /* Sets the value of a single element of `array'.
  * `name' is the name of the array variable.
  * `indexword' is parsed as the integer index of the element. */
-bool array_set_element(const char *name, variable_T *array,
+bool array_set_element(const wchar_t *name, variable_T *array,
 	const wchar_t *indexword, const wchar_t *value)
 {
     long index;
@@ -2079,7 +2067,8 @@ bool array_set_element(const char *name, variable_T *array,
     return true;
 
 invalid_index:
-    xerror(0, Ngt("%ls: index out of range (actual size of array `%s' is %zu)"),
+    xerror(0,
+	    Ngt("%ls: index out of range (actual size of array `%ls' is %zu)"),
 	    indexword, name, array->v_valc);
     return false;
 }
@@ -2137,19 +2126,13 @@ int unset_builtin(int argc, void **argv)
     }
 
     for (; xoptind < argc; xoptind++) {
-	const wchar_t *wname = ARGV(xoptind);
-	if (wcschr(wname, L'=')) {
-	    xerror(0, Ngt("`%ls': invalid name"), wname);
+	const wchar_t *name = ARGV(xoptind);
+	if (wcschr(name, L'=')) {
+	    xerror(0, Ngt("`%ls': invalid name"), name);
 	    err = true;
 	    continue;
 	}
-	char *name = malloc_wcstombs(ARGV(xoptind));
-	if (!name) {
-	    xerror(0, Ngt("unexpected error"));
-	    return Exit_ERROR;
-	}
 	err |= funcs ? unset_function(name) : unset_variable(name);
-	free(name);
     }
 
     return err ? Exit_FAILURE : Exit_SUCCESS;
@@ -2157,7 +2140,7 @@ int unset_builtin(int argc, void **argv)
 
 /* Unsets the specified function.
  * Returns true ON ERROR. */
-bool unset_function(const char *name)
+bool unset_function(const wchar_t *name)
 {
     kvpair_T kv = ht_remove(&functions, name);
     function_T *f = kv.value;
@@ -2165,7 +2148,7 @@ bool unset_function(const char *name)
 	if (!(f->f_type & VF_NODELETE)) {
 	    funckvfree(kv);
 	} else {
-	    xerror(0, Ngt("%s: readonly"), name);
+	    xerror(0, Ngt("%ls: readonly"), name);
 	    ht_set(&functions, kv.key, kv.value);
 	    return true;
 	}
@@ -2175,7 +2158,7 @@ bool unset_function(const char *name)
 
 /* Unsets the specified variable.
  * Returns true ON ERROR. */
-bool unset_variable(const char *name)
+bool unset_variable(const wchar_t *name)
 {
     for (environ_T *env = current_env; env; env = env->parent) {
 	kvpair_T kv = ht_remove(&env->contents, name);
@@ -2186,10 +2169,10 @@ bool unset_variable(const char *name)
 		varkvfree(kv);
 		variable_set(name, NULL);
 		if (ue)
-		    update_enrivon(name);
+		    update_environment(name);
 		return false;
 	    } else {
-		xerror(0, Ngt("%s: readonly"), name);
+		xerror(0, Ngt("%ls: readonly"), name);
 		ht_set(&env->contents, kv.key, kv.value);
 		return true;
 	    }
@@ -2253,7 +2236,7 @@ int shift_builtin(int argc, void **argv)
 	scount = 1;
     }
 
-    variable_T *var = search_variable(VAR_positional);
+    variable_T *var = search_variable(L VAR_positional);
     assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
     if (scount > var->v_valc) {
 	xerror(0, Ngt("%zu: cannot shift so many"), scount);
@@ -2307,7 +2290,7 @@ int getopts_builtin(int argc, void **argv)
 	return Exit_FAILURE;
     }
     {
-	const wchar_t *varoptind = getvar(VAR_OPTIND);
+	const wchar_t *varoptind = getvar(L VAR_OPTIND);
 	wchar_t *end;
 	if (!varoptind || !varoptind[0])
 	    goto optind_invalid;
@@ -2321,7 +2304,7 @@ int getopts_builtin(int argc, void **argv)
 	    return Exit_FAILURE;
 	args = argv + xoptind;
     } else {
-	variable_T *var = search_variable(VAR_positional);
+	variable_T *var = search_variable(L VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (optind >= var->v_valc)
 	    return Exit_FAILURE;
@@ -2352,7 +2335,7 @@ parse_arg:
 	} else {
 	    fprintf(stderr, gt("%ls: -%lc: invalid option\n"),
 		    command_name, (wint_t) optchar);
-	    TRY(!unset_variable(VAR_OPTARG));
+	    TRY(!unset_variable(L VAR_OPTARG));
 	}
     } else {
 	/* valid option */
@@ -2377,7 +2360,7 @@ parse_arg:
 			fprintf(stderr, gt("%ls: -%lc: argument missing\n"),
 				command_name, (wint_t) optchar);
 			TRY(set_to(varname, L'?'));
-			TRY(!unset_variable(VAR_OPTARG));
+			TRY(!unset_variable(L VAR_OPTARG));
 		    }
 		    return Exit_SUCCESS;
 		}
@@ -2385,7 +2368,7 @@ parse_arg:
 	    TRY(set_optarg(optarg));
 	} else {
 	    /* option without an argument */
-	    TRY(!unset_variable(VAR_OPTARG));
+	    TRY(!unset_variable(L VAR_OPTARG));
 	}
 	TRY(set_to(varname, optchar));
     }
@@ -2394,7 +2377,7 @@ parse_arg:
 
 no_more_options:
     set_to(varname, L'?');
-    unset_variable(VAR_OPTARG);
+    unset_variable(L VAR_OPTARG);
     return Exit_FAILURE;
 optind_invalid:
     xerror(0, Ngt("$OPTIND not valid"));
@@ -2431,7 +2414,7 @@ bool check_options(const wchar_t *options)
 /* Sets $OPTIND to `optind' plus 1. */
 bool set_optind(unsigned long optind)
 {
-    return set_variable(VAR_OPTIND,
+    return set_variable(L VAR_OPTIND,
 	    malloc_wprintf(L"%lu", optind + 1),
 	    SCOPE_GLOBAL, false);
 }
@@ -2439,22 +2422,16 @@ bool set_optind(unsigned long optind)
 /* Sets $OPTARG to `value'. */
 bool set_optarg(const wchar_t *value)
 {
-    return set_variable(VAR_OPTARG, xwcsdup(value), SCOPE_GLOBAL, false);
+    return set_variable(L VAR_OPTARG, xwcsdup(value), SCOPE_GLOBAL, false);
 }
 
 /* Sets the specified variable to the single character `value'. */
 bool set_to(const wchar_t *varname, wchar_t value)
 {
-    bool ok;
-    char *mvarname = malloc_wcstombs(varname);
-    if (mvarname) {
-	wchar_t v[] = { value, L'\0', };
-	ok = set_variable(mvarname, xwcsdup(v), SCOPE_GLOBAL, false);
-	free(mvarname);
-    } else {
-	ok = false;
-    }
-    return ok;
+    wchar_t *v = xmalloc(sizeof *v * 2);
+    v[0] = value;
+    v[1] = L'\0';
+    return set_variable(varname, v, SCOPE_GLOBAL, false);
 }
 
 const char getopts_help[] = Ngt(
@@ -2557,7 +2534,7 @@ int read_builtin(int argc, void **argv)
     }
 
     const wchar_t *s = buf.contents;
-    const wchar_t *ifs = getvar(VAR_IFS);
+    const wchar_t *ifs = getvar(L VAR_IFS);
     plist_T list;
 
     /* split fields */
@@ -2570,18 +2547,13 @@ int read_builtin(int argc, void **argv)
     /* assign variables */
     assert(xoptind + list.length == (size_t) argc);
     for (size_t i = 0; i < list.length; i++) {
-	char *name = malloc_wcstombs(ARGV(xoptind + i));
-	if (!name) {
-	    xerror(0, Ngt("unexpected error"));
-	    continue;
-	}
+	const wchar_t *name = ARGV(xoptind + i);
 	if (i + 1 == list.length)
 	    trim_trailing_ifsws(list.contents[i], ifs);
 	if (!array || i + 1 < list.length)
 	    err |= !set_variable(name, list.contents[i], SCOPE_GLOBAL, false);
 	else
 	    err |= !split_and_assign_array(name, list.contents[i], ifs, raw);
-	free(name);
     }
 
     pl_destroy(&list);
@@ -2633,7 +2605,7 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 
 /* Word-splits `values' and assigns them to the array named `name'.
  * `values' is freed in this function. */
-bool split_and_assign_array(const char *name, wchar_t *values,
+bool split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
 {
     plist_T list;
@@ -2706,7 +2678,7 @@ int dirs_builtin(int argc, void **argv)
     }
 
     if (clear)
-	return unset_variable(VAR_DIRSTACK) ? Exit_FAILURE : Exit_SUCCESS;
+	return unset_variable(L VAR_DIRSTACK) ? Exit_FAILURE : Exit_SUCCESS;
 
     bool err = false;
     const wchar_t *dir;
@@ -2731,11 +2703,11 @@ int dirs_builtin(int argc, void **argv)
 	}
     } else {
 	/* print all */
-	variable_T *var = search_variable(VAR_DIRSTACK);
+	variable_T *var = search_variable(L VAR_DIRSTACK);
 	bool dirvalid = (var && ((var->v_type & VF_MASK) == VF_ARRAY));
 	size_t size = dirvalid ? var->v_valc : 0;
 
-	dir = getvar(VAR_PWD);
+	dir = getvar(L VAR_PWD);
 	if (!dir) {
 	    xerror(0, Ngt("$PWD not set"));
 	    err = true;

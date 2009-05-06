@@ -364,7 +364,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 void exec_prompt_command(void)
 {
     if (!posixly_correct) {
-	const wchar_t *pc = getvar(VAR_PROMPT_COMMAND);
+	const wchar_t *pc = getvar(L VAR_PROMPT_COMMAND);
 	if (pc) {
 	    /* PROMPT_COMMAND is executed as if a trap handler */
 	    wchar_t *savepc = xwcsdup(pc);
@@ -409,10 +409,10 @@ void print_prompt(int type)
 {
     const wchar_t *ps;
     switch (type) {
-	case 1:   ps = getvar(VAR_PS1);   break;
-	case 2:   ps = getvar(VAR_PS2);   break;
-	case 3:   ps = getvar(VAR_PS3);   goto just_print;
-	case 4:   ps = getvar(VAR_PS4);   break;
+	case 1:   ps = getvar(L VAR_PS1);   break;
+	case 2:   ps = getvar(L VAR_PS2);   break;
+	case 3:   ps = getvar(L VAR_PS3);   goto just_print;
+	case 4:   ps = getvar(L VAR_PS4);   break;
 	default:  assert(false);
     }
     if (ps == NULL)
@@ -559,10 +559,10 @@ wchar_t *get_prompt(int type)
 {
     const wchar_t *ps;
     switch (type) {
-	case 1:   ps = getvar(VAR_PS1);   break;
-	case 2:   ps = getvar(VAR_PS2);   break;
-	case 3:   ps = getvar(VAR_PS3);   goto return_raw;
-	case 4:   ps = getvar(VAR_PS4);   break;
+	case 1:   ps = getvar(L VAR_PS1);   break;
+	case 2:   ps = getvar(L VAR_PS2);   break;
+	case 3:   ps = getvar(L VAR_PS3);   goto return_raw;
+	case 4:   ps = getvar(L VAR_PS4);   break;
 	default:  assert(false);
     }
     if (ps == NULL)

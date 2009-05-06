@@ -322,7 +322,7 @@ static void execute_rcfile(const wchar_t *rcfile)
     if (!is_interactive)
 	return;
     if (posixly_correct) {
-	const wchar_t *env = getvar(VAR_ENV);
+	const wchar_t *env = getvar(L VAR_ENV);
 	if (!env)
 	    return;
 	wpath = parse_and_expand_string(env, "$ENV", false);
