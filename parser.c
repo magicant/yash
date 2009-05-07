@@ -545,7 +545,7 @@ void serror(const char *restrict format, ...)
 {
     va_list ap;
 
-    if (cinfo->print_errmsg) {
+    if (cinfo->print_errmsg && cinfo->lastinputresult != 1) {
 	if (cinfo->filename)
 	    fprintf(stderr, "%s:%lu: ", cinfo->filename, cinfo->lineno);
 	fprintf(stderr, gt("syntax error: "));
