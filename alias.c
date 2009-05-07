@@ -105,6 +105,15 @@ bool is_alias_name_char(wchar_t c)
     return !iswblank(c) && !wcschr(L"\n=$<>\\'\"`;&|()#", c);
 }
 
+/* Skips an alias name at the head of the specified string and returns a
+ * pointer to the character right after the name in the string. */
+wchar_t *skip_alias_name(const wchar_t *s)
+{
+    while (is_alias_name_char(*s))
+	s++;
+    return (wchar_t *) s;
+}
+
 /* Decreases the reference count of `alias' and, if the count becomes zero,
  * frees it. */
 void free_alias(alias_T *alias)

@@ -1041,8 +1041,8 @@ void parse_redirect_list(redir_T **lastp)
     for (;;) {
 #if YASH_ENABLE_ALIAS
 	if (!posixly_correct) {
-	    wchar_t *nameend;
-	    while (*(nameend = skip_name(cbuf.contents + cindex)) == L'\0'
+	    wchar_t *nameend = cbuf.contents + cindex;
+	    while (*(nameend = skip_alias_name(nameend)) == L'\0'
 		    && read_more_input() == 0);
 	    substitute_alias(&cbuf, cindex, caliases, true);
 	}
