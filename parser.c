@@ -326,6 +326,7 @@ static void serror(const char *restrict format, ...)
 static inline int read_more_input(void);
 static inline void line_continuation(size_t index);
 static void ensure_buffer(size_t n);
+static size_t count_name_length(bool isnamechar(wchar_t c));
 static void skip_blanks_and_comment(void);
 static bool skip_to_next_token(void);
 static void next_line(void);
@@ -603,12 +604,26 @@ void ensure_buffer(size_t n)
 	    line_continuation(index);
 	    if (cinfo->lastinputresult != 0)
 		return;
-	    /* falls thru! */
+	    break;
 	default:
 	    index++;
 	    break;
 	}
     }
+}
+
+/* Returns the length of the name under the current index.
+ * Whether a character can be part of the name is determined by `isnamechar'.
+ * Processes line continuations and reads enough lines so that the variable/alias
+ * name under the current index is fully available. */
+size_t count_name_length(bool isnamechar(wchar_t c))
+{
+    size_t savecindex = cindex, newcindex;
+    while (ensure_buffer(1), isnamechar(cbuf.contents[cindex]))
+	cindex++;
+    newcindex = cindex;
+    cindex = savecindex;
+    return newcindex - savecindex;
 }
 
 /* Advances `cindex' to skip blank characters, comments and line continuations.
@@ -956,9 +971,6 @@ command_T *parse_command(void)
     result->c_type = CT_SIMPLE;
     redirlastp = parse_assignments_and_redirects(result);
     result->c_words = parse_words_and_redirects(redirlastp, true);
-    /* `tryparse_function' removes all line continuations in the command word,
-     * so we don't have to worry about line continuations in alias substitution.
-     * But line continuations aren't handled properly for other words. */
 
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L'(')
@@ -982,7 +994,8 @@ redir_T **parse_assignments_and_redirects(command_T *c)
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
-	substitute_alias(&cbuf, cindex, caliases, false);
+	size_t len = count_name_length(is_alias_name_char);
+	substitute_alias(&cbuf, cindex, len, caliases, false);
 	skip_blanks_and_comment();
 #endif
 	if ((redir = tryparse_redirect())) {
@@ -1015,7 +1028,8 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
 	if (!first) {
-	    substitute_alias(&cbuf, cindex, caliases, true);
+	    size_t len = count_name_length(is_alias_name_char);
+	    substitute_alias(&cbuf, cindex, len, caliases, true);
 	    skip_blanks_and_comment();
 	}
 #endif
@@ -1041,10 +1055,8 @@ void parse_redirect_list(redir_T **lastp)
     for (;;) {
 #if YASH_ENABLE_ALIAS
 	if (!posixly_correct) {
-	    wchar_t *nameend = cbuf.contents + cindex;
-	    while (*(nameend = skip_alias_name(nameend)) == L'\0'
-		    && read_more_input() == 0);
-	    substitute_alias(&cbuf, cindex, caliases, true);
+	    size_t len = count_name_length(is_alias_name_char);
+	    substitute_alias(&cbuf, cindex, len, caliases, true);
 	}
 #endif
 
@@ -1060,11 +1072,10 @@ void parse_redirect_list(redir_T **lastp)
  * Otherwise, does nothing and returns NULL. */
 assign_T *tryparse_assignment(void)
 {
-    size_t namelen;
+    if (iswdigit(cbuf.contents[cindex]))
+	return NULL;
 
-    do
-	namelen = skip_name(cbuf.contents + cindex) - (cbuf.contents + cindex);
-    while (cbuf.contents[cindex + namelen] == L'\0' && read_more_input() == 0);
+    size_t namelen = count_name_length(is_name_char);
     if (namelen == 0 || cbuf.contents[cindex + namelen] != L'=')
 	return NULL;
 
@@ -1240,11 +1251,9 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	case noalias:
 	    break;
 	case globalonly:
-	    substitute_alias(&cbuf, cindex, caliases, true);
-	    skip_blanks_and_comment();
-	    break;
-	case anyalias:
-	    substitute_alias(&cbuf, cindex, caliases, false);
+	case anyalias:;
+	    size_t len = count_name_length(is_alias_name_char);
+	    substitute_alias(&cbuf, cindex, len, caliases, type == globalonly);
 	    skip_blanks_and_comment();
 	    break;
     }
@@ -1401,18 +1410,10 @@ wordunit_T *tryparse_paramexp_raw(void)
     }
     if (!is_name_char(cbuf.contents[cindex]))
 	goto fail;
-
-findnamelen:
-    namelen = skip_name(cbuf.contents + cindex) - (cbuf.contents + cindex);
-    if (cbuf.contents[cindex + namelen] == L'\\' &&
-	    cbuf.contents[cindex + namelen + 1] == L'\n') {
-	line_continuation(cindex + namelen);
-	goto findnamelen;
-    }
-    if (namelen == 0) {
-	assert(L'0' <= cbuf.contents[cindex] && cbuf.contents[cindex] <= L'9');
-	namelen++;
-    }
+    if (iswdigit(cbuf.contents[cindex]))
+	namelen = 1;
+    else
+	namelen = count_name_length(is_name_char);
 
 success:
     pe = xmalloc(sizeof *pe);
@@ -2100,23 +2101,13 @@ command_T *tryparse_function(void)
     size_t savecindex = cindex;
     unsigned long lineno = cinfo->lineno;
 
-    wchar_t *nameend;
-    size_t namelen;
-
-    /* parse function name */
-readname:
-    while (*(nameend = skip_name(cbuf.contents + cindex)) == L'\0'
-	    && read_more_input() == 0);
-    namelen = nameend - (cbuf.contents + cindex);
-    if (namelen == 0 || !is_token_delimiter_char(*nameend)) {
-	ensure_buffer(2);
-	if (nameend[0] == L'\\' && nameend[1] == L'\n') {
-	    line_continuation(nameend - cbuf.contents);
-	    goto readname;
-	}
+    if (iswdigit(cbuf.contents[cindex]))
 	goto fail;
-    }
+
+    size_t namelen = count_name_length(is_name_char);
     cindex += namelen;
+    if (namelen == 0 || !is_token_delimiter_char(cbuf.contents[cindex]))
+	goto fail;
     skip_blanks_and_comment();
 
     /* parse parentheses */

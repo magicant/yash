@@ -26,14 +26,14 @@ struct xwcsbuf_T;
 extern _Bool alias_enabled;
 
 extern void init_alias(void);
-extern wchar_t *skip_alias_name(const wchar_t *s)
-    __attribute__((nonnull,pure));
+extern bool is_alias_name_char(wchar_t c)
+    __attribute__((pure));
 extern const wchar_t *get_alias_value(const wchar_t *aliasname)
     __attribute__((nonnull,pure));
 extern struct aliaslist_T *new_aliaslist(void)
     __attribute__((malloc,warn_unused_result));
 extern void destroy_aliaslist(struct aliaslist_T *list);
-extern void substitute_alias(struct xwcsbuf_T *buf, size_t i,
+extern void substitute_alias(struct xwcsbuf_T *buf, size_t i, size_t len,
 	struct aliaslist_T *list, _Bool globalonly)
     __attribute__((nonnull));
 extern _Bool print_alias_if_defined(

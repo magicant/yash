@@ -61,8 +61,6 @@ typedef struct aliaslist_T {
     } list[ALIAS_LIST_MAX];
 } aliaslist_T;
 
-static inline bool is_alias_name_char(wchar_t c)
-    __attribute__((pure));
 static void free_alias(alias_T *alias);
 static inline void vfreealias(kvpair_T kv);
 static void define_alias(
@@ -100,18 +98,9 @@ void init_alias(void)
 }
 
 /* Returns true iff `c' is a character that can be used in an alias name. */
-bool is_alias_name_char(wchar_t c)
+inline bool is_alias_name_char(wchar_t c)
 {
     return !iswblank(c) && !wcschr(L"\n=$<>\\'\"`;&|()#", c);
-}
-
-/* Skips an alias name at the head of the specified string and returns a
- * pointer to the character right after the name in the string. */
-wchar_t *skip_alias_name(const wchar_t *s)
-{
-    while (is_alias_name_char(*s))
-	s++;
-    return (wchar_t *) s;
 }
 
 /* Decreases the reference count of `alias' and, if the count becomes zero,
@@ -264,18 +253,29 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
 }
 
 /* Performs alias substitution at the specified index `i' in the buffer `buf'.
+ * If the length of the word to be substitutied is known, it should be given as
+ * `len'. Otherwise, `len' must be 0.
  * If `globalonly' is true, only global aliases are substituted. */
 void substitute_alias(
-	xwcsbuf_T *buf, size_t i, aliaslist_T *list, bool globalonly)
+	xwcsbuf_T *buf, size_t i, size_t len, aliaslist_T *list, bool globalonly)
 {
 substitute_alias:
     if (!alias_enabled || (globalonly && posixly_correct))
 	return;
     remove_expired_aliases(list, i);
 
-    size_t j = i;
-    while (is_alias_name_char(buf->contents[j]))
-	j++;
+    size_t j;
+    if (len == 0) {
+	j = i;
+	while (is_alias_name_char(buf->contents[j]))
+	    j++;
+    } else {
+	j = i + len;
+#ifndef NDEBUG
+	for (size_t k = i; k < j; k++)
+	    assert(is_alias_name_char(buf->contents[k]));
+#endif
+    }
     /* `i' is the starting index and `j' is the ending index of the word */
 
     if (i < j && is_token_delimiter_char(buf->contents[j])) {
@@ -297,13 +297,14 @@ substitute_alias:
 		aliaslist_T *savelist = clone_aliaslist(list);
 		while (iswblank(buf->contents[ii]))
 		    ii++;
-		substitute_alias(buf, ii, savelist, globalonly);
+		substitute_alias(buf, ii, 0, savelist, globalonly);
 		destroy_aliaslist(savelist);
 	    }
 
 	    if (add_to_aliaslist(list, alias, i + alias->valuelen)) {
 		while (iswblank(buf->contents[i]))
 		    i++;
+		len = 0;
 		goto substitute_alias;  /* recursively substitute alias */
 	    }
 	}
