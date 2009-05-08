@@ -407,14 +407,14 @@ int alias_builtin(int argc, void **argv)
 
 	while (is_alias_name_char(*nameend))
 	    nameend++;
-	if (*nameend == L'=') {
+	if (nameend != arg && *nameend == L'=') {
 	    if (!wcschr(nameend + 1, L'\n')) {
 		define_alias(arg, nameend, global);
 	    } else {
 		xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
 		err = true;
 	    }
-	} else if (*nameend == L'\0') {
+	} else if (nameend != arg && *nameend == L'\0') {
 	    alias_T *alias = ht_get(&aliases, arg).value;
 	    if (alias) {
 		print_alias(arg, alias, prefix);
