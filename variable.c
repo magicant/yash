@@ -123,9 +123,6 @@ static void varkvfree_reexport(kvpair_T kv);
 
 static void init_pwd(void);
 
-static inline bool is_name_char(wchar_t c)
-    __attribute__((const));
-
 static variable_T *search_variable(const wchar_t *name)
     __attribute__((pure,nonnull));
 static variable_T *search_array_and_check_if_changeable(const wchar_t *name)
@@ -360,39 +357,6 @@ set:
 	return;
     }
     set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, true);
-}
-
-/* Checks if the specified character can be used in a variable name in an
- * assignment. */
-bool is_name_char(wchar_t c)
-{
-    switch (c) {
-    case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
-    case L'5':  case L'6':  case L'7':  case L'8':  case L'9':
-    case L'a':  case L'b':  case L'c':  case L'd':  case L'e':  case L'f':
-    case L'g':  case L'h':  case L'i':  case L'j':  case L'k':  case L'l':
-    case L'm':  case L'n':  case L'o':  case L'p':  case L'q':  case L'r':
-    case L's':  case L't':  case L'u':  case L'v':  case L'w':  case L'x':
-    case L'y':  case L'z':
-    case L'A':  case L'B':  case L'C':  case L'D':  case L'E':  case L'F':
-    case L'G':  case L'H':  case L'I':  case L'J':  case L'K':  case L'L':
-    case L'M':  case L'N':  case L'O':  case L'P':  case L'Q':  case L'R':
-    case L'S':  case L'T':  case L'U':  case L'V':  case L'W':  case L'X':
-    case L'Y':  case L'Z':  case L'_':
-	return true;
-    default:
-	return false;
-    }
-}
-
-/* Checks if the specified string is a valid variable name.
- * Note that parameters are not variables. */
-bool is_name(const wchar_t *s)
-{
-    if (!iswdigit(*s))
-	while (is_name_char(*s))
-	    s++;
-    return !*s;
 }
 
 /* Searches for a variable with the specified name.

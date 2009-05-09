@@ -329,6 +329,10 @@ extern _Bool parse_string(
 
 /********** Auxiliary function **********/
 
+extern _Bool is_name_char(wchar_t c)
+    __attribute__((pure));
+extern _Bool is_name(const wchar_t *s)
+    __attribute__((pure));
 extern _Bool is_keyword(const wchar_t *s)
     __attribute__((nonnull,pure));
 extern _Bool is_token_delimiter_char(wchar_t c)

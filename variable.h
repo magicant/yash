@@ -74,9 +74,6 @@ extern unsigned long current_lineno;
 
 extern void init_variables(void);
 
-extern _Bool is_name(const wchar_t *s)
-    __attribute__((nonnull,pure));
-
 typedef enum scope_T {
     SCOPE_GLOBAL, SCOPE_LOCAL, SCOPE_TEMP,
 } scope_T;

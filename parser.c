@@ -224,8 +224,6 @@ void redirsfree(redir_T *r)
 
 /********** Auxiliary Functions for Parser **********/
 
-static inline bool is_name_char(wchar_t c)
-    __attribute__((const));
 static wchar_t *skip_name(const wchar_t *s)
     __attribute__((pure,nonnull));
 
@@ -234,23 +232,7 @@ static wchar_t *skip_name(const wchar_t *s)
  * Returns true for a digit. */
 bool is_name_char(wchar_t c)
 {
-    switch (c) {
-    case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
-    case L'5':  case L'6':  case L'7':  case L'8':  case L'9':
-    case L'a':  case L'b':  case L'c':  case L'd':  case L'e':  case L'f':
-    case L'g':  case L'h':  case L'i':  case L'j':  case L'k':  case L'l':
-    case L'm':  case L'n':  case L'o':  case L'p':  case L'q':  case L'r':
-    case L's':  case L't':  case L'u':  case L'v':  case L'w':  case L'x':
-    case L'y':  case L'z':
-    case L'A':  case L'B':  case L'C':  case L'D':  case L'E':  case L'F':
-    case L'G':  case L'H':  case L'I':  case L'J':  case L'K':  case L'L':
-    case L'M':  case L'N':  case L'O':  case L'P':  case L'Q':  case L'R':
-    case L'S':  case L'T':  case L'U':  case L'V':  case L'W':  case L'X':
-    case L'Y':  case L'Z':  case L'_':
-	return true;
-    default:
-	return false;
-    }
+    return c == L'_' || iswalnum(c);
 }
 
 /* Skips an identifier at the head of the specified string and returns a
@@ -261,6 +243,12 @@ wchar_t *skip_name(const wchar_t *s)
 	while (is_name_char(*s))
 	    s++;
     return (wchar_t *) s;
+}
+
+/* Checks if the specified string constitutes a valid identifier. */
+bool is_name(const wchar_t *s)
+{
+    return s[0] != L'\0' && skip_name(s)[0] == L'\0';
 }
 
 /* Returns true iff the string is a shell reserved word. */
