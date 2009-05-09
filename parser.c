@@ -1711,6 +1711,8 @@ wordunit_T *tryparse_arith(void)
     for (;;) {
 	ensure_buffer(1);
 	switch (cbuf.contents[cindex]) {
+	case L'\0':
+	    goto fail;
 	case L'\\':
 	    if (cbuf.contents[cindex + 1] == L'\n') {
 		line_continuation(cindex);
