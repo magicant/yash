@@ -224,9 +224,34 @@ void redirsfree(redir_T *r)
 
 /********** Auxiliary Functions for Parser **********/
 
+static bool is_portable_name_char(wchar_t c)
+    __attribute__((const));
 static wchar_t *skip_name(const wchar_t *s)
     __attribute__((pure,nonnull));
 
+
+/* Checks if the specified character can be used in a portable variable name.
+ * Returns true for a digit. */
+bool is_portable_name_char(wchar_t c)
+{
+    switch (c) {
+    case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
+    case L'5':  case L'6':  case L'7':  case L'8':  case L'9':
+    case L'a':  case L'b':  case L'c':  case L'd':  case L'e':  case L'f':
+    case L'g':  case L'h':  case L'i':  case L'j':  case L'k':  case L'l':
+    case L'm':  case L'n':  case L'o':  case L'p':  case L'q':  case L'r':
+    case L's':  case L't':  case L'u':  case L'v':  case L'w':  case L'x':
+    case L'y':  case L'z':
+    case L'A':  case L'B':  case L'C':  case L'D':  case L'E':  case L'F':
+    case L'G':  case L'H':  case L'I':  case L'J':  case L'K':  case L'L':
+    case L'M':  case L'N':  case L'O':  case L'P':  case L'Q':  case L'R':
+    case L'S':  case L'T':  case L'U':  case L'V':  case L'W':  case L'X':
+    case L'Y':  case L'Z':  case L'_':
+       return true;
+    default:
+       return false;
+    }
+}
 
 /* Checks if the specified character can be used in a variable name.
  * Returns true for a digit. */
@@ -1396,12 +1421,12 @@ wordunit_T *tryparse_paramexp_raw(void)
 	    namelen = 1;
 	    goto success;
     }
-    if (!is_name_char(cbuf.contents[cindex]))
+    if (!is_portable_name_char(cbuf.contents[cindex]))
 	goto fail;
     if (iswdigit(cbuf.contents[cindex]))
 	namelen = 1;
     else
-	namelen = count_name_length(is_name_char);
+	namelen = count_name_length(is_portable_name_char);
 
 success:
     pe = xmalloc(sizeof *pe);
