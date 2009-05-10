@@ -2,6 +2,13 @@
 ~-
 expand.y.tst
 1 b
+nest $ +
+nest $ -
+nest $ =
+nest $ ?
+nest $ #
+nest $ %
+nest $ /
 123/xxx/789
 xxx/456/789 123/456/789
 123/456/xxx 123/456/789

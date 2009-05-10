@@ -1449,8 +1449,11 @@ wordunit_T *parse_paramexp_in_brase(void)
     if (!posixly_correct && cbuf.contents[cindex] == L'{') {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = parse_paramexp_in_brase();
-    } else if (!posixly_correct &&
-	    (cbuf.contents[cindex] == L'$' || cbuf.contents[cindex] == L'`')) {
+    } else if (!posixly_correct
+	    && (cbuf.contents[cindex] == L'`'
+		|| (cbuf.contents[cindex] == L'$'
+		    && (cbuf.contents[cindex + 1] == L'{'
+			|| cbuf.contents[cindex + 1] == L'(')))) {
 	size_t neststartindex = cindex;
 	pe->pe_nest = parse_special_word_unit();
 	if (cindex != neststartindex)

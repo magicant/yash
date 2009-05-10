@@ -6,6 +6,13 @@ var=123/456/789 asterisks='*****'
 
 echo expand.y.t${{asterisks#"**"}%"**"}st
 echo ${#$(echo a)} ${${`echo abc`#a}%c}
+[ x"${$+x}" != x"${$:+y}" ] && echo nest \$ +
+[ x"${$-x}" =  x"${$:-y}" ] && echo nest \$ -
+[ x"${$=x}" =  x"${$:=y}" ] && echo nest \$ =
+[ x"${$?x}" =  x"${$:?y}" ] && echo nest \$ ?
+[ x"${$#x}" =  x"${$##y}" ] && echo nest \$ \#
+[ x"${$%x}" =  x"${$%%y}" ] && echo nest \$ %
+[ x"${$/x/y}" = x"${$:/x/y}" ] && echo nest \$ /
 
 echo ${var/456/xxx}
 echo ${var/#123/xxx} ${var/#456/xxx}
