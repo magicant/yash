@@ -1632,12 +1632,17 @@ static void print_variable(
 	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
 {
+    wchar_t *qname = NULL;
+
     if (name[0] == L'=')
 	return;
     if (readonly && !(var->v_type & VF_READONLY))
 	return;
     if (export && !(var->v_type & VF_EXPORT))
 	return;
+
+    if (!is_name(name))
+	name = qname = quote_sq(name);
     switch (var->v_type & VF_MASK) {
 	case VF_NORMAL:  goto print_variable;
 	case VF_ARRAY:   goto print_array;
@@ -1649,7 +1654,7 @@ print_variable:;
     switch (argv0[0]) {
 	case L's':
 	    assert(wcscmp(argv0, L"set") == 0);
-	    if (qvalue)
+	    if (!qname && qvalue)
 		printf("%ls=%ls\n", name, qvalue);
 	    break;
 	case L'e':
@@ -1676,6 +1681,7 @@ print_variable:;
 	    assert(false);
     }
     free(qvalue);
+    free(qname);
     return;
 
 print_array:
@@ -1716,6 +1722,7 @@ print_array:
 	default:
 	    assert(false);
     }
+    free(qname);
     return;
 }
 
@@ -1726,8 +1733,13 @@ void print_function(
     if (readonly && !(func->f_type & VF_READONLY))
 	return;
 
+    wchar_t *qname = NULL;
+    if (!is_name(name))
+	name = qname = quote_sq(name);
+
     wchar_t *value = command_to_wcs(func->f_body);
     printf("%ls () %ls\n", name, value);
+	// XXX need "function" keyword for quoted names
     free(value);
 
     switch (argv0[0]) {
@@ -1744,6 +1756,7 @@ void print_function(
 	default:
 	    assert(false);
     }
+    free(qname);
 }
 
 const char typeset_help[] = Ngt(
