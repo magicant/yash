@@ -21,6 +21,8 @@ Yash 2.9
   *  Fixed floating-point arithmetics in arithmetic expansions.
   *  Fixed parser for arithmetic expansions that was incorrectly
      rejecting identifiers that start with underscores.
+  *  Fixed parser that had trouble parsing parameter expansions
+     containing the hash sign like "${#=x}".
   *  Fixed the help message for the "pwd" builtin.
 
 ----------------------------------------------------------------------

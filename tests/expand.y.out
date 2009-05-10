@@ -9,6 +9,13 @@ nest $ ?
 nest $ #
 nest $ %
 nest $ /
+## length=1
+#- length=0 ifunset=3
+#? length=1 error=3
+#+
+#= 3 3
+#/ X X
+#%
 123/xxx/789
 xxx/456/789 123/456/789
 123/456/xxx 123/456/789

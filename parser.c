@@ -1435,13 +1435,20 @@ wordunit_T *parse_paramexp_in_brase(void)
 
     /* parse PT_NUMBER */
     ensure_buffer(3);
-    if (cbuf.contents[cindex] == L'#'
-	    && cbuf.contents[cindex + 1] != L'}'
-	    && (cbuf.contents[cindex + 1] != L'#'
-		|| (cbuf.contents[cindex + 1] != L'\0'
-		    && cbuf.contents[cindex + 2] == L'}'))) {
-	pe->pe_type |= PT_NUMBER;
-	cindex++;
+    if (cbuf.contents[cindex] == L'#') {
+	switch (cbuf.contents[cindex + 1]) {
+	    case L'\0': case L' ':
+	    case L'+':  case L'=':  case L':':  case L'/':  case L'%':
+		break;
+	    case L'-':  case L'?':  case L'#':
+		if (cbuf.contents[cindex + 2] != L'}')
+		    break;
+		/* falls thru! */
+	    default:
+		pe->pe_type |= PT_NUMBER;
+		cindex++;
+		break;
+	}
     }
 
     /* parse nested expansion */

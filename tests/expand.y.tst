@@ -13,6 +13,14 @@ echo ${#$(echo a)} ${${`echo abc`#a}%c}
 [ x"${$#x}" =  x"${$##y}" ] && echo nest \$ \#
 [ x"${$%x}" =  x"${$%%y}" ] && echo nest \$ %
 [ x"${$/x/y}" = x"${$:/x/y}" ] && echo nest \$ /
+set 1 22 333
+echo \## length=${##}
+echo \#- length=${#-} ifunset=${#-""}
+echo \#? length=${#?} error=${#?error}
+echo \#+ ${#+} ${#:+}
+echo \#= ${#=} ${#:=}
+echo \#/ ${#/3/X} ${#:/3/X}
+echo \#% ${#%3}
 
 echo ${var/456/xxx}
 echo ${var/#123/xxx} ${var/#456/xxx}
