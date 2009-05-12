@@ -62,6 +62,7 @@ static void tputws(const wchar_t *s, size_t n)
     __attribute__((nonnull));
 static void twprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1)));
+static void fillip_cursor(void);
 
 static void print_prompt(void);
 static void print_color_seq(const wchar_t **sp)
@@ -355,6 +356,17 @@ void twprintf(const wchar_t *format, ...)
     va_end(args);
 }
 
+/* If the cursor is sticking to the end of line, moves it to the next line. */
+void fillip_cursor(void)
+{
+    if (current_column >= le_columns) {
+	tputwc(L' ');
+	le_print_cr();
+	current_column = 0;
+	le_print_el();
+    }
+}
+
 /* Prints the given prompt, which may contain backslash escapes. */
 void print_prompt(void)
 {
@@ -390,6 +402,7 @@ void print_prompt(void)
 	s++;
     }
 done:
+    fillip_cursor();
     editbase_line = current_line, editbase_column = current_column;
 }
 
@@ -471,13 +484,7 @@ void print_editline(size_t index)
     cursor_positions[le_main_buffer.length] =
 	current_line * le_columns + current_column;
 
-    if (current_column >= le_columns) {
-	/* print a dummy space to move the cursor to the next line */
-	tputwc(L' ');
-	le_print_cr();
-	current_column = 0;
-    }
-
+    fillip_cursor();
     last_edit_line = current_line;
 }
 
