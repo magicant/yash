@@ -44,6 +44,7 @@ extern wchar_t *le_readline(const wchar_t *prompt)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern void le_suspend_readline(void);
 extern void le_resume_readline(void);
+extern void le_display_size_changed(void);
 
 extern _Bool le_next_verbatim;
 

@@ -147,6 +147,19 @@ void le_resume_readline(void)
     }
 }
 
+/* Re-retrieves the terminfo and reprints everything. */
+/* When the display size is changed, this function is called. */
+void le_display_size_changed(void)
+{
+    if (le_state == LE_STATE_ACTIVE) {
+	le_display_clear();
+	le_setupterm();
+	le_display_print_all();
+	le_display_reposition_cursor();
+	fflush(stderr);
+    }
+}
+
 
 /********** Input Reading **********/
 

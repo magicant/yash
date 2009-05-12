@@ -52,6 +52,7 @@ extern _Bool have_unhandled_traps(void);
 extern int handle_traps(void);
 extern void execute_exit_trap(void);
 extern void clear_traps(void);
+extern void reset_sigwinch(void);
 
 extern int trap_builtin(int argc, void **argv)
     __attribute__((nonnull));

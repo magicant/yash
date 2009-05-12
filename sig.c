@@ -54,7 +54,8 @@
  *
  * Yash always catches SIGCHLD.
  * When job control is active, SIGTTOU and SIGTSTP are ignored.
- * If the shell is interactive, SIGINT, SIGTERM and SIGQUIT are also ignored.
+ * If the shell is interactive, SIGINT, SIGTERM and SIGQUIT are also ignored
+ * and SIGWINCH is caught.
  * Other signals are caught if a trap for the signals are set.
  *
  * SIGQUIT and SIGINT are ignored in an asynchronous list.
@@ -72,6 +73,9 @@ static inline bool is_ignored(int signum)
     __attribute__((pure));
 static void sig_handler(int signum);
 static bool set_trap(int signum, const wchar_t *command);
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+static void handle_sigwinch(void);
+#endif
 
 
 /* Checks if there exists a process with the specified process ID, which should
@@ -239,6 +243,12 @@ static sigset_t ignored_signals;
  * This flag is used for job control while `signal_received[...]' is for trap
  * handling. */
 static volatile sig_atomic_t sigchld_received, sigint_received;
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+/* This flag is set to true as well as `signal_received[sigindex(SIGWINCH)]'
+ * when SIGWINCH is caught.
+ * This flag is used by line-editing. */
+static volatile sig_atomic_t sigwinch_received;
+#endif
 
 /* true iff SIGCHLD is handled. */
 static bool initialized = false;
@@ -302,10 +312,15 @@ void set_interactive_signals(void)
 {
     if (!interactive_initialized) {
 	interactive_initialized = true;
+
 	set_special_handler(SIGINT, SIG_IGN);
 	set_special_handler(SIGTERM, SIG_IGN);
 	set_special_handler(SIGQUIT, SIG_IGN);
 	/* don't have to unblock these signals because they are ignored anyway*/
+
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	set_special_handler(SIGWINCH, sig_handler);
+#endif
     }
 }
 
@@ -342,6 +357,9 @@ void restore_interactive_signals(void)
 	reset_special_handler(SIGINT);
 	reset_special_handler(SIGTERM);
 	reset_special_handler(SIGQUIT);
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	reset_special_handler(SIGWINCH);
+#endif
     }
 }
 
@@ -473,10 +491,13 @@ void sig_handler(int signum)
     {
 	signal_received[sigindex(signum)] = true;
 
-	if (signum == SIGCHLD)
-	    sigchld_received = true;
-	else if (signum == SIGINT)
-	    sigint_received = true;
+	switch (signum) {
+	    case SIGCHLD:   sigchld_received  = true;   break;
+	    case SIGINT:    sigint_received   = true;   break;
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	    case SIGWINCH:  sigwinch_received = true;   break;
+#endif
+	}
     }
 }
 
@@ -540,7 +561,8 @@ finish:
 }
 
 /* Waits for the specified file descriptor to be available for reading.
- * If SIGCHLD is caught while waiting, `handle_sigchld' is called.
+ * `handle_sigchld' and `handle_sigwinch' are called to handle SIGCHLD and
+ * SIGWINCH.
  * If `trap' is true, traps are also handled while waiting. */
 void wait_for_input(int fd, bool trap)
 {
@@ -560,6 +582,9 @@ start:
 	    handle_traps();
 	    goto start;
 	}
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	handle_sigwinch();
+#endif
 
 	fd_set fdset;
 	FD_ZERO(&fdset);
@@ -809,6 +834,14 @@ bool set_trap(int signum, const wchar_t *command)
 	case SIGCHLD:
 	    /* SIGCHLD's signal handler is always `sig_handler' */
 	    return true;
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	case SIGWINCH:
+	    /* SIGWINCH's signal handler is always `sig_handler' when
+	     * interactive */
+	    if (is_interactive_now)
+		return true;
+	    break;
+#endif
 	case SIGTTOU:
 	    if (job_initialized)
 		goto nodefault;
@@ -886,6 +919,29 @@ void clear_traps(void)
 #endif
     any_trap_set = false, any_signal_received = false;
 }
+
+#if YASH_ENABLE_LINEEDIT
+#ifdef SIGWINCH
+
+/* If SIGWINCH has been caught and line-editing is currently active, cause
+ * line-editing to redraw the display. */
+void handle_sigwinch(void)
+{
+    if (sigwinch_received)
+	le_display_size_changed();
+}
+
+#endif /* defined(SIGWINCH) */
+
+/* Resets the `sigwinch_received' flag. */
+void reset_sigwinch(void)
+{
+#ifdef SIGWINCH
+    sigwinch_received = false;
+#endif
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Builtin **********/

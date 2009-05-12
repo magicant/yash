@@ -27,6 +27,7 @@
 #include <term.h>
 #include <termios.h>
 #include <unistd.h>
+#include "../sig.h"
 #include "../util.h"
 #include "key.h"
 #include "terminfo.h"
@@ -264,6 +265,7 @@ _Bool le_setupterm(void)
     static _Bool once = 0;
     int err;
 
+    reset_sigwinch();
     if (once)
 	del_curterm(cur_term);
     if (setupterm(NULL, STDERR_FILENO, &err) != OK)
