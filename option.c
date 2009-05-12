@@ -152,9 +152,15 @@ typedef enum shopt_index_T {
     SHOPT_NOCASEGLOB, SHOPT_DOTGLOB, SHOPT_MARKDIRS, SHOPT_EXTENDEDGLOB,
     SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_AUTOCD,
     SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
-    SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY, SHOPT_NOTIFYLE,
-    SHOPT_POSIX, SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_LE_CONVMETA,
-    SHOPT_LE_PROMPTSP, SHOPT_HELP,
+    SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY,
+#if YASH_ENABLE_LINEEDIT
+    SHOPT_NOTIFYLE,
+#endif
+    SHOPT_POSIX,
+#if YASH_ENABLE_LINEEDIT
+    SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_LE_CONVMETA, SHOPT_LE_PROMPTSP,
+#endif
+    SHOPT_HELP,
     SHOPT_setopt = SHOPT_ALLEXPORT,
 } shopt_index_T;
 
@@ -189,7 +195,9 @@ static const struct xoption long_options[] = {
     [SHOPT_NOLOG]        = { L"nolog",        xno_argument, L'L', },
     [SHOPT_MONITOR]      = { L"monitor",      xno_argument, L'm', },
     [SHOPT_NOTIFY]       = { L"notify",       xno_argument, L'L', },
+#if YASH_ENABLE_LINEEDIT
     [SHOPT_NOTIFYLE]     = { L"notifyle",     xno_argument, L'L', },
+#endif
     [SHOPT_POSIX]        = { L"posix",        xno_argument, L'L', },
 #if YASH_ENABLE_LINEEDIT
     [SHOPT_VI]           = { L"vi",           xno_argument, L'L', },

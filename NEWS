@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.10
+
+  *  Setting the "notifyle" option caused a segfault if yash was
+     configured with line-editing disabled.
+
+----------------------------------------------------------------------
 Yash 2.9
 
   +  Line-editing in the interactive mode.
