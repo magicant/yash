@@ -45,7 +45,9 @@
 #include "strbuf.h"
 #include "util.h"
 #include "yash.h"
-#include "lineedit/lineedit.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/lineedit.h"
+#endif
 
 
 /* About the shell's signal handling:
@@ -70,6 +72,14 @@ static inline bool is_ignored(int signum)
     __attribute__((pure));
 static void sig_handler(int signum);
 static bool set_trap(int signum, const wchar_t *command);
+
+
+/* Checks if there exists a process with the specified process ID, which should
+ * be positive. */
+bool process_exists(pid_t pid)
+{
+    return kill(pid, 0) >= 0 || errno != ESRCH;
+}
 
 /* Returns the name of the signal with the specified number.
  * The returned name doesn't have a "SIG"-prefix.

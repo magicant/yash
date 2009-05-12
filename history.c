@@ -23,7 +23,6 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +38,7 @@
 #include "option.h"
 #include "path.h"
 #include "redir.h"
+#include "sig.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
@@ -820,13 +820,11 @@ void check_histfile_pid(void)
     last = &histfilepids, list = histfilepids;
     while (list != NULL) {
 	assert(list->pid > 0);
-	if (kill(list->pid, 0) < 0 && errno == ESRCH) {
-	    /* invalid process id: no such process */
+	if (!process_exists(list->pid)) {
 	    *last = list->next;
 	    free(list);
 	    list = *last;
 	} else {
-	    /* valid process id */
 	    last = &list->next, list = list->next;
 	}
     }

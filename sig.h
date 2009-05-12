@@ -22,6 +22,7 @@
 #include <stddef.h>
 
 
+extern bool process_exists(pid_t pid);
 extern const char *get_signal_name(int signum)
     __attribute__((const));
 extern int get_signal_number(const char *name)

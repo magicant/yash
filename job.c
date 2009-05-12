@@ -20,7 +20,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
