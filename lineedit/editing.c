@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -1904,8 +1905,7 @@ end:
 	free(tempfile);
 	le_resume_readline();
     } else {  // child process
-	fputws(le_main_buffer.contents, f);
-	fputwc(L'\n', f);
+	fwprintf(f, L"%ls\n");
 	fclose(f);
 
 	wchar_t *command = malloc_wprintf(L"vi %s", tempfile);

@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <wctype.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
@@ -315,11 +316,13 @@ found:
     pr->pr_statuscode = status;
     if (WIFEXITED(status) || WIFSIGNALED(status))
 	pr->pr_status = JS_DONE;
-    else if (WIFSTOPPED(status))
+    if (WIFSTOPPED(status))
 	pr->pr_status = JS_STOPPED;
 #ifdef HAVE_WCONTINUED
-    else if (WIFCONTINUED(status))
+    if (WIFCONTINUED(status))
 	pr->pr_status = JS_RUNNING;
+    /* On FreeBSD, when WIFCONTINUED is true, WIFSIGNALED is also true. We must
+     * be careful about the order of these checks. */
 #endif
 
     /* decide the job status from the process status:

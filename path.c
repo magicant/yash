@@ -32,6 +32,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif

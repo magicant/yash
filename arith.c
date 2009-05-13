@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <wchar.h>
+/* #include <wctype.h> */
 #include "arith.h"
 #include "option.h"
 #include "strbuf.h"
@@ -33,6 +34,13 @@
 #include "variable.h"
 /* Must not include <ctype.h> or <wctype.h> because symbol names conflict.
  * (to[a-z]*) */
+
+
+/* we declare these functions instead of including <wctype.h> */
+extern int iswalpha(wint_t wc);
+extern int iswalnum(wint_t wc);
+extern int iswdigit(wint_t wc);
+extern int iswspace(wint_t wc);
 
 
 typedef struct word_T {

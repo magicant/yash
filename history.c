@@ -31,6 +31,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 #include "builtin.h"
 #include "exec.h"
 #include "history.h"
@@ -1219,7 +1220,7 @@ void fc_remove_last_entry(void)
 	update_history(false);
 	remove_last_entry();
 	if (histfile) {
-	    fputws(L"c\n", histfile);
+	    fwprintf(histfile, L"c\n");
 	    fflush(histfile);
 	    lock_file(fileno(histfile), F_UNLCK);
 	}
