@@ -1,0 +1,135 @@
+﻿@charset "UTF-8";
+
+/* simple.css 0.5.5 (2007-04-01) based on defaultstyle.css 0.2.15 */
+/* © 2006-2007 Magicant */
+
+body {
+	color: black;
+	background: #fefef5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	color: black;
+	background: #fefef5;
+	border: none;
+}
+h1, h2, h3, h4 {
+	color: #731;
+}
+h1 {
+	background: #fdc;
+}
+h2 {
+	background: #fed;
+}
+h3 {
+	border-left: double 3px red;
+	padding-left: 0.3em;
+}
+h4 {
+	border-left: solid 1px red;
+}
+
+dt {
+	color: black;
+	background: #fee;
+}
+dd {
+	border: none;
+	border-left: dotted 1px red;
+	padding-left: 0.3em;
+}
+
+/*
+th {
+	color: maroon;
+	background: #fefef5;
+}*/
+table {
+	border-collapse: separate;
+	border-spacing: 1px;
+}
+th, td {
+	border: solid 1px #fce6e1;
+	padding: 1px;
+}
+th {
+	color: black;
+	background: #fce6e1;
+}
+thead>tr>th, tfoot>tr>th {
+	color: black;
+	background: #fdc;
+}
+td {
+	border-top: none;
+	border-left: none;
+}
+
+q, blockquote {
+	color: black;
+	background: #fefecb;
+}
+
+a:link {
+	color: blue;
+	background: transparent;
+}
+a:visited {
+	color: purple;
+	background: transparent;
+}
+a:link:active, a:link:hover, a:visited:active, a:visited:hover {
+	color: red;
+	background: transparent;
+}
+
+
+/* magicant_auto_navigation */
+
+#magicant_auto_navigation {
+	background: #fefef5;
+	padding: 10px;
+	border: solid 1px #731;
+}
+#magicant_auto_navigation h2 {
+	background: transparent;
+	margin: 0;
+}
+#magicant_auto_navigation li {
+	margin: 0;
+}
+
+
+/* code settings */
+
+code.html {
+	color: #936;
+	background-color: #fff5fa;
+	/* 2.75/0.67/0.60, 2.75/0.04/1 (h/s/b) */
+}
+code.java {
+	color: #931;
+	background-color: #fff8f5;
+	/* 0.13/0.89/0.60, 0.15/0.04/1 */
+}
+code.js, code.jscript, code.javascript, code.ecmascript {
+	color: #752;
+	background-color: #fffaf3;
+	/* 0.30/0.71/0.46, 0.29/0.05/1 */
+}
+code.sscript {
+	color: #550;
+	background-color: #fefef3;
+	/* 0.50/1.00/0.33, 0.50/0.05/1 */
+}
+code.csharp {
+	color: #161;
+	background-color: #f6fef6;
+	/* 1.00/0.83/0.40, 1.00/0.03/1 */
+}
+code.basic, code.vb {
+	color: #339;
+	background-color: #f6f6fe;
+	/* 2.00/0.67/0.60, 2.00/0.03/1 */
+}

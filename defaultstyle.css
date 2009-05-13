@@ -1,0 +1,195 @@
+﻿@charset "utf-8";
+
+/* default.css 0.2.16 (2008-05-09) */
+/* © 2006-2007 Magicant */
+
+
+* {
+	margin: 0;
+	padding: 0;
+	font-style: inherit;
+	_font-style: normal;
+	text-decoration: none;
+}
+body {
+	margin: 0;
+	padding: 20px;
+	border: none;
+	font-family: "Meiryo", "Arial", "Osaka", "ＭＳ Ｐゴシック", "Arial Unicode MS", sans-serif;
+	font-variant: normal;
+	font-stretch: normal;
+	font-style: normal;
+	text-align: justify;
+	_text-justify: inter-ideograph;
+	vertical-align: baseline;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	text-align: left;
+}
+h1, h2, h3 {
+	margin: 1.2em 0 0.6em;
+	padding: 0;
+}
+h1 {
+	font-size: 200%;
+	text-align: center;
+}
+h2 {
+	font-size: 150%;
+}
+h3 {
+	font-size: 130%;
+}
+h4 {
+	font-size: 115%;
+	margin: 1em 0 0.5em;
+	padding: 0 0 0 1em;
+}
+h5 {
+	font-size: 100%;
+	margin: 1em 0 0;
+	padding: 0 0 0 2.5em;
+}
+h6 {
+	font-size: 100%;
+	margin: 1em 0 0;
+	padding: 0 0 0 3.75em;
+}
+
+address {
+	font-style: italic;
+	margin: 0.5em 0;
+}
+div, span {
+	border: none;
+}
+p {
+	line-height: 1.5;
+	text-indent: 1em;
+	margin: 0.5em 0;
+	border: none;
+}
+
+dl {
+	margin: 0.5em 1em;
+}
+dd {
+	margin: 0.05em 0 0.1em 4em;
+}
+dd + dt {
+	margin-top: 0.2em;
+}
+ol, ul {
+	margin: 0.5em 0;
+	padding: 0 0 0 2.5em;
+	list-style-position: outside;
+}
+ol {
+	list-style-type: decimal;
+}
+ol ol {
+	list-style-type: lower-alpha;
+}
+ol ol ol {
+	list-style-type: lower-roman;
+}
+ul {
+	list-style-type: square;
+}
+ul ul {
+	list-style-type: disc;
+}
+ul ul ul {
+	list-style-type: circle;
+}
+ol ol, ol ul, ol dl, ul ol, ul ul, ul dl, dl ol, dl ul, dl dl {
+	margin: 0;
+	padding-left: 1.5em;
+}
+li {
+	margin: 0.2em 0;
+	overflow: visible;
+}
+
+blockquote {
+	margin: 1em 0 1em 4em;
+}
+
+fieldset {
+	padding: 0.5em;
+}
+
+em, dfn {
+	border: none;
+	border-bottom: dashed 1px;
+}
+strong {
+	font-weight: bolder;
+}
+var {
+	font-style: italic;
+}
+code, samp, kbd, pre, tt {
+	font-family: "Consolas", "Monaco", "Lucida Console", "Courier New", monospace;
+}
+pre {
+	overflow: auto;
+}
+q:before {
+	content: open-quote;
+}
+q:after {
+	content: close-quote;
+}
+sup {
+	vertical-align: super;
+}
+sub {
+	vertical-align: sub;
+}
+ins {
+	text-decoration: underline;
+}
+del {
+	text-decoration: line-through;
+}
+
+a:link, a:visited {
+	text-decoration: underline;
+}
+
+:lang(en) {
+	quotes: "“" "”" "‘" "’";
+}
+:lang(ja) {
+	quotes: "「" "」" "『" "』";
+}
+:lang(de) {
+	quotes: "„" "“" "‚" "‘";
+}
+
+#title {
+	font-weight: bold;
+}
+
+#author, #magicant_auto_navigation {
+	margin-top: 1.5em;
+	font-size: 85%;
+	font-weight: normal;
+}
+
+#magicant_auto_navigation ol {
+	list-style-type: decimal;
+}
+
+@media print, embossed {
+	#magicant_auto_navigation {
+		display: none;
+	}
+}
+
+.radio-button-list, .checkbox-list {
+	list-style-type: none;
+	padding: 0;
+}
