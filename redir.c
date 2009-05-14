@@ -29,6 +29,9 @@
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #if YASH_ENABLE_SOCKET
 # include <netdb.h>
 # include <sys/socket.h>

@@ -25,6 +25,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "../builtin.h"
 #include "../exec.h"
 #include "../option.h"

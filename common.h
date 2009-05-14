@@ -33,17 +33,17 @@
 #endif
 
 #if HAVE_GETTEXT
-# define gt(MSGID)  gettext(MSGID)
+# define gt(MSGID)  ((const char *) gettext(MSGID))
 # define Ngt(MSGID) MSGID
 # if HAVE_NGETTEXT
-#  define ngt(MSGID,MSGIDS,MSGIDP,N) ngettext(MSGIDS, MSGIDP, N)
+#  define ngt(MSGID,MSGS,MSGP,N) ((const char *) ngettext(MSGS, MSGP, N))
 # else
-#  define ngt(MSGID,MSGIDS,MSGIDP,N) gt(MSGID)
+#  define ngt(MSGID,MSGS,MSGP,N) gt(MSGID)
 # endif
 #else
-# define gt(MSGID)                  MSGID
-# define Ngt(MSGID)                 MSGID
-# define ngt(MSGID,MSGIDS,MSGIDP,N) MSGID
+# define gt(MSGID)              MSGID
+# define Ngt(MSGID)             MSGID
+# define ngt(MSGID,MSGS,MSGP,N) MSGID
 #endif
 
 #define ARGV(i) ((wchar_t *) argv[i])

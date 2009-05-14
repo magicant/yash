@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <sys/resource.h>
 #include <wchar.h>
+#include <wctype.h>
 #ifdef HAVE_GETTEXT
 # include <libintl.h>
 #endif
