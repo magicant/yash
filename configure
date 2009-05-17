@@ -700,6 +700,8 @@ else
 fi
 checked
 
+echo >&5
+
 # enable/disable aliases
 if [ x"$enable_alias" = x"yes" ]
 then
