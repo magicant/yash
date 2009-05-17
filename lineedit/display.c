@@ -137,8 +137,7 @@ void le_display_finalize(void)
     cursor_positions = NULL;
 
     if (current_column != 0)
-	le_print_nel();
-    current_line++, current_column = 0;
+	le_print_nel(), current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();
 }
