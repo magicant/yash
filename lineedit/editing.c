@@ -147,7 +147,6 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
 
 static bool alert_if_first(void);
 static bool alert_if_last(void);
-static bool alert_if_pending(void);
 static void move_cursor_forward_char(int offset);
 static void move_cursor_backward_char(int offset);
 static void move_cursor_forward_bigword(int count);
@@ -190,8 +189,10 @@ static void go_to_history(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
 #endif
 
-#define ALERT_AND_RETURN_IF_PENDING \
-    do if (alert_if_pending()) return; while (0)
+#define ALERT_AND_RETURN_IF_PENDING                     \
+    do if (state.pending_command_motion != MEC_NONE)    \
+	{ cmd_alert(L'\0'); return; }                   \
+    while (0)
 
 
 /* Initializes the editing module before starting editing. */
@@ -463,7 +464,7 @@ bool alert_if_first(void)
     if (le_main_index > 0)
 	return false;
 
-    cmd_alert(L'\a');
+    cmd_alert(L'\0');
     return true;
 }
 
@@ -480,19 +481,8 @@ bool alert_if_last(void)
 	    return false;
     }
 
-    cmd_alert(L'\a');
+    cmd_alert(L'\0');
     return true;
-}
-
-/* Invokes `cmd_alert' and returns true if the pending command is set. */
-bool alert_if_pending(void)
-{
-    if (state.pending_command_motion != MEC_NONE) {
-	cmd_alert(L'\a');
-	return true;
-    } else {
-	return false;
-    }
 }
 
 /* Inserts one character in the buffer.
@@ -515,7 +505,7 @@ void cmd_self_insert(wchar_t c)
 		!overwrite && le_main_index == le_main_buffer.length);
 	reset_state();
     } else {
-	cmd_alert(c);
+	cmd_alert(L'\0');
     }
 }
 
@@ -545,7 +535,7 @@ void cmd_digit_argument(wchar_t c)
 {
     if (L'0' <= c && c <= L'9') {
 	if (state.count.abs > COUNT_ABS_MAX / 10) {
-	    cmd_alert(c);  // argument too large
+	    cmd_alert(L'\0');  // argument too large
 	    return;
 	}
 	if (state.count.sign == 0)
@@ -950,7 +940,7 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
 
 /* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
  * Otherwise, causes alert. */
-void cmd_eof_if_empty(wchar_t c)
+void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -958,7 +948,7 @@ void cmd_eof_if_empty(wchar_t c)
 	le_editstate = LE_EDITSTATE_ERROR;
 	reset_state();
     } else {
-	cmd_alert(c);
+	cmd_alert(L'\0');
     }
 }
 
@@ -1160,7 +1150,7 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 
 /* Kills the character under the cursor.
  * If the count is set, `count' characters are killed. */
-void cmd_kill_char(wchar_t c)
+void cmd_kill_char(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     save_current_edit_command();
@@ -1168,7 +1158,7 @@ void cmd_kill_char(wchar_t c)
 
     assert(le_main_index <= le_main_buffer.length);
     if (le_main_index == le_main_buffer.length) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
 
@@ -1178,7 +1168,7 @@ void cmd_kill_char(wchar_t c)
 /* Kills the character behind the cursor.
  * If the count is set, `count' characters are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
-void cmd_backward_kill_char(wchar_t c)
+void cmd_backward_kill_char(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     save_current_edit_command();
@@ -1186,7 +1176,7 @@ void cmd_backward_kill_char(wchar_t c)
 
     assert(le_main_index <= le_main_buffer.length);
     if (le_main_index == 0) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
 
@@ -1265,7 +1255,7 @@ void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
 
     const wchar_t *s = kill_ring[last_put_elem];
     if (s == NULL) {
-	cmd_alert(L'\a');
+	cmd_alert(L'\0');
 	return;
     } else if (s[0] == L'\0') {
 	reset_state();
@@ -1292,18 +1282,18 @@ void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
 
 /* Replaces the string just inserted by `cmd_put_left' with the previously
  * killed string. */
-void cmd_put_pop(wchar_t c)
+void cmd_put_pop(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     if (last_command.func != cmd_put_left
 	    && last_command.func != cmd_put
 	    && last_command.func != cmd_put_before) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
     const wchar_t *s = kill_ring[last_put_elem];
     if (s == NULL || s[0] == L'\0') {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
     save_current_edit_command();
@@ -1376,17 +1366,17 @@ void cancel_undo(int offset)
     return;
 
 error:
-    cmd_alert(L'\a');
+    cmd_alert(L'\0');
     return;
 }
 
 /* Redoes the last editing command. */
 /* XXX: currently vi's "i" command cannot be redone. */
-void cmd_redo(wchar_t c)
+void cmd_redo(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     if (!last_edit_command.command.func) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
 
@@ -1511,7 +1501,7 @@ void exec_find(wchar_t c, int count, bool till)
     return;
 
 error:
-    cmd_alert(c);
+    cmd_alert(L'\0');
     return;
 }
 
@@ -1545,10 +1535,10 @@ size_t find_nth_occurence(wchar_t c, int n)
 }
 
 /* Redoes the last find/till command. */
-void cmd_vi_refind(wchar_t c)
+void cmd_vi_refind(wchar_t c __attribute__((unused)))
 {
     if (!last_find_command.func) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
 
@@ -1556,10 +1546,10 @@ void cmd_vi_refind(wchar_t c)
 }
 
 /* Redoes the last find/till command in the reverse direction. */
-void cmd_vi_refind_rev(wchar_t c)
+void cmd_vi_refind_rev(wchar_t c __attribute__((unused)))
 {
     if (!last_find_command.func) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
 
@@ -1602,7 +1592,7 @@ void vi_replace_char(wchar_t c)
 	le_display_reprint_buffer(old_index, false);
 	reset_state();
     } else {
-	cmd_alert(c);
+	cmd_alert(L'\0');
     }
 }
 
@@ -1657,11 +1647,11 @@ void cmd_vi_change_case(wchar_t c)
     size_t old_index = le_main_index;
 
     if (le_main_index == le_main_buffer.length) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
     for (int count = get_count(1); --count >= 0; ) {
-	wchar_t c = le_main_buffer.contents[le_main_index];
+	c = le_main_buffer.contents[le_main_index];
 	le_main_buffer.contents[le_main_index]
 	    = (iswlower(c) ? towupper : towlower)(c);
 	le_main_index++;
@@ -1766,7 +1756,7 @@ void exec_edit_command(enum motion_expect_command cmd)
 	    if (old_index <= le_main_buffer.length)
 		le_main_index = old_index;
 	} else {
-	    cmd_alert(L'\a');
+	    cmd_alert(L'\0');
 	}
     } else {
 	state.count.multiplier = get_count(1);
@@ -1788,7 +1778,7 @@ void exec_edit_command_to_eol(enum motion_expect_command cmd)
 
 /* Kills the character under the cursor and sets the editing mode to
  * "vi insert". If the count is set, `count' characters are killed. */
-void cmd_vi_substitute(wchar_t c)
+void cmd_vi_substitute(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     save_current_edit_command();
@@ -1796,7 +1786,7 @@ void cmd_vi_substitute(wchar_t c)
 
     assert(le_main_index <= le_main_buffer.length);
     if (le_main_index == 0) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
 
@@ -1834,13 +1824,13 @@ void vi_exec_alias(wchar_t c)
 	}
     }
 #endif
-    cmd_alert(c);
+    cmd_alert(L'\0');
 }
 
 /* Invokes an external command to edit the current line and accepts the result.
  * If the editor returns a non-zero status, the line is not accepted. */
 /* cf. history.c:fc_edit_and_exec_entries */
-void cmd_vi_edit_and_accept(wchar_t c)
+void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -1852,13 +1842,13 @@ void cmd_vi_edit_and_accept(wchar_t c)
 
     fd = create_temporary_file(&tempfile, S_IRUSR | S_IWUSR);
     if (fd < 0) {
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
     f = fdopen(fd, "w");
     if (f == NULL) {
 	xclose(fd);
-	cmd_alert(c);
+	cmd_alert(L'\0');
 	return;
     }
     le_suspend_readline();
@@ -1870,7 +1860,7 @@ void cmd_vi_edit_and_accept(wchar_t c)
 	unlink(tempfile);
 	free(tempfile);
 	le_display_print_all();
-	cmd_alert(c);
+	cmd_alert(L'\0');
     } else if (cpid > 0) {  // parent process
 	fclose(f);
 
@@ -1884,7 +1874,7 @@ void cmd_vi_edit_and_accept(wchar_t c)
 
 	f = fopen(tempfile, "r");
 	if (f == NULL) {
-	    cmd_alert(c);
+	    cmd_alert(L'\0');
 	} else {
 	    wint_t c;
 
@@ -1930,13 +1920,12 @@ end:
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
  * The cursor is put at the beginning of line. */
-void cmd_oldest_history(wchar_t c)
+void cmd_oldest_history(wchar_t c __attribute__((unused)))
 {
 #if YASH_ENABLE_HISTORY
-    (void) c;
     go_to_history_absolute(histlist.Oldest);
 #else
-    cmd_alert(c);
+    cmd_alert(L'\0');
 #endif
 }
 
@@ -1944,13 +1933,12 @@ void cmd_oldest_history(wchar_t c)
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
  * The cursor is put at the beginning of line. */
-void cmd_newest_history(wchar_t c)
+void cmd_newest_history(wchar_t c __attribute__((unused)))
 {
 #if YASH_ENABLE_HISTORY
-    (void) c;
     go_to_history_absolute(histlist.Newest);
 #else
-    cmd_alert(c);
+    cmd_alert(L'\0');
 #endif
 }
 
@@ -1958,13 +1946,12 @@ void cmd_newest_history(wchar_t c)
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
  * The cursor is put at the beginning of line. */
-void cmd_return_history(wchar_t c)
+void cmd_return_history(wchar_t c __attribute__((unused)))
 {
 #if YASH_ENABLE_HISTORY
-    (void) c;
     go_to_history_absolute(Histlist);
 #else
-    cmd_alert(c);
+    cmd_alert(L'\0');
 #endif
 }
 
@@ -1993,7 +1980,7 @@ void go_to_history_absolute(const histentry_T *e)
     return;
 
 alert:
-    cmd_alert(L'\a');
+    cmd_alert(L'\0');
     return;
 }
 
@@ -2001,53 +1988,49 @@ alert:
 
 /* Goes to the `count'th next history entry.
  * The cursor is put at the beginning of line. */
-void cmd_next_history(wchar_t c)
+void cmd_next_history(wchar_t c __attribute__((unused)))
 {
 #if YASH_ENABLE_HISTORY
-    (void) c;
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(get_count(1), false);
 #else
-    cmd_alert(c);
+    cmd_alert(L'\0');
 #endif
 }
 
 /* Goes to the `count'th previous history entry.
  * The cursor is put at the beginning of line. */
-void cmd_prev_history(wchar_t c)
+void cmd_prev_history(wchar_t c __attribute__((unused)))
 {
 #if YASH_ENABLE_HISTORY
-    (void) c;
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(-get_count(1), false);
 #else
-    cmd_alert(c);
+    cmd_alert(L'\0');
 #endif
 }
 
 /* Goes to the `count'th next history entry.
  * The cursor is put at the end of line. */
-void cmd_next_history_eol(wchar_t c)
+void cmd_next_history_eol(wchar_t c __attribute__((unused)))
 {
 #if YASH_ENABLE_HISTORY
-    (void) c;
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(get_count(1), true);
 #else
-    cmd_alert(c);
+    cmd_alert(L'\0');
 #endif
 }
 
 /* Goes to the `count'th previous history entry.
  * The cursor is put at the end of line. */
-void cmd_prev_history_eol(wchar_t c)
+void cmd_prev_history_eol(wchar_t c __attribute__((unused)))
 {
 #if YASH_ENABLE_HISTORY
-    (void) c;
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(-get_count(1), true);
 #else
-    cmd_alert(c);
+    cmd_alert(L'\0');
 #endif
 }
 
@@ -2075,7 +2058,7 @@ void go_to_history_relative(int offset, bool cursorend)
     go_to_history(e, cursorend);
     return;
 alert:
-    cmd_alert(L'\a');
+    cmd_alert(L'\0');
     return;
 }
 
