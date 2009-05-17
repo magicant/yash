@@ -117,6 +117,7 @@ void le_keymap_init(void)
     t = trie_setw(t, L"p",          CMDENTRY(cmd_put));
     t = trie_setw(t, L"u",          CMDENTRY(cmd_undo));
     t = trie_setw(t, L"U",          CMDENTRY(cmd_undo_all));
+    t = trie_setw(t, Key_c_r,       CMDENTRY(cmd_cancel_undo));
     t = trie_setw(t, L".",          CMDENTRY(cmd_redo));
     t = trie_setw(t, L"|",          CMDENTRY(cmd_vi_column));
     t = trie_setw(t, L"f",          CMDENTRY(cmd_vi_find));
