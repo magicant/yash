@@ -344,6 +344,7 @@ void maybe_save_undo_history(void)
 {
     assert(undo_index <= undo_history.length);
 #if YASH_ENABLE_HISTORY
+    size_t save_undo_save_index = undo_save_index;
     undo_save_index = le_main_index;
     if (undo_history_entry == main_history_entry) {
 #endif
@@ -368,7 +369,8 @@ void maybe_save_undo_history(void)
 	pl_clear(&undo_history, free);
 	h = xmalloc(sizeof *h +
 		(wcslen(main_history_value) + 1) * sizeof *h->contents);
-	h->index = undo_save_index;
+	assert(save_undo_save_index <= wcslen(main_history_value));
+	h->index = save_undo_save_index;
 	wcscpy(h->contents, main_history_value);
 	pl_add(&undo_history, h);
 	undo_index = 1;

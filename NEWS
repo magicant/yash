@@ -12,6 +12,8 @@ Yash 2.10
 
   *  Setting the "notifyle" option caused a segfault if yash was
      configured with line-editing disabled.
+  *  In line-editing, undoing a change to a history entry did not
+     restore the cursor position properly.
 
 ----------------------------------------------------------------------
 Yash 2.9
