@@ -713,6 +713,12 @@ if [ x"$enable_history" = x"yes" ]
 then
     defconfigh "YASH_ENABLE_HISTORY"
     objs="$objs $history_objs"
+else
+    if [ x"$enable_lineedit" = x"yes" ]; then
+	echo "Lineedit enabled but history disabled." 2>&1
+	echo "Add --disable-lineedit option and try again." 2>&1
+	fail
+    fi
 fi
 
 # enable/disable the echo/printf builtins

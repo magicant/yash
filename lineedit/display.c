@@ -391,9 +391,7 @@ void print_prompt(void)
 	case L'$':    tputwc(geteuid() ? L'$' : L'#');  break;
 	default:      tputwc(*s);  break;
 	case L'j':    twprintf(L"%zu", job_count());  break;
-#if YASH_ENABLE_HISTORY
 	case L'!':    twprintf(L"%d", hist_next_number);  break;
-#endif
 	case L'[':    trace_position = false;  break;
 	case L']':    trace_position = true;   break;
 	case L'f':    print_color_seq(&s);   continue;
