@@ -499,25 +499,6 @@ then
 fi
 checked
 
-# check for wcswidth
-checking "for wcswidth" wcswidth
-if
-    if getcache
-    then
-	[ x"${checkresult}" = x"yes" ]
-    else
-	cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE 600
-#include <wchar.h>
-int main() { return wcswidth(L"\0", 0); }
-END
-	trymake && tryexec
-    fi
-then
-    defconfigh "HAVE_WCSWIDTH"
-fi
-checked
-
 # check if sys/stat.h defines S_ISVTX
 checking "if <sys/stat.h> defines S_ISVTX" S_ISVTX
 if
