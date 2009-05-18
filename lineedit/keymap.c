@@ -21,7 +21,6 @@
 #include <stddef.h>
 #include "../strbuf.h"
 #include "../util.h"
-#include "display.h"
 #include "editing.h"
 #include "key.h"
 #include "keymap.h"
@@ -142,6 +141,8 @@ void le_keymap_init(void)
     t = trie_setw(t, L"s",          CMDENTRY(cmd_vi_substitute));
     t = trie_setw(t, L"@",          CMDENTRY(cmd_vi_exec_alias));
     t = trie_setw(t, L"v",          CMDENTRY(cmd_vi_edit_and_accept));
+    t = trie_setw(t, L"?",          CMDENTRY(cmd_vi_search_forward));
+    t = trie_setw(t, L"/",          CMDENTRY(cmd_vi_search_backward));
     t = trie_setw(t, L"G",          CMDENTRY(cmd_oldest_history));
     t = trie_setw(t, L"g",          CMDENTRY(cmd_return_history));
     t = trie_setw(t, L"j",          CMDENTRY(cmd_next_history));
@@ -157,8 +158,6 @@ void le_keymap_init(void)
     // \ 
     // *
     // _
-    // /
-    // ?
     // n
     // N
     le_modes[LE_MODE_VI_COMMAND].keymap = t;
@@ -170,6 +169,20 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_abort_expect_char));
     le_modes[LE_MODE_VI_EXPECT].keymap = t;
+
+    le_modes[LE_MODE_VI_SEARCH].default_command = cmd_srch_self_insert;
+    t = trie_create();
+    t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
+    t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_srch_insert_backslash));
+    t = trie_setw(t, Key_backspace, CMDENTRY(cmd_srch_backward_delete_char));
+    t = trie_setw(t, Key_erase,     CMDENTRY(cmd_srch_backward_delete_char));
+    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_srch_backward_delete_char));
+    t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_srch_accept_search));
+    t = trie_setw(t, Key_c_m,       CMDENTRY(cmd_srch_accept_search));
+    t = trie_setw(t, Key_escape,    CMDENTRY(cmd_srch_abort_search));
+    le_modes[LE_MODE_VI_SEARCH].keymap = t;
 }
 
 /* Sets the editing mode to the one specified by `id'. */

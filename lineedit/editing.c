@@ -58,12 +58,27 @@ xwcsbuf_T le_main_buffer;
 /* The position of the cursor on the command line. */
 /* 0 <= le_main_index <= le_main_buffer.length */
 size_t le_main_index;
+
 /* The history entry that is being edited now.
  * When we're editing no history entry, `main_history_entry' is a pointer to
  * `histlist'. */
 static const histentry_T *main_history_entry;
 /* The original value of `main_history_entry', converted into a wide string. */
 static wchar_t *main_history_value;
+
+/* The direction of currently-performed command history search. */
+enum le_search_direction le_search_direction;
+/* Supplementary buffer used in command history search. */
+/* When search is not being performed, the `contents' member is NULL. */
+xwcsbuf_T le_search_buffer;
+/* The search result for the current value of `le_search_buffer'.
+ * If there is no match, `le_search_result' is `Histlist'. */
+const histentry_T *le_search_result;
+/* The search string and the direction of the last search. */
+static struct {
+    enum le_search_direction search_direction;
+    wchar_t *value;
+} last_search;
 
 /* The last executed command and the currently executing command. */
 static struct command {
@@ -179,6 +194,7 @@ static void go_to_history_absolute(const histentry_T *e)
 static void go_to_history_relative(int offset, bool cursorend);
 static void go_to_history(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
+static void update_search(void);
 
 #define ALERT_AND_RETURN_IF_PENDING                     \
     do if (state.pending_command_motion != MEC_NONE)    \
@@ -221,6 +237,8 @@ void le_editing_init(void)
  * Returns the content of the main buffer, which must be freed by the caller. */
 wchar_t *le_editing_finalize(void)
 {
+    assert(le_search_buffer.contents == NULL);
+
     recfree(pl_toary(&undo_history), free);
 
     end_using_history();
@@ -902,6 +920,7 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
+    cmd_srch_accept_search(L'\0');
     le_editstate = LE_EDITSTATE_DONE;
     reset_state();
 }
@@ -910,6 +929,7 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
  * `le_state' is set to LE_STATE_INTERRUPTED and `le_readline' returns. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
+    cmd_srch_abort_search(L'\0');
     le_editstate = LE_EDITSTATE_INTERRUPTED;
     reset_state();
 }
@@ -1273,7 +1293,7 @@ void cmd_put_pop(wchar_t c __attribute__((unused)))
 	return;
     }
     save_current_edit_command();
-    //TODO
+    //TODO: cmd_put_pop
 }
 
 /* Undoes the last editing command. */
@@ -1889,6 +1909,28 @@ end:
     }
 }
 
+/* Starts vi-like command history search in the forward direction. */
+void cmd_vi_search_forward(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    le_search_direction = FORWARD;
+    wb_init(&le_search_buffer);
+    le_set_mode(LE_MODE_VI_SEARCH);
+    update_search();
+}
+
+/* Starts vi-like command history search in the backward direction. */
+void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    le_search_direction = BACKWARD;
+    wb_init(&le_search_buffer);
+    le_set_mode(LE_MODE_VI_SEARCH);
+    update_search();
+}
+
 
 /********** History-Related Commands **********/
 
@@ -2030,6 +2072,89 @@ void go_to_history(const histentry_T *e, bool cursorend)
 
     le_display_reprint_buffer(0, false);
     reset_state();
+}
+
+/***** History Search Commands *****/
+
+/* Appends the argument character to the search buffer. */
+void cmd_srch_self_insert(wchar_t c)
+{
+    if (le_search_buffer.contents == NULL || c == L'\0') {
+	cmd_alert(L'\0');
+	return;
+    }
+
+    wb_wccat(&le_search_buffer, c);
+    update_search();
+}
+
+/* Appends a backslash to the search buffer. */
+void cmd_srch_insert_backslash(wchar_t c __attribute__((unused)))
+{
+    cmd_srch_self_insert(L'\\');
+}
+
+/* Removes the last character from the search buffer.
+ * If there are no characters in the buffer, calls `cmd_srch_abort_search' (for
+ * vi-like search) or `cmd_alert' (for emacs-like search). */
+void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
+{
+    if (le_search_buffer.contents == NULL) {
+	cmd_alert(L'\0');
+	return;
+    }
+
+    // XXX currently, no emacs-like search
+    if (le_search_buffer.length == 0) {
+	cmd_srch_abort_search(L'\0');
+	return;
+    }
+
+    wb_remove(&le_search_buffer, le_search_buffer.length - 1, 1);
+    update_search();
+}
+
+/* Finishes the history search with the current result candicate.
+ * If no search is being performed, does nothing. */
+void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
+{
+    if (le_search_buffer.contents == NULL)
+	return;
+
+    free(last_search.value);
+    last_search.search_direction = le_search_direction;
+    last_search.value = wb_towcs(&le_search_buffer);
+    le_search_buffer.contents = NULL;
+    le_set_mode(LE_MODE_VI_COMMAND);
+    if (le_search_result == Histlist) {
+	cmd_alert(L'\0');
+	le_display_reprint_buffer(0, false);
+    } else {
+	go_to_history(le_search_result, false);
+	// XXX cursor should be at end for emacs-like search
+    }
+}
+
+/* Aborts the history search.
+ * If no search is being performed, does nothing. */
+void cmd_srch_abort_search(wchar_t c __attribute__((unused)))
+{
+    if (le_search_buffer.contents == NULL)
+	return;
+
+    wb_destroy(&le_search_buffer);
+    le_search_buffer.contents = NULL;
+    le_set_mode(LE_MODE_VI_COMMAND);
+    le_display_reprint_buffer(0, false);
+    reset_state();
+}
+
+/* Re-calculates the search result candicate and prints it. */
+void update_search(void)
+{
+    //TODO
+    le_search_result = Histlist;
+    le_display_reprint_buffer(0, false);
 }
 
 

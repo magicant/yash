@@ -39,6 +39,9 @@
  * The prompt is immediately followed by the edit line (on the same line) but
  * the info area are always on separate lines.
  * The three parts are printed in this order, from upper to lower.
+ * When history search is active, the edit line and the info area are replaced
+ * by the temporary search result line and the search target line.
+ *
  * The `tputwc' function is the main function for displaying. It prints one
  * character for each call, tracking the cursor position.
  * In most terminals, when characters are printed as many as the number of
@@ -70,6 +73,7 @@ static void print_color_seq(const wchar_t **sp)
 
 static void print_editline(size_t index);
 static void clear_editline(void);
+static void print_search(void);
 
 
 /* The current cursor position. */
@@ -105,8 +109,11 @@ static int editbase_line, editbase_column;
  * If the nth character in the main buffer is positioned at line `l', column `c'
  * on the screen, then cursor_positions[n] == l * le_columns + c. */
 static int *cursor_positions;
-/* The line number of the last edit line. */
+/* The line number of the last edit line (or the search buffer). */
 static int last_edit_line;
+
+/* The position just after the last character of the search buffer. */
+static int search_end_line, search_end_column;
 
 
 #if !HAVE_WCWIDTH
@@ -187,8 +194,12 @@ void le_display_print_all(void)
     }
 
     print_prompt();
-    le_display_reprint_buffer(0, false);
-    // XXX print info area
+    if (le_search_buffer.contents == NULL) {
+	le_display_reprint_buffer(0, false);
+	// XXX print info area
+    } else {
+	print_search();
+    }
 }
 
 /* Reprints the main buffer from the `index'th character to the end.
@@ -196,26 +207,38 @@ void le_display_print_all(void)
  * If `noclear' is true, `clear_editline' is not called in this function. This
  * may short-circuit the printing process, but it can be used only when the
  * change in the buffer is appending of characters only (or the display will be
- * messed up). */
+ * messed up).
+ * The cursor is left at the end of the edit line. */
 /* This function must be called after the main buffer is changed. */
+/* If the command history search is being performed, the search result candidate
+ * and the search pattern are reprinted. The arguments to this function are
+ * ignored. */
 void le_display_reprint_buffer(size_t index, bool noclear)
 {
-    if (index == 0)
+    if (le_search_buffer.contents == NULL) {
+	if (index == 0)
+	    go_to(editbase_line, editbase_column);
+	else
+	    go_to_index(index);
+	if (!noclear)
+	    clear_editline();
+	print_editline(index);
+    } else {
 	go_to(editbase_line, editbase_column);
-    else
-	go_to_index(index);
-    if (!noclear)
-	clear_editline();
-    print_editline(index);
+	le_print_el();
+	print_search();
+    }
 }
 
 /* Moves the cursor to the proper position on the screen.
- * This function must be called after `le_main_index' is changed (but the
- * content of the main buffer is not changed). The content of the buffer is not
- * reprinted. */
+ * This function must be called after `le_main_index' is changed. The content of
+ * the buffer is not reprinted. */
 inline void le_display_reposition_cursor(void)
 {
-    go_to_index(le_main_index);
+    if (le_search_buffer.contents == NULL)
+	go_to_index(le_main_index);
+    else
+	go_to(search_end_line, search_end_column);
 }
 
 
@@ -458,7 +481,8 @@ done:
 
 /* Prints the content of the edit line from the `index'th character to the end,
  * updating `cursor_positions' and `last_edit_line'.
- * The cursor must have been moved to the `index'th character. */
+ * The cursor must have been moved to the `index'th character.
+ * The cursor is moved to the end of the edit line. */
 void print_editline(size_t index)
 {
     assert(le_main_index <= le_main_buffer.length);
@@ -505,6 +529,30 @@ void clear_editline(void)
 	assert(current_line <= current_line_max);
     }
     go_to(save_line, save_column);
+}
+
+/* Prints the current search result and the search line.
+ * The cursor must be just after the prompt. Characters after the prompt should
+ * have been cleared. Lines below the prompt are cleared in this function. */
+void print_search(void)
+{
+    assert(le_search_buffer.contents != NULL);
+
+    if (le_search_result != Histlist)
+	twprintf(L"%s", le_search_result->value);
+    le_print_nel(), current_line++, current_column = 0;
+    CHECK_CURRENT_LINE_MAX;
+    le_print_ed();
+
+    switch (le_search_direction) {
+	case FORWARD:   tputwc(L'?');  break;
+	case BACKWARD:  tputwc(L'/');  break;
+    }
+    tputws(le_search_buffer.contents, SIZE_MAX);
+    fillip_cursor();
+    CHECK_CURRENT_LINE_MAX;
+    search_end_line = current_line, search_end_column = current_column;
+    last_edit_line = current_line;
 }
 
 
