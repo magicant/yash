@@ -337,7 +337,7 @@ void tputwc(wchar_t c)
  * The first `n' characters are printed at most. */
 void tputws(const wchar_t *s, size_t n)
 {
-    for (size_t i = 0; i < n && s[n] != L'\0'; i++)
+    for (size_t i = 0; i < n && s[i] != L'\0'; i++)
 	tputwc(s[n]);
 }
 
