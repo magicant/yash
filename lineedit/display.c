@@ -338,7 +338,7 @@ void tputwc(wchar_t c)
 void tputws(const wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n && s[i] != L'\0'; i++)
-	tputwc(s[n]);
+	tputwc(s[i]);
 }
 
 /* Formats and prints the given string. */
