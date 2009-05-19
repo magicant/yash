@@ -130,7 +130,7 @@ void le_display_init(const wchar_t *prompt)
     last_edit_line = 0;
 
     promptstring = prompt;
-    le_display_print_all();
+    le_display_print_all(true);
     le_display_reposition_cursor();
 }
 
@@ -177,13 +177,15 @@ void clear_to_end_of_screen(void)
 
 /* Prints everything.
  * This function assumes that the cursor is at the origin and the screen is
- * cleared. */
+ * cleared.
+ * If `promptsp' is true and `shopt_le_promptsp' is set, a dummy character
+ * sequence is printed to reposition the cursor. */
 /* Note that the cursor is not positioned at the current index on the edit line
  * after this function. */
-void le_display_print_all(void)
+void le_display_print_all(bool promptsp)
 {
     /* print dummy string to make sure the cursor is at the beginning of line */
-    if (shopt_le_promptsp && le_ti_am) {
+    if (promptsp && shopt_le_promptsp && le_ti_am) {
 	le_print_sgr(1, 0, 0, 0, 0, 0, 0);
 	fputc('$', stderr);
 	le_print_sgr(0, 0, 0, 0, 0, 0, 0);

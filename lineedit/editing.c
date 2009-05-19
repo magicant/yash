@@ -1026,7 +1026,7 @@ void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 void cmd_redraw_all(wchar_t c __attribute__((unused)))
 {
     le_display_clear();
-    le_display_print_all();
+    le_display_print_all(false);
 }
 
 
@@ -1863,7 +1863,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	fclose(f);
 	unlink(tempfile);
 	free(tempfile);
-	le_display_print_all();
+	le_resume_readline();
 	cmd_alert(L'\0');
     } else if (cpid > 0) {  // parent process
 	fclose(f);
