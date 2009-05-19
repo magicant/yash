@@ -73,6 +73,7 @@ extern le_command_func_T
     cmd_setmode_viinsert,
     cmd_setmode_vicommand,
     cmd_expect_char,
+    cmd_expect_backslash,
     cmd_abort_expect_char,
     cmd_redraw_all;
 

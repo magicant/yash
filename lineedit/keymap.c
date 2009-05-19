@@ -167,6 +167,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_expect_backslash));
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_abort_expect_char));
     le_modes[LE_MODE_VI_EXPECT].keymap = t;
 

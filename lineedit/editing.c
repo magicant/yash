@@ -1003,8 +1003,16 @@ void cmd_expect_char(wchar_t c)
 {
     if (state.pending_command_char) {
 	current_command.func = state.pending_command_char;
+	current_command.arg = c;
 	state.pending_command_char(c);
     }
+}
+
+/* Executes a command that expects a character as an argument with L'\\'
+ * given as the argument. */
+void cmd_expect_backslash(wchar_t c __attribute__((unused)))
+{
+    cmd_expect_char(L'\\');
 }
 
 /* Cancels a command that expects a character as an argument. */
