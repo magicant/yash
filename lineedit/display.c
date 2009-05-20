@@ -138,12 +138,14 @@ void le_display_init(const wchar_t *prompt)
  * Must be called before `le_editing_finalize'. */
 void le_display_finalize(void)
 {
+    assert(le_search_buffer.contents == NULL);
+
     go_to_index(le_main_buffer.length);
 
     free(cursor_positions);
     cursor_positions = NULL;
 
-    if (current_column != 0)
+    if (current_column != 0 || current_line == 0)
 	le_print_nel(), current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();

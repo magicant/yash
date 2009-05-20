@@ -176,6 +176,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_srch_insert_backslash));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_srch_backward_delete_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_srch_backward_delete_char));
