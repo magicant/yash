@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <wchar.h>
@@ -37,6 +38,7 @@
 # include "../alias.h"
 #endif
 #include "../exec.h"
+#include "../expand.h"
 #include "../history.h"
 #include "../job.h"
 #include "../option.h"
@@ -45,6 +47,7 @@
 #include "../redir.h"
 #include "../strbuf.h"
 #include "../util.h"
+#include "../wfnmatch.h"
 #include "../yash.h"
 #include "display.h"
 #include "editing.h"
@@ -194,7 +197,11 @@ static void go_to_history_absolute(const histentry_T *e)
 static void go_to_history_relative(int offset, bool cursorend);
 static void go_to_history(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
+static bool update_last_search_value(void)
+    __attribute__((pure));
 static void update_search(void);
+static void perform_search(const wchar_t *pattern, enum le_search_direction dir)
+    __attribute__((nonnull));
 
 #define ALERT_AND_RETURN_IF_PENDING                     \
     do if (state.pending_command_motion != MEC_NONE)    \
@@ -2132,11 +2139,15 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
     if (le_search_buffer.contents == NULL)
 	return;
 
-    free(last_search.value);
     last_search.search_direction = le_search_direction;
-    last_search.value = wb_towcs(&le_search_buffer);
+    if (update_last_search_value()) {
+	free(last_search.value);
+	last_search.value = wb_towcs(&le_search_buffer);
+    } else {
+	wb_destroy(&le_search_buffer);
+    }
     le_search_buffer.contents = NULL;
-    le_set_mode(LE_MODE_VI_COMMAND);
+    le_set_mode(LE_MODE_VI_COMMAND); // XXX assumes vi
     if (le_search_result == Histlist) {
 	cmd_alert(L'\0');
 	le_display_reprint_buffer(0, false);
@@ -2144,6 +2155,19 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
 	go_to_history(le_search_result, false);
 	// XXX cursor should be at end for emacs-like search
     }
+}
+
+/* Checks if we should update `last_search.value' to the current value of
+ * `le_search_buffer'. */
+bool update_last_search_value(void)
+{
+    // XXX assumes vi
+    if (le_search_buffer.contents[0] == L'\0')
+	return false;
+    if (le_search_buffer.contents[0] == L'^'
+	    && le_search_buffer.contents[1] == L'\0')
+	return false;
+    return true;
 }
 
 /* Aborts the history search.
@@ -2155,17 +2179,100 @@ void cmd_srch_abort_search(wchar_t c __attribute__((unused)))
 
     wb_destroy(&le_search_buffer);
     le_search_buffer.contents = NULL;
-    le_set_mode(LE_MODE_VI_COMMAND);
+    le_set_mode(LE_MODE_VI_COMMAND); // XXX assumes vi
     le_display_reprint_buffer(0, false);
     reset_state();
 }
 
-/* Re-calculates the search result candicate and prints it. */
+/* Re-calculates the search result candidate and prints it. */
 void update_search(void)
 {
-    //TODO
-    le_search_result = Histlist;
+    // XXX currently no emacs-like search
+
+    const wchar_t *pattern = le_search_buffer.contents;
+    if (pattern[0] == L'\0') {
+	pattern = last_search.value;
+	if (pattern == NULL) {
+	    le_search_result = Histlist;
+	    goto done;
+	}
+    }
+
+    perform_search(pattern, le_search_direction);
+done:
     le_display_reprint_buffer(0, false);
+    reset_state();
+}
+
+/* Performs history search with the given parameters and updates the result
+ * candidate. */
+void perform_search(const wchar_t *pattern, enum le_search_direction dir)
+{
+    const histentry_T *e = main_history_entry;
+    char *lpattern = NULL;
+    size_t minlen = minlen;
+    bool beginning;
+
+    if (dir == FORWARD && e == Histlist)
+	goto done;
+
+    if (pattern[0] == L'^') {
+	beginning = true;
+	pattern++;
+	if (pattern[0] == L'\0') {
+	    e = Histlist;
+	    goto done;
+	}
+    } else {
+	beginning = false;
+    }
+
+    if (pattern_has_special_char(pattern, false)) {
+	minlen = shortest_match_length(pattern, 0);
+    } else {
+	lpattern = realloc_wcstombs(unescape(pattern));
+	if (lpattern == NULL)
+	    goto done;
+    }
+
+    for (;;) {
+	switch (dir) {
+	    case FORWARD:   e = e->Next;  break;
+	    case BACKWARD:  e = e->Prev;  break;
+	}
+	if (e == Histlist)
+	    goto done;
+
+	if (lpattern != NULL) {
+	    if ((beginning ? matchstrprefix : strstr)(e->value, lpattern))
+		goto done;
+	} else {
+	    wchar_t *wvalue = malloc_mbstowcs(e->value);
+	    if (wvalue != NULL) {
+		size_t r;
+		if (beginning) {
+		    r = wfnmatchl(pattern, wvalue, 0, WFNM_SHORTEST, minlen);
+		} else {
+		    const wchar_t *w = wvalue;
+		    assert(w[0] != L'\0');
+		    do {
+			r = wfnmatchl(pattern, w, 0, WFNM_SHORTEST, minlen);
+			if (r != WFNM_NOMATCH)
+			    break;
+		    } while (*++w != L'\0');
+		}
+		free(wvalue);
+		switch (r) {
+		    case WFNM_NOMATCH:  break;
+		    case WFNM_ERROR:    e = Histlist;  goto done;
+		    default:            goto done;
+		}
+	    }
+	}
+    }
+done:
+    le_search_result = e;
+    free(lpattern);
 }
 
 

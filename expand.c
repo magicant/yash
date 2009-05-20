@@ -270,7 +270,7 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
     char *result;
 
     /* glob */
-    if (shopt_noglob || !pattern_has_special_char(exp)) {
+    if (shopt_noglob || !pattern_has_special_char(exp, true)) {
 noglob:
 	result = realloc_wcstombs(unescapefree(exp));
 	if (!result)
@@ -1805,7 +1805,7 @@ void do_glob_each(void **restrict patterns, plist_T *restrict list)
 
     while (*patterns) {
 	wchar_t *pat = *patterns;
-	if (pattern_has_special_char(pat)) {
+	if (pattern_has_special_char(pat, true)) {
 	    size_t oldlen = list->length;
 	    wglob(pat, flags, list);
 	    if (!shopt_nullglob && oldlen == list->length)

@@ -423,9 +423,9 @@ wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
 }
 
 /* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
- * It's assumed that PATHNAME=true and NOESCAPE=false.
+ * The WFNM_NOESCAPE flag is assumed not to be specified.
  * If the result is false, the pattern is not a filename expansion pattern. */
-bool pattern_has_special_char(const wchar_t *pat)
+bool pattern_has_special_char(const wchar_t *pat, bool pathname)
 {
     for (;;) {
 	switch (*pat) {
@@ -440,7 +440,7 @@ bool pattern_has_special_char(const wchar_t *pat)
 	    case L'*':  case L'?':
 		return true;
 	    case L'[':
-		if (skip_bracket(pat, WFNM_PATHNAME) != pat)
+		if (skip_bracket(pat, pathname ? WFNM_PATHNAME : 0) != pat)
 		    return true;
 		/* falls thru! */
 	    default:

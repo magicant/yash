@@ -457,6 +457,8 @@ const char *get_command_path(const char *name, bool forcelookup)
     return path;
 }
 
+#if YASH_ENABLE_LINEEDIT
+
 /* Fills the command hashtable, searching PATH for all commands whose name
  * starts with the specified prefix.
  * If PATH is not set, this function does nothing.
@@ -498,11 +500,11 @@ void fill_cmdhash(const char *prefix, bool ignorecase)
 	    /* go to next if `prefix' doesn't match */
 	    if (!ignorecase) {
 		if (strncmp(prefix, de->d_name, plen) != 0)
-		    goto next;
+		    continue;
 	    } else {
 		for (size_t j = 0; j < plen; j++)
 		    if (tolower(de->d_name[j]) != pfx[j])
-			goto next;
+			continue;
 	    }
 
 	    /* produce a full path */
@@ -516,12 +518,13 @@ void fill_cmdhash(const char *prefix, bool ignorecase)
 		vfree(ht_set(&cmdhash, path + dirpathlen + 1, path));
 	    else
 		free(path);
-next:;
 	}
 
 	closedir(dir);
     }
 }
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 /* Removes the specified command from the command hashtable. */
 void forget_command_path(const char *command)
@@ -817,9 +820,9 @@ bool wglob_search(
     wcsncpy(pat, pattern, patlen);
     pat[patlen] = L'\0';
 
-    /* IF the pattern doesn't contain any pattern character, upescape the pattern
-     * and check for the file. */
-    if (!pattern_has_special_char(pat)) {
+    /* IF the pattern doesn't contain any pattern character, upescape the
+     * pattern and check for the file. */
+    if (!pattern_has_special_char(pat, true)) {
 	struct stat st;
 	wchar_t *wentname = unescape(pat);
 	char *entname = malloc_wcstombs(wentname);

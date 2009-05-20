@@ -10,10 +10,12 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.10
 
+  +  History search in line-editing.
   *  Setting the "notifyle" option caused a segfault if yash was
      configured with line-editing disabled.
   *  In line-editing, undoing a change to a history entry did not
      restore the cursor position properly.
+  *  Some fixes for invalid memory access during line-editing.
 
 ----------------------------------------------------------------------
 Yash 2.9
