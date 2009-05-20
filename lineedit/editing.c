@@ -1026,6 +1026,9 @@ void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 void cmd_redraw_all(wchar_t c __attribute__((unused)))
 {
     le_display_clear();
+    le_restore_terminal();
+    le_setupterm();
+    le_set_terminal();
     le_display_print_all(false);
 }
 
