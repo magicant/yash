@@ -143,6 +143,8 @@ void le_keymap_init(void)
     t = trie_setw(t, L"v",          CMDENTRY(cmd_vi_edit_and_accept));
     t = trie_setw(t, L"?",          CMDENTRY(cmd_vi_search_forward));
     t = trie_setw(t, L"/",          CMDENTRY(cmd_vi_search_backward));
+    t = trie_setw(t, L"n",          CMDENTRY(cmd_vi_search_again));
+    t = trie_setw(t, L"N",          CMDENTRY(cmd_vi_search_again_rev));
     t = trie_setw(t, L"G",          CMDENTRY(cmd_oldest_history));
     t = trie_setw(t, L"g",          CMDENTRY(cmd_return_history));
     t = trie_setw(t, L"j",          CMDENTRY(cmd_next_history));
@@ -158,8 +160,6 @@ void le_keymap_init(void)
     // \ 
     // *
     // _
-    // n
-    // N
     le_modes[LE_MODE_VI_COMMAND].keymap = t;
 
     le_modes[LE_MODE_VI_EXPECT].default_command = cmd_expect_char;

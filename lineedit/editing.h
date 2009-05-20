@@ -126,7 +126,9 @@ extern le_command_func_T
     cmd_vi_exec_alias,
     cmd_vi_edit_and_accept,
     cmd_vi_search_forward,
-    cmd_vi_search_backward;
+    cmd_vi_search_backward,
+    cmd_vi_search_again,
+    cmd_vi_search_again_rev;
 
 /* history-related commands */
 extern le_command_func_T

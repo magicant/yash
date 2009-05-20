@@ -79,7 +79,7 @@ xwcsbuf_T le_search_buffer;
 const histentry_T *le_search_result;
 /* The search string and the direction of the last search. */
 static struct {
-    enum le_search_direction search_direction;
+    enum le_search_direction direction;
     wchar_t *value;
 } last_search;
 
@@ -192,6 +192,7 @@ static void vi_replace_char(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
+static void search_again(bool reverse);
 static void go_to_history_absolute(const histentry_T *e)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, bool cursorend);
@@ -1949,6 +1950,43 @@ void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
     update_search();
 }
 
+/* Redoes the last vi-like search. */
+void cmd_vi_search_again(wchar_t c __attribute__((unused)))
+{
+    search_again(false);
+}
+
+/* Redoes the last vi-like search in the reverse direction. */
+void cmd_vi_search_again_rev(wchar_t c __attribute__((unused)))
+{
+    search_again(true);
+}
+
+void search_again(bool reverse)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    if (last_search.value == NULL) {
+	cmd_alert(L'\0');
+	return;
+    }
+
+    enum le_search_direction dir = last_search.direction;
+    if (reverse) {
+	switch (dir) {
+	    case FORWARD:  dir = BACKWARD; break;
+	    case BACKWARD: dir = FORWARD;  break;
+	}
+    }
+
+    perform_search(last_search.value, dir);
+    if (le_search_result == Histlist) {
+	cmd_alert(L'\0');
+    } else {
+	go_to_history(le_search_result, false);
+    }
+}
+
 
 /********** History-Related Commands **********/
 
@@ -2139,7 +2177,7 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
     if (le_search_buffer.contents == NULL)
 	return;
 
-    last_search.search_direction = le_search_direction;
+    last_search.direction = le_search_direction;
     if (update_last_search_value()) {
 	free(last_search.value);
 	last_search.value = wb_towcs(&le_search_buffer);
