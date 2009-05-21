@@ -192,7 +192,7 @@ static void vi_replace_char(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
-static void search_again(bool reverse);
+static void search_again(enum le_search_direction dir);
 static void go_to_history_absolute(const histentry_T *e)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, bool cursorend);
@@ -1953,30 +1953,37 @@ void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
 /* Redoes the last vi-like search. */
 void cmd_vi_search_again(wchar_t c __attribute__((unused)))
 {
-    search_again(false);
+    search_again(last_search.direction);
 }
 
 /* Redoes the last vi-like search in the reverse direction. */
 void cmd_vi_search_again_rev(wchar_t c __attribute__((unused)))
 {
-    search_again(true);
+    switch (last_search.direction) {
+	case FORWARD:   search_again(BACKWARD);  break;
+	case BACKWARD:  search_again(FORWARD);   break;
+    }
 }
 
-void search_again(bool reverse)
+/* Redoes the last vi-like search in the forward direction. */
+void cmd_vi_search_again_forward(wchar_t c __attribute__((unused)))
+{
+    search_again(FORWARD);
+}
+
+/* Redoes the last vi-like search in the backward direction. */
+void cmd_vi_search_again_backward(wchar_t c __attribute__((unused)))
+{
+    search_again(BACKWARD);
+}
+
+void search_again(enum le_search_direction dir)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
     if (last_search.value == NULL) {
 	cmd_alert(L'\0');
 	return;
-    }
-
-    enum le_search_direction dir = last_search.direction;
-    if (reverse) {
-	switch (dir) {
-	    case FORWARD:  dir = BACKWARD; break;
-	    case BACKWARD: dir = FORWARD;  break;
-	}
     }
 
     perform_search(last_search.value, dir);

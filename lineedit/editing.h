@@ -128,7 +128,9 @@ extern le_command_func_T
     cmd_vi_search_forward,
     cmd_vi_search_backward,
     cmd_vi_search_again,
-    cmd_vi_search_again_rev;
+    cmd_vi_search_again_rev,
+    cmd_vi_search_again_forward,
+    cmd_vi_search_again_backward;
 
 /* history-related commands */
 extern le_command_func_T
