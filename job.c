@@ -522,7 +522,7 @@ wchar_t *get_job_name(const job_T *job)
 /* Returns a string that describes the status of the specified process
  * such as "Running" and "Stopped(SIGTSTP)".
  * The returned string must be freed by the caller iff `*needfree' is assigned
- * true. */
+ * true, otherwise it must not be modified or freed. */
 char *get_process_status_string(const process_T *p, bool *needfree)
 {
     int status, sig;
@@ -530,7 +530,7 @@ char *get_process_status_string(const process_T *p, bool *needfree)
     switch (p->pr_status) {
     case JS_RUNNING:
 	*needfree = false;
-	return gt("Running");
+	return (char *) gt("Running");
     case JS_STOPPED:
 	*needfree = true;
 	return malloc_printf(gt("Stopped(SIG%s)"),
@@ -544,7 +544,7 @@ char *get_process_status_string(const process_T *p, bool *needfree)
 exitstatus:
 	    if (status == Exit_SUCCESS) {
 		*needfree = false;
-		return gt("Done");
+		return (char *) gt("Done");
 	    } else {
 		*needfree = true;
 		return malloc_printf(gt("Done(%d)"), status);
@@ -568,13 +568,13 @@ exitstatus:
 /* Returns a string that describes the status of the specified job
  * such as "Running" and "Stopped(SIGTSTP)".
  * The returned string must be freed by the caller iff `*needfree' is assigned
- * true. */
+ * true, otherwise it must not be modified or freed. */
 char *get_job_status_string(const job_T *job, bool *needfree)
 {
     switch (job->j_status) {
     case JS_RUNNING:
 	*needfree = false;
-	return gt("Running");
+	return (char *) gt("Running");
     case JS_STOPPED:
 	/* find a stopped process */
 	for (size_t i = job->j_pcount; ; )
