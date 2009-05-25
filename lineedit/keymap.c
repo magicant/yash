@@ -139,6 +139,7 @@ void le_keymap_init(void)
     t = trie_setw(t, L"C",          CMDENTRY(cmd_vi_change_to_eol));
     t = trie_setw(t, L"S",          CMDENTRY(cmd_vi_change_all));
     t = trie_setw(t, L"s",          CMDENTRY(cmd_vi_substitute));
+    t = trie_setw(t, L"_",          CMDENTRY(cmd_vi_append_last_bigword));
     t = trie_setw(t, L"@",          CMDENTRY(cmd_vi_exec_alias));
     t = trie_setw(t, L"v",          CMDENTRY(cmd_vi_edit_and_accept));
     t = trie_setw(t, L"?",          CMDENTRY(cmd_vi_search_forward));
@@ -159,7 +160,6 @@ void le_keymap_init(void)
     // =
     // \ 
     // *
-    // _
     le_modes[LE_MODE_VI_COMMAND].keymap = t;
 
     le_modes[LE_MODE_VI_EXPECT].default_command = cmd_expect_char;

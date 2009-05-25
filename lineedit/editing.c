@@ -195,6 +195,12 @@ static void vi_replace_char(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
 static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
+struct xwcsrange { const wchar_t *start, *end; };
+static struct xwcsrange get_next_bigword(const wchar_t *s)
+    __attribute__((nonnull));
+static struct xwcsrange get_prev_bigword(
+	const wchar_t *beginning, const wchar_t *s)
+    __attribute__((nonnull));
 static void search_again(enum le_search_direction dir);
 static void go_to_history_absolute(const histentry_T *e)
     __attribute__((nonnull));
@@ -1856,6 +1862,101 @@ void cmd_vi_substitute(wchar_t c __attribute__((unused)))
     kill_chars(false);
     le_set_mode(LE_MODE_VI_INSERT);
     overwrite = false;
+}
+
+/* Appends a space followed by the last bigword from the newest history entry.
+ * If the count is specified, the `count'th word is appended.
+ * The mode is changed to vi-insert. */
+void cmd_vi_append_last_bigword(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    save_current_edit_command();
+    maybe_save_undo_history();
+
+    wchar_t *lastcmd = NULL;
+    int count = get_count(-1);
+    if (count == 0 || histlist.count == 0)
+	goto fail;
+
+    struct xwcsrange range;
+    lastcmd = malloc_mbstowcs(histlist.Newest->value);
+    if (lastcmd == NULL)
+	goto fail;
+    if (count >= 0) {
+	/* find the count'th word */
+	range.start = range.end = lastcmd;
+	do {
+	    struct xwcsrange r = get_next_bigword(range.end);
+	    if (r.start == r.end)
+		break;
+	    range = r;
+	} while (--count > 0 && *range.end != L'\0');
+    } else {
+	/* find the count'th last word */
+	range.start = range.end = lastcmd + wcslen(lastcmd);
+	do {
+	    struct xwcsrange r = get_prev_bigword(lastcmd, range.start);
+	    if (r.start == r.end)
+		break;
+	    range = r;
+	} while (++count < 0 && lastcmd < range.start);
+    }
+    assert(range.start <= range.end);
+    if (range.start == range.end)
+	goto fail;
+
+    if (le_main_index < le_main_buffer.length)
+	le_main_index++;
+    size_t oldindex = le_main_index;
+    size_t len = range.end - range.start;
+    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+    le_main_index += 1;
+    wb_ninsert_force(&le_main_buffer, le_main_index, range.start, len);
+    le_main_index += len;
+    free(lastcmd);
+    le_display_reprint_buffer(oldindex, le_main_index == le_main_buffer.length);
+    cmd_setmode_viinsert(L'\0');
+    return;
+
+fail:
+    free(lastcmd);
+    cmd_alert(L'\0');
+    return;
+}
+
+struct xwcsrange get_next_bigword(const wchar_t *s)
+{
+    struct xwcsrange result;
+    while (iswblank(*s))
+	s++;
+    result.start = s;
+    while (*s != L'\0' && !iswblank(*s))
+	s++;
+    result.end = s;
+    return result;
+    /* result.start == result.end if no bigword found */
+}
+
+struct xwcsrange get_prev_bigword(const wchar_t *beginning, const wchar_t *s)
+{
+    struct xwcsrange result;
+    assert(beginning <= s);
+    do {
+	if (beginning == s) {
+	    result.start = result.end = s;
+	    return result;
+	}
+    } while (iswblank(*--s));
+    result.end = s + 1;
+    do {
+	if (beginning == s) {
+	    result.start = s;
+	    return result;
+	}
+    } while (!iswblank(*--s));
+    result.start = s + 1;
+    return result;
+    /* result.start == result.end if no bigword found */
 }
 
 /* Sets the editing mode to "vi expect" and the pending command to
