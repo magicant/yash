@@ -475,6 +475,8 @@ bool alert_if_first(void)
 bool alert_if_last(void)
 {
     if (le_current_mode == &le_modes[LE_MODE_VI_COMMAND]) {
+	if (state.pending_command_motion != MEC_NONE)
+	    return false;
 	if (le_main_buffer.length > 0
 		&& le_main_index < le_main_buffer.length - 1)
 	    return false;
