@@ -640,7 +640,8 @@ void cmd_end_of_bigword(wchar_t c __attribute__((unused)))
     int count = get_count(1);
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_end_of_bigword_index(le_main_buffer.contents,new_index);
+	new_index = next_end_of_bigword_index(
+		le_main_buffer.contents, new_index);
     exec_motion_command(new_index, true);
 }
 
