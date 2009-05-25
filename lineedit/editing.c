@@ -893,7 +893,8 @@ start:
     } else {
 	do
 	    i++;
-	while (!iswblank(s[i]) && !(s[i] == L'_' || iswalnum(s[i])));
+	while (s[i] != L'\0' && s[i] != L'_'
+		&& !iswblank(s[i]) && !iswalnum(s[i]));
     }
     i--;
     if (i > init || !progress) {
@@ -923,7 +924,7 @@ start:
 	    if (i == 0)
 		return 0;
 	    i--;
-	} while (!iswblank(s[i]) && !(s[i] == L'_' || iswalnum(s[i])));
+	} while (s[i] != L'_' && !iswblank(s[i]) && !iswalnum(s[i]));
     }
     i++;
     if (i < init) {
