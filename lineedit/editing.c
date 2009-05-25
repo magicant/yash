@@ -164,16 +164,19 @@ static void move_cursor_backward_char(int offset);
 static void move_cursor_forward_bigword(int count);
 static void move_cursor_backward_bigword(int count);
 static void move_cursor_forward_word(int count);
+static bool need_cw_treatment(void)
+    __attribute__((pure));
 static void move_cursor_backward_word(int count);
 static size_t next_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
-static size_t next_end_of_bigword_index(const wchar_t *s, size_t i)
+static size_t next_end_of_bigword_index(
+	const wchar_t *s, size_t i, bool progress)
     __attribute__((nonnull));
 static size_t previous_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t next_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
-static size_t next_end_of_word_index(const wchar_t *s, size_t i)
+static size_t next_end_of_word_index(const wchar_t *s, size_t i, bool progress)
     __attribute__((nonnull));
 static size_t previous_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
@@ -641,7 +644,7 @@ void cmd_end_of_bigword(wchar_t c __attribute__((unused)))
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index < le_main_buffer.length)
 	new_index = next_end_of_bigword_index(
-		le_main_buffer.contents, new_index);
+		le_main_buffer.contents, new_index, true);
     exec_motion_command(new_index, true);
 }
 
@@ -664,9 +667,21 @@ void move_cursor_forward_bigword(int count)
 	return;
 
     size_t new_index = le_main_index;
-    while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_bigword_index(le_main_buffer.contents, new_index);
-    exec_motion_command(new_index, false);
+    if (!need_cw_treatment()) {
+	while (--count >= 0 && new_index < le_main_buffer.length)
+	    new_index = next_bigword_index(le_main_buffer.contents, new_index);
+	exec_motion_command(new_index, false);
+    } else {
+	while (count > 1 && new_index < le_main_buffer.length) {
+	    new_index = next_bigword_index(le_main_buffer.contents, new_index);
+	    count--;
+	}
+	if (count > 0 && new_index < le_main_buffer.length) {
+	    new_index = next_end_of_bigword_index(
+		    le_main_buffer.contents, new_index, false);
+	}
+	exec_motion_command(new_index, true);
+    }
 }
 
 /* Moves the cursor backward `count' bigwords, relative to the current position.
@@ -699,7 +714,7 @@ size_t next_bigword_index(const wchar_t *s, size_t i)
  * index `i'. If `i' is at the end of a bigword, the end of the next bigword is
  * returned. The return value is greater than `i' unless `s[i]' is a null
  * character. */
-size_t next_end_of_bigword_index(const wchar_t *s, size_t i)
+size_t next_end_of_bigword_index(const wchar_t *s, size_t i, bool progress)
 {
     const size_t init = i;
 start:
@@ -710,7 +725,7 @@ start:
     while (s[i] != L'\0' && !iswblank(s[i]))
 	i++;
     i--;
-    if (i > init) {
+    if (i > init || !progress) {
 	return i;
     } else {
 	i++;
@@ -761,7 +776,8 @@ void cmd_end_of_word(wchar_t c __attribute__((unused)))
     int count = get_count(1);
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_end_of_word_index(le_main_buffer.contents, new_index);
+	new_index = next_end_of_word_index(
+		le_main_buffer.contents, new_index, true);
     exec_motion_command(new_index, true);
 }
 
@@ -784,9 +800,33 @@ void move_cursor_forward_word(int count)
 	return;
 
     size_t new_index = le_main_index;
-    while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_word_index(le_main_buffer.contents, new_index);
-    exec_motion_command(new_index, false);
+    if (!need_cw_treatment()) {
+	while (--count >= 0 && new_index < le_main_buffer.length)
+	    new_index = next_word_index(le_main_buffer.contents, new_index);
+	exec_motion_command(new_index, false);
+    } else {
+	while (count > 1 && new_index < le_main_buffer.length) {
+	    new_index = next_word_index(le_main_buffer.contents, new_index);
+	    count--;
+	}
+	if (count > 0 && new_index < le_main_buffer.length) {
+	    new_index = next_end_of_word_index(
+		    le_main_buffer.contents, new_index, false);
+	}
+	exec_motion_command(new_index, true);
+    }
+}
+
+/* Checks if we need a special treatment for the "cw" and "cW" commands. */
+bool need_cw_treatment(void)
+{
+    switch (state.pending_command_motion) {
+	case MEC_CHANGE:
+	case MEC_COPYCHANGE:
+	    return !iswblank(le_main_buffer.contents[le_main_index]);
+	default:
+	    return false;
+    }
 }
 
 /* Moves the cursor backward `count' words, relative to the current position.
@@ -832,9 +872,13 @@ size_t next_word_index(const wchar_t *s, size_t i)
 }
 
 /* Returns the index of the end of a word in the string `s', counted from index
- * `i'. If `i' is at the end of a word, the end of the next word is returned.
- * The return value is greater than `i' unless `s[i]' is a null character. */
-size_t next_end_of_word_index(const wchar_t *s, size_t i)
+ * `i'.
+ * If `progress' is true:
+ *   If `i' is at the end of a word, the end of the next word is returned.
+ *   The return value is greater than `i' unless `s[i]' is a null character.
+ * If `progress' is false:
+ *   If `i' is at the end of a word, `i' is returned. */
+size_t next_end_of_word_index(const wchar_t *s, size_t i, bool progress)
 {
     const size_t init = i;
 start:
@@ -852,7 +896,7 @@ start:
 	while (!iswblank(s[i]) && !(s[i] == L'_' || iswalnum(s[i])));
     }
     i--;
-    if (i > init) {
+    if (i > init || !progress) {
 	return i;
     } else {
 	i++;
