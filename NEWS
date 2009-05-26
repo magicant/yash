@@ -11,6 +11,8 @@ History of Yash
 Yash 2.10
 
   +  History search in line-editing.
+  =  Empty lines are no longer stored in the history.
+  =  In the vi-like line-editing, "cw" and "cW" now work as in vi.
   *  Setting the "notifyle" option caused a segfault if yash was
      configured with line-editing disabled.
   *  In line-editing, undoing a change to a history entry did not

@@ -2454,13 +2454,11 @@ const char getopts_help[] = Ngt(
  * -A: assign values to array
  * -r: don't treat backslashes specially
  */
-// TODO -s: don't echo back the input to the terminal. (useful for reading passwords)
 int read_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"array",    xno_argument, L'A', },
 	{ L"raw-mode", xno_argument, L'r', },
-//	{ L"silent",   xno_argument, L's', },
 	{ L"help",     xno_argument, L'-', },
 	{ NULL, 0, 0, },
     };
