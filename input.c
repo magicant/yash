@@ -311,13 +311,8 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 		    size_t len = wcslen(line);
 		    assert(len > 0);
 #if YASH_ENABLE_HISTORY
-		    if (info->type == 2 && len > 1) {
-			wchar_t lastchar = line[len - 1];
-			assert(lastchar == L'\n');
-			line[len - 1] = L'\0';
+		    if (info->type == 2 && len > 1)
 			add_history(line);
-			line[len - 1] = lastchar;
-		    }
 #endif /* YASH_ENABLE_HISTORY */
 		    linebuffer = forward_line(line, buf);
 		    return 0;
@@ -348,13 +343,8 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	result = input_file(buf, info->fp);
 #if YASH_ENABLE_HISTORY
     if (info->type == 2)
-	if (buf->contents[oldlen] != L'\n' && buf->length > oldlen) {
-	    wchar_t savechar = buf->contents[buf->length - 1];
-	    if (savechar == L'\n')
-		buf->contents[buf->length - 1] = L'\0';
+	if (buf->contents[oldlen] != L'\n' && buf->length > oldlen)
 	    add_history(buf->contents + oldlen);
-	    buf->contents[buf->length - 1] = savechar;
-	}
 #endif
     return result;
 }

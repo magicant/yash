@@ -923,9 +923,11 @@ void finalize_history(void)
 /* Adds the specified `line' to the history.
  * Must not be called while the history is locked.
  * If `line' contains newlines, `line' is separated into multiple entries. */
+/* Only lines that contain graph-class characters are added to the history. */
 void add_history(const wchar_t *line)
 {
     maybe_init_history();
+    assert(!hist_lock);
 
     if (histfile) {
 	lock_file(fileno(histfile), F_WRLCK);
@@ -935,9 +937,11 @@ void add_history(const wchar_t *line)
 
     const wchar_t *nl = wcschr(line, L'\n');
     while ((nl = wcschr(line, L'\n')) != NULL) {
-	wchar_t *line1 = xwcsndup(line, nl - line);
-	really_add_history(line1);
-	free(line1);
+	if (nl > line) {
+	    wchar_t *line1 = xwcsndup(line, nl - line);
+	    really_add_history(line1);
+	    free(line1);
+	}
 	line = nl + 1;
     }
     really_add_history(line);
@@ -952,8 +956,19 @@ void add_history(const wchar_t *line)
  * `line' must not contain newlines.
  * `histfile' must be locked and `update_time' and `update_history' must have
  * been called. */
+/* If the `line' does not contain any graph-class characters, it is not added
+ * to the history. */
 void really_add_history(const wchar_t *line)
 {
+    /* Check if `line' contains `graph' characters */
+    for (const wchar_t *s = line; ; ) {
+	if (*s == L'\0')
+	    return;
+	if (iswgraph(*s))
+	    break;
+	s++;
+    }
+
     char *mbsline = malloc_wcstombs(line);
     if (mbsline) {
 	histentry_T *entry = new_entry(hist_next_number, now, mbsline);
