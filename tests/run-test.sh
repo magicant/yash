@@ -22,7 +22,7 @@ if [ x"${TMPDIR}" = x"${TMPDIR#/}" ]; then
     exit 1
 fi
 TESTTMP="$(cd ${TMPDIR}; pwd)/test.$$"
-trap 'rm -rf $TESTTMP' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
+trap 'rm -rf $TESTTMP; exit' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
     echo Cannot create temporary directory >&2
     trap - EXIT
