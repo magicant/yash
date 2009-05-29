@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の起動方法と起動時の動作について">
+<title>Yash マニュアル: シェルの起動</title>
+<link rel="Contents" href="index.html" title="目次">
+<link rel="Prev" href="intro.html" title="はじめに">
+<link rel="Next" href="syntax.html" title="コマンドの文法">
+
+<div class="breadcrumb"><a rel="Up" href="index.html">目次</a> ></div>
+<h1>シェルの起動</h1>
+
+<p>Yash がプログラムとして起動されると、yash はいくつかの初期化処理を行った後、コマンドを読み取って実行する処理に移ります。これらの処理の内容は、主に起動時のコマンドライン引数によって決まります。
+
+<h2 id="args">起動時のコマンドライン引数</h2>
+<p>Yash の起動時のコマンドライン引数は POSIX に準拠しています。引数に含まれるオプションによって、オペランドの解釈が変わります。引数の書式に関する一般的な説明については<a class="TODO">コマンドの引数の構文</a>を参照してください。オプションはオペランドより前に指定する必要があります。
+<ul>
+<li><p>オプションに <dfn><code>-c</code></dfn> オプションが含まれている場合、オペランドを少なくとも一つ与える必要があります。シェルは、この最初のオペランドをコマンドとして解釈・実行します。二つ目のオペランドがある場合は、<a class="TODO">特殊パラメータ</a> $0 がそれに初期化されます。三つ目以降のオペランドは、<a class="TODO">位置パラメータ</a>になります。
+<p><code>-c</code> オプションを指定した場合は、ファイルや標準入力からコマンドを読み込むことはありません。
+<li><p>オプションに <dfn><code>-s</code></dfn> オプションが含まれている場合、シェルは標準入力から一行ずつコマンドを読み取って、解釈・実行します。オペランドはすべて<a class="TODO">位置パラメータ</a>の初期化に使われます。
+<li><p><code>-c</code> オプションも <code>-s</code> オプションも指定されなかった場合は、シェルはファイルからコマンドを読み取って解釈・実行します。最初のオペランドが読み込むファイル名と見なされます。残りのオペランドは<a class="TODO">位置パラメータ</a>になります。オペランドが一つもない場合は、<code>-s</code> オプションを指定したときと同様に標準入力からコマンドを読み込みます。
+<li><p><code>-c</code> オプションと <code>-s</code> オプションを同時に使用することはできません。
+<li><p><dfn><code>--help</code></dfn> オプションまたは <dfn><code>--version</code></dfn> オプションが指定されている場合は、通常の初期化処理やコマンドの解釈・実行は一切行いません。それぞれシェルのコマンドライン引数の簡単な説明とバージョン情報を標準出力に出力した後、そのままシェルは終了します。<code>--version</code> オプションを <code>--verbose</code> オプションと共に使用すると、シェルで利用可能な機能の一覧も出力されます。
+<li><p><dfn><code>-i</code></dfn> (<dfn><code>--interactive</code></dfn>) オプションが指定されている場合、シェルは対話モードになります。
+<li><p><dfn><code>-l</code></dfn> (<dfn><code>--login</code></dfn>) オプションが指定されている場合、シェルはログインシェルとして動作します。
+<p>このオプションは POSIX では規定されていませんが、他の多くのシェルにも存在します。
+<li><p><code>--noprofile</code>, <code>--norcfile</code>, <code>--rcfile</code> 各オプションは、シェルの初期化処理の動作を指定します (後述)。
+<li><p>その他のオプションとして、<a class="TODO">set 組込みコマンド</a>で指定可能な各種オプションをシェルの起動時に指定することができます。(<code>+</code> で始まるオプションを含む)
+</ul>
+<p>最初のオペランドが <code>-</code> の場合、そのオペランドは特別に無視されます。
+
+<h2 id="init">シェルの初期化処理</h2>
+<p>シェルの初期化処理は以下のように行われます。
+<ol>
+<li><p>Yash はまず、(コマンドライン引数の前に渡される) それ自身の起動時の名前を解析します。その名前が <code>-</code> で始まる場合は、シェルはログインシェルとして動作します。また名前が <code>sh</code> である場合 (<code>/bin/sh</code> のように <code>sh</code> で終わる場合を含む) は、シェルは <a class="TODO">POSIX 準拠モード</a>になります。
+<li><p>オペランドが一つもなく、かつ標準入力と標準エラーがどちらも端末ならば、シェルは自動的に対話モードになります。ただし <code>-i</code>/<code>+i</code> オプションが指定されている場合はそちらを優先します。
+<p>対話モードのシェルでは自動的にジョブ制御が有効になります。ただし <code>-m</code>/<code>+m</code> オプションが指定されている場合はそちらを優先します。
+<li><p>シェルが対話モードであるかジョブ制御が有効な場合、シェルは自身のシグナルハンドラを設定します。(<a class="TODO">コマンドの実行環境</a>参照)
+<p>ジョブ制御が有効な場合、シェルは自身のプロセスグループ ID を変更します。(<a class="TODO">ジョブ制御</a>参照)
+<li><p>シェルは以下の初期化スクリプトを読み込んで解釈・実行します。(ただしシェルプロセスの実ユーザ ID と実効ユーザ ID が異なっているか、実グループ ID と実効グループ ID が異なっている場合を除く)
+ <ol>
+ <li><p>シェルがログインシェルとして動作している場合は、ファイル <a class="TODO">~</a>/.yash_profile の内容を読み込んで実行します。(ただし <dfn><code>--noprofile</code></dfn> オプションが指定されているか POSIX 準拠モードの場合を除く)
+ <li><p>シェルが対話モードの場合は、<dfn><code>--rcfile=<var>ファイル名</var></code></dfn> オプションで指定したファイルを読み込んで実行します。(ただし <dfn><code>--norcfile</code></dfn> オプションが指定されている場合を除く)
+ <p><code>--rcfile=...</code> オプションが指定されていない場合は、非 POSIX 準拠モードではファイル <a class="TODO">~</a>/.yashrc がデフォルトのファイルとして使われます。POSIX 準拠モードでは、$ENV <a class="TODO">環境変数</a>の値が<a class="TODO">パラメータ展開</a>され、その結果をファイル名と見なしてファイルを読み込みます。
+ </ol>
+ <p>注: Yash は /etc/profile を自動的に読み込むことはありません。
+</ol>

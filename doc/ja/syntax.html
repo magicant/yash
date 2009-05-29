@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash で使えるコマンドの文法について">
+<title>Yash マニュアル: コマンドの文法</title>
+<link rel="Contents" href="index.html" title="目次">
+<link rel="Prev" href="invocation.html" title="シェルの起動">
+
+<div class="breadcrumb"><a rel="Up" href="index.html">目次</a> ></div>
+<h1>コマンドの文法</h1>
+
+<p>シェルはコマンドを一行ずつ読み込んで解釈し、実行します。一行に複数のコマンドがある場合は、それら全てを解釈してから実行します。一つのコマンドが複数行にまたがっている場合は、そのコマンドを解釈し終えるのに必要なだけ後続の行が読み込まれます。コマンドを正しく解釈できない場合は、文法エラーとなり、コマンドは実行されません。
+<p>非対話モードで文法エラーが発生した時は、シェルはコマンドの読み込みを中止するため、それ以降のコマンドは一切読み込まれません。
+
+<h2 id="tokens">トークンの解析と予約語</h2>
+<p>コマンドは、いくつかのトークンによって構成されます。<dfn>トークン</dfn>とは、シェルの文法における一つ一つの単語のことを言います。トークンは原則として空白 (空白文字またはタブ文字) によって区切られます。ただしコマンド置換などに含まれる空白はトークンの区切りとは見なしません。
+<p>以下の記号は、シェルの文法において特別な意味を持っています。これらの記号も多くの場合他の通常のトークンの区切りとなります。
+<div class="tokenlist"><code>;</code> <code>&amp;</code> <code>|</code> <code>&lt;</code> <code>></code> <code>(</code> <code>)</code></div>
+<p>トークンが <code>#</code> で始まる場合、その <code>#</code> から行末までは<dfn>コメント</dfn>と見なされます。コマンドの解釈においてコメントは完全に無視されます。
+<p>以下のトークンは特定の場面において<dfn>予約語</dfn>と見なされます。予約語は複合コマンドなどを構成する一部となります。
+<div class="tokenlist"><code>!</code> <code>{</code> <code>}</code> <code>case</code> <code>do</code> <code>done</code> <code>elif</code> <code>else</code> <code>esac</code> <code>fi</code> <code>for</code> <code>if</code> <code>in</code> <code>then</code> <code>until</code> <code>while</code></div>
+<p>これらのトークンは以下の場面において予約語となります。
+<ul>
+<li>それがコマンドの最初のトークンのとき
+<li>それが他の予約語 (<code>case</code>, <code>for</code>, <code>in</code> を除く) の直後のトークンのとき
+<li><a class="TODO">Case コマンド</a>のマッチング対象のトークンの直後の <code>in</code>
+<li><a class="TODO">For コマンド</a>の変数名の直後の <code>in</code> または <code>do</code>
+</ul>
+<!-- These tokens are not keywords now: function, select, [[, ]] -->
+
+<h2 id="quotes">クォート</h2>
+
+<h2 id="aliases">エイリアス</h2>
+
+<h2 id="simple">単純コマンド</h2>
+
+<h2 id="pipelines">パイプライン</h2>
+
+<h2 id="lists">リスト</h2>
+
+<h2 id="compound">複合コマンド</h2>
+
+<h2 id="funcdef">関数定義</h2>
