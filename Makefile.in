@@ -68,15 +68,15 @@ test check: all
 	@cd tests && $(MAKE) test-all
 
 BINDIR = @BINDIR@
-install: $(TARGET) $(BINDIR)
-	$(INSTALL_PROGRAM) -c $(TARGET) '$(BINDIR)/$(TARGET)'
+install: $(TARGET) $(DESTDIR)$(BINDIR)
+	$(INSTALL_PROGRAM) -c $(TARGET) '$(DESTDIR)$(BINDIR)/$(TARGET)'
 install-strip: $(TARGET) $(BINDIR)
-	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(BINDIR)/$(TARGET)'
-installdirs: $(BINDIR)
-$(BINDIR):
+	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(DESTDIR)$(BINDIR)/$(TARGET)'
+installdirs: $(DESTDIR)$(BINDIR)
+$(DESTDIR)$(BINDIR):
 	$(INSTALL_PROGRAM) -d $@
 uninstall:
-	rm -f '$(BINDIR)/$(TARGET)'
+	rm -f '$(DESTDIR)$(BINDIR)/$(TARGET)'
 
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
