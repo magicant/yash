@@ -43,8 +43,10 @@ grep -Fqx %{_bindir}/yash %{_sysconfdir}/shells || echo %{_bindir}/yash >>%{_sys
 
 
 %preun
+if [ $1 -eq 0 ]; then
 grep -Fxv %{_bindir}/yash %{_sysconfdir}/shells >%{_sysconfdir}/shells.new
 mv -f %{_sysconfdir}/shells.new %{_sysconfdir}/shells
+fi
 
 
 %files
