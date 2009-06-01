@@ -418,4 +418,4 @@ wchar_t *malloc_wprintf(const wchar_t *format, ...)
 #endif /* YASH_STRBUF_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

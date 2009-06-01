@@ -388,4 +388,4 @@ wchar_t wb_get_char(const xwcsbuf_T *buf)
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

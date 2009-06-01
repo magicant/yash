@@ -427,4 +427,4 @@ void print_statistics(const hashtable_T *ht)
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

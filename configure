@@ -33,7 +33,9 @@ version="2.10"
 copyrightyear="2007-2009"
 
 # object files to be linked as `yash'
-objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o wfnmatch.o yash.o"
+objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o \
+option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o \
+wfnmatch.o yash.o"
 # object files compiled into builtins.a
 builtin_objs=""
 builtins_archive="builtins.a"
@@ -944,4 +946,4 @@ if [ -z "${posix}" ]; then
 fi
 
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 noet tw=80:

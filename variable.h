@@ -144,4 +144,4 @@ extern const char typeset_help[], array_help[], unset_help[], shift_help[],
 #endif /* YASH_VARIABLE_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

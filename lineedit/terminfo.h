@@ -52,4 +52,4 @@ extern _Bool le_restore_terminal(void);
 #endif /* YASH_TERMINFO_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

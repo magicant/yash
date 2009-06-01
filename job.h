@@ -110,4 +110,4 @@ extern const char jobs_help[], fg_help[], bg_help[], wait_help[], disown_help[];
 #endif /* YASH_JOB_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

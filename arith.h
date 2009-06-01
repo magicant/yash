@@ -31,4 +31,4 @@ extern _Bool evaluate_index(wchar_t *exp, size_t *valuep)
 #endif /* YASH_ARITH_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

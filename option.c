@@ -76,7 +76,8 @@ bool do_job_control;
 bool shopt_notify;
 #if YASH_ENABLE_LINEEDIT
 /* If set, the shell immediately notifies on a change of job status during line-
- * editing. Ignored if `shopt_notify' is set. Corresponds to --notifyle option. */
+ * editing. Ignored if `shopt_notify' is set. Corresponds to --notifyle option.
+ */
 bool shopt_notifyle;
 #endif
 
@@ -315,8 +316,8 @@ void set_bool_option(void *argp)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Changes the setting of a yes-no-auto option according to the current `xoptarg'.
- * `argp' must be a pointer to a yes-no-auto value. */
+/* Changes the setting of a yes-no-auto option according to the current
+ * `xoptarg'. `argp' must be a pointer to a yes-no-auto value. */
 void set_yesnoauto_option(void *argp)
 {
     enum shopt_yesnoauto_T *optp = argp;
@@ -652,4 +653,4 @@ const char set_help[] = Ngt(
 );
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

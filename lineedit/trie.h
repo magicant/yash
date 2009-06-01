@@ -57,4 +57,4 @@ extern void trie_destroy(trie_T *t);
 #endif /* YASH_TRIE_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

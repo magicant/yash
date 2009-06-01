@@ -627,8 +627,8 @@ void ensure_buffer(size_t n)
 
 /* Returns the length of the name under the current index.
  * Whether a character can be part of the name is determined by `isnamechar'.
- * Processes line continuations and reads enough lines so that the variable/alias
- * name under the current index is fully available. */
+ * Processes line continuations and reads enough lines so that the
+ * variable/alias name under the current index is fully available. */
 size_t count_name_length(bool isnamechar(wchar_t c))
 {
     size_t savecindex = cindex, newcindex;
@@ -2762,4 +2762,4 @@ void trim_end_of_buffer(xwcsbuf_T *buf)
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

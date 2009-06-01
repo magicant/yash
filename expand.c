@@ -1856,4 +1856,4 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

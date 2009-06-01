@@ -524,4 +524,4 @@ argumentmissing:
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

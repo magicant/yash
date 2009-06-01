@@ -81,4 +81,4 @@ extern const char return_help[], break_help[], continue_help[],
 #endif /* YASH_EXEC_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

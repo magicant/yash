@@ -53,4 +53,4 @@ extern _Bool pattern_has_special_char(const wchar_t *pat, _Bool pathname)
 #endif /* YASH_WFNMATCH_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

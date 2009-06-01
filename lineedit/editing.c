@@ -1970,8 +1970,8 @@ void cmd_vi_exec_alias(wchar_t c __attribute__((unused)))
 }
 
 /* Appends the value of the alias `_c' to the pre-buffer so that the alias value
- * is interpreted as commands, where `c' in the alias name is the argument of this
- * command. */
+ * is interpreted as commands, where `c' in the alias name is the argument of
+ * this command. */
 void vi_exec_alias(wchar_t c)
 {
     le_set_mode(LE_MODE_VI_COMMAND);
@@ -2470,4 +2470,4 @@ done:
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet: */
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
