@@ -88,20 +88,32 @@
 <p>If 文は条件分岐を行います。分岐の複雑さに応じていくつか構文のバリエーションがあります。
 <dl>
 <dt>If 文の基本構文
-<dd><code>if <var>コマンド</var>...; then <var>コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; fi
 <dt>Else がある場合
-<dd><code>if <var>コマンド</var>...; then <var>コマンド</var>...; else <var>コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; else <var>内容コマンド</var>...; fi
 <dt>Elif がある場合
-<dd><code>if <var>コマンド</var>...; then <var>コマンド</var>...; elif <var>コマンド</var>...; then <var>コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; elif <var>条件コマンド</var>...; then <var>内容コマンド</var>...; fi
 <dt>Elif と else がある場合
-<dd><code>if <var>コマンド</var>...; then <var>コマンド</var>...; elif <var>コマンド</var>...; then <var>コマンド</var>...; else <var>コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; elif <var>条件コマンド</var>...; then <var>内容コマンド</var>...; else <var>内容コマンド</var>...; fi
 </dl>
-<p>どの構文の場合でも、<code>if</code> と <code>then</code> の間にあるコマンドがまず実行されます。コマンドの終了ステータスが 0 ならば、条件が真であると見なされて <code>then</code> と <code>fi</code> (あるいは <code>else</code> や <code>elif</code>) の間にあるコマンドが実行され、if 文の実行はそれで終了します。終了ステータスが 0 でなければ、条件が偽であると見なされます。ここで <code>else</code> も <code>elif</code> もなければ、if 文の実行はこれで終わりです。<code>else</code> がある場合は、<code>else</code> と <code>fi</code> の間のコマンドが実行されます。<code>elif</code> がある場合は、<code>elif</code> と </code>then</code> の間にあるコマンドが実行され、その終了ステータスが 0 であるかどうか判定されます。その後は先程と同様に条件分岐を行います。
-<p><code>elif</code> と <code>then</code> は一つの if 文内に複数あっても構いません。
-<p>If 文の終了ステータスは、どれかの条件が真であった場合はそれに対応して実行された <code>then</code> の後のコマンドの終了ステータスです。どの条件も偽であった場合は、<code>else</code> の後のコマンドの終了ステータスです (<code>else</code> がない場合は 0)。
+<p>どの構文の場合でも、<code>if</code> の直後にある<var>条件コマンド</var>がまず実行されます。条件コマンドの終了ステータスが 0 ならば、条件が真であると見なされて <code>then</code> の直後にある<var>内容コマンド</var>が実行され、if 文の実行はそれで終了します。終了ステータスが 0 でなければ、条件が偽であると見なされます。ここで <code>else</code> も <code>elif</code> もなければ、if 文の実行はこれで終わりです。<code>else</code> がある場合は、<code>else</code> の直後の<var>内容コマンド</var>が実行されます。<code>elif</code> がある場合は、<code>elif</code> の直後の<var>条件コマンド</var>が実行され、その終了ステータスが 0 であるかどうか判定されます。その後は先程と同様に条件分岐を行います。
+<p><code>elif ...; then ...;</code> は一つの if 文内に複数あっても構いません。
+<p>If 文全体の終了ステータスは、実行された内容コマンドの終了ステータスです。内容コマンドが実行されなかった場合 (どの条件も偽で、<code>else</code> がない場合) は 0 です。
 
 <h3 id="while-until">While/until ループ</h3>
+<p>While/until ループは単純なループ構文です。
+<dl>
+<dt>While 文の構文
+<dd><code>while <var>コマンド1</var>...; do <var>コマンド2</var>...; done</code>
+<dt>Until 文の構文
+<dd><code>until <var>コマンド1</var>...; do <var>コマンド2</var>...; done</code>
+</dl>
+<p>While 文ではまず<var>コマンド1</var>が実行されます。そのコマンドの終了ステータスが 0 ならば、<var>コマンド2</var>が実行されたのち、再び<var>コマンド1</var>の実行に戻ります。この繰り返しは<var>コマンド1</var>の終了ステータスが 0 でなくなるまで続きます。<var>コマンド1</var>の終了ステータスが最初から 0 でないときは、<var>コマンド2</var>は一度も実行されません。
+<p>Until 文は、ループを続行する条件が逆になっている以外は while 文と同じです。すなわち、<var>コマンド1</var>の終了ステータスが 0 以外ならば<var>コマンド2</var>が実行されます。
+<p>While/until 文全体の終了ステータスは、最後に実行した<var>コマンド2</var>の終了ステータスです。(<var>コマンド2</var>が一度も実行されなかったときは 0)
+
 <h3 id="for">For ループ</h3>
+
 <h3 id="case">Case 文</h3>
 
 <h2 id="async">コマンドの区切りと非同期コマンド</h2>
