@@ -100,10 +100,13 @@ tests/expand.y.tst
 tests/history.y.out
 tests/history.y.tst
 tests/input.p.err
+tests/input.p.ERR
 tests/input.p.out
+tests/input.p.OUT
 tests/input.p.t
 tests/input.p.tst
 tests/input.y.err
+tests/input.y.ERR
 tests/input.y.out
 tests/input.y.t
 tests/input.y.tst
