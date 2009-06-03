@@ -9,7 +9,7 @@ URL:		http://yash.sourceforge.jp/
 Source:		http://yash.sourceforge.jp/releases/yash-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:	bash, make, gcc >= 3.0, glibc-devel, ncurses-devel
+BuildRequires:	make, gcc >= 3.0, glibc-devel, ncurses-devel
 Requires:	glibc, ncurses-libs
 
 %description
