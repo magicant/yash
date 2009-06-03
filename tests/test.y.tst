@@ -29,6 +29,14 @@ tt ! 000
 
 echo =====
 
+# skip some tests when i'm root
+: ${EUID:=$(id -u)}
+if [ "$EUID" -eq 0 ]; then
+	isroot=true
+else
+	isroot=false
+fi
+
 mkfifo fifo
 ln -s fifo fifolink
 ln -s gid reglink
@@ -84,28 +92,57 @@ tt -n abcde
 tt -p fifo
 tt -p .
 tt -r readable1
+if $isroot; then cat <<END
+-r readable2: 1 1
+-r readable3: 1 1
+-r writable1: 1 1
+-r writable2: 1 1
+-r writable3: 1 1
+END
+else
 tt -r readable2
 tt -r readable3
 tt -r writable1
 tt -r writable2
 tt -r writable3
+fi
 tt -s gid
 tt -s executable1
 tt -t 3
 tt -t 4
 tt -u gid
 tt -u uid
+if $isroot; then cat <<END
+-w readable1: 1 1
+-w readable2: 1 1
+-w readable3: 1 1
+END
+else
 tt -w readable1
 tt -w readable2
 tt -w readable3
+fi
 tt -w writable1
+if $isroot; then cat <<END
+-w writable2: 1 1
+-w writable3: 1 1
+END
+else
 tt -w writable2
 tt -w writable3
+fi
 tt -x .
 tt -x executable1
+if $isroot; then cat <<END
+-x executable2: 1 1
+-x executable3: 1 1
+-x reglink: 1 1
+END
+else
 tt -x executable2
 tt -x executable3
 tt -x reglink
+fi
 tt -z ""
 tt -z 0
 tt -z 1

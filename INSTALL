@@ -12,7 +12,6 @@ A normal way to build and install Yash is:
   3. Type `make' to build Yash.
 
   4. Optionally, type `make test' to check if Yash works right.
-     (This test does not work if you are the superuser.)
 
   5. Type `make install' to install yash. By default, Yash is installed
      at /usr/local/bin/yash.

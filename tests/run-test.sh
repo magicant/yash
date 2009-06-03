@@ -60,6 +60,25 @@ case "$1" in
 	;;
 esac
 
+: ${EUID=$(id -u)}
+if [ "$EUID" -eq 0 ]
+then isroot=true
+else isroot=false
+fi
+diffresult() {
+    y=$(echo "$1" | tr '[:lower:]' '[:upper:]')
+    if $isroot && [ -r "${x}.${y}" ]
+    then
+	y="${x}.${y}"
+    elif [ -r "${x}.$1" ]
+    then
+	y="${x}.$1"
+    else
+	y="/dev/null"
+    fi
+    diff "${y}" "${TESTTMP}/test.$1"
+}
+
 failed=0
 for x in $TEST_ITEMS
 do
@@ -77,22 +96,14 @@ do
     echo " * $x"
     $INVOKE $TESTEE "$x.tst" >|"${TESTTMP}/test.out" 2>|"${TESTTMP}/test.err"
 
-    failure=0
-    if ! diff "${x}.out" "${TESTTMP}/test.out"
+    diffresult out
+    outresult=$?
+    diffresult err
+    errresult=$?
+    if [ $outresult -ne 0 ] || [ $errresult -ne 0 ]
     then
-	failure=1
+	: $(( failed += 1 ))
     fi
-    if
-	if [ -f "${x}.err" ]
-	then
-	    ! diff "${x}.err" "${TESTTMP}/test.err"
-	else
-	    ! diff /dev/null "${TESTTMP}/test.err"
-	fi
-    then
-	failure=1
-    fi
-    if [ 0 -ne $failure ]; then failed=$(( failed + 1 )); fi
 done
 
 if [ 0 -eq $failed ]
