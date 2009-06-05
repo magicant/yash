@@ -391,6 +391,7 @@ wchar_t *get_hyphen_parameter(void)
     if (shopt_noglob)      wb_wccat(&buf, L'f');
     if (shopt_hashondef)   wb_wccat(&buf, L'h');
     if (is_interactive)    wb_wccat(&buf, L'i');
+    if (is_login_shell)    wb_wccat(&buf, L'l');
     if (do_job_control)    wb_wccat(&buf, L'm');
     if (shopt_noexec)      wb_wccat(&buf, L'n');
     if (shopt_read_stdin)  wb_wccat(&buf, L's');
