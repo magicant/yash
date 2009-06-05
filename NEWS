@@ -12,6 +12,8 @@ Yash 2.11
 
   =  The "$-" special parameter now includes the "l" flag if the
      shell is a login shell.
+  *  Quoted words were incorrectly expanded with backslashes when the
+     "-f" option is set.
 
 ----------------------------------------------------------------------
 Yash 2.10

@@ -177,6 +177,8 @@ bool expand_line(void *const *restrict args,
     /* glob (list1 -> list2) */
     if (shopt_noglob) {
 	list2 = list1;
+	for (size_t i = 0; i < list2.length; i++)
+	    list2.contents[i] = unescapefree(list2.contents[i]);
     } else {
 	pl_init(&list2);
 	do_glob_each(pl_toary(&list1), &list2);
