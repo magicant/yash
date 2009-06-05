@@ -42,6 +42,19 @@ func () {
 func
 echo $var
 
+echo ===== 3 =====
+
+if [ "$$" -ne "$($INVOKE $TESTEE -c 'echo $PPID')" ]; then
+	echo \$\$=$$ \$PPID wrong
+fi
+
+echo 1 \$0=$0
+$INVOKE $TESTEE <<\END
+echo 2 \$0=$0
+END
+$INVOKE $TESTEE -c 'echo 3 \$0=$0'
+$INVOKE $TESTEE -c 'echo 4 \$0=$0' 'command name'
+
 echo ===== set export =====
 
 export save="$(env -i PATH="$PATH" LC_CTYPE="$LC_CTYPE" foo=123 $INVOKE $TESTEE -c 'bar=456; set')"

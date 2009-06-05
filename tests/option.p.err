@@ -1,4 +1,5 @@
 ===== -v =====
+echo "$-" | grep -Fq v || echo 'no v in $-' >&2
 var=123
 echo ${var#1}
 ===== -x =====

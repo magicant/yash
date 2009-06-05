@@ -2,6 +2,7 @@ tmp="${TESTTMP}/option.p.tmp"
 
 echo ===== -a =====
 set -a
+echo "$-" | grep -Fq a || echo 'no a in $-' >&2
 unset foo bar
 foo=123
 env | grep ^foo=
@@ -11,6 +12,7 @@ env | grep ^bar=
 
 echo ===== -e =====
 set -e
+echo "$-" | grep -Fq e || echo 'no e in $-' >&2
 (echo ok group; false; echo ng group)
 if false; then echo ng if; else false || echo ok if; fi
 i=0
@@ -19,6 +21,7 @@ set +o errexit
 
 echo ===== -f =====
 set -f
+echo "$-" | grep -Fq f || echo 'no f in $-' >&2
 echo /*
 set +o noglob
 
@@ -34,6 +37,7 @@ END
 
 echo ===== -u =====
 set -u
+echo "$-" | grep -Fq u || echo 'no u in $-' >&2
 unset none
 if (echo $none) 2>/dev/null; then echo ng nounset; else echo ok nounset; fi
 set +o nounset
@@ -45,6 +49,7 @@ END
 echo ===== -v =====
 echo ===== -v ===== >&2
 $INVOKE $TESTEE -v <<\END
+echo "$-" | grep -Fq v || echo 'no v in $-' >&2
 var=123
 echo ${var#1}
 END
@@ -52,6 +57,7 @@ END
 echo ===== -x =====
 echo ===== -x ===== >&2
 $INVOKE $TESTEE -x <<\END
+(echo "$-" | grep -Fq x) 2>/dev/null || echo 'no x in $-' >&2
 var=123
 echo ${var#1}
 END

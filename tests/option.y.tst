@@ -3,6 +3,7 @@ mkdir -p "$tmp"
 
 echo ===== -h =====
 set -h
+echo "$-" | grep -Fq h || echo 'no h in $-' >&2
 hash -r
 hoptiontest () {
 	cat /dev/null

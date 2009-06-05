@@ -19,6 +19,11 @@ var
 ===== 2 =====
 xyz
 xyz
+===== 3 =====
+1 $0=variable.p.tst
+2 $0=sh
+3 $0=sh
+4 $0=command name
 ===== set export =====
 123 456
 - -
