@@ -24,8 +24,11 @@ void print(trie_T *t, const wchar_t *key)
 		case TG_UNIQUE:
 			printf("unique %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
+		case TG_NEEDMORE:
+			printf("needmore %zu\n", tg.matchlength);
+			break;
 		case TG_AMBIGUOUS:
-			printf("ambig %zu\n", tg.matchlength);
+			printf("ambig %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
 		default:
 			printf("ERROR: type=%d", (int) tg.type);

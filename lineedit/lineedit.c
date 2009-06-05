@@ -263,6 +263,7 @@ direct_first_buffer:
 		sb_remove(&reader_first_buffer, 0, tg.matchlength);
 		wb_cat(&reader_second_buffer, tg.value.keyseq);
 		break;
+	    case TG_NEEDMORE:
 	    case TG_AMBIGUOUS:
 		goto process_keymap;
 	}
@@ -313,6 +314,7 @@ process_keymap:
 			wb_get_char(&reader_second_buffer));
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;
+	    case TG_NEEDMORE:
 	    case TG_AMBIGUOUS:
 		return;
 	}

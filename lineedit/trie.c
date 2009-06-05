@@ -263,16 +263,19 @@ trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
 /* Matches `keystr' with the entries of the trie.
  * This function does not treat '\0' as end of string. The length of `keystr' is
  * given by `keylen'.
- * `value' of the return value is valid only if `type' is TG_UNIQUE. */
+ * `value' of the return value is valid only if `type' is TG_UNIQUE or
+ * TG_UNDECIDABLE. */
 trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 {
     trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
 
     if (keylen == 0) {
-	if (t->count > 0)
-	    result.type = TG_AMBIGUOUS;
-	else if (t->valuevalid)
-	    result.type = TG_UNIQUE, result.value = t->value;
+	if (t->valuevalid) {
+	    result.type = (t->count > 0) ? TG_AMBIGUOUS : TG_UNIQUE;
+	    result.value = t->value;
+	} else if (t->count > 0) {
+	    result.type = TG_NEEDMORE;
+	}
 	return result;
     }
 
@@ -293,6 +296,7 @@ trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 	    }
 	    break;
 	case TG_UNIQUE:
+	case TG_NEEDMORE:
 	case TG_AMBIGUOUS:
 	    result.matchlength++;
 	    break;
@@ -309,10 +313,12 @@ trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
     trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
 
     if (keywcs[0] == L'\0') {
-	if (t->count > 0)
-	    result.type = TG_AMBIGUOUS;
-	else if (t->valuevalid)
-	    result.type = TG_UNIQUE, result.value = t->value;
+	if (t->valuevalid) {
+	    result.type = (t->count > 0) ? TG_AMBIGUOUS : TG_UNIQUE;
+	    result.value = t->value;
+	} else if (t->count > 0) {
+	    result.type = TG_NEEDMORE;
+	}
 	return result;
     }
 
@@ -333,6 +339,7 @@ trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 	    }
 	    break;
 	case TG_UNIQUE:
+	case TG_NEEDMORE:
 	case TG_AMBIGUOUS:
 	    result.matchlength++;
 	    break;
