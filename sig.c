@@ -1188,18 +1188,18 @@ main:
 	    do {
 		int signum;
 
-		if (!xwcstoi(ARGV(xoptind), 10, &signum) || signum < 0) {
-		    xerror(0, Ngt("`%ls' is not a valid integer"),
-			    ARGV(xoptind));
-		    err = true;
-		    continue;
+		if (xwcstoi(ARGV(xoptind), 10, &signum) && signum >= 0) {
+		    if (signum >= TERMSIGOFFSET)
+			signum -= TERMSIGOFFSET;
+		    else if (signum >= (TERMSIGOFFSET & 0xFF))
+			signum -= (TERMSIGOFFSET & 0xFF);
+		} else {
+		    signum = get_signal_number_w(ARGV(xoptind));
 		}
-		if (signum >= TERMSIGOFFSET)
-		    signum -= TERMSIGOFFSET;
-		else if (signum >= (TERMSIGOFFSET & 0xFF))
-		    signum -= (TERMSIGOFFSET & 0xFF);
-		if (signum <= 0 || !print_signal(signum, NULL, verbose))
+		if (signum <= 0 || !print_signal(signum, NULL, verbose)) {
 		    xerror(0, Ngt("%ls: no such signal"), ARGV(xoptind));
+		    err = true;
+		}
 	    } while (++xoptind < argc);
 	}
     } else {
