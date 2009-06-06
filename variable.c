@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <locale.h>
 #include <stdbool.h>
@@ -837,12 +838,12 @@ positional_parameters:
 	/* `name' starts with a digit: a positional parameter */
 	wchar_t *nameend;
 	errno = 0;
-	long v = wcstol(name, &nameend, 10);
+	uintmax_t v = wcstoumax(name, &nameend, 10);
 	if (errno || *nameend != L'\0')
 	    return result;  /* not a number or overflow */
 	var = search_variable(L VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
-	if (v <= 0 || (uintmax_t) var->v_valc < (uintmax_t) v)
+	if (v == 0 || var->v_valc < v)
 	    return result;  /* index out of bounds */
 	value = xwcsdup(var->v_vals[v - 1]);
 	goto return_single;

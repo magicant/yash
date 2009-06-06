@@ -380,7 +380,7 @@ bool is_term_delimiter(const char *word)
  * the second respectively. */
 int compare_integers(const char *word1, const char *word2)
 {
-    int i1, i2;
+    intmax_t i1, i2;
     char *end;
 
     errno = 0;
