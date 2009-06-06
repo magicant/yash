@@ -295,8 +295,15 @@ trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 		result.value = t->value;
 	    }
 	    break;
-	case TG_UNIQUE:
 	case TG_NEEDMORE:
+	    if (t->valuevalid) {
+		result.type = TG_AMBIGUOUS;
+		result.matchlength = 0;
+		result.value = t->value;
+		break;
+	    }
+	    /* falls thru! */
+	case TG_UNIQUE:
 	case TG_AMBIGUOUS:
 	    result.matchlength++;
 	    break;
@@ -338,8 +345,15 @@ trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 		result.value = t->value;
 	    }
 	    break;
-	case TG_UNIQUE:
 	case TG_NEEDMORE:
+	    if (t->valuevalid) {
+		result.type = TG_AMBIGUOUS;
+		result.matchlength = 0;
+		result.value = t->value;
+		break;
+	    }
+	    /* falls thru! */
+	case TG_UNIQUE:
 	case TG_AMBIGUOUS:
 	    result.matchlength++;
 	    break;
