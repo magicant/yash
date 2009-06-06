@@ -58,3 +58,9 @@ done
 until do
 	echo not reached
 done
+
+false
+case _ in
+	(*)
+esac
+echo e1 $?

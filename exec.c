@@ -433,11 +433,16 @@ void exec_case(const command_T *c, bool finally_exit)
 	    size_t match = wfnmatch(pattern, word, 0, WFNM_WHOLE);
 	    free(pattern);
 	    if (match != WFNM_NOMATCH && match != WFNM_ERROR) {
-		exec_and_or_lists(ci->ci_commands, finally_exit);
-		goto done;
+		if (ci->ci_commands) {
+		    exec_and_or_lists(ci->ci_commands, finally_exit);
+		    goto done;
+		} else {
+		    goto success;
+		}
 	    }
 	}
     }
+success:
     laststatus = Exit_SUCCESS;
 done:
     if (finally_exit)
