@@ -45,12 +45,11 @@ struct setoptinfo_T {
 
 static void set_ignore_option(void *argp);
 static void set_bool_option(void *argp);
-#if YASH_ENABLE_LINEEDIT
-static void set_yesnoauto_option(void *argp);
-#endif
 static void set_monitor_option(void *argp);
 #if YASH_ENABLE_LINEEDIT
 static void set_lineedit_option(void *argp);
+static void set_le_convmeta_option(void *argp);
+static void set_le_noconvmeta_option(void *argp);
 #endif
 
 
@@ -159,7 +158,8 @@ typedef enum shopt_index_T {
 #endif
     SHOPT_POSIX,
 #if YASH_ENABLE_LINEEDIT
-    SHOPT_VI, /* SHOPT_EMACS, */ SHOPT_LE_CONVMETA, SHOPT_LE_PROMPTSP,
+    SHOPT_VI, /* SHOPT_EMACS, */
+    SHOPT_LE_CONVMETA, SHOPT_LE_NOCONVMETA, SHOPT_LE_PROMPTSP,
 #endif
     SHOPT_HELP,
     SHOPT_setopt = SHOPT_ALLEXPORT,
@@ -168,80 +168,82 @@ typedef enum shopt_index_T {
 
 /* Long options for the shell and set builtin */
 static const struct xoption long_options[] = {
-    [SHOPT_INTERACTIVE]  = { L"interactive",  xno_argument, L'i', },
-    [SHOPT_LOGIN]        = { L"login",        xno_argument, L'l', },
-    [SHOPT_NOPROFILE]    = { L"noprofile",    xno_argument, L'(', },
-    [SHOPT_NORCFILE]     = { L"norcfile",     xno_argument, L')', },
-    [SHOPT_RCFILE]       = { L"rcfile",       xrequired_argument, L'!', },
-    [SHOPT_VERSION]      = { L"version",      xno_argument, L'V', },
+    [SHOPT_INTERACTIVE]   = { L"interactive",  xno_argument, L'i', },
+    [SHOPT_LOGIN]         = { L"login",        xno_argument, L'l', },
+    [SHOPT_NOPROFILE]     = { L"noprofile",    xno_argument, L'(', },
+    [SHOPT_NORCFILE]      = { L"norcfile",     xno_argument, L')', },
+    [SHOPT_RCFILE]        = { L"rcfile",       xrequired_argument, L'!', },
+    [SHOPT_VERSION]       = { L"version",      xno_argument, L'V', },
     /* Options above cannot be used in set builtin */
-    [SHOPT_ALLEXPORT]    = { L"allexport",    xno_argument, L'L', },
-    [SHOPT_HASHONDEF]    = { L"hashondef",    xno_argument, L'L', },
-    [SHOPT_NOCLOBBER]    = { L"noclobber",    xno_argument, L'L', },
-    [SHOPT_NOGLOB]       = { L"noglob",       xno_argument, L'L', },
-    [SHOPT_NOCASEGLOB]   = { L"nocaseglob",   xno_argument, L'L', },
-    [SHOPT_DOTGLOB]      = { L"dotglob",      xno_argument, L'L', },
-    [SHOPT_MARKDIRS]     = { L"markdirs",     xno_argument, L'L', },
-    [SHOPT_EXTENDEDGLOB] = { L"extendedglob", xno_argument, L'L', },
-    [SHOPT_NULLGLOB]     = { L"nullglob",     xno_argument, L'L', },
-    [SHOPT_BRACEEXPAND]  = { L"braceexpand",  xno_argument, L'L', },
-    [SHOPT_CURASYNC]     = { L"curasync",     xno_argument, L'L', },
-    [SHOPT_AUTOCD]       = { L"autocd",       xno_argument, L'L', },
-    [SHOPT_ERREXIT]      = { L"errexit",      xno_argument, L'L', },
-    [SHOPT_NOUNSET]      = { L"nounset",      xno_argument, L'L', },
-    [SHOPT_NOEXEC]       = { L"noexec",       xno_argument, L'L', },
-    [SHOPT_IGNOREEOF]    = { L"ignoreeof",    xno_argument, L'L', },
-    [SHOPT_VERBOSE]      = { L"verbose",      xno_argument, L'L', },
-    [SHOPT_XTRACE]       = { L"xtrace",       xno_argument, L'L', },
-    [SHOPT_NOLOG]        = { L"nolog",        xno_argument, L'L', },
-    [SHOPT_MONITOR]      = { L"monitor",      xno_argument, L'm', },
-    [SHOPT_NOTIFY]       = { L"notify",       xno_argument, L'L', },
+    [SHOPT_ALLEXPORT]     = { L"allexport",    xno_argument, L'L', },
+    [SHOPT_HASHONDEF]     = { L"hashondef",    xno_argument, L'L', },
+    [SHOPT_NOCLOBBER]     = { L"noclobber",    xno_argument, L'L', },
+    [SHOPT_NOGLOB]        = { L"noglob",       xno_argument, L'L', },
+    [SHOPT_NOCASEGLOB]    = { L"nocaseglob",   xno_argument, L'L', },
+    [SHOPT_DOTGLOB]       = { L"dotglob",      xno_argument, L'L', },
+    [SHOPT_MARKDIRS]      = { L"markdirs",     xno_argument, L'L', },
+    [SHOPT_EXTENDEDGLOB]  = { L"extendedglob", xno_argument, L'L', },
+    [SHOPT_NULLGLOB]      = { L"nullglob",     xno_argument, L'L', },
+    [SHOPT_BRACEEXPAND]   = { L"braceexpand",  xno_argument, L'L', },
+    [SHOPT_CURASYNC]      = { L"curasync",     xno_argument, L'L', },
+    [SHOPT_AUTOCD]        = { L"autocd",       xno_argument, L'L', },
+    [SHOPT_ERREXIT]       = { L"errexit",      xno_argument, L'L', },
+    [SHOPT_NOUNSET]       = { L"nounset",      xno_argument, L'L', },
+    [SHOPT_NOEXEC]        = { L"noexec",       xno_argument, L'L', },
+    [SHOPT_IGNOREEOF]     = { L"ignoreeof",    xno_argument, L'L', },
+    [SHOPT_VERBOSE]       = { L"verbose",      xno_argument, L'L', },
+    [SHOPT_XTRACE]        = { L"xtrace",       xno_argument, L'L', },
+    [SHOPT_NOLOG]         = { L"nolog",        xno_argument, L'L', },
+    [SHOPT_MONITOR]       = { L"monitor",      xno_argument, L'm', },
+    [SHOPT_NOTIFY]        = { L"notify",       xno_argument, L'L', },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_NOTIFYLE]     = { L"notifyle",     xno_argument, L'L', },
+    [SHOPT_NOTIFYLE]      = { L"notifyle",     xno_argument, L'L', },
 #endif
-    [SHOPT_POSIX]        = { L"posix",        xno_argument, L'L', },
+    [SHOPT_POSIX]         = { L"posix",        xno_argument, L'L', },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_VI]           = { L"vi",           xno_argument, L'L', },
-    // [SHOPT_EMACS]        = { L"emacs",        xno_argument, L'L', },
-    [SHOPT_LE_CONVMETA]  = { L"le-convmeta",  xrequired_argument, L'L', },
-    [SHOPT_LE_PROMPTSP]  = { L"le-promptsp",  xno_argument, L'L', },
+    [SHOPT_VI]            = { L"vi",           xno_argument, L'L', },
+    // [SHOPT_EMACS]         = { L"emacs",        xno_argument, L'L', },
+    [SHOPT_LE_CONVMETA]   = { L"le-convmeta",  xno_argument, L'L', },
+    [SHOPT_LE_NOCONVMETA] = { L"le-noconvmeta",xno_argument, L'L', },
+    [SHOPT_LE_PROMPTSP]   = { L"le-promptsp",  xno_argument, L'L', },
 #endif
-    [SHOPT_HELP]         = { L"help",         xno_argument, L'-', },
+    [SHOPT_HELP]          = { L"help",         xno_argument, L'-', },
     /* this one must be the last for `help_option' */
     { NULL, 0, 0, },
 };
 
 static const struct setoptinfo_T setoptinfo[] = {
-    [SHOPT_ALLEXPORT]    = { set_bool_option, &shopt_allexport, },
-    [SHOPT_HASHONDEF]    = { set_bool_option, &shopt_hashondef, },
-    [SHOPT_NOCLOBBER]    = { set_bool_option, &shopt_noclobber, },
-    [SHOPT_NOGLOB]       = { set_bool_option, &shopt_noglob, },
-    [SHOPT_NOCASEGLOB]   = { set_bool_option, &shopt_nocaseglob, },
-    [SHOPT_DOTGLOB]      = { set_bool_option, &shopt_dotglob, },
-    [SHOPT_MARKDIRS]     = { set_bool_option, &shopt_markdirs, },
-    [SHOPT_EXTENDEDGLOB] = { set_bool_option, &shopt_extendedglob, },
-    [SHOPT_NULLGLOB]     = { set_bool_option, &shopt_nullglob, },
-    [SHOPT_BRACEEXPAND]  = { set_bool_option, &shopt_braceexpand, },
-    [SHOPT_CURASYNC]     = { set_bool_option, &shopt_curasync, },
-    [SHOPT_AUTOCD]       = { set_bool_option, &shopt_autocd, },
-    [SHOPT_ERREXIT]      = { set_bool_option, &shopt_errexit, },
-    [SHOPT_NOUNSET]      = { set_bool_option, &shopt_nounset, },
-    [SHOPT_NOEXEC]       = { set_bool_option, &shopt_noexec, },
-    [SHOPT_IGNOREEOF]    = { set_bool_option, &shopt_ignoreeof, },
-    [SHOPT_VERBOSE]      = { set_bool_option, &shopt_verbose, },
-    [SHOPT_XTRACE]       = { set_bool_option, &shopt_xtrace, },
-    [SHOPT_NOLOG]        = { set_ignore_option, NULL, },
-    [SHOPT_MONITOR]      = { set_monitor_option, NULL, },
-    [SHOPT_NOTIFY]       = { set_bool_option, &shopt_notify, },
+    [SHOPT_ALLEXPORT]     = { set_bool_option, &shopt_allexport, },
+    [SHOPT_HASHONDEF]     = { set_bool_option, &shopt_hashondef, },
+    [SHOPT_NOCLOBBER]     = { set_bool_option, &shopt_noclobber, },
+    [SHOPT_NOGLOB]        = { set_bool_option, &shopt_noglob, },
+    [SHOPT_NOCASEGLOB]    = { set_bool_option, &shopt_nocaseglob, },
+    [SHOPT_DOTGLOB]       = { set_bool_option, &shopt_dotglob, },
+    [SHOPT_MARKDIRS]      = { set_bool_option, &shopt_markdirs, },
+    [SHOPT_EXTENDEDGLOB]  = { set_bool_option, &shopt_extendedglob, },
+    [SHOPT_NULLGLOB]      = { set_bool_option, &shopt_nullglob, },
+    [SHOPT_BRACEEXPAND]   = { set_bool_option, &shopt_braceexpand, },
+    [SHOPT_CURASYNC]      = { set_bool_option, &shopt_curasync, },
+    [SHOPT_AUTOCD]        = { set_bool_option, &shopt_autocd, },
+    [SHOPT_ERREXIT]       = { set_bool_option, &shopt_errexit, },
+    [SHOPT_NOUNSET]       = { set_bool_option, &shopt_nounset, },
+    [SHOPT_NOEXEC]        = { set_bool_option, &shopt_noexec, },
+    [SHOPT_IGNOREEOF]     = { set_bool_option, &shopt_ignoreeof, },
+    [SHOPT_VERBOSE]       = { set_bool_option, &shopt_verbose, },
+    [SHOPT_XTRACE]        = { set_bool_option, &shopt_xtrace, },
+    [SHOPT_NOLOG]         = { set_ignore_option, NULL, },
+    [SHOPT_MONITOR]       = { set_monitor_option, NULL, },
+    [SHOPT_NOTIFY]        = { set_bool_option, &shopt_notify, },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_NOTIFYLE]     = { set_bool_option, &shopt_notifyle, },
+    [SHOPT_NOTIFYLE]      = { set_bool_option, &shopt_notifyle, },
 #endif
-    [SHOPT_POSIX]        = { set_bool_option, &posixly_correct, },
+    [SHOPT_POSIX]         = { set_bool_option, &posixly_correct, },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_VI]           = { set_lineedit_option, NULL, },
-    //[SHOPT_EMACS]        = { set_lineedit_option, NULL, },
-    [SHOPT_LE_CONVMETA]  = { set_yesnoauto_option, &shopt_le_convmeta, },
-    [SHOPT_LE_PROMPTSP]  = { set_bool_option, &shopt_le_promptsp, },
+    [SHOPT_VI]            = { set_lineedit_option, NULL, },
+    //[SHOPT_EMACS]         = { set_lineedit_option, NULL, },
+    [SHOPT_LE_CONVMETA]   = { set_le_convmeta_option, NULL, },
+    [SHOPT_LE_NOCONVMETA] = { set_le_noconvmeta_option, NULL, },
+    [SHOPT_LE_PROMPTSP]   = { set_bool_option, &shopt_le_promptsp, },
 #endif
     //[SHOPT_HELP]
     { 0, NULL, },
@@ -314,24 +316,6 @@ void set_bool_option(void *argp)
     *optp = (xoptopt == L'-');
 }
 
-#if YASH_ENABLE_LINEEDIT
-
-/* Changes the setting of a yes-no-auto option according to the current
- * `xoptarg'. `argp' must be a pointer to a yes-no-auto value. */
-void set_yesnoauto_option(void *argp)
-{
-    enum shopt_yesnoauto_T *optp = argp;
-    
-    assert(xoptarg != NULL);
-    switch (xoptarg[0]) {
-	case L'Y':  case L'y':  *optp = shopt_yes;   break;
-	case L'N':  case L'n':  *optp = shopt_no;    break;
-	case L'A':  case L'a':  *optp = shopt_auto;  break;
-    }
-}
-
-#endif
-
 /* Changes the setting of the `-m' (--monitor) option.
  * This function's behavior depends on the value of `shell_pid'. */
 void set_monitor_option(void *argp __attribute__((unused)))
@@ -374,6 +358,28 @@ void set_lineedit_option(void *argp __attribute__((unused)))
 	if (shopt_lineedit == opt)
 	    shopt_lineedit = shopt_nolineedit;
     }
+}
+
+/* Changes the setting of the le-convmeta option. */
+void set_le_convmeta_option(void *argp __attribute__((unused)))
+{
+    bool value = (xoptopt == L'-');
+    if (value)
+	shopt_le_convmeta = shopt_yes;
+    else
+	if (shopt_le_convmeta == shopt_yes)
+	    shopt_le_convmeta = shopt_auto;
+}
+
+/* Changes the setting of the le-noconvmeta option. */
+void set_le_noconvmeta_option(void *argp __attribute__((unused)))
+{
+    bool value = (xoptopt == L'-');
+    if (value)
+	shopt_le_convmeta = shopt_no;
+    else
+	if (shopt_le_convmeta == shopt_no)
+	    shopt_le_convmeta = shopt_auto;
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
@@ -470,14 +476,11 @@ int set_builtin(int argc, void **argv)
 void set_builtin_print_current_settings(void)
 {
     const char *vals[] = {
-	[shopt_yes]  = gt("yes"),
-	[shopt_no]   = gt("no"),
-	[shopt_auto] = gt("auto"),
+	[true]  = gt("yes"),
+	[false] = gt("no"),
     };
 #define PRINTSETTING(name,value) \
-    printf("%-15ls %s\n", L"" #name, (value) ? vals[shopt_yes] : vals[shopt_no])
-#define PRINTSETTING_YNA(name,value) \
-    printf("%-15ls %s\n", L"" #name, vals[value])
+    printf("%-15ls %s\n", L"" #name, vals[(bool) (value)])
 
     PRINTSETTING(allexport, shopt_allexport);
     PRINTSETTING(autocd, shopt_autocd);
@@ -493,7 +496,8 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
-    PRINTSETTING_YNA(le-convmeta, shopt_le_convmeta);
+    PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
+    PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
     PRINTSETTING(le-promptsp, shopt_le_promptsp);
 #endif
     PRINTSETTING(login, is_login_shell);
@@ -517,7 +521,6 @@ void set_builtin_print_current_settings(void)
 #endif
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
-#undef PRINTSETTING_YNA
 }
 
 void set_builtin_print_restoring_commands(void)
@@ -539,6 +542,8 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     //PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
+    PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
+    PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
     PRINTSETTING(le-promptsp, shopt_le_promptsp);
 #endif
     //PRINTSETTING(login, is_login_shell);
@@ -643,8 +648,10 @@ const char set_help[] = Ngt(
 "\tEnable vi-like editing.\n"
 //" --emacs\n"
 //"\tEnable emacs-like editing.\n"
-" --le-convmeta=<yes|no|auto>\n"
-"\tTreat 8th bit of input as a meta-key flag.\n"
+" --le-convmeta\n"
+"\tTreat 8th bit of input as a meta-key flag (regardless of terminfo).\n"
+" --le-noconvmeta\n"
+"\tDo not treat 8th bit of input as a meta-key flag.\n"
 " --le-promptsp\n"
 "\tMove cursor to beginning of line each time when starting\n"
 "\tline-editing. (enabled by default)\n"
