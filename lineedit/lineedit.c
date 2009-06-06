@@ -173,6 +173,10 @@ static mbstate_t reader_state;
 static xwcsbuf_T reader_second_buffer;
 /* If true, next input will be inserted directly to the main buffer. */
 bool le_next_verbatim;
+/* The time length the shell waits for to see if more input is available when
+ * the input sequence is ambiguous.
+ * A negative value means no limit. */
+int le_read_timeout = 100;  /* in milliseconds */
 
 /* Initializes the state of the reader.
  * Called for each invocation of `le_readline'. */
@@ -198,48 +202,56 @@ void reader_finalize(void)
 void read_next(void)
 {
     static bool incomplete_wchar = false;
+    static bool keycode_ambiguous = false;
 
     assert(le_editstate == LE_EDITSTATE_EDITING);
 
+    bool timeout = false;
     char c = pop_prebuffer();
     if (c)
 	goto direct_first_buffer;
 
     /* wait for and read the next byte */
     fflush(stderr);
-    wait_for_input(STDIN_FILENO, true);
-    switch (read(STDIN_FILENO, &c, 1)) {
-	case 0:
-	    le_editstate = LE_EDITSTATE_ERROR;
-	    return;
-	case 1:
-	    break;
-	case -1:
-	    switch (errno) {
-		case EAGAIN:
+    timeout = !wait_for_input(
+	    STDIN_FILENO, true, keycode_ambiguous ? le_read_timeout : -1);
+    if (!timeout) {
+	switch (read(STDIN_FILENO, &c, 1)) {
+	    case 0:
+		incomplete_wchar = keycode_ambiguous = false;
+		le_editstate = LE_EDITSTATE_ERROR;
+		return;
+	    case 1:
+		break;
+	    case -1:
+		switch (errno) {
+		    case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
-		case EWOULDBLOCK:
+		    case EWOULDBLOCK:
 #endif
-		case EINTR:
-		    return;
-		default:
-		    xerror(errno, Ngt("cannot read input"));
-		    le_editstate = LE_EDITSTATE_ERROR;
-		    return;
-	    }
-	default:
-	    assert(false);
-    }
-    if (has_meta_bit(c))
-	sb_ccat(sb_ccat(&reader_first_buffer, ESCAPE_CHAR), c & ~META_BIT);
-    else
+		    case EINTR:
+			return;
+		    default:
+			xerror(errno, Ngt("cannot read input"));
+			incomplete_wchar = keycode_ambiguous = false;
+			le_editstate = LE_EDITSTATE_ERROR;
+			return;
+		}
+	    default:
+		assert(false);
+	}
+	if (has_meta_bit(c))
+	    sb_ccat(sb_ccat(&reader_first_buffer, ESCAPE_CHAR), c & ~META_BIT);
+	else
 direct_first_buffer:
-	sb_ccat(&reader_first_buffer, c);
+	    sb_ccat(&reader_first_buffer, c);
+    }
 
     if (incomplete_wchar || le_next_verbatim)
 	goto process_wide;
 
     /** process the content in the buffer **/
+    keycode_ambiguous = false;
     while (reader_first_buffer.length > 0) {
 	/* check if `reader_first_buffer' is a special sequence */
 	trieget_T tg;
@@ -259,12 +271,18 @@ direct_first_buffer:
 	switch (tg.type) {
 	    case TG_NOMATCH:
 		goto process_wide;
-	    case TG_UNIQUE:
+	    case TG_UNIQUE:  case_TG_UNIQUE:
 		sb_remove(&reader_first_buffer, 0, tg.matchlength);
 		wb_cat(&reader_second_buffer, tg.value.keyseq);
-		break;
-	    case TG_NEEDMORE:
+		continue;
 	    case TG_AMBIGUOUS:
+		if (timeout) {
+		    goto case_TG_UNIQUE;
+		} else {
+		    keycode_ambiguous = true;
+		}
+		/* falls thru! */
+	    case TG_NEEDMORE:
 		goto process_keymap;
 	}
     }

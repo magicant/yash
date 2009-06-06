@@ -45,7 +45,7 @@ extern void ignore_sigtstp(void);
 extern _Bool send_sigstop_to_myself(void);
 
 extern int wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
-extern void wait_for_input(int fd, _Bool trap);
+extern _Bool wait_for_input(int fd, _Bool trap, int timeout);
 
 extern void handle_sigchld(void);
 extern _Bool have_unhandled_traps(void);

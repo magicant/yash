@@ -47,6 +47,7 @@ extern void le_resume_readline(void);
 extern void le_display_size_changed(void);
 
 extern _Bool le_next_verbatim;
+extern int le_read_timeout;
 
 void append_to_prebuffer(char *s)
     __attribute__((nonnull));

@@ -563,10 +563,28 @@ finish:
 /* Waits for the specified file descriptor to be available for reading.
  * `handle_sigchld' and `handle_sigwinch' are called to handle SIGCHLD and
  * SIGWINCH.
- * If `trap' is true, traps are also handled while waiting. */
-void wait_for_input(int fd, bool trap)
+ * If `trap' is true, traps are also handled while waiting.
+ * The maximum time length of wait is specified by `timeout' in milliseconds.
+ * If `timeout' is negative, the time length is unlimited.
+ * If the wait is interrupted by a signal, this function will re-wait for the
+ * specified timeout, which means that this function may wait for a time length
+ * longer than the specified timeout.
+ * This function returns true if the input is ready, and false if an error
+ * occurred or it timed out. */
+bool wait_for_input(int fd, bool trap, int timeout)
 {
+    bool success;
     sigset_t ss, savess;
+    struct timespec to;
+    struct timespec *top;
+
+    if (timeout < 0) {
+	top = NULL;
+    } else {
+	to.tv_sec  = timeout / 1000;
+	to.tv_nsec = timeout % 1000 * 1000000;
+	top = &to;
+    }
 
 start:
     sigfillset(&ss);
@@ -589,12 +607,13 @@ start:
 	fd_set fdset;
 	FD_ZERO(&fdset);
 	FD_SET(fd, &fdset);
-	if (pselect(fd + 1, &fdset, NULL, NULL, NULL, &savess) >= 0) {
-	    if (FD_ISSET(fd, &fdset))
-		break;
+	if (pselect(fd + 1, &fdset, NULL, NULL, top, &savess) >= 0) {
+	    success = FD_ISSET(fd, &fdset);
+	    break;
 	} else {
 	    if (errno != EINTR) {
 		xerror(errno, "pselect");
+		success = false;
 		break;
 	    }
 	}
@@ -602,6 +621,8 @@ start:
 
     if (sigprocmask(SIG_SETMASK, &savess, NULL) < 0)
 	xerror(errno, "sigprocmask");
+
+    return success;
 }
 
 /* Handles SIGCHLD if caught. */

@@ -185,7 +185,7 @@ start:
 	    case EWOULDBLOCK:
 #endif
 		clearerr(f);
-		wait_for_input(fd, true);
+		wait_for_input(fd, true, -1);
 		goto start;
 	    default:
 		xerror(errno, Ngt("cannot read input"));
@@ -238,7 +238,7 @@ bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
 #if EAGAIN != EWOULDBLOCK
 	    case EWOULDBLOCK:
 #endif
-		wait_for_input(STDIN_FILENO, trap);
+		wait_for_input(STDIN_FILENO, trap, -1);
 		break;
 	    default:
 		xerror(errno, Ngt("cannot read input"));

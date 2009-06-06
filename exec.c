@@ -1197,7 +1197,7 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 #if EAGAIN != EWOULDBLOCK
 		    case EWOULDBLOCK:
 #endif
-			wait_for_input(pipefd[PIDX_IN], false);
+			wait_for_input(pipefd[PIDX_IN], false, -1);
 			continue;
 		}
 		break;
