@@ -20,7 +20,7 @@
 <h2 id="tokens">トークンの解析と予約語</h2>
 <p>コマンドは、いくつかのトークンによって構成されます。<dfn>トークン</dfn>とは、シェルの文法における一つ一つの単語のことを言います。トークンは原則として空白 (空白文字またはタブ文字) によって区切られます。ただしコマンド置換などに含まれる空白はトークンの区切りとは見なしません。
 <p>以下の記号は、シェルの文法において特別な意味を持っています。これらの記号も多くの場合他の通常のトークンの区切りとなります。
-<div class="tokenlist"><code>;</code> <code>&amp;</code> <code>|</code> <code>&lt;</code> <code>></code> <code>(</code> <code>)</code></div>
+<div class="tokenlist"><code>;</code> <code>&amp;</code> <code>|</code> <code>&lt;</code> <code>></code> <code>(</code> <code>)</code> 改行</div>
 <p>以下の記号はトークンの区切りにはなりませんが、文法上特別な意味を持っています。
 <div class="tokenlist"><code>$</code> <code>`</code> <code>\</code> <code>"</code> <code>'</code> <code>*</code> <code>?</code> <code>[</code> <code>#</code> <code>~</code> <code>=</code> <code>%</code></div>
 <p>以下のトークンは特定の場面において<dfn>予約語</dfn>と見なされます。予約語は複合コマンドなどを構成する一部となります。
@@ -29,8 +29,8 @@
 <ul>
 <li>それがコマンドの最初のトークンのとき
 <li>それが他の予約語 (<code>case</code>, <code>for</code>, <code>in</code> を除く) の直後のトークンのとき
-<li><a class="TODO">Case コマンド</a>のマッチング対象のトークンの直後の <code>in</code>
-<li><a class="TODO">For コマンド</a>の変数名の直後の <code>in</code> または <code>do</code>
+<li><a href="#case">Case 文</a>のマッチング対象のトークンの直後の <code>in</code>
+<li><a href="#for">For ループ</a>の変数名の直後の <code>in</code> または <code>do</code>
 </ul>
 <p>トークンが <code>#</code> で始まる場合、その <code>#</code> から行末までは<dfn>コメント</dfn>と見なされます。コマンドの解釈においてコメントは完全に無視されます。
 <!-- These tokens are not keywords now: function, select, [[, ]] -->
@@ -74,7 +74,7 @@
 <p>構文上、and/or リストの直後には原則として記号 <code>;</code> または <code>&amp;</code> が必要です (<a href="#async">コマンドの区切りと非同期コマンド</a>参照)。
 
 <h2 id="async">コマンドの区切りと非同期コマンド</h2>
-<p>シェルが受け取るコマンドの全体は、<a href="#and-or">and/or リスト</a>を <code>;</code> または <code>&amp;</code> で区切ったものです。行末または <code>)</code> の直前にある <code>;</code> は省略できますが、それ以外の場合は and/or リストの直後には必ず <code>;</code> と <code>&amp;</code> のどちらかが必要です。
+<p>シェルが受け取るコマンドの全体は、<a href="#and-or">and/or リスト</a>を <code>;</code> または <code>&amp;</code> で区切ったものです。行末、<code>;;</code> または <code>)</code> の直前にある <code>;</code> は省略できますが、それ以外の場合は and/or リストの直後には必ず <code>;</code> と <code>&amp;</code> のどちらかが必要です。
 <p>And/or リストの直後に <code>;</code> がある場合は、その and/or リストは同期的に実行されます。すなわち、その and/or リストの実行が終わった後に次の and/or リストが実行されます。And/or リストの直後に <code>&amp;</code> がある場合は、その and/or リストは非同期的に実行されます。すなわち、その and/or リストの実行を開始した後、終了を待たずに、すぐさま次の and/or リストの実行に移ります。非同期な and/or リストは常に<a class="TODO">サブシェル</a>で実行されます。
 
 <h2 id="compound">複合コマンド</h2>
@@ -125,7 +125,7 @@
 <dd><code>for <var>変数名</var> in <var>単語</var>...; do <var>コマンド</var>...; done</code>
 <dd><code>for <var>変数名</var> do <var>コマンド</var>...; done</code>
 </dl>
-<p><code>in</code> の直後の<var>単語</var>は一つもなくても構いませんが、<code>do</code> の直前の <code>;</code> (または改行) は必要です。これらの単語トークンは予約語としては認識されませんが、<code>&</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in ...;</code> を省略する場合は、本来は変数名と <code>do</code> の間に <code>;</code> を入れてはいけませんが、非 POSIX 準拠モードでは許容されます。
+<p><code>in</code> の直後の<var>単語</var>は一つもなくても構いませんが、<code>do</code> の直前の <code>;</code> (または改行) は必要です。これらの単語トークンは予約語としては認識されませんが、<code>&</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in ...;</code> を省略する場合は、本来は変数名と <code>do</code> の間に <code>;</code> を入れてはいけませんが、非 POSIX 準拠モードでは <code>;</code> があっても許容されます。
 <p>For ループの実行ではまず<var>単語</var>が<a href="#simple">単純コマンド</a>実行時の単語の展開と同様に展開されます (<code>in ...;</code> がない構文を使用している場合は、<code>in "$@";</code> が省略されているものと見なされます)。続いて、展開で生成されたそれぞれの単語について順番に一度ずつ以下の処理を行います。
 <ol>
 <li>単語を<var>変数名</var>で指定した変数に代入する
@@ -142,14 +142,14 @@
 <dt>Caseitem の構文
 <dd><code>( <var>パターン</var> ) <var>コマンド</var>... ;;</code>
 </dl>
-<p><code>case</code> と <code>in</code> の間の単語はちょうど一トークンでなければなりません。この単語トークンは予約語としては認識されませんが、<code>&</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in</code> と <code>esac</code> の間には任意の個数の caseitem を置きます (0 個でもよい)。Caseitem の最初の <code>(</code> は省略できます。また <code>esac</code> の直前の <code>;;</code> も省略できます。
+<p><code>case</code> と <code>in</code> の間の単語はちょうど一トークンでなければなりません。この単語トークンは予約語としては認識されませんが、<code>&</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in</code> と <code>esac</code> の間には任意の個数の caseitem を置きます (0 個でもよい)。Caseitem の最初の <code>(</code> は省略できます。また <code>esac</code> の直前の <code>;;</code> も省略できます。Caseitem の <code>)</code> と <code>;;</code> との間に<var>コマンド</var>が一つもなくても構いません。
 <p>Caseitem の<var>パターン</var>にはトークンを指定します。各トークンを <code>|</code> で区切ることで複数のトークンをパターンとして指定することもできます。
 <p>Case 文の実行では、まず<var>単語</var>が<a href="#simple">単純コマンド</a>実行時の単語の展開と同様に展開されます (ただし<a class="TODO">単語分割</a>は行いません)。その後、各 caseitem に対して順に以下の動作を行います。
 <ol>
-<li><var>パターン</var>トークンを<var>単語</var>と同様に展開し、展開したパターンが展開した単語にマッチするかどうか調べます (<a class="TODO">パターンマッチング記法</a>参照)。<var>パターン</var>として指定されたトークンが複数ある場合はそれら各トークンに対してマッチするかどうか調べます (どれかのパターントークンがマッチしたらそれ以降のパターントークンは展開されません)。
+<li><var>パターン</var>トークンを<var>単語</var>と同様に展開し、展開したパターンが展開した単語にマッチするかどうか調べます (<a class="TODO">パターンマッチング記法</a>参照)。<var>パターン</var>として指定されたトークンが複数ある場合はそれら各トークンに対してマッチするかどうか調べます (どれかのパターントークンがマッチしたらそれ以降のパターントークンは展開されません。Yash はトークンが書かれている順番にマッチするかどうかを調べますが、他のシェルもこの順序で調べるとは限りません)。
 <li>マッチした場合は、直後の<var>コマンド</var>を実行し、それでこの case 文の実行は終了です。マッチしなかった場合は、次の caseitem の処理に移ります。
 </ol>
-<p>Case 文全体の終了ステータスは、実行した<var>コマンド</var>の終了ステータスです。<var>コマンド</var>が実行されなかった場合 (どのパターンもマッチしなかったか、caseitem が一つもない場合) は、終了ステータスは 0 です。
+<p>Case 文全体の終了ステータスは、実行した<var>コマンド</var>の終了ステータスです。<var>コマンド</var>が実行されなかった場合 (どのパターンもマッチしなかったか、caseitem が一つもないか、マッチしたパターンの後にコマンドがない場合) は、終了ステータスは 0 です。
 
 <h2 id="funcdef">関数定義</h2>
 <p>関数定義コマンドは、関数を定義します。
@@ -159,4 +159,5 @@
 </dl>
 <p><var>関数名</var>には引用符などの特殊な記号を含めることはできません。
 <p>関数定義コマンドを実行すると、指定した<var>関数名</var>の関数が定義されます。関数の内容 (本体) は<var>複合コマンド</var>になります。
-<p>関数定義コマンドに対して<a class="TODO">リダイレクト</a>を行うことはできません。関数定義コマンドの最後にあるリダイレクトは、<var>複合コマンド</var>に対するリダイレクトと見なされます。
+<p>関数定義コマンドに対して直接<a class="TODO">リダイレクト</a>を行うことはできません。関数定義コマンドの最後にあるリダイレクトは、<var>複合コマンド</var>に対するリダイレクトと見なされます。
+<p>関数定義コマンドの終了ステータスは、関数が正しく定義された場合は 0、そうでなければ非 0 です。
