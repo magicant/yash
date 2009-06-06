@@ -94,13 +94,13 @@
 <p>If 文は条件分岐を行います。分岐の複雑さに応じていくつか構文のバリエーションがあります。
 <dl>
 <dt>If 文の基本構文
-<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; fi</code>
 <dt>Else がある場合
-<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; else <var>内容コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; else <var>内容コマンド</var>...; fi</code>
 <dt>Elif がある場合
-<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; elif <var>条件コマンド</var>...; then <var>内容コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; elif <var>条件コマンド</var>...; then <var>内容コマンド</var>...; fi</code>
 <dt>Elif と else がある場合
-<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; elif <var>条件コマンド</var>...; then <var>内容コマンド</var>...; else <var>内容コマンド</var>...; fi
+<dd><code>if <var>条件コマンド</var>...; then <var>内容コマンド</var>...; elif <var>条件コマンド</var>...; then <var>内容コマンド</var>...; else <var>内容コマンド</var>...; fi</code>
 </dl>
 <p>If 文の実行では、どの構文の場合でも、<code>if</code> の直後にある<var>条件コマンド</var>がまず実行されます。条件コマンドの終了ステータスが 0 ならば、条件が真であると見なされて <code>then</code> の直後にある<var>内容コマンド</var>が実行され、if 文の実行はそれで終了します。終了ステータスが 0 でなければ、条件が偽であると見なされます。ここで <code>else</code> も <code>elif</code> もなければ、if 文の実行はこれで終わりです。<code>else</code> がある場合は、<code>else</code> の直後の<var>内容コマンド</var>が実行されます。<code>elif</code> がある場合は、<code>elif</code> の直後の<var>条件コマンド</var>が実行され、その終了ステータスが 0 であるかどうか判定されます。その後は先程と同様に条件分岐を行います。
 <p><code>elif ...; then ...;</code> は一つの if 文内に複数あっても構いません。
@@ -122,8 +122,8 @@
 <p>For ループは指定されたそれぞれの単語について同じコマンドを実行します。
 <dl>
 <dt>For ループの構文
-<dd><code>for <var>変数名</var> in <var>単語</var>...; do <var>コマンド</var>...; done
-<dd><code>for <var>変数名</var> do <var>コマンド</var>...; done
+<dd><code>for <var>変数名</var> in <var>単語</var>...; do <var>コマンド</var>...; done</code>
+<dd><code>for <var>変数名</var> do <var>コマンド</var>...; done</code>
 </dl>
 <p><code>in</code> の直後の<var>単語</var>は一つもなくても構いませんが、<code>do</code> の直前の <code>;</code> (または改行) は必要です。これらの単語トークンは予約語としては認識されませんが、<code>&</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in ...;</code> を省略する場合は、本来は変数名と <code>do</code> の間に <code>;</code> を入れてはいけませんが、非 POSIX 準拠モードでは許容されます。
 <p>For ループの実行ではまず<var>単語</var>が<a href="#simple">単純コマンド</a>実行時の単語の展開と同様に展開されます (<code>in ...;</code> がない構文を使用している場合は、<code>in "$@";</code> が省略されているものと見なされます)。続いて、展開で生成されたそれぞれの単語について順番に一度ずつ以下の処理を行います。
