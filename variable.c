@@ -47,6 +47,9 @@
 #include "variable.h"
 #include "version.h"
 #include "yash.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/lineedit.h"
+#endif
 
 
 const wchar_t *const path_variables[PA_count] = {
@@ -318,6 +321,9 @@ void init_variables(void)
     } else {
 	random_active = false;
     }
+
+    /* set $YASH_LE_TIMEOUT */
+    set_variable(L VAR_YASH_LE_TIMEOUT, xwcsdup(L"100"), SCOPE_GLOBAL, false);
 
     /* set $YASH_VERSION */
     set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
@@ -1014,6 +1020,23 @@ void variable_set(const wchar_t *name, variable_T *var)
 		    srand(seed);
 		    var->v_getter = random_getter;
 		    random_active = true;
+		}
+	    }
+	}
+	break;
+    case L'Y':
+	if (wcscmp(name, L VAR_YASH_LE_TIMEOUT) == 0) {
+	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
+		wchar_t *end;
+		errno = 0;
+		long v = wcstol(var->v_value, &end, 0);
+		if (!errno && *end == L'\0') {
+		    if (v < 0)
+			le_read_timeout = -1;
+		    else if (v > INT_MAX)
+			le_read_timeout = INT_MAX;
+		    else
+			le_read_timeout = (int) v;
 		}
 	    }
 	}
