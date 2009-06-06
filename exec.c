@@ -1272,16 +1272,13 @@ int return_builtin(int argc, void **argv)
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
-    if (statusstr == NULL) {
-	status = (savelaststatus >= 0) ? savelaststatus : laststatus;
+    if (statusstr != NULL
+	    && xwcstoi(statusstr, 10, &status)
+	    && status >= 0) {
+	status &= 0xFF;
     } else {
-	wchar_t *endofstr;
-	errno = 0;
-	status = (int) (wcstoul(statusstr, &endofstr, 0) & 0xFF);
-	if (errno || *endofstr != L'\0') {
-	    /* ignore `statusstr' if not a valid non-negative integer */
-	    status = (savelaststatus >= 0) ? savelaststatus : laststatus;
-	}
+	/* ignore `statusstr' if not a valid non-negative integer */
+	status = (savelaststatus >= 0) ? savelaststatus : laststatus;
     }
     execinfo.exception = ee_return;
     return status;
@@ -1320,17 +1317,19 @@ int break_builtin(int argc, void **argv)
     if (countstr == NULL) {
 	count = 1;
     } else {
-	wchar_t *endofstr;
-	errno = 0;
-	count = wcstoul(countstr, &endofstr, 0);
-	if (errno || *endofstr != L'\0') {
+	unsigned long countl;
+	if (!xwcstoul(countstr, 0, &countl)) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
-	} else if (count == 0) {
-	    xerror(0, Ngt("%u: not a positive integer"), count);
+	} else if (countl == 0) {
+	    xerror(0, Ngt("%u: not a positive integer"), 0u);
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
+	} else if (countl > UINT_MAX) {
+	    count = UINT_MAX;
+	} else {
+	    count = (unsigned) countl;
 	}
     }
     assert(count > 0);

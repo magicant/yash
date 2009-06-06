@@ -230,11 +230,8 @@ opt_ok:
 	    value = RLIM_INFINITY;
 	} else if (iswdigit(ARGV(xoptind)[0])) {
 	    unsigned long v;
-	    wchar_t *end;
 
-	    errno = 0;
-	    v = wcstoul(ARGV(xoptind), &end, 10);
-	    if (errno || *end)
+	    if (!xwcstoul(ARGV(xoptind), 10, &v))
 		goto err_format;
 	    value = (rlim_t) v * resource->factor;
 	    if (value / resource->factor != v || value == RLIM_INFINITY

@@ -19,6 +19,8 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -93,6 +95,93 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
     wchar_t *result = xmalloc((len + 1) * sizeof(wchar_t));
     result[len] = L'\0';
     return wmemcpy(result, s, len);
+}
+
+/* Converts a multi-byte string into an integer value.
+ * The conversion result is stored in `*resultp'.
+ * Returns true if successful, and false otherwise, in which case the value of
+ * `*resultp' is undefined. The conversion is considered successful if `errno'
+ * is zero and `endpp' is non-NULL or there are no remaining characters.
+ * `errno' is non-zero when this function returns false.
+ * Spaces at the beginning of the string are ignored. */
+bool xstrtoi(const char *s, int base, int *resultp)
+{
+    long result;
+    char *endp;
+    if (*s == '\0') {
+	errno = EINVAL;
+	return false;
+    }
+    errno = 0;
+    result = strtol(s, &endp, base);
+    if (errno != 0)
+	return false;
+    if (*endp != '\0') {
+	errno = EINVAL;
+	return false;
+    }
+    if (result < INT_MIN || result > INT_MAX) {
+	errno = ERANGE;
+	return false;
+    }
+    *resultp = (int) result;
+    return true;
+}
+
+/* Converts a wide string into an integer value.
+ * The conversion result is stored in `*resultp'.
+ * Returns true if successful, and false otherwise, in which case the value of
+ * `*resultp' is undefined. The conversion is considered successful if `errno'
+ * is zero and `endpp' is non-NULL or there are no remaining characters.
+ * `errno' is non-zero when this function returns false.
+ * Spaces at the beginning of the string are ignored. */
+bool xwcstoi(const wchar_t *s, int base, int *resultp)
+{
+    long result;
+    if (!xwcstol(s, base, &result))
+	return false;
+    if (result < INT_MIN || result > INT_MAX) {
+	errno = ERANGE;
+	return false;
+    }
+    *resultp = (int) result;
+    return true;
+}
+
+bool xwcstol(const wchar_t *s, int base, long *resultp)
+{
+    wchar_t *endp;
+    if (*s == L'\0') {
+	errno = EINVAL;
+	return false;
+    }
+    errno = 0;
+    *resultp = wcstol(s, &endp, base);
+    if (errno != 0)
+	return false;
+    if (*endp != L'\0') {
+	errno = EINVAL;
+	return false;
+    }
+    return true;
+}
+
+bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
+{
+    wchar_t *endp;
+    if (*s == L'\0') {
+	errno = EINVAL;
+	return false;
+    }
+    errno = 0;
+    *resultp = wcstoul(s, &endp, base);
+    if (errno != 0)
+	return false;
+    if (*endp != L'\0') {
+	errno = EINVAL;
+	return false;
+    }
+    return true;
 }
 
 /* Clones a NULL-terminated array of pointers.

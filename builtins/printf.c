@@ -623,23 +623,24 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
 {
     uintmax_t value;
-    wchar_t *end = L"";
+    wchar_t *end;
 
     if (arg)
 	xoptind++;
     else
 	arg = L"0";
-    errno = 0;
-    if (arg[0] == L'"' || arg[0] == L'\'')
+    if (arg[0] == L'"' || arg[0] == L'\'') {
 	value = (uintmax_t) arg[1];
-    else
+    } else {
+	errno = 0;
 	if (is_signed)
 	    value = (uintmax_t) wcstoimax(arg, &end, 0);
 	else
 	    value = wcstoumax(arg, &end, 0);
-    if (errno || !arg[0] || *end) {
-	xerror(errno, Ngt("`%ls' is not a valid integer"), arg);
-	printf_error = true;
+	if (errno || !arg[0] || *end) {
+	    xerror(errno, Ngt("`%ls' is not a valid integer"), arg);
+	    printf_error = true;
+	}
     }
     return value;
 }

@@ -488,7 +488,6 @@ long read_signature(FILE *f)
     xwcsbuf_T buf;
     long rev = -1;
     const wchar_t *s;
-    wchar_t *end;
 
     wb_init(&buf);
     rewind(f);
@@ -499,9 +498,7 @@ long read_signature(FILE *f)
     if (!s || !iswdigit(s[0]))
 	goto end;
 
-    errno = 0;
-    rev = wcstol(s, &end, 10);
-    if (errno || *end != L'\0')
+    if (!xwcstol(s, 10, &rev))
 	rev = -1;
 end:
     wb_destroy(&buf);
@@ -637,7 +634,6 @@ void parse_process_id(const wchar_t *numstr)
     i = wcstoimax(numstr, &end, 10);
     if (errno || (*end != L'\0' && !iswspace(*end)))
 	return;
-
     if (i > 0)
 	add_histfile_pid((pid_t) i);
     else if (i < 0)
@@ -860,10 +856,7 @@ void maybe_init_history(void)
     const wchar_t *vhistsize = getvar(L VAR_HISTSIZE);
     if (vhistsize && vhistsize[0]) {
 	unsigned long size;
-	wchar_t *end;
-	errno = 0;
-	size = wcstoul(vhistsize, &end, 10);
-	if (!errno && !*end)
+	if (xwcstoul(vhistsize, 10, &size))
 	    set_histsize(size <= MAX_HISTSIZE ? size : MAX_HISTSIZE);
     }
 
@@ -1140,10 +1133,7 @@ int fc_builtin(int argc, void **argv)
     if (silent && vlast)
 	goto print_usage;
     if (vfirst) {
-	wchar_t *end;
-	errno = 0;
-	first = wcstol(vfirst, &end, 10);
-	if (!vfirst[0] || errno || *end || first == 0) {
+	if (!xwcstol(vfirst, 10, &first) || first == 0) {
 	    efirst = fc_search_entry(vfirst);
 	    if (efirst == Histlist)
 		return Exit_FAILURE;
@@ -1157,10 +1147,7 @@ int fc_builtin(int argc, void **argv)
 	first = list ? -16 : -1;
     }
     if (vlast) {
-	wchar_t *end;
-	errno = 0;
-	last = wcstol(vlast, &end, 10);
-	if (!vlast[0] || errno || *end || last == 0) {
+	if (!xwcstol(vlast, 10, &last) || last == 0) {
 	    elast = fc_search_entry(vlast);
 	    if (elast == Histlist)
 		return Exit_FAILURE;

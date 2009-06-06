@@ -110,10 +110,7 @@ bool is_time_to_check_mail(void)
     }
 
     long interval;
-    wchar_t *end;
-    errno = 0;
-    interval = wcstol(mailcheck, &end, 10);
-    if (*end || errno || interval < 0) {
+    if (!xwcstol(mailcheck, 10, &interval) || interval < 0) {
 	inactivate();
 	return false;
     }

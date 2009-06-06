@@ -709,12 +709,9 @@ size_t get_jobnumber_from_name(const wchar_t *name)
 	return previous_jobnumber;
 
     if (iswdigit(name[0])) {
-	unsigned num;
-	wchar_t *nameend;
-	errno = 0;
-	num = wcstoul(name, &nameend, 10);
-	if (!errno && !*nameend)
-	    return get_job(num) ? num : 0;
+	unsigned long num;
+	if (xwcstoul(name, 10, &num))
+	    return (num <= SIZE_MAX && get_job(num)) ? num : 0;
     }
 
     bool contain;
@@ -1039,10 +1036,7 @@ int wait_builtin(int argc, void **argv)
 		jobnumber = get_jobnumber_from_name(jobspec + 1);
 	    } else {
 		long pid;
-		wchar_t *end;
-		errno = 0;
-		pid = wcstol(jobspec, &end, 10);
-		if (errno || *end || pid < 0) {
+		if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
 		    xerror(0, Ngt("%ls: invalid job specification"), jobspec);
 		    err = true;
 		    continue;

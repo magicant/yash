@@ -932,17 +932,14 @@ void parse_as_number(word_T *word, value_T *result)
     w[word->length] = L'\0';
 
     long longresult;
-    double doubleresult;
-    wchar_t *end;
-
-    errno = 0;
-    longresult = wcstol(w, &end, 0);
-    if (!errno && !*end) {
+    if (xwcstol(w, 0, &longresult)) {
 	result->type = VT_LONG;
 	result->v_long = longresult;
 	return;
     }
     if (!posixly_correct) {
+	double doubleresult;
+	wchar_t *end;
 	errno = 0;
 	doubleresult = wcstod(w, &end);
 	if (!errno && !*end) {
@@ -981,17 +978,14 @@ void coerce_number(evalinfo_T *info, value_T *value)
     }
 
     long longresult;
-    double doubleresult;
-    wchar_t *end;
-
-    errno = 0;
-    longresult = wcstol(v, &end, 0);
-    if (!errno && !*end) {
+    if (xwcstol(v, 0, &longresult)) {
 	value->type = VT_LONG;
 	value->v_long = longresult;
 	return;
     }
     if (!posixly_correct) {
+	double doubleresult;
+	wchar_t *end;
 	errno = 0;
 	doubleresult = wcstod(v, &end);
 	if (!errno && !*end) {

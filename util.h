@@ -19,6 +19,7 @@
 #ifndef YASH_UTIL_H
 #define YASH_UTIL_H
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #define Size_max ((size_t) -1)  // = SIZE_MAX
@@ -77,6 +78,14 @@ extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen)
     __attribute__((malloc,warn_unused_result,nonnull));
 static inline wchar_t *xwcsdup(const wchar_t *s)
     __attribute__((malloc,warn_unused_result,nonnull));
+extern _Bool xstrtoi(const char *s, int base, int *resultp)
+    __attribute__((warn_unused_result,nonnull));
+extern _Bool xwcstoi(const wchar_t *s, int base, int *resultp)
+    __attribute__((warn_unused_result,nonnull));
+extern _Bool xwcstol(const wchar_t *s, int base, long *resultp)
+    __attribute__((warn_unused_result,nonnull));
+extern _Bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
+    __attribute__((warn_unused_result,nonnull));
 static inline void **duparray(void *const *array, void *copy(const void *p))
     __attribute__((malloc,warn_unused_result,nonnull(2)));
 extern void **duparrayn(

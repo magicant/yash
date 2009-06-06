@@ -141,13 +141,7 @@ bool test_double(char *args[static 2])
 	case 't':
 	    {
 		int fd;
-		char *end;
-
-		errno = 0;
-		fd = strtol(args[1], &end, 10);
-		if (errno || !args[1][0] || *end)
-		    return false;
-		return isatty(fd);
+		return xstrtoi(args[1], 10, &fd) && isatty(fd);
 	    }
     }
 

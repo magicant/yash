@@ -122,15 +122,11 @@ const char *get_signal_name(int signum)
 int get_signal_number(const char *name)
 {
     if (isdigit(name[0])) {  /* parse a decimal integer */
-	long num;
-	char *end;
-	errno = 0;
-	num = strtol(name, &end, 10);
-	if (errno || *end != '\0' || num < 0 || num > INT_MAX)
+	int signum;
+	if (!xstrtoi(name, 10, &signum) || signum < 0)
 	    return -1;
 
-	/* check if `num' is a valid signal */
-	int signum = (int) num;
+	/* check if `signum' is a valid signal */
 	if (signum == 0)
 	    return 0;
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -157,13 +153,11 @@ int get_signal_number(const char *name)
 	if (name[0] == '\0') {
 	    return sigrtmin;
 	} else if (name[0] == '+') {
-	    long num;
-	    char *end;
-	    errno = 0;
-	    num = strtol(name, &end, 10);
-	    if (errno || *end != '\0' || num < 0 || sigrtmin + num >= SIGRTMAX)
+	    int num;
+	    if (!xstrtoi(name, 10, &num)
+		    || num < 0 || SIGRTMAX - sigrtmin < num)
 		return -1;
-	    return sigrtmin + (int) num;
+	    return sigrtmin + num;
 	}
     } else if (strncmp(name, "RTMAX", 5) == 0) {
 	int sigrtmax = SIGRTMAX;
@@ -171,13 +165,11 @@ int get_signal_number(const char *name)
 	if (name[0] == '\0') {
 	    return sigrtmax;
 	} else if (name[0] == '-') {
-	    long num;
-	    char *end;
-	    errno = 0;
-	    num = strtol(name, &end, 10);
-	    if (errno || *end != '\0' || num > 0 || sigrtmax + num < SIGRTMIN)
+	    int num;
+	    if (!xstrtoi(name, 10, &num)
+		    || num > 0 || SIGRTMIN - sigrtmax > num)
 		return -1;
-	    return sigrtmax + (int) num;
+	    return sigrtmax + num;
 	}
     }
 #endif
@@ -1194,12 +1186,9 @@ main:
 #endif
 	} else {
 	    do {
-		long signum;
-		wchar_t *end;
+		int signum;
 
-		errno = 0;
-		signum = wcstol(ARGV(xoptind), &end, 10);
-		if (errno || *end || signum < 0 || signum > INT_MAX) {
+		if (!xwcstoi(ARGV(xoptind), 10, &signum) || signum < 0) {
 		    xerror(0, Ngt("`%ls' is not a valid integer"),
 			    ARGV(xoptind));
 		    err = true;
@@ -1209,7 +1198,7 @@ main:
 		    signum -= TERMSIGOFFSET;
 		else if (signum >= (TERMSIGOFFSET & 0xFF))
 		    signum -= (TERMSIGOFFSET & 0xFF);
-		if (signum <= 0 || !print_signal((int) signum, NULL, verbose))
+		if (signum <= 0 || !print_signal(signum, NULL, verbose))
 		    xerror(0, Ngt("%ls: no such signal"), ARGV(xoptind));
 	    } while (++xoptind < argc);
 	}
@@ -1224,11 +1213,8 @@ main:
 		    err = true;
 	    } else {
 		long pid;
-		wchar_t *end;
 
-		errno = 0;
-		pid = wcstol(proc, &end, 10);
-		if (errno || *end) {
+		if (!xwcstol(proc, 10, &pid)) {
 		    xerror(0, Ngt("`%ls' is not a valid integer"), proc);
 		    err = true;
 		    continue;

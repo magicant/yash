@@ -1013,11 +1013,9 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (random_active && wcscmp(name, L VAR_RANDOM) == 0) {
 	    random_active = false;
 	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
-		wchar_t *end;
-		errno = 0;
-		unsigned seed = wcstoul(var->v_value, &end, 0);
-		if (!errno && *end == L'\0') {
-		    srand(seed);
+		unsigned long seed;
+		if (xwcstoul(var->v_value, 0, &seed)) {
+		    srand((unsigned) seed);
 		    var->v_getter = random_getter;
 		    random_active = true;
 		}
@@ -1027,17 +1025,9 @@ void variable_set(const wchar_t *name, variable_T *var)
     case L'Y':
 	if (wcscmp(name, L VAR_YASH_LE_TIMEOUT) == 0) {
 	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
-		wchar_t *end;
-		errno = 0;
-		long v = wcstol(var->v_value, &end, 0);
-		if (!errno && *end == L'\0') {
-		    if (v < 0)
-			le_read_timeout = -1;
-		    else if (v > INT_MAX)
-			le_read_timeout = INT_MAX;
-		    else
-			le_read_timeout = (int) v;
-		}
+		int v;
+		if (xwcstoi(var->v_value, 0, &v))
+		    le_read_timeout = v;
 	    }
 	}
 	break;
@@ -1316,13 +1306,10 @@ bool parse_dirstack_index(const wchar_t *indexstr,
 	size_t *indexp, const wchar_t **entryp, bool printerror)
 {
     long num;
-    wchar_t *end;
 
     if (indexstr[0] != L'-' && indexstr[0] != L'+')
 	goto not_index;
-    errno = 0;
-    num = wcstol(indexstr, &end, 10);
-    if (errno || *end)
+    if (!xwcstol(indexstr, 10, &num))
 	goto not_index;
 
     variable_T *var = search_variable(L VAR_DIRSTACK);
@@ -1935,10 +1922,7 @@ bool array_remove_elements(
     /* convert all the strings into long integers */
     for (size_t i = 0; i < count; i++) {
 	const wchar_t *indexwcs = indexwcss[i];
-	wchar_t *end;
-	errno = 0;
-	indices[i] = wcstol(indexwcs, &end, 10);
-	if (errno || !indexwcs[0] || end[0]) {
+	if (!xwcstol(indexwcs, 10, &indices[i])) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexwcs);
 	    return false;
 	}
@@ -1999,10 +1983,7 @@ bool array_insert_elements(
     assert(values[0] != NULL);
     {
 	const wchar_t *indexword = *values;
-	wchar_t *end;
-	errno = 0;
-	index = wcstol(indexword, &end, 10);
-	if (errno || !indexword[0] || end[0]) {
+	if (!xwcstol(indexword, 10, &index)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexword);
 	    return false;
 	}
@@ -2033,17 +2014,12 @@ bool array_insert_elements(
 bool array_set_element(const wchar_t *name, variable_T *array,
 	const wchar_t *indexword, const wchar_t *value)
 {
-    long index;
-
     assert((array->v_type & VF_MASK) == VF_ARRAY);
-    {
-	wchar_t *end;
-	errno = 0;
-	index = wcstol(indexword, &end, 10);
-	if (errno || !indexword[0] || end[0]) {
-	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexword);
-	    return false;
-	}
+
+    long index;
+    if (!xwcstol(indexword, 10, &index)) {
+	xerror(errno, Ngt("`%ls' is not a valid integer"), indexword);
+	return false;
     }
 
     size_t uindex;
@@ -2214,10 +2190,7 @@ int shift_builtin(int argc, void **argv)
     size_t scount;
     if (xoptind < argc) {
 	long count;
-	wchar_t *end;
-	errno = 0;
-	count = wcstol(ARGV(xoptind), &end, 10);
-	if (*end || errno) {
+	if (!xwcstol(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
@@ -2290,13 +2263,9 @@ int getopts_builtin(int argc, void **argv)
     }
     {
 	const wchar_t *varoptind = getvar(L VAR_OPTIND);
-	wchar_t *end;
-	if (!varoptind || !varoptind[0])
+	if (!varoptind || !xwcstoul(varoptind, 10, &optind))
 	    goto optind_invalid;
-	errno = 0;
-	optind = wcstoul(varoptind, &end, 10) - 1;
-	if (errno || *end)
-	    goto optind_invalid;
+	optind -= 1;
     }
     if (xoptind < argc) {
 	if (optind >= (unsigned long) (argc - xoptind))

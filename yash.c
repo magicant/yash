@@ -695,16 +695,13 @@ int exit_builtin(int argc, void **argv)
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
-    if (statusstr == NULL) {
-	status = -1;
+    if (statusstr != NULL
+	    && xwcstoi(statusstr, 10, &status)
+	    && status >= 0) {
+	status &= 0xFF;
     } else {
-	wchar_t *endofstr;
-	errno = 0;
-	status = (int) (wcstoul(statusstr, &endofstr, 0) & 0xFF);
-	if (errno || *endofstr != L'\0') {
-	    /* ignore `statusstr' if not a valid non-negative integer */
-	    status = -1;
-	}
+	/* ignore `statusstr' if not a valid non-negative integer */
+	status = -1;
     }
     exit_shell_with_status(status);
     assert(false);

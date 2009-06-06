@@ -546,15 +546,12 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     if (strcmp(num, "-") == 0) {
 	fd = -1;
     } else {
-	char *end;
-	errno = 0;
-	long lfd = strtol(num, &end, 10);
-	if (!isxdigit(num[0]) || *end != '\0')
+	if (!isxdigit(num[0])) {
 	    errno = EINVAL;
-	else if (lfd < 0 || lfd > INT_MAX)
-	    errno = ERANGE;
-	else
-	    fd = (int) lfd;
+	} else {
+	    if (xstrtoi(num, 10, &fd) && fd < 0)
+		errno = ERANGE;
+	}
 	if (errno) {
 	    xerror(errno, Ngt("redirection: %s"), num);
 	    fd = -2;
@@ -598,19 +595,15 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 {
     int fd, inputfd;
-    char *end;
-    long lfd;
 
     assert(outputfd >= 0);
 
-    errno = 0;
-    lfd = strtol(num, &end, 10);
-    if (!isxdigit(num[0]) || *end != '\0')
+    if (!isxdigit(num[0])) {
 	errno = EINVAL;
-    else if (lfd < 0 || lfd > INT_MAX)
-	errno = ERANGE;
-    else
-	inputfd = (int) lfd;
+    } else {
+	if (xstrtoi(num, 10, &inputfd) && inputfd < 0)
+	    errno = ERANGE;
+    }
     if (errno) {
 	xerror(errno, Ngt("redirection: %s"), num);
 	fd = -2;
