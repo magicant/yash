@@ -139,8 +139,7 @@ static void exec_nonsimple_command(command_T *c, bool finally_exit)
 static void exec_simple_command(const commandinfo_T *ci,
 	int argc, char *argv0, void **argv, bool finally_exit)
     __attribute__((nonnull));
-static void print_xtrace(void *const *argv)
-    __attribute__((nonnull));
+static void print_xtrace(void *const *argv);
 static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
     __attribute__((nonnull(2,4)));
@@ -184,6 +183,10 @@ static bool exec_builtin_executed = false;
 
 /* the last assignment. */
 static assign_T *last_assign;
+
+/* a buffer for xtrace. */
+static xwcsbuf_T xtrace_buffer;
+
 
 /* Returns true iff we're breaking/continuing/returning now. */
 bool need_break(void)
@@ -717,6 +720,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 		laststatus = lastcmdsubstatus;
 	    else
 		laststatus = Exit_ASSGNERR;
+	    print_xtrace(NULL);
 	} else {
 	    bool temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
 	    if (temp)
@@ -728,6 +732,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 				| (argc == 1 ? sct_argc1 : 0));
 		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
 	    } else {
+		print_xtrace(NULL);
 		laststatus = Exit_ASSGNERR;
 		if (!is_interactive && cmdinfo.type == specialbuiltin)
 		    finally_exit = true;
@@ -1041,19 +1046,42 @@ void exec_simple_command(
 	exit_shell();
 }
 
+/* Returns a pointer to the xtrace buffer.
+ * The buffer is initialized if not. */
+xwcsbuf_T *get_xtrace_buffer(void)
+{
+    if (xtrace_buffer.contents == NULL)
+	wb_init(&xtrace_buffer);
+    return &xtrace_buffer;
+}
+
 /* Prints a trace if "-o xtrace" option is on. */
 void print_xtrace(void *const *argv)
 {
-    if (shopt_xtrace) {
+    bool tracevars = xtrace_buffer.contents != NULL
+		  && xtrace_buffer.length > 0;
+
+    if (shopt_xtrace && (tracevars || argv != NULL)) {
+	bool first = true;
+
 	print_prompt(4);
-	for (;;) {
-	    fprintf(stderr, "%ls", (wchar_t *) *argv);
-	    argv++;
-	    if (!*argv)
-		break;
-	    fputc(' ', stderr);
+	if (tracevars) {
+	    fprintf(stderr, "%ls", xtrace_buffer.contents + 1);
+	    first = false;
+	}
+	if (argv != NULL) {
+	    for (void *const *a = argv; *a != NULL; a++) {
+		if (!first)
+		    fputc(' ', stderr);
+		fprintf(stderr, "%ls", (wchar_t *) *a);
+		first = false;
+	    }
 	}
 	fputc('\n', stderr);
+    }
+    if (xtrace_buffer.contents) {
+	wb_destroy(&xtrace_buffer);
+	xtrace_buffer.contents = NULL;
     }
 }
 

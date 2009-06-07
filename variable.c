@@ -145,9 +145,9 @@ static variable_T *new_temporary(const wchar_t *name)
     __attribute__((nonnull));
 static variable_T *new_variable(const wchar_t *name, scope_T scope)
     __attribute__((nonnull));
-static void print_variable_trace(const wchar_t *name, const wchar_t *value)
+static void xtrace_variable(const wchar_t *name, const wchar_t *value)
     __attribute__((nonnull));
-static void print_array_trace(const wchar_t *name, void *const *values)
+static void xtrace_array(const wchar_t *name, void *const *values)
     __attribute__((nonnull));
 static void get_all_variables_rec(hashtable_T *table, environ_T *env)
     __attribute__((nonnull));
@@ -712,7 +712,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 		    return false;
 		value = unescapefree(value);
 		if (shopt_xtrace)
-		    print_variable_trace(assign->a_name, value);
+		    xtrace_variable(assign->a_name, value);
 		if (!set_variable(assign->a_name, value, scope, export))
 		    return false;
 		break;
@@ -721,7 +721,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 		    return false;
 		assert(values != NULL);
 		if (shopt_xtrace)
-		    print_array_trace(assign->a_name, values);
+		    xtrace_array(assign->a_name, values);
 		if (!set_array(assign->a_name, count, values, scope))
 		    return false;
 		break;
@@ -731,28 +731,29 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
     return true;
 }
 
-/* Prints trace of an variable assignment. */
-void print_variable_trace(const wchar_t *name, const wchar_t *value)
+/* Pushes a trace of an variable assignment to the xtrace buffer. */
+void xtrace_variable(const wchar_t *name, const wchar_t *value)
 {
-    print_prompt(4);
-    fprintf(stderr, "%ls=%ls\n", name, value);
+    xwcsbuf_T *buf = get_xtrace_buffer();
+    wb_wprintf(buf, L" %ls=%ls", name, value);
 }
 
-/* Prints trace of an array assignment. */
-void print_array_trace(const wchar_t *name, void *const *values)
+/* Pushes a trace of an array assignment to the xtrace buffer. */
+void xtrace_array(const wchar_t *name, void *const *values)
 {
-    print_prompt(4);
-    fprintf(stderr, "%ls=(", name);
+    xwcsbuf_T *buf = get_xtrace_buffer();
+
+    wb_wprintf(buf, L" %ls=(", name);
     if (*values) {
 	for (;;) {
-	    fprintf(stderr, "%ls", (wchar_t *) *values);
+	    wb_cat(buf, *values);
 	    values++;
 	    if (!*values)
 		break;
-	    fputc(' ', stderr);
+	    wb_wccat(buf, L' ');
 	}
     }
-    fputs(")\n", stderr);
+    fputs(")", stderr);
 }
 
 /* Gets the value of the specified scalar variable.

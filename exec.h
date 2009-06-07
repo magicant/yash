@@ -56,6 +56,7 @@ struct and_or_T;
 struct wordunit_T;
 extern void exec_and_or_lists(const struct and_or_T *a, _Bool finally_exit);
 extern pid_t fork_and_reset(pid_t pgid, _Bool fg, sigtype_T sigtype);
+extern struct xwcsbuf_T *get_xtrace_buffer(void);
 extern wchar_t *exec_command_substitution(const wchar_t *code)
     __attribute__((nonnull,malloc,warn_unused_result));
 
