@@ -324,7 +324,11 @@ void init_variables(void)
     }
 
     /* set $YASH_LE_TIMEOUT */
-    set_variable(L VAR_YASH_LE_TIMEOUT, xwcsdup(L"100"), SCOPE_GLOBAL, false);
+#if YASH_ENABLE_LINEEDIT
+    if (is_interactive)
+	set_variable(L VAR_YASH_LE_TIMEOUT,
+		xwcsdup(L"100"), SCOPE_GLOBAL, false);
+#endif
 
     /* set $YASH_VERSION */
     set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
@@ -1024,6 +1028,7 @@ void variable_set(const wchar_t *name, variable_T *var)
 	    }
 	}
 	break;
+#if YASH_ENABLE_LINEEDIT
     case L'Y':
 	if (wcscmp(name, L VAR_YASH_LE_TIMEOUT) == 0) {
 	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
@@ -1033,6 +1038,7 @@ void variable_set(const wchar_t *name, variable_T *var)
 	    }
 	}
 	break;
+#endif /* YASH_ENABLE_LINEEDIT */
     }
 }
 
