@@ -679,16 +679,22 @@ void notify_signaled_job(size_t jobnumber)
 	return;
 
     int sig = WTERMSIG(p->pr_statuscode);
-    if (sig == SIGINT || sig == SIGPIPE)
-	return;
-
+    switch (sig) {
+	case SIGINT:
+	    fputc('\n', stderr);
+	    break;
+	case SIGPIPE:
+	    break;
+	default:
 #if HAVE_STRSIGNAL
-    fprintf(stderr, gt("Process killed by SIG%s: %s\n"),
-	    get_signal_name(sig), strsignal(sig));
+	    fprintf(stderr, gt("Process killed by SIG%s: %s\n"),
+		    get_signal_name(sig), strsignal(sig));
 #else
-    fprintf(stderr, gt("Process killed by SIG%s\n"),
-	    get_signal_name(sig));
+	    fprintf(stderr, gt("Process killed by SIG%s\n"),
+		    get_signal_name(sig));
 #endif
+	    break;
+    }
 }
 
 /* Returns the job number from the specified job ID string.
