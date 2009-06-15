@@ -298,6 +298,7 @@ posix=$(getconf _POSIX_VERSION 2>/dev/null)
 if [ -n "${posix}" ] && [ x"${posix}" != x"undefined" ]
 then
     checked "${posix}"
+    defconfigh "_POSIX_C_SOURCE" "${posix}L"
     if [ "${posix}" -lt 200112 ]
     then
 	posix=""
@@ -315,6 +316,7 @@ then
     if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]
     then
 	checked "${xopen}"
+	defconfigh "_XOPEN_SOURCE" "${xopen}"
 	if [ "${xopen}" -lt 600 ]
 	then
 	    xopen=""
@@ -382,8 +384,8 @@ if [ x"${enable_lineedit}" = x"yes" ]
 then
     checking "for terminfo library" terminfo
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE 200112
-#define _XOPEN_SOURCE 600
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #define _XOPEN_SOURCE_EXTENDED 1
 #include <stdio.h>
 #include <curses.h>
@@ -452,6 +454,8 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #include <stddef.h>
 size_t strnlen(const char*, size_t);
 int main() { return strnlen("12345", 3) != 3; }
@@ -471,6 +475,8 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #include <stddef.h>
 size_t wcsnlen(const wchar_t*, size_t);
 int main() { return wcsnlen(L"12345", 3) != 3; }
@@ -490,7 +496,7 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE ${xopen:-1}
 #include <wchar.h>
 int main() { return wcwidth(L'\0'); }
 END
@@ -509,8 +515,8 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE 200112
-#define _XOPEN_SOURCE   600
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #include <sys/stat.h>
 int main() { return S_ISVTX & 0; }
 END
@@ -529,7 +535,8 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE 200112
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #include <errno.h>
 #include <sys/wait.h>
 static int s;
@@ -553,7 +560,8 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE 200112
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #include <unistd.h>
 extern int eaccess(const char *, int);
 int main() { (void) eaccess(".", F_OK | R_OK | W_OK | X_OK); }
@@ -573,7 +581,8 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE 200112
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #include <signal.h>
 extern char *strsignal(int);
 int main() { (void) strsignal(SIGKILL); }
@@ -612,6 +621,8 @@ if
 	[ x"${checkresult}" = x"yes" ]
     else
 	cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE ${posix:-1}L
+#define _XOPEN_SOURCE   ${xopen:-1}
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -753,7 +764,7 @@ then
 	    [ x"${checkresult}" = x"yes" ]
 	else
 	    cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE ${xopen:-1}
 #include <sys/resource.h>
 int main() {
 struct rlimit l;
@@ -787,7 +798,7 @@ then
 		[ x"${checkresult}" = x"yes" ]
 	    else
 		cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE ${xopen:-1}
 #include "${configh}"
 #include <sys/resource.h>
 int main() { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }

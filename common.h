@@ -21,15 +21,19 @@
 #ifndef YASH_COMMON_H
 #define YASH_COMMON_H
 
-#define _POSIX_C_SOURCE 200112L
-#define _XOPEN_SOURCE   600
+#if HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+#ifndef _POSIX_C_SOURCE
+# define _POSIX_C_SOURCE 200112L
+#endif
+#ifndef _XOPEN_SOURCE
+# define _XOPEN_SOURCE 600
+#endif
 
 #ifndef __GNUC__
 # define __attribute__(ignore)
-#endif
-
-#if HAVE_CONFIG_H
-# include "config.h"
 #endif
 
 #if HAVE_GETTEXT
