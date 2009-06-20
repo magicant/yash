@@ -41,7 +41,8 @@ extern _Bool shopt_read_arg, shopt_read_stdin;
 extern const wchar_t *command_name;
 extern _Bool shopt_allexport, shopt_hashondef;
 extern _Bool shopt_errexit, shopt_nounset, shopt_noexec, shopt_ignoreeof,
-       shopt_verbose, shopt_xtrace, shopt_curasync, shopt_autocd;
+       shopt_verbose, shopt_xtrace, shopt_curasync, shopt_histspace,
+       shopt_autocd;
 extern _Bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern _Bool shopt_braceexpand;

@@ -114,6 +114,8 @@ bool shopt_verbose;
 bool shopt_xtrace;
 /* If set, a new asynchronous job is set to the current job when invoked. */
 bool shopt_curasync;
+/* If set, lines that start with a space are not saved in the history. */
+bool shopt_histspace;
 /* If set, the shell changes the working directory when a command is a
  * directory rather than a executable. */
 bool shopt_autocd;
@@ -152,7 +154,7 @@ typedef enum shopt_index_T {
     SHOPT_NOCASEGLOB, SHOPT_DOTGLOB, SHOPT_MARKDIRS, SHOPT_EXTENDEDGLOB,
     SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_AUTOCD,
     SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
-    SHOPT_XTRACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY,
+    SHOPT_XTRACE, SHOPT_HISTSPACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY,
 #if YASH_ENABLE_LINEEDIT
     SHOPT_NOTIFYLE,
 #endif
@@ -193,6 +195,7 @@ static const struct xoption long_options[] = {
     [SHOPT_IGNOREEOF]     = { L"ignoreeof",    xno_argument, L'L', },
     [SHOPT_VERBOSE]       = { L"verbose",      xno_argument, L'L', },
     [SHOPT_XTRACE]        = { L"xtrace",       xno_argument, L'L', },
+    [SHOPT_HISTSPACE]     = { L"histspace",    xno_argument, L'L', },
     [SHOPT_NOLOG]         = { L"nolog",        xno_argument, L'L', },
     [SHOPT_MONITOR]       = { L"monitor",      xno_argument, L'm', },
     [SHOPT_NOTIFY]        = { L"notify",       xno_argument, L'L', },
@@ -231,6 +234,7 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_IGNOREEOF]     = { set_bool_option, &shopt_ignoreeof, },
     [SHOPT_VERBOSE]       = { set_bool_option, &shopt_verbose, },
     [SHOPT_XTRACE]        = { set_bool_option, &shopt_xtrace, },
+    [SHOPT_HISTSPACE]     = { set_bool_option, &shopt_histspace, },
     [SHOPT_NOLOG]         = { set_ignore_option, NULL, },
     [SHOPT_MONITOR]       = { set_monitor_option, NULL, },
     [SHOPT_NOTIFY]        = { set_bool_option, &shopt_notify, },
@@ -493,6 +497,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
     PRINTSETTING(hashondef, shopt_hashondef);
+    PRINTSETTING(histspace, shopt_histspace);
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
@@ -539,6 +544,7 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
     PRINTSETTING(hashondef, shopt_hashondef);
+    PRINTSETTING(histspace, shopt_histspace);
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     //PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
@@ -639,6 +645,8 @@ const char set_help[] = Ngt(
 "\tEnable brace expansion.\n"
 " --curasync\n"
 "\tWhen a new background job is invoked, it becomes the current job.\n"
+" --histspace\n"
+"\tDo not save lines that start with a space in the history.\n"
 " --autocd\n"
 "\tIf a simple command cannot be executed but it is a directory name,\n"
 "\tthe shell performs the `cd' command to that directory.\n"

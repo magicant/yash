@@ -308,10 +308,8 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 		if (info->type == 1)
 		    info->type = 2;
 		if (line[0]) {
-		    size_t len = wcslen(line);
-		    assert(len > 0);
 #if YASH_ENABLE_HISTORY
-		    if (info->type == 2 && len > 1)
+		    if (info->type == 2)
 			add_history(line);
 #endif /* YASH_ENABLE_HISTORY */
 		    linebuffer = forward_line(line, buf);
@@ -343,8 +341,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	result = input_file(buf, info->fp);
 #if YASH_ENABLE_HISTORY
     if (info->type == 2)
-	if (buf->contents[oldlen] != L'\n' && buf->length > oldlen)
-	    add_history(buf->contents + oldlen);
+	add_history(buf->contents + oldlen);
 #endif
     return result;
 }

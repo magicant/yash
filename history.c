@@ -915,8 +915,8 @@ void finalize_history(void)
 
 /* Adds the specified `line' to the history.
  * Must not be called while the history is locked.
- * If `line' contains newlines, `line' is separated into multiple entries. */
-/* Only lines that contain graph-class characters are added to the history. */
+ * If `line' contains newlines, `line' is separated into multiple entries.
+ * Only lines that contain graph-class characters are added to the history. */
 void add_history(const wchar_t *line)
 {
     maybe_init_history();
@@ -948,11 +948,15 @@ void add_history(const wchar_t *line)
 /* Adds the specified `line' to the history.
  * `line' must not contain newlines.
  * `histfile' must be locked and `update_time' and `update_history' must have
- * been called. */
-/* If the `line' does not contain any graph-class characters, it is not added
- * to the history. */
+ * been called.
+ * If the `line' does not contain any graph-class characters, it is not added
+ * to the history. If the `shopt_histspace' option is enabled and the `line'
+ * starts with a space, the `line' is not added either. */
 void really_add_history(const wchar_t *line)
 {
+    if (shopt_histspace && line[0] == ' ')
+	return;
+
     /* Check if `line' contains `graph' characters */
     for (const wchar_t *s = line; ; ) {
 	if (*s == L'\0')

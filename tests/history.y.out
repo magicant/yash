@@ -132,3 +132,18 @@ inner shell
 32	echo 32
 33	echo 33
 34	fc -l
+===== histspace =====
+a
+b
+c
+d
+e
+f
+g
+1	echo a
+2	 echo b
+3	 set --histspace
+4	echo c
+5	echo f
+6	 echo g
+7	  fc -l

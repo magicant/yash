@@ -10,11 +10,12 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.11
 
+  +  Added the "--histspace" option.
   +  Support for the $YASH_LE_TIMEOUT variable.
-  =  An empty case command "case i in (*) esac" now always returns the
-     exit status of zero.
   =  The "$-" special parameter now includes the "l" flag if the
      shell is a login shell.
+  *  An empty case command "case i in (*) esac" now always returns the
+     exit status of zero.
   *  Quoted words were incorrectly expanded with backslashes when the
      "-f" option is set.
 

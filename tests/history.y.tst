@@ -74,4 +74,20 @@ echo 33
 fc -l
 EOF
 
+echo ===== histspace =====
+
+>"$TMPHIST"
+$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
+echo a
+ echo b
+ set --histspace
+echo c
+ echo d
+  echo e
+ set +o histspace
+echo f
+ echo g
+  fc -l
+EOF
+
 rm -f "$TMPHIST" "$RC"
