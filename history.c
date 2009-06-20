@@ -77,6 +77,9 @@ unsigned hist_next_number = 1;
 static unsigned max_number = MIN_MAX_NUMBER;
 /* The size limit of the history list. */
 static unsigned histsize = DEFAULT_HISTSIZE;
+/* The number of entries that are checked for duplicate when an entry is added.
+ */
+static unsigned histrmdup = 0;
 
 /* File stream for the history file. */
 static FILE *histfile = NULL;
@@ -146,6 +149,8 @@ static void write_histfile_pids(FILE *f)
     __attribute__((nonnull));
 
 static void really_add_history(const wchar_t *line)
+    __attribute__((nonnull));
+static void remove_dups(const char *line)
     __attribute__((nonnull));
 
 
@@ -860,6 +865,14 @@ void maybe_init_history(void)
 	    set_histsize(size <= MAX_HISTSIZE ? size : MAX_HISTSIZE);
     }
 
+    /* set `histrmdup' */
+    const wchar_t *vhistrmdup = getvar(L VAR_HISTRMDUP);
+    if (vhistrmdup && vhistrmdup[0]) {
+	unsigned long rmdup;
+	if (xwcstoul(vhistrmdup, 10, &rmdup))
+	    histrmdup = rmdup <= histsize ? rmdup : histsize;
+    }
+
     update_time();
 
     /* open the history file and read it */
@@ -968,12 +981,34 @@ void really_add_history(const wchar_t *line)
 
     char *mbsline = malloc_wcstombs(line);
     if (mbsline) {
-	histentry_T *entry = new_entry(hist_next_number, now, mbsline);
+	histentry_T *entry;
 
+	remove_dups(mbsline);
+	entry = new_entry(hist_next_number, now, mbsline);
 	if (histfile)
 	    write_history_entry(entry, histfile);
-
 	free(mbsline);
+    }
+}
+
+/* Removes entries whose value is the same as `line' in the `histrmdup' newest
+ * entries.
+ * `histfile' must be locked and `update_history' must have been called. The
+ * history file should be flushed after this function. */
+void remove_dups(const char *line)
+{
+    histentry_T *e = Histlist;
+    histentry_T *saveprev = e->Prev;
+    for (unsigned i = histrmdup; i > 0; i--) {
+	e = saveprev;
+	saveprev = e->Prev;
+	if (e == Histlist)
+	    break;
+	if (strcmp(e->value, line) == 0) {
+	    if (histfile)
+		fwprintf(histfile, L"d%X\n", e->number);
+	    remove_entry(e);
+	}
     }
 }
 

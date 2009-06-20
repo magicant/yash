@@ -11,6 +11,7 @@ Yash 更新履歴
 Yash 2.11
 
   +  "--histspace", "--le-noconvmeta" オプション追加
+  +  $HISTRMDUP 変数に対応
   +  $YASH_LE_TIMEOUT 変数に対応
   +  kill 組込みの -l オプションでシグナル名をオペランドとして
      渡せるように

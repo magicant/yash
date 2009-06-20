@@ -31,6 +31,7 @@ extern char **environ;
 #define VAR_ENV		"ENV"
 #define VAR_FCEDIT	"FCEDIT"
 #define VAR_HISTFILE	"HISTFILE"
+#define VAR_HISTRMDUP   "HISTRMDUP"
 #define VAR_HISTSIZE	"HISTSIZE"
 #define VAR_HOME	"HOME"
 #define VAR_IFS		"IFS"
