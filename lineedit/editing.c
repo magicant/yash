@@ -2064,7 +2064,7 @@ end:
 	free(tempfile);
 	le_resume_readline();
     } else {  // child process
-	fwprintf(f, L"%ls\n");
+	fwprintf(f, L"%ls\n", le_main_buffer.contents);
 	fclose(f);
 
 	wchar_t *command = malloc_wprintf(L"vi %s", tempfile);
