@@ -197,6 +197,7 @@ exec 6>"${configh}"
     echo
     echo "#" PATH="${PATH}"
     echo
+    "${havecache}" && echo "#" cache available
     echo
 } >&5
 
@@ -221,8 +222,9 @@ getcache () {
     fi
     if cacheentry="$(grep -F "${cachekey}	" "${configcache}")"
     then
-	printf "(cached) "
 	checkresult="${cacheentry#*	}"
+	printf "(cached) "
+	printf "# cache found: key=${cachekey} value=${checkresult}\n" >&5
     else
 	unset cacheentry
 	return 1
@@ -416,6 +418,10 @@ END
 		    break
 		fi
 	    done
+	    if [ x"${checkresult}" = x"no" ]
+	    then
+		checked
+	    fi
 	fi
     fi
     case "${checkresult}" in
@@ -428,7 +434,6 @@ END
 	defconfigh "YASH_ENABLE_LINEEDIT"
 	;;
     no)
-	checked
 	echo "terminfo library unavailable: lineedit is disabled" >&2
 	ldlibs="${saveldlibs}"
 	enable_lineedit="no"
