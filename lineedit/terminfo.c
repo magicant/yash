@@ -27,6 +27,9 @@
 #include <term.h>
 #include <termios.h>
 #include <unistd.h>
+#if HAVE_TIOCGWINSZ
+# include <sys/ioctl.h>
+#endif
 #include "../sig.h"
 #include "../util.h"
 #include "key.h"
@@ -217,6 +220,10 @@
 #define TI_xenl    "xenl"
 
 
+/* This flag is set to true when the terminfo database needs to be refreshed
+ * because the $TERM variable is changed. */
+_Bool le_need_term_update = true;
+
 /* Number of lines and columns in the current terminal. */
 /* Initialized by `le_setupterm'. */
 int le_lines, le_columns;
@@ -259,13 +266,33 @@ int is_strcap_valid(const char *s)
 }
 
 /* Calls `setupterm' and checks if terminfo data is available.
+ * If `bypass' is true and `le_need_term_update' is false, the terminfo data
+ * are not refreshed and only the terminal size (`le_lines' and `le_columns')
+ * is adjusted.
  * Returns true iff successful. */
-_Bool le_setupterm(void)
+_Bool le_setupterm(_Bool bypass)
 {
     static _Bool once = 0;
     int err;
 
     reset_sigwinch();
+
+    assert(once || le_need_term_update);
+#if HAVE_TIOCGWINSZ
+    if (bypass && !le_need_term_update) {
+	struct winsize ws;
+	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0
+		&& ws.ws_row > 0 && ws.ws_col > 0) {
+	    le_lines = ws.ws_row;
+	    le_columns = ws.ws_col;
+	    return 1;
+	}
+    }
+#else
+    (void) bypass;
+#endif /* HAVE_TIOCGWINSZ */
+
+    le_need_term_update = 0;
     if (once)
 	del_curterm(cur_term);
     if (setupterm(NULL, STDERR_FILENO, &err) != OK)

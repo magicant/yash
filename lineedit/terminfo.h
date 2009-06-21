@@ -20,12 +20,14 @@
 #define YASH_TERMINFO_H
 
 
+extern _Bool le_need_term_update;
+
 extern int le_lines, le_columns;
 extern _Bool le_ti_am, le_ti_xenl;
 extern _Bool le_meta_bit8;
 extern struct trienode_T /* trie_T */ *le_keycodes;
 
-extern _Bool le_setupterm(void);
+extern _Bool le_setupterm(_Bool bypass);
 
 extern void le_print_cr(void);
 extern void le_print_nel(void);

@@ -50,6 +50,7 @@
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT
 # include "lineedit/lineedit.h"
+# include "lineedit/terminfo.h"
 #endif
 
 
@@ -1029,6 +1030,10 @@ void variable_set(const wchar_t *name, variable_T *var)
 	}
 	break;
 #if YASH_ENABLE_LINEEDIT
+    case L'T':
+	if (wcscmp(name, L VAR_TERM) == 0)
+	    le_need_term_update = true;
+	break;
     case L'Y':
 	if (wcscmp(name, L VAR_YASH_LE_TIMEOUT) == 0) {
 	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {

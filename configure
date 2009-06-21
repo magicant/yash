@@ -665,6 +665,30 @@ then
 fi
 checked
 
+# check if ioctl supports TIOCGWINSZ
+if [ x"${enable_lineedit}" = x"yes" ]; then
+    checking "if ioctl supports TIOCGWINSZ" TIOCGWINSZ
+    if
+	if getcache
+	then
+	    [ x"${checkresult}" = x"yes" ]
+	else
+	    cat >"${tempsrc}" <<END
+#include <sys/ioctl.h>
+int main() {
+    struct winsize ws;
+    ioctl(0, TIOCGWINSZ, &ws);
+    (void) ws.ws_row, (void) ws.ws_col;
+}
+END
+	    trymake
+	fi
+    then
+	defconfigh "HAVE_TIOCGWINSZ"
+    fi
+    checked
+fi
+
 # check if wide-oriented I/O is working
 checking "if wide-oriented I/O is fully working" wideio:working
 if

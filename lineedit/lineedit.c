@@ -73,7 +73,7 @@ bool le_setup(void)
     }
 
     return isatty(STDIN_FILENO) && isatty(STDERR_FILENO)
-	&& le_setupterm()
+	&& le_setupterm(true)
 	&& le_set_terminal();
 }
 
@@ -139,7 +139,7 @@ void le_resume_readline(void)
 {
     if (le_state == LE_STATE_SUSPENDED) {
 	le_state = LE_STATE_ACTIVE;
-	le_setupterm();
+	le_setupterm(true);
 	le_set_terminal();
 	le_display_print_all(true);
 	le_display_reposition_cursor();
@@ -153,7 +153,7 @@ void le_display_size_changed(void)
 {
     if (le_state == LE_STATE_ACTIVE) {
 	le_display_clear();
-	le_setupterm();
+	le_setupterm(true);
 	le_display_print_all(false);
 	le_display_reposition_cursor();
 	fflush(stderr);
