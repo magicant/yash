@@ -1,12 +1,12 @@
 Name:		yash
-Version:	2.10
+Version:	2.11
 Release:	1
 Summary:	A POSIX-compliant command line shell
 
 Group:		Applications/System
 License:	GPLv2+
 URL:		http://yash.sourceforge.jp/
-Source:		http://yash.sourceforge.jp/releases/yash-%{version}.tar.gz
+Source:		yash-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:	make, gcc >= 3.0, glibc-devel, ncurses-devel
@@ -57,5 +57,8 @@ fi
 
 
 %changelog
+* Sun Jun 21 2009 Watanabe Yuki <magicant@sourceforge.jp>
+- version 2.11
+
 * Sun May 31 2009 Watanabe Yuki <magicant@sourceforge.jp>
 - version 2.10
