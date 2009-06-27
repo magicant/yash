@@ -47,9 +47,8 @@ SourceForge.jp のプロジェクトの一つとして開発されています�
 
 <h2 id="downloads">ダウンロード</h2>
 <p>プログラムは現在ソースコードのみ公開しています。
-<a href="http://sourceforge.jp/projects/yash/releases/">リリースページ</a>から
-ダウンロードしてください。プログラムを実行したい人は各自ビルドしてください。
-<!--p>yash の旧いバージョンが欲しいという酔狂な人は<a href="/magicant/author.html"
+<a href="http://sourceforge.jp/projects/yash/releases/">リリースページ</a>からダウンロードしてください。プログラムを実行したい人は各自ビルドしてください。
+<!--p>yash の旧いバージョンが欲しいという酔狂な人は<a href="http://homepage2.nifty.com/magicant/author.html"
 >作者</a>にメール等で連絡してください。</p-->
 
 <h2 id="others">関連情報</h2>
