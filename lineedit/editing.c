@@ -183,7 +183,7 @@ static size_t previous_word_index(const wchar_t *s, size_t i)
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 static void kill_chars(bool backward);
-static void insert_killed_string(bool after_cursor, bool cursor_on_last_char);
+static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void cancel_undo(int offset);
 static void vi_find(wchar_t c);
 static void vi_find_rev(wchar_t c);
@@ -1290,8 +1290,7 @@ void kill_chars(bool backward)
  * The cursor is left on the last character inserted. */
 void cmd_put_before(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    insert_killed_string(false, true);
+    put_killed_string(false, true);
 }
 
 /* Inserts the last-killed string after the cursor.
@@ -1299,8 +1298,7 @@ void cmd_put_before(wchar_t c __attribute__((unused)))
  * The cursor is left on the last character inserted. */
 void cmd_put(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    insert_killed_string(true, true);
+    put_killed_string(true, true);
 }
 
 /* Inserts the last-killed string before the cursor.
@@ -1308,8 +1306,7 @@ void cmd_put(wchar_t c __attribute__((unused)))
  * The cursor is left after the inserted string. */
 void cmd_put_left(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    insert_killed_string(false, false);
+    put_killed_string(false, false);
 }
 
 /* Inserts the last-killed text before the cursor (`count' times).
@@ -1317,8 +1314,9 @@ void cmd_put_left(wchar_t c __attribute__((unused)))
  * position. Otherwise, before the current position.
  * If `cursor_on_last_char' is true, the cursor is left on the last character
  * inserted. Otherwise, the cursor is left after the inserted text. */
-void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
+void put_killed_string(bool after_cursor, bool cursor_on_last_char)
 {
+    ALERT_AND_RETURN_IF_PENDING;
     save_current_edit_command();
     maybe_save_undo_history();
 
@@ -1327,9 +1325,6 @@ void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
     const wchar_t *s = kill_ring[last_put_elem];
     if (s == NULL) {
 	cmd_alert(L'\0');
-	return;
-    } else if (s[0] == L'\0') {
-	reset_state();
 	return;
     }
 
@@ -1345,7 +1340,8 @@ void insert_killed_string(bool after_cursor, bool cursor_on_last_char)
     last_put_range_start = le_main_index;
     le_main_index = le_main_buffer.length - offset;
     last_put_range_length = le_main_index - last_put_range_start;
-    le_main_index -= cursor_on_last_char;
+    if (cursor_on_last_char)
+	le_main_index--;
 
     le_display_reprint_buffer(old_index, offset == 0);
     reset_state();
