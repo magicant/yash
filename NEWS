@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.12
+
+  *  In vi-like line-editing, the wrong text was put after 30th yank.
+
+----------------------------------------------------------------------
 Yash 2.11
 
   +  Added the "--histspace" and "--le-noconvmeta" options.

@@ -136,8 +136,8 @@ struct undo_history {
     wchar_t contents[];  /* contents of the edit line */
 };
 
+#define KILL_RING_SIZE 32  /* must be power of 2 */
 /* The kill ring */
-#define KILL_RING_SIZE 30
 static wchar_t *kill_ring[KILL_RING_SIZE];
 /* The index of the element to which next killed string is assigned. */
 static size_t next_kill_index = 0;
@@ -184,6 +184,8 @@ static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 static void kill_chars(bool backward);
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
+static void insert_killed_string(
+	bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 static void vi_find(wchar_t c);
 static void vi_find_rev(wchar_t c);
@@ -1309,7 +1311,7 @@ void cmd_put_left(wchar_t c __attribute__((unused)))
     put_killed_string(false, false);
 }
 
-/* Inserts the last-killed text before the cursor (`count' times).
+/* Inserts the last-killed text at the current cursor position (`count' times).
  * If `after_cursor' is true, the text is inserted after the current cursor
  * position. Otherwise, before the current position.
  * If `cursor_on_last_char' is true, the cursor is left on the last character
@@ -1320,14 +1322,31 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
     save_current_edit_command();
     maybe_save_undo_history();
 
-    last_put_elem = (next_kill_index - 1) % KILL_RING_SIZE;
-
-    const wchar_t *s = kill_ring[last_put_elem];
-    if (s == NULL) {
+    size_t index = (next_kill_index - 1) % KILL_RING_SIZE;
+    if (kill_ring[index] == NULL) {
 	cmd_alert(L'\0');
 	return;
     }
 
+    insert_killed_string(after_cursor, cursor_on_last_char, index);
+}
+
+/* Inserts the killed text at the current cursor position (`count' times).
+ * If `after_cursor' is true, the text is inserted after the current cursor
+ * position. Otherwise, before the current position.
+ * If `cursor_on_last_char' is true, the cursor is left on the last character
+ * inserted. Otherwise, the cursor is left after the inserted text.
+ * The `index' specifies the text in the kill ring to be inserted. If a text
+ * does not exist at the specified index in the kill ring, this function does
+ * nothing. */
+void insert_killed_string(
+	bool after_cursor, bool cursor_on_last_char, size_t index)
+{
+    const wchar_t *s = kill_ring[index];
+    if (s == NULL)
+	return;
+
+    last_put_elem = index;
     if (after_cursor && le_main_index < le_main_buffer.length)
 	le_main_index++;
 
