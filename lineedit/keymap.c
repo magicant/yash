@@ -187,6 +187,59 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_m,       CMDENTRY(cmd_srch_accept_search));
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_srch_abort_search));
     le_modes[LE_MODE_VI_SEARCH].keymap = t;
+
+    le_modes[LE_MODE_EMACS].default_command = cmd_self_insert;
+    t = trie_create();
+    t = trie_setw(t, Key_c_g,       CMDENTRY(cmd_alert));
+    t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
+    // TODO emacs digit argument
+    t = trie_setw(t, Key_right,     CMDENTRY(cmd_forward_char));
+    t = trie_setw(t, Key_c_f,       CMDENTRY(cmd_forward_char));
+    t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
+    t = trie_setw(t, Key_c_b,       CMDENTRY(cmd_backward_char));
+    // TODO cmd_emacs_forward_word, cmd_emacs_backward_word
+    //t = trie_setw(t, Key_escape "f", CMDENTRY(cmd_emacs_forward_word));
+    //t = trie_setw(t, Key_escape "F", CMDENTRY(cmd_emacs_forward_word));
+    //t = trie_setw(t, Key_escape "b", CMDENTRY(cmd_emacs_backward_word));
+    //t = trie_setw(t, Key_escape "B", CMDENTRY(cmd_emacs_backward_word));
+    t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
+    t = trie_setw(t, Key_c_a,       CMDENTRY(cmd_beginning_of_line));
+    t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
+    t = trie_setw(t, Key_c_e,       CMDENTRY(cmd_end_of_line));
+    t = trie_setw(t, L"\n",         CMDENTRY(cmd_accept_line));
+    t = trie_setw(t, L"\r",         CMDENTRY(cmd_accept_line));
+    t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_accept_line));
+    t = trie_setw(t, Key_c_m,       CMDENTRY(cmd_accept_line));
+    t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
+    t = trie_setw(t, Key_eof,       CMDENTRY(cmd_eof_or_delete));
+    t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
+    t = trie_setw(t, Key_delete,    CMDENTRY(cmd_delete_char));
+    t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_c_k,       CMDENTRY(cmd_forward_delete_line));
+    t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_c_y,       CMDENTRY(cmd_put_left));
+    t = trie_setw(t, Key_escape "y", CMDENTRY(cmd_put_pop));
+    t = trie_setw(t, Key_escape "Y", CMDENTRY(cmd_put_pop));
+    // TODO emacs cmd_backward_kill_word, cmd_backward_kill_semiword
+    //t = trie_setw(t, Key_c_w,       CMDENTRY(cmd_backward_kill_word));
+    t = trie_setw(t, Key_c_ul,      CMDENTRY(cmd_undo));
+    t = trie_setw(t, Key_c_x Key_c_u, CMDENTRY(cmd_undo));
+    t = trie_setw(t, Key_c_x Key_kill, CMDENTRY(cmd_undo));
+    t = trie_setw(t, Key_escape "r", CMDENTRY(cmd_undo_all));
+    t = trie_setw(t, Key_escape "R", CMDENTRY(cmd_undo_all));
+    // TODO emacs: history: cmd_oldest_history_eol
+    t = trie_setw(t, Key_escape "<", CMDENTRY(cmd_oldest_history));
+    // TODO emacs: history: cmd_newest_history_eol
+    t = trie_setw(t, Key_escape ">", CMDENTRY(cmd_return_history));
+    t = trie_setw(t, Key_c_n,       CMDENTRY(cmd_next_history_eol));
+    t = trie_setw(t, Key_c_p,       CMDENTRY(cmd_prev_history_eol));
+    // TODO emacs keybinds: command search
+    le_modes[LE_MODE_EMACS].keymap = t;
 }
 
 /* Sets the editing mode to the one specified by `id'. */

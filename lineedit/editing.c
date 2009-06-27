@@ -229,8 +229,10 @@ void le_editing_init(void)
 
     switch (shopt_lineedit) {
 	case shopt_vi:
-	case shopt_emacs:  // TODO currently, emacs is the same as vi
 	    le_set_mode(LE_MODE_VI_INSERT);
+	    break;
+	case shopt_emacs:
+	    le_set_mode(LE_MODE_EMACS);
 	    break;
 	default:
 	    assert(false);
@@ -2316,7 +2318,7 @@ void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
 	return;
     }
 
-    // XXX currently, no emacs-like search
+    // TODO currently, no emacs-like search
     if (le_search_buffer.length == 0) {
 	cmd_srch_abort_search(L'\0');
 	return;
@@ -2341,13 +2343,13 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
 	wb_destroy(&le_search_buffer);
     }
     le_search_buffer.contents = NULL;
-    le_set_mode(LE_MODE_VI_COMMAND); // XXX assumes vi
+    le_set_mode(LE_MODE_VI_COMMAND); // TODO assumes vi
     if (le_search_result == Histlist) {
 	cmd_alert(L'\0');
 	le_display_reprint_buffer(0, false);
     } else {
 	go_to_history(le_search_result, false);
-	// XXX cursor should be at end for emacs-like search
+	// TODO cursor should be at end for emacs-like search
     }
 }
 
@@ -2381,7 +2383,7 @@ void cmd_srch_abort_search(wchar_t c __attribute__((unused)))
 /* Re-calculates the search result candidate and prints it. */
 void update_search(void)
 {
-    // XXX currently no emacs-like search
+    // TODO currently no emacs-like search
 
     const wchar_t *pattern = le_search_buffer.contents;
     if (pattern[0] == L'\0') {

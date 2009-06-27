@@ -160,7 +160,7 @@ typedef enum shopt_index_T {
 #endif
     SHOPT_POSIX,
 #if YASH_ENABLE_LINEEDIT
-    SHOPT_VI, /* SHOPT_EMACS, */
+    SHOPT_VI, SHOPT_EMACS,
     SHOPT_LE_CONVMETA, SHOPT_LE_NOCONVMETA, SHOPT_LE_PROMPTSP,
 #endif
     SHOPT_HELP,
@@ -205,7 +205,7 @@ static const struct xoption long_options[] = {
     [SHOPT_POSIX]         = { L"posix",        xno_argument, L'L', },
 #if YASH_ENABLE_LINEEDIT
     [SHOPT_VI]            = { L"vi",           xno_argument, L'L', },
-    // [SHOPT_EMACS]         = { L"emacs",        xno_argument, L'L', },
+    [SHOPT_EMACS]         = { L"emacs",        xno_argument, L'L', },
     [SHOPT_LE_CONVMETA]   = { L"le-convmeta",  xno_argument, L'L', },
     [SHOPT_LE_NOCONVMETA] = { L"le-noconvmeta",xno_argument, L'L', },
     [SHOPT_LE_PROMPTSP]   = { L"le-promptsp",  xno_argument, L'L', },
@@ -244,7 +244,7 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_POSIX]         = { set_bool_option, &posixly_correct, },
 #if YASH_ENABLE_LINEEDIT
     [SHOPT_VI]            = { set_lineedit_option, NULL, },
-    //[SHOPT_EMACS]         = { set_lineedit_option, NULL, },
+    [SHOPT_EMACS]         = { set_lineedit_option, NULL, },
     [SHOPT_LE_CONVMETA]   = { set_le_convmeta_option, NULL, },
     [SHOPT_LE_NOCONVMETA] = { set_le_noconvmeta_option, NULL, },
     [SHOPT_LE_PROMPTSP]   = { set_bool_option, &shopt_le_promptsp, },
@@ -351,7 +351,7 @@ void set_lineedit_option(void *argp __attribute__((unused)))
 
     switch (setoptindex) {
 	case SHOPT_VI:     opt = shopt_vi;     break;
-	//case SHOPT_EMACS:  opt = shopt_emacs;  break;
+	case SHOPT_EMACS:  opt = shopt_emacs;  break;
 	default:           return;
     }
     if (xoptopt == L'-') {
@@ -492,7 +492,7 @@ void set_builtin_print_current_settings(void)
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
 #if YASH_ENABLE_LINEEDIT
-    //PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
+    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
 #endif
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
@@ -539,7 +539,7 @@ void set_builtin_print_restoring_commands(void)
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
 #if YASH_ENABLE_LINEEDIT
-    //PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
+    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
 #endif
     PRINTSETTING(errexit, shopt_errexit);
     PRINTSETTING(extendedglob, shopt_extendedglob);
@@ -654,8 +654,8 @@ const char set_help[] = Ngt(
 "\tMake the shell behave as the POSIX shell.\n"
 " --vi\n"
 "\tEnable vi-like editing.\n"
-//" --emacs\n"
-//"\tEnable emacs-like editing.\n"
+" --emacs\n"
+"\tEnable emacs-like editing.\n"
 " --le-convmeta\n"
 "\tTreat 8th bit of input as a meta-key flag (regardless of terminfo).\n"
 " --le-noconvmeta\n"
