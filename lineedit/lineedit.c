@@ -339,6 +339,13 @@ process_keymap:
 	    case TG_NEEDMORE:
 	    case TG_AMBIGUOUS:
 		return;
+	/* For an unmatched control sequence, `cmd_self_insert' should not
+	 * receive any part of the sequence as argument (because the sequence
+	 * should not be inserted in the main buffer), so the input is passed
+	 * to the default command iff the input is a usual character.
+	 * For a matched control sequence, the last character of the sequence
+	 * is passed to the command so that commands like `cmd_digit_argument'
+	 * work. */
 	}
 	if (le_editstate != LE_EDITSTATE_EDITING)
 	    break;
