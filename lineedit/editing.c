@@ -1370,20 +1370,33 @@ void insert_killed_string(
  * killed string. */
 void cmd_put_pop(wchar_t c __attribute__((unused)))
 {
+    static bool last_success = false;
+
     ALERT_AND_RETURN_IF_PENDING;
-    if (last_command.func != cmd_put_left
+    if ((last_command.func != cmd_put_left
 	    && last_command.func != cmd_put
-	    && last_command.func != cmd_put_before) {
+	    && last_command.func != cmd_put_before
+	    && (last_command.func != cmd_put_pop || !last_success))
+	    || kill_ring[last_put_elem] == NULL) {
+	last_success = false;
 	cmd_alert(L'\0');
 	return;
     }
-    const wchar_t *s = kill_ring[last_put_elem];
-    if (s == NULL || s[0] == L'\0') {
-	cmd_alert(L'\0');
-	return;
-    }
+    last_success = true;
     save_current_edit_command();
-    //TODO: cmd_put_pop
+    maybe_save_undo_history();
+
+    size_t index = last_put_elem;
+    do
+	index = (index - 1) % KILL_RING_SIZE;
+    while (kill_ring[index] == NULL);
+
+    /* Remove the just inserted text. */
+    assert(last_put_range_start <= le_main_buffer.length);
+    wb_remove(&le_main_buffer, last_put_range_start, last_put_range_length);
+    le_main_index = last_put_range_start;
+
+    insert_killed_string(false, false, index);
 }
 
 /* Undoes the last editing command. */
