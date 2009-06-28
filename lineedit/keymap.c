@@ -232,10 +232,8 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_x Key_kill, CMDENTRY(cmd_undo));
     t = trie_setw(t, Key_escape "r", CMDENTRY(cmd_undo_all));
     t = trie_setw(t, Key_escape "R", CMDENTRY(cmd_undo_all));
-    // TODO emacs: history: cmd_oldest_history_eol
-    t = trie_setw(t, Key_escape "<", CMDENTRY(cmd_oldest_history));
-    // TODO emacs: history: cmd_newest_history_eol
-    t = trie_setw(t, Key_escape ">", CMDENTRY(cmd_return_history));
+    t = trie_setw(t, Key_escape "<", CMDENTRY(cmd_oldest_history_eol));
+    t = trie_setw(t, Key_escape ">", CMDENTRY(cmd_return_history_eol));
     t = trie_setw(t, Key_c_n,       CMDENTRY(cmd_next_history_eol));
     t = trie_setw(t, Key_c_p,       CMDENTRY(cmd_prev_history_eol));
     // TODO emacs keybinds: command search

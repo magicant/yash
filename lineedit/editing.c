@@ -204,7 +204,7 @@ static struct xwcsrange get_prev_bigword(
 	const wchar_t *beginning, const wchar_t *s)
     __attribute__((nonnull));
 static void search_again(enum le_search_direction dir);
-static void go_to_history_absolute(const histentry_T *e)
+static void go_to_history_absolute(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, bool cursorend);
 static void go_to_history(const histentry_T *e, bool cursorend)
@@ -2184,7 +2184,7 @@ void search_again(enum le_search_direction dir)
  * The cursor is put at the beginning of line. */
 void cmd_oldest_history(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(histlist.Oldest);
+    go_to_history_absolute(histlist.Oldest, false);
 }
 
 /* Goes to the newest history entry.
@@ -2193,23 +2193,51 @@ void cmd_oldest_history(wchar_t c __attribute__((unused)))
  * The cursor is put at the beginning of line. */
 void cmd_newest_history(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(histlist.Newest);
+    go_to_history_absolute(histlist.Newest, false);
 }
 
 /* Goes to the newest history entry.
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
  * The cursor is put at the beginning of line. */
+void cmd_return_history_eol(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(Histlist, true);
+}
+
+/* Goes to the oldest history entry.
+ * If the `count' is specified, goes to the history entry whose number is
+ * `count'. If the specified entry is not found, make an alert.
+ * The cursor is put at the end of line. */
+void cmd_oldest_history_eol(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(histlist.Oldest, true);
+}
+
+/* Goes to the newest history entry.
+ * If the `count' is specified, goes to the history entry whose number is
+ * `count'. If the specified entry is not found, make an alert.
+ * The cursor is put at the end of line. */
+void cmd_newest_history_eol(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(histlist.Newest, true);
+}
+
+/* Goes to the newest history entry.
+ * If the `count' is specified, goes to the history entry whose number is
+ * `count'. If the specified entry is not found, make an alert.
+ * The cursor is put at the end of line. */
 void cmd_return_history(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(Histlist);
+    go_to_history_absolute(Histlist, false);
 }
 
 /* Goes to the specified history entry `e'.
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
- * The cursor is put at the beginning of line. */
-void go_to_history_absolute(const histentry_T *e)
+ * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
+ * the beginning of line. */
+void go_to_history_absolute(const histentry_T *e, bool cursorend)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -2224,7 +2252,7 @@ void go_to_history_absolute(const histentry_T *e)
 	if (e == NULL)
 	    goto alert;
     }
-    go_to_history(e, false);
+    go_to_history(e, cursorend);
     return;
 
 alert:
