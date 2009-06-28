@@ -185,7 +185,7 @@ static inline bool is_blank_or_punct(wchar_t c)
 static void kill_chars(bool backward);
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void insert_killed_string(
-	bool after_cursor, bool cursor_on_last_char, size_t index);
+	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear);
 static void cancel_undo(int offset);
 static void vi_find(wchar_t c);
 static void vi_find_rev(wchar_t c);
@@ -1326,7 +1326,7 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
 	return;
     }
 
-    insert_killed_string(after_cursor, cursor_on_last_char, index);
+    insert_killed_string(after_cursor, cursor_on_last_char, index, false);
 }
 
 /* Inserts the killed text at the current cursor position (`count' times).
@@ -1336,9 +1336,11 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
  * inserted. Otherwise, the cursor is left after the inserted text.
  * The `index' specifies the text in the kill ring to be inserted. If a text
  * does not exist at the specified index in the kill ring, this function does
- * nothing. */
+ * nothing.
+ * If `clear' is true, the buffer is always reprinted. Otherwise, the buffer is
+ * reprinted only when necessary. */
 void insert_killed_string(
-	bool after_cursor, bool cursor_on_last_char, size_t index)
+	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear)
 {
     const wchar_t *s = kill_ring[index];
     if (s == NULL)
@@ -1360,7 +1362,7 @@ void insert_killed_string(
     if (cursor_on_last_char)
 	le_main_index--;
 
-    le_display_reprint_buffer(old_index, offset == 0);
+    le_display_reprint_buffer(old_index, !clear && offset == 0);
     reset_state();
 }
 
@@ -1394,7 +1396,7 @@ void cmd_put_pop(wchar_t c __attribute__((unused)))
     wb_remove(&le_main_buffer, last_put_range_start, last_put_range_length);
     le_main_index = last_put_range_start;
 
-    insert_killed_string(false, false, index);
+    insert_killed_string(false, false, index, true);
 }
 
 /* Undoes the last editing command. */
