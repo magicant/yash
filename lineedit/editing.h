@@ -146,6 +146,7 @@ extern le_command_func_T
     /* command history search */
     cmd_srch_self_insert,
     cmd_srch_backward_delete_char,
+    cmd_srch_backward_delete_line,
     cmd_srch_accept_search,
     cmd_srch_abort_search;
 

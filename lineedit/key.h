@@ -214,7 +214,7 @@
 #define Key_newline   Key_c_j
 #define Key_cr        Key_c_m
 #define Key_escape    Key_c_lb
-#define Key_backslash L"\\\\"
+#define Key_backslash L"\\\\"   // must end with '\\'
 
 #define META_BIT    0x80
 #define ESCAPE_CHAR '\33'

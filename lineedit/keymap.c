@@ -183,6 +183,8 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_srch_backward_delete_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_srch_backward_delete_char));
     t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_srch_backward_delete_char));
+    t = trie_setw(t, Key_kill,      CMDENTRY(cmd_srch_backward_delete_line));
+    t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_srch_backward_delete_line));
     t = trie_setw(t, Key_c_j,       CMDENTRY(cmd_srch_accept_search));
     t = trie_setw(t, Key_c_m,       CMDENTRY(cmd_srch_accept_search));
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_srch_abort_search));

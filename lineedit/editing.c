@@ -2367,6 +2367,18 @@ void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
     update_search();
 }
 
+/* Removes all characters from the search buffer. */
+void cmd_srch_backward_delete_line(wchar_t c __attribute__((unused)))
+{
+    if (le_search_buffer.contents == NULL) {
+	cmd_alert(L'\0');
+	return;
+    }
+
+    wb_clear(&le_search_buffer);
+    update_search();
+}
+
 /* Finishes the history search with the current result candicate.
  * If no search is being performed, does nothing. */
 void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
