@@ -50,8 +50,6 @@ static inline bool has_meta_bit(char c)
 static inline trieget_T make_trieget(const wchar_t *keyseq)
     __attribute__((nonnull,const));
 static void append_to_second_buffer(wchar_t wc);
-static inline wchar_t wb_get_char(const xwcsbuf_T *buf)
-    __attribute__((nonnull,pure));
 
 
 /* The state of lineedit. */
@@ -319,17 +317,23 @@ process_wide:
     /* process key mapping for wide characters */
 process_keymap:
     while (reader_second_buffer.length > 0) {
+	register char c;
 	trieget_T tg = trie_getw(
 		le_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
 	    case TG_NOMATCH:
-		le_invoke_command(le_current_mode->default_command,
-			wb_get_char(&reader_second_buffer));
+		assert(reader_second_buffer.length > 0);
+		if (reader_second_buffer.length > 1)
+		    c = L'\0';
+		else
+		    c = reader_second_buffer.contents[0];
+		le_invoke_command(le_current_mode->default_command, c);
 		wb_clear(&reader_second_buffer);
 		break;
 	    case TG_UNIQUE:
-		le_invoke_command(tg.value.cmdfunc,
-			wb_get_char(&reader_second_buffer));
+		assert(tg.matchlength > 0);
+		c = reader_second_buffer.contents[tg.matchlength - 1];
+		le_invoke_command(tg.value.cmdfunc, c);
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;
 	    case TG_NEEDMORE:
@@ -399,12 +403,6 @@ void append_to_second_buffer(wchar_t wc)
 	wb_wccat(&reader_second_buffer, wc);
     }
     le_next_verbatim = false;
-}
-
-wchar_t wb_get_char(const xwcsbuf_T *buf)
-{
-    assert(buf->length > 0);
-    return buf->contents[buf->length - 1];
 }
 
 
