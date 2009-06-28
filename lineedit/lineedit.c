@@ -404,7 +404,7 @@ void append_to_second_buffer(wchar_t wc)
 wchar_t wb_get_char(const xwcsbuf_T *buf)
 {
     assert(buf->length > 0);
-    return buf->length > 1 ? L'\0' : buf->contents[0];
+    return buf->contents[buf->length - 1];
 }
 
 

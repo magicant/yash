@@ -50,7 +50,6 @@ extern le_command_func_T
     cmd_alert,
     cmd_self_insert,
     cmd_expect_verbatim,
-    cmd_insert_backslash,
     cmd_insert_tab,
     cmd_digit_argument,
     cmd_forward_char,
@@ -73,7 +72,6 @@ extern le_command_func_T
     cmd_setmode_viinsert,
     cmd_setmode_vicommand,
     cmd_expect_char,
-    cmd_expect_backslash,
     cmd_abort_expect_char,
     cmd_redraw_all;
 
@@ -147,7 +145,6 @@ extern le_command_func_T
     cmd_prev_history_eol,
     /* command history search */
     cmd_srch_self_insert,
-    cmd_srch_insert_backslash,
     cmd_srch_backward_delete_char,
     cmd_srch_accept_search,
     cmd_srch_abort_search;

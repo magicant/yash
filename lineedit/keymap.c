@@ -43,8 +43,8 @@ void le_keymap_init(void)
 
     le_modes[LE_MODE_VI_INSERT].default_command = cmd_self_insert;
     t = trie_create();
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_self_insert));
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
-    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     t = trie_setw(t, Key_right,     CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
@@ -169,7 +169,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
-    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_expect_backslash));
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_expect_char));
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_abort_expect_char));
     le_modes[LE_MODE_VI_EXPECT].keymap = t;
 
@@ -179,7 +179,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
-    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_srch_insert_backslash));
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_srch_self_insert));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_srch_backward_delete_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_srch_backward_delete_char));
     t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_srch_backward_delete_char));
@@ -191,8 +191,8 @@ void le_keymap_init(void)
     le_modes[LE_MODE_EMACS].default_command = cmd_self_insert;
     t = trie_create();
     t = trie_setw(t, Key_c_g,       CMDENTRY(cmd_alert));
+    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_self_insert));
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
-    t = trie_setw(t, Key_backslash, CMDENTRY(cmd_insert_backslash));
     // TODO emacs digit argument
     t = trie_setw(t, Key_right,     CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_c_f,       CMDENTRY(cmd_forward_char));

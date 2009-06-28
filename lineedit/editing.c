@@ -536,12 +536,6 @@ void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
     le_next_verbatim = true;
 }
 
-/* Inserts the backslash character. */
-void cmd_insert_backslash(wchar_t c __attribute__((unused)))
-{
-    cmd_self_insert(L'\\');
-}
-
 /* Inserts the tab character. */
 void cmd_insert_tab(wchar_t c __attribute__((unused)))
 {
@@ -1074,13 +1068,6 @@ void cmd_expect_char(wchar_t c)
 	current_command.arg = c;
 	state.pending_command_char(c);
     }
-}
-
-/* Executes a command that expects a character as an argument with L'\\'
- * given as the argument. */
-void cmd_expect_backslash(wchar_t c __attribute__((unused)))
-{
-    cmd_expect_char(L'\\');
 }
 
 /* Cancels a command that expects a character as an argument. */
@@ -2358,12 +2345,6 @@ void cmd_srch_self_insert(wchar_t c)
 
     wb_wccat(&le_search_buffer, c);
     update_search();
-}
-
-/* Appends a backslash to the search buffer. */
-void cmd_srch_insert_backslash(wchar_t c __attribute__((unused)))
-{
-    cmd_srch_self_insert(L'\\');
 }
 
 /* Removes the last character from the search buffer.
