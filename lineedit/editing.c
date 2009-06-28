@@ -195,7 +195,7 @@ static void exec_find(wchar_t c, int count, bool till);
 static size_t find_nth_occurence(wchar_t c, int n);
 static void vi_replace_char(wchar_t c);
 static void exec_edit_command(enum motion_expect_command cmd);
-static inline void exec_edit_command_to_eol(enum motion_expect_command cmd);
+static void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
 static struct xwcsrange get_next_bigword(const wchar_t *s)
@@ -1274,6 +1274,15 @@ void kill_chars(bool backward)
     le_main_index = offset;
     le_display_reprint_buffer(offset, false);
     reset_state();
+}
+
+/* Kills all characters before the cursor. */
+void cmd_backward_kill_line(wchar_t c __attribute__((unused)))
+{
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
+    state.pending_command_motion = MEC_KILL;
+    exec_motion_command(0, false);
 }
 
 /* Inserts the last-killed string before the cursor.

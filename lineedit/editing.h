@@ -85,6 +85,8 @@ extern le_command_func_T
     cmd_backward_delete_line,
     cmd_kill_char,
     cmd_backward_kill_char,
+#define cmd_forward_kill_line cmd_vi_delete_to_eol
+    cmd_backward_kill_line,
     cmd_put_before,
     cmd_put,
     cmd_put_left,

@@ -192,7 +192,6 @@ void le_keymap_init(void)
 
     le_modes[LE_MODE_EMACS].default_command = cmd_self_insert;
     t = trie_create();
-    t = trie_setw(t, Key_c_g,       CMDENTRY(cmd_alert));
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_self_insert));
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_escape "0", CMDENTRY(cmd_digit_argument));
@@ -231,9 +230,9 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_delete_char));
-    t = trie_setw(t, Key_c_k,       CMDENTRY(cmd_forward_delete_line));
-    t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_delete_line));
-    t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_delete_line));
+    t = trie_setw(t, Key_c_k,       CMDENTRY(cmd_forward_kill_line));
+    t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_kill_line));
+    t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_kill_line));
     t = trie_setw(t, Key_c_y,       CMDENTRY(cmd_put_left));
     t = trie_setw(t, Key_escape "y", CMDENTRY(cmd_put_pop));
     t = trie_setw(t, Key_escape "Y", CMDENTRY(cmd_put_pop));
