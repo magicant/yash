@@ -451,9 +451,11 @@ void exec_motion_command(size_t index, bool inclusive)
  * The maximum number of characters that are added is specified by `n'. */
 void add_to_kill_ring(const wchar_t *s, size_t n)
 {
-    free(kill_ring[next_kill_index]);
-    kill_ring[next_kill_index] = xwcsndup(s, n);
-    next_kill_index = (next_kill_index + 1) % KILL_RING_SIZE;
+    if (n > 0 && s[0] != L'\0') {
+	free(kill_ring[next_kill_index]);
+	kill_ring[next_kill_index] = xwcsndup(s, n);
+	next_kill_index = (next_kill_index + 1) % KILL_RING_SIZE;
+    }
 }
 
 
