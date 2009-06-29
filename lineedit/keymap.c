@@ -94,9 +94,9 @@ void le_keymap_init(void)
     t = trie_setw(t, L"W",          CMDENTRY(cmd_forward_bigword));
     t = trie_setw(t, L"E",          CMDENTRY(cmd_end_of_bigword));
     t = trie_setw(t, L"B",          CMDENTRY(cmd_backward_bigword));
-    t = trie_setw(t, L"w",          CMDENTRY(cmd_forward_word));
-    t = trie_setw(t, L"e",          CMDENTRY(cmd_end_of_word));
-    t = trie_setw(t, L"b",          CMDENTRY(cmd_backward_word));
+    t = trie_setw(t, L"w",          CMDENTRY(cmd_forward_viword));
+    t = trie_setw(t, L"e",          CMDENTRY(cmd_end_of_viword));
+    t = trie_setw(t, L"b",          CMDENTRY(cmd_backward_viword));
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, L"$",          CMDENTRY(cmd_end_of_line));
     t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));

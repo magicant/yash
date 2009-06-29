@@ -163,10 +163,10 @@ static void move_cursor_forward_char(int offset);
 static void move_cursor_backward_char(int offset);
 static void move_cursor_forward_bigword(int count);
 static void move_cursor_backward_bigword(int count);
-static void move_cursor_forward_word(int count);
+static void move_cursor_forward_viword(int count);
 static bool need_cw_treatment(void)
     __attribute__((pure));
-static void move_cursor_backward_word(int count);
+static void move_cursor_backward_viword(int count);
 static size_t next_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t next_end_of_bigword_index(
@@ -174,11 +174,12 @@ static size_t next_end_of_bigword_index(
     __attribute__((nonnull));
 static size_t previous_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
-static size_t next_word_index(const wchar_t *s, size_t i)
+static size_t next_viword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
-static size_t next_end_of_word_index(const wchar_t *s, size_t i, bool progress)
+static size_t next_end_of_viword_index(
+	const wchar_t *s, size_t i, bool progress)
     __attribute__((nonnull));
-static size_t previous_word_index(const wchar_t *s, size_t i)
+static size_t previous_viword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
@@ -760,21 +761,22 @@ start:
     }
 }
 
-/* Moves forward one word (or `count' words if the count is set). */
+/* Moves forward one viword (or `count' viwords if the count is set). */
 /* exclusive motion command */
-void cmd_forward_word(wchar_t c __attribute__((unused)))
+void cmd_forward_viword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward_word(count);
+	move_cursor_forward_viword(count);
     else
-	move_cursor_backward_word(-count);
+	move_cursor_backward_viword(-count);
 }
 
-/* Moves the cursor to the end of the current word (or the next word if already
- * at the end). If the count is set, moves to the end of the `count'th word. */
+/* Moves the cursor to the end of the current viword (or the next viword if
+ * already at the end). If the count is set, moves to the end of the `count'th
+ * viword. */
 /* inclusive motion command */
-void cmd_end_of_word(wchar_t c __attribute__((unused)))
+void cmd_end_of_viword(wchar_t c __attribute__((unused)))
 {
     if (alert_if_last())
 	return;
@@ -782,25 +784,25 @@ void cmd_end_of_word(wchar_t c __attribute__((unused)))
     int count = get_count(1);
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_end_of_word_index(
+	new_index = next_end_of_viword_index(
 		le_main_buffer.contents, new_index, true);
     exec_motion_command(new_index, true);
 }
 
-/* Moves backward one word (or `count' words if the count is set). */
+/* Moves backward one viword (or `count' viwords if the count is set). */
 /* exclusive motion command */
-void cmd_backward_word(wchar_t c __attribute__((unused)))
+void cmd_backward_viword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward_word(count);
+	move_cursor_backward_viword(count);
     else
-	move_cursor_forward_word(-count);
+	move_cursor_forward_viword(-count);
 }
 
-/* Moves the cursor forward `count' words, relative to the current position.
+/* Moves the cursor forward `count' viwords, relative to the current position.
  * If `count' is negative, the cursor is not moved. */
-void move_cursor_forward_word(int count)
+void move_cursor_forward_viword(int count)
 {
     if (alert_if_last())
 	return;
@@ -808,15 +810,15 @@ void move_cursor_forward_word(int count)
     size_t new_index = le_main_index;
     if (!need_cw_treatment()) {
 	while (--count >= 0 && new_index < le_main_buffer.length)
-	    new_index = next_word_index(le_main_buffer.contents, new_index);
+	    new_index = next_viword_index(le_main_buffer.contents, new_index);
 	exec_motion_command(new_index, false);
     } else {
 	while (count > 1 && new_index < le_main_buffer.length) {
-	    new_index = next_word_index(le_main_buffer.contents, new_index);
+	    new_index = next_viword_index(le_main_buffer.contents, new_index);
 	    count--;
 	}
 	if (count > 0 && new_index < le_main_buffer.length) {
-	    new_index = next_end_of_word_index(
+	    new_index = next_end_of_viword_index(
 		    le_main_buffer.contents, new_index, false);
 	}
 	exec_motion_command(new_index, true);
@@ -835,25 +837,25 @@ bool need_cw_treatment(void)
     }
 }
 
-/* Moves the cursor backward `count' words, relative to the current position.
+/* Moves the cursor backward `count' viwords, relative to the current position.
  * If `count' is negative, the cursor is not moved. */
-void move_cursor_backward_word(int count)
+void move_cursor_backward_viword(int count)
 {
     if (alert_if_first())
 	return;
 
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index > 0)
-	new_index = previous_word_index(le_main_buffer.contents, new_index);
+	new_index = previous_viword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
-/* Returns the index of the next word in the string `s', counted from the index
- * `i'. The return value is greater than `i' unless `s[i]' is a null character.
- */
-/* A word is a sequence of alphanumeric characters and underscores, or a
+/* Returns the index of the next viword in the string `s', counted from the
+ * index `i'. The return value is greater than `i' unless `s[i]' is a null
+ * character. */
+/* A viword is a sequence of alphanumeric characters and underscores, or a
  * sequence of other non-blank characters. */
-size_t next_word_index(const wchar_t *s, size_t i)
+size_t next_viword_index(const wchar_t *s, size_t i)
 {
     if (s[i] == L'_' || iswalnum(s[i])) {
 	do
@@ -877,14 +879,14 @@ size_t next_word_index(const wchar_t *s, size_t i)
     return i;
 }
 
-/* Returns the index of the end of a word in the string `s', counted from index
- * `i'.
+/* Returns the index of the end of a viword in the string `s', counted from
+ * index `i'.
  * If `progress' is true:
- *   If `i' is at the end of a word, the end of the next word is returned.
+ *   If `i' is at the end of a viword, the end of the next viword is returned.
  *   The return value is greater than `i' unless `s[i]' is a null character.
  * If `progress' is false:
- *   If `i' is at the end of a word, `i' is returned. */
-size_t next_end_of_word_index(const wchar_t *s, size_t i, bool progress)
+ *   If `i' is at the end of a viword, `i' is returned. */
+size_t next_end_of_viword_index(const wchar_t *s, size_t i, bool progress)
 {
     const size_t init = i;
 start:
@@ -911,9 +913,9 @@ start:
     }
 }
 
-/* Returns the index of the previous word in the string `s', counted form the
+/* Returns the index of the previous viword in the string `s', counted form the
  * index `i'. The return value is less than `i' unless `i' is zero. */
-size_t previous_word_index(const wchar_t *s, size_t i)
+size_t previous_viword_index(const wchar_t *s, size_t i)
 {
     const size_t init = i;
 start:
