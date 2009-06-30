@@ -681,7 +681,7 @@ void move_cursor_forward_bigword(int count)
 
     size_t new_index = le_main_index;
     if (!need_cw_treatment()) {
-	while (--count >= 0 && new_index < le_main_buffer.length)
+	while (count-- > 0 && new_index < le_main_buffer.length)
 	    new_index = next_bigword_index(le_main_buffer.contents, new_index);
 	exec_motion_command(new_index, false);
     } else {
@@ -705,7 +705,7 @@ void move_cursor_backward_bigword(int count)
 	return;
 
     size_t new_index = le_main_index;
-    while (--count >= 0 && new_index > 0)
+    while (count-- > 0 && new_index > 0)
 	new_index = previous_bigword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
@@ -815,7 +815,7 @@ void move_cursor_forward_viword(int count)
 
     size_t new_index = le_main_index;
     if (!need_cw_treatment()) {
-	while (--count >= 0 && new_index < le_main_buffer.length)
+	while (count-- > 0 && new_index < le_main_buffer.length)
 	    new_index = next_viword_index(le_main_buffer.contents, new_index);
 	exec_motion_command(new_index, false);
     } else {
@@ -851,7 +851,7 @@ void move_cursor_backward_viword(int count)
 	return;
 
     size_t new_index = le_main_index;
-    while (--count >= 0 && new_index > 0)
+    while (count-- > 0 && new_index > 0)
 	new_index = previous_viword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
@@ -975,11 +975,8 @@ void cmd_backward_word(wchar_t c __attribute__((unused)))
  * If `count' is negative, the cursor is not moved. */
 void move_cursor_forward_nonword(int count)
 {
-    if (count < 0)
-	return;
-
     size_t new_index = le_main_index;
-    while (--count >= 0 && new_index < le_main_buffer.length)
+    while (count-- > 0 && new_index < le_main_buffer.length)
 	new_index = next_nonword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
@@ -988,11 +985,8 @@ void move_cursor_forward_nonword(int count)
  * If `count' is negative, the cursor is not moved. */
 void move_cursor_backward_word(int count)
 {
-    if (count < 0)
-	return;
-
     size_t new_index = le_main_index;
-    while (--count >= 0 && new_index > 0)
+    while (count-- > 0 && new_index > 0)
 	new_index = previous_word_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
