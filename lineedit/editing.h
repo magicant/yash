@@ -60,6 +60,8 @@ extern le_command_func_T
     cmd_forward_viword,
     cmd_end_of_viword,
     cmd_backward_viword,
+    cmd_forward_nonword,
+    cmd_backward_word,
     cmd_beginning_of_line,
     cmd_end_of_line,
     cmd_bol_or_digit,

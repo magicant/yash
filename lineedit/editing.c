@@ -163,10 +163,6 @@ static void move_cursor_forward_char(int offset);
 static void move_cursor_backward_char(int offset);
 static void move_cursor_forward_bigword(int count);
 static void move_cursor_backward_bigword(int count);
-static void move_cursor_forward_viword(int count);
-static bool need_cw_treatment(void)
-    __attribute__((pure));
-static void move_cursor_backward_viword(int count);
 static size_t next_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t next_end_of_bigword_index(
@@ -174,12 +170,22 @@ static size_t next_end_of_bigword_index(
     __attribute__((nonnull));
 static size_t previous_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
+static void move_cursor_forward_viword(int count);
+static bool need_cw_treatment(void)
+    __attribute__((pure));
+static void move_cursor_backward_viword(int count);
 static size_t next_viword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t next_end_of_viword_index(
 	const wchar_t *s, size_t i, bool progress)
     __attribute__((nonnull));
 static size_t previous_viword_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static void move_cursor_forward_nonword(int count);
+static void move_cursor_backward_word(int count);
+static size_t next_nonword_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static size_t previous_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
@@ -934,6 +940,89 @@ start:
 	    i--;
 	} while (s[i] != L'_' && !iswblank(s[i]) && !iswalnum(s[i]));
     }
+    i++;
+    if (i < init) {
+	return i;
+    } else {
+	i--;
+	goto start;
+    }
+}
+
+/* Moves to the next nonword (or the `count'th nonword if the count is set). */
+/* exclusive motion command */
+void cmd_forward_nonword(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_forward_nonword(count);
+    else
+	move_cursor_backward_word(-count);
+}
+
+/* Moves backward one word (or `count' words if the count is set). */
+/* exclusive motion command */
+void cmd_backward_word(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_backward_word(count);
+    else
+	move_cursor_forward_nonword(-count);
+}
+
+/* Moves the cursor to the `count'th nonword, relative to the current position.
+ * If `count' is negative, the cursor is not moved. */
+void move_cursor_forward_nonword(int count)
+{
+    if (count < 0)
+	return;
+
+    size_t new_index = le_main_index;
+    while (--count >= 0 && new_index < le_main_buffer.length)
+	new_index = next_nonword_index(le_main_buffer.contents, new_index);
+    exec_motion_command(new_index, false);
+}
+
+/* Moves the cursor backward `count'th word, relative to the current position.
+ * If `count' is negative, the cursor is not moved. */
+void move_cursor_backward_word(int count)
+{
+    if (count < 0)
+	return;
+
+    size_t new_index = le_main_index;
+    while (--count >= 0 && new_index > 0)
+	new_index = previous_word_index(le_main_buffer.contents, new_index);
+    exec_motion_command(new_index, false);
+}
+
+/* Returns the index of the next nonword in the string `s', counted from the
+ * index `i'. The return value is greater than `i' unless `s[i]' is a null
+ * character. */
+/* A nonword is a sequence of non-alphanumeric characters. */
+size_t next_nonword_index(const wchar_t *s, size_t i)
+{
+    while (s[i] != L'\0' && !iswalnum(s[i]))
+	i++;
+    while (s[i] != L'\0' && iswalnum(s[i]))
+	i++;
+    return i;
+}
+
+/* Returns the index of the previous word in the string `s', counted from the
+ * index `i'. The return value is less than `i' unless `i' is zero. */
+/* A word is a sequence of alphanumeric characters. */
+size_t previous_word_index(const wchar_t *s, size_t i)
+{
+    const size_t init = i;
+start:
+    while (i > 0 && !iswalnum(s[i]))
+	i--;
+    while (i > 0 && iswalnum(s[i]))
+	i--;
+    if (i == 0)
+	return i;
     i++;
     if (i < init) {
 	return i;

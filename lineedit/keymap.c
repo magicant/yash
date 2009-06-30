@@ -209,11 +209,10 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_f,       CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_c_b,       CMDENTRY(cmd_backward_char));
-    // TODO cmd_emacs_forward_word, cmd_emacs_backward_word
-    //t = trie_setw(t, Key_escape "f", CMDENTRY(cmd_emacs_forward_word));
-    //t = trie_setw(t, Key_escape "F", CMDENTRY(cmd_emacs_forward_word));
-    //t = trie_setw(t, Key_escape "b", CMDENTRY(cmd_emacs_backward_word));
-    //t = trie_setw(t, Key_escape "B", CMDENTRY(cmd_emacs_backward_word));
+    t = trie_setw(t, Key_escape "f", CMDENTRY(cmd_forward_nonword));
+    t = trie_setw(t, Key_escape "F", CMDENTRY(cmd_forward_nonword));
+    t = trie_setw(t, Key_escape "b", CMDENTRY(cmd_backward_word));
+    t = trie_setw(t, Key_escape "B", CMDENTRY(cmd_backward_word));
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, Key_c_a,       CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
