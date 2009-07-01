@@ -235,8 +235,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_y,       CMDENTRY(cmd_put_left));
     t = trie_setw(t, Key_escape "y", CMDENTRY(cmd_put_pop));
     t = trie_setw(t, Key_escape "Y", CMDENTRY(cmd_put_pop));
-    // TODO emacs cmd_backward_kill_word, cmd_backward_kill_semiword
-    //t = trie_setw(t, Key_c_w,       CMDENTRY(cmd_backward_kill_word));
+    t = trie_setw(t, Key_c_w,       CMDENTRY(cmd_backward_kill_bigword));
     t = trie_setw(t, Key_c_ul,      CMDENTRY(cmd_undo));
     t = trie_setw(t, Key_c_x Key_c_u, CMDENTRY(cmd_undo));
     t = trie_setw(t, Key_c_x Key_kill, CMDENTRY(cmd_undo));

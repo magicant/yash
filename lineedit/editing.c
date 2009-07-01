@@ -187,6 +187,7 @@ static size_t next_nonword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t previous_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
+static void delete_semiword_backward(bool kill);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
 static void kill_chars(bool backward);
@@ -1218,15 +1219,29 @@ void cmd_backward_delete_char(wchar_t c)
 }
 
 /* Removes the semiword behind the cursor.
- * If the count is set, `count' semiwords are removed. */
-/* A "semiword" is a sequence of characters that are not <blank> or <punct>. */
+ * If the count is set, `count' semiwords are removed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
+{
+    delete_semiword_backward(false);
+}
+
+/* Removes the semiword behind the cursor.
+ * If the count is set, `count' semiwords are removed.
+ * If `kill' is true, the removed semiword is added to the kill ring.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+/* A "semiword" is a sequence of characters that are not <blank> or <punct>. */
+void delete_semiword_backward(bool kill)
 {
     ALERT_AND_RETURN_IF_PENDING;
     save_current_edit_command();
     maybe_save_undo_history();
 
     size_t bound = le_main_index;
+    if (le_main_index == 0) {
+	cmd_alert(L'\0');
+	return;
+    }
 
     for (int count = get_count(1); --count >= 0; ) {
 	do {
@@ -1241,7 +1256,10 @@ void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
     bound++;
 done:
     if (bound < le_main_index) {
-	wb_remove(&le_main_buffer, bound, le_main_index - bound);
+	size_t length = le_main_buffer.length - bound;
+	if (kill)
+	    add_to_kill_ring(le_main_buffer.contents + bound, length);
+	wb_remove(&le_main_buffer, bound, length);
 	le_main_index = bound;
 	le_display_reprint_buffer(le_main_index, false);
     }
@@ -1359,6 +1377,25 @@ void kill_chars(bool backward)
     le_main_index = offset;
     le_display_reprint_buffer(offset, false);
     reset_state();
+}
+
+/* Kills the semiword behind the cursor.
+ * If the count is set, `count' semiwords are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_kill_semiword(wchar_t c __attribute__((unused)))
+{
+    delete_semiword_backward(true);
+}
+
+/* Kills the semiword behind the cursor.
+ * If the count is set, `count' semiwords are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_kill_bigword(wchar_t c __attribute__((unused)))
+{
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
+    state.pending_command_motion = MEC_KILL;
+    cmd_backward_bigword(L'\0');
 }
 
 /* Kills all characters before the cursor. */

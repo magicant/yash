@@ -57,6 +57,7 @@ extern le_command_func_T
     cmd_forward_bigword,
     cmd_end_of_bigword,
     cmd_backward_bigword,
+    // TODO cmd_forward_semiword, cmd_backward_semiword
     cmd_forward_viword,
     cmd_end_of_viword,
     cmd_backward_viword,
@@ -87,6 +88,8 @@ extern le_command_func_T
     cmd_backward_delete_line,
     cmd_kill_char,
     cmd_backward_kill_char,
+    cmd_backward_kill_semiword,
+    cmd_backward_kill_bigword,
 #define cmd_forward_kill_line cmd_vi_delete_to_eol
     cmd_backward_kill_line,
     cmd_put_before,
