@@ -11,6 +11,8 @@ History of Yash
 Yash 2.12
 
   +  Emacs-like line-editing.
+  =  The "fg" and "bg" builtin now always sends SIGCONT to the
+     continued job.
   *  In vi-like line-editing, the wrong text was put after 30th yank.
 
 ----------------------------------------------------------------------
