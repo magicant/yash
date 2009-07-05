@@ -164,6 +164,11 @@ static void save_current_find_command(void);
 static void save_undo_history(void);
 static void maybe_save_undo_history(void);
 static void exec_motion_command(size_t index, bool inclusive);
+static void set_motion_expect_command(enum motion_expect_command cmd);
+static void exec_motion_expect_command(
+	enum motion_expect_command cmd, le_command_func_T motion);
+static void exec_motion_expect_command_line(enum motion_expect_command cmd);
+static void exec_motion_expect_command_all(void);
 static void add_to_kill_ring(const wchar_t *s, size_t n)
     __attribute__((nonnull));
 
@@ -207,9 +212,6 @@ static size_t next_nonword_index(const wchar_t *s, size_t i)
 static size_t previous_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 
-static void delete_semiword_backward(bool kill);
-static inline bool is_blank_or_punct(wchar_t c)
-    __attribute__((pure));
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear);
@@ -222,8 +224,6 @@ static void vi_till_rev(wchar_t c);
 static void exec_find(wchar_t c, int count, bool till);
 static size_t find_nth_occurence(wchar_t c, int n);
 static void vi_replace_char(wchar_t c);
-static void exec_edit_command(enum motion_expect_command cmd);
-static void exec_edit_command_to_eol(enum motion_expect_command cmd);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
 static struct xwcsrange get_next_bigword(const wchar_t *s)
@@ -464,6 +464,61 @@ void exec_motion_command(size_t index, bool inclusive)
 	}
     }
     reset_state();
+}
+
+/* Set the specified motion expecting command as pending.
+ * If the command is already pending, the command is executed against the whole
+ * line. */
+void set_motion_expect_command(enum motion_expect_command cmd)
+{
+    if (state.pending_command_motion != MEC_NONE) {
+	if (state.pending_command_motion == cmd) {
+	    exec_motion_expect_command_all();
+	} else {
+	    cmd_alert(L'\0');
+	}
+    } else {
+	state.count.multiplier = get_count(1);
+	state.count.sign = 0;
+	state.count.abs = 0;
+	state.pending_command_motion = cmd;
+    }
+}
+
+/* Executes the specified motion expecting command with the specified motion
+ * command. */
+void exec_motion_expect_command(
+	enum motion_expect_command cmd, le_command_func_T motion)
+{
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
+    state.pending_command_motion = cmd;
+    motion(L'\0');
+}
+
+/* Executes the specified motion expecting command from the beginning of the
+ * line to the end of line. */
+void exec_motion_expect_command_line(enum motion_expect_command cmd)
+{
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
+    state.pending_command_motion = cmd;
+    exec_motion_expect_command_all();
+}
+
+/* Executes the currently pending motion expecting command from the beginning of
+ * the line to the end of line. */
+void exec_motion_expect_command_all(void)
+{
+    size_t save_index;
+
+    if (state.pending_command_motion & MEC_DELETE)
+	save_index = 0;
+    else
+	save_index = le_main_index;
+    le_main_index = 0;
+    cmd_end_of_line(L'\0');
+    le_main_index = save_index;
 }
 
 /* Adds the specified string to the kill ring.
@@ -1323,147 +1378,56 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_delete_char(wchar_t c __attribute__((unused)))
 {
-    if (state.count.sign == 0) {
-	ALERT_AND_RETURN_IF_PENDING;
-	save_current_edit_command();
-	maybe_save_undo_history();
+    enum motion_expect_command cmd;
 
-	if (le_main_index < le_main_buffer.length) {
-	    wb_remove(&le_main_buffer, le_main_index, 1);
-	    le_display_reprint_buffer(le_main_index, false);
-	} else {
-	    le_alert();
-	}
-	reset_state();
-    } else {
-	cmd_kill_char(L'\0');
-    }
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_forward_char);
 }
 
 /* Removes the character behind the cursor.
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
 {
-    if (state.count.sign == 0) {
-	ALERT_AND_RETURN_IF_PENDING;
-	save_current_edit_command();
-	maybe_save_undo_history();
+    enum motion_expect_command cmd;
 
-	if (le_main_index > 0) {
-	    wb_remove(&le_main_buffer, --le_main_index, 1);
-	    le_display_reprint_buffer(le_main_index, false);
-	} else {
-	    le_alert();
-	}
-	reset_state();
-    } else {
-	cmd_backward_kill_char(L'\0');
-    }
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_backward_char);
 }
 
 /* Removes the semiword behind the cursor.
- * If the count is set, `count' semiwords are removed.
+ * If the count is set, `count' semiwords are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
 {
-    delete_semiword_backward(false);
-}
+    enum motion_expect_command cmd;
 
-/* Removes the semiword behind the cursor.
- * If the count is set, `count' semiwords are removed.
- * If `kill' is true, the removed semiword is added to the kill ring.
- * If the cursor is at the beginning of the line, the terminal is alerted. */
-/* A "semiword" is a sequence of characters that are not <blank> or <punct>. */
-void delete_semiword_backward(bool kill)
-{
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    size_t bound = le_main_index;
-    if (le_main_index == 0) {
-	cmd_alert(L'\0');
-	return;
-    }
-
-    for (int count = get_count(1); --count >= 0; ) {
-	do {
-	    if (bound == 0)
-		goto done;
-	} while (is_blank_or_punct(le_main_buffer.contents[--bound]));
-	do {
-	    if (bound == 0)
-		goto done;
-	} while (!is_blank_or_punct(le_main_buffer.contents[--bound]));
-    }
-    bound++;
-done:
-    if (bound < le_main_index) {
-	size_t length = le_main_buffer.length - bound;
-	if (kill)
-	    add_to_kill_ring(le_main_buffer.contents + bound, length);
-	wb_remove(&le_main_buffer, bound, length);
-	le_main_index = bound;
-	le_display_reprint_buffer(le_main_index, false);
-    }
-    reset_state();
-}
-
-bool is_blank_or_punct(wchar_t c)
-{
-    return iswblank(c) || iswpunct(c);
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_backward_semiword);
 }
 
 /* Removes all characters in the edit line. */
 void cmd_delete_line(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    wb_clear(&le_main_buffer);
-    le_main_index = 0;
-    le_display_reprint_buffer(0, false);
-    reset_state();
+    exec_motion_expect_command_line(MEC_DELETE);
 }
 
 /* Removes all characters after the cursor. */
 void cmd_forward_delete_line(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    if (le_main_index < le_main_buffer.length) {
-	wb_remove(&le_main_buffer, le_main_index, SIZE_MAX);
-	le_display_reprint_buffer(le_main_index, false);
-    }
-    reset_state();
+    exec_motion_expect_command(MEC_DELETE, cmd_end_of_line);
 }
 
 /* Removes all characters behind the cursor. */
 void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    if (le_main_index > 0) {
-	wb_remove(&le_main_buffer, 0, le_main_index);
-	le_main_index = 0;
-	le_display_reprint_buffer(0, false);
-    }
-    reset_state();
+    exec_motion_expect_command(MEC_DELETE, cmd_beginning_of_line);
 }
 
 /* Kills the character under the cursor.
  * If the count is set, `count' characters are killed. */
 void cmd_kill_char(wchar_t c __attribute__((unused)))
 {
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command_motion = MEC_KILL;
-    cmd_forward_char(L'\0');
+    exec_motion_expect_command(MEC_KILL, cmd_forward_char);
 }
 
 /* Kills the character behind the cursor.
@@ -1471,10 +1435,7 @@ void cmd_kill_char(wchar_t c __attribute__((unused)))
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_kill_char(wchar_t c __attribute__((unused)))
 {
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command_motion = MEC_KILL;
-    cmd_backward_char(L'\0');
+    exec_motion_expect_command(MEC_KILL, cmd_backward_char);
 }
 
 /* Kills the semiword behind the cursor.
@@ -1482,7 +1443,7 @@ void cmd_backward_kill_char(wchar_t c __attribute__((unused)))
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_kill_semiword(wchar_t c __attribute__((unused)))
 {
-    delete_semiword_backward(true);
+    exec_motion_expect_command(MEC_KILL, cmd_backward_semiword);
 }
 
 /* Kills the bigword behind the cursor.
@@ -1490,19 +1451,13 @@ void cmd_backward_kill_semiword(wchar_t c __attribute__((unused)))
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_kill_bigword(wchar_t c __attribute__((unused)))
 {
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command_motion = MEC_KILL;
-    cmd_backward_bigword(L'\0');
+    exec_motion_expect_command(MEC_KILL, cmd_backward_bigword);
 }
 
 /* Kills all characters before the cursor. */
 void cmd_backward_kill_line(wchar_t c __attribute__((unused)))
 {
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command_motion = MEC_KILL;
-    exec_motion_command(0, false);
+    exec_motion_expect_command(MEC_KILL, cmd_beginning_of_line);
 }
 
 /* Inserts the last-killed string before the cursor.
@@ -1987,13 +1942,13 @@ void cmd_vi_change_case(wchar_t c __attribute__((unused)))
  * to the kill ring. */
 void cmd_vi_yank(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(MEC_COPY);
+    set_motion_expect_command(MEC_COPY);
 }
 
 /* Copies the content of the edit line from the current position to the end. */
 void cmd_vi_yank_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(MEC_COPY);
+    exec_motion_expect_command(MEC_COPY, cmd_end_of_line);
 }
 
 /* Sets the pending command to `MEC_KILL'.
@@ -2002,14 +1957,14 @@ void cmd_vi_yank_to_eol(wchar_t c __attribute__((unused)))
  * to the kill ring. */
 void cmd_vi_delete(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(MEC_KILL);
+    set_motion_expect_command(MEC_KILL);
 }
 
 /* Deletes the content of the edit line from the current position to the end and
  * put it in the kill ring. */
 void cmd_vi_delete_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(MEC_KILL);
+    exec_motion_expect_command(MEC_KILL, cmd_end_of_line);
 }
 
 /* Sets the pending command to `MEC_CHANGE'.
@@ -2018,24 +1973,21 @@ void cmd_vi_delete_to_eol(wchar_t c __attribute__((unused)))
  * deleted to the kill ring and the editing mode is set to "vi insert". */
 void cmd_vi_change(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(MEC_CHANGE);
+    set_motion_expect_command(MEC_CHANGE);
 }
 
 /* Deletes the content of the edit line from the current position to the end and
  * sets the editing mode to "vi insert". */
 void cmd_vi_change_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(MEC_CHANGE);
+    exec_motion_expect_command(MEC_CHANGE, cmd_end_of_line);
 }
 
 /* Deletes all the content of the edit line and sets the editing mode to
  * "vi insert". */
 void cmd_vi_change_all(wchar_t c __attribute__((unused)))
 {
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    le_main_index = 0;
-    exec_edit_command_to_eol(MEC_CHANGE);
+    exec_motion_expect_command_line(MEC_CHANGE);
 }
 
 /* Sets the pending command to `MEC_COPYCHANGE'.
@@ -2044,65 +1996,28 @@ void cmd_vi_change_all(wchar_t c __attribute__((unused)))
  * moved to the kill ring and the editing mode is set to "vi insert". */
 void cmd_vi_yank_and_change(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command(MEC_COPYCHANGE);
+    set_motion_expect_command(MEC_COPYCHANGE);
 }
 
 /* Deletes the content of the edit line from the current position to the end,
  * put it in the kill ring, and sets the editing mode to "vi insert". */
 void cmd_vi_yank_and_change_to_eol(wchar_t c __attribute__((unused)))
 {
-    exec_edit_command_to_eol(MEC_COPYCHANGE);
+    exec_motion_expect_command(MEC_COPYCHANGE, cmd_end_of_line);
 }
 
 /* Deletes all the content of the edit line, put it in the kill ring, and sets
  * the editing mode to "vi insert". */
 void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
 {
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    le_main_index = 0;
-    exec_edit_command_to_eol(MEC_COPYCHANGE);
-}
-
-/* Executes the specified command. */
-void exec_edit_command(enum motion_expect_command cmd)
-{
-    if (state.pending_command_motion != MEC_NONE) {
-	if (state.pending_command_motion == cmd) {
-	    size_t old_index = le_main_index;
-	    le_main_index = 0;
-	    exec_motion_command(le_main_buffer.length, true);
-	    if (old_index <= le_main_buffer.length)
-		le_main_index = old_index;
-	} else {
-	    cmd_alert(L'\0');
-	}
-    } else {
-	state.count.multiplier = get_count(1);
-	state.count.sign = 0;
-	state.count.abs = 0;
-	state.pending_command_motion = cmd;
-    }
-}
-
-/* Executes the specified command on the range from the current cursor position
- * to the end of the line. */
-void exec_edit_command_to_eol(enum motion_expect_command cmd)
-{
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command_motion = cmd;
-    exec_motion_command(le_main_buffer.length, false);
+    exec_motion_expect_command_line(MEC_COPYCHANGE);
 }
 
 /* Kills the character under the cursor and sets the editing mode to
  * "vi insert". If the count is set, `count' characters are killed. */
 void cmd_vi_substitute(wchar_t c __attribute__((unused)))
 {
-    if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
-    state.pending_command_motion = MEC_COPYCHANGE;
-    cmd_forward_char(L'\0');
+    exec_motion_expect_command(MEC_COPYCHANGE, cmd_forward_char);
 }
 
 /* Appends a space followed by the last bigword from the newest history entry.
