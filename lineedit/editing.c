@@ -191,7 +191,6 @@ static size_t previous_word_index(const wchar_t *s, size_t i)
 static void delete_semiword_backward(bool kill);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
-static void kill_chars(bool backward);
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear);
@@ -1322,68 +1321,23 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 
 /* Kills the character under the cursor.
  * If the count is set, `count' characters are killed. */
-void cmd_kill_char(wchar_t c __attribute__((unused)))
+void cmd_kill_char(wchar_t c)
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    assert(le_main_index <= le_main_buffer.length);
-    if (le_main_index == le_main_buffer.length) {
-	cmd_alert(L'\0');
-	return;
-    }
-
-    kill_chars(false);
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
+    state.pending_command_motion = MEC_KILL;
+    cmd_forward_char(c);
 }
 
 /* Kills the character behind the cursor.
  * If the count is set, `count' characters are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
-void cmd_backward_kill_char(wchar_t c __attribute__((unused)))
+void cmd_backward_kill_char(wchar_t c)
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    assert(le_main_index <= le_main_buffer.length);
-    if (le_main_index == 0) {
-	cmd_alert(L'\0');
-	return;
-    }
-
-    kill_chars(true);
-}
-
-/* Removes `count' characters from the current position and puts it in the kill
- * ring. If `backward' is true, characters before the cursor are removed. */
-void kill_chars(bool backward)
-{
-    int n = get_count(1);
-    size_t offset;
-    if (backward)
-	n = -n;
-    if (n >= 0) {
-#if COUNT_ABS_MAX > SIZE_MAX
-	if (n > SIZE_MAX)
-	    n = SIZE_MAX;
-#endif
-	offset = le_main_index;
-    } else {
-	n = -n;
-#if COUNT_ABS_MAX > SIZE_MAX
-	if (n >= (int) le_main_index)
-#else
-	if ((size_t) n >= le_main_index)
-#endif
-	    n = le_main_index;
-	offset = le_main_index - n;
-    }
-    add_to_kill_ring(le_main_buffer.contents + offset, n);
-    wb_remove(&le_main_buffer, offset, n);
-    le_main_index = offset;
-    le_display_reprint_buffer(offset, false);
-    reset_state();
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
+    state.pending_command_motion = MEC_KILL;
+    cmd_backward_char(c);
 }
 
 /* Kills the semiword behind the cursor.
@@ -2006,21 +1960,12 @@ void exec_edit_command_to_eol(enum motion_expect_command cmd)
 
 /* Kills the character under the cursor and sets the editing mode to
  * "vi insert". If the count is set, `count' characters are killed. */
-void cmd_vi_substitute(wchar_t c __attribute__((unused)))
+void cmd_vi_substitute(wchar_t c)
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    assert(le_main_index <= le_main_buffer.length);
-    if (le_main_index == 0) {
-	cmd_alert(L'\0');
-	return;
-    }
-
-    kill_chars(false);
-    le_set_mode(LE_MODE_VI_INSERT);
-    overwrite = false;
+    if (current_command.func != cmd_redo)
+	ALERT_AND_RETURN_IF_PENDING;
+    state.pending_command_motion = MEC_COPYCHANGE;
+    cmd_forward_char(c);
 }
 
 /* Appends a space followed by the last bigword from the newest history entry.
