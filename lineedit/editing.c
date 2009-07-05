@@ -180,6 +180,15 @@ static size_t next_end_of_bigword_index(
     __attribute__((nonnull));
 static size_t previous_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
+static void move_cursor_forward_semiword(int count);
+static void move_cursor_backward_semiword(int count);
+static size_t next_semiword_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
+static size_t next_end_of_semiword_index(
+	const wchar_t *s, size_t i, bool progress)
+    __attribute__((nonnull));
+static size_t previous_semiword_index(const wchar_t *s, size_t i)
+    __attribute__((nonnull));
 static void move_cursor_forward_viword(int count);
 static inline bool need_cw_treatment(void)
     __attribute__((pure));
@@ -851,9 +860,9 @@ size_t next_bigword_index(const wchar_t *s, size_t i)
 }
 
 /* Returns the index of the end of a bigword in the string `s', counted from
- * index `i'. If `i' is at the end of a bigword, the end of the next bigword is
- * returned. The return value is greater than `i' unless `s[i]' is a null
- * character. */
+ * index `i'. If `i' is at the end of a bigword and `progress' is true, the end
+ * of the next bigword is returned. The return value is greater than `i' unless
+ * `s[i]' is a null character. */
 size_t next_end_of_bigword_index(const wchar_t *s, size_t i, bool progress)
 {
     const size_t init = i;
@@ -882,6 +891,140 @@ start:
     while (i > 0 && iswblank(s[i]))
 	i--;
     while (i > 0 && !iswblank(s[i]))
+	i--;
+    if (i == 0)
+	return i;
+    i++;
+    if (i < init) {
+	return i;
+    } else {
+	i--;
+	goto start;
+    }
+}
+
+/* Moves forward one semiword (or `count' semiwords if the count is set). */
+/* exclusive motion command */
+void cmd_forward_semiword(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_forward_semiword(count);
+    else
+	move_cursor_backward_semiword(-count);
+}
+
+/* Moves the cursor to the end of the current semiword (or the next semiword if
+ * already at the end). If the count is set, moves to the end of `count'th
+ * semiword. */
+/* inclusive motion command */
+void cmd_end_of_semiword(wchar_t c __attribute__((unused)))
+{
+    if (alert_if_last())
+	return;
+
+    int count = get_count(1);
+    size_t new_index = le_main_index;
+    while (--count >= 0 && new_index < le_main_buffer.length)
+	new_index = next_end_of_semiword_index(
+		le_main_buffer.contents, new_index, true);
+    exec_motion_command(new_index, true);
+}
+
+/* Moves backward one viword (or `count' viwords if the count is set). */
+/* exclusive motion command */
+void cmd_backward_semiword(wchar_t c __attribute__((unused)))
+{
+    int count = get_count(1);
+    if (count >= 0)
+	move_cursor_backward_semiword(count);
+    else
+	move_cursor_forward_semiword(-count);
+}
+
+/* Moves the cursor forward `count' semiwords, relative to the current position.
+ * If `count' is negative, the cursor is not moved. */
+void move_cursor_forward_semiword(int count)
+{
+    if (alert_if_last())
+	return;
+
+    size_t new_index = le_main_index;
+    if (!need_cw_treatment()) {
+	while (count-- > 0 && new_index < le_main_buffer.length)
+	    new_index = next_semiword_index(le_main_buffer.contents, new_index);
+	exec_motion_command(new_index, false);
+    } else {
+	while (count > 1 && new_index < le_main_buffer.length) {
+	    new_index = next_semiword_index(le_main_buffer.contents, new_index);
+	    count--;
+	}
+	if (count > 0 && new_index < le_main_buffer.length) {
+	    new_index = next_end_of_semiword_index(
+		    le_main_buffer.contents, new_index, false);
+	}
+	exec_motion_command(new_index, true);
+    }
+}
+
+/* Moves the cursor backward `count' semiwords, relative to the current
+ * position.  If `count' is negative, the cursor is not moved. */
+void move_cursor_backward_semiword(int count)
+{
+    if (alert_if_first())
+	return;
+
+    size_t new_index = le_main_index;
+    while (count-- > 0 && new_index > 0)
+	new_index = previous_semiword_index(le_main_buffer.contents, new_index);
+    exec_motion_command(new_index, false);
+}
+
+/* Returns the index of the next semiword in the string `s', counted from the
+ * index `i'. The return value is greater than `i' unless `s[i]' is a null
+ * character. */
+/* A "semiword" is a sequence of characters that are not <blank> or <punct>. */
+size_t next_semiword_index(const wchar_t *s, size_t i)
+{
+    while (s[i] != L'\0' && !iswblank(s[i]) && !iswpunct(s[i]))
+	i++;
+    while (s[i] != L'\0' && (iswblank(s[i]) || iswpunct(s[i])))
+	i++;
+    return i;
+}
+
+/* Returns the index of the end of a semiword in the string `s', counted from
+ * index `i'. If `i' is at the end of a semiword and `progress' is true, the end
+ * of the next semiword is returned. The return value is greater than `i' unless
+ * `s[i]' is a null character. */
+size_t next_end_of_semiword_index(const wchar_t *s, size_t i, bool progress)
+{
+    const size_t init = i;
+start:
+    if (s[i] == L'\0')
+	return i;
+    while (s[i] != L'\0' && (iswblank(s[i]) || iswpunct(s[i])))
+	i++;
+    while (s[i] != L'\0' && !iswblank(s[i]) && !iswpunct(s[i]))
+	i++;
+    i--;
+    if (i > init || !progress) {
+	return i;
+    } else {
+	i++;
+	goto start;
+    }
+}
+
+/* Returns the index of the previous semiword in the string `s', counted from
+ * the index `i'. The return value is less than `i' unless `i' is zero. */
+size_t previous_semiword_index(const wchar_t *s, size_t i)
+{
+    const size_t init = i;
+start:
+    while (i > 0 && (iswblank(s[i]) || iswpunct(s[i])))
+	i--;
+    while (i > 0 && !iswblank(s[i]) && !iswpunct(s[i]))
 	i--;
     if (i == 0)
 	return i;
@@ -1342,8 +1485,8 @@ void cmd_backward_kill_semiword(wchar_t c __attribute__((unused)))
     delete_semiword_backward(true);
 }
 
-/* Kills the semiword behind the cursor.
- * If the count is set, `count' semiwords are killed.
+/* Kills the bigword behind the cursor.
+ * If the count is set, `count' bigwords are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_kill_bigword(wchar_t c __attribute__((unused)))
 {

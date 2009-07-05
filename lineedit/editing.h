@@ -71,7 +71,9 @@ extern le_command_func_T
     cmd_forward_bigword,
     cmd_end_of_bigword,
     cmd_backward_bigword,
-    // TODO cmd_forward_semiword, cmd_backward_semiword
+    cmd_forward_semiword,
+    cmd_end_of_semiword,
+    cmd_backward_semiword,
     cmd_forward_viword,
     cmd_end_of_viword,
     cmd_backward_viword,
