@@ -187,6 +187,7 @@ static size_t next_nonword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t previous_word_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
+
 static void delete_semiword_backward(bool kill);
 static inline bool is_blank_or_punct(wchar_t c)
     __attribute__((pure));
@@ -195,6 +196,7 @@ static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear);
 static void cancel_undo(int offset);
+
 static void vi_find(wchar_t c);
 static void vi_find_rev(wchar_t c);
 static void vi_till(wchar_t c);
@@ -212,11 +214,13 @@ static struct xwcsrange get_prev_bigword(
 	const wchar_t *beginning, const wchar_t *s)
     __attribute__((nonnull));
 static void search_again(enum le_search_direction dir);
+
 static void go_to_history_absolute(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, bool cursorend);
 static void go_to_history(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
+
 static bool update_last_search_value(void)
     __attribute__((pure));
 static void update_search(void);
@@ -482,36 +486,6 @@ void cmd_alert(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
-/* Invokes `cmd_alert' and returns true if the cursor is at the first character.
- */
-bool alert_if_first(void)
-{
-    if (le_main_index > 0)
-	return false;
-
-    cmd_alert(L'\0');
-    return true;
-}
-
-/* Invokes `cmd_alert' and returns true if the cursor is at the last character.
- */
-bool alert_if_last(void)
-{
-    if (le_current_mode == &le_modes[LE_MODE_VI_COMMAND]) {
-	if (state.pending_command_motion != MEC_NONE)
-	    return false;
-	if (le_main_buffer.length > 0
-		&& le_main_index < le_main_buffer.length - 1)
-	    return false;
-    } else {
-	if (le_main_index < le_main_buffer.length)
-	    return false;
-    }
-
-    cmd_alert(L'\0');
-    return true;
-}
-
 /* Inserts one character in the buffer.
  * If the count is set, inserts `count' times.
  * If `overwrite' is true, overwrites the character instead of inserting. */
@@ -568,6 +542,160 @@ void cmd_digit_argument(wchar_t c)
 	else
 	    state.count.sign = -state.count.sign;
     }
+}
+
+/* If the count is not set, moves the cursor to the beginning of line.
+ * Otherwise, adds the given digit to the count. */
+void cmd_bol_or_digit(wchar_t c)
+{
+    if (state.count.sign == 0)
+	cmd_beginning_of_line(c);
+    else
+	cmd_digit_argument(c);
+}
+
+/* Accepts the current line.
+ * `le_state' is set to LE_STATE_DONE and `le_readline' returns. */
+void cmd_accept_line(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    cmd_srch_accept_search(L'\0');
+    le_editstate = LE_EDITSTATE_DONE;
+    reset_state();
+}
+
+/* Aborts the current line.
+ * `le_state' is set to LE_STATE_INTERRUPTED and `le_readline' returns. */
+void cmd_abort_line(wchar_t c __attribute__((unused)))
+{
+    cmd_srch_abort_search(L'\0');
+    le_editstate = LE_EDITSTATE_INTERRUPTED;
+    reset_state();
+}
+
+/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
+ * Otherwise, causes alert. */
+void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    if (le_main_buffer.length == 0) {
+	le_editstate = LE_EDITSTATE_ERROR;
+	reset_state();
+    } else {
+	cmd_alert(L'\0');
+    }
+}
+
+/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
+ * Otherwise, deletes the character under the cursor. */
+void cmd_eof_or_delete(wchar_t c)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    if (le_main_buffer.length == 0) {
+	le_editstate = LE_EDITSTATE_ERROR;
+	reset_state();
+    } else {
+	cmd_delete_char(c);
+    }
+}
+
+/* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
+ */
+void cmd_accept_with_hash(wchar_t c)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    wb_insert(&le_main_buffer, 0, L"#");
+    le_display_reprint_buffer(0, false);
+    cmd_accept_line(c);
+}
+
+/* Changes the editing mode to "vi insert". */
+void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    le_set_mode(LE_MODE_VI_INSERT);
+    reset_state();
+    overwrite = false;
+}
+
+/* Changes the editing mode to "vi command". */
+void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    if (le_current_mode == &le_modes[LE_MODE_VI_INSERT])
+	if (le_main_index > 0)
+	    le_main_index--;
+    le_set_mode(LE_MODE_VI_COMMAND);
+    reset_state();
+    overwrite = false;
+}
+
+/* Executes a command that expects a character as an argument. */
+void cmd_expect_char(wchar_t c)
+{
+    if (state.pending_command_char) {
+	current_command.func = state.pending_command_char;
+	current_command.arg = c;
+	state.pending_command_char(c);
+    }
+}
+
+/* Cancels a command that expects a character as an argument. */
+void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
+{
+    reset_state();
+    le_set_mode(LE_MODE_VI_COMMAND);
+}
+
+/* Redraw everything. */
+void cmd_redraw_all(wchar_t c __attribute__((unused)))
+{
+    le_display_clear();
+    le_restore_terminal();
+    le_setupterm(false);
+    le_set_terminal();
+    le_display_print_all(false);
+}
+
+
+/********** Motion Commands **********/
+
+/* Invokes `cmd_alert' and returns true if the cursor is at the first character.
+ */
+bool alert_if_first(void)
+{
+    if (le_main_index > 0)
+	return false;
+
+    cmd_alert(L'\0');
+    return true;
+}
+
+/* Invokes `cmd_alert' and returns true if the cursor is at the last character.
+ */
+bool alert_if_last(void)
+{
+    if (le_current_mode == &le_modes[LE_MODE_VI_COMMAND]) {
+	if (state.pending_command_motion != MEC_NONE)
+	    return false;
+	if (le_main_buffer.length > 0
+		&& le_main_index < le_main_buffer.length - 1)
+	    return false;
+    } else {
+	if (le_main_index < le_main_buffer.length)
+	    return false;
+    }
+
+    cmd_alert(L'\0');
+    return true;
 }
 
 /* Moves forward one character (or `count' characters if the count is set). */
@@ -1041,16 +1169,6 @@ void cmd_end_of_line(wchar_t c __attribute__((unused)))
     exec_motion_command(le_main_buffer.length, true);
 }
 
-/* If the count is not set, moves the cursor to the beginning of line.
- * Otherwise, adds the given digit to the count. */
-void cmd_bol_or_digit(wchar_t c)
-{
-    if (state.count.sign == 0)
-	cmd_beginning_of_line(c);
-    else
-	cmd_digit_argument(c);
-}
-
 /* Moves the cursor to the first non-blank character. */
 /* exclusive motion command */
 void cmd_first_nonblank(wchar_t c __attribute__((unused)))
@@ -1060,117 +1178,6 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
     while (c = le_main_buffer.contents[i], c != L'\0' && iswblank(c))
 	i++;
     exec_motion_command(i, false);
-}
-
-/* Accepts the current line.
- * `le_state' is set to LE_STATE_DONE and `le_readline' returns. */
-void cmd_accept_line(wchar_t c __attribute__((unused)))
-{
-    ALERT_AND_RETURN_IF_PENDING;
-
-    cmd_srch_accept_search(L'\0');
-    le_editstate = LE_EDITSTATE_DONE;
-    reset_state();
-}
-
-/* Aborts the current line.
- * `le_state' is set to LE_STATE_INTERRUPTED and `le_readline' returns. */
-void cmd_abort_line(wchar_t c __attribute__((unused)))
-{
-    cmd_srch_abort_search(L'\0');
-    le_editstate = LE_EDITSTATE_INTERRUPTED;
-    reset_state();
-}
-
-/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
- * Otherwise, causes alert. */
-void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
-{
-    ALERT_AND_RETURN_IF_PENDING;
-
-    if (le_main_buffer.length == 0) {
-	le_editstate = LE_EDITSTATE_ERROR;
-	reset_state();
-    } else {
-	cmd_alert(L'\0');
-    }
-}
-
-/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
- * Otherwise, deletes the character under the cursor. */
-void cmd_eof_or_delete(wchar_t c)
-{
-    ALERT_AND_RETURN_IF_PENDING;
-
-    if (le_main_buffer.length == 0) {
-	le_editstate = LE_EDITSTATE_ERROR;
-	reset_state();
-    } else {
-	cmd_delete_char(c);
-    }
-}
-
-/* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
- */
-void cmd_accept_with_hash(wchar_t c)
-{
-    ALERT_AND_RETURN_IF_PENDING;
-
-    wb_insert(&le_main_buffer, 0, L"#");
-    le_display_reprint_buffer(0, false);
-    cmd_accept_line(c);
-}
-
-/* Changes the editing mode to "vi insert". */
-void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
-{
-    ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
-
-    le_set_mode(LE_MODE_VI_INSERT);
-    reset_state();
-    overwrite = false;
-}
-
-/* Changes the editing mode to "vi command". */
-void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
-{
-    ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
-
-    if (le_current_mode == &le_modes[LE_MODE_VI_INSERT])
-	if (le_main_index > 0)
-	    le_main_index--;
-    le_set_mode(LE_MODE_VI_COMMAND);
-    reset_state();
-    overwrite = false;
-}
-
-/* Executes a command that expects a character as an argument. */
-void cmd_expect_char(wchar_t c)
-{
-    if (state.pending_command_char) {
-	current_command.func = state.pending_command_char;
-	current_command.arg = c;
-	state.pending_command_char(c);
-    }
-}
-
-/* Cancels a command that expects a character as an argument. */
-void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
-{
-    reset_state();
-    le_set_mode(LE_MODE_VI_COMMAND);
-}
-
-/* Redraw everything. */
-void cmd_redraw_all(wchar_t c __attribute__((unused)))
-{
-    le_display_clear();
-    le_restore_terminal();
-    le_setupterm(false);
-    le_set_terminal();
-    le_display_print_all(false);
 }
 
 

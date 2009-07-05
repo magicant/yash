@@ -52,6 +52,20 @@ extern le_command_func_T
     cmd_expect_verbatim,
     cmd_insert_tab,
     cmd_digit_argument,
+    cmd_bol_or_digit,
+    cmd_accept_line,
+    cmd_abort_line,
+    cmd_eof_if_empty,
+    cmd_eof_or_delete,
+    cmd_accept_with_hash,
+    cmd_setmode_viinsert,
+    cmd_setmode_vicommand,
+    cmd_expect_char,
+    cmd_abort_expect_char,
+    cmd_redraw_all;
+
+/* motion commands */
+extern le_command_func_T
     cmd_forward_char,
     cmd_backward_char,
     cmd_forward_bigword,
@@ -65,18 +79,7 @@ extern le_command_func_T
     cmd_backward_word,
     cmd_beginning_of_line,
     cmd_end_of_line,
-    cmd_bol_or_digit,
-    cmd_first_nonblank,
-    cmd_accept_line,
-    cmd_abort_line,
-    cmd_eof_if_empty,
-    cmd_eof_or_delete,
-    cmd_accept_with_hash,
-    cmd_setmode_viinsert,
-    cmd_setmode_vicommand,
-    cmd_expect_char,
-    cmd_abort_expect_char,
-    cmd_redraw_all;
+    cmd_first_nonblank;
 
 /* editing commands */
 extern le_command_func_T
