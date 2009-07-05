@@ -1384,6 +1384,39 @@ void cmd_delete_char(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(cmd, cmd_forward_char);
 }
 
+/* Removes the bigword after the cursor.
+ * If the count is set, `count' bigwords are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_delete_bigword(wchar_t c __attribute__((unused)))
+{
+    enum motion_expect_command cmd;
+
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_forward_bigword);
+}
+
+/* Removes the semiword after the cursor.
+ * If the count is set, `count' semiwords are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_delete_semiword(wchar_t c __attribute__((unused)))
+{
+    enum motion_expect_command cmd;
+
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_forward_semiword);
+}
+
+/* Removes the viword after the cursor.
+ * If the count is set, `count' viwords are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_delete_viword(wchar_t c __attribute__((unused)))
+{
+    enum motion_expect_command cmd;
+
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_forward_viword);
+}
+
 /* Removes the character behind the cursor.
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
@@ -1392,6 +1425,17 @@ void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_char);
+}
+
+/* Removes the bigword behind the cursor.
+ * If the count is set, `count' bigwords are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_delete_bigword(wchar_t c __attribute__((unused)))
+{
+    enum motion_expect_command cmd;
+
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_backward_bigword);
 }
 
 /* Removes the semiword behind the cursor.
@@ -1403,6 +1447,17 @@ void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_semiword);
+}
+
+/* Removes the viword behind the cursor.
+ * If the count is set, `count' viwords are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_delete_viword(wchar_t c __attribute__((unused)))
+{
+    enum motion_expect_command cmd;
+
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_backward_viword);
 }
 
 /* Removes all characters in the edit line. */
@@ -1430,12 +1485,44 @@ void cmd_kill_char(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_KILL, cmd_forward_char);
 }
 
+/* Kills the bigword after the cursor.
+ * If the count is set, `count' bigwords are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_kill_bigword(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command(MEC_KILL, cmd_forward_bigword);
+}
+
+/* Kills the semiword after the cursor.
+ * If the count is set, `count' semiwords are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_kill_semiword(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command(MEC_KILL, cmd_forward_semiword);
+}
+
+/* Kills the viword after the cursor.
+ * If the count is set, `count' viwords are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_kill_viword(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command(MEC_KILL, cmd_forward_viword);
+}
+
 /* Kills the character behind the cursor.
  * If the count is set, `count' characters are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_kill_char(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command(MEC_KILL, cmd_backward_char);
+}
+
+/* Kills the bigword behind the cursor.
+ * If the count is set, `count' bigwords are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_kill_bigword(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command(MEC_KILL, cmd_backward_bigword);
 }
 
 /* Kills the semiword behind the cursor.
@@ -1446,12 +1533,18 @@ void cmd_backward_kill_semiword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_KILL, cmd_backward_semiword);
 }
 
-/* Kills the bigword behind the cursor.
- * If the count is set, `count' bigwords are killed.
+/* Kills the viword behind the cursor.
+ * If the count is set, `count' viwords are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
-void cmd_backward_kill_bigword(wchar_t c __attribute__((unused)))
+void cmd_backward_kill_viword(wchar_t c __attribute__((unused)))
 {
-    exec_motion_expect_command(MEC_KILL, cmd_backward_bigword);
+    exec_motion_expect_command(MEC_KILL, cmd_backward_viword);
+}
+
+/* Kills all characters after the cursor. */
+void cmd_forward_kill_line(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command(MEC_KILL, cmd_end_of_line);
 }
 
 /* Kills all characters before the cursor. */
@@ -1962,10 +2055,12 @@ void cmd_vi_delete(wchar_t c __attribute__((unused)))
 
 /* Deletes the content of the edit line from the current position to the end and
  * put it in the kill ring. */
+/* cmd_vi_delete_to_eol is defined as cmd_forward_kill_line.
 void cmd_vi_delete_to_eol(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command(MEC_KILL, cmd_end_of_line);
 }
+*/
 
 /* Sets the pending command to `MEC_CHANGE'.
  * The count multiplier is set to the current count. 
