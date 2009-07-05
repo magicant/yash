@@ -57,6 +57,7 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_eof,       CMDENTRY(cmd_eof_if_empty));
     t = trie_setw(t, Key_escape,    CMDENTRY(cmd_setmode_vicommand));
+    t = trie_setw(t, L"\f",         CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, Key_delete,    CMDENTRY(cmd_delete_char));
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
