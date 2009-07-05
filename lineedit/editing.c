@@ -213,7 +213,6 @@ static struct xwcsrange get_next_bigword(const wchar_t *s)
 static struct xwcsrange get_prev_bigword(
 	const wchar_t *beginning, const wchar_t *s)
     __attribute__((nonnull));
-static void search_again(enum le_search_direction dir);
 
 static void go_to_history_absolute(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
@@ -226,6 +225,7 @@ static bool update_last_search_value(void)
 static void update_search(void);
 static void perform_search(const wchar_t *pattern, enum le_search_direction dir)
     __attribute__((nonnull));
+static void search_again(enum le_search_direction dir);
 
 #define ALERT_AND_RETURN_IF_PENDING                     \
     do if (state.pending_command_motion != MEC_NONE)    \
@@ -2258,50 +2258,6 @@ void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
     update_search();
 }
 
-/* Redoes the last vi-like search. */
-void cmd_vi_search_again(wchar_t c __attribute__((unused)))
-{
-    search_again(last_search.direction);
-}
-
-/* Redoes the last vi-like search in the reverse direction. */
-void cmd_vi_search_again_rev(wchar_t c __attribute__((unused)))
-{
-    switch (last_search.direction) {
-	case FORWARD:   search_again(BACKWARD);  break;
-	case BACKWARD:  search_again(FORWARD);   break;
-    }
-}
-
-/* Redoes the last vi-like search in the forward direction. */
-void cmd_vi_search_again_forward(wchar_t c __attribute__((unused)))
-{
-    search_again(FORWARD);
-}
-
-/* Redoes the last vi-like search in the backward direction. */
-void cmd_vi_search_again_backward(wchar_t c __attribute__((unused)))
-{
-    search_again(BACKWARD);
-}
-
-void search_again(enum le_search_direction dir)
-{
-    ALERT_AND_RETURN_IF_PENDING;
-
-    if (last_search.value == NULL) {
-	cmd_alert(L'\0');
-	return;
-    }
-
-    perform_search(last_search.value, dir);
-    if (le_search_result == Histlist) {
-	cmd_alert(L'\0');
-    } else {
-	go_to_history(le_search_result, false);
-    }
-}
-
 
 /********** History-Related Commands **********/
 
@@ -2660,6 +2616,52 @@ void perform_search(const wchar_t *pattern, enum le_search_direction dir)
 done:
     le_search_result = e;
     free(lpattern);
+}
+
+/* Redoes the last search. */
+void cmd_search_again(wchar_t c __attribute__((unused)))
+{
+    search_again(last_search.direction);
+}
+
+/* Redoes the last search in the reverse direction. */
+void cmd_search_again_rev(wchar_t c __attribute__((unused)))
+{
+    switch (last_search.direction) {
+	case FORWARD:   search_again(BACKWARD);  break;
+	case BACKWARD:  search_again(FORWARD);   break;
+    }
+}
+
+/* Redoes the last search in the forward direction. */
+void cmd_search_again_forward(wchar_t c __attribute__((unused)))
+{
+    search_again(FORWARD);
+}
+
+/* Redoes the last search in the backward direction. */
+void cmd_search_again_backward(wchar_t c __attribute__((unused)))
+{
+    search_again(BACKWARD);
+}
+
+/* Performs command search for the last search pattern in the specified
+ * direction. */
+void search_again(enum le_search_direction dir)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    if (last_search.value == NULL) {
+	cmd_alert(L'\0');
+	return;
+    }
+
+    perform_search(last_search.value, dir);
+    if (le_search_result == Histlist) {
+	cmd_alert(L'\0');
+    } else {
+	go_to_history(le_search_result, false);
+    }
 }
 
 

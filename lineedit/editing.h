@@ -135,11 +135,7 @@ extern le_command_func_T
     cmd_vi_exec_alias,
     cmd_vi_edit_and_accept,
     cmd_vi_search_forward,
-    cmd_vi_search_backward,
-    cmd_vi_search_again,
-    cmd_vi_search_again_rev,
-    cmd_vi_search_again_forward,
-    cmd_vi_search_again_backward;
+    cmd_vi_search_backward;
 
 /* history-related commands */
 extern le_command_func_T
@@ -158,7 +154,11 @@ extern le_command_func_T
     cmd_srch_backward_delete_char,
     cmd_srch_backward_delete_line,
     cmd_srch_accept_search,
-    cmd_srch_abort_search;
+    cmd_srch_abort_search,
+    cmd_search_again,
+    cmd_search_again_rev,
+    cmd_search_again_forward,
+    cmd_search_again_backward;
 
 
 #endif /* YASH_EDITING_H */
