@@ -589,7 +589,7 @@ void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 
 /* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
  * Otherwise, deletes the character under the cursor. */
-void cmd_eof_or_delete(wchar_t c)
+void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -597,19 +597,19 @@ void cmd_eof_or_delete(wchar_t c)
 	le_editstate = LE_EDITSTATE_ERROR;
 	reset_state();
     } else {
-	cmd_delete_char(c);
+	cmd_delete_char(L'\0');
     }
 }
 
 /* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
  */
-void cmd_accept_with_hash(wchar_t c)
+void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
     wb_insert(&le_main_buffer, 0, L"#");
     le_display_reprint_buffer(0, false);
-    cmd_accept_line(c);
+    cmd_accept_line(L'\0');
 }
 
 /* Changes the editing mode to "vi insert". */
@@ -1184,7 +1184,7 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
 
 /* Removes the character under the cursor.
  * If the count is set, `count' characters are killed. */
-void cmd_delete_char(wchar_t c)
+void cmd_delete_char(wchar_t c __attribute__((unused)))
 {
     if (state.count.sign == 0) {
 	ALERT_AND_RETURN_IF_PENDING;
@@ -1199,13 +1199,13 @@ void cmd_delete_char(wchar_t c)
 	}
 	reset_state();
     } else {
-	cmd_kill_char(c);
+	cmd_kill_char(L'\0');
     }
 }
 
 /* Removes the character behind the cursor.
  * If the count is set, `count' characters are killed. */
-void cmd_backward_delete_char(wchar_t c)
+void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
 {
     if (state.count.sign == 0) {
 	ALERT_AND_RETURN_IF_PENDING;
@@ -1220,7 +1220,7 @@ void cmd_backward_delete_char(wchar_t c)
 	}
 	reset_state();
     } else {
-	cmd_backward_kill_char(c);
+	cmd_backward_kill_char(L'\0');
     }
 }
 
@@ -1321,23 +1321,23 @@ void cmd_backward_delete_line(wchar_t c __attribute__((unused)))
 
 /* Kills the character under the cursor.
  * If the count is set, `count' characters are killed. */
-void cmd_kill_char(wchar_t c)
+void cmd_kill_char(wchar_t c __attribute__((unused)))
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
     state.pending_command_motion = MEC_KILL;
-    cmd_forward_char(c);
+    cmd_forward_char(L'\0');
 }
 
 /* Kills the character behind the cursor.
  * If the count is set, `count' characters are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
-void cmd_backward_kill_char(wchar_t c)
+void cmd_backward_kill_char(wchar_t c __attribute__((unused)))
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
     state.pending_command_motion = MEC_KILL;
-    cmd_backward_char(c);
+    cmd_backward_char(L'\0');
 }
 
 /* Kills the semiword behind the cursor.
@@ -1780,47 +1780,47 @@ void vi_replace_char(wchar_t c)
 
 /* Moves the cursor to the beginning of line and sets the editing mode to
  * "vi insert". */
-void cmd_vi_insert_beginning(wchar_t c)
+void cmd_vi_insert_beginning(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
     le_main_index = 0;
-    cmd_setmode_viinsert(c);
+    cmd_setmode_viinsert(L'\0');
 }
 
 /* Moves the cursor by one character and sets the editing mode to "vi insert".
  */
-void cmd_vi_append(wchar_t c)
+void cmd_vi_append(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
     if (le_main_index < le_main_buffer.length)
 	le_main_index++;
-    cmd_setmode_viinsert(c);
+    cmd_setmode_viinsert(L'\0');
 }
 
 /* Moves the cursor to the end of line and sets the editing mode to
  * "vi insert".*/
-void cmd_vi_append_end(wchar_t c)
+void cmd_vi_append_end(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
     le_main_index = le_main_buffer.length;
-    cmd_setmode_viinsert(c);
+    cmd_setmode_viinsert(L'\0');
 }
 
 /* Sets the editing mode to "vi insert", with the `overwrite' flag true. */
-void cmd_vi_replace(wchar_t c)
+void cmd_vi_replace(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    cmd_setmode_viinsert(c);
+    cmd_setmode_viinsert(L'\0');
     overwrite = true;
 }
 
 /* Changes the case of the character under the cursor and advances the cursor.
  * If the count is set, `count' characters are changed. */
-void cmd_vi_change_case(wchar_t c)
+void cmd_vi_change_case(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     save_current_edit_command();
@@ -1960,12 +1960,12 @@ void exec_edit_command_to_eol(enum motion_expect_command cmd)
 
 /* Kills the character under the cursor and sets the editing mode to
  * "vi insert". If the count is set, `count' characters are killed. */
-void cmd_vi_substitute(wchar_t c)
+void cmd_vi_substitute(wchar_t c __attribute__((unused)))
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
     state.pending_command_motion = MEC_COPYCHANGE;
-    cmd_forward_char(c);
+    cmd_forward_char(L'\0');
 }
 
 /* Appends a space followed by the last bigword from the newest history entry.
