@@ -89,6 +89,18 @@ static struct command {
     wchar_t arg;
 } last_command, current_command;
 
+/* The type of motion expecting commands. */
+enum motion_expect_command {
+    MEC_NONE   = 0,       /* just move the cursor */
+    MEC_COPY   = 1 << 0,  /* copy the text to the kill ring */
+    MEC_DELETE = 1 << 1,  /* delete the text */
+    MEC_INSERT = 1 << 2,  /* go to insert mode */
+    MEC_KILL       = MEC_COPY   | MEC_DELETE,
+    MEC_CHANGE     = MEC_DELETE | MEC_INSERT,
+    MEC_COPYCHANGE = MEC_KILL   | MEC_INSERT,
+    /* MEC_INSERT must be used together with MEC_DELETE */
+};
+
 /* The keymap state. */
 static struct state {
     struct {
@@ -100,9 +112,7 @@ static struct state {
 	int multiplier;
 #define COUNT_ABS_MAX 999999999
     } count;
-    enum motion_expect_command {
-	MEC_NONE, MEC_COPY, MEC_KILL, MEC_CHANGE, MEC_COPYCHANGE,
-    } pending_command_motion;
+    enum motion_expect_command pending_command_motion;
     le_command_func_T *pending_command_char;
 } state;
 
@@ -171,7 +181,7 @@ static size_t next_end_of_bigword_index(
 static size_t previous_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static void move_cursor_forward_viword(int count);
-static bool need_cw_treatment(void)
+static inline bool need_cw_treatment(void)
     __attribute__((pure));
 static void move_cursor_backward_viword(int count);
 static size_t next_viword_index(const wchar_t *s, size_t i)
@@ -424,36 +434,25 @@ void exec_motion_command(size_t index, bool inclusive)
 	start_index = index, end_index = le_main_index;
     if (inclusive && end_index < le_main_buffer.length)
 	end_index++;
-    switch (state.pending_command_motion) {
-	case MEC_NONE:
-	    le_main_index = index;
-	    break;
-	case MEC_COPY:
+
+    enum motion_expect_command mec = state.pending_command_motion;
+    if (mec == MEC_NONE) {
+	le_main_index = index;
+    } else {
+	if (mec & MEC_COPY) {
 	    add_to_kill_ring(le_main_buffer.contents + start_index,
 		    end_index - start_index);
-	    break;
-	case MEC_KILL:
-	    save_current_edit_command();
-	    add_to_kill_ring(le_main_buffer.contents + start_index,
-		    end_index - start_index);
-	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
-	    le_main_index = start_index;
-	    le_display_reprint_buffer(start_index, false);
-	    break;
-	case MEC_COPYCHANGE:
-	    add_to_kill_ring(le_main_buffer.contents + start_index,
-		    end_index - start_index);
-	    /* falls thru */
-	case MEC_CHANGE:
+	}
+	if (mec & MEC_DELETE) {
 	    save_current_edit_command();
 	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
 	    le_main_index = start_index;
 	    le_display_reprint_buffer(start_index, false);
-	    le_set_mode(LE_MODE_VI_INSERT);
-	    overwrite = false;
-	    break;
-	default:
-	    assert(false);
+	    if (mec & MEC_INSERT) {
+		le_set_mode(LE_MODE_VI_INSERT);
+		overwrite = false;
+	    }
+	}
     }
     reset_state();
 }
@@ -962,13 +961,8 @@ void move_cursor_forward_viword(int count)
 /* Checks if we need a special treatment for the "cw" and "cW" commands. */
 bool need_cw_treatment(void)
 {
-    switch (state.pending_command_motion) {
-	case MEC_CHANGE:
-	case MEC_COPYCHANGE:
-	    return !iswblank(le_main_buffer.contents[le_main_index]);
-	default:
-	    return false;
-    }
+    return (state.pending_command_motion & MEC_INSERT)
+	&& !iswblank(le_main_buffer.contents[le_main_index]);
 }
 
 /* Moves the cursor backward `count' viwords, relative to the current position.
