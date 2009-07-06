@@ -18,9 +18,6 @@
 
 #include "../common.h"
 #include <assert.h>
-#include <stddef.h>
-#include "../strbuf.h"
-#include "../util.h"
 #include "editing.h"
 #include "key.h"
 #include "keymap.h"

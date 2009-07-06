@@ -19,15 +19,12 @@
 #include "../common.h"
 #include <assert.h>
 #include <errno.h>
-#include <stdarg.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <wctype.h>
 #include "../option.h"
 #include "../sig.h"
 #include "../strbuf.h"
