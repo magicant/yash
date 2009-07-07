@@ -49,10 +49,6 @@ extern const le_mode_T *le_get_mode(le_mode_id_T id)
 extern void le_set_mode(le_mode_id_T id);
 
 
-#define CMDENTRY(cmdfunc_) \
-    ((trievalue_T) { .cmdfunc = (cmdfunc_) })
-
-
 #endif /* YASH_KEYMAP_H */
 
 
