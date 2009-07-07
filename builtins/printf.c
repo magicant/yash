@@ -38,8 +38,6 @@
 #include "printf.h"
 
 
-#define VAR_ECHO_STYLE "ECHO_STYLE"
-
 /* type of format data used in the "printf" builtin */
 struct format_T {
     struct format_T *next;
