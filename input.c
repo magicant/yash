@@ -50,7 +50,6 @@
 
 /********** Input Functions **********/
 
-static void exec_prompt_command(void);
 #if YASH_ENABLE_LINEEDIT
 static wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -291,7 +290,8 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     if (do_job_control)
 	print_job_status_all(true, false, stderr);
     if (info->type == 1) {
-	exec_prompt_command();
+	if (!posixly_correct)
+	    exec_variable_as_commands(L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
 	check_mail();
     }
 
@@ -344,24 +344,6 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	add_history(buf->contents + oldlen);
 #endif
     return result;
-}
-
-/* Executes the prompt command.
- * The parse state must be saved beforehand. */
-void exec_prompt_command(void)
-{
-    if (!posixly_correct) {
-	const wchar_t *pc = getvar(L VAR_PROMPT_COMMAND);
-	if (pc) {
-	    /* PROMPT_COMMAND is executed as if a trap handler */
-	    wchar_t *savepc = xwcsdup(pc);
-	    savelaststatus = laststatus;
-	    exec_wcs(savepc, VAR_PROMPT_COMMAND, false);
-	    laststatus = savelaststatus;
-	    savelaststatus = -1;
-	    free(savepc);
-	}
-    }
 }
 
 #if YASH_ENABLE_LINEEDIT
