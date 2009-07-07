@@ -203,11 +203,11 @@ static size_t next_end_of_viword_index(
     __attribute__((nonnull));
 static size_t previous_viword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
-static void move_cursor_forward_nonword(int count);
-static void move_cursor_backward_word(int count);
-static size_t next_nonword_index(const wchar_t *s, size_t i)
+static void move_cursor_forward_emacsword(int count);
+static void move_cursor_backward_emacsword(int count);
+static size_t next_emacsword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
-static size_t previous_word_index(const wchar_t *s, size_t i)
+static size_t previous_emacsword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
@@ -1278,53 +1278,55 @@ start:
     }
 }
 
-/* Moves to the next nonword (or the `count'th nonword if the count is set). */
+/* Moves to the next emacsword (or the `count'th emacsword if the count is set).
+ */
 /* exclusive motion command */
-void cmd_forward_nonword(wchar_t c __attribute__((unused)))
+void cmd_forward_emacsword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward_nonword(count);
+	move_cursor_forward_emacsword(count);
     else
-	move_cursor_backward_word(-count);
+	move_cursor_backward_emacsword(-count);
 }
 
-/* Moves backward one word (or `count' words if the count is set). */
+/* Moves backward one emacsword (or `count' words if the count is set). */
 /* exclusive motion command */
-void cmd_backward_word(wchar_t c __attribute__((unused)))
+void cmd_backward_emacsword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward_word(count);
+	move_cursor_backward_emacsword(count);
     else
-	move_cursor_forward_nonword(-count);
+	move_cursor_forward_emacsword(-count);
 }
 
-/* Moves the cursor to the `count'th nonword, relative to the current position.
- * If `count' is negative, the cursor is not moved. */
-void move_cursor_forward_nonword(int count)
+/* Moves the cursor to the `count'th emacsword, relative to the current
+ * position. If `count' is negative, the cursor is not moved. */
+void move_cursor_forward_emacsword(int count)
 {
     size_t new_index = le_main_index;
     while (count-- > 0 && new_index < le_main_buffer.length)
-	new_index = next_nonword_index(le_main_buffer.contents, new_index);
+	new_index = next_emacsword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
-/* Moves the cursor backward `count'th word, relative to the current position.
- * If `count' is negative, the cursor is not moved. */
-void move_cursor_backward_word(int count)
+/* Moves the cursor backward `count'th emacsword, relative to the current
+ * position. If `count' is negative, the cursor is not moved. */
+void move_cursor_backward_emacsword(int count)
 {
     size_t new_index = le_main_index;
     while (count-- > 0 && new_index > 0)
-	new_index = previous_word_index(le_main_buffer.contents, new_index);
+	new_index = previous_emacsword_index(
+		le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
-/* Returns the index of the next nonword in the string `s', counted from the
+/* Returns the index of the next emacsword in the string `s', counted from the
  * index `i'. The return value is greater than `i' unless `s[i]' is a null
  * character. */
-/* A nonword is a sequence of non-alphanumeric characters. */
-size_t next_nonword_index(const wchar_t *s, size_t i)
+/* An emacsword is a sequence of non-alphanumeric characters. */
+size_t next_emacsword_index(const wchar_t *s, size_t i)
 {
     while (s[i] != L'\0' && !iswalnum(s[i]))
 	i++;
@@ -1333,10 +1335,10 @@ size_t next_nonword_index(const wchar_t *s, size_t i)
     return i;
 }
 
-/* Returns the index of the previous word in the string `s', counted from the
- * index `i'. The return value is less than `i' unless `i' is zero. */
-/* A word is a sequence of alphanumeric characters. */
-size_t previous_word_index(const wchar_t *s, size_t i)
+/* Returns the index of the previous emacsword in the string `s', counted from
+ * the index `i'. The return value is less than `i' unless `i' is zero. */
+/* An emacsword is a sequence of alphanumeric characters. */
+size_t previous_emacsword_index(const wchar_t *s, size_t i)
 {
     const size_t init = i;
 start:
@@ -1426,15 +1428,15 @@ void cmd_delete_viword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(cmd, cmd_forward_viword);
 }
 
-/* Removes the word after the cursor.
- * If the count is set, `count' words are killed.
+/* Removes the emacsword after the cursor.
+ * If the count is set, `count' emacswords are killed.
  * If the cursor is at the end of the line, the terminal is alerted. */
-void cmd_delete_nonword(wchar_t c __attribute__((unused)))
+void cmd_delete_emacsword(wchar_t c __attribute__((unused)))
 {
     enum motion_expect_command cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
-    exec_motion_expect_command(cmd, cmd_forward_nonword);
+    exec_motion_expect_command(cmd, cmd_forward_emacsword);
 }
 
 /* Removes the character behind the cursor.
@@ -1480,15 +1482,15 @@ void cmd_backward_delete_viword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(cmd, cmd_backward_viword);
 }
 
-/* Removes the word behind the cursor.
- * If the count is set, `count' words are killed.
+/* Removes the emacsword behind the cursor.
+ * If the count is set, `count' emacswords are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
-void cmd_backward_delete_word(wchar_t c __attribute__((unused)))
+void cmd_backward_delete_emacsword(wchar_t c __attribute__((unused)))
 {
     enum motion_expect_command cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
-    exec_motion_expect_command(cmd, cmd_backward_word);
+    exec_motion_expect_command(cmd, cmd_backward_emacsword);
 }
 
 /* Removes all characters in the edit line. */
@@ -1540,12 +1542,12 @@ void cmd_kill_viword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_KILL, cmd_forward_viword);
 }
 
-/* Kills the word after the cursor.
- * If the count is set, `count' words are killed.
+/* Kills the emacsword after the cursor.
+ * If the count is set, `count' emacswords are killed.
  * If the cursor is at the end of the line, the terminal is alerted. */
-void cmd_kill_nonword(wchar_t c __attribute__((unused)))
+void cmd_kill_emacsword(wchar_t c __attribute__((unused)))
 {
-    exec_motion_expect_command(MEC_KILL, cmd_forward_nonword);
+    exec_motion_expect_command(MEC_KILL, cmd_forward_emacsword);
 }
 
 /* Kills the character behind the cursor.
@@ -1580,12 +1582,12 @@ void cmd_backward_kill_viword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_KILL, cmd_backward_viword);
 }
 
-/* Kills the word behind the cursor.
- * If the count is set, `count' words are killed.
+/* Kills the emacsword behind the cursor.
+ * If the count is set, `count' emacswords are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
-void cmd_backward_kill_word(wchar_t c __attribute__((unused)))
+void cmd_backward_kill_emacsword(wchar_t c __attribute__((unused)))
 {
-    exec_motion_expect_command(MEC_KILL, cmd_backward_word);
+    exec_motion_expect_command(MEC_KILL, cmd_backward_emacsword);
 }
 
 /* Kills all characters after the cursor. */

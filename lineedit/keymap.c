@@ -219,10 +219,10 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_f,       CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_left,      CMDENTRY(cmd_backward_char));
     t = trie_setw(t, Key_c_b,       CMDENTRY(cmd_backward_char));
-    t = trie_setw(t, Key_escape "f", CMDENTRY(cmd_forward_nonword));
-    t = trie_setw(t, Key_escape "F", CMDENTRY(cmd_forward_nonword));
-    t = trie_setw(t, Key_escape "b", CMDENTRY(cmd_backward_word));
-    t = trie_setw(t, Key_escape "B", CMDENTRY(cmd_backward_word));
+    t = trie_setw(t, Key_escape "f", CMDENTRY(cmd_forward_emacsword));
+    t = trie_setw(t, Key_escape "F", CMDENTRY(cmd_forward_emacsword));
+    t = trie_setw(t, Key_escape "b", CMDENTRY(cmd_backward_emacsword));
+    t = trie_setw(t, Key_escape "B", CMDENTRY(cmd_backward_emacsword));
     t = trie_setw(t, Key_home,      CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, Key_c_a,       CMDENTRY(cmd_beginning_of_line));
     t = trie_setw(t, Key_end,       CMDENTRY(cmd_end_of_line));
@@ -231,12 +231,13 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_delete_char));
-    t = trie_setw(t, Key_escape "d", CMDENTRY(cmd_kill_nonword));
-    t = trie_setw(t, Key_escape "D", CMDENTRY(cmd_kill_nonword));
+    t = trie_setw(t, Key_escape "d", CMDENTRY(cmd_kill_emacsword));
+    t = trie_setw(t, Key_escape "D", CMDENTRY(cmd_kill_emacsword));
     t = trie_setw(t, Key_escape Key_backspace,
-	    CMDENTRY(cmd_backward_kill_word));
-    t = trie_setw(t, Key_escape Key_erase, CMDENTRY(cmd_backward_kill_word));
-    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_kill_word));
+	    CMDENTRY(cmd_backward_kill_emacsword));
+    t = trie_setw(t, Key_escape Key_erase,
+	    CMDENTRY(cmd_backward_kill_emacsword));
+    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_kill_emacsword));
     t = trie_setw(t, Key_c_k,       CMDENTRY(cmd_forward_kill_line));
     t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_kill_line));
     t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_kill_line));
