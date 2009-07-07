@@ -215,8 +215,7 @@ void le_keymap_init(void)
     Set(Key_interrupt,      cmd_abort_line);
     Set(Key_c_c,            cmd_abort_line);
     Set(Key_eof,            cmd_eof_or_delete);
-    // TODO emacs: cmd_accept_with_hash: accept digit argument
-    //Set(Key_escape "#", cmd_accept_with_hash);
+    Set(Key_escape "#",     cmd_accept_with_hash);
     Set(Key_c_l,            cmd_redraw_all);
     Set(Key_right,          cmd_forward_char);
     Set(Key_c_f,            cmd_forward_char);

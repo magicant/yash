@@ -663,12 +663,17 @@ void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 }
 
 /* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
- */
+ * If any count is set and the line already begins with a hash sign, the hash
+ * sign is removed instead of adding one. The line is accepted anyway. */
 void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    wb_insert(&le_main_buffer, 0, L"#");
+    if (state.count.sign == 0 || le_main_buffer.contents[0] != L'#')
+	wb_insert(&le_main_buffer, 0, L"#");
+    else
+	wb_remove(&le_main_buffer, 0, 1);
+    le_main_index = 0;
     le_display_reprint_buffer(0, false);
     cmd_accept_line(L'\0');
 }
