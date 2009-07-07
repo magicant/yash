@@ -1263,6 +1263,8 @@ step10:  /* do chdir */
 	    }
 	}
     }
+    if (!posixly_correct)
+	exec_variable_as_commands(L VAR_YASH_AFTER_CD, VAR_YASH_AFTER_CD, true);
 
     return err ? Exit_FAILURE : Exit_SUCCESS;
 }

@@ -62,6 +62,7 @@ extern char **environ;
 #define VAR_PWD		"PWD"
 #define VAR_RANDOM	"RANDOM"
 #define VAR_TERM	"TERM"
+#define VAR_YASH_AFTER_CD "YASH_AFTER_CD"
 #define VAR_YASH_LE_TIMEOUT "YASH_LE_TIMEOUT"
 #define VAR_YASH_VERSION "YASH_VERSION"
 #define L               L""
