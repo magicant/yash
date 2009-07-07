@@ -49,8 +49,8 @@ extern le_command_func_T
     cmd_noop,
     cmd_alert,
     cmd_self_insert,
-    cmd_expect_verbatim,
     cmd_insert_tab,
+    cmd_expect_verbatim,
     cmd_digit_argument,
     cmd_bol_or_digit,
     cmd_accept_line,
@@ -60,9 +60,11 @@ extern le_command_func_T
     cmd_accept_with_hash,
     cmd_setmode_viinsert,
     cmd_setmode_vicommand,
+    cmd_setmode_emacs,
     cmd_expect_char,
     cmd_abort_expect_char,
-    cmd_redraw_all;
+    cmd_redraw_all,
+    cmd_clear_and_redraw_all;
 
 /* motion commands */
 extern le_command_func_T
@@ -89,10 +91,12 @@ extern le_command_func_T
     cmd_delete_bigword,
     cmd_delete_semiword,
     cmd_delete_viword,
+    cmd_delete_nonword,
     cmd_backward_delete_char,
     cmd_backward_delete_bigword,
     cmd_backward_delete_semiword,
     cmd_backward_delete_viword,
+    cmd_backward_delete_word,
     cmd_delete_line,
     cmd_forward_delete_line,
     cmd_backward_delete_line,
@@ -100,10 +104,12 @@ extern le_command_func_T
     cmd_kill_bigword,
     cmd_kill_semiword,
     cmd_kill_viword,
+    cmd_kill_nonword,
     cmd_backward_kill_char,
     cmd_backward_kill_bigword,
     cmd_backward_kill_semiword,
     cmd_backward_kill_viword,
+    cmd_backward_kill_word,
     cmd_kill_line,
     cmd_forward_kill_line,
     cmd_backward_kill_line,
@@ -148,6 +154,17 @@ extern le_command_func_T
     cmd_vi_edit_and_accept,
     cmd_vi_search_forward,
     cmd_vi_search_backward;
+
+/* emacs-mode specific commands */
+extern le_command_func_T
+    cmd_emacs_transpose_chars,
+    cmd_emacs_transpose_words,
+    cmd_emacs_upcase_word,
+    cmd_emacs_downcase_word,
+    cmd_emacs_capitalize_word,
+    cmd_emacs_delete_spaces_around,
+    cmd_emacs_search_forward,
+    cmd_emacs_search_backward;
 
 /* history-related commands */
 extern le_command_func_T

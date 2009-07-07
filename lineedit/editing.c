@@ -570,18 +570,18 @@ void cmd_self_insert(wchar_t c)
     }
 }
 
+/* Inserts the tab character. */
+void cmd_insert_tab(wchar_t c __attribute__((unused)))
+{
+    cmd_self_insert(L'\t');
+}
+
 /* Sets the `le_next_verbatim' flag.
  * The next character will be input to the main buffer even if it's a special
  * character. */
 void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
 {
     le_next_verbatim = true;
-}
-
-/* Inserts the tab character. */
-void cmd_insert_tab(wchar_t c __attribute__((unused)))
-{
-    cmd_self_insert(L'\t');
 }
 
 /* Adds the specified digit `c' to the accumulating argument. */
@@ -698,6 +698,11 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
     overwrite = false;
 }
 
+void cmd_setmode_emacs(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_setmode_emacs
+}
+
 /* Executes a command that expects a character as an argument. */
 void cmd_expect_char(wchar_t c)
 {
@@ -715,7 +720,7 @@ void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
     le_set_mode(LE_MODE_VI_COMMAND);
 }
 
-/* Redraw everything. */
+/* Redraws everything. */
 void cmd_redraw_all(wchar_t c __attribute__((unused)))
 {
     le_display_clear();
@@ -723,6 +728,12 @@ void cmd_redraw_all(wchar_t c __attribute__((unused)))
     le_setupterm(false);
     le_set_terminal();
     le_display_print_all(false);
+}
+
+/* Clears the screen and redraws everything at the top of the screen. */
+void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_clear_and_redraw_all
 }
 
 
@@ -1415,6 +1426,17 @@ void cmd_delete_viword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(cmd, cmd_forward_viword);
 }
 
+/* Removes the word after the cursor.
+ * If the count is set, `count' words are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_delete_nonword(wchar_t c __attribute__((unused)))
+{
+    enum motion_expect_command cmd;
+
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_forward_nonword);
+}
+
 /* Removes the character behind the cursor.
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
@@ -1456,6 +1478,17 @@ void cmd_backward_delete_viword(wchar_t c __attribute__((unused)))
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_viword);
+}
+
+/* Removes the word behind the cursor.
+ * If the count is set, `count' words are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_delete_word(wchar_t c __attribute__((unused)))
+{
+    enum motion_expect_command cmd;
+
+    cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
+    exec_motion_expect_command(cmd, cmd_backward_word);
 }
 
 /* Removes all characters in the edit line. */
@@ -1507,6 +1540,14 @@ void cmd_kill_viword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_KILL, cmd_forward_viword);
 }
 
+/* Kills the word after the cursor.
+ * If the count is set, `count' words are killed.
+ * If the cursor is at the end of the line, the terminal is alerted. */
+void cmd_kill_nonword(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command(MEC_KILL, cmd_forward_nonword);
+}
+
 /* Kills the character behind the cursor.
  * If the count is set, `count' characters are killed.
  * If the cursor is at the beginning of the line, the terminal is alerted. */
@@ -1537,6 +1578,14 @@ void cmd_backward_kill_semiword(wchar_t c __attribute__((unused)))
 void cmd_backward_kill_viword(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command(MEC_KILL, cmd_backward_viword);
+}
+
+/* Kills the word behind the cursor.
+ * If the count is set, `count' words are killed.
+ * If the cursor is at the beginning of the line, the terminal is alerted. */
+void cmd_backward_kill_word(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command(MEC_KILL, cmd_backward_word);
 }
 
 /* Kills all characters after the cursor. */
@@ -2346,6 +2395,51 @@ void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
     wb_init(&le_search_buffer);
     le_set_mode(LE_MODE_VI_SEARCH);
     update_search();
+}
+
+
+/********** Emacs-Mode Specific Commands **********/
+
+void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_transpose_chars
+}
+
+void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_transpose_words
+}
+
+void cmd_emacs_downcase_word(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_downcase_word
+}
+
+void cmd_emacs_upcase_word(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_upcase_word
+}
+
+void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_capitalize_word
+}
+
+void cmd_emacs_delete_spaces_around(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_delete_spaces_around
+}
+
+/* Starts emacs-like command history search in the forward direction. */
+void cmd_emacs_search_forward(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_search_forward
+}
+
+/* Starts emacs-like command history search in the backward direction. */
+void cmd_emacs_search_backward(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_search_backward
 }
 
 

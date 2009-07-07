@@ -191,6 +191,8 @@ void le_keymap_init(void)
     le_modes[LE_MODE_EMACS].default_command = cmd_self_insert;
     t = trie_create();
     t = trie_setw(t, Key_backslash, CMDENTRY(cmd_self_insert));
+    t = trie_setw(t, Key_escape Key_c_i, CMDENTRY(cmd_insert_tab));
+    t = trie_setw(t, Key_c_q,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_c_v,       CMDENTRY(cmd_expect_verbatim));
     t = trie_setw(t, Key_escape "0", CMDENTRY(cmd_digit_argument));
     t = trie_setw(t, Key_escape "1", CMDENTRY(cmd_digit_argument));
@@ -210,6 +212,8 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_interrupt, CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_c_c,       CMDENTRY(cmd_abort_line));
     t = trie_setw(t, Key_eof,       CMDENTRY(cmd_eof_or_delete));
+    // TODO emacs: cmd_accept_with_hash: accept digit argument
+    //t = trie_setw(t, Key_escape "#", CMDENTRY(cmd_accept_with_hash));
     t = trie_setw(t, Key_c_l,       CMDENTRY(cmd_redraw_all));
     t = trie_setw(t, Key_right,     CMDENTRY(cmd_forward_char));
     t = trie_setw(t, Key_c_f,       CMDENTRY(cmd_forward_char));
@@ -227,6 +231,12 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_backspace, CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_erase,     CMDENTRY(cmd_backward_delete_char));
     t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_delete_char));
+    t = trie_setw(t, Key_escape "d", CMDENTRY(cmd_kill_nonword));
+    t = trie_setw(t, Key_escape "D", CMDENTRY(cmd_kill_nonword));
+    t = trie_setw(t, Key_escape Key_backspace,
+	    CMDENTRY(cmd_backward_kill_word));
+    t = trie_setw(t, Key_escape Key_erase, CMDENTRY(cmd_backward_kill_word));
+    t = trie_setw(t, Key_c_h,       CMDENTRY(cmd_backward_kill_word));
     t = trie_setw(t, Key_c_k,       CMDENTRY(cmd_forward_kill_line));
     t = trie_setw(t, Key_kill,      CMDENTRY(cmd_backward_kill_line));
     t = trie_setw(t, Key_c_u,       CMDENTRY(cmd_backward_kill_line));
@@ -237,13 +247,19 @@ void le_keymap_init(void)
     t = trie_setw(t, Key_c_ul,      CMDENTRY(cmd_undo));
     t = trie_setw(t, Key_c_x Key_c_u, CMDENTRY(cmd_undo));
     t = trie_setw(t, Key_c_x Key_kill, CMDENTRY(cmd_undo));
+    t = trie_setw(t, Key_escape Key_c_r, CMDENTRY(cmd_undo_all));
     t = trie_setw(t, Key_escape "r", CMDENTRY(cmd_undo_all));
     t = trie_setw(t, Key_escape "R", CMDENTRY(cmd_undo_all));
     t = trie_setw(t, Key_escape "<", CMDENTRY(cmd_oldest_history_eol));
     t = trie_setw(t, Key_escape ">", CMDENTRY(cmd_return_history_eol));
+    t = trie_setw(t, Key_down,      CMDENTRY(cmd_next_history_eol));
     t = trie_setw(t, Key_c_n,       CMDENTRY(cmd_next_history_eol));
+    t = trie_setw(t, Key_up,        CMDENTRY(cmd_prev_history_eol));
     t = trie_setw(t, Key_c_p,       CMDENTRY(cmd_prev_history_eol));
+    t = trie_setw(t, Key_c_s,       CMDENTRY(cmd_emacs_search_forward));
+    t = trie_setw(t, Key_c_r,       CMDENTRY(cmd_emacs_search_backward));
     // TODO emacs keybinds: command search
+    // TODO emacs keybinds: find_char
     // TODO emacs keybinds: other commands
     le_modes[LE_MODE_EMACS].keymap = t;
 }

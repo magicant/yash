@@ -322,7 +322,7 @@ _Bool le_setupterm(_Bool bypass)
     return 1;
 }
 
-/* Initialized `le_keycodes'. */
+/* Initializes `le_keycodes'. */
 void set_up_keycodes(void)
 {
     trie_destroy(le_keycodes);
