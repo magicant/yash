@@ -1449,10 +1449,13 @@ bool remove_dirstack_entry(size_t index)
  * If the `varname' names an array, every element of the array is executed (but
  * when a command returns non-zero status the following ones are not executed).
  * `codename' is passed to `exec_wcs' as the command name.
+ * If `saveparsestate' is true, the parser's state is saved during execution.
  * Returns the exit status of the executed command (or zero if none executed).*/
-int exec_variable_as_commands(const wchar_t *varname, const char *codename)
+int exec_variable_as_commands(
+	const wchar_t *varname, const char *codename, bool saveparsestate)
 {
     int savelaststatus = laststatus, commandstatus = 0;
+    struct parsestate_T *state = NULL;
     struct get_variable gv = get_variable(varname);
     void **array;
 
@@ -1473,6 +1476,8 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 	    assert(false);
     }
     for (void **a = array; *a; a++) {
+	if (saveparsestate && state == NULL)
+	    state = save_parse_state();
 	exec_wcs(*a, codename, false);
 	commandstatus = laststatus;
 	laststatus = savelaststatus;
@@ -1480,6 +1485,8 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 	    break;
     }
     recfree(array, free);
+    if (state != NULL)
+	restore_parse_state(state);
     return commandstatus;
 }
 

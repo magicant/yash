@@ -117,7 +117,7 @@ extern struct command_T *get_function(const wchar_t *name)
     __attribute__((nonnull));
 
 extern int exec_variable_as_commands(
-	const wchar_t *varname, const char *codename)
+	const wchar_t *varname, const char *codename, bool saveparsestate)
     __attribute__((nonnull));
 
 extern size_t get_dirstack_size(void);

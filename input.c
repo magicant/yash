@@ -291,7 +291,8 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	print_job_status_all(true, false, stderr);
     if (info->type == 1) {
 	if (!posixly_correct)
-	    exec_variable_as_commands(L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
+	    exec_variable_as_commands(
+		    L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND, false);
 	check_mail();
     }
 
