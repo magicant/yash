@@ -30,8 +30,10 @@ extern size_t le_main_index;
 enum le_search_direction { FORWARD, BACKWARD, };
 /* FORWARD:  find the oldest candidate from the ones newer than the current
  * BACKWARD: find the newest candidate from the ones older than the current */
+enum le_search_type { SEARCH_VI, SEARCH_EMACS, };
 
 extern enum le_search_direction le_search_direction;
+extern enum le_search_type le_search_type;
 extern xwcsbuf_T le_search_buffer;
 extern const struct histentry_T *le_search_result;
 
@@ -182,6 +184,8 @@ extern le_command_func_T
     cmd_srch_self_insert,
     cmd_srch_backward_delete_char,
     cmd_srch_backward_delete_line,
+    cmd_srch_continue_forward,
+    cmd_srch_continue_backward,
     cmd_srch_accept_search,
     cmd_srch_abort_search,
     cmd_search_again,

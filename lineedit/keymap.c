@@ -85,6 +85,8 @@ void le_keymap_init(void)
     Set(L"8",          cmd_digit_argument);
     Set(L"9",          cmd_digit_argument);
     Set(L"0",          cmd_bol_or_digit);
+    Set(L"\n",         cmd_accept_line);
+    Set(L"\r",         cmd_accept_line);
     Set(Key_c_j,       cmd_accept_line);
     Set(Key_c_m,       cmd_accept_line);
     Set(Key_interrupt, cmd_abort_line);
@@ -179,6 +181,8 @@ void le_keymap_init(void)
     Set(Key_c_h,       cmd_srch_backward_delete_char);
     Set(Key_kill,      cmd_srch_backward_delete_line);
     Set(Key_c_u,       cmd_srch_backward_delete_line);
+    Set(L"\n",         cmd_srch_accept_search);
+    Set(L"\r",         cmd_srch_accept_search);
     Set(Key_c_j,       cmd_srch_accept_search);
     Set(Key_c_m,       cmd_srch_accept_search);
     Set(Key_escape,    cmd_srch_abort_search);
@@ -258,6 +262,29 @@ void le_keymap_init(void)
     // TODO emacs keybinds: command search
     // TODO emacs keybinds: other commands
     le_modes[LE_MODE_EMACS].keymap = t;
+
+    le_modes[LE_MODE_EMACS_SEARCH].default_command = cmd_srch_self_insert;
+    t = trie_create();
+    Set(Key_c_v, cmd_expect_verbatim);
+    Set(L"\r",         cmd_accept_line);
+    Set(Key_c_m,       cmd_accept_line);
+    Set(Key_interrupt, cmd_abort_line);
+    Set(Key_c_c,       cmd_abort_line);
+    Set(L"\f",         cmd_redraw_all);
+    Set(Key_c_l,       cmd_redraw_all);
+    Set(Key_backslash, cmd_srch_self_insert);
+    Set(Key_backspace, cmd_srch_backward_delete_char);
+    Set(Key_erase,     cmd_srch_backward_delete_char);
+    Set(Key_c_h,       cmd_srch_backward_delete_char);
+    Set(Key_kill,      cmd_srch_backward_delete_line);
+    Set(Key_c_u,       cmd_srch_backward_delete_line);
+    Set(Key_c_s,       cmd_srch_continue_forward);
+    Set(Key_c_r,       cmd_srch_continue_backward);
+    Set(L"\n",         cmd_srch_accept_search);
+    Set(Key_c_j,       cmd_srch_accept_search);
+    Set(Key_escape,    cmd_srch_accept_search);
+    Set(Key_c_g,       cmd_srch_abort_search);
+    le_modes[LE_MODE_EMACS_SEARCH].keymap = t;
 
     le_modes[LE_MODE_CHAR_EXPECT].default_command = cmd_expect_char;
     t = trie_create();

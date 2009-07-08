@@ -548,10 +548,23 @@ void print_search(void)
     CHECK_CURRENT_LINE_MAX;
     le_print_ed();
 
-    // XXX assuming vi-like search
-    switch (le_search_direction) {
-	case FORWARD:   tputwc(L'?');  break;
-	case BACKWARD:  tputwc(L'/');  break;
+    const char *text;
+    switch (le_search_type) {
+	case SEARCH_VI:
+	    switch (le_search_direction) {
+		case FORWARD:   tputwc(L'?');  break;
+		case BACKWARD:  tputwc(L'/');  break;
+		default:        assert(false);
+	    }
+	    break;
+	case SEARCH_EMACS:
+	    switch (le_search_direction) {
+		case FORWARD:   text = "Backward search: ";  break;
+		case BACKWARD:  text = "Forward search: ";   break;
+		default:        assert(false);
+	    }
+	    twprintf(L"%s", gt(text));
+	    break;
     }
     tputws(le_search_buffer.contents, SIZE_MAX);
     fillip_cursor();

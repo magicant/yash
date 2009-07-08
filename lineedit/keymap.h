@@ -35,6 +35,7 @@ typedef enum le_mode_id_T {
     LE_MODE_VI_COMMAND,
     LE_MODE_VI_SEARCH,
     LE_MODE_EMACS,
+    LE_MODE_EMACS_SEARCH,
     LE_MODE_CHAR_EXPECT,
     LE_MODE_N,  // number of modes
 } le_mode_id_T;
