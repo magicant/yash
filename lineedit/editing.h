@@ -83,7 +83,14 @@ extern le_command_func_T
     cmd_backward_emacsword,
     cmd_beginning_of_line,
     cmd_end_of_line,
-    cmd_first_nonblank;
+    cmd_go_to_column,
+    cmd_first_nonblank,
+    cmd_find_char,
+    cmd_find_char_rev,
+    cmd_till_char,
+    cmd_till_char_rev,
+    cmd_refind_char,
+    cmd_refind_char_rev;
 
 /* editing commands */
 extern le_command_func_T
@@ -125,13 +132,6 @@ extern le_command_func_T
 
 /* vi-mode specific commands */
 extern le_command_func_T
-    cmd_vi_column,
-    cmd_vi_find,
-    cmd_vi_find_rev,
-    cmd_vi_till,
-    cmd_vi_till_rev,
-    cmd_vi_refind,
-    cmd_vi_refind_rev,
     cmd_vi_replace_char,
     cmd_vi_insert_beginning,
     cmd_vi_append,

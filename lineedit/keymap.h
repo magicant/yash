@@ -33,9 +33,9 @@ typedef struct le_mode_T {
 typedef enum le_mode_id_T {
     LE_MODE_VI_INSERT,
     LE_MODE_VI_COMMAND,
-    LE_MODE_VI_EXPECT,
     LE_MODE_VI_SEARCH,
     LE_MODE_EMACS,
+    LE_MODE_CHAR_EXPECT,
     LE_MODE_N,  // number of modes
 } le_mode_id_T;
 
@@ -44,9 +44,9 @@ extern le_mode_T le_modes[LE_MODE_N];
 extern le_mode_T *le_current_mode;
 
 extern void le_keymap_init(void);
-extern const le_mode_T *le_get_mode(le_mode_id_T id)
-    __attribute__((const));
 extern void le_set_mode(le_mode_id_T id);
+extern le_mode_id_T le_get_mode(void)
+    __attribute__((pure));
 
 
 #endif /* YASH_KEYMAP_H */

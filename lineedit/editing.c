@@ -125,6 +125,11 @@ static struct {
 /* `last_find_command' is valid iff `.func' is non-null. */
 static struct command last_find_command;
 
+/* The editing mode before the mode is changed to LE_MODE_CHAR_EXPECT/SEARCH.
+ * When the char-expecting/search command finishes, the mode is restored to
+ * `savemode'. */
+static le_mode_id_T savemode;
+
 /* If true, characters are overwritten rather than inserted. */
 static bool overwrite = false;
 
@@ -169,6 +174,9 @@ static void exec_motion_expect_command_line(enum motion_expect_command cmd);
 static void exec_motion_expect_command_all(void);
 static void add_to_kill_ring(const wchar_t *s, size_t n)
     __attribute__((nonnull));
+static void set_char_expect_command(le_command_func_T cmd)
+    __attribute__((nonnull));
+static void set_search_mode(le_mode_id_T mode, enum le_search_direction dir);
 
 static bool alert_if_first(void);
 static bool alert_if_last(void);
@@ -209,18 +217,18 @@ static size_t next_emacsword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t previous_emacsword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
+static void find_char(wchar_t c);
+static void find_char_rev(wchar_t c);
+static void till_char(wchar_t c);
+static void till_char_rev(wchar_t c);
+static void exec_find(wchar_t c, int count, bool till);
+static size_t find_nth_occurence(wchar_t c, int n);
 
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear);
 static void cancel_undo(int offset);
 
-static void vi_find(wchar_t c);
-static void vi_find_rev(wchar_t c);
-static void vi_till(wchar_t c);
-static void vi_till_rev(wchar_t c);
-static void exec_find(wchar_t c, int count, bool till);
-static size_t find_nth_occurence(wchar_t c, int n);
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
@@ -307,7 +315,7 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 
     last_command = current_command;
 
-    if (le_current_mode == &le_modes[LE_MODE_VI_COMMAND]) {
+    if (le_get_mode() == LE_MODE_VI_COMMAND) {
 	if (le_main_index > 0 && le_main_index == le_main_buffer.length) {
 	    le_main_index--;
 	}
@@ -351,7 +359,7 @@ int get_count(int default_value)
 void save_current_edit_command(void)
 {
     if (current_command.func != cmd_redo
-	    && le_current_mode != &le_modes[LE_MODE_VI_INSERT]) {
+	    && le_get_mode() == LE_MODE_VI_INSERT) {
 	last_edit_command.command = current_command;
 	last_edit_command.state = state;
     }
@@ -361,8 +369,8 @@ void save_current_edit_command(void)
  * `last_find_command' if we are not redoing/refinding. */
 void save_current_find_command(void)
 {
-    if (current_command.func != cmd_vi_refind
-	    && current_command.func != cmd_vi_refind_rev
+    if (current_command.func != cmd_refind_char
+	    && current_command.func != cmd_refind_char_rev
 	    && current_command.func != cmd_redo)
 	last_find_command = current_command;
 }
@@ -530,6 +538,28 @@ void add_to_kill_ring(const wchar_t *s, size_t n)
     }
 }
 
+/* Sets the editing mode to "char expects" and the pending command to `cmd'.
+ * The current editing mode is saved as `savemode'. */
+void set_char_expect_command(le_command_func_T cmd)
+{
+    savemode = le_get_mode();
+    le_set_mode(LE_MODE_CHAR_EXPECT);
+    state.pending_command_char = cmd;
+}
+
+/* Starts command history search by setting the editing mode to `mode' with
+ * the specified direction `dir'. The `mode' argument should be either
+ * LE_MODE_VI_SEARCH or LE_MODE_EMACS_SEARCH.
+ * The current editing mode is saved as `savemode'. */
+void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
+{
+    savemode = le_get_mode();
+    le_set_mode(mode);
+    le_search_direction = dir;
+    wb_init(&le_search_buffer);
+    update_search();
+}
+
 
 /********** Basic Commands **********/
 
@@ -695,7 +725,7 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
-    if (le_current_mode == &le_modes[LE_MODE_VI_INSERT])
+    if (le_get_mode() == LE_MODE_VI_INSERT)
 	if (le_main_index > 0)
 	    le_main_index--;
     le_set_mode(LE_MODE_VI_COMMAND);
@@ -722,7 +752,7 @@ void cmd_expect_char(wchar_t c)
 void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 {
     reset_state();
-    le_set_mode(LE_MODE_VI_COMMAND);
+    le_set_mode(savemode);
 }
 
 /* Redraws everything. */
@@ -759,7 +789,7 @@ bool alert_if_first(void)
  */
 bool alert_if_last(void)
 {
-    if (le_current_mode == &le_modes[LE_MODE_VI_COMMAND]) {
+    if (le_get_mode() == LE_MODE_VI_COMMAND) {
 	if (state.pending_command_motion != MEC_NONE)
 	    return false;
 	if (le_main_buffer.length > 0
@@ -1376,6 +1406,36 @@ void cmd_end_of_line(wchar_t c __attribute__((unused)))
     exec_motion_command(le_main_buffer.length, true);
 }
 
+/* Moves the cursor to the `count'th character in the edit line.
+ * If the count is not set, moves to the beginning of the line. If the count is
+ * negative, moves to the `le_main_buffer.length + count'th character. */
+/* exclusive motion command */
+void cmd_go_to_column(wchar_t c __attribute__((unused)))
+{
+    int index = get_count(0);
+
+    if (index >= 0) {
+	if (index > 0)
+	    index--;
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (index > (int) le_main_buffer.length)
+#else
+	if ((size_t) index > le_main_buffer.length)
+#endif
+	    index = le_main_buffer.length;
+    } else {
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (-index > (int) le_main_buffer.length)
+#else
+	if ((size_t) -index > le_main_buffer.length)
+#endif
+	    index = 0;
+	else
+	    index = (int) le_main_buffer.length + index;
+    }
+    exec_motion_command((size_t) index, false);
+}
+
 /* Moves the cursor to the first non-blank character. */
 /* exclusive motion command */
 void cmd_first_nonblank(wchar_t c __attribute__((unused)))
@@ -1385,6 +1445,155 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
     while (c = le_main_buffer.contents[i], c != L'\0' && iswblank(c))
 	i++;
     exec_motion_command(i, false);
+}
+
+/* Sets the editing mode to "char expect" and the pending command to
+ * `find_char'. */
+void cmd_find_char(wchar_t c __attribute__((unused)))
+{
+    maybe_save_undo_history();
+    set_char_expect_command(find_char);
+}
+
+/* Moves the cursor to the `count'th occurrence of `c' after the current
+ * position. */
+/* inclusive motion command */
+void find_char(wchar_t c)
+{
+    exec_find(c, get_count(1), false);
+}
+
+/* Sets the editing mode to "char expect" and the pending command to
+ * `find_char_rev'. */
+void cmd_find_char_rev(wchar_t c __attribute__((unused)))
+{
+    maybe_save_undo_history();
+    set_char_expect_command(find_char_rev);
+}
+
+/* Moves the cursor to the `count'th occurrence of `c' before the current
+ * position. */
+/* exclusive motion command */
+void find_char_rev(wchar_t c)
+{
+    exec_find(c, -get_count(1), false);
+}
+
+/* Sets the editing mode to "char expect" and the pending command to
+ * `till_char'. */
+void cmd_till_char(wchar_t c __attribute__((unused)))
+{
+    maybe_save_undo_history();
+    set_char_expect_command(till_char);
+}
+
+/* Moves the cursor to the character just before `count'th occurrence of `c'
+ * after the current position. */
+/* inclusive motion command */
+void till_char(wchar_t c)
+{
+    exec_find(c, get_count(1), true);
+}
+
+/* Sets the editing mode to "char expect" and the pending command to
+ * `till_char_rev'. */
+void cmd_till_char_rev(wchar_t c __attribute__((unused)))
+{
+    maybe_save_undo_history();
+    set_char_expect_command(till_char_rev);
+}
+
+/* Moves the cursor to the character just after `count'th occurrence of `c'
+ * before the current position. */
+/* exclusive motion command */
+void till_char_rev(wchar_t c)
+{
+    exec_find(c, -get_count(1), true);
+}
+
+/* Executes the find/till command. */
+void exec_find(wchar_t c, int count, bool till)
+{
+    le_set_mode(savemode);
+    save_current_find_command();
+
+    size_t new_index = find_nth_occurence(c, count);
+    if (new_index == SIZE_MAX)
+	goto error;
+    if (till) {
+	if (new_index >= le_main_index) {
+	    if (new_index == 0)
+		goto error;
+	    new_index--;
+	} else {
+	    if (new_index == le_main_buffer.length)
+		goto error;
+	    new_index++;
+	}
+    }
+    exec_motion_command(new_index, new_index >= le_main_index);
+    return;
+
+error:
+    cmd_alert(L'\0');
+    return;
+}
+
+/* Finds the position of the nth occurrence of `c' in the edit line from the
+ * current position. Returns `SIZE_MAX' on failure (no such occurrence). */
+size_t find_nth_occurence(wchar_t c, int n)
+{
+    size_t i = le_main_index;
+
+    if (n == 0) {
+	return i;
+    } else if (c == L'\0') {
+	return SIZE_MAX;  /* no such occurrence */
+    } else if (n >= 0) {
+	while (n > 0 && i < le_main_buffer.length) {
+	    i++;
+	    if (le_main_buffer.contents[i] == c)
+		n--;
+	}
+    } else {
+	while (n < 0 && i > 0) {
+	    i--;
+	    if (le_main_buffer.contents[i] == c)
+		n++;
+	}
+    }
+    if (n != 0)
+	return SIZE_MAX;  /* no such occurrence */
+    else
+	return i;
+}
+
+/* Redoes the last find/till command. */
+void cmd_refind_char(wchar_t c __attribute__((unused)))
+{
+    if (!last_find_command.func) {
+	cmd_alert(L'\0');
+	return;
+    }
+
+    last_find_command.func(last_find_command.arg);
+}
+
+/* Redoes the last find/till command in the reverse direction. */
+void cmd_refind_char_rev(wchar_t c __attribute__((unused)))
+{
+    if (!last_find_command.func) {
+	cmd_alert(L'\0');
+	return;
+    }
+
+    if (state.count.sign == 0)
+	state.count.sign = -1, state.count.abs = 1;
+    else if (state.count.sign >= 0)
+	state.count.sign = -1;
+    else
+	state.count.sign = 1;
+    last_find_command.func(last_find_command.arg);
 }
 
 
@@ -1810,188 +2019,12 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 
 /********** Vi-Mode Specific Commands **********/
 
-/* Moves the cursor to the `count'th character in the edit line.
- * If the count is not set, moves to the beginning of the line. */
-/* exclusive motion command */
-void cmd_vi_column(wchar_t c __attribute__((unused)))
-{
-    int index = get_count(1) - 1;
-
-    if (index < 0)
-	index = 0;
-#if COUNT_ABS_MAX > SIZE_MAX
-    else if (index > (int) le_main_buffer.length)
-#else
-    else if ((size_t) index > le_main_buffer.length)
-#endif
-	index = le_main_buffer.length;
-    exec_motion_command(index, false);
-}
-
-/* Sets the editing mode to "vi expect" and the pending command to `vi_find'. */
-void cmd_vi_find(wchar_t c __attribute__((unused)))
-{
-    maybe_save_undo_history();
-
-    le_set_mode(LE_MODE_VI_EXPECT);
-    state.pending_command_char = vi_find;
-}
-
-/* Moves the cursor to the `count'th occurrence of `c' after the current
- * position. */
-/* inclusive motion command */
-void vi_find(wchar_t c)
-{
-    exec_find(c, get_count(1), false);
-}
-
-/* Sets the editing mode to "vi expect" and the pending command to
- * `vi_find_rev'. */
-void cmd_vi_find_rev(wchar_t c __attribute__((unused)))
-{
-    maybe_save_undo_history();
-
-    le_set_mode(LE_MODE_VI_EXPECT);
-    state.pending_command_char = vi_find_rev;
-}
-
-/* Moves the cursor to the `count'th occurrence of `c' before the current
- * position. */
-/* exclusive motion command */
-void vi_find_rev(wchar_t c)
-{
-    exec_find(c, -get_count(1), false);
-}
-
-/* Sets the editing mode to "vi expect" and the pending command to `vi_till'. */
-void cmd_vi_till(wchar_t c __attribute__((unused)))
-{
-    maybe_save_undo_history();
-
-    le_set_mode(LE_MODE_VI_EXPECT);
-    state.pending_command_char = vi_till;
-}
-
-/* Moves the cursor to the character just before `count'th occurrence of `c'
- * after the current position. */
-/* inclusive motion command */
-void vi_till(wchar_t c)
-{
-    exec_find(c, get_count(1), true);
-}
-
-/* Sets the editing mode to "vi expect" and the pending command to
- * `vi_till_rev'. */
-void cmd_vi_till_rev(wchar_t c __attribute__((unused)))
-{
-    maybe_save_undo_history();
-
-    le_set_mode(LE_MODE_VI_EXPECT);
-    state.pending_command_char = vi_till_rev;
-}
-
-/* Moves the cursor to the character just after `count'th occurrence of `c'
- * before the current position. */
-/* exclusive motion command */
-void vi_till_rev(wchar_t c)
-{
-    exec_find(c, -get_count(1), true);
-}
-
-/* Executes the find/till command. */
-void exec_find(wchar_t c, int count, bool till)
-{
-    le_set_mode(LE_MODE_VI_COMMAND);
-    save_current_find_command();
-
-    size_t new_index = find_nth_occurence(c, count);
-    if (new_index == SIZE_MAX)
-	goto error;
-    if (till) {
-	if (new_index >= le_main_index) {
-	    if (new_index == 0)
-		goto error;
-	    new_index--;
-	} else {
-	    if (new_index == le_main_buffer.length)
-		goto error;
-	    new_index++;
-	}
-    }
-    exec_motion_command(new_index, new_index >= le_main_index);
-    return;
-
-error:
-    cmd_alert(L'\0');
-    return;
-}
-
-/* Finds the position of the nth occurrence of `c' in the edit line from the
- * current position. Returns `SIZE_MAX' on failure (no such occurrence). */
-size_t find_nth_occurence(wchar_t c, int n)
-{
-    size_t i = le_main_index;
-
-    if (n == 0) {
-	return i;
-    } else if (c == L'\0') {
-	return SIZE_MAX;  /* no such occurrence */
-    } else if (n >= 0) {
-	while (n > 0 && i < le_main_buffer.length) {
-	    i++;
-	    if (le_main_buffer.contents[i] == c)
-		n--;
-	}
-    } else {
-	while (n < 0 && i > 0) {
-	    i--;
-	    if (le_main_buffer.contents[i] == c)
-		n++;
-	}
-    }
-    if (n != 0)
-	return SIZE_MAX;  /* no such occurrence */
-    else
-	return i;
-}
-
-/* Redoes the last find/till command. */
-void cmd_vi_refind(wchar_t c __attribute__((unused)))
-{
-    if (!last_find_command.func) {
-	cmd_alert(L'\0');
-	return;
-    }
-
-    last_find_command.func(last_find_command.arg);
-}
-
-/* Redoes the last find/till command in the reverse direction. */
-void cmd_vi_refind_rev(wchar_t c __attribute__((unused)))
-{
-    if (!last_find_command.func) {
-	cmd_alert(L'\0');
-	return;
-    }
-
-    if (state.count.sign == 0)
-	state.count.sign = -1, state.count.abs = 1;
-    else if (state.count.sign >= 0)
-	state.count.sign = -1;
-    else
-	state.count.sign = 1;
-    last_find_command.func(last_find_command.arg);
-}
-
 /* Sets the editing mode to "vi expect" and the pending command to
  * `vi_replace_char'. */
 void cmd_vi_replace_char(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
-
-    le_set_mode(LE_MODE_VI_EXPECT);
-    state.pending_command_char = vi_replace_char;
+    set_char_expect_command(vi_replace_char);
 }
 
 /* Replaces the character under the cursor with `c'.
@@ -1999,7 +2032,7 @@ void cmd_vi_replace_char(wchar_t c __attribute__((unused)))
 void vi_replace_char(wchar_t c)
 {
     save_current_edit_command();
-    le_set_mode(LE_MODE_VI_COMMAND);
+    le_set_mode(savemode);
 
     if (c != L'\0') {
 	int count = get_count(1);
@@ -2269,9 +2302,7 @@ struct xwcsrange get_prev_bigword(const wchar_t *beginning, const wchar_t *s)
 void cmd_vi_exec_alias(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-
-    le_set_mode(LE_MODE_VI_EXPECT);
-    state.pending_command_char = vi_exec_alias;
+    set_char_expect_command(vi_exec_alias);
 }
 
 /* Appends the value of the alias `_c' to the pre-buffer so that the alias value
@@ -2279,7 +2310,7 @@ void cmd_vi_exec_alias(wchar_t c __attribute__((unused)))
  * this command. */
 void vi_exec_alias(wchar_t c)
 {
-    le_set_mode(LE_MODE_VI_COMMAND);
+    le_set_mode(savemode);
     state.pending_command_char = 0;
 
 #if YASH_ENABLE_ALIAS
@@ -2386,22 +2417,14 @@ end:
 void cmd_vi_search_forward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-
-    le_search_direction = FORWARD;
-    wb_init(&le_search_buffer);
-    le_set_mode(LE_MODE_VI_SEARCH);
-    update_search();
+    set_search_mode(LE_MODE_VI_SEARCH, FORWARD);
 }
 
 /* Starts vi-like command history search in the backward direction. */
 void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-
-    le_search_direction = BACKWARD;
-    wb_init(&le_search_buffer);
-    le_set_mode(LE_MODE_VI_SEARCH);
-    update_search();
+    set_search_mode(LE_MODE_VI_SEARCH, BACKWARD);
 }
 
 
@@ -2681,7 +2704,7 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
 	wb_destroy(&le_search_buffer);
     }
     le_search_buffer.contents = NULL;
-    le_set_mode(LE_MODE_VI_COMMAND); // TODO assumes vi
+    le_set_mode(savemode);
     if (le_search_result == Histlist) {
 	cmd_alert(L'\0');
 	le_display_reprint_buffer(0, false);
@@ -2713,7 +2736,7 @@ void cmd_srch_abort_search(wchar_t c __attribute__((unused)))
 
     wb_destroy(&le_search_buffer);
     le_search_buffer.contents = NULL;
-    le_set_mode(LE_MODE_VI_COMMAND); // XXX assumes vi
+    le_set_mode(savemode);
     le_display_reprint_buffer(0, false);
     reset_state();
 }

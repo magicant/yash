@@ -112,6 +112,12 @@ void le_keymap_init(void)
     Set(L"$",          cmd_end_of_line);
     Set(Key_end,       cmd_end_of_line);
     Set(L"^",          cmd_first_nonblank);
+    Set(L"f",          cmd_find_char);
+    Set(L"F",          cmd_find_char_rev);
+    Set(L"t",          cmd_till_char);
+    Set(L"T",          cmd_till_char_rev);
+    Set(L";",          cmd_refind_char);
+    Set(L",",          cmd_refind_char_rev);
     Set(L"x",          cmd_kill_char);
     Set(Key_delete,    cmd_kill_char);
     Set(L"X",          cmd_backward_kill_char);
@@ -121,13 +127,7 @@ void le_keymap_init(void)
     Set(L"U",          cmd_undo_all);
     Set(Key_c_r,       cmd_cancel_undo);
     Set(L".",          cmd_redo);
-    Set(L"|",          cmd_vi_column);
-    Set(L"f",          cmd_vi_find);
-    Set(L"F",          cmd_vi_find_rev);
-    Set(L"t",          cmd_vi_till);
-    Set(L"T",          cmd_vi_till_rev);
-    Set(L";",          cmd_vi_refind);
-    Set(L",",          cmd_vi_refind_rev);
+    Set(L"|",          cmd_go_to_column);
     Set(L"r",          cmd_vi_replace_char);
     Set(L"I",          cmd_vi_insert_beginning);
     Set(L"a",          cmd_vi_append);
@@ -164,15 +164,6 @@ void le_keymap_init(void)
     // \ 
     // *
     le_modes[LE_MODE_VI_COMMAND].keymap = t;
-
-    le_modes[LE_MODE_VI_EXPECT].default_command = cmd_expect_char;
-    t = trie_create();
-    Set(Key_c_v,       cmd_expect_verbatim);
-    Set(Key_interrupt, cmd_abort_line);
-    Set(Key_c_c,       cmd_abort_line);
-    Set(Key_backslash, cmd_expect_char);
-    Set(Key_escape,    cmd_abort_expect_char);
-    le_modes[LE_MODE_VI_EXPECT].keymap = t;
 
     le_modes[LE_MODE_VI_SEARCH].default_command = cmd_srch_self_insert;
     t = trie_create();
@@ -259,10 +250,20 @@ void le_keymap_init(void)
     Set(Key_c_p,            cmd_prev_history_eol);
     Set(Key_c_s,            cmd_emacs_search_forward);
     Set(Key_c_r,            cmd_emacs_search_backward);
+    Set(Key_escape "c",     cmd_go_to_column);//DEBUG
     // TODO emacs keybinds: command search
     // TODO emacs keybinds: find_char
     // TODO emacs keybinds: other commands
     le_modes[LE_MODE_EMACS].keymap = t;
+
+    le_modes[LE_MODE_CHAR_EXPECT].default_command = cmd_expect_char;
+    t = trie_create();
+    Set(Key_c_v,       cmd_expect_verbatim);
+    Set(Key_interrupt, cmd_abort_line);
+    Set(Key_c_c,       cmd_abort_line);
+    Set(Key_backslash, cmd_expect_char);
+    Set(Key_escape,    cmd_abort_expect_char);
+    le_modes[LE_MODE_CHAR_EXPECT].keymap = t;
 
 #undef Set
 }
@@ -272,6 +273,12 @@ void le_set_mode(le_mode_id_T id)
 {
     assert(id < LE_MODE_N);
     le_current_mode = &le_modes[id];
+}
+
+/* Returns the current editing mode. */
+le_mode_id_T le_get_mode(void)
+{
+    return (le_mode_id_T) (le_current_mode - le_modes);
 }
 
 
