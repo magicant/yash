@@ -237,7 +237,7 @@ void le_keymap_init(void)
     Set(Key_escape "D",     cmd_kill_emacsword);
     Set(Key_escape Key_backspace, cmd_backward_kill_emacsword);
     Set(Key_escape Key_erase, cmd_backward_kill_emacsword);
-    Set(Key_c_h,            cmd_backward_kill_emacsword);
+    Set(Key_escape Key_c_h, cmd_backward_kill_emacsword);
     Set(Key_c_k,            cmd_forward_kill_line);
     Set(Key_kill,           cmd_backward_kill_line);
     Set(Key_c_u,            cmd_backward_kill_line);
