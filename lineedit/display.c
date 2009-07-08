@@ -559,8 +559,8 @@ void print_search(void)
 	    break;
 	case SEARCH_EMACS:
 	    switch (le_search_direction) {
-		case FORWARD:   text = "Backward search: ";  break;
-		case BACKWARD:  text = "Forward search: ";   break;
+		case FORWARD:   text = "Forward search: ";  break;
+		case BACKWARD:  text = "Backward search: ";   break;
 		default:        assert(false);
 	    }
 	    twprintf(L"%s", gt(text));
