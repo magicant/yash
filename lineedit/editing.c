@@ -2577,6 +2577,8 @@ void go_to_history_absolute(const histentry_T *e, bool cursorend)
 	    goto alert;
     }
     go_to_history(e, cursorend);
+    le_display_reprint_buffer(0, false);
+    reset_state();
     return;
 
 alert:
@@ -2636,6 +2638,8 @@ void go_to_history_relative(int offset, bool cursorend)
 	} while (++offset < 0);
     }
     go_to_history(e, cursorend);
+    le_display_reprint_buffer(0, false);
+    reset_state();
     return;
 alert:
     cmd_alert(L'\0');
@@ -2665,9 +2669,6 @@ void go_to_history(const histentry_T *e, bool cursorend)
     main_history_entry = e;
     main_history_value = xwcsdup(le_main_buffer.contents);
     undo_save_index = le_main_index;
-
-    le_display_reprint_buffer(0, false);
-    reset_state();
 }
 
 /***** History Search Commands *****/
@@ -2724,13 +2725,14 @@ void cmd_srch_backward_delete_line(wchar_t c __attribute__((unused)))
  * but this command can be used during the search. */
 void cmd_srch_continue_forward(wchar_t c __attribute__((unused)))
 {
-    if (le_search_buffer.contents == NULL || le_search_result == Histlist) {
+    if (le_search_buffer.contents == NULL) {
 	cmd_alert(L'\0');
 	return;
     }
 
     le_search_direction = FORWARD;
-    go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
+    if (le_search_result != Histlist)
+	go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
     update_search();
 }
 
@@ -2739,13 +2741,14 @@ void cmd_srch_continue_forward(wchar_t c __attribute__((unused)))
  * but this command can be used during the search. */
 void cmd_srch_continue_backward(wchar_t c __attribute__((unused)))
 {
-    if (le_search_buffer.contents == NULL || le_search_result == Histlist) {
+    if (le_search_buffer.contents == NULL) {
 	cmd_alert(L'\0');
 	return;
     }
 
     le_search_direction = BACKWARD;
-    go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
+    if (le_search_result != Histlist)
+	go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
     update_search();
 }
 
@@ -2768,10 +2771,11 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
     le_set_mode(savemode);
     if (le_search_result == Histlist) {
 	cmd_alert(L'\0');
-	le_display_reprint_buffer(0, false);
     } else {
 	go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
     }
+    le_display_reprint_buffer(0, false);
+    reset_state();
 }
 
 /* Checks if we should update `last_search.value' to the current value of
@@ -2958,6 +2962,8 @@ void search_again(enum le_search_direction dir)
     } else {
 	go_to_history(le_search_result, false);
     }
+    le_display_reprint_buffer(0, false);
+    reset_state();
 }
 
 
