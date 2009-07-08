@@ -43,6 +43,7 @@
 /* terminfo capabilities */
 #define TI_am      "am"
 #define TI_bel     "bel"
+#define TI_clear   "clear"
 #define TI_cols    "cols"
 #define TI_cr      "cr"
 #define TI_cub     "cub"
@@ -620,6 +621,17 @@ _Bool le_print_ed(void)
     char *v = tigetstr(TI_ed);
     if (is_strcap_valid(v))
 	return tputs(v, 1, putchar_stderr) != ERR;
+    else
+	return 0;
+}
+
+/* Prints "clear" variable if available. (clear whole screen)
+ * Returns true iff successful. */
+_Bool le_print_clear(void)
+{
+    char *v = tigetstr(TI_clear);
+    if (is_strcap_valid(v))
+	return tputs(v, le_lines, putchar_stderr) != ERR;
     else
 	return 0;
 }

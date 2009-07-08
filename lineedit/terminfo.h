@@ -37,6 +37,7 @@ extern void le_print_cud(long count);
 extern void le_print_cuu(long count);
 extern void le_print_el(void);
 extern _Bool le_print_ed(void);
+extern _Bool le_print_clear(void);
 extern void le_print_sgr(long standout, long underline, long reverse,
 	long blink, long dim, long bold, long invisible);
 extern void le_print_op(void);

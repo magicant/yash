@@ -93,6 +93,7 @@ void le_keymap_init(void)
     Set(L"#",          cmd_accept_with_hash);
     Set(L"i",          cmd_setmode_viinsert);
     Set(Key_insert,    cmd_setmode_viinsert);
+    Set(L"\f",         cmd_redraw_all);
     Set(Key_c_l,       cmd_redraw_all);
     Set(L"l",          cmd_forward_char);
     Set(L" ",          cmd_forward_char);
@@ -170,6 +171,7 @@ void le_keymap_init(void)
     Set(Key_c_v,       cmd_expect_verbatim);
     Set(Key_interrupt, cmd_abort_line);
     Set(Key_c_c,       cmd_abort_line);
+    Set(L"\f",         cmd_redraw_all);
     Set(Key_c_l,       cmd_redraw_all);
     Set(Key_backslash, cmd_srch_self_insert);
     Set(Key_backspace, cmd_srch_backward_delete_char);
@@ -207,6 +209,7 @@ void le_keymap_init(void)
     Set(Key_c_c,            cmd_abort_line);
     Set(Key_eof,            cmd_eof_or_delete);
     Set(Key_escape "#",     cmd_accept_with_hash);
+    Set(L"\f",              cmd_redraw_all);
     Set(Key_c_l,            cmd_redraw_all);
     Set(Key_right,          cmd_forward_char);
     Set(Key_c_f,            cmd_forward_char);

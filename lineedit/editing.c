@@ -177,6 +177,7 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
 static void set_char_expect_command(le_command_func_T cmd)
     __attribute__((nonnull));
 static void set_search_mode(le_mode_id_T mode, enum le_search_direction dir);
+static void redraw_all(bool clear);
 
 static bool alert_if_first(void);
 static bool alert_if_last(void);
@@ -733,9 +734,15 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
     overwrite = false;
 }
 
+/* Changes the editing mode to "emacs". */
 void cmd_setmode_emacs(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_setmode_emacs
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    le_set_mode(LE_MODE_EMACS);
+    reset_state();
+    overwrite = false;
 }
 
 /* Executes a command that expects a character as an argument. */
@@ -758,17 +765,26 @@ void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 /* Redraws everything. */
 void cmd_redraw_all(wchar_t c __attribute__((unused)))
 {
+    redraw_all(false);
+}
+
+/* Clears the screen and redraws everything at the top of the screen.
+ * If the count is specified, the screen is not cleared: the line is just
+ * redrawn. */
+void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
+{
+    redraw_all(true);
+}
+
+void redraw_all(bool clear)
+{
     le_display_clear();
     le_restore_terminal();
     le_setupterm(false);
     le_set_terminal();
+    if (clear)
+	le_print_clear();
     le_display_print_all(false);
-}
-
-/* Clears the screen and redraws everything at the top of the screen. */
-void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
-{
-    // TODO cmd_clear_and_redraw_all
 }
 
 
