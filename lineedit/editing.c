@@ -2946,7 +2946,8 @@ void cmd_search_again_backward(wchar_t c __attribute__((unused)))
 }
 
 /* Performs command search for the last search pattern in the specified
- * direction. */
+ * direction. If the count is set, re-search `count' times. If the count is
+ * negative, search in the opposite direction. */
 void search_again(enum le_search_direction dir)
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -2956,11 +2957,23 @@ void search_again(enum le_search_direction dir)
 	return;
     }
 
-    perform_search(last_search.value, dir, last_search.type);
-    if (le_search_result == Histlist) {
-	cmd_alert(L'\0');
-    } else {
-	go_to_history(le_search_result, false);
+    int count = get_count(1);
+    if (count < 0) {
+	count = -count;
+	switch (dir) {
+	    case FORWARD:  dir = BACKWARD; break;
+	    case BACKWARD: dir = FORWARD;  break;
+	}
+    }
+
+    while (--count >= 0) {
+	perform_search(last_search.value, dir, last_search.type);
+	if (le_search_result == Histlist) {
+	    cmd_alert(L'\0');
+	    break;
+	} else {
+	    go_to_history(le_search_result, false);
+	}
     }
     le_display_reprint_buffer(0, false);
     reset_state();
