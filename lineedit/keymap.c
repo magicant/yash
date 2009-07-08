@@ -220,6 +220,8 @@ void le_keymap_init(void)
     Set(Key_c_a,            cmd_beginning_of_line);
     Set(Key_end,            cmd_end_of_line);
     Set(Key_c_e,            cmd_end_of_line);
+    Set(Key_c_rb,           cmd_find_char);
+    Set(Key_escape Key_c_rb, cmd_find_char_rev);
     Set(Key_delete,         cmd_delete_char);
     Set(Key_backspace,      cmd_backward_delete_char);
     Set(Key_erase,          cmd_backward_delete_char);
@@ -250,9 +252,7 @@ void le_keymap_init(void)
     Set(Key_c_p,            cmd_prev_history_eol);
     Set(Key_c_s,            cmd_emacs_search_forward);
     Set(Key_c_r,            cmd_emacs_search_backward);
-    Set(Key_escape "c",     cmd_go_to_column);//DEBUG
     // TODO emacs keybinds: command search
-    // TODO emacs keybinds: find_char
     // TODO emacs keybinds: other commands
     le_modes[LE_MODE_EMACS].keymap = t;
 
