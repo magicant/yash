@@ -251,16 +251,15 @@ void le_keymap_init(void)
     Set(Key_escape Key_c_r, cmd_undo_all);
     Set(Key_escape "r",     cmd_undo_all);
     Set(Key_escape "R",     cmd_undo_all);
+    Set(Key_c_t,            cmd_emacs_transpose_chars);
     Set(Key_escape "<",     cmd_oldest_history_eol);
     Set(Key_escape ">",     cmd_return_history_eol);
+    Set(Key_c_s,            cmd_emacs_search_forward);
+    Set(Key_c_r,            cmd_emacs_search_backward);
     Set(Key_down,           cmd_next_history_eol);
     Set(Key_c_n,            cmd_next_history_eol);
     Set(Key_up,             cmd_prev_history_eol);
     Set(Key_c_p,            cmd_prev_history_eol);
-    Set(Key_c_s,            cmd_emacs_search_forward);
-    Set(Key_c_r,            cmd_emacs_search_backward);
-    // TODO emacs keybinds: command search
-    // TODO emacs keybinds: other commands
     le_modes[LE_MODE_EMACS].keymap = t;
 
     le_modes[LE_MODE_EMACS_SEARCH].default_command = cmd_srch_self_insert;

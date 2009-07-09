@@ -2455,9 +2455,59 @@ void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
 
 /********** Emacs-Mode Specific Commands **********/
 
+/* Moves the character before the cursor to the right by `count' characters. */
 void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_transpose_chars
+    //ALERT_AND_RETURN_IF_PENDING;
+    if (state.pending_command_motion != MEC_NONE || le_main_index == 0)
+	goto error;
+    if (state.count.sign == 0
+	    && le_main_index == le_main_buffer.length && le_main_index >= 2)
+	le_main_index--;
+
+    int count = get_count(1);
+    size_t index;
+
+    if (count >= 0) {
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (count <= (int) (le_main_buffer.length - le_main_index))
+#else
+	if ((size_t) count <= le_main_buffer.length - le_main_index)
+#endif
+	    index = le_main_index + (size_t) count;
+	else {
+	    le_main_index = le_main_buffer.length;
+	    goto error;
+	}
+    } else {
+#if COUNT_ABS_MAX > SIZE_MAX
+	if (-count < (int) le_main_index)
+#else
+	if ((size_t) -count < le_main_index)
+#endif
+	    index = le_main_index + (size_t) count;
+	else {
+	    le_main_index = 0;
+	    goto error;
+	}
+    }
+
+    size_t old_index = le_main_index;
+
+    assert(le_main_index > 0 && count > 0);
+    assert(0 < index && index <= le_main_buffer.length);
+    c = le_main_buffer.contents[old_index - 1];
+    wb_remove(&le_main_buffer, old_index - 1, 1);
+    wb_ninsert(&le_main_buffer, index - 1, &c, 1);
+    le_main_index = index;
+    if (index > old_index)
+	index = old_index;
+    le_display_reprint_buffer(index - 1, false);
+    reset_state();
+    return;
+
+error:
+    cmd_alert(L'\0');
 }
 
 void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
