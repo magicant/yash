@@ -164,7 +164,8 @@ extern le_command_func_T
     cmd_emacs_upcase_word,
     cmd_emacs_downcase_word,
     cmd_emacs_capitalize_word,
-    cmd_emacs_delete_spaces_around,
+    cmd_emacs_delete_horizontal_space,
+    cmd_emacs_just_one_space,
     cmd_emacs_search_forward,
     cmd_emacs_search_backward;
 

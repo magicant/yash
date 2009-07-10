@@ -2530,9 +2530,14 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
     // TODO cmd_emacs_capitalize_word
 }
 
-void cmd_emacs_delete_spaces_around(wchar_t c __attribute__((unused)))
+void cmd_emacs_delete_horizontal_space(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_delete_spaces_around
+    // TODO cmd_emacs_delete_horizontal_space
+}
+
+void cmd_emacs_just_one_space(wchar_t c __attribute__((unused)))
+{
+    // TODO cmd_emacs_just_one_space
 }
 
 /* Starts emacs-like command history search in the forward direction. */
