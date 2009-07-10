@@ -56,6 +56,7 @@ void le_keymap_init(void)
     Set(Key_interrupt, cmd_abort_line);
     Set(Key_c_c,       cmd_abort_line);
     Set(Key_eof,       cmd_eof_if_empty);
+    Set(Key_c_d,       cmd_eof_if_empty);
     Set(Key_escape,    cmd_setmode_vicommand);
     Set(L"\f",         cmd_redraw_all);
     Set(Key_c_l,       cmd_redraw_all);
@@ -92,6 +93,7 @@ void le_keymap_init(void)
     Set(Key_interrupt, cmd_abort_line);
     Set(Key_c_c,       cmd_abort_line);
     Set(Key_eof,       cmd_eof_if_empty);
+    Set(Key_c_d,       cmd_eof_if_empty);
     Set(L"#",          cmd_accept_with_hash);
     Set(L"i",          cmd_setmode_viinsert);
     Set(Key_insert,    cmd_setmode_viinsert);
@@ -212,6 +214,7 @@ void le_keymap_init(void)
     Set(Key_interrupt,      cmd_abort_line);
     Set(Key_c_c,            cmd_abort_line);
     Set(Key_eof,            cmd_eof_or_delete);
+    Set(Key_c_d,            cmd_eof_or_delete);
     Set(Key_escape "#",     cmd_accept_with_hash);
     Set(L"\f",              cmd_redraw_all);
     Set(Key_c_l,            cmd_redraw_all);
