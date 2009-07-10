@@ -138,7 +138,7 @@ void le_keymap_init(void)
     Set(L"a",          cmd_vi_append);
     Set(L"A",          cmd_vi_append_end);
     Set(L"R",          cmd_vi_replace);
-    Set(L"~",          cmd_vi_change_case);
+    Set(L"~",          cmd_vi_change_case_char);
     Set(L"y",          cmd_vi_yank);
     Set(L"Y",          cmd_vi_yank_to_eol);
     Set(L"d",          cmd_vi_delete);

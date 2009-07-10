@@ -2117,7 +2117,7 @@ void cmd_vi_replace(wchar_t c __attribute__((unused)))
 
 /* Changes the case of the character under the cursor and advances the cursor.
  * If the count is set, `count' characters are changed. */
-void cmd_vi_change_case(wchar_t c __attribute__((unused)))
+void cmd_vi_change_case_char(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     save_current_edit_command();
