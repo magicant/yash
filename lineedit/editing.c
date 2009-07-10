@@ -2461,6 +2461,7 @@ void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
     //ALERT_AND_RETURN_IF_PENDING;
     if (state.pending_command_motion != MEC_NONE || le_main_index == 0)
 	goto error;
+    maybe_save_undo_history();
     if (state.count.sign == 0
 	    && le_main_index == le_main_buffer.length && le_main_index >= 2)
 	le_main_index--;
@@ -2510,9 +2511,62 @@ error:
     cmd_alert(L'\0');
 }
 
+/* Interchanges the word before the cursor and the `count' words after the
+ * cursor. */
 void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_transpose_words
+    if (state.pending_command_motion != MEC_NONE || le_main_index == 0)
+	goto error;
+    maybe_save_undo_history();
+
+    int count = get_count(1);
+    size_t w1start, w1end, w2start, w2end, new_index;
+    xwcsbuf_T buf;
+
+    if (count == 0)
+	goto end;
+
+    w1start = previous_emacsword_index(le_main_buffer.contents, le_main_index);
+    w1end = next_emacsword_index(le_main_buffer.contents, w1start);
+    if (count >= 0) {
+	w2end = next_emacsword_index(le_main_buffer.contents, w1end);
+	w2start = previous_emacsword_index(le_main_buffer.contents, w2end);
+	while (--count > 0) {
+	    if (w2end == le_main_buffer.length)
+		goto error;
+	    w2end = next_emacsword_index(le_main_buffer.contents, w2end);
+	}
+	new_index = w2end;
+    } else {
+	w2start = w1start, w2end = w1end;
+	w1start = previous_emacsword_index(le_main_buffer.contents, w2start);
+	w1end = next_emacsword_index(le_main_buffer.contents, w1start);
+	while (++count < 0) {
+	    if (w1start == 0)
+		goto error;
+	    w1start = previous_emacsword_index(
+		    le_main_buffer.contents, w1start);
+	}
+	new_index = w1start + (w2end - w2start);
+    }
+    if (w1end >= w2start)
+	goto error;
+    wb_init(&buf);
+    wb_ncat_force(&buf, le_main_buffer.contents + w2start, w2end - w2start);
+    wb_ncat_force(&buf, le_main_buffer.contents + w1end, w2start - w1end);
+    wb_ncat_force(&buf, le_main_buffer.contents + w1start, w1end - w1start);
+    assert(buf.length == w2end - w1start);
+    wb_replace_force(&le_main_buffer, w1start, buf.length,
+	    buf.contents, buf.length);
+    wb_destroy(&buf);
+    le_main_index = new_index;
+    le_display_reprint_buffer(w1start, false);
+end:
+    reset_state();
+    return;
+
+error:
+    cmd_alert(L'\0');
 }
 
 void cmd_emacs_downcase_word(wchar_t c __attribute__((unused)))
