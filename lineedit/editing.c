@@ -92,14 +92,23 @@ static struct command {
 
 /* The type of motion expecting commands. */
 enum motion_expect_command {
-    MEC_NONE   = 0,       /* just move the cursor */
-    MEC_COPY   = 1 << 0,  /* copy the text to the kill ring */
-    MEC_DELETE = 1 << 1,  /* delete the text */
-    MEC_INSERT = 1 << 2,  /* go to insert mode */
+    MEC_NONE       = 0,       /* just move the cursor */
+    MEC_UPPERCASE  = 1 << 0,  /* convert the text to upper case */
+    MEC_LOWERCASE  = 1 << 1,  /* convert the text to lower case */
+    MEC_SWITCHCASE = 1 << 2,  /* switch case of the text */
+    MEC_COPY       = 1 << 3,  /* copy the text to the kill ring */
+    MEC_TOSTART    = 1 << 4,  /* move cursor to the beginning of the region. */
+    MEC_TOEND      = 1 << 5,  /* move cursor to the end of the region. */
+    MEC_DELETE     = 1 << 6,  /* delete the text */
+    MEC_INSERT     = 1 << 7,  /* go to insert mode */
     MEC_KILL       = MEC_COPY   | MEC_DELETE,
     MEC_CHANGE     = MEC_DELETE | MEC_INSERT,
     MEC_COPYCHANGE = MEC_KILL   | MEC_INSERT,
-    /* MEC_INSERT must be used together with MEC_DELETE */
+    /* MEC_UPPERCASE, MEC_LOWERCASE and MEC_SWITCHCASE are mutually exclusive.
+     * If neither MEC_TOSTART nor MEC_TOEND is specified, the cursor is not
+     * moved unless MEC_DELETE is specified. If both MEC_TOSTART and MEC_TOEND
+     * are specified, the cursor is moved to the end point of the motion (just
+     * like MEC_NONE). */
 };
 
 /* The keymap state. */
@@ -180,6 +189,13 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
 static void set_char_expect_command(le_command_func_T cmd)
     __attribute__((nonnull));
 static void set_search_mode(le_mode_id_T mode, enum le_search_direction dir);
+static void to_upper_case(wchar_t *s, size_t n)
+    __attribute__((nonnull));
+static void to_lower_case(wchar_t *s, size_t n)
+    __attribute__((nonnull));
+static void switch_case(wchar_t *s, size_t n)
+    __attribute__((nonnull));
+
 static void redraw_all(bool clear);
 
 static bool alert_if_first(void);
@@ -443,6 +459,7 @@ void maybe_save_undo_history(void)
  * vi mode. */
 void exec_motion_command(size_t index, bool inclusive)
 {
+    assert(le_main_index <= le_main_buffer.length);
     assert(index <= le_main_buffer.length);
 
     maybe_save_undo_history();
@@ -459,19 +476,37 @@ void exec_motion_command(size_t index, bool inclusive)
     if (mec == MEC_NONE) {
 	le_main_index = index;
     } else {
+	if (mec & MEC_UPPERCASE) {
+	    to_upper_case(le_main_buffer.contents + start_index,
+		    end_index - start_index);
+	    le_display_reprint_buffer(start_index, false);
+	} else if (mec & MEC_LOWERCASE) {
+	    to_lower_case(le_main_buffer.contents + start_index,
+		    end_index - start_index);
+	    le_display_reprint_buffer(start_index, false);
+	} else if (mec & MEC_SWITCHCASE) {
+	    switch_case(le_main_buffer.contents + start_index,
+		    end_index - start_index);
+	    le_display_reprint_buffer(start_index, false);
+	}
 	if (mec & MEC_COPY) {
 	    add_to_kill_ring(le_main_buffer.contents + start_index,
 		    end_index - start_index);
+	}
+	switch (mec & (MEC_TOSTART | MEC_TOEND)) {
+	    case MEC_TOSTART:             le_main_index = start_index;  break;
+	    case MEC_TOEND:               le_main_index = end_index;    break;
+	    case MEC_TOSTART | MEC_TOEND: le_main_index = index;        break;
 	}
 	if (mec & MEC_DELETE) {
 	    save_current_edit_command();
 	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
 	    le_main_index = start_index;
 	    le_display_reprint_buffer(start_index, false);
-	    if (mec & MEC_INSERT) {
-		le_set_mode(LE_MODE_VI_INSERT);
-		overwrite = false;
-	    }
+	}
+	if (mec & MEC_INSERT) {
+	    le_set_mode(LE_MODE_VI_INSERT);
+	    overwrite = false;
 	}
     }
     reset_state();
@@ -568,6 +603,29 @@ void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
     }
     wb_init(&le_search_buffer);
     update_search();
+}
+
+/* Converts the first `n' characters of string `s' to upper case. */
+void to_upper_case(wchar_t *s, size_t n)
+{
+    for (size_t i = 0; i < n; i++)
+	s[i] = towupper(s[i]);
+}
+
+/* Converts the first `n' characters of string `s' to lower case. */
+void to_lower_case(wchar_t *s, size_t n)
+{
+    for (size_t i = 0; i < n; i++)
+	s[i] = towlower(s[i]);
+}
+
+/* Switches case of the first `n' characters of string `s'. */
+void switch_case(wchar_t *s, size_t n)
+{
+    for (size_t i = 0; i < n; i++) {
+	wchar_t c = s[i];
+	s[i] = (iswlower(c) ? towupper : towlower)(c);
+    }
 }
 
 
@@ -2115,30 +2173,11 @@ void cmd_vi_replace(wchar_t c __attribute__((unused)))
     overwrite = true;
 }
 
-/* Changes the case of the character under the cursor and advances the cursor.
+/* Switches the case of the character under the cursor and advances the cursor.
  * If the count is set, `count' characters are changed. */
-void cmd_vi_change_case_char(wchar_t c __attribute__((unused)))
+void cmd_vi_switch_case_char(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    save_current_edit_command();
-    maybe_save_undo_history();
-
-    size_t old_index = le_main_index;
-
-    if (le_main_index == le_main_buffer.length) {
-	cmd_alert(L'\0');
-	return;
-    }
-    for (int count = get_count(1); --count >= 0; ) {
-	c = le_main_buffer.contents[le_main_index];
-	le_main_buffer.contents[le_main_index]
-	    = (iswlower(c) ? towupper : towlower)(c);
-	le_main_index++;
-	if (le_main_index == le_main_buffer.length)
-	    break;
-    }
-    le_display_reprint_buffer(old_index, false);
-    reset_state();
+    exec_motion_expect_command(MEC_SWITCHCASE | MEC_TOEND, cmd_forward_char);
 }
 
 /* Sets the pending command to `MEC_COPY'.
