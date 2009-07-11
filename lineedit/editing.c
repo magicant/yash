@@ -258,6 +258,9 @@ static struct xwcsrange get_prev_bigword(
 	const wchar_t *beginning, const wchar_t *s)
     __attribute__((nonnull));
 
+static void replace_horizontal_space(bool deleteafter, const wchar_t *s)
+    __attribute__((nonnull));
+
 static void go_to_history_absolute(const histentry_T *e, bool cursorend)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, bool cursorend);
@@ -2660,14 +2663,60 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
+/* Deletes blank characters around the cursor.
+ * If the count is set, only blanks before the cursor are deleted. */
 void cmd_emacs_delete_horizontal_space(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_delete_horizontal_space
+    replace_horizontal_space(state.count.sign == 0, L"");
 }
 
+/* Replaces blank characters around the cursor with a space.
+ * The cursor is left after the space.
+ * A space is inserted even if there are no blanks around the cursor.
+ * If the count is specified, blanks are replaced with `count' spaces. */
 void cmd_emacs_just_one_space(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_just_one_space
+    int count = get_count(1);
+    if (count < 0)
+	count = 0;
+    else if (count > 1000)
+	count = 1000;
+
+    wchar_t s[count + 1];
+    wmemset(s, L'\0', count);
+    s[count] = L'\0';
+
+    replace_horizontal_space(true, s);
+}
+
+/* Replaces blank characters around the cursor with the specified string `s'.
+ * If `deleteafter' is true, blanks after the cursor are replaced as well as
+ * blanks before the cursor. If `deleteafter' is false, only blanks before the
+ * cursor are replaced.
+ * The cursor is left after the replacement. */
+void replace_horizontal_space(bool deleteafter, const wchar_t *s)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    size_t start_index = le_main_index;
+    while (start_index > 0
+	    && iswblank(le_main_buffer.contents[start_index - 1]))
+	start_index--;
+
+    size_t end_index = le_main_index;
+    if (deleteafter)
+	while (end_index < le_main_buffer.length
+		&& iswblank(le_main_buffer.contents[end_index]))
+	    end_index++;
+
+    size_t slen = wcslen(s);
+
+    wb_replace_force(&le_main_buffer, start_index, end_index - start_index,
+	    s, slen);
+    le_main_index = start_index + slen;
+    le_display_reprint_buffer(start_index, false);
+    reset_state();
 }
 
 /* Starts emacs-like command history search in the forward direction. */

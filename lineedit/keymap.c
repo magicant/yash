@@ -263,6 +263,8 @@ void le_keymap_init(void)
     Set(Key_escape "U",     cmd_emacs_upcase_word);
     Set(Key_escape "c",     cmd_emacs_capitalize_word);
     Set(Key_escape "C",     cmd_emacs_capitalize_word);
+    Set(Key_escape Key_backslash, cmd_emacs_delete_horizontal_space);
+    Set(Key_escape " ",     cmd_emacs_just_one_space);
     Set(Key_escape "<",     cmd_oldest_history_eol);
     Set(Key_escape ">",     cmd_return_history_eol);
     Set(Key_c_s,            cmd_emacs_search_forward);
