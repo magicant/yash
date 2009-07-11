@@ -2608,7 +2608,8 @@ error:
     cmd_alert(L'\0');
 }
 
-/* Convert `count' words after the cursor to lower case.
+/* Converts the word after the cursor to lower case.
+ * If the count is set, `count' words are converted.
  * The cursor is left after the last converted word. */
 void cmd_emacs_downcase_word(wchar_t c __attribute__((unused)))
 {
@@ -2616,7 +2617,8 @@ void cmd_emacs_downcase_word(wchar_t c __attribute__((unused)))
 	    MEC_LOWERCASE | MEC_TOEND, cmd_forward_emacsword);
 }
 
-/* Convert `count' words after the cursor to upper case.
+/* Converts `count' words after the cursor to upper case.
+ * If the count is set, `count' words are converted.
  * The cursor is left after the last converted word. */
 void cmd_emacs_upcase_word(wchar_t c __attribute__((unused)))
 {
@@ -2624,9 +2626,38 @@ void cmd_emacs_upcase_word(wchar_t c __attribute__((unused)))
 	    MEC_UPPERCASE | MEC_TOEND, cmd_forward_emacsword);
 }
 
+/* Capitalizes the word after the cursor.
+ * If the count is set, `count' words are capitalized.
+ * The cursor is left after the last capitalized word. */
 void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_capitalize_word
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    int count = get_count(1);
+
+    if (count > 0) {
+	wchar_t *s = le_main_buffer.contents + le_main_index;
+	do {
+	    while (*s != L'\0' && !iswalnum(*s))
+		s++;
+	    *s = towupper(*s);
+	    s++;
+	    while (*s != L'\0' && iswalnum(*s))
+		s++;
+	} while (*s != L'\0' && --count > 0);
+	le_display_reprint_buffer(le_main_index, false);
+	le_main_index = s - le_main_buffer.contents;
+    } else {
+	size_t index = le_main_index;
+	do {
+	    index = previous_emacsword_index(le_main_buffer.contents, index);
+	    le_main_buffer.contents[index] =
+		towupper(le_main_buffer.contents[index]);
+	} while (index > 0 && ++count < 0);
+	le_display_reprint_buffer(index, false);
+    }
+    reset_state();
 }
 
 void cmd_emacs_delete_horizontal_space(wchar_t c __attribute__((unused)))
