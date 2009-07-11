@@ -16,6 +16,8 @@ Yash 2.12
      the working directory was changed.
   =  The "fg" and "bg" builtin now always sends SIGCONT to the
      continued job.
+  =  The "exit" builtin now warns about stopped jobs even when
+     executed after the "fg", "bg", "disown" or "wait" builtin.
   *  In vi-like line-editing, the wrong text was put after 30th yank.
   *  In vi-like line-editing, the "s" command cannot be used if the
      cursor is at the beginning of line

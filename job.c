@@ -920,7 +920,6 @@ int fg_builtin(int argc, void **argv)
     int status = Exit_SUCCESS;
     job_T *job;
 
-    nextforceexit = true;
     if (xoptind < argc) {
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
@@ -1031,8 +1030,6 @@ int wait_builtin(int argc, void **argv)
 	}
     }
 
-    nextforceexit = true;
-
     job_T *job;
     if (xoptind < argc) {
 	do {
@@ -1134,7 +1131,6 @@ int disown_builtin(int argc, void **argv)
 	}
     }
 
-    nextforceexit = true;
     if (all) {
 	remove_all_jobs();
     } else if (xoptind < argc) {
