@@ -2608,14 +2608,20 @@ error:
     cmd_alert(L'\0');
 }
 
+/* Convert `count' words after the cursor to lower case.
+ * The cursor is left after the last converted word. */
 void cmd_emacs_downcase_word(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_downcase_word
+    exec_motion_expect_command(
+	    MEC_LOWERCASE | MEC_TOEND, cmd_forward_emacsword);
 }
 
+/* Convert `count' words after the cursor to upper case.
+ * The cursor is left after the last converted word. */
 void cmd_emacs_upcase_word(wchar_t c __attribute__((unused)))
 {
-    // TODO cmd_emacs_upcase_word
+    exec_motion_expect_command(
+	    MEC_UPPERCASE | MEC_TOEND, cmd_forward_emacsword);
 }
 
 void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
