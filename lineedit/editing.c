@@ -838,9 +838,7 @@ void cmd_redraw_all(wchar_t c __attribute__((unused)))
     redraw_all(false);
 }
 
-/* Clears the screen and redraws everything at the top of the screen.
- * If the count is specified, the screen is not cleared: the line is just
- * redrawn. */
+/* Clears the screen and redraws everything at the top of the screen. */
 void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
 {
     redraw_all(true);
