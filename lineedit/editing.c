@@ -498,9 +498,14 @@ void exec_motion_command(size_t index, bool inclusive)
 	    case MEC_TOSTART | MEC_TOEND: le_main_index = index;        break;
 	}
 	if (mec & MEC_DELETE) {
-	    save_current_edit_command();
-	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
-	    le_main_index = start_index;
+	    if (overwrite && index < le_main_index) {
+		le_main_index = index;
+	    } else {
+		save_current_edit_command();
+		wb_remove(&le_main_buffer,
+			start_index, end_index - start_index);
+		le_main_index = start_index;
+	    }
 	}
 	if (mec & MEC_INSERT) {
 	    le_set_mode(LE_MODE_VI_INSERT);
