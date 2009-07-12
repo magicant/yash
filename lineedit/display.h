@@ -26,9 +26,8 @@ extern void le_display_init(const wchar_t *prompt)
     __attribute__((nonnull));
 extern void le_display_finalize(void);
 extern void le_display_clear(void);
-extern void le_display_print_all(_Bool promptsp);
-extern void le_display_reprint_buffer(size_t index, _Bool noclear);
-extern void le_display_reposition_cursor(void);
+extern void le_display_maybe_promptsp(void);
+extern void le_display_update(void);
 
 
 #endif /* YASH_DISPLAY_H */

@@ -44,7 +44,7 @@
  *
  * The `tputwc' function is the main function for displaying. It prints one
  * character for each call, tracking the cursor position.
- * In most terminals, when characters are printed as many as the number of
+ * In most terminals, when as many characters are printed as the number of
  * the columns, the cursor temporarily sticks to the end of the line. The cursor
  * moves to the next line immediately before the next character is printed. So
  * we must take care not to move the cursor (by the cub1 capability, etc.) when
@@ -71,11 +71,13 @@ static void print_prompt(void);
 static void print_color_seq(const wchar_t **sp)
     __attribute__((nonnull));
 
-static void print_editline(size_t index);
+static void update_editline(void);
 static void clear_editline(void);
 static void print_search(void);
 
 
+/* True when something is displayed on the screen. */
+static bool display_active;
 /* The current cursor position. */
 /* 0 <= current_line < lines, 0 <= current_column <= columns */
 static int current_line, current_column;
@@ -105,6 +107,8 @@ static const wchar_t *promptstring;
  */
 static int editbase_line, editbase_column;
 
+/* The content of the edit line that is currently displayed on the screen. */
+static wchar_t *current_editline;
 /* Array of cursor positions in the screen.
  * If the nth character in the main buffer is positioned at line `l', column `c'
  * on the screen, then cursor_positions[n] == l * le_columns + c. */
@@ -128,10 +132,7 @@ void le_display_init(const wchar_t *prompt)
 {
     current_line = current_column = current_line_max = 0;
     last_edit_line = 0;
-
     promptstring = prompt;
-    le_display_print_all(true);
-    le_display_reposition_cursor();
 }
 
 /* Finalizes the display module.
@@ -140,15 +141,19 @@ void le_display_finalize(void)
 {
     assert(le_search_buffer.contents == NULL);
 
-    go_to_index(le_main_buffer.length);
-
-    free(cursor_positions);
-    cursor_positions = NULL;
+    le_main_index = le_main_buffer.length;
+    le_display_update();
 
     if (current_column != 0 || current_line == 0)
 	le_print_nel(), current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();
+
+    free(current_editline);
+    current_editline = NULL;
+    free(cursor_positions);
+    cursor_positions = NULL;
+    display_active = false;
 }
 
 /* Clears everything printed by lineedit, restoreing the state before lineedit
@@ -157,6 +162,12 @@ void le_display_clear(void)
 {
     go_to(0, 0);
     clear_to_end_of_screen();
+
+    free(current_editline);
+    current_editline = NULL;
+    free(cursor_positions);
+    cursor_positions = NULL;
+    display_active = false;
 }
 
 /* Clears display area below the cursor.
@@ -177,17 +188,13 @@ void clear_to_end_of_screen(void)
     go_to(saveline, 0);
 }
 
-/* Prints everything.
- * This function assumes that the cursor is at the origin and the screen is
- * cleared.
- * If `promptsp' is true and `shopt_le_promptsp' is set, a dummy character
- * sequence is printed to reposition the cursor. */
-/* Note that the cursor is not positioned at the current index on the edit line
- * after this function. */
-void le_display_print_all(bool promptsp)
+/* Prints a dummy string to move the cursor to the first column wherever the
+ * cursor is before.
+ * This function does nothing if the "le-promptsp" option is not set or the
+ * terminal does not have the "am" capability. */
+void le_display_maybe_promptsp(void)
 {
-    /* print dummy string to make sure the cursor is at the beginning of line */
-    if (promptsp && shopt_le_promptsp && le_ti_am) {
+    if (shopt_le_promptsp && le_ti_am) {
 	le_print_sgr(1, 0, 0, 0, 0, 0, 0);
 	fputc('$', stderr);
 	le_print_sgr(0, 0, 0, 0, 0, 0, 0);
@@ -196,55 +203,35 @@ void le_display_print_all(bool promptsp)
 	le_print_cr();
 	le_print_ed();
     }
-
-    print_prompt();
-    if (le_search_buffer.contents == NULL) {
-	le_display_reprint_buffer(0, false);
-	// XXX print info area
-    } else {
-	print_search();
-    }
 }
 
-/* Reprints the main buffer from the `index'th character to the end.
- * The prompt and the info area are not reprinted.
- * If `noclear' is true, `clear_editline' is not called in this function. This
- * may short-circuit the printing process, but it can be used only when the
- * change in the buffer is appending of characters only (or the display will be
- * messed up).
- * The cursor is left at the end of the edit line. */
-/* This function must be called after the main buffer is changed. */
-/* If the command history search is being performed, the search result candidate
- * and the search pattern are reprinted. The arguments to this function are
- * ignored. */
-void le_display_reprint_buffer(size_t index, bool noclear)
+/* (Re)prints the display appropriately and moves the cursor to the proper
+ * position. */
+void le_display_update(void)
 {
+    /* print prompt */
+    if (!display_active) {
+	assert(current_line == 0 && current_column == 0);
+	display_active = true;
+	print_prompt();
+    }
+
+    /* print edit line */
     if (le_search_buffer.contents == NULL) {
-	if (index == 0)
-	    go_to(editbase_line, editbase_column);
-	else
-	    go_to_index(index);
-	if (!noclear)
-	    clear_editline();
-	print_editline(index);
+	update_editline();
     } else {
 	go_to(editbase_line, editbase_column);
 	le_print_el();
 	print_search();
+	return;
     }
-}
 
-/* Moves the cursor to the proper position on the screen.
- * This function must be called after `le_main_index' is changed. The content of
- * the buffer is not reprinted. */
-inline void le_display_reposition_cursor(void)
-{
-    if (le_search_buffer.contents == NULL)
-	go_to_index(le_main_index);
-    else
-	go_to(search_end_line, search_end_column);
-}
+    /* print info area TODO */
 
+    /* position cursor */
+    assert(le_main_index <= le_main_buffer.length);
+    go_to_index(le_main_index);
+}
 
 /* Moves the cursor to the specified position. */
 static void go_to(int line, int column)
@@ -278,12 +265,10 @@ static void go_to(int line, int column)
 }
 
 /* Moves the cursor to the character of the specified index in the main buffer.
- * This function relies on `cursor_positions', so `print_editline(0)' must have
+ * This function relies on `cursor_positions', so `update_editline()' must have
  * been called beforehand. */
 void go_to_index(size_t i)
 {
-    assert(i <= le_main_buffer.length);
-
     int pos = cursor_positions[i];
     go_to(pos / le_columns, pos % le_columns);
 }
@@ -483,33 +468,51 @@ done:
     }
 }
 
-/* Prints the content of the edit line from the `index'th character to the end,
- * updating `cursor_positions' and `last_edit_line'.
- * The cursor must have been moved to the `index'th character.
- * The cursor is moved to the end of the edit line. */
-void print_editline(size_t index)
+/* Prints the content of the edit line, updating `cursor_positions' and
+ * `last_edit_line'.
+ * The cursor is left at an unspecified position. */
+void update_editline(void)
 {
-    assert(le_main_index <= le_main_buffer.length);
-    assert(index <= le_main_buffer.length);
-    if (index == 0) {
-	assert(current_line == editbase_line);
-	assert(current_column == editbase_column);
+    size_t index = 0;
+
+    if (current_editline != NULL) {
+	/* We only reprint what have been changed from the last update:
+	 * Skip unchanged part at the beginning of the line. */
+	assert(cursor_positions != NULL);
+	while (current_editline[index] != L'\0'
+		&& current_editline[index] == le_main_buffer.contents[index])
+	    index++;
+
+	/* return if nothing changed */
+	if (current_editline[index] == L'\0'
+		&& le_main_buffer.contents[index] == L'\0')
+	    return;
+
+	go_to_index(index);
+	if (current_editline[index] != L'\0')
+	    clear_editline();
     } else {
-	assert(cursor_positions[index] ==
-		current_line * le_columns + current_column);
+	go_to(editbase_line, editbase_column);
+	clear_editline();
     }
 
     trace_position = convert_all_control = true;
+    current_editline = xrealloc(current_editline,
+	    sizeof *current_editline * (le_main_buffer.length + 1));
     cursor_positions = xrealloc(cursor_positions,
 	    sizeof *cursor_positions * (le_main_buffer.length + 1));
-    for (size_t i = index; i < le_main_buffer.length; i++) {
-	cursor_positions[i] = current_line * le_columns + current_column;
-	tputwc(le_main_buffer.contents[i]);
+    while (index < le_main_buffer.length) {
+	wchar_t c = le_main_buffer.contents[index];
+	current_editline[index] = c;
+	cursor_positions[index] = current_line * le_columns + current_column;
+	tputwc(c);
+	index++;
     }
-    cursor_positions[le_main_buffer.length] =
-	current_line * le_columns + current_column;
+    current_editline[index] = L'\0';
+    cursor_positions[index] = current_line * le_columns + current_column;
 
     fillip_cursor();
+    CHECK_CURRENT_LINE_MAX;
     last_edit_line = current_line;
 }
 
@@ -537,16 +540,22 @@ void clear_editline(void)
 
 /* Prints the current search result and the search line.
  * The cursor must be just after the prompt. Characters after the prompt should
- * have been cleared. Lines below the prompt are cleared in this function. */
+ * have been cleared. Lines below the prompt are cleared in this function.
+ * The cursor is left after the search line. */
 void print_search(void)
 {
     assert(le_search_buffer.contents != NULL);
+
+    free(current_editline);
+    current_editline = NULL;
+    free(cursor_positions);
+    cursor_positions = NULL;
 
     if (le_search_result != Histlist)
 	twprintf(L"%s", le_search_result->value);
     le_print_nel(), current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
-    le_print_ed();
+    clear_to_end_of_screen();
 
     const char *text;
     switch (le_search_type) {

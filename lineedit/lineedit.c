@@ -88,6 +88,7 @@ wchar_t *le_readline(const wchar_t *prompt)
     le_state = LE_STATE_ACTIVE;
     le_editing_init();
     le_display_init(prompt);
+    le_display_maybe_promptsp();
     reader_init();
     le_editstate = LE_EDITSTATE_EDITING;
 
@@ -136,9 +137,9 @@ void le_resume_readline(void)
 	le_state = LE_STATE_ACTIVE;
 	le_setupterm(true);
 	le_set_terminal();
-	le_display_print_all(true);
-	le_display_reposition_cursor();
-	fflush(stderr);
+	le_display_maybe_promptsp();
+	// le_display_update();
+	// fflush(stderr);
     }
 }
 
@@ -149,8 +150,7 @@ void le_display_size_changed(void)
     if (le_state == LE_STATE_ACTIVE) {
 	le_display_clear();
 	le_setupterm(true);
-	le_display_print_all(false);
-	le_display_reposition_cursor();
+	le_display_update();
 	fflush(stderr);
     }
 }
@@ -207,6 +207,7 @@ void read_next(void)
 	goto direct_first_buffer;
 
     /* wait for and read the next byte */
+    le_display_update();
     fflush(stderr);
     timeout = !wait_for_input(
 	    STDIN_FILENO, true, keycode_ambiguous ? le_read_timeout : -1);

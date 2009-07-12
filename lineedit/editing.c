@@ -246,7 +246,7 @@ static size_t find_nth_occurence(wchar_t c, int n);
 
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void insert_killed_string(
-	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear);
+	bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 
 static void vi_replace_char(wchar_t c);
@@ -344,7 +344,6 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 	    le_main_index--;
 	}
     }
-    le_display_reposition_cursor();
 }
 
 /* Resets `state.count'. */
@@ -482,15 +481,12 @@ void exec_motion_command(size_t index, bool inclusive)
 	if (mec & MEC_UPPERCASE) {
 	    to_upper_case(le_main_buffer.contents + start_index,
 		    end_index - start_index);
-	    le_display_reprint_buffer(start_index, false);
 	} else if (mec & MEC_LOWERCASE) {
 	    to_lower_case(le_main_buffer.contents + start_index,
 		    end_index - start_index);
-	    le_display_reprint_buffer(start_index, false);
 	} else if (mec & MEC_SWITCHCASE) {
 	    switch_case(le_main_buffer.contents + start_index,
 		    end_index - start_index);
-	    le_display_reprint_buffer(start_index, false);
 	}
 	if (mec & MEC_COPY) {
 	    add_to_kill_ring(le_main_buffer.contents + start_index,
@@ -505,7 +501,6 @@ void exec_motion_command(size_t index, bool inclusive)
 	    save_current_edit_command();
 	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
 	    le_main_index = start_index;
-	    le_display_reprint_buffer(start_index, false);
 	}
 	if (mec & MEC_INSERT) {
 	    le_set_mode(LE_MODE_VI_INSERT);
@@ -656,15 +651,12 @@ void cmd_self_insert(wchar_t c)
 
     if (c != L'\0') {
 	int count = get_count(1);
-	size_t old_index = le_main_index;
 
 	while (--count >= 0)
 	    if (overwrite && le_main_index < le_main_buffer.length)
 		le_main_buffer.contents[le_main_index++] = c;
 	    else
 		wb_ninsert_force(&le_main_buffer, le_main_index++, &c, 1);
-	le_display_reprint_buffer(old_index,
-		!overwrite && le_main_index == le_main_buffer.length);
 	reset_state();
     } else {
 	cmd_alert(L'\0');
@@ -775,7 +767,6 @@ void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
     else
 	wb_remove(&le_main_buffer, 0, 1);
     le_main_index = 0;
-    le_display_reprint_buffer(0, false);
     cmd_accept_line(L'\0');
 }
 
@@ -852,7 +843,7 @@ void redraw_all(bool clear)
     le_set_terminal();
     if (clear)
 	le_print_clear();
-    le_display_print_all(false);
+    // le_display_update();
 }
 
 
@@ -1941,7 +1932,7 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
 	return;
     }
 
-    insert_killed_string(after_cursor, cursor_on_last_char, index, false);
+    insert_killed_string(after_cursor, cursor_on_last_char, index);
 }
 
 /* Inserts the killed text at the current cursor position (`count' times).
@@ -1951,11 +1942,9 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
  * inserted. Otherwise, the cursor is left after the inserted text.
  * The `index' specifies the text in the kill ring to be inserted. If a text
  * does not exist at the specified index in the kill ring, this function does
- * nothing.
- * If `clear' is true, the buffer is always reprinted. Otherwise, the buffer is
- * reprinted only when necessary. */
+ * nothing. */
 void insert_killed_string(
-	bool after_cursor, bool cursor_on_last_char, size_t index, bool clear)
+	bool after_cursor, bool cursor_on_last_char, size_t index)
 {
     const wchar_t *s = kill_ring[index];
     if (s == NULL)
@@ -1966,7 +1955,6 @@ void insert_killed_string(
 	le_main_index++;
 
     size_t offset = le_main_buffer.length - le_main_index;
-    size_t old_index = le_main_index;
     for (int count = get_count(1); --count >= 0; )
 	wb_insert(&le_main_buffer, le_main_index, s);
     assert(le_main_buffer.length >= offset + 1);
@@ -1977,7 +1965,6 @@ void insert_killed_string(
     if (cursor_on_last_char)
 	le_main_index--;
 
-    le_display_reprint_buffer(old_index, !clear && offset == 0);
     reset_state();
 }
 
@@ -2011,7 +1998,7 @@ void cmd_put_pop(wchar_t c __attribute__((unused)))
     wb_remove(&le_main_buffer, last_put_range_start, last_put_range_length);
     le_main_index = last_put_range_start;
 
-    insert_killed_string(false, false, index, true);
+    insert_killed_string(false, false, index);
 }
 
 /* Undoes the last editing command. */
@@ -2075,7 +2062,6 @@ void cancel_undo(int offset)
     assert(entry->index <= le_main_buffer.length);
     le_main_index = entry->index;
 
-    le_display_reprint_buffer(0, false);
     reset_state();
     return;
 
@@ -2120,14 +2106,12 @@ void vi_replace_char(wchar_t c)
 
     if (c != L'\0') {
 	int count = get_count(1);
-	size_t old_index = le_main_index;
 
 	if (--count >= 0 && le_main_index < le_main_buffer.length) {
 	    le_main_buffer.contents[le_main_index] = c;
 	    while (--count >= 0 && le_main_index < le_main_buffer.length)
 		le_main_buffer.contents[++le_main_index] = c;
 	}
-	le_display_reprint_buffer(old_index, false);
 	reset_state();
     } else {
 	cmd_alert(L'\0');
@@ -2310,14 +2294,12 @@ void cmd_vi_append_last_bigword(wchar_t c __attribute__((unused)))
 
     if (le_main_index < le_main_buffer.length)
 	le_main_index++;
-    size_t oldindex = le_main_index;
     size_t len = range.end - range.start;
     wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
     le_main_index += 1;
     wb_ninsert_force(&le_main_buffer, le_main_index, range.start, len);
     le_main_index += len;
     free(lastcmd);
-    le_display_reprint_buffer(oldindex, le_main_index == le_main_buffer.length);
     cmd_setmode_viinsert(L'\0');
     return;
 
@@ -2543,7 +2525,6 @@ void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
     le_main_index = index;
     if (index > old_index)
 	index = old_index;
-    le_display_reprint_buffer(index - 1, false);
     reset_state();
     return;
 
@@ -2600,7 +2581,6 @@ void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
 	    buf.contents, buf.length);
     wb_destroy(&buf);
     le_main_index = new_index;
-    le_display_reprint_buffer(w1start, false);
 end:
     reset_state();
     return;
@@ -2647,7 +2627,6 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
 	    while (*s != L'\0' && iswalnum(*s))
 		s++;
 	} while (*s != L'\0' && --count > 0);
-	le_display_reprint_buffer(le_main_index, false);
 	le_main_index = s - le_main_buffer.contents;
     } else {
 	size_t index = le_main_index;
@@ -2656,7 +2635,6 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
 	    le_main_buffer.contents[index] =
 		towupper(le_main_buffer.contents[index]);
 	} while (index > 0 && ++count < 0);
-	le_display_reprint_buffer(index, false);
     }
     reset_state();
 }
@@ -2713,7 +2691,6 @@ void replace_horizontal_space(bool deleteafter, const wchar_t *s)
     wb_replace_force(&le_main_buffer, start_index, end_index - start_index,
 	    s, slen);
     le_main_index = start_index + slen;
-    le_display_reprint_buffer(start_index, false);
     reset_state();
 }
 
@@ -2809,7 +2786,6 @@ void go_to_history_absolute(const histentry_T *e, bool cursorend)
 	    goto alert;
     }
     go_to_history(e, cursorend);
-    le_display_reprint_buffer(0, false);
     reset_state();
     return;
 
@@ -2870,7 +2846,6 @@ void go_to_history_relative(int offset, bool cursorend)
 	} while (++offset < 0);
     }
     go_to_history(e, cursorend);
-    le_display_reprint_buffer(0, false);
     reset_state();
     return;
 alert:
@@ -3006,7 +2981,6 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
     } else {
 	go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
     }
-    le_display_reprint_buffer(0, false);
     reset_state();
 }
 
@@ -3038,11 +3012,10 @@ void cmd_srch_abort_search(wchar_t c __attribute__((unused)))
     wb_destroy(&le_search_buffer);
     le_search_buffer.contents = NULL;
     le_set_mode(savemode);
-    le_display_reprint_buffer(0, false);
     reset_state();
 }
 
-/* Re-calculates the search result candidate and prints it. */
+/* Re-calculates the search result candidate. */
 void update_search(void)
 {
     const wchar_t *pattern = le_search_buffer.contents;
@@ -3063,7 +3036,6 @@ void update_search(void)
 
     perform_search(pattern, le_search_direction, le_search_type);
 done:
-    le_display_reprint_buffer(0, false);
     reset_state();
 }
 
@@ -3207,7 +3179,6 @@ void search_again(enum le_search_direction dir)
 	    go_to_history(le_search_result, false);
 	}
     }
-    le_display_reprint_buffer(0, false);
     reset_state();
 }
 
