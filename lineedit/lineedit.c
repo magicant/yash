@@ -314,7 +314,7 @@ process_wide:
     /* process key mapping for wide characters */
 process_keymap:
     while (reader_second_buffer.length > 0) {
-	register char c;
+	register wchar_t c;
 	trieget_T tg = trie_getw(
 		le_current_mode->keymap, reader_second_buffer.contents);
 	switch (tg.type) {
