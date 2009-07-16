@@ -1884,6 +1884,12 @@ void cmd_backward_kill_emacsword(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_KILL, cmd_backward_emacsword);
 }
 
+/* Kills all characters in the edit line. */
+void cmd_kill_line(wchar_t c __attribute__((unused)))
+{
+    exec_motion_expect_command_line(MEC_KILL);
+}
+
 /* Kills all characters after the cursor. */
 void cmd_forward_kill_line(wchar_t c __attribute__((unused)))
 {
