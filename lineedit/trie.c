@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <sys/types.h>
+#include "../strbuf.h"
 #include "../util.h"
 #include "trie.h"
 
@@ -59,6 +60,11 @@ static ssize_t binarysearchw(const trieentry_T *e, size_t count, wchar_t key)
     __attribute__((nonnull,pure));
 static trienode_T *insert_entry(trienode_T *node, size_t index, triekey_T key)
     __attribute__((nonnull,malloc,warn_unused_result));
+static int foreachw(const trienode_T *t,
+	int (*func)(void *v, const wchar_t *key, le_command_func_T *cmd),
+	void *v,
+	xwcsbuf_T *buf)
+    __attribute__((nonnull(1,2,4)));
 
 
 /* Creates a new empty trie. */
@@ -361,6 +367,48 @@ trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 	    assert(false);
     }
     return result;
+}
+
+/* Calls the function `func' for each entry in the trie `t'.
+ * The pointer `v' is passed to the function as the first argument.
+ * Returns zero if `func' was called for all the entries.
+ * When `func' returns non-zero, the iteration is aborted and `trie_foreachw'
+ * returns the value returned by `func'. */
+int trie_foreachw(const trienode_T *t,
+	int (*func)(void *v, const wchar_t *key, le_command_func_T *cmd),
+	void *v)
+{
+    xwcsbuf_T buf;
+    int result;
+
+    wb_init(&buf);
+    result = foreachw(t, func, v, &buf);
+    wb_destroy(&buf);
+    return result;
+}
+
+int foreachw(const trienode_T *t,
+	int func(void *v, const wchar_t *key, le_command_func_T cmd),
+	void *v,
+	xwcsbuf_T *buf)
+{
+    int result;
+
+    if (t->valuevalid) {
+	result = func(v, buf->contents, t->value.cmdfunc);
+	if (result != 0)
+	    return result;
+    }
+
+    for (size_t i = 0; i < t->count; i++) {
+	wb_wccat(buf, t->entries[i].key.as_wchar);
+
+	foreachw(t->entries[i].child, func, v, buf);
+
+	assert(buf->length > 0);
+	buf->contents[--buf->length] = L'\0';
+	/* wb_remove(buf, buf->length - 1); */
+    }
 }
 
 /* Destroys the whole tree.

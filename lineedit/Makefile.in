@@ -27,7 +27,7 @@ SOURCES = display.c display.h editing.c editing.h key.h keymap.c keymap.h lineed
 OBJS = display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = @LINEEDIT_ARCHIVE@
 
-BYPRODUCTS = 
+BYPRODUCTS = mkcmds commands.in
 
 all: $(TARGET)
 
@@ -40,6 +40,9 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
+commands.in: mkcmds
+	./mkcmds > $@
+keymap.o: commands.in
 
 DISTCONTENTS = $(SOURCES) Makefile.in Makefile.deps
 distcontents: $(DISTCONTENTS)

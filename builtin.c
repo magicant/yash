@@ -51,6 +51,9 @@
 #if YASH_ENABLE_ULIMIT
 # include "builtins/ulimit.h"
 #endif
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/keymap.h"
+#endif
 
 
 /* Rules about builtin commands:
@@ -166,6 +169,11 @@ void init_builtin(void)
 #if YASH_ENABLE_TEST
     DEFBUILTIN("test", test_builtin, BI_REGULAR, test_help);
     DEFBUILTIN("[", test_builtin, BI_REGULAR, test_help);
+#endif
+
+    /* defined in "lineedit/keymap.c" */
+#if YASH_ENABLE_LINEEDIT
+    DEFBUILTIN("bindkey", bindkey_builtin, BI_REGULAR, bindkey_help);
 #endif
 
 #undef DEFBUILTIN

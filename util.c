@@ -392,7 +392,7 @@ void argshift(void **argv, int from, int to /* <= from */)
  * `argv[xoptind]' points to the first operand.
  * After this function returned L'?', it must not be called any more and
  * `argv[xoptind]' points to the erroneous option.
- * After this function returned something otherwise, `argv[xoptind]' points to
+ * After this function returned something else, `argv[xoptind]' points to
  * the next argument to parse.
  * `argv', `xoptind' and `xoptopt' must not be changed from outside this
  * function during parsing.

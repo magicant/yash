@@ -18,6 +18,14 @@
 
 #include "../common.h"
 #include <assert.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include "../builtin.h"
+#include "../exec.h"
+#include "../expand.h"
+#include "../util.h"
 #include "editing.h"
 #include "key.h"
 #include "keymap.h"
@@ -322,6 +330,210 @@ le_mode_id_T le_get_mode(void)
 {
     return (le_mode_id_T) (le_current_mode - le_modes);
 }
+
+
+/********** Builtin **********/
+
+static int set_key_binding(
+	le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
+    __attribute__((nonnull));
+static le_command_func_T *get_command_from_name(const char *name)
+    __attribute__((nonnull,pure));
+static int command_name_compare(const void *p1, const void *p2)
+    __attribute__((nonnull,pure));
+static int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
+    __attribute__((nonnull));
+static int print_binding_main(
+	void *mode, const wchar_t *keyseq, le_command_func_T *cmd)
+    __attribute__((nonnull));
+static const char *get_command_name(le_command_func_T *command)
+    __attribute__((nonnull,const));
+
+/* Array of pairs of a command name and function.
+ * Sorted by the name. */
+static const struct command_name_pair {
+    const char *name;
+    le_command_func_T *command;
+} commands[] = {
+#include "commands.in"
+};
+
+/* The "bindkey" builtin, which accepts the following options:
+ *  -v: select the "vi-insert" mode
+ *  -a: select the "vi-command" mode
+ *  -e: select the "emacs" mode */
+int bindkey_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"vi-insert",  xno_argument, L'v', },
+	{ L"vi-command", xno_argument, L'a', },
+	{ L"emacs",      xno_argument, L'e', },
+	{ L"help",       xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
+    wchar_t opt;
+    le_mode_id_T mode = LE_MODE_N;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"aev", long_options, NULL))) {
+	switch (opt) {
+	    case L'a':  mode = LE_MODE_VI_COMMAND;  break;
+	    case L'e':  mode = LE_MODE_EMACS;       break;
+	    case L'v':  mode = LE_MODE_VI_INSERT;   break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		return Exit_SUCCESS;
+	    default:  print_usage:
+		fprintf(stderr,
+			gt("Usage:  bindkey -aev [keyseq [command]]\n"));
+		return Exit_ERROR;
+	}
+    }
+
+    if (mode == LE_MODE_N) {
+	xerror(0, Ngt("mode not specified"));
+	goto print_usage;
+    }
+
+    if (xoptind == argc) {
+	/* print all key bindings */
+	le_mode_T *m = &le_modes[mode];
+	return trie_foreachw(m->keymap, print_binding_main, m);
+    } else if (xoptind + 1 == argc) {
+	return print_binding(mode, ARGV(xoptind));
+    } else if (xoptind + 2 == argc) {
+	return set_key_binding(mode, ARGV(xoptind), ARGV(xoptind + 1));
+    } else {
+	goto print_usage;
+    }
+}
+
+/* Binds `keyseq' to the specified command.
+ * If `commandname' is L"-", the binding is removed.
+ * If the specified command is not found, it is an error. */
+int set_key_binding(
+	le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
+{
+    if (keyseq[0] == L'\0') {
+	xerror(0, Ngt("cannot bind empty sequence"));
+	return Exit_FAILURE;
+    }
+
+    if (wcscmp(commandname, L"-") == 0) {
+	/* delete key binding */
+	register trie_T *t = le_modes[mode].keymap;
+	t = trie_removew(t, keyseq);
+	le_modes[mode].keymap = t;
+    } else {
+	/* set key binding */
+	char *mbsname = malloc_wcstombs(commandname);
+	if (mbsname == NULL) {
+	    xerror(EILSEQ, Ngt("unexpected error"));
+	    return Exit_FAILURE;
+	}
+
+	le_command_func_T *cmd = get_command_from_name(mbsname);
+	free(mbsname);
+	if (cmd) {
+	    register trie_T *t = le_modes[mode].keymap;
+	    t = trie_setw(t, keyseq, (trievalue_T) { .cmdfunc = cmd });
+	    le_modes[mode].keymap = t;
+	} else {
+	    xerror(0, Ngt("%ls: no such command"), commandname);
+	    return Exit_FAILURE;
+	}
+    }
+    return Exit_SUCCESS;
+}
+
+/* Returns the command function of the specified name.
+ * Returns a null pointer if no such command is found. */
+le_command_func_T *get_command_from_name(const char *name)
+{
+    struct command_name_pair *cnp = bsearch(name, commands,
+	    sizeof commands / sizeof *commands,
+	    sizeof *commands,
+	    command_name_compare);
+
+    return cnp ? cnp->command : 0;
+}
+
+int command_name_compare(const void *p1, const void *p2)
+{
+    return strcmp((const char *) p1,
+	    ((const struct command_name_pair *) p2)->name);
+}
+
+/* Prints the binding for the given key sequence. */
+int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
+{
+    trieget_T tg = trie_getw(le_modes[mode].keymap, keyseq);
+
+    switch (tg.type) {
+	case TG_NOMATCH:
+	case TG_NEEDMORE:
+	    xerror(0, Ngt("%ls: unbound sequence"), keyseq);
+	    return Exit_FAILURE;
+	case TG_UNIQUE:
+	case TG_AMBIGUOUS:
+	    return print_binding_main(
+		    &le_modes[mode], keyseq, tg.value.cmdfunc);
+	default:
+	    assert(false);
+    }
+}
+
+/* Prints a command to restore the specified key binding.
+ * `mode' must be a pointer to one of the modes in `le_modes'. */
+int print_binding_main(
+	void *mode, const wchar_t *keyseq, le_command_func_T *cmd)
+{
+    char modechar;
+    wchar_t *keyseqquote;
+    const char *commandname;
+
+    switch ((le_mode_id_T) ((le_mode_T *) mode - le_modes)) {
+	case LE_MODE_VI_INSERT:     modechar = 'v';  break;
+	case LE_MODE_VI_COMMAND:    modechar = 'a';  break;
+	case LE_MODE_VI_SEARCH:     modechar = 'V';  break;
+	case LE_MODE_EMACS:         modechar = 'e';  break;
+	case LE_MODE_EMACS_SEARCH:  modechar = 'E';  break;
+	case LE_MODE_CHAR_EXPECT:   modechar = 'c';  break;
+	default:                    assert(false);
+    }
+    keyseqquote = quote_sq(keyseq);
+    commandname = get_command_name(cmd);
+    printf("bindkey -%c %ls %s\n", modechar, keyseqquote, commandname);
+    free(keyseqquote);
+    return Exit_SUCCESS;
+}
+
+/* Returns the name of the specified command. */
+const char *get_command_name(le_command_func_T *command)
+{
+    for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
+	if (commands[i].command == command)
+	    return commands[i].name;
+    return NULL;
+}
+
+const char bindkey_help[] = Ngt(
+"bindkey - set or print key bindings for line-editing\n"
+"\tbindkey -aev [keyseq [command]]\n"
+"Without <keyseq> or <command>, prints all the current key bindings.\n"
+"With <keyseq> without <command>, prints the binding for <keyseq>.\n"
+"With <keyseq> and <command>, binds <keyseq> to <command>. If <command> is\n"
+"a hyphen ('-'), <keyseq> is unbound.\n"
+"\n"
+"One of the following options must be given:\n"
+" -v --vi-insert\n"
+"\tSpecifies the \"vi insert\" mode.\n"
+" -a --vi-command\n"
+"\tSpecifies the \"vi command\" mode.\n"
+" -e --emacs\n"
+"\tSpecifies the \"emacs\" mode.\n"
+);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

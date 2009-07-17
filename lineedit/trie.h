@@ -51,6 +51,10 @@ extern trieget_T trie_get(const trie_T *t, const char *keystr, size_t keylen)
     __attribute__((nonnull));
 extern trieget_T trie_getw(const trie_T *t, const wchar_t *keywcs)
     __attribute__((nonnull));
+extern int trie_foreachw(const trie_T *t,
+	int (*func)(void *v, const wchar_t *key, le_command_func_T *cmd),
+	void *v)
+    __attribute__((nonnull(1,2)));
 extern void trie_destroy(trie_T *t);
 
 
