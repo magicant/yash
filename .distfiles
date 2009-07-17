@@ -75,6 +75,7 @@ lineedit/keymap.c
 lineedit/keymap.h
 lineedit/lineedit.c
 lineedit/lineedit.h
+lineedit/mkcmds.c
 lineedit/terminfo.c
 lineedit/terminfo.h
 lineedit/trie.c
