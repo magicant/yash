@@ -403,12 +403,16 @@ int foreachw(const trienode_T *t,
     for (size_t i = 0; i < t->count; i++) {
 	wb_wccat(buf, t->entries[i].key.as_wchar);
 
-	foreachw(t->entries[i].child, func, v, buf);
+	result = foreachw(t->entries[i].child, func, v, buf);
+	if (result != 0)
+	    return result;
 
 	assert(buf->length > 0);
 	buf->contents[--buf->length] = L'\0';
 	/* wb_remove(buf, buf->length - 1); */
     }
+
+    return 0;
 }
 
 /* Destroys the whole tree.
