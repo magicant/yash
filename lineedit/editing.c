@@ -2381,6 +2381,8 @@ void vi_exec_alias(wchar_t c)
 	    return;
 	}
     }
+#else
+    (void) c;
 #endif
     cmd_alert(L'\0');
 }

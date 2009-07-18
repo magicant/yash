@@ -1787,9 +1787,14 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 bool print_command_info(
 	const wchar_t *commandname, enum srchcmdtype_T type, bool humanfriendly)
 {
+    bool found;
+
 #if YASH_ENABLE_ALIAS
-    if (print_alias_if_defined(commandname, humanfriendly))
+    found = print_alias_if_defined(commandname, humanfriendly);
+    if (found && !humanfriendly)
 	return true;
+#else
+    found = false;
 #endif
     if (is_keyword(commandname)) {
 	printf(humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n",
@@ -1807,6 +1812,8 @@ bool print_command_info(
 	case externalprogram:
 	    if (ci.ci_path && is_executable_regular(ci.ci_path)) {
 		print_command_absolute_path(name, ci.ci_path, humanfriendly);
+		goto ok;
+	    } else if (found) {
 		goto ok;
 	    } else {
 		if (humanfriendly)

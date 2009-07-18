@@ -11,6 +11,7 @@ History of Yash
 Yash 2.12
 
   +  Emacs-like line-editing.
+  +  "bindkey" builtin.
   +  The $PROMPT_COMMAND variable now can be an array.
   +  The value of the $YASH_AFTER_CD variable is now executed after
      the working directory was changed.

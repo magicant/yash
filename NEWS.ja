@@ -11,6 +11,7 @@ Yash 更新履歴
 Yash 2.12
 
   +  Emacs 風行編集
+  +  "bindkey" 組込み
   +  $PROMPT_COMMAND は配列でもよいように
   +  作業ディレクトリ変更後に $YASH_AFTER_CD を実行するように
   =  "fg", "bg" 組込みは常に SIGCONT を対象ジョブに送信するように
