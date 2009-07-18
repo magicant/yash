@@ -138,8 +138,8 @@ void le_resume_readline(void)
 	le_setupterm(true);
 	le_set_terminal();
 	le_display_maybe_promptsp();
-	// le_display_update();
-	// fflush(stderr);
+	le_display_update();
+	fflush(stderr);
     }
 }
 
