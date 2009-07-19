@@ -15,6 +15,7 @@ Yash 2.13
   *  The shell would not exit after the "exit" builtin twice in a row
      when you have $PROMPT_COMMAND set and you have stopped jobs.
   *  The "notifyle" option not working with $PROMPT_COMMAND set.
+  *  In line-editing, redoing was broken.
   *  In line-editing, the command line was not redrawn after trap
      handling.
 

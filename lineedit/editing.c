@@ -382,7 +382,7 @@ int get_count(int default_value)
 void save_current_edit_command(void)
 {
     if (current_command.func != cmd_redo
-	    && le_get_mode() == LE_MODE_VI_INSERT) {
+	    && le_get_mode() != LE_MODE_VI_INSERT) {
 	last_edit_command.command = current_command;
 	last_edit_command.state = state;
     }
