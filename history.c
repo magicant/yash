@@ -1179,8 +1179,8 @@ int fc_builtin(int argc, void **argv)
 	} else {
 	    if (first > INT_MAX)
 		first = INT_MAX;
-	    else if (first < INT_MIN)
-		first = INT_MIN;
+	    else if (first < INT_MIN + 1)
+		first = INT_MIN + 1;
 	}
     } else {
 	first = list ? -16 : -1;
@@ -1193,8 +1193,8 @@ int fc_builtin(int argc, void **argv)
 	} else {
 	    if (last > INT_MAX)
 		last = INT_MAX;
-	    else if (last < INT_MIN)
-		last = INT_MIN;
+	    else if (last < INT_MIN + 1)
+		last = INT_MIN + 1;
 	}
     } else {
 	last = list ? -1 : 0;
