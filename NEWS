@@ -10,6 +10,10 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.13
 
+  =  The exit status is now one when the "return" builtin is used
+     outside a function in an interactive shell.
+  *  The shell would not exit after the "exit" builtin twice in a row
+     when you have $PROMPT_COMMAND set and you have stopped jobs.
   *  In line-editing, the command line was not redrawn after trap
      handling.
 

@@ -579,8 +579,10 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
     for (;;) {
 	and_or_T *commands;
 
-	forceexit = nextforceexit;
-	nextforceexit = false;
+	if (pinfo->intrinput) {
+	    forceexit = nextforceexit;
+	    nextforceexit = false;
+	}
 	if (return_pending()) {
 	    reset_execinfo();
 	    if (pinfo->intrinput) {
@@ -690,7 +692,7 @@ int exit_builtin(int argc, void **argv)
 		    sjc),
 		sjc);
 	fprintf(stderr, gt("  Use `exit' again to exit anyway.\n"));
-	nextforceexit = true;
+	forceexit = nextforceexit = true;
 	return Exit_FAILURE;
     }
 
