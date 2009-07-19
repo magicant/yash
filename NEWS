@@ -14,6 +14,7 @@ Yash 2.13
      outside a function in an interactive shell.
   *  The shell would not exit after the "exit" builtin twice in a row
      when you have $PROMPT_COMMAND set and you have stopped jobs.
+  *  The "notifyle" option not working with $PROMPT_COMMAND set.
   *  In line-editing, the command line was not redrawn after trap
      handling.
 

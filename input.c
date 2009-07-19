@@ -287,14 +287,18 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 
     struct parsestate_T *state = save_parse_state();
     struct input_readline_info *info = inputinfo;
-    if (do_job_control)
-	print_job_status_all(true, false, stderr);
-    if (info->type == 1) {
+    if (info->type == 1)
 	if (!posixly_correct)
 	    exec_variable_as_commands(
 		    L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND, false);
+    if (do_job_control)
+	print_job_status_all(true, false, stderr);
+    if (info->type == 1)
 	check_mail();
-    }
+    /* Note: no commands must be executed between `print_job_status_all' here
+     * and `le_readline', or the "notifyle" option won't work. More precisely,
+     * `handle_sigchld' must not be called from any other function until it is
+     * called from `wait_for_input' in the line-editing. */
 
 #if YASH_ENABLE_LINEEDIT
     /* read a line using line edit */
