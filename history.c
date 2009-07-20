@@ -914,6 +914,7 @@ void finalize_history(void)
 
     hist_lock = false;
     lock_file(fileno(histfile), F_WRLCK);
+    update_time();
     update_history(true);
     remove_histfile_pid(shell_pid);
     if (histfile) {
@@ -935,11 +936,11 @@ void add_history(const wchar_t *line)
     maybe_init_history();
     assert(!hist_lock);
 
+    update_time();
     if (histfile) {
 	lock_file(fileno(histfile), F_WRLCK);
 	update_history(true);
     }
-    update_time();
 
     const wchar_t *nl = wcschr(line, L'\n');
     while ((nl = wcschr(line, L'\n')) != NULL) {
@@ -1030,6 +1031,7 @@ void start_using_history(void)
     if (!hist_lock) {
 	if (histfile) {
 	    lock_file(fileno(histfile), F_RDLCK);
+	    update_time();
 	    update_history(false);
 	    if (histfile)
 		lock_file(fileno(histfile), F_UNLCK);
@@ -1134,6 +1136,7 @@ int fc_builtin(int argc, void **argv)
     if (list) {
 	if (histfile) {
 	    lock_file(fileno(histfile), F_RDLCK);
+	    update_time();
 	    update_history(false);
 	    if (histfile)
 		lock_file(fileno(histfile), F_UNLCK);
@@ -1261,6 +1264,7 @@ void fc_remove_last_entry(void)
 {
     if (histfile) {
 	lock_file(fileno(histfile), F_WRLCK);
+	update_time();
 	update_history(false);
 	remove_last_entry();
 	if (histfile) {
@@ -1452,11 +1456,11 @@ void fc_read_history(FILE *f, bool quiet)
 {
     xwcsbuf_T buf;
 
+    update_time();
     if (histfile) {
 	lock_file(fileno(histfile), F_WRLCK);
 	update_history(false);
     }
-    update_time();
 
     wb_init(&buf);
     while (read_line(f, &buf)) {
