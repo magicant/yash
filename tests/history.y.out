@@ -1,4 +1,5 @@
 fc: semi-special builtin
+history: regular builtin
 1
 2
 3
@@ -112,7 +113,7 @@ inner shell
 59	EOF2
 60	echo inner shell; fc -l 53
 =====
-==========
+===== 1 =====
 31
 32
 33
@@ -132,6 +133,50 @@ inner shell
 32	echo 32
 33	echo 33
 34	fc -l
+===== 2 =====
+31
+28	echo 32
+29	echo 33
+30	fc -l
+31	echo 31
+32	history 5
+28	echo 32
+29	echo 33
+30	fc -l
+31	echo 31
+34	history 5
+1
+2
+3
+echo 1
+echo 2
+echo 3
+history -w -
+a
+b
+c
+echo 1
+echo 2
+echo 3
+history -w -
+history -w "${TESTTMP}"/history2 -c
+1	echo a
+2	echo b
+3	echo c
+4	cat "${TESTTMP}"/history2
+5	history -r "${TESTTMP}"/history2 -r - <<\END
+6	echo x
+7	END
+8	echo 1
+9	echo 2
+10	echo 3
+11	history -w -
+12	history -w "${TESTTMP}"/history2 -c
+13	echo x
+14	1
+15	2
+16	3
+17	history
 ===== histspace =====
 a
 b

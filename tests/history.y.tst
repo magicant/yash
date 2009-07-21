@@ -6,6 +6,7 @@ PS1='' PS2='' HISTFILE="$TMPHIST" HISTSIZE=30
 END
 
 command -V fc
+command -V history | grep -q regular && echo history: regular builtin
 
 unset FCEDIT
 $INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
@@ -65,13 +66,38 @@ exit
 echo not executed
 EOF
 
-echo ==========
+echo ===== 1 =====
 
 $INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
 echo 31
 echo 32
 echo 33
 fc -l
+EOF
+
+echo ===== 2 =====
+
+$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
+echo 31
+history 5
+history -d -2 -d 33
+history 5
+history -c
+echo 1
+echo 2
+echo 3
+history -w -
+history -w "${TESTTMP}"/history2 -c
+echo a
+echo b
+echo c
+cat "${TESTTMP}"/history2
+history -r "${TESTTMP}"/history2 -r - <<\END
+echo x
+
+END
+history -s 1 -s 2 -s 3
+history
 EOF
 
 echo ===== histspace =====
