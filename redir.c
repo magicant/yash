@@ -218,9 +218,15 @@ void clear_shellfds(bool leavefds)
  * On error, `errno' is set and -1 is returned. */
 int copy_as_shellfd(int fd)
 {
+#ifdef F_DUPFD_CLOEXEC
+    int newfd = fcntl(fd, F_DUPFD_CLOEXEC, shellfdmin);
+#else
     int newfd = fcntl(fd, F_DUPFD, shellfdmin);
+#endif
     if (newfd >= 0) {
+#ifndef F_DUPFD_CLOEXEC
 	fcntl(newfd, F_SETFD, FD_CLOEXEC);
+#endif
 	add_shellfd(newfd);
     }
     return newfd;
