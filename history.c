@@ -1075,6 +1075,14 @@ static int fc_edit_and_exec_entries(
     __attribute__((nonnull(1,2)));
 static void fc_read_history(FILE *f, bool quiet)
     __attribute__((nonnull));
+static void history_clear_all(void);
+static int history_delete(const wchar_t *s)
+    __attribute__((nonnull));
+static int history_read(const wchar_t *s)
+    __attribute__((nonnull));
+static int history_write(const wchar_t *s)
+    __attribute__((nonnull));
+static void history_refresh_file(void);
 
 /* The "fc" builtin, which accepts the following options:
  * -e: specify the editor to edit history
@@ -1289,7 +1297,8 @@ histentry_T *fc_search_entry(const wchar_t *prefix)
     return e;
 }
 
-/* Print history entries between `first' and `last'. */
+/* Print history entries between `first' and `last'.
+ * `errno' is set on error. */
 int fc_print_entries(
 	FILE *f, const histentry_T *first, const histentry_T *last,
 	bool reverse, enum fcprinttype_T type)
@@ -1512,6 +1521,257 @@ const char fc_help[] = Ngt(
 "If <last> is omitted, it defaults to -1 (with -l) or <first> (without -l).\n"
 "\n"
 "In POSIXly correct mode, the -q and -v options are not available.\n"
+);
+
+/* The "history" builtin, which accepts the following options:
+ * -c: clear whole history
+ * -d: remove history entry
+ * -r: read history from a file
+ * -s: add history entry
+ * -w: write history into a file
+ * -F: flush history file */
+int history_builtin(int argc, void **argv)
+{
+    static const struct xoption long_options[] = {
+	{ L"clear",      xno_argument,       L'c', },
+	{ L"delete",     xrequired_argument, L'd', },
+	{ L"read",       xrequired_argument, L'r', },
+	{ L"set",        xrequired_argument, L's', },
+	{ L"write",      xrequired_argument, L'w', },
+	{ L"flush-file", xno_argument,       L'F', },
+	{ L"help",       xno_argument,       L'-', },
+        { NULL, 0, 0, },
+    };
+
+    maybe_init_history();
+
+    bool hasoption = false, removedthis = false;
+    wchar_t opt;
+    int result;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"cd:r:s:w:F", long_options, NULL))) {
+	hasoption = true;
+	switch (opt) {
+	    case L'c':
+		history_clear_all();
+		break;
+	    case L'd':
+		result = history_delete(xoptarg);
+		if (result != Exit_SUCCESS)
+		    return result;
+		break;
+	    case L'r':
+		result = history_read(xoptarg);
+		if (result != Exit_SUCCESS)
+		    return result;
+		break;
+	    case L's':
+		if (!removedthis) {
+		    fc_remove_last_entry();
+		    removedthis = true;
+		}
+		add_history(xoptarg);
+		break;
+	    case L'w':
+		result = history_write(xoptarg);
+		if (result != Exit_SUCCESS)
+		    return result;
+		break;
+	    case L'F':
+		history_refresh_file();
+		break;
+	    case L'-':
+		print_builtin_help(ARGV(0));
+		break;
+	    default:  print_usage:
+		fprintf(stderr, gt("Usage:  history [-cF] [-d entry] "
+			    "[-s command] [-r file] [-w file] [n]\n"));
+		return Exit_ERROR;
+	}
+    }
+
+    /* print history */
+    if (xoptind < argc) {
+	if (xoptind + 1 != argc) {
+	    xerror(0, Ngt("too many arguments"));
+	    goto print_usage;
+	}
+
+	int count;
+	if (!xwcstoi(ARGV(xoptind), 10, &count)) {
+	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
+	    return Exit_ERROR;
+	}
+	if (histlist.count == 0 || count <= 0)
+	    return Exit_SUCCESS;
+	return fc_print_entries(stdout,
+		get_nth_newest_entry(count), histlist.Newest,
+		false, FC_NUMBERED);
+    } else if (!hasoption) {
+	if (histlist.count == 0)
+	    return Exit_SUCCESS;
+	return fc_print_entries(stdout,
+		histlist.Oldest, histlist.Newest, false, FC_NUMBERED);
+    } else {
+	return Exit_SUCCESS;
+    }
+}
+
+/* Clears all the history. */
+void history_clear_all(void)
+{
+    if (histfile) {
+	lock_file(fileno(histfile), F_WRLCK);
+	update_history(false);
+    }
+    clear_all_entries();
+    if (histfile) {
+	refresh_file(histfile);
+	lock_file(fileno(histfile), F_UNLCK);
+    }
+}
+
+/* Deletes a history entry specified by the argument string. */
+int history_delete(const wchar_t *s)
+{
+    long n;
+    histentry_T *e;
+    int result;
+
+    if (histfile) {
+	lock_file(fileno(histfile), F_WRLCK);
+	update_time();
+	update_history(true);
+    }
+
+    if (!xwcstol(s, 10, &n) || n == 0) {
+	e = fc_search_entry(s);
+    } else {
+	if (n >= 0) {
+	    if (n > INT_MAX)
+		n = INT_MAX;
+	    e = find_entry((unsigned) n, true);
+	    if (e->number != (unsigned) n)
+		e = Histlist;
+	} else {
+	    if (n < INT_MIN + 1)
+		n = INT_MIN + 1;
+	    n = -n;
+	    if ((unsigned) n > histlist.count)
+		e = Histlist;
+	    else
+		e = get_nth_newest_entry((unsigned) n);
+	}
+	if (e == Histlist)
+	    xerror(0, Ngt("%ls: no such entry"), s);
+    }
+
+    if (e != Histlist) {
+	if (histfile)
+	    fwprintf(histfile, L"d%X\n", e->number);
+	remove_entry(e);
+	result = Exit_SUCCESS;
+    } else {
+	result = Exit_FAILURE;
+    }
+
+    if (histfile)
+	lock_file(fileno(histfile), F_UNLCK);
+
+    return result;
+}
+
+/* Reads history from the specified file. */
+int history_read(const wchar_t *s)
+{
+    FILE *f;
+
+    /* The `fc_read_history' function the argument stream wide-oriented.
+     * We don't pass `stdin' to `fc_read_history' so that it remains
+     * non-oriented. */
+    if (wcscmp(s, L"-") == 0) {
+	int fd = copy_as_shellfd(STDIN_FILENO);
+	if (fd < 0)
+	    goto error;
+	f = fdopen(fd, "r");
+    } else {
+	char *mbsfilename = malloc_wcstombs(s);
+	if (mbsfilename == NULL)
+	    goto error;
+	f = fopen(mbsfilename, "r");
+	free(mbsfilename);
+    }
+    if (f == NULL)
+	goto error;
+    fc_read_history(f, true);
+    if ((ferror(f) != 0) | (fclose(f) != 0))
+	goto error;
+    return Exit_SUCCESS;
+
+error:
+    xerror(errno, Ngt("cannot read history from `%ls'"), s);
+    return Exit_FAILURE;
+}
+
+/* Writes history into the specified file. */
+int history_write(const wchar_t *s)
+{
+    FILE *f;
+
+    if (histlist.count == 0)
+	return Exit_SUCCESS;
+
+    if (wcscmp(s, L"-") == 0) {
+	f = stdout;
+    } else {
+	char *mbsfilename = malloc_wcstombs(s);
+	if (mbsfilename == NULL)
+	    goto error;
+	f = fopen(mbsfilename, "w");
+	free(mbsfilename);
+	if (f == NULL)
+	    goto error;
+    }
+    assert(histlist.count > 0);
+    clearerr(f);
+    fc_print_entries(f, histlist.Oldest, histlist.Newest, false, FC_RAW);
+    if ((ferror(f) != 0) | (f != stdout && fclose(f) != 0))
+	goto error;
+    return Exit_SUCCESS;
+
+error:
+    xerror(errno, Ngt("cannot write history to `%ls'"), s);
+    return Exit_FAILURE;
+}
+
+/* Refreshes the history file. */
+void history_refresh_file(void)
+{
+    if (histfile) {
+	lock_file(fileno(histfile), F_WRLCK);
+	update_time();
+	update_history(false);
+	if (histfile) {
+	    check_histfile_pid();
+	    refresh_file(histfile);
+	    lock_file(fileno(histfile), F_UNLCK);
+	}
+    }
+}
+
+const char history_help[] = Ngt(
+"history - manage command history\n"
+"\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [n]\n"
+"Without options, prints the command history. The number of entries to print\n"
+"can be specified as the argument <n>.\n"
+"The -c (--clear) option clears the command history completely.\n"
+"The -d (--delete) option deletes the specified <entry>. You can specify\n"
+"<entry> by the number or by the prefix.\n"
+"The -s (--set) option replaces the last history entry with <command>.\n"
+"The -r (--read) option reads history entries from <file>.\n"
+"The -w (--write) option writes all the history entries into <file>.\n"
+"The -F (--flush-file) option rebuilds the history file, removing unused old\n"
+"data.\n"
 );
 
 
