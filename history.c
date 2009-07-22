@@ -1057,6 +1057,7 @@ enum fcprinttype_T {
     FC_FULL, FC_NUMBERED, FC_UNNUMBERED, FC_RAW,
 };
 
+static void fc_update_history(void);
 static void fc_remove_last_entry(void);
 static histentry_T *fc_search_entry(const wchar_t *prefix)
     __attribute__((nonnull));
@@ -1142,13 +1143,7 @@ int fc_builtin(int argc, void **argv)
 
     maybe_init_history();
     if (list) {
-	if (histfile) {
-	    lock_file(fileno(histfile), F_RDLCK);
-	    update_time();
-	    update_history(false);
-	    if (histfile)
-		lock_file(fileno(histfile), F_UNLCK);
-	}
+	fc_update_history();
     } else {
 	/* remove the entry for this "fc" command */
 	fc_remove_last_entry();
@@ -1266,6 +1261,17 @@ print_usage:
 	                   "        fc -qs [old=new] [first]\n"
 	                   "        fc -l [-nrv] [first [last]]\n"));
     return Exit_ERROR;
+}
+
+void fc_update_history(void)
+{
+    if (histfile) {
+	lock_file(fileno(histfile), F_RDLCK);
+	update_time();
+	update_history(false);
+	if (histfile)
+	    lock_file(fileno(histfile), F_UNLCK);
+    }
 }
 
 void fc_remove_last_entry(void)
@@ -1543,6 +1549,10 @@ int history_builtin(int argc, void **argv)
         { NULL, 0, 0, },
     };
 
+    if (hist_lock) {
+	xerror(0, Ngt("cannot be used during line-editing"));
+	return Exit_FAILURE;
+    }
     maybe_init_history();
 
     bool hasoption = false, removedthis = false;
@@ -1602,12 +1612,16 @@ int history_builtin(int argc, void **argv)
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
 	    return Exit_ERROR;
 	}
-	if (histlist.count == 0 || count <= 0)
+	if (count <= 0)
+	    return Exit_SUCCESS;
+	fc_update_history();
+	if (histlist.count == 0)
 	    return Exit_SUCCESS;
 	return fc_print_entries(stdout,
 		get_nth_newest_entry(count), histlist.Newest,
 		false, FC_NUMBERED);
     } else if (!hasoption) {
+	fc_update_history();
 	if (histlist.count == 0)
 	    return Exit_SUCCESS;
 	return fc_print_entries(stdout,
@@ -1718,6 +1732,7 @@ int history_write(const wchar_t *s)
 {
     FILE *f;
 
+    fc_update_history();
     if (histlist.count == 0)
 	return Exit_SUCCESS;
 
