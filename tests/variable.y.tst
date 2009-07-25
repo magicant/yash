@@ -66,6 +66,15 @@ ary0=()
 unset ary0
 echo ary0 "${ary0-unset}"
 
+echo ===== 3 =====
+
+(
+YASH_AFTER_CD='echo -\> "$PWD"'
+cd /
+YASH_AFTER_CD=('echo cd' 'continue -i; echo ng' 'break -i' 'echo NG')
+cd "$OLDPWD"
+)
+
 echo ===== typeset export =====
 
 func () {

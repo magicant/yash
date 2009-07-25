@@ -24,6 +24,29 @@ for i in 1 2; do
 done
 
 
+echo ===== eval =====
+
+breakfunc2 ()
+while true; do
+	echo break ok
+	break -i
+	echo break ng
+done
+
+contfunc2 ()
+while true; do
+	echo continue ok
+	continue -i
+	echo continue ng
+done
+
+eval -i -- 'echo 1' 'echo 2'
+eval -i 'echo 1' 'echo 2; break -i; echo 3' 'echo 4'
+eval -i 'echo 1' 'echo 2; continue -i; echo 3' 'echo 4'
+eval -i 'echo 1' 'while true; do echo 2; breakfunc2; echo 3; done' 'echo 4'
+eval -i 'echo 1' 'while true; do echo 2; contfunc2; echo 3; done' 'echo 4'
+
+
 echo ===== . =====
 
 set a b c

@@ -290,7 +290,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     if (info->type == 1)
 	if (!posixly_correct)
 	    exec_variable_as_commands(
-		    L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND, false);
+		    L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
     if (do_job_control)
 	print_job_status_all(true, false, stderr);
     if (info->type == 1)

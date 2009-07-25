@@ -151,6 +151,9 @@ static inline int xexecve(
 	const char *path, char *const *argv, char *const *envp)
     __attribute__((nonnull(1)));
 
+static int exec_iteration(void *const *commands, const char *codename)
+    __attribute__((nonnull));
+
 
 /* exit status of the last command */
 int laststatus = Exit_SUCCESS;
@@ -178,6 +181,12 @@ static struct execinfo {
 /* Note that `execinfo' is not reset when a subshell forks. */
 #define INIT_EXECINFO { 0, 0, ee_none }  /* used to initialize `execinfo' */
 
+/* state of currently executed iteration. */
+static struct iterinfo {
+    bool iterating;
+    enum { ie_none, ie_continue, ie_break } exception;
+} iterinfo;
+
 /* This flag is set while the "exec" builtin is executed. */
 static bool exec_builtin_executed = false;
 
@@ -188,16 +197,14 @@ static assign_T *last_assign;
 static xwcsbuf_T xtrace_buffer;
 
 
-/* Returns true iff we're breaking/continuing/returning now. */
-bool need_break(void)
-{
-    return execinfo.breakcount > 0 || execinfo.exception != ee_none;
-}
-
 /* Resets `execinfo' to the initial state. */
 void reset_execinfo(void)
 {
-    execinfo = (struct execinfo) INIT_EXECINFO;
+    execinfo = (struct execinfo) {
+	.loopnest = 0,
+	.breakcount = 0,
+	.exception = ee_none,
+    };
 }
 
 /* Saves the current `execinfo' and returns it.
@@ -206,7 +213,7 @@ struct execinfo *save_execinfo(void)
 {
     struct execinfo *save = xmalloc(sizeof execinfo);
     *save = execinfo;
-    execinfo = (struct execinfo) INIT_EXECINFO;
+    reset_execinfo();
     return save;
 }
 
@@ -217,10 +224,16 @@ void load_execinfo(struct execinfo *save)
     free(save);
 }
 
-/* Returns true iff `ee_return' is pending. */
-bool return_pending(void)
+/* Returns true iff `parse_and_exec' should quit execution. */
+inline bool return_pending(void)
 {
-    return execinfo.exception == ee_return;
+    return execinfo.exception != ee_none || iterinfo.exception != ie_none;
+}
+
+/* Returns true iff we're breaking/continuing/returning now. */
+bool need_break(void)
+{
+    return execinfo.breakcount > 0 || return_pending();
 }
 
 
@@ -1263,6 +1276,67 @@ wchar_t *exec_command_substitution(const wchar_t *code)
     }
 }
 
+/* Executes commands in the given array of wide strings (iterative execution).
+ * The strings are parsed and executed one by one.
+ * If the iteration is interrupted by the "break -i" command, the remaining
+ * elements are not executed.
+ * `codename' is passed to `exec_wcs' as the command name.
+ * If `saveparsestate' is true, the parser's state is saved during execution.
+ * Returns the exit status of the executed command (or zero if none executed).
+ * When this function returns, `laststatus' is restored to the original value.*/
+int exec_iteration(void *const *commands, const char *codename)
+{
+    int savelaststatus = laststatus, commandstatus = Exit_SUCCESS;
+    struct iterinfo saveiterinfo = iterinfo;
+
+    for (void *const *c = commands; *c; c++) {
+	iterinfo.iterating = true;
+	iterinfo.exception = ie_none;
+	exec_wcs(*c, codename, false);
+	commandstatus = laststatus;
+	laststatus = savelaststatus;
+	if (iterinfo.exception == ie_break)
+	    break;
+    }
+    iterinfo = saveiterinfo;
+    return commandstatus;
+}
+
+/* Executes the value of the specified variable.
+ * The variable value is parsed as a command string.
+ * If the `varname' names an array, every element of the array is executed (but
+ * if the iteration is interrupted by the "break -i" command, the remaining
+ * elements are not executed).
+ * `codename' is passed to `exec_wcs' as the command name.
+ * Returns the exit status of the executed command (or zero if none executed).
+ * When this function returns, `laststatus' is restored to the original value.*/
+int exec_variable_as_commands(const wchar_t *varname, const char *codename)
+{
+    struct get_variable gv = get_variable(varname);
+    void **array;
+
+    switch (gv.type) {
+	case GV_NOTFOUND:
+	    return Exit_SUCCESS;
+	case GV_SCALAR:
+	    array = gv.values;
+	    break;
+	case GV_ARRAY:
+	    /* copy the array values in case they are unset during execution */
+	    array = duparrayn(gv.values, gv.count, copyaswcs);
+	    break;
+	case GV_ARRAY_CONCAT:
+	    /* should execute the concatenated value, but not supported now */
+	    return Exit_SUCCESS;
+	default:
+	    assert(false);
+    }
+
+    int result = exec_iteration(array, codename);
+    recfree(array, free);
+    return result;
+}
+
 
 /********** Builtins **********/
 
@@ -1277,6 +1351,13 @@ static bool print_command_info(const wchar_t *commandname,
 static void print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
     __attribute__((nonnull));
+
+/* Options for the "break", "continue" and "eval" builtins. */
+static const struct xoption iter_options[] = {
+    { L"iteration", xno_argument, L'i', },
+    { L"help",      xno_argument, L'-', },
+    { NULL, 0, 0, },
+};
 
 /* "return" builtin */
 int return_builtin(int argc, void **argv)
@@ -1324,56 +1405,76 @@ const char return_help[] = Ngt(
 int break_builtin(int argc, void **argv)
 {
     wchar_t opt;
+    bool iter = false;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+    while ((opt = xgetopt_long(argv, L"i", iter_options, NULL))) {
 	switch (opt) {
+	    case L'i':
+		iter = true;
+		break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
 	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
+		fprintf(stderr,
+			gt("Usage:  %ls [n]\n        %ls -i\n"),
+			ARGV(0), ARGV(0));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
-    if (argc - xoptind > 1)
+    if (argc - xoptind > (iter ? 0 : 1))
 	goto print_usage;
 
-    unsigned count;
-    const wchar_t *countstr = ARGV(xoptind);
-    if (countstr == NULL) {
-	count = 1;
-    } else {
-	unsigned long countl;
-	if (!xwcstoul(countstr, 0, &countl)) {
-	    xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
-	    SPECIAL_BI_ERROR;
+    if (iter) {
+	if (!iterinfo.iterating) {
+	    xerror(0, Ngt("not in iteration"));
 	    return Exit_ERROR;
-	} else if (countl == 0) {
-	    xerror(0, Ngt("%u: not a positive integer"), 0u);
-	    SPECIAL_BI_ERROR;
-	    return Exit_ERROR;
-	} else if (countl > UINT_MAX) {
-	    count = UINT_MAX;
-	} else {
-	    count = (unsigned) countl;
 	}
-    }
-    assert(count > 0);
-    if (execinfo.loopnest == 0) {
-	xerror(0, Ngt("not in loop"));
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
-    if (count > execinfo.loopnest)
-	count = execinfo.loopnest;
-    if (wcscmp(ARGV(0), L"break") == 0) {
-	execinfo.breakcount = count;
+	if (wcscmp(ARGV(0), L"break") == 0) {
+	    iterinfo.exception = ie_break;
+	} else {
+	    assert(wcscmp(ARGV(0), L"continue") == 0);
+	    iterinfo.exception = ie_continue;
+	}
+	execinfo.breakcount = execinfo.loopnest;
     } else {
-	assert(wcscmp(ARGV(0), L"continue") == 0);
-	execinfo.breakcount = count - 1;
-	execinfo.exception = ee_continue;
+	unsigned count;
+	const wchar_t *countstr = ARGV(xoptind);
+	if (countstr == NULL) {
+	    count = 1;
+	} else {
+	    unsigned long countl;
+	    if (!xwcstoul(countstr, 0, &countl)) {
+		xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
+		SPECIAL_BI_ERROR;
+		return Exit_ERROR;
+	    } else if (countl == 0) {
+		xerror(0, Ngt("%u: not a positive integer"), 0u);
+		SPECIAL_BI_ERROR;
+		return Exit_ERROR;
+	    } else if (countl > UINT_MAX) {
+		count = UINT_MAX;
+	    } else {
+		count = (unsigned) countl;
+	    }
+	}
+	assert(count > 0);
+	if (execinfo.loopnest == 0) {
+	    xerror(0, Ngt("not in loop"));
+	    SPECIAL_BI_ERROR;
+	    return Exit_ERROR;
+	}
+	if (count > execinfo.loopnest)
+	    count = execinfo.loopnest;
+	if (wcscmp(ARGV(0), L"break") == 0) {
+	    execinfo.breakcount = count;
+	} else {
+	    assert(wcscmp(ARGV(0), L"continue") == 0);
+	    execinfo.breakcount = count - 1;
+	    execinfo.exception = ee_continue;
+	}
     }
     return Exit_SUCCESS;
 }
@@ -1381,45 +1482,63 @@ int break_builtin(int argc, void **argv)
 const char break_help[] = Ngt(
 "break - exit loop\n"
 "\tbreak [n]\n"
-"Exits the currently executing for, while or until loop.\n"
+"\tbreak -i\n"
+"The first form exits the currently executing for/while/until loop.\n"
 "If <n> is specified, exits the <n>th outer loop.\n"
+"The second form, with the -i (--iteration) option, exits the current\n"
+"iterative execution.\n"
 );
 
 const char continue_help[] = Ngt(
 "continue - continue loop\n"
 "\tcontinue [n]\n"
-"Returns to the top of the currently executing for, while or until loop.\n"
-"If <n> is specified, returns to that of the <n>th outer loop.\n"
+"\tcontinue -i\n"
+"The first form ends the current iteration of a for/while/until loop and\n"
+"resumes the next iteration. If <n> is specified, ends the iteration of the\n"
+"<n>th outer loop.\n"
+"The second form, with the -i (--iteration) option, ends the execution of\n"
+"commands and resumes the next iteration of the current iterative execution.\n"
 );
 
 /* The "eval" builtin */
 int eval_builtin(int argc __attribute__((unused)), void **argv)
 {
+    bool iter = false;
     wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+    while ((opt = xgetopt_long(argv, L"+i", iter_options, NULL))) {
 	switch (opt) {
+	    case L'i':
+		iter = true;
+		break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
 	    default:
-		fprintf(stderr, gt("Usage:  eval [arg...]\n"));
+		fprintf(stderr, gt("Usage:  eval [-i] [arg...]\n"));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
 
-    wchar_t *args = joinwcsarray(argv + xoptind, L" ");
-    exec_wcs(args, "eval", false);
-    free(args);
-    return laststatus;
+    if (iter) {
+	return exec_iteration(argv + xoptind, "eval");
+    } else {
+	wchar_t *args = joinwcsarray(argv + xoptind, L" ");
+	exec_wcs(args, "eval", false);
+	free(args);
+	return laststatus;
+    }
 }
 
 const char eval_help[] = Ngt(
 "eval - evaluate arguments as command\n"
-"\teval [arg...]\n"
-"Parses and executes the specified <arg>s as a command in the current shell\n"
-"environment.\n"
+"\teval [-i] [arg...]\n"
+"Parses and executes the specified <arg>s as commands in the current shell\n"
+"environment. Without the -i (--iteration) option, all the <arg>s are joined\n"
+"with a space inserted between each <arg> and the whole resultant string is\n"
+"parsed at a time. With the -i option, <arg>s are parsed and executed one by\n"
+"one (iterative execution).\n"
 );
 
 int dot_builtin(int argc, void **argv)

@@ -59,6 +59,9 @@ extern pid_t fork_and_reset(pid_t pgid, _Bool fg, sigtype_T sigtype);
 extern struct xwcsbuf_T *get_xtrace_buffer(void);
 extern wchar_t *exec_command_substitution(const wchar_t *code)
     __attribute__((nonnull,malloc,warn_unused_result));
+extern int exec_variable_as_commands(
+	const wchar_t *varname, const char *codename)
+    __attribute__((nonnull));
 
 extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));

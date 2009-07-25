@@ -29,6 +29,9 @@ re-defined func1
 6
 i unset
 ary0 unset
+===== 3 =====
+-> /
+cd
 ===== typeset export =====
 abcdef
 abcxyz

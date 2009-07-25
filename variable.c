@@ -1442,55 +1442,6 @@ bool remove_dirstack_entry(size_t index)
 #endif /* YASH_ENABLE_DIRSTACK */
 
 
-/********** Miscellaneous **********/
-
-/* Executes the value of the specified variable.
- * The variable value is parsed as a command string.
- * If the `varname' names an array, every element of the array is executed (but
- * when a command returns non-zero status the following ones are not executed).
- * `codename' is passed to `exec_wcs' as the command name.
- * If `saveparsestate' is true, the parser's state is saved during execution.
- * Returns the exit status of the executed command (or zero if none executed).*/
-int exec_variable_as_commands(
-	const wchar_t *varname, const char *codename, bool saveparsestate)
-{
-    int savelaststatus = laststatus, commandstatus = 0;
-    struct parsestate_T *state = NULL;
-    struct get_variable gv = get_variable(varname);
-    void **array;
-
-    switch (gv.type) {
-	case GV_NOTFOUND:
-	    return Exit_SUCCESS;
-	case GV_SCALAR:
-	    array = gv.values;
-	    break;
-	case GV_ARRAY:
-	    /* copy the array values in case they are unset during execution */
-	    array = duparrayn(gv.values, gv.count, copyaswcs);
-	    break;
-	case GV_ARRAY_CONCAT:
-	    /* should execute the concatenated value, but not supported now */
-	    return Exit_SUCCESS;
-	default:
-	    assert(false);
-    }
-    for (void **a = array; *a; a++) {
-	if (saveparsestate && state == NULL)
-	    state = save_parse_state();
-	exec_wcs(*a, codename, false);
-	commandstatus = laststatus;
-	laststatus = savelaststatus;
-	if (commandstatus != Exit_SUCCESS)
-	    break;
-    }
-    recfree(array, free);
-    if (state != NULL)
-	restore_parse_state(state);
-    return commandstatus;
-}
-
-
 /********** Builtins **********/
 
 static void print_variable(

@@ -118,10 +118,6 @@ extern _Bool define_function(const wchar_t *name, struct command_T *body)
 extern struct command_T *get_function(const wchar_t *name)
     __attribute__((nonnull));
 
-extern int exec_variable_as_commands(
-	const wchar_t *varname, const char *codename, bool saveparsestate)
-    __attribute__((nonnull));
-
 extern size_t get_dirstack_size(void);
 extern _Bool parse_dirstack_index(const wchar_t *indexstr,
 	size_t *indexp, const wchar_t **entryp, _Bool printerror)

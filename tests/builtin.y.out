@@ -5,6 +5,21 @@ continue 1
 continue ok
 continue 2
 continue ok
+===== eval =====
+1
+2
+1
+2
+1
+2
+4
+1
+2
+break ok
+1
+2
+continue ok
+4
 ===== . =====
 -1 2 3-
 --
