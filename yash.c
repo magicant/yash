@@ -584,12 +584,13 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	    nextforceexit = false;
 	}
 	if (return_pending()) {
-	    reset_execinfo();
 	    if (pinfo->intrinput) {
+		reset_execinfo();
 		xerror(0, Ngt("return: not in function or sourced file"));
 		laststatus = Exit_FAILURE;
 	    } else if (finally_exit) {
 		wchar_t argv0[] = L"return";
+		reset_execinfo();
 		exit_builtin(1, (void *[]) { argv0, NULL });
 		continue;
 	    } else
