@@ -79,8 +79,7 @@ enum srchcmdtype_T {
     sct_builtin  = 1 << 1,  /* search builtins */
     sct_function = 1 << 2,  /* search functions */
     sct_defpath  = 1 << 3,  /* search the default PATH */
-    sct_argc1    = 1 << 4,  /* argc == 1 */
-    sct_rbpath   = 1 << 5,  /* return path of regular builtin */
+    sct_rbpath   = 1 << 4,  /* return path of regular builtin */
 };
 
 /* info about a simple command to execute */
@@ -663,8 +662,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    if (!argv0)
 		argv0 = xstrdup("");
 	    search_command(argv0, argv[0], &cmdinfo,
-		    sct_external | sct_builtin | sct_function
-			| (argc == 1 ? sct_argc1 : 0));
+		    sct_external | sct_builtin | sct_function);
 
 	    /* fork for an external command.
 	     * don't fork for a built-in or a function */
@@ -741,8 +739,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    if (do_assignments(c->c_assigns, temp, true)) {
 		if (including_path_assignment(c->c_assigns))
 		    search_command(argv0, argv[0], &cmdinfo,
-			    sct_external | sct_builtin | sct_function
-				| (argc == 1 ? sct_argc1 : 0));
+			    sct_external | sct_builtin | sct_function);
 		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
 	    } else {
 		print_xtrace(NULL);
@@ -876,8 +873,6 @@ void search_command(
     if (wcschr(wname, L'/')) {
 	if (!(type & sct_external))
 	    goto notfound;
-	if (shopt_autocd && (type & sct_argc1) && is_directory(name))
-	    goto autocd;
 	ci->type = externalprogram;
 	ci->ci_path = name;
 	return;
@@ -914,18 +909,11 @@ void search_command(
 	ci->type = regularbuiltin;
 	if (!(type & sct_rbpath))
 	    ci->ci_builtin = bi->body;
-    } else if (!ci->ci_path && shopt_autocd && (type & sct_argc1)
-	    && is_directory(name)) {
-	goto autocd;
     } else {
 	ci->type = externalprogram;
     }
     return;
 
-autocd:
-    ci->type = semispecialbuiltin;
-    ci->ci_builtin = cd_builtin;
-    return;
 notfound:
     ci->type = externalprogram;
     ci->ci_path = NULL;
@@ -1849,7 +1837,7 @@ int command_builtin(int argc, void **argv)
 		argc - xoptind, argv + xoptind, type);
     } else {
 	bool err = false;
-	type |= sct_function | sct_argc1;
+	type |= sct_function;
 	for (int i = xoptind; i < argc; i++)
 	    err |= !print_command_info(ARGV(i), type, humanfriendly);
 	return err ? Exit_FAILURE : Exit_SUCCESS;
@@ -1878,8 +1866,6 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 
     if (!argv0)
 	argv0 = xstrdup("");
-    if (argc == 1)
-	type |= sct_argc1;
     search_command(argv0, argv[0], &ci, type);
     if (ci.type == externalprogram) {
 	pid_t cpid = fork_and_reset(0, true, t_leave);
@@ -1949,10 +1935,7 @@ bool print_command_info(
 	    goto ok;
 	case semispecialbuiltin:
 	    if (humanfriendly)
-		if (ci.ci_builtin == cd_builtin && strcmp(name, "cd") != 0)
-		    printf(gt("%s: directory\n"), name);
-		else
-		    printf(gt("%s: semi-special builtin\n"), name);
+		printf(gt("%s: semi-special builtin\n"), name);
 	    else
 		puts(name);
 	    goto ok;

@@ -116,9 +116,6 @@ bool shopt_xtrace;
 bool shopt_curasync;
 /* If set, lines that start with a space are not saved in the history. */
 bool shopt_histspace;
-/* If set, the shell changes the working directory when a command is a
- * directory rather than a executable. */
-bool shopt_autocd;
 
 /* If set, don't perform filename expansions.
  * Corresponds to -f/--noglob option. */
@@ -152,7 +149,7 @@ typedef enum shopt_index_T {
     SHOPT_RCFILE, SHOPT_VERSION,
     SHOPT_ALLEXPORT, SHOPT_HASHONDEF, SHOPT_NOCLOBBER, SHOPT_NOGLOB,
     SHOPT_NOCASEGLOB, SHOPT_DOTGLOB, SHOPT_MARKDIRS, SHOPT_EXTENDEDGLOB,
-    SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_AUTOCD,
+    SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC,
     SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
     SHOPT_XTRACE, SHOPT_HISTSPACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY,
 #if YASH_ENABLE_LINEEDIT
@@ -188,7 +185,6 @@ static const struct xoption long_options[] = {
     [SHOPT_NULLGLOB]      = { L"nullglob",     xno_argument, L'L', },
     [SHOPT_BRACEEXPAND]   = { L"braceexpand",  xno_argument, L'L', },
     [SHOPT_CURASYNC]      = { L"curasync",     xno_argument, L'L', },
-    [SHOPT_AUTOCD]        = { L"autocd",       xno_argument, L'L', },
     [SHOPT_ERREXIT]       = { L"errexit",      xno_argument, L'L', },
     [SHOPT_NOUNSET]       = { L"nounset",      xno_argument, L'L', },
     [SHOPT_NOEXEC]        = { L"noexec",       xno_argument, L'L', },
@@ -227,7 +223,6 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_NULLGLOB]      = { set_bool_option, &shopt_nullglob, },
     [SHOPT_BRACEEXPAND]   = { set_bool_option, &shopt_braceexpand, },
     [SHOPT_CURASYNC]      = { set_bool_option, &shopt_curasync, },
-    [SHOPT_AUTOCD]        = { set_bool_option, &shopt_autocd, },
     [SHOPT_ERREXIT]       = { set_bool_option, &shopt_errexit, },
     [SHOPT_NOUNSET]       = { set_bool_option, &shopt_nounset, },
     [SHOPT_NOEXEC]        = { set_bool_option, &shopt_noexec, },
@@ -487,7 +482,6 @@ void set_builtin_print_current_settings(void)
     printf("%-15ls %s\n", L"" #name, vals[(bool) (value)])
 
     PRINTSETTING(allexport, shopt_allexport);
-    PRINTSETTING(autocd, shopt_autocd);
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
@@ -534,7 +528,6 @@ void set_builtin_print_restoring_commands(void)
     printf("set %co %ls\n", (value) ? '-' : '+', L"" #name)
 
     PRINTSETTING(allexport, shopt_allexport);
-    PRINTSETTING(autocd, shopt_autocd);
     PRINTSETTING(braceexpand, shopt_braceexpand);
     PRINTSETTING(curasync, shopt_curasync);
     PRINTSETTING(dotglob, shopt_dotglob);
@@ -647,9 +640,6 @@ const char set_help[] = Ngt(
 "\tWhen a new background job is invoked, it becomes the current job.\n"
 " --histspace\n"
 "\tDo not save lines that start with a space in the history.\n"
-" --autocd\n"
-"\tIf a simple command cannot be executed but it is a directory name,\n"
-"\tthe shell performs the `cd' command to that directory.\n"
 " --posix\n"
 "\tMake the shell behave as the POSIX shell.\n"
 " --vi\n"
