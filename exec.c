@@ -1308,7 +1308,8 @@ int exec_iteration(void *const *commands, const char *codename)
  * if the iteration is interrupted by the "break -i" command, the remaining
  * elements are not executed).
  * `codename' is passed to `exec_wcs' as the command name.
- * Returns the exit status of the executed command (or zero if none executed).
+ * Returns the exit status of the executed command (or zero if none executed or
+ * -1 if the variable is unset).
  * When this function returns, `laststatus' is restored to the original value.*/
 int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 {
@@ -1317,7 +1318,7 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 
     switch (gv.type) {
 	case GV_NOTFOUND:
-	    return Exit_SUCCESS;
+	    return -1;
 	case GV_SCALAR:
 	    array = gv.values;
 	    break;
@@ -1327,7 +1328,7 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 	    break;
 	case GV_ARRAY_CONCAT:
 	    /* should execute the concatenated value, but not supported now */
-	    return Exit_SUCCESS;
+	    return -1;
 	default:
 	    assert(false);
     }
