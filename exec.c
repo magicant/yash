@@ -1439,6 +1439,7 @@ int break_builtin(int argc, void **argv)
 	    iterinfo.exception = ie_continue;
 	}
 	execinfo.breakcount = execinfo.loopnest;
+	return laststatus;
     } else {
 	unsigned count;
 	const wchar_t *countstr = ARGV(xoptind);
@@ -1475,8 +1476,8 @@ int break_builtin(int argc, void **argv)
 	    execinfo.breakcount = count - 1;
 	    execinfo.exception = ee_continue;
 	}
+	return Exit_SUCCESS;
     }
-    return Exit_SUCCESS;
 }
 
 const char break_help[] = Ngt(

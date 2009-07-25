@@ -40,11 +40,14 @@ while true; do
 	echo continue ng
 done
 
+eval echo -i
 eval -i -- 'echo 1' 'echo 2'
 eval -i 'echo 1' 'echo 2; break -i; echo 3' 'echo 4'
 eval -i 'echo 1' 'echo 2; continue -i; echo 3' 'echo 4'
 eval -i 'echo 1' 'while true; do echo 2; breakfunc2; echo 3; done' 'echo 4'
 eval -i 'echo 1' 'while true; do echo 2; contfunc2; echo 3; done' 'echo 4'
+eval -i '(exit 2)' 'echo status1=$?; (exit 3); break -i'
+echo status2=$?
 
 
 echo ===== . =====

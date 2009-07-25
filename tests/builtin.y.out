@@ -6,6 +6,7 @@ continue ok
 continue 2
 continue ok
 ===== eval =====
+-i
 1
 2
 1
@@ -20,6 +21,8 @@ break ok
 2
 continue ok
 4
+status1=0
+status2=3
 ===== . =====
 -1 2 3-
 --
