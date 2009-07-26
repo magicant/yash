@@ -633,6 +633,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     bool early_fork;   /* do early fork? */
     bool later_fork;   /* do later fork? */
     bool finally_exit; /* never return? */
+    bool is_external_program = false;
     int argc;
     void **argv = NULL;
     char *argv0 = NULL;
@@ -666,7 +667,8 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 
 	    /* fork for an external command.
 	     * don't fork for a built-in or a function */
-	    later_fork = finally_exit = (cmdinfo.type == externalprogram);
+	    is_external_program = later_fork = finally_exit =
+		(cmdinfo.type == externalprogram);
 
 	    /* if command isn't found and there's no redirection or assignment,
 	     * we're done. */
@@ -694,17 +696,16 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     assert(!(early_fork && later_fork));  /* don't fork twice */
     assert(!(early_fork || later_fork) || finally_exit);  /* exit if fork */
 
-    bool ext = (c->c_type == CT_SIMPLE) && (argc > 0)
-		&& (cmdinfo.type == externalprogram);
     if (later_fork) {
-	pid_t cpid = fork_and_reset(pgid, type == execnormal, ext ? t_leave :0);
+	pid_t cpid = fork_and_reset(
+		pgid, type == execnormal, is_external_program ? t_leave : 0);
 	if (cpid != 0) {
 	    recfree(argv, free);
 	    free(argv0);
 	    return cpid;
 	}
     }
-    if (ext) {
+    if (is_external_program) {
 	restore_job_signals();
 	restore_interactive_signals();
     }
