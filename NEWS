@@ -10,8 +10,12 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.13
 
+  +  "history" builtin
+  +  The -i option for the "eval", "break" and "continue" builtins.
+  -  '--autocd' option
   =  The exit status is now one when the "return" builtin is used
      outside a function in an interactive shell.
+  =  Revised command search and execution.
   *  The shell would not exit after the "exit" builtin twice in a row
      when you have $PROMPT_COMMAND set and you have stopped jobs.
   *  The "notifyle" option not working with $PROMPT_COMMAND set.
