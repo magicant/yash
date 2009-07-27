@@ -123,7 +123,8 @@ static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
 
 static void exec_commands(command_T *c, exec_T type);
-static pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+static pid_t exec_process(
+	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
     __attribute__((nonnull));
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
@@ -628,14 +629,15 @@ done:
  * If the command was executed without forking, `laststatus' is set and
  * 0 is returned.
  * if `type' is `execself', this function never returns. */
-pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
+pid_t exec_process(
+	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
 {
     bool early_fork;   /* do early fork? */
     bool finally_exit; /* never return? */
     int argc;
     void **argv = NULL;
     char *argv0 = NULL;
-    pid_t cpid;
+    pid_t cpid = 0;
 
     current_lineno = c->c_lineno;
 
@@ -644,12 +646,13 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     early_fork = (type != execself)
 	&& (type == execasync || c->c_type == CT_SUBSHELL
 		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
-    finally_exit = (early_fork || type == execself);
+    finally_exit = (type == execself);
     if (early_fork) {
 	sigtype_T sigtype = (type == execasync) ? t_quitint : 0;
 	cpid = fork_and_reset(pgid, type == execnormal, sigtype);
 	if (cpid != 0)
-	    goto return_parent;
+	    goto done;
+	finally_exit = true;
     }
 
     if (c->c_type == CT_SIMPLE) {
@@ -671,7 +674,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     connect_pipes(pi);
 
     /* open redirections */
-    savefd_T *savefd;
+    savefd_T *savefd = NULL;
     if (!open_redirections(c->c_redirs, finally_exit ? NULL : &savefd))
 	goto redir_fail;
     
@@ -680,7 +683,6 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	maybe_redirect_stdin_to_devnull();
 
     /* execute! */
-    cpid = 0;
     if (c->c_type == CT_SIMPLE) {
 	last_assign = c->c_assigns;
 	if (argc == 0) {
@@ -705,11 +707,16 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 		if (cmdinfo.type == externalprogram && !finally_exit) {
 		    cpid = fork_and_reset(pgid, type == execnormal, t_leave);
 		    if (cpid != 0)
-			goto done;
+			goto done2;
 		    finally_exit = true;
 		}
 		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
-done:;
+		if (exec_builtin_executed && laststatus == Exit_SUCCESS) {
+		    clear_savefd(savefd);
+		    savefd = NULL;
+		}
+		exec_builtin_executed = false;
+done2:;
 	    } else {
 		print_xtrace(NULL);
 		laststatus = Exit_ASSGNERR;
@@ -719,42 +726,33 @@ done:;
 	    if (temp)
 		close_current_environment();
 	}
-	recfree(argv, free);
-	free(argv0);
     } else {
 	exec_nonsimple_command(c, finally_exit);
     }
+    goto done1;
+
+exp_fail:
+    laststatus = Exit_EXPERROR;
+    goto done;
+
+redir_fail:
+    laststatus = Exit_REDIRERR;
+    if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
+	    argc > 0 && is_special_builtin(argv0))
+	finally_exit = true;
+
+done1:
+    if (c->c_type == CT_SIMPLE)
+	recfree(argv, free), free(argv0);
+    undo_redirections(savefd);
+done:
     if (finally_exit)
 	exit_shell();
-
-    if (exec_builtin_executed && laststatus == Exit_SUCCESS)
-	clear_savefd(savefd);
-    else
-	undo_redirections(savefd);
-    exec_builtin_executed = false;
-return_parent:
     if (cpid < 0) {
 	laststatus = Exit_NOEXEC;
 	cpid = 0;
     }
     return cpid;
-
-exp_fail:
-    laststatus = Exit_EXPERROR;
-    if (finally_exit)
-	exit_shell();
-    return 0;
-redir_fail:
-    laststatus = Exit_REDIRERR;
-    if (finally_exit)
-	exit_shell();
-    if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
-	    argc > 0 && is_special_builtin(argv0))
-	exit_shell();
-    undo_redirections(savefd);
-    if (c->c_type == CT_SIMPLE)
-	recfree(argv, free), free(argv0);
-    return 0;
 }
 
 /* Forks a subshell and does some settings.
