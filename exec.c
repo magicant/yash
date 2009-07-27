@@ -635,6 +635,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     int argc;
     void **argv = NULL;
     char *argv0 = NULL;
+    pid_t cpid;
 
     current_lineno = c->c_lineno;
 
@@ -646,9 +647,9 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     finally_exit = (early_fork || type == execself);
     if (early_fork) {
 	sigtype_T sigtype = (type == execasync) ? t_quitint : 0;
-	pid_t cpid = fork_and_reset(pgid, type == execnormal, sigtype);
+	cpid = fork_and_reset(pgid, type == execnormal, sigtype);
 	if (cpid != 0)
-	    return cpid;
+	    goto return_parent;
     }
 
     if (c->c_type == CT_SIMPLE) {
@@ -679,7 +680,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	maybe_redirect_stdin_to_devnull();
 
     /* execute! */
-    pid_t cpid = 0;
+    cpid = 0;
     if (c->c_type == CT_SIMPLE) {
 	last_assign = c->c_assigns;
 	if (argc == 0) {
@@ -731,6 +732,11 @@ done:;
     else
 	undo_redirections(savefd);
     exec_builtin_executed = false;
+return_parent:
+    if (cpid < 0) {
+	laststatus = Exit_NOEXEC;
+	cpid = 0;
+    }
     return cpid;
 
 exp_fail:
