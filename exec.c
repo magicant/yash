@@ -656,8 +656,10 @@ pid_t exec_process(
     }
 
     if (c->c_type == CT_SIMPLE) {
-	if (!expand_line(c->c_words, &argc, &argv))
-	    goto exp_fail;
+	if (!expand_line(c->c_words, &argc, &argv)) {
+	    laststatus = Exit_EXPERROR;
+	    goto done;
+	}
 	if (argc == 0) {
 	    argv0 = NULL;
 	} else {
@@ -675,75 +677,87 @@ pid_t exec_process(
 
     /* open redirections */
     savefd_T *savefd = NULL;
-    if (!open_redirections(c->c_redirs, finally_exit ? NULL : &savefd))
-	goto redir_fail;
+    if (!open_redirections(c->c_redirs, finally_exit ? NULL : &savefd)) {
+	/* On redirection error, the command is not executed. */
+	laststatus = Exit_REDIRERR;
+	if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
+		argc > 0 && is_special_builtin(argv0))
+	    finally_exit = true;
+	goto done2;
+    }
     
     /* redirect stdin to "/dev/null" if non-interactive and asynchronous */
     if (type == execasync && pi->pi_fromprevfd < 0)
 	maybe_redirect_stdin_to_devnull();
 
-    /* execute! */
-    if (c->c_type == CT_SIMPLE) {
-	last_assign = c->c_assigns;
-	if (argc == 0) {
-	    if (do_assignments(c->c_assigns, false, shopt_allexport))
-		laststatus = lastcmdsubstatus;
-	    else
-		laststatus = Exit_ASSGNERR;
-	    print_xtrace(NULL);
-	} else {
-	    commandinfo_T cmdinfo;
-	    bool temp;
-
-	    search_command(argv0, argv[0], &cmdinfo,
-		    sct_builtin | sct_function);
-	    temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
-	    if (temp)
-		open_new_environment(true);
-	    if (do_assignments(c->c_assigns, temp, true)) {
-		if (cmdinfo.type == externalprogram)
-		    search_command(argv0, argv[0], &cmdinfo,
-			    sct_external | sct_builtin);
-		if (cmdinfo.type == externalprogram && !finally_exit) {
-		    cpid = fork_and_reset(pgid, type == execnormal, t_leave);
-		    if (cpid != 0)
-			goto done2;
-		    finally_exit = true;
-		}
-		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
-		if (exec_builtin_executed && laststatus == Exit_SUCCESS) {
-		    clear_savefd(savefd);
-		    savefd = NULL;
-		}
-		exec_builtin_executed = false;
-done2:;
-	    } else {
-		print_xtrace(NULL);
-		laststatus = Exit_ASSGNERR;
-		if (!is_interactive && cmdinfo.type == specialbuiltin)
-		    finally_exit = true;
-	    }
-	    if (temp)
-		close_current_environment();
-	}
-    } else {
+    if (c->c_type != CT_SIMPLE) {
 	exec_nonsimple_command(c, finally_exit);
+	goto done1;
     }
-    goto done1;
 
-exp_fail:
-    laststatus = Exit_EXPERROR;
-    goto done;
+    last_assign = c->c_assigns;
+    if (argc == 0) {
+	/* if there is no command word, just perform assignments */
+	if (do_assignments(c->c_assigns, false, shopt_allexport))
+	    laststatus = lastcmdsubstatus;
+	else
+	    laststatus = Exit_ASSGNERR;
+	print_xtrace(NULL);
+	goto done2;
+    }
 
-redir_fail:
-    laststatus = Exit_REDIRERR;
-    if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
-	    argc > 0 && is_special_builtin(argv0))
+    commandinfo_T cmdinfo;
+    bool temp;
+
+    /* First, we check if the command is a special builtin or a function
+     * and determine whether we have to open a temporary environment. */
+    search_command(argv0, argv[0], &cmdinfo,
+	    sct_builtin | sct_function);
+    temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
+    if (temp)
+	open_new_environment(true);
+
+    /* perform assignments */
+    if (!do_assignments(c->c_assigns, temp, true)) {
+	/* On assignment error, the command is not executed. */
+	print_xtrace(NULL);
+	laststatus = Exit_ASSGNERR;
+	if (!is_interactive && cmdinfo.type == specialbuiltin)
+	    finally_exit = true;
+	goto done3;
+    }
+
+    /* find command path */
+    if (cmdinfo.type == externalprogram)
+	search_command(argv0, argv[0], &cmdinfo,
+		sct_external | sct_builtin);
+
+    /* create a child process to execute the external command */
+    if (cmdinfo.type == externalprogram && !finally_exit) {
+	cpid = fork_and_reset(pgid, type == execnormal, t_leave);
+	if (cpid != 0)
+	    goto done3;
 	finally_exit = true;
+    }
 
-done1:
+    /* execute! */
+    exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
+
+    /* Redirections are not undone after a successful "exec" command:
+     * remove the saved data of file descriptors. */
+    if (exec_builtin_executed && laststatus == Exit_SUCCESS) {
+	clear_savefd(savefd);
+	savefd = NULL;
+    }
+    exec_builtin_executed = false;
+
+done3:
+    if (temp)
+	close_current_environment();
+done2:
     if (c->c_type == CT_SIMPLE)
 	recfree(argv, free), free(argv0);
+done1:
     undo_redirections(savefd);
 done:
     if (finally_exit)
