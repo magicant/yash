@@ -129,10 +129,10 @@ static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
     __attribute__((nonnull));
+static inline bool is_special_builtin(const char *cmdname)
+    __attribute__((nonnull,pure));
 static inline bool assignment_is_temporary(enum cmdtype_T type)
     __attribute__((const));
-static bool including_path_assignment(const assign_T *a)
-    __attribute__((pure));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
@@ -631,19 +631,19 @@ done:
 pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 {
     bool early_fork;   /* do early fork? */
-    bool later_fork;   /* do later fork? */
     bool finally_exit; /* never return? */
-    bool is_external_program = false;
     int argc;
     void **argv = NULL;
     char *argv0 = NULL;
-    commandinfo_T cmdinfo = cmdinfo;
 
     current_lineno = c->c_lineno;
 
-    /* early fork if `type' is `execasync' or there is a pipe. */
-    early_fork = (type != execself) && (type == execasync
-	|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
+    /* do early fork if `type' is `execasync', the command type is subshell,
+     * or there is a pipe. */
+    early_fork = (type != execself)
+	&& (type == execasync || c->c_type == CT_SUBSHELL
+		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
+    finally_exit = (early_fork || type == execself);
     if (early_fork) {
 	sigtype_T sigtype = (type == execasync) ? t_quitint : 0;
 	pid_t cpid = fork_and_reset(pgid, type == execnormal, sigtype);
@@ -651,64 +651,18 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	    return cpid;
     }
 
-    switch (c->c_type) {
-    case CT_SIMPLE:
+    if (c->c_type == CT_SIMPLE) {
 	if (!expand_line(c->c_words, &argc, &argv))
 	    goto exp_fail;
 	if (argc == 0) {
-	    later_fork = finally_exit = false;
 	    argv0 = NULL;
 	} else {
 	    argv0 = malloc_wcstombs(argv[0]);
 	    if (!argv0)
 		argv0 = xstrdup("");
-	    search_command(argv0, argv[0], &cmdinfo,
-		    sct_external | sct_builtin | sct_function);
-
-	    /* fork for an external command.
-	     * don't fork for a built-in or a function */
-	    is_external_program = later_fork = finally_exit =
-		(cmdinfo.type == externalprogram);
-
-	    /* if command isn't found and there's no redirection or assignment,
-	     * we're done. */
-	    if (cmdinfo.type == externalprogram && !cmdinfo.ci_path
-		    && !c->c_redirs && !c->c_assigns) {
-		xerror(0, Ngt("%s: no such command or function"), argv0);
-		laststatus = Exit_NOTFOUND;
-		recfree(argv, free);
-		free(argv0);
-		goto done;
-	    }
-	}
-	break;
-    case CT_SUBSHELL:
-	later_fork = finally_exit = true;
-	break;
-    default:
-	later_fork = finally_exit = false;
-	break;
-    }
-    /* `argc', `argv' and `cmdinfo' are used only for `CT_SIMPLE'. */
-
-    if (early_fork || type == execself)
-	later_fork = false, finally_exit = true;
-    assert(!(early_fork && later_fork));  /* don't fork twice */
-    assert(!(early_fork || later_fork) || finally_exit);  /* exit if fork */
-
-    if (later_fork) {
-	pid_t cpid = fork_and_reset(
-		pgid, type == execnormal, is_external_program ? t_leave : 0);
-	if (cpid != 0) {
-	    recfree(argv, free);
-	    free(argv0);
-	    return cpid;
 	}
     }
-    if (is_external_program) {
-	restore_job_signals();
-	restore_interactive_signals();
-    }
+    /* `argc' and `argv' are used only for `CT_SIMPLE'. */
 
     lastcmdsubstatus = Exit_SUCCESS;
 
@@ -725,6 +679,7 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 	maybe_redirect_stdin_to_devnull();
 
     /* execute! */
+    pid_t cpid = 0;
     if (c->c_type == CT_SIMPLE) {
 	last_assign = c->c_assigns;
 	if (argc == 0) {
@@ -734,14 +689,26 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
 		laststatus = Exit_ASSGNERR;
 	    print_xtrace(NULL);
 	} else {
-	    bool temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
+	    commandinfo_T cmdinfo;
+	    bool temp;
+
+	    search_command(argv0, argv[0], &cmdinfo,
+		    sct_builtin | sct_function);
+	    temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
 	    if (temp)
 		open_new_environment(true);
 	    if (do_assignments(c->c_assigns, temp, true)) {
-		if (including_path_assignment(c->c_assigns))
+		if (cmdinfo.type == externalprogram)
 		    search_command(argv0, argv[0], &cmdinfo,
-			    sct_external | sct_builtin | sct_function);
+			    sct_external | sct_builtin);
+		if (cmdinfo.type == externalprogram && !finally_exit) {
+		    cpid = fork_and_reset(pgid, type == execnormal, t_leave);
+		    if (cpid != 0)
+			goto done;
+		    finally_exit = true;
+		}
 		exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
+done:;
 	    } else {
 		print_xtrace(NULL);
 		laststatus = Exit_ASSGNERR;
@@ -764,12 +731,11 @@ pid_t exec_process(command_T *c, exec_T type, pipeinfo_T *pi, pid_t pgid)
     else
 	undo_redirections(savefd);
     exec_builtin_executed = false;
-    return 0;
+    return cpid;
 
 exp_fail:
     laststatus = Exit_EXPERROR;
-done:
-    if (early_fork || type == execself)
+    if (finally_exit)
 	exit_shell();
     return 0;
 redir_fail:
@@ -777,7 +743,7 @@ redir_fail:
     if (finally_exit)
 	exit_shell();
     if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
-	    argc > 0 && cmdinfo.type == specialbuiltin)
+	    argc > 0 && is_special_builtin(argv0))
 	exit_shell();
     undo_redirections(savefd);
     if (c->c_type == CT_SIMPLE)
@@ -867,6 +833,8 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
  * either a function pointer to the builtin (if the `sct_rbpath' flag is not
  * specified in `type') or the path of the corresponding external command
  * (otherwise). */
+/* In the POSIXly correct mode, you need the sct_external flag to find a regular
+ * builtin. */
 void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
@@ -921,38 +889,33 @@ notfound:
     return;
 }
 
+/* Returns true iff the specified command is a special builtin. */
+bool is_special_builtin(const char *cmdname)
+{
+    const builtin_T *bi = get_builtin(cmdname);
+    return bi && bi->type == BI_SPECIAL;
+}
+
 /* Determines whether the assignments should be temporary according to `type'.*/
 bool assignment_is_temporary(enum cmdtype_T type)
 {
     switch (type) {
-	/* For external programs the result should be true in theory, but
-	 * actually we don't have to make the variables temporary because
-	 * the process forks. */
-	case externalprogram:
 	case specialbuiltin:
 	case function:
 	    return false;
 	case semispecialbuiltin:
 	case regularbuiltin:
+	case externalprogram:
 	    return true;
 	default:
 	    assert(false);
     }
 }
 
-/* Checks if the specified assignments include an assignment to $PATH. */
-bool including_path_assignment(const assign_T *a)
-{
-    while (a) {
-	if (wcscmp(a->a_name, L VAR_PATH) == 0)
-	    return true;
-	a = a->next;
-    }
-    return false;
-}
-
 /* Executes a command whose type is not `CT_SIMPLE'.
- * The redirections for the command is not performed in this function. */
+ * The redirections for the command is not performed in this function.
+ * For CT_SUBSHELL, this function must be called in an already-forked subshell.
+ */
 void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
     c = comsdup(c);
@@ -993,16 +956,17 @@ void exec_simple_command(
 	const commandinfo_T *ci, int argc, char *argv0, void **argv,
 	bool finally_exit)
 {
-    assert(argv[argc] == NULL);
+    assert(plcount(argv) == (size_t) argc);
 
     print_xtrace(argv);
     switch (ci->type) {
     case externalprogram:
-	assert(finally_exit || !ci->ci_path);
 	if (ci->ci_path == NULL) {
 	    xerror(0, Ngt("%s: no such command or function"), argv0);
 	    laststatus = Exit_NOTFOUND;
 	} else {
+	    assert(finally_exit);
+
 	    char *mbsargv[argc + 1];
 	    mbsargv[0] = argv0;
 	    for (int i = 1; i < argc; i++) {

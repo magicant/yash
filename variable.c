@@ -179,10 +179,6 @@ static environ_T *current_env;
 /* the top-level environment (the farthest from the current) */
 static environ_T *first_env;
 
-/* Temporary variables are used when a non-special builtin is executed.
- * They are assigned in a temporary environment and valid only while the command
- * is executed. */
-
 /* whether $RANDOM is functioning as a random number */
 static bool random_active;
 
