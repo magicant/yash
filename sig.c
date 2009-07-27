@@ -625,9 +625,13 @@ void handle_sigchld(void)
         do_wait();
 #if YASH_ENABLE_LINEEDIT
 	if (shopt_notify || (shopt_notifyle && le_state == LE_STATE_ACTIVE)) {
-	    le_suspend_readline();
-	    print_job_status_all(true, false, stderr);
-	    le_resume_readline();
+	    if (le_state == LE_STATE_ACTIVE) {
+		le_suspend_readline();
+		print_job_status_all(true, false, stderr);
+		le_resume_readline();
+	    } else {
+		print_job_status_all(true, false, stderr);
+	    }
 	}
 #else
 	if (shopt_notify) {

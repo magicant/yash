@@ -2451,13 +2451,16 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	    le_main_index = le_main_buffer.length;
 
 	    le_editstate = LE_EDITSTATE_DONE;
+end:
 	    reset_state();
 	    // XXX: clear info area
 	}
 
-end:
+	laststatus = savelaststatus;
 	unlink(tempfile);
 	free(tempfile);
+	if (shopt_notify || shopt_notifyle)
+	    print_job_status_all(true, false, stderr);
 	le_resume_readline();
     } else {  // child process
 	fwprintf(f, L"%ls\n", le_main_buffer.contents);
