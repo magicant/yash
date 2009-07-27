@@ -843,6 +843,9 @@ void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
 {
+    const builtin_T *bi;
+    command_T *funcbody;
+
     if (wcschr(wname, L'/')) {
 	if (!(type & sct_external))
 	    goto notfound;
@@ -852,13 +855,14 @@ void search_command(
     }
 
     /* search builtins and functions. */
-    const builtin_T *bi = (type & sct_builtin) ? get_builtin(name) : NULL;
-    command_T *funcbody = (type & sct_function) ? get_function(wname) : NULL;
+    bi = (type & sct_builtin) ? get_builtin(name) : NULL;
     if (bi && bi->type == BI_SPECIAL) {
 	ci->type = specialbuiltin;
 	ci->ci_builtin = bi->body;
 	return;
-    } else if (funcbody) {
+    }
+    funcbody = (type & sct_function) ? get_function(wname) : NULL;
+    if (funcbody) {
 	ci->type = function;
 	ci->ci_function = funcbody;
 	return;
