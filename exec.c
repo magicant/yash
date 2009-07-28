@@ -960,6 +960,11 @@ bool assignment_is_temporary(enum cmdtype_T type)
  * Returns false otherwise. */
 bool command_not_found_handler(void *const *argv)
 {
+    static bool handling = false;
+    if (handling)
+	return false;  /* don't allow reentrance */
+    handling = true;
+
     bool handled;
     int result;
 
@@ -978,6 +983,7 @@ bool command_not_found_handler(void *const *argv)
 
     close_current_environment();
 
+    handling = false;
     if (handled) {
 	laststatus = result;
 	return true;

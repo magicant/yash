@@ -41,6 +41,7 @@ exitstatus=0 HANDLED=unset PWD=/
 exitstatus=0 HANDLED=unset
 not found: /dev /tmp
 unset
+exitstatus=127
 ===== typeset export =====
 abcdef
 abcxyz
