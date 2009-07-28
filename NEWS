@@ -12,6 +12,8 @@ Yash 2.13
 
   +  "history" builtin
   +  The -i option for the "eval", "break" and "continue" builtins.
+  +  The value of the $COMMAND_NOT_FOUND_HANDLER variable is now
+     executed when a command is not found.
   -  '--autocd' option
   =  The exit status is now one when the "return" builtin is used
      outside a function in an interactive shell.

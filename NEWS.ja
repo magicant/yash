@@ -12,6 +12,8 @@ Yash 2.13
 
   +  "history" 組込み
   +  "eval", "break", "continue" 組込みの -i オプション
+  +  コマンドが見つからないとき $COMMAND_NOT_FOUND_HANDLER 変数の値を
+     実行するように
   -  --autocd オプション
   =  対話シェルで "return" 組込みが関数外で使われた時、終了ステータス
      1 を返すように
