@@ -80,6 +80,7 @@ enum srchcmdtype_T {
     sct_function = 1 << 2,  /* search functions */
     sct_defpath  = 1 << 3,  /* search the default PATH */
     sct_rbpath   = 1 << 4,  /* return path of regular builtin */
+    sct_noslash  = 1 << 5,  /* don't check if name contains slash */
 };
 
 /* info about a simple command to execute */
@@ -134,6 +135,8 @@ static inline bool is_special_builtin(const char *cmdname)
     __attribute__((nonnull,pure));
 static inline bool assignment_is_temporary(enum cmdtype_T type)
     __attribute__((const));
+static bool command_not_found_handler(void *const *argv)
+    __attribute__((nonnull));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
@@ -728,9 +731,27 @@ pid_t exec_process(
     }
 
     /* find command path */
-    if (cmdinfo.type == externalprogram)
-	search_command(argv0, argv[0], &cmdinfo,
-		sct_external | sct_builtin);
+    if (cmdinfo.type == externalprogram) {
+	if (posixly_correct) {
+	    search_command(argv0, argv[0], &cmdinfo,
+		    sct_external | sct_builtin);
+	} else {
+	    if (wcschr(argv[0], L'/')) {
+		cmdinfo.ci_path = argv0;
+		if (!is_executable_regular(argv0))
+		    if (command_not_found_handler(argv))
+			goto done3;
+	    } else {
+		search_command(argv0, argv[0], &cmdinfo,
+			sct_external | sct_builtin | sct_noslash);
+		if (cmdinfo.type == externalprogram && cmdinfo.ci_path == NULL)
+		    if (command_not_found_handler(argv))
+			goto done3;
+	    }
+	    /* If the command was not found and the shell is not in POSIXly
+	     * correct mode, the not-found handler is called. */
+	}
+    }
 
     /* create a child process to execute the external command */
     if (cmdinfo.type == externalprogram && !finally_exit) {
@@ -860,7 +881,7 @@ void search_command(
     const builtin_T *bi;
     command_T *funcbody;
 
-    if (wcschr(wname, L'/')) {
+    if (!(type & sct_noslash) && wcschr(wname, L'/')) {
 	if (!(type & sct_external))
 	    goto notfound;
 	ci->type = externalprogram;
@@ -931,6 +952,37 @@ bool assignment_is_temporary(enum cmdtype_T type)
 	    return true;
 	default:
 	    assert(false);
+    }
+}
+
+/* Executes $COMMAND_NOT_FOUND_HANDLER if any.
+ * Returns true if the hander is executed and $HANDLED is set non-empty.
+ * Returns false otherwise. */
+bool command_not_found_handler(void *const *argv)
+{
+    bool handled;
+    int result;
+
+    open_new_environment(false);
+    set_positional_parameters(argv);
+    set_variable(L VAR_HANDLED, xwcsdup(L""), SCOPE_LOCAL, false);
+
+    result = exec_variable_as_commands(
+	    L VAR_COMMAND_NOT_FOUND_HANDLER, VAR_COMMAND_NOT_FOUND_HANDLER);
+    if (result >= 0) {
+	const wchar_t *handledv = getvar(L VAR_HANDLED);
+	handled = (handledv != NULL && handledv[0] != L'\0');
+    } else {
+	handled = false;
+    }
+
+    close_current_environment();
+
+    if (handled) {
+	laststatus = result;
+	return true;
+    } else {
+	return false;
     }
 }
 

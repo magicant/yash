@@ -75,6 +75,26 @@ YASH_AFTER_CD=('echo cd' 'continue -i; echo ng' 'break -i' 'echo NG')
 cd "$OLDPWD"
 )
 
+echo ===== 4 =====
+
+(
+COMMAND_NOT_FOUND_HANDLER='echo not found: "$@"' PATH= _no_such_command_ a b c
+echo exitstatus=$?
+_no_such_command_ a b c
+echo exitstatus=$?
+COMMAND_NOT_FOUND_HANDLER='echo cd "$@" && cd "$@" && HANDLED=1'
+/
+echo exitstatus=$? HANDLED=${HANDLED:-unset} PWD=$PWD
+"$OLDPWD" >/dev/null
+echo exitstatus=$? HANDLED=${HANDLED:-unset}
+) 2>/dev/null
+{
+COMMAND_NOT_FOUND_HANDLER=('echo not found: "$@"' \
+'HANDLED=1' 'unset COMMAND_NOT_FOUND_HANDLER')
+/dev /tmp   # 2>/dev/null
+echo ${COMMAND_NOT_FOUND_HANDLER-unset}
+}
+
 echo ===== typeset export =====
 
 func () {
