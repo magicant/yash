@@ -1197,7 +1197,7 @@ step7:
 
     /* step 9: determine `curpathoffset' */
     assert(logical);
-    {
+    if (oldpwd[wcsspn(oldpwd, L"/")] != L'\0') {
 	wchar_t *s = matchwcsprefix(curpath.contents, oldpwd);
 	if (s != NULL && *s == L'/') {
 	    s++;
