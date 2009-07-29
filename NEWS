@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.14
 
+  +  The -l option for the "bindkey" builtin.
+  =  $PWD is now set to "/" (rather than "/..") after "cd /..".
   *  "cd //" was failing if the current directory is "/".
 
 ----------------------------------------------------------------------

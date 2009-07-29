@@ -319,6 +319,7 @@ le_mode_id_T le_get_mode(void)
 
 /********** Builtin **********/
 
+static int print_all_commands(void);
 static int set_key_binding(
 	le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
     __attribute__((nonnull));
@@ -346,38 +347,51 @@ static const struct command_name_pair {
 /* The "bindkey" builtin, which accepts the following options:
  *  -v: select the "vi-insert" mode
  *  -a: select the "vi-command" mode
- *  -e: select the "emacs" mode */
+ *  -e: select the "emacs" mode
+ *  -l: list names of available commands */
 int bindkey_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"vi-insert",  xno_argument, L'v', },
 	{ L"vi-command", xno_argument, L'a', },
 	{ L"emacs",      xno_argument, L'e', },
+	{ L"list",       xno_argument, L'l', },
 	{ L"help",       xno_argument, L'-', },
 	{ NULL, 0, 0, },
     };
 
     wchar_t opt;
+    bool list = false;
     le_mode_id_T mode = LE_MODE_N;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"aev", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"aelv", long_options, NULL))) {
 	switch (opt) {
 	    case L'a':  mode = LE_MODE_VI_COMMAND;  break;
 	    case L'e':  mode = LE_MODE_EMACS;       break;
 	    case L'v':  mode = LE_MODE_VI_INSERT;   break;
+	    case L'l':  list = true;                break;
 	    case L'-':
 		print_builtin_help(ARGV(0));
 		return Exit_SUCCESS;
 	    default:  print_usage:
 		fprintf(stderr,
-			gt("Usage:  bindkey -aev [keyseq [command]]\n"));
+			gt("Usage:  bindkey -aev [keyseq [command]]\n"
+			   "        bindkey -l\n"));
 		return Exit_ERROR;
 	}
     }
 
+    if (list) {
+	if (mode != LE_MODE_N) {
+	    xerror(0, Ngt("invalid combination of options"));
+	    goto print_usage;
+	}
+	return print_all_commands();
+    }
+
     if (mode == LE_MODE_N) {
-	xerror(0, Ngt("mode not specified"));
+	xerror(0, Ngt("option not specified"));
 	goto print_usage;
     }
 
@@ -392,6 +406,14 @@ int bindkey_builtin(int argc, void **argv)
     } else {
 	goto print_usage;
     }
+}
+
+/* Prints all available commands to the standard output. */
+int print_all_commands(void)
+{
+    for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
+	puts(commands[i].name);
+    return Exit_SUCCESS;
 }
 
 /* Binds `keyseq' to the specified command.
@@ -506,12 +528,14 @@ const char *get_command_name(le_command_func_T *command)
 const char bindkey_help[] = Ngt(
 "bindkey - set or print key bindings for line-editing\n"
 "\tbindkey -aev [keyseq [command]]\n"
-"Without <keyseq> or <command>, prints all the current key bindings.\n"
-"With <keyseq> without <command>, prints the binding for <keyseq>.\n"
+"\tbindkey -l\n"
+"The first form, without <keyseq> or <command>, prints all the current key\n"
+"bindings. With <keyseq> without <command>, prints the binding for <keyseq>.\n"
 "With <keyseq> and <command>, binds <keyseq> to <command>. If <command> is\n"
 "a hyphen ('-'), <keyseq> is unbound.\n"
+"The second form, with the -l (--list) option, prints all available commands.\n"
 "\n"
-"One of the following options must be given:\n"
+"One of the following options must be given in the first form:\n"
 " -v --vi-insert\n"
 "\tSpecifies the \"vi insert\" mode.\n"
 " -a --vi-command\n"
