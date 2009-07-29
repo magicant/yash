@@ -81,6 +81,8 @@ ok
 command -b cat = 127
 command -B exit 127 = 127
 command exit 10 = 10
+command -vb cat = 1
+command -vB exit = 1
 ===== suspend =====
 1
 STOP

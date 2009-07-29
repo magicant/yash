@@ -78,13 +78,17 @@ command -Vb sh 2>&1 || PATH= command -vp sh >/dev/null && echo ok
 
 command -b cat /dev/null 2>/dev/null
 echo command -b cat = $?
-command -B exit 127 2>/dev/null
+PATH= command -B exit 127 2>/dev/null
 echo command -B exit 127 = $?
 (command exit 10; echo not reached)
 echo command exit 10 = $?
 
 type type | grep -v "^type: regular builtin"
 
+command -vb cat
+echo command -vb cat = $?
+PATH= command -vB exit
+echo command -vB exit = $?
 
 echo ===== suspend =====
 
