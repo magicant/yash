@@ -1019,6 +1019,10 @@ bool is_reentry(const struct stat *st, const plist_T *dirstack)
 static int change_directory(
 	const wchar_t *newpwd, bool printnewdir, bool logical)
     __attribute__((nonnull,warn_unused_result));
+static void canonicalize_path_ex(xwcsbuf_T *buf)
+    __attribute__((nonnull));
+static bool starts_with_root_parent(const wchar_t *path)
+    __attribute__((nonnull,pure));
 static void print_command_paths(bool all);
 static void print_home_directories(void);
 static void print_umask_octal(mode_t mode);
@@ -1225,7 +1229,9 @@ step10:  /* do chdir */
     }
 
 #ifndef NDEBUG
-    newpwd = NULL;  /* `newpwd' must not be used any more */
+    newpwd = NULL;
+    /* `newpwd' must not be used any more because it may be pointing to the
+     * current value of $OLDPWD, which is going to be re-assigned to. */
 #endif
 
     /* set $OLDPWD and $PWD */
@@ -1233,6 +1239,8 @@ step10:  /* do chdir */
 	if (!set_variable(L VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
 	    err = true;
     if (logical) {
+	if (!posixly_correct)
+	    canonicalize_path_ex(&curpath);
 	if (printnewdir)
 	    printf("%ls\n", curpath.contents);
 	if (!set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false))
@@ -1263,6 +1271,26 @@ step10:  /* do chdir */
 	exec_variable_as_commands(L VAR_YASH_AFTER_CD, VAR_YASH_AFTER_CD);
 
     return err ? Exit_FAILURE : Exit_SUCCESS;
+}
+
+/* Removes "/.." components at the beginning of the string in the buffer
+ * if the root directory and its parent are the same directory. */
+void canonicalize_path_ex(xwcsbuf_T *buf)
+{
+    if (starts_with_root_parent(buf->contents) && is_same_file("/", "/..")) {
+	do {
+	    wb_remove(buf, 0, 3);
+	} while (starts_with_root_parent(buf->contents));
+	if (buf->length == 0)
+	    wb_wccat(buf, L'/');
+    }
+}
+
+/* Returns true iff the given path starts with "/..". */
+bool starts_with_root_parent(const wchar_t *path)
+{
+    return path[0] == L'/' && path[1] == L'.' && path[2] == L'.' &&
+	(path[3] == L'\0' || path[3] == L'/');
 }
 
 const char cd_help[] = Ngt(
