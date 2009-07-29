@@ -911,7 +911,7 @@ void search_command(
 	return;
     }
 
-    if (!(type & sct_external))
+    if (!(type & (sct_external | sct_rbpath)))
 	goto notfound;
 
     ci->ci_path = (type & sct_defpath)
@@ -923,6 +923,8 @@ void search_command(
 	    ci->ci_builtin = bi->body;
     } else {
 	ci->type = externalprogram;
+	if (!(type & sct_external))
+	    ci->ci_path = NULL;
     }
     return;
 
