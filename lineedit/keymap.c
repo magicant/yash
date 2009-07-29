@@ -40,10 +40,15 @@ le_mode_T le_modes[LE_MODE_N];
 le_mode_T *le_current_mode;
 
 
-/* Initializes `le_modes'.
- * Must not be called more than once. */
+/* Initializes `le_modes' if not yet initialized.
+ * May be called more than once. */
 void le_keymap_init(void)
 {
+    static bool initialized = false;
+    if (initialized)
+	return;
+    initialized = true;
+
     trie_T *t;
 
 #define Set(key, cmd) \
@@ -381,6 +386,8 @@ int bindkey_builtin(int argc, void **argv)
 		return Exit_ERROR;
 	}
     }
+
+    le_keymap_init();
 
     if (list) {
 	if (mode != LE_MODE_N) {

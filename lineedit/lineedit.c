@@ -61,12 +61,7 @@ enum le_editstate_T le_editstate;
  * afterward. */
 bool le_setup(void)
 {
-    static bool initialized = false;
-    if (!initialized) {
-	initialized = true;
-	le_keymap_init();
-    }
-
+    le_keymap_init();
     return isatty(STDIN_FILENO) && isatty(STDERR_FILENO)
 	&& le_setupterm(true)
 	&& le_set_terminal();
