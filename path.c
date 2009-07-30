@@ -1325,8 +1325,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"pushd");
 		return Exit_ERROR;
@@ -1398,8 +1397,7 @@ int popd_builtin(int argc __attribute__((unused)), void **argv)
     while ((opt = xgetopt_long(argv, L"-", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  popd [index]\n"));
 		return Exit_ERROR;
@@ -1470,8 +1468,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
 		return Exit_ERROR;

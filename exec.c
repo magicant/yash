@@ -1547,8 +1547,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 		iter = true;
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  eval [-i] [arg...]\n"));
 		SPECIAL_BI_ERROR;
@@ -2099,8 +2098,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  times\n"));
 		SPECIAL_BI_ERROR;
