@@ -1061,8 +1061,7 @@ int cd_builtin(int argc, void **argv)
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"cd");
 		return Exit_ERROR;
@@ -1541,8 +1540,7 @@ int hash_builtin(int argc, void **argv)
 	    case L'd':  dir    = true;  break;
 	    case L'r':  remove = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}
@@ -1684,8 +1682,7 @@ int umask_builtin(int argc, void **argv)
 		symbolic = true;
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}

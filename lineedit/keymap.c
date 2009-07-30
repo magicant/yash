@@ -377,8 +377,7 @@ int bindkey_builtin(int argc, void **argv)
 	    case L'v':  mode = LE_MODE_VI_INSERT;   break;
 	    case L'l':  list = true;                break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr,
 			gt("Usage:  bindkey -aev [keyseq [command]]\n"

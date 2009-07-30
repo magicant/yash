@@ -1404,8 +1404,7 @@ int return_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
 		SPECIAL_BI_ERROR;
@@ -1450,8 +1449,7 @@ int break_builtin(int argc, void **argv)
 		iter = true;
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr,
 			gt("Usage:  %ls [n]\n        %ls -i\n"),
@@ -1585,8 +1583,7 @@ int dot_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  . file [arg...]\n"));
 		SPECIAL_BI_ERROR;
@@ -1690,8 +1687,7 @@ int exec_builtin(int argc, void **argv)
 	    case L'c':  clear = true;  break;
 	    case L'f':  force = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr,
 		    gt("Usage:  exec [-cf] [-a name] [command [arg...]]\n"));
@@ -1861,8 +1857,7 @@ int command_builtin(int argc, void **argv)
 	    case L'v':  printinfo = true;  humanfriendly = false;  break;
 	    case L'V':  printinfo = true;  humanfriendly = true;   break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}

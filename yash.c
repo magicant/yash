@@ -673,8 +673,7 @@ int exit_builtin(int argc, void **argv)
 		forceexit = true;
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
 		SPECIAL_BI_ERROR;
@@ -736,8 +735,7 @@ int suspend_builtin(int argc, void **argv)
 	    case L'f':
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  suspend\n"));
 		return Exit_ERROR;

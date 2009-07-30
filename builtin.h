@@ -39,7 +39,7 @@ typedef struct builtin_T {
 extern void init_builtin(void);
 extern const builtin_T *get_builtin(const char *name)
     __attribute__((pure));
-extern _Bool print_builtin_help(const wchar_t *name)
+extern int print_builtin_help(const wchar_t *name)
     __attribute__((nonnull));
 
 extern int true_builtin(int argc, void **argv)

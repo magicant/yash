@@ -804,8 +804,7 @@ int jobs_builtin(int argc, void **argv)
 	    case L'r':  runningonly = true;  break;
 	    case L's':  stoppedonly = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  jobs [-lp] [job...]\n")
@@ -903,8 +902,7 @@ int fg_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt(fg ? Ngt("Usage:  fg [job]\n")
 		                      : Ngt("Usage:  bg [job...]\n")));
@@ -1022,8 +1020,7 @@ int wait_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  wait [job or pid...]\n"));
 		return Exit_ERROR;
@@ -1123,8 +1120,7 @@ int disown_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'a':  all = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  disown [job...]\n"));
 		return Exit_ERROR;

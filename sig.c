@@ -990,8 +990,7 @@ int trap_builtin(int argc, void **argv)
 		print = true;
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}
@@ -1127,10 +1126,8 @@ const char trap_help[] = Ngt(
  * -v: prints signal info verbosely */
 int kill_builtin(int argc, void **argv)
 {
-    if (!posixly_correct && argc == 2 && wcscmp(ARGV(1), L"--help") == 0) {
-	print_builtin_help(ARGV(0));
-	return Exit_SUCCESS;
-    }
+    if (!posixly_correct && argc == 2 && wcscmp(ARGV(1), L"--help") == 0)
+	return print_builtin_help(ARGV(0));
 
     wchar_t opt;
     int signum = SIGTERM;

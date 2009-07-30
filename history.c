@@ -1124,8 +1124,7 @@ int fc_builtin(int argc, void **argv)
 	    case L's':  silent = true;           break;
 	    case L'v':  ptype  = FC_FULL;        break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}
@@ -1591,7 +1590,8 @@ int history_builtin(int argc, void **argv)
 		history_refresh_file();
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
+		if (print_builtin_help(ARGV(0)) != Exit_SUCCESS)
+		    return Exit_FAILURE;
 		break;
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  history [-cF] [-d entry] "

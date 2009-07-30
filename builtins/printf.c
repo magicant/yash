@@ -286,8 +286,7 @@ int printf_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  printf format [value...]\n"));
 		return Exit_ERROR;

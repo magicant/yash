@@ -162,8 +162,7 @@ int ulimit_builtin(int argc, void **argv)
 	    case L'S':  type = soft;       break;
 	    case L'a':  print_all = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		for (const struct resource *r = resource_types; r->option; r++){
 		    if (r->option == opt) {

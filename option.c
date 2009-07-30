@@ -450,8 +450,7 @@ int set_builtin(int argc, void **argv)
 		}
 		break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    case L'?':  optionerror:
 		fprintf(stderr,
 		    gt("Usage:  set [-abefhmnuvxC] [-o option] [+o option] "

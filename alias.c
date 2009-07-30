@@ -382,8 +382,7 @@ int alias_builtin(int argc, void **argv)
 	    case L'g':  global = true;  break;
 	    case L'p':  prefix = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  alias [name[=value]...]\n")
@@ -463,8 +462,7 @@ int unalias_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'a':  all = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}

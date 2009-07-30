@@ -1516,8 +1516,7 @@ int typeset_builtin(int argc, void **argv)
 	    case L'x':  export   = true;  break;
 	    case L'X':  unexport = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr,
 			gt("Usage:  %ls [-rgprxX] [name[=value]...]\n"),
@@ -1833,8 +1832,7 @@ int array_builtin(int argc, void **argv)
 	    case L'i':  options |= insert;  break;
 	    case L's':  options |= set;     break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  array [name [value...]]\n"
 		                   "        array -d name index...\n"
@@ -2100,8 +2098,7 @@ int unset_builtin(int argc, void **argv)
 	    case L'f':  funcs = true;   break;
 	    case L'v':  funcs = false;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  unset [-fv] name...\n"));
 		SPECIAL_BI_ERROR;
@@ -2185,8 +2182,7 @@ int shift_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  shift [n]\n"));
 		SPECIAL_BI_ERROR;
@@ -2247,8 +2243,7 @@ int getopts_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}
@@ -2475,8 +2470,7 @@ int read_builtin(int argc, void **argv)
 	    case L'A':  array = true;  break;
 	    case L'r':  raw   = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		goto print_usage;
 	}
@@ -2644,8 +2638,7 @@ int dirs_builtin(int argc, void **argv)
 	    case L'c':  clear   = true;  break;
 	    case L'v':  verbose = true;  break;
 	    case L'-':
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  dirs [-cv] [index...]\n"));
 		return Exit_ERROR;

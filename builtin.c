@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,18 +189,22 @@ const builtin_T *get_builtin(const char *name)
 }
 
 /* Prints usage description of the specified builtin to stdout.
- * Returns true iff the builtin is found and the help is printed. Returns false
- * if no help is printed. */
-bool print_builtin_help(const wchar_t *name)
+ * Returns Exit_SUCCESS iff the builtin is found and the help is printed.
+ * Returns Exit_FAILURE if the builtin is not found or an error occurred. */
+int print_builtin_help(const wchar_t *name)
 {
     char *mbsname = malloc_wcstombs(name);
     const builtin_T *bi = get_builtin(mbsname);
     free(mbsname);
     if (bi) {
-	fputs(gt(bi->help), stdout);
-	return true;
+	if (fputs(gt(bi->help), stdout) == EOF) {
+	    xerror(errno, Ngt("cannot print help of `%ls'"), name);
+	    return Exit_FAILURE;
+	}
+	return Exit_SUCCESS;
     } else {
-	return false;
+	xerror(0, Ngt("%ls: no such builtin"), name);
+	return Exit_FAILURE;
     }
 }
 
@@ -256,8 +261,7 @@ int help_builtin(int argc, void **argv)
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':  print_help:
-		print_builtin_help(ARGV(0));
-		return Exit_SUCCESS;
+		return print_builtin_help(ARGV(0));
 	    default:
 		fprintf(stderr, gt("Usage:  help command...\n"));
 		return Exit_ERROR;
@@ -269,10 +273,8 @@ int help_builtin(int argc, void **argv)
 
     bool err = false;
     while (xoptind < argc) {
-	if (!print_builtin_help(ARGV(xoptind))) {
-	    xerror(0, Ngt("%ls: no such builtin"), ARGV(xoptind));
+	if (print_builtin_help(ARGV(xoptind)) != Exit_SUCCESS)
 	    err = true;
-	}
 	xoptind++;
     }
     return err ? Exit_FAILURE : Exit_SUCCESS;
