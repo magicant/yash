@@ -90,6 +90,14 @@ echo command -vb cat = $?
 PATH= command -vB exit
 echo command -vB exit = $?
 
+(
+alias cd=cd
+cd() { command cd "$@"; }
+echo; type cd
+echo; type -b cd
+echo; PATH= type -B cd 2>&1
+)
+
 echo ===== suspend =====
 
 set -m

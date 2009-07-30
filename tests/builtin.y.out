@@ -83,6 +83,13 @@ command -B exit 127 = 127
 command exit 10 = 10
 command -vb cat = 1
 command -vB exit = 1
+
+cd: alias for `cd'
+cd: function
+
+cd: semi-special builtin
+
+type: cd: no such command or function
 ===== suspend =====
 1
 STOP

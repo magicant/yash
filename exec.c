@@ -1382,7 +1382,7 @@ static int command_builtin_execute(
 	int argc, void **argv, enum srchcmdtype_T type)
     __attribute__((nonnull));
 static bool print_command_info(const wchar_t *commandname,
-	enum srchcmdtype_T type, bool humanfriendly)
+	enum srchcmdtype_T type, bool keywordalias, bool humanfriendly)
     __attribute__((nonnull));
 static void print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
@@ -1847,7 +1847,7 @@ int command_builtin(int argc, void **argv)
 
     bool argv0istype = wcscmp(ARGV(0), L"type") == 0;
     bool printinfo = argv0istype, humanfriendly = argv0istype;
-    enum srchcmdtype_T type = 0;
+    bool builtin = false, external = false, defpath = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
@@ -1855,9 +1855,9 @@ int command_builtin(int argc, void **argv)
 		    posixly_correct ? L"+pvV" : L"+bBpvV",
 		    long_options, NULL))) {
 	switch (opt) {
-	    case L'b':  type |= sct_builtin;   break;
-	    case L'B':  type |= sct_external;  break;
-	    case L'p':  type |= sct_defpath;   break;
+	    case L'b':  builtin   = true;  break;
+	    case L'B':  external  = true;  break;
+	    case L'p':  defpath   = true;  break;
 	    case L'v':  printinfo = true;  humanfriendly = false;  break;
 	    case L'V':  printinfo = true;  humanfriendly = true;   break;
 	    case L'-':
@@ -1873,20 +1873,32 @@ int command_builtin(int argc, void **argv)
 	    goto print_usage;
 	else
 	    return Exit_SUCCESS;
-    } else if (posixly_correct && (type & (sct_builtin | sct_external))) {
+    } else if (posixly_correct && (builtin || external)) {
 	goto print_usage;
     }
 
-    if (!(type & (sct_external | sct_builtin)))
-	type |= sct_external | sct_builtin;
+    enum srchcmdtype_T type = 0;
+    if (builtin)
+	type |= sct_builtin;
+    if (external)
+	type |= sct_external;
+    if (!builtin && !external)
+	type |= sct_builtin | sct_external;
+    if (defpath)
+	type |= sct_defpath;
+
     if (!printinfo) {
 	return command_builtin_execute(
 		argc - xoptind, argv + xoptind, type);
     } else {
 	bool err = false;
-	type |= sct_function;
+	bool keywordalias = false;
+	if (!builtin && !external)
+	    type |= sct_function, keywordalias = true;
+
 	for (int i = xoptind; i < argc; i++)
-	    err |= !print_command_info(ARGV(i), type, humanfriendly);
+	    err |= !print_command_info(
+		    ARGV(i), type, keywordalias, humanfriendly);
 	return err ? Exit_FAILURE : Exit_SUCCESS;
     }
 
@@ -1937,24 +1949,27 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 }
 
 /* Prints info about the specified command.
- * If the command is not found, returns false. */
+ * If the command is not found, returns false.
+ * The shell keywords and aliases are printed only when `keywordalias' is true.
+ */
 bool print_command_info(
-	const wchar_t *commandname, enum srchcmdtype_T type, bool humanfriendly)
+	const wchar_t *commandname, enum srchcmdtype_T type,
+	bool keywordalias, bool humanfriendly)
 {
     bool found;
 
+    if (keywordalias && is_keyword(commandname)) {
+	printf(humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n",
+		commandname);
+	return true;
+    }
 #if YASH_ENABLE_ALIAS
-    found = print_alias_if_defined(commandname, humanfriendly);
+    found = keywordalias && print_alias_if_defined(commandname, humanfriendly);
     if (found && !humanfriendly)
 	return true;
 #else
     found = false;
 #endif
-    if (is_keyword(commandname)) {
-	printf(humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n",
-		commandname);
-	return true;
-    }
 
     char *name = malloc_wcstombs(commandname);
     if (!name)
