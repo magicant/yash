@@ -410,8 +410,8 @@ void kvfree(kvpair_T kv)
  * This function is used in debugging. */
 void print_statistics(const hashtable_T *ht)
 {
-    fprintf(stderr, "DEBUG: hash->count=%zu, capacity=%zu\n",
-	    ht->count, ht->capacity);
+    fprintf(stderr, "DEBUG: id=%p hash->count=%zu, capacity=%zu\n",
+	    (void *) ht, ht->count, ht->capacity);
     fprintf(stderr, "DEBUG: hash->emptyindex=%zu, tailindex=%zu\n",
 	    ht->emptyindex, ht->tailindex);
 

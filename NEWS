@@ -12,6 +12,8 @@ Yash 2.14
 
   +  The -l option for the "bindkey" builtin.
   =  $PWD is now set to "/" (rather than "/..") after "cd /..".
+  =  The "command" builtin with the -vb option now ignores shell
+     keywords, aliases and functions.
   *  "cd //" was failing if the current directory is "/".
   *  Invoking the "bindkey" builtin in the yashrc file was causing an
      invalid memory access.
