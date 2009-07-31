@@ -976,9 +976,8 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     if (job->j_status != JS_DONE) {
 	if (fg)
 	    put_foreground(job->j_pgid);
-	if (kill(-job->j_pgid, SIGCONT) < 0)
-	    xerror(errno, "kill(%jd,CONT)", (intmax_t) -job->j_pgid);
-	job->j_status = JS_RUNNING;
+	if (kill(-job->j_pgid, SIGCONT) >= 0)
+	    job->j_status = JS_RUNNING;
     }
 
     if (fg)
