@@ -1080,10 +1080,15 @@ set_traps:
     return err ? Exit_FAILURE : Exit_SUCCESS;
 
 print_usage:
-    fprintf(stderr,
-	    Ngt("Usage:  trap [action signal...]\n"
-		"        trap signum [signal...]\n"
-		"        trap -p [signal...]\n"));
+    if (posixly_correct)
+	fprintf(stderr,
+		Ngt("Usage:  trap [action signal...]\n"
+		    "        trap signum [signal...]\n"));
+    else
+	fprintf(stderr,
+		Ngt("Usage:  trap [action signal...]\n"
+		    "        trap signum [signal...]\n"
+		    "        trap -p [signal...]\n"));
     SPECIAL_BI_ERROR;
     return Exit_ERROR;
 }
@@ -1115,7 +1120,7 @@ const char trap_help[] = Ngt(
 "If the first operand is a non-negative integer, the operand is considered as\n"
 "a signal specification and <action> is assumed to be \"-\".\n"
 "If the -p (--print) option is specified, the actions for the specified\n"
-"<signal>s are printed.\n"
+"<signal>s are printed. This option is not available in POSIXly correct mode.\n"
 "Without any operands, all signal handlers currently set are printed.\n"
 );
 
