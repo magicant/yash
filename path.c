@@ -1419,7 +1419,7 @@ int popd_builtin(int argc __attribute__((unused)), void **argv)
     if (!parse_dirstack_index(arg, &stackindex, &dummy, true))
 	return Exit_FAILURE;
     if (stackindex == SIZE_MAX) {
-	xerror(0, Ngt("`%ls' is not a valid integer"), arg);
+	xerror(0, Ngt("`%ls' is not a valid index"), arg);
 	return Exit_ERROR;
     }
 

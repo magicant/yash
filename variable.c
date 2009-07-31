@@ -2652,7 +2652,7 @@ int dirs_builtin(int argc, void **argv)
     const wchar_t *dir;
     if (xoptind < argc) {
 	/* print the specified only */
-	while (xoptind < argc) {
+	do {
 	    size_t index, size = get_dirstack_size();
 	    if (parse_dirstack_index(ARGV(xoptind), &index, &dir, true)) {
 		if (index != SIZE_MAX) {
@@ -2661,14 +2661,14 @@ int dirs_builtin(int argc, void **argv)
 		    else
 			printf("%ls\n", dir);
 		} else {
-		    xerror(0, Ngt("`%ls' is not a valid integer"),
+		    xerror(0, Ngt("`%ls' is not a valid index"),
 			    ARGV(xoptind));
 		    err = true;
 		}
 	    } else {
 		err = true;
 	    }
-	}
+	} while (++xoptind < argc);
     } else {
 	/* print all */
 	variable_T *var = search_variable(L VAR_DIRSTACK);

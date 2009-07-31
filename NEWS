@@ -19,6 +19,8 @@ Yash 2.14
      invalid memory access.
   *  The "command" builtin with the -vb option was failing to find
      regular builtins that are not in $PATH.
+  *  The "dirs" command was going into an infinite loop if given an
+     argument.
 
 ----------------------------------------------------------------------
 Yash 2.13
