@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <sys/types.h>
 /* #include <wctype.h> */
 #include "arith.h"
 #include "option.h"
@@ -183,11 +184,10 @@ wchar_t *evaluate_arithmetic(wchar_t *exp)
 
 /* Evaluates the specified string as an arithmetic expression.
  * The argument string is freed in this function.
- * The expression must yield a valid positive integer value, which is assigned
- * to `*valuep'.
- * Otherwise an error message is printed.
+ * The expression must yield a valid integer value, which is assigned to
+ * `*valuep'. Otherwise, an error message is printed.
  * Returns true iff successful. */
-bool evaluate_index(wchar_t *exp, size_t *valuep)
+bool evaluate_index(wchar_t *exp, ssize_t *valuep)
 {
     value_T result;
     evalinfo_T info;
@@ -205,16 +205,21 @@ bool evaluate_index(wchar_t *exp, size_t *valuep)
     if (info.error) {
 	ok = false;
     } else if (info.token.type == TT_NULL) {
-	if (result.type == VT_LONG && result.v_long > 0) {
-#if LONG_MAX > SIZE_MAX
-	    if (result.v_long > (long) SIZE_MAX)
-		*valuep = SIZE_MAX;
+	if (result.type == VT_LONG) {
+#if LONG_MAX > SSIZE_MAX
+	    if (result.v_long > (long) SSIZE_MAX)
+		*valuep = SSIZE_MAX;
 	    else
 #endif
-		*valuep = result.v_long;
+#if LONG_MIN < -SSIZE_MAX
+	    if (result.v_long < (long) -SSIZE_MAX)
+		*valuep = -SSIZE_MAX;
+	    else
+#endif
+		*valuep = (ssize_t) result.v_long;
 	    ok = true;
 	} else {
-	    xerror(0, Ngt("index: not a positive integer"));
+	    xerror(0, Ngt("index: not an integer"));
 	    ok = false;
 	}
     } else {

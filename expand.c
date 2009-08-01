@@ -19,6 +19,7 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -80,9 +81,9 @@ static wchar_t *expand_param_simple(const paramexp_T *p)
     __attribute__((nonnull,malloc,warn_unused_result));
 static enum indextype_T parse_indextype(const wchar_t *indexstr)
     __attribute__((nonnull,pure));
-static wchar_t *trim_wstring(wchar_t *s, size_t startindex, size_t endindex)
+static wchar_t *trim_wstring(wchar_t *s, ssize_t startindex, ssize_t endindex)
     __attribute__((nonnull));
-static void **trim_array(void **a, size_t startindex, size_t endindex)
+static void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
     __attribute__((nonnull));
 static void print_subst_as_error(const paramexp_T *p)
     __attribute__((nonnull));
@@ -613,20 +614,20 @@ bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
     bool save;    /* need to copy the array? */
     bool concat;  /* concatenate? */
     bool unset;   /* parameter is not set? */
-    size_t startindex, endindex;
+    ssize_t startindex, endindex;
     wchar_t *match, *subst;
     enum indextype_T indextype;
 
     /* parse indexes first */
     if (!p->pe_start) {
-	startindex = 0, endindex = SIZE_MAX, indextype = idx_none;
+	startindex = 0, endindex = SSIZE_MAX, indextype = idx_none;
     } else {
 	wchar_t *e = expand_single(p->pe_start, tt_none);
 	if (!e)
 	    return false;
 	indextype = parse_indextype(e);
 	if (indextype != idx_none) {
-	    startindex = 0, endindex = SIZE_MAX;
+	    startindex = 0, endindex = SSIZE_MAX;
 	    free(e);
 	    if (p->pe_end) {
 		xerror(0, Ngt("invalid parameter index"));
@@ -635,21 +636,22 @@ bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 	} else {
 	    if (!evaluate_index(e, &startindex))
 		return false;
-	    assert(startindex > 0);
-	    startindex--;
-
 	    if (!p->pe_end) {
-		endindex = startindex + 1;
+		endindex = (startindex == -1) ? SSIZE_MAX : startindex;
 	    } else {
 		e = expand_single(p->pe_end, tt_none);
 		if (!e || !evaluate_index(e, &endindex))
 		    return false;
-		if (endindex < startindex)
-		    endindex = startindex;
 	    }
+	    if (startindex == 0)
+		startindex = SSIZE_MAX;
+	    else if (startindex >= 0)
+		startindex--;
 	}
     }
-    assert(startindex <= endindex);
+    /* Here, `startindex' and `endindex' are zero-based. `startindex' is
+     * included in the range but `endindex' is not. A negative index is wrapped
+     * around the length. */
 
     /* get the value of parameter or nested expansion */
     if (p->pe_type & PT_NEST) {
@@ -714,8 +716,27 @@ treat_array:
 		/* falls thru! */
 	    case idx_none:
 	    case idx_all:
-		if (startindex > v.count)
-		    startindex = v.count;
+		if (startindex >= 0) {
+#if SIZE_MAX >= SSIZE_MAX
+		    if ((size_t) startindex > v.count)
+#else
+		    if (startindex > (ssize_t) v.count)
+#endif
+			startindex = v.count;
+		} else {
+		    startindex += v.count;
+		    if (startindex < 0)
+			startindex = 0;
+		}
+		if (endindex < 0)
+		    endindex += v.count + 1;
+		if (endindex < startindex)
+		    endindex = startindex;
+#if SSIZE_MAX > SIZE_MAX
+		else if (endindex > (ssize_t) SIZE_MAX)
+		    endindex = SIZE_MAX;
+#endif
+		assert(0 <= startindex && startindex <= endindex);
 		if (save)
 		    list = duparrayn(v.values + startindex,
 			    endindex - startindex, copyaswcs);
@@ -786,6 +807,7 @@ subst:
 		    return false;
 		}
 	    } else {
+		assert(0 <= startindex && (size_t) startindex <= v.count);
 		if (!set_array_element(p->pe_name, startindex, xwcsdup(subst))){
 		    free(subst);
 		    return false;
@@ -948,22 +970,38 @@ enum indextype_T parse_indextype(const wchar_t *indexstr)
 /* Trims some leading and trailing characters of the wide string.
  * Characters in the range [`startindex', `endindex') remain.
  * Returns the string `s'. */
-wchar_t *trim_wstring(wchar_t *s, size_t startindex, size_t endindex)
+wchar_t *trim_wstring(wchar_t *s, ssize_t startindex, ssize_t endindex)
 {
-    assert(startindex <= endindex);
-    if (startindex == 0 && endindex == SIZE_MAX)
+    if (startindex == 0 && endindex == SSIZE_MAX)
 	return s;
-
-    size_t len = endindex - startindex;
-    for (size_t i = 0; i < startindex; i++)
-	if (s[i] == L'\0') {
-	    s[0] = L'\0';
-	    return s;
+    if (startindex < 0 || endindex < 0) {
+	ssize_t len = wcslen(s);
+	if (startindex < 0) {
+	    startindex += len;
+	    if (startindex < 0)
+		startindex = 0;
 	}
-    for (size_t i = 0; i < len; i++)
+	if (endindex < 0) {
+	    endindex += len + 1;
+	    if (endindex <= startindex)
+		goto return_empty;
+	}
+    }
+
+    assert(startindex >= 0 && endindex >= 0);
+    if (startindex >= endindex)
+	goto return_empty;
+    for (ssize_t i = 0; i < startindex; i++)
+	if (s[i] == L'\0')
+	    goto return_empty;
+    for (ssize_t i = 0; i < endindex - startindex; i++)
 	if ((s[i] = s[startindex + i]) == L'\0')
 	    return s;
-    s[len] = L'\0';
+    s[endindex - startindex] = L'\0';
+    return s;
+
+return_empty:
+    s[0] = L'\0';
     return s;
 }
 
@@ -973,24 +1011,24 @@ wchar_t *trim_wstring(wchar_t *s, size_t startindex, size_t endindex)
  * Removed elements are freed.
  * Returns the array `a'. */
 /* `startindex' and/or `endindex' may be >= the length of the array. */
-void **trim_array(void **a, size_t startindex, size_t endindex)
+void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
 {
-    assert(startindex <= endindex);
-    if (startindex == 0 && endindex == SIZE_MAX)
+    assert(0 <= startindex && startindex <= endindex);
+    if (startindex == 0 && endindex == SSIZE_MAX)
 	return a;
 
-    size_t len = endindex - startindex;
-    for (size_t i = 0; i < startindex; i++) {
+    ssize_t len = endindex - startindex;
+    for (ssize_t i = 0; i < startindex; i++) {
 	if (a[i] == NULL) {
 	    a[0] = NULL;
 	    return a;
 	}
 	free(a[i]);
     }
-    for (size_t i = 0; i < len; i++)
+    for (ssize_t i = 0; i < len; i++)
 	if ((a[i] = a[startindex + i]) == NULL)
 	    return a;
-    for (size_t i = endindex; a[i]; i++)
+    for (ssize_t i = endindex; a[i]; i++)
 	free(a[i]);
     a[len] = NULL;
     return a;

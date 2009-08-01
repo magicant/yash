@@ -20,11 +20,12 @@
 #define YASH_ARITH_H
 
 #include <stddef.h>
+#include <sys/types.h>
 
 
 extern wchar_t *evaluate_arithmetic(wchar_t *exp)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern _Bool evaluate_index(wchar_t *exp, size_t *valuep)
+extern _Bool evaluate_index(wchar_t *exp, ssize_t *valuep)
     __attribute__((nonnull));
 
 

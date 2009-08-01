@@ -14,6 +14,9 @@ Yash 2.14
   =  $PWD is now set to "/" (rather than "/..") after "cd /..".
   =  The "command" builtin with the -vb option now ignores shell
      keywords, aliases and functions.
+  =  Most of the builtins now prints an error message and returns non-
+     zero when they cannot print something to the standard output.
+  =  Negative array indices are now allowed.
   *  "cd //" was failing if the current directory is "/".
   *  Invoking the "bindkey" builtin in the yashrc file was causing an
      invalid memory access.
