@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -80,7 +81,7 @@ static void remove_expired_aliases(aliaslist_T *list, size_t index)
     __attribute__((nonnull));
 static void shift_index(aliaslist_T *list, ptrdiff_t inc)
     __attribute__((nonnull));
-static void print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
+static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
 
 
 /* If true, alias substitution is performed. */
@@ -317,11 +318,13 @@ substitute_alias:
  *    echo a
  */
 
-/* Prints an alias definition to stdout. */
-void print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
+/* Prints an alias definition to stdout.
+ * Returns true iff successful. */
+bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 {
     wchar_t *qvalue = quote_sq(alias->value);
     const char *format;
+    bool success;
     if (!prefix)
 	format = "%ls=%ls\n";
     else if (alias->flags & AF_GLOBAL)
@@ -334,8 +337,11 @@ void print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 	    format = "alias -- %ls=%ls\n";
 	else
 	    format = "alias %ls=%ls\n";
-    printf(format, name, qvalue);
+    success = (printf(format, name, qvalue) >= 0);
+    if (!success)
+	xerror(errno, Ngt("cannot print to standard output"));
     free(qvalue);
+    return success;
 }
 
 /* Prints an alias definition to stdout if defined.
@@ -345,11 +351,17 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 {
     alias_T *alias = ht_get(&aliases, aliasname).value;
     if (alias && !(alias->flags & AF_GLOBAL)) {
-	if (!user_friendly)
-	    print_alias(aliasname, alias, true);
-	else
-	    printf(gt("%ls: alias for `%ls'\n"), aliasname, alias->value);
-	return true;
+	if (!user_friendly) {
+	    return print_alias(aliasname, alias, true);
+	} else {
+	    if (printf(gt("%ls: alias for `%ls'\n"),
+			aliasname, alias->value) >= 0) {
+		return true;
+	    } else {
+		xerror(errno, Ngt("cannot print to standard output"));
+		return false;
+	    }
+	}
     } else {
 	return false;
     }
@@ -371,7 +383,7 @@ int alias_builtin(int argc, void **argv)
     };
 
     bool global = false, prefix = false;
-    bool err = false;
+    bool ok = true;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -395,38 +407,44 @@ int alias_builtin(int argc, void **argv)
 	/* print all aliases */
 	kvpair_T *kvs = ht_tokvarray(&aliases);
 	qsort(kvs, aliases.count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; i < aliases.count; i++)
-	    print_alias(kvs[i].key, kvs[i].value, prefix);
+	for (size_t i = 0; ok && i < aliases.count; i++)
+	    ok &= print_alias(kvs[i].key, kvs[i].value, prefix);
 	free(kvs);
-	return Exit_SUCCESS;
-    }
-    do {
-	wchar_t *arg = ARGV(xoptind);
-	wchar_t *nameend = arg;
+    } else {
+	/* define or print aliases */
+	do {
+	    wchar_t *arg = ARGV(xoptind);
+	    wchar_t *nameend = arg;
 
-	while (is_alias_name_char(*nameend))
-	    nameend++;
-	if (nameend != arg && *nameend == L'=') {
-	    if (!wcschr(nameend + 1, L'\n')) {
-		define_alias(arg, nameend, global);
+	    while (is_alias_name_char(*nameend))
+		nameend++;
+	    if (nameend != arg && *nameend == L'=') {
+		/* define alias */
+		if (!wcschr(nameend + 1, L'\n')) {
+		    define_alias(arg, nameend, global);
+		} else {
+		    xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
+		    ok = false;
+		}
+	    } else if (nameend != arg && *nameend == L'\0') {
+		/* print alias */
+		alias_T *alias = ht_get(&aliases, arg).value;
+		if (alias) {
+		    if (!print_alias(arg, alias, prefix)) {
+			ok = false;
+			break;
+		    }
+		} else {
+		    xerror(0, Ngt("%ls: no such alias"), arg);
+		    ok = false;
+		}
 	    } else {
-		xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
-		err = true;
+		xerror(0, Ngt("`%ls': invalid alias name"), arg);
+		ok = false;
 	    }
-	} else if (nameend != arg && *nameend == L'\0') {
-	    alias_T *alias = ht_get(&aliases, arg).value;
-	    if (alias) {
-		print_alias(arg, alias, prefix);
-	    } else {
-		xerror(0, Ngt("%ls: no such alias"), arg);
-		err = true;
-	    }
-	} else {
-	    xerror(0, Ngt("`%ls': invalid alias name"), arg);
-	    err = true;
-	}
-    } while (++xoptind < argc);
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+	} while (++xoptind < argc);
+    }
+    return ok ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 const char alias_help[] = Ngt(

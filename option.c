@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -411,8 +412,8 @@ wchar_t *get_hyphen_parameter(void)
 
 /********** Builtin **********/
 
-static void set_builtin_print_current_settings(void);
-static void set_builtin_print_restoring_commands(void);
+static int set_builtin_print_current_settings(void);
+static int set_builtin_print_restoring_commands(void);
 
 int set_builtin(int argc, void **argv)
 {
@@ -423,11 +424,9 @@ int set_builtin(int argc, void **argv)
     }
     if (argc == 2) {
 	if (wcscmp(ARGV(1), L"-o") == 0) {
-	    set_builtin_print_current_settings();
-	    return Exit_SUCCESS;
+	    return set_builtin_print_current_settings();
 	} else if (wcscmp(ARGV(1), L"+o") == 0) {
-	    set_builtin_print_restoring_commands();
-	    return Exit_SUCCESS;
+	    return set_builtin_print_restoring_commands();
 	}
     }
 
@@ -471,14 +470,15 @@ int set_builtin(int argc, void **argv)
     return Exit_SUCCESS;
 }
 
-void set_builtin_print_current_settings(void)
+int set_builtin_print_current_settings(void)
 {
+    bool err = false;
     const char *vals[] = {
 	[true]  = gt("yes"),
 	[false] = gt("no"),
     };
 #define PRINTSETTING(name,value) \
-    printf("%-15ls %s\n", L"" #name, vals[(bool) (value)])
+    (err |= printf("%-15ls %s\n", L"" #name, vals[(bool) (value)]) < 0)
 
     PRINTSETTING(allexport, shopt_allexport);
     PRINTSETTING(braceexpand, shopt_braceexpand);
@@ -519,12 +519,20 @@ void set_builtin_print_current_settings(void)
 #endif
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
+
+    if (!err) {
+	return Exit_SUCCESS;
+    } else {
+	xerror(errno, Ngt("cannot print to standard output"));
+	return Exit_FAILURE;
+    }
 }
 
-void set_builtin_print_restoring_commands(void)
+int set_builtin_print_restoring_commands(void)
 {
+    bool err = false;
 #define PRINTSETTING(name,value) \
-    printf("set %co %ls\n", (value) ? '-' : '+', L"" #name)
+    (err |= printf("set %co %ls\n", (value) ? '-' : '+', L"" #name) < 0)
 
     PRINTSETTING(allexport, shopt_allexport);
     PRINTSETTING(braceexpand, shopt_braceexpand);
@@ -565,6 +573,13 @@ void set_builtin_print_restoring_commands(void)
 #endif
     PRINTSETTING(xtrace, shopt_xtrace);
 #undef PRINTSETTING
+
+    if (!err) {
+	return Exit_SUCCESS;
+    } else {
+	xerror(errno, Ngt("cannot print to standard output"));
+	return Exit_FAILURE;
+    }
 }
 
 const char set_help[] = Ngt(

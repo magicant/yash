@@ -1315,20 +1315,27 @@ int fc_print_entries(
 	start = last, end = first;
     e = start;
     for (;;) {
+	int r;
 	switch (type) {
 	    case FC_FULL:
-		fprintf(f, "%u\t%s\t%s\n",
+		r = fprintf(f, "%u\t%s\t%s\n",
 			e->number, fc_time_to_str(e->time), e->value);
 		break;
 	    case FC_NUMBERED:
-		fprintf(f, "%u\t%s\n", e->number, e->value);
+		r = fprintf(f, "%u\t%s\n", e->number, e->value);
 		break;
 	    case FC_UNNUMBERED:
-		fprintf(f, "\t%s\n", e->value);
+		r = fprintf(f, "\t%s\n", e->value);
 		break;
 	    case FC_RAW:
-		fprintf(f, "%s\n", e->value);
+		r = fprintf(f, "%s\n", e->value);
 		break;
+	    default:
+		assert(false);
+	}
+	if (r < 0) {
+	    xerror(errno, Ngt("cannot print to standard output"));
+	    return Exit_FAILURE;
 	}
 	if (e == end)
 	    break;

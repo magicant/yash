@@ -183,6 +183,7 @@ opt_ok:
 
     assert(type & (hard | soft));
     if (print_all) {
+	clearerr(stdout);
 	for (resource = resource_types; resource->option; resource++) {
 	    if (getrlimit(resource->type, &rlimit) < 0) {
 		xerror(errno, Ngt("cannot get current limit"));
@@ -196,7 +197,12 @@ opt_ok:
 	    else
 		printf("%ju\n", (uintmax_t) (value / resource->factor));
 	}
-	return Exit_SUCCESS;
+	if (!ferror(stdout)) {
+	    return Exit_SUCCESS;
+	} else {
+	    xerror(0, Ngt("cannot print to standard output"));
+	    return Exit_FAILURE;
+	}
     }
 
     if (xoptind + 1 < argc)
@@ -220,6 +226,12 @@ opt_ok:
 	    puts(gt("unlimited"));
 	else
 	    printf("%ju\n", (uintmax_t) (value / resource->factor));
+	if (!ferror(stdout)) {
+	    return Exit_SUCCESS;
+	} else {
+	    xerror(errno, Ngt("cannot print to standard output"));
+	    return Exit_FAILURE;
+	}
     } else {
 	/* set value */
 	rlim_t value;
@@ -263,9 +275,10 @@ opt_ok:
 	if (setrlimit(resource->type, &rlimit) < 0) {
 	    xerror(errno, Ngt("cannot set limit"));
 	    return Exit_FAILURE;
+	} else {
+	    return Exit_SUCCESS;
 	}
     }
-    return Exit_SUCCESS;
 
 err_format:
     xerror(0, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));

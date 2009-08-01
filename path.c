@@ -1023,10 +1023,10 @@ static void canonicalize_path_ex(xwcsbuf_T *buf)
     __attribute__((nonnull));
 static bool starts_with_root_parent(const wchar_t *path)
     __attribute__((nonnull,pure));
-static void print_command_paths(bool all);
-static void print_home_directories(void);
-static void print_umask_octal(mode_t mode);
-static void print_umask_symbolic(mode_t mode);
+static bool print_command_paths(bool all);
+static bool print_home_directories(void);
+static bool print_umask_octal(mode_t mode);
+static bool print_umask_symbolic(mode_t mode);
 static int set_umask(const wchar_t *newmask)
     __attribute__((nonnull));
 static inline mode_t copy_user_mask(mode_t mode)
@@ -1098,7 +1098,6 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
     const wchar_t *oldpwd;
     xwcsbuf_T curpath;
     size_t curpathoffset = 0;
-    bool err = false;
 
     /* get the current value of $PWD as `oldpwd' */
     oldpwd = getvar(L VAR_PWD);
@@ -1112,8 +1111,10 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 
 	char *pwd = xgetcwd();
 	if (pwd == NULL) {
-	    xerror(errno, Ngt("cannot determine current directory"));
-	    err = true;
+	    if (logical) {
+		xerror(errno, Ngt("cannot determine current directory"));
+		return Exit_FAILURE;
+	    }
 	} else {
 	    wchar_t *wpwd = realloc_mbstowcs(pwd);
 	    if (wpwd != NULL) {
@@ -1235,41 +1236,30 @@ step10:  /* do chdir */
 
     /* set $OLDPWD and $PWD */
     if (oldpwd != NULL)
-	if (!set_variable(L VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false))
-	    err = true;
+	set_variable(L VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false);
     if (logical) {
 	if (!posixly_correct)
 	    canonicalize_path_ex(&curpath);
 	if (printnewdir)
 	    printf("%ls\n", curpath.contents);
-	if (!set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false))
-	    err = true;
+	set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false);
     } else {
 	wb_destroy(&curpath);
 
 	char *mbsnewpwd = xgetcwd();
-	if (mbsnewpwd == NULL) {
-	    xerror(errno, Ngt("cannot determine new working directory"));
-	    err = true;
-	} else {
+	if (mbsnewpwd != NULL) {
 	    if (printnewdir)
 		printf("%s\n", mbsnewpwd);
 
 	    wchar_t *wnewpwd = realloc_mbstowcs(mbsnewpwd);
-	    if (wnewpwd == NULL) {
-		xerror(EILSEQ, Ngt("cannot convert multibyte characters "
-			    "into wide characters"));
-		err = true;
-	    } else {
-		if (!set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false))
-		    err = true;
-	    }
+	    if (wnewpwd != NULL)
+		set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false);
 	}
     }
     if (!posixly_correct)
 	exec_variable_as_commands(L VAR_YASH_AFTER_CD, VAR_YASH_AFTER_CD);
 
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return Exit_SUCCESS;
 }
 
 /* Removes "/.." components at the beginning of the string in the buffer
@@ -1460,6 +1450,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 {
     bool logical = true;
     char *mbspwd;
+    int result;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -1480,11 +1471,8 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	if (pwd != NULL && pwd[0] == L'/' && is_normalized_path(pwd)) {
 	    mbspwd = malloc_wcstombs(pwd);
 	    if (mbspwd != NULL) {
-		if (is_same_file(mbspwd, ".")) {
-		    printf("%s\n", mbspwd);
-		    free(mbspwd);
-		    return Exit_SUCCESS;
-		}
+		if (is_same_file(mbspwd, "."))
+		    goto print;
 		free(mbspwd);
 	    }
 	}
@@ -1495,9 +1483,15 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	xerror(errno, Ngt("cannot determine current directory"));
 	return Exit_FAILURE;
     }
-    printf("%s\n", mbspwd);
+print:
+    if (printf("%s\n", mbspwd) >= 0) {
+	result = Exit_SUCCESS;
+    } else {
+	xerror(errno, Ngt("cannot print to standard output"));
+	result = Exit_FAILURE;
+    }
     free(mbspwd);
-    return Exit_SUCCESS;
+    return result;
 }
 
 const char pwd_help[] = Ngt(
@@ -1556,7 +1550,7 @@ int hash_builtin(int argc, void **argv)
 	    }
 	} else {
 	    if (xoptind == argc) {  // print all
-		print_home_directories();
+		err = print_home_directories();
 	    } else {                // remember the specified
 		for (int i = xoptind; i < argc; i++) {
 		    if (!get_home_directory(ARGV(i), true)) {
@@ -1576,14 +1570,12 @@ int hash_builtin(int argc, void **argv)
 		    if (cmd) {
 			forget_command_path(cmd);
 			free(cmd);
-		    } else {
-			err |= true;
 		    }
 		}
 	    }
 	} else {
 	    if (xoptind == argc) {  // print all
-		print_command_paths(all);
+		err = print_command_paths(all);
 	    } else {                // remember the specified
 		for (int i = xoptind; i < argc; i++) {
 		    if (wcschr(ARGV(i), L'/')) {
@@ -1600,8 +1592,6 @@ int hash_builtin(int argc, void **argv)
 			    err = true;
 			}
 			free(cmd);
-		    } else {
-			err |= true;
 		    }
 		}
 	    }
@@ -1617,26 +1607,39 @@ print_usage:
     return Exit_ERROR;
 }
 
-/* Prints the entries of the command hashtable. */
-void print_command_paths(bool all)
+/* Prints the entries of the command hashtable.
+ * Returns FALSE iff successful. */
+bool print_command_paths(bool all)
 {
     kvpair_T kv;
     size_t index = 0;
 
-    while ((kv = ht_next(&cmdhash, &index)).key)
-	if (all || !get_builtin(kv.key))
-	    puts(kv.value);
+    while ((kv = ht_next(&cmdhash, &index)).key) {
+	if (all || !get_builtin(kv.key)) {
+	    if (printf("%s\n", (char *) kv.value) < 0) {
+		xerror(errno, Ngt("cannot print to standard output"));
+		return true;
+	    }
+	}
+    }
+    return false;
 }
 
-/* Prints the entries of the home directory hashtable. */
-void print_home_directories(void)
+/* Prints the entries of the home directory hashtable.
+ * Returns FALSE iff successful. */
+bool print_home_directories(void)
 {
     kvpair_T kv;
     size_t index = 0;
 
-    while ((kv = ht_next(&homedirhash, &index)).key)
-	printf("~%ls=%ls\n",
-		(const wchar_t *) kv.key, (const wchar_t *) kv.value);
+    while ((kv = ht_next(&homedirhash, &index)).key) {
+	const wchar_t *key = kv.key, *value = kv.value;
+	if (printf("~%ls=%ls\n", key, value) < 0) {
+	    xerror(errno, Ngt("cannot print to standard output"));
+	    return true;
+	}
+    }
+    return false;
 }
 
 const char hash_help[] = Ngt(
@@ -1689,28 +1692,34 @@ int umask_builtin(int argc, void **argv)
 	mode_t mode = umask(0);
 	umask(mode);
 	if (symbolic)
-	    print_umask_symbolic(mode);
+	    return print_umask_symbolic(mode);
 	else
-	    print_umask_octal(mode);
+	    return print_umask_octal(mode);
     } else if (xoptind + 1 == argc) {
 	return set_umask(ARGV(xoptind));
     } else {
 	goto print_usage;
     }
-    return Exit_SUCCESS;
 
 print_usage:
     fprintf(stderr, gt("Usage:  umask [-S] [mask]\n"));
     return Exit_ERROR;
 }
 
-void print_umask_octal(mode_t mode)
+bool print_umask_octal(mode_t mode)
 {
-    printf("0%.3jo\n", (uintmax_t) mode);
+    if (printf("0%.3jo\n", (uintmax_t) mode) >= 0) {
+	return Exit_SUCCESS;
+    } else {
+	xerror(errno, Ngt("cannot print to standard output"));
+	return Exit_FAILURE;
+    }
 }
 
-void print_umask_symbolic(mode_t mode)
+bool print_umask_symbolic(mode_t mode)
 {
+    clearerr(stdout);
+
     putchar('u');
     putchar('=');
     if (!(mode & S_IRUSR)) putchar('r');
@@ -1729,6 +1738,13 @@ void print_umask_symbolic(mode_t mode)
     if (!(mode & S_IWOTH)) putchar('w');
     if (!(mode & S_IXOTH)) putchar('x');
     putchar('\n');
+
+    if (!ferror(stdout)) {
+	return Exit_SUCCESS;
+    } else {
+	xerror(errno, Ngt("cannot print to standard output"));
+	return Exit_FAILURE;
+    }
 }
 
 int set_umask(const wchar_t *maskstr)

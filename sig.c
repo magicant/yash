@@ -963,7 +963,7 @@ void reset_sigwinch(void)
 
 /********** Builtin **********/
 
-static void print_trap(const char *signame, const wchar_t *command)
+static bool print_trap(const char *signame, const wchar_t *command)
     __attribute__((nonnull(1)));
 static bool print_signal(int signum, const char *name, bool verbose);
 static bool signal_job(int signum, const wchar_t *jobname)
@@ -1004,7 +1004,8 @@ int trap_builtin(int argc, void **argv)
 	for (const signal_T *s = signals; s->no; s++) {
 	    if (!sigismember(&ss, s->no)) {
 		sigaddset(&ss, s->no);
-		print_trap(s->name, trap_command[sigindex(s->no)]);
+		if (!print_trap(s->name, trap_command[sigindex(s->no)]))
+		    return Exit_FAILURE;
 	    }
 	}
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -1012,12 +1013,14 @@ int trap_builtin(int argc, void **argv)
 	for (int i = 0; i < RTSIZE; i++) {
 	    if (sigrtmin + i > sigrtmax)
 		break;
-	    print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]);
+	    if (!print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]))
+		return Exit_FAILURE;
 	}
 #endif
 	return Exit_SUCCESS;
     } else if (print) {
 	/* print specified traps */
+	bool ok = true;
 #if defined SIGRTMIN && defined SIGRTMAX
 	int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
 #endif
@@ -1036,17 +1039,17 @@ int trap_builtin(int argc, void **argv)
 		if (sigrtmin <= signum && signum <= sigrtmax) {
 		    int index = signum - sigrtmin;
 		    if (index < RTSIZE)
-			print_trap(get_signal_name(signum),
+			ok = print_trap(get_signal_name(signum),
 				rttrap_command[index]);
 		} else
 #endif
 		{
-		    print_trap(name, trap_command[sigindex(signum)]);
+		    ok = print_trap(name, trap_command[sigindex(signum)]);
 		}
 	    }
 	    free(name);
-	} while (++xoptind < argc);
-	return Exit_SUCCESS;
+	} while (ok && ++xoptind < argc);
+	return ok ? Exit_SUCCESS : Exit_FAILURE;
     }
 
     bool err = false;
@@ -1096,14 +1099,20 @@ print_usage:
 /* Prints a trap command to stdout that can be used to restore the current
  * signal handler for the specified signal.
  * If the `command' is NULL, this function does nothing.
- * Otherwise, the `command' is properly single-quoted and printed. */
-void print_trap(const char *signame, const wchar_t *command)
+ * Otherwise, the `command' is properly single-quoted and printed.
+ * Returns true iff successful (no error). */
+bool print_trap(const char *signame, const wchar_t *command)
 {
     if (command) {
 	wchar_t *q = quote_sq(command);
-	printf("trap -- %ls %s\n", q, signame);
+	int r = printf("trap -- %ls %s\n", q, signame);
+	if (r < 0)
+	    xerror(errno, Ngt("cannot print to standard output"));
 	free(q);
+	if (r < 0)
+	    return false;
     }
+    return true;
 }
 
 const char trap_help[] = Ngt(

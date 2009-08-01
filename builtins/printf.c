@@ -163,7 +163,7 @@ int echo_builtin(int argc, void **argv)
 	fflush(stdout);
 
     if (ferror(stdout)) {
-	xerror(errno, Ngt("write error"));
+	xerror(errno, Ngt("cannot print to standard output"));
 	return Exit_FAILURE;
     }
     return Exit_SUCCESS;
@@ -315,7 +315,7 @@ int printf_builtin(int argc, void **argv)
 end:
 	fflush(stdout);
 	if (ferror(stdout)) {
-	    xerror(errno, Ngt("write error"));
+	    xerror(errno, Ngt("cannot print to standard output"));
 	    printf_error = true;
 	}
     } else {

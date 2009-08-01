@@ -1890,10 +1890,16 @@ int command_builtin(int argc, void **argv)
 	if (!builtin && !external)
 	    type |= sct_function, keywordalias = true;
 
+	clearerr(stdout);
 	for (int i = xoptind; i < argc; i++)
 	    err |= !print_command_info(
 		    ARGV(i), type, keywordalias, humanfriendly);
-	return err ? Exit_FAILURE : Exit_SUCCESS;
+	if (!ferror(stdout)) {
+	    return err ? Exit_FAILURE : Exit_SUCCESS;
+	} else {
+	    xerror(0, Ngt("cannot print to standard output"));
+	    return Exit_FAILURE;
+	}
     }
 
 print_usage:
@@ -2127,9 +2133,13 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     format_time(tms.tms_stime, ssm, sss);
     format_time(tms.tms_cutime, cum, cus);
     format_time(tms.tms_cstime, csm, css);
-    printf(Ngt("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n"),
-	    sum, sus, ssm, sss, cum, cus, csm, css);
-    return Exit_SUCCESS;
+    if (printf(Ngt("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n"),
+	    sum, sus, ssm, sss, cum, cus, csm, css) >= 0) {
+	return Exit_SUCCESS;
+    } else {
+	xerror(errno, Ngt("cannot print to standard output"));
+	return Exit_FAILURE;
+    }
 #undef format_time
 }
 

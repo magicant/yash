@@ -1440,11 +1440,11 @@ bool remove_dirstack_entry(size_t index)
 
 /********** Builtins **********/
 
-static void print_variable(
+static bool print_variable(
 	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
     __attribute__((nonnull));
-static void print_function(
+static bool print_function(
 	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
@@ -1547,6 +1547,7 @@ int typeset_builtin(int argc, void **argv)
 	return Exit_ERROR;
     }
 
+    bool ok = true;
     if (xoptind == argc) {
 	kvpair_T *kvs;
 	size_t count;
@@ -1561,103 +1562,103 @@ int typeset_builtin(int argc, void **argv)
 	    count = table.count;
 	    ht_destroy(&table);
 	    qsort(kvs, count, sizeof *kvs, keywcscoll);
-	    for (size_t i = 0; i < count; i++)
-		print_variable(kvs[i].key, kvs[i].value, ARGV(0),
-			readonly, export);
+	    for (size_t i = 0; ok && i < count; i++)
+		ok &= print_variable(
+			kvs[i].key, kvs[i].value, ARGV(0), readonly, export);
 	} else {
 	    /* print all functions */
 	    kvs = ht_tokvarray(&functions);
 	    count = functions.count;
 	    qsort(kvs, count, sizeof *kvs, keywcscoll);
-	    for (size_t i = 0; i < count; i++)
-		print_function(kvs[i].key, kvs[i].value, ARGV(0), readonly);
+	    for (size_t i = 0; ok && i < count; i++)
+		ok &= print_function(
+			kvs[i].key, kvs[i].value, ARGV(0), readonly);
 	}
 	free(kvs);
-	return Exit_SUCCESS;
-    }
+    } else {
+	do {
+	    wchar_t *arg = ARGV(xoptind);
+	    wchar_t *wequal = wcschr(arg, L'=');
+	    if (wequal)
+		*wequal = L'\0';
+	    if (funcs) {
+		if (wequal) {
+		    xerror(0, Ngt("cannot assign function"));
+		    ok = false;
+		    continue;
+		}
 
-    bool err = false;
-    do {
-	wchar_t *arg = ARGV(xoptind);
-	wchar_t *wequal = wcschr(arg, L'=');
-	if (wequal)
-	    *wequal = L'\0';
-	if (funcs) {
-	    if (wequal) {
-		xerror(0, Ngt("cannot assign function"));
-		err = true;
-		continue;
-	    }
-
-	    function_T *f = ht_get(&functions, arg).value;
-	    if (f) {
-		if (readonly)
-		    f->f_type |= VF_READONLY | VF_NODELETE;
-		if (print)
-		    print_function(arg, f, ARGV(0), readonly);
-	    } else {
-		xerror(0, Ngt("%ls: no such function"), arg);
-		err = true;
-		continue;
-	    }
-	} else if (wequal || !print) {
-	    /* create/assign variable */
-	    variable_T *var = global ? new_global(arg) : new_local(arg);
-	    vartype_T saveexport = var->v_type & VF_EXPORT;
-	    if (wequal) {
-		if (var->v_type & VF_READONLY) {
-		    xerror(0, Ngt("%ls: readonly"), arg);
-		    err = true;
+		function_T *f = ht_get(&functions, arg).value;
+		if (f) {
+		    if (readonly)
+			f->f_type |= VF_READONLY | VF_NODELETE;
+		    if (print)
+			ok &= print_function(arg, f, ARGV(0), readonly);
 		} else {
-		    varvaluefree(var);
-		    var->v_type = VF_NORMAL | (var->v_type & ~VF_MASK);
-		    var->v_value = xwcsdup(wequal + 1);
-		    var->v_getter = NULL;
+		    xerror(0, Ngt("%ls: no such function"), arg);
+		    ok = false;
+		    continue;
+		}
+	    } else if (wequal || !print) {
+		/* create/assign variable */
+		variable_T *var = global ? new_global(arg) : new_local(arg);
+		vartype_T saveexport = var->v_type & VF_EXPORT;
+		if (wequal) {
+		    if (var->v_type & VF_READONLY) {
+			xerror(0, Ngt("%ls: readonly"), arg);
+			ok = false;
+		    } else {
+			varvaluefree(var);
+			var->v_type = VF_NORMAL | (var->v_type & ~VF_MASK);
+			var->v_value = xwcsdup(wequal + 1);
+			var->v_getter = NULL;
+		    }
+		}
+		if (readonly)
+		    var->v_type |= VF_READONLY | VF_NODELETE;
+		if (export)
+		    var->v_type |= VF_EXPORT;
+		else if (unexport)
+		    var->v_type &= ~VF_EXPORT;
+		variable_set(arg, var);
+		if (saveexport != (var->v_type & VF_EXPORT)
+			|| (wequal && (var->v_type & VF_EXPORT)))
+		    update_environment(arg);
+	    } else {
+		/* print the variable */
+		variable_T *var = search_variable(arg);
+		if (var) {
+		    ok &= print_variable(arg, var, ARGV(0), readonly, export);
+		} else {
+		    xerror(0, Ngt("%ls: no such variable"), arg);
+		    ok = false;
+		    continue;
 		}
 	    }
-	    if (readonly)
-		var->v_type |= VF_READONLY | VF_NODELETE;
-	    if (export)
-		var->v_type |= VF_EXPORT;
-	    else if (unexport)
-		var->v_type &= ~VF_EXPORT;
-	    variable_set(arg, var);
-	    if (saveexport != (var->v_type & VF_EXPORT)
-		    || (wequal && (var->v_type & VF_EXPORT)))
-		update_environment(arg);
-	} else {
-	    /* print the variable */
-	    variable_T *var = search_variable(arg);
-	    if (var) {
-		print_variable(arg, var, ARGV(0), readonly, export);
-	    } else {
-		xerror(0, Ngt("%ls: no such variable"), arg);
-		err = true;
-		continue;
-	    }
-	}
-    } while (++xoptind < argc);
+	} while (++xoptind < argc);
+    }
 
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return ok ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 /* Prints the specified variable to stdout.
  * This function does not print special variables whose name begins with an '='.
  * If `readonly'/`export' is true, the variable is printed only if it is
- * readonly/exported. */
-/* Note that `name' is never quoted even if it contains unusual symbol chars. */
-static void print_variable(
+ * readonly/exported. The `name' is quoted if `is_name(name)' is not true.
+ * Returns true iff successful (no error). */
+bool print_variable(
 	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
 {
+    bool ok = true;
     wchar_t *qname = NULL;
 
     if (name[0] == L'=')
-	return;
+	return ok;
     if (readonly && !(var->v_type & VF_READONLY))
-	return;
+	return ok;
     if (export && !(var->v_type & VF_EXPORT))
-	return;
+	return ok;
 
     if (!is_name(name))
 	name = qname = quote_sq(name);
@@ -1672,15 +1673,22 @@ print_variable:;
     switch (argv0[0]) {
 	case L's':
 	    assert(wcscmp(argv0, L"set") == 0);
-	    if (!qname && qvalue)
-		printf("%ls=%ls\n", name, qvalue);
+	    if (!qname && qvalue) {
+		if (printf("%ls=%ls\n", name, qvalue) < 0) {
+		    xerror(errno, Ngt("cannot print to standard output"));
+		    ok = false;
+		}
+	    }
 	    break;
 	case L'e':
 	case L'r':
 	    assert(wcscmp(argv0, L"export") == 0
 		    || wcscmp(argv0, L"readonly") == 0);
-	    printf(qvalue ? "%ls %ls=%ls\n" : "%ls %ls\n",
-		    argv0, name, qvalue);
+	    if (printf(qvalue ? "%ls %ls=%ls\n" : "%ls %ls\n",
+			argv0, name, qvalue) < 0) {
+		xerror(errno, Ngt("cannot print to standard output"));
+		ok = false;
+	    }
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
@@ -1691,8 +1699,11 @@ print_variable:;
 		sb_ccat(&opts, 'r');
 	    if (opts.length > 0)
 		sb_insert(&opts, 0, " -");
-	    printf(qvalue ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n",
-		    argv0, opts.contents, name, qvalue);
+	    if (printf(qvalue ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n",
+			argv0, opts.contents, name, qvalue) < 0) {
+		xerror(errno, Ngt("cannot print to standard output"));
+		ok = false;
+	    }
 	    sb_destroy(&opts);
 	    break;
 	default:
@@ -1700,9 +1711,10 @@ print_variable:;
     }
     free(qvalue);
     free(qname);
-    return;
+    return ok;
 
 print_array:
+    clearerr(stdout);
     printf("%ls=(", name);
     for (void **values = var->v_vals; *values; values++) {
 	wchar_t *qvalue = quote_sq(*values);
@@ -1741,21 +1753,27 @@ print_array:
 	    assert(false);
     }
     free(qname);
-    return;
+    if (!ferror(stdout)) {
+	return true;
+    } else {
+	xerror(0, Ngt("cannot print to standard output"));
+	return false;
+    }
 }
 
-void print_function(
+bool print_function(
 	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
 {
     if (readonly && !(func->f_type & VF_READONLY))
-	return;
+	return true;
 
     wchar_t *qname = NULL;
     if (!is_name(name))
 	name = qname = quote_sq(name);
 
     wchar_t *value = command_to_wcs(func->f_body);
+    clearerr(stdout);
     printf("%ls () %ls\n", name, value);
 	// XXX need "function" keyword for quoted names
     free(value);
@@ -1775,6 +1793,12 @@ void print_function(
 	    assert(false);
     }
     free(qname);
+    if (!ferror(stdout)) {
+	return true;
+    } else {
+	xerror(0, Ngt("cannot print to standard output"));
+	return false;
+    }
 }
 
 const char typeset_help[] = Ngt(
@@ -1846,6 +1870,7 @@ int array_builtin(int argc, void **argv)
 	return Exit_ERROR;
     }
 
+    bool ok = true;
     if (xoptind == argc) {
 	/* print all arrays */
 	if (options != 0)
@@ -1859,13 +1884,12 @@ int array_builtin(int argc, void **argv)
 	size_t count = table.count;
 	ht_destroy(&table);
 	qsort(kvs, count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; i < count; i++)
+	for (size_t i = 0; ok && i < count; i++)
 	    if ((((variable_T *) kvs[i].value)->v_type & VF_MASK) == VF_ARRAY)
-		print_variable(kvs[i].key, kvs[i].value, ARGV(0), false, false);
+		ok &= print_variable(
+			kvs[i].key, kvs[i].value, ARGV(0), false, false);
 	free(kvs);
-	return Exit_SUCCESS;
     } else {
-	bool ok;
 	const wchar_t *name = ARGV(xoptind++);
 	if (wcschr(name, L'=')) {
 	    xerror(0, Ngt("`%ls': invalid name"), name);
@@ -1901,8 +1925,8 @@ int array_builtin(int argc, void **argv)
 		    assert(false);
 	    }
 	}
-	return ok ? Exit_SUCCESS : Exit_FAILURE;
     }
+    return ok ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if LONG_MAX < SIZE_MAX
@@ -2656,10 +2680,17 @@ int dirs_builtin(int argc, void **argv)
 	    size_t index, size = get_dirstack_size();
 	    if (parse_dirstack_index(ARGV(xoptind), &index, &dir, true)) {
 		if (index != SIZE_MAX) {
+		    int r;
 		    if (verbose)
-			printf("+%zu\t-%zu\t%ls\n", size - index, index, dir);
+			r = printf("+%zu\t-%zu\t%ls\n",
+				size - index, index, dir);
 		    else
-			printf("%ls\n", dir);
+			r = printf("%ls\n", dir);
+		    if (r < 0) {
+			xerror(errno, Ngt("cannot print to standard output"));
+			err = true;
+			break;
+		    }
 		} else {
 		    xerror(0, Ngt("`%ls' is not a valid index"),
 			    ARGV(xoptind));
@@ -2680,19 +2711,29 @@ int dirs_builtin(int argc, void **argv)
 	    xerror(0, Ngt("$PWD not set"));
 	    err = true;
 	} else {
+	    int r;
 	    if (verbose)
-		printf("+%zu\t-%zu\t%ls\n", (size_t) 0, size, dir);
+		r = printf("+%zu\t-%zu\t%ls\n", (size_t) 0, size, dir);
 	    else
-		printf("%ls\n", dir);
+		r = printf("%ls\n", dir);
+	    if (r < 0) {
+		xerror(errno, Ngt("cannot print to standard output"));
+		err = true;
+	    }
 	}
 
 	if (dirvalid) {
-	    for (size_t i = var->v_valc; i-- > 0; ) {
+	    for (size_t i = var->v_valc; !err && i-- > 0; ) {
+		int r;
 		dir = var->v_vals[i];
 		if (verbose)
-		    printf("+%zu\t-%zu\t%ls\n", size - i, i, dir);
+		    r = printf("+%zu\t-%zu\t%ls\n", size - i, i, dir);
 		else
-		    printf("%ls\n", dir);
+		    r = printf("%ls\n", dir);
+		if (r < 0) {
+		    xerror(errno, Ngt("cannot print to standard output"));
+		    err = true;
+		}
 	    }
 	}
     }

@@ -417,8 +417,12 @@ int bindkey_builtin(int argc, void **argv)
 /* Prints all available commands to the standard output. */
 int print_all_commands(void)
 {
-    for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
-	puts(commands[i].name);
+    for (size_t i = 0; i < sizeof commands / sizeof *commands; i++) {
+	if (puts(commands[i].name) == EOF) {
+	    xerror(errno, Ngt("cannot print to standard output"));
+	    return Exit_FAILURE;
+	}
+    }
     return Exit_SUCCESS;
 }
 
@@ -505,6 +509,7 @@ int print_binding_main(
     char modechar;
     wchar_t *keyseqquote;
     const char *commandname;
+    int r;
 
     switch ((le_mode_id_T) ((le_mode_T *) mode - le_modes)) {
 	case LE_MODE_VI_INSERT:     modechar = 'v';  break;
@@ -517,9 +522,11 @@ int print_binding_main(
     }
     keyseqquote = quote_sq(keyseq);
     commandname = get_command_name(cmd);
-    printf("bindkey -%c %ls %s\n", modechar, keyseqquote, commandname);
+    r = printf("bindkey -%c %ls %s\n", modechar, keyseqquote, commandname);
+    if (r < 0)
+	xerror(errno, Ngt("cannot print to standard output"));
     free(keyseqquote);
-    return Exit_SUCCESS;
+    return r >= 0 ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 /* Returns the name of the specified command. */

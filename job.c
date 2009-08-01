@@ -814,6 +814,8 @@ int jobs_builtin(int argc, void **argv)
     }
 
     nextforceexit = true;
+
+    clearerr(stdout);
     if (xoptind < argc) {
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
@@ -845,7 +847,12 @@ int jobs_builtin(int argc, void **argv)
 	}
     }
 
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    if (!ferror(stdout)) {
+	return Exit_SUCCESS;
+    } else {
+	xerror(0, Ngt("cannot print to standard output"));
+	return Exit_FAILURE;
+    }
 }
 
 /* Prints the job status */
