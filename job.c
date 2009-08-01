@@ -980,7 +980,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 	    job->j_status = JS_RUNNING;
     } else {
 	if (!fg)
-	    xerror(0, Ngt("job %%%zu has terminated"), jobnumber);
+	    xerror(0, Ngt("job %%%zu has already terminated"), jobnumber);
     }
 
     int status;
