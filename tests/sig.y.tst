@@ -24,7 +24,7 @@ wait %2
 kill -l $?
 bg %1 %2
 kill %1 %2
-fg %1 %2 2>/dev/null # some systems don't allow to send a signal to zombies
+fg %1 %2 2>/dev/null
 kill -l $?
 
 set +m

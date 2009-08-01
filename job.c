@@ -978,15 +978,22 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 	    put_foreground(job->j_pgid);
 	if (kill(-job->j_pgid, SIGCONT) >= 0)
 	    job->j_status = JS_RUNNING;
+    } else {
+	if (!fg)
+	    xerror(0, Ngt("job %%%zu has terminated"), jobnumber);
     }
 
-    if (fg)
+    int status;
+    if (fg) {
 	wait_for_job(jobnumber, true, false, false);
-    int status = (job->j_status == JS_RUNNING)
-	? Exit_SUCCESS : calc_status_of_job(job);
-    if (job->j_status == JS_DONE) {
-	notify_signaled_job(jobnumber);
-	remove_job(jobnumber);
+	status = (job->j_status == JS_RUNNING)
+	    ? Exit_SUCCESS : calc_status_of_job(job);
+	if (job->j_status == JS_DONE) {
+	    notify_signaled_job(jobnumber);
+	    remove_job(jobnumber);
+	}
+    } else {
+	status = (job->j_status == JS_RUNNING) ? Exit_SUCCESS : Exit_FAILURE;
     }
     return status;
 }
