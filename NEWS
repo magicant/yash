@@ -21,6 +21,8 @@ Yash 2.14
      regular builtins that are not in $PATH.
   *  The "dirs" command was going into an infinite loop if given an
      argument.
+  *  The -c and -d options are wrongly rejected by the "ulimit"
+     builtin.
 
 ----------------------------------------------------------------------
 Yash 2.13

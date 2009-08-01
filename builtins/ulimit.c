@@ -80,6 +80,8 @@ static const struct resource {
 int ulimit_builtin(int argc, void **argv)
 {
     const wchar_t *short_options = L"HSa"
+	"c"
+	"d"
 #if HAVE_RLIMIT_NICE
 	"e"
 #endif
