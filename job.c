@@ -848,7 +848,7 @@ int jobs_builtin(int argc, void **argv)
     }
 
     if (!ferror(stdout)) {
-	return Exit_SUCCESS;
+	return err ? Exit_FAILURE : Exit_SUCCESS;
     } else {
 	xerror(0, Ngt("cannot print to standard output"));
 	return Exit_FAILURE;
