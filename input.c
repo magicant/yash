@@ -225,8 +225,7 @@ bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
 	memset(&state, 0, sizeof state);  /* initialize the state */
     }
 
-    if (!set_nonblocking(STDIN_FILENO))
-	return false;
+    set_nonblocking(STDIN_FILENO);
     while (ok) {
 	char c;
 	ssize_t n = read(STDIN_FILENO, &c, 1);
