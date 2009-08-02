@@ -1460,11 +1460,14 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'P':  logical = false;  break;
 	    case L'-':
 		return print_builtin_help(ARGV(0));
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
 		return Exit_ERROR;
 	}
     }
+
+    if (xoptind != argc)
+	goto print_usage;
 
     if (logical) {
 	const wchar_t *pwd = getvar(L VAR_PWD);
