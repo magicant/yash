@@ -18,6 +18,8 @@ Yash 2.14
   =  Most of the builtins now prints an error message and returns non-
      zero when they cannot print something to the standard output.
   =  The "pwd" builtin now fails when an operand is given.
+  =  The shell no longer exits when an assignment for a special
+     builtin failed if not in posixly-correct mode.
   *  "cd //" was failing if the current directory is "/".
   *  Invoking the "bindkey" builtin in the yashrc file was causing an
      invalid memory access.

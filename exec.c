@@ -725,7 +725,8 @@ pid_t exec_process(
 	/* On assignment error, the command is not executed. */
 	print_xtrace(NULL);
 	laststatus = Exit_ASSGNERR;
-	if (!is_interactive && cmdinfo.type == specialbuiltin)
+	if (posixly_correct && !is_interactive &&
+		cmdinfo.type == specialbuiltin)
 	    finally_exit = true;
 	goto done3;
     }
