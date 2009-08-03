@@ -2110,12 +2110,15 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 	switch (opt) {
 	    case L'-':
 		return print_builtin_help(ARGV(0));
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  times\n"));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
+
+    if (xoptind < argc)
+	goto print_usage;
 
     double clock;
     struct tms tms;

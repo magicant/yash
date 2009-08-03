@@ -17,7 +17,7 @@ Yash 2.14
      keywords, aliases and functions.
   =  Most of the builtins now prints an error message and returns non-
      zero when they cannot print something to the standard output.
-  =  The "pwd" builtin now fails when an operand is given.
+  =  The "pwd" and "times" builtins now fail when an operand is given.
   =  The shell no longer exits when an assignment for a special
      builtin failed if not in posixly-correct mode.
   *  "cd //" was failing if the current directory is "/".
