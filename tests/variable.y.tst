@@ -78,7 +78,9 @@ cd "$OLDPWD"
 echo ===== 4 =====
 
 (
-COMMAND_NOT_FOUND_HANDLER='echo not found: "$@"' PATH= _no_such_command_ a b c
+savepath=$PATH
+COMMAND_NOT_FOUND_HANDLER='PATH=$savepath echo not found: "$@"' \
+	PATH= _no_such_command_ a b c
 echo exitstatus=$?
 _no_such_command_ a b c
 echo exitstatus=$?
