@@ -910,7 +910,7 @@ int fg_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'-':
 		return print_builtin_help(ARGV(0));
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt(fg ? Ngt("Usage:  fg [job]\n")
 		                      : Ngt("Usage:  bg [job...]\n")));
 		return Exit_ERROR;
@@ -926,6 +926,10 @@ int fg_builtin(int argc, void **argv)
     job_T *job;
 
     if (xoptind < argc) {
+	if (fg && posixly_correct && argc - xoptind > 1) {
+	    xerror(0, Ngt("too many operands"));
+	    goto print_usage;
+	}
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
 	    if (jobspec[0] == L'%') {

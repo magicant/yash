@@ -29,6 +29,8 @@ Yash 2.14
      argument.
   *  The -c and -d options are wrongly rejected by the "ulimit"
      builtin.
+  *  The "fg" builtin now refuses more than one operands in posixly-
+     correct mode, as described in the help.
 
 ----------------------------------------------------------------------
 Yash 2.13
