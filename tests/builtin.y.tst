@@ -91,11 +91,17 @@ PATH= command -vB exit
 echo command -vB exit = $?
 
 (
-alias cd=cd
 cd() { command cd "$@"; }
-echo; type cd
-echo; type -b cd
-echo; PATH= type -B cd 2>&1
+if (PATH=; alias) >/dev/null 2>&1; then
+	alias cd=cd
+else
+	echo "cd: alias for \`cd'"
+fi
+type cd
+echo =1=
+type -b cd
+echo =2=
+PATH= type -B cd 2>&1
 )
 
 echo ===== suspend =====
