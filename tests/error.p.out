@@ -1,0 +1,14 @@
+===== consequences of shell errors =====
+syntax error ok
+special builtin syntax error ok
+non-special builtin syntax error ok
+special builtin redirection error ok
+non-special builtin redirection error ok
+special builtin assignment error ok
+non-special builtin assignment error ok
+special builtin expansion error ok
+non-special builtin expansion error ok
+command not found error ok
+===== . =====
+. PATH not found error ok
+. file not found error ok

@@ -1,0 +1,185 @@
+===== consequences of shell errors =====
+syntax error 2
+special builtin syntax error 2
+non-special builtin syntax error 2
+special builtin redirection error 2
+non-special builtin redirection error 2
+special builtin assignment error 2
+non-special builtin assignment error 2
+special builtin expansion error 2
+non-special builtin expansion error 2
+command not found error 127
+===== help =====
+help no-such-option 2
+help output error 1
+===== set =====
+set no-such-option 2
+set output error 1
+===== cd =====
+cd no-such-option 2
+cd no-such-dir 1
+cd no OLDPWD 1
+cd no HOME 1
+cd output error 0
+===== pwd =====
+pwd no-such-option 2
+pwd invalid operand 2
+pwd output error 1
+===== hash =====
+hash no-such-option 2
+hash slash argument 1
+hash command not found 1
+hash output error 1
+===== umask =====
+umask no-such-option 2
+umask output error 1
+===== pushd/popd/dirs =====
+pushd no-such-option 2
+pushd no-such-dir 1
+pushd index out of range 1
+pushd output error 0
+popd no-such-option 2
+popd index out of range 1
+popd output error 0
+popd dirstack empty 1
+dirs no-such-option 2
+dirs output error 1
+===== alias/unalias =====
+alias no-such-option 2
+alias no-such-alias 1
+alias output error 1 1
+alias output error 2 1
+alias output error 3 1
+unalias no-such-option 2
+unalias no-such-alias 1
+===== typeset =====
+typeset no-such-option 2
+typeset output error 1 1
+typeset output error 2 1
+typeset output error 3 1
+typeset output error 4 1
+typeset output error 5 1
+typeset output error 6 1
+typeset readonly 1
+===== array =====
+array no-such-option 2
+array output error 1
+===== unset =====
+unset no-such-option 2
+unset readonly variable 1
+unset readonly function 1
+===== shift =====
+shift no-such-option 2
+shift shifting too many 1
+===== getopts =====
+getopts no-such-option 2
+getopts operands missing 1 2
+getopts operands missing 2 2
+===== read =====
+read no-such-option 2
+read operands missing 2
+read input closed 1
+===== trap =====
+trap no-such-option 2
+trap operands missing 2
+trap output error 1 1
+trap output error 2 1
+trap output error 3 1
+===== kill =====
+kill no-such-option 1
+kill operands missing 2
+kill no-such-signal 1
+kill no-such-job 1
+===== jobs =====
+jobs no-such-option 2
+jobs output error 1
+jobs no-such-job 1 1
+jobs no-such-job 2 1
+===== fg =====
+fg no-such-option 2
+fg output error 100
+fg no-such-job 1 1
+fg no-such-job 2 1
+fg too many args 2
+===== bg =====
+bg no-such-option 2
+bg output error 0
+bg no-such-job 1 1
+bg no-such-job 2 1
+===== wait =====
+wait no-such-option 2
+wait no-such-job 1 127
+wait no-such-job 2 127
+===== fc/history =====
+fc no-such-option 2
+fc history-empty 1 1
+fc history-empty 2 1
+fc no-such-entry 1 1
+fc no-such-entry 2 1
+fc no-such-entry 3 1
+history no-such-option 2
+history output error 1
+history no-such-entry 1
+history no-such-file 1 1
+history no-such-file 2 1
+===== return =====
+return no-such-option 2
+return invalid operand 1 2
+return invalid operand 2 2
+return too many operands 2
+===== break =====
+break no-such-option 2
+break not in loop 2
+break not in iteration 2
+break invalid operand 2
+===== continue =====
+continue no-such-option 2
+continue not in loop 2
+continue not in iteration 2
+continue invalid operand 2
+===== eval =====
+eval no-such-option 2
+===== dot =====
+dot no-such-option 2
+dot operand missing 2
+dot script not found in PATH 1
+dot file-not-found 1
+===== exec =====
+exec no-such-option 2
+exec command not found 127
+===== command =====
+command no-such-option 2
+command output error 1
+command no-such-command 1 127
+command no-such-command 2 1
+command no-such-command 3 1
+===== times =====
+times no-such-option 2
+times invalid operand 2
+times output error 1
+===== exit =====
+exit no-such-option 2
+exit invalid operand 1 2
+exit invalid operand 2 2
+exit too many operands 2
+===== suspend =====
+suspend no-such-option 2
+suspend invalid operand 2
+===== ulimit =====
+ulimit no-such-option 2
+ulimit output error 1
+ulimit invalid operand 2
+===== printf =====
+printf no-such-option 2
+printf output error 1
+printf operand missing 2
+0
+printf invalid operand 1
+echo output error 1
+===== bindkey =====
+bindkey no-such-option 2
+bindkey output error 1 1
+bindkey output error 2 1
+bindkey operand missing 2
+bindkey invalid operand 1 1
+bindkey invalid operand 2 1

@@ -94,6 +94,11 @@ tests/builtin.y.tst
 tests/dirstack.y.out
 tests/dirstack.y.tst
 tests/dot.t
+tests/error.p.out
+tests/error.p.tst
+tests/error.y.err
+tests/error.y.tst
+tests/error.y.out
 tests/expand.p.out
 tests/expand.p.tst
 tests/expand.y.out

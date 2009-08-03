@@ -1,0 +1,198 @@
+===== consequences of shell errors =====
+syntax error: `fi' without matching `if'
+Usage:  . file [arg...]
+Usage:  getopts options var [arg...]
+../yash: cannot copy file descriptor 3 to 1: Bad file descriptor
+../yash: cannot copy file descriptor 3 to 1: Bad file descriptor
+../yash: ro: readonly
+../yash: ro: readonly
+../yash: var: parameter not set
+../yash: var: parameter not set
+../yash: cannot execute `./no/such/command': No such file or directory
+===== help =====
+help: --no-such-option: invalid option
+Usage:  help command...
+===== set =====
+set: --no-such-option: invalid option
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+===== cd =====
+cd: --no-such-option: invalid option
+Usage:  cd [-L|-P] [dir]
+cd: $OLDPWD not set
+cd: $HOME not set
+===== pwd =====
+pwd: --no-such-option: invalid option
+Usage:  pwd [-L|-P]
+Usage:  pwd [-L|-P]
+===== hash =====
+hash: --no-such-option: invalid option
+Usage:  hash [-dr] [command/username...]
+        hash [-adr]
+hash: ./no/such/command: command name must not contain `/'
+hash: no_such_command: not found in $PATH
+===== umask =====
+umask: --no-such-option: invalid option
+Usage:  umask [-S] [mask]
+===== pushd/popd/dirs =====
+pushd: --no-such-option: invalid option
+Usage:  pushd [-L|-P] [dir]
+pushd: +5: index out of range
+popd: --no-such-option: invalid option
+Usage:  popd [index]
+popd: +5: index out of range
+popd: directory stack is empty
+dirs: --no-such-option: invalid option
+Usage:  dirs [-cv] [index...]
+===== alias/unalias =====
+alias: --no-such-option: invalid option
+Usage:  alias [-gp] [name[=value]...]
+alias: alias: no such alias
+unalias: --no-such-option: invalid option
+Usage:  unalias name[...]
+        unalias -a
+unalias: alias: no such alias
+===== typeset =====
+typeset: --no-such-option: invalid option
+Usage:  typeset [-rgprxX] [name[=value]...]
+typeset: readonly: readonly
+===== array =====
+array: --no-such-option: invalid option
+Usage:  array [name [value...]]
+        array -d name index...
+        array -i name index value...
+        array -s name index value
+===== unset =====
+unset: --no-such-option: invalid option
+Usage:  unset [-fv] name...
+unset: readonly: readonly
+unset: func: readonly
+===== shift =====
+shift: --no-such-option: invalid option
+Usage:  shift [n]
+shift: 10000: cannot shift so many
+===== getopts =====
+getopts: --no-such-option: invalid option
+Usage:  getopts options var [arg...]
+Usage:  getopts options var [arg...]
+Usage:  getopts options var [arg...]
+===== read =====
+read: --no-such-option: invalid option
+Usage:  read [-Ar] var...
+Usage:  read [-Ar] var...
+===== trap =====
+trap: --no-such-option: invalid option
+Usage:  trap [action signal...]
+        trap signum [signal...]
+        trap -p [signal...]
+Usage:  trap [action signal...]
+        trap signum [signal...]
+        trap -p [signal...]
+===== kill =====
+kill: -NO-SUCH-OPTION: no such signal
+Usage:  kill [-s signal | -n signum] process...
+        kill -l [-v] [number...]
+kill: 0: no such signal
+kill: %100: no such job
+===== jobs =====
+jobs: --no-such-option: invalid option
+Usage:  jobs [-lnprs] [job...]
+jobs: %100: no such job
+jobs: %no_such_job: no such job
+===== fg =====
+fg: --no-such-option: invalid option
+Usage:  fg [job]
+fg: %100: no such job
+fg: %no_such_job: no such job
+fg: too many operands
+Usage:  fg [job]
+===== bg =====
+bg: --no-such-option: invalid option
+Usage:  bg [job...]
+bg: %100: no such job
+bg: %no_such_job: no such job
+===== wait =====
+wait: --no-such-option: invalid option
+Usage:  wait [job or pid...]
+===== fc/history =====
+fc: --no-such-option: invalid option
+Usage:  fc [-qr] [-e editor] [first [last]]
+        fc -qs [old=new] [first]
+        fc -l [-nrv] [first [last]]
+fc: history is empty
+fc: history is empty
+fc: no such entry beginning with `foo'
+fc: no such entry beginning with `foo'
+fc: no such entry beginning with `foo'
+history: --no-such-option: invalid option
+Usage:  history [-cF] [-d entry] [-s command] [-r file] [-w file] [n]
+history: no such entry beginning with `foo'
+===== return =====
+return: --no-such-option: invalid option
+Usage:  return [n]
+return: `foo' is not a valid integer
+return: `-3' is not a valid integer
+Usage:  return [n]
+===== break =====
+break: --no-such-option: invalid option
+Usage:  break [n]
+        break -i
+break: not in loop
+break: not in iteration
+Usage:  break [n]
+        break -i
+===== continue =====
+continue: --no-such-option: invalid option
+Usage:  continue [n]
+        continue -i
+continue: not in loop
+continue: not in iteration
+Usage:  continue [n]
+        continue -i
+===== eval =====
+eval: --no-such-option: invalid option
+Usage:  eval [-i] [arg...]
+===== dot =====
+.: --no-such-option: invalid option
+Usage:  . file [arg...]
+Usage:  . file [arg...]
+===== exec =====
+exec: --no-such-option: invalid option
+Usage:  exec [-cf] [-a name] [command [arg...]]
+===== command =====
+command: --no-such-option: invalid option
+Usage:  command [-bBp] command [arg...]
+        command -v|-V [-bBp] command...
+command: no_such_command: no such command or function
+=1=
+=2=
+command: no_such_command: no such command or function
+===== times =====
+times: --no-such-option: invalid option
+Usage:  times
+Usage:  times
+===== exit =====
+exit: --no-such-option: invalid option
+Usage:  exit [-f] [n]
+exit: `foo' is not a valid integer
+exit: `-3' is not a valid integer
+Usage:  exit [-f] [n]
+===== suspend =====
+suspend: --no-such-option: invalid option
+Usage:  suspend
+Usage:  suspend
+===== ulimit =====
+ulimit: `xxx' is not a valid integer
+===== printf =====
+printf: --no-such-option: invalid option
+Usage:  printf format [value...]
+Usage:  printf format [value...]
+printf: `foo' is not a valid integer
+===== bindkey =====
+bindkey: --no-such-option: invalid option
+Usage:  bindkey -aev [keyseq [command]]
+        bindkey -l
+bindkey: option not specified
+Usage:  bindkey -aev [keyseq [command]]
+        bindkey -l
+bindkey: no-such-command: no such command
+bindkey: cannot bind empty sequence
