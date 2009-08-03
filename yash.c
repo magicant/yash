@@ -698,12 +698,15 @@ int exit_builtin(int argc, void **argv)
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
-    if (statusstr != NULL
-	    && xwcstoi(statusstr, 10, &status)
-	    && status >= 0) {
-	status &= 0xFF;
+    if (statusstr != NULL) {
+	if (xwcstoi(statusstr, 10, &status) && status >= 0) {
+	    status &= 0xFF;
+	} else {
+	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
+	    status = Exit_ERROR;
+	    SPECIAL_BI_ERROR;
+	}
     } else {
-	/* ignore `statusstr' if not a valid non-negative integer */
 	status = -1;
     }
     exit_shell_with_status(status);
