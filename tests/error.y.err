@@ -186,7 +186,6 @@ ulimit: `xxx' is not a valid integer
 printf: --no-such-option: invalid option
 Usage:  printf format [value...]
 Usage:  printf format [value...]
-printf: `foo' is not a valid integer
 ===== bindkey =====
 bindkey: --no-such-option: invalid option
 Usage:  bindkey -aev [keyseq [command]]

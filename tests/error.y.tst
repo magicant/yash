@@ -643,7 +643,7 @@ if type printf 2>/dev/null | grep -q 'regular builtin'; then
 	echo printf output error $?
 	printf
 	echo printf operand missing $?
-	printf '%d\n' foo
+	printf '%d\n' foo 2>/dev/null
 	echo printf invalid operand $?
 	echo foo >&- 2>/dev/null
 	echo echo output error $?
@@ -660,7 +660,6 @@ END
 printf: --no-such-option: invalid option
 Usage:  printf format [value...]
 Usage:  printf format [value...]
-printf: `foo' is not a valid integer
 END
 fi
 
