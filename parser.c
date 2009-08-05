@@ -1098,7 +1098,7 @@ assign_T *tryparse_assignment(void)
     cindex += namelen + 1;
 
     ensure_buffer(1);
-    if (cbuf.contents[cindex] != L'(') {
+    if (posixly_correct || cbuf.contents[cindex] != L'(') {
 	result->a_type = A_SCALAR;
 	result->a_scalar = parse_word(noalias);
     } else {
