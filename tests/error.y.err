@@ -2,13 +2,10 @@
 syntax error: `fi' without matching `if'
 Usage:  . file [arg...]
 Usage:  getopts options var [arg...]
-../yash: cannot copy file descriptor 3 to 1: Bad file descriptor
-../yash: cannot copy file descriptor 3 to 1: Bad file descriptor
 ../yash: ro: readonly
 ../yash: ro: readonly
 ../yash: var: parameter not set
 ../yash: var: parameter not set
-../yash: cannot execute `./no/such/command': No such file or directory
 ===== help =====
 help: --no-such-option: invalid option
 Usage:  help command...

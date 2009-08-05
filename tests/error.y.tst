@@ -19,13 +19,13 @@ END
 
 $INVOKE $TESTEE <<\END
 exec 3>&-
-exit >&3
+{ exit >&3; } 2>/dev/null
 echo special builtin redirection error $?
 END
 
 $INVOKE $TESTEE <<\END
 exec 3>&-
-cd . >&3
+{ cd . >&3; } 2>/dev/null
 echo non-special builtin redirection error $?
 END
 
@@ -56,7 +56,7 @@ END
 echo non-special builtin expansion error $?
 
 $INVOKE $TESTEE <<\END
-./no/such/command
+{ ./no/such/command; } 2>/dev/null
 echo command not found error $?
 END
 
