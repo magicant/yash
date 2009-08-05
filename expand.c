@@ -1557,12 +1557,11 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
     }
     if (startindex < charindex || charindex == 0) {
 	/* if we have some leftover or the string is empty at all, add it. */
-	if (startindex == 0) {
-	    pl_add(dest, s);
-	} else {
-	    pl_add(dest, xwcsndup(s + startindex, charindex - startindex));
-	    free(s);
+	if (startindex > 0) {
+	    xwcsbuf_T buf;
+	    s = wb_towcs(wb_remove(wb_initwith(&buf, s), 0, startindex));
 	}
+	pl_add(dest, s);
     } else {
 	free(s);
     }
