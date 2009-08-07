@@ -27,11 +27,12 @@ echo $(echo echo) $((1 + 2 * 3))
 
 echo dummy >/dev/null
 
+exec </dev/null
 foo=$(echo foo; exit 10) >/dev/null
 echo $? $foo
 bar=bar >$(echo /dev/null; exit 12)
 echo $? $bar
-foo=$(echo $?; exit 1) >&$(echo $?; exit 2)
+foo=$(echo $?; exit 1) <&$(echo $?; exit 2)
 echo $? $foo
 
 echo ===== 0 =====
