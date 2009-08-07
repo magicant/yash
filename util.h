@@ -108,14 +108,14 @@ extern void sort_mbs_array(void **array)
 
 #if HAVE_STRNLEN
 # if _POSIX_C_SOURCE < 200809L
-# undef strnlen
+#  undef strnlen
 extern size_t strnlen(const char *s, size_t maxlen);
 # endif
 # define xstrnlen(s,maxlen) strnlen(s,maxlen)
 #endif
 #if HAVE_WCSNLEN
 # if _POSIX_C_SOURCE < 200809L
-# undef wcsnlen
+#  undef wcsnlen
 extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
 # endif
 # define xwcsnlen(s,maxlen) wcsnlen(s,maxlen)
