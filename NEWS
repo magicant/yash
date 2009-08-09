@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.15
+
+  =  The shell no longer automatically sets the $YASH_LE_TIMEOUT
+     variable.
+
+----------------------------------------------------------------------
 Yash 2.14
 
   +  The -l option for the "bindkey" builtin.

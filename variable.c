@@ -320,13 +320,6 @@ void init_variables(void)
 	random_active = false;
     }
 
-    /* set $YASH_LE_TIMEOUT */
-#if YASH_ENABLE_LINEEDIT
-    if (is_interactive)
-	set_variable(L VAR_YASH_LE_TIMEOUT,
-		xwcsdup(L"100"), SCOPE_GLOBAL, false);
-#endif
-
     /* set $YASH_VERSION */
     set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
 	    SCOPE_GLOBAL, false);
@@ -1029,15 +1022,6 @@ void variable_set(const wchar_t *name, variable_T *var)
     case L'T':
 	if (wcscmp(name, L VAR_TERM) == 0)
 	    le_need_term_update = true;
-	break;
-    case L'Y':
-	if (wcscmp(name, L VAR_YASH_LE_TIMEOUT) == 0) {
-	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
-		int v;
-		if (xwcstoi(var->v_value, 0, &v))
-		    le_read_timeout = v;
-	    }
-	}
 	break;
 #endif /* YASH_ENABLE_LINEEDIT */
     }

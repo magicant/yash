@@ -29,6 +29,7 @@
 #include "../sig.h"
 #include "../strbuf.h"
 #include "../util.h"
+#include "../variable.h"
 #include "display.h"
 #include "editing.h"
 #include "key.h"
@@ -41,6 +42,8 @@
 static void reader_init(void);
 static void reader_finalize(void);
 static void read_next(void);
+static int get_read_timeout(void)
+    __attribute__((pure));
 static char pop_prebuffer(void);
 static inline bool has_meta_bit(char c)
     __attribute__((pure));
@@ -163,10 +166,6 @@ static mbstate_t reader_state;
 static xwcsbuf_T reader_second_buffer;
 /* If true, next input will be inserted directly to the main buffer. */
 bool le_next_verbatim;
-/* The time length the shell waits for to see if more input is available when
- * the input sequence is ambiguous.
- * A negative value means no limit. */
-int le_read_timeout = 100;  /* in milliseconds */
 
 /* Initializes the state of the reader.
  * Called for each invocation of `le_readline'. */
@@ -205,7 +204,7 @@ void read_next(void)
     le_display_update();
     fflush(stderr);
     timeout = !wait_for_input(
-	    STDIN_FILENO, true, keycode_ambiguous ? le_read_timeout : -1);
+	    STDIN_FILENO, true, keycode_ambiguous ? get_read_timeout() : -1);
     if (!timeout) {
 	switch (read(STDIN_FILENO, &c, 1)) {
 	    case 0:
@@ -343,6 +342,23 @@ process_keymap:
 	if (le_editstate != LE_EDITSTATE_EDITING)
 	    break;
     }
+}
+
+/* Returns a timeout value to be passed to the `wait_for_input' function.
+ * The value is taken from the YASH_LE_TIMEOUT variable. */
+int get_read_timeout(void)
+{
+#ifndef LE_TIMEOUT_DEFAULT
+#define LE_TIMEOUT_DEFAULT 100
+#endif
+
+    const wchar_t *v = getvar(L VAR_YASH_LE_TIMEOUT);
+    if (v != NULL) {
+	int i;
+	if (xwcstoi(v, 0, &i))
+	    return i;
+    }
+    return LE_TIMEOUT_DEFAULT;
 }
 
 /* Appends `s' to the prebuffer. The string `s' is freed in this function. */
