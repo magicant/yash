@@ -277,15 +277,16 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 noglob:
 	result = realloc_wcstombs(unescapefree(exp));
 	if (!result)
-	    xerror(EILSEQ, Ngt("cannot convert multibyte characters "
-			"into wide characters: replaced with empty string"));
+	    xerror(EILSEQ, Ngt("redirection"));
     } else {
 	plist_T list;
 	pl_init(&list);
 	wglob(exp, get_wglbflags(), &list);
 	if (list.length == 1) {
 	    free(exp);
-	    result = list.contents[0];
+	    result = realloc_wcstombs(list.contents[0]);
+	    if (!result)
+		xerror(EILSEQ, Ngt("redirection"));
 	    pl_destroy(&list);
 	} else {
 	    pl_destroy(pl_clear(&list, free));

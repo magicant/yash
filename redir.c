@@ -279,6 +279,8 @@ struct savefd_T {
     bool sf_stdin_redirected;  /* original `is_stdin_redirected' */
 };
 
+static char *expand_redir_filename(const struct wordunit_T *filename)
+    __attribute__((malloc,warn_unused_result));
 static void save_fd(int oldfd, savefd_T **save);
 static int open_file(const char *path, int oflag)
     __attribute__((nonnull));
@@ -319,7 +321,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
 	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
 	    case RT_HERESTR:
-		filename = expand_single_with_glob(r->rd_filename, tt_single);
+		filename = expand_redir_filename(r->rd_filename);
 		if (!filename)
 		    return false;
 		break;
@@ -417,6 +419,22 @@ openwithflags:
 	r = r->next;
     }
     return true;
+}
+
+/* Expands the filename for a redirection. */
+char *expand_redir_filename(const struct wordunit_T *filename)
+{
+    if (is_interactive) {
+	return expand_single_with_glob(filename, tt_single);
+    } else {
+	wchar_t *result = expand_single(filename, tt_single);
+	if (result == NULL)
+	    return NULL;
+	char *mbsresult = realloc_wcstombs(unescapefree(result));
+	if (!mbsresult)
+	    xerror(EILSEQ, Ngt("redirection"));
+	return mbsresult;
+    }
 }
 
 /* Saves the specified file descriptor if `save' is non-NULL. */
