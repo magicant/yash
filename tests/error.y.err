@@ -175,8 +175,8 @@ exit: `-3' is not a valid integer
 Usage:  exit [-f] [n]
 ===== suspend =====
 suspend: --no-such-option: invalid option
-Usage:  suspend
-Usage:  suspend
+Usage:  suspend [-f]
+Usage:  suspend [-f]
 ===== ulimit =====
 ulimit: `xxx' is not a valid integer
 ===== printf =====

@@ -724,28 +724,33 @@ const char exit_help[] = Ngt(
 "`exit' twice in a row to avoid the warning and really exit.\n"
 );
 
-/* The "suspend" builtin */
-/* This builtin accepts the -f (--force) option, which is silently ignored for
- * bash-compatibility. Yash's "suspend" builtin always suspends the shell
- * whether or not it is a login shell. */
+/* The "suspend" builtin, which accepts the following options:
+ *  -f: suspend even if it may cause a deadlock. */
 int suspend_builtin(int argc, void **argv)
 {
+    bool force = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"f", force_help_options, NULL))) {
 	switch (opt) {
 	    case L'f':
+		force = true;
 		break;
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  suspend\n"));
+		fprintf(stderr, gt("Usage:  suspend [-f]\n"));
 		return Exit_ERROR;
 	}
     }
     if (argc != xoptind)
 	goto print_usage;
+    if (!force && is_interactive_now && getsid(0) == shell_pid) {
+	xerror(0, Ngt("refusing to suspend because of possible deadlock.\n"
+		    "Use the -f option to suspend anyway."));
+	return Exit_FAILURE;
+    }
 
     bool ok;
 
@@ -759,8 +764,10 @@ int suspend_builtin(int argc, void **argv)
 
 const char suspend_help[] = Ngt(
 "suspend - suspend shell\n"
-"\tsuspend\n"
-"Suspends the shell until it receives a SIGCONT signal.\n"
+"\tsuspend [-f]\n"
+"Suspends the shell until it receives SIGCONT.\n"
+"This command refuses to suspend the shell if it is interactive and is a\n"
+"session leader.\n"
 );
 
 

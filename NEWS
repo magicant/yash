@@ -10,8 +10,11 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.15
 
+  =  The "suspend" builtin now requires the -f option to suspend an
+     interactive shell that is a session leader.
   =  The shell no longer automatically sets the $YASH_LE_TIMEOUT
      variable.
+  *  Fixed pathname expansion on redirection target.
 
 ----------------------------------------------------------------------
 Yash 2.14
