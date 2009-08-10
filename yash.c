@@ -746,7 +746,7 @@ int suspend_builtin(int argc, void **argv)
     }
     if (argc != xoptind)
 	goto print_usage;
-    if (!force && is_interactive_now && getsid(0) == shell_pid) {
+    if (!force && is_interactive_now && getsid(0) == initial_pgid) {
 	xerror(0, Ngt("refusing to suspend because of possible deadlock.\n"
 		    "Use the -f option to suspend anyway."));
 	return Exit_FAILURE;
