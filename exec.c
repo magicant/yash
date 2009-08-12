@@ -536,7 +536,7 @@ void exec_commands(command_T *c, exec_T type)
     pid_t pgid;
     command_T *cc;
     job_T *job;
-    process_T *ps;
+    process_T *ps, *pp;
     pipeinfo_T pinfo = PIPEINFO_INIT;
     commandtype_T lasttype = lasttype;
 
@@ -553,30 +553,27 @@ void exec_commands(command_T *c, exec_T type)
 
     /* execute commands */
     pgid = 0;
-    cc = c;
-    for (size_t i = 0; i < count; i++) {
+    for (cc = c, pp = ps; cc != NULL; cc = cc->next, pp++) {
 	pid_t pid;
 
 	lasttype = cc->c_type;
-	next_pipe(&pinfo, i < count - 1);
+	next_pipe(&pinfo, cc->next != NULL);
 	pid = exec_process(cc,
-		(type == execself && i < count - 1) ? execnormal : type,
+		(type == execself && cc->next != NULL) ? execnormal : type,
 		&pinfo,
 		pgid);
-	ps[i].pr_pid = pid;
+	pp->pr_pid = pid;
 	if (pid) {
-	    ps[i].pr_status = JS_RUNNING;
-	    ps[i].pr_statuscode = 0;
+	    pp->pr_status = JS_RUNNING;
+	    pp->pr_statuscode = 0;
 	} else {
-	    ps[i].pr_status = JS_DONE;
-	    ps[i].pr_statuscode = laststatus;
+	    pp->pr_status = JS_DONE;
+	    pp->pr_statuscode = laststatus;
 	}
-	ps[i].pr_name = NULL;   /* name is given later */
+	pp->pr_name = NULL;   /* name is given later */
 	if (pgid == 0)
 	    pgid = pid;
-	cc = cc->next;
     }
-    assert(cc == NULL);
     assert(type != execself); /* `exec_process' doesn't return for `execself' */
     assert(pinfo.pi_tonextfds[PIDX_IN] < 0);
     if (pinfo.pi_fromprevfd >= 0)
@@ -584,41 +581,36 @@ void exec_commands(command_T *c, exec_T type)
     if (pinfo.pi_tonextfds[PIDX_OUT] >= 0)
 	xclose(pinfo.pi_tonextfds[PIDX_OUT]);  /* close leftover pipes */
 
-    if (pgid == 0) {  /* no more things to do if didn't fork */
+    if (pgid == 0) {
+	/* no more things to do if didn't fork */
 	free(job);
-	goto done;
-    }
-
-    job->j_pgid = doing_job_control_now ? pgid : 0;
-    job->j_status = JS_RUNNING;
-    job->j_statuschanged = true;
-    job->j_nonotify = false;
-    job->j_pcount = count;
-    set_active_job(job);
-    if (type == execnormal) {   /* wait for job to finish */
-	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
-	if (doing_job_control_now)
-	    put_foreground(shell_pgid); /* put the shell in the foreground */
-	laststatus = calc_status_of_job(job);
-	if (job->j_status == JS_DONE) {
+    } else {
+	job->j_pgid = doing_job_control_now ? pgid : 0;
+	job->j_status = JS_RUNNING;
+	job->j_statuschanged = true;
+	job->j_nonotify = false;
+	job->j_pcount = count;
+	set_active_job(job);
+	if (type == execnormal) {
+	    wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
+	    if (doing_job_control_now)
+		put_foreground(shell_pgid);
+	    laststatus = calc_status_of_job(job);
+	} else {
+	    assert(type == execasync);
+	    laststatus = Exit_SUCCESS;
+	    lastasyncpid = ps[count - 1].pr_pid;
+	}
+	if (job->j_status != JS_DONE) {
+	    for (cc = c, pp = ps; cc != NULL; cc = cc->next, pp++)
+		pp->pr_name = command_to_wcs(cc);
+	    add_job(type == execnormal || shopt_curasync);
+	} else {
 	    notify_signaled_job(ACTIVE_JOBNO);
 	    remove_job(ACTIVE_JOBNO);
-	    goto done;
 	}
-    } else {
-	laststatus = Exit_SUCCESS;
-	lastasyncpid = ps[count - 1].pr_pid;
     }
 
-    /* add the new job to the job list */
-    cc = c;
-    for (size_t i = 0; i < count; i++) {  /* name processes */
-	ps[i].pr_name = command_to_wcs(cc);
-	cc = cc->next;
-    }
-    add_job(type == execnormal || shopt_curasync);
-
-done:
     handle_traps();
     if (shopt_errexit && !supresserrexit && laststatus != Exit_SUCCESS
 	    && lasttype == CT_SIMPLE)
