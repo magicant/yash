@@ -586,8 +586,6 @@ void exec_commands(command_T *c, exec_T type)
 
     if (pgid == 0) {  /* no more things to do if didn't fork */
 	free(job);
-	if (doing_job_control_now)
-	    put_foreground(shell_pgid); /* put the shell in the foreground */
 	goto done;
     }
 

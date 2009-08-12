@@ -358,6 +358,9 @@ out_of_loop:
  * This function returns immediately if the job is already finished/stopped or
  * is not a child of this shell process.
  * Returns the signal number if interrupted, or zero if successful. */
+/* In most cases, you should call `put_foreground' to bring the shell back to
+ * foreground after calling `wait_for_job' if `doing_job_control_now' is true.
+ */
 int wait_for_job(size_t jobnumber, bool return_on_stop,
 	bool interruptible, bool return_on_trap)
 {
@@ -997,6 +1000,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     int status;
     if (fg) {
 	wait_for_job(jobnumber, true, false, false);
+	put_foreground(shell_pgid);  /* put the shell in the foreground */
 	status = (job->j_status == JS_RUNNING)
 	    ? Exit_SUCCESS : calc_status_of_job(job);
 	if (job->j_status == JS_DONE) {
