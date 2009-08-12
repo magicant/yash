@@ -1112,10 +1112,10 @@ int wait_builtin(int argc, void **argv)
 		    status += TERMSIGOFFSET;
 		    break;
 		}
-		if (job->j_status == JS_DONE) {
+		if (job->j_status != JS_RUNNING) {
 		    if (jobcontrol && is_interactive_now && !posixly_correct)
 			print_job_status(jobnumber, false, false, stdout);
-		    else
+		    else if (job->j_status == JS_DONE)
 			remove_job(jobnumber);
 		}
 	    }
@@ -1131,10 +1131,10 @@ int wait_builtin(int argc, void **argv)
 		    status += TERMSIGOFFSET;
 		    break;
 		}
-		if (job->j_status == JS_DONE) {
+		if (job->j_status != JS_RUNNING) {
 		    if (jobcontrol && is_interactive_now && !posixly_correct)
 			print_job_status(i, false, false, stdout);
-		    else
+		    else if (job->j_status == JS_DONE)
 			remove_job(i);
 		}
 	    }
