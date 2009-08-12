@@ -838,9 +838,6 @@ bool set_trap(int signum, const wchar_t *command)
     else
 	action.sa_handler = sig_handler;
 
-    if (action.sa_handler == oldhandler)
-	return true;
-
     if (action.sa_handler == SIG_IGN)
 	sigaddset(&ignored_signals, signum);
     else
