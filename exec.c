@@ -586,6 +586,8 @@ void exec_commands(command_T *c, exec_T type)
 
     if (pgid == 0) {  /* no more things to do if didn't fork */
 	free(job);
+	if (doing_job_control_now)
+	    put_foreground(shell_pgid); /* put the shell in the foreground */
 	goto done;
     }
 
@@ -597,6 +599,8 @@ void exec_commands(command_T *c, exec_T type)
     set_active_job(job);
     if (type == execnormal) {   /* wait for job to finish */
 	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
+	if (doing_job_control_now)
+	    put_foreground(shell_pgid); /* put the shell in the foreground */
 	laststatus = calc_status_of_job(job);
 	if (job->j_status == JS_DONE) {
 	    notify_signaled_job(ACTIVE_JOBNO);
@@ -617,8 +621,6 @@ void exec_commands(command_T *c, exec_T type)
     add_job(type == execnormal || shopt_curasync);
 
 done:
-    if (doing_job_control_now)
-	put_foreground(shell_pgid); /* put the shell in the foreground */
     handle_traps();
     if (shopt_errexit && !supresserrexit && laststatus != Exit_SUCCESS
 	    && lasttype == CT_SIMPLE)

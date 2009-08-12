@@ -53,7 +53,7 @@
 /* About the shell's signal handling:
  *
  * Yash always catches SIGCHLD.
- * When job control is active, SIGTTOU and SIGTSTP are ignored.
+ * When job control is active, SIGTSTP is ignored.
  * If the shell is interactive, SIGINT, SIGTERM and SIGQUIT are also ignored
  * and SIGWINCH is caught.
  * Other signals are caught if a trap for the signals are set.
@@ -244,7 +244,7 @@ static volatile sig_atomic_t sigwinch_received;
 
 /* true iff SIGCHLD is handled. */
 static bool initialized = false;
-/* true iff SIGTTOU/TSTP are ignored. */
+/* true iff SIGTSTP is ignored. */
 static bool job_initialized = false;
 /* true iff SIGTERM/INT/QUIT are ignored. */
 static bool interactive_initialized = false;
@@ -274,7 +274,7 @@ void init_signal(void)
     }
 }
 
-/* Sets signal actions for SIGTTOU/TSTP/INT/TERM according to
+/* Sets signal actions for SIGTSTP/INT/TERM according to
  * `doing_job_control_now' and `is_interactive_now'. */
 void set_signals(void)
 {
@@ -288,14 +288,13 @@ void set_signals(void)
 	restore_interactive_signals();
 }
 
-/* Sets signal actions for SIGTTOU/TSTP if `job_initialized' is false. */
+/* Sets signal actions for SIG/TSTP if `job_initialized' is false. */
 void set_job_signals(void)
 {
     if (!job_initialized) {
 	job_initialized = true;
-	set_special_handler(SIGTTOU, SIG_IGN);
 	set_special_handler(SIGTSTP, SIG_IGN);
-	/* don't have to unblock these signals because they are ignored anyway*/
+	/* don't have to unblock the signal because it is ignored anyway */
     }
 }
 
@@ -331,12 +330,11 @@ void restore_all_signals(void)
     }
 }
 
-/* Restores the initial signal actions for SIGTTOU/TSTP. */
+/* Restores the initial signal actions for SIGTSTP. */
 void restore_job_signals(void)
 {
     if (job_initialized) {
 	job_initialized = false;
-	reset_special_handler(SIGTTOU);
 	reset_special_handler(SIGTSTP);
     }
 }
@@ -859,10 +857,6 @@ bool set_trap(int signum, const wchar_t *command)
 		return true;
 	    break;
 #endif
-	case SIGTTOU:
-	    if (job_initialized)
-		goto nodefault;
-	    break;
 	case SIGTSTP:
 	    if (job_initialized)
 		goto nodefault;

@@ -4,11 +4,9 @@ mkfifo "$TFIFO"
 
 echo ===== kill =====
 
-# SIGTTOU and SIGTSTP are ignored when job control is active
+# SIGTSTP is ignored when job control is active
 set -m
 
-kill -s TTOU $$
-echo TTOU ignored
 kill -s TSTP $$
 echo TSTP ignored
 
