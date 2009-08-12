@@ -29,6 +29,7 @@
 #endif
 #include "builtin.h"
 #include "exec.h"
+#include "job.h"
 #include "option.h"
 #include "redir.h"
 #include "sig.h"
@@ -325,12 +326,12 @@ void set_monitor_option(void *argp __attribute__((unused)))
 	do_job_control = newvalue;
     } else {
 	if (newvalue != do_job_control) {
-	    reset_own_pgid();
 	    do_job_control = newvalue;
 	    if (newvalue && ttyfd < 0)
 		open_ttyfd();
 	    set_signals();
-	    set_own_pgid();
+	    if (do_job_control)
+		ensure_foreground();
 	}
     }
     /* When `shell_pid' is zero, the shell is under initialization;

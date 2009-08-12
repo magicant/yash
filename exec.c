@@ -813,8 +813,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
     if (sigblock) {
 	sigfillset(&all);
 	sigemptyset(&savemask);
-	if (sigprocmask(SIG_BLOCK, &all, &savemask) < 0)
-	    xerror(errno, "sigprocmask"), sigblock = false;
+	sigprocmask(SIG_BLOCK, &all, &savemask);
     }
 
     pid_t cpid = fork();
@@ -840,7 +839,6 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 		put_foreground(pgid);
 	    }
 	}
-	forget_initial_pgid();
 	neglect_all_jobs();
 	restore_job_signals();
 	restore_interactive_signals();
@@ -859,8 +857,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 		ignore_sigtstp();
     }
     if (sigblock)
-	if (sigprocmask(SIG_SETMASK, &savemask, NULL) < 0)
-	    xerror(errno, "sigprocmask");
+	sigprocmask(SIG_SETMASK, &savemask, NULL);
     return cpid;
 }
 
@@ -1777,7 +1774,6 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	}
     }
 
-    finalize_shell();
     restore_all_signals();
     xexecve(commandpath, args, envs ? envs : environ);
     if (errno != ENOEXEC) {
@@ -1795,7 +1791,6 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	exit(Exit_NOEXEC);
     init_signal();
     set_signals();
-    reinitialize_shell();
     err = Exit_NOEXEC;
 
     recfree((void **) envs, free);

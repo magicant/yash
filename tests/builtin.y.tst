@@ -107,8 +107,10 @@ PATH= type -B cd 2>&1
 echo ===== suspend =====
 
 set -m
-($INVOKE $TESTEE -imc --norc 'echo 1; suspend; echo 2'; echo end)&
-wait $!
+($INVOKE $TESTEE -imc --norc 'echo 1; suspend; echo 2'; echo end)
+kill -l $?
+bg >/dev/null
+wait %1
 kill -l $?
 fg >/dev/null
 set +m

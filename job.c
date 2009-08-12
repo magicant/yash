@@ -450,7 +450,6 @@ int send_signal_to_job(int signum, const wchar_t *jobname)
  * true. */
 void put_foreground(pid_t pgrp)
 {
-    bool saveok;
     sigset_t blockss, savess;
 
     assert(doing_job_control_now);
@@ -459,12 +458,43 @@ void put_foreground(pid_t pgrp)
     sigemptyset(&blockss);
     sigaddset(&blockss, SIGTTOU);
     sigemptyset(&savess);
-    saveok = sigprocmask(SIG_BLOCK, &blockss, &savess) >= 0;
+    sigprocmask(SIG_BLOCK, &blockss, &savess);
 
     tcsetpgrp(ttyfd, pgrp);
 
-    if (saveok)
-	sigprocmask(SIG_SETMASK, &savess, NULL);
+    sigprocmask(SIG_SETMASK, &savess, NULL);
+}
+
+/* Ensures the current shell process is in the foreground.
+ * The shell process is stopped by SIGTTOU until it is put in the foreground.
+ * This function requires `doing_job_control_now' to be true. */
+void ensure_foreground(void)
+{
+    /* This function calls `tcsetpgrp' with the default SIGTTOU handler. If the
+     * shell is in the background, it will receive SIGTTOU and is stopped until
+     * continued in the foreground. */
+
+    struct sigaction dflsa, savesa;
+    sigset_t blockss, savess;
+
+    assert(doing_job_control_now);
+    assert(shell_pgid > 0);
+
+    dflsa.sa_handler = SIG_DFL;
+    dflsa.sa_flags = 0;
+    sigemptyset(&dflsa.sa_mask);
+    sigemptyset(&savesa.sa_mask);
+    sigaction(SIGTTOU, &dflsa, &savesa);
+
+    sigemptyset(&blockss);
+    sigaddset(&blockss, SIGTTOU);
+    sigemptyset(&savess);
+    sigprocmask(SIG_UNBLOCK, &blockss, &savess);
+
+    tcsetpgrp(ttyfd, shell_pgid);
+
+    sigprocmask(SIG_SETMASK, &savess, NULL);
+    sigaction(SIGTTOU, &savesa, NULL);
 }
 
 /* Computes the exit status from the status code returned by `waitpid'. */

@@ -92,6 +92,7 @@ type: cd: no such command or function
 ===== suspend =====
 1
 STOP
+TTOU
 2
 end
 ===== exec =====

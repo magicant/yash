@@ -85,6 +85,7 @@ extern int send_signal_to_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
 extern void put_foreground(pid_t pgrp);
+extern void ensure_foreground(void);
 
 extern int calc_status_of_job(const job_T *job)
     __attribute__((pure,nonnull));

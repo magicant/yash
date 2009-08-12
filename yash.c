@@ -63,8 +63,7 @@ static bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 
 /* the process ID of the shell */
 pid_t shell_pid;
-/* the initial/current process group ID of the shell */
-static pid_t initial_pgid;
+/* the process group ID of the shell */
 pid_t shell_pgid;
 
 /* an equivalent to the -f flag for "exit" builtin */
@@ -209,7 +208,7 @@ int main(int argc, char **argv)
     /* `shell_pid' must be initialized after the options have been parsed.
      * This is required for the `set_monitor_option' function to work. */
     shell_pid = getpid();
-    initial_pgid = shell_pgid = getpgrp();
+    shell_pgid = getpgrp();
     init_cmdhash();
     init_homedirhash();
     init_variables();
@@ -273,7 +272,8 @@ int main(int argc, char **argv)
     if (is_interactive || do_job_control)
 	open_ttyfd();
     set_signals();
-    set_own_pgid();
+    if (do_job_control)
+	ensure_foreground();
     set_positional_parameters(wargv + xoptind);
     if (getuid() == geteuid() && getgid() == getegid()) {
 	if (!noprofile)
@@ -370,21 +370,7 @@ void exit_shell_with_status(int status)
 	    finalize_history();
 #endif
     }
-    finalize_shell();
     exit(exitstatus);
-}
-
-/* Does what to do before exiting/suspending the shell.
- * The EXIT trap should be executed beforehand if needed. */
-void finalize_shell(void)
-{
-    reset_own_pgid();
-}
-
-/* Cancels `finalize_shell'. */
-void reinitialize_shell(void)
-{
-    set_own_pgid();
 }
 
 /* Prints the help message to stdout */
@@ -453,39 +439,6 @@ void print_version(void)
 #endif
 	      );
     }
-}
-
-
-/* If job control is active, sets the process group ID of the shell to its
- * process ID. */
-void set_own_pgid(void)
-{
-    if (doing_job_control_now && initial_pgid > 0 && shell_pgid != shell_pid) {
-	if (setpgid(0, 0) == 0) {
-	    shell_pgid = shell_pid;
-	    put_foreground(shell_pgid);
-	}
-    }
-}
-
-/* If job control is active, resets the process group ID of the shell.
- * The initial process group ID is restored. */
-void reset_own_pgid(void)
-{
-    if (doing_job_control_now && initial_pgid > 0
-	    && initial_pgid != shell_pgid) {
-	if (setpgid(0, initial_pgid) == 0) {
-	    shell_pgid = initial_pgid;
-	    put_foreground(shell_pgid);
-	}
-    }
-}
-
-/* Forgets the value of `initial_pgid' so that `reset_own_pgid' is no longer
- * effective. */
-void forget_initial_pgid(void)
-{
-    initial_pgid = 0;
 }
 
 
@@ -746,7 +699,7 @@ int suspend_builtin(int argc, void **argv)
     }
     if (argc != xoptind)
 	goto print_usage;
-    if (!force && is_interactive_now && getsid(0) == initial_pgid) {
+    if (!force && is_interactive_now && getsid(0) == shell_pgid) {
 	xerror(0, Ngt("refusing to suspend because of possible deadlock.\n"
 		    "Use the -f option to suspend anyway."));
 	return Exit_FAILURE;
@@ -754,11 +707,11 @@ int suspend_builtin(int argc, void **argv)
 
     bool ok;
 
-    finalize_shell();
     ok = send_sigstop_to_myself();
     if (!ok)
 	xerror(errno, Ngt("cannot send SIGSTOP signal"));
-    reinitialize_shell();
+    if (doing_job_control_now)
+	ensure_foreground();
     return ok ? Exit_SUCCESS : Exit_FAILURE;
 }
 
