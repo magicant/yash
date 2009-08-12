@@ -14,7 +14,12 @@ Yash 2.15
      interactive shell that is a session leader.
   =  The shell no longer automatically sets the $YASH_LE_TIMEOUT
      variable.
+  =  A job-control shell now stops when invoked in the background.
+  =  A job-control shell no longer ignores SIGTTOU by default.
   *  Fixed pathname expansion on redirection target.
+  *  Couldn't set a signal handler to the default by the "trap"
+     builtin if the signal was ignored on invocation of an interactive
+	 shell.
 
 ----------------------------------------------------------------------
 Yash 2.14
