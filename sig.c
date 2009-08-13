@@ -268,8 +268,7 @@ void init_signal(void)
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
 	sigaddset(&ss, SIGWINCH);
 #endif
-	if (sigprocmask(SIG_UNBLOCK, &ss, &blocked_signals) < 0)
-	    xerror(errno, "sigprocmask");
+	sigprocmask(SIG_UNBLOCK, &ss, &blocked_signals);
 	set_special_handler(SIGCHLD, sig_handler);
     }
 }
@@ -325,8 +324,7 @@ void restore_all_signals(void)
 	initialized = false;
 	reset_special_handler(SIGCHLD);
 
-	if (sigprocmask(SIG_SETMASK, &blocked_signals, NULL) < 0)
-	    xerror(errno, "sigprocmask");
+	sigprocmask(SIG_SETMASK, &blocked_signals, NULL);
     }
 }
 
@@ -364,13 +362,9 @@ void set_special_handler(int signum, void (*handler)(int signum))
 	action.sa_handler = handler;
 	sigemptyset(&action.sa_mask);
 	sigemptyset(&oldaction.sa_mask);
-	if (sigaction(signum, &action, &oldaction) >= 0) {
+	if (sigaction(signum, &action, &oldaction) >= 0)
 	    if (oldaction.sa_handler == SIG_IGN)
 		sigaddset(&ignored_signals, signum);
-	} else {
-	    int saveerrno = errno;
-	    xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
-	}
     }
 }
 
@@ -386,10 +380,7 @@ void reset_special_handler(int signum)
     else
 	action.sa_handler = SIG_DFL;
     sigemptyset(&action.sa_mask);
-    if (sigaction(signum, &action, NULL) < 0) {
-	int saveerrno = errno;
-	xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
-    }
+    sigaction(signum, &action, NULL);
 }
 
 /* Checks if the specified signal is ignored. */
@@ -414,13 +405,11 @@ void set_interruptible_by_sigint(bool onoff)
 	    sigemptyset(&action.sa_mask);
 	    action.sa_flags = 0;
 	    action.sa_handler = onoff ? sig_handler : SIG_IGN;
-	    if (sigaction(SIGINT, &action, NULL) < 0)
-		xerror(errno, "sigaction(SIG%s)", "INT");
+	    sigaction(SIGINT, &action, NULL);
 	    if (onoff && sigismember(&blocked_signals, SIGINT)) {
 		/* assert(sigisemptyset(&action.sa_mask)); */
 		sigaddset(&action.sa_mask, SIGINT);
-		if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) < 0)
-		    xerror(errno, "sigprocmask");
+		sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL);
 	    }
 	} else {
 	    /* If trap for SIGINT is set, SIGINT is already set to be caught. */
@@ -437,10 +426,8 @@ void ignore_sigquit_and_sigint(void)
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     action.sa_handler = SIG_IGN;
-    if (sigaction(SIGQUIT, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIG%s)", "QUIT");
-    if (sigaction(SIGINT, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIG%s)", "INT");
+    sigaction(SIGQUIT, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
     sigaddset(&ignored_signals, SIGQUIT);
     sigaddset(&ignored_signals, SIGINT);
 }
@@ -454,8 +441,7 @@ void ignore_sigtstp(void)
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     action.sa_handler = SIG_IGN;
-    if (sigaction(SIGTSTP, &action, NULL) < 0)
-	xerror(errno, "sigaction(SIG%s)", "TSTP");
+    sigaction(SIGTSTP, &action, NULL);
     sigaddset(&ignored_signals, SIGTSTP);
 }
 
@@ -506,8 +492,7 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
     sigset_t ss, savess;
     sigfillset(&ss);
     sigemptyset(&savess);
-    if (sigprocmask(SIG_BLOCK, &ss, &savess) < 0)
-	xerror(errno, "sigprocmask");
+    sigprocmask(SIG_BLOCK, &ss, &savess);
 
     struct sigaction action, saveaction;
     if (interruptible) {
@@ -516,10 +501,7 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
 	action.sa_handler = sig_handler;
 	sigemptyset(&saveaction.sa_mask);
 	sigint_received = false;
-	if (sigaction(SIGINT, &action, &saveaction) < 0) {
-	    xerror(errno, "sigaction(SIG%s)", "INT");
-	    interruptible = false;
-	}
+	sigaction(SIGINT, &action, &saveaction);
     }
 
     while (!sigchld_received) {
@@ -537,10 +519,8 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
     }
 
     if (interruptible)
-	if (sigaction(SIGINT, &saveaction, NULL) < 0)
-	    xerror(errno, "sigaction(SIG%s)", "INT");
-    if (sigprocmask(SIG_SETMASK, &savess, NULL) < 0)
-	xerror(errno, "sigprocmask");
+	sigaction(SIGINT, &saveaction, NULL);
+    sigprocmask(SIG_SETMASK, &savess, NULL);
 finish:
     if (return_on_trap)
 	result = handle_traps();
@@ -579,14 +559,12 @@ bool wait_for_input(int fd, bool trap, int timeout)
 start:
     sigfillset(&ss);
     sigemptyset(&savess);
-    if (sigprocmask(SIG_BLOCK, &ss, &savess) < 0)
-	xerror(errno, "sigprocmask");
+    sigprocmask(SIG_BLOCK, &ss, &savess);
 
     for (;;) {
 	handle_sigchld();
 	if (trap && have_unhandled_traps()) {
-	    if (sigprocmask(SIG_SETMASK, &savess, NULL) < 0)
-		xerror(errno, "sigprocmask");
+	    sigprocmask(SIG_SETMASK, &savess, NULL);
 	    handle_traps();
 	    goto start;
 	}
@@ -609,8 +587,7 @@ start:
 	}
     }
 
-    if (sigprocmask(SIG_SETMASK, &savess, NULL) < 0)
-	xerror(errno, "sigprocmask");
+    sigprocmask(SIG_SETMASK, &savess, NULL);
 
     return success;
 }
@@ -879,11 +856,8 @@ nodefault:
     if (sigismember(&blocked_signals, signum)) {
 	sigemptyset(&action.sa_mask);
 	sigaddset(&action.sa_mask, signum);
-	if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) < 0) {
-	    xerror(errno, "sigprocmask");
-	} else {
+	if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) >= 0)
 	    sigdelset(&blocked_signals, signum);
-	}
     }
 
     sigemptyset(&action.sa_mask);
