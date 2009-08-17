@@ -251,7 +251,9 @@ FILE *reopen_with_shellfd(FILE *f, const char *mode)
 	return fdopen(newfd, mode);
 }
 
-/* Opens `ttyfd' */
+/* Opens `ttyfd'.
+ * On failure, an error message is printed and `do_job_control' is set to false.
+ */
 void open_ttyfd(void)
 {
     if (ttyfd < 0) {
