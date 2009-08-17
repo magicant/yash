@@ -244,16 +244,17 @@ direct_first_buffer:
     keycode_ambiguous = false;
     while (reader_first_buffer.length > 0) {
 	/* check if `reader_first_buffer' is a special sequence */
+	int firstchar = (unsigned char) reader_first_buffer.contents[0];
 	trieget_T tg;
-	if (reader_first_buffer.contents[0] == le_interrupt_char)
+	if (firstchar == le_interrupt_char)
 	    tg = make_trieget(Key_interrupt);
-	else if (reader_first_buffer.contents[0] == le_eof_char)
+	else if (firstchar == le_eof_char)
 	    tg = make_trieget(Key_eof);
-	else if (reader_first_buffer.contents[0] == le_kill_char)
+	else if (firstchar == le_kill_char)
 	    tg = make_trieget(Key_kill);
-	else if (reader_first_buffer.contents[0] == le_erase_char)
+	else if (firstchar == le_erase_char)
 	    tg = make_trieget(Key_erase);
-	else if (reader_first_buffer.contents[0] == '\\')
+	else if (firstchar == '\\')
 	    tg = make_trieget(Key_backslash);
 	else
 	    tg = trie_get(le_keycodes,

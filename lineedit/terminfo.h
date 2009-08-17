@@ -46,7 +46,7 @@ extern void le_print_setbg(int color);
 extern void le_alert(void);
 
 
-extern char le_eof_char, le_kill_char, le_interrupt_char, le_erase_char;
+extern int le_eof_char, le_kill_char, le_interrupt_char, le_erase_char;
 
 extern _Bool le_set_terminal(void);
 extern _Bool le_restore_terminal(void);

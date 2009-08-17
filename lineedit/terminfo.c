@@ -254,11 +254,6 @@ static void print_smkx(void);
 static void print_rmkx(void);
 static int putchar_stderr(int c);
 
-static inline int xtcsetattr(int fd, int opt, const struct termios *term)
-    __attribute__((nonnull));
-static inline int xtcgetattr(int fd, struct termios *term)
-    __attribute__((nonnull));
-
 
 /* Checks if the result of `tigetstr' is valid. */
 int is_strcap_valid(const char *s)
@@ -721,9 +716,17 @@ void le_alert(void)
 /********** TERMIOS **********/
 
 /* Special characters. */
-char le_eof_char, le_kill_char, le_interrupt_char, le_erase_char;
+int le_eof_char, le_kill_char, le_interrupt_char, le_erase_char;
 
 static struct termios original_terminal_state;
+
+static inline int normchar(cc_t c)
+    __attribute__((const));
+static inline int xtcsetattr(int fd, int opt, const struct termios *term)
+    __attribute__((nonnull));
+static inline int xtcgetattr(int fd, struct termios *term)
+    __attribute__((nonnull));
+
 
 /* Sets the terminal to the "raw" mode.
  * The current state is saved as `original_terminal_state'.
@@ -741,17 +744,15 @@ _Bool le_set_terminal(void)
     if (xtcgetattr(STDIN_FILENO, &term) != 0)
 	return 0;
     original_terminal_state = term;
-    le_eof_char       = TO_CHAR(term.c_cc[VEOF]);
-    le_kill_char      = TO_CHAR(term.c_cc[VKILL]);
-    le_interrupt_char = TO_CHAR(term.c_cc[VINTR]);
-    le_erase_char     = TO_CHAR(term.c_cc[VERASE]);
+    le_eof_char       = normchar(term.c_cc[VEOF]);
+    le_kill_char      = normchar(term.c_cc[VKILL]);
+    le_interrupt_char = normchar(term.c_cc[VINTR]);
+    le_erase_char     = normchar(term.c_cc[VERASE]);
 
     /* set attributes */
-    term.c_iflag &= ~(IGNBRK | BRKINT | INPCK | ISTRIP
-                     | INLCR | IGNCR | ICRNL | IXON);
+    term.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | INLCR | IGNCR | ICRNL | IXON);
+    term.c_iflag |= IGNPAR;
     term.c_lflag &= ~(ISIG | ECHO | ICANON | IEXTEN);
-    term.c_cflag &= ~(CSIZE | PARENB);
-    term.c_cflag |= CS8;
     term.c_cc[VTIME] = 0;
     term.c_cc[VMIN] = 0;
     if (xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
@@ -760,11 +761,8 @@ _Bool le_set_terminal(void)
     /* check if the attributes are properly set */
     if (xtcgetattr(STDIN_FILENO, &term) != 0)
 	goto fail;
-    if ((term.c_iflag & (IGNBRK | BRKINT | INPCK | ISTRIP
-		    | INLCR | IGNCR | ICRNL | IXON))
-	    || (term.c_lflag & (ISIG | ECHO | ICANON | IEXTEN))
-	    || (term.c_cflag & PARENB)
-	    || ((term.c_cflag & CSIZE) != CS8)
+    if ((term.c_iflag & (INLCR | ICRNL))
+	    || (term.c_lflag & (ECHO | ICANON))
 	    || (term.c_cc[VTIME] != 0)
 	    || (term.c_cc[VMIN] != 0))
 	goto fail;
@@ -777,6 +775,14 @@ _Bool le_set_terminal(void)
 fail:
     xtcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state);
     return 0;
+}
+
+int normchar(cc_t c)
+{
+    if (c == _POSIX_VDISABLE)
+	return -1;
+    else
+	return (unsigned char) c;
 }
 
 /* Restores the terminal to the original state.
