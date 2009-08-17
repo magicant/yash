@@ -468,6 +468,8 @@ void put_foreground(pid_t pgrp)
 /* Ensures the current shell process is in the foreground.
  * The shell process is stopped by SIGTTOU until it is put in the foreground.
  * This function requires `doing_job_control_now' to be true. */
+/* This function prevents the job-control shell from mangling the terminal while
+ * another shell is using it. */
 void ensure_foreground(void)
 {
     /* This function calls `tcsetpgrp' with the default SIGTTOU handler. If the

@@ -733,6 +733,11 @@ _Bool le_set_terminal(void)
 {
     struct termios term;
 
+    /* First we call `tcdrain' to get a clean state and to ensure the shell is
+     * in the foreground. */
+    tcdrain(STDIN_FILENO);
+
+    /* get the original state */
     if (xtcgetattr(STDIN_FILENO, &term) != 0)
 	return 0;
     original_terminal_state = term;
