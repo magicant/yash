@@ -340,7 +340,7 @@ then
 	cflags="-std=c99 -pedantic -O1 -fno-inline -ggdb -Wall -Wextra"
     else
 	checked "no"
-	echo "--debug option specified but GCC is not available" 2>&1
+	echo "--debug option specified but GCC is not available" >&2
 	fail
     fi
 fi
@@ -359,6 +359,11 @@ then
     checked "yes"
 else
     checked "no"
+    echo "Compiler '$cc' is not found or not working." >&2
+    if [ x"$cc" = x"c99" ]
+    then
+	echo "If you have gcc, try: ./configure CC='gcc -std=c99'" >&2
+    fi
     fail
 fi
 
@@ -757,8 +762,8 @@ then
     objs="$objs $history_objs"
 else
     if [ x"$enable_lineedit" = x"yes" ]; then
-	echo "Lineedit enabled but history disabled." 2>&1
-	echo "Add --disable-lineedit option and try again." 2>&1
+	echo "Lineedit enabled but history disabled." >&2
+	echo "Add --disable-lineedit option and try again." >&2
 	fail
     fi
 fi
