@@ -254,8 +254,6 @@ direct_first_buffer:
 	    tg = make_trieget(Key_kill);
 	else if (firstchar == le_erase_char)
 	    tg = make_trieget(Key_erase);
-	else if (firstchar == '\\')
-	    tg = make_trieget(Key_backslash);
 	else
 	    tg = trie_get(le_keycodes,
 		reader_first_buffer.contents, reader_first_buffer.length);
@@ -415,11 +413,20 @@ trieget_T make_trieget(const wchar_t *keyseq)
 void append_to_second_buffer(wchar_t wc)
 {
     if (le_next_verbatim) {
+	le_next_verbatim = false;
 	le_invoke_command(le_current_mode->default_command, wc);
-    } else if (wc != L'\0') {
-	wb_wccat(&reader_second_buffer, wc);
+    } else {
+	switch (wc) {
+	    case L'\0':
+		break;
+	    case L'\\':
+		wb_cat(&reader_second_buffer, Key_backslash);
+		break;
+	    default:
+		wb_wccat(&reader_second_buffer, wc);
+		break;
+	}
     }
-    le_next_verbatim = false;
 }
 
 
