@@ -100,6 +100,14 @@ error. Otherwise, the command returns the exit status of success.
 Note that the signal handler is not changed in such cases whether
 this macro is defined or not.
 
+#define FG_DONT_SAVE_TERMINAL 1
+When a program that changes the terminal settings is invoked in the
+background and later continued in the foreground by the "fg" command,
+it may leave the terminal in the wrong settings. The "fg" command
+works around this problem by saving the terminal settings before
+continuing a program and restoring the settings after the program
+has finished. Setting this macro to non-zero disables this workaround.
+
 #define HISTORY_REFRESH_INTERVAL 100
 This macro specifies the interval the shell refreshes the history
 file. The file is refreshed every time the shell executes as many

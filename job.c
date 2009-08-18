@@ -42,6 +42,9 @@
 #include "strbuf.h"
 #include "util.h"
 #include "yash.h"
+#if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
+# include "lineedit/terminfo.h"
+#endif
 
 
 static inline job_T *get_job(size_t jobnumber)
@@ -1019,6 +1022,10 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     if (name != job->j_procs[0].pr_name)
 	free(name);
 
+#if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
+    bool termsave = fg && le_save_terminal();  /* see below */
+#endif
+
     if (job->j_status != JS_DONE) {
 	if (fg)
 	    put_foreground(job->j_pgid);
@@ -1033,6 +1040,10 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     if (fg) {
 	wait_for_job(jobnumber, true, false, false);
 	put_foreground(shell_pgid);  /* put the shell in the foreground */
+#if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
+	if (termsave)
+	    le_restore_terminal();
+#endif
 	status = (job->j_status == JS_RUNNING)
 	    ? Exit_SUCCESS : calc_status_of_job(job);
 	if (job->j_status == JS_DONE) {
@@ -1043,6 +1054,18 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 	status = (job->j_status == JS_RUNNING) ? Exit_SUCCESS : Exit_FAILURE;
     }
     return status;
+
+    /* We save the terminal state before continuing a job in the foreground and
+     * restore the state after the job has finished. This is because some
+     * programs leave the terminal in the wrong state if they were at first
+     * invoked in the background.
+     * Programs that change the terminal state generally save the state before
+     * changing it and restore it when they are finished. But, if they are
+     * invoked in the background, they save the state that is possibly being
+     * used by another program (typically the shell's line-editing), so the
+     * state that they restore is not the normal state.
+     * The shell tackles this problem by saving and restoring the terminal state
+     * for the continued programs. */
 }
 
 const char fg_help[] = Ngt(

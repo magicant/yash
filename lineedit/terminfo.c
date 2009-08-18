@@ -211,13 +211,11 @@
 #define TI_lines   "lines"
 #define TI_nel     "nel"
 #define TI_op      "op"
-#define TI_rmkx    "rmkx"
 #define TI_setab   "setab"
 #define TI_setaf   "setaf"
 #define TI_setb    "setb"
 #define TI_setf    "setf"
 #define TI_sgr     "sgr"
-#define TI_smkx    "smkx"
 #define TI_xenl    "xenl"
 
 
@@ -250,8 +248,6 @@ static _Bool move_cursor_1(char *capone, long count)
     __attribute__((nonnull));
 static _Bool move_cursor_mul(char *capmul, long count, int affcnt)
     __attribute__((nonnull));
-static void print_smkx(void);
-static void print_rmkx(void);
 static int putchar_stderr(int c);
 
 
@@ -678,22 +674,6 @@ void le_print_setbg(int color)
     }
 }
 
-/* Prints "smkx" variable. */
-void print_smkx(void)
-{
-    char *v = tigetstr(TI_smkx);
-    if (is_strcap_valid(v))
-	tputs(v, 1, putchar_stderr);
-}
-
-/* Prints "rmkx" variable. */
-void print_rmkx(void)
-{
-    char *v = tigetstr(TI_rmkx);
-    if (is_strcap_valid(v))
-	tputs(v, 1, putchar_stderr);
-}
-
 /* Like `putchar', but prints to `stderr'. */
 int putchar_stderr(int c)
 {
@@ -722,16 +702,15 @@ static struct termios original_terminal_state;
 
 static inline int normchar(cc_t c)
     __attribute__((const));
-static inline int xtcsetattr(int fd, int opt, const struct termios *term)
-    __attribute__((nonnull));
 static inline int xtcgetattr(int fd, struct termios *term)
+    __attribute__((nonnull));
+static inline int xtcsetattr(int fd, int opt, const struct termios *term)
     __attribute__((nonnull));
 
 
 /* Sets the terminal to the "raw" mode.
  * The current state is saved as `original_terminal_state'.
- * `stdin' must be the terminal.
- * Returns true iff successful. */
+ * Returns true iff the terminal (`stdin') has been successfully prepared. */
 _Bool le_set_terminal(void)
 {
     struct termios term;
@@ -741,9 +720,9 @@ _Bool le_set_terminal(void)
     tcdrain(STDIN_FILENO);
 
     /* get the original state */
-    if (xtcgetattr(STDIN_FILENO, &term) != 0)
+    if (!le_save_terminal())
 	return 0;
-    original_terminal_state = term;
+    term = original_terminal_state;
     le_eof_char       = normchar(term.c_cc[VEOF]);
     le_kill_char      = normchar(term.c_cc[VKILL]);
     le_interrupt_char = normchar(term.c_cc[VINTR]);
@@ -766,10 +745,6 @@ _Bool le_set_terminal(void)
 	    || (term.c_cc[VTIME] != 0)
 	    || (term.c_cc[VMIN] != 0))
 	goto fail;
-
-    // XXX it should be configurable whether we print smkx/rmkx or not.
-    print_smkx();
-
     return 1;
 
 fail:
@@ -785,25 +760,22 @@ int normchar(cc_t c)
 	return (unsigned char) c;
 }
 
-/* Restores the terminal to the original state.
- * `stdin' must be the terminal.
- * Returns true iff successful. */
-_Bool le_restore_terminal(void)
+/* Saves the current terminal state in `original_terminal_state'.
+ * Returns true iff `stdin' is a terminal and the terminal state has been
+ * successfully saved. */
+_Bool le_save_terminal(void)
 {
-    print_rmkx();
-    fflush(stderr);
-    return xtcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) == 0;
+    return xtcgetattr(STDIN_FILENO, &original_terminal_state) >= 0;
 }
 
-/* Calls `tcsetattr'.
- * If it returns `EINTR' error, re-calls it. */
-int xtcsetattr(int fd, int opt, const struct termios *term)
+/* Restores the terminal to the original state saved in
+ * `original_terminal_state'.
+ * Returns true iff `stdin' is a terminal and the terminal state has been
+ * successfully restored. */
+_Bool le_restore_terminal(void)
 {
-    int result;
-    do
-	result = tcsetattr(fd, opt, term);
-    while (result != 0 && errno == EINTR);
-    return result;
+    fflush(stderr);
+    return xtcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) >= 0;
 }
 
 /* Calls `tcgetattr'.
@@ -813,6 +785,17 @@ int xtcgetattr(int fd, struct termios *term)
     int result;
     do
 	result = tcgetattr(fd, term);
+    while (result != 0 && errno == EINTR);
+    return result;
+}
+
+/* Calls `tcsetattr'.
+ * If it returns `EINTR' error, re-calls it. */
+int xtcsetattr(int fd, int opt, const struct termios *term)
+{
+    int result;
+    do
+	result = tcsetattr(fd, opt, term);
     while (result != 0 && errno == EINTR);
     return result;
 }
