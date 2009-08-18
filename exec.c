@@ -828,6 +828,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (fg) {
 		if (pgid == 0)
 		    pgid = getpgrp();
+		shell_pgid = pgid;
 		put_foreground(pgid);
 	    }
 	}

@@ -318,24 +318,19 @@ void set_bool_option(void *argp)
 }
 
 /* Changes the setting of the `-m' (--monitor) option.
- * This function's behavior depends on the value of `shell_pid'. */
+ * This function's behavior depends on the value of `shell_pgid'. */
 void set_monitor_option(void *argp __attribute__((unused)))
 {
-    bool newvalue = (xoptopt == L'-');
-    if (shell_pid == 0) {
-	do_job_control = newvalue;
-    } else {
-	if (newvalue != do_job_control) {
-	    do_job_control = newvalue;
-	    if (newvalue && ttyfd < 0)
-		open_ttyfd();
-	    set_signals();
-	    if (do_job_control)
-		ensure_foreground();
-	}
+    do_job_control = (xoptopt == L'-');
+    if (shell_pgid != 0) {
+	if (do_job_control && ttyfd < 0)
+	    open_ttyfd();
+	set_signals();
+	if (do_job_control)
+	    ensure_foreground();
     }
-    /* When `shell_pid' is zero, the shell is under initialization;
-     * `set_own_pgid' and other functions are called later in the `main'
+    /* When `shell_pgid' is zero, the shell is under initialization;
+     * `open_ttyfd' and other functions are called later in the `main'
      * function. */
 }
 

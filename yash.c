@@ -65,6 +65,8 @@ static bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 pid_t shell_pid;
 /* the process group ID of the shell */
 pid_t shell_pgid;
+/* In a job-controlled subshell, `shell_pgid' is set to the subshell's pgid.
+ * `shell_pid' is always the process ID of the main shell process. */
 
 /* an equivalent to the -f flag for "exit" builtin */
 static bool forceexit;
@@ -205,7 +207,7 @@ int main(int argc, char **argv)
     if (wargv[xoptind] && wcscmp(wargv[xoptind], L"-") == 0)
 	xoptind++;
 
-    /* `shell_pid' must be initialized after the options have been parsed.
+    /* `shell_pgid' must be initialized after the options have been parsed.
      * This is required for the `set_monitor_option' function to work. */
     shell_pid = getpid();
     shell_pgid = getpgrp();
