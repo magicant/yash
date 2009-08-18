@@ -211,17 +211,19 @@
 #define TI_lines   "lines"
 #define TI_nel     "nel"
 #define TI_op      "op"
+#define TI_rmkx    "rmkx"
 #define TI_setab   "setab"
 #define TI_setaf   "setaf"
 #define TI_setb    "setb"
 #define TI_setf    "setf"
 #define TI_sgr     "sgr"
+#define TI_smkx    "smkx"
 #define TI_xenl    "xenl"
 
 
 /* This flag is set to true when the terminfo database needs to be refreshed
  * because the $TERM variable is changed. */
-_Bool le_need_term_update = true;
+_Bool le_need_term_update = 1;
 
 /* Number of lines and columns in the current terminal. */
 /* Initialized by `le_setupterm'. */
@@ -237,6 +239,9 @@ _Bool le_meta_bit8;
 /* Strings sent by terminal when special key is pressed.
  * Values of entries are `keyseq'. */
 trie_T *le_keycodes = NULL;
+
+/* True if the terminal is set to the keyboard-transmit mode. */
+static _Bool transmit_mode = 0;
 
 
 static inline int is_strcap_valid(const char *s)
@@ -674,6 +679,28 @@ void le_print_setbg(int color)
     }
 }
 
+/* Prints "smkx" variable and sets the `transmit_mode' flag. */
+void print_smkx(void)
+{
+    char *v = tigetstr(TI_smkx);
+    if (is_strcap_valid(v)) {
+	tputs(v, 1, putchar_stderr);
+	transmit_mode = 1;
+    }
+}
+
+/* Prints "rmkx" variable if the `transmit_mode' flag is set.
+ * The flag is cleared in this function. */
+void print_rmkx(void)
+{
+    if (transmit_mode) {
+	char *v = tigetstr(TI_rmkx);
+	if (is_strcap_valid(v))
+	    tputs(v, 1, putchar_stderr);
+	transmit_mode = 0;
+    }
+}
+
 /* Like `putchar', but prints to `stderr'. */
 int putchar_stderr(int c)
 {
@@ -745,6 +772,10 @@ _Bool le_set_terminal(void)
 	    || (term.c_cc[VTIME] != 0)
 	    || (term.c_cc[VMIN] != 0))
 	goto fail;
+
+    // XXX it should be configurable whether we print smkx or not.
+    print_smkx();
+
     return 1;
 
 fail:
@@ -774,6 +805,7 @@ _Bool le_save_terminal(void)
  * successfully restored. */
 _Bool le_restore_terminal(void)
 {
+    print_rmkx();
     fflush(stderr);
     return xtcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) >= 0;
 }
