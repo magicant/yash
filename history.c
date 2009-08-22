@@ -684,6 +684,7 @@ void update_history(bool refresh)
 	/* The revision has been changed. Re-read everything. */
 	clear_all_entries();
 	clear_histfile_pids();
+	add_histfile_pid(shell_pid);
 	histfilerev = rev;
     }
     read_history(histfile);
