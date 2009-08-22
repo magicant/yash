@@ -54,20 +54,19 @@
  *
  * Yash always catches SIGCHLD.
  * When job control is active, SIGTSTP is ignored.
- * If the shell is interactive, SIGINT, SIGTERM and SIGQUIT are also ignored
- * and SIGWINCH is caught.
- * Other signals are caught if a trap for the signals are set.
+ * If the shell is interactive, SIGTERM and SIGQUIT are ignored, and SIGINT and
+ * SIGWINCH are caught.
+ * Other signals are caught if a trap for the signals is set.
  *
  * SIGQUIT and SIGINT are ignored in an asynchronous list.
  * SIGTSTP is ignored in a command substitution in an interactive shell.
  * SIGTTOU is blocked during `tcsetpgrp'.
- * SIGCHLD and SIGINT are blocked to avoid a race condition
- *  - while reading the output of a command substitution, or
- *  - in `wait_for_job'. */
+ * All signals are blocked to avoid race conditions 
+ *  - while a process is forking, or
+ *  - in `wait_for_sigchld' and `wait_for_input'. */
 
 
-static void set_special_handler(int signum, void (*handler)(int signum))
-    __attribute__((nonnull));
+static void set_special_handler(int signum, void (*handler)(int signum));
 static void reset_special_handler(int signum);
 static inline bool is_ignored(int signum)
     __attribute__((pure));
@@ -351,34 +350,39 @@ void restore_interactive_signals(void)
     }
 }
 
-/* Sets the signal handler of `signum' to `handler'.
- * If the current handler is SIG_IGN, `signum' is added to `ignored_signals'. */
-/* Note that this function does not unblock the specified signal. */
+/* Sets the signal handler of `signum' to `handler', which must be either
+ * SIG_IGN or `sig_handler'.
+ * If the old handler is SIG_IGN, `signum' is added to `ignored_signals'.
+ * If `handler' is SIG_IGN and the trap for the signal is set, the signal
+ * handler is not changed. */
+/* Note that this function does not block or unblock the specified signal. */
 void set_special_handler(int signum, void (*handler)(int signum))
 {
-    if (!trap_command[sigindex(signum)]) {
-	struct sigaction action, oldaction;
-	action.sa_flags = 0;
-	action.sa_handler = handler;
-	sigemptyset(&action.sa_mask);
-	sigemptyset(&oldaction.sa_mask);
-	if (sigaction(signum, &action, &oldaction) >= 0)
-	    if (oldaction.sa_handler == SIG_IGN)
-		sigaddset(&ignored_signals, signum);
-    }
+    const wchar_t *trap = trap_command[sigindex(signum)];
+    if (trap != NULL && trap[0] != L'\0')
+	return;  /* The signal handler must have been set. */
+
+    struct sigaction action, oldaction;
+    action.sa_flags = 0;
+    action.sa_handler = handler;
+    sigemptyset(&action.sa_mask);
+    sigemptyset(&oldaction.sa_mask);
+    if (sigaction(signum, &action, &oldaction) >= 0)
+	if (oldaction.sa_handler == SIG_IGN)
+	    sigaddset(&ignored_signals, signum);
 }
 
 /* Resets the signal handler of `signum' to what it should be. */
 void reset_special_handler(int signum)
 {
     struct sigaction action;
-    action.sa_flags = 0;
     if (sigismember(&ignored_signals, signum))
 	action.sa_handler = SIG_IGN;
     else if (trap_command[sigindex(signum)])
 	return;
     else
 	action.sa_handler = SIG_DFL;
+    action.sa_flags = 0;
     sigemptyset(&action.sa_mask);
     sigaction(signum, &action, NULL);
 }
