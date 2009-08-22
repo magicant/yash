@@ -201,6 +201,8 @@ void update_time(void)
 void set_histsize(unsigned newsize)
 {
     assert(newsize <= MAX_HISTSIZE);
+    if (newsize == 0)
+	newsize = 1;
     histsize = newsize;
 
     max_number = MIN_MAX_NUMBER;
