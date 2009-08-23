@@ -74,7 +74,7 @@
 
 static void set_special_handler(int signum, void (*handler)(int signum));
 static void reset_special_handler(int signum);
-static inline bool is_ignored(int signum)
+static bool is_ignored(int signum)
     __attribute__((pure));
 static void sig_handler(int signum);
 static bool set_trap(int signum, const wchar_t *command);
@@ -393,9 +393,15 @@ void reset_special_handler(int signum)
     sigaction(signum, &action, NULL);
 }
 
-/* Checks if the specified signal is ignored. */
+/* Checks if the specified signal is ignored.
+ * Asserts the shell is not interactive. */
 bool is_ignored(int signum)
 {
+    assert(!is_interactive_now);
+
+    if (doing_job_control_now && signum == SIGTSTP)
+	return sigismember(&ignored_signals, signum);
+
     struct sigaction action;
     sigemptyset(&action.sa_mask);
     return sigaction(signum, NULL, &action) >= 0
@@ -791,14 +797,7 @@ bool set_trap(int signum, const wchar_t *command)
 	receivedp = &signal_received[index];
     }
 
-    void (*oldhandler)(int);
-    if (*commandp == NULL)
-	oldhandler = SIG_DFL;
-    else if ((*commandp)[0] == L'\0')
-	oldhandler = SIG_IGN;
-    else
-	oldhandler = sig_handler;
-    if (!is_interactive && oldhandler == SIG_DFL && is_ignored(signum)) {
+    if (!is_interactive && *commandp == NULL && is_ignored(signum)) {
 	/* Signals that were ignored on entry to a non-interactive shell cannot
 	 * be trapped or reset. (POSIX) */
 #if FIXED_SIGNAL_AS_ERROR
