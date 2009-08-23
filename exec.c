@@ -793,16 +793,14 @@ done:
  * `sigtype' specifies settings of signals in the child.
  * `sigtype' is a bitwise OR of the followings:
  *   t_quitint: SIGQUIT & SIGINT are ignored if the parent's job control is off
- *   t_tstp: SIGTSTP is ignored if the parent is interactive
+ *   t_tstp: SIGTSTP is ignored if the parent is job-controlling
  *   t_leave: don't clear traps and shellfds. This option should be used only if
  *          the shell is going to `exec' to an extenal program.
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
     sigset_t all, savemask;
-    bool sigblock = is_interactive_now || doing_job_control_now
-	|| (sigtype & (t_quitint | t_tstp));
-    if (sigblock) {
+    if (sigtype & (t_quitint | t_tstp)) {
 	sigfillset(&all);
 	sigemptyset(&savemask);
 	sigprocmask(SIG_BLOCK, &all, &savemask);
@@ -821,7 +819,6 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	}
     } else {
 	/* child process */
-	bool save_is_interactive_now = is_interactive_now;
 	bool save_doing_job_control_now = doing_job_control_now;
 	if (save_doing_job_control_now && pgid >= 0) {
 	    setpgid(0, pgid);
@@ -831,6 +828,12 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (fg)
 		put_foreground(pgid);
 	}
+	if (sigtype & t_quitint)
+	    if (posixly_correct || !save_doing_job_control_now)
+		ignore_sigquit_and_sigint();
+	if (sigtype & t_tstp)
+	    if (save_doing_job_control_now)
+		ignore_sigtstp();
 	neglect_all_jobs();
 	restore_job_signals();
 	restore_interactive_signals();
@@ -841,14 +844,8 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    clear_traps();
 	}
 	is_interactive_now = false;
-	if (sigtype & t_quitint)
-	    if (posixly_correct || !save_doing_job_control_now)
-		ignore_sigquit_and_sigint();
-	if (sigtype & t_tstp)
-	    if (save_is_interactive_now)
-		ignore_sigtstp();
     }
-    if (sigblock)
+    if (sigtype & (t_quitint | t_tstp))
 	sigprocmask(SIG_SETMASK, &savemask, NULL);
     return cpid;
 }
