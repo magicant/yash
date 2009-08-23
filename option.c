@@ -325,9 +325,12 @@ void set_monitor_option(void *argp __attribute__((unused)))
     if (shell_pgid != 0) {
 	if (do_job_control && ttyfd < 0)
 	    open_ttyfd();
-	set_signals();
-	if (do_job_control)
+	if (do_job_control) {
+	    set_job_signals();
 	    ensure_foreground();
+	} else {
+	    restore_job_signals();
+	}
     }
     /* When `shell_pgid' is zero, the shell is under initialization;
      * `open_ttyfd' and other functions are called later in the `main'

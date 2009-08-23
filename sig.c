@@ -284,12 +284,8 @@ void set_signals(void)
 {
     if (doing_job_control_now)
 	set_job_signals();
-    else
-	restore_job_signals();
     if (is_interactive_now)
 	set_interactive_signals();
-    else
-	restore_interactive_signals();
 }
 
 /* Sets signal actions for SIG/TSTP if `job_initialized' is false. */

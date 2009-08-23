@@ -271,11 +271,11 @@ int main(int argc, char **argv)
     is_interactive_now = is_interactive;
     if (!do_job_control_set)
 	do_job_control = is_interactive;
-    if (do_job_control)
+    if (do_job_control) {
 	open_ttyfd();
-    set_signals();
-    if (do_job_control)
 	ensure_foreground();
+    }
+    set_signals();
     set_positional_parameters(wargv + xoptind);
     if (getuid() == geteuid() && getgid() == getegid()) {
 	if (!noprofile)
