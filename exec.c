@@ -825,12 +825,11 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	bool save_doing_job_control_now = doing_job_control_now;
 	if (save_doing_job_control_now && pgid >= 0) {
 	    setpgid(0, pgid);
-	    if (fg) {
-		if (pgid == 0)
-		    pgid = getpgrp();
-		shell_pgid = pgid;
+	    if (pgid == 0)
+		pgid = getpgrp();
+	    shell_pgid = pgid;
+	    if (fg)
 		put_foreground(pgid);
-	    }
 	}
 	neglect_all_jobs();
 	restore_job_signals();
