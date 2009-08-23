@@ -800,15 +800,22 @@ done:
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
     sigset_t all, savemask;
-    if (sigtype & (t_quitint | t_tstp)) {
+    bool sigblock = is_interactive_now || doing_job_control_now
+	|| (sigtype & (t_quitint | t_tstp));
+    if (sigblock) {
 	sigfillset(&all);
 	sigemptyset(&savemask);
 	sigprocmask(SIG_BLOCK, &all, &savemask);
     }
 
+    /* restore signal handlers as the child should have the default handlers */
+    restore_job_signals();
+    restore_interactive_signals();
+
     pid_t cpid = fork();
 
     if (cpid != 0) {
+	set_signals();
 	if (cpid < 0) {
 	    /* fork failure */
 	    xerror(errno, Ngt("fork: cannot make child process"));
@@ -834,9 +841,6 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (sigtype & t_tstp)
 	    if (save_doing_job_control_now)
 		ignore_sigtstp();
-	neglect_all_jobs();
-	restore_job_signals();
-	restore_interactive_signals();
 	if (sigtype & t_leave) {
 	    clear_shellfds(true);
 	} else {
@@ -844,8 +848,9 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    clear_traps();
 	}
 	is_interactive_now = false;
+	neglect_all_jobs();
     }
-    if (sigtype & (t_quitint | t_tstp))
+    if (sigblock)
 	sigprocmask(SIG_SETMASK, &savemask, NULL);
     return cpid;
 }
