@@ -36,7 +36,7 @@ extern _Bool is_shellfd(int fd)
     __attribute__((pure));
 extern void clear_shellfds(_Bool leavefds);
 extern int copy_as_shellfd(int fd);
-extern FILE *reopen_with_shellfd(FILE *f, const char *mode);
+extern FILE *reopen_with_shellfd(FILE *f, const char *mode, _Bool nonblock);
 extern void open_ttyfd(void);
 extern int get_ttyfd(void) __attribute__((pure));
 

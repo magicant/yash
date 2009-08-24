@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 	} else {
 	    inputname = argv[xoptind];
 	    input = fopen(inputname, "r");
-	    input = reopen_with_shellfd(input, "r");
+	    input = reopen_with_shellfd(input, "r", true);
 	    command_name = wargv[xoptind++];
 	    if (!input) {
 		int errno_ = errno;
@@ -303,7 +303,7 @@ static void execute_profile(void)
     if (wpath) {
 	char *path = realloc_wcstombs(wpath);
 	if (path) {
-	    FILE *f = reopen_with_shellfd(fopen(path, "r"), "r");
+	    FILE *f = reopen_with_shellfd(fopen(path, "r"), "r", true);
 	    if (f) {
 		exec_input(f, path, false, false);
 		fclose(f);
@@ -343,7 +343,7 @@ static void execute_rcfile(const wchar_t *rcfile)
     }
     if (!path)
 	return;
-    f = reopen_with_shellfd(fopen(path, "r"), "r");
+    f = reopen_with_shellfd(fopen(path, "r"), "r", true);
     if (f) {
 	exec_input(f, path, false, false);
 	fclose(f);

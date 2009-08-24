@@ -1233,7 +1233,6 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	FILE *f;
 
 	xclose(pipefd[PIDX_OUT]);
-	set_nonblocking(pipefd[PIDX_IN]);
 	f = fdopen(pipefd[PIDX_IN], "r");
 	if (!f) {
 	    xerror(errno, Ngt("cannot open pipe for command substitution"));
@@ -1242,38 +1241,14 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	    return NULL;
 	}
 
-	/* make the child process the active job */
-	job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
-	job->j_pgid = 0;
-	job->j_status = JS_RUNNING;
-	job->j_statuschanged = false;
-	job->j_nonotify = false;
-	job->j_pcount = 1;
-	job->j_procs[0].pr_pid = cpid;
-	job->j_procs[0].pr_status = JS_RUNNING;
-	job->j_procs[0].pr_statuscode = 0;
-	job->j_procs[0].pr_name = NULL;
-	set_active_job(job);
-
 	/* read output from the command */
 	xwcsbuf_T buf;
 	wb_init(&buf);
 	for (;;) {
 	    wint_t c = fgetwc(f);
 	    if (c == WEOF) {
-		if (feof(f))
+		if (feof(f) || errno != EINTR)
 		    break;
-		assert(ferror(f));
-		switch (errno) {
-		    case EINTR:
-		    case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-		    case EWOULDBLOCK:
-#endif
-			wait_for_input(pipefd[PIDX_IN], false, -1);
-			continue;
-		}
-		break;
 	    } else {
 		wb_wccat(&buf, c);
 	    }
@@ -1281,9 +1256,10 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	fclose(f);
 
 	/* wait for the child to finish */
-	wait_for_job(ACTIVE_JOBNO, false, false, false);
-	lastcmdsubstatus = calc_status_of_job(job);
-	remove_job(ACTIVE_JOBNO);
+	int savelaststatus = laststatus;
+	wait_for_child(cpid, 0, false);
+	lastcmdsubstatus = laststatus;
+	laststatus = savelaststatus;
 
 	/* trim trailing newlines and return */
 	while (buf.length > 0 && buf.contents[buf.length - 1] == L'\n')
@@ -1624,7 +1600,7 @@ int dot_builtin(int argc, void **argv)
     FILE *f = fopen(path, "r");
     if (path != mbsfilename)
 	free(path);
-    f = reopen_with_shellfd(f, "r");
+    f = reopen_with_shellfd(f, "r", true);
     if (!f) {
 	xerror(errno, Ngt("cannot open `%s'"), mbsfilename);
 	free(mbsfilename);

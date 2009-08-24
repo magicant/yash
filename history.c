@@ -1442,7 +1442,7 @@ int fc_edit_and_exec_entries(
 	    xerror(0, Ngt("editor returned non-zero status"));
 	    f = NULL;
 	} else {
-	    f = reopen_with_shellfd(fopen(temp, "r"), "r");
+	    f = reopen_with_shellfd(fopen(temp, "r"), "r", false);
 	    if (f == NULL)
 		xerror(errno, Ngt("cannot read command from `%s'"), temp);
 	}

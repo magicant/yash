@@ -235,17 +235,17 @@ int copy_as_shellfd(int fd)
 /* Duplicates the underlining file descriptor of the specified stream.
  * The original stream is closed whether successful or not.
  * A new stream is open with the new FD using `fdopen' and returned.
- * The new stream's underlining file descriptor is registered as a shell FD and
- * set to non-blocking.
+ * The new stream's underlining file descriptor is registered as a shell FD and,
+ * if `nonblock' is true, set to non-blocking.
  * If NULL is given, this function just returns NULL without doing anything. */
-FILE *reopen_with_shellfd(FILE *f, const char *mode)
+FILE *reopen_with_shellfd(FILE *f, const char *mode, bool nonblock)
 {
     if (!f)
 	return NULL;
 
     int newfd = copy_as_shellfd(fileno(f));
     fclose(f);
-    if (newfd < 0 || !set_nonblocking(newfd))
+    if (newfd < 0 || (nonblock && !set_nonblocking(newfd)))
 	return NULL;
     else
 	return fdopen(newfd, mode);
