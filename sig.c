@@ -60,16 +60,17 @@
  *
  * SIGQUIT and SIGINT are ignored in an asynchronous list.
  * SIGTSTP is left ignored in a command substitution in a job-control shell.
- * SIGTTOU is blocked in `put_foreground' and unblocked in `ensure_foreground'.
- * SIGCHLD is block/unblocked in `wait_for_sigchld' and `wait_for_input'.
- * `wait_for_sigchld' also block/unblocks SIGINT.
- * All signals are blocked to avoid race conditions 
- *  - while a process is forking, or
- *  - in `wait_for_sigchld' and `wait_for_input'.
  *
  * The shell inherits the signal mask from its invoker and commands invoked by
- * the shell also inherit it. But a signal is removed from the mask when the
- * trap for the signal is set. */
+ * the shell also inherit it. (POSIX.1-2008)
+ * Signals with the handler installed are almost always blocked to avoid
+ * unexpected interruption of system calls. They are unblocked when:
+ *  - the shell waits for input
+ *  - the shell waits for a child process to finish
+ *  - the shell handles traps.
+ *
+ * SIGTTOU is blocked in `put_foreground' and unblocked in `ensure_foreground'.
+ * All signals are blocked to avoid race conditions when the shell forks. */
 
 
 static void set_special_handler(int signum, void (*handler)(int signum));
@@ -435,14 +436,11 @@ void ignore_sigquit_and_sigint(void)
 {
     struct sigaction action;
 
-    if (!is_interactive_now) {
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-	action.sa_handler = SIG_IGN;
-	sigaction(SIGQUIT, &action, NULL);
-	sigaction(SIGINT, &action, NULL);
-    }  /* Don't set the handers if interactive because they are reset when
-	  `restore_job_signals' is called later. */
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    action.sa_handler = SIG_IGN;
+    sigaction(SIGQUIT, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
     sigaddset(&ignored_signals, SIGQUIT);
     sigaddset(&ignored_signals, SIGINT);
 }
@@ -452,15 +450,12 @@ void ignore_sigquit_and_sigint(void)
  * `doing_job_control_now' must be true. */
 void ignore_sigtstp(void)
 {
-    assert(doing_job_control_now);
-    /* Don't set the hander now because it is reset when `restore_job_signals'
-     * is called later.
     struct sigaction action;
+
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     action.sa_handler = SIG_IGN;
     sigaction(SIGTSTP, &action, NULL);
-    */
     sigaddset(&ignored_signals, SIGTSTP);
 }
 
