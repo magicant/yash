@@ -537,6 +537,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	if (pinfo->intrinput) {
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
+	    reset_sigint();
 	}
 	if (return_pending()) {
 	    if (pinfo->intrinput) {

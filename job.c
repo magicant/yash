@@ -369,14 +369,21 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
 {
     int signum = 0;
     job_T *job = joblist.contents[jobnumber];
-    bool savenonotify = job->j_nonotify;
 
-    job->j_nonotify = true;
-    while (job->j_pgid >= 0 && job->j_status != JS_DONE
-	    && (!return_on_stop || job->j_status != JS_STOPPED)) {
-	signum = wait_for_sigchld(interruptible, return_on_trap);
+    if (job->j_pgid >= 0) {
+	bool savenonotify = job->j_nonotify;
+	job->j_nonotify = true;
+	for (;;) {
+	    if (job->j_status == JS_DONE)
+		break;
+	    if (return_on_stop && job->j_status == JS_STOPPED)
+		break;
+	    signum = wait_for_sigchld(interruptible, return_on_trap);
+	    if (signum != 0)
+		break;
+	}
+	job->j_nonotify = savenonotify;
     }
-    job->j_nonotify = savenonotify;
     return signum;
 }
 
@@ -441,7 +448,7 @@ int send_signal_to_job(int signum, const wchar_t *jobname)
     job_T *job = get_job(jobnumber);
     if (!job)
 	return 1;
-    if (job->j_pgid == 0)
+    if (job->j_pgid <= 0)
 	return 3;
     if (kill(-job->j_pgid, signum) < 0)
 	return 4;

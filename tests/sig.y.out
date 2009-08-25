@@ -45,3 +45,5 @@ TERM
 28
 ===== trap =====
 USR1
+trap -- 'echo trapped' USR1
+trap -- '' USR2

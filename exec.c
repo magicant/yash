@@ -611,7 +611,7 @@ void exec_commands(command_T *c, exec_T type)
 	}
     }
 
-    handle_traps();
+    handle_signals();
     if (shopt_errexit && !supresserrexit && laststatus != Exit_SUCCESS
 	    && lasttype == CT_SIMPLE)
 	exit_shell();
@@ -799,23 +799,17 @@ done:
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
-    sigset_t all, savemask;
-    bool sigblock = is_interactive_now || doing_job_control_now
-	|| (sigtype & (t_quitint | t_tstp));
-    if (sigblock) {
+    sigset_t savemask;
+    if (sigtype & (t_quitint | t_tstp)) {
+	sigset_t all;
 	sigfillset(&all);
 	sigemptyset(&savemask);
 	sigprocmask(SIG_BLOCK, &all, &savemask);
     }
 
-    /* restore signal handlers as the child should have the default handlers */
-    restore_job_signals();
-    restore_interactive_signals();
-
     pid_t cpid = fork();
 
     if (cpid != 0) {
-	set_signals();
 	if (cpid < 0) {
 	    /* fork failure */
 	    xerror(errno, Ngt("fork: cannot make child process"));
@@ -824,6 +818,8 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (doing_job_control_now && pgid >= 0)
 		setpgid(cpid, pgid);
 	}
+	if (sigtype & (t_quitint | t_tstp))
+	    sigprocmask(SIG_SETMASK, &savemask, NULL);
     } else {
 	/* child process */
 	bool save_doing_job_control_now = doing_job_control_now;
@@ -841,17 +837,14 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (sigtype & t_tstp)
 	    if (save_doing_job_control_now)
 		ignore_sigtstp();
-	if (sigtype & t_leave) {
-	    clear_shellfds(true);
-	} else {
-	    clear_shellfds(false);
+	restore_signals(sigtype & t_leave);  /* signal mask is restored here */
+	clear_shellfds(sigtype & t_leave);
+	if (!(sigtype & t_leave)) {
 	    clear_traps();
+	    neglect_all_jobs();
 	}
 	is_interactive_now = false;
-	neglect_all_jobs();
     }
-    if (sigblock)
-	sigprocmask(SIG_SETMASK, &savemask, NULL);
     return cpid;
 }
 
@@ -1050,7 +1043,7 @@ void exec_simple_command(
 	    }
 	    mbsargv[argc] = NULL;
 
-	    restore_all_signals();
+	    restore_signals(true);
 	    xexecv(ci->ci_path, mbsargv);
 	    int errno_ = errno;
 	    if (errno_ != ENOEXEC) {
@@ -1067,7 +1060,6 @@ void exec_simple_command(
 	    for (int i = 1; i < argc; i++)
 		free(mbsargv[i]);
 	    laststatus = (errno_ == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
-	    init_signal();
 	    set_signals();
 	}
 	break;
@@ -1744,7 +1736,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	}
     }
 
-    restore_all_signals();
+    restore_signals(true);
     xexecve(commandpath, args, envs ? envs : environ);
     if (errno != ENOEXEC) {
 	if (errno == EACCES && is_directory(commandpath))
@@ -1759,7 +1751,6 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     }
     if (posixly_correct || !is_interactive_now)
 	exit(Exit_NOEXEC);
-    init_signal();
     set_signals();
     err = Exit_NOEXEC;
 

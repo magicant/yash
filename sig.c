@@ -74,13 +74,14 @@
 
 
 static void set_special_handler(int signum, void (*handler)(int signum));
-static void reset_special_handler(int signum);
-static bool is_ignored(int signum)
-    __attribute__((pure));
+static void reset_special_handler(
+	int signum, void (*handler)(int signum), bool leave);
 static void sig_handler(int signum);
+static void handle_sigchld(void);
 static bool set_trap(int signum, const wchar_t *command);
+static bool is_ignored(int signum);
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
-static void handle_sigwinch(void);
+static inline void handle_sigwinch(void);
 #endif
 
 
@@ -225,9 +226,9 @@ static wchar_t *rttrap_command[RTSIZE];
 #endif
 
 /* The signal mask the shell inherited on invocation.
- * This mask must be inherited by commands the shell invokes.
+ * This mask is inherited by commands the shell invokes.
  * When a signal's trap is set, the signal is removed from this mask. */
-static sigset_t blocked_signals;
+static sigset_t original_sigmask;
 /* Set of signals whose handler was SIG_IGN when the shell is invoked but
  * currently is substituted with the shell's handler.
  * The handler of these signals must be reset to SIG_IGN before the shell
@@ -235,6 +236,11 @@ static sigset_t blocked_signals;
  * A signal is added to this set also when its trap handler is set to "ignore."
  */
 static sigset_t ignored_signals;
+/* Set of signals whose trap is set to other than "ignore".
+ * These signals are almost always blocked. */
+static sigset_t trapped_signals;
+/* Set of signals that are in `original_sigmask' but not in `trapped_signals' */
+static sigset_t accept_sigmask;
 
 /* This flag is set to true as well as `signal_received[sigindex(SIGCHLD/INT)]'
  * when SIGCHLD/SIGINT is caught.
@@ -249,107 +255,96 @@ static volatile sig_atomic_t sigwinch_received;
 #endif
 
 /* true iff SIGCHLD is handled. */
-static bool initialized = false;
+static bool main_handler_set = false;
 /* true iff SIGTSTP is ignored. */
-static bool job_initialized = false;
-/* true iff SIGTERM/INT/QUIT are ignored. */
-static bool interactive_initialized = false;
+static bool job_handler_set = false;
+/* true iff SIGTERM/SIGINT/SIGQUIT/SIGWINCH are ignored/handled. */
+static bool interactive_handlers_set = false;
 
-/* Initializes signal handling.
- * May be called more than once. */
+/* Initializes the signal module. */
 void init_signal(void)
 {
-    if (!initialized) {
-	sigset_t ss;
-
-	initialized = true;
-	assert(!job_initialized);
-	assert(!interactive_initialized);
-
-	sigemptyset(&ignored_signals);
-
-	sigemptyset(&blocked_signals);
-	sigemptyset(&ss);
-	sigaddset(&ss, SIGCHLD);
-#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
-	sigaddset(&ss, SIGWINCH);
-#endif
-	sigprocmask(SIG_UNBLOCK, &ss, &blocked_signals);
-	set_special_handler(SIGCHLD, sig_handler);
-    }
+    sigemptyset(&original_sigmask);
+    sigemptyset(&ignored_signals);
+    sigemptyset(&trapped_signals);
+    sigprocmask(SIG_SETMASK, NULL, &original_sigmask);
+    accept_sigmask = original_sigmask;
 }
 
-/* Sets signal actions for SIGTSTP/INT/TERM according to
- * `doing_job_control_now' and `is_interactive_now'. */
+/* Installs signal handlers used by the shell according to the current settings.
+ */
 void set_signals(void)
 {
-    if (doing_job_control_now)
-	set_job_signals();
-    if (is_interactive_now)
-	set_interactive_signals();
-}
+    sigset_t block = trapped_signals;
 
-/* Sets signal actions for SIG/TSTP if `job_initialized' is false. */
-void set_job_signals(void)
-{
-    if (!job_initialized) {
-	job_initialized = true;
+    if (!job_handler_set && doing_job_control_now) {
+	job_handler_set = true;
 	set_special_handler(SIGTSTP, SIG_IGN);
-	/* don't have to unblock the signal because it is ignored anyway */
     }
-}
 
-/* Sets signal actions for SIGINT/TERM if `interactive_initialized' is false. */
-void set_interactive_signals(void)
-{
-    if (!interactive_initialized) {
-	interactive_initialized = true;
-
-	set_special_handler(SIGINT, SIG_IGN);
+    if (!interactive_handlers_set && is_interactive_now) {
+	interactive_handlers_set = true;
+	sigaddset(&block, SIGINT);
+	set_special_handler(SIGINT, sig_handler);
 	set_special_handler(SIGTERM, SIG_IGN);
 	set_special_handler(SIGQUIT, SIG_IGN);
-	/* don't have to unblock these signals because they are ignored anyway*/
-
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+	sigaddset(&block, SIGWINCH);
 	set_special_handler(SIGWINCH, sig_handler);
 #endif
     }
-}
 
-/* Restores the initial signal actions and the signal mask for all signals. */
-/* This function is called before calling the `exec' function. */
-void restore_all_signals(void)
-{
-    restore_job_signals();
-    restore_interactive_signals();
-    if (initialized) {
-	initialized = false;
-	reset_special_handler(SIGCHLD);
-
-	sigprocmask(SIG_SETMASK, &blocked_signals, NULL);
+    if (!main_handler_set) {
+	main_handler_set = true;
+	sigaddset(&block, SIGCHLD);
+	set_special_handler(SIGCHLD, sig_handler);
     }
+
+    sigprocmask(SIG_BLOCK, &block, NULL);
 }
 
-/* Restores the initial signal actions for SIGTSTP. */
-void restore_job_signals(void)
+/* Restores the original signal handlers for the signals used by the shell.
+ * If `leave' is true, the current process is assumed to be about to exec:
+ * the handler may be left unchanged if the handler is supposed to be reset
+ * during exec.
+ * If `leave' is false, the settings for SIGCHLD are not restored. */
+void restore_signals(bool leave)
 {
-    if (job_initialized) {
-	job_initialized = false;
-	reset_special_handler(SIGTSTP);
+    if (job_handler_set) {
+	job_handler_set = false;
+	reset_special_handler(SIGTSTP, SIG_IGN, leave);
     }
-}
-
-/* Restores the initial signal actions for SIGINT/TERM/QUIT. */
-void restore_interactive_signals(void)
-{
-    if (interactive_initialized) {
-	interactive_initialized = false;
-	reset_special_handler(SIGINT);
-	reset_special_handler(SIGTERM);
-	reset_special_handler(SIGQUIT);
+    if (interactive_handlers_set) {
+	interactive_handlers_set = false;
+	reset_special_handler(SIGINT, sig_handler, leave);
+	reset_special_handler(SIGTERM, SIG_IGN, leave);
+	reset_special_handler(SIGQUIT, SIG_IGN, leave);
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
-	reset_special_handler(SIGWINCH);
+	reset_special_handler(SIGWINCH, sig_handler, leave);
 #endif
+    }
+    if (main_handler_set) {
+	sigset_t ss = original_sigmask;
+	if (leave) {
+	    main_handler_set = false;
+	    reset_special_handler(SIGCHLD, sig_handler, leave);
+	} else {
+	    sigaddset(&ss, SIGCHLD);
+	}
+	sigprocmask(SIG_SETMASK, &ss, NULL);
+    }
+}
+
+/* Re-sets the signal handler of SIGTSTP according to the current
+ * `doing_job_control_now' and `job_handler_set'. */
+void reset_job_signals(void)
+{
+    if (doing_job_control_now && !job_handler_set) {
+	job_handler_set = true;
+	set_special_handler(SIGTSTP, SIG_IGN);
+    } else if (!doing_job_control_now && job_handler_set) {
+	job_handler_set = false;
+	reset_special_handler(SIGTSTP, SIG_IGN, false);
     }
 }
 
@@ -375,8 +370,12 @@ void set_special_handler(int signum, void (*handler)(int signum))
 	    sigaddset(&ignored_signals, signum);
 }
 
-/* Resets the signal handler of `signum' to what it should be. */
-void reset_special_handler(int signum)
+/* Resets the signal handler of `signum' to what external commands should
+ * inherit from the shell. The handler that have been passed to
+ * `set_special_handler' must be passed as `handler'. If `leave' is true, the
+ * current process is assumed to be about to exec: the handler may be left
+ * unchanged if the handler is supposed to be reset during exec. */
+void reset_special_handler(int signum, void (*handler)(int signum), bool leave)
 {
     struct sigaction action;
     if (sigismember(&ignored_signals, signum))
@@ -385,48 +384,27 @@ void reset_special_handler(int signum)
 	return;
     else
 	action.sa_handler = SIG_DFL;
-    action.sa_flags = 0;
-    sigemptyset(&action.sa_mask);
-    sigaction(signum, &action, NULL);
+    if (leave && handler != SIG_IGN)
+	handler = SIG_DFL;
+    if (handler != action.sa_handler) {
+	action.sa_flags = 0;
+	sigemptyset(&action.sa_mask);
+	sigaction(signum, &action, NULL);
+    }
 }
 
-/* Checks if the specified signal is ignored.
- * Asserts the shell is not interactive. */
-bool is_ignored(int signum)
-{
-    assert(!is_interactive_now);
-
-    if (doing_job_control_now && signum == SIGTSTP)
-	return sigismember(&ignored_signals, signum);
-
-    struct sigaction action;
-    sigemptyset(&action.sa_mask);
-    return sigaction(signum, NULL, &action) >= 0
-	&& action.sa_handler == SIG_IGN;
-}
-
-/* Sets SIGINT to be caught if the shell is interactive (`onoff' = 1).
- * Restores SIGINT otherwise (`onoff' = 0).
- * The signal action for SIGINT set by this function must be restored before
- * any other signal handling. */
+/* Unblocks SIGINT so that system calls can be interrupted.
+ * First, this function is called with `onoff' of true and SIGINT is unblocked.
+ * Later, this function must be called again with `onoff' of false and SIGINT
+ * is re-blocked.
+ * This function is effective only if the shell is interactive. */
 void set_interruptible_by_sigint(bool onoff)
 {
-    if (interactive_initialized) {
-	const wchar_t *siginttrap = trap_command[sigindex(SIGINT)];
-	if (!siginttrap || !siginttrap[0]) {
-	    struct sigaction action;
-	    sigemptyset(&action.sa_mask);
-	    action.sa_flags = 0;
-	    action.sa_handler = onoff ? sig_handler : SIG_IGN;
-	    sigaction(SIGINT, &action, NULL);
-	    if (onoff && sigismember(&blocked_signals, SIGINT)) {
-		/* assert(sigisemptyset(&action.sa_mask)); */
-		sigaddset(&action.sa_mask, SIGINT);
-		sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL);
-	    }
-	} else {
-	    /* If trap for SIGINT is set, SIGINT is already set to be caught. */
-	}
+    if (interactive_handlers_set) {
+	sigset_t ss;
+	sigemptyset(&ss);
+	sigaddset(&ss, SIGINT);
+	sigprocmask(onoff ? SIG_UNBLOCK : SIG_BLOCK, &ss, NULL);
     }
 }
 
@@ -436,11 +414,14 @@ void ignore_sigquit_and_sigint(void)
 {
     struct sigaction action;
 
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-    action.sa_handler = SIG_IGN;
-    sigaction(SIGQUIT, &action, NULL);
-    sigaction(SIGINT, &action, NULL);
+    if (!is_interactive_now) {
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+	action.sa_handler = SIG_IGN;
+	sigaction(SIGQUIT, &action, NULL);
+	sigaction(SIGINT, &action, NULL);
+    }  /* Don't set the handers if interactive because they are reset when
+	  `restore_signals' is called later. */
     sigaddset(&ignored_signals, SIGQUIT);
     sigaddset(&ignored_signals, SIGINT);
 }
@@ -450,12 +431,15 @@ void ignore_sigquit_and_sigint(void)
  * `doing_job_control_now' must be true. */
 void ignore_sigtstp(void)
 {
+    assert(doing_job_control_now);
+    /* Don't set the hander now because it is reset when `restore_signals' is
+     * called later.
     struct sigaction action;
-
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     action.sa_handler = SIG_IGN;
     sigaction(SIGTSTP, &action, NULL);
+    */
     sigaddset(&ignored_signals, SIGTSTP);
 }
 
@@ -491,53 +475,52 @@ void sig_handler(int signum)
     }
 }
 
+/* Accepts currently pending signals and calls `handle_sigchld' and
+ * `handle_traps'. */
+void handle_signals(void)
+{
+    sigset_t ss = accept_sigmask, savess;
+    sigdelset(&ss, SIGCHLD);
+    if (interactive_handlers_set)
+	sigdelset(&ss, SIGINT);
+    sigemptyset(&savess);
+    sigprocmask(SIG_SETMASK, &ss, &savess);
+    sigprocmask(SIG_SETMASK, &savess, NULL);
+
+    handle_sigchld();
+    handle_traps();
+}
+
 /* Waits for SIGCHLD to be caught and call `handle_sigchld'.
  * If SIGCHLD is already caught, this function doesn't wait.
  * If `interruptible' is true, this function can be canceled by SIGINT.
- * If `return_on_trap' is true, this function returns false immediately after
- * trap actions are performed. Otherwise, traps are not handled.
+ * If `return_on_trap' is true, this function returns immediately after trap
+ * actions are performed. Otherwise, traps are not handled.
  * Returns the signal number if interrupted, or zero if successful. */
 int wait_for_sigchld(bool interruptible, bool return_on_trap)
 {
     int result = 0;
-    if (sigchld_received)
-	goto finish;
 
-    sigset_t ss, savess;
-    sigfillset(&ss);
-    sigemptyset(&savess);
-    sigprocmask(SIG_BLOCK, &ss, &savess);
+    sigset_t ss = accept_sigmask;
+    sigdelset(&ss, SIGCHLD);
+    if (interruptible)
+	sigdelset(&ss, SIGINT);
 
-    struct sigaction action, saveaction;
-    if (interruptible) {
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-	action.sa_handler = sig_handler;
-	sigemptyset(&saveaction.sa_mask);
-	sigint_received = false;
-	sigaction(SIGINT, &action, &saveaction);
-    }
-
-    while (!sigchld_received) {
-	if (return_on_trap && have_unhandled_traps())
+    for (;;) {
+	if (return_on_trap && ((result = handle_traps()) != 0))
 	    break;
-	if (sigsuspend(&savess) < 0) {
-	    if (errno == EINTR) {
-		if (interruptible && sigint_received)
-		    break;
-	    } else {
+	if (interruptible && sigint_received)
+	    break;
+	if (sigchld_received)
+	    break;
+	if (sigsuspend(&ss) < 0) {
+	    if (errno != EINTR) {
 		xerror(errno, "sigsuspend");
 		break;
 	    }
 	}
     }
 
-    if (interruptible)
-	sigaction(SIGINT, &saveaction, NULL);
-    sigprocmask(SIG_SETMASK, &savess, NULL);
-finish:
-    if (return_on_trap)
-	result = handle_traps();
     if (interruptible && sigint_received)
 	result = SIGINT;
     handle_sigchld();
@@ -557,10 +540,16 @@ finish:
  * occurred or it timed out. */
 bool wait_for_input(int fd, bool trap, int timeout)
 {
-    bool success;
-    sigset_t ss, savess;
+    sigset_t ss;
     struct timespec to;
     struct timespec *top;
+
+    ss = accept_sigmask;
+    sigdelset(&ss, SIGCHLD);
+#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+    if (interactive_handlers_set)
+	sigdelset(&ss, SIGWINCH);
+#endif
 
     if (timeout < 0) {
 	top = NULL;
@@ -570,18 +559,10 @@ bool wait_for_input(int fd, bool trap, int timeout)
 	top = &to;
     }
 
-start:
-    sigfillset(&ss);
-    sigemptyset(&savess);
-    sigprocmask(SIG_BLOCK, &ss, &savess);
-
     for (;;) {
 	handle_sigchld();
-	if (trap && have_unhandled_traps()) {
-	    sigprocmask(SIG_SETMASK, &savess, NULL);
+	if (trap)
 	    handle_traps();
-	    goto start;
-	}
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
 	handle_sigwinch();
 #endif
@@ -589,21 +570,15 @@ start:
 	fd_set fdset;
 	FD_ZERO(&fdset);
 	FD_SET(fd, &fdset);
-	if (pselect(fd + 1, &fdset, NULL, NULL, top, &savess) >= 0) {
-	    success = FD_ISSET(fd, &fdset);
-	    break;
+	if (pselect(fd + 1, &fdset, NULL, NULL, top, &ss) >= 0) {
+	    return FD_ISSET(fd, &fdset);
 	} else {
 	    if (errno != EINTR) {
 		xerror(errno, "pselect");
-		success = false;
-		break;
+		return false;
 	    }
 	}
     }
-
-    sigprocmask(SIG_SETMASK, &savess, NULL);
-
-    return success;
 }
 
 /* Handles SIGCHLD if caught. */
@@ -628,32 +603,6 @@ void handle_sigchld(void)
 	}
 #endif
     }
-}
-
-/* Checks if there are unhandled traps (signals have been caught but the
- * associated trap commands have not been executed). */
-bool have_unhandled_traps(void)
-{
-    if (!any_trap_set || !any_signal_received)
-	return false;
-
-    for (const signal_T *s = signals; s->no; s++) {
-	size_t i = sigindex(s->no);
-	wchar_t *command = trap_command[i];
-	if (signal_received[i] && command && command[0])
-	    return true;
-    }
-#if defined SIGRTMIN && defined SIGRTMAX
-    int sigrtmin = SIGRTMIN, range = SIGRTMAX - sigrtmin + 1;
-    if (range > RTSIZE)
-	range = RTSIZE;
-    for (int i = 0; i < range; i++) {
-	wchar_t *command = rttrap_command[i];
-	if (rtsignal_received[i] && command && command[0])
-	    return true;
-    }
-#endif
-    return false;
 }
 
 /* Executes trap commands for trapped signals if any.
@@ -822,50 +771,49 @@ bool set_trap(int signum, const wchar_t *command)
     else
 	action.sa_handler = sig_handler;
 
-    if (action.sa_handler == SIG_IGN)
+    if (action.sa_handler == SIG_IGN) {
 	sigaddset(&ignored_signals, signum);
-    else
+    } else {
 	sigdelset(&ignored_signals, signum);
+    }
+    if (action.sa_handler == sig_handler) {
+	sigdelset(&original_sigmask, signum);
+	sigaddset(&trapped_signals, signum);
+	sigdelset(&accept_sigmask, signum);
+    } else {
+	sigdelset(&trapped_signals, signum);
+    }
+
     switch (signum) {
 	case SIGCHLD:
 	    /* SIGCHLD's signal handler is always `sig_handler' */
 	    return true;
+	case SIGINT:
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
 	case SIGWINCH:
-	    /* SIGWINCH's signal handler is always `sig_handler' when
-	     * interactive */
-	    if (is_interactive_now)
+#endif
+	    /* SIGINT and SIGWINCH's signal handler is always `sig_handler'
+	     * when interactive */
+	    if (interactive_handlers_set)
 		return true;
 	    break;
-#endif
 	case SIGTSTP:
-	    if (job_initialized)
-		goto nodefault;
-	    break;
-	case SIGINT:
-	    if (interactive_initialized)
-		goto nodefault;
+	    if (job_handler_set)
+		goto default_ignore;
 	    break;
 	case SIGTERM:
-	    if (interactive_initialized)
-		goto nodefault;
-	    break;
 	case SIGQUIT:
-	    if (interactive_initialized)
-		goto nodefault;
+	    if (interactive_handlers_set)
+		goto default_ignore;
 	    break;
-nodefault:
+default_ignore:
 	    if (action.sa_handler == SIG_DFL)
 		action.sa_handler = SIG_IGN;
 	    break;
     }
 
-    if (sigismember(&blocked_signals, signum)) {
-	sigemptyset(&action.sa_mask);
-	sigaddset(&action.sa_mask, signum);
-	if (sigprocmask(SIG_UNBLOCK, &action.sa_mask, NULL) >= 0)
-	    sigdelset(&blocked_signals, signum);
-    }
+    if (action.sa_handler == sig_handler)
+	sigprocmask(SIG_BLOCK, &trapped_signals, NULL);
 
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
@@ -876,6 +824,21 @@ nodefault:
 	xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
 	return false;
     }
+}
+
+/* Checks if the specified signal is ignored.
+ * Asserts the shell is not interactive. */
+bool is_ignored(int signum)
+{
+    assert(!is_interactive_now);
+
+    if (doing_job_control_now && signum == SIGTSTP)
+	return sigismember(&ignored_signals, signum);
+
+    struct sigaction action;
+    sigemptyset(&action.sa_mask);
+    return sigaction(signum, NULL, &action) >= 0
+	&& action.sa_handler == SIG_IGN;
 }
 
 /* Clears all traps except that are set to SIG_IGN. */
@@ -907,6 +870,26 @@ void clear_traps(void)
     }
 #endif
     any_trap_set = false, any_signal_received = false;
+}
+
+/* Tests the `sigint_received' flag. Returns true only if interactive. */
+_Bool sigint_is_received(void)
+{
+    return is_interactive_now && sigint_received;
+}
+
+/* Resets the `sigint_received' flag. */
+void reset_sigint(void)
+{
+    if (interactive_handlers_set) {
+	sigset_t ss, savess;
+	sigemptyset(&ss);
+	sigemptyset(&savess);
+	sigaddset(&ss, SIGINT);
+	sigprocmask(SIG_UNBLOCK, &ss, &savess);
+	sigprocmask(SIG_SETMASK, &savess, NULL);
+    }
+    sigint_received = false;
 }
 
 #if YASH_ENABLE_LINEEDIT

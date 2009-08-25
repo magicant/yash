@@ -1,11 +1,21 @@
 ===== kill =====
 TERM
+SIGINT
+SIGQUIT
 ===== trap =====
-ok
+ok 1
+ok 2
+ok 3
 USR2
+ok 4
+USR1 trapped
+USR1
+ok 5
 trapped
-ok
 trapped
-trapped
+ok 6
+ok 7
 USR2
+USR2
+ok 8
 USR1

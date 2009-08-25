@@ -160,7 +160,7 @@ int input_file(struct xwcsbuf_T *buf, void *inputinfo)
     int fd = fileno(f);
     size_t initlen = buf->length;
 
-    // TODO check and handle trap
+    handle_signals();
 start:
     wb_ensuremax(buf, buf->length + 100);
     if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
@@ -226,8 +226,7 @@ bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
 	memset(&state, 0, sizeof state);  /* initialize the state */
     }
 
-    // TODO check and handle traps
-    // TODO don't use non-blocking
+    handle_signals();
     set_nonblocking(STDIN_FILENO);
     while (ok) {
 	char c;

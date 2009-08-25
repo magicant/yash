@@ -34,24 +34,22 @@ extern _Bool any_trap_set;
 
 extern void init_signal(void);
 extern void set_signals(void);
-extern void set_job_signals(void);
-extern void set_interactive_signals(void);
-extern void restore_all_signals(void);
-extern void restore_job_signals(void);
-extern void restore_interactive_signals(void);
+extern void restore_signals(_Bool leave);
+extern void reset_job_signals(void);
 extern void set_interruptible_by_sigint(_Bool onoff);
 extern void ignore_sigquit_and_sigint(void);
 extern void ignore_sigtstp(void);
 extern _Bool send_sigstop_to_myself(void);
 
+extern void handle_signals(void);
 extern int wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
 extern _Bool wait_for_input(int fd, _Bool trap, int timeout);
 
-extern void handle_sigchld(void);
-extern _Bool have_unhandled_traps(void);
 extern int handle_traps(void);
 extern void execute_exit_trap(void);
 extern void clear_traps(void);
+extern _Bool sigint_is_received(void);
+extern void reset_sigint(void);
 extern void reset_sigwinch(void);
 
 extern int trap_builtin(int argc, void **argv)

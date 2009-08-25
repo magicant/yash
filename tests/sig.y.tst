@@ -113,4 +113,6 @@ wait %1
 kill -l $?
 set +m
 
+trap -p USR1 USR2 INT
+
 rm -f "$TFIFO"
