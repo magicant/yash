@@ -26,7 +26,7 @@ struct xwcsbuf_T;
 extern _Bool alias_enabled;
 
 extern void init_alias(void);
-extern bool is_alias_name_char(wchar_t c)
+extern _Bool is_alias_name_char(wchar_t c)
     __attribute__((pure));
 extern const wchar_t *get_alias_value(const wchar_t *aliasname)
     __attribute__((nonnull,pure));

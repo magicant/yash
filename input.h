@@ -24,12 +24,12 @@
 
 
 extern void print_prompt(int type);
-extern bool set_nonblocking(int fd);
-extern bool unset_nonblocking(int fd);
+extern _Bool set_nonblocking(int fd);
+extern _Bool unset_nonblocking(int fd);
 
 struct xwcsbuf_T;
 
-extern bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
+extern _Bool read_line_from_stdin(struct xwcsbuf_T *buf, _Bool trap)
     __attribute__((nonnull));
 
 /* input functions to be used as `inputfunc_T' */
