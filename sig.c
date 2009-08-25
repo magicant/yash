@@ -1243,24 +1243,15 @@ bool print_signal(int signum, const char *name, bool verbose)
  * Returns true iff successful. */
 bool signal_job(int signum, const wchar_t *jobspec)
 {
-    switch (send_signal_to_job(signum, jobspec + 1)) {
-	case 0:  /* success */
-	    return true;
-	case 1:  /* no such job */
-	    xerror(0, Ngt("%ls: no such job"), jobspec);
-	    return false;
-	case 2:  /* ambiguous job specification */
-	    xerror(0, Ngt("%ls: ambiguous job specification"), jobspec);
-	    return false;
-	case 3:  /* not job-controlled */
-	    xerror(0, Ngt("%ls: not job-controlled job"), jobspec);
-	    return false;
-	case 4:  /* `kill' failed */
-	    xerror(errno, "%ls", jobspec);
-	    return false;
-	default:
-	    assert(false);
+    pid_t jobpgid = get_job_pgid(jobspec);
+    if (jobpgid <= 0)
+	return false;
+
+    if (kill(-jobpgid, signum) < 0) {
+	xerror(errno, "%ls", jobspec);
+	return false;
     }
+    return true;
 }
 
 const char kill_help[] = Ngt(

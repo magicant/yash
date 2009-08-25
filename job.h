@@ -81,8 +81,8 @@ extern void do_wait(void);
 extern int wait_for_job(size_t jobnumber, _Bool return_on_stop,
 	_Bool interruptible, _Bool return_on_trap);
 extern wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, _Bool return_on_stop);
-extern int send_signal_to_job(int signum, const wchar_t *jobname)
-    __attribute__((nonnull));
+extern pid_t get_job_pgid(const wchar_t *jobname)
+    __attribute__((pure));
 
 extern void put_foreground(pid_t pgrp);
 extern void ensure_foreground(void);

@@ -429,30 +429,29 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
     }
 }
 
-/* Sends the specified signal to the specified job.
- * See `get_jobnumber_from_name' for the format of `jobname'.
- * The return value is:
- *  - 0 if the signal is successfully sent,
- *  - 1 if there is no job for `jobname',
- *  - 2 if more than one jobs are found for `jobname',
- *  - 3 if the specified job is not job-controlled, or
- *  - 4 if `kill' returned an error (errno is set). */
-int send_signal_to_job(int signum, const wchar_t *jobname)
+/* Returns the process group ID of the specified job.
+ * If no valid job is found, an error message is printed and -1 is returned.
+ * `jobname' may have a preceding '%' sign. */
+pid_t get_job_pgid(const wchar_t *jobname)
 {
-    size_t jobnumber = get_jobnumber_from_name(jobname);
-    if (jobnumber == 0)
-	return 1;
-    if (jobnumber >= joblist.length)
-	return 2;
+    size_t jobnumber = get_jobnumber_from_name(
+	    jobname[0] == L'%' ? jobname + 1 : jobname);
+    const job_T *job;
 
-    job_T *job = get_job(jobnumber);
-    if (!job)
-	return 1;
-    if (job->j_pgid <= 0)
-	return 3;
-    if (kill(-job->j_pgid, signum) < 0)
-	return 4;
-    return 0;
+    if (jobnumber >= joblist.length) {
+	xerror(0, Ngt("%ls: ambiguous job specification"), jobname);
+	return -1;
+    } else if (jobnumber == 0
+	    || (job = joblist.contents[jobnumber]) == NULL
+	    || job->j_pgid < 0) {
+	xerror(0, Ngt("%ls: no such job"), jobname);
+	return -1;
+    } else if (job->j_pgid == 0) {
+	xerror(0, Ngt("%ls: not job-controlled job"), jobname);
+	return -1;
+    } else {
+	return job->j_pgid;
+    }
 }
 
 /* Puts the specified process group in the foreground.
