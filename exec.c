@@ -266,7 +266,8 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	bool savesee = supresserrexit;
 	supresserrexit |= p->pl_neg || p->next;
 
-	bool self = finally_exit && !p->next && !p->pl_neg && !any_trap_set;
+	bool self = finally_exit && !doing_job_control_now
+	    && !p->next && !p->pl_neg && !any_trap_set;
 	exec_commands(p->pl_commands, self ? execself : execnormal);
 	if (p->pl_neg)
 	    laststatus = !laststatus;
