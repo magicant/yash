@@ -626,46 +626,47 @@ int handle_traps(void)
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
 
-exec_handlers:
-    /* we reset this before executing signal commands to avoid race */
-    any_signal_received = false;
+    do {
+	/* we reset this before executing signal commands to avoid race */
+	any_signal_received = false;
 
-    for (const signal_T *s = signals; s->no; s++) {
-	size_t i = sigindex(s->no);
-	if (signal_received[i]) {
-	    signal_received[i] = false;
-	    wchar_t *command = trap_command[i];
-	    if (command && command[0]) {
-		if (!state)
-		    state = save_parse_state();
-		signum = handled_signal = s->no;
-		exec_wcs(command, "trap", false);
-		laststatus = savelaststatus;
-		if (command != trap_command[i])
-		    free(command);
+	for (const signal_T *s = signals; s->no; s++) {
+	    size_t i = sigindex(s->no);
+	    if (signal_received[i]) {
+		signal_received[i] = false;
+		wchar_t *command = trap_command[i];
+		if (command && command[0]) {
+		    if (!state)
+			state = save_parse_state();
+		    signum = handled_signal = s->no;
+		    exec_wcs(command, "trap", false);
+		    laststatus = savelaststatus;
+		    if (command != trap_command[i])
+			free(command);
+		}
 	    }
 	}
-    }
 #if defined SIGRTMIN && defined SIGRTMAX
-    int sigrtmin = SIGRTMIN, range = SIGRTMAX - sigrtmin + 1;
-    if (range > RTSIZE)
-	range = RTSIZE;
-    for (int i = 0; i < range; i++) {
-	if (rtsignal_received[i]) {
-	    rtsignal_received[i] = false;
-	    wchar_t *command = rttrap_command[i];
-	    if (command && command[0]) {
-		if (!state)
-		    state = save_parse_state();
-		signum = handled_signal = sigrtmin + i;
-		exec_wcs(command, "trap", false);
-		laststatus = savelaststatus;
-		if (command != rttrap_command[i])
-		    free(command);
+	int sigrtmin = SIGRTMIN, range = SIGRTMAX - sigrtmin + 1;
+	if (range > RTSIZE)
+	    range = RTSIZE;
+	for (int i = 0; i < range; i++) {
+	    if (rtsignal_received[i]) {
+		rtsignal_received[i] = false;
+		wchar_t *command = rttrap_command[i];
+		if (command && command[0]) {
+		    if (!state)
+			state = save_parse_state();
+		    signum = handled_signal = sigrtmin + i;
+		    exec_wcs(command, "trap", false);
+		    laststatus = savelaststatus;
+		    if (command != rttrap_command[i])
+			free(command);
+		}
 	    }
 	}
-    }
 #endif
+    } while (any_signal_received);
 
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && le_state == LE_STATE_SUSPENDED)
@@ -673,8 +674,6 @@ exec_handlers:
     le_resume_readline();
 #endif
 
-    if (any_signal_received)
-	goto exec_handlers;
     savelaststatus = -1;
     handled_signal = -1;
     if (state)
