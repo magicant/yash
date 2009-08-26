@@ -537,20 +537,23 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	if (pinfo->intrinput) {
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
-	    reset_sigint();
-	}
-	if (return_pending()) {
-	    if (pinfo->intrinput) {
-		reset_execinfo();
+	    if (!is_interrupted() && return_pending()) {
 		xerror(0, Ngt("return: not in function or sourced file"));
 		laststatus = Exit_FAILURE;
-	    } else if (finally_exit) {
-		wchar_t argv0[] = L"return";
-		reset_execinfo();
-		exit_builtin(1, (void *[]) { argv0, NULL });
-		continue;
-	    } else
-		goto out;
+	    }
+	    reset_sigint();
+	    reset_execinfo();
+	} else {
+	    if (return_pending()) {
+		if (finally_exit) {
+		    wchar_t argv0[] = L"return";
+		    reset_execinfo();
+		    exit_builtin(1, (void *[]) { argv0, NULL });
+		    continue;
+		} else {
+		    goto out;
+		}
+	    }
 	}
 
 	switch (read_and_parse(pinfo, &commands)) {

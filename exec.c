@@ -236,7 +236,7 @@ inline bool return_pending(void)
 /* Returns true iff we're breaking/continuing/returning now. */
 bool need_break(void)
 {
-    return execinfo.breakcount > 0 || return_pending();
+    return execinfo.breakcount > 0 || return_pending() || is_interrupted();
 }
 
 
@@ -382,6 +382,8 @@ void exec_for(const command_T *c, bool finally_exit)
 	continue;                                    \
     } else if (execinfo.exception != ee_none) {      \
 	goto done;                                   \
+    } else if (is_interrupted()) {                   \
+	goto done;                                   \
     } else (void) 0
 
     int i;
@@ -390,6 +392,9 @@ void exec_for(const command_T *c, bool finally_exit)
 		    posixly_correct ? SCOPE_GLOBAL : SCOPE_LOCAL, false))
 	    goto done;
 	exec_and_or_lists(c->c_forcmds, finally_exit && i + 1 == count);
+
+	if (!c->c_forcmds)
+	    handle_signals();
 	CHECK_LOOP;
     }
 
@@ -415,10 +420,20 @@ void exec_while(const command_T *c, bool finally_exit)
     execinfo.loopnest++;
 
     int status = Exit_SUCCESS;
-    while (exec_condition(c->c_whlcond) == c->c_whltype) {
+    for (;;) {
+	bool cond = exec_condition(c->c_whlcond);
+
+	if (!c->c_whlcond)
+	    handle_signals();
 	CHECK_LOOP;
+
+	if (cond != c->c_whltype)
+	    break;
 	exec_and_or_lists(c->c_whlcmds, false);
 	status = laststatus;
+
+	if (!c->c_whlcmds)
+	    handle_signals();
 	CHECK_LOOP;
     }
 

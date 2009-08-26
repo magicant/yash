@@ -872,9 +872,15 @@ void clear_traps(void)
 }
 
 /* Tests the `sigint_received' flag. Returns true only if interactive. */
-_Bool sigint_is_received(void)
+_Bool is_interrupted(void)
 {
     return is_interactive_now && sigint_received;
+}
+
+/* Sets the `sigint_received' flag. */
+void set_interrupted(void)
+{
+    sigint_received = true;
 }
 
 /* Resets the `sigint_received' flag. */

@@ -708,7 +708,9 @@ void print_job_status_all(bool changedonly, bool verbose, FILE *f)
 }
 
 /* If the shell is interactive and the specified job has been killed by a
- * signal other than SIGINT or SIGPIPE, prints a notification to stderr. */
+ * signal other than SIGPIPE, prints a notification to stderr.
+ * If the signal is SIGINT, only a single newline is printed to stderr and the
+ * shell is flagged as interrupted. */
 void notify_signaled_job(size_t jobnumber)
 {
     if (!is_interactive_now)
@@ -727,6 +729,7 @@ void notify_signaled_job(size_t jobnumber)
     switch (sig) {
 	case SIGINT:
 	    fputc('\n', stderr);
+	    set_interrupted();
 	    break;
 	case SIGPIPE:
 	    break;
