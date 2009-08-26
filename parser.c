@@ -985,6 +985,8 @@ command_T *parse_command(void)
     redirlastp = parse_assignments_and_redirects(result);
     result->c_words = parse_words_and_redirects(redirlastp, true);
 
+    if (!result->c_assigns && !result->c_words[0] && !result->c_redirs)
+	serror(Ngt("empty command"));
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L'(')
 	serror(Ngt("invalid use of `%lc'"), (wint_t) cbuf.contents[cindex]);
