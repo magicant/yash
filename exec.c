@@ -370,7 +370,7 @@ void exec_for(const command_T *c, bool finally_exit)
 	struct get_variable v = get_variable(L"@");
 	assert(v.type == GV_ARRAY && v.values != NULL);
 	words = duparray(v.values, copyaswcs);
-	count = plcount(words);
+	count = (int) v.count;
     }
 
 #define CHECK_LOOP                                   \
