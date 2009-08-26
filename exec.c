@@ -281,8 +281,6 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 /* Executes pipelines asynchronously. */
 void exec_pipelines_async(const pipeline_T *p)
 {
-    assert(!need_break());
-
     if (!p->next && !p->pl_neg) {
 	exec_commands(p->pl_commands, execasync);
     } else {
@@ -358,7 +356,6 @@ bool exec_condition(const and_or_T *c)
 void exec_for(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_FOR);
-    assert(!need_break());
     execinfo.loopnest++;
 
     int count;
@@ -415,7 +412,6 @@ finish:
 void exec_while(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_WHILE);
-    assert(!need_break());
     execinfo.loopnest++;
 
     int status = Exit_SUCCESS;
@@ -438,7 +434,6 @@ done:
 void exec_case(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_CASE);
-    assert(!need_break());
 
     wchar_t *word = expand_single(c->c_casword, tt_single);
     if (!word)
@@ -540,8 +535,6 @@ void exec_commands(command_T *c, exec_T type)
     process_T *ps, *pp;
     pipeinfo_T pinfo = PIPEINFO_INIT;
     commandtype_T lasttype = lasttype;
-
-    assert(!need_break());
 
     /* count the number of commands */
     count = 0;
