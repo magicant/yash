@@ -2398,7 +2398,7 @@ void print_errmsg_token_missing(const wchar_t *t, size_t index)
 }
 
 
-/********** Functions that Convert Parse Trees into Strings**********/
+/********** Functions that Convert Parse Trees into Strings **********/
 
 static void print_and_or_lists(
 	xwcsbuf_T *restrict buf, const and_or_T *restrict andors,
@@ -2520,9 +2520,13 @@ void print_command_content(xwcsbuf_T *restrict buf, const command_T *restrict c)
 	break;
     case CT_SUBSHELL:
 	wb_wccat(buf, L'(');
-	print_and_or_lists(buf, c->c_subcmds, true);
-	assert(iswblank(buf->contents[buf->length - 1]));
-	wb_insert(buf, buf->length - 1, L")");
+	if (c->c_subcmds) {
+	    print_and_or_lists(buf, c->c_subcmds, true);
+	    assert(iswblank(buf->contents[buf->length - 1]));
+	    wb_insert(buf, buf->length - 1, L")");
+	} else {
+	    wb_wccat(buf, L')');
+	}
 	break;
     case CT_IF:
 	wb_cat(buf, L"if ");
