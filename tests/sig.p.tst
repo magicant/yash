@@ -1,3 +1,5 @@
+command -b ulimit -c 0 2>/dev/null
+
 tmp="${TESTTMP}/sig.p"
 
 exec 2>/dev/null
@@ -11,9 +13,9 @@ wait $!
 kill -l $?
 
 # an asynchronous command prevents itself from being killed by SIGINT/SIGQUIT
-$INVOKE $TESTEE -c 'kill -s INT  $$; echo SIGINT ' &
+$INVOKE $TESTEE -c 'cd /tmp; kill -s INT  $$; echo SIGINT ' &
 wait $!
-$INVOKE $TESTEE -c 'kill -s QUIT $$; echo SIGQUIT' &
+$INVOKE $TESTEE -c 'cd /tmp; kill -s QUIT $$; echo SIGQUIT' &
 wait $!
 
 echo ===== trap =====

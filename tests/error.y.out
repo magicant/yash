@@ -82,6 +82,8 @@ read input closed 1
 ===== trap =====
 trap no-such-option 2
 trap operands missing 2
+trap KILL 1
+trap STOP 1
 trap output error 1 1
 trap output error 2 1
 trap output error 3 1

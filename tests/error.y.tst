@@ -318,6 +318,10 @@ trap --no-such-option
 echo trap no-such-option $?
 trap foo
 echo trap operands missing $?
+trap '' KILL
+echo trap KILL $?
+trap '' STOP
+echo trap STOP $?
 (
 trap 'echo trap' INT TERM
 trap >&- 2>/dev/null

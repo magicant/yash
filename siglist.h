@@ -31,24 +31,32 @@ typedef struct signal_T {
 /* list of signals */
 static const signal_T signals[] = {
 
-    /* signals defined by POSIX.1-1990 */
-    { SIGHUP,  "HUP",  }, { SIGINT,  "INT",  }, { SIGQUIT, "QUIT", },
-    { SIGILL,  "ILL",  }, { SIGABRT, "ABRT", }, { SIGFPE,  "FPE",  },
-    { SIGKILL, "KILL", }, { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", },
-    { SIGALRM, "ALRM", }, { SIGTERM, "TERM", }, { SIGUSR1, "USR1", },
-    { SIGUSR2, "USR2", }, { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", },
-    { SIGSTOP, "STOP", }, { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", },
-    { SIGTTOU, "TTOU", },
-
     /* signals defined by SUSv2 & POSIX.1-2001 (SUSv3) */
-    { SIGTRAP, "TRAP", }, { SIGBUS,  "BUS",  }, { SIGSYS,  "SYS",  },
-    { SIGURG,  "URG",  }, { SIGXCPU, "XCPU", }, { SIGXFSZ, "XFSZ", },
+    { SIGHUP,  "HUP",  }, { SIGINT,  "INT",  }, { SIGQUIT, "QUIT", },
+    { SIGILL,  "ILL",  }, { SIGTRAP, "TRAP", }, { SIGABRT, "ABRT", },
+    { SIGBUS,  "BUS",  }, { SIGFPE,  "FPE",  }, { SIGKILL, "KILL", },
+    { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", }, { SIGALRM, "ALRM", },
+    { SIGTERM, "TERM", }, { SIGUSR1, "USR1", }, { SIGUSR2, "USR2", },
+    { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", }, { SIGSTOP, "STOP", },
+    { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", }, { SIGTTOU, "TTOU", },
+    { SIGURG,  "URG",  },
+#ifdef SIGXCPU
+    { SIGXCPU, "XCPU", },
+#endif
+#ifdef SIGXFSZ
+    { SIGXFSZ, "XFSZ", },
+#endif
 #ifdef SIGVTALRM
     { SIGVTALRM, "VTALRM", },
 #endif
+#ifdef SIGPROF
     { SIGPROF, "PROF", },
+#endif
 #ifdef SIGPOLL
     { SIGPOLL, "POLL", },
+#endif
+#ifdef SIGSYS
+    { SIGSYS, "SYS", },
 #endif
 
     /* below are non-standardized signals */
