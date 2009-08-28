@@ -31,7 +31,9 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
-#include "alias.h"
+#if YASH_ENABLE_ALIAS
+# include "alias.h"
+#endif
 #include "expand.h"
 #include "input.h"
 #include "option.h"
@@ -328,6 +330,7 @@ struct parsestate_T {
     size_t cindex;
     struct plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
+    bool alias_enabled;
     struct aliaslist_T *caliases;
 #endif
 };
@@ -381,10 +384,10 @@ static void **parse_words_to_paren(void)
     __attribute__((malloc,warn_unused_result));
 static redir_T *tryparse_redirect(void)
     __attribute__((malloc,warn_unused_result));
-static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
-    __attribute__((malloc,warn_unused_result,nonnull));
 static inline wordunit_T *parse_word(aliastype_T type)
     __attribute__((malloc,warn_unused_result));
+static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
+    __attribute__((malloc,warn_unused_result,nonnull));
 static void skip_to_next_single_quote(void);
 static wordunit_T *parse_special_word_unit(void)
     __attribute__((malloc,warn_unused_result));
@@ -466,6 +469,7 @@ struct parsestate_T *save_parse_state(void)
 	.cindex = cindex,
 	.pending_heredocs = pending_heredocs,
 #if YASH_ENABLE_ALIAS
+	.alias_enabled = alias_enabled,
 	.caliases = caliases,
 #endif
     };
@@ -481,6 +485,7 @@ void restore_parse_state(struct parsestate_T *state)
     cindex = state->cindex;
     pending_heredocs = state->pending_heredocs;
 #if YASH_ENABLE_ALIAS
+    alias_enabled = state->alias_enabled;
     caliases = state->caliases;
 #endif
     free(state);
@@ -528,6 +533,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
     caliases = new_aliaslist();
+    alias_enabled = true;
 #endif
 
     and_or_T *r = parse_command_list();

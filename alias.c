@@ -257,8 +257,8 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
  * If the length of the word to be substitutied is known, it should be given as
  * `len'. Otherwise, `len' must be 0.
  * If `globalonly' is true, only global aliases are substituted. */
-void substitute_alias(
-	xwcsbuf_T *buf, size_t i, size_t len, aliaslist_T *list, bool globalonly)
+void substitute_alias(xwcsbuf_T *buf, size_t i, size_t len,
+	aliaslist_T *list, bool globalonly)
 {
 substitute_alias:
     if (!alias_enabled || (globalonly && posixly_correct))
