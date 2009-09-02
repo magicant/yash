@@ -35,6 +35,12 @@ if if :; then :; fi then if :; then echo null; fi fi N  # prints nothing
 if if :; then :; fi then if :; then echo null; fi N fi  # prints nothing
 if if echo null; then :; fi N then if :; then :; fi fi  # prints nothing
 
+unalias -a
+alias test=:
+func() { echo "$(test ok)"; }
+alias test=echo
+func
+
 command -V alias unalias
 
 rm -f "$tmp"

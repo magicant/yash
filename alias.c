@@ -84,9 +84,6 @@ static void shift_index(aliaslist_T *list, ptrdiff_t inc)
 static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
 
 
-/* If true, alias substitution is performed. */
-bool alias_enabled = true;
-
 /* Hashtable mapping alias names (wide strings) to alias_T's. */
 hashtable_T aliases;
 
@@ -261,7 +258,7 @@ void substitute_alias(xwcsbuf_T *buf, size_t i, size_t len,
 	aliaslist_T *list, bool globalonly)
 {
 substitute_alias:
-    if (!alias_enabled || (globalonly && posixly_correct))
+    if (globalonly && posixly_correct)
 	return;
     remove_expired_aliases(list, i);
 

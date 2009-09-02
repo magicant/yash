@@ -450,6 +450,8 @@ static size_t cindex;
 /* list of here-documents whose contents are to be read */
 static plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
+/* If true, alias substitution is performed. */
+static bool alias_enabled;
 /* list of currently expanded aliases */
 static struct aliaslist_T *caliases;
 #endif
@@ -532,8 +534,8 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     }
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
-    caliases = new_aliaslist();
     alias_enabled = true;
+    caliases = new_aliaslist();
 #endif
 
     and_or_T *r = parse_command_list();
@@ -1015,9 +1017,11 @@ redir_T **parse_assignments_and_redirects(command_T *c)
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
-	size_t len = count_name_length(is_alias_name_char);
-	substitute_alias(&cbuf, cindex, len, caliases, false);
-	skip_blanks_and_comment();
+	if (alias_enabled) {
+	    size_t len = count_name_length(is_alias_name_char);
+	    substitute_alias(&cbuf, cindex, len, caliases, false);
+	    skip_blanks_and_comment();
+	}
 #endif
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
@@ -1048,7 +1052,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
-	if (!first) {
+	if (!first && alias_enabled) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, true);
 	    skip_blanks_and_comment();
@@ -1075,7 +1079,7 @@ void parse_redirect_list(redir_T **lastp)
 {
     for (;;) {
 #if YASH_ENABLE_ALIAS
-	if (!posixly_correct) {
+	if (!posixly_correct && alias_enabled) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, true);
 	}
@@ -1268,7 +1272,8 @@ wordunit_T *parse_word(aliastype_T type)
 wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 {
 #if YASH_ENABLE_ALIAS
-    switch (type) {
+    if (alias_enabled) {
+	switch (type) {
 	case noalias:
 	    break;
 	case globalonly:
@@ -1277,6 +1282,7 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	    substitute_alias(&cbuf, cindex, len, caliases, type == globalonly);
 	    skip_blanks_and_comment();
 	    break;
+	}
     }
 #else /* !YASH_ENABLE_ALIAS */
     (void) type;

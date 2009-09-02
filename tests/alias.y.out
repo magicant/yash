@@ -7,5 +7,6 @@ complex alias
 a a a a a a
 FOO=BAR
 alias -g N='>/dev/null'
+ok
 alias: semi-special builtin
 unalias: semi-special builtin
