@@ -32,12 +32,14 @@ alias i=if if=fi
 i true; then echo if; fi
 alias i='if true; then echo if; fi'
 i
-alias f=false ff='FOO=BAR f' fff='>/dev/null ff'
+alias f=false ff='FOO=BAR f' fff='>/dev/null ff' ffff='! fff'
 ! f
 echo $?
 ! ff
 echo $?
 ! fff
+echo $?
+ffff
 echo $?
 alias -g v=V
 FOO=BAR echo v
@@ -60,6 +62,35 @@ alias test=:
 func() { echo "$(test ok)"; }
 alias test=echo
 func
+
+$INVOKE $TESTEE --posix <>/dev/null 2>&0 <<\END
+alias dummy=
+false
+dummy
+[ $? -ne 0 ]
+echo dummy $?
+if
+	dummy
+then
+	echo error
+fi
+END
+$INVOKE $TESTEE --posix <>/dev/null 2>&0 <<\END
+alias dummy=
+echo pipe | dummy
+cat
+false && dummy
+echo not printed
+(dummy)
+echo error
+END
+$INVOKE $TESTEE <>/dev/null 2>&0 <<\END
+alias not=!
+not false
+echo $?
+echo error | not cat
+echo error
+END
 
 command -V alias unalias
 

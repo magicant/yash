@@ -330,7 +330,7 @@ struct parsestate_T {
     size_t cindex;
     struct plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
-    bool alias_enabled;
+    bool alias_enabled, reparse_alias;
     struct aliaslist_T *caliases;
 #endif
 };
@@ -452,6 +452,9 @@ static plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
 /* If true, alias substitution is performed. */
 static bool alias_enabled;
+/* If true, the current word is to be re-parsed as alias substitution has been
+ * performed. */
+static bool reparse_alias;
 /* list of currently expanded aliases */
 static struct aliaslist_T *caliases;
 #endif
@@ -472,6 +475,7 @@ struct parsestate_T *save_parse_state(void)
 	.pending_heredocs = pending_heredocs,
 #if YASH_ENABLE_ALIAS
 	.alias_enabled = alias_enabled,
+	.reparse_alias = reparse_alias,
 	.caliases = caliases,
 #endif
     };
@@ -488,6 +492,7 @@ void restore_parse_state(struct parsestate_T *state)
     pending_heredocs = state->pending_heredocs;
 #if YASH_ENABLE_ALIAS
     alias_enabled = state->alias_enabled;
+    reparse_alias = state->reparse_alias;
     caliases = state->caliases;
 #endif
     free(state);
@@ -535,6 +540,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
     alias_enabled = true;
+    reparse_alias = false;
     caliases = new_aliaslist();
 #endif
 
@@ -812,6 +818,12 @@ and_or_T *parse_command_list(void)
 	    *lastp = ao;
 	    lastp = &ao->next;
 	}
+#if YASH_ENABLE_ALIAS
+	if (reparse_alias) {
+	    assert(!ao);
+	    continue;
+	}
+#endif
 
 	separator = false;
 	ensure_buffer(2);
@@ -822,6 +834,9 @@ and_or_T *parse_command_list(void)
 	    separator = true;
 	}
     }
+#if YASH_ENABLE_ALIAS
+    reparse_alias = false;
+#endif
     return first;
 }
 
@@ -849,6 +864,12 @@ and_or_T *parse_compound_list(void)
 	    *lastp = ao;
 	    lastp = &ao->next;
 	}
+#if YASH_ENABLE_ALIAS
+	if (reparse_alias) {
+	    assert(!ao);
+	    continue;
+	}
+#endif
 
 	separator = false;
 	ensure_buffer(2);
@@ -860,6 +881,9 @@ and_or_T *parse_compound_list(void)
 	}
     }
     cerror |= savecerror;
+#if YASH_ENABLE_ALIAS
+    reparse_alias = false;
+#endif
     return first;
 }
 
@@ -868,9 +892,17 @@ and_or_T *parse_compound_list(void)
  * delimiter "&" or ";" when the function returns. */
 and_or_T *parse_and_or_list(void)
 {
+    pipeline_T *p = parse_pipelines_in_and_or();
+#if YASH_ENABLE_ALIAS
+    if (reparse_alias) {
+	assert(!p);
+	return NULL;
+    }
+#endif
+
     and_or_T *result = xmalloc(sizeof *result);
     result->next = NULL;
-    result->ao_pipelines = parse_pipelines_in_and_or();
+    result->ao_pipelines = p;
     result->ao_async = (cbuf.contents[cindex] == L'&');
     return result;
 }
@@ -888,6 +920,15 @@ pipeline_T *parse_pipelines_in_and_or(void)
 	    *lastp = p;
 	    lastp = &p->next;
 	}
+#if YASH_ENABLE_ALIAS
+	if (reparse_alias) {
+	    assert(!p);
+	    if (first)
+		goto next;
+	    else
+		break;
+	}
+#endif
 
 	ensure_buffer(2);
 	if (cbuf.contents[cindex] == L'&'
@@ -900,6 +941,7 @@ pipeline_T *parse_pipelines_in_and_or(void)
 	    break;
 	}
 	cindex += 2;
+next:
 	skip_to_next_token();
     }
     return first;
@@ -908,20 +950,38 @@ pipeline_T *parse_pipelines_in_and_or(void)
 /* Parses one pipeline. */
 pipeline_T *parse_pipeline(void)
 {
-    pipeline_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->pl_cond = false;
+    bool neg;
+    command_T *c;
 
     ensure_buffer(2);
     if (is_token_at(L"!", cindex)) {
-	result->pl_neg = true;
+	neg = true;
 	cindex++;
-	skip_blanks_and_comment();
+#if YASH_ENABLE_ALIAS
+	do {
+#endif
+	    skip_blanks_and_comment();
+	    c = parse_commands_in_pipeline();
+#if YASH_ENABLE_ALIAS
+	    assert(!reparse_alias || !c);
+	} while (reparse_alias);
+#endif
     } else {
-	result->pl_neg = false;
+	neg = false;
+	c = parse_commands_in_pipeline();
+#if YASH_ENABLE_ALIAS
+	if (reparse_alias) {
+	    assert(!c);
+	    return NULL;
+	}
+#endif
     }
 
-    result->pl_commands = parse_commands_in_pipeline();
+    pipeline_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->pl_commands = c;
+    result->pl_neg = neg;
+    result->pl_cond = false;
     return result;
 }
 
@@ -936,22 +996,37 @@ command_T *parse_commands_in_pipeline(void)
 	    *lastp = c;
 	    lastp = &c->next;
 	}
+#if YASH_ENABLE_ALIAS
+	if (reparse_alias) {
+	    assert(!c);
+	    if (first)
+		goto next;
+	    else
+		break;
+	}
+#endif
 
 	ensure_buffer(2);
 	if (cbuf.contents[cindex] == L'|' && cbuf.contents[cindex+1] != L'|') {
 	    cindex++;
-	    skip_to_next_token();
 	} else {
 	    break;
 	}
+next:
+	skip_to_next_token();
     }
     return first;
 }
 
-/* Parses one command. */
+/* Parses one command.
+ * If the first word is alias-substituted, the `reparse_alias' flag is set and
+ * NULL is returned. */
 command_T *parse_command(void)
 {
-parse_command:;
+#if YASH_ENABLE_ALIAS
+    reparse_alias = false;
+#endif
+
     /* Note: `check_closing_token_at` includes `ensure_buffer(5)'. */
     const wchar_t *t = check_closing_token_at(cindex);
     if (t) {
@@ -978,14 +1053,16 @@ parse_command:;
     if (t)
 	return parse_compound_command(t);
 
+#if YASH_ENABLE_ALIAS
     if (alias_enabled) {
 	size_t len = count_name_length(is_alias_name_char);
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
 	if (substitute_alias(&cbuf, cindex, len, caliases, flags)) {
-	    skip_blanks_and_comment();
-	    goto parse_command;
+	    reparse_alias = true;
+	    return NULL;
 	}
     }
+#endif
 
     command_T *result = tryparse_function();
     if (result)

@@ -12,9 +12,13 @@ if
 0
 0
 0
+0
 V
 V
 alias -g N='>/dev/null'
 ok
+dummy 0
+pipe
+0
 alias: semi-special builtin
 unalias: semi-special builtin
