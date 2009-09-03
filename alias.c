@@ -253,25 +253,29 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
 /* Performs alias substitution at the specified index `i' in the buffer `buf'.
  * If the length of the word to be substitutied is known, it should be given as
  * `len'. Otherwise, `len' must be 0.
- * If `globalonly' is true, only global aliases are substituted. */
-void substitute_alias(xwcsbuf_T *buf, size_t i, size_t len,
-	aliaslist_T *list, bool globalonly)
+ * If `AF_NONGLOBAL' is not in `flags', only global aliases are substituted.
+ * If `AF_NORECUR' is not in `flags', substitution is repeated until there is
+ * no more alias applicable.
+ * Returns true iff any alias is substituted. */
+bool substitute_alias(xwcsbuf_T *buf, size_t i, size_t len,
+	aliaslist_T *list, substaliasflags_T flags)
 {
+    bool subst = false;
+    if (!(flags & AF_NONGLOBAL) && posixly_correct)
+	return subst;
+
 substitute_alias:
-    if (globalonly && posixly_correct)
-	return;
     remove_expired_aliases(list, i);
 
-    size_t j;
+    size_t j = i + len;
     if (len == 0) {
-	j = i;
 	while (is_alias_name_char(buf->contents[j]))
 	    j++;
     } else {
-	j = i + len;
 #ifndef NDEBUG
 	for (size_t k = i; k < j; k++)
 	    assert(is_alias_name_char(buf->contents[k]));
+	assert(!is_alias_name_char(buf->contents[j]));
 #endif
     }
     /* `i' is the starting index and `j' is the ending index of the word */
@@ -284,10 +288,11 @@ substitute_alias:
 
 	if (alias != NULL
 		&& !contained_in_list(list, alias)
-		&& (!globalonly || (alias->flags & AF_GLOBAL))) {
+		&& ((flags & AF_NONGLOBAL) | (alias->flags & AF_GLOBAL))) {
 	    /* do substitution */
 	    wb_replace_force(buf, i, j - i, alias->value, alias->valuelen);
 	    shift_index(list, (ptrdiff_t) alias->valuelen - (ptrdiff_t)(j - i));
+	    subst = true;
 
 	    /* see note below */
 	    if ((alias->flags & AF_BLANKEND) && !(alias->flags & AF_GLOBAL)) {
@@ -295,11 +300,12 @@ substitute_alias:
 		aliaslist_T *savelist = clone_aliaslist(list);
 		while (iswblank(buf->contents[ii]))
 		    ii++;
-		substitute_alias(buf, ii, 0, savelist, globalonly);
+		substitute_alias(buf, ii, 0, savelist, flags);
 		destroy_aliaslist(savelist);
 	    }
 
-	    if (add_to_aliaslist(list, alias, i + alias->valuelen)) {
+	    if (add_to_aliaslist(list, alias, i + alias->valuelen)
+		    && !(flags & AF_NORECUR)) {
 		while (iswblank(buf->contents[i]))
 		    i++;
 		len = 0;
@@ -307,6 +313,7 @@ substitute_alias:
 	    }
 	}
     }
+    return subst;
 }
 /* When the value of the alias ends with a blank, we substitute the following
  * word if and only if the alias is not global. This is required to prevent

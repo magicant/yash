@@ -6,6 +6,14 @@ restored
 complex alias
 a a a a a a
 FOO=BAR
+ok
+if
+if
+0
+0
+0
+V
+V
 alias -g N='>/dev/null'
 ok
 alias: semi-special builtin

@@ -19,9 +19,29 @@ echo complex alias | (c|(c P)|c
 unalias -a
 alias -g a='a a '
 echo a a a
-alias foobar='FOO=BAR ' e='env'
-alias -g G='|grep'
+alias foobar=' FOO=BAR ' e='env'
+alias -g G=' |grep'
 foobar e G '^FOO='
+
+unalias -a
+alias cc=' ( c ) ' c='cat'
+echo ok | cc | cc |
+cc |\
+cc
+alias i=if if=fi
+i true; then echo if; fi
+alias i='if true; then echo if; fi'
+i
+alias f=false ff='FOO=BAR f' fff='>/dev/null ff'
+! f
+echo $?
+! ff
+echo $?
+! fff
+echo $?
+alias -g v=V
+FOO=BAR echo v
+FOO=BAR echo 3>/dev/null v
 
 unalias -a
 alias -g N='>/dev/null'

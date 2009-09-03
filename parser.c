@@ -386,7 +386,7 @@ static redir_T *tryparse_redirect(void)
     __attribute__((malloc,warn_unused_result));
 static inline wordunit_T *parse_word(aliastype_T type)
     __attribute__((malloc,warn_unused_result));
-static wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
+static wordunit_T *parse_word_to(bool testfunc(wchar_t c))
     __attribute__((malloc,warn_unused_result,nonnull));
 static void skip_to_next_single_quote(void);
 static wordunit_T *parse_special_word_unit(void)
@@ -951,6 +951,7 @@ command_T *parse_commands_in_pipeline(void)
 /* Parses one command. */
 command_T *parse_command(void)
 {
+parse_command:;
     /* Note: `check_closing_token_at` includes `ensure_buffer(5)'. */
     const wchar_t *t = check_closing_token_at(cindex);
     if (t) {
@@ -977,7 +978,15 @@ command_T *parse_command(void)
     if (t)
 	return parse_compound_command(t);
 
-    unsigned long lineno = cinfo->lineno;
+    if (alias_enabled) {
+	size_t len = count_name_length(is_alias_name_char);
+	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
+	if (substitute_alias(&cbuf, cindex, len, caliases, flags)) {
+	    skip_blanks_and_comment();
+	    goto parse_command;
+	}
+    }
+
     command_T *result = tryparse_function();
     if (result)
 	return result;
@@ -988,13 +997,11 @@ command_T *parse_command(void)
 
     result->next = NULL;
     result->refcount = 1;
-    result->c_lineno = lineno;
+    result->c_lineno = cinfo->lineno;
     result->c_type = CT_SIMPLE;
     redirlastp = parse_assignments_and_redirects(result);
     result->c_words = parse_words_and_redirects(redirlastp, true);
 
-    if (!result->c_assigns && !result->c_words[0] && !result->c_redirs)
-	serror(Ngt("empty command"));
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L'(')
 	serror(Ngt("invalid use of `%lc'"), (wint_t) cbuf.contents[cindex]);
@@ -1002,6 +1009,8 @@ command_T *parse_command(void)
 }
 
 /* Parses assignments and redirections.
+ * Tokens but the first one are subject to any-type alias substitution,
+ * including the word just after the parsed assignments and redirections.
  * The first following word is subject to any-type alias substitution.
  * The results are assigned to `c->c_assigns' and `c->c_redirs'.
  * The new `redirlastp' is returned. */
@@ -1016,13 +1025,6 @@ redir_T **parse_assignments_and_redirects(command_T *c)
     c->c_redirs = NULL;
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
-#if YASH_ENABLE_ALIAS
-	if (alias_enabled) {
-	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, caliases, false);
-	    skip_blanks_and_comment();
-	}
-#endif
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -1032,6 +1034,13 @@ redir_T **parse_assignments_and_redirects(command_T *c)
 	} else {
 	    break;
 	}
+#if YASH_ENABLE_ALIAS
+	if (alias_enabled) {
+	    size_t len = count_name_length(is_alias_name_char);
+	    substitute_alias(&cbuf, cindex, len, caliases, AF_NONGLOBAL);
+	    skip_blanks_and_comment();
+	}
+#endif
     }
     return redirlastp;
 }
@@ -1054,7 +1063,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 #if YASH_ENABLE_ALIAS
 	if (!first && alias_enabled) {
 	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, caliases, true);
+	    substitute_alias(&cbuf, cindex, len, caliases, 0);
 	    skip_blanks_and_comment();
 	}
 #endif
@@ -1081,7 +1090,7 @@ void parse_redirect_list(redir_T **lastp)
 #if YASH_ENABLE_ALIAS
 	if (!posixly_correct && alias_enabled) {
 	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, caliases, true);
+	    substitute_alias(&cbuf, cindex, len, caliases, 0);
 	}
 #endif
 
@@ -1257,19 +1266,9 @@ parse_command:
     return result;
 }
 
-wordunit_T *parse_word(aliastype_T type)
-{
-    return parse_word_to(type, is_token_delimiter_char);
-}
-
 /* Expands an alias and parses a word at the current index.
- * `type' specifies the type of aliases to be expanded.
- * `testfunc' is a function that determines if a character is a word delimiter.
- * It must return true for L'\0'.
- * The parsing process proceeds up to an unescaped character `testfunc' returns
- * false for. It is not an error if there is no characters to be a word, in
- * which case NULL is returned. */
-wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
+ * `type' specifies the type of aliases to be expanded.  */
+wordunit_T *parse_word(aliastype_T type)
 {
 #if YASH_ENABLE_ALIAS
     if (alias_enabled) {
@@ -1279,7 +1278,8 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
 	case globalonly:
 	case anyalias:;
 	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, caliases, type == globalonly);
+	    substaliasflags_T flags = type == globalonly ? 0 : AF_NONGLOBAL;
+	    substitute_alias(&cbuf, cindex, len, caliases, flags);
 	    skip_blanks_and_comment();
 	    break;
 	}
@@ -1288,6 +1288,17 @@ wordunit_T *parse_word_to(aliastype_T type, bool testfunc(wchar_t c))
     (void) type;
 #endif
 
+    return parse_word_to(is_token_delimiter_char);
+}
+
+/* Parses a word at the current index.
+ * `testfunc' is a function that determines if a character is a word delimiter.
+ * It must return true for L'\0'.
+ * The parsing process proceeds up to an unescaped character `testfunc' returns
+ * false for. It is not an error if there is no characters to be a word, in
+ * which case NULL is returned. */
+wordunit_T *parse_word_to(bool testfunc(wchar_t c))
+{
     wordunit_T *first = NULL, **lastp = &first, *wu;
     bool indq = false;  /* in double quotes? */
     size_t startindex = cindex;
@@ -1532,12 +1543,12 @@ make_name:
     ensure_buffer(3);
     if (!posixly_correct && cbuf.contents[cindex] == L'[') {
 	cindex++;
-	pe->pe_start = parse_word_to(noalias, is_comma_or_closing_bracket);
+	pe->pe_start = parse_word_to(is_comma_or_closing_bracket);
 	if (!pe->pe_start)
 	    serror(Ngt("index missing"));
 	if (cbuf.contents[cindex] == L',') {
 	    cindex++;
-	    pe->pe_end = parse_word_to(noalias, is_comma_or_closing_bracket);
+	    pe->pe_end = parse_word_to(is_comma_or_closing_bracket);
 	    if (!pe->pe_end)
 		serror(Ngt("index missing"));
 	}
@@ -1606,10 +1617,10 @@ parse_match:
 	cindex += 1;
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
-	pe->pe_match = parse_word_to(noalias, is_closing_brace);
+	pe->pe_match = parse_word_to(is_closing_brace);
 	goto check_closing_paren_and_finish;
     } else {
-	pe->pe_match = parse_word_to(noalias, is_slash_or_closing_brace);
+	pe->pe_match = parse_word_to(is_slash_or_closing_brace);
     }
 
     ensure_buffer(1);
@@ -1617,7 +1628,7 @@ parse_match:
 	goto check_closing_paren_and_finish;
 parse_subst:
     cindex++;
-    pe->pe_subst = parse_word_to(noalias, is_closing_brace);
+    pe->pe_subst = parse_word_to(is_closing_brace);
 
 check_closing_paren_and_finish:
     ensure_buffer(1);

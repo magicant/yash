@@ -22,6 +22,9 @@ Yash 2.15
   *  Couldn't set a signal handler to the default by the "trap"
      builtin if the signal was ignored on invocation of an interactive
      shell.
+  *  Fixed accidental interruption of builtins by signals.
+  *  Fixed parser so that a non-simple command is properly parsed
+     after alias substitution.
   *  Various bug fixes
 
 ----------------------------------------------------------------------
