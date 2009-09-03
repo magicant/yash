@@ -318,7 +318,10 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	}
 
 	/* expand rd_filename */
-	char *filename = filename;
+	char *filename;
+#ifndef NDEBUG
+	filename = filename;
+#endif
 	switch (r->rd_type) {
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
 	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:

@@ -549,7 +549,7 @@ void exec_commands(command_T *c, exec_T type)
     job_T *job;
     process_T *ps, *pp;
     pipeinfo_T pinfo = PIPEINFO_INIT;
-    commandtype_T lasttype = lasttype;
+    commandtype_T lasttype;
 
     /* count the number of commands */
     count = 0;
@@ -561,8 +561,8 @@ void exec_commands(command_T *c, exec_T type)
     ps = job->j_procs;
 
     /* execute commands */
-    pgid = 0;
-    for (cc = c, pp = ps; cc != NULL; cc = cc->next, pp++) {
+    pgid = 0, cc = c, pp = ps;
+    do {
 	pid_t pid;
 
 	lasttype = cc->c_type;
@@ -582,7 +582,8 @@ void exec_commands(command_T *c, exec_T type)
 	pp->pr_name = NULL;   /* name is given later */
 	if (pgid == 0)
 	    pgid = pid;
-    }
+	cc = cc->next, pp++;
+    } while (cc != NULL);
     assert(type != execself); /* `exec_process' doesn't return for `execself' */
     assert(pinfo.pi_tonextfds[PIDX_IN] < 0);
     if (pinfo.pi_fromprevfd >= 0)

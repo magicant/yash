@@ -911,7 +911,7 @@ and_or_T *parse_and_or_list(void)
 pipeline_T *parse_pipelines_in_and_or(void)
 {
     pipeline_T *first = NULL, **lastp = &first;
-    bool cond = cond;
+    bool cond = false;
 
     for (;;) {
 	pipeline_T *p = parse_pipeline();

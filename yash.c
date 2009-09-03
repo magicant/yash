@@ -222,9 +222,15 @@ int main(int argc, char **argv)
     init_alias();
 #endif
 
+#ifdef NDEBUG
+    wchar_t *command;
+    FILE *input;
+    const char *inputname;
+#else
     wchar_t *command = command;
     FILE *input = input;
     const char *inputname = inputname;
+#endif
 
     if (shopt_read_arg && shopt_read_stdin) {
 	xerror(0, Ngt("both of -c and -s options cannot be used at once"));
@@ -525,7 +531,11 @@ void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
  * If there are no commands in `code', `laststatus' is set to 0. */
 void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
+#ifdef NDEBUG
+    struct execinfo *ei;
+#else
     struct execinfo *ei = ei;
+#endif
     if (!finally_exit)
 	ei = save_execinfo();
 
