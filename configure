@@ -35,7 +35,7 @@ copyrightyear="2007-2009"
 # object files to be linked as `yash'
 objs="arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o \
 option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o \
-wfnmatch.o yash.o"
+wfnmatch.o xfnmatch.o yash.o"
 # object files compiled into builtins.a
 builtin_objs=""
 builtins_archive="builtins.a"

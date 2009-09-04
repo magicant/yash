@@ -54,6 +54,8 @@ variable.c
 variable.h
 wfnmatch.c
 wfnmatch.h
+xfnmatch.c
+xfnmatch.h
 yash.c
 yash.h
 builtins/Makefile.deps
