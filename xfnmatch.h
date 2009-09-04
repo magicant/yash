@@ -19,35 +19,37 @@
 #ifndef YASH_XFNMATCH_H
 #define YASH_XFNMATCH_H
 
-#include <wchar.h>
+#include <stddef.h>
 
+typedef struct xfnmatch_T xfnmatch_T;
+typedef enum {
+    XFNM_SHORTEST = 1 << 0,
+    XFNM_HEADONLY = 1 << 1,
+    XFNM_TAILONLY = 1 << 2,
+    XFNM_NOESCAPE = 1 << 3,
+    XFNM_PERIOD   = 1 << 4,
+    XFNM_CASEFOLD = 1 << 5,
+} xfnmflags_T;
+typedef struct {
+    size_t start, end;
+} xfnmresult_T;
 
-/* values for the `flags' argument of `wfnmatch' */
-enum wfnmflags {
-    WFNM_NOESCAPE = 1 << 0,
-    WFNM_PATHNAME = 1 << 1,
-    WFNM_PERIOD   = 1 << 2,
-    WFNM_CASEFOLD = 1 << 3,
-};
-
-/* values for the `type' argument of `wfnmatch' */
-enum wfnmtype { WFNM_WHOLE, WFNM_LONGEST, WFNM_SHORTEST, };
-
-/* the return values that are returned on match failure and on error
- * respectively. */
-#define WFNM_NOMATCH ((size_t) -1)
-#define WFNM_ERROR   ((size_t) -2)
-
-extern size_t wfnmatch(const wchar_t *pat, const wchar_t *s,
-	enum wfnmflags flags, enum wfnmtype type)
-    __attribute__((nonnull));
-extern size_t wfnmatchl(const wchar_t *pat, const wchar_t *s,
-	enum wfnmflags flags, enum wfnmtype type, size_t shortest_match_length)
-    __attribute__((nonnull));
-extern size_t shortest_match_length(const wchar_t *pat, enum wfnmflags flags)
-    __attribute__((nonnull));
 extern _Bool pattern_has_special_char(const wchar_t *pat, _Bool pathname)
     __attribute__((pure,nonnull));
+
+extern xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flag)
+    __attribute__((malloc,warn_unused_result,nonnull));
+extern xfnmresult_T xfnm_match(
+	const xfnmatch_T *restrict xfnm, const char *restrict s)
+    __attribute__((nonnull));
+extern xfnmresult_T xfnm_wmatch(
+	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
+    __attribute__((nonnull));
+extern wchar_t *xfnm_subst(
+	const xfnmatch_T *restrict xfnm, const char *restrict s,
+	const wchar_t *restrict repl, _Bool substall)
+    __attribute__((malloc,warn_unused_result,nonnull));
+extern void xfnm_free(xfnmatch_T *xfnm);
 
 
 #endif /* YASH_XFNMATCH_H */
