@@ -38,9 +38,9 @@ struct xfnmatch_T {
  *  XFNM_TAILONLY:  only match at the end of string
  *  XFNM_PERIOD:    don't match with a string that starts with a period
  *  XFNM_CASEFOLD:  ignore case while matching
- * When XFNM_SHORTEST is specified, either XFNM_HEADONLY or XFNM_TAILONLY must
- * be also specified. When XFNM_PERIOD is specified, XFNM_HEADONLY must be also
- * specified. */
+ * When XFNM_SHORTEST is specified, either (but not both) of XFNM_HEADONLY and
+ * XFNM_TAILONLY must be also specified. When XFNM_PERIOD is specified,
+ * XFNM_HEADONLY must be also specified. */
 
 #define XFNM_HEADTAIL (XFNM_HEADONLY | XFNM_TAILONLY)
 #define MISMATCH ((xfnmresult_T) { (size_t) -1, (size_t) -1, })
@@ -166,9 +166,9 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
  *  XFNM_TAILONLY:  only match at the end of string
  *  XFNM_PERIOD:    force explicit match for a period at the beginning
  *  XFNM_CASEFOLD:  ignore case while matching
- * When XFNM_SHORTEST is specified, either XFNM_HEADONLY or XFNM_TAILONLY must
- * be also specified. When XFNM_PERIOD is specified, XFNM_HEADONLY must be also
- * specified.
+ * When XFNM_SHORTEST is specified, either (but not both) of XFNM_HEADONLY and
+ * XFNM_TAILONLY must be also specified. When XFNM_PERIOD is specified,
+ * XFNM_HEADONLY must be also specified.
  * Returns NULL on failure. */
 xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
 {
@@ -381,8 +381,8 @@ int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
 
 /* Performs matching on the given string `s' using the pre-compiled pattern
  * `xfnm'. On match, an xfnmresult_T structure is returned which shows the
- * offsets of the matched range in `s'. On mismatch, the returned structure's
- * members are all ((size_t) -1).
+ * character offsets of the matched range in `s'. On mismatch, the returned
+ * structure's members are all ((size_t) -1).
  * If the pattern has been compiled with both XFNM_HEADONLY and XFNM_TAILONLY
  * flags specified, only the `start' member of the returned structure is
  * significant and the `end' member's value is unspecified. */
@@ -397,6 +397,7 @@ xfnmresult_T xfnm_wmatch(
     }
     if (flags & XFNM_SHORTEST) {
 	if (flags & XFNM_HEADONLY) {
+	    assert(!(flags & XFNM_TAILONLY));
 	    return wmatch_shortest_head(&xfnm->regex, s);
 	} else {
 	    assert(flags & XFNM_TAILONLY);
@@ -410,19 +411,88 @@ xfnmresult_T xfnm_wmatch(
 xfnmresult_T wmatch_shortest_head(
 	const regex_t *restrict regex, const wchar_t *restrict s)
 {
-    return MISMATCH; //TODO
+    xstrbuf_T buf;
+    mbstate_t state;
+    size_t i;
+
+    sb_init(&buf);
+    memset(&state, 0, sizeof state);  /* initial shift state */
+    i = 0;
+    for (;;) {
+	if (regexec(regex, buf.contents, 0, NULL, 0) == 0) {
+	    /* successful match */
+	    break;
+	}
+	if (s[i] == L'\0') {
+	    /* mismatch */
+	    i = (size_t) -1;
+	    break;
+	}
+	if (!sb_wccat(&buf, s[i], &state)) {
+	    /* error */
+	    i = (size_t) -1;
+	    break;
+	}
+	i++;
+    }
+    sb_destroy(&buf);
+    return (xfnmresult_T) {
+	.start = (i == (size_t) -1) ? -1 : 0,
+	.end = i,
+    };
 }
 
 xfnmresult_T wmatch_shortest_tail(
 	const regex_t *restrict regex, const wchar_t *restrict s)
 {
-    return MISMATCH; //TODO
+    size_t i = 0;
+    xfnmresult_T result = MISMATCH;
+
+    for (;;) {
+	xfnmresult_T newresult = wmatch_longest(regex, s + i);
+	if (newresult.start == (size_t) -1)
+	    break;
+	newresult.start += i;
+	newresult.end += i;
+	result = newresult;
+	if (s[newresult.start] == L'\0')
+	    break;
+	i = newresult.start + 1;
+    }
+    return result;
 }
 
 xfnmresult_T wmatch_longest(
 	const regex_t *restrict regex, const wchar_t *restrict s)
 {
-    return MISMATCH; //TODO
+    regmatch_t match[1];
+    char *mbs = malloc_wcstombs(s);
+    int r = regexec(regex, mbs, 1, match, 0);
+
+    if (r != 0) {
+	free(mbs);
+	return MISMATCH;
+    }
+
+    /* Now convert the byte offsets into the character offsets */
+
+    const char *mbs2;
+    mbstate_t state;
+    xfnmresult_T result;
+
+    memset(&state, 0, sizeof state);  /* initial shift state */
+    mbs[match[0].rm_eo] = '\0';
+    mbs2 = mbs;
+    result.end = mbsrtowcs(NULL, &mbs2, 0, &state);
+    memset(&state, 0, sizeof state);
+    mbs[match[0].rm_so] = '\0';
+    mbs2 = mbs;
+    result.start = mbsrtowcs(NULL, &mbs2, 0, &state);
+
+    if (result.start == (size_t) -1 || result.end == (size_t) -1)
+	result = MISMATCH;
+    free(mbs);
+    return result;
 }
 
 wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const char *restrict s,
