@@ -59,7 +59,8 @@ static void append_as_collating_symbol(wchar_t c,
 
 /* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
  * If the result is false, the pattern is not a filename expansion pattern. */
-bool pattern_has_special_char(const wchar_t *pat, bool pathname)
+/* This function treats L'/' as an ordinary character. */
+bool is_matching_pattern(const wchar_t *pat)
 {
     for (;;) {
 	switch (*pat) {
@@ -125,6 +126,25 @@ wchar_t *skip_bracket(const wchar_t *pat)
 
 fail:
     return (wchar_t *) savepat;
+}
+
+/* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
+ * If the result is false, the pattern is not a filename expansion pattern.
+ * If the pattern contains slashes, components separated by the slashes are each
+ * checked by the `is_matching_pattern' function. */
+bool is_pathname_matching_pattern(const wchar_t *pat)
+{
+    const wchar_t *p;
+
+    while ((p = wcschr(pat, L'/'))) {
+	wchar_t buf[p - pat + 1];
+	wmemcpy(buf, pat, p - pat);
+	buf[p - pat] = L'\0';
+	if (!is_matching_pattern(buf))
+	    return false;
+	pat = p + 1;
+    }
+    return is_matching_pattern(pat);
 }
 
 /* Compiles a pattern.

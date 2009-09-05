@@ -33,7 +33,9 @@ typedef struct {
     size_t start, end;
 } xfnmresult_T;
 
-extern _Bool pattern_has_special_char(const wchar_t *pat, _Bool pathname)
+extern _Bool is_matching_pattern(const wchar_t *pat)
+    __attribute__((pure,nonnull));
+extern _Bool is_pathname_matching_pattern(const wchar_t *pat)
     __attribute__((pure,nonnull));
 
 extern xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)

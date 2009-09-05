@@ -422,7 +422,6 @@ wchar_t *check_char_class(const wchar_t *p, wint_t c, bool *match)
     return (wchar_t *) end + 2;
 }
 
-#if 0
 /* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
  * The WFNM_NOESCAPE flag is assumed not to be specified.
  * If the result is false, the pattern is not a filename expansion pattern. */
@@ -450,7 +449,6 @@ bool pattern_has_special_char(const wchar_t *pat, bool pathname)
 	}
     }
 }
-#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */
