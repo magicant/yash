@@ -51,6 +51,7 @@
 #include "util.h"
 #include "variable.h"
 #include "wfnmatch.h"
+#include "xfnmatch.h"
 #include "yash.h"
 
 
@@ -822,7 +823,7 @@ bool wglob_search(
 
     /* IF the pattern doesn't contain any pattern character, upescape the
      * pattern and check for the file. */
-    if (!pattern_has_special_char(pat, true)) {
+    if (!is_matching_pattern(pat)) {
 	struct stat st;
 	wchar_t *wentname = unescape(pat);
 	char *entname = malloc_wcstombs(wentname);

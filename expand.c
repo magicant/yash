@@ -39,6 +39,7 @@
 #include "util.h"
 #include "variable.h"
 #include "wfnmatch.h"
+#include "xfnmatch.h"
 #include "yash.h"
 
 
@@ -273,7 +274,7 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
     char *result;
 
     /* glob */
-    if (shopt_noglob || !pattern_has_special_char(exp, true)) {
+    if (shopt_noglob || !is_pathname_matching_pattern(exp)) {
 noglob:
 	result = realloc_wcstombs(unescapefree(exp));
 	if (!result)
@@ -1845,7 +1846,7 @@ void do_glob_each(void **restrict patterns, plist_T *restrict list)
 
     while (*patterns) {
 	wchar_t *pat = *patterns;
-	if (pattern_has_special_char(pat, true)) {
+	if (is_pathname_matching_pattern(pat)) {
 	    size_t oldlen = list->length;
 	    wglob(pat, flags, list);
 	    if (!shopt_nullglob && oldlen == list->length)

@@ -46,6 +46,7 @@
 #include "../strbuf.h"
 #include "../util.h"
 #include "../wfnmatch.h"
+#include "../xfnmatch.h"
 #include "../yash.h"
 #include "display.h"
 #include "editing.h"
@@ -3084,7 +3085,7 @@ void perform_search(const wchar_t *pattern,
 	    } else {
 		beginning = false;
 	    }
-	    if (pattern_has_special_char(pattern, false)) {
+	    if (is_matching_pattern(pattern)) {
 		minlen = shortest_match_length(pattern, 0);
 	    } else {
 		lpattern = realloc_wcstombs(unescape(pattern));
