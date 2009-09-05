@@ -83,7 +83,11 @@ int test_builtin(int argc, void **argv)
 	    test_error = true;
     }
 
+#ifdef NDEBUG
+    bool result;
+#else
     bool result = result;
+#endif
     if (!test_error) {
 	switch (argc) {
 	    case 0:  result = false;                 break;
