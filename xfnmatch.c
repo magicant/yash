@@ -38,9 +38,12 @@ struct xfnmatch_T {
  *  XFNM_TAILONLY:  only match at the end of string
  *  XFNM_PERIOD:    don't match with a string that starts with a period
  *  XFNM_CASEFOLD:  ignore case while matching
- */
+ * When XFNM_SHORTEST is specified, either XFNM_HEADONLY or XFNM_TAILONLY must
+ * be also specified. When XFNM_PERIOD is specified, XFNM_HEADONLY must be also
+ * specified. */
 
 #define XFNM_HEADTAIL (XFNM_HEADONLY | XFNM_TAILONLY)
+#define MISMATCH ((xfnmresult_T) { (size_t) -1, (size_t) -1, })
 
 static wchar_t *skip_bracket(const wchar_t *pat)
     __attribute__((nonnull));
@@ -54,6 +57,15 @@ static const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
     __attribute__((nonnull));
 static void append_as_collating_symbol(wchar_t c,
 	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+    __attribute__((nonnull));
+static xfnmresult_T wmatch_shortest_head(
+	const regex_t *restrict regex, const wchar_t *restrict s)
+    __attribute__((nonnull));
+static xfnmresult_T wmatch_shortest_tail(
+	const regex_t *restrict regex, const wchar_t *restrict s)
+    __attribute__((nonnull));
+static xfnmresult_T wmatch_longest(
+	const regex_t *restrict regex, const wchar_t *restrict s)
     __attribute__((nonnull));
 
 
@@ -154,6 +166,9 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
  *  XFNM_TAILONLY:  only match at the end of string
  *  XFNM_PERIOD:    force explicit match for a period at the beginning
  *  XFNM_CASEFOLD:  ignore case while matching
+ * When XFNM_SHORTEST is specified, either XFNM_HEADONLY or XFNM_TAILONLY must
+ * be also specified. When XFNM_PERIOD is specified, XFNM_HEADONLY must be also
+ * specified.
  * Returns NULL on failure. */
 xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
 {
@@ -346,19 +361,68 @@ void append_as_collating_symbol(wchar_t c,
     sb_wccat(buf, L']', state);
 }
 
-xfnmresult_T xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
+/* Performs matching on the given string `s' using the pre-compiled pattern
+ * `xfnm'. Returns 0 on successful match. On mismatch, an error number that is
+ * returned by `regexec' is returned.
+ * This function does not support the XFNM_SHORTEST flag. The given pattern must
+ * not have been compiled with the XFNM_SHORTEST flag. */
+int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
 {
-    // TODO
-    (void) xfnm, (void) s;
-    return (xfnmresult_T) { 0, 0 };
+    assert(!(xfnm->flags & XFNM_SHORTEST));
+
+    if (xfnm->flags & XFNM_PERIOD) {
+	assert(xfnm->flags & XFNM_HEADONLY);
+	if (s[0] == '.')
+	    return REG_NOMATCH;
+    }
+
+    return regexec(&xfnm->regex, s, 0, NULL, 0);
 }
 
+/* Performs matching on the given string `s' using the pre-compiled pattern
+ * `xfnm'. On match, an xfnmresult_T structure is returned which shows the
+ * offsets of the matched range in `s'. On mismatch, the returned structure's
+ * members are all ((size_t) -1).
+ * If the pattern has been compiled with both XFNM_HEADONLY and XFNM_TAILONLY
+ * flags specified, only the `start' member of the returned structure is
+ * significant and the `end' member's value is unspecified. */
 xfnmresult_T xfnm_wmatch(
 	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
 {
-    // TODO
-    (void) xfnm, (void) s;
-    return (xfnmresult_T) { 0, 0 };
+    xfnmflags_T flags = xfnm->flags;
+    if (flags & XFNM_PERIOD) {
+	assert(flags & XFNM_HEADONLY);
+	if (s[0] == L'.')
+	    return MISMATCH;
+    }
+    if (flags & XFNM_SHORTEST) {
+	if (flags & XFNM_HEADONLY) {
+	    return wmatch_shortest_head(&xfnm->regex, s);
+	} else {
+	    assert(flags & XFNM_TAILONLY);
+	    return wmatch_shortest_tail(&xfnm->regex, s);
+	}
+    } else {
+	return wmatch_longest(&xfnm->regex, s);
+    }
+}
+
+xfnmresult_T wmatch_shortest_head(
+	const regex_t *restrict regex, const wchar_t *restrict s)
+{
+    return MISMATCH; //TODO
+}
+
+xfnmresult_T wmatch_shortest_tail(
+	const regex_t *restrict regex, const wchar_t *restrict s)
+{
+    return MISMATCH; //TODO
+}
+
+xfnmresult_T wmatch_longest(
+	const regex_t *restrict regex, const wchar_t *restrict s)
+{
+    return MISMATCH; //TODO
 }
 
 wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const char *restrict s,

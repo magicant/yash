@@ -40,7 +40,7 @@ extern _Bool is_pathname_matching_pattern(const wchar_t *pat)
 
 extern xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
     __attribute__((malloc,warn_unused_result,nonnull));
-extern xfnmresult_T xfnm_match(
+extern int xfnm_match(
 	const xfnmatch_T *restrict xfnm, const char *restrict s)
     __attribute__((nonnull));
 extern xfnmresult_T xfnm_wmatch(
