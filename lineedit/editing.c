@@ -3062,8 +3062,12 @@ void perform_search(const wchar_t *pattern,
 {
     const histentry_T *e = main_history_entry;
     char *lpattern = NULL;
-    size_t minlen = minlen;
     bool beginning;
+#ifdef NDEBUG
+    size_t minlen;
+#else
+    size_t minlen = minlen;
+#endif
 
     if (dir == FORWARD && e == Histlist)
 	goto done;

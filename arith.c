@@ -456,9 +456,10 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
     bool saveparseonly = info->parseonly;
     parse_logical_and(info, result);
     while (info->token.type == TT_PIPEPIPE) {
+#ifdef NDEBUG
 	bool lhs, value, valid = true;
-#ifndef NDEBUG
-	value = value;
+#else
+	bool lhs, value = value, valid = true;
 #endif
 	coerce_number(info, result);
 	next_token(info);
@@ -493,9 +494,10 @@ void parse_logical_and(evalinfo_T *info, value_T *result)
     bool saveparseonly = info->parseonly;
     parse_inclusive_or(info, result);
     while (info->token.type == TT_AMPAMP) {
+#ifdef NDEBUG
 	bool lhs, value, valid = true;
-#ifndef NDEBUG
-	value = value;
+#else
+	bool lhs, value = value, valid = true;
 #endif
 	coerce_number(info, result);
 	next_token(info);
