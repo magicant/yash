@@ -218,7 +218,7 @@ void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
  * Backslash escaping is recognized in the original pattern.
  * `*pat' must be the opening bracket '['.
  * If a bracket pattern is successfully converted, a pointer to the closing
- * bracket ']' is returned. Otherwise, a single bracket character '[' is
+ * bracket ']' is returned. Otherwise, an escaped bracket character '\[' is
  * appended to `buf' and `pat' is returned. */
 const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
 	xstrbuf_T *restrict buf, mbstate_t *restrict state)
@@ -232,6 +232,10 @@ const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
     pat++;
     if (*pat == L'!' || *pat == L'^') {
 	sb_wccat(buf, L'^', state);
+	pat++;
+    }
+    if (*pat == L']') {
+	sb_wccat(buf, L']', state);
 	pat++;
     }
     for (;;) {
@@ -248,7 +252,7 @@ const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
 		switch (*pat) {
 		    case L'\0':
 			goto fail;
-		    case L'[':  case L'-':  case L']':
+		    case L'[':  case L'^':  case L'-':  case L']':
 			append_as_collating_symbol(*pat, buf, state);
 			break;
 		    default:
@@ -269,6 +273,7 @@ fail:
     buf->contents[buf->length = savelength] = '\0';
 	// sb_remove(buf, savelength, SIZE_MAX);
     *state = savestate;
+    sb_wccat(buf, L'\\', state);
     sb_wccat(buf, L'[', state);
     return savepat;
 }
