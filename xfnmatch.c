@@ -140,8 +140,8 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
 	wchar_t buf[p - pat + 1];
 	wmemcpy(buf, pat, p - pat);
 	buf[p - pat] = L'\0';
-	if (!is_matching_pattern(buf))
-	    return false;
+	if (is_matching_pattern(buf))
+	    return true;
 	pat = p + 1;
     }
     return is_matching_pattern(pat);
