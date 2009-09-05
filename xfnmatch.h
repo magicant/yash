@@ -26,9 +26,8 @@ typedef enum {
     XFNM_SHORTEST = 1 << 0,
     XFNM_HEADONLY = 1 << 1,
     XFNM_TAILONLY = 1 << 2,
-    XFNM_NOESCAPE = 1 << 3,
-    XFNM_PERIOD   = 1 << 4,
-    XFNM_CASEFOLD = 1 << 5,
+    XFNM_PERIOD   = 1 << 3,
+    XFNM_CASEFOLD = 1 << 4,
 } xfnmflags_T;
 typedef struct {
     size_t start, end;
@@ -37,7 +36,7 @@ typedef struct {
 extern _Bool pattern_has_special_char(const wchar_t *pat, _Bool pathname)
     __attribute__((pure,nonnull));
 
-extern xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flag)
+extern xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern xfnmresult_T xfnm_match(
 	const xfnmatch_T *restrict xfnm, const char *restrict s)

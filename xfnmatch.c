@@ -21,68 +21,43 @@
 #include <regex.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 #include "strbuf.h"
+#include "util.h"
 #include "xfnmatch.h"
 
 
-static wchar_t *skip_bracket(const wchar_t *pat, bool pathname)
+struct xfnmatch_T {
+    xfnmflags_T flags;
+    regex_t regex;
+};
+/* The flags are logical OR of the followings:
+ *  XFNM_SHORTEST:  do shortest match
+ *  XFNM_HEADONLY:  only match at the beginning of string
+ *  XFNM_TAILONLY:  only match at the end of string
+ *  XFNM_PERIOD:    don't match with a string that starts with a period
+ *  XFNM_CASEFOLD:  ignore case while matching
+ */
+
+#define XFNM_HEADTAIL (XFNM_HEADONLY | XFNM_TAILONLY)
+
+static wchar_t *skip_bracket(const wchar_t *pat)
+    __attribute__((nonnull));
+static void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
+    __attribute__((nonnull));
+static const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
+	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+    __attribute__((nonnull));
+static const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
+	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+    __attribute__((nonnull));
+static void append_as_collating_symbol(wchar_t c,
+	xstrbuf_T *restrict buf, mbstate_t *restrict state)
     __attribute__((nonnull));
 
 
-/* Skips a bracket expression starting with L'[' and returns a pointer to the
- * closing L']'. If no corresponding L']' is found, returns `pat'. */
-wchar_t *skip_bracket(const wchar_t *pat, bool pathname)
-{
-    const wchar_t *savepat = pat;
-    assert(*pat == L'[');
-    pat++;
-
-    for (;;) {
-	switch (*pat) {
-	    case L'\0':
-		goto fail;
-	    case L'[':
-		pat++;
-		const wchar_t *p;
-		switch (*pat) {
-		    case L'.':
-			p = wcsstr(pat + 1, L".]");
-			break;
-		    case L':':
-			p = wcsstr(pat + 1, L":]");
-			break;
-		    case L'=':
-			p = wcsstr(pat + 1, L"=]");
-			break;
-		    default:
-			continue;
-		}
-		if (!p)
-		    goto fail;
-		pat = p + 2;
-		continue;
-	    case L']':
-		if (pat > savepat + 1)
-		    return (wchar_t *) pat + 1;
-		break;
-	    case L'/':
-		/* L'/' is not allowed inside a bracket expr if PATHNAME. */
-		if (pathname)
-		    goto fail;
-		break;
-	    default:
-		break;
-	}
-	pat++;
-    }
-
-fail:
-    return (wchar_t *) savepat;
-}
-
 /* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
- * The WFNM_NOESCAPE flag is assumed not to be specified.
  * If the result is false, the pattern is not a filename expansion pattern. */
 bool pattern_has_special_char(const wchar_t *pat, bool pathname)
 {
@@ -99,7 +74,7 @@ bool pattern_has_special_char(const wchar_t *pat, bool pathname)
 	    case L'*':  case L'?':
 		return true;
 	    case L'[':
-		if (skip_bracket(pat, pathname) != pat)
+		if (skip_bracket(pat) != pat)
 		    return true;
 		/* falls thru! */
 	    default:
@@ -109,20 +84,241 @@ bool pattern_has_special_char(const wchar_t *pat, bool pathname)
     }
 }
 
+/* Skips a bracket expression starting with L'[' and returns a pointer to the
+ * closing L']'. If no corresponding L']' is found, returns `pat'. Backslash
+ * escaping is recognized in the bracket expression. */
+wchar_t *skip_bracket(const wchar_t *pat)
+{
+    const wchar_t *savepat = pat;
+    assert(*pat == L'[');
+    pat++;
+
+    for (;;) {
+	switch (*pat) {
+	    case L'\0':
+		goto fail;
+	    case L'[':
+		pat++;
+		const wchar_t *p;
+		switch (*pat) {
+		    case L'.':  p = wcsstr(pat + 1, L".]");  break;
+		    case L':':  p = wcsstr(pat + 1, L":]");  break;
+		    case L'=':  p = wcsstr(pat + 1, L"=]");  break;
+		    default:    continue;
+		}
+		if (!p)
+		    goto fail;
+		pat = p + 2;
+		continue;
+	    case L']':
+		if (pat > savepat + 1)
+		    return (wchar_t *) pat;
+		break;
+	    case L'\\':
+		pat++;
+		if (*pat == L'\0')
+		    goto fail;
+		break;
+	}
+	pat++;
+    }
+
+fail:
+    return (wchar_t *) savepat;
+}
+
 /* Compiles a pattern.
- * The flag is logical OR of the followings:
+ * The flags are logical OR of the followings:
  *  XFNM_SHORTEST:  do shortest match
  *  XFNM_HEADONLY:  only match at the beginning of string
  *  XFNM_TAILONLY:  only match at the end of string
- *  XFNM_NOESCAPE:  treat `pat' as a literal string
  *  XFNM_PERIOD:    force explicit match for a period at the beginning
  *  XFNM_CASEFOLD:  ignore case while matching
- */
-xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flag)
+ * Returns NULL on failure. */
+xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
 {
-    // TODO
-    (void) pat, (void) flag;
-    return NULL;
+    xstrbuf_T buf;
+
+    sb_init(&buf);
+    if (flags & XFNM_HEADONLY)
+	sb_ccat(&buf, '^');
+    encode_pattern(pat, &buf);
+    if (flags & XFNM_TAILONLY)
+	sb_ccat(&buf, '$');
+
+    if (flags & XFNM_PERIOD)
+	if (pat[0] == L'.' || pat[0] == L'\\')
+	    flags &= ~XFNM_PERIOD;
+
+    xfnmatch_T *xfnm = xmalloc(sizeof *xfnm);
+    xfnm->flags = flags;
+
+    int regexflags = 0;
+    if (flags & XFNM_CASEFOLD)
+	regexflags |= REG_ICASE;
+    if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL)
+	regexflags |= REG_NOSUB;
+
+    int err = regcomp(&xfnm->regex, buf.contents, regexflags);
+
+    sb_destroy(&buf);
+    if (err) {
+	free(xfnm);
+	xfnm = NULL;
+    }
+    return xfnm;
+}
+
+/* Converts a pathname matching pattern into a regex pattern.
+ * The result is appended to `buf', which must be in the initial shift state
+ * when the function is called and is terminated in the initial shift state when
+ * the function returns. */
+/* A trailing backslash, escaping the terminating null character, is ignored.
+ * This is useful for pathname expansion as the pattern "f*o\/b?r" for example
+ * is separated into "f*o\" and "b?r" and each matched for filenames. */
+void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
+{
+    mbstate_t state;
+
+    memset(&state, 0, sizeof state);  /* initial shift state */
+    for (;;) {
+	switch (*pat) {
+	    case L'?':
+		sb_wccat(buf, L'.', &state);
+		break;
+	    case L'*':
+		sb_wccat(buf, L'.', &state);
+		sb_wccat(buf, L'*', &state);
+		break;
+	    case L'[':
+		pat = encode_pattern_bracket(pat, buf, &state);
+		break;
+	    case L'\\':
+		switch (*++pat) {
+		    case L'.':  case L'*':  case L'[':
+		    case L'^':  case L'$':  case L'\\':
+			goto escape;
+		    default:
+			goto ordinary;
+		}
+	    case L'.':  case L'^':  case L'$':  escape:
+		sb_wccat(buf, L'\\', &state);
+		/* falls thru */
+	    default:  ordinary:
+		sb_wccat(buf, *pat, &state);
+		if (*pat == L'\0')
+		    return;
+		break;
+	}
+	pat++;
+    }
+}
+
+/* Converts a bracket pattern of pathname matching pattern into that of regex.
+ * Backslash escaping is recognized in the original pattern.
+ * `*pat' must be the opening bracket '['.
+ * If a bracket pattern is successfully converted, a pointer to the closing
+ * bracket ']' is returned. Otherwise, a single bracket character '[' is
+ * appended to `buf' and `pat' is returned. */
+const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
+	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+{
+    const wchar_t *savepat = pat;
+    size_t savelength = buf->length;
+    mbstate_t savestate = *state;
+
+    assert(*pat == L'[');
+    sb_wccat(buf, L'[', state);
+    pat++;
+    if (*pat == L'!' || *pat == L'^') {
+	sb_wccat(buf, L'^', state);
+	pat++;
+    }
+    for (;;) {
+	switch (*pat) {
+	    case L'\0':
+		goto fail;
+	    case L'[':
+		pat = encode_pattern_bracket2(pat, buf, state);
+		if (pat == NULL)
+		    goto fail;
+		break;
+	    case L'\\':
+		pat++;
+		switch (*pat) {
+		    case L'\0':
+			goto fail;
+		    case L'[':  case L'-':  case L']':
+			append_as_collating_symbol(*pat, buf, state);
+			break;
+		    default:
+			sb_wccat(buf, *pat, state);
+			break;
+		}
+		break;
+	    default:
+		sb_wccat(buf, *pat, state);
+		if (*pat == L']')
+		    return pat;
+		break;
+	}
+	pat++;
+    }
+
+fail:
+    buf->contents[buf->length = savelength] = '\0';
+	// sb_remove(buf, savelength, SIZE_MAX);
+    *state = savestate;
+    sb_wccat(buf, L'[', state);
+    return savepat;
+}
+
+/* Converts a collating symbol, equivalence class or character class pattern.
+ * `*pat' must be the opening bracket '[' that is supposed to be the beginning
+ * of one of those patterns.
+ * If a pattern is successfully converted, a pointer to the corresponding
+ * closing bracket ']' is returned. If `*pat' is not followed by any of '.', ':'
+ * and '=', then a single bracket character is appended to `buf' and `pat' is
+ * returned. If no corresponding closing bracket is found, NULL is returned. */
+const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
+	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+{
+    const wchar_t *savepat = pat;
+    const wchar_t *p;
+
+    assert(*pat == L'[');
+    switch (*(pat + 1)) {
+	case L'.':  p = wcsstr(pat + 2, L".]");  break;
+	case L':':  p = wcsstr(pat + 2, L":]");  break;
+	case L'=':  p = wcsstr(pat + 2, L"=]");  break;
+	default:    goto not_a_pattern;
+    }
+    if (!p)
+	return NULL;
+    for (;;) {
+	if (*pat == L'\\')
+	    pat++;
+	sb_wccat(buf, *pat, state);
+	if (pat > p)
+	    break;
+	pat++;
+    }
+    assert(*pat == L']');
+    return pat;
+
+not_a_pattern:
+    sb_wccat(buf, L'[', state);
+    return savepat;
+}
+
+void append_as_collating_symbol(wchar_t c,
+	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+{
+    sb_wccat(buf, L'[', state);
+    sb_wccat(buf, L'.', state);
+    sb_wccat(buf, c,    state);
+    sb_wccat(buf, L'.', state);
+    sb_wccat(buf, L']', state);
 }
 
 xfnmresult_T xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
@@ -151,8 +347,10 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const char *restrict s,
 /* Frees a compiled pattern. */
 void xfnm_free(xfnmatch_T *xfnm)
 {
-    //TODO
-    (void) xfnm;
+    if (xfnm != NULL) {
+	regfree(&xfnm->regex);
+	free(xfnm);
+    }
 }
 
 
