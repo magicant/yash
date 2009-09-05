@@ -176,7 +176,10 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     }
     assert(0 < count && count <= buf->maxlength - buf->length);
     buf->length += count;
-    buf->contents[buf->length] = '\0';
+    if (c == L'\0')
+	buf->length--, assert(buf->contents[buf->length] == '\0');
+    else
+	buf->contents[buf->length] = '\0';
     return true;
 }
 
