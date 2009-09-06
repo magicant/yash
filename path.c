@@ -50,7 +50,6 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "wfnmatch.h"
 #include "xfnmatch.h"
 #include "yash.h"
 
@@ -667,29 +666,73 @@ void forget_home_directory(const wchar_t *username)
 
 /********** wglob **********/
 
-enum wglbrflags {
-    WGLB_followlink = 1 << 0,
-    WGLB_period     = 1 << 1,
+struct wglob_pattern {
+    struct wglob_pattern *next;
+    enum {
+	WGLOB_LITERAL, WGLOB_MATCH, WGLOB_RECSEARCH,
+    } type;
+    union {
+	struct {
+	    char *name;
+	    const wchar_t *wname;
+	} literal;
+	struct {
+	    xfnmatch_T *pattern;
+	} match;
+	struct {
+	    bool followlink, allowperiod;
+	} recsearch;
+    } value;
+};
+struct wglob_dirstack {
+    struct wglob_dirstack *prev;
+    struct stat st;
 };
 
+static struct wglob_pattern *wglob_parse_pattern(
+	wchar_t *pat, enum wglbflags flags)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static struct wglob_pattern *wglob_create_recsearch_pattern(
+	bool followlink, bool allowperiod)
+    __attribute__((malloc,warn_unused_result));
+static struct wglob_pattern *wglob_parse_pattern_part(
+	wchar_t *pat, enum wglbflags flags)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static void wglob_free_pattern(struct wglob_pattern *p);
 static int wglob_sortcmp(const void *v1, const void *v2)
     __attribute__((pure,nonnull));
-static bool wglob_search(const wchar_t *restrict pattern, enum wglbflags flags,
-	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict dirstack, plist_T *restrict list)
+static void wglob_search(
+	const struct wglob_pattern *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
+	plist_T *restrict list)
     __attribute__((nonnull));
-static bool wglob_start_recursive_search(const wchar_t *restrict pattern,
-	enum wglbflags flags, enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict dirstack, plist_T *restrict list)
+static void wglob_search_literal(
+	const struct wglob_pattern *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
+	plist_T *restrict list)
     __attribute__((nonnull));
-static bool wglob_recursive_search(const wchar_t *restrict pattern,
-	enum wglbflags flags, enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname, xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict dirstack, plist_T *restrict list)
+static void wglob_search_match(
+	const struct wglob_pattern *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
+	plist_T *restrict list)
     __attribute__((nonnull));
-static bool is_reentry(const struct stat *st, const plist_T *dirstack)
-    __attribute__((pure,nonnull));
+static void wglob_search_recsearch(
+	const struct wglob_pattern *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
+	plist_T *restrict list,
+	struct wglob_dirstack *dirstack)
+    __attribute__((nonnull(1,3,4,5)));
+static bool is_reentry(
+	const struct stat *st, const struct wglob_dirstack *dirstack)
+    __attribute__((nonnull(1)));
 
 /* A wide string version of `glob'.
  * Adds all pathnames that matches the specified pattern.
@@ -710,30 +753,24 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	plist_T *restrict list)
 {
     size_t listbase = list->length;
-    xstrbuf_T dir;
-    xwcsbuf_T wdir;
-    plist_T dirstack;
+    xstrbuf_T path;
+    xwcsbuf_T wpath;
+    struct wglob_pattern *p;
 
-    if (!pattern[0])
+    if (!pattern[0] != L'\0') // TODO do we really need this?
 	return true;
 
-    sb_init(&dir);
-    wb_init(&wdir);
-    if (flags & WGLB_RECDIR)
-	pl_init(&dirstack);
-    while (pattern[0] == L'/') {
-	sb_ccat(&dir, '/');
-	wb_wccat(&wdir, L'/');
-	pattern++;
-    }
-
-    bool succ = wglob_search(pattern, flags, &dir, &wdir, &dirstack, list);
-    sb_destroy(&dir);
-    wb_destroy(&wdir);
-    if (flags & WGLB_RECDIR)
-	pl_destroy(&dirstack);
-    if (!succ)
+    wchar_t savepattern[wcslen(pattern) + 1];
+    p = wglob_parse_pattern(wcscpy(savepattern, pattern), flags);
+    if (p == NULL)
 	return false;
+
+    sb_init(&path);
+    wb_init(&wpath);
+    wglob_search(p, flags, &path, &wpath, list);
+    sb_destroy(&path);
+    wb_destroy(&wpath);
+    wglob_free_pattern(p);
 
     if (!(flags & WGLB_NOSORT)) {
 	size_t count = list->length - listbase;  /* # of resulting items */
@@ -752,262 +789,291 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
     return true;
 }
 
+/* Parses a matching pattern.
+ * The pattern string `pat' may be modified in this function and must be
+ * unchanged until the returned results are freed by `wglob_free_pattern'.
+ * WGLB_CASEFOLD, WGLB_PERIOD and WGLB_RECDIR in `flags' affect the results. */
+struct wglob_pattern *wglob_parse_pattern(wchar_t *pat, enum wglbflags flags)
+{
+    struct wglob_pattern *result = NULL, **lastp = &result;
+    struct wglob_pattern *p;
+
+    for (;;) {
+	wchar_t *slash = wcschr(pat, L'/');
+	if (slash != NULL) {
+	    *slash = L'\0';
+	    if (!(flags & WGLB_RECDIR))
+		goto normal;
+	    if (wcscmp(pat, L"**") == 0)
+		p = wglob_create_recsearch_pattern(false, false);
+	    else if (wcscmp(pat, L"***") == 0)
+		p = wglob_create_recsearch_pattern(true, false);
+	    else if (wcscmp(pat, L".**") == 0)
+		p = wglob_create_recsearch_pattern(false, true);
+	    else if (wcscmp(pat, L".***") == 0)
+		p = wglob_create_recsearch_pattern(true, true);
+	    else
+		goto normal;
+	} else {
+normal:
+	    p = wglob_parse_pattern_part(pat, flags);
+	}
+	if (p == NULL)
+	    goto fail;
+	*lastp = p;
+	lastp = &p->next;
+	if (slash == NULL)
+	    return result;
+	pat = slash + 1;
+    }
+
+fail:
+    wglob_free_pattern(result);
+    return NULL;
+}
+
+struct wglob_pattern *wglob_create_recsearch_pattern(
+	bool followlink, bool allowperiod)
+{
+    struct wglob_pattern *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->type = WGLOB_RECSEARCH;
+    result->value.recsearch.followlink = followlink;
+    result->value.recsearch.allowperiod = allowperiod;
+    return result;
+}
+
+/* Parses a matching pattern for one pathname component.
+ * `pat' must not contain a slash. */
+struct wglob_pattern *wglob_parse_pattern_part(
+	wchar_t *pat, enum wglbflags flags)
+{
+    struct wglob_pattern *result = xmalloc(sizeof *result);
+    result->next = NULL;
+
+    assert(!wcschr(pat, L'/'));
+    if (is_matching_pattern(pat)) {
+	xfnmflags_T xflags = XFNM_HEADONLY | XFNM_TAILONLY;
+	if (flags & WGLB_CASEFOLD)
+	    xflags |= XFNM_CASEFOLD;
+	if (!(flags & WGLB_PERIOD))
+	    xflags |= XFNM_PERIOD;
+	result->type = WGLOB_MATCH;
+	result->value.match.pattern = xfnm_compile(pat, xflags);
+	if (!result->value.match.pattern)
+	    goto fail;
+    } else {
+	wchar_t *value = unescape(pat);
+	assert(wcslen(value) <= wcslen(pat));
+	result->type = WGLOB_LITERAL;
+	result->value.literal.wname = wcscpy(pat, value);
+	result->value.literal.name = realloc_wcstombs(value);
+	if (!result->value.literal.name)
+	    goto fail;
+    }
+    return result;
+
+fail:
+    free(result);
+    return NULL;
+}
+
+void wglob_free_pattern(struct wglob_pattern *p)
+{
+    while (p) {
+	struct wglob_pattern *next = p->next;
+	switch (p->type) {
+	    case WGLOB_LITERAL:
+		free(p->value.literal.name);
+		break;
+	    case WGLOB_MATCH:
+		xfnm_free(p->value.match.pattern);
+		break;
+	    case WGLOB_RECSEARCH:
+		break;
+	}
+	free(p);
+	p = next;
+    }
+}
+
 /* This function is passed to `qsort' in `wglob'. */
 int wglob_sortcmp(const void *v1, const void *v2)
 {
     return wcscoll(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
 }
 
-/* Searches the specified directory and add filenames that match the pattern.
- * `dirname' is the name of directory to search, ending with '/' or empty.
- * `wdirname' is a wide string version of `dirname'.
- * For the meaning of the other arguments, see `wglob'.
- * `pattern' must not start with L'/'.
- * `dirname' must end with '/' except when empty. An empty `dirname' specifies
- * the current directory. Though the contents of `dirname' may be changed
- * during this function, the contents are restored when the function returns.
- * `wdirname' must contain the same string as that of `dirname' and the same
- * properties apply. */
-bool wglob_search(
-	const wchar_t *restrict pattern,
+/* Searches the directory designated in `path' and add matching pathnames to
+ * `list'.
+ * `path' and `wpath' must contain the same pathname, which must be empty or
+ * end with a slash. The contents of `path' and `wpath' may be changed in this
+ * function, but when the function returns the contents are restored to the
+ * original value.
+ * Only the WGLB_MARK flag in `flags' affects the results. */
+void wglob_search(
+	const struct wglob_pattern *restrict pattern,
 	enum wglbflags flags,
-	xstrbuf_T *restrict const dirname,
-	xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict dirstack,
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
 {
-    const size_t savedirlen = dirname->length;
-    const size_t savewdirlen = wdirname->length;
-    bool ok = true;
-#define RESTORE_DIRNAME \
-    ((void) (dirname->contents[dirname->length = savedirlen] = '\0'))
-#define RESTORE_WDIRNAME \
-    ((void) (wdirname->contents[wdirname->length = savewdirlen] = L'\0'))
+    const size_t savepathlen = path->length; // TODO should be here?
+    const size_t savewpathlen = wpath->length;
 
-    assert(pattern[0] != L'/');
-    if (!pattern[0]) {
-	/* If the pattern is empty, add `dirname' itself
-	 * except when `dirname' is also empty.
-	 * Note that `is_directory' returns false for an empty string. */
-	if (is_directory(dirname->contents))
-	    pl_add(list, xwcsdup(wdirname->contents));
-	return true;
-    } else if (flags & WGLB_RECDIR) {
-	/* check if it's a recursive search pattern */
-	const wchar_t *p = pattern;
-	enum wglbrflags rflags = 0;
-	if (p[0] == L'.') {
-	    rflags |= WGLB_period;
-	    p++;
-	}
-	if (wcsncmp(p, L"**/", 3) == 0) {
-	    p += 3;
-	    while (p[0] == L'/') p++;
-	    return wglob_start_recursive_search(
-		    p, flags, rflags, dirname, wdirname, dirstack, list);
-	} else if (wcsncmp(p, L"***/", 4) == 0) {
-	    rflags |= WGLB_followlink;
-	    p += 4;
-	    while (p[0] == L'/') p++;
-	    return wglob_start_recursive_search(
-		    p, flags, rflags, dirname, wdirname, dirstack, list);
-	}
+    //assert(path->length == 0 || path->contents[path->length - 1] == '/');
+    assert(wpath->length == 0 || wpath->contents[wpath->length - 1] == L'/');
+    switch (pattern->type) {
+	case WGLOB_LITERAL:
+	    wglob_search_literal(pattern, flags, path, wpath, list);
+	    break;
+	case WGLOB_MATCH:
+	    wglob_search_match(pattern, flags, path, wpath, list);
+	    break;
+	case WGLOB_RECSEARCH:
+	    wglob_search_recsearch(pattern, flags, path, wpath, list, NULL);
+	    break;
     }
 
-    size_t patlen = wcscspn(pattern, L"/");
-    bool is_leaf = (pattern[patlen] == L'\0');
-    wchar_t pat[patlen + 1];
-    wcsncpy(pat, pattern, patlen);
-    pat[patlen] = L'\0';
+    // sb_remove(path, savepathlen, SIZE_MAX);
+    // wb_remove(wpath, savewpathlen, SIZE_MAX);
+    path->contents[path->length = savepathlen] = '\0';
+    wpath->contents[wpath->length = savewpathlen] = L'\0';
+}
 
-    /* IF the pattern doesn't contain any pattern character, upescape the
-     * pattern and check for the file. */
-    if (!is_matching_pattern(pat)) {
+void wglob_search_literal(
+	const struct wglob_pattern *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
+	plist_T *restrict list)
+{
+    assert(pattern->type == WGLOB_LITERAL);
+    if (pattern->next == NULL) {
 	struct stat st;
-	wchar_t *wentname = unescape(pat);
-	char *entname = malloc_wcstombs(wentname);
-	sb_catfree(dirname, entname);
-	wb_catfree(wdirname, wentname);
-	if (is_leaf) {
-	    if (stat(dirname->contents, &st) >= 0) {
+	sb_cat(path, pattern->value.literal.name);
+	if (stat(path->contents, &st) >= 0) {
+	    if (pattern->value.literal.wname[0] != L'\0') {
+		wb_cat(wpath, pattern->value.literal.wname);
 		if ((flags & WGLB_MARK) && S_ISDIR(st.st_mode))
-		    wb_wccat(wdirname, L'/');
-		pl_add(list, xwcsdup(wdirname->contents));
+		    wb_wccat(wpath, L'/');
 	    }
-	} else {
-	    assert(pattern[patlen] == L'/');
-	    sb_ccat(dirname, '/');
-	    wb_wccat(wdirname, L'/');
-	    const wchar_t *subpat = pattern + patlen + 1;
-	    while (*subpat == L'/') {
-		sb_ccat(dirname, '/');
-		wb_wccat(wdirname, L'/');
-		subpat++;
-	    }
-	    ok = wglob_search(
-		    subpat, flags, dirname, wdirname, dirstack, list);
+	    pl_add(list, xwcsdup(wpath->contents));
 	}
-	RESTORE_DIRNAME;
-	RESTORE_WDIRNAME;
-	return true;
+    } else {
+	sb_ccat(sb_cat(path, pattern->value.literal.name), '/');
+	wb_wccat(wb_cat(wpath, pattern->value.literal.wname), L'/');
+	wglob_search(pattern->next, flags, path, wpath, list);
     }
+}
 
-    DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
+void wglob_search_match(
+	const struct wglob_pattern *restrict pattern,
+	enum wglbflags flags,
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
+	plist_T *restrict list)
+{
+    assert(pattern->type == WGLOB_MATCH);
+
+    DIR *dir = opendir((path->length == 0) ? "." : path->contents);
     if (!dir)
-	return true;
+	return;
 
-    enum wfnmflags wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
-    if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
-    if (flags & WGLB_PERIOD)   wfnmflags &= ~WFNM_PERIOD;
-
-    size_t sml = shortest_match_length(pat, wfnmflags);
-
+    const size_t savepathlen = path->length;
+    const size_t savewpathlen = wpath->length;
     struct dirent *de;
-    while (ok && (de = readdir(dir))) {
-	wchar_t *wentname = malloc_mbstowcs(de->d_name);
-	if (!wentname)
-	    continue;
+    while ((de = readdir(dir))) {
+	if (xfnm_match(pattern->value.match.pattern, de->d_name) == 0) {
+	    wchar_t *wname = malloc_mbstowcs(de->d_name);
+	    if (!wname)
+		continue;
 
-	size_t match = wfnmatchl(pat, wentname, wfnmflags, WFNM_WHOLE, sml);
-	if (match == WFNM_ERROR) {
-	    ok = false;
-	} else if (match != WFNM_NOMATCH) {
-	    /* matched! */
-	    if (is_leaf) {
-		/* add the matched pathname to the list */
-		wb_cat(wdirname, wentname);
+	    wb_catfree(wpath, wname);
+	    sb_cat(path, de->d_name);
+	    if (pattern->next == NULL) {
 		if (flags & WGLB_MARK) {
-		    sb_cat(dirname, de->d_name);
-		    if (is_directory(dirname->contents))
-			wb_wccat(wdirname, L'/');
-		    RESTORE_DIRNAME;
+		    if (is_directory(path->contents))
+			wb_wccat(wpath, L'/');
 		}
-		pl_add(list, xwcsdup(wdirname->contents));
-		RESTORE_WDIRNAME;
+		pl_add(list, xwcsdup(wpath->contents));
 	    } else {
-		/* search the subdirectories */
-		assert(pattern[patlen] == L'/');
-		sb_cat(dirname, de->d_name);
-		sb_ccat(dirname, '/');
-		wb_cat(wdirname, wentname);
-		wb_wccat(wdirname, L'/');
-		const wchar_t *subpat = pattern + patlen + 1;
-		while (subpat[0] == L'/') {
-		    sb_ccat(dirname, '/');
-		    wb_wccat(wdirname, L'/');
-		    subpat++;
-		}
-		ok = wglob_search(
-			subpat, flags, dirname, wdirname, dirstack, list);
-		RESTORE_DIRNAME;
-		RESTORE_WDIRNAME;
+		sb_ccat(path, '/');
+		wb_wccat(wpath, L'/');
+		wglob_search(pattern->next, flags, path, wpath, list);
 	    }
+
+	    // sb_remove(path, savepathlen, SIZE_MAX);
+	    // wb_remove(wpath, savewpathlen, SIZE_MAX);
+	    path->contents[path->length = savepathlen] = '\0';
+	    wpath->contents[wpath->length = savewpathlen] = L'\0';
 	}
-	free(wentname);
     }
-
     closedir(dir);
-    return ok;
 }
 
-/* Starts a recursive search of the specified directory.
- * `rflags' is a bitwise OR of the following flags:
- *   WGLB_followlink: search symlinked subdirectories
- *   WGLB_period:     search even if the directory name starts with a period
- * See `wglob_search' for the meaning of the other arguments and the return
- * value. */
-bool wglob_start_recursive_search(
-	const wchar_t *restrict pattern,
+void wglob_search_recsearch(
+	const struct wglob_pattern *restrict pattern,
 	enum wglbflags flags,
-	enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname,
-	xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict dirstack,
-	plist_T *restrict list)
+	xstrbuf_T *restrict path,
+	xwcsbuf_T *restrict wpath,
+	plist_T *restrict list,
+	struct wglob_dirstack *dirstack)
 {
-    char *dir = dirname->contents[0] ? dirname->contents : ".";
-    bool followlink = rflags & WGLB_followlink;
-    bool ok = true;
-    struct stat st;
-    if ((followlink ? stat : lstat)(dir, &st) >= 0
-	    && S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
-	pl_add(dirstack, &st);
-	ok = wglob_recursive_search(
-		pattern, flags, rflags, dirname, wdirname, dirstack, list);
-	pl_pop(dirstack);
-    }
-    return ok;
-}
+    assert(pattern->type == WGLOB_RECSEARCH);
+    assert(pattern->next != NULL);
 
-/* Does a recursive search */
-bool wglob_recursive_search(
-	const wchar_t *restrict pattern,
-	enum wglbflags flags,
-	enum wglbrflags rflags,
-	xstrbuf_T *restrict const dirname,
-	xwcsbuf_T *restrict const wdirname,
-	plist_T *restrict dirstack,
-	plist_T *restrict list)
-{
-    const size_t savedirlen = dirname->length;
-    const size_t savewdirlen = wdirname->length;
+    /* Step 1: search `path' itself */
+    wglob_search(pattern->next, flags, path, wpath, list);
 
-    /* Step 1: search `dirname' itself */
-    if (!wglob_search(pattern, flags, dirname, wdirname, dirstack, list))
-	return false;
-
-    assert(dirname->length == savedirlen);
-    assert(wdirname->length == savewdirlen);
-
-    /* Step 2: recursively search the subdirectories of `dirname' */
-    DIR *dir = opendir(dirname->contents[0] ? dirname->contents : ".");
+    /* Setp 2: recursively search the subdirectories of `path' */
+    DIR *dir = opendir((path->length == 0) ? "." : path->contents);
     if (!dir)
-	return true;
+	return;
 
+    const size_t savepathlen = path->length;
+    const size_t savewpathlen = wpath->length;
     struct dirent *de;
-    bool ok = true;
-    while (ok && (de = readdir(dir))) {
-	if ((rflags & WGLB_period)
+    int (*statfunc)(const char *path, struct stat *st) =
+	pattern->value.recsearch.followlink ? stat : lstat;
+    while ((de = readdir(dir))) {
+	if (pattern->value.recsearch.allowperiod
 		? strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0
 		: de->d_name[0] == '.')
 	    continue;
 
-	bool followlink = rflags & WGLB_followlink;
-	struct stat st;
-	sb_cat(dirname, de->d_name);
-	if ((followlink ? stat : lstat)(dirname->contents, &st) >= 0
-		&& S_ISDIR(st.st_mode) && !is_reentry(&st, dirstack)) {
-	    /* recurse if it's a directory */
-	    wchar_t *wentname = malloc_mbstowcs(de->d_name);
-	    if (wentname) {
-		sb_ccat(dirname, '/');
-		wb_cat(wdirname, wentname);
-		wb_wccat(wdirname, L'/');
-		free(wentname);
-		pl_add(dirstack, &st);
-		ok = wglob_recursive_search(pattern, flags, rflags,
-			dirname, wdirname, dirstack, list);
-		pl_pop(dirstack);
-		RESTORE_WDIRNAME;
+	struct wglob_dirstack newstack;
+	sb_cat(path, de->d_name);
+	if (statfunc(path->contents, &newstack.st) >= 0
+		&& S_ISDIR(newstack.st.st_mode)
+		&& !is_reentry(&newstack.st, dirstack)) {
+
+	    wchar_t *wname = malloc_mbstowcs(de->d_name);
+	    if (wname) {
+		wb_wccat(wb_catfree(wpath, wname), L'/');
+		sb_ccat(path, '/');
+		newstack.prev = dirstack;
+		wglob_search_recsearch(
+			pattern, flags, path, wpath, list, &newstack);
+
+		// wb_remove(wpath, savewpathlen, SIZE_MAX);
+		wpath->contents[wpath->length = savewpathlen] = L'\0';
 	    }
 	}
-	RESTORE_DIRNAME;
+	// sb_remove(path, savepathlen, SIZE_MAX);
+	path->contents[path->length = savepathlen] = '\0';
     }
-
     closedir(dir);
-    return ok;
 }
 
-/* Checks if it is a reentrance.
- * `dirstack' is a list of pointers to a `struct stat'.
- * Returns true iff any of the `struct stat' has the same inode as that of `st'.
- */
-bool is_reentry(const struct stat *st, const plist_T *dirstack)
+/* Returns true iff the file designated by `st' is contained in `dirstack'. */
+bool is_reentry(
+	const struct stat *st, const struct wglob_dirstack *dirstack)
 {
-    for (size_t i = 0; i < dirstack->length; i++) {
-	const struct stat *st2 = dirstack->contents[i];
-	if (st->st_dev == st2->st_dev && st->st_ino == st2->st_ino)
+    while (dirstack) {
+	if (st->st_dev == dirstack->st.st_dev
+		&& st->st_ino == dirstack->st.st_ino)
 	    return true;
+	dirstack = dirstack->prev;
     }
     return false;
 }
