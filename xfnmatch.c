@@ -58,6 +58,9 @@ static const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
 static void append_as_collating_symbol(wchar_t c,
 	xstrbuf_T *restrict buf, mbstate_t *restrict state)
     __attribute__((nonnull));
+static xfnmresult_T wmatch_headtail(
+	const regex_t *restrict regex, const wchar_t *restrict s)
+    __attribute__((nonnull));
 static xfnmresult_T wmatch_shortest_head(
 	const regex_t *restrict regex, const wchar_t *restrict s)
     __attribute__((nonnull));
@@ -395,6 +398,9 @@ xfnmresult_T xfnm_wmatch(
 	if (s[0] == L'.')
 	    return MISMATCH;
     }
+    if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL) {
+	return wmatch_headtail(&xfnm->regex, s);
+    }
     if (flags & XFNM_SHORTEST) {
 	if (flags & XFNM_HEADONLY) {
 	    assert(!(flags & XFNM_TAILONLY));
@@ -406,6 +412,17 @@ xfnmresult_T xfnm_wmatch(
     } else {
 	return wmatch_longest(&xfnm->regex, s);
     }
+}
+
+xfnmresult_T wmatch_headtail(
+	const regex_t *restrict regex, const wchar_t *restrict s)
+{
+    char *mbs = malloc_wcstombs(s);
+    if (mbs == NULL)
+	return MISMATCH;
+    int r = regexec(regex, mbs, 0, NULL, 0);
+    free(mbs);
+    return (r == 0) ? ((xfnmresult_T) { .start = 0 }) : MISMATCH;
 }
 
 xfnmresult_T wmatch_shortest_head(
@@ -495,12 +512,35 @@ xfnmresult_T wmatch_longest(
     return result;
 }
 
-wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const char *restrict s,
+/* Substitutes part of the given string `s' that matches the pre-compiled
+ * pattern `xfnm' with `repl'. If `substall' is true, all substrings in `s' that
+ * match are substituted. Otherwise, only the first match is substituted. The
+ * resulting string is returned as a newly-malloced string. */
+wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
 	const wchar_t *restrict repl, bool substall)
 {
-    //TODO
-    (void) xfnm, (void) s, (void) repl, (void) substall;
-    return NULL;
+    xfnmflags_T flags = xfnm->flags;
+
+    if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL) {
+	xfnmresult_T result = wmatch_headtail(&xfnm->regex, s);
+	return xwcsdup((result.start != (size_t) -1) ? repl : s);
+    }
+    if (flags & XFNM_HEADONLY)
+	substall = false;
+
+    xwcsbuf_T buf;
+    size_t i = 0;
+
+    wb_init(&buf);
+    do {
+	xfnmresult_T result = xfnm_wmatch(xfnm, s + i);
+	if (result.start == (size_t) -1)
+	    break;
+	wb_ncat(&buf, s + i, result.start);
+	wb_cat(&buf, repl);
+	i += result.end;
+    } while (substall);
+    return wb_towcs(wb_cat(&buf, s + i));
 }
 
 /* Frees a compiled pattern. */

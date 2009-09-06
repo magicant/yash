@@ -47,7 +47,7 @@ extern xfnmresult_T xfnm_wmatch(
 	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
     __attribute__((nonnull));
 extern wchar_t *xfnm_subst(
-	const xfnmatch_T *restrict xfnm, const char *restrict s,
+	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
 	const wchar_t *restrict repl, _Bool substall)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern void xfnm_free(xfnmatch_T *xfnm);
