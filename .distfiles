@@ -52,8 +52,6 @@ util.c
 util.h
 variable.c
 variable.h
-wfnmatch.c
-wfnmatch.h
 xfnmatch.c
 xfnmatch.h
 yash.c
