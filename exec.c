@@ -54,7 +54,7 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "wfnmatch.h"
+#include "xfnmatch.h"
 #include "yash.h"
 
 
@@ -460,9 +460,16 @@ void exec_case(const command_T *c, bool finally_exit)
 	    wchar_t *pattern = expand_single(*pats, tt_single);
 	    if (!pattern)
 		goto fail;
-	    size_t match = wfnmatch(pattern, word, 0, WFNM_WHOLE);
+
+	    xfnmatch_T *xfnm = xfnm_compile(
+		    pattern, XFNM_HEADONLY | XFNM_TAILONLY);
 	    free(pattern);
-	    if (match != WFNM_NOMATCH && match != WFNM_ERROR) {
+	    if (!xfnm)
+		continue;
+
+	    bool match = (xfnm_wmatch(xfnm, word).start != (size_t) -1);
+	    xfnm_free(xfnm);
+	    if (match) {
 		if (ci->ci_commands) {
 		    exec_and_or_lists(ci->ci_commands, finally_exit);
 		    goto done;
