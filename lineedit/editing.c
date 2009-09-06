@@ -45,7 +45,6 @@
 #include "../redir.h"
 #include "../strbuf.h"
 #include "../util.h"
-#include "../wfnmatch.h"
 #include "../xfnmatch.h"
 #include "../yash.h"
 #include "display.h"
@@ -3062,45 +3061,37 @@ void perform_search(const wchar_t *pattern,
 	enum le_search_direction dir, enum le_search_type type)
 {
     const histentry_T *e = main_history_entry;
-    char *lpattern = NULL;
-    bool beginning;
-#ifdef NDEBUG
-    size_t minlen;
-#else
-    size_t minlen = minlen;
-#endif
+    xfnmatch_T *xfnm;
 
     if (dir == FORWARD && e == Histlist)
 	goto done;
 
     switch (type) {
-	case SEARCH_VI:
+	case SEARCH_VI: {
+	    xfnmflags_T flags = 0;
 	    if (pattern[0] == L'^') {
-		beginning = true;
+		flags |= XFNM_HEADONLY;
 		pattern++;
 		if (pattern[0] == L'\0') {
 		    e = Histlist;
 		    goto done;
 		}
-	    } else {
-		beginning = false;
 	    }
-	    if (is_matching_pattern(pattern)) {
-		minlen = shortest_match_length(pattern, 0);
-	    } else {
-		lpattern = realloc_wcstombs(unescape(pattern));
-		if (lpattern == NULL)
-		    goto done;
-	    }
+	    xfnm = xfnm_compile(pattern, flags);
 	    break;
-	case SEARCH_EMACS:
-	    lpattern = malloc_wcstombs(pattern);
-	    if (lpattern == NULL)
-		goto done;
-	    beginning = false;
+	}
+	case SEARCH_EMACS: {
+	    wchar_t *p = escape(pattern, NULL);
+	    xfnm = xfnm_compile(p, 0);
+	    free(p);
 	    break;
+	}
 	default:
 	    assert(false);
+    }
+    if (xfnm == NULL) {
+	e = Histlist;
+	goto done;
     }
 
     for (;;) {
@@ -3109,38 +3100,13 @@ void perform_search(const wchar_t *pattern,
 	    case BACKWARD:  e = e->Prev;  break;
 	}
 	if (e == Histlist)
-	    goto done;
-
-	if (lpattern != NULL) {
-	    if ((beginning ? matchstrprefix : strstr)(e->value, lpattern))
-		goto done;
-	} else {
-	    wchar_t *wvalue = malloc_mbstowcs(e->value);
-	    if (wvalue != NULL) {
-		size_t r;
-		if (beginning) {
-		    r = wfnmatchl(pattern, wvalue, 0, WFNM_SHORTEST, minlen);
-		} else {
-		    const wchar_t *w = wvalue;
-		    assert(w[0] != L'\0');
-		    do {
-			r = wfnmatchl(pattern, w, 0, WFNM_SHORTEST, minlen);
-			if (r != WFNM_NOMATCH)
-			    break;
-		    } while (*++w != L'\0');
-		}
-		free(wvalue);
-		switch (r) {
-		    case WFNM_NOMATCH:  break;
-		    case WFNM_ERROR:    e = Histlist;  goto done;
-		    default:            goto done;
-		}
-	    }
-	}
+	    break;
+	if (xfnm_match(xfnm, e->value) == 0)
+	    break;
     }
+    xfnm_free(xfnm);
 done:
     le_search_result = e;
-    free(lpattern);
 }
 
 /* Redoes the last search. */
