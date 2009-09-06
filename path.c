@@ -696,7 +696,6 @@ static bool is_reentry(const struct stat *st, const plist_T *dirstack)
  * pattern: a pattern
  * flags:   a bitwise OR of the following flags:
  *          WGLB_MARK:     directory items have '/' appended to their name
- *          WGLB_NOESCAPE: backslashes in the pattern are not treated specially
  *          WGLB_CASEFOLD: do matching case-insensitively
  *          WGLB_PERIOD:   L'*' and L'?' match L'.' at the head
  *          WGLB_NOSORT:   don't sort resulting items
@@ -858,7 +857,6 @@ bool wglob_search(
 	return true;
 
     enum wfnmflags wfnmflags = WFNM_PATHNAME | WFNM_PERIOD;
-    if (flags & WGLB_NOESCAPE) wfnmflags |= WFNM_NOESCAPE;
     if (flags & WGLB_CASEFOLD) wfnmflags |= WFNM_CASEFOLD;
     if (flags & WGLB_PERIOD)   wfnmflags &= ~WFNM_PERIOD;
 
