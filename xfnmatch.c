@@ -534,7 +534,7 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
     wb_init(&buf);
     do {
 	xfnmresult_T result = xfnm_wmatch(xfnm, s + i);
-	if (result.start == (size_t) -1)
+	if (result.start == (size_t) -1 || result.start >= result.end)
 	    break;
 	wb_ncat(&buf, s + i, result.start);
 	wb_cat(&buf, repl);
