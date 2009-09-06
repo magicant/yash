@@ -756,11 +756,8 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
     xstrbuf_T path;
     xwcsbuf_T wpath;
     struct wglob_pattern *p;
-
-    if (!pattern[0] != L'\0') // TODO do we really need this?
-	return true;
-
     wchar_t savepattern[wcslen(pattern) + 1];
+
     p = wglob_parse_pattern(wcscpy(savepattern, pattern), flags);
     if (p == NULL)
 	return false;
@@ -917,9 +914,6 @@ void wglob_search(
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
 {
-    const size_t savepathlen = path->length; // TODO should be here?
-    const size_t savewpathlen = wpath->length;
-
     //assert(path->length == 0 || path->contents[path->length - 1] == '/');
     assert(wpath->length == 0 || wpath->contents[wpath->length - 1] == L'/');
     switch (pattern->type) {
@@ -933,11 +927,6 @@ void wglob_search(
 	    wglob_search_recsearch(pattern, flags, path, wpath, list, NULL);
 	    break;
     }
-
-    // sb_remove(path, savepathlen, SIZE_MAX);
-    // wb_remove(wpath, savewpathlen, SIZE_MAX);
-    path->contents[path->length = savepathlen] = '\0';
-    wpath->contents[wpath->length = savewpathlen] = L'\0';
 }
 
 void wglob_search_literal(
@@ -947,6 +936,9 @@ void wglob_search_literal(
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
 {
+    const size_t savepathlen = path->length;
+    const size_t savewpathlen = wpath->length;
+
     assert(pattern->type == WGLOB_LITERAL);
     if (pattern->next == NULL) {
 	struct stat st;
@@ -964,6 +956,11 @@ void wglob_search_literal(
 	wb_wccat(wb_cat(wpath, pattern->value.literal.wname), L'/');
 	wglob_search(pattern->next, flags, path, wpath, list);
     }
+
+    // sb_remove(path, savepathlen, SIZE_MAX);
+    // wb_remove(wpath, savewpathlen, SIZE_MAX);
+    path->contents[path->length = savepathlen] = '\0';
+    wpath->contents[wpath->length = savewpathlen] = L'\0';
 }
 
 void wglob_search_match(
