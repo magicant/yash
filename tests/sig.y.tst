@@ -146,12 +146,12 @@ echo ===== signals -i +m F =====
 
 for SIG in ABRT ALRM BUS FPE HUP ILL KILL PIPE SEGV USR1 USR2
 do
-	$INVOKE $TESTEE -c -i +m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+	$INVOKE $TESTEE -ci +m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
 	kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c -i +m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+	$INVOKE $TESTEE -ci +m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
 	echo $SIG $?
 done
 
@@ -159,12 +159,12 @@ echo ===== signals -i -m F =====
 
 for SIG in ABRT ALRM BUS FPE HUP ILL KILL PIPE SEGV USR1 USR2
 do
-	$INVOKE $TESTEE -c -i -m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+	$INVOKE $TESTEE -ci -m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
 	kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c -i -m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+	$INVOKE $TESTEE -ci -m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
 	echo $SIG $?
 done
 
