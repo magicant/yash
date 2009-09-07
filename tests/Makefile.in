@@ -25,10 +25,11 @@ LDLIBS = @LDLIBS@
 TEST_ITEMS = *.tst  # the default test items
 
 INVOKEOBJS = invoke.o
-BYPRODUCTS = invoke
+RESETSIGOBJS = resetsig.o
+BYPRODUCTS = invoke resetsig
 
-test test-all: invoke
-	@$(SHELL) ./run-test.sh
+test test-all: invoke resetsig
+	@./resetsig $(SHELL) ./run-test.sh
 test-posix:
 	@$(MAKE) TEST_ITEMS='*.p.tst' test
 
@@ -37,10 +38,13 @@ test-posix:
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
+# invoke: $(INVOKEOBJS)
+resetsig: $(RESETSIGOBJS)
+
 distcontents: ;
 
 clean:
-	rm -f $(BYPRODUCTS) $(INVOKEOBJS)
+	rm -f $(BYPRODUCTS) $(INVOKEOBJS) $(RESETSIGOBJS)
 
 .PHONY: test-all test-posix test distcontents clean
 
