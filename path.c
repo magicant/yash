@@ -348,8 +348,9 @@ char *which(
 	if (dirlen > 0) {
 	    /* concatenate `dir' and `name' to produce a pathname `path' */
 	    strcpy(path, dir);
-	    path[dirlen] = '/';
-	    strcpy(path + dirlen + 1, name);
+	    if (path[dirlen - 1] != '/')
+		path[dirlen++] = '/';
+	    strcpy(path + dirlen, name);
 	} else {
 	    /* if `dir' is empty, it's considered to be the current directory */
 	    strcpy(path, name);
