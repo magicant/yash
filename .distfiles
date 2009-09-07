@@ -80,9 +80,10 @@ lineedit/terminfo.c
 lineedit/terminfo.h
 lineedit/trie.c
 lineedit/trie.h
-tests/Makefile
+tests/Makefile.in
 tests/run-test.sh
 tests/invoke.c
+tests/resetsig.c
 tests/alias.p.out
 tests/alias.p.tst
 tests/alias.y.out

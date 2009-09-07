@@ -25,7 +25,7 @@ tempsrc=".temp.c"
 tempo=".temp.o"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
-dirs=". builtins lineedit"
+dirs=". builtins lineedit tests"
 
 target="yash"
 package="yash"

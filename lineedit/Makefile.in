@@ -26,20 +26,20 @@ ARFLAGS = @ARFLAGS@
 SOURCES = display.c display.h editing.c editing.h key.h keymap.c keymap.h lineedit.c lineedit.h terminfo.c terminfo.h trie.c trie.h
 OBJS = display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = @LINEEDIT_ARCHIVE@
+MKCMDSOBJS = mkcmds.o
 
 BYPRODUCTS = mkcmds commands.in
 
 all: $(TARGET)
 
-# Though these rules are exactly the same as the default rules defined by POSIX,
-# we re-define them here because at least GNU Make is not fully compliant.
 .c:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
 $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
+mkcmds: $(MKCMDSOBJS)
 commands.in: mkcmds
 	./mkcmds > $@
 keymap.o: commands.in
@@ -59,7 +59,7 @@ cscope.out: $(SOURCES)
 	cscope -b
 
 mostlyclean:
-	-rm -rf $(OBJS) $(BYPRODUCTS)
+	-rm -rf $(OBJS) $(MKCMDSOBJS) $(BYPRODUCTS)
 clean: mostlyclean
 	-rm -rf $(TARGET)
 distclean: clean
