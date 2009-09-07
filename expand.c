@@ -38,7 +38,7 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "wfnmatch.h"
+#include "xfnmatch.h"
 #include "yash.h"
 
 
@@ -90,26 +90,8 @@ static void print_subst_as_error(const paramexp_T *p)
 static void match_each(
 	void **slist, const wchar_t *pattern, paramexptype_T type)
     __attribute__((nonnull));
-static void match_head_each(void **slist, const wchar_t *pattern, bool longest)
-    __attribute__((nonnull));
-static void match_tail_longest_each(void **slist, const wchar_t *pattern)
-    __attribute__((nonnull));
-static void match_tail_shortest_each(void **slist, const wchar_t *pattern)
-    __attribute__((nonnull));
 static void subst_each(void **slist, const wchar_t *pattern,
 	const wchar_t *subst, paramexptype_T type)
-    __attribute__((nonnull));
-static void subst_whole_each(
-	void **slist, const wchar_t *pattern, const wchar_t *subst)
-    __attribute__((nonnull));
-static void subst_head_each(
-	void **slist, const wchar_t *pattern, const wchar_t *subst)
-    __attribute__((nonnull));
-static void subst_tail_each(
-	void **slist, const wchar_t *pattern, const wchar_t *subst)
-    __attribute__((nonnull));
-static void subst_generic_each(void **slist,
-	const wchar_t *pattern, const wchar_t *subst, bool substall)
     __attribute__((nonnull));
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
@@ -273,7 +255,7 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
     char *result;
 
     /* glob */
-    if (shopt_noglob || !pattern_has_special_char(exp, true)) {
+    if (shopt_noglob || !is_pathname_matching_pattern(exp)) {
 noglob:
 	result = realloc_wcstombs(unescapefree(exp));
 	if (!result)
@@ -1062,213 +1044,60 @@ void print_subst_as_error(const paramexp_T *p)
 /* Matches each string in the array to the specified pattern and removes the
  * matching portions.
  * `slist' is a NULL-terminated array of pointers to `free'able wide strings.
- * `type' may contain PT_MATCHHEAD, PT_MATCHTAIL and PT_MATCHLONGEST.
- * Elements of `slist' may be modified and `realloc'ed in this function. */
+ * `type' must contain at least one of PT_MATCHHEAD, PT_MATCHTAIL and
+ * PT_MATCHLONGEST.
+ * Elements of `slist' may be modified and/or `realloc'ed in this function. */
 void match_each(void **slist, const wchar_t *pattern, paramexptype_T type)
 {
-    if (type & PT_MATCHHEAD) {
-	match_head_each(slist, pattern, type & PT_MATCHLONGEST);
-    } else {
-	assert(type & PT_MATCHTAIL);
-	if (type & PT_MATCHLONGEST)
-	    match_tail_longest_each(slist, pattern);
-	else
-	    match_tail_shortest_each(slist, pattern);
-    }
-}
+    xfnmflags_T flags = 0;
+    assert(type & (PT_MATCHHEAD | PT_MATCHTAIL | PT_MATCHLONGEST));
+    if (type & PT_MATCHHEAD)
+	flags |= XFNM_HEADONLY;
+    if (type & PT_MATCHTAIL)
+	flags |= XFNM_TAILONLY;
+    if (!(type & PT_MATCHLONGEST))
+	flags |= XFNM_SHORTEST;
 
-/* Does `match_each' for 'PT_MATCHHEAD'. */
-void match_head_each(void **slist, const wchar_t *pattern, bool longest)
-{
-    enum wfnmtype type = longest ? WFNM_LONGEST : WFNM_SHORTEST;
-    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
-    size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *s;
-    while ((s = *slist)) {
-	size_t match = wfnmatchl(pattern, s, flags, type, minlen);
-	if (match == WFNM_ERROR) {
-	    break;
-	} else if (match != WFNM_NOMATCH) {
-	    if (match > 0)
-		wmemmove(s, s + match, wcslen(s + match) + 1);
+    xfnmatch_T *xfnm = xfnm_compile(pattern, flags);
+    if (!xfnm)
+	return;
+
+    for (wchar_t *s; (s = *slist) != NULL; slist++) {
+	xfnmresult_T result = xfnm_wmatch(xfnm, s);
+	if (result.start != (size_t) -1) {
+	    xwcsbuf_T buf;
+	    wb_initwith(&buf, s);
+	    wb_remove(&buf, result.start, result.end - result.start);
+	    *slist = wb_towcs(&buf);
 	}
-	slist++;
     }
-}
-
-/* Does `match_each' for 'PT_MATCHTAIL' where `PT_MATCHLONGEST' is true.*/
-void match_tail_longest_each(void **slist, const wchar_t *pattern)
-{
-    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
-    size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *s;
-    while ((s = *slist)) {
-	size_t len = wcslen(s);
-	size_t index = 0;
-	while (minlen + index <= len) {
-	    size_t match = wfnmatchl(
-		    pattern, s + index, flags, WFNM_WHOLE, minlen);
-	    if (match == WFNM_ERROR) {
-		return;
-	    } else if (match != WFNM_NOMATCH) {
-		s[index] = L'\0';
-		break;
-	    }
-	    index++;
-	}
-	slist++;
-    }
-}
-
-/* Does `match_each' for 'PT_MATCHTAIL' where `PT_MATCHLONGEST' is false. */
-void match_tail_shortest_each(void **slist, const wchar_t *pattern)
-{
-    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
-    size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *s;
-    while ((s = *slist)) {
-	size_t len = wcslen(s);
-	size_t index = len - minlen;
-	do {
-	    size_t match = wfnmatchl(
-		    pattern, s + index, flags, WFNM_WHOLE, minlen);
-	    if (match == WFNM_ERROR) {
-		return;
-	    } else if (match != WFNM_NOMATCH) {
-		s[index] = L'\0';
-		break;
-	    }
-	} while (index--);
-	slist++;
-    }
+    xfnm_free(xfnm);
 }
 
 /* Matches each string in the array to the specified pattern and substitutes the
  * matching portions with `subst'.
  * `slist' is a NULL-terminated array of pointers to `free'able wide strings.
  * `type' may contain PT_MATCHHEAD, PT_MATCHTAIL and PT_SUBSTALL.
- * Elements of `slist' may be modified and `realloc'ed in this function. */
+ * PT_MATCHLONGEST is always assumed to be specified.
+ * Elements of `slist' may be modified and/or `realloc'ed in this function. */
 void subst_each(void **slist, const wchar_t *pattern, const wchar_t *subst,
 	paramexptype_T type)
 {
-    if (type & PT_MATCHHEAD) {
-	if (type & PT_MATCHTAIL)
-	    subst_whole_each(slist, pattern, subst);
-	else
-	    subst_head_each(slist, pattern, subst);
-    } else if (type & PT_MATCHTAIL) {
-	subst_tail_each(slist, pattern, subst);
-    } else {
-	subst_generic_each(slist, pattern, subst, type & PT_SUBSTALL);
-    }
-}
+    xfnmflags_T flags = 0;
+    if (type & PT_MATCHHEAD)
+	flags |= XFNM_HEADONLY;
+    if (type & PT_MATCHTAIL)
+	flags |= XFNM_TAILONLY;
 
-/* Does `subst_each' where `PT_MATCHHEAD' and `PT_MATCHTAIL' is true. */
-void subst_whole_each(
-	void **slist, const wchar_t *pattern, const wchar_t *subst)
-{
-    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
-    size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *s;
-    while ((s = *slist)) {
-	size_t match = wfnmatchl(pattern, s, flags, WFNM_WHOLE, minlen);
-	if (match == WFNM_ERROR) {
-	    break;
-	} else if (match != WFNM_NOMATCH) {
-	    free(s);
-	    *slist = xwcsdup(subst);
-	}
-	slist++;
-    }
-}
+    xfnmatch_T *xfnm = xfnm_compile(pattern, flags);
+    if (!xfnm)
+	return;
 
-/* Does `subst_each' where `PT_MATCHHEAD' is true but `PT_MATCHTAIL' is not. */
-void subst_head_each(
-	void **slist, const wchar_t *pattern, const wchar_t *subst)
-{
-    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
-    size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *s;
-    while ((s = *slist)) {
-	size_t match = wfnmatchl(pattern, s, flags, WFNM_LONGEST, minlen);
-	if (match == WFNM_ERROR) {
-	    break;
-	} else if (match != WFNM_NOMATCH) {
-	    xwcsbuf_T buf;
-	    wb_init(&buf);
-	    wb_cat(&buf, subst);
-	    wb_cat(&buf, s + match);
-	    free(s);
-	    *slist = wb_towcs(&buf);
-	}
-	slist++;
-    }
-}
-
-/* Does `subst_each' where `PT_MATCHTAIL' is true but `PT_MATCHHEAD' is not. */
-void subst_tail_each(
-	void **slist, const wchar_t *pattern, const wchar_t *subst)
-{
-    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
-    size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *s;
-    while ((s = *slist)) {
-	size_t len = wcslen(s);
-	size_t index = 0;
-	while (minlen + index <= len) {
-	    size_t match = wfnmatchl(
-		    pattern, s + index, flags, WFNM_WHOLE, minlen);
-	    if (match == WFNM_ERROR) {
-		return;
-	    } else if (match != WFNM_NOMATCH) {
-		xwcsbuf_T buf;
-		wb_init(&buf);
-		wb_ncat(&buf, s, index);
-		wb_cat(&buf, subst);
-		free(s);
-		*slist = wb_towcs(&buf);
-		break;
-	    }
-	    index++;
-	}
-	slist++;
-    }
-}
-
-/* Does `subst_each' where neither `PT_MATCHHEAD' nor `PT_MATCHTAIL' is true. */
-void subst_generic_each(void **slist,
-	const wchar_t *pattern, const wchar_t *subst, bool substall)
-{
-    enum wfnmflags flags = shopt_nocaseglob ? WFNM_CASEFOLD : 0;
-    size_t minlen = shortest_match_length(pattern, flags);
-    wchar_t *s;
-    while ((s = *slist)) {
-	size_t index = 0;
-	xwcsbuf_T buf;
-	wb_init(&buf);
-	while (s[index]) {
-	    size_t match = wfnmatchl(
-		    pattern, s + index, flags, WFNM_LONGEST, minlen);
-	    if (match == WFNM_ERROR) {
-		return;
-	    } else if (match != WFNM_NOMATCH && match > 0) {
-		wb_cat(&buf, subst);
-		index += match;
-		if (!substall) {
-		    wb_cat(&buf, s + index);
-		    break;
-		} else {
-		    continue;
-		}
-	    } else {
-		wb_wccat(&buf, s[index]);
-	    }
-	    index++;
-	}
+    for (wchar_t *s; (s = *slist) != NULL; slist++) {
+	*slist = xfnm_subst(xfnm, s, subst, type & PT_SUBSTALL);
 	free(s);
-	*slist = wb_towcs(&buf);
-	slist++;
     }
+    xfnm_free(xfnm);
 }
 
 /* Substitutes each string in the array with a string that contains the number
@@ -1277,11 +1106,9 @@ void subst_generic_each(void **slist,
  * The strings are `realloc'ed and modified in this function. */
 void subst_length_each(void **slist)
 {
-    wchar_t *s;
-    while ((s = *slist)) {
+    for (wchar_t *s; (s = *slist) != NULL; slist++) {
 	*slist = malloc_wprintf(L"%zu", wcslen(s));
 	free(s);
-	slist++;
     }
 }
 
@@ -1845,7 +1672,7 @@ void do_glob_each(void **restrict patterns, plist_T *restrict list)
 
     while (*patterns) {
 	wchar_t *pat = *patterns;
-	if (pattern_has_special_char(pat, true)) {
+	if (is_pathname_matching_pattern(pat)) {
 	    size_t oldlen = list->length;
 	    wglob(pat, flags, list);
 	    if (!shopt_nullglob && oldlen == list->length)

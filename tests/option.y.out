@@ -13,7 +13,7 @@ dir
 dir/dir2/file
 **/file
 ===== nullglob =====
-1
-n*ll 2
+f[o/b]r 1
+n*ll f[o/b]r f?o/b*r 2
 ===== posix =====
 > 

@@ -164,15 +164,5 @@ plist_T *pl_add(plist_T *list, void *p)
     return list;
 }
 
-/* Removes the last element of a pointer list and returns it.
- * The list must not be empty. */
-void *pl_pop(plist_T *list)
-{
-    assert(list->length > 0);
-    void *result = list->contents[--list->length];
-    list->contents[list->length] = NULL;
-    return result;
-}
-
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

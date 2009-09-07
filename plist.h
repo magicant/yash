@@ -69,8 +69,6 @@ static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n)
     __attribute__((nonnull));
 extern plist_T *pl_add(plist_T *list, void *p)
     __attribute__((nonnull(1)));
-extern void *pl_pop(plist_T *list)
-    __attribute__((nonnull));
 
 
 #define PLIST_DEFAULT_MAX 7

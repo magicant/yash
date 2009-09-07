@@ -11,6 +11,8 @@ History of Yash
 Yash 2.15
 
   +  An interactive shell now can be interrupted by SIGINT.
+  +  Bracket expressions in pathname expansion are now fully supported
+     (provided that libc's regex implementation is correct).
   =  The "suspend" builtin now requires the -f option to suspend an
      interactive shell that is a session leader.
   =  The shell no longer automatically sets the $YASH_LE_TIMEOUT
@@ -18,6 +20,8 @@ Yash 2.15
   =  A job-control shell now stops itself when invoked in the
      background.
   =  A job-control shell no longer ignores SIGTTOU by default.
+  =  The '--nocaseglob' option no longer affects pattern matching in
+     parameter expansions of form "${var#xxx}" etc.
   *  Fixed pathname expansion on redirection target.
   *  Couldn't set a signal handler to the default by the "trap"
      builtin if the signal was ignored on invocation of an interactive

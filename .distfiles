@@ -52,8 +52,8 @@ util.c
 util.h
 variable.c
 variable.h
-wfnmatch.c
-wfnmatch.h
+xfnmatch.c
+xfnmatch.h
 yash.c
 yash.h
 builtins/Makefile.deps
@@ -103,6 +103,8 @@ tests/expand.p.out
 tests/expand.p.tst
 tests/expand.y.out
 tests/expand.y.tst
+tests/fnmatch.p.out
+tests/fnmatch.p.tst
 tests/history.y.out
 tests/history.y.tst
 tests/input.p.err
