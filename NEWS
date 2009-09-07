@@ -11,6 +11,8 @@ History of Yash
 Yash 2.15
 
   +  An interactive shell now can be interrupted by SIGINT.
+  +  Bracket expressions in pathname expansion are now fully supported
+     (provided that libc's regex implementation is correct).
   =  The "suspend" builtin now requires the -f option to suspend an
      interactive shell that is a session leader.
   =  The shell no longer automatically sets the $YASH_LE_TIMEOUT
