@@ -1,5 +1,5 @@
 Name:		yash
-Version:	2.14
+Version:	2.15
 Release:	1
 Summary:	A POSIX-compliant command line shell
 
@@ -57,6 +57,9 @@ fi
 
 
 %changelog
+* Mon Sep 7 2009 Watanabe Yuki <magicant@sourceforge.jp>
+- version 2.15
+
 * Fri Aug 7 2009 Watanabe Yuki <magicant@sourceforge.jp>
 - version 2.14
 
