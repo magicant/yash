@@ -80,7 +80,7 @@ lineedit/terminfo.c
 lineedit/terminfo.h
 lineedit/trie.c
 lineedit/trie.h
-tests/Makefile
+tests/Makefile.in
 tests/run-test.sh
 tests/invoke.c
 tests/alias.p.out

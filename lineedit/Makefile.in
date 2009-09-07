@@ -31,10 +31,8 @@ BYPRODUCTS = mkcmds commands.in
 
 all: $(TARGET)
 
-# Though these rules are exactly the same as the default rules defined by POSIX,
-# we re-define them here because at least GNU Make is not fully compliant.
 .c:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
