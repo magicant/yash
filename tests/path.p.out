@@ -17,6 +17,7 @@ cd -L
 cd -L default
 cd $CDPATH 1
 cd $CDPATH 2
+cd canonicalization /dev
 ===== umask builtin =====
 u=,g=,o=
 ok

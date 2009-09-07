@@ -78,6 +78,8 @@ if [ x"$PWD" = x"${TESTTMP}/dir" ]; then
 	echo cd \$CDPATH 2
 fi
 
+echo cd canonicalization "$(CDPATH=/ cd dev)"
+
 echo ===== umask builtin =====
 
 umask=$(umask)
