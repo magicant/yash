@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.16
+
+  =  Changed exit status of a while/until loop whose body is empty.
+
+----------------------------------------------------------------------
 Yash 2.15
 
   +  An interactive shell now can be interrupted by SIGINT.

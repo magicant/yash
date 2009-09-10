@@ -429,8 +429,10 @@ void exec_while(const command_T *c, bool finally_exit)
 
 	if (cond != c->c_whltype)
 	    break;
-	exec_and_or_lists(c->c_whlcmds, false);
-	status = laststatus;
+	if (c->c_whlcmds) {
+	    exec_and_or_lists(c->c_whlcmds, false);
+	    status = laststatus;
+	}
 
 	if (!c->c_whlcmds)
 	    handle_signals();
