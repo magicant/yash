@@ -303,7 +303,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    job->j_pcount = 1;
 
 	    set_active_job(job);
-	    add_job(false);
+	    add_job(shopt_curasync);
 	    laststatus = Exit_SUCCESS;
 	    lastasyncpid = cpid;
 	} else if (cpid == 0) {
