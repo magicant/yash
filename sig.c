@@ -591,15 +591,15 @@ void handle_sigchld(void)
 	if (shopt_notify || (shopt_notifyle && le_state == LE_STATE_ACTIVE)) {
 	    if (le_state == LE_STATE_ACTIVE) {
 		le_suspend_readline();
-		print_job_status_all(true, false, stderr);
+		print_job_status_all();
 		le_resume_readline();
 	    } else {
-		print_job_status_all(true, false, stderr);
+		print_job_status_all();
 	    }
 	}
 #else
 	if (shopt_notify) {
-	    print_job_status_all(true, false, stderr);
+	    print_job_status_all();
 	}
 #endif
     }
@@ -670,7 +670,7 @@ int handle_traps(void)
 
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && le_state == LE_STATE_SUSPENDED)
-	print_job_status_all(true, false, stderr);
+	print_job_status_all();
     le_resume_readline();
 #endif
 

@@ -2460,7 +2460,7 @@ end:
 	unlink(tempfile);
 	free(tempfile);
 	if (shopt_notify || shopt_notifyle)
-	    print_job_status_all(true, false, stderr);
+	    print_job_status_all();
 	le_resume_readline();
     } else {  // child process
 	fwprintf(f, L"%ls\n", le_main_buffer.contents);

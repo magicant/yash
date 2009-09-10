@@ -51,8 +51,9 @@ static inline job_T *get_job(size_t jobnumber)
     __attribute__((pure));
 static inline void free_job(job_T *job);
 static void trim_joblist(void);
-static void set_current_jobnumber(size_t no);
+static void set_current_jobnumber(size_t jobnumber);
 static size_t find_next_job(size_t numlimit);
+static void apply_curstop(void);
 static int calc_status(int status)
     __attribute__((const));
 static wchar_t *get_job_name(const job_T *job)
@@ -97,33 +98,34 @@ void set_active_job(job_T *job)
 }
 
 /* Moves the active job into the job list.
- * If `current' is true or there is no current job, the job will be the current
- * job. */
+ * If the newly added job is stopped, it becomes the current job.
+ * If `current' is true or there is no current job, the newly added job becomes
+ * the current job if there is no stopped job. */
 void add_job(bool current)
 {
     job_T *job = joblist.contents[ACTIVE_JOBNO];
+    size_t jobnumber;
 
     assert(job != NULL);
     joblist.contents[ACTIVE_JOBNO] = NULL;
 
     /* if there is an empty element in the list, use it */
-    for (size_t i = 1; i < joblist.length; i++) {
-	if (joblist.contents[i] == NULL) {
-	    joblist.contents[i] = job;
-	    if (current || current_jobnumber == 0)
-		set_current_jobnumber(i);
-	    else if (previous_jobnumber == 0)
-		previous_jobnumber = i;
-	    return;
+    for (jobnumber = 1; jobnumber < joblist.length; jobnumber++) {
+	if (joblist.contents[jobnumber] == NULL) {
+	    joblist.contents[jobnumber] = job;
+	    goto set_current;
 	}
     }
 
     /* if there is no empty, append at the end of the list */
     pl_add(&joblist, job);
-    if (current || current_jobnumber == 0)
-	set_current_jobnumber(joblist.length - 1);
-    else if (previous_jobnumber == 0)
-	previous_jobnumber = joblist.length - 1;
+
+set_current:
+    assert(joblist.contents[jobnumber] == job);
+    if (job->j_status == JS_STOPPED || current)
+	set_current_jobnumber(jobnumber);
+    else
+	set_current_jobnumber(current_jobnumber);
 }
 
 /* Returns the job of the specified number or NULL if not found. */
@@ -141,20 +143,16 @@ void remove_job(size_t jobnumber)
     joblist.contents[jobnumber] = NULL;
     free_job(job);
     trim_joblist();
-
-    if (jobnumber == current_jobnumber) {
-	current_jobnumber = previous_jobnumber;
-	previous_jobnumber = find_next_job(current_jobnumber);
-    } else if (jobnumber == previous_jobnumber) {
-	previous_jobnumber = find_next_job(current_jobnumber);
-    }
+    set_current_jobnumber(current_jobnumber);
 }
 
 /* Removes all jobs unconditionally. */
 void remove_all_jobs(void)
 {
-    for (size_t i = 0; i < joblist.length; i++)
-	remove_job(i);
+    for (size_t i = 0; i < joblist.length; i++) {
+	free_job(joblist.contents[i]);
+	joblist.contents[i] = NULL;
+    }
     trim_joblist();
     current_jobnumber = previous_jobnumber = 0;
 }
@@ -176,6 +174,7 @@ void trim_joblist(void)
 
     while (tail > 0 && joblist.contents[--tail] == NULL);
     tail++;
+    assert(tail > 0 && joblist.contents[tail] == NULL);
     if (joblist.maxlength > 20 && joblist.maxlength / 2 > joblist.length)
 	pl_setmax(&joblist, tail);
     else
@@ -194,42 +193,81 @@ void neglect_all_jobs(void)
     current_jobnumber = previous_jobnumber = 0;
 }
 
-/* - When the current job changes, the last current job will be the next
- *   previous job.
- *   - The "fg" command changes the current job.
- *   - The `add_job' function may change the current job.
- * - When the current job finishes, the previous job becomes the current job.
- * - Restarting the current or previous job by the "bg" command resets the
- *   current and previous jobs.
+/* - When there is one or more stopped jobs, the current job must be one of
+ *   them.
+ * - When there are more than one stopped job, the previous job must be one of
+ *   them but the current one.
+ * - The current job becomes the previous job when another job becomes the
+ *   current.
+ *
+ * - When a foreground job is stopped, it becomes the current job.
+ * - When an asynchronous command is executed and the "curasync" option is set,
+ *   it becomes the current job.
+ * - When a job is continued by the "bg" command and the "curbg" option is set,
+ *   it becomes the current job.
+ * - When a job is stopped and the "curstop" option is set, it becomes the
+ *   current job.
+ *
  * - The "wait" command doesn't change the current and previous jobs. */
 
 /* Sets the current job number to the specified one and resets the previous job
- * number. If `jobnumber' is 0, the previous job becomes the current job.
- * Otherwise `jobnumber' must be a valid job number. */
+ * number. If the specified job number is not used, a job is arbitrarily chosen.
+ * If there is one or more stopped jobs and the one specified by the argument is
+ * not stopped, the current job is not changed. */
+/* This function must be called whenever a job is added to or removed from the
+ * job list, or any job's status has been changed. */
 void set_current_jobnumber(size_t jobnumber)
 {
-    assert(jobnumber == 0 || get_job(jobnumber) != NULL);
+    size_t stopcount = stopped_job_count();
+    const job_T *newcurrent = get_job(jobnumber);
 
-    previous_jobnumber = current_jobnumber;
-    if (jobnumber == 0) {
-	jobnumber = previous_jobnumber;
-	if (jobnumber == 0 || get_job(jobnumber) == NULL)
-	    jobnumber = find_next_job(0);
+    if (newcurrent == NULL
+	    || (stopcount > 0 && newcurrent->j_status != JS_STOPPED)) {
+	jobnumber = current_jobnumber;
+	newcurrent = get_job(jobnumber);
+	if (newcurrent == NULL
+		|| (stopcount > 0 && newcurrent->j_status != JS_STOPPED)) {
+	    jobnumber = previous_jobnumber;
+	    newcurrent = get_job(jobnumber);
+	    if (newcurrent == NULL
+		    || (stopcount > 0 && newcurrent->j_status != JS_STOPPED))
+		jobnumber = find_next_job(0);
+	}
     }
-    current_jobnumber = jobnumber;
 
-    if (previous_jobnumber == 0
-	    || previous_jobnumber == current_jobnumber)
-	previous_jobnumber = find_next_job(current_jobnumber);
+    if (jobnumber != current_jobnumber) {
+	size_t oldcurrentnum = current_jobnumber;
+	current_jobnumber = jobnumber;
+	jobnumber = oldcurrentnum;
+    } else {
+	jobnumber = previous_jobnumber;
+    }
+
+    const job_T *newprevious = get_job(jobnumber);
+
+    if (newprevious == NULL || jobnumber == current_jobnumber
+	    || (stopcount > 1 && newprevious->j_status != JS_STOPPED)) {
+	jobnumber = previous_jobnumber;
+	newprevious = get_job(jobnumber);
+	if (newprevious == NULL || jobnumber == current_jobnumber
+		|| (stopcount > 1 && newprevious->j_status != JS_STOPPED))
+	    jobnumber = find_next_job(current_jobnumber);
+    }
+    previous_jobnumber = jobnumber;
 }
 
 /* Returns an arbitrary job number except the specified.
  * The returned number is suitable for the next current/previous jobs.
  * If there is no job to pick out, 0 is returned.
  * Stopped jobs are preferred to running/finished jobs.
- * If there are more than one stopped jobs, larger job number is preferred. */
+ * If there are more than one stopped jobs, the previous job is preferred. */
 size_t find_next_job(size_t excl)
 {
+    if (previous_jobnumber != excl) {
+	job_T *job = get_job(previous_jobnumber);
+	if (job != NULL && job->j_status == JS_STOPPED)
+	    return previous_jobnumber;
+    }
     size_t jobnumber = joblist.length;
     while (--jobnumber > 0) {
 	if (jobnumber != excl) {
@@ -247,6 +285,20 @@ size_t find_next_job(size_t excl)
 	}
     }
     return 0;
+}
+
+/* If the "curstop" option is set and there is a job which has been stopped and
+ * whose `j_statuschanged' flag is set, make it the current job. */
+void apply_curstop(void)
+{
+    if (shopt_curstop) {
+	for (size_t i = 0; i < joblist.length; i++) {
+	    job_T *job = joblist.contents[i];
+	    if (job && job->j_status == JS_STOPPED && job->j_statuschanged)
+		set_current_jobnumber(i);
+	}
+    }
+    set_current_jobnumber(current_jobnumber);
 }
 
 /* Counts the number of jobs in the job list. */
@@ -291,7 +343,6 @@ start:
 		goto start;  /* try again */
 	    case ECHILD:
 		return;      /* there are no child processes */
-		/* falls thru! */
 	    default:
 		xerror(errno, "waitpid");
 		return;
@@ -700,11 +751,12 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	remove_job(jobnumber);
 }
 
-/* Prints the status of all jobs. */
-void print_job_status_all(bool changedonly, bool verbose, FILE *f)
+/* Prints the status of jobs which have been changed but not reported. */
+void print_job_status_all(void)
 {
+    apply_curstop();
     for (size_t i = 1; i < joblist.length; i++)
-	print_job_status(i, changedonly, verbose, f);
+	print_job_status(i, true, false, stderr);
 }
 
 /* If the shell is interactive and the specified job has been killed by a
@@ -861,6 +913,7 @@ int jobs_builtin(int argc, void **argv)
     }
 
     nextforceexit = true;
+    apply_curstop();
 
     clearerr(stdout);
     if (xoptind < argc) {
@@ -1000,7 +1053,6 @@ int fg_builtin(int argc, void **argv)
 		xerror(0, Ngt("%ls: not job-controlled job"), ARGV(xoptind));
 		err = true;
 	    } else {
-		set_current_jobnumber(jobnumber);
 		status = continue_job(jobnumber, job, fg);
 	    }
 	} while (++xoptind < argc);
@@ -1053,13 +1105,21 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 	if (termsave)
 	    le_restore_terminal();
 #endif
-	status = (job->j_status == JS_RUNNING)
-	    ? Exit_SUCCESS : calc_status_of_job(job);
-	if (job->j_status == JS_DONE) {
-	    notify_signaled_job(jobnumber);
-	    remove_job(jobnumber);
+	switch (job->j_status) {
+	    case JS_STOPPED:
+		status = calc_status_of_job(job);
+		set_current_jobnumber(jobnumber);
+		break;
+	    case JS_DONE:
+		status = calc_status_of_job(job);
+		notify_signaled_job(jobnumber);
+		remove_job(jobnumber);
+		break;
+	    default:
+		assert(false);
 	}
     } else {
+	set_current_jobnumber(shopt_curbg ? jobnumber : current_jobnumber);
 	status = (job->j_status == JS_RUNNING) ? Exit_SUCCESS : Exit_FAILURE;
     }
     return status;

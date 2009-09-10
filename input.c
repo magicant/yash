@@ -292,7 +292,7 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	    exec_variable_as_commands(
 		    L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
     if (do_job_control)
-	print_job_status_all(true, false, stderr);
+	print_job_status_all();
     if (info->type == 1)
 	check_mail();
     /* Note: no commands must be executed between `print_job_status_all' here
