@@ -13,7 +13,6 @@ Yash 2.16
   +  '--curbg' and '--curstop' options.
   =  '--curasync' option is now set by default.
   =  Changed exit status of a while/until loop whose body is empty.
-  =  A job-control shell now ignores SIGTTOU by default.
 
 ----------------------------------------------------------------------
 Yash 2.15

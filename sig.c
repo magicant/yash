@@ -280,7 +280,6 @@ void set_signals(void)
     if (!job_handler_set && doing_job_control_now) {
 	job_handler_set = true;
 	set_special_handler(SIGTSTP, SIG_IGN);
-	set_special_handler(SIGTTOU, SIG_IGN);
     }
 
     if (!interactive_handlers_set && is_interactive_now) {
@@ -314,7 +313,6 @@ void restore_signals(bool leave)
     if (job_handler_set) {
 	job_handler_set = false;
 	reset_special_handler(SIGTSTP, SIG_IGN, leave);
-	reset_special_handler(SIGTTOU, SIG_IGN, leave);
     }
     if (interactive_handlers_set) {
 	interactive_handlers_set = false;
@@ -344,11 +342,9 @@ void reset_job_signals(void)
     if (doing_job_control_now && !job_handler_set) {
 	job_handler_set = true;
 	set_special_handler(SIGTSTP, SIG_IGN);
-	set_special_handler(SIGTTOU, SIG_IGN);
     } else if (!doing_job_control_now && job_handler_set) {
 	job_handler_set = false;
 	reset_special_handler(SIGTSTP, SIG_IGN, false);
-	reset_special_handler(SIGTTOU, SIG_IGN, false);
     }
 }
 
@@ -592,20 +588,21 @@ void handle_sigchld(void)
         sigchld_received = false;
         do_wait();
 #if YASH_ENABLE_LINEEDIT
-	if (shopt_notify || (shopt_notifyle && le_state == LE_STATE_ACTIVE)) {
-	    if (le_state == LE_STATE_ACTIVE) {
-		le_suspend_readline();
-		print_job_status_all();
-		le_resume_readline();
-	    } else {
-		print_job_status_all();
-	    }
-	}
-#else
-	if (shopt_notify) {
+	if ((shopt_notify || shopt_notifyle) && le_state == LE_STATE_ACTIVE) {
+	    le_suspend_readline();
 	    print_job_status_all();
-	}
+	    le_resume_readline();
+	} else
 #endif
+	if (shopt_notify) {
+	    sigset_t ss, savess;
+	    sigemptyset(&ss);
+	    sigaddset(&ss, SIGTTOU);
+	    sigemptyset(&savess);
+	    sigprocmask(SIG_BLOCK, &ss, &savess);
+	    print_job_status_all();
+	    sigprocmask(SIG_SETMASK, &savess, NULL);
+	}
     }
 }
 
@@ -801,7 +798,6 @@ bool set_trap(int signum, const wchar_t *command)
 		return true;
 	    break;
 	case SIGTSTP:
-	case SIGTTOU:
 	    if (job_handler_set)
 		goto default_ignore;
 	    break;
