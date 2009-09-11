@@ -77,11 +77,13 @@ trap -  USR1 USR2 INT
 
 echo ===== signals =====
 
-# SIGTSTP is ignored when job control is active
+# SIGTSTP and SIGTTOU are ignored when job control is active
 set -m
 
 kill -s TSTP $$
 echo TSTP ignored
+kill -s TTOU $$
+echo TTOU ignored
 
 $INVOKE $TESTEE -c 'kill -s TTOU $$' &
 wait %1

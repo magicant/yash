@@ -813,8 +813,9 @@ done:
  * `sigtype' is a bitwise OR of the followings:
  *   t_quitint: SIGQUIT & SIGINT are ignored if the parent's job control is off
  *   t_tstp: SIGTSTP is ignored if the parent is job-controlling
- *   t_leave: don't clear traps and shellfds. This option should be used only if
- *          the shell is going to `exec' to an extenal program.
+ *   t_leave: Don't clear traps and shellfds. Restore the signal mask for
+ *          SIGCHLD. This option must be used iff the shell is going to `exec'
+ *          to an extenal program.
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {

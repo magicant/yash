@@ -36,6 +36,7 @@ trap -- 'echo trapped' USR1
 trap -- '' USR2
 ===== signals =====
 TSTP ignored
+TTOU ignored
 TTOU
 TSTP
 =====

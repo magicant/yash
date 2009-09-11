@@ -280,6 +280,7 @@ void set_signals(void)
     if (!job_handler_set && doing_job_control_now) {
 	job_handler_set = true;
 	set_special_handler(SIGTSTP, SIG_IGN);
+	set_special_handler(SIGTTOU, SIG_IGN);
     }
 
     if (!interactive_handlers_set && is_interactive_now) {
@@ -305,14 +306,15 @@ void set_signals(void)
 
 /* Restores the original signal handlers for the signals used by the shell.
  * If `leave' is true, the current process is assumed to be about to exec:
- * the handler may be left unchanged if the handler is supposed to be reset
- * during exec.
+ * The handler may be left unchanged if the handler is supposed to be reset
+ * during exec. The signal settings for SIGCHLD is restored.
  * If `leave' is false, the settings for SIGCHLD are not restored. */
 void restore_signals(bool leave)
 {
     if (job_handler_set) {
 	job_handler_set = false;
 	reset_special_handler(SIGTSTP, SIG_IGN, leave);
+	reset_special_handler(SIGTTOU, SIG_IGN, leave);
     }
     if (interactive_handlers_set) {
 	interactive_handlers_set = false;
@@ -342,9 +344,11 @@ void reset_job_signals(void)
     if (doing_job_control_now && !job_handler_set) {
 	job_handler_set = true;
 	set_special_handler(SIGTSTP, SIG_IGN);
+	set_special_handler(SIGTTOU, SIG_IGN);
     } else if (!doing_job_control_now && job_handler_set) {
 	job_handler_set = false;
 	reset_special_handler(SIGTSTP, SIG_IGN, false);
+	reset_special_handler(SIGTTOU, SIG_IGN, false);
     }
 }
 
@@ -797,6 +801,7 @@ bool set_trap(int signum, const wchar_t *command)
 		return true;
 	    break;
 	case SIGTSTP:
+	case SIGTTOU:
 	    if (job_handler_set)
 		goto default_ignore;
 	    break;
