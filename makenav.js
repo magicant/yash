@@ -1,20 +1,22 @@
-// makenav.js 0.3.2 2007-02-27
-// (C) 2006-2007 Magicant
-
-// English version 2009-05-13
+﻿// makenav.js 0.3.2 2007-02-27
+// © 2006-2007 Magicant
 
 (function() {
 	
+	// バージョンチェック
 	if (!("document" in this) || !document.implementation
 			|| !document.implementation.hasFeature
 			|| !document.implementation.hasFeature("HTML", "1.0"))
 		return;
 	
+	// 以下、ナビゲーション作成
+	
 	var nav = document.createElement("div");
 	nav.id = "magicant_auto_navigation";
 	
+	// 目次
 	var heading = document.createElement("h2");
-	heading.appendChild(document.createTextNode('Contents of This Page'));
+	heading.appendChild(document.createTextNode("このページの目次"));
 	var div = document.createElement("div");
 	var list = div;
 	var level = 0;
@@ -87,25 +89,26 @@
 		
 	}
 	
+	// 関連リンク
 	var reltypes = {
 		alternate: null,
 		stylesheet: null,
-		start: 'Top page',
-		next: 'Next',
-		prev: 'Previous',
-		previous: 'Previous',
-		up: 'Parent',
-		parent: 'Parent',
-		contents: 'Table of contents',
-		index: 'Index',
-		glossary: 'Glossary',
-		copyright: 'Copyright info',
-		author: 'About author',
-		appendix: 'Appendix',
-		help: 'Help' //,
+		start: "トップページ",
+		next: "次のコンテンツ",
+		prev: "前のコンテンツ",
+		previous: "前のコンテンツ",
+		up: "親コンテンツ",
+		parent: "親コンテンツ",
+		contents: "目次",
+		index: "索引",
+		glossary: "用語集",
+		copyright: "著作権情報",
+		author: "作者情報",
+		appendix: "付録",
+		help: "ヘルプ" //,
 	};
 	var heading = document.createElement("h2");
-	heading.appendChild(document.createTextNode('Related resources'));
+	heading.appendChild(document.createTextNode("関連リンク"));
 	var list = document.createElement("ul");
 	var links = document.getElementsByTagName("link");
 	for (var i = 0; i < links.length; i++) {
