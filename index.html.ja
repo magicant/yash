@@ -19,6 +19,8 @@
 </head>
 
 <body>
+<p lang="en">This web page is also available in <a href="index.html.en" lang="en">English</a>.
+
 <h1 id="title">Yash</h1>
 
 <h2 id="summary">概要</h2>

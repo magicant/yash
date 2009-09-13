@@ -22,9 +22,10 @@
 </head>
 
 <body>
+<p>This web page is also available in <a href="index.html.ja" lang="ja">日本語</a>.
+
 <h1 id="title">Yash</h1>
 
-<p><a href="index.html.ja">[日本語]</a>
 <p>Yash, yet another shell, is a POSIX-compliant command line shell
 written by <span class='surname'>Watanabe</span> Yuki (aka magicant) in C99 (ISO/IEC 9899:1999).
 It was originally written as a work on a university course assignment but
