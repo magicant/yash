@@ -703,19 +703,37 @@ if
     else
 	cat >"${tempsrc}" <<END
 #include <stdio.h>
+#include <wchar.h>
+#define LEN 12345
 int main(void)
 {
-    FILE *f = fopen("${tempsrc}", "w+");
+    FILE *f;
     fpos_t pos;
-    if (fwprintf(f, L"123\n") != 4) return 1;
-    if (fseek(f, 0, SEEK_SET) != 0) return 1;
-    if (fgetwc(f) != L'1')          return 1;
-    if (fgetwc(f) != L'2')          return 1;
-    if (fgetpos(f, &pos) != 0)      return 1;
-    if (fseek(f, 0, SEEK_SET) != 0) return 1;
-    if (fgetwc(f) != L'1')          return 1;
-    if (fsetpos(f, &pos) != 0)      return 1;
-    if (fgetwc(f) != L'3')          return 1;
+    f = fopen("${tempsrc}", "w+");
+    if (f == NULL)                  return 1;
+    if (fwprintf(f, L"123\n") != 4) return 2;
+    if (fseek(f, 0, SEEK_SET) != 0) return 3;
+    if (fgetwc(f) != L'1')          return 4;
+    if (fgetwc(f) != L'2')          return 5;
+    if (fgetpos(f, &pos) != 0)      return 6;
+    if (fseek(f, 0, SEEK_SET) != 0) return 7;
+    if (fgetwc(f) != L'1')          return 8;
+    if (fsetpos(f, &pos) != 0)      return 9;
+    if (fgetwc(f) != L'3')          return 10;
+    if (fseek(f, 0, SEEK_SET) != 0) return 11;
+    for (size_t i = 0; i < LEN; i++)
+	if (fputwc(L'0', f) != L'0') return 12;
+    if (fgetpos(f, &pos) != 0)      return 13;
+    if (fputwc(L'1', f) != L'1')    return 14;
+    if (fseek(f, 0, SEEK_SET) != 0) return 15;
+    if (fgetwc(f) != L'0')          return 16;
+    if (fsetpos(f, &pos) != 0)      return 17;
+    if (fgetwc(f) != L'1')          return 18;
+    if (fseek(f, 0, SEEK_SET) != 0) return 19;
+    for (size_t i = 0; i < LEN; i++)
+	if (fgetwc(f) != L'0')       return 20;
+    if (fgetwc(f) != L'1')          return 21;
+    if (fclose(f) != 0)             return 22;
     return 0;
 }
 END
