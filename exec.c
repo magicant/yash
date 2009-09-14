@@ -1525,7 +1525,8 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
     bool iter = false;
     wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"+i", iter_options, NULL))) {
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"+" : L"+i", iter_options, NULL))) {
 	switch (opt) {
 	    case L'i':
 		iter = true;
@@ -1533,7 +1534,9 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 	    default:
-		fprintf(stderr, gt("Usage:  eval [-i] [arg...]\n"));
+		fprintf(stderr, gt(posixly_correct
+			    ? Ngt("Usage:  eval [arg...]\n")
+			    : Ngt("Usage:  eval [-i] [arg...]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1557,13 +1560,14 @@ const char eval_help[] = Ngt(
 "with a space inserted between each <arg> and the whole resultant string is\n"
 "parsed at a time. With the -i option, <arg>s are parsed and executed one by\n"
 "one (iterative execution).\n"
+"In POSIXly correct mode, the -i option cannot be used.\n"
 );
 
 int dot_builtin(int argc, void **argv)
 {
     wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+    while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
 	switch (opt) {
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -1663,7 +1667,7 @@ int exec_builtin(int argc, void **argv)
 
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"" : L"+a:cf",
+		    posixly_correct ? L"+" : L"+a:cf",
 		    long_options, NULL))) {
 	switch (opt) {
 	    case L'a':  as = xoptarg;  break;
@@ -1672,8 +1676,9 @@ int exec_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 	    default:
-		fprintf(stderr,
-		    gt("Usage:  exec [-cf] [-a name] [command [arg...]]\n"));
+		fprintf(stderr, gt(posixly_correct
+		    ? Ngt("Usage:  exec [command [arg...]]\n")
+		    : Ngt("Usage:  exec [-cf] [-a name] [command [arg...]]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
