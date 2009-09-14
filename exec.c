@@ -1572,7 +1572,9 @@ int dot_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  . file [arg...]\n"));
+		fprintf(stderr, gt(posixly_correct
+			    ? Ngt("Usage:  . file\n")
+			    : Ngt("Usage:  . file [arg...]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1580,6 +1582,10 @@ int dot_builtin(int argc, void **argv)
 
     const wchar_t *filename = ARGV(xoptind++);
     if (!filename)
+	goto print_usage;
+
+    bool exp = xoptind < argc;
+    if (exp && posixly_correct)
 	goto print_usage;
 
     char *mbsfilename = malloc_wcstombs(filename);
@@ -1607,7 +1613,6 @@ int dot_builtin(int argc, void **argv)
 	path = mbsfilename;
     }
 
-    bool exp = xoptind < argc;
     if (exp) {
 	open_new_environment(false);
 	set_positional_parameters(argv + xoptind);
@@ -1645,6 +1650,7 @@ const char dot_help[] = Ngt(
 "If <file> does not contain any slashes, the shell searches $PATH for a\n"
 "readable shell script file whose name is <file>. To ensure that the file in\n"
 "the current working directory is used, start <file> with \"./\".\n"
+"In POSIXly correct mode, <arg>s must not be given.\n"
 );
 
 /* The "exec" builtin, which accepts the following options:
