@@ -42,6 +42,7 @@ typedef enum sigtype_T {
 
 extern int laststatus, savelaststatus;
 extern pid_t lastasyncpid;
+extern _Bool special_builtin_executed;
 
 struct execinfo;
 extern void reset_execinfo(void);

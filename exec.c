@@ -190,6 +190,9 @@ static struct iterinfo {
     enum { ie_none, ie_continue, ie_break } exception;
 } iterinfo;
 
+/* This flag is set when a special builtin is executed as such. */
+bool special_builtin_executed;
+
 /* This flag is set while the "exec" builtin is executed. */
 static bool exec_builtin_executed = false;
 
@@ -725,8 +728,8 @@ pid_t exec_process(
 
     /* First, we check if the command is a special builtin or a function
      * and determine whether we have to open a temporary environment. */
-    search_command(argv0, argv[0], &cmdinfo,
-	    sct_builtin | sct_function);
+    search_command(argv0, argv[0], &cmdinfo, sct_builtin | sct_function);
+    special_builtin_executed = (cmdinfo.type == specialbuiltin);
     temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
     if (temp)
 	open_new_environment(true);

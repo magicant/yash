@@ -51,11 +51,11 @@ extern int help_builtin(int argc, void **argv)
 extern const char colon_help[], true_help[], false_help[], help_help[];
 
 
-#define SPECIAL_BI_ERROR                                                      \
-    do {                                                                      \
-	if (posixly_correct && !is_interactive_now)                           \
-	    exit_shell_with_status(Exit_ERROR);                               \
-    } while (0)
+#define SPECIAL_BI_ERROR                                                    \
+    if (posixly_correct && special_builtin_executed && !is_interactive_now) \
+	exit_shell_with_status(Exit_ERROR);                                 \
+    else                                                                    \
+	do { } while (0)
 
 
 #endif /* YASH_BUILTIN_H */
