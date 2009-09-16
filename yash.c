@@ -593,12 +593,9 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		break;
 	    case 1:  // syntax error
 		laststatus = Exit_SYNERROR;
-		if (pinfo->intrinput)
-		    break;
-		else if (finally_exit)
+		if (!is_interactive_now)
 		    exit_shell();
-		else
-		    goto out;
+		break;
 	}
     }
     /* If no commands are executed, set `laststatus' to 0 finally.
