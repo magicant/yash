@@ -13,6 +13,10 @@ Yash 2.16
   +  '--curbg' and '--curstop' options.
   =  '--curasync' option is now set by default.
   =  Changed exit status of a while/until loop whose body is empty.
+  =  The "return" and "exit" builtins now accepts an exit status of
+     256 or larger.
+  *  Fixed a syntax error of a special builtin invoked thru the
+     "command" builtin causing the non-interactive shell to exit.
 
 ----------------------------------------------------------------------
 Yash 2.15

@@ -1400,9 +1400,7 @@ int return_builtin(int argc, void **argv)
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
     if (statusstr != NULL) {
-	if (xwcstoi(statusstr, 10, &status) && status >= 0) {
-	    status &= 0xFF;
-	} else {
+	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
 	    SPECIAL_BI_ERROR;
