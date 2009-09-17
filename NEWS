@@ -17,6 +17,7 @@ Yash 2.16
      256 or larger.
   *  Fixed a syntax error of a special builtin invoked thru the
      "command" builtin causing the non-interactive shell to exit.
+  *  Fixed the exit status of the shell when the EXIT trap is set.
 
 ----------------------------------------------------------------------
 Yash 2.15

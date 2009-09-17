@@ -136,6 +136,51 @@ done
 echo done
 
 
+echo ===== exit =====
+
+$INVOKE $TESTEE <<\END
+r () { return $1; }
+trap 'r 10' EXIT
+exit
+END
+echo exit 1 $?
+
+$INVOKE $TESTEE <<\END
+r () { return $1; }
+trap 'r 10' EXIT
+exit 20
+END
+echo exit 2 $?
+
+$INVOKE $TESTEE <<\END
+r () { return $1; }
+trap 'r 10; exit' EXIT
+exit
+END
+echo exit 3 $?
+
+$INVOKE $TESTEE <<\END
+r () { return $1; }
+trap 'r 10; exit' EXIT
+exit 20
+END
+echo exit 4 $?
+
+$INVOKE $TESTEE <<\END
+r () { return $1; }
+trap 'r 10; exit 30' EXIT
+exit
+END
+echo exit 5 $?
+
+$INVOKE $TESTEE <<\END
+r () { return $1; }
+trap 'r 10; exit 30' EXIT
+exit 20
+END
+echo exit 6 $?
+
+
 echo ===== . =====
 
 . ./dot.t

@@ -30,6 +30,13 @@ i=2
 !
 i=3
 done
+===== exit =====
+exit 1 0
+exit 2 20
+exit 3 0
+exit 4 20
+exit 5 30
+exit 6 30
 ===== . =====
 --
 returning --

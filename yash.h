@@ -53,8 +53,8 @@ extern int suspend_builtin(int argc, void **argv)
 extern const char exit_help[], suspend_help[];
 
 
-/* Exits the shell with the exit status of `laststatus'.
- * This function executes EXIT trap and calls `reset_own_pgrp'.
+/* Exits the shell with the current exit status.
+ * This function executes EXIT trap.
  * This function never returns.
  * This function is reentrant and exits immediately if reentered. */
 void exit_shell(void)

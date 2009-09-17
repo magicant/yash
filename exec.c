@@ -636,7 +636,7 @@ void exec_commands(command_T *c, exec_T type)
     handle_signals();
     if (shopt_errexit && !supresserrexit && laststatus != Exit_SUCCESS
 	    && lasttype == CT_SIMPLE)
-	exit_shell();
+	exit_shell_with_status(laststatus);
 }
 
 /* Executes a command.

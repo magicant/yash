@@ -358,26 +358,29 @@ static void execute_rcfile(const wchar_t *rcfile)
 }
 
 /* Exits the shell with the specified exit status.
- * If `status' is negative, the value of `laststatus' is used.
- * This function executes EXIT trap and calls `reset_own_pgid'.
+ * When this function is first called and `status' is negative, the value of
+ * `laststatus' is used. When this function is called again and `status' is
+ * negative, the value for the first called is used.
+ * This function executes EXIT trap.
  * This function never returns.
  * This function is reentrant and exits immediately if reentered. */
 void exit_shell_with_status(int status)
 {
-    static bool exiting = false;
-    int exitstatus;
+    static int exitstatus = -1;
 
     if (status >= 0)
 	laststatus = status;
-    exitstatus = laststatus;
-    if (!exiting) {
-	exiting = true;
+    assert(laststatus >= 0);
+    if (exitstatus < 0) {
+	exitstatus = laststatus;
 	execute_exit_trap();
-#if YASH_ENABLE_HISTORY
-	if (is_interactive_now)
-	    finalize_history();
-#endif
+    } else {
+	if (status >= 0)
+	    exitstatus = status;
     }
+#if YASH_ENABLE_HISTORY
+    finalize_history();
+#endif
     exit(exitstatus);
 }
 
@@ -592,9 +595,9 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    goto out;
 		break;
 	    case 1:  // syntax error
-		laststatus = Exit_SYNERROR;
 		if (!is_interactive_now)
-		    exit_shell();
+		    exit_shell_with_status(Exit_SYNERROR);
+		laststatus = Exit_SYNERROR;
 		break;
 	}
     }
