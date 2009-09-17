@@ -2396,13 +2396,14 @@ bool set_optind(unsigned long optind)
 {
     return set_variable(L VAR_OPTIND,
 	    malloc_wprintf(L"%lu", optind + 1),
-	    SCOPE_GLOBAL, false);
+	    SCOPE_GLOBAL, shopt_allexport);
 }
 
 /* Sets $OPTARG to `value'. */
 bool set_optarg(const wchar_t *value)
 {
-    return set_variable(L VAR_OPTARG, xwcsdup(value), SCOPE_GLOBAL, false);
+    return set_variable(L VAR_OPTARG, xwcsdup(value),
+	    SCOPE_GLOBAL, shopt_allexport);
 }
 
 /* Sets the specified variable to the single character `value'. */
@@ -2411,7 +2412,7 @@ bool set_to(const wchar_t *varname, wchar_t value)
     wchar_t *v = xmalloc(sizeof *v * 2);
     v[0] = value;
     v[1] = L'\0';
-    return set_variable(varname, v, SCOPE_GLOBAL, false);
+    return set_variable(varname, v, SCOPE_GLOBAL, shopt_allexport);
 }
 
 const char getopts_help[] = Ngt(
@@ -2528,7 +2529,8 @@ int read_builtin(int argc, void **argv)
 	if (i + 1 == list.length)
 	    trim_trailing_ifsws(list.contents[i], ifs);
 	if (!array || i + 1 < list.length)
-	    err |= !set_variable(name, list.contents[i], SCOPE_GLOBAL, false);
+	    err |= !set_variable(name, list.contents[i],
+		    SCOPE_GLOBAL, shopt_allexport);
 	else
 	    err |= !split_and_assign_array(name, list.contents[i], ifs, raw);
     }

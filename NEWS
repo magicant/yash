@@ -18,6 +18,8 @@ Yash 2.16
   *  Fixed a syntax error of a special builtin invoked thru the
      "command" builtin causing the non-interactive shell to exit.
   *  Fixed the exit status of the shell when the EXIT trap is set.
+  *  The '--allexport' option was wrongly ignored by the "read" and
+     "getopts" builtins.
 
 ----------------------------------------------------------------------
 Yash 2.15
