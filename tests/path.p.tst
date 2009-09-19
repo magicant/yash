@@ -87,7 +87,7 @@ umask 0
 umask a-r
 umask ugo+r
 umask u-rw,u-x
-umask go=u
+umask go+x=u
 umask -S
 umask "${umask}"
 [ x"${umask}" = x"$(umask)" ] && echo ok
