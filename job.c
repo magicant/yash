@@ -1202,7 +1202,7 @@ int wait_builtin(int argc, void **argv)
 		if (!status) {
 		    status = calc_status_of_job(job);
 		} else {
-		    assert(TERMSIGOFFSET > 128);
+		    assert(TERMSIGOFFSET >= 128);
 		    status += TERMSIGOFFSET;
 		    break;
 		}
@@ -1221,7 +1221,7 @@ int wait_builtin(int argc, void **argv)
 	    if (job != NULL && job->j_pgid >= 0) {
 		status = wait_for_job(i, jobcontrol, jobcontrol, true);
 		if (status) {
-		    assert(TERMSIGOFFSET > 128);
+		    assert(TERMSIGOFFSET >= 128);
 		    status += TERMSIGOFFSET;
 		    break;
 		}
