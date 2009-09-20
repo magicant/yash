@@ -1281,7 +1281,7 @@ int disown_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 	    default:
-		fprintf(stderr, gt("Usage:  disown [job...]\n"));
+		fprintf(stderr, gt("Usage:  disown [-a] [job...]\n"));
 		return Exit_ERROR;
 	}
     }
