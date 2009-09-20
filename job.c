@@ -72,6 +72,7 @@ static void jobs_builtin_print_job(size_t jobnumber,
 	bool runningonly, bool stoppedonly);
 static int continue_job(size_t jobnumber, job_T *job, bool fg)
     __attribute__((nonnull));
+static bool wait_has_job(bool jobcontrol);
 
 
 /* The list of jobs.
@@ -1216,26 +1217,39 @@ int wait_builtin(int argc, void **argv)
 	} while (++xoptind < argc);
     } else {
 	/* wait for all jobs */
-	for (size_t i = 1; i < joblist.length; i++) {
-	    job = joblist.contents[i];
-	    if (job != NULL && job->j_pgid >= 0) {
-		status = wait_for_job(i, jobcontrol, jobcontrol, true);
-		if (status) {
-		    assert(TERMSIGOFFSET >= 128);
-		    status += TERMSIGOFFSET;
-		    break;
-		}
-		if (job->j_status != JS_RUNNING) {
-		    if (jobcontrol && is_interactive_now && !posixly_correct)
-			print_job_status(i, false, false, stdout);
-		    else if (job->j_status == JS_DONE)
-			remove_job(i);
-		}
+	while (wait_has_job(jobcontrol)) {
+	    status = wait_for_sigchld(jobcontrol, true);
+	    if (status) {
+		assert(TERMSIGOFFSET >= 128);
+		status += TERMSIGOFFSET;
+		break;
 	    }
 	}
     }
 
     return status ? status : err ? Exit_FAILURE : Exit_SUCCESS;
+}
+
+/* Checks if the shell has any job to wait for. */
+bool wait_has_job(bool jobcontrol)
+{
+    /* print/remove already-finished jobs */
+    if (jobcontrol && is_interactive_now && !posixly_correct) {
+	print_job_status_all();
+    } else {
+	for (size_t i = 1; i < joblist.length; i++) {
+	    job_T *job = joblist.contents[i];
+	    if (job != NULL && job->j_status == JS_DONE)
+		remove_job(i);
+	}
+    }
+
+    for (size_t i = 1; i < joblist.length; i++) {
+	job_T *job = joblist.contents[i];
+	if (job != NULL && (!jobcontrol || job->j_status == JS_RUNNING))
+	    return true;
+    }
+    return false;
 }
 
 const char wait_help[] = Ngt(
