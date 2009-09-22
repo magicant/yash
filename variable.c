@@ -1502,8 +1502,9 @@ int typeset_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 	    default:
-		fprintf(stderr,
-			gt("Usage:  %ls [-rgprxX] [name[=value]...]\n"),
+		fprintf(stderr, gt(posixly_correct
+			    ? Ngt("Usage:  %ls [-p] [name[=value]...]\n")
+			    : Ngt("Usage:  %ls [-fgprxX] [name[=value]...]\n")),
 			ARGV(0));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
