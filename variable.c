@@ -1844,8 +1844,8 @@ int array_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  array [name [value...]]\n"
-		                   "        array -d name index...\n"
-				   "        array -i name index value...\n"
+		                   "        array -d name [index...]\n"
+				   "        array -i name index [value...]\n"
 				   "        array -s name index value\n"));
 		return Exit_ERROR;
 	}
@@ -2068,8 +2068,8 @@ const char array_help[] = Ngt(
 "array - manipulate array\n"
 "\tarray\n"
 "\tarray name [value...]\n"
-"\tarray -d name index...\n"
-"\tarray -i name index value...\n"
+"\tarray -d name [index...]\n"
+"\tarray -i name index [value...]\n"
 "\tarray -s name index value\n"
 "The first form (without arguments) prints all existing arrays.\n"
 "The second form sets values of an array. This is equivalent to an assignment\n"
