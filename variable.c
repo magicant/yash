@@ -1789,7 +1789,7 @@ bool print_function(
 const char typeset_help[] = Ngt(
 "typeset, export, readonly - set or print variables\n"
 "\ttypeset  [-fgprxX] [name[=value]...]\n"
-"\texport   [-fprX]   [name[=value]...]\n"
+"\texport   [-prX]    [name[=value]...]\n"
 "\treadonly [-fpxX]   [name[=value]...]\n"
 "For each operands of the form <name>, the variable of the specified name is\n"
 "created if not yet created, without assigning any value. If the -p (--print)\n"
