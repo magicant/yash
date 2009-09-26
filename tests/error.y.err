@@ -50,13 +50,13 @@ Usage:  unalias name[...]
 unalias: alias: no such alias
 ===== typeset =====
 typeset: --no-such-option: invalid option
-Usage:  typeset [-rgprxX] [name[=value]...]
+Usage:  typeset [-fgprxX] [name[=value]...]
 typeset: readonly: readonly
 ===== array =====
 array: --no-such-option: invalid option
 Usage:  array [name [value...]]
-        array -d name index...
-        array -i name index value...
+        array -d name [index...]
+        array -i name index [value...]
         array -s name index value
 ===== unset =====
 unset: --no-such-option: invalid option
