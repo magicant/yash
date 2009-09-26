@@ -57,21 +57,27 @@ a unset
 b foo  bar
 c unset
 ? 5
-=====
+===== 1
 a --
 a bc
 b unset
 ? 6
-=====
+===== 2
 a unset
 b unset
 c unset
 d unset
 e unset
 ? 3
-=====
+a unset
+b unset
+c unset
+d unset
+e unset
+? 3
+===== 3
 0 ? 1 unset
-=====
+===== 4
 0 ? unset
 0 ? a
 0 ? unset

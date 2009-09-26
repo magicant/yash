@@ -185,9 +185,6 @@ static bool random_active;
 /* Hashtable from function names (char *) to functions (function_T *). */
 static hashtable_T functions;
 
-/* The index of the option charcter for the "getopts" builtin to parse next. */
-static unsigned optind2 = 1;
-
 
 /* Frees the value of a variable, but not the variable itself. */
 /* This function does not change the value of `*v'. */
@@ -995,10 +992,6 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (wcscmp(name, L VAR_MAILPATH) == 0)
 	    reset_path(PA_MAILPATH, var);
 	break;
-    case L'O':
-	if (wcscmp(name, L VAR_OPTIND) == 0)
-	    optind2 = 1;
-	break;
     case L'P':
 	if (wcscmp(name, L VAR_PATH) == 0) {
 	    clear_cmdhash();
@@ -1451,7 +1444,7 @@ static bool unset_variable(const wchar_t *name)
     __attribute__((nonnull));
 static bool check_options(const wchar_t *options)
     __attribute__((nonnull,pure));
-static inline bool set_optind(unsigned long optind);
+static bool set_optind(unsigned long optind, unsigned long optsubind);
 static inline bool set_optarg(const wchar_t *value);
 static bool set_to(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
@@ -2263,7 +2256,7 @@ int getopts_builtin(int argc, void **argv)
     const wchar_t *options = ARGV(xoptind++);
     const wchar_t *varname = ARGV(xoptind++);
     void *const *args;
-    unsigned long optind;
+    unsigned long optind, optsubind;
     const wchar_t *arg, *optp;
     wchar_t optchar;
 
@@ -2274,39 +2267,54 @@ int getopts_builtin(int argc, void **argv)
 	xerror(0, Ngt("`%ls': invalid option specification"), options);
 	return Exit_FAILURE;
     }
+
+    /* Parse $OPTIND */
     {
 	const wchar_t *varoptind = getvar(L VAR_OPTIND);
-	if (!varoptind || !xwcstoul(varoptind, 10, &optind))
+	wchar_t *endp;
+	if (!varoptind || !varoptind[0])
+	    goto optind_invalid;
+	errno = 0;
+	optind = wcstoul(varoptind, &endp, 10);
+	if (errno || varoptind == endp)
 	    goto optind_invalid;
 	optind -= 1;
+
+	if (*endp == L':') {
+	    endp++;
+	    if (!xwcstoul(endp, 10, &optsubind) || optsubind == 0)
+		goto optind_invalid;
+	} else {
+	    optsubind = 1;
+	}
     }
+
     if (xoptind < argc) {
 	if (optind >= (unsigned long) (argc - xoptind))
-	    return Exit_FAILURE;
+	    goto no_more_options;
 	args = argv + xoptind;
     } else {
 	variable_T *var = search_variable(L VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (optind >= var->v_valc)
-	    return Exit_FAILURE;
+	    goto no_more_options;
 	args = var->v_vals;
     }
 
 #define TRY(exp)  do { if (!(exp)) return Exit_FAILURE; } while (0)
 parse_arg:
     arg = args[optind];
-    if (arg[0] != L'-' || arg[1] == L'\0') {
+    if (arg == NULL || arg[0] != L'-' || arg[1] == L'\0') {
 	goto no_more_options;
     } else if (arg[1] == L'-' && arg[2] == L'\0') {  /* arg == "--" */
-	set_optind(optind + 1);
+	optind++;
 	goto no_more_options;
-    } else if (xwcsnlen(arg, optind2 + 1) <= optind2) {
-	optind++, optind2 = 1;
-	TRY(set_optind(optind));
+    } else if (xwcsnlen(arg, optsubind + 1) <= optsubind) {
+	optind++, optsubind = 1;
 	goto parse_arg;
     }
 
-    optchar = arg[optind2++];
+    optchar = arg[optsubind++];
     assert(optchar != L'\0');
     if (optchar == L':' || !(optp = wcschr(options, optchar))) {
 	/* invalid option */
@@ -2322,17 +2330,15 @@ parse_arg:
 	/* valid option */
 	if (optp[1] == L':') {
 	    /* option with an argument */
-	    const wchar_t *optarg = arg + optind2;
-	    optind2 = 1;
-	    if (optarg[0]) {
+	    const wchar_t *optarg = arg + optsubind;
+	    optsubind = 1;
+	    if (optarg[0] != L'\0') {
 		optind++;
-		TRY(set_optind(optind));
 	    } else {
 		optind++;
 		optarg = args[optind];
 		optind++;
-		TRY(set_optind(optind));
-		if (!optarg) {
+		if (optarg == NULL) {
 		    /* argument is missing */
 		    if (options[0] == L':') {
 			TRY(set_to(varname, L':'));
@@ -2343,7 +2349,7 @@ parse_arg:
 			TRY(set_to(varname, L'?'));
 			TRY(!unset_variable(L VAR_OPTARG));
 		    }
-		    return Exit_SUCCESS;
+		    goto finish;
 		}
 	    }
 	    TRY(set_optarg(optarg));
@@ -2353,10 +2359,13 @@ parse_arg:
 	}
 	TRY(set_to(varname, optchar));
     }
+finish:
+    TRY(set_optind(optind, optsubind));
     return Exit_SUCCESS;
 #undef TRY
 
 no_more_options:
+    set_optind(optind, 0);
     set_to(varname, L'?');
     unset_variable(L VAR_OPTARG);
     return Exit_FAILURE;
@@ -2392,12 +2401,13 @@ bool check_options(const wchar_t *options)
     }
 }
 
-/* Sets $OPTIND to `optind' plus 1. */
-bool set_optind(unsigned long optind)
+/* Sets $OPTIND to `optind' plus 1, followed by `optsubind' (if > 1). */
+bool set_optind(unsigned long optind, unsigned long optsubind)
 {
-    return set_variable(L VAR_OPTIND,
-	    malloc_wprintf(L"%lu", optind + 1),
-	    SCOPE_GLOBAL, shopt_allexport);
+    wchar_t *value = malloc_wprintf(
+	    optsubind > 1 ? L"%lu:%lu" : L"%lu",
+	    optind + 1, optsubind);
+    return set_variable(L VAR_OPTIND, value, SCOPE_GLOBAL, shopt_allexport);
 }
 
 /* Sets $OPTARG to `value'. */

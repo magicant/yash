@@ -140,43 +140,54 @@ do echo $opt "${OPTARG-unset}"
 done
 echo $opt $OPTIND
 
-echo =====
+echo ===== 1
 OPTIND=1
 while getopts a:b opt -a -- -abc -b -- -a foo
 do echo $opt "${OPTARG-unset}"
 done
 echo $opt $OPTIND
 
-echo =====
+echo ===== 2
 OPTIND=1
 while getopts :abcde opt -abc -de fgh
 do echo $opt "${OPTARG-unset}"
 done
 echo $opt $OPTIND
 
-echo =====
+OPTIND=1
+while getopts :abcde opt -abc -de
+do echo $opt "${OPTARG-unset}"
+done
+echo $opt $OPTIND
+
+echo ===== 3
 set --
+unset opt
 OPTIND=1
 ! getopts "" opt
 echo $? $opt $OPTIND "${OPTARG-unset}"
 
-echo =====
+echo ===== 4
 set -- -a b c
+unset opt
 OPTIND=1
 getopts "" opt 2>/dev/null
 echo $? $opt "${OPTARG-unset}"
 
 set -- -a b c
+unset opt
 OPTIND=1
 getopts : opt
 echo $? $opt "${OPTARG-unset}"
 
 set -- -a
+unset opt
 OPTIND=1
 getopts a: opt 2>/dev/null
 echo $? $opt "${OPTARG-unset}"
 
 set -- -a
+unset opt
 OPTIND=1
 getopts :a: opt
 echo $? $opt "${OPTARG-unset}"

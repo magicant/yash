@@ -20,6 +20,7 @@ Yash 2.16
   *  Fixed the exit status of the shell when the EXIT trap is set.
   *  The '--allexport' option was wrongly ignored by the "read" and
      "getopts" builtins.
+  *  Fixed segfaults and other errors in the "getopts" builtin.
 
 ----------------------------------------------------------------------
 Yash 2.15
