@@ -132,7 +132,7 @@ bool xstrtoi(const char *s, int base, int *resultp)
  * The conversion result is stored in `*resultp'.
  * Returns true if successful, and false otherwise, in which case the value of
  * `*resultp' is undefined. The conversion is considered successful if `errno'
- * is zero and `endpp' is non-NULL or there are no remaining characters.
+ * is zero and there are no remaining characters.
  * `errno' is non-zero when this function returns false.
  * Spaces at the beginning of the string are ignored. */
 bool xwcstoi(const wchar_t *s, int base, int *resultp)
