@@ -491,6 +491,8 @@ int unalias_builtin(int argc, void **argv)
     }
 
     if (all) {
+	if (xoptind != argc)
+	    goto print_usage;
 	remove_all_aliases();
     } else {
 	if (xoptind == argc)
@@ -516,7 +518,7 @@ const char unalias_help[] = Ngt(
 "\tunalias name...\n"
 "\tunalias -a\n"
 "Removes the specified alias definitions.\n"
-"If the -a option is specified, all definitions are removed.\n"
+"If the -a (--all) option is specified, all definitions are removed.\n"
 );
 
 
