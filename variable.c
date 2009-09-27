@@ -2218,7 +2218,8 @@ int shift_builtin(int argc, void **argv)
     variable_T *var = search_variable(L VAR_positional);
     assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
     if (scount > var->v_valc) {
-	xerror(0, Ngt("%zu: cannot shift so many"), scount);
+	xerror(0, Ngt("%zu: cannot shift so many ($# = %zu)"),
+		scount, var->v_valc);
 	return Exit_FAILURE;
     }
     for (size_t i = 0; i < scount; i++)
@@ -2450,7 +2451,7 @@ const char getopts_help[] = Ngt(
 "If <options> starts with a colon, the option character is assigned to\n"
 "$OPTARG and the variable <var> is set to \"?\" (when the option is not in\n"
 "<options>) or \":\" (when an option's argument is missing).\n"
-"Otherwise, the variable <var> is set to \"?\", $OPTARG is unset and a error\n"
+"Otherwise, the variable <var> is set to \"?\", $OPTARG is unset and an error\n"
 "message is printed.\n"
 "\n"
 "If an option is parsed, whether it is a valid option or not, the exit status\n"
