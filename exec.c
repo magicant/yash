@@ -924,7 +924,7 @@ void search_command(
 
     ci->ci_path = (type & sct_defpath)
 	? get_command_path_default(name) : get_command_path(name, false);
-    if (bi && (ci->ci_path || (!posixly_correct && (type & sct_rbpath)))) {
+    if (bi && (ci->ci_path || !posixly_correct)) {
 	assert(bi->type == BI_REGULAR);
 	ci->type = regularbuiltin;
 	if (!(type & sct_rbpath))
