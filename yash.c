@@ -225,12 +225,11 @@ int main(int argc, char **argv)
 #ifdef NDEBUG
     wchar_t *command;
     FILE *input;
-    const char *inputname;
 #else
     wchar_t *command = command;
     FILE *input = input;
-    const char *inputname = inputname;
 #endif
+    const char *inputname;
 
     if (shopt_read_arg && shopt_read_stdin) {
 	xerror(0, Ngt("both of -c and -s options cannot be used at once"));
@@ -242,8 +241,12 @@ int main(int argc, char **argv)
 	    xerror(0, Ngt("-c option specified but no command given"));
 	    exit(Exit_ERROR);
 	}
-	if (xoptind < argc)
+	if (xoptind < argc) {
+	    inputname = argv[xoptind];
 	    command_name = wargv[xoptind++];
+	} else {
+	    inputname = posixly_correct ? "sh -c" : "yash -c";
+	}
     } else {
 	if (argc == xoptind)
 	    shopt_read_stdin = true;
@@ -291,7 +294,7 @@ int main(int argc, char **argv)
     }
 
     if (shopt_read_arg) {
-	exec_wcs(command, posixly_correct ? "sh -c" : "yash -c", true);
+	exec_wcs(command, inputname, true);
     } else {
 	exec_input(input, inputname, is_interactive, true);
     }
