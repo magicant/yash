@@ -1260,7 +1260,7 @@ print_usage:
 	                   "        fc -l [-nr] [first [last]]\n"));
     else
 	fprintf(stderr, gt("Usage:  fc [-qr] [-e editor] [first [last]]\n"
-	                   "        fc -qs [old=new] [first]\n"
+	                   "        fc -s [-q] [old=new] [first]\n"
 	                   "        fc -l [-nrv] [first [last]]\n"));
     return Exit_ERROR;
 }
@@ -1506,7 +1506,7 @@ void fc_read_history(FILE *f, bool quiet)
 const char fc_help[] = Ngt(
 "fc - list or re-execute command history\n"
 "\tfc [-qr] [-e editor] [first [last]]\n"
-"\tfc -qs [old=new] [first]\n"
+"\tfc -s [-q] [old=new] [first]\n"
 "\tfc -l [-nrv] [first [last]]\n"
 "The first form invokes an editor to edit a temporary file containing the\n"
 "command history and, after the editor exited, executes commands in the file.\n"

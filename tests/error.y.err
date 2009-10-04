@@ -115,7 +115,7 @@ Usage:  wait [job or pid...]
 ===== fc/history =====
 fc: --no-such-option: invalid option
 Usage:  fc [-qr] [-e editor] [first [last]]
-        fc -qs [old=new] [first]
+        fc -s [-q] [old=new] [first]
         fc -l [-nrv] [first [last]]
 fc: history is empty
 fc: history is empty
