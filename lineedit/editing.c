@@ -2755,10 +2755,10 @@ void cmd_newest_history(wchar_t c __attribute__((unused)))
 /* Goes to the newest history entry.
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
- * The cursor is put at the beginning of line. */
-void cmd_return_history_eol(wchar_t c __attribute__((unused)))
+ * The cursor is put at the end of line. */
+void cmd_return_history(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(Histlist, true);
+    go_to_history_absolute(Histlist, false);
 }
 
 /* Goes to the oldest history entry.
@@ -2782,10 +2782,10 @@ void cmd_newest_history_eol(wchar_t c __attribute__((unused)))
 /* Goes to the newest history entry.
  * If the `count' is specified, goes to the history entry whose number is
  * `count'. If the specified entry is not found, make an alert.
- * The cursor is put at the end of line. */
-void cmd_return_history(wchar_t c __attribute__((unused)))
+ * The cursor is put at the beginning of line. */
+void cmd_return_history_eol(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(Histlist, false);
+    go_to_history_absolute(Histlist, true);
 }
 
 /* Goes to the specified history entry `e'.
