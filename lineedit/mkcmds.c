@@ -105,6 +105,7 @@ static char *commands[] = {
     "vi-append",
     "vi-append-end",
     "vi-replace",
+    "vi-switch-case",
     "vi-switch-case-char",
     "vi-yank",
     "vi-yank-to-eol",

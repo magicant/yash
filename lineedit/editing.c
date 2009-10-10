@@ -559,15 +559,13 @@ void exec_motion_expect_command_line(enum motion_expect_command cmd)
  * the line to the end of line. */
 void exec_motion_expect_command_all(void)
 {
-    size_t save_index;
+    size_t save_index = le_main_index;
+    enum motion_expect_command save_pending = state.pending_command_motion;
 
-    if (state.pending_command_motion & MEC_DELETE)
-	save_index = 0;
-    else
-	save_index = le_main_index;
     le_main_index = 0;
     cmd_end_of_line(L'\0');
-    le_main_index = save_index;
+    if (!(save_pending & (MEC_DELETE | MEC_TOSTART | MEC_TOEND)))
+	le_main_index = save_index;
 }
 
 /* Adds the specified string to the kill ring.
@@ -2167,6 +2165,15 @@ void cmd_vi_replace(wchar_t c __attribute__((unused)))
 
     cmd_setmode_viinsert(L'\0');
     overwrite = true;
+}
+
+/* Sets the pending command to `MEC_SWITCHCASE'.
+ * The count multiplier is set to the current count.
+ * If the pending command is already set to `MEC_SWITCHCASE', the whole line is
+ * switch-cased. */
+void cmd_vi_switch_case(wchar_t c __attribute__((unused)))
+{
+    set_motion_expect_command(MEC_SWITCHCASE | MEC_TOSTART);
 }
 
 /* Switches the case of the character under the cursor and advances the cursor.
