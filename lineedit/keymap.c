@@ -245,6 +245,8 @@ void le_keymap_init(void)
     Set(Key_c_k,            cmd_forward_kill_line);
     Set(Key_kill,           cmd_backward_kill_line);
     Set(Key_c_u,            cmd_backward_kill_line);
+    Set(Key_c_x Key_backspace, cmd_backward_kill_line);
+    Set(Key_c_x Key_erase,  cmd_backward_kill_line);
     Set(Key_c_y,            cmd_put_left);
     Set(Key_escape "y",     cmd_put_pop);
     Set(Key_escape "Y",     cmd_put_pop);
