@@ -2682,7 +2682,7 @@ void cmd_emacs_just_one_space(wchar_t c __attribute__((unused)))
 	count = 1000;
 
     wchar_t s[count + 1];
-    wmemset(s, L'\0', count);
+    wmemset(s, L' ', count);
     s[count] = L'\0';
 
     replace_horizontal_space(true, s);
