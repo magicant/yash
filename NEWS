@@ -21,6 +21,8 @@ Yash 2.16
   *  The '--allexport' option was wrongly ignored by the "read" and
      "getopts" builtins.
   *  Fixed segfaults and other errors in the "getopts" builtin.
+  *  Fixed the 'r' command in the vi-command mode in line-editing
+     causing invalid memory access.
 
 ----------------------------------------------------------------------
 Yash 2.15
