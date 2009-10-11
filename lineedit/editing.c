@@ -2651,7 +2651,7 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
 		s++;
 	} while (*s != L'\0' && --count > 0);
 	le_main_index = s - le_main_buffer.contents;
-    } else {
+    } else if (count < 0) {
 	size_t index = le_main_index;
 	do {
 	    index = previous_emacsword_index(le_main_buffer.contents, index);
