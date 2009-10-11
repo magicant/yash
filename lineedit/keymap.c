@@ -268,10 +268,10 @@ void le_keymap_init(void)
     Set(Key_escape "C",     cmd_emacs_capitalize_word);
     Set(Key_escape Key_backslash, cmd_emacs_delete_horizontal_space);
     Set(Key_escape " ",     cmd_emacs_just_one_space);
-    Set(Key_escape "<",     cmd_oldest_history_eol);
-    Set(Key_escape ">",     cmd_return_history_eol);
     Set(Key_c_s,            cmd_emacs_search_forward);
     Set(Key_c_r,            cmd_emacs_search_backward);
+    Set(Key_escape "<",     cmd_oldest_history_eol);
+    Set(Key_escape ">",     cmd_return_history_eol);
     Set(Key_down,           cmd_next_history_eol);
     Set(Key_c_n,            cmd_next_history_eol);
     Set(Key_up,             cmd_prev_history_eol);
@@ -280,7 +280,7 @@ void le_keymap_init(void)
 
     le_modes[LE_MODE_EMACS_SEARCH].default_command = cmd_srch_self_insert;
     t = trie_create();
-    Set(Key_c_v, cmd_expect_verbatim);
+    Set(Key_c_v,       cmd_expect_verbatim);
     Set(Key_c_m,       cmd_accept_line);
     Set(Key_interrupt, cmd_abort_line);
     Set(Key_c_c,       cmd_abort_line);
