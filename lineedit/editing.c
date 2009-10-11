@@ -816,14 +816,20 @@ void cmd_expect_char(wchar_t c)
 	current_command.func = state.pending_command_char;
 	current_command.arg = c;
 	state.pending_command_char(c);
+    } else {
+	cmd_alert(L'\0');
     }
 }
 
 /* Cancels a command that expects a character as an argument. */
 void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 {
-    reset_state();
-    le_set_mode(savemode);
+    if (state.pending_command_char) {
+	le_set_mode(savemode);
+	reset_state();
+    } else {
+	cmd_alert(L'\0');
+    }
 }
 
 /* Redraws everything. */
