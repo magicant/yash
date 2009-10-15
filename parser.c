@@ -941,7 +941,9 @@ pipeline_T *parse_pipelines_in_and_or(void)
 	    break;
 	}
 	cindex += 2;
+#if YASH_ENABLE_ALIAS
 next:
+#endif
 	skip_to_next_token();
     }
     return first;
@@ -1012,7 +1014,9 @@ command_T *parse_commands_in_pipeline(void)
 	} else {
 	    break;
 	}
+#if YASH_ENABLE_ALIAS
 next:
+#endif
 	skip_to_next_token();
     }
     return first;
