@@ -6,7 +6,7 @@ echo wait ok
 wait $!
 echo wait $?
 
-echo & echo & echo &
+true & true & true &
 wait
 echo wait $?
 
