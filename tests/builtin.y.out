@@ -94,7 +94,6 @@ type: cd: no such command or function
 STOP
 TTOU
 2
-end
 ===== exec =====
 sh
 sh
