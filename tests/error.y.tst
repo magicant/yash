@@ -266,8 +266,8 @@ END
 	cat >&2 <<\END
 array: --no-such-option: invalid option
 Usage:  array [name [value...]]
-        array -d name index...
-        array -i name index value...
+        array -d name [index...]
+        array -i name index [value...]
         array -s name index value
 END
 fi
@@ -450,7 +450,7 @@ END
 	cat >&2 <<\END
 fc: --no-such-option: invalid option
 Usage:  fc [-qr] [-e editor] [first [last]]
-        fc -qs [old=new] [first]
+        fc -s [-q] [old=new] [first]
         fc -l [-nrv] [first [last]]
 fc: history is empty
 fc: history is empty
