@@ -8,8 +8,7 @@ line
 12367
 89	0!
 S
-x S
-x !1
+x \123\12\1x !1
 -e 1-e -E 1-eE 1
 ===== SYSV
 -n new
@@ -17,8 +16,7 @@ line
 12367
 89	0!
 S
-x S
-x !1
+x \123\12\1x !1
 -e 1-e -E 1-eE 1
 ===== XSI
 -n new
@@ -26,8 +24,7 @@ line
 12367
 89	0!
 S
-x S
-x !1
+x \123\12\1x !1
 -e 1-e -E 1-eE 1
 ===== BSD
 newline
@@ -51,8 +48,7 @@ newline
 12367
 89	0!
 S
-x S
-x !1
+x \123\12\1x !1
 11\c2
 1\c2
 
@@ -61,8 +57,7 @@ newline
 12367
 89	0!
 S
-x S
-x !1
+x \123\12\1x !1
 -e 1-e -E 1-eE 1
 ===== RAW
 -n new
@@ -278,8 +273,7 @@ argument with backslash \ and percent %%
 89	0!
 S
 x
-S
-x
+\123\12\1x
 !1
 =====
 1

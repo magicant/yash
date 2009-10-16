@@ -201,13 +201,9 @@ print_char:
 		/* At most three digits are recognized in an octal escape
 		 * except for the first zero. */
 		case L'0':
-		    s++;
-		    /* falls thru! */
-		case L'1':  case L'2':  case L'3':  case L'4':
-		case L'5':  case L'6':  case L'7':
-		    s++;
 		    {
 			int value = 0;
+			s += 2;
 			if (L'0' <= *s && *s <= L'7') {
 			    value = value * 8 + (*s - L'0');
 			    s++;
