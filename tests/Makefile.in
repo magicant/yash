@@ -21,6 +21,25 @@ CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
+SOURCES = invoke.c resetsig.c
+TEST_SOURCES = alias.p.tst alias.p.out alias.y.tst alias.y.out \
+	builtin.p.tst builtin.p.out builtin.y.tst builtin.y.out dot.t \
+	dirstack.y.tst dirstack.y.out \
+	error.p.tst error.p.out error.y.tst error.y.out error.y.err \
+	expand.p.tst expand.p.out expand.y.tst expand.y.out \
+	fnmatch.p.tst fnmatch.p.out \
+	history.y.tst history.y.out \
+	input.p.tst input.p.out input.p.err input.p.OUT input.p.ERR input.p.t \
+	input.y.tst input.y.out input.y.err input.y.ERR input.y.t \
+	job.p.tst job.p.out \
+	option.p.tst option.p.out option.p.err option.y.tst option.y.out \
+	parser.p.tst parser.p.out parser.y.tst parser.y.out \
+	path.p.tst path.p.out \
+	printf.y.tst printf.y.out \
+	redir.p.tst redir.p.out redir.y.tst redir.y.out \
+	sig.p.tst sig.p.out sig.y.tst sig.y.out \
+	test.y.tst test.y.out \
+	variable.p.tst variable.p.out variable.y.tst variable.y.out
 
 TEST_ITEMS = *.tst  # the default test items
 
@@ -38,10 +57,11 @@ test-posix:
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
-# invoke: $(INVOKEOBJS)
+invoke: $(INVOKEOBJS)
 resetsig: $(RESETSIGOBJS)
 
-distcontents: ;
+DISTCONTENTS = $(SOURCES) $(TEST_SOURCES) Makefile.in Makefile.deps run-test.sh
+distcontents: $(DISTCONTENTS)
 
 clean:
 	rm -f $(BYPRODUCTS) $(INVOKEOBJS) $(RESETSIGOBJS)

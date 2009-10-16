@@ -23,7 +23,7 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 DIRS = @DIRS@
-SOURCES = alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h input.c input.h job.c job.h mail.c mail.h mksignum.c option.c option.h parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h xfnmatch.c xfnmatch.h yash.h yash.c
+SOURCES = alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h input.c input.h job.c job.h mail.c mail.h mksignum.c option.c option.h parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h xfnmatch.c xfnmatch.h yash.c yash.h
 OBJS = @OBJS@
 TARGET = @TARGET@
 MKSIGNUMOBJS = mksignum.o
@@ -53,8 +53,8 @@ depends: Makefile.deps
 Makefile.deps: _PHONY
 	@$(MAKE) $(TARGET)
 	./$(TARGET) makedepend $(DIRS)
-	@echo Remaking Makefiles...; \
-	for d in $(DIRS); do \
+	@for d in $(DIRS); do \
+		echo Remaking $$d/Makefile; \
 		mv $$d/Makefile $$d/Makefile.old && \
 		sed -n -e '/^#=#=#.*makedepend/q' -e 'p' \
 			$$d/Makefile.old >$$d/Makefile && \
@@ -80,7 +80,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in Makefile.deps install-sh
+DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in Makefile.deps install-sh makedepend
 distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	mkdir -p $@
