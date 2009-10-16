@@ -87,7 +87,8 @@ $(DISTDIR):
 	mkdir $@
 	@base=$$PWD; \
 	for d in $(DIRS); do \
-		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents); \
+		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents) || \
+		exit; \
 	done
 copy-distcontents: $(DISTCONTENTS)
 	mkdir -p $(DISTTARGETDIR)
