@@ -62,10 +62,14 @@ resetsig: $(RESETSIGOBJS)
 
 DISTCONTENTS = $(SOURCES) $(TEST_SOURCES) Makefile.in Makefile.deps run-test.sh
 distcontents: $(DISTCONTENTS)
+copy-distcontents: $(DISTCONTENTS)
+	mkdir -p $(DISTTARGETDIR)
+	@echo Copying contents to $(DISTTARGETDIR)
+	@for f in $(DISTCONTENTS); do cp -LR $$f $(DISTTARGETDIR); done
 
 clean:
 	rm -f $(BYPRODUCTS) $(INVOKEOBJS) $(RESETSIGOBJS)
 
-.PHONY: test-all test-posix test distcontents clean
+.PHONY: test-all test-posix test distcontents copy-distcontents clean
 
 

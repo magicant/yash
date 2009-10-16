@@ -83,14 +83,16 @@ DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz
 DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in Makefile.deps install-sh makedepend
 distcontents: $(DISTCONTENTS)
 $(DISTDIR):
-	mkdir -p $@
-	for i in . $$(grep / .distfiles | sed -e 's;/[^/]*$$;;' | sort -u); do \
-		(cd $$i && [ -e Makefile ] && $(MAKE) distcontents); \
-		mkdir -p $@/$$i; \
+	rm -fr $@
+	mkdir $@
+	@base=$$PWD; \
+	for d in $(DIRS); do \
+		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents); \
 	done
-	while read -r i; do \
-		cp -fRL $$i $@/$${i%/*}; \
-	done < .distfiles
+copy-distcontents: $(DISTCONTENTS)
+	mkdir -p $(DISTTARGETDIR)
+	@echo Copying contents to $(DISTTARGETDIR)
+	@for f in $(DISTCONTENTS); do cp -LR $$f $(DISTTARGETDIR); done
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	-rm -rf $(DISTDIR)
@@ -155,7 +157,7 @@ reconfigure:
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	{ echo Cannot read \"config.log\". Try usual \"./configure\" >&2; false; }
 
-.PHONY: all depends test check install install-strip installdirs uninstall dist distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
+.PHONY: all depends test check install install-strip installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
 
 

@@ -46,6 +46,10 @@ keymap.o: commands.in
 
 DISTCONTENTS = $(SOURCES) Makefile.in Makefile.deps
 distcontents: $(DISTCONTENTS)
+copy-distcontents: $(DISTCONTENTS)
+	mkdir -p $(DISTTARGETDIR)
+	@echo Copying contents to $(DISTTARGETDIR)
+	@for f in $(DISTCONTENTS); do cp -LR $$f $(DISTTARGETDIR); done
 
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGSARGS = @CTAGSARGS@
@@ -67,6 +71,6 @@ distclean: clean
 maintainer-clean: distclean
 	-rm -rf Makefile.deps
 
-.PHONY: all distcontents cscope mostlyclean clean distclean maintainer-clean
+.PHONY: all distcontents copy-distcontents cscope mostlyclean clean distclean maintainer-clean
 
 
