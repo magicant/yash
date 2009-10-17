@@ -52,7 +52,7 @@ sig.o: signum.h
 depends: Makefile.deps
 Makefile.deps: _PHONY
 	@$(MAKE) $(TARGET)
-	./$(TARGET) makedepend $(DIRS)
+	./$(TARGET) makedepend.sh $(DIRS)
 	@for d in $(DIRS); do \
 		echo Remaking $$d/Makefile; \
 		mv $$d/Makefile $$d/Makefile.old && \
@@ -81,7 +81,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in Makefile.deps install-sh makedepend
+DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in Makefile.deps install-sh makedepend.sh
 distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	rm -fr $@
