@@ -26,6 +26,7 @@ if [ $# -eq 0 ]; then
     exit 2
 fi
 
+set -o nullglob
 unset deptemp IFS
 trap 'rm -rf "$deptemp"' EXIT
 trap 'rm -rf "$deptemp"; exit 2' HUP INT QUIT ABRT TERM PIPE USR1 USR2
