@@ -15,6 +15,8 @@ Yash 2.16
   =  Changed exit status of a while/until loop whose body is empty.
   =  The "return" and "exit" builtins now accepts an exit status of
      256 or larger.
+  =  The "echo" builtin now interprets octal escapes only beginning
+     with a backslash followed by a zero.
   *  Fixed a syntax error of a special builtin invoked thru the
      "command" builtin causing the non-interactive shell to exit.
   *  Fixed the exit status of the shell when the EXIT trap is set.
