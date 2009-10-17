@@ -94,7 +94,7 @@ $(DISTDIR):
 copy-distcontents: $(DISTCONTENTS)
 	mkdir -p $(DISTTARGETDIR)
 	@echo Copying contents to $(DISTTARGETDIR)
-	@for f in $(DISTCONTENTS); do cp -LR $$f $(DISTTARGETDIR); done
+	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	-rm -rf $(DISTDIR)
