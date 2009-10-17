@@ -65,16 +65,17 @@ Makefile.deps: _PHONY
 test check: all
 	@cd tests && $(MAKE) test-all
 
+DESTDIR =
 BINDIR = @BINDIR@
 install: $(TARGET) $(DESTDIR)$(BINDIR)
-	$(INSTALL_PROGRAM) -c $(TARGET) '$(DESTDIR)$(BINDIR)/$(TARGET)'
+	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
 install-strip: $(TARGET) $(BINDIR)
-	$(INSTALL_PROGRAM) -c -s $(TARGET) '$(DESTDIR)$(BINDIR)/$(TARGET)'
+	@$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install
 installdirs: $(DESTDIR)$(BINDIR)
 $(DESTDIR)$(BINDIR):
 	$(INSTALL_PROGRAM) -d $@
 uninstall:
-	rm -f '$(DESTDIR)$(BINDIR)/$(TARGET)'
+	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
 
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
