@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の fg 組込みコマンドについて">
+<title>Yash マニュアル: fg 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="fc.html" title="Fc 組込みコマンド">
+<link rel="Next" href="getopts.html" title="Getopts 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Fg 組込みコマンド</h1>
+
+<p><dfn>Fg 組込みコマンド</dfn>はジョブをフォアグラウンドで実行します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>fg [<var>ジョブ</var>…]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Fg コマンドはジョブをフォアグラウンドで実行します。ジョブには SIGCONT シグナルが送られ、ジョブが停止している場合は再開されます。
+<p>ジョブの実行を再開する前に fg コマンドはジョブの名前を標準出力に出力します。
+<p>Fg コマンドは<a href="../job.html">ジョブ制御</a>が有効な時しか使えません。
+
+<h2 id="options">オプション</h2>
+<p>なし
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>ジョブ</var>
+<dd>実行するジョブの<a href="../job.html#jobid">ジョブ ID</a> です。複数指定すると指定した順に一つずつジョブをフォアグラウンドで実行します。何も指定しないと現在のジョブを実行します。非 <a href="../posix.html">POSIX 準拠モード</a>ではジョブ ID の先頭の <code>%</code> は省略できます。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>ジョブを正しく実行できた場合、fg コマンドの終了ステータスは (最後に) 実行したジョブの終了ステータスです。エラーが発生した場合は終了ステータスは非 0 です。
+
+<h2 id="notes">補足</h2>
+<p>Fg コマンドは<a href="../builtin.html#types">準特殊組込みコマンド</a>です。
+<p><a href="../posix.html">POSIX 準拠モード</a>では<var>ジョブ</var>は一つまでしか指定できません。

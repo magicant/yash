@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の continue 組込みコマンドについて">
+<title>Yash マニュアル: continue 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="command.html" title="Command 組込みコマンド">
+<link rel="Next" href="dirs.html" title="Dirs 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Continue 組込みコマンド</h1>
+
+<p><dfn>Continue 組込みコマンド</dfn>は実行中のループの次の繰り返しに処理を移します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>continue [<var>深さ</var>]</code>
+<li><code>continue -i</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p><code>-i</code> (<code>--iteration</code>) オプションを付けずに実行すると、continue コマンドは現在実行中の <a href="../syntax.html#for">for ループ</a>または <a href="../syntax.html#while-until">while ループ</a>または <a href="../syntax.html#while-until">until ループ</a>の繰り返しを中断し、直ちに次の繰り返しを開始します (while/until ループについては、ループの実行条件の判定からやり直します)。多重ループの中で実行した場合、内側から数えて<var>深さ</var>番目のループに対してこの動作を行います。<var>深さ</var>が指定されていないときは、最も内側のループに対してこの動作を行います (<var>深さ</var> = 1)。指定された<var>深さ</var>が実際に実行している多重ループの深さより大きい場合は最も外側のループに対してこの動作を行います。
+<p><code>-i</code> (<code>--iteration</code>) オプションを付けて実行すると、continue コマンドは現在実行中の<a href="eval.html#iter">反復実行</a>の現在のコマンドの実行を中断し、直ちに次のコマンドの実行を開始します。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-i</code>, <code>--iteration</code>
+<dd>ループではなく反復実行に対して作用します。
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>深さ</var>
+<dd>内側から何番目のループに作用するのかを指定する 1 以上の自然数です。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p><code>-i</code> (<code>--iteration</code>) オプションが指定されていないとき、continue コマンドの処理が成功すると終了ステータスは 0 です。<code>-i</code> (<code>--iteration</code>) オプションが指定されているとき、continue コマンドの処理が成功すると continue コマンドの直前に実行されたコマンドの終了ステータスが continue コマンドの終了ステータスになります。
+
+<h2 id="notes">補足</h2>
+<p>Continue コマンドは<a href="../builtin.html#types">特殊組込みコマンド</a>です。
+<p>POSIX には <code>-i</code> (<code>--interact</code>) オプションに関する規定はありません。よってこのオプションは <a href="../posix.html">POSIX 準拠モード</a>では使えません。

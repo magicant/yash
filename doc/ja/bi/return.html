@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の return 組込みコマンドについて">
+<title>Yash マニュアル: return 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="readonly.html" title="Readonly 組込みコマンド">
+<link rel="Next" href="set.html" title="Set 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Return 組込みコマンド</h1>
+
+<p><dfn>Return 組込みコマンド</dfn>は現在実行中の<a href="../exec.html#function">関数</a>またはスクリプトの実行を終了します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>return [<var>終了ステータス</var>]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p><a href="../exec.html#function">関数</a>の実行中に return コマンドを実行すると、その関数の実行を終了します。<a href="dot.html">ドットコマンド</a>でファイルを開いてコマンドを実行している途中に return コマンドを実行すると、そのファイルの読み込み・実行を終了します。<a href="eval.html">Eval コマンド</a>でコマンドを実行している途中に return コマンドを実行すると、そのコマンドの実行を終了します。これ以外の場合に return コマンドを実行すると、(<a href="../interact.html">対話モード</a>のときを除いて) シェルは終了します。
+
+<h2 id="options">オプション</h2>
+<p>なし
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>終了ステータス</var>
+<dd>Return コマンドの終了ステータスを指定する 0 以上の自然数です。
+<dd>このオペランドが与えられていない場合は、return コマンドの直前に実行されたコマンドの終了ステータスを用います。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>Return コマンドの終了ステータスはオペランドで与えられた値です。Return コマンドの終了ステータスは return コマンドが終了する関数・ドットコマンド・eval コマンド・シェル自身の終了ステータスにもなります。
+
+<h2 id="notes">補足</h2>
+<p>Continue コマンドは<a href="../builtin.html#types">特殊組込みコマンド</a>です。
+<p>POSIX では、<var>終了ステータス</var>の値は 0 以上 256 未満でなければならないとしています。Yash では拡張として 256 以上の値も受け付けるようになっています。
+<p>POSIX では関数あるいはドットコマンドの実行中以外における return コマンドの動作を定めていません。

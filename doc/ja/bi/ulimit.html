@@ -1,0 +1,84 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の ulimit 組込みコマンドについて">
+<title>Yash マニュアル: ulimit 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="typeset.html" title="Typeset 組込みコマンド">
+<link rel="Next" href="umask.html" title="Umask 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Ulimit 組込みコマンド</h1>
+
+<p><dfn>Ulimit 組込みコマンド</dfn>はシェルプロセスのリソース制限を表示・設定します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>ulimit [-HSaefilnqrstuvx] [<var>値</var>]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Ulimit コマンドはシェルプロセスのリソース制限値を表示または設定します。<code>-a</code> (<code>--all</code>) オプションを付けて実行すると、ulimit コマンドは全ての種類のリソースについて現在の制限値を一覧形式で標準出力に出力します。<code>-a</code> (<code>--all</code>) オプションを付けないで実行すると、一種類のリソースについて制限値を表示または設定します。オペランドで<var>値</var>を指定している場合、その値に制限値を設定します。<var>値</var>を指定していない場合は現在の制限値を標準出力に出力します。表示・設定するリソースの種類はオプションで指定します。
+<p>リソースの各種類について、<dfn>ハードリミット</dfn>と<dfn>ソフトリミット</dfn>の二種類の制限値があります。ソフトリミットがハードリミットを超えることはできません。またハードリミットを緩めるには専用の権限が必要です。
+<p><code>-H</code> (<code>--hard</code>) オプションを指定している場合、ulimit コマンドはハードリミットを表示または設定します。<code>-S</code> (<code>--soft</code>) オプションを指定している場合、ulimit コマンドはソフトリミットを表示または設定します。どちらのオプションも指定してない場合、ulimit コマンドはソフトリミットのみを表示するかまたはハードリミットとソフトリミットの両方を設定します。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-H</code>, <code>--hard</code>
+<dd>ハードリミットを表示または設定します。
+<dt><code>-S</code>, <code>--soft</code>
+<dd>ソフトリミットを表示または設定します。
+<dt><code>-a</code>, <code>--all</code>
+<dd>全種類のリソース制限値を表示します。
+</dl>
+<p>以下のオプションは表示・設定するリソースの種類を指定します。これらのオプションがどれも与えられていないときは、<code>-f</code> が与えられたものとみなします。(表示・設定可能なリソースの種類はシステムによって異なります)
+<dl>
+<dt><code>-c</code>, <code>--core</code>
+<dd>プロセスが強制終了させられたときにできるコアファイルのサイズの限界 (512 バイト単位)
+<dt><code>-d</code>, <code>--data</code>
+<dd>プロセスが使用できるデータセグメント領域のサイズの限界 (キロバイト単位)
+<dt><code>-e</code>, <code>--nice</code>
+<dd>スケジューリング優先度 (nice 値) の限界
+<dt><code>-f</code>, <code>--fsize</code>
+<dd>プロセスが作成できるファイルのサイズの限界 (512 バイト単位)
+<dt><code>-i</code>, <code>--sigpending</code>
+<dd>プロセスの処理待ちシグナル<!--pending signals-->の個数の限界
+<dt><code>-l</code>, <code>--memlock</code>
+<dd>RAM 上にロック可能なメモリサイズの限界 (キロバイト単位)
+<dt><code>-m</code>, <code>--rss</code>
+<dd>プロセスの <span lang="en">resident set</span> (RAM 上に存在する仮想ページ) の数の限界 (キロバイト単位)
+<dt><code>-n</code>, <code>--nofile</code>
+<dd>プロセスが使用できるファイル記述子の最大値 + 1
+<dt><code>-q</code>, <code>--msgqueue</code>
+<dd>POSIX メッセージキューのサイズの限界
+<dt><code>-r</code>, <code>--rtprio</code>
+<dd>リアルタイムスケジューリングの優先度の限界
+<dt><code>-s</code>, <code>--stack</code>
+<dd>プロセスが使用できるスタック領域のサイズの限界 (キロバイト単位)
+<dt><code>-t</code>, <code>--cpu</code>
+<dd>プロセスが使用できる CPU 時間の限界 (秒単位)
+<dt><code>-u</code>, <code>--nproc</code>
+<dd>プロセスが起動できる子プロセスの個数の限界
+<dt><code>-v</code>, <code>--as</code>
+<dd>プロセスが使用できるメモリ領域全体のサイズの限界 (キロバイト単位)
+<dt><code>-x</code>, <code>--locks</code>
+<dd>プロセスがロックできるファイルの個数の限界
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>値</var>
+<dd>設定するリソース制限値です。値は基本的に 0 以上の自然数で指定しますが、自然数の代わりに <code>hard</code>、<code>soft</code>、<code>unlimited</code> のいずれかの文字列を指定することもできます。これらの文字列はそれぞれ現在のハードリミットの値、現在のソフトリミットの値、無制限を表します。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>リソース制限値が正しく出力または設定できたときは、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。
+
+<h2 id="notes">補足</h2>
+<p>POSIX が規定しているオプションは <code>-f</code> だけです。また POSIX はオペランドの<var>値</var>として自然数しか規定していません。

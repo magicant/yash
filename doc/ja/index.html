@@ -1,0 +1,146 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yet another shell (yash) のマニュアルの目次">
+<title>Yet another shell (yash) マニュアル</title>
+<link rel="Stylesheet" href="style.css">
+
+<h1>Yet another shell (yash) マニュアル: 目次</h1>
+<ol>
+<li><a rel="Chapter" href="intro.html">はじめに</a>
+<li><a rel="Chapter" href="invoke.html">シェルの起動</a>
+ <ol>
+ <li><a href="invoke.html#args">起動時のコマンドライン引数</a>
+ <li><a href="invoke.html#init">シェルの初期化処理</a>
+ </ol>
+<li><a rel="Chapter" href="syntax.html">コマンドの文法</a>
+ <ol>
+ <li><a href="syntax.html#tokens">トークンの解析と予約語</a>
+ <li><a href="syntax.html#quotes">クォート</a>
+ <li><a href="syntax.html#aliases">エイリアス</a>
+ <li><a href="syntax.html#simple">単純コマンド</a>
+ <li><a href="syntax.html#pipelines">パイプライン</a>
+ <li><a href="syntax.html#and-or">And/or リスト</a>
+ <li><a href="syntax.html#async">コマンドの区切りと非同期コマンド</a>
+ <li><a href="syntax.html#compound">複合コマンド</a>
+  <ol>
+  <li><a href="syntax.html#grouping">グルーピング</a>
+  <li><a href="syntax.html#if">If 文</a>
+  <li><a href="syntax.html#while-until">While/until ループ</a>
+  <li><a href="syntax.html#for">For ループ</a>
+  <li><a href="syntax.html#case">Case 文</a>
+  </ol>
+ <li><a href="syntax.html#funcdef">関数定義</a>
+ </ol>
+<li><a rel="Chapter" href="params.html">パラメータと変数</a>
+ <ol>
+ <li><a href="params.html#positional">位置パラメータ</a>
+ <li><a href="params.html#special">特殊パラメータ</a>
+ <li><a href="params.html#variables">変数</a>
+  <ol>
+  <li><a href="params.html#shellvars">シェルが使用する変数</a>
+  </ol>
+ <li><a href="params.html#arrays">配列</a>
+ </ol>
+<li><a rel="Chapter" href="expand.html">単語の展開</a>
+ <ol>
+ <li><a href="expand.html#tilde">チルダ展開</a>
+ <li><a href="expand.html#params">パラメータ展開</a>
+ <li><a href="expand.html#cmdsub">コマンド置換</a>
+ <li><a href="expand.html#arith">数式展開</a>
+ <li><a href="expand.html#brace">ブレース展開</a>
+ <li><a href="expand.html#split">単語分割</a>
+ <li><a href="expand.html#glob">パス名展開</a>
+  <ol>
+  <li><a href="expand.html#extendedglob">パス名展開の拡張機能</a>
+  </ol>
+ </ol>
+<li><a rel="Chapter" href="pattern.html">パターンマッチング記法</a>
+ <ol>
+ <li><a href="pattern.html#normal">通常の文字</a>
+ <li><a href="pattern.html#single">一文字ワイルドカード</a>
+ <li><a href="pattern.html#multiple">複数文字ワイルドカード</a>
+ <li><a href="pattern.html#bracket">ブラケット記法</a>
+  <ol>
+  <li><a href="pattern.html#bra-normal">(ブラケット記法パターンにおける) 通常の文字</a>
+  <li><a href="pattern.html#bra-range">範囲指定</a>
+  <li><a href="pattern.html#bra-colsym">照合シンボル</a>
+  <li><a href="pattern.html#bra-eqclass">等価クラス</a>
+  <li><a href="pattern.html#bra-chclass">文字クラス</a>
+  </ol>
+ </ol>
+<li><a rel="Chapter" href="redir.html">リダイレクト</a>
+ <ol>
+ <li><a href="redir.html#file">ファイルへのリダイレクト</a>
+  <ol>
+  <li><a href="redir.html#socket">ソケットリダイレクト</a>
+  </ol>
+ <li><a href="redir.html#dup">ファイル記述子の複製</a>
+ <li><a href="redir.html#here">ヒアドキュメントとヒアストリング</a>
+ <li><a href="redir.html#pipe">パイプリダイレクト</a>
+ <li><a href="redir.html#process">プロセスリダイレクト</a>
+ </ol>
+<li><a rel="Chapter" href="exec.html">コマンドの実行とその環境</a>
+ <ol>
+ <li><a href="exec.html#simple">単純コマンドの実行</a>
+  <ol>
+  <li><a href="exec.html#search">コマンドの検索</a>
+  </ol>
+ <li><a href="exec.html#exit">シェルの終了</a>
+ <li><a href="exec.html#function">関数</a>
+  <ol>
+  <li><a href="exec.html#localvar">ローカル変数</a>
+  </ol>
+ <li><a href="exec.html#environment">コマンドの実行環境</a>
+  <ol>
+  <li><a href="exec.html#subshell">サブシェル</a>
+  </ol>
+ </ol>
+<li><a rel="Chapter" href="interact.html">対話モード</a>
+ <ol>
+ <li><a href="interact.html#prompt">プロンプト</a>
+ <li><a href="interact.html#history">コマンド履歴</a>
+ <li><a href="interact.html#mailcheck">メールチェック</a>
+ </ol>
+<li><a rel="Chapter" href="job.html">ジョブ制御</a>
+ <ol>
+ <li><a href="job.html#jobid">ジョブ ID</a>
+ </ol>
+<li><a rel="Chapter" href="builtin.html">組込みコマンド</a>
+ <ol>
+ <li><a href="builtin.html#types">組込みコマンドの種類</a>
+ <li><a href="builtin.html#argsyntax">コマンドの引数の構文</a>
+ </ol>
+<li><a rel="Chapter" href="lineedit.html">行編集</a>
+ <ol>
+ <li><a href="lineedit.html#options">行編集のオプション</a>
+ <li><a href="lineedit.html#modes">編集モード</a>
+ <li><a href="lineedit.html#commands">行編集コマンド</a>
+  <ol>
+  <li><a href="lineedit.html#basic-commands">基本的な編集コマンド</a>
+  <li><a href="lineedit.html#motion-commands">移動コマンド</a>
+  <li><a href="lineedit.html#editing-commands">編集コマンド</a>
+  <li><a href="lineedit.html#vi-commands">Vi 固有のコマンド</a>
+  <li><a href="lineedit.html#emacs-commands">Emacs 固有のコマンド</a>
+  <li><a href="lineedit.html#history-commands">コマンド履歴関連のコマンド</a>
+  <li><a href="lineedit.html#search-commands">コマンド履歴検索モードのコマンド</a>
+  </ol>
+ <li><a href="lineedit.html#escape">エスケープシーケンス</a>
+ <!--li>コマンドライン補完-->
+ </ol>
+<li><a rel="Chapter" href="posix.html">POSIX 準拠モード</a>
+<!--li>よくある質問 (<abbr lang="en" title="Frequently asked questions">FAQ</abbr>)-->
+<li><a rel="Chapter" href="fgrammar.html">コマンドの構文の形式的定義</a>
+</ol>
+<ul>
+<li><a rel="Index" href="bi/index.html">組込みコマンド一覧</a>
+<li><a href="bi/set.html#options">シェルオプション一覧</a>
+</ul>
+
+<address>
+&copy; 2009 Magicant
+</address>

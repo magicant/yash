@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の type 組込みコマンドについて">
+<title>Yash マニュアル: type 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="true.html" title="True 組込みコマンド">
+<link rel="Next" href="typeset.html" title="Typeset 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Type 組込みコマンド</h1>
+
+<p><dfn>Type 組込みコマンド</dfn>はコマンドの種類を特定します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>type [-bBp] <var>コマンド</var>…</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Type コマンドは <a href="command.html">command コマンド</a>に <code>-V</code> オプションを付けたものと同じです。その他オプション・オペランド・終了ステータスは command コマンドと同じです。
+
+<h2 id="notes">補足</h2>
+<p>POSIX では、type コマンドと command コマンドとの関係について規定していません。従って他のシェルの type コマンドは command コマンドに <code>-V</code> オプションを付けたものとは異なる動作をすることがあります。また POSIX は type コマンドのオプションを規定していません。

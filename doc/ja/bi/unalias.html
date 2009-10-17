@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の unalias 組込みコマンドについて">
+<title>Yash マニュアル: unalias 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="umask.html" title="Umask 組込みコマンド">
+<link rel="Next" href="unset.html" title="Unset 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Unalias 組込みコマンド</h1>
+
+<p><dfn>Unalias 組込みコマンド</dfn>は<a href="../syntax.html#aliases">エイリアス</a>を削除します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>unalias <var>エイリアス名</var>…</code>
+<li><code>unalias -a</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Unalias コマンドはオペランドで指定した<a href="../syntax.html#aliases">エイリアス</a>を削除します。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-a</code>, <code>--all</code>
+<dd>全てのエイリアスを削除します。
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>エイリアス名</var>
+<dd>削除するエイリアスの名前です。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>エラーがない限り unalias コマンドの終了ステータスは 0 です。存在しないエイリアスをオペランドで指定した場合はエラーになります。
+
+<h2 id="notes">補足</h2>
+<p>Unalias コマンドは<a href="../builtin.html#types">準特殊組込みコマンド</a>です。

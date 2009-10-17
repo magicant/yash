@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の umask 組込みコマンドについて">
+<title>Yash マニュアル: umask 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="ulimit.html" title="Ulimit 組込みコマンド">
+<link rel="Next" href="unalias.html" title="Unalias 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Umask 組込みコマンド</h1>
+
+<p><dfn>Umask 組込みコマンド</dfn>はシェルプロセスのファイルモード作成マスク<!--file mode creation mask-->を表示・設定します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>umask [-S] [<var>値</var>]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>オペランドの<var>値</var>が与えられていないとき、umask コマンドはシェルプロセスの現在のファイルモード作成マスクを標準出力に出力します。<code>-S</code> (<code>--symbolic</code>) オプションで出力の形式を指定できます。
+<p>オペランドの<var>値</var>が与えられているとき、umask コマンドはシェルプロセスのファイルモード作成マスクを与えられた<var>値</var>に設定します。
+<p>Umask コマンドの出力はオペランドの<var>値</var>として利用可能な形式になっています。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-S</code>, <code>--symbolic</code>
+<dd>このオプションが指定されているときは、記号形式でファイルモード作成マスクを出力します。このオプションが指定されていないときは、数値形式で出力します。
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>値</var>
+<dd>このオペランドが与えられているときは、umask コマンドはファイルモード作成マスクをこの値に設定します。値は以下に述べる数値形式と記号形式のどちらかで与えます。
+</dl>
+
+<h3>数値形式</h3>
+<p>数値形式は 0 以上の八進整数でマスクを指定します。これは以下の各モードを表す自然数のいくつかの和です。
+<table>
+<tr><td>0400<td>ユーザの読み取り権限
+<tr><td>0200<td>ユーザの書き込み権限
+<tr><td>0100<td>ユーザの実行権限
+<tr><td>0040<td>グループの読み取り権限
+<tr><td>0020<td>グループの書き込み権限
+<tr><td>0010<td>グループの実行権限
+<tr><td>0004<td>その他の読み取り権限
+<tr><td>0002<td>その他の書き込み権限
+<tr><td>0001<td>その他の実行権限
+</table>
+
+<h3>記号形式</h3>
+<p>記号形式は以下のような書式の記号列でマスク<strong>しない</strong>権限を指定します。記号列はカンマ (<code>,</code>) で区切って複数指定できます。
+<dl>
+<dt>記号形式
+<dd><code><var>対象</var> <var>動作</var>…</code>
+</dl>
+<p><var>対象</var>には以下の記号をいくつでも指定できます。
+<table>
+<caption>対象</caption>
+<tr><td><code>u</code><td>ユーザ
+<tr><td><code>g</code><td>グループ
+<tr><td><code>o</code><td>その他
+<tr><td><code>a</code><td>ユーザ・グループ・その他の全て
+</table>
+<p><var>対象</var>を省略すると <code>a</code> が指定されているものとみなします。
+<p><var>動作</var>は以下の演算子と値の組み合わせです。
+<table>
+<caption>演算子</caption>
+<tr><td><code>=</code><td><var>対象</var>に対する設定を<var>値</var>にします。
+<tr><td><code>+</code><td><var>対象</var>に対する設定に<var>値</var>を加えます。
+<tr><td><code>-</code><td><var>対象</var>に対する設定から<var>値</var>を除きます。
+</table>
+<table>
+<caption>値</caption>
+<tr><td><code>r</code><td>読み取り権限
+<tr><td><code>w</code><td>書き込み権限
+<tr><td><code>x</code><td>実行権限
+<tr><td><code>X</code><td>実行権限 (元々実行権限が設定されていた場合のみ)
+<tr><td><code>s</code><td>Set-user-ID, Set-group-ID
+<tr><td><code>u</code><td>現在のユーザの値
+<tr><td><code>g</code><td>現在のグループの値
+<tr><td><code>o</code><td>現在のその他の値
+</table>
+<p><var>値</var>では <code>r</code>, <code>w</code>, <code>x</code>, <code>X</code>, <code>s</code> の記号同士は一度に組み合わせて指定できます。
+<p>例えば <code>umask u=rwx,go+r-w</code> を実行すると、ユーザの読み取り権限と書き込み権限と実行権限をマスクしないようにし、グループとその他の読み取り権限をマスクしないようにし、グループとその他の書き込み権限をマスクするようにします。
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>ファイルモード作成マスクが正しく出力または設定できたときは、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。
+
+<h2 id="notes">補足</h2>
+<p>Ulimit コマンドは<a href="../builtin.html#types">準特殊組込みコマンド</a>です。
+<p>POSIX は <code>-S</code> オプションを指定しなかった場合の出力形式が必ずしも数値形式であるとは規定していません。

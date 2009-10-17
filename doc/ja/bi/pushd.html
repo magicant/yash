@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の pushd 組込みコマンドについて">
+<title>Yash マニュアル: pushd 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="printf.html" title="Printf 組込みコマンド">
+<link rel="Next" href="pwd.html" title="Pwd 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Pushd 組込みコマンド</h1>
+
+<p><dfn>Pushd 組込みコマンド</dfn>は<a href="dirs.html">ディレクトリスタック</a>にディレクトリを追加し、シェルの作業ディレクトリをそのディレクトリに変更します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>pushd [-LP] [<var>ディレクトリ</var>]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Pushd コマンドは <a href="cd.html">cd コマンド</a>と同様に、シェルの作業ディレクトリをオペランドで指定したディレクトリに変更します。作業ディレクトリの変更に成功すると、新しい作業ディレクトリを<a href="dirs.html">ディレクトリスタック</a>に追加します。
+
+<h2 id="options">オプション</h2>
+<p><a href="cd.html#options">Cd コマンドのオプション</a>に同じ。
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>ディレクトリ</var>
+<dd>新しい作業ディレクトリのパス名です。絶対パスまたは元の作業ディレクトリからの相対パスで指定します。この値がハイフン一つ (<code>-</code>) の場合、<code>OLDPWD</code> 変数の値が指定されたものとみなします。この値が符号付き整数の場合、その整数を<a href="dirs.html">ディレクトリスタック</a>の要素のインデックスとみなして、その要素が表すディレクトリが指定されたものとみなします (指定された要素はディレクトリスタックから削除されます)。このオペランドが与えられていない場合、インデックス <code>+1</code> が指定されたものとみなします。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>作業ディレクトリを正しく変更しディレクトリスタックに追加できた場合、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。
+
+<h2 id="notes">補足</h2>
+<p>POSIX には pushd コマンドに関する規定はありません。

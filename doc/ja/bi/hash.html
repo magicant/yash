@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の hash 組込みコマンドについて">
+<title>Yash マニュアル: hash 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="getopts.html" title="Getopts 組込みコマンド">
+<link rel="Next" href="help.html" title="Help 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Hash 組込みコマンド</h1>
+
+<p><dfn>Hash 組込みコマンド</dfn>は外部コマンドのパスを検索・表示します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>hash <var>コマンド</var>…</code>
+<li><code>hash -r [<var>コマンド</var>…]</code>
+<li><code>hash [-a]</code>
+<li><code>hash -d <var>ユーザ名</var>…</code>
+<li><code>hash -dr [<var>ユーザ名</var>…]</code>
+<li><code>hash -d</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>オプションを指定しない場合、hash コマンドはオペランドで指定した<a href="../exec.html#search">外部コマンドのパスを検索</a>し、結果を記憶します (既に記憶している場合は再度検索・記憶します)。
+<p><code>-r</code> (<code>--remove</code>) オプションを指定している場合、hash コマンドはオペランドで指定した外部コマンドのパスに関する記憶を消去します。<code>-r</code> (<code>--remove</code>) オプションを指定しかつ<var>コマンド</var>を指定しない場合、全ての記憶を消去します。
+<p><code>-r</code> (<code>--remove</code>) オプションを指定せず<var>コマンド</var>も指定しない場合、記憶しているパスの一覧を標準出力に出力します。
+<p><code>-d</code> (<code>--directory</code>) オプションを指定した場合、hash コマンドは外部コマンドのパスの代わりにユーザのホームディレクトリのパスを検索・記憶または表示します。記憶したパスは<a href="../expand.html#tilde">チルダ展開</a>で使用します。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-a</code>, <code>--all</code>
+<dd>このオプションを指定しない場合、シェルが記憶しているパスのうち組込みコマンドに対するものは出力しません。
+<dt><code>-d</code>, <code>--directory</code>
+<dd>外部コマンドのパスの代わりにユーザのホームディレクトリのパスを扱います。
+<dt><code>-r</code>, <code>--remove</code>
+<dd>指定したコマンドまたはユーザ名に対するパスの記憶を消去します。
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>コマンド</var>
+<dd>パスを記憶・消去する外部コマンドの名前です。スラッシュを含むパスを指定することはできません。
+<dt><var>ユーザ名</var>
+<dd>ホームディレクトリのパスを記憶・消去するユーザ名です。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>エラーがない限り hash コマンドの終了ステータスは 0 です。
+
+<h2 id="notes">補足</h2>
+<p>シェルは、外部コマンド (またはチルダ展開) を実行する際に自動的にコマンド (またはホームディレクトリ) のパスを記憶するので、通常はわざわざ hash コマンドを使ってパスを記憶させる必要はありません。
+<p><a href="../params.html#sv-path"><code>PATH</code> 変数</a>の値が変わった時は、記憶した外部コマンドのパスは自動的にすべて消去されます。
+<p>POSIX が規定しているオプションは <code>-r</code> だけです。よって他のオプションは <a href="../posix.html">POSIX 準拠モード</a>では使えません。

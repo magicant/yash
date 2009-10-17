@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の POSIX 準拠モードについて">
+<title>Yash マニュアル: POSIX 準拠モード</title>
+<link rel="Contents" href="index.html" title="目次">
+<link rel="Prev" href="lineedit.html" title="行編集">
+<link rel="Next" href="fgrammar.html" title="コマンドの構文の形式的定義">
+<link rel="Stylesheet" href="style.css">
+
+<div class="breadcrumb"><a rel="Up" href="index.html">目次</a> ></div>
+<h1>POSIX 準拠モード</h1>
+
+<p>Yash は基本的に POSIX.1-2008 のシェルの定義に従って動作しますが、利便性や分かりやすさのために POSIX の規定とは異なる動作をする点もあります。そのため標準状態の yash は POSIX の規定するシェルとして供するには向きません。<dfn>POSIX 準拠モード</dfn>を有効にすると、yash はできる限り POSIX の規定通りに動作するようになります。POSIX 準拠シェルとしての互換性が必要な場面では、POSIX 準拠モードを有効にしてください。
+<p><a href="invoke.html">シェルの起動</a>時の起動時の名前が <code>sh</code> ならばシェルは自動的に POSIX 準拠モードになります。また起動時に <code>-o posix</code> オプションが指定されている場合も POSIX 準拠モードになります。また起動後は、<code><a href="bi/set.html">set</a> -o posix</code> を実行することで POSIX 準拠モードを有効にできます。
+<p>POSIX 準拠モードを有効にすると、yash は POSIX の規定にできるだけ従うようになるだけでなく、POSIX が<em>未定義<!--undefined--></em>や<em>未規定<!--unspecified--></em>と定めている場合のほとんどをエラーにするようになります。すなわち、yash 独自の拡張機能の多くは使えなくなります。具体的には、POSIX 準拠モードを有効にすると以下のような挙動の変化があります。
+<ul>
+<li>シェルの起動時の<a href="invoke.html#init">初期化</a>で読み込むスクリプトファイルが異なります。
+<li>グローバル<a href="syntax.html#aliases">エイリアス</a>の置換を行いません。
+<li><a href="syntax.html#compound">複合コマンド</a>の<a href="syntax.html#grouping">グルーピング</a>や <a href="syntax.html#if">if 文</a>の内容が空の場合エラーになります。
+<li><a href="syntax.html#for">For ループ</a>で展開した単語はグローバル変数として代入します。
+<li><a href="syntax.html#simple">単純コマンド</a>での<a href="params.html#arrays">配列</a>の代入はできません。
+<li>シェル実行中に <a href="params.html#sv-lc_ctype"><code>LC_CTYPE</code> 変数</a>の値が変わっても、それをシェルのロケール情報に反映しません。
+<li><a href="params.html#sv-random"><code>RANDOM</code> 変数</a>は使えません。
+<li><a href="expand.html#tilde">チルダ展開</a>で <code>~</code> と <code>~<var>ユーザ名</var></code> 以外の形式の展開が使えません。
+<li><a href="expand.html#params">パラメータ展開</a>の<a href="expand.html#paramname">入れ子</a>はできません。また<a href="expand.html#paramindex">インデックス</a>の指定はできません。
+<li><a href="expand.html#arith">数式展開</a>で小数が使えません。
+<li><a href="redir.html#file">ファイルのリダイレクト</a>で、<a href="expand.html#glob">パス名展開</a>の結果が一つでない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
+<li><a href="redir.html#socket">ソケットリダイレクト</a>・<a href="redir.html#here">ヒアストリング</a>・<a href="redir.html#pipe">パイプリダイレクト</a>・<a href="redir.html#process">プロセスリダイレクト</a>は使用できません。
+<li><a href="exec.html#search">単純コマンドの実行</a>時、コマンドが見つからなくても <a href="params.html#sv-command_not_found_handler"><code>COMMAND_NOT_FOUND_HANDLER</code> 変数</a>の値は実行しません。
+<li><a href="exec.html#search">コマンドの検索</a>において<a href="builtin.html#types">通常の組込みコマンド</a>は対応する外部コマンドがないと見つかりません。
+<li><a href="job.html">ジョブ制御</a>が有効でも、<a href="syntax.html#async">非同期コマンド</a>は SIGINT と SIGQUIT を無視します。また非同期コマンドの標準入力を /dev/null にリダイレクトする条件が変わります (ジョブ制御が無効のときではなく、<a href="interact.html">対話モード</a>が無効なときにリダイレクト)。
+<li>いくつかの<a href="builtin.html">組込みコマンド</a>で特定のオプションが使えなくなるなど挙動が変わります。
+<li><a href="interact.html">対話モード</a>でないとき、<a href="builtin.html#types">特殊組込みコマンド</a>のオプションやオペランドの使い方が間違っているとシェルは直ちに終了します。また特殊組込みコマンドで代入エラーやリダイレクトエラーが発生したときも直ちに終了します。
+<li><a href="interact.html">対話モード</a>のプロンプトを出す前に <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> 変数</a>の値を実行しません。またプロンプトを出す際の <a href="params.html#sv-ps1"><code>PS1</code> 変数</a>・<a href="params.html#sv-ps2"><code>PS2</code> 変数</a>の解釈の仕方が違います。
+</ul>

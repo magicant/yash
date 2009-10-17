@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="解析表現文法による yash の構文の形式的定義">
+<title>Yash マニュアル: 構文の形式的定義</title>
+<link rel="Contents" href="index.html" title="目次">
+<link rel="Prev" href="posix.html" title="POSIX 準拠モード">
+<!--link rel="Next" href="" title=""-->
+<link rel="Stylesheet" href="style.css">
+
+<div class="breadcrumb"><a rel="Up" href="index.html">目次</a> ></div>
+<h1>構文の形式的定義</h1>
+
+<p>ここに yash の文法の形式的定義を示します。Yash の文法は解析表現文法<!--parsing expression grammar-->で定義されます。
+<p>Yash の文法における終端記号の集合は、yash を実行する環境が扱える任意の文字の集合 (実行文字集合<!--execution character set-->) です (ただしナル文字 '\0' を除く)。
+<p>以下は、yash の文法を構成する非終端記号とそれに対応する終端記号の一覧です。ただしここに挙げる文法の定義には<a href="redir.html#here">ヒアドキュメント</a>の内容とその終わりを表す行の解析のための規則は含まれていません。また <a href="posix.html">POSIX 準拠モード</a>では構文が若干変わりますが、ここには示しません。
+<dl>
+<dt id="d-complete-command">CompleteCommand
+<dd><a href="#d-sequence">Sequence</a> <a href="#d-eof">EOF</a>
+<dt id="d-sequence">Sequence
+<dd><a href="#d-n">N</a>* <a href="#d-list">List</a>*
+<dt id="d-list">List
+<dd><a href="#d-pipeline">Pipeline</a> ((<code>&&</code> / <code>||</code>) <a href="#d-n">N</a>* Pipeline)* <a href="#d-list-separator">ListSeparator</a>
+<dt id="d-pipeline">Pipeline
+<dd><a href="#d-bang">Bang</a>? <a href="#d-command">Command</a> (<code>|</code> <a href="#d-n">N</a>* Command)*
+<dt id="d-command">Command
+<dd><a href="#d-compound-command">CompoundCommand</a> <a href="#d-redirection">Redirection</a>*
+<dd>!<a href="#d-r">R</a> <a href="#d-function-definition">FunctionDefinition</a>
+<dd>!R <a href="#d-simple-command">SimpleCommand</a>
+<dt id="d-compound-command">CompoundCommand
+<dd><a href="#d-subshell">Subshell</a>
+<dd><a href="#d-grouping">Grouping</a>
+<dd><a href="#d-if-command">IfCommand</a>
+<dd><a href="#d-for-command">ForCommand</a>
+<dd><a href="#d-while-command">WhileCommand</a>
+<dd><a href="#d-case-command">CaseCommand</a>
+<dt id="d-subshell">Subshell
+<dd><code>(</code> <a href="#d-sequence">Sequence</a> <code>)</code> <a href="#d-s">S</a>*
+<dt id="d-grouping">Grouping
+<dd><a href="#d-left-brace">LeftBrace</a> <a href="#d-sequence">Sequence</a> <a href="#d-right-brace">RightBrace</a>
+<dt id="d-if-command">IfCommand
+<dd><a href="#d-if">If</a> <a href="#d-sequence">Sequence</a> <a href="#d-then">Then</a> Sequence (<a href="#d-elif">Elif</a> Sequence <a href="#d-then">Then</a> Sequence)* (<a href="#d-else">Else</a> Sequence)? <a href="#d-fi">Fi</a>
+<dt id="d-for-command">ForCommand
+<dd><a href="#d-for">For</a> <a href="#d-name">Name</a> <a href="#d-n">N</a>* (<a href="#d-in">In</a> <a href="#d-word">Word</a>*)? <a href="#d-separator">Separator</a>? <a href="#d-do">Do</a> <a href="#d-sequence">Sequence</a> <a href="#d-done">Done</a>
+<dt id="d-while-command">WhileCommand
+<dd>(<a href="#d-while">While</a> / <a href="#d-until">Until</a>) <a href="#d-sequence">Sequence</a> <a href="#d-do">Do</a> Sequence <a href="#d-done">Done</a>
+<dt id="d-case-command">CaseCommand
+<dd><a href="#d-case">Case</a> <a href="#d-word">Word</a> <a href="#d-n">N</a>* <a href="#d-in">In</a> N* <a href="#d-case-item">CaseItem</a>* <a href="#d-esac">Esac</a>
+<dt id="d-case-item">CaseItem
+<dd>!<a href="#d-esac">Esac</a> (<code>(</code> <a href="#d-s">S</a>*)? <a href="#d-word">Word</a> (<code>|</code> S* Word)* <code>)</code> <a href="#d-sequence">Sequence</a> (<code>;;</code> / &amp;Esac)
+<dt id="d-function-definition">FunctionDefinition
+<dd><a href="#d-name">Name</a> <a href="#d-s">S</a>* <code>(</code> S* <code>)</code> <a href="#d-n">N</a>* <a href="#d-compound-command">CompoundCommand</a> <a href="#d-redirection">Redirection</a>*
+<dt id="d-simple-command">SimpleCommand
+<dd>&(<a href="#d-word">Word</a> / <a href="#d-redirection">Redirection</a>) (<a href="#d-assignment">Assignment</a> / Redirection)* (Word / Redirection)*
+<dt id="d-assignment">Assignment
+<dd><a href="#d-name">Name</a> <code>=</code> <a href="#d-word">Word</a>
+<dd>Name <code>=(</code> <a href="#d-n">N</a>* (Word N*)* <code>)</code>
+<dt id="d-name">Name
+<dd>![[:digit:]] [[:alnum:]<code>_</code>]+
+<dt id="d-portable-name">PortableName
+<dd>![<code>0</code>-<code>9</code>] [<code>0</code>-<code>9</code><code>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_</code>]+
+<dt id="d-word">Word
+<dd>(<a href="#d-word-element">WordElement</a> / !<a href="#d-special-char">SpecialChar</a> .)+ <a href="#d-s">S</a>*
+<dt id="d-word-element">WordElement
+<dd><code>\</code> .
+<dd><code>'</code> (!<code>'</code> .)* <code>'</code>
+<dd><code>"</code> <a href="#d-quote-element">QuoteElement</a>* <code>"</code>
+<dd><a href="#d-parameter">Parameter</a>
+<dd><a href="#d-arithmetic">Arithmetic</a>
+<dd><a href="#d-command-substitution">CommandSubstitution</a>
+<dt id="d-quote-element">QuoteElement
+<dd><code>\</code> ([<code>$`"\</code>] / <a href="#d-nl">NL</a>)
+<dd><a href="#d-parameter">Parameter</a>
+<dd><a href="#d-arithmetic">Arithmetic</a>
+<dd><a href="#d-command-substitution">CommandSubstitution</a>
+<dd>!<code>"</code> .
+<dt id="d-parameter">Parameter
+<dd><code>$</code> [<code>@*#?-$!</code>[:digit:]]
+<dd><code>$</code> <a href="#d-portable-name">PortableName</a>
+<dd><code>$</code> <a href="#d-parameter-body">ParameterBody</a>
+<dt id="d-parameter-body">ParameterBody
+<dd><code>{</code> <a href="#d-parameter-number">ParameterNumber</a>? (<a href="#d-parameter-name">ParameterName</a> / ParameterBody / <a href="#d-parameter">Parameter</a>) <a href="#d-parameter-index">ParameterIndex</a>? <a href="#d-parameter-match">ParameterMatch</a>? <code>}</code>
+<dt id="d-parameter-number">ParameterNumber
+<dd><code>#</code> ![<code>+=:/%</code>] !([<code>-?#</code>] <code>}</code>)
+<dt id="d-parameter-name">ParameterName
+<dd>[<code>@*#?-$!</code>]
+<dd>[[:alnum:]<code>_</code>]+
+<dt id="d-parameter-index">ParameterIndex
+<dd><code>[</code> <a href="#d-parameter-index-word">ParameterIndexWord</a> (<code>,</code> ParameterIndexWord)? <code>]</code>
+<dt id="d-parameter-index-word">ParameterIndexWord
+<dd>(<a href="#d-word-element">WordElement</a> / ![<code>],</code>] .)+
+<dt id="d-parameter-match">ParameterMatch
+<dd><code>:</code>? [<code>-+=?</code>] <a href="#d-parameter-match-word">ParameterMatchWord</a>
+<dd>(<code>#</code> / <code>##</code> / <code>%</code> / <code>%%</code>) ParameterMatchWord
+<dd>(<code>:/</code> / <code>/</code> [<code>#%/</code>]?) <a href="#d-parameter-match-word-no-slash">ParameterMatchWordNoSlash</a> (<code>/</code> ParameterMatchWord)?
+<dt id="d-parameter-match-word">ParameterMatchWord
+<dd>(<a href="#d-word-element">WordElement</a> / !<code>}</code> .)*
+<dt id="d-parameter-match-word-no-slash">ParameterMatchWordNoSlash
+<dd>(<a href="#d-word-element">WordElement</a> / ![<code>/}</code>] .)*
+<dt id="d-arithmetic">Arithmetic
+<dd><code>$((</code> <a href="#d-arithmetic-body">ArithmeticBody</a>* <code>))</code>
+<dt id="d-arithmetic-body">ArithmeticBody
+<dd><code>\</code> .
+<dd><a href="#d-parameter">Parameter</a>
+<dd><a href="#d-arithmetic">Arithmetic</a>
+<dd><a href="#d-command-substitution">CommandSubstitution</a>
+<dd><code>(</code> ArithmeticBody <code>)</code>
+<dd>!<code>)</code> .
+<dt id="d-command-substitution">CommandSubstitution
+<dd><code>$(</code> <a href="#d-sequence">Sequence</a> <code>)</code>
+<dd><code>`</code> <a href="#d-command-substitution-body">CommandSubstitutionBody</a>* <code>`</code>
+<dt id="d-command-substitution-body">CommandSubstitutionBody
+<dd><code>\</code> [<code>$`\</code>]
+<dd>!<code>`</code> .
+<dt id="d-redirection">Redirection
+<dd><a href="#d-redirection-fd">RedirectionFD</a> <a href="#d-redirection-operator">RedirectionOperator</a> <a href="#d-s">S</a>* <a href="#d-word">Word</a>
+<dd>RedirectionFD <code><(</code> <a href="#d-sequence">Sequence</a> <code>)</code>
+<dd>RedirectionFD <code>>(</code> Sequence <code>)</code>
+<dt id="d-redirection-fd">RedirectionFD
+<dd>[[:digit:]]*
+<dt id="d-redirection-operator">RedirectionOperator
+<dd><code><</code> / <code>&lt;&gt;</code> / <code>></code> / <code>>|</code> / <code>>></code> / <code>>>|</code> / <code><&</code> / <code>>&</code> / <code><<</code> / <code><<-</code> / <code><<<</code>
+<dt id="d-list-separator">ListSeparator
+<dd><a href="#d-separator">Separator</a>
+<dd><code>&</code> <a href="#d-n">N</a>*
+<dd>&<code>)</code>
+<dd>&<code>;;</code>
+<dt id="d-separator">Separator
+<dd><code>;</code> <a href="#d-n">N</a>*
+<dd><a href="#d-n">N</a>+
+<dd><a href="#d-eof">EOF</a>
+<dt id="d-n">N
+<dd><a href="#d-s">S</a>* <a href="#d-nl">NL</a>
+<dt id="d-s">S
+<dd>[[:blank:]]
+<dd><a href="#d-comment">Comment</a>
+<dt id="d-comment">Comment
+<dd><code>#</code> (!<a href="#d-nl">NL</a> .)*
+<dt id="d-r">R
+<dd><a href="#d-bang">Bang</a> / <a href="#d-left-brace">LeftBrace</a> / <a href="#d-right-brace">RightBrace</a> / <a href="#d-case">Case</a> / <a href="#d-do">Do</a> / <a href="#d-done">Done</a> / <a href="#d-elif">Elif</a> / <a href="#d-else">Else</a> / <a href="#d-esac">Esac</a> / <a href="#d-fi">Fi</a> / <a href="#d-for">For</a> / <a href="#d-if">If</a> / <a href="#d-in">In</a> / <a href="#d-then">Then</a> / <a href="#d-until">Until</a> / <a href="#d-while">While</a>
+<dt id="d-bang">Bang
+<dd><code>!</code> <a href="#d-d">D</a>
+<dt id="d-left-brace">LeftBrace
+<dd><code>{</code> <a href="#d-d">D</a>
+<dt id="d-right-brace">RightBrace
+<dd><code>}</code> <a href="#d-d">D</a>
+<dt id="d-case">Case
+<dd><code>case</code> <a href="#d-d">D</a>
+<dt id="d-do">Do
+<dd><code>do</code> <a href="#d-d">D</a>
+<dt id="d-done">Done
+<dd><code>done</code> <a href="#d-d">D</a>
+<dt id="d-elif">Elif
+<dd><code>elif</code> <a href="#d-d">D</a>
+<dt id="d-else">Else
+<dd><code>else</code> <a href="#d-d">D</a>
+<dt id="d-esac">Esac
+<dd><code>esac</code> <a href="#d-d">D</a>
+<dt id="d-fi">Fi
+<dd><code>fi</code> <a href="#d-d">D</a>
+<dt id="d-for">For
+<dd><code>for</code> <a href="#d-d">D</a>
+<dt id="d-if">If
+<dd><code>if</code> <a href="#d-d">D</a>
+<dt id="d-in">In
+<dd><code>in</code> <a href="#d-d">D</a>
+<dt id="d-then">Then
+<dd><code>then</code> <a href="#d-d">D</a>
+<dt id="d-until">Until
+<dd><code>until</code> <a href="#d-d">D</a>
+<dt id="d-while">While
+<dd><code>while</code> <a href="#d-d">D</a>
+<dt id="d-d">D
+<dd>!<a href="#d-word">Word</a> <a href="#d-s">S</a>*
+<dt id="d-special-char">SpecialChar
+<dd>[<code>|&amp;;&lt;&gt;()`\"'</code>[:blank:]] / <a href="#d-nl">NL</a>
+<dt id="d-nl">NL
+<dd>'\n'
+<dt id="d-eof">EOF
+<dd>!.
+</dl>

@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash におけるパターンマッチング記法について">
+<title>Yash マニュアル: パターンマッチング記法</title>
+<link rel="Contents" href="index.html" title="目次">
+<link rel="Prev" href="expand.html" title="単語の展開">
+<link rel="Next" href="redir.html" title="リダイレクト">
+<link rel="Stylesheet" href="style.css">
+
+<div class="breadcrumb"><a rel="Up" href="index.html">目次</a> ></div>
+<h1>パターンマッチング記法</h1>
+
+<p><dfn>パターンマッチング記法</dfn>は特定の文字列の集合を表す<dfn>パターン</dfn>の書式と意味の定義です。文字列がパターンに当てはまるかどうかは、以下に示す定義に従って判定されます。
+
+<h2 id="normal">通常の文字</h2>
+<p><a href="syntax.html#quotes">クォート</a>してある文字および以下に示す特殊な意味を持つ文字以外のすべての文字は、通常の文字として扱われます。パターンに含まれる通常の文字は、その文字自身に当てはまります。
+<p>例: <code>abc</code> というパターンは <code>abc</code> という文字列に当てはまります。(そしてこれ以外の文字列には一切当てはまりません)
+
+<h2 id="single">一文字ワイルドカード</h2>
+<p>文字 <code>?</code> は任意の一文字に当てはまります。
+<p>例: <code>a?c</code> というパターンは <code>aac</code>、<code>abc</code>、<code>a;c</code> など、<code>a</code> で始まり <code>c</code> で終わる任意の 3 文字の文字列に当てはまります。
+
+<h2 id="multiple">複数文字ワイルドカード</h2>
+<p>文字 <code>*</code> は任意の文字列に当てはまります。ここでいう任意の文字列には空文字列も含まれます。
+<p>例: <code>a*c</code> というパターンは <code>ac</code>、<code>abc</code>、<code>a;xyz;c</code> など、<code>a</code> で始まり <code>c</code> で終わる任意の文字列に当てはまります。
+
+<h2 id="bracket">ブラケット記法<!--bracket expression--></h2>
+<p>括弧 <code>[</code> と <code>]</code> で囲まれた部分はブラケット記法とみなされます。ただし、括弧の間には少なくとも一文字挟まれている必要があります。括弧の間にある文字は以下に示すブラケット記法のための特殊なパターン (<dfn>ブラケット記法パターン</dfn>) として解釈されます。ブラケット記法は、括弧の間にあるブラケット記法パターンが示す文字のどれか一つに当てはまります。
+<p>最初の括弧 <code>[</code> の直後に文字 <code>!</code> がある場合、ブラケット記法に当てはまる文字と当てはまらない文字とが逆転します (そしてこの <code>!</code> はブラケット記法パターンの一部とはみなされません)。Yash では <code>[</code> の直後に <code>^</code> がある場合も同様に当てはまる文字と当てはまらない文字とが逆転します (が、他のシェルでは <code>^</code> の扱いが異なることもあります)。
+<p>最初の括弧 <code>[</code> の直後 (あるいは上述の <code>!</code> または <code>^</code> がある場合はその直後) に括弧 <code>]</code> がある場合は、それはブラケット記法の終わりを示す括弧としてではなくブラケット記法パターンの一部とみなされます。ブラケット記法パターンの解釈は<a href="syntax.html#quotes">クォート</a>の処理の後に行われるので、クォートによってブラケット記法パターン内の文字を通常の文字として扱わせることはできません。
+<p>パターンの中に <code>[</code> が含まれていても、それが正しいブラケット記法の形式になっていない場合は、その <code>[</code> はブラケット記法ではなく通常の文字として扱われます。
+
+<h3 id="bra-normal">(ブラケット記法パターンにおける) 通常の文字</h3>
+<p>以下に示す特殊な意味を持つ記号以外の文字はすべて通常の文字として扱われます。通常の文字はその文字自身を表します。
+<p>例: <code>[abc]</code> というブラケット記法は <code>a</code>、<code>b</code>、<code>c</code> のどれかの文字に当てはまります。従って <code>a[abc]c</code> というパターンは <code>aac</code>、<code>abc</code>、<code>acc</code> という三つの文字列に当てはまります (そしてこれ以外の文字列には当てはまりません)。
+
+<h3 id="bra-range">範囲指定<!--range expression--></h3>
+<p>二つの文字 (または照合シンボル (後述)) をハイフン (<code>-</code>) でつないだものは範囲指定とみなされます。範囲指定は、その二つの文字と照合順序上その間にある全ての文字を表します。照合順序<!--collation order-->とは文字を辞書順に並べるためにロケールデータに定義される文字の順序関係です。使用中のロケールに定義されている照合順序に従って二つの文字の間にある文字が決まります。
+<p>ハイフンの後に <code>]</code> を置いた場合は、この <code>]</code> はブラケット記法の終わりを示す括弧とみなされ、ハイフンは通常の文字として扱われます。
+<p>例: <code>[1-5]</code> というブラケット記法は <code>1</code>、<code>2</code>、<code>3</code>、<code>4</code>、<code>5</code> という五つの文字のどれか一つに当てはまります。
+
+<h3 id="bra-colsym">照合シンボル<!--collating symbol--></h3>
+<p>照合シンボルを用いることで複数の文字からなる照合要素を一つの文字として扱うことができます。(照合要素<!--collating element-->とは複数の文字をまとめて一つの文字として扱うことができるようにするために考えられた、より一般的な文字の概念です。パターンマッチングにおいて全ての文字は実際には照合要素として扱われています。) 照合シンボルは括弧 <code>[. .]</code> の中に照合要素を挟んだものとして表します。括弧内に書ける照合要素は使用中のロケールデータにおいて照合要素として登録されているものに限ります。
+<p>例えば従来スペイン語では <q>ch</q> という二文字を合わせて一文字として扱っていました。この二文字の組み合わせが照合要素としてロケールに登録されているならば、<code>[[.ch.]df]</code> というブラケット記法は <code>ch</code>、<code>d</code>、<code>f</code> のどれかに当てはまります。もしここで <code>[chdf]</code> というブラケット記法を使うと、これは <code>c</code>、<code>h</code>、<code>d</code>、<code>f</code> のどれかに当てはまり、<code>ch</code> には当てはまりません。
+
+<h3 id="bra-eqclass">等価クラス<!--equivalence classes--></h3>
+<p>等価クラスを用いることで、ある文字と<em>等価</em>であるとみなされる文字を指定することができます。等価クラスは括弧 <code>[= =]</code> の中に文字を挟んだものとして表します。括弧の間には照合シンボルのように複数の文字からなる照合要素を書くこともできます (上記参照)。等価クラスは、括弧で挟んだ文字そのものの他に、その文字と同じ第一等価クラス<!--primary equivalence class-->に属する全ての文字を表します。どの文字が第一等価クラスに属するかの定義は使用中のロケールデータに従います。
+<p>例えばロケールデータにおいて a, à, á, â, ã, ä の 6 文字が同じ第一等価クラスに属すると定義されているとき、<code>[[=a=]]</code> というブラケット記法はこれら六つの文字のどれか一つに当てはまります。<code>[[=à=]]</code> や <code>[[=á=]]</code> も同様です。
+
+<h3 id="bra-chclass">文字クラス<!--character class--></h3>
+<p>文字クラスは特定の種類の文字の集合を表します。文字クラスは括弧 <code>[: :]</code> の間に文字クラスの名前を囲んだものとして表します。文字クラスの名前としては、以下に挙げる共通の文字クラスの他に、使用中のロケールで定義された独自の文字クラスが使用できます。いずれの文字クラスの場合も、文字クラスにどの文字が含まれるのかは使用中のロケールにおける文字クラスの定義に従います。
+<dl>
+<dt><code>lower</code>
+<dd>小文字の集合
+<dt><code>upper</code>
+<dd>大文字の集合
+<dt><code>alpha</code>
+<dd>アルファベットの集合 (<code>lower</code> と <code>upper</code> を含む)
+<dt><code>digit</code>
+<dd>十進法の数字の集合
+<dt><code>xdigit</code>
+<dd>十六進法の数字の集合
+<dt><code>alnum</code>
+<dd>アルファベットと数字の集合 (<code>alpha</code> と <code>digit</code> を含む)
+<dt><code>blank</code>
+<dd>空白文字の集合 (改行を含まない)
+<dt><code>space</code>
+<dd>空白文字の集合 (改行等を含む)
+<dt><code>punct</code>
+<dd>句読点等の集合
+<dt><code>print</code>
+<dd>表示可能な文字の集合
+<dt><code>cntrl</code>
+<dd>制御文字の集合
+</dl>
+<p>例えば <code>[[:lower:][:upper:]]</code> というブラケット記法は一文字の小文字または大文字に当てはまります。

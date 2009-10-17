@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の jobs 組込みコマンドについて">
+<title>Yash マニュアル: jobs 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="history.html" title="History 組込みコマンド">
+<link rel="Next" href="kill.html" title="Kill 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Jobs 組込みコマンド</h1>
+
+<p><dfn>Jobs 組込みコマンド</dfn>はシェルが有している<a href="../job.html">ジョブ</a>を表示します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>jobs [-lnprs] [<var>ジョブ</var>…]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Jobs コマンドはシェルが現在有している<a href="../job.html">ジョブ</a>の名前や状態を表示します。
+<p>標準では各ジョブについて以下の情報を一行ずつ表示します。
+<ol>
+<li>ジョブ番号
+<li>現在のジョブ・前のジョブを示す記号 (<code>+</code> または <code>-</code>)
+<li>状態
+<li>コマンド名
+</ol>
+<p><code>-l</code> (<code>--verbose</code>) オプションを指定しているときは、ジョブを構成しているパイプラインの要素ごとにプロセス ID と状態とコマンド名を表示します。
+<p><code>-p</code> (<code>--pgid-only</code>) オプションを指定しているときは、ジョブのプロセスグループ ID だけを表示します。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-l</code>, <code>--verbose</code>
+<dd>ジョブを構成しているパイプラインの要素ごとにプロセス ID と状態とコマンド名を表示します。
+<dt><code>-n</code>, <code>--new</code>
+<dd>状態が変化してからまだ一度も表示していないジョブだけを表示します。
+<dt><code>-p</code>, <code>--pgid-only</code>
+<dd>ジョブのプロセスグループ ID だけを表示します。
+<dt><code>-r</code>, <code>--running-only</code>
+<dd>実行中のジョブだけを表示します。
+<dt><code>-s</code>, <code>--stopped-only</code>
+<dd>停止中のジョブだけを表示します。
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>ジョブ</var>
+<dd>表示するジョブの<a href="../job.html#jobid">ジョブ ID</a> です。一つも指定しない場合は全てのジョブを表示します。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>エラーがない限り jobs コマンドの終了ステータスは 0 です。
+
+<h2 id="notes">補足</h2>
+<p>Jobs コマンドは<a href="../builtin.html#types">準特殊組込みコマンド</a>です。
+<p>POSIX で規定されているオプションは <code>-l</code> と <code>-p</code> だけです。従って <a href="../posix.html">POSIX 準拠モード</a>ではこれ以外のオプションは使えません。また POSIX 準拠モードでは、<code>-l</code> オプション指定時、プロセスごとではなくジョブごとに状態を表示します。
+<p>Yash では、ジョブのプロセスグループ ID はジョブを構成するパイプラインの最初のコマンドのプロセス ID に一致します。

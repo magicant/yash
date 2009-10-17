@@ -1,0 +1,7 @@
+.list-group {
+	margin: auto;
+	padding: 0 2.5%;
+	width: 45%;
+	position: static;
+	float: left;
+}

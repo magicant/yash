@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の popd 組込みコマンドについて">
+<title>Yash マニュアル: popd 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="kill.html" title="Kill 組込みコマンド">
+<link rel="Next" href="printf.html" title="Printf 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Popd 組込みコマンド</h1>
+
+<p><dfn>Popd 組込みコマンド</dfn>は<a href="dirs.html">ディレクトリスタック</a>からディレクトリを削除し、シェルの作業ディレクトリを戻します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>popd [<var>インデックス</var>]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Popd コマンドは<a href="dirs.html">ディレクトリスタック</a>からオペランドで指定したインデックスの要素を削除します。インデックス <code>+0</code> の要素を削除した場合は、新たにインデックス <code>+0</code> の要素となったディレクトリにシェルの作業ディレクトリを変更し、そのディレクトリ名を標準出力に出力します。
+
+<h2 id="options">オプション</h2>
+<p>なし
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>インデックス</var>
+<dd>削除するディレクトリスタックの要素のインデックスです。省略すると <code>+0</code> を指定したものとみなします。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>ディレクトリスタックの要素を正しく削除し作業ディレクトリを変更できた場合、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。
+
+<h2 id="notes">補足</h2>
+<p>ディレクトリスタックに要素が一つしかない場合はそれ以上要素を削除できないので、エラーになります。
+<p>POSIX には pushd コマンドに関する規定はありません。

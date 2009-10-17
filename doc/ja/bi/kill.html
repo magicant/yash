@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の kill 組込みコマンドについて">
+<title>Yash マニュアル: kill 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="jobs.html" title="Jobs 組込みコマンド">
+<link rel="Next" href="popd.html" title="Popd 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Kill 組込みコマンド</h1>
+
+<p><dfn>Kill 組込みコマンド</dfn>はプロセスにシグナルを送ります。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>kill [<var>シグナル指定オプション</var>] <var>プロセス</var>…</code>
+<li><code>kill -l [-v] [<var>シグナル</var>…]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p><code>-l</code> オプションを付けずに実行すると、kill コマンドは指定した<var>プロセス</var>にシグナルを送信します。送信するシグナルの種類は<var>シグナル指定オプション</var>で指定します。シグナルの種類を指定しない場合は SIGTERM シグナルを送信します。
+<p><code>-l</code> オプションを付けて実行すると、kill コマンドは指定した<var>シグナル</var>に関する情報を標準出力に出力します。<code>-v</code> オプションを指定していない場合は単にシグナル名を出力し、指定している場合はシグナル番号・シグナル名・シグナルの簡単な説明を出力します。<var>シグナル</var>を指定しない場合は全てのシグナルに関する情報を表示します。
+
+<h2 id="options">オプション</h2>
+<h3>シグナル指定オプション</h3>
+<dl>
+<dt><code>-<var>シグナル</var></code>, <code>-s <var>シグナル</var></code>, <code>-n <var>シグナル</var></code>
+<dd>送信するシグナルを指定します。<var>シグナル</var>にはシグナル番号とシグナル名のどちらかを指定します。シグナル番号として 0 を指定すると、シグナルを送ることができるかどうかの判定だけを行い、実際にはシグナルを送信しません。
+</dl>
+<p>シグナル指定オプションは一つまでしか指定できません。
+<h3>その他のオプション</h3>
+<dl>
+<dt><code>-l</code>
+<dd>シグナルに関する情報を表示します。
+<dt><code>-v</code>
+<dd>シグナルに関する情報をより詳しく表示します。
+<dd><code>-v</code> オプションを指定したときは <code>-l</code> オプションは指定しなくても構いません。
+</dl>
+<p>Kill コマンドでは、<a href="../posix.html">POSIX 準拠モード</a>であるかどうかにかかわらずオプションはオペランドより先に全て指定しなければなりません。最初のオペランドより後にあるコマンドライン引数は全てオペランドとして解釈します。
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>プロセス</var>
+<dd>シグナルを送信するプロセスをプロセス ID・プロセスグループ ID・<a href="../job.html#jobid">ジョブ ID</a> のいずれかで指定します。プロセスグループ ID を指定するときは、先頭に負号 (<code>-</code>) を付けます。プロセスとして <code>0</code> を指定すると、シェルプロセスが属するプロセスグループを指定したものとみなします。プロセスとして <code>-1</code> を指定すると、全てのプロセスにシグナルを送信します。
+<dt><var>シグナル</var>
+<dd>情報を表示するシグナルの名前または番号です。シグナルによって中断したコマンドの終了ステータスを指定することもできます。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>エラーがない限り kill コマンドの終了ステータスは 0 です。一つ以上のプロセスにシグナルを送ることができた場合、他にシグナルを送れなかったプロセスがあったとしても終了ステータスは 0 になります。
+
+<h2 id="notes">補足</h2>
+<p>Kill コマンドは<a href="../builtin.html#types">準特殊組込みコマンド</a>です。
+<p>負数に見えるコマンドライン引数の扱いには注意が必要です。例えば <code>kill -1 -2</code> では <code>-1</code> がシグナル指定オプション、<code>-2</code> がオペランドとなるので、番号 1 のシグナルをプロセスグループ 2 に送信します。<code>kill -- -1 -2</code> や <code>kill -TERM -1 -2</code> では <code>-1</code> と <code>-2</code> はどちらもオペランドになります。
+<p>POSIX には <code>-v</code> および <code>-n</code> オプションに関する規定はありません。よってこれらのオプションは <a href="../posix.html">POSIX 準拠モード</a>では使えません。また POSIX は <code>-s</code> オプションの引数としてシグナル番号を指定することを認めていません。POSIX は<var>シグナル</var>のオペランドとしてシグナルの名前を指定することを認めていません。
+<p>POSIX は、シグナル名は <code>INT</code> や <code>QUIT</code> のように最初の SIG を除いた形で指定しなければならないと規定しています。非 <a href="../posix.html">POSIX 準拠モード</a>の yash では、拡張として SIG を付けた形でも指定できますし、シグナル名の大文字と小文字を区別しません。

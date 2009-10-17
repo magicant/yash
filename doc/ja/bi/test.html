@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の test 組込みコマンドについて">
+<title>Yash マニュアル: test 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="suspend.html" title="Suspend 組込みコマンド">
+<link rel="Next" href="times.html" title="Times 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Test 組込みコマンド</h1>
+
+<p><dfn>Test 組込みコマンド</dfn>は引数で指定した内容の判定を行います。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>test <var>判定式</var></code>
+<li><code>[ <var>判定式</var> ]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Test コマンドは引数で与えられた<var>判定式</var>を評価し、結果が真ならば 0 の終了ステータスを、偽ならば 1 の終了ステータスで終了します。
+<p>Test コマンドはオプションとオペランドとを区別しません。コマンドライン引数は全て<var>判定式</var>として解釈します。
+<p>判定式は何種類かの演算子とそれに対する被演算子とからなります。
+<p>ファイルに関する判定を行う単項演算子は以下の通りです。指定したファイルがシンボリックリンクの場合、そのシンボリックリンクが指している先のファイルについて判定を行います (<code>-h</code>, <code>-L</code> 演算子を除く)。
+<dl>
+<dt><code>-b <var>ファイル名</var></code>
+<dd>ファイルがブロックスペシャルファイルかどうか
+<dt><code>-c <var>ファイル名</var></code>
+<dd>ファイルがキャラクタスペシャルファイルかどうか
+<dt><code>-d <var>ファイル名</var></code>
+<dd>ファイルがディレクトリかどうか
+<dt><code>-e <var>ファイル名</var></code>
+<dd>ファイルが存在するかどうか
+<dt><code>-f <var>ファイル名</var></code>
+<dd>ファイルが通常のファイルかどうか
+<dt><code>-g <var>ファイル名</var></code>
+<dd>ファイルの set-group-ID ビットが設定されているかどうか
+<dt><code>-h <var>ファイル名</var></code>
+<dt><code>-L <var>ファイル名</var></code>
+<dd>ファイルがシンボリックリンクかどうか
+<dt><code>-k <var>ファイル名</var></code>
+<dd>ファイルの sticky ビットが設定されているかどうか
+<dt><code>-p <var>ファイル名</var></code>
+<dd>ファイルが FIFO (名前付きパイプ) かどうか
+<dt><code>-r <var>ファイル名</var></code>
+<dd>ファイルが読み込み可能かどうか
+<dt><code>-S <var>ファイル名</var></code>
+<dd>ファイルがソケットかどうか
+<dt><code>-s <var>ファイル名</var></code>
+<dd>ファイルサイズが空でないかどうか
+<dt><code>-u <var>ファイル名</var></code>
+<dd>ファイルの set-user-ID ビットが設定されているかどうか
+<dt><code>-w <var>ファイル名</var></code>
+<dd>ファイルが書き込み可能かどうか
+<dt><code>-x <var>ファイル名</var></code>
+<dd>ファイルが実行可能かどうか
+</dl>
+<p>ファイル記述子に関する判定を行う単項演算子は以下の通りです。
+<dl>
+<dt><code>-t <var>ファイル記述子</var></code>
+<dd>ファイル記述子が端末かどうか (ファイル記述子は 0 以上の自然数で指定します)
+</dl>
+<p>文字列に関する判定を行う単項演算子は以下の通りです。
+<dl>
+<dt><code>-n <var>文字列</var></code>
+<dd>文字列が空文字列でないかどうか
+<dt><code>-z <var>文字列</var></code>
+<dd>文字列が空文字列かどうか
+</dl>
+<p>ファイルに関する判定を行う二項演算子は以下の通りです。
+<dl>
+<dt><code><var>ファイル名<sub>1</sub></var> -nt <var>ファイル名<sub>2</sub></var></code>
+<dd>一つ目のファイルの更新時刻が二つ目のファイルより新しいかどうか
+<dt><code><var>ファイル名<sub>1</sub></var> -ot <var>ファイル名<sub>2</sub></var></code>
+<dd>一つ目のファイルの更新時刻が二つ目のファイルより古いかどうか
+<dt><code><var>ファイル名<sub>1</sub></var> -ef <var>ファイル名<sub>2</sub></var></code>
+<dd>二つのファイルが互いのハードリンクであるかどうか
+</dl>
+<p>文字列に関する判定を行う二項演算子は以下の通りです。
+<dl>
+<dt><code><var>文字列<sub>1</sub></var> = <var>文字列<sub>2</sub></var></code>
+<dd>二つの文字列が同じ文字列かどうか
+<dt><code><var>文字列<sub>1</sub></var> != <var>文字列<sub>2</sub></var></code>
+<dd>二つの文字列が異なる文字列かどうか
+</dl>
+<p>整数に関する判定を行う二項演算子は以下の通りです。
+<dl>
+<dt><code><var>整数<sub>1</sub></var> -eq <var>整数<sub>2</sub></var></code>
+<dd>二つの整数が等しいかどうか
+<dt><code><var>整数<sub>1</sub></var> -ne <var>整数<sub>2</sub></var></code>
+<dd>二つの整数が異なるかどうか
+<dt><code><var>整数<sub>1</sub></var> -gt <var>整数<sub>2</sub></var></code>
+<dd>一つ目の整数が二つ目の整数より大きいかどうか
+<dt><code><var>整数<sub>1</sub></var> -ge <var>整数<sub>2</sub></var></code>
+<dd>一つ目の整数が二つ目の整数以上かどうか
+<dt><code><var>整数<sub>1</sub></var> -lt <var>整数<sub>2</sub></var></code>
+<dd>一つ目の整数が二つ目の整数より小さいかどうか
+<dt><code><var>整数<sub>1</sub></var> -le <var>整数<sub>2</sub></var></code>
+<dd>一つ目の整数が二つ目の整数以下かどうか
+</dl>
+<p>他の判定式を組み合わせてより複雑な判定式を作る演算子は以下の通りです。
+<dl>
+<dt><code>! <var>判定式</var></code>
+<dd>判定式が偽かどうか (判定式の真偽を逆転します)
+<dt><code>( <var>判定式</var> )</code>
+<dd>判定式が真かどうか (判定式の構文上の優先順位を高くします)
+<dt><code><var>判定式<sub>1</sub></var> -a <var>判定式<sub>2</sub></var></code>
+<dd>二つの判定式が両方とも真かどうか
+<dt><code><var>判定式<sub>1</sub></var> -o <var>判定式<sub>2</sub></var></code>
+<dd>二つの判定式の少なくとも片方が真かどうか
+</dl>
+<p>判定式が空の場合、結果は偽とみなします。判定式が (演算子の付いていない) 文字列一つの場合、その文字列が空文字列でないかどうかを判定します。
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>Test コマンドの終了ステータスは、<var>判定式</var>の評価結果が真ならば 0、偽ならば 1 です。<var>判定式</var>の構文に誤りがある場合その他のエラーが発生したときは、終了ステータスは 2 です。
+
+<h2 id="notes">補足</h2>
+<p>複雑な判定式は誤って解釈されることがあるので避けることをお勧めします。例えば <code>[ 1 -eq 1 -a -t = 1 -a ! foo ]</code> は <code>[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]</code> のようにコマンドを分けると式がより明確になります。
+<p>POSIX は、エラーが発生した場合の終了ステータスを<q>2 以上</q>と定めています。また POSIX には以下の演算子の規定はありません: <code>-nt</code>, <code>-ot</code>, <code>-ef</code>。

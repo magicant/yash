@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の trap 組込みコマンドについて">
+<title>Yash マニュアル: trap 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="times.html" title="Times 組込みコマンド">
+<link rel="Next" href="true.html" title="True 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Trap 組込みコマンド</h1>
+
+<p><dfn>Trap 組込みコマンド</dfn>はシェルがシグナルを受信したときの動作を設定します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>trap</code>
+<li><code>trap <var>動作</var> <var>シグナル</var>…</code>
+<li><code>trap <var>シグナル番号</var> <var>シグナル</var>…</code>
+<li><code>trap -p [<var>シグナル</var>…]</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p>Trap コマンドはシェルプロセスがシグナルを受信したときの動作 (<dfn>トラップ</dfn>) を表示または設定します。
+<p>オペランドに<var>動作</var>と<var>シグナル</var>を指定して trap コマンドを実行すると、シェルが<var>シグナル</var>を受信した際に指定した<var>動作</var>を行うようになります。最初のオペランドが<var>シグナル番号</var>の場合、それと残りの<var>シグナル</var>に対する動作は、動作として <code>-</code> が指定されたときと同様に標準の動作に設定されます。
+<p><code>-p</code> (<code>--print</code>) オプションを指定した場合またはオペランドを一つも指定していない場合は、trap コマンドは現在のトラップの設定状況をコマンドとして解釈可能な形式で標準出力に出力します。<var>シグナル</var>が与えられているときはそのシグナルに関する設定を、与えられてないときは全ての設定を出力します。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-p</code>, <code>--print</code>
+<dd>現在のトラップの設定を表示します。
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>動作</var>
+<dd>シグナルを受信した際の動作を指定します。<var>動作</var>がハイフン一つ (<code>-</code>) ならば、シェルはシステムで規定された標準の動作を行います。<var>動作</var>が空文字列ならば、シェルはシグナルを無視します。それ以外の値を指定すると、シェルはこのオペランドをコマンドとみなして、シグナル受信時にこれを解釈・実行します (コマンドの実行中にシグナルを受信したときは、コマンドが終了した後にトラップを実行します)。
+<dt><var>シグナル</var>
+<dd>動作の対象となるシグナルです。シグナルはシグナル番号とシグナル名のどちらかで指定します。
+<dd><var>シグナル</var>として <code>0</code> または <code>EXIT</code> を指定すると、これはシェルの終了時に発生する仮想のシグナルを指定しているとみなします。この仮想のシグナルに対して設定された<var>動作</var>は、シェルが正常終了する直前に実行されます。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>トラップが正しく設定または表示されたときは終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。
+
+<h2 id="notes">補足</h2>
+<p>Trap コマンドは<a href="../builtin.html#types">特殊組込みコマンド</a>です。
+<p>POSIX は、シグナル名は <code>INT</code> や <code>QUIT</code> のように最初の SIG を除いた形で指定しなければならないと規定しています。非 <a href="../posix.html">POSIX 準拠モード</a>の yash では、拡張として SIG を付けた形でも指定できますし、シグナル名の大文字と小文字を区別しません。

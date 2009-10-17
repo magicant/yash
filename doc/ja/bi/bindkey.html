@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="author" content="magicant">
+<meta name="description" content="Yash の bindkey 組込みコマンドについて">
+<title>Yash マニュアル: bindkey 組込みコマンド</title>
+<link rel="Contents" href="../index.html" title="目次">
+<link rel="Prev" href="bg.html" title="Bg 組込みコマンド">
+<link rel="Next" href="break.html" title="Break 組込みコマンド">
+<link rel="Stylesheet" href="../style.css">
+
+<div class="breadcrumb"><a href="../index.html">目次</a> >
+<a rel="Up" href="index.html">組込みコマンド一覧</a></div>
+<h1>Bindkey 組込みコマンド</h1>
+
+<p><dfn>Bindkey 組込みコマンド</dfn>は<a href="../lineedit.html">行編集</a>におけるキーバインド設定を表示・設定します。
+
+<h2 id="syntax">構文</h2>
+<ul>
+<li><code>bindkey -aev [<var>キー</var> [<var>コマンド</var>]]</code>
+<li><code>bindkey -l</code>
+</ul>
+
+<h2 id="description">説明</h2>
+<p><code>-l</code> (<code>--list</code>) オプションを付けて実行すると、bindkey コマンドはキーバインド設定で利用可能なコマンドの一覧を標準出力に出力します。
+<p>他のオプションを付けて実行すると、bindkey コマンドはキーバインド設定の表示または設定を行います。オペランドとして<var>キー</var>・<var>コマンド</var>を与えない場合、現在のキーバインド設定の内容を (コマンドとして解釈可能な形式で) 標準出力に出力します。<var>キー</var>のみを与えると、そのキーに対する現在の設定だけを出力します。<var>キー</var>と<var>コマンド</var>を両方与えると、そのキーを入力したときに実行するコマンドを指定したコマンドに設定します。
+
+<h2 id="options">オプション</h2>
+<dl>
+<dt><code>-a</code>, <code>--vi-command</code>
+<dd><q>Vi コマンド</q>モードにおけるキーバインドを表示・設定します。
+<dt><code>-e</code>, <code>--emacs</code>
+<dd><q>Emacs</q>モードにおけるキーバインドを表示・設定します。
+<dt><code>-v</code>, <code>--vi-insert</code>
+<dd><q>Vi 挿入</q>モードにおけるキーバインドを表示・設定します。
+</dl>
+
+<h2 id="operands">オペランド</h2>
+<dl>
+<dt><var>キー</var>
+<dd>表示・設定する対象のキー入力シーケンスです。このオペランドの値にはバックスラッシュで始まる<a href="../lineedit.html#escape">エスケープシーケンス</a>が利用できます。
+<dt><var>コマンド</var>
+<dd>設定する<a href="../lineedit.html#commands">行編集コマンド</a>です。ハイフン一つ (<code>-</code>) を指定すると、指定した<var>キー</var>に対する設定を削除します。
+</dl>
+
+<h2 id="exitstatus">終了ステータス</h2>
+<p>エラーがない限り bindkey コマンドの終了ステータスは 0 です。
+
+<h2 id="notes">補足</h2>
+<p>POSIX には bindkey コマンドに関する規定はありません。
