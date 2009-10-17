@@ -1,0 +1,63 @@
+# Makefile.in for yash: yet another shell
+# (C) 2007-2009 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.POSIX:
+.SUFFIXES: .html .css .js
+
+INSTALL_PROGRAM = ../install-sh
+INSTALL_DATA = $(INSTALL_PROGRAM) -m 644
+
+all:
+
+DESTDIR =
+HTMLDIR = @HTMLDIR@
+HTMLINNERDIRS = ja ja/bi
+HTMLINNERDIRSREV = ja/bi ja
+install: $(DESTDIR)$(HTMLDIR)
+	@for d in $(HTMLINNERDIRS); do \
+		echo $(INSTALL_PROGRAM) -d $(DESTDIR)$(HTMLDIR)/$$d; \
+		$(INSTALL_PROGRAM) -d $(DESTDIR)$(HTMLDIR)/$$d || exit; \
+	done
+	@while read -r f; do \
+		echo $(INSTALL_DATA) -c $$f $(DESTDIR)$(HTMLDIR)/$$f; \
+		$(INSTALL_DATA) -c $$f $(DESTDIR)$(HTMLDIR)/$$f || exit; \
+	done <filelist
+installdirs: $(DESTDIR)$(HTMLDIR)
+$(DESTDIR)$(HTMLDIR):
+	$(INSTALL_PROGRAM) -d $@
+uninstall:
+	@while read -r f; do \
+		echo rm -f $(DESTDIR)$(HTMLDIR)/$$f; \
+		rm -f $(DESTDIR)$(HTMLDIR)/$$f; \
+	done <filelist
+	@for d in $(HTMLINNERDIRSREV); do \
+		echo rmdir $(DESTDIR)$(HTMLDIR)/$$d; \
+		rmdir $(DESTDIR)$(HTMLDIR)/$$d; \
+	done
+	-rmdir $(DESTDIR)$(HTMLDIR)
+
+DISTCONTENTS = Makefile.in filelist
+distcontents: $(DISTCONTENTS)
+copy-distcontents: $(DISTCONTENTS)
+	mkdir -p $(DISTTARGETDIR)
+	@echo Copying contents to $(DISTTARGETDIR)
+	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
+	@for d in $(HTMLINNERDIRS); do mkdir -p $(DISTTARGETDIR)/$$d; done
+	@while read -r f; do ln $$f $(DISTTARGETDIR)/$$f; done <filelist
+
+.PHONY: all install installdirs uninstall distcontents copy-distcontents
+
+

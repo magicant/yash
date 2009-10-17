@@ -25,7 +25,7 @@ tempsrc=".temp.c"
 tempo=".temp.o"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
-dirs=". builtins lineedit tests"
+dirs=". builtins doc lineedit tests"
 
 target="yash"
 package="yash"
@@ -62,7 +62,8 @@ enable_test="yes"
 enable_ulimit="yes"
 ctags_args=""
 etags_args=""
-unset prefix eprefix bindir cacheentry cachekey checkresult
+unset prefix eprefix bindir datarootdir docdir htmldir
+unset cacheentry cachekey checkresult
 umask u=rwx,go=rx
 cd "$(dirname "$0")"
 
@@ -102,6 +103,12 @@ do
 	    execprefix="${i#--exec-prefix=}" ;;
 	--bindir=*)
 	    bindir="${i#--bindir=}" ;;
+	--datarootdir=*)
+	    datarootdir="${i#--datarootdir=}" ;;
+	--docdir=*)
+	    docdir="${i#--docdir=}" ;;
+	--htmldir=*)
+	    htmldir="${i#--htmldir=}" ;;
 	--enable-*=no|--enable-*=false|--disable-*)
 	    parseenable "$i" "no" ;;
 	--enable-*)
@@ -137,6 +144,9 @@ Installation options:
   --exec-prefix=EPREFIX  install architecture-dependent files in EPREFIX
                          [PREFIX]
   --bindir=DIR           install executable in DIR [EPREFIX/bin]
+  --datarootdir=DIR      architecture-independent data root [PREFIX/share]
+  --docdir=DIR           documentation root [DATAROOTDIR/doc/yash]
+  --htmldir=DIR          HTML documentation [DOCDIR]
 
 Optional features:
   --enable-FEATURE[=ARG]      enable or disable FEATURE [ARG=yes]
@@ -916,6 +926,10 @@ EPREFIX="${eprefix-${PREFIX}}"
 if [ x"${PREFIX}" = x"/" ]; then PREFIX=""; fi
 if [ x"${EPREFIX}" = x"/" ]; then EPREFIX=""; fi
 BINDIR="${bindir-${EPREFIX}/bin}"
+DATAROOTDIR="${datarootdir-${PREFIX}/share}"
+if [ x"${DATAROOTDIR}" = x"/" ]; then DATAROOTDIR=""; fi
+DOCDIR="${docdir-${DATAROOTDIR}/doc/yash}"
+HTMLDIR="${htmldir-${DOCDIR}}"
 DISTDIR=$(echo $PACKAGE $VERSION | sed -e 's/[[:space:]]/-/g')
 
 # create Makefile($1) from Makefile.in($2) and Makefile.deps($3)
@@ -950,6 +964,9 @@ s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g
 s!@PREFIX@!${PREFIX}!g
 s!@EPREFIX@!${EPREFIX}!g
 s!@BINDIR@!${BINDIR}!g
+s!@DATAROOTDIR@!${DATAROOTDIR}!g
+s!@DOCDIR@!${DOCDIR}!g
+s!@HTMLDIR@!${HTMLDIR}!g
 s!@DISTDIR@!${DISTDIR}!g
 END
 for d in ${dirs}
@@ -980,6 +997,9 @@ done
     echo PREFIX="'${PREFIX}'"
     echo EPREFIX="'${EPREFIX}'"
     echo BINDIR="'${BINDIR}'"
+    echo DATAROOTDIR="'${DATAROOTDIR}'"
+    echo DOCDIR="'${DOCDIR}'"
+    echo HTMLDIR="'${HTMLDIR}'"
     echo DISTDIR="'${DISTDIR}'"
 } >&5
 
