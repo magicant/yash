@@ -58,6 +58,11 @@ copy-distcontents: $(DISTCONTENTS)
 	@for d in $(HTMLINNERDIRS); do mkdir -p $(DISTTARGETDIR)/$$d; done
 	@while read -r f; do ln $$f $(DISTTARGETDIR)/$$f; done <filelist
 
-.PHONY: all install installdirs uninstall distcontents copy-distcontents
+distclean:
+	rm -f Makefile
+maintainer-clean: distclean
+	rm -f Makefile.deps
+
+.PHONY: all install installdirs uninstall distcontents copy-distcontents distclean maintainer-clean
 
 

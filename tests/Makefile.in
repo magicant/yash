@@ -69,7 +69,11 @@ copy-distcontents: $(DISTCONTENTS)
 
 clean:
 	rm -f $(BYPRODUCTS) $(INVOKEOBJS) $(RESETSIGOBJS)
+distclean: clean
+	rm -f Makefile
+maintainer-clean: distclean
+	rm -f Makefile.deps
 
-.PHONY: test-all test-posix test distcontents copy-distcontents clean
+.PHONY: test-all test-posix test distcontents copy-distcontents clean distclean maintainer-clean
 
 

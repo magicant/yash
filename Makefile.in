@@ -150,6 +150,8 @@ _clean: _mostlyclean
 distclean: _distclean
 	-@cd builtins && $(MAKE) distclean
 	-@cd lineedit && $(MAKE) distclean
+	-@cd tests    && $(MAKE) distclean
+	-@cd doc      && $(MAKE) distclean
 _distclean: _clean
 	-rm -rf Makefile config.cache config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
@@ -159,6 +161,8 @@ maintainer-clean:
 	@$(MAKE) _distclean
 	-@cd builtins && $(MAKE) maintainer-clean
 	-@cd lineedit && $(MAKE) maintainer-clean
+	-@cd tests    && $(MAKE) maintainer-clean
+	-@cd doc      && $(MAKE) maintainer-clean
 
 reconfigure:
 	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q \
