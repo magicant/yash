@@ -104,13 +104,13 @@ echo TERM ignored
 kill -s QUIT $$
 echo QUIT ignored
 
-$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s INT  $$' &
+$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s INT  $$' & \
 wait %1 >/dev/null
 kill -l $?
-$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s TERM $$' &
+$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s TERM $$' & \
 wait %1 >/dev/null
 kill -l $?
-$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s QUIT $$' &
+$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s QUIT $$' & \
 wait %1 >/dev/null
 kill -l $?
 END
