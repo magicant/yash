@@ -420,6 +420,7 @@ wchar_t *get_hyphen_parameter(void)
 static int set_builtin_print_current_settings(void);
 static int set_builtin_print_restoring_commands(void);
 
+/* The "set" builtin. */
 int set_builtin(int argc, void **argv)
 {
     wchar_t opt;
