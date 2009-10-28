@@ -2639,23 +2639,23 @@ const char read_help[] = Ngt(
 
 #if YASH_ENABLE_DIRSTACK
 
-static const struct xoption dirs_options[] = {
-    { L"clear",   xno_argument, L'c', },
-    { L"verbose", xno_argument, L'v', },
-    { L"help",    xno_argument, L'-', },
-    { NULL, 0, 0, },
-};
-
 /* The "dirs" builtin, which accepts the following options:
  * -c: clear the stack
  * -v: verbose */
 int dirs_builtin(int argc, void **argv)
 {
+    static const struct xoption long_options[] = {
+	{ L"clear",   xno_argument, L'c', },
+	{ L"verbose", xno_argument, L'v', },
+	{ L"help",    xno_argument, L'-', },
+	{ NULL, 0, 0, },
+    };
+
     wchar_t opt;
     bool clear = false, verbose = false;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-cv", dirs_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"-cv", long_options, NULL))) {
 	switch (opt) {
 	    case L'c':  clear   = true;  break;
 	    case L'v':  verbose = true;  break;
