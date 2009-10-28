@@ -382,7 +382,9 @@ int alias_builtin(int argc, void **argv)
     static const struct xoption long_options[] = {
 	{ L"global", xno_argument, L'g', },
 	{ L"prefix", xno_argument, L'p', },
+#if YASH_ENABLE_HELP
 	{ L"help",   xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -397,8 +399,10 @@ int alias_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'g':  global = true;  break;
 	    case L'p':  prefix = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  alias [name[=value]...]\n")
@@ -451,6 +455,7 @@ int alias_builtin(int argc, void **argv)
     return ok ? Exit_SUCCESS : Exit_FAILURE;
 }
 
+#if YASH_ENABLE_HELP
 const char alias_help[] = Ngt(
 "alias - define or print aliases\n"
 "\talias [-gp] [name[=value]...]\n"
@@ -464,27 +469,24 @@ const char alias_help[] = Ngt(
 "If no operands are given, all alias definitions are printed.\n"
 "No options are available in POSIXly correct mode.\n"
 );
+#endif
 
 /* The "unalias" builtin, which accepts the following option:
  * -a: remove all aliases */
 int unalias_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"all",  xno_argument, L'a', },
-	{ L"help", xno_argument, L'-', },
-	{ NULL, 0, 0, },
-    };
-
     bool all = false;
     bool err = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"a", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"a", all_option, NULL))) {
 	switch (opt) {
 	    case L'a':  all = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -513,6 +515,7 @@ print_usage:
     return Exit_ERROR;
 }
 
+#if YASH_ENABLE_HELP
 const char unalias_help[] = Ngt(
 "unalias - undefine aliases\n"
 "\tunalias name...\n"
@@ -520,6 +523,7 @@ const char unalias_help[] = Ngt(
 "Removes the specified alias definitions.\n"
 "If the -a (--all) option is specified, all definitions are removed.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

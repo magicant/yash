@@ -432,6 +432,7 @@ int compare_files(const char *file1, const char *file2)
 	return 0;
 }
 
+#if YASH_ENABLE_HELP
 const char test_help[] = Ngt(
 "test, [ - evaluate conditional expression\n"
 "\ttest expression\n"
@@ -488,6 +489,7 @@ const char test_help[] = Ngt(
 "If the expression is a single word without operators, the -n operator is\n"
 "assumed. An empty expression evaluates to false.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

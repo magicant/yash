@@ -148,7 +148,9 @@ int ulimit_builtin(int argc, void **argv)
 #if HAVE_RLIMIT_LOCKS
 	{ L"locks", xno_argument, L'x', },
 #endif
+#if YASH_ENABLE_HELP
 	{ L"help", xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -163,8 +165,10 @@ int ulimit_builtin(int argc, void **argv)
 	    case L'H':  type = hard;       break;
 	    case L'S':  type = soft;       break;
 	    case L'a':  print_all = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		for (const struct resource *r = resource_types; r->option; r++){
 		    if (r->option == opt) {
@@ -288,6 +292,7 @@ print_usage:
     return Exit_ERROR;
 }
 
+#if YASH_ENABLE_HELP
 const char ulimit_help[] = Ngt(
 "ulimit - set or print resource limitation\n"
 "\tulimit [-HSaefilnqrstuvx] [limit]\n"
@@ -331,6 +336,7 @@ const char ulimit_help[] = Ngt(
 "byte blocks, (K) in kilobytes, and (S) in seconds.\n"
 "Available resource types vary depending on your system.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

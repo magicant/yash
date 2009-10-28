@@ -54,7 +54,8 @@ extern _Bool shopt_le_promptsp;
 #define SHELLSET_OPTIONS L"abefhmnuvxC"
 
 extern const struct xoption
-    *const shell_long_options, *const set_long_options, *const help_option;
+    *const shell_long_options, *const set_long_options,
+    *const all_option, *const help_option;
 extern int setoptindex;
 
 extern void set_option(void);

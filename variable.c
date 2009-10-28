@@ -1474,7 +1474,9 @@ int typeset_builtin(int argc, void **argv)
 	{ L"readonly",  xno_argument, L'r', },
 	{ L"export",    xno_argument, L'x', },
 	{ L"unexport",  xno_argument, L'X', },
+#if YASH_ENABLE_HELP
 	{ L"help",      xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -1492,8 +1494,10 @@ int typeset_builtin(int argc, void **argv)
 	    case L'r':  readonly = true;  break;
 	    case L'x':  export   = true;  break;
 	    case L'X':  unexport = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  %ls [-p] [name[=value]...]\n")
@@ -1779,6 +1783,7 @@ bool print_function(
     }
 }
 
+#if YASH_ENABLE_HELP
 const char typeset_help[] = Ngt(
 "typeset, export, readonly - set or print variables\n"
 "\ttypeset  [-fgprxX] [name[=value]...]\n"
@@ -1806,6 +1811,7 @@ const char typeset_help[] = Ngt(
 "\"readonly\" is equivalent to \"typeset -gr\".\n"
 "Note that the typeset builtin is unavailable in the POSIXly correct mode.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 #if YASH_ENABLE_ARRAY
 
@@ -1816,7 +1822,9 @@ int array_builtin(int argc, void **argv)
 	{ L"delete", xno_argument, L'd', },
 	{ L"insert", xno_argument, L'i', },
 	{ L"set",    xno_argument, L's', },
+#if YASH_ENABLE_HELP
 	{ L"help",   xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -1833,8 +1841,10 @@ int array_builtin(int argc, void **argv)
 	    case L'd':  options |= delete;  break;
 	    case L'i':  options |= insert;  break;
 	    case L's':  options |= set;     break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  array [name [value...]]\n"
 		                   "        array -d name [index...]\n"
@@ -2057,6 +2067,7 @@ invalid_index:
     return false;
 }
 
+#if YASH_ENABLE_HELP
 const char array_help[] = Ngt(
 "array - manipulate array\n"
 "\tarray\n"
@@ -2075,6 +2086,7 @@ const char array_help[] = Ngt(
 "The fifth form (with the -s (--set) option) sets the value of a single\n"
 "element of the array.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 #endif /* YASH_ENABLE_ARRAY */
 
@@ -2086,7 +2098,9 @@ int unset_builtin(int argc, void **argv)
     static const struct xoption long_options[] = {
 	{ L"functions", xno_argument, L'f', },
 	{ L"variables", xno_argument, L'v', },
+#if YASH_ENABLE_HELP
 	{ L"help",      xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -2099,8 +2113,10 @@ int unset_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'f':  funcs = true;   break;
 	    case L'v':  funcs = false;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt("Usage:  unset [-fv] name...\n"));
 		SPECIAL_BI_ERROR;
@@ -2164,6 +2180,7 @@ bool unset_variable(const wchar_t *name)
     return false;
 }
 
+#if YASH_ENABLE_HELP
 const char unset_help[] = Ngt(
 "unset - remove variables or functions\n"
 "\tunset [-fv] <name>...\n"
@@ -2174,6 +2191,7 @@ const char unset_help[] = Ngt(
 "-f and -v are mutually exclusive: the last specified one is used.\n"
 "If neither is specified, -v is the default.\n"
 );
+#endif
 
 /* The "shift" builtin */
 int shift_builtin(int argc, void **argv)
@@ -2183,8 +2201,10 @@ int shift_builtin(int argc, void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  shift [n]\n"));
 		SPECIAL_BI_ERROR;
@@ -2230,6 +2250,7 @@ int shift_builtin(int argc, void **argv)
     return Exit_SUCCESS;
 }
 
+#if YASH_ENABLE_HELP
 const char shift_help[] = Ngt(
 "shift - remove some positional parameters\n"
 "\tshift [n]\n"
@@ -2237,6 +2258,7 @@ const char shift_help[] = Ngt(
 "If <n> is not specified, the first one positional parameter is removed.\n"
 "<n> must be a non-negative integer that is not greater than $#.\n"
 );
+#endif
 
 /* The "getopts" builtin */
 int getopts_builtin(int argc, void **argv)
@@ -2245,8 +2267,10 @@ int getopts_builtin(int argc, void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -2427,6 +2451,7 @@ bool set_to(const wchar_t *varname, wchar_t value)
     return set_variable(varname, v, SCOPE_GLOBAL, shopt_allexport);
 }
 
+#if YASH_ENABLE_HELP
 const char getopts_help[] = Ngt(
 "getopts - parse command options\n"
 "\tgetopts options var [arg...]\n"
@@ -2466,6 +2491,7 @@ const char getopts_help[] = Ngt(
 "Reset $OPTIND to \"1\" and then this command can be used with another\n"
 "<options>, <var> and <arg>s.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 /* The "read" builtin, which accepts the following options:
  * -A: assign values to array
@@ -2476,7 +2502,9 @@ int read_builtin(int argc, void **argv)
     static const struct xoption long_options[] = {
 	{ L"array",    xno_argument, L'A', },
 	{ L"raw-mode", xno_argument, L'r', },
+#if YASH_ENABLE_HELP
 	{ L"help",     xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -2490,8 +2518,10 @@ int read_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'A':  array = true;  break;
 	    case L'r':  raw   = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -2620,6 +2650,7 @@ bool split_and_assign_array(const wchar_t *name, wchar_t *values,
     return ok;
 }
 
+#if YASH_ENABLE_HELP
 const char read_help[] = Ngt(
 "read - read a line from standard input\n"
 "\tread [-Ar] var...\n"
@@ -2636,6 +2667,7 @@ const char read_help[] = Ngt(
 "the last <var> as array elements, rather than as a single variable.\n"
 "The -A option is not available in the POSIXly-correct mode.\n"
 );
+#endif
 
 #if YASH_ENABLE_DIRSTACK
 
@@ -2647,7 +2679,9 @@ int dirs_builtin(int argc, void **argv)
     static const struct xoption long_options[] = {
 	{ L"clear",   xno_argument, L'c', },
 	{ L"verbose", xno_argument, L'v', },
+#if YASH_ENABLE_HELP
 	{ L"help",    xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -2659,8 +2693,10 @@ int dirs_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'c':  clear   = true;  break;
 	    case L'v':  verbose = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt("Usage:  dirs [-cv] [index...]\n"));
 		return Exit_ERROR;
@@ -2738,6 +2774,7 @@ int dirs_builtin(int argc, void **argv)
     return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
+#if YASH_ENABLE_HELP
 const char dirs_help[] = Ngt(
 "dirs - print directory stack\n"
 "\tdirs [-cv] [index...]\n"
@@ -2746,6 +2783,7 @@ const char dirs_help[] = Ngt(
 "The -v (--verbose) option makes the entries preceded by indices.\n"
 "The -c (--clear) option clears the stack.\n"
 );
+#endif
 
 #endif /* YASH_ENABLE_DIRSTACK */
 

@@ -884,7 +884,9 @@ int jobs_builtin(int argc, void **argv)
 	{ L"pgid-only",    xno_argument, L'p', },
 	{ L"running-only", xno_argument, L'r', },
 	{ L"stopped-only", xno_argument, L's', },
+#if YASH_ENABLE_HELP
 	{ L"help",         xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -903,8 +905,10 @@ int jobs_builtin(int argc, void **argv)
 	    case L'p':  pgidonly    = true;  break;
 	    case L'r':  runningonly = true;  break;
 	    case L's':  stoppedonly = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  jobs [-lp] [job...]\n")
@@ -979,6 +983,7 @@ void jobs_builtin_print_job(size_t jobnumber,
     }
 }
 
+#if YASH_ENABLE_HELP
 const char jobs_help[] = Ngt(
 "jobs - print info about jobs\n"
 "\tjobs [-lnprs] [job...]\n"
@@ -998,6 +1003,7 @@ const char jobs_help[] = Ngt(
 "\tprint stopped jobs only\n"
 "In POSIXly correct mode, only the -l and -p options are available.\n"
 );
+#endif
 
 /* "fg"/"bg" builtin */
 int fg_builtin(int argc, void **argv)
@@ -1009,8 +1015,10 @@ int fg_builtin(int argc, void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt(fg ? Ngt("Usage:  fg [job]\n")
 		                      : Ngt("Usage:  bg [job...]\n")));
@@ -1138,6 +1146,8 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
      * for the continued programs. */
 }
 
+#if YASH_ENABLE_HELP
+
 const char fg_help[] = Ngt(
 "fg - run jobs in the foreground\n"
 "\tfg [job...]\n"
@@ -1154,6 +1164,8 @@ const char bg_help[] = Ngt(
 "If no job is specified, the current job is continued.\n"
 );
 
+#endif /* YASH_ENABLE_HELP */
+
 /* "wait" builtin */
 int wait_builtin(int argc, void **argv)
 {
@@ -1165,8 +1177,10 @@ int wait_builtin(int argc, void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt("Usage:  wait [job or pid...]\n"));
 		return Exit_ERROR;
@@ -1252,6 +1266,7 @@ bool wait_has_job(bool jobcontrol)
     return false;
 }
 
+#if YASH_ENABLE_HELP
 const char wait_help[] = Ngt(
 "wait - wait for jobs to terminate\n"
 "\twait [job or pid...]\n"
@@ -1259,27 +1274,24 @@ const char wait_help[] = Ngt(
 "Jobs can be specified in the usual job specification form such as \"%2\" or\n"
 "by the process ID of a process belonging to the job.\n"
 );
+#endif
 
 /* "disown" builtin, which accepts the following option:
  * -a: disown all jobs */
 int disown_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"all",  xno_argument, L'a', },
-	{ L"help", xno_argument, L'-', },
-	{ NULL, 0, 0, },
-    };
-
     bool all = false;
     bool err = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"a", long_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"a", all_option, NULL))) {
 	switch (opt) {
 	    case L'a':  all = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt("Usage:  disown [-a] [job...]\n"));
 		return Exit_ERROR;
@@ -1322,6 +1334,7 @@ int disown_builtin(int argc, void **argv)
     return err ? Exit_FAILURE : Exit_SUCCESS;
 }
 
+#if YASH_ENABLE_HELP
 const char disown_help[] = Ngt(
 "disown - disown jobs\n"
 "\tdisown [job...]\n"
@@ -1333,6 +1346,7 @@ const char disown_help[] = Ngt(
 "Otherwise, the specified jobs are disowned. If none is specified, the\n"
 "current job is disowned.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

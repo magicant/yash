@@ -1105,7 +1105,9 @@ int fc_builtin(int argc, void **argv)
 	{ L"reverse",    xno_argument,       L'r', },
 	{ L"silent",     xno_argument,       L's', },
 	{ L"verbose",    xno_argument,       L'v', },
+#if YASH_ENABLE_HELP
 	{ L"help",       xno_argument,       L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -1126,8 +1128,10 @@ int fc_builtin(int argc, void **argv)
 	    case L'r':  rev    = true;           break;
 	    case L's':  silent = true;           break;
 	    case L'v':  ptype  = FC_FULL;        break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -1503,6 +1507,7 @@ void fc_read_history(FILE *f, bool quiet)
     }
 }
 
+#if YASH_ENABLE_HELP
 const char fc_help[] = Ngt(
 "fc - list or re-execute command history\n"
 "\tfc [-qr] [-e editor] [first [last]]\n"
@@ -1537,6 +1542,7 @@ const char fc_help[] = Ngt(
 "\n"
 "In POSIXly correct mode, the -q and -v options are not available.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 /* The "history" builtin, which accepts the following options:
  * -c: clear whole history
@@ -1554,7 +1560,9 @@ int history_builtin(int argc, void **argv)
 	{ L"set",        xrequired_argument, L's', },
 	{ L"write",      xrequired_argument, L'w', },
 	{ L"flush-file", xno_argument,       L'F', },
+#if YASH_ENABLE_HELP
 	{ L"help",       xno_argument,       L'-', },
+#endif
         { NULL, 0, 0, },
     };
 
@@ -1599,10 +1607,12 @@ int history_builtin(int argc, void **argv)
 	    case L'F':
 		history_refresh_file();
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		if (print_builtin_help(ARGV(0)) != Exit_SUCCESS)
 		    return Exit_FAILURE;
 		break;
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  history [-cF] [-d entry] "
 			    "[-s command] [-r file] [-w file] [n]\n"));
@@ -1784,6 +1794,7 @@ void history_refresh_file(void)
     }
 }
 
+#if YASH_ENABLE_HELP
 const char history_help[] = Ngt(
 "history - manage command history\n"
 "\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [n]\n"
@@ -1798,6 +1809,7 @@ const char history_help[] = Ngt(
 "The -F (--flush-file) option rebuilds the history file, removing unused old\n"
 "data.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

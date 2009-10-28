@@ -363,7 +363,9 @@ int bindkey_builtin(int argc, void **argv)
 	{ L"vi-command", xno_argument, L'a', },
 	{ L"emacs",      xno_argument, L'e', },
 	{ L"list",       xno_argument, L'l', },
+#if YASH_ENABLE_HELP
 	{ L"help",       xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -378,8 +380,10 @@ int bindkey_builtin(int argc, void **argv)
 	    case L'e':  mode = LE_MODE_EMACS;       break;
 	    case L'v':  mode = LE_MODE_VI_INSERT;   break;
 	    case L'l':  list = true;                break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr,
 			gt("Usage:  bindkey -aev [keyseq [command]]\n"
@@ -540,6 +544,7 @@ const char *get_command_name(le_command_func_T *command)
     return NULL;
 }
 
+#if YASH_ENABLE_HELP
 const char bindkey_help[] = Ngt(
 "bindkey - set or print key bindings for line-editing\n"
 "\tbindkey -aev [keyseq [command]]\n"
@@ -558,6 +563,7 @@ const char bindkey_help[] = Ngt(
 " -e --emacs\n"
 "\tSpecifies the \"emacs\" mode.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

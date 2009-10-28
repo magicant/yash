@@ -1103,7 +1103,9 @@ static inline mode_t copy_other_mask(mode_t mode)
 static const struct xoption cd_pwd_options[] = {
     { L"logical",  xno_argument, L'L', },
     { L"physical", xno_argument, L'P', },
+#if YASH_ENABLE_HELP
     { L"help",     xno_argument, L'-', },
+#endif
     { NULL, 0, 0, },
 };
 
@@ -1123,8 +1125,10 @@ int cd_builtin(int argc, void **argv)
 	switch (opt) {
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"cd");
 		return Exit_ERROR;
@@ -1345,6 +1349,7 @@ bool starts_with_root_parent(const wchar_t *path)
 	(path[3] == L'\0' || path[3] == L'/');
 }
 
+#if YASH_ENABLE_HELP
 const char cd_help[] = Ngt(
 "cd - change directory\n"
 "\tcd [-L|-P] [dir]\n"
@@ -1361,6 +1366,7 @@ const char cd_help[] = Ngt(
 "-L and -P are mutually exclusive: the last specified one is used.\n"
 "If neither is specified, -L is the default.\n"
 );
+#endif
 
 #if YASH_ENABLE_DIRSTACK
 
@@ -1377,8 +1383,10 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	switch (opt) {
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"pushd");
 		return Exit_ERROR;
@@ -1428,6 +1436,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     return Exit_SUCCESS;
 }
 
+#if YASH_ENABLE_HELP
 const char pushd_help[] = Ngt(
 "pushd - push directory into directory stack\n"
 "\tpushd [-L|-P] [dir]\n"
@@ -1440,6 +1449,7 @@ const char pushd_help[] = Ngt(
 "a one with the minus sign specifies the n'th oldest entry.\n"
 "If <dir> is omitted, \"+1\" is assumed.\n"
 );
+#endif
 
 /* The "popd" builtin. */
 int popd_builtin(int argc __attribute__((unused)), void **argv)
@@ -1449,8 +1459,10 @@ int popd_builtin(int argc __attribute__((unused)), void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"-", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt("Usage:  popd [index]\n"));
 		return Exit_ERROR;
@@ -1491,6 +1503,7 @@ int popd_builtin(int argc __attribute__((unused)), void **argv)
     }
 }
 
+#if YASH_ENABLE_HELP
 const char popd_help[] = Ngt(
 "popd - pop directory from directory stack\n"
 "\tpopd [index]\n"
@@ -1502,6 +1515,7 @@ const char popd_help[] = Ngt(
 "and a one with the minus sign specifies the n'th oldest entry.\n"
 "If <index> is omitted, \"+0\" is assumed.\n"
 );
+#endif
 
 #endif /* YASH_ENABLE_DIRSTACK */
 
@@ -1521,8 +1535,10 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	switch (opt) {
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
 		return Exit_ERROR;
@@ -1560,6 +1576,7 @@ print:
     return result;
 }
 
+#if YASH_ENABLE_HELP
 const char pwd_help[] = Ngt(
 "pwd - print working directory\n"
 "\tpwd [-L|-P]\n"
@@ -1571,6 +1588,7 @@ const char pwd_help[] = Ngt(
 "-L and -P are mutually exclusive: the last specified one is used.\n"
 "If neither is specified, -L is the default.\n"
 );
+#endif
 
 /* The "hash" builtin, which accepts the following options:
  * -a: print all entries
@@ -1582,7 +1600,9 @@ int hash_builtin(int argc, void **argv)
 	{ L"all",       xno_argument, L'a', },
 	{ L"directory", xno_argument, L'd', },
 	{ L"remove",    xno_argument, L'r', },
+#if YASH_ENABLE_HELP
 	{ L"help",      xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -1596,8 +1616,10 @@ int hash_builtin(int argc, void **argv)
 	    case L'a':  all    = true;  break;
 	    case L'd':  dir    = true;  break;
 	    case L'r':  remove = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -1708,6 +1730,7 @@ bool print_home_directories(void)
     return false;
 }
 
+#if YASH_ENABLE_HELP
 const char hash_help[] = Ngt(
 "hash - remember, forget or report command locations\n"
 "\thash command...\n"
@@ -1727,6 +1750,7 @@ const char hash_help[] = Ngt(
 "home directory cache, rather than the command path cache.\n"
 "In the POSIXly correct mode, the -r option is the only available option.\n"
 );
+#endif
 
 /* The "umask" builtin, which accepts the following option:
  * -S: symbolic output */
@@ -1734,7 +1758,9 @@ int umask_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"symbolic", xno_argument, L'S', },
+#if YASH_ENABLE_HELP
 	{ L"help",     xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -1747,8 +1773,10 @@ int umask_builtin(int argc, void **argv)
 	    case L'S':
 		symbolic = true;
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -1930,6 +1958,7 @@ mode_t copy_other_mask(mode_t mode)
 	 | ((mode & S_IXOTH) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
 }
 
+#if YASH_ENABLE_HELP
 const char umask_help[] = Ngt(
 "umask - print or set file creation mask\n"
 "\tumask mode\n"
@@ -1939,6 +1968,7 @@ const char umask_help[] = Ngt(
 "If <mode> is not specified, the current setting of the mask is printed.\n"
 "The -S (--symbolic) option makes a symbolic output.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

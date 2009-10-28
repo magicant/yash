@@ -1374,7 +1374,9 @@ static void print_command_absolute_path(
 /* Options for the "break", "continue" and "eval" builtins. */
 static const struct xoption iter_options[] = {
     { L"iteration", xno_argument, L'i', },
+#if YASH_ENABLE_HELP
     { L"help",      xno_argument, L'-', },
+#endif
     { NULL, 0, 0, },
 };
 
@@ -1386,8 +1388,10 @@ int return_builtin(int argc, void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
 		SPECIAL_BI_ERROR;
@@ -1413,6 +1417,7 @@ int return_builtin(int argc, void **argv)
     return status;
 }
 
+#if YASH_ENABLE_HELP
 const char return_help[] = Ngt(
 "return - return from function\n"
 "\treturn [n]\n"
@@ -1420,6 +1425,7 @@ const char return_help[] = Ngt(
 "of <n>. If <n> is not specified, it defaults to the exit status of the last\n"
 "executed command. <n> should be between 0 and 255 inclusive.\n"
 );
+#endif
 
 /* "break" and "continue" builtin */
 int break_builtin(int argc, void **argv)
@@ -1433,8 +1439,10 @@ int break_builtin(int argc, void **argv)
 	    case L'i':
 		iter = true;
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr,
 			gt("Usage:  %ls [n]\n        %ls -i\n"),
@@ -1499,6 +1507,8 @@ int break_builtin(int argc, void **argv)
     }
 }
 
+#if YASH_ENABLE_HELP
+
 const char break_help[] = Ngt(
 "break - exit loop\n"
 "\tbreak [n]\n"
@@ -1520,6 +1530,8 @@ const char continue_help[] = Ngt(
 "commands and resumes the next iteration of the current iterative execution.\n"
 );
 
+#endif /* YASH_ENABLE_HELP */
+
 /* The "eval" builtin */
 int eval_builtin(int argc __attribute__((unused)), void **argv)
 {
@@ -1532,8 +1544,10 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'i':
 		iter = true;
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  eval [arg...]\n")
@@ -1553,6 +1567,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
     }
 }
 
+#if YASH_ENABLE_HELP
 const char eval_help[] = Ngt(
 "eval - evaluate arguments as command\n"
 "\teval [-i] [arg...]\n"
@@ -1563,6 +1578,7 @@ const char eval_help[] = Ngt(
 "one (iterative execution).\n"
 "In POSIXly correct mode, the -i option cannot be used.\n"
 );
+#endif
 
 int dot_builtin(int argc, void **argv)
 {
@@ -1570,8 +1586,10 @@ int dot_builtin(int argc, void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  . file\n")
@@ -1642,6 +1660,7 @@ int dot_builtin(int argc, void **argv)
     return laststatus;
 }
 
+#if YASH_ENABLE_HELP
 const char dot_help[] = Ngt(
 "dot - read file and execute commands\n"
 "\t. file [arg...]\n"
@@ -1653,6 +1672,7 @@ const char dot_help[] = Ngt(
 "the current working directory is used, start <file> with \"./\".\n"
 "In POSIXly correct mode, <arg>s must not be given.\n"
 );
+#endif
 
 /* The "exec" builtin, which accepts the following options:
  * -a name: give <name> as argv[0] to the command
@@ -1664,7 +1684,9 @@ int exec_builtin(int argc, void **argv)
 	{ L"as",    xrequired_argument, L'a', },
 	{ L"clear", xno_argument,       L'c', },
 	{ L"force", xno_argument,       L'f', },
+#if YASH_ENABLE_HELP
 	{ L"help",  xno_argument,       L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -1680,8 +1702,10 @@ int exec_builtin(int argc, void **argv)
 	    case L'a':  as = xoptarg;  break;
 	    case L'c':  clear = true;  break;
 	    case L'f':  force = true;  break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr, gt(posixly_correct
 		    ? Ngt("Usage:  exec [command [arg...]]\n")
@@ -1797,6 +1821,7 @@ err:
     return err;
 }
 
+#if YASH_ENABLE_HELP
 const char exec_help[] = Ngt(
 "exec - execute command in the shell process\n"
 "\texec [-cf] [-a name] [command [args...]]\n"
@@ -1814,6 +1839,7 @@ const char exec_help[] = Ngt(
 "In POSIXly correct mode, none of these options are available and the -f\n"
 "option is always assumed.\n"
 );
+#endif
 
 /* The "command"/"type" builtin, which accepts the following options:
  *  -b: search builtins
@@ -1829,7 +1855,9 @@ int command_builtin(int argc, void **argv)
 	{ L"standard-path",    xno_argument, L'p', },
 	{ L"identify",         xno_argument, L'v', },
 	{ L"verbose-identify", xno_argument, L'V', },
+#if YASH_ENABLE_HELP
 	{ L"help",             xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -1848,8 +1876,10 @@ int command_builtin(int argc, void **argv)
 	    case L'p':  defpath   = true;  break;
 	    case L'v':  printinfo = true;  humanfriendly = false;  break;
 	    case L'V':  printinfo = true;  humanfriendly = true;   break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -2060,6 +2090,8 @@ void print_command_absolute_path(
     return;
 }
 
+#if YASH_ENABLE_HELP
+
 const char command_help[] = Ngt(
 "command - execute or identify command\n"
 "\tcommand [-bBp] command [argument...]\n"
@@ -2089,6 +2121,8 @@ const char type_help[] = Ngt(
 "Prints the type of <command>s. Same as \"command -V <command>...\".\n"
 );
 
+#endif /* YASH_ENABLE_HELP */
+
 /* The "times" builtin */
 int times_builtin(int argc __attribute__((unused)), void **argv)
 {
@@ -2096,8 +2130,10 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  times\n"));
 		SPECIAL_BI_ERROR;
@@ -2139,6 +2175,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 #undef format_time
 }
 
+#if YASH_ENABLE_HELP
 const char times_help[] = Ngt(
 "times - print process times\n"
 "\ttimes\n"
@@ -2148,6 +2185,7 @@ const char times_help[] = Ngt(
 "processes. For each line, the user time is printed, followed by the system\n"
 "time.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

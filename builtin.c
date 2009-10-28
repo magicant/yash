@@ -76,11 +76,19 @@ void init_builtin(void)
     assert(builtins.capacity == 0);
     ht_initwithcapacity(&builtins, hashstr, htstrcmp, 71);
 
-#define DEFBUILTIN(name,func,type,help) \
+#if YASH_ENABLE_HELP
+# define DEFBUILTIN(name,func,type,help) \
     do {                                                                      \
 	static const builtin_T bi = { func, type, help, };                    \
 	ht_set(&builtins, name, &bi);                                         \
     } while (0)
+#else
+# define DEFBUILTIN(name,func,type,help) \
+    do {                                                                      \
+	static const builtin_T bi = { func, type, };                          \
+	ht_set(&builtins, name, &bi);                                         \
+    } while (0)
+#endif
 
     /* defined in "builtin.c" */
     DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help);
@@ -188,6 +196,8 @@ const builtin_T *get_builtin(const char *name)
     return ht_get(&builtins, name).value;
 }
 
+#if YASH_ENABLE_HELP
+
 /* Prints usage description of the specified builtin to stdout.
  * Returns Exit_SUCCESS iff the builtin is found and the help is printed.
  * Returns Exit_FAILURE if the builtin is not found or an error occurred. */
@@ -208,6 +218,8 @@ int print_builtin_help(const wchar_t *name)
     }
 }
 
+#endif /* YASH_ENABLE_HELP */
+
 
 /* ":"/"true" builtin */
 int true_builtin(
@@ -222,6 +234,8 @@ int false_builtin(
 {
     return EXIT_FAILURE;
 }
+
+#if YASH_ENABLE_HELP
 
 const char colon_help[] = Ngt(
 ": - null utility\n"
@@ -250,7 +264,6 @@ const char false_help[] = Ngt(
 "Naturally, the opposite of this command is the \"true\" command.\n"
 );
 
-#if YASH_ENABLE_HELP
 
 /* The "help" builtin. */
 int help_builtin(int argc, void **argv)

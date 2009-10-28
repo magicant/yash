@@ -627,7 +627,9 @@ bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 
 static const struct xoption force_help_options[] = {
     { L"force", xno_argument, L'f', },
+#if YASH_ENABLE_HELP
     { L"help",  xno_argument, L'-', },
+#endif
     { NULL, 0, 0, },
 };
 
@@ -644,8 +646,10 @@ int exit_builtin(int argc, void **argv)
 	    case L'f':
 		forceexit = true;
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
 		SPECIAL_BI_ERROR;
@@ -683,6 +687,7 @@ int exit_builtin(int argc, void **argv)
     assert(false);
 }
 
+#if YASH_ENABLE_HELP
 const char exit_help[] = Ngt(
 "exit - exit shell\n"
 "\texit [-f] [n]\n"
@@ -693,6 +698,7 @@ const char exit_help[] = Ngt(
 "a warning message and does not exit. Use the -f (--force) option or use\n"
 "`exit' twice in a row to avoid the warning and really exit.\n"
 );
+#endif
 
 /* The "suspend" builtin, which accepts the following options:
  *  -f: suspend even if it may cause a deadlock. */
@@ -707,8 +713,10 @@ int suspend_builtin(int argc, void **argv)
 	    case L'f':
 		force = true;
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  suspend [-f]\n"));
 		return Exit_ERROR;
@@ -732,6 +740,7 @@ int suspend_builtin(int argc, void **argv)
     return ok ? Exit_SUCCESS : Exit_FAILURE;
 }
 
+#if YASH_ENABLE_HELP
 const char suspend_help[] = Ngt(
 "suspend - suspend shell\n"
 "\tsuspend [-f]\n"
@@ -739,6 +748,7 @@ const char suspend_help[] = Ngt(
 "This command refuses to suspend the shell if it is interactive and is a\n"
 "session leader.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

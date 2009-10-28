@@ -935,7 +935,9 @@ int trap_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"print", xno_argument, L'p', },
+#if YASH_ENABLE_HELP
 	{ L"help",  xno_argument, L'-', },
+#endif
 	{ NULL, 0, 0, },
     };
 
@@ -950,8 +952,10 @@ int trap_builtin(int argc, void **argv)
 	    case L'p':
 		print = true;
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		goto print_usage;
 	}
@@ -1076,6 +1080,7 @@ bool print_trap(const char *signame, const wchar_t *command)
     return true;
 }
 
+#if YASH_ENABLE_HELP
 const char trap_help[] = Ngt(
 "trap - set signal handler\n"
 "\ttrap [action signal...]\n"
@@ -1093,6 +1098,7 @@ const char trap_help[] = Ngt(
 "<signal>s are printed. This option is not available in POSIXly correct mode.\n"
 "Without any operands, all signal handlers currently set are printed.\n"
 );
+#endif
 
 /* The "kill" builtin, which accepts the following options:
  * -s SIG: specifies the signal to send
@@ -1101,8 +1107,10 @@ const char trap_help[] = Ngt(
  * -v: prints signal info verbosely */
 int kill_builtin(int argc, void **argv)
 {
+#if YASH_ENABLE_HELP
     if (!posixly_correct && argc == 2 && wcscmp(ARGV(1), L"--help") == 0)
 	return print_builtin_help(ARGV(0));
+#endif
 
     wchar_t opt;
     int signum = SIGTERM;
@@ -1261,6 +1269,7 @@ bool signal_job(int signum, const wchar_t *jobspec)
     return true;
 }
 
+#if YASH_ENABLE_HELP
 const char kill_help[] = Ngt(
 "kill - send a signal to processes\n"
 "\tkill [-signal|-s signal|-n number] process...\n"
@@ -1276,6 +1285,7 @@ const char kill_help[] = Ngt(
 "given, a list of available signals is printed.\n"
 "With the -v option, verbose info is printed.\n"
 );
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

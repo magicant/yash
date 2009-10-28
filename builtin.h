@@ -32,7 +32,9 @@ typedef enum builtintype_T {
 typedef struct builtin_T {
     main_T *body;
     builtintype_T type;
+#if YASH_ENABLE_HELP
     const char *help;
+#endif
 } builtin_T;
 
 

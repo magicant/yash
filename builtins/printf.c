@@ -229,6 +229,7 @@ print_char:
     return false;
 }
 
+#if YASH_ENABLE_HELP
 const char echo_help[] = Ngt(
 "echo - prints arguments\n"
 "\techo [string...]\n"
@@ -269,6 +270,7 @@ const char echo_help[] = Ngt(
 "  \\\\     backslash\n"
 "  \\0nnn  8-bit value of the octal number <nnn>.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 
 static bool printf_error;
@@ -281,8 +283,10 @@ int printf_builtin(int argc, void **argv)
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
 	switch (opt) {
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  printf format [value...]\n"));
 		return Exit_ERROR;
@@ -649,6 +653,7 @@ void freeformat(struct format_T *f)
     }
 }
 
+#if YASH_ENABLE_HELP
 const char printf_help[] = Ngt(
 "printf - print a formatted string\n"
 "\tprintf format [argument...]\n"
@@ -698,6 +703,7 @@ const char printf_help[] = Ngt(
 "  \\'     single-quote\n"
 "  \\nnn   8-bit value of the octal number <nnn>.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

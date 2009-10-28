@@ -167,7 +167,10 @@ typedef enum shopt_index_T {
     SHOPT_VI, SHOPT_EMACS,
     SHOPT_LE_CONVMETA, SHOPT_LE_NOCONVMETA, SHOPT_LE_PROMPTSP,
 #endif
+#if YASH_ENABLE_HELP
     SHOPT_HELP,
+#endif
+    SHOPT_end,
     SHOPT_setopt = SHOPT_ALLEXPORT,
 } shopt_index_T;
 
@@ -215,9 +218,11 @@ static const struct xoption long_options[] = {
     [SHOPT_LE_NOCONVMETA] = { L"le-noconvmeta",xno_argument, L'L', },
     [SHOPT_LE_PROMPTSP]   = { L"le-promptsp",  xno_argument, L'L', },
 #endif
+#if YASH_ENABLE_HELP
     [SHOPT_HELP]          = { L"help",         xno_argument, L'-', },
+#endif
     /* this one must be the last for `help_option' */
-    { NULL, 0, 0, },
+    [SHOPT_end]           = { NULL, 0, 0, },
 };
 
 static const struct setoptinfo_T setoptinfo[] = {
@@ -255,13 +260,24 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_LE_NOCONVMETA] = { set_le_noconvmeta_option, NULL, },
     [SHOPT_LE_PROMPTSP]   = { set_bool_option, &shopt_le_promptsp, },
 #endif
+#if YASH_ENABLE_HELP
     //[SHOPT_HELP]
+#endif
     { 0, NULL, },
+};
+
+static const struct xoption all_help_options[] = {
+    { L"all",  xno_argument, L'a', },
+#if YASH_ENABLE_HELP
+    { L"help", xno_argument, L'-', }, /* must be next to "all" */
+#endif
+    { NULL, 0, 0, },
 };
 
 const struct xoption *const shell_long_options = long_options;
 const struct xoption *const set_long_options   = long_options + SHOPT_setopt;
-const struct xoption *const help_option        = long_options + SHOPT_HELP;
+const struct xoption *const all_option         = all_help_options;
+const struct xoption *const help_option        = all_help_options + 1;
 
 /* The index of the currently parsing option in the `long_options' and
  * `setoptinfo' arrays. */
@@ -454,8 +470,10 @@ int set_builtin(int argc, void **argv)
 		    goto optionerror;
 		}
 		break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    case L'?':  optionerror:
 		fprintf(stderr,
 		    gt("Usage:  set [-abefhmnuvxC] [-o option] [+o option] "
@@ -592,6 +610,7 @@ int set_builtin_print_restoring_commands(void)
     }
 }
 
+#if YASH_ENABLE_HELP
 const char set_help[] = Ngt(
 "set - set shell options and positional parameters\n"
 "\tset [-abefhmnuvxC] [+abefhmnuvxC] [-o option] [+o option] [--] [arg...]\n"
@@ -685,6 +704,7 @@ const char set_help[] = Ngt(
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
 "Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"
 );
+#endif /* YASH_ENABLE_HELP */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */
