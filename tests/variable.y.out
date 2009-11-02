@@ -45,6 +45,9 @@ exitstatus=127
 ===== typeset export =====
 abcdef
 abcxyz
+typeset -x bar='xyz'
+typeset -x foo='abc'
+typeset baz
 foo bar
 unset global
 export baz

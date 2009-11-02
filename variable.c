@@ -150,7 +150,8 @@ static void xtrace_variable(const wchar_t *name, const wchar_t *value)
     __attribute__((nonnull));
 static void xtrace_array(const wchar_t *name, void *const *values)
     __attribute__((nonnull));
-static void get_all_variables_rec(hashtable_T *table, environ_T *env)
+static void get_all_variables_rec(
+	hashtable_T *table, environ_T *env, bool global)
     __attribute__((nonnull));
 
 static void lineno_getter(variable_T *var)
@@ -870,14 +871,14 @@ return_single:  /* return a scalar as a one-element array */
     return result;
 }
 
-/* Gathers all variables in the specified environment and all of its ancestors
- * into the specified hashtable.
- * Local variables may hide global variables.
+/* Gathers all variables in the specified environment.
+ * If `global' is true, variables in the all ancestor environments are also
+ * included (except the ones hidden by local variables).
  * keys and values added to the hashtable must not be modified or freed. */
-void get_all_variables_rec(hashtable_T *table, environ_T *env)
+void get_all_variables_rec(hashtable_T *table, environ_T *env, bool global)
 {
-    if (env->parent)
-	get_all_variables_rec(table, env->parent);
+    if (env->parent && (global || env->is_temporary))
+	get_all_variables_rec(table, env->parent, global);
 
     size_t i = 0;
     kvpair_T kv;
@@ -1539,7 +1540,7 @@ int typeset_builtin(int argc, void **argv)
 	    hashtable_T table;
 
 	    ht_init(&table, hashwcs, htwcscmp);
-	    get_all_variables_rec(&table, current_env);
+	    get_all_variables_rec(&table, current_env, global);
 	    kvs = ht_tokvarray(&table);
 	    count = table.count;
 	    ht_destroy(&table);
@@ -1795,7 +1796,8 @@ const char typeset_help[] = Ngt(
 "printed instead of creating the variable.\n"
 "For each operands of the form <name=value>, the value is assigned to the\n"
 "specified variable. The variable is created if necessary.\n"
-"If no operands are given, all variables are printed.\n"
+"If no operands are given, all variables are printed. (Without the -g\n"
+"(--global) option, only local variables are printed.)\n"
 "\n"
 "By default, the \"typeset\" builtin affects local variables. To declare\n"
 "global variables inside functions, the -g (--global) option can be used.\n"
@@ -1866,7 +1868,7 @@ int array_builtin(int argc, void **argv)
 
 	hashtable_T table;
 	ht_init(&table, hashwcs, htwcscmp);
-	get_all_variables_rec(&table, current_env);
+	get_all_variables_rec(&table, current_env, true);
 
 	kvpair_T *kvs = ht_tokvarray(&table);
 	size_t count = table.count;

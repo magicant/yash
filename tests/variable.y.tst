@@ -109,6 +109,8 @@ func () {
 	export foo bar=xyz
 	$INVOKE $TESTEE -c 'echo $foo$bar'
 	typeset -g baz qux=global
+	typeset
+	typeset -g | grep '^typeset baz$'
 }
 foo=foo bar=bar func
 $INVOKE $TESTEE -c 'echo $foo $bar'
