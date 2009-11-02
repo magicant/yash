@@ -25,8 +25,8 @@
 </ul>
 
 <h2 id="description">説明</h2>
-<p><code>-p</code> (<code>--functions</code>) オプションを付けずに実行すると、typeset コマンドは<a href="../params.html#variables">変数</a>を出力または設定します。<code>-p</code> (<code>--functions</code>) オプションを付けて実行すると、typeset コマンドは<a href="../exec.html#function">関数</a>を出力または設定します。
-<p><code>-p</code> (<code>--print</code>) オプションを付けて実行すると、typeset コマンドはオペランドで指定した変数または関数を標準出力に出力します。<code>-p</code> (<code>--print</code>) オプションを付けずに実行すると、typeset コマンドはオペランドで指定した変数または関数を設定します。オペランドを一つも与えずに実行すると、<code>-p</code> (<code>--print</code>) オプションの有無にかかわらず typeset コマンドは全ての変数または関数を出力します。
+<p><code>-f</code> (<code>--functions</code>) オプションを付けずに実行すると、typeset コマンドは<a href="../params.html#variables">変数</a>を出力または設定します。<code>-f</code> (<code>--functions</code>) オプションを付けて実行すると、typeset コマンドは<a href="../exec.html#function">関数</a>を出力または設定します。
+<p><code>-p</code> (<code>--print</code>) オプションを付けて実行すると、typeset コマンドはオペランドで指定した変数または関数を標準出力に出力します。<code>-p</code> (<code>--print</code>) オプションを付けずに実行すると、typeset コマンドはオペランドで指定した変数または関数を設定します。オペランドを一つも与えずに実行すると、<code>-p</code> (<code>--print</code>) オプションの有無にかかわらず typeset コマンドは全ての変数または関数を出力します (このとき <code>-g</code> (<code>--global</code>) オプションがあれば本当にすべての変数を、そうでないときはローカル変数だけを出力します)。
 
 <h2 id="options">オプション</h2>
 <dl>
@@ -34,6 +34,7 @@
 <dd>変数ではなく関数を表示または設定します。
 <dt><code>-g</code>, <code>--global</code>
 <dd>このオプションを指定すると、新しく変数を作成する場合その変数をグローバル変数とします。すなわち変数は関数の実行が終わっても残ります。このオプションを指定しない場合、設定する変数は<a href="../exec.html#localvar">ローカル変数</a>になります。
+<dd>オペランドがない場合は、このオプションを指定していると全ての変数を出力します。このオプションを指定していないとローカル変数だけ出力します。
 <dt><code>-p</code>, <code>--print</code>
 <dd>変数または関数の定義を (コマンドとして解釈可能な形式で) 出力します。
 <dt><code>-r</code>, <code>--readonly</code>

@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.17
+
+  =  The "typeset" builtin now prints only local variables when
+     invoked without the -g option or operands.
+
+----------------------------------------------------------------------
 Yash 2.16
 
   +  '--curbg' and '--curstop' options.
