@@ -30,6 +30,7 @@
 #if HAVE_TIOCGWINSZ
 # include <sys/ioctl.h>
 #endif
+#include "../option.h"
 #include "../sig.h"
 #include "../util.h"
 #include "key.h"
@@ -710,9 +711,12 @@ int putchar_stderr(int c)
 /* Alerts the user by flash or bell, without moving the cursor. */
 void le_alert(void)
 {
-    char *v = tigetstr(TI_bel);
-    if (!is_strcap_valid(v))
+    char *v = NULL;
+
+    if (shopt_le_visiblebell)
 	v = tigetstr(TI_flash);
+    if (!is_strcap_valid(v))
+	v = tigetstr(TI_bel);
     if (is_strcap_valid(v))
 	tputs(v, 1, putchar_stderr);
     else

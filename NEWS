@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.17
 
+  +  '--le-visiblebell' option.
   =  The "typeset" builtin now prints only local variables when
      invoked without the -g option or operands.
 
