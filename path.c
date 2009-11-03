@@ -47,6 +47,7 @@
 #include "path.h"
 #include "plist.h"
 #include "redir.h"
+#include "sig.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
@@ -749,6 +750,8 @@ static bool is_reentry(
  * Returns true iff successful. However, some result items may be added to the
  * list even if unsuccessful.
  * If the pattern is invalid, immediately returns false.
+ * If the shell is interactive and SIGINT is not blocked, this function can be
+ * interrupted, in which case false is returned.
  * Minor errors such as permission errors are ignored. */
 bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	plist_T *restrict list)
@@ -784,7 +787,7 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	    }
 	}
     }
-    return true;
+    return !is_interrupted();
 }
 
 /* Parses a matching pattern.
@@ -973,6 +976,9 @@ void wglob_search_match(
 {
     assert(pattern->type == WGLOB_MATCH);
 
+    if (is_interrupted())
+	return;
+
     DIR *dir = opendir((path->length == 0) ? "." : path->contents);
     if (!dir)
 	return;
@@ -1019,6 +1025,9 @@ void wglob_search_recsearch(
 {
     assert(pattern->type == WGLOB_RECSEARCH);
     assert(pattern->next != NULL);
+
+    if (is_interrupted())
+	return;
 
     /* Step 1: search `path' itself */
     wglob_search(pattern->next, flags, path, wpath, list);

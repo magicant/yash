@@ -35,6 +35,7 @@
 #include "parser.h"
 #include "path.h"
 #include "plist.h"
+#include "sig.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
@@ -262,9 +263,18 @@ noglob:
 	    xerror(EILSEQ, Ngt("redirection"));
     } else {
 	plist_T list;
+	bool ok;
+
 	pl_init(&list);
-	wglob(exp, get_wglbflags(), &list);
-	if (list.length == 1) {
+	set_interruptible_by_sigint(true);
+	ok = wglob(exp, get_wglbflags(), &list);
+	set_interruptible_by_sigint(false);
+	if (!ok) {
+	    free(exp);
+	    pl_destroy(pl_clear(&list, free));
+	    xerror(EINTR, Ngt("redirection"));
+	    result = NULL;
+	} else if (list.length == 1) {
 	    free(exp);
 	    result = realloc_wcstombs(list.contents[0]);
 	    if (!result)
@@ -1669,10 +1679,16 @@ void do_glob_each(void **restrict patterns, plist_T *restrict list)
 {
     void **const savepatterns = patterns;
     enum wglbflags flags = get_wglbflags();
+    bool unblock = false;
 
     while (*patterns) {
 	wchar_t *pat = *patterns;
 	if (is_pathname_matching_pattern(pat)) {
+	    if (!unblock) {
+		set_interruptible_by_sigint(true);
+		unblock = true;
+	    }
+
 	    size_t oldlen = list->length;
 	    wglob(pat, flags, list);
 	    if (!shopt_nullglob && oldlen == list->length)
@@ -1686,6 +1702,8 @@ addpattern:
 	}
 	patterns++;
     }
+    if (unblock)
+	set_interruptible_by_sigint(false);
     free(savepatterns);
 }
 

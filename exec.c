@@ -677,6 +677,10 @@ pid_t exec_process(
 	    laststatus = Exit_EXPERROR;
 	    goto done;
 	}
+	if (is_interrupted()) {
+	    recfree(argv, free);
+	    goto done;
+	}
 	if (argc == 0) {
 	    argv0 = NULL;
 	} else {
