@@ -74,14 +74,14 @@ static wchar_t *get_prompt(int type)
  * updated to point to the character to read next. If no more is available,
  * `inputinfo->src' is assigned NULL and `inputinfo->state' is a initial shift
  * state. */
-int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
+inputresult_T input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_mbs_info *info = inputinfo;
     size_t initbuflen = buf->length;
     size_t count;
 
     if (!info->src)
-	return EOF;
+	return INPUT_EOF;
 
     while (info->srclen > 0) {
 	wb_ensuremax(buf, buf->length + 1);
@@ -91,13 +91,13 @@ int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 	    case 0:  /* read a null character */
 		info->src = NULL;
 		info->srclen = 0;
-		return (buf->length == initbuflen) ? EOF : 0;
+		return (buf->length == initbuflen) ? INPUT_EOF : INPUT_OK;
 	    default:  /* read a non-null character */
 		info->src += count;
 		info->srclen -= count;
 		if (buf->contents[buf->length++] == '\n') {
 		    buf->contents[buf->length] = L'\0';
-		    return 0;
+		    return INPUT_OK;
 		}
 		break;
 	    case (size_t) -2:  /* bytes are incomplete */
@@ -108,7 +108,7 @@ int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
 err:
     xerror(errno, Ngt("cannot convert multibyte characters "
 		"into wide characters"));
-    return EOF;
+    return INPUT_ERROR;
 
     /*
     wb_ensuremax(buf, buf->length + 120);
@@ -117,10 +117,10 @@ err:
     if (count == (size_t) -1) {
 	xerror(errno, Ngt("cannot convert multibyte characters "
 		    "into wide characters"));
-	return EOF;
+	return INPUT_EOF;
     }
     buf->length += count;
-    return 0;
+    return INPUT_OK;
     */
 }
 
@@ -130,70 +130,77 @@ err:
  * If more string is available after reading one line, `inputinfo->src' is
  * updated to point to the character to read next. If no more is available,
  * `inputinfo->src' is assigned NULL. */
-int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
+inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_wcs_info *info = inputinfo;
     const wchar_t *src = info->src;
     size_t count = 0;
 
     if (!src)
-	return EOF;
+	return INPUT_EOF;
 
     while (src[count] != L'\0' && src[count++] != L'\n');
 
     if (count == 0) {
 	info->src = NULL;
-	return EOF;
+	return INPUT_EOF;
     } else {
 	wb_ncat(buf, src, count);
 	info->src = src + count;
-	return 0;
+	return INPUT_OK;
     }
 }
 
 /* An input function that reads input from a file stream.
  * `inputinfo' is a pointer to a `FILE', which must be set to non-blocking.
  * Reads one line with `fgetws' and appends it to the buffer. */
-int input_file(struct xwcsbuf_T *buf, void *inputinfo)
+inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
 {
     FILE *f = inputinfo;
     int fd = fileno(f);
     size_t initlen = buf->length;
+    bool ok = true;
 
     handle_signals();
-start:
-    wb_ensuremax(buf, buf->length + 100);
-    if (fgetws(buf->contents + buf->length, buf->maxlength - buf->length, f)) {
-	size_t len = wcslen(buf->contents + buf->length);
-	// `len' may be 0 if a null character is input
-	buf->length += len;
-	if (len > 0 && buf->contents[buf->length - 1] != L'\n')
-	    goto start;
-	else
-	    goto end;
-    } else {
-	buf->contents[buf->length] = L'\0';
-	if (feof(f)) {
-	    clearerr(f);
-	    goto end;
-	}
-	assert(ferror(f));
-	switch (errno) {
-	    case EINTR:
-	    case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-	    case EWOULDBLOCK:
-#endif
-		clearerr(f);
-		wait_for_input(fd, true, -1);
-		goto start;
-	    default:
-		xerror(errno, Ngt("cannot read input"));
+    while (ok) {
+	wb_ensuremax(buf, buf->length + 100);
+	if (fgetws(buf->contents + buf->length,
+		    buf->maxlength - buf->length, f)) {
+	    size_t len = wcslen(buf->contents + buf->length);
+	    // `len' may be 0 if a null character is input
+	    buf->length += len;
+	    if (len == 0 || buf->contents[buf->length - 1] == L'\n')
 		goto end;
+	} else {
+	    buf->contents[buf->length] = L'\0';
+	    if (feof(f)) {
+		clearerr(f);
+		goto end;
+	    }
+	    assert(ferror(f));
+	    switch (errno) {
+		case EINTR:
+		case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+		case EWOULDBLOCK:
+#endif
+		    clearerr(f);
+		    ok = wait_for_input(fd, true, -1);
+		    break;
+		default:
+		    xerror(errno, Ngt("cannot read input"));
+		    ok = false;
+		    break;
+	    }
 	}
     }
 end:
-    return (initlen == buf->length) ? EOF : 0;
+    if (initlen != buf->length)
+	return INPUT_OK;
+    else if (ok)
+	return INPUT_EOF;
+    else
+	return INPUT_ERROR;
 }
 
 /* An input function that reads input from the standard input.
@@ -201,11 +208,17 @@ end:
  * read after the newline.
  * This function does not use `inputinfo'.
  * The result is appended to the buffer. */
-int input_stdin(struct xwcsbuf_T *buf, void *inputinfo __attribute__((unused)))
+inputresult_T input_stdin(
+	struct xwcsbuf_T *buf, void *inputinfo __attribute__((unused)))
 {
     size_t initlen = buf->length;
-    read_line_from_stdin(buf, true);
-    return (initlen == buf->length) ? EOF : 0;
+    bool ok = read_line_from_stdin(buf, true);
+    if (initlen != buf->length)
+	return INPUT_OK;
+    else if (ok)
+	return INPUT_EOF;
+    else
+	return INPUT_ERROR;
 }
 
 /* Reads a line of input from the standard input.
@@ -237,7 +250,7 @@ bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
 #if EAGAIN != EWOULDBLOCK
 	    case EWOULDBLOCK:
 #endif
-		wait_for_input(STDIN_FILENO, trap, -1);
+		ok = wait_for_input(STDIN_FILENO, trap, -1);
 		break;
 	    default:
 		xerror(errno, Ngt("cannot read input"));
@@ -275,13 +288,13 @@ done:
  * `inputinfo->type' must be between 1 and 4 inclusive and specifies the type of
  * the prompt. For example, PS1 is printed if `inputinfo->type' is 1.
  * If `inputinfo->type' is 1, this function changes its value to 2. */
-int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
+inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
 #if YASH_ENABLE_LINEEDIT
     static wchar_t *linebuffer = NULL;
     if (linebuffer) {
 	linebuffer = forward_line(linebuffer, buf);
-	return 0;
+	return INPUT_OK;
     }
 #endif
 
@@ -318,13 +331,13 @@ int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 			add_history(line);
 #endif /* YASH_ENABLE_HISTORY */
 		    linebuffer = forward_line(line, buf);
-		    return 0;
+		    return INPUT_OK;
 		} else {
 		    free(line);
-		    return EOF;
+		    return INPUT_EOF;
 		}
 	    } else {
-		return 1;
+		return INPUT_INTERRUPTED;
 	    }
 	}
     }

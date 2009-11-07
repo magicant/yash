@@ -339,7 +339,7 @@ typedef enum { noalias, globalonly, anyalias, } aliastype_T;
 
 static void serror(const char *restrict format, ...)
     __attribute__((nonnull(1),format(printf,1,2)));
-static inline int read_more_input(void);
+static inputresult_T read_more_input(void);
 static inline void line_continuation(size_t index);
 static void ensure_buffer(size_t n);
 static size_t count_name_length(bool isnamechar(wchar_t c));
@@ -508,13 +508,15 @@ void restore_parse_state(struct parsestate_T *state)
 
 
 /* An entry point to the parser. Reads at least one line and parses it.
- * All the members of `info' must be initialized beforehand.
+ * All the members of `info' except `lastinputresult' must be initialized
+ * beforehand.
  * The resulting parse tree is assigned to `*result'. If there is no command in
  * the next line, NULL is assigned.
  * Returns 0 if successful,
- *         1 if a syntax error is found, or
- *         EOF when EOF is input.
- * If 1 is returned, at least one error message is printed.
+ *         1 if a syntax error is encountered,
+ *         2 if a read error is encountered, or
+ *         EOF if EOF is input.
+ * If 1 or 2 is returned, at least one error message is printed.
  * Note that `*result' is assigned if and only if the return value is 0.
  * This function is not reentrant in itself. */
 int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
@@ -527,15 +529,20 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     if (info->intrinput)
 	((struct input_readline_info *) info->inputinfo)->type = 1;
 
-    cinfo->lastinputresult = 0;
-    read_more_input();
-    if (cinfo->lastinputresult == EOF) {
-	wb_destroy(&cbuf);
-	return EOF;
-    } else if (cinfo->lastinputresult == 1) {
-	wb_destroy(&cbuf);
-	*result = NULL;
-	return 0;
+    cinfo->lastinputresult = INPUT_OK;
+    switch (read_more_input()) {
+	case INPUT_OK:
+	    break;
+	case INPUT_EOF:
+	    wb_destroy(&cbuf);
+	    return EOF;
+	case INPUT_INTERRUPTED:
+	    wb_destroy(&cbuf);
+	    *result = NULL;
+	    return 0;
+	case INPUT_ERROR:
+	    wb_destroy(&cbuf);
+	    return 2;
     }
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
@@ -552,18 +559,26 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     destroy_aliaslist(caliases);
 #endif
 
-    if (cinfo->lastinputresult == 1) {
-	andorsfree(r);
-	*result = NULL;
-	return 0;
-    } else if (cerror) {
-	andorsfree(r);
-	return 1;
-    } else {
-	assert(cindex == cbuf.length);
-	*result = r;
-	return 0;
+    switch (cinfo->lastinputresult) {
+	case INPUT_OK:
+	case INPUT_EOF:
+	    if (cerror) {
+		andorsfree(r);
+		return 1;
+	    } else {
+		assert(cindex == cbuf.length);
+		*result = r;
+		return 0;
+	    }
+	case INPUT_INTERRUPTED:
+	    andorsfree(r);
+	    *result = NULL;
+	    return 0;
+	case INPUT_ERROR:
+	    andorsfree(r);
+	    return 2;
     }
+    assert(false);
 }
 
 /* Prints an error message to stderr.
@@ -573,7 +588,7 @@ void serror(const char *restrict format, ...)
 {
     va_list ap;
 
-    if (cinfo->print_errmsg && cinfo->lastinputresult != 1) {
+    if (cinfo->print_errmsg && cinfo->lastinputresult != INPUT_INTERRUPTED) {
 	if (cinfo->filename)
 	    fprintf(stderr, "%s:%lu: ", cinfo->filename, cinfo->lineno);
 	fprintf(stderr, gt("syntax error: "));
@@ -587,12 +602,13 @@ void serror(const char *restrict format, ...)
 }
 
 /* Reads more input and returns `cinfo->lastinputresult'.
- * If input is from a interactive terminal and `cerror' is true, returns 1. */
-int read_more_input(void)
+ * If input is from a interactive terminal and `cerror' is true, returns
+ * INPUT_INTERRUPTED. */
+inputresult_T read_more_input(void)
 {
     if (cerror && cinfo->intrinput)
-	return 1;
-    if (cinfo->lastinputresult == 0) {
+	return INPUT_INTERRUPTED;
+    if (cinfo->lastinputresult == INPUT_OK) {
 	size_t savelength = cbuf.length;
 	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
 	if (cinfo->enable_verbose && shopt_verbose)
@@ -629,7 +645,7 @@ void ensure_buffer(size_t n)
 		return;
 	    assert(cbuf.contents[index + 2] == L'\0');
 	    line_continuation(index);
-	    if (cinfo->lastinputresult != 0)
+	    if (cinfo->lastinputresult != INPUT_OK)
 		return;
 	    break;
 	default:
@@ -692,7 +708,8 @@ bool skip_to_next_token(void)
     bool newline = false;
 
     skip_blanks_and_comment();
-    while (cinfo->lastinputresult == 0 && cbuf.contents[cindex] == L'\n') {
+    while (cinfo->lastinputresult == INPUT_OK
+	    && cbuf.contents[cindex] == L'\n') {
 	newline = true;
 	next_line();
 	skip_blanks_and_comment();
@@ -2342,7 +2359,7 @@ void read_heredoc_contents_with_expand(redir_T *r)
  * leading tabs are skipped). */
 bool is_end_of_heredoc_contents(const wchar_t *eoc, size_t eoclen, bool skiptab)
 {
-    if (cinfo->lastinputresult != 0)
+    if (cinfo->lastinputresult != INPUT_OK)
 	return true;
 
     assert(wcslen(eoc) == eoclen);
@@ -2379,7 +2396,15 @@ wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
     for (;;) {
 	switch (cbuf.contents[cindex]) {
 	case L'\0':
-	    goto done;
+	    switch (read_more_input()) {
+		case INPUT_OK:
+		    continue;
+		case INPUT_EOF:
+		case INPUT_INTERRUPTED:
+		case INPUT_ERROR:
+		    goto done;  /* We ignore errors. */
+	    }
+	    break;
 	case L'\\':
 	    if (cbuf.contents[cindex + 1] == L'\n') {
 		line_continuation(cindex);
@@ -2395,7 +2420,6 @@ wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
 		cindex++;
 		goto done;
 	    }
-	    read_more_input();
 	    break;
 	case L'`':
 	    if (!backquote)
@@ -2425,6 +2449,8 @@ done:
 
 /* Parses a string recognizing parameter expansions, command substitutions in
  * "$(...)" form and arithmetic expansions.
+ * All the members of `info' except `lastinputresult' must be initialized
+ * beforehand.
  * This function reads and parses the input to the EOF.
  * Iff successful, the result is assigned to `*result' and true is returned.
  * If the input is empty, NULL is assigned.
@@ -2436,12 +2462,8 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
     cindex = 0;
     wb_init(&cbuf);
 
-    cinfo->lastinputresult = 0;
+    cinfo->lastinputresult = INPUT_OK;
     read_more_input();
-    if (cinfo->lastinputresult == 1) {
-	wb_destroy(&cbuf);
-	return false;
-    }
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
     //caliases = new_aliaslist();
@@ -2454,7 +2476,7 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 #if YASH_ENABLE_ALIAS
     //destroy_aliaslist(caliases);
 #endif
-    if (cinfo->lastinputresult == 1 || cerror) {
+    if (cinfo->lastinputresult != INPUT_EOF || cerror) {
 	wordfree(*result);
 	return false;
     } else {

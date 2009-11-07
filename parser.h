@@ -24,6 +24,7 @@
 #define YASH_PARSER_H
 
 #include <stddef.h>
+#include "input.h"
 
 
 /********** Parse Tree Structures **********/
@@ -282,20 +283,7 @@ typedef struct redir_T {
 
 /********** Interfaces to parse routines **********/
 
-struct xwcsbuf_T;
 struct parsestate_T;
-
-/* Type of a input function: function that reads input and appends it to the
- * buffer.
- * Input is done line-wise; one line is read at a time.
- * The input string is terminated by newline L'\n' except when there is no
- * newline at the end of input.
- * Returns 0 if some string is read successfully,
- *         1 if SIGINT is caught in an interactive shell, or
- *         EOF if EOF is input or an error occurs.
- * If the return value is non-zero, the buffer is unchanged.
- * The input function may be called even after it returned a non-zero. */
-typedef int inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 /* object containing the info for parsing */
 typedef struct parseinfo_T {
@@ -306,7 +294,7 @@ typedef struct parseinfo_T {
     inputfunc_T *input;   /* input function */
     void *inputinfo;      /* pointer passed to the input function */
     _Bool intrinput;      /* input is interactive? */
-    int lastinputresult;  /* last return value of input function */
+    inputresult_T lastinputresult;  /* last return value of input function */
 } parseinfo_T;
 /* If `intrinput' is true, `input' is `input_readline' and `inputinfo' is a
  * pointer to a `struct input_readline_info' object.

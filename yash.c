@@ -476,7 +476,6 @@ void exec_mbs(const char *code, const char *name, bool finally_exit)
 	.input = input_mbs,
 	.inputinfo = &iinfo,
 	.intrinput = false,
-	.lastinputresult = 0,
     };
     memset(&iinfo.state, 0, sizeof iinfo.state);  // initialize the shift state
 
@@ -499,7 +498,6 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.input = input_wcs,
 	.inputinfo = &iinfo,
 	.intrinput = false,
-	.lastinputresult = 0,
     };
 
     parse_and_exec(&pinfo, finally_exit);
@@ -519,7 +517,6 @@ void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 	.filename = name,
 	.lineno = 1,
 	.intrinput = intrinput,
-	.lastinputresult = 0,
     };
     if (intrinput) {
 	rlinfo.fp = f;
@@ -578,7 +575,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    if (!shopt_noexec) {
 			exec_and_or_lists(commands,
 				finally_exit && !pinfo->intrinput &&
-				pinfo->lastinputresult == EOF);
+				pinfo->lastinputresult == INPUT_EOF);
 			executed = true;
 		    }
 		    andorsfree(commands);
@@ -602,6 +599,11 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    exit_shell_with_status(Exit_SYNERROR);
 		laststatus = Exit_SYNERROR;
 		break;
+	    case 2:  // read error
+		if (finally_exit)
+		    exit_shell_with_status(Exit_ERROR);
+		laststatus = Exit_ERROR;
+		goto out;
 	}
     }
     /* If no commands are executed, set `laststatus' to 0 finally.

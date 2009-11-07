@@ -32,16 +32,38 @@ struct xwcsbuf_T;
 extern _Bool read_line_from_stdin(struct xwcsbuf_T *buf, _Bool trap)
     __attribute__((nonnull));
 
+
+/* The result type of `inputfunc_T'. */
+typedef enum inputresult_T {
+    INPUT_OK,           /* Some string has been read successfully. */
+    INPUT_EOF,          /* The end of file has been reached. */
+    INPUT_INTERRUPTED,  /* SIGINT has been received (interactive shell only) */
+    INPUT_ERROR,        /* Other error has been encountered. */
+} inputresult_T;
+
+/* Type of a input function: function that reads input and appends it to the
+ * buffer.
+ * Input is done line-wise; one line is read at a time.
+ * The input string is terminated by newline L'\n' except when there is no
+ * newline at the end of input.
+ * Returns 0 if some string is read successfully,
+ *         1 if SIGINT is caught in an interactive shell,
+ *         2 if a read error is encountered, or
+ *         EOF if the input reaches the end of file (EOF).
+ * If the return value is non-zero, the buffer is unchanged.
+ * The input function may be called even after it returned a non-zero. */
+typedef inputresult_T inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
+
 /* input functions to be used as `inputfunc_T' */
-extern int input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
+extern inputresult_T input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
-extern int input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
+extern inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
-extern int input_file(struct xwcsbuf_T *buf, void *inputinfo)
+extern inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
-extern int input_stdin(struct xwcsbuf_T *buf, void *inputinfo)
+extern inputresult_T input_stdin(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull(1)));
-extern int input_readline(struct xwcsbuf_T *buf, void *inputinfo)
+extern inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 
 /* to be used as `inputinfo' for `input_mbs' */
