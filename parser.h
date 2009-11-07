@@ -298,6 +298,9 @@ struct parsestate_T;
 typedef struct parseinfo_T {
     _Bool print_errmsg;   /* print error messages? */
     _Bool enable_verbose; /* echo input if `shopt_verbose' is true? */
+#if YASH_ENABLE_ALIAS
+    _Bool enable_alias;   /* perform alias substitution? */
+#endif
     const char *filename; /* the input filename, which may be NULL */
     unsigned long lineno; /* line number, which should be initialized to 1 */
     inputfunc_T *input;   /* input function */

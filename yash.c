@@ -471,6 +471,9 @@ void exec_mbs(const char *code, const char *name, bool finally_exit)
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = false,
+#if YASH_ENABLE_ALIAS
+	.enable_alias = true,
+#endif
 	.filename = name,
 	.lineno = 1,
 	.input = input_mbs,
@@ -493,6 +496,9 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = false,
+#if YASH_ENABLE_ALIAS
+	.enable_alias = true,
+#endif
 	.filename = name,
 	.lineno = 1,
 	.input = input_wcs,
@@ -514,6 +520,9 @@ void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = true,
+#if YASH_ENABLE_ALIAS
+	.enable_alias = true, //TODO
+#endif
 	.filename = name,
 	.lineno = 1,
 	.intrinput = intrinput,

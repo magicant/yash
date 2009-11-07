@@ -1725,10 +1725,12 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
     parseinfo_T info = {
 	.print_errmsg = true,
 	.enable_verbose = false,
+	.enable_alias = true,
 	.filename = name,
 	.lineno = 1,
 	.input = input_wcs,
 	.inputinfo = &winfo,
+	.intrinput = false,
     };
     wordunit_T *word;
     wchar_t *result;

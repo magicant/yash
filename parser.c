@@ -333,7 +333,7 @@ struct parsestate_T {
     size_t cindex;
     struct plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
-    bool alias_enabled, reparse_alias;
+    bool reparse_alias;
     struct aliaslist_T *caliases;
 #endif
 };
@@ -453,8 +453,6 @@ static size_t cindex;
 /* list of here-documents whose contents are to be read */
 static plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
-/* If true, alias substitution is performed. */
-static bool alias_enabled;
 /* If true, the current word is to be re-parsed as alias substitution has been
  * performed. */
 static bool reparse_alias;
@@ -477,7 +475,6 @@ struct parsestate_T *save_parse_state(void)
 	.cindex = cindex,
 	.pending_heredocs = pending_heredocs,
 #if YASH_ENABLE_ALIAS
-	.alias_enabled = alias_enabled,
 	.reparse_alias = reparse_alias,
 	.caliases = caliases,
 #endif
@@ -494,7 +491,6 @@ void restore_parse_state(struct parsestate_T *state)
     cindex = state->cindex;
     pending_heredocs = state->pending_heredocs;
 #if YASH_ENABLE_ALIAS
-    alias_enabled = state->alias_enabled;
     reparse_alias = state->reparse_alias;
     caliases = state->caliases;
 #endif
@@ -549,7 +545,6 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     }
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
-    alias_enabled = true;
     reparse_alias = false;
     caliases = new_aliaslist();
 #endif
@@ -1078,7 +1073,7 @@ command_T *parse_command(void)
 	return parse_compound_command(t);
 
 #if YASH_ENABLE_ALIAS
-    if (alias_enabled) {
+    if (cinfo->enable_alias) {
 	size_t len = count_name_length(is_alias_name_char);
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
 	if (substitute_alias(&cbuf, cindex, len, caliases, flags)) {
@@ -1136,7 +1131,7 @@ redir_T **parse_assignments_and_redirects(command_T *c)
 	    break;
 	}
 #if YASH_ENABLE_ALIAS
-	if (alias_enabled) {
+	if (cinfo->enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, AF_NONGLOBAL);
 	    skip_blanks_and_comment();
@@ -1162,7 +1157,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
-	if (!first && alias_enabled) {
+	if (!first && cinfo->enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, 0);
 	    skip_blanks_and_comment();
@@ -1189,7 +1184,7 @@ void parse_redirect_list(redir_T **lastp)
 {
     for (;;) {
 #if YASH_ENABLE_ALIAS
-	if (!posixly_correct && alias_enabled) {
+	if (!posixly_correct && cinfo->enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, 0);
 	}
@@ -1372,7 +1367,7 @@ parse_command:
 wordunit_T *parse_word(aliastype_T type)
 {
 #if YASH_ENABLE_ALIAS
-    if (alias_enabled) {
+    if (cinfo->enable_alias) {
 	switch (type) {
 	case noalias:
 	    break;
@@ -1770,8 +1765,8 @@ wordunit_T *parse_cmdsubst_in_paren(void)
 wchar_t *extract_command_in_paren(void)
 {
 #if YASH_ENABLE_ALIAS
-    bool save_alias_enabled = alias_enabled;
-    alias_enabled = false;
+    bool save_enable_alias = cinfo->enable_alias;
+    cinfo->enable_alias = false;
 #endif
     plist_T save_pending_heredocs = pending_heredocs;
     pl_init(&pending_heredocs);
@@ -1793,7 +1788,7 @@ wchar_t *extract_command_in_paren(void)
     pl_destroy(&pending_heredocs);
     pending_heredocs = save_pending_heredocs;
 #if YASH_ENABLE_ALIAS
-    alias_enabled = save_alias_enabled;
+    cinfo->enable_alias = save_enable_alias;
 #endif
     return result;
 }
