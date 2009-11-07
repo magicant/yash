@@ -1459,7 +1459,7 @@ int fc_edit_and_exec_entries(
 	    fc_read_history(f, quiet);
 	    rewind(f);
 	    laststatus = savelaststatus;
-	    exec_input(f, "fc", false, false);
+	    exec_input(f, "fc", false, true, false);
 	    remove_shellfd(fd);
 	    fclose(f);
 	    return laststatus;

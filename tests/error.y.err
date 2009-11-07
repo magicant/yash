@@ -1,6 +1,6 @@
 ===== consequences of shell errors =====
 syntax error: `fi' without matching `if'
-Usage:  . file [arg...]
+Usage:  . [-A] file [arg...]
 Usage:  getopts options var [arg...]
 ../yash: ro: readonly
 ../yash: ro: readonly
@@ -152,8 +152,8 @@ eval: --no-such-option: invalid option
 Usage:  eval [-i] [arg...]
 ===== dot =====
 .: --no-such-option: invalid option
-Usage:  . file [arg...]
-Usage:  . file [arg...]
+Usage:  . [-A] file [arg...]
+Usage:  . [-A] file [arg...]
 ===== exec =====
 exec: --no-such-option: invalid option
 Usage:  exec [-cf] [-a name] [command [arg...]]

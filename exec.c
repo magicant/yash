@@ -1591,10 +1591,25 @@ const char eval_help[] = Ngt(
 
 int dot_builtin(int argc, void **argv)
 {
+    static const struct xoption long_options[] = {
+	{ L"no-alias", xno_argument, L'A', },
+#if YASH_ENABLE_HELP
+	{ L"help",     xno_argument, L'-', },
+#endif
+	{ NULL, 0, 0, },
+    };
+
+    bool enable_alias = true;
+
     wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"+" : L"+A",
+		    long_options, NULL))) {
 	switch (opt) {
+	    case L'A':
+		enable_alias = false;
+		break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -1602,7 +1617,7 @@ int dot_builtin(int argc, void **argv)
 	    default:  print_usage:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  . file\n")
-			    : Ngt("Usage:  . file [arg...]\n")));
+			    : Ngt("Usage:  . [-A] file [arg...]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1658,7 +1673,7 @@ int dot_builtin(int argc, void **argv)
 	return Exit_FAILURE;
     }
 
-    exec_input(f, mbsfilename, false, false);
+    exec_input(f, mbsfilename, false, enable_alias, false);
     fclose(f);
     free(mbsfilename);
 
@@ -1672,14 +1687,17 @@ int dot_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 const char dot_help[] = Ngt(
 "dot - read file and execute commands\n"
-"\t. file [arg...]\n"
+"\t. [-A] file [arg...]\n"
 "Reads the specified <file> and executes commands in it.\n"
 "If <arg>s are specified, they are used as the positional parameters.\n"
 "Otherwise, the positional parameters are not changed.\n"
 "If <file> does not contain any slashes, the shell searches $PATH for a\n"
 "readable shell script file whose name is <file>. To ensure that the file in\n"
 "the current working directory is used, start <file> with \"./\".\n"
-"In POSIXly correct mode, <arg>s must not be given.\n"
+"If the -A (--no-alias) option is specified, alias substitution is not\n"
+"performed during processing the file.\n"
+"In POSIXly correct mode, the -A option cannot be used and <arg>s must not be\n"
+"given.\n"
 );
 #endif
 

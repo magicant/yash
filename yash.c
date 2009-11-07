@@ -296,7 +296,7 @@ int main(int argc, char **argv)
     if (shopt_read_arg) {
 	exec_wcs(command, inputname, true);
     } else {
-	exec_input(input, inputname, is_interactive, true);
+	exec_input(input, inputname, is_interactive, true, true);
     }
     assert(false);
 }
@@ -314,7 +314,7 @@ static void execute_profile(void)
 	if (path) {
 	    FILE *f = reopen_with_shellfd(fopen(path, "r"), "r", true);
 	    if (f) {
-		exec_input(f, path, false, false);
+		exec_input(f, path, false, true, false);
 		fclose(f);
 	    }
 	    free(path);
@@ -354,7 +354,7 @@ static void execute_rcfile(const wchar_t *rcfile)
 	return;
     f = reopen_with_shellfd(fopen(path, "r"), "r", true);
     if (f) {
-	exec_input(f, path, false, false);
+	exec_input(f, path, false, true, false);
 	fclose(f);
     }
     free(path);
@@ -514,14 +514,15 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
  * `name' is printed in an error message on syntax error. `name' may be NULL.
  * If `intrinput' is true, the input stream is considered interactive.
  * If there are no commands in input, `laststatus' is set to 0. */
-void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
+void exec_input(FILE *f, const char *name,
+	bool intrinput, bool enable_alias, bool finally_exit)
 {
     struct input_readline_info rlinfo;
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = true,
 #if YASH_ENABLE_ALIAS
-	.enable_alias = true, //TODO
+	.enable_alias = enable_alias,
 #endif
 	.filename = name,
 	.lineno = 1,
@@ -537,6 +538,10 @@ void exec_input(FILE *f, const char *name, bool intrinput, bool finally_exit)
 	pinfo.inputinfo = f;
     }
     parse_and_exec(&pinfo, finally_exit);
+
+#if !YASH_ENABLE_ALIAS
+    (void) enable_alias;  // suppress compiler warning
+#endif
 }
 
 /* Parses input using the specified `parseinfo_T' and executes the commands.

@@ -62,6 +62,11 @@ alias test=:
 func() { echo "$(test ok)"; }
 alias test=echo
 func
+cat >"$tmp" <<END
+test foo
+END
+. -A "$tmp" && . --no-alias "$tmp"
+echo $?
 
 $INVOKE $TESTEE --posix <>/dev/null 2>&0 <<\END
 alias dummy=
