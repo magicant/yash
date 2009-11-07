@@ -1760,14 +1760,18 @@ wordunit_T *parse_cmdsubst_in_paren(void)
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_CMDSUB;
+#if YASH_ENABLE_ALIAS
     if (cinfo->enable_alias) {
+#endif
 	result->wu_cmdsub.is_preparsed = false;
 	result->wu_cmdsub.value.unparsed = extract_command_in_paren();
+#if YASH_ENABLE_ALIAS
     } else {
 	result->wu_cmdsub.is_preparsed = true;
 	cindex++;
 	result->wu_cmdsub.value.preparsed = parse_compound_list();
     }
+#endif
 
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L')')
