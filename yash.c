@@ -458,33 +458,6 @@ void print_version(void)
 
 /********** Functions to execute commands **********/
 
-/* Parses a multibyte string and executes the commands.
- * `code' must start in a initial shift state.
- * `name' is printed in an error message on syntax error. `name' may be NULL.
- * If there are no commands in `code', `laststatus' is set to 0. */
-void exec_mbs(const char *code, const char *name, bool finally_exit)
-{
-    struct input_mbs_info iinfo = {
-	.src = code,
-	.srclen = strlen(code) + 1,
-    };
-    struct parseinfo_T pinfo = {
-	.print_errmsg = true,
-	.enable_verbose = false,
-#if YASH_ENABLE_ALIAS
-	.enable_alias = true,
-#endif
-	.filename = name,
-	.lineno = 1,
-	.input = input_mbs,
-	.inputinfo = &iinfo,
-	.intrinput = false,
-    };
-    memset(&iinfo.state, 0, sizeof iinfo.state);  // initialize the shift state
-
-    parse_and_exec(&pinfo, finally_exit);
-}
-
 /* Parses a wide string and executes the commands.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
  * If there are no commands in `code', `laststatus' is set to 0. */

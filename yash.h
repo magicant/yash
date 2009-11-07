@@ -33,8 +33,6 @@ extern void exit_shell_with_status(int status)
 
 struct parseinfo_T;
 
-extern void exec_mbs(const char *code, const char *name, _Bool finally_exit)
-    __attribute__((nonnull(1)));
 extern void exec_wcs(const wchar_t *code, const char *name, _Bool finally_exit)
     __attribute__((nonnull(1)));
 extern void exec_input(FILE *f, const char *name,

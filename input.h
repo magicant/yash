@@ -55,8 +55,6 @@ typedef enum inputresult_T {
 typedef inputresult_T inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 /* input functions to be used as `inputfunc_T' */
-extern inputresult_T input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
-    __attribute__((nonnull));
 extern inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 extern inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
@@ -65,13 +63,6 @@ extern inputresult_T input_stdin(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull(1)));
 extern inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
-
-/* to be used as `inputinfo' for `input_mbs' */
-struct input_mbs_info {
-    const char *src;   /* the source code input */
-    size_t srclen;     /* # of bytes in `src' including trailing '\0' */
-    mbstate_t state;   /* shift state for multibyte-wide conversion */
-};
 
 /* to be used as `inputinfo' for `input_wcs' */
 struct input_wcs_info {

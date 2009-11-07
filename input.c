@@ -65,65 +65,6 @@ static wchar_t *get_prompt(int type)
     __attribute__((malloc,warn_unused_result));
 #endif
 
-/* An input function that inputs from a multibyte string.
- * `inputinfo' is a pointer to a `struct input_mbs_info'.
- * Reads one line from `inputinfo->src', converts it into a wide string, and
- * appends it to the buffer `buf'. `inputinfo->state' must be a valid shift
- * state.
- * If more string is available after reading one line, `inputinfo->src' is
- * updated to point to the character to read next. If no more is available,
- * `inputinfo->src' is assigned NULL and `inputinfo->state' is a initial shift
- * state. */
-inputresult_T input_mbs(struct xwcsbuf_T *buf, void *inputinfo)
-{
-    struct input_mbs_info *info = inputinfo;
-    size_t initbuflen = buf->length;
-    size_t count;
-
-    if (!info->src)
-	return INPUT_EOF;
-
-    while (info->srclen > 0) {
-	wb_ensuremax(buf, buf->length + 1);
-	count = mbrtowc(buf->contents + buf->length,
-		info->src, info->srclen, &info->state);
-	switch (count) {
-	    case 0:  /* read a null character */
-		info->src = NULL;
-		info->srclen = 0;
-		return (buf->length == initbuflen) ? INPUT_EOF : INPUT_OK;
-	    default:  /* read a non-null character */
-		info->src += count;
-		info->srclen -= count;
-		if (buf->contents[buf->length++] == '\n') {
-		    buf->contents[buf->length] = L'\0';
-		    return INPUT_OK;
-		}
-		break;
-	    case (size_t) -2:  /* bytes are incomplete */
-	    case (size_t) -1:  /* invalid bytes */
-		goto err;
-	}
-    }
-err:
-    xerror(errno, Ngt("cannot convert multibyte characters "
-		"into wide characters"));
-    return INPUT_ERROR;
-
-    /*
-    wb_ensuremax(buf, buf->length + 120);
-    count = mbsrtowcs(buf->contents + buf->length, &info->src,
-	    buf->maxlength - buf->length + 1, &info->state);
-    if (count == (size_t) -1) {
-	xerror(errno, Ngt("cannot convert multibyte characters "
-		    "into wide characters"));
-	return INPUT_EOF;
-    }
-    buf->length += count;
-    return INPUT_OK;
-    */
-}
-
 /* An input function that inputs from a wide string.
  * `inputinfo' is a pointer to a `struct input_wcs_info'.
  * Reads one line from `inputinfo->src' and appends it to the buffer `buf'.
