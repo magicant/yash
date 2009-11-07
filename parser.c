@@ -151,7 +151,10 @@ void wordfree(wordunit_T *w)
 		paramfree(w->wu_param);
 		break;
 	    case WT_CMDSUB:
-		free(w->wu_cmdsub);
+		if (w->wu_cmdsub.is_preparsed)
+		    andorsfree(w->wu_cmdsub.value.preparsed);
+		else
+		    free(w->wu_cmdsub.value.unparsed);
 		break;
 	    case WT_ARITH:
 		wordfree(w->wu_arith);
@@ -1756,8 +1759,10 @@ wordunit_T *parse_cmdsubst_in_paren(void)
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_CMDSUB;
-    result->wu_cmdsub = extract_command_in_paren();
+    result->wu_cmdsub.is_preparsed = false;
+    result->wu_cmdsub.value.unparsed = extract_command_in_paren();
     return result;
+    //TODO
 }
 
 /* Extracts command between '(' and ')'.
@@ -1802,6 +1807,7 @@ wordunit_T *parse_cmdsubst_in_backquote(void)
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_CMDSUB;
+    result->wu_cmdsub.is_preparsed = false;
 
     assert(cbuf.contents[cindex - 1] == L'`');
     wb_init(&buf);
@@ -1836,7 +1842,7 @@ wordunit_T *parse_cmdsubst_in_backquote(void)
 	}
     }
 end:
-    result->wu_cmdsub = wb_towcs(&buf);
+    result->wu_cmdsub.value.unparsed = wb_towcs(&buf);
     return result;
 }
 
@@ -2808,8 +2814,14 @@ void print_word(xwcsbuf_T *restrict buf, const wordunit_T *restrict w)
 	    break;
 	case WT_CMDSUB:
 	    wb_cat(buf, L"$(");
-	    wb_cat(buf, w->wu_cmdsub);
-	    wb_cat(buf, L")");
+	    if (w->wu_cmdsub.is_preparsed) {
+		print_and_or_lists(buf, w->wu_cmdsub.value.preparsed, true);
+		assert(iswblank(buf->contents[buf->length - 1]));
+		buf->contents[buf->length - 1] = L')';
+	    } else {
+		wb_cat(buf, w->wu_cmdsub.value.unparsed);
+		wb_wccat(buf, L')');
+	    }
 	    break;
 	case WT_ARITH:
 	    wb_cat(buf, L"$((");

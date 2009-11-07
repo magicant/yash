@@ -139,6 +139,15 @@ typedef enum {
     WT_ARITH,   /* arithmetic expansion */
 } wordunittype_T;
 
+/* type of command substitution */
+typedef struct cmdsub_T {
+    _Bool is_preparsed;
+    union {
+	wchar_t  *unparsed;
+	and_or_T *preparsed;
+    } value;
+} cmdsub_T;
+
 /* element of a word subject to expansion */
 typedef struct wordunit_T {
     struct wordunit_T *next;
@@ -146,7 +155,7 @@ typedef struct wordunit_T {
     union {
 	wchar_t           *string;  /* string (including quotes) */
 	struct paramexp_T *param;   /* parameter expansion */
-	wchar_t           *cmdsub;  /* commands for command substitution */
+	cmdsub_T           cmdsub;  /* command substitution */
 	struct wordunit_T *arith;   /* expression for arithmetic expansion */
     } wu_value;
 } wordunit_T;

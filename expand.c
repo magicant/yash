@@ -329,7 +329,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	    s = expand_param_simple(w->wu_param);
 	    goto cat_s;
 	case WT_CMDSUB:
-	    s = exec_command_substitution(w->wu_cmdsub);
+	    s = exec_command_substitution(&w->wu_cmdsub);
 	    goto cat_s;
 	case WT_ARITH:
 	    s = expand_single(w->wu_arith, tt_none);
@@ -496,7 +496,7 @@ bool expand_word_inner(
 		ok = false;
 	    break;
 	case WT_CMDSUB:
-	    s = exec_command_substitution(w->wu_cmdsub);
+	    s = exec_command_substitution(&w->wu_cmdsub);
 	    goto cat_s;
 	case WT_ARITH:
 	    s = expand_single(w->wu_arith, tt_none);

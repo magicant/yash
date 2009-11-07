@@ -1220,15 +1220,17 @@ int xexecve(const char *path, char *const *argv, char *const *envp)
 }
 
 /* Executes a command substitution and returns the string to substitute with.
- * This function block until the command finishes.
+ * This function blocks until the command finishes.
  * The returned string is newly malloced and has the trailing newlines removed.
  * NULL is returned on error. */
-wchar_t *exec_command_substitution(const wchar_t *code)
+wchar_t *exec_command_substitution(const cmdsub_T *cmdsub)
 {
     int pipefd[2];
     pid_t cpid;
 
-    if (!code[0])
+    if (cmdsub->is_preparsed
+	    ? cmdsub->value.preparsed == NULL
+	    : cmdsub->value.unparsed[0] == L'\0')
 	return xwcsdup(L"");
 
     /* open a pipe to receive output from the command */
@@ -1293,7 +1295,10 @@ wchar_t *exec_command_substitution(const wchar_t *code)
 	    xclose(pipefd[PIDX_OUT]);
 	}
 
-	exec_wcs(code, gt("command substitution"), true);
+	if (cmdsub->is_preparsed)
+	    exec_and_or_lists(cmdsub->value.preparsed, true);
+	else
+	    exec_wcs(cmdsub->value.unparsed, gt("command substitution"), true);
 	assert(false);
     }
 }
