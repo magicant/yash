@@ -18,6 +18,7 @@ V
 alias -g N='>/dev/null'
 ok
 0
+
 dummy 0
 pipe
 0

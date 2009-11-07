@@ -333,7 +333,7 @@ struct parsestate_T {
     size_t cindex;
     struct plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
-    bool reparse_alias;
+    bool enable_alias, reparse_alias;
     struct aliaslist_T *caliases;
 #endif
 };
@@ -453,6 +453,8 @@ static size_t cindex;
 /* list of here-documents whose contents are to be read */
 static plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
+/* If true, alias substitution is performed. */
+static bool enable_alias;
 /* If true, the current word is to be re-parsed as alias substitution has been
  * performed. */
 static bool reparse_alias;
@@ -475,6 +477,7 @@ struct parsestate_T *save_parse_state(void)
 	.cindex = cindex,
 	.pending_heredocs = pending_heredocs,
 #if YASH_ENABLE_ALIAS
+	.enable_alias = enable_alias,
 	.reparse_alias = reparse_alias,
 	.caliases = caliases,
 #endif
@@ -491,6 +494,7 @@ void restore_parse_state(struct parsestate_T *state)
     cindex = state->cindex;
     pending_heredocs = state->pending_heredocs;
 #if YASH_ENABLE_ALIAS
+    enable_alias = state->enable_alias;
     reparse_alias = state->reparse_alias;
     caliases = state->caliases;
 #endif
@@ -545,6 +549,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     }
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
+    enable_alias = cinfo->enable_alias;
     reparse_alias = false;
     caliases = new_aliaslist();
 #endif
@@ -1073,7 +1078,7 @@ command_T *parse_command(void)
 	return parse_compound_command(t);
 
 #if YASH_ENABLE_ALIAS
-    if (cinfo->enable_alias) {
+    if (enable_alias) {
 	size_t len = count_name_length(is_alias_name_char);
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
 	if (substitute_alias(&cbuf, cindex, len, caliases, flags)) {
@@ -1131,7 +1136,7 @@ redir_T **parse_assignments_and_redirects(command_T *c)
 	    break;
 	}
 #if YASH_ENABLE_ALIAS
-	if (cinfo->enable_alias) {
+	if (enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, AF_NONGLOBAL);
 	    skip_blanks_and_comment();
@@ -1157,7 +1162,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
-	if (!first && cinfo->enable_alias) {
+	if (!first && enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, 0);
 	    skip_blanks_and_comment();
@@ -1184,7 +1189,7 @@ void parse_redirect_list(redir_T **lastp)
 {
     for (;;) {
 #if YASH_ENABLE_ALIAS
-	if (!posixly_correct && cinfo->enable_alias) {
+	if (!posixly_correct && enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
 	    substitute_alias(&cbuf, cindex, len, caliases, 0);
 	}
@@ -1367,7 +1372,7 @@ parse_command:
 wordunit_T *parse_word(aliastype_T type)
 {
 #if YASH_ENABLE_ALIAS
-    if (cinfo->enable_alias) {
+    if (enable_alias) {
 	switch (type) {
 	case noalias:
 	    break;
@@ -1748,25 +1753,38 @@ fail:
 }
 
 /* Parses a command substitution starting with "$(".
- * `cindex' points to '(' when the function is called, and ')' when returns. */
+ * `cindex' points to '(' when the function is called, and to the character
+ * after ')' when returns. */
 wordunit_T *parse_cmdsubst_in_paren(void)
 {
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_CMDSUB;
-    result->wu_cmdsub.is_preparsed = false;
-    result->wu_cmdsub.value.unparsed = extract_command_in_paren();
+    if (cinfo->enable_alias) {
+	result->wu_cmdsub.is_preparsed = false;
+	result->wu_cmdsub.value.unparsed = extract_command_in_paren();
+    } else {
+	result->wu_cmdsub.is_preparsed = true;
+	cindex++;
+	result->wu_cmdsub.value.preparsed = parse_compound_list();
+    }
+
+    ensure_buffer(1);
+    if (cbuf.contents[cindex] == L')')
+	cindex++;
+    else
+	serror(Ngt("`%ls' missing"), L")");
     return result;
-    //TODO
 }
 
 /* Extracts command between '(' and ')'.
- * `cindex' points to '(' when the function is called, and ')' when returns. */
+ * `cindex' points to '(' when the function is called, and to ')' when returns.
+ */
 wchar_t *extract_command_in_paren(void)
 {
 #if YASH_ENABLE_ALIAS
-    bool save_enable_alias = cinfo->enable_alias;
-    cinfo->enable_alias = false;
+    bool save_enable_alias = enable_alias;
+    enable_alias = false;
 #endif
     plist_T save_pending_heredocs = pending_heredocs;
     pl_init(&pending_heredocs);
@@ -1779,16 +1797,10 @@ wchar_t *extract_command_in_paren(void)
 
     wchar_t *result = xwcsndup(cbuf.contents + startindex, cindex - startindex);
 
-    ensure_buffer(1);
-    if (cbuf.contents[cindex] == L')')
-	cindex++;
-    else
-	serror(Ngt("`%ls' missing"), L")");
-
     pl_destroy(&pending_heredocs);
     pending_heredocs = save_pending_heredocs;
 #if YASH_ENABLE_ALIAS
-    cinfo->enable_alias = save_enable_alias;
+    enable_alias = save_enable_alias;
 #endif
     return result;
 }
