@@ -2576,19 +2576,6 @@ static void print_paramexp(
 static void trim_end_of_buffer(xwcsbuf_T *buf)
     __attribute__((nonnull));
 
-#if 0
-/* Converts a parse tree into a newly malloced wide string. */
-wchar_t *commands_to_wcstring(const and_or_T *commands)
-{
-    xwcsbuf_T buf;
-
-    wb_init(&buf);
-    print_and_or_lists(&buf, commands, true);
-    trim_end_of_buffer(&buf);
-    return wb_towcs(&buf);
-}
-#endif
-
 /* Converts pipelines into a newly malloced wide string. */
 wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
 {
