@@ -584,20 +584,19 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	    case 1:  // syntax error
 		if (!is_interactive_now)
 		    exit_shell_with_status(Exit_SYNERROR);
-		laststatus = Exit_SYNERROR;
+		if (!pinfo->intrinput) {
+		    laststatus = Exit_SYNERROR;
+		    goto out;
+		}
 		break;
 	    case 2:  // read error
-		if (finally_exit)
-		    exit_shell_with_status(Exit_ERROR);
 		laststatus = Exit_ERROR;
 		goto out;
 	}
     }
-    /* If no commands are executed, set `laststatus' to 0 finally.
-     * We don't set it at first because the value of "$?" gets wrong in
-     * execution. */
 out:
-    assert(!finally_exit);
+    if (finally_exit)
+	exit_shell();
     load_execinfo(ei);
 }
 
