@@ -544,16 +544,8 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	    reset_sigint();
 	    reset_execinfo();
 	} else {
-	    if (return_pending()) {
-		if (finally_exit) {
-		    wchar_t argv0[] = L"return";
-		    reset_execinfo();
-		    exit_builtin(1, (void *[]) { argv0, NULL });
-		    continue;
-		} else {
-		    goto out;
-		}
-	    }
+	    if (return_pending())
+		goto out;
 	}
 
 	switch (read_and_parse(pinfo, &commands)) {
