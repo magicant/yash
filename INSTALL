@@ -80,6 +80,11 @@ When this macro is set to non-zero, division by zero in floating-point
 arithmetic is treated as an error. Otherwise, division by zero is
 assumed to return a valid result (like infinity).
 
+#define FORMAT_INDENT_WIDTH 3
+This macro must be defined as a non-negative integer.
+This macro specifies the number of spaces used to indent commands
+that are formated and printed by the shell.
+
 #define YASH_DISABLE_SUPERUSER
 When this macro is set to non-zero, the user whose UID is zero is not
 treated as the superuser, who is otherwise considered to have

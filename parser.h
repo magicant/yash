@@ -343,7 +343,7 @@ extern _Bool is_token_delimiter_char(wchar_t c)
 
 extern wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
     __attribute__((malloc,warn_unused_result));
-extern wchar_t *command_to_wcs(const command_T *command)
+extern wchar_t *command_to_wcs(const command_T *command, _Bool multiline)
     __attribute__((malloc,warn_unused_result));
 
 

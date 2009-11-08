@@ -175,7 +175,7 @@ echo $ary
 echo ===== function typeset =====
 
 func () {
-	echo ok
+	echo ok $?
 }
 typeset -fp func
 typeset -fp

@@ -1755,9 +1755,9 @@ bool print_function(
     if (!is_name(name))
 	name = qname = quote_sq(name);
 
-    wchar_t *value = command_to_wcs(func->f_body);
+    wchar_t *value = command_to_wcs(func->f_body, true);
     clearerr(stdout);
-    printf("%ls () %ls\n", name, value);
+    printf("%ls()\n%ls", name, value);
 	// XXX need "function" keyword for quoted names
     free(value);
 

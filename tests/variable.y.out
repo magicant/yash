@@ -80,12 +80,30 @@ ary=('test' 'of' 'array')
 typeset -xr ary
 test of array
 ===== function typeset =====
-func () { echo ok; }
-echol () { typeset i; for i; do printf "%s\n" "${i}"; done; }
-func () { echo ok; }
-func1 () { echo re-defined func1; }
-func2 () { echo re-defined func2; }
-ok
+func()
+{
+   echo ok ${?}
+}
+echol()
+{
+   typeset i
+   for i do
+      printf "%s\n" "${i}"
+   done
+}
+func()
+{
+   echo ok ${?}
+}
+func1()
+{
+   echo re-defined func1
+}
+func2()
+{
+   echo re-defined func2
+}
+ok 2
 ===== array =====
 aaa=('1' '2' '3' '4' '5' '6' '7' '8' '9')
 ary=('test' 'of' 'array')

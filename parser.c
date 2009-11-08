@@ -2545,33 +2545,83 @@ void print_errmsg_token_missing(const wchar_t *t, size_t index)
 
 /********** Functions that Convert Parse Trees into Strings **********/
 
+struct print {
+    xwcsbuf_T buffer;
+    plist_T pending_heredocs;
+    bool multiline;
+};
+
 static void print_and_or_lists(
-	xwcsbuf_T *restrict buf, const and_or_T *restrict andors,
-	bool omit_last_semicolon)
+	struct print *restrict pr, const and_or_T *restrict andors,
+	unsigned indent, bool omitsemicolon)
     __attribute__((nonnull(1)));
 static void print_pipelines(
-	xwcsbuf_T *restrict buf, const pipeline_T *restrict pipelines)
+	struct print *restrict er, const pipeline_T *restrict pipelines,
+	unsigned indent)
     __attribute__((nonnull(1)));
 static void print_commands(
-	xwcsbuf_T *restrict buf, const command_T *restrict commands)
+	struct print *restrict pr, const command_T *restrict commands,
+	unsigned indent)
     __attribute__((nonnull(1)));
-static void print_command_content(
-	xwcsbuf_T *restrict buf, const command_T *restrict command)
+static void print_one_command(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_simple_command(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_group(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_subshell(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_if(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_for(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_while(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_case(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
     __attribute__((nonnull));
 static void print_caseitems(
-	xwcsbuf_T *restrict buf, const caseitem_T *restrict caseitems)
+	struct print *restrict pr, const caseitem_T *restrict caseitems,
+	unsigned indent)
     __attribute__((nonnull(1)));
-static void print_assigns(
-	xwcsbuf_T *restrict buf, const assign_T *restrict assigns)
+static void print_function_definition(
+	struct print *restrict pr, const command_T *restrict command,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_assignments(
+	struct print *restrict pr, const assign_T *restrict assigns,
+	unsigned indent)
     __attribute__((nonnull(1)));
-static void print_redirs(
-	xwcsbuf_T *restrict buf, const redir_T *restrict redirs)
+static void print_redirections(
+	struct print *restrict pr, const redir_T *restrict redirections,
+	unsigned indent)
     __attribute__((nonnull(1)));
 static void print_word(
-	xwcsbuf_T *restrict buf, const wordunit_T *restrict word)
+	struct print *restrict pr, const wordunit_T *restrict wordunits,
+	unsigned indent)
     __attribute__((nonnull(1)));
-static void print_paramexp(
-	xwcsbuf_T *restrict buf, const paramexp_T *restrict param)
+static void print_parameter(
+	struct print *restrict pr, const paramexp_T *restrict parameter,
+	unsigned indent)
+    __attribute__((nonnull));
+static void print_indent(struct print *pr, unsigned indent)
+    __attribute__((nonnull));
+static void print_space_or_newline(struct print* pr)
     __attribute__((nonnull));
 static void trim_end_of_buffer(xwcsbuf_T *buf)
     __attribute__((nonnull));
@@ -2579,329 +2629,500 @@ static void trim_end_of_buffer(xwcsbuf_T *buf)
 /* Converts pipelines into a newly malloced wide string. */
 wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
 {
-    xwcsbuf_T buf;
+    struct print pr;
 
-    wb_init(&buf);
-    print_pipelines(&buf, pipelines);
-    trim_end_of_buffer(&buf);
-    return wb_towcs(&buf);
+    wb_init(&pr.buffer);
+    pl_init(&pr.pending_heredocs);
+    pr.multiline = false;
+
+    print_pipelines(&pr, pipelines, 0);
+    trim_end_of_buffer(&pr.buffer);
+
+    pl_destroy(&pr.pending_heredocs);
+    return wb_towcs(&pr.buffer);
 }
 
 /* Converts a command into a newly malloced wide string. */
-wchar_t *command_to_wcs(const command_T *command)
+wchar_t *command_to_wcs(const command_T *command, bool multiline)
 {
-    xwcsbuf_T buf;
+    struct print pr;
 
-    wb_init(&buf);
-    print_command_content(&buf, command);
-    print_redirs(&buf, command->c_redirs);
-    trim_end_of_buffer(&buf);
-    return wb_towcs(&buf);
+    wb_init(&pr.buffer);
+    pl_init(&pr.pending_heredocs);
+    pr.multiline = multiline;
+
+    print_one_command(&pr, command, 0);
+
+    trim_end_of_buffer(&pr.buffer);
+    if (multiline)
+	print_space_or_newline(&pr);
+
+    pl_destroy(&pr.pending_heredocs);
+    return wb_towcs(&pr.buffer);
 }
 
-void print_and_or_lists(
-	xwcsbuf_T *restrict buf, const and_or_T *restrict c, bool omitsemicolon)
+void print_and_or_lists(struct print *restrict pr, const and_or_T *restrict ao,
+	unsigned indent, bool omitsemicolon)
 {
-    while (c) {
-	print_pipelines(buf, c->ao_pipelines);
-	assert(iswblank(buf->contents[buf->length - 1]));
-	if (c->ao_async)
-	    wb_insert(buf, buf->length - 1, L"&");
-	else if (!omitsemicolon || c->next)
-	    wb_insert(buf, buf->length - 1, L";");
+    while (ao) {
+	print_pipelines(pr, ao->ao_pipelines, indent);
+	trim_end_of_buffer(&pr->buffer);
+	if (ao->ao_async)
+	    wb_wccat(&pr->buffer, L'&');
+	else if (!pr->multiline && (ao->next || !omitsemicolon))
+	    wb_wccat(&pr->buffer, L';');
+	if (ao->next || !omitsemicolon)
+	    print_space_or_newline(pr);
+
+	ao = ao->next;
+    }
+}
+
+void print_pipelines(struct print *restrict pr, const pipeline_T *restrict pl,
+	unsigned indent)
+{
+    if (!pl)
+	return;
+    for (;;) {
+	print_indent(pr, indent);
+	if (pl->pl_neg)
+	    wb_cat(&pr->buffer, L"! ");
+	print_commands(pr, pl->pl_commands, indent);
+
+	pl = pl->next;
+	if (!pl)
+	    break;
+
+	wb_cat(&pr->buffer, pl->pl_cond ? L"&&" : L"||");
+	print_space_or_newline(pr);
+    }
+}
+
+void print_commands(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    if (!c)
+	return;
+    for (;;) {
+	print_one_command(pr, c, indent);
+
 	c = c->next;
+	if (!c)
+	    break;
+
+	wb_cat(&pr->buffer, L"| ");
     }
 }
 
-void print_pipelines(xwcsbuf_T *restrict buf, const pipeline_T *restrict p)
-{
-    for (bool first = true; p; p = p->next, first = false) {
-	if (!first)
-	    wb_cat(buf, p->pl_cond ? L"&& " : L"|| ");
-	if (p->pl_neg)
-	    wb_cat(buf, L"! ");
-	print_commands(buf, p->pl_commands);
-    }
-}
-
-void print_commands(xwcsbuf_T *restrict buf, const command_T *restrict c)
-{
-    while (c) {
-	print_command_content(buf, c);
-	print_redirs(buf, c->c_redirs);
-	if (c->next)
-	    wb_cat(buf, L"| ");
-	c = c->next;
-    }
-}
-
-void print_command_content(xwcsbuf_T *restrict buf, const command_T *restrict c)
+void print_one_command(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
 {
     switch (c->c_type) {
-    case CT_SIMPLE:
-	print_assigns(buf, c->c_assigns);
-	for (void **w = c->c_words; *w; w++) {
-	    print_word(buf, *w);
-	    wb_wccat(buf, L' ');
-	}
-	break;
-    case CT_GROUP:
-	wb_cat(buf, L"{ ");
-	print_and_or_lists(buf, c->c_subcmds, false);
-	wb_cat(buf, L"} ");
-	break;
-    case CT_SUBSHELL:
-	wb_wccat(buf, L'(');
-	if (c->c_subcmds) {
-	    print_and_or_lists(buf, c->c_subcmds, true);
-	    assert(iswblank(buf->contents[buf->length - 1]));
-	    wb_insert(buf, buf->length - 1, L")");
-	} else {
-	    wb_wccat(buf, L')');
-	}
-	break;
-    case CT_IF:
-	wb_cat(buf, L"if ");
-	for (ifcommand_T *ic = c->c_ifcmds;;) {
-	    print_and_or_lists(buf, ic->ic_condition, false);
-	    wb_cat(buf, L"then ");
-	    print_and_or_lists(buf, ic->ic_commands, false);
-	    ic = ic->next;
-	    if (!ic) {
-		break;
-	    } else if (!ic->ic_condition) {
-		wb_cat(buf, L"else ");
-		print_and_or_lists(buf, ic->ic_commands, false);
-		break;
-	    } else {
-		wb_cat(buf, L"elif ");
-	    }
-	}
-	wb_cat(buf, L"fi ");
-	break;
-    case CT_FOR:
-	wb_cat(buf, L"for ");
-	wb_cat(buf, c->c_forname);
-	if (c->c_forwords) {
-	    wb_cat(buf, L" in");
-	    for (void **w = c->c_forwords; *w; w++) {
-		wb_wccat(buf, L' ');
-		print_word(buf, *w);
-	    }
-	}
-	wb_cat(buf, L"; do ");
-	print_and_or_lists(buf, c->c_forcmds, false);
-	wb_cat(buf, L"done ");
-	break;
-    case CT_WHILE:
-	wb_cat(buf, c->c_whltype ? L"while " : L"until ");
-	print_and_or_lists(buf, c->c_whlcond, false);
-	wb_cat(buf, L"do ");
-	print_and_or_lists(buf, c->c_whlcmds, false);
-	wb_cat(buf, L"done ");
-	break;
-    case CT_CASE:
-	wb_cat(buf, L"case ");
-	print_word(buf, c->c_casword);
-	wb_cat(buf, L" in ");
-	print_caseitems(buf, c->c_casitems);
-	wb_cat(buf, L"esac ");
-	break;
-    case CT_FUNCDEF:
-	wb_cat(buf, c->c_funcname);
-	wb_cat(buf, L" () ");
-	print_commands(buf, c->c_funcbody);
-	break;
+	case CT_SIMPLE:
+	    print_simple_command(pr, c, indent);
+	    break;
+	case CT_GROUP:
+	    print_group(pr, c, indent);
+	    break;
+	case CT_SUBSHELL:
+	    print_subshell(pr, c, indent);
+	    break;
+	case CT_IF:
+	    print_if(pr, c, indent);
+	    break;
+	case CT_FOR:
+	    print_for(pr, c, indent);
+	    break;
+	case CT_WHILE:
+	    print_while(pr, c, indent);
+	    break;
+	case CT_CASE:
+	    print_case(pr, c, indent);
+	    break;
+	case CT_FUNCDEF:
+	    print_function_definition(pr, c, indent);
+	    assert(!c->c_redirs);
+	    return;  // break;
     }
+    print_redirections(pr, c->c_redirs, indent);
 }
 
-void print_caseitems(xwcsbuf_T *restrict buf, const caseitem_T *restrict i)
+void print_simple_command(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
 {
-    while (i) {
-	bool first = true;
+    assert(c->c_type == CT_SIMPLE);
 
-	wb_wccat(buf, L'(');
-	for (void **w = i->ci_patterns; *w; w++) {
-	    if (!first)
-		wb_wccat(buf, L'|');
-	    print_word(buf, *w);
-	    first = false;
-	}
-	wb_cat(buf, L") ");
-	print_and_or_lists(buf, i->ci_commands, true);
-	wb_cat(buf, L";; ");
-
-	i = i->next;
+    print_assignments(pr, c->c_assigns, indent);
+    for (void **w = c->c_words; *w; w++) {
+	print_word(pr, *w, indent);
+	wb_wccat(&pr->buffer, L' ');
     }
 }
 
-void print_assigns(xwcsbuf_T *restrict buf, const assign_T *restrict a)
+void print_group(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    assert(c->c_type == CT_GROUP);
+
+    wb_wccat(&pr->buffer, L'{');
+    print_space_or_newline(pr);
+    print_and_or_lists(pr, c->c_subcmds, indent + 1, false);
+    print_indent(pr, indent);
+    wb_cat(&pr->buffer, L"} ");
+}
+
+void print_subshell(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    assert(c->c_type == CT_SUBSHELL);
+
+    wb_wccat(&pr->buffer, L'(');
+    print_and_or_lists(pr, c->c_subcmds, indent + 1, true);
+    trim_end_of_buffer(&pr->buffer);
+    wb_cat(&pr->buffer, L") ");
+}
+
+void print_if(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    const ifcommand_T *ic;
+
+    assert(c->c_type == CT_IF);
+
+    wb_cat(&pr->buffer, L"if ");
+    ic = c->c_ifcmds;
+    for (;;) {
+	print_and_or_lists(pr, ic->ic_condition, indent + 1, false);
+	print_indent(pr, indent);
+	wb_cat(&pr->buffer, L"then");
+	print_space_or_newline(pr);
+	print_and_or_lists(pr, ic->ic_commands, indent + 1, false);
+
+	ic = ic->next;
+	if (!ic) {
+	    break;
+	} else if (!ic->ic_condition && !ic->next) {
+	    print_indent(pr, indent);
+	    wb_cat(&pr->buffer, L"else");
+	    print_space_or_newline(pr);
+	    print_and_or_lists(pr, ic->ic_commands, indent + 1, false);
+	    break;
+	} else {
+	    print_indent(pr, indent);
+	    wb_cat(&pr->buffer, L"elif ");
+	}
+    }
+    print_indent(pr, indent);
+    wb_cat(&pr->buffer, L"fi ");
+}
+
+void print_for(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    assert(c->c_type == CT_FOR);
+
+    wb_cat(&pr->buffer, L"for ");
+    wb_cat(&pr->buffer, c->c_forname);
+    if (c->c_forwords) {
+	wb_cat(&pr->buffer, L" in");
+	for (void **w = c->c_forwords; *w; w++) {
+	    wb_wccat(&pr->buffer, L' ');
+	    print_word(pr, *w, indent);
+	}
+	if (!pr->multiline)
+	    wb_wccat(&pr->buffer, L';');
+	print_space_or_newline(pr);
+    } else {
+	wb_wccat(&pr->buffer, L' ');
+    }
+    print_indent(pr, indent);
+    wb_cat(&pr->buffer, L"do");
+    print_space_or_newline(pr);
+
+    print_and_or_lists(pr, c->c_forcmds, indent + 1, false);
+
+    print_indent(pr, indent);
+    wb_cat(&pr->buffer, L"done ");
+}
+
+void print_while(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    assert(c->c_type == CT_WHILE);
+
+    wb_cat(&pr->buffer, c->c_whltype ? L"while " : L"until ");
+    print_and_or_lists(pr, c->c_whlcond, indent + 1, false);
+
+    print_indent(pr, indent);
+    wb_cat(&pr->buffer, L"do");
+    print_space_or_newline(pr);
+
+    print_and_or_lists(pr, c->c_whlcmds, indent + 1, false);
+
+    print_indent(pr, indent);
+    wb_cat(&pr->buffer, L"done ");
+}
+
+void print_case(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    assert(c->c_type == CT_CASE);
+
+    wb_cat(&pr->buffer, L"case ");
+    print_word(pr, c->c_casword, indent);
+    wb_cat(&pr->buffer, L" in");
+    print_space_or_newline(pr);
+
+    print_caseitems(pr, c->c_casitems, indent + 1);
+
+    print_indent(pr, indent);
+    wb_cat(&pr->buffer, L"esac ");
+}
+
+void print_caseitems(struct print *restrict pr, const caseitem_T *restrict ci,
+	unsigned indent)
+{
+    while (ci) {
+	void **w = ci->ci_patterns;
+
+	print_indent(pr, indent);
+	wb_wccat(&pr->buffer, L'(');
+	for (;;) {
+	    print_word(pr, *w, indent);
+	    w++;
+	    if (!*w)
+		break;
+	    wb_cat(&pr->buffer, L" | ");
+	}
+	wb_wccat(&pr->buffer, L')');
+	print_space_or_newline(pr);
+
+	if (ci->ci_commands) {
+	    print_and_or_lists(pr, ci->ci_commands, indent + 1, true);
+	    print_space_or_newline(pr);
+	}
+
+	print_indent(pr, indent + 1);
+	wb_cat(&pr->buffer, L";;");
+	print_space_or_newline(pr);
+
+	ci = ci->next;
+    }
+}
+
+void print_function_definition(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    assert(c->c_type == CT_FUNCDEF);
+
+    wb_cat(&pr->buffer, c->c_funcname);
+    wb_cat(&pr->buffer, L"()");
+    print_space_or_newline(pr);
+
+    print_indent(pr, indent);
+    assert(!c->c_funcbody->next);
+    print_one_command(pr, c->c_funcbody, indent);
+}
+
+void print_assignments(
+	struct print *restrict pr, const assign_T *restrict a, unsigned indent)
 {
     while (a) {
-	wb_cat(buf, a->a_name);
-	wb_wccat(buf, L'=');
+	wb_cat(&pr->buffer, a->a_name);
+	wb_wccat(&pr->buffer, L'=');
 	switch (a->a_type) {
 	    case A_SCALAR:
-		print_word(buf, a->a_scalar);
+		print_word(pr, a->a_scalar, indent);
 		break;
 	    case A_ARRAY:
-		wb_wccat(buf, L'(');
+		wb_wccat(&pr->buffer, L'(');
 		for (void **w = a->a_array; *w; w++) {
-		    print_word(buf, *w);
-		    if (*(w + 1))
-			wb_wccat(buf, L' ');
+		    print_word(pr, *w, indent);
+		    wb_wccat(&pr->buffer, L' ');
 		}
-		wb_wccat(buf, L')');
+		trim_end_of_buffer(&pr->buffer);
+		wb_wccat(&pr->buffer, L')');
 		break;
 	}
-	wb_wccat(buf, L' ');
+	wb_wccat(&pr->buffer, L' ');
+
 	a = a->next;
     }
 }
 
-void print_redirs(xwcsbuf_T *restrict buf, const redir_T *restrict r)
+void print_redirections(
+	struct print *restrict pr, const redir_T *restrict rd, unsigned indent)
 {
-    while (r) {
+    while (rd) {
 	const wchar_t *s;
 	enum { file, here, proc, } type;
 
-	switch (r->rd_type) {
-	    case RT_INPUT:    s = L"<";    type = file;  break;
-	    case RT_OUTPUT:   s = L">";    type = file;  break;
-	    case RT_CLOBBER:  s = L">|";   type = file;  break;
-	    case RT_APPEND:   s = L">>";   type = file;  break;
-	    case RT_INOUT:    s = L"<>";   type = file;  break;
-	    case RT_DUPIN:    s = L"<&";   type = file;  break;
-	    case RT_DUPOUT:   s = L">&";   type = file;  break;
-	    case RT_PIPE:     s = L">>|";  type = file;  break;
-	    case RT_HERE:     s = L"<<";   type = here;  break;
-	    case RT_HERERT:   s = L"<<-";  type = here;  break;
-	    case RT_HERESTR:  s = L"<<<";  type = file;  break;
-	    case RT_PROCIN:   s = L"<(";   type = proc;  break;
-	    case RT_PROCOUT:  s = L">(";   type = proc;  break;
-	    default: assert(false);
+	switch (rd->rd_type) {
+            case RT_INPUT:    s = L"<";    type = file;  break;
+            case RT_OUTPUT:   s = L">";    type = file;  break;
+            case RT_CLOBBER:  s = L">|";   type = file;  break;
+            case RT_APPEND:   s = L">>";   type = file;  break;
+            case RT_INOUT:    s = L"<>";   type = file;  break;
+            case RT_DUPIN:    s = L"<&";   type = file;  break;
+            case RT_DUPOUT:   s = L">&";   type = file;  break;
+            case RT_PIPE:     s = L">>|";  type = file;  break;
+            case RT_HERE:     s = L"<<";   type = here;  break;
+            case RT_HERERT:   s = L"<<-";  type = here;  break;
+            case RT_HERESTR:  s = L"<<<";  type = file;  break;
+            case RT_PROCIN:   s = L"<(";   type = proc;  break;
+            case RT_PROCOUT:  s = L">(";   type = proc;  break;
+            default: assert(false);
 	}
-	wb_wprintf(buf, L"%d%ls", r->rd_fd, s);
+	wb_wprintf(&pr->buffer, L"%d%ls", rd->rd_fd, s);
 	switch (type) {
 	    case file:
-		print_word(buf, r->rd_filename);
+		print_word(pr, rd->rd_filename, indent);
 		break;
 	    case here:
-		wb_cat(buf, r->rd_hereend);
+		wb_cat(&pr->buffer, rd->rd_hereend);
+		pl_add(&pr->pending_heredocs, (void *) rd);
 		break;
 	    case proc:
-		wb_cat(buf, r->rd_command);
-		wb_wccat(buf, L')');
+		wb_cat(&pr->buffer, rd->rd_command);
+		wb_wccat(&pr->buffer, L')');
 		break;
 	}
-	wb_wccat(buf, L' ');
+	wb_wccat(&pr->buffer, L' ');
 
-	r = r->next;
+	rd = rd->next;
     }
 }
 
-void print_word(xwcsbuf_T *restrict buf, const wordunit_T *restrict w)
+void print_word(struct print *restrict pr, const wordunit_T *restrict wu,
+	unsigned indent)
 {
-    while (w) {
-	switch (w->wu_type) {
-	case WT_STRING:
-	    wb_cat(buf, w->wu_string);
-	    break;
-	case WT_PARAM:
-	    print_paramexp(buf, w->wu_param);
-	    break;
-	case WT_CMDSUB:
-	    wb_cat(buf, L"$(");
-	    if (w->wu_cmdsub.is_preparsed) {
-		print_and_or_lists(buf, w->wu_cmdsub.value.preparsed, true);
-		assert(iswblank(buf->contents[buf->length - 1]));
-		buf->contents[buf->length - 1] = L')';
-	    } else {
-		wb_cat(buf, w->wu_cmdsub.value.unparsed);
-		wb_wccat(buf, L')');
-	    }
-	    break;
-	case WT_ARITH:
-	    wb_cat(buf, L"$((");
-	    print_word(buf, w->wu_arith);
-	    wb_cat(buf, L"))");
-	    break;
+    while (wu) {
+	switch (wu->wu_type) {
+	    case WT_STRING:
+		wb_cat(&pr->buffer, wu->wu_string);
+		break;
+	    case WT_PARAM:
+		print_parameter(pr, wu->wu_param, indent);
+		break;
+	    case WT_CMDSUB:
+		wb_cat(&pr->buffer, L"$(");
+		if (wu->wu_cmdsub.is_preparsed)
+		    print_and_or_lists(pr, wu->wu_cmdsub.value.preparsed,
+			    indent + 1, true);
+		else
+		    wb_cat(&pr->buffer, wu->wu_cmdsub.value.unparsed);
+		wb_wccat(&pr->buffer, L')');
+		break;
+	    case WT_ARITH:
+		wb_cat(&pr->buffer, L"$((");
+		print_word(pr, wu->wu_arith, indent);
+		wb_cat(&pr->buffer, L"))");
+		break;
 	}
-	w = w->next;
+
+	wu = wu->next;
     }
 }
 
-void print_paramexp(xwcsbuf_T *restrict buf, const paramexp_T *restrict p)
+void print_parameter(struct print *restrict pr, const paramexp_T *restrict pe,
+	unsigned indent)
 {
-    wchar_t c;
-
-    wb_cat(buf, L"${");
-    if (p->pe_type & PT_NUMBER)
-	wb_wccat(buf, L'#');
-    if (p->pe_type & PT_NEST)
-	print_word(buf, p->pe_nest);
+    wb_cat(&pr->buffer, L"${");
+    if (pe->pe_type & PT_NUMBER)
+	wb_wccat(&pr->buffer, L'#');
+    if (pe->pe_type & PT_NEST)
+	print_word(pr, pe->pe_nest, indent);
     else
-	wb_cat(buf, p->pe_name);
-    if (p->pe_start) {
-	wb_wccat(buf, L'[');
-	print_word(buf, p->pe_start);
-	if (p->pe_end) {
-	    wb_wccat(buf, L',');
-	    print_word(buf, p->pe_end);
+	wb_cat(&pr->buffer, pe->pe_name);
+    if (pe->pe_start) {
+	wb_wccat(&pr->buffer, L'[');
+	print_word(pr, pe->pe_start, indent);
+	if (pe->pe_end) {
+	    wb_wccat(&pr->buffer, L',');
+	    print_word(pr, pe->pe_end, indent);
 	}
-	wb_wccat(buf, L']');
+	wb_wccat(&pr->buffer, L']');
     }
-    if (p->pe_type & PT_COLON)
-	wb_wccat(buf, L':');
-    switch (p->pe_type & PT_MASK) {
-    case PT_PLUS:
-	wb_wccat(buf, L'+');
-	goto append_subst;
-    case PT_MINUS:
-	wb_wccat(buf, L'-');
-	goto append_subst;
-    case PT_ASSIGN:
-	wb_wccat(buf, L'=');
-	goto append_subst;
-    case PT_ERROR:
-	wb_wccat(buf, L'?');
-	goto append_subst;
-    case PT_MATCH:
-	if (p->pe_type & PT_MATCHHEAD) {
-	    c = L'#';
-	} else {
-	    assert(p->pe_type & PT_MATCHTAIL);
-	    c = L'%';
-	}
-	wb_wccat(buf, c);
-	if (p->pe_type & PT_MATCHLONGEST)
-	    wb_wccat(buf, c);
-	print_word(buf, p->pe_match);
-	break;
-    case PT_SUBST:
-	wb_wccat(buf, L'/');
-	if (p->pe_type & PT_SUBSTALL)
-	    wb_wccat(buf, L'/');
-	else if (p->pe_type & PT_MATCHHEAD)
-	    wb_wccat(buf, L'#');
-	else if (p->pe_type & PT_MATCHTAIL)
-	    wb_wccat(buf, L'%');
-	print_word(buf, p->pe_match);
-	wb_wccat(buf, L'/');
-	goto append_subst;
+    if (pe->pe_type & PT_COLON)
+	wb_wccat(&pr->buffer, L':');
+    switch (pe->pe_type & PT_MASK) {
+	wchar_t c;
+	case PT_PLUS:    c = L'+';  goto append_subst;
+	case PT_MINUS:   c = L'-';  goto append_subst;
+	case PT_ASSIGN:  c = L'=';  goto append_subst;
+	case PT_ERROR:   c = L'?';  goto append_subst;
+	case PT_MATCH:
+	    if (pe->pe_type & PT_MATCHHEAD) {
+		c = L'#';
+	    } else {
+		assert(pe->pe_type & PT_MATCHTAIL);
+		c = L'%';
+	    }
+	    wb_wccat(&pr->buffer, c);
+	    if (pe->pe_type & PT_MATCHLONGEST)
+		wb_wccat(&pr->buffer, c);
+	    print_word(pr, pe->pe_match, indent);
+	    break;
+	case PT_SUBST:
+	    wb_wccat(&pr->buffer, L'/');
+	    if (pe->pe_type & PT_SUBSTALL)
+		wb_wccat(&pr->buffer, L'/');
+	    else if (pe->pe_type & PT_MATCHHEAD)
+		wb_wccat(&pr->buffer, L'#');
+	    else if (pe->pe_type & PT_MATCHTAIL)
+		wb_wccat(&pr->buffer, L'%');
+	    print_word(pr, pe->pe_match, indent);
+	    c = L'/';
 append_subst:
-	print_word(buf, p->pe_subst);
-	break;
+	    wb_wccat(&pr->buffer, c);
+	    print_word(pr, pe->pe_subst, indent);
+	    break;
     }
-    wb_wccat(buf, L'}');
+    wb_wccat(&pr->buffer, L'}');
+}
+
+void print_indent(struct print *pr, unsigned indent)
+{
+#ifndef FORMAT_INDENT_WIDTH
+#define FORMAT_INDENT_WIDTH 3
+#endif
+
+    if (pr->multiline) {
+	xwcsbuf_T *buf = &pr->buffer;
+
+	if (buf->length > 0 && buf->contents[buf->length - 1] != L'\n')
+	    return;
+
+	indent *= FORMAT_INDENT_WIDTH;
+	while (indent > 0) {
+	    wb_wccat(buf, L' ');
+	    indent--;
+	}
+    }
+}
+
+void print_space_or_newline(struct print* pr)
+{
+    if (pr->multiline) {
+	wb_wccat(&pr->buffer, L'\n');
+	for (size_t i = 0; i < pr->pending_heredocs.length; i++) {
+	    const redir_T *rd = pr->pending_heredocs.contents[i];
+	    print_word(pr, rd->rd_herecontent, 1);
+	    wb_catfree(&pr->buffer, unquote(rd->rd_hereend));
+	    wb_wccat(&pr->buffer, L'\n');
+	}
+	pl_clear(&pr->pending_heredocs, 0);
+    } else {
+	wb_wccat(&pr->buffer, L' ');
+    }
 }
 
 void trim_end_of_buffer(xwcsbuf_T *buf)
 {
     size_t i = buf->length;
-    while (i > 0 && iswblank(buf->contents[i - 1]))
+    while (i > 0 && buf->contents[i - 1] == L' ')
 	i--;
-    wb_remove(buf, i, SIZE_MAX);
+    buf->contents[buf->length = i] = L'\0';  // wb_remove(buf, i, SIZE_MAX);
 }
 
 

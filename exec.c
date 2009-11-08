@@ -625,7 +625,7 @@ void exec_commands(command_T *c, exec_T type)
 	}
 	if (job->j_status != JS_DONE) {
 	    for (cc = c, pp = ps; cc != NULL; cc = cc->next, pp++)
-		pp->pr_name = command_to_wcs(cc);
+		pp->pr_name = command_to_wcs(cc, false);
 	    add_job(type == execnormal || shopt_curasync);
 	} else {
 	    notify_signaled_job(ACTIVE_JOBNO);
