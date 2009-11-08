@@ -2912,8 +2912,9 @@ append_subst:
 void trim_end_of_buffer(xwcsbuf_T *buf)
 {
     size_t i = buf->length;
-    while (i > 0 && iswblank(buf->contents[--i]));
-    wb_remove(buf, i + 1, SIZE_MAX);
+    while (i > 0 && iswblank(buf->contents[i - 1]))
+	i--;
+    wb_remove(buf, i, SIZE_MAX);
 }
 
 
