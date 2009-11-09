@@ -1164,7 +1164,7 @@ start:
 	return;
     }
 
-    /* add each expanded elements to `elemlist' */
+    /* add all expanded elements to `elemlist' */
     pl_init(&elemlist);
     pl_add(&elemlist, c);
     nest = 0;
