@@ -1588,7 +1588,7 @@ wordunit_T *parse_paramexp_in_brase(void)
     ensure_buffer(3);
     if (cbuf.contents[cindex] == L'#') {
 	switch (cbuf.contents[cindex + 1]) {
-	    case L'\0':
+	    case L'\0': case L'}':
 	    case L'+':  case L'=':  case L':':  case L'/':  case L'%':
 		break;
 	    case L'-':  case L'?':  case L'#':

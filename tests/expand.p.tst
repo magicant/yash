@@ -51,6 +51,13 @@ echo ${var#x} ${var##x} ${var%x} ${var%%x}
 echo ${asterisks##*} "${asterisks#"*"}"
 echo '${#var}='${#var}
 
+set 1 '2  2' 3
+:&
+echo "$@"   "$*"   $#   $?   $-   $!   $0   >"${TESTTMP}/expand-1"
+echo "${@}" "${*}" ${#} ${?} ${-} ${!} ${0} >"${TESTTMP}/expand-2"
+diff "${TESTTMP}/expand-1" "${TESTTMP}/expand-2"
+rm -f "${TESTTMP}/expand-1" "${TESTTMP}/expand-2"
+
 echo ===== command substitution =====
 
 echo '\$x'
