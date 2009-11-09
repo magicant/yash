@@ -1169,6 +1169,13 @@ void exec_fall_back_on_sh(
     args[index++] = NULL;
 #if HAVE_PROC_SELF_EXE
     xexecve("/proc/self/exe", args, envp);
+#elif HAVE_PROC_CURPROC_FILE
+    xexecve("/proc/curproc/file", args, envp);
+#elif HAVE_PROC_OBJECT_AOUT
+    char *objpath = malloc_printf(
+	    "/proc/%jd/object/a.out", (intmax_t) getpid());
+    xexecve(objpath, args, envp);
+    free(objpath);
 #elif HAVE_PATHS_H && defined _PATH_BSHELL
     xexecve(_PATH_BSHELL, args, envp);
 #else

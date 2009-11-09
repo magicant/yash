@@ -456,14 +456,32 @@ END
     esac
 fi
 
-# check whether system has /proc/self/exe
-checking "whether system has /proc/self/exe"
+# check whether system has /proc/self/exe or similar utility file
+checking "for /proc/self/exe"
 if [ -x /proc/self/exe ]
 then
     checked "yes"
     defconfigh "HAVE_PROC_SELF_EXE"
 else
     checked "no"
+
+    checking "for /proc/curproc/file"
+    if [ -x /proc/curproc/file ]
+    then
+	checked "yes"
+	defconfigh "HAVE_PROC_CURPROC_FILE"
+    else
+	checked "no"
+
+	checking "for /proc/\$\$/object/a.out"
+	if [ -x /proc/$$/object/a.out ]
+	then
+	    checked "yes"
+	    defconfigh "HAVE_PROC_OBJECT_AOUT"
+	else
+	    checked "no"
+	fi
+    fi
 fi
 
 # check for strnlen
