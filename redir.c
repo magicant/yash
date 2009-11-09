@@ -297,7 +297,7 @@ static int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 static int open_heredocument(const struct wordunit_T *content);
 static int open_herestring(char *s, bool appendnewline)
     __attribute__((nonnull));
-static int open_process_redirection(const wchar_t *command, redirtype_T type)
+static int open_process_redirection(const embedcmd_T *command, redirtype_T type)
     __attribute__((nonnull));
 
 
@@ -399,7 +399,7 @@ openwithflags:
 	case RT_PROCIN:
 	case RT_PROCOUT:
 	    keepopen = false;
-	    fd = open_process_redirection(r->rd_command, r->rd_type);
+	    fd = open_process_redirection(&r->rd_command, r->rd_type);
 	    if (fd < 0)
 		return false;
 	    break;
@@ -764,7 +764,7 @@ int open_herestring(char *s, bool appendnewline)
 /* Opens a process redirection and returns a file descriptor for it.
  * `type' must be RT_PROCIN or RT_PROCOUT.
  * The return value is -1 if failed. */
-int open_process_redirection(const wchar_t *command, redirtype_T type)
+int open_process_redirection(const embedcmd_T *command, redirtype_T type)
 {
     int pipefd[2];
     pid_t cpid;
@@ -807,7 +807,10 @@ int open_process_redirection(const wchar_t *command, redirtype_T type)
 		xclose(pipefd[PIDX_IN]);
 	    }
 	}
-	exec_wcs(command, gt("command redirection"), true);
+	if (command->is_preparsed)
+	    exec_and_or_lists(command->value.preparsed, true);
+	else
+	    exec_wcs(command->value.unparsed, gt("command redirection"), true);
 	assert(false);
     }
 }

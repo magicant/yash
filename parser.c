@@ -52,6 +52,7 @@ static void wordfree_vp(void *w);
 static void paramfree(paramexp_T *p);
 static void assignsfree(assign_T *a);
 static void redirsfree(redir_T *r);
+static void embedcmdfree(embedcmd_T c);
 
 void andorsfree(and_or_T *a)
 {
@@ -151,10 +152,7 @@ void wordfree(wordunit_T *w)
 		paramfree(w->wu_param);
 		break;
 	    case WT_CMDSUB:
-		if (w->wu_cmdsub.is_preparsed)
-		    andorsfree(w->wu_cmdsub.value.preparsed);
-		else
-		    free(w->wu_cmdsub.value.unparsed);
+		embedcmdfree(w->wu_cmdsub);
 		break;
 	    case WT_ARITH:
 		wordfree(w->wu_arith);
@@ -216,7 +214,7 @@ void redirsfree(redir_T *r)
 		wordfree(r->rd_herecontent);
 		break;
 	    case RT_PROCIN:  case RT_PROCOUT:
-		free(r->rd_command);
+		embedcmdfree(r->rd_command);
 		break;
 	}
 
@@ -224,6 +222,14 @@ void redirsfree(redir_T *r)
 	free(r);
 	r = next;
     }
+}
+
+void embedcmdfree(embedcmd_T c)
+{
+    if (c.is_preparsed)
+	andorsfree(c.value.preparsed);
+    else
+	free(c.value.unparsed);
 }
 
 
@@ -400,8 +406,8 @@ static wordunit_T *parse_paramexp_in_brase(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *parse_cmdsubst_in_paren(void)
     __attribute__((malloc,warn_unused_result));
-static wchar_t *extract_command_in_paren(void)
-    __attribute__((malloc,warn_unused_result));
+static embedcmd_T extract_command_in_paren(void)
+    __attribute__((warn_unused_result));
 static wordunit_T *parse_cmdsubst_in_backquote(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *tryparse_arith(void)
@@ -1761,18 +1767,7 @@ wordunit_T *parse_cmdsubst_in_paren(void)
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_CMDSUB;
-#if YASH_ENABLE_ALIAS
-    if (cinfo->enable_alias) {
-#endif
-	result->wu_cmdsub.is_preparsed = false;
-	result->wu_cmdsub.value.unparsed = extract_command_in_paren();
-#if YASH_ENABLE_ALIAS
-    } else {
-	result->wu_cmdsub.is_preparsed = true;
-	cindex++;
-	result->wu_cmdsub.value.preparsed = parse_compound_list();
-    }
-#endif
+    result->wu_cmdsub = extract_command_in_paren();
 
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L')')
@@ -1785,16 +1780,24 @@ wordunit_T *parse_cmdsubst_in_paren(void)
 /* Extracts command between '(' and ')'.
  * `cindex' points to '(' when the function is called, and to ')' when returns.
  */
-wchar_t *extract_command_in_paren(void)
+embedcmd_T extract_command_in_paren(void)
 {
+    assert(cbuf.contents[cindex] == L'(');
+
 #if YASH_ENABLE_ALIAS
+    if (!cinfo->enable_alias) {
+	cindex++;
+	return (embedcmd_T) {
+	    .is_preparsed = true,
+	    .value.preparsed = parse_compound_list(),
+	};
+    }
+
     bool save_enable_alias = enable_alias;
     enable_alias = false;
 #endif
     plist_T save_pending_heredocs = pending_heredocs;
     pl_init(&pending_heredocs);
-
-    assert(cbuf.contents[cindex] == L'(');
 
     size_t startindex = ++cindex;
     andorsfree(parse_compound_list());
@@ -1807,7 +1810,7 @@ wchar_t *extract_command_in_paren(void)
 #if YASH_ENABLE_ALIAS
     enable_alias = save_enable_alias;
 #endif
-    return result;
+    return (embedcmd_T) { .is_preparsed = false, .value.unparsed = result, };
 }
 
 /* Parses a command substitution enclosed by backquotes.
@@ -2620,6 +2623,9 @@ static void print_parameter(
 	struct print *restrict pr, const paramexp_T *restrict parameter,
 	unsigned indent)
     __attribute__((nonnull));
+static void print_embedded_command(struct print *pr, embedcmd_T command,
+	unsigned indent)
+    __attribute__((nonnull));
 static void print_indent(struct print *pr, unsigned indent)
     __attribute__((nonnull));
 static void print_space_or_newline(struct print* pr)
@@ -2984,7 +2990,7 @@ void print_redirections(
 		pl_add(&pr->pending_heredocs, (void *) rd);
 		break;
 	    case proc:
-		wb_cat(&pr->buffer, rd->rd_command);
+		print_embedded_command(pr, rd->rd_command, indent + 1);
 		wb_wccat(&pr->buffer, L')');
 		break;
 	}
@@ -3007,11 +3013,7 @@ void print_word(struct print *restrict pr, const wordunit_T *restrict wu,
 		break;
 	    case WT_CMDSUB:
 		wb_cat(&pr->buffer, L"$(");
-		if (wu->wu_cmdsub.is_preparsed)
-		    print_and_or_lists(pr, wu->wu_cmdsub.value.preparsed,
-			    indent + 1, true);
-		else
-		    wb_cat(&pr->buffer, wu->wu_cmdsub.value.unparsed);
+		print_embedded_command(pr, wu->wu_cmdsub, indent + 1);
 		wb_wccat(&pr->buffer, L')');
 		break;
 	    case WT_ARITH:
@@ -3080,6 +3082,14 @@ append_subst:
 	    break;
     }
     wb_wccat(&pr->buffer, L'}');
+}
+
+void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
+{
+    if (ec.is_preparsed)
+	print_and_or_lists(pr, ec.value.preparsed, indent, true);
+    else
+	wb_cat(&pr->buffer, ec.value.unparsed);
 }
 
 void print_indent(struct print *pr, unsigned indent)

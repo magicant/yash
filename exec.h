@@ -54,11 +54,11 @@ extern _Bool return_pending(void)
     __attribute__((pure));
 
 struct and_or_T;
-struct cmdsub_T;
+struct embedcmd_T;
 extern void exec_and_or_lists(const struct and_or_T *a, _Bool finally_exit);
 extern pid_t fork_and_reset(pid_t pgid, _Bool fg, sigtype_T sigtype);
 extern struct xwcsbuf_T *get_xtrace_buffer(void);
-extern wchar_t *exec_command_substitution(const struct cmdsub_T *cmdsub)
+extern wchar_t *exec_command_substitution(const struct embedcmd_T *cmdsub)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern int exec_variable_as_commands(
 	const wchar_t *varname, const char *codename)

@@ -139,14 +139,14 @@ typedef enum {
     WT_ARITH,   /* arithmetic expansion */
 } wordunittype_T;
 
-/* type of command substitution */
-typedef struct cmdsub_T {
+/* embedded command */
+typedef struct embedcmd_T {
     _Bool is_preparsed;
     union {
 	wchar_t  *unparsed;
 	and_or_T *preparsed;
     } value;
-} cmdsub_T;
+} embedcmd_T;
 
 /* element of a word subject to expansion */
 typedef struct wordunit_T {
@@ -155,7 +155,7 @@ typedef struct wordunit_T {
     union {
 	wchar_t           *string;  /* string (including quotes) */
 	struct paramexp_T *param;   /* parameter expansion */
-	cmdsub_T           cmdsub;  /* command substitution */
+	embedcmd_T         cmdsub;  /* command substitution */
 	struct wordunit_T *arith;   /* expression for arithmetic expansion */
     } wu_value;
 } wordunit_T;
@@ -274,7 +274,7 @@ typedef struct redir_T {
 	    wchar_t *hereend;  /* token indicating end of here-document */
 	    struct wordunit_T *herecontent;  /* contents of here-document */
 	} heredoc;
-	wchar_t *command;
+	embedcmd_T command;
     } rd_value;
 } redir_T;
 #define rd_filename    rd_value.filename

@@ -1230,7 +1230,7 @@ int xexecve(const char *path, char *const *argv, char *const *envp)
  * This function blocks until the command finishes.
  * The returned string is newly malloced and has the trailing newlines removed.
  * NULL is returned on error. */
-wchar_t *exec_command_substitution(const cmdsub_T *cmdsub)
+wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 {
     int pipefd[2];
     pid_t cpid;
