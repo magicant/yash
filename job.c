@@ -1253,7 +1253,7 @@ bool wait_has_job(bool jobcontrol)
     } else {
 	for (size_t i = 1; i < joblist.length; i++) {
 	    job_T *job = joblist.contents[i];
-	    if (job != NULL && job->j_status == JS_DONE)
+	    if (job != NULL && (job->j_pgid < 0 || job->j_status == JS_DONE))
 		remove_job(i);
 	}
     }
