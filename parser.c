@@ -1361,6 +1361,7 @@ reparse:
 parse_command:
     cindex += 1;
     result->rd_command = extract_command_in_paren();
+    ensure_buffer(1);
     if (cbuf.contents[cindex] == L')')
 	cindex++;
     skip_blanks_and_comment();
