@@ -1786,22 +1786,30 @@ wordunit_T *parse_cmdsubst_in_paren(void)
  */
 embedcmd_T extract_command_in_paren(void)
 {
+    plist_T save_pending_heredocs;
+    embedcmd_T result;
+
     assert(cbuf.contents[cindex] == L'(');
+
+    save_pending_heredocs = pending_heredocs;
+    pl_init(&pending_heredocs);
 
 #if YASH_ENABLE_ALIAS
     if (posixly_correct && cinfo->enable_alias) {
-	return (embedcmd_T) {
-	    .is_preparsed = false,
-	    .value.unparsed = parse_commands_in_paren(),
-	};
-    }
+	result.is_preparsed = false;
+	result.value.unparsed = parse_commands_in_paren();
+    } else
 #endif
+    {
+	cindex++;
+	result.is_preparsed = true;
+	result.value.preparsed = parse_compound_list();
+    }
 
-    cindex++;
-    return (embedcmd_T) {
-	.is_preparsed = true,
-	.value.preparsed = parse_compound_list(),
-    };
+    pl_destroy(&pending_heredocs);
+    pending_heredocs = save_pending_heredocs;
+
+    return result;
 }
 
 #if YASH_ENABLE_ALIAS
@@ -1813,17 +1821,12 @@ wchar_t *parse_commands_in_paren(void)
     bool save_enable_alias = enable_alias;
     enable_alias = false;
 
-    plist_T save_pending_heredocs = pending_heredocs;
-    pl_init(&pending_heredocs);
-
     size_t startindex = ++cindex;
     andorsfree(parse_compound_list());
     assert(startindex <= cindex);
 
     wchar_t *result = xwcsndup(cbuf.contents + startindex, cindex - startindex);
 
-    pl_destroy(&pending_heredocs);
-    pending_heredocs = save_pending_heredocs;
     enable_alias = save_enable_alias;
     return result;
 }
