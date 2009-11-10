@@ -409,7 +409,7 @@ static wordunit_T *parse_cmdsubst_in_paren(void)
 static embedcmd_T extract_command_in_paren(void)
     __attribute__((warn_unused_result));
 #if YASH_ENABLE_ALIAS
-static wchar_t *parse_commands_in_paren(void)
+static wchar_t *extract_command_in_paren_unparsed(void)
     __attribute__((malloc,warn_unused_result));
 #endif
 static wordunit_T *parse_cmdsubst_in_backquote(void)
@@ -1797,7 +1797,7 @@ embedcmd_T extract_command_in_paren(void)
 #if YASH_ENABLE_ALIAS
     if (posixly_correct && cinfo->enable_alias) {
 	result.is_preparsed = false;
-	result.value.unparsed = parse_commands_in_paren();
+	result.value.unparsed = extract_command_in_paren_unparsed();
     } else
 #endif
     {
@@ -1816,7 +1816,7 @@ embedcmd_T extract_command_in_paren(void)
 /* Parses commands between '(' and ')'.
  * `cindex' points to '(' when the function is called, and to ')' when returns.
  */
-wchar_t *parse_commands_in_paren(void)
+wchar_t *extract_command_in_paren_unparsed(void)
 {
     bool save_enable_alias = enable_alias;
     enable_alias = false;
