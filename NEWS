@@ -15,6 +15,9 @@ Yash 2.17
      invoked without the -g option or operands.
   =  The "typeset" builtin now prints function definitions in a pretty
      format.
+  =  When not in posixly-correct mode, commands in command substitu-
+     tion are now parsed when the command containing the substitution
+     is parsed.
   *  Fixed the parse error on parameter expansion "${#}".
   *  Fixed the "wait" builtin wrongly trying to wait for non-parent
      processes when invoked in a subshell.

@@ -19,6 +19,7 @@ alias -g N='>/dev/null'
 ok
 0
 
+posix unparsed ok
 dummy 0
 pipe
 0

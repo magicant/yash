@@ -28,6 +28,7 @@
 <li><a href="params.html#sv-random"><code>RANDOM</code> 変数</a>は使えません。
 <li><a href="expand.html#tilde">チルダ展開</a>で <code>~</code> と <code>~<var>ユーザ名</var></code> 以外の形式の展開が使えません。
 <li><a href="expand.html#params">パラメータ展開</a>の<a href="expand.html#paramname">入れ子</a>はできません。また<a href="expand.html#paramindex">インデックス</a>の指定はできません。
+<li><code>$(</code> と <code>)</code> で囲んだ<a href="expand.html#cmdsub">コマンド置換</a>に含まれるコマンドは、コマンド置換が実行される時に毎回解析されます。
 <li><a href="expand.html#arith">数式展開</a>で小数が使えません。
 <li><a href="redir.html#file">ファイルのリダイレクト</a>で、<a href="expand.html#glob">パス名展開</a>の結果が一つでない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
 <li><a href="redir.html#socket">ソケットリダイレクト</a>・<a href="redir.html#here">ヒアストリング</a>・<a href="redir.html#pipe">パイプリダイレクト</a>・<a href="redir.html#process">プロセスリダイレクト</a>は使用できません。

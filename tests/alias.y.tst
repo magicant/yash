@@ -58,9 +58,8 @@ if if :; then :; fi then if :; then echo null; fi N fi  # prints nothing
 if if echo null; then :; fi N then if :; then :; fi fi  # prints nothing
 
 unalias -a
-alias test=:
-func() { echo "$(test ok)"; }
 alias test=echo
+func() { echo "$(test ok)"; }
 func
 cat >"$tmp" <<\END
 func() { echo "$(test ok)"; }
@@ -70,7 +69,13 @@ END
 echo $?
 func
 
-$INVOKE $TESTEE --posix <>/dev/null 2>&0 <<\END
+$INVOKE $TESTEE --posix 2>/dev/null <<\END
+alias test=:
+func() { echo "$(test posix unparsed ok)"; }
+alias test=echo
+func
+END
+$INVOKE $TESTEE --posix 2>/dev/null <<\END
 alias dummy=
 false
 dummy
@@ -82,7 +87,7 @@ then
 	echo error
 fi
 END
-$INVOKE $TESTEE --posix <>/dev/null 2>&0 <<\END
+$INVOKE $TESTEE --posix 2>/dev/null <<\END
 alias dummy=
 echo pipe | dummy
 cat
@@ -91,7 +96,7 @@ echo not printed
 (dummy)
 echo error
 END
-$INVOKE $TESTEE <>/dev/null 2>&0 <<\END
+$INVOKE $TESTEE 2>/dev/null <<\END
 alias not=!
 not false
 echo $?

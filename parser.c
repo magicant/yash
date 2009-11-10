@@ -408,6 +408,10 @@ static wordunit_T *parse_cmdsubst_in_paren(void)
     __attribute__((malloc,warn_unused_result));
 static embedcmd_T extract_command_in_paren(void)
     __attribute__((warn_unused_result));
+#if YASH_ENABLE_ALIAS
+static wchar_t *parse_commands_in_paren(void)
+    __attribute__((malloc,warn_unused_result));
+#endif
 static wordunit_T *parse_cmdsubst_in_backquote(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *tryparse_arith(void)
@@ -1785,17 +1789,30 @@ embedcmd_T extract_command_in_paren(void)
     assert(cbuf.contents[cindex] == L'(');
 
 #if YASH_ENABLE_ALIAS
-    if (!cinfo->enable_alias) {
-	cindex++;
+    if (posixly_correct && cinfo->enable_alias) {
 	return (embedcmd_T) {
-	    .is_preparsed = true,
-	    .value.preparsed = parse_compound_list(),
+	    .is_preparsed = false,
+	    .value.unparsed = parse_commands_in_paren(),
 	};
     }
+#endif
 
+    cindex++;
+    return (embedcmd_T) {
+	.is_preparsed = true,
+	.value.preparsed = parse_compound_list(),
+    };
+}
+
+#if YASH_ENABLE_ALIAS
+/* Parses commands between '(' and ')'.
+ * `cindex' points to '(' when the function is called, and to ')' when returns.
+ */
+wchar_t *parse_commands_in_paren(void)
+{
     bool save_enable_alias = enable_alias;
     enable_alias = false;
-#endif
+
     plist_T save_pending_heredocs = pending_heredocs;
     pl_init(&pending_heredocs);
 
@@ -1807,11 +1824,10 @@ embedcmd_T extract_command_in_paren(void)
 
     pl_destroy(&pending_heredocs);
     pending_heredocs = save_pending_heredocs;
-#if YASH_ENABLE_ALIAS
     enable_alias = save_enable_alias;
-#endif
-    return (embedcmd_T) { .is_preparsed = false, .value.unparsed = result, };
+    return result;
 }
+#endif
 
 /* Parses a command substitution enclosed by backquotes.
  * `cindex' points to the character right after the starting '`' when the
