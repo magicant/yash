@@ -96,6 +96,11 @@ default value for it is 100. When the shell needs to open a file to
 read/write the history file, etc., it tries to make the file
 descriptor for the file around the value of this macro.
 
+#define ALIAS_LIST_MAX 30
+This macro must be defined as a positive integer.
+This macro specifies the maximum number of aliases that can be
+expanded recursively.
+
 #define FIXED_SIGNAL_AS_ERROR 1
 This macro changes the behavior of the "trap" command in a non-
 interactive shell which tries to change a signal handler which has

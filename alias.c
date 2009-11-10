@@ -53,7 +53,9 @@ typedef struct alias_T {
     wchar_t value[];
 } alias_T;
 
+#ifndef ALIAS_LIST_MAX
 #define ALIAS_LIST_MAX 30
+#endif
 typedef struct aliaslist_T {
     size_t count;
     struct {
