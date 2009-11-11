@@ -598,10 +598,9 @@ void exec_commands(command_T *c, exec_T type)
     } while (cc != NULL);
     assert(type != execself); /* `exec_process' doesn't return for `execself' */
     assert(pinfo.pi_tonextfds[PIDX_IN] < 0);
+    assert(pinfo.pi_tonextfds[PIDX_OUT] < 0);
     if (pinfo.pi_fromprevfd >= 0)
 	xclose(pinfo.pi_fromprevfd);           /* close leftover pipes */
-    if (pinfo.pi_tonextfds[PIDX_OUT] >= 0)
-	xclose(pinfo.pi_tonextfds[PIDX_OUT]);  /* close leftover pipes */
 
     if (pgid == 0) {
 	/* no more things to do if didn't fork */
