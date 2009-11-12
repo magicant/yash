@@ -1860,7 +1860,7 @@ err:
 	free(args[i]);
     free(freelater);
     if (posixly_correct || !is_interactive_now)
-	exit_shell_with_status(err);
+	exit(err);
     return err;
 }
 
