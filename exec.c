@@ -511,21 +511,31 @@ void next_pipe(pipeinfo_T *pi, bool next)
 	xclose(pi->pi_tonextfds[PIDX_OUT]);
     pi->pi_fromprevfd = pi->pi_tonextfds[PIDX_IN];
     if (next) {
-	/* If the file descriptors 0 and/or 1 are unused, we open a dummy pipe
-	 * so that pipes really used have the file descriptors larger than 1.
-	 * If we don't do this, the pipe's file descriptors are overridden when
-	 * we connect the pipe to stdin/stdout later. */
-	int dummy[2];
-	bool usedummy = (fcntl(STDIN_FILENO,  F_GETFD) == -1 && errno == EBADF)
-		     || (fcntl(STDOUT_FILENO, F_GETFD) == -1 && errno == EBADF);
-
-	if (usedummy && pipe(dummy) < 0)
-	    goto fail;
 	if (pipe(pi->pi_tonextfds) < 0)
 	    goto fail;
-	if (usedummy) {
-	    xclose(dummy[PIDX_IN]);
-	    xclose(dummy[PIDX_OUT]);
+
+	/* The pipe's FDs must not be 0 or 1, or they may be overridden by each
+	 * other when we connect the pipe later. If they are 0 or 1, move them
+	 * to bigger numbers. */
+	int origin  = pi->pi_tonextfds[PIDX_IN];
+	int origout = pi->pi_tonextfds[PIDX_OUT];
+	if (origin < 2 || origout < 2) {
+	    if (origin < 2)
+		pi->pi_tonextfds[PIDX_IN] = dup(origin);
+	    if (origout < 2)
+		pi->pi_tonextfds[PIDX_OUT] = dup(origout);
+	    if (origin < 2)
+		xclose(origin);
+	    if (origout < 2)
+		xclose(origout);
+	    if (pi->pi_tonextfds[PIDX_IN] < 0) {
+		xclose(pi->pi_tonextfds[PIDX_OUT]);
+		goto fail;
+	    }
+	    if (pi->pi_tonextfds[PIDX_OUT] < 0) {
+		xclose(pi->pi_tonextfds[PIDX_IN]);
+		goto fail;
+	    }
 	}
     } else {
 	pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
