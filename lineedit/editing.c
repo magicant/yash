@@ -2122,10 +2122,12 @@ void vi_replace_char(wchar_t c)
     if (c != L'\0') {
 	int count = get_count(1);
 
-	if (count > 0) {
-	    do
+	if (count > 0 && le_main_index < le_main_buffer.length) {
+	    do {
 		le_main_buffer.contents[le_main_index] = c;
-	    while (--count > 0 || ++le_main_index < le_main_buffer.length);
+		count--, le_main_index++;
+	    } while (count > 0 && le_main_index < le_main_buffer.length);
+	    le_main_index--;
 	}
 	reset_state();
     } else {
