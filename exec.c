@@ -69,7 +69,7 @@ typedef enum {
 typedef struct pipeinfo_T {
     int pi_fromprevfd;   /* reading end of the pipe from the previous process */
     int pi_tonextfds[2]; /* both ends of the pipe to the next process */
-    /* for each member, -1 is assigned if a pipe is unused */
+    /* -1 is assigned to unused members. */
 } pipeinfo_T;
 #define PIPEINFO_INIT { -1, { -1, -1 }, }
 
@@ -161,16 +161,16 @@ static int exec_iteration(void *const *commands, const char *codename)
 /* exit status of the last command */
 int laststatus = Exit_SUCCESS;
 /* exit status of the command preceding the currently executed trap action */
-int savelaststatus = -1;  // -1 if not in a trap action
+int savelaststatus = -1;  // -1 if not in a trap handler
 /* exit status of the last command substitution */
 static int lastcmdsubstatus;
 /* the process ID of the last asynchronous list */
 pid_t lastasyncpid;
 
 /* This flag is set to true while the shell is executing the condition of an if-
- * statement, an and-or list, etc. to suppress the effect of "-o errexit"
+ * statement, an and-or list, etc. to suppress the effect of the "errexit"
  * option. */
-static bool supresserrexit;
+static bool supresserrexit = false;
 
 /* state of currently executed loop */
 static struct execinfo {
@@ -223,7 +223,7 @@ struct execinfo *save_execinfo(void)
     return save;
 }
 
-/* Restores `execinfo' and frees the saved info. */
+/* Restores `execinfo' to `save' and frees `save'. */
 void load_execinfo(struct execinfo *save)
 {
     execinfo = *save;
@@ -243,7 +243,7 @@ bool need_break(void)
 }
 
 
-/* Executes and-or lists.
+/* Executes the and-or lists.
  * If `finally_exit' is true, the shell exits after execution. */
 void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 {
@@ -259,7 +259,7 @@ void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 	exit_shell();
 }
 
-/* Executes pipelines. */
+/* Executes the pipelines. */
 void exec_pipelines(const pipeline_T *p, bool finally_exit)
 {
     for (bool first = true; p && !need_break(); p = p->next, first = false) {
@@ -281,7 +281,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	exit_shell();
 }
 
-/* Executes pipelines asynchronously. */
+/* Executes the pipelines asynchronously. */
 void exec_pipelines_async(const pipeline_T *p)
 {
     if (!p->next && !p->pl_neg) {
@@ -321,7 +321,7 @@ void exec_pipelines_async(const pipeline_T *p)
     }
 }
 
-/* Executes an if command */
+/* Executes the if command */
 void exec_if(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_IF);
@@ -355,7 +355,7 @@ bool exec_condition(const and_or_T *c)
     }
 }
 
-/* Executes a for command. */
+/* Executes the for command. */
 void exec_for(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_FOR);
@@ -365,11 +365,13 @@ void exec_for(const command_T *c, bool finally_exit)
     void **words;
 
     if (c->c_forwords) {
+	/* expand the words between "in" and "do" of the for command. */
 	if (!expand_line(c->c_forwords, &count, &words)) {
 	    laststatus = Exit_EXPERROR;
 	    goto finish;
 	}
     } else {
+	/* no "in" keyword in the for command: use the positional parameters */
 	struct get_variable v = get_variable(L"@");
 	assert(v.type == GV_ARRAY && v.values != NULL);
 	words = duparray(v.values, copyaswcs);
@@ -402,7 +404,7 @@ void exec_for(const command_T *c, bool finally_exit)
     }
 
 done:
-    while (++i < count)
+    while (++i < count)  /* free unused words */
 	free(words[i]);
     free(words);
     if (count == 0 && c->c_forcmds)
@@ -413,8 +415,8 @@ finish:
 	exit_shell();
 }
 
-/* Executes a while/until command. */
-/* The exit status of the while/until command is that of `c_whlcmds' executed
+/* Executes the while/until command. */
+/* The exit status of a while/until command is that of `c_whlcmds' executed
  * last.  If `c_whlcmds' is not executed at all, the status is 0 regardless of
  * `c_whlcond'. */
 void exec_while(const command_T *c, bool finally_exit)
@@ -450,7 +452,7 @@ done:
 }
 #undef CHECK_LOOP
 
-/* Executes a case command. */
+/* Executes the case command. */
 void exec_case(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_CASE);
@@ -497,10 +499,10 @@ fail:
     goto done;
 }
 
-/* Updates the contents of a `pipeinfo_T' to proceed to the next process
+/* Updates the contents of the `pipeinfo_T' to proceed to the next process
  * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIDX_OUT]' are closed,
  * `pi->pi_tonextfds[PIDX_IN]' is moved to `pi->pi_fromprevfd', and,
- * if `next' is true, a new pipe is opened in `pi->pi_tonextfds' or
+ * if `next' is true, a new pipe is opened in `pi->pi_tonextfds' or,
  * if `next' is false, `pi->pi_tonextfds' is assigned -1.
  * Returns true iff successful. */
 void next_pipe(pipeinfo_T *pi, bool next)
@@ -562,7 +564,7 @@ void connect_pipes(pipeinfo_T *pi)
 	xclose(pi->pi_tonextfds[PIDX_IN]);
 }
 
-/* Executes commands in a pipeline. */
+/* Executes the commands in a pipeline. */
 void exec_commands(command_T *c, exec_T type)
 {
     size_t count;
@@ -573,7 +575,7 @@ void exec_commands(command_T *c, exec_T type)
     pipeinfo_T pinfo = PIPEINFO_INIT;
     commandtype_T lasttype;
 
-    /* count the number of commands */
+    /* count the number of the commands */
     count = 0;
     for (cc = c; cc; cc = cc->next)
 	count++;
@@ -582,7 +584,7 @@ void exec_commands(command_T *c, exec_T type)
     job = xmalloc(sizeof *job + count * sizeof *job->j_procs);
     ps = job->j_procs;
 
-    /* execute commands */
+    /* execute the commands */
     pgid = 0, cc = c, pp = ps;
     do {
 	pid_t pid;
@@ -613,7 +615,7 @@ void exec_commands(command_T *c, exec_T type)
 	xclose(pinfo.pi_fromprevfd);           /* close leftover pipes */
 
     if (pgid == 0) {
-	/* no more things to do if didn't fork */
+	/* nothing more to do if we didn't fork */
 	free(job);
     } else {
 	job->j_pgid = doing_job_control_now ? pgid : 0;
@@ -648,7 +650,7 @@ void exec_commands(command_T *c, exec_T type)
 	exit_shell_with_status(laststatus);
 }
 
-/* Executes a command.
+/* Executes the command.
  * If job control is active, the child process's process group ID is set to
  * `pgid'. If `pgid' is 0, set to the child process's process ID.
  * If a child process forked successfully, its process ID is returned.
@@ -716,7 +718,6 @@ pid_t exec_process(
 	goto done2;
     }
     
-    /* redirect stdin to "/dev/null" if non-interactive and asynchronous */
     if (type == execasync && pi->pi_fromprevfd < 0)
 	maybe_redirect_stdin_to_devnull();
 
@@ -747,7 +748,7 @@ pid_t exec_process(
     if (temp)
 	open_new_environment(true);
 
-    /* perform assignments */
+    /* perform the assignments */
     if (!do_assignments(c->c_assigns, temp, true)) {
 	/* On assignment error, the command is not executed. */
 	print_xtrace(NULL);
@@ -776,7 +777,7 @@ pid_t exec_process(
 		    if (command_not_found_handler(argv))
 			goto done3;
 	    }
-	    /* If the command was not found and the shell is not in POSIXly
+	    /* If the command was not found and the shell is not in the POSIXly
 	     * correct mode, the not-found handler is called. */
 	}
     }
@@ -825,7 +826,7 @@ done:
  * changed.
  * If job control is active and `fg' is true, the child process becomes a
  * foreground process.
- * `sigtype' specifies settings of signals in the child.
+ * `sigtype' specifies the settings of signals in the child.
  * `sigtype' is a bitwise OR of the followings:
  *   t_quitint: SIGQUIT & SIGINT are ignored if the parent's job control is off
  *   t_tstp: SIGTSTP is ignored if the parent is job-controlling
@@ -837,6 +838,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
     sigset_t savemask;
     if (sigtype & (t_quitint | t_tstp)) {
+	/* block all signals to prevent the race condition */
 	sigset_t all;
 	sigfillset(&all);
 	sigemptyset(&savemask);
@@ -886,8 +888,8 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 
 /* Searches and determines the command to execute.
  * The result is assigned to `*ci'.
- * If the command is not found, `ci->type' is `externalprogram' and
- * `ci->ci_path' is NULL.
+ * If the command is not found, `ci->type' is set to `externalprogram' and
+ * `ci->ci_path' is set to NULL.
  * `name' and `wname' must contain the same string value. */
 /* When the result type `ci->type' is `regularbuiltin', the result value is
  * either a function pointer to the builtin (if the `sct_rbpath' flag is not
@@ -979,8 +981,9 @@ bool assignment_is_temporary(enum cmdtype_T type)
 }
 
 /* Executes $COMMAND_NOT_FOUND_HANDLER if any.
- * Returns true if the hander is executed and $HANDLED is set non-empty.
- * Returns false otherwise. */
+ * `argv' is set to the positional parameters of the environment in which the
+ * handler is executed.
+ * Returns true iff the hander was executed and $HANDLED was set non-empty. */
 bool command_not_found_handler(void *const *argv)
 {
     static bool handling = false;
@@ -1015,13 +1018,16 @@ bool command_not_found_handler(void *const *argv)
     }
 }
 
-/* Executes a command whose type is not `CT_SIMPLE'.
+/* Executes the specified command whose type is not `CT_SIMPLE'.
  * The redirections for the command is not performed in this function.
  * For CT_SUBSHELL, this function must be called in an already-forked subshell.
  */
 void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
+    /* increment the reference count of `c' to prevent `c' from being freed
+     * during execution. */
     c = comsdup(c);
+
     switch (c->c_type) {
     case CT_SIMPLE:
 	assert(false);
@@ -1050,11 +1056,12 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	    exit_shell();
 	break;
     }
+
     comsfree(c);
 }
 
-/* Executes a simple command. */
-/* `argv0' is a multibyte version of `argv[0]' */
+/* Executes the simple command. */
+/* `argv0' is the multibyte version of `argv[0]' */
 void exec_simple_command(
 	const commandinfo_T *ci, int argc, char *argv0, void **argv,
 	bool finally_exit)
@@ -1123,7 +1130,7 @@ xwcsbuf_T *get_xtrace_buffer(void)
     return &xtrace_buffer;
 }
 
-/* Prints a trace if "-o xtrace" option is on. */
+/* Prints a trace if the "xtrace" option is on. */
 void print_xtrace(void *const *argv)
 {
     bool tracevars = xtrace_buffer.contents != NULL
@@ -1153,7 +1160,7 @@ void print_xtrace(void *const *argv)
     }
 }
 
-/* Executes a command script by `exec'ing a shell.
+/* Executes the specified command as a shell script by `exec'ing a shell.
  * `path' is the full path to the script file.
  * Returns iff failed to `exec'. */
 void exec_fall_back_on_sh(
@@ -1175,7 +1182,7 @@ void exec_fall_back_on_sh(
 	args[index++] = (char *) path;
     for (int i = 1; i < argc; i++)
 	args[index++] = argv[i];
-    args[index++] = NULL;
+    args[index] = NULL;
 #if HAVE_PROC_SELF_EXE
     xexecve("/proc/self/exe", args, envp);
 #elif HAVE_PROC_CURPROC_FILE
@@ -1235,9 +1242,9 @@ int xexecve(const char *path, char *const *argv, char *const *envp)
     return -1;
 }
 
-/* Executes a command substitution and returns the string to substitute with.
+/* Executes the command substitution and returns the string to substitute with.
  * This function blocks until the command finishes.
- * The returned string is newly malloced and has the trailing newlines removed.
+ * The return value is a newly-malloced string without a trailing newline.
  * NULL is returned on error. */
 wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 {
@@ -1246,7 +1253,7 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 
     if (cmdsub->is_preparsed
 	    ? cmdsub->value.preparsed == NULL
-	    : cmdsub->value.unparsed[0] == L'\0')
+	    : cmdsub->value.unparsed[0] == L'\0')  /* command is empty? */
 	return xwcsdup(L"");
 
     /* open a pipe to receive output from the command */
@@ -1256,8 +1263,8 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
     }
 
     /* If the child is stopped by SIGTSTP, it can never be resumed and
-     * the shell will be stuck. So we make the child unstoppable
-     * by SIGTSTP. */
+     * the shell will be stuck. So we make the child unstoppable by SIGTSTP.
+     * The `t_tstp' flag designates this behavior. */
     cpid = fork_and_reset(-1, false, t_tstp);
     if (cpid < 0) {
 	/* fork failure */
@@ -1300,7 +1307,8 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 
 	/* trim trailing newlines and return */
 	while (buf.length > 0 && buf.contents[buf.length - 1] == L'\n')
-	    wb_remove(&buf, buf.length - 1, 1);
+	    buf.contents[--buf.length] = L'\0';
+	    // wb_remove(&buf, buf.length - 1, 1);
 	return wb_towcs(&buf);
     } else {
 	/* child process */
@@ -1324,7 +1332,6 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
  * If the iteration is interrupted by the "break -i" command, the remaining
  * elements are not executed.
  * `codename' is passed to `exec_wcs' as the command name.
- * If `saveparsestate' is true, the parser's state is saved during execution.
  * Returns the exit status of the executed command (or zero if none executed).
  * When this function returns, `laststatus' is restored to the original value.*/
 int exec_iteration(void *const *commands, const char *codename)
@@ -1346,12 +1353,12 @@ int exec_iteration(void *const *commands, const char *codename)
 }
 
 /* Executes the value of the specified variable.
- * The variable value is parsed as a command string.
+ * The variable value is parsed as commands.
  * If the `varname' names an array, every element of the array is executed (but
  * if the iteration is interrupted by the "break -i" command, the remaining
  * elements are not executed).
  * `codename' is passed to `exec_wcs' as the command name.
- * Returns the exit status of the executed command (or zero if none executed or
+ * Returns the exit status of the executed command (or zero if none executed, or
  * -1 if the variable is unset).
  * When this function returns, `laststatus' is restored to the original value.*/
 int exec_variable_as_commands(const wchar_t *varname, const char *codename)
@@ -1370,7 +1377,7 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 	    array = duparrayn(gv.values, gv.count, copyaswcs);
 	    break;
 	case GV_ARRAY_CONCAT:
-	    /* should execute the concatenated value, but not supported now */
+	    /* should execute the concatenated value, but is not supported now*/
 	    return -1;
 	default:
 	    assert(false);
@@ -1405,7 +1412,7 @@ static const struct xoption iter_options[] = {
     { NULL, 0, 0, },
 };
 
-/* "return" builtin */
+/* The "return" builtin */
 int return_builtin(int argc, void **argv)
 {
     wchar_t opt;
@@ -1452,7 +1459,8 @@ const char return_help[] = Ngt(
 );
 #endif
 
-/* "break" and "continue" builtin */
+/* The "break"/"continue" builtin, which accepts the following option:
+ *  -i: iterative execution */
 int break_builtin(int argc, void **argv)
 {
     wchar_t opt;
@@ -1480,6 +1488,7 @@ int break_builtin(int argc, void **argv)
 	goto print_usage;
 
     if (iter) {
+	/* break/continue iteration */
 	if (!iterinfo.iterating) {
 	    xerror(0, Ngt("not in iteration"));
 	    return Exit_ERROR;
@@ -1557,7 +1566,8 @@ const char continue_help[] = Ngt(
 
 #endif /* YASH_ENABLE_HELP */
 
-/* The "eval" builtin */
+/* The "eval" builtin, which accepts the following option:
+ *  -i: iterative execution */
 int eval_builtin(int argc __attribute__((unused)), void **argv)
 {
     bool iter = false;
@@ -1605,6 +1615,8 @@ const char eval_help[] = Ngt(
 );
 #endif
 
+/* The "." builtin, which accepts the following option:
+ *  -A: disable aliases */
 int dot_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -1643,8 +1655,8 @@ int dot_builtin(int argc, void **argv)
     if (!filename)
 	goto print_usage;
 
-    bool exp = xoptind < argc;
-    if (exp && posixly_correct)
+    bool has_args = xoptind < argc;
+    if (has_args && posixly_correct)
 	goto print_usage;
 
     char *mbsfilename = malloc_wcstombs(filename);
@@ -1672,7 +1684,7 @@ int dot_builtin(int argc, void **argv)
 	path = mbsfilename;
     }
 
-    if (exp) {
+    if (has_args) {
 	open_new_environment(false);
 	set_positional_parameters(argv + xoptind);
     }
@@ -1693,7 +1705,7 @@ int dot_builtin(int argc, void **argv)
     fclose(f);
     free(mbsfilename);
 
-    if (exp) {
+    if (has_args) {
 	close_current_environment();
     }
 
@@ -1718,9 +1730,9 @@ const char dot_help[] = Ngt(
 #endif
 
 /* The "exec" builtin, which accepts the following options:
- * -a name: give <name> as argv[0] to the command
- * -c: don't pass environment variables to the command
- * -f: suppress error when we have stopped jobs */
+ *  -a name: give <name> as argv[0] to the command
+ *  -c: don't pass environment variables to the command
+ *  -f: suppress error when we have stopped jobs */
 int exec_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -1782,7 +1794,7 @@ int exec_builtin(int argc, void **argv)
 /* Implements the "exec" builtin.
  * argc, argv: the operands (not arguments) of the "exec" builtin.
  * as: value of the -a option or NULL
- * clear: true iff the -c option */
+ * clear: true iff the -c option is specified */
 int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 {
     int err;
@@ -1812,6 +1824,8 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 
     char **envs;
     if (clear) {
+	/* use the environment that contains only the variables assigned by the
+	 * assignment for this `exec' builtin. */
 	plist_T list;
 	
 	pl_init(&list);
@@ -1822,7 +1836,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	}
 	envs = (char **) pl_toary(&list);
     } else {
-	envs = NULL;
+	envs = environ;
     }
 
     if (as) {
@@ -1836,7 +1850,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     }
 
     restore_signals(true);
-    xexecve(commandpath, args, envs ? envs : environ);
+    xexecve(commandpath, args, envs);
     if (errno != ENOEXEC) {
 	if (errno == EACCES && is_directory(commandpath))
 	    errno = EISDIR;
@@ -1846,14 +1860,15 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	    xerror(errno, Ngt("cannot execute `%s' (%s)"),
 		    args[0], commandpath);
     } else {
-	exec_fall_back_on_sh(argc, args, envs ? envs : environ, commandpath);
+	exec_fall_back_on_sh(argc, args, envs, commandpath);
     }
     if (posixly_correct || !is_interactive_now)
 	exit(Exit_NOEXEC);
     set_signals();
     err = Exit_NOEXEC;
 
-    recfree((void **) envs, free);
+    if (envs != environ)
+	recfree((void **) envs, free);
 
 err:
     for (int i = 0; i < argc; i++)
@@ -1868,8 +1883,8 @@ err:
 const char exec_help[] = Ngt(
 "exec - execute command in the shell process\n"
 "\texec [-cf] [-a name] [command [args...]]\n"
-"Replaces the shell process with the specified command. The command is\n"
-"executed in the former shell's process rather than a new child process.\n"
+"Replaces the shell process with the specified command. The shell process is\n"
+"`changed' into the new command's process. No child process is created.\n"
 "When an interactive shell has stopped jobs, the -f (--force) option is\n"
 "required to really do exec.\n"
 "If the -c (--clear) option is specified, the command is executed only with\n"
@@ -1879,7 +1894,7 @@ const char exec_help[] = Ngt(
 "If no <command> is given, the shell does nothing. As a special result,\n"
 "the effects of redirections associated with the \"exec\" command remain\n"
 "after the command.\n"
-"In POSIXly correct mode, none of these options are available and the -f\n"
+"In the POSIXly correct mode, none of these options are available and the -f\n"
 "option is always assumed.\n"
 );
 #endif

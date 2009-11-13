@@ -7,11 +7,11 @@ It (almost) conforms to POSIX.1 (IEEE Std 1003.1, 2008 Edition).
 
 
 Yash is free software, distributed under the terms of GPL.
-See the file COPYING for more info.
+See the file named COPYING for more info.
 
-See the file INSTALL to find how to build and install Yash.
+See the file named INSTALL to find how to build and install yash.
 
-Currently there is no manpage for yash. Sorry.
+Currently, a manual for yash is available only in Japanese. Sorry.
 
 
 ===== Notes =====

@@ -232,8 +232,8 @@ bool evaluate_index(wchar_t *exp, ssize_t *valuep)
 }
 
 /* Parses an assignment expression.
- *   AssignmentExp := ConditionalExp |
- *       ConditionalExp AssignmentOperator AssignmentExp*/
+ *   AssignmentExp := ConditionalExp
+ *                  | ConditionalExp AssignmentOperator AssignmentExp */
 void parse_assignment(evalinfo_T *info, value_T *result)
 {
     parse_conditional(info, result);
@@ -403,8 +403,8 @@ long do_double_comparison(tokentype_T ttype, double v1, double v2)
 }
 
 /* Parses a conditional expression.
- *   ConditionalExp := LogicalOrExp |
- *       LogicalOrExp "?" AssignmentExp ":" ConditionalExp */
+ *   ConditionalExp := LogicalOrExp
+ *                   | LogicalOrExp "?" AssignmentExp ":" ConditionalExp */
 void parse_conditional(evalinfo_T *info, value_T *result)
 {
     bool saveparseonly = info->parseonly;
@@ -450,7 +450,8 @@ start:
     }
 }
 
-/* Parses a logical OR expression. */
+/* Parses a logical OR expression.
+ *   LogicalOrExp := LogicalAndExp | LogicalOrExp "||" LogicalAndExp */
 void parse_logical_or(evalinfo_T *info, value_T *result)
 {
     bool saveparseonly = info->parseonly;
@@ -488,7 +489,8 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
     info->parseonly = saveparseonly;
 }
 
-/* Parses a logical AND expression. */
+/* Parses a logical AND expression.
+ *   LogicalAndExp := InclusiveOrExp | LogicalAndExp "&&" InclusiveOrExp */
 void parse_logical_and(evalinfo_T *info, value_T *result)
 {
     bool saveparseonly = info->parseonly;
@@ -526,7 +528,8 @@ void parse_logical_and(evalinfo_T *info, value_T *result)
     info->parseonly = saveparseonly;
 }
 
-/* Parses an inclusive OR expression. */
+/* Parses an inclusive OR expression.
+ *   InclusiveOrExp := ExclusiveOrExp | InclusiveOrExp "|" ExclusiveOrExp */
 void parse_inclusive_or(evalinfo_T *info, value_T *result)
 {
     parse_exclusive_or(info, result);
@@ -552,7 +555,8 @@ void parse_inclusive_or(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses an exclusive OR expression. */
+/* Parses an exclusive OR expression.
+ *   ExclusiveOrExp := AndExp | ExclusiveOrExp "^" AndExp */
 void parse_exclusive_or(evalinfo_T *info, value_T *result)
 {
     parse_and(info, result);
@@ -578,7 +582,8 @@ void parse_exclusive_or(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses an AND expression. */
+/* Parses an AND expression.
+ *   AndExp := EqualityExp | AndExp "&" EqualityExp */
 void parse_and(evalinfo_T *info, value_T *result)
 {
     parse_equality(info, result);
@@ -604,7 +609,10 @@ void parse_and(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses an equality expression. */
+/* Parses an equality expression.
+ *   EqualityExp := RelationalExp
+ *                | EqualityExp "==" RelationalExp
+ *                | EqualityExp "!=" RelationalExp */
 void parse_equality(evalinfo_T *info, value_T *result)
 {
     parse_relational(info, result);
@@ -638,7 +646,12 @@ void parse_equality(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses a relational expression. */
+/* Parses a relational expression.
+ *   RelationalExp := ShiftExp
+ *                  | RelationalExp "<" ShiftExp
+ *                  | RelationalExp ">" ShiftExp
+ *                  | RelationalExp "<=" ShiftExp
+ *                  | RelationalExp ">=" ShiftExp */
 void parse_relational(evalinfo_T *info, value_T *result)
 {
     parse_shift(info, result);
@@ -674,7 +687,9 @@ void parse_relational(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses a shift expression. */
+/* Parses a shift expression.
+ *   ShiftExp := AdditiveExp
+ *             | ShiftExp "<<" AdditiveExp | ShiftExp ">>" AdditiveExp */
 void parse_shift(evalinfo_T *info, value_T *result)
 {
     parse_additive(info, result);
@@ -701,7 +716,10 @@ void parse_shift(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses a additive expression. */
+/* Parses a additive expression.
+ *   AdditiveExp := MultiplicativeExp
+ *                | AdditiveExp "+" MultiplicativeExp
+ *                | AdditiveExp "-" MultiplicativeExp */
 void parse_additive(evalinfo_T *info, value_T *result)
 {
     parse_multiplicative(info, result);
@@ -734,7 +752,11 @@ void parse_additive(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses a multiplicative expression. */
+/* Parses a multiplicative expression.
+ *   MultiplicativeExp := PrefixExp
+ *                      | MultiplicativeExp "*" PrefixExp
+ *                      | MultiplicativeExp "/" PrefixExp
+ *                      | MultiplicativeExp "%" PrefixExp */
 void parse_multiplicative(evalinfo_T *info, value_T *result)
 {
     parse_prefix(info, result);
@@ -782,7 +804,11 @@ void parse_multiplicative(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses a prefix expression. */
+/* Parses a prefix expression.
+ *   PrefixExp := PostfixExp
+ *              | "++" PrefixExp | "--" PrefixExp
+ *              | "+" PrefixExp | "-" PrefixExp
+ *              | "~" PrefixExp | "!" PrefixExp */
 void parse_prefix(evalinfo_T *info, value_T *result)
 {
     tokentype_T ttype = info->token.type;
@@ -849,7 +875,9 @@ void parse_prefix(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses a postfix expression. */
+/* Parses a postfix expression.
+ *   PostfixExp := PrimaryExp
+ *               | PostfixExp "++" | PostfixExp "--" */
 void parse_postfix(evalinfo_T *info, value_T *result)
 {
     parse_primary(info, result);
@@ -901,7 +929,8 @@ void do_increment_or_decrement(tokentype_T ttype, value_T *value)
     }
 }
 
-/* Parses a primary expression. */
+/* Parses a primary expression.
+ *   PrimaryExp := "(" AssignmentExp ")" | Number | Identifier */
 void parse_primary(evalinfo_T *info, value_T *result)
 {
     switch (info->token.type) {
@@ -1028,8 +1057,8 @@ void coerce_integer(evalinfo_T *info, value_T *value)
  * If a given value is VT_VAR, it is `coerce_number'ed.
  * Then, if one of the specified values is of VT_LONG and the other is of
  * VT_DOUBLE, the VT_LONG value is converted into VT_DOUBLE.
- * If the both values are of VT_LONG, `VT_LONG' is returned without conversion.
- * If either value is of VT_DOUBLE and the other is not VT_INVALID, `VT_DOUBLE'
+ * If the both values are of VT_LONG, VT_LONG is returned without conversion.
+ * If either value is of VT_DOUBLE and the other is not VT_INVALID, VT_DOUBLE
  * is returned after conversion. If either value is VT_INVALID, the return
  * value is VT_INVALID. This function never returns VT_VAR. */
 valuetype_T coerce_type(evalinfo_T *info, value_T *value1, value_T *value2)

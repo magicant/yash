@@ -63,6 +63,11 @@ typedef struct aliaslist_T {
 	alias_T *alias;
     } list[ALIAS_LIST_MAX];
 } aliaslist_T;
+/* The `aliaslist_T' structure is used to prevent infinite recursive
+ * substitution of an alias. When an alias is substituted, the alias and the end
+ * index of the substituted string are saved in the list. Substitution of the
+ * same alias is not performed before the saved index, thus preventing recursive
+ * substitution. */
 
 static void free_alias(alias_T *alias);
 static inline void vfreealias(kvpair_T kv);
@@ -104,14 +109,14 @@ inline bool is_alias_name_char(wchar_t c)
 }
 
 /* Decreases the reference count of `alias' and, if the count becomes zero,
- * frees it. */
+ * frees it. This function does nothing if `alias' is a null pointer. */
 void free_alias(alias_T *alias)
 {
     if (alias != NULL && --alias->refcount == 0)
 	free(alias);
 }
 
-/* Applies `free_alias' to the value of the pair. */
+/* Applies `free_alias' to the value of key-value pair `kv'. */
 void vfreealias(kvpair_T kv)
 {
     free_alias(kv.value);
@@ -136,7 +141,7 @@ void define_alias(
     alias->valuelen = valuelen;
     if (global)
 	alias->flags |= AF_GLOBAL;
-    if (iswblank(equal[valuelen]))
+    if (iswblank(equal[valuelen]))  // `(equal + 1)[valuelen - 1]'
 	alias->flags |= AF_BLANKEND;
     wmemcpy(alias->value, equal + 1, valuelen);
     alias->value[valuelen] = L'\0';
@@ -146,14 +151,19 @@ void define_alias(
     vfreealias(ht_set(&aliases, alias->value + valuelen + 1, alias));
 }
 
-/* Removes an alias definition with the specified name if any.
+/* Removes the alias definition with the specified name if any.
  * Returns true if the alias definition is successfully removed.
  * Returns false if no alias definition is found to be removed. */
 bool remove_alias(const wchar_t *name)
 {
     alias_T *alias = ht_remove(&aliases, name).value;
-    free_alias(alias);
-    return alias != NULL;
+
+    if (alias != NULL) {
+	free_alias(alias);
+	return true;
+    } else {
+	return false;
+    }
 }
 
 /* Removes all alias definitions. */
@@ -173,7 +183,7 @@ const wchar_t *get_alias_value(const wchar_t *aliasname)
 	return NULL;
 }
 
-/* Returns a new `aliaslist_T' object. */
+/* Creates a new `aliaslist_T' object. */
 aliaslist_T *new_aliaslist(void)
 {
     aliaslist_T *list = xmalloc(sizeof *list);
@@ -181,7 +191,7 @@ aliaslist_T *new_aliaslist(void)
     return list;
 }
 
-/* Creates a copy of the alias list. */
+/* Creates a copy of the specified alias list. */
 aliaslist_T *clone_aliaslist(const aliaslist_T *list)
 {
     aliaslist_T *new = xmalloc(sizeof *new);
@@ -193,7 +203,7 @@ aliaslist_T *clone_aliaslist(const aliaslist_T *list)
     return new;
 }
 
-/* Frees the alias list and its contents. */
+/* Frees the specified alias list and its contents. */
 void destroy_aliaslist(struct aliaslist_T *list)
 {
     for (size_t i = list->count; i > 0; ) {
@@ -204,7 +214,7 @@ void destroy_aliaslist(struct aliaslist_T *list)
 }
 
 
-/* Checks if the alias list contains `alias' */
+/* Checks if the specified alias list contains the specified alias. */
 bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
 {
     for (size_t i = list->count; i > 0; ) {
@@ -230,6 +240,7 @@ bool add_to_aliaslist(aliaslist_T *list, alias_T *alias, size_t limitindex)
     }
 }
 
+/* Removes items whose `limitindex' is less than or equal to `index'. */
 void remove_expired_aliases(aliaslist_T *list, size_t index)
 {
     for (size_t i = list->count; i > 0; ) {
@@ -239,11 +250,13 @@ void remove_expired_aliases(aliaslist_T *list, size_t index)
 	    list->count = i;
 	} else {
 	    break;
+	    /* List items are ordered by index, so we don't have to check all
+	     * the items. */
 	}
     }
 }
 
-/* Increases index of each entry of the list by `inc'. */
+/* Increases the index of each item of the specified list by `inc'. */
 void shift_index(aliaslist_T *list, ptrdiff_t inc)
 {
     for (size_t i = list->count; i > 0; ) {
@@ -252,11 +265,11 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
     }
 }
 
-/* Performs alias substitution at the specified index `i' in the buffer `buf'.
- * If the length of the word to be substitutied is known, it should be given as
- * `len'. Otherwise, `len' must be 0.
- * If `AF_NONGLOBAL' is not in `flags', only global aliases are substituted.
- * If `AF_NORECUR' is not in `flags', substitution is repeated until there is
+/* Performs alias substitution at index `i' in buffer `buf'.
+ * If the length of the substitutied word is known, it should be given as `len'.
+ * Otherwise, `len' must be 0.
+ * If AF_NONGLOBAL is not in `flags', only global aliases are substituted.
+ * If AF_NORECUR is not in `flags', substitution is repeated until there is
  * no more alias applicable.
  * Returns true iff any alias is substituted. */
 bool substitute_alias(xwcsbuf_T *buf, size_t i, size_t len,
@@ -271,6 +284,7 @@ substitute_alias:
 
     size_t j = i + len;
     if (len == 0) {
+	/* count the length of the alias name */
 	while (is_alias_name_char(buf->contents[j]))
 	    j++;
     } else {
@@ -280,7 +294,7 @@ substitute_alias:
 	assert(!is_alias_name_char(buf->contents[j]));
 #endif
     }
-    /* `i' is the starting index and `j' is the ending index of the word */
+    /* `i' is the starting index of the alias name and `j' is the ending index*/
 
     if (i < j && is_token_delimiter_char(buf->contents[j])) {
 	wchar_t savechar = buf->contents[j];
@@ -296,6 +310,7 @@ substitute_alias:
 	    shift_index(list, (ptrdiff_t) alias->valuelen - (ptrdiff_t)(j - i));
 	    subst = true;
 
+	    /* substitute the following word if AF_BLANKEND is set */
 	    /* see note below */
 	    if ((alias->flags & AF_BLANKEND) && !(alias->flags & AF_GLOBAL)) {
 		size_t ii = i + alias->valuelen;
@@ -352,7 +367,7 @@ bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 
 /* Prints an alias definition to stdout if defined.
  * This function is used in the "command" builtin.
- * Returns true iff the non-global alias is defined and printed. */
+ * Returns true iff a non-global alias had been defined and was printed. */
 bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 {
     alias_T *alias = ht_get(&aliases, aliasname).value;

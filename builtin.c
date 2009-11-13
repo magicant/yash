@@ -61,9 +61,9 @@
  * - `argc' passed to a builtin is at least one; The command name is given in
  *   `argv[0]'.
  * - `argv' may be rearranged and the values of the argument strings may be
- *   changed in builtins. However, the argument strings may not be `free'd or
+ *   changed in the builtin. However, the argument strings may not be `free'd or
  *   `realloc'ed.
- * - Builtins may sleep/wait, but cannot be stopped. */
+ * - Builtins may sleep or wait, but cannot be stopped. */
 
 
 /* A hashtable from names of builtins (const char *) to builtin info structures
@@ -189,8 +189,7 @@ void init_builtin(void)
 #undef DEFBUILTIN
 }
 
-/* Returns the builtin command of the specified name
- * or NULL if not found. */
+/* Returns the builtin command of the specified name or NULL if not found. */
 const builtin_T *get_builtin(const char *name)
 {
     return ht_get(&builtins, name).value;
@@ -198,9 +197,9 @@ const builtin_T *get_builtin(const char *name)
 
 #if YASH_ENABLE_HELP
 
-/* Prints usage description of the specified builtin to stdout.
- * Returns Exit_SUCCESS iff the builtin is found and the help is printed.
- * Returns Exit_FAILURE if the builtin is not found or an error occurred. */
+/* Prints description of the specified builtin to stdout.
+ * Returns Exit_SUCCESS if the builtin was found and the help was printed.
+ * Returns Exit_FAILURE if the builtin was not found or an error occurred. */
 int print_builtin_help(const wchar_t *name)
 {
     char *mbsname = malloc_wcstombs(name);
@@ -221,14 +220,14 @@ int print_builtin_help(const wchar_t *name)
 #endif /* YASH_ENABLE_HELP */
 
 
-/* ":"/"true" builtin */
+/* The ":"/"true" builtin */
 int true_builtin(
 	int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
     return EXIT_SUCCESS;
 }
 
-/* "false" builtin */
+/* The "false" builtin */
 int false_builtin(
 	int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {

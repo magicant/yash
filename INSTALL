@@ -1,37 +1,37 @@
 How to Build and Install Yash
 
 
-A normal way to build and install Yash is:
+A normal way to build and install yash is:
 
   1. In your shell, `cd' to the directory containing this file.
 
   2. Type `sh configure' to run the configuration script. This script
      checks which features are available on your system and creates
-     files to build Yash.
+     files to build yash.
 
-  3. Type `make' to build Yash.
+  3. Type `make' to build yash.
 
-  4. Optionally, type `make test' to check if Yash works right.
+  4. Optionally, type `make check' to check if yash works right.
 
-  5. Type `make install' to install yash. By default, Yash is installed
+  5. Type `make install' to install yash. By default, yash is installed
      at /usr/local/bin/yash.
 
-The `configure' script chooses a compiler to compile Yash. The default
+The `configure' script chooses a compiler to compile yash. The default
 compiler command is `c99', which is a standard C compiler defined in
 POSIX.
 
-The `configure' script accepts following options, which affect the
-way Yash is built and installed:
+The `configure' script accepts following options that affect the
+way yash is built and installed:
 
   --debug
           Lower the optimization level of the compiler to make it easy
-          to debug Yash. Available only when using GCC.
+          to debug yash. Available only when using GCC.
   --no-undefined
           Inhibit any operation whose result is not defined in the
           standards.
 
   --bindir=DIR
-          Install Yash in DIR, rather than /usr/local/bin.
+          Install yash in DIR, rather than /usr/local/bin.
 
   --enable-X, --disable-X
           Enable or disable the feature X, where X is the name of a
@@ -41,7 +41,7 @@ way Yash is built and installed:
 Following environment variables override `configure' script's choices:
 
   CC
-          The name of Compiler/linker.
+          The name of the compiler/linker.
   CFLAGS
           Options given to the compiler.
   LDFLAGS
@@ -62,7 +62,7 @@ Type `./configure --help' to see a brief instruction of `configure'.
 Typing `make uninstall' uninstalls the program.
 Typing `make clean' deletes object files and executables.
 Typing `make distclean' deletes any files that are made by `configure'
-and during build.
+and the build process.
 
 
 ======================================================================
@@ -70,8 +70,9 @@ and during build.
 Below is a list of preprocessor macros that are recognized during
 compilation. These macros can be additionally defined by hand in
 "config.h" for further configuration.
-To enable an option, define the corresponding macro as a non-zero
-integer. To disable, define the macro as zero or leave it undefined.
+To enable an on/off option, define the corresponding macro as a non-
+zero integer. To disable, define the macro as zero or leave it
+undefined.
 The list below does not contain macros that are set by the `configure'
 script.
 
@@ -107,7 +108,7 @@ interactive shell which tries to change a signal handler which has
 been set to "ignore the signal" when the shell is invoked.
 If this macro is set to non-zero, the "trap" command results in an
 error. Otherwise, the command returns the exit status of success.
-Note that the signal handler is not changed in such cases whether
+Note that the signal handler is not changed regardless of whether
 this macro is defined or not.
 
 #define FG_DONT_SAVE_TERMINAL 1
