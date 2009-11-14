@@ -334,7 +334,7 @@ c\
 2\
 (\
 )\
-  # splitted function def.
+  # split function def.
 (echo line concatenation ok \(func\))
 
 func2

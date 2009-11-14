@@ -53,6 +53,7 @@ static bool expand_word_and_split(
 	const wordunit_T *restrict w, plist_T *restrict list)
     __attribute__((nonnull(2)));
 
+/* data passed between expansion functions */
 struct expand_word_T {
     plist_T *valuelist, *splitlist;
     xwcsbuf_T valuebuf;
@@ -64,9 +65,8 @@ static bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull(4)));
-static bool expand_word_inner(
-	const wordunit_T *restrict w, tildetype_T tilde, bool quoted, bool rec,
-	struct expand_word_T *e)
+static bool expand_word_inner(const wordunit_T *restrict w,
+	tildetype_T tilde, bool quoted, bool rec, struct expand_word_T *e)
     __attribute__((nonnull(5)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
@@ -123,7 +123,7 @@ static inline void add_sq(
 static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
     __attribute__((nonnull));
 
-static void do_glob_each(void **restrict patterns, plist_T *restrict list)
+static void glob_all(void **restrict patterns, plist_T *restrict list)
     __attribute__((nonnull));
 static enum wglbflags get_wglbflags(void)
     __attribute__((pure));
@@ -139,7 +139,7 @@ static enum wglbflags get_wglbflags(void)
  * its elements are newly malloced wide strings.
  * If successful, true is returned and `*argcp' and `*argvp' are assigned to.
  * If unsuccessful, false is returned and the values of `*argcp' and `*argvp'
- * are unspecified.
+ * are indeterminate.
  * On error in a non-interactive shell, the shell exits. */
 bool expand_line(void *const *restrict args,
     int *restrict argcp, void ***restrict argvp)
@@ -165,7 +165,7 @@ bool expand_line(void *const *restrict args,
 	    list2.contents[i] = unescapefree(list2.contents[i]);
     } else {
 	pl_init(&list2);
-	do_glob_each(pl_toary(&list1), &list2);
+	glob_all(pl_toary(&list1), &list2);
     }
 
     *argcp = list2.length;
@@ -173,7 +173,9 @@ bool expand_line(void *const *restrict args,
     return true;
 }
 
-/* Does four expansions, brace expansion and field splitting in a word.
+/* Does the four expansions, brace expansion and field splitting in a word.
+ * The four expansions are tilde expansion, parameter expansion, command
+ * substitution and arithmetic expansion.
  * Returns true iff successful. The resulting words are added to `list', which
  * may include backslash escapes.
  * Tilde expansion is performed with `tt_single'. */
@@ -208,11 +210,11 @@ bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
     return true;
 }
 
-/* Expands a single word: four expansions and quote removal.
+/* Expands a single word: the four expansions and quote removal.
  * This function doesn't perform brace expansion, field splitting, globbing and
  * unescaping.
- * If successful, the resulting word is returned as a newly malloced string,
- * which may include backslash escapes.
+ * If successful, the resulting word is returned as a newly malloced string
+ * that may include backslash escapes.
  * On error, an error message is printed and NULL is returned.
  * On error in a non-interactive shell, the shell exits. */
 wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
@@ -240,13 +242,13 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     return result;
 }
 
-/* Expands a single word: four expansions, glob, quote removal and unescape.
+/* Expands a single word: the four expansions, glob, quote removal and unescape.
  * This function doesn't perform brace expansion and field splitting.
- * If the result of glob is more than one,
- *   - returns the pre-glob pattern string if `posixly_correct' is true, or
- *   - treats as an error if `posixly_correct' is false.
- * If `shopt_noglob' is true, glob is not performed.
- * `shopt_nullglob' is ignored.
+ * If the result of glob is more than one word,
+ *   - returns the pre-glob pattern string if in the POSIXly correct mode, or
+ *   - treats as an error if not.
+ * If the "noglob" option is true, glob is not performed.
+ * The "nullglob" option is ignored.
  * If successful, the resulting word is returned as a newly malloced string.
  * On error, an error message is printed and NULL is returned.
  * On error in a non-interactive shell, the shell exits. */
@@ -295,7 +297,7 @@ noglob:
     return result;
 }
 
-/* Does expansions in a string: parameter/arithmetic/command expansions.
+/* Performs expansions in a string: parameter/arithmetic/command expansions.
  * Brace expansion, field splitting and glob are not performed.
  * If `esc' is true, backslashes preceding $, `, \ are removed. Otherwise,
  * no quotations are removed.
@@ -358,9 +360,11 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 
 /********** Four Expansions **********/
 
-/* Does four expansions in a single word.
+/* Performs the four expansions in the specified single word.
+ * The four expansions are tilde expansion, parameter expansion, command
+ * substitution and arithmetic expansion.
  * `w' is the word in which expansions occur.
- * `tilde' is type of tilde expansion that occurs.
+ * `tilde' is type of tilde expansion that is performed.
  * If `quoted' is true, the expanded words are all backslashed as if the entire
  * expansion is quoted.
  * The expanded word is added to `valuelist' as a newly malloced wide string.
@@ -369,6 +373,9 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
  * In most case, one string is added to each of `valuelist' and `splitlist'.
  * If the word contains "$@", the result may be any number of strings.
  * The return value is true iff successful. */
+/* A splittability string is an array of Boolean values that specifies where
+ * field splitting can be done in a word. Iff the nth value of the splittability
+ * string of a word is non-zero, the word can be split at the nth character. */
 bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
@@ -387,9 +394,8 @@ bool expand_word(
     if (expand.splitlist)
 	assert(expand.valuebuf.length == expand.splitbuf.length);
 
-    /* A quoted empty word, if any, is added to the list here.
-     * It is indicated by the `putempty' flag, which is set when a quote is
-     * found. */
+    /* A quoted empty word, if any, is added to the list here. It is indicated
+     * by the `putempty' flag that is set when a quote is found. */
     if (expand.valuebuf.length > 0 || expand.putempty) {
 	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
 	if (expand.splitlist)
@@ -403,12 +409,12 @@ bool expand_word(
     return ok;
 }
 
-/* Does four expansions in a single word.
+/* Performs the four expansions in the specified single word.
  * `w' is the word in which expansions occur.
- * `tilde' specifies the type of tilde expansion that occurs.
+ * `tilde' specifies the type of tilde expansion that is performed.
  * If `quoted' is true, the expanded words are all backslashed as if the entire
  * expansion is quoted.
- * `rec' is true if this expansion is part of another expansion.
+ * `rec' must be true iff this expansion is part of another expansion.
  * `e->valuebuf' must be initialized before calling this function and is used to
  * expand the current word. If `w' expands to multiple words, the last word is
  * put in `e->valuebuf' and the others are inserted to `e->valuelist'.
@@ -416,9 +422,8 @@ bool expand_word(
  * accordingly if `e->splitlist' is non-NULL.
  * Single- or double-quoted characters are unquoted and backslashed.
  * The return value is true iff successful. */
-bool expand_word_inner(
-	const wordunit_T *restrict w, tildetype_T tilde, bool quoted, bool rec,
-	struct expand_word_T *e)
+bool expand_word_inner(const wordunit_T *restrict w,
+	tildetype_T tilde, bool quoted, bool rec, struct expand_word_T *e)
 {
     bool ok = true;
     bool indq = false;  /* in a doublequote? */
@@ -471,6 +476,7 @@ bool expand_word_inner(
 		    }
 		case L':':
 		    if (!indq && tilde == tt_multi) {
+			/* perform tilde expansion after a colon */
 			wb_wccat(&e->valuebuf, L':');
 			ss++;
 			s = expand_tilde(&ss, w->next, tilde);
@@ -519,12 +525,12 @@ cat_s:
     return ok;
 }
 
-/* Does tilde expansion.
+/* Performs tilde expansion.
  * `ss' is a pointer to a pointer to the tilde character. The pointer is
  * increased so that it points to the character right after the expanded string.
  * The string pointed by the pointer pointed by `ss' should be contents of a
  * word unit of type WT_STRING. Iff there is a next word unit, `hasnextwordunit'
- * should be true.
+ * must be true.
  * If `**ss' is not L'~' or expansion fails, this function has no side effects
  * and returns NULL. If successful, `*ss' is incremented and the result is
  * returned as a newly malloced string. */
@@ -590,16 +596,9 @@ finish:
     return xwcsdup(home);
 }
 
-/* Does a parameter expansion.
- * If successful, the result is returned as a newly malloced array of pointers
- * to newly malloced wide strings cast to (void *). The array is
- * NULL-terminated.
- * Characters in the strings that are contained in `CHARS_ESCAPED' are
- * backslashed.
- * If "$@" is expanded or the result is an array, the returned array may
- * contain any number of strings. Otherwise, the array contains one string.
- * If "$*" is expanded, the result is a single concatenated string.
- * On error, NULL is returned. */
+/* Performs parameter expansion.
+ * The result is put in `e'.
+ * Returns true iff successful. */
 bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 {
     struct get_variable v;
@@ -611,29 +610,29 @@ bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
     wchar_t *match, *subst;
     enum indextype_T indextype;
 
-    /* parse indexes first */
+    /* parse indices first */
     if (!p->pe_start) {
 	startindex = 0, endindex = SSIZE_MAX, indextype = idx_none;
     } else {
-	wchar_t *e = expand_single(p->pe_start, tt_none);
-	if (!e)
+	wchar_t *start = expand_single(p->pe_start, tt_none);
+	if (!start)
 	    return false;
-	indextype = parse_indextype(e);
+	indextype = parse_indextype(start);
 	if (indextype != idx_none) {
 	    startindex = 0, endindex = SSIZE_MAX;
-	    free(e);
+	    free(start);
 	    if (p->pe_end) {
 		xerror(0, Ngt("invalid parameter index"));
 		return false;
 	    }
+	} else if (!evaluate_index(start, &startindex)) {
+	    return false;
 	} else {
-	    if (!evaluate_index(e, &startindex))
-		return false;
 	    if (!p->pe_end) {
 		endindex = (startindex == -1) ? SSIZE_MAX : startindex;
 	    } else {
-		e = expand_single(p->pe_end, tt_none);
-		if (!e || !evaluate_index(e, &endindex))
+		wchar_t *end = expand_single(p->pe_end, tt_none);
+		if (!end || !evaluate_index(end, &endindex))
 		    return false;
 	    }
 	    if (startindex == 0)
@@ -667,7 +666,7 @@ bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 	if (v.type != GV_NOTFOUND) {
 	    unset = false;
 	} else {
-	    /* if parameter is not set, return empty string */
+	    /* if the variable is not set, return empty string */
 	    v.type = GV_SCALAR;
 	    v.count = 1;
 	    v.values = xmalloc(2 * sizeof *v.values);
@@ -783,8 +782,8 @@ subst:
 		return false;
 	    } else if ((v.type == GV_ARRAY_CONCAT)
 		    || (v.type == GV_ARRAY && startindex + 1 != endindex)) {
-		xerror(0, Ngt("cannot assign to array range `%ls[...]' "
-			    "in parameter expansion"),
+                xerror(0, Ngt("cannot assign to an element of array `%ls' "
+                            "in parameter expansion: invalid index"),
 			p->pe_name);
 		return false;
 	    }
@@ -928,9 +927,8 @@ wchar_t *expand_param_simple(const paramexp_T *p)
 
     bool ok = expand_param(p, false, &expand);
 
-    /* A quoted empty word, if any, is added to the list here.
-     * It is indicated by the `putempty' flag, which is set when a quote is
-     * found. */
+    /* A quoted empty word, if any, is added to the list here. It is indicated
+     * by the `putempty' flag, which is set when a quote is found. */
     if (expand.valuebuf.length > 0 || expand.putempty) {
 	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
     } else {
@@ -1041,6 +1039,7 @@ void print_subst_as_error(const paramexp_T *p)
 	    free(subst);
 	}
     } else {
+	/* use the default error message */
 	if (p->pe_type & PT_NEST)
 	    xerror(0, Ngt("parameter null"));
 	else
@@ -1051,11 +1050,12 @@ void print_subst_as_error(const paramexp_T *p)
     }
 }
 
-/* Matches each string in the array to the specified pattern and removes the
+/* Matches each string in array `slist' to pattern `pattern' and removes the
  * matching portions.
  * `slist' is a NULL-terminated array of pointers to `free'able wide strings.
  * `type' must contain at least one of PT_MATCHHEAD, PT_MATCHTAIL and
- * PT_MATCHLONGEST.
+ * PT_MATCHLONGEST. If both of PT_MATCHHEAD and PT_MATCHTAIL are specified,
+ * PT_MATCHLONGEST must be specified too.
  * Elements of `slist' may be modified and/or `realloc'ed in this function. */
 void match_each(void **slist, const wchar_t *pattern, paramexptype_T type)
 {
@@ -1084,8 +1084,8 @@ void match_each(void **slist, const wchar_t *pattern, paramexptype_T type)
     xfnm_free(xfnm);
 }
 
-/* Matches each string in the array to the specified pattern and substitutes the
- * matching portions with `subst'.
+/* Matches each string in array `slist' to pattern `pattern' and substitutes
+ * the matching portions with `subst'.
  * `slist' is a NULL-terminated array of pointers to `free'able wide strings.
  * `type' may contain PT_MATCHHEAD, PT_MATCHTAIL and PT_SUBSTALL.
  * PT_MATCHLONGEST is always assumed to be specified.
@@ -1110,8 +1110,8 @@ void subst_each(void **slist, const wchar_t *pattern, const wchar_t *subst,
     xfnm_free(xfnm);
 }
 
-/* Substitutes each string in the array with a string that contains the number
- * of characters in the original string.
+/* Substitutes each string in the specified array with a string that contains
+ * the number of characters in the original string.
  * `slist' is a NULL-terminated array of pointers to `free'able wide strings.
  * The strings are `realloc'ed and modified in this function. */
 void subst_length_each(void **slist)
@@ -1125,9 +1125,10 @@ void subst_length_each(void **slist)
 
 /********** Brace Expansions **********/
 
-/* Does brace expansion in each element of the specified array.
+/* Performs brace expansion on each element of the specified array.
  * `values' is an array of pointers to `free'able wide strings to be expanded.
  * `splits' is an array of pointers to `free'able splittability strings.
+ * `values' and 'splits' must contain the same number of elements.
  * Both the arrays must be NULL-terminated and their elements are freed in this
  * function. The arrays themselves are not freed.
  * Newly malloced results are added to `valuelist' and `splitlist'. */
@@ -1141,18 +1142,15 @@ void expand_brace_each(void **restrict values, void **restrict splits,
     }
 }
 
-/* Does brace expansion in a single word.
- * `word' is freed in this function. `split' is a splittability string
- * corresponding to `word' and is also freed.
- * Newly malloced results are added to `valuelist' and `splitlist'. */
+/* Performs brace expansion on the specified single word.
+ * `split' is the splittability string corresponding to `word'.
+ * `word' and `split' are freed in this function.
+ * `Free'able results are added to `valuelist' and `splitlist'. */
 void expand_brace(wchar_t *restrict const word, char *restrict const split,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
-    plist_T elemlist;
-    wchar_t *c;
-    unsigned nest;
+    wchar_t *c = word;
 
-    c = word;
 start:
     c = escaped_wcspbrk(c, L"{");
     if (!c || !*++c) {
@@ -1164,7 +1162,11 @@ start:
 	return;
     }
 
-    /* add all expanded elements to `elemlist' */
+    plist_T elemlist;
+    unsigned nest;
+
+    /* collect pointers to the split elements in `elemlist' */
+    /* The pointers point to the character after L'{', L',' or L'}'. */
     pl_init(&elemlist);
     pl_add(&elemlist, c);
     nest = 0;
@@ -1200,26 +1202,24 @@ done:;
 #define idx(p)  ((wchar_t *) (p) - word)
 #define wtos(p) (split + idx(p))
     size_t lastelemindex = elemlist.length - 1;
-    size_t headlength = idx(elemlist.contents[0]) - 1;
-    size_t lastlen = wcslen(elemlist.contents[lastelemindex]);
+    size_t headlen = idx(elemlist.contents[0]) - 1;
+    size_t taillen = wcslen(elemlist.contents[lastelemindex]);
     for (size_t i = 0; i < lastelemindex; i++) {
 	xwcsbuf_T buf;
 	xstrbuf_T sbuf;
 	wb_init(&buf);
 	sb_init(&sbuf);
 
-	wb_ncat(&buf, word, headlength);
-	sb_ncat_force(&sbuf, split, headlength);
+	wb_ncat_force(&buf, word, headlen);
+	sb_ncat_force(&sbuf, split, headlen);
 
-	wb_ncat(&buf, elemlist.contents[i],
-		(wchar_t *) elemlist.contents[i + 1] -
-		(wchar_t *) elemlist.contents[i    ] - 1);
-	sb_ncat_force(&sbuf, wtos(elemlist.contents[i]),
-		(wchar_t *) elemlist.contents[i + 1] -
-		(wchar_t *) elemlist.contents[i    ] - 1);
+	size_t len = (wchar_t *) elemlist.contents[i + 1] -
+	             (wchar_t *) elemlist.contents[i    ] - 1;
+	wb_ncat_force(&buf, elemlist.contents[i], len);
+	sb_ncat_force(&sbuf, wtos(elemlist.contents[i]), len);
 
-	wb_ncat_force(&buf, elemlist.contents[lastelemindex], lastlen);
-	sb_ncat_force(&sbuf, wtos(elemlist.contents[lastelemindex]), lastlen);
+	wb_ncat_force(&buf, elemlist.contents[lastelemindex], taillen);
+	sb_ncat_force(&sbuf, wtos(elemlist.contents[lastelemindex]), taillen);
 	assert(buf.length == sbuf.length);
 
 	/* expand the remaining portion recursively */
@@ -1303,18 +1303,20 @@ bool tryexpand_brace_sequence(
 	wb_init(&buf);
 	sb_init(&sbuf);
 
-	wb_ncat(&buf, word, startc - 1 - word);
+	wb_ncat_force(&buf, word, startc - 1 - word);
 	sb_ncat_force(&sbuf, split, startc - 1 - word);
 
 	int plen = wb_wprintf(&buf, sign ? L"%0+*ld" : L"%0*ld", len, value);
 	if (plen > 0)
 	    sb_ccat_repeat(&sbuf, 0, plen);
 
-	wb_cat(&buf, bracep + 1);
-	sb_ncat_force(&sbuf,
-		split + (bracep + 1 - word),
+	wb_ncat_force(&buf,
+		bracep + 1,
 		wordlen - (bracep + 1 - word));
-	assert(buf.length == sbuf.length || plen < 0);
+	sb_ncat_force(&sbuf,
+		split   + (bracep + 1 - word),
+		wordlen - (bracep + 1 - word));
+	assert(buf.length == sbuf.length);
 
 	/* expand the remaining portion recursively */
 	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
@@ -1344,60 +1346,70 @@ bool has_leading_zero(const wchar_t *s, bool *sign)
 }
 
 
-/********** Word Splitting **********/
+/********** Field Splitting **********/
 
-/* Performs word splitting.
- * `str' is the word to split and freed in this function.
- * `split' is the splittability string corresponding to `str' and also freed.
- * The results are added to `dest' as newly malloced wide strings.
+/* Performs field splitting.
+ * `s' is the word to split and freed in this function.
+ * `split' is the splittability string corresponding to `s' and also freed.
+ * The results are added to `dest' as newly-malloced wide strings.
  * `ifs' must not be NULL.
  * The word is split at characters that are contained in `ifs' and whose
  * corresponding character in the splittability string is non-zero. */
+/* Field are split at characters that are contained in `ifs'. If an empty field
+ * is split by white spaces, the field is ignored.
+ * Split examples (assuming `ifs' = L" -")
+ *   " abc 123 "         ->   "abc" "123"
+ *   "  abc  123  "      ->   "abc" "123"
+ *   "-abc-123-"         ->   "" "abc" "123" ""
+ *   " - abc - 123 - "   ->   "" "abc" "123" ""
+ *   "abc--123"          ->   "abc" "" "123"
+ *   "abc - - 123"       ->   "abc" "" "123"
+ */
 void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
-    size_t index = 0, charindex = 0, startindex = 0;
+    size_t index = 0;
+    size_t lwstart = 0, lwend;  /* start/end index of last word */
 
     for (;;) {
-	charindex = index;
+	lwend = index;
 	if (s[index] == L'\\')
 	    index++;
-	if (!s[index])
+	if (s[index] == L'\0')
 	    break;
 	if (split[index] && wcschr(ifs, s[index])) {
 	    /* the character is in `ifs', so do splitting */
-	    bool splitonnonspace = false, nonspace = false;
-	    if (startindex < charindex)
-		pl_add(dest, xwcsndup(s + startindex, charindex - startindex));
+	    bool splitatnonspace = false, nonspace = false;
+	    if (lwstart < lwend)
+		pl_add(dest, xwcsndup(s + lwstart, lwend - lwstart));
 	    else
-		splitonnonspace = true;
+		splitatnonspace = true;
 	    do {
 		if (!iswspace(s[index])) {
-		    if (splitonnonspace)
+		    if (splitatnonspace)
 			pl_add(dest, xwcsdup(L""));
-		    splitonnonspace = true;
+		    splitatnonspace = true;
 		    nonspace = true;
 		}
 		index++;
-		charindex = index;
 		if (s[index] == L'\\')
 		    index++;
 		if (!s[index]) {
-		    if (nonspace && startindex < charindex)
+		    if (nonspace)
 			pl_add(dest, xwcsdup(L""));
 		    break;
 		}
 	    } while (split[index] && wcschr(ifs, s[index]));
-	    startindex = index;
+	    lwstart = index;
 	} else {
 	    index++;
 	}
     }
-    if (startindex < charindex || charindex == 0) {
+    if (lwstart < lwend || lwend == 0) {
 	/* if we have some leftover or the string is empty at all, add it. */
-	if (startindex > 0) {
+	if (lwstart > 0) {
 	    xwcsbuf_T buf;
-	    s = wb_towcs(wb_remove(wb_initwith(&buf, s), 0, startindex));
+	    s = wb_towcs(wb_remove(wb_initwith(&buf, s), 0, lwstart));
 	}
 	pl_add(dest, s);
     } else {
@@ -1406,7 +1418,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
     free(split);
 }
 
-/* Performs word splitting.
+/* Performs field splitting.
  * `valuelist' is a NULL-terminated array of pointers to wide strings to split.
  * `splitlist' is an array of pointers to corresponding splittability strings.
  * `valuelist' and `splitlist' are `recfree'ed in this function.
@@ -1414,20 +1426,17 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
 	plist_T *restrict dest)
 {
-    void **s = valuelist, **t = splitlist;
     const wchar_t *ifs = getvar(L VAR_IFS);
     if (!ifs)
 	ifs = DEFAULT_IFS;
-    while (*s) {
+    for (void **restrict s = valuelist, **restrict t = splitlist; *s; s++, t++)
 	fieldsplit(*s, *t, ifs, dest);
-	s++, t++;
-    }
     free(valuelist);
     free(splitlist);
 }
 
 /* Extracts a field starting at `**sp'.
- * The pointer `*sp' is advanced to the first character of the next field or
+ * Pointer `*sp' is advanced to the first character of the next field or
  * to the end of string (L'\0') if none. If `**sp' is already L'\0', an empty
  * string is returned.
  * If `ifs' is NULL, the default separator is used.
@@ -1482,7 +1491,7 @@ end:
 }
 
 /* Removes IFS white spaces at the end of the string `s' by replacing them with
- * null characters. */
+ * null characters. The default IFS is used if `ifs' is NULL. */
 void trim_trailing_ifsws(wchar_t *s, const wchar_t *ifs)
 {
     wchar_t *const base = s;
@@ -1502,8 +1511,9 @@ void trim_trailing_ifsws(wchar_t *s, const wchar_t *ifs)
 
 /********** Escaping **********/
 
-/* Unquote single quotes in a string and adds it to the specified buffer.
- * `ss' is a pointer to a pointer to the opening quote.
+/* Unquotes the specified singlequoted string and adds it to the specified
+ * buffer.
+ * `ss' is a pointer to a pointer to the opening quote in the string.
  * `ss' is incremented so that it points to the closing quote.
  * If `escape' is true, all the characters added are backslashed. */
 void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
@@ -1526,7 +1536,7 @@ void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
 }
 
 /* Backslashes characters in `s' that are contained in `t'.
- * Returns a newly malloced wide string.
+ * Returns a newly-malloced wide string.
  * `t' may be NULL, in which case all the characters are backslashed. */
 wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
 {
@@ -1596,7 +1606,7 @@ wchar_t *quote_sq(const wchar_t *s)
 	if (*s != L'\'') {
 	    wb_wccat(&buf, *s);
 	} else {
-	    wb_cat(&buf, L"'\\''");
+	    wb_ncat_force(&buf, L"'\\''", 4);
 	}
 	s++;
     }
@@ -1671,11 +1681,11 @@ enum wglbflags get_wglbflags(void)
     return flags;
 }
 
-/* Performs file name expansion to each pattern.
- * `patterns' is a NULL-terminated array of pointers to wide strings cast to
- * (void *). `patterns' is `recfree'd in this function.
- * The results are added to `list' as newly malloced wide strings. */
-void do_glob_each(void **restrict patterns, plist_T *restrict list)
+/* Performs file name expansion to the specified patterns.
+ * `patterns' is a NULL-terminated array of pointers to `free'able wide strings
+ * cast to (void *). `patterns' is `recfree'd in this function.
+ * The results are added to `list' as newly-malloced wide strings. */
+void glob_all(void **restrict patterns, plist_T *restrict list)
 {
     void **const savepatterns = patterns;
     enum wglbflags flags = get_wglbflags();
@@ -1695,7 +1705,7 @@ void do_glob_each(void **restrict patterns, plist_T *restrict list)
 		goto addpattern;
 	    free(pat);
 	} else {
-	    /* if the pattern doesn't contain characters like L'*' and L'?',
+	    /* If the pattern doesn't contain characters like L'*' and L'?',
 	     * we don't need to glob. */
 addpattern:
 	    pl_add(list, unescapefree(pat));
@@ -1710,13 +1720,14 @@ addpattern:
 
 /********** Auxiliary functions **********/
 
-/* Performs parameter expansions, command substitutions in "$(...)" form and
- * arithmetic expansions in the specified string.
+/* Performs parameter expansion, command substitution of the form "$(...)", and
+ * arithmetic expansion in the specified string.
  * If `name' is non-NULL, it is printed in error messages on error.
  * If `esc' is true, backslashes preceding $, `, \ are removed. Otherwise,
  * no quotations are removed.
  * Returns a newly malloced string if successful. Otherwise NULL is returned.
- * This function is not reentrant in itself. */
+ * This function uses the parser, so the parser state must have been saved if
+ * this function is called during another parse. */
 wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 {
     struct input_wcs_info winfo = {
