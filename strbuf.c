@@ -267,34 +267,6 @@ int sb_printf(xstrbuf_T *restrict buf, const char *restrict format, ...)
     return result;
 }
 
-/* Appends the result of `strftime' to the end of a string buffer.
- * The result of formatting must not be an empty string.
- * Returns the number of the appended characters. */
-size_t sb_strftime(xstrbuf_T *restrict buf,
-	const char *restrict format, const struct tm *restrict tm)
-{
-    /* try with a 40-byte-long buffer. */
-    char result[40];
-    size_t count = strftime(result, sizeof result, format, tm);
-    if (count) {
-	sb_ncat_force(buf, result, count);
-	return count;
-    }
-
-    /* if 40 bytes are too small, retry with a longer buffer. */
-    size_t len = sizeof result;
-    do {
-	len *= 2;
-	sb_ensuremax(buf, buf->length + len);
-	count = strftime(buf->contents + buf->length,
-		buf->maxlength - buf->length + 1,
-		format,
-		tm);
-    } while (count == 0);
-    buf->length += count;
-    return count;
-}
-
 
 /********** Wide String Buffer **********/
 

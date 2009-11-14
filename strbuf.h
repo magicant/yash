@@ -97,10 +97,6 @@ extern int sb_vprintf(
 extern int sb_printf(
 	xstrbuf_T *restrict buf, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
-extern size_t sb_strftime(
-	xstrbuf_T *restrict buf,
-	const char *restrict format, const struct tm *restrict tm)
-    __attribute__((nonnull,format(strftime,2,0)));
 
 extern xwcsbuf_T *wb_init(xwcsbuf_T *buf)
     __attribute__((nonnull));
