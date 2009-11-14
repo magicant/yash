@@ -70,26 +70,6 @@ plist_T *pl_initwithmax(plist_T *list, size_t max)
     return list;
 }
 
-/* Frees a pointer list, abandoning the contents.
- * Note that the list elements are not `free'd in this function. */
-void pl_destroy(plist_T *list)
-{
-    free(list->contents);
-}
-
-/* Frees a pointer list and returns the contents.
- * The caller must `free' the return value and its elements if needed.
- * This function does not change the value of `list->length'. The other members
- * of `*list' are no longer valid after this function.
- * If all the elements are pointers to a byte string, the return value can be
- * safely cast to (char **). */
-void **pl_toary(plist_T *list)
-{
-    if (list->maxlength - list->length > 10)
-	pl_setmax(list, list->length);
-    return list->contents;
-}
-
 /* Changes `list->maxlength'.
  * If `newmax' is less than the current length of the list, the end of
  * the pointer list is truncated. */

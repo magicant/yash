@@ -41,7 +41,7 @@ extern xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
     __attribute__((nonnull));
 static inline void sb_destroy(xstrbuf_T *buf)
     __attribute__((nonnull));
-extern char *sb_tostr(xstrbuf_T *buf)
+static inline char *sb_tostr(xstrbuf_T *buf)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
     __attribute__((nonnull));
@@ -104,7 +104,7 @@ extern xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
     __attribute__((nonnull));
 static inline void wb_destroy(xwcsbuf_T *buf)
     __attribute__((nonnull));
-extern wchar_t *wb_towcs(xwcsbuf_T *buf)
+static inline wchar_t *wb_towcs(xwcsbuf_T *buf)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
     __attribute__((nonnull));
@@ -185,6 +185,13 @@ void sb_destroy(xstrbuf_T *buf)
     free(buf->contents);
 }
 
+/* Frees a multibyte string buffer and returns the contents.
+ * The caller must `free' the return value. */
+char *sb_tostr(xstrbuf_T *buf)
+{
+    return buf->contents;
+}
+
 /* Inserts the first `n' bytes of a multibyte string `s' at the offset `i'
  * in the buffer `buf'.
  * No boundary checks are done and a null character is not considered special.
@@ -259,6 +266,13 @@ xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
 void wb_destroy(xwcsbuf_T *buf)
 {
     free(buf->contents);
+}
+
+/* Frees a wide string buffer and returns the contents.
+ * The caller must `free' the return value. */
+wchar_t *wb_towcs(xwcsbuf_T *buf)
+{
+    return buf->contents;
 }
 
 /* Inserts the first `n' characters of a wide string `s'

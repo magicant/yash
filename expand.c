@@ -152,7 +152,7 @@ bool expand_line(void *const *restrict args,
 	if (!expand_word_and_split(*args, &list1)) {
 	    if (!is_interactive)
 		exit_shell_with_status(Exit_EXPERROR);
-	    pl_destroy(pl_clear(&list1, free));
+	    recfree(pl_toary(&list1), free);
 	    return false;
 	}
 	args++;
@@ -187,8 +187,8 @@ bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
 
     /* four expansions (w -> list1) */
     if (!expand_word(w, tt_single, false, &valuelist1, &splitlist1)) {
-	pl_destroy(pl_clear(&valuelist1, free));
-	pl_destroy(pl_clear(&splitlist1, free));
+	recfree(pl_toary(&valuelist1), free);
+	recfree(pl_toary(&splitlist1), free);
 	return false;
     }
 
@@ -226,7 +226,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     if (!expand_word(arg, tilde, false, &list, NULL)) {
 	if (!is_interactive)
 	    exit_shell_with_status(Exit_EXPERROR);
-	pl_destroy(pl_clear(&list, free));
+	recfree(pl_toary(&list), free);
 	return NULL;
     }
     if (list.length != 1) {
@@ -234,7 +234,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 	const wchar_t *ifs = getvar(L VAR_IFS);
 	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	result = joinwcsarray(list.contents, padding);
-	pl_destroy(pl_clear(&list, free));
+	recfree(pl_toary(&list), free);
     } else {
 	result = list.contents[0];
 	pl_destroy(&list);
@@ -273,7 +273,7 @@ noglob:
 	set_interruptible_by_sigint(false);
 	if (!ok) {
 	    free(exp);
-	    pl_destroy(pl_clear(&list, free));
+	    recfree(pl_toary(&list), free);
 	    xerror(EINTR, Ngt("redirection"));
 	    result = NULL;
 	} else if (list.length == 1) {
@@ -283,7 +283,7 @@ noglob:
 		xerror(EILSEQ, Ngt("redirection"));
 	    pl_destroy(&list);
 	} else {
-	    pl_destroy(pl_clear(&list, free));
+	    recfree(pl_toary(&list), free);
 	    if (posixly_correct) {
 		goto noglob;
 	    } else {
@@ -650,7 +650,7 @@ bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 	plist_T plist;
 	pl_init(&plist);
 	if (!expand_word(p->pe_nest, tt_none, true, &plist, NULL)) {
-	    pl_destroy(pl_clear(&plist, free));
+	    recfree(pl_toary(&plist), free);
 	    return false;
 	}
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;

@@ -19,7 +19,7 @@
 #ifndef YASH_PLIST_H
 #define YASH_PLIST_H
 
-#include <stddef.h>
+#include <stdlib.h>
 
 #define Size_max ((size_t) -1)  // = SIZE_MAX
 
@@ -39,9 +39,9 @@ static inline plist_T *pl_initwith(plist_T *list, void **array, size_t length)
     __attribute__((nonnull));
 extern plist_T *pl_initwithmax(plist_T *list, size_t max)
     __attribute__((nonnull));
-extern void pl_destroy(plist_T *list)
+static inline void pl_destroy(plist_T *list)
     __attribute__((nonnull));
-extern void **pl_toary(plist_T *list)
+static inline void **pl_toary(plist_T *list)
     __attribute__((nonnull));
 extern plist_T *pl_setmax(plist_T *list, size_t newmax)
     __attribute__((nonnull));
@@ -89,6 +89,22 @@ plist_T *pl_initwith(plist_T *list, void **array, size_t length)
     list->contents = array;
     list->length = list->maxlength = length;
     return list;
+}
+
+/* Frees a pointer list, abandoning the contents.
+ * Note that the list elements are not `free'd in this function. */
+void pl_destroy(plist_T *list)
+{
+    free(list->contents);
+}
+
+/* Frees a pointer list and returns the contents.
+ * The caller must `free' the return value and its elements if needed.
+ * If all the elements are pointers to a byte string, the return value can be
+ * safely cast to (char **). */
+void **pl_toary(plist_T *list)
+{
+    return list->contents;
 }
 
 /* Inserts the first `n' elements of the array `a' at the offset `i'

@@ -58,15 +58,6 @@ xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
     return buf;
 }
 
-/* Frees a multibyte string buffer and returns the contents.
- * The caller must `free' the return value. */
-char *sb_tostr(xstrbuf_T *buf)
-{
-    if (buf->maxlength - buf->length > 20)
-	sb_setmax(buf, buf->length);
-    return buf->contents;
-}
-
 /* Changes `buf->maxlength'.
  * If `newmax' is less than the current length of the buffer, the end of
  * the buffered string is truncated. */
@@ -288,15 +279,6 @@ xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
     buf->contents = s;
     buf->length = buf->maxlength = wcslen(s);
     return buf;
-}
-
-/* Frees a wide string buffer and returns the contents.
- * The caller must `free' the return value. */
-wchar_t *wb_towcs(xwcsbuf_T *buf)
-{
-    if (buf->maxlength - buf->length > 20)
-	wb_setmax(buf, buf->length);
-    return buf->contents;
 }
 
 /* Changes `buf->maxlength'.
