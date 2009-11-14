@@ -291,6 +291,7 @@ size_t sb_strftime(xstrbuf_T *restrict buf,
 		format,
 		tm);
     } while (count == 0);
+    buf->length += count;
     return count;
 }
 
