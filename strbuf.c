@@ -225,11 +225,13 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 }
 
 /* Appends a formatted string to the end of a buffer.
- * `format' and the following arguments must not be part of `buf->contents'. */
+ * `format' and the following arguments must not be part of `buf->contents'.
+ * Returns the number of appended bytes if successful.
+ * On error, the buffer is not changed and -1 is returned. */
 int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
 {
-    va_list saveap;
-    va_copy(saveap, ap);
+    va_list copyap;
+    va_copy(copyap, ap);
 
     int rest = buf->maxlength - buf->length + 1;
     int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
@@ -238,18 +240,22 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
 	/* If the buffer is too small... */
 	sb_ensuremax(buf, buf->length + result);
 	rest = buf->maxlength - buf->length + 1;
-	result = vsnprintf(buf->contents + buf->length, rest, format, saveap);
+	result = vsnprintf(buf->contents + buf->length, rest, format, copyap);
     }
     assert(result < rest);
     if (result >= 0)
 	buf->length += result;
+    else
+	buf->contents[buf->length] = '\0';
     assert(buf->contents[buf->length] == '\0');
-    va_end(saveap);
+    va_end(copyap);
     return result;
 }
 
 /* Appends a formatted string to the end of a buffer.
- * `format' and any following arguments must not be part of `buf->contents'. */
+ * `format' and any following arguments must not be part of `buf->contents'.
+ * Returns the number of appended bytes if successful.
+ * On error, the buffer is not changed and -1 is returned. */
 int sb_printf(xstrbuf_T *restrict buf, const char *restrict format, ...)
 {
     va_list ap;
@@ -271,7 +277,7 @@ size_t sb_strftime(xstrbuf_T *restrict buf,
     char result[40];
     size_t count = strftime(result, sizeof result, format, tm);
     if (count) {
-	sb_cat(buf, result);
+	sb_ncat_force(buf, result, count);
 	return count;
     }
 
@@ -441,18 +447,20 @@ char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
 }
 
 /* Appends a formatted string to the end of a buffer.
- * `format' and the following arguments must not be part of `buf->contents'. */
+ * `format' and the following arguments must not be part of `buf->contents'.
+ * Returns the number of appended characters if successful.
+ * On error, the buffer is not changed and -1 is returned. */
 int wb_vwprintf(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
 {
-    va_list saveap;
-    va_copy(saveap, ap);
-
+    va_list copyap;
     int rest, result;
 
     for (int i = 0; i < 10; i++) {
+	va_copy(copyap, ap);
 	rest = buf->maxlength - buf->length + 1;
 	result = vswprintf(buf->contents + buf->length, rest, format, ap);
+	va_end(copyap);
 
 	if (0 <= result && result < rest)
 	    break;
@@ -461,18 +469,19 @@ int wb_vwprintf(
 	 * a negative integer. However, on some systems, it returns a desired
 	 * buffer length like `vsprintf', which is rather preferable. */
 	wb_ensuremax(buf, buf->length + (result < 0 ? 2 * rest : result));
-	va_end(ap);
-	va_copy(ap, saveap);
     }
     if (result >= 0)
 	buf->length += result;
+    else
+	buf->contents[buf->length] = L'\0';
     assert(buf->contents[buf->length] == L'\0');
-    va_end(saveap);
     return result;
 }
 
 /* Appends a formatted string to the end of a buffer.
- * `format' and the following arguments must not be part of `buf->contents'. */
+ * `format' and the following arguments must not be part of `buf->contents'.
+ * Returns the number of appended characters if successful.
+ * On error, the buffer is not changed and -1 is returned. */
 int wb_wprintf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 {
     va_list ap;
