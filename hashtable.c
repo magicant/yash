@@ -85,8 +85,6 @@ struct hash_entry {
  * When an entry is unoccupied, the values of the other members of the entry are
  * unspecified. */
 
-static hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity);
-
 
 /* Initializes a hashtable with the specified capacity.
  * `hashfunc' is a hash function to hash keys.
@@ -115,11 +113,18 @@ hashtable_T *ht_initwithcapacity(
     return ht;
 }
 
-/* Changes the capacity of a hashtable.
- * Note that the capacity must not be zero. */
-hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
+/* Changes the capacity of the specified hashtable.
+ * If the specified new capacity is smaller than the number of the entries in
+ * the hashtable, the capacity is not changed.
+ * Note that the capacity must not be zero. If `newcapacity' is zero, it is
+ * assumed to be one. */
+/* Capacity should be an odd integer, especially a prime number. */
+hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
 {
-    assert(newcapacity > 0 && newcapacity >= ht->count);
+    if (newcapacity == 0)
+	newcapacity = 1;
+    if (newcapacity < ht->count)
+	return ht;
 
     size_t oldcapacity = ht->capacity;
     size_t *oldindices = ht->indices;
@@ -159,19 +164,22 @@ hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
     return ht;
 }
 
-/* Increases the capacity if needed
+/* Increases the capacity as large as necessary
  * so that the capacity is no less than the specified. */
 hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
 {
-    if (ht->capacity < capacity) {
-	size_t newcapacity = ht->capacity;
-	do
-	    newcapacity = newcapacity * 2 + 1;
-	while (newcapacity < capacity);
-	return ht_rehash(ht, newcapacity);
-    } else {
+    if (capacity <= ht->capacity)
 	return ht;
+
+    size_t cap15 = ht->capacity + (ht->capacity >> 1);
+    if (capacity >= cap15) {
+	if (capacity - ht->capacity >= 6)  // capacity >= ht->capacity + 6
+	    return ht_setcapacity(ht, capacity);
+    } else {
+	if (cap15 - ht->capacity >= 6)     // cap15 >= ht->capacity + 6
+	    return ht_setcapacity(ht, cap15);
     }
+    return ht_setcapacity(ht, ht->capacity + 6);
 }
 
 /* Removes all the entries of a hashtable.

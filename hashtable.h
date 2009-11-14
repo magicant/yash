@@ -63,6 +63,8 @@ extern hashtable_T *ht_initwithcapacity(
     __attribute__((nonnull));
 static inline void ht_destroy(hashtable_T *ht)
     __attribute__((nonnull));
+extern hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
+    __attribute__((nonnull));
 extern hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
     __attribute__((nonnull));
 extern hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
