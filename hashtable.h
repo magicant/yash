@@ -19,8 +19,8 @@
 #ifndef YASH_HASHTABLE_H
 #define YASH_HASHTABLE_H
 
-#include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 
 #if defined UINT64_MAX && UINT64_MAX == UINT_FAST32_MAX
@@ -43,7 +43,7 @@ typedef hashval_T hashfunc_T(const void *key);
 typedef int keycmp_T(const void *key1, const void *key2);
 
 typedef struct hashtable_T {
-    size_t count, capacity;
+    size_t capacity, count;
     hashfunc_T *hashfunc;
     keycmp_T *keycmp;
     size_t emptyindex, tailindex;
@@ -61,7 +61,7 @@ extern hashtable_T *ht_initwithcapacity(
 	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
 	size_t capacity)
     __attribute__((nonnull));
-extern void ht_destroy(hashtable_T *ht)
+static inline void ht_destroy(hashtable_T *ht)
     __attribute__((nonnull));
 extern hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
     __attribute__((nonnull));
@@ -102,6 +102,14 @@ hashtable_T *ht_init(hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
 {
     return ht_initwithcapacity(
 	    ht, hashfunc, keycmp, HASHTABLE_DEFAULT_INIT_CAPACITY);
+}
+
+/* Destroys a hashtable.
+ * Note that this function doesn't `free' any of the keys and the values. */
+void ht_destroy(hashtable_T *ht)
+{
+    free(ht->indices);
+    free(ht->entries);
 }
 
 

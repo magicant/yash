@@ -74,7 +74,7 @@ static hashtable_T builtins;
 void init_builtin(void)
 {
     assert(builtins.capacity == 0);
-    ht_initwithcapacity(&builtins, hashstr, htstrcmp, 71);
+    ht_initwithcapacity(&builtins, hashstr, htstrcmp, 53);
 
 #if YASH_ENABLE_HELP
 # define DEFBUILTIN(name,func,type,help) \

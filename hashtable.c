@@ -29,7 +29,37 @@
  * Keys and values are all of type (void *).
  * NULL is allowed as a value, but not as a key.
  * The capacity of a hashtable is always no less than one. */
-/* The implementation is a chained closed hashing. */
+
+/* The hashtable_T structure is defined as follows:
+ *   struct hashtable_T {
+ *      size_t             capacity;
+ *      size_t             count;
+ *      hashfunc_T        *hashfunc;
+ *      keycmp             keycmp;
+ *      size_t             emptyindex;
+ *      size_t             tailindex;
+ *      size_t            *indices;
+ *      struct hash_entry *entries;
+ *   }
+ * `capacity' is the size of array `entries'.
+ * `count' is the number of entries contained in the hashtable.
+ * `hashfunc' is a pointer to the hash function.
+ * `keycmp' is a pointer to the function that compares keys.
+ * `emptyindex' is the index of the first empty entry.
+ * `tailindex' is the index of the first tail entry.
+ * `indices' is a pointer to the bucket array.
+ * `entries' is a pointer to the array of entries.
+ *
+ * The collision resolution strategy used in this implementation is a kind of
+ * separate chaining, but it differs from normal chaining in that entries are
+ * stored in a single array (`entries'). An advantage over normal chaining,
+ * which stores entries in linked lists, is spatial locality: entries can be
+ * quickly referenced because they are collected in one array. Another advantage
+ * is that we don't have to call `malloc' or `free' each time an entry is added
+ * or removed.
+ *
+ * The size of the bucket array (`indices') is (2 * capacity - 1). We make the
+ * bucket array larger than the entry array (`entries') to reduce collisions. */
 
 
 //#define DEBUG_HASH 1
@@ -74,23 +104,15 @@ hashtable_T *ht_initwithcapacity(
     ht->keycmp = keycmp;
     ht->emptyindex = NOTHING;
     ht->tailindex = 0;
-    ht->indices = xmalloc(capacity * sizeof *ht->indices);
-    ht->entries = xmalloc(capacity * sizeof *ht->entries);
+    ht->indices = xmalloc(2 * capacity * sizeof *ht->indices);
+    ht->entries = xmalloc(    capacity * sizeof *ht->entries);
 
     for (size_t i = 0; i < capacity; i++) {
-	ht->indices[i] = NOTHING;
+	ht->indices[i] = ht->indices[i + capacity] = NOTHING;
 	ht->entries[i].kv.key = NULL;
     }
 
     return ht;
-}
-
-/* Destroys a hashtable.
- * Note that this function doesn't `free' any of the keys and the values. */
-void ht_destroy(hashtable_T *ht)
-{
-    free(ht->indices);
-    free(ht->entries);
 }
 
 /* Changes the capacity of a hashtable.
@@ -101,13 +123,13 @@ hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
 
     size_t oldcapacity = ht->capacity;
     size_t *oldindices = ht->indices;
-    size_t *newindices = xmalloc(newcapacity * sizeof *ht->indices);
+    size_t *newindices = xmalloc(2 * newcapacity * sizeof *ht->indices);
     struct hash_entry *oldentries = ht->entries;
     struct hash_entry *newentries = xmalloc(newcapacity * sizeof *ht->entries);
     size_t tail = 0;
 
     for (size_t i = 0; i < newcapacity; i++) {
-	newindices[i] = NOTHING;
+	newindices[i] = newindices[i + newcapacity] = NOTHING;
 	newentries[i].kv.key = NULL;
     }
 
@@ -116,7 +138,7 @@ hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
 	void *key = oldentries[i].kv.key;
 	if (key) {
 	    hashval_T hash = oldentries[i].hash;
-	    size_t newindex = (size_t) hash % newcapacity;
+	    size_t newindex = (size_t) hash % (2 * newcapacity - 1);
 	    newentries[tail] = (struct hash_entry) {
 		.next = newindices[newindex],
 		.hash = hash,
@@ -139,7 +161,7 @@ hashtable_T *ht_rehash(hashtable_T *ht, size_t newcapacity)
 
 /* Increases the capacity if needed
  * so that the capacity is no less than the specified. */
-inline hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
+hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
 {
     if (ht->capacity < capacity) {
 	size_t newcapacity = ht->capacity;
@@ -153,7 +175,8 @@ inline hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
 }
 
 /* Removes all the entries of a hashtable.
- * If `freer' is non-NULL, it is called for each entry removed.
+ * If `freer' is non-NULL, it is called for each entry removed (in an
+ * unspecified order).
  * The capacity of the hashtable is not changed. */
 hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 {
@@ -164,7 +187,7 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 	return ht;
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
-	indices[i] = NOTHING;
+	indices[i] = indices[i + cap] = NOTHING;
 	if (entries[i].kv.key) {
 	    if (freer)
 		freer(entries[i].kv);
@@ -184,7 +207,7 @@ kvpair_T ht_get(hashtable_T *ht, const void *key)
 {
     if (key) {
 	hashval_T hash = ht->hashfunc(key);
-	size_t index = ht->indices[(size_t) hash % ht->capacity];
+	size_t index = ht->indices[(size_t) hash % (2 * ht->capacity - 1)];
 	while (index != NOTHING) {
 	    struct hash_entry *entry = &ht->entries[index];
 	    if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0)
@@ -196,19 +219,20 @@ kvpair_T ht_get(hashtable_T *ht, const void *key)
 }
 
 /* Makes a new entry with the specified key and value,
- * removing and returning the old entry with an equal key.
+ * removing and returning the old entry for the key.
  * If there is no such old entry, { NULL, NULL } is returned.
  * `key' must not be NULL. */
 kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 {
     assert(key != NULL);
 
-    /* if there is an entry with an equal key, replace it */
+    /* if there is an entry with the specified key, simply replace the value */
     hashval_T hash = ht->hashfunc(key);
-    size_t mhash = (size_t) hash % ht->capacity;
+    size_t mhash = (size_t) hash % (2 * ht->capacity - 1);
     size_t index = ht->indices[mhash];
+    struct hash_entry *entry;
     while (index != NOTHING) {
-	struct hash_entry *entry = &ht->entries[index];
+	entry = &ht->entries[index];
 	if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
 	    kvpair_T oldkv = entry->kv;
 	    entry->kv = (kvpair_T) { (void *) key, (void *) value, };
@@ -218,43 +242,37 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	index = entry->next;
     }
 
-    /* no entry with an equal key found, so add a new entry */
+    /* No entry with the specified key was found. So, add a new entry. */
     index = ht->emptyindex;
     if (index != NOTHING) {
-	/* if there are empty entries, use one of them */
-	struct hash_entry *entry = &ht->entries[index];
+	/* if there is a empty entry, use it */
+	entry = &ht->entries[index];
 	ht->emptyindex = entry->next;
-	*entry = (struct hash_entry) {
-	    .next = ht->indices[mhash],
-	    .hash = hash,
-	    .kv = (kvpair_T) { (void *) key, (void *) value, },
-	};
-	ht->indices[mhash] = index;
     } else {
-	/* if there are no empty entries, use a tail entry */
-	ht_ensurecapacity(ht, ht->count + (ht->count >> 2) + 1);
-	mhash = (size_t) hash % ht->capacity;
-	index = ht->tailindex;
-	ht->entries[index] = (struct hash_entry) {
-	    .next = ht->indices[mhash],
-	    .hash = hash,
-	    .kv = (kvpair_T) { (void *) key, (void *) value, },
-	};
-	ht->indices[mhash] = index;
-	ht->tailindex++;
+	/* if there is no empty entry, use a tail entry */
+	ht_ensurecapacity(ht, ht->count + 1);
+	mhash = (size_t) hash % (2 * ht->capacity - 1);
+	index = ht->tailindex++;
+	entry = &ht->entries[index];
     }
+    *entry = (struct hash_entry) {
+	.next = ht->indices[mhash],
+	.hash = hash,
+	.kv = (kvpair_T) { (void *) key, (void *) value, },
+    };
+    ht->indices[mhash] = index;
     ht->count++;
     DEBUG_PRINT_STATISTICS(ht);
     return (kvpair_T) { NULL, NULL, };
 }
 
-/* Removes and returns the entry whose key is equal to the specified `key'.
+/* Removes and returns the entry with the specified key.
  * If `key' is NULL or there is no such entry, { NULL, NULL } is returned. */
 kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
     if (key) {
 	hashval_T hash = ht->hashfunc(key);
-	size_t *indexp = &ht->indices[(size_t) hash % ht->capacity];
+	size_t *indexp = &ht->indices[(size_t) hash % (2 * ht->capacity - 1)];
 	while (*indexp != NOTHING) {
 	    size_t index = *indexp;
 	    struct hash_entry *entry = &ht->entries[index];
@@ -273,12 +291,12 @@ kvpair_T ht_remove(hashtable_T *ht, const void *key)
     return (kvpair_T) { NULL, NULL, };
 }
 
-/* Calls the specified function `f' once for each entry in the hashtable `ht'.
- * The order of calls is unspecified.
+/* Calls the specified function `f' for each entry in the specified hashtable.
+ * The order in which the entries are applied the function to is unspecified.
  * If `f' returns a non-zero value for some entry, `f' is not called any more
  * and `ht_each' immediately returns the non-zero value. Otherwise, that is,
  * if `f' returns zero for all the entry, `ht_each' also returns zero.
- * You must not add or remove any entry during this function. */
+ * You must not add or remove any entry inside function `f'. */
 int ht_each(hashtable_T *ht, int f(kvpair_T kv))
 {
     struct hash_entry *entries = ht->entries;
@@ -294,12 +312,12 @@ int ht_each(hashtable_T *ht, int f(kvpair_T kv))
     return 0;
 }
 
-/* Iterates the entries of a hashtable.
- * Firstly, `*indexp' must be initialized to zero.
- * Each time this function is called, it returns the entry to be iterated next
- * and increases `*indexp'.
+/* Iterates the entries of the specified hashtable.
+ * When starting new iteration, `*indexp' must have been initialized to zero.
+ * Each time this function is called, it updates `*indexp' and returns one
+ * entry.
  * You must not change the value of `*indexp' from outside this function or
- * add/remove any entry in the hashtable.
+ * add/remove any entry in the hashtable until the iteration finishes.
  * Each entry is returned exactly once, in an unspecified order.
  * If there is no more entry to be iterated, { NULL, NULL } is returned. */
 kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
@@ -314,7 +332,7 @@ kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
 }
 
 /* Returns a newly malloced array of key-value pairs that contains all the
- * element of the specified hashtable.
+ * elements of the specified hashtable.
  * The returned array is terminated by the { NULL, NULL } element. */
 kvpair_T *ht_tokvarray(hashtable_T *ht)
 {
@@ -332,13 +350,13 @@ kvpair_T *ht_tokvarray(hashtable_T *ht)
 }
 
 
-/* A hash function for a multibyte string.
- * The argument is cast from (const char *) to (const void *).
- * You can use `htstrcmp' for a corresponding comparison function. */
+/* A hash function for a byte string.
+ * The argument is a pointer to a byte string (const char *).
+ * You can use `htstrcmp' as a corresponding comparison function. */
 hashval_T hashstr(const void *s)
 {
     /* The hashing algorithm is FNV hash.
-     * cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
+     * Cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
     const unsigned char *c = s;
     hashval_T h = 0;
     while (*c)
@@ -347,12 +365,12 @@ hashval_T hashstr(const void *s)
 }
 
 /* A hash function for a wide string.
- * The argument is cast from (const wchar_t *) to (const void *).
+ * The argument is a pointer to a wide string (const wchar_t *).
  * You can use `htwcscmp' for a corresponding comparison function. */
 hashval_T hashwcs(const void *s)
 {
     /* The hashing algorithm is a slightly modified version of FNV hash.
-     * cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
+     * Cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
     const wchar_t *c = s;
     hashval_T h = 0;
     while (*c)
@@ -361,7 +379,7 @@ hashval_T hashwcs(const void *s)
 }
 
 /* A comparison function for wide strings.
- * The argument is cast from (const wchar_t *) to (const void *).
+ * The arguments are pointers to wide strings (const wchar_t *).
  * You can use `hashwcs' for a corresponding hash function. */
 int htwcscmp(const void *s1, const void *s2)
 {
@@ -369,35 +387,37 @@ int htwcscmp(const void *s1, const void *s2)
 }
 
 /* A comparison function for key-value pairs with multibyte-string keys.
- * The arguments are pointers to kvpair_T's, cast to (void *). */
+ * The arguments are pointers to kvpair_T's (const kvpair_T *) whose keys are
+ * multibyte strings. */
 int keystrcoll(const void *k1, const void *k2)
 {
     return strcoll(((const kvpair_T *) k1)->key, ((const kvpair_T *) k2)->key);
 }
 
 /* A comparison function for key-value pairs with wide-string keys.
- * The arguments are pointers to kvpair_T's, cast to (void *). */
+ * The arguments are pointers to kvpair_T's (const kvpair_T *) whose keys are
+ * wide strings. */
 int keywcscoll(const void *k1, const void *k2)
 {
     return wcscoll(((const kvpair_T *) k1)->key, ((const kvpair_T *) k2)->key);
 }
 
-/* Just `free's the key of the key-value pair `kv'.
- * Can be used as a freer function to `ht_clear'. */
+/* `Free's the key of the specified key-value pair.
+ * Can be used as the freer function to `ht_clear'. */
 void kfree(kvpair_T kv)
 {
     free(kv.key);
 }
 
-/* Just `free's the value of the key-value pair `kv'.
- * Can be used as a freer function to `ht_clear'. */
+/* `Free's the value of the specified key-value pair.
+ * Can be used as the freer function to `ht_clear'. */
 void vfree(kvpair_T kv)
 {
     free(kv.value);
 }
 
-/* Just `free's the key and the value of the key-value pair `kv'.
- * Can be used as a freer function to `ht_clear'. */
+/* `Free's the key and the value of the specified key-value pair.
+ * Can be used as the freer function to `ht_clear'. */
 void kvfree(kvpair_T kv)
 {
     free(kv.key);
