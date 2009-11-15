@@ -65,25 +65,27 @@ histlist_T histlist = {
     .link = { Histlist, Histlist, },
     .count = 0,
 };
-/* `Newest' (`link.prev') points to the newest entry and `Oldest' (`link.next')
- * points to the oldest entry. When there's no entries, `Newest' and `Oldest'
- * point to `histlist' itself. */
+/* History entries are stored in this doubly-linked list.
+ * The `Newest' (`link.prev') member points to the newest entry and the `Oldest'
+ * (`link.next') member points to the oldest entry. When there's no entries,
+ * `Newest' and `Oldest' point to `histlist' itself. */
 
 /* The number of the next new history entry. Must be positive. */
 unsigned hist_next_number = 1;
-/* The maximum limit of the number of an entry,
- * which is always no less than `histsize' or `MIN_MAX_NUMBER'.
+/* The maximum limit of the number of an entry.
+ * Must always be no less than `histsize' or `MIN_MAX_NUMBER'.
  * The number of any entry is not greater than this value. */
 static unsigned max_number = MIN_MAX_NUMBER;
 /* The size limit of the history list. */
 static unsigned histsize = DEFAULT_HISTSIZE;
-/* The number of entries that are checked for duplicate when an entry is added.
- */
+/* When a new entry is added, if there are entries that has the same value as
+ * the new entry in the `histrmdup' newest entries, those entries are removed.*/
 static unsigned histrmdup = 0;
 
 /* File stream for the history file. */
 static FILE *histfile = NULL;
-/* The revision number of the history file. Valid if non-negative. */
+/* The revision number of the history file. A valid revision number is
+ * non-negative. */
 static long histfilerev = -1;
 /* The process IDs of processes that share the history file. */
 static struct pidlist_T *histfilepids = NULL;
@@ -159,7 +161,7 @@ static void remove_dups(const char *line)
  * The first line of the history file has the following form:
  *    #$# yash history v0 rXXX
  * where `XXX' is the revision number of the file. The revision number is
- * incremented each time the file is revised.
+ * incremented each time the file is refreshed.
  * 
  * The rest of the file consists of lines containing history data, each entry
  * per line. The type of entry is determined by the first character of the line:
@@ -252,7 +254,7 @@ bool need_remove_entry(unsigned number)
 	return oldest <= number || number <= newest;
 }
 
-/* Removes a history entry from `histlist'. */
+/* Removes the specified entry from `histlist'. */
 void remove_entry(histentry_T *entry)
 {
     assert(!hist_lock);
@@ -654,7 +656,7 @@ void parse_process_id(const wchar_t *numstr)
  * If `refresh' is true, this function may call `refresh_file'.
  * On failure, `histfile' is closed and set to NULL.
  * `update_time' must be called before calling this function.
- * After calling this function, `histfile' must not be read before
+ * After calling this function, `histfile' must not be read without
  * repositioning. */
 /* The history file `histfile' should be locked (F_WRLCK if `refresh' is true or
  * F_RDLCK if `refresh' is false).
@@ -700,8 +702,8 @@ void update_history(bool refresh)
 	maybe_refresh_file();
 }
 
-/* Refreshes the history file or does nothing.
- * `histfile' must not be null. */
+/* Refreshes the history file if it is time to do that.
+ * `histfile' must not be NULL. */
 void maybe_refresh_file(void)
 {
 #ifndef HISTORY_REFRESH_INTERVAL
@@ -945,7 +947,7 @@ void add_history(const wchar_t *line)
 	update_history(true);
     }
 
-    const wchar_t *nl = wcschr(line, L'\n');
+    const wchar_t *nl;
     while ((nl = wcschr(line, L'\n')) != NULL) {
 	if (nl > line) {
 	    wchar_t *line1 = xwcsndup(line, nl - line);
@@ -1089,12 +1091,12 @@ static int history_write(const wchar_t *s)
 static void history_refresh_file(void);
 
 /* The "fc" builtin, which accepts the following options:
- * -e: specify the editor to edit history
- * -l: list history
- * -n: suppress numbering entries
- * -r: reverse entry order
- * -s: execute without editing
- * -v: print time for each entry */
+ *  -e: specify the editor to edit history
+ *  -l: list history
+ *  -n: don't print entry numbers
+ *  -r: reverse entry order
+ *  -s: execute without editing
+ *  -v: print time for each entry */
 int fc_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -1212,7 +1214,7 @@ int fc_builtin(int argc, void **argv)
 	last = list ? -1 : 0;
     }
 
-    /* find the first and last entries */
+    /* find the first and the last entries */
     if (!efirst) {
 	if (first >= 0) {
 	    efirst = find_entry(first, true);
@@ -1399,6 +1401,8 @@ int fc_exec_entry(const histentry_T *entry,
     return laststatus;
 }
 
+/* Invokes the editor to let the user edit the history entries between `first'
+ * and `last' and executes the edited entries. */
 int fc_edit_and_exec_entries(
 	const histentry_T *first, const histentry_T *last,
 	bool reverse, const wchar_t *editor, bool quiet)
@@ -1454,17 +1458,17 @@ int fc_edit_and_exec_entries(
 	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
 	free(temp);
 
-	if (f != NULL) {
-	    int fd = fileno(f);
-	    fc_read_history(f, quiet);
-	    rewind(f);
-	    laststatus = savelaststatus;
-	    exec_input(f, "fc", false, true, false);
-	    remove_shellfd(fd);
-	    fclose(f);
-	    return laststatus;
-	}
-	return Exit_FAILURE;
+	if (f == NULL)
+	    return Exit_FAILURE;
+
+	int fd = fileno(f);
+	fc_read_history(f, quiet);
+	rewind(f);
+	laststatus = savelaststatus;
+	exec_input(f, "fc", false, true, false);
+	remove_shellfd(fd);
+	fclose(f);
+	return laststatus;
     } else {  // child process
 	fc_print_entries(f, first, last, reverse, FC_RAW);
 	fclose(f);
@@ -1545,12 +1549,12 @@ const char fc_help[] = Ngt(
 #endif /* YASH_ENABLE_HELP */
 
 /* The "history" builtin, which accepts the following options:
- * -c: clear whole history
- * -d: remove history entry
- * -r: read history from a file
- * -s: add history entry
- * -w: write history into a file
- * -F: flush history file */
+ *  -c: clear whole history
+ *  -d: remove history entry
+ *  -r: read history from a file
+ *  -s: add history entry
+ *  -w: write history into a file
+ *  -F: flush history file */
 int history_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -1720,7 +1724,7 @@ int history_read(const wchar_t *s)
 {
     FILE *f;
 
-    /* The `fc_read_history' function the argument stream wide-oriented.
+    /* The `fc_read_history' function assumes the argument stream wide-oriented.
      * We don't pass `stdin' to `fc_read_history' so that it remains
      * non-oriented. */
     if (wcscmp(s, L"-") == 0) {
