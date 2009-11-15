@@ -1355,7 +1355,7 @@ int fc_print_entries(
  * The return value is valid until the next call to this function. */
 const char *fc_time_to_str(time_t time)
 {
-    static char s[40];
+    static char s[80];
     size_t size;
 
     if (time >= 0) {
