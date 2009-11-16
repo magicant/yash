@@ -76,8 +76,8 @@ static bool wait_has_job(bool jobcontrol);
 
 
 /* The list of jobs.
- * `joblist.contents[ACTIVE_JOBNO]' is a special job, which is called "active
- * job": the job that is being executed. */
+ * `joblist.contents[ACTIVE_JOBNO]' is a special job that is called "active
+ * job": the job that is currently being executed. */
 static plist_T joblist;
 
 /* number of the current/previous jobs. 0 if none. */
@@ -132,7 +132,7 @@ set_current:
 /* Returns the job of the specified number or NULL if not found. */
 job_T *get_job(size_t jobnumber)
 {
-    return jobnumber < joblist.length ? joblist.contents[jobnumber] : NULL;
+    return (jobnumber < joblist.length) ? joblist.contents[jobnumber] : NULL;
 }
 
 /* Removes the job of the specified number.
@@ -140,9 +140,8 @@ job_T *get_job(size_t jobnumber)
  * (another job is assigned to it). */
 void remove_job(size_t jobnumber)
 {
-    job_T *job = get_job(jobnumber);
+    free_job(get_job(jobnumber));
     joblist.contents[jobnumber] = NULL;
-    free_job(job);
     trim_joblist();
     set_current_jobnumber(current_jobnumber);
 }
@@ -158,7 +157,7 @@ void remove_all_jobs(void)
     current_jobnumber = previous_jobnumber = 0;
 }
 
-/* Frees a job. */
+/* Frees the specified job. */
 void free_job(job_T *job)
 {
     if (job) {
@@ -194,7 +193,9 @@ void neglect_all_jobs(void)
     current_jobnumber = previous_jobnumber = 0;
 }
 
-/* - When there is one or more stopped jobs, the current job must be one of
+/* Current/previous job selection discipline:
+ *
+ * - When there is one or more stopped jobs, the current job must be one of
  *   them.
  * - When there are more than one stopped job, the previous job must be one of
  *   them but the current one.
@@ -212,11 +213,11 @@ void neglect_all_jobs(void)
  * - The "wait" command doesn't change the current and previous jobs. */
 
 /* Sets the current job number to the specified one and resets the previous job
- * number. If the specified job number is not used, a job is arbitrarily chosen.
- * If there is one or more stopped jobs and the one specified by the argument is
- * not stopped, the current job is not changed. */
+ * number. If the specified job number is not used, a job is arbitrarily chosen
+ * for the current. If there is one or more stopped jobs and the one specified
+ * by the argument is not stopped, the current job is not changed. */
 /* This function must be called whenever a job is added to or removed from the
- * job list, or any job's status has been changed. */
+ * job list or any job's status has been changed. */
 void set_current_jobnumber(size_t jobnumber)
 {
     size_t stopcount = stopped_job_count();
@@ -258,7 +259,7 @@ void set_current_jobnumber(size_t jobnumber)
 }
 
 /* Returns an arbitrary job number except the specified.
- * The returned number is suitable for the next current/previous jobs.
+ * The returned number is suitable for the current/previous jobs.
  * If there is no job to pick out, 0 is returned.
  * Stopped jobs are preferred to running/finished jobs.
  * If there are more than one stopped jobs, the previous job is preferred. */
@@ -325,7 +326,7 @@ size_t stopped_job_count(void)
 }
 
 
-/* Updates the info about the jobs in the job list by calling `waitpid'.
+/* Updates the info about the jobs in the job list.
  * This function doesn't block. */
 void do_wait(void)
 {
@@ -365,7 +366,7 @@ start:
 		    goto found;
 
     /* If `pid' is not found in the job list, we simply ignore it. This may
-     * happen on some occasions: e.g. the job is "disown"ed. */
+     * happen on some occasions: e.g. the job has been "disown"ed. */
     goto start;
 
 found:
@@ -403,7 +404,7 @@ out_of_loop:
     goto start;
 }
 
-/* Waits for a job to finish (or stop).
+/* Waits for the specified job to finish (or stop).
  * `jobnumber' must be a valid job number.
  * If `return_on_stop' is false, waits for the job to finish.
  * Otherwise, waits for the job to finish or stop.
@@ -439,9 +440,9 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
     return signum;
 }
 
-/* Waits for a child process to finish (or stop).
- * `cpid' is the process ID of the child process to wait for, which is not yet
- * registered in the job list.
+/* Waits for the specified child process to finish (or stop).
+ * `cpid' is the process ID of the child process to wait for. This must not be
+ * in the job list.
  * `cpgid' is the process group ID of the child. If the child's PGID is the same
  * as that of the parent, `cpgid' must be 0.
  * If `return_on_stop' is false, waits for the job to finish.
@@ -534,8 +535,8 @@ void put_foreground(pid_t pgrp)
 void ensure_foreground(void)
 {
     /* This function calls `tcsetpgrp' with the default SIGTTOU handler. If the
-     * shell is in the background, it will receive SIGTTOU and is stopped until
-     * continued in the foreground. */
+     * shell is in the background, it will receive SIGTTOU and get stopped until
+     * it is continued in the foreground. */
 
     struct sigaction dflsa, savesa;
     sigset_t blockss, savess;
@@ -577,7 +578,7 @@ int calc_status(int status)
 }
 
 /* Computes the exit status of the specified job.
- * The job must be JS_DONE or JS_STOPPED. */
+ * The job state must be JS_DONE or JS_STOPPED. */
 int calc_status_of_job(const job_T *job)
 {
     switch (job->j_status) {
@@ -685,12 +686,13 @@ char *get_job_status_string(const job_T *job, bool *needfree)
     assert(false);
 }
 
-/* Prints the status of job(s).
+/* Prints the status of the specified job.
  * Finished jobs are removed from the job list after the status is printed.
  * If the specified job doesn't exist, nothing is printed (it isn't an error).
- * If `changedonly' is true, only jobs whose `j_statuschanged' is true is
- * printed. If `verbose' is true, the status is printed in the process-wise
- * format rather than the usual job-wise format. */
+ * If `changedonly' is true, the job is printed only if the `j_statuschanged'
+ * flag is true.
+ * If `verbose' is true, the status is printed in the process-wise format rather
+ * than the usual job-wise format. */
 void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 {
     job_T *job = get_job(jobnumber);
@@ -869,13 +871,13 @@ found:
 
 /********** Builtins **********/
 
-/* "jobs" builtin, which accepts the following options:
- * -l: be verbose
- * -n: print the jobs only whose status have changed
- * -p: print the process ID only
- * -r: print running jobs only
- * -s: print stopped jobs only
- * If `posixly_correct' is true, only -l and -p are available. */
+/* The "jobs" builtin, which accepts the following options:
+ *  -l: be verbose
+ *  -n: print the jobs only whose status have changed
+ *  -p: print the process ID only
+ *  -r: print running jobs only
+ *  -s: print stopped jobs only
+ * In the POSIXly correct mode, only -l and -p are available. */
 int jobs_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -922,6 +924,7 @@ int jobs_builtin(int argc, void **argv)
 
     clearerr(stdout);
     if (xoptind < argc) {
+	/* print the specified jobs */
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
 	    if (jobspec[0] == L'%') {
@@ -994,7 +997,7 @@ const char jobs_help[] = Ngt(
 " -l --verbose\n"
 "\tprint info for each process in the job, including process ID\n"
 " -n --new\n"
-"\tprint jobs whose status have changed only\n"
+"\tonly print jobs whose status have changed\n"
 " -p --pgid-only\n"
 "\tprint process group IDs only\n"
 " -r --running-only\n"
@@ -1005,7 +1008,7 @@ const char jobs_help[] = Ngt(
 );
 #endif
 
-/* "fg"/"bg" builtin */
+/* The "fg"/"bg" builtin */
 int fg_builtin(int argc, void **argv)
 {
     bool fg = wcscmp(argv[0], L"fg") == 0;
@@ -1139,9 +1142,9 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
      * invoked in the background.
      * Programs that change the terminal state generally save the state before
      * changing it and restore it when they are finished. But, if they are
-     * invoked in the background, they save the state that is possibly being
-     * used by another program (typically the shell's line-editing), so the
-     * state that they restore is not the normal state.
+     * invoked in the background, they may save the state that is being used by
+     * another program (typically the shell's line-editing), so the state that
+     * they restore is not the normal state.
      * The shell tackles this problem by saving and restoring the terminal state
      * for the continued programs. */
 }
@@ -1166,7 +1169,7 @@ const char bg_help[] = Ngt(
 
 #endif /* YASH_ENABLE_HELP */
 
-/* "wait" builtin */
+/* The "wait" builtin */
 int wait_builtin(int argc, void **argv)
 {
     bool jobcontrol = doing_job_control_now;
@@ -1189,6 +1192,7 @@ int wait_builtin(int argc, void **argv)
 
     job_T *job;
     if (xoptind < argc) {
+	/* wait for the specified jobs */
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
 	    size_t jobnumber;
@@ -1276,8 +1280,8 @@ const char wait_help[] = Ngt(
 );
 #endif
 
-/* "disown" builtin, which accepts the following option:
- * -a: disown all jobs */
+/* The "disown" builtin, which accepts the following option:
+ *  -a: disown all jobs */
 int disown_builtin(int argc, void **argv)
 {
     bool all = false;

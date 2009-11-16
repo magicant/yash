@@ -35,9 +35,9 @@ typedef struct process_T {
     int               pr_statuscode;
     wchar_t          *pr_name;         /* process name made from command line */
 } process_T;
-/* If `pr_pid' is 0, the process is finished without `fork'ing from the shell.
- * In this case, `pr_status' is `JS_DONE' and `pr_statuscode' is the exit
- * status. If `pr_pid' is a positive number, it's the process ID. In this case,
+/* If `pr_pid' is 0, the process was finished without `fork'ing from the shell.
+ * In this case, `pr_status' is JS_DONE and `pr_statuscode' is the exit status.
+ * If `pr_pid' is a positive number, it's the process ID. In this case,
  * `pr_statuscode' is the status code returned by `waitpid'. */
 
 /* info about a job */
@@ -49,7 +49,7 @@ typedef struct job_T {
     size_t            j_pcount;        /* # of processes in `j_procs' */
     struct process_T  j_procs[];       /* info about processes */
 } job_T;
-/* When job control is off, `j_pgid' is 0 since the job spares the process group
+/* When job control is off, `j_pgid' is 0 since the job shares the process group
  * ID with the shell.
  * In subshells, `j_pgid' is negated to indicate that the job is not a direct
  * child of the current shell process. */

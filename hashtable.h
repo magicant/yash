@@ -97,17 +97,17 @@ extern void kvfree(kvpair_T kv);
 
 #define HASHTABLE_DEFAULT_INIT_CAPACITY 5
 
-/* Initializes a hashtable with the default capacity.
- * `hashfunc' is a hash function to hash keys.
- * `keycmp' is a function that compares two keys. */
+/* Initializes the specified hashtable with the default capacity.
+ * `hashfunc' is the hash function to hash keys.
+ * `keycmp' is the function that compares two keys. */
 hashtable_T *ht_init(hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
 {
     return ht_initwithcapacity(
 	    ht, hashfunc, keycmp, HASHTABLE_DEFAULT_INIT_CAPACITY);
 }
 
-/* Destroys a hashtable.
- * Note that this function doesn't `free' any of the keys and the values. */
+/* Destroys the specified hashtable.
+ * Note that this function doesn't `free' any keys or values. */
 void ht_destroy(hashtable_T *ht)
 {
     free(ht->indices);

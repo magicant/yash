@@ -224,7 +224,7 @@ done:
     return ok;
 }
 
-/* An input function that prints a prompt and read input.
+/* An input function that prints a prompt and reads input.
  * `inputinfo' is a pointer to a `struct input_readline_info'.
  * `inputinfo->type' must be between 1 and 4 inclusive and specifies the type of
  * the prompt. For example, PS1 is printed if `inputinfo->type' is 1.
@@ -232,6 +232,9 @@ done:
 inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
 #if YASH_ENABLE_LINEEDIT
+    /* An input function must not return more than one line at a time.
+     * If line editing returns more than one line, this function returns only
+     * the first line, saving the rest in this buffer. */
     static wchar_t *linebuffer = NULL;
     if (linebuffer) {
 	linebuffer = forward_line(linebuffer, buf);
@@ -255,7 +258,7 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
      * called from `wait_for_input' in the line-editing. */
 
 #if YASH_ENABLE_LINEEDIT
-    /* read a line using line edit */
+    /* read a line using line editing */
     if (shopt_lineedit != shopt_nolineedit) {
 	unset_nonblocking(STDIN_FILENO);
 	if (le_setup()) {
@@ -284,7 +287,7 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     }
 #endif /* YASH_ENABLE_LINEEDIT */
 
-    /* read a line without using line edit */
+    /* read a line without line editing */
     print_prompt(info->type);
     if (info->type == 1)
 	info->type = 2;
@@ -368,7 +371,7 @@ just_print:
     }
 }
 
-/* Expands the contents of PS1 variable in the posixly correct way.
+/* Expands the contents of the PS1 variable in the posixly correct way.
  * The argument is `free'd in this function.
  * The return value must be `free'd by the caller. */
 /* In this function, "!" is expanded to the next history number and "!!" to "!"
@@ -445,21 +448,21 @@ wchar_t *expand_ps_yash(wchar_t *s)
 	if (*s != L'\\') {
 	    wb_wccat(&buf, *s);
 	} else switch (*++s) {
-	case L'\0':   wb_wccat(&buf, L'\\');     goto done;
-	//case L'\\':   wb_wccat(&buf, L'\\');     break;
-	case L'a':    wb_wccat(&buf, L'\a');     break;
-	case L'e':    wb_wccat(&buf, L'\033');   break;
-	case L'n':    wb_wccat(&buf, L'\n');     break;
-	case L'r':    wb_wccat(&buf, L'\r');     break;
-	default:      wb_wccat(&buf, *s);        break;
-	case L'$':    wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
-	case L'j':    wb_wprintf(&buf, L"%zu", job_count());  break;
+	    case L'\0':   wb_wccat(&buf, L'\\');     goto done;
+	  //case L'\\':   wb_wccat(&buf, L'\\');     break;
+	    case L'a':    wb_wccat(&buf, L'\a');     break;
+	    case L'e':    wb_wccat(&buf, L'\033');   break;
+	    case L'n':    wb_wccat(&buf, L'\n');     break;
+	    case L'r':    wb_wccat(&buf, L'\r');     break;
+	    default:      wb_wccat(&buf, *s);        break;
+	    case L'$':    wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
+	    case L'j':    wb_wprintf(&buf, L"%zu", job_count());  break;
 #if YASH_ENABLE_HISTORY
-	case L'!':    wb_wprintf(&buf, L"%d", hist_next_number); break;
+	    case L'!':    wb_wprintf(&buf, L"%d", hist_next_number); break;
 #endif
-	case L'f':    skip_alnum(&s);  break;
-	case L'[':    break;
-	case L']':    break;
+	    case L'f':    skip_alnum(&s);  break;
+	    case L'[':    break;
+	    case L']':    break;
 	}
 	s++;
     }

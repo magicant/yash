@@ -23,13 +23,14 @@
 #include <sys/types.h>
 
 
+/* The structure type of doubly-linked list node. */
 typedef struct histlink_T {
     struct histentry_T *prev, *next;
 } histlink_T;
 /* `prev' and `next' are always non-NULL: the newest entry's `next' and the
  * oldest entry's `prev' point to `histlist'. */
 
-/* Structure of history entries. */
+/* The structure type of history entries. */
 typedef struct histentry_T {
     histlink_T link;
     unsigned number;
@@ -42,15 +43,15 @@ typedef struct histentry_T {
  * memory space. The value must not contain newlines. */
 /* Basically the `number' is increased for each entry, but the numbers are
  * limited to some extent. If the number exceeds the limit, it is wrapped
- * around to 1, so a newer entry may have a smaller number than that of a older
- * entry. The limit is no less than $HISTSIZE, so all the entries have different
+ * around to 1, so a newer entry may have a smaller number than an older entry.
+ * The limit is no less than $HISTSIZE, so all the entries have different
  * numbers anyway. */
 /* When the time is unknown, `time' is -1. */
 
 #define Histlist ((histentry_T *) &histlist)
 #define Newest link.prev
 #define Oldest link.next
-/* Structure of the history list. */
+/* The structure type of the history list. */
 typedef struct histlist_T {
     histlink_T link;
     unsigned count;
