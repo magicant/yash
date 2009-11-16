@@ -55,13 +55,11 @@ static void print_message(const wchar_t *message)
     __attribute__((nonnull));
 
 
-/* Whether mail checking is active */
-static bool active = false;
-
-/* The hashtable to contain `mailfile_T' objects.
+/* A hashtable that contains `mailfile_T' objects.
  * The keys are pointers to the `filename' member of `mailfile_T' objects, and
  * the values are pointers to the `mailfile_T' objects themselves.
- * This hashtable is valid when and only when `active' is true. */
+ * When mail checking is not activated, the capacity of the hashtable is set to
+ * zero. */
 static hashtable_T mailfiles;
 
 /* The time of last mail check. */
@@ -80,27 +78,24 @@ void check_mail(void)
 /* Activates `mailfiles'. */
 void activate(void)
 {
-    if (!active) {
-	active = true;
+    if (mailfiles.capacity == 0)
 	ht_init(&mailfiles, hashstr, htstrcmp);
-    }
 }
 
 /* Inactivates `mailfiles'. */
 void inactivate(void)
 {
-    if (active) {
-	active = false;
-	ht_clear(&mailfiles, vfree);
-	ht_destroy(&mailfiles);
+    if (mailfiles.capacity > 0) {
+	ht_destroy(ht_clear(&mailfiles, vfree));
+	mailfiles.capacity = 0;
 	lastchecktime = 0;
     }
 }
 
 /* Decides if it is time to check mail now.
- * Returns false if the $MAILCHECK variable is not a valid integer.
- * Sets `lastchecktime' to now if the return value is true.
- * Calls `inactivate' if $MAILCHECK is not a valid integer. */
+ * Inactivates mail checking and returns false if the $MAILCHECK variable is not
+ * a valid integer.
+ * Sets `lastchecktime' to now if the return value is true. */
 bool is_time_to_check_mail(void)
 {
     const wchar_t *mailcheck = getvar(L VAR_MAILCHECK);
@@ -159,7 +154,7 @@ void check_mail_and_print_message(void)
     }
 }
 
-/* Decomposes a mailpath element to the pathname and the message.
+/* Decomposes the specified mailpath element to the pathname and the message.
  * The pathname is returned as the return value and the message is assigned to
  * `*msgp'. If there is no message, the default message is assigned.
  * Both the pathname and the message should be freed by the caller.
