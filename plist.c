@@ -85,17 +85,17 @@ plist_T *pl_setmax(plist_T *list, size_t newmax)
 
 /* If `list->maxlength' is less than `max', reallocates the list so that
  * `list->maxlength' is no less than `max'. */
-inline plist_T *pl_ensuremax(plist_T *list, size_t max)
+plist_T *pl_ensuremax(plist_T *list, size_t max)
 {
-    if (list->maxlength < max) {
-	size_t newmax = list->maxlength;
-	do
-	    newmax = newmax * 2 + 1;
-	while (newmax < max);
-	return pl_setmax(list, newmax);
-    } else {
+    if (max <= list->maxlength)
 	return list;
-    }
+
+    size_t len15 = list->maxlength + (list->maxlength >> 1);
+    if (max < len15)
+	max = len15;
+    if (max < list->maxlength + 6)
+	max = list->maxlength + 6;
+    return pl_setmax(list, max);
 }
 
 /* Clears the contents of a pointer list, preserving its `maxlength'.

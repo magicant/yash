@@ -73,17 +73,17 @@ xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
 
 /* If `buf->maxlength' is less than `max', reallocates the buffer so that
  * `buf->maxlength' is no less than `max'. */
-inline xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
+xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
 {
-    if (buf->maxlength < max) {
-	size_t newmax = buf->maxlength;
-	do
-	    newmax = newmax * 2 + 1;
-	while (newmax < max);
-	return sb_setmax(buf, newmax);
-    } else {
+    if (max <= buf->maxlength)
 	return buf;
-    }
+
+    size_t len15 = buf->maxlength + (buf->maxlength >> 1);
+    if (max < len15)
+	max = len15;
+    if (max < buf->maxlength + 10)
+	max = buf->maxlength + 10;
+    return sb_setmax(buf, max);
 }
 
 /* Clears the contents of a string buffer, preserving its `maxlength'. */
@@ -296,17 +296,17 @@ xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 
 /* If `buf->maxlength' is less than `max', reallocates the buffer so that
  * `buf->maxlength' is no less than `max'. */
-inline xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
+xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
 {
-    if (buf->maxlength < max) {
-	size_t newmax = buf->maxlength;
-	do
-	    newmax = newmax * 2 + 1;
-	while (newmax < max);
-	return wb_setmax(buf, newmax);
-    } else {
+    if (max <= buf->maxlength)
 	return buf;
-    }
+
+    size_t len15 = buf->maxlength + (buf->maxlength >> 1);
+    if (max < len15)
+	max = len15;
+    if (max < buf->maxlength + 8)
+	max = buf->maxlength + 8;
+    return wb_setmax(buf, max);
 }
 
 /* Clears the contents of a string buffer, preserving its `maxlength'. */

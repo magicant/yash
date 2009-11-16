@@ -172,14 +172,11 @@ hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
 	return ht;
 
     size_t cap15 = ht->capacity + (ht->capacity >> 1);
-    if (capacity >= cap15) {
-	if (capacity - ht->capacity >= 6)  // capacity >= ht->capacity + 6
-	    return ht_setcapacity(ht, capacity);
-    } else {
-	if (cap15 - ht->capacity >= 6)     // cap15 >= ht->capacity + 6
-	    return ht_setcapacity(ht, cap15);
-    }
-    return ht_setcapacity(ht, ht->capacity + 6);
+    if (capacity < cap15)
+	capacity = cap15;
+    if (capacity < ht->capacity + 6)
+	capacity = ht->capacity + 6;
+    return ht_setcapacity(ht, capacity);
 }
 
 /* Removes all the entries of a hashtable.
