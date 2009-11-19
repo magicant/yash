@@ -56,63 +56,64 @@ static void set_le_noconvmeta_option(void *argp);
 
 
 /* If set, the shell behaves strictly as defined in POSIX.
- * Corresponds to --posix option. */
+ * Corresponds to the --posix option. */
 bool posixly_correct;
 
 /* If set, this shell is a login shell.
- * Corresponds to --login option. */
+ * Corresponds to the --login option. */
 bool is_login_shell;
 
 /* If set, this shell is interactive.
  * `is_interactive_now' is set false in subshells while `is_interactive'
  * remains unchanged.
- * Correspond to -i/--interactive option. */
+ * Once initialized, `is_interactive' cannot be reset.
+ * Correspond to the -i/--interactive option. */
 bool is_interactive, is_interactive_now;
 
 /* If set, the shell performs job control.
- * Corresponds to -m/--monitor option. */
+ * Corresponds to the -m/--monitor option. */
 bool do_job_control;
-/* If set, the shell immediately notifies on a change of job status.
- * Corresponds to -b/--notify option. */
+/* If set, the shell immediately notifies on change of job status.
+ * Corresponds to the -b/--notify option. */
 bool shopt_notify;
 #if YASH_ENABLE_LINEEDIT
-/* If set, the shell immediately notifies on a change of job status during line-
- * editing. Ignored if `shopt_notify' is set. Corresponds to --notifyle option.
- */
+/* If set, the shell immediately notifies on change of job status during line-
+ * editing. Ignored if `shopt_notify' is set. Corresponds to the --notifyle
+ * option. */
 bool shopt_notifyle;
 #endif
 
 /* Set if commands are read from argument and stdin respectively.
- * Correspond to -c and -s options respectively. */
+ * Correspond to the -c and -s options respectively. */
 bool shopt_read_arg, shopt_read_stdin;
 
 /* The value of special parameter $0. */
 const wchar_t *command_name;
 
 /* If set, any variable is exported when assigned.
- * Corresponds to -a/--allexport option. */
+ * Corresponds to the -a/--allexport option. */
 bool shopt_allexport;
 /* If set, when a function is defined, all the commands in the function
- * are hashed. Corresponds to -h/--hashondef option. */
+ * are hashed. Corresponds to the -h/--hashondef option. */
 bool shopt_hashondef;
 
-/* If set, when a command returns a non-zero status, exit the shell.
- * Corresponds to -e/--errexit option. */
+/* If set, when a command returns a non-zero status, the shell exits.
+ * Corresponds to the -e/--errexit option. */
 bool shopt_errexit;
-/* If set, treat an expansion of undefined parameter as an error.
- * Corresponds to -u/--nounset option. */
+/* If set, treat expansion of an undefined parameter as an error.
+ * Corresponds to the -u/--nounset option. */
 bool shopt_nounset;
 /* If set, don't execute any command; just do syntax checking.
- * Corresponds to -n/--noexec option. */
+ * Corresponds to the -n/--noexec option. */
 bool shopt_noexec;
-/* If set, don't exit when EOF is entered.
- * Corresponds to --ignoreeof option. */
+/* If set, don't exit when EOF is entered (if the input is from a terminal).
+ * Corresponds to the --ignoreeof option. */
 bool shopt_ignoreeof;
 /* If set, echo the input to the shell.
- * Corresponds to -v/--verbose option. */
+ * Corresponds to the -v/--verbose option. */
 bool shopt_verbose;
-/* If set, print the trace of each command executed and variable assigned.
- * Corresponds to -x/--xtrace option. */
+/* If set, print the trace of command execution and variable assignment.
+ * Corresponds to the -x/--xtrace option. */
 bool shopt_xtrace;
 /* If set, a background job is set to the current job when:
  *  - invoked as an asynchronous command
@@ -123,20 +124,20 @@ bool shopt_curasync = true, shopt_curbg = true, shopt_curstop = true;
 /* If set, lines that start with a space are not saved in the history. */
 bool shopt_histspace;
 
-/* If set, don't perform filename expansions.
- * Corresponds to -f/--noglob option. */
+/* If set, don't perform filename expansion.
+ * Corresponds to the -f/--noglob option. */
 bool shopt_noglob;
 /* Correspond to WGLB_CASEFOLD, WGLB_PERIOD, WGLB_MARK, WGLB_RECDIR resp. */
 bool shopt_nocaseglob, shopt_dotglob, shopt_markdirs, shopt_extendedglob;
-/* If set, globbing pattern is removed from command line rather than left
- * intact when there are no matches.
- * Corresponds to --nullglob option. */
+/* If set, a glob pattern is removed from the command line rather than left
+ * intact when there are no matches for it.
+ * Corresponds to the --nullglob option. */
 bool shopt_nullglob;
 /* If set, perform brace expansion.
- * Corresponds to --brace option.*/
+ * Corresponds to the --brace option.*/
 bool shopt_braceexpand;
 /* If set, prevent redirections from overwriting existent file.
- * Corresponds to -C/--noclobber option. */
+ * Corresponds to the -C/--noclobber option. */
 bool shopt_noclobber;
 
 #if YASH_ENABLE_LINEEDIT
@@ -186,7 +187,7 @@ static const struct xoption long_options[] = {
     [SHOPT_NORCFILE]       = { L"norcfile",       xno_argument, L')', },
     [SHOPT_RCFILE]         = { L"rcfile",         xrequired_argument, L'!', },
     [SHOPT_VERSION]        = { L"version",        xno_argument, L'V', },
-    /* Options above cannot be used in set builtin */
+    /* Above options cannot be used thru the "set" builtin */
     [SHOPT_ALLEXPORT]      = { L"allexport",      xno_argument, L'L', },
     [SHOPT_HASHONDEF]      = { L"hashondef",      xno_argument, L'L', },
     [SHOPT_NOCLOBBER]      = { L"noclobber",      xno_argument, L'L', },
@@ -225,7 +226,6 @@ static const struct xoption long_options[] = {
 #if YASH_ENABLE_HELP
     [SHOPT_HELP]           = { L"help",         xno_argument, L'-', },
 #endif
-    /* this one must be the last for `help_option' */
     [SHOPT_end]            = { NULL, 0, 0, },
 };
 
@@ -296,7 +296,7 @@ void set_option(void)
     info->func(info->argp);
 }
 
-/* Sets the option specified by the character `c'.
+/* Sets the option specified by character `c'.
  * An unrecognized character is ignored. */
 void set_single_option(wchar_t c)
 {
@@ -317,8 +317,8 @@ void set_single_option(wchar_t c)
     set_option();
 }
 
-/* Switches the setting of a specified long option.
- * Options that can only be used in shell invocation are ignored.
+/* Switches the setting of the specified long option.
+ * Options that can only be used in shell initialization are ignored.
  * Returns true if successful, false for invalid options. */
 bool set_long_option(const wchar_t *s)
 {
@@ -378,9 +378,9 @@ void set_lineedit_option(void *argp __attribute__((unused)))
     }
     if (xoptopt == L'-') {
 	shopt_lineedit = opt;
-	/* turn on lineedit */
+	/* turn on line editing */
     } else {
-	/* turn off lineedit */
+	/* turn off line editing */
 	if (shopt_lineedit == opt)
 	    shopt_lineedit = shopt_nolineedit;
     }
@@ -392,9 +392,8 @@ void set_le_convmeta_option(void *argp __attribute__((unused)))
     bool value = (xoptopt == L'-');
     if (value)
 	shopt_le_convmeta = shopt_yes;
-    else
-	if (shopt_le_convmeta == shopt_yes)
-	    shopt_le_convmeta = shopt_auto;
+    else if (shopt_le_convmeta == shopt_yes)
+	shopt_le_convmeta = shopt_auto;
 }
 
 /* Changes the setting of the le-noconvmeta option. */
@@ -403,14 +402,14 @@ void set_le_noconvmeta_option(void *argp __attribute__((unused)))
     bool value = (xoptopt == L'-');
     if (value)
 	shopt_le_convmeta = shopt_no;
-    else
-	if (shopt_le_convmeta == shopt_no)
-	    shopt_le_convmeta = shopt_auto;
+    else if (shopt_le_convmeta == shopt_no)
+	shopt_le_convmeta = shopt_auto;
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
 
-/* Return current value of special parameter $- as a newly malloced string. */
+/* Returns the current value of special parameter $- as a newly malloced string.
+ */
 wchar_t *get_hyphen_parameter(void)
 {
     xwcsbuf_T buf;
@@ -665,8 +664,8 @@ const char set_help[] = Ngt(
 " -m --monitor\n"
 "\tEnable job control. All jobs are run in their own process group.\n"
 "\tWhen the status of a job is changed, the status is reported before\n"
-"\tthe next prompt. This option is enabled by default for interactive\n"
-"\tshells.\n"
+"\tthe next prompt. This option is enabled by default for an interactive\n"
+"\tshell.\n"
 " -n --noexec\n"
 "\tCommands are parsed, but not executed.\n"
 "\tUseful for syntax checking of a shell script file.\n"
@@ -679,11 +678,10 @@ const char set_help[] = Ngt(
 "\tAfter each command line is expanded, the expanded line is printed\n"
 "\tto the standard error.\n"
 " -C --noclobber\n"
-"\tPrevent existent files from being overridden by the \">\"\n"
-"\tredirection.\n"
+"\tPrevent existent files from being overridden by the \">\" redirection.\n"
 " --ignoreeof\n"
 "\tDo not exit when an EOF is entered.\n"
-"\tThis option is effective in interactive shells only.\n"
+"\tThis option is effective in an interactive shell only.\n"
 " --braceexpand\n"
 "\tEnable brace expansion.\n"
 " --curasync, --curbg, --curstop\n"

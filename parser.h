@@ -45,7 +45,8 @@ typedef struct pipeline_T {
     struct command_T  *pl_commands;  /* commands in this pipeline */
     _Bool              pl_neg, pl_cond;
 } pipeline_T;
-/* pl_neg:  whether the exit status of the pipeline is inverted.
+/* pl_neg:  indicates this pipeline is prefix by "!", in which case the exit
+ *          status of the pipeline is inverted.
  * pl_cond: true for "&&", false for "||". Ignored for the first pipeline in an
  *          and/or list. */
 
@@ -111,10 +112,10 @@ typedef struct command_T {
 #define c_funcbody c_content.funcdef.funcbody
 /* `c_words' and `c_forwords' are NULL-terminated arrays of pointers to
  * `wordunit_T', cast to `void *'.
- * If `c_forwords' is NULL, the for loop doesn't have a "in" clause.
+ * If `c_forwords' is NULL, the for loop doesn't have the "in" clause.
  * If `c_forwords[0]' is NULL, the "in" clause is empty. */
 
-/* condition and commands of if command */
+/* condition and commands of an if command */
 typedef struct ifcommand_T {
     struct ifcommand_T *next;
     struct and_or_T    *ic_condition;  /* condition */
@@ -122,7 +123,7 @@ typedef struct ifcommand_T {
 } ifcommand_T;
 /* For a "else" clause, `next' and `ic_condition' are NULL. */
 
-/* patterns and commands of case command */
+/* patterns and commands of a case command */
 typedef struct caseitem_T {
     struct caseitem_T *next;
     void             **ci_patterns;  /* patterns to do matching */
@@ -130,14 +131,6 @@ typedef struct caseitem_T {
 } caseitem_T;
 /* `ci_patterns' is a NULL-terminated array of pointers to `wordunit_T',
  * cast to `void *'. */
-
-/* type of wordunit_T */
-typedef enum {
-    WT_STRING,  /* string (including quotes) */
-    WT_PARAM,   /* parameter expansion */
-    WT_CMDSUB,  /* command substitution */
-    WT_ARITH,   /* arithmetic expansion */
-} wordunittype_T;
 
 /* embedded command */
 typedef struct embedcmd_T {
@@ -147,6 +140,14 @@ typedef struct embedcmd_T {
 	and_or_T *preparsed;
     } value;
 } embedcmd_T;
+
+/* type of wordunit_T */
+typedef enum {
+    WT_STRING,  /* string (including quotes) */
+    WT_PARAM,   /* parameter expansion */
+    WT_CMDSUB,  /* command substitution */
+    WT_ARITH,   /* arithmetic expansion */
+} wordunittype_T;
 
 /* element of a word subject to expansion */
 typedef struct wordunit_T {
@@ -244,7 +245,7 @@ typedef struct assign_T {
 #define a_scalar a_value.scalar
 #define a_array  a_value.array
 /* `a_scalar' may be NULL to denote an empty string.
- * `a_array' is an array of pointers to wordunit_T. */
+ * `a_array' is an array of pointers to `wordunit_T'. */
 
 /* type of redirection */
 typedef enum {
@@ -290,7 +291,7 @@ typedef struct redir_T {
  * argument being true. */
 
 
-/********** Interfaces to parse routines **********/
+/********** Interface to Parsing Routines **********/
 
 struct parsestate_T;
 
@@ -327,7 +328,7 @@ extern _Bool parse_string(
     __attribute__((nonnull));
 
 
-/********** Auxiliary function **********/
+/********** Auxiliary Functions **********/
 
 extern _Bool is_name_char(wchar_t c)
     __attribute__((pure));
@@ -339,7 +340,7 @@ extern _Bool is_token_delimiter_char(wchar_t c)
     __attribute__((pure));
 
 
-/********** Functions that Convert Parse Trees into Strings **********/
+/********** Functions That Convert Parse Trees into Strings **********/
 
 extern wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
     __attribute__((malloc,warn_unused_result));
@@ -347,7 +348,7 @@ extern wchar_t *command_to_wcs(const command_T *command, _Bool multiline)
     __attribute__((malloc,warn_unused_result));
 
 
-/********** Functions that Free/Duplicate Parse Trees **********/
+/********** Functions That Free/Duplicate Parse Trees **********/
 
 extern void andorsfree(and_or_T *a);
 extern void wordfree(wordunit_T *w);

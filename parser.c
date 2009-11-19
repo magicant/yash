@@ -43,7 +43,7 @@
 #include "util.h"
 
 
-/********** Functions that Free Parse Trees **********/
+/********** Functions That Free Parse Trees **********/
 
 static void pipesfree(pipeline_T *p);
 static void ifcmdsfree(ifcommand_T *i);
@@ -272,7 +272,8 @@ bool is_name_char(wchar_t c)
 }
 
 /* Skips an identifier at the head of the specified string and returns a
- * pointer to the character right after the identifier in the string. */
+ * pointer to the character right after the identifier in the string.
+ * Simply returns `s' if there is no identifier. */
 wchar_t *skip_name(const wchar_t *s)
 {
     if (!iswdigit(*s))
@@ -287,7 +288,7 @@ bool is_name(const wchar_t *s)
     return s[0] != L'\0' && skip_name(s)[0] == L'\0';
 }
 
-/* Returns true iff the string is a shell reserved word. */
+/* Returns true iff the string is a reserved word. */
 bool is_keyword(const wchar_t *s)
 {
     /* List of keywords:
@@ -365,8 +366,8 @@ static bool is_closing_brace(wchar_t c)
     __attribute__((const));
 static bool is_token_at(const wchar_t *t, size_t index)
     __attribute__((pure,nonnull));
-static const wchar_t *check_opening_token_at(size_t index);
-static const wchar_t *check_closing_token_at(size_t index);
+static const wchar_t *check_opening_token(void);
+static const wchar_t *check_closing_token(void);
 static and_or_T *parse_command_list(void)
     __attribute__((malloc,warn_unused_result));
 static and_or_T *parse_compound_list(void)
@@ -446,7 +447,7 @@ static wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
     __attribute__((malloc,warn_unused_result));
 static const char *get_errmsg_unexpected_token(const wchar_t *t)
     __attribute__((nonnull));
-static void print_errmsg_token_missing(const wchar_t *t, size_t index)
+static void print_errmsg_token_missing(const wchar_t *t)
     __attribute__((nonnull));
 
 #define QUOTES L"\"'\\"
@@ -458,7 +459,7 @@ static parseinfo_T *cinfo;
 static bool cerror;
 /* buffer to contain the source code */
 static xwcsbuf_T cbuf;
-/* index to the point currently parsing in `cbuf' */
+/* index to the current parsing point in `cbuf' */
 static size_t cindex;
 /* list of here-documents whose contents are to be read */
 static plist_T pending_heredocs;
@@ -473,10 +474,10 @@ static struct aliaslist_T *caliases;
 #endif
 
 
-/* Saves the current parsing state to an object and returns it.
- * Though `read_and_parse' and `parse_string' cannot be reentered by nature,
- * they actually can if the parsing state is saved.
- * Don't forget to call `restore_parse_state' to restore the state. */
+/* Saves the current parsing state to a `parsestate_T' object and returns it.
+ * When `read_and_parse' or `parse_string' is called from inside themselves,
+ * the parsing states must be saved using this function before the inner call.
+ * Don't forget to call `restore_parse_state' to restore the state later. */
 struct parsestate_T *save_parse_state(void)
 {
     struct parsestate_T *result = xmalloc(sizeof *result);
@@ -516,11 +517,10 @@ void restore_parse_state(struct parsestate_T *state)
  * The error condition must be tested by checking `cerror'.
  * `cerror' is set to true when `serror' is called. */
 /* All the functions named `parse_*' advance `cindex' to the index of the
- * character right after the functions have parsed. `cbuf.contents[cindex]' is
- * non-null when these functions return (except when EOF is read). */
+ * character right after the functions have parsed. */
 
 
-/* An entry point to the parser. Reads at least one line and parses it.
+/* The main entry point to the parser. Reads at least one line and parses it.
  * All the members of `info' except `lastinputresult' must be initialized
  * beforehand.
  * The resulting parse tree is assigned to `*result'. If there is no command in
@@ -530,8 +530,7 @@ void restore_parse_state(struct parsestate_T *state)
  *         2 if a read error is encountered, or
  *         EOF if EOF is input.
  * If 1 or 2 is returned, at least one error message is printed.
- * Note that `*result' is assigned if and only if the return value is 0.
- * This function is not reentrant in itself. */
+ * Note that `*result' is assigned if and only if the return value is 0. */
 int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 {
     cinfo = info;
@@ -594,7 +593,7 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
     assert(false);
 }
 
-/* Prints an error message to stderr.
+/* Prints the specified error message to stderr.
  * `format' is passed to `gettext' in this function.
  * `format' need not to have a trailing newline. */
 void serror(const char *restrict format, ...)
@@ -614,8 +613,8 @@ void serror(const char *restrict format, ...)
     cerror = true;
 }
 
-/* Reads more input and returns `cinfo->lastinputresult'.
- * If input is from a interactive terminal and `cerror' is true, returns
+/* Reads the next line from the input and returns `cinfo->lastinputresult'.
+ * If input is from an interactive terminal and `cerror' is true, returns
  * INPUT_INTERRUPTED. */
 inputresult_T read_more_input(void)
 {
@@ -668,7 +667,7 @@ void ensure_buffer(size_t n)
     }
 }
 
-/* Returns the length of the name under the current index.
+/* Returns the length of the name at the current index.
  * Whether a character can be part of the name is determined by `isnamechar'.
  * Processes line continuations and reads enough lines so that the
  * variable/alias name under the current index is fully available. */
@@ -747,16 +746,25 @@ void next_line(void)
 /* Checks if the specified character is a token separator */
 bool is_token_delimiter_char(wchar_t c)
 {
-    return iswblank(c) || c == L'\0' || c == L'\n'
-	|| c == L';' || c == L'&' || c == L'|'
-	|| c == L'<' || c == L'>' || c == L'(' || c == L')';
+    switch (c) {
+	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
+	case L'<':   case L'>':   case L'(':   case L')':
+	    return true;
+	default:
+	    return iswblank(c);
+    }
 }
 
 /* Checks if the specified character delimits a simple command. */
 bool is_command_delimiter_char(wchar_t c)
 {
-    return c == L'\0' || c == L'\n'
-	|| c == L';' || c == L'&' || c == L'|' || c == L'(' || c == L')';
+    switch (c) {
+	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
+	case L'(':   case L')':
+	    return true;
+	default:
+	    return false;
+    }
 }
 
 bool is_comma_or_closing_bracket(wchar_t c)
@@ -774,7 +782,7 @@ bool is_closing_brace(wchar_t c)
     return c == L'}' || c == L'\0';
 }
 
-/* Checks if there is a token `t' at the specified index in `cbuf'.
+/* Checks if token `t' exists at the specified index in `cbuf'.
  * `index' must not be greater than `cbuf.length'.
  * `t' must not be a proper substring of another operator token.
  * `ensure_buffer(wcslen(t))' must be done beforehand. */
@@ -784,41 +792,40 @@ bool is_token_at(const wchar_t *t, size_t index)
     return c && is_token_delimiter_char(*c);
 }
 
-/* Checks if there is a 'opening' token such as "(", "{" and "if" at the
- * specified index in `cbuf'. If there is one, the token string is returned.
+/* Checks if there is an 'opening' token such as "(", "{" and "if" at the
+ * current index in `cbuf'. If there is one, the token string is returned.
  * Otherwise NULL is returned. */
-const wchar_t *check_opening_token_at(size_t index)
+const wchar_t *check_opening_token(void)
 {
-    if (true || index + 6 >= cindex)
-	ensure_buffer(6);
-    if (cbuf.contents[index] == L'(') return L"(";
-    if (is_token_at(L"{",     index)) return L"{";
-    if (is_token_at(L"if",    index)) return L"if";
-    if (is_token_at(L"for",   index)) return L"for";
-    if (is_token_at(L"while", index)) return L"while";
-    if (is_token_at(L"until", index)) return L"until";
-    if (is_token_at(L"case",  index)) return L"case";
+    ensure_buffer(6);
+    if (cbuf.contents[cindex] == L'(') return L"(";
+    if (is_token_at(L"{",     cindex)) return L"{";
+    if (is_token_at(L"if",    cindex)) return L"if";
+    if (is_token_at(L"for",   cindex)) return L"for";
+    if (is_token_at(L"while", cindex)) return L"while";
+    if (is_token_at(L"until", cindex)) return L"until";
+    if (is_token_at(L"case",  cindex)) return L"case";
     return NULL;
 }
 
 /* Checks if there is a 'closing' token such as ")", "}" and "fi" at the
- * specified index in `cbuf'. If there is one, the token string is returned.
+ * current index in `cbuf'. If there is one, the token string is returned.
  * Otherwise NULL is returned.
  * Closing tokens delimit and/or lists. */
-const wchar_t *check_closing_token_at(size_t index)
+const wchar_t *check_closing_token(void)
 {
     ensure_buffer(5);
-    if (cbuf.contents[index] == L')') return L")";
-    if (cbuf.contents[index] == L';' && cbuf.contents[index + 1] == L';')
+    if (cbuf.contents[cindex] == L')') return L")";
+    if (cbuf.contents[cindex] == L';' && cbuf.contents[cindex + 1] == L';')
 				      return L";;";
-    if (is_token_at(L"}",    index))  return L"}";
-    if (is_token_at(L"then", index))  return L"then";
-    if (is_token_at(L"else", index))  return L"else";
-    if (is_token_at(L"elif", index))  return L"elif";
-    if (is_token_at(L"fi",   index))  return L"fi";
-    if (is_token_at(L"do",   index))  return L"do";
-    if (is_token_at(L"done", index))  return L"done";
-    if (is_token_at(L"esac", index))  return L"esac";
+    if (is_token_at(L"}",    cindex))  return L"}";
+    if (is_token_at(L"then", cindex))  return L"then";
+    if (is_token_at(L"else", cindex))  return L"else";
+    if (is_token_at(L"elif", cindex))  return L"elif";
+    if (is_token_at(L"fi",   cindex))  return L"fi";
+    if (is_token_at(L"do",   cindex))  return L"do";
+    if (is_token_at(L"done", cindex))  return L"done";
+    if (is_token_at(L"esac", cindex))  return L"esac";
     return NULL;
 }
 
@@ -829,7 +836,7 @@ and_or_T *parse_command_list(void)
     and_or_T *first = NULL, **lastp = &first;
     bool separator = true;
     /* To parse a command after another, there must be "&", ";" or one or more
-     * newlines as the separator. */
+     * newlines as a separator. */
 
     while (!cerror) {
 	skip_blanks_and_comment();
@@ -886,7 +893,7 @@ and_or_T *parse_compound_list(void)
 	separator |= skip_to_next_token();
 	if (!separator
 		|| cbuf.contents[cindex] == L'\0'
-		|| check_closing_token_at(cindex))
+		|| check_closing_token())
 	    break;
 
 	and_or_T *ao = parse_and_or_list();
@@ -1017,7 +1024,7 @@ pipeline_T *parse_pipeline(void)
     return result;
 }
 
-/* Parses the body of a pipeline. */
+/* Parses the body of the pipeline. */
 command_T *parse_commands_in_pipeline(void)
 {
     command_T *first = NULL, **lastp = &first;
@@ -1061,8 +1068,8 @@ command_T *parse_command(void)
     reparse_alias = false;
 #endif
 
-    /* Note: `check_closing_token_at` includes `ensure_buffer(5)'. */
-    const wchar_t *t = check_closing_token_at(cindex);
+    /* Note: `check_closing_token' includes `ensure_buffer(5)'. */
+    const wchar_t *t = check_closing_token();
     if (t) {
 	serror(get_errmsg_unexpected_token(t), t);
 	return NULL;
@@ -1083,7 +1090,7 @@ command_T *parse_command(void)
 	return NULL;
     }
 
-    t = check_opening_token_at(cindex);
+    t = check_opening_token();
     if (t)
 	return parse_compound_command(t);
 
@@ -1214,7 +1221,7 @@ void parse_redirect_list(redir_T **lastp)
 }
 
 /* If there is an assignment at the current index, parses and returns it.
- * Otherwise, does nothing and returns NULL. */
+ * Otherwise, returns NULL without moving the index. */
 assign_T *tryparse_assignment(void)
 {
     if (iswdigit(cbuf.contents[cindex]))
@@ -1249,7 +1256,7 @@ assign_T *tryparse_assignment(void)
 
 /* Parses words until the next closing parentheses.
  * Delimiter characters other than ')' and '\n' are not allowed.
- * Returns a newly malloced array of pointers to newly malloced wordunit_T. */
+ * Returns a newly malloced array of pointers to newly malloced `wordunit_T's.*/
 void **parse_words_to_paren(void)
 {
     plist_T list;
@@ -1267,7 +1274,7 @@ void **parse_words_to_paren(void)
 }
 
 /* If there is a redirection at the current index, parses and returns it.
- * Otherwise, does nothing and returns NULL. */
+ * Otherwise, returns NULL without moving the index. */
 redir_T *tryparse_redirect(void)
 {
     int fd;
@@ -1406,9 +1413,9 @@ wordunit_T *parse_word(aliastype_T type)
 /* Parses a word at the current index.
  * `testfunc' is a function that determines if a character is a word delimiter.
  * It must return true for L'\0'.
- * The parsing process proceeds up to an unescaped character `testfunc' returns
- * false for. It is not an error if there is no characters to be a word, in
- * which case NULL is returned. */
+ * The parsing proceeds up to an unescaped character `testfunc' returns false
+ * for. It is not an error if there is no characters to be a word, in which case
+ * NULL is returned. */
 wordunit_T *parse_word_to(bool testfunc(wchar_t c))
 {
     wordunit_T *first = NULL, **lastp = &first, *wu;
@@ -1781,7 +1788,7 @@ wordunit_T *parse_cmdsubst_in_paren(void)
     return result;
 }
 
-/* Extracts command between '(' and ')'.
+/* Extracts commands between '(' and ')'.
  * `cindex' points to '(' when the function is called, and to ')' when returns.
  */
 embedcmd_T extract_command_in_paren(void)
@@ -2032,7 +2039,7 @@ command_T *parse_group(commandtype_T type)
     if (cbuf.contents[cindex] == terminator[0])
 	cindex++;
     else
-	print_errmsg_token_missing(terminator, cindex);
+	print_errmsg_token_missing(terminator);
     return result;
 }
 
@@ -2065,7 +2072,7 @@ command_T *parse_if(void)
 	    if (is_token_at(L"then", cindex))
 		cindex += 4;
 	    else
-		print_errmsg_token_missing(L"then", cindex);
+		print_errmsg_token_missing(L"then");
 	} else {
 	    ic->ic_condition = NULL;
 	}
@@ -2083,13 +2090,13 @@ command_T *parse_if(void)
 		cindex += 2;
 		break;
 	    } else {
-		print_errmsg_token_missing(L"fi", cindex);
+		print_errmsg_token_missing(L"fi");
 	    }
 	} else {
 	    if (is_token_at(L"fi", cindex))
 		cindex += 2;
 	    else
-		print_errmsg_token_missing(L"fi", cindex);
+		print_errmsg_token_missing(L"fi");
 	    break;
 	}
     }
@@ -2145,7 +2152,7 @@ command_T *parse_for(void)
     if (is_token_at(L"do", cindex))
 	cindex += 2;
     else
-	print_errmsg_token_missing(L"do", cindex);
+	print_errmsg_token_missing(L"do");
     result->c_forcmds = parse_compound_list();
     if (posixly_correct && !result->c_forcmds)
 	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
@@ -2153,11 +2160,11 @@ command_T *parse_for(void)
     if (is_token_at(L"done", cindex))
 	cindex += 4;
     else
-	print_errmsg_token_missing(L"done", cindex);
+	print_errmsg_token_missing(L"done");
     return result;
 }
 
-/* Parses a while or until command. */
+/* Parses a while/until command. */
 command_T *parse_while(bool whltype)
 {
     assert(is_token_at(whltype ? L"while" : L"until", cindex));
@@ -2177,7 +2184,7 @@ command_T *parse_while(bool whltype)
     if (is_token_at(L"do", cindex))
 	cindex += 2;
     else
-	print_errmsg_token_missing(L"do", cindex);
+	print_errmsg_token_missing(L"do");
     result->c_whlcmds = parse_compound_list();
     if (posixly_correct && !result->c_whlcmds)
 	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
@@ -2185,7 +2192,7 @@ command_T *parse_while(bool whltype)
     if (is_token_at(L"done", cindex))
 	cindex += 4;
     else
-	print_errmsg_token_missing(L"done", cindex);
+	print_errmsg_token_missing(L"done");
     return result;
 }
 
@@ -2210,13 +2217,13 @@ command_T *parse_case(void)
     if (is_token_at(L"in", cindex))
 	cindex += 2;
     else
-	print_errmsg_token_missing(L"in", cindex);
+	print_errmsg_token_missing(L"in");
     result->c_casitems = parse_case_list();
     ensure_buffer(5);
     if (is_token_at(L"esac", cindex))
 	cindex += 4;
     else
-	print_errmsg_token_missing(L"esac", cindex);
+	print_errmsg_token_missing(L"esac");
     return result;
 }
 
@@ -2311,7 +2318,7 @@ command_T *tryparse_function(void)
     skip_to_next_token();
 
     /* parse function body */
-    const wchar_t *t = check_opening_token_at(cindex);
+    const wchar_t *t = check_opening_token();
     if (!t) {
 	serror(Ngt("function body must be compound command"));
 	return NULL;
@@ -2391,7 +2398,7 @@ void read_heredoc_contents_with_expand(redir_T *r)
     r->rd_herecontent = first;
 }
 
-/* Checks if the whole line to which `cindex' points is an end-of-heredoc `eoc'.
+/* Checks if the whole line to which `cindex' points is end-of-heredoc `eoc'.
  * `eoclen' is `wcslen(eoc)'. If `skiptab' is true, leading tabs in the line are
  * skipped.
  * If an end-of-heredoc is found, returns true with `cindex' advanced to the
@@ -2442,7 +2449,7 @@ wordunit_T *parse_string_to(bool backquote, bool stoponnewline)
 		case INPUT_EOF:
 		case INPUT_INTERRUPTED:
 		case INPUT_ERROR:
-		    goto done;  /* We ignore errors. */
+		    goto done;  /* ignore errors. */
 	    }
 	    break;
 	case L'\\':
@@ -2487,14 +2494,13 @@ done:
     return first;
 }
 
-/* Parses a string recognizing parameter expansions, command substitutions in
- * "$(...)" form and arithmetic expansions.
+/* Parses a string recognizing parameter expansions, command substitutions of
+ * the form "$(...)" and arithmetic expansions.
  * All the members of `info' except `lastinputresult' must be initialized
  * beforehand.
  * This function reads and parses the input to the EOF.
  * Iff successful, the result is assigned to `*result' and true is returned.
- * If the input is empty, NULL is assigned.
- * This function is not reentrant in itself. */
+ * If the input is empty, NULL is assigned. */
 bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 {
     cinfo = info;
@@ -2525,7 +2531,7 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 }
 
 
-/***** Error Message Auxiliaries *****/
+/***** Auxiliaries about Error Messages *****/
 
 const char *get_errmsg_unexpected_token(const wchar_t *t)
 {
@@ -2556,9 +2562,9 @@ const char *get_errmsg_unexpected_token(const wchar_t *t)
     }
 }
 
-void print_errmsg_token_missing(const wchar_t *t, size_t index)
+void print_errmsg_token_missing(const wchar_t *t)
 {
-    const wchar_t *atoken = check_closing_token_at(index);
+    const wchar_t *atoken = check_closing_token();
     if (atoken)
 	serror(get_errmsg_unexpected_token(atoken), atoken);
     else
@@ -2652,7 +2658,7 @@ static void print_space_or_newline(struct print* pr)
 static void trim_end_of_buffer(xwcsbuf_T *buf)
     __attribute__((nonnull));
 
-/* Converts pipelines into a newly malloced wide string. */
+/* Converts the specified pipelines into a newly malloced wide string. */
 wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
 {
     struct print pr;
@@ -2668,7 +2674,9 @@ wchar_t *pipelines_to_wcs(const pipeline_T *pipelines)
     return wb_towcs(&pr.buffer);
 }
 
-/* Converts a command into a newly malloced wide string. */
+/* Converts the specified command into a newly malloced wide string.
+ * If `multiline' is true, the result is pretty-formated with a terminating
+ * newline. */
 wchar_t *command_to_wcs(const command_T *command, bool multiline)
 {
     struct print pr;
@@ -2680,7 +2688,7 @@ wchar_t *command_to_wcs(const command_T *command, bool multiline)
     print_one_command(&pr, command, 0);
 
     trim_end_of_buffer(&pr.buffer);
-    if (multiline)
+    if (pr.multiline)
 	print_space_or_newline(&pr);
 
     pl_destroy(&pr.pending_heredocs);
