@@ -1281,9 +1281,14 @@ step7:  /* ensure the value of `curpath' is an absolute path */
     /* step 9: determine `curpathoffset' */
     assert(logical);
     if (oldpwd[wcsspn(oldpwd, L"/")] != L'\0') {
+	/* If `oldpwd' contains a character other than '/' and if the head of
+	 * `curpath' is equal to `oldpwd', then a relative path to the new
+	 * working directory can be obtained by removing the matching head of
+	 * `curpath'. */
 	wchar_t *s = matchwcsprefix(curpath.contents, oldpwd);
-	if (s != NULL && *s == L'/') {
-	    s++;
+	if (s != NULL && (s[-1] == L'/' || s[0] == L'/')) {
+	    if (*s == L'/')
+		s++;
 	    assert(*s != L'/');
 	    curpathoffset = s - curpath.contents;
 	}
