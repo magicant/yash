@@ -1667,8 +1667,7 @@ int dot_builtin(int argc, void **argv)
 
     char *path;
     if (!wcschr(filename, L'/')) {
-	path = which(mbsfilename, get_path_array(PA_PATH),
-		is_readable_regular);
+	path = which(mbsfilename, get_path_array(PA_PATH), is_readable_regular);
 	if (!path) {
 	    if (!posixly_correct) {
 		path = mbsfilename;

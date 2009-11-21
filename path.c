@@ -65,6 +65,14 @@ static bool check_access(const char *path, mode_t mode)
 static inline bool not_dotdot(const wchar_t *p)
     __attribute__((nonnull,pure));
 
+/* Checks if `path' is an existing file. */
+bool is_file(const char *path)
+{
+    return access(path, F_OK) == 0;
+    // struct stat st;
+    // return (stat(path, &st) == 0);
+}
+
 /* Checks if `path' is a regular file. */
 bool is_regular_file(const char *path)
 {
@@ -110,11 +118,11 @@ bool is_executable(const char *path)
 }
 
 #if !HAVE_EACCESS
-/* Checks if this process has a proper permission to access the file.
+/* Checks if this process has a proper permission to access the specified file.
  * Returns false if the file does not exist. */
 bool check_access(const char *path, mode_t mode)
 {
-    /* The algorithm below is not fully valid for all POSIX systems. */
+    /* The algorithm below is not 100% valid for all POSIX systems. */
     struct stat st;
     uid_t uid;
     gid_t gid;
@@ -312,14 +320,13 @@ char *xgetcwd(void)
 
 /* Searches the specified directories `dirs' for a file named `name' that
  * satisfies the specified condition.
- * name:   a pathname to be searched for.
+ * name:   the pathname of the file to be searched for.
  *         If `name' is an absolute path, a copy of it is simply returned.
  * dirs:   a NULL-terminated array of strings that are the names of
  *         directories to search. An empty string is treated as the current
- *         directory. if `dirs' is NULL, only the current directory is searched.
- * cond:   a function that determines the specified pathname satisfies a
- *         certain condition. If `cond' is NULL, the pathname is checked for
- *         its existence.
+ *         directory. If `dirs' is NULL, only the current directory is searched.
+ * cond:   the function that determines the specified pathname satisfies a
+ *         certain condition.
  * For each directory in `dirs', in order, the directory name and "/" and
  * `name' are concatenated to produce a pathname and `cond' is called with
  * the pathname. If `cond' returns true, search is complete and the pathname
@@ -356,7 +363,7 @@ char *which(
 	    /* if `dir' is empty, it's considered to be the current directory */
 	    strcpy(path, name);
 	}
-	if (cond ? cond(path) : (access(path, F_OK) == 0))
+	if (cond(path))
 	    return xstrdup(path);
     }
     return NULL;
@@ -367,7 +374,7 @@ char *which(
  * On successful completion, a file descriptor is returned, which is both
  * readable and writeable regardless of `mode', and a pointer to a string
  * containing the filename is assigned to `*filename', which should be freed by
- * the caller. The filename consists of only portable filename characters.
+ * the caller. The filename consists only of portable filename characters.
  * On failure, -1 is returned with `**filename' left unchanged and errno is set
  * to the error value. */
 int create_temporary_file(char **filename, mode_t mode)
@@ -459,7 +466,7 @@ const char *get_command_path(const char *name, bool forcelookup)
     return path;
 }
 
-#if YASH_ENABLE_LINEEDIT
+#if 0 && YASH_ENABLE_LINEEDIT
 
 /* Fills the command hashtable, searching PATH for all commands whose name
  * starts with the specified prefix.
@@ -641,10 +648,10 @@ const wchar_t *get_home_directory(const wchar_t *username, bool forcelookup)
 	return NULL;
 
     struct passwd *pw = xgetpwnam(mbsusername);
-    free(mbsusername); if (!pw)
+    free(mbsusername);
+    if (!pw)
 	return NULL;
 
-    /* enter to the hashtable */
     xwcsbuf_T dir;
     wb_init(&dir);
     if (wb_mbscat(&dir, pw->pw_dir) != NULL) {
@@ -668,6 +675,7 @@ void forget_home_directory(const wchar_t *username)
 
 /********** wglob **********/
 
+/* The type of compiled glob patterns */
 struct wglob_pattern {
     struct wglob_pattern *next;
     enum {
@@ -686,6 +694,7 @@ struct wglob_pattern {
 	} recsearch;
     } value;
 };
+
 struct wglob_dirstack {
     struct wglob_dirstack *prev;
     struct stat st;
@@ -737,8 +746,8 @@ static bool is_reentry(
     __attribute__((nonnull(1)));
 
 /* A wide string version of `glob'.
- * Adds all pathnames that matches the specified pattern.
- * pattern: a pattern
+ * Adds all pathnames that matches the specified pattern to the specified list.
+ * pattern: the pattern to match
  * flags:   a bitwise OR of the following flags:
  *          WGLB_MARK:     directory items have '/' appended to their name
  *          WGLB_CASEFOLD: do matching case-insensitively
@@ -776,8 +785,10 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
     if (!(flags & WGLB_NOSORT)) {
 	size_t count = list->length - listbase;  /* # of resulting items */
 	if (count > 0) {
+	    /* sort the items */
 	    qsort(list->contents + listbase, count, sizeof (void *),
 		    wglob_sortcmp);
+
 	    /* remove duplicates */
 	    for (size_t i = list->length; --i > listbase; ) {
 		if (wcscmp(list->contents[i], list->contents[i-1]) == 0) {
@@ -790,9 +801,9 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
     return !is_interrupted();
 }
 
-/* Parses a matching pattern.
- * The pattern string `pat' may be modified in this function and must be
- * unchanged until the returned results are freed by `wglob_free_pattern'.
+/* Parses the specified pattern.
+ * Pattern `pat' may be modified in this function and must be unchanged until
+ * the return value is freed by `wglob_free_pattern'.
  * WGLB_CASEFOLD, WGLB_PERIOD and WGLB_RECDIR in `flags' affect the results. */
 struct wglob_pattern *wglob_parse_pattern(wchar_t *pat, enum wglbflags flags)
 {
@@ -844,7 +855,7 @@ struct wglob_pattern *wglob_create_recsearch_pattern(
     return result;
 }
 
-/* Parses a matching pattern for one pathname component.
+/* Parses the specified pattern that contains one pathname component.
  * `pat' must not contain a slash. */
 struct wglob_pattern *wglob_parse_pattern_part(
 	wchar_t *pat, enum wglbflags flags)
@@ -898,7 +909,6 @@ void wglob_free_pattern(struct wglob_pattern *p)
     }
 }
 
-/* This function is passed to `qsort' in `wglob'. */
 int wglob_sortcmp(const void *v1, const void *v2)
 {
     return wcscoll(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
@@ -907,8 +917,8 @@ int wglob_sortcmp(const void *v1, const void *v2)
 /* Searches the directory designated in `path' and add matching pathnames to
  * `list'.
  * `path' and `wpath' must contain the same pathname, which must be empty or
- * end with a slash. The contents of `path' and `wpath' may be changed in this
- * function, but when the function returns the contents are restored to the
+ * end with a slash. The contents of `path' and `wpath' may be changed during
+ * the search, but when the function returns the contents are restored to the
  * original value.
  * Only the WGLB_MARK flag in `flags' affects the results. */
 void wglob_search(
@@ -918,7 +928,7 @@ void wglob_search(
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
 {
-    //assert(path->length == 0 || path->contents[path->length - 1] == '/');
+    assert(path->length == 0 || path->contents[path->length - 1] == '/');
     assert(wpath->length == 0 || wpath->contents[wpath->length - 1] == L'/');
     switch (pattern->type) {
 	case WGLOB_LITERAL:
@@ -933,6 +943,7 @@ void wglob_search(
     }
 }
 
+/* Searches for the pathname component that does not require pattern matching.*/
 void wglob_search_literal(
 	const struct wglob_pattern *restrict pattern,
 	enum wglbflags flags,
@@ -967,6 +978,7 @@ void wglob_search_literal(
     wpath->contents[wpath->length = savewpathlen] = L'\0';
 }
 
+/* Searches the directory for files that match with the specified pattern. */
 void wglob_search_match(
 	const struct wglob_pattern *restrict pattern,
 	enum wglbflags flags,
@@ -988,11 +1000,8 @@ void wglob_search_match(
     struct dirent *de;
     while ((de = readdir(dir))) {
 	if (xfnm_match(pattern->value.match.pattern, de->d_name) == 0) {
-	    wchar_t *wname = malloc_mbstowcs(de->d_name);
-	    if (!wname)
-		continue;
-
-	    wb_catfree(wpath, wname);
+	    if (wb_mbscat(wpath, de->d_name) != NULL)
+		goto next;
 	    sb_cat(path, de->d_name);
 	    if (pattern->next == NULL) {
 		if (flags & WGLB_MARK) {
@@ -1005,7 +1014,7 @@ void wglob_search_match(
 		wb_wccat(wpath, L'/');
 		wglob_search(pattern->next, flags, path, wpath, list);
 	    }
-
+next:
 	    // sb_remove(path, savepathlen, SIZE_MAX);
 	    // wb_remove(wpath, savewpathlen, SIZE_MAX);
 	    path->contents[path->length = savepathlen] = '\0';
@@ -1015,6 +1024,8 @@ void wglob_search_match(
     closedir(dir);
 }
 
+/* Searches the directory recursively for files that match with the specified
+ * pattern. */
 void wglob_search_recsearch(
 	const struct wglob_pattern *restrict pattern,
 	enum wglbflags flags,
@@ -1032,7 +1043,7 @@ void wglob_search_recsearch(
     /* Step 1: search `path' itself */
     wglob_search(pattern->next, flags, path, wpath, list);
 
-    /* Setp 2: recursively search the subdirectories of `path' */
+    /* Step 2: search the subdirectories of `path' recursively */
     DIR *dir = opendir((path->length == 0) ? "." : path->contents);
     if (!dir)
 	return;
@@ -1054,18 +1065,18 @@ void wglob_search_recsearch(
 		&& S_ISDIR(newstack.st.st_mode)
 		&& !is_reentry(&newstack.st, dirstack)) {
 
-	    wchar_t *wname = malloc_mbstowcs(de->d_name);
-	    if (wname) {
-		wb_wccat(wb_catfree(wpath, wname), L'/');
-		sb_ccat(path, '/');
-		newstack.prev = dirstack;
-		wglob_search_recsearch(
-			pattern, flags, path, wpath, list, &newstack);
+	    if (wb_mbscat(wpath, de->d_name) != NULL)
+		goto next;
+	    wb_wccat(wpath, L'/');
+	    sb_ccat(path, '/');
+	    newstack.prev = dirstack;
+	    wglob_search_recsearch(
+		    pattern, flags, path, wpath, list, &newstack);
 
-		// wb_remove(wpath, savewpathlen, SIZE_MAX);
-		wpath->contents[wpath->length = savewpathlen] = L'\0';
-	    }
+	    // wb_remove(wpath, savewpathlen, SIZE_MAX);
+	    wpath->contents[wpath->length = savewpathlen] = L'\0';
 	}
+next:
 	// sb_remove(path, savepathlen, SIZE_MAX);
 	path->contents[path->length = savepathlen] = '\0';
     }
@@ -1073,8 +1084,7 @@ void wglob_search_recsearch(
 }
 
 /* Returns true iff the file designated by `st' is contained in `dirstack'. */
-bool is_reentry(
-	const struct stat *st, const struct wglob_dirstack *dirstack)
+bool is_reentry(const struct stat *st, const struct wglob_dirstack *dirstack)
 {
     while (dirstack) {
 	if (st->st_dev == dirstack->st.st_dev
@@ -1118,9 +1128,9 @@ static const struct xoption cd_pwd_options[] = {
     { NULL, 0, 0, },
 };
 
-/* "cd" builtin, which accepts the following options:
- * -L: don't resolve symlinks (default)
- * -P: resolve symlinks
+/* The "cd" builtin, which accepts the following options:
+ *  -L: don't resolve symlinks (default)
+ *  -P: resolve symlinks
  * -L and -P are mutually exclusive: the one specified last is used. */
 int cd_builtin(int argc, void **argv)
 {
@@ -1240,7 +1250,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	free(mbsnewpwd);
     }
 
-step6:
+step6:  /* set the value of `curpath' */
     assert(newpwd[0] != L'/');
     assert(curpath.length == 0);
     if (logical) {
@@ -1250,7 +1260,7 @@ step6:
     }
     wb_cat(&curpath, newpwd);
 
-step7:
+step7:  /* ensure the value of `curpath' is an absolute path */
     if (!logical)
 	goto step10;
     if (curpath.contents[0] != L'/') {
@@ -1528,9 +1538,9 @@ const char popd_help[] = Ngt(
 
 #endif /* YASH_ENABLE_DIRSTACK */
 
-/* "pwd" builtin, which accepts the following options:
- * -L: don't resolve symlinks (default)
- * -P: resolve symlinks
+/* The "pwd" builtin, which accepts the following options:
+ *  -L: don't resolve symlinks (default)
+ *  -P: resolve symlinks
  * -L and -P are mutually exclusive: the one specified last is used. */
 int pwd_builtin(int argc __attribute__((unused)), void **argv)
 {
@@ -1600,9 +1610,9 @@ const char pwd_help[] = Ngt(
 #endif
 
 /* The "hash" builtin, which accepts the following options:
- * -a: print all entries
- * -d: use the directory cache
- * -r: remove cache entries */
+ *  -a: print all entries
+ *  -d: use the directory cache
+ *  -r: remove cache entries */
 int hash_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -1748,11 +1758,11 @@ const char hash_help[] = Ngt(
 "\thash -d user...\n"
 "\thash -d -r [user...]\n"
 "\thash -d\n"
-"The first form immediately performs command path search and caches the\n"
+"The first form immediately performs command path search and caches\n"
 "<command>s' fullpaths.\n"
 "The second form, using the -r (--remove) option, removes the paths of\n"
-"<command>s (or all the paths if none specified) from the cache. Note that an\n"
-"assignment to $PATH also removes all the paths from the cache.\n"
+"<command>s (or all the paths if none specified) from the cache. Note that\n"
+"assignment to $PATH also removes all paths from the cache.\n"
 "The third form prints the currently cached paths. Without the -a (--all)\n"
 "option, paths for builtin commands are not printed.\n"
 "With the -d (--directory) option, this command does the same things to the\n"
@@ -1762,7 +1772,7 @@ const char hash_help[] = Ngt(
 #endif
 
 /* The "umask" builtin, which accepts the following option:
- * -S: symbolic output */
+ *  -S: symbolic output */
 int umask_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {

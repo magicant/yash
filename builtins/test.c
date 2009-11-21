@@ -151,6 +151,9 @@ bool test_double(char *args[static 2])
 
     struct stat st;
     switch (args[0][1]) {
+	case 'd':  return is_directory(args[1]);
+	case 'e':  return is_file(args[1]);
+	case 'f':  return is_regular_file(args[1]);
 	case 'r':  return is_readable(args[1]);
 	case 'w':  return is_writable(args[1]);
 	case 'x':  return is_executable(args[1]);
@@ -158,12 +161,6 @@ bool test_double(char *args[static 2])
 	    return (stat(args[1], &st) == 0) && S_ISBLK(st.st_mode);
 	case 'c':
 	    return (stat(args[1], &st) == 0) && S_ISCHR(st.st_mode);
-	case 'd':
-	    return (stat(args[1], &st) == 0) && S_ISDIR(st.st_mode);
-	case 'e':
-	    return (stat(args[1], &st) == 0);
-	case 'f':
-	    return (stat(args[1], &st) == 0) && S_ISREG(st.st_mode);
 	case 'g':
 	    return (stat(args[1], &st) == 0) && (st.st_mode & S_ISGID);
 	case 'h':  case 'L':

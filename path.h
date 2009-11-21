@@ -20,10 +20,11 @@
 #define YASH_PATH_H
 
 #include <stddef.h>
-#include <dirent.h>
 #include <sys/types.h>
 
 
+extern _Bool is_file(const char *path)
+    __attribute__((nonnull));
 extern _Bool is_regular_file(const char *path)
     __attribute__((nonnull));
 extern _Bool is_irregular_file(const char *path)
