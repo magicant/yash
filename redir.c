@@ -245,10 +245,13 @@ FILE *reopen_with_shellfd(FILE *f, const char *mode, bool nonblock)
 
     int newfd = copy_as_shellfd(fileno(f));
     fclose(f);
-    if (newfd < 0 || (nonblock && !set_nonblocking(newfd)))
+    if (newfd < 0)
 	return NULL;
-    else
-	return fdopen(newfd, mode);
+    if (nonblock && !set_nonblocking(newfd)) {
+	xclose(newfd);
+	return NULL;
+    }
+    return fdopen(newfd, mode);
 }
 
 /* Opens `ttyfd'.
