@@ -3158,7 +3158,7 @@ void trim_end_of_buffer(xwcsbuf_T *buf)
     size_t i = buf->length;
     while (i > 0 && buf->contents[i - 1] == L' ')
 	i--;
-    buf->contents[buf->length = i] = L'\0';  // wb_remove(buf, i, SIZE_MAX);
+    wb_truncate(buf, i);
 }
 
 

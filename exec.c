@@ -1306,10 +1306,10 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 	laststatus = savelaststatus;
 
 	/* trim trailing newlines and return */
-	while (buf.length > 0 && buf.contents[buf.length - 1] == L'\n')
-	    buf.contents[--buf.length] = L'\0';
-	    // wb_remove(&buf, buf.length - 1, 1);
-	return wb_towcs(&buf);
+	size_t len = buf.length;
+	while (len > 0 && buf.contents[len - 1] == L'\n')
+	    len--;
+	return wb_towcs(wb_truncate(&buf, len));
     } else {
 	/* child process */
 	xclose(pipefd[PIDX_IN]);

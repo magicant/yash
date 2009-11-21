@@ -472,7 +472,7 @@ bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
 	    return false;
 	buf->length += len;
 	if (buf->contents[buf->length - 1] == L'\n') {
-	    buf->contents[--buf->length] = L'\0';
+	    wb_truncate(buf, buf->length - 1);
 	    return true;
 	}
 	if (buf->length > LINE_MAX)

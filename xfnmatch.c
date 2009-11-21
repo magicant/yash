@@ -308,8 +308,7 @@ const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
     }
 
 fail:
-    buf->contents[buf->length = savelength] = '\0';
-	// sb_remove(buf, savelength, SIZE_MAX);
+    sb_truncate(buf, savelength);
     *state = savestate;
     sb_wccat(buf, L'\\', state);
     sb_wccat(buf, L'[', state);

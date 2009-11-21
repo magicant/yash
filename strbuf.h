@@ -47,7 +47,9 @@ extern xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
     __attribute__((nonnull));
-extern xstrbuf_T *sb_clear(xstrbuf_T *buf)
+static inline xstrbuf_T *sb_truncate(xstrbuf_T *buf, size_t newlength)
+    __attribute__((nonnull));
+static inline xstrbuf_T *sb_clear(xstrbuf_T *buf)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_replace_force(
 	xstrbuf_T *restrict buf, size_t i, size_t bn,
@@ -110,7 +112,9 @@ extern xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
     __attribute__((nonnull));
-extern xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
+static inline xwcsbuf_T *wb_truncate(xwcsbuf_T *buf, size_t newlength)
+    __attribute__((nonnull));
+static inline xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_replace_force(
 	xwcsbuf_T *restrict buf, size_t i, size_t bn,
@@ -190,6 +194,25 @@ void sb_destroy(xstrbuf_T *buf)
 char *sb_tostr(xstrbuf_T *buf)
 {
     return buf->contents;
+}
+
+/* Shrinks the length of the buffer to `newlength'.
+ * `newlength' must not be larger than the current length.
+ * Characters beyond the new length are removed.
+ * `maxlength' of the buffer is not changed. */
+xstrbuf_T *sb_truncate(xstrbuf_T *buf, size_t newlength)
+{
+#ifdef assert
+    assert(newlength <= buf->length);
+#endif
+    buf->contents[buf->length = newlength] = '\0';
+    return buf;
+}
+
+/* Clears the contents of a string buffer, preserving its `maxlength'. */
+xstrbuf_T *sb_clear(xstrbuf_T *buf)
+{
+    return sb_truncate(buf, 0);
 }
 
 /* Inserts the first `n' bytes of a multibyte string `s' at the offset `i'
@@ -273,6 +296,25 @@ void wb_destroy(xwcsbuf_T *buf)
 wchar_t *wb_towcs(xwcsbuf_T *buf)
 {
     return buf->contents;
+}
+
+/* Shrinks the length of the buffer to `newlength'.
+ * `newlength' must not be larger than the current length.
+ * Characters beyond the new length are removed.
+ * `maxlength' of the buffer is not changed. */
+xwcsbuf_T *wb_truncate(xwcsbuf_T *buf, size_t newlength)
+{
+#ifdef assert
+    assert(newlength <= buf->length);
+#endif
+    buf->contents[buf->length = newlength] = L'\0';
+    return buf;
+}
+
+/* Clears the contents of a string buffer, preserving its `maxlength'. */
+xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
+{
+    return wb_truncate(buf, 0);
 }
 
 /* Inserts the first `n' characters of a wide string `s'

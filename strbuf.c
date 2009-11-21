@@ -86,13 +86,6 @@ xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
     return sb_setmax(buf, max);
 }
 
-/* Clears the contents of a string buffer, preserving its `maxlength'. */
-xstrbuf_T *sb_clear(xstrbuf_T *buf)
-{
-    buf->contents[buf->length = 0] = '\0';
-    return buf;
-}
-
 /* Replaces the contents of a string buffer with another string.
  * `bn' characters starting at the offset `i' in the buffer is removed and
  * the first `sn' characters of `s' take place of them.
@@ -307,13 +300,6 @@ xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
     if (max < buf->maxlength + 8)
 	max = buf->maxlength + 8;
     return wb_setmax(buf, max);
-}
-
-/* Clears the contents of a string buffer, preserving its `maxlength'. */
-xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
-{
-    buf->contents[buf->length = 0] = L'\0';
-    return buf;
 }
 
 /* Replaces the contents of a string buffer with another string.

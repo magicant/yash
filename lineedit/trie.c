@@ -408,8 +408,7 @@ int foreachw(const trienode_T *t,
 	    return result;
 
 	assert(buf->length > 0);
-	buf->contents[--buf->length] = L'\0';
-	/* wb_remove(buf, buf->length - 1); */
+	wb_truncate(buf, buf->length - 1);
     }
 
     return 0;

@@ -972,10 +972,8 @@ void wglob_search_literal(
 	wglob_search(pattern->next, flags, path, wpath, list);
     }
 
-    // sb_remove(path, savepathlen, SIZE_MAX);
-    // wb_remove(wpath, savewpathlen, SIZE_MAX);
-    path->contents[path->length = savepathlen] = '\0';
-    wpath->contents[wpath->length = savewpathlen] = L'\0';
+    sb_truncate(path, savepathlen);
+    wb_truncate(wpath, savewpathlen);
 }
 
 /* Searches the directory for files that match with the specified pattern. */
@@ -1015,10 +1013,8 @@ void wglob_search_match(
 		wglob_search(pattern->next, flags, path, wpath, list);
 	    }
 next:
-	    // sb_remove(path, savepathlen, SIZE_MAX);
-	    // wb_remove(wpath, savewpathlen, SIZE_MAX);
-	    path->contents[path->length = savepathlen] = '\0';
-	    wpath->contents[wpath->length = savewpathlen] = L'\0';
+	    sb_truncate(path, savepathlen);
+	    wb_truncate(wpath, savewpathlen);
 	}
     }
     closedir(dir);
@@ -1072,13 +1068,10 @@ void wglob_search_recsearch(
 	    newstack.prev = dirstack;
 	    wglob_search_recsearch(
 		    pattern, flags, path, wpath, list, &newstack);
-
-	    // wb_remove(wpath, savewpathlen, SIZE_MAX);
-	    wpath->contents[wpath->length = savewpathlen] = L'\0';
+	    wb_truncate(wpath, savewpathlen);
 	}
 next:
-	// sb_remove(path, savepathlen, SIZE_MAX);
-	path->contents[path->length = savepathlen] = '\0';
+	sb_truncate(path, savepathlen);
     }
     closedir(dir);
 }
