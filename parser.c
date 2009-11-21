@@ -639,10 +639,8 @@ void line_continuation(size_t index)
     read_more_input();
 }
 
-/* Reads the next line if `cbuf.contents[cindex]' is a null character.
- * If there is a line continuation within `n' characters from the current
- * `cindex', calls `line_continuation'.
- * `n' should be as small as possible. */
+/* Processes line continuation within `n' character from the current `cindex'.*/
+/* `n' should be as small as possible. */
 void ensure_buffer(size_t n)
 {
     size_t index = cindex;
@@ -650,7 +648,7 @@ void ensure_buffer(size_t n)
 	read_more_input();
     while (index - cindex < n) {
 	switch (cbuf.contents[index]) {
-	case L'\0':  case L'\'':  case L'"':
+	case L'\0':  case L'\'':
 	    return;
 	case L'\\':
 	    if (cbuf.contents[index + 1] != L'\n')
