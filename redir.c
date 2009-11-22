@@ -579,7 +579,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     if (strcmp(num, "-") == 0) {
 	fd = -1;
     } else {
-	if (!isxdigit(num[0])) {
+	if (!xisxdigit(num[0])) {
 	    errno = EINVAL;
 	} else {
 	    if (xstrtoi(num, 10, &fd) && fd < 0)
@@ -631,7 +631,7 @@ int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 
     assert(outputfd >= 0);
 
-    if (!isxdigit(num[0])) {
+    if (!xisxdigit(num[0])) {
 	errno = EINVAL;
     } else {
 	if (xstrtoi(num, 10, &inputfd) && inputfd < 0)

@@ -128,7 +128,7 @@ const char *get_signal_name(int signum)
  * `name' should be all in uppercase. */
 int get_signal_number(const char *name)
 {
-    if (isdigit(name[0])) {  /* parse a decimal integer */
+    if (xisdigit(name[0])) {  /* parse a decimal integer */
 	int signum;
 	if (!xstrtoi(name, 10, &signum) || signum < 0)
 	    return -1;
