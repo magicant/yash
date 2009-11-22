@@ -51,10 +51,11 @@
 
 /********** Utilities **********/
 
-/* Closes a file descriptor surely.
+/* Closes the specified file descriptor surely.
  * If `close' returns EINTR, tries again.
  * If `close' returns EBADF, it is considered successful and silently ignored.
- * If `close' returns an error other than EINTR/EBADF, a message is printed. */
+ * If `close' returns an error other than EINTR/EBADF, an error message is
+ * printed. */
 int xclose(int fd)
 {
     while (close(fd) < 0) {
@@ -94,16 +95,15 @@ int xdup2(int oldfd, int newfd)
 
 /* Repeatedly calls `write' until all `data' is written.
  * Returns true iff successful. On error, false is returned with `errno' set. */
-/* Note that this function returns a bool value, not ssize_t. */
+/* Note that this function returns a Boolean value, not `ssize_t'. */
 bool write_all(int fd, const void *data, size_t size)
 {
-    size_t done = 0;
-
-    while (done < size) {
-	ssize_t s = write(fd, (const char *) data + done, size - done);
+    while (size > 0) {
+	ssize_t s = write(fd, data, size);
 	if (s < 0)
 	    return false;
-	done += s;
+	data = (const char *) data + s;
+	size -= s;
     }
     return true;
 }
@@ -199,8 +199,8 @@ bool is_shellfd(int fd)
     return fd >= FD_SETSIZE || (fd >= 0 && FD_ISSET(fd, &shellfds));
 }
 
-/* Closes all file descriptors in `shellfds' and empties it.
- * If `leavefds' is true, the file descriptors are actually not closed. */
+/* Clears `shellfds'.
+ * If `leavefds' is false, the file descriptors in `shellfds' are closed. */
 void clear_shellfds(bool leavefds)
 {
     if (!leavefds) {
@@ -304,7 +304,7 @@ static int open_process_redirection(const embedcmd_T *command, redirtype_T type)
     __attribute__((nonnull));
 
 
-/* Opens a redirection.
+/* Opens redirection.
  * If `save' is non-NULL, the original FD is saved and a pointer to the info is
  * assigned to `*save' (whether successful or not).
  * Returns true iff successful. */
@@ -430,7 +430,8 @@ openwithflags:
     return true;
 }
 
-/* Expands the filename for a redirection. */
+/* Expands the filename for redirection.
+ * Returns a newly malloced string or NULL. */
 char *expand_redir_filename(const struct wordunit_T *filename)
 {
     if (is_interactive) {
@@ -449,7 +450,7 @@ char *expand_redir_filename(const struct wordunit_T *filename)
 /* Saves the specified file descriptor if `save' is non-NULL. */
 void save_fd(int fd, savefd_T **save)
 {
-    assert(0 <= fd);
+    assert(fd >= 0);
     if (!save)
 	return;
 
@@ -458,21 +459,22 @@ void save_fd(int fd, savefd_T **save)
 	xerror(errno, Ngt("cannot save file descriptor %d"), fd);
 	return;
     }
+    /* If file descriptor `fd' is not open, `copy_as_shellfd' returns -1 with
+     * the EBADF errno value. */
 
     savefd_T *s = xmalloc(sizeof *s);
     s->next = *save;
     s->sf_origfd = fd;
     s->sf_copyfd = copyfd;
     s->sf_stdin_redirected = is_stdin_redirected;
-    /* note: if `fd' is formerly unused, `sf_copyfd' is -1. */
     *save = s;
 }
 
-/* Opens the file for a redirection.
- * `path' and `oflag' are the first and second argument to the `open' function.
- * If the socket redirection feature is enabled and `path' begins with
- * "/dev/tcp/" or "/dev/udp/", then a socket is opened.
- * Returns a new file descriptor if successful. Otherwise `errno' is set and
+/* Opens the redirected file.
+ * `path' and `oflag' are the first and second arguments to the `open' function.
+ * If socket redirection is enabled and `path' begins with "/dev/tcp/" or
+ * "/dev/udp/", a socket is opened.
+ * Returns a new file descriptor if successful. Otherwise, `errno' is set and
  * -1 is returned. */
 int open_file(const char *path, int oflag)
 {
@@ -499,8 +501,9 @@ int open_file(const char *path, int oflag)
 
 /* Opens a socket.
  * `hostandport' is the name and the port of the host to connect, concatenated
- * by a slash. `socktype' specifies the type of the socket, which should be
- * `SOCK_STREAM' for TCP or `SOCK_DGRAM' for UDP. */
+ * with a slash. `socktype' specifies the type of the socket, which should be
+ * SOCK_STREAM for TCP or SOCK_DGRAM for UDP.
+ * On failure, returns -1 with `errno' unchanged. */
 int open_socket(const char *hostandport, int socktype)
 {
     struct addrinfo hints, *ai;
@@ -566,10 +569,10 @@ int open_socket(const char *hostandport, int socktype)
 
 #endif /* YASH_ENABLE_SOCKET */
 
-/* Parses the argument to `RT_DUPIN'/`RT_DUPOUT'.
- * `num' is the argument to parse, which is expected to be "-" or numeric.
- * `num' is freed in this function.
- * If `num' is a positive integer, the value is returned.
+/* Parses the argument to an RT_DUPIN/RT_DUPOUT redirection.
+ * `num' is the argument to parse, which is expected to be "-" or a non-negative
+ * integer. `num' is freed in this function.
+ * If `num' is a non-negative integer, the value is returned.
  * If `num' is "-", -1 is returned.
  * Otherwise, a negative value other than -1 is returned.
  * `type' must be either RT_DUPIN or RT_DUPOUT. */
@@ -629,15 +632,15 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     return fd;
 }
 
-/* Parses the argument to `RT_PIPE' and opens a pipe.
+/* Parses the argument to an RT_PIPE redirection and opens a pipe.
  * `outputfd' is the file descriptor of the output side of the pipe.
- * `num' is the argument to parse, which is expected to be a positive integer
- * that is the file descriptor of the input side of the pipe.
+ * `num' is the argument to parse, which is expected to be a non-negative
+ * integer that is the file descriptor of the input side of the pipe.
  * `num' is freed in this function.
+ * The input side FD is saved in this function.
  * If successful, the actual file descriptor of the output side of the pipe is
  * returned, which may differ from `outputfd'. Otherwise, a negative value other
  * than -1 is returned. */
-/* The input side FD is saved in this function. */
 int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 {
     int fd, inputfd;
@@ -656,7 +659,7 @@ int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 	fd = -2;
     } else if (outputfd == inputfd) {
 	xerror(0, Ngt("redirection: %d>>|%d: "
-		    "same input and output file descriptor"),
+		    "same input and output file descriptors"),
 		outputfd, inputfd);
 	fd = -2;
     } else if (is_shellfd(inputfd)) {
@@ -703,9 +706,8 @@ error:
 }
 
 /* Opens a here-document whose contents is specified by the argument.
- * Returns a newly opened file descriptor if successful, or -1 number on error.
- */
-/* The contents of the here-document is passed either through a pipe or in a
+ * Returns a newly opened file descriptor if successful, or -1 on error. */
+/* The contents of the here-document is passed either through a pipe or a
  * temporary file. */
 int open_heredocument(const wordunit_T *contents)
 {
@@ -724,9 +726,9 @@ int open_heredocument(const wordunit_T *contents)
 
 /* Opens a here-string whose contents is specified by the argument.
  * If `appendnewline' is true, a newline is appended to the value of `s'.
- * Returns a newly opened file descriptor if successful, or -1 number on error.
+ * Returns a newly opened file descriptor if successful, or -1 on error.
  * `s' is freed in this function. */
-/* The contents of the here-document is passed either through a pipe or in a
+/* The contents of the here-document is passed either through a pipe or a
  * temporary file. */
 int open_herestring(char *s, bool appendnewline)
 {
@@ -780,7 +782,7 @@ int open_herestring(char *s, bool appendnewline)
     return fd;
 }
 
-/* Opens a process redirection and returns a file descriptor for it.
+/* Opens process redirection and returns the file descriptor.
  * `type' must be RT_PROCIN or RT_PROCOUT.
  * The return value is -1 if failed. */
 int open_process_redirection(const embedcmd_T *command, redirtype_T type)
@@ -869,8 +871,8 @@ void clear_savefd(savefd_T *save)
     }
 }
 
-/* Redirects stdin to "/dev/null" if job control is off and stdin is not yet
- * redirected.
+/* Redirects the standard input to "/dev/null" if job control is off and the
+ * standard input is not yet redirected.
  * If `posixly_correct' is true, the condition is slightly different:
  * "if non-interactive" rather than "if job control is off". */
 void maybe_redirect_stdin_to_devnull(void)

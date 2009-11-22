@@ -31,17 +31,19 @@
 size_t plcount(void *const *list)
 {
     size_t count = 0;
-    while (*list++) count++;
+    while (list[count] != NULL)
+	count++;
     return count;
 }
 
-/* Frees a NULL-terminated array of pointers and the element pointers.
+/* Frees the NULL-terminated array of pointers and its elements.
  * `freer' is called for each array element and finally the array is `free'd.
  * If `ary' is NULL, this function does nothing. */
 void recfree(void **ary, void freer(void *elem))
 {
     if (ary) {
-	for (void **a = ary; *a; a++) freer(*a);
+	for (void **a = ary; *a; a++)
+	    freer(*a);
 	free(ary);
     }
 }
@@ -51,16 +53,17 @@ void recfree(void **ary, void freer(void *elem))
 
 
 /* A pointer list is a variable-length array of pointers to 'void'.
- * For any pointer list `list', it is assumed that
- * `list.contents[list.length]' is always NULL.
+ * For any pointer list `list', it is assumed that `list.contents[list.length]'
+ * is always NULL.
  * Besides, a pointer list may contain NULL or an pointer to itself
  * as an element of it. */
 
-/* If the type of the return value of the functions below is pointer list,
- * the return value is the argument `list'. */
+/* Many of the following pointer-list-related functions returns the list that
+ * was given as the first argument. */
 
 
-/* Initializes a pointer list as a new empty list. */
+/* Initializes the pointer list as a new empty list with the specified initial
+ * capacity. */
 plist_T *pl_initwithmax(plist_T *list, size_t max)
 {
     list->contents = xmalloc((max + 1) * sizeof (void *));
@@ -70,7 +73,7 @@ plist_T *pl_initwithmax(plist_T *list, size_t max)
     return list;
 }
 
-/* Changes `list->maxlength'.
+/* Changes the capacity of the specified list.
  * If `newmax' is less than the current length of the list, the end of
  * the pointer list is truncated. */
 plist_T *pl_setmax(plist_T *list, size_t newmax)
@@ -83,8 +86,8 @@ plist_T *pl_setmax(plist_T *list, size_t newmax)
     return list;
 }
 
-/* If `list->maxlength' is less than `max', reallocates the list so that
- * `list->maxlength' is no less than `max'. */
+/* Increases the capacity of the list so that the capacity is no less than the
+ * specified. */
 plist_T *pl_ensuremax(plist_T *list, size_t max)
 {
     if (max <= list->maxlength)
@@ -98,7 +101,7 @@ plist_T *pl_ensuremax(plist_T *list, size_t max)
     return pl_setmax(list, max);
 }
 
-/* Clears the contents of a pointer list, preserving its `maxlength'.
+/* Clears the contents of the pointer list.
  * If `freer' is non-null, `freer' is called for each element in the list. */
 plist_T *pl_clear(plist_T *list, void freer(void *elem))
 {
@@ -109,13 +112,14 @@ plist_T *pl_clear(plist_T *list, void freer(void *elem))
     return list;
 }
 
-/* Replaces the contents of a pointer list with the elements of another array.
- * `ln' elements starting at the offset `i' in `list' is removed and
+/* Replaces the contents of pointer list `list' with the elements of another
+ * array `a'.
+ * `ln' elements starting at offset `i' in `list' is removed and
  * the first `an' elements of `a' take place of them.
  * NULL elements are not treated specially.
- * If (list->length < i + ln), all the elements after the offset `i' in the
- * list is replaced. Especially, if (list->length <= i), `a' is appended.
- * `a' must not be a part of `list->contents'. */
+ * If (list->length < i + ln), all the elements after offset `i' in the list is
+ * replaced. Especially, if (list->length <= i), `a' is appended.
+ * `a' must not be part of `list->contents'. */
 plist_T *pl_replace(
 	plist_T *restrict list, size_t i, size_t ln,
 	void *const *restrict a, size_t an)
@@ -134,7 +138,7 @@ plist_T *pl_replace(
     return list;
 }
 
-/* Appends `p' to the end of the pointer list `list' as a new element.
+/* Appends `p' to the end of pointer list `list' as a new element.
  * `p' may be NULL or a pointer to the list itself. */
 plist_T *pl_add(plist_T *list, void *p)
 {
