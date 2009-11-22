@@ -54,12 +54,12 @@
  *
  * Yash always catches SIGCHLD.
  * When job control is active, SIGTSTP is ignored.
- * If the shell is interactive, SIGTERM and SIGQUIT are ignored, and SIGINT and
+ * If the shell is interactive, SIGTERM and SIGQUIT are ignored and SIGINT and
  * SIGWINCH are caught.
  * Trapped signals are also caught.
  *
  * SIGQUIT and SIGINT are ignored in an asynchronous list.
- * SIGTSTP is left ignored in a command substitution in a job-control shell.
+ * SIGTSTP is left ignored in command substitution in a job-control shell.
  *
  * The shell inherits the signal mask from its invoker and commands invoked by
  * the shell also inherit it. (POSIX.1-2008)
@@ -68,6 +68,9 @@
  *  - the shell waits for input
  *  - the shell waits for a child process to finish
  *  - the shell handles traps.
+ * Also, SIGINT is unblocked when:
+ *  - the shell tries to open a socket
+ *  - the shell performs pathname expansion.
  *
  * SIGTTOU is blocked in `put_foreground' and unblocked in `ensure_foreground'.
  * All signals are blocked to avoid race conditions when the shell forks. */
@@ -93,7 +96,7 @@ bool process_exists(pid_t pid)
 }
 
 /* Returns the name of the signal with the specified number.
- * The returned name doesn't have a "SIG"-prefix.
+ * The returned name doesn't have the "SIG"-prefix.
  * "?" is returned for an unknown signal number.
  * The returned string is valid until the next call to this function. */
 const char *get_signal_name(int signum)
@@ -123,7 +126,10 @@ const char *get_signal_name(int signum)
     return "?";
 }
 
-/* Returns the number of a signal whose name is `name'.
+/* Returns the number of the signal whose name is `name'.
+ * `name' may have the "SIG"-prefix.
+ * If `name' is an integer that is a valid signal number, the number is
+ * returned.
  * Returns 0 for "EXIT" and -1 for an unknown name.
  * `name' should be all in uppercase. */
 int get_signal_number(const char *name)
@@ -183,7 +189,7 @@ int get_signal_number(const char *name)
     return -1;
 }
 
-/* Returns the number of a signal whose name is `name'.
+/* Returns the number of the signal whose name is `name'.
  * Returns 0 for "EXIT" and -1 for an unknown name.
  * The given string is converted into uppercase. */
 int get_signal_number_w(wchar_t *name)
@@ -229,11 +235,11 @@ static wchar_t *rttrap_command[RTSIZE];
  * This mask is inherited by commands the shell invokes.
  * When a signal's trap is set, the signal is removed from this mask. */
 static sigset_t original_sigmask;
-/* Set of signals whose handler was SIG_IGN when the shell is invoked but
+/* Set of signals whose handler was SIG_IGN when the shell was invoked but
  * currently is substituted with the shell's handler.
  * The handler of these signals must be reset to SIG_IGN before the shell
  * invokes another command so that the command inherits SIG_IGN as the handler.
- * A signal is added to this set also when its trap handler is set to "ignore."
+ * A signal is added to this set also when its trap handler is set to "ignore".
  */
 static sigset_t ignored_signals;
 /* Set of signals whose trap is set to other than "ignore".
@@ -258,7 +264,7 @@ static volatile sig_atomic_t sigwinch_received;
 static bool main_handler_set = false;
 /* true iff SIGTSTP is ignored. */
 static bool job_handler_set = false;
-/* true iff SIGTERM/SIGINT/SIGQUIT/SIGWINCH are ignored/handled. */
+/* true iff SIGTERM, SIGINT, SIGQUIT and SIGWINCH are ignored/handled. */
 static bool interactive_handlers_set = false;
 
 /* Initializes the signal module. */
@@ -305,9 +311,9 @@ void set_signals(void)
 
 /* Restores the original signal handlers for the signals used by the shell.
  * If `leave' is true, the current process is assumed to be about to exec:
- * The handler may be left unchanged if the handler is supposed to be reset
- * during exec. The signal settings for SIGCHLD is restored.
- * If `leave' is false, the settings for SIGCHLD are not restored. */
+ * the handler may be left unchanged if the handler is supposed to be reset
+ * during exec. The signal setting for SIGCHLD is restored.
+ * If `leave' is false, the setting for SIGCHLD are not restored. */
 void restore_signals(bool leave)
 {
     if (job_handler_set) {
@@ -335,7 +341,7 @@ void restore_signals(bool leave)
     }
 }
 
-/* Re-sets the signal handler of SIGTSTP according to the current
+/* Re-sets the signal handler for SIGTSTP according to the current
  * `doing_job_control_now' and `job_handler_set'. */
 void reset_job_signals(void)
 {
@@ -348,8 +354,8 @@ void reset_job_signals(void)
     }
 }
 
-/* Sets the signal handler of `signum' to `handler', which must be either
- * SIG_IGN or `sig_handler'.
+/* Sets the signal handler of signal `signum' to function `handler', which must
+ * be either SIG_IGN or `sig_handler'.
  * If the old handler is SIG_IGN, `signum' is added to `ignored_signals'.
  * If `handler' is SIG_IGN and the trap for the signal is set, the signal
  * handler is not changed. */
@@ -370,8 +376,8 @@ void set_special_handler(int signum, void (*handler)(int signum))
 	    sigaddset(&ignored_signals, signum);
 }
 
-/* Resets the signal handler of `signum' to what external commands should
- * inherit from the shell. The handler that have been passed to
+/* Resets the signal handler for signal `signum' to what external commands
+ * should inherit from the shell. The handler that have been passed to
  * `set_special_handler' must be passed as `handler'. If `leave' is true, the
  * current process is assumed to be about to exec: the handler may be left
  * unchanged if the handler is supposed to be reset during exec. */
@@ -394,9 +400,9 @@ void reset_special_handler(int signum, void (*handler)(int signum), bool leave)
 }
 
 /* Unblocks SIGINT so that system calls can be interrupted.
- * First, this function is called with `onoff' of true and SIGINT is unblocked.
- * Later, this function must be called again with `onoff' of false and SIGINT
- * is re-blocked.
+ * First, this function must be called with the argument of true and this
+ * function unblocks SIGINT. Later, this function must be called with the
+ * argument of false and SIGINT is re-blocked.
  * This function is effective only if the shell is interactive. */
 void set_interruptible_by_sigint(bool onoff)
 {
@@ -408,13 +414,13 @@ void set_interruptible_by_sigint(bool onoff)
     }
 }
 
-/* Sets the action of SIGQUIT and SIGINT to ignoring the signals
+/* Sets the signal handler for SIGQUIT and SIGINT to SIG_IGN
  * to prevent an asynchronous job from being killed by these signals. */
 void ignore_sigquit_and_sigint(void)
 {
     struct sigaction action;
 
-    if (!is_interactive_now) {
+    if (!interactive_handlers_set) {
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 	action.sa_handler = SIG_IGN;
@@ -443,14 +449,15 @@ void ignore_sigtstp(void)
     sigaddset(&ignored_signals, SIGTSTP);
 }
 
-/* Sends SIGSTOP to the shell process.
+/* Sends SIGSTOP to the shell process (and the processes in the same process
+ * group).
  * Returns true iff successful. `errno' is set on failure. */
 bool send_sigstop_to_myself(void)
 {
     return kill(0, SIGSTOP) == 0;
 }
 
-/* general signal handler */
+/* the general signal handler */
 void sig_handler(int signum)
 {
     any_signal_received = true;
@@ -494,9 +501,9 @@ void handle_signals(void)
 /* Waits for SIGCHLD to be caught and call `handle_sigchld'.
  * If SIGCHLD is already caught, this function doesn't wait.
  * If `interruptible' is true, this function can be canceled by SIGINT.
- * If `return_on_trap' is true, this function returns immediately after trap
- * actions are performed. Otherwise, traps are not handled.
- * Returns the signal number if interrupted, or zero if successful. */
+ * If `return_on_trap' is true, this function returns immediately after a trap
+ * is handled. Otherwise, traps are not handled.
+ * Returns the signal number if interrupted or zero if successful. */
 int wait_for_sigchld(bool interruptible, bool return_on_trap)
 {
     int result = 0;
@@ -529,14 +536,14 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
 
 /* Waits for the specified file descriptor to be available for reading.
  * `handle_sigchld' and `handle_sigwinch' are called to handle SIGCHLD and
- * SIGWINCH.
+ * SIGWINCH that are caught while waiting.
  * If `trap' is true, traps are also handled while waiting.
  * The maximum time length of wait is specified by `timeout' in milliseconds.
- * If `timeout' is negative, the time length is unlimited.
+ * If `timeout' is negative, the wait time is unlimited.
  * If the wait is interrupted by a signal, this function will re-wait for the
  * specified timeout, which means that this function may wait for a time length
  * longer than the specified timeout.
- * This function returns true if the input is ready, and false if an error
+ * This function returns true if the input is ready or false if an error
  * occurred or it timed out. */
 bool wait_for_input(int fd, bool trap, int timeout)
 {
@@ -606,9 +613,9 @@ void handle_sigchld(void)
     }
 }
 
-/* Executes trap commands for trapped signals if any.
+/* Executes the trap handlers for trapped signals if any.
  * There must not be an active job when this function is called.
- * Returns the signal number if any handler is executed, zero otherwise.
+ * Returns the signal number if any handler was executed, otherwise zero.
  * Note that, if more than one signal is caught, only one of their numbers is
  * returned. */
 int handle_traps(void)
@@ -628,7 +635,7 @@ int handle_traps(void)
     savelaststatus = laststatus;
 
     do {
-	/* we reset this before executing signal commands to avoid race */
+	/* we reset this before executing signal handlers to avoid race */
 	any_signal_received = false;
 
 	for (const signal_T *s = signals; s->no; s++) {
@@ -688,14 +695,11 @@ void execute_exit_trap(void)
 {
     wchar_t *command = trap_command[sigindex(0)];
     if (command) {
-	/* don't have to save state because no commands are executed any more */
-	// struct parsestate_T *state = save_parse_state();
 	assert(!exit_handled);
 	exit_handled = true;
 	savelaststatus = laststatus;
 	exec_wcs(command, "EXIT trap", false);
 	savelaststatus = -1;
-	// restore_parse_state(state);
 #ifndef NDEBUG
 	if (command != trap_command[sigindex(0)])
 	    free(command);
@@ -1063,8 +1067,8 @@ print_usage:
     return Exit_ERROR;
 }
 
-/* Prints a trap command to stdout that can be used to restore the current
- * signal handler for the specified signal.
+/* Prints trap to the standard output in a format that can be used to restore
+ * the current signal handler for the specified signal.
  * If the `command' is NULL, this function does nothing.
  * Otherwise, the `command' is properly single-quoted and printed.
  * Returns true iff successful (no error). */
@@ -1103,10 +1107,10 @@ const char trap_help[] = Ngt(
 #endif
 
 /* The "kill" builtin, which accepts the following options:
- * -s SIG: specifies the signal to send
- * -n num: specifies the signal to send by number
- * -l: prints signal info
- * -v: prints signal info verbosely */
+ *  -s SIG: specifies the signal to send
+ *  -n num: specifies the signal to send by number
+ *  -l: prints signal info
+ *  -v: prints signal info verbosely */
 int kill_builtin(int argc, void **argv)
 {
 #if YASH_ENABLE_HELP
@@ -1229,7 +1233,7 @@ print_usage:
 }
 
 /* Prints info about the specified signal.
- * If `name' is non-NULL, it must be a valid signal name of `signum'.
+ * If `name' is non-NULL, it must be the correct name of signal `signum'.
  * If `name' is NULL and `signum' is not a valid signal number, it is an error.
  * `get_signal_name' may be called in this function.
  * Returns true iff successful. */
