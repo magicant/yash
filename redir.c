@@ -733,12 +733,12 @@ int open_herestring(char *s, bool appendnewline)
     int fd;
 
     /* if contents is empty */
-    if (s[0] == '\0') {
+    if (s[0] == '\0' && !appendnewline) {
 	fd = open("/dev/null", O_RDONLY);
-	if (fd < 0)
-	    xerror(errno, Ngt("cannot open empty here-document"));
-	free(s);
-	return fd;
+	if (fd >= 0) {
+	    free(s);
+	    return fd;
+	}
     }
 
     size_t len = strlen(s);

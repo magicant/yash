@@ -42,6 +42,7 @@ echo $?
 echo ===== here-string =====
 
 var=foo
+cat <<<""
 cat <<<123
 cat <<< "$var"
 cat <<< "-
