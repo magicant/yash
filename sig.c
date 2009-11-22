@@ -617,7 +617,7 @@ int handle_traps(void)
      * `savelaststatus' would be lost. But the EXIT is the only exception:
      * The EXIT trap may be executed inside another trap. */
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
-	return false;
+	return 0;
 
 #if YASH_ENABLE_LINEEDIT
     le_suspend_readline();
