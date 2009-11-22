@@ -383,7 +383,7 @@ openwithflags:
 	case RT_PIPE:
 	    keepopen = false;
 	    fd = parse_and_exec_pipe(r->rd_fd, filename, save);
-	    if (fd < -1)
+	    if (fd < 0)
 		return false;
 	    break;
 	case RT_HERE:
@@ -639,8 +639,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
  * `num' is freed in this function.
  * The input side FD is saved in this function.
  * If successful, the actual file descriptor of the output side of the pipe is
- * returned, which may differ from `outputfd'. Otherwise, a negative value other
- * than -1 is returned. */
+ * returned, which may differ from `outputfd'. Otherwise, -1 is returned. */
 int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 {
     int fd, inputfd;
@@ -656,16 +655,16 @@ int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
     }
     if (errno) {
 	xerror(errno, Ngt("redirection: %s"), num);
-	fd = -2;
+	fd = -1;
     } else if (outputfd == inputfd) {
 	xerror(0, Ngt("redirection: %d>>|%d: "
 		    "same input and output file descriptors"),
 		outputfd, inputfd);
-	fd = -2;
+	fd = -1;
     } else if (is_shellfd(inputfd)) {
 	xerror(0, Ngt("redirection: file descriptor %d unavailable"),
 		inputfd);
-	fd = -2;
+	fd = -1;
     } else {
 	/* ok, save inputfd and open the pipe */
 	save_fd(inputfd, save);
@@ -701,7 +700,7 @@ error2:
     xclose(pipefd[PIDX_OUT]);
 error:
     xerror(errno, Ngt("redirection: %d>>|%d"), outputfd, inputfd);
-    fd = -2;
+    fd = -1;
     goto end;
 }
 
