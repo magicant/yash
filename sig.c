@@ -966,7 +966,8 @@ int trap_builtin(int argc, void **argv)
 	/* print all traps */
 	sigset_t ss;
 	sigemptyset(&ss);
-	print_trap("EXIT", trap_command[sigindex(0)]);
+	if (!print_trap("EXIT", trap_command[sigindex(0)]))
+	    return Exit_FAILURE;
 	for (const signal_T *s = signals; s->no; s++) {
 	    if (!sigismember(&ss, s->no)) {
 		sigaddset(&ss, s->no);
