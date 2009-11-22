@@ -571,7 +571,8 @@ int open_socket(const char *hostandport, int socktype)
  * `num' is freed in this function.
  * If `num' is a positive integer, the value is returned.
  * If `num' is "-", -1 is returned.
- * Otherwise, a negative value other than -1 is returned. */
+ * Otherwise, a negative value other than -1 is returned.
+ * `type' must be either RT_DUPIN or RT_DUPOUT. */
 int parse_and_check_dup(char *const num, redirtype_T type)
 {
     int fd;
@@ -599,14 +600,26 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 		if (flags < 0) {
 		    xerror(errno, Ngt("redirection: %d"), fd);
 		    fd = -2;
-		} else {
-		    if (type == RT_DUPIN && (flags & O_ACCMODE) == O_WRONLY) {
-			xerror(0, Ngt("redirection: %d: not readable"), fd);
-			fd = -2;
+		} else if (type == RT_DUPIN) {
+		    switch (flags & O_ACCMODE) {
+			case O_RDONLY:  case O_RDWR:
+			    /* ok */
+			    break;
+			default:
+			    xerror(0, Ngt("redirection: %d: not readable"), fd);
+			    fd = -2;
+			    break;
 		    }
-		    if (type == RT_DUPOUT && (flags & O_ACCMODE) == O_RDONLY) {
-			xerror(0, Ngt("redirection: %d: not writable"), fd);
-			fd = -2;
+		} else {
+		    assert(type == RT_DUPOUT);
+		    switch (flags & O_ACCMODE) {
+			case O_WRONLY:  case O_RDWR:
+			    /* ok */
+			    break;
+			default:
+			    xerror(0, Ngt("redirection: %d: not writable"), fd);
+			    fd = -2;
+			    break;
 		    }
 		}
 	    }
