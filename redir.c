@@ -641,6 +641,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 {
     int fd, inputfd;
+    int pipefd[2];
 
     assert(outputfd >= 0);
 
@@ -663,25 +664,24 @@ int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 		inputfd);
 	fd = -2;
     } else {
-	int pipefd[2];
-
+	/* ok, save inputfd and open the pipe */
 	save_fd(inputfd, save);
 	if (pipe(pipefd) < 0)
 	    goto error;
 
-	/* First, move the output side from what is to be the input side. */
+	/* move the output side from what is to be the input side. */
 	if (pipefd[PIDX_OUT] == inputfd) {
 	    int newfd = dup(pipefd[PIDX_OUT]);
 	    if (newfd < 0)
-		goto error;
+		goto error2;
 	    xclose(pipefd[PIDX_OUT]);
 	    pipefd[PIDX_OUT] = newfd;
 	}
 
-	/* Next, move the input side to where it should be. */
+	/* move the input side to where it should be. */
 	if (pipefd[PIDX_IN] != inputfd) {
 	    if (xdup2(pipefd[PIDX_IN], inputfd) < 0)
-		goto error;
+		goto error2;
 	    xclose(pipefd[PIDX_IN]);
 	    // pipefd[PIDX_IN] = inputfd;
 	}
@@ -693,6 +693,9 @@ end:
     free(num);
     return fd;
 
+error2:
+    xclose(pipefd[PIDX_IN]);
+    xclose(pipefd[PIDX_OUT]);
 error:
     xerror(errno, Ngt("redirection: %d>>|%d"), outputfd, inputfd);
     fd = -2;
