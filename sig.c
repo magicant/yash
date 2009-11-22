@@ -669,16 +669,17 @@ int handle_traps(void)
 #endif
     } while (any_signal_received);
 
+    savelaststatus = -1;
+    handled_signal = -1;
+    if (state)
+	restore_parse_state(state);
+
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && le_state == LE_STATE_SUSPENDED)
 	print_job_status_all();
     le_resume_readline();
 #endif
 
-    savelaststatus = -1;
-    handled_signal = -1;
-    if (state)
-	restore_parse_state(state);
     return signum;
 }
 
