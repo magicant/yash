@@ -221,7 +221,6 @@ void le_display_update(void)
 	update_editline();
     } else {
 	go_to(editbase_line, editbase_column);
-	le_print_el();
 	print_search();
 	return;
     }
@@ -539,8 +538,8 @@ void clear_editline(void)
 }
 
 /* Prints the current search result and the search line.
- * The cursor must be just after the prompt. Characters after the prompt should
- * have been cleared. Lines below the prompt are cleared in this function.
+ * The cursor must be just after the prompt. Characters after the prompt are
+ * cleared in this function.
  * The cursor is left after the search line. */
 void print_search(void)
 {
@@ -553,7 +552,7 @@ void print_search(void)
 
     if (le_search_result != Histlist)
 	twprintf(L"%s", le_search_result->value);
-    le_print_nel(), current_line++, current_column = 0;
+    le_print_el(), le_print_nel(), current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();
 
