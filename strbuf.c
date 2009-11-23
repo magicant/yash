@@ -168,42 +168,27 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
 }
 
 /* Converts a wide string to a multibyte string and appends it to the buffer.
- * The shift state `*ps' is updated to describe the new state.
+ * Shift state `*ps' will be the initial state after successful conversion.
  * Returns NULL if the whole string is converted and appended successfully, or,
  * on error, a pointer to the character in `s' that caused the error.
- * A partial result may have been appended to the buffer on error.
- * If `s' is NULL, the shift state is restored to an initial state. */
+ * A partial result may have been appended to the buffer on error. */
 wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 	const wchar_t *restrict s, mbstate_t *restrict ps)
 {
-    size_t count;
-
-    if (s) {
-	for (;;) {
-	    count = wcsrtombs(buf->contents + buf->length,
-		    (const wchar_t **) &s,
-		    buf->maxlength - buf->length + 1,
-		    ps);
-	    if (count == (size_t) -1)
-		break;
-	    buf->length += count;
-	    if (!s)
-		break;
-	    sb_ensuremax(buf, buf->maxlength * 2);
-	}
-    } else {
-	mbstate_t saveps = *ps;
-	count = wcrtomb(NULL, L'\0', &saveps);
+    for (;;) {
+	size_t count = wcsrtombs(buf->contents + buf->length,
+		(const wchar_t **) &s,
+		buf->maxlength - buf->length + 1,
+		ps);
 	if (count == (size_t) -1) {
 	    buf->contents[buf->length] = '\0';
-	    return NULL;
+	    break;
 	}
-	sb_ensuremax(buf, buf->length + count - 1);
-	count = wcrtomb(buf->contents + buf->length, L'\0', ps);
-	assert(0 < count && count - 1 <= buf->maxlength - buf->length);
-	buf->length += count - 1;
+	buf->length += count;
+	if (s == NULL)
+	    break;
+	sb_ensuremax(buf, buf->maxlength + 1);
     }
-
     assert(buf->contents[buf->length] == '\0');
     return (wchar_t *) s;
 }
@@ -457,8 +442,7 @@ char *malloc_wcsntombs(const wchar_t *s, size_t n)
 
     sb_init(&buf);
     memset(&state, 0, sizeof state);  /* initialize as a initial shift state */
-    if (sb_wcscat(&buf, s, &state) == NULL
-	    && sb_wcscat(&buf, NULL, &state) == NULL) {
+    if (sb_wcscat(&buf, s, &state) == NULL) {
 	return sb_tostr(&buf);
     } else {
 	sb_destroy(&buf);

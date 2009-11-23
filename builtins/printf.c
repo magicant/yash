@@ -225,7 +225,7 @@ print_char:
 	    }
 	}
     }
-    sb_wcscat(buf, NULL, &state);
+    sb_wccat(buf, L'\0', &state);
     return false;
 }
 
@@ -338,7 +338,7 @@ bool printf_parse_format(const wchar_t *format, struct format_T **resultp)
     do {                                             \
 	if (buf.length > 0) {                        \
 	    struct format_T *f = xmalloc(sizeof *f); \
-	    sb_wcscat(&buf, NULL, &state);           \
+	    sb_wccat(&buf, L'\0', &state);           \
 	    f->next = NULL;                          \
 	    f->type = ft_raw;                        \
 	    f->convspec = sb_tostr(&buf);            \
