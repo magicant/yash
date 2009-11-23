@@ -33,12 +33,12 @@
 
 
 /* If the type of the return value of the functions below is string buffer,
- * the return value is the argument `buf'. */
+ * the return value is the argument buffer. */
 
 
 /********** Multibyte String Buffer **********/
 
-/* Initializes a multibyte string buffer as a new empty string. */
+/* Initializes the specified string buffer as an empty string. */
 xstrbuf_T *sb_init(xstrbuf_T *buf)
 {
     buf->contents = xmalloc((XSTRBUF_INITSIZE + 1) * sizeof (char));
@@ -48,9 +48,10 @@ xstrbuf_T *sb_init(xstrbuf_T *buf)
     return buf;
 }
 
-/* Initializes a multibyte string buffer with an already malloced string.
- * After calling this function, the string is used as the buffer
- * so you must not touch or `free' it any more. */
+/* Initializes the specified multibyte string buffer with the specified string.
+ * String `s' must be `free'able.
+ * After calling this function, the string is used as the buffer, so you must
+ * not touch or `free' it any more. */
 xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
 {
     buf->contents = s;
@@ -58,9 +59,9 @@ xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
     return buf;
 }
 
-/* Changes `buf->maxlength'.
+/* Changes the max length of the specified buffer.
  * If `newmax' is less than the current length of the buffer, the end of
- * the buffered string is truncated. */
+ * the buffer contents is truncated. */
 xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
 {
     buf->contents = xrealloc(buf->contents, (newmax + 1) * sizeof (char));
@@ -86,10 +87,10 @@ xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
     return sb_setmax(buf, max);
 }
 
-/* Replaces the contents of a string buffer with another string.
- * `bn' characters starting at the offset `i' in the buffer is removed and
+/* Replaces the specified part of the buffer with another string.
+ * `bn' characters starting at offset `i' in buffer `buf' is removed and
  * the first `sn' characters of `s' take place of them.
- * No boundary checks are done and a null character is not considered special.
+ * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_replace_force(
 	xstrbuf_T *restrict buf, size_t i, size_t bn,
@@ -104,12 +105,12 @@ xstrbuf_T *sb_replace_force(
     return buf;
 }
 
-/* Replaces the contents of a string buffer with another string.
- * `bn' characters starting at the offset `i' in the buffer is removed and
+/* Replaces the specified part of the buffer with another string.
+ * `bn' characters starting at offset `i' in buffer `buf' is removed and
  * the first `sn' characters of `s' take place of them.
  * If (strlen(s) < sn), the whole of `s' is replaced with.
- * If (buf->length < i + sn), all the characters after the offset `i' in the
- * buffer is replaced. Especially, if (buf->length <= i), `s' is appended.
+ * If (buf->length < i + sn), all the characters after offset `i' in the buffer
+ * is replaced. Especially, if (buf->length <= i), `s' is appended.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_replace(
 	xstrbuf_T *restrict buf, size_t i, size_t bn,
@@ -123,8 +124,8 @@ xstrbuf_T *sb_replace(
     return sb_replace_force(buf, i, bn, s, sn);
 }
 
-/* Appends a byte `c' to the end of a string buffer.
- * For `c', a null character is not treated specially. */
+/* Appends byte `c' to the end of string buffer `buf'.
+ * The byte is appended even if it is a null byte. */
 xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
 {
     sb_ensuremax(buf, buf->length + 1);
@@ -133,8 +134,8 @@ xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
     return buf;
 }
 
-/* Appends `n' bytes of `c' to the end of a string buffer.
- * For `c', a null character is not treated specially. */
+/* Appends `n' bytes of `c' to the end of buffer `buf'.
+ * The bytes are appended even if `c' is a null byte. */
 xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
 {
     sb_ensuremax(buf, buf->length + n);
@@ -144,10 +145,11 @@ xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
     return buf;
 }
 
-/* Converts a wide character to a multibyte character and appends it to the
- * buffer. The shift state `*ps' is updated to describe the new state.
+/* Converts wide character `c' into a multibyte string and appends it to buffer
+ * `buf'. Shift state `ps' is used for the conversion.
  * Returns true iff successful.
- * If `c' is a null character, the shift state is reset to the initial state. */
+ * If `c' is a null character, the shift state is reset to the initial state but
+ * the null character is not appended to the buffer. */
 bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
 {
     size_t count;
@@ -167,11 +169,12 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     return true;
 }
 
-/* Converts a wide string to a multibyte string and appends it to the buffer.
- * Shift state `*ps' will be the initial state after successful conversion.
- * Returns NULL if the whole string is converted and appended successfully, or,
- * on error, a pointer to the character in `s' that caused the error.
- * A partial result may have been appended to the buffer on error. */
+/* Converts wide string `s' to a multibyte string and appends it to buffer
+ * `buf'. Shift state `ps' is used for the conversion. After successful
+ * conversion, `ps' will be the initial shift state.
+ * Returns NULL if the whole string is converted and appended successfully,
+ * otherwise a pointer to the character in `s' that caused the error.
+ * A partial result may be left in the buffer on error. */
 wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 	const wchar_t *restrict s, mbstate_t *restrict ps)
 {
@@ -193,7 +196,7 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
     return (wchar_t *) s;
 }
 
-/* Appends a formatted string to the end of a buffer.
+/* Appends the result of `vsprintf' to the specified buffer.
  * `format' and the following arguments must not be part of `buf->contents'.
  * Returns the number of appended bytes if successful.
  * On error, the buffer is not changed and -1 is returned. */
@@ -221,8 +224,8 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
     return result;
 }
 
-/* Appends a formatted string to the end of a buffer.
- * `format' and any following arguments must not be part of `buf->contents'.
+/* Appends the result of `sprintf' to the specified buffer.
+ * `format' and the following arguments must not be part of `buf->contents'.
  * Returns the number of appended bytes if successful.
  * On error, the buffer is not changed and -1 is returned. */
 int sb_printf(xstrbuf_T *restrict buf, const char *restrict format, ...)
@@ -239,7 +242,7 @@ int sb_printf(xstrbuf_T *restrict buf, const char *restrict format, ...)
 
 /********** Wide String Buffer **********/
 
-/* Initializes a wide string buffer as a new empty string. */
+/* Initializes the specified wide string buffer as an empty string. */
 xwcsbuf_T *wb_init(xwcsbuf_T *buf)
 {
     buf->contents = xmalloc((XWCSBUF_INITSIZE + 1) * sizeof (wchar_t));
@@ -249,9 +252,10 @@ xwcsbuf_T *wb_init(xwcsbuf_T *buf)
     return buf;
 }
 
-/* Initializes a wide string buffer with an already malloced string.
- * After calling this function, the string is used as the buffer
- * so you must not touch or `free' it any more. */
+/* Initializes the specified wide string buffer with the specified string.
+ * String `s' must be `free'able.
+ * After calling this function, the string is used as the buffer, so you must
+ * not touch or `free' it any more. */
 xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
 {
     buf->contents = s;
@@ -259,9 +263,9 @@ xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
     return buf;
 }
 
-/* Changes `buf->maxlength'.
+/* Changes the max length of the specified buffer.
  * If `newmax' is less than the current length of the buffer, the end of
- * the buffered string is truncated. */
+ * the buffer contents is truncated. */
 xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 {
     buf->contents = xrealloc(buf->contents, (newmax + 1) * sizeof (wchar_t));
@@ -287,10 +291,10 @@ xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
     return wb_setmax(buf, max);
 }
 
-/* Replaces the contents of a string buffer with another string.
- * `bn' characters starting at the offset `i' in the buffer is removed and
+/* Replaces the specified part of the buffer with another string.
+ * `bn' characters starting at offset `i' in buffer `buf' is removed and
  * the first `sn' characters of `s' take place of them.
- * No boundary checks are done and a null character is not considered special.
+ * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_replace_force(
 	xwcsbuf_T *restrict buf, size_t i, size_t bn,
@@ -305,12 +309,12 @@ xwcsbuf_T *wb_replace_force(
     return buf;
 }
 
-/* Replaces the contents of a string buffer with another string.
- * `bn' characters starting at the offset `i' in the buffer is removed and
+/* Replaces the specified part of the buffer with another string.
+ * `bn' characters starting at offset `i' in buffer `buf' is removed and
  * the first `sn' characters of `s' take place of them.
  * If (wcslen(s) < sn), the whole of `s' is replaced with.
- * If (buf->length < i + sn), all the characters after the offset `i' in the
- * buffer is replaced. Especially, if (buf->length <= i), `s' is appended.
+ * If (buf->length < i + sn), all the characters after offset `i' in the buffer
+ * is replaced. Especially, if (buf->length <= i), `s' is appended.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_replace(
 	xwcsbuf_T *restrict buf, size_t i, size_t bn,
@@ -324,8 +328,8 @@ xwcsbuf_T *wb_replace(
     return wb_replace_force(buf, i, bn, s, sn);
 }
 
-/* Appends a wide character `c' to the end of a string buffer.
- * For `c', a null character is not treated specially. */
+/* Appends wide character `c' to the end of buffer `buf'.
+ * The character is appended even if it is a null wide character. */
 xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
 {
     wb_ensuremax(buf, buf->length + 1);
@@ -334,8 +338,8 @@ xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
     return buf;
 }
 
-/* Appends `n' characters of `c' to the end of a string buffer.
- * For `c', a null character is not treated specially. */
+/* Appends `n' characters of `c' to the end of buffer `buf'.
+ * The characters are appended even if `c' is a null wide character. */
 xwcsbuf_T *wb_wccat_repeat(xwcsbuf_T *buf, wchar_t c, size_t n)
 {
     wb_ensuremax(buf, buf->length + n);
@@ -345,17 +349,17 @@ xwcsbuf_T *wb_wccat_repeat(xwcsbuf_T *buf, wchar_t c, size_t n)
     return buf;
 }
 
-/* Converts a multibyte string to a wide string and append it to the buffer.
- * The multibyte string is assumed to start in a initial shift state.
- * Returns NULL if the whole string is converted and appended successfully, or,
- * on error, a pointer to the character in `s' that caused the error.
- * A partial result may have been appended to the buffer on error. */
+/* Converts multibyte string `s' into a wide string and appends it to buffer
+ * `buf'. The multibyte string is assumed to start in the initial shift state.
+ * Returns NULL if the whole string is converted and appended successfully,
+ * otherwise a pointer to the character in `s' that caused the error.
+ * A partial result may be left in the buffer on error. */
 char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
 {
     mbstate_t state;
     size_t count;
 
-    memset(&state, 0, sizeof state);  /* initialize as a initial shift state */
+    memset(&state, 0, sizeof state);  // initialize as the initial shift state
 
     for (;;) {
 	count = mbsrtowcs(buf->contents + buf->length, (const char **) &s,
@@ -363,16 +367,16 @@ char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
 	if (count == (size_t) -1)
 	    break;
 	buf->length += count;
-	if (!s)
+	if (s == NULL)
 	    break;
-	wb_ensuremax(buf, buf->maxlength * 2);
+	wb_ensuremax(buf, buf->maxlength + 1);
     }
 
     buf->contents[buf->length] = L'\0';
     return (char *) s;
 }
 
-/* Appends a formatted string to the end of a buffer.
+/* Appends the result of `vswprintf' to the specified buffer.
  * `format' and the following arguments must not be part of `buf->contents'.
  * Returns the number of appended characters if successful.
  * On error, the buffer is not changed and -1 is returned. */
@@ -392,8 +396,8 @@ int wb_vwprintf(
 	    break;
 
 	/* According to POSIX, if the buffer is too short, `vswprintf' returns
-	 * a negative integer. However, on some systems, it returns a desired
-	 * buffer length like `vsprintf', which is rather preferable. */
+	 * a negative integer. On some systems, however, it returns a desired
+	 * buffer length as `vsprintf' does, which is rather preferable. */
 	wb_ensuremax(buf, buf->length + (result < 0 ? 2 * rest : result));
     }
     if (result >= 0)
@@ -404,7 +408,7 @@ int wb_vwprintf(
     return result;
 }
 
-/* Appends a formatted string to the end of a buffer.
+/* Appends the result of `swprintf' to the specified buffer.
  * `format' and the following arguments must not be part of `buf->contents'.
  * Returns the number of appended characters if successful.
  * On error, the buffer is not changed and -1 is returned. */
@@ -423,7 +427,7 @@ int wb_wprintf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
 
 /********** Multibyte-Wide Conversion Utilities **********/
 
-/* Converts a wide string to a newly malloced multibyte string.
+/* Converts the specified wide string into a newly malloced multibyte string.
  * Only the first `n' characters of `s' is converted at most.
  * Returns NULL on error.
  * The resulting string starts and ends in the initial shift state.*/
@@ -441,7 +445,7 @@ char *malloc_wcsntombs(const wchar_t *s, size_t n)
     }
 
     sb_init(&buf);
-    memset(&state, 0, sizeof state);  /* initialize as a initial shift state */
+    memset(&state, 0, sizeof state);  // initialize as the initial shift state
     if (sb_wcscat(&buf, s, &state) == NULL) {
 	return sb_tostr(&buf);
     } else {
@@ -450,10 +454,10 @@ char *malloc_wcsntombs(const wchar_t *s, size_t n)
     }
 }
 
-/* Converts a multibyte string to a newly malloced wide string.
+/* Converts the specified multibyte string into a newly malloced wide string.
  * Only the first `n' bytes of `s' is converted at most.
  * Returns NULL on error.
- * The resulting string starts and ends in the initial shift state.*/
+ * The multibyte string is assumed to start in the initial shift state. */
 wchar_t *malloc_mbsntowcs(const char *s, size_t n)
 {
     xwcsbuf_T buf;

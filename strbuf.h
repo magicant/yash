@@ -182,13 +182,13 @@ static inline wchar_t *malloc_wprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 
-/* Frees a multibyte string buffer, abandoning the contents. */
+/* Frees the specified multibyte string buffer. The contents are lost. */
 void sb_destroy(xstrbuf_T *buf)
 {
     free(buf->contents);
 }
 
-/* Frees a multibyte string buffer and returns the contents.
+/* Frees the specified multibyte string buffer and returns the contents.
  * The caller must `free' the return value. */
 char *sb_tostr(xstrbuf_T *buf)
 {
@@ -197,7 +197,7 @@ char *sb_tostr(xstrbuf_T *buf)
 
 /* Shrinks the length of the buffer to `newlength'.
  * `newlength' must not be larger than the current length.
- * Characters beyond the new length are removed.
+ * Characters beyond the new length are lost.
  * `maxlength' of the buffer is not changed. */
 xstrbuf_T *sb_truncate(xstrbuf_T *buf, size_t newlength)
 {
@@ -208,15 +208,16 @@ xstrbuf_T *sb_truncate(xstrbuf_T *buf, size_t newlength)
     return buf;
 }
 
-/* Clears the contents of a string buffer, preserving its `maxlength'. */
+/* Clears the contents of the specified string buffer.
+ * `maxlength' of the buffer is not changed. */
 xstrbuf_T *sb_clear(xstrbuf_T *buf)
 {
     return sb_truncate(buf, 0);
 }
 
-/* Inserts the first `n' bytes of a multibyte string `s' at the offset `i'
- * in the buffer `buf'.
- * No boundary checks are done and a null character is not considered special.
+/* Inserts the first `n' bytes of multibyte string `s' at offset `i' in buffer
+ * `buf'.
+ * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ninsert_force(
 	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
@@ -224,8 +225,8 @@ xstrbuf_T *sb_ninsert_force(
     return sb_replace_force(buf, i, 0, s, n);
 }
 
-/* Inserts the first `n' bytes of a multibyte string `s' at the offset `i'
- * in the buffer `buf'.
+/* Inserts the first `n' bytes of multibyte string `s' at offset `i' in buffer
+ * `buf'.
  * If (strlen(s) <= n), the whole of `s' is inserted.
  * If (buf->length <= i), `s' is appended to the end of the buffer.
  * `s' must not be part of `buf->contents'. */
@@ -235,7 +236,7 @@ xstrbuf_T *sb_ninsert(
     return sb_replace(buf, i, 0, s, n);
 }
 
-/* Inserts a multibyte string `s' at the offset `i' in the buffer `buf'.
+/* Inserts multibyte string `s' at offset `i' in buffer `buf'.
  * If (buf->length <= i), `s' is appended to the end of the buffer.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_insert(xstrbuf_T *restrict buf, size_t i, const char *restrict s)
@@ -243,8 +244,8 @@ xstrbuf_T *sb_insert(xstrbuf_T *restrict buf, size_t i, const char *restrict s)
     return sb_replace(buf, i, 0, s, Size_max);
 }
 
-/* Appends the first `n' bytes of a multibyte string `s' to the buffer `buf'.
- * No boundary checks are done and a null character is not considered special.
+/* Appends the first `n' bytes of multibyte string `s' to buffer `buf'.
+ * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ncat_force(
 	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
@@ -252,7 +253,7 @@ xstrbuf_T *sb_ncat_force(
     return sb_replace_force(buf, buf->length, 0, s, n);
 }
 
-/* Appends the first `n' bytes of a multibyte string `s' to the buffer `buf'.
+/* Appends the first `n' bytes of multibyte string `s' to buffer `buf'.
  * If (strlen(s) <= n), the whole of `s' is appended.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ncat(xstrbuf_T *restrict buf, const char *restrict s, size_t n)
@@ -260,14 +261,14 @@ xstrbuf_T *sb_ncat(xstrbuf_T *restrict buf, const char *restrict s, size_t n)
     return sb_replace(buf, Size_max, 0, s, n);
 }
 
-/* Appends a multibyte string `s' to the buffer `buf'.
+/* Appends multibyte string `s' to buffer `buf'.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_cat(xstrbuf_T *restrict buf, const char *restrict s)
 {
     return sb_replace(buf, Size_max, 0, s, Size_max);
 }
 
-/* Appends a multibyte string `s' to the buffer `buf' and free the string.
+/* Appends multibyte string `s' to buffer `buf' and free the string.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_catfree(xstrbuf_T *restrict buf, char *restrict s)
 {
@@ -276,7 +277,7 @@ xstrbuf_T *sb_catfree(xstrbuf_T *restrict buf, char *restrict s)
     return buf;
 }
 
-/* Removes `n' bytes at the offset `i' in the buffer `buf'.
+/* Removes `n' bytes at offset `i' in buffer `buf'.
  * If (buf->length <= i), `buf' is unchanged.
  * If (buf->length <= i + n), `buf' is truncated to `i' bytes. */
 xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
@@ -284,22 +285,22 @@ xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
     return sb_replace(buf, i, n, "", 0);
 }
 
-/* Frees a wide string buffer, abandoning the contents. */
+/* Frees the specified wide string buffer. The contents are lost. */
 void wb_destroy(xwcsbuf_T *buf)
 {
     free(buf->contents);
 }
 
-/* Frees a wide string buffer and returns the contents.
+/* Frees the specified wide string buffer and returns the contents.
  * The caller must `free' the return value. */
 wchar_t *wb_towcs(xwcsbuf_T *buf)
 {
     return buf->contents;
 }
 
-/* Shrinks the length of the buffer to `newlength'.
+/* Shrinks the length of the specified buffer to `newlength'.
  * `newlength' must not be larger than the current length.
- * Characters beyond the new length are removed.
+ * Characters beyond the new length are lost.
  * `maxlength' of the buffer is not changed. */
 xwcsbuf_T *wb_truncate(xwcsbuf_T *buf, size_t newlength)
 {
@@ -310,15 +311,16 @@ xwcsbuf_T *wb_truncate(xwcsbuf_T *buf, size_t newlength)
     return buf;
 }
 
-/* Clears the contents of a string buffer, preserving its `maxlength'. */
+/* Clears the contents of the specified string buffer.
+ * `maxlength' of the buffer is not changed. */
 xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
 {
     return wb_truncate(buf, 0);
 }
 
-/* Inserts the first `n' characters of a wide string `s'
- * at the offset `i' in the buffer `buf'.
- * No boundary checks are done and a null character is not considered special.
+/* Inserts the first `n' characters of wide string `s' at offset `i' in buffer
+ * `buf'.
+ * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ninsert_force(
 	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
@@ -326,8 +328,8 @@ xwcsbuf_T *wb_ninsert_force(
     return wb_replace_force(buf, i, 0, s, n);
 }
 
-/* Inserts the first `n' characters of a wide string
- * at the offset `i' in the buffer `buf'.
+/* Inserts the first `n' characters of wide string `s` at offset `i' in buffer
+ * `buf'.
  * If (wcslen(s) <= n), the whole of `s' is inserted.
  * If (buf->length <= i), `s' is appended to the end of the buffer.
  * `s' must not be part of `buf->contents'. */
@@ -337,7 +339,7 @@ xwcsbuf_T *wb_ninsert(
     return wb_replace(buf, i, 0, s, n);
 }
 
-/* Inserts a wide string at the offset `i' in the buffer `buf'.
+/* Inserts wide string `s' at offset `i' in buffer `buf'.
  * If (buf->length <= i), `s' is appended to the end of the buffer.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_insert(
@@ -346,8 +348,8 @@ xwcsbuf_T *wb_insert(
     return wb_replace(buf, i, 0, s, Size_max);
 }
 
-/* Appends the first `n' characters of a wide string `s' to the buffer `buf'.
- * No boundary checks are done and a null character is not considered special.
+/* Appends the first `n' characters of wide string `s' to buffer `buf'.
+ * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ncat_force(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
@@ -355,7 +357,7 @@ xwcsbuf_T *wb_ncat_force(
     return wb_replace_force(buf, buf->length, 0, s, n);
 }
 
-/* Appends the first `n' characters of a wide string `s' to the buffer `buf'.
+/* Appends the first `n' characters of wide string `s' to buffer `buf'.
  * If (wcslen(s) <= n), the whole of `s' is appended.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ncat(xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
@@ -363,14 +365,14 @@ xwcsbuf_T *wb_ncat(xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
     return wb_replace(buf, Size_max, 0, s, n);
 }
 
-/* Appends a wide string `s' to the buffer `buf'.
+/* Appends wide string `s' to buffer `buf'.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_cat(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
 {
     return wb_replace(buf, Size_max, 0, s, Size_max);
 }
 
-/* Appends a wide string `s' to the buffer and free the string.
+/* Appends wide string `s' to buffer and frees the string.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_catfree(xwcsbuf_T *restrict buf, wchar_t *restrict s)
 {
@@ -379,7 +381,7 @@ xwcsbuf_T *wb_catfree(xwcsbuf_T *restrict buf, wchar_t *restrict s)
     return buf;
 }
 
-/* Removes `n' characters at the offset `i' in the buffer `buf'.
+/* Removes `n' characters at offset `i' in buffer `buf'.
  * If (buf->length <= i), `buf' is unchanged.
  * If (buf->length <= i + n), `buf' is truncated to `i' characters. */
 xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
@@ -387,7 +389,7 @@ xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
     return wb_replace(buf, i, n, L"", 0);
 }
 
-/* Converts a wide string to a newly malloced multibyte string.
+/* Converts the specified wide string into a newly malloced multibyte string.
  * Returns NULL on error.
  * The resulting string starts and ends in the initial shift state.*/
 char *malloc_wcstombs(const wchar_t *s)
@@ -395,8 +397,8 @@ char *malloc_wcstombs(const wchar_t *s)
     return malloc_wcsntombs(s, Size_max);
 }
 
-/* Converts a wide string to a newly malloced multibyte string and free the
- * wide string.
+/* Converts the specified wide string into a newly malloced multibyte string and
+ * frees the original wide string.
  * Returns NULL on error. The wide string is freed anyway.
  * The resulting string starts and ends in the initial shift state.*/
 char *realloc_wcstombs(wchar_t *s)
@@ -406,15 +408,15 @@ char *realloc_wcstombs(wchar_t *s)
     return result;
 }
 
-/* Converts a multibyte string to a newly malloced wide string.
+/* Converts the specified multibyte string into a newly malloced wide string.
  * Returns NULL on error. */
 wchar_t *malloc_mbstowcs(const char *s)
 {
     return malloc_mbsntowcs(s, Size_max);
 }
 
-/* Converts a multibyte string to a newly malloced wide string and free the
- * multibyte string.
+/* Converts the specified multibyte string into a newly malloced wide string and
+ * frees the multibyte string.
  * Returns NULL on error. The multibyte string is freed anyway. */
 wchar_t *realloc_mbstowcs(char *s)
 {

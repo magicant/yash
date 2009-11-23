@@ -582,52 +582,57 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 
     if (strcmp(num, "-") == 0) {
 	fd = -1;
-    } else {
-	if (!xisxdigit(num[0])) {
-	    errno = EINVAL;
-	} else {
-	    if (xstrtoi(num, 10, &fd) && fd < 0)
-		errno = ERANGE;
-	}
-	if (errno) {
-	    xerror(errno, Ngt("redirection: %s"), num);
+	goto end;
+    }
+
+    if (!xisxdigit(num[0]))
+	errno = EINVAL;
+    else if (xstrtoi(num, 10, &fd) && fd < 0)
+	errno = ERANGE;
+    if (errno) {
+	xerror(errno, Ngt("redirection: %s"), num);
+	fd = -2;
+	goto end;
+    }
+
+    if (is_shellfd(fd)) {
+	xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+		fd);
+	fd = -2;
+	goto end;
+    }
+
+    if (posixly_correct) {
+	/* check the read/write permission */
+	int flags = fcntl(fd, F_GETFL);
+	if (flags < 0) {
+	    xerror(errno, Ngt("redirection: %d"), fd);
 	    fd = -2;
-	} else {
-	    if (is_shellfd(fd)) {
-		xerror(0, Ngt("redirection: file descriptor %d unavailable"),
-			fd);
-		fd = -2;
-	    } else if (posixly_correct) {
-		/* check the read/write permission */
-		int flags = fcntl(fd, F_GETFL);
-		if (flags < 0) {
-		    xerror(errno, Ngt("redirection: %d"), fd);
+	} else if (type == RT_DUPIN) {
+	    switch (flags & O_ACCMODE) {
+		case O_RDONLY:  case O_RDWR:
+		    /* ok */
+		    break;
+		default:
+		    xerror(0, Ngt("redirection: %d: not readable"), fd);
 		    fd = -2;
-		} else if (type == RT_DUPIN) {
-		    switch (flags & O_ACCMODE) {
-			case O_RDONLY:  case O_RDWR:
-			    /* ok */
-			    break;
-			default:
-			    xerror(0, Ngt("redirection: %d: not readable"), fd);
-			    fd = -2;
-			    break;
-		    }
-		} else {
-		    assert(type == RT_DUPOUT);
-		    switch (flags & O_ACCMODE) {
-			case O_WRONLY:  case O_RDWR:
-			    /* ok */
-			    break;
-			default:
-			    xerror(0, Ngt("redirection: %d: not writable"), fd);
-			    fd = -2;
-			    break;
-		    }
-		}
+		    break;
+	    }
+	} else {
+	    assert(type == RT_DUPOUT);
+	    switch (flags & O_ACCMODE) {
+		case O_WRONLY:  case O_RDWR:
+		    /* ok */
+		    break;
+		default:
+		    xerror(0, Ngt("redirection: %d: not writable"), fd);
+		    fd = -2;
+		    break;
 	    }
 	}
     }
+
+end:
     free(num);
     return fd;
 }
