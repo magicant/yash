@@ -2510,6 +2510,7 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
     read_more_input();
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
+    enable_alias = false;
     //caliases = new_aliaslist();
 #endif
 

@@ -22,6 +22,7 @@ Yash 2.17
   *  Fixed the "wait" builtin wrongly trying to wait for non-parent
      processes when invoked in a subshell.
   *  [line-editing] vi-replace-char command was broken.
+  *  Many other bug fixes
 
 ----------------------------------------------------------------------
 Yash 2.16
