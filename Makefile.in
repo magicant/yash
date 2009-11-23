@@ -28,7 +28,7 @@ OBJS = @OBJS@
 TARGET = @TARGET@
 MKSIGNUMOBJS = mksignum.o
 
-BYPRODUCTS = mksignum signum.h
+BYPRODUCTS = mksignum signum.h *.dSYM
 
 all: $(TARGET)
 

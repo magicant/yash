@@ -28,7 +28,7 @@ OBJS = display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = @LINEEDIT_ARCHIVE@
 MKCMDSOBJS = mkcmds.o
 
-BYPRODUCTS = mkcmds commands.in
+BYPRODUCTS = mkcmds commands.in *.dSYM
 
 all: $(TARGET)
 

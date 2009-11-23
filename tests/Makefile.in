@@ -45,7 +45,7 @@ TEST_ITEMS = *.tst  # the default test items
 
 INVOKEOBJS = invoke.o
 RESETSIGOBJS = resetsig.o
-BYPRODUCTS = invoke resetsig
+BYPRODUCTS = invoke resetsig *.dSYM
 
 test test-all: invoke resetsig
 	@./resetsig $(SHELL) ./run-test.sh

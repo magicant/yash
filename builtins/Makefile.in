@@ -27,7 +27,7 @@ SOURCES = printf.c printf.h test.c test.h ulimit.c ulimit.h
 OBJS = @BUILTIN_OBJS@
 TARGET = @BUILTINS_ARCHIVE@
 
-BYPRODUCTS = 
+BYPRODUCTS = *.dSYM
 
 all: $(TARGET)
 
