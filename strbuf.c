@@ -433,16 +433,23 @@ int wb_wprintf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
  * The resulting string starts and ends in the initial shift state.*/
 char *malloc_wcsntombs(const wchar_t *s, size_t n)
 {
+    size_t nn = xwcsnlen(s, n);
+    if (s[nn] == L'\0')
+	return malloc_wcstombs(s);
+
+    wchar_t ss[nn + 1];
+    wcsncpy(ss, s, nn);
+    ss[nn] = L'\0';
+    return malloc_wcstombs(ss);
+}
+
+/* Converts the specified wide string into a newly malloced multibyte string.
+ * Returns NULL on error.
+ * The resulting string starts and ends in the initial shift state.*/
+char *malloc_wcstombs(const wchar_t *s)
+{
     xstrbuf_T buf;
     mbstate_t state;
-    size_t nn = xwcsnlen(s, n);
-    wchar_t ss[nn + 1];
-
-    if (s[nn] != L'\0') {
-	wcsncpy(ss, s, nn);
-	ss[nn] = L'\0';
-	s = ss;
-    }
 
     sb_init(&buf);
     memset(&state, 0, sizeof state);  // initialize as the initial shift state
@@ -460,15 +467,21 @@ char *malloc_wcsntombs(const wchar_t *s, size_t n)
  * The multibyte string is assumed to start in the initial shift state. */
 wchar_t *malloc_mbsntowcs(const char *s, size_t n)
 {
-    xwcsbuf_T buf;
     size_t nn = xstrnlen(s, n);
-    char ss[nn + 1];
+    if (s[nn] == '\0')
+	return malloc_mbstowcs(s);
 
-    if (s[nn] != '\0') {
-	strncpy(ss, s, nn);
-	ss[nn] = '\0';
-	s = ss;
-    }
+    char ss[nn + 1];
+    strncpy(ss, s, nn);
+    ss[nn] = '\0';
+    return malloc_mbstowcs(ss);
+}
+
+/* Converts the specified multibyte string into a newly malloced wide string.
+ * Returns NULL on error. */
+wchar_t *malloc_mbstowcs(const char *s)
+{
+    xwcsbuf_T buf;
 
     wb_init(&buf);
     if (wb_mbscat(&buf, s) == NULL) {
@@ -477,6 +490,31 @@ wchar_t *malloc_mbsntowcs(const char *s, size_t n)
 	wb_destroy(&buf);
 	return NULL;
     }
+}
+
+
+/********** Formatting Utilities **********/
+
+/* Returns the result of `sprintf' as a newly malloced string. */
+char *malloc_printf(const char *format, ...)
+{
+    va_list ap;
+    char *result;
+    va_start(ap, format);
+    result = malloc_vprintf(format, ap);
+    va_end(ap);
+    return result;
+}
+
+/* Returns the result of `swprintf' as a newly malloced string. */
+wchar_t *malloc_wprintf(const wchar_t *format, ...)
+{
+    va_list ap;
+    wchar_t *result;
+    va_start(ap, format);
+    result = malloc_vwprintf(format, ap);
+    va_end(ap);
+    return result;
 }
 
 

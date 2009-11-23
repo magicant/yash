@@ -161,24 +161,24 @@ extern int wb_wprintf(
 
 extern char *malloc_wcsntombs(const wchar_t *s, size_t n)
     __attribute__((nonnull,malloc,warn_unused_result));
-static inline char *malloc_wcstombs(const wchar_t *s)
+extern char *malloc_wcstombs(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline char *realloc_wcstombs(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *malloc_mbsntowcs(const char *s, size_t n)
     __attribute__((nonnull,malloc,warn_unused_result));
-static inline wchar_t *malloc_mbstowcs(const char *s)
+extern wchar_t *malloc_mbstowcs(const char *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t *realloc_mbstowcs(char *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 static inline char *malloc_vprintf(const char *format, va_list ap)
     __attribute__((nonnull(1),malloc,warn_unused_result,format(printf,1,0)));
-static inline char *malloc_printf(const char *format, ...)
+extern char *malloc_printf(const char *format, ...)
     __attribute__((nonnull(1),malloc,warn_unused_result,format(printf,1,2)));
 static inline wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
     __attribute__((nonnull(1),malloc,warn_unused_result));
-static inline wchar_t *malloc_wprintf(const wchar_t *format, ...)
+extern wchar_t *malloc_wprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 
@@ -389,14 +389,6 @@ xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
     return wb_replace(buf, i, n, L"", 0);
 }
 
-/* Converts the specified wide string into a newly malloced multibyte string.
- * Returns NULL on error.
- * The resulting string starts and ends in the initial shift state.*/
-char *malloc_wcstombs(const wchar_t *s)
-{
-    return malloc_wcsntombs(s, Size_max);
-}
-
 /* Converts the specified wide string into a newly malloced multibyte string and
  * frees the original wide string.
  * Returns NULL on error. The wide string is freed anyway.
@@ -406,13 +398,6 @@ char *realloc_wcstombs(wchar_t *s)
     char *result = malloc_wcstombs(s);
     free(s);
     return result;
-}
-
-/* Converts the specified multibyte string into a newly malloced wide string.
- * Returns NULL on error. */
-wchar_t *malloc_mbstowcs(const char *s)
-{
-    return malloc_mbsntowcs(s, Size_max);
 }
 
 /* Converts the specified multibyte string into a newly malloced wide string and
@@ -434,17 +419,6 @@ char *malloc_vprintf(const char *format, va_list ap)
     return sb_tostr(&buf);
 }
 
-/* Returns the result of `sprintf' as a newly malloced string. */
-char *malloc_printf(const char *format, ...)
-{
-    va_list ap;
-    char *result;
-    va_start(ap, format);
-    result = malloc_vprintf(format, ap);
-    va_end(ap);
-    return result;
-}
-
 /* Returns the result of `vswprintf' as a newly malloced string. */
 wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
 {
@@ -452,17 +426,6 @@ wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
     wb_init(&buf);
     wb_vwprintf(&buf, format, ap);
     return wb_towcs(&buf);
-}
-
-/* Returns the result of `swprintf' as a newly malloced string. */
-wchar_t *malloc_wprintf(const wchar_t *format, ...)
-{
-    va_list ap;
-    wchar_t *result;
-    va_start(ap, format);
-    result = malloc_vwprintf(format, ap);
-    va_end(ap);
-    return result;
 }
 
 
