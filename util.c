@@ -513,7 +513,7 @@ try_parse_short_option:
 	xoptarg = &arg[aindex + 1];
 	aindex = 1;
 	if (*xoptarg == L'\0' && optstring[2] != L':') {
-	    /* the argument is split from the option like "-x arg" */
+	    /* the option argument is split from the option like "-x arg" */
 	    xoptarg = argv[xoptind + 1];
 	    if (!xoptarg)
 		goto argument_missing;
@@ -521,7 +521,7 @@ try_parse_short_option:
 	    argshift(argv, xoptind + 1, initind + 1);
 	    xoptind = initind + 2;
 	} else {
-	    /* the argument is omitted */
+	    /* the option argument is in the same string like "-xarg" */
 	    goto shift1s;
 	}
     } else {
@@ -586,12 +586,13 @@ try_parse_long_option:
     if (longopts[matchindex].has_arg != xno_argument) {
 	wchar_t *eq = wcschr(arg2, L'=');
 	if (eq == NULL) {
+	    if (longopts[matchindex].has_arg == xoptional_argument)
+		goto shift1l;  /* the optional argument is not given */
+
 	    /* the argument is split from option like "--option argument" */
 	    xoptarg = argv[xoptind + 1];
 	    if (xoptarg == NULL) {
-		if (longopts[matchindex].has_arg == xrequired_argument)
-		    goto argument_missing;
-		goto shift1l;
+		goto argument_missing;
 	    } else {
 		argshift(argv, xoptind, initind);
 		argshift(argv, xoptind + 1, initind + 1);
