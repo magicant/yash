@@ -169,19 +169,6 @@ void **duparray(void *const *array, void *copy(const void *p))
     ((union { char c; unsigned char uc; }) { .uc = (unsigned char) (value), }.c)
 
 
-/********** Arithmetic utilities **********/
-
-/* Whether an integral type `type' is signed. */
-#define IS_TYPE_SIGNED(type) ((type) 1 > (type) -1)
-
-/* Maximum number of digits we need to convert a value of an integral type
- * `type' to a decimal string.
- * Inclusion of <limits.h> is required for CHAR_BIT. */
-#define INT_STRLEN_BOUND(type) \
-    ((sizeof(type) * CHAR_BIT - IS_TYPE_SIGNED(type)) * 31 / 100 \
-     + 1 + IS_TYPE_SIGNED(type))
-
-
 /********** Error utilities **********/
 
 extern const wchar_t *yash_program_invocation_name;
