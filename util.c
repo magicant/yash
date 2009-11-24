@@ -97,12 +97,12 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
     return wmemcpy(result, s, len);
 }
 
-/* Converts a multi-byte string into an integer value.
+/* Converts the specified multi-byte string into an integer value.
  * The conversion result is stored in `*resultp'.
- * Returns true if successful, and false otherwise, in which case the value of
- * `*resultp' is undefined. The conversion is considered successful if `errno'
- * is zero and `endpp' is non-NULL or there are no remaining characters.
- * `errno' is non-zero when this function returns false.
+ * Returns true iff successful. On error, the value of `*resultp' is undefined.
+ * The conversion is considered successful if the string is not empry, `errno'
+ * is zero and there is no remaining character after the value.
+ * `errno' is non-zero iff this function returns false.
  * Spaces at the beginning of the string are ignored. */
 bool xstrtoi(const char *s, int base, int *resultp)
 {
@@ -128,12 +128,12 @@ bool xstrtoi(const char *s, int base, int *resultp)
     return true;
 }
 
-/* Converts a wide string into an integer value.
+/* Converts the specified wide string into an integer value.
  * The conversion result is stored in `*resultp'.
- * Returns true if successful, and false otherwise, in which case the value of
- * `*resultp' is undefined. The conversion is considered successful if `errno'
- * is zero and there are no remaining characters.
- * `errno' is non-zero when this function returns false.
+ * Returns true iff successful. On error, the value of `*resultp' is undefined.
+ * The conversion is considered successful if the string is not empry, `errno'
+ * is zero and there is no remaining character after the value.
+ * `errno' is non-zero iff this function returns false.
  * Spaces at the beginning of the string are ignored. */
 bool xwcstoi(const wchar_t *s, int base, int *resultp)
 {
@@ -148,6 +148,7 @@ bool xwcstoi(const wchar_t *s, int base, int *resultp)
     return true;
 }
 
+/* The `long' version of `xwcstoi'. */
 bool xwcstol(const wchar_t *s, int base, long *resultp)
 {
     wchar_t *endp;
@@ -166,6 +167,7 @@ bool xwcstol(const wchar_t *s, int base, long *resultp)
     return true;
 }
 
+/* The `unsigned long' version of `xwcstoi'. */
 bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
 {
     wchar_t *endp;
@@ -184,8 +186,8 @@ bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
     return true;
 }
 
-/* Clones a NULL-terminated array of pointers.
- * Each pointer element is passed to `copy' function and the return value is
+/* Clones the specified NULL-terminated array of pointers.
+ * Each pointer element is passed to function `copy' and the return value is
  * assigned to the new array element.
  * If the array contains more than `count' elements, only the first `count'
  * elements are copied. If the array contains elements fewer than `count', the
@@ -198,7 +200,7 @@ void **duparrayn(void *const *array, size_t count, void *copy(const void *p))
 	return NULL;
 
     size_t realcount = 0;
-    for (void *const *a = array; *a != NULL && realcount < count; a++)
+    while (array[realcount] != NULL && realcount < count)
 	realcount++;
 
     void **result = xmalloc((realcount + 1) * sizeof *result);
@@ -208,18 +210,18 @@ void **duparrayn(void *const *array, size_t count, void *copy(const void *p))
     return result;
 }
 
-/* Joins wide-character strings in the specified array whose elements are cast
- * from (wchar_t *) to (void *). If `padding' is non-NULL, the contents of
- * `padding' is padded between each joined element.
+/* Joins the wide-character strings in the specified NULL-terminated array. The
+ * array elements are considered pointers to wide strings.
+ * If `padding' is non-NULL, `padding' is padded between each joined element.
  * Returns a newly malloced string. */
 wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 {
     size_t elemcount, ccount = 0;
 
     /* count the full length of the resulting string */
-    for (elemcount = 0; array[elemcount]; elemcount++)
+    for (elemcount = 0; array[elemcount] != NULL; elemcount++)
 	ccount += wcslen(array[elemcount]);
-    if (padding && elemcount > 0)
+    if (padding != NULL && elemcount > 0)
 	ccount += wcslen(padding) * (elemcount - 1);
 
     /* do copying */
@@ -227,7 +229,7 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
     wchar_t *s = result;
     for (size_t i = 0; i < elemcount; i++) {
 	wchar_t *elem = array[i];
-	while (*elem)
+	while (*elem != L'\0')
 	    *s++ = *elem++;
 	if (i + 1 < elemcount) {
 	    const wchar_t *pad = padding;
@@ -240,12 +242,12 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
     return result;
 }
 
-/* If the string `s' starts with the `prefix', returns a pointer to the
- * byte right after the prefix in `s'. Otherwise returns NULL.
+/* If string `s' starts with `prefix', returns a pointer to the byte right after
+ * the prefix in `s'. Otherwise, returns NULL.
  * This function does not change the value of `errno'. */
 char *matchstrprefix(const char *s, const char *prefix)
 {
-    while (*prefix) {
+    while (*prefix != '\0') {
 	if (*prefix != *s)
 	    return NULL;
 	prefix++;
@@ -254,12 +256,12 @@ char *matchstrprefix(const char *s, const char *prefix)
     return (char *) s;
 }
 
-/* If the string `s' starts with the `prefix', returns a pointer to the
- * character right after the prefix in `s'. Otherwise returns NULL.
+/* If string `s' starts with `prefix', returns a pointer to the character right
+ * after the prefix in `s'. Otherwise, returns NULL.
  * This function does not change the value of `errno'. */
 wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 {
-    while (*prefix) {
+    while (*prefix != L'\0') {
 	if (*prefix != *s)
 	    return NULL;
 	prefix++;
@@ -281,7 +283,7 @@ static int compare_mbs(const void *p1, const void *p2)
     return strcoll(*(char *const *) p1, *(char *const *) p2);
 }
 
-/* Sorts a NULL-terminated array of multibyte strings
+/* Sorts the specified NULL-terminated array of multibyte strings
  * according to the current locale. */
 void sort_mbs_array(void **array)
 {
@@ -289,19 +291,25 @@ void sort_mbs_array(void **array)
 }
 
 
-/********** Error utilities **********/
+/********** Error Utilities **********/
 
+/* The name of the current shell process. This value is the first argument to
+ * the main function of the shell. */
 const wchar_t *yash_program_invocation_name;
+/* The basename of `yash_program_invocation_name'. */
 const wchar_t *yash_program_invocation_short_name;
-const wchar_t *current_builtin_name;
+/* The name of the currently executed builtin. */
+const wchar_t *current_builtin_name = NULL;
+/* The number of calls to the `xerror' function. */
 unsigned yash_error_message_count = 0;
 
-/* Prints an error message to stderr.
- * `format' is passed to `gettext' and the result is printed to stderr using
- * `vfprintf'.  If `errno_' is non-zero, prints `strerror(errno_)' after the
- * formatted string.
- * `format' need not to end with '\n'. If (format == NULL && errno_ == 0),
- * prints "unknown error". */
+/* Prints the specified error message to the standard error.
+ * `format' is passed to `gettext' and the result is printed using `vfprintf'.
+ * If `errno_' is non-zero, prints `strerror(errno_)' after the formatted
+ * string.
+ * `format' should not end with '\n' because this function automatically prints
+ * a newline lastly. If (format == NULL && errno_ == 0), prints "unknown error".
+ */
 void xerror(int errno_, const char *restrict format, ...)
 {
     va_list ap;
@@ -351,7 +359,8 @@ void argshift(void **argv, int from, int to /* <= from */)
 }
 
 /* Parses options for a command.
- * Each time this function is called, one option is parsed.
+ * This function is called repeatedly with the same arguments. Each time this
+ * function is called, one option is parsed.
  * If a one-character option is parsed, the character is returned.
  * If a long option is parsed, the corresponding `val' is returned.
  * If an unknown option is encountered, L'?' is returned.
@@ -359,71 +368,79 @@ void argshift(void **argv, int from, int to /* <= from */)
  *
  * `argv' is a pointer to a NULL-terminated array whose elements are pointers
  * to wide strings to be parsed. 
- * Elements in `argv' may be sorted in this function.
+ * Elements in `argv' may be arranged in this function unless parsing is done
+ * polixly correctly.
  *
- * `optstring' is a string specifying one-character options to be recognized.
- * For example, if `optstring' is L"ad:w", -a, -d and -w are recognized and
- * -d takes an operand. If option character is followed by two colons,
- * the operand is optional. Option characters should be alphanumeric.
- * If `optstring' starts with L'+', options are parsed in posixly correct way.
+ * `optstring' is a string that specifies the one-character options to be
+ * recognized. If an option character is followed by a colon, the option is
+ * considered to take an argument. For example, if `optstring' is L"ad:w", then
+ * -a, -d and -w are recognized and -d takes an argument.
+ * If option character is followed by two colons, the argument is optional.
+ * Option characters should be alphanumeric.
+ * If `optstring' starts with L'+', options are parsed in the POSIXly correct
+ * way.
  * If `optstring' starts with L'*', one-character options may start with L'+'
- * instead of L'-', which is allowed in "sh" and "set" command.
+ * instead of L'-', which is allowed in the "set" command.
  * If `optstring' starts with L'-', negative integers like "-1" are not treated
  * as options: if the hyphen is followed by a digit, it is treated as an
- * argument. This is not effective if `posixly_correct' is true.
- * More than one of L'+', L'*' and L'-' can be used if specified in this order.
+ * argument. This is not effective in the POSIXly correct mode.
+ * If more than one of L'+', L'*' and L'-' are used at once, they must be
+ * specified in this order.
  *
- * `longopts' is a pointer to an array of `struct xoption's specifying long
+ * `longopts' is a pointer to an array of `struct xoption's that specify long
  * options to be recognized. The last element must be { 0, 0, 0, 0 }.
  * `longopts' may be NULL if no long option is to be recognized.
- * `longopts' is ignored if `posixly_correct' is true.
+ * `longopts' is ignored in the POSIXly correct mode.
  *
- * When a long option is recognized and `longindex' is non-NULL,
- * the index of corresponding `struct xoption' in the `longopts' array is
- * assigned to `*longindex'.
+ * When a long option is recognized and `longindex' is non-NULL, the index of
+ * the corresponding "xoption" structure in array `longopts' is assigned to
+ * `*longindex'.
  *
- * If `posixly_correct' is true or `optstring' starts with a L'+' flag,
- * all the options must be preceding the operands. `argv' is not arranged.
- * Otherwise options and operands may be mixed. After all the option is parsed,
- * `argv' is arranged so that all the options percede the operands (except when
- * there was a parse error).
+ * If the shell is in the POSIXly correct mode or `optstring' starts with the
+ * L'+' flag, all options must precede operands, i.e., any argument after the
+ * first operand is considered to be an operand. In this case, `argv' is not
+ * arranged.
+ * Otherwise, options and operands may be intermingled. After all the option was
+ * parsed, `argv' is arranged so that all the options precede the operands
+ * (unless there is a parse error).
  *
- * After this function returned L'\0', it must not be called any more and
- * `argv[xoptind]' points to the first operand.
- * After this function returned L'?', it must not be called any more and
- * `argv[xoptind]' points to the erroneous option.
- * After this function returned something else, `argv[xoptind]' points to
- * the next argument to parse.
+ * When all the options were parsed, this function returns L'\0' and `xoptind'
+ * indicates the first operand in array `argv' and then this function must not
+ * be called any more. (If there is no operand, `xoptind' indicates the
+ * terminating NULL element of array `argv'.)
+ * When a parse error occurred, this function returns L'?' and `xoptind'
+ * indicates the erroneous option in array `argv' and the this function must not
+ * be called any more.
  * `argv', `xoptind' and `xoptopt' must not be changed from outside this
- * function during parsing.
+ * function until parsing is done.
  *
- * Here are the meaning of the members of `struct xoption':
- *  name:      Name of the long option (without preceding "--")
- *             that should consist only of alphanumeric characters and hyphens.
+ * An "xoption" structure contains the following members:
+ *  name:      Name of the long option (without preceding "--"),
+ *             which should consist only of alphanumeric characters and hyphens.
  *  has_arg:   One of `xno_argument', `xrequired_argument' and
  *             `xoptional_argument'.
- *             An argument is specified in the form of "--opt=arg".
+ *             An option's argument is specified in the form of "--opt=arg".
  *             A required argument may be in the form of "--opt arg" instead.
- *  val:       When a long option is recognized, the corresponding `val' is
- *             returned.
+ *  val:       When a long option is recognized, `val' is returned by this
+ *             function.
  *
- * Here are the usage of external variables with `xopt'-prefix.
+ * The usage of external variables with `xopt'-prefix is as follows:
  *  xoptind:  Index of the argument in `argv' to be parsed next.
- *            Must be initialized to 0 before first call to the function.
+ *            Must be initialized to 0 before starting parsing a new arguments.
  *  xoptarg:  When an option with an argument is parsed, `xoptarg' points to
- *            the first character of the argument. If an optional argument is
- *            not given, `xoptarg' is NULL.
+ *            the first character of the argument. If the argument is optional
+ *            and not given, `xoptarg' is NULL.
  *  xoptopt:  When an unknown one-character option is encountered, the
  *            character is assigned to `xoptopt'.
- *            When a one-character option is parsed properly, L'-' or L'+' is
- *            assigned to `xoptopt' according to the prefix of the option.
+ *            When a one-character option is parsed properly, the prefix of the
+ *            option (L'-' or L'+') is assigned.
  *            When a long option is parsed, L'-' is assigned.
  *  xopterr:  When an unknown option is encountered, if `xopterr' is true,
- *            an error message is printed to stderr.
- *
- * This implementation is not fully compatible with GNU's getopt_long or
+ *            an error message is printed to the standard error.
+ */
+/* This implementation is not fully compatible with GNU's getopt_long or
  * POSIX's getopt.
- * Some implementation has `argreset' variable, which is assigned 1 before
+ * Some implementation has the `argreset' variable, which is assigned 1 before
  * starting new parsing to reset the state. In this implementation, the parse
  * state is reset when 0 is assigned to `xoptind'. */
 wchar_t xgetopt_long(
@@ -432,8 +449,6 @@ wchar_t xgetopt_long(
 	const struct xoption *restrict longopts,
 	int *restrict longindex)
 {
-    int initind;
-    wchar_t *arg, *arg2, argchar;
     static int aindex;
     bool optionsfirst = posixly_correct;
     bool plusoptions = false;
@@ -456,10 +471,11 @@ wchar_t xgetopt_long(
 	optstring++;
     }
 
-    initind = xoptind;
+    int initind = xoptind;
+    wchar_t *arg;
     while ((arg = argv[xoptind])) {
 	if ((arg[0] != L'-' && (!plusoptions || (arg[0] != L'+')))
-		|| !arg[1]
+		|| arg[1] == L'\0'
 		|| (ignorenegativenumbers && iswdigit(arg[1]))) {
 	    /* arg is not an option */
 	    if (optionsfirst)
@@ -470,73 +486,79 @@ wchar_t xgetopt_long(
 
 	if (arg[0] == L'-' && arg[1] == L'-') {
 	    /* arg starts with "--" */
-	    goto tryparselongoption;
+	    goto try_parse_long_option;
 	} else {
 	    /* start parsing a one-character option */
-	    goto tryparseshortoption;
+	    goto try_parse_short_option;
 	}
     }
+
+    /* nothing more to parse! */
     xoptind = initind;
     return L'\0';
 
-tryparseshortoption:
+    wchar_t argchar;
+try_parse_short_option:
     argchar = arg[aindex];
     xoptopt = arg[0];
     optstring = wcschr(optstring, argchar);
     if (!optstring) {
 	xoptopt = argchar;
-	goto nosuchoption;
+	goto no_such_option;
     }
 
-    /* a valid option is found */
+    /* a valid option was found */
     if (optstring[1] == L':') {
 	/* the option takes an argument */
 	xoptarg = &arg[aindex + 1];
 	aindex = 1;
-	if (!*xoptarg && optstring[2] != L':') {
+	if (*xoptarg == L'\0' && optstring[2] != L':') {
 	    /* the argument is split from the option like "-x arg" */
 	    xoptarg = argv[xoptind + 1];
 	    if (!xoptarg)
-		goto argumentmissing;
+		goto argument_missing;
 	    argshift(argv, xoptind, initind);
 	    argshift(argv, xoptind + 1, initind + 1);
 	    xoptind = initind + 2;
 	} else {
 	    /* the argument is omitted */
-	    argshift(argv, xoptind, initind);
-	    xoptind = initind + 1;
+	    goto shift1s;
 	}
     } else {
 	/* the option doesn't take an argument */
-	if (arg[aindex + 1]) {
+	if (arg[aindex + 1] != L'\0') {
+	    /* we have a next option in the same argument string */
 	    aindex++;
 	    argshift(argv, xoptind, initind);
 	    xoptind = initind;
 	} else {
+	    /* no options are remaining in this argument string */
 	    aindex = 1;
+shift1s:
 	    argshift(argv, xoptind, initind);
 	    xoptind = initind + 1;
 	}
     }
     return argchar;
 
-tryparselongoption:
+    wchar_t *arg2;
+try_parse_long_option:
     arg2 = &arg[2];
-    if (!arg2[0]) {
+    if (arg2[0] == L'\0') {
 	/* arg == "--" */
 	argshift(argv, xoptind, initind);
 	xoptind = initind + 1;
 	return L'\0';
     }
     if (posixly_correct || !longopts)
-	goto nosuchoption;
+	goto no_such_option;
 
     /* identify the name of the long option */
     int matchindex = -1;
     size_t len = wcscspn(arg2, L"=");
     for (int i = 0; longopts[i].name; i++) {
 	if (wcsncmp(longopts[i].name, arg2, len) == 0) {
-	    if (longopts[i].name[len]) {
+	    if (longopts[i].name[len] != L'\0') {
 		/* partial match */
 		if (matchindex < 0) {
 		    /* first match */
@@ -545,7 +567,7 @@ tryparselongoption:
 		} else {
 		    /* there was other match */
 		    arg = arg2;
-		    goto ambiguousmatch;
+		    goto ambiguous_match;
 		}
 	    } else {
 		/* full match */
@@ -555,22 +577,21 @@ tryparselongoption:
 	}
     }
     if (matchindex < 0)
-	goto nosuchoption;
+	goto no_such_option;
 
     /* a valid long option is found */
     if (longindex)
 	*longindex = matchindex;
     xoptopt = L'-';
-    if (longopts[matchindex].has_arg) {
+    if (longopts[matchindex].has_arg != xno_argument) {
 	wchar_t *eq = wcschr(arg2, L'=');
-	if (!eq) {
+	if (eq == NULL) {
 	    /* the argument is split from option like "--option argument" */
 	    xoptarg = argv[xoptind + 1];
-	    if (!xoptarg) {
+	    if (xoptarg == NULL) {
 		if (longopts[matchindex].has_arg == xrequired_argument)
-		    goto argumentmissing;
-		argshift(argv, xoptind, initind);
-		xoptind = initind + 1;
+		    goto argument_missing;
+		goto shift1l;
 	    } else {
 		argshift(argv, xoptind, initind);
 		argshift(argv, xoptind + 1, initind + 1);
@@ -578,18 +599,18 @@ tryparselongoption:
 	    }
 	} else {
 	    /* the argument is specified after L'=' like "--option=argument" */
-	    xoptarg = eq + 1;
-	    argshift(argv, xoptind, initind);
-	    xoptind = initind + 1;
+	    xoptarg = &eq[1];
+	    goto shift1l;
 	}
     } else {
 	/* the option doesn't take an argument */
+shift1l:
 	argshift(argv, xoptind, initind);
 	xoptind = initind + 1;
     }
     return longopts[matchindex].val;
 
-ambiguousmatch:
+ambiguous_match:
     if (xopterr) {
 	fprintf(stderr, gt("%ls: --%ls: ambiguous option\n"),
 		(wchar_t *) argv[0], arg);
@@ -600,12 +621,12 @@ ambiguousmatch:
 #endif
     }
     return L'?';
-nosuchoption:
+no_such_option:
     if (xopterr)
 	fprintf(stderr, gt("%ls: %ls: invalid option\n"),
 		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
     return L'?';
-argumentmissing:
+argument_missing:
     if (xopterr)
 	fprintf(stderr, gt("%ls: %ls: argument missing\n"),
 		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);

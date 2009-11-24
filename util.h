@@ -25,7 +25,7 @@
 #define Size_max ((size_t) -1)  // = SIZE_MAX
 
 
-/********** General functions **********/
+/********** General Functions **********/
 
 static inline void *xcalloc(size_t nmemb, size_t size)
     __attribute__((malloc,warn_unused_result));
@@ -36,7 +36,7 @@ static inline void *xrealloc(void *ptr, size_t size)
 extern void alloc_failed(void)
     __attribute__((noreturn));
 
-/* Attempts a `calloc' and abort the program on failure. */
+/* Attempts `calloc' and abort the program on failure. */
 void *xcalloc(size_t nmemb, size_t size)
 {
     void *result = calloc(nmemb, size);
@@ -45,7 +45,7 @@ void *xcalloc(size_t nmemb, size_t size)
     return result;
 }
 
-/* Attempts a `malloc' and abort the program on failure. */
+/* Attempts `malloc' and abort the program on failure. */
 void *xmalloc(size_t size)
 {
     void *result = malloc(size);
@@ -54,7 +54,7 @@ void *xmalloc(size_t size)
     return result;
 }
 
-/* Attempts a `realloc' and abort the program on failure. */
+/* Attempts `realloc' and abort the program on failure. */
 void *xrealloc(void *ptr, size_t size)
 {
     void *result = realloc(ptr, size);
@@ -64,7 +64,7 @@ void *xrealloc(void *ptr, size_t size)
 }
 
 
-/********** String utilities **********/
+/********** String Utilities **********/
 
 extern size_t xstrnlen(const char *s, size_t maxlen)
     __attribute__((pure,nonnull));
@@ -135,9 +135,10 @@ wchar_t *xwcsdup(const wchar_t *s)
     return xwcsndup(s, Size_max);
 }
 
-/* Clones a NULL-terminated array of pointers.
- * Each pointer element is passed to `copy' function and the return value is
- * assigned to the new array element. */
+/* Clones the specified NULL-terminated array of pointers.
+ * Each pointer element is passed to function `copy' and the return value is
+ * assigned to the new array element.
+ * If `array' is NULL, simply returns NULL. */
 /* `xstrdup' and `copyaswcs' are suitable for `copy'. */
 void **duparray(void *const *array, void *copy(const void *p))
 {
@@ -200,7 +201,7 @@ extern _Bool xopterr;
 
 struct xoption {
     const wchar_t *name;
-    enum { xno_argument = 0, xrequired_argument, xoptional_argument, } has_arg;
+    enum { xno_argument, xrequired_argument, xoptional_argument, } has_arg;
     wchar_t val;
 };
 
