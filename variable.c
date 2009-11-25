@@ -950,13 +950,13 @@ void random_getter(variable_T *var)
 unsigned next_random(void)
 {
 #if RAND_MAX == 32767
-    return rand();
+    return (unsigned) rand();
 #elif RAND_MAX == 65535
-    return rand() >> 1;
+    return (unsigned) rand() >> 1;
 #elif RAND_MAX == 2147483647
-    return rand() >> 16;
+    return (unsigned) rand() >> 16;
 #elif RAND_MAX == 4294967295
-    return rand() >> 17;
+    return (unsigned) rand() >> 17;
 #else
     unsigned max, value;
     do {
