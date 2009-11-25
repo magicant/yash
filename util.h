@@ -107,15 +107,13 @@ extern void sort_mbs_array(void **array)
     __attribute__((nonnull));
 
 #if HAVE_STRNLEN
-# if _POSIX_C_SOURCE < 200809L
-#  undef strnlen
+# ifndef strnlen
 extern size_t strnlen(const char *s, size_t maxlen);
 # endif
 # define xstrnlen(s,maxlen) strnlen(s,maxlen)
 #endif
 #if HAVE_WCSNLEN
-# if _POSIX_C_SOURCE < 200809L
-#  undef wcsnlen
+# ifndef wcsnlen
 extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
 # endif
 # define xwcsnlen(s,maxlen) wcsnlen(s,maxlen)
@@ -169,7 +167,7 @@ void **duparray(void *const *array, void *copy(const void *p))
     ((union { char c; unsigned char uc; }) { .uc = (unsigned char) (value), }.c)
 
 
-/********** Error utilities **********/
+/********** Error Utilities **********/
 
 extern const wchar_t *yash_program_invocation_name;
 extern const wchar_t *yash_program_invocation_short_name;

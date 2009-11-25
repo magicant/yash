@@ -504,8 +504,10 @@ then
     cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE ${posix:-1}L
 #define _XOPEN_SOURCE   ${xopen:-1}
-#include <stddef.h>
+#include <string.h>
+#ifndef strnlen
 size_t strnlen(const char*, size_t);
+#endif
 int main() { return strnlen("12345", 3) != 3; }
 END
     trymake && tryexec
@@ -523,8 +525,10 @@ then
     cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE ${posix:-1}L
 #define _XOPEN_SOURCE   ${xopen:-1}
-#include <stddef.h>
+#include <wchar.h>
+#ifndef wcsnlen
 size_t wcsnlen(const wchar_t*, size_t);
+#endif
 int main() { return wcsnlen(L"12345", 3) != 3; }
 END
     trymake && tryexec
