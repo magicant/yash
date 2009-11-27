@@ -54,7 +54,7 @@
 #endif
 
 
-const wchar_t *const path_variables[PA_count] = {
+static const wchar_t *const path_variables[PA_count] = {
     [PA_PATH]     = L VAR_PATH,
     [PA_CDPATH]   = L VAR_CDPATH,
     [PA_MAILPATH] = L VAR_MAILPATH,
@@ -74,12 +74,13 @@ typedef struct environ_T {
  * assignment syntax allows only limited characters.
  * Variable names starting with L'=' are used for special purposes.
  * The positional parameter is treated as an array whose name is L"=".
- * Note that the number of positional parameters is offseted by 1 against the
+ * Note that the number of positional parameters is offset by 1 against the
  * array index. */
 /* An environment whose `is_temporary' is true is used for temporary variables. 
- * Temporary variables may be exported, but cannot be readonly.
- * Elements of `path' are arrays of the pathnames contained in the $PATH/CDPATH
- * variables. They are NULL if the corresponding variables are not set. */
+ * Temporary variables may be exported but cannot be readonly.
+ * The elements of `paths' are arrays of the pathnames contained in the
+ * $PATH, $CDPATH and $MAILPATH variables. They are NULL if the corresponding
+ * variables are not set. */
 #define VAR_positional "="
 
 /* flags for variable attributes */
@@ -91,10 +92,10 @@ typedef enum vartype_T {
     VF_NODELETE = 1 << 4,
 } vartype_T;
 #define VF_MASK ((1 << 2) - 1)
-/* For all variables, the variable type is either of VF_NORMAL and VF_ARRAY,
+/* For all variables, the variable type is either VF_NORMAL or VF_ARRAY,
  * possibly OR'ed with other flags. */
 
-/* shell variable */
+/* type of variables */
 typedef struct variable_T {
     vartype_T v_type;
     union {
@@ -109,14 +110,14 @@ typedef struct variable_T {
 #define v_value v_contents.value
 #define v_vals  v_contents.array.vals
 #define v_valc  v_contents.array.valc
-/* `v_vals' is a NULL-terminated array of pointers to wide strings cast to
- * (void *). `v_valc' is, of course, the number of elements in `v_vals'.
+/* `v_vals' is a NULL-terminated array of pointers to wide strings.
+ * `v_valc' is, of course, the number of elements in `v_vals'.
  * `v_value', `v_vals' and the elements of `v_vals' are `free'able.
  * `v_value' is NULL if the variable is declared but not yet assigned.
  * `v_vals' is always non-NULL, but it may contain no elements.
  * `v_getter' is the setter function, which is reset to NULL on reassignment.*/
 
-/* shell function (defined later) */
+/* type of shell functions (defined later) */
 typedef struct function_T function_T;
 
 
@@ -183,11 +184,11 @@ static environ_T *first_env;
 /* whether $RANDOM is functioning as a random number */
 static bool random_active;
 
-/* Hashtable from function names (char *) to functions (function_T *). */
+/* hashtable from function names (char *) to functions (function_T *). */
 static hashtable_T functions;
 
 
-/* Frees the value of a variable, but not the variable itself. */
+/* Frees the value of the specified variable (but not the variable itself). */
 /* This function does not change the value of `*v'. */
 void varvaluefree(variable_T *v)
 {
@@ -201,7 +202,7 @@ void varvaluefree(variable_T *v)
     }
 }
 
-/* Frees a variable. */
+/* Frees the specified variable. */
 void varfree(variable_T *v)
 {
     if (v) {
@@ -210,7 +211,7 @@ void varfree(variable_T *v)
     }
 }
 
-/* Frees a former variable environment entry. */
+/* Frees the specified key-value pair of a variable name and a variable. */
 void varkvfree(kvpair_T kv)
 {
     free(kv.key);
@@ -218,7 +219,7 @@ void varkvfree(kvpair_T kv)
 }
 
 /* Calls `variable_set' and `update_environment' for `kv.key' and
- * frees the variable. */
+ * calls `varkvfree'. */
 void varkvfree_reexport(kvpair_T kv)
 {
     variable_set(kv.key, NULL);
@@ -230,6 +231,7 @@ void varkvfree_reexport(kvpair_T kv)
 /* Initializes the top-level environment. */
 void init_variables(void)
 {
+    assert(first_env == NULL && current_env == NULL);
     first_env = current_env = xmalloc(sizeof *current_env);
     current_env->parent = NULL;
     current_env->is_temporary = false;
@@ -359,7 +361,7 @@ set:
 }
 
 /* Searches for a variable with the specified name.
- * Returns NULL if none found. */
+ * Returns NULL if none was found. */
 variable_T *search_variable(const wchar_t *name)
 {
     for (environ_T *env = current_env; env; env = env->parent) {
@@ -370,7 +372,7 @@ variable_T *search_variable(const wchar_t *name)
     return NULL;
 }
 
-/* Searches for an array with the specified name and checks if it is not read
+/* Searches for an array with the specified name and checks if it is not read-
  * only. If unsuccessful, prints an error message and returns NULL. */
 variable_T *search_array_and_check_if_changeable(const wchar_t *name)
 {
@@ -482,10 +484,10 @@ void reset_locale_category(const wchar_t *name, int category)
     }
 }
 
-/* Creates a new scalar variable with the value unset.
- * If the variable already exists, it is returned without change.
- * So the return value may be an array variable.
- * Temporary variables with the `name' are cleared. */
+/* Creates a new scalar variable that has no value.
+ * If the variable already exists, it is returned without change. So the return
+ * value may be an array variable or it may be a scalar variable with a value.
+ * Temporary variables with the `name' are cleared if any. */
 variable_T *new_global(const wchar_t *name)
 {
     variable_T *var;
@@ -507,10 +509,10 @@ variable_T *new_global(const wchar_t *name)
     return var;
 }
 
-/* Creates a new scalar variable with the value unset.
- * If the variable already exists, it is returned without change.
- * So the return value may be an array variable.
- * Temporary variables with the `name' are cleared. */
+/* Creates a new scalar variable that has no value.
+ * If the variable already exists, it is returned without change. So the return
+ * value may be an array variable or it may be a scalar variable with a value.
+ * Temporary variables with the `name' are cleared if any. */
 variable_T *new_local(const wchar_t *name)
 {
     environ_T *env = current_env;
@@ -529,9 +531,9 @@ variable_T *new_local(const wchar_t *name)
     return var;
 }
 
-/* Creates a new scalar variable with the value unset.
- * If the variable already exists, it is returned without change.
- * So the return value may be an array variable.
+/* Creates a new scalar variable that has no value.
+ * If the variable already exists, it is returned without change. So the return
+ * value may be an array variable or it may be a scalar variable with a value.
  * The current environment must be a temporary environment.
  * If there is a readonly non-temporary variable with the specified name, it is
  * returned (no new temporary variable is created). */
@@ -556,7 +558,7 @@ variable_T *new_temporary(const wchar_t *name)
     return var;
 }
 
-/* Creates a new variable if there is none.
+/* Creates a new variable with the specified name if there is none.
  * If the variable already exists, it is cleared and returned.
  *
  * On error, NULL is returned. Otherwise a (new) variable is returned.
@@ -585,9 +587,10 @@ variable_T *new_variable(const wchar_t *name, scope_T scope)
 
 /* Creates a scalar variable with the specified name and value.
  * `value' must be a `free'able string or NULL. The caller must not modify or
- * `free' `value' hereafter, whether or not this function is successful.
- * If `export' is true, the variable is exported. `export' being false doesn't
- * mean the variable is no longer exported.
+ * free `value' hereafter, whether or not this function is successful.
+ * If `export' is true, the variable is exported (i.e., the VF_EXPORT flag is
+ * set to the variable). But this function does not reset an existing VF_EXPORT
+ * flag if `export' is false.
  * Returns true iff successful. */
 bool set_variable(
 	const wchar_t *name, wchar_t *value, scope_T scope, bool export)
@@ -614,7 +617,7 @@ bool set_variable(
  * `values' is a NULL-terminated array of pointers to wide strings. It is used
  * as the contents of the array variable hereafter, so you must not modify or
  * free the array or its elements whether or not this function succeeds.
- * `values' and its elements must be freeable.
+ * `values' and its elements must be `free'able.
  * `count' is the number of elements in `values'. If `count' is zero, the
  * number is counted in this function.
  * Returns true iff successful. */
@@ -637,10 +640,10 @@ bool set_array(const wchar_t *name, size_t count, void **values, scope_T scope)
     return true;
 }
 
-/* Changes the value of an element of an existing array.
+/* Changes the value of the specified array element.
  * `name' must be the name of an existing array.
  * `index' is the index of the element (counted from zero).
- * `value' is the new value, which must be a freeable string. Since `value' is
+ * `value' is the new value, which must be a `free'able string. Since `value' is
  * used as the contents of the array element, you must not modify or free
  * `value' after this function returned (whether successful or not).
  * Returns true iff successful. An error message is printed on failure. */
@@ -671,21 +674,22 @@ fail:
  * The existent parameters are cleared.
  * `values' is an NULL-terminated array of pointers to wide strings.
  * `values[0]' will be the new $1, `values[1]' $2, and so on.
- * When a new environment is created, this function must be called at least once
- * except for a temporary environment. */
+ * When a new non-temporary environment is created, this function must be called
+ * at least once before the environment is used by the user. */
 void set_positional_parameters(void *const *values)
 {
     set_array(L VAR_positional, 0, duparray(values, copyaswcs), SCOPE_LOCAL);
 }
 
-/* Performs assignments.
- * If `shopt_xtrace' is true, traces are printed to stderr.
+/* Performs the specified assignments.
+ * If `shopt_xtrace' is true, traces are printed to the standard error.
  * If `temp' is true, the variables are assigned in the current environment,
- * whose `is_temporary' must be true. Otherwise they are assigned globally.
- * If `export' is true, the variables are exported. `export' being false doesn't
- * mean the variables are no longer exported.
- * Returns true iff successful. An error on an assignment may leave some other
- * variables assigned. */
+ * which must be a temporary environment. Otherwise, they are assigned globally.
+ * If `export' is true, the variables are exported (i.e., the VF_EXPORT flag is
+ * set to the variables). But this function does not reset an existing VF_EXPORT
+ * flag if `export' is false.
+ * Returns true iff successful. On error, already-assigned variables are not
+ * restored to the previous values. */
 bool do_assignments(const assign_T *assign, bool temp, bool export)
 {
     if (temp)
@@ -723,14 +727,14 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
     return true;
 }
 
-/* Pushes a trace of an variable assignment to the xtrace buffer. */
+/* Pushes a trace of the specified variable assignment to the xtrace buffer. */
 void xtrace_variable(const wchar_t *name, const wchar_t *value)
 {
     xwcsbuf_T *buf = get_xtrace_buffer();
     wb_wprintf(buf, L" %ls=%ls", name, value);
 }
 
-/* Pushes a trace of an array assignment to the xtrace buffer. */
+/* Pushes a trace of the specified array assignment to the xtrace buffer. */
 void xtrace_array(const wchar_t *name, void *const *values)
 {
     xwcsbuf_T *buf = get_xtrace_buffer();
@@ -769,18 +773,19 @@ const wchar_t *getvar(const wchar_t *name)
 
 /* Returns the value(s) of the specified variable/array as an array.
  * The return value's type is `struct get_variable'. It has three members:
- * `type', `count' and `values'. `type' is the type of variable/array:
+ * `type', `count' and `values'.
+ * `type' is the type of the result:
  *    GV_NOTFOUND:     no such variable/array
  *    GV_SCALAR:       a normal scalar variable
  *    GV_ARRAY:        an array of zero or more values
  *    GV_ARRAY_CONCAT: an array whose values should be concatenated by caller
- * `values' is the array containing the values of the variable/array.
+ * `values' is the array containing the value(s) of the variable/array.
  * A scalar value (GV_SCALAR) is returned as a newly-malloced array containing
  * exactly one newly-malloced wide string. An array (GV_ARRAY*) is returned as
  * a NULL-terminated array of pointers to wide strings, which must not be
- * changed or freed.  If no such variable is found (GV_NOTFOUND), the result
- * array will be NULL.
- * `count' is the number of elements in the `values'. */
+ * changed or freed.  If no such variable is found (GV_NOTFOUND), `values' is
+ * NULL.
+ * `count' is the number of elements in `values'. */
 struct get_variable get_variable(const wchar_t *name)
 {
     struct get_variable result = {
@@ -788,9 +793,9 @@ struct get_variable get_variable(const wchar_t *name)
     wchar_t *value;
     variable_T *var;
 
-    if (!name[0])
+    if (name[0] == L'\0')
 	return result;
-    if (!name[1]) {
+    if (name[1] == L'\0') {
 	/* `name' is one-character long: check if it's a special parameter */
 	switch (name[0]) {
 	    case L'*':
@@ -871,10 +876,11 @@ return_single:  /* return a scalar as a one-element array */
     return result;
 }
 
-/* Gathers all variables in the specified environment.
+/* Gathers all variables in the specified environment and adds them to the
+ * specified hashtable.
  * If `global' is true, variables in the all ancestor environments are also
  * included (except the ones hidden by local variables).
- * keys and values added to the hashtable must not be modified or freed. */
+ * Keys and values added to the hashtable must not be modified or freed. */
 void get_all_variables_rec(hashtable_T *table, environ_T *env, bool global)
 {
     if (env->parent && (global || env->is_temporary))
@@ -889,8 +895,8 @@ void get_all_variables_rec(hashtable_T *table, environ_T *env, bool global)
 
 /* Creates a new variable environment.
  * `temp' specifies whether the new environment is for temporary assignments.
- * The current environment will be the parent of the new environment.
- * Don't forget to call `set_positional_parameters'. */
+ * The current environment will be the parent of the new environment. */
+/* Don't forget to call `set_positional_parameters'! */
 void open_new_environment(bool temp)
 {
     environ_T *newenv = xmalloc(sizeof *newenv);
@@ -903,7 +909,7 @@ void open_new_environment(bool temp)
     current_env = newenv;
 }
 
-/* Closes the current variable environment.
+/* Destroys the current variable environment.
  * The parent of the current becomes the new current. */
 void close_current_environment(void)
 {
@@ -976,7 +982,7 @@ unsigned next_random(void)
 
 /********** Setter **********/
 
-/* general callback that is called after an assignment.
+/* General callback function that is called after an assignment.
  * `var' is NULL when the variable is unset. */
 void variable_set(const wchar_t *name, variable_T *var)
 {
@@ -1103,7 +1109,7 @@ void reset_path(path_T name, variable_T *var)
  * The caller must not make any change to the returned array. */
 char *const *get_path_array(path_T name)
 {
-    for (environ_T *env = current_env; env != NULL; env = env->parent)
+    for (environ_T *env = current_env; env; env = env->parent)
 	if (env->paths[name])
 	    return env->paths[name];
     return NULL;
@@ -1112,12 +1118,13 @@ char *const *get_path_array(path_T name)
 
 /********** Shell Functions **********/
 
-/* function */
+/* type of functions */
 struct function_T {
     vartype_T  f_type;  /* only VF_READONLY and VF_NODELETE are valid */
     command_T *f_body;  /* body of function */
 };
 
+/* Frees the specified function. */
 void funcfree(function_T *f)
 {
     if (f) {
@@ -1126,13 +1133,14 @@ void funcfree(function_T *f)
     }
 }
 
+/* Frees the specified key-value pair of a function name and a function. */
 void funckvfree(kvpair_T kv)
 {
     free(kv.key);
     funcfree(kv.value);
 }
 
-/* Defines a function.
+/* Defines function `name' as command `body'.
  * It is an error to re-define a readonly function.
  * Returns true iff successful. */
 bool define_function(const wchar_t *name, command_T *body)
@@ -1278,7 +1286,7 @@ size_t get_dirstack_size(void)
     return var->v_valc;
 }
 
-/* Parses a string as the index of a directory stack entry.
+/* Parses the specified string as the index of a directory stack entry.
  * The index string must start with the plus or minus sign.
  * If the corresponding entry is found, the entry is assigned to `*entryp' and
  * the index value is assigned to `*indexp'. If the index is out of range, it is
@@ -1286,8 +1294,8 @@ size_t get_dirstack_size(void)
  * `*entryp' and SIZE_MAX is assigned to `*indexp'.
  * If the index denotes $PWD, the number of the entries in $DIRSTACK is assigned
  * to `*indexp'.
- * Returns true if successful (`*entryp' and `*indexp' are assigned to).
- * Returns false on error, in which case an error message is printed if
+ * Returns true if successful (`*entryp' and `*indexp' are assigned).
+ * Returns false on error, in which case an error message is printed iff
  * `printerror' is true. */
 bool parse_dirstack_index(const wchar_t *indexstr,
 	size_t *indexp, const wchar_t **entryp, bool printerror)
@@ -1358,8 +1366,10 @@ out_of_range:
     return false;
 }
 
-/* Pushs `value' to the directory stack ($DIRSTACK), which is created if none.
- * `value' is freed in this function. Returns true iff successful. */
+/* Adds the specified value to the directory stack ($DIRSTACK).
+ * A new stack is created if there is none.
+ * `value' is freed in this function.
+ * Returns true iff successful. */
 bool push_dirstack(wchar_t *value)
 {
     variable_T *var = get_dirstack();
@@ -1392,8 +1402,8 @@ wchar_t *pop_dirstack(void)
 }
 
 /* Removes the specified entry of the directory stack.
- * Returns true iff the entry is successfully removed or no such entry is found.
- */
+ * Returns true iff the entry was successfully removed or no such entry was
+ * found. */
 bool remove_dirstack_entry(size_t index)
 {
     variable_T *var = search_variable(L VAR_DIRSTACK);
@@ -1565,6 +1575,7 @@ int typeset_builtin(int argc, void **argv)
 	    if (wequal)
 		*wequal = L'\0';
 	    if (funcs) {
+		/* treat function */
 		if (wequal) {
 		    xerror(0, Ngt("cannot assign function"));
 		    ok = false;
@@ -1624,7 +1635,7 @@ int typeset_builtin(int argc, void **argv)
     return ok ? Exit_SUCCESS : Exit_FAILURE;
 }
 
-/* Prints the specified variable to stdout.
+/* Prints the specified variable to the standard output.
  * This function does not print special variables whose name begins with an '='.
  * If `readonly'/`export' is true, the variable is printed only if it is
  * readonly/exported. The `name' is quoted if `is_name(name)' is not true.
@@ -1744,6 +1755,8 @@ print_array:
     }
 }
 
+/* Prints the specified function to the standard output.
+ * If `readonly' is true, the function is printed only if it is readonly. */
 bool print_function(
 	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
@@ -1817,7 +1830,10 @@ const char typeset_help[] = Ngt(
 
 #if YASH_ENABLE_ARRAY
 
-/* The "array" builtin */
+/* The "array" builtin, which accepts the following options:
+ *  -d: delete an array element
+ *  -i: insert an array element
+ *  -s: set an array element value */
 int array_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -1928,9 +1944,9 @@ int array_builtin(int argc, void **argv)
 #endif
 
 /* Removes elements from `array'.
- * `*indexwcss' is an NULL-terminated array of pointers to wide strings,
+ * `indexwcss' is an NULL-terminated array of pointers to wide strings,
  * which are parsed as indices of elements to be removed.
- * `count' is the number of elements in `*indexwcss'.
+ * `count' is the number of elements in `indexwcss'.
  * Returns true iff successful. */
 bool array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
@@ -1949,7 +1965,7 @@ bool array_remove_elements(
 	}
     }
 
-    /* sort all the indices and remove elements in the descending order so that
+    /* sort all the indices and remove elements in descending order so that
      * an earlier removal does not affect the indices for later removals. */
     if (count > 1)
 	qsort(indices, count, sizeof *indices, compare_long);
@@ -1986,12 +2002,12 @@ int compare_long(const void *lp1, const void *lp2)
     return l1 == l2 ? 0 : l1 < l2 ? -1 : 1;
 }
 
-/* Inserts elements into `array'.
- * `*values' is an NULL-terminated array of pointers to wide strings.
- * The first string in `*values' is parsed as the integer index that is
- * specifying where to insert elements. The other strings are inserted to the
- * array. `count' is the number of strings in `*values' including the first
- * index string.
+/* Inserts the specified elements into the specified array.
+ * `values' is an NULL-terminated array of pointers to wide strings.
+ * The first string in `values' is parsed as the integer index that specifies
+ * where to insert the elements. The other strings are inserted to the array.
+ * `count' is the number of strings in `values' including the first index
+ * string.
  * Returns true iff successful. */
 bool array_insert_elements(
 	variable_T *array, size_t count, void *const *values)
@@ -2029,7 +2045,7 @@ bool array_insert_elements(
     return true;
 }
 
-/* Sets the value of a single element of `array'.
+/* Sets the value of the specified element of the array.
  * `name' is the name of the array variable.
  * `indexword' is parsed as the integer index of the element. */
 bool array_set_element(const wchar_t *name, variable_T *array,
@@ -2078,14 +2094,14 @@ const char array_help[] = Ngt(
 "\tarray -i name index [value...]\n"
 "\tarray -s name index value\n"
 "The first form (without arguments) prints all existing arrays.\n"
-"The second form sets values of an array. This is equivalent to an assignment\n"
-"by \"name=(values)\".\n"
-"The third form (with the -d (--delete) option) removes elements specified by\n"
-"<index>es from the array.\n"
+"The second form sets the values of the array. This is equivalent to an\n"
+"assignment of the form \"name=(values)\".\n"
+"The third form (with the -d (--delete) option) removes the elements\n"
+"specified by <index>es from the array.\n"
 "The fourth form (with the -i (--insert) option) inserts elements after the\n"
-"element specified by <index> in the array. The zero index means the elements\n"
-"are inserted at the head of the array.\n"
-"The fifth form (with the -s (--set) option) sets the value of a single\n"
+"element specified by <index> in the array. An index of zero makes the\n"
+"elements inserted at the head of the array.\n"
+"The fifth form (with the -s (--set) option) sets the value of the specified\n"
 "element of the array.\n"
 );
 #endif /* YASH_ENABLE_HELP */
@@ -2093,8 +2109,8 @@ const char array_help[] = Ngt(
 #endif /* YASH_ENABLE_ARRAY */
 
 /* The "unset" builtin, which accepts the following options:
- * -f: deletes functions
- * -v: deletes variables (default) */
+ *  -f: deletes functions
+ *  -v: deletes variables (default) */
 int unset_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -2133,7 +2149,8 @@ int unset_builtin(int argc, void **argv)
 	    err = true;
 	    continue;
 	}
-	err |= funcs ? unset_function(name) : unset_variable(name);
+	if (funcs ? unset_function(name) : unset_variable(name))
+	    err = true;
     }
 
     return err ? Exit_FAILURE : Exit_SUCCESS;
@@ -2257,7 +2274,7 @@ const char shift_help[] = Ngt(
 "shift - remove some positional parameters\n"
 "\tshift [n]\n"
 "Removes the first <n> positional parameters.\n"
-"If <n> is not specified, the first one positional parameter is removed.\n"
+"If <n> is not specified, it defaults to 1.\n"
 "<n> must be a non-negative integer that is not greater than $#.\n"
 );
 #endif
@@ -2458,46 +2475,47 @@ const char getopts_help[] = Ngt(
 "getopts - parse command options\n"
 "\tgetopts options var [arg...]\n"
 "Parses <options> that appear in <arg>s. Each time this command is invoked,\n"
-"one option is parsed and the option character is assigned to a variable\n"
-"named <var>. $OPTIND is updated to indicate the next argument to parse.\n"
-"The <options> argument is a list of option characters to parse. An option\n"
-"that takes an argument is specified by a colon following the character.\n"
-"For example, if you want -a, -b and -c options to be parsed and the -b\n"
-"option takes an argument, <options> is \"ab:c\".\n"
-"The <var> argument is the name of a variable to which the option character\n"
-"is assigned. If the parsed option appears in <options>, the option character\n"
-"is assigned to the variable. Otherwise \"?\" is assigned.\n"
-"The <arg>s arguments are arguments of a command which may contain options to\n"
-"be parsed. If no <arg>s are given, the current positional parameters are\n"
-"parsed.\n"
+"one option is parsed and the option character is assigned to variable <var>.\n"
+"$OPTIND is updated to indicate the next argument to parse.\n"
+"String <options> is a list of option characters that can be accepted by the\n"
+"parser. In <options>, an option that takes an argument can be specified by a\n"
+"colon following the character.\n"
+"For example, if you want the -a, -b and -c options to be parsed and the -b\n"
+"option takes an argument, then <options> should be \"ab:c\".\n"
+"Argument <var> is the name of a variable to which the parsed option\n"
+"character is assigned: When an option specified in <options> is parsed, the\n"
+"option character is assigned to variable <var>. Otherwise, \"?\" is\n"
+"assigned to <var>.\n"
+"Arguments <arg>s are the strings to parse. If no <arg>s are given, the\n"
+"current positional parameters are parsed.\n"
 "\n"
 "When an option that takes an argument is parsed, the option's argument is\n"
 "assigned to $OPTARG.\n"
 "The behavior depends on the first character of <options> when an option not\n"
-"contained in <options> is found or when an option's argument is missing:\n"
+"specified in <options> is found or when an option's argument is missing:\n"
 "If <options> starts with a colon, the option character is assigned to\n"
-"$OPTARG and the variable <var> is set to \"?\" (when the option is not in\n"
-"<options>) or \":\" (when an option's argument is missing).\n"
-"Otherwise, the variable <var> is set to \"?\", $OPTARG is unset and an error\n"
+"$OPTARG and variable <var> is set to \"?\" (when the option is not in\n"
+"<options>) or \":\" (when the option's argument is missing).\n"
+"Otherwise, variable <var> is set to \"?\", $OPTARG is unset and an error\n"
 "message is printed.\n"
 "\n"
-"If an option is parsed, whether it is a valid option or not, the exit status\n"
-"is zero. If there are no more options to parse, the exit status is non-zero\n"
-"and $OPTIND is updated so that the $OPTIND'th argument of <arg>s is the\n"
-"first operand (non-option argument). If there are no operands, $OPTIND will\n"
-"be the number of <arg>s plus one.\n"
+"If an option is found, whether or not it is specified in <options>, the exit\n"
+"status is zero. If there is no more option to parse, the exit status is\n"
+"non-zero and $OPTIND is updated so that the $OPTIND'th argument of <arg>s is\n"
+"the first operand (non-option argument). If there are no operands, $OPTIND\n"
+"will be the number of <arg>s plus one.\n"
 "When this command is invoked for the first time, $OPTIND must be \"1\",\n"
 "which is the default value of the $OPTIND variable. Until all the options\n"
-"are parsed, you must not change the value of $OPTIND and <options>, <var>\n"
-"and <arg>s must be all the same for all invocations of this command.\n"
-"Reset $OPTIND to \"1\" and then this command can be used with another\n"
+"are parsed, you must not change the value of $OPTIND and the getopts command\n"
+"must be invoked with the same arguments.\n"
+"Reset $OPTIND to \"1\" and then this command can be used with another set of\n"
 "<options>, <var> and <arg>s.\n"
 );
 #endif /* YASH_ENABLE_HELP */
 
 /* The "read" builtin, which accepts the following options:
- * -A: assign values to array
- * -r: don't treat backslashes specially
+ *  -A: assign values to array
+ *  -r: don't treat backslashes specially
  */
 int read_builtin(int argc, void **argv)
 {
@@ -2590,8 +2608,9 @@ print_usage:
     return Exit_ERROR;
 }
 
-/* Reads input from stdin and remove line continuations if `noescape' is false.
- * The trailing newline and all the other backslashes are not removed. */
+/* Reads input from the standard input and remove line continuations
+ * if `noescape' is false.
+ * The trailing newline and all other backslashes are not removed. */
 bool read_input(xwcsbuf_T *buf, bool noescape)
 {
     if (noescape)
@@ -2657,16 +2676,15 @@ const char read_help[] = Ngt(
 "read - read a line from standard input\n"
 "\tread [-Ar] var...\n"
 "Reads a line from the standard input and splits it into words using $IFS as\n"
-"separators. <var>s are considered to be variable names and the words are\n"
-"assigned to the variables. The first word is assigned to the first <var>,\n"
-"the second word to the second <var>, and so on. If <var>s are fewer than the\n"
-"words, the leftover words are not split and assigned to the last <var>. If\n"
-"the words are fewer than <var>s, the leftover <var>s are set to empty\n"
-"strings.\n"
+"separators. The words are assigned to the variables whose names are <var>s:\n"
+"the first word is assigned to the first <var>, the second word to the second\n"
+"<var>, and so on. If <var>s are fewer than the words, the leftover words are\n"
+"not split and assigned to the last <var> at once. If the words are fewer\n"
+"than <var>s, the leftover <var>s are set to an empty string.\n"
 "If the -r (--raw-mode) option is not specified, backslashes in the input are\n"
-"considered to be escape characters.\n"
+"considered to be an escape character.\n"
 "If the -A (--array) option is specified, the leftover words are assigned to\n"
-"the last <var> as array elements, rather than as a single variable.\n"
+"the array whose name is the last <var>.\n"
 "The -A option is not available in the POSIXly-correct mode.\n"
 );
 #endif
@@ -2674,8 +2692,8 @@ const char read_help[] = Ngt(
 #if YASH_ENABLE_DIRSTACK
 
 /* The "dirs" builtin, which accepts the following options:
- * -c: clear the stack
- * -v: verbose */
+ *  -c: clear the stack
+ *  -v: verbose */
 int dirs_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
