@@ -34,8 +34,8 @@ struct xfnmatch_T {
 };
 /* The flags are logical OR of the followings:
  *  XFNM_SHORTEST:  do shortest match
- *  XFNM_HEADONLY:  only match at the beginning of string
- *  XFNM_TAILONLY:  only match at the end of string
+ *  XFNM_HEADONLY:  only match at the beginning of the string
+ *  XFNM_TAILONLY:  only match at the end of the string
  *  XFNM_PERIOD:    don't match with a string that starts with a period
  *  XFNM_CASEFOLD:  ignore case while matching
  * When XFNM_SHORTEST is specified, either (but not both) of XFNM_HEADONLY and
@@ -72,7 +72,7 @@ static xfnmresult_T wmatch_longest(
     __attribute__((nonnull));
 
 
-/* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
+/* Checks if there is L'*' or L'?' or a bracket expression in the pattern.
  * If the result is false, the pattern is not a filename expansion pattern. */
 /* This function treats L'/' as an ordinary character. */
 bool is_matching_pattern(const wchar_t *pat)
@@ -100,9 +100,9 @@ bool is_matching_pattern(const wchar_t *pat)
     }
 }
 
-/* Skips a bracket expression starting with L'[' and returns a pointer to the
- * closing L']'. If no corresponding L']' is found, returns `pat'. Backslash
- * escaping is recognized in the bracket expression. */
+/* Skips the bracket expression that starts with L'[' pointed to by `pat' and
+ * returns a pointer to the closing L']'. If no corresponding L']' is found,
+ * returns `pat'. Backslash escapes are recognized in the bracket expression. */
 wchar_t *skip_bracket(const wchar_t *pat)
 {
     const wchar_t *savepat = pat;
@@ -143,7 +143,7 @@ fail:
     return (wchar_t *) savepat;
 }
 
-/* Checks if there is L'*' or L'?' or a bracket expression in a pattern.
+/* Checks if there is L'*' or L'?' or a bracket expression in the pattern.
  * If the result is false, the pattern is not a filename expansion pattern.
  * If the pattern contains slashes, components separated by the slashes are each
  * checked by the `is_matching_pattern' function. */
@@ -162,7 +162,7 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
     return is_matching_pattern(pat);
 }
 
-/* Compiles a pattern.
+/* Compiles the specified pattern.
  * The flags are logical OR of the followings:
  *  XFNM_SHORTEST:  do shortest match
  *  XFNM_HEADONLY:  only match at the beginning of string
@@ -207,13 +207,13 @@ xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
     return xfnm;
 }
 
-/* Converts a pathname matching pattern into a regex pattern.
- * The result is appended to `buf', which must be in the initial shift state
- * when the function is called and is terminated in the initial shift state when
- * the function returns. */
+/* Converts the specified pathname matching pattern into a regex pattern.
+ * The result is appended to `buf', which must be in the initial shift state.
+ * When this function returns, the buffer is reset to the initial shift state.*/
 /* A trailing backslash, escaping the terminating null character, is ignored.
- * This is useful for pathname expansion as the pattern "f*o\/b?r" for example
- * is separated into "f*o\" and "b?r" and each matched for filenames. */
+ * This is useful for pathname expansion since, for example, the pattern
+ * "f*o\/b?r" is separated into "f*o\" and "b?r", one of which has a trailing
+ * backslash that should be ignored. */
 void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
 {
     mbstate_t state;
@@ -252,10 +252,11 @@ void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
     }
 }
 
-/* Converts a bracket pattern of pathname matching pattern into that of regex.
- * Backslash escaping is recognized in the original pattern.
- * `*pat' must be the opening bracket '['.
- * If a bracket pattern is successfully converted, a pointer to the closing
+/* Converts the specified bracket pattern of pathname matching pattern into that
+ * of regex.
+ * Backslash escapes are recognized in the original pattern.
+ * Pointer `pat' must point to the opening bracket '['.
+ * If the bracket pattern was successfully converted, a pointer to the closing
  * bracket ']' is returned. Otherwise, an escaped bracket character '\[' is
  * appended to `buf' and `pat' is returned. */
 const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
@@ -315,10 +316,9 @@ fail:
     return savepat;
 }
 
-/* Converts a collating symbol, equivalence class or character class pattern.
- * `*pat' must be the opening bracket '[' that is supposed to be the beginning
- * of one of those patterns.
- * If a pattern is successfully converted, a pointer to the corresponding
+/* Converts the collating symbol, equivalence class, or character class pattern
+ * that starts with the opening bracket '[' pointed to by `pat'.
+ * If the pattern is successfully converted, a pointer to the corresponding
  * closing bracket ']' is returned. If `*pat' is not followed by any of '.', ':'
  * and '=', then a single bracket character is appended to `buf' and `pat' is
  * returned. If no corresponding closing bracket is found, NULL is returned. */
@@ -363,11 +363,11 @@ void append_as_collating_symbol(wchar_t c,
     sb_wccat(buf, L']', state);
 }
 
-/* Performs matching on the given string `s' using the pre-compiled pattern
- * `xfnm'. Returns 0 on successful match. On mismatch, an error number that is
+/* Performs matching on string `s' using pre-compiled pattern `xfnm'.
+ * Returns zero on successful match. On mismatch, an error number that was
  * returned by `regexec' is returned.
  * This function does not support the XFNM_SHORTEST flag. The given pattern must
- * not have been compiled with the XFNM_SHORTEST flag. */
+ * have been compiled without the XFNM_SHORTEST flag. */
 int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
 {
     assert(!(xfnm->flags & XFNM_SHORTEST));
@@ -381,13 +381,12 @@ int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
     return regexec(&xfnm->regex, s, 0, NULL, 0);
 }
 
-/* Performs matching on the given string `s' using the pre-compiled pattern
- * `xfnm'. On match, an xfnmresult_T structure is returned which shows the
- * character offsets of the matched range in `s'. On mismatch, the returned
- * structure's members are all ((size_t) -1).
- * If the pattern has been compiled with both XFNM_HEADONLY and XFNM_TAILONLY
- * flags specified, only the `start' member of the returned structure is
- * significant and the `end' member's value is unspecified. */
+/* Performs matching on string `s' using pre-compiled pattern `xfnm'.
+ * On match, returns an xfnmresult_T structure which shows the character offsets
+ * of the matched range in `s'. On mismatch, returns { -1, -1 }.
+ * If the pattern was compiled with both XFNM_HEADONLY and XFNM_TAILONLY flags
+ * specified, only the `start' member of the returned structure is meaningful
+ * and the `end' member's value is unspecified. */
 xfnmresult_T xfnm_wmatch(
 	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
 {
@@ -511,10 +510,10 @@ xfnmresult_T wmatch_longest(
     return result;
 }
 
-/* Substitutes part of the given string `s' that matches the pre-compiled
- * pattern `xfnm' with `repl'. If `substall' is true, all substrings in `s' that
- * match are substituted. Otherwise, only the first match is substituted. The
- * resulting string is returned as a newly-malloced string. */
+/* Substitutes part of string `s' that matches pre-compiled pattern `xfnm'
+ * with string `repl'. If `substall' is true, all matching substrings in `s' are
+ * substituted. Otherwise, only the first match is substituted. The resulting
+ * string is returned as a newly-malloced string. */
 wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
 	const wchar_t *restrict repl, bool substall)
 {
@@ -542,7 +541,7 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
     return wb_towcs(wb_cat(&buf, s + i));
 }
 
-/* Frees a compiled pattern. */
+/* Frees the specified compiled pattern. */
 void xfnm_free(xfnmatch_T *xfnm)
 {
     if (xfnm != NULL) {
