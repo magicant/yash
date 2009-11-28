@@ -116,9 +116,6 @@ static int *cursor_positions;
 /* The line number of the last edit line (or the search buffer). */
 static int last_edit_line;
 
-/* The position just after the last character of the search buffer. */
-static int search_end_line, search_end_column;
-
 
 #if !HAVE_WCWIDTH
 # undef wcwidth
@@ -313,6 +310,9 @@ void tputwc(wchar_t c)
 	if (le_ti_xenl ? new_column <= le_columns : new_column < le_columns) {
 	    current_column = new_column;
 	} else {
+	    /* go to the next line */
+	    if (current_column < le_columns)
+		le_print_el();
 	    if (!le_ti_am)
 		le_print_nel();
 	    current_line++, current_column = width;
@@ -411,6 +411,7 @@ void print_prompt(void)
     }
 done:
     fillip_cursor();
+    CHECK_CURRENT_LINE_MAX;
     editbase_line = current_line, editbase_column = current_column;
 }
 
@@ -552,7 +553,9 @@ void print_search(void)
 
     if (le_search_result != Histlist)
 	twprintf(L"%s", le_search_result->value);
-    le_print_el(), le_print_nel(), current_line++, current_column = 0;
+    fillip_cursor();
+    if (current_column > 0)
+	le_print_el(), le_print_nel(), current_line++, current_column = 0;
     CHECK_CURRENT_LINE_MAX;
     clear_to_end_of_screen();
 
@@ -577,7 +580,6 @@ void print_search(void)
     tputws(le_search_buffer.contents, SIZE_MAX);
     fillip_cursor();
     CHECK_CURRENT_LINE_MAX;
-    search_end_line = current_line, search_end_column = current_column;
     last_edit_line = current_line;
 }
 
