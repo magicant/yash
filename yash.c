@@ -61,19 +61,21 @@ static void print_version(void);
 static bool input_is_interactive_terminal(const parseinfo_T *pinfo)
     __attribute__((nonnull));
 
-/* the process ID of the shell */
+/* The process ID of the shell.
+ * This value does not change in a subshell. */
 pid_t shell_pid;
-/* the process group ID of the shell */
+/* The process group ID of the shell.
+ * In a job-controlled subshell, this value is set to the subshell's pgid. */
 pid_t shell_pgid;
-/* In a job-controlled subshell, `shell_pgid' is set to the subshell's pgid.
- * `shell_pid' is always the process ID of the main shell process. */
 
-/* an equivalent to the -f flag for "exit" builtin */
+/* If this flag is true when the "exit" builtin is invoked, the -f option is
+ * assumed to be specified. */
 static bool forceexit;
-/* the next value of `forceexit' */
+/* The next value of `forceexit'. */
 bool nextforceexit;
 
 
+/* The "main" function. The execution of the shell starts here. */
 int main(int argc, char **argv)
 {
     void *wargv[argc + 1];
@@ -107,6 +109,7 @@ int main(int argc, char **argv)
     }
     wargv[argc] = NULL;
 
+    /* parse argv[0] */
     yash_program_invocation_name = wargv[0] ? wargv[0] : L"";
     yash_program_invocation_short_name
 	= wcsrchr(yash_program_invocation_name, L'/');
@@ -237,7 +240,7 @@ int main(int argc, char **argv)
     }
     if (shopt_read_arg) {
 	command = wargv[xoptind++];
-	if (!command) {
+	if (command == NULL) {
 	    xerror(0, Ngt("-c option specified but no command given"));
 	    exit(Exit_ERROR);
 	}
@@ -261,7 +264,7 @@ int main(int argc, char **argv)
 	    input = fopen(inputname, "r");
 	    input = reopen_with_shellfd(input, "r", true);
 	    command_name = wargv[xoptind++];
-	    if (!input) {
+	    if (input == NULL) {
 		int errno_ = errno;
 		xerror(errno_, Ngt("cannot open `%s'"), inputname);
 		exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
@@ -286,12 +289,13 @@ int main(int argc, char **argv)
     }
     set_signals();
     set_positional_parameters(wargv + xoptind);
-    if (getuid() == geteuid() && getgid() == getegid()) {
-	if (!noprofile)
+
+    if (is_login_shell && !posixly_correct && !noprofile)
+	if (getuid() == geteuid() && getgid() == getegid())
 	    execute_profile();
-	if (!norcfile)
+    if (is_interactive && !norcfile)
+	if (getuid() == geteuid() && getgid() == getegid())
 	    execute_rcfile(rcfile);
-    }
 
     if (shopt_read_arg) {
 	exec_wcs(command, inputname, true);
@@ -301,12 +305,9 @@ int main(int argc, char **argv)
     assert(false);
 }
 
-/* Executes "$HOME/.yash_profile" if this is a login shell. */
+/* Executes "$HOME/.yash_profile". */
 static void execute_profile(void)
 {
-    if (!is_login_shell || posixly_correct)
-	return;
-
     wchar_t *wpath = parse_and_expand_string(
 	    L"$HOME/.yash_profile", NULL, false);
     if (wpath) {
@@ -322,7 +323,7 @@ static void execute_profile(void)
     }
 }
 
-/* Executes the initialization file if this is an interactive shell.
+/* Executes the initialization file.
  * `rcfile' is the filename to source.
  * If `rcfile' is NULL, it defaults to "$HOME/.yashrc" or "$ENV". */
 static void execute_rcfile(const wchar_t *rcfile)
@@ -330,11 +331,10 @@ static void execute_rcfile(const wchar_t *rcfile)
     wchar_t *wpath;
     char *path;
     FILE *f;
-    if (!is_interactive)
-	return;
+
     if (posixly_correct) {
 	const wchar_t *env = getvar(L VAR_ENV);
-	if (!env)
+	if (env == NULL)
 	    return;
 	wpath = parse_and_expand_string(env, "$ENV", false);
 	if (!wpath)
@@ -350,10 +350,10 @@ static void execute_rcfile(const wchar_t *rcfile)
 	    path = realloc_wcstombs(wpath);
 	}
     }
-    if (!path)
+    if (path == NULL)
 	return;
     f = reopen_with_shellfd(fopen(path, "r"), "r", true);
-    if (f) {
+    if (f != NULL) {
 	exec_input(f, path, false, true, false);
 	fclose(f);
     }
@@ -362,9 +362,9 @@ static void execute_rcfile(const wchar_t *rcfile)
 
 /* Exits the shell with the specified exit status.
  * When this function is first called and `status' is negative, the value of
- * `laststatus' is used. When this function is called again and `status' is
- * negative, the value for the first called is used.
- * This function executes EXIT trap.
+ * `laststatus' is used for `status'. When this function is called again and
+ * `status' is negative, the value for the first call is used.
+ * This function executes the EXIT trap.
  * This function never returns.
  * This function is reentrant and exits immediately if reentered. */
 void exit_shell_with_status(int status)
@@ -387,7 +387,7 @@ void exit_shell_with_status(int status)
     exit(exitstatus);
 }
 
-/* Prints the help message to stdout */
+/* Prints the help message to the standard output. */
 void print_help(void)
 {
     if (posixly_correct) {
@@ -410,7 +410,7 @@ void print_help(void)
     }
 }
 
-/* Prints the version info to stdout. */
+/* Prints the version info to the standard output. */
 void print_version(void)
 {
     printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
@@ -456,11 +456,11 @@ void print_version(void)
 }
 
 
-/********** Functions to execute commands **********/
+/********** Functions to Execute Commands **********/
 
-/* Parses a wide string and executes the commands.
+/* Parses the specified wide string and executes it as commands.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
- * If there are no commands in `code', `laststatus' is set to 0. */
+ * If there are no commands in `code', `laststatus' is set to zero. */
 void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 {
     struct input_wcs_info iinfo = {
@@ -482,11 +482,11 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     parse_and_exec(&pinfo, finally_exit);
 }
 
-/* Parses input from a file stream and executes the commands.
- * The stream `f' must be set to non-blocking if it is not stdin.
+/* Parses the input from the specified file stream and executes commands.
+ * Stream `f' must be set to non-blocking if it is not `stdin'.
  * `name' is printed in an error message on syntax error. `name' may be NULL.
  * If `intrinput' is true, the input stream is considered interactive.
- * If there are no commands in input, `laststatus' is set to 0. */
+ * If there are no commands in the input, `laststatus' is set to zero. */
 void exec_input(FILE *f, const char *name,
 	bool intrinput, bool enable_alias, bool finally_exit)
 {
@@ -517,8 +517,8 @@ void exec_input(FILE *f, const char *name,
 #endif
 }
 
-/* Parses input using the specified `parseinfo_T' and executes the commands.
- * If there are no commands in `code', `laststatus' is set to 0. */
+/* Parses the input using the specified `parseinfo_T' and executes commands.
+ * If no commands were executed, `laststatus' is set to zero. */
 void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
 #ifdef NDEBUG
@@ -532,8 +532,6 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
     bool executed = false;
 
     for (;;) {
-	and_or_T *commands;
-
 	if (pinfo->intrinput) {
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
@@ -548,8 +546,9 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		goto out;
 	}
 
+	and_or_T *commands;
 	switch (read_and_parse(pinfo, &commands)) {
-	    case 0:  // OK
+	    case PR_OK:
 		if (commands) {
 		    if (!shopt_noexec) {
 			exec_and_or_lists(commands,
@@ -560,7 +559,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    andorsfree(commands);
 		}
 		break;
-	    case EOF:
+	    case PR_EOF:
 		if (shopt_ignoreeof && input_is_interactive_terminal(pinfo)) {
 		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
 		    break;
@@ -573,7 +572,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		} else
 		    goto out;
 		break;
-	    case 1:  // syntax error
+	    case PR_SYNTAX_ERROR:
 		if (!is_interactive_now)
 		    exit_shell_with_status(Exit_SYNERROR);
 		if (!pinfo->intrinput) {
@@ -581,7 +580,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		    goto out;
 		}
 		break;
-	    case 2:  // read error
+	    case PR_INPUT_ERROR:
 		laststatus = Exit_ERROR;
 		goto out;
 	}
@@ -613,7 +612,7 @@ static const struct xoption force_help_options[] = {
     { NULL, 0, 0, },
 };
 
-/* "exit" builtin.
+/* The "exit" builtin.
  * If the shell is interactive, there are stopped jobs and the -f flag is not
  * specified, then prints a warning message and does not exit. */
 int exit_builtin(int argc, void **argv)
@@ -710,9 +709,7 @@ int suspend_builtin(int argc, void **argv)
 	return Exit_FAILURE;
     }
 
-    bool ok;
-
-    ok = send_sigstop_to_myself();
+    bool ok = send_sigstop_to_myself();
     if (!ok)
 	xerror(errno, Ngt("cannot send SIGSTOP signal"));
     if (doing_job_control_now)
@@ -725,8 +722,9 @@ const char suspend_help[] = Ngt(
 "suspend - suspend shell\n"
 "\tsuspend [-f]\n"
 "Suspends the shell until it receives SIGCONT.\n"
-"This command refuses to suspend the shell if it is interactive and is a\n"
-"session leader.\n"
+"If the shell is interactive and is a session leader, this command refuses to\n"
+"suspend it in order to avoid a possible deadlock. You can use the -f option\n"
+"to force the shell to suspend anyway.\n"
 );
 #endif
 

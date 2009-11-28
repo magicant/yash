@@ -52,7 +52,7 @@ extern const char exit_help[], suspend_help[];
 
 
 /* Exits the shell with the current exit status.
- * This function executes EXIT trap.
+ * This function executes the EXIT trap.
  * This function never returns.
  * This function is reentrant and exits immediately if reentered. */
 void exit_shell(void)

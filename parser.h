@@ -313,13 +313,17 @@ typedef struct parseinfo_T {
  * pointer to a `struct input_readline_info' object.
  * Note that input may not be from a terminal even if `intrinput' is true. */
 
+typedef enum parseresult_T {
+    PR_OK, PR_EOF, PR_SYNTAX_ERROR, PR_INPUT_ERROR,
+} parseresult_T;
+
 extern struct parsestate_T *save_parse_state(void)
     __attribute__((malloc,warn_unused_result));
 extern void restore_parse_state(struct parsestate_T *state)
     __attribute__((nonnull));
 
 
-extern int read_and_parse(
+extern parseresult_T read_and_parse(
 	parseinfo_T *restrict info, and_or_T **restrict result)
     __attribute__((nonnull));
 

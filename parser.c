@@ -525,13 +525,15 @@ void restore_parse_state(struct parsestate_T *state)
  * beforehand.
  * The resulting parse tree is assigned to `*result'. If there is no command in
  * the next line, NULL is assigned.
- * Returns 0 if successful,
- *         1 if a syntax error is encountered,
- *         2 if a read error is encountered, or
- *         EOF if EOF is input.
- * If 1 or 2 is returned, at least one error message is printed.
- * Note that `*result' is assigned if and only if the return value is 0. */
-int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
+ * Returns PR_OK           if successful,
+ *         PR_SYNTAX_ERROR if a syntax error was encountered,
+ *         PR_INPUT_ERROR  if an input error was encountered, or
+ *         PR_EOF          if EOF was input.
+ * If PR_SYNTAX_ERROR or PR_INPUT_ERROR is returned, at least one error message
+ * is printed.
+ * Note that `*result' is assigned if and only if the return value is PR_OK. */
+parseresult_T read_and_parse(
+	parseinfo_T *restrict info, and_or_T **restrict result)
 {
     cinfo = info;
     cerror = false;
@@ -547,14 +549,14 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 	    break;
 	case INPUT_EOF:
 	    wb_destroy(&cbuf);
-	    return EOF;
+	    return PR_EOF;
 	case INPUT_INTERRUPTED:
 	    wb_destroy(&cbuf);
 	    *result = NULL;
-	    return 0;
+	    return PR_OK;
 	case INPUT_ERROR:
 	    wb_destroy(&cbuf);
-	    return 2;
+	    return PR_INPUT_ERROR;
     }
     pl_init(&pending_heredocs);
 #if YASH_ENABLE_ALIAS
@@ -576,19 +578,19 @@ int read_and_parse(parseinfo_T *restrict info, and_or_T **restrict result)
 	case INPUT_EOF:
 	    if (cerror) {
 		andorsfree(r);
-		return 1;
+		return PR_SYNTAX_ERROR;
 	    } else {
 		assert(cindex == cbuf.length);
 		*result = r;
-		return 0;
+		return PR_OK;
 	    }
 	case INPUT_INTERRUPTED:
 	    andorsfree(r);
 	    *result = NULL;
-	    return 0;
+	    return PR_OK;
 	case INPUT_ERROR:
 	    andorsfree(r);
-	    return 2;
+	    return PR_INPUT_ERROR;
     }
     assert(false);
 }
