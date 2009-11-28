@@ -43,18 +43,18 @@
  * by the temporary search result line and the search target line.
  *
  * The `tputwc' function is the main function for displaying. It prints one
- * character for each call, tracking the cursor position.
+ * character and updates the cursor position data in each call.
  * In most terminals, when as many characters are printed as the number of
  * the columns, the cursor temporarily sticks to the end of the line. The cursor
  * moves to the next line immediately before the next character is printed. So
- * we must take care not to move the cursor (by the cub1 capability, etc.) when
- * it is sticking, or we cannot track the correct cursor position. In other
- * words, when the cursor reaches the end of the line, we must immediately
- * print the next character (or a dummy character) so that the cursor is no
- * longer sticking. Since we print characters in the order of normal text flow,
- * the problem becomes rather simple: All we have to do is to print a dummy
- * character and erase it if we finish printing the edit line at the end of the
- * line. */
+ * we must take care not to move the cursor (by the "cub1" capability, etc.)
+ * when the cursor is sticking, or we cannot track the cursor position
+ * correctly. To deal with this problem, when the cursor reaches the end of a
+ * line, we immediately print the next character (or a dummy character),
+ * ensuring the cursor is no longer sticking. Since we print characters in the
+ * order of normal text flow, the problem becomes rather simple: All we have to
+ * do is to print a dummy character and erase it if we finish printing the text
+ * at the end of a line. */
 
 
 static void clear_to_end_of_screen(void);
@@ -168,7 +168,7 @@ void le_display_clear(void)
 }
 
 /* Clears display area below the cursor.
- * The cursor must be at the beginning of the line. */
+ * The cursor must be at the beginning of a line. */
 void clear_to_end_of_screen(void)
 {
     assert(current_column == 0);
@@ -185,10 +185,10 @@ void clear_to_end_of_screen(void)
     go_to(saveline, 0);
 }
 
-/* Prints a dummy string to move the cursor to the first column wherever the
- * cursor is before.
+/* Prints a dummy string, which moves the cursor to the first column of the next
+ * line if the cursor is not at the first column.
  * This function does nothing if the "le-promptsp" option is not set or the
- * terminal does not have the "am" capability. */
+ * terminal does not have the "am" (auto-margin) capability. */
 void le_display_maybe_promptsp(void)
 {
     if (shopt_le_promptsp && le_ti_am) {
@@ -269,7 +269,7 @@ void go_to_index(size_t i)
     go_to(pos / le_columns, pos % le_columns);
 }
 
-/* Counts the width of the character `c' as printed by `fputwc'. */
+/* Counts the width of the specified character as printed by `tputwc'. */
 int count_width(wchar_t c)
 {
     int width = wcwidth(c);
@@ -279,14 +279,13 @@ int count_width(wchar_t c)
 	case L'\a':  case L'\n':  case L'\r':
 	    return 0;
     }
-    if (c < L'\040') {
+    if (c < L'\040')
 	return count_width(L'^') + count_width(c + L'\100');
-    } else {
+    else
 	return 0;
-    }
 }
 
-/* Counts the width of the first 'n' characters in `s' as printed by `fputws'.*/
+/* Counts the width of the first 'n' characters in `s' as printed by `tputws'.*/
 int count_width_ws(const wchar_t *s, size_t n)
 {
     int count = 0;
@@ -296,7 +295,9 @@ int count_width_ws(const wchar_t *s, size_t n)
     return count;
 }
 
-/* Prints the given wide character to the terminal. */
+/* Prints the given wide character to the terminal.
+ * If `trace_position' is true, `current_column' and `current_line' are updated
+ * to reflect the new cursor position. */
 void tputwc(wchar_t c)
 {
     if (!trace_position) {
@@ -377,7 +378,7 @@ void fillip_cursor(void)
     }
 }
 
-/* Prints the given prompt, which may contain backslash escapes. */
+/* Prints the given prompt that may contain backslash escapes. */
 void print_prompt(void)
 {
     /* The backslash escapes are defined in "../input.c". */
@@ -457,15 +458,12 @@ done:
 	(*sp)++;
 
     le_print_sgr(standout, underline, reverse, blink, dim, bold, invisible);
-    if (op) {  /* restore original color pair */
+    if (op)       /* restore original color pair */
 	le_print_op();
-    }
-    if (fg >= 0) { /* set foreground color */
+    if (fg >= 0)  /* set foreground color */
 	le_print_setfg(fg);
-    }
-    if (bg >= 0) { /* set background color */
+    if (bg >= 0)  /* set background color */
 	le_print_setbg(bg);
-    }
 }
 
 /* Prints the content of the edit line, updating `cursor_positions' and
@@ -519,8 +517,9 @@ void update_editline(void)
 /* Clears (part of) the edit line on the screen, from the current cursor
  * position to the end of the edit line.
  * The prompt and the info area are not cleared.
- * The cursor must have been positioned within the edit line. After clearance,
- * the cursor is moved to the position when this function was called. */
+ * When this function is called, the cursor must be positioned within the edit
+ * line. When this function returns, the cursor is moved back to that position.
+ */
 void clear_editline(void)
 {
     assert(current_line > editbase_line || current_column >= editbase_column);
@@ -539,9 +538,9 @@ void clear_editline(void)
 }
 
 /* Prints the current search result and the search line.
- * The cursor must be just after the prompt. Characters after the prompt are
- * cleared in this function.
- * The cursor is left after the search line. */
+ * When this function is called, the cursor must be just after the prompt.
+ * Characters after the prompt are cleared in this function.
+ * When this function returns, the cursor is left after the search line. */
 void print_search(void)
 {
     assert(le_search_buffer.contents != NULL);
@@ -570,8 +569,8 @@ void print_search(void)
 	    break;
 	case SEARCH_EMACS:
 	    switch (le_search_direction) {
-		case FORWARD:   text = "Forward search: ";  break;
-		case BACKWARD:  text = "Backward search: ";   break;
+		case FORWARD:   text = "Forward search: ";   break;
+		case BACKWARD:  text = "Backward search: ";  break;
 		default:        assert(false);
 	    }
 	    twprintf(L"%s", gt(text));
