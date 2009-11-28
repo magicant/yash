@@ -122,13 +122,13 @@ int test_builtin(int argc, void **argv)
     return test_error ? Exit_TESTERROR : result ? Exit_TRUE : Exit_FALSE;
 }
 
-/* Tests a one-token expression. */
+/* Tests the specified one-token expression. */
 bool test_single(char *args[static 1])
 {
     return args[0][0] != '\0';
 }
 
-/* Tests a two-token expression. */
+/* Tests the specified two-token expression. */
 bool test_double(char *args[static 2])
 {
     if (strcmp(args[0], "!") == 0)
@@ -186,7 +186,7 @@ bool test_double(char *args[static 2])
     }
 }
 
-/* Tests a three-token expression. */
+/* Tests the specified three-token expression. */
 bool test_triple(char *args[static 3])
 {
     /* first, check if args[1] is a binary primary operator */
@@ -252,7 +252,7 @@ not_binary:
  * term := "(" exp ")" | "!" "(" exp ")" | single | double | triple
  */
 
-/* Tests a long expression using `state'. */
+/* Tests the specified long expression using `state'. */
 bool test_long_or(void)
 {
     bool result;
@@ -266,7 +266,7 @@ bool test_long_or(void)
     return result;
 }
 
-/* Tests a long expression using `state'. */
+/* Tests the specified long expression using `state'. */
 bool test_long_and(void)
 {
     bool result;
@@ -280,7 +280,7 @@ bool test_long_and(void)
     return result;
 }
 
-/* Tests a long expression using `state'. */
+/* Tests the specified long expression using `state'. */
 bool test_long_term(void)
 {
     bool result;
@@ -437,7 +437,7 @@ const char test_help[] = Ngt(
 "Evaluates <expression> as a conditional expression described below. The exit\n"
 "status is 0 if the condition is true, or 1 otherwise.\n"
 "\n"
-"Unary operators to test files:\n"
+"Unary operators to test a file:\n"
 "  -b file    <file> is a block special file\n"
 "  -c file    <file> is a character special file\n"
 "  -d file    <file> is a directory\n"
@@ -454,9 +454,9 @@ const char test_help[] = Ngt(
 "  -u file    <file>'s set-user-ID flag is set\n"
 "  -w file    <file> is writable\n"
 "  -x file    <file> is executable\n"
-"Unary operator to test file descriptors:\n"
+"Unary operator to test a file descriptor:\n"
 "  -t fd      <fd> is associated with a terminal\n"
-"Unary operators to test strings:\n"
+"Unary operators to test a string:\n"
 "  -n string    <string> is not empty\n"
 "  -z string    <string> is empty\n"
 "\n"

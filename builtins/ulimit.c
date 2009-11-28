@@ -35,8 +35,6 @@
 #include "ulimit.h"
 
 
-/********** Builtin **********/
-
 static const struct resource {
     wchar_t option;
     int type;
@@ -77,6 +75,7 @@ static const struct resource {
     { 0, 0, 0, NULL, },
 };
 
+/* The "ulimit" builtin */
 int ulimit_builtin(int argc, void **argv)
 {
     const wchar_t *short_options = L"HSa"
@@ -300,9 +299,9 @@ const char ulimit_help[] = Ngt(
 "options listed below.\n"
 "For each resource type, there are two limit values: the hard limit and the\n"
 "soft limit. You can change a soft limit freely as long as it does not exceed\n"
-"the hard limit. You can decrease a hard limit, but cannot increase it\n"
-"without a proper permission. <limit> must be a non-negative integer or one\n"
-"of \"hard\", \"soft\" and \"unlimited\".\n"
+"the hard limit. You can decrease a hard limit but cannot increase it without\n"
+"a proper permission. <limit> must be a non-negative integer or one of\n"
+"\"hard\", \"soft\" and \"unlimited\".\n"
 "The resource limits will affect the current shell process and all\n"
 "succeedingly invoked commands.\n"
 "If <limit> is not specified, the current limit is printed.\n"
@@ -332,8 +331,8 @@ const char ulimit_help[] = Ngt(
 " -u --nproc:      The maximum number of processes for a user\n"
 " -v --as:         The maximum size of memory used by a process (K)\n"
 " -x --locks:      The maximum number of file locks\n"
-"For resource types marked with (B), the limits are set and printed in 512-\n"
-"byte blocks, (K) in kilobytes, and (S) in seconds.\n"
+"For resource types marked with (B), (K) and (S), the limits are set and\n"
+"printed in 512-byte blocks, kilobytes and seconds respectively.\n"
 "Available resource types vary depending on your system.\n"
 );
 #endif /* YASH_ENABLE_HELP */

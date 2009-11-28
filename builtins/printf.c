@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* printf.c: echo/printf builtins */
+/* printf.c: the echo/printf builtins */
 /* (C) 2007-2009 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -46,10 +46,10 @@ struct format_T {
     } type;
     char *convspec;
 };
-/* One format_T structure represents either a fragment of literal string or a
- * conversion specification. For a string fragment, `type' member is `ft_raw'
- * and `convspec' member is the literal value. For a conversion specification,
- * `convspec' is a string that starts with "%". */
+/* The "format_T" structure represents either a fragment of a literal string or
+ * a conversion specification. For a string fragment, the `type' member is
+ * `ft_raw' and `convspec' member is the literal value. For a conversion
+ * specification, `convspec' is a string that starts with "%". */
 /* ft_string  -> wchar_t *
  * ft_char    -> wint_t
  * ft_int     -> intmax_t
@@ -169,7 +169,7 @@ int echo_builtin(int argc, void **argv)
     return Exit_SUCCESS;
 }
 
-/* Prints a string recognizing escape sequences.
+/* Prints the specified string that may include escape sequences.
  * Returns true iff "\c" sequence is found. */
 bool echo_print_escape(const wchar_t *s, xstrbuf_T *buf)
 {
@@ -233,20 +233,20 @@ print_char:
 const char echo_help[] = Ngt(
 "echo - prints arguments\n"
 "\techo [string...]\n"
-"Prints <string>s, followed by a newline. The <string>s are each separated by\n"
+"Prints <string>s followed by a newline. The <string>s are each separated by\n"
 "a space. This command does not recognize any options except described below.\n"
 "\n"
 "The behavior of \"echo\" depends on the value of $ECHO_STYLE variable:\n"
 "  \"SYSV\" or \"XSI\" (default)\n"
-"    always recognize escape sequences, but not any options.\n"
+"    always recognize escape sequences but not any options.\n"
 "  \"BSD\"\n"
 "    recognize the -n option only.\n"
 "  \"GNU\"\n"
-"    recognize the -n, -e, -E options. Escape sequences are recognized if and\n"
-"    only if enabled by the -e option.\n"
+"    recognize the -n, -e, -E options. Escape sequences are recognized if\n"
+"    enabled by the -e option.\n"
 "  \"ZSH\"\n"
-"    recognize the -n, -e, -E options. Escape sequences are recognized if and\n"
-"    only if not disabled by the -E option.\n"
+"    recognize the -n, -e, -E options. Escape sequences are recognized unless\n"
+"    disabled by the -E option.\n"
 "  \"DASH\"\n"
 "    recognize the -n option and escape sequences. Escape sequences cannot be\n"
 "    disabled.\n"
@@ -327,11 +327,10 @@ end:
 }
 
 /* Parses the format for the "printf" builtin.
- * A pointer to the result is assigned to `*resultp', which must be initialized
- * as NULL.
- * Returns true iff successful. If the format is invalid, false is returned,
- * in which case an error message is printed and a pointer to partial result is
- * assigned to `*resultp'. */
+ * If successful, a pointer to the result is assigned to `*resultp' and true is
+ * returned.
+ * If unsuccessful, an error message is printed and NULL is returned. A pointer
+ * to a partial result may be assigned to `*resultp'. */
 bool printf_parse_format(const wchar_t *format, struct format_T **resultp)
 {
 #define MAKE_STRING                                  \
@@ -423,14 +422,13 @@ put_char:
 #undef MAKE_STRING
 }
 
-/* Parses a conversion specification starting with "%".
- * At first `*formatp' must point to L'%' and it is updated to point to the
- * next character to parse.
- * A pointer to the result is assigned to `*resultp', which must be initialized
- * as NULL.
- * Returns new `resultp' value iff successful. If the format is invalid, NULL is
- * returned, in which case an error message is printed and a pointer to partial
- * result is assigned to `*resultp'. */
+/* Parses the conversion specification that starts with L'%' pointed to by
+ * `*formatp'.
+ * If successful, a pointer to the character to parse next is assigned to
+ * `*formatp', a pointer to the result is assigned to `*resultp', and the next
+ * `resultp' value is returned.
+ * If unsuccessful, an error message is printed and NULL is returned. A pointer
+ * to a partial result may be assigned to `*resultp'. */
 struct format_T **printf_parse_percent(
 	const wchar_t **formatp, struct format_T **resultp)
 {
@@ -542,8 +540,8 @@ skip:;
     return resultp;
 }
 
-/* Formats a string and prints it.
- * Increases `xoptind' if `arg' is used. Otherwise `arg' is ignored.
+/* Formats the specified string and prints it.
+ * Increases `xoptind' if `arg' is used. Otherwise, `arg' is ignored.
  * Returns true iff no more characters should be written. */
 bool printf_printf(const struct format_T *format, const wchar_t *arg)
 {
@@ -616,7 +614,7 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
     }
 }
 
-/* Parses an integer value. */
+/* Parses the specified string as an integer. */
 uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
 {
     uintmax_t value;
@@ -642,7 +640,7 @@ uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
     return value;
 }
 
-/* Frees format data. */
+/* Frees the specified format data. */
 void freeformat(struct format_T *f)
 {
     while (f) {
@@ -664,8 +662,8 @@ const char printf_help[] = Ngt(
 "starting with `\\' are also recognized.\n"
 "If there are more <argument>s than specified in <format>, formatted strings\n"
 "are repeatedly printed until all <argument>s are consumed. If there are\n"
-"insufficient <argument>s, empty strings or zero values are assumed for the\n"
-"missing arguments.\n"
+"insufficient <argument>s, an empty string or a value of zero is assumed for\n"
+"the missing arguments.\n"
 "\n"
 "Conversion specifications:\n"
 "  %d    signed decimal integer\n"
@@ -682,7 +680,7 @@ const char printf_help[] = Ngt(
 "  %G    %F or %E, automatically selected\n"
 "  %c    first character of string\n"
 "  %s    string\n"
-"  %b    string (escape sequences recognized as \"echo\")\n"
+"  %b    string (escape sequences recognized like the \"echo\" builtin)\n"
 "  %%    %\n"
 "\n"
 "Flags, field width, and precision can be specified in this order between\n"
