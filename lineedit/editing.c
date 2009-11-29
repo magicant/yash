@@ -54,13 +54,20 @@
 #include "terminfo.h"
 
 
+/* The type of pairs of a command and an argument. */
+struct command {
+    le_command_func_T *func;
+    wchar_t arg;
+};
+
+
 /* The main buffer where the command line is edited. */
 xwcsbuf_T le_main_buffer;
-/* The position of the cursor on the command line. */
-/* 0 <= le_main_index <= le_main_buffer.length */
+/* The position of the cursor on the command line.
+ * 0 <= le_main_index <= le_main_buffer.length */
 size_t le_main_index;
 
-/* The history entry that is being edited now.
+/* The history entry that is being edited in the main buffer now.
  * When we're editing no history entry, `main_history_entry' is a pointer to
  * `histlist'. */
 static const histentry_T *main_history_entry;
@@ -71,8 +78,8 @@ static wchar_t *main_history_value;
 enum le_search_direction le_search_direction;
 /* The type of currently performed command history search. */
 enum le_search_type le_search_type;
-/* Supplementary buffer used in command history search. */
-/* When search is not being performed, the `contents' member is NULL. */
+/* Supplementary buffer used in command history search.
+ * When search is not being performed, `le_search_buffer.contents' is NULL. */
 xwcsbuf_T le_search_buffer;
 /* The search result for the current value of `le_search_buffer'.
  * If there is no match, `le_search_result' is `Histlist'. */
@@ -85,10 +92,7 @@ static struct {
 } last_search;
 
 /* The last executed command and the currently executing command. */
-static struct command {
-    le_command_func_T *func;
-    wchar_t arg;
-} last_command, current_command;
+static struct command last_command, current_command;
 
 /* The type of motion expecting commands. */
 enum motion_expect_command {
@@ -126,20 +130,20 @@ static struct state {
     le_command_func_T *pending_command_char;
 } state;
 
-/* The last executed editing command and the then state. */
-/* `last_edit_command' is valid iff `.command.func' is non-null. */
+/* The last executed editing command and the then state.
+ * Valid iff `.command.func' is non-null. */
 static struct {
     struct command command;
     struct state state;
 } last_edit_command;
 
-/* The last executed find/till command and the then state. */
+/* The last executed find/till command. */
 /* `last_find_command' is valid iff `.func' is non-null. */
 static struct command last_find_command;
 
 /* The editing mode before the mode is changed to LE_MODE_CHAR_EXPECT/SEARCH.
  * When the char-expecting/search command finishes, the mode is restored to
- * `savemode'. */
+ * this mode. */
 static le_mode_id_T savemode;
 
 /* If true, characters are overwritten rather than inserted. */
@@ -166,14 +170,15 @@ struct undo_history {
 static wchar_t *kill_ring[KILL_RING_SIZE];
 /* The index of the element to which next killed string is assigned. */
 static size_t next_kill_index = 0;
-/* The index of the element which was put last. */
+/* The index of the last put element. */
 static size_t last_put_elem = 0;  /* < KILL_RING_SIZE */
-/* The position and length of the last-put string. */
+/* The position and length of the last put string. */
 static size_t last_put_range_start, last_put_range_length;
 
 
 static void reset_state(void);
-static int get_count(int default_value);
+static int get_count(int default_value)
+    __attribute__((pure));
 static void save_current_edit_command(void);
 static void save_current_find_command(void);
 static void save_undo_history(void);
@@ -290,14 +295,9 @@ void le_editing_init(void)
     main_history_value = xwcsdup(L"");
 
     switch (shopt_lineedit) {
-	case shopt_vi:
-	    le_set_mode(LE_MODE_VI_INSERT);
-	    break;
-	case shopt_emacs:
-	    le_set_mode(LE_MODE_EMACS);
-	    break;
-	default:
-	    assert(false);
+	case shopt_vi:     le_set_mode(LE_MODE_VI_INSERT);  break;
+	case shopt_emacs:  le_set_mode(LE_MODE_EMACS);      break;
+	default:           assert(false);
     }
 
     last_command.func = 0;
@@ -339,14 +339,12 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 
     last_command = current_command;
 
-    if (le_get_mode() == LE_MODE_VI_COMMAND) {
-	if (le_main_index > 0 && le_main_index == le_main_buffer.length) {
+    if (le_get_mode() == LE_MODE_VI_COMMAND)
+	if (le_main_index > 0 && le_main_index == le_main_buffer.length)
 	    le_main_index--;
-	}
-    }
 }
 
-/* Resets `state.count'. */
+/* Resets `state'. */
 void reset_state(void)
 {
     state.count.sign = 0;
@@ -454,9 +452,9 @@ void maybe_save_undo_history(void)
     save_undo_history();
 }
 
-/* Applies the current pending editing command to the range between the current
- * cursor index and the given `index'. If no editing command is pending, simply
- * moves the cursor to the `index'. */
+/* Applies the currently pending editing command to the range between the
+ * current cursor index and the specified index. If no editing command is
+ * pending, simply moves the cursor to the specified index. */
 /* This function is used for all cursor-moving commands, even when not in the
  * vi mode. */
 void exec_motion_command(size_t index, bool inclusive)
@@ -515,22 +513,21 @@ void exec_motion_command(size_t index, bool inclusive)
     reset_state();
 }
 
-/* Set the specified motion expecting command as pending.
- * If the command is already pending, the command is executed against the whole
+/* Sets the specified motion expecting command as pending.
+ * If the command is already pending, the command is executed on the whole
  * line. */
 void set_motion_expect_command(enum motion_expect_command cmd)
 {
-    if (state.pending_command_motion != MEC_NONE) {
-	if (state.pending_command_motion == cmd) {
-	    exec_motion_expect_command_all();
-	} else {
-	    cmd_alert(L'\0');
-	}
-    } else {
+    if (state.pending_command_motion == MEC_NONE) {
 	state.count.multiplier = get_count(1);
 	state.count.sign = 0;
 	state.count.abs = 0;
 	state.pending_command_motion = cmd;
+    } else {
+	if (state.pending_command_motion == cmd)
+	    exec_motion_expect_command_all();
+	else
+	    cmd_alert(L'\0');
     }
 }
 
@@ -545,8 +542,8 @@ void exec_motion_expect_command(
     motion(L'\0');
 }
 
-/* Executes the specified motion expecting command from the beginning of the
- * line to the end of line. */
+/* Executes the specified motion expecting command from the beginning to the end
+ * of the line. */
 void exec_motion_expect_command_line(enum motion_expect_command cmd)
 {
     if (current_command.func != cmd_redo)
@@ -555,8 +552,8 @@ void exec_motion_expect_command_line(enum motion_expect_command cmd)
     exec_motion_expect_command_all();
 }
 
-/* Executes the currently pending motion expecting command from the beginning of
- * the line to the end of line. */
+/* Executes the currently pending motion expecting command from the beginning to
+ * the end of the line. */
 void exec_motion_expect_command_all(void)
 {
     size_t save_index = le_main_index;
@@ -580,7 +577,7 @@ void add_to_kill_ring(const wchar_t *s, size_t n)
 }
 
 /* Sets the editing mode to "char expects" and the pending command to `cmd'.
- * The current editing mode is saved as `savemode'. */
+ * The current editing mode is saved in `savemode'. */
 void set_char_expect_command(le_command_func_T cmd)
 {
     savemode = le_get_mode();
@@ -589,9 +586,9 @@ void set_char_expect_command(le_command_func_T cmd)
 }
 
 /* Starts command history search by setting the editing mode to `mode' with
- * the specified direction `dir'. The `mode' argument must be either
- * LE_MODE_VI_SEARCH or LE_MODE_EMACS_SEARCH.
- * The current editing mode is saved as `savemode'. */
+ * the specified direction `dir'. `mode' must be either LE_MODE_VI_SEARCH or
+ * LE_MODE_EMACS_SEARCH.
+ * The current editing mode is saved in `savemode'. */
 void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
 {
     savemode = le_get_mode();
@@ -600,32 +597,35 @@ void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
     switch (mode) {
 	case LE_MODE_VI_SEARCH:     le_search_type = SEARCH_VI;     break;
 	case LE_MODE_EMACS_SEARCH:  le_search_type = SEARCH_EMACS;  break;
-	default:  assert(false);
+	default:                    assert(false);
     }
     wb_init(&le_search_buffer);
     update_search();
 }
 
-/* Converts the first `n' characters of string `s' to upper case. */
+/* Converts the first `n' characters of string `s' to upper case.
+ * The string must be at least `n' characters long. */
 void to_upper_case(wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n; i++)
 	s[i] = towupper(s[i]);
 }
 
-/* Converts the first `n' characters of string `s' to lower case. */
+/* Converts the first `n' characters of string `s' to lower case.
+ * The string must be at least `n' characters long. */
 void to_lower_case(wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n; i++)
 	s[i] = towlower(s[i]);
 }
 
-/* Switches case of the first `n' characters of string `s'. */
+/* Switches case of the first `n' characters of string `s'.
+ * The string must be at least `n' characters long. */
 void switch_case(wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
 	wchar_t c = s[i];
-	s[i] = (iswlower(c) ? towupper : towlower)(c);
+	s[i] = iswlower(c) ? towupper(c) : towlower(c);
     }
 }
 
@@ -638,32 +638,31 @@ void cmd_noop(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
-/* Same as `cmd_noop', but causes alert. */
+/* Alerts. */
 void cmd_alert(wchar_t c __attribute__((unused)))
 {
     le_alert();
     reset_state();
 }
 
-/* Inserts one character in the buffer.
+/* Inserts the character argument into the buffer.
  * If the count is set, inserts `count' times.
  * If `overwrite' is true, overwrites the character instead of inserting. */
 void cmd_self_insert(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
-
-    if (c != L'\0') {
-	int count = get_count(1);
-
-	while (--count >= 0)
-	    if (overwrite && le_main_index < le_main_buffer.length)
-		le_main_buffer.contents[le_main_index++] = c;
-	    else
-		wb_ninsert_force(&le_main_buffer, le_main_index++, &c, 1);
-	reset_state();
-    } else {
+    if (c == L'\0') {
 	cmd_alert(L'\0');
+	return;
     }
+
+    int count = get_count(1);
+    while (--count >= 0)
+	if (overwrite && le_main_index < le_main_buffer.length)
+	    le_main_buffer.contents[le_main_index++] = c;
+	else
+	    wb_ninsert_force(&le_main_buffer, le_main_index++, &c, 1);
+    reset_state();
 }
 
 /* Inserts the tab character. */
@@ -680,8 +679,8 @@ void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
     le_next_verbatim = true;
 }
 
-/* Adds the specified digit `c' to the accumulating argument. */
-/* If `c' is not a digit, does nothing. */
+/* Adds the specified digit to the accumulating argument. */
+/* If `c' is not a digit or a hyphen, does nothing. */
 void cmd_digit_argument(wchar_t c)
 {
     if (L'0' <= c && c <= L'9') {
@@ -700,7 +699,7 @@ void cmd_digit_argument(wchar_t c)
     }
 }
 
-/* If the count is not set, moves the cursor to the beginning of line.
+/* If the count is not set, moves the cursor to the beginning of the line.
  * Otherwise, adds the given digit to the count. */
 void cmd_bol_or_digit(wchar_t c)
 {
@@ -711,7 +710,7 @@ void cmd_bol_or_digit(wchar_t c)
 }
 
 /* Accepts the current line.
- * `le_state' is set to LE_STATE_DONE and `le_readline' returns. */
+ * `le_state' is set to LE_STATE_DONE to trigger the termination of lineedit. */
 void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -722,7 +721,8 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 }
 
 /* Aborts the current line.
- * `le_state' is set to LE_STATE_INTERRUPTED and `le_readline' returns. */
+ * `le_state' is set to LE_STATE_INTERRUPTED to trigger the termination of
+ * lineedit. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
     cmd_srch_abort_search(L'\0');
@@ -731,7 +731,7 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
 }
 
 /* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
- * Otherwise, causes alert. */
+ * Otherwise, alerts. */
 void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -760,7 +760,7 @@ void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 
 /* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
  * If any count is set and the line already begins with a hash sign, the hash
- * sign is removed instead of adding one. The line is accepted anyway. */
+ * sign is removed rather than added. The line is accepted anyway. */
 void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -809,27 +809,29 @@ void cmd_setmode_emacs(wchar_t c __attribute__((unused)))
     overwrite = false;
 }
 
-/* Executes a command that expects a character as an argument. */
+/* Executes the currently pending char-expecting command. */
 void cmd_expect_char(wchar_t c)
 {
-    if (state.pending_command_char) {
-	current_command.func = state.pending_command_char;
-	current_command.arg = c;
-	state.pending_command_char(c);
-    } else {
+    if (!state.pending_command_char) {
 	cmd_alert(L'\0');
+	return;
     }
+
+    current_command.func = state.pending_command_char;
+    current_command.arg = c;
+    state.pending_command_char(c);
 }
 
-/* Cancels a command that expects a character as an argument. */
+/* Cancels the currently pending char-expecting command. */
 void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 {
-    if (state.pending_command_char) {
-	le_set_mode(savemode);
-	reset_state();
-    } else {
+    if (!state.pending_command_char) {
 	cmd_alert(L'\0');
+	return;
     }
+
+    le_set_mode(savemode);
+    reset_state();
 }
 
 /* Redraws everything. */
@@ -858,7 +860,7 @@ void redraw_all(bool clear)
 
 /********** Motion Commands **********/
 
-/* Invokes `cmd_alert' and returns true if the cursor is at the first character.
+/* Invokes `cmd_alert' and returns true if the cursor is on the first character.
  */
 bool alert_if_first(void)
 {
@@ -869,7 +871,7 @@ bool alert_if_first(void)
     return true;
 }
 
-/* Invokes `cmd_alert' and returns true if the cursor is at the last character.
+/* Invokes `cmd_alert' and returns true if the cursor is on the last character.
  */
 bool alert_if_last(void)
 {
@@ -899,8 +901,7 @@ void cmd_forward_char(wchar_t c __attribute__((unused)))
 	move_cursor_backward_char(-count);
 }
 
-/* Moves backward one character.
- * If the count is set, moves backward `count' characters. */
+/* Moves backward one character (or `count' characters if the count is set). */
 /* exclusive motion command */
 void cmd_backward_char(wchar_t c __attribute__((unused)))
 {
@@ -911,8 +912,7 @@ void cmd_backward_char(wchar_t c __attribute__((unused)))
 	move_cursor_forward_char(-count);
 }
 
-/* Moves the cursor forward by `offset', relative to the current position.
- * The `offset' must not be negative. */
+/* Moves the cursor forward by `offset'. The `offset' must not be negative. */
 void move_cursor_forward_char(int offset)
 {
     assert(offset >= 0);
@@ -932,8 +932,7 @@ void move_cursor_forward_char(int offset)
     exec_motion_command(new_index, false);
 }
 
-/* Moves the cursor backward by `offset', relative to the current position.
- * The `offset' must not be negative. */
+/* Moves the cursor backward by `offset'. The `offset' must not be negative. */
 void move_cursor_backward_char(int offset)
 {
     assert(offset >= 0);
@@ -991,7 +990,7 @@ void cmd_backward_bigword(wchar_t c __attribute__((unused)))
 	move_cursor_forward_bigword(-count);
 }
 
-/* Moves the cursor forward `count' bigwords, relative to the current position.
+/* Moves the cursor forward `count' bigwords.
  * If `count' is negative, the cursor is not moved. */
 void move_cursor_forward_bigword(int count)
 {
@@ -1016,7 +1015,7 @@ void move_cursor_forward_bigword(int count)
     }
 }
 
-/* Moves the cursor backward `count' bigwords, relative to the current position.
+/* Moves the cursor backward `count' bigwords.
  * If `count' is negative, the cursor is not moved. */
 void move_cursor_backward_bigword(int count)
 {
@@ -1029,9 +1028,8 @@ void move_cursor_backward_bigword(int count)
     exec_motion_command(new_index, false);
 }
 
-/* Returns the index of the next bigword in the string `s', counted from the
- * index `i'. The return value is greater than `i' unless `s[i]' is a null
- * character. */
+/* Returns the index of the next bigword in string `s', counted from index `i'.
+ * The return value is greater than `i' unless `s[i]' is a null character. */
 /* A bigword is a sequence of non-blank characters. */
 size_t next_bigword_index(const wchar_t *s, size_t i)
 {
@@ -1042,10 +1040,10 @@ size_t next_bigword_index(const wchar_t *s, size_t i)
     return i;
 }
 
-/* Returns the index of the end of a bigword in the string `s', counted from
- * index `i'. If `i' is at the end of a bigword and `progress' is true, the end
- * of the next bigword is returned. The return value is greater than `i' unless
- * `s[i]' is a null character. */
+/* Returns the index of the end of the current bigword in string `s', counted
+ * from index `i'. If `i' is at the end of the bigword and `progress' is true,
+ * the end of the next bigword is returned.
+ * The return value is greater than `i' unless `s[i]' is a null character. */
 size_t next_end_of_bigword_index(const wchar_t *s, size_t i, bool progress)
 {
     const size_t init = i;
@@ -1065,8 +1063,8 @@ start:
     }
 }
 
-/* Returns the index of the previous bigword in the string `s', counted from the
- * index `i'. The return value is less than `i' unless `i' is zero. */
+/* Returns the index of the previous bigword in string `s', counted from index
+ * `i'. The return value is less than `i' unless `i' is zero. */
 size_t previous_bigword_index(const wchar_t *s, size_t i)
 {
     const size_t init = i;
@@ -1098,7 +1096,7 @@ void cmd_forward_semiword(wchar_t c __attribute__((unused)))
 }
 
 /* Moves the cursor to the end of the current semiword (or the next semiword if
- * already at the end). If the count is set, moves to the end of `count'th
+ * already at the end). If the count is set, moves to the end of the `count'th
  * semiword. */
 /* inclusive motion command */
 void cmd_end_of_semiword(wchar_t c __attribute__((unused)))
@@ -1114,7 +1112,7 @@ void cmd_end_of_semiword(wchar_t c __attribute__((unused)))
     exec_motion_command(new_index, true);
 }
 
-/* Moves backward one viword (or `count' viwords if the count is set). */
+/* Moves backward one semiword (or `count' semiwords if the count is set). */
 /* exclusive motion command */
 void cmd_backward_semiword(wchar_t c __attribute__((unused)))
 {
@@ -1125,7 +1123,7 @@ void cmd_backward_semiword(wchar_t c __attribute__((unused)))
 	move_cursor_forward_semiword(-count);
 }
 
-/* Moves the cursor forward `count' semiwords, relative to the current position.
+/* Moves the cursor forward `count' semiwords.
  * If `count' is negative, the cursor is not moved. */
 void move_cursor_forward_semiword(int count)
 {
@@ -1150,8 +1148,8 @@ void move_cursor_forward_semiword(int count)
     }
 }
 
-/* Moves the cursor backward `count' semiwords, relative to the current
- * position.  If `count' is negative, the cursor is not moved. */
+/* Moves the cursor backward `count' semiwords.
+ * If `count' is negative, the cursor is not moved. */
 void move_cursor_backward_semiword(int count)
 {
     if (alert_if_first())
@@ -1163,9 +1161,8 @@ void move_cursor_backward_semiword(int count)
     exec_motion_command(new_index, false);
 }
 
-/* Returns the index of the next semiword in the string `s', counted from the
- * index `i'. The return value is greater than `i' unless `s[i]' is a null
- * character. */
+/* Returns the index of the next semiword in string `s', counted from index `i'.
+ * The return value is greater than `i' unless `s[i]' is a null character. */
 /* A "semiword" is a sequence of characters that are not <blank> or <punct>. */
 size_t next_semiword_index(const wchar_t *s, size_t i)
 {
@@ -1176,10 +1173,10 @@ size_t next_semiword_index(const wchar_t *s, size_t i)
     return i;
 }
 
-/* Returns the index of the end of a semiword in the string `s', counted from
- * index `i'. If `i' is at the end of a semiword and `progress' is true, the end
- * of the next semiword is returned. The return value is greater than `i' unless
- * `s[i]' is a null character. */
+/* Returns the index of the end of the current semiword in string `s', counted
+ * from index `i'. If `i' is at the end of the semiword and `progress' is true,
+ * the end of the next semiword is returned.
+ * The return value is greater than `i' unless `s[i]' is a null character. */
 size_t next_end_of_semiword_index(const wchar_t *s, size_t i, bool progress)
 {
     const size_t init = i;
@@ -1199,8 +1196,8 @@ start:
     }
 }
 
-/* Returns the index of the previous semiword in the string `s', counted from
- * the index `i'. The return value is less than `i' unless `i' is zero. */
+/* Returns the index of the previous semiword in string `s', counted from index
+ * `i'. The return value is less than `i' unless `i' is zero. */
 size_t previous_semiword_index(const wchar_t *s, size_t i)
 {
     const size_t init = i;
@@ -1259,7 +1256,7 @@ void cmd_backward_viword(wchar_t c __attribute__((unused)))
 	move_cursor_forward_viword(-count);
 }
 
-/* Moves the cursor forward `count' viwords, relative to the current position.
+/* Moves the cursor forward `count' viwords.
  * If `count' is negative, the cursor is not moved. */
 void move_cursor_forward_viword(int count)
 {
@@ -1291,7 +1288,7 @@ bool need_cw_treatment(void)
 	&& !iswblank(le_main_buffer.contents[le_main_index]);
 }
 
-/* Moves the cursor backward `count' viwords, relative to the current position.
+/* Moves the cursor backward `count' viwords.
  * If `count' is negative, the cursor is not moved. */
 void move_cursor_backward_viword(int count)
 {
@@ -1304,11 +1301,10 @@ void move_cursor_backward_viword(int count)
     exec_motion_command(new_index, false);
 }
 
-/* Returns the index of the next viword in the string `s', counted from the
- * index `i'. The return value is greater than `i' unless `s[i]' is a null
- * character. */
-/* A viword is a sequence of alphanumeric characters and underscores, or a
- * sequence of other non-blank characters. */
+/* Returns the index of the next viword in string `s', counted from index `i'.
+ * The return value is greater than `i' unless `s[i]' is a null character. */
+/* A viword is a sequence either of alphanumeric characters and underscores or
+ * of other non-blank characters. */
 size_t next_viword_index(const wchar_t *s, size_t i)
 {
     if (s[i] == L'_' || iswalnum(s[i])) {
@@ -1333,13 +1329,13 @@ size_t next_viword_index(const wchar_t *s, size_t i)
     return i;
 }
 
-/* Returns the index of the end of a viword in the string `s', counted from
- * index `i'.
+/* Returns the index of the end of the current viword in string `s', counted
+ * from index `i'.
  * If `progress' is true:
- *   If `i' is at the end of a viword, the end of the next viword is returned.
+ *   If `i' is at the end of the viword, the end of the next viword is returned.
  *   The return value is greater than `i' unless `s[i]' is a null character.
  * If `progress' is false:
- *   If `i' is at the end of a viword, `i' is returned. */
+ *   If `i' is at the end of the viword, `i' is returned. */
 size_t next_end_of_viword_index(const wchar_t *s, size_t i, bool progress)
 {
     const size_t init = i;
@@ -1367,8 +1363,8 @@ start:
     }
 }
 
-/* Returns the index of the previous viword in the string `s', counted form the
- * index `i'. The return value is less than `i' unless `i' is zero. */
+/* Returns the index of the previous viword in string `s', counted form index
+ * `i'. The return value is less than `i' unless `i' is zero. */
 size_t previous_viword_index(const wchar_t *s, size_t i)
 {
     const size_t init = i;
@@ -1409,7 +1405,7 @@ void cmd_forward_emacsword(wchar_t c __attribute__((unused)))
 	move_cursor_backward_emacsword(-count);
 }
 
-/* Moves backward one emacsword (or `count' words if the count is set). */
+/* Moves backward one emacsword (or `count' emacswords if the count is set). */
 /* exclusive motion command */
 void cmd_backward_emacsword(wchar_t c __attribute__((unused)))
 {
@@ -1420,8 +1416,8 @@ void cmd_backward_emacsword(wchar_t c __attribute__((unused)))
 	move_cursor_forward_emacsword(-count);
 }
 
-/* Moves the cursor to the `count'th emacsword, relative to the current
- * position. If `count' is negative, the cursor is not moved. */
+/* Moves the cursor to the `count'th emacsword.
+ * If `count' is negative, the cursor is not moved. */
 void move_cursor_forward_emacsword(int count)
 {
     size_t new_index = le_main_index;
@@ -1430,8 +1426,8 @@ void move_cursor_forward_emacsword(int count)
     exec_motion_command(new_index, false);
 }
 
-/* Moves the cursor backward `count'th emacsword, relative to the current
- * position. If `count' is negative, the cursor is not moved. */
+/* Moves the cursor backward `count'th emacsword.
+ * If `count' is negative, the cursor is not moved. */
 void move_cursor_backward_emacsword(int count)
 {
     size_t new_index = le_main_index;
@@ -1441,9 +1437,9 @@ void move_cursor_backward_emacsword(int count)
     exec_motion_command(new_index, false);
 }
 
-/* Returns the index of the next emacsword in the string `s', counted from the
- * index `i'. The return value is greater than `i' unless `s[i]' is a null
- * character. */
+/* Returns the index of the next emacsword in string `s', counted from index
+ * `i'. The return value is greater than `i' unless `s[i]' is a null character.
+ */
 /* An emacsword is a sequence of non-alphanumeric characters. */
 size_t next_emacsword_index(const wchar_t *s, size_t i)
 {
@@ -1454,8 +1450,8 @@ size_t next_emacsword_index(const wchar_t *s, size_t i)
     return i;
 }
 
-/* Returns the index of the previous emacsword in the string `s', counted from
- * the index `i'. The return value is less than `i' unless `i' is zero. */
+/* Returns the index of the previous emacsword in string `s', counted from
+ * index `i'. The return value is less than `i' unless `i' is zero. */
 /* An emacsword is a sequence of alphanumeric characters. */
 size_t previous_emacsword_index(const wchar_t *s, size_t i)
 {
@@ -1476,14 +1472,14 @@ start:
     }
 }
 
-/* Moves the cursor to the beginning of line. */
+/* Moves the cursor to the beginning of the line. */
 /* exclusive motion command */
 void cmd_beginning_of_line(wchar_t c __attribute__((unused)))
 {
     exec_motion_command(0, false);
 }
 
-/* Moves the cursor to the end of line. */
+/* Moves the cursor to the end of the line. */
 /* inclusive motion command */
 void cmd_end_of_line(wchar_t c __attribute__((unused)))
 {
@@ -1623,7 +1619,7 @@ error:
     return;
 }
 
-/* Finds the position of the nth occurrence of `c' in the edit line from the
+/* Finds the position of the `n'th occurrence of `c' in the edit line from the
  * current position. Returns `SIZE_MAX' on failure (no such occurrence). */
 size_t find_nth_occurence(wchar_t c, int n)
 {
@@ -1955,7 +1951,7 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
  * position. Otherwise, before the current position.
  * If `cursor_on_last_char' is true, the cursor is left on the last character
  * inserted. Otherwise, the cursor is left after the inserted text.
- * The `index' specifies the text in the kill ring to be inserted. If a text
+ * `index' specifies the text in the kill ring to be inserted. If the text
  * does not exist at the specified index in the kill ring, this function does
  * nothing. */
 void insert_killed_string(
@@ -2135,7 +2131,7 @@ void vi_replace_char(wchar_t c)
     }
 }
 
-/* Moves the cursor to the beginning of line and sets the editing mode to
+/* Moves the cursor to the beginning of the line and sets the editing mode to
  * "vi insert". */
 void cmd_vi_insert_beginning(wchar_t c __attribute__((unused)))
 {
@@ -2145,8 +2141,8 @@ void cmd_vi_insert_beginning(wchar_t c __attribute__((unused)))
     cmd_setmode_viinsert(L'\0');
 }
 
-/* Moves the cursor by one character and sets the editing mode to "vi insert".
- */
+/* Moves the cursor forward one character and sets the editing mode to "vi
+ * insert". */
 void cmd_vi_append(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -2156,8 +2152,8 @@ void cmd_vi_append(wchar_t c __attribute__((unused)))
     cmd_setmode_viinsert(L'\0');
 }
 
-/* Moves the cursor to the end of line and sets the editing mode to
- * "vi insert".*/
+/* Moves the cursor to the end of the line and sets the editing mode to "vi
+ * insert".*/
 void cmd_vi_append_end(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -2166,7 +2162,7 @@ void cmd_vi_append_end(wchar_t c __attribute__((unused)))
     cmd_setmode_viinsert(L'\0');
 }
 
-/* Sets the editing mode to "vi insert", with the `overwrite' flag true. */
+/* Sets the editing mode to "vi insert" with the `overwrite' flag true. */
 void cmd_vi_replace(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -2175,9 +2171,9 @@ void cmd_vi_replace(wchar_t c __attribute__((unused)))
     overwrite = true;
 }
 
-/* Sets the pending command to `MEC_SWITCHCASE'.
+/* Sets the pending command to MEC_SWITCHCASE.
  * The count multiplier is set to the current count.
- * If the pending command is already set to `MEC_SWITCHCASE', the whole line is
+ * If the pending command is already set to MEC_SWITCHCASE, the whole line is
  * switch-cased. */
 void cmd_vi_switch_case(wchar_t c __attribute__((unused)))
 {
@@ -2191,9 +2187,9 @@ void cmd_vi_switch_case_char(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_SWITCHCASE | MEC_TOEND, cmd_forward_char);
 }
 
-/* Sets the pending command to `MEC_COPY'.
+/* Sets the pending command to MEC_COPY.
  * The count multiplier is set to the current count.
- * If the pending command is already set to `MEC_COPY', the whole line is copied
+ * If the pending command is already set to MEC_COPY, the whole line is copied
  * to the kill ring. */
 void cmd_vi_yank(wchar_t c __attribute__((unused)))
 {
@@ -2206,9 +2202,9 @@ void cmd_vi_yank_to_eol(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_COPY, cmd_end_of_line);
 }
 
-/* Sets the pending command to `MEC_KILL'.
+/* Sets the pending command to MEC_KILL.
  * The count multiplier is set to the current count. 
- * If the pending command is already set to `MEC_KILL', the whole line is moved
+ * If the pending command is already set to MEC_KILL, the whole line is moved
  * to the kill ring. */
 void cmd_vi_delete(wchar_t c __attribute__((unused)))
 {
@@ -2217,17 +2213,17 @@ void cmd_vi_delete(wchar_t c __attribute__((unused)))
 
 /* Deletes the content of the edit line from the current position to the end and
  * put it in the kill ring. */
-/* cmd_vi_delete_to_eol is defined as cmd_forward_kill_line.
+/* cmd_vi_delete_to_eol is the same as cmd_forward_kill_line.
 void cmd_vi_delete_to_eol(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command(MEC_KILL, cmd_end_of_line);
 }
 */
 
-/* Sets the pending command to `MEC_CHANGE'.
+/* Sets the pending command to MEC_CHANGE.
  * The count multiplier is set to the current count. 
- * If the pending command is already set to `MEC_CHANGE', the whole line is
- * deleted to the kill ring and the editing mode is set to "vi insert". */
+ * If the pending command is already set to MEC_CHANGE, the whole line is
+ * deleted and the editing mode is set to "vi insert". */
 void cmd_vi_change(wchar_t c __attribute__((unused)))
 {
     set_motion_expect_command(MEC_CHANGE);
@@ -2240,8 +2236,8 @@ void cmd_vi_change_to_eol(wchar_t c __attribute__((unused)))
     exec_motion_expect_command(MEC_CHANGE, cmd_end_of_line);
 }
 
-/* Deletes all the content of the edit line and sets the editing mode to
- * "vi insert". */
+/* Deletes all the content of the edit line and sets the editing mode to "vi
+ * insert". */
 void cmd_vi_change_all(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command_line(MEC_CHANGE);
@@ -2696,7 +2692,7 @@ void cmd_emacs_just_one_space(wchar_t c __attribute__((unused)))
     replace_horizontal_space(true, s);
 }
 
-/* Replaces blank characters around the cursor with the specified string `s'.
+/* Replaces blank characters around the cursor with the specified string.
  * If `deleteafter' is true, blanks after the cursor are replaced as well as
  * blanks before the cursor. If `deleteafter' is false, only blanks before the
  * cursor are replaced.
@@ -2743,8 +2739,8 @@ void cmd_emacs_search_backward(wchar_t c __attribute__((unused)))
 /********** History-Related Commands **********/
 
 /* Goes to the oldest history entry.
- * If the `count' is specified, goes to the history entry whose number is
- * `count'. If the specified entry is not found, make an alert.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
  * The cursor is put at the beginning of line. */
 void cmd_oldest_history(wchar_t c __attribute__((unused)))
 {
@@ -2752,8 +2748,8 @@ void cmd_oldest_history(wchar_t c __attribute__((unused)))
 }
 
 /* Goes to the newest history entry.
- * If the `count' is specified, goes to the history entry whose number is
- * `count'. If the specified entry is not found, make an alert.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
  * The cursor is put at the beginning of line. */
 void cmd_newest_history(wchar_t c __attribute__((unused)))
 {
@@ -2761,17 +2757,17 @@ void cmd_newest_history(wchar_t c __attribute__((unused)))
 }
 
 /* Goes to the newest history entry.
- * If the `count' is specified, goes to the history entry whose number is
- * `count'. If the specified entry is not found, make an alert.
- * The cursor is put at the end of line. */
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
+ * The cursor is put at the beginning of line. */
 void cmd_return_history(wchar_t c __attribute__((unused)))
 {
     go_to_history_absolute(Histlist, false);
 }
 
 /* Goes to the oldest history entry.
- * If the `count' is specified, goes to the history entry whose number is
- * `count'. If the specified entry is not found, make an alert.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
  * The cursor is put at the end of line. */
 void cmd_oldest_history_eol(wchar_t c __attribute__((unused)))
 {
@@ -2779,8 +2775,8 @@ void cmd_oldest_history_eol(wchar_t c __attribute__((unused)))
 }
 
 /* Goes to the newest history entry.
- * If the `count' is specified, goes to the history entry whose number is
- * `count'. If the specified entry is not found, make an alert.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
  * The cursor is put at the end of line. */
 void cmd_newest_history_eol(wchar_t c __attribute__((unused)))
 {
@@ -2788,17 +2784,17 @@ void cmd_newest_history_eol(wchar_t c __attribute__((unused)))
 }
 
 /* Goes to the newest history entry.
- * If the `count' is specified, goes to the history entry whose number is
- * `count'. If the specified entry is not found, make an alert.
- * The cursor is put at the beginning of line. */
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
+ * The cursor is put at the end of line. */
 void cmd_return_history_eol(wchar_t c __attribute__((unused)))
 {
     go_to_history_absolute(Histlist, true);
 }
 
-/* Goes to the specified history entry `e'.
- * If the `count' is specified, goes to the history entry whose number is
- * `count'. If the specified entry is not found, make an alert.
+/* Goes to the specified history entry.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
  * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
  * the beginning of line. */
 void go_to_history_absolute(const histentry_T *e, bool cursorend)
