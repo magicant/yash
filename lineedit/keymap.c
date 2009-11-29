@@ -493,17 +493,12 @@ int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
 {
     trieget_T tg = trie_getw(le_modes[mode].keymap, keyseq);
 
-    switch (tg.type) {
-	case TG_NOMATCH:
-	case TG_NEEDMORE:
-	    xerror(0, Ngt("%ls: unbound sequence"), keyseq);
-	    return Exit_FAILURE;
-	case TG_UNIQUE:
-	case TG_AMBIGUOUS:
-	    return print_binding_main(
-		    &le_modes[mode], keyseq, tg.value.cmdfunc);
-	default:
-	    assert(false);
+    if ((tg.type == TG_UNIQUE || tg.type == TG_AMBIGUOUS)
+	    && tg.matchlength == wcslen(keyseq)) {
+	return print_binding_main(&le_modes[mode], keyseq, tg.value.cmdfunc);
+    } else {
+	xerror(0, Ngt("%ls: unbound sequence"), keyseq);
+	return Exit_FAILURE;
     }
 }
 
