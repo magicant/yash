@@ -314,13 +314,7 @@ void le_keymap_init(void)
 void le_set_mode(le_mode_id_T id)
 {
     assert(id < LE_MODE_N);
-    le_current_mode = &le_modes[id];
-}
-
-/* Returns the current editing mode. */
-le_mode_id_T le_get_mode(void)
-{
-    return (le_mode_id_T) (le_current_mode - le_modes);
+    le_current_mode = le_id_to_mode(id);
 }
 
 
@@ -409,7 +403,7 @@ int bindkey_builtin(int argc, void **argv)
 
     if (xoptind == argc) {
 	/* print all key bindings */
-	le_mode_T *m = &le_modes[mode];
+	le_mode_T *m = le_id_to_mode(mode);
 	return trie_foreachw(m->keymap, print_binding_main, m);
     } else if (xoptind + 1 == argc) {
 	return print_binding(mode, ARGV(xoptind));
@@ -495,7 +489,8 @@ int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
 
     if ((tg.type == TG_UNIQUE || tg.type == TG_AMBIGUOUS)
 	    && tg.matchlength == wcslen(keyseq)) {
-	return print_binding_main(&le_modes[mode], keyseq, tg.value.cmdfunc);
+	return print_binding_main(
+		le_id_to_mode(mode), keyseq, tg.value.cmdfunc);
     } else {
 	xerror(0, Ngt("%ls: unbound sequence"), keyseq);
 	return Exit_FAILURE;
@@ -513,7 +508,7 @@ int print_binding_main(
     const char *commandname;
     int r;
 
-    switch ((le_mode_id_T) ((le_mode_T *) mode - le_modes)) {
+    switch (le_mode_to_id(mode)) {
 	case LE_MODE_VI_INSERT:     modechar = 'v';  break;
 	case LE_MODE_VI_COMMAND:    modechar = 'a';  break;
 	case LE_MODE_VI_SEARCH:     modechar = 'V';  break;

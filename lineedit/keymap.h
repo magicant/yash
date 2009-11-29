@@ -43,15 +43,31 @@ typedef enum le_mode_id_T {
 
 extern le_mode_T le_modes[LE_MODE_N];
 extern le_mode_T *le_current_mode;
+static inline le_mode_id_T le_mode_to_id(le_mode_T *mode)
+    __attribute__((nonnull,const));
+static inline le_mode_T *le_id_to_mode(le_mode_id_T modeid)
+    __attribute__((const));
+#define LE_CURRENT_MODE (le_mode_to_id(le_current_mode))
 
 extern void le_keymap_init(void);
 extern void le_set_mode(le_mode_id_T id);
-extern le_mode_id_T le_get_mode(void)
-    __attribute__((pure));
 
 extern int bindkey_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char bindkey_help[];
+
+
+/* Returns the mode ID of the specified mode. */
+le_mode_id_T le_mode_to_id(le_mode_T *mode)
+{
+    return (le_mode_id_T) (mode - le_modes);
+}
+
+/* Returns a pointer to the mode specified by the specified ID. */
+le_mode_T *le_id_to_mode(le_mode_id_T modeid)
+{
+    return &le_modes[modeid];
+}
 
 
 #endif /* YASH_KEYMAP_H */

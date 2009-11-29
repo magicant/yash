@@ -339,7 +339,7 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 
     last_command = current_command;
 
-    if (le_get_mode() == LE_MODE_VI_COMMAND)
+    if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND)
 	if (le_main_index > 0 && le_main_index == le_main_buffer.length)
 	    le_main_index--;
 }
@@ -380,7 +380,7 @@ int get_count(int default_value)
 void save_current_edit_command(void)
 {
     if (current_command.func != cmd_redo
-	    && le_get_mode() != LE_MODE_VI_INSERT) {
+	    && LE_CURRENT_MODE != LE_MODE_VI_INSERT) {
 	last_edit_command.command = current_command;
 	last_edit_command.state = state;
     }
@@ -580,7 +580,7 @@ void add_to_kill_ring(const wchar_t *s, size_t n)
  * The current editing mode is saved in `savemode'. */
 void set_char_expect_command(le_command_func_T cmd)
 {
-    savemode = le_get_mode();
+    savemode = LE_CURRENT_MODE;
     le_set_mode(LE_MODE_CHAR_EXPECT);
     state.pending_command_char = cmd;
 }
@@ -591,7 +591,7 @@ void set_char_expect_command(le_command_func_T cmd)
  * The current editing mode is saved in `savemode'. */
 void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
 {
-    savemode = le_get_mode();
+    savemode = LE_CURRENT_MODE;
     le_set_mode(mode);
     le_search_direction = dir;
     switch (mode) {
@@ -790,7 +790,7 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
-    if (le_get_mode() == LE_MODE_VI_INSERT)
+    if (LE_CURRENT_MODE == LE_MODE_VI_INSERT)
 	if (le_main_index > 0)
 	    le_main_index--;
     le_set_mode(LE_MODE_VI_COMMAND);
@@ -875,7 +875,7 @@ bool alert_if_first(void)
  */
 bool alert_if_last(void)
 {
-    if (le_get_mode() == LE_MODE_VI_COMMAND) {
+    if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND) {
 	if (state.pending_command_motion != MEC_NONE)
 	    return false;
 	if (le_main_buffer.length > 0
