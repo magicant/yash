@@ -32,6 +32,7 @@ static char *commands[] = {
     "bol-or-digit",
     "accept-line",
     "abort-line",
+    "eof",
     "eof-if-empty",
     "eof-or-delete",
     "accept-with-hash",

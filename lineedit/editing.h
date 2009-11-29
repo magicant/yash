@@ -57,6 +57,7 @@ extern le_command_func_T
     cmd_bol_or_digit,
     cmd_accept_line,
     cmd_abort_line,
+    cmd_eof,
     cmd_eof_if_empty,
     cmd_eof_or_delete,
     cmd_accept_with_hash,

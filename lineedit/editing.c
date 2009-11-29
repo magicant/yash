@@ -730,32 +730,35 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
+/* Sets `le_state' to LE_STATE_ERROR.
+ * Lineedit will return EOF. */
+void cmd_eof(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    cmd_srch_abort_search(L'\0');
+    le_editstate = LE_EDITSTATE_ERROR;
+    reset_state();
+}
+
 /* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
  * Otherwise, alerts. */
 void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
-    if (le_main_buffer.length == 0) {
-	le_editstate = LE_EDITSTATE_ERROR;
-	reset_state();
-    } else {
+    if (le_main_buffer.length == 0)
+	cmd_eof(L'\0');
+    else
 	cmd_alert(L'\0');
-    }
 }
 
 /* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
  * Otherwise, deletes the character under the cursor. */
 void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
-    if (le_main_buffer.length == 0) {
-	le_editstate = LE_EDITSTATE_ERROR;
-	reset_state();
-    } else {
+    if (le_main_buffer.length == 0)
+	cmd_eof(L'\0');
+    else
 	cmd_delete_char(L'\0');
-    }
 }
 
 /* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
