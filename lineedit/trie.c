@@ -286,10 +286,9 @@ trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
  * `type'. */
 trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 {
-    trieget_T result;
+    trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
 
     if (keylen == 0) {
-	result.type = TG_NOMATCH, result.matchlength = 0;
 	if (t->valuevalid)
 	    result.type |= TG_EXACTMATCH, result.value = t->value;
 	if (t->count > 0)
@@ -299,7 +298,6 @@ trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 
     ssize_t index = search(t, keystr[0]);
     if (index < 0) {
-	result.type = TG_NOMATCH, result.matchlength = 0;
 	if (t->valuevalid)
 	    result.type |= TG_EXACTMATCH, result.value = t->value;
 	return result;
@@ -321,10 +319,9 @@ trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
  * `type'. */
 trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 {
-    trieget_T result;
+    trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
 
     if (keywcs[0] == L'\0') {
-	result.type = TG_NOMATCH, result.matchlength = 0;
 	if (t->valuevalid)
 	    result.type |= TG_EXACTMATCH, result.value = t->value;
 	if (t->count > 0)
@@ -334,7 +331,6 @@ trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 
     ssize_t index = searchw(t, keywcs[0]);
     if (index < 0) {
-	result.type = TG_NOMATCH, result.matchlength = 0;
 	if (t->valuevalid)
 	    result.type |= TG_EXACTMATCH, result.value = t->value;
 	return result;
