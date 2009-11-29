@@ -796,16 +796,19 @@ int normchar(cc_t c)
 }
 
 /* Saves the current terminal state in `original_terminal_state'.
- * Returns true iff `stdin' is a terminal and the terminal state has been
+ * This function flushes the standard error before saving the state.
+ * Returns true iff the standard input is a terminal and the terminal state was
  * successfully saved. */
 _Bool le_save_terminal(void)
 {
+    fflush(stderr);
     return xtcgetattr(STDIN_FILENO, &original_terminal_state) >= 0;
 }
 
 /* Restores the terminal to the original state saved in
  * `original_terminal_state'.
- * Returns true iff `stdin' is a terminal and the terminal state has been
+ * This function flushes the standard error before restoring the state.
+ * Returns true iff the standard input is a terminal and the terminal state was
  * successfully restored. */
 _Bool le_restore_terminal(void)
 {

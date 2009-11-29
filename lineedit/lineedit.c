@@ -97,7 +97,6 @@ wchar_t *le_readline(const wchar_t *prompt)
     reader_finalize();
     le_display_finalize();
     resultline = le_editing_finalize();
-    fflush(stderr);
     le_restore_terminal();
     le_state = LE_STATE_INACTIVE;
 
@@ -123,7 +122,6 @@ void le_suspend_readline(void)
     if (le_state == LE_STATE_ACTIVE) {
 	le_state = LE_STATE_SUSPENDED;
 	le_display_clear();
-	fflush(stderr);
 	le_restore_terminal();
     }
 }
