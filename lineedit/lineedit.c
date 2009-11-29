@@ -203,8 +203,10 @@ void read_next(void)
     /* wait for and read the next byte */
     le_display_update();
     fflush(stderr);
-    timeout = !wait_for_input(
-	    STDIN_FILENO, true, keycode_ambiguous ? get_read_timeout() : -1);
+    if (keycode_ambiguous)
+	timeout = wait_for_input(STDIN_FILENO, true, get_read_timeout());
+    else
+	wait_for_input(STDIN_FILENO, true, -1);
     if (!timeout) {
 	switch (read(STDIN_FILENO, &c, 1)) {
 	    case 0:
