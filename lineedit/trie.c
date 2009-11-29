@@ -60,6 +60,8 @@ static ssize_t binarysearchw(const trieentry_T *e, size_t count, wchar_t key)
     __attribute__((nonnull,pure));
 static trienode_T *insert_entry(trienode_T *node, size_t index, triekey_T key)
     __attribute__((nonnull,malloc,warn_unused_result));
+static trienode_T *shrink(trienode_T *node)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static int foreachw(const trienode_T *t,
 	int (*func)(void *v, const wchar_t *key, le_command_func_T *cmd),
 	void *v,
@@ -220,6 +222,19 @@ trienode_T *trie_setw(trienode_T *node, const wchar_t *keywcs, trievalue_T v)
     return node;
 }
 
+/* Decreases the child count. The node may be reallocated in this function. */
+trienode_T *shrink(trienode_T *node)
+{
+    size_t oldcount, newcount;
+
+    oldcount = RAISE_COUNT(node->count);
+    node->count--;
+    newcount = RAISE_COUNT(node->count);
+    if (oldcount != newcount)
+	node = xrealloc(node, NODE_SIZE(newcount));
+    return node;
+}
+
 /* Removes the mapping for the specified key. */
 trienode_T *trie_remove(trienode_T *node, const char *keystr)
 {
@@ -235,8 +250,7 @@ trienode_T *trie_remove(trienode_T *node, const char *keystr)
 		free(node->entries[index].child);
 		memmove(node->entries + index, node->entries + index + 1,
 			sizeof(trieentry_T) * (node->count - index - 1));
-		node->count--;
-		node = ensure_size(node, node->count);
+		node = shrink(node);
 	    }
 	}
     }
@@ -258,8 +272,7 @@ trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
 		free(node->entries[index].child);
 		memmove(node->entries + index, node->entries + index + 1,
 			sizeof(trieentry_T) * (node->count - index - 1));
-		node->count--;
-		node = ensure_size(node, node->count);
+		node = shrink(node);
 	    }
 	}
     }

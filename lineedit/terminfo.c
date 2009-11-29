@@ -279,7 +279,7 @@ _Bool le_setupterm(_Bool bypass)
 #if HAVE_TIOCGWINSZ
     if (bypass && !le_need_term_update) {
 	struct winsize ws;
-	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0
+	if (ioctl(STDERR_FILENO, TIOCGWINSZ, &ws) == 0
 		&& ws.ws_row > 0 && ws.ws_col > 0) {
 	    le_lines = ws.ws_row;
 	    le_columns = ws.ws_col;
