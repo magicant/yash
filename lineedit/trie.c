@@ -79,7 +79,7 @@ trienode_T *trie_create(void)
 }
 
 /* Checks if the node is empty. */
-/* Empty nodes can be freed. */
+/* An empty node can be freed. */
 bool isempty(const trienode_T *node)
 {
     return node->count == 0 && !node->valuevalid;
@@ -96,7 +96,7 @@ trienode_T *ensure_size(trienode_T *node, size_t count)
 	return xrealloc(node, NODE_SIZE(count));
 }
 
-/* Search the node for the entry of the specified key.
+/* Search the node for the entry of the specified byte character key.
  * If the entry is found, the index to it is returned.
  * If not found, the negation of the index that the not-found entry would have
  * minus one is returned. */
@@ -123,7 +123,7 @@ ssize_t binarysearch(const trieentry_T *e, size_t count, char key)
     return -offset - 1;
 }
 
-/* Search the node for the entry of the specified key.
+/* Search the node for the entry of the specified wide character key.
  * If the entry is found, the index to it is returned.
  * If not found, the negation of the index that the not-found entry would have
  * minus one is returned. */
@@ -235,7 +235,7 @@ trienode_T *shrink(trienode_T *node)
     return node;
 }
 
-/* Removes the mapping for the specified key. */
+/* Removes the mapping for the specified byte string key. */
 trienode_T *trie_remove(trienode_T *node, const char *keystr)
 {
     if (keystr[0] == '\0') {
@@ -257,7 +257,7 @@ trienode_T *trie_remove(trienode_T *node, const char *keystr)
     return node;
 }
 
-/* Removes the mapping for the specified key. */
+/* Removes the mapping for the specified wide string key. */
 trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
 {
     if (keywcs[0] == L'\0') {
@@ -280,110 +280,79 @@ trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
 }
 
 /* Matches `keystr' with the entries of the trie.
- * This function does not treat '\0' as end of string. The length of `keystr' is
- * given by `keylen'.
- * `value' of the return value is valid only if `type' is TG_UNIQUE or
- * TG_UNDECIDABLE. */
+ * This function does not treat '\0' as the end of a string. The length of
+ * `keystr' is given by `keylen'.
+ * `value' of the return value is valid only if the TG_EXACTMATCH flag is in
+ * `type'. */
 trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 {
-    trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
+    trieget_T result;
 
     if (keylen == 0) {
-	if (t->valuevalid) {
-	    result.type = (t->count > 0) ? TG_AMBIGUOUS : TG_UNIQUE;
-	    result.value = t->value;
-	} else if (t->count > 0) {
-	    result.type = TG_NEEDMORE;
-	}
+	result.type = TG_NOMATCH, result.matchlength = 0;
+	if (t->valuevalid)
+	    result.type |= TG_EXACTMATCH, result.value = t->value;
+	if (t->count > 0)
+	    result.type |= TG_PREFIXMATCH;
 	return result;
     }
 
     ssize_t index = search(t, keystr[0]);
     if (index < 0) {
+	result.type = TG_NOMATCH, result.matchlength = 0;
 	if (t->valuevalid)
-	    result.type = TG_UNIQUE, result.value = t->value;
+	    result.type |= TG_EXACTMATCH, result.value = t->value;
 	return result;
     }
 
     result = trie_get(t->entries[index].child, keystr + 1, keylen - 1);
-    switch (result.type) {
-	case TG_NOMATCH:
-	    if (t->valuevalid) {
-		result.type = TG_UNIQUE;
-		result.matchlength = 0;
-		result.value = t->value;
-	    }
-	    break;
-	case TG_NEEDMORE:
-	    if (t->valuevalid) {
-		result.type = TG_AMBIGUOUS;
-		result.matchlength = 0;
-		result.value = t->value;
-		break;
-	    }
-	    /* falls thru! */
-	case TG_UNIQUE:
-	case TG_AMBIGUOUS:
-	    result.matchlength++;
-	    break;
-	default:
-	    assert(false);
+    if (result.type & TG_EXACTMATCH) {
+	result.matchlength++;
+    } else if (t->valuevalid) {
+	result.type |= TG_EXACTMATCH;
+	result.matchlength = 0;
+	result.value = t->value;
     }
     return result;
 }
 
 /* Matches `keywcs' with the entries of the trie.
- * `value' of the return value is valid only if `type' is TG_UNIQUE. */
+ * `value' of the return value is valid only if the TG_EXACTMATCH flag is in
+ * `type'. */
 trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 {
-    trieget_T result = { .type = TG_NOMATCH, .matchlength = 0, };
+    trieget_T result;
 
     if (keywcs[0] == L'\0') {
-	if (t->valuevalid) {
-	    result.type = (t->count > 0) ? TG_AMBIGUOUS : TG_UNIQUE;
-	    result.value = t->value;
-	} else if (t->count > 0) {
-	    result.type = TG_NEEDMORE;
-	}
+	result.type = TG_NOMATCH, result.matchlength = 0;
+	if (t->valuevalid)
+	    result.type |= TG_EXACTMATCH, result.value = t->value;
+	if (t->count > 0)
+	    result.type |= TG_PREFIXMATCH;
 	return result;
     }
 
     ssize_t index = searchw(t, keywcs[0]);
     if (index < 0) {
+	result.type = TG_NOMATCH, result.matchlength = 0;
 	if (t->valuevalid)
-	    result.type = TG_UNIQUE, result.value = t->value;
+	    result.type |= TG_EXACTMATCH, result.value = t->value;
 	return result;
     }
 
     result = trie_getw(t->entries[index].child, keywcs + 1);
-    switch (result.type) {
-	case TG_NOMATCH:
-	    if (t->valuevalid) {
-		result.type = TG_UNIQUE;
-		result.matchlength = 0;
-		result.value = t->value;
-	    }
-	    break;
-	case TG_NEEDMORE:
-	    if (t->valuevalid) {
-		result.type = TG_AMBIGUOUS;
-		result.matchlength = 0;
-		result.value = t->value;
-		break;
-	    }
-	    /* falls thru! */
-	case TG_UNIQUE:
-	case TG_AMBIGUOUS:
-	    result.matchlength++;
-	    break;
-	default:
-	    assert(false);
+    if (result.type & TG_EXACTMATCH) {
+	result.matchlength++;
+    } else if (t->valuevalid) {
+	result.type |= TG_EXACTMATCH;
+	result.matchlength = 0;
+	result.value = t->value;
     }
     return result;
 }
 
-/* Calls the function `func' for each entry in the trie `t'.
- * The pointer `v' is passed to the function as the first argument.
+/* Calls function `func' for each entry in trie `t'.
+ * Pointer `v' is passed to the function as the first argument.
  * Returns zero if `func' was called for all the entries.
  * When `func' returns non-zero, the iteration is aborted and `trie_foreachw'
  * returns the value returned by `func'. */

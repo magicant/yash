@@ -36,12 +36,12 @@
 le_mode_T le_modes[LE_MODE_N];
 
 /* The current editing mode.
- * Points to one of `le_modes'. */
+ * Points to one of the modes in `le_modes'. */
 le_mode_T *le_current_mode;
 
 
 /* Initializes `le_modes' if not yet initialized.
- * May be called more than once. */
+ * May be called more than once but does nothing if so. */
 void le_keymap_init(void)
 {
     static bool initialized = false;
@@ -337,7 +337,7 @@ static const char *get_command_name(le_command_func_T *command)
     __attribute__((nonnull,const));
 
 /* Array of pairs of a command name and function.
- * Sorted by the name. */
+ * Sorted by name. */
 static const struct command_name_pair {
     const char *name;
     le_command_func_T *command;
@@ -426,7 +426,7 @@ int print_all_commands(void)
     return Exit_SUCCESS;
 }
 
-/* Binds `keyseq' to the specified command.
+/* Binds the specified key sequence to the specified command.
  * If `commandname' is L"-", the binding is removed.
  * If the specified command is not found, it is an error. */
 int set_key_binding(
@@ -487,8 +487,7 @@ int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
 {
     trieget_T tg = trie_getw(le_modes[mode].keymap, keyseq);
 
-    if ((tg.type == TG_UNIQUE || tg.type == TG_AMBIGUOUS)
-	    && tg.matchlength == wcslen(keyseq)) {
+    if ((tg.type & TG_EXACTMATCH) && tg.matchlength == wcslen(keyseq)) {
 	return print_binding_main(
 		le_id_to_mode(mode), keyseq, tg.value.cmdfunc);
     } else {

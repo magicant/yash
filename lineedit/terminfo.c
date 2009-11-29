@@ -223,11 +223,11 @@
 
 
 /* This flag is set to true when the terminfo database needs to be refreshed
- * because the $TERM variable is changed. */
+ * because the $TERM variable has been changed. */
 _Bool le_need_term_update = 1;
 
 /* Number of lines and columns in the current terminal. */
-/* Initialized by `le_setupterm'. */
+/* Initialized in `le_setupterm'. */
 int le_lines, le_columns;
 
 /* Whether the terminal has the "am" and "xenl" flags set, respectively. */
@@ -511,7 +511,7 @@ void set_up_keycodes(void)
     le_keycodes = t;
 }
 
-/* Prints "cr" variable. (carriage return: move cursor to first char of line) */
+/* Prints the "cr" code. (carriage return: move cursor to first char of line) */
 void le_print_cr(void)
 {
     char *v = tigetstr(TI_cr);
@@ -521,7 +521,7 @@ void le_print_cr(void)
 	fputc('\r', stderr);
 }
 
-/* Prints "nel" variable. (newline: move cursor to first char of next line) */
+/* Prints the "nel" code. (newline: move cursor to first char of next line) */
 void le_print_nel(void)
 {
     char *v = tigetstr(TI_nel);
@@ -573,21 +573,21 @@ _Bool move_cursor_mul(char *capmul, long count, int affcnt)
     return 0;
 }
 
-/* Prints "cub"/"cub1" variable. (move cursor backward by `count' columns) */
-/* `count' must be small enough not to go beyond screen bounds. */
+/* Prints the "cub"/"cub1" code. (move cursor backward by `count' columns) */
+/* `count' must be small enough not to go beyond the screen bounds. */
 void le_print_cub(long count)
 {
     move_cursor(TI_cub1, TI_cub, count, 1);
 }
 
-/* Prints "cuf"/"cuf1" variable. (move cursor forward by `count' columns) */
-/* `count' must be small enough not to go beyond screen bounds .*/
+/* Prints the "cuf"/"cuf1" code. (move cursor forward by `count' columns) */
+/* `count' must be small enough not to go beyond the screen bounds .*/
 void le_print_cuf(long count)
 {
     move_cursor(TI_cuf1, TI_cuf, count, 1);
 }
 
-/* Prints "cud"/"cud1" variable. (move cursor down by `count' lines) */
+/* Prints the "cud"/"cud1" code. (move cursor down by `count' lines) */
 /* `count' must be small enough not to go beyond screen bounds .*/
 /* Note that this function may put the cursor at column 0 as side effect. */
 void le_print_cud(long count)
@@ -595,7 +595,7 @@ void le_print_cud(long count)
     move_cursor(TI_cud1, TI_cud, count, count + 1);
 }
 
-/* Prints "cuu"/"cuu1" variable. (move cursor up by `count' lines) */
+/* Prints the "cuu"/"cuu1" code. (move cursor up by `count' lines) */
 /* `count' must be small enough not to go beyond screen bounds .*/
 /* Note that this function may put the cursor at column 0 as side effect. */
 void le_print_cuu(long count)
@@ -603,7 +603,7 @@ void le_print_cuu(long count)
     move_cursor(TI_cuu1, TI_cuu, count, count + 1);
 }
 
-/* Prints "el" variable. (clear to end of line) */
+/* Prints the "el" code. (clear to end of line) */
 void le_print_el(void)
 {
     char *v = tigetstr(TI_el);
@@ -611,7 +611,7 @@ void le_print_el(void)
 	tputs(v, 1, putchar_stderr);
 }
 
-/* Prints "ed" variable if available. (clear to end of screen)
+/* Prints the "ed" code if available. (clear to end of screen)
  * Returns true iff successful. */
 _Bool le_print_ed(void)
 {
@@ -622,7 +622,7 @@ _Bool le_print_ed(void)
 	return 0;
 }
 
-/* Prints "clear" variable if available. (clear whole screen)
+/* Prints the "clear" code if available. (clear whole screen)
  * Returns true iff successful. */
 _Bool le_print_clear(void)
 {
@@ -633,7 +633,7 @@ _Bool le_print_clear(void)
 	return 0;
 }
 
-/* Prints "sgr" variable. Every argument must be 0 or 1. */
+/* Prints the "sgr" code. Every argument must be 0 or 1. */
 void le_print_sgr(long standout, long underline, long reverse, long blink,
 	long dim, long bold, long invisible)
 {
@@ -646,7 +646,7 @@ void le_print_sgr(long standout, long underline, long reverse, long blink,
     }
 }
 
-/* Prints "op" variable. (set color pairs to default) */
+/* Prints the "op" code. (set color pairs to default) */
 void le_print_op(void)
 {
     char *v = tigetstr(TI_op);
@@ -654,7 +654,7 @@ void le_print_op(void)
 	tputs(v, 1, putchar_stderr);
 }
 
-/* Prints "setf"/"setaf" variable. */
+/* Prints the "setf"/"setaf" code. */
 void le_print_setfg(int color)
 {
     char *v = tigetstr(TI_setaf);
@@ -667,7 +667,7 @@ void le_print_setfg(int color)
     }
 }
 
-/* Prints "setb"/"setab" variable. */
+/* Prints the "setb"/"setab" code. */
 void le_print_setbg(int color)
 {
     char *v = tigetstr(TI_setab);
@@ -680,7 +680,7 @@ void le_print_setbg(int color)
     }
 }
 
-/* Prints "smkx" variable and sets the `transmit_mode' flag. */
+/* Prints the "smkx" code and sets the `transmit_mode' flag. */
 void print_smkx(void)
 {
     char *v = tigetstr(TI_smkx);
@@ -690,7 +690,7 @@ void print_smkx(void)
     }
 }
 
-/* Prints "rmkx" variable if the `transmit_mode' flag is set.
+/* Prints the "rmkx" code if the `transmit_mode' flag is set.
  * The flag is cleared in this function. */
 void print_rmkx(void)
 {
@@ -708,7 +708,7 @@ int putchar_stderr(int c)
     return fputc(c, stderr);
 }
 
-/* Alerts the user by flash or bell, without moving the cursor. */
+/* Alerts the user by a flash or a bell without moving the cursor. */
 void le_alert(void)
 {
     char *v = NULL;
@@ -741,7 +741,8 @@ static inline int xtcsetattr(int fd, int opt, const struct termios *term)
 
 /* Sets the terminal to the "raw" mode.
  * The current state is saved as `original_terminal_state'.
- * Returns true iff the terminal (`stdin') has been successfully prepared. */
+ * Returns true iff the terminal (the standard input) has been successfully
+ * prepared. */
 _Bool le_set_terminal(void)
 {
     struct termios term;
@@ -818,7 +819,7 @@ _Bool le_restore_terminal(void)
 }
 
 /* Calls `tcgetattr'.
- * If it returns `EINTR' error, re-calls it. */
+ * If it returns EINTR, re-calls it. */
 int xtcgetattr(int fd, struct termios *term)
 {
     int result;
@@ -829,7 +830,7 @@ int xtcgetattr(int fd, struct termios *term)
 }
 
 /* Calls `tcsetattr'.
- * If it returns `EINTR' error, re-calls it. */
+ * If it returns EINTR, re-calls it. */
 int xtcsetattr(int fd, int opt, const struct termios *term)
 {
     int result;

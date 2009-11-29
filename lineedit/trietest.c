@@ -1,5 +1,7 @@
-//This is a test tool, not part of yash
-//!make trie.o && c99 -o trietest trietest.c trie.o
+// This is a test tool, not part of yash
+//   make trie.o
+//   (cd .. && make strbuf.o)
+//   c99 -o trietest trietest.c trie.o ../strbuf.o
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -13,50 +15,50 @@ void alloc_failed(void)
 	abort();
 }
 
-void print(trie_T *t, const char *key)
+void print(const trie_T *t, const char *key)
 {
 	trieget_T tg = trie_get(t, key, strlen(key));
 
-	printf("%s: ", key);
+	printf("%-10s: ", key);
 	switch (tg.type) {
 		case TG_NOMATCH:
 			printf("nomatch %zu\n", tg.matchlength);
 			break;
-		case TG_UNIQUE:
-			printf("unique %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+		case TG_EXACTMATCH:
+			printf("exact   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
-		case TG_NEEDMORE:
-			printf("needmore %zu\n", tg.matchlength);
+		case TG_PREFIXMATCH:
+			printf("prefix  %zu\n", tg.matchlength);
 			break;
 		case TG_AMBIGUOUS:
-			printf("ambig %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+			printf("ambig   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
 		default:
-			printf("ERROR: type=%d", (int) tg.type);
+			printf("ERROR: type=%d\n", (int) tg.type);
 			assert(false);
 	}
 }
 
-void print_null(trie_T *t)
+void print_null(const trie_T *t)
 {
 	trieget_T tg = trie_get(t, "", 1);
 
-	printf("<null>: ");
+	printf("<null>    : ");
 	switch (tg.type) {
 		case TG_NOMATCH:
 			printf("nomatch %zu\n", tg.matchlength);
 			break;
-		case TG_UNIQUE:
-			printf("unique %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+		case TG_EXACTMATCH:
+			printf("exact   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
-		case TG_NEEDMORE:
-			printf("needmore %zu\n", tg.matchlength);
+		case TG_PREFIXMATCH:
+			printf("prefix  %zu\n", tg.matchlength);
 			break;
 		case TG_AMBIGUOUS:
-			printf("ambig %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+			printf("ambig   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
 		default:
-			printf("ERROR: type=%d", (int) tg.type);
+			printf("ERROR: type=%d\n", (int) tg.type);
 			assert(false);
 	}
 }

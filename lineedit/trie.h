@@ -29,7 +29,12 @@ typedef union trievalue_T {
 } trievalue_T;
 typedef struct trienode_T trie_T;
 typedef struct trieget_T {
-    enum { TG_NOMATCH, TG_NEEDMORE, TG_UNIQUE, TG_AMBIGUOUS, } type;
+    enum {
+	TG_NOMATCH     = 0,
+	TG_EXACTMATCH  = 1 << 0,
+	TG_PREFIXMATCH = 1 << 1,
+	TG_AMBIGUOUS   = TG_EXACTMATCH | TG_PREFIXMATCH,
+    } type;
     size_t matchlength;
     trievalue_T value;
 } trieget_T;

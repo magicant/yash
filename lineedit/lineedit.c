@@ -58,7 +58,7 @@ enum le_state_T le_state;
 enum le_editstate_T le_editstate;
 
 
-/* Initializes line editing.
+/* Initializes line-editing.
  * Must be called before each call to `le_readline'.
  * Returns true iff successful, in which case `le_readline' must be called
  * afterward. */
@@ -70,7 +70,7 @@ bool le_setup(void)
 	&& le_set_terminal();
 }
 
-/* Prints the specified `prompt' and reads one line from stdin.
+/* Prints the specified `prompt' and reads one line from the standard input.
  * This function can be called after and only after `le_setup' succeeded.
  * The `prompt' may contain backslash escapes specified in "input.c".
  * The result is returned as a newly malloced wide string, including the
@@ -116,7 +116,8 @@ wchar_t *le_readline(const wchar_t *prompt)
     return resultline;
 }
 
-/* Restores the terminal state and clears the whole display temporarily. */
+/* Clears the edit line and restores the terminal state.
+ * Does nothing if line-editing is not active. */
 void le_suspend_readline(void)
 {
     if (le_state == LE_STATE_ACTIVE) {
@@ -126,7 +127,8 @@ void le_suspend_readline(void)
     }
 }
 
-/* Resumes line editing suspended by `le_suspend_readline'. */
+/* Resumes line-editing suspended by `le_suspend_readline'.
+ * Does nothing if the line-editing is not suspended. */
 void le_resume_readline(void)
 {
     if (le_state == LE_STATE_SUSPENDED) {
@@ -154,19 +156,18 @@ void le_display_size_changed(void)
 
 /********** Input Reading **********/
 
-/* Temporary buffer for bytes that are treated as input. */
+/* Temporary buffer that contains bytes that are treated as input. */
 static xstrbuf_T reader_prebuffer;
-/* Temporary buffer for bytes before conversion to wide characters. */
+/* Temporary buffer that contains input bytes. */
 static xstrbuf_T reader_first_buffer;
 /* Conversion state used in reading input. */
 static mbstate_t reader_state;
-/* Temporary buffer for converted characters. */
+/* Temporary buffer that contains input converted into wide characters. */
 static xwcsbuf_T reader_second_buffer;
 /* If true, next input will be inserted directly to the main buffer. */
 bool le_next_verbatim;
 
-/* Initializes the state of the reader.
- * Called for each invocation of `le_readline'. */
+/* Initializes the state of the reader. */
 void reader_init(void)
 {
     sb_init(&reader_first_buffer);
@@ -182,10 +183,11 @@ void reader_finalize(void)
     wb_destroy(&reader_second_buffer);
 }
 
-/* Reads the next byte from stdin and take all the corresponding actions.
+/* Reads the next byte from the standard input and take all the corresponding
+ * actions.
  * May return without doing anything if a signal is caught, etc.
- * The caller must check `le_state' after return from this function;
- * This function must be called repeatedly while it is `LE_STATE_EDITING'. */
+ * The caller must check `le_state' after this function returned. This function
+ * should be called repeatedly while `le_state' is LE_STATE_EDITING. */
 void read_next(void)
 {
     static bool incomplete_wchar = false;
@@ -238,7 +240,7 @@ direct_first_buffer:
     if (incomplete_wchar || le_next_verbatim)
 	goto process_wide;
 
-    /** process the content in the buffer **/
+    /* process the content in the first buffer */
     keycode_ambiguous = false;
     while (reader_first_buffer.length > 0) {
 	/* check if `reader_first_buffer' is a special sequence */
@@ -258,23 +260,23 @@ direct_first_buffer:
 	switch (tg.type) {
 	    case TG_NOMATCH:
 		goto process_wide;
-	    case TG_UNIQUE:  case_TG_UNIQUE:
-		sb_remove(&reader_first_buffer, 0, tg.matchlength);
-		wb_cat(&reader_second_buffer, tg.value.keyseq);
-		continue;
 	    case TG_AMBIGUOUS:
 		if (timeout) {
-		    goto case_TG_UNIQUE;
+	    case TG_EXACTMATCH:
+		    sb_remove(&reader_first_buffer, 0, tg.matchlength);
+		    wb_cat(&reader_second_buffer, tg.value.keyseq);
+		    continue;
 		} else {
 		    keycode_ambiguous = true;
 		}
 		/* falls thru! */
-	    case TG_NEEDMORE:
+	    case TG_PREFIXMATCH:
 		goto process_keymap;
 	}
     }
 
-    /* convert bytes into wide characters */
+    /* convert bytes in the first buffer into wide characters and append to the
+     * second buffer */
 process_wide:
     while (reader_first_buffer.length > 0) {
 	wchar_t wc;
@@ -303,7 +305,7 @@ process_wide:
 	}
     }
 
-    /* process key mapping for wide characters */
+    /* process key mapping for wide characters in the second buffer */
 process_keymap:
     while (reader_second_buffer.length > 0) {
 	register wchar_t c;
@@ -319,13 +321,13 @@ process_keymap:
 		le_invoke_command(le_current_mode->default_command, c);
 		wb_clear(&reader_second_buffer);
 		break;
-	    case TG_UNIQUE:
+	    case TG_EXACTMATCH:
 		assert(tg.matchlength > 0);
 		c = reader_second_buffer.contents[tg.matchlength - 1];
 		le_invoke_command(tg.value.cmdfunc, c);
 		wb_remove(&reader_second_buffer, 0, tg.matchlength);
 		break;
-	    case TG_NEEDMORE:
+	    case TG_PREFIXMATCH:
 	    case TG_AMBIGUOUS:
 		return;
 	/* For an unmatched control sequence, `cmd_self_insert' should not
@@ -342,7 +344,7 @@ process_keymap:
 }
 
 /* Returns a timeout value to be passed to the `wait_for_input' function.
- * The value is taken from the YASH_LE_TIMEOUT variable. */
+ * The value is taken from the $YASH_LE_TIMEOUT variable. */
 int get_read_timeout(void)
 {
 #ifndef LE_TIMEOUT_DEFAULT
@@ -358,7 +360,7 @@ int get_read_timeout(void)
     return LE_TIMEOUT_DEFAULT;
 }
 
-/* Appends `s' to the prebuffer. The string `s' is freed in this function. */
+/* Appends `s' to the prebuffer. String `s' is freed in this function. */
 void append_to_prebuffer(char *s)
 {
     if (reader_prebuffer.contents == NULL)
@@ -367,8 +369,8 @@ void append_to_prebuffer(char *s)
 	sb_catfree(&reader_prebuffer, s);
 }
 
-/* Removes and returns the next character in the prebuffer if available, or '\0'
- * otherwise. */
+/* Removes and returns the next character in the prebuffer if available;
+ * otherwise, returns '\0'. */
 char pop_prebuffer(void)
 {
     if (reader_prebuffer.contents) {
@@ -383,6 +385,7 @@ char pop_prebuffer(void)
     return '\0';
 }
 
+/* Tests if the specified character has the meta flag set. */
 bool has_meta_bit(char c)
 {
     switch (shopt_le_convmeta) {
@@ -396,18 +399,21 @@ bool has_meta_bit(char c)
 	    else
 		return false;
     }
-    return c & META_BIT;
+    return (c & META_BIT) != 0;
 }
 
 trieget_T make_trieget(const wchar_t *keyseq)
 {
     return (trieget_T) {
-	.type = TG_UNIQUE,
+	.type = TG_EXACTMATCH,
 	.matchlength = 1,
 	.value.keyseq = keyseq,
     };
 }
 
+/* Appends the specified character to the second buffer.
+ * If `le_next_verbatim' is true, the character is directly processed by the
+ * default command. */
 void append_to_second_buffer(wchar_t wc)
 {
     if (le_next_verbatim) {

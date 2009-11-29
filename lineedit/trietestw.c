@@ -1,5 +1,7 @@
-//This is a test tool, not part of yash
-//!make trie.o && c99 -o trietestw trietestw.c trie.o
+// This is a test tool, not part of yash
+//   make trie.o 
+//   (cd .. && make strbuf.o)
+//   c99 -o trietestw trietestw.c trie.o ../strbuf.o
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,26 +14,26 @@ void alloc_failed(void)
 	abort();
 }
 
-void print(trie_T *t, const wchar_t *key)
+void print(const trie_T *t, const wchar_t *key)
 {
 	trieget_T tg = trie_getw(t, key);
 
-	printf("%ls: ", key);
+	printf("%-10ls: ", key);
 	switch (tg.type) {
 		case TG_NOMATCH:
 			printf("nomatch %zu\n", tg.matchlength);
 			break;
-		case TG_UNIQUE:
-			printf("unique %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+		case TG_EXACTMATCH:
+			printf("exact   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
-		case TG_NEEDMORE:
-			printf("needmore %zu\n", tg.matchlength);
+		case TG_PREFIXMATCH:
+			printf("prefix  %zu\n", tg.matchlength);
 			break;
 		case TG_AMBIGUOUS:
-			printf("ambig %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+			printf("ambig   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
 			break;
 		default:
-			printf("ERROR: type=%d", (int) tg.type);
+			printf("ERROR: type=%d\n", (int) tg.type);
 			assert(false);
 	}
 }
