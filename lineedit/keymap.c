@@ -507,6 +507,7 @@ int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
 int print_binding_main(
 	void *mode, const wchar_t *keyseq, le_command_func_T *cmd)
 {
+    const char *format;
     char modechar;
     wchar_t *keyseqquote;
     const char *commandname;
@@ -521,9 +522,13 @@ int print_binding_main(
 	case LE_MODE_CHAR_EXPECT:   modechar = 'c';  break;
 	default:                    assert(false);
     }
+    if (keyseq[0] == L'-')
+	format = "bindkey -%c -- %ls %s\n";
+    else
+	format = "bindkey -%c %ls %s\n";
     keyseqquote = quote_sq(keyseq);
     commandname = get_command_name(cmd);
-    r = printf("bindkey -%c %ls %s\n", modechar, keyseqquote, commandname);
+    r = printf(format, modechar, keyseqquote, commandname);
     if (r < 0)
 	xerror(errno, Ngt("cannot print to standard output"));
     free(keyseqquote);
