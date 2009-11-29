@@ -626,10 +626,6 @@ int handle_traps(void)
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return 0;
 
-#if YASH_ENABLE_LINEEDIT
-    le_suspend_readline();
-#endif
-
     int signum = 0;
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
@@ -644,6 +640,9 @@ int handle_traps(void)
 		signal_received[i] = false;
 		wchar_t *command = trap_command[i];
 		if (command && command[0]) {
+#if YASH_ENABLE_LINEEDIT
+		    le_suspend_readline();
+#endif
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = s->no;
@@ -663,6 +662,9 @@ int handle_traps(void)
 		rtsignal_received[i] = false;
 		wchar_t *command = rttrap_command[i];
 		if (command && command[0]) {
+#if YASH_ENABLE_LINEEDIT
+		    le_suspend_readline();
+#endif
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = sigrtmin + i;
@@ -673,14 +675,13 @@ int handle_traps(void)
 		}
 	    }
 	}
-#endif
+#endif  /* defined SIGRTMAX && defined SIGRTMIN */
     } while (any_signal_received);
 
     savelaststatus = -1;
     handled_signal = -1;
     if (state)
 	restore_parse_state(state);
-
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && le_state == LE_STATE_SUSPENDED)
 	print_job_status_all();
