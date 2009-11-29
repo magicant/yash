@@ -204,7 +204,7 @@ void read_next(void)
     le_display_update();
     fflush(stderr);
     if (keycode_ambiguous)
-	timeout = wait_for_input(STDIN_FILENO, true, get_read_timeout());
+	timeout = !wait_for_input(STDIN_FILENO, true, get_read_timeout());
     else
 	wait_for_input(STDIN_FILENO, true, -1);
     if (!timeout) {
