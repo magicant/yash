@@ -36,28 +36,37 @@
 #define Exit_FALSE     1  /* Exit_FAILURE */
 #define Exit_TESTERROR 2  /* Exit_ERROR */
 
-static bool test_error;
-static struct {
-    char **args;     /* the expression words */
-    size_t length;   /* number of the words */
-    size_t index;    /* the current position */
-} state;
+struct test_state {
+    void **args;
+    int argc;
+    int index;
+};
+enum filecmp {
+    FC_ID, FC_SAME, FC_NEWER, FC_OLDER, FC_UNKNOWN,
+};
 
-static inline bool test_single(char *args[static 1]);
-static bool test_double(char *args[static 2]);
-static bool test_triple(char *args[static 3]);
-static bool test_long_or(void);
-static bool test_long_and(void);
-static bool test_long_term(void);
-static bool is_unary_primary(const char *word)
+static bool test_error;
+
+static inline bool test_single(void *args[static 1]);
+static bool test_double(void *args[static 2]);
+static bool test_file(wchar_t type, const char *file)
+    __attribute__((nonnull));
+static bool test_triple(void *args[static 3]);
+static bool test_long_or(struct test_state *state)
+    __attribute__((nonnull));
+static bool test_long_and(struct test_state *state)
+    __attribute__((nonnull));
+static bool test_long_term(struct test_state *state)
+    __attribute__((nonnull));
+static bool is_unary_primary(const wchar_t *word)
     __attribute__((nonnull,pure));
-static bool is_binary_primary(const char *word)
+static bool is_binary_primary(const wchar_t *word)
     __attribute__((nonnull,pure));
-static bool is_term_delimiter(const char *word)
+static bool is_term_delimiter(const wchar_t *word)
     __attribute__((nonnull,pure));
-static int compare_integers(const char *word1, const char *word2)
+static int compare_integers(const wchar_t *left, const wchar_t *right)
     __attribute__((nonnull,pure));
-static int compare_files(const char *file1, const char *file2)
+static enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     __attribute__((nonnull));
 
 
@@ -75,174 +84,197 @@ int test_builtin(int argc, void **argv)
     argc--, argv++;
     test_error = false;
 
-    /* convert wide strings into multibyte strings */
-    char *args[argc];
-    for (int i = 0; i < argc; i++) {
-	args[i] = malloc_wcstombs(ARGV(i));
-	if (!args[i])
-	    test_error = true;
-    }
-
-#ifdef NDEBUG
+    struct test_state state;
     bool result;
-#else
-    bool result = result;
-#endif
-    if (!test_error) {
-	switch (argc) {
-	    case 0:  result = false;                 break;
-	    case 1:  result = test_single(args);     break;
-	    case 2:  result = test_double(args);     break;
-	    case 3:  result = test_triple(args);     break;
-	    case 4:
-		if (strcmp(args[0], "!") == 0) {
-		    result = !test_triple(args + 1);
-		    break;
-		}
-		if (strcmp(args[0], "(") == 0 && strcmp(args[3], ")") == 0) {
-		    result = test_double(args + 1);
-		    break;
-		}
-		/* falls thru! */
-	    default:
-		state.args = args;
-		state.length = argc;
-		state.index = 0;
-		result = test_long_or();
-		if (state.index < state.length) {
-		    xerror(0, Ngt("expression incomplete"));
-		    test_error = true;
-		}
+
+    switch (argc) {
+	case 0:  result = false;                 break;
+	case 1:  result = test_single(argv);     break;
+	case 2:  result = test_double(argv);     break;
+	case 3:  result = test_triple(argv);     break;
+	case 4:
+	    if (wcscmp(argv[0], L"!") == 0) {
+		result = !test_triple(argv + 1);
 		break;
-	}
+	    }
+	    if (wcscmp(argv[0], L"(") == 0 && wcscmp(argv[3], L")") == 0) {
+		result = test_double(argv + 1);
+		break;
+	    }
+	    /* falls thru! */
+	default:
+	    state.args = argv;
+	    state.argc = argc;
+	    state.index = 0;
+	    result = test_long_or(&state);
+	    if (!test_error && state.index < state.argc) {
+		xerror(0, Ngt("%ls: invalid operator"),
+			(const wchar_t *) state.args[state.index]);
+		test_error = true;
+	    }
+	    break;
     }
 
-    for (int i = 0; i < argc; i++)
-	free(args[i]);
     return test_error ? Exit_TESTERROR : result ? Exit_TRUE : Exit_FALSE;
 }
 
 /* Tests the specified one-token expression. */
-bool test_single(char *args[static 1])
+bool test_single(void *args[static 1])
 {
-    return args[0][0] != '\0';
+    const wchar_t *arg0 = args[0];
+    return arg0[0] != L'\0';
 }
 
 /* Tests the specified two-token expression. */
-bool test_double(char *args[static 2])
+bool test_double(void *args[static 2])
 {
-    if (strcmp(args[0], "!") == 0)
+    const wchar_t *op = args[0], *arg = args[1];
+
+    if (wcscmp(op, L"!") == 0)
 	return !test_single(args + 1);
-    if (xstrnlen(args[0], 3) != 2 || args[0][0] != '-') {
-	xerror(0, Ngt("`%s %s': not a unary operation"), args[0], args[1]);
+    if (!is_unary_primary(op)) {
+	xerror(0, Ngt("%ls: not a unary operator"), op);
 	test_error = true;
 	return 0;
     }
 
-    switch (args[0][1]) {
-	case 'n':  return args[1][0] != '\0';
-	case 'z':  return args[1][0] == '\0';
-	case 't':
+    switch (op[1]) {
+	case L'n':  return arg[0] != L'\0';
+	case L'z':  return arg[0] == L'\0';
+	case L't':
 	    {
 		int fd;
-		return xstrtoi(args[1], 10, &fd) && isatty(fd);
+		return xwcstoi(arg, 10, &fd) && isatty(fd);
 	    }
+    }
+
+    char *mbsarg = malloc_wcstombs(arg);
+    if (!mbsarg) {
+	xerror(0, Ngt("unexpected error"));
+	test_error = true;
+	return 0;
+    }
+
+    bool result = test_file(op[1], mbsarg);
+    free(mbsarg);
+    return result;
+}
+
+/* An auxiliary function for file type checking. */
+bool test_file(wchar_t type, const char *file) {
+    switch (type) {
+	case L'd':  return is_directory(file);
+	case L'e':  return is_file(file);
+	case L'f':  return is_regular_file(file);
+	case L'r':  return is_readable(file);
+	case L'w':  return is_writable(file);
+	case L'x':  return is_executable(file);
     }
 
     struct stat st;
-    switch (args[0][1]) {
-	case 'd':  return is_directory(args[1]);
-	case 'e':  return is_file(args[1]);
-	case 'f':  return is_regular_file(args[1]);
-	case 'r':  return is_readable(args[1]);
-	case 'w':  return is_writable(args[1]);
-	case 'x':  return is_executable(args[1]);
-	case 'b':
-	    return (stat(args[1], &st) == 0) && S_ISBLK(st.st_mode);
-	case 'c':
-	    return (stat(args[1], &st) == 0) && S_ISCHR(st.st_mode);
-	case 'g':
-	    return (stat(args[1], &st) == 0) && (st.st_mode & S_ISGID);
-	case 'h':  case 'L':
-	    return (lstat(args[1], &st) == 0) && S_ISLNK(st.st_mode);
-	case 'k':
-#if HAVE_S_ISVTX
-	    return (stat(args[1], &st) == 0) && (st.st_mode & S_ISVTX);
-#else
-	    return false;
+    if (type == L'h' || type == L'L')
+	return (lstat(file, &st) == 0) && S_ISLNK(st.st_mode);
+#if !HAVE_S_ISVTX
+    if (type == L'k')
+	return false;
 #endif
-	case 'p':
-	    return (stat(args[1], &st) == 0) && S_ISFIFO(st.st_mode);
-	case 'S':
-	    return (stat(args[1], &st) == 0) && S_ISSOCK(st.st_mode);
-	case 's':
-	    return (stat(args[1], &st) == 0) && st.st_size > 0;
-	case 'u':
-	    return (stat(args[1], &st) == 0) && (st.st_mode & S_ISUID);
-	default:
-	    xerror(0, Ngt("`%s': invalid operator"), args[0]);
-	    test_error = true;
-	    return false;
+    if (stat(file, &st) < 0)
+	return false;
+
+    switch (type) {
+	case L'b':
+	    return S_ISBLK(st.st_mode);
+	case L'c':
+	    return S_ISCHR(st.st_mode);
+	case L'g':
+	    return st.st_mode & S_ISGID;
+#if HAVE_S_ISVTX
+	case L'k':
+	    return st.st_mode & S_ISVTX;
+#endif
+	case L'p':
+	    return S_ISFIFO(st.st_mode);
+	case L'S':
+	    return S_ISSOCK(st.st_mode);
+	case L's':
+	    return st.st_size > 0;
+	case L'u':
+	    return st.st_mode & S_ISUID;
     }
+
+    assert(false);
 }
 
 /* Tests the specified three-token expression. */
-bool test_triple(char *args[static 3])
+bool test_triple(void *args[static 3])
 {
-    /* first, check if args[1] is a binary primary operator */
-    if (strcmp(args[1], "=") == 0)
-	return strcmp(args[0], args[2]) == 0;
-    if (strcmp(args[1], "!=") == 0)
-	return strcmp(args[0], args[2]) != 0;
-    if (args[1][0] != '-')
+    const wchar_t *left = args[0], *op = args[1], *right = args[2];
+
+    if (wcscmp(op, L"=") == 0)
+	return wcscmp(left, right) == 0;
+    if (wcscmp(op, L"!=") == 0)
+	return wcscmp(left, right) != 0;
+    if (op[0] != L'-')
 	goto not_binary;
-    switch (xstrnlen(args[1], 4)) {
-	case 2:
-	    if (args[1][1] == 'a')
-		return test_single(args) && test_single(args + 2);
-	    if (args[1][1] == 'o')
-		return test_single(args) || test_single(args + 2);
+
+    switch (op[1]) {
+    case L'a':
+	if (op[2] == L'\0') return test_single(args) && test_single(args + 2);
+	break;
+    case L'o':
+	if (op[2] == L'\0') return test_single(args) || test_single(args + 2);
+	if (op[2] == L't')
+	    if (op[3] == L'\0') return compare_files(left, right) == FC_OLDER;
+	break;
+    case L'e':
+	switch (op[2]) {
+	case L'f':
+	    if (op[3] == L'\0') return compare_files(left, right) == FC_ID;
 	    break;
-	case 3:
-	    switch (args[1][1]) {
-		case 'e':
-		    if (args[1][2] == 'f')
-			return is_same_file(args[0], args[2]);
-		    if (args[1][2] == 'q')
-			return compare_integers(args[0], args[2]) == 0;
-		    goto not_binary;
-		case 'g':
-		    if (args[1][2] == 't')
-			return compare_integers(args[0], args[2]) > 0;
-		    if (args[1][2] == 'e')
-			return compare_integers(args[0], args[2]) >= 0;
-		    goto not_binary;
-		case 'l':
-		    if (args[1][2] == 't')
-			return compare_integers(args[0], args[2]) < 0;
-		    if (args[1][2] == 'e')
-			return compare_integers(args[0], args[2]) <= 0;
-		    goto not_binary;
-		case 'n':
-		    if (args[1][2] == 'e')
-			return compare_integers(args[0], args[2]) != 0;
-		    if (args[1][2] == 't')
-			return compare_files(args[0], args[2]) == 1;
-		    goto not_binary;
-		case 'o':
-		    if (args[1][2] == 't')
-			return compare_files(args[0], args[2]) == -1;
-		    goto not_binary;
-	    }
+	case L'q':
+	    if (op[3] == L'\0') return compare_integers(left, right) == 0;
+	    break;
+	}
+	break;
+    case L'n':
+	switch (op[2]) {
+	case L'e':
+	    if (op[3] == L'\0') return compare_integers(left, right) != 0;
+	    break;
+	case L't':
+	    if (op[3] == L'\0') return compare_files(left, right) == FC_NEWER;
+	    break;
+	}
+	break;
+    case L'g':
+	switch (op[2]) {
+	case L't':
+	    if (op[3] == L'\0') return compare_integers(left, right) > 0;
+	    break;
+	case L'e':
+	    if (op[3] == L'\0') return compare_integers(left, right) >= 0;
+	    break;
+	}
+	break;
+    case L'l':
+	switch (op[2]) {
+	case L't':
+	    if (op[3] == L'\0') return compare_integers(left, right) < 0;
+	    break;
+	case L'e':
+	    if (op[3] == L'\0') return compare_integers(left, right) <= 0;
+	    break;
+	}
+	break;
     }
 
 not_binary:
-    if (strcmp(args[0], "!") == 0)
+    if (wcscmp(left, L"!") == 0)
 	return !test_double(args + 1);
-    if (strcmp(args[0], "(") == 0 && strcmp(args[2], ")") == 0)
+    if (wcscmp(left, L"(") == 0 && wcscmp(right, L")") == 0)
 	return test_single(args + 1);
 
-    xerror(0, Ngt("`%s %s %s': invalid expression"), args[0], args[1], args[2]);
+    xerror(0, Ngt("%ls: not a binary operator"), op);
     test_error = true;
     return 0;
 }
@@ -253,91 +285,91 @@ not_binary:
  */
 
 /* Tests the specified long expression using `state'. */
-bool test_long_or(void)
+bool test_long_or(struct test_state *state)
 {
     bool result;
 
-    result = test_long_and();
-    while (state.index < state.length
-	    && strcmp(state.args[state.index], "-o") == 0) {
-	state.index++;
-	result |= test_long_and();
+    result = test_long_and(state);
+    while (!test_error && state->index < state->argc
+	    && wcscmp(state->args[state->index], L"-o") == 0) {
+	state->index++;
+	result |= test_long_and(state);
     }
     return result;
 }
 
 /* Tests the specified long expression using `state'. */
-bool test_long_and(void)
+bool test_long_and(struct test_state *state)
 {
     bool result;
 
-    result = test_long_term();
-    while (state.index < state.length
-	    && strcmp(state.args[state.index], "-a") == 0) {
-	state.index++;
-	result &= test_long_term();
+    result = test_long_term(state);
+    while (!test_error && state->index < state->argc
+	    && wcscmp(state->args[state->index], L"-a") == 0) {
+	state->index++;
+	result &= test_long_term(state);
     }
     return result;
 }
 
 /* Tests the specified long expression using `state'. */
-bool test_long_term(void)
+bool test_long_term(struct test_state *state)
 {
     bool result;
     bool negate = false;
 
-    if (state.index < state.length
-	    && strcmp(state.args[state.index], "!") == 0) {
-	state.index++;
+    if (state->index < state->argc
+	    && wcscmp(state->args[state->index], L"!") == 0) {
+	state->index++;
 	negate = true;
     }
-    if (state.index >= state.length) {
-	assert(state.length > 0);
-	xerror(0, Ngt("expression missing after `%s'"),
-		state.args[state.index - 1]);
+    if (state->index >= state->argc) {
+	assert(state->argc > 0);
+	xerror(0, Ngt("expression missing after `%ls'"),
+		(const wchar_t *) state->args[state->index - 1]);
 	test_error = true;
 	return 0;
     }
-    if (strcmp(state.args[state.index], "(") == 0) {
-	state.index++;
-	result = test_long_or();
-	if (state.index >= state.length
-		|| strcmp(state.args[state.index], ")") != 0) {
+    if (wcscmp(state->args[state->index], L"(") == 0) {
+	state->index++;
+	result = test_long_or(state);
+	if (state->index >= state->argc
+		|| wcscmp(state->args[state->index], L")") != 0) {
 	    xerror(0, Ngt("`%ls' missing"), L")");
 	    test_error = true;
 	    return 0;
 	}
-	state.index++;
-    } else if (state.index + 3 <= state.length
-	    && is_binary_primary(state.args[state.index + 1])
-	    && (state.index + 3 >= state.length
-		|| is_term_delimiter(state.args[state.index + 3]))) {
-	result = test_triple(state.args + state.index);
-	state.index += 3;
-    } else if (state.index + 2 <= state.length
-	    && is_unary_primary(state.args[state.index])
-	    && (state.index + 2 >= state.length
-		|| is_term_delimiter(state.args[state.index + 2]))) {
-	result = test_double(state.args + state.index);
-	state.index += 2;
+	state->index++;
+    } else if (state->index + 3 <= state->argc
+	    && is_binary_primary(state->args[state->index + 1])
+	    && (state->index + 3 >= state->argc
+		|| is_term_delimiter(state->args[state->index + 3]))) {
+	result = test_triple(state->args + state->index);
+	state->index += 3;
+    } else if (state->index + 2 <= state->argc
+	    && is_unary_primary(state->args[state->index])
+	    && (state->index + 2 >= state->argc
+		|| is_term_delimiter(state->args[state->index + 2]))) {
+	result = test_double(state->args + state->index);
+	state->index += 2;
     } else {
-	result = test_single(state.args + state.index);
-	state.index += 1;
+	result = test_single(state->args + state->index);
+	state->index += 1;
     }
     return result ^ negate;
 }
 
 /* Checks if `word' is a unary primary operator. */
 /* Note that "!" is not a primary operator. */
-bool is_unary_primary(const char *word)
+bool is_unary_primary(const wchar_t *word)
 {
-    if (xstrnlen(word, 3) != 2 || word[0] != '-')
+    if (word[0] != L'-' || word[1] == L'\0' || word[2] != L'\0')
 	return false;
     switch (word[1]) {
-	case 'b':  case 'c':  case 'd':  case 'e':  case 'f':  case 'g':
-	case 'h':  case 'k':  case 'L':  case 'n':  case 'p':  case 'r':
-	case 'S':  case 's':  case 't':  case 'u':  case 'w':  case 'x':
-	case 'z':
+	case L'b':  case L'c':  case L'd':  case L'e':  case L'f':  case L'g':
+	case L'h':  case L'k':  case L'L':  case L'n':  case L'p':  case L'r':
+	case L'S':  case L's':  case L't':  case L'u':  case L'w':  case L'x':
+	case L'z':
 	    return true;
 	default:
 	    return false;
@@ -346,87 +378,127 @@ bool is_unary_primary(const char *word)
 
 /* Checks if `word' is a binary primary operator.
  * This function returns false for "-a" and "-o". */
-bool is_binary_primary(const char *word)
+bool is_binary_primary(const wchar_t *word)
 {
-    if (strcmp(word, "=") == 0 || strcmp(word, "!=") == 0)
+    if (wcscmp(word, L"=") == 0 || wcscmp(word, L"!=") == 0)
 	return true;
-    if (word[0] != '-')
-	return false;
-    if (xstrnlen(word, 4) != 3)
+    if (word[0] != L'-')
 	return false;
     switch (word[1]) {
-	case 'e':
-	    return word[2] == 'f' || word[2] == 'q';
-	case 'g':  case 'l':
-	    return word[2] == 't' || word[2] == 'e';
-	case 'n':
-	    return word[2] == 'e' || word[2] == 't';
-	case 'o':
-	    return word[2] == 't';
-	default:
-	    return false;
+	case L'e':
+	    switch (word[2]) {
+		case L'f':
+		case L'q':
+		    return word[3] == L'\0';
+	    }
+	    break;
+	case L'n':
+	case L'g':
+	case L'l':
+	    switch (word[2]) {
+		case L't':
+		case L'e':
+		    return word[3] == L'\0';
+	    }
+	    break;
+	case L'o':
+	    return word[2] == L't' && word[3] == L'\0';
     }
+    return false;
 }
 
 /* Checks if `word' is a term delimiter:
  * one of ")", "-a", "-o". */
-bool is_term_delimiter(const char *word)
+bool is_term_delimiter(const wchar_t *word)
 {
-    return (word[0] == ')' && !word[1])
-	|| (word[0] == '-' && (word[1] == 'a' || word[1] == 'o') && !word[2]);
+    switch (word[0]) {
+	case L')':
+	    return word[1] == L'\0';
+	case L'-':
+	    switch (word[1]) {
+		case L'a':
+		case L'o':
+		    return word[2] == L'\0';
+	    }
+	    break;
+    }
+    return false;
 }
 
-/* Converts two strings into integers and compares them.
+/* Converts the specified two strings into integers and compares them.
  * Returns -1, 0, 1 if the first integer is less than, equal to, or greater than
- * the second respectively. */
-int compare_integers(const char *word1, const char *word2)
+ * the second, respectively. */
+int compare_integers(const wchar_t *left, const wchar_t *right)
 {
-    intmax_t i1, i2;
-    char *end;
+    intmax_t il, ir;
+    wchar_t *end;
 
     errno = 0;
-    i1 = strtoimax(word1, &end, 10);
-    if (errno || !word1[0] || *end) {
-	xerror(errno, Ngt("`%s' is not a valid integer"), word1);
+    il = wcstoimax(left, &end, 10);
+    if (errno || !left[0] || *end) {
+	xerror(errno, Ngt("`%ls' is not a valid integer"), left);
 	test_error = true;
-	return false;
+	return 0;
     }
     errno = 0;
-    i2 = strtoimax(word2, &end, 10);
-    if (errno || !word2[0] || *end) {
-	xerror(errno, Ngt("`%s' is not a valid integer"), word2);
+    ir = wcstoimax(right, &end, 10);
+    if (errno || !right[0] || *end) {
+	xerror(errno, Ngt("`%ls' is not a valid integer"), right);
 	test_error = true;
-	return false;
+	return 0;
     }
-    if (i1 < i2)
+    if (il < ir)
 	return -1;
-    else if (i1 > i2)
+    else if (il > ir)
 	return 1;
     else
 	return 0;
 }
 
-/* Compares the modification time of two files.
- * Returns -1, 0, 1 if `file1' is older than, as new as, or newer than `file2'
- * respectively. If `file1' and/or `file2' do not exists, returns -2. */
-int compare_files(const char *file1, const char *file2)
+/* Compares the specified two files.
+ * Returns one of the followings:
+ *   FC_ID:       the two files have the same inode
+ *   FC_SAME:     different inodes, the same modification time
+ *   FC_NEWER:    `left' has the modification time newer than `right'
+ *   FC_OLDER:    `left' has the modification time older than `right'
+ *   FC_UNKNOWN:  comparison error
+ */
+enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 {
-    time_t t1, t2;
-    struct stat st;
+    char *mbsfile;
+    struct stat sl, sr;
+    int statresult;
 
-    if (stat(file1, &st) < 0)
-	return -2;
-    t1 = st.st_mtime;
-    if (stat(file2, &st) < 0)
-	return -2;
-    t2 = st.st_mtime;
+    mbsfile = malloc_wcstombs(left);
+    if (!mbsfile) {
+	xerror(0, Ngt("unexpected error"));
+	test_error = true;
+	return FC_UNKNOWN;
+    }
+    statresult = stat(mbsfile, &sl);
+    free(mbsfile);
+    if (statresult < 0)
+	return FC_UNKNOWN;
 
-    if (t1 < t2)
-	return -1;
-    else if (t1 > t2)
-	return 1;
+    mbsfile = malloc_wcstombs(right);
+    if (!mbsfile) {
+	xerror(0, Ngt("unexpected error"));
+	test_error = true;
+	return FC_UNKNOWN;
+    }
+    statresult = stat(mbsfile, &sr);
+    free(mbsfile);
+    if (statresult < 0)
+	return FC_UNKNOWN;
+
+    if (sl.st_dev == sr.st_dev && sl.st_ino == sr.st_ino)
+	return FC_ID;
+    else if (sl.st_mtime < sr.st_mtime)
+	return FC_OLDER;
+    else if (sl.st_mtime > sr.st_mtime)
+	return FC_NEWER;
     else
-	return 0;
+	return FC_SAME;
 }
 
 #if YASH_ENABLE_HELP
