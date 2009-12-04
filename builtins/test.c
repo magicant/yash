@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 #include "../path.h"
 #include "../plist.h"
 #include "../strbuf.h"
@@ -66,6 +67,8 @@ static bool is_term_delimiter(const wchar_t *word)
     __attribute__((nonnull,pure));
 static int compare_integers(const wchar_t *left, const wchar_t *right)
     __attribute__((nonnull,pure));
+static int compare_versions(const wchar_t *left, const wchar_t *right)
+    __attribute__((nonnull));
 static enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     __attribute__((nonnull));
 
@@ -266,6 +269,38 @@ bool test_triple(void *args[static 3])
 	    break;
 	}
 	break;
+    case L'v':
+	switch (op[2]) {
+	case L'e':
+	    if (op[3] == L'q' && op[4] == L'\0')
+		return compare_versions(left, right) == 0;
+	    break;
+	case L'n':
+	    if (op[3] == L'e' && op[4] == L'\0')
+		return compare_versions(left, right) != 0;
+	    break;
+	case L'g':
+	    switch (op[3]) {
+	    case L't':
+		if (op[4] == L'\0') return compare_versions(left, right) > 0;
+		break;
+	    case L'e':
+		if (op[4] == L'\0') return compare_versions(left, right) >= 0;
+		break;
+	    }
+	    break;
+	case L'l':
+	    switch (op[3]) {
+	    case L't':
+		if (op[4] == L'\0') return compare_versions(left, right) < 0;
+		break;
+	    case L'e':
+		if (op[4] == L'\0') return compare_versions(left, right) <= 0;
+		break;
+	    }
+	    break;
+	}
+	break;
     }
 
 not_binary:
@@ -403,6 +438,22 @@ bool is_binary_primary(const wchar_t *word)
 	    break;
 	case L'o':
 	    return word[2] == L't' && word[3] == L'\0';
+	case L'v':
+	    switch (word[2]) {
+		case L'e':
+		    return word[3] == L'q' && word[4] == L'\0';
+		case L'n':
+		    return word[3] == L'e' && word[4] == L'\0';
+		case L'g':
+		case L'l':
+		    switch (word[3]) {
+			case L't':
+			case L'e':
+			    return word[4] == L'\0';
+		    }
+		    break;
+	    }
+	    break;
     }
     return false;
 }
@@ -453,6 +504,43 @@ int compare_integers(const wchar_t *left, const wchar_t *right)
 	return 1;
     else
 	return 0;
+}
+
+/* Compares the specified two strings as version numbers.
+ * Returns a value less than, equal to, and greater than zero if the first is
+ * less than, equal to, and greater than the second, respectively. */
+int compare_versions(const wchar_t *left, const wchar_t *right)
+{
+    for (;;) {
+	bool leftisdigit = iswdigit(*left), rightisdigit = iswdigit(*right);
+	if (leftisdigit && rightisdigit) {
+	    uintmax_t il, ir;
+
+	    il = wcstoumax(left,  (wchar_t **) &left,  10);
+	    ir = wcstoumax(right, (wchar_t **) &right, 10);
+	    if (il > ir)
+		return 1;
+	    if (il < ir)
+		return -1;
+	} else if (leftisdigit) {
+	    return 1;
+	} else if (rightisdigit) {
+	    return -1;
+	}
+
+	bool leftisalnum = iswalnum(*left), rightisalnum = iswalnum(*right);
+	if (leftisalnum && !rightisalnum)
+	    return 1;
+	if (!leftisalnum && rightisalnum)
+	    return -1;
+
+	if (*left != *right)
+	    return wcscoll(left, right);
+	if (*left == L'\0')
+	    return 0;
+
+	left++, right++;
+    }
 }
 
 /* Compares the specified two files.

@@ -230,6 +230,44 @@ tt gid -ef reglink
 
 echo =====
 
+tt "" -veq ""
+tt "" -vne ""
+tt "" -vgt ""
+tt "" -vge ""
+tt "" -vlt ""
+tt "" -vle ""
+tt 0 -veq 0
+tt 0 -vne 0
+tt 0 -vgt 0
+tt 0 -vge 0
+tt 0 -vlt 0
+tt 0 -vle 0
+tt 0 -veq 1
+tt 0 -vne 1
+tt 0 -vgt 1
+tt 0 -vge 1
+tt 0 -vlt 1
+tt 0 -vle 1
+tt 1 -veq 0
+tt 1 -vne 0
+tt 1 -vgt 0
+tt 1 -vge 0
+tt 1 -vlt 0
+tt 1 -vle 0
+tt 01 -veq 0001
+tt 02 -vle 0100
+tt .%=01 -veq .%=0001
+tt .%=02 -vle .%=0100
+tt 0.01.. -veq 0.1..
+tt 0.01.0 -vlt 0.1..
+tt 0.01.0 -vlt 0.1.:
+tt 0.01.0 -veq 0.1.
+tt 0.01.0 -vle 0.1.a0
+tt 1.2.3 -vle 1.3.2
+tt -2 -vle -3
+
+echo =====
+
 tt "" -a ""
 tt "" -a 1
 tt 1 -a ""

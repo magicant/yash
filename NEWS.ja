@@ -11,6 +11,8 @@ Yash 更新履歴
 Yash 2.17
 
   +  --le-visiblebell オプション
+  +  "test" 組込み: バージョン比較演算子 (-veq, -vne, -vgt, -vge,
+     -vlt, -vle)
   +  行編集: "eof" コマンド
   =  "typeset" 組込みをオペランドなしで実行したとき、-g オプションが
      なければローカル変数のみ表示するように
