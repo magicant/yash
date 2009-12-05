@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.18
+
+  +  New operators for string comparison in the "test" builtin:
+     ==, ===, !==, <, <=, >, >=
+
+----------------------------------------------------------------------
 Yash 2.17
 
   +  '--le-visiblebell' option.

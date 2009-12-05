@@ -158,6 +158,14 @@ tt abcde = 12345
 tt ! = !
 tt = = =
 tt "(" = ")"
+tt "" == ""
+tt 1 == 1
+tt abcde == abcde
+tt 0 == 1
+tt abcde == 12345
+tt ! == !
+tt == == ==
+tt "(" == ")"
 tt "" != ""
 tt 1 != 1
 tt abcde != abcde
@@ -166,6 +174,12 @@ tt abcde != 12345
 tt ! != !
 tt != != !=
 tt "(" != ")"
+tt a === a
+tt a !== a
+tt a '<' a
+tt a '<=' a
+tt a '>' a
+tt a '>=' a
 tt ! -n ""
 tt ! -n 0
 tt ! -n 1

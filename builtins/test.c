@@ -213,13 +213,38 @@ bool test_triple(void *args[static 3])
 {
     const wchar_t *left = args[0], *op = args[1], *right = args[2];
 
-    if (wcscmp(op, L"=") == 0)
-	return wcscmp(left, right) == 0;
-    if (wcscmp(op, L"!=") == 0)
-	return wcscmp(left, right) != 0;
-    if (op[0] != L'-')
-	goto not_binary;
+    switch (op[0]) {
+	case L'=':
+	    if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
+		return wcscmp(left, right) == 0;
+	    if (op[1] == L'=' && op[2] == L'=' && op[3] == L'\0')
+		return wcscoll(left, right) == 0;
+	    goto not_binary;
+	case L'!':
+	    if (op[1] == L'=' && op[2] == L'\0')
+		return wcscmp(left, right) != 0;
+	    if (op[1] == L'=' && op[2] == L'=' && op[3] == L'\0')
+		return wcscoll(left, right) != 0;
+	    goto not_binary;
+	case L'<':
+	    if (op[1] == L'\0')
+		return wcscoll(left, right) < 0;
+	    if (op[1] == L'=' && op[2] == L'\0')
+		return wcscoll(left, right) <= 0;
+	    goto not_binary;
+	case L'>':
+	    if (op[1] == L'\0')
+		return wcscoll(left, right) > 0;
+	    if (op[1] == L'=' && op[2] == L'\0')
+		return wcscoll(left, right) >= 0;
+	    goto not_binary;
+	case L'-':
+	    break;
+	default:
+	    goto not_binary;
+    }
 
+    assert(op[0] == L'-');
     switch (op[1]) {
     case L'a':
 	if (op[2] == L'\0') return test_single(args) && test_single(args + 2);
@@ -415,10 +440,25 @@ bool is_unary_primary(const wchar_t *word)
  * This function returns false for "-a" and "-o". */
 bool is_binary_primary(const wchar_t *word)
 {
-    if (wcscmp(word, L"=") == 0 || wcscmp(word, L"!=") == 0)
-	return true;
-    if (word[0] != L'-')
-	return false;
+    switch (word[0]) {
+	case L'=':
+	    if (word[1] == L'\0')
+		return true;
+	    /* falls thru! */
+	case L'!':
+	    if (word[1] != L'=')
+		return false;
+	    return (word[2] == L'\0') || (word[2] == L'=' && word[3] == L'\0');
+	case L'<':
+	case L'>':
+	    return (word[1] == L'\0') || (word[1] == L'=' && word[2] == L'\0');
+	case L'-':
+	    break;
+	default:
+	    return false;
+    }
+
+    assert(word[0] == L'-');
     switch (word[1]) {
 	case L'e':
 	    switch (word[2]) {

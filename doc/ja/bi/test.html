@@ -86,9 +86,22 @@
 <p>文字列に関する判定を行う二項演算子は以下の通りです。
 <dl>
 <dt><code><var>文字列<sub>1</sub></var> = <var>文字列<sub>2</sub></var></code>
+<dt><code><var>文字列<sub>1</sub></var> == <var>文字列<sub>2</sub></var></code>
 <dd>二つの文字列が同じ文字列かどうか
 <dt><code><var>文字列<sub>1</sub></var> != <var>文字列<sub>2</sub></var></code>
 <dd>二つの文字列が異なる文字列かどうか
+<dt><code><var>文字列<sub>1</sub></var> === <var>文字列<sub>2</sub></var></code>
+<dd>二つの文字列が同じ文字列かどうか (現在のロケールに従った辞書式順序での比較)
+<dt><code><var>文字列<sub>1</sub></var> !== <var>文字列<sub>2</sub></var></code>
+<dd>二つの文字列が異なる文字列かどうか (現在のロケールに従った辞書式順序での比較)
+<dt><code><var>文字列<sub>1</sub></var> &lt; <var>文字列<sub>2</sub></var></code>
+<dd>現在のロケールにおいて、一つ目の文字列が二つ目の文字列より辞書式順序で手前に来るかどうか。
+<dt><code><var>文字列<sub>1</sub></var> &lt;= <var>文字列<sub>2</sub></var></code>
+<dd>現在のロケールにおいて、一つ目の文字列が二つ目の文字列より辞書式順序で手前に来るあるいは等しいかどうか。
+<dt><code><var>文字列<sub>1</sub></var> > <var>文字列<sub>2</sub></var></code>
+<dd>現在のロケールにおいて、一つ目の文字列が二つ目の文字列より辞書式順序で後に来るかどうか。
+<dt><code><var>文字列<sub>1</sub></var> >= <var>文字列<sub>2</sub></var></code>
+<dd>現在のロケールにおいて、一つ目の文字列が二つ目の文字列より辞書式順序で後に来るあるいは等しいかどうか。
 </dl>
 <p>整数に関する判定を行う二項演算子は以下の通りです。
 <dl>
@@ -142,4 +155,4 @@
 
 <h2 id="notes">補足</h2>
 <p>複雑な判定式は誤って解釈されることがあるので避けることをお勧めします。例えば <code>[ 1 -eq 1 -a -t = 1 -a ! foo ]</code> は <code>[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]</code> のようにコマンドを分けると式がより明確になります。
-<p>POSIX は、エラーが発生した場合の終了ステータスを<q>2 以上</q>と定めています。また POSIX には以下の演算子の規定はありません: <code>-nt</code>, <code>-ot</code>, <code>-ef</code>, <code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, <code>-vle</code>。
+<p>POSIX は、エラーが発生した場合の終了ステータスを<q>2 以上</q>と定めています。また POSIX には以下の演算子の規定はありません: <code>-nt</code>, <code>-ot</code>, <code>-ef</code>, <code>==</code>, <code>===</code>, <code>!==</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>></code>, <code>>=</code>, <code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, <code>-vle</code>。
