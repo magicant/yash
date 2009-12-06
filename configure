@@ -679,7 +679,10 @@ then
     cat >"${tempsrc}" <<END
 #include "${configh}"
 #include <signal.h>
-extern char *strsignal(int);
+#include <string.h>
+#ifndef strsignal
+char *strsignal(int);
+#endif
 int main() { (void) strsignal(SIGKILL); }
 END
     trymake
