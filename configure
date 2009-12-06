@@ -654,20 +654,42 @@ then
     defconfigh "HAVE_WCONTINUED"
 fi
 
-# check for eaccess
-checking 'for eaccess' eaccess
-if ! getcache
+# check for faccessat/eaccess
+if
+    checking 'for faccessat' faccessat
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <fcntl.h>
+#include <unistd.h>
+#ifndef faccessat
+extern int faccessat(int, const char *, int, int);
+#endif
+int main() { faccessat(AT_FDCWD, ".", F_OK | R_OK | W_OK | X_OK, AT_EACCESS); }
+END
+	trymake
+    fi
+    checked
+    [ x"${checkresult}" = x"yes" ]
 then
-    cat >"${tempsrc}" <<END
+    defconfigh "HAVE_FACCESSAT"
+elif
+    checking 'for eaccess' eaccess
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
 #include "${configh}"
 #include <unistd.h>
+#ifndef eaccess
 extern int eaccess(const char *, int);
-int main() { (void) eaccess(".", F_OK | R_OK | W_OK | X_OK); }
+#endif
+int main() { eaccess(".", F_OK | R_OK | W_OK | X_OK); }
 END
-    trymake
-fi
-checked
-if [ x"${checkresult}" = x"yes" ]
+	trymake
+    fi
+    checked
+    [ x"${checkresult}" = x"yes" ]
 then
     defconfigh "HAVE_EACCESS"
 fi
