@@ -12,6 +12,8 @@ Yash 2.18
 
   +  New operators for string comparison in the "test" builtin:
      ==, ===, !==, <, <=, >, >=
+  +  Operators "-nt" and "-ot" in the "test" builtin now compares the
+     modification time by the nanoseconds if possible.
 
 ----------------------------------------------------------------------
 Yash 2.17

@@ -625,6 +625,22 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 	return FC_OLDER;
     else if (sl.st_mtime > sr.st_mtime)
 	return FC_NEWER;
+#if HAVE_ST_MTIM
+    else if (sl.st_mtim.tv_nsec < sr.st_mtim.tv_nsec)
+	return FC_OLDER;
+    else if (sl.st_mtim.tv_nsec > sr.st_mtim.tv_nsec)
+	return FC_NEWER;
+#elif HAVE_ST_MTIMESPEC
+    else if (sl.st_mtimespec.tv_nsec < sr.st_mtimespec.tv_nsec)
+	return FC_OLDER;
+    else if (sl.st_mtimespec.tv_nsec > sr.st_mtimespec.tv_nsec)
+	return FC_NEWER;
+#elif HAVE_ST_MTIMENSEC
+    else if (sl.st_mtimensec < sr.st_mtimensec)
+	return FC_OLDER;
+    else if (sl.st_mtimensec > sr.st_mtimensec)
+	return FC_NEWER;
+#endif
     else
 	return FC_SAME;
 }
