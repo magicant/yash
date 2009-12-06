@@ -373,6 +373,7 @@ fi
 if
     checking 'whether the compiler works'
     cat >"${tempsrc}" <<END
+#include "${configh}"
 int main() { return 0; }
 END
     trymake && tryexec
@@ -380,7 +381,7 @@ then
     checked "yes"
 else
     checked "no"
-    printf 'Compiler "%s" is not found or not working.\n' "${cc}" >&2
+    printf 'Compiler "%s" not found or not working.\n' "${cc}" >&2
     if [ x"${cc}" = x"c99" ]
     then
 	echo "If you have gcc, try: ./configure CC='gcc -std=c99'" >&2
@@ -396,6 +397,7 @@ then
 	savecflags=${cflags}
 	cflags="-O2 -g"
 	cat >"${tempsrc}" <<END
+#include "${configh}"
 int main() { return 0; }
 END
 	trycompile
@@ -419,8 +421,7 @@ then
 	checked
     elif
 	cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #define _XOPEN_SOURCE_EXTENDED 1
 #include <stdio.h>
 #include <curses.h>
@@ -502,8 +503,7 @@ checking 'for strnlen' strnlen
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #include <string.h>
 #ifndef strnlen
 size_t strnlen(const char*, size_t);
@@ -523,8 +523,7 @@ checking 'for wcsnlen' wcsnlen
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #include <wchar.h>
 #ifndef wcsnlen
 size_t wcsnlen(const wchar_t*, size_t);
@@ -544,7 +543,7 @@ checking 'for wcwidth' wcwidth
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE ${xopen:-1}
+#include "${configh}"
 #include <wchar.h>
 int main() { return wcwidth(L'\0'); }
 END
@@ -561,8 +560,7 @@ checking 'if <sys/stat.h> defines S_ISVTX' S_ISVTX
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #include <sys/stat.h>
 int main() { return S_ISVTX & 0; }
 END
@@ -639,8 +637,7 @@ checking 'for WCONTINUED and WIFCONTINUED' WCONTINUED
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #include <errno.h>
 #include <sys/wait.h>
 static int s;
@@ -662,8 +659,7 @@ checking 'for eaccess' eaccess
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #include <unistd.h>
 extern int eaccess(const char *, int);
 int main() { (void) eaccess(".", F_OK | R_OK | W_OK | X_OK); }
@@ -681,8 +677,7 @@ checking 'for strsingal' strsignal
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #include <signal.h>
 extern char *strsignal(int);
 int main() { (void) strsignal(SIGKILL); }
@@ -700,6 +695,7 @@ checking 'for paths.h' paths.h
 if ! getcache
 then
     cat >"${tempsrc}" <<END
+#include "${configh}"
 #include <paths.h>
 #include <stdio.h>
 int main() { printf("%s\n", _PATH_BSHELL); }
@@ -717,8 +713,7 @@ checking "if getcwd(NULL,0) returns malloc'ed string" getcwd:automalloc
 if ! getcache
 then
     cat >"${tempsrc}" <<END
-#define _POSIX_C_SOURCE ${posix:-1}L
-#define _XOPEN_SOURCE   ${xopen:-1}
+#include "${configh}"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -763,6 +758,7 @@ if [ x"${enable_lineedit}" = x"yes" ]; then
     if ! getcache
     then
 	cat >"${tempsrc}" <<END
+#include "${configh}"
 #include <sys/ioctl.h>
 int main() {
     struct winsize ws;
@@ -784,6 +780,7 @@ checking 'if wide-oriented I/O is fully working' wideio:working
 if ! getcache
 then
     cat >"${tempsrc}" <<END
+#include "${configh}"
 #include <stdio.h>
 #include <wchar.h>
 #define LEN 12345
@@ -894,7 +891,7 @@ then
     if ! getcache
     then
 	cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE ${xopen:-1}
+#include "${configh}"
 #include <sys/resource.h>
 int main() {
 struct rlimit l;
@@ -928,7 +925,6 @@ then
 	if ! getcache
 	then
 	    cat >"${tempsrc}" <<END
-#define _XOPEN_SOURCE ${xopen:-1}
 #include "${configh}"
 #include <sys/resource.h>
 int main() { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
