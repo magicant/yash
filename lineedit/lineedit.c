@@ -185,7 +185,8 @@ void reader_finalize(void)
 
 /* Reads the next byte from the standard input and take all the corresponding
  * actions.
- * May return without doing anything if a signal is caught, etc.
+ * May return without doing anything if a signal was caught, if the shell was
+ * interrupted, etc.
  * The caller must check `le_state' after this function returned. This function
  * should be called repeatedly while `le_state' is LE_STATE_EDITING. */
 void read_next(void)

@@ -93,9 +93,9 @@ special privilege about file access.
 
 #define SHELLFDMINMAX 100
 This macro must be defined as an integer no less than 10 and the
-default value for it is 100. When the shell needs to open a file to
-read/write the history file, etc., it tries to make the file
-descriptor for the file around the value of this macro.
+default value for it is 100. When the shell opens a file that is not
+directly used by normal commands, the file descriptor for the file is
+chosen to be no less than the value of this macro.
 
 #define ALIAS_LIST_MAX 30
 This macro must be defined as a positive integer.
