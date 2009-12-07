@@ -133,6 +133,8 @@ echo lor-cond-assign $((0||1?2||0:0||0)) $((0||0?2||0:0||0)) \
 	$((0||1?1||0?x=2?3:4:5:6)) $((x)) $((0?y:x=1)) $((x)) \
 	$((x=0?1:2?3:4?5:6)) $((x))
 echo $(((1*(2+3)<<(x&&x||0/0))))
+unset unset
+$INVOKE $TESTEE -c 'echo unset-var $((0+unset+0)) $((unset))'
 
 echo ===== field splitting =====
 

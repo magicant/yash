@@ -81,6 +81,7 @@ or-land 1 1
 land-lor 1 1
 lor-cond-assign 1 0 3 3 1 1 3 3
 10
+unset-var 0 0
 ===== field splitting =====
 +1+2+3+4+
 +1 2 +3+4+ 5+ +6+
