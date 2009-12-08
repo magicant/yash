@@ -81,7 +81,7 @@ static void reset_special_handler(
 	int signum, void (*handler)(int signum), bool leave);
 static void sig_handler(int signum);
 static void handle_sigchld(void);
-static bool set_trap(int signum, const wchar_t *command);
+static void set_trap(int signum, const wchar_t *command);
 static bool is_ignored(int signum);
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
 static inline void handle_sigwinch(void);
@@ -712,13 +712,13 @@ void execute_exit_trap(void)
  * If `command' is NULL, the trap is reset to the default.
  * If `command' is an empty string, the trap is set to SIG_IGN.
  * This function may call `get_signal_name'.
- * Returns true iff successful. */
-bool set_trap(int signum, const wchar_t *command)
+ * An error message is printed to the standard error on error. */
+void set_trap(int signum, const wchar_t *command)
 {
     if (signum == SIGKILL || signum == SIGSTOP) {
 	xerror(0, Ngt("SIG%s: cannot be trapped"),
 		signum == SIGKILL ? "KILL" : "STOP");
-	return false;
+	return;
     }
 
     wchar_t **commandp;
@@ -733,7 +733,7 @@ bool set_trap(int signum, const wchar_t *command)
 	} else {
 	    xerror(0, Ngt("SIG%s: unsupported real-time signal"),
 		    get_signal_name(signum));
-	    return false;
+	    return;
 	}
     } else
 #endif
@@ -747,12 +747,9 @@ bool set_trap(int signum, const wchar_t *command)
 	/* Signals that were ignored on entry to a non-interactive shell cannot
 	 * be trapped or reset. (POSIX) */
 #if FIXED_SIGNAL_AS_ERROR
-	xerror(0, Ngt("SIG%s: cannot be reset"),
-		get_signal_name(signum));
-	return false;
-#else
-	return true;
+	xerror(0, Ngt("SIG%s: cannot be reset"), get_signal_name(signum));
 #endif
+	return;
     }
 
     /* If `*commandp' is currently executed, we must not free it. */
@@ -767,7 +764,7 @@ bool set_trap(int signum, const wchar_t *command)
     }
     *receivedp = false;
     if (signum == 0)
-	return true;
+	return;
 
     struct sigaction action;
     if (command == NULL)
@@ -793,7 +790,7 @@ bool set_trap(int signum, const wchar_t *command)
     switch (signum) {
 	case SIGCHLD:
 	    /* SIGCHLD's signal handler is always `sig_handler' */
-	    return true;
+	    return;
 	case SIGINT:
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
 	case SIGWINCH:
@@ -801,7 +798,7 @@ bool set_trap(int signum, const wchar_t *command)
 	    /* SIGINT and SIGWINCH's signal handler is always `sig_handler'
 	     * when interactive */
 	    if (interactive_handlers_set)
-		return true;
+		return;
 	    break;
 	case SIGTSTP:
 	    if (job_handler_set)
@@ -824,11 +821,9 @@ default_ignore:
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     if (sigaction(signum, &action, NULL) >= 0) {
-	return true;
     } else {
 	int saveerrno = errno;
 	xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
-	return false;
     }
 }
 
@@ -933,7 +928,7 @@ void reset_sigwinch(void)
 static bool print_trap(const char *signame, const wchar_t *command)
     __attribute__((nonnull(1)));
 static bool print_signal(int signum, const char *name, bool verbose);
-static bool signal_job(int signum, const wchar_t *jobname)
+static void signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
 /* The "trap" builtin */
@@ -992,40 +987,38 @@ int trap_builtin(int argc, void **argv)
 	return Exit_SUCCESS;
     } else if (print) {
 	/* print specified traps */
-	bool ok = true;
 #if defined SIGRTMIN && defined SIGRTMAX
 	int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
 #endif
+	clearerr(stdout);
 	do {
 	    wchar_t *wname = ARGV(xoptind);
 	    for (wchar_t *w = wname; *w; w++)
 		*w = towupper(*w);
 	    char *name = malloc_wcstombs(wname);
-	    if (!name)
+	    if (name == NULL)
 		name = "";
 	    int signum = get_signal_number(name);
 	    if (signum < 0) {
 		xerror(0, Ngt("%ls: no such signal"), wname);
-		ok = false;
 	    } else {
 #if defined SIGRTMIN && defined SIGRTMAX
 		if (sigrtmin <= signum && signum <= sigrtmax) {
 		    int index = signum - sigrtmin;
 		    if (index < RTSIZE)
-			ok = print_trap(get_signal_name(signum),
+			print_trap(get_signal_name(signum),
 				rttrap_command[index]);
 		} else
 #endif
 		{
-		    ok = print_trap(name, trap_command[sigindex(signum)]);
+		    print_trap(name, trap_command[sigindex(signum)]);
 		}
 	    }
 	    free(name);
-	} while (ok && ++xoptind < argc);
-	return ok ? Exit_SUCCESS : Exit_FAILURE;
+	} while (!ferror(stdout) && ++xoptind < argc);
+	return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
     }
 
-    bool err = false;
     const wchar_t *command;
 
     /* check if the first operand is an integer */
@@ -1047,14 +1040,12 @@ set_traps:
     do {
 	wchar_t *name = ARGV(xoptind);
 	int signum = get_signal_number_w(name);
-	if (signum < 0) {
+	if (signum >= 0)
+	    set_trap(signum, command);
+	else
 	    xerror(0, Ngt("%ls: no such signal"), name);
-	    err = true;
-	} else {
-	    err |= !set_trap(signum, command);
-	}
     } while (++xoptind < argc);
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
 print_usage:
     if (posixly_correct)
@@ -1074,10 +1065,11 @@ print_usage:
  * the current signal handler for the specified signal.
  * If the `command' is NULL, this function does nothing.
  * Otherwise, the `command' is properly single-quoted and printed.
- * Returns true iff successful (no error). */
+ * Returns true iff successful (no error). On error, an error message is printed
+ * to the standard error. */
 bool print_trap(const char *signame, const wchar_t *command)
 {
-    if (command) {
+    if (command != NULL) {
 	wchar_t *q = quote_sq(command);
 	int r = printf("trap -- %ls %s\n", q, signame);
 	if (r < 0)
@@ -1124,7 +1116,6 @@ int kill_builtin(int argc, void **argv)
     wchar_t opt;
     int signum = SIGTERM;
     bool list = false, verbose = false;
-    bool err = false;
 
     xoptind = 0, xopterr = false;
     while ((opt = xgetopt_long(argv,
@@ -1169,8 +1160,8 @@ int kill_builtin(int argc, void **argv)
 
 main:
     if (list) {
-	/* print signal info */
 	if (xoptind == argc) {
+	    /* print info of all signals */
 	    for (const signal_T *s = signals; s->no; s++)
 		print_signal(s->no, s->name, verbose);
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -1178,6 +1169,7 @@ main:
 		print_signal(i, NULL, verbose);
 #endif
 	} else {
+	    /* print info of the specified signals */
 	    do {
 		int signum;
 
@@ -1189,10 +1181,8 @@ main:
 		} else {
 		    signum = get_signal_number_w(ARGV(xoptind));
 		}
-		if (signum <= 0 || !print_signal(signum, NULL, verbose)) {
+		if (signum <= 0 || !print_signal(signum, NULL, verbose))
 		    xerror(0, Ngt("%ls: no such signal"), ARGV(xoptind));
-		    err = true;
-		}
 	    } while (++xoptind < argc);
 	}
     } else {
@@ -1202,26 +1192,23 @@ main:
 	do {
 	    wchar_t *proc = ARGV(xoptind);
 	    if (proc[0] == L'%') {
-		if (!signal_job(signum, proc))
-		    err = true;
+		signal_job(signum, proc);
 	    } else {
 		long pid;
 
 		if (!xwcstol(proc, 10, &pid)) {
 		    xerror(0, Ngt("`%ls' is not a valid integer"), proc);
-		    err = true;
 		    continue;
 		}
 		// XXX this cast might not be safe
 		if (kill((pid_t) pid, signum) < 0) {
 		    xerror(errno, "%ls", proc);
-		    err = true;
 		    continue;
 		}
 	    }
 	} while (++xoptind < argc);
     }
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
 print_usage:
     if (posixly_correct)
@@ -1242,7 +1229,7 @@ print_usage:
  * Returns true iff successful. */
 bool print_signal(int signum, const char *name, bool verbose)
 {
-    if (!name) {
+    if (name == NULL) {
 	name = get_signal_name(signum);
 	if (strcmp(name, "?") == 0)
 	    return false;
@@ -1264,18 +1251,15 @@ bool print_signal(int signum, const char *name, bool verbose)
 }
 
 /* Sends the specified signal to the specified job.
- * Returns true iff successful. */
-bool signal_job(int signum, const wchar_t *jobspec)
+ * Returns true iff successful. On error, an error message is printed to the
+ * standard error. */
+void signal_job(int signum, const wchar_t *jobspec)
 {
     pid_t jobpgid = get_job_pgid(jobspec);
     if (jobpgid <= 0)
-	return false;
-
-    if (kill(-jobpgid, signum) < 0) {
+	return;
+    if (kill(-jobpgid, signum) < 0)
 	xerror(errno, "%ls", jobspec);
-	return false;
-    }
-    return true;
 }
 
 #if YASH_ENABLE_HELP
