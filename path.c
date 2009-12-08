@@ -1111,8 +1111,8 @@ static void canonicalize_path_ex(xwcsbuf_T *buf)
     __attribute__((nonnull));
 static bool starts_with_root_parent(const wchar_t *path)
     __attribute__((nonnull,pure));
-static bool print_command_paths(bool all);
-static bool print_home_directories(void);
+static void print_command_paths(bool all);
+static void print_home_directories(void);
 static bool print_umask_octal(mode_t mode);
 static bool print_umask_symbolic(mode_t mode);
 static int set_umask(const wchar_t *newmask)
@@ -1557,7 +1557,6 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 {
     bool logical = true;
     char *mbspwd;
-    int result;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -1596,14 +1595,10 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	return Exit_FAILURE;
     }
 print:
-    if (printf("%s\n", mbspwd) >= 0) {
-	result = Exit_SUCCESS;
-    } else {
+    if (printf("%s\n", mbspwd) < 0)
 	xerror(errno, Ngt("cannot print to standard output"));
-	result = Exit_FAILURE;
-    }
     free(mbspwd);
-    return result;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP
@@ -1657,7 +1652,6 @@ int hash_builtin(int argc, void **argv)
     if (all && xoptind != argc)
 	goto print_usage;
 
-    bool err = false;
     if (dir) {
 	if (remove) {
 	    if (xoptind == argc) {  // forget all
@@ -1668,14 +1662,11 @@ int hash_builtin(int argc, void **argv)
 	    }
 	} else {
 	    if (xoptind == argc) {  // print all
-		err = print_home_directories();
+		print_home_directories();
 	    } else {                // remember the specified
-		for (int i = xoptind; i < argc; i++) {
-		    if (!get_home_directory(ARGV(i), true)) {
+		for (int i = xoptind; i < argc; i++)
+		    if (!get_home_directory(ARGV(i), true))
 			xerror(0, Ngt("%ls: no such user"), ARGV(i));
-			err = true;
-		    }
-		}
 	    }
 	}
     } else {
@@ -1693,29 +1684,26 @@ int hash_builtin(int argc, void **argv)
 	    }
 	} else {
 	    if (xoptind == argc) {  // print all
-		err = print_command_paths(all);
+		print_command_paths(all);
 	    } else {                // remember the specified
 		for (int i = xoptind; i < argc; i++) {
 		    if (wcschr(ARGV(i), L'/')) {
 			xerror(0, Ngt("%ls: command name must not contain `/'"),
 				ARGV(i));
-			err = true;
 			continue;
 		    }
 
 		    char *cmd = malloc_wcstombs(ARGV(i));
 		    if (cmd) {
-			if (!get_command_path(cmd, true)) {
+			if (!get_command_path(cmd, true))
 			    xerror(0, Ngt("%s: not found in $PATH"), cmd);
-			    err = true;
-			}
 			free(cmd);
 		    }
 		}
 	    }
 	}
     }
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
 print_usage:
     fprintf(stderr, gt(posixly_correct
@@ -1726,8 +1714,9 @@ print_usage:
 }
 
 /* Prints the entries of the command hashtable.
- * Returns FALSE iff successful. */
-bool print_command_paths(bool all)
+ * Prints an error message to the standard error if failed to print to the
+ * standard output. */
+void print_command_paths(bool all)
 {
     kvpair_T kv;
     size_t index = 0;
@@ -1736,16 +1725,16 @@ bool print_command_paths(bool all)
 	if (all || !get_builtin(kv.key)) {
 	    if (printf("%s\n", (char *) kv.value) < 0) {
 		xerror(errno, Ngt("cannot print to standard output"));
-		return true;
+		break;
 	    }
 	}
     }
-    return false;
 }
 
 /* Prints the entries of the home directory hashtable.
- * Returns FALSE iff successful. */
-bool print_home_directories(void)
+ * Prints an error message to the standard error if failed to print to the
+ * standard output. */
+void print_home_directories(void)
 {
     kvpair_T kv;
     size_t index = 0;
@@ -1754,10 +1743,9 @@ bool print_home_directories(void)
 	const wchar_t *key = kv.key, *value = kv.value;
 	if (printf("~%ls=%ls\n", key, value) < 0) {
 	    xerror(errno, Ngt("cannot print to standard output"));
-	    return true;
+	    break;
 	}
     }
-    return false;
 }
 
 #if YASH_ENABLE_HELP

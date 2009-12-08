@@ -447,13 +447,11 @@ int set_builtin(int argc, void **argv)
 
     if (argc <= 1) {
 	return typeset_builtin(argc, argv);
-    }
-    if (argc == 2) {
-	if (wcscmp(ARGV(1), L"-o") == 0) {
+    } else if (argc == 2) {
+	if (wcscmp(ARGV(1), L"-o") == 0)
 	    return set_builtin_print_current_settings();
-	} else if (wcscmp(ARGV(1), L"+o") == 0) {
+	else if (wcscmp(ARGV(1), L"+o") == 0)
 	    return set_builtin_print_restoring_commands();
-	}
     }
 
     xoptind = 0, xopterr = true;

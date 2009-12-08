@@ -283,13 +283,9 @@ int help_builtin(int argc, void **argv)
     if (xoptind == argc)
 	goto print_help;
 
-    bool err = false;
-    while (xoptind < argc) {
-	if (print_builtin_help(ARGV(xoptind)) != Exit_SUCCESS)
-	    err = true;
-	xoptind++;
-    }
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    while (xoptind < argc)
+	print_builtin_help(ARGV(xoptind++));
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 const char help_help[] = Ngt(

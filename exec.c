@@ -1109,6 +1109,7 @@ void exec_simple_command(
     case specialbuiltin:
     case semispecialbuiltin:
     case regularbuiltin:
+	yash_error_message_count = 0;
 	current_builtin_name = argv[0];  // XXX not reentrant
 	laststatus = ci->ci_builtin(argc, argv);
 	current_builtin_name = NULL;

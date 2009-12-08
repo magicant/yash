@@ -301,6 +301,7 @@ const wchar_t *yash_program_invocation_short_name;
 /* The name of the currently executed builtin. */
 const wchar_t *current_builtin_name = NULL;
 /* The number of calls to the `xerror' function. */
+/* This value is reset each time before a builtin is invoked. */
 unsigned yash_error_message_count = 0;
 
 /* Prints the specified error message to the standard error.

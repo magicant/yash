@@ -561,7 +561,8 @@ variable_T *new_temporary(const wchar_t *name)
 /* Creates a new variable with the specified name if there is none.
  * If the variable already exists, it is cleared and returned.
  *
- * On error, NULL is returned. Otherwise a (new) variable is returned.
+ * On error, an error message is printed to the standard error and NULL is
+ * returned. Otherwise, a (new) variable is returned.
  * `v_type' is the only valid member of the variable and the all members
  * (including `v_type') must be initialized by the caller. If `v_type' of the
  * return value has the VF_EXPORT flag set, the caller must call
@@ -591,7 +592,8 @@ variable_T *new_variable(const wchar_t *name, scope_T scope)
  * If `export' is true, the variable is exported (i.e., the VF_EXPORT flag is
  * set to the variable). But this function does not reset an existing VF_EXPORT
  * flag if `export' is false.
- * Returns true iff successful. */
+ * Returns true iff successful. On error, an error message is printed to the
+ * standard error. */
 bool set_variable(
 	const wchar_t *name, wchar_t *value, scope_T scope, bool export)
 {
@@ -620,7 +622,8 @@ bool set_variable(
  * `values' and its elements must be `free'able.
  * `count' is the number of elements in `values'. If `count' is zero, the
  * number is counted in this function.
- * Returns true iff successful. */
+ * Returns true iff successful. On error, an error message is printed to the
+ * standard error. */
 bool set_array(const wchar_t *name, size_t count, void **values, scope_T scope)
 {
     variable_T *var = new_variable(name, scope);
@@ -1428,24 +1431,24 @@ bool remove_dirstack_entry(size_t index)
 
 /********** Builtins **********/
 
-static bool print_variable(
+static void print_variable(
 	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
     __attribute__((nonnull));
-static bool print_function(
+static void print_function(
 	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
 #if YASH_ENABLE_ARRAY
-static bool array_remove_elements(
+static void array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
     __attribute__((nonnull));
 static int compare_long(const void *lp1, const void *lp2)
     __attribute__((nonnull,pure));
-static bool array_insert_elements(
+static void array_insert_elements(
 	variable_T *array, size_t count, void *const *values)
     __attribute__((nonnull));
-static bool array_set_element(const wchar_t *name, variable_T *array,
+static void array_set_element(const wchar_t *name, variable_T *array,
 	const wchar_t *indexword, const wchar_t *value)
     __attribute__((nonnull));
 #endif /* YASH_ENABLE_ARRAY */
@@ -1461,7 +1464,7 @@ static bool set_to(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
 static bool read_input(xwcsbuf_T *buf, bool noescape)
     __attribute__((nonnull));
-static bool split_and_assign_array(const wchar_t *name, wchar_t *values,
+static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
     __attribute__((nonnull));
 
@@ -1540,7 +1543,6 @@ int typeset_builtin(int argc, void **argv)
 	return Exit_ERROR;
     }
 
-    bool ok = true;
     if (xoptind == argc) {
 	kvpair_T *kvs;
 	size_t count;
@@ -1555,17 +1557,16 @@ int typeset_builtin(int argc, void **argv)
 	    count = table.count;
 	    ht_destroy(&table);
 	    qsort(kvs, count, sizeof *kvs, keywcscoll);
-	    for (size_t i = 0; ok && i < count; i++)
-		ok &= print_variable(
+	    for (size_t i = 0; yash_error_message_count == 0 && i < count; i++)
+		print_variable(
 			kvs[i].key, kvs[i].value, ARGV(0), readonly, export);
 	} else {
 	    /* print all functions */
 	    kvs = ht_tokvarray(&functions);
 	    count = functions.count;
 	    qsort(kvs, count, sizeof *kvs, keywcscoll);
-	    for (size_t i = 0; ok && i < count; i++)
-		ok &= print_function(
-			kvs[i].key, kvs[i].value, ARGV(0), readonly);
+	    for (size_t i = 0; yash_error_message_count == 0 && i < count; i++)
+		print_function(kvs[i].key, kvs[i].value, ARGV(0), readonly);
 	}
 	free(kvs);
     } else {
@@ -1578,7 +1579,6 @@ int typeset_builtin(int argc, void **argv)
 		/* treat function */
 		if (wequal) {
 		    xerror(0, Ngt("cannot assign function"));
-		    ok = false;
 		    continue;
 		}
 
@@ -1587,11 +1587,9 @@ int typeset_builtin(int argc, void **argv)
 		    if (readonly)
 			f->f_type |= VF_READONLY | VF_NODELETE;
 		    if (print)
-			ok &= print_function(arg, f, ARGV(0), readonly);
+			print_function(arg, f, ARGV(0), readonly);
 		} else {
 		    xerror(0, Ngt("%ls: no such function"), arg);
-		    ok = false;
-		    continue;
 		}
 	    } else if (wequal || !print) {
 		/* create/assign variable */
@@ -1600,7 +1598,6 @@ int typeset_builtin(int argc, void **argv)
 		if (wequal) {
 		    if (var->v_type & VF_READONLY) {
 			xerror(0, Ngt("%ls: readonly"), arg);
-			ok = false;
 		    } else {
 			varvaluefree(var);
 			var->v_type = VF_NORMAL | (var->v_type & ~VF_MASK);
@@ -1622,37 +1619,34 @@ int typeset_builtin(int argc, void **argv)
 		/* print the variable */
 		variable_T *var = search_variable(arg);
 		if (var) {
-		    ok &= print_variable(arg, var, ARGV(0), readonly, export);
+		    print_variable(arg, var, ARGV(0), readonly, export);
 		} else {
 		    xerror(0, Ngt("%ls: no such variable"), arg);
-		    ok = false;
-		    continue;
 		}
 	    }
 	} while (++xoptind < argc);
     }
 
-    return ok ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 /* Prints the specified variable to the standard output.
  * This function does not print special variables whose name begins with an '='.
  * If `readonly'/`export' is true, the variable is printed only if it is
  * readonly/exported. The `name' is quoted if `is_name(name)' is not true.
- * Returns true iff successful (no error). */
-bool print_variable(
+ * An error message is printed to the standard error on error. */
+void print_variable(
 	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
 {
-    bool ok = true;
     wchar_t *qname = NULL;
 
     if (name[0] == L'=')
-	return ok;
+	return;
     if (readonly && !(var->v_type & VF_READONLY))
-	return ok;
+	return;
     if (export && !(var->v_type & VF_EXPORT))
-	return ok;
+	return;
 
     if (!is_name(name))
 	name = qname = quote_sq(name);
@@ -1663,26 +1657,22 @@ bool print_variable(
 
 print_variable:;
     wchar_t *qvalue = var->v_value ? quote_sq(var->v_value) : NULL;
+    const char *format;
     xstrbuf_T opts;
     switch (argv0[0]) {
 	case L's':
 	    assert(wcscmp(argv0, L"set") == 0);
-	    if (!qname && qvalue) {
-		if (printf("%ls=%ls\n", name, qvalue) < 0) {
+	    if (!qname && qvalue)
+		if (printf("%ls=%ls\n", name, qvalue) < 0)
 		    xerror(errno, Ngt("cannot print to standard output"));
-		    ok = false;
-		}
-	    }
 	    break;
 	case L'e':
 	case L'r':
 	    assert(wcscmp(argv0, L"export") == 0
 		    || wcscmp(argv0, L"readonly") == 0);
-	    if (printf(qvalue ? "%ls %ls=%ls\n" : "%ls %ls\n",
-			argv0, name, qvalue) < 0) {
+	    format = qvalue ? "%ls %ls=%ls\n" : "%ls %ls\n";
+	    if (printf(format, argv0, name, qvalue) < 0)
 		xerror(errno, Ngt("cannot print to standard output"));
-		ok = false;
-	    }
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
@@ -1693,11 +1683,9 @@ print_variable:;
 		sb_ccat(&opts, 'r');
 	    if (opts.length > 0)
 		sb_insert(&opts, 0, " -");
-	    if (printf(qvalue ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n",
-			argv0, opts.contents, name, qvalue) < 0) {
+	    format = qvalue ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n";
+	    if (printf(format, argv0, opts.contents, name, qvalue) < 0)
 		xerror(errno, Ngt("cannot print to standard output"));
-		ok = false;
-	    }
 	    sb_destroy(&opts);
 	    break;
 	default:
@@ -1705,7 +1693,7 @@ print_variable:;
     }
     free(qvalue);
     free(qname);
-    return ok;
+    return;
 
 print_array:
     clearerr(stdout);
@@ -1747,22 +1735,20 @@ print_array:
 	    assert(false);
     }
     free(qname);
-    if (!ferror(stdout)) {
-	return true;
-    } else {
+    if (ferror(stdout))
 	xerror(0, Ngt("cannot print to standard output"));
-	return false;
-    }
 }
 
 /* Prints the specified function to the standard output.
- * If `readonly' is true, the function is printed only if it is readonly. */
-bool print_function(
+ * If `readonly' is true, the function is printed only if it is readonly.
+ * An error message is printed to the standard error if failed to print to the
+ * standard output. */
+void print_function(
 	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
 {
     if (readonly && !(func->f_type & VF_READONLY))
-	return true;
+	return;
 
     wchar_t *qname = NULL;
     if (!is_name(name))
@@ -1789,12 +1775,8 @@ bool print_function(
 	    assert(false);
     }
     free(qname);
-    if (!ferror(stdout)) {
-	return true;
-    } else {
+    if (ferror(stdout))
 	xerror(0, Ngt("cannot print to standard output"));
-	return false;
-    }
 }
 
 #if YASH_ENABLE_HELP
@@ -1876,7 +1858,6 @@ int array_builtin(int argc, void **argv)
 	return Exit_ERROR;
     }
 
-    bool ok = true;
     if (xoptind == argc) {
 	/* print all arrays */
 	if (options != 0)
@@ -1890,10 +1871,9 @@ int array_builtin(int argc, void **argv)
 	size_t count = table.count;
 	ht_destroy(&table);
 	qsort(kvs, count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; ok && i < count; i++)
+	for (size_t i = 0; yash_error_message_count == 0 && i < count; i++)
 	    if ((((variable_T *) kvs[i].value)->v_type & VF_MASK) == VF_ARRAY)
-		ok &= print_variable(
-			kvs[i].key, kvs[i].value, ARGV(0), false, false);
+		print_variable(kvs[i].key, kvs[i].value, ARGV(0), false, false);
 	free(kvs);
     } else {
 	const wchar_t *name = ARGV(xoptind++);
@@ -1903,28 +1883,27 @@ int array_builtin(int argc, void **argv)
 	}
 
 	if (options == 0) {
-	    ok = set_array(name, argc - xoptind,
+	    set_array(name, argc - xoptind,
 		    duparray(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
 	} else {
 	    variable_T *array = search_array_and_check_if_changeable(name);
-	    if (!array) {
+	    if (!array)
 		return Exit_FAILURE;
-	    }
 	    switch (options) {
 		case delete:
-		    ok = array_remove_elements(
+		    array_remove_elements(
 			    array, argc - xoptind, argv + xoptind);
 		    break;
 		case insert:
 		    if (xoptind == argc)
 			goto print_usage;
-		    ok = array_insert_elements(
+		    array_insert_elements(
 			    array, argc - xoptind, argv + xoptind);
 		    break;
 		case set:
 		    if (xoptind + 2 != argc)
 			goto print_usage;
-		    ok = array_set_element(
+		    array_set_element(
 			    name, array, ARGV(xoptind), ARGV(xoptind + 1));
 		    break;
 		default:
@@ -1932,7 +1911,7 @@ int array_builtin(int argc, void **argv)
 	    }
 	}
     }
-    return ok ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if LONG_MAX < SIZE_MAX
@@ -1947,8 +1926,8 @@ int array_builtin(int argc, void **argv)
  * `indexwcss' is an NULL-terminated array of pointers to wide strings,
  * which are parsed as indices of elements to be removed.
  * `count' is the number of elements in `indexwcss'.
- * Returns true iff successful. */
-bool array_remove_elements(
+ * An error message is printed to the standard error on error. */
+void array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
 {
     long indices[count], lastindex;
@@ -1961,7 +1940,7 @@ bool array_remove_elements(
 	const wchar_t *indexwcs = indexwcss[i];
 	if (!xwcstol(indexwcs, 10, &indices[i])) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexwcs);
-	    return false;
+	    return;
 	}
     }
 
@@ -1993,7 +1972,6 @@ bool array_remove_elements(
     }
     array->v_valc = list.length;
     array->v_vals = pl_toary(&list);
-    return true;
 }
 
 int compare_long(const void *lp1, const void *lp2)
@@ -2008,8 +1986,8 @@ int compare_long(const void *lp1, const void *lp2)
  * where to insert the elements. The other strings are inserted to the array.
  * `count' is the number of strings in `values' including the first index
  * string.
- * Returns true iff successful. */
-bool array_insert_elements(
+ * An error message is printed to the standard error on error. */
+void array_insert_elements(
 	variable_T *array, size_t count, void *const *values)
 {
     long index;
@@ -2022,7 +2000,7 @@ bool array_insert_elements(
 	const wchar_t *indexword = *values;
 	if (!xwcstol(indexword, 10, &index)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexword);
-	    return false;
+	    return;
 	}
     }
     count--, values++;
@@ -2042,13 +2020,13 @@ bool array_insert_elements(
 	list.contents[uindex + i] = xwcsdup(list.contents[uindex + i]);
     array->v_valc = list.length;
     array->v_vals = pl_toary(&list);
-    return true;
 }
 
 /* Sets the value of the specified element of the array.
  * `name' is the name of the array variable.
- * `indexword' is parsed as the integer index of the element. */
-bool array_set_element(const wchar_t *name, variable_T *array,
+ * `indexword' is parsed as the integer index of the element.
+ * An error message is printed to the standard error on error. */
+void array_set_element(const wchar_t *name, variable_T *array,
 	const wchar_t *indexword, const wchar_t *value)
 {
     assert((array->v_type & VF_MASK) == VF_ARRAY);
@@ -2056,7 +2034,7 @@ bool array_set_element(const wchar_t *name, variable_T *array,
     long index;
     if (!xwcstol(indexword, 10, &index)) {
 	xerror(errno, Ngt("`%ls' is not a valid integer"), indexword);
-	return false;
+	return;
     }
 
     size_t uindex;
@@ -2076,13 +2054,12 @@ bool array_set_element(const wchar_t *name, variable_T *array,
     assert(uindex < array->v_valc);
     free(array->v_vals[uindex]);
     array->v_vals[uindex] = xwcsdup(value);
-    return true;
+    return;
 
 invalid_index:
     xerror(0,
 	    Ngt("%ls: index out of range (actual size of array `%ls' is %zu)"),
 	    indexword, name, array->v_valc);
-    return false;
 }
 
 #if YASH_ENABLE_HELP
@@ -2124,7 +2101,6 @@ int unset_builtin(int argc, void **argv)
 
     wchar_t opt;
     bool funcs = false;
-    bool err = false;
 
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"fv", long_options, NULL))) {
@@ -2146,18 +2122,20 @@ int unset_builtin(int argc, void **argv)
 	const wchar_t *name = ARGV(xoptind);
 	if (wcschr(name, L'=')) {
 	    xerror(0, Ngt("`%ls': invalid name"), name);
-	    err = true;
 	    continue;
 	}
-	if (funcs ? unset_function(name) : unset_variable(name))
-	    err = true;
+	if (funcs)
+	    unset_function(name);
+	else
+	    unset_variable(name);
     }
 
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 /* Unsets the specified function.
- * Returns true ON ERROR. */
+ * On error, an error message is printed to the standard error and TRUE is
+ * returned. */
 bool unset_function(const wchar_t *name)
 {
     kvpair_T kv = ht_remove(&functions, name);
@@ -2175,7 +2153,8 @@ bool unset_function(const wchar_t *name)
 }
 
 /* Unsets the specified variable.
- * Returns true ON ERROR. */
+ * On error, an error message is printed to the standard error and TRUE is
+ * returned. */
 bool unset_variable(const wchar_t *name)
 {
     for (environ_T *env = current_env; env; env = env->parent) {
@@ -2557,7 +2536,7 @@ int read_builtin(int argc, void **argv)
 	}
     }
 
-    bool err = false;
+    bool eof = false;
     xwcsbuf_T buf;
 
     /* read input and remove trailing newline */
@@ -2570,7 +2549,7 @@ int read_builtin(int argc, void **argv)
 	wb_remove(&buf, buf.length - 1, 1);
     } else {
 	/* no newline means the EOF was encountered */
-	err = true;
+	eof = true;
     }
 
     const wchar_t *s = buf.contents;
@@ -2591,14 +2570,14 @@ int read_builtin(int argc, void **argv)
 	if (i + 1 == list.length)
 	    trim_trailing_ifsws(list.contents[i], ifs);
 	if (!array || i + 1 < list.length)
-	    err |= !set_variable(name, list.contents[i],
-		    SCOPE_GLOBAL, shopt_allexport);
+	    set_variable(name, list.contents[i], SCOPE_GLOBAL, shopt_allexport);
 	else
-	    err |= !split_and_assign_array(name, list.contents[i], ifs, raw);
+	    split_and_assign_array(name, list.contents[i], ifs, raw);
     }
 
     pl_destroy(&list);
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return (!eof && yash_error_message_count == 0)
+	    ? Exit_SUCCESS : Exit_FAILURE;
 
 print_usage:
     if (posixly_correct)
@@ -2608,8 +2587,8 @@ print_usage:
     return Exit_ERROR;
 }
 
-/* Reads input from the standard input and remove line continuations
- * if `noescape' is false.
+/* Reads input from the standard input and, if `noescape' is false, remove line
+ * continuations.
  * The trailing newline and all other backslashes are not removed. */
 bool read_input(xwcsbuf_T *buf, bool noescape)
 {
@@ -2647,15 +2626,15 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 
 /* Word-splits `values' and assigns them to the array named `name'.
  * `values' is freed in this function. */
-bool split_and_assign_array(const wchar_t *name, wchar_t *values,
+void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
 {
     plist_T list;
 
     pl_init(&list);
-    if (values[0]) {
+    if (values[0] != L'\0') {
 	const wchar_t *v = values;
-	while (*v)
+	while (*v != L'\0')
 	    pl_add(&list, split_next_field(&v, ifs, raw));
 
 	if (list.length > 0
@@ -2665,10 +2644,9 @@ bool split_and_assign_array(const wchar_t *name, wchar_t *values,
 	}
     }
 
-    bool ok = set_array(name, list.length, pl_toary(&list), SCOPE_GLOBAL);
+    set_array(name, list.length, pl_toary(&list), SCOPE_GLOBAL);
 
     free(values);
-    return ok;
 }
 
 #if YASH_ENABLE_HELP
@@ -2726,32 +2704,26 @@ int dirs_builtin(int argc, void **argv)
     if (clear)
 	return unset_variable(L VAR_DIRSTACK) ? Exit_FAILURE : Exit_SUCCESS;
 
-    bool err = false;
     const wchar_t *dir;
     if (xoptind < argc) {
 	/* print the specified only */
 	do {
 	    size_t index, size = get_dirstack_size();
 	    if (parse_dirstack_index(ARGV(xoptind), &index, &dir, true)) {
-		if (index != SIZE_MAX) {
-		    int r;
-		    if (verbose)
-			r = printf("+%zu\t-%zu\t%ls\n",
-				size - index, index, dir);
-		    else
-			r = printf("%ls\n", dir);
-		    if (r < 0) {
-			xerror(errno, Ngt("cannot print to standard output"));
-			err = true;
-			break;
-		    }
-		} else {
-		    xerror(0, Ngt("`%ls' is not a valid index"),
-			    ARGV(xoptind));
-		    err = true;
+		if (index == SIZE_MAX) {
+		    xerror(0, Ngt("`%ls' is not a valid index"), ARGV(xoptind));
+		    continue;
 		}
-	    } else {
-		err = true;
+
+		int r;
+		if (verbose)
+		    r = printf("+%zu\t-%zu\t%ls\n", size - index, index, dir);
+		else
+		    r = printf("%ls\n", dir);
+		if (r < 0) {
+		    xerror(errno, Ngt("cannot print to standard output"));
+		    break;
+		}
 	    }
 	} while (++xoptind < argc);
     } else {
@@ -2763,21 +2735,18 @@ int dirs_builtin(int argc, void **argv)
 	dir = getvar(L VAR_PWD);
 	if (!dir) {
 	    xerror(0, Ngt("$PWD not set"));
-	    err = true;
 	} else {
 	    int r;
 	    if (verbose)
 		r = printf("+%zu\t-%zu\t%ls\n", (size_t) 0, size, dir);
 	    else
 		r = printf("%ls\n", dir);
-	    if (r < 0) {
+	    if (r < 0)
 		xerror(errno, Ngt("cannot print to standard output"));
-		err = true;
-	    }
 	}
 
-	if (dirvalid) {
-	    for (size_t i = var->v_valc; !err && i-- > 0; ) {
+	if (dirvalid && yash_error_message_count == 0) {
+	    for (size_t i = var->v_valc; i-- > 0; ) {
 		int r;
 		dir = var->v_vals[i];
 		if (verbose)
@@ -2786,12 +2755,13 @@ int dirs_builtin(int argc, void **argv)
 		    r = printf("%ls\n", dir);
 		if (r < 0) {
 		    xerror(errno, Ngt("cannot print to standard output"));
-		    err = true;
+		    break;
 		}
 	    }
 	}
     }
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP

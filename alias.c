@@ -339,7 +339,8 @@ substitute_alias:
  *    echo a
  */
 
-/* Prints an alias definition to stdout.
+/* Prints an alias definition to the standard output.
+ * On error, an error message is printed to the standard error.
  * Returns true iff successful. */
 bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 {
@@ -392,8 +393,8 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 /********** Builtins **********/
 
 /* The "alias" builtin, which accepts the following options:
- * -g: define global aliases
- * -p: print aliases in the form of whole commands */
+ *  -g: define global aliases
+ *  -p: print aliases in the form of whole commands */
 int alias_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
@@ -406,7 +407,6 @@ int alias_builtin(int argc, void **argv)
     };
 
     bool global = false, prefix = false;
-    bool ok = true;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -432,8 +432,11 @@ int alias_builtin(int argc, void **argv)
 	/* print all aliases */
 	kvpair_T *kvs = ht_tokvarray(&aliases);
 	qsort(kvs, aliases.count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; ok && i < aliases.count; i++)
-	    ok &= print_alias(kvs[i].key, kvs[i].value, prefix);
+	for (size_t i = 0; i < aliases.count; i++) {
+	    print_alias(kvs[i].key, kvs[i].value, prefix);
+	    if (yash_error_message_count > 0)
+		break;
+	}
 	free(kvs);
     } else {
 	/* define or print aliases */
@@ -445,31 +448,25 @@ int alias_builtin(int argc, void **argv)
 		nameend++;
 	    if (nameend != arg && *nameend == L'=') {
 		/* define alias */
-		if (!wcschr(nameend + 1, L'\n')) {
+		if (!wcschr(nameend + 1, L'\n'))
 		    define_alias(arg, nameend, global);
-		} else {
+		else
 		    xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
-		    ok = false;
-		}
 	    } else if (nameend != arg && *nameend == L'\0') {
 		/* print alias */
 		alias_T *alias = ht_get(&aliases, arg).value;
 		if (alias) {
-		    if (!print_alias(arg, alias, prefix)) {
-			ok = false;
+		    if (!print_alias(arg, alias, prefix))
 			break;
-		    }
 		} else {
 		    xerror(0, Ngt("%ls: no such alias"), arg);
-		    ok = false;
 		}
 	    } else {
 		xerror(0, Ngt("`%ls': invalid alias name"), arg);
-		ok = false;
 	    }
 	} while (++xoptind < argc);
     }
-    return ok ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP
@@ -489,11 +486,10 @@ const char alias_help[] = Ngt(
 #endif
 
 /* The "unalias" builtin, which accepts the following option:
- * -a: remove all aliases */
+ *  -a: remove all aliases */
 int unalias_builtin(int argc, void **argv)
 {
     bool all = false;
-    bool err = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -518,13 +514,11 @@ int unalias_builtin(int argc, void **argv)
 	    goto print_usage;
 	do {
 	    const wchar_t *arg = ARGV(xoptind);
-	    if (!remove_alias(arg)) {
+	    if (!remove_alias(arg))
 		xerror(0, Ngt("%ls: no such alias"), arg);
-		err = true;
-	    }
 	} while (++xoptind < argc);
     }
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
 print_usage:
     fprintf(stderr, gt("Usage:  unalias name[...]\n"
