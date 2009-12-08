@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <float.h>
 #include <limits.h>
+#include <locale.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -91,6 +92,7 @@ typedef struct evalinfo_T {
     token_T token;       /* current token */
     bool parseonly;      /* only parse the expression: don't calculate */
     bool error;          /* true if there is an error */
+    char *savelocale;    /* original LC_NUMERIC locale */
 } evalinfo_T;
 
 static void parse_assignment(evalinfo_T *info, value_T *result)
@@ -135,7 +137,7 @@ static void do_increment_or_decrement(tokentype_T ttype, value_T *value)
     __attribute__((nonnull));
 static void parse_primary(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
-static void parse_as_number(word_T *word, value_T *result)
+static void parse_as_number(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void coerce_number(evalinfo_T *info, value_T *value)
     __attribute__((nonnull));
@@ -162,11 +164,14 @@ wchar_t *evaluate_arithmetic(wchar_t *exp)
     info.index = 0;
     info.parseonly = false;
     info.error = false;
+    info.savelocale = xstrdup(setlocale(LC_NUMERIC, NULL));
 
     next_token(&info);
     parse_assignment(&info, &result);
     if (posixly_correct)
 	coerce_number(&info, &result);
+
+    free(info.savelocale);
 
     wchar_t *resultstr;
     if (info.error) {
@@ -196,10 +201,13 @@ bool evaluate_index(wchar_t *exp, ssize_t *valuep)
     info.index = 0;
     info.parseonly = false;
     info.error = false;
+    info.savelocale = xstrdup(setlocale(LC_NUMERIC, NULL));
 
     next_token(&info);
     parse_assignment(&info, &result);
     coerce_number(&info, &result);
+
+    free(info.savelocale);
 
     bool ok;
     if (info.error) {
@@ -946,7 +954,7 @@ void parse_primary(evalinfo_T *info, value_T *result)
 	    }
 	    break;
 	case TT_NUMBER:
-	    parse_as_number(&info->token.word, result);
+	    parse_as_number(info, result);
 	    if (result->type == VT_INVALID)
 		info->error = true;
 	    next_token(info);
@@ -966,9 +974,10 @@ void parse_primary(evalinfo_T *info, value_T *result)
 	result->type = VT_INVALID;
 }
 
-/* Parses the specified `word' as a number literal. */
-void parse_as_number(word_T *word, value_T *result)
+/* Parses the current word as a number literal. */
+void parse_as_number(evalinfo_T *info, value_T *result)
 {
+    word_T *word = &info->token.word;
     wchar_t w[word->length + 1];
     wcsncpy(w, word->contents, word->length);
     w[word->length] = L'\0';
@@ -982,9 +991,12 @@ void parse_as_number(word_T *word, value_T *result)
     if (!posixly_correct) {
 	double doubleresult;
 	wchar_t *end;
+	setlocale(LC_NUMERIC, "C");
 	errno = 0;
 	doubleresult = wcstod(w, &end);
-	if (!errno && !*end) {
+	bool ok = !errno && !*end;
+	setlocale(LC_NUMERIC, info->savelocale);
+	if (ok) {
 	    result->type = VT_DOUBLE;
 	    result->v_double = doubleresult;
 	    return;
@@ -992,7 +1004,6 @@ void parse_as_number(word_T *word, value_T *result)
     }
     xerror(0, Ngt("arithmetic: `%ls': not a valid number"), w);
     result->type = VT_INVALID;
-    return;
 }
 
 /* If the value is of the VT_VAR type, change it into VT_LONG/VT_DOUBLE.
