@@ -87,6 +87,7 @@ trap STOP 1
 trap output error 1 1
 trap output error 2 1
 trap output error 3 1
+trap no-such-signal 1
 ===== kill =====
 kill no-such-option 1
 kill operands missing 2

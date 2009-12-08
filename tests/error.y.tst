@@ -331,6 +331,8 @@ echo trap output error 2 $?
 trap -p INT >&- 2>/dev/null
 echo trap output error 3 $?
 )
+trap '' NO-SUCH-SIGNAL
+echo trap no-such-signal $?
 
 echo ===== kill =====
 echo ===== kill ===== >&2

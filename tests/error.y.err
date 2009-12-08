@@ -86,6 +86,7 @@ Usage:  trap [action signal...]
         trap -p [signal...]
 trap: SIGKILL: cannot be trapped
 trap: SIGSTOP: cannot be trapped
+trap: NO-SUCH-SIGNAL: no such signal
 ===== kill =====
 kill: -NO-SUCH-OPTION: no such signal
 Usage:  kill [-s signal | -n signum] process...

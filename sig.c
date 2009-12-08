@@ -1006,6 +1006,7 @@ int trap_builtin(int argc, void **argv)
 	    int signum = get_signal_number(name);
 	    if (signum < 0) {
 		xerror(0, Ngt("%ls: no such signal"), wname);
+		ok = false;
 	    } else {
 #if defined SIGRTMIN && defined SIGRTMAX
 		if (sigrtmin <= signum && signum <= sigrtmax) {
@@ -1048,6 +1049,7 @@ set_traps:
 	int signum = get_signal_number_w(name);
 	if (signum < 0) {
 	    xerror(0, Ngt("%ls: no such signal"), name);
+	    err = true;
 	} else {
 	    err |= !set_trap(signum, command);
 	}
