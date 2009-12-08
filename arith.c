@@ -1007,15 +1007,12 @@ void parse_as_number(evalinfo_T *info, value_T *result)
 }
 
 /* If the value is of the VT_VAR type, change it into VT_LONG/VT_DOUBLE.
- * If the variable specified by the value is unset, it is assumed to be 0.
+ * If the variable specified by the value is unset, it is assumed 0.
  * On parse error, false is returned and the value is unspecified. */
 void coerce_number(evalinfo_T *info, value_T *value)
 {
     if (value->type != VT_VAR)
 	return;
-
-    // TODO: arith: coerce_number: recursively parse the value of the variable
-    //                             as an expression
 
     const wchar_t *v;
     {
