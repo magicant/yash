@@ -62,12 +62,15 @@ static char *get_process_status_string(const process_T *p, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
+static int print_job_status(
+	size_t jobnumber, _Bool changedonly, _Bool verbose, FILE *f)
+    __attribute__((nonnull));
 static size_t get_jobnumber_from_name(const wchar_t *name)
     __attribute__((nonnull,pure));
 static size_t get_jobnumber_from_pid(pid_t pid)
     __attribute__((pure));
 
-static void jobs_builtin_print_job(size_t jobnumber,
+static bool jobs_builtin_print_job(size_t jobnumber,
 	bool verbose, bool changedonly, bool pgidonly,
 	bool runningonly, bool stoppedonly);
 static int continue_job(size_t jobnumber, job_T *job, bool fg)
@@ -692,12 +695,15 @@ char *get_job_status_string(const job_T *job, bool *needfree)
  * If `changedonly' is true, the job is printed only if the `j_statuschanged'
  * flag is true.
  * If `verbose' is true, the status is printed in the process-wise format rather
- * than the usual job-wise format. */
-void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
+ * than the usual job-wise format.
+ * Returns zero if successful. Returns errno if `fprintf' failed. */
+int print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 {
+    int result = 0;
+
     job_T *job = get_job(jobnumber);
     if (!job || (changedonly && !job->j_statuschanged) || job->j_nonotify)
-	return;
+	return result;
 
     char current;
     if      (jobnumber == current_jobnumber)  current = '+';
@@ -712,8 +718,9 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	/* TRANSLATORS: the translated format string can be different 
 	 * from the original only in the number of spaces. This is required
 	 * for POSIX compliance. */
-	fprintf(f, gt("[%zu] %c %-20s %ls\n"),
+	result = fprintf(f, gt("[%zu] %c %-20s %ls\n"),
 		jobnumber, current, status, jobname);
+	result = (result >= 0) ? 0 : errno;
 
 	if (needfree)
 	    free(status);
@@ -730,12 +737,13 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	/* TRANSLATORS: the translated format string can be different 
 	 * from the original only in the number of spaces. This is required
 	 * for POSIX compliance. */
-	fprintf(f, gt("[%zu] %c %5jd %-20s   %ls\n"),
+	result = fprintf(f, gt("[%zu] %c %5jd %-20s   %ls\n"),
 		jobnumber, current, (intmax_t) pid, status, jobname);
+	result = (result >= 0) ? 0 : errno;
 	if (needfree)
 	    free(status);
 
-	for (size_t i = 1; i < job->j_pcount; i++) {
+	for (size_t i = 1; result == 0 && i < job->j_pcount; i++) {
 	    pid = job->j_procs[i].pr_pid;
 	    status = get_process_status_string(&job->j_procs[i], &needfree);
 	    jobname = job->j_procs[i].pr_name;
@@ -743,8 +751,9 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	    /* TRANSLATORS: the translated format string can be different 
 	     * from the original only in the number of spaces. This is required
 	     * for POSIX compliance. */
-	    fprintf(f, gt("      %5jd %-20s | %ls\n"),
+	    result = fprintf(f, gt("      %5jd %-20s | %ls\n"),
 		    (intmax_t) pid, (posixly_correct ? "" : status), jobname);
+	    result = (result >= 0) ? 0 : errno;
 	    if (needfree)
 		free(status);
 	}
@@ -752,9 +761,12 @@ void print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     job->j_statuschanged = false;
     if (job->j_status == JS_DONE)
 	remove_job(jobnumber);
+
+    return result;
 }
 
-/* Prints the status of jobs which have been changed but not reported. */
+/* Prints the status of jobs which have been changed but not reported.
+ * Returns zero if successful. Returns errno if `fprintf' failed. */
 void print_job_status_all(void)
 {
     apply_curstop();
@@ -894,7 +906,6 @@ int jobs_builtin(int argc, void **argv)
 
     bool verbose = false, changedonly = false, pgidonly = false;
     bool runningonly = false, stoppedonly = false;
-    bool err = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -922,7 +933,6 @@ int jobs_builtin(int argc, void **argv)
     nextforceexit = true;
     apply_curstop();
 
-    clearerr(stdout);
     if (xoptind < argc) {
 	/* print the specified jobs */
 	do {
@@ -931,58 +941,62 @@ int jobs_builtin(int argc, void **argv)
 		jobspec++;
 	    } else if (posixly_correct) {
 		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
-		err = true;
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("%ls: ambiguous job specification"),
 			ARGV(xoptind));
-		err = true;
 	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
 		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
-		err = true;
 	    } else {
-		jobs_builtin_print_job(jobnumber, verbose, changedonly,
-			pgidonly, runningonly, stoppedonly);
+		if (!jobs_builtin_print_job(jobnumber, verbose,
+			changedonly, pgidonly, runningonly, stoppedonly))
+		    return Exit_FAILURE;
 	    }
 	} while (++xoptind < argc);
     } else {
 	/* print all jobs */
 	for (size_t i = 1; i < joblist.length; i++) {
-	    jobs_builtin_print_job(i, verbose, changedonly, pgidonly,
-		    runningonly, stoppedonly);
+	    if (!jobs_builtin_print_job(i, verbose, changedonly, pgidonly,
+		    runningonly, stoppedonly))
+		return Exit_FAILURE;
 	}
     }
 
-    if (!ferror(stdout)) {
-	return err ? Exit_FAILURE : Exit_SUCCESS;
-    } else {
-	xerror(0, Ngt("cannot print to standard output"));
-	return Exit_FAILURE;
-    }
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
-/* Prints the job status */
-void jobs_builtin_print_job(size_t jobnumber,
+/* Prints the job status.
+ * On an I/O error, an error message is printed to the standard error and false
+ * is returned. */
+bool jobs_builtin_print_job(size_t jobnumber,
 	bool verbose, bool changedonly, bool pgidonly,
 	bool runningonly, bool stoppedonly)
 {
     job_T *job = get_job(jobnumber);
 
     if (job == NULL)
-	return;
+	return true;
     if (runningonly && job->j_status != JS_RUNNING)
-	return;
+	return true;
     if (stoppedonly && job->j_status != JS_STOPPED)
-	return;
+	return true;
 
+    int err;
     if (pgidonly) {
 	if (changedonly && !job->j_statuschanged)
-	    return;
-	printf("%jd\n", imaxabs(job->j_pgid));
+	    return true;
+	int result = printf("%jd\n", imaxabs(job->j_pgid));
+	err = (result >= 0) ? 0 : errno;
     } else {
-	print_job_status(jobnumber, changedonly, verbose, stdout);
+	err = print_job_status(jobnumber, changedonly, verbose, stdout);
+    }
+    if (err != 0) {
+	xerror(err, Ngt("cannot print to standard output"));
+	return false;
+    } else {
+	return true;
     }
 }
 

@@ -90,9 +90,6 @@ extern void ensure_foreground(void);
 extern int calc_status_of_job(const job_T *job)
     __attribute__((pure,nonnull));
 
-extern void print_job_status(
-	size_t jobnumber, _Bool changedonly, _Bool verbose, FILE *f)
-    __attribute__((nonnull));
 extern void print_job_status_all(void);
 extern void notify_signaled_job(size_t jobnumber);
 
