@@ -76,7 +76,6 @@ int echo_builtin(int argc, void **argv)
 {
     bool nonewline, escape, noption, eoption;
     const wchar_t *echo_style;
-    int index;
 
     /* Determine the behavior of "echo" according to $ECHO_STYLE.
      * The possible values for $ECHO_STYLE are:
@@ -106,7 +105,7 @@ int echo_builtin(int argc, void **argv)
     }
 
     /* parse options */
-    index = 1;
+    int index = 1;
     if (eoption) {
 	assert(noption);
 	for (index = 1; index < argc; index++) {
@@ -136,37 +135,42 @@ int echo_builtin(int argc, void **argv)
 	for (;;) {
 	    if (escape) {
 		xstrbuf_T buf;
+		bool ok, end;
+		size_t count;
 
 		sb_init(&buf);
-		nonewline |= echo_print_escape(ARGV(index), &buf);
-		fputs(buf.contents, stdout);
+		nonewline |= end = echo_print_escape(ARGV(index), &buf);
+		count = fwrite(buf.contents, sizeof (char), buf.length, stdout);
+		ok = (count == buf.length);
 		sb_destroy(&buf);
-		if (nonewline)
+		if (!ok)
+		    goto error;
+		if (end)
 		    break;
 	    } else {
-		printf("%ls", ARGV(index));
+		if (printf("%ls", ARGV(index)) < 0)
+		    goto error;
 	    }
 
 	    index++;
 	    if (index >= argc)
 		break;
 
-	    fputc(' ', stdout);
+	    if (fputc(' ', stdout) < 0)
+		goto error;
 	}
     }
 
-    /* print trailing newline and flush the buffer */
-    if (!nonewline)
-	/* printing a newline automatically flushes the buffer */
-	fputc('\n', stdout);
-    else
-	fflush(stdout);
+    /* print trailing newline and flush the buffer
+     * (printing a newline automatically flushes the buffer) */
+    if ((nonewline ? fflush(stdout) : fputc('\n', stdout)) < 0)
+	goto error;
 
-    if (ferror(stdout)) {
-	xerror(errno, Ngt("cannot print to standard output"));
-	return Exit_FAILURE;
-    }
     return Exit_SUCCESS;
+
+error:
+    xerror(errno, Ngt("cannot print to standard output"));
+    return Exit_FAILURE;
 }
 
 /* Prints the specified string that may include escape sequences.

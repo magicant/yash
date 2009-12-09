@@ -5,69 +5,75 @@
 ===== unset
 -n new
 line
+-n new line
 12367
 89	0!
 S
 x \123\12\1x !1
--e 1-e -E 1-eE 1
+-e 1-e -E 1-eE 1-ne 123 -
 ===== SYSV
 -n new
 line
+-n new line
 12367
 89	0!
 S
 x \123\12\1x !1
--e 1-e -E 1-eE 1
+-e 1-e -E 1-eE 1-ne 123 -
 ===== XSI
 -n new
 line
+-n new line
 12367
 89	0!
 S
 x \123\12\1x !1
--e 1-e -E 1-eE 1
+-e 1-e -E 1-eE 1-ne 123 -
 ===== BSD
 newline
-1\a2\b3\c4 5
+new line1\a2\b3\c4 5
 6\f7\n8\r9\t0\v!
 \0123\012\01x \123\12\1x \00411
 -e 1\c2
 -e -E 1\c2
 -eE 1\c2
+-ne 123 -\c- 456
 
 ===== GNU
 newline
-1\a2\b3\c4 5
+new line1\a2\b3\c4 5
 6\f7\n8\r9\t0\v!
 \0123\012\01x \123\12\1x \00411
 11\c2
 1\c2
-
+123 -
 ===== ZSH
 newline
-12367
+new line12367
 89	0!
 S
 x \123\12\1x !1
 11\c2
 1\c2
-
+123 -
 ===== DASH
 newline
-12367
+new line12367
 89	0!
 S
 x \123\12\1x !1
--e 1-e -E 1-eE 1
+-e 1-e -E 1-eE 1-ne 123 -
 ===== RAW
 -n new
 line
+-n new line
 1\a2\b3\c4 5
 6\f7\n8\r9\t0\v!
 \0123\012\01x \123\12\1x \00411
 -e 1\c2
 -e -E 1\c2
 -eE 1\c2
+-ne 123 -\c- 456
 
 ===== printf =====
 1
