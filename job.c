@@ -1026,7 +1026,6 @@ const char jobs_help[] = Ngt(
 int fg_builtin(int argc, void **argv)
 {
     bool fg = wcscmp(argv[0], L"fg") == 0;
-    bool err = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -1062,22 +1061,18 @@ int fg_builtin(int argc, void **argv)
 		jobspec++;
 	    } else if (posixly_correct) {
 		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
-		err = true;
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("%ls: ambiguous job specification"),
 			ARGV(xoptind));
-		err = true;
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
 		    || job->j_pgid < 0) {
 		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
-		err = true;
 	    } else if (job->j_pgid == 0) {
 		xerror(0, Ngt("%ls: not job-controlled job"), ARGV(xoptind));
-		err = true;
 	    } else {
 		status = continue_job(jobnumber, job, fg);
 	    }
@@ -1086,13 +1081,16 @@ int fg_builtin(int argc, void **argv)
 	if (current_jobnumber == 0 ||
 		(job = joblist.contents[current_jobnumber])->j_pgid <= 0) {
 	    xerror(0, Ngt("no current job"));
-	    err = true;
 	} else {
 	    status = continue_job(current_jobnumber, job, fg);
 	}
     }
 
-    return (status != 0) ? status : err ? Exit_FAILURE : Exit_SUCCESS;
+    if (status != 0)
+	return status;
+    if (yash_error_message_count != 0)
+	return Exit_FAILURE;
+    return Exit_SUCCESS;
 }
 
 /* Continues execution of the specified job.
@@ -1187,7 +1185,6 @@ const char bg_help[] = Ngt(
 int wait_builtin(int argc, void **argv)
 {
     bool jobcontrol = doing_job_control_now;
-    bool err = false;
     int status = Exit_SUCCESS;
     wchar_t opt;
 
@@ -1216,7 +1213,6 @@ int wait_builtin(int argc, void **argv)
 		long pid;
 		if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
 		    xerror(0, Ngt("%ls: invalid job specification"), jobspec);
-		    err = true;
 		    continue;
 		}
 		jobnumber = get_jobnumber_from_pid((pid_t) pid);
@@ -1225,7 +1221,6 @@ int wait_builtin(int argc, void **argv)
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("%ls: ambiguous job specification"),
 			ARGV(xoptind));
-		err = true;
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
 		    || job->j_pgid < 0) {
@@ -1259,7 +1254,11 @@ int wait_builtin(int argc, void **argv)
 	}
     }
 
-    return status ? status : err ? Exit_FAILURE : Exit_SUCCESS;
+    if (status != 0)
+	return status;
+    if (yash_error_message_count != 0)
+	return Exit_FAILURE;
+    return Exit_SUCCESS;
 }
 
 /* Checks if the shell has any job to wait for. */
@@ -1299,7 +1298,6 @@ const char wait_help[] = Ngt(
 int disown_builtin(int argc, void **argv)
 {
     bool all = false;
-    bool err = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
@@ -1325,31 +1323,26 @@ int disown_builtin(int argc, void **argv)
 		jobspec++;
 	    } else if (posixly_correct) {
 		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
-		err = true;
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("%ls: ambiguous job specification"),
 			ARGV(xoptind));
-		err = true;
 	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
 		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
-		err = true;
 	    } else {
 		remove_job(jobnumber);
 	    }
 	} while (++xoptind < argc);
     } else {
-	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL) {
+	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL)
 	    xerror(0, Ngt("no current job"));
-	    err = true;
-	} else {
+	else
 	    remove_job(current_jobnumber);
-	}
     }
 
-    return err ? Exit_FAILURE : Exit_SUCCESS;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP
