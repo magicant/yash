@@ -1966,21 +1966,21 @@ int command_builtin(int argc, void **argv)
 	return command_builtin_execute(
 		argc - xoptind, argv + xoptind, type);
     } else {
-	bool err = false;
 	bool keywordalias = false;
 	if (!builtin && !external)
 	    type |= sct_function, keywordalias = true;
 
+	bool ok = true;
 	clearerr(stdout);
-	for (int i = xoptind; i < argc; i++)
-	    err |= !print_command_info(
+	for (int i = xoptind; i < argc; i++) {
+	    ok &= print_command_info(
 		    ARGV(i), type, keywordalias, humanfriendly);
-	if (!ferror(stdout)) {
-	    return err ? Exit_FAILURE : Exit_SUCCESS;
-	} else {
-	    xerror(0, Ngt("cannot print to standard output"));
-	    return Exit_FAILURE;
+	    if (ferror(stdout)) {
+		xerror(0, Ngt("cannot print to standard output"));
+		return Exit_FAILURE;
+	    }
 	}
+	return ok ? Exit_SUCCESS : Exit_FAILURE;
     }
 
 print_usage:
