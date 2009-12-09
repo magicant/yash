@@ -163,7 +163,7 @@ int echo_builtin(int argc, void **argv)
 
     /* print trailing newline and flush the buffer
      * (printing a newline automatically flushes the buffer) */
-    if ((nonewline ? fflush(stdout) : fputc('\n', stdout)) < 0)
+    if ((nonewline ? fflush(stdout) : putchar('\n')) < 0)
 	goto error;
 
     return Exit_SUCCESS;
@@ -277,8 +277,6 @@ const char echo_help[] = Ngt(
 #endif /* YASH_ENABLE_HELP */
 
 
-static bool printf_error;
-
 /* The "printf" builtin */
 int printf_builtin(int argc, void **argv)
 {
@@ -300,40 +298,35 @@ int printf_builtin(int argc, void **argv)
 	goto print_usage;
 
     struct format_T *format = NULL;
-    printf_error = false;
-    clearerr(stdout);
-    if (printf_parse_format(ARGV(xoptind), &format)) {
-	int oldoptind;
-	struct format_T *f;
-
-	xoptind++;
-	do {
-	    oldoptind = xoptind;
-	    f = format;
-	    while (f) {
-		if (printf_printf(f, ARGV(xoptind)))
-		    goto end;
-		f = f->next;
-	    }
-	} while (xoptind < argc && xoptind != oldoptind);
-end:
-	fflush(stdout);
-	if (ferror(stdout)) {
-	    xerror(errno, Ngt("cannot print to standard output"));
-	    printf_error = true;
-	}
-    } else {
-	printf_error = true;
+    if (!printf_parse_format(ARGV(xoptind), &format)) {
+	freeformat(format);
+	return Exit_FAILURE;
     }
+    xoptind++;
+
+    int oldoptind;
+    do {
+	oldoptind = xoptind;
+	struct format_T *f = format;
+	while (f) {
+	    if (printf_printf(f, ARGV(xoptind)))
+		goto end;
+	    f = f->next;
+	}
+    } while (xoptind < argc && xoptind != oldoptind);
+
+end:
+    if (fflush(stdout) < 0)
+	xerror(errno, Ngt("cannot print to standard output"));
     freeformat(format);
 
-    return printf_error ? Exit_FAILURE : Exit_SUCCESS;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 /* Parses the format for the "printf" builtin.
  * If successful, a pointer to the result is assigned to `*resultp' and true is
  * returned.
- * If unsuccessful, an error message is printed and NULL is returned. A pointer
+ * If unsuccessful, an error message is printed and false is returned. A pointer
  * to a partial result may be assigned to `*resultp'. */
 bool printf_parse_format(const wchar_t *format, struct format_T **resultp)
 {
@@ -552,37 +545,43 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
     switch (format->type) {
 	case ft_none:
 	    assert(strcmp(format->convspec, "%%") == 0);
-	    putchar('%');
+	    if (putchar('%') < 0)
+		goto ioerror;
 	    return false;
 	case ft_raw:
 	    assert(format->convspec[0] != '%');
-	    printf("%s", format->convspec);
+	    if (printf("%s", format->convspec) < 0)
+		goto ioerror;
 	    return false;
 	case ft_string:
-	    if (arg)
+	    if (arg != NULL)
 		xoptind++;
 	    else
 		arg = L"";
-	    printf(format->convspec, arg);
+	    if (printf(format->convspec, arg) < 0)
+		goto ioerror;
 	    return false;
 	case ft_char:
 	    if (arg) {
-		printf(format->convspec, (wint_t) arg[0]);
 		xoptind++;
+		if (printf(format->convspec, (wint_t) arg[0]) < 0)
+		    goto ioerror;
 	    }
 	    return false;
 	case ft_int:
-	    printf(format->convspec, printf_parse_integer(arg, true));
+	    if (printf(format->convspec, printf_parse_integer(arg, true)) < 0)
+		goto ioerror;
 	    return false;
 	case ft_uint:
-	    printf(format->convspec, printf_parse_integer(arg, false));
+	    if (printf(format->convspec, printf_parse_integer(arg, false)) < 0)
+		goto ioerror;
 	    return false;
 	case ft_float:
 	    {
 		long double value;
 		wchar_t *end;
 
-		if (arg)
+		if (arg != NULL)
 		    xoptind++;
 		else
 		    arg = L"0";
@@ -591,31 +590,36 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 		    value = wcstod(arg, &end);
 		else
 		    value = wcstold(arg, &end);
-		if (errno || !arg[0] || *end) {
+		if (errno || arg[0] == L'\0' || *end != L'\0')
 		    xerror(errno, Ngt("`%ls' is not a valid number"), arg);
-		    printf_error = true;
-		}
-		printf(format->convspec, value);
+		if (printf(format->convspec, value) < 0)
+		    goto ioerror;
 		return false;
 	    }
 	case ft_echo:
 	    {
 		xstrbuf_T buf;
-		bool stop;
+		bool ok, end;
 
-		if (arg)
+		if (arg != NULL)
 		    xoptind++;
 		else
 		    arg = L"";
 		sb_init(&buf);
-		stop = echo_print_escape(arg, &buf);
-		printf(format->convspec, buf.contents);
+		end = echo_print_escape(arg, &buf);
+		ok = (printf(format->convspec, buf.contents) >= 0);
 		sb_destroy(&buf);
-		return stop;
+		if (!ok)
+		    goto ioerror;
+		return end;
 	    }
 	default:
 	    assert(false);
     }
+
+ioerror:
+    xerror(errno, Ngt("cannot print to standard output"));
+    return true;
 }
 
 /* Parses the specified string as an integer. */
@@ -624,7 +628,7 @@ uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
     uintmax_t value;
     wchar_t *end;
 
-    if (arg)
+    if (arg != NULL)
 	xoptind++;
     else
 	arg = L"0";
@@ -636,10 +640,8 @@ uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
 	    value = (uintmax_t) wcstoimax(arg, &end, 0);
 	else
 	    value = wcstoumax(arg, &end, 0);
-	if (errno || !arg[0] || *end) {
+	if (errno || arg[0] == L'\0' || *end != L'\0')
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), arg);
-	    printf_error = true;
-	}
     }
     return value;
 }
