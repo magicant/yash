@@ -927,7 +927,8 @@ void reset_sigwinch(void)
 
 static bool print_trap(const char *signame, const wchar_t *command)
     __attribute__((nonnull(1)));
-static bool print_signal(int signum, const char *name, bool verbose);
+static bool print_signal(int signum, const char *name, bool verbose)
+    __attribute__((nonnull));
 static void signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
@@ -1163,15 +1164,18 @@ main:
 	if (xoptind == argc) {
 	    /* print info of all signals */
 	    for (const signal_T *s = signals; s->no; s++)
-		print_signal(s->no, s->name, verbose);
+		if (!print_signal(s->no, s->name, verbose))
+		    return Exit_FAILURE;
 #if defined SIGRTMIN && defined SIGRTMAX
 	    for (int i = SIGRTMIN, max = SIGRTMAX; i <= max; i++)
-		print_signal(i, NULL, verbose);
+		if (!print_signal(i, get_signal_name(i), verbose))
+		    return Exit_FAILURE;
 #endif
 	} else {
 	    /* print info of the specified signals */
 	    do {
 		int signum;
+		const char *signame;
 
 		if (xwcstoi(ARGV(xoptind), 10, &signum) && signum >= 0) {
 		    if (signum >= TERMSIGOFFSET)
@@ -1181,8 +1185,11 @@ main:
 		} else {
 		    signum = get_signal_number_w(ARGV(xoptind));
 		}
-		if (signum <= 0 || !print_signal(signum, NULL, verbose))
+		signame = get_signal_name(signum);
+		if (signum <= 0 || strcmp(signame, "?") == 0)
 		    xerror(0, Ngt("%ls: no such signal"), ARGV(xoptind));
+		else if (!print_signal(signum, signame, verbose))
+		    return Exit_FAILURE;
 	    } while (++xoptind < argc);
 	}
     } else {
@@ -1223,31 +1230,30 @@ print_usage:
 }
 
 /* Prints info about the specified signal.
- * If `name' is non-NULL, it must be the correct name of signal `signum'.
- * If `name' is NULL and `signum' is not a valid signal number, it is an error.
- * `get_signal_name' may be called in this function.
- * Returns true iff successful. */
+ * `signum' must be a valid signal number and `name' must be the name of the
+ * signal.
+ * Returns false iff an IO error occurred. */
 bool print_signal(int signum, const char *name, bool verbose)
 {
-    if (name == NULL) {
-	name = get_signal_name(signum);
-	if (strcmp(name, "?") == 0)
-	    return false;
-    }
+    int r;
+
     if (!verbose) {
-	puts(name);
+	r = puts(name);
     } else {
 #if HAVE_STRSIGNAL
 	const char *sigdesc = strsignal(signum);
-	if (sigdesc) {
-	    printf("%d\t%-10s %s\n", signum, name, sigdesc);
-	} else
+	if (sigdesc)
+	    r = printf("%d\t%-10s %s\n", signum, name, sigdesc);
+	else
 #endif
-	{
-	    printf("%d\t%-10s\n", signum, name);
-	}
+	    r = printf("%d\t%-10s\n", signum, name);
     }
-    return true;
+    if (r >= 0) {
+	return true;
+    } else {
+	xerror(errno, Ngt("cannot print to standard output"));
+	return false;
+    }
 }
 
 /* Sends the specified signal to the specified job.

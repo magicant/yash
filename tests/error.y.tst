@@ -345,6 +345,10 @@ kill -l 0
 echo kill no-such-signal $?
 kill %100
 echo kill no-such-job $?
+kill -l >&- 2>/dev/null
+echo kill output error 1 $?
+kill -l HUP >&- 2>/dev/null
+echo kill output error 2 $?
 
 echo ===== jobs =====
 echo ===== jobs ===== >&2
