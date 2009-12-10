@@ -19,7 +19,6 @@
 #ifndef YASH_JOB_H
 #define YASH_JOB_H
 
-#include <stdio.h>
 #include <sys/types.h>
 
 

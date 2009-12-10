@@ -765,8 +765,7 @@ int print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     return result;
 }
 
-/* Prints the status of jobs which have been changed but not reported.
- * Returns zero if successful. Returns errno if `fprintf' failed. */
+/* Prints the status of jobs which have been changed but not reported. */
 void print_job_status_all(void)
 {
     apply_curstop();
@@ -1227,7 +1226,7 @@ int wait_builtin(int argc, void **argv)
 		status = Exit_NOTFOUND;
 	    } else {
 		status = wait_for_job(jobnumber, jobcontrol, jobcontrol, true);
-		if (!status) {
+		if (status == 0) {
 		    status = calc_status_of_job(job);
 		} else {
 		    assert(TERMSIGOFFSET >= 128);
@@ -1266,7 +1265,8 @@ bool wait_has_job(bool jobcontrol)
 {
     /* print/remove already-finished jobs */
     if (jobcontrol && is_interactive_now && !posixly_correct) {
-	print_job_status_all();
+	for (size_t i = 1; i < joblist.length; i++)
+	    print_job_status(i, true, false, stdout);
     } else {
 	for (size_t i = 1; i < joblist.length; i++) {
 	    job_T *job = joblist.contents[i];
