@@ -275,6 +275,7 @@ argument with backslash \ and percent %%
   123     a long_argument 1
    12     a    lo 2
 123   a     long_argument 3
+12    a     lo    4
 12367
 89	0!
 S

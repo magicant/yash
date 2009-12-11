@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,18 +45,29 @@ struct format_T {
     enum formattype_T {
 	ft_none, ft_raw, ft_string, ft_char, ft_int, ft_uint, ft_float, ft_echo,
     } type;
-    char *convspec;
+    union {
+	struct {
+	    char *value;
+	    size_t length;
+	} raw;
+	char *convspec;
+	struct {
+	    bool left;
+	    unsigned long width, max;
+	} echo;
+    } value;
 };
-/* The "format_T" structure represents either a fragment of a literal string or
- * a conversion specification. For a string fragment, the `type' member is
- * `ft_raw' and `convspec' member is the literal value. For a conversion
- * specification, `convspec' is a string that starts with "%". */
+/* The `ft_none' format type corresponds to the "%%" conversion specification.
+ * The `ft_raw' format type is used for literal strings that are not conversion
+ * specifications. The format types of `ft_string', `ft_char', `ft_int',
+ * `ft_uint', and `ft_float' are used for various types of conversion
+ * specifications (`convspec') that require a value of the corresponding type.
+ * The `ft_echo' format type is used for the "b" conversion specification. */
 /* ft_string  -> wchar_t *
  * ft_char    -> wint_t
  * ft_int     -> intmax_t
  * ft_uint    -> uintmax_t
- * ft_float   -> long double
- * `ft_echo' corresponds to "%b". */
+ * ft_float   -> long double */
 
 static bool echo_print_escape(const wchar_t *s, xstrbuf_T *buf)
     __attribute__((nonnull));
@@ -64,10 +76,17 @@ static bool printf_parse_format(
     __attribute__((nonnull));
 static struct format_T **printf_parse_percent(
 	const wchar_t **formatp, struct format_T **resultp)
-    __attribute__((nonnull));
+    __attribute__((nonnull,warn_unused_result));
+static struct format_T *printf_parse_percent_b(xstrbuf_T *convspec)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static bool printf_printf(const struct format_T *format, const wchar_t *arg)
     __attribute__((nonnull(1)));
+static inline bool printf_print_raw(const struct format_T *format)
+    __attribute__((nonnull));
 static uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed);
+static bool printf_print_escape(
+	const struct format_T *format, const wchar_t *arg, xstrbuf_T *buf)
+    __attribute__((nonnull));
 static void freeformat(struct format_T *f);
 
 
@@ -144,12 +163,12 @@ int echo_builtin(int argc, void **argv)
 		ok = (count == buf.length);
 		sb_destroy(&buf);
 		if (!ok)
-		    goto error;
+		    goto ioerror;
 		if (end)
 		    break;
 	    } else {
 		if (printf("%ls", ARGV(index)) < 0)
-		    goto error;
+		    goto ioerror;
 	    }
 
 	    index++;
@@ -157,18 +176,18 @@ int echo_builtin(int argc, void **argv)
 		break;
 
 	    if (fputc(' ', stdout) < 0)
-		goto error;
+		goto ioerror;
 	}
     }
 
     /* print trailing newline and flush the buffer
      * (printing a newline automatically flushes the buffer) */
     if ((nonewline ? fflush(stdout) : putchar('\n')) < 0)
-	goto error;
+	goto ioerror;
 
     return Exit_SUCCESS;
 
-error:
+ioerror:
     xerror(errno, Ngt("cannot print to standard output"));
     return Exit_FAILURE;
 }
@@ -337,7 +356,8 @@ bool printf_parse_format(const wchar_t *format, struct format_T **resultp)
 	    sb_wccat(&buf, L'\0', &state);           \
 	    f->next = NULL;                          \
 	    f->type = ft_raw;                        \
-	    f->convspec = sb_tostr(&buf);            \
+	    f->value.raw.length = buf.length;        \
+	    f->value.raw.value = sb_tostr(&buf);     \
 	    *resultp = f;                            \
 	    resultp = &f->next;                      \
 	} else                                       \
@@ -436,6 +456,7 @@ struct format_T **printf_parse_percent(
     xstrbuf_T buf;
     bool hashflag = false, zeroflag = false;
     enum formattype_T type;
+    struct format_T *result;
 
     assert(*format == L'%');
     format++;
@@ -500,10 +521,9 @@ parse_width:
 	    break;
 	case L'b':
 	    if (hashflag || zeroflag) goto flag_error;
-	    type = ft_echo;
-	    sb_ccat(&buf, 's');
 	    format++;
-	    goto skip;
+	    result = printf_parse_percent_b(&buf);
+	    goto end;
 	case L'%':
 	    if (buf.length != 1) goto conv_error;
 	    type = ft_none;
@@ -525,16 +545,70 @@ flag_error:
     }
     sb_ccat(&buf, (char) *format++);
 
-skip:;
-    struct format_T *f = xmalloc(sizeof *f);
-    f->next = NULL;
-    f->type = type;
-    f->convspec = sb_tostr(&buf);
+    result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->type = type;
+    switch (type) {
+	case ft_none:
+	    sb_destroy(&buf);
+	    break;
+	case ft_raw:
+	case ft_echo:
+	    assert(false);
+	default:
+	    result->value.convspec = sb_tostr(&buf);
+	    break;
+    }
 
+end:
     *formatp = format;
-    *resultp = f;
-    resultp = &f->next;
-    return resultp;
+    *resultp = result;
+    return &result->next;
+}
+
+/* Parses the conversion specification given in buffer `convspec'.
+ * The specification in the buffer must not have the conversion specifier, which
+ * is assumed to be 'b'. The buffer is destroyed in this function. */
+struct format_T *printf_parse_percent_b(xstrbuf_T *convspec)
+{
+    size_t index = 0;
+    struct format_T *result = xmalloc(sizeof *result);
+
+    result->next = NULL;
+    result->type = ft_echo;
+    result->value.echo.left = false;
+
+    assert(convspec->contents[index] == '%');
+    index++;
+
+    for (;; index++) {
+	switch (convspec->contents[index]) {
+	    case '#':  case '0':  case '+':  case ' ':
+		break;
+	    case '-':
+		result->value.echo.left = true;
+		break;
+	    default:
+		goto parse_width;
+	}
+    }
+
+    char *endp;
+parse_width:
+    result->value.echo.width = strtoul(convspec->contents + index, &endp, 10);
+    index = endp - convspec->contents;
+
+    if (convspec->contents[index] == '.') {
+	index++;
+	result->value.echo.max = strtoul(convspec->contents + index, &endp, 10);
+	index = endp - convspec->contents;
+    } else {
+	result->value.echo.max = ULONG_MAX;
+    }
+
+    assert(index == convspec->length);
+    sb_destroy(convspec);
+    return result;
 }
 
 /* Formats the specified string and prints it.
@@ -544,13 +618,11 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 {
     switch (format->type) {
 	case ft_none:
-	    assert(strcmp(format->convspec, "%%") == 0);
 	    if (putchar('%') < 0)
 		goto ioerror;
 	    return false;
 	case ft_raw:
-	    assert(format->convspec[0] != '%');
-	    if (printf("%s", format->convspec) < 0)
+	    if (!printf_print_raw(format))
 		goto ioerror;
 	    return false;
 	case ft_string:
@@ -558,22 +630,24 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 		xoptind++;
 	    else
 		arg = L"";
-	    if (printf(format->convspec, arg) < 0)
+	    if (printf(format->value.convspec, arg) < 0)
 		goto ioerror;
 	    return false;
 	case ft_char:
 	    if (arg) {
 		xoptind++;
-		if (printf(format->convspec, (wint_t) arg[0]) < 0)
+		if (printf(format->value.convspec, (wint_t) arg[0]) < 0)
 		    goto ioerror;
 	    }
 	    return false;
 	case ft_int:
-	    if (printf(format->convspec, printf_parse_integer(arg, true)) < 0)
+	    if (printf(format->value.convspec,
+			printf_parse_integer(arg, true)) < 0)
 		goto ioerror;
 	    return false;
 	case ft_uint:
-	    if (printf(format->convspec, printf_parse_integer(arg, false)) < 0)
+	    if (printf(format->value.convspec,
+			printf_parse_integer(arg, false)) < 0)
 		goto ioerror;
 	    return false;
 	case ft_float:
@@ -592,7 +666,7 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 		    value = wcstold(arg, &end);
 		if (errno || arg[0] == L'\0' || *end != L'\0')
 		    xerror(errno, Ngt("`%ls' is not a valid number"), arg);
-		if (printf(format->convspec, value) < 0)
+		if (printf(format->value.convspec, value) < 0)
 		    goto ioerror;
 		return false;
 	    }
@@ -600,14 +674,16 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 	    {
 		xstrbuf_T buf;
 		bool ok, end;
+		size_t count;
 
 		if (arg != NULL)
 		    xoptind++;
 		else
 		    arg = L"";
 		sb_init(&buf);
-		end = echo_print_escape(arg, &buf);
-		ok = (printf(format->convspec, buf.contents) >= 0);
+		end = printf_print_escape(format, arg, &buf);
+		count = fwrite(buf.contents, sizeof (char), buf.length, stdout);
+		ok = (count == buf.length);
 		sb_destroy(&buf);
 		if (!ok)
 		    goto ioerror;
@@ -620,6 +696,13 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 ioerror:
     xerror(errno, Ngt("cannot print to standard output"));
     return true;
+}
+
+bool printf_print_raw(const struct format_T *format)
+{
+    size_t count = fwrite(format->value.raw.value, sizeof (char),
+	    format->value.raw.length, stdout);
+    return count == format->value.raw.length;
 }
 
 /* Parses the specified string as an integer. */
@@ -646,12 +729,48 @@ uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
     return value;
 }
 
+/* Prints the specified string that may include escape sequences and formats it
+ * in the specified format.
+ * Returns true iff "\c" sequence is found. */
+bool printf_print_escape(
+	const struct format_T *format, const wchar_t *s, xstrbuf_T *buf)
+{
+    bool end = echo_print_escape(s, buf);
+
+    if (format->value.echo.max < buf->length) {
+	sb_truncate(buf, format->value.echo.max);
+    }
+    if (buf->length < format->value.echo.width) {
+	size_t increment = format->value.echo.width - buf->length;
+	if (format->value.echo.left) {
+	    sb_ccat_repeat(buf, ' ', increment);
+	} else {
+	    sb_ensuremax(buf, buf->length + increment);
+	    memmove(buf->contents + increment, buf->contents, buf->length + 1);
+	    buf->length += increment;
+	    memset(buf->contents, ' ', increment);
+	}
+    }
+    return end;
+}
+
 /* Frees the specified format data. */
 void freeformat(struct format_T *f)
 {
     while (f) {
 	struct format_T *next = f->next;
-	free(f->convspec);
+	switch (f->type) {
+	    case ft_none:
+		break;
+	    case ft_raw:
+		free(f->value.raw.value);
+		break;
+	    case ft_echo:
+		break;
+	    default:
+		free(f->value.convspec);
+		break;
+	}
 	free(f);
 	f = next;
     }

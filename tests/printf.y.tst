@@ -267,6 +267,7 @@ printf '%b\n' 'argument with backslash \\ and percent %%'
 printf '%5b ' 123 a long_argument; echo 1
 printf '%5.2b ' 123 a long_argument; echo 2
 printf '%-5b ' 123 a long_argument; echo 3
+printf '%-5.2b ' 123 a long_argument; echo 4
 printf '%b\n' '1\a2\b3\c4' 5
 printf '%b\n' '6\f7\n8\r9\t0\v!'
 printf '%b\n' '\0123\012\01x' '\123\12\1x' '\00411'
