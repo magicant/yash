@@ -46,8 +46,6 @@ enum filecmp {
     FC_ID, FC_SAME, FC_NEWER, FC_OLDER, FC_UNKNOWN,
 };
 
-static bool test_error;
-
 static inline bool test_single(void *args[static 1]);
 static bool test_double(void *args[static 2]);
 static bool test_file(wchar_t type, const char *file)
@@ -85,7 +83,6 @@ int test_builtin(int argc, void **argv)
     }
     assert(argc > 0);
     argc--, argv++;
-    test_error = false;
 
     struct test_state state;
     bool result;
@@ -110,15 +107,15 @@ int test_builtin(int argc, void **argv)
 	    state.argc = argc;
 	    state.index = 0;
 	    result = test_long_or(&state);
-	    if (!test_error && state.index < state.argc) {
+	    if (yash_error_message_count == 0 && state.index < state.argc)
 		xerror(0, Ngt("%ls: invalid operator"),
 			(const wchar_t *) state.args[state.index]);
-		test_error = true;
-	    }
 	    break;
     }
 
-    return test_error ? Exit_TESTERROR : result ? Exit_TRUE : Exit_FALSE;
+    if (yash_error_message_count > 0)
+	return Exit_TESTERROR;
+    return result ? Exit_TRUE : Exit_FALSE;
 }
 
 /* Tests the specified one-token expression. */
@@ -137,7 +134,6 @@ bool test_double(void *args[static 2])
 	return !test_single(args + 1);
     if (!is_unary_primary(op)) {
 	xerror(0, Ngt("%ls: not a unary operator"), op);
-	test_error = true;
 	return 0;
     }
 
@@ -154,7 +150,6 @@ bool test_double(void *args[static 2])
     char *mbsarg = malloc_wcstombs(arg);
     if (!mbsarg) {
 	xerror(0, Ngt("unexpected error"));
-	test_error = true;
 	return 0;
     }
 
@@ -335,7 +330,6 @@ not_binary:
 	return test_single(args + 1);
 
     xerror(0, Ngt("%ls: not a binary operator"), op);
-    test_error = true;
     return 0;
 }
 
@@ -350,7 +344,8 @@ bool test_long_or(struct test_state *state)
     bool result;
 
     result = test_long_and(state);
-    while (!test_error && state->index < state->argc
+    while (yash_error_message_count == 0
+	    && state->index < state->argc
 	    && wcscmp(state->args[state->index], L"-o") == 0) {
 	state->index++;
 	result |= test_long_and(state);
@@ -364,7 +359,8 @@ bool test_long_and(struct test_state *state)
     bool result;
 
     result = test_long_term(state);
-    while (!test_error && state->index < state->argc
+    while (yash_error_message_count == 0
+	    && state->index < state->argc
 	    && wcscmp(state->args[state->index], L"-a") == 0) {
 	state->index++;
 	result &= test_long_term(state);
@@ -387,7 +383,6 @@ bool test_long_term(struct test_state *state)
 	assert(state->argc > 0);
 	xerror(0, Ngt("expression missing after `%ls'"),
 		(const wchar_t *) state->args[state->index - 1]);
-	test_error = true;
 	return 0;
     }
     if (wcscmp(state->args[state->index], L"(") == 0) {
@@ -396,7 +391,6 @@ bool test_long_term(struct test_state *state)
 	if (state->index >= state->argc
 		|| wcscmp(state->args[state->index], L")") != 0) {
 	    xerror(0, Ngt("`%ls' missing"), L")");
-	    test_error = true;
 	    return 0;
 	}
 	state->index++;
@@ -528,14 +522,12 @@ int compare_integers(const wchar_t *left, const wchar_t *right)
     il = wcstoimax(left, &end, 10);
     if (errno || !left[0] || *end) {
 	xerror(errno, Ngt("`%ls' is not a valid integer"), left);
-	test_error = true;
 	return 0;
     }
     errno = 0;
     ir = wcstoimax(right, &end, 10);
     if (errno || !right[0] || *end) {
 	xerror(errno, Ngt("`%ls' is not a valid integer"), right);
-	test_error = true;
 	return 0;
     }
     if (il < ir)
@@ -600,7 +592,6 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     mbsfile = malloc_wcstombs(left);
     if (!mbsfile) {
 	xerror(0, Ngt("unexpected error"));
-	test_error = true;
 	return FC_UNKNOWN;
     }
     statresult = stat(mbsfile, &sl);
@@ -611,7 +602,6 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     mbsfile = malloc_wcstombs(right);
     if (!mbsfile) {
 	xerror(0, Ngt("unexpected error"));
-	test_error = true;
 	return FC_UNKNOWN;
     }
     statresult = stat(mbsfile, &sr);
