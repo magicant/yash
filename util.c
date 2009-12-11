@@ -92,7 +92,7 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
 {
     len = xwcsnlen(s, len);
 
-    wchar_t *result = xmalloc((len + 1) * sizeof(wchar_t));
+    wchar_t *result = xmalloc((len + 1) * sizeof (wchar_t));
     result[len] = L'\0';
     return wmemcpy(result, s, len);
 }

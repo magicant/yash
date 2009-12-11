@@ -449,14 +449,18 @@ put_char:
 struct format_T **printf_parse_percent(
 	const wchar_t **formatp, struct format_T **resultp)
 {
-    /* A conversion specification consists of characters only from the basic
-     * character set, so we can directly cast wchar_t into char. */
-
     const wchar_t *format = *formatp;
     xstrbuf_T buf;
     bool hashflag = false, zeroflag = false;
     enum formattype_T type;
     struct format_T *result;
+#ifdef __STDC_MB_MIGHT_NEQ_WC__
+    mbstate_t state;
+    memset(&state, 0, sizeof state);
+# define BUFCAT(c) sb_wccat(&buf, c, &state)
+#else
+# define BUFCAT(c) sb_ccat(&buf, (char) (c))
+#endif
 
     assert(*format == L'%');
     format++;
@@ -473,7 +477,7 @@ struct format_T **printf_parse_percent(
 		zeroflag = true;
 		goto add_char;
 	    case L'-':  case L'+':  case L' ':  add_char:
-		sb_ccat(&buf, (char) *format++);
+		BUFCAT(*format++);
 		break;
 	    default:
 		goto parse_width;
@@ -482,12 +486,12 @@ struct format_T **printf_parse_percent(
 
 parse_width:
     while (iswdigit(*format))
-	sb_ccat(&buf, (char) *format++);
+	BUFCAT(*format++);
 
     /* parse precision */
     if (*format == L'.') {
 	do {
-	    sb_ccat(&buf, (char) *format++);
+	    BUFCAT(*format++);
 	} while (iswdigit(*format));
     }
 
@@ -543,7 +547,7 @@ flag_error:
 	    sb_destroy(&buf);
 	    return NULL;
     }
-    sb_ccat(&buf, (char) *format++);
+    BUFCAT(*format++);
 
     result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -564,6 +568,8 @@ end:
     *formatp = format;
     *resultp = result;
     return &result->next;
+
+#undef BUFCAT
 }
 
 /* Parses the conversion specification given in buffer `convspec'.
