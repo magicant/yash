@@ -23,11 +23,11 @@
 
 
 extern _Bool process_exists(pid_t pid);
-extern const char *get_signal_name(int signum)
+extern const wchar_t *get_signal_name(int signum)
     __attribute__((const));
-extern int get_signal_number(const char *name)
+extern int get_signal_number(const wchar_t *name)
     __attribute__((nonnull,pure));
-extern int get_signal_number_w(wchar_t *name)
+extern int get_signal_number_toupper(wchar_t *name)
     __attribute__((nonnull));
 
 extern _Bool any_trap_set;

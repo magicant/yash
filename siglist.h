@@ -20,147 +20,148 @@
 #define YASH_SIGLIST_H
 
 #include <signal.h>
+#include <stddef.h>
 
 
 /* signal number and name */
 typedef struct signal_T {
     int no;
-    const char *name;
+    const wchar_t *name;
 } signal_T;
 
 /* list of signals */
 static const signal_T signals[] = {
 
     /* signals defined by SUSv2 & POSIX.1-2001 (SUSv3) */
-    { SIGHUP,  "HUP",  }, { SIGINT,  "INT",  }, { SIGQUIT, "QUIT", },
-    { SIGILL,  "ILL",  }, { SIGTRAP, "TRAP", }, { SIGABRT, "ABRT", },
-    { SIGBUS,  "BUS",  }, { SIGFPE,  "FPE",  }, { SIGKILL, "KILL", },
-    { SIGSEGV, "SEGV", }, { SIGPIPE, "PIPE", }, { SIGALRM, "ALRM", },
-    { SIGTERM, "TERM", }, { SIGUSR1, "USR1", }, { SIGUSR2, "USR2", },
-    { SIGCHLD, "CHLD", }, { SIGCONT, "CONT", }, { SIGSTOP, "STOP", },
-    { SIGTSTP, "TSTP", }, { SIGTTIN, "TTIN", }, { SIGTTOU, "TTOU", },
-    { SIGURG,  "URG",  },
+    { SIGHUP,  L"HUP",  }, { SIGINT,  L"INT",  }, { SIGQUIT, L"QUIT", },
+    { SIGILL,  L"ILL",  }, { SIGTRAP, L"TRAP", }, { SIGABRT, L"ABRT", },
+    { SIGBUS,  L"BUS",  }, { SIGFPE,  L"FPE",  }, { SIGKILL, L"KILL", },
+    { SIGSEGV, L"SEGV", }, { SIGPIPE, L"PIPE", }, { SIGALRM, L"ALRM", },
+    { SIGTERM, L"TERM", }, { SIGUSR1, L"USR1", }, { SIGUSR2, L"USR2", },
+    { SIGCHLD, L"CHLD", }, { SIGCONT, L"CONT", }, { SIGSTOP, L"STOP", },
+    { SIGTSTP, L"TSTP", }, { SIGTTIN, L"TTIN", }, { SIGTTOU, L"TTOU", },
+    { SIGURG,  L"URG",  },
 #ifdef SIGXCPU
-    { SIGXCPU, "XCPU", },
+    { SIGXCPU, L"XCPU", },
 #endif
 #ifdef SIGXFSZ
-    { SIGXFSZ, "XFSZ", },
+    { SIGXFSZ, L"XFSZ", },
 #endif
 #ifdef SIGVTALRM
-    { SIGVTALRM, "VTALRM", },
+    { SIGVTALRM, L"VTALRM", },
 #endif
 #ifdef SIGPROF
-    { SIGPROF, "PROF", },
+    { SIGPROF, L"PROF", },
 #endif
 #ifdef SIGPOLL
-    { SIGPOLL, "POLL", },
+    { SIGPOLL, L"POLL", },
 #endif
 #ifdef SIGSYS
-    { SIGSYS, "SYS", },
+    { SIGSYS, L"SYS", },
 #endif
 
     /* below are non-standardized signals */
 #ifdef SIGIOT
-    { SIGIOT, "IOT", },
+    { SIGIOT, L"IOT", },
 #endif
 #ifdef SIGEMT
-    { SIGEMT, "EMT", },
+    { SIGEMT, L"EMT", },
 #endif
 #ifdef SIGSTKFLT
-    { SIGSTKFLT, "STKFLT", },
+    { SIGSTKFLT, L"STKFLT", },
 #endif
 #ifdef SIGIO
-    { SIGIO, "IO", },
+    { SIGIO, L"IO", },
 #endif
 #ifdef SIGCLD
-    { SIGCLD, "CLD", },
+    { SIGCLD, L"CLD", },
 #endif
 #ifdef SIGPWR
-    { SIGPWR, "PWR", },
+    { SIGPWR, L"PWR", },
 #endif
 #ifdef SIGLOST
-    { SIGLOST, "LOST", },
+    { SIGLOST, L"LOST", },
 #endif
 #ifdef SIGWINCH
-    { SIGWINCH, "WINCH", },
+    { SIGWINCH, L"WINCH", },
 #endif
 #ifdef SIGWINDOW
-    { SIGWINDOW, "WINDOW", },
+    { SIGWINDOW, L"WINDOW", },
 #endif
 
     /* from BSD */
 #ifdef SIGINFO
-    { SIGINFO, "INFO", },
+    { SIGINFO, L"INFO", },
 #endif
 #ifdef SIGTHR
-    { SIGTHR, "THR", },
+    { SIGTHR, L"THR", },
 #endif
 
     /* from AIX */
 #ifdef SIGMSG
-    { SIGMSG, "MSG", },
+    { SIGMSG, L"MSG", },
 #endif
 #ifdef SIGDANGER
-    { SIGDANGER, "DANGER", },
+    { SIGDANGER, L"DANGER", },
 #endif
 #ifdef SIGMIGRATE
-    { SIGMIGRATE, "MIGRATE", },
+    { SIGMIGRATE, L"MIGRATE", },
 #endif
 #ifdef SIGPRE
-    { SIGPRE, "PRE", },
+    { SIGPRE, L"PRE", },
 #endif
 #ifdef SIGVIRT
-    { SIGVIRT, "VIRT", },
+    { SIGVIRT, L"VIRT", },
 #endif
 #ifdef SIGALRM1
-    { SIGALRM1, "ALRM1", },
+    { SIGALRM1, L"ALRM1", },
 #endif
 #ifdef SIGWAITING
-    { SIGWAITING, "WAITING", },
+    { SIGWAITING, L"WAITING", },
 #endif
 #ifdef SIGKAP
-    { SIGKAP, "KAP", },
+    { SIGKAP, L"KAP", },
 #endif
 #ifdef SIGGRANT
-    { SIGGRANT, "GRANT", },
+    { SIGGRANT, L"GRANT", },
 #endif
 #ifdef SIGRETRACT
-    { SIGRETRACT, "RETRACT", },
+    { SIGRETRACT, L"RETRACT", },
 #endif
 #ifdef SIGSOUND
-    { SIGSOUND, "SOUND", },
+    { SIGSOUND, L"SOUND", },
 #endif
 #ifdef SIGSAK
-    { SIGSAK, "SAK", },
+    { SIGSAK, L"SAK", },
 #endif
 
     /* from SunOS5 */
 #ifdef SIGLWP
-    { SIGLWP, "LWP", },
+    { SIGLWP, L"LWP", },
 #endif
 #ifdef SIGFREEZE
-    { SIGFREEZE, "FREEZE", },
+    { SIGFREEZE, L"FREEZE", },
 #endif
 #ifdef SIGTHAW
-    { SIGTHAW, "THAW", },
+    { SIGTHAW, L"THAW", },
 #endif
 #ifdef SIGCANCEL
-    { SIGCANCEL, "CANCEL", },
+    { SIGCANCEL, L"CANCEL", },
 #endif
 #ifdef SIGXRES
-    { SIGXRES, "XRES", },
+    { SIGXRES, L"XRES", },
 #endif
 
     /* from HP-UX */
 #ifdef SIGRESERVE
-    { SIGRESERVE, "RESERVE", },
+    { SIGRESERVE, L"RESERVE", },
 #endif
 #ifdef SIGDIL
-    { SIGDIL, "DIL", },
+    { SIGDIL, L"DIL", },
 #endif
 
 #ifdef SIGUNUSED
-    { SIGUNUSED, "UNUSED", },
+    { SIGUNUSED, L"UNUSED", },
 #endif
 
     /* end of array: any signal number is non-zero (C99 7.14) */

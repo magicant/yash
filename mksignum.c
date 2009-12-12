@@ -39,9 +39,10 @@ int main(void)
 	    min = s->no;
 
     if (min < 100) {
-	wprintf(L"/* injective function that returns an array index\n");
-	wprintf(L" * corresponding to given signal number.\n");
-	wprintf(L" * SIGNUM must not be a realtime signal number. */\n");
+	wprintf(L"/* an injective function that returns an array index\n");
+	wprintf(L" * corresponding to the given signal number,\n");
+	wprintf(L" * which must be a valid non-realtime signal number\n");
+	wprintf(L" * or zero. */\n");
 	wprintf(L"__attribute__((const))\n");
 	wprintf(L"static inline size_t sigindex(int signum) {\n");
 	wprintf(L"    return (size_t) signum;\n");
@@ -53,9 +54,10 @@ int main(void)
 	sigset_t ss;
 	size_t v;
 
-	wprintf(L"/* injective function that returns an array index\n");
-	wprintf(L" * corresponding to given signal number.\n");
-	wprintf(L" * SIGNUM must not be a realtime signal number. */\n");
+	wprintf(L"/* an injective function that returns an array index\n");
+	wprintf(L" * corresponding to the given signal number,\n");
+	wprintf(L" * which must be a valid non-realtime signal number\n");
+	wprintf(L" * or zero. */\n");
 	wprintf(L"__attribute__((const))\n");
 	wprintf(L"static inline size_t sigindex(int signum) {\n");
 	wprintf(L"    switch (signum) {\n");

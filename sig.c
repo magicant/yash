@@ -97,33 +97,33 @@ bool process_exists(pid_t pid)
 
 /* Returns the name of the signal with the specified number.
  * The returned name doesn't have the "SIG"-prefix.
- * "?" is returned for an unknown signal number.
+ * An empty string is returned for an unknown signal number.
  * The returned string is valid until the next call to this function. */
-const char *get_signal_name(int signum)
+const wchar_t *get_signal_name(int signum)
 {
     if (signum == 0)
-	return "EXIT";
+	return L"EXIT";
 #if defined SIGRTMIN && defined SIGRTMAX
     int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
     if (sigrtmin <= signum && signum <= sigrtmax) {
-	static char *name = NULL;
+	static wchar_t *name = NULL;
 	if (signum == sigrtmin)
-	    return "RTMIN";
+	    return L"RTMIN";
 	if (signum == sigrtmax)
-	    return "RTMAX";
+	    return L"RTMAX";
 	int range = sigrtmax - sigrtmin, diff = signum - sigrtmin;
 	free(name);
 	if (diff <= range / 2)
-	    name = malloc_printf("RTMIN+%d", diff);
+	    name = malloc_wprintf(L"RTMIN+%d", diff);
 	else
-	    name = malloc_printf("RTMAX-%d", sigrtmax - signum);
+	    name = malloc_wprintf(L"RTMAX-%d", sigrtmax - signum);
 	return name;
     }
 #endif
     for (const signal_T *s = signals; s->no; s++)
 	if (s->no == signum)
 	    return s->name;
-    return "?";
+    return L"";
 }
 
 /* Returns the number of the signal whose name is `name'.
@@ -132,11 +132,11 @@ const char *get_signal_name(int signum)
  * returned.
  * Returns 0 for "EXIT" and -1 for an unknown name.
  * `name' should be all in uppercase. */
-int get_signal_number(const char *name)
+int get_signal_number(const wchar_t *name)
 {
-    if (xisdigit(name[0])) {  /* parse a decimal integer */
+    if (iswdigit(name[0])) {  /* parse a decimal integer */
 	int signum;
-	if (!xstrtoi(name, 10, &signum) || signum < 0)
+	if (!xwcstoi(name, 10, &signum) || signum < 0)
 	    return -1;
 
 	/* check if `signum' is a valid signal */
@@ -152,37 +152,39 @@ int get_signal_number(const char *name)
 	return -1;
     }
 
-    if (strcmp(name, "EXIT") == 0)
+    if (wcscmp(name, L"EXIT") == 0)
 	return 0;
-    if (strncmp(name, "SIG", 3) == 0)
+    if (wcsncmp(name, L"SIG", 3) == 0)
 	name += 3;
     for (const signal_T *s = signals; s->no; s++)
-	if (strcmp(name, s->name) == 0)
+	if (wcscmp(name, s->name) == 0)
 	    return s->no;
 #if defined SIGRTMIN && defined SIGRTMAX
-    if (strncmp(name, "RTMIN", 5) == 0) {
+    if (wcsncmp(name, L"RTMIN", 5) == 0) {
 	int sigrtmin = SIGRTMIN;
 	name += 5;
-	if (name[0] == '\0') {
+	if (name[0] == L'\0') {
 	    return sigrtmin;
-	} else if (name[0] == '+') {
+	} else if (name[0] == L'+') {
 	    int num;
-	    if (!xstrtoi(name, 10, &num)
-		    || num < 0 || SIGRTMAX - sigrtmin < num)
-		return -1;
-	    return sigrtmin + num;
+	    if (xwcstoi(name, 10, &num)) {
+		assert(num >= 0);
+		if (SIGRTMAX - sigrtmin >= num)
+		    return sigrtmin + num;
+	    }
 	}
-    } else if (strncmp(name, "RTMAX", 5) == 0) {
+    } else if (wcsncmp(name, L"RTMAX", 5) == 0) {
 	int sigrtmax = SIGRTMAX;
 	name += 5;
-	if (name[0] == '\0') {
+	if (name[0] == L'\0') {
 	    return sigrtmax;
-	} else if (name[0] == '-') {
+	} else if (name[0] == L'-') {
 	    int num;
-	    if (!xstrtoi(name, 10, &num)
-		    || num > 0 || SIGRTMIN - sigrtmax > num)
-		return -1;
-	    return sigrtmax + num;
+	    if (xwcstoi(name, 10, &num)) {
+		assert(num < 0);
+		if (SIGRTMIN - sigrtmax <= num)
+		    return sigrtmax + num;
+	    }
 	}
     }
 #endif
@@ -190,18 +192,16 @@ int get_signal_number(const char *name)
 }
 
 /* Returns the number of the signal whose name is `name'.
+ * `name' may have the "SIG"-prefix.
+ * If `name' is an integer that is a valid signal number, the number is
+ * returned.
  * Returns 0 for "EXIT" and -1 for an unknown name.
  * The given string is converted into uppercase. */
-int get_signal_number_w(wchar_t *name)
+int get_signal_number_toupper(wchar_t *name)
 {
     for (wchar_t *n = name; *n; n++)
 	*n = towupper(*n);
-    char *mname = malloc_wcstombs(name);
-    if (!mname)
-	return -1;
-    int result = get_signal_number(mname);
-    free(mname);
-    return result;
+    return get_signal_number(name);
 }
 
 
@@ -716,8 +716,8 @@ void execute_exit_trap(void)
 void set_trap(int signum, const wchar_t *command)
 {
     if (signum == SIGKILL || signum == SIGSTOP) {
-	xerror(0, Ngt("SIG%s: cannot be trapped"),
-		signum == SIGKILL ? "KILL" : "STOP");
+	xerror(0, Ngt("SIG%ls: cannot be trapped"),
+		signum == SIGKILL ? L"KILL" : L"STOP");
 	return;
     }
 
@@ -731,7 +731,7 @@ void set_trap(int signum, const wchar_t *command)
 	    commandp = &rttrap_command[index];
 	    receivedp = &rtsignal_received[index];
 	} else {
-	    xerror(0, Ngt("SIG%s: unsupported real-time signal"),
+	    xerror(0, Ngt("SIG%ls: unsupported real-time signal"),
 		    get_signal_name(signum));
 	    return;
 	}
@@ -747,7 +747,7 @@ void set_trap(int signum, const wchar_t *command)
 	/* Signals that were ignored on entry to a non-interactive shell cannot
 	 * be trapped or reset. (POSIX) */
 #if FIXED_SIGNAL_AS_ERROR
-	xerror(0, Ngt("SIG%s: cannot be reset"), get_signal_name(signum));
+	xerror(0, Ngt("SIG%ls: cannot be reset"), get_signal_name(signum));
 #endif
 	return;
     }
@@ -820,10 +820,9 @@ default_ignore:
 
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
-    if (sigaction(signum, &action, NULL) >= 0) {
-    } else {
+    if (sigaction(signum, &action, NULL) < 0) {
 	int saveerrno = errno;
-	xerror(saveerrno, "sigaction(SIG%s)", get_signal_name(signum));
+	xerror(saveerrno, "sigaction(SIG%ls)", get_signal_name(signum));
     }
 }
 
@@ -925,9 +924,9 @@ void reset_sigwinch(void)
 
 /********** Builtin **********/
 
-static bool print_trap(const char *signame, const wchar_t *command)
+static bool print_trap(const wchar_t *signame, const wchar_t *command)
     __attribute__((nonnull(1)));
-static bool print_signal(int signum, const char *name, bool verbose)
+static bool print_signal(int signum, const wchar_t *name, bool verbose)
     __attribute__((nonnull));
 static void signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
@@ -967,7 +966,7 @@ int trap_builtin(int argc, void **argv)
 	/* print all traps */
 	sigset_t ss;
 	sigemptyset(&ss);
-	if (!print_trap("EXIT", trap_command[sigindex(0)]))
+	if (!print_trap(L"EXIT", trap_command[sigindex(0)]))
 	    return Exit_FAILURE;
 	for (const signal_T *s = signals; s->no; s++) {
 	    if (!sigismember(&ss, s->no)) {
@@ -993,15 +992,10 @@ int trap_builtin(int argc, void **argv)
 #endif
 	clearerr(stdout);
 	do {
-	    wchar_t *wname = ARGV(xoptind);
-	    for (wchar_t *w = wname; *w; w++)
-		*w = towupper(*w);
-	    char *name = malloc_wcstombs(wname);
-	    if (name == NULL)
-		name = "";
-	    int signum = get_signal_number(name);
+	    wchar_t *name = ARGV(xoptind);
+	    int signum = get_signal_number_toupper(name);
 	    if (signum < 0) {
-		xerror(0, Ngt("%ls: no such signal"), wname);
+		xerror(0, Ngt("%ls: no such signal"), name);
 	    } else {
 #if defined SIGRTMIN && defined SIGRTMAX
 		if (sigrtmin <= signum && signum <= sigrtmax) {
@@ -1015,8 +1009,8 @@ int trap_builtin(int argc, void **argv)
 		    print_trap(name, trap_command[sigindex(signum)]);
 		}
 	    }
-	    free(name);
 	} while (!ferror(stdout) && ++xoptind < argc);
+
 	return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
     }
 
@@ -1040,7 +1034,7 @@ int trap_builtin(int argc, void **argv)
 set_traps:
     do {
 	wchar_t *name = ARGV(xoptind);
-	int signum = get_signal_number_w(name);
+	int signum = get_signal_number_toupper(name);
 	if (signum >= 0)
 	    set_trap(signum, command);
 	else
@@ -1068,11 +1062,11 @@ print_usage:
  * Otherwise, the `command' is properly single-quoted and printed.
  * Returns true iff successful (no error). On error, an error message is printed
  * to the standard error. */
-bool print_trap(const char *signame, const wchar_t *command)
+bool print_trap(const wchar_t *signame, const wchar_t *command)
 {
     if (command != NULL) {
 	wchar_t *q = quote_sq(command);
-	int r = printf("trap -- %ls %s\n", q, signame);
+	int r = printf("trap -- %ls %ls\n", q, signame);
 	if (r < 0)
 	    xerror(errno, Ngt("cannot print to standard output"));
 	free(q);
@@ -1132,7 +1126,7 @@ int kill_builtin(int argc, void **argv)
 				"without `SIG'"), xoptarg);
 		    return Exit_ERROR;
 		}
-		signum = get_signal_number_w(xoptarg);
+		signum = get_signal_number_toupper(xoptarg);
 		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {
 		    xerror(0, Ngt("%ls: no such signal"), xoptarg);
 		    return Exit_FAILURE;
@@ -1175,7 +1169,7 @@ main:
 	    /* print info of the specified signals */
 	    do {
 		int signum;
-		const char *signame;
+		const wchar_t *signame;
 
 		if (xwcstoi(ARGV(xoptind), 10, &signum) && signum >= 0) {
 		    if (signum >= TERMSIGOFFSET)
@@ -1183,10 +1177,10 @@ main:
 		    else if (signum >= (TERMSIGOFFSET & 0xFF))
 			signum -= (TERMSIGOFFSET & 0xFF);
 		} else {
-		    signum = get_signal_number_w(ARGV(xoptind));
+		    signum = get_signal_number_toupper(ARGV(xoptind));
 		}
 		signame = get_signal_name(signum);
-		if (signum <= 0 || strcmp(signame, "?") == 0)
+		if (signum <= 0 || signame[0] == L'\0')
 		    xerror(0, Ngt("%ls: no such signal"), ARGV(xoptind));
 		else if (!print_signal(signum, signame, verbose))
 		    return Exit_FAILURE;
@@ -1233,20 +1227,20 @@ print_usage:
  * `signum' must be a valid signal number and `name' must be the name of the
  * signal.
  * Returns false iff an IO error occurred. */
-bool print_signal(int signum, const char *name, bool verbose)
+bool print_signal(int signum, const wchar_t *name, bool verbose)
 {
     int r;
 
     if (!verbose) {
-	r = puts(name);
+	r = printf("%ls\n", name);
     } else {
 #if HAVE_STRSIGNAL
 	const char *sigdesc = strsignal(signum);
 	if (sigdesc)
-	    r = printf("%d\t%-10s %s\n", signum, name, sigdesc);
+	    r = printf("%d\t%-10ls %s\n", signum, name, sigdesc);
 	else
 #endif
-	    r = printf("%d\t%-10s\n", signum, name);
+	    r = printf("%d\t%-10ls\n", signum, name);
     }
     if (r >= 0) {
 	return true;

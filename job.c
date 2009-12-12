@@ -634,7 +634,7 @@ char *get_process_status_string(const process_T *p, bool *needfree)
 	return (char *) gt("Running");
     case JS_STOPPED:
 	*needfree = true;
-	return malloc_printf(gt("Stopped(SIG%s)"),
+	return malloc_printf(gt("Stopped(SIG%ls)"),
 		get_signal_name(WSTOPSIG(p->pr_statuscode)));
     case JS_DONE:
 	status = p->pr_statuscode;
@@ -656,11 +656,10 @@ exitstatus:
 	    sig = WTERMSIG(status);
 #ifdef WCOREDUMP
 	    if (WCOREDUMP(sig))
-		return malloc_printf(gt("Killed (SIG%s: core dumped)"),
+		return malloc_printf(gt("Killed (SIG%ls: core dumped)"),
 			get_signal_name(sig));
 #endif
-	    return malloc_printf(gt("Killed (SIG%s)"),
-		    get_signal_name(sig));
+	    return malloc_printf(gt("Killed (SIG%ls)"), get_signal_name(sig));
 	}
     }
     assert(false);
@@ -801,10 +800,10 @@ void notify_signaled_job(size_t jobnumber)
 	    break;
 	default:
 #if HAVE_STRSIGNAL
-	    fprintf(stderr, gt("Process killed by SIG%s: %s\n"),
+	    fprintf(stderr, gt("Process killed by SIG%ls: %s\n"),
 		    get_signal_name(sig), strsignal(sig));
 #else
-	    fprintf(stderr, gt("Process killed by SIG%s\n"),
+	    fprintf(stderr, gt("Process killed by SIG%ls\n"),
 		    get_signal_name(sig));
 #endif
 	    break;
