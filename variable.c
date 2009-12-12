@@ -622,14 +622,15 @@ bool set_variable(
  * `values' and its elements must be `free'able.
  * `count' is the number of elements in `values'. If `count' is zero, the
  * number is counted in this function.
- * Returns true iff successful. On error, an error message is printed to the
- * standard error. */
-bool set_array(const wchar_t *name, size_t count, void **values, scope_T scope)
+ * Returns the set array iff successful. On error, an error message is printed
+ * to the standard error and NULL is returned. */
+variable_T *set_array(
+	const wchar_t *name, size_t count, void **values, scope_T scope)
 {
     variable_T *var = new_variable(name, scope);
     if (!var) {
 	recfree(values, free);
-	return false;
+	return NULL;
     }
 
     var->v_type = VF_ARRAY | (var->v_type & (VF_EXPORT | VF_NODELETE));
@@ -640,7 +641,7 @@ bool set_array(const wchar_t *name, size_t count, void **values, scope_T scope)
     variable_set(name, var);
     if (var->v_type & VF_EXPORT)
 	update_environment(name);
-    return true;
+    return var;
 }
 
 /* Changes the value of the specified array element.
@@ -1269,15 +1270,7 @@ variable_T *get_dirstack(void)
 
     void **ary = xmalloc(1 * sizeof *ary);
     ary[0] = NULL;
-    if (set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL)) {
-	var = search_variable(L VAR_DIRSTACK);
-	assert(var != NULL);
-	assert((var->v_type & VF_MASK) == VF_ARRAY);
-	assert(!(var->v_type & VF_READONLY));
-	return var;
-    } else {
-	return NULL;
-    }
+    return set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL);
 }
 
 /* Returns the number of elements in $DIRSTACK. */

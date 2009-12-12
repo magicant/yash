@@ -86,7 +86,8 @@ typedef enum scope_T {
 extern _Bool set_variable(
 	const wchar_t *name, wchar_t *value, scope_T scope, _Bool export)
     __attribute__((nonnull(1)));
-extern _Bool set_array(
+struct variable_T;
+extern struct variable_T *set_array(
 	const wchar_t *name, size_t count, void **values, scope_T scope)
     __attribute__((nonnull));
 extern _Bool set_array_element(
