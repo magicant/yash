@@ -2572,7 +2572,24 @@ const char read_help[] = Ngt(
 );
 #endif
 
-#if YASH_ENABLE_DIRSTACK
+#if !YASH_ENABLE_DIRSTACK
+
+/* options for the "pushd" builtins */
+static const struct xoption pushd_options[] = {
+    { L"default-directory", xrequired_argument, L'd', },
+    { L"logical",           xno_argument,       L'L', },
+    { L"physical",          xno_argument,       L'P', },
+#if YASH_ENABLE_HELP
+    { L"help",              xno_argument,       L'-', },
+#endif
+    { NULL, 0, 0, },
+};
+
+/* options for the "cd" and "pwd" builtins */
+const struct xoption *const cd_options  = pushd_options;
+const struct xoption *const pwd_options = pushd_options + 1;
+
+#else /* YASH_ENABLE_DIRSTACK */
 
 /* options for the "pushd" builtins */
 static const struct xoption pushd_options[] = {
