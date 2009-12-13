@@ -75,6 +75,9 @@ pushd "$tmp/1"
 pushd "$tmp/2"
 pushd --remove-duplicates "$tmp/1"
 dirs | sed -e 's;/.*/;;'
+echo =====
+dirs -v +0 -0 | sed -e 's;/.*/;;'
+dirs    +2 -2 | sed -e 's;/.*/;;'
 
 echo ===== 9 =====
 

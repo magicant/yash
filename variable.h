@@ -122,15 +122,10 @@ extern _Bool define_function(const wchar_t *name, struct command_T *body)
 extern struct command_T *get_function(const wchar_t *name)
     __attribute__((nonnull));
 
-extern size_t get_dirstack_size(void);
-extern _Bool parse_dirstack_index(const wchar_t *indexstr,
-	size_t *indexp, const wchar_t **entryp, _Bool printerror)
+extern _Bool parse_dirstack_index(
+	const wchar_t *restrict indexstr, size_t *restrict indexp,
+	const wchar_t **restrict entryp, _Bool printerror)
     __attribute__((nonnull));
-extern _Bool push_dirstack(wchar_t *value)
-    __attribute__((nonnull));
-extern wchar_t *pop_dirstack(void);
-extern _Bool remove_dirstack_entry(size_t index);
-extern _Bool remove_dirstack_dups(void);
 
 extern const struct xoption *const cd_options;
 extern const struct xoption *const pwd_options;

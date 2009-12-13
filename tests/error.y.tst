@@ -158,6 +158,8 @@ if type pushd 2>/dev/null | grep -q 'regular builtin'; then
 	echo popd dirstack empty $?
 	dirs --no-such-option
 	echo dirs no-such-option $?
+	dirs +5
+	echo dirs index out of range $?
 	dirs >&- 2>/dev/null
 	echo dirs output error $?
 else
@@ -171,6 +173,7 @@ popd index out of range 1
 popd output error 0
 popd dirstack empty 1
 dirs no-such-option 2
+dirs index out of range 1
 dirs output error 1
 END
 	cat >&2 <<\END
@@ -183,6 +186,7 @@ popd: +5: index out of range
 popd: directory stack is empty
 dirs: --no-such-option: invalid option
 Usage:  dirs [-cv] [index...]
+dirs: +5: index out of range
 END
 fi
 

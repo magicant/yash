@@ -1250,40 +1250,6 @@ void tryhash_word_as_command(const wordunit_T *w)
 
 #if YASH_ENABLE_DIRSTACK
 
-static variable_T *get_dirstack(void);
-static void remove_dirstack_entry_at(variable_T *var, size_t index)
-    __attribute__((nonnull));
-
-/* Returns the directory stack.
- * If the stack is not yet created, it is initialized as an empty stack and
- * returned.
- * Fails if a non-array variable or a readonly array already exists, in which
- * case NULL is returned. */
-variable_T *get_dirstack(void)
-{
-    variable_T *var = search_variable(L VAR_DIRSTACK);
-    if (var) {
-	if (((var->v_type & VF_MASK) == VF_ARRAY)
-		&& !(var->v_type & VF_READONLY))
-	    return var;
-	else
-	    return NULL;
-    }
-
-    void **ary = xmalloc(1 * sizeof *ary);
-    ary[0] = NULL;
-    return set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL);
-}
-
-/* Returns the number of elements in $DIRSTACK. */
-size_t get_dirstack_size(void)
-{
-    variable_T *var = search_variable(L VAR_DIRSTACK);
-    if (!var || ((var->v_type & VF_MASK) != VF_ARRAY))
-	return 0;
-    return var->v_valc;
-}
-
 /* Parses the specified string as the index of a directory stack entry.
  * The index string must start with the plus or minus sign.
  * If the corresponding entry is found, the entry is assigned to `*entryp' and
@@ -1295,8 +1261,9 @@ size_t get_dirstack_size(void)
  * Returns true if successful (`*entryp' and `*indexp' are assigned).
  * Returns false on error, in which case an error message is printed iff
  * `printerror' is true. */
-bool parse_dirstack_index(const wchar_t *indexstr,
-	size_t *indexp, const wchar_t **entryp, bool printerror)
+bool parse_dirstack_index(
+	const wchar_t *restrict indexstr, size_t *restrict indexp,
+	const wchar_t **restrict entryp, bool printerror)
 {
     long num;
 
@@ -1362,95 +1329,6 @@ out_of_range:
     if (printerror)
 	xerror(0, Ngt("%ls: index out of range"), indexstr);
     return false;
-}
-
-/* Adds the specified value to the directory stack ($DIRSTACK).
- * A new stack is created if there is none.
- * `value' is (virtually) freed in this function.
- * Returns true iff successful. */
-bool push_dirstack(wchar_t *value)
-{
-    variable_T *var = get_dirstack();
-    if (!var) {
-	free(value);
-	xerror(0, Ngt("cannot set directory stack"));
-	return false;
-    }
-
-    size_t index = var->v_valc++;
-    var->v_vals = xrealloc(var->v_vals, (index + 2) * sizeof *var->v_vals);
-    var->v_vals[index] = value;
-    var->v_vals[index + 1] = NULL;
-    return true;
-}
-
-/* Removes the newest entry of the directory stack ($DIRSTACK) and returns it.
- * The return value must be freed by the caller.
- * Returns NULL on error. */
-wchar_t *pop_dirstack(void)
-{
-    variable_T *var = search_variable(L VAR_DIRSTACK);
-    if (!var || ((var->v_type & VF_MASK) != VF_ARRAY)
-	    || (var->v_type & VF_READONLY) || (var->v_valc == 0))
-	return NULL;
-
-    wchar_t *result = var->v_vals[--var->v_valc];
-    var->v_vals[var->v_valc] = NULL;
-    return result;
-}
-
-/* Removes the specified entry of the directory stack.
- * Returns true iff the entry was successfully removed or no such entry was
- * found. */
-bool remove_dirstack_entry(size_t index)
-{
-    variable_T *var = search_variable(L VAR_DIRSTACK);
-    if (!var || ((var->v_type & VF_MASK) != VF_ARRAY))
-	return true;
-    if (var->v_type & VF_READONLY) {
-	xerror(0, Ngt("cannot set directory stack"));
-	return false;
-    }
-
-    if (index < var->v_valc)
-	remove_dirstack_entry_at(var, index);
-    return true;
-}
-
-/* Removes directory stack entries that are the same as the current working
- * directory.
- * Returns false iff the stack is readonly. */
-bool remove_dirstack_dups(void)
-{
-    variable_T *var = search_variable(L VAR_DIRSTACK);
-    const wchar_t *pwd = getvar(L VAR_PWD);
-    if (!var || ((var->v_type & VF_MASK) != VF_ARRAY) || !pwd)
-	return true;
-    if (var->v_type & VF_READONLY) {
-	xerror(0, Ngt("cannot set directory stack"));
-	return false;
-    }
-
-    size_t index = var->v_valc;
-    while (index > 0) {
-	index--;
-	if (wcscmp(pwd, var->v_vals[index]) == 0)
-	    remove_dirstack_entry_at(var, index);
-    }
-
-    return true;
-}
-
-/* Removes the directory stack entry specified by `index'.
- * `var' must be the directory stack array and `index' must be less than
- * `var->v_valc'. */
-void remove_dirstack_entry_at(variable_T *var, size_t index)
-{
-    assert(index < var->v_valc);
-    free(var->v_vals[index]);
-    memmove(&var->v_vals[index], &var->v_vals[index + 1],
-	    (var->v_valc - index) * sizeof *var->v_vals);
-    var->v_valc--;
 }
 
 #endif /* YASH_ENABLE_DIRSTACK */
@@ -2712,6 +2590,14 @@ static const struct xoption pushd_options[] = {
 const struct xoption *const cd_options  = pushd_options + 1;
 const struct xoption *const pwd_options = pushd_options + 2;
 
+static variable_T *get_dirstack(void);
+static void push_dirstack(variable_T *var, wchar_t *value)
+    __attribute__((nonnull));
+static void remove_dirstack_entry_at(variable_T *var, size_t index)
+    __attribute__((nonnull));
+static void remove_dirstack_dups(variable_T *var)
+    __attribute__((nonnull));
+
 /* The "pushd" builtin.
  *  -L: don't resolve symlinks (default)
  *  -P: resolve symlinks
@@ -2782,15 +2668,80 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	free(saveoldpwd);
 	return result;
     }
-    if (!push_dirstack(saveoldpwd))
+
+    variable_T *var = get_dirstack();
+    if (var == NULL) {
+	free(saveoldpwd);
 	return Exit_FAILURE;
+    }
+
+    push_dirstack(var, saveoldpwd);
     if (stackindex != SIZE_MAX)
-	if (!remove_dirstack_entry(stackindex))
-	    return Exit_FAILURE;
+	remove_dirstack_entry_at(var, stackindex);
     if (remove_dups)
-	if (!remove_dirstack_dups())
-	    return Exit_FAILURE;
+	remove_dirstack_dups(var);
     return Exit_SUCCESS;
+}
+
+/* Returns the directory stack.
+ * If the stack is not yet created, it is initialized as an empty stack and
+ * returned.
+ * Fails if a non-array variable or a readonly array already exists, in which
+ * case NULL is returned. */
+variable_T *get_dirstack(void)
+{
+    variable_T *var = search_variable(L VAR_DIRSTACK);
+    if (var != NULL) {
+	if ((var->v_type & VF_MASK) != VF_ARRAY) {
+	    xerror(0, Ngt("$DIRSTACK is not an array"));
+	    return NULL;
+	} else if (var->v_type & VF_READONLY) {
+	    xerror(0, Ngt("%ls: readonly"), L VAR_DIRSTACK);
+	    return NULL;
+	}
+	return var;
+    }
+
+    void **ary = xmalloc(1 * sizeof *ary);
+    ary[0] = NULL;
+    return set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL);
+}
+
+/* Adds the specified value to the directory stack ($DIRSTACK).
+ * `var' must be the return value of a `get_dirstack' call.
+ * `value' is (virtually) freed in this function. */
+void push_dirstack(variable_T *var, wchar_t *value)
+{
+    size_t index = var->v_valc++;
+    var->v_vals = xrealloc(var->v_vals, (index + 2) * sizeof *var->v_vals);
+    var->v_vals[index] = value;
+    var->v_vals[index + 1] = NULL;
+}
+
+/* Removes the directory stack entry specified by `index'.
+ * `var' must be the directory stack array and `index' must be less than
+ * `var->v_valc'. */
+void remove_dirstack_entry_at(variable_T *var, size_t index)
+{
+    assert(index < var->v_valc);
+    free(var->v_vals[index]);
+    memmove(&var->v_vals[index], &var->v_vals[index + 1],
+	    (var->v_valc - index) * sizeof *var->v_vals);
+    var->v_valc--;
+}
+
+/* Removes directory stack entries that are the same as the current working
+ * directory ($PWD).
+ * `var' must be the return value of a `get_dirstack' call. */
+void remove_dirstack_dups(variable_T *var)
+{
+    const wchar_t *pwd = getvar(L VAR_PWD);
+    if (pwd == NULL)
+	return;
+
+    for (size_t index = var->v_valc; index-- > 0; )
+	if (wcscmp(pwd, var->v_vals[index]) == 0)
+	    remove_dirstack_entry_at(var, index);
 }
 
 #if YASH_ENABLE_HELP
@@ -2812,10 +2763,9 @@ const char pushd_help[] = Ngt(
 #endif
 
 /* The "popd" builtin. */
-int popd_builtin(int argc __attribute__((unused)), void **argv)
+int popd_builtin(int argc, void **argv)
 {
     wchar_t opt;
-
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"-", help_option, NULL))) {
 	switch (opt) {
@@ -2823,20 +2773,25 @@ int popd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  popd [index]\n"));
 		return Exit_ERROR;
 	}
     }
 
-    const wchar_t *arg = ARGV(xoptind);
-    if (!arg)
-	arg = L"+0";
-
-    size_t stacksize = get_dirstack_size();
-    if (stacksize == 0) {
+    variable_T *var = get_dirstack();
+    if (var == NULL)
+	return Exit_FAILURE;
+    if (var->v_valc == 0) {
 	xerror(0, Ngt("directory stack is empty"));
 	return Exit_FAILURE;
+    }
+
+    const wchar_t *arg;
+    switch (argc - xoptind) {
+	case 0:   arg = L"+0";          break;
+	case 1:   arg = ARGV(xoptind);  break;
+	default:  goto print_usage;
     }
 
     size_t stackindex;
@@ -2848,19 +2803,21 @@ int popd_builtin(int argc __attribute__((unused)), void **argv)
 	return Exit_ERROR;
     }
 
-    int result;
-    if (stackindex == stacksize) {
-	wchar_t *newpwd = pop_dirstack();
-	if (!newpwd) {
-	    xerror(0, Ngt("cannot set directory stack"));
-	    return Exit_FAILURE;
-	}
-	result = change_directory(newpwd, true, true);
-	free(newpwd);
-	return result;
-    } else {
-	return remove_dirstack_entry(stackindex) ? Exit_SUCCESS : Exit_FAILURE;
+    if (stackindex < var->v_valc) {
+	remove_dirstack_entry_at(var, stackindex);
+	return Exit_SUCCESS;
     }
+
+    int result;
+    wchar_t *newpwd;
+
+    assert(var->v_valc > 0);
+    var->v_valc--;
+    newpwd = var->v_vals[var->v_valc];
+    var->v_vals[var->v_valc] = NULL;
+    result = change_directory(newpwd, true, true);
+    free(newpwd);
+    return result;
 }
 
 #if YASH_ENABLE_HELP
@@ -2869,11 +2826,9 @@ const char popd_help[] = Ngt(
 "\tpopd [index]\n"
 "Removes the last entry of the directory stack, returning to the previous\n"
 "directory.\n"
-"If <index> is an integer with the plus or minus sign, it is considered a\n"
-"specified entry of the stack, which is removed from the stack instead of the\n"
-"last entry. An integer with the plus sign specifies the n'th newest entry,\n"
-"and a one with the minus sign specifies the n'th oldest entry.\n"
-"If <index> is omitted, \"+0\" is assumed.\n"
+"If <index> is given, the entry specified by <index> is removed instead of\n"
+"the last one. An integer with the plus sign specifies the nth newest entry\n"
+"and a one with the minus sign specifies the nth oldest entry.\n"
 );
 #endif
 
@@ -2891,9 +2846,9 @@ int dirs_builtin(int argc, void **argv)
 	{ NULL, 0, 0, },
     };
 
-    wchar_t opt;
     bool clear = false, verbose = false;
 
+    wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv, L"-cv", long_options, NULL))) {
 	switch (opt) {
@@ -2912,36 +2867,35 @@ int dirs_builtin(int argc, void **argv)
     if (clear)
 	return unset_variable(L VAR_DIRSTACK) ? Exit_FAILURE : Exit_SUCCESS;
 
+    variable_T *var = search_variable(L VAR_DIRSTACK);
+    bool dirvalid = (var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+    size_t size = dirvalid ? var->v_valc : 0;
     const wchar_t *dir;
     if (xoptind < argc) {
 	/* print the specified only */
 	do {
-	    size_t index, size = get_dirstack_size();
-	    if (parse_dirstack_index(ARGV(xoptind), &index, &dir, true)) {
-		if (index == SIZE_MAX) {
-		    xerror(0, Ngt("`%ls' is not a valid index"), ARGV(xoptind));
-		    continue;
-		}
+	    size_t index;
+	    if (!parse_dirstack_index(ARGV(xoptind), &index, &dir, true))
+		continue;
+	    if (index == SIZE_MAX) {
+		xerror(0, Ngt("`%ls' is not a valid index"), ARGV(xoptind));
+		continue;
+	    }
 
-		int r;
-		if (verbose)
-		    r = printf("+%zu\t-%zu\t%ls\n", size - index, index, dir);
-		else
-		    r = printf("%ls\n", dir);
-		if (r < 0) {
-		    xerror(errno, Ngt("cannot print to standard output"));
-		    break;
-		}
+	    int r;
+	    if (verbose)
+		r = printf("+%zu\t-%zu\t%ls\n", size - index, index, dir);
+	    else
+		r = printf("%ls\n", dir);
+	    if (r < 0) {
+		xerror(errno, Ngt("cannot print to standard output"));
+		break;
 	    }
 	} while (++xoptind < argc);
     } else {
 	/* print all */
-	variable_T *var = search_variable(L VAR_DIRSTACK);
-	bool dirvalid = (var && ((var->v_type & VF_MASK) == VF_ARRAY));
-	size_t size = dirvalid ? var->v_valc : 0;
-
 	dir = getvar(L VAR_PWD);
-	if (!dir) {
+	if (dir == NULL) {
 	    xerror(0, Ngt("$PWD not set"));
 	} else {
 	    int r;

@@ -40,6 +40,7 @@ popd: +5: index out of range
 popd: directory stack is empty
 dirs: --no-such-option: invalid option
 Usage:  dirs [-cv] [index...]
+dirs: +5: index out of range
 ===== alias/unalias =====
 alias: --no-such-option: invalid option
 Usage:  alias [-gp] [name[=value]...]

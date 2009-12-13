@@ -43,6 +43,7 @@ popd index out of range 1
 popd output error 0
 popd dirstack empty 1
 dirs no-such-option 2
+dirs index out of range 1
 dirs output error 1
 ===== alias/unalias =====
 alias no-such-option 2

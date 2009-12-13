@@ -61,6 +61,11 @@ dirstack.y
 4
 2
 dirstack.y
+=====
++0	-6	1
++6	-0	dirstack.y
+2
+4
 ===== 9 =====
 empty popd 1
 dirstack.y
