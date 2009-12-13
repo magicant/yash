@@ -35,13 +35,15 @@
 <dd>ディレクトリパスに含まれるシンボリックリンクを解決せずに新しい作業ディレクトリを決定します。新しい <code>PWD</code> 変数の値にはシンボリックリンクになっているパス名コンポーネントがそのまま残ります。
 <dt><code>-P</code>, <code>--physical</code>
 <dd>ディレクトリパスに含まれるシンボリックリンクを解決します。新しい <code>PWD</code> 変数の値はシンボリックリンクを含みません。
+<dt><code>--default-directory=<var>ディレクトリ</var></code>
+<dd><var>ディレクトリ</var>オペランドが与えられていない場合は、代わりにこのオプションで指定した<var>ディレクトリ</var>を新しい作業ディレクトリとします。
 </dl>
 <p><code>-L</code> (<code>--logical</code>) オプションと <code>-P</code> (<code>--physical</code>) オプションの両方を指定した場合、後に指定したほうを優先します。どちらも指定していない場合は、<code>-L</code> を指定したものとみなします。
 
 <h2 id="operands">オペランド</h2>
 <dl>
 <dt><var>ディレクトリ</var>
-<dd>新しい作業ディレクトリのパス名です。絶対パスまたは元の作業ディレクトリからの相対パスで指定します。この値がハイフン一つ (<code>-</code>) の場合、<code>OLDPWD</code> 変数の値が指定されたものとみなします。このオペランドが与えられていない場合、<a href="../params.html#sv-home"><code>HOME</code> 変数</a>の値が指定されたものとみなします。
+<dd>新しい作業ディレクトリのパス名です。絶対パスまたは元の作業ディレクトリからの相対パスで指定します。この値がハイフン一つ (<code>-</code>) の場合、<code>OLDPWD</code> 変数の値が指定されたものとみなします。このオペランドが与えられていない場合、<a href="../params.html#sv-home"><code>HOME</code> 変数</a>の値が指定されたものとみなします (<code>--default-directory</code> オプションを指定した場合を除く)。
 </dl>
 
 <h2 id="exitstatus">終了ステータス</h2>

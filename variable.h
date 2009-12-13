@@ -130,6 +130,7 @@ extern _Bool push_dirstack(wchar_t *value)
     __attribute__((nonnull));
 extern wchar_t *pop_dirstack(void);
 extern _Bool remove_dirstack_entry(size_t index);
+extern _Bool remove_dirstack_dups(void);
 
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));

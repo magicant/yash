@@ -1251,6 +1251,8 @@ void tryhash_word_as_command(const wordunit_T *w)
 #if YASH_ENABLE_DIRSTACK
 
 static variable_T *get_dirstack(void);
+static void remove_dirstack_entry_at(variable_T *var, size_t index)
+    __attribute__((nonnull));
 
 /* Returns the directory stack.
  * If the stack is not yet created, it is initialized as an empty stack and
@@ -1364,7 +1366,7 @@ out_of_range:
 
 /* Adds the specified value to the directory stack ($DIRSTACK).
  * A new stack is created if there is none.
- * `value' is freed in this function.
+ * `value' is (virtually) freed in this function.
  * Returns true iff successful. */
 bool push_dirstack(wchar_t *value)
 {
@@ -1410,13 +1412,45 @@ bool remove_dirstack_entry(size_t index)
 	return false;
     }
 
-    if (index < var->v_valc) {
-	free(var->v_vals[index]);
-	memmove(var->v_vals + index, var->v_vals + index + 1,
-		(var->v_valc - index) * sizeof *var->v_vals);
-	var->v_valc--;
-    }
+    if (index < var->v_valc)
+	remove_dirstack_entry_at(var, index);
     return true;
+}
+
+/* Removes directory stack entries that are the same as the current working
+ * directory.
+ * Returns false iff the stack is readonly. */
+bool remove_dirstack_dups(void)
+{
+    variable_T *var = search_variable(L VAR_DIRSTACK);
+    const wchar_t *pwd = getvar(L VAR_PWD);
+    if (!var || ((var->v_type & VF_MASK) != VF_ARRAY) || !pwd)
+	return true;
+    if (var->v_type & VF_READONLY) {
+	xerror(0, Ngt("cannot set directory stack"));
+	return false;
+    }
+
+    size_t index = var->v_valc;
+    while (index > 0) {
+	index--;
+	if (wcscmp(pwd, var->v_vals[index]) == 0)
+	    remove_dirstack_entry_at(var, index);
+    }
+
+    return true;
+}
+
+/* Removes the directory stack entry specified by `index'.
+ * `var' must be the directory stack array and `index' must be less than
+ * `var->v_valc'. */
+void remove_dirstack_entry_at(variable_T *var, size_t index)
+{
+    assert(index < var->v_valc);
+    free(var->v_vals[index]);
+    memmove(&var->v_vals[index], &var->v_vals[index + 1],
+	    (var->v_valc - index) * sizeof *var->v_vals);
+    var->v_valc--;
 }
 
 #endif /* YASH_ENABLE_DIRSTACK */

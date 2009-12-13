@@ -1124,57 +1124,74 @@ static inline mode_t copy_group_mask(mode_t mode)
 static inline mode_t copy_other_mask(mode_t mode)
     __attribute__((const));
 
-/* options for "cd", "pwd" and "pushd" builtins */
-static const struct xoption cd_pwd_options[] = {
-    { L"logical",  xno_argument, L'L', },
-    { L"physical", xno_argument, L'P', },
+/* options for the "pushd" builtins */
+static const struct xoption pushd_options[] = {
+    { L"remove-duplicates", xno_argument,       L'D', },
+    { L"default-directory", xrequired_argument, L'd', },
+    { L"logical",           xno_argument,       L'L', },
+    { L"physical",          xno_argument,       L'P', },
 #if YASH_ENABLE_HELP
-    { L"help",     xno_argument, L'-', },
+    { L"help",              xno_argument,       L'-', },
 #endif
     { NULL, 0, 0, },
 };
 
+/* options for the "cd" and "pwd" builtins */
+static const struct xoption *const cd_options  = pushd_options + 1;
+static const struct xoption *const pwd_options = pushd_options + 2;
+
 /* The "cd" builtin, which accepts the following options:
  *  -L: don't resolve symlinks (default)
  *  -P: resolve symlinks
+ *  --default-directory=<dir>: go to <dir> when the operand is missing
  * -L and -P are mutually exclusive: the one specified last is used. */
 int cd_builtin(int argc, void **argv)
 {
     bool logical = true;
-    bool printnewdir = false;
-    const wchar_t *newpwd;
-    wchar_t opt;
+    const wchar_t *newpwd = NULL;
 
+    wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-LP", cd_pwd_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"-LP", cd_options, NULL))) {
 	switch (opt) {
-	    case L'L':  logical = true;   break;
-	    case L'P':  logical = false;  break;
+	    case L'L':  logical = true;    break;
+	    case L'P':  logical = false;   break;
+	    case L'd':  newpwd = xoptarg;  break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"cd");
 		return Exit_ERROR;
 	}
     }
 
-    if (argc <= xoptind) {  /* step 1-2 */
-	newpwd = getvar(L VAR_HOME);
-	if (newpwd == NULL || newpwd[0] == L'\0') {
-	    xerror(0, Ngt("$HOME not set"));
-	    return Exit_FAILURE;
-	}
-    } else if (wcscmp(ARGV(xoptind), L"-") == 0) {
-	newpwd = getvar(L VAR_OLDPWD);
-	if (newpwd == NULL || newpwd[0] == L'\0') {
-	    xerror(0, Ngt("$OLDPWD not set"));
-	    return Exit_FAILURE;
-	}
-	printnewdir = true;
-    } else {
-	newpwd = ARGV(xoptind);
+    bool printnewdir = false;
+    switch (argc - xoptind) {
+	case 0:
+	    if (newpwd == NULL) {
+		newpwd = getvar(L VAR_HOME);
+		if (newpwd == NULL || newpwd[0] == L'\0') {
+		    xerror(0, Ngt("$HOME not set"));
+		    return Exit_FAILURE;
+		}
+	    }
+	    break;
+	case 1:
+	    if (wcscmp(ARGV(xoptind), L"-") == 0) {
+		newpwd = getvar(L VAR_OLDPWD);
+		if (newpwd == NULL || newpwd[0] == L'\0') {
+		    xerror(0, Ngt("$OLDPWD not set"));
+		    return Exit_FAILURE;
+		}
+		printnewdir = true;
+	    } else {
+		newpwd = ARGV(xoptind);
+	    }
+	    break;
+	default:
+	    goto print_usage;
     }
     return change_directory(newpwd, printnewdir, logical);
 }
@@ -1384,7 +1401,6 @@ const char cd_help[] = Ngt(
 "cd - change directory\n"
 "\tcd [-L|-P] [dir]\n"
 "Changes the working directory to <dir>.\n"
-"If <dir> is not specified, it defaults to $HOME.\n"
 "If <dir> is \"-\", the working directory is changed to $OLDPWD.\n"
 "If <dir> is a relative path which does not start with \".\" or \"..\",\n"
 "paths in $CDPATH are searched to find a new directory.\n"
@@ -1395,57 +1411,72 @@ const char cd_help[] = Ngt(
 "resolved so that $PWD does not contain any symbolic links.\n"
 "-L and -P are mutually exclusive: the last specified one is used.\n"
 "If neither is specified, -L is the default.\n"
+"If <dir> is not specified, the working directory is changed to the directory\n"
+"specified by the --default-directory=... option. If this option is not\n"
+"specified either, the default is $HOME.\n"
 );
 #endif
 
 #if YASH_ENABLE_DIRSTACK
 
 /* The "pushd" builtin.
- * The command syntax is the same as that of the "cd" builtin. */
+ *  -L: don't resolve symlinks (default)
+ *  -P: resolve symlinks
+ *  --default-directory=<dir>: go to <dir> when the operand is missing
+ *  --remove-duplicates: remove duplicate entries in the directory stack.
+ * -L and -P are mutually exclusive: the one specified last is used. */
 int pushd_builtin(int argc __attribute__((unused)), void **argv)
 {
-    bool logical = true;
-    bool printnewdir = false;
-    wchar_t opt;
+    bool logical = true, remove_dups = false;
+    const wchar_t *newpwd = L"+1";
 
+    wchar_t opt;
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-LP", cd_pwd_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"-LP", pushd_options, NULL))) {
 	switch (opt) {
-	    case L'L':  logical = true;   break;
-	    case L'P':  logical = false;  break;
+	    case L'L':  logical = true;       break;
+	    case L'P':  logical = false;      break;
+	    case L'd':  newpwd = xoptarg;     break;
+	    case L'D':  remove_dups = true;   break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:
+	    default:  print_usage:
 		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"pushd");
 		return Exit_ERROR;
 	}
     }
 
     const wchar_t *oldpwd = getvar(L VAR_PWD);
-    if (!oldpwd) {
+    if (oldpwd == NULL) {
 	xerror(0, Ngt("$PWD not set"));
 	return Exit_FAILURE;
     }
 
-    const wchar_t *arg = ARGV(xoptind);
-    if (!arg)
-	arg = L"+1";
-
+    bool printnewdir = false;
     size_t stackindex;
-    const wchar_t *newpwd;
-    if (wcscmp(arg, L"-") == 0) {
-	printnewdir = true;
-	stackindex = SIZE_MAX;
-	newpwd = getvar(L VAR_OLDPWD);
-	if (!newpwd) {
-	    xerror(0, Ngt("$OLDPWD not set"));
-	    return Exit_FAILURE;
-	}
-    } else {
-	if (!parse_dirstack_index(arg, &stackindex, &newpwd, true))
-	    return Exit_FAILURE;
+    switch (argc - xoptind) {
+	case 1:
+	    if (wcscmp(ARGV(xoptind), L"-") == 0) {
+		newpwd = getvar(L VAR_OLDPWD);
+		if (newpwd == NULL || newpwd[0] == L'\0') {
+		    xerror(0, Ngt("$OLDPWD not set"));
+		    return Exit_FAILURE;
+		}
+		printnewdir = true;
+		stackindex = SIZE_MAX;
+		break;
+	    } else {
+		newpwd = ARGV(xoptind);
+	    }
+	    /* falls thru! */
+	case 0:
+	    if (!parse_dirstack_index(newpwd, &stackindex, &newpwd, true))
+		return Exit_FAILURE;
+	    break;
+	default:
+	    goto print_usage;
     }
     assert(newpwd != NULL);
 
@@ -1463,6 +1494,9 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     if (stackindex != SIZE_MAX)
 	if (!remove_dirstack_entry(stackindex))
 	    return Exit_FAILURE;
+    if (remove_dups)
+	if (!remove_dirstack_dups())
+	    return Exit_FAILURE;
     return Exit_SUCCESS;
 }
 
@@ -1471,13 +1505,16 @@ const char pushd_help[] = Ngt(
 "pushd - push directory into directory stack\n"
 "\tpushd [-L|-P] [dir]\n"
 "Changes the working directory to <dir> and appends it to the directory\n"
-"stack. The options and operand are basically the same as those of the \"cd\"\n"
-"builtin.\n"
+"stack. Options that can be used in the \"cd\" builtin can also be used in\n"
+"the \"pushd\" builtin (-L, -P, and --default-directory=...).\n"
 "If <dir> is an integer with the plus or minus sign, it is considered a\n"
 "specific entry of the stack, which is removed from the stack and appended\n"
-"again. An integer with the plus sign specifies the n'th newest entry, and\n"
-"a one with the minus sign specifies the n'th oldest entry.\n"
-"If <dir> is omitted, \"+1\" is assumed.\n"
+"again. An integer with the plus sign specifies the nth newest entry, and\n"
+"a one with the minus sign specifies the nth oldest entry.\n"
+"If neither of <dir> and the --default-directory=... option is specified,\n"
+"\"+1\" is assumed for <dir>.\n"
+"If the --remove-duplicates option is specified, entries that are the same as\n"
+"the new working directory are removed from the stack.\n"
 );
 #endif
 
@@ -1560,7 +1597,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-LP", cd_pwd_options, NULL))) {
+    while ((opt = xgetopt_long(argv, L"-LP", pwd_options, NULL))) {
 	switch (opt) {
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;

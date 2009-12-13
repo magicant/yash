@@ -4,10 +4,10 @@ mkdir "$tmp"
 mkdir "$tmp/1" "$tmp/2" "$tmp/3" "$tmp/4"
 
 cd "$tmp"
-pushd "$tmp/1"; touch f1
-pushd "$tmp/2"; touch f2
-pushd "$tmp/3"; touch f3
-pushd "$tmp/4"; touch f4
+pushd "$tmp/1"; >f1
+pushd "$tmp/2"; >f2
+pushd "$tmp/3"; >f3
+pushd "$tmp/4"; >f4
 echo *; popd >/dev/null
 echo *; popd >/dev/null
 echo *; popd >/dev/null
@@ -58,18 +58,40 @@ dirs | sed -e 's;/.*/;;'
 
 echo ===== 6 =====
 
+pushd --default-directory="$tmp/4" "$tmp/1"
+pushd --default-directory="$tmp/4"
+dirs | sed -e 's;/.*/;;'
+
+echo ===== 7 =====
+
+pushd --default-directory=+2
+dirs | sed -e 's;/.*/;;'
+
+echo ===== 8 =====
+
+pushd "$tmp/1"
+pushd "$tmp/2"
+pushd "$tmp/1"
+pushd "$tmp/2"
+pushd --remove-duplicates "$tmp/1"
+dirs | sed -e 's;/.*/;;'
+
+echo ===== 9 =====
+
 unset DIRSTACK
 popd >/dev/null 2>/dev/null
-echo exit $?
+echo empty popd $?
 
 cd "$tmp"
 (
 cd "$tmp/1"
 pushd - | sed -e 's;/.*/;;'
 )
+pushd --default-directory=- 2>/dev/null
+echo pushd hyphen $?
 
 pushd "$tmp/1"
 readonly DIRSTACK
 pushd "$tmp/2" 2>/dev/null
-echo exit $?
+echo dirstack readonly $?
 dirs | sed -e 's;/.*/;;'

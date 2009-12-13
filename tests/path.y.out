@@ -1,0 +1,3 @@
+===== cd builtin =====
+cd --default-directory=$TESTTMP
+cd --default-directory=-

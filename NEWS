@@ -14,6 +14,8 @@ Yash 2.18
      ==, ===, !==, <, <=, >, >=
   +  Operators "-nt" and "-ot" in the "test" builtin now compares the
      modification time by the nanoseconds if possible.
+  +  '--default-directory' option for the "cd" and "pushd" builtin.
+  +  '--remove-duplicates' option for the "pushd" builtin.
 
 ----------------------------------------------------------------------
 Yash 2.17

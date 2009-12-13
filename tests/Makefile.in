@@ -34,7 +34,7 @@ TEST_SOURCES = alias.p.tst alias.p.out alias.y.tst alias.y.out \
 	job.p.tst job.p.out \
 	option.p.tst option.p.out option.p.err option.y.tst option.y.out \
 	parser.p.tst parser.p.out parser.y.tst parser.y.out \
-	path.p.tst path.p.out \
+	path.p.tst path.p.out path.y.tst path.y.out \
 	printf.y.tst printf.y.out \
 	redir.p.tst redir.p.out redir.y.tst redir.y.out \
 	sig.p.tst sig.p.out sig.y.tst sig.y.out \
