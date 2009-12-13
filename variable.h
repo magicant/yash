@@ -132,6 +132,9 @@ extern wchar_t *pop_dirstack(void);
 extern _Bool remove_dirstack_entry(size_t index);
 extern _Bool remove_dirstack_dups(void);
 
+extern const struct xoption *const cd_options;
+extern const struct xoption *const pwd_options;
+
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int array_builtin(int argc, void **argv)
@@ -144,10 +147,14 @@ extern int getopts_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern int pushd_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern int popd_builtin(int argc, void **argv)
+    __attribute__((nonnull));
 extern int dirs_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char typeset_help[], array_help[], unset_help[], shift_help[],
-       getopts_help[], read_help[], dirs_help[];
+       getopts_help[], read_help[], pushd_help[], popd_help[], dirs_help[];
 
 
 #endif /* YASH_VARIABLE_H */

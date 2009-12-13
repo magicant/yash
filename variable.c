@@ -2696,6 +2696,187 @@ const char read_help[] = Ngt(
 
 #if YASH_ENABLE_DIRSTACK
 
+/* options for the "pushd" builtins */
+static const struct xoption pushd_options[] = {
+    { L"remove-duplicates", xno_argument,       L'D', },
+    { L"default-directory", xrequired_argument, L'd', },
+    { L"logical",           xno_argument,       L'L', },
+    { L"physical",          xno_argument,       L'P', },
+#if YASH_ENABLE_HELP
+    { L"help",              xno_argument,       L'-', },
+#endif
+    { NULL, 0, 0, },
+};
+
+/* options for the "cd" and "pwd" builtins */
+const struct xoption *const cd_options  = pushd_options + 1;
+const struct xoption *const pwd_options = pushd_options + 2;
+
+/* The "pushd" builtin.
+ *  -L: don't resolve symlinks (default)
+ *  -P: resolve symlinks
+ *  --default-directory=<dir>: go to <dir> when the operand is missing
+ *  --remove-duplicates: remove duplicate entries in the directory stack.
+ * -L and -P are mutually exclusive: the one specified last is used. */
+int pushd_builtin(int argc __attribute__((unused)), void **argv)
+{
+    bool logical = true, remove_dups = false;
+    const wchar_t *newpwd = L"+1";
+
+    wchar_t opt;
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"-LP", pushd_options, NULL))) {
+	switch (opt) {
+	    case L'L':  logical = true;       break;
+	    case L'P':  logical = false;      break;
+	    case L'd':  newpwd = xoptarg;     break;
+	    case L'D':  remove_dups = true;   break;
+#if YASH_ENABLE_HELP
+	    case L'-':
+		return print_builtin_help(ARGV(0));
+#endif
+	    default:  print_usage:
+		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"pushd");
+		return Exit_ERROR;
+	}
+    }
+
+    const wchar_t *oldpwd = getvar(L VAR_PWD);
+    if (oldpwd == NULL) {
+	xerror(0, Ngt("$PWD not set"));
+	return Exit_FAILURE;
+    }
+
+    bool printnewdir = false;
+    size_t stackindex;
+    switch (argc - xoptind) {
+	case 1:
+	    if (wcscmp(ARGV(xoptind), L"-") == 0) {
+		newpwd = getvar(L VAR_OLDPWD);
+		if (newpwd == NULL || newpwd[0] == L'\0') {
+		    xerror(0, Ngt("$OLDPWD not set"));
+		    return Exit_FAILURE;
+		}
+		printnewdir = true;
+		stackindex = SIZE_MAX;
+		break;
+	    } else {
+		newpwd = ARGV(xoptind);
+	    }
+	    /* falls thru! */
+	case 0:
+	    if (!parse_dirstack_index(newpwd, &stackindex, &newpwd, true))
+		return Exit_FAILURE;
+	    break;
+	default:
+	    goto print_usage;
+    }
+    assert(newpwd != NULL);
+
+    wchar_t *saveoldpwd = xwcsdup(oldpwd);
+    int result = change_directory(newpwd, printnewdir, logical);
+#ifndef NDEBUG
+    newpwd = NULL;  /* newpwd cannot be used anymore. */
+#endif
+    if (result != Exit_SUCCESS) {
+	free(saveoldpwd);
+	return result;
+    }
+    if (!push_dirstack(saveoldpwd))
+	return Exit_FAILURE;
+    if (stackindex != SIZE_MAX)
+	if (!remove_dirstack_entry(stackindex))
+	    return Exit_FAILURE;
+    if (remove_dups)
+	if (!remove_dirstack_dups())
+	    return Exit_FAILURE;
+    return Exit_SUCCESS;
+}
+
+#if YASH_ENABLE_HELP
+const char pushd_help[] = Ngt(
+"pushd - push directory into directory stack\n"
+"\tpushd [-L|-P] [dir]\n"
+"Changes the working directory to <dir> and appends it to the directory\n"
+"stack. Options that can be used in the \"cd\" builtin can also be used in\n"
+"the \"pushd\" builtin (-L, -P, and --default-directory=...).\n"
+"If <dir> is an integer with the plus or minus sign, it is considered a\n"
+"specific entry of the stack, which is removed from the stack and appended\n"
+"again. An integer with the plus sign specifies the nth newest entry, and\n"
+"a one with the minus sign specifies the nth oldest entry.\n"
+"If neither of <dir> and the --default-directory=... option is specified,\n"
+"\"+1\" is assumed for <dir>.\n"
+"If the --remove-duplicates option is specified, entries that are the same as\n"
+"the new working directory are removed from the stack.\n"
+);
+#endif
+
+/* The "popd" builtin. */
+int popd_builtin(int argc __attribute__((unused)), void **argv)
+{
+    wchar_t opt;
+
+    xoptind = 0, xopterr = true;
+    while ((opt = xgetopt_long(argv, L"-", help_option, NULL))) {
+	switch (opt) {
+#if YASH_ENABLE_HELP
+	    case L'-':
+		return print_builtin_help(ARGV(0));
+#endif
+	    default:
+		fprintf(stderr, gt("Usage:  popd [index]\n"));
+		return Exit_ERROR;
+	}
+    }
+
+    const wchar_t *arg = ARGV(xoptind);
+    if (!arg)
+	arg = L"+0";
+
+    size_t stacksize = get_dirstack_size();
+    if (stacksize == 0) {
+	xerror(0, Ngt("directory stack is empty"));
+	return Exit_FAILURE;
+    }
+
+    size_t stackindex;
+    const wchar_t *dummy;
+    if (!parse_dirstack_index(arg, &stackindex, &dummy, true))
+	return Exit_FAILURE;
+    if (stackindex == SIZE_MAX) {
+	xerror(0, Ngt("`%ls' is not a valid index"), arg);
+	return Exit_ERROR;
+    }
+
+    int result;
+    if (stackindex == stacksize) {
+	wchar_t *newpwd = pop_dirstack();
+	if (!newpwd) {
+	    xerror(0, Ngt("cannot set directory stack"));
+	    return Exit_FAILURE;
+	}
+	result = change_directory(newpwd, true, true);
+	free(newpwd);
+	return result;
+    } else {
+	return remove_dirstack_entry(stackindex) ? Exit_SUCCESS : Exit_FAILURE;
+    }
+}
+
+#if YASH_ENABLE_HELP
+const char popd_help[] = Ngt(
+"popd - pop directory from directory stack\n"
+"\tpopd [index]\n"
+"Removes the last entry of the directory stack, returning to the previous\n"
+"directory.\n"
+"If <index> is an integer with the plus or minus sign, it is considered a\n"
+"specified entry of the stack, which is removed from the stack instead of the\n"
+"last entry. An integer with the plus sign specifies the n'th newest entry,\n"
+"and a one with the minus sign specifies the n'th oldest entry.\n"
+"If <index> is omitted, \"+0\" is assumed.\n"
+);
+#endif
+
 /* The "dirs" builtin, which accepts the following options:
  *  -c: clear the stack
  *  -v: verbose */

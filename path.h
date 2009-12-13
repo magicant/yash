@@ -103,18 +103,17 @@ extern _Bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 
 extern int cd_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern int pushd_builtin(int argc, void **argv)
-    __attribute__((nonnull));
-extern int popd_builtin(int argc, void **argv)
-    __attribute__((nonnull));
 extern int pwd_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int hash_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int umask_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char cd_help[], pushd_help[], popd_help[], pwd_help[],
-       hash_help[], umask_help[];
+extern const char cd_help[], pwd_help[], hash_help[], umask_help[];
+
+extern int change_directory(
+	const wchar_t *newpwd, bool printnewdir, bool logical)
+    __attribute__((nonnull,warn_unused_result));
 
 
 #endif /* YASH_PATH_H */
