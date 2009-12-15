@@ -60,7 +60,6 @@ extern char **environ;
 #define VAR_PROMPT_COMMAND            "PROMPT_COMMAND"
 #define VAR_PS1                       "PS1"
 #define VAR_PS2                       "PS2"
-#define VAR_PS3                       "PS3"
 #define VAR_PS4                       "PS4"
 #define VAR_PWD                       "PWD"
 #define VAR_RANDOM                    "RANDOM"

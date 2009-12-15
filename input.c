@@ -333,7 +333,7 @@ wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
 #endif /* YASH_ENABLE_LINEEDIT */
 
 /* Prints a prompt of the specified type.
- * `type' must be between 1 and 4 inclusive.
+ * `type' must be 1, 2 or 4.
  * `save_parse_state' must be called before calling this function because this
  * function calls `parse_string'. */
 void print_prompt(int type)
@@ -342,7 +342,6 @@ void print_prompt(int type)
     switch (type) {
 	case 1:   ps = getvar(L VAR_PS1);   break;
 	case 2:   ps = getvar(L VAR_PS2);   break;
-	case 3:   ps = getvar(L VAR_PS3);   goto just_print;
 	case 4:   ps = getvar(L VAR_PS4);   break;
 	default:  assert(false);
     }
@@ -482,7 +481,7 @@ void skip_alnum(wchar_t **sp)
 #if YASH_ENABLE_LINEEDIT
 
 /* Returns the prompt string, possibly containing backslash escapes.
- * `type' must be between 1 and 4, which specifies $PS1...$PS4 respectively.
+ * `type' must be 1, 2 or 4.
  * This function never fails. A newly malloced string is always returned.
  * `save_parse_state' must be called before calling this function because this
  * function calls `parse_string'. */
@@ -492,7 +491,6 @@ wchar_t *get_prompt(int type)
     switch (type) {
 	case 1:   ps = getvar(L VAR_PS1);   break;
 	case 2:   ps = getvar(L VAR_PS2);   break;
-	case 3:   ps = getvar(L VAR_PS3);   goto return_raw;
 	case 4:   ps = getvar(L VAR_PS4);   break;
 	default:  assert(false);
     }

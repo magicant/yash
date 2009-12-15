@@ -1,4 +1,3 @@
-echo x"$PS3"x
 PROMPT_COMMAND='echo prompt_command >&2'
 (exit \
 1)

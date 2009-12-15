@@ -9,7 +9,6 @@ $ cat <<END
 > END
 $ PS1='${PWD##${PWD}}? '
 ? PS1=
-$ echo x"$PS3"x
 $ PROMPT_COMMAND='echo prompt_command >&2'
 prompt_command
 $ (exit \

@@ -284,8 +284,6 @@ void init_variables(void)
 	    !posixly_correct ? L"\\$ " : (geteuid() != 0) ? L"$ " : L"# ";
 	set_variable(L VAR_PS1, xwcsdup(ps1),   SCOPE_GLOBAL, false);
 	set_variable(L VAR_PS2, xwcsdup(L"> "), SCOPE_GLOBAL, false);
-	if (!posixly_correct)
-	    set_variable(L VAR_PS3, xwcsdup(L"#? "), SCOPE_GLOBAL, false);
 	set_variable(L VAR_PS4, xwcsdup(L"+ "), SCOPE_GLOBAL, false);
     }
 
