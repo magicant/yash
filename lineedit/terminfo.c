@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <term.h>
 #include <termios.h>
 #include <unistd.h>
@@ -33,6 +34,7 @@
 #include "../option.h"
 #include "../sig.h"
 #include "../util.h"
+#include "../variable.h"
 #include "key.h"
 #include "terminfo.h"
 #include "trie.h"
@@ -281,8 +283,10 @@ _Bool le_setupterm(_Bool bypass)
 	struct winsize ws;
 	if (ioctl(STDERR_FILENO, TIOCGWINSZ, &ws) == 0
 		&& ws.ws_row > 0 && ws.ws_col > 0) {
-	    le_lines = ws.ws_row;
-	    le_columns = ws.ws_col;
+	    if (getenv(VAR_LINES) == NULL)
+		le_lines = ws.ws_row;
+	    if (getenv(VAR_COLUMNS) == NULL)
+		le_columns = ws.ws_col;
 	    return 1;
 	}
     }

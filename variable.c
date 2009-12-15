@@ -992,10 +992,18 @@ void variable_set(const wchar_t *name, variable_T *var)
     case L'C':
 	if (wcscmp(name, L VAR_CDPATH) == 0)
 	    reset_path(PA_CDPATH, var);
+#if YASH_ENABLE_LINEEDIT
+	if (wcscmp(name, L VAR_COLUMNS) == 0)
+	    le_need_term_update = true;
+#endif
 	break;
     case L'L':
 	if (wcscmp(name, L VAR_LANG) == 0 || wcsncmp(name, L"LC_", 3) == 0)
 	    reset_locale(name);
+#if YASH_ENABLE_LINEEDIT
+	if (wcscmp(name, L VAR_LINES) == 0)
+	    le_need_term_update = true;
+#endif
 	break;
     case L'M':
 	if (wcscmp(name, L VAR_MAILPATH) == 0)
