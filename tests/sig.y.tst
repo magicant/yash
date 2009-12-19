@@ -254,3 +254,5 @@ done
 set +m
 
 END
+
+rm -fr "$TESTTMP/sig.y.tmp"

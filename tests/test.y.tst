@@ -306,3 +306,6 @@ tt -n = -a -n = -n     # ( -n = ) -a ( -n = -n )    => true
 
 test 1 2 3  2>/dev/null  # invalid expression
 echo "1 2 3: $?"
+
+
+rm -fr "$tmp"

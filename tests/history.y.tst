@@ -98,6 +98,7 @@ echo x
 END
 history -s 1 -s 2 -s 3
 history
+rm -f "${TESTTMP}/history2"
 EOF
 
 echo ===== histspace =====
