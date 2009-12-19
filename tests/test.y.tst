@@ -43,6 +43,7 @@ ln -s gid reglink
 touch gid uid readable1 readable2 readable3 writable1 writable2 writable3
 ln gid gidhard
 mkdir sticky
+chown $(id -u):$(id -g) gid
 chmod g+xs gid
 chmod u+xs uid
 chmod =,u=r readable1

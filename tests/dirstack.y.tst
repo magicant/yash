@@ -99,4 +99,5 @@ pushd "$tmp/2" 2>/dev/null
 echo dirstack readonly $?
 dirs | sed -e 's;/.*/;;'
 
+cd "${TESTTMP}"
 rm -fr "$tmp"
