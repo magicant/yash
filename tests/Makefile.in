@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
-.SUFFIXES: .c .h .o
+.SUFFIXES: .c .h .o .tst .TST
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -41,21 +41,34 @@ TEST_SOURCES = alias.p.tst alias.p.out alias.y.tst alias.y.out \
 	test.y.tst test.y.out \
 	variable.p.tst variable.p.out variable.y.tst variable.y.out
 
-TEST_ITEMS = *.tst  # the default test items
+TEST_ITEMS = $(TEST_ITEMS_POSIX) $(TEST_ITEMS_YASH)
+TEST_ITEMS_POSIX = alias.p.tst builtin.p.tst error.p.tst expand.p.tst \
+	fnmatch.p.tst input.p.tst job.p.tst option.p.tst parser.p.tst \
+	path.p.tst redir.p.tst sig.p.tst variable.p.tst 
+TEST_ITEMS_YASH = alias.y.tst builtin.y.tst dirstack.y.tst error.y.tst \
+	expand.y.tst history.y.tst input.y.tst option.y.tst parser.y.tst \
+	path.y.tst printf.y.tst redir.y.tst sig.y.tst test.y.tst variable.y.tst
 
 INVOKEOBJS = invoke.o
 RESETSIGOBJS = resetsig.o
 BYPRODUCTS = invoke resetsig *.dSYM
 
-test test-all: invoke resetsig
-	@./resetsig $(SHELL) ./run-test.sh
+test test-all:
+	@echo "Any output from the tests indicates a possible malfunction"
+	@$(MAKE) -ks $(TEST_ITEMS:.tst=.TST)
 test-posix:
-	@$(MAKE) TEST_ITEMS='*.p.tst' test
+	@$(MAKE) TEST_ITEMS="$(TEST_ITEMS_POSIX)" test
+test-yash:
+	@$(MAKE) TEST_ITEMS="$(TEST_ITEMS_YASH)" test
 
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
+
+.tst.TST:
+	./resetsig $(SHELL) ./run-test.sh $<
+$(TEST_ITEMS:.tst=.TST): invoke resetsig
 
 invoke: $(INVOKEOBJS)
 resetsig: $(RESETSIGOBJS)
@@ -74,6 +87,6 @@ distclean: clean
 maintainer-clean: distclean
 	rm -f Makefile.deps
 
-.PHONY: test-all test-posix test distcontents copy-distcontents clean distclean maintainer-clean
+.PHONY: test test-all test-posix test-yash distcontents copy-distcontents clean distclean maintainer-clean
 
 
