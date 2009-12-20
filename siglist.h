@@ -34,13 +34,15 @@ static const signal_T signals[] = {
 
     /* signals defined by SUSv2 & POSIX.1-2001 (SUSv3) */
     { SIGHUP,  L"HUP",  }, { SIGINT,  L"INT",  }, { SIGQUIT, L"QUIT", },
-    { SIGILL,  L"ILL",  }, { SIGTRAP, L"TRAP", }, { SIGABRT, L"ABRT", },
-    { SIGBUS,  L"BUS",  }, { SIGFPE,  L"FPE",  }, { SIGKILL, L"KILL", },
-    { SIGSEGV, L"SEGV", }, { SIGPIPE, L"PIPE", }, { SIGALRM, L"ALRM", },
-    { SIGTERM, L"TERM", }, { SIGUSR1, L"USR1", }, { SIGUSR2, L"USR2", },
-    { SIGCHLD, L"CHLD", }, { SIGCONT, L"CONT", }, { SIGSTOP, L"STOP", },
-    { SIGTSTP, L"TSTP", }, { SIGTTIN, L"TTIN", }, { SIGTTOU, L"TTOU", },
-    { SIGURG,  L"URG",  },
+    { SIGILL,  L"ILL",  }, { SIGABRT, L"ABRT", }, { SIGBUS,  L"BUS",  },
+    { SIGFPE,  L"FPE",  }, { SIGKILL, L"KILL", }, { SIGSEGV, L"SEGV", },
+    { SIGPIPE, L"PIPE", }, { SIGALRM, L"ALRM", }, { SIGTERM, L"TERM", },
+    { SIGUSR1, L"USR1", }, { SIGUSR2, L"USR2", }, { SIGCHLD, L"CHLD", },
+    { SIGCONT, L"CONT", }, { SIGSTOP, L"STOP", }, { SIGTSTP, L"TSTP", },
+    { SIGTTIN, L"TTIN", }, { SIGTTOU, L"TTOU", }, { SIGURG,  L"URG",  },
+#ifdef SIGTRAP
+    { SIGTRAP, L"TRAP", },
+#endif
 #ifdef SIGXCPU
     { SIGXCPU, L"XCPU", },
 #endif
