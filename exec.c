@@ -1195,13 +1195,12 @@ void exec_fall_back_on_sh(
     free(objpath);
 #elif HAVE_PATHS_H && defined _PATH_BSHELL
     xexecve(_PATH_BSHELL, args, envp);
-#else
+#endif
     const char *shpath = get_command_path("sh", false);
     if (shpath)
 	xexecve(shpath, args, envp);
     else
 	errno = ENOENT;
-#endif
     xerror(errno, Ngt("cannot invoke new shell to execute `%s'"), argv[0]);
 }
 
