@@ -518,20 +518,24 @@ void set_up_keycodes(void)
 /* Prints the "cr" code. (carriage return: move cursor to first char of line) */
 void le_print_cr(void)
 {
+#if 0
     char *v = tigetstr(TI_cr);
-    if (is_strcap_valid(v))
+    if (is_strcap_valid(v) && v[0] != '\0')
 	tputs(v, 1, putchar_stderr);
     else
+#endif
 	fputc('\r', stderr);
 }
 
 /* Prints the "nel" code. (newline: move cursor to first char of next line) */
 void le_print_nel(void)
 {
+#if 0
     char *v = tigetstr(TI_nel);
-    if (is_strcap_valid(v))
+    if (is_strcap_valid(v) && v[0] != '\0')
 	tputs(v, 1, putchar_stderr);
     else
+#endif
 	fputc('\r', stderr), fputc('\n', stderr);
 }
 
@@ -554,7 +558,7 @@ void move_cursor(char *capone, char *capmul, long count, int affcnt)
 _Bool move_cursor_1(char *capone, long count)
 {
     char *v = tigetstr(capone);
-    if (is_strcap_valid(v)) {
+    if (is_strcap_valid(v) && v[0] != '\0') {
 	do
 	    tputs(v, 1, putchar_stderr);
 	while (--count > 0);
@@ -620,7 +624,7 @@ void le_print_el(void)
 _Bool le_print_ed(void)
 {
     char *v = tigetstr(TI_ed);
-    if (is_strcap_valid(v))
+    if (is_strcap_valid(v) && v[0] != '\0')
 	return tputs(v, 1, putchar_stderr) != ERR;
     else
 	return 0;
@@ -631,7 +635,7 @@ _Bool le_print_ed(void)
 _Bool le_print_clear(void)
 {
     char *v = tigetstr(TI_clear);
-    if (is_strcap_valid(v))
+    if (is_strcap_valid(v) && v[0] != '\0')
 	return tputs(v, le_lines, putchar_stderr) != ERR;
     else
 	return 0;
@@ -662,7 +666,7 @@ void le_print_op(void)
 void le_print_setfg(enum le_color color)
 {
     char *v = tigetstr(TI_setaf);
-    if (!is_strcap_valid(v)) {
+    if (!is_strcap_valid(v) || v[0] == '\0') {
 	v = tigetstr(TI_setf);
 	color = ((color & 0x1) << 2) | (color & 0x2) | ((color & 0x4) >> 2);
     }
@@ -677,7 +681,7 @@ void le_print_setfg(enum le_color color)
 void le_print_setbg(enum le_color color)
 {
     char *v = tigetstr(TI_setab);
-    if (!is_strcap_valid(v)) {
+    if (!is_strcap_valid(v) || v[0] == '\0') {
 	v = tigetstr(TI_setb);
 	color = ((color & 0x1) << 2) | (color & 0x2) | ((color & 0x4) >> 2);
     }
@@ -723,9 +727,9 @@ void le_alert(void)
 
     if (shopt_le_visiblebell)
 	v = tigetstr(TI_flash);
-    if (!is_strcap_valid(v))
+    if (!is_strcap_valid(v) || v[0] == '\0')
 	v = tigetstr(TI_bel);
-    if (is_strcap_valid(v))
+    if (is_strcap_valid(v) && v[0] == '\0')
 	tputs(v, 1, putchar_stderr);
     else
 	putchar_stderr('\a');
