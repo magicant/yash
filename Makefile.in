@@ -26,9 +26,7 @@ DIRS = @DIRS@
 SOURCES = alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h input.c input.h job.c job.h mail.c mail.h mksignum.c option.c option.h parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h xfnmatch.c xfnmatch.h yash.c yash.h
 OBJS = @OBJS@
 TARGET = @TARGET@
-MKSIGNUMOBJS = mksignum.o
-
-BYPRODUCTS = mksignum signum.h *.dSYM
+BYPRODUCTS = mksignum.o mksignum signum.h *.dSYM
 
 all: $(TARGET)
 
@@ -43,8 +41,6 @@ builtins/@BUILTINS_ARCHIVE@: _PHONY
 	@cd builtins && $(MAKE)
 lineedit/@LINEEDIT_ARCHIVE@: _PHONY
 	@cd lineedit && $(MAKE)
-mksignum: $(MKSIGNUMOBJS)
-	$(CC) $(LDFLAGS) -o $@ $(MKSIGNUMOBJS) $(LDLIBS)
 signum.h: mksignum
 	./mksignum > $@
 sig.o: signum.h
@@ -140,7 +136,7 @@ mostlyclean: _mostlyclean
 	-@cd builtins && $(MAKE) mostlyclean
 	-@cd lineedit && $(MAKE) mostlyclean
 _mostlyclean:
-	-rm -rf $(OBJS) $(MKSIGNUMOBJS) $(BYPRODUCTS) $(DISTDIR)
+	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
 	-@cd tests && $(MAKE) clean
 clean: _clean
 	-@cd builtins && $(MAKE) clean

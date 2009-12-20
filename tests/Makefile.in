@@ -49,11 +49,9 @@ TEST_ITEMS_YASH = alias.y.tst builtin.y.tst dirstack.y.tst error.y.tst \
 	expand.y.tst history.y.tst input.y.tst option.y.tst parser.y.tst \
 	path.y.tst printf.y.tst redir.y.tst sig.y.tst test.y.tst variable.y.tst
 
-INVOKEOBJS = invoke.o
-RESETSIGOBJS = resetsig.o
-BYPRODUCTS = invoke resetsig *.dSYM
+BYPRODUCTS = invoke.o invoke resetsig.o resetsig *.dSYM
 
-test test-all:
+test test-all: invoke resetsig
 	@echo "Any output from the tests indicates a possible malfunction"
 	@$(MAKE) -ks $(TEST_ITEMS:.tst=.TST)
 test-posix:
@@ -70,9 +68,6 @@ test-yash:
 	./resetsig $(SHELL) ./run-test.sh $<
 $(TEST_ITEMS:.tst=.TST): invoke resetsig
 
-invoke: $(INVOKEOBJS)
-resetsig: $(RESETSIGOBJS)
-
 DISTCONTENTS = $(SOURCES) $(TEST_SOURCES) Makefile.in Makefile.deps run-test.sh
 distcontents: $(DISTCONTENTS)
 copy-distcontents: $(DISTCONTENTS)
@@ -81,11 +76,11 @@ copy-distcontents: $(DISTCONTENTS)
 	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
 
 clean:
-	rm -f $(BYPRODUCTS) $(INVOKEOBJS) $(RESETSIGOBJS)
+	rm -fr $(BYPRODUCTS)
 distclean: clean
-	rm -f Makefile
+	rm -fr Makefile
 maintainer-clean: distclean
-	rm -f Makefile.deps
+	rm -fr Makefile.deps
 
 .PHONY: test test-all test-posix test-yash distcontents copy-distcontents clean distclean maintainer-clean
 
