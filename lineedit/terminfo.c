@@ -659,11 +659,13 @@ void le_print_op(void)
 }
 
 /* Prints the "setf"/"setaf" code. */
-void le_print_setfg(int color)
+void le_print_setfg(enum le_color color)
 {
     char *v = tigetstr(TI_setaf);
-    if (!is_strcap_valid(v))
+    if (!is_strcap_valid(v)) {
 	v = tigetstr(TI_setf);
+	color = ((color & 0x1) << 2) | (color & 0x2) | ((color & 0x4) >> 2);
+    }
     if (is_strcap_valid(v)) {
 	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
 	if (v)
@@ -672,11 +674,13 @@ void le_print_setfg(int color)
 }
 
 /* Prints the "setb"/"setab" code. */
-void le_print_setbg(int color)
+void le_print_setbg(enum le_color color)
 {
     char *v = tigetstr(TI_setab);
-    if (!is_strcap_valid(v))
+    if (!is_strcap_valid(v)) {
 	v = tigetstr(TI_setb);
+	color = ((color & 0x1) << 2) | (color & 0x2) | ((color & 0x4) >> 2);
+    }
     if (is_strcap_valid(v)) {
 	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
 	if (v)

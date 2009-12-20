@@ -424,26 +424,27 @@ void print_color_seq(const wchar_t **sp)
 {
     int standout = 0, underline = 0, reverse = 0, blink = 0, dim = 0, bold = 0,
 	invisible = 0;
-    int fg = -1, bg = -1, op = 0;
+    bool op = false;
+    enum le_color fg = LE_COLOR_N, bg = LE_COLOR_N;
 
     while ((*sp)++, **sp) switch (**sp) {
-	case L'k':  fg = 0;  /* black   */  break;
-	case L'r':  fg = 1;  /* red     */  break;
-	case L'g':  fg = 2;  /* green   */  break;
-	case L'y':  fg = 3;  /* yellow  */  break;
-	case L'b':  fg = 4;  /* blue    */  break;
-	case L'm':  fg = 5;  /* magenta */  break;
-	case L'c':  fg = 6;  /* cyan    */  break;
-	case L'w':  fg = 7;  /* white   */  break;
-	case L'K':  bg = 0;  /* black   */  break;
-	case L'R':  bg = 1;  /* red     */  break;
-	case L'G':  bg = 2;  /* green   */  break;
-	case L'Y':  bg = 3;  /* yellow  */  break;
-	case L'B':  bg = 4;  /* blue    */  break;
-	case L'M':  bg = 5;  /* magenta */  break;
-	case L'C':  bg = 6;  /* cyan    */  break;
-	case L'W':  bg = 7;  /* white   */  break;
-	case L'd':  op = 1;  break;
+	case L'k':  fg = LE_COLOR_BLACK;    break;
+	case L'r':  fg = LE_COLOR_RED;      break;
+	case L'g':  fg = LE_COLOR_GREEN;    break;
+	case L'y':  fg = LE_COLOR_YELLOW;   break;
+	case L'b':  fg = LE_COLOR_BLUE;     break;
+	case L'm':  fg = LE_COLOR_MAGENTA;  break;
+	case L'c':  fg = LE_COLOR_CYAN;     break;
+	case L'w':  fg = LE_COLOR_WHITE;    break;
+	case L'K':  bg = LE_COLOR_BLACK;    break;
+	case L'R':  bg = LE_COLOR_RED;      break;
+	case L'G':  bg = LE_COLOR_GREEN;    break;
+	case L'Y':  bg = LE_COLOR_YELLOW;   break;
+	case L'B':  bg = LE_COLOR_BLUE;     break;
+	case L'M':  bg = LE_COLOR_MAGENTA;  break;
+	case L'C':  bg = LE_COLOR_CYAN;     break;
+	case L'W':  bg = LE_COLOR_WHITE;    break;
+	case L'd':  op = true;  break;
 	case L's':  standout  = 1;  break;
 	case L'u':  underline = 1;  break;
 	case L'v':  reverse   = 1;  break;
@@ -460,9 +461,9 @@ done:
     le_print_sgr(standout, underline, reverse, blink, dim, bold, invisible);
     if (op)       /* restore original color pair */
 	le_print_op();
-    if (fg >= 0)  /* set foreground color */
+    if (fg != LE_COLOR_N)  /* set foreground color */
 	le_print_setfg(fg);
-    if (bg >= 0)  /* set background color */
+    if (bg != LE_COLOR_N)  /* set background color */
 	le_print_setbg(bg);
 }
 
