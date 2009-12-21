@@ -414,6 +414,9 @@ done:
     fillip_cursor();
     CHECK_CURRENT_LINE_MAX;
     editbase_line = current_line, editbase_column = current_column;
+
+    if (!le_ti_msgr)
+	le_print_sgr0();
 }
 
 /* Prints a sequence to change the terminal font.

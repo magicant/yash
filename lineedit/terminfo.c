@@ -216,6 +216,7 @@
 #define TI_ktbc    "ktbc"
 #define TI_kund    "kund"
 #define TI_lines   "lines"
+#define TI_msgr    "msgr"
 #define TI_nel     "nel"
 #define TI_op      "op"
 #define TI_rev     "rev"
@@ -239,8 +240,9 @@ _Bool le_need_term_update = 1;
 /* Initialized in `le_setupterm'. */
 int le_lines, le_columns;
 
-/* Whether the terminal has the "am" and "xenl" flags set, respectively. */
-_Bool le_ti_am, le_ti_xenl;
+/* Whether the terminal has the "am", "xenl" and "msgr" flags set,
+ * respectively. */
+_Bool le_ti_am, le_ti_xenl, le_ti_msgr;
 
 /* True if the meta key inputs character whose 8th bit is set. */
 /* Used only if the `shopt_le_convmeta' option is "auto". */
@@ -323,6 +325,7 @@ _Bool le_setupterm(_Bool bypass)
     le_columns = tigetnum(TI_cols);
     le_ti_am = tigetflag(TI_am) > 0;
     le_ti_xenl = tigetflag(TI_xenl) > 0;
+    le_ti_msgr = tigetflag(TI_msgr) > 0;
     le_meta_bit8 = tigetflag(TI_km) > 0;
     if (le_lines <= 0 || le_columns <= 0)
 	return 0;
