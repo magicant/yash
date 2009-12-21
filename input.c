@@ -427,6 +427,7 @@ wchar_t *expand_ps1_posix(wchar_t *s)
  *   (background color)
  *     K R G Y B M C W
  *   d (default foreground/background color)
+ *   D (default foreground/background color and style)
  *   s (standout)
  *   u (underline)
  *   v (reverse)

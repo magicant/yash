@@ -192,9 +192,9 @@ void clear_to_end_of_screen(void)
 void le_display_maybe_promptsp(void)
 {
     if (shopt_le_promptsp && le_ti_am) {
-	le_print_sgr(1, 0, 0, 0, 0, 0, 0);
+	le_print_smso();
 	fputc('$', stderr);
-	le_print_sgr(0, 0, 0, 0, 0, 0, 0);
+	le_print_sgr0();
 	for (int i = le_ti_xenl ? 1 : 2; i < le_columns; i++)
 	    fputc(' ', stderr);
 	le_print_cr();
@@ -422,49 +422,41 @@ done:
  * print. */
 void print_color_seq(const wchar_t **sp)
 {
-    int standout = 0, underline = 0, reverse = 0, blink = 0, dim = 0, bold = 0,
-	invisible = 0;
-    bool op = false;
-    enum le_color fg = LE_COLOR_N, bg = LE_COLOR_N;
-
     while ((*sp)++, **sp) switch (**sp) {
-	case L'k':  fg = LE_COLOR_BLACK;    break;
-	case L'r':  fg = LE_COLOR_RED;      break;
-	case L'g':  fg = LE_COLOR_GREEN;    break;
-	case L'y':  fg = LE_COLOR_YELLOW;   break;
-	case L'b':  fg = LE_COLOR_BLUE;     break;
-	case L'm':  fg = LE_COLOR_MAGENTA;  break;
-	case L'c':  fg = LE_COLOR_CYAN;     break;
-	case L'w':  fg = LE_COLOR_WHITE;    break;
-	case L'K':  bg = LE_COLOR_BLACK;    break;
-	case L'R':  bg = LE_COLOR_RED;      break;
-	case L'G':  bg = LE_COLOR_GREEN;    break;
-	case L'Y':  bg = LE_COLOR_YELLOW;   break;
-	case L'B':  bg = LE_COLOR_BLUE;     break;
-	case L'M':  bg = LE_COLOR_MAGENTA;  break;
-	case L'C':  bg = LE_COLOR_CYAN;     break;
-	case L'W':  bg = LE_COLOR_WHITE;    break;
-	case L'd':  op = true;  break;
-	case L's':  standout  = 1;  break;
-	case L'u':  underline = 1;  break;
-	case L'v':  reverse   = 1;  break;
-	case L'n':  blink     = 1;  break;
-	case L'i':  dim       = 1;  break;
-	case L'o':  bold      = 1;  break;
-	case L'x':  invisible = 1;  break;
-	default:    goto done;
+	case L'k':  le_print_setfg(LE_COLOR_BLACK);    break;
+	case L'r':  le_print_setfg(LE_COLOR_RED);      break;
+	case L'g':  le_print_setfg(LE_COLOR_GREEN);    break;
+	case L'y':  le_print_setfg(LE_COLOR_YELLOW);   break;
+	case L'b':  le_print_setfg(LE_COLOR_BLUE);     break;
+	case L'm':  le_print_setfg(LE_COLOR_MAGENTA);  break;
+	case L'c':  le_print_setfg(LE_COLOR_CYAN);     break;
+	case L'w':  le_print_setfg(LE_COLOR_WHITE);    break;
+	case L'K':  le_print_setbg(LE_COLOR_BLACK);    break;
+	case L'R':  le_print_setbg(LE_COLOR_RED);      break;
+	case L'G':  le_print_setbg(LE_COLOR_GREEN);    break;
+	case L'Y':  le_print_setbg(LE_COLOR_YELLOW);   break;
+	case L'B':  le_print_setbg(LE_COLOR_BLUE);     break;
+	case L'M':  le_print_setbg(LE_COLOR_MAGENTA);  break;
+	case L'C':  le_print_setbg(LE_COLOR_CYAN);     break;
+	case L'W':  le_print_setbg(LE_COLOR_WHITE);    break;
+	case L'd':  le_print_op();     break;
+	case L'D':  le_print_sgr0();   break;
+	case L's':  le_print_smso();   break;
+	case L'u':  le_print_smul();   break;
+	case L'v':  le_print_rev();    break;
+	case L'n':  le_print_blink();  break;
+	case L'i':  le_print_dim();    break;
+	case L'o':  le_print_bold();   break;
+	case L'x':  le_print_invis();  break;
+	default:
+	    if (iswalnum(**sp))
+		break;
+	    else
+		goto done;
     }
 done:
     if (**sp == L'.')
 	(*sp)++;
-
-    le_print_sgr(standout, underline, reverse, blink, dim, bold, invisible);
-    if (op)       /* restore original color pair */
-	le_print_op();
-    if (fg != LE_COLOR_N)  /* set foreground color */
-	le_print_setfg(fg);
-    if (bg != LE_COLOR_N)  /* set background color */
-	le_print_setbg(bg);
 }
 
 /* Prints the content of the edit line, updating `cursor_positions' and

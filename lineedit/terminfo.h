@@ -44,11 +44,17 @@ extern void le_print_cuu(long count);
 extern void le_print_el(void);
 extern _Bool le_print_ed(void);
 extern _Bool le_print_clear(void);
-extern void le_print_sgr(long standout, long underline, long reverse,
-	long blink, long dim, long bold, long invisible);
 extern void le_print_op(void);
 extern void le_print_setfg(enum le_color color);
 extern void le_print_setbg(enum le_color color);
+extern void le_print_sgr0(void);
+extern void le_print_smso(void);
+extern void le_print_smul(void);
+extern void le_print_rev(void);
+extern void le_print_blink(void);
+extern void le_print_dim(void);
+extern void le_print_bold(void);
+extern void le_print_invis(void);
 extern void le_alert(void);
 
 

@@ -46,6 +46,8 @@
 /* terminfo capabilities */
 #define TI_am      "am"
 #define TI_bel     "bel"
+#define TI_blink   "blink"
+#define TI_bold    "bold"
 #define TI_clear   "clear"
 #define TI_cols    "cols"
 #define TI_cr      "cr"
@@ -57,9 +59,11 @@
 #define TI_cuf1    "cuf1"
 #define TI_cuu     "cuu"
 #define TI_cuu1    "cuu1"
+#define TI_dim     "dim"
 #define TI_ed      "ed"
 #define TI_el      "el"
 #define TI_flash   "flash"
+#define TI_invis   "invis"
 #define TI_kBEG    "kBEG"
 #define TI_kCAN    "kCAN"
 #define TI_kCMD    "kCMD"
@@ -214,13 +218,16 @@
 #define TI_lines   "lines"
 #define TI_nel     "nel"
 #define TI_op      "op"
+#define TI_rev     "rev"
 #define TI_rmkx    "rmkx"
 #define TI_setab   "setab"
 #define TI_setaf   "setaf"
 #define TI_setb    "setb"
 #define TI_setf    "setf"
-#define TI_sgr     "sgr"
+#define TI_sgr0    "sgr0"
 #define TI_smkx    "smkx"
+#define TI_smso    "smso"
+#define TI_smul    "smul"
 #define TI_xenl    "xenl"
 
 
@@ -250,6 +257,8 @@ static _Bool transmit_mode = 0;
 static inline int is_strcap_valid(const char *s)
     __attribute__((const));
 static void set_up_keycodes(void);
+static _Bool try_print_cap(const char *capname)
+    __attribute__((nonnull));
 static void move_cursor(char *capone, char *capmul, long count, int affcnt)
     __attribute__((nonnull));
 static _Bool move_cursor_1(char *capone, long count)
@@ -515,6 +524,17 @@ void set_up_keycodes(void)
     le_keycodes = t;
 }
 
+/* Tries to print the specified capability string.
+ * Returns 1 iff successful. */
+_Bool try_print_cap(const char *capname)
+{
+    char *v = tigetstr((char *) capname);
+    if (is_strcap_valid(v) && v[0] != '\0')
+	if (tputs(v, 1, putchar_stderr) != ERR)
+	    return 1;
+    return 0;
+}
+
 /* Prints the "cr" code. (carriage return: move cursor to first char of line) */
 void le_print_cr(void)
 {
@@ -524,7 +544,7 @@ void le_print_cr(void)
 	tputs(v, 1, putchar_stderr);
     else
 #endif
-	fputc('\r', stderr);
+	putchar_stderr('\r');
 }
 
 /* Prints the "nel" code. (newline: move cursor to first char of next line) */
@@ -536,7 +556,7 @@ void le_print_nel(void)
 	tputs(v, 1, putchar_stderr);
     else
 #endif
-	fputc('\r', stderr), fputc('\n', stderr);
+	putchar_stderr('\r'), putchar_stderr('\n');
 }
 
 /* Moves the cursor.
@@ -614,52 +634,27 @@ void le_print_cuu(long count)
 /* Prints the "el" code. (clear to end of line) */
 void le_print_el(void)
 {
-    char *v = tigetstr(TI_el);
-    if (is_strcap_valid(v))
-	tputs(v, 1, putchar_stderr);
+    try_print_cap(TI_el);
 }
 
 /* Prints the "ed" code if available. (clear to end of screen)
  * Returns true iff successful. */
 _Bool le_print_ed(void)
 {
-    char *v = tigetstr(TI_ed);
-    if (is_strcap_valid(v) && v[0] != '\0')
-	return tputs(v, 1, putchar_stderr) != ERR;
-    else
-	return 0;
+    return try_print_cap(TI_ed);
 }
 
 /* Prints the "clear" code if available. (clear whole screen)
  * Returns true iff successful. */
 _Bool le_print_clear(void)
 {
-    char *v = tigetstr(TI_clear);
-    if (is_strcap_valid(v) && v[0] != '\0')
-	return tputs(v, le_lines, putchar_stderr) != ERR;
-    else
-	return 0;
-}
-
-/* Prints the "sgr" code. Every argument must be 0 or 1. */
-void le_print_sgr(long standout, long underline, long reverse, long blink,
-	long dim, long bold, long invisible)
-{
-    char *v = tigetstr(TI_sgr);
-    if (is_strcap_valid(v)) {
-	v = tparm(v, standout, underline, reverse, blink, dim, bold, invisible,
-		0L, 0L);
-	if (v)
-	    tputs(v, 1, putchar_stderr);
-    }
+    return try_print_cap(TI_clear);
 }
 
 /* Prints the "op" code. (set color pairs to default) */
 void le_print_op(void)
 {
-    char *v = tigetstr(TI_op);
-    if (is_strcap_valid(v))
-	tputs(v, 1, putchar_stderr);
+    try_print_cap(TI_op);
 }
 
 /* Prints the "setf"/"setaf" code. */
@@ -690,6 +685,54 @@ void le_print_setbg(enum le_color color)
 	if (v)
 	    tputs(v, 1, putchar_stderr);
     }
+}
+
+/* Prints the "sgr0" code. */
+void le_print_sgr0(void)
+{
+    try_print_cap(TI_sgr0);
+}
+
+/* Prints the "smso" code. */
+void le_print_smso(void)
+{
+    try_print_cap(TI_smso);
+}
+
+/* Prints the "smul" code. */
+void le_print_smul(void)
+{
+    try_print_cap(TI_smul);
+}
+
+/* Prints the "rev" code. */
+void le_print_rev(void)
+{
+    try_print_cap(TI_rev);
+}
+
+/* Prints the "blink" code. */
+void le_print_blink(void)
+{
+    try_print_cap(TI_blink);
+}
+
+/* Prints the "dim" code. */
+void le_print_dim(void)
+{
+    try_print_cap(TI_dim);
+}
+
+/* Prints the "bold" code. */
+void le_print_bold(void)
+{
+    try_print_cap(TI_bold);
+}
+
+/* Prints the "invis" code. */
+void le_print_invis(void)
+{
+    try_print_cap(TI_invis);
 }
 
 /* Prints the "smkx" code and sets the `transmit_mode' flag. */

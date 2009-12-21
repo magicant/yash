@@ -16,7 +16,9 @@ Yash 2.18
      modification time by the nanoseconds if possible.
   +  '--default-directory' option for the "cd" and "pushd" builtin.
   +  '--remove-duplicates' option for the "pushd" builtin.
-  =  No longer initialize $PS3.
+  =  The interpretation of escape sequences to change the font in
+     $PS1 and $PS2 has been changed.
+  =  $PS3 no longer initialized.
   =  The "echo" and "printf" builtins now can print a null character.
   *  [line-editing] $LINES and $COLUMNS were wrongly ignored.
   *  [line-editing] fixed font color for some terminals.
