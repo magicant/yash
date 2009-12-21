@@ -294,7 +294,6 @@ _Bool le_setupterm(_Bool bypass)
     (void) bypass;
 #endif /* HAVE_TIOCGWINSZ */
 
-    le_need_term_update = 0;
     if (once)
 	del_curterm(cur_term);
     if (setupterm(NULL, STDERR_FILENO, &err) != OK)
@@ -302,13 +301,13 @@ _Bool le_setupterm(_Bool bypass)
     once = 1;
 
     if (!is_strcap_valid(tigetstr(TI_cub1))
-	    || !is_strcap_valid(tigetstr(TI_cub))) return 0;
+	    && !is_strcap_valid(tigetstr(TI_cub))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cuf1))
-	    || !is_strcap_valid(tigetstr(TI_cuf))) return 0;
+	    && !is_strcap_valid(tigetstr(TI_cuf))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cud1))
-	    || !is_strcap_valid(tigetstr(TI_cud))) return 0;
+	    && !is_strcap_valid(tigetstr(TI_cud))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cuu1))
-	    || !is_strcap_valid(tigetstr(TI_cuu))) return 0;
+	    && !is_strcap_valid(tigetstr(TI_cuu))) return 0;
     if (!is_strcap_valid(tigetstr(TI_el))) return 0;
 
     le_lines = tigetnum(TI_lines);
@@ -321,6 +320,7 @@ _Bool le_setupterm(_Bool bypass)
 
     set_up_keycodes();
 
+    le_need_term_update = 0;
     return 1;
 }
 
