@@ -214,7 +214,7 @@ trienode_T *trie_setw(trienode_T *node, const wchar_t *keywcs, trievalue_T v)
 	if (index < 0) {
 	    index = -(index + 1);
 	    node = insert_entry(node, (size_t) index,
-		    (triekey_T) { .as_char = keywcs[0] });
+		    (triekey_T) { .as_wchar = keywcs[0] });
 	}
 	node->entries[index].child =
 	    trie_setw(node->entries[index].child, keywcs + 1, v);
