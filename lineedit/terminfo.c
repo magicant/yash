@@ -267,6 +267,8 @@ static _Bool move_cursor_1(char *capone, long count)
     __attribute__((nonnull));
 static _Bool move_cursor_mul(char *capmul, long count, int affcnt)
     __attribute__((nonnull));
+static void print_color_code(enum le_color color, char *seta, char *set)
+    __attribute__((nonnull));
 static int putchar_stderr(int c);
 
 
@@ -663,24 +665,20 @@ void le_print_op(void)
 /* Prints the "setf"/"setaf" code. */
 void le_print_setfg(enum le_color color)
 {
-    char *v = tigetstr(TI_setaf);
-    if (!is_strcap_valid(v) || v[0] == '\0') {
-	v = tigetstr(TI_setf);
-	color = ((color & 0x1) << 2) | (color & 0x2) | ((color & 0x4) >> 2);
-    }
-    if (is_strcap_valid(v)) {
-	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
-	if (v)
-	    tputs(v, 1, putchar_stderr);
-    }
+    print_color_code(color, TI_setaf, TI_setf);
 }
 
 /* Prints the "setb"/"setab" code. */
 void le_print_setbg(enum le_color color)
 {
-    char *v = tigetstr(TI_setab);
+    print_color_code(color, TI_setab, TI_setb);
+}
+
+void print_color_code(enum le_color color, char *seta, char *set)
+{
+    char *v = tigetstr(seta);
     if (!is_strcap_valid(v) || v[0] == '\0') {
-	v = tigetstr(TI_setb);
+	v = tigetstr(set);
 	color = ((color & 0x1) << 2) | (color & 0x2) | ((color & 0x4) >> 2);
     }
     if (is_strcap_valid(v)) {
