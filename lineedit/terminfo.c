@@ -49,6 +49,7 @@
 #define TI_blink   "blink"
 #define TI_bold    "bold"
 #define TI_clear   "clear"
+#define TI_colors  "colors"
 #define TI_cols    "cols"
 #define TI_cr      "cr"
 #define TI_cub     "cub"
@@ -236,9 +237,9 @@
  * because the $TERM variable has been changed. */
 _Bool le_need_term_update = 1;
 
-/* Number of lines and columns in the current terminal. */
+/* Number of lines, columns and colors available in the current terminal. */
 /* Initialized in `le_setupterm'. */
-int le_lines, le_columns;
+int le_lines, le_columns, le_colors;
 
 /* Whether the terminal has the "am", "xenl" and "msgr" flags set,
  * respectively. */
@@ -267,7 +268,7 @@ static _Bool move_cursor_1(char *capone, long count)
     __attribute__((nonnull));
 static _Bool move_cursor_mul(char *capmul, long count, int affcnt)
     __attribute__((nonnull));
-static void print_color_code(enum le_color color, char *seta, char *set)
+static void print_color_code(long color, char *seta, char *set)
     __attribute__((nonnull));
 static int putchar_stderr(int c);
 
@@ -325,6 +326,7 @@ _Bool le_setupterm(_Bool bypass)
 
     le_lines = tigetnum(TI_lines);
     le_columns = tigetnum(TI_cols);
+    le_colors = tigetnum(TI_colors);
     le_ti_am = tigetflag(TI_am) > 0;
     le_ti_xenl = tigetflag(TI_xenl) > 0;
     le_ti_msgr = tigetflag(TI_msgr) > 0;
@@ -663,23 +665,31 @@ void le_print_op(void)
 }
 
 /* Prints the "setf"/"setaf" code. */
-void le_print_setfg(enum le_color color)
+void le_print_setfg(long color)
 {
     print_color_code(color, TI_setaf, TI_setf);
 }
 
 /* Prints the "setb"/"setab" code. */
-void le_print_setbg(enum le_color color)
+void le_print_setbg(long color)
 {
     print_color_code(color, TI_setab, TI_setb);
 }
 
-void print_color_code(enum le_color color, char *seta, char *set)
+void print_color_code(long color, char *seta, char *set)
 {
+    if (le_colors < 16)
+	color &= 0x7L;
+    if (le_colors <= color)
+	return;
+
     char *v = tigetstr(seta);
     if (!is_strcap_valid(v) || v[0] == '\0') {
 	v = tigetstr(set);
-	color = ((color & 0x1) << 2) | (color & 0x2) | ((color & 0x4) >> 2);
+	color = ((color & 0x1L) << 2)
+	      |  (color & 0x2L)
+	      | ((color & 0x4L) >> 2)
+	      |  (color & ~0x7L);
     }
     if (is_strcap_valid(v)) {
 	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);

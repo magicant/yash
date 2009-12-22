@@ -22,7 +22,7 @@
 
 extern _Bool le_need_term_update;
 
-extern int le_lines, le_columns;
+extern int le_lines, le_columns, le_colors;
 extern _Bool le_ti_am, le_ti_xenl, le_ti_msgr;
 extern _Bool le_meta_bit8;
 extern struct trienode_T /* trie_T */ *le_keycodes;
@@ -32,7 +32,6 @@ extern _Bool le_setupterm(_Bool bypass);
 enum le_color {
     LE_COLOR_BLACK, LE_COLOR_RED, LE_COLOR_GREEN, LE_COLOR_YELLOW,
     LE_COLOR_BLUE, LE_COLOR_MAGENTA, LE_COLOR_CYAN, LE_COLOR_WHITE,
-    LE_COLOR_N,
 };
 
 extern void le_print_cr(void);
@@ -45,8 +44,8 @@ extern void le_print_el(void);
 extern _Bool le_print_ed(void);
 extern _Bool le_print_clear(void);
 extern void le_print_op(void);
-extern void le_print_setfg(enum le_color color);
-extern void le_print_setbg(enum le_color color);
+extern void le_print_setfg(long color);
+extern void le_print_setbg(long color);
 extern void le_print_sgr0(void);
 extern void le_print_smso(void);
 extern void le_print_smul(void);
