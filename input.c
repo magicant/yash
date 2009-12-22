@@ -426,6 +426,7 @@ wchar_t *expand_ps1_posix(wchar_t *s)
  *     b (blue)     m (magenta)    c (cyan)     w (white)
  *   (background color)
  *     K R G Y B M C W
+ *   t (brighter color: used just after a color flag above)
  *   d (default foreground/background color)
  *   D (default foreground/background color and style)
  *   s (standout)

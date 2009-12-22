@@ -425,23 +425,28 @@ done:
  * print. */
 void print_color_seq(const wchar_t **sp)
 {
+#define setfg(color) \
+	le_print_setfg(LE_COLOR_##color + (*(*sp + 1) == L't' ? 8 : 0))
+#define setbg(color) \
+	le_print_setbg(LE_COLOR_##color + (*(*sp + 1) == L't' ? 8 : 0))
+
     while ((*sp)++, **sp) switch (**sp) {
-	case L'k':  le_print_setfg(LE_COLOR_BLACK);    break;
-	case L'r':  le_print_setfg(LE_COLOR_RED);      break;
-	case L'g':  le_print_setfg(LE_COLOR_GREEN);    break;
-	case L'y':  le_print_setfg(LE_COLOR_YELLOW);   break;
-	case L'b':  le_print_setfg(LE_COLOR_BLUE);     break;
-	case L'm':  le_print_setfg(LE_COLOR_MAGENTA);  break;
-	case L'c':  le_print_setfg(LE_COLOR_CYAN);     break;
-	case L'w':  le_print_setfg(LE_COLOR_WHITE);    break;
-	case L'K':  le_print_setbg(LE_COLOR_BLACK);    break;
-	case L'R':  le_print_setbg(LE_COLOR_RED);      break;
-	case L'G':  le_print_setbg(LE_COLOR_GREEN);    break;
-	case L'Y':  le_print_setbg(LE_COLOR_YELLOW);   break;
-	case L'B':  le_print_setbg(LE_COLOR_BLUE);     break;
-	case L'M':  le_print_setbg(LE_COLOR_MAGENTA);  break;
-	case L'C':  le_print_setbg(LE_COLOR_CYAN);     break;
-	case L'W':  le_print_setbg(LE_COLOR_WHITE);    break;
+	case L'k':  setfg(BLACK);      break;
+	case L'r':  setfg(RED);        break;
+	case L'g':  setfg(GREEN);      break;
+	case L'y':  setfg(YELLOW);     break;
+	case L'b':  setfg(BLUE);       break;
+	case L'm':  setfg(MAGENTA);    break;
+	case L'c':  setfg(CYAN);       break;
+	case L'w':  setfg(WHITE);      break;
+	case L'K':  setbg(BLACK);      break;
+	case L'R':  setbg(RED);        break;
+	case L'G':  setbg(GREEN);      break;
+	case L'Y':  setbg(YELLOW);     break;
+	case L'B':  setbg(BLUE);       break;
+	case L'M':  setbg(MAGENTA);    break;
+	case L'C':  setbg(CYAN);       break;
+	case L'W':  setbg(WHITE);      break;
 	case L'd':  le_print_op();     break;
 	case L'D':  le_print_sgr0();   break;
 	case L's':  le_print_smso();   break;
@@ -460,6 +465,9 @@ void print_color_seq(const wchar_t **sp)
 done:
     if (**sp == L'.')
 	(*sp)++;
+
+#undef setfg
+#undef setbg
 }
 
 /* Prints the content of the edit line, updating `cursor_positions' and
