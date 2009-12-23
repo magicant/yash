@@ -30,8 +30,14 @@ extern struct trienode_T /* trie_T */ *le_keycodes;
 extern _Bool le_setupterm(_Bool bypass);
 
 enum le_color {
-    LE_COLOR_BLACK, LE_COLOR_RED, LE_COLOR_GREEN, LE_COLOR_YELLOW,
-    LE_COLOR_BLUE, LE_COLOR_MAGENTA, LE_COLOR_CYAN, LE_COLOR_WHITE,
+    LE_COLOR_BLACK   = 0,
+    LE_COLOR_RED     = 1,
+    LE_COLOR_GREEN   = 2,
+    LE_COLOR_YELLOW  = 3,
+    LE_COLOR_BLUE    = 4,
+    LE_COLOR_MAGENTA = 5,
+    LE_COLOR_CYAN    = 6,
+    LE_COLOR_WHITE   = 7,
 };
 
 extern void le_print_cr(void);
