@@ -43,6 +43,7 @@
 #include "parser.h"
 #include "path.h"
 #include "plist.h"
+#include "sig.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
@@ -2506,17 +2507,63 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
     if (noescape)
 	return read_line_from_stdin(buf, false);
 
-    size_t index;
     bool cont;
     bool first = true;
     do {
-	index = buf->length;
-	cont = false;
-	if (!first && is_interactive_now && isatty(STDIN_FILENO))
-	    print_prompt(2);
-	if (!read_line_from_stdin(buf, false))
-	    return false;
+	size_t index = buf->length;
+
+	if (is_interactive_now && isatty(STDIN_FILENO)) {
+	    /* if the shell is interactive and the input is from the terminal,
+	     * then print a prompt and try to use line-editing. */
+
+	    struct promptset_T prompt;
+	    if (first) {
+		prompt.main  = xwcsdup(L"");
+		prompt.right = xwcsdup(L"");
+		prompt.after = xwcsdup(L"");
+	    } else {
+		prompt = get_prompt(2);
+	    }
+
+	    wchar_t *line;
+	    inputresult_T result = le_readline(prompt, &line);
+
+	    if (result != INPUT_ERROR) {
+		free(prompt.main);
+		free(prompt.right);
+		free(prompt.after);
+		switch (result) {
+		    case INPUT_OK:
+			/* ignore lines after the first one */
+			wcschr(line, L'\n')[1] = L'\0';
+			wb_catfree(buf, line);
+			/* falls thru! */
+		    case INPUT_EOF:
+			goto read;
+		    case INPUT_INTERRUPTED:
+			set_interrupted();
+			return false;
+		    case INPUT_ERROR:
+			assert(false);
+		}
+	    }
+
+	    bool result2;
+	    print_prompt(prompt.main);
+	    result2 = read_line_from_stdin(buf, false);
+	    print_prompt(prompt.after);
+	    free(prompt.main);
+	    free(prompt.right);
+	    free(prompt.after);
+	    if (!result2)
+		return false;
+	} else {
+	    if (!read_line_from_stdin(buf, false))
+		return false;
+	}
+read:
 	first = false;
+	cont = false;
 	while (index < buf->length) {
 	    if (buf->contents[index] == L'\\') {
 		if (buf->contents[index + 1] == L'\n') {

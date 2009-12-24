@@ -23,7 +23,13 @@
 #include <wchar.h>
 
 
-extern void print_prompt(int type);
+struct promptset_T {
+    wchar_t *main, *right, *after;
+};
+
+extern struct promptset_T get_prompt(int type);
+extern void print_prompt(const wchar_t *s)
+    __attribute__((nonnull));
 extern _Bool set_nonblocking(int fd);
 extern _Bool unset_nonblocking(int fd);
 

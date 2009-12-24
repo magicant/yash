@@ -58,36 +58,25 @@ enum le_state_T le_state;
 enum le_editstate_T le_editstate;
 
 
-/* Initializes line-editing.
- * Must be called before each call to `le_readline'.
- * Returns true iff successful, in which case `le_readline' must be called
- * afterward. */
-bool le_setup(void)
-{
-    le_keymap_init();
-    return isatty(STDIN_FILENO) && isatty(STDERR_FILENO)
-	&& le_setupterm(true)
-	&& le_set_terminal();
-}
-
 /* Do line-editing using the specified prompts.
  * This function must be called after and only after `le_setup' succeeded.
  * The prompts may contain backslash escapes specified in "input.c".
- * The prompts are freed in this function.
  * The result is returned as a newly malloced wide string, including the
- * trailing newline. When EOF is encountered or on error, an empty string is
- * returned. NULL is returned when interrupted. */
-wchar_t *le_readline(
-	wchar_t *prompt, wchar_t *right_prompt, wchar_t *after_prompt)
+ * trailing newline. It is assigned to `*resultp' iff the return value is
+ * INPUT_OK. Returns INPUT_ERROR iff failed to set up the terminal. */
+inputresult_T le_readline(struct promptset_T prompt, wchar_t **resultp)
 {
-    wchar_t *resultline;
-
     assert(is_interactive_now);
     assert(le_state == LE_STATE_INACTIVE);
 
+    if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO)
+	    || !le_setupterm(true) || !le_set_terminal())
+	return INPUT_ERROR;
+
     le_state = LE_STATE_ACTIVE;
+    le_keymap_init();
     le_editing_init();
-    le_display_init(prompt, right_prompt, after_prompt);
+    le_display_init(prompt);
     reader_init();
     le_editstate = LE_EDITSTATE_EDITING;
 
@@ -95,6 +84,7 @@ wchar_t *le_readline(
 	read_next();
     while (le_editstate == LE_EDITSTATE_EDITING);
 
+    wchar_t *resultline;
     reader_finalize();
     le_display_finalize();
     resultline = le_editing_finalize();
@@ -102,19 +92,18 @@ wchar_t *le_readline(
     le_state = LE_STATE_INACTIVE;
 
     switch (le_editstate) {
-	case LE_EDITSTATE_EDITING:
-	    assert(false);
 	case LE_EDITSTATE_DONE:
-	    break;
+	    *resultp = resultline;
+	    return INPUT_OK;
 	case LE_EDITSTATE_ERROR:
-	    resultline[0] = L'\0';
-	    break;
+	    free(resultline);
+	    return INPUT_EOF;
 	case LE_EDITSTATE_INTERRUPTED:
 	    free(resultline);
-	    resultline = NULL;
-	    break;
+	    return INPUT_INTERRUPTED;
+	default:
+	    assert(false);
     }
-    return resultline;
 }
 
 /* Clears the edit line and restores the terminal state.

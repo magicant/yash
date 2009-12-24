@@ -71,6 +71,8 @@
 
 static void lebuf_wprintf(bool convert_cntrl, const wchar_t *format, ...)
     __attribute__((nonnull(2)));
+static const wchar_t *print_color_seq(const wchar_t *s)
+    __attribute__((nonnull));
 
 /* The print buffer. */
 struct lebuf_T lebuf;
@@ -169,6 +171,87 @@ void lebuf_wprintf(bool convert_cntrl, const wchar_t *format, ...)
     free(s);
 }
 
+/* Prints the specified prompt string to the print buffer.
+ * Escape sequences, which are defined in "../input.c", are handled in this
+ * function. */
+void lebuf_print_prompt(const wchar_t *s)
+{
+    le_pos_T save_pos = lebuf.pos;
+
+    while (*s != L'\0') {
+	if (*s != L'\\') {
+	    lebuf_putwchar(*s, false);
+	} else switch (*++s) {
+	    default:     lebuf_putwchar(*s,      false);  break;
+	    case L'\0':  lebuf_putwchar(L'\\',   false);  goto done;
+//	    case L'\\':  lebuf_putwchar(L'\\',   false);  break;
+	    case L'a':   lebuf_putwchar(L'\a',   false);  break;
+	    case L'e':   lebuf_putwchar(L'\033', false);  break;
+	    case L'n':   lebuf_putwchar(L'\n',   false);  break;
+	    case L'r':   lebuf_putwchar(L'\r',   false);  break;
+	    case L'$':   lebuf_putwchar(geteuid() ? L'$' : L'#', false);  break;
+	    case L'j':   lebuf_wprintf(false, L"%zu", job_count());       break;
+	    case L'!':   lebuf_wprintf(false, L"%u",  hist_next_number);  break;
+	    case L'[':   save_pos = lebuf.pos;    break;
+	    case L']':   lebuf.pos = save_pos;    break;
+	    case L'f':   s = print_color_seq(s);  continue;
+	}
+	s++;
+    }
+done:;
+}
+
+/* Prints a sequence to change the terminal font.
+ * When this function is called, `*s' must be L'f' after the backslash.
+ * This function returns a pointer to the character just after the escape
+ * sequence. */
+const wchar_t *print_color_seq(const wchar_t *s)
+{
+    assert(s[-1] == L'\\');
+    assert(s[ 0] == L'f');
+
+#define SETFG(color) \
+	lebuf_print_setfg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
+#define SETBG(color) \
+	lebuf_print_setbg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
+
+    for (;;) switch (*++s) {
+	case L'k':  SETFG(BLACK);    break;
+	case L'r':  SETFG(RED);      break;
+	case L'g':  SETFG(GREEN);    break;
+	case L'y':  SETFG(YELLOW);   break;
+	case L'b':  SETFG(BLUE);     break;
+	case L'm':  SETFG(MAGENTA);  break;
+	case L'c':  SETFG(CYAN);     break;
+	case L'w':  SETFG(WHITE);    break;
+	case L'K':  SETBG(BLACK);    break;
+	case L'R':  SETBG(RED);      break;
+	case L'G':  SETBG(GREEN);    break;
+	case L'Y':  SETBG(YELLOW);   break;
+	case L'B':  SETBG(BLUE);     break;
+	case L'M':  SETBG(MAGENTA);  break;
+	case L'C':  SETBG(CYAN);     break;
+	case L'W':  SETBG(WHITE);    break;
+	case L'd':  lebuf_print_op();     break;
+	case L'D':  lebuf_print_sgr0();   break;
+	case L's':  lebuf_print_smso();   break;
+	case L'u':  lebuf_print_smul();   break;
+	case L'v':  lebuf_print_rev();    break;
+	case L'n':  lebuf_print_blink();  break;
+	case L'i':  lebuf_print_dim();    break;
+	case L'o':  lebuf_print_bold();   break;
+	case L'x':  lebuf_print_invis();  break;
+	default:    if (!iswalnum(*s)) goto done;
+    }
+done:
+    if (*s == L'.')
+	s++;
+    return s;
+
+#undef SETFG
+#undef SETBG
+}
+
 
 /********** Displaying **********/
 
@@ -176,10 +259,6 @@ static void clean_up(void);
 static void clear_to_end_of_screen(void);
 static void clear_editline(void);
 static void maybe_print_promptsp(void);
-static void print_prompt(const wchar_t *s)
-    __attribute__((nonnull));
-static const wchar_t *print_color_seq(const wchar_t *s)
-    __attribute__((nonnull));
 static void update_editline(void);
 static void update_right_prompt(void);
 static void print_search(void);
@@ -197,9 +276,9 @@ static le_pos_T currentp;
 /* The maximum line count. */
 static int line_max;
 
-/* The string printed as the prompt, right prompt, after prompt.
+/* The set of strings printed as the prompt, right prompt, after prompt.
  * May contain escape sequences. */
-static wchar_t *prompt, *right_prompt, *after_prompt;
+static struct promptset_T prompt;
 
 /* The position of the first character of the edit line, just after the prompt.
  */
@@ -227,15 +306,10 @@ static struct {
 
 
 /* Initializes the display module.
- * The arguments are the main, right, and after prompt, which are freed when the
- * display is finalized.
  * Must be called after `le_editing_init'. */
-void le_display_init(
-	wchar_t *prompt_, wchar_t *right_prompt_, wchar_t *after_prompt_)
+void le_display_init(struct promptset_T prompt_)
 {
     prompt = prompt_;
-    right_prompt = right_prompt_;
-    after_prompt = after_prompt_;
 
     currentp.line = currentp.column = 0;
 }
@@ -248,16 +322,13 @@ void le_display_finalize(void)
 
     le_main_index = le_main_buffer.length;
     le_display_update();
-    //TODO after prompt
-
-    free(prompt);
-    free(right_prompt);
-    free(after_prompt);
 
     if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
 	lebuf_print_nel();
     while (lebuf.pos.line <= rprompt_line)
 	lebuf_print_nel();
+    lebuf_print_prompt(prompt.after);
+
     clean_up();
 }
 
@@ -352,7 +423,7 @@ void le_display_update(void)
 
 	/* prepare the right prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
-	print_prompt(right_prompt);
+	lebuf_print_prompt(prompt.right);
 	if (lebuf.pos.line != 0) {  /* right prompt must be one line */
 	    sb_truncate(&lebuf.buf, 0);
 	    /* lebuf.pos.line = */ lebuf.pos.column = 0;
@@ -364,7 +435,7 @@ void le_display_update(void)
 	/* print main prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
 	maybe_print_promptsp();
-	print_prompt(prompt);
+	lebuf_print_prompt(prompt.main);
 	editbasep = lebuf.pos;
 	if (!le_ti_msgr)
 	    lebuf_print_sgr0();
@@ -383,6 +454,8 @@ void le_display_update(void)
 
     /* print right prompt */
     update_right_prompt();
+    if (!le_ti_msgr)
+	lebuf_print_sgr0();
 
     // TODO: print info area
 
@@ -405,87 +478,6 @@ void maybe_print_promptsp(void)
 	lebuf_print_cr();
 	lebuf_print_ed();
     }
-}
-
-/* Prints the specified prompt string.
- * Escape sequences, which are defined in "../input.c", are handled in this
- * function. */
-void print_prompt(const wchar_t *s)
-{
-    le_pos_T save_pos = lebuf.pos;
-
-    while (*s != L'\0') {
-	if (*s != L'\\') {
-	    lebuf_putwchar(*s, false);
-	} else switch (*++s) {
-	    default:     lebuf_putwchar(*s,      false);  break;
-	    case L'\0':  lebuf_putwchar(L'\\',   false);  goto done;
-//	    case L'\\':  lebuf_putwchar(L'\\',   false);  break;
-	    case L'a':   lebuf_putwchar(L'\a',   false);  break;
-	    case L'e':   lebuf_putwchar(L'\033', false);  break;
-	    case L'n':   lebuf_putwchar(L'\n',   false);  break;
-	    case L'r':   lebuf_putwchar(L'\r',   false);  break;
-	    case L'$':   lebuf_putwchar(geteuid() ? L'$' : L'#', false);  break;
-	    case L'j':   lebuf_wprintf(false, L"%zu", job_count());       break;
-	    case L'!':   lebuf_wprintf(false, L"%u",  hist_next_number);  break;
-	    case L'[':   save_pos = lebuf.pos;    break;
-	    case L']':   lebuf.pos = save_pos;    break;
-	    case L'f':   s = print_color_seq(s);  continue;
-	}
-	s++;
-    }
-done:;
-}
-
-/* Prints a sequence to change the terminal font.
- * When this function is called, `*s' must be L'f' after the backslash.
- * This function returns a pointer to the character just after the escape
- * sequence. */
-const wchar_t *print_color_seq(const wchar_t *s)
-{
-    assert(s[-1] == L'\\');
-    assert(s[ 0] == L'f');
-
-#define SETFG(color) \
-	lebuf_print_setfg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
-#define SETBG(color) \
-	lebuf_print_setbg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
-
-    for (;;) switch (*++s) {
-	case L'k':  SETFG(BLACK);    break;
-	case L'r':  SETFG(RED);      break;
-	case L'g':  SETFG(GREEN);    break;
-	case L'y':  SETFG(YELLOW);   break;
-	case L'b':  SETFG(BLUE);     break;
-	case L'm':  SETFG(MAGENTA);  break;
-	case L'c':  SETFG(CYAN);     break;
-	case L'w':  SETFG(WHITE);    break;
-	case L'K':  SETBG(BLACK);    break;
-	case L'R':  SETBG(RED);      break;
-	case L'G':  SETBG(GREEN);    break;
-	case L'Y':  SETBG(YELLOW);   break;
-	case L'B':  SETBG(BLUE);     break;
-	case L'M':  SETBG(MAGENTA);  break;
-	case L'C':  SETBG(CYAN);     break;
-	case L'W':  SETBG(WHITE);    break;
-	case L'd':  lebuf_print_op();     break;
-	case L'D':  lebuf_print_sgr0();   break;
-	case L's':  lebuf_print_smso();   break;
-	case L'u':  lebuf_print_smul();   break;
-	case L'v':  lebuf_print_rev();    break;
-	case L'n':  lebuf_print_blink();  break;
-	case L'i':  lebuf_print_dim();    break;
-	case L'o':  lebuf_print_bold();   break;
-	case L'x':  lebuf_print_invis();  break;
-	default:    if (!iswalnum(*s)) goto done;
-    }
-done:
-    if (*s == L'.')
-	s++;
-    return s;
-
-#undef SETFG
-#undef SETBG
 }
 
 /* Prints the content of the edit line.

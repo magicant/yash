@@ -1140,7 +1140,9 @@ void print_xtrace(void *const *argv)
     if (shopt_xtrace && (tracevars || argv != NULL)) {
 	bool first = true;
 
-	print_prompt(4);
+	struct promptset_T prompt = get_prompt(4);
+	print_prompt(prompt.main);
+
 	if (tracevars) {
 	    fprintf(stderr, "%ls", xtrace_buffer.contents + 1);
 	    first = false;
@@ -1154,6 +1156,11 @@ void print_xtrace(void *const *argv)
 	    }
 	}
 	fputc('\n', stderr);
+
+	print_prompt(prompt.after);
+	free(prompt.main);
+	free(prompt.right);
+	free(prompt.after);
     }
     if (xtrace_buffer.contents) {
 	wb_destroy(&xtrace_buffer);

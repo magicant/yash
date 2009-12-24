@@ -20,7 +20,9 @@
 #define YASH_DISPLAY_H
 
 #include <stddef.h>
+#include "../input.h"
 #include "../strbuf.h"
+#include "lineedit.h"
 
 
 typedef struct le_pos_T {
@@ -38,10 +40,10 @@ extern void lebuf_putwchar_raw(wchar_t c);
 extern void lebuf_putwchar(wchar_t c, _Bool convert_cntrl);
 extern void lebuf_putws(const wchar_t *s, _Bool convert_cntrl)
     __attribute__((nonnull));
-
-extern void le_display_init(
-	wchar_t *prompt_, wchar_t *right_prompt_, wchar_t *after_prompt_)
+extern void lebuf_print_prompt(const wchar_t *s)
     __attribute__((nonnull));
+
+extern void le_display_init(struct promptset_T prompt);
 extern void le_display_finalize(void);
 extern void le_display_clear(void);
 extern void le_display_flush(void);

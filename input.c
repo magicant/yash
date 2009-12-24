@@ -56,14 +56,6 @@ static wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
 #endif
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wchar_t *expand_ps_yash(wchar_t *s)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static inline void skip_alnum(wchar_t **sp)
-    __attribute__((nonnull));
-#if YASH_ENABLE_LINEEDIT
-static wchar_t *get_prompt(int type)
-    __attribute__((malloc,warn_unused_result));
-#endif
 
 /* An input function that inputs from a wide string.
  * `inputinfo' is a pointer to a `struct input_wcs_info'.
@@ -226,9 +218,9 @@ done:
 
 /* An input function that prints a prompt and reads input.
  * `inputinfo' is a pointer to a `struct input_readline_info'.
- * `inputinfo->type' must be between 1 and 4 inclusive and specifies the type of
- * the prompt. For example, PS1 is printed if `inputinfo->type' is 1.
- * If `inputinfo->type' is 1, this function changes its value to 2. */
+ * `inputinfo->type' must be 1 or 2, specifying the type of the prompt.
+ * For example, $PS1 is printed if `inputinfo->type' is 1.
+ * If `inputinfo->type' is 1, this function changes it to 2. */
 inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 {
 #if YASH_ENABLE_LINEEDIT
@@ -244,10 +236,13 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 
     struct parsestate_T *state = save_parse_state();
     struct input_readline_info *info = inputinfo;
+    struct promptset_T prompt;
+
     if (info->type == 1)
 	if (!posixly_correct)
 	    exec_variable_as_commands(
 		    L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
+    prompt = get_prompt(info->type);
     if (do_job_control)
 	print_job_status_all();
     if (info->type == 1)
@@ -255,39 +250,36 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     /* Note: no commands must be executed between `print_job_status_all' here
      * and `le_readline', or the "notifyle" option won't work. More precisely,
      * `handle_sigchld' must not be called from any other function until it is
-     * called from `wait_for_input' in the line-editing. */
+     * called from `wait_for_input' during the line-editing. */
 
 #if YASH_ENABLE_LINEEDIT
     /* read a line using line editing */
     if (shopt_lineedit != shopt_nolineedit) {
+	wchar_t *line;
+	inputresult_T result;
+
 	unset_nonblocking(STDIN_FILENO);
-	if (le_setup()) {
-	    wchar_t *prompt = get_prompt(info->type); //TODO right/after prompt
-	    wchar_t *line = le_readline(prompt, xwcsdup(L""), xwcsdup(L""));
+	result = le_readline(prompt, &line);
+	if (result != INPUT_ERROR) {
 	    restore_parse_state(state);
-	    if (line) {
+	    free(prompt.main);
+	    free(prompt.right);
+	    free(prompt.after);
+	    if (result == INPUT_OK) {
 		if (info->type == 1)
 		    info->type = 2;
-		if (line[0]) {
 #if YASH_ENABLE_HISTORY
-		    if (info->type == 2)
-			add_history(line);
-#endif /* YASH_ENABLE_HISTORY */
-		    linebuffer = forward_line(line, buf);
-		    return INPUT_OK;
-		} else {
-		    free(line);
-		    return INPUT_EOF;
-		}
-	    } else {
-		return INPUT_INTERRUPTED;
+		add_history(line);
+#endif
+		linebuffer = forward_line(line, buf);
 	    }
+	    return result;
 	}
     }
 #endif /* YASH_ENABLE_LINEEDIT */
 
     /* read a line without line editing */
-    print_prompt(info->type);
+    print_prompt(prompt.main);
     if (info->type == 1)
 	info->type = 2;
     restore_parse_state(state);
@@ -300,6 +292,12 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	result = input_stdin(buf, NULL);
     else
 	result = input_file(buf, info->fp);
+
+    print_prompt(prompt.after);
+    free(prompt.main);
+    free(prompt.right);
+    free(prompt.after);
+
 #if YASH_ENABLE_HISTORY
     if (info->type == 2)
 	add_history(buf->contents + oldlen);
@@ -331,81 +329,9 @@ wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
 
 #endif /* YASH_ENABLE_LINEEDIT */
 
-/* Prints a prompt of the specified type.
- * `type' must be 1, 2 or 4.
- * `save_parse_state' must be called before calling this function because this
- * function calls `parse_string'. */
-void print_prompt(int type)
-{
-    const wchar_t *ps;
-    switch (type) {
-	case 1:   ps = getvar(L VAR_PS1);   break;
-	case 2:   ps = getvar(L VAR_PS2);   break;
-	case 4:   ps = getvar(L VAR_PS4);   break;
-	default:  assert(false);
-    }
-    if (ps == NULL)
-	return;
-
-    wchar_t *prompt = parse_and_expand_string(ps, gt("prompt"), false);
-    if (prompt == NULL)
-	goto just_print;
-    if (posixly_correct) {
-	if (type == 1)
-	    prompt = expand_ps1_posix(prompt);
-    } else {
-	if (type == 1 || type == 2)
-	    prompt = expand_ps_yash(prompt);
-    }
-    fprintf(stderr, "%ls", prompt);
-    fflush(stderr);
-    free(prompt);
-    return;
-
-just_print:
-    if (ps) {
-	fprintf(stderr, "%ls", ps);
-	fflush(stderr);
-    }
-}
-
-/* Expands the contents of the PS1 variable in the posixly correct way.
- * The argument is `free'd in this function.
- * The return value must be `free'd by the caller. */
-/* In this function, "!" is expanded to the next history number and "!!" to "!"
- * if the history feature is enabled. Otherwise, this function simply returns
- * the argument. */
-wchar_t *expand_ps1_posix(wchar_t *s)
-{
-#if YASH_ENABLE_HISTORY
-    wchar_t *const saves = s;
-    xwcsbuf_T buf;
-    wb_init(&buf);
-
-    while (*s) {
-	if (*s == L'!') {
-	    if (*++s == L'!') {
-		wb_wccat(&buf, L'!');
-	    } else {
-		wb_wprintf(&buf, L"%d", hist_next_number);
-		continue;
-	    }
-	} else {
-	    wb_wccat(&buf, *s);
-	}
-	s++;
-    }
-    free(saves);
-    return wb_towcs(&buf);
-#else /* !YASH_ENABLE_HISTORY */
-    return s;
-#endif
-}
-
-/* Expands the contents of PS1/PS2 in Yash's way.
- * The argument is `free'd in this function.
- * The return value must be `free'd by the caller. */
-/* In this function, the following backslash escapes are expanded:
+/* Prints the specified prompt string to the standard error.
+ *
+ * Escape sequences are handled:
  *   \a    a bell character: L'\a' (L'\07')
  *   \e    an escape code: L'\033'
  *   \j    the number of jobs
@@ -415,7 +341,7 @@ wchar_t *expand_ps1_posix(wchar_t *s)
  *   \$    L'#' if the effective uid is 0, L'$' otherwise
  *   \\    a backslash
  *
- * In line edit, the followings are also available:
+ * In line-editing, the followings are also available:
  *   \fX   change color
  *   \[    start of substring not to be counted as printable characters
  *   \]    end of substring not to be counted as printable characters
@@ -436,87 +362,129 @@ wchar_t *expand_ps1_posix(wchar_t *s)
  *   o (bold)
  *   x (invisible)
  *   . (end: omittable)
- * These are ignored in `expand_ps_yash'.
- * */
-wchar_t *expand_ps_yash(wchar_t *s)
+ * These are ignored in this function. */
+void print_prompt(const wchar_t *s)
 {
-    wchar_t *const saves = s;
     xwcsbuf_T buf;
-    wb_init(&buf);
 
-    while (*s) {
+    wb_init(&buf);
+    while (*s != L'\0') {
 	if (*s != L'\\') {
 	    wb_wccat(&buf, *s);
 	} else switch (*++s) {
-	    case L'\0':   wb_wccat(&buf, L'\\');     goto done;
-	  //case L'\\':   wb_wccat(&buf, L'\\');     break;
-	    case L'a':    wb_wccat(&buf, L'\a');     break;
-	    case L'e':    wb_wccat(&buf, L'\033');   break;
-	    case L'n':    wb_wccat(&buf, L'\n');     break;
-	    case L'r':    wb_wccat(&buf, L'\r');     break;
-	    default:      wb_wccat(&buf, *s);        break;
-	    case L'$':    wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
-	    case L'j':    wb_wprintf(&buf, L"%zu", job_count());  break;
-#if YASH_ENABLE_HISTORY
-	    case L'!':    wb_wprintf(&buf, L"%d", hist_next_number); break;
-#endif
-	    case L'f':    skip_alnum(&s);  break;
-	    case L'[':    break;
-	    case L']':    break;
+	    default:     wb_wccat(&buf, *s);       break;
+	    case L'\0':  wb_wccat(&buf, L'\\');    goto done;
+//	    case L'\\':  wb_wccat(&buf, L'\\');    break;
+	    case L'a':   wb_wccat(&buf, L'\a');    break;
+	    case L'e':   wb_wccat(&buf, L'\033');  break;
+	    case L'n':   wb_wccat(&buf, L'\n');    break;
+	    case L'r':   wb_wccat(&buf, L'\r');    break;
+	    case L'$':   wb_wccat(&buf, geteuid() ? L'$' : L'#');     break;
+	    case L'j':   wb_wprintf(&buf, L"%zu", job_count());       break;
+	    case L'!':   wb_wprintf(&buf, L"%u",  hist_next_number);  break;
+	    case L'[':
+	    case L']':
+		break;
+	    case L'f':
+		while (iswalnum(*++s));
+		if (*s == L'.')
+		    s++;
+		continue;
 	}
 	s++;
     }
 done:
-    free(saves);
-    return wb_towcs(&buf);
+    fprintf(stderr, "%ls", buf.contents);
+    wb_destroy(&buf);
 }
-
-void skip_alnum(wchar_t **sp)
-{
-    while (iswalnum(**sp))
-	(*sp)++;
-    if (**sp != L'.')
-	(*sp)--;
-}
-
-#if YASH_ENABLE_LINEEDIT
 
 /* Returns the prompt string, possibly containing backslash escapes.
  * `type' must be 1, 2 or 4.
- * This function never fails. A newly malloced string is always returned.
+ * This function never fails: A newly malloced string is always returned.
  * `save_parse_state' must be called before calling this function because this
  * function calls `parse_string'. */
-wchar_t *get_prompt(int type)
+struct promptset_T get_prompt(int type)
 {
-    const wchar_t *ps;
+    struct promptset_T result;
+    wchar_t name[5] = { L'P', L'S', L'\0', L'\0', L'\0' };
+
     switch (type) {
-	case 1:   ps = getvar(L VAR_PS1);   break;
-	case 2:   ps = getvar(L VAR_PS2);   break;
-	case 4:   ps = getvar(L VAR_PS4);   break;
+	case 1:   name[2] = L'1';  break;
+	case 2:   name[2] = L'2';  break;
+	case 4:   name[2] = L'4';  break;
 	default:  assert(false);
     }
+
+    const wchar_t *ps = getvar(name);
     if (ps == NULL)
-	goto return_raw;
+	ps = L"";
 
     wchar_t *prompt = parse_and_expand_string(ps, gt("prompt"), false);
-    if (!prompt)
-	goto return_raw;
+    if (prompt == NULL)
+	prompt = xwcsdup(L"");
     if (posixly_correct) {
 	if (type == 1)
-	    prompt = expand_ps1_posix(prompt);
-    } else {
-	if (type == 1 || type == 2)
-	    return prompt;
-    }
-    return escapefree(prompt, L"\\");
+	    result.main = expand_ps1_posix(prompt);
+	else
+	    result.main = escapefree(prompt, L"\\");
 
-return_raw:
-    if (!ps)
-	ps = L"";
-    return escape(ps, L"\\");
+	result.right = xwcsdup(L"");
+	result.after = xwcsdup(L"");
+    } else {
+	result.main = prompt;
+
+	name[3] = L'R';
+	ps = getvar(name);
+	if (ps == NULL)
+	    ps = L"";
+	prompt = parse_and_expand_string(ps, gt("prompt"), false);
+	if (prompt == NULL)
+	    prompt = xwcsdup(L"");
+	result.right = prompt;
+
+	name[3] = L'A';
+	ps = getvar(name);
+	if (ps == NULL)
+	    ps = L"";
+	prompt = parse_and_expand_string(ps, gt("prompt"), false);
+	if (prompt == NULL)
+	    prompt = xwcsdup(L"");
+	result.after = prompt;
+    }
+
+    return result;
 }
 
-#endif /* YASH_ENABLE_LINEEDIT */
+/* Expands the contents of the PS1 variable in the posixly correct way.
+ * The argument is `free'd in this function.
+ * The return value must be `free'd by the caller. */
+/* In this function, "!" is replaced with "\!", "!!" with "!", and "\" with
+ * "\\". */
+wchar_t *expand_ps1_posix(wchar_t *s)
+{
+    wchar_t *const saves = s;
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    while (*s != L'\0') {
+	if (*s == L'\\') {
+	    wb_wccat(wb_wccat(&buf, L'\\'), L'\\');
+	} else if (*s == L'!') {
+	    if (*(s + 1) == L'!') {
+		wb_wccat(&buf, L'!');
+		s++;
+	    } else {
+		wb_wccat(wb_wccat(&buf, L'\\'), L'!');
+	    }
+	} else {
+	    wb_wccat(&buf, *s);
+	}
+	s++;
+    }
+
+    free(saves);
+    return wb_towcs(&buf);
+}
 
 /* Sets O_NONBLOCK flag of the specified file descriptor.
  * If `fd' is negative, does nothing.
