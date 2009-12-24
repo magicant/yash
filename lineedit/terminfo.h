@@ -40,27 +40,27 @@ enum le_color {
     LE_COLOR_WHITE   = 7,
 };
 
-extern void le_print_cr(void);
-extern void le_print_nel(void);
-extern void le_print_cub(long count);
-extern void le_print_cuf(long count);
-extern void le_print_cud(long count);
-extern void le_print_cuu(long count);
-extern void le_print_el(void);
-extern _Bool le_print_ed(void);
-extern _Bool le_print_clear(void);
-extern void le_print_op(void);
-extern void le_print_setfg(long color);
-extern void le_print_setbg(long color);
-extern void le_print_sgr0(void);
-extern void le_print_smso(void);
-extern void le_print_smul(void);
-extern void le_print_rev(void);
-extern void le_print_blink(void);
-extern void le_print_dim(void);
-extern void le_print_bold(void);
-extern void le_print_invis(void);
-extern void le_alert(void);
+extern void lebuf_print_cr(void);
+extern void lebuf_print_nel(void);
+extern void lebuf_print_cub(long count);
+extern void lebuf_print_cuf(long count);
+extern void lebuf_print_cud(long count);
+extern void lebuf_print_cuu(long count);
+extern _Bool lebuf_print_el(void);
+extern _Bool lebuf_print_ed(void);
+extern _Bool lebuf_print_clear(void);
+extern _Bool lebuf_print_op(void);
+extern void lebuf_print_setfg(long color);
+extern void lebuf_print_setbg(long color);
+extern _Bool lebuf_print_sgr0(void);
+extern _Bool lebuf_print_smso(void);
+extern _Bool lebuf_print_smul(void);
+extern _Bool lebuf_print_rev(void);
+extern _Bool lebuf_print_blink(void);
+extern _Bool lebuf_print_dim(void);
+extern _Bool lebuf_print_bold(void);
+extern _Bool lebuf_print_invis(void);
+extern void lebuf_print_alert(_Bool direct_stderr);
 
 
 extern int le_eof_char, le_kill_char, le_interrupt_char, le_erase_char;

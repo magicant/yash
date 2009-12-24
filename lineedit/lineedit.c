@@ -70,13 +70,15 @@ bool le_setup(void)
 	&& le_set_terminal();
 }
 
-/* Prints the specified `prompt' and reads one line from the standard input.
- * This function can be called after and only after `le_setup' succeeded.
- * The `prompt' may contain backslash escapes specified in "input.c".
+/* Do line-editing using the specified prompts.
+ * This function must be called after and only after `le_setup' succeeded.
+ * The prompts may contain backslash escapes specified in "input.c".
+ * The prompts are freed in this function.
  * The result is returned as a newly malloced wide string, including the
  * trailing newline. When EOF is encountered or on error, an empty string is
  * returned. NULL is returned when interrupted. */
-wchar_t *le_readline(const wchar_t *prompt)
+wchar_t *le_readline(
+	wchar_t *prompt, wchar_t *right_prompt, wchar_t *after_prompt)
 {
     wchar_t *resultline;
 
@@ -85,8 +87,7 @@ wchar_t *le_readline(const wchar_t *prompt)
 
     le_state = LE_STATE_ACTIVE;
     le_editing_init();
-    le_display_init(prompt);
-    le_display_maybe_promptsp();
+    le_display_init(prompt, right_prompt, after_prompt);
     reader_init();
     le_editstate = LE_EDITSTATE_EDITING;
 
@@ -135,9 +136,8 @@ void le_resume_readline(void)
 	le_state = LE_STATE_ACTIVE;
 	le_setupterm(true);
 	le_set_terminal();
-	le_display_maybe_promptsp();
 	le_display_update();
-	fflush(stderr);
+	le_display_flush();
     }
 }
 
@@ -149,7 +149,7 @@ void le_display_size_changed(void)
 	le_display_clear();
 	le_setupterm(true);
 	le_display_update();
-	fflush(stderr);
+	le_display_flush();
     }
 }
 
@@ -201,9 +201,10 @@ void read_next(void)
     if (c)
 	goto direct_first_buffer;
 
-    /* wait for and read the next byte */
     le_display_update();
-    fflush(stderr);
+    le_display_flush();
+
+    /* wait for and read the next byte */
     if (keycode_ambiguous)
 	timeout = !wait_for_input(STDIN_FILENO, true, get_read_timeout());
     else
@@ -292,7 +293,7 @@ process_wide:
 		append_to_second_buffer(L'\0');
 		break;
 	    case (size_t) -1:  // conversion error
-		le_alert();
+		lebuf_print_alert(true);
 		memset(&reader_state, 0, sizeof reader_state);
 		sb_clear(&reader_first_buffer);
 		le_next_verbatim = false;

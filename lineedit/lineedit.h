@@ -40,7 +40,8 @@ extern enum le_editstate_T le_editstate;
 
 extern _Bool le_setup(void);
 
-extern wchar_t *le_readline(const wchar_t *prompt)
+extern wchar_t *le_readline(
+	wchar_t *prompt, wchar_t *right_prompt, wchar_t *after_prompt)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern void le_suspend_readline(void);
 extern void le_resume_readline(void);

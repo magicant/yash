@@ -262,9 +262,8 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     if (shopt_lineedit != shopt_nolineedit) {
 	unset_nonblocking(STDIN_FILENO);
 	if (le_setup()) {
-	    wchar_t *prompt = get_prompt(info->type);
-	    wchar_t *line = le_readline(prompt);
-	    free(prompt);
+	    wchar_t *prompt = get_prompt(info->type); //TODO right/after prompt
+	    wchar_t *line = le_readline(prompt, xwcsdup(L""), xwcsdup(L""));
 	    restore_parse_state(state);
 	    if (line) {
 		if (info->type == 1)

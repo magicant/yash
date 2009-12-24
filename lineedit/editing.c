@@ -641,7 +641,7 @@ void cmd_noop(wchar_t c __attribute__((unused)))
 /* Alerts. */
 void cmd_alert(wchar_t c __attribute__((unused)))
 {
-    le_alert();
+    lebuf_print_alert(true);
     reset_state();
 }
 
@@ -856,8 +856,7 @@ void redraw_all(bool clear)
     le_setupterm(false);
     le_set_terminal();
     if (clear)
-	le_print_clear();
-    // le_display_update();
+	lebuf_print_clear();
 }
 
 

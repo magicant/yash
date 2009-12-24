@@ -20,13 +20,31 @@
 #define YASH_DISPLAY_H
 
 #include <stddef.h>
+#include "../strbuf.h"
 
 
-extern void le_display_init(const wchar_t *prompt)
+typedef struct le_pos_T {
+    int line, column;
+} le_pos_T;
+
+extern struct lebuf_T {
+    xstrbuf_T buf;
+    le_pos_T pos;
+} lebuf;
+
+extern void lebuf_init(le_pos_T p);
+extern int lebuf_putchar(int c);
+extern void lebuf_putwchar_raw(wchar_t c);
+extern void lebuf_putwchar(wchar_t c, _Bool convert_cntrl);
+extern void lebuf_putws(const wchar_t *s, _Bool convert_cntrl)
+    __attribute__((nonnull));
+
+extern void le_display_init(
+	wchar_t *prompt_, wchar_t *right_prompt_, wchar_t *after_prompt_)
     __attribute__((nonnull));
 extern void le_display_finalize(void);
 extern void le_display_clear(void);
-extern void le_display_maybe_promptsp(void);
+extern void le_display_flush(void);
 extern void le_display_update(void);
 
 

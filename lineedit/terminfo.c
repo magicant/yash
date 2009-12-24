@@ -35,6 +35,7 @@
 #include "../sig.h"
 #include "../util.h"
 #include "../variable.h"
+#include "display.h"
 #include "key.h"
 #include "terminfo.h"
 #include "trie.h"
@@ -241,16 +242,15 @@ _Bool le_need_term_update = 1;
 /* Initialized in `le_setupterm'. */
 int le_lines, le_columns, le_colors;
 
-/* Whether the terminal has the "am", "xenl" and "msgr" flags set,
- * respectively. */
-_Bool le_ti_am, le_ti_xenl, le_ti_msgr;
+/* Whether the terminal has the "xenl" and "msgr" flags set. */
+_Bool le_ti_xenl, le_ti_msgr;
 
 /* True if the meta key inputs character whose 8th bit is set. */
 /* Used only if the `shopt_le_convmeta' option is "auto". */
 _Bool le_meta_bit8;
 
 /* Strings sent by terminal when special key is pressed.
- * Values of entries are `keyseq'. */
+ * The values of entries are `keyseq'. */
 trie_T *le_keycodes = NULL;
 
 /* True if the terminal is set to the keyboard-transmit mode. */
@@ -270,6 +270,8 @@ static _Bool move_cursor_mul(char *capmul, long count, int affcnt)
     __attribute__((nonnull));
 static void print_color_code(long color, char *seta, char *set)
     __attribute__((nonnull));
+static void print_smkx(void);
+static void print_rmkx(void);
 static int putchar_stderr(int c);
 
 
@@ -314,6 +316,7 @@ _Bool le_setupterm(_Bool bypass)
 	return 0;
     once = 1;
 
+    if (tigetflag(TI_am) <= 0)                     return 0;
     if (!is_strcap_valid(tigetstr(TI_cub1))
 	    && !is_strcap_valid(tigetstr(TI_cub))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cuf1))
@@ -322,17 +325,17 @@ _Bool le_setupterm(_Bool bypass)
 	    && !is_strcap_valid(tigetstr(TI_cud))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cuu1))
 	    && !is_strcap_valid(tigetstr(TI_cuu))) return 0;
-    if (!is_strcap_valid(tigetstr(TI_el))) return 0;
+    if (!is_strcap_valid(tigetstr(TI_el)))         return 0;
 
     le_lines = tigetnum(TI_lines);
     le_columns = tigetnum(TI_cols);
+    if (le_lines <= 0 || le_columns <= 0)
+	return 0;
+
     le_colors = tigetnum(TI_colors);
-    le_ti_am = tigetflag(TI_am) > 0;
     le_ti_xenl = tigetflag(TI_xenl) > 0;
     le_ti_msgr = tigetflag(TI_msgr) > 0;
     le_meta_bit8 = tigetflag(TI_km) > 0;
-    if (le_lines <= 0 || le_columns <= 0)
-	return 0;
 
     set_up_keycodes();
 
@@ -531,39 +534,43 @@ void set_up_keycodes(void)
     le_keycodes = t;
 }
 
-/* Tries to print the specified capability string.
+/* Tries to print the specified capability string to the print buffer.
  * Returns 1 iff successful. */
 _Bool try_print_cap(const char *capname)
 {
     char *v = tigetstr((char *) capname);
     if (is_strcap_valid(v) && v[0] != '\0')
-	if (tputs(v, 1, putchar_stderr) != ERR)
+	if (tputs(v, 1, lebuf_putchar) != ERR)
 	    return 1;
     return 0;
 }
 
-/* Prints the "cr" code. (carriage return: move cursor to first char of line) */
-void le_print_cr(void)
+/* Prints the "cr" code to the print buffer.
+ * (carriage return: move cursor to first char of line) */
+void lebuf_print_cr(void)
 {
 #if 0
     char *v = tigetstr(TI_cr);
     if (is_strcap_valid(v) && v[0] != '\0')
-	tputs(v, 1, putchar_stderr);
+	tputs(v, 1, lebuf_putchar);
     else
 #endif
-	putchar_stderr('\r');
+	lebuf_putchar('\r');
+    lebuf.pos.column = 0;
 }
 
-/* Prints the "nel" code. (newline: move cursor to first char of next line) */
-void le_print_nel(void)
+/* Prints the "nel" code to the print buffer.
+ * (newline: move cursor to first char of next line) */
+void lebuf_print_nel(void)
 {
 #if 0
     char *v = tigetstr(TI_nel);
     if (is_strcap_valid(v) && v[0] != '\0')
-	tputs(v, 1, putchar_stderr);
+	tputs(v, 1, lebuf_putchar);
     else
 #endif
-	putchar_stderr('\r'), putchar_stderr('\n');
+	lebuf_putchar('\r'), lebuf_putchar('\n');
+    lebuf.pos.line++, lebuf.pos.column = 0;
 }
 
 /* Moves the cursor.
@@ -587,7 +594,7 @@ _Bool move_cursor_1(char *capone, long count)
     char *v = tigetstr(capone);
     if (is_strcap_valid(v) && v[0] != '\0') {
 	do
-	    tputs(v, 1, putchar_stderr);
+	    tputs(v, 1, lebuf_putchar);
 	while (--count > 0);
 	return 1;
     } else {
@@ -601,77 +608,92 @@ _Bool move_cursor_mul(char *capmul, long count, int affcnt)
     if (is_strcap_valid(v)) {
 	v = tparm(v, count, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
 	if (v) {
-	    tputs(v, affcnt, putchar_stderr);
+	    tputs(v, affcnt, lebuf_putchar);
 	    return 1;
 	}
     }
     return 0;
 }
 
-/* Prints the "cub"/"cub1" code. (move cursor backward by `count' columns) */
-/* `count' must be small enough not to go beyond the screen bounds. */
-void le_print_cub(long count)
+/* Prints the "cub"/"cub1" code to the print buffer.
+ * (move cursor backward by `count' columns)
+ * `count' must be small enough not to go beyond the screen bounds. */
+void lebuf_print_cub(long count)
 {
     move_cursor(TI_cub1, TI_cub, count, 1);
+    lebuf.pos.column -= count;
+    assert(lebuf.pos.column >= 0);
 }
 
-/* Prints the "cuf"/"cuf1" code. (move cursor forward by `count' columns) */
-/* `count' must be small enough not to go beyond the screen bounds .*/
-void le_print_cuf(long count)
+/* Prints the "cuf"/"cuf1" code to the print buffer.
+ * (move cursor forward by `count' columns)
+ * `count' must be small enough not to go beyond the screen bounds. */
+void lebuf_print_cuf(long count)
 {
     move_cursor(TI_cuf1, TI_cuf, count, 1);
+    lebuf.pos.column += count;
+    assert(lebuf.pos.column < le_columns);
 }
 
-/* Prints the "cud"/"cud1" code. (move cursor down by `count' lines) */
-/* `count' must be small enough not to go beyond screen bounds .*/
-/* Note that this function may put the cursor at column 0 as side effect. */
-void le_print_cud(long count)
+/* Prints the "cud"/"cud1" code to the print buffer.
+ * (move cursor down by `count' lines)
+ * `count' must be small enough not to go beyond screen bounds.
+ * The cursor must be on the first column. */
+void lebuf_print_cud(long count)
 {
+    assert(lebuf.pos.column == 0);
     move_cursor(TI_cud1, TI_cud, count, count + 1);
+    lebuf.pos.line += count;
 }
 
-/* Prints the "cuu"/"cuu1" code. (move cursor up by `count' lines) */
-/* `count' must be small enough not to go beyond screen bounds .*/
-/* Note that this function may put the cursor at column 0 as side effect. */
-void le_print_cuu(long count)
+/* Prints the "cuu"/"cuu1" code to the print buffer.
+ * (move cursor up by `count' lines)
+ * `count' must be small enough not to go beyond screen bounds.
+ * The cursor must be on the first column. */
+void lebuf_print_cuu(long count)
 {
+    assert(lebuf.pos.column == 0);
     move_cursor(TI_cuu1, TI_cuu, count, count + 1);
+    lebuf.pos.line -= count;
 }
 
-/* Prints the "el" code. (clear to end of line) */
-void le_print_el(void)
-{
-    try_print_cap(TI_el);
-}
-
-/* Prints the "ed" code if available. (clear to end of screen)
+/* Prints the "el" code to the print buffer. (clear to end of line)
  * Returns true iff successful. */
-_Bool le_print_ed(void)
+_Bool lebuf_print_el(void)
+{
+    return try_print_cap(TI_el);
+}
+
+/* Prints the "ed" code to the print buffer if available.
+ * (clear to end of screen)
+ * Returns true iff successful. */
+_Bool lebuf_print_ed(void)
 {
     return try_print_cap(TI_ed);
 }
 
 /* Prints the "clear" code if available. (clear whole screen)
  * Returns true iff successful. */
-_Bool le_print_clear(void)
+_Bool lebuf_print_clear(void)
 {
     return try_print_cap(TI_clear);
 }
 
-/* Prints the "op" code. (set color pairs to default) */
-void le_print_op(void)
+/* Prints the "op" code. (set color pairs to default)
+ * Returns true iff successful. */
+_Bool lebuf_print_op(void)
 {
-    try_print_cap(TI_op);
+    return try_print_cap(TI_op);
 }
 
 /* Prints the "setf"/"setaf" code. */
-void le_print_setfg(long color)
+void lebuf_print_setfg(long color)
 {
     print_color_code(color, TI_setaf, TI_setf);
 }
 
 /* Prints the "setb"/"setab" code. */
-void le_print_setbg(long color)
+void lebuf_print_setbg(long color)
 {
     print_color_code(color, TI_setab, TI_setb);
 }
@@ -694,59 +716,87 @@ void print_color_code(long color, char *seta, char *set)
     if (is_strcap_valid(v)) {
 	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
 	if (v)
-	    tputs(v, 1, putchar_stderr);
+	    tputs(v, 1, lebuf_putchar);
     }
 }
 
-/* Prints the "sgr0" code. */
-void le_print_sgr0(void)
+/* Prints the "sgr0" code to the print buffer.
+ * (reset the terminal font)
+ * Returns true iff successful. */
+_Bool lebuf_print_sgr0(void)
 {
-    try_print_cap(TI_sgr0);
+    return try_print_cap(TI_sgr0);
 }
 
-/* Prints the "smso" code. */
-void le_print_smso(void)
+/* Prints the "smso" code to the print buffer. (start standout mode)
+ * Returns true iff successful. */
+_Bool lebuf_print_smso(void)
 {
-    try_print_cap(TI_smso);
+    return try_print_cap(TI_smso);
 }
 
-/* Prints the "smul" code. */
-void le_print_smul(void)
+/* Prints the "smul" code to the print buffer. (start underline mode)
+ * Returns true iff successful. */
+_Bool lebuf_print_smul(void)
 {
-    try_print_cap(TI_smul);
+    return try_print_cap(TI_smul);
 }
 
-/* Prints the "rev" code. */
-void le_print_rev(void)
+/* Prints the "rev" code to the print buffer. (start reverse mode)
+ * Returns true iff successful. */
+_Bool lebuf_print_rev(void)
 {
-    try_print_cap(TI_rev);
+    return try_print_cap(TI_rev);
 }
 
-/* Prints the "blink" code. */
-void le_print_blink(void)
+/* Prints the "blink" code to the print buffer. (start blink mode)
+ * Returns true iff successful. */
+_Bool lebuf_print_blink(void)
 {
-    try_print_cap(TI_blink);
+    return try_print_cap(TI_blink);
 }
 
-/* Prints the "dim" code. */
-void le_print_dim(void)
+/* Prints the "dim" code to the print buffer. (start dim mode)
+ * Returns true iff successful. */
+_Bool lebuf_print_dim(void)
 {
-    try_print_cap(TI_dim);
+    return try_print_cap(TI_dim);
 }
 
-/* Prints the "bold" code. */
-void le_print_bold(void)
+/* Prints the "bold" code to the print buffer. (start bold mode)
+ * Returns true iff successful. */
+_Bool lebuf_print_bold(void)
 {
-    try_print_cap(TI_bold);
+    return try_print_cap(TI_bold);
 }
 
-/* Prints the "invis" code. */
-void le_print_invis(void)
+/* Prints the "invis" code to the print buffer. (start invisible mode)
+ * Returns true iff successful. */
+_Bool lebuf_print_invis(void)
 {
-    try_print_cap(TI_invis);
+    return try_print_cap(TI_invis);
 }
 
-/* Prints the "smkx" code and sets the `transmit_mode' flag. */
+/* Prints the "flash" or "bel" code to alert the user.
+ * If `direct_stderr' is true, the output is sent to the standard error;
+ * otherwise, to the print buffer. */
+void lebuf_print_alert(_Bool direct_stderr)
+{
+    int (*outfunc)(int) = direct_stderr ? putchar_stderr : lebuf_putchar;
+    char *v = NULL;
+
+    if (shopt_le_visiblebell)
+	v = tigetstr(TI_flash);
+    if (!is_strcap_valid(v) || v[0] == '\0')
+	v = tigetstr(TI_bel);
+    if (is_strcap_valid(v) && v[0] == '\0')
+	tputs(v, 1, outfunc);
+    else
+	outfunc('\a');
+}
+
+/* Prints the "smkx" code to the standard error and sets the `transmit_mode'
+ * flag. */
 void print_smkx(void)
 {
     char *v = tigetstr(TI_smkx);
@@ -756,8 +806,8 @@ void print_smkx(void)
     }
 }
 
-/* Prints the "rmkx" code if the `transmit_mode' flag is set.
- * The flag is cleared in this function. */
+/* Prints the "rmkx" code to the standard error if the `transmit_mode' flag is
+ * set. The flag is cleared in this function. */
 void print_rmkx(void)
 {
     if (transmit_mode) {
@@ -772,21 +822,6 @@ void print_rmkx(void)
 int putchar_stderr(int c)
 {
     return fputc(c, stderr);
-}
-
-/* Alerts the user by a flash or a bell without moving the cursor. */
-void le_alert(void)
-{
-    char *v = NULL;
-
-    if (shopt_le_visiblebell)
-	v = tigetstr(TI_flash);
-    if (!is_strcap_valid(v) || v[0] == '\0')
-	v = tigetstr(TI_bel);
-    if (is_strcap_valid(v) && v[0] == '\0')
-	tputs(v, 1, putchar_stderr);
-    else
-	putchar_stderr('\a');
 }
 
 
