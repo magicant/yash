@@ -20,7 +20,8 @@ Yash 2.18
   =  The interpretation of escape sequences to change the font in
      $PS1 and $PS2 has been changed.
   =  $PS3 no longer initialized.
-  =  Escape sequences are interpreted in $PS4 like in $PS1 and $PS2.
+  =  Escape sequences are now interpreted in $PS4 as well as in $PS1
+     and $PS2.
   =  The "echo" and "printf" builtins now can print a null character.
   *  [line-editing] $LINES and $COLUMNS were wrongly ignored.
   *  [line-editing] fixed font color for some terminals.

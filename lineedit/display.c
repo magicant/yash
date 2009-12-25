@@ -435,6 +435,7 @@ void le_display_update(void)
 
 	/* prepare the right prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
+	lebuf_print_sgr0();
 	lebuf_print_prompt(prompt.right);
 	if (lebuf.pos.line != 0) {  /* right prompt must be one line */
 	    sb_truncate(&lebuf.buf, 0);
@@ -447,6 +448,7 @@ void le_display_update(void)
 
 	/* prepare the styler prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
+	lebuf_print_sgr0();
 	lebuf_print_prompt(prompt.styler);
 	if (lebuf.pos.line != 0 || lebuf.pos.column != 0) {
 	    /* styler prompt must have no width */
@@ -564,7 +566,6 @@ void update_editline(void)
 void update_styler(void)
 {
     if (!styler_active) {
-	lebuf_print_sgr0();
 	sb_ncat_force(&lebuf.buf, sprompt.value, sprompt.length);
 	styler_active = true;
     }
