@@ -473,7 +473,9 @@ void print_prompt(const wchar_t *s)
 	    case L'r':   wb_wccat(&buf, L'\r');    break;
 	    case L'$':   wb_wccat(&buf, geteuid() ? L'$' : L'#');     break;
 	    case L'j':   wb_wprintf(&buf, L"%zu", job_count());       break;
+#if YASH_ENABLE_HISTORY
 	    case L'!':   wb_wprintf(&buf, L"%u",  hist_next_number);  break;
+#endif
 	    case L'[':
 	    case L']':
 		break;
@@ -487,6 +489,7 @@ void print_prompt(const wchar_t *s)
     }
 done:
     fprintf(stderr, "%ls", buf.contents);
+    fflush(stderr);
     wb_destroy(&buf);
 }
 

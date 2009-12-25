@@ -2525,6 +2525,7 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 		prompt = get_prompt(2);
 	    }
 
+#if YASH_ENABLE_LINEEDIT
 	    wchar_t *line;
 	    inputresult_T result = le_readline(prompt, &line);
 
@@ -2545,6 +2546,7 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 			assert(false);
 		}
 	    }
+#endif /* YASH_ENABLE_LINEEDIT */
 
 	    bool result2;
 	    print_prompt(prompt.main);
@@ -2558,7 +2560,9 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 	    if (!read_line_from_stdin(buf, false))
 		return false;
 	}
+#if YASH_ENABLE_LINEEDIT
 read:
+#endif
 	first = false;
 	cont = false;
 	while (index < buf->length) {
