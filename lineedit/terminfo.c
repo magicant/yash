@@ -232,6 +232,7 @@
 #define TI_smso    "smso"
 #define TI_smul    "smul"
 #define TI_xenl    "xenl"
+#define TI_xmc     "xmc"
 
 
 /* This flag is set to true when the terminfo database needs to be refreshed
@@ -241,6 +242,9 @@ _Bool le_need_term_update = 1;
 /* Number of lines, columns and colors available in the current terminal. */
 /* Initialized in `le_setupterm'. */
 int le_lines, le_columns, le_colors;
+
+/* The value of the "xmc" capability. */
+int le_ti_xmc;
 
 /* Whether the terminal has the "xenl" and "msgr" flags set. */
 _Bool le_ti_xenl, le_ti_msgr;
@@ -333,6 +337,7 @@ _Bool le_setupterm(_Bool bypass)
 	return 0;
 
     le_colors = tigetnum(TI_colors);
+    le_ti_xmc = tigetnum(TI_xmc);
     le_ti_xenl = tigetflag(TI_xenl) > 0;
     le_ti_msgr = tigetflag(TI_msgr) > 0;
     le_meta_bit8 = tigetflag(TI_km) > 0;
@@ -732,7 +737,17 @@ _Bool lebuf_print_sgr0(void)
  * Returns true iff successful. */
 _Bool lebuf_print_smso(void)
 {
-    return try_print_cap(TI_smso);
+    if (try_print_cap(TI_smso)) {
+	if (le_ti_xmc > 0) {
+	    lebuf.pos.column += le_ti_xmc;
+	    while (le_ti_xenl ? lebuf.pos.column >  le_columns
+	                      : lebuf.pos.column >= le_columns)
+		lebuf.pos.column -= le_columns, lebuf.pos.line++;
+	}
+	return 1;
+    } else {
+	return 0;
+    }
 }
 
 /* Prints the "smul" code to the print buffer. (start underline mode)
