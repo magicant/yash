@@ -49,6 +49,9 @@ extern void le_display_clear(void);
 extern void le_display_flush(void);
 extern void le_display_update(void);
 
+extern _Bool le_try_print_prompt(const wchar_t *s)
+    __attribute__((nonnull));
+
 
 #endif /* YASH_DISPLAY_H */
 

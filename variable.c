@@ -2518,9 +2518,9 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 
 	    struct promptset_T prompt;
 	    if (first) {
-		prompt.main  = xwcsdup(L"");
-		prompt.right = xwcsdup(L"");
-		prompt.after = xwcsdup(L"");
+		prompt.main   = xwcsdup(L"");
+		prompt.right  = xwcsdup(L"");
+		prompt.styler = xwcsdup(L"");
 	    } else {
 		prompt = get_prompt(2);
 	    }
@@ -2529,9 +2529,7 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 	    inputresult_T result = le_readline(prompt, &line);
 
 	    if (result != INPUT_ERROR) {
-		free(prompt.main);
-		free(prompt.right);
-		free(prompt.after);
+		free_prompt(prompt);
 		switch (result) {
 		    case INPUT_OK:
 			/* ignore lines after the first one */
@@ -2550,11 +2548,10 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 
 	    bool result2;
 	    print_prompt(prompt.main);
+	    print_prompt(prompt.styler);
 	    result2 = read_line_from_stdin(buf, false);
-	    print_prompt(prompt.after);
-	    free(prompt.main);
-	    free(prompt.right);
-	    free(prompt.after);
+	    print_prompt(PROMPT_RESET);
+	    free_prompt(prompt);
 	    if (!result2)
 		return false;
 	} else {

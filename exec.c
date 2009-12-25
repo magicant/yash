@@ -1142,6 +1142,7 @@ void print_xtrace(void *const *argv)
 
 	struct promptset_T prompt = get_prompt(4);
 	print_prompt(prompt.main);
+	print_prompt(prompt.styler);
 
 	if (tracevars) {
 	    fprintf(stderr, "%ls", xtrace_buffer.contents + 1);
@@ -1157,10 +1158,8 @@ void print_xtrace(void *const *argv)
 	}
 	fputc('\n', stderr);
 
-	print_prompt(prompt.after);
-	free(prompt.main);
-	free(prompt.right);
-	free(prompt.after);
+	print_prompt(PROMPT_RESET);
+	free_prompt(prompt);
     }
     if (xtrace_buffer.contents) {
 	wb_destroy(&xtrace_buffer);

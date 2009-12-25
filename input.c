@@ -45,6 +45,7 @@
 #include "util.h"
 #include "variable.h"
 #include "yash.h"
+#include "lineedit/display.h"
 #include "lineedit/lineedit.h"
 
 
@@ -247,6 +248,7 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	print_job_status_all();
     if (info->type == 1)
 	check_mail();
+    restore_parse_state(state);
     /* Note: no commands must be executed between `print_job_status_all' here
      * and `le_readline', or the "notifyle" option won't work. More precisely,
      * `handle_sigchld' must not be called from any other function until it is
@@ -261,10 +263,7 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 	unset_nonblocking(STDIN_FILENO);
 	result = le_readline(prompt, &line);
 	if (result != INPUT_ERROR) {
-	    restore_parse_state(state);
-	    free(prompt.main);
-	    free(prompt.right);
-	    free(prompt.after);
+	    free_prompt(prompt);
 	    if (result == INPUT_OK) {
 		if (info->type == 1)
 		    info->type = 2;
@@ -280,9 +279,9 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 
     /* read a line without line editing */
     print_prompt(prompt.main);
+    print_prompt(prompt.styler);
     if (info->type == 1)
 	info->type = 2;
-    restore_parse_state(state);
 
     int result;
 #if YASH_ENABLE_HISTORY
@@ -293,10 +292,8 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
     else
 	result = input_file(buf, info->fp);
 
-    print_prompt(prompt.after);
-    free(prompt.main);
-    free(prompt.right);
-    free(prompt.after);
+    print_prompt(PROMPT_RESET);
+    free_prompt(prompt);
 
 #if YASH_ENABLE_HISTORY
     if (info->type == 2)
@@ -329,75 +326,6 @@ wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
 
 #endif /* YASH_ENABLE_LINEEDIT */
 
-/* Prints the specified prompt string to the standard error.
- *
- * Escape sequences are handled:
- *   \a    a bell character: L'\a' (L'\07')
- *   \e    an escape code: L'\033'
- *   \j    the number of jobs
- *   \n    newline: L'\n'
- *   \r    carriage return: L'\r'
- *   \!    next history number
- *   \$    L'#' if the effective uid is 0, L'$' otherwise
- *   \\    a backslash
- *
- * In line-editing, the followings are also available:
- *   \fX   change color
- *   \[    start of substring not to be counted as printable characters
- *   \]    end of substring not to be counted as printable characters
- * "X" in "\fX" is any number of flags from the following:
- *   (foreground color)
- *     k (black)    r (red)        g (green)    y (yellow)
- *     b (blue)     m (magenta)    c (cyan)     w (white)
- *   (background color)
- *     K R G Y B M C W
- *   t (brighter color: used just after a color flag above)
- *   d (default foreground/background color)
- *   D (default foreground/background color and style)
- *   s (standout)
- *   u (underline)
- *   v (reverse)
- *   n (blink)
- *   i (dim)
- *   o (bold)
- *   x (invisible)
- *   . (end: omittable)
- * These are ignored in this function. */
-void print_prompt(const wchar_t *s)
-{
-    xwcsbuf_T buf;
-
-    wb_init(&buf);
-    while (*s != L'\0') {
-	if (*s != L'\\') {
-	    wb_wccat(&buf, *s);
-	} else switch (*++s) {
-	    default:     wb_wccat(&buf, *s);       break;
-	    case L'\0':  wb_wccat(&buf, L'\\');    goto done;
-//	    case L'\\':  wb_wccat(&buf, L'\\');    break;
-	    case L'a':   wb_wccat(&buf, L'\a');    break;
-	    case L'e':   wb_wccat(&buf, L'\033');  break;
-	    case L'n':   wb_wccat(&buf, L'\n');    break;
-	    case L'r':   wb_wccat(&buf, L'\r');    break;
-	    case L'$':   wb_wccat(&buf, geteuid() ? L'$' : L'#');     break;
-	    case L'j':   wb_wprintf(&buf, L"%zu", job_count());       break;
-	    case L'!':   wb_wprintf(&buf, L"%u",  hist_next_number);  break;
-	    case L'[':
-	    case L']':
-		break;
-	    case L'f':
-		while (iswalnum(*++s));
-		if (*s == L'.')
-		    s++;
-		continue;
-	}
-	s++;
-    }
-done:
-    fprintf(stderr, "%ls", buf.contents);
-    wb_destroy(&buf);
-}
-
 /* Returns the prompt string, possibly containing backslash escapes.
  * `type' must be 1, 2 or 4.
  * This function never fails: A newly malloced string is always returned.
@@ -428,8 +356,8 @@ struct promptset_T get_prompt(int type)
 	else
 	    result.main = escapefree(prompt, L"\\");
 
-	result.right = xwcsdup(L"");
-	result.after = xwcsdup(L"");
+	result.right  = xwcsdup(L"");
+	result.styler = xwcsdup(L"");
     } else {
 	result.main = prompt;
 
@@ -442,14 +370,14 @@ struct promptset_T get_prompt(int type)
 	    prompt = xwcsdup(L"");
 	result.right = prompt;
 
-	name[3] = L'A';
+	name[3] = L'S';
 	ps = getvar(name);
 	if (ps == NULL)
 	    ps = L"";
 	prompt = parse_and_expand_string(ps, gt("prompt"), false);
 	if (prompt == NULL)
 	    prompt = xwcsdup(L"");
-	result.after = prompt;
+	result.styler = prompt;
     }
 
     return result;
@@ -484,6 +412,82 @@ wchar_t *expand_ps1_posix(wchar_t *s)
 
     free(saves);
     return wb_towcs(&buf);
+}
+
+/* Prints the specified prompt string to the standard error.
+ * If the argument is NULL, the "sgr0" terminfo capability is printed, which
+ * resets the terminal's font style.
+ *
+ * Escape sequences are handled:
+ *   \a    a bell character: L'\a' (L'\07')
+ *   \e    an escape code: L'\033'
+ *   \j    the number of jobs
+ *   \n    newline: L'\n'
+ *   \r    carriage return: L'\r'
+ *   \!    next history number
+ *   \$    L'#' if the effective uid is 0, L'$' otherwise
+ *   \\    a backslash
+ *
+ * If line-editing is enabled, the followings are also available:
+ *   \fX   change color
+ *   \[    start of substring not to be counted as printable characters
+ *   \]    end of substring not to be counted as printable characters
+ * "X" in "\fX" is any number of flags from the following:
+ *   (foreground color)
+ *     k (black)    r (red)        g (green)    y (yellow)
+ *     b (blue)     m (magenta)    c (cyan)     w (white)
+ *   (background color)
+ *     K R G Y B M C W
+ *   t (brighter color: used just after a color flag above)
+ *   d (default foreground/background color)
+ *   D (default foreground/background color and style)
+ *   s (standout)
+ *   u (underline)
+ *   v (reverse)
+ *   n (blink)
+ *   i (dim)
+ *   o (bold)
+ *   x (invisible)
+ *   . (end: omittable)
+ * These are ignored in this function. */
+void print_prompt(const wchar_t *s)
+{
+#if YASH_ENABLE_LINEEDIT
+    if (le_try_print_prompt(s))
+	return;
+#endif
+
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    while (*s != L'\0') {
+	if (*s != L'\\') {
+	    wb_wccat(&buf, *s);
+	} else switch (*++s) {
+	    default:     wb_wccat(&buf, *s);       break;
+	    case L'\0':  wb_wccat(&buf, L'\\');    goto done;
+//	    case L'\\':  wb_wccat(&buf, L'\\');    break;
+	    case L'a':   wb_wccat(&buf, L'\a');    break;
+	    case L'e':   wb_wccat(&buf, L'\033');  break;
+	    case L'n':   wb_wccat(&buf, L'\n');    break;
+	    case L'r':   wb_wccat(&buf, L'\r');    break;
+	    case L'$':   wb_wccat(&buf, geteuid() ? L'$' : L'#');     break;
+	    case L'j':   wb_wprintf(&buf, L"%zu", job_count());       break;
+	    case L'!':   wb_wprintf(&buf, L"%u",  hist_next_number);  break;
+	    case L'[':
+	    case L']':
+		break;
+	    case L'f':
+		while (iswalnum(*++s));
+		if (*s == L'.')
+		    s++;
+		continue;
+	}
+	s++;
+    }
+done:
+    fprintf(stderr, "%ls", buf.contents);
+    wb_destroy(&buf);
 }
 
 /* Sets O_NONBLOCK flag of the specified file descriptor.

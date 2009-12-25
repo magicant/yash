@@ -260,6 +260,7 @@ static void clear_to_end_of_screen(void);
 static void clear_editline(void);
 static void maybe_print_promptsp(void);
 static void update_editline(void);
+static void update_styler(void);
 static void update_right_prompt(void);
 static void print_search(void);
 static void go_to(le_pos_T p);
@@ -268,8 +269,8 @@ static void fillip_cursor(void);
 
 
 /* True when the prompt is displayed on the screen. */
-/* The print buffer, `current_editline', `cursor_positions', and `rprompt' are
- * valid iff `display_active' is true. */
+/* The print buffer, `rprompt', and `sprompt' are valid iff `display_active' is
+ * true. */
 static bool display_active = false;
 /* The current cursor position. */
 static le_pos_T currentp;
@@ -291,6 +292,9 @@ static wchar_t *current_editline = NULL;
 static int *cursor_positions = NULL;
 /* The line number of the last edit line (or the search buffer). */
 static int last_edit_line;
+/* True when the terminal's current font setting is the one set by the styler
+ * prompt. */
+static bool styler_active;
 
 /* The line on which the right prompt is displayed.
  * The value is -1 when the right prompt is not displayed. */
@@ -300,9 +304,12 @@ static struct {
     char *value;
     size_t length;  /* number of bytes in `value' */
     int width;      /* width of right prompt on screen */
-} rprompt = {
-    .value = NULL
-};
+} rprompt;
+
+static struct {
+    char *value;
+    size_t length;  /* number of bytes in `value' */
+} sprompt;
 
 
 /* Initializes the display module.
@@ -323,11 +330,11 @@ void le_display_finalize(void)
     le_main_index = le_main_buffer.length;
     le_display_update();
 
+    lebuf_print_sgr0();
     if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
 	lebuf_print_nel();
     while (lebuf.pos.line <= rprompt_line)
 	lebuf_print_nel();
-    lebuf_print_prompt(prompt.after);
 
     clean_up();
 }
@@ -337,6 +344,7 @@ void le_display_clear(void)
 {
     if (display_active) {
 	lebuf_init(currentp);
+	lebuf_print_sgr0();
 	go_to((le_pos_T) { 0, 0 });
 	clean_up();
     }
@@ -350,7 +358,8 @@ void clean_up(void)
 
     free(current_editline), current_editline = NULL;
     free(cursor_positions), cursor_positions = NULL;
-    free(rprompt.value),    rprompt.value = NULL;
+    free(rprompt.value);
+    free(sprompt.value);
 
     le_display_flush();
     display_active = false;
@@ -371,6 +380,9 @@ void le_display_flush(void)
 void clear_to_end_of_screen(void)
 {
     assert(lebuf.pos.column == 0);
+    if (!le_ti_msgr)
+	lebuf_print_sgr0(), styler_active = false;
+
     if (lebuf_print_ed()) /* if the terminal has "ed" capability, just use it */
 	return;
 
@@ -397,16 +409,17 @@ void clear_editline(void)
 		&& lebuf.pos.column >= editbasep.column));
     assert(lebuf.pos.line <= last_edit_line);
 
-    rprompt_line = -1;
-
     le_pos_T save_pos = lebuf.pos;
 
+    if (!le_ti_msgr)
+	lebuf_print_sgr0(), styler_active = false;
     for (;;) {
 	lebuf_print_el();
 	if (lebuf.pos.line >= last_edit_line)
 	    break;
 	lebuf_print_nel();
     }
+    rprompt_line = -1;
 
     go_to(save_pos);
 }
@@ -419,7 +432,6 @@ void le_display_update(void)
     if (!display_active) {
 	display_active = true;
 	last_edit_line = line_max = 0;
-	rprompt_line = -1;
 
 	/* prepare the right prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
@@ -431,14 +443,25 @@ void le_display_update(void)
 	rprompt.value = lebuf.buf.contents;
 	rprompt.length = lebuf.buf.length;
 	rprompt.width = lebuf.pos.column;
+	rprompt_line = -1;
+
+	/* prepare the styler prompt */
+	lebuf_init((le_pos_T) { 0, 0 });
+	lebuf_print_prompt(prompt.styler);
+	if (lebuf.pos.line != 0 || lebuf.pos.column != 0) {
+	    /* styler prompt must have no width */
+	    sb_truncate(&lebuf.buf, 0);
+	    /* lebuf.pos.line = lebuf.pos.column = 0; */
+	}
+	sprompt.value = lebuf.buf.contents;
+	sprompt.length = lebuf.buf.length;
+	styler_active = false;
 
 	/* print main prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
 	maybe_print_promptsp();
 	lebuf_print_prompt(prompt.main);
 	editbasep = lebuf.pos;
-	if (!le_ti_msgr)
-	    lebuf_print_sgr0();
     } else {
 	lebuf_init(currentp);
     }
@@ -454,8 +477,6 @@ void le_display_update(void)
 
     /* print right prompt */
     update_right_prompt();
-    if (!le_ti_msgr)
-	lebuf_print_sgr0();
 
     // TODO: print info area
 
@@ -510,6 +531,8 @@ void update_editline(void)
 	clear_editline();
     }
 
+    update_styler();
+
     current_editline = xrealloc(current_editline,
 	    sizeof *current_editline * (le_main_buffer.length + 1));
     cursor_positions = xrealloc(cursor_positions,
@@ -537,6 +560,16 @@ void update_editline(void)
     }
 }
 
+/* If the styler prompt is inactive, prints it. */
+void update_styler(void)
+{
+    if (!styler_active) {
+	lebuf_print_sgr0();
+	sb_ncat_force(&lebuf.buf, sprompt.value, sprompt.length);
+	styler_active = true;
+    }
+}
+
 /* Prints the right prompt if there is enough room in the edit line.
  * The edit line must have been printed when this function is called. */
 void update_right_prompt(void)
@@ -550,11 +583,11 @@ void update_right_prompt(void)
 	return;
 
     go_to_index(le_main_buffer.length);
-    lebuf_print_el();
     lebuf_print_cuf(le_columns - rprompt.width - lebuf.pos.column - 1);
     sb_ncat_force(&lebuf.buf, rprompt.value, rprompt.length);
     lebuf.pos.column += rprompt.width;
     rprompt_line = lebuf.pos.line;
+    styler_active = false;
 }
 
 /* Prints the current search result and the search line.
@@ -571,11 +604,16 @@ void print_search(void)
     go_to(editbasep);
     clear_editline();
 
+    update_styler();
+
     if (le_search_result != Histlist)
 	lebuf_wprintf(true, L"%s", le_search_result->value);
-    if (lebuf.pos.column > 0)
-	lebuf_print_nel();
+    if (!le_ti_msgr)
+	lebuf_print_sgr0(), styler_active = false;
+    lebuf_print_nel();
     clear_to_end_of_screen();
+
+    update_styler();
 
     const char *text;
     switch (le_search_type) {
@@ -612,13 +650,19 @@ void go_to(le_pos_T p)
     assert(p.column < le_columns);
 
     if (p.line == lebuf.pos.line) {
+	if (lebuf.pos.column == p.column)
+	    return;
+	if (!le_ti_msgr)
+	    lebuf_print_sgr0(), styler_active = false;
 	if (lebuf.pos.column < p.column)
 	    lebuf_print_cuf(p.column - lebuf.pos.column);
-	else if (lebuf.pos.column > p.column)
+	else
 	    lebuf_print_cub(lebuf.pos.column - p.column);
 	return;
     }
 
+    if (!le_ti_msgr)
+	lebuf_print_sgr0(), styler_active = false;
     lebuf_print_cr();
     if (lebuf.pos.line < p.line)
 	lebuf_print_cud(p.line - lebuf.pos.line);
@@ -644,6 +688,23 @@ void fillip_cursor(void)
 	lebuf_putwchar(L' ',  false);
 	lebuf_putwchar(L'\r', false);
 	lebuf_print_el();
+    }
+}
+
+
+/********** Utility **********/
+
+/* If the standard error is a terminal, prints the specified prompt to the
+ * terminal and returns true. */
+bool le_try_print_prompt(const wchar_t *s)
+{
+    if (isatty(STDERR_FILENO) && le_setupterm(true)) {
+	lebuf_init((le_pos_T) { 0, 0 });
+	lebuf_print_prompt(s);
+	le_display_flush();
+	return true;
+    } else {
+	return false;
     }
 }
 

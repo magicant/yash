@@ -20,14 +20,18 @@
 #define YASH_INPUT_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <wchar.h>
 
 
 struct promptset_T {
-    wchar_t *main, *right, *after;
+    wchar_t *main, *right, *styler;
 };
 
+#define PROMPT_RESET L"\\fD"
+
 extern struct promptset_T get_prompt(int type);
+static inline void free_prompt(struct promptset_T prompt);
 extern void print_prompt(const wchar_t *s)
     __attribute__((nonnull));
 extern _Bool set_nonblocking(int fd);
@@ -37,6 +41,15 @@ struct xwcsbuf_T;
 
 extern _Bool read_line_from_stdin(struct xwcsbuf_T *buf, _Bool trap)
     __attribute__((nonnull));
+
+
+/* Frees the specified prompt set. */
+void free_prompt(struct promptset_T prompt)
+{
+    free(prompt.main);
+    free(prompt.right);
+    free(prompt.styler);
+}
 
 
 /* The result type of `inputfunc_T'. */
