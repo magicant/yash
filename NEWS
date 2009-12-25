@@ -16,9 +16,11 @@ Yash 2.18
      modification time by the nanoseconds if possible.
   +  '--default-directory' option for the "cd" and "pushd" builtin.
   +  '--remove-duplicates' option for the "pushd" builtin.
+  +  The right prompt and the styler prompt.
   =  The interpretation of escape sequences to change the font in
      $PS1 and $PS2 has been changed.
   =  $PS3 no longer initialized.
+  =  Escape sequences are interpreted in $PS4 like in $PS1 and $PS2.
   =  The "echo" and "printf" builtins now can print a null character.
   *  [line-editing] $LINES and $COLUMNS were wrongly ignored.
   *  [line-editing] fixed font color for some terminals.

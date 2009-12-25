@@ -95,7 +95,9 @@
  </dl>
  文字と背景の色は最終的に端末によって決まるため、実際にはここで指定した色と異なる色で表示されることがあります。
 </dl>
-<p><a href="posix.html">POSIX 準拠モード</a>でないときは、プロンプトを出す前に <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> 変数</a>の値が実行されます。
+<p>入力するコマンドの右側に表示されるプロンプトを指定することもできます (<dfn>右プロンプト</dfn>)。<code>PS1</code>/<code>PS2</code> 変数に対応する右プロンプトは <a href="params.html#sv-ps1r"><code>PS1R</code></a>/<a href="params.html#sv-ps2r"><code>PS2R</code></a> 変数で指定します。
+<p>また、プロンプトのフォントだけでなく、入力するコマンドのフォントを変えることもできます。<a href="params.html#sv-ps1s"><code>PS1S</code></a> (または <a href="params.html#sv-ps2s"><code>PS2S</code></a>) 変数に上述のフォントを指定するシーケンスを指定することで、コマンド入力時のコマンドのフォントが変わります。
+<p><a href="posix.html">POSIX 準拠モード</a>でないときは、プロンプトを出す前に <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> 変数</a>の値がコマンドとして実行されます。
 
 <h2 id="history">コマンド履歴</h2>
 <p><dfn>コマンド履歴</dfn>は実行したコマンドを記録し後で再び実行することのできる機能です。対話モードでシェルが読み込んだコマンドは自動的にコマンド履歴に記録されます。履歴に記録したコマンドは<a href="lineedit.html">行編集</a>で呼び出して再実行することができます。また <a href="bi/fc.html">fc</a>・<a href="bi/history.html">history</a> 組込みコマンドで履歴のコマンドを再実行したり編集したりすることもできます。
