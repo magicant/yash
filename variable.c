@@ -2526,24 +2526,26 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 	    }
 
 #if YASH_ENABLE_LINEEDIT
-	    wchar_t *line;
-	    inputresult_T result = le_readline(prompt, &line);
+	    if (shopt_lineedit != shopt_nolineedit) {
+		wchar_t *line;
+		inputresult_T result = le_readline(prompt, &line);
 
-	    if (result != INPUT_ERROR) {
-		free_prompt(prompt);
-		switch (result) {
-		    case INPUT_OK:
-			/* ignore lines after the first one */
-			wcschr(line, L'\n')[1] = L'\0';
-			wb_catfree(buf, line);
-			/* falls thru! */
-		    case INPUT_EOF:
-			goto read;
-		    case INPUT_INTERRUPTED:
-			set_interrupted();
-			return false;
-		    case INPUT_ERROR:
-			assert(false);
+		if (result != INPUT_ERROR) {
+		    free_prompt(prompt);
+		    switch (result) {
+			case INPUT_OK:
+			    /* ignore lines after the first one */
+			    wcschr(line, L'\n')[1] = L'\0';
+			    wb_catfree(buf, line);
+			    /* falls thru! */
+			case INPUT_EOF:
+			    goto read;
+			case INPUT_INTERRUPTED:
+			    set_interrupted();
+			    return false;
+			case INPUT_ERROR:
+			    assert(false);
+		    }
 		}
 	    }
 #endif /* YASH_ENABLE_LINEEDIT */
