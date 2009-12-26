@@ -584,7 +584,8 @@ void update_styler(void)
     }
 }
 
-/* Prints the right prompt if there is enough room in the edit line.
+/* Prints the right prompt if there is enough room in the edit line or if the
+ * "le-alwaysrp" option is set.
  * The edit line must have been printed when this function is called. */
 void update_right_prompt(void)
 {
@@ -593,14 +594,17 @@ void update_right_prompt(void)
     if (rprompt.width == 0)
 	return;
     int c = cursor_positions[le_main_buffer.length] % le_columns;
-    if (c > le_columns - rprompt.width - 2)
+    bool has_enough_room = (c <= le_columns - rprompt.width - 2);
+    if (!has_enough_room && !shopt_le_alwaysrp)
 	return;
 
     go_to_index(le_main_buffer.length);
+    if (!has_enough_room)
+	lebuf_print_nel();
     lebuf_print_cuf(le_columns - rprompt.width - lebuf.pos.column - 1);
     sb_ncat_force(&lebuf.buf, rprompt.value, rprompt.length);
     lebuf.pos.column += rprompt.width;
-    rprompt_line = lebuf.pos.line;
+    last_edit_line = rprompt_line = lebuf.pos.line;
     styler_active = false;
 }
 
@@ -702,6 +706,8 @@ void fillip_cursor(void)
 	lebuf_putwchar(L' ',  false);
 	lebuf_putwchar(L'\r', false);
 	lebuf_print_el();
+	if (rprompt_line == lebuf.pos.line)
+	    rprompt_line = -1;
     }
 }
 

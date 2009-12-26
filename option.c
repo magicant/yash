@@ -150,6 +150,8 @@ bool shopt_le_visiblebell = false;
 /* If set, a special character sequence is printed when starting line-editing
  * to make sure the prompt starts at the beginning of line. */
 bool shopt_le_promptsp = true;
+/* If set, the right prompt is always visible on the screen. */
+bool shopt_le_alwaysrp;
 #endif
 
 
@@ -169,7 +171,7 @@ typedef enum shopt_index_T {
 #if YASH_ENABLE_LINEEDIT
     SHOPT_VI, SHOPT_EMACS,
     SHOPT_LE_CONVMETA, SHOPT_LE_NOCONVMETA,
-    SHOPT_LE_VISIBLEBELL, SHOPT_LE_PROMPTSP,
+    SHOPT_LE_VISIBLEBELL, SHOPT_LE_PROMPTSP, SHOPT_LE_ALWAYSRP,
 #endif
 #if YASH_ENABLE_HELP
     SHOPT_HELP,
@@ -222,6 +224,7 @@ static const struct xoption long_options[] = {
     [SHOPT_LE_NOCONVMETA]  = { L"le-noconvmeta",  xno_argument, L'L', },
     [SHOPT_LE_VISIBLEBELL] = { L"le-visiblebell", xno_argument, L'L', },
     [SHOPT_LE_PROMPTSP]    = { L"le-promptsp",    xno_argument, L'L', },
+    [SHOPT_LE_ALWAYSRP]    = { L"le-alwaysrp",    xno_argument, L'L', },
 #endif
 #if YASH_ENABLE_HELP
     [SHOPT_HELP]           = { L"help",         xno_argument, L'-', },
@@ -264,6 +267,7 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_LE_NOCONVMETA]  = { set_le_noconvmeta_option, NULL, },
     [SHOPT_LE_VISIBLEBELL] = { set_bool_option, &shopt_le_visiblebell, },
     [SHOPT_LE_PROMPTSP]    = { set_bool_option, &shopt_le_promptsp, },
+    [SHOPT_LE_ALWAYSRP]    = { set_bool_option, &shopt_le_alwaysrp, },
 #endif
 #if YASH_ENABLE_HELP
     //[SHOPT_HELP]
@@ -522,6 +526,7 @@ int set_builtin_print_current_settings(void)
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
+    PRINTSETTING(le-alwaysrp, shopt_le_alwaysrp);
     PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
     PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
     PRINTSETTING(le-promptsp, shopt_le_promptsp);
@@ -579,6 +584,7 @@ int set_builtin_print_restoring_commands(void)
     PRINTSETTING(ignoreeof, shopt_ignoreeof);
     //PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
+    PRINTSETTING(le-alwaysrp, shopt_le_alwaysrp);
     PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
     PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
     PRINTSETTING(le-promptsp, shopt_le_promptsp);
@@ -705,6 +711,9 @@ const char set_help[] = Ngt(
 " --le-promptsp\n"
 "\tMove cursor to beginning of line each time when starting\n"
 "\tline-editing. (enabled by default)\n"
+" --le-alwaysrp\n"
+"\tMake the right prompt always visible on the screen.\n"
+"\n"
 "To disable options, put '+' before the option characters instead of '-'.\n"
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
 "Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"
