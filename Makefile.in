@@ -161,7 +161,7 @@ maintainer-clean:
 	-@cd doc      && $(MAKE) maintainer-clean
 
 reconfigure:
-	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q \
+	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q; \
 	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
 	{ echo Cannot read \"config.log\". Try usual \"./configure\" >&2; false; }
 
