@@ -17,6 +17,7 @@ Yash 2.18
   +  '--default-directory' option for the "cd" and "pushd" builtin.
   +  '--remove-duplicates' option for the "pushd" builtin.
   +  The right prompt and the styler prompt.
+  +  '--le-alwaysrp' option.
   =  The interpretation of escape sequences to change the font in
      $PS1 and $PS2 has been changed.
   =  $PS3 no longer initialized.
