@@ -738,12 +738,8 @@ _Bool lebuf_print_sgr0(void)
 _Bool lebuf_print_smso(void)
 {
     if (try_print_cap(TI_smso)) {
-	if (le_ti_xmc > 0) {
-	    lebuf.pos.column += le_ti_xmc;
-	    while (le_ti_xenl ? lebuf.pos.column >  le_columns
-	                      : lebuf.pos.column >= le_columns)
-		lebuf.pos.column -= le_columns, lebuf.pos.line++;
-	}
+	if (le_ti_xmc > 0)
+	    lebuf_update_position(le_ti_xmc);
 	return 1;
     } else {
 	return 0;

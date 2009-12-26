@@ -94,6 +94,23 @@ int lebuf_putchar(int c)
     return c;
 }
 
+/* Updates the position data of the print buffer as if a character with the
+ * specified width has been printed.
+ * The specified width must be no less than zero. */
+void lebuf_update_position(int width)
+{
+    assert(width >= 0);
+
+    int new_column = lebuf.pos.column + width;
+    if (new_column <= le_columns)
+	if (le_ti_xenl || new_column < le_columns)
+	    lebuf.pos.column = new_column;
+	else
+	    lebuf.pos.line++, lebuf.pos.column = 0;
+    else
+	lebuf.pos.line++, lebuf.pos.column = width;
+}
+
 /* Appends the specified wide character to the print buffer without updating the
  * position data. */
 void lebuf_putwchar_raw(wchar_t c)
@@ -111,11 +128,7 @@ void lebuf_putwchar(wchar_t c, bool convert_cntrl)
     int width = wcwidth(c);
     if (width > 0) {
 	/* printable character */
-	int new_column = lebuf.pos.column + width;
-	if (le_ti_xenl ? new_column <= le_columns : new_column < le_columns)
-	    lebuf.pos.column = new_column;
-	else
-	    lebuf.pos.line++, lebuf.pos.column = width;
+	lebuf_update_position(width);
 	lebuf_putwchar_raw(c);
     } else {
 	/* non-printable character */

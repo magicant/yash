@@ -36,6 +36,7 @@ extern struct lebuf_T {
 
 extern void lebuf_init(le_pos_T p);
 extern int lebuf_putchar(int c);
+extern void lebuf_update_position(int width);
 extern void lebuf_putwchar_raw(wchar_t c);
 extern void lebuf_putwchar(wchar_t c, _Bool convert_cntrl);
 extern void lebuf_putws(const wchar_t *s, _Bool convert_cntrl)
