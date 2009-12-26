@@ -935,8 +935,8 @@ END
 	defconfigh "YASH_ENABLE_ULIMIT"
 	builtin_objs="$builtin_objs $ulimit_objs"
     else
-	printf 'getrlimit/setrlimit unavailable: '\
-	    'the ulimit builtin is disabled\n' >&2
+	printf 'getrlimit/setrlimit unavailable: ' >&2
+	printf 'the ulimit builtin is disabled\n' >&2
 	enable_ulimit="no"
     fi
 fi
