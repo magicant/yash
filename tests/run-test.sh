@@ -1,4 +1,4 @@
-# run-test.sh: tests $TESTEE for the tests specified by the arguments
+# run-test.sh: runs tests specified by $TESTEE and $TEST_ITEMS
 # (C) 2007-2009 magicant
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,19 +17,21 @@
 
 # make temporary directory
 : ${TMPDIR:=$PWD}
-case "${TMPDIR}" in
+case "$TMPDIR" in
     /*) ;;
     *)  echo "\$TMPDIR must be an absolute path" >&2; exit 1;;
 esac
 TESTTMP="$(cd ${TMPDIR}; pwd)/test.$$"
 trap 'rm -rf "$TESTTMP"; exit' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
-    echo "Cannot create temporary directory" >&2
+    echo Cannot create temporary directory >&2
     trap - EXIT
     exit 1
 fi
 
-: ${TESTEE:=../yash}
+echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
+echo "Any output from the tests indicates a possible malfunction"
+
 export INVOKE TESTEE TESTTMP
 export LC_MESSAGES=POSIX LC_CTYPE="${LC_ALL-${LC_CTYPE-${LANG}}}" LANG=POSIX
 unset ENV HISTFILE HISTSIZE MAIL MAILCHECK MAILPATH IFS LC_ALL failed
@@ -79,7 +81,8 @@ diffresult() {
 }
 
 failed=0
-for x do
+for x in $TEST_ITEMS
+do
     x="${x%.tst}"
     case "$x" in
 	*.p) INVOKE='./invoke sh' ;;
@@ -104,7 +107,13 @@ for x do
     fi
 done
 
-[ 0 -eq $failed ]  # return zero if all the tests were successful
+if [ 0 -eq $failed ]
+then
+    echo "All tests successful."
+else
+    echo "${failed} test(s) failed."
+    false
+fi
 
 
 # vim: set ts=8 sts=4 sw=4 noet tw=80:

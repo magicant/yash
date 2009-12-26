@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
-.SUFFIXES: .c .h .o .tst .TST
+.SUFFIXES: .c .h .o
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -41,32 +41,21 @@ TEST_SOURCES = alias.p.tst alias.p.out alias.y.tst alias.y.out \
 	test.y.tst test.y.out \
 	variable.p.tst variable.p.out variable.y.tst variable.y.out
 
-TEST_ITEMS = $(TEST_ITEMS_POSIX) $(TEST_ITEMS_YASH)
-TEST_ITEMS_POSIX = alias.p.tst builtin.p.tst error.p.tst expand.p.tst \
-	fnmatch.p.tst input.p.tst job.p.tst option.p.tst parser.p.tst \
-	path.p.tst redir.p.tst sig.p.tst variable.p.tst 
-TEST_ITEMS_YASH = alias.y.tst builtin.y.tst dirstack.y.tst error.y.tst \
-	expand.y.tst history.y.tst input.y.tst option.y.tst parser.y.tst \
-	path.y.tst printf.y.tst redir.y.tst sig.y.tst test.y.tst variable.y.tst
+TEST_ITEMS = *.tst  # the default test items
 
 BYPRODUCTS = invoke.o invoke resetsig.o resetsig *.dSYM
 
 test test-all: invoke resetsig
-	@echo "Any output from the tests indicates a possible malfunction"
-	@$(MAKE) -ks $(TEST_ITEMS:.tst=.TST)
+	@./resetsig $(SHELL) ./run-test.sh
 test-posix:
-	@$(MAKE) TEST_ITEMS="$(TEST_ITEMS_POSIX)" test
+	@$(MAKE) TEST_ITEMS='*.p.tst' test
 test-yash:
-	@$(MAKE) TEST_ITEMS="$(TEST_ITEMS_YASH)" test
+	@$(MAKE) TEST_ITEMS='*.y.tst' test
 
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
-
-.tst.TST:
-	./resetsig $(SHELL) ./run-test.sh $<
-$(TEST_ITEMS:.tst=.TST): invoke resetsig
 
 DISTCONTENTS = $(SOURCES) $(TEST_SOURCES) Makefile.in Makefile.deps run-test.sh
 distcontents: $(DISTCONTENTS)
