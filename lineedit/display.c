@@ -593,6 +593,8 @@ void update_right_prompt(void)
 	return;
     if (rprompt.width == 0)
 	return;
+    if (le_columns - rprompt.width - 2 < 0)
+	return;
     int c = cursor_positions[le_main_buffer.length] % le_columns;
     bool has_enough_room = (c <= le_columns - rprompt.width - 2);
     if (!has_enough_room && !shopt_le_alwaysrp)
