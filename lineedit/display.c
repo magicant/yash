@@ -565,12 +565,16 @@ void update_editline(void)
     cursor_positions[index] = lebuf.pos.line * le_columns + lebuf.pos.column;
 
     fillip_cursor();
-    last_edit_line = lebuf.pos.line;
+
+    last_edit_line =
+	(lebuf.pos.line >= rprompt_line) ? lebuf.pos.line : rprompt_line;
 
     /* clear the right prompt if the edit line reaches it. */
     if (rprompt_line == lebuf.pos.line
 	    && lebuf.pos.column > le_columns - rprompt.width - 2) {
 	lebuf_print_el();
+	rprompt_line = -1;
+    } else if (rprompt_line < lebuf.pos.line) {
 	rprompt_line = -1;
     }
 }
