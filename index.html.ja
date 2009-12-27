@@ -11,11 +11,6 @@
 <link rel="stylesheet" type="text/css" href="/defaultstyle.css">
 <link rel="stylesheet" type="text/css" href="/simple.css" title="Simple">
 <title>Yash: yet another shell - POSIX コマンドライン端末用シェル</title>
-<style type="text/css">
-#sfbanner {
-	border: none;
-}
-</style>
 </head>
 
 <body>
@@ -45,11 +40,15 @@ SourceForge.jp のプロジェクトの一つとして開発されています�
 
 <h2 id="progress">開発の進捗状況</h2>
 <p>すでに POSIX 準拠シェルとして最低限必要な機能は揃っており、一般的なシェルスクリプトを問題なく実行できます。現在、対話モードにおけるコマンドラインの編集・補完機能を実装中です。</p>
-<p>まだ取扱説明書はありません。</p>
 
 <h2 id="downloads">ダウンロード</h2>
-<p>プログラムは現在ソースコードのみ公開しています。
-<a href="http://sourceforge.jp/projects/yash/releases/">リリースページ</a>からダウンロードしてください。プログラムを実行したい人は各自ビルドしてください。
+<script type="text/javascript">
+var sfjp_widget_width = '300px'
+var sfjp_widget_customcss = true
+</script>
+<script src="http://sourceforge.jp/projects/yash/releases/compact.js" type="text/javascript" charset="utf-8"></script>
+<p>プログラムは現在ソースコードのみ公開しており、<a href="http://sourceforge.jp/projects/yash/releases/">リリースページ</a>からダウンロード可能です。プログラムを実行したい人は各自ビルドしてください。
+<p><a href="doc/ja/">マニュアル</a>はオンラインでも参照できます。
 <!--p>yash の旧いバージョンが欲しいという酔狂な人は<a href="http://homepage2.nifty.com/magicant/author.html"
 >作者</a>にメール等で連絡してください。</p-->
 
@@ -61,7 +60,7 @@ SourceForge.jp のプロジェクトの一つとして開発されています�
 
 <address id="about_this_document">
 © 2007-2009 <a href="http://homepage2.nifty.com/magicant/author.html"
->Magicant</a> / 最終更新 2009-05-14
+>Magicant</a> / 最終更新 2009-12-27
 </address>
 
 </body>

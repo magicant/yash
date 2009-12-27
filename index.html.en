@@ -12,9 +12,6 @@
 <link rel="stylesheet" type="text/css" href="/simple.css" title="Simple">
 <title>Yash: yet another shell - a POSIX command line shell</title>
 <style type="text/css">
-#sfbanner {
-	border: none;
-}
 .surname {
 	font-variant: small-caps;
 }
@@ -50,14 +47,14 @@ options.
 <p>Most of the basic functions required by POSIX have already been implemented,
 so that yash is now capable of running common shell scripts.
 Line-editing and command completion are currently under development.
-<p>The manual for yash is not yet available.
+<p>The manual for yash is not yet available in English.
 
 <h2 id="downloads">Downloads</h2>
 <p>The source tarball can be downloaded from the
 <a href="http://sourceforge.jp/projects/yash/releases/">release page</a>.
 
 <address id="about_this_document">
-© 2009 magicant / Last modified: 2009-05-14
+© 2009 magicant / Last modified: 2009-10-18
 </address>
 
 </body>

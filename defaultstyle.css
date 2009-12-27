@@ -3,6 +3,9 @@
 /* default.css 0.2.16 (2008-05-09) */
 /* © 2006-2007 Magicant */
 
+/* Modified for sourceforge.jp 2009-12-27 */
+/* © 2009 Magicant */
+
 
 * {
 	margin: 0;
@@ -192,4 +195,34 @@ a:link, a:visited {
 .radio-button-list, .checkbox-list {
 	list-style-type: none;
 	padding: 0;
+}
+
+
+#sfbanner {
+	border: none;
+}
+
+.sfjp-widget-frame {
+	width: 20em;
+	border: solid 2px;
+}
+.sfjp-widget-frame .sfjp-widget-frs-title-custom,
+.sfjp-widget-frame [className=sfjp-widget-frs-title-custom] {
+	font-weight: bold;
+}
+.sfjp-widget-frame .feedicon-custom:before {
+	height: 14px;
+	width:  14px;
+	display: inline;
+	content: url(//static.sourceforge.jp/ic/feed-14x14.png);
+	border: none;
+}
+.sfjp-widget-frame .feedicon-custom {
+	font-weight: normal;
+}
+.sfjp-widget-frame td {
+	border: none;
+}
+.sfjp-widget-frame .logo-custom, .sfjp-widget-frame [className=logo-custom] {
+	display: none;
 }
