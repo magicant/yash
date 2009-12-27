@@ -29,7 +29,7 @@ dirs=". builtins doc lineedit tests"
 
 target="yash"
 package="yash"
-version="2.17"
+version="2.18"
 copyrightyear="2007-2009"
 
 # object files to be linked as `yash'

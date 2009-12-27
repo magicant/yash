@@ -161,9 +161,12 @@ maintainer-clean:
 	-@cd doc      && $(MAKE) maintainer-clean
 
 reconfigure:
-	@{ line=$$(sed -n -e '/# Invocation command line was:/ { n;s/% //;p;q; \
-	}' config.log) && { echo "$$line"; eval "$$line"; }; } || \
-	{ echo Cannot read \"config.log\". Try usual \"./configure\" >&2; false; }
+	@script=$$(echo '/# Invocation command line was:/ {'; \
+	echo 'n'; echo 's/^% //'; echo 'p'; echo 'q'; echo '}'); \
+	if line=$$(sed -n "$$script" config.log); \
+	then echo "$$line"; eval exec "$$line"; \
+	else echo 'Cannot reconfigure.' >&2; false; \
+	fi
 
 .PHONY: all depends test check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
