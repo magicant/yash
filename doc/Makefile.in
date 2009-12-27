@@ -59,9 +59,9 @@ copy-distcontents: $(DISTCONTENTS)
 	@while read -r f; do ln $$f $(DISTTARGETDIR)/$$f; done <filelist
 
 distclean:
-	rm -fr Makefile
+	-rm -fr Makefile
 maintainer-clean: distclean
-	rm -fr Makefile.deps
+	-rm -fr Makefile.deps
 
 .PHONY: all install installdirs uninstall distcontents copy-distcontents distclean maintainer-clean
 

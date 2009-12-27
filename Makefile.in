@@ -38,16 +38,16 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 builtins/@BUILTINS_ARCHIVE@: _PHONY
-	@cd builtins && $(MAKE)
+	@+cd builtins && $(MAKE)
 lineedit/@LINEEDIT_ARCHIVE@: _PHONY
-	@cd lineedit && $(MAKE)
+	@+cd lineedit && $(MAKE)
 signum.h: mksignum
 	./mksignum > $@
 sig.o: signum.h
 
 depends: Makefile.deps
 Makefile.deps: _PHONY
-	@$(MAKE) $(TARGET)
+	@+$(MAKE) $(TARGET)
 	./$(TARGET) makedepend.sh $(DIRS)
 	@for d in $(DIRS); do \
 		echo Remaking $$d/Makefile; \
@@ -59,25 +59,25 @@ Makefile.deps: _PHONY
 	done
 
 test check: all
-	@cd tests && $(MAKE) test-all
+	@+cd tests && $(MAKE) test-all
 
 DESTDIR =
 BINDIR = @BINDIR@
 install: install-binary install-doc
 install-strip:
-	@$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
-	@$(MAKE) install-doc
+	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
+	@+$(MAKE) install-doc
 install-binary: $(TARGET) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
 install-doc:
-	@cd doc && $(MAKE) install
+	@+cd doc && $(MAKE) install
 installdirs: $(DESTDIR)$(BINDIR)
-	@cd doc && $(MAKE) installdirs
+	@+cd doc && $(MAKE) installdirs
 $(DESTDIR)$(BINDIR):
 	$(INSTALL_PROGRAM) -d $@
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
-	@cd doc && $(MAKE) uninstall
+	@+cd doc && $(MAKE) uninstall
 
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
@@ -88,7 +88,7 @@ distcontents: $(DISTCONTENTS)
 $(DISTDIR):
 	rm -fr $@
 	mkdir $@
-	@base=$$PWD; \
+	@+base=$$PWD; \
 	for d in $(DIRS); do \
 		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents) || \
 		exit; \
@@ -133,32 +133,32 @@ cscope.out: $(SOURCES)
 	cscope -bR
 
 mostlyclean: _mostlyclean
-	-@cd builtins && $(MAKE) mostlyclean
-	-@cd lineedit && $(MAKE) mostlyclean
+	-@+cd builtins && $(MAKE) mostlyclean
+	-@+cd lineedit && $(MAKE) mostlyclean
 _mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
-	-@cd tests && $(MAKE) clean
+	-@+cd tests && $(MAKE) clean
 clean: _clean
-	-@cd builtins && $(MAKE) clean
-	-@cd lineedit && $(MAKE) clean
+	-@+cd builtins && $(MAKE) clean
+	-@+cd lineedit && $(MAKE) clean
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean
-	-@cd builtins && $(MAKE) distclean
-	-@cd lineedit && $(MAKE) distclean
-	-@cd tests    && $(MAKE) distclean
-	-@cd doc      && $(MAKE) distclean
+	-@+cd builtins && $(MAKE) distclean
+	-@+cd lineedit && $(MAKE) distclean
+	-@+cd tests    && $(MAKE) distclean
+	-@+cd doc      && $(MAKE) distclean
 _distclean: _clean
 	-rm -rf Makefile config.cache config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
 	-rm -rf Makefile.deps
-	@$(MAKE) _distclean
-	-@cd builtins && $(MAKE) maintainer-clean
-	-@cd lineedit && $(MAKE) maintainer-clean
-	-@cd tests    && $(MAKE) maintainer-clean
-	-@cd doc      && $(MAKE) maintainer-clean
+	@+$(MAKE) _distclean
+	-@+cd builtins && $(MAKE) maintainer-clean
+	-@+cd lineedit && $(MAKE) maintainer-clean
+	-@+cd tests    && $(MAKE) maintainer-clean
+	-@+cd doc      && $(MAKE) maintainer-clean
 
 reconfigure:
 	@script=$$(echo '/# Invocation command line was:/ {'; \
