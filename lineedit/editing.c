@@ -47,6 +47,7 @@
 #include "../util.h"
 #include "../xfnmatch.h"
 #include "../yash.h"
+#include "complete.h"
 #include "display.h"
 #include "editing.h"
 #include "keymap.h"
@@ -2097,6 +2098,18 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 	last_edit_command.state.count = state.count;
     state = last_edit_command.state;
     last_edit_command.command.func(last_edit_command.command.arg);
+}
+
+
+/********** Completion Commands **********/
+
+/* Performs command line completion. */
+void cmd_complete(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    le_complete();
 }
 
 

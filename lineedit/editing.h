@@ -133,6 +133,10 @@ extern le_command_func_T
     cmd_cancel_undo_all,
     cmd_redo;
 
+/* completion commands */
+extern le_command_func_T
+    cmd_complete;
+
 /* vi-mode specific commands */
 extern le_command_func_T
     cmd_vi_replace_char,

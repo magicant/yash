@@ -49,7 +49,8 @@ extern _Bool shopt_braceexpand;
 extern _Bool shopt_noclobber;
 extern enum shopt_lineedit_T shopt_lineedit;
 extern enum shopt_yesnoauto_T shopt_le_convmeta;
-extern _Bool shopt_le_visiblebell, shopt_le_promptsp, shopt_le_alwaysrp;
+extern _Bool shopt_le_visiblebell, shopt_le_promptsp, shopt_le_alwaysrp,
+       shopt_le_compdebug;
 
 #define SHELLSET_OPTIONS L"abefhmnuvxC"
 
