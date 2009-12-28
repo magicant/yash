@@ -125,7 +125,7 @@ void le_resume_readline(void)
 	le_state = LE_STATE_ACTIVE;
 	le_setupterm(true);
 	le_set_terminal();
-	le_display_update();
+	le_display_update(true);
 	le_display_flush();
     }
 }
@@ -137,7 +137,7 @@ void le_display_size_changed(void)
     if (le_state == LE_STATE_ACTIVE) {
 	le_display_clear();
 	le_setupterm(true);
-	le_display_update();
+	le_display_update(true);
 	le_display_flush();
     }
 }
@@ -190,7 +190,7 @@ void read_next(void)
     if (c)
 	goto direct_first_buffer;
 
-    le_display_update();
+    le_display_update(true);
     le_display_flush();
 
     /* wait for and read the next byte */
