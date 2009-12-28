@@ -344,10 +344,12 @@ void le_display_finalize(void)
     le_display_update();
 
     lebuf_print_sgr0();
-    if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
+    if (rprompt_line >= 0) {
+	go_to((le_pos_T) { rprompt_line, le_columns - 1 });
 	lebuf_print_nel();
-    while (lebuf.pos.line <= rprompt_line)
+    } else if (lebuf.pos.column != 0 || lebuf.pos.line == 0) {
 	lebuf_print_nel();
+    }
 
     clean_up();
 }
