@@ -266,6 +266,23 @@ done:
 #undef SETBG
 }
 
+/* Like `lebuf_putws', but stops printing when the cursor reaches the end of
+ * the line. Non-printable characters are ignored. */
+void lebuf_putws_trunc(const wchar_t *s)
+{
+    while (*s != L'\0') {
+	int width = wcwidth(*s);
+	if (width > 0) {
+	    int new_column = lebuf.pos.column + width;
+	    if (new_column >= le_columns)
+		break;
+	    lebuf.pos.column = new_column;
+	    lebuf_putwchar_raw(*s);
+	}
+	s++;
+    }
+}
+
 
 /********** Displaying **********/
 
@@ -288,6 +305,8 @@ static le_compcol_T *fit_candidates(
 static le_comppage_T *divide_cands_pages(le_compcand_T *cand, int cand_per_col)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void print_candidates_all(void);
+static void print_candidate(const le_compcand_T *cand, bool selected)
+    __attribute__((nonnull));
 
 
 /* True when the prompt is displayed on the screen. */
@@ -862,11 +881,73 @@ le_comppage_T *divide_cands_pages(le_compcand_T *cand, int cand_per_col)
 }
 
 /* Prints the whole candidate area.
+ * The edit line (and the right prompt if any) must have been printed before
+ * calling this function.
  * The cursor may be anywhere when this function is called.
- * The cursor is left at an unspecified position when this function returns. */
+ * The cursor is left at an unspecified position when this function returns.
+ * If `le_comppages' is NULL, this function does nothing. */
 void print_candidates_all(void)
 {
-    //TODO
+    if (le_comppages == NULL)
+	return;
+
+    go_to_after_editline();
+    clear_to_end_of_screen();
+    assert(lebuf.pos.column == 0);
+
+    const le_comppage_T *page = le_compcur.page;
+    if (page == NULL)
+	page = le_comppages;
+
+    int baseline = lebuf.pos.line;
+    const le_compcol_T *col = page->firstcol;
+    const le_compcand_T *cand = col->firstcand;
+
+    for (;;) {  /* print the first column */
+	print_candidate(cand, cand == le_compcur.cand);
+
+	cand = cand->next;
+	if (cand == NULL)
+	    break;
+	lebuf_print_nel();
+    }
+
+    if (le_comppagecount > 1) {
+	lebuf_print_nel();
+
+	char *s1 = malloc_printf(gt("Candidate %zu of %zu; Page %zu of %zu"),
+		le_compcur.candno, le_compcandcount,
+		le_compcur.pageno, le_comppagecount);
+	if (s1 != NULL) {
+	    wchar_t *s2 = realloc_mbstowcs(s1);
+	    if (s2 != NULL) {
+		lebuf_putws_trunc(s2);
+		free(s2);
+	    }
+	}
+    }
+
+    int column = col->width + 2;
+    while ((col = col->next) != NULL) {
+	cand = col->firstcand;
+	for (int line = 0; cand != NULL; cand = cand->next, line++) {
+	    go_to((le_pos_T) { .line = baseline + line, .column = column });
+	    print_candidate(cand, cand == le_compcur.cand);
+	}
+
+	column += col->width + 2;
+    }
+}
+
+/* Prints the specified candidate at the current cursor position.
+ * If `selected' is true, the candidate is bracketed.
+ * The cursor is left just after the printed candidate. */
+void print_candidate(const le_compcand_T *cand, bool selected)
+{
+    lebuf_putchar(selected ? '[' : ' ');
+    sb_cat(&lebuf.buf, cand->value);
+    lebuf_putchar(selected ? ']' : ' ');
+    lebuf.pos.column += cand->width + 2;
 }
 
 

@@ -43,6 +43,8 @@ extern void lebuf_putws(const wchar_t *s, _Bool convert_cntrl)
     __attribute__((nonnull));
 extern void lebuf_print_prompt(const wchar_t *s)
     __attribute__((nonnull));
+extern void lebuf_putws_trunc(const wchar_t *s)
+    __attribute__((nonnull));
 
 extern void le_display_init(struct promptset_T prompt);
 extern void le_display_finalize(void);

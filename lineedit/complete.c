@@ -31,6 +31,8 @@ static void compdebug(const char *format, ...)
 
 /* The list of the currently active completion candidate pages. */
 le_comppage_T *le_comppages;
+/* The number of pages/candidates in `le_comppages'. */
+size_t le_comppagecount, le_compcandcount;
 /* The currently selected completion page/column/candidate. */
 struct le_compcur_T le_compcur;
 

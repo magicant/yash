@@ -16,6 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+#ifndef YASH_COMPLETE_H
+#define YASH_COMPLETE_H
+
+#include <stddef.h>
+
+
 typedef struct le_comppage_T {
     struct le_comppage_T *prev, *next;
     struct le_compcol_T *firstcol;
@@ -32,10 +38,12 @@ typedef struct le_compcand_T {
 } le_compcand_T;
 
 extern le_comppage_T *le_comppages;
+extern size_t le_comppagecount, le_compcandcount;
 extern struct le_compcur_T {
     le_comppage_T *page;
     le_compcol_T  *col;
     le_compcand_T *cand;
+    size_t pageno, candno;  /* page/candidate number */
 } le_compcur;
 
 extern void le_complete(void);
@@ -43,6 +51,9 @@ extern void le_complete(void);
 extern void le_free_comppages(le_comppage_T *pages, _Bool free_candidates);
 extern void le_free_compcols(le_compcol_T *cols, _Bool free_candidates);
 extern void le_free_compcands(le_compcand_T *cands);
+
+
+#endif /* YASH_COMPLETE_H */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */
