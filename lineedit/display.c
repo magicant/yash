@@ -304,8 +304,10 @@ static le_compcol_T *fit_candidates(
     __attribute__((nonnull,malloc,warn_unused_result));
 static le_comppage_T *divide_cands_pages(le_compcand_T *cand, int cand_per_col)
     __attribute__((nonnull,malloc,warn_unused_result));
+static void update_candidates(void);
 static void print_candidates_all(void);
-static void print_candidate(const le_compcand_T *cand, bool selected)
+static void print_candidate(
+	const le_compcand_T *cand, int colwidth, bool selected)
     __attribute__((nonnull));
 
 
@@ -351,6 +353,9 @@ static struct {
     char *value;
     size_t length;  /* number of bytes in `value' */
 } sprompt;
+
+/* True when the candidate area is displayed. */
+static bool candidates_active;
 
 
 /* Initializes the display module.
@@ -470,6 +475,7 @@ void le_display_update(bool cursor)
     if (!display_active) {
 	display_active = true;
 	last_edit_line = line_max = 0;
+	candidates_active = false;
 
 	/* prepare the right prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
@@ -518,7 +524,8 @@ void le_display_update(bool cursor)
     /* print right prompt */
     update_right_prompt();
 
-    // TODO: print info area
+    /* print completion candidates */
+    update_candidates();
 
     /* set cursor position */
     assert(le_main_index <= le_main_buffer.length);
@@ -662,7 +669,7 @@ void print_search(void)
     if (!le_ti_msgr)
 	lebuf_print_sgr0(), styler_active = false;
     lebuf_print_nel();
-    clear_to_end_of_screen();
+    clear_to_end_of_screen(), candidates_active = false;
 
     update_styler();
 
@@ -880,6 +887,17 @@ le_comppage_T *divide_cands_pages(le_compcand_T *cand, int cand_per_col)
     }
 }
 
+/* Updates the candidate area.
+ * The edit line (and the right prompt if any) must have been printed before
+ * calling this function.
+ * The cursor may be anywhere when this function is called.
+ * The cursor is left at an unspecified position when this function returns. */
+void update_candidates(void)
+{
+    print_candidates_all();
+    candidates_active = true;
+}
+
 /* Prints the whole candidate area.
  * The edit line (and the right prompt if any) must have been printed before
  * calling this function.
@@ -904,7 +922,7 @@ void print_candidates_all(void)
     const le_compcand_T *cand = col->firstcand;
 
     for (;;) {  /* print the first column */
-	print_candidate(cand, cand == le_compcur.cand);
+	print_candidate(cand, col->width, cand == le_compcur.cand);
 
 	cand = cand->next;
 	if (cand == NULL)
@@ -932,7 +950,7 @@ void print_candidates_all(void)
 	cand = col->firstcand;
 	for (int line = 0; cand != NULL; cand = cand->next, line++) {
 	    go_to((le_pos_T) { .line = baseline + line, .column = column });
-	    print_candidate(cand, cand == le_compcur.cand);
+	    print_candidate(cand, col->width, cand == le_compcur.cand);
 	}
 
 	column += col->width + 2;
@@ -941,13 +959,19 @@ void print_candidates_all(void)
 
 /* Prints the specified candidate at the current cursor position.
  * If `selected' is true, the candidate is bracketed.
+ * `colwidth' specifies the max width of the candidates in the column containing
+ * `cand'.
  * The cursor is left just after the printed candidate. */
-void print_candidate(const le_compcand_T *cand, bool selected)
+void print_candidate(const le_compcand_T *cand, int colwidth, bool selected)
 {
     lebuf_putchar(selected ? '[' : ' ');
     sb_cat(&lebuf.buf, cand->value);
-    lebuf_putchar(selected ? ']' : ' ');
-    lebuf.pos.column += cand->width + 2;
+    lebuf.pos.column += cand->width + 1;
+    if (selected) {
+	lebuf_print_cuf(colwidth - cand->width);
+	lebuf_putchar(']');
+	lebuf.pos.column += 1;
+    }
 }
 
 
