@@ -349,13 +349,17 @@ void le_display_finalize(void)
     assert(le_search_buffer.contents == NULL);
 
     le_main_index = le_main_buffer.length;
-    le_display_update();
+    le_display_update(false);
 
     lebuf_print_sgr0();
-    if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
+    if (rprompt_line >= 0) {
+	go_to((le_pos_T) { rprompt_line, le_columns - 1 });
 	lebuf_print_nel();
-    while (lebuf.pos.line <= rprompt_line)
-	lebuf_print_nel();
+    } else {
+	go_to_index(le_main_buffer.length);
+	if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
+	    lebuf_print_nel();
+    }
 
     clean_up();
 }
@@ -445,10 +449,11 @@ void clear_editline(void)
     go_to(save_pos);
 }
 
-/* (Re)prints the display appropriately and moves the cursor to the proper
- * position. The print buffer must not have been initialized.
+/* (Re)prints the display appropriately and, if `cursor' is true, moves the
+ * cursor to the proper position.
+ * The print buffer must not have been initialized.
  * The output is sent to the print buffer. */
-void le_display_update(void)
+void le_display_update(bool cursor)
 {
     if (!display_active) {
 	display_active = true;
@@ -505,7 +510,8 @@ void le_display_update(void)
 
     /* set cursor position */
     assert(le_main_index <= le_main_buffer.length);
-    go_to_index(le_main_index);
+    if (cursor)
+	go_to_index(le_main_index);
 }
 
 /* Prints a dummy string that moves the cursor to the first column of the next
@@ -517,7 +523,8 @@ void maybe_print_promptsp(void)
 	lebuf_print_smso();
 	lebuf_putchar('$');
 	lebuf_print_sgr0();
-	for (int i = le_ti_xenl ? 1 : 2; i < le_columns; i++)
+	int count = le_columns - (le_ti_xenl ? 2 : 1);
+	while (--count >= 0)
 	    lebuf_putchar(' ');
 	lebuf_print_cr();
 	lebuf_print_ed();
