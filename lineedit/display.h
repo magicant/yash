@@ -52,11 +52,9 @@ extern void le_display_clear(void);
 extern void le_display_flush(void);
 extern void le_display_update(_Bool cursor);
 
-struct le_comppage_T;
 struct le_compcand_T;
-extern struct le_comppage_T *le_arrange_candidates(
-	struct le_compcand_T *firstcand)
-    __attribute__((nonnull,malloc,warn_unused_result));
+extern void le_arrange_candidates(struct le_compcand_T *firstcand)
+    __attribute__((nonnull));
 
 extern _Bool le_try_print_prompt(const wchar_t *s)
     __attribute__((nonnull));

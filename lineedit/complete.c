@@ -20,7 +20,9 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "../option.h"
+#include "../util.h"
 #include "complete.h"
 #include "display.h"
 #include "terminfo.h"
@@ -47,6 +49,27 @@ void le_complete(void)
     }
 
     //TODO
+    // this is test implementation
+    if (le_comppages == NULL) {
+	le_compcand_T *cands = NULL, *lastc = NULL;
+	for (int i = 0; i < 100; i++) {
+	    le_compcand_T *c = xmalloc(sizeof *c);
+	    if (cands == NULL)
+		cands = c;
+	    c->prev = lastc;
+	    c->next = NULL;
+	    c->value = malloc_printf("cand%d", i + 5);
+	    c->width = strlen(c->value);
+	    if (lastc != NULL)
+		lastc->next = c;
+	    lastc = c;
+	}
+	le_arrange_candidates(cands);
+	le_compcur.page = le_comppages;
+	le_compcur.col = le_compcur.page ? le_compcur.page->firstcol : NULL;
+	le_compcur.cand = le_compcur.col ? le_compcur.col->firstcand : NULL;
+    }
+
 
     if (shopt_le_compdebug) {
 	compdebug("completion end");
