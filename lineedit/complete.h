@@ -16,7 +16,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
+typedef struct le_comppage_T {
+    struct le_comppage_T *prev, *next;
+    struct le_compcol_T *firstcol;
+} le_comppage_T;
+typedef struct le_compcol_T {
+    struct le_compcol_T *prev, *next;
+    struct le_compcand_T *firstcand;
+    int width;  /* max width of the candidates */
+} le_compcol_T;
+typedef struct le_compcand_T {
+    struct le_compcand_T *prev, *next;
+    char *value;
+    int width;
+} le_compcand_T;
+
+extern le_comppage_T *le_comppages;
+extern struct le_compcur_T {
+    le_comppage_T *page;
+    le_compcol_T  *col;
+    le_compcand_T *cand;
+} le_compcur;
+
 extern void le_complete(void);
+
+extern void le_free_comppages(le_comppage_T *pages, _Bool free_candidates);
+extern void le_free_compcols(le_compcol_T *cols, _Bool free_candidates);
+extern void le_free_compcands(le_compcand_T *cands);
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */
