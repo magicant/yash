@@ -279,6 +279,7 @@ static void update_right_prompt(void);
 static void print_search(void);
 static void go_to(le_pos_T p);
 static void go_to_index(size_t index);
+static void go_to_after_editline(void);
 static void fillip_cursor(void);
 
 static le_compcol_T *fit_candidates(
@@ -352,15 +353,7 @@ void le_display_finalize(void)
     le_display_update(false);
 
     lebuf_print_sgr0();
-    if (rprompt_line >= 0) {
-	go_to((le_pos_T) { rprompt_line, le_columns - 1 });
-	lebuf_print_nel();
-    } else {
-	go_to_index(le_main_buffer.length);
-	if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
-	    lebuf_print_nel();
-    }
-
+    go_to_after_editline();
     clean_up();
 }
 
@@ -718,6 +711,20 @@ void go_to_index(size_t index)
 {
     int p = cursor_positions[index];
     go_to((le_pos_T) { .line = p / le_columns, .column = p % le_columns });
+}
+
+/* Moves the cursor to the beginning of the line below `last_edit_line'.
+ * The edit line (and possibly the right prompt) must have been printed. */
+void go_to_after_editline(void)
+{
+    if (rprompt_line >= 0) {
+	go_to((le_pos_T) { rprompt_line, le_columns - 1 });
+	lebuf_print_nel();
+    } else {
+	go_to_index(le_main_buffer.length);
+	if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
+	    lebuf_print_nel();
+    }
 }
 
 /* If the cursor is sticking to the end of line, moves it to the next line. */
