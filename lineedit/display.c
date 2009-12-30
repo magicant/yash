@@ -424,7 +424,6 @@ void clear_editline(void)
     assert(lebuf.pos.line > editbasep.line
 	    || (lebuf.pos.line == editbasep.line
 		&& lebuf.pos.column >= editbasep.column));
-    assert(lebuf.pos.line <= last_edit_line);
 
     le_pos_T save_pos = lebuf.pos;
 
