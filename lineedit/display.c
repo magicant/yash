@@ -299,16 +299,8 @@ static void go_to_index(size_t index);
 static void go_to_after_editline(void);
 static void fillip_cursor(void);
 
-static le_compcol_T *fit_candidates(
-	le_compcand_T *cand, int cand_per_col, int maxwidth)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static void divide_cands_pages(le_compcand_T *cand, int cand_per_col)
-    __attribute__((nonnull));
 static void update_candidates(void);
 static void print_candidates_all(void);
-static void print_candidate(
-	const le_compcand_T *cand, int colwidth, bool selected)
-    __attribute__((nonnull));
 
 
 /* True when the prompt is displayed on the screen. */
@@ -766,137 +758,6 @@ void fillip_cursor(void)
 }
 
 
-/* Arranges the specified list of completion candidates to fit to the screen.
- * A newly-malloced page list of newly-malloced columns is assigned to
- * `le_comppages' and the number of pages to `le_comppagecount'.
- * The columns contain the candidates specified by the argument list.
- * Note that the argument list is re-linked in this function.
- * If there are too few lines available on the screen, this function does
- * nothing. */
-void le_arrange_candidates(le_compcand_T *firstcand)
-{
-    int maxrow = le_lines - last_edit_line - 1;
-    if (maxrow <= 1)
-	return;
-
-    /* First, we check if the candidates fit into one page. */
-    for (int cand_per_col = 1; cand_per_col < maxrow; cand_per_col++) {
-	le_compcol_T *cols = fit_candidates(
-		firstcand, cand_per_col, le_columns - 1);
-
-	if (cols != NULL) {
-	    le_comppage_T *page = xmalloc(sizeof *page);
-	    page->prev = page->next = NULL;
-	    page->firstcol = cols;
-	    le_comppages = page;
-	    le_comppagecount = 1;
-	    return;
-	}
-    }
-
-    /* divide the candidate list into pages */
-    divide_cands_pages(firstcand, maxrow - 1);
-}
-
-/* Tries to fit the specified list of completion candidates into one page.
- * `cand_per_col' specifies the number of candidates in a column.
- * `maxwidth' specifies the width of the page. If `maxwidth' is negative, it is
- * considered unlimited and this function always succeeds.
- * If the candidates successfully fit into one page (that is, the total width of
- * columns does not exceed `maxwidth'), a newly-malloced list of columns is
- * returned. Each column contains part of the candidate list, which is split in
- * this function.
- * If all the candidates do not fit into one page, the candidate list is not
- * modified and NULL is returned. */
-le_compcol_T *fit_candidates(
-	le_compcand_T *cand, int cand_per_col, int maxwidth)
-{
-    int totalwidth = 0;
-    le_compcol_T *firstcol = NULL, *lastcol = NULL;
-
-    assert(cand->prev == NULL);
-    do {
-	le_compcol_T *col = xmalloc(sizeof *col);
-
-	if (firstcol == NULL)
-	    firstcol = col;
-	col->prev = lastcol;
-	col->next = NULL;
-	col->firstcand = cand;
-	col->width = 0;
-	if (lastcol != NULL)
-	    lastcol->next = col;
-
-	for (int i = 0; i < cand_per_col; i++) {
-	    assert(cand->width + 2 < le_columns);
-	    if (col->width < cand->width)
-		col->width = cand->width;
-	    cand = cand->next;
-	    if (cand == NULL)
-		break;
-	}
-
-	totalwidth += col->width + 2;
-	lastcol = col;
-    } while (cand != NULL && (maxwidth < 0 || totalwidth <= maxwidth));
-
-    if (maxwidth < 0 || totalwidth <= maxwidth) {
-	/* OK, all the candidates fit into one page! Now we split the candidate
-	 * list and return the columns. */
-	for (le_compcol_T *col = firstcol->next; col != NULL; col = col->next) {
-	    col->firstcand->prev->next = NULL;
-	    col->firstcand->prev = NULL;
-	}
-	return firstcol;
-    } else {
-	/* Hum, all the candidates don't fit into one page... */
-	le_free_compcols(firstcol, false);
-	return NULL;
-    }
-}
-
-/* Divides the specified list of completion candidates into columns and divides
- * the columns into pages to fit to the screen.
- * A newly-malloced page list of newly-malloced columns is assigned to
- * `le_comppages' and the number of pages to `le_comppagecount'.
- * Each column contains `cand_per_col' candidates.
- * The candidate list contained in each column is part of the original candidate
- * list, which is split in this function. */
-void divide_cands_pages(le_compcand_T *cand, int cand_per_col)
-{
-    le_compcol_T *col = fit_candidates(cand, cand_per_col, -1);
-    le_comppage_T *lastpage = NULL;
-
-    le_comppages = NULL;
-    le_comppagecount = 0;
-    for (;;) {
-	le_comppage_T *page = xmalloc(sizeof *page);
-	int pagewidth = col->width + 2;
-
-	if (le_comppages == NULL)
-	    le_comppages = page;
-	le_comppagecount++;
-	page->prev = lastpage;
-	page->next = NULL;
-	page->firstcol = col;
-	if (lastpage != NULL)
-	    lastpage->next = page;
-
-	for (;;) {
-	    col = col->next;
-	    if (col == NULL)
-		return;
-	    if (pagewidth + col->width + 2 >= le_columns)
-		break;
-	    pagewidth += col->width + 2;
-	}
-
-	col->prev->next = NULL;
-	col->prev = NULL;
-	lastpage = page;
-    }
-}
-
 /* Updates the candidate area.
  * The edit line (and the right prompt if any) must have been printed before
  * calling this function.
@@ -916,7 +777,7 @@ void update_candidates(void)
  * If `le_comppages' is NULL, this function does nothing. */
 void print_candidates_all(void)
 {
-    if (le_comppages == NULL)
+    if (true) //TODO
 	return;
 
     lebuf_print_sgr0(), styler_active = false;
@@ -924,68 +785,7 @@ void print_candidates_all(void)
     clear_to_end_of_screen();
     assert(lebuf.pos.column == 0);
 
-    const le_comppage_T *page = le_compcur.page;
-    if (page == NULL)
-	page = le_comppages;
-
-    int baseline = lebuf.pos.line;
-    const le_compcol_T *col = page->firstcol;
-    const le_compcand_T *cand = col->firstcand;
-
-    for (;;) {  /* print the first column */
-	print_candidate(cand, col->width, cand == le_compcur.cand);
-
-	cand = cand->next;
-	if (cand == NULL)
-	    break;
-	lebuf_print_nel();
-    }
-
-    if (le_comppagecount > 1) {
-	lebuf_print_nel();
-
-	char *s1 = malloc_printf(gt("Candidate %zu of %zu; Page %zu of %zu"),
-		le_compcur.candno + 1, le_compcandcount,
-		le_compcur.pageno + 1, le_comppagecount);
-	if (s1 != NULL) {
-	    wchar_t *s2 = realloc_mbstowcs(s1);
-	    if (s2 != NULL) {
-		lebuf_putws_trunc(s2);
-		free(s2);
-	    }
-	}
-    }
-
-    int column = col->width + 2;
-    while ((col = col->next) != NULL) {
-	cand = col->firstcand;
-	for (int line = 0; cand != NULL; cand = cand->next, line++) {
-	    go_to((le_pos_T) { .line = baseline + line, .column = column });
-	    print_candidate(cand, col->width, cand == le_compcur.cand);
-	}
-
-	column += col->width + 2;
-    }
-}
-
-/* Prints the specified candidate at the current cursor position.
- * If `selected' is true, the candidate is bracketed.
- * `colwidth' specifies the max width of the candidates in the column containing
- * `cand'.
- * The cursor is left just after the printed candidate. */
-void print_candidate(const le_compcand_T *cand, int colwidth, bool selected)
-{
-    if (selected)
-	lebuf_print_bold();
-    lebuf_putchar(selected ? '[' : ' ');
-    sb_cat(&lebuf.buf, cand->value);
-    lebuf.pos.column += cand->width + 1;
-    if (selected) {
-	lebuf_print_cuf(colwidth - cand->width);
-	lebuf_putchar(']');
-	lebuf.pos.column += 1;
-	lebuf_print_sgr0();
-    }
+    //TODO
 }
 
 
