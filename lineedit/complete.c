@@ -28,8 +28,18 @@
 #include "terminfo.h"
 
 
+static void free_candidate(void *cand)
+    __attribute__((nonnull));
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
+
+/* A list that contains the current candidates.
+ * The elements pointed to by `le_candidates.contains[*]' are of type
+ * `le_candidate_T'. */
+plist_T le_candidates = { .contents = NULL };
+/* The index of the currently selected candidate in `le_candidates'.
+ * When no candidate is selected, the index is >= `le_candidates.length'. */
+size_t le_selected_candidate_index;
 
 
 /* Performs command line completion. */
@@ -41,13 +51,41 @@ void le_complete(void)
 	compdebug("completion start");
     }
 
+    if (le_candidates.contents == NULL)
+	pl_init(&le_candidates);
+
     //TODO
+    // this is test implementation
+    if (le_candidates.length == 0) {
+	for (int i = 0; i < 97; i++) {
+	    le_candidate_T *cand = xmalloc(sizeof *cand);
+	    cand->rawvalue = malloc_printf("cand%d", i + 5);
+	    cand->width = strlen(cand->rawvalue);
+	    pl_add(&le_candidates, cand);
+	}
+	le_selected_candidate_index = le_candidates.length / 2;
+    }
 
     if (shopt_le_compdebug) {
 	compdebug("completion end");
 	le_setupterm(false);
 	le_set_terminal();
     }
+}
+
+/* Clears the current candidates. */
+void le_complete_cleanup(void)
+{
+    recfree(pl_toary(&le_candidates), free_candidate);
+    le_candidates.contents = NULL;
+}
+
+/* Frees a completion candidate.
+ * The argument must point to a `le_candidate_T' value. */
+void free_candidate(void *cand)
+{
+    free(((le_candidate_T *) cand)->rawvalue);
+    free(cand);
 }
 
 /* Prints the formatted string to the standard error.

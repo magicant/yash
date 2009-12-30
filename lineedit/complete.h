@@ -19,10 +19,19 @@
 #ifndef YASH_COMPLETE_H
 #define YASH_COMPLETE_H
 
-#include <stddef.h>
+#include "../plist.h"
 
+
+typedef struct le_candidate_T {
+    char *rawvalue;
+    int width;
+} le_candidate_T;
+
+extern plist_T le_candidates;
+extern size_t le_selected_candidate_index;
 
 extern void le_complete(void);
+extern void le_complete_cleanup(void);
 
 
 #endif /* YASH_COMPLETE_H */

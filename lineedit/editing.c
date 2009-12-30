@@ -323,6 +323,8 @@ wchar_t *le_editing_finalize(void)
 
     recfree(pl_toary(&undo_history), free);
 
+    le_complete_cleanup();
+
     end_using_history();
     free(main_history_value);
 
