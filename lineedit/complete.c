@@ -139,5 +139,38 @@ void le_free_compcands(le_compcand_T *cands)
     }
 }
 
+/* Frees the specified list of completion candidate pages and columns.
+ * Candidates in the columns are not freed: all candidates are re-linked
+ * together into a large linked list, which is returned. */
+le_compcand_T *le_remake_candlist(le_comppage_T *pages)
+{
+    le_compcol_T *cols = pages->firstcol;
+    le_compcand_T *head = cols->firstcand;
+    le_compcand_T *tail = head;
+
+    for (;;) {
+	for (;;) {
+	    le_compcol_T *nextcols = cols->next;
+	    free(cols);
+	    cols = nextcols;
+	    if (cols == NULL)
+		break;
+	    while (tail->next != NULL)
+		tail = tail->next;
+	    tail->next = cols->firstcand;
+	    cols->firstcand->prev = tail;
+	    tail = cols->firstcand;
+	}
+	le_comppage_T *nextpages = pages->next;
+	free(pages);
+	pages = nextpages;
+	if (pages == NULL)
+	    break;
+	cols = pages->firstcol;
+    }
+
+    return head;
+}
+
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

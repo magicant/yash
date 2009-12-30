@@ -51,6 +51,8 @@ extern void le_complete(void);
 extern void le_free_comppages(le_comppage_T *pages, _Bool free_candidates);
 extern void le_free_compcols(le_compcol_T *cols, _Bool free_candidates);
 extern void le_free_compcands(le_compcand_T *cands);
+extern le_compcand_T *le_remake_candlist(le_comppage_T *pages)
+	__attribute__((nonnull));
 
 
 #endif /* YASH_COMPLETE_H */

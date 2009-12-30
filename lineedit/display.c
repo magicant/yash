@@ -396,7 +396,7 @@ void clean_up(void)
 {
     assert(display_active);
 
-    clear_to_end_of_screen();
+    clear_to_end_of_screen(), candidates_active = false;
 
     free(current_editline), current_editline = NULL;
     free(cursor_positions), cursor_positions = NULL;
@@ -983,8 +983,8 @@ void print_candidate(const le_compcand_T *cand, int colwidth, bool selected)
     if (selected) {
 	lebuf_print_cuf(colwidth - cand->width);
 	lebuf_putchar(']');
-	lebuf_print_sgr0();
 	lebuf.pos.column += 1;
+	lebuf_print_sgr0();
     }
 }
 
