@@ -405,7 +405,6 @@ void le_display_finalize(void)
 {
     assert(le_search_buffer.contents == NULL);
 
-    le_main_index = le_main_buffer.length;
     le_display_update(false);
 
     lebuf_print_sgr0();
