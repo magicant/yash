@@ -319,6 +319,7 @@ static struct {
     int width;      /* width of right prompt on screen */
 } rprompt;
 
+/* The value of the styler prompt where escape sequences have been processed. */
 static struct {
     char *value;
     size_t length;  /* number of bytes in `value' */
