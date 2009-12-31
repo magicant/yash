@@ -33,7 +33,7 @@ static void free_candidate(void *cand)
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
-/* A list that contains the current candidates.
+/* A list that contains the current completion candidates.
  * The elements pointed to by `le_candidates.contains[*]' are of type
  * `le_candidate_T'. */
 plist_T le_candidates = { .contents = NULL };

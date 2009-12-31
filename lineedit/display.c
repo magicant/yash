@@ -302,6 +302,9 @@ static void fillip_cursor(void);
 
 static void update_candidates(void);
 static void print_candidates_all(void);
+static void make_pages_and_columns(void);
+static bool arrange_candidates(size_t cand_per_col, int totalwidthlimit);
+static void divide_candidates_pages(size_t cand_per_col);
 static void free_candpage(void *candpage)
     __attribute__((nonnull));
 static void free_candcol(void *candcol)
@@ -372,8 +375,8 @@ static bool candidates_active;
  */
 static plist_T candpages = { .contents = NULL };
 /* A list of completion candidate columns.
- * The elements pointed to by `candcols.contents[*]' are of type `candcols_T'.
- */
+ * The elements pointed to by `candcols.contents[*]' are of type `candcol_T'.
+ * `candcols' is active iff `candpages' is active. */
 static plist_T candcols = { .contents = NULL };
 
 
@@ -816,14 +819,129 @@ void print_candidates_all(void)
     //TODO
 }
 
+/* Arranges the current candidates in `le_candidates' to fit to the screen,
+ * making pages and columns of candidates.
+ * Candidate list `le_candidates' must not be empty.
+ * The edit line (and the right prompt if any) must have been printed before
+ * calling this function.
+ * The results are assigned to `candpages' and `candcols', which must be
+ * uninitialized when this function is called.
+ * If there are too few lines available to show the candidates on the screen,
+ * this function does nothing. */
+void make_pages_and_columns(void)
+{
+    assert(candpages.contents == NULL);
+    assert(candcols.contents == NULL);
+    assert(le_candidates.length > 0);
+
+    int maxrow = le_lines - last_edit_line - 1;
+    if (maxrow <= 1)
+	return;
+
+    pl_init(&candpages);
+    pl_init(&candcols);
+
+    /* first check if the candidates fit into one page */
+    for (int cand_per_col = 1; cand_per_col < maxrow; cand_per_col++) {
+	if (arrange_candidates((size_t) cand_per_col, le_columns)) {
+	    candpage_T *page = xmalloc(sizeof *page);
+	    page->colindex = 0;
+	    page->colcount = candcols.length;
+	    pl_add(&candpages, page);
+	    return;
+	}
+    }
+
+    /* divide the candidate list into pages */
+    divide_candidates_pages((size_t) maxrow - 1);
+}
+
+/* Tries to arrange the current candidates in `le_candidates' into columns that
+ * have `cand_per_col' candidates each.
+ * `cand_per_col' must be positive.
+ * Candidate list `le_candidates' must not be empty.
+ * If `totalwidthlimit' is non-negative and if the total width of the resulting
+ * columns is >= `totalwidthlimit', then this function fails.
+ * On success, the resulting columns are added to `candcols', which must have
+ * been initialized as an empty list before calling this function, and true is
+ * returned. On failure, `candcols' is not modified and false is returned.
+ * This function never modifies `candpages'. */
+bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
+{
+    int totalwidth = 0;
+    size_t candindex = 0;
+
+    assert(cand_per_col > 0);
+    assert(candcols.contents[0] == NULL);
+    do {
+	candcol_T *col = xmalloc(sizeof *col);
+	col->candindex = candindex;
+	if (le_candidates.length - candindex < cand_per_col)
+	    col->candcount = le_candidates.length - candindex;
+	else
+	    col->candcount = cand_per_col;
+	col->width = 0;
+	
+	for (size_t nextcandindex = candindex + col->candcount;
+		candindex < nextcandindex;
+		candindex++) {
+	    le_candidate_T *cand = le_candidates.contents[candindex];
+	    if (col->width < cand->width)
+		col->width = cand->width;
+	}
+
+	totalwidth += col->width + 2;
+	pl_add(&candcols, col);
+
+	if (totalwidthlimit >= 0 && totalwidth >= totalwidthlimit) {
+	    pl_clear(&candcols, free_candcol);
+	    return false;
+	}
+    } while (candindex < le_candidates.length);
+
+    return true;
+}
+
+/* Divides the current candidates in `le_candidates' into columns that have
+ * `cand_per_col' candidates each and divides the columns into pages that each
+ * fit into the screen.
+ * Candidate list `le_candidates' must not be empty.
+ * The resulting columns and pages are added to `candcols' and `candpages',
+ * which must have been initialized as empty lists before calling this function.
+ */
+void divide_candidates_pages(size_t cand_per_col)
+{
+    bool ok = arrange_candidates(cand_per_col, -1);
+    assert(ok);
+
+    size_t colindex = 0;
+    assert(candpages.contents[0] == NULL);
+    do {
+	candpage_T *page = xmalloc(sizeof *page);
+	page->colindex = colindex;
+
+	candcol_T *col;
+	int totalwidth = 0;
+	while ((col = candcols.contents[colindex]) != NULL) {
+	    if (totalwidth + col->width + 2 >= le_columns)
+		break;
+	    totalwidth += col->width + 2;
+	    colindex++;
+	}
+	page->colcount = colindex - page->colindex;
+
+	pl_add(&candpages, page);
+    } while (colindex < candcols.length);  /* col != NULL */
+}
+
 /* Clears data used for displaying the candidate area. */
 void le_display_complete_cleanup(void)
 {
     if (candpages.contents != NULL) {
 	recfree(pl_toary(&candpages), free_candpage);
 	candpages.contents = NULL;
-    }
-    if (candcols.contents != NULL) {
+
+	assert(candcols.contents != NULL);
 	recfree(pl_toary(&candcols), free_candcol);
 	candcols.contents = NULL;
     }
