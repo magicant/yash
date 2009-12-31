@@ -481,6 +481,7 @@ void le_display_update(bool cursor)
 	lebuf_init((le_pos_T) { 0, 0 });
 	maybe_print_promptsp();
 	lebuf_print_prompt(prompt.main);
+	fillip_cursor();
 	editbasep = lebuf.pos;
     } else {
 	lebuf_init(currentp);
