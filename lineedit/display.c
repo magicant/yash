@@ -379,8 +379,6 @@ typedef struct candcol_T {
     int width;         /* max width of the candidates */
 } candcol_T;
 
-/* True when the candidate area is displayed. */
-static bool candidates_active;
 /* A list of completion candidate pages.
  * The elements pointed to by `candpages.contents[*]' are of type `candpage_T'.
  */
@@ -389,6 +387,14 @@ static plist_T candpages = { .contents = NULL };
  * The elements pointed to by `candcols.contents[*]' are of type `candcol_T'.
  * `candcols' is active iff `candpages' is active. */
 static plist_T candcols = { .contents = NULL };
+/* The number of the first line on which the candidate area is displayed.
+ * When the candidate area is inactive, this value is negative. */
+/* When the candidate area is overwritten by the edit line or the right prompt,
+ * this value is updated to the first line number of the remaining area. */
+static int candbaseline;
+/* When the candidate area is overwritten by the edit line or the right prompt,
+ * this flag is set. */
+static bool candoverwritten;
 
 
 /* Initializes the display module.
@@ -427,7 +433,7 @@ void clean_up(void)
 {
     assert(display_active);
 
-    clear_to_end_of_screen(), candidates_active = false;
+    clear_to_end_of_screen(), candbaseline = -1;
     le_display_complete_cleanup();
 
     free(current_editline), current_editline = NULL;
@@ -506,7 +512,7 @@ void le_display_update(bool cursor)
     if (!display_active) {
 	display_active = true;
 	last_edit_line = line_max = 0;
-	candidates_active = false;
+	candbaseline = -1, candoverwritten = false;
 
 	/* prepare the right prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
@@ -643,6 +649,14 @@ void update_editline(void)
     } else if (rprompt_line < lebuf.pos.line) {
 	rprompt_line = -1;
     }
+
+    /* clear the remaining of the current line if we're overwriting the
+     * candidate area. */
+    if (0 <= candbaseline && candbaseline <= lebuf.pos.line) {
+	lebuf_print_el();
+	candbaseline = lebuf.pos.line + 1;
+	candoverwritten = true;
+    }
 }
 
 /* If the styler prompt is inactive, prints it. */
@@ -671,8 +685,14 @@ void update_right_prompt(void)
 	return;
 
     go_to_index(le_main_buffer.length);
-    if (!has_enough_room)
+    if (!has_enough_room) {
 	lebuf_print_nel();
+	if (0 <= candbaseline && candbaseline <= lebuf.pos.line) {
+	    lebuf_print_el();
+	    candbaseline = lebuf.pos.line + 1;
+	    candoverwritten = true;
+	}
+    }
     lebuf_print_cuf(le_columns - rprompt.width - lebuf.pos.column - 1);
     sb_ncat_force(&lebuf.buf, rprompt.value, rprompt.length);
     lebuf.pos.column += rprompt.width;
@@ -701,7 +721,7 @@ void print_search(void)
     if (!le_ti_msgr)
 	lebuf_print_sgr0(), styler_active = false;
     lebuf_print_nel();
-    clear_to_end_of_screen(), candidates_active = false;
+    clear_to_end_of_screen(), candbaseline = -1;
 
     update_styler();
 
@@ -806,11 +826,11 @@ void fillip_cursor(void)
 void update_candidates(void)
 {
     //TODO
-    if (le_candidates.contents != NULL || candidates_active) {
+    if (le_candidates.contents != NULL) {
+	// candbaseline? candoverwritten?
 	le_display_complete_cleanup();
 	make_pages_and_columns();
 	print_candidates_all();
-	candidates_active = true;
     }
 }
 
@@ -981,7 +1001,8 @@ void print_candidates_all(void)
     const candpage_T *page = candpages.contents[pageindex];
     const candcol_T *col = candcols.contents[page->colindex];
 
-    int baseline = lebuf.pos.line;
+    candbaseline = lebuf.pos.line;
+    candoverwritten = false;
     for (size_t i = 0; ; ) {  /* print first column */
 	size_t index = col->candindex + i;
 	const le_candidate_T *cand = le_candidates.contents[index];
@@ -1012,7 +1033,8 @@ void print_candidates_all(void)
     for (size_t j = 1; j < page->colcount; j++) {  /* print remaining columns */
 	col = candcols.contents[page->colindex + j];
 	for (size_t i = 0; i < col->candcount; i++) {
-	    go_to((le_pos_T) { .line = baseline + (int) i, .column = column });
+	    go_to((le_pos_T) { .line   = candbaseline + (int) i,
+	                       .column = column });
 
 	    size_t candindex = col->candindex + i;
 	    const le_candidate_T *cand = le_candidates.contents[candindex];
