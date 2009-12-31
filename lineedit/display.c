@@ -976,7 +976,9 @@ void print_candidates_all(void)
 	return;
     lebuf_print_sgr0(), styler_active = false;
 
-    size_t pageindex = page_of_col(col_of_cand(le_selected_candidate_index));
+    size_t pageindex = le_selected_candidate_index < le_candidates.length
+	? page_of_col(col_of_cand(le_selected_candidate_index))
+	: 0;
     const candpage_T *page = candpages.contents[pageindex];
     const candcol_T *col = candcols.contents[page->colindex];
 
@@ -1008,7 +1010,7 @@ void print_candidates_all(void)
     }
 
     int column = col->width + 2;
-    for (size_t j = 1; j < page->colcount; j++) {
+    for (size_t j = 1; j < page->colcount; j++) {  /* print remaining columns */
 	col = candcols.contents[page->colindex + j];
 	for (size_t i = 0; i < col->candcount; i++) {
 	    go_to((le_pos_T) { .line = baseline + (int) i, .column = column });
