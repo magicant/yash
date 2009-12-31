@@ -76,8 +76,11 @@ void le_complete(void)
 /* Clears the current candidates. */
 void le_complete_cleanup(void)
 {
-    recfree(pl_toary(&le_candidates), free_candidate);
-    le_candidates.contents = NULL;
+    le_display_complete_cleanup();
+    if (le_candidates.contents != NULL) {
+	recfree(pl_toary(&le_candidates), free_candidate);
+	le_candidates.contents = NULL;
+    }
 }
 
 /* Frees a completion candidate.

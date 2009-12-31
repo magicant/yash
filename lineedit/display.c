@@ -31,6 +31,7 @@
 #include "../history.h"
 #include "../job.h"
 #include "../option.h"
+#include "../plist.h"
 #include "../strbuf.h"
 #include "../util.h"
 #include "complete.h"
@@ -301,6 +302,10 @@ static void fillip_cursor(void);
 
 static void update_candidates(void);
 static void print_candidates_all(void);
+static void free_candpage(void *candpage)
+    __attribute__((nonnull));
+static void free_candcol(void *candcol)
+    __attribute__((nonnull));
 
 
 /* True when the prompt is displayed on the screen. */
@@ -346,8 +351,25 @@ static struct {
     size_t length;  /* number of bytes in `value' */
 } sprompt;
 
+/* The type of completion candidate pages.
+ * The `candcols' member is a list of completion candidate columns. The elements
+ * pointed to by `candcols.contents[*]' are of type `candcol_T'. */
+typedef struct candpage_T {
+    plist_T candcols;
+} candpage_T;
+/* The type of completion candidate columns. */
+typedef struct candcol_T {
+    size_t candindex;  /* index of the first element in this column */
+    size_t candcount;  /* number of the elements in this column */
+    int width;         /* max width of the candidates */
+} candcol_T;
+
 /* True when the candidate area is displayed. */
 static bool candidates_active;
+/* A list of completion candidate pages containing the current candidates.
+ * The elements pointed to by `candpages.contents[*]' are of type `candpage_T'.
+ */
+static plist_T candpages = { .contents = NULL };
 
 
 /* Initializes the display module.
@@ -373,7 +395,7 @@ void le_display_finalize(void)
     clean_up();
 }
 
-/* Clears prompt, edit line and info area on the screen. */
+/* Clears prompt, edit line and candidate area on the screen. */
 void le_display_clear(void)
 {
     if (display_active) {
@@ -389,6 +411,7 @@ void clean_up(void)
     assert(display_active);
 
     clear_to_end_of_screen(), candidates_active = false;
+    le_display_complete_cleanup();
 
     free(current_editline), current_editline = NULL;
     free(cursor_positions), cursor_positions = NULL;
@@ -432,7 +455,7 @@ void clear_to_end_of_screen(void)
 
 /* Clears (part of) the edit line on the screen: from the current cursor
  * position to the end of the edit line.
- * The prompt and the info area are not cleared.
+ * The prompt and the candidate area are not cleared.
  * When this function is called, the cursor must be positioned within the edit
  * line. When this function returns, the cursor is moved back to that position.
  */
@@ -777,7 +800,7 @@ void update_candidates(void)
  * If `le_comppages' is NULL, this function does nothing. */
 void print_candidates_all(void)
 {
-    if (true) //TODO
+    if (le_candidates.length == 0)
 	return;
 
     lebuf_print_sgr0(), styler_active = false;
@@ -786,6 +809,32 @@ void print_candidates_all(void)
     assert(lebuf.pos.column == 0);
 
     //TODO
+}
+
+/* Clears data used for displaying the candidate area. */
+void le_display_complete_cleanup(void)
+{
+    if (candpages.contents != NULL) {
+	recfree(pl_toary(&candpages), free_candpage);
+	candpages.contents = NULL;
+    }
+}
+
+/* Frees a completion candidate page.
+ * The argument must point to a `candpage_T' value. */
+void free_candpage(void *candpage)
+{
+    candpage_T *p = candpage;
+    recfree(pl_toary(&p->candcols), free_candcol);
+    free(p);
+}
+
+/* Frees a completion candidate column.
+ * The argument must point to a `candcol_T' value. */
+void free_candcol(void *candcol)
+{
+    candcol_T *c = candcol;
+    free(c);
 }
 
 
