@@ -359,6 +359,7 @@ static struct {
     int width;      /* width of right prompt on screen */
 } rprompt;
 
+/* The value of the styler prompt where escape sequences have been processed. */
 static struct {
     char *value;
     size_t length;  /* number of bytes in `value' */
@@ -395,11 +396,10 @@ static plist_T candcols = { .contents = NULL };
 void le_display_init(struct promptset_T prompt_)
 {
     prompt = prompt_;
-
-    currentp.line = currentp.column = 0;
 }
 
-/* Finalizes the display module.
+/* Updates the prompt and the edit line, clears the candidate area, and leave
+ * the cursor at a blank line.
  * Must be called before `le_editing_finalize'. */
 void le_display_finalize(void)
 {
@@ -482,7 +482,6 @@ void clear_editline(void)
     assert(lebuf.pos.line > editbasep.line
 	    || (lebuf.pos.line == editbasep.line
 		&& lebuf.pos.column >= editbasep.column));
-    assert(lebuf.pos.line <= last_edit_line);
 
     le_pos_T save_pos = lebuf.pos;
 
@@ -540,6 +539,7 @@ void le_display_update(bool cursor)
 	lebuf_init((le_pos_T) { 0, 0 });
 	maybe_print_promptsp();
 	lebuf_print_prompt(prompt.main);
+	fillip_cursor();
 	editbasep = lebuf.pos;
     } else {
 	lebuf_init(currentp);
@@ -575,7 +575,7 @@ void maybe_print_promptsp(void)
 	lebuf_print_smso();
 	lebuf_putchar('$');
 	lebuf_print_sgr0();
-	int count = le_columns - (le_ti_xenl ? 2 : 1);
+	int count = le_columns - (le_ti_xenl ? 1 : 2);
 	while (--count >= 0)
 	    lebuf_putchar(' ');
 	lebuf_print_cr();
