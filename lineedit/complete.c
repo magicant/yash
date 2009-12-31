@@ -25,6 +25,7 @@
 #include "../util.h"
 #include "complete.h"
 #include "display.h"
+#include "lineedit.h"
 #include "terminfo.h"
 
 
@@ -48,6 +49,7 @@ void le_complete(void)
     if (shopt_le_compdebug) {
 	le_display_clear();
 	le_restore_terminal();
+	le_state = LE_STATE_SUSPENDED;
 	compdebug("completion start");
     }
 
@@ -70,6 +72,7 @@ void le_complete(void)
 	compdebug("completion end");
 	le_setupterm(false);
 	le_set_terminal();
+	le_state = LE_STATE_ACTIVE;
     }
 }
 

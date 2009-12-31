@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -301,13 +302,22 @@ static void go_to_after_editline(void);
 static void fillip_cursor(void);
 
 static void update_candidates(void);
-static void print_candidates_all(void);
 static void make_pages_and_columns(void);
 static bool arrange_candidates(size_t cand_per_col, int totalwidthlimit);
 static void divide_candidates_pages(size_t cand_per_col);
 static void free_candpage(void *candpage)
     __attribute__((nonnull));
 static void free_candcol(void *candcol)
+    __attribute__((nonnull));
+static void print_candidates_all(void);
+static void print_candidate(
+	const le_candidate_T *cand, int colwidth, bool highlight)
+    __attribute__((nonnull));
+static size_t col_of_cand(size_t candindex);
+static int col_of_cand_cmp(const void *candindexp, const void *colp)
+    __attribute__((nonnull));
+static size_t page_of_col(size_t colindex);
+static int page_of_col_cmp(const void *colindexp, const void *pagep)
     __attribute__((nonnull));
 
 
@@ -805,25 +815,6 @@ void update_candidates(void)
     }
 }
 
-/* Prints the whole candidate area.
- * The edit line (and the right prompt if any) must have been printed and
- * `make_pages_and_columns' must have been called before calling this function.
- * The cursor may be anywhere when this function is called.
- * The cursor is left at an unspecified position when this function returns.
- * If `le_comppages' is NULL, this function does nothing. */
-void print_candidates_all(void)
-{
-    go_to_after_editline();
-    clear_to_end_of_screen();
-    assert(lebuf.pos.column == 0);
-
-    if (le_candidates.length == 0)
-	return;
-
-    lebuf_print_sgr0(), styler_active = false;
-    //TODO
-}
-
 /* Arranges the current candidates in `le_candidates' to fit to the screen,
  * making pages and columns of candidates.
  * The edit line (and the right prompt if any) must have been printed before
@@ -967,6 +958,138 @@ void free_candcol(void *candcol)
 {
     candcol_T *c = candcol;
     free(c);
+}
+
+/* Prints the whole candidate area.
+ * The edit line (and the right prompt if any) must have been printed and
+ * `make_pages_and_columns' must have been called before calling this function.
+ * The cursor may be anywhere when this function is called.
+ * The cursor is left at an unspecified position when this function returns.
+ * If `le_comppages' is NULL, this function does nothing. */
+void print_candidates_all(void)
+{
+    go_to_after_editline();
+    clear_to_end_of_screen();
+    assert(lebuf.pos.column == 0);
+
+    if (le_candidates.length == 0)
+	return;
+    lebuf_print_sgr0(), styler_active = false;
+
+    size_t pageindex = page_of_col(col_of_cand(le_selected_candidate_index));
+    const candpage_T *page = candpages.contents[pageindex];
+    const candcol_T *col = candcols.contents[page->colindex];
+
+    int baseline = lebuf.pos.line;
+    for (size_t i = 0; ; ) {  /* print first column */
+	size_t index = col->candindex + i;
+	const le_candidate_T *cand = le_candidates.contents[index];
+	bool highlight = le_selected_candidate_index == index;
+	print_candidate(cand, col->width, highlight);
+
+	if (++i == col->candcount)
+	    break;
+	lebuf_print_nel();
+    }
+
+    if (candpages.length > 1) {  /* print status line */
+	lebuf_print_nel();
+
+	char *s1 = malloc_printf(gt("Candidate %zu of %zu; Page %zu of %zu"),
+		le_selected_candidate_index + 1, le_candidates.length,
+		pageindex + 1, candpages.length);
+	if (s1 != NULL) {
+	    wchar_t *s2 = realloc_mbstowcs(s1);
+	    if (s2 != NULL) {
+		lebuf_putws_trunc(s2);
+		free(s2);
+	    }
+	}
+    }
+
+    int column = col->width + 2;
+    for (size_t j = 1; j < page->colcount; j++) {
+	col = candcols.contents[page->colindex + j];
+	for (size_t i = 0; i < col->candcount; i++) {
+	    go_to((le_pos_T) { .line = baseline + (int) i, .column = column });
+
+	    size_t candindex = col->candindex + i;
+	    const le_candidate_T *cand = le_candidates.contents[candindex];
+	    bool highlight = le_selected_candidate_index == candindex;
+	    print_candidate(cand, col->width, highlight);
+	}
+	column += col->width + 2;
+    }
+}
+
+/* Prints the specified candidate at the current cursor position.
+ * `colwidth' specifies the max width of the candidates in the column to which
+ * `cand' belongs. If `highlight' is true, the candidate is printed in a manner
+ * different from normal.
+ * The cursor is left just after the printed candidate. */
+void print_candidate(const le_candidate_T *cand, int colwidth, bool highlight)
+{
+    if (highlight)
+	lebuf_print_bold();
+    lebuf_putchar(highlight ? '[' : ' ');
+    sb_cat(&lebuf.buf, cand->rawvalue);
+    lebuf.pos.column += cand->width + 1;
+    if (highlight) {
+	lebuf_print_cuf(colwidth - cand->width);
+	lebuf_putchar(']');
+	lebuf.pos.column += 1;
+	lebuf_print_sgr0();
+    }
+}
+
+/* Returns the index of the column to which the candidate of index `candindex'
+ * belongs. Column list `candcols' must not be empty. */
+size_t col_of_cand(size_t candindex)
+{
+    assert(candcols.length > 0);
+
+    void **colp = bsearch(&candindex,
+	    candcols.contents, candcols.length, sizeof *candcols.contents,
+	    col_of_cand_cmp);
+    assert(colp != NULL);
+    return colp - candcols.contents;
+}
+
+int col_of_cand_cmp(const void *candindexp, const void *colp)
+{
+    size_t candindex = *(const size_t *) candindexp;
+    const candcol_T *col = *(void **) colp;
+    if (candindex < col->candindex)
+	return -1;
+    else if (candindex < col->candindex + col->candcount)
+	return 0;
+    else
+	return 1;
+}
+
+/* Returns the index of the page to which the column of index `colindex'
+ * belongs. Page list `candpages' must not be empty. */
+size_t page_of_col(size_t colindex)
+{
+    assert(candpages.length > 0);
+
+    void **pagep = bsearch(&colindex,
+	    candpages.contents, candpages.length, sizeof *candpages.contents,
+	    page_of_col_cmp);
+    assert(pagep != NULL);
+    return pagep - candpages.contents;
+}
+
+int page_of_col_cmp(const void *colindexp, const void *pagep)
+{
+    size_t colindex = *(const size_t *) colindexp;
+    const candpage_T *page = *(void **) pagep;
+    if (colindex < page->colindex)
+	return -1;
+    else if (colindex < page->colindex + page->colcount)
+	return 0;
+    else
+	return 1;
 }
 
 
