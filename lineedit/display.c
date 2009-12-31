@@ -355,21 +355,26 @@ static struct {
  * The `candcols' member is a list of completion candidate columns. The elements
  * pointed to by `candcols.contents[*]' are of type `candcol_T'. */
 typedef struct candpage_T {
-    plist_T candcols;
+    size_t colindex;  /* index of the first column in this page */
+    size_t colcount;  /* number of the columns in this page */
 } candpage_T;
 /* The type of completion candidate columns. */
 typedef struct candcol_T {
-    size_t candindex;  /* index of the first element in this column */
-    size_t candcount;  /* number of the elements in this column */
+    size_t candindex;  /* index of the first candidate in this column */
+    size_t candcount;  /* number of the candidate in this column */
     int width;         /* max width of the candidates */
 } candcol_T;
 
 /* True when the candidate area is displayed. */
 static bool candidates_active;
-/* A list of completion candidate pages containing the current candidates.
+/* A list of completion candidate pages.
  * The elements pointed to by `candpages.contents[*]' are of type `candpage_T'.
  */
 static plist_T candpages = { .contents = NULL };
+/* A list of completion candidate columns.
+ * The elements pointed to by `candcols.contents[*]' are of type `candcols_T'.
+ */
+static plist_T candcols = { .contents = NULL };
 
 
 /* Initializes the display module.
@@ -818,6 +823,10 @@ void le_display_complete_cleanup(void)
 	recfree(pl_toary(&candpages), free_candpage);
 	candpages.contents = NULL;
     }
+    if (candcols.contents != NULL) {
+	recfree(pl_toary(&candcols), free_candcol);
+	candcols.contents = NULL;
+    }
 }
 
 /* Frees a completion candidate page.
@@ -825,7 +834,6 @@ void le_display_complete_cleanup(void)
 void free_candpage(void *candpage)
 {
     candpage_T *p = candpage;
-    recfree(pl_toary(&p->candcols), free_candcol);
     free(p);
 }
 
