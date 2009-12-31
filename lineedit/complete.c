@@ -47,7 +47,7 @@ size_t le_selected_candidate_index;
 void le_complete(void)
 {
     if (shopt_le_compdebug) {
-	le_display_clear();
+	le_display_finalize();
 	le_restore_terminal();
 	le_state = LE_STATE_SUSPENDED;
 	compdebug("completion start");
