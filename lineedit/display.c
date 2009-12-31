@@ -796,43 +796,49 @@ void fillip_cursor(void)
  * The cursor is left at an unspecified position when this function returns. */
 void update_candidates(void)
 {
-    print_candidates_all();
-    candidates_active = true;
+    //TODO
+    if (le_candidates.contents != NULL || candidates_active) {
+	le_display_complete_cleanup();
+	make_pages_and_columns();
+	print_candidates_all();
+	candidates_active = true;
+    }
 }
 
 /* Prints the whole candidate area.
- * The edit line (and the right prompt if any) must have been printed before
- * calling this function.
+ * The edit line (and the right prompt if any) must have been printed and
+ * `make_pages_and_columns' must have been called before calling this function.
  * The cursor may be anywhere when this function is called.
  * The cursor is left at an unspecified position when this function returns.
  * If `le_comppages' is NULL, this function does nothing. */
 void print_candidates_all(void)
 {
-    if (le_candidates.length == 0)
-	return;
-
-    lebuf_print_sgr0(), styler_active = false;
     go_to_after_editline();
     clear_to_end_of_screen();
     assert(lebuf.pos.column == 0);
 
+    if (le_candidates.length == 0)
+	return;
+
+    lebuf_print_sgr0(), styler_active = false;
     //TODO
 }
 
 /* Arranges the current candidates in `le_candidates' to fit to the screen,
  * making pages and columns of candidates.
- * Candidate list `le_candidates' must not be empty.
  * The edit line (and the right prompt if any) must have been printed before
  * calling this function.
  * The results are assigned to `candpages' and `candcols', which must be
  * uninitialized when this function is called.
- * If there are too few lines available to show the candidates on the screen,
- * this function does nothing. */
+ * If there are too few lines available to show the candidates on the screen or
+ * if there is no candidates, this function does nothing. */
 void make_pages_and_columns(void)
 {
     assert(candpages.contents == NULL);
     assert(candcols.contents == NULL);
-    assert(le_candidates.length > 0);
+
+    if (le_candidates.contents == NULL || le_candidates.length == 0)
+	return;
 
     int maxrow = le_lines - last_edit_line - 1;
     if (maxrow <= 1)
