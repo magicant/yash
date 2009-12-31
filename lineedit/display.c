@@ -331,11 +331,10 @@ static struct {
 void le_display_init(struct promptset_T prompt_)
 {
     prompt = prompt_;
-
-    currentp.line = currentp.column = 0;
 }
 
-/* Finalizes the display module.
+/* Updates the prompt and the edit line, clears the candidate area, and leave
+ * the cursor at a blank line.
  * Must be called before `le_editing_finalize'. */
 void le_display_finalize(void)
 {
