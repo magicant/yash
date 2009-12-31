@@ -516,7 +516,7 @@ void maybe_print_promptsp(void)
 	lebuf_print_smso();
 	lebuf_putchar('$');
 	lebuf_print_sgr0();
-	int count = le_columns - (le_ti_xenl ? 2 : 1);
+	int count = le_columns - (le_ti_xenl ? 1 : 2);
 	while (--count >= 0)
 	    lebuf_putchar(' ');
 	lebuf_print_cr();
