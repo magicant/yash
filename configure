@@ -417,6 +417,40 @@ fi
 # check if terminfo is available
 if [ x"${enable_lineedit}" = x"yes" ]
 then
+    checking 'for curses.h' curses.h
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <curses.h>
+int main() { return 0; }
+END
+	trymake
+    fi
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_CURSES_H"
+    fi
+
+    checking 'for term.h' term.h
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <term.h>
+int main() { return 0; }
+END
+	trymake
+    fi
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_TERM_H"
+    fi
+
     checking 'for terminfo library' terminfo
     saveldlibs="${ldlibs}"
     if getcache
@@ -427,8 +461,16 @@ then
 #include "${configh}"
 #define _XOPEN_SOURCE_EXTENDED 1
 #include <stdio.h>
+#if HAVE_CURSES_H
 #include <curses.h>
+#else
+#include <ncurses/curses.h>
+#endif
+#if HAVE_TERM_H
 #include <term.h>
+#else
+#include <ncurses/term.h>
+#endif
 int main() {
 setupterm((char*)0, 1, (int*)0);
 tigetflag("");

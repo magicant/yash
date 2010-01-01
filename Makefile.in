@@ -164,7 +164,7 @@ reconfigure:
 	@script=$$(echo '/# Invocation command line was:/ {'; \
 	echo 'n'; echo 's/^% //'; echo 'p'; echo 'q'; echo '}'); \
 	if line=$$(sed -n "$$script" config.log); \
-	then echo "$$line"; eval exec "$$line"; \
+	then printf '%s\n' "sh $$line"; eval exec sh "$$line"; \
 	else echo 'Cannot reconfigure.' >&2; false; \
 	fi
 
