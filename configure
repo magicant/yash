@@ -204,11 +204,14 @@ exec 6>"${configh}"
     done
     echo
     echo
-    printf '# uname -n = %s\n' "$(uname -n)"
-    printf '# uname -m = %s\n' "$(uname -m)"
-    printf '# uname -r = %s\n' "$(uname -r)"
-    printf '# uname -s = %s\n' "$(uname -s)"
-    printf '# uname -v = %s\n' "$(uname -v)"
+    printf '# uname -i = %s\n' "$(uname -i 2>/dev/null || echo ?)"
+    printf '# uname -n = %s\n' "$(uname -n 2>/dev/null || echo ?)"
+    printf '# uname -m = %s\n' "$(uname -m 2>/dev/null || echo ?)"
+    printf '# uname -o = %s\n' "$(uname -o 2>/dev/null || echo ?)"
+    printf '# uname -p = %s\n' "$(uname -p 2>/dev/null || echo ?)"
+    printf '# uname -r = %s\n' "$(uname -r 2>/dev/null || echo ?)"
+    printf '# uname -s = %s\n' "$(uname -s 2>/dev/null || echo ?)"
+    printf '# uname -v = %s\n' "$(uname -v 2>/dev/null || echo ?)"
     echo
     printf '# PATH=%s\n' "$PATH"
     echo
