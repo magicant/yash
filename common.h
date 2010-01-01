@@ -36,6 +36,10 @@
 # define __attribute__(ignore)
 #endif
 
+#ifdef __CYGWIN__
+# undef __STRICT_ANSI__
+#endif
+
 #if HAVE_GETTEXT
 # define gt(MSGID)  ((const char *) gettext(MSGID))
 # define Ngt(MSGID) MSGID
