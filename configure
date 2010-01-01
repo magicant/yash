@@ -583,6 +583,26 @@ then
     defconfigh "HAVE_WCSNLEN"
 fi
 
+# check for wcstold
+checking 'for wcstold' wcstold
+if ! getcache
+then
+    cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <wchar.h>
+#ifndef wcstold
+long double wcstold(const wchar_t *restrict, wchar_t **restrict);
+#endif
+int main() { return wcstold(L"10.0", (const wchar_t *) 0) != 10.0; }
+END
+    trymake && tryexec
+fi
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_WCSTOLD"
+fi
+
 # check for wcwidth
 checking 'for wcwidth' wcwidth
 if ! getcache
