@@ -48,7 +48,7 @@ test_objs="test.o"
 ulimit_objs="ulimit.o"
 
 # dependency files
-depfiles="alias.d arith.d builtin.d exec.d expand.d hashtable.d history.d input.d job.d mail.d mksignum.d option.d parser.d path.d plist.d redir.d sig.d strbuf.d util.d variable.d xfnmatch.d yash.d builtins/printf.d builtins/test.d builtins/ulimit.d lineedit/display.d lineedit/editing.d lineedit/keymap.d lineedit/lineedit.d lineedit/mkcmds.d lineedit/terminfo.d lineedit/trie.d lineedit/trietest.d lineedit/trietestw.d tests/invoke.d tests/resetsig.d"
+depfiles="alias.d arith.d builtin.d exec.d expand.d hashtable.d history.d input.d job.d mail.d mksignum.d option.d parser.d path.d plist.d redir.d sig.d strbuf.d util.d variable.d xfnmatch.d yash.d builtins/printf.d builtins/test.d builtins/ulimit.d lineedit/display.d lineedit/editing.d lineedit/keymap.d lineedit/lineedit.d lineedit/mkcmds.d lineedit/terminfo.d lineedit/trie.d tests/invoke.d tests/resetsig.d"
 
 help="no"
 gcc=""
