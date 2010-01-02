@@ -1,5 +1,5 @@
 # Makefile.in for test of yash
-# (C) 2007-2009 magicant
+# (C) 2007-2010 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
-.SUFFIXES: .c .h .o
+.SUFFIXES: .c .h .d .o
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -57,9 +57,10 @@ test-yash:
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
-DISTCONTENTS = $(SOURCES) $(TEST_SOURCES) Makefile.in Makefile.deps run-test.sh
-distcontents: $(DISTCONTENTS)
-copy-distcontents: $(DISTCONTENTS)
+DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(TEST_SOURCES) Makefile.in run-test.sh
+# "distcontents" depends on object files to ensure all *.d files up-to-date
+distcontents: $(DISTCONTENTS) invoke resetsig
+copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
 	@echo Copying contents to $(DISTTARGETDIR)
 	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
@@ -69,8 +70,9 @@ clean:
 distclean: clean
 	rm -fr Makefile
 maintainer-clean: distclean
-	rm -fr Makefile.deps
+	rm -fr $(SOURCES:.c=.d)
 
 .PHONY: test test-all test-posix test-yash distcontents copy-distcontents clean distclean maintainer-clean
 
-
+@MAKE_INCLUDE@ invoke.d
+@MAKE_INCLUDE@ resetsig.d

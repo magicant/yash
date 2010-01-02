@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2009 magicant
+# (C) 2007-2010 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
-.SUFFIXES: .c .h .o .a
+.SUFFIXES: .c .h .d .o .a
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -23,7 +23,8 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = display.c display.h editing.c editing.h key.h keymap.c keymap.h lineedit.c lineedit.h mkcmds.c terminfo.c terminfo.h trie.c trie.h
+SOURCES = display.c editing.c keymap.c lineedit.c mkcmds.c terminfo.c trie.c
+HEADERS = display.h editing.h key.h keymap.h lineedit.h terminfo.h trie.h
 OBJS = display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = @LINEEDIT_ARCHIVE@
 BYPRODUCTS = mkcmds.o mkcmds commands.in *.dSYM
@@ -41,9 +42,10 @@ commands.in: mkcmds
 	./mkcmds > $@
 keymap.o: commands.in
 
-DISTCONTENTS = $(SOURCES) Makefile.in Makefile.deps
-distcontents: $(DISTCONTENTS)
-copy-distcontents: $(DISTCONTENTS)
+DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
+# "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
+distcontents: $(DISTCONTENTS) $(OBJS)
+copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
 	@echo Copying contents to $(DISTTARGETDIR)
 	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
@@ -51,12 +53,12 @@ copy-distcontents: $(DISTCONTENTS)
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGSARGS = @CTAGSARGS@
 ETAGSARGS = @ETAGSARGS@
-tags: $(SOURCES)
+tags: $(SOURCES) $(HEADERS)
 	ctags $(CTAGSARGS)
-TAGS: $(SOURCES)
+TAGS: $(SOURCES) $(HEADERS)
 	etags $(ETAGSARGS)
 cscope: cscope.out
-cscope.out: $(SOURCES)
+cscope.out: $(SOURCES) $(HEADERS)
 	cscope -b
 
 mostlyclean:
@@ -66,8 +68,14 @@ clean: mostlyclean
 distclean: clean
 	-rm -rf Makefile tags TAGS cscope.out
 maintainer-clean: distclean
-	-rm -rf Makefile.deps
+	-rm -rf $(SOURCES:.c=.d)
 
 .PHONY: all distcontents copy-distcontents cscope mostlyclean clean distclean maintainer-clean
 
-
+@MAKE_INCLUDE@ display.d
+@MAKE_INCLUDE@ editing.d
+@MAKE_INCLUDE@ keymap.d
+@MAKE_INCLUDE@ lineedit.d
+@MAKE_INCLUDE@ mkcmds.d
+@MAKE_INCLUDE@ terminfo.d
+@MAKE_INCLUDE@ trie.d

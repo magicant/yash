@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2009 magicant
+# (C) 2007-2010 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .POSIX:
-.SUFFIXES: .c .h .o .a
+.SUFFIXES: .c .h .d .o .a
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -23,7 +23,8 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 DIRS = @DIRS@
-SOURCES = alias.c alias.h arith.c arith.h builtin.c builtin.h common.h exec.c exec.h expand.c expand.h hashtable.c hashtable.h history.c history.h input.c input.h job.c job.h mail.c mail.h mksignum.c option.c option.h parser.c parser.h path.c path.h plist.c plist.h redir.c redir.h sig.c sig.h siglist.h strbuf.c strbuf.h util.c util.h variable.c variable.h xfnmatch.c xfnmatch.h yash.c yash.h
+SOURCES = alias.c arith.c builtin.c exec.c expand.c hashtable.c history.c input.c job.c mail.c mksignum.c option.c parser.c path.c plist.c redir.c sig.c strbuf.c util.c variable.c xfnmatch.c yash.c
+HEADERS = alias.h arith.h builtin.h common.h exec.h expand.h hashtable.h history.h input.h job.h mail.h option.h parser.h path.h plist.h redir.h sig.h siglist.h strbuf.h util.h variable.h xfnmatch.h yash.h
 OBJS = @OBJS@
 TARGET = @TARGET@
 BYPRODUCTS = mksignum.o mksignum signum.h *.dSYM
@@ -44,19 +45,6 @@ lineedit/@LINEEDIT_ARCHIVE@: _PHONY
 signum.h: mksignum
 	./mksignum > $@
 sig.o: signum.h
-
-depends: Makefile.deps
-Makefile.deps: _PHONY
-	@+$(MAKE) $(TARGET)
-	./$(TARGET) makedepend.sh $(DIRS)
-	@for d in $(DIRS); do \
-		echo Remaking $$d/Makefile; \
-		mv $$d/Makefile $$d/Makefile.old && \
-		sed -n -e '/^#=#=#.*makedepend/q' -e 'p' \
-			$$d/Makefile.old >$$d/Makefile && \
-		rm -f $$d/Makefile.old && \
-		cat $$d/Makefile.deps >>$$d/Makefile; \
-	done
 
 test check: all
 	@+cd tests && $(MAKE) test-all
@@ -83,8 +71,9 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 DISTDIR = @DISTDIR@
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in Makefile.deps install-sh makedepend.sh
-distcontents: $(DISTCONTENTS)
+DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
+# "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
+distcontents: $(DISTCONTENTS) $(OBJS)
 $(DISTDIR):
 	rm -fr $@
 	mkdir $@
@@ -93,7 +82,7 @@ $(DISTDIR):
 		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents) || \
 		exit; \
 	done
-copy-distcontents: $(DISTCONTENTS)
+copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
 	@echo Copying contents to $(DISTTARGETDIR)
 	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
@@ -124,12 +113,12 @@ $(DISTDIR).zip: $(DISTDIR)
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGSARGS = @CTAGSARGS@
 ETAGSARGS = @ETAGSARGS@
-tags: $(SOURCES)
+tags: $(SOURCES) $(HEADERS)
 	ctags $(CTAGSARGS)
-TAGS: $(SOURCES)
+TAGS: $(SOURCES) $(HEADERS)
 	etags $(ETAGSARGS)
 cscope: cscope.out
-cscope.out: $(SOURCES)
+cscope.out: $(SOURCES) $(HEADERS)
 	cscope -bR
 
 mostlyclean: _mostlyclean
@@ -153,12 +142,11 @@ _distclean: _clean
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
-	-rm -rf Makefile.deps
 	@+$(MAKE) _distclean
 	-@+cd builtins && $(MAKE) maintainer-clean
 	-@+cd lineedit && $(MAKE) maintainer-clean
 	-@+cd tests    && $(MAKE) maintainer-clean
-	-@+cd doc      && $(MAKE) maintainer-clean
+	-rm -rf $(SOURCES:.c=.d)
 
 reconfigure:
 	@script=$$(echo '/# Invocation command line was:/ {'; \
@@ -168,7 +156,28 @@ reconfigure:
 	else echo 'Cannot reconfigure.' >&2; false; \
 	fi
 
-.PHONY: all depends test check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
+.PHONY: all test check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
 
-
+@MAKE_INCLUDE@ alias.d
+@MAKE_INCLUDE@ arith.d
+@MAKE_INCLUDE@ builtin.d
+@MAKE_INCLUDE@ exec.d
+@MAKE_INCLUDE@ expand.d
+@MAKE_INCLUDE@ hashtable.d
+@MAKE_INCLUDE@ history.d
+@MAKE_INCLUDE@ input.d
+@MAKE_INCLUDE@ job.d
+@MAKE_INCLUDE@ mail.d
+@MAKE_INCLUDE@ mksignum.d
+@MAKE_INCLUDE@ option.d
+@MAKE_INCLUDE@ parser.d
+@MAKE_INCLUDE@ path.d
+@MAKE_INCLUDE@ plist.d
+@MAKE_INCLUDE@ redir.d
+@MAKE_INCLUDE@ sig.d
+@MAKE_INCLUDE@ strbuf.d
+@MAKE_INCLUDE@ util.d
+@MAKE_INCLUDE@ variable.d
+@MAKE_INCLUDE@ xfnmatch.d
+@MAKE_INCLUDE@ yash.d
