@@ -29,8 +29,8 @@ TEST_SOURCES = alias.p.tst alias.p.out alias.y.tst alias.y.out \
 	expand.p.tst expand.p.out expand.y.tst expand.y.out \
 	fnmatch.p.tst fnmatch.p.out \
 	history.y.tst history.y.out \
-	input.p.tst input.p.out input.p.err input.p.OUT input.p.ERR input.p.t \
-	input.y.tst input.y.out input.y.err input.y.ERR input.y.t \
+	input.p.tst input.p.out input.p.err input.p.oux input.p.erx input.p.t \
+	input.y.tst input.y.out input.y.err input.y.erx input.y.t \
 	job.p.tst job.p.out \
 	option.p.tst option.p.out option.p.err option.y.tst option.y.out \
 	parser.p.tst parser.p.out parser.y.tst parser.y.out \
