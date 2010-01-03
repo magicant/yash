@@ -660,8 +660,8 @@ then
     defconfigh "HAVE_S_ISVTX"
 fi
 
-# check if the "st_mtim"/"st_mtimespec"/"st_mtimensec" member of the "stat"
-# structure is available
+# check if the "st_mtim"/"st_mtimespec"/"st_mtimensec"/"__st_mtimensec" member
+# of the "stat" structure is available
 if
     checking 'for st_mtim' st_mtim
     if ! getcache
@@ -721,6 +721,25 @@ END
     [ x"${checkresult}" = x"yes" ]
 then
     defconfigh "HAVE_ST_MTIMENSEC"
+elif
+    checking 'for __st_mtimensec' __st_mtimensec
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.__st_mtimensec = 0;
+return st.__st_mtimensec != 0;
+}
+END
+	trymake
+    fi
+    checked
+    [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE___ST_MTIMENSEC"
 fi
 
 # check if WCONTINUED and WIFCONTINUED are available

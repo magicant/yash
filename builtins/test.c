@@ -630,6 +630,11 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 	return FC_OLDER;
     else if (sl.st_mtimensec > sr.st_mtimensec)
 	return FC_NEWER;
+#elif HAVE___ST_MTIMENSEC
+    else if (sl.__st_mtimensec < sr.__st_mtimensec)
+	return FC_OLDER;
+    else if (sl.__st_mtimensec > sr.__st_mtimensec)
+	return FC_NEWER;
 #endif
     else
 	return FC_SAME;
