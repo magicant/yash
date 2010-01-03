@@ -614,7 +614,7 @@ then
 #ifndef wcstold
 long double wcstold(const wchar_t *restrict, wchar_t **restrict);
 #endif
-int main() { return wcstold(L"10.0", (const wchar_t *) 0) != 10.0; }
+int main() { return wcstold(L"10.0", (wchar_t **) 0) != 10.0; }
 END
     trymake && tryexec
 fi
