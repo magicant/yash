@@ -1000,13 +1000,13 @@ void free_candcol(void *candcol)
  * If `le_comppages' is NULL, this function does nothing. */
 void print_candidates_all(void)
 {
+    lebuf_print_sgr0(), styler_active = false;
     go_to_after_editline();
     clear_to_end_of_screen();
     assert(lebuf.pos.column == 0);
 
     if (le_candidates.length == 0)
 	return;
-    lebuf_print_sgr0(), styler_active = false;
 
     size_t pageindex = le_selected_candidate_index < le_candidates.length
 	? page_of_col(col_of_cand(le_selected_candidate_index))
