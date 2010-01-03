@@ -255,6 +255,8 @@ static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 
+static void check_last_cmd_for_completion(void);
+
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
@@ -2111,7 +2113,47 @@ void cmd_complete(wchar_t c __attribute__((unused)))
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
+    check_last_cmd_for_completion();
     le_complete();
+
+    reset_state();
+}
+
+/* Selects the next completion candidate.
+ * If the count is set, selects the `count'th next candidate. */
+void cmd_complete_forward(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    check_last_cmd_for_completion();
+    le_complete_select(get_count(1));
+
+    reset_state();
+}
+
+/* Selects the previous completion candidate.
+ * If the count is set, selects the `count'th previous candidate. */
+void cmd_complete_backward(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+
+    check_last_cmd_for_completion();
+    le_complete_select(-get_count(1));
+
+    reset_state();
+}
+
+/* Calls `le_complete_cleanup' to cancel the current candidates if the last
+ * command was not a completion command or digit. */
+void check_last_cmd_for_completion(void)
+{
+    if (last_command.func != cmd_digit_argument
+	    && last_command.func != cmd_complete
+	    && last_command.func != cmd_complete_forward
+	    && last_command.func != cmd_complete_backward)
+	le_complete_cleanup();
 }
 
 

@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -39,11 +40,13 @@ static void compdebug(const char *format, ...)
  * `le_candidate_T'. */
 plist_T le_candidates = { .contents = NULL };
 /* The index of the currently selected candidate in `le_candidates'.
- * When no candidate is selected, the index is >= `le_candidates.length'. */
+ * When no candidate is selected, the index is `le_candidates.length'. */
 size_t le_selected_candidate_index;
 
 
-/* Performs command line completion. */
+/* Performs command line completion.
+ * Existing candidates are deleted, if any, and candidates are computed from
+ * the current command line. */
 void le_complete(void)
 {
     if (shopt_le_compdebug) {
@@ -53,20 +56,18 @@ void le_complete(void)
 	compdebug("completion start");
     }
 
-    if (le_candidates.contents == NULL)
-	pl_init(&le_candidates);
+    le_complete_cleanup();
+    pl_init(&le_candidates);
 
     //TODO
     // this is test implementation
-    if (le_candidates.length == 0) {
-	for (int i = 0; i < 97; i++) {
-	    le_candidate_T *cand = xmalloc(sizeof *cand);
-	    cand->rawvalue = malloc_printf("cand%d", i + 5);
-	    cand->width = strlen(cand->rawvalue);
-	    pl_add(&le_candidates, cand);
-	}
-	le_selected_candidate_index = le_candidates.length / 2;
+    for (int i = 0; i < 97; i++) {
+	le_candidate_T *cand = xmalloc(sizeof *cand);
+	cand->rawvalue = malloc_printf("cand%d", i + 5);
+	cand->width = strlen(cand->rawvalue);
+	pl_add(&le_candidates, cand);
     }
+    le_selected_candidate_index = le_candidates.length;
 
     if (shopt_le_compdebug) {
 	compdebug("completion end");
@@ -74,6 +75,25 @@ void le_complete(void)
 	le_set_terminal();
 	le_state = LE_STATE_ACTIVE;
     }
+}
+
+/* Increases `le_selected_candidate_index' by `offset', selecting the `offset'th
+ * next candidate. If there are no candidates, simply calls `le_complete' to
+ * produce candidates. */
+void le_complete_select(int offset)
+{
+    if (le_candidates.contents == NULL) {
+	le_complete();
+	return;
+    }
+
+    assert(le_selected_candidate_index <= le_candidates.length);
+    offset %= (int) le_candidates.length + 1;
+    if (offset < 0)
+	offset += (int) le_candidates.length + 1;
+    assert(offset >= 0);
+    le_selected_candidate_index += offset;
+    le_selected_candidate_index %= le_candidates.length + 1;
 }
 
 /* Clears the current candidates. */

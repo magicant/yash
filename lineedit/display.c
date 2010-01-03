@@ -1017,9 +1017,11 @@ void print_candidates_all(void)
     if (candpages.length > 1) {  /* print status line */
 	lebuf_print_nel();
 
+	size_t sindex = (le_selected_candidate_index < le_candidates.length)
+	    ? le_selected_candidate_index + 1
+	    : 0;
 	char *s1 = malloc_printf(gt("Candidate %zu of %zu; Page %zu of %zu"),
-		le_selected_candidate_index + 1, le_candidates.length,
-		pageindex + 1, candpages.length);
+		sindex, le_candidates.length, pageindex + 1, candpages.length);
 	if (s1 != NULL) {
 	    wchar_t *s2 = realloc_mbstowcs(s1);
 	    if (s2 != NULL) {

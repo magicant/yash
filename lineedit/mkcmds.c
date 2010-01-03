@@ -102,6 +102,8 @@ static char *commands[] = {
     "cancel-undo-all",
     "redo",
     "complete",
+    "complete-forward",
+    "complete-backward",
     "vi-replace-char",
     "vi-insert-beginning",
     "vi-append",

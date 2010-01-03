@@ -135,7 +135,9 @@ extern le_command_func_T
 
 /* completion commands */
 extern le_command_func_T
-    cmd_complete;
+    cmd_complete,
+    cmd_complete_forward,
+    cmd_complete_backward;
 
 /* vi-mode specific commands */
 extern le_command_func_T
