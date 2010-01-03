@@ -288,6 +288,8 @@ void lebuf_putws_trunc(const wchar_t *s)
 
 /********** Displaying **********/
 
+enum highlight_T { HI_NORMAL, HI_HIGHLIGHT, HI_DEHIGHLIGHT, };
+
 static void clean_up(void);
 static void clear_to_end_of_screen(void);
 static void clear_editline(void);
@@ -310,9 +312,11 @@ static void free_candpage(void *candpage)
 static void free_candcol(void *candcol)
     __attribute__((nonnull));
 static void print_candidates_all(void);
+static void update_highlighted_candidate(void);
 static void print_candidate(
-	const le_candidate_T *cand, int colwidth, bool highlight)
+	const le_candidate_T *cand, int colwidth, enum highlight_T highlight)
     __attribute__((nonnull));
+static void print_candidate_count(size_t pageindex);
 static size_t col_of_cand(size_t candindex);
 static int col_of_cand_cmp(const void *candindexp, const void *colp)
     __attribute__((nonnull));
@@ -387,6 +391,10 @@ static plist_T candpages = { .contents = NULL };
  * The elements pointed to by `candcols.contents[*]' are of type `candcol_T'.
  * `candcols' is active iff `candpages' is active. */
 static plist_T candcols = { .contents = NULL };
+/* The index of the candidate that is currently highlighted.
+ * The value is NOHIGHLIGHT when no candidate is highlighted. */
+static size_t candhighlight;
+#define NOHIGHLIGHT ((size_t) -1)
 /* The number of the first line on which the candidate area is displayed.
  * When the candidate area is inactive, this value is negative. */
 /* When the candidate area is overwritten by the edit line or the right prompt,
@@ -512,7 +520,7 @@ void le_display_update(bool cursor)
     if (!display_active) {
 	display_active = true;
 	last_edit_line = line_max = 0;
-	candbaseline = -1, candoverwritten = false;
+	candhighlight = NOHIGHLIGHT, candbaseline = -1, candoverwritten = false;
 
 	/* prepare the right prompt */
 	lebuf_init((le_pos_T) { 0, 0 });
@@ -825,12 +833,15 @@ void fillip_cursor(void)
  * The cursor is left at an unspecified position when this function returns. */
 void update_candidates(void)
 {
-    //TODO
-    if (le_candidates.contents != NULL) {
-	// candbaseline? candoverwritten?
-	le_display_complete_cleanup();
-	make_pages_and_columns();
-	print_candidates_all();
+    if (le_candidates.contents != NULL || candbaseline >= 0) {
+	if (candoverwritten)
+	    le_display_complete_cleanup();
+	if (candpages.contents == NULL)
+	    make_pages_and_columns();
+	if (le_candidates.contents == NULL || candbaseline < 0)
+	    print_candidates_all();
+	else
+	    update_highlighted_candidate();
     }
 }
 
@@ -841,7 +852,7 @@ void update_candidates(void)
  * The results are assigned to `candpages' and `candcols', which must be
  * uninitialized when this function is called.
  * If there are too few lines available to show the candidates on the screen or
- * if there is no candidates, this function does nothing. */
+ * if there are no candidates, this function does nothing. */
 void make_pages_and_columns(void)
 {
     assert(candpages.contents == NULL);
@@ -951,6 +962,7 @@ void divide_candidates_pages(size_t cand_per_col)
 }
 
 /* Clears data used for displaying the candidate area. */
+/* Must be called when the current candidates are updated. */
 void le_display_complete_cleanup(void)
 {
     if (candpages.contents != NULL) {
@@ -961,6 +973,7 @@ void le_display_complete_cleanup(void)
 	recfree(pl_toary(&candcols), free_candcol);
 	candcols.contents = NULL;
     }
+    candhighlight = NOHIGHLIGHT;
 }
 
 /* Frees a completion candidate page.
@@ -1007,7 +1020,8 @@ void print_candidates_all(void)
 	size_t index = col->candindex + i;
 	const le_candidate_T *cand = le_candidates.contents[index];
 	bool highlight = le_selected_candidate_index == index;
-	print_candidate(cand, col->width, highlight);
+	print_candidate(cand, col->width,
+		highlight ? HI_HIGHLIGHT : HI_NORMAL);
 
 	if (++i == col->candcount)
 	    break;
@@ -1016,19 +1030,7 @@ void print_candidates_all(void)
 
     if (candpages.length > 1) {  /* print status line */
 	lebuf_print_nel();
-
-	size_t sindex = (le_selected_candidate_index < le_candidates.length)
-	    ? le_selected_candidate_index + 1
-	    : 0;
-	char *s1 = malloc_printf(gt("Candidate %zu of %zu; Page %zu of %zu"),
-		sindex, le_candidates.length, pageindex + 1, candpages.length);
-	if (s1 != NULL) {
-	    wchar_t *s2 = realloc_mbstowcs(s1);
-	    if (s2 != NULL) {
-		lebuf_putws_trunc(s2);
-		free(s2);
-	    }
-	}
+	print_candidate_count(pageindex);
     }
 
     int column = col->width + 2;
@@ -1041,29 +1043,144 @@ void print_candidates_all(void)
 	    size_t candindex = col->candindex + i;
 	    const le_candidate_T *cand = le_candidates.contents[candindex];
 	    bool highlight = le_selected_candidate_index == candindex;
-	    print_candidate(cand, col->width, highlight);
+	    print_candidate(cand, col->width,
+		    highlight ? HI_HIGHLIGHT : HI_NORMAL);
 	}
 	column += col->width + 2;
+    }
+
+    candhighlight = le_selected_candidate_index < le_candidates.length
+	? le_selected_candidate_index : NOHIGHLIGHT;
+}
+
+/* Reprints the highlighted candidate.
+ * The previously highlighted candidate is reprinted in the normal manner and
+ * the currently selected candidate is highlighted.
+ * The cursor may be anywhere when this function is called and is left at an
+ * unspecified position when this function returns. */
+void update_highlighted_candidate(void)
+{
+    if (candhighlight == le_selected_candidate_index)
+	return;
+
+    size_t oldpageindex, oldcolindex, newpageindex, newcolindex;
+
+    if (candhighlight < le_candidates.length) {
+	oldcolindex = col_of_cand(candhighlight);
+	oldpageindex = page_of_col(oldcolindex);
+    } else {
+	oldcolindex = 0;
+	oldpageindex = 0;
+    }
+    if (le_selected_candidate_index < le_candidates.length) {
+	newcolindex = col_of_cand(le_selected_candidate_index);
+	newpageindex = page_of_col(newcolindex);
+    } else {
+	newcolindex = 0;
+	newpageindex = 0;
+    }
+    if (oldpageindex != newpageindex || candoverwritten) {
+	print_candidates_all();
+	return;
+    }
+
+    lebuf_print_sgr0(), styler_active = false;
+
+    const candpage_T *page = candpages.contents[newpageindex];
+    const candcol_T *col;
+    const le_candidate_T *cand;
+    int column;
+    size_t rowindex;
+
+    /* de-highlight the previous selected candidate */
+    if (candhighlight < le_candidates.length) {
+	column = 0;
+	for (size_t i = page->colindex; i < oldcolindex; i++) {
+	    col = candcols.contents[i];
+	    column += col->width + 2;
+	}
+	col = candcols.contents[oldcolindex];
+	rowindex = candhighlight - col->candindex;
+	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
+			   .column = column });
+	cand = le_candidates.contents[candhighlight];
+	print_candidate(cand, col->width, HI_DEHIGHLIGHT);
+    }
+
+    /* highlight the current selected candidate */
+    if (le_selected_candidate_index < le_candidates.length) {
+	candhighlight = le_selected_candidate_index;
+	column = 0;
+	for (size_t i = page->colindex; i < newcolindex; i++) {
+	    col = candcols.contents[i];
+	    column += col->width + 2;
+	}
+	col = candcols.contents[newcolindex];
+	rowindex = candhighlight - col->candindex;
+	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
+			   .column = column });
+	cand = le_candidates.contents[candhighlight];
+	print_candidate(cand, col->width, HI_HIGHLIGHT);
+    } else {
+	candhighlight = NOHIGHLIGHT;
+    }
+
+    /* print status line */
+    if (candpages.length > 1) {
+	col = candcols.contents[page->colindex];
+	go_to((le_pos_T) { .line = candbaseline + col->candcount,
+	                   .column = 0 });
+	lebuf_print_el();
+	print_candidate_count(newpageindex);
     }
 }
 
 /* Prints the specified candidate at the current cursor position.
  * `colwidth' specifies the max width of the candidates in the column to which
- * `cand' belongs. If `highlight' is true, the candidate is printed in a manner
- * different from normal.
+ * `cand' belongs. `highlight' specifies how the candidate is highlighted:
+ *   HI_NORMAL:       not highlighted. Suited for printing on blanks.
+ *   HI_HIGHLIGHT:    highlighted.
+ *   HI_DEHIGHLIGHT:  not highlighted. Suited for rewriting over an existing
+ *                    highlighted candidate.
  * The cursor is left just after the printed candidate. */
-void print_candidate(const le_candidate_T *cand, int colwidth, bool highlight)
+void print_candidate(
+	const le_candidate_T *cand, int colwidth, enum highlight_T highlight)
 {
-    if (highlight)
+    if (highlight == HI_HIGHLIGHT)
 	lebuf_print_bold();
-    lebuf_putchar(highlight ? '[' : ' ');
+    lebuf_putchar(highlight == HI_HIGHLIGHT ? '[' : ' ');
     sb_cat(&lebuf.buf, cand->rawvalue);
     lebuf.pos.column += cand->width + 1;
-    if (highlight) {
+    if (highlight != HI_NORMAL) {
 	lebuf_print_cuf(colwidth - cand->width);
-	lebuf_putchar(']');
+	lebuf_putchar(highlight == HI_HIGHLIGHT ? ']' : ' ');
 	lebuf.pos.column += 1;
-	lebuf_print_sgr0();
+	if (highlight == HI_HIGHLIGHT)
+	    lebuf_print_sgr0();
+    }
+}
+
+/* Prints the number of the currently selected candidate, the total number of
+ * the candidates, the number of the current page, and the total number of the
+ * pages at the current position.
+ * The index of the page to which the selected candidate belong must be given
+ * as `pageindex'.
+ * If there is not enough room on the current line, the line is truncated. */
+void print_candidate_count(size_t pageindex)
+{
+    size_t sindex = (le_selected_candidate_index < le_candidates.length)
+	? le_selected_candidate_index + 1
+	: 0;
+    char *s1 = malloc_printf(gt("Candidate %zu of %zu; Page %zu of %zu"),
+	    sindex, le_candidates.length, pageindex + 1, candpages.length);
+
+    if (s1 != NULL) {
+	wchar_t *s2 = realloc_mbstowcs(s1);
+
+	if (s2 != NULL) {
+	    lebuf_putws_trunc(s2);
+	    free(s2);
+	}
     }
 }
 
