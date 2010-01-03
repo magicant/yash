@@ -997,7 +997,8 @@ void free_candcol(void *candcol)
  * `make_pages_and_columns' must have been called before calling this function.
  * The cursor may be anywhere when this function is called.
  * The cursor is left at an unspecified position when this function returns.
- * If `le_comppages' is NULL, this function does nothing. */
+ * If there are no candidates, this function does nothing but clearing the
+ * candidate area. */
 void print_candidates_all(void)
 {
     lebuf_print_sgr0(), styler_active = false;
@@ -1005,7 +1006,7 @@ void print_candidates_all(void)
     clear_to_end_of_screen();
     assert(lebuf.pos.column == 0);
 
-    if (le_candidates.length == 0)
+    if (le_candidates.contents == NULL || le_candidates.length == 0)
 	return;
 
     size_t pageindex = le_selected_candidate_index < le_candidates.length
@@ -1056,10 +1057,13 @@ void print_candidates_all(void)
 /* Reprints the highlighted candidate.
  * The previously highlighted candidate is reprinted in the normal manner and
  * the currently selected candidate is highlighted.
+ * Before calling this function, the candidate area must have been printed by
+ * `print_candidates_all'.
  * The cursor may be anywhere when this function is called and is left at an
  * unspecified position when this function returns. */
 void update_highlighted_candidate(void)
 {
+    assert(candbaseline >= 0);
     if (candhighlight == le_selected_candidate_index)
 	return;
 
