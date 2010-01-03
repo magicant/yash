@@ -1008,12 +1008,10 @@ then
     then
 	cat >"${tempsrc}" <<END
 #include "${configh}"
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/resource.h>
 int main() {
-struct rlimit l;
-(void) RLIM_SAVED_MAX;
-(void) RLIM_SAVED_CUR;
-(void) RLIM_INFINITY;
+struct rlimit l = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY };
 getrlimit(RLIMIT_FSIZE, &l);
 setrlimit(RLIMIT_FSIZE, &l);
 }
@@ -1032,6 +1030,32 @@ END
     fi
 fi
 
+# check for RLIM_SAVED_CUR & RLIM_SAVED_MAX
+if [ x"$enable_ulimit" = x"yes" ]
+then
+    for i in CUR MAX
+    do
+	checking "for RLIM_SAVED_${i}" "RLIM_SAVED_${i}"
+	if ! getcache
+	then
+	    cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
+#include <sys/resource.h>
+int main() {
+struct rlimit l = { .rlim_cur = RLIM_SAVED_${i}, .rlim_max = RLIM_SAVED_${i} };
+}
+END
+	    trymake
+	fi
+	checked
+	if [ x"${checkresult}" = x"yes" ]
+	then
+	    defconfigh "HAVE_RLIM_SAVED_${i}"
+	fi
+    done
+fi
+
 # check for RLIMIT_***
 if [ x"$enable_ulimit" = x"yes" ]
 then
@@ -1042,6 +1066,7 @@ then
 	then
 	    cat >"${tempsrc}" <<END
 #include "${configh}"
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/resource.h>
 int main() { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
 END
