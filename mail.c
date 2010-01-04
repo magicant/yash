@@ -39,8 +39,16 @@
 
 /* The type of objects used to remember the status of files for mail checking.*/
 typedef struct mailfile_T {
-    time_t mtime;
-    char filename[];
+#if HAVE_ST_MTIM || HAVE_ST_MTIMESPEC
+    struct timespec mf_mtim;
+# define mf_mtime mf_mtim.tv_sec
+#else
+    time_t mf_mtime;
+# if HAVE_ST_MTIMENSEC || HAVE___ST_MTIMENSEC
+    unsigned long mf_mtimensec;
+# endif
+#endif
+    char mf_filename[];
 } mailfile_T;
 
 static void activate(void);
@@ -56,8 +64,8 @@ static void print_message(const wchar_t *message)
 
 
 /* A hashtable that contains `mailfile_T' objects.
- * The keys are pointers to the `filename' member of `mailfile_T' objects, and
- * the values are pointers to the `mailfile_T' objects themselves.
+ * The keys are pointers to the `mf_filename' member of `mailfile_T' objects,
+ * and the values are pointers to the `mailfile_T' objects themselves.
  * When mail checking is not activated, the capacity of the hashtable is set to
  * zero. */
 static hashtable_T mailfiles;
@@ -194,25 +202,52 @@ char *get_path_and_message(const char *pathmsg, wchar_t **msgp)
 /* Checks if the specified file is updated. */
 bool is_update(const char *path)
 {
-    time_t newtime;
-    {
-	struct stat st;
-	if (stat(path, &st) < 0)
-	    newtime = 0;
-	else
-	    newtime = st.st_mtime;
+    struct stat st;
+    if (stat(path, &st) < 0) {
+	st.st_mtime = 0;
+#if HAVE_ST_MTIM
+	st.st_mtim.tv_nsec = 0;
+#elif HAVE_ST_MTIMESPEC
+	st.st_mtimespec.tv_nsec = 0;
+#elif HAVE_ST_MTIMENSEC
+	st.st_mtimensec = 0;
+#elif HAVE___ST_MTIMENSEC
+	st.__st_mtimensec = 0;
+#endif
     }
 
+    bool result;
     mailfile_T *mf = ht_get(&mailfiles, path).value;
-    if (!mf) {
+
+    if (mf != NULL) {
+	result = st.st_mtime != 0 && (st.st_mtime != mf->mf_mtime
+#if HAVE_ST_MTIM
+	    || st.st_mtim.tv_nsec != mf->mf_mtim.tv_nsec
+#elif HAVE_ST_MTIMESPEC
+	    || st.st_mtimespec.tv_nsec != mf->mf_mtim.tv_nsec
+#elif HAVE_ST_MTIMENSEC
+	    || (unsigned long) st.st_mtimensec != mf->mf_mtimensec
+#elif HAVE___ST_MTIMENSEC
+	    || (unsigned long) st.__st_mtimensec != mf->mf_mtimensec
+#endif
+	    );
+    } else {
 	mf = xmalloc(sizeof *mf + strlen(path) + 1);
-	mf->mtime = newtime;
-	strcpy(mf->filename, path);
-	ht_set(&mailfiles, mf->filename, mf);
+	strcpy(mf->mf_filename, path);
+	ht_set(&mailfiles, mf->mf_filename, mf);
+	result = false;
     }
 
-    bool result = mf->mtime != newtime && newtime != 0;
-    mf->mtime = newtime;
+#if HAVE_ST_MTIM || HAVE_ST_MTIMESPEC
+    mf->mf_mtim = st.st_mtim;
+#else
+    mf->mf_mtime = st.st_mtime;
+# if HAVE_ST_MTIMENSEC
+    mf->mf_mtimensec = (unsigned long) st.st_mtimensec;
+# elif HAVE___ST_MTIMENSEC
+    mf->mf_mtimensec = (unsigned long) st.__st_mtimensec;
+# endif
+#endif
     return result;
 }
 

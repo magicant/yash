@@ -666,10 +666,12 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 		else
 		    arg = L"0";
 		errno = 0;
-		if (posixly_correct)
-		    value = wcstod(arg, &end);
-		else
+#if HAVE_WCSTOLD
+		if (!posixly_correct)
 		    value = wcstold(arg, &end);
+		else
+#endif
+		    value = wcstod(arg, &end);
 		if (errno || arg[0] == L'\0' || *end != L'\0')
 		    xerror(errno, Ngt("`%ls' is not a valid number"), arg);
 		if (printf(format->value.convspec, value) < 0)

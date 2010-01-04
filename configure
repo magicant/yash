@@ -1,5 +1,5 @@
 # Manually written configuration script for yash
-# (C) 2007-2009 magicant
+# (C) 2007-2010 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
 makefile="Makefile"
 makefilein="Makefile.in"
-makefiledeps="Makefile.deps"
 configcache="config.cache"
 configlog="config.log"
 configh="config.h"
 versionh="version.h"
 tempsrc=".temp.c"
 tempo=".temp.o"
+tempd=".temp.d"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
 dirs=". builtins doc lineedit tests"
@@ -47,6 +47,9 @@ history_objs="history.o"
 printf_objs="printf.o"
 test_objs="test.o"
 ulimit_objs="ulimit.o"
+
+# dependency files
+depfiles="alias.d arith.d builtin.d exec.d expand.d hashtable.d history.d input.d job.d mail.d mksignum.d option.d parser.d path.d plist.d redir.d sig.d strbuf.d util.d variable.d xfnmatch.d yash.d builtins/printf.d builtins/test.d builtins/ulimit.d lineedit/display.d lineedit/editing.d lineedit/keymap.d lineedit/lineedit.d lineedit/mkcmds.d lineedit/terminfo.d lineedit/trie.d tests/invoke.d tests/resetsig.d"
 
 help="no"
 gcc=""
@@ -169,10 +172,11 @@ END
     exit
 fi
 
-
-trap 'rm -f "${tempsrc}" "${tempo}" "${tempout}" "${temptxt}"' EXIT
-trap 'rm -f "${tempsrc}" "${tempo}" "${tempout}" "${temptxt}"; exit 1' \
-    HUP INT QUIT ABRT TERM PIPE USR1 USR2
+clean_up () {
+    rm -f "${tempsrc}" "${tempo}" "${tempout}" "${temptxt}" "${tempd}"
+}
+trap 'clean_up' EXIT
+trap 'clean_up; exit 1' HUP INT QUIT ABRT TERM PIPE USR1 USR2
 trap '' ALRM
 
 if [ -r "${configcache}" ] &&
@@ -204,11 +208,14 @@ exec 6>"${configh}"
     done
     echo
     echo
-    printf '# uname -n = %s\n' "$(uname -n)"
-    printf '# uname -m = %s\n' "$(uname -m)"
-    printf '# uname -r = %s\n' "$(uname -r)"
-    printf '# uname -s = %s\n' "$(uname -s)"
-    printf '# uname -v = %s\n' "$(uname -v)"
+    printf '# uname -i = %s\n' "$(uname -i 2>/dev/null || echo ?)"
+    printf '# uname -n = %s\n' "$(uname -n 2>/dev/null || echo ?)"
+    printf '# uname -m = %s\n' "$(uname -m 2>/dev/null || echo ?)"
+    printf '# uname -o = %s\n' "$(uname -o 2>/dev/null || echo ?)"
+    printf '# uname -p = %s\n' "$(uname -p 2>/dev/null || echo ?)"
+    printf '# uname -r = %s\n' "$(uname -r 2>/dev/null || echo ?)"
+    printf '# uname -s = %s\n' "$(uname -s 2>/dev/null || echo ?)"
+    printf '# uname -v = %s\n' "$(uname -v 2>/dev/null || echo ?)"
     echo
     printf '# PATH=%s\n' "$PATH"
     echo
@@ -318,7 +325,6 @@ posix=$(getconf _POSIX_VERSION 2>/dev/null)
 if [ -n "${posix}" ] && [ x"${posix}" != x"undefined" ]
 then
     checked "${posix}"
-    defconfigh "_POSIX_C_SOURCE" "${posix}L"
     if [ "${posix}" -lt 200112 ]
     then
 	posix=""
@@ -327,6 +333,7 @@ else
     checked "no"
     posix=""
 fi
+defconfigh "_POSIX_C_SOURCE" "200809L"
 
 if [ -n "${posix}" ]
 then
@@ -335,7 +342,6 @@ then
     if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]
     then
 	checked "${xopen}"
-	defconfigh "_XOPEN_SOURCE" "${xopen}"
 	if [ "${xopen}" -lt 600 ]
 	then
 	    xopen=""
@@ -345,6 +351,7 @@ then
 	xopen=""
     fi
 fi
+defconfigh "_XOPEN_SOURCE" "700"
 
 
 # check if gcc is available if the debug option is enabled
@@ -356,7 +363,7 @@ then
     then
 	checked "yes"
 	gcc="yes" cc="${CC:-gcc}"
-	cflags="-std=c99 -pedantic -O1 -fno-inline -ggdb -Wall -Wextra"
+	cflags="-std=c99 -pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb"
     else
 	checked "no"
 	echo "--debug option specified but GCC is not available" >&2
@@ -410,10 +417,63 @@ END
     unset savecflags
 fi
 
+# check if make supports include statements
+checking 'whether make supports include statements'
+if
+    cat >"${temptxt}" <<END
+_TEST_:
+	@echo >/dev/null
+END
+    checkby eval "${MAKE:-make} -f - _TEST_ <<END
+include ${temptxt}
+END
+"
+then
+    checked "yes"
+    make_supports_include=true make_include='include'
+else
+    checked "no"
+    make_supports_include=false make_include='# include'
+fi
+
 
 # check if terminfo is available
 if [ x"${enable_lineedit}" = x"yes" ]
 then
+    checking 'for curses.h' curses.h
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <curses.h>
+int main() { return 0; }
+END
+	trymake
+    fi
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_CURSES_H"
+    fi
+
+    checking 'for term.h' term.h
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <term.h>
+int main() { return 0; }
+END
+	trymake
+    fi
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_TERM_H"
+    fi
+
     checking 'for terminfo library' terminfo
     saveldlibs="${ldlibs}"
     if getcache
@@ -424,8 +484,16 @@ then
 #include "${configh}"
 #define _XOPEN_SOURCE_EXTENDED 1
 #include <stdio.h>
+#if HAVE_CURSES_H
 #include <curses.h>
+#else
+#include <ncurses/curses.h>
+#endif
+#if HAVE_TERM_H
 #include <term.h>
+#else
+#include <ncurses/term.h>
+#endif
 int main() {
 setupterm((char*)0, 1, (int*)0);
 tigetflag("");
@@ -538,6 +606,26 @@ then
     defconfigh "HAVE_WCSNLEN"
 fi
 
+# check for wcstold
+checking 'for wcstold' wcstold
+if ! getcache
+then
+    cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <wchar.h>
+#ifndef wcstold
+long double wcstold(const wchar_t *restrict, wchar_t **restrict);
+#endif
+int main() { return wcstold(L"10.0", (wchar_t **) 0) != 10.0; }
+END
+    trymake && tryexec
+fi
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_WCSTOLD"
+fi
+
 # check for wcwidth
 checking 'for wcwidth' wcwidth
 if ! getcache
@@ -572,8 +660,8 @@ then
     defconfigh "HAVE_S_ISVTX"
 fi
 
-# check if the "st_mtim"/"st_mtimespec"/"st_mtimensec" member of the "stat"
-# structure is available
+# check if the "st_mtim"/"st_mtimespec"/"st_mtimensec"/"__st_mtimensec" member
+# of the "stat" structure is available
 if
     checking 'for st_mtim' st_mtim
     if ! getcache
@@ -583,6 +671,7 @@ if
 #include <sys/stat.h>
 int main() {
 struct stat st;
+st.st_mtim = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
 struct timespec ts = st.st_mtim;
 return ts.tv_nsec != 0;
 }
@@ -602,6 +691,7 @@ elif
 #include <sys/stat.h>
 int main() {
 struct stat st;
+st.st_mtimespec = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
 struct timespec ts = st.st_mtimespec;
 return ts.tv_nsec != 0;
 }
@@ -621,6 +711,7 @@ elif
 #include <sys/stat.h>
 int main() {
 struct stat st;
+st.st_mtimensec = 0;
 return st.st_mtimensec != 0;
 }
 END
@@ -630,6 +721,25 @@ END
     [ x"${checkresult}" = x"yes" ]
 then
     defconfigh "HAVE_ST_MTIMENSEC"
+elif
+    checking 'for __st_mtimensec' __st_mtimensec
+    if ! getcache
+    then
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.__st_mtimensec = 0;
+return st.__st_mtimensec != 0;
+}
+END
+	trymake
+    fi
+    checked
+    [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE___ST_MTIMENSEC"
 fi
 
 # check if WCONTINUED and WIFCONTINUED are available
@@ -642,8 +752,8 @@ then
 #include <sys/wait.h>
 static int s;
 int main() {
+if (WIFCONTINUED(s)) { }
 return waitpid(-1, &s, WNOHANG|WCONTINUED) < 0 && errno == EINVAL;
-WIFCONTINUED(s);
 }
 END
     trymake && tryexec
@@ -917,12 +1027,10 @@ then
     then
 	cat >"${tempsrc}" <<END
 #include "${configh}"
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/resource.h>
 int main() {
-struct rlimit l;
-(void) RLIM_SAVED_MAX;
-(void) RLIM_SAVED_CUR;
-(void) RLIM_INFINITY;
+struct rlimit l = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY };
 getrlimit(RLIMIT_FSIZE, &l);
 setrlimit(RLIMIT_FSIZE, &l);
 }
@@ -941,6 +1049,32 @@ END
     fi
 fi
 
+# check for RLIM_SAVED_CUR & RLIM_SAVED_MAX
+if [ x"$enable_ulimit" = x"yes" ]
+then
+    for i in CUR MAX
+    do
+	checking "for RLIM_SAVED_${i}" "RLIM_SAVED_${i}"
+	if ! getcache
+	then
+	    cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
+#include <sys/resource.h>
+int main() {
+struct rlimit l = { .rlim_cur = RLIM_SAVED_${i}, .rlim_max = RLIM_SAVED_${i} };
+}
+END
+	    trymake
+	fi
+	checked
+	if [ x"${checkresult}" = x"yes" ]
+	then
+	    defconfigh "HAVE_RLIM_SAVED_${i}"
+	fi
+    done
+fi
+
 # check for RLIMIT_***
 if [ x"$enable_ulimit" = x"yes" ]
 then
@@ -951,6 +1085,7 @@ then
 	then
 	    cat >"${tempsrc}" <<END
 #include "${configh}"
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/resource.h>
 int main() { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
 END
@@ -997,6 +1132,13 @@ fi
 
 cflags="${cflags} -D HAVE_CONFIG_H"
 
+# create dependency files if there are none
+for f in ${depfiles}
+do
+    >>${f}
+done
+
+MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
 CC="${CC-${cc}}"
 CFLAGS="${CFLAGS-${cflags}} ${CADDS}"
 LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS}"
@@ -1025,18 +1167,21 @@ DOCDIR="${docdir-${DATAROOTDIR}/doc/yash}"
 HTMLDIR="${htmldir-${DOCDIR}}"
 DISTDIR=$(echo $PACKAGE $VERSION | sed -e 's/[[:space:]]/-/g')
 
-# create Makefile($1) from Makefile.in($2) and Makefile.deps($3)
+# create Makefile($1) from Makefile.in($2) in directory $3
 makemakefile () {
     printf "creating %s... " "$1"
     sed -e "1i\\
 # ${1##*/}: generated by configure" -f "${temptxt}" "$2" >"$1"
-    if [ -r "$3" ]; then
+    if ! $make_supports_include && ls "$3"/*.d >/dev/null 2>&1
+    then
 	printf "(including dependencies) "
-	cat "$3" >>"$1"
+	echo >>"$1"
+	cat "$3"/*.d >>"$1"
     fi
     echo "done"
 }
 cat >"${temptxt}" <<END
+s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
 s!@CC@!${CC}!g
 s!@CFLAGS@!${CFLAGS}!g
 s!@LDFLAGS@!${LDFLAGS}!g
@@ -1064,12 +1209,13 @@ s!@DISTDIR@!${DISTDIR}!g
 END
 for d in ${dirs}
 do
-    makemakefile "${d}/${makefile}" "${d}/${makefilein}" "${d}/${makefiledeps}"
+    makemakefile "${d}/${makefile}" "${d}/${makefilein}" "${d}"
 done
 
 {
     echo
     echo "===== Output variables ====="
+    echo MAKE_INCLUDE="'${MAKE_INCLUDE}'"
     echo CC="'${CC}'"
     echo CFLAGS="'${CFLAGS}'"
     echo LDFLAGS="'${LDFLAGS}'"

@@ -20,12 +20,20 @@
 #include "../common.h"
 #include <assert.h>
 #include <ctype.h>
-#include <curses.h>
+#if HAVE_CURSES_H
+# include <curses.h>
+#else
+# include <ncurses/curses.h>
+#endif
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <term.h>
+#if HAVE_TERM_H
+# include <term.h>
+#else
+# include <ncurses/term.h>
+#endif
 #include <termios.h>
 #include <unistd.h>
 #if HAVE_TIOCGWINSZ

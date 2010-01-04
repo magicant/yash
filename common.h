@@ -25,15 +25,12 @@
 # include "config.h"
 #endif
 
-#ifndef _POSIX_C_SOURCE
-# define _POSIX_C_SOURCE 200112L
-#endif
-#ifndef _XOPEN_SOURCE
-# define _XOPEN_SOURCE 600
-#endif
-
 #ifndef __GNUC__
 # define __attribute__(ignore)
+#endif
+
+#ifdef __CYGWIN__
+# undef __STRICT_ANSI__
 #endif
 
 #if HAVE_GETTEXT

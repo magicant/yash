@@ -752,7 +752,7 @@ void xtrace_array(const wchar_t *name, void *const *values)
 	    wb_wccat(buf, L' ');
 	}
     }
-    fputs(")", stderr);
+    wb_wccat(buf, L')');
 }
 
 /* Gets the value of the specified scalar variable.

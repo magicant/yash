@@ -67,10 +67,9 @@ then isroot=true
 else isroot=false
 fi
 diffresult() {
-    y=$(echo "$1" | tr '[:lower:]' '[:upper:]')
-    if $isroot && [ -r "${x}.${y}" ]
+    if $isroot && [ -r "${x}.$2" ]
     then
-	y="${x}.${y}"
+	y="${x}.$2"
     elif [ -r "${x}.$1" ]
     then
 	y="${x}.$1"
@@ -97,9 +96,9 @@ do
     echo " * $x"
     $INVOKE $TESTEE "$x.tst" >|"${TESTTMP}/test.out" 2>|"${TESTTMP}/test.err"
 
-    diffresult out
+    diffresult out oux
     outresult=$?
-    diffresult err
+    diffresult err erx
     errresult=$?
     if [ $outresult -ne 0 ] || [ $errresult -ne 0 ]
     then

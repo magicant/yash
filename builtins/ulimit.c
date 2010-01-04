@@ -33,6 +33,8 @@
 #include "../exec.h"
 #include "../util.h"
 #include "ulimit.h"
+/* Including <stdint.h> is required before including <sys/resource.h> on
+ * FreeBSD, but <stdint.h> is automatically included in <inttypes.h>. */
 
 
 static const struct resource {
@@ -251,7 +253,13 @@ opt_ok:
 		goto err_format;
 	    value = (rlim_t) v * resource->factor;
 	    if (value / resource->factor != v || value == RLIM_INFINITY
-		    || value == RLIM_SAVED_MAX || value == RLIM_SAVED_CUR) {
+#if HAVE_RLIM_SAVED_MAX
+		    || value == RLIM_SAVED_MAX
+#endif
+#if HAVE_RLIM_SAVED_CUR
+		    || value == RLIM_SAVED_CUR
+#endif
+		    ) {
 		xerror(ERANGE, NULL);
 		return Exit_FAILURE;
 	    }
@@ -265,12 +273,20 @@ opt_ok:
 	
 	/* check if soft limit exceeds hard limit */
 	if (rlimit.rlim_max != RLIM_INFINITY
+#if HAVE_RLIM_SAVED_MAX
 		&& rlimit.rlim_max != RLIM_SAVED_MAX
+#endif
+#if HAVE_RLIM_SAVED_CUR
 		&& rlimit.rlim_max != RLIM_SAVED_CUR
-		&& (rlimit.rlim_cur == RLIM_INFINITY
-		    || (rlimit.rlim_cur != RLIM_SAVED_MAX
-			&& rlimit.rlim_cur != RLIM_SAVED_CUR
-			&& rlimit.rlim_cur > rlimit.rlim_max))) {
+#endif
+		&& (rlimit.rlim_cur == RLIM_INFINITY || (
+#if HAVE_RLIM_SAVED_MAX
+			rlimit.rlim_cur != RLIM_SAVED_MAX &&
+#endif
+#if HAVE_RLIM_SAVED_CUR
+			rlimit.rlim_cur != RLIM_SAVED_CUR &&
+#endif
+			rlimit.rlim_cur > rlimit.rlim_max))) {
 	    xerror(0, Ngt("soft limit cannot exceed hard limit"));
 	    return Exit_FAILURE;
 	}
