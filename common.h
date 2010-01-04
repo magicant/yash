@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* common.h: defines symbols common to all sources. */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
