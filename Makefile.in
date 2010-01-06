@@ -106,7 +106,7 @@ $(DISTDIR).tar.gz: $(DISTDIR)
 $(DISTDIR).tar.bz2: $(DISTDIR)
 	tar -c -f - $(DISTDIR) | bzip2 -9 -c > $@
 $(DISTDIR).shar.gz: $(DISTDIR)
-	shar -q -T $(DISTDIR) | gzip -c > $@
+	shar $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
 
