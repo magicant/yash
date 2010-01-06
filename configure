@@ -241,16 +241,19 @@ getcache () {
     then
 	return 1
     fi
-    if cacheentry="$(grep -F "${cachekey}	" "${configcache}")"
-    then
-	checkresult="${cacheentry#*	}"
-	printf '(cached) '
-	printf '# cache found: key=%s value=%s\n' \
-	    "${cachekey}" "${checkresult}" >&5
-    else
-	unset cacheentry
-	return 1
-    fi
+    while read -r cacheentry
+    do
+	case "${cacheentry}" in
+	    "${cachekey}	"*)
+		checkresult="${cacheentry#*	}"
+		printf '(cached) '
+		printf '# cache found: key=%s value=%s\n' \
+		    "${cachekey}" "${checkresult}" >&5
+		return
+	esac
+    done <"${configcache}"
+    unset cacheentry
+    return 1
 }
 checkby () {
     printf '%% %s\n' "$*" >&5
