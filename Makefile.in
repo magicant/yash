@@ -102,9 +102,9 @@ dist-all: $(DISTS)
 $(DISTDIR).tar.Z: $(DISTDIR)
 	pax -w -x ustar $(DISTDIR) | compress -c > $@
 $(DISTDIR).tar.gz: $(DISTDIR)
-	tar -c $(DISTDIR) | gzip -c > $@
+	tar -c -f - $(DISTDIR) | gzip -c > $@
 $(DISTDIR).tar.bz2: $(DISTDIR)
-	tar -c $(DISTDIR) | bzip2 -9 -c > $@
+	tar -c -f - $(DISTDIR) | bzip2 -9 -c > $@
 $(DISTDIR).shar.gz: $(DISTDIR)
 	shar -q -T $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
