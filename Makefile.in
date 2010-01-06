@@ -76,8 +76,8 @@ DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING I
 distcontents: $(DISTCONTENTS) $(OBJS)
 $(DISTDIR):
 	rm -fr $@
-	mkdir $@
-	@+base=$$PWD; \
+	mkdir -m 755 $@
+	@+base=$$PWD; umask 022; \
 	for d in $(DIRS); do \
 		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents) || \
 		exit; \
@@ -85,7 +85,7 @@ $(DISTDIR):
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
 	@echo Copying contents to $(DISTTARGETDIR)
-	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
+	@for f in $(DISTCONTENTS); do cp $$f $(DISTTARGETDIR); done
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	-rm -rf $(DISTDIR)

@@ -48,7 +48,7 @@ distcontents: $(DISTCONTENTS) $(OBJS)
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
 	@echo Copying contents to $(DISTTARGETDIR)
-	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
+	@for f in $(DISTCONTENTS); do cp $$f $(DISTTARGETDIR); done
 
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGSARGS = @CTAGSARGS@
