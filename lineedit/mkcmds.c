@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* mkcmds.c: outputs string for 'commands.in' contents */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -104,6 +104,7 @@ static char *commands[] = {
     "complete",
     "complete-forward",
     "complete-backward",
+    "clear-candidates",
     "vi-replace-char",
     "vi-insert-beginning",
     "vi-append",

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2146,14 +2146,24 @@ void cmd_complete_backward(wchar_t c __attribute__((unused)))
 }
 
 /* Calls `le_complete_cleanup' to cancel the current candidates if the last
- * command was not a completion command or digit. */
+ * command was not a completion command, etc. */
 void check_last_cmd_for_completion(void)
 {
     if (last_command.func != cmd_digit_argument
 	    && last_command.func != cmd_complete
 	    && last_command.func != cmd_complete_forward
-	    && last_command.func != cmd_complete_backward)
+	    && last_command.func != cmd_complete_backward
+	    && last_command.func != cmd_noop
+	    && last_command.func != cmd_alert
+	    && last_command.func != cmd_redraw_all
+	    && last_command.func != cmd_clear_and_redraw_all)
 	le_complete_cleanup();
+}
+
+/* Clears the current candidates. */
+void cmd_clear_candidates(wchar_t c __attribute__((unused)))
+{
+    le_complete_cleanup();
 }
 
 
