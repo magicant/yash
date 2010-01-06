@@ -425,6 +425,7 @@ _TEST_:
 	@echo >/dev/null
 END
     checkby eval "${MAKE:-make} -f - _TEST_ <<END
+.POSIX:
 include ${temptxt}
 END
 "
