@@ -34,6 +34,7 @@ all: $(TARGET)
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
+	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
 $(TARGET): $(OBJS)
@@ -47,8 +48,7 @@ DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
 distcontents: $(DISTCONTENTS) $(OBJS)
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
-	@echo Copying contents to $(DISTTARGETDIR)
-	@for f in $(DISTCONTENTS); do cp $$f $(DISTTARGETDIR); done
+	cp $(DISTCONTENTS) $(DISTTARGETDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGSARGS = @CTAGSARGS@

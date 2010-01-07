@@ -34,6 +34,7 @@ all: $(TARGET)
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
+	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
 $(TARGET): $(OBJS)
@@ -84,8 +85,7 @@ $(DISTDIR):
 	done
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
-	@echo Copying contents to $(DISTTARGETDIR)
-	@for f in $(DISTCONTENTS); do cp $$f $(DISTTARGETDIR); done
+	cp $(DISTCONTENTS) $(DISTTARGETDIR)
 # Only pax and compress comform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	-rm -rf $(DISTDIR)
