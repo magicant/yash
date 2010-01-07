@@ -26,7 +26,7 @@ ARFLAGS = @ARFLAGS@
 SOURCES = display.c editing.c keymap.c lineedit.c mkcmds.c terminfo.c trie.c
 HEADERS = display.h editing.h key.h keymap.h lineedit.h terminfo.h trie.h
 OBJS = display.o editing.o keymap.o lineedit.o terminfo.o trie.o
-TARGET = @LINEEDIT_ARCHIVE@
+TARGET = lineedit.a
 BYPRODUCTS = mkcmds.o mkcmds commands.in *.dSYM
 
 all: $(TARGET)

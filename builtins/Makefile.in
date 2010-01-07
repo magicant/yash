@@ -25,8 +25,11 @@ AR = @AR@
 ARFLAGS = @ARFLAGS@
 SOURCES = printf.c test.c ulimit.c 
 HEADERS = printf.h test.h ulimit.h
+PRINTF_OBJS = printf.o
+TEST_OBJS = test.o
+ULIMIT_OBJS = ulimit.o
 OBJS = @BUILTIN_OBJS@
-TARGET = @BUILTINS_ARCHIVE@
+TARGET = builtins.a
 BYPRODUCTS = *.dSYM
 
 all: $(TARGET)

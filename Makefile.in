@@ -25,8 +25,13 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 DIRS = @DIRS@
 SOURCES = alias.c arith.c builtin.c exec.c expand.c hashtable.c history.c input.c job.c mail.c mksignum.c option.c parser.c path.c plist.c redir.c sig.c strbuf.c util.c variable.c xfnmatch.c yash.c
 HEADERS = alias.h arith.h builtin.h common.h exec.h expand.h hashtable.h history.h input.h job.h mail.h option.h parser.h path.h plist.h redir.h sig.h siglist.h strbuf.h util.h variable.h xfnmatch.h yash.h
+MAIN_OBJS = arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o xfnmatch.o yash.o
+ALIAS_OBJS = alias.o
+HISTORY_OBJS = history.o
+BUILTINS_ARCHIVE = builtins/builtins.a
+LINEEDIT_ARCHIVE = lineedit/lineedit.a
 OBJS = @OBJS@
-TARGET = @TARGET@
+TARGET = yash
 BYPRODUCTS = mksignum.o mksignum signum.h *.dSYM
 
 all: $(TARGET)
@@ -39,9 +44,9 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
-builtins/@BUILTINS_ARCHIVE@: _PHONY
+$(BUILTINS_ARCHIVE): _PHONY
 	@+cd builtins && $(MAKE)
-lineedit/@LINEEDIT_ARCHIVE@: _PHONY
+$(LINEEDIT_ARCHIVE): _PHONY
 	@+cd lineedit && $(MAKE)
 signum.h: mksignum
 	./mksignum > $@
@@ -68,9 +73,8 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
 	@+cd doc && $(MAKE) uninstall
 
-PACKAGE = @PACKAGE@
 VERSION = @VERSION@
-DISTDIR = @DISTDIR@
+DISTDIR = yash-$(VERSION)
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
 DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
 # "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
