@@ -18,6 +18,7 @@
 
 #include "../common.h"
 #include <assert.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -2413,25 +2414,29 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
     pid_t cpid;
     int savelaststatus;
 
+    le_suspend_readline();
     fd = create_temporary_file(&tempfile, S_IRUSR | S_IWUSR);
     if (fd < 0) {
-	cmd_alert(L'\0');
-	return;
+	xerror(errno, Ngt("cannot create temporary file to edit history"));
+	goto error1;
     }
     f = fdopen(fd, "w");
     if (f == NULL) {
+	xerror(errno, Ngt("cannot open temporary file to edit history"));
 	xclose(fd);
-	cmd_alert(L'\0');
-	return;
+	goto error2;
     }
-    le_suspend_readline();
 
     savelaststatus = laststatus;
     cpid = fork_and_reset(0, true, 0);
     if (cpid < 0) { // fork failed
+	xerror(0, Ngt("cannot invoke editor to edit history"));
 	fclose(f);
-	unlink(tempfile);
+	if (unlink(tempfile) < 0)
+	    xerror(errno, Ngt("cannot remove temporary file `%s'"), tempfile);
+error2:
 	free(tempfile);
+error1:
 	le_resume_readline();
 	cmd_alert(L'\0');
     } else if (cpid > 0) {  // parent process
