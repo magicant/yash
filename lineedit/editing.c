@@ -2480,6 +2480,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
     pid_t cpid;
     int savelaststatus;
 
+    le_complete_cleanup();
     fd = create_temporary_file(&tempfile, S_IRUSR | S_IWUSR);
     if (fd < 0) {
 	cmd_alert(L'\0');
@@ -2533,7 +2534,6 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	    le_editstate = LE_EDITSTATE_DONE;
 end:
 	    reset_state();
-	    le_complete_cleanup();
 	}
 
 	laststatus = savelaststatus;
