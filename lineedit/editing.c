@@ -2533,7 +2533,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	    le_editstate = LE_EDITSTATE_DONE;
 end:
 	    reset_state();
-	    // XXX: clear info area
+	    le_complete_cleanup();
 	}
 
 	laststatus = savelaststatus;
