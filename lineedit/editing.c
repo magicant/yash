@@ -2813,8 +2813,7 @@ void cmd_return_history_eol(wchar_t c __attribute__((unused)))
 
 /* Goes to the specified history entry.
  * If the count is specified, goes to the history entry whose number is count.
- * If the specified entry is not found, the terminal is alerted and false is
- * returned.
+ * If the specified entry is not found, the terminal is alerted.
  * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
  * the beginning of line. */
 void go_to_history_absolute(const histentry_T *e, bool cursorend)
