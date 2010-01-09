@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2402,6 +2402,7 @@ void vi_exec_alias(wchar_t c)
 }
 
 /* Invokes an external command to edit the current line and accepts the result.
+ * If the count is set, goes to the `count'th history entry and edit it.
  * If the editor returns a non-zero status, the line is not accepted. */
 /* cf. history.c:fc_edit_and_exec_entries */
 void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
@@ -2413,6 +2414,16 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
     FILE *f;
     pid_t cpid;
     int savelaststatus;
+
+    if (state.count.sign != 0) {
+	int num = get_count(0);
+	if (num < 0)
+	    goto error0;
+	const histentry_T *e = get_history_entry((unsigned) num);
+	if (e == NULL)
+	    goto error0;
+	go_to_history(e, false);
+    }
 
     le_suspend_readline();
     fd = create_temporary_file(&tempfile, S_IRUSR | S_IWUSR);
@@ -2438,6 +2449,7 @@ error2:
 	free(tempfile);
 error1:
 	le_resume_readline();
+error0:
 	cmd_alert(L'\0');
     } else if (cpid > 0) {  // parent process
 	fclose(f);
@@ -2801,7 +2813,8 @@ void cmd_return_history_eol(wchar_t c __attribute__((unused)))
 
 /* Goes to the specified history entry.
  * If the count is specified, goes to the history entry whose number is count.
- * If the specified entry is not found, the terminal is alerted.
+ * If the specified entry is not found, the terminal is alerted and false is
+ * returned.
  * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
  * the beginning of line. */
 void go_to_history_absolute(const histentry_T *e, bool cursorend)
