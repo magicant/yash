@@ -433,7 +433,9 @@ checking 'if loader flag -lm can be omitted'
 cat >"${tempsrc}" <<END
 #include "${configh}"
 #include <math.h>
-int main() { fmod(3.2, 1.1); trunc(1.2); return 0; }
+int main(int argc, char **argv) {
+    return fmod(argc, 1.1) == trunc(argc);
+}
 END
 trymake
 checked
