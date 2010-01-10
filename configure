@@ -488,6 +488,67 @@ then
     ldlibs="${ldlibs} -lm"
 fi
 
+# enable/disable socket redirection
+if [ x"$enable_socket" = x"yes" ]
+then
+    checking 'for socket library' socket
+    saveldlibs="${ldlibs}"
+    if getcache
+    then
+	checked
+    elif
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <netdb.h>
+#include <sys/socket.h>
+int main() {
+struct addrinfo ai = {
+.ai_flags = 0, .ai_family = AF_UNSPEC, .ai_protocol = 0,
+.ai_socktype = 1 ? SOCK_STREAM : SOCK_DGRAM,
+.ai_addrlen = 0, .ai_addr = (void*)0, .ai_canonname = (void*)0,
+.ai_next = (void*)0
+};
+gai_strerror(getaddrinfo("", "", &ai, (void*)0));
+connect(socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol),
+ai.ai_addr, ai.ai_addrlen);
+freeaddrinfo(&ai);
+}
+END
+	trymake
+    then
+	checked "yes"
+    else
+	for lib in '-lxnet' '-lsocket' '-lnsl' '-lsocket -lnsl'
+	do
+	    ldlibs="${saveldlibs} ${lib}"
+	    if trymake
+	    then
+		checked "with ${lib}"
+		break
+	    fi
+	done
+	if [ x"${checkresult}" = x"no" ]
+	then
+	    checked
+	fi
+    fi
+    case "${checkresult}" in
+    yes)
+	ldlibs="${saveldlibs}"
+	defconfigh "YASH_ENABLE_SOCKET"
+	;;
+    with*)
+	ldlibs="${saveldlibs} ${checkresult#with }"
+	defconfigh "YASH_ENABLE_SOCKET"
+	;;
+    no)
+	echo "socket library unavailable: socket is disabled" >&2
+	ldlibs="${saveldlibs}"
+	enable_socket="no"
+	;;
+    esac
+fi
+
 # check if terminfo is available
 if [ x"${enable_lineedit}" = x"yes" ]
 then
@@ -1055,12 +1116,6 @@ if [ x"$enable_printf" = x"yes" ]
 then
     defconfigh "YASH_ENABLE_PRINTF"
     builtin_objs="$builtin_objs "'$(PRINTF_OBJS)'
-fi
-
-# enable/disable socket redirection
-if [ x"$enable_socket" = x"yes" ]
-then
-    defconfigh "YASH_ENABLE_SOCKET"
 fi
 
 # enable/disable the test builtin
