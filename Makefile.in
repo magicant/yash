@@ -142,7 +142,7 @@ distclean: _distclean
 	-@+cd tests    && $(MAKE) distclean
 	-@+cd doc      && $(MAKE) distclean
 _distclean: _clean
-	-rm -rf Makefile config.cache config.log config.h version.h tags TAGS cscope.out
+	-rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
