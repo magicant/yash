@@ -323,7 +323,6 @@ else
     checked "no"
     posix=""
 fi
-defconfigh "_POSIX_C_SOURCE" "200809L"
 
 checking 'SUS conformance'
 xopen=$(getconf _XOPEN_VERSION 2>/dev/null)
@@ -338,7 +337,6 @@ else
     checked "no"
     xopen=""
 fi
-defconfigh "_XOPEN_SOURCE" "700"
 
 
 # check if gcc is available if the debug option is enabled
@@ -373,13 +371,19 @@ END
     trymake && tryexec
 then
     checked "yes"
+elif
+    if [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ]
+    then
+	cc='gcc -std=c99'
+	tryexec && tryexec
+    else
+	false
+    fi
+then
+    checked "yes (using gcc -std=c99)"
 else
     checked "no"
     printf 'Compiler "%s" not found or not working.\n' "${cc}" >&2
-    if [ x"${cc}" = x"c99" ]
-    then
-	echo "If you have gcc, try: ./configure CC='gcc -std=c99'" >&2
-    fi
     fail
 fi
 
@@ -403,6 +407,48 @@ END
     fi
     unset savecflags
 fi
+
+
+# check if defining _POSIX_C_SOURCE and _XOPEN_SOURCE as values larger than
+# _POSIX_VERSION and _XOPEN_VERSION is accepted.
+if [ -n "${posix}" ]
+then
+    checking 'what values _POSIX_C_SOURCE and _XOPEN_SOURCE should have'
+    if
+	cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
+#include <unistd.h>
+int main() { fork(); return 0; }
+END
+	trymake
+    then
+	checked "_POSIX_C_SOURCE=200809L, _XOPEN_SOURCE=700"
+	posix=200809 xopen=700
+    elif
+	cat >"${tempsrc}" <<END
+#define _POSIX_C_SOURCE 200112L
+#define _XOPEN_SOURCE 600
+#include <unistd.h>
+int main() { fork(); return 0; }
+END
+	trymake
+    then
+	checked "_POSIX_C_SOURCE=200112L, _XOPEN_SOURCE=600"
+	posix=200112 xopen=600
+    else
+	checked "failed"
+    fi
+fi
+if [ -n "${posix}" ]
+then
+    defconfigh "_POSIX_C_SOURCE" "${posix}L"
+fi
+if [ -n "${xopen}" ]
+then
+    defconfigh "_XOPEN_SOURCE" "${xopen}"
+fi
+
 
 # check if make supports include statements
 checking 'whether make supports include statements'
