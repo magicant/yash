@@ -303,6 +303,9 @@ case "${ostype}" in
     darwin)
 	defconfigh "_DARWIN_C_SOURCE"
 	;;
+    sunos)
+	defconfigh "__EXTENSIONS__"
+	;;
 esac
 
 
@@ -322,21 +325,18 @@ else
 fi
 defconfigh "_POSIX_C_SOURCE" "200809L"
 
-if [ -n "${posix}" ]
+checking 'SUS conformance'
+xopen=$(getconf _XOPEN_VERSION 2>/dev/null)
+if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]
 then
-    checking 'SUS conformance'
-    xopen=$(getconf _XOPEN_VERSION 2>/dev/null)
-    if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]
+    checked "${xopen}"
+    if [ "${xopen}" -lt 600 ]
     then
-	checked "${xopen}"
-	if [ "${xopen}" -lt 600 ]
-	then
-	    xopen=""
-	fi
-    else
-	checked "no"
 	xopen=""
     fi
+else
+    checked "no"
+    xopen=""
 fi
 defconfigh "_XOPEN_SOURCE" "700"
 
@@ -529,7 +529,7 @@ fi
 # check whether system has /proc/self/exe or similar utility file
 if
     checking 'for /proc/self/exe'
-    [ -x /proc/self/exe ]
+    /proc/self/exe -c true 2>/dev/null
 then
     checked "yes"
     defconfigh "HAVE_PROC_SELF_EXE"
@@ -537,18 +537,18 @@ elif
     checked "no"
 
     checking 'for /proc/curproc/file'
-    [ -x /proc/curproc/file ]
+    /proc/curproc/file -c true 2>/dev/null
 then
     checked "yes"
     defconfigh "HAVE_PROC_CURPROC_FILE"
 elif
     checked "no"
 
-    checking 'for /proc/$$/object/a.out'
-    [ -x /proc/$$/object/a.out ]
+    checking 'for /proc/self/object/a.out'
+    /proc/self/object/a.out -c true 2>/dev/null
 then
     checked "yes"
-    defconfigh "HAVE_PROC_OBJECT_AOUT"
+    defconfigh "HAVE_PROC_SELF_OBJECT_AOUT"
 else
     checked "no"
 fi
