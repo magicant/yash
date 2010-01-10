@@ -453,16 +453,16 @@ then
 #include <netdb.h>
 #include <sys/socket.h>
 int main() {
-struct addrinfo ai = {
-.ai_flags = 0, .ai_family = AF_UNSPEC, .ai_protocol = 0,
-.ai_socktype = 1 ? SOCK_STREAM : SOCK_DGRAM,
-.ai_addrlen = 0, .ai_addr = (void*)0, .ai_canonname = (void*)0,
-.ai_next = (void*)0
-};
-gai_strerror(getaddrinfo("", "", &ai, (void*)0));
-connect(socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol),
-ai.ai_addr, ai.ai_addrlen);
-freeaddrinfo(&ai);
+    struct addrinfo ai = {
+	.ai_flags = 0, .ai_family = AF_UNSPEC, .ai_protocol = 0,
+	.ai_socktype = 1 ? SOCK_STREAM : SOCK_DGRAM,
+	.ai_addrlen = 0, .ai_addr = (void*)0, .ai_canonname = (void*)0,
+	.ai_next = (void*)0
+    };
+    gai_strerror(getaddrinfo("", "", &ai, (void*)0));
+    connect(socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol),
+	ai.ai_addr, ai.ai_addrlen);
+    freeaddrinfo(&ai);
 }
 END
 	trymake
