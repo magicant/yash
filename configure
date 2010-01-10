@@ -290,7 +290,7 @@ fail () {
 cc="${CC:-c99}"
 cflags="${CFLAGS--O1 -g}"
 ldflags="${LDFLAGS}"
-ldlibs="${LDLIBS--lm}"
+ldlibs="${LDLIBS-}"
 ar="${AR:-ar}"
 arflags="${ARFLAGS--rc}"
 
@@ -470,6 +470,23 @@ else
     make_supports_include=false make_include='# include'
 fi
 
+
+# check if we need -lm
+checking 'if loader flag -lm can be omitted' math
+if ! getcache
+then
+    cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <math.h>
+int main() { fmod(3.2, 1.1); trunc(1.2); return 0; }
+END
+    trymake
+fi
+checked
+if [ x"${checkresult}" = x"no" ]
+then
+    ldlibs="${ldlibs} -lm"
+fi
 
 # check if terminfo is available
 if [ x"${enable_lineedit}" = x"yes" ]
