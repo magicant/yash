@@ -49,6 +49,7 @@ enable_test="yes"
 enable_ulimit="yes"
 ctags_args=""
 etags_args=""
+term_lib='tinfo curses ncurses ncursesw'
 unset prefix eprefix bindir datarootdir docdir htmldir
 unset checkresult
 umask u=rwx,go=rx
@@ -100,6 +101,8 @@ do
 	    parseenable "$i" "no" ;;
 	--enable-*)
 	    parseenable "$i" "yes" ;;
+	--with-term-lib=*)
+	    term_lib="${i#--with-term-lib=}" ;;
 	?*=*)
 	    # parse variable assignment
 	    if echo "$i" |
@@ -136,18 +139,21 @@ Installation options:
   --htmldir=DIR          HTML documentation [DOCDIR]
 
 Optional features:
-  --enable-FEATURE[=ARG]      enable or disable FEATURE [ARG=yes]
-  --disable-FEATURE           disable FEATURE (same as --enable-FEATURE=no)
-  --enable-alias              enable aliases
-  --enable-array              enable the array builtin
-  --enable-dirstack           enable the directory stack (pushd, popd, dirs)
-  --enable-help               enable the help builtin
-  --enable-history            enable history
-  --enable-lineedit           enable command line editing
-  --enable-printf             enable the echo/printf builtins
-  --enable-socket             enable socket redirection by /dev/tcp, /dev/udp
-  --enable-test               enable the test builtin
-  --enable-ulimit             enable the ulimit builtin
+  --enable-FEATURE[=ARG]  enable or disable FEATURE [ARG=yes]
+  --disable-FEATURE       disable FEATURE (same as --enable-FEATURE=no)
+  --enable-alias          enable aliases
+  --enable-array          enable the array builtin
+  --enable-dirstack       enable the directory stack (pushd, popd, dirs)
+  --enable-help           enable the help builtin
+  --enable-history        enable history
+  --enable-lineedit       enable command line editing
+  --enable-printf         enable the echo/printf builtins
+  --enable-socket         enable socket redirection by /dev/tcp, /dev/udp
+  --enable-test           enable the test builtin
+  --enable-ulimit         enable the ulimit builtin
+
+Optional packages:
+  --with-term-lib=LIBS    search space-separated LIBS for terminal handling
 
 Influential environment variables:
   CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, INSTALL_PROGRAM
@@ -695,7 +701,7 @@ END
 	then
 	    checked "yes"
 	else
-	    for lib in tinfo curses ncurses
+	    for lib in ${term_lib}
 	    do
 		ldlibs="${saveldlibs} -l${lib}"
 		if trylink
