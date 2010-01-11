@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 #include "terminfo.h"
 
 
-static void free_candidate(void *cand)
+static void free_candidate(void *c)
     __attribute__((nonnull));
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
@@ -63,8 +63,9 @@ void le_complete(void)
     // this is test implementation
     for (int i = 0; i < 97; i++) {
 	le_candidate_T *cand = xmalloc(sizeof *cand);
-	cand->rawvalue = malloc_printf("cand%d", i + 5);
-	cand->width = strlen(cand->rawvalue);
+	cand->value = malloc_wprintf(L"cand%d", i + 5);
+	cand->rawvalue = NULL;
+	cand->width = 0;
 	pl_add(&le_candidates, cand);
     }
     le_selected_candidate_index = le_candidates.length;
@@ -108,9 +109,11 @@ void le_complete_cleanup(void)
 
 /* Frees a completion candidate.
  * The argument must point to a `le_candidate_T' value. */
-void free_candidate(void *cand)
+void free_candidate(void *c)
 {
-    free(((le_candidate_T *) cand)->rawvalue);
+    le_candidate_T *cand = c;
+    free(cand->value);
+    free(cand->rawvalue);
     free(cand);
 }
 

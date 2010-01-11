@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* display.c: display control */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -305,6 +305,7 @@ static void fillip_cursor(void);
 
 static void update_candidates(void);
 static void make_pages_and_columns(void);
+static void make_rawvalues(void);
 static bool arrange_candidates(size_t cand_per_col, int totalwidthlimit);
 static void divide_candidates_pages(size_t cand_per_col);
 static void free_candpage(void *candpage)
@@ -851,8 +852,8 @@ void update_candidates(void)
  * calling this function.
  * The results are assigned to `candpages' and `candcols', which must be
  * uninitialized when this function is called.
- * If there are too few lines available to show the candidates on the screen or
- * if there are no candidates, this function does nothing. */
+ * If there are too few lines or columns available to show the candidates on
+ * the screen or if there are no candidates, this function does nothing. */
 void make_pages_and_columns(void)
 {
     assert(candpages.contents == NULL);
@@ -862,8 +863,10 @@ void make_pages_and_columns(void)
 	return;
 
     int maxrow = le_lines - last_edit_line - 1;
-    if (maxrow <= 1)
+    if (maxrow <= 1 || le_columns < 4)
 	return;
+
+    make_rawvalues();
 
     pl_init(&candpages);
     pl_init(&candcols);
@@ -881,6 +884,41 @@ void make_pages_and_columns(void)
 
     /* divide the candidate list into pages */
     divide_candidates_pages((size_t) maxrow - 1);
+}
+
+/* Sets the `rawvalue' and `width' members of candidates in `le_candidates'.
+ * The raw values are truncated so that the candidate widths do not exceed the
+ * screen width. The screen width must be at least 4. */
+void make_rawvalues(void)
+{
+    struct lebuf_T savelebuf = lebuf;
+
+    assert(le_columns >= 4);
+    for (size_t i = 0; i < le_candidates.length; i++) {
+	le_candidate_T *cand = le_candidates.contents[i];
+
+	free(cand->rawvalue);
+	lebuf_init((le_pos_T) { 0, 0 });
+
+	for (const wchar_t *s = cand->value; *s != L'\0'; s++) {
+	    assert(lebuf.pos.line == 0);
+	    int savecol = lebuf.pos.column;
+	    size_t savelen = lebuf.buf.length;
+
+	    lebuf_putwchar(*s, true);
+	    if (lebuf.pos.line > 0 || lebuf.pos.column > le_columns - 3) {
+		// lebuf.pos.line = 0;
+		lebuf.pos.column = savecol;
+		sb_truncate(&lebuf.buf, savelen);
+		break;
+	    }
+	}
+
+	cand->rawvalue = sb_tostr(&lebuf.buf);
+	cand->width = lebuf.pos.column;
+    }
+
+    lebuf = savelebuf;
 }
 
 /* Tries to arrange the current candidates in `le_candidates' into columns that

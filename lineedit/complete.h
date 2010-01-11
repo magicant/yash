@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.h: command line completion */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,12 @@
 #ifndef YASH_COMPLETE_H
 #define YASH_COMPLETE_H
 
+#include <stddef.h>
 #include "../plist.h"
 
 
 typedef struct le_candidate_T {
+    wchar_t *value;
     char *rawvalue;
     int width;
 } le_candidate_T;
