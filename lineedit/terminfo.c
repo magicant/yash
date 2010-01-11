@@ -324,7 +324,7 @@ _Bool le_setupterm(_Bool bypass)
 
     if (once)
 	del_curterm(cur_term);
-    if (setupterm(NULL, STDERR_FILENO, &err) != OK)
+    if (setupterm(NULL, STDERR_FILENO, &err) == ERR)
 	return 0;
     once = 1;
 
