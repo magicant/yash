@@ -434,7 +434,7 @@ cat >"${tempsrc}" <<END
 #include "${configh}"
 #include <math.h>
 int main(int argc, char **argv) {
-    return fmod(argc, 1.1) == trunc(argc);
+    return fmod(argc, 1.1) == trunc(argc) || argv == 0;
 }
 END
 trymake
@@ -730,28 +730,25 @@ fi
 # check whether system has /proc/self/exe or similar utility file
 if
     checking 'for /proc/self/exe'
-    /proc/self/exe -c true 2>/dev/null
+    checkby /proc/self/exe -c true
+    checked
+    [ x"${checkresult}" = x"yes" ]
 then
-    checked "yes"
     defconfigh "HAVE_PROC_SELF_EXE"
 elif
-    checked "no"
-
     checking 'for /proc/curproc/file'
-    /proc/curproc/file -c true 2>/dev/null
+    checkby /proc/curproc/file -c true
+    checked
+    [ x"${checkresult}" = x"yes" ]
 then
-    checked "yes"
     defconfigh "HAVE_PROC_CURPROC_FILE"
 elif
-    checked "no"
-
     checking 'for /proc/$$/object/a.out'
-    /proc/$$/object/a.out -c true 2>/dev/null
+    checkby eval '/proc/$$/object/a.out -c true'
+    checked
+    [ x"${checkresult}" = x"yes" ]
 then
-    checked "yes"
     defconfigh "HAVE_PROC_OBJECT_AOUT"
-else
-    checked "no"
 fi
 
 
@@ -1190,6 +1187,7 @@ then
 #include <sys/resource.h>
 int main() {
 struct rlimit l = { .rlim_cur = RLIM_SAVED_${i}, .rlim_max = RLIM_SAVED_${i} };
+return l.rlim_cur == l.rlim_max;
 }
 END
 	trymake
