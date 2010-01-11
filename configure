@@ -505,9 +505,9 @@ END
 	defconfigh "YASH_ENABLE_SOCKET"
 	;;
     no)
-	echo "socket library unavailable: socket is disabled" >&2
-	ldlibs="${saveldlibs}"
-	enable_socket="no"
+	printf 'The socket library is unavailable!\n' >&2
+	printf 'Add the "--disable-socket" option and try again.\n' >&2
+	fail
 	;;
     esac
 fi
@@ -721,9 +721,9 @@ END
 	defconfigh "YASH_ENABLE_LINEEDIT"
 	;;
     no)
-	echo "terminfo library unavailable: lineedit is disabled" >&2
-	ldlibs="${saveldlibs}"
-	enable_lineedit="no"
+	printf 'The terminfo library is unavailable!\n' >&2
+	printf 'Add the "--disable-lineedit" option and try again.\n' >&2
+	fail
 	;;
     esac
 fi
@@ -1130,8 +1130,8 @@ then
     objs="$objs "'$(HISTORY_OBJS)'
 else
     if [ x"$enable_lineedit" = x"yes" ]; then
-	echo "Lineedit enabled but history disabled." >&2
-	echo "Add --disable-lineedit option and try again." >&2
+	printf 'History is required for lineedit but disabled.\n' >&2
+	printf 'Add the "--disable-lineedit" option and try again.\n' >&2
 	fail
     fi
 fi
@@ -1171,9 +1171,9 @@ END
 	defconfigh "YASH_ENABLE_ULIMIT"
 	builtin_objs="$builtin_objs "'$(ULIMIT_OBJS)'
     else
-	printf 'getrlimit/setrlimit unavailable: ' >&2
-	printf 'the ulimit builtin is disabled\n' >&2
-	enable_ulimit="no"
+	printf 'The getrlimit and setrlimit functions are unavailable.\n' >&2
+	printf 'Add the "--disable-ulimit" option and try again.\n' >&2
+	fail
     fi
 fi
 
