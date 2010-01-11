@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 #include "../option.h"
 #include "../util.h"
 #include "complete.h"
@@ -32,6 +33,7 @@
 
 static void free_candidate(void *c)
     __attribute__((nonnull));
+static void calculate_common_prefix_length(void);
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
@@ -42,6 +44,9 @@ plist_T le_candidates = { .contents = NULL };
 /* The index of the currently selected candidate in `le_candidates'.
  * When no candidate is selected, the index is `le_candidates.length'. */
 size_t le_selected_candidate_index;
+
+/* The length of the longest common prefix of the current candidates. */
+static size_t common_prefix_length;
 
 
 /* Performs command line completion.
@@ -68,6 +73,15 @@ void le_complete(void)
 	cand->width = 0;
 	pl_add(&le_candidates, cand);
     }
+
+    calculate_common_prefix_length();
+    if (shopt_le_compdebug) {
+	const le_candidate_T *cand = le_candidates.contents[0];
+	wchar_t *common_prefix = xwcsndup(cand->value, common_prefix_length);
+	compdebug("candidate common prefix: \"%ls\"", common_prefix);
+	free(common_prefix);
+    }
+
     le_selected_candidate_index = le_candidates.length;
 
     if (shopt_le_compdebug) {
@@ -115,6 +129,28 @@ void free_candidate(void *c)
     free(cand->value);
     free(cand->rawvalue);
     free(cand);
+}
+
+/* Calculates the value of `common_prefix_length' for the current candidates. */
+void calculate_common_prefix_length(void)
+{
+    assert(le_candidates.contents != NULL);
+    if (le_candidates.length == 0) {
+	common_prefix_length = 0;
+	return;
+    }
+
+    const le_candidate_T *cand = le_candidates.contents[0];
+    const wchar_t *value = cand->value;
+    size_t cpl = wcslen(value);
+    for (size_t i = 1; i < le_candidates.length; i++) {
+	const le_candidate_T *cand2 = le_candidates.contents[i];
+	const wchar_t *value2 = cand2->value;
+	for (size_t j = 0; j < cpl; j++)
+	    if (value[j] != value2[j])  // XXX comparison is case-sensitive
+		cpl = j;
+    }
+    common_prefix_length = cpl;
 }
 
 /* Prints the formatted string to the standard error.
