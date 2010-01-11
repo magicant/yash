@@ -745,11 +745,11 @@ then
 elif
     checked "no"
 
-    checking 'for /proc/self/object/a.out'
-    /proc/self/object/a.out -c true 2>/dev/null
+    checking 'for /proc/$$/object/a.out'
+    /proc/$$/object/a.out -c true 2>/dev/null
 then
     checked "yes"
-    defconfigh "HAVE_PROC_SELF_OBJECT_AOUT"
+    defconfigh "HAVE_PROC_OBJECT_AOUT"
 else
     checked "no"
 fi
