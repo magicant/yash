@@ -357,6 +357,26 @@ END
     unset savecflags
 fi
 
+# check if make supports include statements
+checking 'whether make supports include statements'
+if
+    cat >"${temptxt}" <<END
+_TEST_:
+	@echo >/dev/null
+END
+    checkby eval "${MAKE:-make} -f - _TEST_ <<END
+.POSIX:
+include ${temptxt}
+END
+"
+then
+    checked "yes"
+    make_supports_include=true make_include='include'
+else
+    checked "no"
+    make_supports_include=false make_include='# include'
+fi
+
 
 # check if defining _POSIX_C_SOURCE and _XOPEN_SOURCE as values larger than
 # _POSIX_VERSION and _XOPEN_VERSION is accepted.
@@ -414,27 +434,6 @@ END
     then
 	defconfigh "_XOPEN_SOURCE_EXTENDED" "1"
     fi
-fi
-
-
-# check if make supports include statements
-checking 'whether make supports include statements'
-if
-    cat >"${temptxt}" <<END
-_TEST_:
-	@echo >/dev/null
-END
-    checkby eval "${MAKE:-make} -f - _TEST_ <<END
-.POSIX:
-include ${temptxt}
-END
-"
-then
-    checked "yes"
-    make_supports_include=true make_include='include'
-else
-    checked "no"
-    make_supports_include=false make_include='# include'
 fi
 
 
