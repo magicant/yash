@@ -272,10 +272,6 @@ posix=$(getconf _POSIX_VERSION 2>/dev/null)
 if [ -n "${posix}" ] && [ x"${posix}" != x"undefined" ]
 then
     checked "${posix}"
-    if [ "${posix}" -lt 200112 ]
-    then
-	posix=""
-    fi
 else
     checked "no"
     posix=""
@@ -286,10 +282,6 @@ xopen=$(getconf _XOPEN_VERSION 2>/dev/null)
 if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]
 then
     checked "${xopen}"
-    if [ "${xopen}" -lt 600 ]
-    then
-	xopen=""
-    fi
 else
     checked "no"
     xopen=""
@@ -378,7 +370,7 @@ then
 #include <unistd.h>
 int main() { fork(); return 0; }
 END
-	trymake
+	trycompile
     then
 	checked "_POSIX_C_SOURCE=200809L, _XOPEN_SOURCE=700"
 	posix=200809 xopen=700
@@ -389,7 +381,7 @@ END
 #include <unistd.h>
 int main() { fork(); return 0; }
 END
-	trymake
+	trycompile
     then
 	checked "_POSIX_C_SOURCE=200112L, _XOPEN_SOURCE=600"
 	posix=200112 xopen=600
@@ -404,6 +396,24 @@ fi
 if [ -n "${xopen}" ]
 then
     defconfigh "_XOPEN_SOURCE" "${xopen}"
+fi
+
+# check if _XOPEN_SOURCE_EXTENDED is accepted
+if [ -n "${posix}" ]
+then
+    checking 'whether _XOPEN_SOURCE_EXTENDED should be defined'
+    cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <unistd.h>
+int main() { fork(); return 0; }
+END
+    trycompile
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "_XOPEN_SOURCE_EXTENDED" "1"
+    fi
 fi
 
 
@@ -509,7 +519,6 @@ then
 	checking 'for curses.h'
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #include <curses.h>
 int main() { return ERR; }
 END
@@ -522,7 +531,6 @@ END
 	checking 'for ncurses.h'
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #include <ncurses.h>
 int main() { return ERR; }
 END
@@ -535,7 +543,6 @@ END
 	checking 'for ncurses/ncurses.h'
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #include <ncurses/ncurses.h>
 int main() { return ERR; }
 END
@@ -548,7 +555,6 @@ END
 	checking 'for ncursesw/ncurses.h'
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #include <ncursesw/ncurses.h>
 int main() { return ERR; }
 END
@@ -563,7 +569,6 @@ END
 	checking 'for term.h'
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #if HAVE_CURSES_H
 #include <curses.h>
 #elif HAVE_NCURSES_H
@@ -594,7 +599,6 @@ END
 	checking 'for ncurses/term.h'
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #if HAVE_CURSES_H
 #include <curses.h>
 #elif HAVE_NCURSES_H
@@ -625,7 +629,6 @@ END
 	checking 'for ncursesw/term.h'
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #if HAVE_CURSES_H
 #include <curses.h>
 #elif HAVE_NCURSES_H
@@ -659,7 +662,6 @@ END
     if
 	cat >"${tempsrc}" <<END
 #include "${configh}"
-#define _XOPEN_SOURCE_EXTENDED 1
 #include <stdio.h>
 #if HAVE_CURSES_H
 #include <curses.h>
@@ -1385,7 +1387,8 @@ echo "configuration complete"
 
 
 # print warning if POSIX conformance is missing
-if [ -z "${posix}" ]; then
+if [ -z "${posix}" ]
+then
     echo "WARNING: yash is designed for systems that conform to POSIX.1-2001"
     echo "         but your system does not"
 fi
