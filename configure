@@ -505,32 +505,153 @@ fi
 # check if terminfo is available
 if [ x"${enable_lineedit}" = x"yes" ]
 then
-    checking 'for curses.h'
-    cat >"${tempsrc}" <<END
+    if
+	checking 'for curses.h'
+	cat >"${tempsrc}" <<END
 #include "${configh}"
 #define _XOPEN_SOURCE_EXTENDED 1
 #include <curses.h>
-int main() { return 0; }
+int main() { return ERR; }
 END
-    trymake
-    checked
-    if [ x"${checkresult}" = x"yes" ]
+	trycompile
+	checked
+	[ x"${checkresult}" = x"yes" ]
     then
 	defconfigh "HAVE_CURSES_H"
-    fi
-
-    checking 'for term.h'
-    cat >"${tempsrc}" <<END
+    elif
+	checking 'for ncurses.h'
+	cat >"${tempsrc}" <<END
 #include "${configh}"
 #define _XOPEN_SOURCE_EXTENDED 1
-#include <term.h>
-int main() { return 0; }
+#include <ncurses.h>
+int main() { return ERR; }
 END
-    trymake
-    checked
-    if [ x"${checkresult}" = x"yes" ]
+	trycompile
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_NCURSES_H"
+    elif
+	checking 'for ncurses/ncurses.h'
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <ncurses/ncurses.h>
+int main() { return ERR; }
+END
+	trycompile
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_NCURSES_NCURSES_H"
+    elif
+	checking 'for ncursesw/ncurses.h'
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <ncursesw/ncurses.h>
+int main() { return ERR; }
+END
+	trycompile
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_NCURSESW_NCURSES_H"
+    fi
+
+    if
+	checking 'for term.h'
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#if HAVE_CURSES_H
+#include <curses.h>
+#elif HAVE_NCURSES_H
+#include <ncurses.h>
+#elif HAVE_NCURSES_NCURSES_H
+#include <ncurses/ncurses.h>
+#elif HAVE_NCURSESW_NCURSES_H
+#include <ncursesw/ncurses.h>
+#endif
+#include <term.h>
+int main() {
+    int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
+    int (*f2)(char *) = tigetflag; f2("");
+    int (*f3)(char *) = tigetnum; f3("");
+    char *(*f4)(char *) = tigetstr; f4("");
+    int (*f5)(const char *, int, int (*)(int)) = tputs; f5("", 0, 0);
+/*  char *(*f6)(char *, long,long,long,long,long,long,long,long,long) = tparm;
+    f6("", 0, 0, 0, 0, 0, 0, 0, 0, 0); */
+    int (*f7)(TERMINAL *) = del_curterm; f7(cur_term);
+}
+END
+	trycompile
+	checked
+	[ x"${checkresult}" = x"yes" ]
     then
 	defconfigh "HAVE_TERM_H"
+    elif
+	checking 'for ncurses/term.h'
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#if HAVE_CURSES_H
+#include <curses.h>
+#elif HAVE_NCURSES_H
+#include <ncurses.h>
+#elif HAVE_NCURSES_NCURSES_H
+#include <ncurses/ncurses.h>
+#elif HAVE_NCURSESW_NCURSES_H
+#include <ncursesw/ncurses.h>
+#endif
+#include <ncurses/term.h>
+int main() {
+    int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
+    int (*f2)(char *) = tigetflag; f2("");
+    int (*f3)(char *) = tigetnum; f3("");
+    char *(*f4)(char *) = tigetstr; f4("");
+    int (*f5)(const char *, int, int (*)(int)) = tputs; f5("", 0, 0);
+/*  char *(*f6)(char *, long,long,long,long,long,long,long,long,long) = tparm;
+    f6("", 0, 0, 0, 0, 0, 0, 0, 0, 0); */
+    int (*f7)(TERMINAL *) = del_curterm; f7(cur_term);
+}
+END
+	trycompile
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_NCURSES_TERM_H"
+    elif
+	checking 'for ncursesw/term.h'
+	cat >"${tempsrc}" <<END
+#include "${configh}"
+#define _XOPEN_SOURCE_EXTENDED 1
+#if HAVE_CURSES_H
+#include <curses.h>
+#elif HAVE_NCURSES_H
+#include <ncurses.h>
+#elif HAVE_NCURSES_NCURSES_H
+#include <ncurses/ncurses.h>
+#elif HAVE_NCURSESW_NCURSES_H
+#include <ncursesw/ncurses.h>
+#endif
+#include <ncursesw/term.h>
+int main() {
+    int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
+    int (*f2)(char *) = tigetflag; f2("");
+    int (*f3)(char *) = tigetnum; f3("");
+    char *(*f4)(char *) = tigetstr; f4("");
+    int (*f5)(const char *, int, int (*)(int)) = tputs; f5("", 0, 0);
+/*  char *(*f6)(char *, long,long,long,long,long,long,long,long,long) = tparm;
+    f6("", 0, 0, 0, 0, 0, 0, 0, 0, 0); */
+    int (*f7)(TERMINAL *) = del_curterm; f7(cur_term);
+}
+END
+	trycompile
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_NCURSESW_TERM_H"
     fi
 
     checking 'for terminfo library'
@@ -542,38 +663,50 @@ END
 #include <stdio.h>
 #if HAVE_CURSES_H
 #include <curses.h>
-#else
-#include <ncurses/curses.h>
+#elif HAVE_NCURSES_H
+#include <ncurses.h>
+#elif HAVE_NCURSES_NCURSES_H
+#include <ncurses/ncurses.h>
+#elif HAVE_NCURSESW_NCURSES_H
+#include <ncursesw/ncurses.h>
 #endif
 #if HAVE_TERM_H
 #include <term.h>
-#else
+#elif HAVE_NCURSES_TERM_H
 #include <ncurses/term.h>
+#elif HAVE_NCURSESW_TERM_H
+#include <ncursesw/term.h>
 #endif
 int main() {
-setupterm((char*)0, 1, (int*)0);
-tigetflag("");
-tigetnum("");
-tputs(tigetstr(""), 1, putchar);
+int i1 = setupterm((char*)0, 1, (int*)0);
+int i2 = tigetflag("");
+int i3 = tigetnum("");
+char *s1 = tigetstr("");
+char *s2 = tparm(s1, (long) i1, (long) i2, (long) i3, 0L, 0L, 0L, 0L, 0L, 0L);
+int i4 = tputs(s2, 1, putchar);
 del_curterm(cur_term);
+return i4;
 }
 END
-	trymake
+	trycompile
     then
-	checked "yes"
-    else
-	for lib in tinfo curses ncurses
-	do
-	    ldlibs="${saveldlibs} -l${lib}"
-	    if trymake
-	    then
-		checked "with -l${lib}"
-		break
-	    fi
-	done
-	if [ x"${checkresult}" = x"no" ]
+	if trylink
 	then
-	    checked
+	    checked "yes"
+	else
+	    for lib in tinfo curses ncurses
+	    do
+		ldlibs="${saveldlibs} -l${lib}"
+		if trylink
+		then
+		    checked "with -l${lib}"
+		    break
+		fi
+	    done
+	    if [ x"${checkresult}" = x"no" ]
+	    then
+		checked
+	    fi
 	fi
     fi
     case "${checkresult}" in

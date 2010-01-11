@@ -22,8 +22,12 @@
 #include <ctype.h>
 #if HAVE_CURSES_H
 # include <curses.h>
-#else
-# include <ncurses/curses.h>
+#elif HAVE_NCURSES_H
+# include <ncurses.h>
+#elif HAVE_NCURSES_NCURSES_H
+# include <ncurses/ncurses.h>
+#elif HAVE_NCURSESW_NCURSES_H
+# include <ncursesw/ncurses.h>
 #endif
 #include <errno.h>
 #include <stddef.h>
@@ -31,8 +35,10 @@
 #include <stdlib.h>
 #if HAVE_TERM_H
 # include <term.h>
-#else
+#elif HAVE_NCURSES_TERM_H
 # include <ncurses/term.h>
+#elif HAVE_NCURSESW_TERM_H
+# include <ncursesw/term.h>
 #endif
 #include <termios.h>
 #include <unistd.h>
