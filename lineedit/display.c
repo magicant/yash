@@ -318,6 +318,7 @@ static void print_candidate(
 	const le_candidate_T *cand, int colwidth, enum highlight_T highlight)
     __attribute__((nonnull));
 static void print_candidate_count(size_t pageindex);
+static void print_candidate_count_0(void);
 static size_t col_of_cand(size_t candindex);
 static int col_of_cand_cmp(const void *candindexp, const void *colp)
     __attribute__((nonnull));
@@ -839,7 +840,8 @@ void update_candidates(void)
 	    le_display_complete_cleanup();
 	if (candpages.contents == NULL)
 	    make_pages_and_columns();
-	if (le_candidates.contents == NULL || candbaseline < 0)
+	if (le_candidates.contents == NULL
+		|| candbaseline < 0 || candoverwritten)
 	    print_candidates_all();
 	else
 	    update_highlighted_candidate();
@@ -1035,8 +1037,9 @@ void free_candcol(void *candcol)
  * `make_pages_and_columns' must have been called before calling this function.
  * The cursor may be anywhere when this function is called.
  * The cursor is left at an unspecified position when this function returns.
- * If there are no candidates, this function does nothing but clearing the
- * candidate area. */
+ * If the candidate list is inactive, this function does nothing but clearing
+ * the candidate area. If there are no candidates, an error message is printed.
+ */
 void print_candidates_all(void)
 {
     lebuf_print_sgr0(), styler_active = false;
@@ -1044,8 +1047,15 @@ void print_candidates_all(void)
     clear_to_end_of_screen();
     assert(lebuf.pos.column == 0);
 
-    if (le_candidates.contents == NULL || le_candidates.length == 0)
+    if (le_candidates.contents == NULL)
 	return;
+
+    candbaseline = lebuf.pos.line;
+    candoverwritten = false;
+    if (le_candidates.length == 0) {
+	print_candidate_count_0();
+	return;
+    }
 
     size_t pageindex = le_selected_candidate_index < le_candidates.length
 	? page_of_col(col_of_cand(le_selected_candidate_index))
@@ -1053,8 +1063,6 @@ void print_candidates_all(void)
     const candpage_T *page = candpages.contents[pageindex];
     const candcol_T *col = candcols.contents[page->colindex];
 
-    candbaseline = lebuf.pos.line;
-    candoverwritten = false;
     for (size_t i = 0; ; ) {  /* print first column */
 	size_t index = col->candindex + i;
 	const le_candidate_T *cand = le_candidates.contents[index];
@@ -1102,6 +1110,8 @@ void print_candidates_all(void)
 void update_highlighted_candidate(void)
 {
     assert(candbaseline >= 0);
+    if (le_candidates.length == 0)
+	return;
     if (candhighlight == le_selected_candidate_index)
 	return;
 
@@ -1121,7 +1131,7 @@ void update_highlighted_candidate(void)
 	newcolindex = 0;
 	newpageindex = 0;
     }
-    if (oldpageindex != newpageindex || candoverwritten) {
+    if (oldpageindex != newpageindex) {
 	print_candidates_all();
 	return;
     }
@@ -1223,6 +1233,17 @@ void print_candidate_count(size_t pageindex)
 	    lebuf_putws_trunc(s2);
 	    free(s2);
 	}
+    }
+}
+
+/* Prints an error message that tells there are no candidates. */
+void print_candidate_count_0(void)
+{
+    wchar_t *s = malloc_mbstowcs(gt("No candidates"));
+
+    if (s != NULL) {
+	lebuf_putws_trunc(s);
+	free(s);
     }
 }
 
