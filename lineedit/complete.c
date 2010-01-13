@@ -27,6 +27,7 @@
 #include "../util.h"
 #include "complete.h"
 #include "display.h"
+#include "editing.h"
 #include "lineedit.h"
 #include "terminfo.h"
 
@@ -34,6 +35,9 @@
 static void free_candidate(void *c)
     __attribute__((nonnull));
 static void calculate_common_prefix_length(void);
+static void set_common_prefix(void);
+static void set_candidate(void);
+static void finish_word(void);
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
@@ -45,6 +49,10 @@ plist_T le_candidates = { .contents = NULL };
  * When no candidate is selected, the index is `le_candidates.length'. */
 size_t le_selected_candidate_index;
 
+/* The index of the cursor before completion started. */
+static size_t insertion_index;
+/* The length of the expanded source word. */
+static size_t expanded_source_word_length;
 /* The length of the longest common prefix of the current candidates. */
 static size_t common_prefix_length;
 
@@ -64,6 +72,9 @@ void le_complete(void)
     le_complete_cleanup();
     pl_init(&le_candidates);
 
+    insertion_index = le_main_index;
+    expanded_source_word_length = 0;  // TODO
+
     //TODO
     // this is test implementation
     for (int i = 0; i < 97; i++) {
@@ -73,6 +84,10 @@ void le_complete(void)
 	cand->width = 0;
 	pl_add(&le_candidates, cand);
     }
+    compdebug("got %zu candidate(s)", le_candidates.length);
+
+    if (le_candidates.length == 0)
+	goto end1;
 
     calculate_common_prefix_length();
     if (shopt_le_compdebug) {
@@ -82,8 +97,16 @@ void le_complete(void)
 	free(common_prefix);
     }
 
-    le_selected_candidate_index = le_candidates.length;
+    set_common_prefix();
+    if (le_candidates.length == 1) {
+	finish_word();
+	le_complete_cleanup();
+	goto end0;
+    }
 
+end1:
+    le_selected_candidate_index = le_candidates.length;
+end0:
     if (shopt_le_compdebug) {
 	compdebug("completion end");
 	le_setupterm(false);
@@ -109,6 +132,8 @@ void le_complete_select(int offset)
     assert(offset >= 0);
     le_selected_candidate_index += offset;
     le_selected_candidate_index %= le_candidates.length + 1;
+
+    set_candidate();
 }
 
 /* Clears the current candidates. */
@@ -131,14 +156,12 @@ void free_candidate(void *c)
     free(cand);
 }
 
-/* Calculates the value of `common_prefix_length' for the current candidates. */
+/* Calculates the value of `common_prefix_length' for the current candidates.
+ * There must be at least one candidate in `le_candidates'. */
 void calculate_common_prefix_length(void)
 {
     assert(le_candidates.contents != NULL);
-    if (le_candidates.length == 0) {
-	common_prefix_length = 0;
-	return;
-    }
+    assert(le_candidates.length > 0);
 
     const le_candidate_T *cand = le_candidates.contents[0];
     const wchar_t *value = cand->value;
@@ -151,6 +174,51 @@ void calculate_common_prefix_length(void)
 		cpl = j;
     }
     common_prefix_length = cpl;
+}
+
+/* Sets the contents of the main buffer to the longest common prefix of the
+ * candidate values. There must be at least one candidate. */
+void set_common_prefix(void)
+{
+    const le_candidate_T *cand = le_candidates.contents[0];
+    const wchar_t *value = cand->value + expanded_source_word_length;
+    size_t length = common_prefix_length - expanded_source_word_length;
+
+    wb_replace_force(&le_main_buffer,
+	    insertion_index, le_main_index - insertion_index, value, length);
+    le_main_index = insertion_index + length;
+}
+
+/* Sets the contents of the main buffer to the currently selected candidate.
+ * When no candidate is selected, `set_common_prefix' is called. */
+void set_candidate(void)
+{
+    if (le_selected_candidate_index >= le_candidates.length) {
+	if (le_candidates.length > 0)
+	    set_common_prefix();
+	return;
+    }
+
+    const le_candidate_T *cand
+	= le_candidates.contents[le_selected_candidate_index];
+    const wchar_t *value = cand->value + expanded_source_word_length;
+    size_t length = wcslen(value);
+
+    wb_replace_force(&le_main_buffer,
+	    insertion_index, le_main_index - insertion_index, value, length);
+    le_main_index = insertion_index + length;
+}
+
+/* Appends a space, slash, or something that should come after the completed
+ * word. Must be called only when there is exactly one candidate. */
+void finish_word(void)
+{
+    //TODO
+    const wchar_t *finisher = L" ";
+    size_t length = wcslen(finisher);
+
+    wb_ninsert_force(&le_main_buffer, le_main_index, finisher, length);
+    le_main_index += length;
 }
 
 /* Prints the formatted string to the standard error.
