@@ -86,27 +86,26 @@ void le_complete(void)
     }
     compdebug("got %zu candidate(s)", le_candidates.length);
 
-    if (le_candidates.length == 0)
-	goto end1;
-
-    calculate_common_prefix_length();
-    if (shopt_le_compdebug) {
-	const le_candidate_T *cand = le_candidates.contents[0];
-	wchar_t *common_prefix = xwcsndup(cand->value, common_prefix_length);
-	compdebug("candidate common prefix: \"%ls\"", common_prefix);
-	free(common_prefix);
-    }
-
-    set_common_prefix();
-    if (le_candidates.length == 1) {
+    if (le_candidates.length == 0) {
+	le_selected_candidate_index = 0;
+    } else if (le_candidates.length == 1) {
+	le_selected_candidate_index = 0;
+	set_candidate();
 	finish_word();
 	le_complete_cleanup();
-	goto end0;
+    } else {
+	calculate_common_prefix_length();
+	if (shopt_le_compdebug) {
+	    const le_candidate_T *cand = le_candidates.contents[0];
+	    wchar_t *common_prefix
+		= xwcsndup(cand->value, common_prefix_length);
+	    compdebug("candidate common prefix: \"%ls\"", common_prefix);
+	    free(common_prefix);
+	}
+	set_common_prefix();
+	le_selected_candidate_index = le_candidates.length;
     }
 
-end1:
-    le_selected_candidate_index = le_candidates.length;
-end0:
     if (shopt_le_compdebug) {
 	compdebug("completion end");
 	le_setupterm(false);
