@@ -2228,7 +2228,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     format_time(tms.tms_stime, ssm, sss);
     format_time(tms.tms_cutime, cum, cus);
     format_time(tms.tms_cstime, csm, css);
-    if (printf(Ngt("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n"),
+    if (printf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
 	    sum, sus, ssm, sss, cum, cus, csm, css) >= 0) {
 	return Exit_SUCCESS;
     } else {

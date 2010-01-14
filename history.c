@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1416,13 +1416,13 @@ int fc_edit_and_exec_entries(
     fd = create_temporary_file(&temp, S_IRUSR | S_IWUSR);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot create temporary file to edit history"));
-	return Exit_FAILURE;
+	goto error1;
     }
     f = fdopen(fd, "w");
     if (!f) {
 	xerror(errno, Ngt("cannot open temporary file to edit history"));
 	xclose(fd);
-	return Exit_FAILURE;
+	goto error2;
     }
 
     savelaststatus = laststatus;
@@ -1432,7 +1432,9 @@ int fc_edit_and_exec_entries(
 	fclose(f);
 	if (unlink(temp) < 0)
 	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
+error2:
 	free(temp);
+error1:
 	return Exit_FAILURE;
     } else if (cpid > 0) {  // parent process
 	fclose(f);

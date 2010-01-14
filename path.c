@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.c: filename-related utilities */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -397,15 +397,13 @@ int create_temporary_file(char **filename, mode_t mode)
     int fd;
     xstrbuf_T buf;
 
-    n = shell_pid;
-    if ((n & 0xFFFFFF) == 0)
-	n = (n >> 23) | 1;
+    n = (uintmax_t) shell_pid * 272229637312669;
     if (!num)
-	num = (uintmax_t) time(NULL) * 16777619 % 65537 * 16777619 % 65537;
+	num = (uintmax_t) time(NULL) * 5131212142718371 << 1 | 1;
     sb_init(&buf);
     for (int i = 0; i < 100; i++) {
 	num = (num ^ n) * 16777619;
-	sb_printf(&buf, "/tmp/yash-%u", (unsigned) (num / 3 % 1000000000));
+	sb_printf(&buf, "/tmp/yash-%X", (unsigned) (num >> 30));
 	/* The filename must be 14 bytes long at most. */
 	fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
 	if (fd >= 0) {

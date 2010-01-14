@@ -8,12 +8,20 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.19
+
+  +  The "ulimit" is now available on FreeBSD.
+  +  In mail checking, the timestamp of the mail file is now compared
+     by the nanosecond if possible.
+  *  Fixed broken output of array assignment traces.
+
+----------------------------------------------------------------------
 Yash 2.18
 
   +  New operators for string comparison in the "test" builtin:
      ==, ===, !==, <, <=, >, >=
   +  Operators "-nt" and "-ot" in the "test" builtin now compares the
-     modification time by the nanoseconds if possible.
+     modification time by the nanosecond if possible.
   +  '--default-directory' option for the "cd" and "pushd" builtin.
   +  '--remove-duplicates' option for the "pushd" builtin.
   +  The right prompt and the styler prompt.

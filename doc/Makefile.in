@@ -53,10 +53,9 @@ DISTCONTENTS = Makefile.in filelist
 distcontents: $(DISTCONTENTS)
 copy-distcontents: $(DISTCONTENTS)
 	mkdir -p $(DISTTARGETDIR)
-	@echo Copying contents to $(DISTTARGETDIR)
-	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
-	@for d in $(HTMLINNERDIRS); do mkdir -p $(DISTTARGETDIR)/$$d; done
-	@while read -r f; do ln $$f $(DISTTARGETDIR)/$$f; done <filelist
+	cp $(DISTCONTENTS) $(DISTTARGETDIR)
+	for d in $(HTMLINNERDIRS); do mkdir -p $(DISTTARGETDIR)/$$d; done
+	while read -r f; do cp $$f $(DISTTARGETDIR)/$$f; done <filelist
 
 distclean:
 	-rm -fr Makefile

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* terminfo.c: interface to terminfo and termios */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,14 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#define _XOPEN_SOURCE_EXTENDED 1
 #include "../common.h"
 #include <assert.h>
 #include <ctype.h>
 #if HAVE_CURSES_H
 # include <curses.h>
-#else
-# include <ncurses/curses.h>
+#elif HAVE_NCURSES_H
+# include <ncurses.h>
+#elif HAVE_NCURSES_NCURSES_H
+# include <ncurses/ncurses.h>
+#elif HAVE_NCURSESW_NCURSES_H
+# include <ncursesw/ncurses.h>
 #endif
 #include <errno.h>
 #include <stddef.h>
@@ -31,8 +34,10 @@
 #include <stdlib.h>
 #if HAVE_TERM_H
 # include <term.h>
-#else
+#elif HAVE_NCURSES_TERM_H
 # include <ncurses/term.h>
+#elif HAVE_NCURSESW_TERM_H
+# include <ncursesw/term.h>
 #endif
 #include <termios.h>
 #include <unistd.h>
@@ -324,7 +329,7 @@ _Bool le_setupterm(_Bool bypass)
 
     if (once)
 	del_curterm(cur_term);
-    if (setupterm(NULL, STDERR_FILENO, &err) != OK)
+    if (setupterm(NULL, STDERR_FILENO, &err) == ERR)
 	return 0;
     once = 1;
 

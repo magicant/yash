@@ -25,8 +25,11 @@ AR = @AR@
 ARFLAGS = @ARFLAGS@
 SOURCES = printf.c test.c ulimit.c 
 HEADERS = printf.h test.h ulimit.h
+PRINTF_OBJS = printf.o
+TEST_OBJS = test.o
+ULIMIT_OBJS = ulimit.o
 OBJS = @BUILTIN_OBJS@
-TARGET = @BUILTINS_ARCHIVE@
+TARGET = builtins.a
 BYPRODUCTS = *.dSYM
 
 all: $(TARGET)
@@ -34,6 +37,7 @@ all: $(TARGET)
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
+	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
 $(TARGET): $(OBJS)
@@ -44,8 +48,7 @@ DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
 distcontents: $(DISTCONTENTS) $(SOURCES:.c=.o)
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
-	@echo Copying contents to $(DISTTARGETDIR)
-	@for f in $(DISTCONTENTS); do ln $$f $(DISTTARGETDIR); done
+	cp $(DISTCONTENTS) $(DISTTARGETDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGSARGS = @CTAGSARGS@

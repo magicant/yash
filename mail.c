@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* mail.c: mail checking */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -238,8 +238,10 @@ bool is_update(const char *path)
 	result = false;
     }
 
-#if HAVE_ST_MTIM || HAVE_ST_MTIMESPEC
+#if HAVE_ST_MTIM
     mf->mf_mtim = st.st_mtim;
+#elif HAVE_ST_MTIMESPEC
+    mf->mf_mtim = st.st_mtimespec;
 #else
     mf->mf_mtime = st.st_mtime;
 # if HAVE_ST_MTIMENSEC
