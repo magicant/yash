@@ -62,9 +62,15 @@ static size_t common_prefix_length;
 void le_complete(void)
 {
     if (shopt_le_compdebug) {
+	/* If the `le-compdebug' option is set, the command line is temporarily
+	 * cleared during completion.
+	 * Note that `shopt_le_compdebug' is referenced only here. During the
+	 * completion, we check the value of `le_state' to test if the option
+	 * is set. The value of `shopt_le_compdebug' might be changed by a
+	 * candidate generator code. */
 	le_display_finalize();
 	le_restore_terminal();
-	le_state = LE_STATE_SUSPENDED;
+	le_state = LE_STATE_SUSPENDED_COMPDEBUG;
 	compdebug("completion start");
     }
 
@@ -94,7 +100,7 @@ void le_complete(void)
 	le_complete_cleanup();
     } else {
 	calculate_common_prefix_length();
-	if (shopt_le_compdebug) {
+	if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	    const le_candidate_T *cand = le_candidates.contents[0];
 	    wchar_t *common_prefix
 		= xwcsndup(cand->value, common_prefix_length);
@@ -105,7 +111,7 @@ void le_complete(void)
 	set_candidate();
     }
 
-    if (shopt_le_compdebug) {
+    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	compdebug("completion end");
 	le_setupterm(false);
 	le_set_terminal();
@@ -212,11 +218,12 @@ void finish_word(void)
     le_main_index += length;
 }
 
-/* Prints the formatted string to the standard error.
+/* Prints the formatted string to the standard error if the completion debugging
+ * option is on.
  * The string is preceded by "[compdebug] " and followed by a newline. */
 void compdebug(const char *format, ...)
 {
-    if (!shopt_le_compdebug)
+    if (le_state != LE_STATE_SUSPENDED_COMPDEBUG)
 	return;
 
     fputs("[compdebug] ", stderr);

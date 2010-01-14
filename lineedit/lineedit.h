@@ -27,6 +27,7 @@ enum le_state_T {
     LE_STATE_INACTIVE,
     LE_STATE_ACTIVE,
     LE_STATE_SUSPENDED,
+    LE_STATE_SUSPENDED_COMPDEBUG,
 };
 enum le_editstate_T {
     LE_EDITSTATE_EDITING,     // editing is on-going
