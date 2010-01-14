@@ -838,13 +838,15 @@ void update_candidates(void)
     if (le_candidates.contents != NULL || candbaseline >= 0) {
 	if (candoverwritten)
 	    le_display_complete_cleanup();
-	if (candpages.contents == NULL)
+	if (candpages.contents == NULL) {
 	    make_pages_and_columns();
-	if (le_candidates.contents == NULL
-		|| candbaseline < 0 || candoverwritten)
 	    print_candidates_all();
-	else
+	} else if (le_candidates.contents == NULL
+		|| candbaseline < 0 || candoverwritten) {
+	    print_candidates_all();
+	} else {
 	    update_highlighted_candidate();
+	}
     }
 }
 
@@ -1046,12 +1048,12 @@ void print_candidates_all(void)
     go_to_after_editline();
     clear_to_end_of_screen();
     assert(lebuf.pos.column == 0);
+    candoverwritten = false;
 
     if (le_candidates.contents == NULL)
 	return;
 
     candbaseline = lebuf.pos.line;
-    candoverwritten = false;
     if (le_candidates.length == 0) {
 	print_candidate_count_0();
 	return;
