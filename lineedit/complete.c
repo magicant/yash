@@ -35,7 +35,6 @@
 static void free_candidate(void *c)
     __attribute__((nonnull));
 static void calculate_common_prefix_length(void);
-static void set_common_prefix(void);
 static void set_candidate(void);
 static void finish_word(void);
 static void compdebug(const char *format, ...)
@@ -102,8 +101,8 @@ void le_complete(void)
 	    compdebug("candidate common prefix: \"%ls\"", common_prefix);
 	    free(common_prefix);
 	}
-	set_common_prefix();
 	le_selected_candidate_index = le_candidates.length;
+	set_candidate();
     }
 
     if (shopt_le_compdebug) {
@@ -121,6 +120,8 @@ void le_complete_select(int offset)
 {
     if (le_candidates.contents == NULL) {
 	le_complete();
+	return;
+    } else if (le_candidates.length == 0) {
 	return;
     }
 
@@ -175,33 +176,24 @@ void calculate_common_prefix_length(void)
     common_prefix_length = cpl;
 }
 
-/* Sets the contents of the main buffer to the longest common prefix of the
- * candidate values. There must be at least one candidate. */
-void set_common_prefix(void)
-{
-    const le_candidate_T *cand = le_candidates.contents[0];
-    const wchar_t *value = cand->value + expanded_source_word_length;
-    size_t length = common_prefix_length - expanded_source_word_length;
-
-    wb_replace_force(&le_main_buffer,
-	    insertion_index, le_main_index - insertion_index, value, length);
-    le_main_index = insertion_index + length;
-}
-
 /* Sets the contents of the main buffer to the currently selected candidate.
- * When no candidate is selected, `set_common_prefix' is called. */
+ * When no candidate is selected, sets to the longest common prefix of the
+ * candidates. There must be at least one candidate. */
 void set_candidate(void)
 {
-    if (le_selected_candidate_index >= le_candidates.length) {
-	if (le_candidates.length > 0)
-	    set_common_prefix();
-	return;
-    }
+    const le_candidate_T *cand;
+    const wchar_t *value;
+    size_t length;
 
-    const le_candidate_T *cand
-	= le_candidates.contents[le_selected_candidate_index];
-    const wchar_t *value = cand->value + expanded_source_word_length;
-    size_t length = wcslen(value);
+    if (le_selected_candidate_index >= le_candidates.length) {
+	cand = le_candidates.contents[0];
+	value = cand->value + expanded_source_word_length;
+	length = common_prefix_length - expanded_source_word_length;
+    } else {
+	cand = le_candidates.contents[le_selected_candidate_index];
+	value = cand->value + expanded_source_word_length;
+	length = wcslen(value);
+    }
 
     wb_replace_force(&le_main_buffer,
 	    insertion_index, le_main_index - insertion_index, value, length);
