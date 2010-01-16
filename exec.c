@@ -56,6 +56,9 @@
 #include "variable.h"
 #include "xfnmatch.h"
 #include "yash.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/lineedit.h"
+#endif
 
 
 /* way of command execution */
@@ -1137,7 +1140,11 @@ void print_xtrace(void *const *argv)
     bool tracevars = xtrace_buffer.contents != NULL
 		  && xtrace_buffer.length > 0;
 
-    if (shopt_xtrace && (tracevars || argv != NULL)) {
+    if (shopt_xtrace && (tracevars || argv != NULL)
+#if YASH_ENABLE_LINEEDIT
+	    && le_state != LE_STATE_ACTIVE
+#endif
+	    ) {
 	bool first = true;
 
 	struct promptset_T prompt = get_prompt(4);

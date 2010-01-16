@@ -597,6 +597,8 @@ void set_char_expect_command(le_command_func_T cmd)
  * The current editing mode is saved in `savemode'. */
 void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
 {
+    le_complete_cleanup();
+
     savemode = LE_CURRENT_MODE;
     le_set_mode(mode);
     le_search_direction = dir;
