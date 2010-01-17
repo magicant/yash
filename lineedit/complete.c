@@ -37,6 +37,7 @@ static void free_candidate(void *c)
 static void calculate_common_prefix_length(void);
 static void set_candidate(void);
 static void finish_word(void);
+static void expand_to_all_candidates(void);
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
@@ -48,6 +49,8 @@ plist_T le_candidates = { .contents = NULL };
  * When no candidate is selected, the index is `le_candidates.length'. */
 size_t le_selected_candidate_index;
 
+/* The start index of the source word in the main buffer. */
+size_t le_source_word_index;
 /* The index of the cursor before completion started. */
 static size_t insertion_index;
 /* The length of the expanded source word. */
@@ -77,12 +80,14 @@ void le_complete(void)
     le_complete_cleanup();
     pl_init(&le_candidates);
 
+    bool expand_all = false;  // TODO
+    le_source_word_index = 0;  // TODO
     insertion_index = le_main_index;
     expanded_source_word_length = 0;  // TODO
 
     //TODO
     // this is test implementation
-    for (int i = 0; i < 97; i++) {
+    for (int i = 0; i < (int) le_main_index; i++) {
 	le_candidate_T *cand = xmalloc(sizeof *cand);
 	cand->value = malloc_wprintf(L"cand%d", i + 5);
 	cand->rawvalue = NULL;
@@ -93,6 +98,10 @@ void le_complete(void)
 
     if (le_candidates.length == 0) {
 	le_selected_candidate_index = 0;
+    } else if (expand_all) {
+	le_selected_candidate_index = 0;
+	expand_to_all_candidates();
+	le_complete_cleanup();
     } else if (le_candidates.length == 1) {
 	le_selected_candidate_index = 0;
 	set_candidate();
@@ -216,6 +225,26 @@ void finish_word(void)
 
     wb_ninsert_force(&le_main_buffer, le_main_index, finisher, length);
     le_main_index += length;
+}
+
+/* Substitutes the source word in the main buffer with all of the current
+ * candidates. */
+void expand_to_all_candidates(void)
+{
+    /* remove source word */
+    wb_remove(&le_main_buffer, le_source_word_index,
+	    le_main_index - le_source_word_index);
+    le_main_index = le_source_word_index;
+
+    /* insert candidates */
+    for (size_t i = 0; i < le_candidates.length; i++) {
+	const le_candidate_T* cand = le_candidates.contents[i];
+	size_t len = wcslen(cand->value);
+	wb_ninsert_force(&le_main_buffer, le_main_index, cand->value, len);
+	le_main_index += len;
+	wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+	le_main_index += 1;
+    }
 }
 
 /* Prints the formatted string to the standard error if the completion debugging

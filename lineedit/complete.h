@@ -32,6 +32,8 @@ typedef struct le_candidate_T {
 extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
 
+extern size_t le_source_word_index;
+
 extern void le_complete(void);
 extern void le_complete_select(int offset);
 extern void le_complete_cleanup(void);
