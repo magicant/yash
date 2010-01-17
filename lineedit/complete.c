@@ -428,7 +428,7 @@ void generate_files(const wchar_t *pattern)
     }
 
     plist_T list;
-    enum wglbflags flags = WGLB_NOSORT;
+    enum wglbflags flags = WGLB_NOSORT | WGLB_MARK;
     if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
@@ -437,10 +437,15 @@ void generate_files(const wchar_t *pattern)
 
     for (size_t i = 0; i < list.length; i++) {
 	wchar_t *file = list.contents[i];
-	char *mbsfile = malloc_wcstombs(file);
-	bool isdir = is_directory(mbsfile);
-	free(mbsfile);
-	add_candidate(isdir ? CT_DIR : CT_FILE, file);
+	size_t len = wcslen(file);
+	assert(len > 0);
+	if (file[len - 1] == L'/') {
+	    assert(wcscspn(file, L"/") < len);
+	    file[len - 1] = L'\0';
+	    add_candidate(CT_DIR, file);
+	} else {
+	    add_candidate(CT_FILE, file);
+	}
     }
     pl_destroy(&list);
 }
