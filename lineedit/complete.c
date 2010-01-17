@@ -24,7 +24,10 @@
 #include <string.h>
 #include <wchar.h>
 #include "../option.h"
+#include "../path.h"
+#include "../plist.h"
 #include "../util.h"
+#include "../xfnmatch.h"
 #include "complete.h"
 #include "display.h"
 #include "editing.h"
@@ -41,6 +44,11 @@ static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
+
+static void add_candidate(le_candtype_T type, wchar_t *value)
+    __attribute__((nonnull));
+static void generate_files(const wchar_t *pattern)
+    __attribute__((nonnull));
 
 /* A list that contains the current completion candidates.
  * The elements pointed to by `le_candidates.contains[*]' are of type
@@ -91,19 +99,15 @@ void le_complete(void)
     le_source_word_index = 0;  // TODO
     le_quote = QUOTE_NORMAL;  // TODO
     insertion_index = le_main_index;
-    expanded_source_word_length = 0;  // TODO
+    expanded_source_word_length = le_main_index;  // TODO
 
     //TODO
     // this is test implementation
-    for (int i = 0; i < (int) le_main_index; i++) {
-	le_candidate_T *cand = xmalloc(sizeof *cand);
-	cand->type = CT_WORD;
-	cand->value = malloc_wprintf(L"cand%d", i + 5);
-	cand->rawvalue = NULL;
-	cand->width = 0;
-	pl_add(&le_candidates, cand);
-    }
-    compdebug("got %zu candidate(s)", le_candidates.length);
+//    for (int i = 0; i < (int) le_main_index; i++)
+//	add_candidate(CT_WORD, malloc_wprintf(L"cand%d", i + 5));
+    generate_files(le_main_buffer.contents);
+
+    compdebug("total of %zu candidate(s)", le_candidates.length);
 
     if (le_candidates.length == 0) {
 	le_selected_candidate_index = 0;
@@ -340,6 +344,73 @@ void compdebug(const char *format, ...)
     va_end(ap);
 
     fputc('\n', stderr);
+}
+
+
+/********** Completion Candidate Generation **********/
+
+/* Adds the specified value as a completion candidate to the candidate list.
+ * The value is freed in this function. */
+void add_candidate(le_candtype_T type, wchar_t *value)
+{
+    le_candidate_T *cand = xmalloc(sizeof *cand);
+    cand->type = type;
+    cand->value = value;
+    cand->rawvalue = NULL;
+    cand->width = 0;
+
+    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+	const char *typestr = NULL;
+	switch (type) {
+	    case CT_WORD:      typestr = "word";          break;
+	    case CT_FILE:      typestr = "file";          break;
+	    case CT_DIR:       typestr = "directory";     break;
+	    case CT_COMMAND:   typestr = "command";       break;
+	    case CT_ALIAS:     typestr = "alias";         break;
+	    case CT_VAR:       typestr = "variable";      break;
+	    case CT_FUNC:      typestr = "function";      break;
+	    case CT_JOB:       typestr = "job";           break;
+	    case CT_SHOPT:     typestr = "shell option";  break;
+	    case CT_FD:        typestr = "FD";            break;
+	    case CT_SIG:       typestr = "signal";        break;
+	    case CT_LOGNAME:   typestr = "user name";     break;
+	    case CT_HOSTNAME:  typestr = "host name";     break;
+	}
+	compdebug("adding %s candidate \"%ls\"", typestr, value);
+    }
+
+    pl_add(&le_candidates, cand);
+}
+
+/* Generates file name candidates that matches the specified glob pattern.
+ * If `pattern' is not a glob pattern, an asterisk is added to make a pattern.
+ */
+void generate_files(const wchar_t *pattern)
+{
+    wchar_t *newpattern = NULL;
+
+    if (!is_pathname_matching_pattern(pattern)) {
+	xwcsbuf_T buf;
+	pattern = newpattern =
+	    wb_towcs(wb_wccat(wb_cat(wb_init(&buf), pattern), L'*'));
+    }
+
+    plist_T list;
+    enum wglbflags flags = 0;
+    if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;
+    if (shopt_dotglob)      flags |= WGLB_PERIOD;
+    if (shopt_extendedglob) flags |= WGLB_RECDIR;
+    wglob(pattern, flags, pl_init(&list));
+    free(newpattern);
+
+    for (size_t i = 0; i < list.length; i++) {
+	wchar_t *file = list.contents[i];
+	char *mbsfile = malloc_wcstombs(file);
+	bool isdir = is_directory(mbsfile);
+	free(mbsfile);
+	add_candidate(isdir ? CT_DIR : CT_FILE, file);
+    }
+    pl_destroy(&list);
 }
 
 
