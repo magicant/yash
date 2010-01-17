@@ -21,6 +21,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include "../option.h"
@@ -41,6 +42,9 @@ static void calculate_common_prefix_length(void);
 static void update_main_buffer(void);
 static void expand_to_all_candidates(void);
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
+    __attribute__((nonnull));
+static void sort_candidates(void);
+static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
@@ -107,6 +111,7 @@ void le_complete(void)
 //	add_candidate(CT_WORD, malloc_wprintf(L"cand%d", i + 5));
     generate_files(le_main_buffer.contents);
 
+    sort_candidates();
     compdebug("total of %zu candidate(s)", le_candidates.length);
 
     if (le_candidates.length == 0) {
@@ -328,6 +333,32 @@ void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     assert(false);
 }
 
+/* Sorts the candidates in the candidate list and remove duplicates. */
+void sort_candidates(void)
+{
+    qsort(le_candidates.contents,
+	    le_candidates.length, sizeof *le_candidates.contents,
+	    sort_candidates_cmp);
+
+    if (le_candidates.length >= 2) {
+	for (size_t i = le_candidates.length - 1; i > 0; i--) {
+	    le_candidate_T *cand1 = le_candidates.contents[i];
+	    le_candidate_T *cand2 = le_candidates.contents[i - 1];
+	    if (wcscoll(cand1->value, cand2->value) == 0) {// XXX case-sensitive
+		free_candidate(cand1);
+		pl_remove(&le_candidates, i, 1);
+	    }
+	}
+    }
+}
+
+int sort_candidates_cmp(const void *cp1, const void *cp2)
+{
+    const le_candidate_T *cand1 = *(const le_candidate_T **) cp1;
+    const le_candidate_T *cand2 = *(const le_candidate_T **) cp2;
+    return wcscoll(cand1->value, cand2->value); // XXX case-sensitive
+}
+
 /* Prints the formatted string to the standard error if the completion debugging
  * option is on.
  * The string is preceded by "[compdebug] " and followed by a newline. */
@@ -396,7 +427,7 @@ void generate_files(const wchar_t *pattern)
     }
 
     plist_T list;
-    enum wglbflags flags = 0;
+    enum wglbflags flags = WGLB_NOSORT;
     if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
