@@ -234,6 +234,9 @@ void update_main_buffer(void)
     le_main_index = insertion_index + buf.length;
     wb_destroy(&buf);
 
+    if (le_selected_candidate_index >= le_candidates.length)
+	return;
+
     // TODO
     if (cand->type == CT_DIR) {
 	size_t len = wcslen(cand->value);
@@ -242,20 +245,18 @@ void update_main_buffer(void)
 	    le_main_index += 1;
 	}
     } else {
-	if (le_selected_candidate_index < le_candidates.length) {
-	    switch (le_quote) {
-		case QUOTE_NONE:
-		case QUOTE_NORMAL:
-		    break;
-		case QUOTE_SINGLE:
-		    wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
-		    le_main_index += 1;
-		    break;
-		case QUOTE_DOUBLE:
-		    wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
-		    le_main_index += 1;
-		    break;
-	    }
+	switch (le_quote) {
+	    case QUOTE_NONE:
+	    case QUOTE_NORMAL:
+		break;
+	    case QUOTE_SINGLE:
+		wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
+		le_main_index += 1;
+		break;
+	    case QUOTE_DOUBLE:
+		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
+		le_main_index += 1;
+		break;
 	}
 	if (le_candidates.length == 1) {
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
