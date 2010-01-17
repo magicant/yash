@@ -51,6 +51,8 @@ plist_T le_candidates = { .contents = NULL };
  * When no candidate is selected, the index is `le_candidates.length'. */
 size_t le_selected_candidate_index;
 
+/* The context in which completion takes place. */
+le_context_T le_context;
 /* The start index of the source word in the main buffer. */
 size_t le_source_word_index;
 /* The index of the cursor before completion started. */
@@ -85,6 +87,7 @@ void le_complete(void)
     le_complete_cleanup();
     pl_init(&le_candidates);
 
+    le_context = CTXT_NORMAL;  // TODO
     bool expand_all = false;  // TODO
     le_source_word_index = 0;  // TODO
     le_quote = QUOTE_NORMAL;  // TODO
@@ -95,6 +98,7 @@ void le_complete(void)
     // this is test implementation
     for (int i = 0; i < (int) le_main_index; i++) {
 	le_candidate_T *cand = xmalloc(sizeof *cand);
+	cand->type = CT_WORD;
 	cand->value = malloc_wprintf(L"cand%d", i + 5);
 	cand->rawvalue = NULL;
 	cand->width = 0;
@@ -224,20 +228,29 @@ void set_candidate(void)
     le_main_index = insertion_index + buf.length;
     wb_destroy(&buf);
 
-    // TODO: when?
-    if (le_selected_candidate_index < le_candidates.length) {
-	switch (le_quote) {
-	    case QUOTE_NONE:
-	    case QUOTE_NORMAL:
-		break;
-	    case QUOTE_SINGLE:
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
-		le_main_index += 1;
-		break;
-	    case QUOTE_DOUBLE:
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
-		le_main_index += 1;
-		break;
+    // TODO
+    if (cand->type == CT_DIR) {
+	size_t len = wcslen(cand->value);
+	if (len > 0 && cand->value[len - 1] != L'/') {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
+	    le_main_index += 1;
+	}
+    } else {
+	if (le_context == CTXT_NORMAL
+		&& le_selected_candidate_index < le_candidates.length) {
+	    switch (le_quote) {
+		case QUOTE_NONE:
+		case QUOTE_NORMAL:
+		    break;
+		case QUOTE_SINGLE:
+		    wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
+		    le_main_index += 1;
+		    break;
+		case QUOTE_DOUBLE:
+		    wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
+		    le_main_index += 1;
+		    break;
+	    }
 	}
     }
 }

@@ -23,7 +23,23 @@
 #include "../plist.h"
 
 
+typedef enum le_candtype_T {
+    CT_WORD,       // normal word
+    CT_FILE,       // non-directory file name
+    CT_DIR,        // directory name
+    CT_COMMAND,    // command name
+    CT_ALIAS,      // alias name
+    CT_VAR,        // variable name
+    CT_FUNC,       // function name
+    CT_JOB,        // job name
+    CT_SHOPT,      // shell option name
+    CT_FD,         // file descriptor
+    CT_SIG,        // signal name
+    CT_LOGNAME,    // user name
+    CT_HOSTNAME,   // host name
+} le_candtype_T;
 typedef struct le_candidate_T {
+    le_candtype_T type;
     wchar_t *value;
     char *rawvalue;
     int width;
@@ -32,10 +48,20 @@ typedef struct le_candidate_T {
 typedef enum le_quote_T {
     QUOTE_NONE, QUOTE_NORMAL, QUOTE_SINGLE, QUOTE_DOUBLE,
 } le_quote_T;
+typedef enum le_context_T {
+    CTXT_NORMAL,   // normal word
+    CTXT_TILDE,    // tilde expansion
+    CTXT_VAR,      // variable not in brackets
+    CTXT_VAR_BRCK, // variable in brackets
+    CTXT_ARITH,    // arithmetic expansion
+    CTXT_REDIR,    // redirection target (that is a file name)
+    CTXT_REDIR_FD, // redirection target (that is a file descriptor)
+} le_context_T;
 
 extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
 
+extern le_context_T le_context;
 extern size_t le_source_word_index;
 
 extern void le_complete(void);
