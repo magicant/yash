@@ -29,6 +29,10 @@ typedef struct le_candidate_T {
     int width;
 } le_candidate_T;
 
+typedef enum le_quote_T {
+    QUOTE_NONE, QUOTE_NORMAL, QUOTE_SINGLE, QUOTE_DOUBLE,
+} le_quote_T;
+
 extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
 

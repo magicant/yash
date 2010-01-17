@@ -38,6 +38,8 @@ static void calculate_common_prefix_length(void);
 static void set_candidate(void);
 static void finish_word(void);
 static void expand_to_all_candidates(void);
+static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
+    __attribute__((nonnull));
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
@@ -53,6 +55,9 @@ size_t le_selected_candidate_index;
 size_t le_source_word_index;
 /* The index of the cursor before completion started. */
 static size_t insertion_index;
+/* The type of quotation at the current position. */
+le_quote_T le_quote;
+
 /* The length of the expanded source word. */
 static size_t expanded_source_word_length;
 /* The length of the longest common prefix of the current candidates. */
@@ -82,6 +87,7 @@ void le_complete(void)
 
     bool expand_all = false;  // TODO
     le_source_word_index = 0;  // TODO
+    le_quote = QUOTE_NORMAL;  // TODO
     insertion_index = le_main_index;
     expanded_source_word_length = 0;  // TODO
 
@@ -197,22 +203,25 @@ void calculate_common_prefix_length(void)
 void set_candidate(void)
 {
     const le_candidate_T *cand;
-    const wchar_t *value;
-    size_t length;
+    wchar_t *value;
+    xwcsbuf_T buf;
 
     if (le_selected_candidate_index >= le_candidates.length) {
 	cand = le_candidates.contents[0];
-	value = cand->value + expanded_source_word_length;
-	length = common_prefix_length - expanded_source_word_length;
+	value = xwcsndup(cand->value + expanded_source_word_length,
+		common_prefix_length - expanded_source_word_length);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	value = cand->value + expanded_source_word_length;
-	length = wcslen(value);
+	value = xwcsdup(cand->value + expanded_source_word_length);
     }
+    quote(wb_init(&buf), value, le_quote);
+    free(value);
 
     wb_replace_force(&le_main_buffer,
-	    insertion_index, le_main_index - insertion_index, value, length);
-    le_main_index = insertion_index + length;
+	    insertion_index, le_main_index - insertion_index,
+	    buf.contents, buf.length);
+    le_main_index = insertion_index + buf.length;
+    wb_destroy(&buf);
 }
 
 /* Appends a space, slash, or something that should come after the completed
@@ -220,11 +229,23 @@ void set_candidate(void)
 void finish_word(void)
 {
     //TODO
-    const wchar_t *finisher = L" ";
-    size_t length = wcslen(finisher);
 
-    wb_ninsert_force(&le_main_buffer, le_main_index, finisher, length);
-    le_main_index += length;
+    switch (le_quote) {
+	case QUOTE_NONE:
+	case QUOTE_NORMAL:
+	    break;
+	case QUOTE_SINGLE:
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
+	    le_main_index += 1;
+	    break;
+	case QUOTE_DOUBLE:
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
+	    le_main_index += 1;
+	    break;
+    }
+
+    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+    le_main_index += 1;
 }
 
 /* Substitutes the source word in the main buffer with all of the current
@@ -237,14 +258,63 @@ void expand_to_all_candidates(void)
     le_main_index = le_source_word_index;
 
     /* insert candidates */
+    xwcsbuf_T buf;
+    wb_init(&buf);
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T* cand = le_candidates.contents[i];
-	size_t len = wcslen(cand->value);
-	wb_ninsert_force(&le_main_buffer, le_main_index, cand->value, len);
-	le_main_index += len;
+
+	quote(wb_clear(&buf), cand->value, QUOTE_NORMAL);
+	wb_ninsert_force(&le_main_buffer, le_main_index,
+		buf.contents, buf.length);
+	le_main_index += buf.length;
+
 	wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
 	le_main_index += 1;
     }
+    wb_destroy(&buf);
+}
+
+/* Quotes characters in the specified string that are not treated literally
+ * according to `quotetype'.
+ * The result is appended to the specified buffer, which must have been
+ * initialized by the caller. */
+void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
+{
+    switch (quotetype) {
+	case QUOTE_NONE:
+	    wb_cat(buf, s);
+	    return;
+	case QUOTE_NORMAL:
+	    while (*s != L'\0') {
+		if (*s == L'\n') {
+		    wb_ncat_force(buf, L"'\n'", 3);
+		} else {
+		    if (wcschr(L"|&;<>()$`\\\"'*?[#~=", *s) || iswspace(*s))
+			wb_wccat(buf, L'\\');
+		    wb_wccat(buf, *s);
+		}
+		s++;
+	    }
+	    return;
+	case QUOTE_SINGLE:
+	    while (*s != L'\0') {
+		if (*s != L'\'')
+		    wb_wccat(buf, *s);
+		else
+		    wb_ncat_force(buf, L"'\\''", 4);
+		s++;
+	    }
+	    return;
+	case QUOTE_DOUBLE:
+	    while (*s != L'\0') {
+		if (wcschr(L"$`\"\\", *s))
+		    wb_wccat(buf, L'\\');
+		wb_wccat(buf, *s);
+		s++;
+	    }
+	    return;
+    }
+    assert(false);
 }
 
 /* Prints the formatted string to the standard error if the completion debugging
