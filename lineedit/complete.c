@@ -35,8 +35,7 @@
 static void free_candidate(void *c)
     __attribute__((nonnull));
 static void calculate_common_prefix_length(void);
-static void set_candidate(void);
-static void finish_word(void);
+static void update_main_buffer(void);
 static void expand_to_all_candidates(void);
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
@@ -114,8 +113,7 @@ void le_complete(void)
 	le_complete_cleanup();
     } else if (le_candidates.length == 1) {
 	le_selected_candidate_index = 0;
-	set_candidate();
-	finish_word();
+	update_main_buffer();
 	le_complete_cleanup();
     } else {
 	calculate_common_prefix_length();
@@ -127,7 +125,7 @@ void le_complete(void)
 	    free(common_prefix);
 	}
 	le_selected_candidate_index = le_candidates.length;
-	set_candidate();
+	update_main_buffer();
     }
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
@@ -158,7 +156,7 @@ void le_complete_select(int offset)
     le_selected_candidate_index += offset;
     le_selected_candidate_index %= le_candidates.length + 1;
 
-    set_candidate();
+    update_main_buffer();
 }
 
 /* Clears the current candidates. */
@@ -204,7 +202,7 @@ void calculate_common_prefix_length(void)
 /* Sets the contents of the main buffer to the currently selected candidate.
  * When no candidate is selected, sets to the longest common prefix of the
  * candidates. There must be at least one candidate. */
-void set_candidate(void)
+void update_main_buffer(void)
 {
     const le_candidate_T *cand;
     wchar_t *value;
@@ -221,7 +219,6 @@ void set_candidate(void)
 	cand = le_candidates.contents[le_selected_candidate_index];
 	quote(&buf, cand->value + expanded_source_word_length, le_quote);
     }
-
     wb_replace_force(&le_main_buffer,
 	    insertion_index, le_main_index - insertion_index,
 	    buf.contents, buf.length);
@@ -236,8 +233,7 @@ void set_candidate(void)
 	    le_main_index += 1;
 	}
     } else {
-	if (le_context == CTXT_NORMAL
-		&& le_selected_candidate_index < le_candidates.length) {
+	if (le_selected_candidate_index < le_candidates.length) {
 	    switch (le_quote) {
 		case QUOTE_NONE:
 		case QUOTE_NORMAL:
@@ -252,18 +248,11 @@ void set_candidate(void)
 		    break;
 	    }
 	}
+	if (le_candidates.length == 1) {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+	    le_main_index += 1;
+	}
     }
-}
-
-/* Appends a space, slash, or something that should come after the completed
- * word. Must be called only when there is exactly one candidate. */
-void finish_word(void)
-{
-    //TODO
-    assert(le_candidates.length == 1);
-
-    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
-    le_main_index += 1;
 }
 
 /* Substitutes the source word in the main buffer with all of the current
