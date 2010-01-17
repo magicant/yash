@@ -206,16 +206,17 @@ void set_candidate(void)
     wchar_t *value;
     xwcsbuf_T buf;
 
+    wb_init(&buf);
     if (le_selected_candidate_index >= le_candidates.length) {
 	cand = le_candidates.contents[0];
 	value = xwcsndup(cand->value + expanded_source_word_length,
 		common_prefix_length - expanded_source_word_length);
+	quote(&buf, value, le_quote);
+	free(value);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	value = xwcsdup(cand->value + expanded_source_word_length);
+	quote(&buf, cand->value + expanded_source_word_length, le_quote);
     }
-    quote(wb_init(&buf), value, le_quote);
-    free(value);
 
     wb_replace_force(&le_main_buffer,
 	    insertion_index, le_main_index - insertion_index,
