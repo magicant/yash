@@ -306,7 +306,7 @@ void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
 		if (*s == L'\n') {
 		    wb_ncat_force(buf, L"'\n'", 3);
 		} else {
-		    if (wcschr(L"|&;<>()$`\\\"'*?[#~=", *s) || iswspace(*s))
+		    if (wcschr(L"|&;<>()$`\\\"'*?[]#~=", *s) || iswspace(*s))
 			wb_wccat(buf, L'\\');
 		    wb_wccat(buf, *s);
 		}
