@@ -306,6 +306,7 @@ static void fillip_cursor(void);
 static void update_candidates(void);
 static void make_pages_and_columns(void);
 static void make_rawvalues(void);
+static bool try_putwchar_rawvalue(wchar_t c);
 static bool arrange_candidates(size_t cand_per_col, int totalwidthlimit);
 static void divide_candidates_pages(size_t cand_per_col);
 static void free_candpage(void *candpage)
@@ -904,25 +905,46 @@ void make_rawvalues(void)
 	free(cand->rawvalue);
 	lebuf_init((le_pos_T) { 0, 0 });
 
-	for (const wchar_t *s = cand->value; *s != L'\0'; s++) {
-	    assert(lebuf.pos.line == 0);
-	    int savecol = lebuf.pos.column;
-	    size_t savelen = lebuf.buf.length;
-
-	    lebuf_putwchar(*s, true);
-	    if (lebuf.pos.line > 0 || lebuf.pos.column > le_columns - 3) {
-		// lebuf.pos.line = 0;
-		lebuf.pos.column = savecol;
-		sb_truncate(&lebuf.buf, savelen);
-		break;
-	    }
+	const wchar_t *s = cand->value;
+	if (cand->type == CT_FILE || cand->type == CT_DIR) {
+	    const wchar_t *ss = wcsrchr(s, L'/');
+	    if (ss != NULL)
+		s = ss + 1;
 	}
+	for (; *s != L'\0'; s++) {
+	    if (!try_putwchar_rawvalue(*s))
+		break;
+	}
+
+	if (cand->type == CT_DIR)
+	    try_putwchar_rawvalue(L'/');
 
 	cand->rawvalue = sb_tostr(&lebuf.buf);
 	cand->width = lebuf.pos.column;
     }
 
     lebuf = savelebuf;
+}
+
+/* Appends the specified character to the print buffer if there is enough room.
+ * `lebuf.pos.line' must be zero.
+ * Returns true iff successful.
+ * `lebuf.pos.line' may be left non-zero if unsuccessful. */
+bool try_putwchar_rawvalue(wchar_t c)
+{
+    assert(lebuf.pos.line == 0);
+    int savecol = lebuf.pos.column;
+    size_t savelen = lebuf.buf.length;
+
+    lebuf_putwchar(c, true);
+    if (lebuf.pos.line > 0 || lebuf.pos.column > le_columns - 3) {
+	// lebuf.pos.line = 0;
+	lebuf.pos.column = savecol;
+	sb_truncate(&lebuf.buf, savelen);
+	return false;
+    } else {
+	return true;
+    }
 }
 
 /* Tries to arrange the current candidates in `le_candidates' into columns that
