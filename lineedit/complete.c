@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include "../hashtable.h"
 #include "../option.h"
 #include "../path.h"
 #include "../plist.h"
@@ -49,6 +50,7 @@ static int sort_candidates_cmp(const void *cp1, const void *cp2)
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
+static const le_candgen_T *get_candgen(le_context_T context, void **argv);
 static void add_candidate(le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
 static void generate_files(const wchar_t *pattern)
@@ -381,6 +383,59 @@ void compdebug(const char *format, ...)
 
 /********** Completion Candidate Generation **********/
 
+/* The type of data that specifies how to generate candidates for a command's
+ * arguments. The `operands' member is used for completing a operand. The
+ * `options' member is a hashtable that contains data for completing an option.
+ * The hashtable's keys are pointers to freeable strings containing option
+ * names and values are pointers to freeable `le_candgen_T' structures. */
+struct cmdcandgen_T {
+    le_candgen_T operands;
+    hashtable_T options;
+};
+
+/* A hashtable that maps command names to candidate generation data.
+ * A key is a pointer to a freeable wide string containing a command name.
+ * A value is a pointer to a freeable `cmdcandgen_T' structure.
+ * When the hashtable is not yet initialized, the capacity is zero. */
+static hashtable_T candgens = { .capacity = 0 };
+
+/* Determines how to generate candidates.
+ * The context in which the completion is performed is specified by `context'.
+ * `argv' is the expanded source words.
+ * The result is valid until the next call to this function or `set_candgen'. */
+const le_candgen_T *get_candgen(le_context_T context, void **argv)
+{
+    static le_candgen_T tempresult;
+
+    switch (context) {
+	case CTXT_NORMAL:
+	    break; //TODO
+	case CTXT_TILDE:
+	    break; //TODO
+	case CTXT_VAR:
+	    break; //TODO
+	case CTXT_VAR_BRCK:
+	    break; //TODO
+	case CTXT_VAR_BRCK_WORD:
+	    break; //TODO
+	case CTXT_ARITH:
+	    break; //TODO
+	case CTXT_REDIR:
+	    break; //TODO
+	case CTXT_REDIR_FD:
+	    break; //TODO
+    }
+
+    // TODO under construction
+    (void) argv, (void) candgens;
+    tempresult = (le_candgen_T) {
+	.type = CGT_FILE, .words = NULL, .function = NULL,
+    };
+    return &tempresult;
+
+    assert(false);
+}
+
 /* Adds the specified value as a completion candidate to the candidate list.
  * The value is freed in this function. */
 void add_candidate(le_candtype_T type, wchar_t *value)
@@ -394,19 +449,21 @@ void add_candidate(le_candtype_T type, wchar_t *value)
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	const char *typestr = NULL;
 	switch (type) {
-	    case CT_WORD:      typestr = "word";          break;
-	    case CT_FILE:      typestr = "file";          break;
-	    case CT_DIR:       typestr = "directory";     break;
-	    case CT_COMMAND:   typestr = "command";       break;
-	    case CT_ALIAS:     typestr = "alias";         break;
-	    case CT_VAR:       typestr = "variable";      break;
-	    case CT_FUNC:      typestr = "function";      break;
-	    case CT_JOB:       typestr = "job";           break;
-	    case CT_SHOPT:     typestr = "shell option";  break;
-	    case CT_FD:        typestr = "FD";            break;
-	    case CT_SIG:       typestr = "signal";        break;
-	    case CT_LOGNAME:   typestr = "user name";     break;
-	    case CT_HOSTNAME:  typestr = "host name";     break;
+	    case CT_WORD:      typestr = "word";              break;
+	    case CT_FILE:      typestr = "file";              break;
+	    case CT_DIR:       typestr = "directory";         break;
+	    case CT_COMMAND:   typestr = "command";           break;
+	    case CT_ALIAS:     typestr = "alias";             break;
+	    case CT_OPTION:    typestr = "option";            break;
+	    case CT_VAR:       typestr = "variable";          break;
+	    case CT_FUNC:      typestr = "function";          break;
+	    case CT_JOB:       typestr = "job";               break;
+	    case CT_SHOPT:     typestr = "shell option";      break;
+	    case CT_FD:        typestr = "file descriptor";   break;
+	    case CT_SIG:       typestr = "signal";            break;
+	    case CT_LOGNAME:   typestr = "user name";         break;
+	    case CT_HOSTNAME:  typestr = "host name";         break;
+	    case CT_BINDKEY:   typestr = "lineedit command";  break;
 	}
 	compdebug("adding %s candidate \"%ls\"", typestr, value);
     }

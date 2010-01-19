@@ -28,15 +28,17 @@ typedef enum le_candtype_T {
     CT_FILE,       // non-directory file name
     CT_DIR,        // directory name
     CT_COMMAND,    // command name
-    CT_ALIAS,      // alias name
-    CT_VAR,        // variable name
     CT_FUNC,       // function name
+    CT_ALIAS,      // alias name
+    CT_OPTION,     // command option
+    CT_VAR,        // variable name
     CT_JOB,        // job name
     CT_SHOPT,      // shell option name
     CT_FD,         // file descriptor
     CT_SIG,        // signal name
     CT_LOGNAME,    // user name
     CT_HOSTNAME,   // host name
+    CT_BINDKEY,    // line-editing command name
 } le_candtype_T;
 typedef struct le_candidate_T {
     le_candtype_T type;
@@ -46,7 +48,10 @@ typedef struct le_candidate_T {
 } le_candidate_T;
 
 typedef enum le_quote_T {
-    QUOTE_NONE, QUOTE_NORMAL, QUOTE_SINGLE, QUOTE_DOUBLE,
+    QUOTE_NONE,    // no quotation required
+    QUOTE_NORMAL,  // not in single/double quotation; backslashes can be used
+    QUOTE_SINGLE,  // in single quotation
+    QUOTE_DOUBLE,  // in double quotation
 } le_quote_T;
 typedef enum le_context_T {
     CTXT_NORMAL,         // normal word
@@ -58,6 +63,48 @@ typedef enum le_context_T {
     CTXT_REDIR,          // redirection target (that is a file name)
     CTXT_REDIR_FD,       // redirection target (that is a file descriptor)
 } le_context_T;
+
+typedef enum le_candgentype_T {
+    CGT_FILE       = 1 << 0, // file of any kind
+    CGT_DIRECTORY  = 1 << 1, // directory
+    CGT_EXECUTABLE = 1 << 2, // executable file
+    CGT_SBUILTIN   = 1 << 3, // special builtin
+    CGT_SSBUILTIN  = 1 << 4, // semi-special builtin
+    CGT_RBUILTIN   = 1 << 5, // regular builtin
+    CGT_EXTCOMMAND = 1 << 6, // external command
+    CGT_FUNCTION   = 1 << 7, // function
+    CGT_KEYWORD    = 1 << 8, // shell keyword
+    CGT_COMMAND    = CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN
+		   | CGT_EXTCOMMAND | CGT_FUNCTION | CGT_KEYWORD,
+    CGT_NALIAS     = 1 << 9, // non-global alias
+    CGT_GALIAS     = 1 << 10, // global alias
+    CGT_ALIAS      = CGT_NALIAS | CGT_GALIAS,
+    CGT_SCALAR     = 1 << 11, // scalar variable
+    CGT_ARRAY      = 1 << 12, // array variable
+    CGT_VARIABLE   = CGT_SCALAR | CGT_ARRAY,
+    CGT_RUNNING    = 1 << 13, // running job
+    CGT_STOPPED    = 1 << 14, // stopped job
+    CGT_DONE       = 1 << 15, // finished job
+    CGT_JOB        = CGT_RUNNING | CGT_STOPPED | CGT_DONE,
+    CGT_SHOPT      = 1 << 16, // shell option
+    CGT_SIGNAL     = 1 << 17, // signal name
+    CGT_LOGNAME    = 1 << 18, // login user name
+    CGT_HOSTNAME   = 1 << 19, // host name
+    CGT_BINDKEY    = 1 << 20, // line-editing command name
+} le_candgentype_T;
+typedef struct le_candgen_T {
+    le_candgentype_T type;
+    void **words;
+    wchar_t *function;
+} le_candgen_T;
+/* The `le_candgen_T' structure specifies how to generate completion candidates.
+ * The `type' member is bitwise OR of CGT_* values.
+ * The `words' member is a pointer to an array of pointers to wide strings that
+ * are added as candidates.
+ * The `function' member is the name of the function that is called to generate
+ * candidates.
+ * The `words' and `function' members may be NULL. */
+
 
 extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
