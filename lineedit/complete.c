@@ -53,7 +53,7 @@ static void compdebug(const char *format, ...)
 static const le_candgen_T *get_candgen(le_context_T context, void **argv);
 static void add_candidate(le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
-static void generate_files(const wchar_t *pattern)
+static void generate_files(le_candgentype_T type, const wchar_t *pattern)
     __attribute__((nonnull));
 
 /* A list that contains the current completion candidates.
@@ -107,11 +107,8 @@ void le_complete(void)
     insertion_index = le_main_index;
     expanded_source_word_length = le_main_index;  // TODO
 
-    //TODO
-    // this is test implementation
-//    for (int i = 0; i < (int) le_main_index; i++)
-//	add_candidate(CT_WORD, malloc_wprintf(L"cand%d", i + 5));
-    generate_files(le_main_buffer.contents);
+    const le_candgen_T *candgen = get_candgen(CTXT_NORMAL, NULL);  // TODO
+    generate_files(candgen->type, le_main_buffer.contents);  // TODO
 
     sort_candidates();
     compdebug("total of %zu candidate(s)", le_candidates.length);
@@ -472,12 +469,17 @@ void add_candidate(le_candtype_T type, wchar_t *value)
 }
 
 /* Generates file name candidates that matches the specified glob pattern.
+ * The CGT_FILE, CGT_DIRECTORY, and CGT_EXECUTABLE flags specify what to
+ * generate. The other flags are ignored.
  * If `pattern' is not a glob pattern, an asterisk is added to make a pattern.
  */
-void generate_files(const wchar_t *pattern)
+void generate_files(le_candgentype_T type, const wchar_t *pattern)
 {
-    wchar_t *newpattern = NULL;
+    type &= CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE;
+    if (!type)
+	return;
 
+    wchar_t *newpattern = NULL;
     if (!is_pathname_matching_pattern(pattern)) {
 	xwcsbuf_T buf;
 	pattern = newpattern =
@@ -486,7 +488,7 @@ void generate_files(const wchar_t *pattern)
 
     plist_T list;
     enum wglbflags flags = WGLB_NOSORT | WGLB_MARK;
-    if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;
+    // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
     wglob(pattern, flags, pl_init(&list));
@@ -496,6 +498,7 @@ void generate_files(const wchar_t *pattern)
 	wchar_t *file = list.contents[i];
 	size_t len = wcslen(file);
 	assert(len > 0);
+	// TODO CGT_DIRECTORY, CGT_EXECUTABLE
 	if (file[len - 1] == L'/') {
 	    assert(wcscspn(file, L"/") < len);
 	    file[len - 1] = L'\0';
