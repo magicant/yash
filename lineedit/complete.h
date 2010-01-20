@@ -20,13 +20,13 @@
 #define YASH_COMPLETE_H
 
 #include <stddef.h>
+#include <sys/types.h>
 #include "../plist.h"
 
 
 typedef enum le_candtype_T {
     CT_WORD,       // normal word
-    CT_FILE,       // non-directory file name
-    CT_DIR,        // directory name
+    CT_FILE,       // file name
     CT_COMMAND,    // command name
     CT_FUNC,       // function name
     CT_ALIAS,      // alias name
@@ -45,6 +45,12 @@ typedef struct le_candidate_T {
     wchar_t *value;
     char *rawvalue;
     int width;
+    struct {  /* only used when `type' is CT_FILE */
+	_Bool is_executable;
+	mode_t mode;
+	nlink_t nlink;
+	off_t size;
+    } filestat;
 } le_candidate_T;
 
 typedef enum le_quote_T {

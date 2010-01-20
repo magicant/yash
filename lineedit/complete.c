@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <sys/stat.h>
 #include "../hashtable.h"
 #include "../option.h"
 #include "../path.h"
@@ -51,7 +52,8 @@ static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
 static const le_candgen_T *get_candgen(le_context_T context, void **argv);
-static void add_candidate(le_candtype_T type, wchar_t *value)
+static void add_candidate(
+	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
 static void generate_files(le_candgentype_T type, const wchar_t *pattern)
     __attribute__((nonnull));
@@ -237,7 +239,7 @@ void update_main_buffer(void)
 	return;
 
     // TODO
-    if (cand->type == CT_DIR) {
+    if (cand->type == CT_FILE && S_ISDIR(cand->filestat.mode)) {
 	size_t len = wcslen(cand->value);
 	if (len > 0 && cand->value[len - 1] != L'/') {
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
@@ -434,21 +436,48 @@ const le_candgen_T *get_candgen(le_context_T context, void **argv)
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
- * The value is freed in this function. */
-void add_candidate(le_candtype_T type, wchar_t *value)
+ * The value is freed in this function.
+ * If the specified value does not match `cgt', it may not be added. */
+void add_candidate(le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
 {
     le_candidate_T *cand = xmalloc(sizeof *cand);
     cand->type = type;
     cand->value = value;
     cand->rawvalue = NULL;
     cand->width = 0;
+    if (type == CT_FILE) {
+	char *filename = malloc_wcstombs(value);
+	struct stat st;
 
+	if (filename == NULL || stat(filename, &st) < 0) {
+	    cand->filestat.is_executable = false;
+	    cand->filestat.mode = 0;
+	    cand->filestat.nlink = 0;
+	    cand->filestat.size = 0;
+	} else {
+	    cand->filestat.mode = st.st_mode;
+	    cand->filestat.nlink = st.st_nlink;
+	    cand->filestat.size = st.st_size;
+	    cand->filestat.is_executable =
+		S_ISREG(st.st_mode) && is_executable(filename);
+	}
+	free(filename);
+
+	if (cgt & CGT_FILE)
+	    goto ok;
+	if ((cgt & CGT_DIRECTORY) && S_ISDIR(cand->filestat.mode))
+	    goto ok;
+	if ((cgt & CGT_EXECUTABLE) && cand->filestat.is_executable)
+	    goto ok;
+	goto fail;
+    }
+
+ok:
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	const char *typestr = NULL;
 	switch (type) {
 	    case CT_WORD:      typestr = "word";              break;
 	    case CT_FILE:      typestr = "file";              break;
-	    case CT_DIR:       typestr = "directory";         break;
 	    case CT_COMMAND:   typestr = "command";           break;
 	    case CT_ALIAS:     typestr = "alias";             break;
 	    case CT_OPTION:    typestr = "option";            break;
@@ -466,6 +495,10 @@ void add_candidate(le_candtype_T type, wchar_t *value)
     }
 
     pl_add(&le_candidates, cand);
+    return;
+
+fail:
+    free_candidate(cand);
 }
 
 /* Generates file name candidates that matches the specified glob pattern.
@@ -487,26 +520,15 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
     }
 
     plist_T list;
-    enum wglbflags flags = WGLB_NOSORT | WGLB_MARK;
+    enum wglbflags flags = WGLB_NOSORT;
     // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
     wglob(pattern, flags, pl_init(&list));
     free(newpattern);
 
-    for (size_t i = 0; i < list.length; i++) {
-	wchar_t *file = list.contents[i];
-	size_t len = wcslen(file);
-	assert(len > 0);
-	// TODO CGT_DIRECTORY, CGT_EXECUTABLE
-	if (file[len - 1] == L'/') {
-	    assert(wcscspn(file, L"/") < len);
-	    file[len - 1] = L'\0';
-	    add_candidate(CT_DIR, file);
-	} else {
-	    add_candidate(CT_FILE, file);
-	}
-    }
+    for (size_t i = 0; i < list.length; i++)
+	add_candidate(type, CT_FILE, list.contents[i]);
     pl_destroy(&list);
 }
 

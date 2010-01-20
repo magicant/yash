@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
+#include <sys/stat.h>
 #include "../history.h"
 #include "../job.h"
 #include "../option.h"
@@ -906,7 +907,7 @@ void make_rawvalues(void)
 	lebuf_init((le_pos_T) { 0, 0 });
 
 	const wchar_t *s = cand->value;
-	if (cand->type == CT_FILE || cand->type == CT_DIR) {
+	if (cand->type == CT_FILE) {
 	    const wchar_t *ss = wcsrchr(s, L'/');
 	    if (ss != NULL)
 		s = ss + 1;
@@ -916,7 +917,7 @@ void make_rawvalues(void)
 		break;
 	}
 
-	if (cand->type == CT_DIR)
+	if (cand->type == CT_FILE && S_ISDIR(cand->filestat.mode))
 	    try_putwchar_rawvalue(L'/');
 
 	cand->rawvalue = sb_tostr(&lebuf.buf);
