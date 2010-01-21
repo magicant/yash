@@ -42,7 +42,8 @@ static void free_candidate(void *c)
     __attribute__((nonnull));
 static void calculate_common_prefix_length(void);
 static void update_main_buffer(void);
-static void expand_to_all_candidates(void);
+static void substitute_source_word(const le_context_T *context)
+    __attribute__((nonnull));
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
 static void sort_candidates(void);
@@ -51,7 +52,8 @@ static int sort_candidates_cmp(const void *cp1, const void *cp2)
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
-static const le_candgen_T *get_candgen(le_context_T context, void **argv);
+static const le_candgen_T *get_candgen(const le_context_T *context)
+    __attribute__((nonnull));
 static void add_candidate(
 	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
@@ -66,15 +68,10 @@ plist_T le_candidates = { .contents = NULL };
  * When no candidate is selected, the index is `le_candidates.length'. */
 size_t le_selected_candidate_index;
 
-/* The context in which completion takes place. */
-le_context_T le_context;
-/* The start index of the source word in the main buffer. */
-size_t le_source_word_index;
 /* The index of the cursor before completion started. */
 static size_t insertion_index;
 /* The type of quotation at the current position. */
-le_quote_T le_quote;
-
+static le_quote_T quotetype;
 /* The length of the expanded source word. */
 static size_t expanded_source_word_length;
 /* The length of the longest common prefix of the current candidates. */
@@ -102,24 +99,35 @@ void le_complete(void)
     le_complete_cleanup();
     pl_init(&le_candidates);
 
-    le_context = CTXT_NORMAL;  // TODO
-    bool expand_all = false;  // TODO
-    le_source_word_index = 0;  // TODO
-    le_quote = QUOTE_NORMAL;  // TODO
-    insertion_index = le_main_index;
-    expanded_source_word_length = le_main_index;  // TODO
+    le_context_T context = {
+	.quote = QUOTE_NORMAL,
+	.type = CTXT_NORMAL,
+	.srcindex = 0,
+	.substsrc = false,
+    };  // TODO
+    context.argc = 1;  // TODO
+    context.args = xmalloc(2 * sizeof *context.args);  // TODO
+    extern wchar_t *unescape(const wchar_t *);
+    context.args[0] = unescape(le_main_buffer.contents);  // TODO
+    context.args[1] = NULL;  // TODO
+    context.arg = xwcsdup(le_main_buffer.contents);  // TODO
 
-    const le_candgen_T *candgen = get_candgen(CTXT_NORMAL, NULL);  // TODO
-    generate_files(candgen->type, le_main_buffer.contents);  // TODO
+    insertion_index = le_main_index;
+    quotetype = context.quote;
+    expanded_source_word_length = wcslen(context.args[context.argc - 1]);
+
+    const le_candgen_T *candgen = get_candgen(&context);  // TODO
+    generate_files(candgen->type, context.arg);  // TODO
+    // TODO other types
 
     sort_candidates();
     compdebug("total of %zu candidate(s)", le_candidates.length);
 
     if (le_candidates.length == 0) {
 	le_selected_candidate_index = 0;
-    } else if (expand_all) {
+    } else if (context.substsrc) {
 	le_selected_candidate_index = 0;
-	expand_to_all_candidates();
+	substitute_source_word(&context);
 	le_complete_cleanup();
     } else if (le_candidates.length == 1) {
 	le_selected_candidate_index = 0;
@@ -137,6 +145,8 @@ void le_complete(void)
 	le_selected_candidate_index = le_candidates.length;
 	update_main_buffer();
     }
+    recfree(context.args, free);
+    free(context.arg);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	compdebug("completion end");
@@ -223,11 +233,11 @@ void update_main_buffer(void)
 	cand = le_candidates.contents[0];
 	value = xwcsndup(cand->value + expanded_source_word_length,
 		common_prefix_length - expanded_source_word_length);
-	quote(&buf, value, le_quote);
+	quote(&buf, value, quotetype);
 	free(value);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	quote(&buf, cand->value + expanded_source_word_length, le_quote);
+	quote(&buf, cand->value + expanded_source_word_length, quotetype);
     }
     wb_replace_force(&le_main_buffer,
 	    insertion_index, le_main_index - insertion_index,
@@ -246,7 +256,7 @@ void update_main_buffer(void)
 	    le_main_index += 1;
 	}
     } else {
-	switch (le_quote) {
+	switch (quotetype) {
 	    case QUOTE_NONE:
 	    case QUOTE_NORMAL:
 		break;
@@ -268,12 +278,12 @@ void update_main_buffer(void)
 
 /* Substitutes the source word in the main buffer with all of the current
  * candidates. */
-void expand_to_all_candidates(void)
+void substitute_source_word(const le_context_T *context)
 {
     /* remove source word */
-    wb_remove(&le_main_buffer, le_source_word_index,
-	    le_main_index - le_source_word_index);
-    le_main_index = le_source_word_index;
+    wb_remove(&le_main_buffer, context->srcindex,
+	    le_main_index - context->srcindex);
+    le_main_index = context->srcindex;
 
     /* insert candidates */
     xwcsbuf_T buf;
@@ -400,13 +410,12 @@ static hashtable_T candgens = { .capacity = 0 };
 
 /* Determines how to generate candidates.
  * The context in which the completion is performed is specified by `context'.
- * `argv' is the expanded source words.
  * The result is valid until the next call to this function or `set_candgen'. */
-const le_candgen_T *get_candgen(le_context_T context, void **argv)
+const le_candgen_T *get_candgen(const le_context_T *context)
 {
     static le_candgen_T tempresult;
 
-    switch (context) {
+    switch (context->type) {
 	case CTXT_NORMAL:
 	    break; //TODO
 	case CTXT_TILDE:
@@ -426,7 +435,7 @@ const le_candgen_T *get_candgen(le_context_T context, void **argv)
     }
 
     // TODO under construction
-    (void) argv, (void) candgens;
+    (void) candgens;
     tempresult = (le_candgen_T) {
 	.type = CGT_FILE, .words = NULL, .function = NULL,
     };
@@ -508,8 +517,7 @@ fail:
  */
 void generate_files(le_candgentype_T type, const wchar_t *pattern)
 {
-    type &= CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE;
-    if (!type)
+    if (!(type & (CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE)))
 	return;
 
     wchar_t *newpattern = NULL;
@@ -518,6 +526,8 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
 	pattern = newpattern =
 	    wb_towcs(wb_wccat(wb_cat(wb_init(&buf), pattern), L'*'));
     }
+
+    compdebug("adding filenames for pattern \"%ls\"", pattern);
 
     plist_T list;
     enum wglbflags flags = WGLB_NOSORT;

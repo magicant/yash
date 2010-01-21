@@ -59,7 +59,7 @@ typedef enum le_quote_T {
     QUOTE_SINGLE,  // in single quotation
     QUOTE_DOUBLE,  // in double quotation
 } le_quote_T;
-typedef enum le_context_T {
+typedef enum le_contexttype_T {
     CTXT_NORMAL,         // normal word
     CTXT_TILDE,          // tilde expansion
     CTXT_VAR,            // variable name not in brackets
@@ -68,7 +68,20 @@ typedef enum le_context_T {
     CTXT_ARITH,          // arithmetic expansion
     CTXT_REDIR,          // redirection target (that is a file name)
     CTXT_REDIR_FD,       // redirection target (that is a file descriptor)
+} le_contexttype_T;
+typedef struct le_context_T {
+    le_quote_T quote;
+    le_contexttype_T type;
+    size_t srcindex;        // start index of source word
+    int argc;
+    void **args;            // source words
+    wchar_t *arg;           // last source word
+    _Bool substsrc;         // substitute source word with candidates?
 } le_context_T;
+/* The `args' member is an array of pointers to wide strings containing the
+ * expanded source words. These strings don't contain backslash escapes. */
+/* The `arg' member is the last source word (args[argc - 1]) before backslash
+ * escapes are removed. */
 
 typedef enum le_candgentype_T {
     CGT_FILE       = 1 << 0, // file of any kind
