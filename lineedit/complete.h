@@ -72,17 +72,25 @@ typedef enum le_contexttype_T {
 typedef struct le_context_T {
     le_quote_T quote;
     le_contexttype_T type;
+    int pwordc;             // number of `pwords' (non-negative)
+    void **pwords;          // words preceding the source word
+    wchar_t *src;           // source word
+    wchar_t *pattern;       // source word as a matching pattern
     size_t srcindex;        // start index of source word
-    int argc;
-    void **args;            // source words
-    wchar_t *arg;           // last source word
     _Bool substsrc;         // substitute source word with candidates?
 } le_context_T;
-/* The `args' member is an array of pointers to wide strings containing the
- * expanded source words. These strings don't contain backslash escapes.
- * There is always at least one string in `args'. */
-/* The `arg' member is the last source word (args[argc - 1]) before backslash
- * escapes are removed. */
+/* The `pwords' member is an array of pointers to wide strings containing the
+ * expanded words preceding the source word.
+ * The `src' member is the source word expanded by the four expansions, brace
+ * expansion, word splitting, and quote removal. The `pattern' member is like
+ * the `src' member, but differs in that it may contain backslash escapes and
+ * that it may have an additional asterisk at the end to make it a pattern.
+ * The `srcindex' member designates where the source word starts in the edit
+ * line.
+ * The `substsrc' member designates whether the source word should be
+ * substituted with obtained candidates. The value is true if and only if the
+ * source word after word splitting is not a globbing pattern, in which case an
+ * asterisk is appended to the source word to make it a pattern. */
 
 typedef enum le_candgentype_T {
     CGT_FILE       = 1 << 0, // file of any kind
@@ -128,9 +136,6 @@ typedef struct le_candgen_T {
 
 extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
-
-extern le_context_T le_context;
-extern size_t le_source_word_index;
 
 extern void le_complete(void);
 extern void le_complete_select(int offset);

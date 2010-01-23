@@ -74,7 +74,7 @@ size_t le_selected_candidate_index;
 static size_t insertion_index;
 /* The type of quotation at the current position. */
 static le_quote_T quotetype;
-/* The length of the expanded source word. */
+/* The length of the expanded source word, not including backslash escapes. */
 static size_t expanded_source_word_length;
 /* The length of the longest common prefix of the current candidates. */
 static size_t common_prefix_length;
@@ -105,33 +105,42 @@ void le_complete(void)
 	.quote = QUOTE_NORMAL,
 	.type = CTXT_NORMAL,
 	.srcindex = 0,
-	.substsrc = false,
     };  // TODO
-    context.argc = 1;  // TODO
-    context.args = xmalloc(2 * sizeof *context.args);  // TODO
-    extern wchar_t *unescape(const wchar_t *);
-    context.args[0] = unescape(le_main_buffer.contents);  // TODO
-    context.args[1] = NULL;  // TODO
-    context.arg = xwcsdup(le_main_buffer.contents);  // TODO
+    context.pwordc = 0;  // TODO
+    context.pwords = xmalloc(1 * sizeof *context.pwords);  // TODO
+    context.pwords[0] = NULL;  // TODO
+    context.pattern = xwcsdup(le_main_buffer.contents);  // TODO
+    extern wchar_t *unescape(const wchar_t *);  // TODO
+    context.src = unescape(context.pattern);
+    if (is_pathname_matching_pattern(context.pattern)) {
+	context.substsrc = true;
+    } else {
+	xwcsbuf_T buf;
+	context.substsrc = false;
+	context.pattern =
+	    wb_towcs(wb_wccat(wb_initwith(&buf, context.pattern), L'*'));
+    }  // TODO
 
     insertion_index = le_main_index;
     quotetype = context.quote;
-    expanded_source_word_length = wcslen(context.args[context.argc - 1]);
+    expanded_source_word_length = wcslen(context.src);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
-	for (int i = 0; i < context.argc; i++)
-	    compdebug("source word %d: \"%ls\"",
-		    i + 1, (const wchar_t *) context.args[i]);
-	compdebug("escaped last source word: \"%ls\"", context.arg);
+	for (int i = 0; i < context.pwordc; i++)
+	    compdebug("preceding word %d: \"%ls\"",
+		    i + 1, (const wchar_t *) context.pwords[i]);
+	compdebug("source word: \"%ls\"", context.src);
+	compdebug(" as pattern: \"%ls\"", context.pattern);
     }
 
     const le_candgen_T *candgen = get_candgen(&context);  // TODO
-    generate_files(candgen->type, context.arg);  // TODO
+    generate_files(candgen->type, context.pattern);  // TODO
     // TODO other types
 
     sort_candidates();
     compdebug("total of %zu candidate(s)", le_candidates.length);
 
+    /* display the results */
     if (le_candidates.length == 0) {
 	le_selected_candidate_index = 0;
     } else if (context.substsrc || need_subst(&context)) {
@@ -154,8 +163,9 @@ void le_complete(void)
 	le_selected_candidate_index = le_candidates.length;
 	update_main_buffer();
     }
-    recfree(context.args, free);
-    free(context.arg);
+    recfree(context.pwords, free);
+    free(context.src);
+    free(context.pattern);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	compdebug("completion end");
@@ -291,11 +301,9 @@ void update_main_buffer(void)
  * `context->args[argc - 1]'. */
 bool need_subst(const le_context_T *context)
 {
-    const wchar_t *word = context->args[context->argc - 1];
-
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T *cand = le_candidates.contents[i];
-	if (!matchwcsprefix(cand->value, word))
+	if (!matchwcsprefix(cand->value, context->src))
 	    return true;
     }
     return false;
@@ -547,13 +555,6 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
     if (!(type & (CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE)))
 	return;
 
-    wchar_t *newpattern = NULL;
-    if (!is_pathname_matching_pattern(pattern)) {
-	xwcsbuf_T buf;
-	pattern = newpattern =
-	    wb_towcs(wb_wccat(wb_cat(wb_init(&buf), pattern), L'*'));
-    }
-
     compdebug("adding filenames for pattern \"%ls\"", pattern);
 
     plist_T list;
@@ -562,7 +563,6 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
     wglob(pattern, flags, pl_init(&list));
-    free(newpattern);
 
     for (size_t i = 0; i < list.length; i++)
 	add_candidate(type, CT_FILE, list.contents[i]);
