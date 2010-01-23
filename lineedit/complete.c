@@ -18,6 +18,7 @@
 
 #include "../common.h"
 #include <assert.h>
+#include <dirent.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -30,6 +31,7 @@
 #include "../path.h"
 #include "../plist.h"
 #include "../util.h"
+#include "../variable.h"
 #include "../xfnmatch.h"
 #include "complete.h"
 #include "display.h"
@@ -54,6 +56,9 @@ static void add_candidate(
 	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
 static void generate_files(le_candgentype_T type, const wchar_t *pattern)
+    __attribute__((nonnull));
+static void generate_external_commands(
+	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
 static void calculate_common_prefix_length(void);
@@ -123,6 +128,8 @@ void le_complete(void)
 	context.pattern =
 	    wb_towcs(wb_wccat(wb_initwith(&buf, context.pattern), L'*'));
     }  // TODO
+    context.cpattern = xfnm_compile(
+	    context.pattern, XFNM_HEADONLY | XFNM_TAILONLY);
 
     insertion_index = le_main_index;
     quotetype = context.quote;
@@ -166,6 +173,7 @@ void le_complete(void)
     recfree(context.pwords, free);
     free(context.src);
     free(context.pattern);
+    xfnm_free(context.cpattern);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	compdebug("completion end");
@@ -272,6 +280,7 @@ void generate_candidates(const le_context_T *context)
     const le_candgen_T *candgen = get_candgen(context);
 
     generate_files(candgen->type, context->pattern);
+    generate_external_commands(candgen->type, context);
     // TODO: other types
 }
 
@@ -320,7 +329,7 @@ const le_candgen_T *get_candgen(const le_context_T *context)
     // TODO under construction
     (void) candgens;
     tempresult = (le_candgen_T) {
-	.type = CGT_FILE, .words = NULL, .function = NULL,
+	.type = CGT_FILE | CGT_EXTCOMMAND, .words = NULL, .function = NULL,
     };
     return &tempresult;
 
@@ -420,14 +429,40 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
 /* Generates candidates that are the names of external commands matching the
  * specified pattern.
  * If CGT_EXECUTABLE is not in `type', this function does nothing. */
-void generate_external_commands(le_candgentype_T type, const wchar_t *pattern)
+void generate_external_commands(
+	le_candgentype_T type, const le_context_T *context)
 {
-    if (!(type & CGT_EXECUTABLE))
+    if (!(type & CGT_EXTCOMMAND))
 	return;
 
-    compdebug("adding external command names for pattern \"%ls\"", pattern);
+    compdebug("adding external command names for pattern \"%ls\"",
+	    context->pattern);
 
-    //TODO
+    char *const *paths = get_path_array(PA_PATH);
+    const char *dirpath;
+    if (paths == NULL)
+	return;
+    while ((dirpath = *paths) != NULL) {
+	DIR *dir = opendir(dirpath);
+	struct dirent *de;
+
+	if (dir == NULL)
+	    continue;
+	while ((de = readdir(dir)) != NULL) {
+	    wchar_t *wname = malloc_mbstowcs(de->d_name);
+	    if (wname == NULL)
+		continue;
+	    if (xfnm_wmatch(context->cpattern, wname).start != (size_t) -1
+		    && 1  /* TODO: check if executable regular */) {
+		add_candidate(type, CT_COMMAND, wname);
+	    } else {
+		free(wname);
+	    }
+	}
+	closedir(dir);
+
+	paths++;
+    }
 }
 
 

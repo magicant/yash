@@ -76,6 +76,7 @@ typedef struct le_context_T {
     void **pwords;          // words preceding the source word
     wchar_t *src;           // source word
     wchar_t *pattern;       // source word as a matching pattern
+    struct xfnmatch_T *cpattern;
     size_t srcindex;        // start index of source word
     _Bool substsrc;         // substitute source word with candidates?
 } le_context_T;
@@ -84,7 +85,8 @@ typedef struct le_context_T {
  * The `src' member is the source word expanded by the four expansions, brace
  * expansion, word splitting, and quote removal. The `pattern' member is like
  * the `src' member, but differs in that it may contain backslash escapes and
- * that it may have an additional asterisk at the end to make it a pattern.
+ * that it may have an additional asterisk at the end to make it a pattern. The
+ * `cpattern' is the compiled version of the pattern.
  * The `srcindex' member designates where the source word starts in the edit
  * line.
  * The `substsrc' member designates whether the source word should be
