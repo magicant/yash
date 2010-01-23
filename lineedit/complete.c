@@ -42,6 +42,8 @@ static void free_candidate(void *c)
     __attribute__((nonnull));
 static void calculate_common_prefix_length(void);
 static void update_main_buffer(void);
+static bool need_subst(const le_context_T *context)
+    __attribute__((nonnull));
 static void substitute_source_word(const le_context_T *context)
     __attribute__((nonnull));
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
@@ -125,7 +127,7 @@ void le_complete(void)
 
     if (le_candidates.length == 0) {
 	le_selected_candidate_index = 0;
-    } else if (context.substsrc) {
+    } else if (context.substsrc || need_subst(&context)) {
 	le_selected_candidate_index = 0;
 	substitute_source_word(&context);
 	le_complete_cleanup();
@@ -274,6 +276,22 @@ void update_main_buffer(void)
 	    le_main_index += 1;
 	}
     }
+}
+
+/* Determines whether the source word should be substituted even if
+ * `context->substsrc' is false. */
+/* Returns true if there is a candidate that does not begin with
+ * `context->args[argc - 1]'. */
+bool need_subst(const le_context_T *context)
+{
+    const wchar_t *word = context->args[context->argc - 1];
+
+    for (size_t i = 0; i < le_candidates.length; i++) {
+	const le_candidate_T *cand = le_candidates.contents[i];
+	if (!matchwcsprefix(cand->value, word))
+	    return true;
+    }
+    return false;
 }
 
 /* Substitutes the source word in the main buffer with all of the current

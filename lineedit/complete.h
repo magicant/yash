@@ -79,7 +79,8 @@ typedef struct le_context_T {
     _Bool substsrc;         // substitute source word with candidates?
 } le_context_T;
 /* The `args' member is an array of pointers to wide strings containing the
- * expanded source words. These strings don't contain backslash escapes. */
+ * expanded source words. These strings don't contain backslash escapes.
+ * There is always at least one string in `args'. */
 /* The `arg' member is the last source word (args[argc - 1]) before backslash
  * escapes are removed. */
 
