@@ -46,6 +46,8 @@ static int sort_candidates_cmp(const void *cp1, const void *cp2)
 static void compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
+static void generate_candidates(const le_context_T *context)
+    __attribute__((nonnull));
 static const le_candgen_T *get_candgen(const le_context_T *context)
     __attribute__((nonnull));
 static void add_candidate(
@@ -134,10 +136,7 @@ void le_complete(void)
 	compdebug(" as pattern: \"%ls\"", context.pattern);
     }
 
-    const le_candgen_T *candgen = get_candgen(&context);  // TODO
-    generate_files(candgen->type, context.pattern);  // TODO
-    // TODO other types
-
+    generate_candidates(&context);
     sort_candidates();
     compdebug("total of %zu candidate(s)", le_candidates.length);
 
@@ -265,6 +264,16 @@ void compdebug(const char *format, ...)
 
 
 /********** Completion Candidate Generation **********/
+
+/* Generates completion candidates under the specified context.
+ * The candidate list must have been initialized when this function is called.*/
+void generate_candidates(const le_context_T *context)
+{
+    const le_candgen_T *candgen = get_candgen(context);
+
+    generate_files(candgen->type, context->pattern);
+    // TODO: other types
+}
 
 /* The type of data that specifies how to generate candidates for a command's
  * arguments. The `operands' member is used for completing a operand. The
@@ -406,6 +415,19 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
     for (size_t i = 0; i < list.length; i++)
 	add_candidate(type, CT_FILE, list.contents[i]);
     pl_destroy(&list);
+}
+
+/* Generates candidates that are the names of external commands matching the
+ * specified pattern.
+ * If CGT_EXECUTABLE is not in `type', this function does nothing. */
+void generate_external_commands(le_candgentype_T type, const wchar_t *pattern)
+{
+    if (!(type & CGT_EXECUTABLE))
+	return;
+
+    compdebug("adding external command names for pattern \"%ls\"", pattern);
+
+    //TODO
 }
 
 

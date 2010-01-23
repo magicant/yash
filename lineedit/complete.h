@@ -91,6 +91,8 @@ typedef struct le_context_T {
  * substituted with obtained candidates. The value is true if and only if the
  * source word after word splitting is not a globbing pattern, in which case an
  * asterisk is appended to the source word to make it a pattern. */
+/* If the source word is field-split into more than one word, the words but the
+ * last are included in `pwords'. */
 
 typedef enum le_candgentype_T {
     CGT_FILE       = 1 << 0, // file of any kind
