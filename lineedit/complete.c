@@ -118,6 +118,13 @@ void le_complete(void)
     quotetype = context.quote;
     expanded_source_word_length = wcslen(context.args[context.argc - 1]);
 
+    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+	for (int i = 0; i < context.argc; i++)
+	    compdebug("source word %d: \"%ls\"",
+		    i + 1, (const wchar_t *) context.args[i]);
+	compdebug("escaped last source word: \"%ls\"", context.arg);
+    }
+
     const le_candgen_T *candgen = get_candgen(&context);  // TODO
     generate_files(candgen->type, context.arg);  // TODO
     // TODO other types
@@ -298,6 +305,8 @@ bool need_subst(const le_context_T *context)
  * candidates. */
 void substitute_source_word(const le_context_T *context)
 {
+    compdebug("substituting source word with candidate(s)");
+
     /* remove source word */
     wb_remove(&le_main_buffer, context->srcindex,
 	    le_main_index - context->srcindex);
