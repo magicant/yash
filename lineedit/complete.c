@@ -40,14 +40,6 @@
 
 static void free_candidate(void *c)
     __attribute__((nonnull));
-static void calculate_common_prefix_length(void);
-static void update_main_buffer(void);
-static bool need_subst(const le_context_T *context)
-    __attribute__((nonnull));
-static void substitute_source_word(const le_context_T *context)
-    __attribute__((nonnull));
-static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
-    __attribute__((nonnull));
 static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
@@ -60,6 +52,15 @@ static void add_candidate(
 	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
 static void generate_files(le_candgentype_T type, const wchar_t *pattern)
+    __attribute__((nonnull));
+
+static void calculate_common_prefix_length(void);
+static void update_main_buffer(void);
+static bool need_subst(const le_context_T *context)
+    __attribute__((nonnull));
+static void substitute_source_word(const le_context_T *context)
+    __attribute__((nonnull));
+static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
 
 /* A list that contains the current completion candidates.
@@ -216,168 +217,6 @@ void free_candidate(void *c)
     free(cand->value);
     free(cand->rawvalue);
     free(cand);
-}
-
-/* Calculates the value of `common_prefix_length' for the current candidates.
- * There must be at least one candidate in `le_candidates'. */
-void calculate_common_prefix_length(void)
-{
-    assert(le_candidates.contents != NULL);
-    assert(le_candidates.length > 0);
-
-    const le_candidate_T *cand = le_candidates.contents[0];
-    const wchar_t *value = cand->value;
-    size_t cpl = wcslen(value);
-    for (size_t i = 1; i < le_candidates.length; i++) {
-	const le_candidate_T *cand2 = le_candidates.contents[i];
-	const wchar_t *value2 = cand2->value;
-	for (size_t j = 0; j < cpl; j++)
-	    if (value[j] != value2[j])  // XXX comparison is case-sensitive
-		cpl = j;
-    }
-    common_prefix_length = cpl;
-}
-
-/* Sets the contents of the main buffer to the currently selected candidate.
- * When no candidate is selected, sets to the longest common prefix of the
- * candidates. There must be at least one candidate. */
-void update_main_buffer(void)
-{
-    const le_candidate_T *cand;
-    wchar_t *value;
-    xwcsbuf_T buf;
-
-    wb_init(&buf);
-    if (le_selected_candidate_index >= le_candidates.length) {
-	cand = le_candidates.contents[0];
-	value = xwcsndup(cand->value + expanded_source_word_length,
-		common_prefix_length - expanded_source_word_length);
-	quote(&buf, value, quotetype);
-	free(value);
-    } else {
-	cand = le_candidates.contents[le_selected_candidate_index];
-	quote(&buf, cand->value + expanded_source_word_length, quotetype);
-    }
-    wb_replace_force(&le_main_buffer,
-	    insertion_index, le_main_index - insertion_index,
-	    buf.contents, buf.length);
-    le_main_index = insertion_index + buf.length;
-    wb_destroy(&buf);
-
-    if (le_selected_candidate_index >= le_candidates.length)
-	return;
-
-    // TODO
-    if (cand->type == CT_FILE && S_ISDIR(cand->filestat.mode)) {
-	size_t len = wcslen(cand->value);
-	if (len > 0 && cand->value[len - 1] != L'/') {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
-	    le_main_index += 1;
-	}
-    } else {
-	switch (quotetype) {
-	    case QUOTE_NONE:
-	    case QUOTE_NORMAL:
-		break;
-	    case QUOTE_SINGLE:
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
-		le_main_index += 1;
-		break;
-	    case QUOTE_DOUBLE:
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
-		le_main_index += 1;
-		break;
-	}
-	if (le_candidates.length == 1) {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
-	    le_main_index += 1;
-	}
-    }
-}
-
-/* Determines whether the source word should be substituted even if
- * `context->substsrc' is false. */
-/* Returns true if there is a candidate that does not begin with
- * `context->args[argc - 1]'. */
-bool need_subst(const le_context_T *context)
-{
-    for (size_t i = 0; i < le_candidates.length; i++) {
-	const le_candidate_T *cand = le_candidates.contents[i];
-	if (!matchwcsprefix(cand->value, context->src))
-	    return true;
-    }
-    return false;
-}
-
-/* Substitutes the source word in the main buffer with all of the current
- * candidates. */
-void substitute_source_word(const le_context_T *context)
-{
-    compdebug("substituting source word with candidate(s)");
-
-    /* remove source word */
-    wb_remove(&le_main_buffer, context->srcindex,
-	    le_main_index - context->srcindex);
-    le_main_index = context->srcindex;
-
-    /* insert candidates */
-    xwcsbuf_T buf;
-    wb_init(&buf);
-    for (size_t i = 0; i < le_candidates.length; i++) {
-	const le_candidate_T* cand = le_candidates.contents[i];
-
-	quote(wb_clear(&buf), cand->value, QUOTE_NORMAL);
-	wb_ninsert_force(&le_main_buffer, le_main_index,
-		buf.contents, buf.length);
-	le_main_index += buf.length;
-
-	wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
-	le_main_index += 1;
-    }
-    wb_destroy(&buf);
-}
-
-/* Quotes characters in the specified string that are not treated literally
- * according to `quotetype'.
- * The result is appended to the specified buffer, which must have been
- * initialized by the caller. */
-void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
-{
-    switch (quotetype) {
-	case QUOTE_NONE:
-	    wb_cat(buf, s);
-	    return;
-	case QUOTE_NORMAL:
-	    while (*s != L'\0') {
-		if (*s == L'\n') {
-		    wb_ncat_force(buf, L"'\n'", 3);
-		} else {
-		    if (wcschr(L"|&;<>()$`\\\"'*?[]#~=", *s) || iswspace(*s))
-			wb_wccat(buf, L'\\');
-		    wb_wccat(buf, *s);
-		}
-		s++;
-	    }
-	    return;
-	case QUOTE_SINGLE:
-	    while (*s != L'\0') {
-		if (*s != L'\'')
-		    wb_wccat(buf, *s);
-		else
-		    wb_ncat_force(buf, L"'\\''", 4);
-		s++;
-	    }
-	    return;
-	case QUOTE_DOUBLE:
-	    while (*s != L'\0') {
-		if (wcschr(L"$`\"\\", *s))
-		    wb_wccat(buf, L'\\');
-		wb_wccat(buf, *s);
-		s++;
-	    }
-	    return;
-    }
-    assert(false);
 }
 
 /* Sorts the candidates in the candidate list and remove duplicates. */
@@ -567,6 +406,171 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
     for (size_t i = 0; i < list.length; i++)
 	add_candidate(type, CT_FILE, list.contents[i]);
     pl_destroy(&list);
+}
+
+
+/********** Displaying Functions **********/
+
+/* Calculates the value of `common_prefix_length' for the current candidates.
+ * There must be at least one candidate in `le_candidates'. */
+void calculate_common_prefix_length(void)
+{
+    assert(le_candidates.contents != NULL);
+    assert(le_candidates.length > 0);
+
+    const le_candidate_T *cand = le_candidates.contents[0];
+    const wchar_t *value = cand->value;
+    size_t cpl = wcslen(value);
+    for (size_t i = 1; i < le_candidates.length; i++) {
+	const le_candidate_T *cand2 = le_candidates.contents[i];
+	const wchar_t *value2 = cand2->value;
+	for (size_t j = 0; j < cpl; j++)
+	    if (value[j] != value2[j])  // XXX comparison is case-sensitive
+		cpl = j;
+    }
+    common_prefix_length = cpl;
+}
+
+/* Sets the contents of the main buffer to the currently selected candidate.
+ * When no candidate is selected, sets to the longest common prefix of the
+ * candidates. There must be at least one candidate. */
+void update_main_buffer(void)
+{
+    const le_candidate_T *cand;
+    wchar_t *value;
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    if (le_selected_candidate_index >= le_candidates.length) {
+	cand = le_candidates.contents[0];
+	value = xwcsndup(cand->value + expanded_source_word_length,
+		common_prefix_length - expanded_source_word_length);
+	quote(&buf, value, quotetype);
+	free(value);
+    } else {
+	cand = le_candidates.contents[le_selected_candidate_index];
+	quote(&buf, cand->value + expanded_source_word_length, quotetype);
+    }
+    wb_replace_force(&le_main_buffer,
+	    insertion_index, le_main_index - insertion_index,
+	    buf.contents, buf.length);
+    le_main_index = insertion_index + buf.length;
+    wb_destroy(&buf);
+
+    if (le_selected_candidate_index >= le_candidates.length)
+	return;
+
+    // TODO
+    if (cand->type == CT_FILE && S_ISDIR(cand->filestat.mode)) {
+	size_t len = wcslen(cand->value);
+	if (len > 0 && cand->value[len - 1] != L'/') {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
+	    le_main_index += 1;
+	}
+    } else {
+	switch (quotetype) {
+	    case QUOTE_NONE:
+	    case QUOTE_NORMAL:
+		break;
+	    case QUOTE_SINGLE:
+		wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
+		le_main_index += 1;
+		break;
+	    case QUOTE_DOUBLE:
+		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
+		le_main_index += 1;
+		break;
+	}
+	if (le_candidates.length == 1) {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+	    le_main_index += 1;
+	}
+    }
+}
+
+/* Determines whether the source word should be substituted even if
+ * `context->substsrc' is false. */
+/* Returns true if there is a candidate that does not begin with
+ * `context->args[argc - 1]'. */
+bool need_subst(const le_context_T *context)
+{
+    for (size_t i = 0; i < le_candidates.length; i++) {
+	const le_candidate_T *cand = le_candidates.contents[i];
+	if (!matchwcsprefix(cand->value, context->src))
+	    return true;
+    }
+    return false;
+}
+
+/* Substitutes the source word in the main buffer with all of the current
+ * candidates. */
+void substitute_source_word(const le_context_T *context)
+{
+    compdebug("substituting source word with candidate(s)");
+
+    /* remove source word */
+    wb_remove(&le_main_buffer, context->srcindex,
+	    le_main_index - context->srcindex);
+    le_main_index = context->srcindex;
+
+    /* insert candidates */
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    for (size_t i = 0; i < le_candidates.length; i++) {
+	const le_candidate_T* cand = le_candidates.contents[i];
+
+	quote(wb_clear(&buf), cand->value, QUOTE_NORMAL);
+	wb_ninsert_force(&le_main_buffer, le_main_index,
+		buf.contents, buf.length);
+	le_main_index += buf.length;
+
+	wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+	le_main_index += 1;
+    }
+    wb_destroy(&buf);
+}
+
+/* Quotes characters in the specified string that are not treated literally
+ * according to `quotetype'.
+ * The result is appended to the specified buffer, which must have been
+ * initialized by the caller. */
+void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
+{
+    switch (quotetype) {
+	case QUOTE_NONE:
+	    wb_cat(buf, s);
+	    return;
+	case QUOTE_NORMAL:
+	    while (*s != L'\0') {
+		if (*s == L'\n') {
+		    wb_ncat_force(buf, L"'\n'", 3);
+		} else {
+		    if (wcschr(L"|&;<>()$`\\\"'*?[]#~=", *s) || iswspace(*s))
+			wb_wccat(buf, L'\\');
+		    wb_wccat(buf, *s);
+		}
+		s++;
+	    }
+	    return;
+	case QUOTE_SINGLE:
+	    while (*s != L'\0') {
+		if (*s != L'\'')
+		    wb_wccat(buf, *s);
+		else
+		    wb_ncat_force(buf, L"'\\''", 4);
+		s++;
+	    }
+	    return;
+	case QUOTE_DOUBLE:
+	    while (*s != L'\0') {
+		if (wcschr(L"$`\"\\", *s))
+		    wb_wccat(buf, L'\\');
+		wb_wccat(buf, *s);
+		s++;
+	    }
+	    return;
+    }
+    assert(false);
 }
 
 
