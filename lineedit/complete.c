@@ -440,29 +440,39 @@ void generate_external_commands(
 
     char *const *paths = get_path_array(PA_PATH);
     const char *dirpath;
+    xstrbuf_T path;
+
     if (paths == NULL)
 	return;
+    sb_init(&path);
     while ((dirpath = *paths) != NULL) {
 	DIR *dir = opendir(dirpath);
 	struct dirent *de;
+	size_t dirpathlen;
 
 	if (dir == NULL)
 	    continue;
+	sb_cat(&path, dirpath);
+	if (path.length > 0 && path.contents[path.length - 1] != '/')
+	    sb_ccat(&path, '/');
+	dirpathlen = path.length;
 	while ((de = readdir(dir)) != NULL) {
-	    wchar_t *wname = malloc_mbstowcs(de->d_name);
-	    if (wname == NULL)
+	    if (xfnm_match(context->cpattern, de->d_name) != 0)
 		continue;
-	    if (xfnm_wmatch(context->cpattern, wname).start != (size_t) -1
-		    && 1  /* TODO: check if executable regular */) {
-		add_candidate(type, CT_COMMAND, wname);
-	    } else {
-		free(wname);
+	    sb_cat(&path, de->d_name);
+	    if (is_executable_regular(path.contents)) {
+		wchar_t *wname = malloc_mbstowcs(de->d_name);
+		if (wname != NULL)
+		    add_candidate(type, CT_COMMAND, wname);
 	    }
+	    sb_truncate(&path, dirpathlen);
 	}
+	sb_clear(&path);
 	closedir(dir);
 
 	paths++;
     }
+    sb_destroy(&path);
 }
 
 
