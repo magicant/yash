@@ -177,16 +177,16 @@ xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
 {
     xstrbuf_T buf;
 
+    if (flags & XFNM_PERIOD)
+	if (pat[0] == L'.' || pat[0] == L'\\')
+	    flags &= ~XFNM_PERIOD;
+
     sb_init(&buf);
     if (flags & XFNM_HEADONLY)
 	sb_ccat(&buf, '^');
     encode_pattern(pat, &buf);
     if (flags & XFNM_TAILONLY)
 	sb_ccat(&buf, '$');
-
-    if (flags & XFNM_PERIOD)
-	if (pat[0] == L'.' || pat[0] == L'\\')
-	    flags &= ~XFNM_PERIOD;
 
     xfnmatch_T *xfnm = xmalloc(sizeof *xfnm);
     xfnm->flags = flags;
