@@ -28,6 +28,9 @@ typedef enum {
     XFNM_TAILONLY = 1 << 2,
     XFNM_PERIOD   = 1 << 3,
     XFNM_CASEFOLD = 1 << 4,
+    XFNM_compiled = 1 << 5,
+    XFNM_headstar = 1 << 6,
+    XFNM_tailstar = 1 << 7,
 } xfnmflags_T;
 typedef struct {
     size_t start, end;
