@@ -107,7 +107,7 @@ typedef enum le_candgentype_T {
     CGT_FUNCTION   = 1 << 7, // function
     CGT_KEYWORD    = 1 << 8, // shell keyword
     CGT_COMMAND    = CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN
-		   | CGT_EXTCOMMAND | CGT_FUNCTION | CGT_KEYWORD,
+		   | CGT_EXTCOMMAND | CGT_FUNCTION,
     CGT_NALIAS     = 1 << 9, // non-global alias
     CGT_GALIAS     = 1 << 10, // global alias
     CGT_ALIAS      = CGT_NALIAS | CGT_GALIAS,

@@ -289,6 +289,8 @@ void generate_candidates(const le_context_T *context)
  * `options' member is a hashtable that contains data for completing an option.
  * The hashtable's keys are pointers to freeable strings containing option
  * names and values are pointers to freeable `le_candgen_T' structures. */
+/* The `options.capacity' member is zero when the hashtable is not yet
+ * initialized. */
 struct cmdcandgen_T {
     le_candgen_T operands;
     hashtable_T options;
@@ -307,33 +309,52 @@ const le_candgen_T *get_candgen(const le_context_T *context)
 {
     static le_candgen_T tempresult;
 
+    tempresult = (le_candgen_T) { .type = 0, .words = NULL, .function = NULL };
     switch (context->type) {
 	case CTXT_NORMAL:
-	    break; //TODO
-	case CTXT_TILDE:
-	    break; //TODO
-	case CTXT_VAR:
-	    break; //TODO
-	case CTXT_VAR_BRCK:
-	    break; //TODO
 	case CTXT_VAR_BRCK_WORD:
-	    break; //TODO
+	    if (context->pwordc == 0) {
+		if (wcschr(context->src, L'/')) {
+		    tempresult.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
+		} else {
+		    tempresult.type |= CGT_DIRECTORY | CGT_KEYWORD
+			| CGT_COMMAND | CGT_ALIAS;
+		}
+		return &tempresult;
+	    } else {
+		goto normal;
+	    }
+	case CTXT_TILDE:
+	    tempresult.type |= CGT_LOGNAME;
+	    return &tempresult;
+	case CTXT_VAR:
+	case CTXT_VAR_BRCK:
+	    tempresult.type |= CGT_VARIABLE;
+	    return &tempresult;
 	case CTXT_ARITH:
-	    break; //TODO
+	    tempresult.type |= CGT_SCALAR;
+	    return &tempresult;
 	case CTXT_REDIR:
-	    break; //TODO
+	    tempresult.type |= CGT_FILE | CGT_GALIAS;
+	    return &tempresult;
 	case CTXT_REDIR_FD:
-	    break; //TODO
+	    tempresult.type |= CGT_GALIAS;
+	    return &tempresult;
     }
-
-    // TODO under construction
-    (void) candgens;
-    tempresult = (le_candgen_T) {
-	.type = CGT_FILE | CGT_EXTCOMMAND, .words = NULL, .function = NULL,
-    };
-    return &tempresult;
-
     assert(false);
+
+    const struct cmdcandgen_T *result;
+normal:
+    if (candgens.capacity == 0)
+	goto return_default;
+    result = ht_get(&candgens, context->pwords[0]).value;
+    if (result == NULL)
+	goto return_default;
+    return &result->operands;  //TODO options
+
+return_default:
+    tempresult.type = CGT_FILE | CGT_GALIAS;
+    return &tempresult;
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
