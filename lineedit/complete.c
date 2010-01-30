@@ -283,8 +283,10 @@ void generate_candidates(const le_context_T *context)
     const le_candgen_T *candgen = get_candgen(context);
 
     generate_file_candidates(candgen->type, context->pattern);
-    generate_builtin_candidates(candgen->type, context->pattern);
+    generate_builtin_candidates(candgen->type, context);
     generate_external_command_candidates(candgen->type, context);
+    if (candgen->type & CGT_FUNCTION)
+	generate_function_candidates(context);
     // TODO: other types
 }
 

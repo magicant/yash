@@ -48,8 +48,10 @@
 #include "util.h"
 #include "variable.h"
 #include "version.h"
+#include "xfnmatch.h"
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT
+# include "lineedit/complete.h"
 # include "lineedit/lineedit.h"
 # include "lineedit/terminfo.h"
 #endif
@@ -185,7 +187,7 @@ static environ_T *first_env;
 /* whether $RANDOM is functioning as a random number */
 static bool random_active;
 
-/* hashtable from function names (char *) to functions (function_T *). */
+/* hashtable from function names (wchar_t *) to functions (function_T *). */
 static hashtable_T functions;
 
 
@@ -1251,6 +1253,24 @@ void tryhash_word_as_command(const wordunit_T *w)
 	free(cmdname);
     }
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates function name candidates that match the glob pattern in the
+ * specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_function_candidates(const le_context_T *context)
+{
+    le_compdebug("adding functions for pattern \"%ls\"", context->pattern);
+
+    size_t i = 0;
+    const wchar_t *name;
+    while ((name = ht_next(&functions, &i).key) != NULL)
+	if (xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
+	    le_add_candidate(CGT_FUNCTION, CT_COMMAND, xwcsdup(name));
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Directory Stack **********/

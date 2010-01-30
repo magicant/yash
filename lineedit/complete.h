@@ -155,7 +155,7 @@ extern void le_add_candidate(
 
 /* This function is defined in "builtin.c". */
 extern void generate_builtin_candidates(
-	le_candgentype_T type, const wchar_t *pattern)
+	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
 
