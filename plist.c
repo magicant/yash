@@ -140,10 +140,10 @@ plist_T *pl_replace(
 
 /* Appends `p' to the end of pointer list `list' as a new element.
  * `p' may be NULL or a pointer to the list itself. */
-plist_T *pl_add(plist_T *list, void *p)
+plist_T *pl_add(plist_T *list, const void *p)
 {
     pl_ensuremax(list, list->length + 1);
-    list->contents[list->length++] = p;
+    list->contents[list->length++] = (void *) p;
     list->contents[list->length] = NULL;
     return list;
 }

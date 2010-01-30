@@ -67,7 +67,7 @@ static inline plist_T *pl_cat(
     __attribute__((nonnull));
 static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n)
     __attribute__((nonnull));
-extern plist_T *pl_add(plist_T *list, void *p)
+extern plist_T *pl_add(plist_T *list, const void *p)
     __attribute__((nonnull(1)));
 
 
