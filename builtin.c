@@ -42,6 +42,7 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
+#include "xfnmatch.h"
 #include "yash.h"
 #if YASH_ENABLE_PRINTF
 # include "builtins/printf.h"
@@ -53,6 +54,7 @@
 # include "builtins/ulimit.h"
 #endif
 #if YASH_ENABLE_LINEEDIT
+# include "lineedit/complete.h"
 # include "lineedit/keymap.h"
 #endif
 
@@ -216,6 +218,50 @@ int print_builtin_help(const wchar_t *name)
 }
 
 #endif /* YASH_ENABLE_HELP */
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates builtin command name candidates that match the specified glob
+ * pattern. The CGT_SBUILTIN, CGT_SSBUILTIN, and CGT_RBUILTIN flags in `type'
+ * specify what candidate to generate. The other flags are ignored. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_builtin_candidates(
+	le_candgentype_T type, const wchar_t *pattern)
+{
+    if (!(type & (CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN)))
+	return;
+
+    le_compdebug("adding builtins for pattern \"%ls\"", pattern);
+
+    size_t i = 0;
+    kvpair_T kv;
+    xfnmatch_T *xfnm = xfnm_compile(  // XXX case-sensitive
+	    pattern, XFNM_HEADONLY | XFNM_TAILONLY | XFNM_PERIOD);
+
+    if (xfnm == NULL)
+	return;
+    while ((kv = ht_next(&builtins, &i)).key != NULL) {
+	switch (((const builtin_T *) kv.value)->type) {
+	    case BI_SPECIAL:
+		if (!(type & CGT_SBUILTIN))
+		    continue;
+		break;
+	    case BI_SEMISPECIAL:
+		if (!(type & CGT_SSBUILTIN))
+		    continue;
+		break;
+	    case BI_REGULAR:
+		if (!(type & CGT_RBUILTIN))
+		    continue;
+		break;
+	}
+	if (xfnm_match(xfnm, kv.key) == 0)
+	    le_add_candidate(type, CT_COMMAND, malloc_mbstowcs(kv.key));
+    }
+    xfnm_free(xfnm);
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /* The ":"/"true" builtin */

@@ -26,6 +26,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <sys/stat.h>
+#include "../builtin.h"
 #include "../hashtable.h"
 #include "../option.h"
 #include "../path.h"
@@ -45,8 +46,6 @@ static void free_candidate(void *c)
 static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
-static void compdebug(const char *format, ...)
-    __attribute__((nonnull,format(printf,1,2)));
 
 static void generate_candidates(const le_context_T *context)
     __attribute__((nonnull));
@@ -55,12 +54,10 @@ static const le_candgen_T *get_candgen(const le_context_T *context)
 static const le_candgen_T *find_optarg_candgen(
 	const hashtable_T *options, const wchar_t *s)
     __attribute__((nonnull));
-static void add_candidate(
-	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
+static void generate_file_candidates(
+	le_candgentype_T type, const wchar_t *pattern)
     __attribute__((nonnull));
-static void generate_files(le_candgentype_T type, const wchar_t *pattern)
-    __attribute__((nonnull));
-static void generate_external_commands(
+static void generate_external_command_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 static void list_long_options(
@@ -109,7 +106,7 @@ void le_complete(void)
 	le_display_finalize();
 	le_restore_terminal();
 	le_state = LE_STATE_SUSPENDED_COMPDEBUG;
-	compdebug("completion start");
+	le_compdebug("completion start");
     }
 
     le_complete_cleanup();
@@ -143,15 +140,15 @@ void le_complete(void)
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	for (int i = 0; i < context.pwordc; i++)
-	    compdebug("preceding word %d: \"%ls\"",
+	    le_compdebug("preceding word %d: \"%ls\"",
 		    i + 1, (const wchar_t *) context.pwords[i]);
-	compdebug("source word: \"%ls\"", context.src);
-	compdebug(" as pattern: \"%ls\"", context.pattern);
+	le_compdebug("source word: \"%ls\"", context.src);
+	le_compdebug(" as pattern: \"%ls\"", context.pattern);
     }
 
     generate_candidates(&context);
     sort_candidates();
-    compdebug("total of %zu candidate(s)", le_candidates.length);
+    le_compdebug("total of %zu candidate(s)", le_candidates.length);
 
     /* display the results */
     if (le_candidates.length == 0) {
@@ -170,7 +167,7 @@ void le_complete(void)
 	    const le_candidate_T *cand = le_candidates.contents[0];
 	    wchar_t *common_prefix
 		= xwcsndup(cand->value, common_prefix_length);
-	    compdebug("candidate common prefix: \"%ls\"", common_prefix);
+	    le_compdebug("candidate common prefix: \"%ls\"", common_prefix);
 	    free(common_prefix);
 	}
 	le_selected_candidate_index = le_candidates.length;
@@ -182,7 +179,7 @@ void le_complete(void)
     xfnm_free(context.cpattern);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
-	compdebug("completion end");
+	le_compdebug("completion end");
 	le_setupterm(false);
 	le_set_terminal();
 	le_state = LE_STATE_ACTIVE;
@@ -261,7 +258,7 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
 /* Prints the formatted string to the standard error if the completion debugging
  * option is on.
  * The string is preceded by "[compdebug] " and followed by a newline. */
-void compdebug(const char *format, ...)
+void le_compdebug(const char *format, ...)
 {
     if (le_state != LE_STATE_SUSPENDED_COMPDEBUG)
 	return;
@@ -285,8 +282,9 @@ void generate_candidates(const le_context_T *context)
 {
     const le_candgen_T *candgen = get_candgen(context);
 
-    generate_files(candgen->type, context->pattern);
-    generate_external_commands(candgen->type, context);
+    generate_file_candidates(candgen->type, context->pattern);
+    generate_builtin_candidates(candgen->type, context->pattern);
+    generate_external_command_candidates(candgen->type, context);
     // TODO: other types
 }
 
@@ -442,7 +440,7 @@ const le_candgen_T *find_optarg_candgen(
 /* Adds the specified value as a completion candidate to the candidate list.
  * The value is freed in this function.
  * If the specified value does not match `cgt', it may not be added. */
-void add_candidate(le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
+void le_add_candidate(le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
 {
     le_candidate_T *cand = xmalloc(sizeof *cand);
     cand->type = type;
@@ -495,7 +493,7 @@ ok:
 	    case CT_HOSTNAME:  typestr = "host name";         break;
 	    case CT_BINDKEY:   typestr = "lineedit command";  break;
 	}
-	compdebug("adding %s candidate \"%ls\"", typestr, value);
+	le_compdebug("adding %s candidate \"%ls\"", typestr, value);
     }
 
     pl_add(&le_candidates, cand);
@@ -505,17 +503,15 @@ fail:
     free_candidate(cand);
 }
 
-/* Generates file name candidates that matches the specified glob pattern.
- * The CGT_FILE, CGT_DIRECTORY, and CGT_EXECUTABLE flags specify what to
- * generate. The other flags are ignored.
- * If `pattern' is not a glob pattern, an asterisk is added to make a pattern.
- */
-void generate_files(le_candgentype_T type, const wchar_t *pattern)
+/* Generates file name candidates that match the specified glob pattern.
+ * The CGT_FILE, CGT_DIRECTORY, and CGT_EXECUTABLE flags specify what candidate
+ * to generate. The other flags are ignored. */
+void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 {
     if (!(type & (CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE)))
 	return;
 
-    compdebug("adding filenames for pattern \"%ls\"", pattern);
+    le_compdebug("adding filenames for pattern \"%ls\"", pattern);
 
     plist_T list;
     enum wglbflags flags = WGLB_NOSORT;
@@ -525,20 +521,20 @@ void generate_files(le_candgentype_T type, const wchar_t *pattern)
     wglob(pattern, flags, pl_init(&list));
 
     for (size_t i = 0; i < list.length; i++)
-	add_candidate(type, CT_FILE, list.contents[i]);
+	le_add_candidate(type, CT_FILE, list.contents[i]);
     pl_destroy(&list);
 }
 
 /* Generates candidates that are the names of external commands matching the
  * specified pattern.
  * If CGT_EXECUTABLE is not in `type', this function does nothing. */
-void generate_external_commands(
+void generate_external_command_candidates(
 	le_candgentype_T type, const le_context_T *context)
 {
     if (!(type & CGT_EXTCOMMAND))
 	return;
 
-    compdebug("adding external command names for pattern \"%ls\"",
+    le_compdebug("adding external command names for pattern \"%ls\"",
 	    context->pattern);
 
     char *const *paths = get_path_array(PA_PATH);
@@ -566,7 +562,7 @@ void generate_external_commands(
 	    if (is_executable_regular(path.contents)) {
 		wchar_t *wname = malloc_mbstowcs(de->d_name);
 		if (wname != NULL)
-		    add_candidate(type, CT_COMMAND, wname);
+		    le_add_candidate(type, CT_COMMAND, wname);
 	    }
 	    sb_truncate(&path, dirpathlen);
 	}
@@ -694,7 +690,7 @@ bool need_subst(const le_context_T *context)
  * candidates. */
 void substitute_source_word(const le_context_T *context)
 {
-    compdebug("substituting source word with candidate(s)");
+    le_compdebug("substituting source word with candidate(s)");
 
     /* remove source word */
     wb_remove(&le_main_buffer, context->srcindex,

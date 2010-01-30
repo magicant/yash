@@ -145,6 +145,18 @@ extern size_t le_selected_candidate_index;
 extern void le_complete(void);
 extern void le_complete_select(int offset);
 extern void le_complete_cleanup(void);
+extern void le_compdebug(const char *format, ...)
+    __attribute__((nonnull,format(printf,1,2)));
+
+extern void le_add_candidate(
+	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
+    __attribute__((nonnull));
+
+
+/* This function is defined in "builtin.c". */
+extern void generate_builtin_candidates(
+	le_candgentype_T type, const wchar_t *pattern)
+    __attribute__((nonnull));
 
 
 #endif /* YASH_COMPLETE_H */
