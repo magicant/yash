@@ -30,7 +30,10 @@
 
 struct xfnmatch_T {
     xfnmflags_T flags;
-    regex_t regex;
+    union {
+	regex_t regex;
+	xwcsbuf_T literal;
+    } value;
 };
 /* The flags are logical OR of the followings:
  *  XFNM_SHORTEST:  do shortest match
@@ -38,6 +41,7 @@ struct xfnmatch_T {
  *  XFNM_TAILONLY:  only match at the end of the string
  *  XFNM_PERIOD:    don't match with a string that starts with a period
  *  XFNM_CASEFOLD:  ignore case while matching
+ *  XFNM_compiled:  use `regex' rather than `literal'
  * When XFNM_SHORTEST is specified, either (but not both) of XFNM_HEADONLY and
  * XFNM_TAILONLY must be also specified. When XFNM_PERIOD is specified,
  * XFNM_HEADONLY must be also specified. */
@@ -47,6 +51,10 @@ struct xfnmatch_T {
 
 static wchar_t *skip_bracket(const wchar_t *pat)
     __attribute__((nonnull));
+static xfnmatch_T *try_compile_literal(const wchar_t *pat, xfnmflags_T flags)
+    __attribute__((malloc,warn_unused_result,nonnull));
+static xfnmatch_T *try_compile_regex(const wchar_t *pat, xfnmflags_T flags)
+    __attribute__((malloc,warn_unused_result,nonnull));
 static void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
     __attribute__((nonnull));
 static const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
@@ -57,6 +65,12 @@ static const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
     __attribute__((nonnull));
 static void append_as_collating_symbol(wchar_t c,
 	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+    __attribute__((nonnull));
+static xfnmresult_T wmatch_literal(
+	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
+    __attribute__((nonnull));
+static wchar_t *last_wcsstr(
+	const wchar_t *restrict s, const wchar_t *restrict sub)
     __attribute__((nonnull));
 static xfnmresult_T wmatch_headtail(
 	const regex_t *restrict regex, const wchar_t *restrict s)
@@ -173,7 +187,91 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
  * XFNM_TAILONLY must be also specified. When XFNM_PERIOD is specified,
  * XFNM_HEADONLY must be also specified.
  * Returns NULL on failure. */
+/* Argument `flags' must not contain XFNM_compiled, XFNM_headstar, or
+ * XFNM_tailstar, which are for internal use only */
 xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
+{
+    if (flags & XFNM_SHORTEST) {
+	if (flags & XFNM_HEADONLY)
+	    assert(!(flags & XFNM_TAILONLY));
+	else
+	    assert(flags & XFNM_TAILONLY);
+    }
+    if (flags & XFNM_PERIOD) {
+	assert(flags & XFNM_HEADONLY);
+	if (pat[0] == L'.' || pat[0] == L'\\')
+	    flags &= ~XFNM_PERIOD;
+    }
+
+    if (!(flags & XFNM_CASEFOLD)) {
+	xfnmatch_T *result = try_compile_literal(pat, flags);
+	if (result)
+	    return result;
+    }
+
+    return try_compile_regex(pat, flags);
+}
+
+xfnmatch_T *try_compile_literal(const wchar_t *pat, xfnmflags_T flags)
+{
+    xfnmflags_T oldflags = flags;
+    xfnmatch_T *xfnm = xmalloc(sizeof *xfnm);
+
+    wb_init(&xfnm->value.literal);
+    while (*pat == L'*') {
+	flags &= ~XFNM_HEADONLY;
+	flags |= XFNM_headstar;
+	pat++;
+    }
+    for (;;) {
+	switch (*pat) {
+	    case L'\0':
+		goto success;
+	    case L'?':
+		goto fail;
+	    case L'*':
+		flags &= ~XFNM_TAILONLY;
+		flags |= XFNM_tailstar;
+		do
+		    pat++;
+		while (*pat == L'*');
+		if (*pat == L'\0')
+		    goto success;
+		else
+		    goto fail;
+	    case L'[':
+		if (wcschr(pat + 1, L']'))
+		    goto fail;
+		else
+		    goto ordinary;
+	    case L'\\':
+		pat++;
+		if (*pat == L'\0')
+		    goto success;
+		/* falls thru */
+	    default:  ordinary:
+		wb_wccat(&xfnm->value.literal, *pat);
+		break;
+	}
+	pat++;
+    }
+
+success:
+    if (oldflags & XFNM_SHORTEST) {
+	if (oldflags & XFNM_HEADONLY)
+	    flags &= ~XFNM_tailstar;
+	else
+	    flags &= ~XFNM_headstar;
+    }
+    xfnm->flags = flags;
+    return xfnm;
+fail:
+    wb_destroy(&xfnm->value.literal);
+    free(xfnm);
+    return NULL;
+}
+
+xfnmatch_T *try_compile_regex(const wchar_t *pat, xfnmflags_T flags)
 {
     xstrbuf_T buf;
 
@@ -184,12 +282,8 @@ xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
     if (flags & XFNM_TAILONLY)
 	sb_ccat(&buf, '$');
 
-    if (flags & XFNM_PERIOD)
-	if (pat[0] == L'.' || pat[0] == L'\\')
-	    flags &= ~XFNM_PERIOD;
-
     xfnmatch_T *xfnm = xmalloc(sizeof *xfnm);
-    xfnm->flags = flags;
+    xfnm->flags = flags | XFNM_compiled;
 
     int regexflags = 0;
     if (flags & XFNM_CASEFOLD)
@@ -197,7 +291,7 @@ xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
     if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL)
 	regexflags |= REG_NOSUB;
 
-    int err = regcomp(&xfnm->regex, buf.contents, regexflags);
+    int err = regcomp(&xfnm->value.regex, buf.contents, regexflags);
 
     sb_destroy(&buf);
     if (err) {
@@ -372,13 +466,22 @@ int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
 {
     assert(!(xfnm->flags & XFNM_SHORTEST));
 
-    if (xfnm->flags & XFNM_PERIOD) {
-	assert(xfnm->flags & XFNM_HEADONLY);
+    if (xfnm->flags & XFNM_PERIOD)
 	if (s[0] == '.')
 	    return REG_NOMATCH;
-    }
 
-    return regexec(&xfnm->regex, s, 0, NULL, 0);
+    if (xfnm->flags & XFNM_compiled) {
+	return regexec(&xfnm->value.regex, s, 0, NULL, 0);
+    } else {
+	wchar_t *ws = malloc_mbstowcs(s);
+	if (ws) {
+	    xfnmresult_T result = xfnm_wmatch(xfnm, ws);
+	    free(ws);
+	    if (result.start != (size_t) -1)
+		return 0;
+	}
+	return REG_NOMATCH;
+    }
 }
 
 /* Performs matching on string `s' using pre-compiled pattern `xfnm'.
@@ -392,24 +495,90 @@ xfnmresult_T xfnm_wmatch(
 {
     xfnmflags_T flags = xfnm->flags;
     if (flags & XFNM_PERIOD) {
-	assert(flags & XFNM_HEADONLY);
 	if (s[0] == L'.')
 	    return MISMATCH;
     }
+    if (!(flags & XFNM_compiled)) {
+	return wmatch_literal(xfnm, s);
+    }
     if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL) {
-	return wmatch_headtail(&xfnm->regex, s);
+	return wmatch_headtail(&xfnm->value.regex, s);
     }
     if (flags & XFNM_SHORTEST) {
 	if (flags & XFNM_HEADONLY) {
 	    assert(!(flags & XFNM_TAILONLY));
-	    return wmatch_shortest_head(&xfnm->regex, s);
+	    return wmatch_shortest_head(&xfnm->value.regex, s);
 	} else {
 	    assert(flags & XFNM_TAILONLY);
-	    return wmatch_shortest_tail(&xfnm->regex, s);
+	    return wmatch_shortest_tail(&xfnm->value.regex, s);
 	}
     } else {
-	return wmatch_longest(&xfnm->regex, s);
+	return wmatch_longest(&xfnm->value.regex, s);
     }
+}
+
+xfnmresult_T wmatch_literal(
+	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
+{
+    if (xfnm->flags & XFNM_HEADONLY) {
+	s = matchwcsprefix(s, xfnm->value.literal.contents);
+	if (s == NULL)
+	    return MISMATCH;
+	if ((xfnm->flags & XFNM_TAILONLY) && (*s != L'\0'))
+	    return MISMATCH;
+	return (xfnmresult_T) { .start = 0, .end = xfnm->value.literal.length };
+    } else if (xfnm->flags & XFNM_TAILONLY) {
+	size_t slen = wcslen(s);
+	if (slen < xfnm->value.literal.length)
+	    return MISMATCH;
+	size_t index = slen - xfnm->value.literal.length;
+	if (wcscmp(s + index, xfnm->value.literal.contents) != 0)
+	    return MISMATCH;
+	return (xfnmresult_T) { .start = index, .end = slen };
+    } else {
+	const wchar_t *ss;
+	switch (xfnm->flags & (XFNM_SHORTEST | XFNM_headstar | XFNM_tailstar)) {
+	    case XFNM_headstar:
+	    case XFNM_SHORTEST | XFNM_tailstar:
+		ss = last_wcsstr(s, xfnm->value.literal.contents);
+		break;
+	    default:
+		ss = wcsstr(s, xfnm->value.literal.contents);
+		break;
+	}
+	if (!ss)
+	    return MISMATCH;
+
+	xfnmresult_T result;
+	if (xfnm->flags & XFNM_headstar)
+	    result.start = 0;
+	else
+	    result.start = ss - s;
+	if (xfnm->flags & XFNM_tailstar)
+	    result.end = wcslen(s);
+	else
+	    result.end = ss - s + xfnm->value.literal.length;
+	return result;
+    }
+}
+
+wchar_t *last_wcsstr(const wchar_t *restrict s, const wchar_t *restrict sub)
+{
+    size_t slen = wcslen(s), sublen = wcslen(sub);
+    wchar_t *lastresult = NULL;
+
+    if (sublen == 0)
+	return (wchar_t *) s + slen;
+    while (slen >= sublen) {
+	wchar_t *result = wcsstr(s, sub);
+	if (result == NULL)
+	    break;
+	lastresult = result;
+	slen -= result + 1 - s;
+	s = result + 1;
+	assert(wcslen(s) == slen);
+    }
+    return lastresult;
 }
 
 xfnmresult_T wmatch_headtail(
@@ -520,7 +689,11 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
     xfnmflags_T flags = xfnm->flags;
 
     if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL) {
-	xfnmresult_T result = wmatch_headtail(&xfnm->regex, s);
+	xfnmresult_T result;
+	if (flags & XFNM_compiled)
+	    result = wmatch_headtail(&xfnm->value.regex, s);
+	else
+	    result = wmatch_literal(xfnm, s);
 	return xwcsdup((result.start != (size_t) -1) ? repl : s);
     }
     if (flags & XFNM_HEADONLY)
@@ -545,7 +718,10 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
 void xfnm_free(xfnmatch_T *xfnm)
 {
     if (xfnm != NULL) {
-	regfree(&xfnm->regex);
+	if (xfnm->flags & XFNM_compiled)
+	    regfree(&xfnm->value.regex);
+	else
+	    wb_destroy(&xfnm->value.literal);
 	free(xfnm);
     }
 }

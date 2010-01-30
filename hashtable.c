@@ -208,7 +208,7 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 
 /* Returns the entry whose key is equal to the specified `key',
  * or { NULL, NULL } if `key' is NULL or there is no such entry. */
-kvpair_T ht_get(hashtable_T *ht, const void *key)
+kvpair_T ht_get(const hashtable_T *ht, const void *key)
 {
     if (key) {
 	hashval_T hash = ht->hashfunc(key);
@@ -302,7 +302,7 @@ kvpair_T ht_remove(hashtable_T *ht, const void *key)
  * and `ht_each' immediately returns the non-zero value. Otherwise, that is,
  * if `f' returns zero for all the entry, `ht_each' also returns zero.
  * You must not add or remove any entry inside function `f'. */
-int ht_each(hashtable_T *ht, int f(kvpair_T kv))
+int ht_each(const hashtable_T *ht, int f(kvpair_T kv))
 {
     struct hash_entry *entries = ht->entries;
 
@@ -325,7 +325,7 @@ int ht_each(hashtable_T *ht, int f(kvpair_T kv))
  * add/remove any entry in the hashtable until the iteration finishes.
  * Each entry is returned exactly once, in an unspecified order.
  * If there is no more entry to be iterated, { NULL, NULL } is returned. */
-kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
+kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
 {
     while (*indexp < ht->capacity) {
 	kvpair_T kv = ht->entries[*indexp].kv;
@@ -339,7 +339,7 @@ kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
 /* Returns a newly malloced array of key-value pairs that contains all the
  * elements of the specified hashtable.
  * The returned array is terminated by the { NULL, NULL } element. */
-kvpair_T *ht_tokvarray(hashtable_T *ht)
+kvpair_T *ht_tokvarray(const hashtable_T *ht)
 {
     kvpair_T *array = xmalloc(sizeof *array * (ht->count + 1));
     size_t index = 0;

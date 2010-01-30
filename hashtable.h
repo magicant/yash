@@ -69,17 +69,17 @@ extern hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
     __attribute__((nonnull));
 extern hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
     __attribute__((nonnull(1)));
-extern kvpair_T ht_get(hashtable_T *ht, const void *key)
+extern kvpair_T ht_get(const hashtable_T *ht, const void *key)
     __attribute__((nonnull(1)));
 extern kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
     __attribute__((nonnull(1,2)));
 extern kvpair_T ht_remove(hashtable_T *ht, const void *key)
     __attribute__((nonnull(1)));
-extern int ht_each(hashtable_T *ht, int f(kvpair_T kv))
+extern int ht_each(const hashtable_T *ht, int f(kvpair_T kv))
     __attribute__((nonnull));
-extern kvpair_T ht_next(hashtable_T *restrict ht, size_t *restrict indexp)
+extern kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
     __attribute__((nonnull));
-extern kvpair_T *ht_tokvarray(hashtable_T *ht)
+extern kvpair_T *ht_tokvarray(const hashtable_T *ht)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 extern hashval_T hashstr(const void *s)             __attribute__((pure));

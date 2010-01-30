@@ -47,6 +47,7 @@ echo ${unset=UNSET}
 echo $var $null $unset
 
 echo ${var#*/} ${var##*/} ${var%/*} ${var%%/*}
+echo ${var#*/*} ${var##*/*} ${var%*/*} ${var%%*/*}
 echo ${var#x} ${var##x} ${var%x} ${var%%x}
 echo ${asterisks##*} "${asterisks#"*"}"
 echo '${#var}='${#var}
