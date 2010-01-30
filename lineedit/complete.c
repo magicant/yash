@@ -52,6 +52,9 @@ static void generate_candidates(const le_context_T *context)
     __attribute__((nonnull));
 static const le_candgen_T *get_candgen(const le_context_T *context)
     __attribute__((nonnull));
+static const le_candgen_T *find_optarg_candgen(
+	const hashtable_T *options, const wchar_t *s)
+    __attribute__((nonnull));
 static void add_candidate(
 	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
@@ -59,6 +62,9 @@ static void generate_files(le_candgentype_T type, const wchar_t *pattern)
     __attribute__((nonnull));
 static void generate_external_commands(
 	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+static void list_long_options(
+	const hashtable_T *options, const wchar_t *s, plist_T *list)
     __attribute__((nonnull));
 
 static void calculate_common_prefix_length(void);
@@ -285,15 +291,27 @@ void generate_candidates(const le_context_T *context)
 }
 
 /* The type of data that specifies how to generate candidates for a command's
- * arguments. The `operands' member is used for completing a operand. The
- * `options' member is a hashtable that contains data for completing an option.
- * The hashtable's keys are pointers to freeable strings containing option
- * names and values are pointers to freeable `le_candgen_T' structures. */
-/* The `options.capacity' member is zero when the hashtable is not yet
- * initialized. */
+ * arguments. The `operands' member is used for completing a operand.
+ *
+ * The `options' member is a hashtable that contains data for completing an
+ * option. The hashtable's keys are pointers to freeable strings containing
+ * option names and values are pointers to freeable `le_candgen_T' structures.
+ * For a single-character option, the key is the single-character string
+ * containing the option character. For a long option, the key string is the
+ * option name prefixed by a hyphen.
+ * For an option that does not take an argument, the corresponding value is
+ * NULL. For an option that takes an argument, the value is a non-NULL pointer
+ * to an `le_candgen_T' structure.
+ * When the `options' hashtable contains no keys, the hashtable may be
+ * uninitialized, in which case the `options.capacity' member must be zero.
+ *
+ * The `option_after_operand' member specifies whether options can appear after
+ * operands or not. If this member is false, all arguments after the first
+ * operand are considered as operands. */
 struct cmdcandgen_T {
     le_candgen_T operands;
     hashtable_T options;
+    bool option_after_operand;
 };
 
 /* A hashtable that maps command names to candidate generation data.
@@ -309,6 +327,7 @@ const le_candgen_T *get_candgen(const le_context_T *context)
 {
     static le_candgen_T tempresult;
 
+    // TODO test
     tempresult = (le_candgen_T) { .type = 0, .words = NULL, .function = NULL };
     switch (context->type) {
 	case CTXT_NORMAL:
@@ -343,18 +362,81 @@ const le_candgen_T *get_candgen(const le_context_T *context)
     }
     assert(false);
 
-    const struct cmdcandgen_T *result;
+    const struct cmdcandgen_T *ccg;
 normal:
     if (candgens.capacity == 0)
 	goto return_default;
-    result = ht_get(&candgens, context->pwords[0]).value;
-    if (result == NULL)
+    ccg = ht_get(&candgens, context->pwords[0]).value;
+    if (ccg == NULL)
 	goto return_default;
-    return &result->operands;  //TODO options
+
+    /* parse the current command arguments */
+    for (int i = 1; i < context->pwordc; i++) {
+	const wchar_t *s = context->pwords[i];
+	if (s[0] != L'-') {
+	    if (ccg->option_after_operand)
+		continue;
+	    else
+		return &ccg->operands;
+	}
+	if (s[1] == L'-' && s[2] == L'\0')  /* s == L"--" */
+	    return &ccg->operands;
+
+	const le_candgen_T *candgen = find_optarg_candgen(&ccg->options, s);
+	if (candgen == NULL)
+	    continue;
+	if (++i == context->pwordc)
+	    return candgen;
+    }
+    if (context->src[0] == L'-') {
+	tempresult.type = CGT_OPTION;
+	return &tempresult;
+    } else {
+	return &ccg->operands;
+    }
 
 return_default:
     tempresult.type = CGT_FILE | CGT_GALIAS;
     return &tempresult;
+}
+
+/* Searches `options' for an option whose argument should be given as the next
+ * command-line argument. The current argument word that starts with an hyphen
+ * must be given as `s'. */
+const le_candgen_T *find_optarg_candgen(
+	const hashtable_T *options, const wchar_t *s)
+{
+    // TODO test
+
+    assert(s[0] == L'-');
+
+    kvpair_T kv = ht_get(options, s);
+    if (kv.key != NULL)
+	return kv.value;
+
+    if (s[1] == L'-') {
+	plist_T list;
+	list_long_options(options, s, pl_init(&list));
+	if (list.length == 1 && !wcschr(s, L'=')) {
+	    s = list.contents[0];
+	    pl_destroy(&list);
+	    return ht_get(options, s).value;
+	}
+	pl_destroy(&list);
+    } else {
+	wchar_t opt[2];
+	opt[1] = L'\0';
+	while ((opt[0] = *++s) != L'\0') {
+	    kv = ht_get(options, opt);
+	    if (kv.value != NULL) {
+		if (*++s != L'\0')
+		    break;
+		else
+		    return kv.value;
+	    }
+	}
+    }
+    return NULL;
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
@@ -494,6 +576,24 @@ void generate_external_commands(
 	paths++;
     }
     sb_destroy(&path);
+}
+
+/* Adds pointers that point to option names that starts with `s' to the
+ * specified list. The added pointers point to wide strings, which must not be
+ * modified or freed. */
+void list_long_options(
+    const hashtable_T *options, const wchar_t *s, plist_T *list)
+{
+    // TODO test
+
+    const wchar_t *name;
+    size_t i = 0;
+
+    assert(s[0] == L'-');
+    while ((name = ht_next(options, &i).key) != NULL) {
+	if (matchwcsprefix(name, s))
+	    pl_add(list, name);
+    }
 }
 
 

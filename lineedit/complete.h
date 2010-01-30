@@ -108,21 +108,22 @@ typedef enum le_candgentype_T {
     CGT_KEYWORD    = 1 << 8, // shell keyword
     CGT_COMMAND    = CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN
 		   | CGT_EXTCOMMAND | CGT_FUNCTION,
-    CGT_NALIAS     = 1 << 9, // non-global alias
-    CGT_GALIAS     = 1 << 10, // global alias
+    CGT_OPTION	   = 1 << 9, // command option
+    CGT_NALIAS     = 1 << 10, // non-global alias
+    CGT_GALIAS     = 1 << 11, // global alias
     CGT_ALIAS      = CGT_NALIAS | CGT_GALIAS,
-    CGT_SCALAR     = 1 << 11, // scalar variable
-    CGT_ARRAY      = 1 << 12, // array variable
+    CGT_SCALAR     = 1 << 12, // scalar variable
+    CGT_ARRAY      = 1 << 13, // array variable
     CGT_VARIABLE   = CGT_SCALAR | CGT_ARRAY,
-    CGT_RUNNING    = 1 << 13, // running job
-    CGT_STOPPED    = 1 << 14, // stopped job
-    CGT_DONE       = 1 << 15, // finished job
+    CGT_RUNNING    = 1 << 14, // running job
+    CGT_STOPPED    = 1 << 15, // stopped job
+    CGT_DONE       = 1 << 16, // finished job
     CGT_JOB        = CGT_RUNNING | CGT_STOPPED | CGT_DONE,
-    CGT_SHOPT      = 1 << 16, // shell option
-    CGT_SIGNAL     = 1 << 17, // signal name
-    CGT_LOGNAME    = 1 << 18, // login user name
-    CGT_HOSTNAME   = 1 << 19, // host name
-    CGT_BINDKEY    = 1 << 20, // line-editing command name
+    CGT_SHOPT      = 1 << 17, // shell option
+    CGT_SIGNAL     = 1 << 18, // signal name
+    CGT_LOGNAME    = 1 << 19, // login user name
+    CGT_HOSTNAME   = 1 << 20, // host name
+    CGT_BINDKEY    = 1 << 21, // line-editing command name
 } le_candgentype_T;
 typedef struct le_candgen_T {
     le_candgentype_T type;
