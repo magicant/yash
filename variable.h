@@ -116,9 +116,12 @@ extern char **decompose_paths(const wchar_t *paths)
 extern char *const *get_path_array(path_T name);
 
 struct command_T;
+struct le_context_T;
 extern _Bool define_function(const wchar_t *name, struct command_T *body)
     __attribute__((nonnull));
 extern struct command_T *get_function(const wchar_t *name)
+    __attribute__((nonnull));
+extern void generate_function_candidates(const struct le_context_T *context)
     __attribute__((nonnull));
 
 extern _Bool parse_dirstack_index(
