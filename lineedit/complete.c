@@ -493,7 +493,7 @@ ok:
 	    case CT_HOSTNAME:  typestr = "host name";         break;
 	    case CT_BINDKEY:   typestr = "lineedit command";  break;
 	}
-	le_compdebug("adding %s candidate \"%ls\"", typestr, value);
+	le_compdebug("new %s candidate \"%ls\"", typestr, value);
     }
 
     pl_add(&le_candidates, cand);
