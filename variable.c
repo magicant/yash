@@ -185,7 +185,7 @@ static environ_T *first_env;
 /* whether $RANDOM is functioning as a random number */
 static bool random_active;
 
-/* hashtable from function names (char *) to functions (function_T *). */
+/* hashtable from function names (wchar_t *) to functions (function_T *). */
 static hashtable_T functions;
 
 
