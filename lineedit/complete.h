@@ -30,7 +30,8 @@ typedef enum le_candtype_T {
     CT_COMMAND,    // command name
     CT_FUNC,       // function name
     CT_ALIAS,      // alias name
-    CT_OPTION,     // command option
+    CT_OPTION,     // normal command option
+    CT_OPTIONA,    // command option that takes an argument
     CT_VAR,        // variable name
     CT_JOB,        // job name
     CT_SHOPT,      // shell option name

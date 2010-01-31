@@ -66,6 +66,9 @@ static void list_long_options(
 static void generate_keyword_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
+static void generate_option_candidates(
+	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
 
 static void calculate_common_prefix_length(void);
 static void update_main_buffer(void);
@@ -279,6 +282,8 @@ void le_compdebug(const char *format, ...)
 
 /********** Completion Candidate Generation **********/
 
+#define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
+
 /* Generates completion candidates under the specified context.
  * The candidate list must have been initialized when this function is called.*/
 void generate_candidates(const le_context_T *context)
@@ -290,6 +295,7 @@ void generate_candidates(const le_context_T *context)
     generate_external_command_candidates(candgen->type, context);
     generate_function_candidates(candgen->type, context);
     generate_keyword_candidates(candgen->type, context);
+    generate_option_candidates(candgen->type, context);
     // TODO: other types
 }
 
@@ -483,20 +489,21 @@ ok:
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	const char *typestr = NULL;
 	switch (type) {
-	    case CT_WORD:      typestr = "word";              break;
-	    case CT_FILE:      typestr = "file";              break;
-	    case CT_COMMAND:   typestr = "command";           break;
-	    case CT_ALIAS:     typestr = "alias";             break;
-	    case CT_OPTION:    typestr = "option";            break;
-	    case CT_VAR:       typestr = "variable";          break;
-	    case CT_FUNC:      typestr = "function";          break;
-	    case CT_JOB:       typestr = "job";               break;
-	    case CT_SHOPT:     typestr = "shell option";      break;
-	    case CT_FD:        typestr = "file descriptor";   break;
-	    case CT_SIG:       typestr = "signal";            break;
-	    case CT_LOGNAME:   typestr = "user name";         break;
-	    case CT_HOSTNAME:  typestr = "host name";         break;
-	    case CT_BINDKEY:   typestr = "lineedit command";  break;
+	    case CT_WORD:      typestr = "word";                       break;
+	    case CT_FILE:      typestr = "file";                       break;
+	    case CT_COMMAND:   typestr = "command";                    break;
+	    case CT_ALIAS:     typestr = "alias";                      break;
+	    case CT_OPTION:    typestr = "option";                     break;
+	    case CT_OPTIONA:   typestr = "argument-requiring option";  break;
+	    case CT_VAR:       typestr = "variable";                   break;
+	    case CT_FUNC:      typestr = "function";                   break;
+	    case CT_JOB:       typestr = "job";                        break;
+	    case CT_SHOPT:     typestr = "shell option";               break;
+	    case CT_FD:        typestr = "file descriptor";            break;
+	    case CT_SIG:       typestr = "signal";                     break;
+	    case CT_LOGNAME:   typestr = "user name";                  break;
+	    case CT_HOSTNAME:  typestr = "host name";                  break;
+	    case CT_BINDKEY:   typestr = "lineedit command";           break;
 	}
 	le_compdebug("new %s candidate \"%ls\"", typestr, value);
     }
@@ -614,8 +621,48 @@ void generate_keyword_candidates(
     };
 
     for (const wchar_t **k = keywords; *k != NULL; k++)
-	if (xfnm_wmatch(context->cpattern, *k).start != (size_t) -1)
+	if (WMATCH(context->cpattern, *k))
 	    le_add_candidate(type, CT_COMMAND, xwcsdup(*k));
+}
+
+/* Generates candidates to complete an option matching the pattern in the
+ * specified context. */
+void generate_option_candidates(
+	le_candgentype_T type, const le_context_T *context)
+{
+    // TODO test
+
+    const wchar_t *src = context->src;
+    if (!(type & CGT_OPTION) || src[0] != L'-')
+	return;
+
+    le_compdebug("adding options matching pattern \"%ls\"", context->pattern);
+    if (candgens.capacity == 0)
+	return;
+
+    const struct cmdcandgen_T *ccg =
+	ht_get(&candgens, context->pwords[0]).value;
+    if (ccg == NULL)
+	return;
+
+    bool islong = (src[1] == L'-');
+    size_t i = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&ccg->options, &i)).key != NULL) {
+	const wchar_t *optname = kv.key;
+	const le_candgen_T *arggen = kv.value;
+	le_candtype_T ct = (arggen == NULL) ? CT_OPTION : CT_OPTIONA;
+
+	if (optname[0] != L'-') {
+	    if (!islong)
+		le_add_candidate(type, ct,
+			malloc_wprintf(L"%ls%lc", src, optname[0]));
+	} else {
+	    if ((islong == (optname[1] == L'-'))
+		    && WMATCH(context->cpattern, optname))
+		le_add_candidate(type, ct, xwcsdup(optname));
+	}
+    }
 }
 
 
@@ -677,6 +724,9 @@ void update_main_buffer(void)
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
 	    le_main_index += 1;
 	}
+    } else if (cand->type == CT_OPTIONA) {
+	wb_ninsert_force(&le_main_buffer, le_main_index, L"=", 1);
+	le_main_index += 1;
     } else {
 	switch (quotetype) {
 	    case QUOTE_NONE:
