@@ -63,6 +63,9 @@ static void generate_external_command_candidates(
 static void list_long_options(
 	const hashtable_T *options, const wchar_t *s, plist_T *list)
     __attribute__((nonnull));
+static void generate_keyword_candidates(
+	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
 
 static void calculate_common_prefix_length(void);
 static void update_main_buffer(void);
@@ -285,8 +288,8 @@ void generate_candidates(const le_context_T *context)
     generate_file_candidates(candgen->type, context->pattern);
     generate_builtin_candidates(candgen->type, context);
     generate_external_command_candidates(candgen->type, context);
-    if (candgen->type & CGT_FUNCTION)
-	generate_function_candidates(context);
+    generate_function_candidates(candgen->type, context);
+    generate_keyword_candidates(candgen->type, context);
     // TODO: other types
 }
 
@@ -528,7 +531,7 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 }
 
 /* Generates candidates that are the names of external commands matching the
- * specified pattern.
+ * pattern in the specified context.
  * If CGT_EXECUTABLE is not in `type', this function does nothing. */
 void generate_external_command_candidates(
 	le_candgentype_T type, const le_context_T *context)
@@ -592,6 +595,27 @@ void list_long_options(
 	if (matchwcsprefix(name, s))
 	    pl_add(list, name);
     }
+}
+
+/* Generates candidates that are keywords matching the pattern in the specified
+ * context. */
+void generate_keyword_candidates(
+	le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_KEYWORD))
+	return;
+
+    le_compdebug("adding keywords matching pattern \"%ls\"", context->pattern);
+
+    static const wchar_t *keywords[] = {
+	L"case", L"do", L"done", L"elif", L"else", L"esac", L"fi", L"for",
+	L"if", L"then", L"until", L"while", NULL,
+	// XXX "function" and "select" is not currently supported
+    };
+
+    for (const wchar_t **k = keywords; *k != NULL; k++)
+	if (xfnm_wmatch(context->cpattern, *k).start != (size_t) -1)
+	    le_add_candidate(type, CT_COMMAND, xwcsdup(*k));
 }
 
 

@@ -1259,8 +1259,12 @@ void tryhash_word_as_command(const wordunit_T *w)
 /* Generates function name candidates that match the glob pattern in the
  * specified context. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_function_candidates(const le_context_T *context)
+void generate_function_candidates(
+	le_candgentype_T type, const le_context_T *context)
 {
+    if (!(type & CGT_FUNCTION))
+	return;
+
     le_compdebug("adding functions for pattern \"%ls\"", context->pattern);
 
     size_t i = 0;

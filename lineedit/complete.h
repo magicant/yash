@@ -158,6 +158,11 @@ extern void generate_builtin_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
+/* This function is defined in "variable.c". */
+extern void generate_function_candidates(
+	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+
 
 #endif /* YASH_COMPLETE_H */
 
