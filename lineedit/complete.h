@@ -104,11 +104,11 @@ typedef enum le_candgentype_T {
     CGT_SBUILTIN   = 1 << 3, // special builtin
     CGT_SSBUILTIN  = 1 << 4, // semi-special builtin
     CGT_RBUILTIN   = 1 << 5, // regular builtin
+    CGT_BUILTIN    = CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN,
     CGT_EXTCOMMAND = 1 << 6, // external command
     CGT_FUNCTION   = 1 << 7, // function
+    CGT_COMMAND    = CGT_BUILTIN | CGT_EXTCOMMAND | CGT_FUNCTION,
     CGT_KEYWORD    = 1 << 8, // shell keyword
-    CGT_COMMAND    = CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN
-		   | CGT_EXTCOMMAND | CGT_FUNCTION,
     CGT_OPTION	   = 1 << 9, // command option
     CGT_NALIAS     = 1 << 10, // non-global alias
     CGT_GALIAS     = 1 << 11, // global alias
@@ -123,8 +123,9 @@ typedef enum le_candgentype_T {
     CGT_SHOPT      = 1 << 17, // shell option
     CGT_SIGNAL     = 1 << 18, // signal name
     CGT_LOGNAME    = 1 << 19, // login user name
-    CGT_HOSTNAME   = 1 << 20, // host name
-    CGT_BINDKEY    = 1 << 21, // line-editing command name
+    CGT_GROUP      = 1 << 20, // group name
+    CGT_HOSTNAME   = 1 << 21, // host name
+    CGT_BINDKEY    = 1 << 22, // line-editing command name
 } le_candgentype_T;
 typedef struct le_candgen_T {
     le_candgentype_T type;
@@ -152,6 +153,10 @@ extern void le_compdebug(const char *format, ...)
 extern void le_add_candidate(
 	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
     __attribute__((nonnull));
+
+extern int complete_builtin(int argc, void **argv)
+    __attribute__((nonnull));
+extern const char complete_help[];
 
 
 /* This function is defined in "builtin.c". */

@@ -181,6 +181,11 @@ void init_builtin(void)
     DEFBUILTIN("[", test_builtin, BI_REGULAR, test_help);
 #endif
 
+    /* defined in "lineedit/complete.c" */
+#if YASH_ENABLE_LINEEDIT
+    DEFBUILTIN("complete", complete_builtin, BI_REGULAR, complete_help);
+#endif
+
     /* defined in "lineedit/keymap.c" */
 #if YASH_ENABLE_LINEEDIT
     DEFBUILTIN("bindkey", bindkey_builtin, BI_REGULAR, bindkey_help);
@@ -228,7 +233,7 @@ int print_builtin_help(const wchar_t *name)
 void generate_builtin_candidates(
 	le_candgentype_T type, const le_context_T *context)
 {
-    if (!(type & (CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN)))
+    if (!(type & CGT_BUILTIN))
 	return;
 
     le_compdebug("adding builtins for pattern \"%ls\"", context->pattern);
