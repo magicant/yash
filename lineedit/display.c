@@ -647,6 +647,8 @@ void print_search(void)
 
     const char *text;
     switch (le_search_type) {
+	case SEARCH_PREFIX:
+	    assert(false);
 	case SEARCH_VI:
 	    switch (le_search_direction) {
 		case FORWARD:   lebuf_putwchar(L'?', false);  break;

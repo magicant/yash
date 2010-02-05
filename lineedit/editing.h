@@ -30,7 +30,7 @@ extern size_t le_main_index;
 enum le_search_direction { FORWARD, BACKWARD, };
 /* FORWARD:  find the oldest candidate from the ones newer than the current
  * BACKWARD: find the newest candidate from the ones older than the current */
-enum le_search_type { SEARCH_VI, SEARCH_EMACS, };
+enum le_search_type { SEARCH_PREFIX, SEARCH_VI, SEARCH_EMACS, };
 
 extern enum le_search_direction le_search_direction;
 extern enum le_search_type le_search_type;

@@ -267,10 +267,11 @@ static struct xwcsrange get_prev_bigword(
 static void replace_horizontal_space(bool deleteafter, const wchar_t *s)
     __attribute__((nonnull));
 
-static void go_to_history_absolute(const histentry_T *e, bool cursorend)
+static void go_to_history_absolute(
+	const histentry_T *e, enum le_search_type curpos)
     __attribute__((nonnull));
-static void go_to_history_relative(int offset, bool cursorend);
-static void go_to_history(const histentry_T *e, bool cursorend)
+static void go_to_history_relative(int offset, enum le_search_type curpos);
+static void go_to_history(const histentry_T *e, enum le_search_type curpos)
     __attribute__((nonnull));
 
 static bool need_update_last_search_value(void)
@@ -2422,7 +2423,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	const histentry_T *e = get_history_entry((unsigned) num);
 	if (e == NULL)
 	    goto error0;
-	go_to_history(e, false);
+	go_to_history(e, SEARCH_VI);
     }
 
     le_suspend_readline();
@@ -2763,7 +2764,7 @@ void cmd_emacs_search_backward(wchar_t c __attribute__((unused)))
  * The cursor is put at the beginning of line. */
 void cmd_oldest_history(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(histlist.Oldest, false);
+    go_to_history_absolute(histlist.Oldest, SEARCH_VI);
 }
 
 /* Goes to the newest history entry.
@@ -2772,7 +2773,7 @@ void cmd_oldest_history(wchar_t c __attribute__((unused)))
  * The cursor is put at the beginning of line. */
 void cmd_newest_history(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(histlist.Newest, false);
+    go_to_history_absolute(histlist.Newest, SEARCH_VI);
 }
 
 /* Goes to the newest history entry.
@@ -2781,7 +2782,7 @@ void cmd_newest_history(wchar_t c __attribute__((unused)))
  * The cursor is put at the beginning of line. */
 void cmd_return_history(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(Histlist, false);
+    go_to_history_absolute(Histlist, SEARCH_VI);
 }
 
 /* Goes to the oldest history entry.
@@ -2790,7 +2791,7 @@ void cmd_return_history(wchar_t c __attribute__((unused)))
  * The cursor is put at the end of line. */
 void cmd_oldest_history_eol(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(histlist.Oldest, true);
+    go_to_history_absolute(histlist.Oldest, SEARCH_EMACS);
 }
 
 /* Goes to the newest history entry.
@@ -2799,7 +2800,7 @@ void cmd_oldest_history_eol(wchar_t c __attribute__((unused)))
  * The cursor is put at the end of line. */
 void cmd_newest_history_eol(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(histlist.Newest, true);
+    go_to_history_absolute(histlist.Newest, SEARCH_EMACS);
 }
 
 /* Goes to the newest history entry.
@@ -2808,15 +2809,14 @@ void cmd_newest_history_eol(wchar_t c __attribute__((unused)))
  * The cursor is put at the end of line. */
 void cmd_return_history_eol(wchar_t c __attribute__((unused)))
 {
-    go_to_history_absolute(Histlist, true);
+    go_to_history_absolute(Histlist, SEARCH_EMACS);
 }
 
 /* Goes to the specified history entry.
  * If the count is specified, goes to the history entry whose number is count.
  * If the specified entry is not found, the terminal is alerted.
- * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
- * the beginning of line. */
-void go_to_history_absolute(const histentry_T *e, bool cursorend)
+ * See `go_to_history' for the meaning of `curpos'. */
+void go_to_history_absolute(const histentry_T *e, enum le_search_type curpos)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -2831,7 +2831,7 @@ void go_to_history_absolute(const histentry_T *e, bool cursorend)
 	if (e == NULL)
 	    goto alert;
     }
-    go_to_history(e, cursorend);
+    go_to_history(e, curpos);
     reset_state();
     return;
 
@@ -2845,7 +2845,7 @@ alert:
 void cmd_next_history(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    go_to_history_relative(get_count(1), false);
+    go_to_history_relative(get_count(1), SEARCH_VI);
 }
 
 /* Goes to the `count'th previous history entry.
@@ -2853,7 +2853,7 @@ void cmd_next_history(wchar_t c __attribute__((unused)))
 void cmd_prev_history(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    go_to_history_relative(-get_count(1), false);
+    go_to_history_relative(-get_count(1), SEARCH_VI);
 }
 
 /* Goes to the `count'th next history entry.
@@ -2861,7 +2861,7 @@ void cmd_prev_history(wchar_t c __attribute__((unused)))
 void cmd_next_history_eol(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    go_to_history_relative(get_count(1), true);
+    go_to_history_relative(get_count(1), SEARCH_EMACS);
 }
 
 /* Goes to the `count'th previous history entry.
@@ -2869,13 +2869,12 @@ void cmd_next_history_eol(wchar_t c __attribute__((unused)))
 void cmd_prev_history_eol(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    go_to_history_relative(-get_count(1), true);
+    go_to_history_relative(-get_count(1), SEARCH_EMACS);
 }
 
 /* Goes to the `offset'th next history entry.
- * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
- * the beginning of line. */
-void go_to_history_relative(int offset, bool cursorend)
+ * See `go_to_history' for the meaning of `curpos'. */
+void go_to_history_relative(int offset, enum le_search_type curpos)
 {
     const histentry_T *e = main_history_entry;
     if (offset > 0) {
@@ -2891,18 +2890,21 @@ void go_to_history_relative(int offset, bool cursorend)
 		goto alert;
 	} while (++offset < 0);
     }
-    go_to_history(e, cursorend);
+    go_to_history(e, curpos);
     reset_state();
     return;
+
 alert:
     cmd_alert(L'\0');
     return;
 }
 
 /* Sets the value of the specified history entry to the main buffer.
- * If `cursorend' is true, the cursor is put at the end of line; otherwise, at
- * the beginning of line. */
-void go_to_history(const histentry_T *e, bool cursorend)
+ * The value of `curpos' specifies where the cursor is left:
+ *  SEARCH_PREFIX: the current position (unless it exceeds the buffer length)
+ *  SEARCH_VI:     the beginning of the buffer
+ *  SEARCH_EMACS:  the end of the buffer */
+void go_to_history(const histentry_T *e, enum le_search_type curpos)
 {
     maybe_save_undo_history();
 
@@ -2915,7 +2917,18 @@ void go_to_history(const histentry_T *e, bool cursorend)
 	le_main_index = h->index;
     } else if (e != Histlist) {
 	wb_mbscat(&le_main_buffer, e->value);
-	le_main_index = cursorend ? le_main_buffer.length : 0;
+	switch (curpos) {
+	    case SEARCH_PREFIX:
+		if (le_main_index > le_main_buffer.length)
+		    le_main_index = le_main_buffer.length;
+		break;
+	    case SEARCH_VI:
+		le_main_index = 0;
+		break;
+	    case SEARCH_EMACS:
+		le_main_index = le_main_buffer.length;
+		break;
+	}
     } else {
 	le_main_index = 0;
     }
@@ -2948,13 +2961,17 @@ void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
 	return;
     }
 
-    if (le_search_buffer.length == 0) switch (le_search_type) {
-	case SEARCH_VI:
-	    cmd_srch_abort_search(L'\0');
-	    return;
-	case SEARCH_EMACS:
-	    cmd_alert(L'\0');
-	    return;
+    if (le_search_buffer.length == 0) {
+	switch (le_search_type) {
+	    case SEARCH_VI:
+		cmd_srch_abort_search(L'\0');
+		return;
+	    case SEARCH_EMACS:
+		cmd_alert(L'\0');
+		return;
+	    default:
+		assert(false);
+	}
     }
 
     wb_remove(&le_search_buffer, le_search_buffer.length - 1, 1);
@@ -2985,7 +3002,7 @@ void cmd_srch_continue_forward(wchar_t c __attribute__((unused)))
 
     le_search_direction = FORWARD;
     if (le_search_result != Histlist)
-	go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
+	go_to_history(le_search_result, le_search_type);
     update_search();
 }
 
@@ -3001,7 +3018,7 @@ void cmd_srch_continue_backward(wchar_t c __attribute__((unused)))
 
     le_search_direction = BACKWARD;
     if (le_search_result != Histlist)
-	go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
+	go_to_history(le_search_result, le_search_type);
     update_search();
 }
 
@@ -3025,7 +3042,7 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
     if (le_search_result == Histlist) {
 	cmd_alert(L'\0');
     } else {
-	go_to_history(le_search_result, le_search_type == SEARCH_EMACS);
+	go_to_history(le_search_result, le_search_type);
     }
     reset_state();
 }
@@ -3035,6 +3052,8 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
 bool need_update_last_search_value(void)
 {
     switch (le_search_type) {
+	case SEARCH_PREFIX:
+	    break;
 	case SEARCH_VI:
 	    if (le_search_buffer.contents[0] == L'\0')
 		return false;
@@ -3067,6 +3086,8 @@ void update_search(void)
     const wchar_t *pattern = le_search_buffer.contents;
     if (pattern[0] == L'\0') {
 	switch (le_search_type) {
+	    case SEARCH_PREFIX:
+		break;
 	    case SEARCH_VI:
 		pattern = last_search.value;
 		if (pattern == NULL) {
@@ -3097,6 +3118,12 @@ void perform_search(const wchar_t *pattern,
 	goto done;
 
     switch (type) {
+	case SEARCH_PREFIX: {
+	    wchar_t *p = escape(pattern, NULL);
+	    xfnm = xfnm_compile(p, XFNM_HEADONLY);
+	    free(p);
+	    break;
+	}
 	case SEARCH_VI: {
 	    xfnmflags_T flags = 0;
 	    if (pattern[0] == L'^') {
@@ -3193,7 +3220,7 @@ void search_again(enum le_search_direction dir)
 	    cmd_alert(L'\0');
 	    break;
 	} else {
-	    go_to_history(le_search_result, false);
+	    go_to_history(le_search_result, SEARCH_VI);
 	}
     }
     reset_state();
