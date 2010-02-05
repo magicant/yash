@@ -154,6 +154,8 @@ static char *commands[] = {
     "search-again-rev",
     "search-again-forward",
     "search-again-backward",
+    "beginning-search-forward",
+    "beginning-search-backward",
 };
 
 int sorter(const void *p1, const void *p2)

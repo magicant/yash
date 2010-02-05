@@ -194,7 +194,9 @@ extern le_command_func_T
     cmd_search_again,
     cmd_search_again_rev,
     cmd_search_again_forward,
-    cmd_search_again_backward;
+    cmd_search_again_backward,
+    cmd_beginning_search_forward,
+    cmd_beginning_search_backward;
 
 
 #endif /* YASH_EDITING_H */

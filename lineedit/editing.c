@@ -281,6 +281,9 @@ static void perform_search(const wchar_t *pattern,
 	enum le_search_direction dir, enum le_search_type type)
     __attribute__((nonnull));
 static void search_again(enum le_search_direction dir);
+static void beginning_search(enum le_search_direction dir);
+static inline bool beginning_search_check_go_to_history(const wchar_t *prefix)
+    __attribute__((nonnull,pure));
 
 #define ALERT_AND_RETURN_IF_PENDING                     \
     do if (state.pending_command_motion != MEC_NONE)    \
@@ -3224,6 +3227,66 @@ void search_again(enum le_search_direction dir)
 	}
     }
     reset_state();
+}
+
+/* Searches the history in the forward direction for an entry that has a common
+ * prefix with the current buffer contents. The "prefix" is the first
+ * `le_main_index' characters of the buffer. */
+void cmd_beginning_search_forward(wchar_t c __attribute__((unused)))
+{
+    beginning_search(FORWARD);
+}
+
+/* Searches the history in the backward direction for an entry that has a common
+ * prefix with the current buffer contents. The "prefix" is the first
+ * `le_main_index' characters of the buffer. */
+void cmd_beginning_search_backward(wchar_t c __attribute__((unused)))
+{
+    beginning_search(BACKWARD);
+}
+
+/* Searches the history in the specified direction for an entry that has a
+ * common prefix with the current buffer contents. The "prefix" is the first
+ * `le_main_index' characters of the buffer. */
+void beginning_search(enum le_search_direction dir)
+{
+    ALERT_AND_RETURN_IF_PENDING;
+
+    int count = get_count(1);
+    if (count < 0) {
+	count = -count;
+	switch (dir) {
+	    case FORWARD:  dir = BACKWARD; break;
+	    case BACKWARD: dir = FORWARD;  break;
+	}
+    }
+
+    wchar_t *prefix = xwcsndup(le_main_buffer.contents, le_main_index);
+    while (--count >= 0) {
+	perform_search(prefix, dir, SEARCH_PREFIX);
+	if (le_search_result == Histlist) {
+	    if (dir == FORWARD && beginning_search_check_go_to_history(prefix))
+		go_to_history(le_search_result, SEARCH_PREFIX);
+	    else
+		cmd_alert(L'\0');
+	    break;
+	} else {
+	    go_to_history(le_search_result, SEARCH_PREFIX);
+	}
+    }
+    free(prefix);
+    reset_state();
+}
+
+bool beginning_search_check_go_to_history(const wchar_t *prefix)
+{
+    if (le_search_result == undo_history_entry
+	    && undo_index < undo_history.length) {
+	const struct undo_history *h = undo_history.contents[undo_index];
+	return matchwcsprefix(h->contents, prefix);
+    } else {
+	return false;
+    }
 }
 
 
