@@ -3220,7 +3220,7 @@ void search_again(enum le_search_direction dir)
 	    cmd_alert(L'\0');
 	    break;
 	} else {
-	    go_to_history(le_search_result, SEARCH_VI);
+	    go_to_history(le_search_result, last_search.type);
 	}
     }
     reset_state();

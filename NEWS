@@ -17,6 +17,8 @@ Yash 2.19
   *  Fixed broken output of array assignment traces.
   *  [line-editing] the "vi-edit-and-accept" command now handles the
      count.
+  *  [line-editing] fixed the cursor position after the
+     search-again-forward/backward command in the emacs-like mode.
 
 ----------------------------------------------------------------------
 Yash 2.18
