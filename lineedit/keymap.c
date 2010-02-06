@@ -161,16 +161,16 @@ void le_keymap_init(void)
     Set(L"/",          cmd_vi_search_backward);
     Set(L"n",          cmd_search_again);
     Set(L"N",          cmd_search_again_rev);
-    Set(L"G",          cmd_oldest_history);
-    Set(L"g",          cmd_return_history);
-    Set(L"j",          cmd_next_history);
-    Set(L"+",          cmd_next_history);
-    Set(Key_down,      cmd_next_history);
-    Set(Key_c_n,       cmd_next_history);
-    Set(L"k",          cmd_prev_history);
-    Set(L"-",          cmd_prev_history);
-    Set(Key_up,        cmd_prev_history);
-    Set(Key_c_p,       cmd_prev_history);
+    Set(L"G",          cmd_oldest_history_bol);
+    Set(L"g",          cmd_return_history_bol);
+    Set(L"j",          cmd_next_history_bol);
+    Set(L"+",          cmd_next_history_bol);
+    Set(Key_down,      cmd_next_history_bol);
+    Set(Key_c_n,       cmd_next_history_bol);
+    Set(L"k",          cmd_prev_history_bol);
+    Set(L"-",          cmd_prev_history_bol);
+    Set(Key_up,        cmd_prev_history_bol);
+    Set(Key_c_p,       cmd_prev_history_bol);
     //TODO
     // =
     // \ 

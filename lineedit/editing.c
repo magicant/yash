@@ -2771,8 +2771,35 @@ void cmd_emacs_search_backward(wchar_t c __attribute__((unused)))
 /* Goes to the oldest history entry.
  * If the count is specified, goes to the history entry whose number is count.
  * If the specified entry is not found, the terminal is alerted.
- * The cursor is put at the beginning of line. */
+ * The cursor position is not changed. */
 void cmd_oldest_history(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(histlist.Oldest, SEARCH_PREFIX);
+}
+
+/* Goes to the newest history entry.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
+ * The cursor position is not changed. */
+void cmd_newest_history(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(histlist.Newest, SEARCH_PREFIX);
+}
+
+/* Goes to the newest history entry.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
+ * The cursor position is not changed. */
+void cmd_return_history(wchar_t c __attribute__((unused)))
+{
+    go_to_history_absolute(Histlist, SEARCH_PREFIX);
+}
+
+/* Goes to the oldest history entry.
+ * If the count is specified, goes to the history entry whose number is count.
+ * If the specified entry is not found, the terminal is alerted.
+ * The cursor is put at the beginning of line. */
+void cmd_oldest_history_bol(wchar_t c __attribute__((unused)))
 {
     go_to_history_absolute(histlist.Oldest, SEARCH_VI);
 }
@@ -2781,7 +2808,7 @@ void cmd_oldest_history(wchar_t c __attribute__((unused)))
  * If the count is specified, goes to the history entry whose number is count.
  * If the specified entry is not found, the terminal is alerted.
  * The cursor is put at the beginning of line. */
-void cmd_newest_history(wchar_t c __attribute__((unused)))
+void cmd_newest_history_bol(wchar_t c __attribute__((unused)))
 {
     go_to_history_absolute(histlist.Newest, SEARCH_VI);
 }
@@ -2790,7 +2817,7 @@ void cmd_newest_history(wchar_t c __attribute__((unused)))
  * If the count is specified, goes to the history entry whose number is count.
  * If the specified entry is not found, the terminal is alerted.
  * The cursor is put at the beginning of line. */
-void cmd_return_history(wchar_t c __attribute__((unused)))
+void cmd_return_history_bol(wchar_t c __attribute__((unused)))
 {
     go_to_history_absolute(Histlist, SEARCH_VI);
 }
@@ -2851,8 +2878,24 @@ alert:
 }
 
 /* Goes to the `count'th next history entry.
- * The cursor is put at the beginning of line. */
+ * The cursor position is not changed. */
 void cmd_next_history(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(get_count(1), SEARCH_PREFIX);
+}
+
+/* Goes to the `count'th previous history entry.
+ * The cursor position is not changed. */
+void cmd_prev_history(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    go_to_history_relative(-get_count(1), SEARCH_PREFIX);
+}
+
+/* Goes to the `count'th next history entry.
+ * The cursor is put at the beginning of line. */
+void cmd_next_history_bol(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(get_count(1), SEARCH_VI);
@@ -2860,7 +2903,7 @@ void cmd_next_history(wchar_t c __attribute__((unused)))
 
 /* Goes to the `count'th previous history entry.
  * The cursor is put at the beginning of line. */
-void cmd_prev_history(wchar_t c __attribute__((unused)))
+void cmd_prev_history_bol(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     go_to_history_relative(-get_count(1), SEARCH_VI);

@@ -395,11 +395,17 @@
 <h3 id="history-commands">コマンド履歴関連のコマンド</h3>
 <dl>
 <dt>oldest-history
+<dd>コマンド履歴の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+<dt>newest-history
+<dd>コマンド履歴の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+<dt>return-history
+<dd>コマンド履歴のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+<dt>oldest-history-bol
 <dd>コマンド履歴の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
 <dd>vi-command: <kbd>G</kbd>
-<dt>newest-history
+<dt>newest-history-bol
 <dd>コマンド履歴の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
-<dt>return-history
+<dt>return-history-bol
 <dd>コマンド履歴のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
 <dd>vi-command: <kbd>g</kbd>
 <dt>oldest-history-eol
@@ -411,9 +417,13 @@
 <dd>コマンド履歴のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの末尾に移動します。
 <dd>emacs: <kbd><code>\^[</code>&gt;</kbd>
 <dt>next-history
+<dd>コマンド履歴の中で次のコマンドに移動します。カーソルの位置は変わりません。
+<dt>prev-history
+<dd>コマンド履歴の中で前のコマンドに移動します。カーソルの位置は変わりません。
+<dt>next-history-bol
 <dd>コマンド履歴の中で次のコマンドに移動します。カーソルはバッファの先頭に移動します
 <dd>vi-command: <kbd>j</kbd>, <kbd>+</kbd>, <kbd><code>\D</code></kbd>, <kbd><code>\^N</code></kbd>
-<dt>prev-history
+<dt>prev-history-bol
 <dd>コマンド履歴の中で前のコマンドに移動します。カーソルはバッファの先頭に移動します
 <dd>vi-command: <kbd>k</kbd>, <kbd>-</kbd>, <kbd><code>\U</code></kbd>, <kbd><code>\^P</code></kbd>
 <dt>next-history-eol
@@ -432,6 +442,10 @@
 <dd>最後に行ったコマンド履歴検索を順方向にもう一度行います。
 <dt>search-again-backward
 <dd>最後に行ったコマンド履歴検索を逆方向にもう一度行います。
+<dt>beginning-search-forward
+<dd>コマンド履歴を順方向に検索し、バッファの先頭から現在のカーソル位置までの間にある文字列が同じ次のコマンドに移動します。カーソル位置は変わりません。
+<dt>beginning-search-backward
+<dd>コマンド履歴を逆方向に検索し、バッファの先頭から現在のカーソル位置までの間にある文字列が同じ前のコマンドに移動します。カーソル位置は変わりません。
 </dl>
 
 <h3 id="search-commands">コマンド履歴検索モードのコマンド</h3>
