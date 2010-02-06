@@ -715,7 +715,8 @@ void cmd_bol_or_digit(wchar_t c)
 }
 
 /* Accepts the current line.
- * `le_state' is set to LE_STATE_DONE to trigger the termination of lineedit. */
+ * `le_editstate' is set to LE_EDITSTATE_DONE to induce lineedit to terminate.
+ */
 void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -726,8 +727,8 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 }
 
 /* Aborts the current line.
- * `le_state' is set to LE_STATE_INTERRUPTED to trigger the termination of
- * lineedit. */
+ * `le_editstate' is set to LE_EDITSTATE_INTERRUPTED to induce lineedit to
+ * terminate. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
     cmd_srch_abort_search(L'\0');
@@ -735,7 +736,7 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
-/* Sets `le_state' to LE_STATE_ERROR.
+/* Sets `le_editstate' to LE_EDITSTATE_ERROR.
  * Lineedit will return EOF. */
 void cmd_eof(wchar_t c __attribute__((unused)))
 {
@@ -746,8 +747,8 @@ void cmd_eof(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
-/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
- * Otherwise, alerts. */
+/* If the edit line is empty, sets `le_editstate' to LE_EDITSTATE_ERROR (return
+ * EOF). Otherwise, alerts. */
 void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 {
     if (le_main_buffer.length == 0)
@@ -756,8 +757,8 @@ void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 	cmd_alert(L'\0');
 }
 
-/* If the edit line is empty, sets `le_state' to LE_STATE_ERROR (return EOF).
- * Otherwise, deletes the character under the cursor. */
+/* If the edit line is empty, sets `le_editstate' to LE_EDITSTATE_ERROR (return
+ * EOF). Otherwise, deletes the character under the cursor. */
 void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 {
     if (le_main_buffer.length == 0)
