@@ -716,14 +716,20 @@ void cmd_bol_or_digit(wchar_t c)
 
 /* Accepts the current line.
  * `le_editstate' is set to LE_EDITSTATE_DONE to induce lineedit to terminate.
- */
+ * If history search is currently active, the search result is accepted. If the
+ * search was failing, the line is not accepted. */
 void cmd_accept_line(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
-    cmd_srch_accept_search(L'\0');
-    le_editstate = LE_EDITSTATE_DONE;
-    reset_state();
+    if (le_search_buffer.contents == NULL) {
+	le_editstate = LE_EDITSTATE_DONE;
+	reset_state();
+    } else {
+	if (le_search_result != Histlist)
+	    le_editstate = LE_EDITSTATE_DONE;
+	cmd_srch_accept_search(L'\0');
+    }
 }
 
 /* Aborts the current line.

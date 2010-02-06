@@ -13,7 +13,11 @@ Yash 2.19
   +  FreeBSD でも "ulimit" 組込みが使えるようになった
   +  メールチェックで、可能ならナノ秒単位でメールファイルをチェック
      するようにした
+  +  行編集: beginning-search-forward および beginning-search-backward
+     コマンド
   =  ファイル名パターンマッチングを高速化
+  =  行編集: 履歴検索中の accept-line コマンドは、検索結果が見つから
+     ないときは失敗するようになった
   *  配列の代入のトレースの出力がおかしかったのを修正
   *  行編集: vi-edit-and-accept コマンドでカウントを指定できるように
   *  行編集: emacs モードでの search-again-forward/backward コマンドの

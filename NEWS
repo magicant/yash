@@ -13,7 +13,11 @@ Yash 2.19
   +  The "ulimit" is now available on FreeBSD.
   +  In mail checking, the timestamp of the mail file is now compared
      by the nanosecond if possible.
+  +  [line-editing] added the "beginning-search-forward" and
+     "beginning-search-backward" commands.
   =  Faster filename pattern matching.
+  =  [line-editing] the "accept-line" command no longer accepts a
+     failing history search result.
   *  Fixed broken output of array assignment traces.
   *  [line-editing] the "vi-edit-and-accept" command now handles the
      count.
