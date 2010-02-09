@@ -1321,6 +1321,7 @@ int complete_builtin_set(
     }
     if (targetoption == NULL) {
 	ccg->option_after_operand = intermix;
+	free_candgen_contents(&ccg->operands);
 	clone_candgen(&ccg->operands, candgen);
     } else {
 	if (ccg->options.capacity == 0)
