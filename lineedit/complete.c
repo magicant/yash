@@ -852,6 +852,12 @@ static bool quote_print(const wchar_t *word)
     __attribute__((nonnull));
 static bool need_quote(const wchar_t *s)
     __attribute__((nonnull));
+static void complete_builtin_remove(
+	const wchar_t *targetcommand, const wchar_t *targetoption);
+static void free_cmdcandgen(struct cmdcandgen_T *ccg);
+static void free_candgen(le_candgen_T *candgen);
+static void free_candgen_contents(const le_candgen_T *candgen)
+    __attribute__((nonnull));
 static int complete_builtin_set(
 	const wchar_t *targetcommand, const wchar_t *targetoption,
 	const le_candgen_T *candgen, bool intermix)
@@ -859,7 +865,6 @@ static int complete_builtin_set(
 static void clone_candgen(
 	le_candgen_T *restrict copy, const le_candgen_T *restrict orig)
     __attribute__((nonnull));
-static void free_candgen(le_candgen_T *candgen);
 
 /* The "complete" builtin. */
 int complete_builtin(int argc, void **argv)
@@ -881,6 +886,7 @@ int complete_builtin(int argc, void **argv)
 	{ L"group",                xno_argument,       L'g', },
 	{ L"hostname",             xno_argument,       L'h', },
 	{ L"signal",               xno_argument,       L'I', },
+	{ L"running-job",          xno_argument,       L'J', },
 	{ L"job",                  xno_argument,       L'j', },
 	{ L"keyword",              xno_argument,       L'k', },
 	{ L"normal-alias",         xno_argument,       L'N', },
@@ -888,7 +894,7 @@ int complete_builtin(int argc, void **argv)
 	{ L"target-option",        xrequired_argument, L'O', },
 	{ L"shell-option",         xno_argument,       L'o', },
 	{ L"print",                xno_argument,       L'P', },
-	{ L"running-job",          xno_argument,       L'R', },
+	{ L"remove",               xno_argument,       L'R', },
 	{ L"regular-builtin",      xno_argument,       L'r', },
 	{ L"semi-special-builtin", xno_argument,       L'S', },
 	{ L"special-builtin",      xno_argument,       L's', },
@@ -905,13 +911,13 @@ int complete_builtin(int argc, void **argv)
 
     const wchar_t *targetcommand = NULL, *targetoption = NULL;
     bool intermix = false;
-    bool print = false;
+    bool print = false, remove = false;
     le_candgen_T candgen = { .type = 0, .words = NULL, .function = NULL };
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"C:F:O:PXabcdfghjkouv", long_options, NULL))) {
+		    argv, L"C:F:O:PRXabcdfghjkouv", long_options, NULL))) {
 	switch (opt) {
 	    case L'A':  candgen.type |= CGT_ARRAY;       break;
 	    case L'a':  candgen.type |= CGT_ALIAS;       break;
@@ -937,6 +943,7 @@ int complete_builtin(int argc, void **argv)
 	    case L'g':  candgen.type |= CGT_GROUP;       break;
 	    case L'h':  candgen.type |= CGT_HOSTNAME;    break;
 	    case L'I':  candgen.type |= CGT_SIGNAL;      break;
+	    case L'J':  candgen.type |= CGT_RUNNING;     break;
 	    case L'j':  candgen.type |= CGT_JOB;         break;
 	    case L'k':  candgen.type |= CGT_KEYWORD;     break;
 	    case L'N':  candgen.type |= CGT_NALIAS;      break;
@@ -948,7 +955,7 @@ int complete_builtin(int argc, void **argv)
 		break;
 	    case L'o':  candgen.type |= CGT_SHOPT;       break;
 	    case L'P':  print = true;                    break;
-	    case L'R':  candgen.type |= CGT_RUNNING;     break;
+	    case L'R':  remove = true;                   break;
 	    case L'r':  candgen.type |= CGT_RBUILTIN;    break;
 	    case L'S':  candgen.type |= CGT_SSBUILTIN;   break;
 	    case L's':  candgen.type |= CGT_SBUILTIN;    break;
@@ -973,12 +980,18 @@ dupopterror:
     if (targetoption != NULL && targetcommand == NULL) {
 	xerror(0, Ngt("-O option specified without -C option"));
 	return Exit_ERROR;
+    } else if (print && remove) {
+	xerror(0, Ngt("-P option cannot be used with -R option"));
+	return Exit_ERROR;
     }
     if (xoptind < argc)
 	candgen.words = argv + xoptind;
 
     if (print) {
 	return complete_builtin_print(targetcommand, targetoption);
+    } else if (remove) {
+	complete_builtin_remove(targetcommand, targetoption);
+	return Exit_SUCCESS;
     } else if (targetcommand == NULL) {
 	if (ctxt == NULL) {
 	    xerror(0, Ngt("not in candidate generator function"));
@@ -1220,6 +1233,74 @@ bool need_quote(const wchar_t *s)
     }
 }
 
+/* Removes the candidate generation policy for the specified command (and
+ * option). */
+void complete_builtin_remove(
+	const wchar_t *targetcommand, const wchar_t *targetoption)
+{
+    if (candgens.capacity == 0)
+	return;
+
+    if (targetcommand == NULL) {
+	/* remove everything */
+	size_t i = 0;
+	kvpair_T kv;
+	while ((kv = ht_next(&candgens, &i)).key != NULL) {
+	    free(kv.key);
+	    free_cmdcandgen(kv.value);
+	}
+	ht_destroy(&candgens);
+	candgens.capacity = 0;
+    } else if (targetoption == NULL) {
+	/* remove specified command */
+	kvpair_T kv = ht_remove(&candgens, targetcommand);
+	free(kv.key);
+	free_cmdcandgen(kv.value);
+    } else {
+	/* remove specified option */
+	struct cmdcandgen_T *ccg = ht_get(&candgens, targetcommand).value;
+	if (ccg != NULL && ccg->options.capacity != 0) {
+	    kvpair_T kv = ht_remove(&ccg->options, targetoption);
+	    free(kv.key);
+	    free_candgen(kv.value);
+	}
+    }
+}
+
+/* Frees the specified `cmdcandgen_T' object. */
+void free_cmdcandgen(struct cmdcandgen_T *ccg)
+{
+    if (ccg != NULL) {
+	if (ccg->options.capacity != 0) {
+	    size_t i = 0;
+	    kvpair_T kv;
+	    while ((kv = ht_next(&ccg->options, &i)).key != NULL) {
+		free(kv.key);
+		free_candgen(kv.value);
+	    }
+	    ht_destroy(&ccg->options);
+	}
+	free_candgen_contents(&ccg->operands);
+	free(ccg);
+    }
+}
+
+/* Frees the specified `le_candgen_T' object. */
+void free_candgen(le_candgen_T *candgen)
+{
+    if (candgen != NULL) {
+	free_candgen_contents(candgen);
+	free(candgen);
+    }
+}
+
+/* Frees the contents of the specified `le_candgen_T' object. */
+void free_candgen_contents(const le_candgen_T *candgen)
+{
+    recfree(candgen->words, free);
+    free(candgen->function);
+}
+
 /* Sets the candidate generation policy for the specified command/option to the
  * specified `le_candgen_T' object. */
 int complete_builtin_set(
@@ -1268,16 +1349,6 @@ void clone_candgen(
 	copy->function = xwcsdup(orig->function);
     else
 	copy->function = NULL;
-}
-
-/* Frees the specified `le_candgen_T' object. */
-void free_candgen(le_candgen_T *candgen)
-{
-    if (candgen != NULL) {
-	recfree(candgen->words, free);
-	free(candgen->function);
-	free(candgen);
-    }
 }
 
 #if YASH_ENABLE_HELP
@@ -1364,6 +1435,8 @@ const char complete_help[] = Ngt(
 "\n"
 "If the -P (--print) option is specified, the completion settings for the\n"
 "specified <command> (and <option>) are printed.\n"
+"If the -R (--remove) option is specified, the settings for the specified\n"
+"<command> (and <option>) are removed.\n"
 "\n"
 "The \"complete\" builtin can be invoked from candidate generator functions,\n"
 "which have been specified by the -F option in earlier calls, to add\n"
