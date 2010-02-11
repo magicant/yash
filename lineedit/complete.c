@@ -847,7 +847,7 @@ static int complete_builtin_print(
 static int print_candgen(
 	const wchar_t *targetcommand, const wchar_t *targetoption,
 	const le_candgen_T *candgen, bool intermix)
-    __attribute__((nonnull(1,3)));
+    __attribute__((nonnull(1)));
 static bool quote_print(const wchar_t *word)
     __attribute__((nonnull));
 static bool need_quote(const wchar_t *s)
@@ -1025,8 +1025,6 @@ int complete_builtin_print(
 	    candgen = &ccg->operands;
 	else
 	    candgen = ht_get(&ccg->options, targetoption).value;
-	if (candgen == NULL)
-	    return Exit_FAILURE;
 	return print_candgen(targetcommand, targetoption,
 		candgen, ccg->option_after_operand);
     } else {
@@ -1044,12 +1042,10 @@ int complete_builtin_print(
 		    kvpair_T *kvs2 = ht_tokvarray(&ccg->options);
 		    qsort(kvs2, ccg->options.count, sizeof *kvs2, keywcscoll);
 		    for (size_t j = 0; j < ccg->options.count; j++) {
-			if (kvs2[j].value != NULL) {
-			    print_candgen(kvs[i].key, kvs2[j].key,
-				    kvs2[j].value, false);
-			    if (yash_error_message_count != 0)
-				break;
-			}
+			print_candgen(kvs[i].key, kvs2[j].key,
+				kvs2[j].value, false);
+			if (yash_error_message_count != 0)
+			    break;
 		    }
 		    free(kvs2);
 		    if (yash_error_message_count != 0)
@@ -1078,6 +1074,9 @@ int print_candgen(
 	if (fputs(" -X", stdout) == EOF)
 	    goto ioerror;
     }
+
+    if (candgen == NULL)
+	goto finish;
 
     if (candgen->type & CGT_FILE)
 	if (fputs(" --file", stdout) == EOF)
@@ -1186,6 +1185,7 @@ int print_candgen(
 		goto ioerror;
     }
 
+finish:
     if (putchar('\n') < 0)
 	goto ioerror;
     return Exit_SUCCESS;
@@ -1327,8 +1327,13 @@ int complete_builtin_set(
 	if (ccg->options.capacity == 0)
 	    ht_init(&ccg->options, hashwcs, htwcscmp);
 
-	le_candgen_T *copy = xmalloc(sizeof *copy);
-	clone_candgen(copy, candgen);
+	le_candgen_T *copy;
+	if (candgen->type || candgen->words || candgen->function) {
+	    copy = xmalloc(sizeof *copy);
+	    clone_candgen(copy, candgen);
+	} else {
+	    copy = NULL;
+	}
 
 	kvpair_T kv = ht_set(&ccg->options, xwcsdup(targetoption), copy);
 	free(kv.key);
