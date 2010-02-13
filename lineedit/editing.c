@@ -2968,8 +2968,9 @@ void go_to_history(const histentry_T *e, enum le_search_type curpos)
 	wb_cat(&le_main_buffer, h->contents);
 	assert(h->index <= le_main_buffer.length);
 	le_main_index = h->index;
-    } else if (e != Histlist) {
-	wb_mbscat(&le_main_buffer, e->value);
+    } else {
+	if (e != Histlist)
+	    wb_mbscat(&le_main_buffer, e->value);
 	switch (curpos) {
 	    case SEARCH_PREFIX:
 		if (le_main_index > le_main_buffer.length)
@@ -2982,8 +2983,6 @@ void go_to_history(const histentry_T *e, enum le_search_type curpos)
 		le_main_index = le_main_buffer.length;
 		break;
 	}
-    } else {
-	le_main_index = 0;
     }
     main_history_entry = e;
     main_history_value = xwcsdup(le_main_buffer.contents);
