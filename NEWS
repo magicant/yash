@@ -10,7 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.19
 
-  +  The "ulimit" is now available on FreeBSD.
+  +  The "ulimit" builtin is now available on FreeBSD.
   +  In mail checking, the timestamp of the mail file is now compared
      by the nanosecond if possible.
   +  [line-editing] new line-editing commands:
