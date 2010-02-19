@@ -159,6 +159,11 @@ extern int complete_builtin(int argc, void **argv)
 extern const char complete_help[];
 
 
+/* This function is defined in "alias.c". */
+extern void generate_alias_candidates(
+	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+
 /* This function is defined in "builtin.c". */
 extern void generate_builtin_candidates(
 	le_candgentype_T type, const le_context_T *context)

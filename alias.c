@@ -39,6 +39,10 @@
 #include "plist.h"
 #include "strbuf.h"
 #include "util.h"
+#if YASH_ENABLE_LINEEDIT
+# include "xfnmatch.h"
+# include "lineedit/complete.h"
+#endif
 
 
 typedef enum {
@@ -388,6 +392,34 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 	return false;
     }
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates candidates to complete an alias matching the pattern in the
+ * specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_alias_candidates(
+	le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_ALIAS))
+	return;
+
+    le_compdebug("adding aliases matching pattern \"%ls\"", context->pattern);
+
+    size_t i = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&aliases, &i)).key != NULL) {
+	const alias_T *alias = kv.value;
+	if ((alias->flags & AF_GLOBAL)
+		? (type & CGT_GALIAS) : (type & CGT_NALIAS)) {
+	    if (xfnm_wmatch(context->cpattern, kv.key).start != (size_t) -1) {
+		le_add_candidate(type, CT_ALIAS, xwcsdup(kv.key));
+	    }
+	}
+    }
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Builtins **********/
