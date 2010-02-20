@@ -226,9 +226,10 @@ int print_builtin_help(const wchar_t *name)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates builtin command name candidates that match the glob pattern in the
- * specified context. The CGT_SBUILTIN, CGT_SSBUILTIN, and CGT_RBUILTIN flags
- * in `type' specify what candidate to generate. The other flags are ignored. */
+/* Generates completion candidates for builtin command names that match the glob
+ * pattern in the specified context. The CGT_SBUILTIN, CGT_SSBUILTIN, and
+ * CGT_RBUILTIN flags in `type' specify what candidate to generate. The other
+ * flags are ignored. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
 void generate_builtin_candidates(
 	le_candgentype_T type, const le_context_T *context)
