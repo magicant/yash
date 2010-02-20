@@ -170,6 +170,9 @@ extern void generate_builtin_candidates(
     __attribute__((nonnull));
 
 /* This function is defined in "variable.c". */
+extern void generate_variable_candidates(
+	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
 extern void generate_function_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));

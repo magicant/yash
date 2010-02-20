@@ -1256,6 +1256,32 @@ void tryhash_word_as_command(const wordunit_T *w)
 
 #if YASH_ENABLE_LINEEDIT
 
+/* Generates variable name candidates that match the glob pattern in the
+ * specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_variable_candidates(
+	le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_VARIABLE))
+	return;
+
+    le_compdebug("adding variables for pattern \"%ls\"", context->pattern);
+
+    size_t i = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&first_env->contents, &i)).key != NULL) {
+	const wchar_t *name = kv.key;
+	const variable_T *var = kv.value;
+	switch (var->v_type & VF_MASK) {
+	    case VF_NORMAL:  if (!(type & CGT_SCALAR)) continue;
+	    case VF_ARRAY:   if (!(type & CGT_ARRAY))  continue;
+	}
+	if (name[0] != L'='
+		&& xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
+	    le_add_candidate(type, CT_VAR, xwcsdup(name));
+    }
+}
+
 /* Generates function name candidates that match the glob pattern in the
  * specified context. */
 /* The prototype of this function is declared in "lineedit/complete.h". */

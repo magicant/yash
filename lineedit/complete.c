@@ -303,6 +303,7 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_keyword_candidates(candgen->type, ctxt);
     generate_option_candidates(candgen->type, ctxt);
     generate_alias_candidates(candgen->type, ctxt);
+    generate_variable_candidates(candgen->type, ctxt);
     // TODO: other types
 }
 
