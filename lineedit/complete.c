@@ -145,6 +145,8 @@ void le_complete(void)
     }  // TODO
     context.cpattern = xfnm_compile(
 	    context.pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+    if (context.cpattern == NULL)
+	;  // TODO
 
     insertion_index = le_main_index;
     quotetype = context.quote;
