@@ -42,8 +42,11 @@
 #include "strbuf.h"
 #include "util.h"
 #include "yash.h"
-#if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
-# include "lineedit/terminfo.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/complete.h"
+# if !defined(FG_DONT_SAVE_TERMINAL)
+#  include "lineedit/terminfo.h"
+# endif
 #endif
 
 
@@ -877,6 +880,33 @@ size_t get_jobnumber_from_pid(pid_t pid)
 found:
     return jobnumber;
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates completion candidates for job names that match the glob pattern
+ * in the specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_job_candidates(
+	le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_JOB))
+	return;
+
+    const wchar_t *pattern = context->pattern;
+    if (pattern[0] == L'@')
+	pattern += 1;
+    else if (pattern[0] == L'\' && pattern[1] == L'@')
+	pattern += 2;
+    le_compdebug("adding jobs for pattern \"%ls\"", pattern);
+
+    xfnmatch_T *xfnm = xfnm_compile(pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+    if (xfnm == NULL)
+	return;
+
+    //TODO
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Builtins **********/
