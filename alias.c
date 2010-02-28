@@ -175,7 +175,7 @@ void remove_all_aliases(void)
 /* Returns the value of the specified alias (or null if there is no such). */
 const wchar_t *get_alias_value(const wchar_t *aliasname)
 {
-    alias_T *alias = ht_get(&aliases, aliasname).value;
+    const alias_T *alias = ht_get(&aliases, aliasname).value;
 
     if (alias)
 	return alias->value;
@@ -371,7 +371,7 @@ bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
  * Returns true iff a non-global alias had been defined and was printed. */
 bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 {
-    alias_T *alias = ht_get(&aliases, aliasname).value;
+    const alias_T *alias = ht_get(&aliases, aliasname).value;
     if (alias && !(alias->flags & AF_GLOBAL)) {
 	if (!user_friendly) {
 	    return print_alias(aliasname, alias, true);
@@ -454,8 +454,8 @@ int alias_builtin(int argc, void **argv)
 		    xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
 	    } else if (nameend != arg && *nameend == L'\0') {
 		/* print alias */
-		alias_T *alias = ht_get(&aliases, arg).value;
-		if (alias) {
+		const alias_T *alias = ht_get(&aliases, arg).value;
+		if (alias != NULL) {
 		    if (!print_alias(arg, alias, prefix))
 			break;
 		} else {

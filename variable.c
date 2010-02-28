@@ -86,14 +86,14 @@ typedef struct environ_T {
 
 /* flags for variable attributes */
 typedef enum vartype_T {
-    VF_NORMAL,
+    VF_SCALAR,
     VF_ARRAY,
     VF_EXPORT   = 1 << 2,
     VF_READONLY = 1 << 3,
     VF_NODELETE = 1 << 4,
 } vartype_T;
 #define VF_MASK ((1 << 2) - 1)
-/* For all variables, the variable type is either VF_NORMAL or VF_ARRAY,
+/* For all variables, the variable type is either VF_SCALAR or VF_ARRAY,
  * possibly OR'ed with other flags. */
 
 /* type of variables */
@@ -194,7 +194,7 @@ static hashtable_T functions;
 void varvaluefree(variable_T *v)
 {
     switch (v->v_type & VF_MASK) {
-	case VF_NORMAL:
+	case VF_SCALAR:
 	    free(v->v_value);
 	    break;
 	case VF_ARRAY:
@@ -250,7 +250,7 @@ void init_variables(void)
 
 	wchar_t *eqp = wcschr(we, L'=');
 	variable_T *v = xmalloc(sizeof *v);
-	v->v_type = VF_NORMAL | VF_EXPORT;
+	v->v_type = VF_SCALAR | VF_EXPORT;
 	v->v_value = eqp ? xwcsdup(eqp + 1) : NULL;
 	v->v_getter = NULL;
 	if (eqp) {
@@ -267,7 +267,7 @@ void init_variables(void)
     {
 	variable_T *v = new_variable(L VAR_LINENO, false);
 	assert(v != NULL);
-	v->v_type = VF_NORMAL | (v->v_type & VF_EXPORT);
+	v->v_type = VF_SCALAR | (v->v_type & VF_EXPORT);
 	v->v_value = NULL;
 	v->v_getter = lineno_getter;
 	// variable_set(VAR_LINENO, v);
@@ -310,7 +310,7 @@ void init_variables(void)
     if (!posixly_correct && !getvar(L VAR_RANDOM)) {
 	variable_T *v = new_variable(L VAR_RANDOM, false);
 	assert(v != NULL);
-	v->v_type = VF_NORMAL;
+	v->v_type = VF_SCALAR;
 	v->v_value = NULL;
 	v->v_getter = random_getter;
 	random_active = true;
@@ -398,7 +398,7 @@ void update_environment(const wchar_t *name)
 	if (var && (var->v_type & VF_EXPORT)) {
 	    char *value;
 	    switch (var->v_type & VF_MASK) {
-		case VF_NORMAL:
+		case VF_SCALAR:
 		    if (!var->v_value)
 			continue;
 		    value = malloc_wcstombs(var->v_value);
@@ -501,7 +501,7 @@ variable_T *new_global(const wchar_t *name)
 	}
     }
     var = xmalloc(sizeof *var);
-    var->v_type = VF_NORMAL;
+    var->v_type = VF_SCALAR;
     var->v_value = NULL;
     var->v_getter = NULL;
     ht_set(&first_env->contents, xwcsdup(name), var);
@@ -523,7 +523,7 @@ variable_T *new_local(const wchar_t *name)
     if (var)
 	return var;
     var = xmalloc(sizeof *var);
-    var->v_type = VF_NORMAL;
+    var->v_type = VF_SCALAR;
     var->v_value = NULL;
     var->v_getter = NULL;
     ht_set(&env->contents, xwcsdup(name), var);
@@ -550,7 +550,7 @@ variable_T *new_temporary(const wchar_t *name)
     if (var)
 	return var;
     var = xmalloc(sizeof *var);
-    var->v_type = VF_NORMAL;
+    var->v_type = VF_SCALAR;
     var->v_value = NULL;
     var->v_getter = NULL;
     ht_set(&env->contents, xwcsdup(name), var);
@@ -602,7 +602,7 @@ bool set_variable(
 	return false;
     }
 
-    var->v_type = VF_NORMAL
+    var->v_type = VF_SCALAR
 	| (var->v_type & (VF_EXPORT | VF_NODELETE))
 	| (export ? VF_EXPORT : 0);
     var->v_value = value;
@@ -763,10 +763,10 @@ void xtrace_array(const wchar_t *name, void *const *values)
 const wchar_t *getvar(const wchar_t *name)
 {
     variable_T *var = search_variable(name);
-    if (var && (var->v_type & VF_MASK) == VF_NORMAL) {
+    if (var && (var->v_type & VF_MASK) == VF_SCALAR) {
 	if (var->v_getter) {
 	    var->v_getter(var);
-	    if ((var->v_type & VF_MASK) != VF_NORMAL)
+	    if ((var->v_type & VF_MASK) != VF_SCALAR)
 		return NULL;
 	}
 	return var->v_value;
@@ -856,7 +856,7 @@ positional_parameters:
 	if (var->v_getter)
 	    var->v_getter(var);
 	switch (var->v_type & VF_MASK) {
-	    case VF_NORMAL:
+	    case VF_SCALAR:
 		value = var->v_value ? xwcsdup(var->v_value) : NULL;
 		goto return_single;
 	    case VF_ARRAY:
@@ -936,7 +936,7 @@ unsigned long current_lineno;
 /* getter for $LINENO */
 void lineno_getter(variable_T *var)
 {
-    assert((var->v_type & VF_MASK) == VF_NORMAL);
+    assert((var->v_type & VF_MASK) == VF_SCALAR);
     free(var->v_value);
     var->v_value = malloc_wprintf(L"%lu", current_lineno);
     // variable_set(VAR_LINENO, var);
@@ -947,7 +947,7 @@ void lineno_getter(variable_T *var)
 /* getter for $RANDOM */
 void random_getter(variable_T *var)
 {
-    assert((var->v_type & VF_MASK) == VF_NORMAL);
+    assert((var->v_type & VF_MASK) == VF_SCALAR);
     free(var->v_value);
     var->v_value = malloc_wprintf(L"%u", next_random());
     // variable_set(VAR_RANDOM, var);
@@ -1019,7 +1019,7 @@ void variable_set(const wchar_t *name, variable_T *var)
     case L'R':
 	if (random_active && wcscmp(name, L VAR_RANDOM) == 0) {
 	    random_active = false;
-	    if (var && (var->v_type & VF_MASK) == VF_NORMAL && var->v_value) {
+	    if (var && (var->v_type & VF_MASK) == VF_SCALAR && var->v_value) {
 		unsigned long seed;
 		if (xwcstoul(var->v_value, 0, &seed)) {
 		    srand((unsigned) seed);
@@ -1093,7 +1093,7 @@ void reset_path(path_T name, variable_T *var)
 	if (v) {
 	    plist_T list;
 	    switch (v->v_type & VF_MASK) {
-		case VF_NORMAL:
+		case VF_SCALAR:
 		    env->paths[name] = decompose_paths(v->v_value);
 		    break;
 		case VF_ARRAY:
@@ -1512,7 +1512,7 @@ int typeset_builtin(int argc, void **argv)
 			xerror(0, Ngt("%ls: readonly"), arg);
 		    } else {
 			varvaluefree(var);
-			var->v_type = VF_NORMAL | (var->v_type & ~VF_MASK);
+			var->v_type = VF_SCALAR | (var->v_type & ~VF_MASK);
 			var->v_value = xwcsdup(wequal + 1);
 			var->v_getter = NULL;
 		    }
@@ -1563,7 +1563,7 @@ void print_variable(
     if (!is_name(name))
 	name = qname = quote_sq(name);
     switch (var->v_type & VF_MASK) {
-	case VF_NORMAL:  goto print_variable;
+	case VF_SCALAR:  goto print_variable;
 	case VF_ARRAY:   goto print_array;
     }
 

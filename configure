@@ -726,7 +726,7 @@ END
 	defconfigh "YASH_ENABLE_LINEEDIT"
 	;;
     no)
-	printf 'The terminfo library is unavailable!\n' >&2
+	printf 'The terminfo (curses) library is unavailable!\n' >&2
 	printf 'Add the "--disable-lineedit" option and try again.\n' >&2
 	fail
 	;;
