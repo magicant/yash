@@ -43,6 +43,7 @@
 #include "util.h"
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT
+# include "xfnmatch.h"
 # include "lineedit/complete.h"
 # if !defined(FG_DONT_SAVE_TERMINAL)
 #  include "lineedit/terminfo.h"
@@ -893,9 +894,9 @@ void generate_job_candidates(
 	return;
 
     const wchar_t *pattern = context->pattern;
-    if (pattern[0] == L'@')
+    if (pattern[0] == L'%')
 	pattern += 1;
-    else if (pattern[0] == L'\' && pattern[1] == L'@')
+    else if (pattern[0] == L'\\' && pattern[1] == L'%')
 	pattern += 2;
     le_compdebug("adding jobs for pattern \"%ls\"", pattern);
 
@@ -903,7 +904,28 @@ void generate_job_candidates(
     if (xfnm == NULL)
 	return;
 
-    //TODO
+    for (size_t i = 1; i < joblist.length; i++) {
+	const job_T *job = joblist.contents[i];
+	if (job == NULL)
+	    continue;
+	switch (job->j_status) {
+	    case JS_RUNNING:  if (!(type & CGT_RUNNING)) continue;  break;
+	    case JS_STOPPED:  if (!(type & CGT_STOPPED)) continue;  break;
+	    case JS_DONE:     if (!(type & CGT_DONE))    continue;  break;
+	}
+
+	const wchar_t *jobname = job->j_procs[0].pr_name;
+	if (xfnm_wmatch(xfnm, jobname).start == (size_t) -1)
+	    continue;
+
+	wchar_t *cand;
+	if (context->src[0] != L'%')
+	    cand = xwcsdup(jobname);
+	else
+	    cand = malloc_wprintf(L"%%%ls", jobname);
+	le_add_candidate(type, CT_JOB, cand);
+    }
+    xfnm_free(xfnm);
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
