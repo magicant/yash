@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 #include <sys/stat.h>
 #include "../builtin.h"
 #include "../exec.h"
