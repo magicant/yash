@@ -311,6 +311,7 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_variable_candidates(candgen->type, ctxt);
     generate_job_candidates(candgen->type, ctxt);
     generate_shopt_candidates(candgen->type, ctxt);
+    generate_signal_candidates(candgen->type, ctxt);
     // TODO: other types
 }
 

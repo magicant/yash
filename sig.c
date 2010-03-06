@@ -46,6 +46,8 @@
 #include "util.h"
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT
+# include "xfnmatch.h"
+# include "lineedit/complete.h"
 # include "lineedit/lineedit.h"
 #endif
 
@@ -917,6 +919,62 @@ void reset_sigwinch(void)
 #ifdef SIGWINCH
     sigwinch_received = false;
 #endif
+}
+
+/* Generates completion candidates for signal names that match the glob pattern
+ * in the specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_signal_candidates(
+	        le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_SIGNAL))
+	return;
+
+    le_compdebug("adding signals for pattern \"%ls\"", context->pattern);
+
+    bool prefix = matchwcsprefix(context->src, L"SIG");
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    for (const signal_T *s = signals; s->no; s++) {
+	if (prefix)
+	    wb_cat(&buf, L"SIG");
+	wb_cat(&buf, s->name);
+	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
+	    le_add_candidate(type, CT_SIG, wb_towcs(&buf));
+	    wb_init(&buf);
+	} else {
+	    wb_clear(&buf);
+	}
+    }
+#if defined SIGRTMIN && defined SIGRTMAX
+    int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
+    for (int s = sigrtmin; s <= sigrtmax; s++) {
+	if (prefix)
+	    wb_cat(&buf, L"SIG");
+	wb_cat(&buf, L"RTMIN");
+	if (s != sigrtmin)
+	    wb_wprintf(&buf, L"+%d", s - sigrtmin);
+	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
+	    le_add_candidate(type, CT_SIG, wb_towcs(&buf));
+	    wb_init(&buf);
+	} else {
+	    wb_clear(&buf);
+	}
+
+	if (prefix)
+	    wb_cat(&buf, L"SIG");
+	wb_cat(&buf, L"RTMAX");
+	if (s != sigrtmax)
+	    wb_wprintf(&buf, L"-%d", sigrtmax - s);
+	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
+	    le_add_candidate(type, CT_SIG, wb_towcs(&buf));
+	    wb_init(&buf);
+	} else {
+	    wb_clear(&buf);
+	}
+    }
+#endif
+    wb_destroy(&buf);
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
