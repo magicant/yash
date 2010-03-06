@@ -160,36 +160,41 @@ extern int complete_builtin(int argc, void **argv)
 extern const char complete_help[];
 
 
-/* This function is defined in "alias.c". */
+/* This function is defined in "../alias.c". */
 extern void generate_alias_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
-/* This function is defined in "builtin.c". */
+/* This function is defined in "../builtin.c". */
 extern void generate_builtin_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
-/* This function is defined in "job.c". */
+/* This function is defined in "../job.c". */
 extern void generate_job_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
-/* This function is defined in "option.c". */
+/* This function is defined in "../option.c". */
 extern void generate_shopt_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
-/* This function is defined in "sig.c". */
+/* This function is defined in "../sig.c". */
 extern void generate_signal_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
-/* This function is defined in "variable.c". */
+/* These functions are defined in "../variable.c". */
 extern void generate_variable_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 extern void generate_function_candidates(
+	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+
+/* This function is defined in "keymap.c". */
+extern void generate_bindkey_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 

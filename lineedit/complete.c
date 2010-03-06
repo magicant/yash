@@ -333,7 +333,9 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_logname_candidates(candgen->type, ctxt);
     generate_group_candidates(candgen->type, ctxt);
     generate_host_candidates(candgen->type, ctxt);
-    // TODO: other types
+    generate_bindkey_candidates(candgen->type, ctxt);
+    // TODO: words
+    // TODO: function
 }
 
 /* The type of data that specifies how to generate candidates for a command's
