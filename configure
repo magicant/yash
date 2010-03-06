@@ -979,6 +979,26 @@ then
     defconfigh "HAVE_STRSIGNAL"
 fi
 
+# check for getpwent & endpwent
+checking 'for getpwent/endpwent'
+cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <pwd.h>
+#ifndef getpwent
+struct passwd *getpwent(void);
+#endif
+#ifndef endpwent
+void endpwent(void);
+#endif
+int main() { struct passwd *p = getpwent(); endpwent(); }
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_GETPWENT"
+fi
+
 # check for paths.h
 checking 'for paths.h'
 cat >"${tempsrc}" <<END

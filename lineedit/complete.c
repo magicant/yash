@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
+#include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -72,6 +73,9 @@ static void generate_keyword_candidates(
     __attribute__((nonnull));
 static void generate_option_candidates(
 	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+static void generate_logname_candidates(
+        le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
 static void calculate_common_prefix_length(void);
@@ -312,6 +316,7 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_job_candidates(candgen->type, ctxt);
     generate_shopt_candidates(candgen->type, ctxt);
     generate_signal_candidates(candgen->type, ctxt);
+    generate_logname_candidates(candgen->type, ctxt);
     // TODO: other types
 }
 
@@ -679,6 +684,27 @@ void generate_option_candidates(
 		le_add_candidate(type, ct, xwcsdup(optname));
 	}
     }
+}
+
+/* Generates candidates to complete an user name matching the pattern in the
+ * specified context. */
+void generate_logname_candidates(
+        le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_LOGNAME))
+	return;
+
+    le_compdebug("adding users matching pattern \"%ls\"", context->pattern);
+
+#if HAVE_GETPWENT
+    struct passwd *pwd;
+    while ((pwd = getpwent()) != NULL)
+	if (xfnm_match(context->cpattern, pwd->pw_name) == 0)
+	    le_add_candidate(type, CT_LOGNAME, malloc_mbstowcs(pwd->pw_name));
+    endpwent();
+#else
+    le_compdebug("  getpwent not supported on this system");
+#endif
 }
 
 
