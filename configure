@@ -999,6 +999,26 @@ then
     defconfigh "HAVE_GETPWENT"
 fi
 
+# check for getgrent & endgrent
+checking 'for getgrent/endgrent'
+cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <grp.h>
+#ifndef getgrent
+struct group *getgrent(void);
+#endif
+#ifndef endgrent
+void endgrent(void);
+#endif
+int main() { struct group *g = getgrent(); endgrent(); }
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_GETGRENT"
+fi
+
 # check for paths.h
 checking 'for paths.h'
 cat >"${tempsrc}" <<END

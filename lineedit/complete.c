@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
+#include <grp.h>
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -75,6 +76,9 @@ static void generate_option_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 static void generate_logname_candidates(
+        le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+static void generate_group_candidates(
         le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
@@ -317,6 +321,7 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_shopt_candidates(candgen->type, ctxt);
     generate_signal_candidates(candgen->type, ctxt);
     generate_logname_candidates(candgen->type, ctxt);
+    generate_group_candidates(candgen->type, ctxt);
     // TODO: other types
 }
 
@@ -523,6 +528,7 @@ ok:
 	    case CT_FD:        typestr = "file descriptor";            break;
 	    case CT_SIG:       typestr = "signal";                     break;
 	    case CT_LOGNAME:   typestr = "user name";                  break;
+	    case CT_GRP:       typestr = "group name";                 break;
 	    case CT_HOSTNAME:  typestr = "host name";                  break;
 	    case CT_BINDKEY:   typestr = "lineedit command";           break;
 	}
@@ -686,7 +692,7 @@ void generate_option_candidates(
     }
 }
 
-/* Generates candidates to complete an user name matching the pattern in the
+/* Generates candidates to complete a user name matching the pattern in the
  * specified context. */
 void generate_logname_candidates(
         le_candgentype_T type, const le_context_T *context)
@@ -704,6 +710,27 @@ void generate_logname_candidates(
     endpwent();
 #else
     le_compdebug("  getpwent not supported on this system");
+#endif
+}
+
+/* Generates candidates to complete a group name matching the pattern in the
+ * specified context. */
+void generate_group_candidates(
+        le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_GROUP))
+	return;
+
+    le_compdebug("adding groups matching pattern \"%ls\"", context->pattern);
+
+#if HAVE_GETGRENT
+    struct group *grp;
+    while ((grp = getgrent()) != NULL)
+	if (xfnm_match(context->cpattern, grp->gr_name) == 0)
+	    le_add_candidate(type, CT_GRP, malloc_mbstowcs(grp->gr_name));
+    endgrent();
+#else
+    le_compdebug("  getgrent not supported on this system");
 #endif
 }
 

@@ -38,6 +38,7 @@ typedef enum le_candtype_T {
     CT_FD,         // file descriptor
     CT_SIG,        // signal name
     CT_LOGNAME,    // user name
+    CT_GRP,        // group name
     CT_HOSTNAME,   // host name
     CT_BINDKEY,    // line-editing command name
 } le_candtype_T;
