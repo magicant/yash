@@ -146,8 +146,10 @@ void le_complete(void)
     }  // TODO
     context.cpattern = xfnm_compile(
 	    context.pattern, XFNM_HEADONLY | XFNM_TAILONLY);
-    if (context.cpattern == NULL)
-	;  // TODO
+    if (context.cpattern == NULL) {
+	le_compdebug("failed to compile pattern \"%ls\"", context.pattern);
+	goto display;
+    }
 
     insertion_index = le_main_index;
     quotetype = context.quote;
@@ -167,7 +169,7 @@ void le_complete(void)
     sort_candidates();
     le_compdebug("total of %zu candidate(s)", le_candidates.length);
 
-    /* display the results */
+display:  /* display the results */
     if (le_candidates.length == 0) {
 	le_selected_candidate_index = 0;
     } else if (context.substsrc || need_subst(&context)) {
