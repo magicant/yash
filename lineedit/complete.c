@@ -60,12 +60,12 @@ static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
 
-static void generate_candidates(const le_candgen_T *candgen)
-    __attribute__((nonnull));
 static const le_candgen_T *get_candgen(const le_context_T *context)
     __attribute__((nonnull));
 static const le_candgen_T *find_optarg_candgen(
 	const hashtable_T *options, const wchar_t *s)
+    __attribute__((nonnull));
+static void generate_candidates(const le_candgen_T *candgen)
     __attribute__((nonnull));
 static void generate_file_candidates(
 	le_candgentype_T type, const wchar_t *pattern)
@@ -315,29 +315,6 @@ void le_compdebug(const char *format, ...)
 
 #define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
 
-/* Generates completion candidates according to the specified generation policy.
- * The candidate list must have been initialized when this function is called.*/
-void generate_candidates(const le_candgen_T *candgen)
-{
-    generate_file_candidates(candgen->type, ctxt->pattern);
-    generate_builtin_candidates(candgen->type, ctxt);
-    generate_external_command_candidates(candgen->type, ctxt);
-    generate_function_candidates(candgen->type, ctxt);
-    generate_keyword_candidates(candgen->type, ctxt);
-    generate_option_candidates(candgen->type, ctxt);
-    generate_alias_candidates(candgen->type, ctxt);
-    generate_variable_candidates(candgen->type, ctxt);
-    generate_job_candidates(candgen->type, ctxt);
-    generate_shopt_candidates(candgen->type, ctxt);
-    generate_signal_candidates(candgen->type, ctxt);
-    generate_logname_candidates(candgen->type, ctxt);
-    generate_group_candidates(candgen->type, ctxt);
-    generate_host_candidates(candgen->type, ctxt);
-    generate_bindkey_candidates(candgen->type, ctxt);
-    // TODO: words
-    // TODO: function
-}
-
 /* The type of data that specifies how to generate candidates for a command's
  * arguments. The `operands' member is used for completing a operand.
  *
@@ -485,6 +462,29 @@ const le_candgen_T *find_optarg_candgen(
 	}
     }
     return NULL;
+}
+
+/* Generates completion candidates according to the specified generation policy.
+ * The candidate list must have been initialized when this function is called.*/
+void generate_candidates(const le_candgen_T *candgen)
+{
+    generate_file_candidates(candgen->type, ctxt->pattern);
+    generate_builtin_candidates(candgen->type, ctxt);
+    generate_external_command_candidates(candgen->type, ctxt);
+    generate_function_candidates(candgen->type, ctxt);
+    generate_keyword_candidates(candgen->type, ctxt);
+    generate_option_candidates(candgen->type, ctxt);
+    generate_alias_candidates(candgen->type, ctxt);
+    generate_variable_candidates(candgen->type, ctxt);
+    generate_job_candidates(candgen->type, ctxt);
+    generate_shopt_candidates(candgen->type, ctxt);
+    generate_signal_candidates(candgen->type, ctxt);
+    generate_logname_candidates(candgen->type, ctxt);
+    generate_group_candidates(candgen->type, ctxt);
+    generate_host_candidates(candgen->type, ctxt);
+    generate_bindkey_candidates(candgen->type, ctxt);
+    // TODO: words
+    // TODO: function
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
