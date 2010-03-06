@@ -26,8 +26,8 @@ tempout="./.temp.out"
 temptxt="./.temp.txt"
 dirs=". builtins doc lineedit tests"
 
-version="2.18"
-copyrightyear="2007-2009"
+version="2.19"
+copyrightyear="2007-2010"
 
 # object files to be linked as `yash'
 objs='$(MAIN_OBJS)'
@@ -726,7 +726,7 @@ END
 	defconfigh "YASH_ENABLE_LINEEDIT"
 	;;
     no)
-	printf 'The terminfo library is unavailable!\n' >&2
+	printf 'The terminfo (curses) library is unavailable!\n' >&2
 	printf 'Add the "--disable-lineedit" option and try again.\n' >&2
 	fail
 	;;

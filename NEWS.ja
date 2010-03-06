@@ -13,9 +13,22 @@ Yash 2.19
   +  FreeBSD でも "ulimit" 組込みが使えるようになった
   +  メールチェックで、可能ならナノ秒単位でメールファイルをチェック
      するようにした
+  +  行編集: 新しいコマンドの追加:
+        oldest-history-bol, newest-history-bol, return-history-bol,
+        prev-history-bol, next-history-bol,
+        beginning-search-forward, beginning-search-backward
   =  ファイル名パターンマッチングを高速化
+  =  行編集: 履歴検索中の accept-line コマンドは、検索結果が見つから
+     ないときは失敗するようになった
+  =  行編集: 以下のコマンドはカーソルを行頭に移動しないようになった
+        oldest-history, newest-history, return-history,
+        prev-history, next-history
+     カーソルを行頭に移動する古い挙動は、名前が "-bol" で終わる
+     新しいコマンドによって得られる
   *  配列の代入のトレースの出力がおかしかったのを修正
   *  行編集: vi-edit-and-accept コマンドでカウントを指定できるように
+  *  行編集: emacs モードでの search-again-forward/backward コマンドの
+     後のカーソル位置を修正
 
 ----------------------------------------------------------------------
 Yash 2.18

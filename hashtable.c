@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* hashtable.c: hashtable library */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -296,6 +296,8 @@ kvpair_T ht_remove(hashtable_T *ht, const void *key)
     return (kvpair_T) { NULL, NULL, };
 }
 
+#if 0
+
 /* Calls the specified function `f' for each entry in the specified hashtable.
  * The order in which the entries are applied the function to is unspecified.
  * If `f' returns a non-zero value for some entry, `f' is not called any more
@@ -316,6 +318,8 @@ int ht_each(const hashtable_T *ht, int f(kvpair_T kv))
     }
     return 0;
 }
+
+#endif
 
 /* Iterates the entries of the specified hashtable.
  * When starting new iteration, `*indexp' must have been initialized to zero.

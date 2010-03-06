@@ -140,11 +140,16 @@ static char *commands[] = {
     "oldest-history",
     "newest-history",
     "return-history",
+    "oldest-history-bol",
+    "newest-history-bol",
+    "return-history-bol",
     "oldest-history-eol",
     "newest-history-eol",
     "return-history-eol",
     "next-history",
     "prev-history",
+    "next-history-bol",
+    "prev-history-bol",
     "next-history-eol",
     "prev-history-eol",
     "srch-self-insert",
@@ -158,6 +163,8 @@ static char *commands[] = {
     "search-again-rev",
     "search-again-forward",
     "search-again-backward",
+    "beginning-search-forward",
+    "beginning-search-backward",
 };
 
 int sorter(const void *p1, const void *p2)

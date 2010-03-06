@@ -30,7 +30,7 @@ extern size_t le_main_index;
 enum le_search_direction { FORWARD, BACKWARD, };
 /* FORWARD:  find the oldest candidate from the ones newer than the current
  * BACKWARD: find the newest candidate from the ones older than the current */
-enum le_search_type { SEARCH_VI, SEARCH_EMACS, };
+enum le_search_type { SEARCH_PREFIX, SEARCH_VI, SEARCH_EMACS, };
 
 extern enum le_search_direction le_search_direction;
 extern enum le_search_type le_search_type;
@@ -183,11 +183,16 @@ extern le_command_func_T
     cmd_oldest_history,
     cmd_newest_history,
     cmd_return_history,
+    cmd_oldest_history_bol,
+    cmd_newest_history_bol,
+    cmd_return_history_bol,
     cmd_oldest_history_eol,
     cmd_newest_history_eol,
     cmd_return_history_eol,
     cmd_next_history,
     cmd_prev_history,
+    cmd_next_history_bol,
+    cmd_prev_history_bol,
     cmd_next_history_eol,
     cmd_prev_history_eol,
     /* command history search */
@@ -201,7 +206,9 @@ extern le_command_func_T
     cmd_search_again,
     cmd_search_again_rev,
     cmd_search_again_forward,
-    cmd_search_again_backward;
+    cmd_search_again_backward,
+    cmd_beginning_search_forward,
+    cmd_beginning_search_backward;
 
 
 #endif /* YASH_EDITING_H */
