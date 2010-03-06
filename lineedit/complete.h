@@ -174,6 +174,11 @@ extern void generate_job_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
+/* This function is defined in "option.c". */
+extern void generate_shopt_candidates(
+	le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+
 /* This function is defined in "variable.c". */
 extern void generate_variable_candidates(
 	le_candgentype_T type, const le_context_T *context)
