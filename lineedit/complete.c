@@ -487,7 +487,9 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_host_candidates(candgen->type, ctxt);
     generate_bindkey_candidates(candgen->type, ctxt);
     generate_candidates_from_words(candgen->words, ctxt);
-    // TODO: function
+    generate_candidates_using_function(candgen->function, ctxt);
+    /* `generate_candidates_using_function' must be last because the function
+     * execution may modify `candgen'. */
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.

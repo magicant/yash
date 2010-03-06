@@ -170,6 +170,11 @@ extern void generate_builtin_candidates(
 	le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
+/* This function is defined in "../exec.c". */
+extern void generate_candidates_using_function(
+	const wchar_t *funcname, const le_context_T *context)
+    __attribute__((nonnull(2)));
+
 /* This function is defined in "../job.c". */
 extern void generate_job_candidates(
 	le_candgentype_T type, const le_context_T *context)
