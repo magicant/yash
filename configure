@@ -1019,6 +1019,31 @@ then
     defconfigh "HAVE_GETGRENT"
 fi
 
+# check for sethostent & gethostent & endhostent
+#   This check may fail if socket redirection is disabled
+#   because the -lxnet compiler option is not specified.
+checking 'for sethostent/gethostent/endhostent'
+cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <netdb.h>
+#ifndef sethostent
+void sethostent(int);
+#endif
+#ifndef gethostent
+struct hostent *gethostent(void);
+#endif
+#ifndef endhostent
+void endhostent(void);
+#endif
+int main() { sethostent(1); struct hostent *h = gethostent(); endhostent(); }
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_GETHOSTENT"
+fi
+
 # check for paths.h
 checking 'for paths.h'
 cat >"${tempsrc}" <<END

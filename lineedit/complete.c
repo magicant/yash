@@ -20,8 +20,15 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <grp.h>
-#include <pwd.h>
+#if HAVE_GETGRENT
+# include <grp.h>
+#endif
+#if HAVE_GETHOSTENT
+# include <netdb.h>
+#endif
+#if HAVE_GETPWENT
+# include <pwd.h>
+#endif
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -79,6 +86,9 @@ static void generate_logname_candidates(
         le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 static void generate_group_candidates(
+        le_candgentype_T type, const le_context_T *context)
+    __attribute__((nonnull));
+static void generate_host_candidates(
         le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
 
@@ -322,6 +332,7 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_signal_candidates(candgen->type, ctxt);
     generate_logname_candidates(candgen->type, ctxt);
     generate_group_candidates(candgen->type, ctxt);
+    generate_host_candidates(candgen->type, ctxt);
     // TODO: other types
 }
 
@@ -731,6 +742,35 @@ void generate_group_candidates(
     endgrent();
 #else
     le_compdebug("  getgrent not supported on this system");
+#endif
+}
+
+/* Generates candidates to complete a host name matching the pattern in the
+ * specified context. */
+void generate_host_candidates(
+        le_candgentype_T type, const le_context_T *context)
+{
+    if (!(type & CGT_HOSTNAME))
+	return;
+
+    le_compdebug("adding hosts matching pattern \"%ls\"", context->pattern);
+
+#if HAVE_GETHOSTENT
+    struct hostent *host;
+    sethostent(1);
+    while ((host = gethostent()) != NULL) {
+	if (xfnm_match(context->cpattern, host->h_name) == 0)
+	    le_add_candidate(type, CT_HOSTNAME, malloc_mbstowcs(host->h_name));
+	if (host->h_aliases != NULL) {
+	    for (char *const *a = host->h_aliases; *a != NULL; a++) {
+		if (xfnm_match(context->cpattern, *a) == 0)
+		    le_add_candidate(type, CT_HOSTNAME, malloc_mbstowcs(*a));
+	    }
+	}
+    }
+    endhostent();
+#else
+    le_compdebug("  gethostent not supported on this system");
 #endif
 }
 
