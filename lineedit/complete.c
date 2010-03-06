@@ -91,6 +91,9 @@ static void generate_group_candidates(
 static void generate_host_candidates(
         le_candgentype_T type, const le_context_T *context)
     __attribute__((nonnull));
+static void generate_candidates_from_words(
+	void *const *words, const le_context_T *context)
+    __attribute__((nonnull(2)));
 
 static void calculate_common_prefix_length(void);
 static void update_main_buffer(void);
@@ -483,13 +486,13 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_group_candidates(candgen->type, ctxt);
     generate_host_candidates(candgen->type, ctxt);
     generate_bindkey_candidates(candgen->type, ctxt);
-    // TODO: words
+    generate_candidates_from_words(candgen->words, ctxt);
     // TODO: function
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
  * The value is freed in this function.
- * If the specified value does not match `cgt', it may not be added. */
+ * If the specified `type' does not match `cgt', it may not be added. */
 void le_add_candidate(le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
 {
     le_candidate_T *cand = xmalloc(sizeof *cand);
@@ -774,6 +777,22 @@ void generate_host_candidates(
 #else
     le_compdebug("  gethostent not supported on this system");
 #endif
+}
+
+/* Generates candidates from words that match the pattern in the specified
+ * context. */
+void generate_candidates_from_words(
+	void *const *words, const le_context_T *context)
+{
+    if (words == NULL)
+	return;
+
+    le_compdebug("adding predefined words for pattern \"%ls\"",
+	    context->pattern);
+
+    for (; *words != NULL; words++)
+	if (xfnm_wmatch(context->cpattern, *words).start != (size_t) -1)
+	    le_add_candidate(0, CT_WORD, xwcsdup(*words));
 }
 
 
