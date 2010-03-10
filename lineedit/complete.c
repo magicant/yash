@@ -48,6 +48,7 @@
 #include "../variable.h"
 #include "../xfnmatch.h"
 #include "complete.h"
+#include "compparse.h"
 #include "display.h"
 #include "editing.h"
 #include "lineedit.h"
@@ -146,31 +147,9 @@ void le_complete(void)
     le_complete_cleanup();
     pl_init(&le_candidates);
 
-    le_context_T context = {
-	.quote = QUOTE_NORMAL,
-	.type = CTXT_NORMAL,
-	.srcindex = 0,
-    };  // TODO
-    context.pwordc = 0;  // TODO
-    context.pwords = xmalloc(1 * sizeof *context.pwords);  // TODO
-    context.pwords[0] = NULL;  // TODO
-    context.pattern = xwcsdup(le_main_buffer.contents);  // TODO
-    extern wchar_t *unescape(const wchar_t *);  // TODO
-    context.src = unescape(context.pattern);
-    if (is_pathname_matching_pattern(context.pattern)) {
-	context.substsrc = true;
-    } else {
-	xwcsbuf_T buf;
-	context.substsrc = false;
-	context.pattern =
-	    wb_towcs(wb_wccat(wb_initwith(&buf, context.pattern), L'*'));
-    }  // TODO
-    context.cpattern = xfnm_compile(
-	    context.pattern, XFNM_HEADONLY | XFNM_TAILONLY);
-    if (context.cpattern == NULL) {
-	le_compdebug("failed to compile pattern \"%ls\"", context.pattern);
+    le_context_T context;
+    if (!le_get_context(&context))
 	goto display;
-    }
 
     insertion_index = le_main_index;
     quotetype = context.quote;

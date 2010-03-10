@@ -23,9 +23,9 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = complete.c display.c editing.c keymap.c lineedit.c mkcmds.c terminfo.c trie.c
-HEADERS = complete.h display.h editing.h key.h keymap.h lineedit.h terminfo.h trie.h
-OBJS = complete.o display.o editing.o keymap.o lineedit.o terminfo.o trie.o
+SOURCES = complete.c compparse.c display.c editing.c keymap.c lineedit.c mkcmds.c terminfo.c trie.c
+HEADERS = complete.h compparse.h display.h editing.h key.h keymap.h lineedit.h terminfo.h trie.h
+OBJS = complete.o compparse.o display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = lineedit.a
 BYPRODUCTS = mkcmds.o mkcmds commands.in *.dSYM
 
@@ -73,6 +73,7 @@ maintainer-clean: distclean
 .PHONY: all distcontents copy-distcontents cscope mostlyclean clean distclean maintainer-clean
 
 @MAKE_INCLUDE@ complete.d
+@MAKE_INCLUDE@ compparse.d
 @MAKE_INCLUDE@ display.d
 @MAKE_INCLUDE@ editing.d
 @MAKE_INCLUDE@ keymap.d
