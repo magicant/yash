@@ -356,6 +356,7 @@ const le_candgen_T *get_candgen(const le_context_T *context)
     static le_candgen_T tempresult;
 
     // TODO test
+    // TODO don't add CGT_KEYWORD/CGT_ALIAS when quoted
     tempresult = (le_candgen_T) { .type = 0, .words = NULL, .function = NULL };
     switch (context->type) {
 	case CTXT_NORMAL:
@@ -675,8 +676,6 @@ void generate_keyword_candidates(
 void generate_option_candidates(
 	le_candgentype_T type, const le_context_T *context)
 {
-    // TODO test
-
     const wchar_t *src = context->src;
     if (!(type & CGT_OPTION) || src[0] != L'-')
 	return;
@@ -849,7 +848,6 @@ void update_main_buffer(void)
     if (le_selected_candidate_index >= le_candidates.length)
 	return;
 
-    // TODO
     if (cand->type == CT_FILE && S_ISDIR(cand->filestat.mode)) {
 	size_t len = wcslen(cand->value);
 	if (len > 0 && cand->value[len - 1] != L'/') {
