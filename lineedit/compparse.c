@@ -29,6 +29,26 @@
 #include "editing.h"
 
 
+/* This structure contains data used during parsing */
+typedef struct parseinfo_T {
+    xwcsbuf_T buf;
+    size_t bufindex;
+    size_t mainindex;
+    le_context_T *ctxt;
+} parseinfo_T;
+/* The `buf' buffer contains the first `le_main_index' characters of the edit
+ * buffer. During parsing, alias substitution may be performed on this buffer.
+ * The `bufindex' and `mainindex' indices indicate the point the parser is
+ * currently parsing. `bufindex' is an index into the `buf' buffer and
+ * `mainindex' into the edit buffer (`le_main_buffer').
+ * The `ctxt' member points to the structure in which the final result is saved.
+ */
+
+
+static bool cparse_commands(parseinfo_T *pi)
+    __attribute__((nonnull));
+
+
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
  * up to the current cursor position (`le_main_index') and determines the
  * current completion context.
@@ -38,27 +58,26 @@
  * regardless of whether successful or not. */
 bool le_get_context(le_context_T *ctxt)
 {
-    assert(wcslen(le_main_buffer.contents) <= le_main_buffer.length);
+    assert(wcslen(le_main_buffer.contents) == le_main_buffer.length);
 
-    *ctxt = (le_context_T) {
-	.quote = QUOTE_NORMAL,
-	.type = CTXT_NORMAL,
-	.srcindex = 0,
-    };  // TODO
-    ctxt->pwordc = 0;  // TODO
-    ctxt->pwords = xmalloc(1 * sizeof *ctxt->pwords);  // TODO
-    ctxt->pwords[0] = NULL;  // TODO
-    ctxt->pattern = xwcsdup(le_main_buffer.contents);  // TODO
-    extern wchar_t *unescape(const wchar_t *);  // TODO
-    ctxt->src = unescape(ctxt->pattern);
-    if (is_pathname_matching_pattern(ctxt->pattern)) {
+    parseinfo_T pi;
+    pi.bufindex = pi.mainindex = le_main_index;
+    pi.ctxt = ctxt;
+    wb_ncat_force(wb_init(&pi.buf), le_main_buffer.contents, le_main_index);
+
+    cparse_commands(&pi);
+
+    wb_destroy(&pi.buf);
+
+    if (ctxt->type == CTXT_NORMAL
+	    && is_pathname_matching_pattern(ctxt->pattern)) {
 	ctxt->substsrc = true;
     } else {
 	xwcsbuf_T buf;
 	ctxt->substsrc = false;
 	ctxt->pattern =
 	    wb_towcs(wb_wccat(wb_initwith(&buf, ctxt->pattern), L'*'));
-    }  // TODO
+    }
     ctxt->cpattern = xfnm_compile(
 	    ctxt->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
     if (ctxt->cpattern == NULL) {
@@ -66,6 +85,18 @@ bool le_get_context(le_context_T *ctxt)
 	return false;
     }
     return true;
+}
+
+/* Following parser functions return true iff parsing is finished and the result
+ * is saved in `pi->ctxt'.
+ * The result is saved in the following variables of the context structure:
+ *     quote, type, pwordc, pwords, src, pattern, srcindex. */
+
+/* Parses commands from the current position until a right parenthesis (")") is
+ * found or the whole line is parsed. */
+bool cparse_commands(parseinfo_T *pi)
+{
+    //TODO
 }
 
 /* Frees the contents of the specified `le_context_T' data. */
