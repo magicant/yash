@@ -192,10 +192,7 @@ display:  /* display the results */
 	le_selected_candidate_index = le_candidates.length;
 	update_main_buffer();
     }
-    recfree(context.pwords, free);
-    free(context.src);
-    free(context.pattern);
-    xfnm_free(context.cpattern);
+    le_free_context(&context);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	le_compdebug("completion end");

@@ -17,7 +17,10 @@
 
 
 #include "../common.h"
+#include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include "../strbuf.h"
 #include "../util.h"
 #include "../xfnmatch.h"
@@ -26,8 +29,17 @@
 #include "editing.h"
 
 
+/* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
+ * up to the current cursor position (`le_main_index') and determines the
+ * current completion context.
+ * The result is put in `*ctxt'.
+ * Returns true iff successful.
+ * The context data must be freed using the `le_free_context' function
+ * regardless of whether successful or not. */
 bool le_get_context(le_context_T *ctxt)
 {
+    assert(wcslen(le_main_buffer.contents) <= le_main_buffer.length);
+
     *ctxt = (le_context_T) {
 	.quote = QUOTE_NORMAL,
 	.type = CTXT_NORMAL,
@@ -54,6 +66,15 @@ bool le_get_context(le_context_T *ctxt)
 	return false;
     }
     return true;
+}
+
+/* Frees the contents of the specified `le_context_T' data. */
+void le_free_context(le_context_T *ctxt)
+{
+    recfree(ctxt->pwords, free);
+    free(ctxt->src);
+    free(ctxt->pattern);
+    xfnm_free(ctxt->cpattern);
 }
 
 
