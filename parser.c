@@ -788,7 +788,7 @@ bool is_closing_brace(wchar_t c)
  * `ensure_buffer(wcslen(t))' must be done beforehand. */
 bool is_token_at(const wchar_t *t, size_t index)
 {
-    wchar_t *c = matchwcsprefix(cbuf.contents + index, t);
+    const wchar_t *c = matchwcsprefix(cbuf.contents + index, t);
     return c && is_token_delimiter_char(*c);
 }
 
