@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "../parser.h"
 #include "../strbuf.h"
 #include "../util.h"
 #include "../xfnmatch.h"
@@ -30,12 +31,12 @@
 
 
 /* This structure contains data used during parsing */
-typedef struct parseinfo_T {
+typedef struct cparseinfo_T {
     xwcsbuf_T buf;
     size_t bufindex;
     size_t mainindex;
     le_context_T *ctxt;
-} parseinfo_T;
+} cparseinfo_T;
 /* The `buf' buffer contains the first `le_main_index' characters of the edit
  * buffer. During parsing, alias substitution may be performed on this buffer.
  * The `bufindex' and `mainindex' indices indicate the point the parser is
@@ -44,9 +45,26 @@ typedef struct parseinfo_T {
  * The `ctxt' member points to the structure in which the final result is saved.
  */
 
+/* This structure contains data used during parsing */
+static cparseinfo_T *pi;
 
-static bool cparse_commands(parseinfo_T *pi)
-    __attribute__((nonnull));
+#define BUF       pi->buf.contents
+#define LEN       pi->buf.length
+#define INDEX     pi->bufindex
+#define MAINBUF   le_main_buffer.contents
+#define MAINLEN   le_main_buffer.length
+#define MAININDEX pi->mainindex
+
+
+static bool cparse_commands(void);
+static void skip_blanks(void);
+static bool cparse_command(void);
+static bool token_at_current(const wchar_t *token)
+    __attribute__((nonnull,pure));
+static bool cparse_redirections(void);
+static bool cparse_simple_command(void);
+static bool cparse_for_command(void);
+static bool cparse_case_command(void);
 
 
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
@@ -60,14 +78,17 @@ bool le_get_context(le_context_T *ctxt)
 {
     assert(wcslen(le_main_buffer.contents) == le_main_buffer.length);
 
-    parseinfo_T pi;
-    pi.bufindex = pi.mainindex = le_main_index;
-    pi.ctxt = ctxt;
-    wb_ncat_force(wb_init(&pi.buf), le_main_buffer.contents, le_main_index);
+    cparseinfo_T parseinfo;
+    parseinfo.bufindex = parseinfo.mainindex = 0;
+    parseinfo.ctxt = ctxt;
+    wb_init(&parseinfo.buf);
+    wb_ncat_force(&parseinfo.buf, le_main_buffer.contents, le_main_index);
 
-    cparse_commands(&pi);
+    pi = &parseinfo;
+    while (!cparse_commands())
+	parseinfo.bufindex++, parseinfo.mainindex++;
 
-    wb_destroy(&pi.buf);
+    wb_destroy(&parseinfo.buf);
 
     if (ctxt->type == CTXT_NORMAL
 	    && is_pathname_matching_pattern(ctxt->pattern)) {
@@ -94,9 +115,111 @@ bool le_get_context(le_context_T *ctxt)
 
 /* Parses commands from the current position until a right parenthesis (")") is
  * found or the whole line is parsed. */
-bool cparse_commands(parseinfo_T *pi)
+bool cparse_commands(void)
 {
-    //TODO
+    do {
+	skip_blanks();
+	switch (BUF[INDEX]) {
+	    case L'\0':
+		goto end;
+	    case L'\n':  case L';':  case L'&':  case L'|':
+		INDEX++, MAININDEX++;
+		continue;
+	    case L')':
+		return false;
+	}
+    } while (!cparse_command());
+    return true;
+
+end:
+    pi->ctxt->quote = QUOTE_NORMAL;
+    pi->ctxt->type = CTXT_NORMAL;
+    pi->ctxt->pwordc = 0;
+    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+    pi->ctxt->pwords[0] = NULL;
+    pi->ctxt->src = xwcsdup(L"");
+    pi->ctxt->pattern = xwcsdup(L"");
+    pi->ctxt->srcindex = MAININDEX;
+    return true;
+}
+
+/* Skips blank characters. */
+void skip_blanks(void)
+{
+    while (iswblank(BUF[INDEX]))
+	INDEX++, MAININDEX++;
+}
+
+/* Parses a command from the current position. */
+bool cparse_command(void)
+{
+    if (BUF[INDEX] == L'(') {
+	INDEX++, MAININDEX++;
+	if (cparse_commands())
+	    return true;
+	if (BUF[INDEX] == L')')
+	    INDEX++, MAININDEX++;
+	return cparse_redirections();
+    } else if (token_at_current(L"{") || token_at_current(L"!")) {
+	INDEX++, MAININDEX++;
+	return false;
+    } else if (token_at_current(L"if") || token_at_current(L"do")) {
+	INDEX += 2, MAININDEX += 2;
+	return false;
+    } else if (token_at_current(L"then") || token_at_current(L"else")
+	    || token_at_current(L"elif")) {
+	INDEX += 4, MAININDEX += 4;
+	return false;
+    } else if (token_at_current(L"while") || token_at_current(L"until")) {
+	INDEX += 5, MAININDEX += 5;
+	return false;
+    } else if (token_at_current(L"}")) {
+	INDEX++, MAININDEX++;
+	return cparse_redirections();
+    } else if (token_at_current(L"fi")) {
+	INDEX += 2, MAININDEX += 2;
+	return cparse_redirections();
+    } else if (token_at_current(L"done") || token_at_current(L"esac")) {
+	INDEX += 4, MAININDEX += 4;
+	return cparse_redirections();
+    } else if (token_at_current(L"for")) {
+	return cparse_for_command();
+    } else if (token_at_current(L"case")) {
+	return cparse_case_command();
+    } else {
+	return cparse_simple_command();
+    }
+}
+
+/* Returns true iff the specified word is at the current position. */
+bool token_at_current(const wchar_t *token)
+{
+    const wchar_t *c = matchwcsprefix(BUF + INDEX, token);
+    return c != NULL && is_token_delimiter_char(*c);
+}
+
+/* Parses redirections until the next command. */
+bool cparse_redirections(void)
+{
+    return false; //TODO
+}
+
+/* Parses a simple command. */
+bool cparse_simple_command(void)
+{
+    return false; //TODO
+}
+
+/* Parses a for command. */
+bool cparse_for_command(void)
+{
+    return false; //TODO
+}
+
+/* Parses a case command. */
+bool cparse_case_command(void)
+{
+    return false; //TODO
 }
 
 /* Frees the contents of the specified `le_context_T' data. */
