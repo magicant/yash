@@ -789,7 +789,7 @@ bool is_closing_brace(wchar_t c)
 bool is_token_at(const wchar_t *t, size_t index)
 {
     const wchar_t *c = matchwcsprefix(cbuf.contents + index, t);
-    return c && is_token_delimiter_char(*c);
+    return c != NULL && is_token_delimiter_char(*c);
 }
 
 /* Checks if there is an 'opening' token such as "(", "{" and "if" at the
