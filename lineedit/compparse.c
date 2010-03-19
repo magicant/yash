@@ -48,12 +48,12 @@ typedef struct cparseinfo_T {
 /* This structure contains data used during parsing */
 static cparseinfo_T *pi;
 
-#define BUF       pi->buf.contents
-#define LEN       pi->buf.length
-#define INDEX     pi->bufindex
-#define MAINBUF   le_main_buffer.contents
-#define MAINLEN   le_main_buffer.length
-#define MAININDEX pi->mainindex
+#define BUF       (pi->buf.contents)
+#define LEN       (pi->buf.length)
+#define INDEX     (pi->bufindex)
+#define MAINBUF   ((const wchar_t *) le_main_buffer.contents)
+#define MAINLEN   (le_main_buffer.length)
+#define MAININDEX (pi->mainindex)
 
 
 static bool cparse_commands(void);
@@ -61,8 +61,9 @@ static void skip_blanks(void);
 static bool cparse_command(void);
 static bool token_at_current(const wchar_t *token)
     __attribute__((nonnull,pure));
-static bool cparse_redirections(void);
 static bool cparse_simple_command(void);
+static bool cparse_redirections(void);
+static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
 
@@ -198,14 +199,29 @@ bool token_at_current(const wchar_t *token)
     return c != NULL && is_token_delimiter_char(*c);
 }
 
-/* Parses redirections until the next command. */
-bool cparse_redirections(void)
+/* Parses a simple command. */
+bool cparse_simple_command(void)
 {
     return false; //TODO
 }
 
-/* Parses a simple command. */
-bool cparse_simple_command(void)
+/* Parses redirections until the next command. */
+bool cparse_redirections(void)
+{
+    size_t saveindex;
+    do {
+	skip_blanks();
+	saveindex = INDEX;
+	if (ctryparse_redirect())
+	    return true;
+    } while (saveindex != INDEX);
+
+    return false; // TODO global alias
+}
+
+/* Parses a redirection if any.
+ * `skip_blanks' should be called before this function is called. */
+bool ctryparse_redirect(void)
 {
     return false; //TODO
 }
