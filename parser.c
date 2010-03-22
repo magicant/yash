@@ -235,8 +235,6 @@ void embedcmdfree(embedcmd_T c)
 
 /********** Auxiliary Functions for Parser **********/
 
-static bool is_portable_name_char(wchar_t c)
-    __attribute__((const));
 static wchar_t *skip_name(const wchar_t *s)
     __attribute__((pure,nonnull));
 

@@ -43,12 +43,6 @@
 #include "yash.h"
 
 
-/* characters that have special meanings in brace expansion and glob. */
-#define CHARS_ESCAPED L"\\{,}"
-
-/* characters that can be escaped with a backslash inside doublequotes. */
-#define CHARS_ESCAPABLE L"$`\"\\"
-
 static bool expand_word_and_split(
 	const wordunit_T *restrict w, plist_T *restrict list)
     __attribute__((nonnull(2)));

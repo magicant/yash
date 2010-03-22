@@ -334,6 +334,8 @@ extern _Bool parse_string(
 
 /********** Auxiliary Functions **********/
 
+extern _Bool is_portable_name_char(wchar_t c)
+    __attribute__((const));
 extern _Bool is_name_char(wchar_t c)
     __attribute__((pure));
 extern _Bool is_name(const wchar_t *s)

@@ -24,6 +24,12 @@
 
 #define DEFAULT_IFS L" \t\n"
 
+/* characters that have special meanings in brace expansion and glob. */
+#define CHARS_ESCAPED L"\\{,}"
+
+/* characters that can be escaped with a backslash inside double-quotes. */
+#define CHARS_ESCAPABLE L"$`\"\\"
+
 /* type of tilde expansion */
 typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
 

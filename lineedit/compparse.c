@@ -26,8 +26,10 @@
 #endif
 #include "../expand.h"
 #include "../parser.h"
+#include "../plist.h"
 #include "../strbuf.h"
 #include "../util.h"
+#include "../variable.h"
 #include "../xfnmatch.h"
 #include "complete.h"
 #include "compparse.h"
@@ -76,7 +78,18 @@ static bool ctryparse_assignment(void);
 static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
-static bool cparse_word(wchar_t **resultword);
+static bool cparse_word(bool testfunc(wchar_t c), wchar_t **resultword)
+    __attribute__((nonnull(1)));
+static bool cparse_special_word_unit(le_quote_T quote, xwcsbuf_T *word)
+    __attribute__((nonnull));
+static bool cparse_paramexp_in_brace(le_quote_T quote, xwcsbuf_T *word)
+    __attribute__((nonnull));
+static bool cparse_arith(le_quote_T quote, xwcsbuf_T *word)
+    __attribute__((nonnull));
+static bool cparse_cmdsubst_in_paren(le_quote_T quote, xwcsbuf_T *word)
+    __attribute__((nonnull));
+static bool ctryparse_paramexp_raw(le_quote_T quote, xwcsbuf_T *word)
+    __attribute__((nonnull));
 
 
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
@@ -271,10 +284,55 @@ bool token_at_current(const wchar_t *token)
 /* Parses a simple command. */
 bool cparse_simple_command(void)
 {
-    return false; //TODO
+cparse_simple_command:
+    if (csubstitute_alias(AF_NONGLOBAL | AF_NORECUR))
+	return false;
+
+    size_t saveindex;
+    skip_blanks();
+    saveindex = INDEX;
+    if (ctryparse_redirect())
+	return true;
+    if (saveindex != INDEX) {
+	skip_blanks();
+	goto cparse_simple_command;
+    }
+    if (ctryparse_assignment())
+	return true;
+    if (saveindex != INDEX) {
+	skip_blanks();
+	goto cparse_simple_command;
+    }
+
+    wchar_t *resultword;
+    plist_T pwords;
+    pl_init(&pwords);
+
+    for (;;) {
+	switch (BUF[INDEX]) {
+	    case L'\n':  case L';':  case L'&':  case L'|':
+	    case L'(':  case L')':
+		recfree(pl_toary(&pwords), free);
+		return false;
+	}
+	if (cparse_word(is_token_delimiter_char, &resultword)) {
+	    pi->ctxt->pwordc = pwords.length;
+	    pi->ctxt->pwords = pl_toary(&pwords);
+	    return true;
+	}
+	pl_add(&pwords, resultword);
+	skip_blanks();
+	if (csubstitute_alias(0))
+	    skip_blanks();
+	if (ctryparse_redirect()) {
+	    recfree(pl_toary(&pwords), free);
+	    return true;
+	}
+	skip_blanks();
+    }
 }
 
-/* Parses redirections until the next command.
+/* Parses redirections as many as possible.
  * Global aliases are substituted if necessary. */
 bool cparse_redirections(void)
 {
@@ -303,9 +361,8 @@ bool ctryparse_assignment(void)
     INDEX = index + 1;
 
     if (true /* TODO: BUF[INDEX] != L'('*/) {
-	bool result = cparse_word(NULL); // TODO temporary implementation
+	bool result = cparse_word(is_token_delimiter_char, NULL); // TODO temporary implementation
 	if (result) {
-	    pi->ctxt->type = CTXT_NORMAL;
 	    pi->ctxt->pwordc = 0;
 	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
 	    pi->ctxt->pwords[0] = NULL;
@@ -358,9 +415,10 @@ bool ctryparse_redirect(void)
     }
 
     skip_blanks();
-    result = cparse_word(NULL);
+    result = cparse_word(is_token_delimiter_char, NULL);
     if (result) {
-	pi->ctxt->type = type;
+	if (pi->ctxt->type == CTXT_NORMAL)
+	    pi->ctxt->type = type;
 	pi->ctxt->pwordc = 0;
 	pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
 	pi->ctxt->pwords[0] = NULL;
@@ -390,17 +448,175 @@ bool cparse_case_command(void)
 
 /* Parses the word at the current position.
  * `skip_blanks' should be called before this function is called.
+ * `testfunc' is a function that determines if a character is a word delimiter.
+ * It must return true for L'\0'.
  * If the word was completely parsed (that is, the return value is false) and
  * if `resultword' is non-NULL, the word (after quote removal) is assigned to
  * `*resultword' as a newly-malloced string.
  * If the parser reached the end of the string, the return value is true and
  * the result is saved in `pi->ctxt'. This function, however, updates only the
- * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
- * update the other members (`type', `pwordc' and `pwords'). */
-bool cparse_word(wchar_t **resultword)
+ * `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller
+ * must update the other members (`pwordc' and `pwords'). */
+bool cparse_word(bool testfunc(wchar_t c), wchar_t **resultword)
 {
-    (void) resultword;
-    return false; //TODO
+    le_quote_T quote = QUOTE_NORMAL;
+    size_t srcindex = le_main_index - (LEN - INDEX);
+    xwcsbuf_T word;
+
+    wb_init(&word);
+    while (quote == QUOTE_NORMAL ? !testfunc(BUF[INDEX]) : BUF[INDEX] != L'\0'){
+	switch (BUF[INDEX]) {
+	case L'$':
+	    if (cparse_special_word_unit(quote, &word)) {
+		wb_destroy(&word);
+		return true;
+	    }
+	    break;
+	case L'`':
+	    //TODO
+	case L'"':
+	    quote = (quote == QUOTE_NORMAL) ? QUOTE_DOUBLE : QUOTE_NORMAL;
+	    INDEX++;
+	    break;
+	case L'\'':
+	    if (quote == QUOTE_NORMAL) {
+		INDEX++;
+		const wchar_t *end = wcschr(BUF + INDEX, L'\'');
+		if (end == NULL) {
+		    quote = QUOTE_SINGLE;
+		    wb_cat(&word, BUF + INDEX);
+		    goto return_true;
+		} else {
+		    wb_ncat_force(&word, BUF + INDEX, end - (BUF + INDEX));
+		    INDEX = (end + 1) - BUF;
+		    continue;
+		}
+	    }
+	    /* falls thru! */
+	default:
+	    if (quote == QUOTE_NORMAL) {
+		if (BUF[INDEX] != L'\\' || BUF[INDEX + 1] != L'\0')
+		    wb_wccat(&word, BUF[INDEX]);
+		INDEX++;
+	    } else {
+		if (BUF[INDEX] == L'\\') {
+		    wchar_t nextchar = BUF[++INDEX];
+		    if (nextchar == L'\0')
+			goto return_true;
+		    else if (wcschr(CHARS_ESCAPABLE, nextchar))
+			wb_wccat(wb_wccat(&word, L'\\'), nextchar), INDEX++;
+		    else
+			wb_wccat(wb_wccat(&word, L'\\'), L'\\');
+		} else {
+		    wb_wccat(wb_wccat(&word, L'\\'), BUF[INDEX++]);
+		}
+	    }
+	    break;
+	}
+    }
+
+    if (BUF[INDEX] == L'\0') {
+return_true:
+	pi->ctxt->type = CTXT_NORMAL;
+	pi->ctxt->quote = quote;
+	pi->ctxt->pattern = wb_towcs(&word);
+	pi->ctxt->srcindex = srcindex;
+	return true;
+    } else {
+	if (resultword != NULL)
+	    *resultword = wb_towcs(&word);
+	else
+	    wb_destroy(&word);
+	return false;
+    }
+}
+
+/* Parses a parameter expansion or command substitution that starts with '$'.
+ * If the expansion/substitution was completely parsed (that is, the return
+ * value is false), the result is appended to the argument buffer. */
+bool cparse_special_word_unit(le_quote_T quote, xwcsbuf_T *word)
+{
+    assert(BUF[INDEX] == L'$');
+    switch (BUF[INDEX + 1]) {
+	case L'{':
+	    return cparse_paramexp_in_brace(quote, word);
+	case L'(':
+	    if (BUF[INDEX + 2] == L'(')
+		return cparse_arith(quote, word);
+	    else
+		return cparse_cmdsubst_in_paren(quote, word);
+	default:
+	    return ctryparse_paramexp_raw(quote, word);
+    }
+}
+
+bool cparse_paramexp_in_brace(le_quote_T quote, xwcsbuf_T *word)
+{
+    //TODO
+    return false;
+}
+
+bool cparse_arith(le_quote_T quote, xwcsbuf_T *word)
+{
+    //TODO
+    return false;
+}
+
+bool cparse_cmdsubst_in_paren(le_quote_T quote, xwcsbuf_T *word)
+{
+    //TODO
+    return false;
+}
+
+/* Parses a parameter that is not enclosed by { }.
+ * If the parameter was completely parsed (that is, the return value is false),
+ * the result is appended to the argument buffer. */
+bool ctryparse_paramexp_raw(le_quote_T quote, xwcsbuf_T *word)
+{
+    assert(BUF[INDEX] == L'$');
+
+    size_t namelen;
+    switch (BUF[INDEX + 1]) {
+	case L'@':  case L'*':  case L'#':  case L'?':
+	case L'-':  case L'$':  case L'!':
+	    namelen = 1;
+	    break;
+	default:
+	    if (iswdigit(BUF[INDEX + 1])) {
+		namelen = 1;
+	    } else {
+		namelen = 0;
+		while (is_portable_name_char(BUF[INDEX + 1 + namelen]))
+		    namelen++;
+		if (BUF[INDEX + 1 + namelen] == L'\0') {
+		    /* complete variable name */
+		    pi->ctxt->type = CTXT_VAR;
+		    pi->ctxt->quote = QUOTE_NONE;
+		    pi->ctxt->pattern = xwcsndup(BUF + INDEX + 1, namelen);
+		    pi->ctxt->srcindex = le_main_index - namelen;
+		    return true;
+		}
+	    }
+	    break;
+    }
+
+    wordunit_T *wu = xmalloc(sizeof *wu);
+    wu->next = NULL;
+    wu->wu_type = WT_PARAM;
+    wu->wu_param = xmalloc(sizeof *wu->wu_param);
+    wu->wu_param->pe_type = PT_MINUS;
+    wu->wu_param->pe_name = xwcsndup(BUF + INDEX + 1, namelen);
+    wu->wu_param->pe_start = wu->wu_param->pe_end =
+    wu->wu_param->pe_match = wu->wu_param->pe_subst = NULL;
+
+    wchar_t *s = expand_single(wu, tt_none);
+    s = escapefree(s, (quote != QUOTE_NORMAL) ? CHARS_ESCAPED : NULL);
+    wb_catfree(word, s);
+
+    wordfree(wu);
+
+    INDEX += namelen + 1;
+    return false;
 }
 
 /* Frees the contents of the specified `le_context_T' data. */
