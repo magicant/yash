@@ -24,6 +24,7 @@
 #if YASH_ENABLE_ALIAS
 # include "../alias.h"
 #endif
+#include "../expand.h"
 #include "../parser.h"
 #include "../strbuf.h"
 #include "../util.h"
@@ -71,6 +72,7 @@ static bool cparse_redirections(void);
 static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
+static bool cparse_word(wchar_t **resultword);
 
 
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
@@ -105,6 +107,7 @@ bool le_get_context(le_context_T *ctxt)
     destroy_aliaslist(parseinfo.aliaslist);
 #endif
 
+    ctxt->src = unescape(ctxt->pattern);
     if (ctxt->type == CTXT_NORMAL
 	    && is_pathname_matching_pattern(ctxt->pattern)) {
 	ctxt->substsrc = true;
@@ -126,7 +129,7 @@ bool le_get_context(le_context_T *ctxt)
 /* Following parser functions return true iff parsing is finished and the result
  * is saved in `pi->ctxt'.
  * The result is saved in the following variables of the context structure:
- *     quote, type, pwordc, pwords, src, pattern, srcindex. */
+ *     quote, type, pwordc, pwords, pattern, srcindex. */
 
 /* Parses commands from the current position until a right parenthesis (")") is
  * found or the whole line is parsed. */
@@ -152,7 +155,6 @@ end:
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
     pi->ctxt->pwords[0] = NULL;
-    pi->ctxt->src = xwcsdup(L"");
     pi->ctxt->pattern = xwcsdup(L"");
     pi->ctxt->srcindex = le_main_index;
     return true;
@@ -185,8 +187,8 @@ bool cparse_command(void)
 	INDEX++;
 	if (cparse_commands())
 	    return true;
-	if (BUF[INDEX] == L')')
-	    INDEX++;
+	assert(BUF[INDEX] == L')');
+	INDEX++;
 	return cparse_redirections();
     } else if (token_at_current(L"{") || token_at_current(L"!")) {
 	INDEX++;
@@ -250,7 +252,61 @@ bool cparse_redirections(void)
  * `skip_blanks' should be called before this function is called. */
 bool ctryparse_redirect(void)
 {
-    return false; //TODO
+    size_t index = INDEX;
+    le_contexttype_T type;
+    bool result;
+
+    while (iswdigit(BUF[index]))
+	index++;
+    switch (BUF[index]) {
+    case L'<':
+	switch (BUF[index + 1]) {
+	case L'<':
+	    type = CTXT_REDIR;
+	    switch (BUF[index + 2]) {
+	    case L'<':  /* here-string */
+	    case L'-':  /* here-document */
+		INDEX = index + 3;  break;
+	    default:    /* here-document */
+		INDEX = index + 2;  break;
+	    }
+	    break;
+	case L'>':  INDEX = index + 2;  type = CTXT_REDIR;     break;
+	case L'&':  INDEX = index + 2;  type = CTXT_REDIR_FD;  break;
+	case L'(':  INDEX = index + 2;  goto parse_inner;
+	default:    INDEX = index + 1;  type = CTXT_REDIR;     break;
+	}
+	break;
+    case L'>':
+	switch (BUF[INDEX + 1]) {
+	case L'>':
+	case L'|':  INDEX = index + 2;  type = CTXT_REDIR;  break;
+	case L'(':  INDEX = index + 2;  goto parse_inner;
+	case L'&':  INDEX = index + 2;  type = CTXT_REDIR_FD;  break;
+	default:    INDEX = index + 1;  type = CTXT_REDIR;  break;
+	}
+	break;
+    default:  /* not a redirection */
+	return false;
+    }
+
+    skip_blanks();
+    result = cparse_word(NULL);
+    if (result) {
+	pi->ctxt->type = type;
+	pi->ctxt->pwordc = 0;
+	pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+	pi->ctxt->pwords[0] = NULL;
+    }
+    return result;
+
+parse_inner:
+    result = cparse_commands();
+    if (!result) {
+	assert(BUF[INDEX] == L')');
+	INDEX++;
+    }
+    return result;
 }
 
 /* Parses a for command. */
@@ -262,6 +318,21 @@ bool cparse_for_command(void)
 /* Parses a case command. */
 bool cparse_case_command(void)
 {
+    return false; //TODO
+}
+
+/* Parses the word at the current position.
+ * `skip_blanks' should be called before this function is called.
+ * If the word was completely parsed (that is, the return value is false) and
+ * if `resultword' is non-NULL, the word (after quote removal) is assigned to
+ * `*resultword' as a newly-malloced string.
+ * If the parser reached the end of the string, the return value is true and
+ * the result is saved in `pi->ctxt'. This function, however, updates only the
+ * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
+ * update the other members (`type', `pwordc' and `pwords'). */
+bool cparse_word(wchar_t **resultword)
+{
+    (void) resultword;
     return false; //TODO
 }
 
