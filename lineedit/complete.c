@@ -155,14 +155,6 @@ void le_complete(void)
     quotetype = context.quote;
     expanded_source_word_length = wcslen(context.src);
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
-	for (int i = 0; i < context.pwordc; i++)
-	    le_compdebug("preceding word %d: \"%ls\"",
-		    i + 1, (const wchar_t *) context.pwords[i]);
-	le_compdebug("source word: \"%ls\"", context.src);
-	le_compdebug(" as pattern: \"%ls\"", context.pattern);
-    }
-
     ctxt = &context;
     generate_candidates(get_candgen(ctxt));
     ctxt = NULL;

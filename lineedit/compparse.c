@@ -32,6 +32,7 @@
 #include "complete.h"
 #include "compparse.h"
 #include "editing.h"
+#include "lineedit.h"
 
 
 /* This structure contains data used during parsing */
@@ -57,6 +58,8 @@ static cparseinfo_T *pi;
 #define INDEX     (pi->bufindex)
 
 
+static void print_context_info(const le_context_T *ctxt)
+    __attribute__((nonnull));
 static bool cparse_commands(void);
 static void skip_blanks(void);
 #if YASH_ENABLE_ALIAS
@@ -118,6 +121,10 @@ bool le_get_context(le_context_T *ctxt)
 	ctxt->pattern =
 	    wb_towcs(wb_wccat(wb_initwith(&buf, ctxt->pattern), L'*'));
     }
+
+    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG)
+	print_context_info(ctxt);
+
     ctxt->cpattern = xfnm_compile(
 	    ctxt->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
     if (ctxt->cpattern == NULL) {
@@ -125,6 +132,38 @@ bool le_get_context(le_context_T *ctxt)
 	return false;
     }
     return true;
+}
+
+void print_context_info(const le_context_T *ctxt)
+{
+#ifdef NDEBUG
+    const char *s;
+#else
+    const char *s = s;
+#endif
+    switch (ctxt->quote) {
+	case QUOTE_NONE:    s = "none";    break;
+	case QUOTE_NORMAL:  s = "normal";  break;
+	case QUOTE_SINGLE:  s = "single";  break;
+	case QUOTE_DOUBLE:  s = "double";  break;
+    }
+    le_compdebug("quote type: %s", s);
+    switch (ctxt->type) {
+	case CTXT_NORMAL:         s = "normal"; break;
+	case CTXT_TILDE:          s = "tilde"; break;
+	case CTXT_VAR:            s = "variable";  break;
+	case CTXT_VAR_BRCK:       s = "variable in brace";  break;
+	case CTXT_VAR_BRCK_WORD:  s = "word in braced variable"; break;
+	case CTXT_ARITH:          s = "arithmetic";  break;
+	case CTXT_REDIR:          s = "redirection";  break;
+	case CTXT_REDIR_FD:       s = "redirection (fd)";  break;
+    }
+    le_compdebug("context type: %s", s);
+    for (int i = 0; i < ctxt->pwordc; i++)
+	le_compdebug("preceding word %d: \"%ls\"",
+		i + 1, (const wchar_t *) ctxt->pwords[i]);
+    le_compdebug("source word: \"%ls\"", ctxt->src);
+    le_compdebug(" as pattern: \"%ls\"", ctxt->pattern);
 }
 
 /* Following parser functions return true iff parsing is finished and the result
