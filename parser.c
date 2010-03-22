@@ -403,7 +403,7 @@ static wordunit_T *parse_special_word_unit(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *tryparse_paramexp_raw(void)
     __attribute__((malloc,warn_unused_result));
-static wordunit_T *parse_paramexp_in_brase(void)
+static wordunit_T *parse_paramexp_in_brace(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *parse_cmdsubst_in_paren(void)
     __attribute__((malloc,warn_unused_result));
@@ -1530,7 +1530,7 @@ wordunit_T *parse_special_word_unit(void)
 	ensure_buffer(2);
 	switch (cbuf.contents[cindex]) {
 	case L'{':
-	    return parse_paramexp_in_brase();
+	    return parse_paramexp_in_brace();
 	case L'(':
 	    if (cbuf.contents[cindex + 1] == L'(') {
 		wordunit_T *wu = tryparse_arith();
@@ -1592,7 +1592,7 @@ fail:
 
 /* Parses a parameter expansion starting with "${".
  * `cindex' points to '{' when the function is called, and '}' when returns. */
-wordunit_T *parse_paramexp_in_brase(void)
+wordunit_T *parse_paramexp_in_brace(void)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
     pe->pe_type = 0;
@@ -1624,7 +1624,7 @@ wordunit_T *parse_paramexp_in_brase(void)
     /* ensure_buffer(2); */
     if (!posixly_correct && cbuf.contents[cindex] == L'{') {
 	pe->pe_type |= PT_NEST;
-	pe->pe_nest = parse_paramexp_in_brase();
+	pe->pe_nest = parse_paramexp_in_brace();
     } else if (!posixly_correct
 	    && (cbuf.contents[cindex] == L'`'
 		|| (cbuf.contents[cindex] == L'$'
