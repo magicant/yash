@@ -21,6 +21,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
+#if YASH_ENABLE_ALIAS
+# include "../alias.h"
+#endif
 #include "../parser.h"
 #include "../strbuf.h"
 #include "../util.h"
@@ -34,14 +37,14 @@
 typedef struct cparseinfo_T {
     xwcsbuf_T buf;
     size_t bufindex;
-    size_t mainindex;
+#if YASH_ENABLE_ALIAS
+    struct aliaslist_T *aliaslist;
+#endif
     le_context_T *ctxt;
 } cparseinfo_T;
 /* The `buf' buffer contains the first `le_main_index' characters of the edit
  * buffer. During parsing, alias substitution may be performed on this buffer.
- * The `bufindex' and `mainindex' indices indicate the point the parser is
- * currently parsing. `bufindex' is an index into the `buf' buffer and
- * `mainindex' into the edit buffer (`le_main_buffer').
+ * The `bufindex' index indicates the point the parser is currently parsing.
  * The `ctxt' member points to the structure in which the final result is saved.
  */
 
@@ -51,13 +54,15 @@ static cparseinfo_T *pi;
 #define BUF       (pi->buf.contents)
 #define LEN       (pi->buf.length)
 #define INDEX     (pi->bufindex)
-#define MAINBUF   ((const wchar_t *) le_main_buffer.contents)
-#define MAINLEN   (le_main_buffer.length)
-#define MAININDEX (pi->mainindex)
 
 
 static bool cparse_commands(void);
 static void skip_blanks(void);
+#if YASH_ENABLE_ALIAS
+static bool csubstitute_alias(substaliasflags_T flags);
+#else
+# define csubstitute_alias(flags) false
+#endif
 static bool cparse_command(void);
 static bool token_at_current(const wchar_t *token)
     __attribute__((nonnull,pure));
@@ -80,16 +85,25 @@ bool le_get_context(le_context_T *ctxt)
     assert(wcslen(le_main_buffer.contents) == le_main_buffer.length);
 
     cparseinfo_T parseinfo;
-    parseinfo.bufindex = parseinfo.mainindex = 0;
-    parseinfo.ctxt = ctxt;
     wb_init(&parseinfo.buf);
     wb_ncat_force(&parseinfo.buf, le_main_buffer.contents, le_main_index);
+    parseinfo.bufindex = 0;
+#if YASH_ENABLE_ALIAS
+    parseinfo.aliaslist = new_aliaslist();
+#endif
+    parseinfo.ctxt = ctxt;
 
     pi = &parseinfo;
     while (!cparse_commands())
-	parseinfo.bufindex++, parseinfo.mainindex++;
+	parseinfo.bufindex++;
+#ifndef NDEBUG
+    pi = NULL;
+#endif
 
     wb_destroy(&parseinfo.buf);
+#if YASH_ENABLE_ALIAS
+    destroy_aliaslist(parseinfo.aliaslist);
+#endif
 
     if (ctxt->type == CTXT_NORMAL
 	    && is_pathname_matching_pattern(ctxt->pattern)) {
@@ -124,7 +138,7 @@ bool cparse_commands(void)
 	    case L'\0':
 		goto end;
 	    case L'\n':  case L';':  case L'&':  case L'|':
-		INDEX++, MAININDEX++;
+		INDEX++;
 		continue;
 	    case L')':
 		return false;
@@ -140,7 +154,7 @@ end:
     pi->ctxt->pwords[0] = NULL;
     pi->ctxt->src = xwcsdup(L"");
     pi->ctxt->pattern = xwcsdup(L"");
-    pi->ctxt->srcindex = MAININDEX;
+    pi->ctxt->srcindex = le_main_index;
     return true;
 }
 
@@ -148,40 +162,53 @@ end:
 void skip_blanks(void)
 {
     while (iswblank(BUF[INDEX]))
-	INDEX++, MAININDEX++;
+	INDEX++;
+}
+
+/* Performs alias substitution at the current position.
+ * See the description of `substitute_alias' for the usage of `flags'.
+ * Returns true iff any alias is substituted. */
+bool csubstitute_alias(substaliasflags_T flags)
+{
+    size_t len = 0;
+    while (is_alias_name_char(BUF[INDEX + len]))
+	len++;
+    if (len == 0 || BUF[INDEX + len] == L'\0')
+	return false;
+    return substitute_alias(&pi->buf, INDEX, len, pi->aliaslist, flags);
 }
 
 /* Parses a command from the current position. */
 bool cparse_command(void)
 {
     if (BUF[INDEX] == L'(') {
-	INDEX++, MAININDEX++;
+	INDEX++;
 	if (cparse_commands())
 	    return true;
 	if (BUF[INDEX] == L')')
-	    INDEX++, MAININDEX++;
+	    INDEX++;
 	return cparse_redirections();
     } else if (token_at_current(L"{") || token_at_current(L"!")) {
-	INDEX++, MAININDEX++;
+	INDEX++;
 	return false;
     } else if (token_at_current(L"if") || token_at_current(L"do")) {
-	INDEX += 2, MAININDEX += 2;
+	INDEX += 2;
 	return false;
     } else if (token_at_current(L"then") || token_at_current(L"else")
 	    || token_at_current(L"elif")) {
-	INDEX += 4, MAININDEX += 4;
+	INDEX += 4;
 	return false;
     } else if (token_at_current(L"while") || token_at_current(L"until")) {
-	INDEX += 5, MAININDEX += 5;
+	INDEX += 5;
 	return false;
     } else if (token_at_current(L"}")) {
-	INDEX++, MAININDEX++;
+	INDEX++;
 	return cparse_redirections();
     } else if (token_at_current(L"fi")) {
-	INDEX += 2, MAININDEX += 2;
+	INDEX += 2;
 	return cparse_redirections();
     } else if (token_at_current(L"done") || token_at_current(L"esac")) {
-	INDEX += 4, MAININDEX += 4;
+	INDEX += 4;
 	return cparse_redirections();
     } else if (token_at_current(L"for")) {
 	return cparse_for_command();
@@ -205,7 +232,8 @@ bool cparse_simple_command(void)
     return false; //TODO
 }
 
-/* Parses redirections until the next command. */
+/* Parses redirections until the next command.
+ * Global aliases are substituted if necessary. */
 bool cparse_redirections(void)
 {
     size_t saveindex;
@@ -214,9 +242,8 @@ bool cparse_redirections(void)
 	saveindex = INDEX;
 	if (ctryparse_redirect())
 	    return true;
-    } while (saveindex != INDEX);
-
-    return false; // TODO global alias
+    } while (saveindex != INDEX || csubstitute_alias(0));
+    return false;
 }
 
 /* Parses a redirection if any.
