@@ -69,6 +69,7 @@ static bool token_at_current(const wchar_t *token)
     __attribute__((nonnull,pure));
 static bool cparse_simple_command(void);
 static bool cparse_redirections(void);
+static bool ctryparse_assignment(void);
 static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
@@ -246,6 +247,33 @@ bool cparse_redirections(void)
 	    return true;
     } while (saveindex != INDEX || csubstitute_alias(0));
     return false;
+}
+
+/* Parses an assignment if any.
+ * `skip_blanks' should be called before this function is called. */
+bool ctryparse_assignment(void)
+{
+    size_t index = INDEX;
+
+    if (BUF[index] == L'=' || iswdigit(BUF[index]))
+	return false;
+    while (is_name_char(BUF[index]))
+	index++;
+    if (BUF[index] != L'=')
+	return false;
+    INDEX = index + 1;
+
+    if (true /* TODO: BUF[INDEX] != L'('*/) {
+	bool result = cparse_word(NULL); // TODO temporary implementation
+	if (result) {
+	    pi->ctxt->type = CTXT_NORMAL;
+	    pi->ctxt->pwordc = 0;
+	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+	    pi->ctxt->pwords[0] = NULL;
+	}
+	return result;
+    } else {
+    }
 }
 
 /* Parses a redirection if any.
