@@ -80,16 +80,19 @@ static bool cparse_for_command(void);
 static bool cparse_case_command(void);
 static bool cparse_word(bool testfunc(wchar_t c), wchar_t **resultword)
     __attribute__((nonnull(1)));
-static bool cparse_special_word_unit(le_quote_T quote, xwcsbuf_T *word)
+static bool cparse_and_expand_special_word_unit(
+	le_quote_T quote, xwcsbuf_T *word)
     __attribute__((nonnull));
-static bool cparse_paramexp_in_brace(le_quote_T quote, xwcsbuf_T *word)
-    __attribute__((nonnull));
-static bool cparse_arith(le_quote_T quote, xwcsbuf_T *word)
-    __attribute__((nonnull));
-static bool cparse_cmdsubst_in_paren(le_quote_T quote, xwcsbuf_T *word)
-    __attribute__((nonnull));
-static bool ctryparse_paramexp_raw(le_quote_T quote, xwcsbuf_T *word)
-    __attribute__((nonnull));
+static wordunit_T *cparse_special_word_unit(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *cparse_paramexp_raw(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *cparse_paramexp_in_brace(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *cparse_arith(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *cparse_cmdsubst_in_paren(void)
+    __attribute__((malloc,warn_unused_result));
 
 
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
@@ -467,7 +470,7 @@ bool cparse_word(bool testfunc(wchar_t c), wchar_t **resultword)
     while (quote == QUOTE_NORMAL ? !testfunc(BUF[INDEX]) : BUF[INDEX] != L'\0'){
 	switch (BUF[INDEX]) {
 	case L'$':
-	    if (cparse_special_word_unit(quote, &word)) {
+	    if (cparse_and_expand_special_word_unit(quote, &word)) {
 		wb_destroy(&word);
 		return true;
 	    }
@@ -531,47 +534,60 @@ return_true:
     }
 }
 
+/* Parses a parameter expansion or command substitution that starts with '$'
+ * and expands it.
+ * If the expansion/substitution was completely expanded, the return value is
+ * false and the result is appended to the `word' buffer.
+ * If the parser reached the end of the string, the return value is true and
+ * the result is saved in `pi->ctxt'. This function, however, updates only the
+ * `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller
+ * must update the other members (`pwordc' and `pwords'). */
+bool cparse_and_expand_special_word_unit(le_quote_T quote, xwcsbuf_T *word)
+{
+    assert(BUF[INDEX] == L'$');
+
+    wordunit_T *wu = cparse_special_word_unit();
+    if (wu == NULL) {
+	pi->ctxt->quote = quote;
+	return true;
+    } else {
+	wchar_t *s = expand_single(wu, tt_none);
+	free(wu);
+	assert(s != NULL);
+	s = escapefree(s, (quote != QUOTE_NORMAL) ? CHARS_ESCAPED : NULL);
+	wb_catfree(word, s);
+	return false;
+    }
+}
+
 /* Parses a parameter expansion or command substitution that starts with '$'.
- * If the expansion/substitution was completely parsed (that is, the return
- * value is false), the result is appended to the argument buffer. */
-bool cparse_special_word_unit(le_quote_T quote, xwcsbuf_T *word)
+ * If the parser reached the end of the string, the return value is NULL and
+ * the result is saved in `pi->ctxt'. This function updates only the `type',
+ * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
+ * other members (`quote', `pwordc' and `pwords'). */
+wordunit_T *cparse_special_word_unit(void)
 {
     assert(BUF[INDEX] == L'$');
     switch (BUF[INDEX + 1]) {
 	case L'{':
-	    return cparse_paramexp_in_brace(quote, word);
+	    INDEX++;
+	    return cparse_paramexp_in_brace();
 	case L'(':
 	    if (BUF[INDEX + 2] == L'(')
-		return cparse_arith(quote, word);
+		return cparse_arith();
 	    else
-		return cparse_cmdsubst_in_paren(quote, word);
+		return cparse_cmdsubst_in_paren();
 	default:
-	    return ctryparse_paramexp_raw(quote, word);
+	    return cparse_paramexp_raw();
     }
 }
 
-bool cparse_paramexp_in_brace(le_quote_T quote, xwcsbuf_T *word)
-{
-    //TODO
-    return false;
-}
-
-bool cparse_arith(le_quote_T quote, xwcsbuf_T *word)
-{
-    //TODO
-    return false;
-}
-
-bool cparse_cmdsubst_in_paren(le_quote_T quote, xwcsbuf_T *word)
-{
-    //TODO
-    return false;
-}
-
 /* Parses a parameter that is not enclosed by { }.
- * If the parameter was completely parsed (that is, the return value is false),
- * the result is appended to the argument buffer. */
-bool ctryparse_paramexp_raw(le_quote_T quote, xwcsbuf_T *word)
+ * If the parser reached the end of the string, the return value is NULL and
+ * the result is saved in `pi->ctxt'. This function updates only the `type',
+ * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
+ * other members (`quote', `pwordc' and `pwords'). */
+wordunit_T *cparse_paramexp_raw(void)
 {
     assert(BUF[INDEX] == L'$');
 
@@ -594,7 +610,7 @@ bool ctryparse_paramexp_raw(le_quote_T quote, xwcsbuf_T *word)
 		    pi->ctxt->quote = QUOTE_NONE;
 		    pi->ctxt->pattern = xwcsndup(BUF + INDEX + 1, namelen);
 		    pi->ctxt->srcindex = le_main_index - namelen;
-		    return true;
+		    return NULL;
 		}
 	    }
 	    break;
@@ -609,13 +625,91 @@ bool ctryparse_paramexp_raw(le_quote_T quote, xwcsbuf_T *word)
     wu->wu_param->pe_start = wu->wu_param->pe_end =
     wu->wu_param->pe_match = wu->wu_param->pe_subst = NULL;
 
-    wchar_t *s = expand_single(wu, tt_none);
-    s = escapefree(s, (quote != QUOTE_NORMAL) ? CHARS_ESCAPED : NULL);
-    wb_catfree(word, s);
-
-    wordfree(wu);
-
     INDEX += namelen + 1;
+    return wu;
+}
+
+/* Parses a parameter enclosed by { }.
+ * If the parser reached the end of the string, the return value is NULL and
+ * the result is saved in `pi->ctxt'. This function updates only the `type',
+ * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
+ * other members (`quote', `pwordc' and `pwords'). */
+wordunit_T *cparse_paramexp_in_brace(void)
+{
+    paramexp_T *pe = xmalloc(sizeof *pe);
+    pe->pe_type = 0;
+    pe->pe_name = NULL;
+    pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
+
+    assert(BUF[INDEX] == L'{');
+    INDEX++;
+
+    /* parse PT_NUMBER */
+    if (BUF[INDEX] == L'#') {
+	switch (BUF[INDEX + 1]) {
+	    case L'\0': case L'}':
+	    case L'+':  case L'=':  case L':':  case L'/':  case L'%':
+		break;
+	    case L'-':  case L'?':  case L'#':
+		if (BUF[INDEX + 2] != L'}')
+		    break;
+		/* falls thru! */
+	    default:
+		pe->pe_type |= PT_NUMBER;
+		INDEX++;
+		break;
+	}
+    }
+
+    /* parse nested expansion */
+    if (BUF[INDEX] == L'{') {
+	pe->pe_type |= PT_NEST;
+	pe->pe_nest = cparse_paramexp_in_brace();
+	if (pe->pe_nest == NULL)
+	    goto return_null;
+    } else if (BUF[INDEX] == L'`'
+		|| (BUF[INDEX] == L'$'
+		    && (BUF[INDEX + 1] == L'{' || BUF[INDEX + 1] == L'('))) {
+	pe->pe_type |= PT_NEST;
+	pe->pe_nest = cparse_special_word_unit();
+	if (pe->pe_nest == NULL)
+	    goto return_null;
+    } else {
+	/* no nesting: parse parameter name */
+    }
+
+    //TODO
+
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_PARAM;
+    result->wu_param = pe;
+    return result;
+
+return_null:
+    free(pe);
+    return NULL;
+}
+
+/* Parses an arithmetic expansion.
+ * If the parser reached the end of the string, the return value is NULL and
+ * the result is saved in `pi->ctxt'. This function updates only the `type',
+ * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
+ * other members (`quote', `pwordc' and `pwords'). */
+wordunit_T *cparse_arith(void)
+{
+    //TODO
+    return false;
+}
+
+/* Parses a command substitution enclosed by "$( )".
+ * If the parser reached the end of the string, the return value is NULL and
+ * the result is saved in `pi->ctxt'. This function updates only the `type',
+ * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
+ * other members (`quote', `pwordc' and `pwords'). */
+wordunit_T *cparse_cmdsubst_in_paren(void)
+{
+    //TODO
     return false;
 }
 
