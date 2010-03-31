@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <wctype.h>
 #if YASH_ENABLE_ALIAS
 # include "../alias.h"
 #endif
