@@ -49,7 +49,6 @@ static void pipesfree(pipeline_T *p);
 static void ifcmdsfree(ifcommand_T *i);
 static void caseitemsfree(caseitem_T *i);
 static void wordfree_vp(void *w);
-static void paramfree(paramexp_T *p);
 static void assignsfree(assign_T *a);
 static void redirsfree(redir_T *r);
 static void embedcmdfree(embedcmd_T c);

@@ -357,9 +357,10 @@ extern wchar_t *command_to_wcs(const command_T *command, _Bool multiline)
 /********** Functions That Free/Duplicate Parse Trees **********/
 
 extern void andorsfree(and_or_T *a);
-extern void wordfree(wordunit_T *w);
 static inline command_T *comsdup(command_T *c);
 extern void comsfree(command_T *c);
+extern void wordfree(wordunit_T *w);
+extern void paramfree(paramexp_T *p);
 
 
 /* Duplicates the specified command (virtually). */

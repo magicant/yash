@@ -138,32 +138,48 @@ static enum wglbflags get_wglbflags(void)
 bool expand_line(void *const *restrict args,
     int *restrict argcp, void ***restrict argvp)
 {
-    plist_T list1, list2;
-    pl_init(&list1);
+    plist_T list;
+    pl_init(&list);
 
-    /* four expansions, brace expansions and field splitting (args -> list1) */
     while (*args) {
-	if (!expand_word_and_split(*args, &list1)) {
-	    if (!is_interactive)
-		exit_shell_with_status(Exit_EXPERROR);
-	    recfree(pl_toary(&list1), free);
+	if (!expand_multiple(*args, &list)) {
+	    recfree(pl_toary(&list), free);
 	    return false;
 	}
 	args++;
     }
 
-    /* glob (list1 -> list2) */
-    if (shopt_noglob) {
-	list2 = list1;
-	for (size_t i = 0; i < list2.length; i++)
-	    list2.contents[i] = unescapefree(list2.contents[i]);
-    } else {
-	pl_init(&list2);
-	glob_all(pl_toary(&list1), &list2);
+    *argcp = list.length;
+    *argvp = pl_toary(&list);
+    return true;
+}
+
+/* Expands a word.
+ * The results, which are added to `list' as newly-malloced wide strings, may
+ * be multiple words.
+ * The return value is true iff successful.
+ * On error in a non-interactive shell, the shell exits. */
+bool expand_multiple(const wordunit_T *w, plist_T *list)
+{
+    plist_T templist;
+
+    /* four expansions, brace expansions and field splitting */
+    if (!expand_word_and_split(w, pl_init(&templist))) {
+	if (!is_interactive)
+	    exit_shell_with_status(Exit_EXPERROR);
+	recfree(pl_toary(&templist), free);
+	return false;
     }
 
-    *argcp = list2.length;
-    *argvp = pl_toary(&list2);
+    /* glob */
+    if (shopt_noglob) {
+	for (size_t i = 0; i < templist.length; i++)
+	    pl_add(list, unescapefree(templist.contents[i]));
+	pl_destroy(&templist);
+    } else {
+	glob_all(pl_toary(&templist), list);
+    }
+
     return true;
 }
 

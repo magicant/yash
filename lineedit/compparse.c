@@ -26,6 +26,7 @@
 # include "../alias.h"
 #endif
 #include "../expand.h"
+#include "../option.h"
 #include "../parser.h"
 #include "../plist.h"
 #include "../strbuf.h"
@@ -79,11 +80,11 @@ static bool ctryparse_assignment(void);
 static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
-static bool cparse_word(bool testfunc(wchar_t c), wchar_t **resultword)
-    __attribute__((nonnull(1)));
-static bool cparse_and_expand_special_word_unit(
-	le_quote_T quote, xwcsbuf_T *word)
-    __attribute__((nonnull));
+static wchar_t *cparse_and_expand_word(tildetype_T tilde)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static bool ctryparse_tilde(void);
 static wordunit_T *cparse_special_word_unit(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_paramexp_raw(void)
@@ -308,10 +309,8 @@ cparse_simple_command:
 	goto cparse_simple_command;
     }
 
-    wchar_t *resultword;
     plist_T pwords;
     pl_init(&pwords);
-
     for (;;) {
 	switch (BUF[INDEX]) {
 	    case L'\n':  case L';':  case L'&':  case L'|':
@@ -319,12 +318,17 @@ cparse_simple_command:
 		recfree(pl_toary(&pwords), free);
 		return false;
 	}
-	if (cparse_word(is_token_delimiter_char, &resultword)) {
+
+	wordunit_T *w = cparse_word(is_token_delimiter_char, tt_single);
+	if (w == NULL) {
 	    pi->ctxt->pwordc = pwords.length;
 	    pi->ctxt->pwords = pl_toary(&pwords);
 	    return true;
+	} else {
+	    expand_multiple(w, &pwords);
+	    wordfree(w);
 	}
-	pl_add(&pwords, resultword);
+
 	skip_blanks();
 	if (csubstitute_alias(0))
 	    skip_blanks();
@@ -365,14 +369,18 @@ bool ctryparse_assignment(void)
     INDEX = index + 1;
 
     if (true /* TODO: BUF[INDEX] != L'('*/) {
-	bool result = cparse_word(is_token_delimiter_char, NULL); // TODO temporary implementation
-	if (result) {
+	wchar_t *value = cparse_and_expand_word(tt_multi);
+	if (value == NULL) {
 	    pi->ctxt->pwordc = 0;
 	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
 	    pi->ctxt->pwords[0] = NULL;
+	    return true;
+	} else {
+	    free(value);
+	    return false;
 	}
-	return result;
     } else {
+	//TODO
     }
 }
 
@@ -383,6 +391,7 @@ bool ctryparse_redirect(void)
     size_t index = INDEX;
     le_contexttype_T type;
     bool result;
+    wchar_t *value;
 
     while (iswdigit(BUF[index]))
 	index++;
@@ -419,15 +428,18 @@ bool ctryparse_redirect(void)
     }
 
     skip_blanks();
-    result = cparse_word(is_token_delimiter_char, NULL);
-    if (result) {
+    value = cparse_and_expand_word(tt_single);
+    if (value == NULL) {
 	if (pi->ctxt->type == CTXT_NORMAL)
 	    pi->ctxt->type = type;
 	pi->ctxt->pwordc = 0;
 	pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
 	pi->ctxt->pwords[0] = NULL;
+	return true;
+    } else {
+	free(value);
+	return false;
     }
-    return result;
 
 parse_inner:
     result = cparse_commands();
@@ -452,120 +464,147 @@ bool cparse_case_command(void)
 
 /* Parses the word at the current position.
  * `skip_blanks' should be called before this function is called.
- * `testfunc' is a function that determines if a character is a word delimiter.
- * It must return true for L'\0'.
- * If the word was completely parsed (that is, the return value is false) and
- * if `resultword' is non-NULL, the word (after quote removal) is assigned to
- * `*resultword' as a newly-malloced string.
- * If the parser reached the end of the string, the return value is true and
- * the result is saved in `pi->ctxt'. This function, however, updates only the
- * `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller
- * must update the other members (`pwordc' and `pwords'). */
-bool cparse_word(bool testfunc(wchar_t c), wchar_t **resultword)
+ * If the word was completely parsed, the word is expanded until quote removal
+ * and returned as a newly-malloced string.
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. This function, however, updates only
+ * the `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The
+ * caller must update the other members (`pwordc' and `pwords'). */
+wchar_t *cparse_and_expand_word(tildetype_T tilde)
 {
-    le_quote_T quote = QUOTE_NORMAL;
-    size_t srcindex = le_main_index - (LEN - INDEX);
-    xwcsbuf_T word;
-
-    wb_init(&word);
-    while (quote == QUOTE_NORMAL ? !testfunc(BUF[INDEX]) : BUF[INDEX] != L'\0'){
-	switch (BUF[INDEX]) {
-	case L'$':
-	    if (cparse_and_expand_special_word_unit(quote, &word)) {
-		wb_destroy(&word);
-		return true;
-	    }
-	    break;
-	case L'`':
-	    //TODO
-	case L'"':
-	    quote = (quote == QUOTE_NORMAL) ? QUOTE_DOUBLE : QUOTE_NORMAL;
-	    INDEX++;
-	    break;
-	case L'\'':
-	    if (quote == QUOTE_NORMAL) {
-		INDEX++;
-		const wchar_t *end = wcschr(BUF + INDEX, L'\'');
-		if (end == NULL) {
-		    quote = QUOTE_SINGLE;
-		    wb_cat(&word, BUF + INDEX);
-		    goto return_true;
-		} else {
-		    wb_ncat_force(&word, BUF + INDEX, end - (BUF + INDEX));
-		    INDEX = (end + 1) - BUF;
-		    continue;
-		}
-	    }
-	    /* falls thru! */
-	default:
-	    if (quote == QUOTE_NORMAL) {
-		if (BUF[INDEX] != L'\\' || BUF[INDEX + 1] != L'\0')
-		    wb_wccat(&word, BUF[INDEX]);
-		INDEX++;
-	    } else {
-		if (BUF[INDEX] == L'\\') {
-		    wchar_t nextchar = BUF[++INDEX];
-		    if (nextchar == L'\0')
-			goto return_true;
-		    else if (wcschr(CHARS_ESCAPABLE, nextchar))
-			wb_wccat(wb_wccat(&word, L'\\'), nextchar), INDEX++;
-		    else
-			wb_wccat(wb_wccat(&word, L'\\'), L'\\');
-		} else {
-		    wb_wccat(wb_wccat(&word, L'\\'), BUF[INDEX++]);
-		}
-	    }
-	    break;
-	}
-    }
-
-    if (BUF[INDEX] == L'\0') {
-return_true:
-	pi->ctxt->type = CTXT_NORMAL;
-	pi->ctxt->quote = quote;
-	pi->ctxt->pattern = wb_towcs(&word);
-	pi->ctxt->srcindex = srcindex;
-	return true;
+    wordunit_T *w = cparse_word(is_token_delimiter_char, tilde);
+    if (w == NULL) {
+	return NULL;
     } else {
-	if (resultword != NULL)
-	    *resultword = wb_towcs(&word);
-	else
-	    wb_destroy(&word);
-	return false;
+	wchar_t *s = expand_single(w, tilde);
+	wordfree(w);
+	assert(s != NULL);
+	return s;
     }
 }
 
-/* Parses a parameter expansion or command substitution that starts with '$'
- * and expands it.
- * If the expansion/substitution was completely expanded, the return value is
- * false and the result is appended to the `word' buffer.
- * If the parser reached the end of the string, the return value is true and
- * the result is saved in `pi->ctxt'. This function, however, updates only the
- * `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller
- * must update the other members (`pwordc' and `pwords'). */
-bool cparse_and_expand_special_word_unit(le_quote_T quote, xwcsbuf_T *word)
+/* Parses the word at the current position.
+ * `skip_blanks' should be called before this function is called.
+ * `testfunc' is a function that determines if a character is a word delimiter.
+ * It must return true for L'\0'.
+ * If the word was completely parsed, the word is returned.
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. This function, however, updates only
+ * the `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The
+ * caller must update the other members (`pwordc' and `pwords'). */
+wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 {
-    assert(BUF[INDEX] == L'$');
+    if (tilde != tt_none)
+	if (ctryparse_tilde())
+	    return NULL;
 
-    wordunit_T *wu = cparse_special_word_unit();
-    if (wu == NULL) {
-	pi->ctxt->quote = quote;
-	return true;
-    } else {
-	wchar_t *s = expand_single(wu, tt_none);
-	free(wu);
-	assert(s != NULL);
-	s = escapefree(s, (quote != QUOTE_NORMAL) ? CHARS_ESCAPED : NULL);
-	wb_catfree(word, s);
-	return false;
+    wordunit_T *first = NULL, **lastp = &first;
+    bool indq = false;   /* in double quotes? */
+    size_t startindex = INDEX;
+    size_t srcindex = le_main_index - (LEN - INDEX);
+
+#define MAKE_WORDUNIT_STRING                                           \
+    do if (startindex != INDEX) {                                      \
+	wordunit_T *w = xmalloc(sizeof *w);                            \
+	w->next = NULL;                                                \
+	w->wu_type = WT_STRING;                                        \
+	w->wu_string = xwcsndup(BUF + startindex, INDEX - startindex); \
+	*lastp = w, lastp = &w->next;                                  \
+    } while (0)
+
+    while (indq ? (BUF[INDEX] != L'\0') : !testfunc(BUF[INDEX])) {
+	wordunit_T *wu;
+
+	switch (BUF[INDEX]) {
+	case L'\\':
+	    if (BUF[INDEX + 1] != L'\0') {
+		INDEX += 2;
+		continue;
+	    }
+	    break;
+	case L'$':
+	    MAKE_WORDUNIT_STRING;
+	    wu = cparse_special_word_unit();
+	    if (wu != NULL)
+		*lastp = wu, lastp = &wu->next;
+	    startindex = INDEX;
+	    continue;
+	case L'`':
+	    //TODO
+	case L'\'':
+	    if (!indq) {
+		do
+		    INDEX++;
+		while (BUF[INDEX] != L'\0' && BUF[INDEX] != L'\'');
+		if (BUF[INDEX] == L'\0')
+		    INDEX++;
+		continue;
+	    }
+	    break;
+	case L'"':
+	    indq = !indq;
+	    break;
+	case L':':
+	    if (!indq && tilde == tt_multi) {
+		INDEX++;
+		if (ctryparse_tilde()) {
+		    wordfree(first);
+		    return NULL;
+		}
+		continue;
+	    }
+	    break;
+	}
+	INDEX++;
     }
+    MAKE_WORDUNIT_STRING;
+
+    if (BUF[INDEX] != L'\0') {
+	return first;
+    } else {
+	pi->ctxt->type = CTXT_NORMAL;
+	pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
+	pi->ctxt->pattern = expand_single(first, tilde);
+	pi->ctxt->srcindex = srcindex;
+	wordfree(first);
+	return NULL;
+    }
+}
+
+/* Parses a tilde expansion at the current position if any.
+ * If there is a tilde expansion to complete, this function returns null after
+ * setting the `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'.
+ * Otherwise, this function simply returns false. */
+bool ctryparse_tilde(void)
+{
+    if (BUF[INDEX] != L'~')
+	return false;
+
+    size_t index = INDEX;
+    do {
+	index++;
+	switch (BUF[index]) {
+	    case L'\n':  case L';':   case L'&':   case L'|':
+	    case L'<':   case L'>':   case L'(':   case L')':
+	    case L'\\':  case L'\'':  case L'"':
+	    case L'$':   case L'`':   case L':':
+	    case L'?':   case L'*':   case L'[':
+		return false;
+	}
+    } while (BUF[index] != L'\0');
+
+    pi->ctxt->type = CTXT_TILDE;
+    pi->ctxt->quote = QUOTE_NONE;
+    pi->ctxt->pattern = xwcsdup(BUF + INDEX + 1);
+    pi->ctxt->srcindex = le_main_index - (LEN - (INDEX + 1));
+    return true;
 }
 
 /* Parses a parameter expansion or command substitution that starts with '$'.
  * If the parser reached the end of the string, the return value is NULL and
  * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
- * other members (`quote', `pwordc' and `pwords'). */
+ * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
+ * update the other members (`pwordc' and `pwords'). */
 wordunit_T *cparse_special_word_unit(void)
 {
     assert(BUF[INDEX] == L'$');
@@ -586,8 +625,8 @@ wordunit_T *cparse_special_word_unit(void)
 /* Parses a parameter that is not enclosed by { }.
  * If the parser reached the end of the string, the return value is NULL and
  * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
- * other members (`quote', `pwordc' and `pwords'). */
+ * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
+ * update the other members (`pwordc' and `pwords'). */
 wordunit_T *cparse_paramexp_raw(void)
 {
     assert(BUF[INDEX] == L'$');
@@ -633,8 +672,8 @@ wordunit_T *cparse_paramexp_raw(void)
 /* Parses a parameter enclosed by { }.
  * If the parser reached the end of the string, the return value is NULL and
  * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
- * other members (`quote', `pwordc' and `pwords'). */
+ * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
+ * update the other members (`pwordc' and `pwords'). */
 wordunit_T *cparse_paramexp_in_brace(void)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
@@ -667,36 +706,130 @@ wordunit_T *cparse_paramexp_in_brace(void)
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = cparse_paramexp_in_brace();
 	if (pe->pe_nest == NULL)
-	    goto return_null;
+	    goto syntax_error;
     } else if (BUF[INDEX] == L'`'
 		|| (BUF[INDEX] == L'$'
 		    && (BUF[INDEX + 1] == L'{' || BUF[INDEX + 1] == L'('))) {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = cparse_special_word_unit();
 	if (pe->pe_nest == NULL)
-	    goto return_null;
+	    goto syntax_error;
     } else {
 	/* no nesting: parse parameter name */
+	size_t namelen;
+	switch (BUF[INDEX]) {
+	    case L'@':  case L'*':  case L'#':  case L'?':
+	    case L'-':  case L'$':  case L'!':
+		namelen = 1;
+		break;
+	    default:
+		namelen = 0;
+		while (is_name_char(BUF[INDEX + namelen]))
+		    namelen++;
+		break;
+	}
+	if (BUF[INDEX + namelen] == L'\0') {
+	    paramfree(pe);
+	    pi->ctxt->type = CTXT_VAR_BRCK;
+	    pi->ctxt->quote = QUOTE_NORMAL;
+	    pi->ctxt->pattern = xwcsndup(BUF + INDEX, namelen);
+	    pi->ctxt->srcindex = le_main_index - namelen;
+	    return NULL;
+	}
+	pe->pe_name = xwcsndup(BUF + INDEX, namelen);
+	INDEX += namelen;
     }
 
+    /* parse index */
+    if (BUF[INDEX] == L'[') {
+	//TODO parse index
+    }
+
+    /* parse PT_COLON */
+    if (BUF[INDEX] == L':') {
+	pe->pe_type |= PT_COLON;
+	INDEX++;
+    }
+
+    /* parse '-', '+', '#', etc. */
+    switch (BUF[INDEX]) {
+	default:
+	    goto syntax_error;
+	case L'+':
+	    pe->pe_type |= PT_PLUS;
+	    goto parse_subst;
+	case L'-':  case L'=':  case L'?':
+	    pe->pe_type |= PT_MINUS;
+	    goto parse_subst;
+	case L'#':
+	    pe->pe_type |= PT_MATCH | PT_MATCHHEAD;
+	    goto parse_match;
+	case L'%':
+	    pe->pe_type |= PT_MATCH | PT_MATCHTAIL;
+	    goto parse_match;
+	case L'/':
+	    pe->pe_type |= PT_SUBST | PT_MATCHLONGEST;
+	    goto parse_match;
+	case L'}':
+	    pe->pe_type |= PT_MINUS;
+	    goto finish;
+    }
+
+parse_match:
+    if (pe->pe_type & PT_COLON) {
+        if ((pe->pe_type & PT_MASK) == PT_SUBST)
+            pe->pe_type |= PT_MATCHHEAD | PT_MATCHTAIL;
+        else
+	    goto syntax_error;
+	INDEX++;
+    } else if (BUF[INDEX] == BUF[INDEX + 1]) {
+	if ((pe->pe_type & PT_MASK) == PT_MATCH)
+	    pe->pe_type |= PT_MATCHLONGEST;
+	else
+	    pe->pe_type |= PT_SUBSTALL;
+	INDEX += 2;
+    } else if (BUF[INDEX] == L'/') {
+	switch (BUF[INDEX + 1]) {
+	    case L'#':
+		pe->pe_type |= PT_MATCHHEAD;
+		INDEX += 2;
+		break;
+	    case L'%':
+		pe->pe_type |= PT_MATCHTAIL;
+		INDEX += 2;
+		break;
+	    default:
+		INDEX += 1;
+		break;
+	}
+    } else {
+	INDEX++;
+    }
+    if ((pe->pe_type & PT_MASK) == PT_MATCH) {
+	//pe->pe_match = cparse_word
+    } else {
+    }
+
+parse_subst:
     //TODO
 
+finish:;
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_PARAM;
     result->wu_param = pe;
     return result;
 
-return_null:
-    free(pe);
+syntax_error:
+    //TODO
     return NULL;
 }
 
 /* Parses an arithmetic expansion.
  * If the parser reached the end of the string, the return value is NULL and
  * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
- * other members (`quote', `pwordc' and `pwords'). */
+ * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
+ * update the other members (`pwordc' and `pwords'). */
 wordunit_T *cparse_arith(void)
 {
     //TODO
@@ -706,8 +839,8 @@ wordunit_T *cparse_arith(void)
 /* Parses a command substitution enclosed by "$( )".
  * If the parser reached the end of the string, the return value is NULL and
  * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `pattern' and `srcindex' members of `pi->ctxt'. The caller must update the
- * other members (`quote', `pwordc' and `pwords'). */
+ * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
+ * update the other members (`pwordc' and `pwords'). */
 wordunit_T *cparse_cmdsubst_in_paren(void)
 {
     //TODO
