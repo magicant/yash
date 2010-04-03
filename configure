@@ -52,6 +52,7 @@ etags_args=""
 term_lib='tinfo curses ncurses ncursesw'
 unset prefix eprefix bindir datarootdir docdir htmldir
 unset checkresult
+unset MAKEFLAGS
 umask u=rwx,go=rx
 cd "$(dirname "$0")"
 
