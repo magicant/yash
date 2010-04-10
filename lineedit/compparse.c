@@ -231,6 +231,8 @@ void skip_blanks(void)
 	INDEX++;
 }
 
+#if YASH_ENABLE_ALIAS
+
 /* Performs alias substitution at the current position.
  * See the description of `substitute_alias' for the usage of `flags'.
  * Returns true iff any alias is substituted. */
@@ -243,6 +245,8 @@ bool csubstitute_alias(substaliasflags_T flags)
 	return false;
     return substitute_alias(&pi->buf, INDEX, len, pi->aliaslist, flags);
 }
+
+#endif
 
 /* Parses a command from the current position. */
 bool cparse_command(void)

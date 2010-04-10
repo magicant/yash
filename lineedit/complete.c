@@ -446,7 +446,9 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_function_candidates(candgen->type, ctxt);
     generate_keyword_candidates(candgen->type, ctxt);
     generate_option_candidates(candgen->type, ctxt);
+#if YASH_ENABLE_ALIAS
     generate_alias_candidates(candgen->type, ctxt);
+#endif
     generate_variable_candidates(candgen->type, ctxt);
     generate_job_candidates(candgen->type, ctxt);
     generate_shopt_candidates(candgen->type, ctxt);
@@ -1056,8 +1058,10 @@ int complete_builtin(int argc, void **argv)
 	    case L'v':  candgen.type |= CGT_VARIABLE;    break;
 	    case L'X':  intermix = true;                 break;
 	    case L'Z':  candgen.type |= CGT_STOPPED;     break;
+#if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
+#endif
 	    default:
 		fprintf(stderr,
 		    gt("Usage:  complete [-C command] [-O option] [-PX]\n"
