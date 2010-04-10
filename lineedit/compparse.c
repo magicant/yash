@@ -95,6 +95,12 @@ static wordunit_T *cparse_arith(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_cmdsubst_in_paren(void)
     __attribute__((malloc,warn_unused_result));
+static bool is_slash_or_closing_brace(wchar_t c)
+    __attribute__((const));
+static bool is_closing_brace(wchar_t c)
+    __attribute__((const));
+static bool is_closing_bracket(wchar_t c)
+    __attribute__((const));
 
 
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
@@ -167,8 +173,8 @@ void print_context_info(const le_context_T *ctxt)
     }
     le_compdebug("quote type: %s", s);
     switch (ctxt->type) {
-	case CTXT_NORMAL:         s = "normal"; break;
-	case CTXT_TILDE:          s = "tilde"; break;
+	case CTXT_NORMAL:         s = "normal";  break;
+	case CTXT_TILDE:          s = "tilde";  break;
 	case CTXT_VAR:            s = "variable";  break;
 	case CTXT_VAR_BRCK:       s = "variable in brace";  break;
 	case CTXT_VAR_BRCK_WORD:  s = "word in braced variable"; break;
@@ -504,7 +510,7 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
     size_t srcindex = le_main_index - (LEN - INDEX);
 
 #define MAKE_WORDUNIT_STRING                                           \
-    do if (startindex != INDEX) {                                      \
+    do {                                                               \
 	wordunit_T *w = xmalloc(sizeof *w);                            \
 	w->next = NULL;                                                \
 	w->wu_type = WT_STRING;                                        \
@@ -525,20 +531,30 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 	case L'$':
 	    MAKE_WORDUNIT_STRING;
 	    wu = cparse_special_word_unit();
-	    if (wu != NULL)
-		*lastp = wu, lastp = &wu->next;
+	    if (wu == NULL) {
+		if (pi->ctxt->type == CTXT_VAR_BRCK_WORD) {
+		    xwcsbuf_T buf;
+		    wchar_t *prefix = expand_single(first, tilde);
+		    assert(prefix != NULL);
+		    pi->ctxt->pattern = wb_towcs(wb_catfree(
+				wb_initwith(&buf, prefix), pi->ctxt->pattern));
+		    pi->ctxt->srcindex = srcindex;
+		}
+		wordfree(first);
+		return NULL;
+	    }
+	    *lastp = wu, lastp = &wu->next;
 	    startindex = INDEX;
 	    continue;
 	case L'`':
 	    //TODO
 	case L'\'':
 	    if (!indq) {
-		do
+		do {
 		    INDEX++;
-		while (BUF[INDEX] != L'\0' && BUF[INDEX] != L'\'');
-		if (BUF[INDEX] == L'\0')
-		    INDEX++;
-		continue;
+		    if (BUF[INDEX] == L'\0')
+			goto end_single_quote;
+		} while (BUF[INDEX] != L'\'');
 	    }
 	    break;
 	case L'"':
@@ -560,15 +576,39 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
     MAKE_WORDUNIT_STRING;
 
     if (BUF[INDEX] != L'\0') {
+	assert(first != NULL);
 	return first;
     } else {
-	pi->ctxt->type = CTXT_NORMAL;
+	if (testfunc == is_token_delimiter_char)
+	    pi->ctxt->type = CTXT_NORMAL;
+	else
+	    pi->ctxt->type = CTXT_VAR_BRCK_WORD;
 	pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
 	pi->ctxt->pattern = expand_single(first, tilde);
 	pi->ctxt->srcindex = srcindex;
 	wordfree(first);
 	return NULL;
     }
+
+    /* if the word ends without a closing quote, add one */
+end_single_quote:;
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    wb_cat(&buf, BUF + startindex);
+    wb_wccat(&buf, L'\'');
+
+    wordunit_T *w = xmalloc(sizeof *w);
+    w->next = NULL;
+    w->wu_type = WT_STRING;
+    w->wu_string = wb_towcs(&buf);
+    *lastp = w, lastp = &w->next;
+
+    pi->ctxt->type = CTXT_NORMAL;
+    pi->ctxt->quote = QUOTE_SINGLE;
+    pi->ctxt->pattern = expand_single(first, tilde);
+    pi->ctxt->srcindex = srcindex;
+    wordfree(first);
+    return NULL;
 }
 
 /* Parses a tilde expansion at the current position if any.
@@ -584,10 +624,10 @@ bool ctryparse_tilde(void)
     do {
 	index++;
 	switch (BUF[index]) {
-	    case L'\n':  case L';':   case L'&':   case L'|':
-	    case L'<':   case L'>':   case L'(':   case L')':
+	    case L'\n':  case L';':   case L'&':  case L'|':
+	    case L'<':   case L'>':   case L'(':  case L')':
+	    case L'$':   case L'`':   case L'/':  case L':':
 	    case L'\\':  case L'\'':  case L'"':
-	    case L'$':   case L'`':   case L':':
 	    case L'?':   case L'*':   case L'[':
 		return false;
 	}
@@ -658,12 +698,17 @@ wordunit_T *cparse_paramexp_raw(void)
 
     wordunit_T *wu = xmalloc(sizeof *wu);
     wu->next = NULL;
-    wu->wu_type = WT_PARAM;
-    wu->wu_param = xmalloc(sizeof *wu->wu_param);
-    wu->wu_param->pe_type = PT_MINUS;
-    wu->wu_param->pe_name = xwcsndup(BUF + INDEX + 1, namelen);
-    wu->wu_param->pe_start = wu->wu_param->pe_end =
-    wu->wu_param->pe_match = wu->wu_param->pe_subst = NULL;
+    if (namelen == 0) {
+	wu->wu_type = WT_STRING;
+	wu->wu_string = xwcsdup(L"$");
+    } else {
+	wu->wu_type = WT_PARAM;
+	wu->wu_param = xmalloc(sizeof *wu->wu_param);
+	wu->wu_param->pe_type = PT_MINUS;
+	wu->wu_param->pe_name = xwcsndup(BUF + INDEX + 1, namelen);
+	wu->wu_param->pe_start = wu->wu_param->pe_end =
+	wu->wu_param->pe_match = wu->wu_param->pe_subst = NULL;
+    }
 
     INDEX += namelen + 1;
     return wu;
@@ -681,6 +726,7 @@ wordunit_T *cparse_paramexp_in_brace(void)
     pe->pe_name = NULL;
     pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
 
+    const size_t origindex = INDEX;
     assert(BUF[INDEX] == L'{');
     INDEX++;
 
@@ -706,14 +752,14 @@ wordunit_T *cparse_paramexp_in_brace(void)
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = cparse_paramexp_in_brace();
 	if (pe->pe_nest == NULL)
-	    goto syntax_error;
+	    goto return_null;
     } else if (BUF[INDEX] == L'`'
 		|| (BUF[INDEX] == L'$'
 		    && (BUF[INDEX + 1] == L'{' || BUF[INDEX + 1] == L'('))) {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = cparse_special_word_unit();
 	if (pe->pe_nest == NULL)
-	    goto syntax_error;
+	    goto return_null;
     } else {
 	/* no nesting: parse parameter name */
 	size_t namelen;
@@ -729,12 +775,11 @@ wordunit_T *cparse_paramexp_in_brace(void)
 		break;
 	}
 	if (BUF[INDEX + namelen] == L'\0') {
-	    paramfree(pe);
 	    pi->ctxt->type = CTXT_VAR_BRCK;
 	    pi->ctxt->quote = QUOTE_NORMAL;
 	    pi->ctxt->pattern = xwcsndup(BUF + INDEX, namelen);
 	    pi->ctxt->srcindex = le_main_index - namelen;
-	    return NULL;
+	    goto return_null;
 	}
 	pe->pe_name = xwcsndup(BUF + INDEX, namelen);
 	INDEX += namelen;
@@ -742,7 +787,15 @@ wordunit_T *cparse_paramexp_in_brace(void)
 
     /* parse index */
     if (BUF[INDEX] == L'[') {
-	//TODO parse index
+	INDEX++;
+	wordunit_T *wu = cparse_word(is_closing_bracket, tt_none);
+	if (wu == NULL)
+	    goto return_null;
+	wordfree(wu);
+	/* don't assign the result to `pe->pe_start/end' since it may cause an
+	 * arithmetic expansion error. */
+	if (BUF[INDEX] == L']')
+	    INDEX++;
     }
 
     /* parse PT_COLON */
@@ -771,8 +824,8 @@ wordunit_T *cparse_paramexp_in_brace(void)
 	    pe->pe_type |= PT_SUBST | PT_MATCHLONGEST;
 	    goto parse_match;
 	case L'}':
-	    pe->pe_type |= PT_MINUS;
-	    goto finish;
+	    pe->pe_type |= PT_NONE;
+	    goto check_closing_paren_and_finish;
     }
 
 parse_match:
@@ -806,14 +859,53 @@ parse_match:
 	INDEX++;
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
-	//pe->pe_match = cparse_word
+	pe->pe_match = cparse_word(is_closing_brace, tt_none);
+	if (pe->pe_match == NULL)
+	    goto return_null;
+	goto check_closing_paren_and_finish;
     } else {
+	pe->pe_match = cparse_word(is_slash_or_closing_brace, tt_none);
+	if (pe->pe_match == NULL)
+	    goto return_null;
+	if (BUF[INDEX] != L'/')
+	    goto check_closing_paren_and_finish;
     }
 
 parse_subst:
-    //TODO
+    INDEX++;
+    pe->pe_subst = cparse_word(is_closing_brace, tt_none);
+    if (pe->pe_subst == NULL)
+	goto return_null;
 
-finish:;
+check_closing_paren_and_finish:
+    if (BUF[INDEX] == L'}')
+	INDEX++;
+
+    switch (pe->pe_type & PT_MASK) {
+	case PT_MINUS:  case PT_PLUS:
+	    break;
+	case PT_ASSIGN:  case PT_ERROR:
+	    assert(false);
+	default:
+	    if (pe->pe_type & PT_NEST)
+		break;
+
+	    /* make the variable expansion nested with the PT_MINUS flag
+	     * to avoid a possible "nounset" error. */
+	    paramexp_T *pe2 = xmalloc(sizeof *pe2);
+	    pe2->pe_type = PT_MINUS;
+	    pe2->pe_name = pe->pe_name;
+	    pe2->pe_start = pe2->pe_end = pe2->pe_match = pe2->pe_subst = NULL;
+
+	    wordunit_T *nest = xmalloc(sizeof *nest);
+	    nest->next = NULL;
+	    nest->wu_type = WT_PARAM;
+	    nest->wu_param = pe2;
+	    pe->pe_type |= PT_NEST;
+	    pe->pe_nest = nest;
+	    break;
+    }
+
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_PARAM;
@@ -821,7 +913,16 @@ finish:;
     return result;
 
 syntax_error:
-    //TODO
+    paramfree(pe);
+    result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_STRING;
+    result->wu_string = escapefree(
+	    xwcsndup(BUF + origindex, INDEX - origindex), NULL);
+    return result;
+
+return_null:
+    paramfree(pe);
     return NULL;
 }
 
@@ -845,6 +946,20 @@ wordunit_T *cparse_cmdsubst_in_paren(void)
 {
     //TODO
     return false;
+}
+
+bool is_slash_or_closing_brace(wchar_t c)
+{
+    return c == L'/' || c == L'}' || c == L'\0';
+}
+
+bool is_closing_brace(wchar_t c)
+{
+    return c == L'}' || c == L'\0';
+}
+bool is_closing_bracket(wchar_t c)
+{
+    return c == L']' || c == L'\0';
 }
 
 /* Frees the contents of the specified `le_context_T' data. */
