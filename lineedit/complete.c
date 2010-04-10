@@ -328,7 +328,7 @@ const le_candgen_T *get_candgen(const le_context_T *context)
     tempresult = (le_candgen_T) { .type = 0, .words = NULL, .function = NULL };
     switch (context->type) {
 	case CTXT_NORMAL:
-	case CTXT_VAR_BRCK_WORD:
+	case CTXT_VAR_BRC_WORD:
 	    if (context->pwordc == 0) {
 		if (wcschr(context->src, L'/')) {
 		    tempresult.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
@@ -344,7 +344,7 @@ const le_candgen_T *get_candgen(const le_context_T *context)
 	    tempresult.type |= CGT_LOGNAME;
 	    return &tempresult;
 	case CTXT_VAR:
-	case CTXT_VAR_BRCK:
+	case CTXT_VAR_BRC:
 	    tempresult.type |= CGT_VARIABLE;
 	    return &tempresult;
 	case CTXT_ARITH:

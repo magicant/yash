@@ -62,14 +62,14 @@ typedef enum le_quote_T {
     QUOTE_DOUBLE,  // in double quotation
 } le_quote_T;
 typedef enum le_contexttype_T {
-    CTXT_NORMAL,         // normal word
-    CTXT_TILDE,          // tilde expansion
-    CTXT_VAR,            // variable name not in brackets
-    CTXT_VAR_BRCK,       // variable name in brackets
-    CTXT_VAR_BRCK_WORD,  // matching pattern/substitution in bracketed variable
-    CTXT_ARITH,          // arithmetic expansion
-    CTXT_REDIR,          // redirection target (that is a file name)
-    CTXT_REDIR_FD,       // redirection target (that is a file descriptor)
+    CTXT_NORMAL,        // normal word
+    CTXT_TILDE,         // tilde expansion
+    CTXT_VAR,           // variable name not in brackets
+    CTXT_VAR_BRC,       // variable name in braces
+    CTXT_VAR_BRC_WORD,  // matching pattern/substitution in variable
+    CTXT_ARITH,         // arithmetic expansion
+    CTXT_REDIR,         // redirection target (that is a file name)
+    CTXT_REDIR_FD,      // redirection target (that is a file descriptor)
 } le_contexttype_T;
 typedef struct le_context_T {
     le_quote_T quote;

@@ -173,14 +173,14 @@ void print_context_info(const le_context_T *ctxt)
     }
     le_compdebug("quote type: %s", s);
     switch (ctxt->type) {
-	case CTXT_NORMAL:         s = "normal";  break;
-	case CTXT_TILDE:          s = "tilde";  break;
-	case CTXT_VAR:            s = "variable";  break;
-	case CTXT_VAR_BRCK:       s = "variable in brace";  break;
-	case CTXT_VAR_BRCK_WORD:  s = "word in braced variable"; break;
-	case CTXT_ARITH:          s = "arithmetic";  break;
-	case CTXT_REDIR:          s = "redirection";  break;
-	case CTXT_REDIR_FD:       s = "redirection (fd)";  break;
+	case CTXT_NORMAL:        s = "normal";                   break;
+	case CTXT_TILDE:         s = "tilde";                    break;
+	case CTXT_VAR:           s = "variable";                 break;
+	case CTXT_VAR_BRC:       s = "variable in brace";        break;
+	case CTXT_VAR_BRC_WORD:  s = "word in braced variable";  break;
+	case CTXT_ARITH:         s = "arithmetic";               break;
+	case CTXT_REDIR:         s = "redirection";              break;
+	case CTXT_REDIR_FD:      s = "redirection (fd)";         break;
     }
     le_compdebug("context type: %s", s);
     for (int i = 0; i < ctxt->pwordc; i++)
@@ -532,7 +532,7 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 	    MAKE_WORDUNIT_STRING;
 	    wu = cparse_special_word_unit();
 	    if (wu == NULL) {
-		if (pi->ctxt->type == CTXT_VAR_BRCK_WORD) {
+		if (pi->ctxt->type == CTXT_VAR_BRC_WORD) {
 		    xwcsbuf_T buf;
 		    wchar_t *prefix = expand_single(first, tilde);
 		    assert(prefix != NULL);
@@ -582,7 +582,7 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 	if (testfunc == is_token_delimiter_char)
 	    pi->ctxt->type = CTXT_NORMAL;
 	else
-	    pi->ctxt->type = CTXT_VAR_BRCK_WORD;
+	    pi->ctxt->type = CTXT_VAR_BRC_WORD;
 	pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
 	pi->ctxt->pattern = expand_single(first, tilde);
 	pi->ctxt->srcindex = srcindex;
@@ -775,7 +775,7 @@ wordunit_T *cparse_paramexp_in_brace(void)
 		break;
 	}
 	if (BUF[INDEX + namelen] == L'\0') {
-	    pi->ctxt->type = CTXT_VAR_BRCK;
+	    pi->ctxt->type = CTXT_VAR_BRC;
 	    pi->ctxt->quote = QUOTE_NORMAL;
 	    pi->ctxt->pattern = xwcsndup(BUF + INDEX, namelen);
 	    pi->ctxt->srcindex = le_main_index - namelen;
