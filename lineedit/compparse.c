@@ -199,7 +199,7 @@ void print_context_info(const le_context_T *ctxt)
  * found or the whole line is parsed. */
 bool cparse_commands(void)
 {
-    do {
+    for (;;) {
 	skip_blanks();
 	switch (BUF[INDEX]) {
 	    case L'\0':
@@ -210,8 +210,10 @@ bool cparse_commands(void)
 	    case L')':
 		return false;
 	}
-    } while (!cparse_command());
-    return true;
+
+	if (cparse_command())
+	    return true;
+    }
 
 end:
     pi->ctxt->quote = QUOTE_NORMAL;
