@@ -1655,7 +1655,6 @@ parse_name:;
 make_name:
 	pe->pe_name = xwcsndup(
 		cbuf.contents + namestartindex, cindex - namestartindex);
-	assert(pe->pe_name != NULL);
     }
 
     /* parse indices */
@@ -1698,7 +1697,7 @@ make_name:
 	if (pe->pe_type & PT_COLON)
 	    serror(Ngt("invalid use of `%lc' in parameter expansion"),
 		    (wint_t) L':');
-	goto check_closing_paren_and_finish;
+	goto check_closing_brace;
     case L'\0':  case L'\n':
 	serror(Ngt("`%ls' missing"), L"}");
 	goto fail;
@@ -1737,19 +1736,19 @@ parse_match:
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
 	pe->pe_match = parse_word_to(is_closing_brace);
-	goto check_closing_paren_and_finish;
+	goto check_closing_brace;
     } else {
 	pe->pe_match = parse_word_to(is_slash_or_closing_brace);
+	ensure_buffer(1);
+	if (cbuf.contents[cindex] != L'/')
+	    goto check_closing_brace;
     }
 
-    ensure_buffer(1);
-    if (cbuf.contents[cindex] != L'/')
-	goto check_closing_paren_and_finish;
 parse_subst:
     cindex++;
     pe->pe_subst = parse_word_to(is_closing_brace);
 
-check_closing_paren_and_finish:
+check_closing_brace:
     ensure_buffer(1);
     if (cbuf.contents[cindex] == L'}')
 	cindex++;
