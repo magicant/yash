@@ -5,7 +5,8 @@ echo cat c
 hello world
 world
 reserved words
-hyphen
+IO_NUMBER
+@!,%
 restored
 =====
 alias

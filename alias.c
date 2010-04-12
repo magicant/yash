@@ -88,6 +88,8 @@ static void remove_expired_aliases(aliaslist_T *list, size_t index)
     __attribute__((nonnull));
 static void shift_index(aliaslist_T *list, ptrdiff_t inc)
     __attribute__((nonnull));
+static bool is_redir_fd(const wchar_t *s)
+    __attribute__((nonnull,pure));
 static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
 
 
@@ -296,7 +298,8 @@ substitute_alias:
     }
     /* `i' is the starting index of the alias name and `j' is the ending index*/
 
-    if (i < j && is_token_delimiter_char(buf->contents[j])) {
+    if (i < j && is_token_delimiter_char(buf->contents[j])
+	    && !is_redir_fd(buf->contents + i)) {
 	wchar_t savechar = buf->contents[j];
 	buf->contents[j] = L'\0';
 	alias_T *alias = ht_get(&aliases, buf->contents + i).value;
@@ -338,6 +341,18 @@ substitute_alias:
  *    alias -g a='a a '
  *    echo a
  */
+
+/* Returns true iff the specified string starts with any number of digits
+ * followed by L'<' or L'>'. */
+/* An IO_NUMBER token, which specifies the file descriptor a redirection
+ * affects, must not be alias-substituted. This function check if the word is
+ * such a token. */
+bool is_redir_fd(const wchar_t *s)
+{
+    while (iswdigit(*s))
+	s++;
+    return *s == L'<' || *s == L'>';
+}
 
 /* Prints an alias definition to the standard output.
  * On error, an error message is printed to the standard error.
