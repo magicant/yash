@@ -291,11 +291,12 @@ bool cparse_command(void)
     }
 }
 
-/* Returns true iff the specified word is at the current position. */
+/* Returns true iff the specified word is at the current position (and it is not
+ * at the end of the buffer). */
 bool token_at_current(const wchar_t *token)
 {
     const wchar_t *c = matchwcsprefix(BUF + INDEX, token);
-    return c != NULL && is_token_delimiter_char(*c);
+    return c != NULL && *c != L'\0' && is_token_delimiter_char(*c);
 }
 
 /* Parses a simple command. */
