@@ -333,8 +333,12 @@ cparse_simple_command:
 
 	wordunit_T *w = cparse_word(is_token_delimiter_char, tt_single);
 	if (w == NULL) {
-	    pi->ctxt->pwordc = pwords.length;
-	    pi->ctxt->pwords = pl_toary(&pwords);
+	    if (pi->ctxt->pwords == NULL) {
+		pi->ctxt->pwordc = pwords.length;
+		pi->ctxt->pwords = pl_toary(&pwords);
+	    } else {
+		recfree(pl_toary(&pwords), free);
+	    }
 	    return true;
 	} else {
 	    expand_multiple(w, &pwords);
@@ -383,9 +387,11 @@ bool ctryparse_assignment(void)
     if (true /* TODO: BUF[INDEX] != L'('*/) {
 	wchar_t *value = cparse_and_expand_word(tt_multi);
 	if (value == NULL) {
-	    pi->ctxt->pwordc = 0;
-	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-	    pi->ctxt->pwords[0] = NULL;
+	    if (pi->ctxt->pwords == NULL) {
+		pi->ctxt->pwordc = 0;
+		pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+		pi->ctxt->pwords[0] = NULL;
+	    }
 	    return true;
 	} else {
 	    free(value);
@@ -443,10 +449,12 @@ bool ctryparse_redirect(void)
     value = cparse_and_expand_word(tt_single);
     if (value == NULL) {
 	if (pi->ctxt->type == CTXT_NORMAL)
-	    pi->ctxt->type = type;
-	pi->ctxt->pwordc = 0;
-	pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-	pi->ctxt->pwords[0] = NULL;
+	    pi->ctxt->type = type; // TODO do we really need to set type here?
+	if (pi->ctxt->pwords == NULL) {
+	    pi->ctxt->pwordc = 0;
+	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+	    pi->ctxt->pwords[0] = NULL;
+	}
 	return true;
     } else {
 	free(value);
@@ -479,9 +487,9 @@ bool cparse_case_command(void)
  * If the word was completely parsed, the word is expanded until quote removal
  * and returned as a newly-malloced string.
  * If the parser reached the end of the input string, the return value is NULL
- * and the result is saved in `pi->ctxt'. This function, however, updates only
- * the `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The
- * caller must update the other members (`pwordc' and `pwords'). */
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
 wchar_t *cparse_and_expand_word(tildetype_T tilde)
 {
     wordunit_T *w = cparse_word(is_token_delimiter_char, tilde);
@@ -501,9 +509,9 @@ wchar_t *cparse_and_expand_word(tildetype_T tilde)
  * It must return true for L'\0'.
  * If the word was completely parsed, the word is returned.
  * If the parser reached the end of the input string, the return value is NULL
- * and the result is saved in `pi->ctxt'. This function, however, updates only
- * the `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'. The
- * caller must update the other members (`pwordc' and `pwords'). */
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
 wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 {
     if (tilde != tt_none)
@@ -538,7 +546,8 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 	    MAKE_WORDUNIT_STRING;
 	    wu = cparse_special_word_unit();
 	    if (wu == NULL) {
-		if (pi->ctxt->type == CTXT_VAR_BRC_WORD) {
+		if (pi->ctxt->pwords == NULL
+			&& pi->ctxt->type == CTXT_VAR_BRC_WORD) {
 		    xwcsbuf_T buf;
 		    wchar_t *prefix = expand_single(first, tilde);
 		    assert(prefix != NULL);
@@ -590,6 +599,8 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 	else
 	    pi->ctxt->type = CTXT_VAR_BRC_WORD;
 	pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
+	pi->ctxt->pwordc = 0;
+	pi->ctxt->pwords = NULL;
 	pi->ctxt->pattern = expand_single(first, tilde);
 	pi->ctxt->srcindex = srcindex;
 	wordfree(first);
@@ -611,6 +622,8 @@ end_single_quote:;
 
     pi->ctxt->type = CTXT_NORMAL;
     pi->ctxt->quote = QUOTE_SINGLE;
+    pi->ctxt->pwordc = 0;
+    pi->ctxt->pwords = NULL;
     pi->ctxt->pattern = expand_single(first, tilde);
     pi->ctxt->srcindex = srcindex;
     wordfree(first);
@@ -618,8 +631,10 @@ end_single_quote:;
 }
 
 /* Parses a tilde expansion at the current position if any.
- * If there is a tilde expansion to complete, this function returns null after
- * setting the `type', `quote', `pattern' and `srcindex' members of `pi->ctxt'.
+ * If there is a tilde expansion to complete, this function returns true after
+ * setting the members of `pi->ctxt'. (However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member.)
  * Otherwise, this function simply returns false. */
 bool ctryparse_tilde(void)
 {
@@ -641,16 +656,18 @@ bool ctryparse_tilde(void)
 
     pi->ctxt->type = CTXT_TILDE;
     pi->ctxt->quote = QUOTE_NONE;
+    pi->ctxt->pwordc = 0;
+    pi->ctxt->pwords = NULL;
     pi->ctxt->pattern = xwcsdup(BUF + INDEX + 1);
     pi->ctxt->srcindex = le_main_index - (LEN - (INDEX + 1));
     return true;
 }
 
 /* Parses a parameter expansion or command substitution that starts with '$'.
- * If the parser reached the end of the string, the return value is NULL and
- * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
- * update the other members (`pwordc' and `pwords'). */
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
 wordunit_T *cparse_special_word_unit(void)
 {
     assert(BUF[INDEX] == L'$');
@@ -669,10 +686,10 @@ wordunit_T *cparse_special_word_unit(void)
 }
 
 /* Parses a parameter that is not enclosed by { }.
- * If the parser reached the end of the string, the return value is NULL and
- * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
- * update the other members (`pwordc' and `pwords'). */
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
 wordunit_T *cparse_paramexp_raw(void)
 {
     assert(BUF[INDEX] == L'$');
@@ -694,6 +711,9 @@ wordunit_T *cparse_paramexp_raw(void)
 		    /* complete variable name */
 		    pi->ctxt->type = CTXT_VAR;
 		    pi->ctxt->quote = QUOTE_NONE;
+		    pi->ctxt->pwordc = 0;
+		    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
+		    pi->ctxt->pwords[0] = NULL;
 		    pi->ctxt->pattern = xwcsndup(BUF + INDEX + 1, namelen);
 		    pi->ctxt->srcindex = le_main_index - namelen;
 		    return NULL;
@@ -721,10 +741,10 @@ wordunit_T *cparse_paramexp_raw(void)
 }
 
 /* Parses a parameter enclosed by { }.
- * If the parser reached the end of the string, the return value is NULL and
- * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
- * update the other members (`pwordc' and `pwords'). */
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
 wordunit_T *cparse_paramexp_in_brace(void)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
@@ -783,6 +803,9 @@ wordunit_T *cparse_paramexp_in_brace(void)
 	if (BUF[INDEX + namelen] == L'\0') {
 	    pi->ctxt->type = CTXT_VAR_BRC;
 	    pi->ctxt->quote = QUOTE_NORMAL;
+	    pi->ctxt->pwordc = 0;
+	    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
+	    pi->ctxt->pwords[0] = NULL;
 	    pi->ctxt->pattern = xwcsndup(BUF + INDEX, namelen);
 	    pi->ctxt->srcindex = le_main_index - namelen;
 	    goto return_null;
@@ -831,7 +854,7 @@ wordunit_T *cparse_paramexp_in_brace(void)
 	    goto parse_match;
 	case L'}':
 	    pe->pe_type |= PT_NONE;
-	    goto check_closing_paren_and_finish;
+	    goto check_closing_paren;
     }
 
 parse_match:
@@ -868,13 +891,13 @@ parse_match:
 	pe->pe_match = cparse_word(is_closing_brace, tt_none);
 	if (pe->pe_match == NULL)
 	    goto return_null;
-	goto check_closing_paren_and_finish;
+	goto check_closing_paren;
     } else {
 	pe->pe_match = cparse_word(is_slash_or_closing_brace, tt_none);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	if (BUF[INDEX] != L'/')
-	    goto check_closing_paren_and_finish;
+	    goto check_closing_paren;
     }
 
 parse_subst:
@@ -883,7 +906,7 @@ parse_subst:
     if (pe->pe_subst == NULL)
 	goto return_null;
 
-check_closing_paren_and_finish:
+check_closing_paren:
     if (BUF[INDEX] == L'}')
 	INDEX++;
 
@@ -933,10 +956,10 @@ return_null:
 }
 
 /* Parses an arithmetic expansion.
- * If the parser reached the end of the string, the return value is NULL and
- * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
- * update the other members (`pwordc' and `pwords'). */
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
 wordunit_T *cparse_arith(void)
 {
     //TODO
@@ -944,10 +967,10 @@ wordunit_T *cparse_arith(void)
 }
 
 /* Parses a command substitution enclosed by "$( )".
- * If the parser reached the end of the string, the return value is NULL and
- * the result is saved in `pi->ctxt'. This function updates only the `type',
- * `quote', `pattern' and `srcindex' members of `pi->ctxt'. The caller must
- * update the other members (`pwordc' and `pwords'). */
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
 wordunit_T *cparse_cmdsubst_in_paren(void)
 {
     //TODO
