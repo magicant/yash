@@ -578,6 +578,7 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 	    break;
 	case L':':
 	    if (!indq && tilde == tt_multi) {
+		// TODO goto cparse_word
 		INDEX++;
 		if (ctryparse_tilde()) {
 		    wordfree(first);
@@ -760,14 +761,14 @@ wordunit_T *cparse_paramexp_in_brace(void)
     /* parse PT_NUMBER */
     if (BUF[INDEX] == L'#') {
 	switch (BUF[INDEX + 1]) {
-	    case L'\0': case L'}':
-	    case L'+':  case L'=':  case L':':  case L'/':  case L'%':
+	    case L'}':  case L'+':  case L'=':
+	    case L':':  case L'/':  case L'%':
 		break;
 	    case L'-':  case L'?':  case L'#':
 		if (BUF[INDEX + 2] != L'}')
 		    break;
 		/* falls thru! */
-	    default:
+	    case L'\0':  default:
 		pe->pe_type |= PT_NUMBER;
 		INDEX++;
 		break;
