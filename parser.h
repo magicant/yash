@@ -176,6 +176,7 @@ typedef enum {
     PT_ERROR,                  /* ${name?subst} */
     PT_MATCH,                  /* ${name#match}, ${name%match} */
     PT_SUBST,                  /* ${name/match/subst} */
+    PT_MASK         = (1 << 3) - 1,
     PT_NUMBER       = 1 << 3,  /* ${#name}  (only valid for PT_NONE) */
     PT_COLON        = 1 << 4,  /* ${name:-subst}, ${name:+subst}, etc. */
     PT_MATCHHEAD    = 1 << 5,  /* only matches at the head */
@@ -184,7 +185,6 @@ typedef enum {
     PT_SUBSTALL     = 1 << 8,  /* substitute all the match */
     PT_NEST         = 1 << 9,  /* have nested expn. like ${${VAR#foo}%bar} */
 } paramexptype_T;
-#define PT_MASK ((1 << 3) - 1)
 /*            type   COLON  MATCHH MATCHT MATCHL SUBSTA
  * ${n-s}     MINUS   no
  * ${n+s}     PLUS    no
