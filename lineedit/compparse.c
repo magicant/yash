@@ -93,6 +93,8 @@ static wordunit_T *cparse_paramexp_raw(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_paramexp_in_brace(void)
     __attribute__((malloc,warn_unused_result));
+static wordunit_T *cparse_cmdsubst_in_backquote(void)
+    __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_arith(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_cmdsubst_in_paren(void)
@@ -569,7 +571,14 @@ cparse_word:
 	    startindex = INDEX;
 	    continue;
 	case L'`':
-	    //TODO
+	    wu = cparse_cmdsubst_in_backquote();
+	    if (wu == NULL) {
+		wordfree(first);
+		return NULL;
+	    }
+	    *lastp = wu, lastp = &wu->next;
+	    startindex = INDEX;
+	    continue;
 	case L'\'':
 	    if (!indq) {
 		do {
@@ -956,6 +965,45 @@ syntax_error:
 return_null:
     paramfree(pe);
     return NULL;
+}
+
+/* Parses a command substitution enclosed by backquotes.
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. */
+wordunit_T *cparse_cmdsubst_in_backquote(void)
+{
+    size_t startindex = INDEX;
+    size_t endindex;
+
+    assert(BUF[INDEX] == L'`');
+    INDEX++;
+    endindex = INDEX;
+    for (;;) {
+	switch (BUF[endindex++]) {
+	    case L'\0':
+		goto parse_inside;
+	    case L'`':
+		goto return_content;
+	    case L'\\':
+		if (BUF[endindex] != L'\0')
+		    endindex++;
+		break;
+	}
+    }
+
+parse_inside:
+    while (!cparse_commands())
+	INDEX++;
+    return NULL;
+
+return_content:
+    INDEX = endindex;
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_STRING;
+    result->wu_string = escapefree(
+	    xwcsndup(BUF + startindex, endindex - startindex), NULL);
+    return result;
 }
 
 /* Parses an arithmetic expansion.
