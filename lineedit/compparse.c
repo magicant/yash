@@ -105,6 +105,8 @@ static bool is_closing_brace(wchar_t c)
     __attribute__((const));
 static bool is_closing_bracket(wchar_t c)
     __attribute__((const));
+static bool is_arith_delimiter(wchar_t c)
+    __attribute__((pure));
 
 
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
@@ -969,13 +971,48 @@ return_null:
 
 /* Parses an arithmetic expansion.
  * If the parser reached the end of the input string, the return value is NULL
- * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
- * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member. */
+ * and the result is saved in `pi->ctxt'. */
 wordunit_T *cparse_arith(void)
 {
-    //TODO
-    return false;
+    size_t startindex = INDEX;
+
+    assert(BUF[INDEX    ] == L'$');
+    assert(BUF[INDEX + 1] == L'(');
+
+    int nestparen = 0;
+    INDEX += 2;
+    for (;;) {
+	if (BUF[INDEX] != L'\0' && is_arith_delimiter(BUF[INDEX])) {
+	    switch (BUF[INDEX++]) {
+		case L'(':
+		    nestparen++;
+		    break;
+		case L')':
+		    nestparen--;
+		    if (nestparen < 0)
+			goto return_content;
+	    }
+	} else {
+	    wordunit_T *wu = cparse_word(
+		    is_arith_delimiter, tt_none, CTXT_ARITH);
+	    if (wu == NULL) {
+		if (pi->ctxt->pwords == NULL) {
+		    pi->ctxt->pwordc = 0;
+		    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+		    pi->ctxt->pwords[0] = NULL;
+		}
+		return NULL;
+	    }
+	    wordfree(wu);
+	}
+    }
+
+return_content:;
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_STRING;
+    result->wu_string = xwcsndup(BUF + startindex, INDEX - startindex);
+    return result;
 }
 
 /* Parses a command substitution enclosed by "$( )".
@@ -1054,6 +1091,18 @@ bool is_closing_brace(wchar_t c)
 bool is_closing_bracket(wchar_t c)
 {
     return c == L']' || c == L'\0';
+}
+
+bool is_arith_delimiter(wchar_t c)
+{
+    switch (c) {
+	case L'\0':
+	    return true;
+	case L'$':  case L'`':  case L'"':  case L'\'':  case L'\\':  case L'_':
+	    return false;
+	default:
+	    return !iswalnum(c);
+    }
 }
 
 /* Frees the contents of the specified `le_context_T' data. */

@@ -1273,8 +1273,8 @@ void generate_variable_candidates(
 	const wchar_t *name = kv.key;
 	const variable_T *var = kv.value;
 	switch (var->v_type & VF_MASK) {
-	    case VF_SCALAR:  if (!(type & CGT_SCALAR)) continue;
-	    case VF_ARRAY:   if (!(type & CGT_ARRAY))  continue;
+	    case VF_SCALAR:  if (!(type & CGT_SCALAR)) continue;  break;
+	    case VF_ARRAY:   if (!(type & CGT_ARRAY))  continue;  break;
 	}
 	if (name[0] != L'='
 		&& xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
