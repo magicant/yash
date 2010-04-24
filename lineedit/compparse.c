@@ -80,9 +80,11 @@ static bool ctryparse_assignment(void);
 static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
-static wchar_t *cparse_and_expand_word(tildetype_T tilde)
+static wchar_t *cparse_and_expand_word(
+	tildetype_T tilde, le_contexttype_T ctxttype)
     __attribute__((malloc,warn_unused_result));
-static wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
+static wordunit_T *cparse_word(
+	bool testfunc(wchar_t c), tildetype_T tilde, le_contexttype_T ctxttype)
     __attribute__((nonnull,malloc,warn_unused_result));
 static bool ctryparse_tilde(void);
 static wordunit_T *cparse_special_word_unit(void)
@@ -332,7 +334,8 @@ cparse_simple_command:
 		return false;
 	}
 
-	wordunit_T *w = cparse_word(is_token_delimiter_char, tt_single);
+	wordunit_T *w = cparse_word(
+		is_token_delimiter_char, tt_single, CTXT_NORMAL);
 	if (w == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
 		pi->ctxt->pwordc = pwords.length;
@@ -386,7 +389,7 @@ bool ctryparse_assignment(void)
     INDEX = index + 1;
 
     if (true /* TODO: BUF[INDEX] != L'('*/) {
-	wchar_t *value = cparse_and_expand_word(tt_multi);
+	wchar_t *value = cparse_and_expand_word(tt_multi, CTXT_NORMAL);//TODO
 	if (value == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
 		pi->ctxt->pwordc = 0;
@@ -447,10 +450,8 @@ bool ctryparse_redirect(void)
     }
 
     skip_blanks();
-    value = cparse_and_expand_word(tt_single);
+    value = cparse_and_expand_word(tt_single, type);
     if (value == NULL) {
-	if (pi->ctxt->type == CTXT_NORMAL)
-	    pi->ctxt->type = type; // TODO do we really need to set type here?
 	if (pi->ctxt->pwords == NULL) {
 	    pi->ctxt->pwordc = 0;
 	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
@@ -490,10 +491,11 @@ bool cparse_case_command(void)
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member. */
-wchar_t *cparse_and_expand_word(tildetype_T tilde)
+ * the caller must update the `pwordc' and `pwords' member.
+ * The `ctxttype' argument specifies the value of `pi->ctxt->type'. */
+wchar_t *cparse_and_expand_word(tildetype_T tilde, le_contexttype_T ctxttype)
 {
-    wordunit_T *w = cparse_word(is_token_delimiter_char, tilde);
+    wordunit_T *w = cparse_word(is_token_delimiter_char, tilde, ctxttype);
     if (w == NULL) {
 	return NULL;
     } else {
@@ -512,8 +514,10 @@ wchar_t *cparse_and_expand_word(tildetype_T tilde)
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member. */
-wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
+ * the caller must update the `pwordc' and `pwords' member.
+ * The `ctxttype' argument specifies the value of `pi->ctxt->type'. */
+wordunit_T *cparse_word(
+	bool testfunc(wchar_t c), tildetype_T tilde, le_contexttype_T ctxttype)
 {
     if (tilde != tt_none)
 	if (ctryparse_tilde())
@@ -596,10 +600,7 @@ wordunit_T *cparse_word(bool testfunc(wchar_t c), tildetype_T tilde)
 	assert(first != NULL);
 	return first;
     } else {
-	if (testfunc == is_token_delimiter_char)
-	    pi->ctxt->type = CTXT_NORMAL;
-	else
-	    pi->ctxt->type = CTXT_VAR_BRC_WORD;
+	pi->ctxt->type = ctxttype;
 	pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
 	pi->ctxt->pwordc = 0;
 	pi->ctxt->pwords = NULL;
@@ -622,7 +623,7 @@ end_single_quote:;
     w->wu_string = wb_towcs(&buf);
     *lastp = w, lastp = &w->next;
 
-    pi->ctxt->type = CTXT_NORMAL;
+    pi->ctxt->type = ctxttype;
     pi->ctxt->quote = QUOTE_SINGLE;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = NULL;
@@ -819,7 +820,7 @@ wordunit_T *cparse_paramexp_in_brace(void)
     /* parse index */
     if (BUF[INDEX] == L'[') {
 	INDEX++;
-	wordunit_T *wu = cparse_word(is_closing_bracket, tt_none);
+	wordunit_T *wu = cparse_word(is_closing_bracket, tt_none, CTXT_ARITH);
 	if (wu == NULL)
 	    goto return_null;
 	wordfree(wu);
@@ -890,12 +891,14 @@ parse_match:
 	INDEX++;
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
-	pe->pe_match = cparse_word(is_closing_brace, tt_none);
+	pe->pe_match = cparse_word(
+		is_closing_brace, tt_none, CTXT_VAR_BRC_WORD);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	goto check_closing_paren;
     } else {
-	pe->pe_match = cparse_word(is_slash_or_closing_brace, tt_none);
+	pe->pe_match = cparse_word(
+		is_slash_or_closing_brace, tt_none, CTXT_VAR_BRC_WORD);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	if (BUF[INDEX] != L'/')
@@ -904,7 +907,7 @@ parse_match:
 
 parse_subst:
     INDEX++;
-    pe->pe_subst = cparse_word(is_closing_brace, tt_none);
+    pe->pe_subst = cparse_word(is_closing_brace, tt_none, CTXT_VAR_BRC_WORD);
     if (pe->pe_subst == NULL)
 	goto return_null;
 
