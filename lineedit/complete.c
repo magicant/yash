@@ -115,6 +115,8 @@ size_t le_selected_candidate_index;
 
 /* The index of the cursor before completion started. */
 static size_t insertion_index;
+/* The type of context at the current position. */
+static le_contexttype_T ctxttype;
 /* The type of quotation at the current position. */
 static le_quote_T quotetype;
 /* The length of the expanded source word, not including backslash escapes. */
@@ -152,6 +154,7 @@ void le_complete(void)
 	goto display;
 
     insertion_index = le_main_index;
+    ctxttype = context.type;
     quotetype = context.quote;
     expanded_source_word_length = wcslen(context.src);
 
@@ -841,9 +844,28 @@ void update_main_buffer(void)
 		le_main_index += 1;
 		break;
 	}
+
 	if (le_candidates.length == 1) {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
-	    le_main_index += 1;
+	    switch (ctxttype) {
+		case CTXT_NORMAL:
+		case CTXT_ARITH:
+		case CTXT_REDIR:
+		case CTXT_REDIR_FD:
+		    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+		    le_main_index += 1;
+		    break;
+		case CTXT_TILDE:
+		    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
+		    le_main_index += 1;
+		    break;
+		case CTXT_VAR:
+		    break;
+		case CTXT_VAR_BRC:
+		case CTXT_VAR_BRC_WORD:
+		    wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
+		    le_main_index += 1;
+		    break;
+	    }
 	}
     }
 }
