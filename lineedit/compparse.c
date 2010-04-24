@@ -209,8 +209,6 @@ bool cparse_commands(void)
     for (;;) {
 	skip_blanks();
 	switch (BUF[INDEX]) {
-	    case L'\0':
-		goto end;
 	    case L'\n':  case L';':  case L'&':  case L'|':
 		INDEX++;
 		continue;
@@ -221,16 +219,6 @@ bool cparse_commands(void)
 	if (cparse_command())
 	    return true;
     }
-
-end: // TODO do we really need this?
-    pi->ctxt->quote = QUOTE_NORMAL;
-    pi->ctxt->type = CTXT_COMMAND;
-    pi->ctxt->pwordc = 0;
-    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-    pi->ctxt->pwords[0] = NULL;
-    pi->ctxt->pattern = xwcsdup(L"");
-    pi->ctxt->srcindex = le_main_index;
-    return true;
 }
 
 /* Skips blank characters. */
