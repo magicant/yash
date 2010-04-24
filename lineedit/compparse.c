@@ -980,13 +980,27 @@ wordunit_T *cparse_arith(void)
 
 /* Parses a command substitution enclosed by "$( )".
  * If the parser reached the end of the input string, the return value is NULL
- * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
- * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member. */
+ * and the result is saved in `pi->ctxt'. */
 wordunit_T *cparse_cmdsubst_in_paren(void)
 {
-    //TODO
-    return false;
+    size_t startindex = INDEX;
+
+    assert(BUF[INDEX    ] == L'$');
+    assert(BUF[INDEX + 1] == L'(');
+
+    INDEX += 2;
+    if (cparse_commands()) {
+	return NULL;
+    } else {
+	assert(BUF[INDEX] == L')');
+	INDEX++;
+
+	wordunit_T *result = xmalloc(sizeof *result);
+	result->next = NULL;
+	result->wu_type = WT_STRING;
+	result->wu_string = xwcsndup(BUF + startindex, INDEX - startindex);
+	return result;
+    }
 }
 
 /* Parses a command substitution enclosed by backquotes.
