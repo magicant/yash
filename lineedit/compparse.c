@@ -520,6 +520,7 @@ wchar_t *cparse_and_expand_word(tildetype_T tilde, le_contexttype_T ctxttype)
 wordunit_T *cparse_word(
 	bool testfunc(wchar_t c), tildetype_T tilde, le_contexttype_T ctxttype)
 {
+cparse_word:
     if (tilde != tt_none)
 	if (ctryparse_tilde())
 	    return NULL;
@@ -583,13 +584,9 @@ wordunit_T *cparse_word(
 	    break;
 	case L':':
 	    if (!indq && tilde == tt_multi) {
-		// TODO goto cparse_word
 		INDEX++;
-		if (ctryparse_tilde()) {
-		    wordfree(first);
-		    return NULL;
-		}
-		continue;
+		wordfree(first);
+		goto cparse_word;
 	    }
 	    break;
 	}
