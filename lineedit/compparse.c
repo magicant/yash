@@ -860,10 +860,10 @@ wordunit_T *cparse_paramexp_in_brace(void)
     /* parse index */
     if (BUF[INDEX] == L'[') {
 	INDEX++;
-	wordunit_T *wu = cparse_word(is_closing_bracket, tt_none, CTXT_ARITH);
-	if (wu == NULL)
+	wordunit_T *w = cparse_word(is_closing_bracket, tt_none, CTXT_ARITH);
+	if (w == NULL)
 	    goto return_null;
-	wordfree(wu);
+	wordfree(w);
 	/* don't assign the result to `pe->pe_start/end' since it may cause an
 	 * arithmetic expansion error. */
 	if (BUF[INDEX] == L']')
@@ -1024,9 +1024,9 @@ wordunit_T *cparse_arith(void)
 			goto return_content;
 	    }
 	} else {
-	    wordunit_T *wu = cparse_word(
+	    wordunit_T *w = cparse_word(
 		    is_arith_delimiter, tt_none, CTXT_ARITH);
-	    if (wu == NULL) {
+	    if (w == NULL) {
 		if (pi->ctxt->pwords == NULL) {
 		    pi->ctxt->pwordc = 0;
 		    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
@@ -1034,7 +1034,7 @@ wordunit_T *cparse_arith(void)
 		}
 		return NULL;
 	    }
-	    wordfree(wu);
+	    wordfree(w);
 	}
     }
 
