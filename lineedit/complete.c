@@ -353,6 +353,9 @@ const le_candgen_T *get_candgen(const le_context_T *context)
 	case CTXT_ARITH:
 	    tempresult.type |= CGT_SCALAR;
 	    return &tempresult;
+	case CTXT_ASSIGN:
+	    tempresult.type |= CGT_FILE;
+	    return &tempresult;
 	case CTXT_REDIR:
 	    tempresult.type |= CGT_FILE | CGT_GALIAS;
 	    return &tempresult;
@@ -849,6 +852,7 @@ void update_main_buffer(void)
 	    switch (ctxttype) {
 		case CTXT_NORMAL:
 		case CTXT_ARITH:
+		case CTXT_ASSIGN:
 		case CTXT_REDIR:
 		case CTXT_REDIR_FD:
 		    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);

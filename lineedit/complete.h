@@ -68,6 +68,7 @@ typedef enum le_contexttype_T {
     CTXT_VAR_BRC,       // variable name in braces
     CTXT_VAR_BRC_WORD,  // matching pattern/substitution in variable
     CTXT_ARITH,         // arithmetic expansion
+    CTXT_ASSIGN,        // assignment
     CTXT_REDIR,         // redirection target (that is a file name)
     CTXT_REDIR_FD,      // redirection target (that is a file descriptor)
 } le_contexttype_T;

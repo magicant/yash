@@ -181,6 +181,7 @@ void print_context_info(const le_context_T *ctxt)
 	case CTXT_VAR_BRC:       s = "variable in brace";        break;
 	case CTXT_VAR_BRC_WORD:  s = "word in braced variable";  break;
 	case CTXT_ARITH:         s = "arithmetic";               break;
+	case CTXT_ASSIGN:        s = "assignment";               break;
 	case CTXT_REDIR:         s = "redirection";              break;
 	case CTXT_REDIR_FD:      s = "redirection (fd)";         break;
     }
@@ -389,7 +390,7 @@ bool ctryparse_assignment(void)
     INDEX = index + 1;
 
     if (true /* TODO: BUF[INDEX] != L'('*/) {
-	wchar_t *value = cparse_and_expand_word(tt_multi, CTXT_NORMAL);//TODO
+	wchar_t *value = cparse_and_expand_word(tt_multi, CTXT_ASSIGN);
 	if (value == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
 		pi->ctxt->pwordc = 0;
