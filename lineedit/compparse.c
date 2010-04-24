@@ -317,9 +317,7 @@ cparse_simple_command:
 	goto cparse_simple_command;
     }
 
-    bool first = true;
     plist_T pwords;
-
     pl_init(&pwords);
     for (;;) {
 	switch (BUF[INDEX]) {
@@ -330,7 +328,7 @@ cparse_simple_command:
 	}
 
 	wordunit_T *w = cparse_word(is_token_delimiter_char, tt_single,
-		first ? CTXT_COMMAND : CTXT_NORMAL);
+		pwords.length == 0 ? CTXT_COMMAND : CTXT_NORMAL);
 	if (w == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
 		pi->ctxt->pwordc = pwords.length;
@@ -352,8 +350,6 @@ cparse_simple_command:
 	    return true;
 	}
 	skip_blanks();
-
-	first = false;
     }
 }
 
