@@ -93,11 +93,11 @@ static wordunit_T *cparse_paramexp_raw(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_paramexp_in_brace(void)
     __attribute__((malloc,warn_unused_result));
-static wordunit_T *cparse_cmdsubst_in_backquote(void)
-    __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_arith(void)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_cmdsubst_in_paren(void)
+    __attribute__((malloc,warn_unused_result));
+static wordunit_T *cparse_cmdsubst_in_backquote(void)
     __attribute__((malloc,warn_unused_result));
 static bool is_slash_or_closing_brace(wchar_t c)
     __attribute__((const));
@@ -967,6 +967,28 @@ return_null:
     return NULL;
 }
 
+/* Parses an arithmetic expansion.
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
+wordunit_T *cparse_arith(void)
+{
+    //TODO
+    return false;
+}
+
+/* Parses a command substitution enclosed by "$( )".
+ * If the parser reached the end of the input string, the return value is NULL
+ * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
+ * when the preceding words need to be determined by the caller. In this case,
+ * the caller must update the `pwordc' and `pwords' member. */
+wordunit_T *cparse_cmdsubst_in_paren(void)
+{
+    //TODO
+    return false;
+}
+
 /* Parses a command substitution enclosed by backquotes.
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. */
@@ -1004,28 +1026,6 @@ return_content:
     result->wu_string = escapefree(
 	    xwcsndup(BUF + startindex, endindex - startindex), NULL);
     return result;
-}
-
-/* Parses an arithmetic expansion.
- * If the parser reached the end of the input string, the return value is NULL
- * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
- * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member. */
-wordunit_T *cparse_arith(void)
-{
-    //TODO
-    return false;
-}
-
-/* Parses a command substitution enclosed by "$( )".
- * If the parser reached the end of the input string, the return value is NULL
- * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
- * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member. */
-wordunit_T *cparse_cmdsubst_in_paren(void)
-{
-    //TODO
-    return false;
 }
 
 bool is_slash_or_closing_brace(wchar_t c)
