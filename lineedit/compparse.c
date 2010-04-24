@@ -393,7 +393,8 @@ bool ctryparse_assignment(void)
 	return false;
     INDEX = index + 1;
 
-    if (true /* TODO: BUF[INDEX] != L'('*/) {
+    if (BUF[INDEX] != L'(') {
+	/* scalar variable */
 	wchar_t *value = cparse_and_expand_word(tt_multi, CTXT_ASSIGN);
 	if (value == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
@@ -407,7 +408,37 @@ bool ctryparse_assignment(void)
 	    return false;
 	}
     } else {
-	//TODO
+	/* parse array contents */
+	plist_T pwords;
+	pl_init(&pwords);
+	INDEX++;
+	for (;;) {
+	    skip_blanks();
+	    if (csubstitute_alias(0))
+		skip_blanks();
+
+	    if (BUF[INDEX] != L'\0' && is_token_delimiter_char(BUF[INDEX])) {
+		if (BUF[INDEX] == L')')
+		    INDEX++;
+		recfree(pl_toary(&pwords), free);
+		return false;
+	    }
+
+	    wordunit_T *w = cparse_word(
+		    is_token_delimiter_char, tt_single, CTXT_ASSIGN);
+	    if (w == NULL) {
+		if (pi->ctxt->pwords == NULL) {
+		    pi->ctxt->pwordc = pwords.length;
+		    pi->ctxt->pwords = pl_toary(&pwords);
+		} else {
+		    recfree(pl_toary(&pwords), free);
+		}
+		return true;
+	    } else {
+		expand_multiple(w, &pwords);
+		wordfree(w);
+	    }
+	}
     }
 }
 
