@@ -329,25 +329,21 @@ const le_candgen_T *get_candgen(const le_context_T *context)
     // TODO test
     // TODO don't add CGT_KEYWORD/CGT_ALIAS when quoted
     tempresult = (le_candgen_T) { .type = 0, .words = NULL, .function = NULL };
-    switch (context->type) {
+    switch (context->type & CTXT_MASK) {
 	case CTXT_NORMAL:
-	case CTXT_VAR_BRC_WORD:
-	    if (context->pwordc == 0) {
-		if (wcschr(context->src, L'/')) {
-		    tempresult.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
-		} else {
-		    tempresult.type |= CGT_DIRECTORY | CGT_KEYWORD
-			| CGT_COMMAND | CGT_ALIAS;
-		}
-		return &tempresult;
+	    break;
+	case CTXT_COMMAND:
+	    if (wcschr(context->src, L'/')) {
+		tempresult.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
 	    } else {
-		goto normal;
+		tempresult.type |= CGT_DIRECTORY | CGT_KEYWORD
+		    | CGT_COMMAND | CGT_ALIAS;
 	    }
+	    return &tempresult;
 	case CTXT_TILDE:
 	    tempresult.type |= CGT_LOGNAME;
 	    return &tempresult;
 	case CTXT_VAR:
-	case CTXT_VAR_BRC:
 	    tempresult.type |= CGT_VARIABLE;
 	    return &tempresult;
 	case CTXT_ARITH:
@@ -362,11 +358,11 @@ const le_candgen_T *get_candgen(const le_context_T *context)
 	case CTXT_REDIR_FD:
 	    tempresult.type |= CGT_GALIAS;
 	    return &tempresult;
+	default:
+	    assert(false);
     }
-    assert(false);
 
     const struct cmdcandgen_T *ccg;
-normal:
     if (candgens.capacity == 0)
 	goto return_default;
     ccg = ht_get(&candgens, context->pwords[0]).value;
@@ -849,24 +845,29 @@ void update_main_buffer(void)
 	}
 
 	if (le_candidates.length == 1) {
-	    switch (ctxttype) {
+	    if (ctxttype & CTXT_BRACED) {
+		wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
+		le_main_index += 1;
+	    }
+	    if (ctxttype & CTXT_QUOTED) {
+		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
+		le_main_index += 1;
+	    }
+	    switch (ctxttype & CTXT_MASK) {
 		case CTXT_NORMAL:
+		case CTXT_COMMAND:
+		case CTXT_VAR:
 		case CTXT_ARITH:
 		case CTXT_ASSIGN:
 		case CTXT_REDIR:
 		case CTXT_REDIR_FD:
+		    if (ctxttype & CTXT_BRACED)
+			break;
 		    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
 		    le_main_index += 1;
 		    break;
 		case CTXT_TILDE:
 		    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
-		    le_main_index += 1;
-		    break;
-		case CTXT_VAR:
-		    break;
-		case CTXT_VAR_BRC:
-		case CTXT_VAR_BRC_WORD:
-		    wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
 		    le_main_index += 1;
 		    break;
 	    }

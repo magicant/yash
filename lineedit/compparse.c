@@ -87,11 +87,11 @@ static wordunit_T *cparse_word(
 	bool testfunc(wchar_t c), tildetype_T tilde, le_contexttype_T ctxttype)
     __attribute__((nonnull,malloc,warn_unused_result));
 static bool ctryparse_tilde(void);
-static wordunit_T *cparse_special_word_unit(void)
+static wordunit_T *cparse_special_word_unit(le_contexttype_T ctxttype)
     __attribute__((malloc,warn_unused_result));
-static wordunit_T *cparse_paramexp_raw(void)
+static wordunit_T *cparse_paramexp_raw(le_contexttype_T ctxttype)
     __attribute__((malloc,warn_unused_result));
-static wordunit_T *cparse_paramexp_in_brace(void)
+static wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *cparse_arith(void)
     __attribute__((malloc,warn_unused_result));
@@ -142,8 +142,7 @@ bool le_get_context(le_context_T *ctxt)
 #endif
 
     ctxt->src = unescape(ctxt->pattern);
-    if (ctxt->type == CTXT_NORMAL
-	    && is_pathname_matching_pattern(ctxt->pattern)) {
+    if (is_pathname_matching_pattern(ctxt->pattern)) {
 	ctxt->substsrc = true;
     } else {
 	xwcsbuf_T buf;
@@ -178,18 +177,19 @@ void print_context_info(const le_context_T *ctxt)
 	case QUOTE_DOUBLE:  s = "double";  break;
     }
     le_compdebug("quote type: %s", s);
-    switch (ctxt->type) {
+    switch (ctxt->type & CTXT_MASK) {
 	case CTXT_NORMAL:        s = "normal";                   break;
+	case CTXT_COMMAND:       s = "command";                  break;
 	case CTXT_TILDE:         s = "tilde";                    break;
 	case CTXT_VAR:           s = "variable";                 break;
-	case CTXT_VAR_BRC:       s = "variable in brace";        break;
-	case CTXT_VAR_BRC_WORD:  s = "word in braced variable";  break;
 	case CTXT_ARITH:         s = "arithmetic";               break;
 	case CTXT_ASSIGN:        s = "assignment";               break;
 	case CTXT_REDIR:         s = "redirection";              break;
 	case CTXT_REDIR_FD:      s = "redirection (fd)";         break;
     }
-    le_compdebug("context type: %s", s);
+    le_compdebug("context type: %s%s%s", s,
+	    ctxt->type & CTXT_BRACED ? " (braced)" : "",
+	    ctxt->type & CTXT_QUOTED ? " (quoted)" : "");
     for (int i = 0; i < ctxt->pwordc; i++)
 	le_compdebug("preceding word %d: \"%ls\"",
 		i + 1, (const wchar_t *) ctxt->pwords[i]);
@@ -222,9 +222,9 @@ bool cparse_commands(void)
 	    return true;
     }
 
-end:
+end: // TODO do we really need this?
     pi->ctxt->quote = QUOTE_NORMAL;
-    pi->ctxt->type = CTXT_NORMAL;
+    pi->ctxt->type = CTXT_COMMAND;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
     pi->ctxt->pwords[0] = NULL;
@@ -329,7 +329,9 @@ cparse_simple_command:
 	goto cparse_simple_command;
     }
 
+    bool first = true;
     plist_T pwords;
+
     pl_init(&pwords);
     for (;;) {
 	switch (BUF[INDEX]) {
@@ -339,8 +341,8 @@ cparse_simple_command:
 		return false;
 	}
 
-	wordunit_T *w = cparse_word(
-		is_token_delimiter_char, tt_single, CTXT_NORMAL);
+	wordunit_T *w = cparse_word(is_token_delimiter_char, tt_single,
+		first ? CTXT_COMMAND : CTXT_NORMAL);
 	if (w == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
 		pi->ctxt->pwordc = pwords.length;
@@ -362,6 +364,8 @@ cparse_simple_command:
 	    return true;
 	}
 	skip_blanks();
+
+	first = false;
     }
 }
 
@@ -522,13 +526,13 @@ bool cparse_case_command(void)
 
 /* Parses the word at the current position.
  * `skip_blanks' should be called before this function is called.
+ * The `ctxttype' parameter is the context type of the word parsed.
  * If the word was completely parsed, the word is expanded until quote removal
  * and returned as a newly-malloced string.
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member.
- * The `ctxttype' argument specifies the value of `pi->ctxt->type'. */
+ * the caller must update the `pwordc' and `pwords' member. */
 wchar_t *cparse_and_expand_word(tildetype_T tilde, le_contexttype_T ctxttype)
 {
     wordunit_T *w = cparse_word(is_token_delimiter_char, tilde, ctxttype);
@@ -546,12 +550,12 @@ wchar_t *cparse_and_expand_word(tildetype_T tilde, le_contexttype_T ctxttype)
  * `skip_blanks' should be called before this function is called.
  * `testfunc' is a function that determines if a character is a word delimiter.
  * It must return true for L'\0'.
+ * The `ctxttype' parameter is the context type of the word parsed.
  * If the word was completely parsed, the word is returned.
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
- * the caller must update the `pwordc' and `pwords' member.
- * The `ctxttype' argument specifies the value of `pi->ctxt->type'. */
+ * the caller must update the `pwordc' and `pwords' member. */
 wordunit_T *cparse_word(
 	bool testfunc(wchar_t c), tildetype_T tilde, le_contexttype_T ctxttype)
 {
@@ -586,10 +590,10 @@ cparse_word:
 	    break;
 	case L'$':
 	    MAKE_WORDUNIT_STRING;
-	    wu = cparse_special_word_unit();
+	    wu = cparse_special_word_unit(
+		    (ctxttype & CTXT_MASK) | (indq ? CTXT_QUOTED : 0));
 	    if (wu == NULL) {
-		if (pi->ctxt->pwords == NULL
-			&& pi->ctxt->type == CTXT_VAR_BRC_WORD) {
+		if (pi->ctxt->pwords == NULL && (pi->ctxt->type & CTXT_BRACED)){
 		    xwcsbuf_T buf;
 		    wchar_t *prefix = expand_single(first, tilde);
 		    assert(prefix != NULL);
@@ -640,8 +644,8 @@ cparse_word:
 	assert(first != NULL);
 	return first;
     } else {
-	pi->ctxt->type = ctxttype;
 	pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
+	pi->ctxt->type = ctxttype;
 	pi->ctxt->pwordc = 0;
 	pi->ctxt->pwords = NULL;
 	pi->ctxt->pattern = expand_single(first, tilde);
@@ -663,8 +667,8 @@ end_single_quote:;
     w->wu_string = wb_towcs(&buf);
     *lastp = w, lastp = &w->next;
 
-    pi->ctxt->type = ctxttype;
     pi->ctxt->quote = QUOTE_SINGLE;
+    pi->ctxt->type = ctxttype;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = NULL;
     pi->ctxt->pattern = expand_single(first, tilde);
@@ -697,8 +701,8 @@ bool ctryparse_tilde(void)
 	}
     } while (BUF[index] != L'\0');
 
-    pi->ctxt->type = CTXT_TILDE;
     pi->ctxt->quote = QUOTE_NONE;
+    pi->ctxt->type = CTXT_TILDE;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = NULL;
     pi->ctxt->pattern = xwcsdup(BUF + INDEX + 1);
@@ -707,33 +711,38 @@ bool ctryparse_tilde(void)
 }
 
 /* Parses a parameter expansion or command substitution that starts with '$'.
+ * The `ctxttype' parameter is the context type of the word containing this
+ * expansion.
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
  * the caller must update the `pwordc' and `pwords' member. */
-wordunit_T *cparse_special_word_unit(void)
+wordunit_T *cparse_special_word_unit(le_contexttype_T ctxttype)
 {
     assert(BUF[INDEX] == L'$');
     switch (BUF[INDEX + 1]) {
 	case L'{':
 	    INDEX++;
-	    return cparse_paramexp_in_brace();
+	    return cparse_paramexp_in_brace(ctxttype);
 	case L'(':
 	    if (BUF[INDEX + 2] == L'(')
 		return cparse_arith();
 	    else
 		return cparse_cmdsubst_in_paren();
 	default:
-	    return cparse_paramexp_raw();
+	    return cparse_paramexp_raw(ctxttype);
     }
 }
 
 /* Parses a parameter that is not enclosed by { }.
+ * The `ctxttype' parameter is the context type of the word containing this
+ * parameter expansion. Only the CTXT_QUOTED flag in `ctxttype' affect the
+ * result.
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
  * the caller must update the `pwordc' and `pwords' member. */
-wordunit_T *cparse_paramexp_raw(void)
+wordunit_T *cparse_paramexp_raw(le_contexttype_T ctxttype)
 {
     assert(BUF[INDEX] == L'$');
 
@@ -752,8 +761,8 @@ wordunit_T *cparse_paramexp_raw(void)
 		    namelen++;
 		if (BUF[INDEX + 1 + namelen] == L'\0') {
 		    /* complete variable name */
-		    pi->ctxt->type = CTXT_VAR;
 		    pi->ctxt->quote = QUOTE_NONE;
+		    pi->ctxt->type = CTXT_VAR | (ctxttype & CTXT_QUOTED);
 		    pi->ctxt->pwordc = 0;
 		    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
 		    pi->ctxt->pwords[0] = NULL;
@@ -783,12 +792,14 @@ wordunit_T *cparse_paramexp_raw(void)
     return wu;
 }
 
-/* Parses a parameter enclosed by { }.
+/* Parses a parameter expansion enclosed by { }.
+ * The `ctxttype' parameter is the context type of the word containing this
+ * parameter expansion.
  * If the parser reached the end of the input string, the return value is NULL
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
  * the caller must update the `pwordc' and `pwords' member. */
-wordunit_T *cparse_paramexp_in_brace(void)
+wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
     pe->pe_type = 0;
@@ -819,14 +830,14 @@ wordunit_T *cparse_paramexp_in_brace(void)
     /* parse nested expansion */
     if (BUF[INDEX] == L'{') {
 	pe->pe_type |= PT_NEST;
-	pe->pe_nest = cparse_paramexp_in_brace();
+	pe->pe_nest = cparse_paramexp_in_brace(ctxttype & CTXT_MASK);
 	if (pe->pe_nest == NULL)
 	    goto return_null;
     } else if (BUF[INDEX] == L'`'
 		|| (BUF[INDEX] == L'$'
 		    && (BUF[INDEX + 1] == L'{' || BUF[INDEX + 1] == L'('))) {
 	pe->pe_type |= PT_NEST;
-	pe->pe_nest = cparse_special_word_unit();
+	pe->pe_nest = cparse_special_word_unit(ctxttype & CTXT_MASK);
 	if (pe->pe_nest == NULL)
 	    goto return_null;
     } else {
@@ -844,8 +855,8 @@ wordunit_T *cparse_paramexp_in_brace(void)
 		break;
 	}
 	if (BUF[INDEX + namelen] == L'\0') {
-	    pi->ctxt->type = CTXT_VAR_BRC;
 	    pi->ctxt->quote = QUOTE_NORMAL;
+	    pi->ctxt->type = CTXT_VAR | CTXT_BRACED | (ctxttype & CTXT_QUOTED);
 	    pi->ctxt->pwordc = 0;
 	    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
 	    pi->ctxt->pwords[0] = NULL;
@@ -932,13 +943,13 @@ parse_match:
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
 	pe->pe_match = cparse_word(
-		is_closing_brace, tt_none, CTXT_VAR_BRC_WORD);
+		is_closing_brace, tt_none, ctxttype | CTXT_BRACED);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	goto check_closing_paren;
     } else {
 	pe->pe_match = cparse_word(
-		is_slash_or_closing_brace, tt_none, CTXT_VAR_BRC_WORD);
+		is_slash_or_closing_brace, tt_none, ctxttype | CTXT_BRACED);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	if (BUF[INDEX] != L'/')
@@ -947,7 +958,8 @@ parse_match:
 
 parse_subst:
     INDEX++;
-    pe->pe_subst = cparse_word(is_closing_brace, tt_none, CTXT_VAR_BRC_WORD);
+    pe->pe_subst = cparse_word(
+	    is_closing_brace, tt_none, ctxttype | CTXT_BRACED);
     if (pe->pe_subst == NULL)
 	goto return_null;
 
