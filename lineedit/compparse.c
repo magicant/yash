@@ -62,6 +62,7 @@ static cparseinfo_T *pi;
 #define INDEX     (pi->bufindex)
 
 
+static void empty_pwords(void);
 static void print_context_info(const le_context_T *ctxt)
     __attribute__((nonnull));
 static bool cparse_commands(void);
@@ -162,6 +163,16 @@ bool le_get_context(le_context_T *ctxt)
 	return false;
     }
     return true;
+}
+
+/* If `pi->ctxt->pwords' is NULL, assigns a new empty list to it. */
+void empty_pwords(void)
+{
+    if (pi->ctxt->pwords == NULL) {
+	pi->ctxt->pwordc = 0;
+	pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+	pi->ctxt->pwords[0] = NULL;
+    }
 }
 
 void print_context_info(const le_context_T *ctxt)
@@ -395,11 +406,7 @@ bool ctryparse_assignment(void)
 	/* scalar variable */
 	wchar_t *value = cparse_and_expand_word(tt_multi, CTXT_ASSIGN);
 	if (value == NULL) {
-	    if (pi->ctxt->pwords == NULL) {
-		pi->ctxt->pwordc = 0;
-		pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-		pi->ctxt->pwords[0] = NULL;
-	    }
+	    empty_pwords();
 	    return true;
 	} else {
 	    free(value);
@@ -486,11 +493,7 @@ bool ctryparse_redirect(void)
     skip_blanks();
     value = cparse_and_expand_word(tt_single, type);
     if (value == NULL) {
-	if (pi->ctxt->pwords == NULL) {
-	    pi->ctxt->pwordc = 0;
-	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-	    pi->ctxt->pwords[0] = NULL;
-	}
+	empty_pwords();
 	return true;
     } else {
 	free(value);
@@ -519,11 +522,7 @@ bool cparse_for_command(void)
 	skip_blanks();
     wordunit_T *w = cparse_word(is_token_delimiter_char, tt_none, CTXT_VAR);
     if (w == NULL) {
-	if (pi->ctxt->pwords == NULL) {
-	    pi->ctxt->pwordc = 0;
-	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-	    pi->ctxt->pwords[0] = NULL;
-	}
+	empty_pwords();
 	return true;
     }
     wordfree(w);
@@ -577,11 +576,7 @@ bool cparse_for_command(void)
     w = cparse_word(is_token_delimiter_char, tt_none,
 	    in ? CTXT_FOR_DO : CTXT_FOR_IN);
     if (w == NULL) {
-	if (pi->ctxt->pwords == NULL) {
-	    pi->ctxt->pwordc = 0;
-	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-	    pi->ctxt->pwords[0] = NULL;
-	}
+	empty_pwords();
 	return true;
     }
     wordfree(w);
@@ -1111,11 +1106,7 @@ wordunit_T *cparse_arith(void)
 	    wordunit_T *w = cparse_word(
 		    is_arith_delimiter, tt_none, CTXT_ARITH);
 	    if (w == NULL) {
-		if (pi->ctxt->pwords == NULL) {
-		    pi->ctxt->pwordc = 0;
-		    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
-		    pi->ctxt->pwords[0] = NULL;
-		}
+		empty_pwords();
 		return NULL;
 	    }
 	    wordfree(w);
