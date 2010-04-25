@@ -66,6 +66,7 @@ static void print_context_info(const le_context_T *ctxt)
     __attribute__((nonnull));
 static bool cparse_commands(void);
 static void skip_blanks(void);
+static void skip_blanks_and_newlines(void);
 #if YASH_ENABLE_ALIAS
 static bool csubstitute_alias(substaliasflags_T flags);
 #else
@@ -186,6 +187,8 @@ void print_context_info(const le_context_T *ctxt)
 	case CTXT_ASSIGN:        s = "assignment";               break;
 	case CTXT_REDIR:         s = "redirection";              break;
 	case CTXT_REDIR_FD:      s = "redirection (fd)";         break;
+	case CTXT_FOR_IN:        s = "\"in\" or \"do\"";         break;
+	case CTXT_FOR_DO:        s = "\"do\"";                   break;
     }
     le_compdebug("context type: %s%s%s", s,
 	    ctxt->type & CTXT_BRACED ? " (braced)" : "",
@@ -225,6 +228,13 @@ bool cparse_commands(void)
 void skip_blanks(void)
 {
     while (iswblank(BUF[INDEX]))
+	INDEX++;
+}
+
+/* Skips blank characters and newlines. */
+void skip_blanks_and_newlines(void)
+{
+    while (BUF[INDEX] == L'\n' || iswblank(BUF[INDEX]))
 	INDEX++;
 }
 
@@ -496,10 +506,88 @@ parse_inner:
     return result;
 }
 
-/* Parses a for command. */
+/* Parses a for command.
+ * There must be the "for" keyword at the current position. */
 bool cparse_for_command(void)
 {
-    return false; //TODO
+    assert(wcsncmp(BUF + INDEX, L"for", 3) == 0);
+    INDEX += 3;
+    skip_blanks();
+
+    /* parse variable name */
+    if (csubstitute_alias(0))
+	skip_blanks();
+    wordunit_T *w = cparse_word(is_token_delimiter_char, tt_none, CTXT_VAR);
+    if (w == NULL) {
+	if (pi->ctxt->pwords == NULL) {
+	    pi->ctxt->pwordc = 0;
+	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+	    pi->ctxt->pwords[0] = NULL;
+	}
+	return true;
+    }
+    wordfree(w);
+    skip_blanks_and_newlines();
+
+    /* parse "in" ... */
+    bool in = token_at_current(L"in");
+    if (in) {
+	plist_T pwords;
+	pl_init(&pwords);
+	INDEX += 2;
+	for (;;) {
+	    skip_blanks();
+	    if (csubstitute_alias(0))
+		skip_blanks();
+
+	    if (BUF[INDEX] == L';' || BUF[INDEX] == L'\n') {
+		recfree(pl_toary(&pwords), free);
+		INDEX++;
+		break;
+	    }
+	    if (BUF[INDEX] != L'\0' && is_token_delimiter_char(BUF[INDEX])) {
+		recfree(pl_toary(&pwords), free);
+		return false;
+	    }
+
+	    w = cparse_word(is_token_delimiter_char, tt_single, CTXT_NORMAL);
+	    if (w == NULL) {
+		if (pi->ctxt->pwords == NULL) {
+		    pi->ctxt->pwordc = 0;
+		    pi->ctxt->pwords = pl_toary(&pwords);
+		} else {
+		    recfree(pl_toary(&pwords), free);
+		}
+		return true;
+	    } else {
+		expand_multiple(w, &pwords);
+		wordfree(w);
+	    }
+	}
+	skip_blanks_and_newlines();
+    }
+
+    /* parse "do" ... */
+    if (token_at_current(L"do")) {
+	INDEX += 2;
+	return false;
+    }
+
+    /* found no "in" or "do", so the next word should be one of them */
+    w = cparse_word(is_token_delimiter_char, tt_none,
+	    in ? CTXT_FOR_DO : CTXT_FOR_IN);
+    if (w == NULL) {
+	if (pi->ctxt->pwords == NULL) {
+	    pi->ctxt->pwordc = 0;
+	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
+	    pi->ctxt->pwords[0] = NULL;
+	}
+	return true;
+    }
+    wordfree(w);
+
+    /* syntax error */
+    return false;
 }
 
 /* Parses a case command. */

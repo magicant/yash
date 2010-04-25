@@ -70,9 +70,11 @@ typedef enum le_contexttype_T {
     CTXT_ASSIGN,             // assignment
     CTXT_REDIR,              // redirection target (that is a file name)
     CTXT_REDIR_FD,           // redirection target (that is a file descriptor)
-    CTXT_MASK     = ((1 << 3) - 1),
-    CTXT_BRACED   = 1 << 3,  // completion occurs in variable expansion
-    CTXT_QUOTED   = 1 << 4,  // unquote after completion
+    CTXT_FOR_IN,             // where keyword "in" or "do" is expected
+    CTXT_FOR_DO,             // where keyword "do" is expected
+    CTXT_MASK     = ((1 << 4) - 1),
+    CTXT_BRACED   = 1 << 4,  // completion occurs in variable expansion
+    CTXT_QUOTED   = 1 << 5,  // unquote after completion
 } le_contexttype_T;
 typedef struct le_context_T {
     le_quote_T quote;

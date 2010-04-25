@@ -324,6 +324,7 @@ static hashtable_T candgens = { .capacity = 0 };
  * The result is valid until the next call to this function or `set_candgen'. */
 const le_candgen_T *get_candgen(const le_context_T *context)
 {
+    static void *in_do[] = { L"in", L"do", NULL };
     static le_candgen_T tempresult;
 
     // TODO test
@@ -357,6 +358,12 @@ const le_candgen_T *get_candgen(const le_context_T *context)
 	    return &tempresult;
 	case CTXT_REDIR_FD:
 	    tempresult.type |= CGT_GALIAS;
+	    return &tempresult;
+	case CTXT_FOR_IN:
+	    tempresult.words = in_do;
+	    return &tempresult;
+	case CTXT_FOR_DO:
+	    tempresult.words = in_do + 1;
 	    return &tempresult;
 	default:
 	    assert(false);
@@ -861,6 +868,8 @@ void update_main_buffer(void)
 		case CTXT_ASSIGN:
 		case CTXT_REDIR:
 		case CTXT_REDIR_FD:
+		case CTXT_FOR_IN:
+		case CTXT_FOR_DO:
 		    if (ctxttype & CTXT_BRACED)
 			break;
 		    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
