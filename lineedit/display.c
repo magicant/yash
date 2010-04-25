@@ -501,8 +501,10 @@ void le_display_update(bool cursor)
 
     /* set cursor position */
     assert(le_main_index <= le_main_buffer.length);
-    if (cursor)
+    if (cursor) {
 	go_to_index(le_main_index);
+	update_styler();
+    }
 }
 
 /* Prints a dummy string that moves the cursor to the first column of the next
