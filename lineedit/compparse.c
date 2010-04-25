@@ -200,6 +200,7 @@ void print_context_info(const le_context_T *ctxt)
 	case CTXT_REDIR_FD:      s = "redirection (fd)";         break;
 	case CTXT_FOR_IN:        s = "\"in\" or \"do\"";         break;
 	case CTXT_FOR_DO:        s = "\"do\"";                   break;
+	case CTXT_CASE_IN:       s = "\"in\"";                   break;
     }
     le_compdebug("context type: %s%s%s", s,
 	    ctxt->type & CTXT_BRACED ? " (braced)" : "",
@@ -516,10 +517,10 @@ bool cparse_for_command(void)
     assert(wcsncmp(BUF + INDEX, L"for", 3) == 0);
     INDEX += 3;
     skip_blanks();
-
-    /* parse variable name */
     if (csubstitute_alias(0))
 	skip_blanks();
+
+    /* parse variable name */
     wordunit_T *w = cparse_word(is_token_delimiter_char, tt_none, CTXT_VAR);
     if (w == NULL) {
 	empty_pwords();
@@ -585,10 +586,42 @@ bool cparse_for_command(void)
     return false;
 }
 
-/* Parses a case command. */
+/* Parses a case command.
+ * There must be the "case" keyword at the current position. */
 bool cparse_case_command(void)
 {
-    return false; //TODO
+    assert(wcsncmp(BUF + INDEX, L"case", 4) == 0);
+    INDEX += 4;
+    skip_blanks();
+    if (csubstitute_alias(0))
+	skip_blanks();
+
+    /* parse matched word */
+    wordunit_T *w = cparse_word(
+	    is_token_delimiter_char, tt_single, CTXT_NORMAL);
+    if (w == NULL) {
+	empty_pwords();
+	return true;
+    }
+    wordfree(w);
+    skip_blanks_and_newlines();
+
+    /* parse "in" */
+    if (token_at_current(L"in")) {
+	INDEX += 2;
+	return false;
+    }
+
+    /* there is no "in", so the next word should be "in". */
+    w = cparse_word(is_token_delimiter_char, tt_none, CTXT_CASE_IN);
+    if (w == NULL) {
+	empty_pwords();
+	return true;
+    }
+    wordfree(w);
+
+    /* syntax error */
+    return false;
 }
 
 /* Parses the word at the current position.

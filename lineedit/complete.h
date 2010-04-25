@@ -72,6 +72,7 @@ typedef enum le_contexttype_T {
     CTXT_REDIR_FD,           // redirection target (that is a file descriptor)
     CTXT_FOR_IN,             // where keyword "in" or "do" is expected
     CTXT_FOR_DO,             // where keyword "do" is expected
+    CTXT_CASE_IN,            // where keyword "in" is expected
     CTXT_MASK     = ((1 << 4) - 1),
     CTXT_BRACED   = 1 << 4,  // completion occurs in variable expansion
     CTXT_QUOTED   = 1 << 5,  // unquote after completion
