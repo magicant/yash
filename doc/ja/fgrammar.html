@@ -38,6 +38,7 @@
 <dd><a href="#d-for-command">ForCommand</a>
 <dd><a href="#d-while-command">WhileCommand</a>
 <dd><a href="#d-case-command">CaseCommand</a>
+<dd><a href="#d-function-command">FunctionCommand</a>
 <dt id="d-subshell">Subshell
 <dd><code>(</code> <a href="#d-sequence">Sequence</a> <code>)</code> <a href="#d-s">S</a>*
 <dt id="d-grouping">Grouping
@@ -52,6 +53,8 @@
 <dd><a href="#d-case">Case</a> <a href="#d-word">Word</a> <a href="#d-n">N</a>* <a href="#d-in">In</a> N* <a href="#d-case-item">CaseItem</a>* <a href="#d-esac">Esac</a>
 <dt id="d-case-item">CaseItem
 <dd>!<a href="#d-esac">Esac</a> (<code>(</code> <a href="#d-s">S</a>*)? <a href="#d-word">Word</a> (<code>|</code> S* Word)* <code>)</code> <a href="#d-sequence">Sequence</a> (<code>;;</code> / &amp;Esac)
+<dt id="d-function-command">FunctionCommand
+<dd><a href="#d-function">Function</a> <a href="#d-word">Word</a> (<code>(</code> <a href="#d-s">S</a>* <code>)</code>)? <a href="#d-n">N</a>* <a href="#d-compound-command">CompoundCommand</a> <a href="#d-redirection">Redirection</a>*
 <dt id="d-function-definition">FunctionDefinition
 <dd><a href="#d-name">Name</a> <a href="#d-s">S</a>* <code>(</code> S* <code>)</code> <a href="#d-n">N</a>* <a href="#d-compound-command">CompoundCommand</a> <a href="#d-redirection">Redirection</a>*
 <dt id="d-simple-command">SimpleCommand
@@ -164,6 +167,8 @@
 <dd><code>fi</code> <a href="#d-d">D</a>
 <dt id="d-for">For
 <dd><code>for</code> <a href="#d-d">D</a>
+<dt id="d-function">Function
+<dd><code>function</code> <a href="#d-d">D</a>
 <dt id="d-if">If
 <dd><code>if</code> <a href="#d-d">D</a>
 <dt id="d-in">In

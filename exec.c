@@ -117,6 +117,8 @@ static void exec_while(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_case(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
+static void exec_funcdef(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
 
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
@@ -497,6 +499,28 @@ done:
 fail:
     laststatus = Exit_EXPERROR;
     goto done;
+}
+
+/* Executes the function definition. */
+void exec_funcdef(const command_T *c, bool finally_exit)
+{
+    assert(c->c_type == CT_FUNCDEF);
+
+    wchar_t *funcname = expand_single(c->c_funcname, tt_single);
+    if (funcname != NULL) {
+	funcname = unescapefree(funcname);
+
+	if (define_function(funcname, c->c_funcbody))
+	    laststatus = Exit_SUCCESS;
+	else
+	    laststatus = Exit_ASSGNERR;
+	free(funcname);
+    } else {
+	laststatus = Exit_EXPERROR;
+    }
+
+    if (finally_exit)
+	exit_shell();
 }
 
 /* Updates the contents of the `pipeinfo_T' to proceed to the next process
@@ -1048,12 +1072,7 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	exec_case(c, finally_exit);
 	break;
     case CT_FUNCDEF:
-	if (define_function(c->c_funcname, c->c_funcbody))
-	    laststatus = Exit_SUCCESS;
-	else
-	    laststatus = Exit_ASSGNERR;
-	if (finally_exit)
-	    exit_shell();
+	exec_funcdef(c, finally_exit);
 	break;
     }
 

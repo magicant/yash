@@ -1668,8 +1668,10 @@ void print_function(
 
     wchar_t *value = command_to_wcs(func->f_body, true);
     clearerr(stdout);
-    printf("%ls()\n%ls", name, value);
-	// XXX need "function" keyword for quoted names
+    if (qname == NULL)
+	printf("%ls()\n%ls", name, value);
+    else
+	printf("function %ls()\n%ls", name, value);
     free(value);
 
     switch (argv0[0]) {

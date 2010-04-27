@@ -106,7 +106,7 @@ void comsfree(command_T *c)
 		caseitemsfree(c->c_casitems);
 		break;
 	    case CT_FUNCDEF:
-		free(c->c_funcname);
+		wordfree(c->c_funcname);
 		comsfree(c->c_funcbody);
 		break;
 	}
@@ -434,6 +434,8 @@ static command_T *parse_case(void)
 static caseitem_T *parse_case_list(void)
     __attribute__((malloc,warn_unused_result));
 static void **parse_case_patterns(void)
+    __attribute__((malloc,warn_unused_result));
+static command_T *parse_function(void)
     __attribute__((malloc,warn_unused_result));
 static command_T *tryparse_function(void)
     __attribute__((malloc,warn_unused_result));
@@ -797,7 +799,7 @@ bool is_token_at(const wchar_t *t, size_t index)
  * Otherwise NULL is returned. */
 const wchar_t *check_opening_token(void)
 {
-    ensure_buffer(6);
+    ensure_buffer(9);
     if (cbuf.contents[cindex] == L'(') return L"(";
     if (is_token_at(L"{",     cindex)) return L"{";
     if (is_token_at(L"if",    cindex)) return L"if";
@@ -805,6 +807,8 @@ const wchar_t *check_opening_token(void)
     if (is_token_at(L"while", cindex)) return L"while";
     if (is_token_at(L"until", cindex)) return L"until";
     if (is_token_at(L"case",  cindex)) return L"case";
+    if (!posixly_correct)
+	if (is_token_at(L"function", cindex)) return L"function";
     return NULL;
 }
 
@@ -1990,7 +1994,16 @@ command_T *parse_compound_command(const wchar_t *command)
 	result = parse_if();
 	break;
     case L'f':
-	result = parse_for();
+	switch (command[1]) {
+	    case L'o':
+		result = parse_for();
+		break;
+	    case L'u':
+		result = parse_function();
+		break;
+	    default:
+		assert(false);
+	}
 	break;
     case L'w':
 	result = parse_while(true);
@@ -2288,6 +2301,48 @@ void **parse_case_patterns(void)
     return pl_toary(&wordlist);
 }
 
+/* Parses a function definition that starts with the "function" keyword. */
+command_T *parse_function(void)
+{
+    assert(is_token_at(L"function", cindex));
+    cindex += 8;
+    skip_blanks_and_comment();
+
+    command_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->refcount = 1;
+    result->c_type = CT_FUNCDEF;
+    result->c_lineno = cinfo->lineno;
+    result->c_redirs = NULL;
+    result->c_funcname = parse_word(globalonly);
+    if (result->c_funcname == NULL)
+	serror(Ngt("no word after `%ls'"), L"function");
+    skip_blanks_and_comment();
+
+    /* parse parentheses */
+    size_t savecindex = cindex;
+    if (cbuf.contents[cindex] == L'(') {
+	cindex++;
+	skip_blanks_and_comment();
+	if (cbuf.contents[cindex] == L')')
+	    cindex++;
+	else
+	    cindex = savecindex;
+    }
+    skip_to_next_token();
+
+    /* parse function body */
+    const wchar_t *t = check_opening_token();
+    if (t == NULL) {
+	serror(Ngt("function body must be compound command"));
+	result->c_funcbody = NULL;
+    } else {
+	result->c_funcbody = parse_compound_command(t);
+    }
+
+    return result;
+}
+
 /* Parses a function definition if any.
  * This function may do line continuations, increasing the line number. */
 command_T *tryparse_function(void)
@@ -2329,7 +2384,11 @@ command_T *tryparse_function(void)
     result->c_type = CT_FUNCDEF;
     result->c_lineno = lineno;
     result->c_redirs = NULL;
-    result->c_funcname = xwcsndup(cbuf.contents + savecindex, namelen);
+    result->c_funcname = xmalloc(sizeof *result->c_funcname);
+    result->c_funcname->next = NULL;
+    result->c_funcname->wu_type = WT_STRING;
+    result->c_funcname->wu_string =
+	xwcsndup(cbuf.contents + savecindex, namelen);
     result->c_funcbody = body;
     return result;
 
@@ -2949,7 +3008,11 @@ void print_function_definition(
 {
     assert(c->c_type == CT_FUNCDEF);
 
-    wb_cat(&pr->buffer, c->c_funcname);
+    if (c->c_funcname->next != NULL
+	    || c->c_funcname->wu_type != WT_STRING
+	    || !is_name(c->c_funcname->wu_string))
+	wb_cat(&pr->buffer, L"function ");
+    print_word(pr, c->c_funcname, indent);
     wb_cat(&pr->buffer, L"()");
     print_space_or_newline(pr);
 

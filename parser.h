@@ -91,8 +91,8 @@ typedef struct command_T {
 	    struct caseitem_T *casitems;  /* pairs of patterns and commands */
 	} casecontent;
 	struct {
-	    wchar_t          *funcname;  /* name of function */
-	    struct command_T *funcbody;  /* body of function */
+	    struct wordunit_T *funcname;  /* name of function */
+	    struct command_T  *funcbody;  /* body of function */
 	} funcdef;
     } c_content;
 } command_T;
