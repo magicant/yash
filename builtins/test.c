@@ -581,33 +581,38 @@ int compare_versions(const wchar_t *left, const wchar_t *right)
  *   FC_SAME:     different inodes, the same modification time
  *   FC_NEWER:    `left' has the modification time newer than `right'
  *   FC_OLDER:    `left' has the modification time older than `right'
- *   FC_UNKNOWN:  comparison error
- */
+ *   FC_UNKNOWN:  comparison error (neither file is `stat'able)
+ * If either (but not both) file is not `stat'able, the `stat'able one is
+ * considered newer. */
 enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 {
     char *mbsfile;
     struct stat sl, sr;
-    int statresult;
+    bool sl_ok, sr_ok;
 
     mbsfile = malloc_wcstombs(left);
     if (!mbsfile) {
 	xerror(0, Ngt("unexpected error"));
 	return FC_UNKNOWN;
     }
-    statresult = stat(mbsfile, &sl);
+    sl_ok = stat(mbsfile, &sl) >= 0;
     free(mbsfile);
-    if (statresult < 0)
-	return FC_UNKNOWN;
 
     mbsfile = malloc_wcstombs(right);
     if (!mbsfile) {
 	xerror(0, Ngt("unexpected error"));
 	return FC_UNKNOWN;
     }
-    statresult = stat(mbsfile, &sr);
+    sr_ok = stat(mbsfile, &sr) >= 0;
     free(mbsfile);
-    if (statresult < 0)
-	return FC_UNKNOWN;
+
+    if (!sl_ok)
+	if (!sr_ok)
+	    return FC_UNKNOWN;
+	else
+	    return FC_OLDER;
+    else if (!sr_ok)
+	return FC_NEWER;
 
     if (sl.st_dev == sr.st_dev && sl.st_ino == sr.st_ino)
 	return FC_ID;
