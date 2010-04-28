@@ -17,3 +17,20 @@ d2 0
 1
 0
 e1 0
+===== function =====
+func 1
+func 2
+func 3
+func 4
+func 5
+XYZ()
+for i in func
+do
+   unset -f ${i}
+   echo func 5
+done
+function 'X:Z'()
+{
+   echo non-portable name
+}
+func 6

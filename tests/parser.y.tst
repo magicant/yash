@@ -64,3 +64,61 @@ case _ in
 	(*)
 esac
 echo e1 $?
+
+echo ===== function =====
+
+function  func  (   ) { echo func 1; }
+func
+
+function func()
+{ echo func 2; }
+func
+
+function func
+if true
+then echo func 3
+else echo X 3
+fi
+func
+
+function "func" (echo func 4)
+func
+
+funcname=Z
+func ()
+function X"Y$(echo $funcname)"
+for i in func
+do
+	unset -f $i
+	echo func 5
+done
+func
+XYZ
+
+typeset -fp
+
+function X:Z
+{
+	echo non-portable name
+}
+
+typeset -fp X:Z
+
+f\
+u\
+n\
+c\
+t\
+i\
+o\
+\
+n\
+ \
+f"u\
+n"c \
+(\
+ )
+
+
+{ echo func 6; }
+func

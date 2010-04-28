@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.20
+
+  +  Function definition using the "function" keyword.
+  =  The "-nt" and "-ot" operator of the "test" builtin now considers
+     a non-existent file older in favor of Korn shell.
+
+----------------------------------------------------------------------
 Yash 2.19
 
   +  The "ulimit" builtin is now available on FreeBSD.

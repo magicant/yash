@@ -18,8 +18,10 @@ alias if=: then=: fi=: 2>/dev/null
 if true; then echo reserved words; fi
 unalias if then fi 2>/dev/null
 
-alias -- -=echo
-- hyphen
+alias 8=echo @!,%=echo
+8</dev/null echo IO_NUMBER
+@!,% @!,%
+unalias 8 @!,%
 
 alias | sort >"$tmp"
 \unalias -a
