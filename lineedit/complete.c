@@ -645,8 +645,8 @@ void generate_keyword_candidates(
 
     static const wchar_t *keywords[] = {
 	L"case", L"do", L"done", L"elif", L"else", L"esac", L"fi", L"for",
-	L"if", L"then", L"until", L"while", NULL,
-	// XXX "function" and "select" is not currently supported
+	L"function", L"if", L"then", L"until", L"while", NULL,
+	// XXX "select" is not currently supported
     };
 
     for (const wchar_t **k = keywords; *k != NULL; k++)
