@@ -15,26 +15,56 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+# check FD
+if ! [ -t 0 ]; then
+    echo "stdin is not terminal" >&2
+    exit 1
+fi
+
+# log file
+: ${logfile:=test.log}
+exec 3>&1
+exec >"$logfile"
+echo "========== Yash Test Log =========="
+echo
+printf 'Test started at: '
+LC_TIME=C date
+echo
+
 # make temporary directory
 : ${TMPDIR:=$PWD}
 case "$TMPDIR" in
     /*) ;;
-    *)  echo "\$TMPDIR must be an absolute path" >&2; exit 1;;
+    *)  echo "\$TMPDIR is not an absolute path"
+	echo "\$TMPDIR must be an absolute path" >&2
+	exit 1
 esac
-TESTTMP="$(cd ${TMPDIR}; pwd)/test.$$"
+case "$TMPDIR" in
+    */) TESTTMP=${TMPDIR}test.$$ ;;
+    *)  TESTTMP=${TMPDIR}/test.$$ ;;
+esac
 trap 'rm -rf "$TESTTMP"; exit' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
+printf 'Test directory is: %s\n' "$TESTTMP"
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
+    echo Cannot create temporary directory
     echo Cannot create temporary directory >&2
     trap - EXIT
     exit 1
 fi
 
-echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
-echo "Any output from the tests indicates a possible malfunction"
+printf 'uname -i = '; uname -i 2>/dev/null || echo \?
+printf 'uname -n = '; uname -n 2>/dev/null || echo \?
+printf 'uname -m = '; uname -m 2>/dev/null || echo \?
+printf 'uname -o = '; uname -o 2>/dev/null || echo \?
+printf 'uname -p = '; uname -p 2>/dev/null || echo \?
+printf 'uname -r = '; uname -r 2>/dev/null || echo \?
+printf 'uname -s = '; uname -s 2>/dev/null || echo \?
+printf 'uname -v = '; uname -v 2>/dev/null || echo \?
+echo "PATH=$PATH"
 
 export INVOKE TESTEE TESTTMP
 export LC_MESSAGES=POSIX LC_CTYPE="${LC_ALL-${LC_CTYPE-${LANG}}}" LANG=POSIX
-unset ENV HISTFILE HISTSIZE MAIL MAILCHECK MAILPATH IFS LC_ALL failed
+unset ENV HISTFILE HISTSIZE MAIL MAILCHECK MAILPATH IFS LC_ALL
 unset YASH_AFTER_CD COMMAND_NOT_FOUND_HANDLER HANDLED PROMPT_COMMAND
 umask u=rwx,go=
 
@@ -61,58 +91,103 @@ case "$1" in
 	;;
 esac
 
-: ${EUID=$(id -u)}
+printf 'Effective user ID: %s\n' "${EUID=$(id -u)}"
 if [ "$EUID" -eq 0 ]
 then isroot=true
 else isroot=false
 fi
+if diff -u /dev/null /dev/null >/dev/null 2>&1; then
+    diff='diff -u'
+elif diff -c /dev/null /dev/null >/dev/null 2>&1; then
+    diff='diff -c'
+else
+    diff='diff'
+fi
 diffresult() {
-    if $isroot && [ -r "${x}.$2" ]
-    then
-	y="${x}.$2"
-    elif [ -r "${x}.$1" ]
-    then
-	y="${x}.$1"
+    if $isroot && [ -r "$x.$2" ]; then
+	y="$x.$2"
+    elif [ -r "$x.$1" ]; then
+	y="$x.$1"
     else
 	y="/dev/null"
     fi
-    diff "${y}" "${TESTTMP}/test.$1"
+    echo "Diff to the expected output:"
+    $diff "$y" "${TESTTMP}/test.$1"
 }
+
+echo
+echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
+echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}" >&3
 
 failed=0
 for x in $TEST_ITEMS
 do
     x="${x%.tst}"
+    printf '%-12s' "$x" >&3
+
+    echo
+    echo
+    echo ======================================================================
+    printf '==========                 %-16s                 ==========\n' "$x"
+    echo ======================================================================
+    echo
+
     case "$x" in
 	*.p) INVOKE='./invoke sh' ;;
 	*  ) INVOKE=              ;;
     esac
     if ! checkskip "$x"
     then
-	echo " * $x (skipped)"
+	echo " * SKIPPED *"
+	echo
+	echo "skipped" >&3
 	continue
     fi
 
-    echo " * $x"
-    $INVOKE $TESTEE "$x.tst" >|"${TESTTMP}/test.out" 2>|"${TESTTMP}/test.err"
+    $INVOKE $TESTEE "$x.tst" \
+	>|"${TESTTMP}/test.out" 2>|"${TESTTMP}/test.err" 3>&-
 
+    echo ">>>>>>>>>>>>>>> $x.tst STDOUT >>>>>>>>>>>>>>>"
+    cat "${TESTTMP}/test.out" 
+    echo "<<<<<<<<<<<<<<< $x.tst STDOUT <<<<<<<<<<<<<<<"
+    echo
     diffresult out oux
     outresult=$?
+
+    echo
+    echo ">>>>>>>>>>>>>>> $x.tst STDERR >>>>>>>>>>>>>>>"
+    cat "${TESTTMP}/test.err" 
+    echo "<<<<<<<<<<<<<<< $x.tst STDERR <<<<<<<<<<<<<<<"
+    echo
     diffresult err erx
     errresult=$?
-    if [ $outresult -ne 0 ] || [ $errresult -ne 0 ]
+
+    if [ $outresult -eq 0 ] && [ $errresult -eq 0 ]
     then
+	echo ok >&3
+    else
+	echo FAILED >&3
 	: $(( failed += 1 ))
     fi
 done
 
+echo
+echo ======================================================================
+echo ======================================================================
+echo
+printf 'Test finished at: '
+LC_TIME=C date
+echo
+
 if [ 0 -eq $failed ]
 then
-    echo "All tests successful."
+    echo "All test(s) completed successfully."
+    echo "All test(s) completed successfully." >&3
 else
     echo "${failed} test(s) failed."
+    echo "${failed} test(s) failed. See testlog for more info." >&3
     false
 fi
 
 
-# vim: set ts=8 sts=4 sw=4 noet tw=80:
+# vim: set ts=8 sts=4 sw=4 noet:
