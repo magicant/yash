@@ -389,7 +389,7 @@ int wb_vwprintf(
     for (int i = 0; i < 10; i++) {
 	va_copy(copyap, ap);
 	rest = buf->maxlength - buf->length + 1;
-	result = vswprintf(buf->contents + buf->length, rest, format, ap);
+	result = vswprintf(buf->contents + buf->length, rest, format, copyap);
 	va_end(copyap);
 
 	if (0 <= result && result < rest)
