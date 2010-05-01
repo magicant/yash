@@ -185,7 +185,7 @@ then
     echo "All test(s) completed successfully." >&3
 else
     echo "${failed} test(s) failed."
-    echo "${failed} test(s) failed. See testlog for more info." >&3
+    echo "${failed} test(s) failed. See test.log for more info." >&3
     false
 fi
 
