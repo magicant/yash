@@ -275,24 +275,26 @@ esac
 
 # check POSIX conformance
 checking 'POSIX conformance'
-posix=$(getconf _POSIX_VERSION 2>/dev/null)
-if [ -n "${posix}" ] && [ x"${posix}" != x"undefined" ]
+posixver=$(getconf _POSIX_VERSION 2>/dev/null)
+if [ -n "${posixver}" ] && [ x"${posixver}" != x"undefined" ]
 then
-    checked "${posix}"
+    checked "${posixver}"
 else
     checked "no"
-    posix=""
+    posixver=""
 fi
+posix=${posixver}
 
 checking 'SUS conformance'
-xopen=$(getconf _XOPEN_VERSION 2>/dev/null)
-if [ -n "${xopen}" ] && [ x"${xopen}" != x"undefined" ]
+xopenver=$(getconf _XOPEN_VERSION 2>/dev/null)
+if [ -n "${xopenver}" ] && [ x"${xopenver}" != x"undefined" ]
 then
-    checked "${xopen}"
+    checked "${xopenver}"
 else
     checked "no"
-    xopen=""
+    xopenver=""
 fi
+xopen=${xopenver}
 
 
 # check if gcc is available if the debug option is enabled
@@ -1393,7 +1395,7 @@ echo "configuration complete"
 
 
 # print warning if POSIX conformance is missing
-if [ -z "${posix}" ]
+if [ -z "${posixver}" ] || [ "${posixver}" -lt 200112 ]
 then
     echo "WARNING: yash is designed for systems that conform to POSIX.1-2001"
     echo "         but your system does not"
