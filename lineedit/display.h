@@ -32,6 +32,7 @@ typedef struct le_pos_T {
 extern struct lebuf_T {
     xstrbuf_T buf;
     le_pos_T pos;
+    int maxcolumn;
 } lebuf;
 
 extern void lebuf_init(le_pos_T p);

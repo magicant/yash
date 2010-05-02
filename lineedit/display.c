@@ -73,6 +73,7 @@
 
 /********** The Print Buffer **********/
 
+static void lebuf_init_with_max(le_pos_T p, int maxcolumn);
 static void lebuf_wprintf(bool convert_cntrl, const wchar_t *format, ...)
     __attribute__((nonnull(2)));
 static const wchar_t *print_color_seq(const wchar_t *s)
@@ -84,7 +85,14 @@ struct lebuf_T lebuf;
 /* Initializes the print buffer with the specified position data. */
 void lebuf_init(le_pos_T p)
 {
+    lebuf_init_with_max(p, le_columns);
+}
+
+/* Initializes the print buffer with the specified position data. */
+void lebuf_init_with_max(le_pos_T p, int maxcolumn)
+{
     lebuf.pos = p;
+    lebuf.maxcolumn = maxcolumn;
     sb_init(&lebuf.buf);
 }
 
@@ -106,8 +114,8 @@ void lebuf_update_position(int width)
     assert(width >= 0);
 
     int new_column = lebuf.pos.column + width;
-    if (new_column <= le_columns)
-	if (le_ti_xenl || new_column < le_columns)
+    if (new_column <= lebuf.maxcolumn)
+	if (le_ti_xenl || new_column < lebuf.maxcolumn)
 	    lebuf.pos.column = new_column;
 	else
 	    lebuf.pos.line++, lebuf.pos.column = 0;
@@ -124,7 +132,6 @@ void lebuf_putwchar_raw(wchar_t c)
 
 /* Appends the specified wide character to the print buffer and updates the
  * position data accordingly.
- * The buffer and `le_columns' must have been initialized.
  * If `convert_cntrl' is true, a non-printable character is converted to the
  * '^'-prefixed form or the bracketed form. */
 void lebuf_putwchar(wchar_t c, bool convert_cntrl)
@@ -277,7 +284,7 @@ void lebuf_putws_trunc(const wchar_t *s)
 	int width = wcwidth(*s);
 	if (width > 0) {
 	    int new_column = lebuf.pos.column + width;
-	    if (new_column >= le_columns)
+	    if (new_column >= lebuf.maxcolumn)
 		break;
 	    lebuf.pos.column = new_column;
 	    lebuf_putwchar_raw(*s);
@@ -643,13 +650,14 @@ void update_editline(void)
 	wchar_t c = le_main_buffer.contents[index];
 	current_editline[index] = c;
 	cursor_positions[index]
-	    = lebuf.pos.line * le_columns + lebuf.pos.column;
+	    = lebuf.pos.line * lebuf.maxcolumn + lebuf.pos.column;
 	lebuf_putwchar(c, true);
 	index++;
     }
     assert(index == le_main_buffer.length);
     current_editline[index] = L'\0';
-    cursor_positions[index] = lebuf.pos.line * le_columns + lebuf.pos.column;
+    cursor_positions[index]
+	= lebuf.pos.line * lebuf.maxcolumn + lebuf.pos.column;
 
     fillip_cursor();
 
@@ -658,7 +666,7 @@ void update_editline(void)
 
     /* clear the right prompt if the edit line reaches it. */
     if (rprompt_line == lebuf.pos.line
-	    && lebuf.pos.column > le_columns - rprompt.width - 2) {
+	    && lebuf.pos.column > lebuf.maxcolumn - rprompt.width - 2) {
 	lebuf_print_el();
 	rprompt_line = -1;
     } else if (rprompt_line < lebuf.pos.line) {
@@ -699,10 +707,10 @@ void update_right_prompt(void)
 	return;
     if (rprompt.width == 0)
 	return;
-    if (le_columns - rprompt.width - 2 < 0)
+    if (lebuf.maxcolumn - rprompt.width - 2 < 0)
 	return;
-    int c = cursor_positions[le_main_buffer.length] % le_columns;
-    bool has_enough_room = (c <= le_columns - rprompt.width - 2);
+    int c = cursor_positions[le_main_buffer.length] % lebuf.maxcolumn;
+    bool has_enough_room = (c <= lebuf.maxcolumn - rprompt.width - 2);
     if (!has_enough_room && !shopt_le_alwaysrp)
 	return;
 
@@ -711,7 +719,7 @@ void update_right_prompt(void)
 	lebuf_print_nel();
 	check_cand_overwritten();
     }
-    lebuf_print_cuf(le_columns - rprompt.width - lebuf.pos.column - 1);
+    lebuf_print_cuf(lebuf.maxcolumn - rprompt.width - lebuf.pos.column - 1);
     sb_ncat_force(&lebuf.buf, rprompt.value, rprompt.length);
     lebuf.pos.column += rprompt.width;
     last_edit_line = rprompt_line = lebuf.pos.line;
@@ -770,14 +778,14 @@ void print_search(void)
 }
 
 /* Moves the cursor to the specified position.
- * The target column must be less than `le_columns'. */
+ * The target column must be less than `lebuf.maxcolumn'. */
 void go_to(le_pos_T p)
 {
     if (line_max < lebuf.pos.line)
 	line_max = lebuf.pos.line;
 
     assert(p.line <= line_max);
-    assert(p.column < le_columns);
+    assert(p.column < lebuf.maxcolumn);
 
     if (p.line == lebuf.pos.line) {
 	if (lebuf.pos.column == p.column)
@@ -808,7 +816,8 @@ void go_to(le_pos_T p)
 void go_to_index(size_t index)
 {
     int p = cursor_positions[index];
-    go_to((le_pos_T) { .line = p / le_columns, .column = p % le_columns });
+    go_to((le_pos_T) { .line   = p / lebuf.maxcolumn,
+                       .column = p % lebuf.maxcolumn });
 }
 
 /* Moves the cursor to the beginning of the line below `last_edit_line'.
@@ -816,7 +825,7 @@ void go_to_index(size_t index)
 void go_to_after_editline(void)
 {
     if (rprompt_line >= 0) {
-	go_to((le_pos_T) { rprompt_line, le_columns - 1 });
+	go_to((le_pos_T) { rprompt_line, lebuf.maxcolumn - 1 });
 	lebuf_print_nel();
     } else {
 	go_to_index(le_main_buffer.length);
@@ -828,7 +837,7 @@ void go_to_after_editline(void)
 /* If the cursor is sticking to the end of line, moves it to the next line. */
 void fillip_cursor(void)
 {
-    if (lebuf.pos.column >= le_columns) {
+    if (lebuf.pos.column >= lebuf.maxcolumn) {
 	lebuf_putwchar(L' ',  false);
 	lebuf_putwchar(L'\r', false);
 	lebuf_print_el();

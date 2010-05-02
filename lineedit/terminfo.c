@@ -650,7 +650,7 @@ void lebuf_print_cuf(long count)
 {
     move_cursor(TI_cuf1, TI_cuf, count, 1);
     lebuf.pos.column += count;
-    assert(lebuf.pos.column < le_columns);
+    assert(lebuf.pos.column < lebuf.maxcolumn);
 }
 
 /* Prints the "cud"/"cud1" code to the print buffer.
