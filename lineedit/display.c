@@ -955,7 +955,7 @@ bool try_putwchar_rawvalue(wchar_t c)
     size_t savelen = lebuf.buf.length;
 
     lebuf_putwchar(c, true);
-    if (lebuf.pos.line > 0 || lebuf.pos.column > le_columns - 3) {
+    if (lebuf.pos.line > 0 || lebuf.pos.column > lebuf.maxcolumn - 3) {
 	// lebuf.pos.line = 0;
 	lebuf.pos.column = savecol;
 	sb_truncate(&lebuf.buf, savelen);
