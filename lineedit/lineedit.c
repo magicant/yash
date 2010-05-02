@@ -112,7 +112,7 @@ void le_suspend_readline(void)
 {
     if (le_state == LE_STATE_ACTIVE) {
 	le_state = LE_STATE_SUSPENDED;
-	le_display_clear();
+	le_display_clear(false);
 	le_restore_terminal();
     }
 }
@@ -135,7 +135,7 @@ void le_resume_readline(void)
 void le_display_size_changed(void)
 {
     if (le_state == LE_STATE_ACTIVE) {
-	le_display_clear();
+	le_display_clear(false);
 	le_setupterm(true);
 	le_display_update(true);
 	le_display_flush();

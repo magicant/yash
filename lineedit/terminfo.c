@@ -694,7 +694,12 @@ _Bool lebuf_print_ed(void)
  * Returns true iff successful. */
 _Bool lebuf_print_clear(void)
 {
-    return try_print_cap(TI_clear);
+    if (try_print_cap(TI_clear)) {
+	lebuf.pos.line = lebuf.pos.column = 0;
+	return 1;
+    } else {
+	return 0;
+    }
 }
 
 /* Prints the "op" code. (set color pairs to default)

@@ -386,10 +386,10 @@ int wb_vwprintf(
     va_list copyap;
     int rest, result;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
 	va_copy(copyap, ap);
 	rest = buf->maxlength - buf->length + 1;
-	result = vswprintf(buf->contents + buf->length, rest, format, ap);
+	result = vswprintf(buf->contents + buf->length, rest, format, copyap);
 	va_end(copyap);
 
 	if (0 <= result && result < rest)
