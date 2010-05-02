@@ -296,6 +296,7 @@ static void clear_to_end_of_screen(void);
 static void clear_editline(void);
 static void maybe_print_promptsp(void);
 static void update_editline(void);
+static void check_cand_overwritten(void);
 static void update_styler(void);
 static void update_right_prompt(void);
 static void print_search(void);
@@ -666,6 +667,13 @@ void update_editline(void)
 
     /* clear the remaining of the current line if we're overwriting the
      * candidate area. */
+    check_cand_overwritten();
+}
+
+/* Set the `candoverwritten' flag and clear to the end of line if the current
+ * position is in the candidate area. */
+void check_cand_overwritten(void)
+{
     if (0 <= candbaseline && candbaseline <= lebuf.pos.line) {
 	lebuf_print_el();
 	candbaseline = lebuf.pos.line + 1;
@@ -701,11 +709,7 @@ void update_right_prompt(void)
     go_to_index(le_main_buffer.length);
     if (!has_enough_room) {
 	lebuf_print_nel();
-	if (0 <= candbaseline && candbaseline <= lebuf.pos.line) {
-	    lebuf_print_el();
-	    candbaseline = lebuf.pos.line + 1;
-	    candoverwritten = true;
-	}
+	check_cand_overwritten();
     }
     lebuf_print_cuf(le_columns - rprompt.width - lebuf.pos.column - 1);
     sb_ncat_force(&lebuf.buf, rprompt.value, rprompt.length);
