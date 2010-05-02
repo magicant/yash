@@ -863,12 +863,10 @@ void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
 
 void redraw_all(bool clear)
 {
-    le_display_clear();
+    le_display_clear(clear);
     le_restore_terminal();
     le_setupterm(false);
     le_set_terminal();
-    if (clear)
-	lebuf_print_clear();
 }
 
 

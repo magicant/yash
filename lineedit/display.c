@@ -355,13 +355,17 @@ void le_display_finalize(void)
     clean_up();
 }
 
-/* Clears prompt, edit line and info area on the screen. */
-void le_display_clear(void)
+/* Clears prompt, edit line and info area on the screen.
+ * If `clear' is true, also prints the "clear" capability. */
+void le_display_clear(bool clear)
 {
     if (display_active) {
 	lebuf_init(currentp);
 	lebuf_print_sgr0();
-	go_to((le_pos_T) { 0, 0 });
+	if (clear)
+	    lebuf_print_clear();
+	else
+	    go_to((le_pos_T) { 0, 0 });
 	clean_up();
     }
 }

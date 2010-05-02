@@ -13,6 +13,7 @@ Yash 2.20
   +  Function definition using the "function" keyword.
   =  The "-nt" and "-ot" operator of the "test" builtin now considers
      a non-existent file older in favor of Korn shell.
+  *  [line-editing] the clear-and-redraw-all command was broken.
 
 ----------------------------------------------------------------------
 Yash 2.19

@@ -46,7 +46,7 @@ extern void lebuf_print_prompt(const wchar_t *s)
 
 extern void le_display_init(struct promptset_T prompt);
 extern void le_display_finalize(void);
-extern void le_display_clear(void);
+extern void le_display_clear(_Bool clear);
 extern void le_display_flush(void);
 extern void le_display_update(_Bool cursor);
 
