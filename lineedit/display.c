@@ -88,7 +88,8 @@ void lebuf_init(le_pos_T p)
     lebuf_init_with_max(p, le_columns);
 }
 
-/* Initializes the print buffer with the specified position data. */
+/* Initializes the print buffer with the specified position data.
+ * If `maxcolumn' is negative, it is considered as infinite. */
 void lebuf_init_with_max(le_pos_T p, int maxcolumn)
 {
     lebuf.pos = p;
@@ -114,11 +115,12 @@ void lebuf_update_position(int width)
     assert(width >= 0);
 
     int new_column = lebuf.pos.column + width;
-    if (new_column <= lebuf.maxcolumn)
-	if (le_ti_xenl || new_column < lebuf.maxcolumn)
-	    lebuf.pos.column = new_column;
-	else
-	    lebuf.pos.line++, lebuf.pos.column = 0;
+    if (lebuf.maxcolumn < 0
+	    || new_column < lebuf.maxcolumn
+	    || (le_ti_xenl && new_column == lebuf.maxcolumn))
+	lebuf.pos.column = new_column;
+    else if (new_column == lebuf.maxcolumn)
+	lebuf.pos.line++, lebuf.pos.column = 0;
     else
 	lebuf.pos.line++, lebuf.pos.column = width;
 }
@@ -284,7 +286,7 @@ void lebuf_putws_trunc(const wchar_t *s)
 	int width = wcwidth(*s);
 	if (width > 0) {
 	    int new_column = lebuf.pos.column + width;
-	    if (new_column >= lebuf.maxcolumn)
+	    if (0 <= lebuf.maxcolumn && lebuf.maxcolumn <= new_column)
 		break;
 	    lebuf.pos.column = new_column;
 	    lebuf_putwchar_raw(*s);
@@ -841,7 +843,7 @@ void go_to_after_editline(void)
 /* If the cursor is sticking to the end of line, moves it to the next line. */
 void fillip_cursor(void)
 {
-    if (lebuf.pos.column >= lebuf.maxcolumn) {
+    if (0 <= lebuf.maxcolumn && lebuf.maxcolumn <= lebuf.pos.column) {
 	lebuf_putwchar(L' ',  false);
 	lebuf_putwchar(L'\r', false);
 	lebuf_print_el();
