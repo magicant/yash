@@ -579,13 +579,12 @@ void generate_external_command_candidates(
 	    context->pattern);
 
     char *const *paths = get_path_array(PA_PATH);
-    const char *dirpath;
     xstrbuf_T path;
 
     if (paths == NULL)
 	return;
     sb_init(&path);
-    while ((dirpath = *paths) != NULL) {
+    for (const char *dirpath; (dirpath = *paths) != NULL; paths++) {
 	DIR *dir = opendir(dirpath);
 	struct dirent *de;
 	size_t dirpathlen;
@@ -609,8 +608,6 @@ void generate_external_command_candidates(
 	}
 	sb_clear(&path);
 	closedir(dir);
-
-	paths++;
     }
     sb_destroy(&path);
 }
