@@ -1133,14 +1133,17 @@ void print_candidates_all(void)
     assert(lebuf.pos.column == 0);
     candoverwritten = false;
 
-    if (le_candidates.contents == NULL || candpages.contents == NULL)
+    if (le_candidates.contents == NULL)
 	return;
-
-    candbaseline = lebuf.pos.line;
     if (le_candidates.length == 0) {
+	candbaseline = lebuf.pos.line;
 	print_candidate_count_0();
 	return;
     }
+    if (candpages.contents == NULL)
+	return;
+
+    candbaseline = lebuf.pos.line;
 
     size_t pageindex = le_selected_candidate_index < le_candidates.length
 	? page_of_col(col_of_cand(le_selected_candidate_index))
