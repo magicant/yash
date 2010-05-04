@@ -346,8 +346,8 @@ void generate_bindkey_candidates(
 
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
 	if (xfnm_match(context->cpattern, commands[i].name) == 0)
-	    le_add_candidate(type, CT_BINDKEY,
-		    malloc_mbstowcs(commands[i].name));
+	    le_new_candidate(
+		    CT_BINDKEY, malloc_mbstowcs(commands[i].name), NULL);
 }
 
 

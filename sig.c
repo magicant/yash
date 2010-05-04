@@ -940,7 +940,7 @@ void generate_signal_candidates(
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, s->name);
 	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
-	    le_add_candidate(type, CT_SIG, wb_towcs(&buf));
+	    le_new_candidate(CT_SIG, wb_towcs(&buf), NULL /* TODO */);
 	    wb_init(&buf);
 	} else {
 	    wb_clear(&buf);
@@ -955,7 +955,7 @@ void generate_signal_candidates(
 	if (s != sigrtmin)
 	    wb_wprintf(&buf, L"+%d", s - sigrtmin);
 	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
-	    le_add_candidate(type, CT_SIG, wb_towcs(&buf));
+	    le_new_candidate(CT_SIG, wb_towcs(&buf), NULL /* TODO */);
 	    wb_init(&buf);
 	} else {
 	    wb_clear(&buf);
@@ -967,7 +967,7 @@ void generate_signal_candidates(
 	if (s != sigrtmax)
 	    wb_wprintf(&buf, L"-%d", sigrtmax - s);
 	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
-	    le_add_candidate(type, CT_SIG, wb_towcs(&buf));
+	    le_new_candidate(CT_SIG, wb_towcs(&buf), NULL /* TODO */);
 	    wb_init(&buf);
 	} else {
 	    wb_clear(&buf);

@@ -257,7 +257,7 @@ void generate_builtin_candidates(
 		break;
 	}
 	if (xfnm_match(context->cpattern, kv.key) == 0)
-	    le_add_candidate(type, CT_COMMAND, malloc_mbstowcs(kv.key));
+	    le_new_candidate(CT_COMMAND, malloc_mbstowcs(kv.key), NULL);
     }
 }
 

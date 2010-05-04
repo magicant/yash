@@ -428,7 +428,7 @@ void generate_alias_candidates(
 	if ((alias->flags & AF_GLOBAL)
 		? (type & CGT_GALIAS) : (type & CGT_NALIAS)) {
 	    if (xfnm_wmatch(context->cpattern, kv.key).start != (size_t) -1) {
-		le_add_candidate(type, CT_ALIAS, xwcsdup(kv.key));
+		le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL);
 	    }
 	}
     }

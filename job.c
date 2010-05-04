@@ -923,7 +923,7 @@ void generate_job_candidates(
 	    cand = xwcsdup(jobname);
 	else
 	    cand = malloc_wprintf(L"%%%ls", jobname);
-	le_add_candidate(type, CT_JOB, cand);
+	le_new_candidate(CT_JOB, cand, NULL);
     }
     xfnm_free(xfnm);
 }

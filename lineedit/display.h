@@ -44,6 +44,7 @@ extern void lebuf_putws(const wchar_t *s, _Bool convert_cntrl)
     __attribute__((nonnull));
 extern void lebuf_print_prompt(const wchar_t *s)
     __attribute__((nonnull));
+extern _Bool lebuf_putwchar_trunc(wchar_t c);
 extern void lebuf_putws_trunc(const wchar_t *s)
     __attribute__((nonnull));
 
@@ -52,6 +53,7 @@ extern void le_display_finalize(void);
 extern void le_display_clear(_Bool clear);
 extern void le_display_flush(void);
 extern void le_display_update(_Bool cursor);
+extern void le_display_make_rawvalues(void);
 extern void le_display_complete_cleanup(void);
 
 extern _Bool le_try_print_prompt(const wchar_t *s)

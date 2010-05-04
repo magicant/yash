@@ -433,7 +433,7 @@ void generate_shopt_candidates(
     for (size_t i = 0; set_long_options[i].name != NULL; i++) {
 	if (xfnm_wmatch(context->cpattern, set_long_options[i].name).start
 		!= (size_t) -1)
-	    le_add_candidate(type, CT_SHOPT, xwcsdup(set_long_options[i].name));
+	    le_new_candidate(CT_SHOPT, xwcsdup(set_long_options[i].name), NULL);
     }
 }
 

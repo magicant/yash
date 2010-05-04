@@ -42,17 +42,23 @@ typedef enum le_candtype_T {
     CT_HOSTNAME,   // host name
     CT_BINDKEY,    // line-editing command name
 } le_candtype_T;
+typedef struct le_candvalue_T {
+    wchar_t *value;  // the value
+    char *raw;       // pre-printed version of `value'
+    int width;       // screen width of `raw'
+} le_candvalue_T;
 typedef struct le_candidate_T {
     le_candtype_T type;
-    wchar_t *value;
-    char *rawvalue;
-    int width;
-    struct {  /* only used when `type' is CT_FILE */
-	_Bool is_executable;
-	mode_t mode;
-	nlink_t nlink;
-	off_t size;
-    } filestat;
+    le_candvalue_T value, desc;  /* the candidate value and its description */
+    union {
+	struct {
+	    _Bool is_executable;
+	    mode_t mode;
+	    nlink_t nlink;
+	    off_t size;
+	} filestat;               /* only used for CT_FILE */
+	le_candvalue_T subvalue;  /* only used for CT_OPTION/CT_OPTIONA */
+    } appendage;
 } le_candidate_T;
 
 typedef enum le_quote_T {
@@ -157,8 +163,8 @@ extern void le_complete_cleanup(void);
 extern void le_compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
-extern void le_add_candidate(
-	le_candgentype_T cgt, le_candtype_T type, wchar_t *value)
+extern void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc);
+extern void le_add_candidate(le_candidate_T *cand)
     __attribute__((nonnull));
 
 extern int complete_builtin(int argc, void **argv)

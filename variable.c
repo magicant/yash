@@ -1278,7 +1278,7 @@ void generate_variable_candidates(
 	}
 	if (name[0] != L'='
 		&& xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
-	    le_add_candidate(type, CT_VAR, xwcsdup(name));
+	    le_new_candidate(CT_VAR, xwcsdup(name), NULL);
     }
 }
 
@@ -1297,7 +1297,7 @@ void generate_function_candidates(
     const wchar_t *name;
     while ((name = ht_next(&functions, &i).key) != NULL)
 	if (xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
-	    le_add_candidate(type, CT_COMMAND, xwcsdup(name));
+	    le_new_candidate(CT_COMMAND, xwcsdup(name), NULL);
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */

@@ -21,6 +21,7 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -78,6 +79,7 @@ static void lebuf_wprintf(bool convert_cntrl, const wchar_t *format, ...)
     __attribute__((nonnull(2)));
 static const wchar_t *print_color_seq(const wchar_t *s)
     __attribute__((nonnull));
+static bool lebuf_putchar1_trunc(int c);
 
 /* The print buffer. */
 struct lebuf_T lebuf;
@@ -278,27 +280,49 @@ done:
 #undef SETBG
 }
 
+/* Like `lebuf_putwchar', but prints only if there is enough column(s) to the
+ * right of the current position.
+ * Returns false iff there is not enough column(s).
+ * Returns true for a non-printable character. */
+bool lebuf_putwchar_trunc(wchar_t c)
+{
+    int width = wcwidth(c);
+    if (width <= 0)
+	return true;
+
+    int new_column = lebuf.pos.column + width;
+    if (0 <= lebuf.maxcolumn && lebuf.maxcolumn <= new_column)
+	return false;
+    lebuf.pos.column = new_column;
+    lebuf_putwchar_raw(c);
+    return true;
+}
+
 /* Like `lebuf_putws', but stops printing when the cursor reaches the end of
  * the line. Non-printable characters are ignored. */
 void lebuf_putws_trunc(const wchar_t *s)
 {
-    while (*s != L'\0') {
-	int width = wcwidth(*s);
-	if (width > 0) {
-	    int new_column = lebuf.pos.column + width;
-	    if (0 <= lebuf.maxcolumn && lebuf.maxcolumn <= new_column)
-		break;
-	    lebuf.pos.column = new_column;
-	    lebuf_putwchar_raw(*s);
-	}
+    while (*s != L'\0' && lebuf_putwchar_trunc(*s))
 	s++;
-    }
+}
+
+/* Like `lebuf_putwchar_trunc', but prints a byte instead of a wide character.
+ * The width of the character byte is assumed to be 1. */
+bool lebuf_putchar1_trunc(int c)
+{
+    if (0 < lebuf.maxcolumn && lebuf.maxcolumn <= lebuf.pos.column + 1)
+	return false;
+
+    lebuf.pos.column += 1;
+    sb_ccat(&lebuf.buf, TO_CHAR(c));
+    return true;
 }
 
 
 /********** Displaying **********/
 
-enum highlight_T { HI_NORMAL, HI_HIGHLIGHT, HI_DEHIGHLIGHT, };
+typedef struct candpage_T candpage_T;
+typedef struct candcol_T candcol_T;
 
 static void clean_up(void);
 static void clear_to_end_of_screen(void);
@@ -316,8 +340,6 @@ static void fillip_cursor(void);
 
 static void update_candidates(void);
 static void make_pages_and_columns(void);
-static void make_rawvalues(void);
-static bool try_putwchar_rawvalue(wchar_t c);
 static bool arrange_candidates(size_t cand_per_col, int totalwidthlimit);
 static void divide_candidates_pages(size_t cand_per_col);
 static void free_candpage(void *candpage)
@@ -327,7 +349,7 @@ static void free_candcol(void *candcol)
 static void print_candidates_all(void);
 static void update_highlighted_candidate(void);
 static void print_candidate(
-	const le_candidate_T *cand, int colwidth, enum highlight_T highlight)
+	const le_candidate_T *cand, const candcol_T *col, bool highlight)
     __attribute__((nonnull));
 static void print_candidate_count(size_t pageindex);
 static void print_candidate_count_0(void);
@@ -383,19 +405,20 @@ static struct {
     size_t length;  /* number of bytes in `value' */
 } sprompt;
 
-/* The type of completion candidate pages.
- * The `candcols' member is a list of completion candidate columns. The elements
- * pointed to by `candcols.contents[*]' are of type `candcol_T'. */
-typedef struct candpage_T {
+/* The type of completion candidate pages. */
+struct candpage_T {
     size_t colindex;  /* index of the first column in this page */
     size_t colcount;  /* number of the columns in this page */
-} candpage_T;
+};
 /* The type of completion candidate columns. */
-typedef struct candcol_T {
+struct candcol_T {
     size_t candindex;  /* index of the first candidate in this column */
     size_t candcount;  /* number of the candidate in this column */
-    int width;         /* max width of the candidates */
-} candcol_T;
+    int valuewidth,    /* max width of the candidate values */
+	subvaluewidth, /* max width of the candidate sub-values */
+	descwidth,     /* max width of the candidate description */
+	width;         /* total width of the whole column. */
+};
 
 /* A list of completion candidate pages.
  * The elements pointed to by `candpages.contents[*]' are of type `candpage_T'.
@@ -406,7 +429,7 @@ static plist_T candpages = { .contents = NULL };
  * `candcols' is active iff `candpages' is active. */
 static plist_T candcols = { .contents = NULL };
 /* The index of the candidate that is currently highlighted.
- * The value is NOHIGHLIGHT when no candidate is highlighted. */
+ * An invalid index indicates that no candidate is highlighted. */
 static size_t candhighlight;
 #define NOHIGHLIGHT ((size_t) -1)
 /* The number of the first line on which the candidate area is displayed.
@@ -853,6 +876,59 @@ void fillip_cursor(void)
 }
 
 
+/* Sets the `raw' and `width' members of candidates in `le_candidates'.
+ * This function uses the print buffer in it to calculate the widths. */
+void le_display_make_rawvalues(void)
+{
+    assert(le_candidates.contents != NULL);
+
+    for (size_t i = 0; i < le_candidates.length; i++) {
+	le_candidate_T *cand = le_candidates.contents[i];
+
+	const wchar_t *s = cand->value.value;
+	assert(cand->value.raw == NULL);
+	if (s != NULL) {
+	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
+
+	    /* skip directory components for a file candidate */
+	    if (cand->type == CT_FILE) {
+		const wchar_t *ss = wcsrchr(s, L'/');
+		if (ss != NULL)
+		    s = ss + 1;
+	    }
+
+	    lebuf_putws_trunc(s);
+
+	    /* append a slash for a directory candidate */
+	    if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode))
+		lebuf_putwchar(L'/', false);
+
+	    cand->value.raw = sb_tostr(&lebuf.buf);
+	    cand->value.width = lebuf.pos.column;
+	}
+
+	assert(cand->desc.raw == NULL);
+	if (cand->desc.value != NULL) {
+	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
+
+	    lebuf_putws_trunc(cand->desc.value);
+
+	    cand->desc.raw = sb_tostr(&lebuf.buf);
+	    cand->desc.width = lebuf.pos.column;
+	}
+
+	if (cand->type == CT_OPTION || cand->type == CT_OPTIONA) {
+	    assert(cand->appendage.subvalue.raw == NULL);
+	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
+
+	    lebuf_putws_trunc(cand->appendage.subvalue.value);
+
+	    cand->appendage.subvalue.raw = sb_tostr(&lebuf.buf);
+	    cand->appendage.subvalue.width = lebuf.pos.column;
+	}
+    }
+}
+
 /* Updates the candidate area.
  * The edit line (and the right prompt if any) must have been printed before
  * calling this function.
@@ -891,18 +967,22 @@ void make_pages_and_columns(void)
     if (le_candidates.contents == NULL || le_candidates.length == 0)
 	return;
 
-    int maxrow = le_lines - last_edit_line - 1;
-    if (maxrow <= 1 || le_columns < 4)
-	return;
-
-    make_rawvalues();
+    int maxrowi = le_lines - last_edit_line - 1;
+    if (maxrowi < 2 || le_columns < 4)
+	return;  /* we have to have at least 2 lines & 4 columns */
 
     pl_init(&candpages);
     pl_init(&candcols);
 
+#if INT_MAX > SIZE_MAX
+    size_t maxrow = (maxrowi > SIZE_MAX) ? SIZE_MAX : (size_t) maxrowi;
+#else
+    size_t maxrow = (size_t) maxrowi;
+#endif
+
     /* first check if the candidates fit into one page */
-    for (int cand_per_col = 1; cand_per_col < maxrow; cand_per_col++) {
-	if (arrange_candidates((size_t) cand_per_col, le_columns)) {
+    for (size_t cand_per_col = 1; cand_per_col <= maxrow; cand_per_col++) {
+	if (arrange_candidates(cand_per_col, le_columns)) {
 	    candpage_T *page = xmalloc(sizeof *page);
 	    page->colindex = 0;
 	    page->colcount = candcols.length;
@@ -912,63 +992,7 @@ void make_pages_and_columns(void)
     }
 
     /* divide the candidate list into pages */
-    divide_candidates_pages((size_t) maxrow - 1);
-}
-
-/* Sets the `rawvalue' and `width' members of candidates in `le_candidates'.
- * The raw values are truncated so that the candidate widths do not exceed the
- * screen width. The screen width must be at least 4. */
-void make_rawvalues(void)
-{
-    struct lebuf_T savelebuf = lebuf;
-
-    assert(le_columns >= 4);
-    for (size_t i = 0; i < le_candidates.length; i++) {
-	le_candidate_T *cand = le_candidates.contents[i];
-
-	free(cand->rawvalue);
-	lebuf_init((le_pos_T) { 0, 0 });
-
-	const wchar_t *s = cand->value;
-	if (cand->type == CT_FILE) {
-	    const wchar_t *ss = wcsrchr(s, L'/');
-	    if (ss != NULL)
-		s = ss + 1;
-	}
-	for (; *s != L'\0'; s++) {
-	    if (!try_putwchar_rawvalue(*s))
-		break;
-	}
-
-	if (cand->type == CT_FILE && S_ISDIR(cand->filestat.mode))
-	    try_putwchar_rawvalue(L'/');
-
-	cand->rawvalue = sb_tostr(&lebuf.buf);
-	cand->width = lebuf.pos.column;
-    }
-
-    lebuf = savelebuf;
-}
-
-/* Appends the specified character to the print buffer if there is enough room.
- * `lebuf.pos.line' must be zero.
- * Returns true iff successful.
- * `lebuf.pos.line' may be left non-zero if unsuccessful. */
-bool try_putwchar_rawvalue(wchar_t c)
-{
-    assert(lebuf.pos.line == 0);
-    int savecol = lebuf.pos.column;
-    size_t savelen = lebuf.buf.length;
-
-    lebuf_putwchar(c, true);
-    if (lebuf.pos.line > 0 || lebuf.pos.column > lebuf.maxcolumn - 3) {
-	// lebuf.pos.line = 0;
-	lebuf.pos.column = savecol;
-	sb_truncate(&lebuf.buf, savelen);
-	return false;
-    } else {
-	return true;
-    }
+    divide_candidates_pages(maxrow - 1);
 }
 
 /* Tries to arrange the current candidates in `le_candidates' into columns that
@@ -995,17 +1019,27 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
 	    col->candcount = le_candidates.length - candindex;
 	else
 	    col->candcount = cand_per_col;
-	col->width = 0;
+	col->valuewidth = col->subvaluewidth = col->descwidth = col->width = 0;
 	
 	for (size_t nextcandindex = candindex + col->candcount;
 		candindex < nextcandindex;
 		candindex++) {
 	    le_candidate_T *cand = le_candidates.contents[candindex];
-	    if (col->width < cand->width)
-		col->width = cand->width;
+
+	    if (col->valuewidth < cand->value.width)
+		col->valuewidth = cand->value.width;
+	    if (cand->type == CT_OPTION || cand->type == CT_OPTIONA)
+		if (col->subvaluewidth < cand->appendage.subvalue.width)
+		    col->subvaluewidth = cand->appendage.subvalue.width;
+	    if (col->descwidth < cand->desc.width)
+		col->descwidth = cand->desc.width;
 	}
 
-	totalwidth += col->width + 2;
+	if (col->valuewidth    > 0) col->valuewidth    += 2;
+	if (col->subvaluewidth > 0) col->subvaluewidth += 2;
+	if (col->descwidth     > 0) col->descwidth     += 3;
+	col->width = col->valuewidth + col->subvaluewidth + col->descwidth;
+	totalwidth += col->width;
 	pl_add(&candcols, col);
 
 	if (totalwidthlimit >= 0 && totalwidth >= totalwidthlimit) {
@@ -1026,24 +1060,27 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
  */
 void divide_candidates_pages(size_t cand_per_col)
 {
+    /* divide candidates into columns */
     bool ok = arrange_candidates(cand_per_col, -1);
     assert(ok);
 
+    /* divide columns into pages */
     size_t colindex = 0;
     assert(candpages.contents[0] == NULL);
     do {
 	candpage_T *page = xmalloc(sizeof *page);
-	page->colindex = colindex;
-
+	int pagewidth;
 	candcol_T *col;
-	int totalwidth = 0;
-	while ((col = candcols.contents[colindex]) != NULL) {
-	    if (totalwidth + col->width + 2 >= le_columns)
-		break;
-	    totalwidth += col->width + 2;
-	    colindex++;
-	}
+
+	page->colindex = colindex;
+	col = candcols.contents[colindex];
+	pagewidth = col->width;
+	while ((col = candcols.contents[++colindex]) != NULL
+		&& pagewidth + col->width < le_columns)
+	    pagewidth += col->width;
 	page->colcount = colindex - page->colindex;
+	/* Each page contains at least one column: The page width may not
+	 * necessarily be less than the screen width. */
 
 	pl_add(&candpages, page);
     } while (colindex < candcols.length);  /* col != NULL */
@@ -1096,7 +1133,7 @@ void print_candidates_all(void)
     assert(lebuf.pos.column == 0);
     candoverwritten = false;
 
-    if (le_candidates.contents == NULL)
+    if (le_candidates.contents == NULL || candpages.contents == NULL)
 	return;
 
     candbaseline = lebuf.pos.line;
@@ -1109,16 +1146,29 @@ void print_candidates_all(void)
 	? page_of_col(col_of_cand(le_selected_candidate_index))
 	: 0;
     const candpage_T *page = candpages.contents[pageindex];
-    const candcol_T *col = candcols.contents[page->colindex];
+    const candcol_T *firstcol = candcols.contents[page->colindex];
 
-    for (size_t i = 0; ; ) {  /* print first column */
-	size_t index = col->candindex + i;
-	const le_candidate_T *cand = le_candidates.contents[index];
-	bool highlight = le_selected_candidate_index == index;
-	print_candidate(cand, col->width,
-		highlight ? HI_HIGHLIGHT : HI_NORMAL);
+    size_t rowi = 0, rowcount = firstcol->candcount;
+    for (;;) {
+	int scrcol = 0;
 
-	if (++i == col->candcount)
+	for (size_t coli = 0; coli < page->colcount; coli++) {
+	    const candcol_T *col = candcols.contents[page->colindex + coli];
+	    if (rowi >= col->candcount)
+		break;
+
+	    while (lebuf.pos.column < scrcol)
+		lebuf_putwchar(L' ', false);
+
+	    size_t candindex = col->candindex + rowi;
+	    print_candidate(le_candidates.contents[candindex], col,
+		    le_selected_candidate_index == candindex);
+
+	    scrcol += col->width;
+	}
+
+	rowi++;
+	if (rowi >= rowcount)
 	    break;
 	lebuf_print_nel();
     }
@@ -1128,24 +1178,7 @@ void print_candidates_all(void)
 	print_candidate_count(pageindex);
     }
 
-    int column = col->width + 2;
-    for (size_t j = 1; j < page->colcount; j++) {  /* print remaining columns */
-	col = candcols.contents[page->colindex + j];
-	for (size_t i = 0; i < col->candcount; i++) {
-	    go_to((le_pos_T) { .line   = candbaseline + (int) i,
-	                       .column = column });
-
-	    size_t candindex = col->candindex + i;
-	    const le_candidate_T *cand = le_candidates.contents[candindex];
-	    bool highlight = le_selected_candidate_index == candindex;
-	    print_candidate(cand, col->width,
-		    highlight ? HI_HIGHLIGHT : HI_NORMAL);
-	}
-	column += col->width + 2;
-    }
-
-    candhighlight = le_selected_candidate_index < le_candidates.length
-	? le_selected_candidate_index : NOHIGHLIGHT;
+    candhighlight = le_selected_candidate_index;
 }
 
 /* Reprints the highlighted candidate.
@@ -1188,7 +1221,6 @@ void update_highlighted_candidate(void)
 
     const candpage_T *page = candpages.contents[newpageindex];
     const candcol_T *col;
-    const le_candidate_T *cand;
     int column;
     size_t rowindex;
 
@@ -1197,32 +1229,28 @@ void update_highlighted_candidate(void)
 	column = 0;
 	for (size_t i = page->colindex; i < oldcolindex; i++) {
 	    col = candcols.contents[i];
-	    column += col->width + 2;
+	    column += col->width;
 	}
 	col = candcols.contents[oldcolindex];
 	rowindex = candhighlight - col->candindex;
 	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
 			   .column = column });
-	cand = le_candidates.contents[candhighlight];
-	print_candidate(cand, col->width, HI_DEHIGHLIGHT);
+	print_candidate(le_candidates.contents[candhighlight], col, false);
     }
 
     /* highlight the current selected candidate */
-    if (le_selected_candidate_index < le_candidates.length) {
-	candhighlight = le_selected_candidate_index;
+    candhighlight = le_selected_candidate_index;
+    if (candhighlight < le_candidates.length) {
 	column = 0;
 	for (size_t i = page->colindex; i < newcolindex; i++) {
 	    col = candcols.contents[i];
-	    column += col->width + 2;
+	    column += col->width;
 	}
 	col = candcols.contents[newcolindex];
 	rowindex = candhighlight - col->candindex;
 	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
 			   .column = column });
-	cand = le_candidates.contents[candhighlight];
-	print_candidate(cand, col->width, HI_HIGHLIGHT);
-    } else {
-	candhighlight = NOHIGHLIGHT;
+	print_candidate(le_candidates.contents[candhighlight], col, true);
     }
 
     /* print status line */
@@ -1236,36 +1264,80 @@ void update_highlighted_candidate(void)
 }
 
 /* Prints the specified candidate at the current cursor position.
- * `colwidth' specifies the max width of the candidates in the column to which
- * `cand' belongs. `highlight' specifies how the candidate is highlighted:
- *   HI_NORMAL:       not highlighted. Suited for printing on blanks.
- *   HI_HIGHLIGHT:    highlighted.
- *   HI_DEHIGHLIGHT:  not highlighted. Suited for rewriting over an existing
- *                    highlighted candidate.
+ * The candidate is highlighted iff `highlight' is true.
  * The cursor is left just after the printed candidate. */
 void print_candidate(
-	const le_candidate_T *cand, int colwidth, enum highlight_T highlight)
+	const le_candidate_T *cand, const candcol_T *col, bool highlight)
 {
-    if (highlight == HI_HIGHLIGHT)
+    int line = lebuf.pos.line;
+
+    if (highlight)
 	lebuf_print_bold();
-    lebuf_putchar(highlight == HI_HIGHLIGHT ? '[' : ' ');
-    sb_cat(&lebuf.buf, cand->rawvalue);
-    lebuf.pos.column += cand->width + 1;
-    if (highlight != HI_NORMAL) {
-	lebuf_print_cuf(colwidth - cand->width);
-	lebuf_putchar(highlight == HI_HIGHLIGHT ? ']' : ' ');
-	lebuf.pos.column += 1;
-	if (highlight == HI_HIGHLIGHT)
-	    lebuf_print_sgr0();
+
+    /* print value */
+    if (cand->value.value != NULL) {
+	int base = lebuf.pos.column;
+	lebuf_putchar1_trunc(highlight ? '[' : ' ');
+	if (lebuf.pos.column + cand->value.width < lebuf.maxcolumn) {
+	    lebuf.pos.column += cand->value.width;
+	    sb_cat(&lebuf.buf, cand->value.raw);
+	} else {
+	    lebuf_putws_trunc(cand->value.value);
+	}
+	if (highlight)
+	    lebuf_print_sgr0(), lebuf_print_bold();
+	while (lebuf.pos.column + 2 < lebuf.maxcolumn
+		&& lebuf.pos.column - base < col->valuewidth - 1)
+	    lebuf_putchar1_trunc(' ');
+	lebuf_putchar1_trunc(highlight ? ']' : ' ');
+	if (highlight)
+	    lebuf_print_sgr0(), highlight = false;
     }
+
+    /* print sub-value */
+    if ((cand->type == CT_OPTION || cand->type == CT_OPTIONA)
+	    && cand->appendage.subvalue.value != NULL) {
+	int base = lebuf.pos.column;
+	lebuf_putchar1_trunc(highlight ? '[' : ' ');
+	if (lebuf.pos.column + cand->appendage.subvalue.width
+		< lebuf.maxcolumn) {
+	    lebuf.pos.column += cand->appendage.subvalue.width;
+	    sb_cat(&lebuf.buf, cand->appendage.subvalue.raw);
+	} else {
+	    lebuf_putws_trunc(cand->appendage.subvalue.value);
+	}
+	if (highlight)
+	    lebuf_print_sgr0(), lebuf_print_bold();
+	while (lebuf.pos.column + 2 < lebuf.maxcolumn
+		&& lebuf.pos.column - base < col->subvaluewidth - 1)
+	    lebuf_putchar1_trunc(' ');
+	lebuf_putchar1_trunc(highlight ? ']' : ' ');
+	if (highlight)
+	    lebuf_print_sgr0(), highlight = false;
+    }
+    assert(!highlight);
+
+    /* print description */
+    if (cand->desc.value != NULL) {
+	lebuf_putchar1_trunc(' ');
+	lebuf_putchar1_trunc('(');
+	if (lebuf.pos.column + cand->desc.width < lebuf.maxcolumn) {
+	    lebuf.pos.column += cand->desc.width;
+	    sb_cat(&lebuf.buf, cand->desc.raw);
+	} else {
+	    lebuf_putws_trunc(cand->desc.value);
+	}
+	lebuf_putchar1_trunc(')');
+    }
+
+    assert(lebuf.pos.line == line);
 }
 
 /* Prints the number of the currently selected candidate, the total number of
  * the candidates, the number of the current page, and the total number of the
  * pages at the current position.
  * The index of the page to which the selected candidate belong must be given
- * as `pageindex'.
- * If there is not enough room on the current line, the line is truncated. */
+ * as `pageindex'. */
 void print_candidate_count(size_t pageindex)
 {
     size_t sindex = (le_selected_candidate_index < le_candidates.length)
