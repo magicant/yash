@@ -54,6 +54,31 @@
 #include "lineedit.h"
 #include "terminfo.h"
 
+#if HAVE_GETPWENT
+# ifndef getpwent
+extern struct passwd *getpwent(void);
+# endif
+# ifndef endpwent
+extern void endpwent(void);
+# endif
+#endif
+#if HAVE_GETGRENT
+# ifndef getgrent
+extern struct group *getgrent(void);
+# endif
+# ifndef endgrent
+extern void endgrent(void);
+# endif
+#endif
+#if HAVE_GETHOSTENT
+# ifndef gethostent
+extern struct hostent *gethostent(void);
+# endif
+# ifndef endhostent
+extern void endhostent(void);
+# endif
+#endif
+
 
 static inline wchar_t *candvalue(const le_candidate_T *cand)
     __attribute__((nonnull));
