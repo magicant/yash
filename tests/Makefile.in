@@ -42,10 +42,11 @@ TEST_SOURCES = alias.p.tst alias.p.out alias.y.tst alias.y.out \
 	variable.p.tst variable.p.out variable.y.tst variable.y.out
 
 TEST_ITEMS = *.tst  # the default test items
-
+TESTEE = yash
+TESTEEDIR = ..
 BYPRODUCTS = invoke.o invoke resetsig.o resetsig test.log *.dSYM
 
-test test-all: invoke resetsig
+test test-all: invoke resetsig $(TESTEEDIR)/$(TESTEE)
 	@./resetsig $(SHELL) ./run-test.sh
 test-posix:
 	@$(MAKE) TEST_ITEMS='*.p.tst' test
@@ -57,6 +58,9 @@ test-yash:
 .c.o:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
+
+$(TESTEEDIR)/$(TESTEE): _PHONY
+	@+cd $(TESTEEDIR) && $(MAKE) $(TESTEE)
 
 DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(TEST_SOURCES) Makefile.in run-test.sh
 # "distcontents" depends on object files to ensure all *.d files up-to-date
@@ -73,6 +77,7 @@ maintainer-clean: distclean
 	rm -fr $(SOURCES:.c=.d)
 
 .PHONY: test test-all test-posix test-yash distcontents copy-distcontents clean distclean maintainer-clean
+_PHONY:
 
 @MAKE_INCLUDE@ invoke.d
 @MAKE_INCLUDE@ resetsig.d
