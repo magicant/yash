@@ -537,6 +537,10 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
 	free(desc);
 	return;
     }
+    if (desc != NULL && desc[0] == L'\0') {
+	free(desc);
+	desc = NULL;
+    }
 
     le_candidate_T *cand = xmalloc(sizeof *cand);
     cand->type = type;
