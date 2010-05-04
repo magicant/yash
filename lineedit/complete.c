@@ -804,7 +804,10 @@ void generate_logname_candidates(
     while ((pwd = getpwent()) != NULL)
 	if (xfnm_match(context->cpattern, pwd->pw_name) == 0)
 	    le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
-		    NULL /* TODO */);
+# if HAVE_PW_GECOS
+		    (pwd->pw_gecos != NULL) ? malloc_mbstowcs(pwd->pw_gecos) :
+# endif
+		    NULL);
     endpwent();
 #else
     le_compdebug("  getpwent not supported on this system");

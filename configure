@@ -1000,6 +1000,24 @@ checked
 if [ x"${checkresult}" = x"yes" ]
 then
     defconfigh "HAVE_GETPWENT"
+
+    # check for pw_gecos
+    checking 'for pw_gecos'
+    cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <pwd.h>
+int main() {
+struct passwd pwd;
+pwd.pw_gecos = "";
+const char *s = pwd.pw_gecos;
+}
+END
+    trycompile
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_PW_GECOS"
+    fi
 fi
 
 # check for getgrent & endgrent
