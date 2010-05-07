@@ -901,6 +901,10 @@ void reset_sigint(void)
 }
 
 #if YASH_ENABLE_LINEEDIT
+
+static void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name)
+    __attribute__((nonnull));
+
 #ifdef SIGWINCH
 
 /* If SIGWINCH has been caught and line-editing is currently active, cause
@@ -939,12 +943,7 @@ void generate_signal_candidates(
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, s->name);
-	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
-	    le_new_candidate(CT_SIG, wb_towcs(&buf), NULL /* TODO */);
-	    wb_init(&buf);
-	} else {
-	    wb_clear(&buf);
-	}
+	sig_new_candidate(context->cpattern, s->no, &buf);
     }
 #if defined SIGRTMIN && defined SIGRTMAX
     int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
@@ -954,27 +953,38 @@ void generate_signal_candidates(
 	wb_cat(&buf, L"RTMIN");
 	if (s != sigrtmin)
 	    wb_wprintf(&buf, L"+%d", s - sigrtmin);
-	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
-	    le_new_candidate(CT_SIG, wb_towcs(&buf), NULL /* TODO */);
-	    wb_init(&buf);
-	} else {
-	    wb_clear(&buf);
-	}
+	sig_new_candidate(context->cpattern, s, &buf);
 
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, L"RTMAX");
 	if (s != sigrtmax)
 	    wb_wprintf(&buf, L"-%d", sigrtmax - s);
-	if (xfnm_wmatch(context->cpattern, buf.contents).start != (size_t) -1) {
-	    le_new_candidate(CT_SIG, wb_towcs(&buf), NULL /* TODO */);
-	    wb_init(&buf);
-	} else {
-	    wb_clear(&buf);
-	}
+	sig_new_candidate(context->cpattern, s, &buf);
     }
 #endif
     wb_destroy(&buf);
+}
+
+/* If the specified pattern matches the specified name, adds a new completion
+ * candidate with the specified name and the description for the specified
+ * signal. */
+void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name)
+{
+    if (xfnm_wmatch(pat, name->contents).start != (size_t) -1) {
+	wchar_t *desc = NULL;
+#if HAVE_STRSIGNAL
+	char *mbsdesc = strsignal(num);
+	if (mbsdesc != NULL)
+	    desc = malloc_mbstowcs(mbsdesc);
+#else
+	(void) num;
+#endif
+	le_new_candidate(CT_SIG, wb_towcs(name), desc);
+	wb_init(name);
+    } else {
+	wb_clear(name);
+    }
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
