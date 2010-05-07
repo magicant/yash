@@ -38,6 +38,10 @@
 #include "../variable.h"
 #include "printf.h"
 
+#if HAVE_WCSTOLD && !defined(wcstold)
+extern long double wcstold(const wchar_t *restrict s, wchar_t **restrict endp)
+    __attribute__((nonnull(1)));
+#endif
 
 /* type of format data used in the "printf" builtin */
 struct format_T {

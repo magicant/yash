@@ -818,6 +818,9 @@ checking 'for wcwidth'
 cat >"${tempsrc}" <<END
 #include "${configh}"
 #include <wchar.h>
+#ifndef wcwidth
+int wcwidth(wchar_t);
+#endif
 int main() { return wcwidth(L'\0'); }
 END
 trymake && tryexec
