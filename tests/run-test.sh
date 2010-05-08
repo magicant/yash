@@ -22,9 +22,9 @@ if ! [ -t 0 ]; then
 fi
 
 # log file
-: ${logfile:=test.log}
+rm -f "${logfile:=test.log}"
 exec 3>&1
-exec >"$logfile"
+exec >"${logfile}"
 echo "========== Yash Test Log =========="
 echo
 printf 'Test started at: '
