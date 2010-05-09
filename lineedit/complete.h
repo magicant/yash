@@ -140,18 +140,6 @@ typedef enum le_candgentype_T {
     CGT_HOSTNAME   = 1 << 21, // host name
     CGT_BINDKEY    = 1 << 22, // line-editing command name
 } le_candgentype_T;
-typedef struct le_candgen_T {
-    le_candgentype_T type;
-    void **words;
-    wchar_t *function;
-} le_candgen_T;
-/* The `le_candgen_T' structure specifies how to generate completion candidates.
- * The `type' member is bitwise OR of CGT_* values.
- * The `words' member is a pointer to an array of pointers to wide strings that
- * are added as candidates.
- * The `function' member is the name of the function that is called to generate
- * candidates.
- * The `words' and `function' members may be NULL. */
 
 
 extern plist_T le_candidates;
@@ -183,7 +171,7 @@ extern void generate_builtin_candidates(
     __attribute__((nonnull));
 
 /* This function is defined in "../exec.c". */
-extern void generate_candidates_using_function(
+extern int generate_candidates_using_function(
 	const wchar_t *funcname, const le_context_T *context)
     __attribute__((nonnull(2)));
 

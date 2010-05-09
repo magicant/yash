@@ -1422,20 +1422,21 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates completion candidates by executing the specified function. */
+/* Generates completion candidates by executing the specified function.
+ * Returns the exit status of the function. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_candidates_using_function(
+int generate_candidates_using_function(
 	const wchar_t *funcname, const le_context_T *context)
 {
     if (funcname == NULL)
-	return;
+	return Exit_SUCCESS;
 
     le_compdebug("executing candidate generator function \"%ls\"", funcname);
 
     command_T *function = get_function(funcname);
     if (function == NULL) {
 	le_compdebug("  -- no such function");
-	return;
+	return Exit_NOTFOUND;
     }
 
     void *args[context->pwordc + 2];
@@ -1445,6 +1446,10 @@ void generate_candidates_using_function(
     exec_function_body(function, args, false);
 
     le_compdebug("finished executing function \"%ls\"", funcname);
+    if (laststatus != Exit_SUCCESS)
+	le_compdebug("function returned exit status of %d", laststatus);
+
+    return laststatus;
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */

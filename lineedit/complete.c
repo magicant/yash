@@ -88,12 +88,12 @@ static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
 
-static const le_candgen_T *get_candgen(const le_context_T *context)
+static const struct candgen_T *get_candgen(const le_context_T *context)
     __attribute__((nonnull));
-static const le_candgen_T *find_optarg_candgen(
+static const struct candgen_T *find_optarg_candgen(
 	const hashtable_T *options, const wchar_t *s)
     __attribute__((nonnull));
-static void generate_candidates(const le_candgen_T *candgen)
+static int generate_candidates(const struct candgen_T *candgen)
     __attribute__((nonnull));
 static void generate_file_candidates(
 	le_candgentype_T type, const wchar_t *pattern)
@@ -337,28 +337,55 @@ void le_compdebug(const char *format, ...)
 
 #define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
 
-/* The type of data that specifies how to generate candidates for a command's
- * arguments. The `operands' member is used for completing a operand.
+/* This structure specifies how to generate completion candidates.
+ * The `type' member is bitwise OR of CGT_* values.
+ * The `words' member is a pointer to an array of pointers to wide strings that
+ * are added as candidates. These strings, after their terminating null
+ * character, are immediately followed by a description of the candidate.
+ * The `function' member is the name of the function that is called to generate
+ * candidates.
+ * The `words' and `function' members may be NULL. */
+struct candgen_T {
+    le_candgentype_T type;
+    void **words;
+    wchar_t *function;
+};
+
+/* This structure specifies the completion style for an option of a command.
+ * The `description' member is a description of the option (may be NULL).
+ * The `shortoptchar' member is the short-option character.
+ * The `longopt' member is the name of this option as a long option, starting
+ * with at least one hyphen.
+ * Either the `shortoptchar' or `longopt' member (but not both) may be null.
+ * The `requiresargument' member is true iff this option requires an argument.
+ * The value of the `candgen' member is valid only when `requiresargument' is
+ * true. */
+struct optcandgen_T {
+    struct optcandgen_T *next;
+    wchar_t *description;
+    wchar_t shortoptchar;
+    wchar_t *longopt;
+    bool requiresargument;
+    struct candgen_T candgen;
+};
+
+/* This structure specifies the completion style for a command.
+ * The `description' member is a description of the command (may be NULL).
+ * The `operands' member is used for completing a operand for the command.
  *
- * The `options' member is a hashtable that contains data for completing an
- * option. The hashtable's keys are pointers to freeable strings containing
- * option names and values are pointers to freeable `le_candgen_T' structures.
- * For a single-character option, the key is the single-character string
- * containing the option character. For a long option, the key string is the
- * option name prefixed by a hyphen.
- * For an option that does not take an argument, the corresponding value is
- * NULL. For an option that takes an argument, the value is a non-NULL pointer
- * to an `le_candgen_T' structure.
- * When the `options' hashtable contains no keys, the hashtable may be
- * uninitialized, in which case the `options.capacity' member must be zero.
+ * The `options' member is a pointer to a linked list of `optcandgen_T'
+ * structures specifying the options for the command and the completion styles
+ * for their arguments.
+ * If the command has no options, `options' is NULL.
  *
- * The `option_after_operand' member specifies whether options can appear after
+ * The `intermixed' member specifies whether options can appear after
  * operands or not. If this member is false, all arguments after the first
  * operand are considered as operands. */
 struct cmdcandgen_T {
-    le_candgen_T operands;
-    hashtable_T options;
-    bool option_after_operand;
+    wchar_t *description;
+    struct candgen_T operands;
+    struct optcandgen_T *options;
+    bool intermixed;
 };
 
 /* A hashtable that maps command names to candidate generation data.
@@ -370,15 +397,16 @@ static hashtable_T candgens = { .capacity = 0 };
 /* Determines how to generate candidates.
  * The context in which the completion is performed is specified by `context'.
  * The result is valid until the next call to this function or `set_candgen'. */
-const le_candgen_T *get_candgen(const le_context_T *context)
+const struct candgen_T *get_candgen(const le_context_T *context)
 {
     static void *in_do[] = { L"in", L"do", NULL };
     static void *in[] = { L"in", NULL };
-    static le_candgen_T tempresult;
+    static struct candgen_T tempresult;
 
     // TODO test
     // TODO don't add CGT_KEYWORD/CGT_ALIAS when quoted
-    tempresult = (le_candgen_T) { .type = 0, .words = NULL, .function = NULL };
+    tempresult = (struct candgen_T) {
+	.type = 0, .words = NULL, .function = NULL };
     switch (context->type & CTXT_MASK) {
 	case CTXT_NORMAL:
 	    break;
@@ -429,29 +457,30 @@ const le_candgen_T *get_candgen(const le_context_T *context)
 	goto return_default;
 
     /* parse the current command arguments */
-    for (int i = 1; i < context->pwordc; i++) {
-	const wchar_t *s = context->pwords[i];
-	if (s[0] != L'-') {
-	    if (ccg->option_after_operand)
-		continue;
-	    else
-		return &ccg->operands;
-	}
-	if (s[1] == L'-' && s[2] == L'\0')  /* s == L"--" */
-	    return &ccg->operands;
-
-	const le_candgen_T *candgen = find_optarg_candgen(&ccg->options, s);
-	if (candgen == NULL)
-	    continue;
-	if (++i == context->pwordc)
-	    return candgen;
-    }
-    if (context->src[0] == L'-') {
-	tempresult.type = CGT_OPTION;
-	return &tempresult;
-    } else {
-	return &ccg->operands;
-    }
+// TODO
+//    for (int i = 1; i < context->pwordc; i++) {
+//	const wchar_t *s = context->pwords[i];
+//	if (s[0] != L'-') {
+//	    if (ccg->intermixed)
+//		continue;
+//	    else
+//		return &ccg->operands;
+//	}
+//	if (s[1] == L'-' && s[2] == L'\0')  /* s == L"--" */
+//	    return &ccg->operands;
+//
+//	const candgen_T *candgen = find_optarg_candgen(&ccg->options, s);
+//	if (candgen == NULL)
+//	    continue;
+//	if (++i == context->pwordc)
+//	    return candgen;
+//    }
+//    if (context->src[0] == L'-') {
+//	tempresult.type = CGT_OPTION;
+//	return &tempresult;
+//    } else {
+//	return &ccg->operands;
+//    }
 
 return_default:
     tempresult.type = CGT_FILE | CGT_GALIAS;
@@ -461,7 +490,7 @@ return_default:
 /* Searches `options' for an option whose argument should be given as the next
  * command-line argument. The current argument word that starts with an hyphen
  * must be given as `s'. */
-const le_candgen_T *find_optarg_candgen(
+const struct candgen_T *find_optarg_candgen(
 	const hashtable_T *options, const wchar_t *s)
 {
     // TODO test
@@ -497,9 +526,10 @@ const le_candgen_T *find_optarg_candgen(
     return NULL;
 }
 
-/* Generates completion candidates according to the specified generation policy.
- * The candidate list must have been initialized when this function is called.*/
-void generate_candidates(const le_candgen_T *candgen)
+/* Generates completion candidates according to the specified completion style.
+ * The candidate list must have been initialized when this function is called.
+ * Returns the exit status of the candidate generator function. */
+int generate_candidates(const struct candgen_T *candgen)
 {
     generate_file_candidates(candgen->type, ctxt->pattern);
     generate_builtin_candidates(candgen->type, ctxt);
@@ -519,7 +549,7 @@ void generate_candidates(const le_candgen_T *candgen)
     generate_host_candidates(candgen->type, ctxt);
     generate_bindkey_candidates(candgen->type, ctxt);
     generate_candidates_from_words(candgen->words, ctxt);
-    generate_candidates_using_function(candgen->function, ctxt);
+    return generate_candidates_using_function(candgen->function, ctxt);
     /* `generate_candidates_using_function' must be last because the function
      * execution may modify `candgen'. */
 }
@@ -739,30 +769,32 @@ void generate_option_candidates(
     if (candgens.capacity == 0)
 	return;
 
-    const struct cmdcandgen_T *ccg =
-	ht_get(&candgens, context->pwords[0]).value;
-    if (ccg == NULL)
-	return;
+    return; //TODO
 
-    bool islong = (src[1] == L'-');
-    size_t i = 0;
-    kvpair_T kv;
-    while ((kv = ht_next(&ccg->options, &i)).key != NULL) {
-	const wchar_t *optname = kv.key;
-	const le_candgen_T *arggen = kv.value;
-	le_candtype_T ct = (arggen == NULL) ? CT_OPTION : CT_OPTIONA;
-
-	if (optname[0] != L'-') {
-	    if (!islong)
-		le_new_candidate(ct,
-			malloc_wprintf(L"%ls%lc", src, optname[0]),
-			NULL /* TODO */);
-	} else {
-	    if ((islong == (optname[1] == L'-'))
-		    && WMATCH(context->cpattern, optname))
-		le_new_candidate(ct, xwcsdup(optname), NULL /* TODO */);
-	}
-    }
+//    const struct cmdcandgen_T *ccg =
+//	ht_get(&candgens, context->pwords[0]).value;
+//    if (ccg == NULL)
+//	return;
+//
+//    bool islong = (src[1] == L'-');
+//    size_t i = 0;
+//    kvpair_T kv;
+//    while ((kv = ht_next(&ccg->options, &i)).key != NULL) {
+//	const wchar_t *optname = kv.key;
+//	const candgen_T *arggen = kv.value;
+//	le_candtype_T ct = (arggen == NULL) ? CT_OPTION : CT_OPTIONA;
+//
+//	if (optname[0] != L'-') {
+//	    if (!islong)
+//		le_new_candidate(ct,
+//			malloc_wprintf(L"%ls%lc", src, optname[0]),
+//			NULL /* TODO */);
+//	} else {
+//	    if ((islong == (optname[1] == L'-'))
+//		    && WMATCH(context->cpattern, optname))
+//		le_new_candidate(ct, xwcsdup(optname), NULL /* TODO */);
+//	}
+//    }
 }
 
 /* Generates candidates to complete a user name matching the pattern in the
@@ -1048,32 +1080,48 @@ void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
 
 /********** Builtins **********/
 
+struct ocgpair_T {
+    struct optcandgen_T *forshort, *forlong;
+};
+
 static int complete_builtin_print(
-	const wchar_t *targetcommand, const wchar_t *targetoption);
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt);
+static int print_cmdcandgen(
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
+	const struct cmdcandgen_T *ccg)
+    __attribute__((nonnull(1,4)));
+static struct ocgpair_T get_optcandgen(const struct cmdcandgen_T *ccg,
+	wchar_t shortopt, const wchar_t *longopt)
+    __attribute__((nonnull(1),pure));
+static int compare_wcs(const void *p1, const void *p2)
+    __attribute__((nonnull));
 static int print_candgen(
-	const wchar_t *targetcommand, const wchar_t *targetoption,
-	const le_candgen_T *candgen, bool intermix)
+	const wchar_t *command, wchar_t shortoptchar, const wchar_t *longopt,
+	const wchar_t *description, bool intermixed,
+	const struct candgen_T *candgen)
     __attribute__((nonnull(1)));
 static bool quote_print(const wchar_t *word)
     __attribute__((nonnull));
 static bool need_quote(const wchar_t *s)
     __attribute__((nonnull));
 static void complete_builtin_remove(
-	const wchar_t *targetcommand, const wchar_t *targetoption);
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt);
+static void kvfree_cmdcanden(kvpair_T kv);
 static void free_cmdcandgen(struct cmdcandgen_T *ccg);
-static void free_candgen(le_candgen_T *candgen);
-static void free_candgen_contents(const le_candgen_T *candgen)
+static void free_optcandgen(struct optcandgen_T *ocg);
+static void free_candgen_contents(const struct candgen_T *candgen)
     __attribute__((nonnull));
 static int complete_builtin_set(
-	const wchar_t *targetcommand, const wchar_t *targetoption,
-	const le_candgen_T *candgen, bool intermix)
-    __attribute__((nonnull(1,3)));
-static void clone_candgen(
-	le_candgen_T *restrict copy, const le_candgen_T *restrict orig)
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
+	const wchar_t *description, bool intermixed,
+	const struct candgen_T *candgen)
+    __attribute__((nonnull(1,6)));
+static void copy_candgen(
+	struct candgen_T *restrict dest, const struct candgen_T *restrict src)
     __attribute__((nonnull));
 
 /* The "complete" builtin. */
-int complete_builtin(int argc, void **argv) // TODO
+int complete_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"array-variable",       xno_argument,       L'A', },
@@ -1082,7 +1130,7 @@ int complete_builtin(int argc, void **argv) // TODO
 	{ L"builtin",              xno_argument,       L'b', },
 	{ L"target-command",       xrequired_argument, L'C', },
 	{ L"command",              xno_argument,       L'c', },
-	{ L"finished-job",         xno_argument,       L'D', },
+	{ L"description",          xrequired_argument, L'D', },
 	{ L"directory",            xno_argument,       L'd', },
 	{ L"executable-file",      xno_argument,       L'E', },
 	{ L"external-command",     xno_argument,       L'e', },
@@ -1107,7 +1155,8 @@ int complete_builtin(int argc, void **argv) // TODO
 	{ L"username",             xno_argument,       L'u', },
 	{ L"scalar-variable",      xno_argument,       L'V', },
 	{ L"variable",             xno_argument,       L'v', },
-	{ L"intermix",             xno_argument,       L'X', },
+	{ L"intermixed",           xno_argument,       L'X', },
+	{ L"finished-job",         xno_argument,       L'Y', },
 	{ L"stopped-job",          xno_argument,       L'Z', },
 #if YASH_ENABLE_HELP
 	{ L"help",                 xno_argument,       L'-', },
@@ -1115,299 +1164,413 @@ int complete_builtin(int argc, void **argv) // TODO
 	{ NULL, 0, 0, },
     };
 
-    const wchar_t *targetcommand = NULL, *targetoption = NULL;
-    bool intermix = false;
+    const wchar_t *command = NULL, *longopt = NULL;
+    const wchar_t *function = NULL, *description = NULL;
+    wchar_t shortopt = L'\0';
+    le_candgentype_T cgtype = 0;
+    bool intermixed = false;
     bool print = false, remove = false;
-    le_candgen_T candgen = { .type = 0, .words = NULL, .function = NULL };
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"C:F:O:PRXabcdfghjkouv", long_options, NULL))) {
+		    argv, L"C:D:F:O:PRXabcdfghjkouv", long_options, NULL))) {
 	switch (opt) {
-	    case L'A':  candgen.type |= CGT_ARRAY;       break;
-	    case L'a':  candgen.type |= CGT_ALIAS;       break;
-	    case L'B':  candgen.type |= CGT_BINDKEY;     break;
-	    case L'b':  candgen.type |= CGT_BUILTIN;     break;
+	    case L'A':  cgtype |= CGT_ARRAY;       break;
+	    case L'a':  cgtype |= CGT_ALIAS;       break;
+	    case L'B':  cgtype |= CGT_BINDKEY;     break;
+	    case L'b':  cgtype |= CGT_BUILTIN;     break;
 	    case L'C':
-		if (targetcommand != NULL)
+		if (command != NULL)
 		    goto dupopterror;
-		targetcommand = xoptarg;
+		command = xoptarg;
 		break;
-	    case L'c':  candgen.type |= CGT_COMMAND;     break;
-	    case L'D':  candgen.type |= CGT_DONE;        break;
-	    case L'd':  candgen.type |= CGT_DIRECTORY;   break;
-	    case L'E':  candgen.type |= CGT_EXECUTABLE;  break;
-	    case L'e':  candgen.type |= CGT_EXTCOMMAND;  break;
+	    case L'c':  cgtype |= CGT_COMMAND;     break;
+	    case L'D':
+		if (description != NULL)
+		    goto dupopterror;
+		description = xoptarg;
+		break;
+	    case L'd':  cgtype |= CGT_DIRECTORY;   break;
+	    case L'E':  cgtype |= CGT_EXECUTABLE;  break;
+	    case L'e':  cgtype |= CGT_EXTCOMMAND;  break;
 	    case L'F':
-		if (candgen.function != NULL)
+		if (function != NULL)
 		    goto dupopterror;
-		candgen.function = xoptarg;
+		function = xoptarg;
 		break;
-	    case L'f':  candgen.type |= CGT_FILE;        break;
-	    case L'G':  candgen.type |= CGT_GALIAS;      break;
-	    case L'g':  candgen.type |= CGT_GROUP;       break;
-	    case L'h':  candgen.type |= CGT_HOSTNAME;    break;
-	    case L'I':  candgen.type |= CGT_SIGNAL;      break;
-	    case L'J':  candgen.type |= CGT_RUNNING;     break;
-	    case L'j':  candgen.type |= CGT_JOB;         break;
-	    case L'k':  candgen.type |= CGT_KEYWORD;     break;
-	    case L'N':  candgen.type |= CGT_NALIAS;      break;
-	    case L'n':  candgen.type |= CGT_FUNCTION;    break;
+	    case L'f':  cgtype |= CGT_FILE;        break;
+	    case L'G':  cgtype |= CGT_GALIAS;      break;
+	    case L'g':  cgtype |= CGT_GROUP;       break;
+	    case L'h':  cgtype |= CGT_HOSTNAME;    break;
+	    case L'I':  cgtype |= CGT_SIGNAL;      break;
+	    case L'J':  cgtype |= CGT_RUNNING;     break;
+	    case L'j':  cgtype |= CGT_JOB;         break;
+	    case L'k':  cgtype |= CGT_KEYWORD;     break;
+	    case L'N':  cgtype |= CGT_NALIAS;      break;
+	    case L'n':  cgtype |= CGT_FUNCTION;    break;
 	    case L'O':
-		if (targetoption != NULL)
-		    goto dupopterror;
-		targetoption = xoptarg;
+		if (xoptarg[0] == L'\0')
+		    goto invalidopterror;
+		if (xoptarg[0] == L'-') {
+		    if (xoptarg[1] == L'\0'
+			    || (xoptarg[1] == L'-' && xoptarg[2] == L'\0'))
+			goto invalidopterror;
+		    if (longopt != NULL)
+			goto manyopterror;
+		    longopt = xoptarg;
+		} else {
+		    if (xoptarg[1] != L'\0')
+			goto invalidopterror;
+		    if (shortopt != L'\0')
+			goto manyopterror;
+		    shortopt = xoptarg[0];
+		}
 		break;
-	    case L'o':  candgen.type |= CGT_SHOPT;       break;
-	    case L'P':  print = true;                    break;
-	    case L'R':  remove = true;                   break;
-	    case L'r':  candgen.type |= CGT_RBUILTIN;    break;
-	    case L'S':  candgen.type |= CGT_SSBUILTIN;   break;
-	    case L's':  candgen.type |= CGT_SBUILTIN;    break;
-	    case L'u':  candgen.type |= CGT_LOGNAME;     break;
-	    case L'V':  candgen.type |= CGT_SCALAR;      break;
-	    case L'v':  candgen.type |= CGT_VARIABLE;    break;
-	    case L'X':  intermix = true;                 break;
-	    case L'Z':  candgen.type |= CGT_STOPPED;     break;
+	    case L'o':  cgtype |= CGT_SHOPT;       break;
+	    case L'P':  print = true;              break;
+	    case L'R':  remove = true;             break;
+	    case L'r':  cgtype |= CGT_RBUILTIN;    break;
+	    case L'S':  cgtype |= CGT_SSBUILTIN;   break;
+	    case L's':  cgtype |= CGT_SBUILTIN;    break;
+	    case L'u':  cgtype |= CGT_LOGNAME;     break;
+	    case L'V':  cgtype |= CGT_SCALAR;      break;
+	    case L'v':  cgtype |= CGT_VARIABLE;    break;
+	    case L'X':  intermixed = true;         break;
+	    case L'Y':  cgtype |= CGT_DONE;        break;
+	    case L'Z':  cgtype |= CGT_STOPPED;     break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
 		fprintf(stderr,
-		    gt("Usage:  complete [-C command] [-O option] [-PX]\n"
-		       "                 [-abcdfghjkouv] [-F function] "
-		                         "[words...]\n"));
+		    gt("Usage:  complete [-PRX] [-C command] [-O option] "
+		       "[-D description] \\\n"
+		       "                 [-F function] [-abcdfghjkouv] "
+		       "[words...]\n"));
+		return Exit_ERROR;
+invalidopterror:
+		xerror(0, Ngt("invalid option specification: -O %ls"), xoptarg);
+		return Exit_ERROR;
+manyopterror:
+		xerror(0, Ngt("too many -O options specified"));
 		return Exit_ERROR;
 dupopterror:
-		xerror(0, Ngt("more than one -C/-O/-F option specified"));
+		xerror(0, Ngt("more than one -%lc option specified"),
+			(wint_t) opt);
 		return Exit_ERROR;
 	}
     }
-    if (targetoption != NULL && targetcommand == NULL) {
+    if ((shortopt != L'\0' || longopt != NULL) && command == NULL) {
 	xerror(0, Ngt("-O option specified without -C option"));
 	return Exit_ERROR;
     } else if (print && remove) {
 	xerror(0, Ngt("-P option cannot be used with -R option"));
 	return Exit_ERROR;
     }
-    if (xoptind < argc)
-	candgen.words = argv + xoptind;
 
     if (print) {
-	return complete_builtin_print(targetcommand, targetoption);
+	return complete_builtin_print(command, shortopt, longopt);
     } else if (remove) {
-	complete_builtin_remove(targetcommand, targetoption);
+	complete_builtin_remove(command, shortopt, longopt);
 	return Exit_SUCCESS;
-    } else if (targetcommand == NULL) {
+    }
+
+    struct candgen_T candgen;
+    candgen.type = cgtype;
+    if (xoptind < argc) {
+	plist_T words;
+	pl_init(&words);
+	for (void **w = argv + xoptind; *w != NULL; w++) {
+	    xwcsbuf_T buf;
+	    wb_wccat(wb_cat(wb_init(&buf), *w), L'\0');
+	    if (description != NULL)
+		wb_cat(&buf, description);
+	    pl_add(&words, wb_towcs(&buf));
+	}
+	candgen.words = pl_toary(&words);
+    } else {
+	candgen.words = NULL;
+    }
+    candgen.function = (function != NULL) ? xwcsdup(function) : NULL;
+
+    if (command == NULL) {
+	int exitstatus;
 	if (ctxt == NULL) {
 	    xerror(0, Ngt("not in candidate generator function"));
-	    return Exit_FAILURE;
+	    exitstatus = Exit_FAILURE;
+	} else {
+	    exitstatus = generate_candidates(&candgen);
 	}
-	generate_candidates(&candgen);
-	return Exit_SUCCESS;
+	free_candgen_contents(&candgen);
+	return exitstatus;
     } else {
 	return complete_builtin_set(
-		targetcommand, targetoption, &candgen, intermix);
+		command, shortopt, longopt, description, intermixed, &candgen);
     }
 }
 
 /* Prints commands that can be used to restore the current completion settings
  * for the specified command/target.
- * If the command is not specified, all completion settings are printed. */
+ * If the command is not specified, all completion settings are printed.
+ * Returns Exit_SUCCESS iff successful. Returns Exit_FAILURE if the specified
+ * command/option was not found. */
 int complete_builtin_print(
-	const wchar_t *targetcommand, const wchar_t *targetoption)
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt)
 {
     if (candgens.capacity == 0 || candgens.count == 0)
 	return Exit_SUCCESS;
 
-    const struct cmdcandgen_T *ccg;
-    const le_candgen_T *candgen;
-
-    if (targetcommand != NULL) {
-	ccg = ht_get(&candgens, targetcommand).value;
+    if (command != NULL) {
+	const struct cmdcandgen_T *ccg = ht_get(&candgens, command).value;
 	if (ccg == NULL)
 	    return Exit_FAILURE;
-	if (targetoption == NULL)
-	    candgen = &ccg->operands;
-	else
-	    candgen = ht_get(&ccg->options, targetoption).value;
-	return print_candgen(targetcommand, targetoption,
-		candgen, ccg->option_after_operand);
+	return print_cmdcandgen(command, shortopt, longopt, ccg);
     } else {
+	int result = Exit_SUCCESS;
 	kvpair_T *kvs = ht_tokvarray(&candgens);
 	qsort(kvs, candgens.count, sizeof *kvs, keywcscoll);
 	for (size_t i = 0; i < candgens.count; i++) {
-	    ccg = kvs[i].value;
-	    if (ccg != NULL) {
-		print_candgen(kvs[i].key, NULL,
-			&ccg->operands, ccg->option_after_operand);
-		if (yash_error_message_count != 0)
-		    break;
-
-		if (ccg->options.capacity != 0 && ccg->options.count > 0) {
-		    kvpair_T *kvs2 = ht_tokvarray(&ccg->options);
-		    qsort(kvs2, ccg->options.count, sizeof *kvs2, keywcscoll);
-		    for (size_t j = 0; j < ccg->options.count; j++) {
-			print_candgen(kvs[i].key, kvs2[j].key,
-				kvs2[j].value, false);
-			if (yash_error_message_count != 0)
-			    break;
-		    }
-		    free(kvs2);
-		    if (yash_error_message_count != 0)
-			break;
-		}
-	    }
+	    result = print_cmdcandgen(kvs[i].key, L'\0', NULL, kvs[i].value);
+	    if (result != Exit_SUCCESS)
+		break;
 	}
 	free(kvs);
-	return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+	return result;
     }
 }
 
-/* Prints the contents of the specified candidate generation specification
- * in a form interpretable as a command. */
-int print_candgen(
-	const wchar_t *targetcommand, const wchar_t *targetoption,
-	const le_candgen_T *candgen, bool intermix)
+/* Prints the contents of the specified `cmdcandgen_T' structure
+ * in a form interpretable as a command.
+ * If `targetoption' is non-NULL, prints the specified option only.
+ * Returns Exit_SUCCESS iff successful. */
+int print_cmdcandgen(
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
+	const struct cmdcandgen_T *ccg)
 {
-    if (fputs("complete -C", stdout) == EOF || !quote_print(targetcommand))
-	goto ioerror;
+    if (shortopt == L'\0' && longopt == NULL) {
+	/* print command */
+	int exitstatus = print_candgen(command, L'\0', NULL,
+		ccg->description, ccg->intermixed, &ccg->operands);
+	if (exitstatus != Exit_SUCCESS)
+	    return exitstatus;
 
-    if (targetoption != NULL) {
-	if (fputs(" -O", stdout) == EOF || !quote_print(targetoption))
-	    goto ioerror;
-    } else if (intermix) {
-	if (fputs(" -X", stdout) == EOF)
-	    goto ioerror;
+	/* print options */
+	for (const struct optcandgen_T *ocg = ccg->options;
+		ocg != NULL;
+		ocg = ocg->next) {
+	    exitstatus = print_candgen(command,
+		    ocg->shortoptchar, ocg->longopt, ocg->description, false,
+		    ocg->requiresargument ? &ocg->candgen : NULL);
+	    if (exitstatus != Exit_SUCCESS)
+		return exitstatus;
+	}
+	return Exit_SUCCESS;
     }
 
-    if (candgen == NULL)
+    /* find option to print */
+    struct ocgpair_T ocgs = get_optcandgen(ccg, shortopt, longopt);
+    if (ocgs.forshort == NULL)
+	return Exit_FAILURE;  /* not found... */
+    if (ocgs.forshort != ocgs.forlong)
+	return Exit_FAILURE;  /* short and long options don't match */
+
+    register const struct optcandgen_T *ocg = ocgs.forshort;
+    return print_candgen(command,
+	    ocg->shortoptchar, ocg->longopt, ocg->description, false,
+	    ocg->requiresargument ? &ocg->candgen : NULL);
+}
+
+/* Searches `ccg->options' for the specified options. */
+struct ocgpair_T get_optcandgen(const struct cmdcandgen_T *ccg,
+	wchar_t shortopt, const wchar_t *longopt)
+{
+    struct optcandgen_T *ocg1 = NULL, *ocg2 = NULL;
+    if (shortopt != L'\0') {
+	for (ocg1 = ccg->options; ocg1 != NULL; ocg1 = ocg1->next)
+	    if (shortopt == ocg1->shortoptchar)
+		break;
+    }
+    if (longopt != NULL) {
+	for (ocg2 = ccg->options; ocg2 != NULL; ocg2 = ocg2->next)
+	    if (ocg2->longopt != NULL && wcscmp(longopt, ocg2->longopt) == 0)
+		break;
+    }
+    if (shortopt == L'\0')
+	ocg1 = ocg2;
+    if (longopt == NULL)
+	ocg2 = ocg1;
+    return (struct ocgpair_T) { .forshort = ocg1, .forlong = ocg2 };
+}
+
+/* Prints the contents of the specified `candgen_T' structure
+ * in a form interpretable as a command.
+ * Returns Exit_SUCCESS iff successful. */
+int print_candgen(
+	const wchar_t *command, wchar_t shortoptchar, const wchar_t *longopt,
+	const wchar_t *description, bool intermixed,
+	const struct candgen_T *candgen)
+{
+#define TRY(cond)      do if (!(cond)) goto ioerror; while (0)
+#define TRYPRINT(...)  TRY(printf(__VA_ARGS__) >= 0)
+
+    wchar_t shortoptary[2] = { shortoptchar, L'\0' };
+    wchar_t *shortopt = (shortoptary[0] != L'\0') ? shortoptary : NULL;
+
+    wchar_t *qcommand = NULL, *qshortopt = NULL, *qlongopt = NULL;
+    if (need_quote(command))
+	command = qcommand = quote_sq(command);
+    if (shortopt != NULL && need_quote(shortopt))
+	shortopt = qshortopt = quote_sq(shortopt);
+    if (longopt != NULL && need_quote(longopt))
+	longopt = qlongopt = quote_sq(longopt);
+
+    TRYPRINT("complete -C %ls", command);
+
+    if (intermixed)
+	TRYPRINT(" -X");
+    if (shortopt != NULL)
+	TRYPRINT(" -O %ls", shortopt);
+    if (longopt != NULL)
+	TRYPRINT(" -O %ls", longopt);
+    if (description != NULL) {
+	TRYPRINT(" -D");
+	TRY(quote_print(description));
+    }
+
+    if (candgen == NULL) {
+	TRYPRINT("\n");
 	goto finish;
+    }
 
     if (candgen->type & CGT_FILE)
-	if (fputs(" --file", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --file");
     if (candgen->type & CGT_DIRECTORY)
-	if (fputs(" --directory", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --directory");
     if (candgen->type & CGT_EXECUTABLE)
-	if (fputs(" --executable-file", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --executable-file");
     if ((candgen->type & CGT_COMMAND) == CGT_COMMAND) {
-	if (fputs(" --command", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --command");
     } else {
 	if ((candgen->type & CGT_BUILTIN) == CGT_BUILTIN) {
-	    if (fputs(" --builtin", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --builtin");
 	} else {
 	    if (candgen->type & CGT_SBUILTIN)
-		if (fputs(" --special-builtin", stdout) == EOF)
-		    goto ioerror;
+		TRYPRINT(" --special-builtin");
 	    if (candgen->type & CGT_SSBUILTIN)
-		if (fputs(" --semi-special-builtin", stdout) == EOF)
-		    goto ioerror;
+		TRYPRINT(" --semi-special-builtin");
 	    if (candgen->type & CGT_RBUILTIN)
-		if (fputs(" --regular-builtin", stdout) == EOF)
-		    goto ioerror;
+		TRYPRINT(" --regular-builtin");
 	}
 	if (candgen->type & CGT_EXTCOMMAND)
-	    if (fputs(" --external-command", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --external-command");
 	if (candgen->type & CGT_FUNCTION)
-	    if (fputs(" --function", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --function");
     }
     if (candgen->type & CGT_KEYWORD)
-	if (fputs(" --keyword", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --keyword");
     if (candgen->type & CGT_OPTION)
-	if (false)
+	if (false)  /* CGT_OPTION never appears in candgen->type */
 	    goto ioerror;
     if ((candgen->type & CGT_ALIAS) == CGT_ALIAS) {
-	if (fputs(" --alias", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --alias");
     } else {
 	if (candgen->type & CGT_NALIAS)
-	    if (fputs(" --normal-alias", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --normal-alias");
 	if (candgen->type & CGT_GALIAS)
-	    if (fputs(" --global-alias", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --global-alias");
     }
     if ((candgen->type & CGT_VARIABLE) == CGT_VARIABLE) {
-	if (fputs(" --variable", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --variable");
     } else {
 	if (candgen->type & CGT_SCALAR)
-	    if (fputs(" --scalar-variable", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --scalar-variable");
 	if (candgen->type & CGT_ARRAY)
-	    if (fputs(" --array-variable", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --array-variable");
     }
     if ((candgen->type & CGT_JOB) == CGT_JOB) {
-	if (fputs(" --job", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --job");
     } else {
 	if (candgen->type & CGT_RUNNING)
-	    if (fputs(" --running-job", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --running-job");
 	if (candgen->type & CGT_STOPPED)
-	    if (fputs(" --stopped-job", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --stopped-job");
 	if (candgen->type & CGT_DONE)
-	    if (fputs(" --finished-job", stdout) == EOF)
-		goto ioerror;
+	    TRYPRINT(" --finished-job");
     }
     if (candgen->type & CGT_SHOPT)
-	if (fputs(" --shell-option", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --shell-option");
     if (candgen->type & CGT_SIGNAL)
-	if (fputs(" --signal", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --signal");
     if (candgen->type & CGT_LOGNAME)
-	if (fputs(" --username", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --username");
     if (candgen->type & CGT_GROUP)
-	if (fputs(" --group", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --group");
     if (candgen->type & CGT_HOSTNAME)
-	if (fputs(" --hostname", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --hostname");
     if (candgen->type & CGT_BINDKEY)
-	if (fputs(" --bindkey", stdout) == EOF)
-	    goto ioerror;
+	TRYPRINT(" --bindkey");
 
-    if (candgen->function != NULL)
-	if (fputs(" -F", stdout) == EOF || !quote_print(candgen->function))
-	    goto ioerror;
+    if (candgen->function != NULL) {
+	TRYPRINT(" -F");
+	TRY(quote_print(candgen->function));
+    }
+
+    TRYPRINT("\n");
 
     if (candgen->words != NULL) {
-	if (fputs(" --", stdout) == EOF)
-	    goto ioerror;
-	for (void *const *restrict w = candgen->words; *w != NULL; w++)
-	    if (!quote_print(*w))
-		goto ioerror;
+	/* sort before print */
+	qsort(candgen->words, plcount(candgen->words), sizeof *candgen->words,
+		compare_wcs);
+
+	for (void *const *w = candgen->words; *w != NULL; w++) {
+	    const wchar_t *word = *w;
+	    TRYPRINT("complete -C %ls", command);
+	    if (shortopt != NULL)
+		TRYPRINT(" -O %ls", shortopt);
+	    if (longopt != NULL)
+		TRYPRINT(" -O %ls", longopt);
+	    description = word + wcslen(word) + 1;
+	    if (description[0] != L'\0') {
+		TRYPRINT(" -D");
+		TRY(quote_print(description));
+	    }
+	    if (word[0] == L'-')
+		TRYPRINT(" --");
+	    TRY(quote_print(word));
+	    TRYPRINT("\n");
+	}
     }
 
 finish:
-    if (putchar('\n') < 0)
-	goto ioerror;
+    free(qcommand);
+    free(qshortopt);
+    free(qlongopt);
     return Exit_SUCCESS;
 
 ioerror:
     xerror(errno, Ngt("cannot print to standard output"));
+    free(qcommand);
+    free(qshortopt);
+    free(qlongopt);
     return Exit_FAILURE;
+
+#undef TRY
+#undef TRYPRINT
+}
+
+int compare_wcs(const void *p1, const void *p2)
+{
+    return wcscoll(*(const wchar_t *const *) p1, *(const wchar_t *const *) p2);
 }
 
 /* Prints a space followed by the specified word to the standard output.
+ * The word is quoted if necessary.
  * Returns true iff successful. */
 bool quote_print(const wchar_t *word)
 {
-    if (!need_quote(word))
+    if (word[0] != L'\0' && !need_quote(word))
 	return printf(" %ls", word) >= 0;
 
     wchar_t *q = quote_sq(word);
@@ -1441,135 +1604,186 @@ bool need_quote(const wchar_t *s)
     }
 }
 
-/* Removes the candidate generation policy for the specified command (and
- * option). */
+/* Removes the registered completion style for the specified command/option. */
 void complete_builtin_remove(
-	const wchar_t *targetcommand, const wchar_t *targetoption)
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt)
 {
-    if (candgens.capacity == 0)
+    if (candgens.capacity == 0 || candgens.count == 0)
 	return;
 
-    if (targetcommand == NULL) {
+    if (command == NULL) {
 	/* remove everything */
-	size_t i = 0;
-	kvpair_T kv;
-	while ((kv = ht_next(&candgens, &i)).key != NULL) {
-	    free(kv.key);
-	    free_cmdcandgen(kv.value);
-	}
-	ht_destroy(&candgens);
+	ht_destroy(ht_clear(&candgens, kvfree_cmdcanden));
 	candgens.capacity = 0;
-    } else if (targetoption == NULL) {
+    } else if (shortopt == L'\0' && longopt == NULL) {
 	/* remove specified command */
-	kvpair_T kv = ht_remove(&candgens, targetcommand);
-	free(kv.key);
-	free_cmdcandgen(kv.value);
+	kvfree_cmdcanden(ht_remove(&candgens, command));
     } else {
 	/* remove specified option */
-	struct cmdcandgen_T *ccg = ht_get(&candgens, targetcommand).value;
-	if (ccg != NULL && ccg->options.capacity != 0) {
-	    kvpair_T kv = ht_remove(&ccg->options, targetoption);
-	    free(kv.key);
-	    free_candgen(kv.value);
+	struct cmdcandgen_T *ccg = ht_get(&candgens, command).value;
+	if (ccg != NULL) {
+	    struct optcandgen_T **ocgp = &ccg->options;
+	    struct optcandgen_T  *ocg  =  ccg->options;
+	    for (; ocg != NULL; ocgp = &ocg->next, ocg = ocg->next) {
+		if ((shortopt != L'\0' && shortopt == ocg->shortoptchar)
+			|| (longopt != NULL && ocg->longopt != NULL
+			    && wcscmp(longopt, ocg->longopt) == 0)) {
+		    *ocgp = ocg->next;
+		    free_optcandgen(ocg);
+		}
+	    }
 	}
     }
+}
+
+/* Frees the specified pair of pointers to a wide string and a `cmdcandgen_T'
+ * object. */
+void kvfree_cmdcanden(kvpair_T kv)
+{
+    free(kv.key);
+    free_cmdcandgen(kv.value);
 }
 
 /* Frees the specified `cmdcandgen_T' object. */
 void free_cmdcandgen(struct cmdcandgen_T *ccg)
 {
     if (ccg != NULL) {
-	if (ccg->options.capacity != 0) {
-	    size_t i = 0;
-	    kvpair_T kv;
-	    while ((kv = ht_next(&ccg->options, &i)).key != NULL) {
-		free(kv.key);
-		free_candgen(kv.value);
-	    }
-	    ht_destroy(&ccg->options);
+	struct optcandgen_T *ocg = ccg->options;
+	while (ocg != NULL) {
+	    struct optcandgen_T *nextocg = ocg->next;
+	    free_optcandgen(ocg);
+	    ocg = nextocg;
 	}
+
+	free(ccg->description);
 	free_candgen_contents(&ccg->operands);
 	free(ccg);
     }
 }
 
-/* Frees the specified `le_candgen_T' object. */
-void free_candgen(le_candgen_T *candgen)
+/* Frees the specified `optcandgen_T' object. */
+void free_optcandgen(struct optcandgen_T *ocg)
 {
-    if (candgen != NULL) {
-	free_candgen_contents(candgen);
-	free(candgen);
+    if (ocg != NULL) {
+	free(ocg->description);
+	free(ocg->longopt);
+	free_candgen_contents(&ocg->candgen);
+	free(ocg);
     }
 }
 
-/* Frees the contents of the specified `le_candgen_T' object. */
-void free_candgen_contents(const le_candgen_T *candgen)
+/* Frees the contents of the specified `candgen_T' object. */
+void free_candgen_contents(const struct candgen_T *candgen)
 {
     recfree(candgen->words, free);
     free(candgen->function);
 }
 
-/* Sets the candidate generation policy for the specified command/option to the
- * specified `le_candgen_T' object. */
+/* Sets the completion style for the specified command/option to the specified
+ * `candgen_T' object.
+ * The contents of `candgen' is freed in this function. */
 int complete_builtin_set(
-	const wchar_t *targetcommand, const wchar_t *targetoption,
-	const le_candgen_T *candgen, bool intermix)
+	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
+	const wchar_t *description, bool intermixed,
+	const struct candgen_T *candgen)
 {
     if (candgens.capacity == 0)
 	ht_init(&candgens, hashwcs, htwcscmp);
 
-    struct cmdcandgen_T *ccg = ht_get(&candgens, targetcommand).value;
+    struct cmdcandgen_T *ccg = ht_get(&candgens, command).value;
     if (ccg == NULL) {
 	ccg = xmalloc(sizeof *ccg);
-	ccg->operands = (le_candgen_T) {
-	    .type = CGT_FILE | CGT_GALIAS, .words = NULL, .function = NULL, };
-	ccg->options = (hashtable_T) { .capacity = 0 };
-	ccg->option_after_operand = false;
-	ht_set(&candgens, xwcsdup(targetcommand), ccg);
+	*ccg = (struct cmdcandgen_T) { .intermixed = false };
+	ht_set(&candgens, xwcsdup(command), ccg);
     }
-    if (targetoption == NULL) {
-	ccg->option_after_operand = intermix;
-	free_candgen_contents(&ccg->operands);
-	clone_candgen(&ccg->operands, candgen);
-    } else {
-	if (ccg->options.capacity == 0)
-	    ht_init(&ccg->options, hashwcs, htwcscmp);
 
-	le_candgen_T *copy;
-	if (candgen->type || candgen->words || candgen->function) {
-	    copy = xmalloc(sizeof *copy);
-	    clone_candgen(copy, candgen);
-	} else {
-	    copy = NULL;
+    ccg->intermixed |= intermixed;
+    if (shortopt == L'\0' && longopt == NULL) {
+	/* set style for command operands */
+	if (description != NULL && candgen->words == NULL) {
+	    free(ccg->description);
+	    ccg->description = xwcsdup(description);
 	}
-
-	kvpair_T kv = ht_set(&ccg->options, xwcsdup(targetoption), copy);
-	free(kv.key);
-	free_candgen(kv.value);
+	copy_candgen(&ccg->operands, candgen);
+	return Exit_SUCCESS;
     }
+
+    /* find option to set style */
+    struct ocgpair_T ocgs = get_optcandgen(ccg, shortopt, longopt);
+    if (ocgs.forshort != ocgs.forlong) {
+	/* short and long options don't match */
+	xerror(0, Ngt("-C %ls -O %lc -O %ls: specified short and long options "
+		    "don't match with ones already registered"),
+		command, (wint_t) shortopt, longopt);
+	free_candgen_contents(candgen);
+	return Exit_FAILURE;
+    }
+
+    struct optcandgen_T *ocg = ocgs.forshort;
+    if (ocg == NULL) {   /* if no option was found, create a new one */
+	ocg = xmalloc(sizeof *ocg);
+	*ocg = (struct optcandgen_T) { .next = ccg->options };
+	ccg->options = ocg;
+    }
+
+    if (description != NULL && candgen->words == NULL) {
+	free(ocg->description);
+	ocg->description = xwcsdup(description);
+    }
+    if (ocg->shortoptchar == L'\0')
+	ocg->shortoptchar = shortopt;
+    if (ocg->longopt == NULL && longopt != NULL)
+	ocg->longopt = xwcsdup(longopt);
+    if (candgen->type != 0 || candgen->words != NULL
+	    || candgen->function != NULL) {
+	ocg->requiresargument = true;
+	copy_candgen(&ocg->candgen, candgen);
+//  } else {
+//	free_candgen_contents(candgen);
+    }
+
     return Exit_SUCCESS;
 }
 
-/* Copies the contents of `orig' to `copy'. */
-void clone_candgen(
-	le_candgen_T *restrict copy, const le_candgen_T *restrict orig)
+/* Moves the contents of `src' to `dest'.
+ * The old contents of `dest' is not erased (except for the `function' member):
+ * the contents of `src' is added to that of `dest'. */
+void copy_candgen(
+	struct candgen_T *restrict dest, const struct candgen_T *restrict src)
 {
-    copy->type = orig->type;
-    if (orig->words != NULL)
-	copy->words = duparray(orig->words, copyaswcs);
-    else
-	copy->words = NULL;
-    if (orig->function != NULL)
-	copy->function = xwcsdup(orig->function);
-    else
-	copy->function = NULL;
+    dest->type |= src->type;
+    if (src->words != NULL) {
+	if (dest->words == NULL) {
+	    dest->words = src->words;
+	} else {
+	    plist_T words;
+	    pl_initwith(&words, dest->words, plcount(dest->words));
+	    for (void **sw = src->words; *sw != NULL; sw++) {
+		for (void **dw = words.contents; *dw != NULL; dw++) {
+		    if (wcscmp(*sw, *dw) == 0) {
+			free(*dw);
+			*dw = *sw;
+			goto next;
+		    }
+		}
+		pl_add(&words, *sw);
+next:;
+	    }
+	    dest->words = pl_toary(&words);
+	    free(src->words);
+	}
+    }
+    if (src->function != NULL) {
+	free(dest->function);
+	dest->function = src->function;
+    }
 }
 
 #if YASH_ENABLE_HELP
 const char complete_help[] = Ngt(
 "complete - edit completion style\n"
-"\tcomplete [-PR] [-C command] [-O option|-X] [-D description] \\\n"
-"\t\t[-abcdfghjkouv] [words...]\n"
+"\tcomplete [-PRX] [-C command] [-O option] [-D description] \\\n"
+"\t         [-F function] [-abcdfghjkouv] [words...]\n"
 "The \"complete\" builtin specifies how to complete command-line words.\n"
 "You can specify possible options and operands for each command, and possible\n"
 "arguments for each argument-requiring option as well.\n"
@@ -1622,7 +1836,7 @@ const char complete_help[] = Ngt(
 "words as the argument to the -D (--description) option.\n"
 "\n"
 "If the command's options and operands can be intermixed, specify the -X\n"
-"(--intermix) option. If this option is not specified, the completer\n"
+"(--intermixed) option. If this option is not specified, the completer\n"
 "considers all arguments after the first operand as operands.\n"
 "\n"
 "If the -P (--print) option is specified, the \"complete\" builtin prints\n"
