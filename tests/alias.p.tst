@@ -1,3 +1,6 @@
+# alias.p.tst: test of aliases for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 tmp=${TESTTMP}/alias.p.tmp
 
 alias c=cat alias=alias
@@ -31,20 +34,20 @@ alias | sort | diff - "$tmp" && echo restored
 echo =====
 
 if command -v echo >/dev/null 2>&1; then
-	commandv='command -v'
-	aliasdef=$($commandv alias)
-	unalias alias
-	$commandv alias
-	eval "$aliasdef"
-	[ x"$($commandv alias)" = x"$aliasdef" ] || echo not restored
+    commandv='command -v'
+    aliasdef=$($commandv alias)
+    unalias alias
+    $commandv alias
+    eval "$aliasdef"
+    [ x"$($commandv alias)" = x"$aliasdef" ] || echo not restored
 else
-	echo alias
+    echo alias
 fi
 if command -V echo >/dev/null 2>&1; then
-	alias pqr=xyz
-	if ! command -V pqr | grep pqr | grep xyz >/dev/null; then
-		echo "\"command -V (alias)\" doesn't include alias definition" >&2
-	fi
+    alias pqr=xyz
+    if ! command -V pqr | grep pqr | grep xyz >/dev/null; then
+	echo "\"command -V (alias)\" doesn't include alias definition" >&2
+    fi
 fi
 
 rm -f "$tmp"

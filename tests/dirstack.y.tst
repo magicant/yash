@@ -1,3 +1,6 @@
+# dirstack.y.tst: yash-specific test of directory stack
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 tmp="${TESTTMP}/dirstack.y"
 
 mkdir "$tmp"
@@ -14,7 +17,7 @@ echo *; popd >/dev/null
 echo *; popd >/dev/null
 
 if [ x"$PWD" = x"$tmp" ]; then
-	echo ok
+    echo ok
 fi
 echo */*
 pushd 1

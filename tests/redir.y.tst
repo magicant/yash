@@ -1,3 +1,6 @@
+# redir.y.tst: yash-specific test of redirections
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 temp="${TESTTMP}/redir"
 
 echo ===== pipe redirection =====
@@ -25,12 +28,12 @@ cat <(echo 2)-
 echo >(cat) 3 | cat
 
 seq () {
-	i=1
-	while [ "$i" -le "$1" ]; do
-		echo "$i"
-		i=$((i+1))
-	done
-	unset i
+    i=1
+    while [ "$i" -le "$1" ]; do
+	echo "$i"
+	i=$((i+1))
+    done
+    unset i
 }
 
 seq 4 >(cat) | grep 4

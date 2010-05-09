@@ -1,3 +1,6 @@
+# option.y.tst: yash-specific test of shell options
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 tmp="${TESTTMP}/option"
 mkdir -p "$tmp"
 
@@ -6,7 +9,7 @@ set -h
 echo "$-" | grep -Fq h || echo 'no h in $-' >&2
 hash -r
 hoptiontest () {
-	cat /dev/null
+    cat /dev/null
 }
 echo $(hash | grep /cat\$ | wc -l)
 set +h

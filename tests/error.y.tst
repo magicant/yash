@@ -1,3 +1,6 @@
+# error.y.tst: yash-specific test of error handling
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo ===== consequences of shell errors =====
 echo ===== consequences of shell errors ===== >&2
 
@@ -65,16 +68,16 @@ echo ===== help =====
 echo ===== help ===== >&2
 
 if type help 2>/dev/null | grep -q 'regular builtin'; then
-	help --no-such-option
-	echo help no-such-option $?
-	help help help >&- 2>/dev/null
-	echo help output error $?
+    help --no-such-option
+    echo help no-such-option $?
+    help help help >&- 2>/dev/null
+    echo help output error $?
 else
-	cat <<\END
+    cat <<\END
 help no-such-option 2
 help output error 1
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 help: --no-such-option: invalid option
 Usage:  help command...
 END
@@ -138,32 +141,32 @@ echo ===== pushd/popd/dirs =====
 echo ===== pushd/popd/dirs ===== >&2
 
 if type pushd 2>/dev/null | grep -q 'regular builtin'; then
-	pushd --no-such-option
-	echo pushd no-such-option $?
-	pushd ./no/such/dir 2>/dev/null
-	echo pushd no-such-dir $?
-	pushd /
-	pushd +5
-	echo pushd index out of range $?
-	pushd - >&- 2>/dev/null
-	echo pushd output error $?
-	popd --no-such-option
-	echo popd no-such-option $?
-	popd +5
-	echo popd index out of range $?
-	popd >/dev/null
-	popd >&- 2>/dev/null
-	echo popd output error $?
-	popd
-	echo popd dirstack empty $?
-	dirs --no-such-option
-	echo dirs no-such-option $?
-	dirs +5
-	echo dirs index out of range $?
-	dirs >&- 2>/dev/null
-	echo dirs output error $?
+    pushd --no-such-option
+    echo pushd no-such-option $?
+    pushd ./no/such/dir 2>/dev/null
+    echo pushd no-such-dir $?
+    pushd /
+    pushd +5
+    echo pushd index out of range $?
+    pushd - >&- 2>/dev/null
+    echo pushd output error $?
+    popd --no-such-option
+    echo popd no-such-option $?
+    popd +5
+    echo popd index out of range $?
+    popd >/dev/null
+    popd >&- 2>/dev/null
+    echo popd output error $?
+    popd
+    echo popd dirstack empty $?
+    dirs --no-such-option
+    echo dirs no-such-option $?
+    dirs +5
+    echo dirs index out of range $?
+    dirs >&- 2>/dev/null
+    echo dirs output error $?
 else
-	cat <<\END
+    cat <<\END
 pushd no-such-option 2
 pushd no-such-dir 1
 pushd index out of range 1
@@ -176,7 +179,7 @@ dirs no-such-option 2
 dirs index out of range 1
 dirs output error 1
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 pushd: --no-such-option: invalid option
 Usage:  pushd [-L|-P] [dir]
 pushd: +5: index out of range
@@ -194,24 +197,24 @@ echo ===== alias/unalias =====
 echo ===== alias/unalias ===== >&2
 
 if type alias 2>/dev/null | grep -q 'semi-special builtin'; then
-	alias --no-such-option
-	echo alias no-such-option $?
-	alias alias
-	echo alias no-such-alias $?
-	alias alias=alias
-	alias >&- 2>/dev/null
-	echo alias output error 1 $?
-	alias alias >&- 2>/dev/null
-	echo alias output error 2 $?
-	alias -p alias >&- 2>/dev/null
-	echo alias output error 3 $?
-	unalias --no-such-option
-	echo unalias no-such-option $?
-	unalias alias
-	unalias alias
-	echo unalias no-such-alias $?
+    alias --no-such-option
+    echo alias no-such-option $?
+    alias alias
+    echo alias no-such-alias $?
+    alias alias=alias
+    alias >&- 2>/dev/null
+    echo alias output error 1 $?
+    alias alias >&- 2>/dev/null
+    echo alias output error 2 $?
+    alias -p alias >&- 2>/dev/null
+    echo alias output error 3 $?
+    unalias --no-such-option
+    echo unalias no-such-option $?
+    unalias alias
+    unalias alias
+    echo unalias no-such-alias $?
 else
-	cat <<\END
+    cat <<\END
 alias no-such-option 2
 alias no-such-alias 1
 alias output error 1 1
@@ -220,7 +223,7 @@ alias output error 3 1
 unalias no-such-option 2
 unalias no-such-alias 1
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 alias: --no-such-option: invalid option
 Usage:  alias [-gp] [name[=value]...]
 alias: alias: no such alias
@@ -257,17 +260,17 @@ echo ===== array =====
 echo ===== array ===== >&2
 
 if type array 2>/dev/null | grep -q 'regular builtin'; then
-	array --no-such-option
-	echo array no-such-option $?
-	array=(a 'b  b' c)
-	array >&- 2>/dev/null
-	echo array output error $?
+    array --no-such-option
+    echo array no-such-option $?
+    array=(a 'b  b' c)
+    array >&- 2>/dev/null
+    echo array output error $?
 else
-	cat <<\END
+    cat <<\END
 array no-such-option 2
 array output error 1
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 array: --no-such-option: invalid option
 Usage:  array [name [value...]]
         array -d name [index...]
@@ -420,31 +423,31 @@ echo ===== fc/history =====
 echo ===== fc/history ===== >&2
 
 if type fc 2>/dev/null | grep -q 'semi-special builtin'; then
-	fc --no-such-option
-	echo fc no-such-option $?
-	fc
-	echo fc history-empty 1 $?
-	fc -s
-	echo fc history-empty 2 $?
-	history -s 'entry' -s 'dummy 1' -s 'dummy 2'
-	fc -l foo
-	echo fc no-such-entry 1 $?
-	fc foo
-	echo fc no-such-entry 2 $?
-	fc -s foo
-	echo fc no-such-entry 3 $?
-	history --no-such-option
-	echo history no-such-option $?
-	history >&- 2>/dev/null
-	echo history output error $?
-	history -d foo
-	echo history no-such-entry $?
-	history -r ./no/such/file $? 2>/dev/null
-	echo history no-such-file 1 $?
-	history -w ./no/such/file $? 2>/dev/null
-	echo history no-such-file 2 $?
+    fc --no-such-option
+    echo fc no-such-option $?
+    fc
+    echo fc history-empty 1 $?
+    fc -s
+    echo fc history-empty 2 $?
+    history -s 'entry' -s 'dummy 1' -s 'dummy 2'
+    fc -l foo
+    echo fc no-such-entry 1 $?
+    fc foo
+    echo fc no-such-entry 2 $?
+    fc -s foo
+    echo fc no-such-entry 3 $?
+    history --no-such-option
+    echo history no-such-option $?
+    history >&- 2>/dev/null
+    echo history output error $?
+    history -d foo
+    echo history no-such-entry $?
+    history -r ./no/such/file $? 2>/dev/null
+    echo history no-such-file 1 $?
+    history -w ./no/such/file $? 2>/dev/null
+    echo history no-such-file 2 $?
 else
-	cat <<\END
+    cat <<\END
 fc no-such-option 2
 fc history-empty 1 1
 fc history-empty 2 1
@@ -457,7 +460,7 @@ history no-such-entry 1
 history no-such-file 1 1
 history no-such-file 2 1
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 fc: --no-such-option: invalid option
 Usage:  fc [-qr] [-e editor] [first [last]]
         fc -s [-q] [old=new] [first]
@@ -630,19 +633,19 @@ echo ===== ulimit =====
 echo ===== ulimit ===== >&2
 
 if type ulimit 2>/dev/null | grep -q 'regular builtin'; then
-	ulimit --no-such-option 2>/dev/null
-	echo ulimit no-such-option $?
-	ulimit >&- 2>/dev/null
-	echo ulimit output error $?
-	ulimit xxx
-	echo ulimit invalid operand $?
+    ulimit --no-such-option 2>/dev/null
+    echo ulimit no-such-option $?
+    ulimit >&- 2>/dev/null
+    echo ulimit output error $?
+    ulimit xxx
+    echo ulimit invalid operand $?
 else
-	cat <<\END
+    cat <<\END
 ulimit no-such-option 2
 ulimit output error 1
 ulimit invalid operand 2
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 ulimit: `xxx' is not a valid integer
 END
 fi
@@ -651,18 +654,18 @@ echo ===== printf =====
 echo ===== printf ===== >&2
 
 if type printf 2>/dev/null | grep -q 'regular builtin'; then
-	printf --no-such-option
-	echo printf no-such-option $?
-	printf foo >&- 2>/dev/null
-	echo printf output error $?
-	printf
-	echo printf operand missing $?
-	printf '%d\n' foo 2>/dev/null
-	echo printf invalid operand $?
-	echo foo >&- 2>/dev/null
-	echo echo output error $?
+    printf --no-such-option
+    echo printf no-such-option $?
+    printf foo >&- 2>/dev/null
+    echo printf output error $?
+    printf
+    echo printf operand missing $?
+    printf '%d\n' foo 2>/dev/null
+    echo printf invalid operand $?
+    echo foo >&- 2>/dev/null
+    echo echo output error $?
 else
-	cat <<\END
+    cat <<\END
 printf no-such-option 2
 printf output error 1
 printf operand missing 2
@@ -670,7 +673,7 @@ printf operand missing 2
 printf invalid operand 1
 echo output error 1
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 printf: --no-such-option: invalid option
 Usage:  printf format [value...]
 Usage:  printf format [value...]
@@ -681,20 +684,20 @@ echo ===== bindkey =====
 echo ===== bindkey ===== >&2
 
 if type bindkey 2>/dev/null | grep -q 'regular builtin'; then
-	bindkey --no-such-option
-	echo bindkey no-such-option $?
-	bindkey -l >&- 2>/dev/null
-	echo bindkey output error 1 $?
-	bindkey -v >&- 2>/dev/null
-	echo bindkey output error 2 $?
-	bindkey
-	echo bindkey operand missing $?
-	bindkey -v '\\' no-such-command
-	echo bindkey invalid operand 1 $?
-	bindkey -v '' abort-line
-	echo bindkey invalid operand 2 $?
+    bindkey --no-such-option
+    echo bindkey no-such-option $?
+    bindkey -l >&- 2>/dev/null
+    echo bindkey output error 1 $?
+    bindkey -v >&- 2>/dev/null
+    echo bindkey output error 2 $?
+    bindkey
+    echo bindkey operand missing $?
+    bindkey -v '\\' no-such-command
+    echo bindkey invalid operand 1 $?
+    bindkey -v '' abort-line
+    echo bindkey invalid operand 2 $?
 else
-	cat <<\END
+    cat <<\END
 bindkey no-such-option 2
 bindkey output error 1 1
 bindkey output error 2 1
@@ -702,7 +705,7 @@ bindkey operand missing 2
 bindkey invalid operand 1 1
 bindkey invalid operand 2 1
 END
-	cat >&2 <<\END
+    cat >&2 <<\END
 bindkey: --no-such-option: invalid option
 Usage:  bindkey -aev [keyseq [command]]
         bindkey -l

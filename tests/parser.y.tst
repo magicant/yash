@@ -1,3 +1,6 @@
+# parser.y.tst: yash-specific test of syntax parser
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo ===== for =====
 
 # semicolon after identifier only allowed in non-posix mode
@@ -51,17 +54,17 @@ until do done
 echo d2 $?
 i=3
 while do
-	if [ $i -eq 0 ]; then break; fi
-	i=$((i-1))
-	echo $i
+    if [ $i -eq 0 ]; then break; fi
+    i=$((i-1))
+    echo $i
 done
 until do
-	echo not reached
+    echo not reached
 done
 
 false
 case _ in
-	(*)
+    (*)
 esac
 echo e1 $?
 
@@ -89,8 +92,8 @@ func ()
 function X"Y$(echo $funcname)"
 for i in func
 do
-	unset -f $i
-	echo func 5
+    unset -f $i
+    echo func 5
 done
 func
 XYZ
@@ -99,7 +102,7 @@ typeset -fp
 
 function X:Z
 {
-	echo non-portable name
+    echo non-portable name
 }
 
 typeset -fp X:Z

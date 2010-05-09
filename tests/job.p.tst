@@ -1,3 +1,6 @@
+# job.p.tst: test of job control for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo echo &
 wait
 echo wait ok

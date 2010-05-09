@@ -1,3 +1,6 @@
+# fnmatch.p.tst: test of pattern matching for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 case a in a) echo 1; esac
 case a in b) echo 2; esac
 case a in A) echo 3; esac

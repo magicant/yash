@@ -1,3 +1,6 @@
+# redir.p.tst: test of redirections for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 tmp="${TESTTMP}/redir.p"
 
 echo Hello, >"$tmp"
@@ -83,16 +86,16 @@ echo ===== 3 =====
 
 # test of long here-document
 (
-	echo 'exec cat <<END'
-	i=0
-	while [ $i -lt 10000 ]; do echo $i; i=$((i+1)); done
-	echo 'END'
+    echo 'exec cat <<END'
+    i=0
+    while [ $i -lt 10000 ]; do echo $i; i=$((i+1)); done
+    echo 'END'
 ) | $INVOKE $TESTEE | (
-	i=0
-	while read j
-	do
-		if [ $i -ne $j ]; then echo "error: $j"; exit 1; fi
-		i=$((i+1))
-	done
-	echo $i
+    i=0
+    while read j
+    do
+	if [ $i -ne $j ]; then echo "error: $j"; exit 1; fi
+	i=$((i+1))
+    done
+    echo $i
 )

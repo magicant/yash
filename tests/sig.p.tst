@@ -1,3 +1,6 @@
+# sig.p.tst: test of signal handling for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 command -b ulimit -c 0 2>/dev/null
 
 tmp="${TESTTMP}/sig.p"

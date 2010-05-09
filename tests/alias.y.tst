@@ -1,3 +1,6 @@
+# alias.y.tst: yash-specific test of aliases
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 tmp="${TESTTMP}/alias.tmp"
 
 alias -g A=a B=b C=c singlequote=\' -- ---=-
@@ -82,9 +85,9 @@ dummy
 [ $? -ne 0 ]
 echo dummy $?
 if
-	dummy
+    dummy
 then
-	echo error
+    echo error
 fi
 END
 $INVOKE $TESTEE --posix 2>/dev/null <<\END

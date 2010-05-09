@@ -1,3 +1,6 @@
+# history.y.tst: yash-specific test of history
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 export TMPHIST="${TESTTMP}/history"
 export RC="${TESTTMP}/history.rc"
 

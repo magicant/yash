@@ -1,26 +1,29 @@
+# builtin.y.tst: yash-specific test of builtins
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo ===== break continue =====
 
 breakfunc ()
 while true; do
-	echo break ok
-	break 999
-	echo break ng
+    echo break ok
+    break 999
+    echo break ng
 done
 while true; do
-	echo break ok 2
-	breakfunc
-	echo break ng 2
+    echo break ok 2
+    breakfunc
+    echo break ng 2
 done
 
 contfunc ()
 while true; do
-	echo continue ok
-	continue 999
-	echo continue ng
+    echo continue ok
+    continue 999
+    echo continue ng
 done
 for i in 1 2; do
-	echo continue $i
-	contfunc
+    echo continue $i
+    contfunc
 done
 
 
@@ -28,16 +31,16 @@ echo ===== eval =====
 
 breakfunc2 ()
 while true; do
-	echo break ok
-	break -i
-	echo break ng
+    echo break ok
+    break -i
+    echo break ng
 done
 
 contfunc2 ()
 while true; do
-	echo continue ok
-	continue -i
-	echo continue ng
+    echo continue ok
+    continue -i
+    echo continue ng
 done
 
 eval echo -i
@@ -68,7 +71,7 @@ times trap unset
 command -V bg cd command false fg getopts jobs kill pwd read true umask wait
 
 testreg() {
-	command -V $1 | grep -v "^$1: regular builtin "
+    command -V $1 | grep -v "^$1: regular builtin "
 }
 testreg typeset
 testreg disown
@@ -93,9 +96,9 @@ echo command -vB exit = $?
 (
 cd() { command cd "$@"; }
 if (PATH=; alias) >/dev/null 2>&1; then
-	alias cd=cd
+    alias cd=cd
 else
-	echo "cd: alias for \`cd'"
+    echo "cd: alias for \`cd'"
 fi
 type cd
 echo =1=
