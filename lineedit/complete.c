@@ -551,35 +551,6 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
     cand->desc.value = desc;
     cand->desc.raw = NULL;
     cand->desc.width = 0;
-    /*
-    if (type == CT_FILE) {
-	char *filename = malloc_wcstombs(value);
-	struct stat st;
-
-	if (filename == NULL || stat(filename, &st) < 0) {
-	    cand->filestat.is_executable = false;
-	    cand->filestat.mode = 0;
-	    cand->filestat.nlink = 0;
-	    cand->filestat.size = 0;
-	} else {
-	    cand->filestat.mode = st.st_mode;
-	    cand->filestat.nlink = st.st_nlink;
-	    cand->filestat.size = st.st_size;
-	    cand->filestat.is_executable =
-		S_ISREG(st.st_mode) && is_executable(filename);
-	}
-	free(filename);
-
-	if (cgt & CGT_FILE)
-	    goto ok;
-	if ((cgt & CGT_DIRECTORY) && S_ISDIR(cand->filestat.mode))
-	    goto ok;
-	if ((cgt & CGT_EXECUTABLE) && cand->filestat.is_executable)
-	    goto ok;
-	goto fail;
-    }
-    */
-
     le_add_candidate(cand);
 }
 
