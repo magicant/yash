@@ -1,0 +1,12 @@
+fc: --no-such-option: invalid option
+Usage:  fc [-qr] [-e editor] [first [last]]
+        fc -s [-q] [old=new] [first]
+        fc -l [-nrv] [first [last]]
+fc: history is empty
+fc: history is empty
+fc: no such entry beginning with `foo'
+fc: no such entry beginning with `foo'
+fc: no such entry beginning with `foo'
+history: --no-such-option: invalid option
+Usage:  history [-cF] [-d entry] [-s command] [-r file] [-w file] [n]
+history: no such entry beginning with `foo'

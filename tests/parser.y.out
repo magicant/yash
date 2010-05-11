@@ -34,3 +34,6 @@ function 'X:Z'()
    echo non-portable name
 }
 func 6
+===== error =====
+missing double-quote
+missing backquote

@@ -1,7 +1,7 @@
 # test.y.tst: yash-specific test of the test builtin
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-tmp="${TESTTMP}/test.y"
+tmp="${TESTTMP}/test.y.tmp"
 
 mkdir "$tmp" || exit
 cd "$tmp" || exit

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -807,8 +807,7 @@ const wchar_t *check_opening_token(void)
     if (is_token_at(L"while", cindex)) return L"while";
     if (is_token_at(L"until", cindex)) return L"until";
     if (is_token_at(L"case",  cindex)) return L"case";
-    if (!posixly_correct)
-	if (is_token_at(L"function", cindex)) return L"function";
+    if (is_token_at(L"function", cindex)) return L"function";
     return NULL;
 }
 
@@ -1361,14 +1360,14 @@ reparse:
     if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
 	result->rd_filename = parse_word(globalonly);
 	if (!result->rd_filename) {
-	    serror(Ngt("redirect target not specified"));
+	    serror(Ngt("redirection target missing"));
 	    free(result);
 	    return NULL;
 	}
     } else {
 	wchar_t *endofheredoc = parse_word_as_wcs();
 	if (endofheredoc[0] == L'\0') {
-	    serror(Ngt("here-document delimiter not specified"));
+	    serror(Ngt("here-document delimiter missing"));
 	    free(result);
 	    return NULL;
 	}
@@ -1508,7 +1507,7 @@ void skip_to_next_single_quote(void)
 	    return;
 	case L'\0':
 	    if (read_more_input() != 0) {
-		serror(Ngt("single quote not closed"));
+		serror(Ngt("single-quote not closed"));
 		return;
 	    }
 	    continue;
@@ -1654,7 +1653,7 @@ parse_name:;
 	    cindex++;
 	if (namestartindex == cindex) {
 	    serror(Ngt("parameter name missing or invalid"));
-	    goto fail;
+	    goto end;
 	}
 make_name:
 	pe->pe_name = xwcsndup(
@@ -1696,19 +1695,16 @@ make_name:
     case L'#':   pe->pe_type |= PT_MATCH | PT_MATCHHEAD;     goto parse_match;
     case L'%':   pe->pe_type |= PT_MATCH | PT_MATCHTAIL;     goto parse_match;
     case L'/':   pe->pe_type |= PT_SUBST | PT_MATCHLONGEST;  goto parse_match;
-    case L'}':
+    case L'}':  case L'\0':  case L'\n':
 	pe->pe_type |= PT_NONE;
 	if (pe->pe_type & PT_COLON)
 	    serror(Ngt("invalid use of `%lc' in parameter expansion"),
 		    (wint_t) L':');
 	goto check_closing_brace;
-    case L'\0':  case L'\n':
-	serror(Ngt("`%ls' missing"), L"}");
-	goto fail;
     default:
 	serror(Ngt("invalid character `%lc' in parameter expansion"),
 		(wint_t) cbuf.contents[cindex]);
-	goto fail;
+	goto end;
     }
 
 parse_match:
@@ -1762,15 +1758,12 @@ check_closing_brace:
 	serror(Ngt("invalid use of `%lc' in parameter expansion"),
 		(wint_t) L'#');
 
+end:;
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_PARAM;
     result->wu_param = pe;
     return result;
-
-fail:
-    paramfree(pe);
-    return NULL;
 }
 
 /* Parses a command substitution starting with "$(".
@@ -2026,16 +2019,19 @@ command_T *parse_compound_command(const wchar_t *command)
  * `type' must be either CT_GROUP or CT_SUBSHELL. */
 command_T *parse_group(commandtype_T type)
 {
-    const wchar_t *terminator;
+    const wchar_t *start, *end;
 
-    if (type == CT_GROUP) {
-	assert(cbuf.contents[cindex] == L'{');
-	terminator = L"}";
-    } else if (type == CT_SUBSHELL) {
-	assert(cbuf.contents[cindex] == L'(');
-	terminator = L")";
-    } else {
-	assert(false);
+    switch (type) {
+	case CT_GROUP:
+	    start = L"{", end = L"}";
+	    assert(is_token_at(start, cindex));
+	    break;
+	case CT_SUBSHELL:
+	    start = L"(", end = L")";
+	    assert(cbuf.contents[cindex] == start[0]);
+	    break;
+	default:
+	    assert(false);
     }
     cindex++;
 
@@ -2047,11 +2043,11 @@ command_T *parse_group(commandtype_T type)
     result->c_redirs = NULL;
     result->c_subcmds = parse_compound_list();
     if (posixly_correct && !result->c_subcmds)
-	serror(Ngt("no commands in command group"));
-    if (cbuf.contents[cindex] == terminator[0])
+	serror(Ngt("no commands between `%ls' and `%ls'"), start, end);
+    if (cbuf.contents[cindex] == end[0])
 	cindex++;
     else
-	print_errmsg_token_missing(terminator);
+	print_errmsg_token_missing(end);
     return result;
 }
 
@@ -2079,7 +2075,7 @@ command_T *parse_if(void)
 	    ic->ic_condition = parse_compound_list();
 	    if (posixly_correct && !ic->ic_condition)
 		serror(Ngt("no commands between `%ls' and `%ls'"),
-			L"if", L"then");
+			(first->next == NULL) ? L"if" : L"elif", L"then");
 	    ensure_buffer(5);
 	    if (is_token_at(L"then", cindex))
 		cindex += 4;
@@ -2164,7 +2160,8 @@ command_T *parse_for(void)
     if (is_token_at(L"do", cindex))
 	cindex += 2;
     else
-	print_errmsg_token_missing(L"do");
+	serror(Ngt("`%ls' missing"), L"do");
+	// print_errmsg_token_missing(L"do");
     result->c_forcmds = parse_compound_list();
     if (posixly_correct && !result->c_forcmds)
 	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
@@ -2226,11 +2223,14 @@ command_T *parse_case(void)
 	serror(Ngt("no word after `%ls'"), L"case");
     skip_to_next_token();
     ensure_buffer(3);
-    if (is_token_at(L"in", cindex))
+    if (is_token_at(L"in", cindex)) {
 	cindex += 2;
-    else
-	print_errmsg_token_missing(L"in");
-    result->c_casitems = parse_case_list();
+	result->c_casitems = parse_case_list();
+    } else {
+	serror(Ngt("`%ls' missing"), L"in");
+	// print_errmsg_token_missing(L"in");
+	result->c_casitems = NULL;
+    }
     ensure_buffer(5);
     if (is_token_at(L"esac", cindex))
 	cindex += 4;
@@ -2245,7 +2245,7 @@ caseitem_T *parse_case_list(void)
 {
     caseitem_T *first = NULL, **lastp = &first;
 
-    while (!cerror) {
+    do {
 	skip_to_next_token();
 	ensure_buffer(5);
 	if (is_token_at(L"esac", cindex))
@@ -2264,26 +2264,33 @@ caseitem_T *parse_case_list(void)
 	} else {
 	    break;
 	}
-    }
+    } while (!cerror);
     return first;
 }
 
 /* Parses patterns of a case item.
  * `cindex' is advanced to the next character after ')', not the next token.
- * Call `skip_blanks_and_comment' and `ensure_buffer(1)' beforehand. */
+ * Call `skip_to_next_token' and `ensure_buffer(1)' beforehand. */
 void **parse_case_patterns(void)
 {
     plist_T wordlist;
-
     pl_init(&wordlist);
+
     if (cbuf.contents[cindex] == L'(') {  /* ignore the first '(' */
 	cindex++;
 	skip_blanks_and_comment();
     }
-    while (!cerror) {
-	if (is_token_delimiter_char(cbuf.contents[cindex]))
-	    serror(Ngt("invalid character `%lc' in case pattern"),
-		    (wint_t) cbuf.contents[cindex]);
+    do {
+	if (is_token_delimiter_char(cbuf.contents[cindex])) {
+	    if (cbuf.contents[cindex] != L'\0') {
+		if (cbuf.contents[cindex] == L'\n')
+		    serror(Ngt("no word after `%ls'"), L"(");
+		else
+		    serror(Ngt("invalid character `%lc' in case pattern"),
+			    (wint_t) cbuf.contents[cindex]);
+	    }
+	    break;
+	}
 	pl_add(&wordlist, parse_word(globalonly));
 	skip_blanks_and_comment();
 	ensure_buffer(1);
@@ -2297,13 +2304,16 @@ void **parse_case_patterns(void)
 	    break;
 	}
 	skip_blanks_and_comment();
-    }
+    } while (!cerror);
     return pl_toary(&wordlist);
 }
 
 /* Parses a function definition that starts with the "function" keyword. */
 command_T *parse_function(void)
 {
+    if (posixly_correct)
+	serror(Ngt("invalid keyword `%ls'"), L"function");
+
     assert(is_token_at(L"function", cindex));
     cindex += 8;
     skip_blanks_and_comment();
@@ -2595,27 +2605,44 @@ bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
 const char *get_errmsg_unexpected_token(const wchar_t *t)
 {
     switch (t[0]) {
-	case L')': return Ngt("`%ls' without matching `('");
-	case L'}': return Ngt("`%ls' without matching `{'");
-	case L';': return Ngt("`%ls' used outside `case'");
-	case L'!': return Ngt("`%ls' cannot be used as command name");
-	case L'i': return Ngt("`%ls' cannot be used as command name");
-	case L'f': return Ngt("`%ls' without matching `if'");
-	case L't': return Ngt("`%ls' used without `if'");
+	case L')':
+	    assert(wcscmp(t, L")") == 0);
+	    return Ngt("`%ls' without matching `('");
+	case L'}':
+	    assert(wcscmp(t, L"}") == 0);
+	    return Ngt("`%ls' without matching `{'");
+	case L';':
+	    assert(wcscmp(t, L";;") == 0);
+	    return Ngt("`%ls' used outside `case'");
+	case L'!':
+	    assert(wcscmp(t, L"!") == 0);
+	    return Ngt("`%ls' cannot be used as command name");
+	case L'i':
+	    assert(wcscmp(t, L"in") == 0);
+	    return Ngt("`%ls' cannot be used as command name");
+	case L'f':
+	    assert(wcscmp(t, L"fi") == 0);
+	    return Ngt("`%ls' without matching `if' and/or `then'");
+	case L't':
+	    assert(wcscmp(t, L"then") == 0);
+	    return Ngt("`%ls' used without `if' or `elif'");
 	case L'd':
 	    assert(t[1] == L'o');
-	    if (t[2] == L'\0')
+	    if (t[2] == L'\0') {
+		assert(wcscmp(t, L"do") == 0);
 		return Ngt("`%ls' used without `for', `while', or `until'");
-	    else
+	    } else {
+		assert(wcscmp(t, L"done") == 0);
 		return Ngt("`%ls' without matching `do'");
+	    }
 	case L'e':
-	    if (t[1] == L's')
+	    if (t[1] == L's') {
+		assert(wcscmp(t, L"esac") == 0);
 		return Ngt("`%ls' without matching `case'");
-	    else
-		if (t[2] == L's')
-		    return Ngt("`%ls' used without `if'");
-		else
-		    return Ngt("`%ls' used without `if'");
+	    } else {
+		assert(wcscmp(t, L"else") == 0 || wcscmp(t, L"elif") == 0);
+		return Ngt("`%ls' used without `if' and/or `then'");
+	    }
 	default:
 	    assert(false);
     }
@@ -2624,10 +2651,12 @@ const char *get_errmsg_unexpected_token(const wchar_t *t)
 void print_errmsg_token_missing(const wchar_t *t)
 {
     const wchar_t *atoken = check_closing_token();
-    if (atoken)
+    if (atoken) {
 	serror(get_errmsg_unexpected_token(atoken), atoken);
-    else
+	serror(Ngt("(maybe you missed `%ls'?)"), t);
+    } else {
 	serror(Ngt("`%ls' missing"), t);
+    }
 }
 
 

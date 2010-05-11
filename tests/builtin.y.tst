@@ -64,7 +64,7 @@ echo -"$@"-
 echo ===== command =====
 
 command -V if then else elif fi do done case esac while until for { } ! in
-command -V _no_such_command_ 2>/dev/null || echo not found
+PATH= command -V _no_such_command_ 3>&1 1>&2 2>&3 || echo $?
 command -V : . break continue eval exec exit export readonly return set shift \
 times trap unset
 #TODO command -V newgrp
@@ -97,10 +97,11 @@ echo command -vB exit = $?
 cd() { command cd "$@"; }
 if (PATH=; alias) >/dev/null 2>&1; then
     alias cd=cd
+    type cd
 else
     echo "cd: alias for \`cd'"
+    echo "cd: function"
 fi
-type cd
 echo =1=
 type -b cd
 echo =2=

@@ -1,0 +1,12 @@
+syntax error: no commands between `if' and `then'
+syntax error: no commands between `(' and `)'
+syntax error: `!' cannot be used as command name
+syntax error: `;;' used outside `case'
+syntax error: command missing before `&'
+alias: --no-such-option: invalid option
+Usage:  alias [-gp] [name[=value]...]
+alias: alias: no such alias
+unalias: --no-such-option: invalid option
+Usage:  unalias name[...]
+        unalias -a
+unalias: alias: no such alias

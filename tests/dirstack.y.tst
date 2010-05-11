@@ -1,20 +1,63 @@
 # dirstack.y.tst: yash-specific test of directory stack
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-tmp="${TESTTMP}/dirstack.y"
+tmp="${TESTTMP}/dirstack.y.tmp"
+
+pushd --no-such-option
+echo pushd no-such-option $?
+pushd ./no/such/dir 2>/dev/null
+echo pushd no-such-dir $?
+pushd /
+pushd +5
+echo pushd index out of range $?
+pushd - >&- 2>/dev/null
+echo pushd output error $?
+popd --no-such-option
+echo popd no-such-option $?
+popd +5
+echo popd index out of range $?
+popd >/dev/null
+popd >&- 2>/dev/null
+echo popd output error $?
+popd
+echo popd dirstack empty $?
+dirs --no-such-option
+echo dirs no-such-option $?
+dirs +5
+echo dirs index out of range $?
+dirs >&- 2>/dev/null
+echo dirs output error $?
+
+echo ===== 0 =====
 
 mkdir "$tmp"
 mkdir "$tmp/1" "$tmp/2" "$tmp/3" "$tmp/4"
 
 cd "$tmp"
-pushd "$tmp/1"; >f1
-pushd "$tmp/2"; >f2
-pushd "$tmp/3"; >f3
-pushd "$tmp/4"; >f4
-echo *; popd >/dev/null
-echo *; popd >/dev/null
-echo *; popd >/dev/null
-echo *; popd >/dev/null
+pushd "$tmp/1"; echo 1 $?; >f1
+pushd "$tmp/2"; echo 2 $?; >f2
+pushd "$tmp/3"; echo 3 $?; >f3
+pushd "$tmp/4"; echo 4 $?; >f4
+dirs >"$tmp/out"; echo 5 $?
+diff - "$tmp/out" <<END
+$tmp/4
+$tmp/3
+$tmp/2
+$tmp/1
+$tmp
+END
+dirs -v >"$tmp/out"; echo 6 $?
+diff - "$tmp/out" <<END
++0	-4	$tmp/4
++1	-3	$tmp/3
++2	-2	$tmp/2
++3	-1	$tmp/1
++4	-0	$tmp
+END
+echo *; popd >/dev/null; echo 7 $?
+echo *; popd >/dev/null; echo 8 $?
+echo *; popd >/dev/null; echo 9 $?
+echo *; popd >/dev/null; echo 10 $?
 
 if [ x"$PWD" = x"$tmp" ]; then
     echo ok
@@ -22,6 +65,7 @@ fi
 echo */*
 pushd 1
 dirs -c
+echo $?
 cd - >/dev/null
 echo */*
 

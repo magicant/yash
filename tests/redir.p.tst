@@ -1,7 +1,7 @@
 # redir.p.tst: test of redirections for any POSIX-compliant shell
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-tmp="${TESTTMP}/redir.p"
+tmp="${TESTTMP}/redir.p.tmp"
 
 echo Hello, >"$tmp"
 cat "$tmp"
@@ -15,7 +15,8 @@ echo \2>"$tmp"
 echo 2\>/dev/null|cat - "$tmp"
 
 rm -f "$tmp"
-echo foo >"$tmp"
+echo foo > \
+"$tmp"
 [ -f "$tmp" ] && cat "$tmp"
 set -C
 echo bar >|"$tmp"
@@ -32,7 +33,7 @@ unset unset
 (>/dev/null <&1) 2>/dev/null || echo not readable
 
 exec 5>&1
-exec >&-
+exec >& -
 echo exec redirect >&5
 exec >&5 5>&-
 echo exec redirect
@@ -62,7 +63,8 @@ Test of here-document.
 END
 cat "$tmp"
 
-cat <<-END -
+cat <<-\
+END -
 Test of here-document.
 		<"${TERM+}">
 		"'"''\\-\'\"

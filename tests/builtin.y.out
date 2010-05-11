@@ -47,7 +47,8 @@ for: shell keyword
 }: shell keyword
 !: shell keyword
 in: shell keyword
-not found
+command: _no_such_command_: no such command or function
+1
 :: special builtin
 .: special builtin
 break: special builtin

@@ -202,13 +202,15 @@ PATH=$savepath
 
 if command -v echo >/dev/null 2>&1; then
     commandv='command -v'
-    if ! command -v echo | grep '^/' | grep '/echo$' >/dev/null; then
-	echo "\"command -V echo\" doesn't return a fullpath" >&2
-    fi
-    if ! command -v ./invoke | grep '^/' | grep '/invoke$' >/dev/null; then
-	echo "\"command -V ./invoke\" doesn't return a fullpath" >&2
-    fi
-    if command -v _no_such_command_; then
+    case "$(command -v echo)" in
+	/*/echo | /echo ) ;;
+	*               ) echo "\$(command -v echo) = $(command -v echo)"
+    esac
+    case "$(command -v ./invoke)" in
+	/*/invoke ) ;;
+	*         ) echo "\$(command -v ./invoke) = $(command -v ./invoke)"
+    esac
+    if PATH= command -v _no_such_command_; then
 	echo "\"command -v _no_such_command_\" returned zero status" >&2
     fi
 else
@@ -236,25 +238,36 @@ $commandv in
 echo "\"command -v\" not idempotent" >&2
 
 if command -V echo >/dev/null 2>&1; then
-    if ! command -V echo | grep -F "$(command -v echo)" >/dev/null; then
-	echo "\"command -V echo\" doesn't include a fullpath" >&2
-	return 1
-    fi
+    # output from "command -V echo" must include path for "echo"
+    case "$(command -V echo)" in
+	"echo: regular builtin at $(command -v echo)" | \
+	"echo: external command at $(command -v echo)" ) ;;
+	*) echo "\$(command -V echo) = $(command -V echo)" ;;
+    esac
 fi
 
 (
 command command exec >/dev/null
 echo not printed
 )
-command -p cat -u /dev/null
+$INVOKE $TESTEE 2>/dev/null <<\END
+command exec 3<$TESTTMP/no.such.file
+echo ok
+exec 3<$TESTTMP/no_such_file
+echo not printed
+END
+PATH= command -p cat -u /dev/null
 
 
 echo ===== special builtins =====
-(: <"${TESTTMP}/no.such.file"; echo not reached - redir) 2>/dev/null
-(readonly ro=ro; ro=xx eval 'echo test'; echo not reached - assign) 2>/dev/null
-(unset unset; set ${unset?}; echo not reached - expansion) 2>/dev/null
-(. "${TESTTMP}/no.such.file"; echo not reached - dot not found) 2>/dev/null
-(break invalid argument; echo not reached - usage error) 2>/dev/null
+
+{
+    (: <"${TESTTMP}/no.such.file"; echo not reached - redir)
+    (readonly ro=ro; ro=xx eval 'echo test'; echo not reached - assign)
+    (unset unset; set ${unset?}; echo not reached - expansion)
+    (. "${TESTTMP}/no.such.file"; echo not reached - dot not found)
+    (break invalid argument; echo not reached - usage error)
+} 2>/dev/null
 
 
 echo ===== exec =====
@@ -262,6 +275,7 @@ echo ===== exec =====
 $INVOKE $TESTEE -c 'exec echo exec'
 $INVOKE $TESTEE -c 'exec /dev/null' 2>/dev/null
 echo $?
+$INVOKE $TESTEE -c '(exec echo 1); exec echo 2'
 
 exec echo exec echo
 echo not reached

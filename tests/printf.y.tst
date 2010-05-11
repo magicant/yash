@@ -281,3 +281,16 @@ printf '%d\n' not_a_integer >/dev/null 2>&1
 echo $?
 
 echo $(printf '%d\n' not_a_integer 2>/dev/null | wc -l)
+
+echo ===== error =====
+
+printf --no-such-option
+echo printf no-such-option $?
+printf foo >&- 2>/dev/null
+echo printf output error $?
+printf
+echo printf operand missing $?
+printf '%d\n' foo 2>/dev/null
+echo printf invalid operand $?
+echo foo >&- 2>/dev/null
+echo echo output error $?

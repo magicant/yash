@@ -1,0 +1,8 @@
+bindkey: --no-such-option: invalid option
+Usage:  bindkey -aev [keyseq [command]]
+        bindkey -l
+bindkey: option not specified
+Usage:  bindkey -aev [keyseq [command]]
+        bindkey -l
+bindkey: no-such-command: no such command
+bindkey: cannot bind empty sequence

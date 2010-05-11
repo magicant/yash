@@ -1,8 +1,8 @@
 ===== -h =====
 1
 ===== nocaseglob =====
-option.y.tst
-O[OPQ]T*ON.y.tst
+option.y.tst OPTION.y.tst
+O[OPQ]T*ON.y.tst OPTION.y.tst
 ===== dotglob =====
 . .. .dotfile
 *
@@ -10,10 +10,21 @@ O[OPQ]T*ON.y.tst
 dir/
 dir
 ===== extendedglob =====
-dir/dir2/file
-**/file
+anotherdir/file dir/dir2/file
+anotherdir/file anotherdir/loop/dir2/file dir/dir2/file dir/dir2/link/file
+anotherdir/file
+anotherdir/file
+dir/**/file
+dir/***/file
+dir/.dir2/file
+dir/.dir2/file dir/.dir2/link/file
+dir/**/file
+dir/***/file
+dir/.dir2/file
+dir/.dir2/file
 ===== nullglob =====
 f[o/b]r 1
 n*ll f[o/b]r f?o/b*r 2
 ===== posix =====
-> 
+\$ 
+$ 

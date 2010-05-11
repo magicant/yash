@@ -73,13 +73,25 @@ case "$1" in
     alias.y|alias.p)
 	$INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
 	;;
+    array.y)
+	$INVOKE $TESTEE -c 'type array' 2>/dev/null | \
+	    grep '^array: regular builtin' >/dev/null
+	;;
     dirstack.y)
 	$INVOKE $TESTEE -c 'type pushd' 2>/dev/null | \
 	    grep '^pushd: regular builtin' >/dev/null
 	;;
+    help.y)
+	$INVOKE $TESTEE -c 'type help' 2>/dev/null | \
+	    grep '^help: regular builtin' >/dev/null
+	;;
     history.y)
 	HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
 	    >/dev/null 2>&1
+	;;
+    lineedit.y)
+	$INVOKE $TESTEE -c 'type bindkey' 2>/dev/null | \
+	    grep '^bindkey: regular builtin' >/dev/null
 	;;
     printf.y)
 	$INVOKE $TESTEE -c 'type printf' 2>/dev/null | \

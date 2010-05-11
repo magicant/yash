@@ -1,14 +1,11 @@
 ===== consequences of shell errors =====
-syntax error: `fi' without matching `if'
+syntax error: `fi' without matching `if' and/or `then'
 Usage:  . [-A] file [arg...]
 Usage:  getopts options var [arg...]
 ../yash: ro: readonly
 ../yash: ro: readonly
 ../yash: var: parameter not set
 ../yash: var: parameter not set
-===== help =====
-help: --no-such-option: invalid option
-Usage:  help command...
 ===== set =====
 set: --no-such-option: invalid option
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
@@ -30,35 +27,10 @@ hash: no_such_command: not found in $PATH
 ===== umask =====
 umask: --no-such-option: invalid option
 Usage:  umask [-S] [mask]
-===== pushd/popd/dirs =====
-pushd: --no-such-option: invalid option
-Usage:  pushd [-L|-P] [dir]
-pushd: +5: index out of range
-popd: --no-such-option: invalid option
-Usage:  popd [index]
-popd: +5: index out of range
-popd: directory stack is empty
-dirs: --no-such-option: invalid option
-Usage:  dirs [-cv] [index...]
-dirs: +5: index out of range
-===== alias/unalias =====
-alias: --no-such-option: invalid option
-Usage:  alias [-gp] [name[=value]...]
-alias: alias: no such alias
-unalias: --no-such-option: invalid option
-Usage:  unalias name[...]
-        unalias -a
-unalias: alias: no such alias
 ===== typeset =====
 typeset: --no-such-option: invalid option
 Usage:  typeset [-fgprxX] [name[=value]...]
 typeset: readonly: readonly
-===== array =====
-array: --no-such-option: invalid option
-Usage:  array [name [value...]]
-        array -d name [index...]
-        array -i name index [value...]
-        array -s name index value
 ===== unset =====
 unset: --no-such-option: invalid option
 Usage:  unset [-fv] name...
@@ -106,27 +78,16 @@ fg: %100: no such job
 fg: %no_such_job: no such job
 fg: too many operands
 Usage:  fg [job]
+fg: job control disabled
 ===== bg =====
 bg: --no-such-option: invalid option
 Usage:  bg [job...]
 bg: %100: no such job
 bg: %no_such_job: no such job
+bg: job control disabled
 ===== wait =====
 wait: --no-such-option: invalid option
 Usage:  wait [job or pid...]
-===== fc/history =====
-fc: --no-such-option: invalid option
-Usage:  fc [-qr] [-e editor] [first [last]]
-        fc -s [-q] [old=new] [first]
-        fc -l [-nrv] [first [last]]
-fc: history is empty
-fc: history is empty
-fc: no such entry beginning with `foo'
-fc: no such entry beginning with `foo'
-fc: no such entry beginning with `foo'
-history: --no-such-option: invalid option
-Usage:  history [-cF] [-d entry] [-s command] [-r file] [-w file] [n]
-history: no such entry beginning with `foo'
 ===== return =====
 return: --no-such-option: invalid option
 Usage:  return [n]
@@ -183,16 +144,3 @@ Usage:  suspend [-f]
 Usage:  suspend [-f]
 ===== ulimit =====
 ulimit: `xxx' is not a valid integer
-===== printf =====
-printf: --no-such-option: invalid option
-Usage:  printf format [value...]
-Usage:  printf format [value...]
-===== bindkey =====
-bindkey: --no-such-option: invalid option
-Usage:  bindkey -aev [keyseq [command]]
-        bindkey -l
-bindkey: option not specified
-Usage:  bindkey -aev [keyseq [command]]
-        bindkey -l
-bindkey: no-such-command: no such command
-bindkey: cannot bind empty sequence

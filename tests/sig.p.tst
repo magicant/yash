@@ -3,7 +3,7 @@
 
 command -b ulimit -c 0 2>/dev/null
 
-tmp="${TESTTMP}/sig.p"
+tmp="${TESTTMP}/sig.p.tmp"
 
 exec 2>/dev/null
 
