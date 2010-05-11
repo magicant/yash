@@ -100,4 +100,5 @@ echo ===== hash builtin =====
 PATH= hash 2>/dev/null
 
 
+cd "$TESTTMP"
 rm -fr "$tmp"
