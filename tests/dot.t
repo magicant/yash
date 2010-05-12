@@ -1,4 +1,4 @@
-# used by builtin.p.tst and builtin.tst as a sourced script
+# used by builtin.p.tst and builtin.y.tst as a sourced script
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
 echo -"$@"-
