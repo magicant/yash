@@ -333,7 +333,7 @@ elif
     if [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ]
     then
 	cc='gcc -std=c99'
-	tryexec && tryexec
+	trymake && tryexec
     else
 	false
     fi
