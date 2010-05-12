@@ -104,9 +104,10 @@ case "$1" in
 esac
 
 printf 'Effective user ID: %s\n' "${EUID=$(id -u)}"
-if [ "$EUID" -eq 0 ]
-then isroot=true
-else isroot=false
+if [ "$EUID" -eq 0 ]; then
+    isroot=true
+else
+    isroot=false
 fi
 if diff -u /dev/null /dev/null >/dev/null 2>&1; then
     diff='diff -u'

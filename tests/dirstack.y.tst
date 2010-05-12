@@ -101,9 +101,10 @@ dirs -v +0 -0 | sed -e 's;/.*/;;'
 dirs    +2 -2 | sed -e 's;/.*/;;'
 
 echo ===== 9 =====
+echo ===== 9 ===== >&2
 
 unset DIRSTACK
-popd >/dev/null 2>/dev/null
+popd
 echo empty popd $?
 
 cd "$tmp"
@@ -111,20 +112,39 @@ cd "$tmp"
 cd "$tmp/1"
 pushd - | sed -e 's;/.*/;;'
 )
-pushd --default-directory=- 2>/dev/null
+pushd --default-directory=- 2>/dev/null  # no such file
 echo pushd hyphen $?
-
-pushd "$tmp/1"
-readonly DIRSTACK
-pushd "$tmp/2" 2>/dev/null
-echo dirstack readonly $?
-dirs | sed -e 's;/.*/;;'
 
 cd "$origpwd"
 rm -fr "$tmp"
 
 echo ===== 10 =====
+echo ===== 10 ===== >&2
 
+$INVOKE $TESTEE <<\END
+readonly DIRSTACK
+pushd .
+echo pushd dirstack unset $?
+popd
+echo popd dirstack unset $?
+dirs >"$TESTTMP/dirstack.y.tmp"
+echo dirs dirstack unset $?
+diff - "$TESTTMP/dirstack.y.tmp" <<<"$PWD"
+END
+$INVOKE $TESTEE <<\END
+pushd .
+readonly DIRSTACK
+pushd .
+echo pushd dirstack readonly $?
+popd
+echo popd dirstack readonly $?
+dirs >"$TESTTMP/dirstack.y.tmp"
+echo dirs dirstack readonly $?
+diff - "$TESTTMP/dirstack.y.tmp" <<EOF
+$PWD
+$PWD
+EOF
+END
 $INVOKE $TESTEE <<\END
 pushd --no-such-option
 echo pushd no-such-option $?
@@ -156,3 +176,5 @@ echo dirs index out of range $?
 dirs >&- 2>/dev/null
 echo dirs output error $?
 END
+
+rm -f "$TESTTMP/dirstack.y.tmp"

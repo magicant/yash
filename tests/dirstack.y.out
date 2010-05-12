@@ -81,10 +81,13 @@ dirstack.y.tmp
 empty popd 1
 dirstack.y.tmp
 pushd hyphen 1
-dirstack readonly 1
-2
-dirstack.y.tmp
 ===== 10 =====
+pushd dirstack unset 1
+popd dirstack unset 1
+dirs dirstack unset 0
+pushd dirstack readonly 1
+popd dirstack readonly 1
+dirs dirstack readonly 0
 pushd no-such-option 2
 pushd no-such-dir 1
 pushd index out of range 1
