@@ -130,6 +130,8 @@ echo popd dirstack unset $?
 dirs >"$TESTTMP/dirstack.y.tmp"
 echo dirs dirstack unset $?
 diff - "$TESTTMP/dirstack.y.tmp" <<<"$PWD"
+dirs -c
+echo dirs -c dirstack unset $?
 END
 $INVOKE $TESTEE <<\END
 pushd .
@@ -144,6 +146,8 @@ diff - "$TESTTMP/dirstack.y.tmp" <<EOF
 $PWD
 $PWD
 EOF
+dirs -c
+echo dirs -c dirstack readonly $?
 END
 $INVOKE $TESTEE <<\END
 pushd --no-such-option

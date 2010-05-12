@@ -85,9 +85,11 @@ pushd hyphen 1
 pushd dirstack unset 1
 popd dirstack unset 1
 dirs dirstack unset 0
+dirs -c dirstack unset 1
 pushd dirstack readonly 1
 popd dirstack readonly 1
 dirs dirstack readonly 0
+dirs -c dirstack readonly 1
 pushd no-such-option 2
 pushd no-such-dir 1
 pushd index out of range 1
