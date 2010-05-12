@@ -1,34 +1,8 @@
 # dirstack.y.tst: yash-specific test of directory stack
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-tmp="${TESTTMP}/dirstack.y.tmp"
-
-pushd --no-such-option
-echo pushd no-such-option $?
-pushd ./no/such/dir 2>/dev/null
-echo pushd no-such-dir $?
-pushd /
-pushd +5
-echo pushd index out of range $?
-pushd - >&- 2>/dev/null
-echo pushd output error $?
-popd --no-such-option
-echo popd no-such-option $?
-popd +5
-echo popd index out of range $?
-popd >/dev/null
-popd >&- 2>/dev/null
-echo popd output error $?
-popd
-echo popd dirstack empty $?
-dirs --no-such-option
-echo dirs no-such-option $?
-dirs +5
-echo dirs index out of range $?
-dirs >&- 2>/dev/null
-echo dirs output error $?
-
-echo ===== 0 =====
+origpwd=$PWD
+tmp=$TESTTMP/dirstack.y.tmp
 
 mkdir "$tmp"
 mkdir "$tmp/1" "$tmp/2" "$tmp/3" "$tmp/4"
@@ -146,5 +120,39 @@ pushd "$tmp/2" 2>/dev/null
 echo dirstack readonly $?
 dirs | sed -e 's;/.*/;;'
 
-cd "${TESTTMP}"
+cd "$origpwd"
 rm -fr "$tmp"
+
+echo ===== 10 =====
+
+$INVOKE $TESTEE <<\END
+pushd --no-such-option
+echo pushd no-such-option $?
+pushd ./no/such/dir 2>/dev/null
+echo pushd no-such-dir $?
+pushd /
+pushd +5
+echo pushd index out of range $?
+pushd - >&- 2>/dev/null
+echo pushd output error $?
+END
+$INVOKE $TESTEE <<\END
+pushd /
+popd --no-such-option
+echo popd no-such-option $?
+popd +5
+echo popd index out of range $?
+popd >&- 2>/dev/null
+echo popd output error $?
+popd
+echo popd dirstack empty $?
+END
+$INVOKE $TESTEE <<\END
+pushd /
+dirs --no-such-option
+echo dirs no-such-option $?
+dirs +5
+echo dirs index out of range $?
+dirs >&- 2>/dev/null
+echo dirs output error $?
+END
