@@ -46,162 +46,166 @@ extern void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 
 /********** Commands **********/
 
+// This header file is parsed by the Makefile script to create the "commands.in"
+// file. For every line that ends with "/*C*/", the first word that starts with
+// "cmd_" is interpreted as a command name.
+
 /* basic commands */
 extern le_command_func_T
-    cmd_noop,
-    cmd_alert,
-    cmd_self_insert,
-    cmd_insert_tab,
-    cmd_expect_verbatim,
-    cmd_digit_argument,
-    cmd_bol_or_digit,
-    cmd_accept_line,
-    cmd_abort_line,
-    cmd_eof,
-    cmd_eof_if_empty,
-    cmd_eof_or_delete,
-    cmd_accept_with_hash,
-    cmd_setmode_viinsert,
-    cmd_setmode_vicommand,
-    cmd_setmode_emacs,
-    cmd_expect_char,
-    cmd_abort_expect_char,
-    cmd_redraw_all,
-    cmd_clear_and_redraw_all;
+    cmd_noop, /*C*/
+    cmd_alert, /*C*/
+    cmd_self_insert, /*C*/
+    cmd_insert_tab, /*C*/
+    cmd_expect_verbatim, /*C*/
+    cmd_digit_argument, /*C*/
+    cmd_bol_or_digit, /*C*/
+    cmd_accept_line, /*C*/
+    cmd_abort_line, /*C*/
+    cmd_eof, /*C*/
+    cmd_eof_if_empty, /*C*/
+    cmd_eof_or_delete, /*C*/
+    cmd_accept_with_hash, /*C*/
+    cmd_setmode_viinsert, /*C*/
+    cmd_setmode_vicommand, /*C*/
+    cmd_setmode_emacs, /*C*/
+    cmd_expect_char, /*C*/
+    cmd_abort_expect_char, /*C*/
+    cmd_redraw_all, /*C*/
+    cmd_clear_and_redraw_all; /*C*/
 
 /* motion commands */
 extern le_command_func_T
-    cmd_forward_char,
-    cmd_backward_char,
-    cmd_forward_bigword,
-    cmd_end_of_bigword,
-    cmd_backward_bigword,
-    cmd_forward_semiword,
-    cmd_end_of_semiword,
-    cmd_backward_semiword,
-    cmd_forward_viword,
-    cmd_end_of_viword,
-    cmd_backward_viword,
-    cmd_forward_emacsword,
-    cmd_backward_emacsword,
-    cmd_beginning_of_line,
-    cmd_end_of_line,
-    cmd_go_to_column,
-    cmd_first_nonblank,
-    cmd_find_char,
-    cmd_find_char_rev,
-    cmd_till_char,
-    cmd_till_char_rev,
-    cmd_refind_char,
-    cmd_refind_char_rev;
+    cmd_forward_char, /*C*/
+    cmd_backward_char, /*C*/
+    cmd_forward_bigword, /*C*/
+    cmd_end_of_bigword, /*C*/
+    cmd_backward_bigword, /*C*/
+    cmd_forward_semiword, /*C*/
+    cmd_end_of_semiword, /*C*/
+    cmd_backward_semiword, /*C*/
+    cmd_forward_viword, /*C*/
+    cmd_end_of_viword, /*C*/
+    cmd_backward_viword, /*C*/
+    cmd_forward_emacsword, /*C*/
+    cmd_backward_emacsword, /*C*/
+    cmd_beginning_of_line, /*C*/
+    cmd_end_of_line, /*C*/
+    cmd_go_to_column, /*C*/
+    cmd_first_nonblank, /*C*/
+    cmd_find_char, /*C*/
+    cmd_find_char_rev, /*C*/
+    cmd_till_char, /*C*/
+    cmd_till_char_rev, /*C*/
+    cmd_refind_char, /*C*/
+    cmd_refind_char_rev; /*C*/
 
 /* editing commands */
 extern le_command_func_T
-    cmd_delete_char,
-    cmd_delete_bigword,
-    cmd_delete_semiword,
-    cmd_delete_viword,
-    cmd_delete_emacsword,
-    cmd_backward_delete_char,
-    cmd_backward_delete_bigword,
-    cmd_backward_delete_semiword,
-    cmd_backward_delete_viword,
-    cmd_backward_delete_emacsword,
-    cmd_delete_line,
-    cmd_forward_delete_line,
-    cmd_backward_delete_line,
-    cmd_kill_char,
-    cmd_kill_bigword,
-    cmd_kill_semiword,
-    cmd_kill_viword,
-    cmd_kill_emacsword,
-    cmd_backward_kill_char,
-    cmd_backward_kill_bigword,
-    cmd_backward_kill_semiword,
-    cmd_backward_kill_viword,
-    cmd_backward_kill_emacsword,
-    cmd_kill_line,
-    cmd_forward_kill_line,
-    cmd_backward_kill_line,
-    cmd_put_before,
-    cmd_put,
-    cmd_put_left,
-    cmd_put_pop,
-    cmd_undo,
-    cmd_undo_all,
-    cmd_cancel_undo,
-    cmd_cancel_undo_all,
-    cmd_redo;
+    cmd_delete_char, /*C*/
+    cmd_delete_bigword, /*C*/
+    cmd_delete_semiword, /*C*/
+    cmd_delete_viword, /*C*/
+    cmd_delete_emacsword, /*C*/
+    cmd_backward_delete_char, /*C*/
+    cmd_backward_delete_bigword, /*C*/
+    cmd_backward_delete_semiword, /*C*/
+    cmd_backward_delete_viword, /*C*/
+    cmd_backward_delete_emacsword, /*C*/
+    cmd_delete_line, /*C*/
+    cmd_forward_delete_line, /*C*/
+    cmd_backward_delete_line, /*C*/
+    cmd_kill_char, /*C*/
+    cmd_kill_bigword, /*C*/
+    cmd_kill_semiword, /*C*/
+    cmd_kill_viword, /*C*/
+    cmd_kill_emacsword, /*C*/
+    cmd_backward_kill_char, /*C*/
+    cmd_backward_kill_bigword, /*C*/
+    cmd_backward_kill_semiword, /*C*/
+    cmd_backward_kill_viword, /*C*/
+    cmd_backward_kill_emacsword, /*C*/
+    cmd_kill_line, /*C*/
+    cmd_forward_kill_line, /*C*/
+    cmd_backward_kill_line, /*C*/
+    cmd_put_before, /*C*/
+    cmd_put, /*C*/
+    cmd_put_left, /*C*/
+    cmd_put_pop, /*C*/
+    cmd_undo, /*C*/
+    cmd_undo_all, /*C*/
+    cmd_cancel_undo, /*C*/
+    cmd_cancel_undo_all, /*C*/
+    cmd_redo; /*C*/
 
 /* vi-mode specific commands */
 extern le_command_func_T
-    cmd_vi_replace_char,
-    cmd_vi_insert_beginning,
-    cmd_vi_append,
-    cmd_vi_append_end,
-    cmd_vi_replace,
-    cmd_vi_switch_case,
-    cmd_vi_switch_case_char,
-    cmd_vi_yank,
-    cmd_vi_yank_to_eol,
-    cmd_vi_delete,
-#define cmd_vi_delete_to_eol cmd_forward_kill_line
-    cmd_vi_change,
-    cmd_vi_change_to_eol,
-    cmd_vi_change_all,
-    cmd_vi_yank_and_change,
-    cmd_vi_yank_and_change_to_eol,
-    cmd_vi_yank_and_change_all,
-    cmd_vi_substitute,
-    cmd_vi_append_last_bigword,
-    cmd_vi_exec_alias,
-    cmd_vi_edit_and_accept,
-    cmd_vi_search_forward,
-    cmd_vi_search_backward;
+    cmd_vi_replace_char, /*C*/
+    cmd_vi_insert_beginning, /*C*/
+    cmd_vi_append, /*C*/
+    cmd_vi_append_end, /*C*/
+    cmd_vi_replace, /*C*/
+    cmd_vi_switch_case, /*C*/
+    cmd_vi_switch_case_char, /*C*/
+    cmd_vi_yank, /*C*/
+    cmd_vi_yank_to_eol, /*C*/
+    cmd_vi_delete, /*C*/
+#define cmd_vi_delete_to_eol cmd_forward_kill_line /*C*/
+    cmd_vi_change, /*C*/
+    cmd_vi_change_to_eol, /*C*/
+    cmd_vi_change_all, /*C*/
+    cmd_vi_yank_and_change, /*C*/
+    cmd_vi_yank_and_change_to_eol, /*C*/
+    cmd_vi_yank_and_change_all, /*C*/
+    cmd_vi_substitute, /*C*/
+    cmd_vi_append_last_bigword, /*C*/
+    cmd_vi_exec_alias, /*C*/
+    cmd_vi_edit_and_accept, /*C*/
+    cmd_vi_search_forward, /*C*/
+    cmd_vi_search_backward; /*C*/
 
 /* emacs-mode specific commands */
 extern le_command_func_T
-    cmd_emacs_transpose_chars,
-    cmd_emacs_transpose_words,
-    cmd_emacs_upcase_word,
-    cmd_emacs_downcase_word,
-    cmd_emacs_capitalize_word,
-    cmd_emacs_delete_horizontal_space,
-    cmd_emacs_just_one_space,
-    cmd_emacs_search_forward,
-    cmd_emacs_search_backward;
+    cmd_emacs_transpose_chars, /*C*/
+    cmd_emacs_transpose_words, /*C*/
+    cmd_emacs_upcase_word, /*C*/
+    cmd_emacs_downcase_word, /*C*/
+    cmd_emacs_capitalize_word, /*C*/
+    cmd_emacs_delete_horizontal_space, /*C*/
+    cmd_emacs_just_one_space, /*C*/
+    cmd_emacs_search_forward, /*C*/
+    cmd_emacs_search_backward; /*C*/
 
 /* history-related commands */
 extern le_command_func_T
-    cmd_oldest_history,
-    cmd_newest_history,
-    cmd_return_history,
-    cmd_oldest_history_bol,
-    cmd_newest_history_bol,
-    cmd_return_history_bol,
-    cmd_oldest_history_eol,
-    cmd_newest_history_eol,
-    cmd_return_history_eol,
-    cmd_next_history,
-    cmd_prev_history,
-    cmd_next_history_bol,
-    cmd_prev_history_bol,
-    cmd_next_history_eol,
-    cmd_prev_history_eol,
+    cmd_oldest_history, /*C*/
+    cmd_newest_history, /*C*/
+    cmd_return_history, /*C*/
+    cmd_oldest_history_bol, /*C*/
+    cmd_newest_history_bol, /*C*/
+    cmd_return_history_bol, /*C*/
+    cmd_oldest_history_eol, /*C*/
+    cmd_newest_history_eol, /*C*/
+    cmd_return_history_eol, /*C*/
+    cmd_next_history, /*C*/
+    cmd_prev_history, /*C*/
+    cmd_next_history_bol, /*C*/
+    cmd_prev_history_bol, /*C*/
+    cmd_next_history_eol, /*C*/
+    cmd_prev_history_eol, /*C*/
     /* command history search */
-    cmd_srch_self_insert,
-    cmd_srch_backward_delete_char,
-    cmd_srch_backward_delete_line,
-    cmd_srch_continue_forward,
-    cmd_srch_continue_backward,
-    cmd_srch_accept_search,
-    cmd_srch_abort_search,
-    cmd_search_again,
-    cmd_search_again_rev,
-    cmd_search_again_forward,
-    cmd_search_again_backward,
-    cmd_beginning_search_forward,
-    cmd_beginning_search_backward;
+    cmd_srch_self_insert, /*C*/
+    cmd_srch_backward_delete_char, /*C*/
+    cmd_srch_backward_delete_line, /*C*/
+    cmd_srch_continue_forward, /*C*/
+    cmd_srch_continue_backward, /*C*/
+    cmd_srch_accept_search, /*C*/
+    cmd_srch_abort_search, /*C*/
+    cmd_search_again, /*C*/
+    cmd_search_again_rev, /*C*/
+    cmd_search_again_forward, /*C*/
+    cmd_search_again_backward, /*C*/
+    cmd_beginning_search_forward, /*C*/
+    cmd_beginning_search_backward; /*C*/
 
 
 #endif /* YASH_EDITING_H */
