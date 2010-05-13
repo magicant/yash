@@ -1,3 +1,6 @@
+# error.p.tst: test of error handling for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo ===== consequences of shell errors =====
 
 $INVOKE $TESTEE 2>/dev/null <<\END

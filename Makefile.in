@@ -52,8 +52,8 @@ signum.h: mksignum
 	./mksignum > $@
 sig.o: signum.h
 
-test check: all
-	@+cd tests && $(MAKE) test-all
+test check:
+	@+cd tests && $(MAKE)
 
 DESTDIR =
 BINDIR = @BINDIR@

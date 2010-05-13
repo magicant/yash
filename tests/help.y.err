@@ -1,0 +1,3 @@
+help: --no-such-option: invalid option
+Usage:  help command...
+help: XXX: no such builtin

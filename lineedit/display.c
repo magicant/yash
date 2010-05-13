@@ -66,7 +66,11 @@
  * is no longer sticking. */
 
 
-#if !HAVE_WCWIDTH
+#if HAVE_WCWIDTH
+# ifndef wcwidth
+extern int wcwidth(wchar_t c);
+# endif
+#else
 # undef wcwidth
 # define wcwidth(c) (iswprint(c) ? 1 : 0)
 #endif

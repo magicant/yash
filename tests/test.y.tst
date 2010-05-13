@@ -1,4 +1,7 @@
-tmp="${TESTTMP}/test.y"
+# test.y.tst: yash-specific test of the test builtin
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
+tmp="${TESTTMP}/test.y.tmp"
 
 mkdir "$tmp" || exit
 cd "$tmp" || exit
@@ -7,11 +10,11 @@ command -V test | grep -v "^test: regular builtin "
 command -V [ | grep -v "^\[: regular builtin "
 
 tt () {
-	printf "%s: " "$*"
-	test "$@"
-	printf "%d " $?
-	[ "$@" ]
-	printf "%d\n" $?
+    printf "%s: " "$*"
+    test "$@"
+    printf "%d " $?
+    [ "$@" ]
+    printf "%d\n" $?
 }
 
 echo =====
@@ -32,9 +35,9 @@ echo =====
 # skip some tests when i'm root
 : ${EUID:=$(id -u)}
 if [ "$EUID" -eq 0 ]; then
-	isroot=true
+    isroot=true
 else
-	isroot=false
+    isroot=false
 fi
 
 mkfifo fifo

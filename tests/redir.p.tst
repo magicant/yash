@@ -1,4 +1,7 @@
-tmp="${TESTTMP}/redir.p"
+# redir.p.tst: test of redirections for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
+tmp="${TESTTMP}/redir.p.tmp"
 
 echo Hello, >"$tmp"
 cat "$tmp"
@@ -12,7 +15,8 @@ echo \2>"$tmp"
 echo 2\>/dev/null|cat - "$tmp"
 
 rm -f "$tmp"
-echo foo >"$tmp"
+echo foo > \
+"$tmp"
 [ -f "$tmp" ] && cat "$tmp"
 set -C
 echo bar >|"$tmp"
@@ -29,7 +33,7 @@ unset unset
 (>/dev/null <&1) 2>/dev/null || echo not readable
 
 exec 5>&1
-exec >&-
+exec >& -
 echo exec redirect >&5
 exec >&5 5>&-
 echo exec redirect
@@ -59,7 +63,8 @@ Test of here-document.
 END
 cat "$tmp"
 
-cat <<-END -
+cat <<-\
+END -
 Test of here-document.
 		<"${TERM+}">
 		"'"''\\-\'\"
@@ -83,16 +88,27 @@ echo ===== 3 =====
 
 # test of long here-document
 (
-	echo 'exec cat <<END'
-	i=0
-	while [ $i -lt 10000 ]; do echo $i; i=$((i+1)); done
-	echo 'END'
+    echo 'exec cat <<END'
+    i=0
+    while [ $i -lt 10000 ]; do
+	printf '%d\n' \
+	    $((i   )) $((i+ 1)) $((i+ 2)) $((i+ 3)) $((i+ 4)) $((i+ 5)) \
+	    $((i+ 6)) $((i+ 7)) $((i+ 8)) $((i+ 9)) $((i+10)) $((i+11)) \
+	    $((i+12)) $((i+13)) $((i+14)) $((i+15)) $((i+16)) $((i+17)) \
+	    $((i+18)) $((i+19)) $((i+20)) $((i+21)) $((i+22)) $((i+23)) \
+	    $((i+24)) $((i+25)) $((i+26)) $((i+27)) $((i+28)) $((i+29)) \
+	    $((i+30)) $((i+31)) $((i+32)) $((i+33)) $((i+34)) $((i+35)) \
+	    $((i+36)) $((i+37)) $((i+38)) $((i+39)) $((i+40)) $((i+41)) \
+	    $((i+42)) $((i+43)) $((i+44)) $((i+45)) $((i+46)) $((i+47)) \
+	    $((i+48)) $((i+49))
+	i=$((i+50))
+    done
+    echo 'END'
 ) | $INVOKE $TESTEE | (
-	i=0
-	while read j
-	do
-		if [ $i -ne $j ]; then echo "error: $j"; exit 1; fi
-		i=$((i+1))
-	done
-	echo $i
+    i=0
+    while read j; do
+	if [ $i -ne $j ]; then echo "error: $j"; exit 1; fi
+	i=$((i+1))
+    done
+    echo $i
 )

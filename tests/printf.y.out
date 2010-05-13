@@ -285,3 +285,10 @@ S
 =====
 1
 1
+===== error =====
+printf no-such-option 2
+printf output error 1
+printf operand missing 2
+0
+printf invalid operand 1
+echo output error 1

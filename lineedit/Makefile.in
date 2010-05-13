@@ -23,11 +23,11 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
 ARFLAGS = @ARFLAGS@
-SOURCES = complete.c compparse.c display.c editing.c keymap.c lineedit.c mkcmds.c terminfo.c trie.c
+SOURCES = complete.c compparse.c display.c editing.c keymap.c lineedit.c terminfo.c trie.c
 HEADERS = complete.h compparse.h display.h editing.h key.h keymap.h lineedit.h terminfo.h trie.h
 OBJS = complete.o compparse.o display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = lineedit.a
-BYPRODUCTS = mkcmds.o mkcmds commands.in *.dSYM
+BYPRODUCTS = commands.in *.dSYM
 
 all: $(TARGET)
 
@@ -39,9 +39,13 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
-commands.in: mkcmds
-	./mkcmds > $@
 keymap.o: commands.in
+commands.in: editing.h
+	grep 'cmd_.*/\*C\*/$$' $< | \
+	LC_ALL=C sed -e 's/\(cmd_[0-9a-zA-Z_]*\).*/\1/' -e 's/.*cmd_//' \
+		-e 'h' -e 's/_/-/g' -e 'G' -e 's/\n/ /' | \
+	LC_COLLATE=C sort -k 1 | \
+	sed -e 's/ /", cmd_/' -e 's/^/{ "/' -e 's/$$/, },/' > $@
 
 DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
 # "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
@@ -78,6 +82,5 @@ maintainer-clean: distclean
 @MAKE_INCLUDE@ editing.d
 @MAKE_INCLUDE@ keymap.d
 @MAKE_INCLUDE@ lineedit.d
-@MAKE_INCLUDE@ mkcmds.d
 @MAKE_INCLUDE@ terminfo.d
 @MAKE_INCLUDE@ trie.d

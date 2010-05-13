@@ -1,12 +1,17 @@
-tmp="${TESTTMP}/alias.tmp"
+# alias.y.tst: yash-specific test of aliases
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
+tmp="${TESTTMP}/alias.y.tmp"
+
+alias # prints nothing: yash has not predefined aliases
+echo $?
 alias -g A=a B=b C=c singlequote=\' -- ---=-
-echo C B A -A- -B- -C- \A "B" 'C' ---
+echo $? C B A -A- -B- -C- \A "B" 'C' ---
 alias --global \C \singlequote C='| cat'
 echo pipe alias C
 
 alias -p >"$tmp"
-\unalias -a
+unalias -a
 . "$tmp"
 alias --prefix | diff - "$tmp" && echo restored
 
@@ -69,25 +74,26 @@ END
 echo $?
 func
 
-$INVOKE $TESTEE --posix 2>/dev/null <<\END
+unalias -a
+$INVOKE $TESTEE --posix <<\END
 alias test=:
 func() { echo "$(test posix unparsed ok)"; }
 alias test=echo
 func
 END
-$INVOKE $TESTEE --posix 2>/dev/null <<\END
+$INVOKE $TESTEE --posix <<\END
 alias dummy=
 false
 dummy
 [ $? -ne 0 ]
 echo dummy $?
 if
-	dummy
+    dummy
 then
-	echo error
+    echo error
 fi
 END
-$INVOKE $TESTEE --posix 2>/dev/null <<\END
+$INVOKE $TESTEE --posix <<\END
 alias dummy=
 echo pipe | dummy
 cat
@@ -96,14 +102,43 @@ echo not printed
 (dummy)
 echo error
 END
-$INVOKE $TESTEE 2>/dev/null <<\END
-alias not=!
+$INVOKE $TESTEE <<\END
+alias not=' !'
 not false
 echo $?
 echo error | not cat
 echo error
 END
+$INVOKE $TESTEE <<\END
+alias ss=' ;;'
+case i in
+    i) ss
+    *) echo error
+esac
+true && ss
+END
+$INVOKE $TESTEE <<\END
+alias echo='&&'
+true; echo error
+END
 
 command -V alias unalias
+
+alias --no-such-option
+echo alias no-such-option $?
+alias alias
+echo alias no-such-alias $?
+alias alias=alias
+(alias >&- 2>/dev/null)
+echo alias output error 1 $?
+(alias alias >&- 2>/dev/null)
+echo alias output error 2 $?
+(alias -p alias >&- 2>/dev/null)
+echo alias output error 3 $?
+unalias --no-such-option
+echo unalias no-such-option $?
+unalias alias
+unalias alias
+echo unalias no-such-alias $?
 
 rm -f "$tmp"

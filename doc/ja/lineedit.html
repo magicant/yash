@@ -277,7 +277,7 @@
 <dt>undo
 <dd>直前の編集コマンドを取り消し、バッファの内容を前の状態に戻します。
 <dd>vi-command: <kbd>u</kbd>
-<dd>emacs: <kbd><code>\^_</code></kbd>, <kbd><code>\^X</code><code>\^U</code></kbd>, <kbd><code>\^X</code><code>\$</code></kbd>
+<dd>emacs: <kbd><code>\^_</code></kbd>, <kbd><code>\^X</code><code>\$</code></kbd>, <kbd><code>\^X</code><code>\^U</code></kbd>
 <dt>undo-all
 <dd>全ての編集コマンドを取り消し、バッファの内容を初期状態に戻します。
 <dd>vi-command: <kbd>U</kbd>
@@ -303,7 +303,7 @@
 <dt>vi-append
 <dd>カーソルを次の文字に移動したのち、setmode-viinsert コマンドと同様に動作します。
 <dd>vi-command: <kbd>a</kbd>
-<dt>vi-append-end
+<dt>vi-append-to-eol
 <dd>カーソルをバッファの末尾に移動したのち、setmode-viinsert コマンドと同様に動作します。
 <dd>vi-command: <kbd>A</kbd>
 <dt>vi-replace
@@ -332,14 +332,14 @@
 <dt>vi-change-to-eol
 <dd>カーソルの位置からバッファの末尾までにある文字を削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
 <dd>vi-command: <kbd>C</kbd>
-<dt>vi-change-all
+<dt>vi-change-line
 <dd>バッファの内容を全て削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
 <dd>vi-command: <kbd>S</kbd>
 <dt>vi-yank-and-change
 <dd>このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字を削除しキルリングに保管した後、編集モードを vi 風編集モードの挿入モードに変更します。
 <dt>vi-yank-and-change-to-eol
 <dd>カーソルの位置からバッファの末尾までにある文字を削除しキルリングに保管した後、編集モードを vi 風編集モードの挿入モードに変更します。
-<dt>vi-yank-and-change-all
+<dt>vi-yank-and-change-line
 <dd>バッファの内容を全て削除しキルリングに保管した後、編集モードを vi 風編集モードの挿入モードに変更します。
 <dt>vi-substitute
 <dd>カーソルのところにある文字を削除しキルリングに保管した後、編集モードを vi 風編集モードの挿入モードに変更します。

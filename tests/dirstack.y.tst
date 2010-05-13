@@ -1,24 +1,45 @@
-tmp="${TESTTMP}/dirstack.y"
+# dirstack.y.tst: yash-specific test of directory stack
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
+origpwd=$PWD
+tmp=$TESTTMP/dirstack.y.tmp
 
 mkdir "$tmp"
 mkdir "$tmp/1" "$tmp/2" "$tmp/3" "$tmp/4"
 
 cd "$tmp"
-pushd "$tmp/1"; >f1
-pushd "$tmp/2"; >f2
-pushd "$tmp/3"; >f3
-pushd "$tmp/4"; >f4
-echo *; popd >/dev/null
-echo *; popd >/dev/null
-echo *; popd >/dev/null
-echo *; popd >/dev/null
+pushd "$tmp/1"; echo 1 $?; >f1
+pushd "$tmp/2"; echo 2 $?; >f2
+pushd "$tmp/3"; echo 3 $?; >f3
+pushd "$tmp/4"; echo 4 $?; >f4
+dirs >"$tmp/out"; echo 5 $?
+diff - "$tmp/out" <<END
+$tmp/4
+$tmp/3
+$tmp/2
+$tmp/1
+$tmp
+END
+dirs -v >"$tmp/out"; echo 6 $?
+diff - "$tmp/out" <<END
++0	-4	$tmp/4
++1	-3	$tmp/3
++2	-2	$tmp/2
++3	-1	$tmp/1
++4	-0	$tmp
+END
+echo *; popd >/dev/null; echo 7 $?
+echo *; popd >/dev/null; echo 8 $?
+echo *; popd >/dev/null; echo 9 $?
+echo *; popd >/dev/null; echo 10 $?
 
 if [ x"$PWD" = x"$tmp" ]; then
-	echo ok
+    echo ok
 fi
 echo */*
 pushd 1
 dirs -c
+echo $?
 cd - >/dev/null
 echo */*
 
@@ -80,9 +101,10 @@ dirs -v +0 -0 | sed -e 's;/.*/;;'
 dirs    +2 -2 | sed -e 's;/.*/;;'
 
 echo ===== 9 =====
+echo ===== 9 ===== >&2
 
 unset DIRSTACK
-popd >/dev/null 2>/dev/null
+popd
 echo empty popd $?
 
 cd "$tmp"
@@ -90,14 +112,74 @@ cd "$tmp"
 cd "$tmp/1"
 pushd - | sed -e 's;/.*/;;'
 )
-pushd --default-directory=- 2>/dev/null
+pushd --default-directory=- 2>/dev/null  # no such file
 echo pushd hyphen $?
 
-pushd "$tmp/1"
-readonly DIRSTACK
-pushd "$tmp/2" 2>/dev/null
-echo dirstack readonly $?
-dirs | sed -e 's;/.*/;;'
-
-cd "${TESTTMP}"
+cd "$origpwd"
 rm -fr "$tmp"
+
+echo ===== 10 =====
+echo ===== 10 ===== >&2
+
+$INVOKE $TESTEE <<\END
+readonly DIRSTACK
+pushd .
+echo pushd dirstack unset $?
+popd
+echo popd dirstack unset $?
+dirs >"$TESTTMP/dirstack.y.tmp"
+echo dirs dirstack unset $?
+diff - "$TESTTMP/dirstack.y.tmp" <<<"$PWD"
+dirs -c
+echo dirs -c dirstack unset $?
+END
+$INVOKE $TESTEE <<\END
+pushd .
+readonly DIRSTACK
+pushd .
+echo pushd dirstack readonly $?
+popd
+echo popd dirstack readonly $?
+dirs >"$TESTTMP/dirstack.y.tmp"
+echo dirs dirstack readonly $?
+diff - "$TESTTMP/dirstack.y.tmp" <<EOF
+$PWD
+$PWD
+EOF
+dirs -c
+echo dirs -c dirstack readonly $?
+END
+$INVOKE $TESTEE <<\END
+pushd --no-such-option
+echo pushd no-such-option $?
+pushd ./no/such/dir 2>/dev/null
+echo pushd no-such-dir $?
+pushd /
+pushd +5
+echo pushd index out of range $?
+(pushd - >&- 2>/dev/null)
+echo pushd output error $?
+END
+$INVOKE $TESTEE <<\END
+pushd /
+popd --no-such-option
+echo popd no-such-option $?
+popd +5
+echo popd index out of range $?
+(popd >&- 2>/dev/null)
+echo popd output error $?
+popd >/dev/null
+popd
+echo popd dirstack empty $?
+END
+$INVOKE $TESTEE <<\END
+pushd /
+dirs --no-such-option
+echo dirs no-such-option $?
+dirs +5
+echo dirs index out of range $?
+(dirs >&- 2>/dev/null)
+echo dirs output error $?
+END
+
+rm -f "$TESTTMP/dirstack.y.tmp"

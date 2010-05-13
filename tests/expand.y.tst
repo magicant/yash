@@ -1,3 +1,6 @@
+# expand.y.tst: yash-specific test of word expansions
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 [ ~+ = $PWD ] && echo \~+
 cd .
 [ ~- = $OLDPWD ] && echo \~-
@@ -48,8 +51,8 @@ echo "${var[@]}" "${var[*]}" ${var[#]}
 echo ===== 2 =====
 
 echol () {
-	typeset i  # local
-	for i; do printf "%s\n" "$i"; done
+    typeset i  # local
+    for i; do printf "%s\n" "$i"; done
 }
 
 ary=(1 22 '3  3' 4"   "4 5)
@@ -186,9 +189,9 @@ echo "$a" "${a[@]}" "${a[*]}" "${a[#]}"
 echo ${a[0]}  . ${a[1]}  ${a[2]}  ${a[3]}  ${a[4]}  . ${a[5]}
 echo ${a[-0]} . ${a[-1]} ${a[-2]} ${a[-3]} ${a[-4]} . ${a[-5]}
 for i in 0 1 2 3 4 5 -0 -1 -2 -3 -4 -5; do
-	for j in 0 1 2 3 4 5 -1 -2 -3 -4 -5 -0; do
-		echo "\${a[$i,$j]} = ${a[$i,$j]}"
-	done
+    for j in 0 1 2 3 4 5 -1 -2 -3 -4 -5 -0; do
+	echo "\${a[$i,$j]} = ${a[$i,$j]}"
+    done
 done
 
 echo ===== 9 =====

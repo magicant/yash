@@ -1,0 +1,23 @@
+===== bindkey =====
+bindkey -v '\#' eof-if-empty
+bindkey -v 'a' self-insert
+bindkey -v '\#' noop
+unbound 1 1
+unbound 2 1
+unbound 3 1
+bindkey -v 'a' noop
+bindkey -v '\#' eof
+bindkey -v '\X' emacs-transpose-chars
+no bindings 0
+1 0
+2 0
+3 0
+4 0
+===== error =====
+bindkey no-such-option 2
+bindkey operand missing 2
+bindkey invalid operand 1 1
+bindkey invalid operand 2 1
+bindkey unbound sequence 1
+bindkey output error 1 1
+bindkey output error 2 1

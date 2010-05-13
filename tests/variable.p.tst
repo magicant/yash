@@ -1,3 +1,6 @@
+# variable.p.tst: test of variables for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo $LINENO
 cat <<EOF
 some
@@ -14,8 +17,8 @@ continuation
 echo $LINENO
 
 printlineno () {
-	echo function
-	echo $LINENO
+    echo function
+    echo $LINENO
 }
 printlineno
 echo $LINENO
@@ -36,8 +39,8 @@ echo "$bar"
 echo ===== 2 =====
 
 func () {
-	var=xyz
-	echo $var
+    var=xyz
+    echo $var
 }
 func
 echo $var
@@ -45,7 +48,7 @@ echo $var
 echo ===== 3 =====
 
 if [ "$$" -ne "$($INVOKE $TESTEE -c 'echo $PPID')" ]; then
-	echo \$\$=$$ \$PPID wrong
+    echo \$\$=$$ \$PPID wrong
 fi
 
 echo 1 \$0=$0
@@ -122,8 +125,8 @@ shift 4 2>/dev/null || echo shift 4
 
 loop ()
 while [ $# -ne 0 ]; do
-	echo "$@"
-	shift
+    echo "$@"
+    shift
 done
 loop x y z
 echo "$@"
@@ -256,7 +259,7 @@ echo "${c-error}"
 
 while read a b
 do
-	echo $b
+    echo $b
 done <<END
 1 2 3 4
 5 6 7 8

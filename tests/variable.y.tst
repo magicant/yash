@@ -1,6 +1,9 @@
-echo IFS=["$IFS"]
-IFS= $INVOKE $TESTEE -c 'echo IFS=["$IFS"]'
-(unset IFS; $INVOKE $TESTEE -c 'echo IFS ${IFS+set}')
+# variable.y.tst: yash-specific test of variables
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
+printf "%s\n" IFS=["$IFS"]
+IFS= $INVOKE $TESTEE -c 'printf "%s\n" IFS=["$IFS"]'
+(unset IFS; $INVOKE $TESTEE -c 'printf "%s %s\n" IFS ${IFS+set}')
 (
 unset IFS
 v='1  2  3'
@@ -10,15 +13,15 @@ echo $v "${IFS=-}" $v
 RANDOM=123
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456
-echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >"${TESTTMP}/variable-a"
+echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >"${TESTTMP}/variable.y.tm1"
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456
-echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >"${TESTTMP}/variable-b"
-diff "${TESTTMP}/variable-a" "${TESTTMP}/variable-b" && echo ok
+echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >"${TESTTMP}/variable.y.tm2"
+diff "${TESTTMP}/variable.y.tm1" "${TESTTMP}/variable.y.tm2" && echo ok
 
 oldrand=$RANDOM rand=$RANDOM
 while [ "$oldrand" = "$rand" ]; do
-	oldrand=$rand rand=$RANDOM
+    oldrand=$rand rand=$RANDOM
 done
 
 echo ===== 1 =====
@@ -29,19 +32,19 @@ func2 () { echo func2; }
 func1; func2;
 
 func1 () {
-	func1 () { echo re-defined func1; }
-	func2 () { echo re-defined func2; }
-	echo re-defined.
+    func1 () { echo re-defined func1; }
+    func2 () { echo re-defined func2; }
+    echo re-defined.
 }
 func2; func1; func2; func1;
 
 echo ===== 2 =====
 
 echol () {
-	typeset i  # local
-	for i
-	do printf "%s\n" "$i"
-	done
+    typeset i  # local
+    for i
+    do printf "%s\n" "$i"
+    done
 }
 
 unset i
@@ -80,7 +83,7 @@ echo ===== 4 =====
 (
 savepath=$PATH
 COMMAND_NOT_FOUND_HANDLER='PATH=$savepath echo not found: "$@"' \
-	PATH= _no_such_command_ a b c
+    PATH= _no_such_command_ a b c
 echo exitstatus=$?
 _no_such_command_ a b c
 echo exitstatus=$?
@@ -103,22 +106,22 @@ echo exitstatus=$?
 echo ===== typeset export =====
 
 func () {
-	typeset foo=abc bar
-	bar=def
-	echo $foo$bar
-	export foo bar=xyz
-	$INVOKE $TESTEE -c 'echo $foo$bar'
-	typeset -g baz qux=global
-	typeset
-	typeset -g | grep '^typeset baz$'
+    typeset foo=abc bar
+    bar=def
+    echo $foo$bar
+    export foo bar=xyz
+    $INVOKE $TESTEE -c 'echo $foo$bar'
+    typeset -g baz qux=global
+    typeset
+    typeset -g | grep '^typeset baz$'
 }
 foo=foo bar=bar func
 $INVOKE $TESTEE -c 'echo $foo $bar'
 echo ${baz-unset} $qux
 
 func () {
-	export -g baz qux
-	export -p baz qux
+    export -g baz qux
+    export -p baz qux
 }
 func
 $INVOKE $TESTEE -c 'echo ${baz-unset} $qux'
@@ -141,17 +144,17 @@ $INVOKE $TESTEE -c 'echo ${foo-unset} ${bar-unset} ${baz-unset} ${qux-unset}'
 readonly ro=readonly
 echo $ro
 func () {
-	typeset ro=local
-	echo func $ro
-	unset ro
-	echo func $ro
-	typeset ro
-	ro=localagain
-	echo func $ro
-	readonly -x ro2=export
-	$INVOKE $TESTEE -c 'echo $ro2'
-	(ro2=xxx; unset ro2; $INVOKE $TESTEE -c 'echo $ro2') 2>/dev/null
-	readonly -p
+    typeset ro=local
+    echo func $ro
+    unset ro
+    echo func $ro
+    typeset ro
+    ro=localagain
+    echo func $ro
+    readonly -x ro2=export
+    $INVOKE $TESTEE -c 'echo $ro2'
+    (ro2=xxx; unset ro2; $INVOKE $TESTEE -c 'echo $ro2') 2>/dev/null
+    readonly -p
 }
 func
 unset ro3
@@ -160,10 +163,10 @@ ro3=dummy typeset -r ro3=ro3
 typeset -pr ro ro3
 
 for num in 1 2 3 4 5; do
-	echo $num
-	if [ $num = 3 ]; then
-		readonly num
-	fi
+    echo $num
+    if [ $num = 3 ]; then
+	readonly num
+    fi
 done 2>/dev/null
 
 readonly ary
@@ -175,62 +178,16 @@ echo $ary
 echo ===== function typeset =====
 
 func () {
-	echo ok $?
+    echo ok $?
 }
 typeset -fp func
 typeset -fp
 
 readonly -f func
 {
-	func () { echo invalid re-definition; }
+    func () { echo invalid re-definition; }
 } 2>/dev/null
 func
-
-echo ===== array =====
-
-if type array 2>/dev/null | grep '^array: regular builtin' >/dev/null
-then
-	array aaa 1 2 3 4 5 6 7 8 9
-	array
-	array -d aaa 6 2 10 2 8
-	echo $aaa
-	array -d aaa -1 -5 -20 0
-	echo $aaa
-	array -i aaa 0 0
-	echo $aaa
-	array -i aaa 2 2 3
-	echo $aaa
-	array -i aaa 6 6
-	echo $aaa
-	array -i aaa -1 8
-	echo $aaa
-	array -i aaa 100 9
-	echo $aaa
-	array -i aaa -100 !
-	echo $aaa
-	array -s aaa 1 0
-	array -s aaa 2 1
-	array -s aaa 10 -
-	echo $aaa
-	array -s aaa 100 x 2>/dev/null ||
-	array -s aaa -100 x 2>/dev/null ||
-	echo $aaa
-else
-	cat <<\END
-aaa=('1' '2' '3' '4' '5' '6' '7' '8' '9')
-ary=('test' 'of' 'array')
-1 3 4 5 7 9
-1 4 5 7
-0 1 4 5 7
-0 1 2 3 4 5 7
-0 1 2 3 4 5 6 7
-0 1 2 3 4 5 6 7 8
-0 1 2 3 4 5 6 7 8 9
-! 0 1 2 3 4 5 6 7 8 9
-0 1 1 2 3 4 5 6 7 - 9
-0 1 1 2 3 4 5 6 7 - 9
-END
-fi
 
 echo ===== read =====
 
@@ -315,7 +272,7 @@ echo "${a[#]}"
 
 while read a b -A
 do
-	echo "$b" ${b[#]}
+    echo "$b" ${b[#]}
 done <<END
 1 2 3 4
 5 6 7 8
@@ -323,4 +280,4 @@ done <<END
 END
 
 
-rm -f "${TESTTMP}/variable-a" "${TESTTMP}/variable-b"
+rm -f "${TESTTMP}/variable.y.tm1" "${TESTTMP}/variable.y.tm2"

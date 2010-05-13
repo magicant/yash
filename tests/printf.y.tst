@@ -1,3 +1,6 @@
+# printf.y.tst: yash-specific test of the echo and printf builtins
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo ===== echo =====
 
 unset ECHO_STYLE
@@ -8,18 +11,18 @@ echo 1 22 '3  3' "4
 5
 
 testecho() {
-	echo ===== ${ECHO_STYLE-unset}
-	echo -n new
-	echo line
-	echo -n new line
-	echo '1\a2\b3\c4' 5
-	echo '6\f7\n8\r9\t0\v!'
-	echo '\0123\012\01x' '\123\12\1x' '\00411'
-	echo -e '1\c2'
-	echo -e -E '1\c2'
-	echo -eE '1\c2'
-	echo -ne 123 '-\c-' 456
-	echo
+    echo ===== ${ECHO_STYLE-unset}
+    echo -n new
+    echo line
+    echo -n new line
+    echo '1\a2\b3\c4' 5
+    echo '6\f7\n8\r9\t0\v!'
+    echo '\0123\012\01x' '\123\12\1x' '\00411'
+    echo -e '1\c2'
+    echo -e -E '1\c2'
+    echo -eE '1\c2'
+    echo -ne 123 '-\c-' 456
+    echo
 }
 
 testecho
@@ -278,3 +281,16 @@ printf '%d\n' not_a_integer >/dev/null 2>&1
 echo $?
 
 echo $(printf '%d\n' not_a_integer 2>/dev/null | wc -l)
+
+echo ===== error =====
+
+printf --no-such-option
+echo printf no-such-option $?
+(printf foo >&- 2>/dev/null)
+echo printf output error $?
+printf
+echo printf operand missing $?
+printf '%d\n' foo 2>/dev/null
+echo printf invalid operand $?
+(echo foo >&- 2>/dev/null)
+echo echo output error $?

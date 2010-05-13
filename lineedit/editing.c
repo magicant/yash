@@ -2235,7 +2235,7 @@ void cmd_vi_append(wchar_t c __attribute__((unused)))
 
 /* Moves the cursor to the end of the line and sets the editing mode to "vi
  * insert".*/
-void cmd_vi_append_end(wchar_t c __attribute__((unused)))
+void cmd_vi_append_to_eol(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -2319,7 +2319,7 @@ void cmd_vi_change_to_eol(wchar_t c __attribute__((unused)))
 
 /* Deletes all the content of the edit line and sets the editing mode to "vi
  * insert". */
-void cmd_vi_change_all(wchar_t c __attribute__((unused)))
+void cmd_vi_change_line(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command_line(MEC_CHANGE);
 }
@@ -2342,7 +2342,7 @@ void cmd_vi_yank_and_change_to_eol(wchar_t c __attribute__((unused)))
 
 /* Deletes all the content of the edit line, put it in the kill ring, and sets
  * the editing mode to "vi insert". */
-void cmd_vi_yank_and_change_all(wchar_t c __attribute__((unused)))
+void cmd_vi_yank_and_change_line(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command_line(MEC_COPYCHANGE);
 }

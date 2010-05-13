@@ -156,7 +156,7 @@ void le_keymap_init(void)
     Set(L"r",          cmd_vi_replace_char);
     Set(L"I",          cmd_vi_insert_beginning);
     Set(L"a",          cmd_vi_append);
-    Set(L"A",          cmd_vi_append_end);
+    Set(L"A",          cmd_vi_append_to_eol);
     Set(L"R",          cmd_vi_replace);
     Set(L"~",          cmd_vi_switch_case_char);
     Set(L"y",          cmd_vi_yank);
@@ -165,7 +165,7 @@ void le_keymap_init(void)
     Set(L"D",          cmd_vi_delete_to_eol);
     Set(L"c",          cmd_vi_change);
     Set(L"C",          cmd_vi_change_to_eol);
-    Set(L"S",          cmd_vi_change_all);
+    Set(L"S",          cmd_vi_change_line);
     Set(L"s",          cmd_vi_substitute);
     Set(L"_",          cmd_vi_append_last_bigword);
     Set(L"@",          cmd_vi_exec_alias);

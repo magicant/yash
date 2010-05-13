@@ -22,9 +22,9 @@ if ! [ -t 0 ]; then
 fi
 
 # log file
-: ${logfile:=test.log}
+rm -f "${logfile:=test.log}"
 exec 3>&1
-exec >"$logfile"
+exec >"${logfile}"
 echo "========== Yash Test Log =========="
 echo
 printf 'Test started at: '
@@ -73,13 +73,25 @@ case "$1" in
     alias.y|alias.p)
 	$INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
 	;;
+    array.y)
+	$INVOKE $TESTEE -c 'type array' 2>/dev/null | \
+	    grep '^array: regular builtin' >/dev/null
+	;;
     dirstack.y)
 	$INVOKE $TESTEE -c 'type pushd' 2>/dev/null | \
 	    grep '^pushd: regular builtin' >/dev/null
 	;;
+    help.y)
+	$INVOKE $TESTEE -c 'type help' 2>/dev/null | \
+	    grep '^help: regular builtin' >/dev/null
+	;;
     history.y)
 	HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
 	    >/dev/null 2>&1
+	;;
+    lineedit.y)
+	$INVOKE $TESTEE -c 'type bindkey' 2>/dev/null | \
+	    grep '^bindkey: regular builtin' >/dev/null
 	;;
     printf.y)
 	$INVOKE $TESTEE -c 'type printf' 2>/dev/null | \
@@ -92,9 +104,10 @@ case "$1" in
 esac
 
 printf 'Effective user ID: %s\n' "${EUID=$(id -u)}"
-if [ "$EUID" -eq 0 ]
-then isroot=true
-else isroot=false
+if [ "$EUID" -eq 0 ]; then
+    isroot=true
+else
+    isroot=false
 fi
 if diff -u /dev/null /dev/null >/dev/null 2>&1; then
     diff='diff -u'

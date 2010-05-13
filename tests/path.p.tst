@@ -1,8 +1,13 @@
+# path.p.tst: test of pathname handling for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
+tmp=${TESTTMP}/path.p.tmp
+
 echo ===== pathname expansion =====
 
 if [ "$(id -u)" -eq 0 ]; then
-	# cannot test as root because file permissions are ignored
-	cat <<END
+    # cannot test as root because file permissions are ignored
+    cat <<END
 1 pathexp/unreadable/file
 2 pathexp/unreadable/file
 3 pathexp/unreadable/file
@@ -14,8 +19,8 @@ if [ "$(id -u)" -eq 0 ]; then
 9 pathexp/unreadable/f*le
 END
 else (
-cd "${TESTTMP}"
-mkdir -p "pathexp/unreadable"
+mkdir -p "$tmp/pathexp/unreadable"
+cd "$tmp"
 >"pathexp/unreadable/file"
 echo 1 pathexp/un*able/file
 echo 2 pathexp/un*able/f*le
@@ -36,46 +41,44 @@ echo ===== cd builtin =====
 
 HOME=/
 ORIGPWD=$PWD
-mkdir -p "${TESTTMP}/dir/dir"
+mkdir -p "$tmp/dir/dir"
 if [ x"$(cd; echo $PWD)" = x"$HOME" ]; then
-	echo cd \$HOME
+    echo cd \$HOME
 fi
-cd "$TESTTMP"
+cd "$tmp"
 if [ x"$ORIGPWD" = x"$OLDPWD" ]; then
-	echo cd \$OLDPWD
+    echo cd \$OLDPWD
 fi
-cd -- - >"${TESTTMP}/path.p.tmp"
-if [ x"$PWD" = x"$ORIGPWD" ] && [ x"$PWD" = x"$(cat "${TESTTMP}/path.p.tmp")" ]
-then
-	echo cd \$PWD
+cd -- - >"$tmp/path.p.tmp"
+if [ x"$PWD" = x"$ORIGPWD" ] && [ x"$PWD" = x"$(cat "$tmp/path.p.tmp")" ]; then
+    echo cd \$PWD
 fi
 
-ln -s . "${TESTTMP}/path.p.link"
-cd -LP "${TESTTMP}/path.p.link"
+ln -s . "$tmp/path.p.link"
+cd -LP "$tmp/path.p.link"
 if [ x"$PWD" = x"$(pwd -P)" ]; then
-	echo cd -P
+    echo cd -P
 fi
-cd -PL "${TESTTMP}/path.p.link"
-if [ x"$PWD" = x"${TESTTMP}/path.p.link" ] && [ x"$PWD" = x"$(pwd)" ]; then
-	echo cd -L
+cd -PL "$tmp/path.p.link"
+if [ x"$PWD" = x"$tmp/path.p.link" ] && [ x"$PWD" = x"$(pwd)" ]; then
+    echo cd -L
 fi
-cd "${TESTTMP}/path.p.link"
-if [ x"$PWD" = x"${TESTTMP}/path.p.link" ] && [ x"$PWD" = x"$(pwd)" ]; then
-	echo cd -L default
+cd "$tmp/path.p.link"
+if [ x"$PWD" = x"$tmp/path.p.link" ] && [ x"$PWD" = x"$(pwd)" ]; then
+    echo cd -L default
 fi
 
-cd "${TESTTMP}"
-CDPATH=${TESTTMP}/dir/dir:${TESTTMP}/dir cd dir >"${TESTTMP}/path.p.tmp"
-if [ x"$PWD" = x"${TESTTMP}/dir/dir" ] &&
-	[ x"$PWD" = x"$(cat "${TESTTMP}/path.p.tmp")" ]
+cd "$tmp"
+CDPATH=$tmp/dir/dir:$tmp/dir cd dir >"$tmp/path.p.tmp"
+if [ x"$PWD" = x"$tmp/dir/dir" ] && [ x"$PWD" = x"$(cat "$tmp/path.p.tmp")" ]
 then
-	echo cd \$CDPATH 1
+    echo cd \$CDPATH 1
 fi
 cd ../..
-mv "${TESTTMP}/dir/dir" "${TESTTMP}/dir/dir2"
-CDPATH=${TESTTMP}/dir:${TESTTMP}/dir/dir2 cd dir
-if [ x"$PWD" = x"${TESTTMP}/dir" ]; then
-	echo cd \$CDPATH 2
+mv "$tmp/dir/dir" "$tmp/dir/dir2"
+CDPATH=$tmp/dir:$tmp/dir/dir2 cd dir
+if [ x"$PWD" = x"$tmp/dir" ]; then
+    echo cd \$CDPATH 2
 fi
 
 echo cd canonicalization "$(CDPATH=/ cd dev)"
@@ -97,4 +100,5 @@ echo ===== hash builtin =====
 PATH= hash 2>/dev/null
 
 
-rm -fr "${TESTTMP}/pathexp" "${TESTTMP}/path.p."* "${TESTTMP}/dir"
+cd "$TESTTMP"
+rm -fr "$tmp"

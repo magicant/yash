@@ -1,3 +1,6 @@
+# sig.y.tst: yash-specific test of signal handling
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 # core files, if any, should be created in a temporary directory
 mkdir -p "$TESTTMP/sig.y.tmp"
 command -b ulimit -c 0 2>/dev/null
@@ -120,65 +123,65 @@ echo ===== signals +i +m F =====
 export SIG
 for SIG in ABRT ALRM BUS FPE HUP ILL INT KILL PIPE QUIT SEGV TERM USR1 USR2
 do
-	$INVOKE $TESTEE -c +i +m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c +i +m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c +i +m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -c +i +m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 
 echo ===== signals +i -m F =====
 
 for SIG in ABRT ALRM BUS FPE HUP ILL INT KILL PIPE QUIT SEGV TERM USR1 USR2
 do
-	$INVOKE $TESTEE -c +i -m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c +i -m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c +i -m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -c +i -m 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 
 echo ===== signals -i +m F =====
 
 for SIG in ABRT ALRM BUS FPE HUP ILL KILL PIPE SEGV USR1 USR2
 do
-	$INVOKE $TESTEE -ci +m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -ci +m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -ci +m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -ci +m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 
 echo ===== signals -i -m F =====
 
 for SIG in ABRT ALRM BUS FPE HUP ILL KILL PIPE SEGV USR1 USR2
 do
-	$INVOKE $TESTEE -ci -m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -ci -m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -ci -m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -ci -m --norcfile 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 
 echo ===== signals +i +m T =====
 
 for SIG in ABRT ALRM BUS FPE HUP ILL INT KILL PIPE QUIT SEGV TERM USR1 USR2
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 
 echo ===== signals +i -m T =====
@@ -186,20 +189,20 @@ echo ===== signals +i -m T =====
 set -m
 for SIG in ABRT ALRM BUS FPE HUP ILL INT KILL PIPE QUIT SEGV TERM USR1 USR2
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 for SIG in TSTP TTIN TTOU STOP
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$; echo $SIG!'
-	kill -l $?
-	fg %1 >/dev/null
-	echo $SIG $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$; echo $SIG!'
+    kill -l $?
+    fg %1 >/dev/null
+    echo $SIG $?
 done
 set +m
 
@@ -210,18 +213,18 @@ echo ===== signals -i +m T =====
 export SIG
 for SIG in ABRT ALRM BUS FPE HUP ILL KILL PIPE QUIT SEGV TERM USR1 USR2
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 for SIG in INT INT INT
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 kill -l $?
 
@@ -230,26 +233,26 @@ echo ===== signals -i -m T =====
 set -m
 for SIG in ABRT ALRM BUS FPE HUP ILL KILL PIPE QUIT SEGV TERM USR1 USR2
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 for SIG in CHLD URG
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	echo $SIG $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    echo $SIG $?
 done
 for SIG in INT INT INT
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
-	kill -l $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$'
+    kill -l $?
 done
 kill -l $?
 for SIG in TSTP TTIN TTOU STOP
 do
-	$INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$; echo $SIG!'
-	kill -l $?
-	fg %1 >/dev/null
-	echo $SIG $?
+    $INVOKE $TESTEE -c 'cd "$TESTTMP/sig.y.tmp"; kill -s $SIG $$; echo $SIG!'
+    kill -l $?
+    fg %1 >/dev/null
+    echo $SIG $?
 done
 set +m
 

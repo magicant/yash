@@ -9,9 +9,6 @@ non-special builtin assignment error 2
 special builtin expansion error 2
 non-special builtin expansion error 2
 command not found error 127
-===== help =====
-help no-such-option 2
-help output error 1
 ===== set =====
 set no-such-option 2
 set output error 1
@@ -33,26 +30,6 @@ hash output error 1
 ===== umask =====
 umask no-such-option 2
 umask output error 1
-===== pushd/popd/dirs =====
-pushd no-such-option 2
-pushd no-such-dir 1
-pushd index out of range 1
-pushd output error 0
-popd no-such-option 2
-popd index out of range 1
-popd output error 0
-popd dirstack empty 1
-dirs no-such-option 2
-dirs index out of range 1
-dirs output error 1
-===== alias/unalias =====
-alias no-such-option 2
-alias no-such-alias 1
-alias output error 1 1
-alias output error 2 1
-alias output error 3 1
-unalias no-such-option 2
-unalias no-such-alias 1
 ===== typeset =====
 typeset no-such-option 2
 typeset output error 1 1
@@ -62,9 +39,6 @@ typeset output error 4 1
 typeset output error 5 1
 typeset output error 6 1
 typeset readonly 1
-===== array =====
-array no-such-option 2
-array output error 1
 ===== unset =====
 unset no-such-option 2
 unset readonly variable 1
@@ -107,27 +81,17 @@ fg output error 100
 fg no-such-job 1 1
 fg no-such-job 2 1
 fg too many args 2
+fg +m 1
 ===== bg =====
 bg no-such-option 2
 bg output error 0
 bg no-such-job 1 1
 bg no-such-job 2 1
+bg +m 1
 ===== wait =====
 wait no-such-option 2
 wait no-such-job 1 127
 wait no-such-job 2 127
-===== fc/history =====
-fc no-such-option 2
-fc history-empty 1 1
-fc history-empty 2 1
-fc no-such-entry 1 1
-fc no-such-entry 2 1
-fc no-such-entry 3 1
-history no-such-option 2
-history output error 1
-history no-such-entry 1
-history no-such-file 1 1
-history no-such-file 2 1
 ===== return =====
 return no-such-option 2
 return invalid operand 1 2
@@ -175,17 +139,3 @@ suspend invalid operand 2
 ulimit no-such-option 2
 ulimit output error 1
 ulimit invalid operand 2
-===== printf =====
-printf no-such-option 2
-printf output error 1
-printf operand missing 2
-0
-printf invalid operand 1
-echo output error 1
-===== bindkey =====
-bindkey no-such-option 2
-bindkey output error 1 1
-bindkey output error 2 1
-bindkey operand missing 2
-bindkey invalid operand 1 1
-bindkey invalid operand 2 1

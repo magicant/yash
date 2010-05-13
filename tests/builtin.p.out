@@ -62,8 +62,11 @@ for
 }
 !
 in
+ok
 ===== special builtins =====
 ===== exec =====
 exec
 126
+1
+2
 exec echo

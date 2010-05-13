@@ -1,4 +1,7 @@
-tmp="${TESTTMP}/parser.p"
+# parser.p.tst: test of syntax parser for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
+tmp="${TESTTMP}/parser.p.tmp"
 
 var=abc
 echo 1\2\
@@ -105,8 +108,8 @@ echo ===== 3 =====
 
 { echo compound list;}| cat
 {
-	echo another
-	echo compound list\
+    echo another
+    echo compound list\
 }
 } 2>&1|cat
 
@@ -123,17 +126,17 @@ echo ===== 4 =====
 
 if true; then echo if construct; fi
 if # comment ok
-	echo dummy
-	false
+    echo dummy
+    false
 then
-	echo no!
+    echo no!
 else
-	echo ok!
+    echo ok!
 fi
 
 if if true; then false; else true; fi then
-	echo no!; elif echo dummy; echo dummy; then
-	echo ok!; else echo no!; fi
+    echo no!; elif echo dummy; echo dummy; then
+    echo ok!; else echo no!; fi
 
 if false;
 then echo no!;
@@ -172,10 +175,10 @@ while [ $? = 0 ]; do (exit 10) done; echo $?
 until ! [ $? = 0 ]; do (exit 10) done; echo $?
 set 1 '2  2' 3
 while # comment ok
-	[ $# != 0 ]
+    [ $# != 0 ]
 do
-	echo $# $1
- 	shift
+    echo $# $1
+    shift
 done
 
 w\
@@ -197,9 +200,9 @@ echo ===== 6 =====
 
 for i in 1 '2   2' 3; do echo $i; echo "$i"; done
 for i             # comment
-	in parser.p.* # comment
+    in parser.p.* # comment
 do                # comment
-	echo $i       # comment
+    echo $i       # comment
 done              # comment
 
 # for index in 1 '2  2' 3;do echo $index; echo "$index";done
@@ -242,44 +245,44 @@ case 123 in esac
 echo $?
 
 case 123
-	in
+    in
 esac
 
 case 123 in
-	* | esac )
+    * | esac )
 esac
 
 i=''
 case 123 # comment ok
-	in   # comment ok
-	${i:=2}) echo ng\;;;
-	(x|y|z) echo ng;;
-	(dummy) ;;
-	foo | 1$i*3 ) echo ok
-	false
+    in   # comment ok
+    ${i:=2}) echo ng\;;;
+    (x|y|z) echo ng;;
+    (dummy) ;;
+    foo | 1$i*3 ) echo ok
+    false
 esac
 if [ $? != 0 ]; then echo $i; fi
 
 case '*' in # comment ok
-	'*')
-	echo '*'
-	;;
-	*)
-	echo ng
-	;;
+    '*')
+    echo '*'
+    ;;
+    *)
+    echo ng
+    ;;
 esac
 
 for i in 1 '2  2' 3 4 5; do
-	case $i in
-		1 | 4 )
-		echo foo
-		if [ $i = 1 ]; then echo one; else echo four; fi
-		;;
-		2 ) echo ng ;;
-		(*2"  "[1-3]*) echo two;;
-		(\*) echo ng;;
-		(*) echo $i;;
-	esac
+    case $i in
+	1 | 4 )
+	echo foo
+	if [ $i = 1 ]; then echo one; else echo four; fi
+	;;
+	2 ) echo ng ;;
+	(*2"  "[1-3]*) echo two;;
+	(\*) echo ng;;
+	(*) echo $i;;
+    esac
 done
 
 # case case in false)echo ng;;(c*e)echo line concatenation ok \(case\);esac
@@ -320,7 +323,7 @@ c
 echo ===== 8 =====
 
 func () {
-	echo function
+    echo function
 }
 func
 func
@@ -353,8 +356,8 @@ else echo 2
 fi
 
 funcredir () {
-	echo redirected
-	echo re-redirected >&3
+    echo redirected
+    echo re-redirected >&3
 } \
 >"$tmp"
 
@@ -363,7 +366,7 @@ cat "$tmp"
 
 funcredir2 ( ) # comment
 {
-	echo not-redirected
+    echo not-redirected
 }
 
 funcredir2 >/dev/null

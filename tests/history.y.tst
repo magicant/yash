@@ -1,5 +1,8 @@
-export TMPHIST="${TESTTMP}/history"
-export RC="${TESTTMP}/history.rc"
+# history.y.tst: yash-specific test of history
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
+export TMPHIST="${TESTTMP}/history.y.tmp"
+export RC="${TESTTMP}/history.y.rc"
 
 cat >"$RC" <<\END
 PS1='' PS2='' HISTFILE="$TMPHIST" HISTSIZE=30
@@ -14,7 +17,7 @@ echo 1
 echo 2
 echo 3
 fc -l
-echo 5
+echo $?
 echo 6
 echo 7
 echo 8
@@ -116,5 +119,31 @@ echo f
  echo g
   fc -l
 EOF
+
+echo ===== error =====
+
+fc --no-such-option
+echo fc no-such-option $?
+fc
+echo fc history-empty 1 $?
+fc -s
+echo fc history-empty 2 $?
+history -s 'entry' -s 'dummy 1' -s 'dummy 2'
+fc -l foo
+echo fc no-such-entry 1 $?
+fc foo
+echo fc no-such-entry 2 $?
+fc -s foo
+echo fc no-such-entry 3 $?
+history --no-such-option
+echo history no-such-option $?
+(history >&- 2>/dev/null)
+echo history output error $?
+history -d foo
+echo history no-such-entry $?
+history -r "$TMPHIST/no/such/file" $? 2>/dev/null
+echo history no-such-file 1 $?
+history -w "$TMPHIST/no/such/file" $? 2>/dev/null
+echo history no-such-file 2 $?
 
 rm -f "$TMPHIST" "$RC"

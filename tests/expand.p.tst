@@ -1,3 +1,6 @@
+# expand.p.tst: test of word expansions for any POSIX-compliant shell
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echol () for i do printf "%s\n" "$i"; done
 
 echo ===== tilde expansion =====
@@ -119,7 +122,7 @@ echo logicals $((0||0)) $((0||2)) $((2||0)) $((2||2))
 echo logicals $((0&&++x)) $((2&&++x)) $((x)) $((0||--x)) $((2||--x)) $((x))
 echo conditionals $((1?2:3)) $((0?1:2)) $((1?9:x++)) $((0?x++:9)) $((x))
 echo assignments $((x=0)) $((x+=5)) $((x-=2)) $((x*=8)) $((x/=6)) \
-	$((x<<=2)) $((x>>=1)) $((x|=7)) $((x^=5)) $((x&=3)) $((x))
+    $((x<<=2)) $((x>>=1)) $((x|=7)) $((x^=5)) $((x&=3)) $((x))
 echo parentheses $(((x))) $((-(x))) $(((1+2)*3))
 echo mul-add $((2*3+24/6-19%10))
 echo add-shift $((2+3<<4)) $((50-2>>4))
@@ -131,8 +134,8 @@ echo xor-or $((1^1|1)) $((1|1^1))
 echo or-land $((3|0&&1)) $((1&&0|3))
 echo land-lor $((0&&0||1)) $((1||0&&0))
 echo lor-cond-assign $((0||1?2||0:0||0)) $((0||0?2||0:0||0)) \
-	$((0||1?1||0?x=2?3:4:5:6)) $((x)) $((0?y:x=1)) $((x)) \
-	$((x=0?1:2?3:4?5:6)) $((x))
+    $((0||1?1||0?x=2?3:4:5:6)) $((x)) $((0?y:x=1)) $((x)) \
+    $((x=0?1:2?3:4?5:6)) $((x))
 echo $(((1*(2+3)<<(x&&x||0/0))))
 unset unset
 $INVOKE $TESTEE -c 'echo unset-var $((0+unset+0)) $((unset))'

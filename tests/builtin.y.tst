@@ -1,26 +1,29 @@
+# builtin.y.tst: yash-specific test of builtins
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+
 echo ===== break continue =====
 
 breakfunc ()
 while true; do
-	echo break ok
-	break 999
-	echo break ng
+    echo break ok
+    break 999
+    echo break ng
 done
 while true; do
-	echo break ok 2
-	breakfunc
-	echo break ng 2
+    echo break ok 2
+    breakfunc
+    echo break ng 2
 done
 
 contfunc ()
 while true; do
-	echo continue ok
-	continue 999
-	echo continue ng
+    echo continue ok
+    continue 999
+    echo continue ng
 done
 for i in 1 2; do
-	echo continue $i
-	contfunc
+    echo continue $i
+    contfunc
 done
 
 
@@ -28,16 +31,16 @@ echo ===== eval =====
 
 breakfunc2 ()
 while true; do
-	echo break ok
-	break -i
-	echo break ng
+    echo break ok
+    break -i
+    echo break ng
 done
 
 contfunc2 ()
 while true; do
-	echo continue ok
-	continue -i
-	echo continue ng
+    echo continue ok
+    continue -i
+    echo continue ng
 done
 
 eval echo -i
@@ -61,14 +64,14 @@ echo -"$@"-
 echo ===== command =====
 
 command -V if then else elif fi do done case esac while until for { } ! in
-command -V _no_such_command_ 2>/dev/null || echo not found
+PATH= command -V _no_such_command_ 3>&1 1>&2 2>&3 || echo $?
 command -V : . break continue eval exec exit export readonly return set shift \
 times trap unset
 #TODO command -V newgrp
 command -V bg cd command false fg getopts jobs kill pwd read true umask wait
 
 testreg() {
-	command -V $1 | grep -v "^$1: regular builtin "
+    command -V $1 | grep -v "^$1: regular builtin "
 }
 testreg typeset
 testreg disown
@@ -93,16 +96,18 @@ echo command -vB exit = $?
 (
 cd() { command cd "$@"; }
 if (PATH=; alias) >/dev/null 2>&1; then
-	alias cd=cd
+    alias cd=cd
+    type cd
 else
-	echo "cd: alias for \`cd'"
+    echo "cd: alias for \`cd'"
+    echo "cd: function"
 fi
-type cd
 echo =1=
 type -b cd
 echo =2=
 PATH= type -B cd 2>&1
 )
+
 
 echo ===== suspend =====
 
@@ -113,6 +118,31 @@ bg >/dev/null
 wait %1
 kill -l $?
 fg >/dev/null
+set +m
+
+
+echo ===== fg bg =====
+
+set -m +o curstop
+sleep   `echo  0`&
+fg
+$INVOKE $TESTEE -c 'suspend; echo 1'
+$INVOKE $TESTEE -c 'suspend; echo 2'
+$INVOKE $TESTEE -c 'suspend; echo 3'
+jobs
+fg %2 3 '%? echo 1'
+
+$INVOKE $TESTEE -c 'suspend; echo 4'
+jobs %%
+bg
+wait %%
+$INVOKE $TESTEE -c 'suspend'
+$INVOKE $TESTEE -c 'suspend'
+$INVOKE $TESTEE -c 'suspend; echo 7'
+bg %1 %2 
+wait
+bg '${'
+fg '? echo 7' >/dev/null
 set +m
 
 

@@ -7,7 +7,7 @@ history: regular builtin
 2	echo 2
 3	echo 3
 4	fc -l
-5
+0
 6
 7
 8
@@ -22,7 +22,7 @@ history: regular builtin
 17
 18
 19
-5	echo 5
+5	echo $?
 6	echo 6
 7	echo 7
 8	echo 8
@@ -192,3 +192,15 @@ g
 5	echo f
 6	 echo g
 7	  fc -l
+===== error =====
+fc no-such-option 2
+fc history-empty 1 1
+fc history-empty 2 1
+fc no-such-entry 1 1
+fc no-such-entry 2 1
+fc no-such-entry 3 1
+history no-such-option 2
+history output error 1
+history no-such-entry 1
+history no-such-file 1 1
+history no-such-file 2 1

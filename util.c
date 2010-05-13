@@ -280,7 +280,7 @@ void *copyaswcs(const void *p)
 /* Comparison function used in `sort_mbs_array'. */
 static int compare_mbs(const void *p1, const void *p2)
 {
-    return strcoll(*(char *const *) p1, *(char *const *) p2);
+    return strcoll(*(const char *const *) p1, *(const char *const *) p2);
 }
 
 /* Sorts the specified NULL-terminated array of multibyte strings

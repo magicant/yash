@@ -53,7 +53,7 @@ term_lib='tinfo curses ncurses ncursesw'
 unset prefix eprefix bindir datarootdir docdir htmldir
 unset checkresult
 unset MAKEFLAGS
-umask u=rwx,go=rx
+umask u=rwx
 cd "$(dirname "$0")"
 
 parseenable() {
@@ -333,7 +333,7 @@ elif
     if [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ]
     then
 	cc='gcc -std=c99'
-	tryexec && tryexec
+	trymake && tryexec
     else
 	false
     fi
@@ -818,6 +818,9 @@ checking 'for wcwidth'
 cat >"${tempsrc}" <<END
 #include "${configh}"
 #include <wchar.h>
+#ifndef wcwidth
+int wcwidth(wchar_t);
+#endif
 int main() { return wcwidth(L'\0'); }
 END
 trymake && tryexec
