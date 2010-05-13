@@ -50,5 +50,5 @@ help --no-such-option
 echo help no-such-option $?
 help XXX
 echo help no-such-builtin $?
-help help help >&- 2>/dev/null
+(help help help >&- 2>/dev/null)
 echo help output error $?

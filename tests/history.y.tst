@@ -137,7 +137,7 @@ fc -s foo
 echo fc no-such-entry 3 $?
 history --no-such-option
 echo history no-such-option $?
-history >&- 2>/dev/null
+(history >&- 2>/dev/null)
 echo history output error $?
 history -d foo
 echo history no-such-entry $?

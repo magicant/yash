@@ -129,11 +129,11 @@ echo alias no-such-option $?
 alias alias
 echo alias no-such-alias $?
 alias alias=alias
-alias >&- 2>/dev/null
+(alias >&- 2>/dev/null)
 echo alias output error 1 $?
-alias alias >&- 2>/dev/null
+(alias alias >&- 2>/dev/null)
 echo alias output error 2 $?
-alias -p alias >&- 2>/dev/null
+(alias -p alias >&- 2>/dev/null)
 echo alias output error 3 $?
 unalias --no-such-option
 echo unalias no-such-option $?

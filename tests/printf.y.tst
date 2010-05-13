@@ -286,11 +286,11 @@ echo ===== error =====
 
 printf --no-such-option
 echo printf no-such-option $?
-printf foo >&- 2>/dev/null
+(printf foo >&- 2>/dev/null)
 echo printf output error $?
 printf
 echo printf operand missing $?
 printf '%d\n' foo 2>/dev/null
 echo printf invalid operand $?
-echo foo >&- 2>/dev/null
+(echo foo >&- 2>/dev/null)
 echo echo output error $?

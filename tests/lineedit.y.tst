@@ -421,7 +421,7 @@ bindkey -v '' abort-line
 echo bindkey invalid operand 2 $?
 bindkey -v '~~~'
 echo bindkey unbound sequence $?
-bindkey -l >&- 2>/dev/null
+(bindkey -l >&- 2>/dev/null)
 echo bindkey output error 1 $?
-bindkey -v >&- 2>/dev/null
+(bindkey -v >&- 2>/dev/null)
 echo bindkey output error 2 $?

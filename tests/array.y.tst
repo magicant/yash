@@ -35,7 +35,7 @@ echo ===== 1 ===== >&2
 
 array --no-such-option
 echo array no-such-option $?
-array >&- 2>/dev/null
+(array >&- 2>/dev/null)
 echo array output error $?
 
 readonly aaa

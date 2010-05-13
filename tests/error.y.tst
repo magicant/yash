@@ -75,7 +75,7 @@ echo ===== set ===== >&2
 
 set --no-such-option
 echo set no-such-option $?
-set >&- 2>/dev/null
+(set >&- 2>/dev/null)
 echo set output error $?
 
 echo ===== cd =====
@@ -85,13 +85,15 @@ cd --no-such-option
 echo cd no-such-option $?
 cd ./no/such/dir 2>/dev/null
 echo cd no-such-dir $?
+(
 cd /
 (unset OLDPWD; cd -)
 echo cd no OLDPWD $?
 (unset HOME; cd)
 echo cd no HOME $?
-cd - >&- 2>/dev/null
+(cd - >&- 2>/dev/null)
 echo cd output error $?
+)
 
 echo ===== pwd =====
 echo ===== pwd ===== >&2
@@ -100,7 +102,7 @@ pwd --no-such-option
 echo pwd no-such-option $?
 pwd foo
 echo pwd invalid operand $?
-pwd >&- 2>/dev/null
+(pwd >&- 2>/dev/null)
 echo pwd output error $?
 
 echo ===== hash =====
@@ -113,7 +115,7 @@ echo hash slash argument $?
 (PATH=; hash no_such_command)
 echo hash command not found $?
 hash ls
-hash >&- 2>/dev/null
+(hash >&- 2>/dev/null)
 echo hash output error $?
 
 echo ===== umask =====
@@ -121,7 +123,7 @@ echo ===== umask ===== >&2
 
 umask --no-such-option
 echo umask no-such-option $?
-umask >&- 2>/dev/null
+(umask >&- 2>/dev/null)
 echo umask output error $?
 
 echo ===== typeset =====
@@ -129,18 +131,18 @@ echo ===== typeset ===== >&2
 
 typeset --no-such-option
 echo typeset no-such-option $?
-typeset >&- 2>/dev/null
+(typeset >&- 2>/dev/null)
 echo typeset output error 1 $?
-typeset -p >&- 2>/dev/null
+(typeset -p >&- 2>/dev/null)
 echo typeset output error 2 $?
-typeset -p PWD >&- 2>/dev/null
+(typeset -p PWD >&- 2>/dev/null)
 echo typeset output error 3 $?
 func() { :; }
-typeset -f >&- 2>/dev/null
+(typeset -f >&- 2>/dev/null)
 echo typeset output error 4 $?
-typeset -fp >&- 2>/dev/null
+(typeset -fp >&- 2>/dev/null)
 echo typeset output error 5 $?
-typeset -fp func >&- 2>/dev/null
+(typeset -fp func >&- 2>/dev/null)
 echo typeset output error 6 $?
 typeset -r readonly=readonly
 typeset -r readonly=readonly
@@ -196,15 +198,12 @@ trap '' KILL
 echo trap KILL $?
 trap '' STOP
 echo trap STOP $?
-(
-trap 'echo trap' INT TERM
-trap >&- 2>/dev/null
+(trap 'echo trap' INT TERM; trap >&- 2>/dev/null)
 echo trap output error 1 $?
-trap -p >&- 2>/dev/null
+(trap 'echo trap' INT TERM; trap -p >&- 2>/dev/null)
 echo trap output error 2 $?
-trap -p INT >&- 2>/dev/null
+(trap 'echo trap' INT TERM; trap -p INT >&- 2>/dev/null)
 echo trap output error 3 $?
-)
 trap '' NO-SUCH-SIGNAL
 echo trap no-such-signal $?
 
@@ -219,9 +218,9 @@ kill -l 0
 echo kill no-such-signal $?
 kill %100
 echo kill no-such-job $?
-kill -l >&- 2>/dev/null
+(kill -l >&- 2>/dev/null)
 echo kill output error 1 $?
-kill -l HUP >&- 2>/dev/null
+(kill -l HUP >&- 2>/dev/null)
 echo kill output error 2 $?
 
 echo ===== jobs =====
@@ -231,7 +230,7 @@ $INVOKE $TESTEE -m <<\END
 jobs --no-such-option
 echo jobs no-such-option $?
 while kill -0 $$; do sleep 1; done &
-jobs >&- 2>/dev/null
+(jobs >&- 2>/dev/null)
 echo jobs output error $?
 jobs %100
 echo jobs no-such-job 1 $?
@@ -248,13 +247,14 @@ fg --no-such-option
 echo fg no-such-option $?
 exit 100 &
 fg >&- 2>/dev/null
+END
 echo fg output error $?
+$INVOKE $TESTEE -m <<\END
 fg %100
 echo fg no-such-job 1 $?
 fg %no_such_job
 echo fg no-such-job 2 $?
-END
-$INVOKE $TESTEE -m --posix <<\END
+set --posix
 exit 101 & exit 102 &
 fg %1 %2
 echo fg too many args $?
@@ -270,13 +270,15 @@ bg --no-such-option
 echo bg no-such-option $?
 while kill -0 $$; do sleep 1; done &
 bg >&- 2>/dev/null
+kill %1
+END
 echo bg output error $?
+set -m
 bg %100
 echo bg no-such-job 1 $?
 bg %no_such_job
 echo bg no-such-job 2 $?
-kill %1
-END
+set +m
 bg
 echo bg +m $?
 
@@ -392,7 +394,7 @@ echo ===== command ===== >&2
 
 command --no-such-option
 echo command no-such-option $?
-command -v command >&- 2>/dev/null
+(command -v command >&- 2>/dev/null)
 echo command output error $?
 (PATH=; command no_such_command)
 echo command no-such-command 1 $?
@@ -410,7 +412,7 @@ times --no-such-option
 echo times no-such-option $?
 times foo
 echo times invalid operand $?
-times >&- 2>/dev/null
+(times >&- 2>/dev/null)
 echo times output error $?
 
 echo ===== exit =====
@@ -449,7 +451,7 @@ echo ===== ulimit ===== >&2
 if type ulimit 2>/dev/null | grep -q '^ulimit: regular builtin'; then
     ulimit --no-such-option 2>/dev/null
     echo ulimit no-such-option $?
-    ulimit >&- 2>/dev/null
+    (ulimit >&- 2>/dev/null)
     echo ulimit output error $?
     ulimit xxx
     echo ulimit invalid operand $?

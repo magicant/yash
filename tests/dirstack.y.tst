@@ -157,7 +157,7 @@ echo pushd no-such-dir $?
 pushd /
 pushd +5
 echo pushd index out of range $?
-pushd - >&- 2>/dev/null
+(pushd - >&- 2>/dev/null)
 echo pushd output error $?
 END
 $INVOKE $TESTEE <<\END
@@ -166,8 +166,9 @@ popd --no-such-option
 echo popd no-such-option $?
 popd +5
 echo popd index out of range $?
-popd >&- 2>/dev/null
+(popd >&- 2>/dev/null)
 echo popd output error $?
+popd >/dev/null
 popd
 echo popd dirstack empty $?
 END
@@ -177,7 +178,7 @@ dirs --no-such-option
 echo dirs no-such-option $?
 dirs +5
 echo dirs index out of range $?
-dirs >&- 2>/dev/null
+(dirs >&- 2>/dev/null)
 echo dirs output error $?
 END
 
