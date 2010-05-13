@@ -53,7 +53,7 @@ term_lib='tinfo curses ncurses ncursesw'
 unset prefix eprefix bindir datarootdir docdir htmldir
 unset checkresult
 unset MAKEFLAGS
-umask u=rwx,go=rx
+umask u=rwx
 cd "$(dirname "$0")"
 
 parseenable() {
