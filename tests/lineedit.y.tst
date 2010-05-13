@@ -89,7 +89,7 @@ redo
 vi-replace-char
 vi-insert-beginning
 vi-append
-vi-append-end
+vi-append-to-eol
 vi-replace
 vi-switch-case
 vi-switch-case-char
@@ -99,10 +99,10 @@ vi-delete
 vi-delete-to-eol
 vi-change
 vi-change-to-eol
-vi-change-all
+vi-change-line
 vi-yank-and-change
 vi-yank-and-change-to-eol
-vi-yank-and-change-all
+vi-yank-and-change-line
 vi-substitute
 vi-append-last-bigword
 vi-exec-alias
@@ -284,7 +284,7 @@ bindkey -a '.' redo
 bindkey -a 'r' vi-replace-char
 bindkey -a 'I' vi-insert-beginning
 bindkey -a 'a' vi-append
-bindkey -a 'A' vi-append-end
+bindkey -a 'A' vi-append-to-eol
 bindkey -a 'R' vi-replace
 bindkey -a '~' vi-switch-case-char
 bindkey -a 'y' vi-yank
@@ -293,7 +293,7 @@ bindkey -a 'd' vi-delete
 bindkey -a 'D' forward-kill-line
 bindkey -a 'c' vi-change
 bindkey -a 'C' vi-change-to-eol
-bindkey -a 'S' vi-change-all
+bindkey -a 'S' vi-change-line
 bindkey -a 's' vi-substitute
 bindkey -a '_' vi-append-last-bigword
 bindkey -a '@' vi-exec-alias

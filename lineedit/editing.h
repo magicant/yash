@@ -142,7 +142,7 @@ extern le_command_func_T
     cmd_vi_replace_char, /*C*/
     cmd_vi_insert_beginning, /*C*/
     cmd_vi_append, /*C*/
-    cmd_vi_append_end, /*C*/
+    cmd_vi_append_to_eol, /*C*/
     cmd_vi_replace, /*C*/
     cmd_vi_switch_case, /*C*/
     cmd_vi_switch_case_char, /*C*/
@@ -152,10 +152,10 @@ extern le_command_func_T
 #define cmd_vi_delete_to_eol cmd_forward_kill_line /*C*/
     cmd_vi_change, /*C*/
     cmd_vi_change_to_eol, /*C*/
-    cmd_vi_change_all, /*C*/
+    cmd_vi_change_line, /*C*/
     cmd_vi_yank_and_change, /*C*/
     cmd_vi_yank_and_change_to_eol, /*C*/
-    cmd_vi_yank_and_change_all, /*C*/
+    cmd_vi_yank_and_change_line, /*C*/
     cmd_vi_substitute, /*C*/
     cmd_vi_append_last_bigword, /*C*/
     cmd_vi_exec_alias, /*C*/
