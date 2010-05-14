@@ -35,7 +35,6 @@ objs='$(MAIN_OBJS)'
 builtin_objs=''
 
 help="no"
-gcc=""
 debug="no"
 enable_alias="yes"
 enable_array="yes"
@@ -221,14 +220,16 @@ checkby () {
     fi
 }
 trymake () {
-    checkby ${cc} ${cflags} ${CADDS} ${ldflags} ${LDADDS} -o "${tempout}" \
-	"${tempsrc}" "$@" ${ldlibs}
+    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-} ${LDFLAGS-${ldflags}} \
+	${LDADDS-} -o "${tempout}" "${tempsrc}" "$@" ${LDLIBS-${ldlibs}}
 }
 trycompile () {
-    checkby ${cc} ${cflags} ${CADDS} -c -o "${tempo}" "${tempsrc}" "$@"
+    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-} -c \
+	-o "${tempo}" "${tempsrc}" "$@"
 }
 trylink () {
-    checkby ${cc} ${ldflags} ${LDADDS} -o "${tempout}" "${tempo}" "$@" ${ldlibs}
+    checkby ${CC-${cc}} ${LDFLAGS-${ldflags}} ${LDADDS-} \
+	-o "${tempout}" "${tempo}" "$@" ${LDLIBS-${ldlibs}}
 }
 tryexec () {
     checkby "${tempout}"
@@ -251,15 +252,15 @@ fail () {
 }
 
 
-cc="${CC:-c99}"
+cc="${CC-c99}"
 cflags="${CFLAGS--O1 -g}"
-ldflags="${LDFLAGS}"
+ldflags="${LDFLAGS-}"
 ldlibs="${LDLIBS-}"
-ar="${AR:-ar}"
+ar="${AR-ar}"
 arflags="${ARFLAGS--rc}"
-ctags="${CTAGS:-ctags}"
-etags="${ETAGS:-etags}"
-cscope="${CSCOPE:-cscope}"
+ctags="${CTAGS-ctags}"
+etags="${ETAGS-etags}"
+cscope="${CSCOPE-cscope}"
 
 
 # check OS type
@@ -308,7 +309,7 @@ then
 	checkby eval "${CC:-gcc} --version | grep -i gcc"
     then
 	checked "yes"
-	gcc="yes" cc="${CC:-gcc}"
+	cc="${CC:-gcc}"
 	cflags="-std=c99 -pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb"
     else
 	checked "no"
@@ -1238,24 +1239,33 @@ fi
 
 
 # check if ctags/etags accepts the --recurse option
-checking "if ctags accepts --recurse option"
-checkby ${ctags} --recurse -f /dev/null /dev/null
-checked
-if [ x"${checkresult}" = x"yes" ]
+if [ x"${CTAGSARGS+set}" != x"set" ]
 then
-    ctags_args='--recurse'
-else
-    ctags_args='*.[ch]'
+    checking "if ctags accepts --recurse option"
+    checkby ${ctags} --recurse -f /dev/null /dev/null
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	CTAGSARGS='--recurse'
+    else
+	CTAGSARGS='*.[ch]'
+    fi
 fi
-checking "if etags accepts --recurse option"
-checkby ${etags} --recurse -o /dev/null /dev/null >/dev/null 2>&1
-checked
-if [ x"${checkresult}" = x"yes" ]
+if [ x"${ETAGSARGS+set}" != x"set" ]
 then
-    etags_args='--recurse'
-else
-    etags_args='*.[ch]'
+    checking "if etags accepts --recurse option"
+    checkby ${etags} --recurse -o /dev/null /dev/null >/dev/null 2>&1
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	ETAGSARGS='--recurse'
+    else
+	ETAGSARGS='*.[ch]'
+    fi
 fi
+
+# set cscope invocation parameter
+: ${CSCOPEARGS=-bR}
 
 
 if [ -n "${builtin_objs}" ]
@@ -1296,11 +1306,8 @@ LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
 ARFLAGS="${ARFLAGS-${arflags}}"
 CTAGS="${CTAGS-${ctags}}"
-CTAGSARGS="${CTAGSARGS-${ctags_args}}"
 ETAGS="${ETAGS-${etags}}"
-ETAGSARGS="${ETAGSARGS-${etags_args}}"
 CSCOPE="${CSCOPE-${cscope}}"
-CSCOPEARGS="${CSCOPEARGS--bR}"
 DIRS="${dirs}"
 OBJS="${objs}"
 BUILTIN_OBJS="${builtin_objs}"
@@ -1348,6 +1355,7 @@ s!@CTAGSARGS@!${CTAGSARGS}!g
 s!@ETAGS@!${ETAGS}!g
 s!@ETAGSARGS@!${ETAGSARGS}!g
 s!@CSCOPE@!${CSCOPE}!g
+s!@CSCOPEARGS@!${CSCOPEARGS}!g
 s!@DIRS@!${DIRS}!g
 s!@OBJS@!${OBJS}!g
 s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
