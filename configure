@@ -34,6 +34,8 @@ objs='$(MAIN_OBJS)'
 # object files compiled into builtins.a
 builtin_objs=''
 
+null=""
+
 help="no"
 debug="no"
 enable_alias="yes"
@@ -220,15 +222,16 @@ checkby () {
     fi
 }
 trymake () {
-    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-} ${LDFLAGS-${ldflags}} \
-	${LDADDS-} -o "${tempout}" "${tempsrc}" "$@" ${LDLIBS-${ldlibs}}
+    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
+	${LDFLAGS-${ldflags}} ${LDADDS-${null}} -o "${tempout}" "${tempsrc}" \
+	"$@" ${LDLIBS-${ldlibs}}
 }
 trycompile () {
-    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-} -c \
+    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} -c \
 	-o "${tempo}" "${tempsrc}" "$@"
 }
 trylink () {
-    checkby ${CC-${cc}} ${LDFLAGS-${ldflags}} ${LDADDS-} \
+    checkby ${CC-${cc}} ${LDFLAGS-${ldflags}} ${LDADDS-${null}} \
 	-o "${tempout}" "${tempo}" "$@" ${LDLIBS-${ldlibs}}
 }
 tryexec () {
@@ -254,8 +257,8 @@ fail () {
 
 cc="${CC-c99}"
 cflags="${CFLAGS--O1 -g}"
-ldflags="${LDFLAGS-}"
-ldlibs="${LDLIBS-}"
+ldflags="${LDFLAGS-${null}}"
+ldlibs="${LDLIBS-${null}}"
 ar="${AR-ar}"
 arflags="${ARFLAGS--rc}"
 ctags="${CTAGS-ctags}"
@@ -1300,8 +1303,8 @@ makedep ./
 
 MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
 CC="${CC-${cc}}"
-CFLAGS="${CFLAGS-${cflags}} ${CADDS}"
-LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS}"
+CFLAGS="${CFLAGS-${cflags}} ${CADDS-${null}}"
+LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS-${null}}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
 ARFLAGS="${ARFLAGS-${arflags}}"
@@ -1311,8 +1314,6 @@ CSCOPE="${CSCOPE-${cscope}}"
 DIRS="${dirs}"
 OBJS="${objs}"
 BUILTIN_OBJS="${builtin_objs}"
-BUILTINS_ARCHIVE="${builtins_archive}"
-LINEEDIT_ARCHIVE="${lineedit_archive}"
 VERSION="${version}"
 INSTALL_PROGRAM="${INSTALL_PROGRAM-./install-sh}"
 PREFIX="${prefix-/usr/local}"
@@ -1359,8 +1360,6 @@ s!@CSCOPEARGS@!${CSCOPEARGS}!g
 s!@DIRS@!${DIRS}!g
 s!@OBJS@!${OBJS}!g
 s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
-s!@BUILTINS_ARCHIVE@!${BUILTINS_ARCHIVE}!g
-s!@LINEEDIT_ARCHIVE@!${LINEEDIT_ARCHIVE}!g
 s!@VERSION@!${VERSION}!g
 s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g
 s!@PREFIX@!${PREFIX}!g
