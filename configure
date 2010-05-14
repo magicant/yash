@@ -89,7 +89,7 @@ do
 	--prefix=*)
 	    prefix="${i#--prefix=}" ;;
 	--exec-prefix=*)
-	    execprefix="${i#--exec-prefix=}" ;;
+	    eprefix="${i#--exec-prefix=}" ;;
 	--bindir=*)
 	    bindir="${i#--bindir=}" ;;
 	--datarootdir=*)
@@ -106,10 +106,9 @@ do
 	    term_lib="${i#--with-term-lib=}" ;;
 	?*=*)
 	    # parse variable assignment
-	    if echo "$i" |
-		LC_ALL=C grep -E "^[[:alpha:]][[:alnum:]]*=" >/dev/null
+	    if echo "$i" | grep -E "^[[:alpha:]][[:alnum:]]*=" >/dev/null
 	    then
-		eval "${i%%=*}="'${i#*=}'
+		export "$i"
 	    else
 		echo "$0: $i: unknown argument" >&2
 		exit 1
@@ -157,7 +156,8 @@ Optional packages:
   --with-term-lib=LIBS    search space-separated LIBS for terminal handling
 
 Influential environment variables:
-  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, INSTALL_PROGRAM
+  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, INSTALL_PROGRAM,
+  CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
     exit
 fi
@@ -257,6 +257,9 @@ ldflags="${LDFLAGS}"
 ldlibs="${LDLIBS-}"
 ar="${AR:-ar}"
 arflags="${ARFLAGS--rc}"
+ctags="${CTAGS:-ctags}"
+etags="${ETAGS:-etags}"
+cscope="${CSCOPE:-cscope}"
 
 
 # check OS type
@@ -1236,7 +1239,7 @@ fi
 
 # check if ctags/etags accepts the --recurse option
 checking "if ctags accepts --recurse option"
-checkby ctags --recurse -f /dev/null /dev/null
+checkby ${ctags} --recurse -f /dev/null /dev/null
 checked
 if [ x"${checkresult}" = x"yes" ]
 then
@@ -1245,7 +1248,7 @@ else
     ctags_args='*.[ch]'
 fi
 checking "if etags accepts --recurse option"
-checkby etags --recurse -o /dev/null /dev/null >/dev/null 2>&1
+checkby ${etags} --recurse -o /dev/null /dev/null >/dev/null 2>&1
 checked
 if [ x"${checkresult}" = x"yes" ]
 then
@@ -1292,8 +1295,12 @@ LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
 ARFLAGS="${ARFLAGS-${arflags}}"
-CTAGSARGS="${ctags_args}"
-ETAGSARGS="${etags_args}"
+CTAGS="${CTAGS-${ctags}}"
+CTAGSARGS="${CTAGSARGS-${ctags_args}}"
+ETAGS="${ETAGS-${etags}}"
+ETAGSARGS="${ETAGSARGS-${etags_args}}"
+CSCOPE="${CSCOPE-${cscope}}"
+CSCOPEARGS="${CSCOPEARGS--bR}"
 DIRS="${dirs}"
 OBJS="${objs}"
 BUILTIN_OBJS="${builtin_objs}"
@@ -1336,8 +1343,11 @@ s!@LDFLAGS@!${LDFLAGS}!g
 s!@LDLIBS@!${LDLIBS}!g
 s!@AR@!${AR}!g
 s!@ARFLAGS@!${ARFLAGS}!g
+s!@CTAGS@!${CTAGS}!g
 s!@CTAGSARGS@!${CTAGSARGS}!g
+s!@ETAGS@!${ETAGS}!g
 s!@ETAGSARGS@!${ETAGSARGS}!g
+s!@CSCOPE@!${CSCOPE}!g
 s!@DIRS@!${DIRS}!g
 s!@OBJS@!${OBJS}!g
 s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
