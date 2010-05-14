@@ -36,9 +36,6 @@ test-yash:
 
 testee:
 	@+if [ x'$(TESTEE)' = x'../yash' ]; then cd .. && $(MAKE) yash; fi
-	@if [ x"$$($(TESTEE) -c 'echo X')" != xX ]; then \
-		echo 'ERROR: cannot execute testee as a shell'; false; \
-	fi
 
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
