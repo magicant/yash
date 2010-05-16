@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.21
+
+  *  The "function" keyword was not recognized by "command -v".
+
+----------------------------------------------------------------------
 Yash 2.20
 
   +  Function definition using the "function" keyword.

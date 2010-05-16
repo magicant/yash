@@ -43,6 +43,7 @@ esac: shell keyword
 while: shell keyword
 until: shell keyword
 for: shell keyword
+function: shell keyword
 {: shell keyword
 }: shell keyword
 !: shell keyword
