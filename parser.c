@@ -1368,6 +1368,7 @@ reparse:
 	wchar_t *endofheredoc = parse_word_as_wcs();
 	if (endofheredoc[0] == L'\0') {
 	    serror(Ngt("here-document delimiter missing"));
+	    free(endofheredoc);
 	    free(result);
 	    return NULL;
 	}
