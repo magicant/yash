@@ -52,7 +52,7 @@ signum.h: mksignum
 	./mksignum > $@
 sig.o: signum.h
 
-test check:
+test tests check: _PHONY
 	@+cd tests && $(MAKE)
 
 DESTDIR =
@@ -164,7 +164,7 @@ reconfigure:
 	else echo 'Cannot reconfigure.' >&2; false; \
 	fi
 
-.PHONY: all test check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
+.PHONY: all test tests check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d
