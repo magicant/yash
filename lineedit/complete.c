@@ -1080,17 +1080,13 @@ void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
 
 /********** Builtins **********/
 
-struct ocgpair_T {
-    struct optcandgen_T *forshort, *forlong;
-};
-
 static int complete_builtin_print(
 	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt);
 static int print_cmdcandgen(
 	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
 	const struct cmdcandgen_T *ccg)
     __attribute__((nonnull(1,4)));
-static struct ocgpair_T get_optcandgen(const struct cmdcandgen_T *ccg,
+static struct optcandgen_T *get_optcandgen(const struct cmdcandgen_T *ccg,
 	wchar_t shortopt, const wchar_t *longopt)
     __attribute__((nonnull(1),pure));
 static int compare_wcs(const void *p1, const void *p2)
@@ -1370,38 +1366,52 @@ int print_cmdcandgen(
     }
 
     /* find option to print */
-    struct ocgpair_T ocgs = get_optcandgen(ccg, shortopt, longopt);
-    if (ocgs.forshort == NULL)
-	return Exit_FAILURE;  /* not found... */
-    if (ocgs.forshort != ocgs.forlong)
-	return Exit_FAILURE;  /* short and long options don't match */
-
-    register const struct optcandgen_T *ocg = ocgs.forshort;
+    struct optcandgen_T *ocg = get_optcandgen(ccg, shortopt, longopt);
+    if (ocg == NULL || ocg == (struct optcandgen_T *) ccg)
+	return Exit_FAILURE;
     return print_candgen(command,
 	    ocg->shortoptchar, ocg->longopt, ocg->description, false,
 	    ocg->requiresargument ? &ocg->candgen : NULL);
 }
 
-/* Searches `ccg->options' for the specified options. */
-struct ocgpair_T get_optcandgen(const struct cmdcandgen_T *ccg,
+/* Searches `ccg->options' for the specified options.
+ * Either or both of `shortopt' and `longopt' must be non-NULL.
+ * If the short and long options conflict, returns `ccg'.
+ * If not found, returns NULL. */
+struct optcandgen_T *get_optcandgen(const struct cmdcandgen_T *ccg,
 	wchar_t shortopt, const wchar_t *longopt)
 {
-    struct optcandgen_T *ocg1 = NULL, *ocg2 = NULL;
+    struct optcandgen_T *ocgs = NULL, *ocgl = NULL;
+
+    assert(shortopt != L'\0' || longopt != NULL);
     if (shortopt != L'\0') {
-	for (ocg1 = ccg->options; ocg1 != NULL; ocg1 = ocg1->next)
-	    if (shortopt == ocg1->shortoptchar)
+	for (ocgs = ccg->options; ocgs != NULL; ocgs = ocgs->next)
+	    if (shortopt == ocgs->shortoptchar)
 		break;
+	if (longopt == NULL)
+	    return ocgs;
     }
     if (longopt != NULL) {
-	for (ocg2 = ccg->options; ocg2 != NULL; ocg2 = ocg2->next)
-	    if (ocg2->longopt != NULL && wcscmp(longopt, ocg2->longopt) == 0)
+	for (ocgl = ccg->options; ocgl != NULL; ocgl = ocgl->next)
+	    if (ocgl->longopt != NULL && wcscmp(longopt, ocgl->longopt) == 0)
 		break;
+	if (shortopt == L'\0')
+	    return ocgl;
     }
-    if (shortopt == L'\0')
-	ocg1 = ocg2;
-    if (longopt == NULL)
-	ocg2 = ocg1;
-    return (struct ocgpair_T) { .forshort = ocg1, .forlong = ocg2 };
+
+    assert(shortopt != L'\0' && longopt != NULL);
+    if (ocgs == NULL) {
+	if (ocgl != NULL && ocgl->shortoptchar != L'\0'
+			 && ocgl->shortoptchar != shortopt)
+	    return (struct optcandgen_T *) ccg;
+	return ocgl;
+    } else {  /* ocgs != NULL */
+	if (ocgl != NULL && ocgs != ocgl)
+	    return (struct optcandgen_T *) ccg;
+	if (ocgs->longopt != NULL && wcscmp(longopt, ocgs->longopt) != 0)
+	    return (struct optcandgen_T *) ccg;
+	return ocgs;
+    }
 }
 
 /* Prints the contents of the specified `candgen_T' structure
@@ -1711,9 +1721,8 @@ int complete_builtin_set(
     }
 
     /* find option to set style */
-    struct ocgpair_T ocgs = get_optcandgen(ccg, shortopt, longopt);
-    if (ocgs.forshort != ocgs.forlong) {
-	/* short and long options don't match */
+    struct optcandgen_T *ocg = get_optcandgen(ccg, shortopt, longopt);
+    if (ocg == (struct optcandgen_T *) ccg) {
 	xerror(0, Ngt("-C %ls -O %lc -O %ls: specified short and long options "
 		    "don't match with ones already registered"),
 		command, (wint_t) shortopt, longopt);
@@ -1721,8 +1730,8 @@ int complete_builtin_set(
 	return Exit_FAILURE;
     }
 
-    struct optcandgen_T *ocg = ocgs.forshort;
-    if (ocg == NULL) {   /* if no option was found, create a new one */
+    /* if no option was found, create a new one */
+    if (ocg == NULL) {
 	ocg = xmalloc(sizeof *ocg);
 	*ocg = (struct optcandgen_T) { .next = ccg->options };
 	ccg->options = ocg;
