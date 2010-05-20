@@ -1,20 +1,31 @@
 Yash: yet another shell
+http://yash.sourceforge.jp/
 =======================
 
 
-Yash is a command line shell, personally developed by Magicant.
-It (almost) conforms to POSIX.1 (IEEE Std 1003.1, 2008 Edition).
+Yash is a command line shell that conforms to the POSIX.1 (IEEE Std
+1003.1, 2008 Edition) standard for the most part. Actually, it is much
+more POSIX-compliant than other shell like bash and zsh.
+
+Yash also has its own features beyond POSIX, such as:
+  * global aliases
+  * random numbers
+  * socket redirections and other special redirections
+  * right prompt
 
 
-Yash is free software, distributed under the terms of GPL.
-See the file named COPYING for more info.
+Yash is free software distributed under the terms of GNU General
+Public License (GPL) version 2. You can copy, modify, use, and/or
+distribute this software as long as you obey the terms of GPL, but
+note that there is NO WARRANTY. See the file named COPYING for the
+full text of GPL.
 
-See the file named INSTALL to find how to build and install yash.
+See the file named INSTALL to see how to build and install yash.
 
 Currently, a manual for yash is available only in Japanese. Sorry.
 
 
-===== Notes =====
+===== Implementation Notes =====
 
  * In C, a null character represents the end of string. If input from
    a file or a string in itself contains a null character, the
@@ -49,3 +60,5 @@ Currently, a manual for yash is available only in Japanese. Sorry.
 
 ======================
 Magicant <magicant@users.sourceforge.jp>
+
+Comments, suggestions, and bug reports are welcome.

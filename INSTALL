@@ -7,119 +7,197 @@ A normal way to build and install yash is:
 
   2. Type `sh configure' to run the configuration script. This script
      checks which features are available on your system and creates
-     files to build yash.
+     files that are needed to build yash. (See below if configuration
+     failed.)
 
   3. Type `make' to build yash.
 
-  4. Optionally, type `make check' to check if yash works right.
+  4. Optionally, type `make check' to check if the built yash works.
 
-  5. Type `make install' to install yash. By default, yash is installed
-     at /usr/local/bin/yash.
+  5. Type `make install' to install yash at the location specified in
+     the configuration. The default location is /usr/local/bin/yash.
+     You may need to be a superuser (or "root") for installation.
+
+Type `make uninstall' to uninstall the program.
+Type `make clean' to delete object files and executables that are
+created during build.
+Type `make distclean' to delete all files that are created during
+configuration and build.
+
+
+========== Configuration Details ==========
 
 The `configure' script chooses a compiler to compile yash. The default
 compiler command is `c99', which is a standard C compiler defined in
-POSIX.
+POSIX. If `c99' is not available, the `configure' script tries using
+`gcc' with the `-std=c99' option. If `gcc' is not available either,
+you have to manually specify the C99 compiler using the `CC' variable.
 
-The `configure' script accepts following options that affect the
-way yash is built and installed:
+You can specify the compiler, the linker, and options for them by
+giving variables on the command line. For example, the `configure'
+script uses the `cc' compiler instead of the default `c99' if the
+script is invoked as:
+    sh configure CC='cc'
 
-  --debug
-          Lower the optimization level of the compiler to make it easy
-          to debug yash. Available only when using GCC.
-  --no-undefined
-          Inhibit any operation whose result is not defined in the
-          standards.
-
-  --bindir=DIR
-          Install yash in DIR, rather than /usr/local/bin.
-
-  --enable-X, --disable-X
-          Enable or disable the feature X, where X is the name of a
-          feature. Type `./configure --help' for the list of available
-          features that can be specified as X.
-
-Following environment variables override `configure' script's choices:
+The following variables can be specified on the command line (or as
+environment variables).
 
   CC
-          The name of the compiler/linker.
+	The compiler and linker
   CFLAGS
-          Options given to the compiler.
-  LDFLAGS
-          Options given to the linker.
-  INSTALL_PROGRAM
-          The name of the installer.
-
-Following environment variables affect `configure' script's choices:
-
+	Options for the compiler
   CADDS
-          Additional options given to the compiler.
-  LDADDS, LIBS
-          Additional options given to the linker.
+	Additional options for the compiler
+  LDFLAGS
+	Options for the linker
+  LDADDS
+	Additional options for the linker
+  LDLIBS
+	Arguments to the linker that specifies the libraries linked to
+	yash
+  AR
+	The archiver
+  ARFLAGS
+	Options for the archiver
+  INSTALL_PROGRAM
+	The installer
 
-Type `./configure --help' to see a brief instruction of `configure'.
+The following build option can be specified to the `configure' script.
+
+  -d --debug
+	Build yash for debugging. Code optimization is not performed
+	as aggressively as normal and compiler warnings are not
+	suppressed. This option requires the GCC compiler.
+
+The following options specify where to install yash and auxiliary
+scripts.
+
+  --prefix=...
+	The basic installation path prefix.
+	(default: /usr/local)
+  --exec-prefix=...
+	The basic installation path prefix for binaries.
+	(default: <prefix>)
+  --bindir=...
+	The directory where executable programs are installed.
+	(default: <exec-prefix>/bin)
+  --datarootdir=...
+	The basic installation path prefix for non-binaries.
+	(default: <prefix>/share)
+  --datadir=...
+	The directory where auxiliary scripts are installed.
+	(default: <datarootdir>)
+
+Yash has many optional features that can be enabled or disabled in
+configuration. The --enable-... and --disable-... options can be used
+to specify which options to enable/disable. By default, yash is
+configured with all the features enabled.
+
+  --enable-alias --disable-alias
+	If disabled, you cannot use aliases in the shell and the
+	`alias' and `unalias' builtins are not available.
+  --enable-array --disable-array
+	If disabled, the `array' builtin is not available. Note that
+	array variables are available whether or not the `array'
+	builtin is enabled.
+  --enable-dirstack --disable-dirstack
+	If disabled, the `dirs', `pushd', and `popd' builtins are not
+	available.
+  --enable-help --disable-help
+	If disabled, the `help' builtin is not available.
+  --enable-history --disable-history
+	If disabled, the `fc' and `history' builtins are unavailable.
+  --enable-lineedit --disable-lineedit
+	If disabled, command line editing for the interactive shell is
+	not available. When this feature is enabled, the history
+	feature must also be enabled.
+  --enable-printf --disable-printf
+	If disabled, the `printf' and `echo' builtins are not
+	available.
+  --enable-socket --disable-socket
+	If disabled, socket redirection is not available.
+  --enable-test --disable-test
+	If disabled, the `test' and `[' builtins are not available.
+  --enable-ulimit --disable-ulimit
+	If disabled, the `ulimit' builtin is not available.
+
+Configuration fails if the socket feature is enabled but your system
+does not support sockets. If so, disable the feature by adding the
+`--disable-socket' option and try configuring again.
+
+Configuration fails if the ulimit feature is enabled but your system
+does not support the `getrlimit' and `setrlimit' functions. If so,
+disable the feature by adding the `--disable-ulimit' option and try
+configuring again.
+
+Configuration fails if the lineedit feature is enabled but the curses
+library cannot be found available. If so, you may:
+  * disable the feature by adding the `--disable-lineedit' option and
+    configure again, or
+  * install the curses library and configure again, or
+  * if you have an alternative library installed and want to use it
+    instead of the curses library, add the `--with-term-lib=...'
+    option and configure again. For example, if you specify
+    `--with-term-lib=termcap', the linker is passed the `-ltermcap'
+    operand.
 
 
-Typing `make uninstall' uninstalls the program.
-Typing `make clean' deletes object files and executables.
-Typing `make distclean' deletes any files that are made by `configure'
-and the build process.
-
-
-======================================================================
+========== Advanced Manual Configuration ==========
 
 Below is a list of preprocessor macros that are recognized during
 compilation. These macros can be additionally defined by hand in
 "config.h" for further configuration.
-To enable an on/off option, define the corresponding macro as a non-
+To enable an on-off option, define the corresponding macro as a non-
 zero integer. To disable, define the macro as zero or leave it
 undefined.
-The list below does not contain macros that are set by the `configure'
-script.
+Options that are not on-off options are listed with their default
+values.
+Note that the list below does not contain macros that are set by the
+`configure' script.
 
-#define DOUBLE_DIVISION_BY_ZERO_ERROR 1
+#define DOUBLE_DIVISION_BY_ZERO_ERROR 1  /* on-off option */
 When this macro is set to non-zero, division by zero in floating-point
 arithmetic is treated as an error. Otherwise, division by zero is
 assumed to return a valid result (like infinity).
 
 #define FORMAT_INDENT_WIDTH 3
 This macro must be defined as a non-negative integer.
-This macro specifies the number of spaces used to indent commands
-that are formated and printed by the shell.
+This macro specifies the number of spaces used to indent commands that
+are formated and printed by the shell.
 
-#define YASH_DISABLE_SUPERUSER
-When this macro is set to non-zero, the user whose UID is zero is not
-treated as the superuser, who is otherwise considered to have
+#define YASH_DISABLE_SUPERUSER 1  /* on-off option */
+When this macro is set to non-zero, the user whose user ID is zero is
+not treated as a superuser, who is otherwise considered to have
 special privilege about file access.
 
 #define SHELLFDMINMAX 100
-This macro must be defined as an integer no less than 10 and the
-default value for it is 100. When the shell opens a file that is not
-directly used by normal commands, the file descriptor for the file is
-chosen to be no less than the value of this macro.
+This macro must be defined as an integer no less than 10.
+When the shell opens a file that is not directly used by user
+commands, the file descriptor for the file is chosen to be no less
+than the value of this macro.
 
 #define ALIAS_LIST_MAX 30
 This macro must be defined as a positive integer.
 This macro specifies the maximum number of aliases that can be
 expanded recursively.
 
-#define FIXED_SIGNAL_AS_ERROR 1
+#define FIXED_SIGNAL_AS_ERROR 1  /* on-off option */
 This macro changes the behavior of the "trap" command in a non-
-interactive shell which tries to change a signal handler which has
-been set to "ignore the signal" when the shell is invoked.
-If this macro is set to non-zero, the "trap" command results in an
-error. Otherwise, the command returns the exit status of success.
-Note that the signal handler is not changed regardless of whether
-this macro is defined or not.
+interactive shell trying to change a signal handler that had been set
+to "ignore the signal" when the shell was invoked. If this macro is
+set to non-zero, the "trap" command results in an error. Otherwise,
+the command returns the exit status of success. Note that the signal
+handler is not changed whether this macro is defined or not.
 
-#define FG_DONT_SAVE_TERMINAL 1
+#define FG_DONT_SAVE_TERMINAL 1  /* on-off option */
 When a program that changes the terminal settings is invoked in the
-background and later continued in the foreground by the "fg" command,
-it may leave the terminal in the wrong settings. The "fg" command
+background and later continued in the foreground by the `fg' builtin,
+it may leave the terminal in the wrong settings. The `fg' builtin
 works around this problem by saving the terminal settings before
-continuing a program and restoring the settings after the program
+continuing the program and restoring the settings after the program
 has finished. Setting this macro to non-zero disables this workaround.
 
 #define HISTORY_REFRESH_INTERVAL 100
-This macro specifies the interval the shell refreshes the history
-file. The file is refreshed every time the shell executes as many
-commands as this number.
+This macro specifies the interval at which the shell rebuilds the
+history file. The file is rebuilt every time the shell executes as
+many commands as this number.

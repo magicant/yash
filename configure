@@ -95,9 +95,10 @@ do
 	    bindir="${i#--bindir=}" ;;
 	--datarootdir=*)
 	    datarootdir="${i#--datarootdir=}" ;;
-	--docdir=*)
+	# TODO datadir
+	--docdir=*)  # TODO to be removed
 	    docdir="${i#--docdir=}" ;;
-	--htmldir=*)
+	--htmldir=*)  # TODO to be removed
 	    htmldir="${i#--htmldir=}" ;;
 	--enable-*=no|--enable-*=false|--disable-*)
 	    parseenable "$i" "no" ;;
