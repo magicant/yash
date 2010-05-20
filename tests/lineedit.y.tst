@@ -419,6 +419,110 @@ bindkey -v '\^[' setmode-viinsert; echo 4 $?
 
 rm -fr "$tmp"
 
+echo ===== complete =====
+
+complete -P                                    || echo complete -P  error 1 $?
+complete -C c                                  || echo complete set error 1 $?
+complete -P                                    || echo complete -P  error 2 $?
+complete -C c -D description                   || echo complete set error 2 $?
+complete -P                                    || echo complete -P  error 3 $?
+complete -C c --description='long description' || echo complete set error 3 $?
+complete -P                                    || echo complete -P  error 4 $?
+complete -C c99 -O -l c                        || echo complete set error 4 $?
+complete -C c99 -O -l c -D libc                || echo complete set error 5 $?
+complete -C c99 -O -l socket                   || echo complete set error 6 $?
+complete -C c99 -O -l curses -D libcurses ncurses wcurses \
+                                               || echo complete set error 7 $?
+complete -C c99 -O -l -D 'linked library'      || echo complete set error 8 $?
+complete -C c99 -D 'C99 compiler'              || echo complete set error 9 $?
+complete -C c99 -O o -f -D 'output file'       || echo complete set error 10 $?
+complete -P        | sort || echo complete -P error 5 $?
+complete -P -C c99 | sort || echo complete -P error 6 $?
+complete -P -C c99 -O -l  || echo complete -P error 7 $?
+complete -R -C c99 -O -l  || echo complete -R error 1 $?
+complete -P -C c99 -O -l  ;  echo complete -P error 8 $?
+complete -C c99 -O E      || echo complete set error 11 $?
+complete -R -C c99        || echo complete -R error 2 $?
+complete -P -C c99 -O -l  ;  echo complete -P error 9 $?
+complete -P -C c99        ;  echo complete -P error 10 $?
+complete -P               || echo complete -P error 11 $?
+complete -C c99 -O -l curses -D libcurses ncurses wcurses \
+                          || echo complete set error 12 $?
+complete -P -C c99 -O -l  || echo complete -P error 12 $?
+complete --remove         || echo complete -R error 3 $?
+complete -P -C c -O x     ;  echo complete -P error 13 $?
+complete -P -C c          ;  echo complete -P error 14 $?
+complete --print          || echo complete -P error 15 $?
+complete -R               || echo complete -R error 4 $?
+complete -R -C foo        || echo complete -R error 5 $?
+complete -R -C foo -O x   || echo complete -R error 6 $?
+complete -R -C foo -O --x || echo complete -R error 7 $?
+
+echo =====
+
+complete -C comptest -O a -a
+complete -C comptest -O b -b
+complete -C comptest -O c -c
+complete -C comptest -O d -d
+complete -C comptest -O f -f
+complete -C comptest -O g -g
+complete -C comptest -O h -h
+complete -C comptest -O j -j
+complete -C comptest -O k -k
+complete -C comptest -O o -o
+complete -C comptest -O u -u
+complete -C comptest -O v -v
+complete -C comptest -O F -F func
+complete -C comptest -O --array-variable       --array-variable
+complete -C comptest -O --alias                --alias                
+complete -C comptest -O --bindkey              --bindkey              
+complete -C comptest -O --builtin              --builtin              
+complete -C comptest -O --command              --command              
+complete -C comptest -O --directory            --directory            
+complete -C comptest -O --executable-file      --executable-file      
+complete -C comptest -O --external-command     --external-command     
+complete -C comptest -O --file                 --file                 
+complete -C comptest -O --global-alias         --global-alias         
+complete -C comptest -O --group                --group                
+complete -C comptest -O --hostname             --hostname             
+complete -C comptest -O --signal               --signal               
+complete -C comptest -O --running-job          --running-job          
+complete -C comptest -O --job                  --job                  
+complete -C comptest -O --keyword              --keyword              
+complete -C comptest -O --normal-alias         --normal-alias         
+complete -C comptest -O --function             --function             
+complete -C comptest -O --regular-builtin      --regular-builtin      
+complete -C comptest -O --semi-special-builtin --semi-special-builtin 
+complete -C comptest -O --special-builtin      --special-builtin      
+complete -C comptest -O --username             --username             
+complete -C comptest -O --scalar-variable      --scalar-variable      
+complete -C comptest -O --variable             --variable             
+complete -C comptest -O --finished-job         --finished-job         
+complete -C comptest -O --stopped-job          --stopped-job          
+complete -C comptest -O --intermixed           --intermixed           
+complete --target-command=comptest --target-option=--description \
+    --description=description
+complete -C comptest -O --generator-function --generator-function=func
+complete -P -C comptest | sort
+complete -C comptest2 -X
+complete -C comptest3 --intermixed
+complete -P -C comptest2
+complete -P -C comptest3
+complete -R
+
+echo =====
+
+complete -C x -O y -F xyfunc
+complete -C x -O --z-long
+complete -C x -O y -O --y-long -f --builtin word1
+complete -C x -O z -O --z-long --array --external "'"
+complete -C x -O --y-long word2
+complete -C x -O z '"'
+complete -C x -F func foo bar
+complete -P | sort
+complete -R
+complete -P
+
 echo ===== error =====
 
 bindkey --no-such-option
@@ -435,3 +539,49 @@ echo bindkey unbound sequence $?
 echo bindkey output error 1 $?
 (bindkey -v >&- 2>/dev/null)
 echo bindkey output error 2 $?
+
+complete -C foo
+complete -C foo -O ''
+echo complete invalid option 1 $?
+complete -C foo -O xx
+echo complete invalid option 2 $?
+complete -C foo -O xxxxxxx
+echo complete invalid option 3 $?
+complete -C foo -O -
+echo complete invalid option 4 $?
+complete -C foo -O --
+echo complete invalid option 5 $?
+complete -C foo -O a -O b
+echo complete invalid option 6 $?
+complete -C foo -O -foo -O --bar
+echo complete invalid option 7 $?
+complete -C foo -C bar
+echo complete invalid option 8 $?
+complete -C foo -D desc -D error
+echo complete invalid option 9 $?
+complete -C foo -F func -F error
+echo complete invalid option 10 $?
+complete -O o
+echo complete invalid option 11 $?
+complete -P -R
+echo complete invalid option 12 $?
+complete -P || echo complete output error 1 $?
+(complete -P >&- 2>/dev/null)
+echo complete output error 2 $?
+complete -f
+echo complete not in candidate generator $?
+complete -C foo -O a -O --all -f
+complete -C foo -O a -O --error -h
+echo complete -O mismatch 1 $?
+complete -C foo -O A -O --all -h
+echo complete -O mismatch 2 $?
+complete -C foo -O b
+complete -C foo -O --binary
+complete -C foo -O b -O --binary -D error
+echo complete -O mismatch 3 $?
+complete -C foo -O a -O --error -P
+echo complete -O mismatch 4 $?
+complete -C foo -O A -O --all -P
+echo complete -O mismatch 5 $?
+complete -C foo -O b -O --binary -P
+echo complete -O mismatch 6 $?
