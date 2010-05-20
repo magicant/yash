@@ -1318,14 +1318,35 @@ BUILTIN_OBJS="${builtin_objs}"
 VERSION="${version}"
 INSTALL_PROGRAM="${INSTALL_PROGRAM-./install-sh}"
 PREFIX="${prefix-/usr/local}"
-EPREFIX="${eprefix-${PREFIX}}"
-if [ x"${PREFIX}" = x"/" ]; then PREFIX=""; fi
-if [ x"${EPREFIX}" = x"/" ]; then EPREFIX=""; fi
-BINDIR="${bindir-${EPREFIX}/bin}"
-DATAROOTDIR="${datarootdir-${PREFIX}/share}"
-if [ x"${DATAROOTDIR}" = x"/" ]; then DATAROOTDIR=""; fi
-DOCDIR="${docdir-${DATAROOTDIR}/doc/yash}"
-HTMLDIR="${htmldir-${DOCDIR}}"
+case "${PREFIX}" in
+    / ) PREFIX=  ;;
+    //) PREFIX=/ ;;
+esac
+EPREFIX="${eprefix-\$\(PREFIX\)}"
+case "${EPREFIX}" in
+    / ) EPREFIX=  ;;
+    //) EPREFIX=/ ;;
+esac
+BINDIR="${bindir-\$\(EPREFIX\)/bin}"
+case "${BINDIR}" in
+    / ) BINDIR=  ;;
+    //) BINDIR=/ ;;
+esac
+DATAROOTDIR="${datarootdir-\$\(PREFIX\)/share}"
+case "${DATAROOTDIR}" in
+    / ) DATAROOTDIR=  ;;
+    //) DATAROOTDIR=/ ;;
+esac
+DOCDIR="${docdir-\$\(DATAROOTDIR\)/doc/yash}"
+case "${DOCDIR}" in
+    / ) DOCDIR=  ;;
+    //) DOCDIR=/ ;;
+esac
+HTMLDIR="${htmldir-\$\(DOCDIR\)}"
+case "${HTMLDIR}" in
+    / ) HTMLDIR=  ;;
+    //) HTMLDIR=/ ;;
+esac
 
 # create Makefile($1) from Makefile.in($2) in directory $3
 makemakefile () {

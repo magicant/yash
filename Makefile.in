@@ -56,6 +56,8 @@ test tests check: _PHONY
 	@+cd tests && $(MAKE)
 
 DESTDIR =
+PREFIX = @PREFIX@
+EPREFIX = @EPREFIX@
 BINDIR = @BINDIR@
 install: install-binary install-doc
 install-strip:
