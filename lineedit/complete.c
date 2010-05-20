@@ -1320,7 +1320,7 @@ int complete_builtin_print(
 	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt)
 {
     if (candgens.capacity == 0 || candgens.count == 0)
-	return Exit_SUCCESS;
+	return (command == NULL) ? Exit_SUCCESS : Exit_FAILURE;
 
     if (command != NULL) {
 	const struct cmdcandgen_T *ccg = ht_get(&candgens, command).value;
@@ -1624,12 +1624,14 @@ void complete_builtin_remove(
 	if (ccg != NULL) {
 	    struct optcandgen_T **ocgp = &ccg->options;
 	    struct optcandgen_T  *ocg  =  ccg->options;
-	    for (; ocg != NULL; ocgp = &ocg->next, ocg = ocg->next) {
+	    for (; ocg != NULL; ocg = *ocgp) {
 		if ((shortopt != L'\0' && shortopt == ocg->shortoptchar)
 			|| (longopt != NULL && ocg->longopt != NULL
 			    && wcscmp(longopt, ocg->longopt) == 0)) {
 		    *ocgp = ocg->next;
 		    free_optcandgen(ocg);
+		} else {
+		    ocgp = &ocg->next;
 		}
 	    }
 	}
