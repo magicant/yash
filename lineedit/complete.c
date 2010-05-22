@@ -150,6 +150,15 @@ static le_quote_T quotetype;
 static size_t expanded_source_word_length;
 /* The length of the longest common prefix of the current candidates. */
 static size_t common_prefix_length;
+/* Example:
+ *   If completion was started with `le_main_buffer.contents' of `ssh"-k' and
+ *   if you got two candidates "ssh-keygen" and "ssh-keyscan", then
+ *   `insertion_index'             = 6
+ *   `ctxttype'                    = CTXT_COMMAND
+ *   `quotetype'                   = QUOTE_DOUBLE
+ *   `expanded_source_word_length' = 5 (= wcslen("ssh-k"))
+ *   `common_prefix_length'        = 7 (= wcslen("ssh-key"))
+ */
 
 /* The context in which completion is being performed. */
 static const le_context_T *ctxt = NULL;
@@ -210,6 +219,7 @@ display:  /* display the results */
 	    le_compdebug("candidate common prefix: \"%ls\"", common_prefix);
 	    free(common_prefix);
 	}
+	assert(expanded_source_word_length <= common_prefix_length);
 	le_selected_candidate_index = le_candidates.length;
 	le_display_make_rawvalues();
 	update_main_buffer();
