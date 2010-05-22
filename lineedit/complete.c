@@ -881,9 +881,14 @@ void generate_candidates_from_words(
     le_compdebug("adding predefined words for pattern \"%ls\"",
 	    context->pattern);
 
-    for (; *words != NULL; words++)
-	if (xfnm_wmatch(context->cpattern, *words).start != (size_t) -1)
-	    le_new_candidate(CT_WORD, xwcsdup(*words), NULL /* TODO */);
+    for (; *words != NULL; words++) {
+	wchar_t *word = *words;
+	if (xfnm_wmatch(context->cpattern, word).start != (size_t) -1) {
+	    const wchar_t *desc = word + wcslen(word) + 1;
+	    le_new_candidate(CT_WORD, xwcsdup(word),
+		    (desc[0] == L'\0') ? NULL : xwcsdup(desc));
+	}
+    }
 }
 
 
