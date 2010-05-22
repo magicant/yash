@@ -147,17 +147,17 @@ static le_contexttype_T ctxttype;
 /* The type of quotation at the current position. */
 static le_quote_T quotetype;
 /* The length of the expanded source word, not including backslash escapes. */
-static size_t expanded_source_word_length;
+static size_t source_word_length;
 /* The length of the longest common prefix of the current candidates. */
 static size_t common_prefix_length;
 /* Example:
  *   If completion was started with `le_main_buffer.contents' of `ssh"-k' and
  *   if you got two candidates "ssh-keygen" and "ssh-keyscan", then
- *   `insertion_index'             = 6
- *   `ctxttype'                    = CTXT_COMMAND
- *   `quotetype'                   = QUOTE_DOUBLE
- *   `expanded_source_word_length' = 5 (= wcslen("ssh-k"))
- *   `common_prefix_length'        = 7 (= wcslen("ssh-key"))
+ *   `insertion_index'      = 6
+ *   `ctxttype'             = CTXT_COMMAND
+ *   `quotetype'            = QUOTE_DOUBLE
+ *   `source_word_length'   = 5 (= wcslen("ssh-k"))
+ *   `common_prefix_length' = 7 (= wcslen("ssh-key"))
  */
 
 /* The context in which completion is being performed. */
@@ -192,7 +192,7 @@ void le_complete(void)
     insertion_index = le_main_index;
     ctxttype = context.type;
     quotetype = context.quote;
-    expanded_source_word_length = wcslen(context.src);
+    source_word_length = wcslen(context.src);
 
     ctxt = &context;
     generate_candidates(get_candgen(ctxt));
@@ -219,7 +219,7 @@ display:  /* display the results */
 	    le_compdebug("candidate common prefix: \"%ls\"", common_prefix);
 	    free(common_prefix);
 	}
-	assert(expanded_source_word_length <= common_prefix_length);
+	assert(source_word_length <= common_prefix_length);
 	le_selected_candidate_index = le_candidates.length;
 	le_display_make_rawvalues();
 	update_main_buffer();
@@ -934,13 +934,13 @@ void update_main_buffer(void)
     wb_init(&buf);
     if (le_selected_candidate_index >= le_candidates.length) {
 	cand = le_candidates.contents[0];
-	value = xwcsndup(candvalue(cand) + expanded_source_word_length,
-		common_prefix_length - expanded_source_word_length);
+	value = xwcsndup(candvalue(cand) + source_word_length,
+		common_prefix_length - source_word_length);
 	quote(&buf, value, quotetype);
 	free(value);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	quote(&buf, candvalue(cand) + expanded_source_word_length, quotetype);
+	quote(&buf, candvalue(cand) + source_word_length, quotetype);
     }
     wb_replace_force(&le_main_buffer,
 	    insertion_index, le_main_index - insertion_index,
