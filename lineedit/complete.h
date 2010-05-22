@@ -99,8 +99,10 @@ typedef struct le_context_T {
  * The `src' member is the source word expanded by the four expansions, brace
  * expansion, word splitting, and quote removal. The `pattern' member is like
  * the `src' member, but differs in that it may contain backslash escapes and
- * that it may have an additional asterisk at the end to make it a pattern. The
- * `cpattern' is the compiled version of the pattern.
+ * that it may have an additional asterisk at the end to make it a pattern. If
+ * an ignored prefix is found in the source word (cf. `source_word_skip'), the
+ * prefix is stripped off `pattern'. The `cpattern' is the compiled version of
+ * `pattern'.
  * The `srcindex' member designates where the source word starts in the edit
  * line.
  * The `substsrc' member designates whether the source word should be
@@ -154,6 +156,8 @@ extern void le_compdebug(const char *format, ...)
 extern void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc);
 extern void le_add_candidate(le_candidate_T *cand)
     __attribute__((nonnull));
+extern _Bool le_compile_cpattern(le_context_T *context)
+    __attribute__((nonnull));
 
 extern int complete_builtin(int argc, void **argv)
     __attribute__((nonnull));
@@ -162,45 +166,45 @@ extern const char complete_help[];
 
 /* This function is defined in "../alias.c". */
 extern void generate_alias_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 
 /* This function is defined in "../builtin.c". */
 extern void generate_builtin_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 
 /* This function is defined in "../exec.c". */
 extern int generate_candidates_using_function(
-	const wchar_t *funcname, const le_context_T *context)
+	const wchar_t *funcname, le_context_T *context)
     __attribute__((nonnull(2)));
 
 /* This function is defined in "../job.c". */
 extern void generate_job_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 
 /* This function is defined in "../option.c". */
 extern void generate_shopt_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 
 /* This function is defined in "../sig.c". */
 extern void generate_signal_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 
 /* These functions are defined in "../variable.c". */
 extern void generate_variable_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 extern void generate_function_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 
 /* This function is defined in "keymap.c". */
 extern void generate_bindkey_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 
 

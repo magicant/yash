@@ -99,28 +99,28 @@ static void generate_file_candidates(
 	le_candgentype_T type, const wchar_t *pattern)
     __attribute__((nonnull));
 static void generate_external_command_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 static void list_long_options(
 	const hashtable_T *options, const wchar_t *s, plist_T *list)
     __attribute__((nonnull));
 static void generate_keyword_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 static void generate_option_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 static void generate_logname_candidates(
-        le_candgentype_T type, const le_context_T *context)
+        le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 static void generate_group_candidates(
-        le_candgentype_T type, const le_context_T *context)
+        le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 static void generate_host_candidates(
-        le_candgentype_T type, const le_context_T *context)
+        le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 static void generate_candidates_from_words(
-	void *const *words, const le_context_T *context)
+	void *const *words, le_context_T *context)
     __attribute__((nonnull(2)));
 
 static void calculate_common_prefix_length(void);
@@ -146,22 +146,44 @@ static size_t insertion_index;
 static le_contexttype_T ctxttype;
 /* The type of quotation at the current position. */
 static le_quote_T quotetype;
-/* The length of the expanded source word, not including backslash escapes. */
+/* The length of the expanded source word, not including backslash escapes.
+ * If `source_word_skip' is non-zero, the ignored prefix is not counted in
+ * `source_word_length. */
 static size_t source_word_length;
+/* The length of the prefix of the expanded source word that is ignored in
+ * candidate generation. */
+static size_t source_word_skip;
 /* The length of the longest common prefix of the current candidates. */
 static size_t common_prefix_length;
-/* Example:
+/* Examples:
  *   If completion was started with `le_main_buffer.contents' of `ssh"-k' and
  *   if you got two candidates "ssh-keygen" and "ssh-keyscan", then
- *   `insertion_index'      = 6
- *   `ctxttype'             = CTXT_COMMAND
- *   `quotetype'            = QUOTE_DOUBLE
- *   `source_word_length'   = 5 (= wcslen("ssh-k"))
- *   `common_prefix_length' = 7 (= wcslen("ssh-key"))
+ *     `insertion_index'      = 6
+ *     `ctxttype'             = CTXT_COMMAND
+ *     `quotetype'            = QUOTE_DOUBLE
+ *     `source_word_length'   = 5 (= wcslen("ssh-k"))
+ *     `source_word_skip'     = 0
+ *     `common_prefix_length' = 7 (= wcslen("ssh-key"))
+ *
+ *   At first, `source_word_skip' is zero. If a prefix is found to be skipped
+ *   in `get_candgen', `source_word_skip' is set to the length of the prefix
+ *   and it is subtracted from `source_word_length'.
+ *   If the original buffer was `cmd --option=fo', then
+ *     `insertion_index'      = 15
+ *     `ctxttype'             = CTXT_NORMAL
+ *     `quotetype'            = QUOTE_NORMAL
+ *     `source_word_length'   = 11 (= wcslen("--option=fo"))
+ *     `source_word_skip'     = 0
+ *   When `--option=' was found to be the ignored prefix later, then the values
+ *   are updated:
+ *     `source_word_length'   = 2 (= wcslen("fo"))
+ *     `source_word_skip'     = 9 (= wcslen("--option="))
+ *   And if you got two candidates "food" and "fool", `common_prefix_length'
+ *   will be 3.
  */
 
 /* The context in which completion is being performed. */
-static const le_context_T *ctxt = NULL;
+static le_context_T *ctxt = NULL;
 
 
 /* Performs command line completion.
@@ -193,6 +215,7 @@ void le_complete(void)
     ctxttype = context.type;
     quotetype = context.quote;
     source_word_length = wcslen(context.src);
+    source_word_skip = 0;
 
     ctxt = &context;
     generate_candidates(get_candgen(ctxt));
@@ -635,6 +658,22 @@ void le_add_candidate(le_candidate_T *cand)
     pl_add(&le_candidates, cand);
 }
 
+/* Compiles the pattern in the specified context if not yet compiled.
+ * Returns true iff successful. */
+bool le_compile_cpattern(le_context_T *context)
+{
+    if (context->cpattern != NULL)
+	return true;
+
+    context->cpattern = xfnm_compile(
+	    context->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+    if (context->cpattern == NULL) {
+	le_compdebug("failed to compile pattern \"%ls\"", context->pattern);
+	return false;
+    }
+    return true;
+}
+
 /* Generates file name candidates that match the specified glob pattern.
  * The CGT_FILE, CGT_DIRECTORY, and CGT_EXECUTABLE flags specify what candidate
  * to generate. The other flags are ignored. */
@@ -688,13 +727,15 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
  * pattern in the specified context.
  * If CGT_EXECUTABLE is not in `type', this function does nothing. */
 void generate_external_command_candidates(
-	le_candgentype_T type, const le_context_T *context)
+	le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_EXTCOMMAND))
 	return;
 
     le_compdebug("adding external command names for pattern \"%ls\"",
 	    context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
 
     char *const *paths = get_path_array(PA_PATH);
     xstrbuf_T path;
@@ -747,13 +788,14 @@ void list_long_options(
 
 /* Generates candidates that are keywords matching the pattern in the specified
  * context. */
-void generate_keyword_candidates(
-	le_candgentype_T type, const le_context_T *context)
+void generate_keyword_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_KEYWORD))
 	return;
 
     le_compdebug("adding keywords matching pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
 
     static const wchar_t *keywords[] = {
 	L"case", L"do", L"done", L"elif", L"else", L"esac", L"fi", L"for",
@@ -768,8 +810,7 @@ void generate_keyword_candidates(
 
 /* Generates candidates to complete an option matching the pattern in the
  * specified context. */
-void generate_option_candidates(
-	le_candgentype_T type, const le_context_T *context)
+void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 {
     const wchar_t *src = context->src;
     if (!(type & CGT_OPTION) || src[0] != L'-')
@@ -778,6 +819,8 @@ void generate_option_candidates(
     le_compdebug("adding options matching pattern \"%ls\"", context->pattern);
     if (candgens.capacity == 0)
 	return;
+//    if (!le_compile_cpattern(context))
+//	return;
 
     return; //TODO
 
@@ -809,8 +852,7 @@ void generate_option_candidates(
 
 /* Generates candidates to complete a user name matching the pattern in the
  * specified context. */
-void generate_logname_candidates(
-        le_candgentype_T type, const le_context_T *context)
+void generate_logname_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_LOGNAME))
 	return;
@@ -818,6 +860,9 @@ void generate_logname_candidates(
     le_compdebug("adding users matching pattern \"%ls\"", context->pattern);
 
 #if HAVE_GETPWENT
+    if (!le_compile_cpattern(context))
+	return;
+
     struct passwd *pwd;
     while ((pwd = getpwent()) != NULL)
 	if (xfnm_match(context->cpattern, pwd->pw_name) == 0)
@@ -834,8 +879,7 @@ void generate_logname_candidates(
 
 /* Generates candidates to complete a group name matching the pattern in the
  * specified context. */
-void generate_group_candidates(
-        le_candgentype_T type, const le_context_T *context)
+void generate_group_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_GROUP))
 	return;
@@ -843,6 +887,9 @@ void generate_group_candidates(
     le_compdebug("adding groups matching pattern \"%ls\"", context->pattern);
 
 #if HAVE_GETGRENT
+    if (!le_compile_cpattern(context))
+	return;
+
     struct group *grp;
     while ((grp = getgrent()) != NULL)
 	if (xfnm_match(context->cpattern, grp->gr_name) == 0)
@@ -855,8 +902,7 @@ void generate_group_candidates(
 
 /* Generates candidates to complete a host name matching the pattern in the
  * specified context. */
-void generate_host_candidates(
-        le_candgentype_T type, const le_context_T *context)
+void generate_host_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_HOSTNAME))
 	return;
@@ -864,6 +910,9 @@ void generate_host_candidates(
     le_compdebug("adding hosts matching pattern \"%ls\"", context->pattern);
 
 #if HAVE_GETHOSTENT
+    if (!le_compile_cpattern(context))
+	return;
+
     struct hostent *host;
     sethostent(1);
     while ((host = gethostent()) != NULL) {
@@ -882,14 +931,15 @@ void generate_host_candidates(
 
 /* Generates candidates from words that match the pattern in the specified
  * context. */
-void generate_candidates_from_words(
-	void *const *words, const le_context_T *context)
+void generate_candidates_from_words(void *const *words, le_context_T *context)
 {
     if (words == NULL)
 	return;
 
     le_compdebug("adding predefined words for pattern \"%ls\"",
 	    context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
 
     for (; *words != NULL; words++) {
 	wchar_t *word = *words;

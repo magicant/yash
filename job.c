@@ -887,8 +887,7 @@ found:
 /* Generates completion candidates for job names that match the glob pattern
  * in the specified context. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_job_candidates(
-	le_candgentype_T type, const le_context_T *context)
+void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_JOB))
 	return;

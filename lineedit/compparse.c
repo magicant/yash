@@ -114,7 +114,8 @@ static bool is_arith_delimiter(wchar_t c)
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
  * up to the current cursor position (`le_main_index') and determines the
  * current completion context.
- * The result is put in `*ctxt'.
+ * The result is put in `*ctxt', but this function does not compile
+ * `ctxt->pattern' into `ctxt->cpattern', which is assigned NULL.
  * Returns true iff successful.
  * The context data must be freed using the `le_free_context' function
  * regardless of whether successful or not. */
@@ -156,12 +157,7 @@ bool le_get_context(le_context_T *ctxt)
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG)
 	print_context_info(ctxt);
 
-    ctxt->cpattern = xfnm_compile(
-	    ctxt->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
-    if (ctxt->cpattern == NULL) {
-	le_compdebug("failed to compile pattern \"%ls\"", ctxt->pattern);
-	return false;
-    }
+    ctxt->cpattern = NULL;
     return true;
 }
 

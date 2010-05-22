@@ -231,13 +231,14 @@ int print_builtin_help(const wchar_t *name)
  * CGT_RBUILTIN flags in `type' specify what candidate to generate. The other
  * flags are ignored. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_builtin_candidates(
-	le_candgentype_T type, const le_context_T *context)
+void generate_builtin_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_BUILTIN))
 	return;
 
     le_compdebug("adding builtins for pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
 
     size_t i = 0;
     kvpair_T kv;

@@ -1426,7 +1426,7 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
  * Returns the exit status of the function. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
 int generate_candidates_using_function(
-	const wchar_t *funcname, const le_context_T *context)
+	const wchar_t *funcname, le_context_T *context)
 {
     if (funcname == NULL)
 	return Exit_SUCCESS;

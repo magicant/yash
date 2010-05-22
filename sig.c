@@ -928,13 +928,14 @@ void reset_sigwinch(void)
 /* Generates completion candidates for signal names that match the glob pattern
  * in the specified context. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_signal_candidates(
-	        le_candgentype_T type, const le_context_T *context)
+void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_SIGNAL))
 	return;
 
     le_compdebug("adding signals for pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
 
     bool prefix = matchwcsprefix(context->src, L"SIG");
     xwcsbuf_T buf;

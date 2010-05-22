@@ -413,13 +413,14 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 /* Generates candidates to complete an alias matching the pattern in the
  * specified context. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_alias_candidates(
-	le_candgentype_T type, const le_context_T *context)
+void generate_alias_candidates(le_candgentype_T type, le_context_T *context)
 {
     if (!(type & CGT_ALIAS))
 	return;
 
     le_compdebug("adding aliases matching pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
 
     size_t i = 0;
     kvpair_T kv;
