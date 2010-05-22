@@ -2,7 +2,10 @@
 # (C) 2010 magicant
 
 do_test () {
-	printf '========== ./configure %s\n' "$*"
+	if [ -r Makefile ]; then
+		$MAKE clean
+	fi
+	printf '\n========== ./configure %s\n' "$*"
 	./configure "$@"
 	$MAKE test
 }
@@ -10,10 +13,6 @@ do_test () {
 set -o errexit
 
 echo "$0: using '${MAKE:=make}' as make"
-
-if [ -r Makefile ]; then
-	$MAKE clean
-fi
 
 a0='' a1='--disable-lineedit' a2='--disable-history --disable-lineedit' a3=''
 b0='' b1='--disable-alias'
