@@ -88,7 +88,14 @@ static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
 
+struct cmdcandgen_T;
 static const struct candgen_T *get_candgen(void);
+static const struct candgen_T *get_candgen_cmdarg(void);
+static const struct candgen_T *get_candgen_parse_pwords(
+	const struct cmdcandgen_T *ccg)
+    __attribute__((nonnull));
+static const struct candgen_T *get_candgen_default(void);
+static const struct candgen_T *get_candgen_option(void);
 static void skip_prefix(size_t len);
 static int generate_candidates(const struct candgen_T *candgen)
     __attribute__((nonnull));
@@ -360,7 +367,7 @@ void le_compdebug(const char *format, ...)
 }
 
 
-/********** Completion Candidate Generation **********/
+/********** Completion Style Determination **********/
 
 #define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
 
@@ -421,71 +428,136 @@ struct cmdcandgen_T {
  * When the hashtable is not yet initialized, the capacity is zero. */
 static hashtable_T candgens = { .capacity = 0 };
 
+/* The completion style returned by `get_candgen'. */
+static struct candgen_T tmpcandgen;
+
 /* Determines how to generate candidates under context `ctxt'.
- * The result is valid until the next call to this function or `set_candgen'.
+ * The result is valid until the next call to this function or
+ * `complete_builtin_set'.
  * This function may change `ctxt->src', `ctxt->pattern', `source_word_skip',
  * and `source_word_length'. */
 const struct candgen_T *get_candgen(void)
 {
     static void *in_do[] = { L"in", L"do", NULL };
     static void *in[] = { L"in", NULL };
-    static struct candgen_T tempresult;
 
     // TODO test
     // TODO don't add CGT_KEYWORD/CGT_ALIAS when quoted
-    tempresult = (struct candgen_T) {
+    tmpcandgen = (struct candgen_T) {
 	.type = 0, .words = NULL, .function = NULL };
     switch (ctxt->type & CTXT_MASK) {
 	case CTXT_NORMAL:
-	    goto parse_cmd_args;
+	    return get_candgen_cmdarg();
 	case CTXT_COMMAND:
 	    if (wcschr(ctxt->src, L'/')) {
-		tempresult.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
+		tmpcandgen.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
 	    } else {
-		tempresult.type |= CGT_DIRECTORY | CGT_KEYWORD
+		tmpcandgen.type |= CGT_DIRECTORY | CGT_KEYWORD
 		    | CGT_COMMAND | CGT_ALIAS;
 	    }
-	    return &tempresult;
+	    return &tmpcandgen;
 	case CTXT_TILDE:
-	    tempresult.type |= CGT_LOGNAME;
-	    return &tempresult;
+	    tmpcandgen.type |= CGT_LOGNAME;
+	    return &tmpcandgen;
 	case CTXT_VAR:
-	    tempresult.type |= CGT_VARIABLE;
-	    return &tempresult;
+	    tmpcandgen.type |= CGT_VARIABLE;
+	    return &tmpcandgen;
 	case CTXT_ARITH:
-	    tempresult.type |= CGT_SCALAR;
-	    return &tempresult;
+	    tmpcandgen.type |= CGT_SCALAR;
+	    return &tmpcandgen;
 	case CTXT_ASSIGN:
-	    tempresult.type |= CGT_FILE;
-	    return &tempresult;
+	    tmpcandgen.type |= CGT_FILE;
+	    return &tmpcandgen;
 	case CTXT_REDIR:
-	    tempresult.type |= CGT_FILE | CGT_GALIAS;
-	    return &tempresult;
+	    tmpcandgen.type |= CGT_FILE | CGT_GALIAS;
+	    return &tmpcandgen;
 	case CTXT_REDIR_FD:
-	    tempresult.type |= CGT_GALIAS;
-	    return &tempresult;
+	    tmpcandgen.type |= CGT_GALIAS;
+	    return &tmpcandgen;
 	case CTXT_FOR_IN:
-	    tempresult.words = in_do;
-	    return &tempresult;
+	    tmpcandgen.words = in_do;
+	    return &tmpcandgen;
 	case CTXT_FOR_DO:
-	    tempresult.words = in_do + 1;
-	    return &tempresult;
+	    tmpcandgen.words = in_do + 1;
+	    return &tmpcandgen;
 	case CTXT_CASE_IN:
-	    tempresult.words = in;
-	    return &tempresult;
+	    tmpcandgen.words = in;
+	    return &tmpcandgen;
     }
     assert(false);
+}
 
+/* Parses the already-entered command words and determines how to complete the
+ * current word.
+ * This function may change `ctxt->src', `ctxt->pattern', `source_word_skip',
+ * and `source_word_length'. */
+const struct candgen_T *get_candgen_cmdarg(void)
+{
     const struct cmdcandgen_T *ccg;
     const struct optcandgen_T *ocg;
-parse_cmd_args:
     if (candgens.capacity == 0)
-	goto return_default;
+	return get_candgen_default();
     ccg = ht_get(&candgens, ctxt->pwords[0]).value;
     if (ccg == NULL)
-	goto return_default;
+	return get_candgen_default();
 
-    /* parse the current command arguments */
+    const struct candgen_T *result = get_candgen_parse_pwords(ccg);
+    if (result != NULL)
+	return result;
+
+    /* if the source word is not an option, simply complete as an operand */
+    if (ccg->options == NULL || ctxt->src[0] != L'-')
+	return &ccg->operands;
+
+    /* parse the source word to find how we should complete an option */
+    /* first check for long options */
+    for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+	const wchar_t *ss = ctxt->src, *longopt = ocg->longopt;
+	if (longopt == NULL)
+	    continue;
+	assert(ss[0] == L'-');
+	assert(longopt[0] == L'-');
+	if (ss[1] == L'\0' && longopt[1] == L'-')
+	    continue;
+
+	/* compare `ss' and `longopt' */
+	do {
+	    ss++, longopt++;
+	    if (*ss == L'\0')
+		return get_candgen_option();
+	    if (ocg->requiresargument && *ss == L'='
+		    && (*longopt == L'\0' || ctxt->src[1] == L'-')) {
+		skip_prefix(ss - ctxt->src + 1);
+		return &ocg->candgen;
+	    }
+	} while (*ss == *longopt);
+    }
+
+    /* next check for short options */
+    const wchar_t *ss = ctxt->src;
+    if (ss[1] == L'-')
+	return get_candgen_option();
+    while (*++ss != L'\0') {
+	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+	    if (*ss == ocg->shortoptchar) {
+		if (ocg->requiresargument) {
+		    skip_prefix(ss - ctxt->src + 1);
+		    return &ocg->candgen;
+		} else {
+		    break;
+		}
+	    }
+	}
+    }
+    skip_prefix(ss - ctxt->src);
+    return get_candgen_option();
+}
+
+/* Parses `ctxt->pwords'. */
+const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
+{
+    const struct optcandgen_T *ocg;
+
     for (int i = 1; i < ctxt->pwordc; i++) {
 	const wchar_t *s = ctxt->pwords[i];
 	if (s[0] != L'-') {
@@ -538,57 +610,19 @@ parse_cmd_args:
 next_word:;
     }
 
-    if (ccg->options == NULL || ctxt->src[0] != L'-')
-	return &ccg->operands;
+    return NULL;
+}
 
-    /* parse the source word to find how we should complete an option */
-    /* first check for long options */
-    for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
-	const wchar_t *ss = ctxt->src, *longopt = ocg->longopt;
-	if (longopt == NULL)
-	    continue;
-	assert(ss[0] == L'-');
-	assert(longopt[0] == L'-');
-	if (ss[1] == L'\0' && longopt[1] == L'-')
-	    continue;
+const struct candgen_T *get_candgen_default(void)
+{
+    tmpcandgen.type = CGT_FILE | CGT_GALIAS;
+    return &tmpcandgen;
+}
 
-	/* compare `ss' and `longopt' */
-	do {
-	    ss++, longopt++;
-	    if (*ss == L'\0')
-		goto return_option;
-	    if (ocg->requiresargument && *ss == L'='
-		    && (*longopt == L'\0' || ctxt->src[1] == L'-')) {
-		skip_prefix(ss - ctxt->src + 1);
-		return &ocg->candgen;
-	    }
-	} while (*ss == *longopt);
-    }
-
-    /* next check for short options */
-    const wchar_t *ss = ctxt->src;
-    if (ss[1] == L'-')
-	goto return_option;
-    while (*++ss != L'\0') {
-	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
-	    if (*ss == ocg->shortoptchar) {
-		if (ocg->requiresargument) {
-		    skip_prefix(ss - ctxt->src + 1);
-		    return &ocg->candgen;
-		} else {
-		    break;
-		}
-	    }
-	}
-    }
-    skip_prefix(ss - ctxt->src);
-return_option:
-    tempresult.type = CGT_OPTION;
-    return &tempresult;
-
-return_default:
-    tempresult.type = CGT_FILE | CGT_GALIAS;
-    return &tempresult;
+const struct candgen_T *get_candgen_option(void)
+{
+    tmpcandgen.type = CGT_OPTION;
+    return &tmpcandgen;
 }
 
 /* Sets `source_word_skip' to `len' and removes the prefix from the source word
@@ -615,6 +649,9 @@ void skip_prefix(size_t len)
     le_compdebug("new source word: \"%ls\"", ctxt->src);
     le_compdebug("     as pattern: \"%ls\"", ctxt->pattern);
 }
+
+
+/********** Completion Candidate Generation **********/
 
 /* Generates completion candidates according to the specified completion style.
  * The candidate list must have been initialized when this function is called.
