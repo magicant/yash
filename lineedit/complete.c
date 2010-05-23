@@ -88,11 +88,8 @@ static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
 
-static const struct candgen_T *get_candgen(const le_context_T *context)
-    __attribute__((nonnull));
-static const struct candgen_T *find_optarg_candgen(
-	const hashtable_T *options, const wchar_t *s)
-    __attribute__((nonnull));
+static const struct candgen_T *get_candgen(void);
+static void skip_prefix(size_t len);
 static int generate_candidates(const struct candgen_T *candgen)
     __attribute__((nonnull));
 static void generate_file_candidates(
@@ -100,9 +97,6 @@ static void generate_file_candidates(
     __attribute__((nonnull));
 static void generate_external_command_candidates(
 	le_candgentype_T type, le_context_T *context)
-    __attribute__((nonnull));
-static void list_long_options(
-	const hashtable_T *options, const wchar_t *s, plist_T *list)
     __attribute__((nonnull));
 static void generate_keyword_candidates(
 	le_candgentype_T type, le_context_T *context)
@@ -218,7 +212,7 @@ void le_complete(void)
     source_word_skip = 0;
 
     ctxt = &context;
-    generate_candidates(get_candgen(ctxt));
+    generate_candidates(get_candgen());
     ctxt = NULL;
     sort_candidates();
     le_compdebug("total of %zu candidate(s)", le_candidates.length);
@@ -427,10 +421,11 @@ struct cmdcandgen_T {
  * When the hashtable is not yet initialized, the capacity is zero. */
 static hashtable_T candgens = { .capacity = 0 };
 
-/* Determines how to generate candidates.
- * The context in which the completion is performed is specified by `context'.
- * The result is valid until the next call to this function or `set_candgen'. */
-const struct candgen_T *get_candgen(const le_context_T *context)
+/* Determines how to generate candidates under context `ctxt'.
+ * The result is valid until the next call to this function or `set_candgen'.
+ * This function may change `ctxt->src', `ctxt->pattern', `source_word_skip',
+ * and `source_word_length'. */
+const struct candgen_T *get_candgen(void)
 {
     static void *in_do[] = { L"in", L"do", NULL };
     static void *in[] = { L"in", NULL };
@@ -440,11 +435,11 @@ const struct candgen_T *get_candgen(const le_context_T *context)
     // TODO don't add CGT_KEYWORD/CGT_ALIAS when quoted
     tempresult = (struct candgen_T) {
 	.type = 0, .words = NULL, .function = NULL };
-    switch (context->type & CTXT_MASK) {
+    switch (ctxt->type & CTXT_MASK) {
 	case CTXT_NORMAL:
-	    break;
+	    goto parse_cmd_args;
 	case CTXT_COMMAND:
-	    if (wcschr(context->src, L'/')) {
+	    if (wcschr(ctxt->src, L'/')) {
 		tempresult.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
 	    } else {
 		tempresult.type |= CGT_DIRECTORY | CGT_KEYWORD
@@ -478,85 +473,147 @@ const struct candgen_T *get_candgen(const le_context_T *context)
 	case CTXT_CASE_IN:
 	    tempresult.words = in;
 	    return &tempresult;
-	default:
-	    assert(false);
     }
+    assert(false);
 
     const struct cmdcandgen_T *ccg;
+    const struct optcandgen_T *ocg;
+parse_cmd_args:
     if (candgens.capacity == 0)
 	goto return_default;
-    ccg = ht_get(&candgens, context->pwords[0]).value;
+    ccg = ht_get(&candgens, ctxt->pwords[0]).value;
     if (ccg == NULL)
 	goto return_default;
 
     /* parse the current command arguments */
-// TODO
-//    for (int i = 1; i < context->pwordc; i++) {
-//	const wchar_t *s = context->pwords[i];
-//	if (s[0] != L'-') {
-//	    if (ccg->intermixed)
-//		continue;
-//	    else
-//		return &ccg->operands;
-//	}
-//	if (s[1] == L'-' && s[2] == L'\0')  /* s == L"--" */
-//	    return &ccg->operands;
-//
-//	const candgen_T *candgen = find_optarg_candgen(&ccg->options, s);
-//	if (candgen == NULL)
-//	    continue;
-//	if (++i == context->pwordc)
-//	    return candgen;
-//    }
-//    if (context->src[0] == L'-') {
-//	tempresult.type = CGT_OPTION;
-//	return &tempresult;
-//    } else {
-//	return &ccg->operands;
-//    }
+    for (int i = 1; i < ctxt->pwordc; i++) {
+	const wchar_t *s = ctxt->pwords[i];
+	if (s[0] != L'-') {
+	    if (ccg->intermixed)
+		continue;
+	    else
+		return &ccg->operands;
+	} else if (s[1] == L'-' && s[2] == L'\0') {  /* s == L"--" */
+	    return &ccg->operands;
+	}
+
+	/* first check if the word is a long option */
+	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+	    const wchar_t *ss = s, *longopt = ocg->longopt;
+	    if (longopt == NULL)
+		continue;
+	    assert(ss[0] == L'-');
+	    assert(longopt[0] == L'-');
+
+	    /* compare `ss' and `longopt' */
+	    do
+		ss++, longopt++;
+	    while (*ss != L'\0' && *ss != L'=' && *ss == *longopt);
+	    if ((*ss == L'\0' || *ss == L'=')
+		    && (*longopt == L'\0' || s[1] == L'-')) {
+		if (ocg->requiresargument && *ss == L'\0')
+		    if (++i == ctxt->pwordc)
+			return &ocg->candgen;
+		goto next_word;
+	    }
+	}
+
+	/* next check for short options */
+	if (s[1] != L'-') {
+	    for (const wchar_t *ss = s + 1; *ss != L'\0'; ss++) {
+		for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+		    if (*ss == ocg->shortoptchar) {
+			if (ocg->requiresargument) {
+			    if (*(ss + 1) == L'\0')
+				if (++i == ctxt->pwordc)
+				    return &ocg->candgen;
+			    goto next_word;
+			} else {
+			    break;
+			}
+		    }
+		}
+	    }
+	}
+next_word:;
+    }
+
+    if (ccg->options == NULL || ctxt->src[0] != L'-')
+	return &ccg->operands;
+
+    /* parse the source word to find how we should complete an option */
+    /* first check for long options */
+    for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+	const wchar_t *ss = ctxt->src, *longopt = ocg->longopt;
+	if (longopt == NULL)
+	    continue;
+	assert(ss[0] == L'-');
+	assert(longopt[0] == L'-');
+	if (ss[1] == L'\0' && longopt[1] == L'-')
+	    continue;
+
+	/* compare `ss' and `longopt' */
+	do {
+	    ss++, longopt++;
+	    if (*ss == L'\0')
+		goto return_option;
+	    if (ocg->requiresargument && *ss == L'='
+		    && (*longopt == L'\0' || ctxt->src[1] == L'-')) {
+		skip_prefix(ss - ctxt->src + 1);
+		return &ocg->candgen;
+	    }
+	} while (*ss == *longopt);
+    }
+
+    /* next check for short options */
+    const wchar_t *ss = ctxt->src;
+    if (ss[1] == L'-')
+	goto return_option;
+    while (*++ss != L'\0') {
+	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+	    if (*ss == ocg->shortoptchar) {
+		if (ocg->requiresargument) {
+		    skip_prefix(ss - ctxt->src + 1);
+		    return &ocg->candgen;
+		} else {
+		    break;
+		}
+	    }
+	}
+    }
+    skip_prefix(ss - ctxt->src);
+return_option:
+    tempresult.type = CGT_OPTION;
+    return &tempresult;
 
 return_default:
     tempresult.type = CGT_FILE | CGT_GALIAS;
     return &tempresult;
 }
 
-/* Searches `options' for an option whose argument should be given as the next
- * command-line argument. The current argument word that starts with an hyphen
- * must be given as `s'. */
-const struct candgen_T *find_optarg_candgen(
-	const hashtable_T *options, const wchar_t *s)
+/* Sets `source_word_skip' to `len' and removes the prefix from the source word
+ * in context `ctxt'. */
+void skip_prefix(size_t len)
 {
-    // TODO test
+    assert(len <= source_word_length);
+    assert(source_word_skip == 0);
+    source_word_length -= len;
+    source_word_skip = len;
 
-    assert(s[0] == L'-');
+    wmemmove(ctxt->src, ctxt->src + len, source_word_length + 1);
 
-    kvpair_T kv = ht_get(options, s);
-    if (kv.key != NULL)
-	return kv.value;
-
-    if (s[1] == L'-') {
-	plist_T list;
-	list_long_options(options, s, pl_init(&list));
-	if (list.length == 1 && !wcschr(s, L'=')) {
-	    s = list.contents[0];
-	    pl_destroy(&list);
-	    return ht_get(options, s).value;
-	}
-	pl_destroy(&list);
-    } else {
-	wchar_t opt[2];
-	opt[1] = L'\0';
-	while ((opt[0] = *++s) != L'\0') {
-	    kv = ht_get(options, opt);
-	    if (kv.value != NULL) {
-		if (*++s != L'\0')
-		    break;
-		else
-		    return kv.value;
-	    }
-	}
+    size_t plen = 0;
+    for (size_t l = 0; l < len; l++) {
+	if (ctxt->pattern[plen] == L'\\')
+	    plen++;
+	assert(ctxt->pattern[plen] != L'\0');
+	plen++;
     }
-    return NULL;
+    wmemmove(ctxt->pattern, ctxt->pattern + plen,
+	    wcslen(ctxt->pattern + plen) + 1);
+
+    le_compdebug("new source word: \"%ls\"", ctxt->src);
+    le_compdebug("     as pattern: \"%ls\"", ctxt->pattern);
 }
 
 /* Generates completion candidates according to the specified completion style.
@@ -766,24 +823,6 @@ void generate_external_command_candidates(
 	closedir(dir);
     }
     sb_destroy(&path);
-}
-
-/* Adds pointers that point to option names that starts with `s' to the
- * specified list. The added pointers point to wide strings, which must not be
- * modified or freed. */
-void list_long_options(
-    const hashtable_T *options, const wchar_t *s, plist_T *list)
-{
-    // TODO test
-
-    const wchar_t *name;
-    size_t i = 0;
-
-    assert(s[0] == L'-');
-    while ((name = ht_next(options, &i).key) != NULL) {
-	if (matchwcsprefix(name, s))
-	    pl_add(list, name);
-    }
 }
 
 /* Generates candidates that are keywords matching the pattern in the specified

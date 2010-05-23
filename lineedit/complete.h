@@ -101,8 +101,8 @@ typedef struct le_context_T {
  * the `src' member, but differs in that it may contain backslash escapes and
  * that it may have an additional asterisk at the end to make it a pattern. If
  * an ignored prefix is found in the source word (cf. `source_word_skip'), the
- * prefix is stripped off `pattern'. The `cpattern' is the compiled version of
- * `pattern'.
+ * prefix is stripped off `src' and `pattern'. The `cpattern' is the compiled
+ * version of `pattern'.
  * The `srcindex' member designates where the source word starts in the edit
  * line.
  * The `substsrc' member designates whether the source word should be
