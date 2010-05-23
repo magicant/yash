@@ -469,7 +469,6 @@ complete -C comptest -O g -g
 complete -C comptest -O h -h
 complete -C comptest -O j -j
 complete -C comptest -O k -k
-complete -C comptest -O o -o
 complete -C comptest -O u -u
 complete -C comptest -O v -v
 complete -C comptest -O F -F func

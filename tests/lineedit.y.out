@@ -90,7 +90,6 @@ complete -C comptest -O g --group
 complete -C comptest -O h --hostname
 complete -C comptest -O j --job
 complete -C comptest -O k --keyword
-complete -C comptest -O o --shell-option
 complete -C comptest -O u --username
 complete -C comptest -O v --variable
 complete -C comptest -X

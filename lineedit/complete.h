@@ -34,7 +34,6 @@ typedef enum le_candtype_T {
     CT_OPTIONA,    // command option that takes an argument
     CT_VAR,        // variable name
     CT_JOB,        // job name
-    CT_SHOPT,      // shell option name
     CT_FD,         // file descriptor
     CT_SIG,        // signal name
     CT_LOGNAME,    // user name
@@ -135,12 +134,11 @@ typedef enum le_candgentype_T {
     CGT_STOPPED    = 1 << 15, // stopped job
     CGT_DONE       = 1 << 16, // finished job
     CGT_JOB        = CGT_RUNNING | CGT_STOPPED | CGT_DONE,
-    CGT_SHOPT      = 1 << 17, // shell option
-    CGT_SIGNAL     = 1 << 18, // signal name
-    CGT_LOGNAME    = 1 << 19, // login user name
-    CGT_GROUP      = 1 << 20, // group name
-    CGT_HOSTNAME   = 1 << 21, // host name
-    CGT_BINDKEY    = 1 << 22, // line-editing command name
+    CGT_SIGNAL     = 1 << 17, // signal name
+    CGT_LOGNAME    = 1 << 18, // login user name
+    CGT_GROUP      = 1 << 19, // group name
+    CGT_HOSTNAME   = 1 << 20, // host name
+    CGT_BINDKEY    = 1 << 21, // line-editing command name
 } le_candgentype_T;
 
 
@@ -181,11 +179,6 @@ extern int generate_candidates_using_function(
 
 /* This function is defined in "../job.c". */
 extern void generate_job_candidates(
-	le_candgentype_T type, le_context_T *context)
-    __attribute__((nonnull));
-
-/* This function is defined in "../option.c". */
-extern void generate_shopt_candidates(
 	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
 

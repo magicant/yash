@@ -632,7 +632,6 @@ int generate_candidates(const struct candgen_T *candgen)
 #endif
     generate_variable_candidates(candgen->type, ctxt);
     generate_job_candidates(candgen->type, ctxt);
-    generate_shopt_candidates(candgen->type, ctxt);
     generate_signal_candidates(candgen->type, ctxt);
     generate_logname_candidates(candgen->type, ctxt);
     generate_group_candidates(candgen->type, ctxt);
@@ -690,7 +689,6 @@ void le_add_candidate(le_candidate_T *cand)
 	    case CT_VAR:       typestr = "variable";                   break;
 	    case CT_FUNC:      typestr = "function";                   break;
 	    case CT_JOB:       typestr = "job";                        break;
-	    case CT_SHOPT:     typestr = "shell option";               break;
 	    case CT_FD:        typestr = "file descriptor";            break;
 	    case CT_SIG:       typestr = "signal";                     break;
 	    case CT_LOGNAME:   typestr = "user name";                  break;
@@ -1246,7 +1244,6 @@ int complete_builtin(int argc, void **argv)
 	{ L"normal-alias",         xno_argument,       L'N', },
 	{ L"function",             xno_argument,       L'n', },
 	{ L"target-option",        xrequired_argument, L'O', },
-	{ L"shell-option",         xno_argument,       L'o', },
 	{ L"print",                xno_argument,       L'P', },
 	{ L"remove",               xno_argument,       L'R', },
 	{ L"regular-builtin",      xno_argument,       L'r', },
@@ -1274,7 +1271,7 @@ int complete_builtin(int argc, void **argv)
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"C:D:F:O:PRXabcdfghjkouv", long_options, NULL))) {
+		    argv, L"C:D:F:O:PRXabcdfghjkuv", long_options, NULL))) {
 	switch (opt) {
 	    case L'A':  cgtype |= CGT_ARRAY;       break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
@@ -1327,7 +1324,6 @@ int complete_builtin(int argc, void **argv)
 		    shortopt = xoptarg[0];
 		}
 		break;
-	    case L'o':  cgtype |= CGT_SHOPT;       break;
 	    case L'P':  print = true;              break;
 	    case L'R':  remove = true;             break;
 	    case L'r':  cgtype |= CGT_RBUILTIN;    break;
@@ -1613,8 +1609,6 @@ int print_candgen(
 	if (candgen->type & CGT_DONE)
 	    TRYPRINT(" --finished-job");
     }
-    if (candgen->type & CGT_SHOPT)
-	TRYPRINT(" --shell-option");
     if (candgen->type & CGT_SIGNAL)
 	TRYPRINT(" --signal");
     if (candgen->type & CGT_LOGNAME)
@@ -1933,7 +1927,6 @@ const char complete_help[] = Ngt(
 "    --running-job           running job names\n"
 "    --scalar-variable       normal (non-array) variables\n"
 "    --semi-special-builtin  semi-special builtins\n"
-" -o --shell-option          shell options\n"
 "    --signal                signal names\n"
 "    --special-builtin       special builtins\n"
 "    --stopped-job           stopped job names\n"

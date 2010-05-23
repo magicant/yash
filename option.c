@@ -419,25 +419,6 @@ void set_le_noconvmeta_option(void *argp __attribute__((unused)))
 	shopt_le_convmeta = shopt_auto;
 }
 
-/* Generates completion candidates for shell option names that match the glob
- * pattern in the specified context. */
-/* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_shopt_candidates(le_candgentype_T type, le_context_T *context)
-{
-    if (!(type & CGT_SHOPT))
-	return;
-
-    le_compdebug("adding shell options for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
-	return;
-
-    for (size_t i = 0; set_long_options[i].name != NULL; i++) {
-	if (xfnm_wmatch(context->cpattern, set_long_options[i].name).start
-		!= (size_t) -1)
-	    le_new_candidate(CT_SHOPT, xwcsdup(set_long_options[i].name), NULL);
-    }
-}
-
 #endif /* YASH_ENABLE_LINEEDIT */
 
 /* Returns the current value of special parameter $- as a newly malloced string.
