@@ -96,6 +96,9 @@ static const struct candgen_T *get_candgen_parse_pwords(
     __attribute__((nonnull));
 static const struct candgen_T *get_candgen_default(void);
 static const struct candgen_T *get_candgen_option(void);
+static const struct candgen_T *get_candgen_operands(
+	const struct candgen_T *candgen)
+    __attribute__((nonnull));
 static void skip_prefix(size_t len);
 static int generate_candidates(const struct candgen_T *candgen)
     __attribute__((nonnull));
@@ -507,7 +510,7 @@ const struct candgen_T *get_candgen_cmdarg(void)
 
     /* if the source word is not an option, simply complete as an operand */
     if (ccg->options == NULL || ctxt->src[0] != L'-')
-	return &ccg->operands;
+	return get_candgen_operands(&ccg->operands);
 
     /* parse the source word to find how we should complete an option */
     /* first check for long options */
@@ -564,9 +567,9 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	    if (ccg->intermixed)
 		continue;
 	    else
-		return &ccg->operands;
+		return get_candgen_operands(&ccg->operands);
 	} else if (s[1] == L'-' && s[2] == L'\0') {  /* s == L"--" */
-	    return &ccg->operands;
+	    return get_candgen_operands(&ccg->operands);
 	}
 
 	/* first check if the word is a long option */
@@ -623,6 +626,15 @@ const struct candgen_T *get_candgen_option(void)
 {
     tmpcandgen.type = CGT_OPTION;
     return &tmpcandgen;
+}
+
+const struct candgen_T *get_candgen_operands(const struct candgen_T *candgen)
+{
+    if (!candgen->type
+	    && (candgen->words == NULL || candgen->words[0] == NULL)
+	    && (candgen->function == NULL))
+	return get_candgen_default();
+    return candgen;
 }
 
 /* Sets `source_word_skip' to `len' and removes the prefix from the source word
