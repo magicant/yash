@@ -921,7 +921,8 @@ void le_display_make_rawvalues(void)
 	    cand->desc.width = lebuf.pos.column;
 	}
 
-	if (cand->type == CT_OPTION || cand->type == CT_OPTIONA) {
+	if ((cand->type == CT_OPTION || cand->type == CT_OPTIONA)
+		&& cand->appendage.subvalue.value != NULL) {
 	    assert(cand->appendage.subvalue.raw == NULL);
 	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 

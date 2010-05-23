@@ -511,6 +511,8 @@ const struct candgen_T *get_candgen_cmdarg(void)
     /* if the source word is not an option, simply complete as an operand */
     if (ccg->options == NULL || ctxt->src[0] != L'-')
 	return get_candgen_operands(&ccg->operands);
+    if (ctxt->src[1] == L'\0')
+	return get_candgen_option();
 
     /* parse the source word to find how we should complete an option */
     /* first check for long options */
@@ -520,8 +522,6 @@ const struct candgen_T *get_candgen_cmdarg(void)
 	    continue;
 	assert(ss[0] == L'-');
 	assert(longopt[0] == L'-');
-	if (ss[1] == L'\0' && longopt[1] == L'-')
-	    continue;
 
 	/* compare `ss' and `longopt' */
 	do {
@@ -899,41 +899,96 @@ void generate_keyword_candidates(le_candgentype_T type, le_context_T *context)
 void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 {
     const wchar_t *src = context->src;
-    if (!(type & CGT_OPTION) || src[0] != L'-')
+    if (!(type & CGT_OPTION))
 	return;
 
     le_compdebug("adding options matching pattern \"%ls\"", context->pattern);
     if (candgens.capacity == 0)
 	return;
-//    if (!le_compile_cpattern(context))
-//	return;
+    if (!le_compile_cpattern(context))
+	return;
 
-    return; //TODO
+    const struct cmdcandgen_T *ccg;
+    const struct optcandgen_T *ocg;
+    ccg = ht_get(&candgens, context->pwords[0]).value;
+    if (ccg == NULL)
+	return;
 
-//    const struct cmdcandgen_T *ccg =
-//	ht_get(&candgens, context->pwords[0]).value;
-//    if (ccg == NULL)
-//	return;
-//
-//    bool islong = (src[1] == L'-');
-//    size_t i = 0;
-//    kvpair_T kv;
-//    while ((kv = ht_next(&ccg->options, &i)).key != NULL) {
-//	const wchar_t *optname = kv.key;
-//	const candgen_T *arggen = kv.value;
-//	le_candtype_T ct = (arggen == NULL) ? CT_OPTION : CT_OPTIONA;
-//
-//	if (optname[0] != L'-') {
-//	    if (!islong)
-//		le_new_candidate(ct,
-//			malloc_wprintf(L"%ls%lc", src, optname[0]),
-//			NULL /* TODO */);
-//	} else {
-//	    if ((islong == (optname[1] == L'-'))
-//		    && WMATCH(context->cpattern, optname))
-//		le_new_candidate(ct, xwcsdup(optname), NULL /* TODO */);
-//	}
-//    }
+    if (src[0] != L'-') {
+	/* short option only */
+	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+	    if (ocg->shortoptchar != L'\0') {
+		le_candidate_T *cand = xmalloc(sizeof *cand);
+		cand->type = CT_OPTION;
+		cand->value.value = xmalloc(2 * sizeof *cand->value.value);
+		cand->value.value[0] = ocg->shortoptchar;
+		cand->value.value[1] = L'\0';
+		cand->value.raw = NULL;
+		cand->value.width = 0;
+		if (ocg->description != NULL)
+		    cand->desc.value = xwcsdup(ocg->description);
+		else
+		    cand->desc.value = NULL;
+		cand->desc.raw = NULL;
+		cand->desc.width = 0;
+		if (ocg->longopt != NULL)
+		    cand->appendage.subvalue.value = xwcsdup(ocg->longopt);
+		else
+		    cand->appendage.subvalue.value = NULL;
+		cand->appendage.subvalue.raw = NULL;
+		cand->appendage.subvalue.width = 0;
+		le_add_candidate(cand);
+	    }
+	}
+    }
+
+    bool allowshort = (src[1] == L'\0');
+    for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
+	if (allowshort && ocg->shortoptchar != L'\0') {
+	    le_candidate_T *cand = xmalloc(sizeof *cand);
+	    cand->type = CT_OPTION;
+	    cand->value.value = xmalloc(3 * sizeof *cand->value.value);
+	    cand->value.value[0] = L'-';
+	    cand->value.value[1] = ocg->shortoptchar;
+	    cand->value.value[2] = L'\0';
+	    cand->value.raw = NULL;
+	    cand->value.width = 0;
+	    if (ocg->description != NULL)
+		cand->desc.value = xwcsdup(ocg->description);
+	    else
+		cand->desc.value = NULL;
+	    cand->desc.raw = NULL;
+	    cand->desc.width = 0;
+	    if (ocg->longopt != NULL)
+		cand->appendage.subvalue.value = xwcsdup(ocg->longopt);
+	    else
+		cand->appendage.subvalue.value = NULL;
+	    cand->appendage.subvalue.raw = NULL;
+	    cand->appendage.subvalue.width = 0;
+	    le_add_candidate(cand);
+	} else if (ocg->longopt != NULL
+		&& WMATCH(context->cpattern, ocg->longopt)) {
+	    le_candidate_T *cand = xmalloc(sizeof *cand);
+	    if (ocg->longopt[1] == L'-' && ocg->requiresargument)
+		cand->type = CT_OPTIONA;
+	    else
+		cand->type = CT_OPTION;
+	    cand->value.value = xwcsdup(ocg->longopt);
+	    cand->value.raw = NULL;
+	    cand->value.width = 0;
+	    if (ocg->description != NULL)
+		cand->desc.value = xwcsdup(ocg->description);
+	    else
+		cand->desc.value = NULL;
+	    cand->desc.raw = NULL;
+	    cand->desc.width = 0;
+	    cand->appendage.subvalue.value = NULL;
+	    cand->appendage.subvalue.raw = NULL;
+	    cand->appendage.subvalue.width = 0;
+	    le_add_candidate(cand);
+	}
+    }
+    //XXX REFACTOR
 }
 
 /* Generates candidates to complete a user name matching the pattern in the
@@ -1029,7 +1084,7 @@ void generate_candidates_from_words(void *const *words, le_context_T *context)
 
     for (; *words != NULL; words++) {
 	wchar_t *word = *words;
-	if (xfnm_wmatch(context->cpattern, word).start != (size_t) -1) {
+	if (WMATCH(context->cpattern, word)) {
 	    const wchar_t *desc = word + wcslen(word) + 1;
 	    le_new_candidate(CT_WORD, xwcsdup(word),
 		    (desc[0] == L'\0') ? NULL : xwcsdup(desc));
@@ -1094,8 +1149,10 @@ void update_main_buffer(void)
 	    le_main_index += 1;
 	}
     } else if (cand->type == CT_OPTIONA) {
-	wb_ninsert_force(&le_main_buffer, le_main_index, L"=", 1);
-	le_main_index += 1;
+	if (candvalue(cand)[0] == L'-') {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"=", 1);
+	    le_main_index += 1;
+	}
     } else {
 	switch (quotetype) {
 	    case QUOTE_NONE:
