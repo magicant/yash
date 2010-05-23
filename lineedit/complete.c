@@ -444,8 +444,6 @@ const struct candgen_T *get_candgen(void)
     static void *in_do[] = { L"in", L"do", NULL };
     static void *in[] = { L"in", NULL };
 
-    // TODO test
-    // TODO don't add CGT_KEYWORD/CGT_ALIAS when quoted
     tmpcandgen = (struct candgen_T) {
 	.type = 0, .words = NULL, .function = NULL };
     switch (ctxt->type & CTXT_MASK) {
@@ -455,8 +453,10 @@ const struct candgen_T *get_candgen(void)
 	    if (wcschr(ctxt->src, L'/')) {
 		tmpcandgen.type |= CGT_DIRECTORY | CGT_EXECUTABLE;
 	    } else {
-		tmpcandgen.type |= CGT_DIRECTORY | CGT_KEYWORD
-		    | CGT_COMMAND | CGT_ALIAS;
+		tmpcandgen.type |= CGT_DIRECTORY | CGT_COMMAND;
+		if (ctxt->quote == QUOTE_NORMAL
+			&& !wcschr(ctxt->pattern, L'\\'))
+		    tmpcandgen.type |= CGT_KEYWORD | CGT_ALIAS;
 	    }
 	    return &tmpcandgen;
 	case CTXT_TILDE:
