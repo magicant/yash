@@ -922,7 +922,7 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 	    cand = xwcsdup(jobname);
 	else
 	    cand = malloc_wprintf(L"%%%ls", jobname);
-	le_new_candidate(CT_JOB, cand, NULL);
+	le_new_candidate(CT_JOB, cand, malloc_wprintf(L"%%%zu", i));
     }
     xfnm_free(xfnm);
 }
