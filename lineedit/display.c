@@ -892,11 +892,15 @@ void le_display_make_rawvalues(void)
 	assert(cand->value.raw == NULL);
 	lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 
-	/* skip directory components for a file candidate */
 	if (cand->type == CT_FILE) {
+	    /* skip directory components for a file candidate */
 	    const wchar_t *ss = wcsrchr(s, L'/');
 	    if (ss != NULL)
 		s = ss + 1;
+	} else if (cand->type == CT_OPTION) {
+	    /* prepend a hyphen if none */
+	    if (cand->value.value[0] != L'-')
+		lebuf_putwchar(L'-', false);
 	}
 
 	lebuf_putws_trunc(s);
@@ -1023,8 +1027,8 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
 		col->descwidth = cand->desc.width;
 	}
 
-	if (col->valuewidth    > 0) col->valuewidth    += 2;
-	if (col->descwidth     > 0) col->descwidth     += 4;
+	if (col->valuewidth > 0) col->valuewidth += 2;
+	if (col->descwidth  > 0) col->descwidth  += 4;
 	col->width = col->valuewidth + col->descwidth;
 	totalwidth += col->width;
 	pl_add(&candcols, col);

@@ -112,6 +112,10 @@ static void generate_keyword_candidates(
 static void generate_option_candidates(
 	le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
+static wchar_t *malloc_shortopt(wchar_t shortoptchar)
+    __attribute__((malloc,warn_unused_result));
+static wchar_t *malloc_shortopt_nh(wchar_t shortoptchar)
+    __attribute__((malloc,warn_unused_result));
 static void generate_logname_candidates(
         le_candgentype_T type, le_context_T *context)
     __attribute__((nonnull));
@@ -887,66 +891,72 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
     if (ccg == NULL)
 	return;
 
-    if (src[0] != L'-') {
-	/* short option only */
-	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
-	    if (ocg->shortoptchar != L'\0') {
-		le_candidate_T *cand = xmalloc(sizeof *cand);
-		cand->type = CT_OPTION;
-		cand->value.value = xmalloc(2 * sizeof *cand->value.value);
-		cand->value.value[0] = ocg->shortoptchar;
-		cand->value.value[1] = L'\0';
-		cand->value.raw = NULL;
-		cand->value.width = 0;
-		if (ocg->description != NULL)
-		    cand->desc.value = xwcsdup(ocg->description);
-		else
-		    cand->desc.value = NULL;
-		cand->desc.raw = NULL;
-		cand->desc.width = 0;
-		le_add_candidate(cand);
-	    }
-	}
-    }
-
-    bool allowshort = (src[1] == L'\0');
+    bool allowshort = (src[0] != L'-') || (src[1] == L'\0');
+    bool allowlong  = (src[0] == L'-');
     for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
-	if (allowshort && ocg->shortoptchar != L'\0') {
+	bool shortmatch = allowshort && (ocg->shortoptchar != L'\0');
+	bool longmatch = allowlong && (ocg->longopt != NULL)
+	    && WMATCH(context->cpattern, ocg->longopt);
+	if (shortmatch || longmatch) {
 	    le_candidate_T *cand = xmalloc(sizeof *cand);
 	    cand->type = CT_OPTION;
-	    cand->value.value = xmalloc(3 * sizeof *cand->value.value);
-	    cand->value.value[0] = L'-';
-	    cand->value.value[1] = ocg->shortoptchar;
-	    cand->value.value[2] = L'\0';
+	    if (shortmatch) {  // XXX user-preference
+		if (allowlong)
+		    cand->value.value = malloc_shortopt(ocg->shortoptchar);
+		else
+		    cand->value.value = malloc_shortopt_nh(ocg->shortoptchar);
+		if (ocg->longopt != NULL)
+		    if (ocg->description != NULL)
+			cand->desc.value = malloc_wprintf(L"%ls: %ls",
+				ocg->longopt, ocg->description);
+		    else
+			cand->desc.value = xwcsdup(ocg->longopt);
+		else
+		    goto desc;
+	    } else {
+		assert(ocg->longopt[0] == L'-');
+		if (ocg->longopt[1] == L'-' && ocg->requiresargument)
+		    cand->type = CT_OPTIONA;
+		cand->value.value = xwcsdup(ocg->longopt);
+		if (ocg->shortoptchar != L'\0')
+		    if (ocg->description != NULL)
+			cand->desc.value = malloc_wprintf(L"-%lc: %ls",
+				(wint_t) ocg->shortoptchar, ocg->description);
+		    else
+			cand->desc.value = malloc_shortopt(ocg->shortoptchar);
+		else
+desc:
+		    if (ocg->description != NULL)
+			cand->desc.value = xwcsdup(ocg->description);
+		    else
+			cand->desc.value = NULL;
+	    }
 	    cand->value.raw = NULL;
 	    cand->value.width = 0;
-	    if (ocg->description != NULL)
-		cand->desc.value = xwcsdup(ocg->description);
-	    else
-		cand->desc.value = NULL;
-	    cand->desc.raw = NULL;
-	    cand->desc.width = 0;
-	    le_add_candidate(cand);
-	} else if (ocg->longopt != NULL
-		&& WMATCH(context->cpattern, ocg->longopt)) {
-	    le_candidate_T *cand = xmalloc(sizeof *cand);
-	    if (ocg->longopt[1] == L'-' && ocg->requiresargument)
-		cand->type = CT_OPTIONA;
-	    else
-		cand->type = CT_OPTION;
-	    cand->value.value = xwcsdup(ocg->longopt);
-	    cand->value.raw = NULL;
-	    cand->value.width = 0;
-	    if (ocg->description != NULL)
-		cand->desc.value = xwcsdup(ocg->description);
-	    else
-		cand->desc.value = NULL;
 	    cand->desc.raw = NULL;
 	    cand->desc.width = 0;
 	    le_add_candidate(cand);
 	}
     }
-    //TODO REFACTOR
+}
+
+/* Returns a newly malloced string L"-x" where `x' is `shortoptchar'. */
+wchar_t *malloc_shortopt(wchar_t shortoptchar)
+{
+    wchar_t *result = xmalloc(3 * sizeof *result);
+    result[0] = L'-';
+    result[1] = shortoptchar;
+    result[2] = L'\0';
+    return result;
+}
+
+/* Returns a newly malloced string containing `shortoptchar' only. */
+wchar_t *malloc_shortopt_nh(wchar_t shortoptchar)
+{
+    wchar_t *result = xmalloc(2 * sizeof *result);
+    result[0] = shortoptchar;
+    result[1] = L'\0';
+    return result;
 }
 
 /* Generates candidates to complete a user name matching the pattern in the
