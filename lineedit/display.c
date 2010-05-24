@@ -419,7 +419,6 @@ struct candcol_T {
     size_t candindex;  /* index of the first candidate in this column */
     size_t candcount;  /* number of the candidate in this column */
     int valuewidth,    /* max width of the candidate values */
-	subvaluewidth, /* max width of the candidate sub-values */
 	descwidth,     /* max width of the candidate description */
 	width;         /* total width of the whole column. */
 };
@@ -891,25 +890,23 @@ void le_display_make_rawvalues(void)
 
 	const wchar_t *s = cand->value.value;
 	assert(cand->value.raw == NULL);
-	if (s != NULL) {
-	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
+	lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 
-	    /* skip directory components for a file candidate */
-	    if (cand->type == CT_FILE) {
-		const wchar_t *ss = wcsrchr(s, L'/');
-		if (ss != NULL)
-		    s = ss + 1;
-	    }
-
-	    lebuf_putws_trunc(s);
-
-	    /* append a slash for a directory candidate */
-	    if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode))
-		lebuf_putwchar(L'/', false);
-
-	    cand->value.raw = sb_tostr(&lebuf.buf);
-	    cand->value.width = lebuf.pos.column;
+	/* skip directory components for a file candidate */
+	if (cand->type == CT_FILE) {
+	    const wchar_t *ss = wcsrchr(s, L'/');
+	    if (ss != NULL)
+		s = ss + 1;
 	}
+
+	lebuf_putws_trunc(s);
+
+	/* append a slash for a directory candidate */
+	if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode))
+	    lebuf_putwchar(L'/', false);
+
+	cand->value.raw = sb_tostr(&lebuf.buf);
+	cand->value.width = lebuf.pos.column;
 
 	assert(cand->desc.raw == NULL);
 	if (cand->desc.value != NULL) {
@@ -919,17 +916,6 @@ void le_display_make_rawvalues(void)
 
 	    cand->desc.raw = sb_tostr(&lebuf.buf);
 	    cand->desc.width = lebuf.pos.column;
-	}
-
-	if ((cand->type == CT_OPTION || cand->type == CT_OPTIONA)
-		&& cand->appendage.subvalue.value != NULL) {
-	    assert(cand->appendage.subvalue.raw == NULL);
-	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
-
-	    lebuf_putws_trunc(cand->appendage.subvalue.value);
-
-	    cand->appendage.subvalue.raw = sb_tostr(&lebuf.buf);
-	    cand->appendage.subvalue.width = lebuf.pos.column;
 	}
     }
 }
@@ -1024,7 +1010,7 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
 	    col->candcount = le_candidates.length - candindex;
 	else
 	    col->candcount = cand_per_col;
-	col->valuewidth = col->subvaluewidth = col->descwidth = col->width = 0;
+	col->valuewidth = col->descwidth = col->width = 0;
 	
 	for (size_t nextcandindex = candindex + col->candcount;
 		candindex < nextcandindex;
@@ -1033,17 +1019,13 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
 
 	    if (col->valuewidth < cand->value.width)
 		col->valuewidth = cand->value.width;
-	    if (cand->type == CT_OPTION || cand->type == CT_OPTIONA)
-		if (col->subvaluewidth < cand->appendage.subvalue.width)
-		    col->subvaluewidth = cand->appendage.subvalue.width;
 	    if (col->descwidth < cand->desc.width)
 		col->descwidth = cand->desc.width;
 	}
 
 	if (col->valuewidth    > 0) col->valuewidth    += 2;
-	if (col->subvaluewidth > 0) col->subvaluewidth += 2;
 	if (col->descwidth     > 0) col->descwidth     += 4;
-	col->width = col->valuewidth + col->subvaluewidth + col->descwidth;
+	col->width = col->valuewidth + col->descwidth;
 	totalwidth += col->width;
 	pl_add(&candcols, col);
 
@@ -1301,29 +1283,6 @@ void print_candidate(
 	if (highlight)
 	    lebuf_print_sgr0(), highlight = false;
     }
-
-    /* print sub-value */
-    if ((cand->type == CT_OPTION || cand->type == CT_OPTIONA)
-	    && cand->appendage.subvalue.value != NULL) {
-	int base = lebuf.pos.column;
-	lebuf_putchar1_trunc(highlight ? '[' : ' ');
-	if (lebuf.pos.column + cand->appendage.subvalue.width
-		< lebuf.maxcolumn) {
-	    lebuf.pos.column += cand->appendage.subvalue.width;
-	    sb_cat(&lebuf.buf, cand->appendage.subvalue.raw);
-	} else {
-	    lebuf_putws_trunc(cand->appendage.subvalue.value);
-	}
-	if (highlight)
-	    lebuf_print_sgr0(), lebuf_print_bold();
-	while (lebuf.pos.column + 2 < lebuf.maxcolumn
-		&& lebuf.pos.column - base < col->subvaluewidth - 1)
-	    lebuf_putchar1_trunc(' ');
-	lebuf_putchar1_trunc(highlight ? ']' : ' ');
-	if (highlight)
-	    lebuf_print_sgr0(), highlight = false;
-    }
-    assert(!highlight);
 
     /* print description */
     if (cand->desc.value != NULL) {

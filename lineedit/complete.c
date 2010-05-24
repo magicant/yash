@@ -80,8 +80,6 @@ extern void endhostent(void);
 #endif
 
 
-static inline wchar_t *candvalue(const le_candidate_T *cand)
-    __attribute__((nonnull));
 static void free_candidate(void *c)
     __attribute__((nonnull));
 static void sort_candidates(void);
@@ -241,8 +239,9 @@ display:  /* display the results */
     } else {
 	calculate_common_prefix_length();
 	if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+	    const le_candidate_T *cand = le_candidates.contents[0];
 	    wchar_t *common_prefix = xwcsndup(
-		    candvalue(le_candidates.contents[0]), common_prefix_length);
+		    cand->value.value, common_prefix_length);
 	    le_compdebug("candidate common prefix: \"%ls\"", common_prefix);
 	    free(common_prefix);
 	}
@@ -294,20 +293,6 @@ void le_complete_cleanup(void)
     }
 }
 
-/* Returns the value of the specified candidate.
- * If the candidate does not have a value, it must be of the
- * CT_OPTION/CT_OPTIONA type with a sub-value, which is returned. */
-wchar_t *candvalue(const le_candidate_T *cand)
-{
-    if (cand->value.value != NULL) {
-	return cand->value.value;
-    } else {
-	assert(cand->type == CT_OPTION || cand->type == CT_OPTIONA);
-	assert(cand->appendage.subvalue.value != NULL);
-	return cand->appendage.subvalue.value;
-    }
-}
-
 /* Frees a completion candidate.
  * The argument must point to a `le_candidate_T' value. */
 void free_candidate(void *c)
@@ -317,10 +302,6 @@ void free_candidate(void *c)
     free(cand->value.raw);
     free(cand->desc.value);
     free(cand->desc.raw);
-    if (cand->type == CT_OPTION || cand->type == CT_OPTIONA) {
-	free(cand->appendage.subvalue.value);
-	free(cand->appendage.subvalue.raw);
-    }
     free(cand);
 }
 
@@ -336,7 +317,7 @@ void sort_candidates(void)
 	    le_candidate_T *cand1 = le_candidates.contents[i];
 	    le_candidate_T *cand2 = le_candidates.contents[i - 1];
 	    // XXX case-sensitive
-	    if (wcscoll(candvalue(cand1), candvalue(cand2)) == 0) {
+	    if (wcscoll(cand1->value.value, cand2->value.value) == 0) {
 		free_candidate(cand1);
 		pl_remove(&le_candidates, i, 1);
 	    }
@@ -348,7 +329,8 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
 {
     const le_candidate_T *cand1 = *(const le_candidate_T **) cp1;
     const le_candidate_T *cand2 = *(const le_candidate_T **) cp2;
-    return wcscoll(candvalue(cand1), candvalue(cand2)); // XXX case-sensitive
+    return wcscoll(cand1->value.value, cand2->value.value);
+    // XXX case-sensitive
 }
 
 /* Prints the formatted string to the standard error if the completion debugging
@@ -745,16 +727,7 @@ void le_add_candidate(le_candidate_T *cand)
 	    case CT_HOSTNAME:  typestr = "host name";                  break;
 	    case CT_BINDKEY:   typestr = "lineedit command";           break;
 	}
-	if (cand->value.value != NULL) {
-	    le_compdebug("new %s candidate \"%ls\"",
-		    typestr, cand->value.value);
-	} else {
-	    assert(cand->type == CT_OPTION || cand->type == CT_OPTIONA);
-	    le_compdebug("new %s candidate (no value)", typestr);
-	}
-	if ((cand->type == CT_OPTION || cand->type == CT_OPTIONA)
-		&& (cand->appendage.subvalue.value != NULL))
-	    le_compdebug("  (subvalue: %ls)", cand->appendage.subvalue.value);
+	le_compdebug("new %s candidate \"%ls\"", typestr, cand->value.value);
 	if (cand->desc.value != NULL)
 	    le_compdebug("  (desc: %ls)", cand->desc.value);
     }
@@ -931,12 +904,6 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 		    cand->desc.value = NULL;
 		cand->desc.raw = NULL;
 		cand->desc.width = 0;
-		if (ocg->longopt != NULL)
-		    cand->appendage.subvalue.value = xwcsdup(ocg->longopt);
-		else
-		    cand->appendage.subvalue.value = NULL;
-		cand->appendage.subvalue.raw = NULL;
-		cand->appendage.subvalue.width = 0;
 		le_add_candidate(cand);
 	    }
 	}
@@ -959,12 +926,6 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 		cand->desc.value = NULL;
 	    cand->desc.raw = NULL;
 	    cand->desc.width = 0;
-	    if (ocg->longopt != NULL)
-		cand->appendage.subvalue.value = xwcsdup(ocg->longopt);
-	    else
-		cand->appendage.subvalue.value = NULL;
-	    cand->appendage.subvalue.raw = NULL;
-	    cand->appendage.subvalue.width = 0;
 	    le_add_candidate(cand);
 	} else if (ocg->longopt != NULL
 		&& WMATCH(context->cpattern, ocg->longopt)) {
@@ -982,13 +943,10 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 		cand->desc.value = NULL;
 	    cand->desc.raw = NULL;
 	    cand->desc.width = 0;
-	    cand->appendage.subvalue.value = NULL;
-	    cand->appendage.subvalue.raw = NULL;
-	    cand->appendage.subvalue.width = 0;
 	    le_add_candidate(cand);
 	}
     }
-    //XXX REFACTOR
+    //TODO REFACTOR
 }
 
 /* Generates candidates to complete a user name matching the pattern in the
@@ -1102,10 +1060,12 @@ void calculate_common_prefix_length(void)
     assert(le_candidates.contents != NULL);
     assert(le_candidates.length > 0);
 
-    const wchar_t *value = candvalue(le_candidates.contents[0]);
+    const le_candidate_T *cand = le_candidates.contents[0];
+    const wchar_t *value = cand->value.value;
     size_t cpl = wcslen(value);
     for (size_t i = 1; i < le_candidates.length; i++) {
-	const wchar_t *value2 = candvalue(le_candidates.contents[i]);
+	cand = le_candidates.contents[i];
+	const wchar_t *value2 = cand->value.value;
 	for (size_t j = 0; j < cpl; j++)
 	    if (value[j] != value2[j])  // XXX comparison is case-sensitive
 		cpl = j;
@@ -1125,13 +1085,13 @@ void update_main_buffer(void)
     wb_init(&buf);
     if (le_selected_candidate_index >= le_candidates.length) {
 	cand = le_candidates.contents[0];
-	value = xwcsndup(candvalue(cand) + source_word_length,
+	value = xwcsndup(cand->value.value + source_word_length,
 		common_prefix_length - source_word_length);
 	quote(&buf, value, quotetype);
 	free(value);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	quote(&buf, candvalue(cand) + source_word_length, quotetype);
+	quote(&buf, cand->value.value + source_word_length, quotetype);
     }
     wb_replace_force(&le_main_buffer,
 	    insertion_index, le_main_index - insertion_index,
@@ -1149,7 +1109,7 @@ void update_main_buffer(void)
 	    le_main_index += 1;
 	}
     } else if (cand->type == CT_OPTIONA) {
-	if (candvalue(cand)[0] == L'-') {
+	if (cand->value.value[0] == L'-') {
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L"=", 1);
 	    le_main_index += 1;
 	}
@@ -1208,9 +1168,11 @@ void update_main_buffer(void)
  * `context->src'. */
 bool need_subst(const le_context_T *context)
 {
-    for (size_t i = 0; i < le_candidates.length; i++)
-	if (!matchwcsprefix(candvalue(le_candidates.contents[i]), context->src))
+    for (size_t i = 0; i < le_candidates.length; i++) {
+	const le_candidate_T *cand = le_candidates.contents[i];
+	if (!matchwcsprefix(cand->value.value, context->src))
 	    return true;
+    }
     return false;
 }
 
@@ -1231,7 +1193,7 @@ void substitute_source_word(const le_context_T *context)
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T* cand = le_candidates.contents[i];
 
-	quote(wb_clear(&buf), candvalue(cand), QUOTE_NORMAL);
+	quote(wb_clear(&buf), cand->value.value, QUOTE_NORMAL);
 	wb_ninsert_force(&le_main_buffer, le_main_index,
 		buf.contents, buf.length);
 	le_main_index += buf.length;

@@ -56,7 +56,6 @@ typedef struct le_candidate_T {
 	    nlink_t nlink;
 	    off_t size;
 	} filestat;               /* only used for CT_FILE */
-	le_candvalue_T subvalue;  /* only used for CT_OPTION/CT_OPTIONA */
     } appendage;
 } le_candidate_T;
 
