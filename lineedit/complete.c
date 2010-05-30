@@ -135,8 +135,8 @@ static void calculate_common_prefix_length(void);
 static void update_main_buffer(void);
 static bool need_subst(const le_context_T *context)
     __attribute__((nonnull));
-static void substitute_source_word(const le_context_T *context)
-    __attribute__((nonnull));
+static void substitute_source_word_all(void);
+static void substitute_source_word_lcp(void);
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
 
@@ -196,8 +196,9 @@ static le_context_T *ctxt = NULL;
 
 /* Performs command line completion.
  * Existing candidates are deleted, if any, and candidates are computed from
- * the current command line. */
-void le_complete(void)
+ * the current command line.
+ * `lecr' is called after candidate generation. */
+void le_complete(le_compresult_T lecr)
 {
     if (shopt_le_compdebug) {
 	/* If the `le-compdebug' option is set, the command line is temporarily
@@ -227,35 +228,12 @@ void le_complete(void)
 
     ctxt = &context;
     generate_candidates(get_candgen());
-    ctxt = NULL;
     sort_candidates();
     le_compdebug("total of %zu candidate(s)", le_candidates.length);
 
 display:  /* display the results */
-    if (le_candidates.length == 0) {
-	le_selected_candidate_index = 0;
-    } else if (context.substsrc || need_subst(&context)) {
-	le_selected_candidate_index = 0;
-	substitute_source_word(&context);
-	le_complete_cleanup();
-    } else if (le_candidates.length == 1) {
-	le_selected_candidate_index = 0;
-	update_main_buffer();
-	le_complete_cleanup();
-    } else {
-	calculate_common_prefix_length();
-	if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
-	    const le_candidate_T *cand = le_candidates.contents[0];
-	    wchar_t *common_prefix = xwcsndup(
-		    cand->value.value, common_prefix_length);
-	    le_compdebug("candidate common prefix: \"%ls\"", common_prefix);
-	    free(common_prefix);
-	}
-	assert(source_word_length <= common_prefix_length);
-	le_selected_candidate_index = le_candidates.length;
-	le_display_make_rawvalues();
-	update_main_buffer();
-    }
+    lecr();
+    ctxt = NULL;
     le_free_context(&context);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
@@ -266,13 +244,57 @@ display:  /* display the results */
     }
 }
 
+/* An `le_compresult_T' function for `cmd_complete'. */
+void lecr_normal(void)
+{
+    if (le_candidates.length == 0) {
+	le_selected_candidate_index = 0;
+    } else if (ctxt->substsrc || need_subst(ctxt)) {
+	le_selected_candidate_index = 0;
+	substitute_source_word_all();
+	le_complete_cleanup();
+    } else if (le_candidates.length == 1) {
+	le_selected_candidate_index = 0;
+	update_main_buffer();
+	le_complete_cleanup();
+    } else {
+	calculate_common_prefix_length();
+	assert(source_word_length <= common_prefix_length);
+	le_selected_candidate_index = le_candidates.length;
+	le_display_make_rawvalues();
+	update_main_buffer();
+    }
+}
+
+/* An `le_compresult_T' function for `cmd_vi_complete_max'. */
+void lecr_longest_common_prefix(void)
+{
+    le_selected_candidate_index = 0;
+    if (le_candidates.length == 0) {
+	lebuf_print_alert(true);
+    } else {
+	calculate_common_prefix_length();
+	if (ctxt->substsrc || need_subst(ctxt)) {
+	    if (le_candidates.length > 1)
+		substitute_source_word_lcp();
+	    else
+		substitute_source_word_all();
+	} else {
+	    if (le_candidates.length > 1)
+		le_selected_candidate_index = le_candidates.length;
+	    update_main_buffer();
+	}
+    }
+    le_complete_cleanup();
+}
+
 /* Increases `le_selected_candidate_index' by `offset', selecting the `offset'th
  * next candidate. If there are no candidates, simply calls `le_complete' to
  * produce candidates. */
 void le_complete_select_candidate(int offset)
 {
     if (le_candidates.contents == NULL) {
-	le_complete();
+	le_complete(lecr_normal);
 	return;
     } else if (le_candidates.length == 0) {
 	return;
@@ -301,7 +323,7 @@ void le_complete_select_candidate(int offset)
 void le_complete_select_column(int offset)
 {
     if (le_candidates.contents == NULL) {
-	le_complete();
+	le_complete(lecr_normal);
 	return;
     } else if (le_candidates.length == 0) {
 	return;
@@ -317,7 +339,7 @@ void le_complete_select_column(int offset)
 void le_complete_select_page(int offset)
 {
     if (le_candidates.contents == NULL) {
-	le_complete();
+	le_complete(lecr_normal);
 	return;
     } else if (le_candidates.length == 0) {
 	return;
@@ -1152,6 +1174,14 @@ void calculate_common_prefix_length(void)
 		cpl = j;
     }
     common_prefix_length = cpl;
+
+    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+	wchar_t value[common_prefix_length + 1];
+	cand = le_candidates.contents[0];
+	wcsncpy(value, cand->value.value, common_prefix_length);
+	value[common_prefix_length] = L'\0';
+	le_compdebug("candidate common prefix: \"%ls\"", value);
+    }
 }
 
 /* Sets the contents of the main buffer to the currently selected candidate.
@@ -1258,15 +1288,14 @@ bool need_subst(const le_context_T *context)
 }
 
 /* Substitutes the source word in the main buffer with all of the current
- * candidates. */
-void substitute_source_word(const le_context_T *context)
+ * candidates. `ctxt' must be a valid context. */
+void substitute_source_word_all(void)
 {
     le_compdebug("substituting source word with candidate(s)");
 
     /* remove source word */
-    wb_remove(&le_main_buffer, context->srcindex,
-	    le_main_index - context->srcindex);
-    le_main_index = context->srcindex;
+    wb_remove(&le_main_buffer, ctxt->srcindex, le_main_index - ctxt->srcindex);
+    le_main_index = ctxt->srcindex;
 
     /* insert candidates */
     xwcsbuf_T buf;
@@ -1275,13 +1304,32 @@ void substitute_source_word(const le_context_T *context)
 	const le_candidate_T* cand = le_candidates.contents[i];
 
 	quote(wb_clear(&buf), cand->value.value, QUOTE_NORMAL);
+	wb_wccat(&buf, L' ');
 	wb_ninsert_force(&le_main_buffer, le_main_index,
 		buf.contents, buf.length);
 	le_main_index += buf.length;
-
-	wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
-	le_main_index += 1;
     }
+    wb_destroy(&buf);
+}
+
+/* Substitutes the source word in the main buffer with the longest common prefix
+ * of all the candidates. `ctxt' must be a valid context.
+ * `calculate_common_prefix_length' must have been called. */
+void substitute_source_word_lcp(void)
+{
+    le_compdebug("substituting source word with common prefix of candidate(s)");
+
+    xwcsbuf_T buf;
+    wchar_t value[common_prefix_length + 1];
+    const le_candidate_T *cand = le_candidates.contents[0];
+
+    wcsncpy(value, cand->value.value, common_prefix_length);
+    value[common_prefix_length] = L'\0';
+    quote(wb_init(&buf), value, QUOTE_NORMAL);
+    wb_replace_force(&le_main_buffer,
+	    ctxt->srcindex, le_main_index - ctxt->srcindex,
+	    buf.contents, buf.length);
+    le_main_index = ctxt->srcindex + buf.length;
     wb_destroy(&buf);
 }
 

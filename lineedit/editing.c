@@ -2129,7 +2129,7 @@ void cmd_complete(wchar_t c __attribute__((unused)))
 	le_complete_cleanup();
     }
 
-    le_complete();
+    le_complete(lecr_normal);
 
     reset_state();
 }
@@ -2237,6 +2237,7 @@ bool is_last_command_completion(void)
 	|| last_command.func == cmd_complete_prev_column
 	|| last_command.func == cmd_complete_next_page
 	|| last_command.func == cmd_complete_prev_page
+	|| last_command.func == cmd_vi_complete_max
 	|| last_command.func == cmd_noop
 	|| last_command.func == cmd_alert
 	|| last_command.func == cmd_redraw_all
@@ -2653,6 +2654,24 @@ end:
 #endif
 	assert(false);
     }
+}
+
+/* Performs command line completion and replaces the current word with the
+ * longest common prefix of the candidates.
+ * The mode is changed to vi-insert. */
+void cmd_vi_complete_max(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
+
+    if (le_main_index < le_main_buffer.length)
+	le_main_index++;
+    le_complete(lecr_longest_common_prefix);
+
+    cmd_setmode_viinsert(L'\0');
 }
 
 /* Starts vi-like command history search in the forward direction. */

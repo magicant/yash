@@ -170,6 +170,7 @@ void le_keymap_init(void)
     Set(L"_",          cmd_vi_append_last_bigword);
     Set(L"@",          cmd_vi_exec_alias);
     Set(L"v",          cmd_vi_edit_and_accept);
+    Set(Key_backslash, cmd_vi_complete_max);
     Set(L"?",          cmd_vi_search_forward);
     Set(L"/",          cmd_vi_search_backward);
     Set(L"n",          cmd_search_again);
@@ -186,7 +187,6 @@ void le_keymap_init(void)
     Set(Key_c_p,       cmd_prev_history_bol);
     //TODO
     // =
-    // \ 
     // *
     le_modes[LE_MODE_VI_COMMAND].keymap = t;
 

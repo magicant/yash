@@ -139,11 +139,15 @@ typedef enum le_candgentype_T {
     CGT_BINDKEY    = 1 << 21, // line-editing command name
 } le_candgentype_T;
 
+typedef void le_compresult_T(void);
+
 
 extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
 
-extern void le_complete(void);
+extern void le_complete(le_compresult_T lecr);
+extern void lecr_normal(void);
+extern void lecr_longest_common_prefix(void);
 extern void le_complete_select_candidate(int offset);
 extern void le_complete_select_column(int offset);
 extern void le_complete_select_page(int offset);
