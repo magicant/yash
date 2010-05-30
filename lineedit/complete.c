@@ -279,12 +279,17 @@ void le_complete_select(int offset)
     }
 
     assert(le_selected_candidate_index <= le_candidates.length);
-    offset %= (int) le_candidates.length + 1;
-    if (offset < 0)
-	offset += (int) le_candidates.length + 1;
-    assert(offset >= 0);
-    le_selected_candidate_index += offset;
-    le_selected_candidate_index %= le_candidates.length + 1;
+    if (offset >= 0) {
+	offset %= le_candidates.length + 1;
+	le_selected_candidate_index += offset;
+	le_selected_candidate_index %= le_candidates.length + 1;
+    } else {
+	offset = -offset % (le_candidates.length + 1);
+	if ((size_t) offset <= le_selected_candidate_index)
+	    le_selected_candidate_index -= offset;
+	else
+	    le_selected_candidate_index += le_candidates.length - offset + 1;
+    }
 
     update_main_buffer();
 }
