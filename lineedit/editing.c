@@ -256,7 +256,8 @@ static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 
-static void check_last_cmd_for_completion(void);
+static bool is_last_command_completion(void)
+    __attribute__((pure));
 
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
@@ -2123,9 +2124,11 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 void cmd_complete(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
 
-    check_last_cmd_for_completion();
     le_complete();
 
     reset_state();
@@ -2136,9 +2139,11 @@ void cmd_complete(wchar_t c __attribute__((unused)))
 void cmd_complete_forward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
 
-    check_last_cmd_for_completion();
     le_complete_select(get_count(1));
 
     reset_state();
@@ -2149,28 +2154,29 @@ void cmd_complete_forward(wchar_t c __attribute__((unused)))
 void cmd_complete_backward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
 
-    check_last_cmd_for_completion();
     le_complete_select(-get_count(1));
 
     reset_state();
 }
 
-/* Calls `le_complete_cleanup' to cancel the current candidates if the last
- * command was not a completion command, etc. */
-void check_last_cmd_for_completion(void)
+/* Returns true if the last command was a completion command or a trivial
+ * command. */
+bool is_last_command_completion(void)
 {
-    if ((last_command.func != cmd_bol_or_digit || state.count.sign == 0)
-	    && last_command.func != cmd_digit_argument
-	    && last_command.func != cmd_complete
-	    && last_command.func != cmd_complete_forward
-	    && last_command.func != cmd_complete_backward
-	    && last_command.func != cmd_noop
-	    && last_command.func != cmd_alert
-	    && last_command.func != cmd_redraw_all
-	    && last_command.func != cmd_clear_and_redraw_all)
-	le_complete_cleanup();
+    return (last_command.func == cmd_bol_or_digit && state.count.sign != 0)
+	|| last_command.func == cmd_digit_argument
+	|| last_command.func == cmd_complete
+	|| last_command.func == cmd_complete_forward
+	|| last_command.func == cmd_complete_backward
+	|| last_command.func == cmd_noop
+	|| last_command.func == cmd_alert
+	|| last_command.func == cmd_redraw_all
+	|| last_command.func == cmd_clear_and_redraw_all;
 }
 
 /* Clears the current candidates. */
