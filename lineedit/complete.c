@@ -269,7 +269,7 @@ display:  /* display the results */
 /* Increases `le_selected_candidate_index' by `offset', selecting the `offset'th
  * next candidate. If there are no candidates, simply calls `le_complete' to
  * produce candidates. */
-void le_complete_select(int offset)
+void le_complete_select_candidate(int offset)
 {
     if (le_candidates.contents == NULL) {
 	le_complete();
@@ -290,7 +290,40 @@ void le_complete_select(int offset)
 	else
 	    le_selected_candidate_index += le_candidates.length - offset + 1;
     }
+    assert(le_selected_candidate_index <= le_candidates.length);
 
+    update_main_buffer();
+}
+
+/* Selects the first candidate of the `offset'th next column.
+ * If there are no candidates, simply calls `le_complete' to produce candidates.
+ */
+void le_complete_select_column(int offset)
+{
+    if (le_candidates.contents == NULL) {
+	le_complete();
+	return;
+    } else if (le_candidates.length == 0) {
+	return;
+    }
+
+    le_selected_candidate_index = le_display_select_column(offset);
+    update_main_buffer();
+}
+
+/* Selects the first candidate of the `offset'th next page.
+ * If there are no candidates, simply calls `le_complete' to produce candidates.
+ */
+void le_complete_select_page(int offset)
+{
+    if (le_candidates.contents == NULL) {
+	le_complete();
+	return;
+    } else if (le_candidates.length == 0) {
+	return;
+    }
+
+    le_selected_candidate_index = le_display_select_page(offset);
     update_main_buffer();
 }
 

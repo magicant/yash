@@ -140,8 +140,12 @@ extern le_command_func_T
 /* completion commands */
 extern le_command_func_T
     cmd_complete, /*C*/
-    cmd_complete_forward, /*C*/
-    cmd_complete_backward, /*C*/
+    cmd_complete_next_candidate, /*C*/
+    cmd_complete_prev_candidate, /*C*/
+    cmd_complete_next_column, /*C*/
+    cmd_complete_prev_column, /*C*/
+    cmd_complete_next_page, /*C*/
+    cmd_complete_prev_page, /*C*/
     cmd_clear_candidates; /*C*/
 
 /* vi-mode specific commands */

@@ -55,6 +55,10 @@ extern void le_display_flush(void);
 extern void le_display_update(_Bool cursor);
 extern void le_display_make_rawvalues(void);
 extern void le_display_complete_cleanup(void);
+extern size_t le_display_select_column(int offset)
+    __attribute__((pure));
+extern size_t le_display_select_page(int offset)
+    __attribute__((pure));
 
 extern _Bool le_try_print_prompt(const wchar_t *s)
     __attribute__((nonnull));

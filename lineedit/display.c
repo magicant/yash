@@ -1388,6 +1388,63 @@ int page_of_col_cmp(const void *colindexp, const void *pagep)
 	return 1;
 }
 
+/* Returns the index of the first candidate of the `offset'th next column,
+ * counted from the column containing the currently selected candidate.
+ * If `candcols' is empty, simply returns `le_selected_candidate_index'. */
+size_t le_display_select_column(int offset)
+{
+    if (candcols.contents == NULL)
+	return le_selected_candidate_index;
+
+    size_t colindex = le_selected_candidate_index < le_candidates.length
+	? col_of_cand(le_selected_candidate_index)
+	: 0;
+    if (offset >= 0) {
+	offset %= candcols.length;
+	colindex += offset;
+	colindex %= candcols.length;
+    } else {
+	offset = -offset % candcols.length;
+	if ((size_t) offset <= colindex)
+	    colindex -= offset;
+	else
+	    colindex += candcols.length - offset;
+    }
+    assert(colindex < candcols.length);
+
+    const candcol_T *col = candcols.contents[colindex];
+    return col->candindex;
+}
+
+/* Returns the index of the first candidate of the `offset'th next page, counted
+ * from the page containing the currently selected candidate.
+ * If `candpages' is empty, simply returns `le_selected_candidate_index'. */
+size_t le_display_select_page(int offset)
+{
+    if (candpages.contents == NULL)
+	return le_selected_candidate_index;
+
+    size_t pageindex = le_selected_candidate_index < le_candidates.length
+	? page_of_col(col_of_cand(le_selected_candidate_index))
+	: 0;
+    if (offset >= 0) {
+	offset %= candpages.length;
+	pageindex += offset;
+	pageindex %= candpages.length;
+    } else {
+	offset = -offset % candpages.length;
+	if ((size_t) offset <= pageindex)
+	    pageindex -= offset;
+	else
+	    pageindex += candpages.length - offset;
+    }
+    assert(pageindex < candpages.length);
+
+    const candpage_T *page = candpages.contents[pageindex];
+    const candcol_T *col = candcols.contents[page->colindex];
+    return col->candindex;
+}
+
 
 /********** Utility **********/
 

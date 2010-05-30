@@ -88,8 +88,8 @@ void le_keymap_init(void)
     Set(Key_c_w,       cmd_backward_delete_semiword);
     Set(Key_kill,      cmd_backward_delete_line);
     Set(Key_c_u,       cmd_backward_delete_line);
-    Set(Key_tab,       cmd_complete_forward);
-    Set(Key_btab,      cmd_complete_backward);
+    Set(Key_tab,       cmd_complete_next_candidate);
+    Set(Key_btab,      cmd_complete_prev_candidate);
     Set(Key_down,      cmd_next_history_eol);
     Set(Key_c_n,       cmd_next_history_eol);
     Set(Key_up,        cmd_prev_history_eol);
@@ -270,8 +270,8 @@ void le_keymap_init(void)
     Set(Key_escape Key_c_r, cmd_undo_all);
     Set(Key_escape "r",     cmd_undo_all);
     Set(Key_escape "R",     cmd_undo_all);
-    Set(Key_tab,            cmd_complete_forward);
-    Set(Key_btab,           cmd_complete_backward);
+    Set(Key_tab,            cmd_complete_next_candidate);
+    Set(Key_btab,           cmd_complete_prev_candidate);
     Set(Key_c_t,            cmd_emacs_transpose_chars);
     Set(Key_escape "t",     cmd_emacs_transpose_words);
     Set(Key_escape "T",     cmd_emacs_transpose_words);

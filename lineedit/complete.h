@@ -144,7 +144,8 @@ extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
 
 extern void le_complete(void);
-extern void le_complete_select(int offset);
+extern void le_complete_select_candidate(int offset);
+extern void le_complete_select_page(int offset);
 extern void le_complete_cleanup(void);
 extern void le_compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));

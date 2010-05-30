@@ -2136,7 +2136,7 @@ void cmd_complete(wchar_t c __attribute__((unused)))
 
 /* Selects the next completion candidate.
  * If the count is set, selects the `count'th next candidate. */
-void cmd_complete_forward(wchar_t c __attribute__((unused)))
+void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     if (!is_last_command_completion()) {
@@ -2144,14 +2144,14 @@ void cmd_complete_forward(wchar_t c __attribute__((unused)))
 	le_complete_cleanup();
     }
 
-    le_complete_select(get_count(1));
+    le_complete_select_candidate(get_count(1));
 
     reset_state();
 }
 
 /* Selects the previous completion candidate.
  * If the count is set, selects the `count'th previous candidate. */
-void cmd_complete_backward(wchar_t c __attribute__((unused)))
+void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     if (!is_last_command_completion()) {
@@ -2159,7 +2159,67 @@ void cmd_complete_backward(wchar_t c __attribute__((unused)))
 	le_complete_cleanup();
     }
 
-    le_complete_select(-get_count(1));
+    le_complete_select_candidate(-get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the next column.
+ * If the count is set, selects that of the `count'th next column. */
+void cmd_complete_next_column(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
+
+    le_complete_select_column(get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the previous column.
+ * If the count is set, selects that of the `count'th previous column. */
+void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
+
+    le_complete_select_column(-get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the next page.
+ * If the count is set, selects that of the `count'th next page. */
+void cmd_complete_next_page(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
+
+    le_complete_select_page(get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the previous page.
+ * If the count is set, selects that of the `count'th previous page. */
+void cmd_complete_prev_page(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
+
+    le_complete_select_page(-get_count(1));
 
     reset_state();
 }
@@ -2171,8 +2231,12 @@ bool is_last_command_completion(void)
     return (last_command.func == cmd_bol_or_digit && state.count.sign != 0)
 	|| last_command.func == cmd_digit_argument
 	|| last_command.func == cmd_complete
-	|| last_command.func == cmd_complete_forward
-	|| last_command.func == cmd_complete_backward
+	|| last_command.func == cmd_complete_next_candidate
+	|| last_command.func == cmd_complete_prev_candidate
+	|| last_command.func == cmd_complete_next_column
+	|| last_command.func == cmd_complete_prev_column
+	|| last_command.func == cmd_complete_next_page
+	|| last_command.func == cmd_complete_prev_page
 	|| last_command.func == cmd_noop
 	|| last_command.func == cmd_alert
 	|| last_command.func == cmd_redraw_all

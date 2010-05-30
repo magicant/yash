@@ -87,8 +87,12 @@ cancel-undo
 cancel-undo-all
 redo
 complete
-complete-forward
-complete-backward
+complete-next-candidate
+complete-prev-candidate
+complete-next-column
+complete-prev-column
+complete-next-page
+complete-prev-page
 clear-candidates
 vi-replace-char
 vi-insert-beginning
@@ -179,8 +183,8 @@ bindkey -v '\D' next-history-eol
 bindkey -v '\^N' next-history-eol
 bindkey -v '\U' prev-history-eol
 bindkey -v '\^P' prev-history-eol
-bindkey -v '\^I' complete-forward
-bindkey -v '\bt' complete-backward
+bindkey -v '\^I' complete-next-candidate
+bindkey -v '\bt' complete-prev-candidate
 END
 bindkey -v '\#'
 bindkey -v 'a' self-insert
@@ -406,8 +410,8 @@ bindkey -e '\D' next-history-eol
 bindkey -e '\^N' next-history-eol
 bindkey -e '\U' prev-history-eol
 bindkey -e '\^P' prev-history-eol
-bindkey -e '\^I' complete-forward
-bindkey -e '\bt' complete-backward
+bindkey -e '\^I' complete-next-candidate
+bindkey -e '\bt' complete-prev-candidate
 END
 . "$tmp/e"
 bindkey --emacs | sort | diff - "$tmp/e"
