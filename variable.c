@@ -1299,7 +1299,7 @@ void generate_function_candidates(le_candgentype_T type, le_context_T *context)
     const wchar_t *name;
     while ((name = ht_next(&functions, &i).key) != NULL)
 	if (xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
-	    le_new_candidate(CT_COMMAND, xwcsdup(name), NULL);
+	    le_new_command_candidate(xwcsdup(name));
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */

@@ -1152,7 +1152,7 @@ void print_candidates_all(void)
 		break;
 
 	    while (lebuf.pos.column < scrcol)
-		lebuf_putwchar(L' ', false);
+		lebuf_putchar1_trunc(' ');
 
 	    size_t candindex = col->candindex + rowi;
 	    print_candidate(le_candidates.contents[candindex], col,

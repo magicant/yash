@@ -442,7 +442,7 @@ const struct candgen_T *get_candgen(void)
 		tmpcandgen.type |= CGT_DIRECTORY | CGT_COMMAND;
 		if (ctxt->quote == QUOTE_NORMAL
 			&& !wcschr(ctxt->pattern, L'\\'))
-		    tmpcandgen.type |= CGT_KEYWORD | CGT_ALIAS;
+		    tmpcandgen.type |= CGT_KEYWORD | CGT_NALIAS;
 	    }
 	    return &tmpcandgen;
 	case CTXT_TILDE:
@@ -458,10 +458,9 @@ const struct candgen_T *get_candgen(void)
 	    tmpcandgen.type |= CGT_FILE;
 	    return &tmpcandgen;
 	case CTXT_REDIR:
-	    tmpcandgen.type |= CGT_FILE | CGT_GALIAS;
+	    tmpcandgen.type |= CGT_FILE;
 	    return &tmpcandgen;
 	case CTXT_REDIR_FD:
-	    tmpcandgen.type |= CGT_GALIAS;
 	    return &tmpcandgen;
 	case CTXT_FOR_IN:
 	    tmpcandgen.words = in_do;
@@ -604,7 +603,7 @@ next_word:;
 
 const struct candgen_T *get_candgen_default(void)
 {
-    tmpcandgen.type = CGT_FILE | CGT_GALIAS;
+    tmpcandgen.type = CGT_FILE;
     return &tmpcandgen;
 }
 
@@ -678,6 +677,24 @@ int generate_candidates(const struct candgen_T *candgen)
      * execution may modify `candgen'. */
 }
 
+/* Adds a CT_COMMAND candidate with the specified name to the candidate list.
+ * The description for the candidate is looked up from the registered completion
+ * style.
+ * The caller must not modify or free `cmdname' after the return from this
+ * function. */
+void le_new_command_candidate(wchar_t *cmdname)
+{
+    wchar_t *desc = NULL;
+    if (candgens.capacity != 0) {
+	const struct cmdcandgen_T *ccg = ht_get(&candgens, cmdname).value;
+	if (ccg != NULL && ccg->description) {
+	    desc = xwcsdup(ccg->description);
+	}
+    }
+
+    le_new_candidate(CT_COMMAND, cmdname, desc);
+}
+
 /* Adds the specified value as a completion candidate to the candidate list.
  * A description for the candidate can be given as `desc', which may be NULL
  * when no description is provided.
@@ -722,7 +739,6 @@ void le_add_candidate(le_candidate_T *cand)
 	    case CT_OPTION:    typestr = "option";                     break;
 	    case CT_OPTIONA:   typestr = "argument-requiring option";  break;
 	    case CT_VAR:       typestr = "variable";                   break;
-	    case CT_FUNC:      typestr = "function";                   break;
 	    case CT_JOB:       typestr = "job";                        break;
 	    case CT_FD:        typestr = "file descriptor";            break;
 	    case CT_SIG:       typestr = "signal";                     break;
@@ -840,7 +856,7 @@ void generate_external_command_candidates(
 		continue;
 	    sb_cat(&path, de->d_name);
 	    if (is_executable_regular(path.contents))
-		le_new_candidate(CT_COMMAND, malloc_mbstowcs(de->d_name), NULL);
+		le_new_command_candidate(malloc_mbstowcs(de->d_name));
 	    sb_truncate(&path, dirpathlen);
 	}
 	sb_clear(&path);
@@ -868,7 +884,7 @@ void generate_keyword_candidates(le_candgentype_T type, le_context_T *context)
 
     for (const wchar_t **k = keywords; *k != NULL; k++)
 	if (WMATCH(context->cpattern, *k))
-	    le_new_candidate(CT_COMMAND, xwcsdup(*k), NULL);
+	    le_new_command_candidate(xwcsdup(*k));
 }
 
 /* Generates candidates to complete an option matching the pattern in the
@@ -1970,7 +1986,7 @@ next:;
 const char complete_help[] = Ngt(
 "complete - edit completion style\n"
 "\tcomplete [-PRX] [-C command] [-O option] [-D description] \\\n"
-"\t         [-F function] [-abcdfghjkouv] [words...]\n"
+"\t         [-F function] [-abcdfghjkuv] [words...]\n"
 "The \"complete\" builtin specifies how to complete command-line words.\n"
 "You can specify possible options and operands for each command, and possible\n"
 "arguments for each argument-requiring option as well.\n"

@@ -28,7 +28,6 @@ typedef enum le_candtype_T {
     CT_WORD,       // normal word
     CT_FILE,       // file name
     CT_COMMAND,    // command name
-    CT_FUNC,       // function name
     CT_ALIAS,      // alias name
     CT_OPTION,     // normal command option
     CT_OPTIONA,    // command option that takes an argument
@@ -150,6 +149,8 @@ extern void le_complete_cleanup(void);
 extern void le_compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
+extern void le_new_command_candidate(wchar_t *cmdname)
+    __attribute__((nonnull));
 extern void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc);
 extern void le_add_candidate(le_candidate_T *cand)
     __attribute__((nonnull));
