@@ -89,6 +89,8 @@ static int sort_candidates_cmp(const void *cp1, const void *cp2)
 struct cmdcandgen_T;
 static const struct candgen_T *get_candgen(void);
 static const struct candgen_T *get_candgen_cmdarg(void);
+static const struct cmdcandgen_T *get_cmdcandgen(const wchar_t *cmdname)
+    __attribute__((nonnull,pure));
 static const struct candgen_T *get_candgen_parse_pwords(
 	const struct cmdcandgen_T *ccg)
     __attribute__((nonnull));
@@ -485,7 +487,7 @@ const struct candgen_T *get_candgen_cmdarg(void)
     const struct optcandgen_T *ocg;
     if (candgens.capacity == 0)
 	return get_candgen_default();
-    ccg = ht_get(&candgens, ctxt->pwords[0]).value;
+    ccg = get_cmdcandgen(ctxt->pwords[0]);
     if (ccg == NULL)
 	return get_candgen_default();
 
@@ -539,6 +541,21 @@ const struct candgen_T *get_candgen_cmdarg(void)
     }
     skip_prefix(ss - ctxt->src);
     return get_candgen_option();
+}
+
+/* Search `candgens' for the specified command.
+ * If `cmdname' contains a slash and if the command was not found for the whole
+ * pathname, search is done for the last path component. */
+const struct cmdcandgen_T *get_cmdcandgen(const wchar_t *cmdname)
+{
+    const struct cmdcandgen_T *result;
+    result = ht_get(&candgens, cmdname).value;
+    if (result == NULL) {
+	const wchar_t *slash = wcsrchr(cmdname, L'/');
+	if (slash != NULL)
+	    result = ht_get(&candgens, slash + 1).value;
+    }
+    return result;
 }
 
 /* Parses `ctxt->pwords'. */
@@ -686,7 +703,7 @@ void le_new_command_candidate(wchar_t *cmdname)
 {
     wchar_t *desc = NULL;
     if (candgens.capacity != 0) {
-	const struct cmdcandgen_T *ccg = ht_get(&candgens, cmdname).value;
+	const struct cmdcandgen_T *ccg = get_cmdcandgen(cmdname);
 	if (ccg != NULL && ccg->description) {
 	    desc = xwcsdup(ccg->description);
 	}
@@ -903,7 +920,7 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 
     const struct cmdcandgen_T *ccg;
     const struct optcandgen_T *ocg;
-    ccg = ht_get(&candgens, context->pwords[0]).value;
+    ccg = get_cmdcandgen(context->pwords[0]);
     if (ccg == NULL)
 	return;
 
