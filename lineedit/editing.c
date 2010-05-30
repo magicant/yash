@@ -2161,7 +2161,8 @@ void cmd_complete_backward(wchar_t c __attribute__((unused)))
  * command was not a completion command, etc. */
 void check_last_cmd_for_completion(void)
 {
-    if (last_command.func != cmd_digit_argument
+    if ((last_command.func != cmd_bol_or_digit || state.count.sign == 0)
+	    && last_command.func != cmd_digit_argument
 	    && last_command.func != cmd_complete
 	    && last_command.func != cmd_complete_forward
 	    && last_command.func != cmd_complete_backward
