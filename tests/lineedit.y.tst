@@ -115,6 +115,7 @@ vi-substitute
 vi-append-last-bigword
 vi-exec-alias
 vi-edit-and-accept
+vi-complete-all
 vi-complete-max
 vi-search-forward
 vi-search-backward
@@ -311,6 +312,7 @@ bindkey -a 's' vi-substitute
 bindkey -a '_' vi-append-last-bigword
 bindkey -a '@' vi-exec-alias
 bindkey -a 'v' vi-edit-and-accept
+bindkey -a '*' vi-complete-all
 bindkey -a '\\' vi-complete-max
 bindkey -a '?' vi-search-forward
 bindkey -a '/' vi-search-backward

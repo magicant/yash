@@ -266,6 +266,18 @@ void lecr_normal(void)
     }
 }
 
+/* An `le_compresult_T' function for `cmd_vi_complete_all'. */
+void lecr_substitute_all_candidates(void)
+{
+    le_selected_candidate_index = 0;
+    if (le_candidates.length == 0) {
+	lebuf_print_alert(true);
+    } else {
+	substitute_source_word_all();
+    }
+    le_complete_cleanup();
+}
+
 /* An `le_compresult_T' function for `cmd_vi_complete_max'. */
 void lecr_longest_common_prefix(void)
 {

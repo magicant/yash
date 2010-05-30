@@ -147,6 +147,7 @@ extern size_t le_selected_candidate_index;
 
 extern void le_complete(le_compresult_T lecr);
 extern void lecr_normal(void);
+extern void lecr_substitute_all_candidates(void);
 extern void lecr_longest_common_prefix(void);
 extern void le_complete_select_candidate(int offset);
 extern void le_complete_select_column(int offset);
