@@ -21,7 +21,7 @@
 
 
 struct le_context_T;
-extern _Bool le_get_context(struct le_context_T *ctxt)
+extern void le_get_context(struct le_context_T *ctxt)
     __attribute__((nonnull));
 extern void le_free_context(struct le_context_T *ctxt)
     __attribute__((nonnull));

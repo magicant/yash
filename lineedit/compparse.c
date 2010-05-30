@@ -116,10 +116,9 @@ static bool is_arith_delimiter(wchar_t c)
  * current completion context.
  * The result is put in `*ctxt', but this function does not compile
  * `ctxt->pattern' into `ctxt->cpattern', which is assigned NULL.
- * Returns true iff successful.
  * The context data must be freed using the `le_free_context' function
  * regardless of whether successful or not. */
-bool le_get_context(le_context_T *ctxt)
+void le_get_context(le_context_T *ctxt)
 {
     assert(wcslen(le_main_buffer.contents) == le_main_buffer.length);
 
@@ -158,7 +157,6 @@ bool le_get_context(le_context_T *ctxt)
 	print_context_info(ctxt);
 
     ctxt->cpattern = NULL;
-    return true;
 }
 
 /* If `pi->ctxt->pwords' is NULL, assigns a new empty list to it. */

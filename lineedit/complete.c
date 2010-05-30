@@ -217,8 +217,7 @@ void le_complete(le_compresult_T lecr)
     pl_init(&le_candidates);
 
     le_context_T context;
-    if (!le_get_context(&context))
-	goto display;
+    le_get_context(&context);
 
     insertion_index = le_main_index;
     ctxttype = context.type;
@@ -231,7 +230,7 @@ void le_complete(le_compresult_T lecr)
     sort_candidates();
     le_compdebug("total of %zu candidate(s)", le_candidates.length);
 
-display:  /* display the results */
+    /* display the results */
     lecr();
     ctxt = NULL;
     le_free_context(&context);
