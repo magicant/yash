@@ -135,8 +135,7 @@ static void generate_candidates_from_words(
 static size_t get_common_prefix_length(void)
     __attribute__((pure));
 static void update_main_buffer(bool subst, bool finish);
-static bool need_subst(const le_context_T *context)
-    __attribute__((nonnull));
+static bool need_subst(void);
 static void substitute_source_word_all(void);
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
@@ -207,7 +206,7 @@ void lecr_normal(void)
 {
     if (le_candidates.length == 0) {
 	le_selected_candidate_index = 0;
-    } else if (ctxt->substsrc || need_subst(ctxt)) {
+    } else if (ctxt->substsrc || need_subst()) {
 	le_selected_candidate_index = 0;
 	substitute_source_word_all();
 	le_complete_cleanup();
@@ -241,7 +240,7 @@ void lecr_longest_common_prefix(void)
     if (le_candidates.length == 0) {
 	lebuf_print_alert(true);
     } else {
-	bool subst = ctxt->substsrc || need_subst(ctxt);
+	bool subst = ctxt->substsrc || need_subst();
 	if (le_candidates.length > 1) {
 	    le_selected_candidate_index = le_candidates.length;
 	    update_main_buffer(subst, false);
@@ -1312,14 +1311,14 @@ void update_main_buffer(bool subst, bool finish)
 }
 
 /* Determines whether the source word should be substituted even if
- * `context->substsrc' is false. */
+ * `ctxt->substsrc' is false. */
 /* Returns true if there is a candidate that does not begin with
- * `context->src'. */
-bool need_subst(const le_context_T *context)
+ * `ctxt->src'. */
+bool need_subst(void)
 {
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T *cand = le_candidates.contents[i];
-	if (!matchwcsprefix(cand->value.value, context->src))
+	if (!matchwcsprefix(cand->value.value, ctxt->src))
 	    return true;
     }
     return false;
