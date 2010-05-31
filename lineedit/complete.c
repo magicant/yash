@@ -1241,6 +1241,7 @@ void update_main_buffer(bool subst, bool finish)
 	assert(srclen <= wcslen(cand->value.value));
 	quote(&buf, cand->value.value + srclen, quotetype);
     }
+    assert(le_main_index >= substindex);
     wb_replace_force(&le_main_buffer,
 	    substindex, le_main_index - substindex,
 	    buf.contents, buf.length);

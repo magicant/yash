@@ -177,6 +177,12 @@ static size_t last_put_elem = 0;  /* < KILL_RING_SIZE */
 /* The position and length of the last put string. */
 static size_t last_put_range_start, last_put_range_length;
 
+/* Set to true if the next completion command should restart completion from
+ * scratch. */
+static bool reset_completion;
+/* The next value of `reset_completion'. */
+static bool next_reset_completion;
+
 
 static void reset_state(void);
 static int get_count(int default_value)
@@ -256,9 +262,6 @@ static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 
-static bool is_last_command_completion(void)
-    __attribute__((pure));
-
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
@@ -319,6 +322,8 @@ void le_editing_init(void)
     undo_history_entry = Histlist;
     save_undo_history();
 
+    reset_completion = true;
+
     reset_state();
     overwrite = false;
 }
@@ -346,10 +351,13 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
     current_command.func = cmd;
     current_command.arg = arg;
 
+    next_reset_completion = true;
+
     cmd(arg);
 
     last_command = current_command;
 
+    reset_completion |= next_reset_completion;
     if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND)
 	if (le_main_index > 0 && le_main_index == le_main_buffer.length)
 	    le_main_index--;
@@ -648,6 +656,7 @@ void switch_case(wchar_t *s, size_t n)
 /* Does nothing. */
 void cmd_noop(wchar_t c __attribute__((unused)))
 {
+    next_reset_completion = false;
     reset_state();
 }
 
@@ -710,6 +719,8 @@ void cmd_digit_argument(wchar_t c)
 	else
 	    state.count.sign = -state.count.sign;
     }
+
+    next_reset_completion = false;
 }
 
 /* If the count is not set, moves the cursor to the beginning of the line.
@@ -871,6 +882,8 @@ void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
 
 void redraw_all(bool clear)
 {
+    next_reset_completion = false;
+
     le_display_clear(clear);
     le_restore_terminal();
     le_setupterm(false);
@@ -2124,10 +2137,12 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 void cmd_complete(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     le_complete(lecr_normal);
 
@@ -2139,10 +2154,12 @@ void cmd_complete(wchar_t c __attribute__((unused)))
 void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     le_complete_select_candidate(get_count(1));
 
@@ -2154,10 +2171,12 @@ void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     le_complete_select_candidate(-get_count(1));
 
@@ -2169,10 +2188,12 @@ void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
 void cmd_complete_next_column(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     le_complete_select_column(get_count(1));
 
@@ -2184,10 +2205,12 @@ void cmd_complete_next_column(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     le_complete_select_column(-get_count(1));
 
@@ -2199,10 +2222,12 @@ void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
 void cmd_complete_next_page(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     le_complete_select_page(get_count(1));
 
@@ -2214,37 +2239,16 @@ void cmd_complete_next_page(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_page(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     le_complete_select_page(-get_count(1));
 
     reset_state();
-}
-
-/* Returns true if the last command was a completion command or a trivial
- * command. */
-bool is_last_command_completion(void)
-{
-    return (last_command.func == cmd_bol_or_digit && state.count.sign != 0)
-	|| last_command.func == cmd_digit_argument
-	|| last_command.func == cmd_complete
-	|| last_command.func == cmd_complete_next_candidate
-	|| last_command.func == cmd_complete_prev_candidate
-	|| last_command.func == cmd_complete_next_column
-	|| last_command.func == cmd_complete_prev_column
-	|| last_command.func == cmd_complete_next_page
-	|| last_command.func == cmd_complete_prev_page
-	|| last_command.func == cmd_vi_complete_all
-	|| last_command.func == cmd_vi_complete_max
-	|| last_command.func == cmd_noop
-	|| last_command.func == cmd_alert
-	|| last_command.func == cmd_redraw_all
-	|| last_command.func == cmd_clear_and_redraw_all;
-    /* `cmd_vi_complete' is not in this list because its results cannot be used
-     * by succeeding completion commands. */
 }
 
 /* Clears the current candidates. */
@@ -2667,10 +2671,11 @@ end:
 void cmd_vi_complete(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-    }
+    maybe_save_undo_history();
+    le_complete_cleanup();
+    /* leave `next_reset_completion' to be true because the results of
+     * `cmd_vi_complete' cannot be used by succeeding completion commands. */
+    // next_reset_completion = false;
 
     size_t oldindex = le_main_index;
     if (le_main_index < le_main_buffer.length)
@@ -2690,10 +2695,12 @@ void cmd_vi_complete(wchar_t c __attribute__((unused)))
 void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     if (le_main_index < le_main_buffer.length)
 	le_main_index++;
@@ -2708,10 +2715,12 @@ void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
 void cmd_vi_complete_max(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (!is_last_command_completion()) {
+    if (reset_completion) {
 	maybe_save_undo_history();
 	le_complete_cleanup();
+	reset_completion = false;
     }
+    next_reset_completion = false;
 
     if (le_main_index < le_main_buffer.length)
 	le_main_index++;
