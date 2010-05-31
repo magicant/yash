@@ -134,11 +134,10 @@ static void generate_candidates_from_words(
 
 static size_t get_common_prefix_length(void)
     __attribute__((pure));
-static void update_main_buffer(void);
+static void update_main_buffer(bool subst, bool finish);
 static bool need_subst(const le_context_T *context)
     __attribute__((nonnull));
 static void substitute_source_word_all(void);
-static void substitute_source_word_lcp(void);
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
 
@@ -209,12 +208,12 @@ void lecr_normal(void)
 	le_complete_cleanup();
     } else if (le_candidates.length == 1) {
 	le_selected_candidate_index = 0;
-	update_main_buffer();
+	update_main_buffer(false, true);
 	le_complete_cleanup();
     } else {
 	le_selected_candidate_index = le_candidates.length;
 	le_display_make_rawvalues();
-	update_main_buffer();
+	update_main_buffer(false, false);
     }
 }
 
@@ -237,15 +236,12 @@ void lecr_longest_common_prefix(void)
     if (le_candidates.length == 0) {
 	lebuf_print_alert(true);
     } else {
-	if (ctxt->substsrc || need_subst(ctxt)) {
-	    if (le_candidates.length > 1)
-		substitute_source_word_lcp();
-	    else
-		substitute_source_word_all();
+	bool subst = ctxt->substsrc || need_subst(ctxt);
+	if (le_candidates.length > 1) {
+	    le_selected_candidate_index = le_candidates.length;
+	    update_main_buffer(subst, false);
 	} else {
-	    if (le_candidates.length > 1)
-		le_selected_candidate_index = le_candidates.length;
-	    update_main_buffer();
+	    update_main_buffer(subst, true);
 	}
     }
     le_complete_cleanup();
@@ -277,7 +273,7 @@ void le_complete_select_candidate(int offset)
     }
     assert(le_selected_candidate_index <= le_candidates.length);
 
-    update_main_buffer();
+    update_main_buffer(false, false);
 }
 
 /* Selects the first candidate of the `offset'th next column.
@@ -293,7 +289,7 @@ void le_complete_select_column(int offset)
     }
 
     le_selected_candidate_index = le_display_select_column(offset);
-    update_main_buffer();
+    update_main_buffer(false, false);
 }
 
 /* Selects the first candidate of the `offset'th next page.
@@ -309,7 +305,7 @@ void le_complete_select_page(int offset)
     }
 
     le_selected_candidate_index = le_display_select_page(offset);
-    update_main_buffer();
+    update_main_buffer(false, false);
 }
 
 /* Clears the current candidates. */
@@ -1161,17 +1157,35 @@ size_t get_common_prefix_length(void)
     return common_prefix_length;
 }
 
-/* Sets the contents of the main buffer to the currently selected candidate.
+/* Inserts the currently selected candidate into the main buffer.
+ * The already inserted candidate is replaced if any.
  * When no candidate is selected, sets to the longest common prefix of the
- * candidates. There must be at least one candidate. */
-void update_main_buffer(void)
+ * candidates. There must be at least one candidate.
+ * If `subst' is true, the whole source word is replaced with the candidate
+ * value. Otherwise, the source word is appended (in which case the word must
+ * have a valid common prefix).
+ * If `finish' is true, the word is closed so that the next word can just be
+ * entered directly.
+ * If either `subst' or `finish' is true, the completion state must be cleaned
+ * up after this function. */
+void update_main_buffer(bool subst, bool finish)
 {
     const le_candidate_T *cand;
     xwcsbuf_T buf;
-
-    size_t srclen = wcslen(ctxt->src);
+    size_t srclen;
+    size_t substindex;
+    le_quote_T quotetype;
 
     wb_init(&buf);
+    if (subst) {
+	srclen = 0;
+	substindex = ctxt->srcindex;
+	quotetype = QUOTE_NORMAL;
+    } else {
+	srclen = wcslen(ctxt->src);
+	substindex = ctxt->origindex;
+	quotetype = ctxt->quote;
+    }
     if (le_selected_candidate_index >= le_candidates.length) {
 	size_t cpl = get_common_prefix_length();
 	assert(srclen <= cpl);
@@ -1181,15 +1195,16 @@ void update_main_buffer(void)
 	wchar_t value[valuelen + 1];
 	wcsncpy(value, cand->value.value + srclen, valuelen);
 	value[valuelen] = L'\0';
-	quote(&buf, value, ctxt->quote);
+	quote(&buf, value, quotetype);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	quote(&buf, cand->value.value + srclen, ctxt->quote);
+	assert(srclen <= wcslen(cand->value.value));
+	quote(&buf, cand->value.value + srclen, quotetype);
     }
     wb_replace_force(&le_main_buffer,
-	    ctxt->origindex, le_main_index - ctxt->origindex,
+	    substindex, le_main_index - substindex,
 	    buf.contents, buf.length);
-    le_main_index = ctxt->origindex + buf.length;
+    le_main_index = substindex + buf.length;
     wb_destroy(&buf);
 
     if (le_selected_candidate_index >= le_candidates.length)
@@ -1207,7 +1222,7 @@ void update_main_buffer(void)
 	    le_main_index += 1;
 	}
     } else {
-	switch (ctxt->quote) {
+	switch (quotetype) {
 	    case QUOTE_NONE:
 	    case QUOTE_NORMAL:
 		break;
@@ -1221,7 +1236,7 @@ void update_main_buffer(void)
 		break;
 	}
 
-	if (le_candidates.length == 1) {
+	if (finish) {
 	    if (ctxt->type & CTXT_BRACED) {
 		wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
 		le_main_index += 1;
@@ -1291,28 +1306,6 @@ void substitute_source_word_all(void)
 		buf.contents, buf.length);
 	le_main_index += buf.length;
     }
-    wb_destroy(&buf);
-}
-
-/* Substitutes the source word in the main buffer with the longest common prefix
- * of all the candidates. `ctxt' must be a valid context.
- * `calculate_common_prefix_length' must have been called. */
-void substitute_source_word_lcp(void)
-{
-    le_compdebug("substituting source word with common prefix of candidate(s)");
-
-    size_t cpl = get_common_prefix_length();
-    xwcsbuf_T buf;
-    wchar_t value[cpl + 1];
-    const le_candidate_T *cand = le_candidates.contents[0];
-
-    wcsncpy(value, cand->value.value, cpl);
-    value[cpl] = L'\0';
-    quote(wb_init(&buf), value, QUOTE_NORMAL);
-    wb_replace_force(&le_main_buffer,
-	    ctxt->srcindex, le_main_index - ctxt->srcindex,
-	    buf.contents, buf.length);
-    le_main_index = ctxt->srcindex + buf.length;
     wb_destroy(&buf);
 }
 
