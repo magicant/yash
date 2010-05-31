@@ -82,6 +82,7 @@ extern void endhostent(void);
 
 static void free_candidate(void *c)
     __attribute__((nonnull));
+static void free_context(le_context_T *ctxt);
 static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
@@ -131,7 +132,8 @@ static void generate_candidates_from_words(
 	void *const *words, le_context_T *context)
     __attribute__((nonnull(2)));
 
-static void calculate_common_prefix_length(void);
+static size_t get_common_prefix_length(void)
+    __attribute__((pure));
 static void update_main_buffer(void);
 static bool need_subst(const le_context_T *context)
     __attribute__((nonnull));
@@ -139,6 +141,9 @@ static void substitute_source_word_all(void);
 static void substitute_source_word_lcp(void);
 static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
     __attribute__((nonnull));
+
+/* The current completion context. */
+static le_context_T *ctxt = NULL;
 
 /* A list that contains the current completion candidates.
  * The elements pointed to by `le_candidates.contains[*]' are of type
@@ -148,50 +153,9 @@ plist_T le_candidates = { .contents = NULL };
  * When no candidate is selected, the index is `le_candidates.length'. */
 size_t le_selected_candidate_index;
 
-/* The index of the cursor before completion started. */
-static size_t insertion_index;
-/* The type of context at the current position. */
-static le_contexttype_T ctxttype;
-/* The type of quotation at the current position. */
-static le_quote_T quotetype;
-/* The length of the expanded source word, not including backslash escapes.
- * If `source_word_skip' is non-zero, the ignored prefix is not counted in
- * `source_word_length. */
-static size_t source_word_length;
-/* The length of the prefix of the expanded source word that is ignored in
- * candidate generation. */
-static size_t source_word_skip;
-/* The length of the longest common prefix of the current candidates. */
+/* The length of the longest common prefix of the current candidates.
+ * The value is ((size_t) -1) when not computed. */
 static size_t common_prefix_length;
-/* Examples:
- *   If completion was started with `le_main_buffer.contents' of `ssh"-k' and
- *   if you got two candidates "ssh-keygen" and "ssh-keyscan", then
- *     `insertion_index'      = 6
- *     `ctxttype'             = CTXT_COMMAND
- *     `quotetype'            = QUOTE_DOUBLE
- *     `source_word_length'   = 5 (= wcslen("ssh-k"))
- *     `source_word_skip'     = 0
- *     `common_prefix_length' = 7 (= wcslen("ssh-key"))
- *
- *   At first, `source_word_skip' is zero. If a prefix is found to be skipped
- *   in `get_candgen', `source_word_skip' is set to the length of the prefix
- *   and it is subtracted from `source_word_length'.
- *   If the original buffer was `cmd --option=fo', then
- *     `insertion_index'      = 15
- *     `ctxttype'             = CTXT_NORMAL
- *     `quotetype'            = QUOTE_NORMAL
- *     `source_word_length'   = 11 (= wcslen("--option=fo"))
- *     `source_word_skip'     = 0
- *   When `--option=' was found to be the ignored prefix later, then the values
- *   are updated:
- *     `source_word_length'   = 2 (= wcslen("fo"))
- *     `source_word_skip'     = 9 (= wcslen("--option="))
- *   And if you got two candidates "food" and "fool", `common_prefix_length'
- *   will be 3.
- */
-
-/* The context in which completion is being performed. */
-static le_context_T *ctxt = NULL;
 
 
 /* Performs command line completion.
@@ -215,25 +179,16 @@ void le_complete(le_compresult_T lecr)
 
     le_complete_cleanup();
     pl_init(&le_candidates);
+    common_prefix_length = (size_t) -1;
 
-    le_context_T context;
-    le_get_context(&context);
+    ctxt = le_get_context();
 
-    insertion_index = le_main_index;
-    ctxttype = context.type;
-    quotetype = context.quote;
-    source_word_length = wcslen(context.src);
-    source_word_skip = 0;
-
-    ctxt = &context;
     generate_candidates(get_candgen());
     sort_candidates();
     le_compdebug("total of %zu candidate(s)", le_candidates.length);
 
     /* display the results */
     lecr();
-    ctxt = NULL;
-    le_free_context(&context);
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	le_compdebug("completion end");
@@ -257,8 +212,6 @@ void lecr_normal(void)
 	update_main_buffer();
 	le_complete_cleanup();
     } else {
-	calculate_common_prefix_length();
-	assert(source_word_length <= common_prefix_length);
 	le_selected_candidate_index = le_candidates.length;
 	le_display_make_rawvalues();
 	update_main_buffer();
@@ -284,7 +237,6 @@ void lecr_longest_common_prefix(void)
     if (le_candidates.length == 0) {
 	lebuf_print_alert(true);
     } else {
-	calculate_common_prefix_length();
 	if (ctxt->substsrc || need_subst(ctxt)) {
 	    if (le_candidates.length > 1)
 		substitute_source_word_lcp();
@@ -368,6 +320,8 @@ void le_complete_cleanup(void)
 	recfree(pl_toary(&le_candidates), free_candidate);
 	le_candidates.contents = NULL;
     }
+    free_context(ctxt);
+    ctxt = NULL;
 }
 
 /* Frees a completion candidate.
@@ -380,6 +334,18 @@ void free_candidate(void *c)
     free(cand->desc.value);
     free(cand->desc.raw);
     free(cand);
+}
+
+/* Frees the specified `le_context_T' data. */
+void free_context(le_context_T *ctxt)
+{
+    if (ctxt != NULL) {
+	recfree(ctxt->pwords, free);
+	free(ctxt->origsrc);
+	free(ctxt->origpattern);
+	xfnm_free(ctxt->cpattern);
+	free(ctxt);
+    }
 }
 
 /* Sorts the candidates in the candidate list and remove duplicates. */
@@ -496,8 +462,7 @@ static struct candgen_T tmpcandgen;
 /* Determines how to generate candidates under context `ctxt'.
  * The result is valid until the next call to this function or
  * `complete_builtin_set'.
- * This function may change `ctxt->src', `ctxt->pattern', `source_word_skip',
- * and `source_word_length'. */
+ * This function may change `ctxt->src', `ctxt->pattern'. */
 const struct candgen_T *get_candgen(void)
 {
     static void *in_do[] = { L"in", L"do", NULL };
@@ -550,8 +515,7 @@ const struct candgen_T *get_candgen(void)
 
 /* Parses the already-entered command words and determines how to complete the
  * current word.
- * This function may change `ctxt->src', `ctxt->pattern', `source_word_skip',
- * and `source_word_length'. */
+ * This function may change `ctxt->src', `ctxt->pattern'. */
 const struct candgen_T *get_candgen_cmdarg(void)
 {
     const struct cmdcandgen_T *ccg;
@@ -710,26 +674,21 @@ const struct candgen_T *get_candgen_operands(const struct candgen_T *candgen)
     return candgen;
 }
 
-/* Sets `source_word_skip' to `len' and removes the prefix from the source word
- * in context `ctxt'. */
+/* Increases `ctxt->src' by `len' and `ctxt->pattern' accordingly. */
 void skip_prefix(size_t len)
 {
-    assert(len <= source_word_length);
-    assert(source_word_skip == 0);
-    source_word_length -= len;
-    source_word_skip = len;
+    assert(len <= wcslen(ctxt->src));
+    assert(ctxt->src == ctxt->origsrc);
 
-    wmemmove(ctxt->src, ctxt->src + len, source_word_length + 1);
+    ctxt->src += len;
 
-    size_t plen = 0;
-    for (size_t l = 0; l < len; l++) {
-	if (ctxt->pattern[plen] == L'\\')
-	    plen++;
-	assert(ctxt->pattern[plen] != L'\0');
-	plen++;
+    while (len > 0) {
+	if (ctxt->pattern[0] == L'\\')
+	    ctxt->pattern++;
+	if (ctxt->pattern[0] != L'\0')
+	    ctxt->pattern++;
+	len--;
     }
-    wmemmove(ctxt->pattern, ctxt->pattern + plen,
-	    wcslen(ctxt->pattern + plen) + 1);
 
     le_compdebug("new source word: \"%ls\"", ctxt->src);
     le_compdebug("     as pattern: \"%ls\"", ctxt->pattern);
@@ -1167,12 +1126,17 @@ void generate_candidates_from_words(void *const *words, le_context_T *context)
 
 /********** Displaying Functions **********/
 
-/* Calculates the value of `common_prefix_length' for the current candidates.
+/* Calculates the length of the longest common prefix (leading substring)
+ * for the current candidates.
+ * The result is saved in `common_prefix_length'.
  * There must be at least one candidate in `le_candidates'. */
-void calculate_common_prefix_length(void)
+size_t get_common_prefix_length(void)
 {
     assert(le_candidates.contents != NULL);
     assert(le_candidates.length > 0);
+
+    if (common_prefix_length != (size_t) -1)
+	return common_prefix_length;
 
     const le_candidate_T *cand = le_candidates.contents[0];
     const wchar_t *value = cand->value.value;
@@ -1193,6 +1157,8 @@ void calculate_common_prefix_length(void)
 	value[common_prefix_length] = L'\0';
 	le_compdebug("candidate common prefix: \"%ls\"", value);
     }
+
+    return common_prefix_length;
 }
 
 /* Sets the contents of the main buffer to the currently selected candidate.
@@ -1201,24 +1167,29 @@ void calculate_common_prefix_length(void)
 void update_main_buffer(void)
 {
     const le_candidate_T *cand;
-    wchar_t *value;
     xwcsbuf_T buf;
+
+    size_t srclen = wcslen(ctxt->src);
 
     wb_init(&buf);
     if (le_selected_candidate_index >= le_candidates.length) {
+	size_t cpl = get_common_prefix_length();
+	assert(srclen <= cpl);
 	cand = le_candidates.contents[0];
-	value = xwcsndup(cand->value.value + source_word_length,
-		common_prefix_length - source_word_length);
-	quote(&buf, value, quotetype);
-	free(value);
+
+	size_t valuelen = cpl - srclen;
+	wchar_t value[valuelen + 1];
+	wcsncpy(value, cand->value.value + srclen, valuelen);
+	value[valuelen] = L'\0';
+	quote(&buf, value, ctxt->quote);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	quote(&buf, cand->value.value + source_word_length, quotetype);
+	quote(&buf, cand->value.value + srclen, ctxt->quote);
     }
     wb_replace_force(&le_main_buffer,
-	    insertion_index, le_main_index - insertion_index,
+	    ctxt->origindex, le_main_index - ctxt->origindex,
 	    buf.contents, buf.length);
-    le_main_index = insertion_index + buf.length;
+    le_main_index = ctxt->origindex + buf.length;
     wb_destroy(&buf);
 
     if (le_selected_candidate_index >= le_candidates.length)
@@ -1236,7 +1207,7 @@ void update_main_buffer(void)
 	    le_main_index += 1;
 	}
     } else {
-	switch (quotetype) {
+	switch (ctxt->quote) {
 	    case QUOTE_NONE:
 	    case QUOTE_NORMAL:
 		break;
@@ -1251,15 +1222,15 @@ void update_main_buffer(void)
 	}
 
 	if (le_candidates.length == 1) {
-	    if (ctxttype & CTXT_BRACED) {
+	    if (ctxt->type & CTXT_BRACED) {
 		wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
 		le_main_index += 1;
 	    }
-	    if (ctxttype & CTXT_QUOTED) {
+	    if (ctxt->type & CTXT_QUOTED) {
 		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
 		le_main_index += 1;
 	    }
-	    switch (ctxttype & CTXT_MASK) {
+	    switch (ctxt->type & CTXT_MASK) {
 		case CTXT_NORMAL:
 		case CTXT_COMMAND:
 		case CTXT_VAR:
@@ -1270,7 +1241,7 @@ void update_main_buffer(void)
 		case CTXT_FOR_IN:
 		case CTXT_FOR_DO:
 		case CTXT_CASE_IN:
-		    if (ctxttype & CTXT_BRACED)
+		    if (ctxt->type & CTXT_BRACED)
 			break;
 		    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
 		    le_main_index += 1;
@@ -1330,12 +1301,13 @@ void substitute_source_word_lcp(void)
 {
     le_compdebug("substituting source word with common prefix of candidate(s)");
 
+    size_t cpl = get_common_prefix_length();
     xwcsbuf_T buf;
-    wchar_t value[common_prefix_length + 1];
+    wchar_t value[cpl + 1];
     const le_candidate_T *cand = le_candidates.contents[0];
 
-    wcsncpy(value, cand->value.value, common_prefix_length);
-    value[common_prefix_length] = L'\0';
+    wcsncpy(value, cand->value.value, cpl);
+    value[cpl] = L'\0';
     quote(wb_init(&buf), value, QUOTE_NORMAL);
     wb_replace_force(&le_main_buffer,
 	    ctxt->srcindex, le_main_index - ctxt->srcindex,

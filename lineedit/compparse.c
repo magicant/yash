@@ -114,13 +114,13 @@ static bool is_arith_delimiter(wchar_t c)
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
  * up to the current cursor position (`le_main_index') and determines the
  * current completion context.
- * The result is put in `*ctxt', but this function does not compile
- * `ctxt->pattern' into `ctxt->cpattern', which is assigned NULL.
- * The context data must be freed using the `le_free_context' function
- * regardless of whether successful or not. */
-void le_get_context(le_context_T *ctxt)
+ * The results are returned as a newly malloced `le_context_T' data, but the
+ * `cpattern' member is left NULL. */
+le_context_T *le_get_context(void)
 {
     assert(wcslen(le_main_buffer.contents) == le_main_buffer.length);
+
+    le_context_T *ctxt = xmalloc(sizeof *ctxt);
 
     cparseinfo_T parseinfo;
     wb_init(&parseinfo.buf);
@@ -143,7 +143,7 @@ void le_get_context(le_context_T *ctxt)
     destroy_aliaslist(parseinfo.aliaslist);
 #endif
 
-    ctxt->src = unescape(ctxt->pattern);
+    ctxt->src = ctxt->origsrc = unescape(ctxt->pattern);
     if (is_pathname_matching_pattern(ctxt->pattern)) {
 	ctxt->substsrc = true;
     } else {
@@ -152,11 +152,14 @@ void le_get_context(le_context_T *ctxt)
 	ctxt->pattern =
 	    wb_towcs(wb_wccat(wb_initwith(&buf, ctxt->pattern), L'*'));
     }
+    ctxt->origpattern = ctxt->pattern;
+    ctxt->cpattern = NULL;
+    ctxt->origindex = le_main_index;
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG)
 	print_context_info(ctxt);
 
-    ctxt->cpattern = NULL;
+    return ctxt;
 }
 
 /* If `pi->ctxt->pwords' is NULL, assigns a new empty list to it. */
@@ -1236,15 +1239,6 @@ bool is_arith_delimiter(wchar_t c)
 	default:
 	    return !iswalnum(c);
     }
-}
-
-/* Frees the contents of the specified `le_context_T' data. */
-void le_free_context(le_context_T *ctxt)
-{
-    recfree(ctxt->pwords, free);
-    free(ctxt->src);
-    free(ctxt->pattern);
-    xfnm_free(ctxt->cpattern);
 }
 
 

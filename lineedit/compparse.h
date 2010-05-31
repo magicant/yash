@@ -21,10 +21,8 @@
 
 
 struct le_context_T;
-extern void le_get_context(struct le_context_T *ctxt)
-    __attribute__((nonnull));
-extern void le_free_context(struct le_context_T *ctxt)
-    __attribute__((nonnull));
+extern le_context_T *le_get_context(void)
+    __attribute__((malloc,warn_unused_result));
 
 
 #endif /* YASH_COMPPARSE_H */
