@@ -2243,6 +2243,8 @@ bool is_last_command_completion(void)
 	|| last_command.func == cmd_alert
 	|| last_command.func == cmd_redraw_all
 	|| last_command.func == cmd_clear_and_redraw_all;
+    /* `cmd_vi_complete' is not in this list because its results cannot be used
+     * by succeeding completion commands. */
 }
 
 /* Clears the current candidates. */
@@ -2654,6 +2656,31 @@ end:
 	free(command);
 #endif
 	assert(false);
+    }
+}
+
+/* Performs command line completion and
+ *   * if the count is not set, list all the candidates without changing the
+ *     main buffer.
+ *   * if the count is set, complete the `count'th candidate and set the mode
+ *     to vi-insert. */
+void cmd_vi_complete(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (!is_last_command_completion()) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+    }
+
+    size_t oldindex = le_main_index;
+    if (le_main_index < le_main_buffer.length)
+	le_main_index++;
+
+    if (le_complete_fix_candidate(get_count(0))) {
+	cmd_setmode_viinsert(L'\0');
+    } else {
+	le_main_index = oldindex;
+	reset_state();
     }
 }
 

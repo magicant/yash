@@ -197,6 +197,11 @@ void le_complete(le_compresult_T lecr)
     }
 }
 
+/* An `le_compresult_T' function that does nothing. */
+void lecr_nop(void)
+{
+}
+
 /* An `le_compresult_T' function for `cmd_complete'. */
 void lecr_normal(void)
 {
@@ -306,6 +311,42 @@ void le_complete_select_page(int offset)
 
     le_selected_candidate_index = le_display_select_page(offset);
     update_main_buffer(false, false);
+}
+
+/* If `index' is not positive, performs completion and list candidates.
+ * Otherwise, substitutes the source word with the `index'th candidate and
+ * cleans up.
+ * Returns true iff the source word was successfully substituted. */
+bool le_complete_fix_candidate(int index)
+{
+    if (le_candidates.contents == NULL) {
+	le_complete(lecr_nop);
+	le_selected_candidate_index = le_candidates.length;
+	le_display_make_rawvalues();
+    }
+    if (le_candidates.length == 0) {
+	lebuf_print_alert(true);
+	return false;
+    }
+    if (index <= 0)
+	return false;
+
+    unsigned uindex = (unsigned) index - 1;
+    if (uindex >= le_candidates.length) {
+	lebuf_print_alert(true);
+	return false;
+    }
+    le_selected_candidate_index = uindex;
+
+    bool subst = ctxt->substsrc;
+    if (!subst) {
+	const le_candidate_T *cand =
+	    le_candidates.contents[le_selected_candidate_index];
+	subst = !matchwcsprefix(cand->value.value, ctxt->src);
+    }
+    update_main_buffer(subst, true);
+    le_complete_cleanup();
+    return true;
 }
 
 /* Clears the current candidates. */

@@ -173,12 +173,14 @@ extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
 
 extern void le_complete(le_compresult_T lecr);
+extern void lecr_nop(void);
 extern void lecr_normal(void);
 extern void lecr_substitute_all_candidates(void);
 extern void lecr_longest_common_prefix(void);
 extern void le_complete_select_candidate(int offset);
 extern void le_complete_select_column(int offset);
 extern void le_complete_select_page(int offset);
+extern _Bool le_complete_fix_candidate(int index);
 extern void le_complete_cleanup(void);
 extern void le_compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
