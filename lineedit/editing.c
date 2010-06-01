@@ -262,6 +262,8 @@ static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 
+static void check_reset_completion(void);
+
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
@@ -2137,12 +2139,7 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 void cmd_complete(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete(lecr_normal);
 
@@ -2154,12 +2151,7 @@ void cmd_complete(wchar_t c __attribute__((unused)))
 void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete_select_candidate(get_count(1));
 
@@ -2171,12 +2163,7 @@ void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete_select_candidate(-get_count(1));
 
@@ -2188,12 +2175,7 @@ void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
 void cmd_complete_next_column(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete_select_column(get_count(1));
 
@@ -2205,12 +2187,7 @@ void cmd_complete_next_column(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete_select_column(-get_count(1));
 
@@ -2222,12 +2199,7 @@ void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
 void cmd_complete_next_page(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete_select_page(get_count(1));
 
@@ -2239,12 +2211,7 @@ void cmd_complete_next_page(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_page(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete_select_page(-get_count(1));
 
@@ -2274,12 +2241,7 @@ void cmd_complete_list(wchar_t c __attribute__((unused)))
 void cmd_complete_all(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete(lecr_substitute_all_candidates);
 
@@ -2291,12 +2253,7 @@ void cmd_complete_all(wchar_t c __attribute__((unused)))
 void cmd_complete_max(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     le_complete(lecr_longest_common_prefix);
 
@@ -2307,6 +2264,16 @@ void cmd_complete_max(wchar_t c __attribute__((unused)))
 void cmd_clear_candidates(wchar_t c __attribute__((unused)))
 {
     le_complete_cleanup();
+}
+
+void check_reset_completion(void)
+{
+    if (reset_completion) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+	reset_completion = false;
+    }
+    next_reset_completion = false;
 }
 
 
@@ -2747,12 +2714,7 @@ void cmd_vi_complete_list(wchar_t c __attribute__((unused)))
 void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     if (le_main_index < le_main_buffer.length)
 	le_main_index++;
@@ -2767,12 +2729,7 @@ void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
 void cmd_vi_complete_max(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
-    }
-    next_reset_completion = false;
+    check_reset_completion();
 
     if (le_main_index < le_main_buffer.length)
 	le_main_index++;
