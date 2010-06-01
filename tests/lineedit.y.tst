@@ -433,6 +433,16 @@ bindkey -v >/dev/null; echo 2 $?
 bindkey -v '\^[' >/dev/null; echo 3 $?
 bindkey -v '\^[' setmode-viinsert; echo 4 $?
 
+for cmd in $(bindkey -l)
+do
+    bindkey -v '!!!' $cmd || echo bindkey -v !!! $cmd $?
+    bindkey -a '!!!' $cmd || echo bindkey -a !!! $cmd $?
+    bindkey -e '!!!' $cmd || echo bindkey -e !!! $cmd $?
+done
+bindkey -v '!!!' -
+bindkey -a '!!!' -
+bindkey -e '!!!' -
+
 rm -fr "$tmp"
 
 echo ===== complete =====

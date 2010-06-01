@@ -8,12 +8,17 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.21
+
+  *  The "function" keyword was not recognized by "command -v".
+
+----------------------------------------------------------------------
 Yash 2.20
 
   +  Function definition using the "function" keyword.
-  =  The "-nt" and "-ot" operator of the "test" builtin now considers
+  =  The "-nt" and "-ot" operators of the "test" builtin now consider
      a non-existent file older in favor of Korn shell.
-  =  [line-editing] some editing commands has been renamed:
+  =  [line-editing] some editing commands have been renamed:
        vi-change-all -> vi-change-line
        vi-yank-and-change-all -> vi-yank-all-change-line
        vi-append-end -> vi-append-to-eol

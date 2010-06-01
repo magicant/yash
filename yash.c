@@ -415,8 +415,11 @@ void print_version(void)
 {
     printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
     printf(PACKAGE_COPYRIGHT "\n");
+    printf(gt("This is free software licensed under GNU GPL version 2.\n"
+	    "You can modify and redistribute it, but there is NO WARRANTY.\n"));
+
     if (shopt_verbose) {
-	printf(gt("Compiled %s %s\n"), __DATE__, __TIME__);
+	printf(gt("\nCompiled %s %s\nEnabled features:\n"), __DATE__, __TIME__);
 	printf(""
 #ifndef NDEBUG
 		" * DEBUG\n"

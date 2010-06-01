@@ -15,12 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# check FD
-if ! [ -t 0 ]; then
-    echo "stdin is not terminal" >&2
-    exit 1
-fi
-
 # log file
 rm -f "${logfile:=test.log}"
 exec 3>&1

@@ -41,7 +41,7 @@ $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
 keymap.o: commands.in
 commands.in: editing.h
-	grep 'cmd_.*/\*C\*/$$' $< | \
+	grep 'cmd_.*/\*C\*/$$' $? | \
 	LC_ALL=C sed -e 's/\(cmd_[0-9a-zA-Z_]*\).*/\1/' -e 's/.*cmd_//' \
 		-e 'h' -e 's/_/-/g' -e 'G' -e 's/\n/ /' | \
 	LC_COLLATE=C sort -k 1 | \
@@ -55,15 +55,19 @@ copy-distcontents: distcontents
 	cp $(DISTCONTENTS) $(DISTTARGETDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
+CTAGS = @CTAGS@
 CTAGSARGS = @CTAGSARGS@
+ETAGS = @ETAGS@
 ETAGSARGS = @ETAGSARGS@
+CSCOPE = @CSCOPE@
+CSCOPEARGS = @CSCOPEARGS@
 tags: $(SOURCES) $(HEADERS)
-	ctags $(CTAGSARGS)
+	$(CTAGS) $(CTAGSARGS)
 TAGS: $(SOURCES) $(HEADERS)
-	etags $(ETAGSARGS)
+	$(ETAGS) $(ETAGSARGS)
 cscope: cscope.out
 cscope.out: $(SOURCES) $(HEADERS)
-	cscope -b
+	$(CSCOPE) $(CSCOPEARGS)
 
 mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS)

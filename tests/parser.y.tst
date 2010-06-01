@@ -70,7 +70,9 @@ echo e1 $?
 
 echo ===== function =====
 
+func ()
 function  func  (   ) { echo func 1; }
+func
 func
 
 function func()

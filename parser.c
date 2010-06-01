@@ -289,9 +289,10 @@ bool is_name(const wchar_t *s)
 bool is_keyword(const wchar_t *s)
 {
     /* List of keywords:
-     *    case do done elif else esac fi for if in then until while { } !
+     *    case do done elif else esac fi for function if in then until while
+     *    { } !
      * The following words are currently not keywords:
-     *    [[ ]] function select */
+     *    select [[ ]] */
     switch (s[0]) {
 	case L'c':
 	    return s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0';
@@ -306,7 +307,10 @@ bool is_keyword(const wchar_t *s)
 		&& s[4] == L'\0';
 	case L'f':
 	    return (s[1] == L'i' && s[2] == L'\0')
-		|| (s[1] == L'o' && s[2] == L'r' && s[3] == L'\0');
+		|| (s[1] == L'o' && s[2] == L'r' && s[3] == L'\0')
+		|| (s[1] == L'u' && s[2] == L'n' && s[3] == L'c'
+			&& s[4] == L't' && s[5] == L'i' && s[6] == L'o'
+			&& s[7] == L'n' && s[8] == L'\0');
 	case L'i':
 	    return (s[1] == L'f' || s[1] == L'n') && s[2] == L'\0';
 	case L't':
@@ -1365,6 +1369,7 @@ reparse:
 	wchar_t *endofheredoc = parse_word_as_wcs();
 	if (endofheredoc[0] == L'\0') {
 	    serror(Ngt("here-document delimiter missing"));
+	    free(endofheredoc);
 	    free(result);
 	    return NULL;
 	}

@@ -52,10 +52,12 @@ signum.h: mksignum
 	./mksignum > $@
 sig.o: signum.h
 
-test check:
+test tests check: _PHONY
 	@+cd tests && $(MAKE)
 
 DESTDIR =
+PREFIX = @PREFIX@
+EPREFIX = @EPREFIX@
 BINDIR = @BINDIR@
 install: install-binary install-doc
 install-strip:
@@ -115,15 +117,19 @@ $(DISTDIR).zip: $(DISTDIR)
 	zip -rq $@ $(DISTDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
+CTAGS = @CTAGS@
 CTAGSARGS = @CTAGSARGS@
+ETAGS = @ETAGS@
 ETAGSARGS = @ETAGSARGS@
+CSCOPE = @CSCOPE@
+CSCOPEARGS = @CSCOPEARGS@
 tags: $(SOURCES) $(HEADERS)
-	ctags $(CTAGSARGS)
+	$(CTAGS) $(CTAGSARGS)
 TAGS: $(SOURCES) $(HEADERS)
-	etags $(ETAGSARGS)
+	$(ETAGS) $(ETAGSARGS)
 cscope: cscope.out
 cscope.out: $(SOURCES) $(HEADERS)
-	cscope -bR
+	$(CSCOPE) $(CSCOPEARGS)
 
 mostlyclean: _mostlyclean
 	-@+cd builtins && $(MAKE) mostlyclean
@@ -142,7 +148,8 @@ distclean: _distclean
 	-@+cd tests    && $(MAKE) distclean
 	-@+cd doc      && $(MAKE) distclean
 _distclean: _clean
-	-rm -rf Makefile config.log config.h version.h tags TAGS cscope.out
+	-rm -rf Makefile config.log config.status config.h version.h \
+		tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
@@ -152,15 +159,14 @@ maintainer-clean:
 	-@+cd tests    && $(MAKE) maintainer-clean
 	-rm -rf $(SOURCES:.c=.d)
 
-reconfigure:
-	@script=$$(echo '/# Invocation command line was:/ {'; \
-	echo 'n'; echo 's/^% //'; echo 'p'; echo 'q'; echo '}'); \
-	if line=$$(sed -n "$$script" config.log); \
-	then printf '%s\n' "sh $$line"; eval exec sh "$$line"; \
-	else echo 'Cannot reconfigure.' >&2; false; \
-	fi
+config.h version.h: config.status
+	$(SHELL) config.status
+Makefile: Makefile.in config.status
+	$(SHELL) config.status
+config.status: configure
+	$(SHELL) config.status --recheck
 
-.PHONY: all test check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean reconfigure
+.PHONY: all test tests check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d

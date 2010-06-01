@@ -63,10 +63,11 @@ echo -"$@"-
 
 echo ===== command =====
 
-command -V if then else elif fi do done case esac while until for { } ! in
+command -V if then else elif fi do done case esac while until for function \
+    { } ! in
 PATH= command -V _no_such_command_ 3>&1 1>&2 2>&3 || echo $?
 command -V : . break continue eval exec exit export readonly return set shift \
-times trap unset
+    times trap unset
 #TODO command -V newgrp
 command -V bg cd command false fg getopts jobs kill pwd read true umask wait
 
