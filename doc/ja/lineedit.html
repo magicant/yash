@@ -81,13 +81,13 @@
 <dt>eof
 <dd>シェルに入力の終わりを知らせます (これによりシェルは終了します)。
 <dt>eof-if-empty
-<dd>バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、alert コマンドと同様に動作します。
+<dd>バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、alert コマンドと同じ動作をします。
 <dd>vi-insert, vi-command: <kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>
 <dt>eof-or-delete
-<dd>バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、delete-char コマンドと同様に動作します。
+<dd>バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、delete-char コマンドと同じ動作をします。
 <dd>emacs: <kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>
 <dt>accept-with-hash
-<dd>引数が与えられていないかバッファの最初の文字が <code>#</code> でなければ、バッファの最初に <code>#</code> を挿入します。そうでなければバッファの最初の <code>#</code> を削除します。いずれの場合も、その後 accept-line コマンドと同様に動作します。
+<dd>引数が与えられていないかバッファの最初の文字が <code>#</code> でなければ、バッファの最初に <code>#</code> を挿入します。そうでなければバッファの最初の <code>#</code> を削除します。いずれの場合も、その後 accept-line コマンドと同じ動作をします。
 <dd>vi-command: <kbd>#</kbd>
 <dd>emacs: <kbd><code>\^[</code>#</kbd>
 <dt>setmode-viinsert
@@ -200,28 +200,28 @@
 <p>以下に編集コマンドの一覧を示します。
 <dl>
 <dt>delete-char
-<dd>カーソルのところにある文字を削除します。引数を与えた場合は kill-char コマンドと同様に動作します。
+<dd>カーソルのところにある文字を削除します。引数を与えた場合は kill-char コマンドと同じ動作をします。
 <dd>vi-insert, emacs: <kbd><code>\X</code></kbd>
 <dt>delete-bigword
-<dd>カーソルのところにある bigword を削除します。引数を与えた場合は kill-bigword コマンドと同様に動作します。
+<dd>カーソルのところにある bigword を削除します。引数を与えた場合は kill-bigword コマンドと同じ動作をします。
 <dt>delete-semiword
-<dd>カーソルのところにある semiword を削除します。引数を与えた場合は kill-semiword コマンドと同様に動作します。
+<dd>カーソルのところにある semiword を削除します。引数を与えた場合は kill-semiword コマンドと同じ動作をします。
 <dt>delete-viword
-<dd>カーソルのところにある viword を削除します。引数を与えた場合は kill-viword コマンドと同様に動作します。
+<dd>カーソルのところにある viword を削除します。引数を与えた場合は kill-viword コマンドと同じ動作をします。
 <dt>delete-emacsword
-<dd>カーソルのところにある emacsword を削除します。引数を与えた場合は kill-emacsword コマンドと同様に動作します。
+<dd>カーソルのところにある emacsword を削除します。引数を与えた場合は kill-emacsword コマンドと同じ動作をします。
 <dt>backward-delete-char
-<dd>カーソルの前にある文字を削除します。引数を与えた場合は backward-kill-char コマンドと同様に動作します。
+<dd>カーソルの前にある文字を削除します。引数を与えた場合は backward-kill-char コマンドと同じ動作をします。
 <dd>vi-insert, emacs: <kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>, <kbd><code>\^H</code></kbd>
 <dt>backward-delete-bigword
-<dd>カーソルの前にある bigword を削除します。引数を与えた場合は backward-kill-bigword コマンドと同様に動作します。
+<dd>カーソルの前にある bigword を削除します。引数を与えた場合は backward-kill-bigword コマンドと同じ動作をします。
 <dt>backward-delete-semiword
-<dd>カーソルの前にある semiword を削除します。引数を与えた場合は backward-kill-semiword コマンドと同様に動作します。
+<dd>カーソルの前にある semiword を削除します。引数を与えた場合は backward-kill-semiword コマンドと同じ動作をします。
 <dd>vi-insert: <kbd><code>\^W</code></kbd>
 <dt>backward-delete-viword
-<dd>カーソルの前にある viword を削除します。引数を与えた場合は backward-kill-viword コマンドと同様に動作します。
+<dd>カーソルの前にある viword を削除します。引数を与えた場合は backward-kill-viword コマンドと同じ動作をします。
 <dt>backward-delete-emacsword
-<dd>カーソルの前にある emacsword を削除します。引数を与えた場合は backward-kill-emacsword コマンドと同様に動作します。
+<dd>カーソルの前にある emacsword を削除します。引数を与えた場合は backward-kill-emacsword コマンドと同じ動作をします。
 <dt>delete-line
 <dd>バッファの内容を全て削除します。
 <dt>forward-delete-line
@@ -298,16 +298,16 @@
 <dd>カーソルのところにある文字を、このコマンドの直後に入力した文字に置き換えます。
 <dd>vi-command: <kbd>r</kbd>
 <dt>vi-insert-beginning
-<dd>カーソルをバッファの先頭に移動したのち、setmode-viinsert コマンドと同様に動作します。
+<dd>カーソルをバッファの先頭に移動したのち、setmode-viinsert コマンドと同じ動作をします。
 <dd>vi-command: <kbd>I</kbd>
 <dt>vi-append
-<dd>カーソルを次の文字に移動したのち、setmode-viinsert コマンドと同様に動作します。
+<dd>カーソルを次の文字に移動したのち、setmode-viinsert コマンドと同じ動作をします。
 <dd>vi-command: <kbd>a</kbd>
 <dt>vi-append-to-eol
-<dd>カーソルをバッファの末尾に移動したのち、setmode-viinsert コマンドと同様に動作します。
+<dd>カーソルをバッファの末尾に移動したのち、setmode-viinsert コマンドと同じ動作をします。
 <dd>vi-command: <kbd>A</kbd>
 <dt>vi-replace
-<dd>Setmode-viinsert コマンドと同様に動作しますが、同時に上書きモードを有効にします。上書きモードでは、self-insert コマンドは文字を挿入する代わりにカーソルのところにある文字を置き換えます。上書きモードは編集モードを変更するまで有効です。
+<dd>Setmode-viinsert コマンドと同じ動作をしますが、同時に上書きモードを有効にします。上書きモードでは、self-insert コマンドは文字を挿入する代わりにカーソルのところにある文字を置き換えます。上書きモードは編集モードを変更するまで有効です。
 <dd>vi-command: <kbd>R</kbd>
 <dt>vi-switch-case
 <dd>このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字の大文字と小文字を入れ替えます。
@@ -345,13 +345,13 @@
 <dd>カーソルのところにある文字を削除しキルリングに保管した後、編集モードを vi 風編集モードの挿入モードに変更します。
 <dd>vi-command: <kbd>s</kbd>
 <dt>vi-append-last-bigword
-<dd><a href="interact.html#history">コマンド履歴</a>の中で最も新しいコマンドにおける最後の bigword を、空白文字に続けてカーソルの位置の直後に挿入します。引数 <var>n</var> を与えたときは最後の bigword の代わりに <var>n</var> 番目の bigword を挿入します。その後、setmode-viinsert コマンドと同様に動作します。
+<dd><a href="interact.html#history">コマンド履歴</a>の中で最も新しいコマンドにおける最後の bigword を、空白文字に続けてカーソルの位置の直後に挿入します。引数 <var>n</var> を与えたときは最後の bigword の代わりに <var>n</var> 番目の bigword を挿入します。その後、setmode-viinsert コマンドと同じ動作をします。
 <dd>vi-command: <kbd>_</kbd>
 <dt>vi-exec-alias
 <dd>このコマンドの直後に入力した文字を <var>c</var> とすると、<code>_<var>c</var></code> という名前の<a href="syntax.html#aliases">エイリアス</a>の内容をシェルへの入力とみなして行編集コマンドとして解釈・実行します。
 <dd>vi-command: <kbd>@</kbd>
 <dt>vi-edit-and-accept
-<dd>エディタとして vi を起動し、バッファの内容を編集させます。エディタが終了すると編集後の内容をバッファに反映した後 accept-line コマンドと同様に動作します。ただしエディタの終了ステータスが 0 でないときは何も行いません。
+<dd>エディタとして vi を起動し、バッファの内容を編集させます。エディタが終了すると編集後の内容をバッファに反映した後 accept-line コマンドと同じ動作をします。ただしエディタの終了ステータスが 0 でないときは何も行いません。
 <dd>vi-command: <kbd>v</kbd>
 <dt>vi-search-forward
 <dd>順方向の履歴検索を開始します。編集モードを vi 風編集モードの検索モードに変更します。
@@ -455,8 +455,8 @@
 <dd>vi-search, emacs-search: <kbd><code>\\</code></kbd>
 <dt>srch-backward-delete-char
 <dd>検索用バッファの最後の一文字を削除します。
-<dd>検索用バッファが空の場合、vi 風編集モードでは srch-abort-search コマンドと同様に動作します。
-<dd>検索用バッファが空の場合、emacs 風編集モードでは alert コマンドと同様に動作します。
+<dd>検索用バッファが空の場合、vi 風編集モードでは srch-abort-search コマンドと同じ動作をします。
+<dd>検索用バッファが空の場合、emacs 風編集モードでは alert コマンドと同じ動作をします。
 <dd>vi-search, emacs-search: <kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>, <kbd><code>\^H</code></kbd>
 <dt>srch-backward-delete-line
 <dd>検索用バッファの内容を全て削除します。
