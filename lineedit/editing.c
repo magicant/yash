@@ -2251,6 +2251,58 @@ void cmd_complete_prev_page(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
+/* Performs command line completion and
+ *   * if the count is not set, list all the candidates without changing the
+ *     main buffer.
+ *   * if the count is set, complete the `count'th candidate. */
+void cmd_complete_list(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+    le_complete_cleanup();
+    /* leave `next_reset_completion' to be true because the results of this
+     * command cannot be used by succeeding completion commands. */
+    // next_reset_completion = false;
+
+    le_complete_fix_candidate(get_count(0));
+
+    reset_state();
+}
+
+/* Performs command line completion and replaces the current word with all of
+ * the generated candidates. */
+void cmd_complete_all(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (reset_completion) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+	reset_completion = false;
+    }
+    next_reset_completion = false;
+
+    le_complete(lecr_substitute_all_candidates);
+
+    reset_state();
+}
+
+/* Performs command line completion and replaces the current word with the
+ * longest common prefix of the candidates. */
+void cmd_complete_max(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    if (reset_completion) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+	reset_completion = false;
+    }
+    next_reset_completion = false;
+
+    le_complete(lecr_longest_common_prefix);
+
+    reset_state();
+}
+
 /* Clears the current candidates. */
 void cmd_clear_candidates(wchar_t c __attribute__((unused)))
 {
@@ -2668,13 +2720,13 @@ end:
  *     main buffer.
  *   * if the count is set, complete the `count'th candidate and set the mode
  *     to vi-insert. */
-void cmd_vi_complete(wchar_t c __attribute__((unused)))
+void cmd_vi_complete_list(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
     le_complete_cleanup();
-    /* leave `next_reset_completion' to be true because the results of
-     * `cmd_vi_complete' cannot be used by succeeding completion commands. */
+    /* leave `next_reset_completion' to be true because the results of this
+     * command cannot be used by succeeding completion commands. */
     // next_reset_completion = false;
 
     size_t oldindex = le_main_index;

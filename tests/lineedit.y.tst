@@ -93,6 +93,9 @@ complete-next-column
 complete-prev-column
 complete-next-page
 complete-prev-page
+complete-list
+complete-all
+complete-max
 clear-candidates
 vi-replace-char
 vi-insert-beginning
@@ -115,7 +118,7 @@ vi-substitute
 vi-append-last-bigword
 vi-exec-alias
 vi-edit-and-accept
-vi-complete
+vi-complete-list
 vi-complete-all
 vi-complete-max
 vi-search-forward
@@ -313,7 +316,7 @@ bindkey -a 's' vi-substitute
 bindkey -a '_' vi-append-last-bigword
 bindkey -a '@' vi-exec-alias
 bindkey -a 'v' vi-edit-and-accept
-bindkey -a '=' vi-complete
+bindkey -a '=' vi-complete-list
 bindkey -a '*' vi-complete-all
 bindkey -a '\\' vi-complete-max
 bindkey -a '?' vi-search-forward
@@ -397,6 +400,11 @@ bindkey -e '\^X\^U' undo
 bindkey -e '\^[\^R' undo-all
 bindkey -e '\^[r' undo-all
 bindkey -e '\^[R' undo-all
+bindkey -e '\^I' complete-next-candidate
+bindkey -e '\bt' complete-prev-candidate
+bindkey -e '\^[=' complete-list
+bindkey -e '\^[?' complete-list
+bindkey -e '\^[*' complete-all
 bindkey -e '\^T' emacs-transpose-chars
 bindkey -e '\^[t' emacs-transpose-words
 bindkey -e '\^[T' emacs-transpose-words
@@ -416,8 +424,6 @@ bindkey -e '\D' next-history-eol
 bindkey -e '\^N' next-history-eol
 bindkey -e '\U' prev-history-eol
 bindkey -e '\^P' prev-history-eol
-bindkey -e '\^I' complete-next-candidate
-bindkey -e '\bt' complete-prev-candidate
 END
 . "$tmp/e"
 bindkey --emacs | sort | diff - "$tmp/e"

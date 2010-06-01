@@ -170,7 +170,7 @@ void le_keymap_init(void)
     Set(L"_",          cmd_vi_append_last_bigword);
     Set(L"@",          cmd_vi_exec_alias);
     Set(L"v",          cmd_vi_edit_and_accept);
-    Set(L"=",          cmd_vi_complete);
+    Set(L"=",          cmd_vi_complete_list);
     Set(L"*",          cmd_vi_complete_all);
     Set(Key_backslash, cmd_vi_complete_max);
     Set(L"?",          cmd_vi_search_forward);
@@ -271,6 +271,9 @@ void le_keymap_init(void)
     Set(Key_escape "R",     cmd_undo_all);
     Set(Key_tab,            cmd_complete_next_candidate);
     Set(Key_btab,           cmd_complete_prev_candidate);
+    Set(Key_escape "=",     cmd_complete_list);
+    Set(Key_escape "?",     cmd_complete_list);
+    Set(Key_escape "*",     cmd_complete_all);
     Set(Key_c_t,            cmd_emacs_transpose_chars);
     Set(Key_escape "t",     cmd_emacs_transpose_words);
     Set(Key_escape "T",     cmd_emacs_transpose_words);

@@ -312,6 +312,14 @@
 <dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から次のページの最初の候補を選択します。
 <dt>complete-prev-page
 <dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から前のページの最初の候補を選択します。
+<dt>complete-list
+<dd>現在のカーソル位置で補完を行います。引数を指定しない場合、補完候補の一覧を表示します。引数を指定すると、その番号の候補で補完内容を確定します。
+<dd>emacs: <kbd><code>\^[</code>?</kbd>, <kbd><code>\^[</code>=</kbd>
+<dt>complete-all
+<dd>現在のカーソル位置で補完を行い、カーソル位置にある単語をすべての補完候補で置き換えます。
+<dd>emacs: <kbd><code>\^[</code>*</kbd>
+<dt>complete-max
+<dd>現在のカーソル位置で補完を行い、各補完候補の最長共通先頭部分をカーソル位置に挿入します。
 <dt>clear-candidates
 <dd>補完候補の一覧を消去します。
 </dl>
@@ -377,14 +385,14 @@
 <dt>vi-edit-and-accept
 <dd>エディタとして vi を起動し、バッファの内容を編集させます。エディタが終了すると編集後の内容をバッファに反映した後 accept-line コマンドと同様に動作します。ただしエディタの終了ステータスが 0 でないときは何も行いません。
 <dd>vi-command: <kbd>v</kbd>
-<dt>vi-complete
-<dd>現在のカーソル位置で補完を行います。引数を指定しない場合、補完候補の一覧を表示します。引数を指定すると、その番号の候補で補完内容を確定し、その後 setmode-viinsert コマンドと同様に動作します。
+<dt>vi-complete-list
+<dd>Complete-list コマンドと同様ですが、候補を確定したとき編集モードを vi 風編集モードの挿入モードに変更します。
 <dd>vi-command: <kbd>=</kbd>
 <dt>vi-complete-all
-<dd>現在のカーソル位置で補完を行い、カーソル位置にある単語をすべての補完候補で置き換えます。その後 setmode-viinsert コマンドと同様に動作します。
+<dd>Complete-all コマンドと同様ですが、単語を置き換えた後、編集モードを vi 風編集モードの挿入モードに変更します。
 <dd>vi-command: <kbd>*</kbd>
 <dt>vi-complete-max
-<dd>現在のカーソル位置で補完を行い、各補完候補の最長共通先頭部分をカーソル位置に挿入します。その後 setmode-viinsert コマンドと同様に動作します。
+<dd>Complete-max コマンドと同様ですが、候補を挿入した後、編集モードを vi 風編集モードの挿入モードに変更します。
 <dd>vi-command: <kbd><code>\\</code></kbd>
 <dt>vi-search-forward
 <dd>順方向の履歴検索を開始します。編集モードを vi 風編集モードの検索モードに変更します。
