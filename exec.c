@@ -1443,13 +1443,17 @@ int generate_candidates_using_function(
     memcpy(args, context->pwords, context->pwordc * sizeof *args);
     args[context->pwordc] = context->src;
     args[context->pwordc + 1] = NULL;
+
+    int savelaststatus = laststatus, resultstatus;
     exec_function_body(function, args, false);
+    resultstatus = laststatus;
+    laststatus = savelaststatus;
 
     le_compdebug("finished executing function \"%ls\"", funcname);
-    if (laststatus != Exit_SUCCESS)
-	le_compdebug("function returned exit status of %d", laststatus);
+    if (resultstatus != Exit_SUCCESS)
+	le_compdebug("function returned exit status of %d", resultstatus);
 
-    return laststatus;
+    return resultstatus;
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
