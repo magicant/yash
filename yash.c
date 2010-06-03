@@ -544,6 +544,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	    }
 	    reset_sigint();
 	    reset_execinfo();
+	    pinfo->lineno = 1;
 	} else {
 	    if (return_pending())
 		goto out;

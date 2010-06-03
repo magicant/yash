@@ -16,13 +16,6 @@ echo line \
 continuation
 echo $LINENO
 
-printlineno () {
-    echo function
-    echo $LINENO
-}
-printlineno
-echo $LINENO
-
 echo ===== 1 =====
 
 var=var
