@@ -109,6 +109,10 @@ static bool is_closing_bracket(wchar_t c)
     __attribute__((const));
 static bool is_arith_delimiter(wchar_t c)
     __attribute__((pure));
+static bool remove_braceexpand(wchar_t *s)
+    __attribute__((nonnull));
+static bool remove_braceexpand_inner(wchar_t **s)
+    __attribute__((nonnull));
 
 
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
@@ -143,6 +147,9 @@ le_context_T *le_get_context(void)
     destroy_aliaslist(parseinfo.aliaslist);
 #endif
 
+    if (shopt_braceexpand)
+	if (remove_braceexpand(ctxt->pattern))
+	    ctxt->type |= CTXT_EBRACED;
     ctxt->src = ctxt->origsrc = unescape(ctxt->pattern);
     if (is_pathname_matching_pattern(ctxt->pattern)) {
 	ctxt->substsrc = true;
@@ -199,8 +206,9 @@ void print_context_info(const le_context_T *ctxt)
 	case CTXT_FOR_DO:        s = "\"do\"";                   break;
 	case CTXT_CASE_IN:       s = "\"in\"";                   break;
     }
-    le_compdebug("context type: %s%s%s", s,
-	    ctxt->type & CTXT_BRACED ? " (braced)" : "",
+    le_compdebug("context type: %s%s%s%s", s,
+	    ctxt->type & CTXT_EBRACED ? " (in brace expn)" : "",
+	    ctxt->type & CTXT_VBRACED ? " (in variable)" : "",
 	    ctxt->type & CTXT_QUOTED ? " (quoted)" : "");
     for (int i = 0; i < ctxt->pwordc; i++)
 	le_compdebug("preceding word %d: \"%ls\"",
@@ -690,7 +698,8 @@ cparse_word:
 	    wu = cparse_special_word_unit(
 		    (ctxttype & CTXT_MASK) | (indq ? CTXT_QUOTED : 0));
 	    if (wu == NULL) {
-		if (pi->ctxt->pwords == NULL && (pi->ctxt->type & CTXT_BRACED)){
+		if (pi->ctxt->pwords == NULL
+			&& (pi->ctxt->type & CTXT_VBRACED)) {
 		    xwcsbuf_T buf;
 		    wchar_t *prefix = expand_single(first, tilde);
 		    assert(prefix != NULL);
@@ -953,7 +962,7 @@ wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
 	}
 	if (BUF[INDEX + namelen] == L'\0') {
 	    pi->ctxt->quote = QUOTE_NORMAL;
-	    pi->ctxt->type = CTXT_VAR | CTXT_BRACED | (ctxttype & CTXT_QUOTED);
+	    pi->ctxt->type = CTXT_VAR | CTXT_VBRACED | (ctxttype & CTXT_QUOTED);
 	    pi->ctxt->pwordc = 0;
 	    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
 	    pi->ctxt->pwords[0] = NULL;
@@ -1040,13 +1049,13 @@ parse_match:
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
 	pe->pe_match = cparse_word(
-		is_closing_brace, tt_none, ctxttype | CTXT_BRACED);
+		is_closing_brace, tt_none, ctxttype | CTXT_VBRACED);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	goto check_closing_paren;
     } else {
 	pe->pe_match = cparse_word(
-		is_slash_or_closing_brace, tt_none, ctxttype | CTXT_BRACED);
+		is_slash_or_closing_brace, tt_none, ctxttype | CTXT_VBRACED);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	if (BUF[INDEX] != L'/')
@@ -1056,7 +1065,7 @@ parse_match:
 parse_subst:
     INDEX++;
     pe->pe_subst = cparse_word(
-	    is_closing_brace, tt_none, ctxttype | CTXT_BRACED);
+	    is_closing_brace, tt_none, ctxttype | CTXT_VBRACED);
     if (pe->pe_subst == NULL)
 	goto return_null;
 
@@ -1238,6 +1247,70 @@ bool is_arith_delimiter(wchar_t c)
 	    return false;
 	default:
 	    return !iswalnum(c);
+    }
+}
+
+/* Remove brace expansion in the specified string and returns the last result of
+ * expansion.
+ * For example, remove_braceexpand("a{1,2{b,c}2{d,e") = "a2c2e".
+ * The string is modified in place.
+ * Returns true iff expansion is unclosed. */
+bool remove_braceexpand(wchar_t *s)
+{
+    for (;;) switch (*s) {
+	case L'\0':
+	    return false;
+	case L'{':
+	    if (remove_braceexpand_inner(&s))
+		return true;
+	    break;
+	case L'\\':
+	    s++;
+	    if (*s != L'\0')
+		s++;
+	    break;
+	default:
+	    s++;
+	    break;
+    }
+}
+
+bool remove_braceexpand_inner(wchar_t **const s)
+{
+    bool foundcomma = false;
+    wchar_t *lbrace = *s;
+    assert(*lbrace == L'{');
+
+    (*s)++;
+    for (;;) switch (**s) {
+	case L'\0':
+	    if (!foundcomma) {  /* remove left brace */
+		wmemmove(lbrace, lbrace + 1, wcslen(lbrace + 1) + 1);
+		(*s)--;
+	    }
+	    assert(**s == L'\0');
+	    return true;
+	case L'{':
+	    remove_braceexpand_inner(s);
+	    break;
+	case L',':
+	    foundcomma = true;
+	    *s = wmemmove(lbrace, *s + 1, wcslen(*s + 1) + 1);
+	    break;
+	case L'}':
+	    if (foundcomma)  /* remove right brace */
+		wmemmove(*s, *s + 1, wcslen(*s + 1) + 1);
+	    else
+		(*s)++;
+	    return false;
+	case L'\\':
+	    (*s)++;
+	    if (**s != L'\0')
+		(*s)++;
+	    break;
+	default:
+	    (*s)++;
+	    break;
     }
 }
 

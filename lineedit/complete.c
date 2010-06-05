@@ -1278,8 +1278,11 @@ void update_main_buffer(bool subst, bool finish)
 	}
 
 	if (finish) {
-	    if (ctxt->type & CTXT_BRACED) {
+	    if (ctxt->type & CTXT_VBRACED) {
 		wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
+		le_main_index += 1;
+	    } else if (ctxt->type & CTXT_EBRACED) {
+		wb_ninsert_force(&le_main_buffer, le_main_index, L",", 1);
 		le_main_index += 1;
 	    }
 	    if (ctxt->type & CTXT_QUOTED) {
@@ -1297,7 +1300,7 @@ void update_main_buffer(bool subst, bool finish)
 		case CTXT_FOR_IN:
 		case CTXT_FOR_DO:
 		case CTXT_CASE_IN:
-		    if (ctxt->type & CTXT_BRACED)
+		    if (ctxt->type & (CTXT_EBRACED | CTXT_VBRACED))
 			break;
 		    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
 		    le_main_index += 1;

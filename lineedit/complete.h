@@ -77,8 +77,9 @@ typedef enum le_contexttype_T {
     CTXT_FOR_DO,             // where keyword "do" is expected
     CTXT_CASE_IN,            // where keyword "in" is expected
     CTXT_MASK     = ((1 << 4) - 1),
-    CTXT_BRACED   = 1 << 4,  // completion occurs in variable expansion
-    CTXT_QUOTED   = 1 << 5,  // unquote after completion
+    CTXT_EBRACED  = 1 << 4,  // completion occurs in brace expansion
+    CTXT_VBRACED  = 1 << 5,  // completion occurs in variable expansion
+    CTXT_QUOTED   = 1 << 6,  // unquote after completion
 } le_contexttype_T;
 typedef struct le_context_T {
     le_quote_T quote;
