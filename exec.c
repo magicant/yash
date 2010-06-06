@@ -1441,7 +1441,7 @@ int generate_candidates_using_function(
 
     void *args[context->pwordc + 2];
     memcpy(args, context->pwords, context->pwordc * sizeof *args);
-    args[context->pwordc] = context->src;
+    args[context->pwordc] = context->origsrc;
     args[context->pwordc + 1] = NULL;
 
     int savelaststatus = laststatus, resultstatus;
