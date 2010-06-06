@@ -86,6 +86,8 @@ static void free_context(le_context_T *ctxt);
 static void sort_candidates(void);
 static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
+static void print_context_info(const le_context_T *ctxt)
+    __attribute__((nonnull));
 
 struct cmdcandgen_T;
 static const struct candgen_T *get_candgen(void);
@@ -180,6 +182,8 @@ void le_complete(le_compresult_T lecr)
     common_prefix_length = (size_t) -1;
 
     ctxt = le_get_context();
+    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG)
+	print_context_info(ctxt);
 
     generate_candidates(get_candgen());
     sort_candidates();
@@ -428,6 +432,46 @@ void le_compdebug(const char *format, ...)
     va_end(ap);
 
     fputc('\n', stderr);
+}
+
+/* Prints information on the specified context if the `compdebug' option is
+ * enabled. */
+void print_context_info(const le_context_T *ctxt)
+{
+#ifdef NDEBUG
+    const char *s;
+#else
+    const char *s = s;
+#endif
+    switch (ctxt->quote) {
+	case QUOTE_NONE:    s = "none";    break;
+	case QUOTE_NORMAL:  s = "normal";  break;
+	case QUOTE_SINGLE:  s = "single";  break;
+	case QUOTE_DOUBLE:  s = "double";  break;
+    }
+    le_compdebug("quote type: %s", s);
+    switch (ctxt->type & CTXT_MASK) {
+	case CTXT_NORMAL:        s = "normal";                   break;
+	case CTXT_COMMAND:       s = "command";                  break;
+	case CTXT_TILDE:         s = "tilde";                    break;
+	case CTXT_VAR:           s = "variable";                 break;
+	case CTXT_ARITH:         s = "arithmetic";               break;
+	case CTXT_ASSIGN:        s = "assignment";               break;
+	case CTXT_REDIR:         s = "redirection";              break;
+	case CTXT_REDIR_FD:      s = "redirection (fd)";         break;
+	case CTXT_FOR_IN:        s = "\"in\" or \"do\"";         break;
+	case CTXT_FOR_DO:        s = "\"do\"";                   break;
+	case CTXT_CASE_IN:       s = "\"in\"";                   break;
+    }
+    le_compdebug("context type: %s%s%s%s", s,
+	    ctxt->type & CTXT_EBRACED ? " (in brace expn)" : "",
+	    ctxt->type & CTXT_VBRACED ? " (in variable)" : "",
+	    ctxt->type & CTXT_QUOTED ? " (quoted)" : "");
+    for (int i = 0; i < ctxt->pwordc; i++)
+	le_compdebug("preceding word %d: \"%ls\"",
+		i + 1, (const wchar_t *) ctxt->pwords[i]);
+    le_compdebug("source word: \"%ls\"", ctxt->src);
+    le_compdebug(" as pattern: \"%ls\"", ctxt->pattern);
 }
 
 
