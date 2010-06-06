@@ -52,7 +52,7 @@ echo $var $null $unset
 echo ${var#*/} ${var##*/} ${var%/*} ${var%%/*}
 echo ${var#*/*} ${var##*/*} ${var%*/*} ${var%%*/*}
 echo ${var#x} ${var##x} ${var%x} ${var%%x}
-echo ${asterisks##*} "${asterisks#"*"}"
+echo ${asterisks##*} "${asterisks#\*}"
 echo '${#var}='${#var}
 
 set 1 '2  2' 3
