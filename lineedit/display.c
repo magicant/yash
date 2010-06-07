@@ -1269,7 +1269,7 @@ void print_candidate(
 	lebuf_print_bold();
 
     /* print value */
-    if (cand->value.value != NULL) {
+    if (true /* cand->value.value != NULL */) {
 	int base = lebuf.pos.column;
 	lebuf_putchar1_trunc(highlight ? '[' : ' ');
 	if (lebuf.pos.column + cand->value.width < lebuf.maxcolumn) {
