@@ -807,8 +807,8 @@ int generate_candidates(const struct candgen_T *candgen)
 /* Adds a CT_COMMAND candidate with the specified name to the candidate list.
  * The description for the candidate is looked up from the registered completion
  * style.
- * The caller must not modify or free `cmdname' after the return from this
- * function. */
+ * Argument `cmdname' must be a freeable string, which is used as the candidate
+ * value. */
 void le_new_command_candidate(wchar_t *cmdname)
 {
     wchar_t *desc = NULL;
@@ -825,8 +825,8 @@ void le_new_command_candidate(wchar_t *cmdname)
 /* Adds the specified value as a completion candidate to the candidate list.
  * A description for the candidate can be given as `desc', which may be NULL
  * when no description is provided.
- * The caller must not modify or free `value' or `desc' after the return from
- * this function.
+ * Arguments `value' and `desc' must be a freeable string, which is used as the
+ * candidate value/description.
  * This function must NOT be used for a CT_FILE/CT_OPTION/CT_OPTIONA candidate.
  * If `value' is NULL, this function does nothing (except freeing `desc'). */
 void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
