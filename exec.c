@@ -782,6 +782,7 @@ pid_t exec_process(
 	    finally_exit = true;
 	goto done3;
     }
+    print_xtrace(argv);
 
     /* find command path */
     if (cmdinfo.type == externalprogram) {
@@ -1087,7 +1088,6 @@ void exec_simple_command(
 {
     assert(plcount(argv) == (size_t) argc);
 
-    print_xtrace(argv);
     switch (ci->type) {
     case externalprogram:
 	if (ci->ci_path == NULL) {
