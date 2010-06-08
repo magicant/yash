@@ -125,9 +125,13 @@ complete invalid option 9 2
 complete invalid option 10 2
 complete invalid option 11 2
 complete invalid option 12 2
+complete invalid option 13 2
+complete invalid option 14 2
+complete invalid option 15 2
+complete invalid option 16 2
 complete -C foo
 complete output error 2 1
-complete not in candidate generator 1
+complete not in candidate generator 2
 complete -O mismatch 1 1
 complete -O mismatch 2 1
 complete -O mismatch 3 1

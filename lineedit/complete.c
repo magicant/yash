@@ -1493,6 +1493,8 @@ static int complete_builtin_set(
 static void copy_candgen(
 	struct candgen_T *restrict dest, const struct candgen_T *restrict src)
     __attribute__((nonnull));
+static int complete_builtin_delegate(int wordc, void **words)
+    __attribute__((nonnull));
 
 /* The "complete" builtin. */
 int complete_builtin(int argc, void **argv)
@@ -1510,13 +1512,14 @@ int complete_builtin(int argc, void **argv)
 	{ L"external-command",     xno_argument,       L'e', },
 	{ L"generator-function",   xrequired_argument, L'F', },
 	{ L"file",                 xno_argument,       L'f', },
-	{ L"global-alias",         xno_argument,       L'G', },
+	{ L"delegate",             xno_argument,       L'G', },
 	{ L"group",                xno_argument,       L'g', },
 	{ L"hostname",             xno_argument,       L'h', },
 	{ L"signal",               xno_argument,       L'I', },
 	{ L"running-job",          xno_argument,       L'J', },
 	{ L"job",                  xno_argument,       L'j', },
 	{ L"keyword",              xno_argument,       L'k', },
+	{ L"global-alias",         xno_argument,       L'L', },
 	{ L"normal-alias",         xno_argument,       L'N', },
 	{ L"function",             xno_argument,       L'n', },
 	{ L"target-option",        xrequired_argument, L'O', },
@@ -1542,12 +1545,12 @@ int complete_builtin(int argc, void **argv)
     wchar_t shortopt = L'\0';
     le_candgentype_T cgtype = 0;
     bool intermixed = false;
-    bool print = false, remove = false;
+    bool print = false, remove = false, delegate = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"C:D:F:O:PRXabcdfghjkuv", long_options, NULL))) {
+		    argv, L"C:D:F:O:GPRXabcdfghjkuv", long_options, NULL))) {
 	switch (opt) {
 	    case L'A':  cgtype |= CGT_ARRAY;       break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
@@ -1573,13 +1576,14 @@ int complete_builtin(int argc, void **argv)
 		function = xoptarg;
 		break;
 	    case L'f':  cgtype |= CGT_FILE;        break;
-	    case L'G':  cgtype |= CGT_GALIAS;      break;
+	    case L'G':  delegate = true;           break;
 	    case L'g':  cgtype |= CGT_GROUP;       break;
 	    case L'h':  cgtype |= CGT_HOSTNAME;    break;
 	    case L'I':  cgtype |= CGT_SIGNAL;      break;
 	    case L'J':  cgtype |= CGT_RUNNING;     break;
 	    case L'j':  cgtype |= CGT_JOB;         break;
 	    case L'k':  cgtype |= CGT_KEYWORD;     break;
+	    case L'L':  cgtype |= CGT_GALIAS;      break;
 	    case L'N':  cgtype |= CGT_NALIAS;      break;
 	    case L'n':  cgtype |= CGT_FUNCTION;    break;
 	    case L'O':
@@ -1616,12 +1620,7 @@ int complete_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr,
-		    gt("Usage:  complete [-PRX] [-C command] [-O option] "
-		       "[-D description] \\\n"
-		       "                 [-F function] [-abcdfghjkouv] "
-		       "[words...]\n"));
-		return Exit_ERROR;
+		goto print_usage;
 invalidopterror:
 		xerror(0, Ngt("invalid option specification: -O %ls"), xoptarg);
 		return Exit_ERROR;
@@ -1634,12 +1633,25 @@ dupopterror:
 		return Exit_ERROR;
 	}
     }
-    if ((shortopt != L'\0' || longopt != NULL) && command == NULL) {
+    if (command == NULL && (shortopt != L'\0' || longopt != NULL)) {
 	xerror(0, Ngt("-O option specified without -C option"));
 	return Exit_ERROR;
-    } else if (print && remove) {
-	xerror(0, Ngt("-P option cannot be used with -R option"));
+    } else if (ctxt == NULL && command == NULL && !print && !remove) {
+	xerror(0, Ngt("not in candidate generator function, "
+		    "but -C, -P, -R option not specified"));
 	return Exit_ERROR;
+    } else if (print + remove + delegate > 1) {
+	xerror(0, Ngt("more than one of -P, -R, -G option specified"));
+	goto print_usage;
+    } else if ((print || remove || delegate)
+	    && (function != NULL || description != NULL
+		|| cgtype != 0 || intermixed)) {
+	xerror(0, Ngt("-%lc option cannot be used with style specification"),
+		print ? (wint_t) L'P' : remove ? (wint_t) L'R' : (wint_t) L'G');
+	goto print_usage;
+    } else if (delegate && command != NULL) {
+	xerror(0, Ngt("-G option cannot be used with -C option"));
+	goto print_usage;
     }
 
     if (print) {
@@ -1647,6 +1659,14 @@ dupopterror:
     } else if (remove) {
 	complete_builtin_remove(command, shortopt, longopt);
 	return Exit_SUCCESS;
+    } else if (delegate) {
+	argc -= xoptind;
+	argv += xoptind;
+	if (argc == 0) {
+	    xerror(0, Ngt("operand not specified"));
+	    return Exit_ERROR;
+	}
+	return complete_builtin_delegate(argc, argv);
     }
 
     struct candgen_T candgen;
@@ -1668,19 +1688,23 @@ dupopterror:
     candgen.function = (function != NULL) ? xwcsdup(function) : NULL;
 
     if (command == NULL) {
-	int exitstatus;
-	if (ctxt == NULL) {
-	    xerror(0, Ngt("not in candidate generator function"));
-	    exitstatus = Exit_FAILURE;
-	} else {
-	    exitstatus = generate_candidates(&candgen);
-	}
+	assert(ctxt != NULL);
+
+	int exitstatus = generate_candidates(&candgen);
 	free_candgen_contents(&candgen);
 	return exitstatus;
     } else {
 	return complete_builtin_set(
 		command, shortopt, longopt, description, intermixed, &candgen);
     }
+
+print_usage:
+    fprintf(stderr,
+	gt("Usage:  complete [-C command] [-O option] [-D description] \\\n"
+	   "                 [-F function] [-Xabcdfghjkouv] [words...]\n"
+	   "        complete -P|-R [-C command] [-O option]\n"
+	   "        complete -G words...\n"));
+    return Exit_ERROR;
 }
 
 /* Prints commands that can be used to restore the current completion settings
@@ -2164,11 +2188,68 @@ next:;
     }
 }
 
+/* Generates candidates using the specified words as `pwords' and `src'. */
+int complete_builtin_delegate(int wordc, void **words)
+{
+    assert(ctxt != NULL);
+    assert(wordc > 0);
+
+    void *pwords[wordc];
+    memcpy(pwords, words, (wordc - 1) * sizeof *pwords);
+    pwords[wordc - 1] = NULL;
+
+    le_context_T *savecontext = ctxt;
+    le_context_T newctxt;
+    int exitstatus;
+
+    newctxt.quote     = savecontext->quote;
+    newctxt.pwordc    = wordc - 1;
+    newctxt.pwords    = pwords;
+    newctxt.cpattern  = NULL;
+    newctxt.srcindex  = savecontext->srcindex;
+    newctxt.origindex = savecontext->origindex;
+    newctxt.substsrc  = false;
+
+    if ((savecontext->type & CTXT_MASK) == CTXT_NORMAL
+	    && newctxt.pwordc == 0) {
+	newctxt.type = CTXT_COMMAND | (savecontext->type & ~CTXT_MASK);
+    } else {
+	newctxt.type = savecontext->type;
+    }
+
+    newctxt.origsrc = newctxt.src = words[wordc - 1];
+    if (wcscmp(savecontext->origsrc, words[wordc - 1]) == 0) {
+	newctxt.pattern = xwcsdup(savecontext->origpattern);
+    } else {
+	xwcsbuf_T buf;
+	wb_initwith(&buf, escape(words[wordc - 1], NULL));
+	newctxt.pattern = wb_towcs(wb_wccat(&buf, L'*'));
+    }
+    newctxt.origpattern = newctxt.pattern;
+
+    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+	le_compdebug("delegation start (complete -G)");
+	print_context_info(&newctxt);
+    }
+
+    ctxt = &newctxt;
+    exitstatus = generate_candidates(get_candgen());
+    ctxt = savecontext;
+
+    free(newctxt.origpattern);
+    xfnm_free(newctxt.cpattern);
+
+    le_compdebug("delegation end (complete -G)");
+    return exitstatus;
+}
+
 #if YASH_ENABLE_HELP
 const char complete_help[] = Ngt(
 "complete - edit completion style\n"
-"\tcomplete [-PRX] [-C command] [-O option] [-D description] \\\n"
-"\t         [-F function] [-abcdfghjkuv] [words...]\n"
+"\tcomplete [-C command] [-O option] [-D description] \\\n"
+"\t         [-F function] [-Xabcdfghjkuv] [words...]\n"
+"\tcomplete -P|-R [-C command] [-O option]\n"
+"\tcomplete [-G] words...\n"
 "The \"complete\" builtin specifies how to complete command-line words.\n"
 "You can specify possible options and operands for each command, and possible\n"
 "arguments for each argument-requiring option as well.\n"
@@ -2228,9 +2309,11 @@ const char complete_help[] = Ngt(
 "If the -R (--remove) option is specified, the settings for the specified\n"
 "command (and option) are removed.\n"
 "\n"
-"If the \"complete\" builtin is invoked from a candidate generator function\n"
-"without the -C and -O option, the specified completion style is applied to\n"
-"the ongoing completion.\n"
+"The \"complete\" builtin can be invoked from a candidate generator function\n"
+"to generate candidates, dynamically specifying the completion style.\n"
+"In this case, the -C and -O option must not be specified.\n"
+"If the -G (--delegate) option is specified, candidates are generated as if\n"
+"the currently completed command/arguments are <words>.\n"
 );
 #endif /* YASH_ENABLE_HELP */
 

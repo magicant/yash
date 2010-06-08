@@ -590,6 +590,14 @@ complete -O o
 echo complete invalid option 11 $?
 complete -P -R
 echo complete invalid option 12 $?
+complete -P -f
+echo complete invalid option 13 $?
+complete -R -D description
+echo complete invalid option 14 $?
+complete -G -C foo -d
+echo complete invalid option 15 $?
+complete -G -C foo
+echo complete invalid option 16 $?
 complete -P || echo complete output error 1 $?
 (complete -P >&- 2>/dev/null)
 echo complete output error 2 $?
