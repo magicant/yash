@@ -888,8 +888,8 @@ void le_display_make_rawvalues(void)
     for (size_t i = 0; i < le_candidates.length; i++) {
 	le_candidate_T *cand = le_candidates.contents[i];
 
-	const wchar_t *s = cand->value.value;
-	assert(cand->value.raw == NULL);
+	const wchar_t *s = cand->value;
+	assert(cand->rawvalue.raw == NULL);
 	lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 
 	if (cand->type == CT_FILE) {
@@ -899,7 +899,7 @@ void le_display_make_rawvalues(void)
 		s = ss + 1;
 	} else if (cand->type == CT_OPTION) {
 	    /* prepend a hyphen if none */
-	    if (cand->value.value[0] != L'-')
+	    if (cand->value[0] != L'-')
 		lebuf_putwchar(L'-', false);
 	}
 
@@ -909,17 +909,17 @@ void le_display_make_rawvalues(void)
 	if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode))
 	    lebuf_putwchar(L'/', false);
 
-	cand->value.raw = sb_tostr(&lebuf.buf);
-	cand->value.width = lebuf.pos.column;
+	cand->rawvalue.raw = sb_tostr(&lebuf.buf);
+	cand->rawvalue.width = lebuf.pos.column;
 
-	assert(cand->desc.raw == NULL);
-	if (cand->desc.value != NULL) {
+	assert(cand->rawdesc.raw == NULL);
+	if (cand->desc != NULL) {
 	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 
-	    lebuf_putws_trunc(cand->desc.value);
+	    lebuf_putws_trunc(cand->desc);
 
-	    cand->desc.raw = sb_tostr(&lebuf.buf);
-	    cand->desc.width = lebuf.pos.column;
+	    cand->rawdesc.raw = sb_tostr(&lebuf.buf);
+	    cand->rawdesc.width = lebuf.pos.column;
 	}
     }
 }
@@ -1021,10 +1021,10 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
 		candindex++) {
 	    le_candidate_T *cand = le_candidates.contents[candindex];
 
-	    if (col->valuewidth < cand->value.width)
-		col->valuewidth = cand->value.width;
-	    if (col->descwidth < cand->desc.width)
-		col->descwidth = cand->desc.width;
+	    if (col->valuewidth < cand->rawvalue.width)
+		col->valuewidth = cand->rawvalue.width;
+	    if (col->descwidth < cand->rawdesc.width)
+		col->descwidth = cand->rawdesc.width;
 	}
 
 	if (col->valuewidth > 0) col->valuewidth += 2;
@@ -1269,14 +1269,14 @@ void print_candidate(
 	lebuf_print_bold();
 
     /* print value */
-    if (true /* cand->value.value != NULL */) {
+    if (true /* cand->value != NULL */) {
 	int base = lebuf.pos.column;
 	lebuf_putchar1_trunc(highlight ? '[' : ' ');
-	if (lebuf.pos.column + cand->value.width < lebuf.maxcolumn) {
-	    lebuf.pos.column += cand->value.width;
-	    sb_cat(&lebuf.buf, cand->value.raw);
+	if (lebuf.pos.column + cand->rawvalue.width < lebuf.maxcolumn) {
+	    lebuf.pos.column += cand->rawvalue.width;
+	    sb_cat(&lebuf.buf, cand->rawvalue.raw);
 	} else {
-	    lebuf_putws_trunc(cand->value.value);
+	    lebuf_putws_trunc(cand->value);
 	}
 	if (highlight)
 	    lebuf_print_sgr0(), lebuf_print_bold();
@@ -1289,14 +1289,14 @@ void print_candidate(
     }
 
     /* print description */
-    if (cand->desc.value != NULL) {
+    if (cand->desc != NULL) {
 	lebuf_putchar1_trunc(' ');
 	lebuf_putchar1_trunc('(');
-	if (lebuf.pos.column + cand->desc.width < lebuf.maxcolumn) {
-	    lebuf.pos.column += cand->desc.width;
-	    sb_cat(&lebuf.buf, cand->desc.raw);
+	if (lebuf.pos.column + cand->rawdesc.width < lebuf.maxcolumn) {
+	    lebuf.pos.column += cand->rawdesc.width;
+	    sb_cat(&lebuf.buf, cand->rawdesc.raw);
 	} else {
-	    lebuf_putws_trunc(cand->desc.value);
+	    lebuf_putws_trunc(cand->desc);
 	}
 	lebuf_putchar1_trunc(')');
     }

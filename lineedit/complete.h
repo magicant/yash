@@ -40,21 +40,24 @@ typedef enum le_candtype_T {
     CT_HOSTNAME,   // host name
     CT_BINDKEY,    // line-editing command name
 } le_candtype_T;
-typedef struct le_candvalue_T {
-    wchar_t *value;  // the value
-    char *raw;       // pre-printed version of `value'
+typedef struct le_rawvalue_T {
+    char *raw;       // pre-printed version of candidate value/description
     int width;       // screen width of `raw'
-} le_candvalue_T;
+} le_rawvalue_T;
 typedef struct le_candidate_T {
     le_candtype_T type;
-    le_candvalue_T value, desc;  /* the candidate value and its description */
+    wchar_t *value;               // candidate value without ignored prefix
+    wchar_t *origvalue;           // candidate value including ignored prefix
+    le_rawvalue_T rawvalue;
+    wchar_t *desc;                // candidate description
+    le_rawvalue_T rawdesc;
     union {
 	struct {
 	    _Bool is_executable;
 	    mode_t mode;
 	    nlink_t nlink;
 	    off_t size;
-	} filestat;               /* only used for CT_FILE */
+	} filestat;               // only used for CT_FILE
     } appendage;
 } le_candidate_T;
 

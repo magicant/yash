@@ -345,7 +345,7 @@ bool le_complete_fix_candidate(int index)
     if (!subst) {
 	const le_candidate_T *cand =
 	    le_candidates.contents[le_selected_candidate_index];
-	subst = !matchwcsprefix(cand->value.value, ctxt->src);
+	subst = !matchwcsprefix(cand->origvalue, ctxt->origsrc);
     }
     update_main_buffer(subst, true);
     le_complete_cleanup();
@@ -369,10 +369,10 @@ void le_complete_cleanup(void)
 void free_candidate(void *c)
 {
     le_candidate_T *cand = c;
-    free(cand->value.value);
-    free(cand->value.raw);
-    free(cand->desc.value);
-    free(cand->desc.raw);
+    free(cand->origvalue);
+    free(cand->rawvalue.raw);
+    free(cand->desc);
+    free(cand->rawdesc.raw);
     free(cand);
 }
 
@@ -400,7 +400,7 @@ void sort_candidates(void)
 	    le_candidate_T *cand1 = le_candidates.contents[i];
 	    le_candidate_T *cand2 = le_candidates.contents[i - 1];
 	    // XXX case-sensitive
-	    if (wcscoll(cand1->value.value, cand2->value.value) == 0) {
+	    if (wcscoll(cand1->origvalue, cand2->origvalue) == 0) {
 		free_candidate(cand1);
 		pl_remove(&le_candidates, i, 1);
 	    }
@@ -412,7 +412,7 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
 {
     const le_candidate_T *cand1 = *(const le_candidate_T **) cp1;
     const le_candidate_T *cand2 = *(const le_candidate_T **) cp2;
-    return wcscoll(cand1->value.value, cand2->value.value);
+    return wcscoll(cand1->origvalue, cand2->origvalue);
     // XXX case-sensitive
 }
 
@@ -823,6 +823,7 @@ void le_new_command_candidate(wchar_t *cmdname)
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
+ * The ignored prefix in `ctxt->origsrc' is prepended to the candidate value.
  * A description for the candidate can be given as `desc', which may be NULL
  * when no description is provided.
  * Arguments `value' and `desc' must be a freeable string, which is used as the
@@ -843,19 +844,32 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
 
     le_candidate_T *cand = xmalloc(sizeof *cand);
     cand->type = type;
-    cand->value.value = value;
-    cand->value.raw = NULL;
-    cand->value.width = 0;
-    cand->desc.value = desc;
-    cand->desc.raw = NULL;
-    cand->desc.width = 0;
+    cand->value = value;
+    cand->rawvalue.raw = NULL;
+    cand->rawvalue.width = 0;
+    cand->desc = desc;
+    cand->rawdesc.raw = NULL;
+    cand->rawdesc.width = 0;
     le_add_candidate(cand);
 }
 
 /* Adds the specified candidate to the candidate list.
- * The le_candidate_T structure must have been properly initialized. */
+ * The le_candidate_T structure must have been properly initialized, except for
+ * the `origvalue' member, which is initialized in this function as the value
+ * with the ignored prefixed prepended. */
 void le_add_candidate(le_candidate_T *cand)
 {
+    if (ctxt->origsrc == ctxt->src) {
+	cand->origvalue = cand->value;
+    } else {
+	size_t prefixlen = ctxt->src - ctxt->origsrc;
+	xwcsbuf_T buf;
+	wb_initwith(&buf, cand->value);
+	wb_ninsert_force(&buf, 0, ctxt->origsrc, prefixlen);
+	cand->origvalue = wb_towcs(&buf);
+	cand->value = cand->origvalue + prefixlen;
+    }
+
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	const char *typestr = NULL;
 	switch (cand->type) {
@@ -874,9 +888,9 @@ void le_add_candidate(le_candidate_T *cand)
 	    case CT_HOSTNAME:  typestr = "host name";                  break;
 	    case CT_BINDKEY:   typestr = "lineedit command";           break;
 	}
-	le_compdebug("new %s candidate \"%ls\"", typestr, cand->value.value);
-	if (cand->desc.value != NULL)
-	    le_compdebug("  (desc: %ls)", cand->desc.value);
+	le_compdebug("new %s candidate \"%ls\"", typestr, cand->origvalue);
+	if (cand->desc != NULL)
+	    le_compdebug("  (desc: %ls)", cand->desc);
     }
 
     pl_add(&le_candidates, cand);
@@ -927,12 +941,12 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 		    || ((type & CGT_EXECUTABLE) && executable)) {
 		le_candidate_T *cand = xmalloc(sizeof *cand);
 		cand->type = CT_FILE;
-		cand->value.value = list.contents[i];
-		cand->value.raw = NULL;
-		cand->value.width = 0;
-		cand->desc.value = NULL;
-		cand->desc.raw = NULL;
-		cand->desc.width = 0;
+		cand->value = list.contents[i];
+		cand->rawvalue.raw = NULL;
+		cand->rawvalue.width = 0;
+		cand->desc = NULL;
+		cand->rawdesc.raw = NULL;
+		cand->rawdesc.width = 0;
 		cand->appendage.filestat.is_executable = executable;
 		cand->appendage.filestat.mode = st.st_mode;
 		cand->appendage.filestat.nlink = st.st_nlink;
@@ -1045,39 +1059,39 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 	    cand->type = CT_OPTION;
 	    if (shortmatch) {  // XXX user-preference
 		if (allowlong)
-		    cand->value.value = malloc_shortopt(ocg->shortoptchar);
+		    cand->value = malloc_shortopt(ocg->shortoptchar);
 		else
-		    cand->value.value = malloc_shortopt_nh(ocg->shortoptchar);
+		    cand->value = malloc_shortopt_nh(ocg->shortoptchar);
 		if (ocg->longopt != NULL)
 		    if (ocg->description != NULL)
-			cand->desc.value = malloc_wprintf(L"%ls: %ls",
+			cand->desc = malloc_wprintf(L"%ls: %ls",
 				ocg->longopt, ocg->description);
 		    else
-			cand->desc.value = xwcsdup(ocg->longopt);
+			cand->desc = xwcsdup(ocg->longopt);
 		else
 		    goto desc;
 	    } else {
 		assert(ocg->longopt[0] == L'-');
 		if (ocg->longopt[1] == L'-' && ocg->requiresargument)
 		    cand->type = CT_OPTIONA;
-		cand->value.value = xwcsdup(ocg->longopt);
+		cand->value = xwcsdup(ocg->longopt);
 		if (ocg->shortoptchar != L'\0')
 		    if (ocg->description != NULL)
-			cand->desc.value = malloc_wprintf(L"-%lc: %ls",
+			cand->desc = malloc_wprintf(L"-%lc: %ls",
 				(wint_t) ocg->shortoptchar, ocg->description);
 		    else
-			cand->desc.value = malloc_shortopt(ocg->shortoptchar);
+			cand->desc = malloc_shortopt(ocg->shortoptchar);
 		else
 desc:
 		    if (ocg->description != NULL)
-			cand->desc.value = xwcsdup(ocg->description);
+			cand->desc = xwcsdup(ocg->description);
 		    else
-			cand->desc.value = NULL;
+			cand->desc = NULL;
 	    }
-	    cand->value.raw = NULL;
-	    cand->value.width = 0;
-	    cand->desc.raw = NULL;
-	    cand->desc.width = 0;
+	    cand->rawvalue.raw = NULL;
+	    cand->rawvalue.width = 0;
+	    cand->rawdesc.raw = NULL;
+	    cand->rawdesc.width = 0;
 	    le_add_candidate(cand);
 	}
     }
@@ -1208,6 +1222,7 @@ void generate_candidates_from_words(void *const *words, le_context_T *context)
 
 /* Calculates the length of the longest common prefix (leading substring)
  * for the current candidates.
+ * The result includes the ignored prefix in the candidate values.
  * The result is saved in `common_prefix_length'.
  * There must be at least one candidate in `le_candidates'. */
 size_t get_common_prefix_length(void)
@@ -1219,11 +1234,11 @@ size_t get_common_prefix_length(void)
 	return common_prefix_length;
 
     const le_candidate_T *cand = le_candidates.contents[0];
-    const wchar_t *value = cand->value.value;
+    const wchar_t *value = cand->origvalue;
     size_t cpl = wcslen(value);
     for (size_t i = 1; i < le_candidates.length; i++) {
 	cand = le_candidates.contents[i];
-	const wchar_t *value2 = cand->value.value;
+	const wchar_t *value2 = cand->origvalue;
 	for (size_t j = 0; j < cpl; j++)
 	    if (value[j] != value2[j])  // XXX comparison is case-sensitive
 		cpl = j;
@@ -1233,7 +1248,7 @@ size_t get_common_prefix_length(void)
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	wchar_t value[common_prefix_length + 1];
 	cand = le_candidates.contents[0];
-	wcsncpy(value, cand->value.value, common_prefix_length);
+	wcsncpy(value, cand->origvalue, common_prefix_length);
 	value[common_prefix_length] = L'\0';
 	le_compdebug("candidate common prefix: \"%ls\"", value);
     }
@@ -1266,7 +1281,7 @@ void update_main_buffer(bool subst, bool finish)
 	substindex = ctxt->srcindex;
 	quotetype = QUOTE_NORMAL;
     } else {
-	srclen = wcslen(ctxt->src);
+	srclen = wcslen(ctxt->origsrc);
 	substindex = ctxt->origindex;
 	quotetype = ctxt->quote;
     }
@@ -1277,13 +1292,13 @@ void update_main_buffer(bool subst, bool finish)
 
 	size_t valuelen = cpl - srclen;
 	wchar_t value[valuelen + 1];
-	wcsncpy(value, cand->value.value + srclen, valuelen);
+	wcsncpy(value, cand->origvalue + srclen, valuelen);
 	value[valuelen] = L'\0';
 	quote(&buf, value, quotetype);
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
-	assert(srclen <= wcslen(cand->value.value));
-	quote(&buf, cand->value.value + srclen, quotetype);
+	assert(srclen <= wcslen(cand->origvalue));
+	quote(&buf, cand->origvalue + srclen, quotetype);
     }
     assert(le_main_index >= substindex);
     wb_replace_force(&le_main_buffer,
@@ -1296,13 +1311,13 @@ void update_main_buffer(bool subst, bool finish)
 	return;
 
     if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode)) {
-	size_t len = wcslen(cand->value.value);
-	if (len > 0 && cand->value.value[len - 1] != L'/') {
+	size_t len = wcslen(cand->value);
+	if (len > 0 && cand->value[len - 1] != L'/') {
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
 	    le_main_index += 1;
 	}
     } else if (cand->type == CT_OPTIONA) {
-	if (cand->value.value[0] == L'-') {
+	if (cand->value[0] == L'-') {
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L"=", 1);
 	    le_main_index += 1;
 	}
@@ -1361,12 +1376,12 @@ void update_main_buffer(bool subst, bool finish)
 /* Determines whether the source word should be substituted even if
  * `ctxt->substsrc' is false. */
 /* Returns true if there is a candidate that does not begin with
- * `ctxt->src'. */
+ * `ctxt->origsrc'. */
 bool need_subst(void)
 {
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T *cand = le_candidates.contents[i];
-	if (!matchwcsprefix(cand->value.value, ctxt->src))
+	if (!matchwcsprefix(cand->origvalue, ctxt->origsrc))
 	    return true;
     }
     return false;
@@ -1388,7 +1403,7 @@ void substitute_source_word_all(void)
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T* cand = le_candidates.contents[i];
 
-	quote(wb_clear(&buf), cand->value.value, QUOTE_NORMAL);
+	quote(wb_clear(&buf), cand->origvalue, QUOTE_NORMAL);
 	wb_wccat(&buf, L' ');
 	wb_ninsert_force(&le_main_buffer, le_main_index,
 		buf.contents, buf.length);
