@@ -1439,6 +1439,8 @@ int generate_candidates_using_function(
 	return Exit_NOTFOUND;
     }
 
+    struct parsestate_T *state = save_parse_state();
+
     void *args[context->pwordc + 2];
     memcpy(args, context->pwords, context->pwordc * sizeof *args);
     args[context->pwordc] = context->origsrc;
@@ -1452,6 +1454,8 @@ int generate_candidates_using_function(
     le_compdebug("finished executing function \"%ls\"", funcname);
     if (resultstatus != Exit_SUCCESS)
 	le_compdebug("function returned exit status of %d", resultstatus);
+
+    restore_parse_state(state);
 
     return resultstatus;
 }
