@@ -545,7 +545,6 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		xerror(0, Ngt("return: not in function or sourced file"));
 		laststatus = Exit_FAILURE;
 	    }
-	    reset_sigint();
 	    reset_execinfo();
 	    pinfo->lineno = 1;
 	} else {

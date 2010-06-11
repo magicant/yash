@@ -96,6 +96,7 @@ inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
     bool ok = true;
 
     handle_signals();
+    reset_sigint();
     while (ok) {
 	wb_ensuremax(buf, buf->length + 100);
 	if (fgetws(buf->contents + buf->length,
@@ -158,7 +159,8 @@ inputresult_T input_stdin(
 /* Reads a line of input from the standard input.
  * Bytes are read one by one until a newline is encountered. No more bytes are
  * read after the newline.
- * If `trap' is true, traps are handled while reading.
+ * If `trap' is true, traps are handled while reading and the `sigint_received'
+ * flag is cleared when this function returns.
  * The result is appended to the buffer.
  * Returns true iff successful. */
 bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
@@ -173,7 +175,10 @@ bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
 	memset(&state, 0, sizeof state);  /* initialize the state */
     }
 
-    handle_signals();
+    if (trap) {
+	handle_signals();
+	reset_sigint();
+    }
     set_nonblocking(STDIN_FILENO);
     while (ok) {
 	char c;
