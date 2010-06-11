@@ -191,7 +191,8 @@ extern void le_compdebug(const char *format, ...)
 
 extern void le_new_command_candidate(wchar_t *cmdname)
     __attribute__((nonnull));
-extern void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc);
+extern void le_new_candidate(le_candtype_T type,
+	wchar_t *restrict value, wchar_t *restrict desc);
 extern void le_add_candidate(le_candidate_T *cand)
     __attribute__((nonnull));
 extern _Bool le_compile_cpattern(le_context_T *context)

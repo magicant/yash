@@ -139,7 +139,8 @@ static size_t get_common_prefix_length(void)
 static void update_main_buffer(bool subst, bool finish);
 static bool need_subst(void);
 static void substitute_source_word_all(void);
-static void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
+static void quote(xwcsbuf_T *restrict buf,
+	const wchar_t *restrict s, le_quote_T quotetype)
     __attribute__((nonnull));
 
 /* The current completion context. */
@@ -1416,7 +1417,8 @@ void substitute_source_word_all(void)
  * according to `quotetype'.
  * The result is appended to the specified buffer, which must have been
  * initialized by the caller. */
-void quote(xwcsbuf_T *buf, const wchar_t *s, le_quote_T quotetype)
+void quote(xwcsbuf_T *restrict buf,
+	const wchar_t *restrict s, le_quote_T quotetype)
 {
     switch (quotetype) {
 	case QUOTE_NONE:
