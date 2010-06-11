@@ -218,11 +218,11 @@ done:
 }
 
 /* An input function that prints a prompt and reads input.
- * `inputinfo' is a pointer to a `struct input_readline_info'.
+ * `inputinfo' is a pointer to a `struct input_interactive_info'.
  * `inputinfo->type' must be 1 or 2, specifying the type of the prompt.
  * For example, $PS1 is printed if `inputinfo->type' is 1.
  * If `inputinfo->type' is 1, this function changes it to 2. */
-inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
+inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 {
 #if YASH_ENABLE_LINEEDIT
     /* An input function must not return more than one line at a time.
@@ -236,13 +236,12 @@ inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
 #endif
 
     struct parsestate_T *state = save_parse_state();
-    struct input_readline_info *info = inputinfo;
+    struct input_interactive_info *info = inputinfo;
     struct promptset_T prompt;
 
     if (info->type == 1)
 	if (!posixly_correct)
-	    exec_variable_as_commands(
-		    L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
+	    exec_variable_as_commands(L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
     prompt = get_prompt(info->type);
     if (do_job_control)
 	print_job_status_all();

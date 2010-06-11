@@ -38,8 +38,6 @@ extern void exec_wcs(const wchar_t *code, const char *name, _Bool finally_exit)
 extern void exec_input(FILE *f, const char *name,
 	_Bool intrinput, _Bool enable_alias, _Bool finally_exit)
     __attribute__((nonnull(1)));
-extern void parse_and_exec(struct parseinfo_T *pinfo, _Bool finally_exit)
-    __attribute__((nonnull(1)));
 
 
 extern _Bool nextforceexit;

@@ -76,7 +76,7 @@ extern inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 extern inputresult_T input_stdin(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull(1)));
-extern inputresult_T input_readline(struct xwcsbuf_T *buf, void *inputinfo)
+extern inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 
 /* to be used as `inputinfo' for `input_wcs' */
@@ -84,8 +84,8 @@ struct input_wcs_info {
     const wchar_t *src;  /* the source code input */
 };
 
-/* to be used as `inputinfo' for `input_readline' */
-struct input_readline_info {
+/* to be used as `inputinfo' for `input_interactive' */
+struct input_interactive_info {
     FILE *fp;   /* input stream */
     int type;   /* type of prompt */
 };
