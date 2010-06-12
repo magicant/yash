@@ -13,6 +13,8 @@ Yash 2.21
   =  In an interactive shell, the value of $LINENO is now reset to 1
      every time a command is input and executed.
   *  The "function" keyword was not recognized by "command -v".
+  *  Fixed handling of SIGINT so that the interactive shell properly
+     gets back to normal after receiving SIGINT.
 
 ----------------------------------------------------------------------
 Yash 2.20
