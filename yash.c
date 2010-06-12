@@ -58,6 +58,9 @@ static void execute_profile(void);
 static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
 static void print_version(void);
+
+static void parse_and_exec(struct parseinfo_T *pinfo, _Bool finally_exit)
+    __attribute__((nonnull(1)));
 static bool input_is_interactive_terminal(const parseinfo_T *pinfo)
     __attribute__((nonnull));
 
@@ -493,7 +496,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 void exec_input(FILE *f, const char *name,
 	bool intrinput, bool enable_alias, bool finally_exit)
 {
-    struct input_readline_info rlinfo;
+    struct input_interactive_info intrinfo;
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = true,
@@ -505,10 +508,10 @@ void exec_input(FILE *f, const char *name,
 	.intrinput = intrinput,
     };
     if (intrinput) {
-	rlinfo.fp = f;
-	rlinfo.type = 1;
-	pinfo.input = input_readline;
-	pinfo.inputinfo = &rlinfo;
+	intrinfo.fp = f;
+	intrinfo.type = 1;
+	pinfo.input = input_interactive;
+	pinfo.inputinfo = &intrinfo;
     } else {
 	pinfo.input = (f == stdin) ? input_stdin : input_file;
 	pinfo.inputinfo = f;
@@ -542,8 +545,8 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		xerror(0, Ngt("return: not in function or sourced file"));
 		laststatus = Exit_FAILURE;
 	    }
-	    reset_sigint();
 	    reset_execinfo();
+	    pinfo->lineno = 1;
 	} else {
 	    if (return_pending())
 		goto out;
@@ -596,7 +599,7 @@ out:
 
 bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 {
-    struct input_readline_info *ir;
+    struct input_interactive_info *ir;
 
     if (!pinfo->intrinput)
 	return false;

@@ -309,8 +309,8 @@ typedef struct parseinfo_T {
     _Bool intrinput;      /* input is interactive? */
     inputresult_T lastinputresult;  /* last return value of input function */
 } parseinfo_T;
-/* If `intrinput' is true, `input' is `input_readline' and `inputinfo' is a
- * pointer to a `struct input_readline_info' object.
+/* If `intrinput' is true, `input' is `input_interactive' and `inputinfo' is a
+ * pointer to a `struct input_interactive_info' object.
  * Note that input may not be from a terminal even if `intrinput' is true. */
 
 typedef enum parseresult_T {

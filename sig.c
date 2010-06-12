@@ -539,7 +539,8 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
 /* Waits for the specified file descriptor to be available for reading.
  * `handle_sigchld' and `handle_sigwinch' are called to handle SIGCHLD and
  * SIGWINCH that are caught while waiting.
- * If `trap' is true, traps are also handled while waiting.
+ * If `trap' is true, traps are also handled while waiting and the
+ * `sigint_received' flag is cleared when this function returns.
  * The maximum time length of wait is specified by `timeout' in milliseconds.
  * If `timeout' is negative, the wait time is unlimited.
  * If the wait is interrupted by a signal, this function will re-wait for the
@@ -555,10 +556,12 @@ bool wait_for_input(int fd, bool trap, int timeout)
 
     ss = accept_sigmask;
     sigdelset(&ss, SIGCHLD);
+    if (interactive_handlers_set) {
+	sigdelset(&ss, SIGINT);
 #if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
-    if (interactive_handlers_set)
 	sigdelset(&ss, SIGWINCH);
 #endif
+    }
 
     if (timeout < 0) {
 	top = NULL;
@@ -580,6 +583,8 @@ bool wait_for_input(int fd, bool trap, int timeout)
 	FD_ZERO(&fdset);
 	FD_SET(fd, &fdset);
 	if (pselect(fd + 1, &fdset, NULL, NULL, top, &ss) >= 0) {
+	    if (trap)
+		sigint_received = false;
 	    return FD_ISSET(fd, &fdset);
 	} else {
 	    if (errno != EINTR) {
@@ -629,6 +634,7 @@ int handle_traps(void)
 	return 0;
 
     int signum = 0;
+    bool save_sigint_received = sigint_received;
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
 
@@ -645,6 +651,8 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
+		    save_sigint_received |= sigint_received;
+		    sigint_received = false;
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = s->no;
@@ -667,6 +675,8 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
+		    save_sigint_received |= sigint_received;
+		    sigint_received = false;
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = sigrtmin + i;
@@ -680,6 +690,7 @@ int handle_traps(void)
 #endif  /* defined SIGRTMAX && defined SIGRTMIN */
     } while (any_signal_received);
 
+    sigint_received |= save_sigint_received;
     savelaststatus = -1;
     handled_signal = -1;
     if (state)
@@ -887,16 +898,9 @@ void set_interrupted(void)
 }
 
 /* Resets the `sigint_received' flag. */
+/* This function should be called just after calling `handle_signals'. */
 void reset_sigint(void)
 {
-    if (interactive_handlers_set) {
-	sigset_t ss, savess;
-	sigemptyset(&ss);
-	sigemptyset(&savess);
-	sigaddset(&ss, SIGINT);
-	sigprocmask(SIG_UNBLOCK, &ss, &savess);
-	sigprocmask(SIG_SETMASK, &savess, NULL);
-    }
     sigint_received = false;
 }
 

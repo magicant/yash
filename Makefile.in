@@ -23,7 +23,7 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 DIRS = @DIRS@
-SOURCES = alias.c arith.c builtin.c exec.c expand.c hashtable.c history.c input.c job.c mail.c mksignum.c option.c parser.c path.c plist.c redir.c sig.c strbuf.c util.c variable.c xfnmatch.c yash.c
+SOURCES = alias.c arith.c builtin.c exec.c expand.c hashtable.c history.c input.c job.c mail.c makesignum.c option.c parser.c path.c plist.c redir.c sig.c strbuf.c util.c variable.c xfnmatch.c yash.c
 HEADERS = alias.h arith.h builtin.h common.h exec.h expand.h hashtable.h history.h input.h job.h mail.h option.h parser.h path.h plist.h redir.h sig.h siglist.h strbuf.h util.h variable.h xfnmatch.h yash.h
 MAIN_OBJS = arith.o builtin.o exec.o expand.o hashtable.o input.o job.o mail.o option.o parser.o path.o plist.o redir.o sig.o strbuf.o util.o variable.o xfnmatch.o yash.o
 ALIAS_OBJS = alias.o
@@ -32,7 +32,7 @@ BUILTINS_ARCHIVE = builtins/builtins.a
 LINEEDIT_ARCHIVE = lineedit/lineedit.a
 OBJS = @OBJS@
 TARGET = yash
-BYPRODUCTS = mksignum.o mksignum signum.h *.dSYM
+BYPRODUCTS = makesignum.o makesignum signum.h *.dSYM
 
 all: $(TARGET)
 
@@ -48,8 +48,8 @@ $(BUILTINS_ARCHIVE): _PHONY
 	@+cd builtins && $(MAKE)
 $(LINEEDIT_ARCHIVE): _PHONY
 	@+cd lineedit && $(MAKE)
-signum.h: mksignum
-	./mksignum > $@
+signum.h: makesignum
+	./makesignum > $@
 sig.o: signum.h
 
 test tests check: _PHONY
@@ -179,7 +179,7 @@ _PHONY:
 @MAKE_INCLUDE@ input.d
 @MAKE_INCLUDE@ job.d
 @MAKE_INCLUDE@ mail.d
-@MAKE_INCLUDE@ mksignum.d
+@MAKE_INCLUDE@ makesignum.d
 @MAKE_INCLUDE@ option.d
 @MAKE_INCLUDE@ parser.d
 @MAKE_INCLUDE@ path.d

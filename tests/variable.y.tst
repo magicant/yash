@@ -103,6 +103,37 @@ echo ${COMMAND_NOT_FOUND_HANDLER-unset}
 COMMAND_NOT_FOUND_HANDLER='_no_such_command_' _no_such_command_ 2>/dev/null
 echo exitstatus=$?
 
+echo ===== 5 =====
+
+$INVOKE $TESTEE <<\END
+echo $LINENO
+echo $LINENO
+\
+\
+func ()
+{
+    echo $LINENO
+    echo $LINENO
+}
+echo $LINENO
+func
+END
+echo =====
+$INVOKE $TESTEE -i 2>/dev/null <<\END
+# in an interactive shell, $LINENO is reset for each command execution
+echo $LINENO
+echo $LINENO
+\
+\
+func ()
+{
+    echo $LINENO
+    echo $LINENO
+}
+echo $LINENO
+func
+END
+
 echo ===== typeset export =====
 
 func () {

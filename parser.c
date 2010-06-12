@@ -543,8 +543,10 @@ parseresult_T read_and_parse(
     cindex = 0;
     wb_init(&cbuf);
 
-    if (info->intrinput)
-	((struct input_readline_info *) info->inputinfo)->type = 1;
+    if (info->intrinput) {
+	struct input_interactive_info *intrinfo = info->inputinfo;
+	intrinfo->type = 1;
+    }
 
     cinfo->lastinputresult = INPUT_OK;
     switch (read_more_input()) {

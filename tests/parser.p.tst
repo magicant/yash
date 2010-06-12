@@ -372,6 +372,18 @@ funcredir2 ( ) # comment
 funcredir2 >/dev/null
 
 
+echo ===== 9 =====
+
+$INVOKE $TESTEE <<\END
+exec cat
+OK 1
+END
+$INVOKE $TESTEE <<\END
+cat
+OK 2
+END
+
+
 echo lineno=$LINENO
 
 
