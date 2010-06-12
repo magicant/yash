@@ -44,6 +44,7 @@
 #include "../option.h"
 #include "../path.h"
 #include "../plist.h"
+#include "../sig.h"
 #include "../util.h"
 #include "../variable.h"
 #include "../xfnmatch.h"
@@ -176,6 +177,8 @@ void le_complete(le_compresult_T lecr)
 	le_restore_terminal();
 	le_state = LE_STATE_SUSPENDED_COMPDEBUG;
 	le_compdebug("completion start");
+    } else {
+	le_allow_terminal_signal(true);
     }
 
     le_complete_cleanup();
@@ -198,6 +201,10 @@ void le_complete(le_compresult_T lecr)
 	le_setupterm(false);
 	le_set_terminal();
 	le_state = LE_STATE_ACTIVE;
+    } else {
+	le_allow_terminal_signal(false);
+	if (is_interrupted())
+	    le_display_clear(false);  /* redraw if interrupted */
     }
 }
 
