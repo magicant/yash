@@ -288,7 +288,8 @@ int main(int argc, char **argv)
 	do_job_control = is_interactive;
     if (do_job_control) {
 	open_ttyfd();
-	ensure_foreground();
+	if (do_job_control)
+	    ensure_foreground();
     }
     set_signals();
     set_positional_parameters(wargv + xoptind);
