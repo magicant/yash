@@ -81,13 +81,22 @@ extern inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 
 /* to be used as `inputinfo' for `input_wcs' */
 struct input_wcs_info {
-    const wchar_t *src;  /* the source code input */
+    const wchar_t *src;  /* the input source code */
 };
+
+/* to be used as `inputinfo' for `input_file' */
+struct input_file_info {
+    int fd;
+    mbstate_t state;
+    size_t bufpos, bufmax, bufsize;
+    char buf[];
+};
+/* `bufsize' is the size of `buf', which must be at least one byte long. */
 
 /* to be used as `inputinfo' for `input_interactive' */
 struct input_interactive_info {
-    FILE *fp;   /* input stream */
-    int type;   /* type of prompt */
+    struct input_file_info *fileinfo;
+    int prompttype;
 };
 
 

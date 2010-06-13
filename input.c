@@ -86,49 +86,66 @@ inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 }
 
 /* An input function that reads input from a file stream.
- * `inputinfo' is a pointer to a `FILE', which must be set to non-blocking.
- * Reads one line with `fgetws' and appends it to the buffer. */
+ * `inputinfo' is a pointer to a `struct input_file_info'.
+ * Reads one line from `inputinfo->fd' and appends it to the buffer. */
 inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
 {
-    FILE *f = inputinfo;
-    int fd = fileno(f);
+    struct input_file_info *info = inputinfo;
     size_t initlen = buf->length;
     bool ok = true;
 
     handle_signals();
     reset_sigint();
-    while (ok) {
-	wb_ensuremax(buf, buf->length + 100);
-	if (fgetws(buf->contents + buf->length,
-		    buf->maxlength - buf->length, f)) {
-	    size_t len = wcslen(buf->contents + buf->length);
-	    // `len' may be 0 if a null character is input
-	    buf->length += len;
-	    if (len == 0 || buf->contents[buf->length - 1] == L'\n')
+
+    for (;;) {
+	if (info->bufpos >= info->bufmax) {
+read_input:  /* if there's nothing in the buffer, read the next input */
+	    if (!(ok = wait_for_input(info->fd, true, -1)))
 		goto end;
-	} else {
-	    buf->contents[buf->length] = L'\0';
-	    if (feof(f)) {
-		clearerr(f);
-		goto end;
-	    }
-	    assert(ferror(f));
-	    switch (errno) {
+
+	    ssize_t readcount = read(info->fd, info->buf, info->bufsize);
+	    if (readcount < 0) switch (errno) {
 		case EINTR:
 		case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
 		case EWOULDBLOCK:
 #endif
-		    clearerr(f);
-		    ok = wait_for_input(fd, true, -1);
-		    break;
+		    goto read_input;  /* try again */
 		default:
-		    xerror(errno, Ngt("cannot read input"));
-		    ok = false;
-		    break;
+		    goto error;
+	    } else if (readcount == 0) {
+		goto end;
 	    }
+	    info->bufpos = 0;
+	    info->bufmax = readcount;
+	}
+
+	/* convert bytes in `info->buf' into a wide character and
+	 * append it to `buf' */
+	wb_ensuremax(buf, buf->length + 1);
+	assert(info->bufpos < info->bufmax);
+	size_t convcount = mbrtowc(buf->contents + buf->length,
+		info->buf + info->bufpos, info->bufmax - info->bufpos,
+		&info->state);
+	switch (convcount) {
+	    case 0:            /* read null character */
+		goto end;
+	    case (size_t) -1:  /* not a valid character */
+		goto error;
+	    case (size_t) -2:  /* needs more input */
+		goto read_input;
+	    default:
+		info->bufpos += convcount;
+		buf->contents[++buf->length] = L'\0';
+		if (buf->contents[buf->length - 1] == L'\n')
+		    goto end;
+		break;
 	}
     }
+
+error:
+    xerror(errno, Ngt("cannot read input"));
+    ok = false;
 end:
     if (initlen != buf->length)
 	return INPUT_OK;
@@ -164,7 +181,7 @@ inputresult_T input_stdin(
  * The result is appended to the buffer.
  * Returns true iff successful. */
 bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
-{
+{ //TODO
     static bool initialized = false;
     static mbstate_t state;
 
@@ -244,13 +261,13 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     struct input_interactive_info *info = inputinfo;
     struct promptset_T prompt;
 
-    if (info->type == 1)
+    if (info->prompttype == 1)
 	if (!posixly_correct)
 	    exec_variable_as_commands(L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
-    prompt = get_prompt(info->type);
+    prompt = get_prompt(info->prompttype);
     if (do_job_control)
 	print_job_status_all();
-    if (info->type == 1)
+    if (info->prompttype == 1)
 	check_mail();
     restore_parse_state(state);
     /* Note: no commands must be executed between `print_job_status_all' here
@@ -269,8 +286,8 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 	if (result != INPUT_ERROR) {
 	    free_prompt(prompt);
 	    if (result == INPUT_OK) {
-		if (info->type == 1)
-		    info->type = 2;
+		if (info->prompttype == 1)
+		    info->prompttype = 2;
 #if YASH_ENABLE_HISTORY
 		add_history(line);
 #endif
@@ -284,23 +301,23 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     /* read a line without line editing */
     print_prompt(prompt.main);
     print_prompt(prompt.styler);
-    if (info->type == 1)
-	info->type = 2;
+    if (info->prompttype == 1)
+	info->prompttype = 2;
 
     int result;
 #if YASH_ENABLE_HISTORY
     size_t oldlen = buf->length;
 #endif
-    if (info->fp == stdin)
-	result = input_stdin(buf, NULL);
+    if (info->fileinfo->fd == STDIN_FILENO)
+	result = input_stdin(buf, NULL);//TODO
     else
-	result = input_file(buf, info->fp);
+	result = input_file(buf, &info->fileinfo->fd);
 
     print_prompt(PROMPT_RESET);
     free_prompt(prompt);
 
 #if YASH_ENABLE_HISTORY
-    if (info->type == 2)
+    if (info->prompttype == 2)
 	add_history(buf->contents + oldlen);
 #endif
     return result;
