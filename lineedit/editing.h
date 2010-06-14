@@ -137,6 +137,20 @@ extern le_command_func_T
     cmd_cancel_undo_all, /*C*/
     cmd_redo; /*C*/
 
+/* completion commands */
+extern le_command_func_T
+    cmd_complete, /*C*/
+    cmd_complete_next_candidate, /*C*/
+    cmd_complete_prev_candidate, /*C*/
+    cmd_complete_next_column, /*C*/
+    cmd_complete_prev_column, /*C*/
+    cmd_complete_next_page, /*C*/
+    cmd_complete_prev_page, /*C*/
+    cmd_complete_list, /*C*/
+    cmd_complete_all, /*C*/
+    cmd_complete_max, /*C*/
+    cmd_clear_candidates; /*C*/
+
 /* vi-mode specific commands */
 extern le_command_func_T
     cmd_vi_replace_char, /*C*/
@@ -160,6 +174,9 @@ extern le_command_func_T
     cmd_vi_append_last_bigword, /*C*/
     cmd_vi_exec_alias, /*C*/
     cmd_vi_edit_and_accept, /*C*/
+    cmd_vi_complete_list, /*C*/
+    cmd_vi_complete_all, /*C*/
+    cmd_vi_complete_max, /*C*/
     cmd_vi_search_forward, /*C*/
     cmd_vi_search_backward; /*C*/
 

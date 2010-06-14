@@ -48,8 +48,10 @@
 #include "util.h"
 #include "variable.h"
 #include "version.h"
+#include "xfnmatch.h"
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT
+# include "lineedit/complete.h"
 # include "lineedit/lineedit.h"
 # include "lineedit/terminfo.h"
 #endif
@@ -1251,6 +1253,56 @@ void tryhash_word_as_command(const wordunit_T *w)
 	free(cmdname);
     }
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates completion candidates for variable names that match the glob
+ * pattern in the specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_variable_candidates(le_candgentype_T type, le_context_T *context)
+{
+    if (!(type & CGT_VARIABLE))
+	return;
+
+    le_compdebug("adding variables for pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
+
+    size_t i = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&first_env->contents, &i)).key != NULL) {
+	const wchar_t *name = kv.key;
+	const variable_T *var = kv.value;
+	switch (var->v_type & VF_MASK) {
+	    case VF_SCALAR:  if (!(type & CGT_SCALAR)) continue;  break;
+	    case VF_ARRAY:   if (!(type & CGT_ARRAY))  continue;  break;
+	}
+	if (name[0] != L'='
+		&& xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
+	    le_new_candidate(CT_VAR, xwcsdup(name), NULL);
+    }
+}
+
+/* Generates completion candidates for function names that match the glob
+ * pattern in the specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_function_candidates(le_candgentype_T type, le_context_T *context)
+{
+    if (!(type & CGT_FUNCTION))
+	return;
+
+    le_compdebug("adding functions for pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
+
+    size_t i = 0;
+    const wchar_t *name;
+    while ((name = ht_next(&functions, &i).key) != NULL)
+	if (xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
+	    le_new_command_candidate(xwcsdup(name));
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Directory Stack **********/

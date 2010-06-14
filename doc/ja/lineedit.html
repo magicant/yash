@@ -25,6 +25,8 @@
 <dl>
 <dt><code>-o le-alwaysrp</code>, <code>--le-alwaysrp</code>
 <dd>このオプションが無効な時は、長いコマンドを入力してコマンドが右プロンプトに達すると、右プロンプトは見えなくなります。このオプションが有効な時は、右プロンプトは見えなくなる代わりに下に移動します。
+<dt><code>-o le-compdebug</code>, <code>--le-compdebug</code>
+<dd><a href="#completion">補完</a>を行う際にデバッグ用の情報を出力します
 <dt><code>-o le-convmeta</code>, <code>--le-convmeta</code>
 <dd>Terminfo データベースで得られた情報を無視し、入力の 8 ビット目を常に meta-key フラグとみなします。
 <dt><code>-o le-noconvmeta</code>, <code>--le-noconvmeta</code>
@@ -292,6 +294,36 @@
 <dd>vi-command: <kbd>.</kbd>
 </dl>
 
+<h3 id="completion-commands">補完コマンド</h3>
+<dl>
+<dt>complete
+<dd>現在のカーソル位置で<a href="#completion">補完</a>を行います。補完候補が複数ある場合はその一覧を表示します。
+<dt>complete-next-candidate
+<dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から次の候補を選択します。
+<dd>vi-insert, emacs: <kbd><code>\^I</code></kbd>
+<dt>complete-prev-candidate
+<dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から前の候補を選択します。
+<dd>vi-insert, emacs: <kbd><code>\bt</code></kbd>
+<dt>complete-next-column
+<dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から次の列の最初の候補を選択します。
+<dt>complete-prev-column
+<dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から前の列の最初の候補を選択します。
+<dt>complete-next-page
+<dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から次のページの最初の候補を選択します。
+<dt>complete-prev-page
+<dd>現在のカーソル位置で補完を行います。補完候補が複数ある場合は、一覧の中から前のページの最初の候補を選択します。
+<dt>complete-list
+<dd>現在のカーソル位置で補完を行います。引数を指定しない場合、補完候補の一覧を表示します。引数を指定すると、その番号の候補で補完内容を確定します。
+<dd>emacs: <kbd><code>\^[</code>?</kbd>, <kbd><code>\^[</code>=</kbd>
+<dt>complete-all
+<dd>現在のカーソル位置で補完を行い、カーソル位置にある単語をすべての補完候補で置き換えます。
+<dd>emacs: <kbd><code>\^[</code>*</kbd>
+<dt>complete-max
+<dd>現在のカーソル位置で補完を行い、各補完候補の最長共通先頭部分をカーソル位置に挿入します。
+<dt>clear-candidates
+<dd>補完候補の一覧を消去します。
+</dl>
+
 <h3 id="vi-commands">Vi 固有のコマンド</h3>
 <dl>
 <dt>vi-replace-char
@@ -353,6 +385,15 @@
 <dt>vi-edit-and-accept
 <dd>エディタとして vi を起動し、バッファの内容を編集させます。エディタが終了すると編集後の内容をバッファに反映した後 accept-line コマンドと同じ動作をします。ただしエディタの終了ステータスが 0 でないときは何も行いません。
 <dd>vi-command: <kbd>v</kbd>
+<dt>vi-complete-list
+<dd>Complete-list コマンドと同様ですが、候補を確定したとき編集モードを vi 風編集モードの挿入モードに変更します。
+<dd>vi-command: <kbd>=</kbd>
+<dt>vi-complete-all
+<dd>Complete-all コマンドと同様ですが、単語を置き換えた後、編集モードを vi 風編集モードの挿入モードに変更します。
+<dd>vi-command: <kbd>*</kbd>
+<dt>vi-complete-max
+<dd>Complete-max コマンドと同様ですが、候補を挿入した後、編集モードを vi 風編集モードの挿入モードに変更します。
+<dd>vi-command: <kbd><code>\\</code></kbd>
 <dt>vi-search-forward
 <dd>順方向の履歴検索を開始します。編集モードを vi 風編集モードの検索モードに変更します。
 <dd>vi-command: <kbd>?</kbd>
@@ -583,3 +624,8 @@
 <dt><code>\Sud</code><dd>Shift + Undo
 </dl>
 <p>INTR, EOF, KILL, ERASE の四つは stty コマンドなどで設定される端末の特殊文字<!--special characters-->です。一般的な環境では、INTR は Ctrl + C に、EOF は Ctrl + D に、KILL は Ctrl + U に、ERASE は Ctrl + H または Ctrl + ? に設定されています。これら四つは他のキー入力よりも優先して認識されます。
+
+<h2 id="completion">コマンドライン補完</h2>
+<p>行編集でコマンドを入力している途中で Tab キーを押すことで、コマンドの名前やオプション、引数を補完することができます。コマンド名やファイル名を途中まで打ち込んだところで Tab キーを押すと、その名前に一致するコマンド名やファイル名の一覧が現れます。さらに続けて Tab キーを押すと、入力したい名前を一覧の中から選ぶことができます。(一致する名前が一つしかない場合は、一覧は現れず、直接名前がコマンドラインに入力されます。)
+<p>補完の対象となる名前に <code>*</code> や <code>?</code> などの文字が入っている場合は、その<a href="pattern.html">パターン</a>に一致する名前全てがコマンドラインに展開されます。(一覧による選択はできません)
+<p>コマンドのオプションや引数を補完する際は、補完の内容を予め <a href="bi/complete.html">complete コマンド</a>で設定しておくことで、コマンドの種類に応じて異なる内容の補完をさせることができます。

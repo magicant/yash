@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: builtin commands */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
+#include "xfnmatch.h"
 #include "yash.h"
 #if YASH_ENABLE_PRINTF
 # include "builtins/printf.h"
@@ -53,6 +54,7 @@
 # include "builtins/ulimit.h"
 #endif
 #if YASH_ENABLE_LINEEDIT
+# include "lineedit/complete.h"
 # include "lineedit/keymap.h"
 #endif
 
@@ -179,6 +181,11 @@ void init_builtin(void)
     DEFBUILTIN("[", test_builtin, BI_REGULAR, test_help);
 #endif
 
+    /* defined in "lineedit/complete.c" */
+#if YASH_ENABLE_LINEEDIT
+    DEFBUILTIN("complete", complete_builtin, BI_REGULAR, complete_help);
+#endif
+
     /* defined in "lineedit/keymap.c" */
 #if YASH_ENABLE_LINEEDIT
     DEFBUILTIN("bindkey", bindkey_builtin, BI_REGULAR, bindkey_help);
@@ -216,6 +223,46 @@ int print_builtin_help(const wchar_t *name)
 }
 
 #endif /* YASH_ENABLE_HELP */
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates completion candidates for builtin command names that match the glob
+ * pattern in the specified context. The CGT_SBUILTIN, CGT_SSBUILTIN, and
+ * CGT_RBUILTIN flags in `type' specify what candidate to generate. The other
+ * flags are ignored. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_builtin_candidates(le_candgentype_T type, le_context_T *context)
+{
+    if (!(type & CGT_BUILTIN))
+	return;
+
+    le_compdebug("adding builtins for pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
+
+    size_t i = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&builtins, &i)).key != NULL) {
+	switch (((const builtin_T *) kv.value)->type) {
+	    case BI_SPECIAL:
+		if (!(type & CGT_SBUILTIN))
+		    continue;
+		break;
+	    case BI_SEMISPECIAL:
+		if (!(type & CGT_SSBUILTIN))
+		    continue;
+		break;
+	    case BI_REGULAR:
+		if (!(type & CGT_RBUILTIN))
+		    continue;
+		break;
+	}
+	if (xfnm_match(context->cpattern, kv.key) == 0)
+	    le_new_command_candidate(malloc_mbstowcs(kv.key));
+    }
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /* The ":"/"true" builtin */

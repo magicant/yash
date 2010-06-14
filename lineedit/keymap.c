@@ -26,6 +26,8 @@
 #include "../exec.h"
 #include "../expand.h"
 #include "../util.h"
+#include "../xfnmatch.h"
+#include "complete.h"
 #include "editing.h"
 #include "key.h"
 #include "keymap.h"
@@ -38,6 +40,15 @@ le_mode_T le_modes[LE_MODE_N];
 /* The current editing mode.
  * Points to one of the modes in `le_modes'. */
 le_mode_T *le_current_mode;
+
+/* Array of pairs of a command name and function.
+ * Sorted by name. */
+static const struct command_name_pair {
+    const char *name;
+    le_command_func_T *command;
+} commands[] = {
+#include "commands.in"
+};
 
 
 /* Initializes `le_modes' if not yet initialized.
@@ -77,6 +88,8 @@ void le_keymap_init(void)
     Set(Key_c_w,       cmd_backward_delete_semiword);
     Set(Key_kill,      cmd_backward_delete_line);
     Set(Key_c_u,       cmd_backward_delete_line);
+    Set(Key_tab,       cmd_complete_next_candidate);
+    Set(Key_btab,      cmd_complete_prev_candidate);
     Set(Key_down,      cmd_next_history_eol);
     Set(Key_c_n,       cmd_next_history_eol);
     Set(Key_up,        cmd_prev_history_eol);
@@ -157,6 +170,9 @@ void le_keymap_init(void)
     Set(L"_",          cmd_vi_append_last_bigword);
     Set(L"@",          cmd_vi_exec_alias);
     Set(L"v",          cmd_vi_edit_and_accept);
+    Set(L"=",          cmd_vi_complete_list);
+    Set(L"*",          cmd_vi_complete_all);
+    Set(Key_backslash, cmd_vi_complete_max);
     Set(L"?",          cmd_vi_search_forward);
     Set(L"/",          cmd_vi_search_backward);
     Set(L"n",          cmd_search_again);
@@ -171,10 +187,6 @@ void le_keymap_init(void)
     Set(L"-",          cmd_prev_history_bol);
     Set(Key_up,        cmd_prev_history_bol);
     Set(Key_c_p,       cmd_prev_history_bol);
-    //TODO
-    // =
-    // \ 
-    // *
     le_modes[LE_MODE_VI_COMMAND].keymap = t;
 
     le_modes[LE_MODE_VI_SEARCH].default_command = cmd_srch_self_insert;
@@ -257,6 +269,11 @@ void le_keymap_init(void)
     Set(Key_escape Key_c_r, cmd_undo_all);
     Set(Key_escape "r",     cmd_undo_all);
     Set(Key_escape "R",     cmd_undo_all);
+    Set(Key_tab,            cmd_complete_next_candidate);
+    Set(Key_btab,           cmd_complete_prev_candidate);
+    Set(Key_escape "=",     cmd_complete_list);
+    Set(Key_escape "?",     cmd_complete_list);
+    Set(Key_escape "*",     cmd_complete_all);
     Set(Key_c_t,            cmd_emacs_transpose_chars);
     Set(Key_escape "t",     cmd_emacs_transpose_words);
     Set(Key_escape "T",     cmd_emacs_transpose_words);
@@ -317,6 +334,25 @@ void le_set_mode(le_mode_id_T id)
     le_current_mode = le_id_to_mode(id);
 }
 
+/* Generates completion candidates for editing command names that match the glob
+ * pattern in the specified context. */
+/* The prototype of this function is declared in "complete.h". */
+void generate_bindkey_candidates(le_candgentype_T type, le_context_T *context)
+{
+    if (!(type & CGT_BINDKEY))
+	return;
+
+    le_compdebug("adding lineedit commands for pattern \"%ls\"",
+	    context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
+
+    for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
+	if (xfnm_match(context->cpattern, commands[i].name) == 0)
+	    le_new_candidate(
+		    CT_BINDKEY, malloc_mbstowcs(commands[i].name), NULL);
+}
+
 
 /********** Builtin **********/
 
@@ -335,15 +371,6 @@ static int print_binding_main(
     __attribute__((nonnull));
 static const char *get_command_name(le_command_func_T *command)
     __attribute__((nonnull,const));
-
-/* Array of pairs of a command name and function.
- * Sorted by name. */
-static const struct command_name_pair {
-    const char *name;
-    le_command_func_T *command;
-} commands[] = {
-#include "commands.in"
-};
 
 /* The "bindkey" builtin, which accepts the following options:
  *  -v: select the "vi-insert" mode

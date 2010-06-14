@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,10 @@
 #include "util.h"
 #include "variable.h"
 #include "yash.h"
+#if YASH_ENABLE_LINEEDIT
+# include "xfnmatch.h"
+# include "lineedit/complete.h"
+#endif
 
 
 typedef void setoptfunc_T(void *argp);
@@ -152,6 +156,8 @@ bool shopt_le_visiblebell = false;
 bool shopt_le_promptsp = true;
 /* If set, the right prompt is always visible on the screen. */
 bool shopt_le_alwaysrp;
+/* If set, debugging information is printed during completion. */
+bool shopt_le_compdebug;
 #endif
 
 
@@ -172,6 +178,7 @@ typedef enum shopt_index_T {
     SHOPT_VI, SHOPT_EMACS,
     SHOPT_LE_CONVMETA, SHOPT_LE_NOCONVMETA,
     SHOPT_LE_VISIBLEBELL, SHOPT_LE_PROMPTSP, SHOPT_LE_ALWAYSRP,
+    SHOPT_LE_COMPDEBUG,
 #endif
 #if YASH_ENABLE_HELP
     SHOPT_HELP,
@@ -225,6 +232,7 @@ static const struct xoption long_options[] = {
     [SHOPT_LE_VISIBLEBELL] = { L"le-visiblebell", xno_argument, L'L', },
     [SHOPT_LE_PROMPTSP]    = { L"le-promptsp",    xno_argument, L'L', },
     [SHOPT_LE_ALWAYSRP]    = { L"le-alwaysrp",    xno_argument, L'L', },
+    [SHOPT_LE_COMPDEBUG]   = { L"le-compdebug",   xno_argument, L'L', },
 #endif
 #if YASH_ENABLE_HELP
     [SHOPT_HELP]           = { L"help",         xno_argument, L'-', },
@@ -268,6 +276,7 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_LE_VISIBLEBELL] = { set_bool_option, &shopt_le_visiblebell, },
     [SHOPT_LE_PROMPTSP]    = { set_bool_option, &shopt_le_promptsp, },
     [SHOPT_LE_ALWAYSRP]    = { set_bool_option, &shopt_le_alwaysrp, },
+    [SHOPT_LE_COMPDEBUG]   = { set_bool_option, &shopt_le_compdebug, },
 #endif
 #if YASH_ENABLE_HELP
     //[SHOPT_HELP]
@@ -527,6 +536,7 @@ int set_builtin_print_current_settings(void)
     PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
     PRINTSETTING(le-alwaysrp, shopt_le_alwaysrp);
+    PRINTSETTING(le-compdebug, shopt_le_compdebug);
     PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
     PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
     PRINTSETTING(le-promptsp, shopt_le_promptsp);
@@ -585,6 +595,7 @@ int set_builtin_print_restoring_commands(void)
     //PRINTSETTING(interactive, is_interactive);
 #if YASH_ENABLE_LINEEDIT
     PRINTSETTING(le-alwaysrp, shopt_le_alwaysrp);
+    PRINTSETTING(le-compdebug, shopt_le_compdebug);
     PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
     PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
     PRINTSETTING(le-promptsp, shopt_le_promptsp);
@@ -636,6 +647,7 @@ const char set_help[] = Ngt(
 "readable form.\n"
 "The third form prints commands that can be used to restore the current\n"
 "option settings later.\n"
+"\n"
 "Below are the available options:\n"
 " -a --allexport\n"
 "\tAny variable is exported when assigned.\n"
@@ -713,6 +725,8 @@ const char set_help[] = Ngt(
 "\tline-editing. (enabled by default)\n"
 " --le-alwaysrp\n"
 "\tMake the right prompt always visible on the screen.\n"
+" --le-compdebug\n"
+"\tPrint debugging information during command line completion.\n"
 "\n"
 "To disable options, put '+' before the option characters instead of '-'.\n"
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"

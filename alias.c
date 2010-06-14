@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* alias.c: alias substitution */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,10 @@
 #include "plist.h"
 #include "strbuf.h"
 #include "util.h"
+#if YASH_ENABLE_LINEEDIT
+# include "xfnmatch.h"
+# include "lineedit/complete.h"
+#endif
 
 
 typedef enum {
@@ -403,6 +407,35 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 	return false;
     }
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates candidates to complete an alias matching the pattern in the
+ * specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_alias_candidates(le_candgentype_T type, le_context_T *context)
+{
+    if (!(type & CGT_ALIAS))
+	return;
+
+    le_compdebug("adding aliases matching pattern \"%ls\"", context->pattern);
+    if (!le_compile_cpattern(context))
+	return;
+
+    size_t i = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&aliases, &i)).key != NULL) {
+	const alias_T *alias = kv.value;
+	if ((alias->flags & AF_GLOBAL)
+		? (type & CGT_GALIAS) : (type & CGT_NALIAS)) {
+	    if (xfnm_wmatch(context->cpattern, kv.key).start != (size_t) -1) {
+		le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL);
+	    }
+	}
+    }
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Builtins **********/

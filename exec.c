@@ -56,6 +56,10 @@
 #include "variable.h"
 #include "xfnmatch.h"
 #include "yash.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/complete.h"
+# include "lineedit/lineedit.h"
+#endif
 
 
 /* way of command execution */
@@ -148,7 +152,8 @@ static void print_xtrace(void *const *argv);
 static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
     __attribute__((nonnull(2,4)));
-static void exec_function_body(command_T *body, void **args, bool finally_exit)
+static void exec_function_body(
+	command_T *body, void *const *args, bool finally_exit)
     __attribute__((nonnull));
 static inline int xexecv(const char *path, char *const *argv)
     __attribute__((nonnull(1)));
@@ -1134,7 +1139,7 @@ void exec_simple_command(
 	current_builtin_name = NULL;
 	break;
     case function:
-	exec_function_body(ci->ci_function, argv, finally_exit);
+	exec_function_body(ci->ci_function, argv + 1, finally_exit);
 	break;
     }
     if (finally_exit)
@@ -1156,7 +1161,11 @@ void print_xtrace(void *const *argv)
     bool tracevars = xtrace_buffer.contents != NULL
 		  && xtrace_buffer.length > 0;
 
-    if (shopt_xtrace && (tracevars || argv != NULL)) {
+    if (shopt_xtrace && (tracevars || argv != NULL)
+#if YASH_ENABLE_LINEEDIT
+	    && le_state != LE_STATE_ACTIVE
+#endif
+	    ) {
 	bool first = true;
 
 	struct promptset_T prompt = get_prompt(4);
@@ -1231,16 +1240,14 @@ void exec_fall_back_on_sh(
 
 /* Executes the specified command as a function.
  * `args' are the arguments to the function, which are wide strings cast to
- * (void *). `args[0]' is the function name and is ignored.
- * `args[1]' is the first argument, `args[2]' the second, and so on. */
-void exec_function_body(command_T *body, void **args, bool finally_exit)
+ * (void *). */
+void exec_function_body(command_T *body, void *const *args, bool finally_exit)
 {
     savefd_T *savefd;
 
-    assert(args[0] != NULL);
     if (open_redirections(body->c_redirs, &savefd)) {
 	open_new_environment(false);
-	set_positional_parameters(args + 1);
+	set_positional_parameters(args);
 	exec_nonsimple_command(body, finally_exit);
 	if (execinfo.exception == ee_return)
 	    execinfo.exception = ee_none;
@@ -1412,6 +1419,48 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
     recfree(array, free);
     return result;
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates completion candidates by executing the specified function.
+ * Returns the exit status of the function. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+int generate_candidates_using_function(
+	const wchar_t *funcname, le_context_T *context)
+{
+    if (funcname == NULL)
+	return Exit_SUCCESS;
+
+    le_compdebug("executing candidate generator function \"%ls\"", funcname);
+
+    command_T *function = get_function(funcname);
+    if (function == NULL) {
+	le_compdebug("  -- no such function");
+	return Exit_NOTFOUND;
+    }
+
+    struct parsestate_T *state = save_parse_state();
+
+    void *args[context->pwordc + 2];
+    memcpy(args, context->pwords, context->pwordc * sizeof *args);
+    args[context->pwordc] = context->origsrc;
+    args[context->pwordc + 1] = NULL;
+
+    int savelaststatus = laststatus, resultstatus;
+    exec_function_body(function, args, false);
+    resultstatus = laststatus;
+    laststatus = savelaststatus;
+
+    le_compdebug("finished executing function \"%ls\"", funcname);
+    if (resultstatus != Exit_SUCCESS)
+	le_compdebug("function returned exit status of %d", resultstatus);
+
+    restore_parse_state(state);
+
+    return resultstatus;
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Builtins **********/

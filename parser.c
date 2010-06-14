@@ -49,7 +49,6 @@ static void pipesfree(pipeline_T *p);
 static void ifcmdsfree(ifcommand_T *i);
 static void caseitemsfree(caseitem_T *i);
 static void wordfree_vp(void *w);
-static void paramfree(paramexp_T *p);
 static void assignsfree(assign_T *a);
 static void redirsfree(redir_T *r);
 static void embedcmdfree(embedcmd_T c);
@@ -235,8 +234,6 @@ void embedcmdfree(embedcmd_T c)
 
 /********** Auxiliary Functions for Parser **********/
 
-static bool is_portable_name_char(wchar_t c)
-    __attribute__((const));
 static wchar_t *skip_name(const wchar_t *s)
     __attribute__((pure,nonnull));
 

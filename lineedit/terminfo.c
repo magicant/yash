@@ -650,7 +650,7 @@ void lebuf_print_cuf(long count)
 {
     move_cursor(TI_cuf1, TI_cuf, count, 1);
     lebuf.pos.column += count;
-    assert(lebuf.pos.column < le_columns);
+    assert(lebuf.pos.column < lebuf.maxcolumn);
 }
 
 /* Prints the "cud"/"cud1" code to the print buffer.
@@ -863,6 +863,8 @@ static struct termios original_terminal_state;
 
 static inline int normchar(cc_t c)
     __attribute__((const));
+static void to_raw_mode(struct termios *term, _Bool isig)
+    __attribute__((nonnull));
 static inline int xtcgetattr(int fd, struct termios *term)
     __attribute__((nonnull));
 static inline int xtcsetattr(int fd, int opt, const struct termios *term)
@@ -891,11 +893,7 @@ _Bool le_set_terminal(void)
     le_erase_char     = normchar(term.c_cc[VERASE]);
 
     /* set attributes */
-    term.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | INLCR | IGNCR | ICRNL | IXON);
-    term.c_iflag |= IGNPAR;
-    term.c_lflag &= ~(ISIG | ECHO | ICANON | IEXTEN);
-    term.c_cc[VTIME] = 0;
-    term.c_cc[VMIN] = 0;
+    to_raw_mode(&term, false);
     if (xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
 	goto fail;
 
@@ -946,6 +944,31 @@ _Bool le_restore_terminal(void)
     print_rmkx();
     fflush(stderr);
     return xtcsetattr(STDIN_FILENO, TCSADRAIN, &original_terminal_state) >= 0;
+}
+
+/* Sets the ISIG flag of the terminal, which specifies whether, when the user
+ * enters the INTR/QUIT/SUSP character, a corresponding signal is sent to the
+ * foreground process(es).
+ * If `allow' is true, a signal is sent. If `allow' is false, a signal is not
+ * sent.
+ * This function can be used only when the terminal is set to the "raw" mode
+ * using the `le_set_terminal' function. */
+_Bool le_allow_terminal_signal(_Bool allow)
+{
+    struct termios term = original_terminal_state;
+    to_raw_mode(&term, allow);
+    return xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) == 0;
+}
+
+/* Modifies the specified termios structure into the "raw" mode values.
+ * If `isig' is true, the ISIG flag is not cleared from `term->c_lflag'. */
+void to_raw_mode(struct termios *term, _Bool isig)
+{
+    term->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | INLCR | IGNCR | ICRNL | IXON);
+    term->c_iflag |= IGNPAR;
+    term->c_lflag &= ~(ECHO | ICANON | IEXTEN) & (isig ? ~0 : ~ISIG);
+    term->c_cc[VTIME] = 0;
+    term->c_cc[VMIN] = 0;
 }
 
 /* Calls `tcgetattr'.

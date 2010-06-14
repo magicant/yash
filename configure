@@ -1005,6 +1005,89 @@ then
     defconfigh "HAVE_STRSIGNAL"
 fi
 
+# check for getpwent & endpwent
+checking 'for getpwent/endpwent'
+cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <pwd.h>
+#ifndef getpwent
+struct passwd *getpwent(void);
+#endif
+#ifndef endpwent
+void endpwent(void);
+#endif
+int main() { struct passwd *p = getpwent(); endpwent(); }
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_GETPWENT"
+
+    # check for pw_gecos
+    checking 'for pw_gecos'
+    cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <pwd.h>
+int main() {
+struct passwd pwd;
+pwd.pw_gecos = "";
+const char *s = pwd.pw_gecos;
+}
+END
+    trycompile
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_PW_GECOS"
+    fi
+fi
+
+# check for getgrent & endgrent
+checking 'for getgrent/endgrent'
+cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <grp.h>
+#ifndef getgrent
+struct group *getgrent(void);
+#endif
+#ifndef endgrent
+void endgrent(void);
+#endif
+int main() { struct group *g = getgrent(); endgrent(); }
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_GETGRENT"
+fi
+
+# check for sethostent & gethostent & endhostent
+#   This check may fail if socket redirection is disabled
+#   because the -lxnet compiler option is not specified.
+checking 'for sethostent/gethostent/endhostent'
+cat >"${tempsrc}" <<END
+#include "${configh}"
+#include <netdb.h>
+#ifndef sethostent
+void sethostent(int);
+#endif
+#ifndef gethostent
+struct hostent *gethostent(void);
+#endif
+#ifndef endhostent
+void endhostent(void);
+#endif
+int main() { sethostent(1); struct hostent *h = gethostent(); endhostent(); }
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_GETHOSTENT"
+fi
+
 # check for paths.h
 checking 'for paths.h'
 cat >"${tempsrc}" <<END

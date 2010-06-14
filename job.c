@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,8 +42,12 @@
 #include "strbuf.h"
 #include "util.h"
 #include "yash.h"
-#if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
-# include "lineedit/terminfo.h"
+#if YASH_ENABLE_LINEEDIT
+# include "xfnmatch.h"
+# include "lineedit/complete.h"
+# if !defined(FG_DONT_SAVE_TERMINAL)
+#  include "lineedit/terminfo.h"
+# endif
 #endif
 
 
@@ -877,6 +881,53 @@ size_t get_jobnumber_from_pid(pid_t pid)
 found:
     return jobnumber;
 }
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates completion candidates for job names that match the glob pattern
+ * in the specified context. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_job_candidates(le_candgentype_T type, le_context_T *context)
+{
+    if (!(type & CGT_JOB))
+	return;
+
+    const wchar_t *pattern = context->pattern;
+    if (pattern[0] == L'%')
+	pattern += 1;
+    else if (pattern[0] == L'\\' && pattern[1] == L'%')
+	pattern += 2;
+    le_compdebug("adding jobs for pattern \"%ls\"", pattern);
+
+    xfnmatch_T *xfnm = xfnm_compile(pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+    if (xfnm == NULL)
+	return;
+
+    for (size_t i = 1; i < joblist.length; i++) {
+	const job_T *job = joblist.contents[i];
+	if (job == NULL)
+	    continue;
+	switch (job->j_status) {
+	    case JS_RUNNING:  if (!(type & CGT_RUNNING)) continue;  break;
+	    case JS_STOPPED:  if (!(type & CGT_STOPPED)) continue;  break;
+	    case JS_DONE:     if (!(type & CGT_DONE))    continue;  break;
+	}
+
+	const wchar_t *jobname = job->j_procs[0].pr_name;
+	if (xfnm_wmatch(xfnm, jobname).start == (size_t) -1)
+	    continue;
+
+	wchar_t *cand;
+	if (context->src[0] != L'%')
+	    cand = xwcsdup(jobname);
+	else
+	    cand = malloc_wprintf(L"%%%ls", jobname);
+	le_new_candidate(CT_JOB, cand, malloc_wprintf(L"%%%zu", i));
+    }
+    xfnm_free(xfnm);
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
 
 
 /********** Builtins **********/

@@ -48,6 +48,7 @@
 #include "../util.h"
 #include "../xfnmatch.h"
 #include "../yash.h"
+#include "complete.h"
 #include "display.h"
 #include "editing.h"
 #include "keymap.h"
@@ -176,6 +177,12 @@ static size_t last_put_elem = 0;  /* < KILL_RING_SIZE */
 /* The position and length of the last put string. */
 static size_t last_put_range_start, last_put_range_length;
 
+/* Set to true if the next completion command should restart completion from
+ * scratch. */
+static bool reset_completion;
+/* The next value of `reset_completion'. */
+static bool next_reset_completion;
+
 
 static void reset_state(void);
 static int get_count(int default_value)
@@ -255,6 +262,8 @@ static void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 
+static void check_reset_completion(void);
+
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
@@ -315,6 +324,8 @@ void le_editing_init(void)
     undo_history_entry = Histlist;
     save_undo_history();
 
+    reset_completion = true;
+
     reset_state();
     overwrite = false;
 }
@@ -326,6 +337,8 @@ wchar_t *le_editing_finalize(void)
     assert(le_search_buffer.contents == NULL);
 
     recfree(pl_toary(&undo_history), free);
+
+    le_complete_cleanup();
 
     end_using_history();
     free(main_history_value);
@@ -340,10 +353,13 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
     current_command.func = cmd;
     current_command.arg = arg;
 
+    next_reset_completion = true;
+
     cmd(arg);
 
     last_command = current_command;
 
+    reset_completion |= next_reset_completion;
     if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND)
 	if (le_main_index > 0 && le_main_index == le_main_buffer.length)
 	    le_main_index--;
@@ -596,6 +612,8 @@ void set_char_expect_command(le_command_func_T cmd)
  * The current editing mode is saved in `savemode'. */
 void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
 {
+    le_complete_cleanup();
+
     savemode = LE_CURRENT_MODE;
     le_set_mode(mode);
     le_search_direction = dir;
@@ -640,6 +658,7 @@ void switch_case(wchar_t *s, size_t n)
 /* Does nothing. */
 void cmd_noop(wchar_t c __attribute__((unused)))
 {
+    next_reset_completion = false;
     reset_state();
 }
 
@@ -702,6 +721,8 @@ void cmd_digit_argument(wchar_t c)
 	else
 	    state.count.sign = -state.count.sign;
     }
+
+    next_reset_completion = false;
 }
 
 /* If the count is not set, moves the cursor to the beginning of the line.
@@ -863,6 +884,8 @@ void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
 
 void redraw_all(bool clear)
 {
+    next_reset_completion = false;
+
     le_display_clear(clear);
     le_restore_terminal();
     le_setupterm(false);
@@ -2110,6 +2133,150 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 }
 
 
+/********** Completion Commands **********/
+
+/* Performs command line completion. */
+void cmd_complete(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete(lecr_normal);
+
+    reset_state();
+}
+
+/* Selects the next completion candidate.
+ * If the count is set, selects the `count'th next candidate. */
+void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete_select_candidate(get_count(1));
+
+    reset_state();
+}
+
+/* Selects the previous completion candidate.
+ * If the count is set, selects the `count'th previous candidate. */
+void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete_select_candidate(-get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the next column.
+ * If the count is set, selects that of the `count'th next column. */
+void cmd_complete_next_column(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete_select_column(get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the previous column.
+ * If the count is set, selects that of the `count'th previous column. */
+void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete_select_column(-get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the next page.
+ * If the count is set, selects that of the `count'th next page. */
+void cmd_complete_next_page(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete_select_page(get_count(1));
+
+    reset_state();
+}
+
+/* Selects the first candidate in the previous page.
+ * If the count is set, selects that of the `count'th previous page. */
+void cmd_complete_prev_page(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete_select_page(-get_count(1));
+
+    reset_state();
+}
+
+/* Performs command line completion and
+ *   * if the count is not set, list all the candidates without changing the
+ *     main buffer.
+ *   * if the count is set, complete the `count'th candidate. */
+void cmd_complete_list(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+    le_complete_cleanup();
+    /* leave `next_reset_completion' to be true because the results of this
+     * command cannot be used by succeeding completion commands. */
+    // next_reset_completion = false;
+
+    le_complete_fix_candidate(get_count(0));
+
+    reset_state();
+}
+
+/* Performs command line completion and replaces the current word with all of
+ * the generated candidates. */
+void cmd_complete_all(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete(lecr_substitute_all_candidates);
+
+    reset_state();
+}
+
+/* Performs command line completion and replaces the current word with the
+ * longest common prefix of the candidates. */
+void cmd_complete_max(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    le_complete(lecr_longest_common_prefix);
+
+    reset_state();
+}
+
+/* Clears the current candidates. */
+void cmd_clear_candidates(wchar_t c __attribute__((unused)))
+{
+    le_complete_cleanup();
+}
+
+void check_reset_completion(void)
+{
+    if (reset_completion) {
+	maybe_save_undo_history();
+	le_complete_cleanup();
+	reset_completion = false;
+    }
+    next_reset_completion = false;
+}
+
+
 /********** Vi-Mode Specific Commands **********/
 
 /* Sets the editing mode to "vi expect" and the pending command to
@@ -2433,8 +2600,9 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	    goto error0;
 	go_to_history(e, SEARCH_VI);
     }
-
+    le_complete_cleanup();
     le_suspend_readline();
+
     fd = create_temporary_file(&tempfile, S_IRUSR | S_IWUSR);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot create temporary file to edit history"));
@@ -2492,7 +2660,6 @@ error0:
 	    le_editstate = LE_EDITSTATE_DONE;
 end:
 	    reset_state();
-	    // XXX: clear info area
 	}
 
 	laststatus = savelaststatus;
@@ -2513,6 +2680,62 @@ end:
 #endif
 	assert(false);
     }
+}
+
+/* Performs command line completion and
+ *   * if the count is not set, list all the candidates without changing the
+ *     main buffer.
+ *   * if the count is set, complete the `count'th candidate and set the mode
+ *     to vi-insert. */
+void cmd_vi_complete_list(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+    le_complete_cleanup();
+    /* leave `next_reset_completion' to be true because the results of this
+     * command cannot be used by succeeding completion commands. */
+    // next_reset_completion = false;
+
+    size_t oldindex = le_main_index;
+    if (le_main_index < le_main_buffer.length)
+	le_main_index++;
+
+    if (le_complete_fix_candidate(get_count(0))) {
+	cmd_setmode_viinsert(L'\0');
+    } else {
+	le_main_index = oldindex;
+	reset_state();
+    }
+}
+
+/* Performs command line completion and replaces the current word with all of
+ * the generated candidates.
+ * The mode is changed to vi-insert. */
+void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    if (le_main_index < le_main_buffer.length)
+	le_main_index++;
+    le_complete(lecr_substitute_all_candidates);
+
+    cmd_setmode_viinsert(L'\0');
+}
+
+/* Performs command line completion and replaces the current word with the
+ * longest common prefix of the candidates.
+ * The mode is changed to vi-insert. */
+void cmd_vi_complete_max(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    check_reset_completion();
+
+    if (le_main_index < le_main_buffer.length)
+	le_main_index++;
+    le_complete(lecr_longest_common_prefix);
+
+    cmd_setmode_viinsert(L'\0');
 }
 
 /* Starts vi-like command history search in the forward direction. */
