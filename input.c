@@ -311,7 +311,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     if (info->fileinfo->fd == STDIN_FILENO)
 	result = input_stdin(buf, NULL);//TODO
     else
-	result = input_file(buf, &info->fileinfo->fd);
+	result = input_file(buf, info->fileinfo);
 
     print_prompt(PROMPT_RESET);
     free_prompt(prompt);
