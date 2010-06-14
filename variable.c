@@ -2506,76 +2506,74 @@ print_usage:
  * The trailing newline and all other backslashes are not removed. */
 bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
 {
-    if (noescape)
-	return read_input(buf, stdin_input_file_info, false) != INPUT_ERROR;
-
-    bool cont;
     bool first = true;
-    do {
-	size_t index = buf->length;
+    size_t index;
 
-	if (is_interactive_now && isatty(STDIN_FILENO)) {
-	    /* if the shell is interactive and the input is from the terminal,
-	     * then print a prompt and try to use line-editing. */
+read_input:
+    index = buf->length;
+    if (is_interactive_now && isatty(STDIN_FILENO)) {
+	/* if the shell is interactive and the input is from the terminal,
+	 * then print a prompt and try to use line-editing. */
 
-	    struct promptset_T prompt;
-	    if (first) {
-		prompt.main   = xwcsdup(L"");
-		prompt.right  = xwcsdup(L"");
-		prompt.styler = xwcsdup(L"");
-	    } else {
-		prompt = get_prompt(2);
-	    }
+	struct promptset_T prompt;
+	if (first) {
+	    prompt.main   = xwcsdup(L"");
+	    prompt.right  = xwcsdup(L"");
+	    prompt.styler = xwcsdup(L"");
+	} else {
+	    prompt = get_prompt(2);
+	}
 
 #if YASH_ENABLE_LINEEDIT
-	    if (shopt_lineedit != shopt_nolineedit) {
-		wchar_t *line;
-		inputresult_T result = le_readline(prompt, &line);
+	if (shopt_lineedit != shopt_nolineedit) {
+	    wchar_t *line;
+	    inputresult_T result = le_readline(prompt, &line);
 
-		if (result != INPUT_ERROR) {
-		    free_prompt(prompt);
-		    switch (result) {
-			case INPUT_OK:
-			    /* ignore lines after the first one */
-			    wcschr(line, L'\n')[1] = L'\0';
-			    wb_catfree(buf, line);
-			    /* falls thru! */
-			case INPUT_EOF:
-			    goto read;
-			case INPUT_INTERRUPTED:
-			    set_interrupted();
-			    return false;
-			case INPUT_ERROR:
-			    assert(false);
-		    }
+	    if (result != INPUT_ERROR) {
+		free_prompt(prompt);
+		switch (result) {
+		    case INPUT_OK:
+			wb_catfree(buf, line);
+			/* falls thru! */
+		    case INPUT_EOF:
+			goto done;
+		    case INPUT_INTERRUPTED:
+			set_interrupted();
+			return false;
+		    case INPUT_ERROR:
+			assert(false);
 		}
 	    }
+	}
 #endif /* YASH_ENABLE_LINEEDIT */
 
-	    inputresult_T result2;
-	    print_prompt(prompt.main);
-	    print_prompt(prompt.styler);
-	    result2 = read_input(buf, stdin_input_file_info, false);
-	    print_prompt(PROMPT_RESET);
-	    free_prompt(prompt);
-	    if (result2 == INPUT_ERROR)
-		return false;
-	} else {
-	    if (read_input(buf, stdin_input_file_info, false) == INPUT_ERROR)
-		return false;
-	}
+	inputresult_T result2;
+	print_prompt(prompt.main);
+	print_prompt(prompt.styler);
+	result2 = read_input(buf, stdin_input_file_info, false);
+	print_prompt(PROMPT_RESET);
+	free_prompt(prompt);
+	if (result2 == INPUT_ERROR)
+	    return false;
+    } else {
+	if (read_input(buf, stdin_input_file_info, false) == INPUT_ERROR)
+	    return false;
+    }
+
 #if YASH_ENABLE_LINEEDIT
-read:
+done:
 #endif
-	first = false;
-	cont = false;
+    first = false;
+    if (!noescape) {
+	/* treat escapes */
 	while (index < buf->length) {
 	    if (buf->contents[index] == L'\\') {
 		if (buf->contents[index + 1] == L'\n') {
 		    wb_remove(buf, index, 2);
-		    cont = true;
-		    assert(index == buf->length);
-		    break;
+		    if (index >= buf->length)
+			goto read_input;
+		    else
+			continue;
 		} else {
 		    index += 2;
 		    continue;
@@ -2583,7 +2581,8 @@ read:
 	    }
 	    index++;
 	}
-    } while (cont);
+    }
+
     return true;
 }
 
