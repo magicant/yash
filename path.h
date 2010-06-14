@@ -112,7 +112,7 @@ extern int umask_builtin(int argc, void **argv)
 extern const char cd_help[], pwd_help[], hash_help[], umask_help[];
 
 extern int change_directory(
-	const wchar_t *newpwd, bool printnewdir, bool logical)
+	const wchar_t *newpwd, _Bool printnewdir, _Bool logical)
     __attribute__((nonnull,warn_unused_result));
 
 
