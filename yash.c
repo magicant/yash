@@ -523,7 +523,7 @@ void exec_input(int fd, const char *name,
 	pinfo.input = input_interactive;
 	pinfo.inputinfo = &intrinfo;
     } else {
-	pinfo.input = (fd == STDIN_FILENO) ? input_stdin : input_file;
+	pinfo.input = input_file;
 	pinfo.inputinfo = info;
     }
     parse_and_exec(&pinfo, finally_exit);

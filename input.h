@@ -74,8 +74,6 @@ extern inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 extern inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
-extern inputresult_T input_stdin(struct xwcsbuf_T *buf, void *inputinfo)
-    __attribute__((nonnull(1)));
 extern inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 

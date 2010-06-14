@@ -155,24 +155,6 @@ end:
 	return INPUT_ERROR;
 }
 
-/* An input function that reads input from the standard input.
- * Bytes are read one by one until a newline is encountered. No more bytes are
- * read after the newline.
- * This function does not use `inputinfo'.
- * The result is appended to the buffer. */
-inputresult_T input_stdin(
-	struct xwcsbuf_T *buf, void *inputinfo __attribute__((unused)))
-{
-    size_t initlen = buf->length;
-    bool ok = read_line_from_stdin(buf, true);
-    if (initlen != buf->length)
-	return INPUT_OK;
-    else if (ok)
-	return INPUT_EOF;
-    else
-	return INPUT_ERROR;
-}
-
 /* Reads a line of input from the standard input.
  * Bytes are read one by one until a newline is encountered. No more bytes are
  * read after the newline.
@@ -308,10 +290,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 #if YASH_ENABLE_HISTORY
     size_t oldlen = buf->length;
 #endif
-    if (info->fileinfo->fd == STDIN_FILENO)
-	result = input_stdin(buf, NULL);//TODO
-    else
-	result = input_file(buf, info->fileinfo);
+    result = input_file(buf, info->fileinfo);
 
     print_prompt(PROMPT_RESET);
     free_prompt(prompt);
