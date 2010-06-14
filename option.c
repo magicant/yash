@@ -157,7 +157,7 @@ bool shopt_le_promptsp = true;
 /* If set, the right prompt is always visible on the screen. */
 bool shopt_le_alwaysrp;
 /* If set, debugging information is printed during completion. */
-bool shopt_le_compdebug = true; //TODO: default should be false
+bool shopt_le_compdebug;
 #endif
 
 
