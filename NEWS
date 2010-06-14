@@ -15,6 +15,7 @@ Yash 2.21
   *  The "function" keyword was not recognized by "command -v".
   *  Fixed handling of SIGINT so that the interactive shell properly
      gets back to normal after receiving SIGINT.
+  *  Input reading functions rewritten, including some bug fixes.
 
 ----------------------------------------------------------------------
 Yash 2.20
