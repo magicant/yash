@@ -30,8 +30,9 @@ extern void exit_shell_with_status(int status)
     __attribute__((noreturn));
 
 
-struct parseinfo_T;
+extern struct input_file_info *stdin_input_file_info;
 
+struct parseinfo_T;
 extern void exec_wcs(const wchar_t *code, const char *name, _Bool finally_exit)
     __attribute__((nonnull(1)));
 extern void exec_input(int fd, const char *name,

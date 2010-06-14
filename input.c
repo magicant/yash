@@ -90,17 +90,31 @@ inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
  * Reads one line from `inputinfo->fd' and appends it to the buffer. */
 inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
 {
-    struct input_file_info *info = inputinfo;
+    return read_input(buf, inputinfo, true);
+}
+
+/* Reads one line from file descriptor `info->fd' and appends it to `buf'.
+ * If `trap' is true, traps are handled while reading and the `sigint_received'
+ * flag is cleared when this function returns.
+ * Returns:
+ *   INPUT_OK    if at least one character was appended
+ *   INPUT_EOF   if reached end of file without reading any characters
+ *   INPUT_ERROR if an error occurred before reading any characters */
+inputresult_T read_input(
+	xwcsbuf_T *buf, struct input_file_info *info, bool trap)
+{
     size_t initlen = buf->length;
     bool ok = true;
 
-    handle_signals();
-    reset_sigint();
+    if (trap) {
+	handle_signals();
+	reset_sigint();
+    }
 
     for (;;) {
 	if (info->bufpos >= info->bufmax) {
 read_input:  /* if there's nothing in the buffer, read the next input */
-	    if (!(ok = wait_for_input(info->fd, true, -1)))
+	    if (!(ok = wait_for_input(info->fd, trap, -1)))
 		goto end;
 
 	    ssize_t readcount = read(info->fd, info->buf, info->bufsize);
@@ -153,72 +167,6 @@ end:
 	return INPUT_EOF;
     else
 	return INPUT_ERROR;
-}
-
-/* Reads a line of input from the standard input.
- * Bytes are read one by one until a newline is encountered. No more bytes are
- * read after the newline.
- * If `trap' is true, traps are handled while reading and the `sigint_received'
- * flag is cleared when this function returns.
- * The result is appended to the buffer.
- * Returns true iff successful. */
-bool read_line_from_stdin(struct xwcsbuf_T *buf, bool trap)
-{ //TODO
-    static bool initialized = false;
-    static mbstate_t state;
-
-    bool ok = true;
-
-    if (!initialized) {
-	initialized = true;
-	memset(&state, 0, sizeof state);  /* initialize the state */
-    }
-
-    if (trap) {
-	handle_signals();
-	reset_sigint();
-    }
-    set_nonblocking(STDIN_FILENO);
-    while (ok) {
-	char c;
-	ssize_t n = read(STDIN_FILENO, &c, 1);
-	if (n < 0) switch (errno) {
-	    case EINTR:
-	    case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-	    case EWOULDBLOCK:
-#endif
-		ok = wait_for_input(STDIN_FILENO, trap, -1);
-		break;
-	    default:
-		xerror(errno, Ngt("cannot read input"));
-		ok = false;
-		break;
-	} else if (n == 0) {
-	    goto done;
-	} else {
-	    wchar_t wc;
-	    switch (mbrtowc(&wc, &c, 1, &state)) {
-		case 0:
-		case 1:
-		    wb_wccat(buf, wc);
-		    if (wc == L'\n')
-			goto done;
-		    break;
-		case (size_t) -2:
-		    break;
-		case (size_t) -1:
-		    xerror(errno, Ngt("cannot read input"));
-		    ok = false;
-		    break;
-		default:
-		    assert(false);
-	    }
-	}
-    }
-done:
-    unset_nonblocking(STDIN_FILENO);
-    return ok;
 }
 
 /* An input function that prints a prompt and reads input.

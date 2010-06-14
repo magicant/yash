@@ -55,6 +55,8 @@
 
 extern int main(int argc, char **argv)
     __attribute__((nonnull));
+static struct input_file_info *new_input_file_info(int fd, size_t bufsize)
+    __attribute__((malloc,warn_unused_result));
 static void execute_profile(void);
 static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
@@ -77,6 +79,9 @@ pid_t shell_pgid;
 static bool forceexit;
 /* The next value of `forceexit'. */
 bool nextforceexit;
+
+/* The `input_file_info' structure for reading from the standard input. */
+struct input_file_info *stdin_input_file_info;
 
 
 /* The "main" function. The execution of the shell starts here. */
@@ -218,6 +223,7 @@ int main(int argc, char **argv)
      * This is required for the `set_monitor_option' function to work. */
     shell_pid = getpid();
     shell_pgid = getpgrp();
+    stdin_input_file_info = new_input_file_info(STDIN_FILENO, 1);
     init_cmdhash();
     init_homedirhash();
     init_variables();
@@ -305,6 +311,16 @@ int main(int argc, char **argv)
 	exec_input(input.fd, inputname, is_interactive, true, true);
     }
     assert(false);
+}
+
+struct input_file_info *new_input_file_info(int fd, size_t bufsize)
+{
+    struct input_file_info *info = xmalloc(sizeof *info + bufsize);
+    info->fd = fd;
+    info->bufpos = info->bufmax = 0;
+    info->bufsize = bufsize;
+    memset(&info->state, 0, sizeof info->state);
+    return info;
 }
 
 /* Executes "$HOME/.yash_profile". */
@@ -509,17 +525,14 @@ void exec_input(int fd, const char *name,
     };
     struct input_interactive_info intrinfo;
 
-    size_t bufsize = (fd == STDIN_FILENO) ? 1 : BUFSIZ;
-    struct input_file_info *info = xmalloc(sizeof *info + bufsize);
-    info->fd = fd;
-    info->bufpos = info->bufmax = 0;
-    info->bufsize = bufsize;
-    memset(&info->state, 0, sizeof info->state);
+    struct input_file_info *info =
+	(fd == STDIN_FILENO)
+	? stdin_input_file_info
+	: new_input_file_info(fd, BUFSIZ);
 
     if (intrinput) {
 	intrinfo.fileinfo = info;
 	intrinfo.prompttype = 1;
-
 	pinfo.input = input_interactive;
 	pinfo.inputinfo = &intrinfo;
     } else {

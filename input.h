@@ -37,11 +37,6 @@ extern void print_prompt(const wchar_t *s)
 extern _Bool set_nonblocking(int fd);
 extern _Bool unset_nonblocking(int fd);
 
-struct xwcsbuf_T;
-
-extern _Bool read_line_from_stdin(struct xwcsbuf_T *buf, _Bool trap)
-    __attribute__((nonnull));
-
 
 /* Frees the specified prompt set. */
 void free_prompt(struct promptset_T prompt)
@@ -59,6 +54,12 @@ typedef enum inputresult_T {
     INPUT_INTERRUPTED,  /* SIGINT was received (interactive shell only) */
     INPUT_ERROR,        /* Other error was encountered. */
 } inputresult_T;
+
+struct xwcsbuf_T;
+struct input_file_info;
+extern inputresult_T read_input(
+	struct xwcsbuf_T *buf, struct input_file_info *info, _Bool trap)
+    __attribute__((nonnull));
 
 /* The type of input functions.
  * Input is done line-wise: one line is read at a time.

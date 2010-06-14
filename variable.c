@@ -1374,7 +1374,7 @@ static bool set_optind(unsigned long optind, unsigned long optsubind);
 static inline bool set_optarg(const wchar_t *value);
 static bool set_to(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
-static bool read_input(xwcsbuf_T *buf, bool noescape)
+static bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
     __attribute__((nonnull));
 static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
@@ -2455,7 +2455,7 @@ int read_builtin(int argc, void **argv)
 
     /* read input and remove trailing newline */
     wb_init(&buf);
-    if (!read_input(&buf, raw)) {
+    if (!read_with_prompt(&buf, raw)) {
 	wb_destroy(&buf);
 	return Exit_FAILURE;
     }
@@ -2504,10 +2504,10 @@ print_usage:
 /* Reads input from the standard input and, if `noescape' is false, remove line
  * continuations.
  * The trailing newline and all other backslashes are not removed. */
-bool read_input(xwcsbuf_T *buf, bool noescape)
+bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
 {
     if (noescape)
-	return read_line_from_stdin(buf, false);
+	return read_input(buf, stdin_input_file_info, false) != INPUT_ERROR;
 
     bool cont;
     bool first = true;
@@ -2552,16 +2552,16 @@ bool read_input(xwcsbuf_T *buf, bool noescape)
 	    }
 #endif /* YASH_ENABLE_LINEEDIT */
 
-	    bool result2;
+	    inputresult_T result2;
 	    print_prompt(prompt.main);
 	    print_prompt(prompt.styler);
-	    result2 = read_line_from_stdin(buf, false);
+	    result2 = read_input(buf, stdin_input_file_info, false);
 	    print_prompt(PROMPT_RESET);
 	    free_prompt(prompt);
-	    if (!result2)
+	    if (result2 == INPUT_ERROR)
 		return false;
 	} else {
-	    if (!read_line_from_stdin(buf, false))
+	    if (read_input(buf, stdin_input_file_info, false) == INPUT_ERROR)
 		return false;
 	}
 #if YASH_ENABLE_LINEEDIT
