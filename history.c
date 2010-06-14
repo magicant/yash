@@ -426,15 +426,14 @@ FILE *open_histfile(void)
 	return NULL;
     }
 
-    int newfd = copy_as_shellfd(fd);
-    xclose(fd);
-    if (newfd < 0)
+    fd = move_to_shellfd(fd);
+    if (fd < 0)
 	return NULL;
 
-    FILE *f = fdopen(newfd, "r+");
+    FILE *f = fdopen(fd, "r+");
     if (!f) {
-	remove_shellfd(newfd);
-	xclose(newfd);
+	remove_shellfd(fd);
+	xclose(fd);
     }
     return f;
 }
@@ -1448,26 +1447,27 @@ error1:
 		    editor ? editor : L"${FCEDIT:-ed}", temp);
 	}
 
+	int fd;
 	if (laststatus != Exit_SUCCESS) {
 	    xerror(0, Ngt("editor returned non-zero status"));
-	    f = NULL;
+	    fd = -1;
 	} else {
-	    f = reopen_with_shellfd(fopen(temp, "r"), "r", false);
-	    if (f == NULL)
+	    fd = move_to_shellfd(open(temp, O_RDONLY));
+	    if (fd < 0)
 		xerror(errno, Ngt("cannot read command from `%s'"), temp);
 	}
 	if (unlink(temp) < 0)
 	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
 	free(temp);
 
-	if (f == NULL)
+	if (fd < 0)
 	    return Exit_FAILURE;
 
-	int fd = fileno(f);
+	f = fdopen(fd, "r");
 	fc_read_history(f, quiet);
-	rewind(f);
+	lseek(fd, 0, SEEK_SET);
 	laststatus = savelaststatus;
-	exec_input(f, "fc", false, true, false);
+	exec_input(fd, "fc", false, true, false);
 	remove_shellfd(fd);
 	fclose(f);
 	return laststatus;

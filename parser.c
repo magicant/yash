@@ -545,7 +545,7 @@ parseresult_T read_and_parse(
 
     if (info->intrinput) {
 	struct input_interactive_info *intrinfo = info->inputinfo;
-	intrinfo->type = 1;
+	intrinfo->prompttype = 1;
     }
 
     cinfo->lastinputresult = INPUT_OK;

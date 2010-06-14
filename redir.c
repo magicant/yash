@@ -232,39 +232,13 @@ int copy_as_shellfd(int fd)
     return newfd;
 }
 
-/* Duplicates the underlining file descriptor of the specified stream.
- * The original stream is closed whether successful or not.
- * A new stream is open with the new FD using `fdopen' and returned.
- * The new stream's underlining file descriptor is registered as a shell FD and,
- * if `nonblock' is true, set to non-blocking.
- * If NULL is given, this function just returns NULL without doing anything. */
-FILE *reopen_with_shellfd(FILE *f, const char *mode, bool nonblock)
-{
-    if (!f)
-	return NULL;
-
-    int newfd = copy_as_shellfd(fileno(f));
-    fclose(f);
-    if (newfd < 0)
-	return NULL;
-    if (nonblock && !set_nonblocking(newfd)) {
-	xclose(newfd);
-	return NULL;
-    }
-    return fdopen(newfd, mode);
-}
-
 /* Opens `ttyfd'.
  * On failure, an error message is printed and `do_job_control' is set to false.
  */
 void open_ttyfd(void)
 {
     if (ttyfd < 0) {
-	int fd = open("/dev/tty", O_RDWR);
-	if (fd >= 0) {
-	    ttyfd = copy_as_shellfd(fd);
-	    xclose(fd);
-	}
+	ttyfd = move_to_shellfd(open("/dev/tty", O_RDWR));
 	if (ttyfd < 0) {
 	    xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
 	    xerror(0, Ngt("job control disabled"));

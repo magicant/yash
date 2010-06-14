@@ -1426,7 +1426,7 @@ static bool set_optind(unsigned long optind, unsigned long optsubind);
 static inline bool set_optarg(const wchar_t *value);
 static bool set_to(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
-static bool read_input(xwcsbuf_T *buf, bool noescape)
+static bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
     __attribute__((nonnull));
 static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
@@ -2507,7 +2507,7 @@ int read_builtin(int argc, void **argv)
 
     /* read input and remove trailing newline */
     wb_init(&buf);
-    if (!read_input(&buf, raw)) {
+    if (!read_with_prompt(&buf, raw)) {
 	wb_destroy(&buf);
 	return Exit_FAILURE;
     }
@@ -2556,78 +2556,76 @@ print_usage:
 /* Reads input from the standard input and, if `noescape' is false, remove line
  * continuations.
  * The trailing newline and all other backslashes are not removed. */
-bool read_input(xwcsbuf_T *buf, bool noescape)
+bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
 {
-    if (noescape)
-	return read_line_from_stdin(buf, false);
-
-    bool cont;
     bool first = true;
-    do {
-	size_t index = buf->length;
+    size_t index;
 
-	if (is_interactive_now && isatty(STDIN_FILENO)) {
-	    /* if the shell is interactive and the input is from the terminal,
-	     * then print a prompt and try to use line-editing. */
+read_input:
+    index = buf->length;
+    if (is_interactive_now && isatty(STDIN_FILENO)) {
+	/* if the shell is interactive and the input is from the terminal,
+	 * then print a prompt and try to use line-editing. */
 
-	    struct promptset_T prompt;
-	    if (first) {
-		prompt.main   = xwcsdup(L"");
-		prompt.right  = xwcsdup(L"");
-		prompt.styler = xwcsdup(L"");
-	    } else {
-		prompt = get_prompt(2);
-	    }
+	struct promptset_T prompt;
+	if (first) {
+	    prompt.main   = xwcsdup(L"");
+	    prompt.right  = xwcsdup(L"");
+	    prompt.styler = xwcsdup(L"");
+	} else {
+	    prompt = get_prompt(2);
+	}
 
 #if YASH_ENABLE_LINEEDIT
-	    if (shopt_lineedit != shopt_nolineedit) {
-		wchar_t *line;
-		inputresult_T result = le_readline(prompt, &line);
+	if (shopt_lineedit != shopt_nolineedit) {
+	    wchar_t *line;
+	    inputresult_T result = le_readline(prompt, &line);
 
-		if (result != INPUT_ERROR) {
-		    free_prompt(prompt);
-		    switch (result) {
-			case INPUT_OK:
-			    /* ignore lines after the first one */
-			    wcschr(line, L'\n')[1] = L'\0';
-			    wb_catfree(buf, line);
-			    /* falls thru! */
-			case INPUT_EOF:
-			    goto read;
-			case INPUT_INTERRUPTED:
-			    set_interrupted();
-			    return false;
-			case INPUT_ERROR:
-			    assert(false);
-		    }
+	    if (result != INPUT_ERROR) {
+		free_prompt(prompt);
+		switch (result) {
+		    case INPUT_OK:
+			wb_catfree(buf, line);
+			/* falls thru! */
+		    case INPUT_EOF:
+			goto done;
+		    case INPUT_INTERRUPTED:
+			set_interrupted();
+			return false;
+		    case INPUT_ERROR:
+			assert(false);
 		}
 	    }
+	}
 #endif /* YASH_ENABLE_LINEEDIT */
 
-	    bool result2;
-	    print_prompt(prompt.main);
-	    print_prompt(prompt.styler);
-	    result2 = read_line_from_stdin(buf, false);
-	    print_prompt(PROMPT_RESET);
-	    free_prompt(prompt);
-	    if (!result2)
-		return false;
-	} else {
-	    if (!read_line_from_stdin(buf, false))
-		return false;
-	}
+	inputresult_T result2;
+	print_prompt(prompt.main);
+	print_prompt(prompt.styler);
+	result2 = read_input(buf, stdin_input_file_info, false);
+	print_prompt(PROMPT_RESET);
+	free_prompt(prompt);
+	if (result2 == INPUT_ERROR)
+	    return false;
+    } else {
+	if (read_input(buf, stdin_input_file_info, false) == INPUT_ERROR)
+	    return false;
+    }
+
 #if YASH_ENABLE_LINEEDIT
-read:
+done:
 #endif
-	first = false;
-	cont = false;
+    first = false;
+    if (!noescape) {
+	/* treat escapes */
 	while (index < buf->length) {
 	    if (buf->contents[index] == L'\\') {
 		if (buf->contents[index + 1] == L'\n') {
 		    wb_remove(buf, index, 2);
-		    cont = true;
-		    assert(index == buf->length);
-		    break;
+		    if (index >= buf->length)
+			goto read_input;
+		    else
+			continue;
 		} else {
 		    index += 2;
 		    continue;
@@ -2635,7 +2633,8 @@ read:
 	    }
 	    index++;
 	}
-    } while (cont);
+    }
+
     return true;
 }
 

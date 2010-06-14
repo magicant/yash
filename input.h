@@ -34,13 +34,7 @@ extern struct promptset_T get_prompt(int type);
 static inline void free_prompt(struct promptset_T prompt);
 extern void print_prompt(const wchar_t *s)
     __attribute__((nonnull));
-extern _Bool set_nonblocking(int fd);
 extern _Bool unset_nonblocking(int fd);
-
-struct xwcsbuf_T;
-
-extern _Bool read_line_from_stdin(struct xwcsbuf_T *buf, _Bool trap)
-    __attribute__((nonnull));
 
 
 /* Frees the specified prompt set. */
@@ -60,6 +54,12 @@ typedef enum inputresult_T {
     INPUT_ERROR,        /* Other error was encountered. */
 } inputresult_T;
 
+struct xwcsbuf_T;
+struct input_file_info;
+extern inputresult_T read_input(
+	struct xwcsbuf_T *buf, struct input_file_info *info, _Bool trap)
+    __attribute__((nonnull));
+
 /* The type of input functions.
  * Input is done line-wise: one line is read at a time.
  * The input string is terminated by newline L'\n' except when there is no
@@ -74,20 +74,27 @@ extern inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 extern inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
-extern inputresult_T input_stdin(struct xwcsbuf_T *buf, void *inputinfo)
-    __attribute__((nonnull(1)));
 extern inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 
 /* to be used as `inputinfo' for `input_wcs' */
 struct input_wcs_info {
-    const wchar_t *src;  /* the source code input */
+    const wchar_t *src;  /* the input source code */
 };
+
+/* to be used as `inputinfo' for `input_file' */
+struct input_file_info {
+    int fd;
+    mbstate_t state;
+    size_t bufpos, bufmax, bufsize;
+    char buf[];
+};
+/* `bufsize' is the size of `buf', which must be at least one byte long. */
 
 /* to be used as `inputinfo' for `input_interactive' */
 struct input_interactive_info {
-    FILE *fp;   /* input stream */
-    int type;   /* type of prompt */
+    struct input_file_info *fileinfo;
+    int prompttype;
 };
 
 

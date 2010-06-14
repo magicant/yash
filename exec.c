@@ -1762,11 +1762,10 @@ int dot_builtin(int argc, void **argv)
 	set_positional_parameters(argv + xoptind);
     }
 
-    FILE *f = fopen(path, "r");
+    int fd = move_to_shellfd(open(path, O_RDONLY));
     if (path != mbsfilename)
 	free(path);
-    f = reopen_with_shellfd(f, "r", true);
-    if (!f) {
+    if (fd < 0) {
 	xerror(errno, Ngt("cannot open `%s'"), mbsfilename);
 	free(mbsfilename);
 	if (!is_interactive)
@@ -1774,8 +1773,9 @@ int dot_builtin(int argc, void **argv)
 	return Exit_FAILURE;
     }
 
-    exec_input(f, mbsfilename, false, enable_alias, false);
-    fclose(f);
+    exec_input(fd, mbsfilename, false, enable_alias, false);
+    remove_shellfd(fd);
+    xclose(fd);
     free(mbsfilename);
 
     if (has_args) {

@@ -19,6 +19,7 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -54,6 +55,8 @@
 
 extern int main(int argc, char **argv)
     __attribute__((nonnull));
+static struct input_file_info *new_input_file_info(int fd, size_t bufsize)
+    __attribute__((malloc,warn_unused_result));
 static void execute_profile(void);
 static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
@@ -76,6 +79,9 @@ pid_t shell_pgid;
 static bool forceexit;
 /* The next value of `forceexit'. */
 bool nextforceexit;
+
+/* The `input_file_info' structure for reading from the standard input. */
+struct input_file_info *stdin_input_file_info;
 
 
 /* The "main" function. The execution of the shell starts here. */
@@ -217,6 +223,7 @@ int main(int argc, char **argv)
      * This is required for the `set_monitor_option' function to work. */
     shell_pid = getpid();
     shell_pgid = getpgrp();
+    stdin_input_file_info = new_input_file_info(STDIN_FILENO, 1);
     init_cmdhash();
     init_homedirhash();
     init_variables();
@@ -228,13 +235,10 @@ int main(int argc, char **argv)
     init_alias();
 #endif
 
-#ifdef NDEBUG
-    wchar_t *command;
-    FILE *input;
-#else
-    wchar_t *command = command;
-    FILE *input = input;
-#endif
+    union {
+	wchar_t *command;
+	int fd;
+    } input;
     const char *inputname;
 
     if (shopt_read_arg && shopt_read_stdin) {
@@ -242,8 +246,8 @@ int main(int argc, char **argv)
 	exit(Exit_ERROR);
     }
     if (shopt_read_arg) {
-	command = wargv[xoptind++];
-	if (command == NULL) {
+	input.command = wargv[xoptind++];
+	if (input.command == NULL) {
 	    xerror(0, Ngt("-c option specified but no command given"));
 	    exit(Exit_ERROR);
 	}
@@ -257,17 +261,18 @@ int main(int argc, char **argv)
 	if (argc == xoptind)
 	    shopt_read_stdin = true;
 	if (shopt_read_stdin) {
-	    input = stdin;
+	    input.fd = STDIN_FILENO;
 	    inputname = NULL;
 	    if (!is_interactive_set && argc == xoptind
 		    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
 		is_interactive = true;
+	    unset_nonblocking(STDIN_FILENO);
 	} else {
 	    inputname = argv[xoptind];
-	    input = fopen(inputname, "r");
-	    input = reopen_with_shellfd(input, "r", true);
-	    command_name = wargv[xoptind++];
-	    if (input == NULL) {
+	    command_name = wargv[xoptind];
+	    xoptind++;
+	    input.fd = move_to_shellfd(open(inputname, O_RDONLY));
+	    if (input.fd < 0) {
 		int errno_ = errno;
 		xerror(errno_, Ngt("cannot open `%s'"), inputname);
 		exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
@@ -288,7 +293,8 @@ int main(int argc, char **argv)
 	do_job_control = is_interactive;
     if (do_job_control) {
 	open_ttyfd();
-	ensure_foreground();
+	if (do_job_control)
+	    ensure_foreground();
     }
     set_signals();
     set_positional_parameters(wargv + xoptind);
@@ -301,25 +307,36 @@ int main(int argc, char **argv)
 	    execute_rcfile(rcfile);
 
     if (shopt_read_arg) {
-	exec_wcs(command, inputname, true);
+	exec_wcs(input.command, inputname, true);
     } else {
-	exec_input(input, inputname, is_interactive, true, true);
+	exec_input(input.fd, inputname, is_interactive, true, true);
     }
     assert(false);
+}
+
+struct input_file_info *new_input_file_info(int fd, size_t bufsize)
+{
+    struct input_file_info *info = xmalloc(sizeof *info + bufsize);
+    info->fd = fd;
+    info->bufpos = info->bufmax = 0;
+    info->bufsize = bufsize;
+    memset(&info->state, 0, sizeof info->state);
+    return info;
 }
 
 /* Executes "$HOME/.yash_profile". */
 static void execute_profile(void)
 {
-    wchar_t *wpath = parse_and_expand_string(
-	    L"$HOME/.yash_profile", NULL, false);
-    if (wpath) {
+    wchar_t *wpath =
+	parse_and_expand_string(L"$HOME/.yash_profile", NULL, false);
+    if (wpath != NULL) {
 	char *path = realloc_wcstombs(wpath);
-	if (path) {
-	    FILE *f = reopen_with_shellfd(fopen(path, "r"), "r", true);
-	    if (f) {
-		exec_input(f, path, false, true, false);
-		fclose(f);
+	if (path != NULL) {
+	    int fd = move_to_shellfd(open(path, O_RDONLY));
+	    if (fd >= 0) {
+		exec_input(fd, path, false, true, false);
+		remove_shellfd(fd);
+		xclose(fd);
 	    }
 	    free(path);
 	}
@@ -331,34 +348,35 @@ static void execute_profile(void)
  * If `rcfile' is NULL, it defaults to "$HOME/.yashrc" or "$ENV". */
 static void execute_rcfile(const wchar_t *rcfile)
 {
-    wchar_t *wpath;
     char *path;
-    FILE *f;
 
     if (posixly_correct) {
 	const wchar_t *env = getvar(L VAR_ENV);
 	if (env == NULL)
 	    return;
-	wpath = parse_and_expand_string(env, "$ENV", false);
-	if (!wpath)
+	wchar_t *wpath = parse_and_expand_string(env, "$ENV", false);
+	if (wpath == NULL)
 	    return;
 	path = realloc_wcstombs(wpath);
     } else {
-	if (rcfile) {
+	if (rcfile != NULL) {
 	    path = malloc_wcstombs(rcfile);
 	} else {
-	    wpath = parse_and_expand_string(L"$HOME/.yashrc", NULL, false);
-	    if (!wpath)
+	    wchar_t *wpath =
+		parse_and_expand_string(L"$HOME/.yashrc", NULL, false);
+	    if (wpath == NULL)
 		return;
 	    path = realloc_wcstombs(wpath);
 	}
     }
     if (path == NULL)
 	return;
-    f = reopen_with_shellfd(fopen(path, "r"), "r", true);
-    if (f != NULL) {
-	exec_input(f, path, false, true, false);
-	fclose(f);
+
+    int fd = move_to_shellfd(open(path, O_RDONLY));
+    if (fd >= 0) {
+	exec_input(fd, path, false, true, false);
+	remove_shellfd(fd);
+	xclose(fd);
     }
     free(path);
 }
@@ -488,15 +506,14 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     parse_and_exec(&pinfo, finally_exit);
 }
 
-/* Parses the input from the specified file stream and executes commands.
- * Stream `f' must be set to non-blocking if it is not `stdin'.
- * `name' is printed in an error message on syntax error. `name' may be NULL.
- * If `intrinput' is true, the input stream is considered interactive.
+/* Parses the input from the specified file descriptor and executes commands.
+ * The file descriptor must be either STDIN_FILENO or a shell FD.
+ * If `name' is non-NULL, it is printed in an error message on syntax error.
+ * If `intrinput' is true, the input is considered interactive.
  * If there are no commands in the input, `laststatus' is set to zero. */
-void exec_input(FILE *f, const char *name,
+void exec_input(int fd, const char *name,
 	bool intrinput, bool enable_alias, bool finally_exit)
 {
-    struct input_interactive_info intrinfo;
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = true,
@@ -507,16 +524,24 @@ void exec_input(FILE *f, const char *name,
 	.lineno = 1,
 	.intrinput = intrinput,
     };
+    struct input_interactive_info intrinfo;
+
+    struct input_file_info *info =
+	(fd == STDIN_FILENO)
+	? stdin_input_file_info
+	: new_input_file_info(fd, BUFSIZ);
+
     if (intrinput) {
-	intrinfo.fp = f;
-	intrinfo.type = 1;
+	intrinfo.fileinfo = info;
+	intrinfo.prompttype = 1;
 	pinfo.input = input_interactive;
 	pinfo.inputinfo = &intrinfo;
     } else {
-	pinfo.input = (f == stdin) ? input_stdin : input_file;
-	pinfo.inputinfo = f;
+	pinfo.input = input_file;
+	pinfo.inputinfo = info;
     }
     parse_and_exec(&pinfo, finally_exit);
+    free(info);
 
 #if !YASH_ENABLE_ALIAS
     (void) enable_alias;  // suppress compiler warning
@@ -599,12 +624,11 @@ out:
 
 bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 {
-    struct input_interactive_info *ir;
-
     if (!pinfo->intrinput)
 	return false;
-    ir = pinfo->inputinfo;
-    return isatty(fileno(ir->fp));
+
+    struct input_interactive_info *ir = pinfo->inputinfo;
+    return isatty(ir->fileinfo->fd);
 }
 
 
