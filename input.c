@@ -211,7 +211,6 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 	wchar_t *line;
 	inputresult_T result;
 
-	unset_nonblocking(STDIN_FILENO);
 	result = le_readline(prompt, &line);
 	if (result != INPUT_ERROR) {
 	    free_prompt(prompt);
@@ -439,21 +438,6 @@ done:
     fprintf(stderr, "%ls", buf.contents);
     fflush(stderr);
     wb_destroy(&buf);
-}
-
-/* Sets O_NONBLOCK flag of the specified file descriptor.
- * If `fd' is negative, does nothing.
- * Returns true if successful, or false otherwise, with `errno' set. */
-bool set_nonblocking(int fd)
-{
-    if (fd >= 0) {
-	int flags = fcntl(fd, F_GETFL);
-	if (flags < 0)
-	    return false;
-	if (!(flags & O_NONBLOCK))
-	    return fcntl(fd, F_SETFL, flags | O_NONBLOCK) != -1;
-    }
-    return true;
 }
 
 /* Unsets O_NONBLOCK flag of the specified file descriptor.

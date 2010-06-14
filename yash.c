@@ -266,6 +266,7 @@ int main(int argc, char **argv)
 	    if (!is_interactive_set && argc == xoptind
 		    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
 		is_interactive = true;
+	    unset_nonblocking(STDIN_FILENO);
 	} else {
 	    inputname = argv[xoptind];
 	    command_name = wargv[xoptind];

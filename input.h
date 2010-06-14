@@ -34,7 +34,6 @@ extern struct promptset_T get_prompt(int type);
 static inline void free_prompt(struct promptset_T prompt);
 extern void print_prompt(const wchar_t *s)
     __attribute__((nonnull));
-extern _Bool set_nonblocking(int fd);
 extern _Bool unset_nonblocking(int fd);
 
 
