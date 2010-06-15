@@ -27,7 +27,7 @@ tempout="./.temp.out"
 temptxt="./.temp.txt"
 dirs=". builtins doc lineedit tests"
 
-version="2.20"
+version="2.21"
 copyrightyear="2007-2010"
 
 # object files to be linked as `yash'
