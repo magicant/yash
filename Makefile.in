@@ -59,21 +59,16 @@ DESTDIR =
 PREFIX = @PREFIX@
 EPREFIX = @EPREFIX@
 BINDIR = @BINDIR@
-install: install-binary install-doc
+install: install-binary
 install-strip:
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
-	@+$(MAKE) install-doc
 install-binary: $(TARGET) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
-install-doc:
-	@+cd doc && $(MAKE) install
 installdirs: $(DESTDIR)$(BINDIR)
-	@+cd doc && $(MAKE) installdirs
 $(DESTDIR)$(BINDIR):
 	$(INSTALL_PROGRAM) -d $@
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
-	@+cd doc && $(MAKE) uninstall
 
 VERSION = @VERSION@
 DISTDIR = yash-$(VERSION)
@@ -146,7 +141,6 @@ distclean: _distclean
 	-@+cd builtins && $(MAKE) distclean
 	-@+cd lineedit && $(MAKE) distclean
 	-@+cd tests    && $(MAKE) distclean
-	-@+cd doc      && $(MAKE) distclean
 _distclean: _clean
 	-rm -rf Makefile config.log config.status config.h version.h \
 		tags TAGS cscope.out
@@ -166,7 +160,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check install install-strip install-binary installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d
