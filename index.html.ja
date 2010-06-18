@@ -39,7 +39,10 @@ SourceForge.jp のプロジェクトの一つとして開発されています�
 オプションを備えた任意の POSIX.1-2001 環境でビルド・実行できるはずです。
 
 <h2 id="progress">開発の進捗状況</h2>
-<p>すでに POSIX 準拠シェルとして最低限必要な機能は揃っており、一般的なシェルスクリプトを問題なく実行できます。現在、対話モードにおけるコマンドラインの編集・補完機能を実装中です。</p>
+<p>すでに POSIX 準拠シェルとして最低限必要な機能は揃っており、
+一般的なシェルスクリプトを問題なく実行できます。
+また、対話モードにおけるコマンドラインの基本的な編集・補完機能も実装済みです。
+現在は、補完機能を充実させるための追加スクリプトの作成等をおこなっています。</p>
 
 <h2 id="downloads">ダウンロード</h2>
 <script type="text/javascript">
@@ -59,8 +62,8 @@ var sfjp_widget_customcss = true
 
 
 <address id="about_this_document">
-© 2007-2009 <a href="http://homepage2.nifty.com/magicant/author.html"
->Magicant</a> / 最終更新 2009-12-27
+© 2007-2010 <a href="http://homepage2.nifty.com/magicant/author.html"
+>Magicant</a> / 最終更新 2010-06-18
 </address>
 
 </body>

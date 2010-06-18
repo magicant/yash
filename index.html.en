@@ -46,7 +46,9 @@ options.
 <h2 id="progress">Current Development Status</h2>
 <p>Most of the basic functions required by POSIX have already been implemented,
 so that yash is now capable of running common shell scripts.
-Line-editing and command completion are currently under development.
+Basic line-editing and command completion have also been developed.
+The author is currently developing auxiliary scripts to make command completion
+more usable.
 <p>The manual for yash is not yet available in English.
 
 <h2 id="downloads">Downloads</h2>
@@ -54,7 +56,7 @@ Line-editing and command completion are currently under development.
 <a href="http://sourceforge.jp/projects/yash/releases/">release page</a>.
 
 <address id="about_this_document">
-© 2009 magicant / Last modified: 2009-10-18
+© 2009-2010 magicant / Last modified: 2010-06-18
 </address>
 
 </body>
