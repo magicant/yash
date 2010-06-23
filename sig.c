@@ -656,10 +656,10 @@ int handle_traps(void)
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = s->no;
+		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
+		    free(command);
 		    laststatus = savelaststatus;
-		    if (command != trap_command[i])
-			free(command);
 		}
 	    }
 	}
@@ -680,10 +680,10 @@ int handle_traps(void)
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = sigrtmin + i;
+		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
+		    free(command);
 		    laststatus = savelaststatus;
-		    if (command != rttrap_command[i])
-			free(command);
 		}
 	    }
 	}
@@ -712,12 +712,10 @@ void execute_exit_trap(void)
 	assert(!exit_handled);
 	exit_handled = true;
 	savelaststatus = laststatus;
+	command = xwcsdup(command);
 	exec_wcs(command, "EXIT trap", false);
+	free(command);
 	savelaststatus = -1;
-#ifndef NDEBUG
-	if (command != trap_command[sigindex(0)])
-	    free(command);
-#endif
     }
 }
 
@@ -765,9 +763,7 @@ void set_trap(int signum, const wchar_t *command)
 	return;
     }
 
-    /* If `*commandp' is currently executed, we must not free it. */
-    if (signum != handled_signal && (signum != 0 || !exit_handled))
-	free(*commandp);
+    free(*commandp);
     if (command) {
 	if (command[0] != L'\0')
 	    any_trap_set = true;
