@@ -184,12 +184,32 @@ bool test_file(wchar_t type, const char *file) {
 	    return S_ISBLK(st.st_mode);
 	case L'c':
 	    return S_ISCHR(st.st_mode);
+	case L'G':
+	    return st.st_gid == getegid();
 	case L'g':
 	    return st.st_mode & S_ISGID;
 #if HAVE_S_ISVTX
 	case L'k':
 	    return st.st_mode & S_ISVTX;
 #endif
+	case L'N':
+	    return st.st_atime < st.st_mtime
+#if HAVE_ST_ATIM && HAVE_ST_MTIM
+		|| (st.st_atime == st.st_mtime
+			&& st.st_atim.tv_nsec < st.st_mtim.tv_nsec)
+#elif HAVE_ST_ATIMESPEC && HAVE_ST_MTIMESPEC
+		|| (st.st_atime == st.st_mtime
+			&& st.st_atimespec.tv_nsec < st.st_mtimespec.tv_nsec)
+#elif HAVE_ST_ATIMENSEC && HAVE_ST_MTIMENSEC
+		|| (st.st_atime == st.st_mtime
+			&& st.st_atimensec < st.st_mtimensec)
+#elif HAVE___ST_ATIMENSEC && HAVE___ST_MTIMENSEC
+		|| (st.st_atime == st.st_mtime
+			&& st.__st_atimensec < st.__st_mtimensec)
+#endif
+		;
+	case L'O':
+	    return st.st_uid == geteuid();
 	case L'p':
 	    return S_ISFIFO(st.st_mode);
 	case L'S':
@@ -420,10 +440,10 @@ bool is_unary_primary(const wchar_t *word)
     if (word[0] != L'-' || word[1] == L'\0' || word[2] != L'\0')
 	return false;
     switch (word[1]) {
-	case L'b':  case L'c':  case L'd':  case L'e':  case L'f':  case L'g':
-	case L'h':  case L'k':  case L'L':  case L'n':  case L'p':  case L'r':
-	case L'S':  case L's':  case L't':  case L'u':  case L'w':  case L'x':
-	case L'z':
+	case L'b':  case L'c':  case L'd':  case L'e':  case L'f':  case L'G':
+	case L'g':  case L'h':  case L'k':  case L'L':  case L'N':  case L'n':
+	case L'O':  case L'p':  case L'r':  case L'S':  case L's':  case L't':
+	case L'u':  case L'w':  case L'x':  case L'z':
 	    return true;
 	default:
 	    return false;
@@ -659,10 +679,13 @@ const char test_help[] = Ngt(
 "  -d file    <file> is a directory\n"
 "  -e file    <file> exists\n"
 "  -f file    <file> is a regular file\n"
+"  -G file    <file>'s group ID is same as the shell's group ID\n"
 "  -g file    <file>'s set-group-ID flag is set\n"
 "  -h file    same as -L\n"
 "  -k file    <file>'s sticky bit is set\n"
 "  -L file    <file> is a symbolic link\n"
+"  -N file    <file> has not been accessed since last modified\n"
+"  -O file    <file>'s user ID is same as the shell's user ID\n"
 "  -p file    <file> is a FIFO (named pipe)\n"
 "  -r file    <file> is readable\n"
 "  -S file    <file> is a socket\n"

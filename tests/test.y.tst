@@ -65,6 +65,8 @@ chmod g+x executable2
 chmod o+x executable3
 touch -t 200001010000 older
 touch -t 200101010000 newer
+touch -a -t 200101010000 old; touch -m -t 200001010000 old
+touch -a -t 200001010000 new; touch -m -t 200101010000 new
 
 # check of the -b, -c and -S operators are skipped
 tt -d .
@@ -77,6 +79,7 @@ tt -f reglink
 tt -f fifolink
 tt -f .
 tt -f no_such_file
+tt -G .
 tt -g gid
 tt -g uid
 tt -h fifolink
@@ -89,10 +92,13 @@ tt -L fifolink
 tt -L reglink
 tt -L gid
 tt -L no_such_file
+tt -N new
+tt -N old
 tt -n ""
 tt -n 0
 tt -n 1
 tt -n abcde
+tt -O .
 tt -p fifo
 tt -p .
 tt -r readable1

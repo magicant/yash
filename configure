@@ -858,6 +858,79 @@ then
     defconfigh "HAVE_S_ISVTX"
 fi
 
+# check if the "st_atim"/"st_atimespec"/"st_atimensec"/"__st_atimensec" member
+# of the "stat" structure is available
+if ${enable_test}
+then
+    if
+	checking 'for st_atim'
+	cat >"${tempsrc}" <<END
+	${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.st_atim = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
+struct timespec ts = st.st_atim;
+return ts.tv_nsec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_ST_ATIM"
+    elif
+	checking 'for st_atimespec'
+	cat >"${tempsrc}" <<END
+${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.st_atimespec = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
+struct timespec ts = st.st_atimespec;
+return ts.tv_nsec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_ST_ATIMESPEC"
+    elif
+	checking 'for st_atimensec'
+	cat >"${tempsrc}" <<END
+${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.st_atimensec = 0;
+return st.st_atimensec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_ST_ATIMENSEC"
+    elif
+	checking 'for __st_atimensec'
+	cat >"${tempsrc}" <<END
+${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.__st_atimensec = 0;
+return st.__st_atimensec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE___ST_ATIMENSEC"
+    fi
+fi
+
 # check if the "st_mtim"/"st_mtimespec"/"st_mtimensec"/"__st_mtimensec" member
 # of the "stat" structure is available
 if
