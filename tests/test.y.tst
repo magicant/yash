@@ -321,4 +321,5 @@ test 1 2 3  2>/dev/null  # invalid expression
 echo "1 2 3: $?"
 
 
+cd "${TESTTMP}"
 rm -fr "$tmp"
