@@ -61,6 +61,9 @@ static const wchar_t *const path_variables[PA_count] = {
     [PA_PATH]     = L VAR_PATH,
     [PA_CDPATH]   = L VAR_CDPATH,
     [PA_MAILPATH] = L VAR_MAILPATH,
+#if YASH_ENABLE_LINEEDIT
+    [PA_COMPPATH] = L VAR_YASH_COMPPATH,
+#endif
 };
 
 
@@ -325,7 +328,7 @@ void init_variables(void)
     set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
 	    SCOPE_GLOBAL, false);
 
-    /* initialize path according to $PATH/CDPATH */
+    /* initialize path according to $PATH etc. */
     for (size_t i = 0; i < PA_count; i++)
 	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
 }
@@ -1035,6 +1038,10 @@ void variable_set(const wchar_t *name, variable_T *var)
     case L'T':
 	if (wcscmp(name, L VAR_TERM) == 0)
 	    le_need_term_update = true;
+	break;
+    case L'Y':
+	if (wcscmp(name, L VAR_YASH_COMPPATH) == 0)
+	    reset_path(PA_COMPPATH, var);
 	break;
 #endif /* YASH_ENABLE_LINEEDIT */
     }

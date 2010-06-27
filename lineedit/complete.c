@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #if HAVE_GETGRENT
 # include <grp.h>
 #endif
@@ -42,12 +43,15 @@
 #include "../expand.h"
 #include "../hashtable.h"
 #include "../option.h"
+#include "../parser.h"
 #include "../path.h"
 #include "../plist.h"
+#include "../redir.h"
 #include "../sig.h"
 #include "../util.h"
 #include "../variable.h"
 #include "../xfnmatch.h"
+#include "../yash.h"
 #include "complete.h"
 #include "compparse.h"
 #include "display.h"
@@ -95,6 +99,8 @@ static const struct candgen_T *get_candgen(void);
 static const struct candgen_T *get_candgen_cmdarg(void);
 static const struct cmdcandgen_T *get_cmdcandgen(const wchar_t *cmdname)
     __attribute__((nonnull,pure));
+static void autoload_completion(const wchar_t *cmdname)
+    __attribute__((nonnull));
 static const struct candgen_T *get_candgen_parse_pwords(
 	const struct cmdcandgen_T *ccg)
     __attribute__((nonnull));
@@ -608,11 +614,13 @@ const struct candgen_T *get_candgen_cmdarg(void)
 {
     const struct cmdcandgen_T *ccg;
     const struct optcandgen_T *ocg;
-    if (candgens.capacity == 0)
-	return get_candgen_default();
-    ccg = get_cmdcandgen(ctxt->pwords[0]);
-    if (ccg == NULL)
-	return get_candgen_default();
+    if (candgens.capacity == 0
+	    || (ccg = get_cmdcandgen(ctxt->pwords[0])) == NULL) {
+	autoload_completion(ctxt->pwords[0]);
+	if (candgens.capacity == 0
+		|| (ccg = get_cmdcandgen(ctxt->pwords[0])) == NULL)
+	    return get_candgen_default();
+    }
 
     const struct candgen_T *result = get_candgen_parse_pwords(ccg);
     if (result != NULL)
@@ -679,6 +687,47 @@ const struct cmdcandgen_T *get_cmdcandgen(const wchar_t *cmdname)
 	    result = ht_get(&candgens, slash + 1).value;
     }
     return result;
+}
+
+/* Executes the file in $YASH_COMPPATH to load completion configuration
+ * for the specified command. */
+void autoload_completion(const wchar_t *cmdname)
+{
+    const wchar_t *slash = wcsrchr(cmdname, L'/');
+    if (slash != NULL)
+	cmdname = slash + 1;
+
+    char *mbscmdname = malloc_wcstombs(cmdname);
+    if (mbscmdname == NULL)
+	return;
+
+    char *path = which(mbscmdname,
+	    get_path_array(PA_COMPPATH), is_readable_regular);
+    free(mbscmdname);
+    if (path == NULL)
+	return;
+
+    int fd = move_to_shellfd(open(path, O_RDONLY));
+    if (fd >= 0) {
+	struct parsestate_T *state = save_parse_state();
+	int savelaststatus = laststatus;
+	open_new_environment(false);
+	set_positional_parameters((void *[]) { NULL, });
+	set_variable(L VAR_IFS, wcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
+
+	le_compdebug("autoload: start executing `%s'", path);
+	exec_input(fd, path, false, false, false);
+	le_compdebug("autoload: finished executing `%s'", path);
+	if (laststatus != Exit_SUCCESS)
+	    le_compdebug("          with exit status of %d", laststatus);
+
+	close_current_environment();
+	laststatus = savelaststatus;
+	restore_parse_state(state);
+	remove_shellfd(fd);
+	xclose(fd);
+    }
+    free(path);
 }
 
 /* Parses `ctxt->pwords'. */
