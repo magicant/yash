@@ -320,11 +320,11 @@ if ${debug}
 then
     if
 	checking 'whether GCC is available'
-	checkby eval "${CC:-gcc} --version | grep -i gcc"
+	checkby eval "${CC-gcc -std=c99} --version | grep -i gcc"
     then
 	checked "yes"
-	cc="${CC:-gcc}"
-	cflags="-std=c99 -pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb"
+	cc="${CC-gcc -std=c99}"
+	cflags="-pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb"
     else
 	checked "no"
 	echo "--debug option specified but GCC is not available" >&2
@@ -356,12 +356,12 @@ then
     checked "yes (using gcc -std=c99)"
 else
     checked "no"
-    printf 'Compiler "%s" not found or not working.\n' "${cc}" >&2
+    printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
     fail
 fi
 
 # check if the compiler accepts the -O2 option if we are not debugging
-if ! ${debug}
+if ! ${debug} && [ x"${CFLAGS+set}" != x"set" ]
 then
     if
 	checking 'whether the compiler accepts -O2 flag'
@@ -461,19 +461,22 @@ fi
 
 
 # check if we need -lm
-checking 'if loader flag -lm can be omitted'
-cat >"${tempsrc}" <<END
+if [ x"${LDLIBS+set}" != x"set" ]
+then
+    checking 'if loader flag -lm can be omitted'
+    cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <math.h>
 int main(int argc, char **argv) {
     return fmod(argc, 1.1) == trunc(argc) || argv == 0;
 }
 END
-trymake
-checked
-if [ x"${checkresult}" = x"no" ]
-then
-    ldlibs="${ldlibs} -lm"
+    trymake
+    checked
+    if [ x"${checkresult}" = x"no" ]
+    then
+	ldlibs="${ldlibs} -lm"
+    fi
 fi
 
 # enable/disable socket redirection
