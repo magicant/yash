@@ -45,15 +45,15 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 $(BUILTINS_ARCHIVE): _PHONY
-	@+cd builtins && $(MAKE)
+	@+(cd builtins && $(MAKE))
 $(LINEEDIT_ARCHIVE): _PHONY
-	@+cd lineedit && $(MAKE)
+	@+(cd lineedit && $(MAKE))
 signum.h: makesignum
 	./makesignum > $@
 sig.o: signum.h
 
 test tests check: _PHONY
-	@+cd tests && $(MAKE)
+	@+(cd tests && $(MAKE))
 
 DESTDIR =
 PREFIX = @PREFIX@
@@ -127,20 +127,20 @@ cscope.out: $(SOURCES) $(HEADERS)
 	$(CSCOPE) $(CSCOPEARGS)
 
 mostlyclean: _mostlyclean
-	-@+cd builtins && $(MAKE) mostlyclean
-	-@+cd lineedit && $(MAKE) mostlyclean
+	-@+(cd builtins && $(MAKE) mostlyclean)
+	-@+(cd lineedit && $(MAKE) mostlyclean)
 _mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
-	-@+cd tests && $(MAKE) clean
+	-@+(cd tests && $(MAKE) clean)
 clean: _clean
-	-@+cd builtins && $(MAKE) clean
-	-@+cd lineedit && $(MAKE) clean
+	-@+(cd builtins && $(MAKE) clean)
+	-@+(cd lineedit && $(MAKE) clean)
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean
-	-@+cd builtins && $(MAKE) distclean
-	-@+cd lineedit && $(MAKE) distclean
-	-@+cd tests    && $(MAKE) distclean
+	-@+(cd builtins && $(MAKE) distclean)
+	-@+(cd lineedit && $(MAKE) distclean)
+	-@+(cd tests    && $(MAKE) distclean)
 _distclean: _clean
 	-rm -rf Makefile config.log config.status config.h version.h \
 		tags TAGS cscope.out
@@ -148,9 +148,9 @@ maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
 	@+$(MAKE) _distclean
-	-@+cd builtins && $(MAKE) maintainer-clean
-	-@+cd lineedit && $(MAKE) maintainer-clean
-	-@+cd tests    && $(MAKE) maintainer-clean
+	-@+(cd builtins && $(MAKE) maintainer-clean)
+	-@+(cd lineedit && $(MAKE) maintainer-clean)
+	-@+(cd tests    && $(MAKE) maintainer-clean)
 	-rm -rf $(SOURCES:.c=.d)
 
 config.h version.h: config.status

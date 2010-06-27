@@ -35,7 +35,7 @@ test-yash:
 	@$(MAKE) TEST_ITEMS='*.y.tst' test
 
 testee:
-	@+if [ x'$(TESTEE)' = x'../yash' ]; then cd .. && $(MAKE) yash; fi
+	@+if [ x'$(TESTEE)' = x'../yash' ]; then (cd .. && $(MAKE) yash); fi
 
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
