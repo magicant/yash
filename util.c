@@ -618,8 +618,8 @@ ambiguous_match:
 		(wchar_t *) argv[0], arg);
 #if 0
 	for (int i = 0; longopts[i].name; i++)
-	    if (matchstrprefix(longopts[i].name, arg))
-		fprintf(stderr, "\t--%s\n", longopts[i].name);
+	    if (matchwcsprefix(longopts[i].name, arg))
+		fprintf(stderr, "\t--%ls\n", longopts[i].name);
 #endif
     }
     return L'?';
