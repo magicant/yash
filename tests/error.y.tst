@@ -70,6 +70,14 @@ echo command not found error $?
 END
 
 
+echo ===== option =====
+echo ===== option ===== >&2
+
+set --no
+echo ambiguous option $?
+set -o nolog +o nolog -o
+echo missing argument $?
+
 echo ===== set =====
 echo ===== set ===== >&2
 

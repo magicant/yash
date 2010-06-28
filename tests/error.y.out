@@ -9,6 +9,9 @@ non-special builtin assignment error 2
 special builtin expansion error 2
 non-special builtin expansion error 2
 command not found error 127
+===== option =====
+ambiguous option 2
+missing argument 2
 ===== set =====
 set no-such-option 2
 set output error 1

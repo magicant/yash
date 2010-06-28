@@ -6,6 +6,19 @@ Usage:  getopts options var [arg...]
 ../yash: ro: readonly
 ../yash: var: parameter not set
 ../yash: var: parameter not set
+===== option =====
+set: --no: ambiguous option
+	--noclobber
+	--noglob
+	--nocaseglob
+	--nounset
+	--noexec
+	--nolog
+	--notify
+	--notifyle
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: -o: argument missing
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 ===== set =====
 set: --no-such-option: invalid option
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]

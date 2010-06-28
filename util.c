@@ -616,7 +616,7 @@ ambiguous_match:
     if (xopterr) {
 	fprintf(stderr, gt("%ls: --%ls: ambiguous option\n"),
 		(wchar_t *) argv[0], arg);
-#if 0
+#if 1
 	for (int i = 0; longopts[i].name; i++)
 	    if (matchwcsprefix(longopts[i].name, arg))
 		fprintf(stderr, "\t--%ls\n", longopts[i].name);
