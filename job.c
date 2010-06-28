@@ -573,14 +573,16 @@ int calc_status(int status)
 {
     if (WIFEXITED(status))
 	return WEXITSTATUS(status);
+#ifdef WIFCONTINUED
+    if (WIFCONTINUED(status))
+	return Exit_SUCCESS;
+    /* On FreeBSD, when WIFCONTINUED is true, WIFSIGNALED is also true. We must
+     * be careful about the order of these checks. */
+#endif
     if (WIFSIGNALED(status))
 	return WTERMSIG(status) + TERMSIGOFFSET;
     if (WIFSTOPPED(status))
 	return WSTOPSIG(status) + TERMSIGOFFSET;
-#ifdef WIFCONTINUED
-    if (WIFCONTINUED(status))
-	return Exit_SUCCESS;
-#endif
     assert(false);
 }
 
