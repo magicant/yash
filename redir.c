@@ -78,7 +78,8 @@ int xclose(int fd)
  * `xclose' is called before `dup2'. */
 int xdup2(int oldfd, int newfd)
 {
-    xclose(newfd);
+    if (oldfd != newfd)
+	xclose(newfd);
     while (dup2(oldfd, newfd) < 0) {
 	switch (errno) {
 	case EINTR:
@@ -863,7 +864,7 @@ void maybe_redirect_stdin_to_devnull(void)
 
     xclose(STDIN_FILENO);
     fd = open("/dev/null", O_RDONLY);
-    if (fd > 0) {
+    if (fd >= 0 && fd != STDIN_FILENO) {  // shouldn't happen, but just in case
 	xdup2(fd, STDIN_FILENO);
 	xclose(fd);
     }
