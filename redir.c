@@ -219,17 +219,29 @@ void clear_shellfds(bool leavefds)
  * On error, `errno' is set and -1 is returned. */
 int copy_as_shellfd(int fd)
 {
+    int newfd;
+
 #ifdef F_DUPFD_CLOEXEC
-    int newfd = fcntl(fd, F_DUPFD_CLOEXEC, shellfdmin);
-#else
-    int newfd = fcntl(fd, F_DUPFD, shellfdmin);
-#endif
-    if (newfd >= 0) {
-#ifndef F_DUPFD_CLOEXEC
-	fcntl(newfd, F_SETFD, FD_CLOEXEC);
-#endif
-	add_shellfd(newfd);
+    /* Even if the F_DUPFD_CLOEXEC flag is defined in the <fcntl.h> header, the
+     * OS kernel may not support it. We fall back on the normal F_DUPFD-F_SETFD
+     * sequence if the F_DUPFD_CLOEXEC flag is rejected. */
+    static bool dupfd_cloexec_ok = true;
+    if (dupfd_cloexec_ok) {
+	newfd = fcntl(fd, F_DUPFD_CLOEXEC, shellfdmin);
+	if (newfd >= 0 || errno != EINVAL)
+	    goto finish;
+	dupfd_cloexec_ok = false;
     }
+#endif
+
+    newfd = fcntl(fd, F_DUPFD, shellfdmin);
+    if (newfd >= 0)
+	fcntl(newfd, F_SETFD, FD_CLOEXEC);
+#ifdef F_DUPFD_CLOEXEC
+finish:
+#endif
+    if (newfd >= 0)
+	add_shellfd(newfd);
     return newfd;
 }
 
