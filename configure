@@ -1078,7 +1078,7 @@ fi
 # check for getpwent & endpwent
 checking 'for getpwent/endpwent'
 cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <pwd.h>
 #ifndef getpwent
 struct passwd *getpwent(void);
@@ -1098,7 +1098,7 @@ then
     # check for pw_gecos
     checking 'for pw_gecos'
     cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <pwd.h>
 const char *s;
 struct passwd pwd;
@@ -1115,7 +1115,7 @@ fi
 # check for getgrent & endgrent
 checking 'for getgrent/endgrent'
 cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <grp.h>
 #ifndef getgrent
 struct group *getgrent(void);
@@ -1138,7 +1138,7 @@ fi
 #   because the -lxnet compiler option is not specified.
 checking 'for sethostent/gethostent/endhostent'
 cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <netdb.h>
 #ifndef sethostent
 void sethostent(int);
