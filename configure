@@ -1086,7 +1086,8 @@ struct passwd *getpwent(void);
 #ifndef endpwent
 void endpwent(void);
 #endif
-int main() { struct passwd *p = getpwent(); endpwent(); }
+struct passwd *p;
+int main() { p = getpwent(); endpwent(); }
 END
 trymake
 checked
@@ -1099,11 +1100,9 @@ then
     cat >"${tempsrc}" <<END
 #include "${configh}"
 #include <pwd.h>
-int main() {
+const char *s;
 struct passwd pwd;
-pwd.pw_gecos = "";
-const char *s = pwd.pw_gecos;
-}
+int main() { pwd.pw_gecos = ""; s = pwd.pw_gecos; }
 END
     trycompile
     checked
@@ -1124,7 +1123,8 @@ struct group *getgrent(void);
 #ifndef endgrent
 void endgrent(void);
 #endif
-int main() { struct group *g = getgrent(); endgrent(); }
+struct group *g;
+int main() { g = getgrent(); endgrent(); }
 END
 trymake
 checked
@@ -1149,7 +1149,8 @@ struct hostent *gethostent(void);
 #ifndef endhostent
 void endhostent(void);
 #endif
-int main() { sethostent(1); struct hostent *h = gethostent(); endhostent(); }
+struct hostent *h;
+int main() { sethostent(1); h = gethostent(); endhostent(); }
 END
 trymake
 checked
