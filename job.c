@@ -339,19 +339,31 @@ void do_wait(void)
 {
     pid_t pid;
     int status;
+#if HAVE_WCONTINUED
+    static int waitpidoption = WUNTRACED | WCONTINUED | WNOHANG;
+#else
+    const int waitpidoption = WUNTRACED | WNOHANG;
+#endif
 
 start:
-#ifdef HAVE_WCONTINUED
-    pid = waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG);
-#else
-    pid = waitpid(-1, &status, WUNTRACED | WNOHANG);
-#endif
+    pid = waitpid(-1, &status, waitpidoption);
     if (pid < 0) {
 	switch (errno) {
 	    case EINTR:
 		goto start;  /* try again */
 	    case ECHILD:
 		return;      /* there are no child processes */
+#if HAVE_WCONTINUED
+	    /* Even when the WCONTINUED flag is defined in the <sys/wait.h>
+	     * header, the OS kernel may not support it. We try again without
+	     * the flag if it is rejected. */
+	    case EINVAL:
+		if (waitpidoption & WCONTINUED) {
+		    waitpidoption &= ~WCONTINUED;
+		    goto start;
+		}
+		/* falls thru! */
+#endif
 	    default:
 		xerror(errno, "waitpid");
 		return;
