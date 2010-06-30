@@ -1237,7 +1237,7 @@ void generate_host_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     struct hostent *host;
-    sethostent(1);
+    sethostent(true);
     while ((host = gethostent()) != NULL) {
 	if (xfnm_match(context->cpattern, host->h_name) == 0)
 	    le_new_candidate(CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL);
