@@ -17,6 +17,7 @@
 .POSIX:
 .SUFFIXES: .c .h .d .o
 
+@MAKE_SHELL@
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@

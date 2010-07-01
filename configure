@@ -387,7 +387,7 @@ if
 _TEST_:
 	@echo >/dev/null
 END
-    checkby eval "${MAKE:-make} -f - _TEST_ <<END
+    checkby eval "${MAKE-make} -f - _TEST_ <<END
 .POSIX:
 include ${temptxt}
 END
@@ -400,6 +400,21 @@ else
     make_supports_include=false make_include='# include'
 fi
 
+# check if make sets the $SHELL macro
+checking 'whether make sets $SHELL macro'
+checkby eval "SHELL=false ${MAKE-make} -f - <<END
+.POSIX:
+_TEST_:
+	\\\$(SHELL) -c :
+END
+"
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    make_shell='# SHELL = sh'
+else
+    make_shell='SHELL = sh'
+fi
 
 # check if defining _POSIX_C_SOURCE and _XOPEN_SOURCE as values larger than
 # _POSIX_VERSION and _XOPEN_VERSION is accepted.
@@ -1444,6 +1459,7 @@ then
 fi
 
 MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
+MAKE_SHELL="${MAKE_SHELL-${make_shell}}"
 CC="${CC-${cc}}"
 CFLAGS="${CFLAGS-${cflags}} -D HAVE_CONFIG_H ${CADDS-${null}}"
 LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS-${null}}"
@@ -1481,6 +1497,7 @@ esac
 
 sed_subst_cmd="
 s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
+s!@MAKE_SHELL@!${MAKE_SHELL}!g
 s!@CC@!${CC}!g
 s!@CFLAGS@!${CFLAGS}!g
 s!@LDFLAGS@!${LDFLAGS}!g
