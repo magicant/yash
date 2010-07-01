@@ -65,10 +65,9 @@ extern int faccessat(int fd, const char *path, int amode, int flags)
 extern int eaccess(const char *path, int amode)
     __attribute__((nonnull));
 # endif
-#else
-static bool check_access(const char *path, mode_t mode)
-    __attribute__((nonnull));
 #endif
+static bool check_access(const char *path, mode_t mode, int amode)
+    __attribute__((nonnull));
 static inline bool not_dotdot(const wchar_t *p)
     __attribute__((nonnull,pure));
 
@@ -97,44 +96,40 @@ bool is_irregular_file(const char *path)
 /* Checks if `path' is a readable file. */
 bool is_readable(const char *path)
 {
-#if HAVE_FACCESSAT
-    return faccessat(AT_FDCWD, path, R_OK, AT_EACCESS) == 0;
-#elif HAVE_EACCESS
-    return eaccess(path, R_OK) == 0;
-#else
-    return check_access(path, S_IRUSR | S_IRGRP | S_IROTH);
-#endif
+    return check_access(path, S_IRUSR | S_IRGRP | S_IROTH, R_OK);
 }
 
 /* Checks if `path' is a writable file. */
 bool is_writable(const char *path)
 {
-#if HAVE_FACCESSAT
-    return faccessat(AT_FDCWD, path, W_OK, AT_EACCESS) == 0;
-#elif HAVE_EACCESS
-    return eaccess(path, W_OK) == 0;
-#else
-    return check_access(path, S_IWUSR | S_IWGRP | S_IWOTH);
-#endif
+    return check_access(path, S_IWUSR | S_IWGRP | S_IWOTH, W_OK);
 }
 
 /* Checks if `path' is an executable file (or a searchable directory). */
 bool is_executable(const char *path)
 {
-#if HAVE_FACCESSAT
-    return faccessat(AT_FDCWD, path, X_OK, AT_EACCESS) == 0;
-#elif HAVE_EACCESS
-    return eaccess(path, X_OK) == 0;
-#else
-    return check_access(path, S_IXUSR | S_IXGRP | S_IXOTH);
-#endif
+    return check_access(path, S_IXUSR | S_IXGRP | S_IXOTH, X_OK);
 }
 
-#if !HAVE_FACCESSAT && !HAVE_EACCESS
 /* Checks if this process has a proper permission to access the specified file.
  * Returns false if the file does not exist. */
-bool check_access(const char *path, mode_t mode)
+bool check_access(const char *path, mode_t mode, int amode)
 {
+    /* Even if the faccessat/eaccess function was considered available by
+     * `configure', the OS kernel may not support it. We fall back on our own
+     * checking function if faccessat/eaccess was rejected. */
+#if HAVE_FACCESSAT
+    int result = faccessat(AT_FDCWD, path, amode, AT_EACCESS);
+    if (result == 0 || (errno != ENOSYS && errno != EINVAL))
+	return result == 0;
+#elif HAVE_EACCESS
+    int result = eaccess(path, amode);
+    if (result == 0 || (errno != ENOSYS && errno != EINVAL))
+	return result == 0;
+#else
+    (void) amode;
+#endif
+
     /* The algorithm below is not 100% valid for all POSIX systems. */
     struct stat st;
     uid_t uid;
@@ -174,7 +169,6 @@ bool check_access(const char *path, mode_t mode)
 
     return st.st_mode & S_IRWXO;
 }
-#endif /* !HAVE_FACCESSAT && !HAVE_EACCESS */
 
 /* Checks if `path' is a readable regular file. */
 bool is_readable_regular(const char *path)
