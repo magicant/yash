@@ -9,66 +9,68 @@ echo ===== kill =====
 
 # check various syntaxes of kill
 kill -s CHLD $$ $$
-echo 1
+echo kill 1 $?
 kill -n CHLD $$ $$
-echo 2
+echo kill 2 $?
 kill -s 0 $$ $$
-echo 3
+echo kill 3 $?
 kill -n 0 $$ $$
-echo 4
+echo kill 4 $?
 kill -sCHLD $$ $$
-echo 5
+echo kill 5 $?
 kill -nCHLD $$ $$
-echo 6
+echo kill 6 $?
 kill -s0 $$ $$
-echo 7
+echo kill 7 $?
 kill -n0 $$ $$
-echo 8
+echo kill 8 $?
 kill -CHLD $$ $$
-echo 9
+echo kill 9 $?
 kill -0 $$ $$
-echo 10
+echo kill 10 $?
 kill -s CHLD -- $$ $$
-echo 11
+echo kill 11 $?
 kill -n CHLD -- $$ $$
-echo 12
+echo kill 12 $?
 kill -s 0 -- $$ $$
-echo 13
+echo kill 13 $?
 kill -n 0 -- $$ $$
-echo 14
+echo kill 14 $?
 kill -sCHLD -- $$ $$
-echo 15
+echo kill 15 $?
 kill -nCHLD -- $$ $$
-echo 16
+echo kill 16 $?
 kill -s0 -- $$ $$
-echo 17
+echo kill 17 $?
 kill -n0 -- $$ $$
-echo 18
+echo kill 18 $?
 kill -CHLD -- $$ $$
-echo 19
+echo kill 19 $?
 kill -0 -- $$ $$
-echo 20
+echo kill 20 $?
 kill -l >/dev/null
-echo 21
+echo kill 21 $?
 kill -l -v >/dev/null
-echo 22
+echo kill 22 $?
 kill -v -l >/dev/null
-echo 23
+echo kill 23 $?
 kill -lv >/dev/null
-echo 24
+echo kill 24 $?
 kill -vl >/dev/null
-echo 25
+echo kill 25 $?
 kill -v >/dev/null
-echo 26
+echo kill 26 $?
 kill -l -- 3 9 15
-echo 27
+echo kill 27 $?
 kill -lv -- 3 9 15 >/dev/null
-echo 28
+echo kill 28 $?
 
 echo ===== trap =====
 
 trap 'echo trapped' USR1
+echo trap 1 $?
 trap '' USR2
+echo trap 2 $?
 while kill -s 0 $$; do sleep 1; done 2>/dev/null&
 kill -s USR2 $!
 kill -s USR1 $!
@@ -76,7 +78,9 @@ wait $!
 kill -l $?
 
 trap -p USR1 USR2 INT
+echo trap 3 $?
 trap -  USR1 USR2 INT
+echo trap 4 $?
 
 echo ===== signals =====
 

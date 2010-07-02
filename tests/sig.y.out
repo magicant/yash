@@ -1,39 +1,43 @@
 ===== kill =====
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
+kill 1 0
+kill 2 0
+kill 3 0
+kill 4 0
+kill 5 0
+kill 6 0
+kill 7 0
+kill 8 0
+kill 9 0
+kill 10 0
+kill 11 0
+kill 12 0
+kill 13 0
+kill 14 0
+kill 15 0
+kill 16 0
+kill 17 0
+kill 18 0
+kill 19 0
+kill 20 0
+kill 21 0
+kill 22 0
+kill 23 0
+kill 24 0
+kill 25 0
+kill 26 0
 QUIT
 KILL
 TERM
-27
-28
+kill 27 0
+kill 28 0
 ===== trap =====
+trap 1 0
+trap 2 0
 USR1
 trap -- 'echo trapped' USR1
 trap -- '' USR2
+trap 3 0
+trap 4 0
 ===== signals =====
 TSTP ignored
 TTOU
