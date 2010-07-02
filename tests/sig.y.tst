@@ -67,13 +67,13 @@ echo 28
 
 echo ===== trap =====
 
-set -m
 trap 'echo trapped' USR1
 trap '' USR2
-kill -s USR2 0 && kill -s USR1 0&
-wait %1
+while kill -s 0 $$; do sleep 1; done 2>/dev/null&
+kill -s USR2 $!
+kill -s USR1 $!
+wait $!
 kill -l $?
-set +m
 
 trap -p USR1 USR2 INT
 trap -  USR1 USR2 INT
