@@ -75,6 +75,9 @@ case "$1" in
 	$INVOKE $TESTEE -c 'type pushd' 2>/dev/null | \
 	    grep '^pushd: regular builtin' >/dev/null
 	;;
+    job.y)
+	{ <>/dev/tty; } 2>/dev/null
+	;;
     help.y)
 	$INVOKE $TESTEE -c 'type help' 2>/dev/null | \
 	    grep '^help: regular builtin' >/dev/null
