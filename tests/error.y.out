@@ -73,7 +73,7 @@ kill no-such-signal 1
 kill no-such-job 1
 kill output error 1 1
 kill output error 2 1
-===== jobs =====
+===== jobs kill =====
 jobs no-such-option 2
 jobs output error 1
 jobs no-such-job 1 1

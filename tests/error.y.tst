@@ -231,10 +231,9 @@ echo kill output error 1 $?
 (kill -l HUP >&- 2>/dev/null)
 echo kill output error 2 $?
 
-echo ===== jobs =====
-echo ===== jobs ===== >&2
+echo ===== jobs kill =====
+echo ===== jobs kill ===== >&2
 
-$INVOKE $TESTEE -m <<\END
 jobs --no-such-option
 echo jobs no-such-option $?
 while kill -0 $$; do sleep 1; done &
@@ -245,7 +244,6 @@ echo jobs no-such-job 1 $?
 jobs %no_such_job
 echo jobs no-such-job 2 $?
 kill %while
-END
 
 echo ===== fg =====
 echo ===== fg ===== >&2

@@ -79,11 +79,12 @@ Usage:  kill [-s signal | -n signum] process...
         kill -l [-v] [number...]
 kill: 0: no such signal
 kill: %100: no such job
-===== jobs =====
+===== jobs kill =====
 jobs: --no-such-option: invalid option
 Usage:  jobs [-lnprs] [job...]
 jobs: %100: no such job
 jobs: %no_such_job: no such job
+kill: %while: not job-controlled job
 ===== fg =====
 fg: --no-such-option: invalid option
 Usage:  fg [job]
