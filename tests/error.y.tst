@@ -236,7 +236,7 @@ echo ===== jobs kill ===== >&2
 
 jobs --no-such-option
 echo jobs no-such-option $?
-while kill -0 $$; do sleep 1; done &
+while kill -0 $$; do sleep 1; done 2>/dev/null&
 (jobs >&- 2>/dev/null)
 echo jobs output error $?
 jobs %100

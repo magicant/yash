@@ -62,7 +62,7 @@ echo fg +m $?
 $INVOKE $TESTEE -m <<\END
 bg --no-such-option
 echo bg no-such-option $?
-while kill -0 $$; do sleep 1; done &
+while kill -0 $$; do sleep 1; done 2>/dev/null&
 bg >&- 2>/dev/null
 kill %1
 END
