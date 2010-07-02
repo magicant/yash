@@ -110,43 +110,6 @@ PATH= type -B cd 2>&1
 )
 
 
-echo ===== suspend =====
-
-set -m
-$INVOKE $TESTEE -imc --norc 'echo 1; suspend; echo 2'
-kill -l $?
-bg >/dev/null
-wait %1
-kill -l $?
-fg >/dev/null
-set +m
-
-
-echo ===== fg bg =====
-
-set -m +o curstop
-sleep   `echo  0`&
-fg
-$INVOKE $TESTEE -c 'suspend; echo 1'
-$INVOKE $TESTEE -c 'suspend; echo 2'
-$INVOKE $TESTEE -c 'suspend; echo 3'
-jobs
-fg %2 3 '%? echo 1'
-
-$INVOKE $TESTEE -c 'suspend; echo 4'
-jobs %%
-bg
-wait %%
-$INVOKE $TESTEE -c 'suspend'
-$INVOKE $TESTEE -c 'suspend'
-$INVOKE $TESTEE -c 'suspend; echo 7'
-bg %1 %2 
-wait
-bg '${'
-fg '? echo 7' >/dev/null
-set +m
-
-
 echo ===== exec =====
 
 (exec -a sh $TESTEE -c 'echo $0')

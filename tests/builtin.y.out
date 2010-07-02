@@ -91,29 +91,6 @@ cd: function
 cd: semi-special builtin
 =2=
 type: cd: no such command or function
-===== suspend =====
-1
-STOP
-TTOU
-2
-===== fg bg =====
-[1] sleep $(echo  0)
-[1]   Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 1'
-[2] - Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 2'
-[3] + Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 3'
-[2] ${INVOKE} ${TESTEE} -c 'suspend; echo 2'
-2
-[3] ${INVOKE} ${TESTEE} -c 'suspend; echo 3'
-3
-[1] ${INVOKE} ${TESTEE} -c 'suspend; echo 1'
-1
-[1] + Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 4'
-[1] ${INVOKE} ${TESTEE} -c 'suspend; echo 4'
-4
-[1] ${INVOKE} ${TESTEE} -c 'suspend'
-[2] ${INVOKE} ${TESTEE} -c 'suspend'
-[3] ${INVOKE} ${TESTEE} -c 'suspend; echo 7'
-7
 ===== exec =====
 sh
 sh

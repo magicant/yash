@@ -78,19 +78,6 @@ jobs no-such-option 2
 jobs output error 1
 jobs no-such-job 1 1
 jobs no-such-job 2 1
-===== fg =====
-fg no-such-option 2
-fg output error 100
-fg no-such-job 1 1
-fg no-such-job 2 1
-fg too many args 2
-fg +m 1
-===== bg =====
-bg no-such-option 2
-bg output error 0
-bg no-such-job 1 1
-bg no-such-job 2 1
-bg +m 1
 ===== wait =====
 wait no-such-option 2
 wait no-such-job 1 127
