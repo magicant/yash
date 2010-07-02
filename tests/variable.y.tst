@@ -119,7 +119,7 @@ echo $LINENO
 func
 END
 echo =====
-$INVOKE $TESTEE -i --norcfile 2>/dev/null <<\END
+$INVOKE $TESTEE -i +m --norcfile 2>/dev/null <<\END
 # in an interactive shell, $LINENO is reset for each command execution
 echo $LINENO
 echo $LINENO
