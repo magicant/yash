@@ -56,7 +56,6 @@ chmod =,u=w writable1
 chmod =,g=w writable2
 chmod =,o=w writable3
 chmod +t sticky
-exec 3<>/dev/tty 4>&-
 echo "exit 0" >> executable1
 cp executable1 executable2
 cp executable1 executable3
@@ -69,6 +68,7 @@ touch -a -t 200101010000 old; touch -m -t 200001010000 old
 touch -a -t 200001010000 new; touch -m -t 200101010000 new
 
 # check of the -b, -c and -S operators are skipped
+# check of the -t operator is in job.y.tst
 tt -d .
 tt -d fifolink
 tt -e .
@@ -118,8 +118,6 @@ tt -r writable3
 fi
 tt -s gid
 tt -s executable1
-tt -t 3
-tt -t 4
 tt -u gid
 tt -u uid
 if $isroot; then cat <<END

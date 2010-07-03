@@ -39,34 +39,13 @@ trap -- '' USR2
 trap 3 0
 trap 4 0
 ===== signals =====
-TSTP ignored
-TTOU
-TSTP
-=====
 INT ignored
 TERM ignored
 QUIT ignored
-INT
+INT 0
 TERM
-QUIT
+QUIT 0
 ===== signals +i +m F =====
-ABRT
-ALRM
-BUS
-FPE
-HUP
-ILL
-INT
-KILL
-PIPE
-QUIT
-SEGV
-TERM
-USR1
-USR2
-CHLD 0
-URG 0
-===== signals +i -m F =====
 ABRT
 ALRM
 BUS
@@ -97,20 +76,6 @@ USR1
 USR2
 CHLD 0
 URG 0
-===== signals -i -m F =====
-ABRT
-ALRM
-BUS
-FPE
-HUP
-ILL
-KILL
-PIPE
-SEGV
-USR1
-USR2
-CHLD 0
-URG 0
 ===== signals +i +m T =====
 ABRT
 ALRM
@@ -128,35 +93,6 @@ USR1
 USR2
 CHLD 0
 URG 0
-===== signals +i -m T =====
-ABRT
-ALRM
-BUS
-FPE
-HUP
-ILL
-INT
-KILL
-PIPE
-QUIT
-SEGV
-TERM
-USR1
-USR2
-CHLD 0
-URG 0
-TSTP
-TSTP!
-TSTP 0
-TTIN
-TTIN!
-TTIN 0
-TTOU
-TTOU!
-TTOU 0
-STOP
-STOP!
-STOP 0
 ===== signals -i +m T =====
 ABRT
 ALRM
@@ -174,32 +110,3 @@ USR2
 CHLD 0
 URG 0
 INT
-===== signals -i -m T =====
-ABRT
-ALRM
-BUS
-FPE
-HUP
-ILL
-KILL
-PIPE
-QUIT
-SEGV
-TERM
-USR1
-USR2
-CHLD 0
-URG 0
-INT
-TSTP
-TSTP!
-TSTP 0
-TTIN
-TTIN!
-TTIN 0
-TTOU
-TTOU!
-TTOU 0
-STOP
-STOP!
-STOP 0
