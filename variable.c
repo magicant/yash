@@ -35,6 +35,7 @@
 # include <libintl.h>
 #endif
 #include "builtin.h"
+#include "configm.h"
 #include "exec.h"
 #include "expand.h"
 #include "hashtable.h"
@@ -47,7 +48,6 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "version.h"
 #include "xfnmatch.h"
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT

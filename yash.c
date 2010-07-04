@@ -34,6 +34,7 @@
 # include "alias.h"
 #endif
 #include "builtin.h"
+#include "configm.h"
 #include "exec.h"
 #include "expand.h"
 #if YASH_ENABLE_HISTORY
@@ -49,7 +50,6 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "version.h"
 #include "yash.h"
 
 

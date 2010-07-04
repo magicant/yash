@@ -33,7 +33,9 @@ BUILTINS_ARCHIVE = builtins/builtins.a
 LINEEDIT_ARCHIVE = lineedit/lineedit.a
 OBJS = @OBJS@
 TARGET = yash
-BYPRODUCTS = makesignum.o makesignum signum.h *.dSYM
+VERSION = @VERSION@
+COPYRIGHT = @COPYRIGHT@
+BYPRODUCTS = makesignum.o makesignum signum.h configm.h *.dSYM
 
 all: $(TARGET)
 
@@ -49,9 +51,19 @@ $(BUILTINS_ARCHIVE): _PHONY
 	@+(cd builtins && $(MAKE))
 $(LINEEDIT_ARCHIVE): _PHONY
 	@+(cd lineedit && $(MAKE))
+sig.o: signum.h
 signum.h: makesignum
 	./makesignum > $@
-sig.o: signum.h
+variable.o yash.o: configm.h
+configm.h: Makefile
+	-@echo creating $@...
+	@{ printf '/* $@: created by Makefile */\n'; \
+		printf '#ifndef YASH_CONFIGM_H\n'; \
+		printf '#define YASH_CONFIGM_H\n'; \
+		printf '#define PACKAGE_VERSION "$(VERSION)"\n'; \
+		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
+		printf '#endif\n'; \
+		} >$@
 
 test tests check: _PHONY
 	@+(cd tests && $(MAKE))
@@ -71,7 +83,6 @@ $(DESTDIR)$(BINDIR):
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
 
-VERSION = @VERSION@
 DISTDIR = yash-$(VERSION)
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
 DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
@@ -143,8 +154,7 @@ distclean: _distclean
 	-@+(cd lineedit && $(MAKE) distclean)
 	-@+(cd tests    && $(MAKE) distclean)
 _distclean: _clean
-	-rm -rf Makefile config.log config.status config.h version.h \
-		tags TAGS cscope.out
+	-rm -rf Makefile config.log config.status config.h tags TAGS cscope.out
 maintainer-clean:
 	@echo 'This command is intended for maintainers to use;'
 	@echo 'it deletes files that may need special tools to rebuild.'
@@ -154,7 +164,7 @@ maintainer-clean:
 	-@+(cd tests    && $(MAKE) maintainer-clean)
 	-rm -rf $(SOURCES:.c=.d)
 
-config.h version.h: config.status
+config.h: config.status
 	$(SHELL) config.status
 Makefile: Makefile.in config.status
 	$(SHELL) config.status
