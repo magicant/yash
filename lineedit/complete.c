@@ -711,6 +711,8 @@ void autoload_completion(const wchar_t *cmdname)
     if (fd >= 0) {
 	struct parsestate_T *state = save_parse_state();
 	int savelaststatus = laststatus;
+	bool save_posixly_correct = posixly_correct;
+	posixly_correct = false;
 	open_new_environment(false);
 	set_positional_parameters((void *[]) { NULL, });
 	set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
@@ -723,6 +725,7 @@ void autoload_completion(const wchar_t *cmdname)
 
 	close_current_environment();
 	laststatus = savelaststatus;
+	posixly_correct = save_posixly_correct;
 	restore_parse_state(state);
 	remove_shellfd(fd);
 	xclose(fd);
