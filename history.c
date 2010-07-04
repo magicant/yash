@@ -1002,10 +1002,9 @@ void really_add_history(const wchar_t *line)
  * history file should be flushed after this function. */
 void remove_dups(const char *line)
 {
-    histentry_T *e = Histlist;
-    histentry_T *saveprev = e->Prev;
+    histentry_T *saveprev = histlist.Newest;
     for (unsigned i = histrmdup; i > 0; i--) {
-	e = saveprev;
+	histentry_T *e = saveprev;
 	saveprev = e->Prev;
 	if (e == Histlist)
 	    break;
