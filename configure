@@ -1461,7 +1461,7 @@ fi
 MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
 MAKE_SHELL="${MAKE_SHELL-${make_shell}}"
 CC="${CC-${cc}}"
-CFLAGS="${CFLAGS-${cflags}} -D HAVE_CONFIG_H ${CADDS-${null}}"
+CFLAGS="${CFLAGS-${cflags}} ${CADDS-${null}}"
 LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS-${null}}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
