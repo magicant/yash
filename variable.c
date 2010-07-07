@@ -170,6 +170,10 @@ static unsigned next_random(void);
 static void variable_set(const wchar_t *name, variable_T *var)
     __attribute__((nonnull(1)));
 
+static char **convert_path_array(void **ary)
+    __attribute__((malloc,warn_unused_result));
+static void add_to_list_no_dup(plist_T *list, char *s)
+    __attribute__((nonnull(1)));
 static void reset_path(path_T name, variable_T *var);
 
 static void funcfree(function_T *f);
@@ -1059,36 +1063,51 @@ char **decompose_paths(const wchar_t *paths)
     if (!paths)
 	return NULL;
 
-    wchar_t wpath[wcslen(paths) + 1];
-    wcscpy(wpath, paths);
+    plist_T list;
+    pl_init(&list);
+
+    const wchar_t *colon;
+    while ((colon = wcschr(paths, L':')) != NULL) {
+	add_to_list_no_dup(&list, malloc_wcsntombs(paths, colon - paths));
+	paths = colon + 1;
+    }
+    add_to_list_no_dup(&list, malloc_wcstombs(paths));
+
+    return (char **) pl_toary(&list);
+}
+
+/* Converts an array of wide strings into an newly-malloced array of multibyte
+ * strings.
+ * If `paths' is NULL, NULL is returned. */
+char **convert_path_array(void **ary)
+{
+    if (!ary)
+	return NULL;
 
     plist_T list;
     pl_init(&list);
 
-    /* add each element to `list', replacing each L':' with L'\0' in `wpath'. */
-    pl_add(&list, wpath);
-    for (wchar_t *w = wpath; *w; w++) {
-	if (*w == L':') {
-	    *w = L'\0';
-	    pl_add(&list, w + 1);
-	}
-    }
-
-    /* remove duplicates */
-    for (size_t i = 0; i < list.length; i++)
-	for (size_t j = list.length; --j > i; )
-	    if (wcscmp(list.contents[i], list.contents[j]) == 0)
-		pl_remove(&list, j, 1);
-
-    /* convert each element back to multibyte string */
-    for (size_t i = 0; i < list.length; i++) {
-	list.contents[i] = malloc_wcstombs(list.contents[i]);
-	/* We actually assert this conversion always succeeds, but... */
-	if (!list.contents[i])
-	    list.contents[i] = xstrdup("");
+    while (*ary) {
+	add_to_list_no_dup(&list, malloc_wcstombs(*ary));
+	ary++;
     }
 
     return (char **) pl_toary(&list);
+}
+
+/* If `s' is non-NULL and not contained in `list', add `s' to list.
+ * Otherwise, frees `s'. */
+void add_to_list_no_dup(plist_T *list, char *s)
+{
+    if (s) {
+	for (size_t i = 0; i < list->length; i++) {
+	    if (strcmp(s, list->contents[i]) == 0) {
+		free(s);
+		return;
+	    }
+	}
+	pl_add(list, s);
+    }
 }
 
 /* Reconstructs the path array of the specified variable in the environment.
@@ -1100,20 +1119,12 @@ void reset_path(path_T name, variable_T *var)
 
 	variable_T *v = ht_get(&env->contents, path_variables[name]).value;
 	if (v) {
-	    plist_T list;
 	    switch (v->v_type & VF_MASK) {
 		case VF_SCALAR:
 		    env->paths[name] = decompose_paths(v->v_value);
 		    break;
 		case VF_ARRAY:
-		    pl_initwithmax(&list, v->v_valc);
-		    for (size_t i = 0; i < v->v_valc; i++) {
-			char *p = malloc_wcstombs(v->v_vals[i]);
-			if (!p)
-			    p = xstrdup("");
-			pl_add(&list, p);
-		    }
-		    env->paths[name] = (char **) pl_toary(&list);
+		    env->paths[name] = convert_path_array(v->v_vals);
 		    break;
 	    }
 	    if (v == var)
