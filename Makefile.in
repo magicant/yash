@@ -176,9 +176,9 @@ distclean: _distclean
 _distclean: _clean
 	-rm -rf Makefile config.log config.status config.h tags TAGS cscope.out
 maintainer-clean:
-	@echo 'This command is intended for maintainers to use;'
-	@echo 'it deletes files that may need special tools to rebuild.'
-	@+$(MAKE) _distclean
+	-@echo 'This command is intended for maintainers to use;'
+	-@echo 'it deletes files that may need special tools to rebuild.'
+	-@+$(MAKE) _distclean
 	-@+(cd builtins && $(MAKE) maintainer-clean)
 	-@+(cd lineedit && $(MAKE) maintainer-clean)
 	-@+(cd tests    && $(MAKE) maintainer-clean)
