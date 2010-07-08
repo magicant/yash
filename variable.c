@@ -60,7 +60,6 @@
 static const wchar_t *const path_variables[PA_count] = {
     [PA_PATH]     = L VAR_PATH,
     [PA_CDPATH]   = L VAR_CDPATH,
-    [PA_MAILPATH] = L VAR_MAILPATH,
 #if YASH_ENABLE_LINEEDIT
     [PA_COMPPATH] = L VAR_YASH_COMPPATH,
 #endif
@@ -85,8 +84,8 @@ typedef struct environ_T {
 /* An environment whose `is_temporary' is true is used for temporary variables. 
  * Temporary variables may be exported but cannot be readonly.
  * The elements of `paths' are arrays of the pathnames contained in the
- * $PATH, $CDPATH and $MAILPATH variables. They are NULL if the corresponding
- * variables are not set. */
+ * $PATH, $CDPATH and $YASH_COMPPATH variables. They are NULL if the
+ * corresponding variables are not set. */
 #define VAR_positional "="
 
 /* flags for variable attributes */
@@ -1014,10 +1013,6 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (wcscmp(name, L VAR_LINES) == 0)
 	    le_need_term_update = true;
 #endif
-	break;
-    case L'M':
-	if (wcscmp(name, L VAR_MAILPATH) == 0)
-	    reset_path(PA_MAILPATH, var);
 	break;
     case L'P':
 	if (wcscmp(name, L VAR_PATH) == 0) {

@@ -71,7 +71,7 @@ extern char **environ;
 #define L                             L""
 
 typedef enum path_T {
-    PA_PATH, PA_CDPATH, PA_MAILPATH,
+    PA_PATH, PA_CDPATH,
 #if YASH_ENABLE_LINEEDIT
     PA_COMPPATH,
 #endif
