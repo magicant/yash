@@ -245,8 +245,8 @@ void init_variables(void)
     current_env->parent = NULL;
     current_env->is_temporary = false;
     ht_init(&current_env->contents, hashwcs, htwcscmp);
-    for (size_t i = 0; i < PA_count; i++)
-	current_env->paths[i] = NULL;
+//    for (size_t i = 0; i < PA_count; i++)
+//	current_env->paths[i] = NULL;
 
     ht_init(&functions, hashwcs, htwcscmp);
 
@@ -267,6 +267,10 @@ void init_variables(void)
 	}
 	varkvfree(ht_set(&current_env->contents, we, v));
     }
+
+    /* initialize path according to $PATH etc. */
+    for (size_t i = 0; i < PA_count; i++)
+	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
 
     /* set $IFS */
     set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_GLOBAL, false);
@@ -330,10 +334,6 @@ void init_variables(void)
     /* set $YASH_VERSION */
     set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
 	    SCOPE_GLOBAL, false);
-
-    /* initialize path according to $PATH etc. */
-    for (size_t i = 0; i < PA_count; i++)
-	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
 }
 
 /* Reset the value of $PWD if
