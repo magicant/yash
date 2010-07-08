@@ -331,7 +331,7 @@ char *xgetcwd(void)
  *         If `name' is an absolute path, a copy of it is simply returned.
  * dirs:   a NULL-terminated array of strings that are the names of
  *         directories to search. An empty string is treated as the current
- *         directory. If `dirs' is NULL, only the current directory is searched.
+ *         directory. If `dirs' is NULL, no directory is searched.
  * cond:   the function that determines the specified pathname satisfies a
  *         certain condition.
  * For each directory in `dirs', in order, the directory name and "/" and
@@ -346,14 +346,12 @@ char *which(
 	char *const *restrict dirs,
 	bool cond(const char *path))
 {
-    static char *const null[] = { "", NULL, };
-
     if (!name[0])
 	return NULL;
-    if (!dirs)
-	dirs = null;
     if (name[0] == '/')
 	return xstrdup(name);
+    if (!dirs)
+	return NULL;
 
     size_t namelen = strlen(name);
     const char *dir;
@@ -1165,7 +1163,10 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	    xerror(EILSEQ, Ngt("unexpected error"));
 	    return Exit_ERROR;
 	}
-	char *path = which(mbsnewpwd, get_path_array(PA_CDPATH), is_directory);
+	char *const *cdpath = get_path_array(PA_CDPATH);
+	char *path = which(mbsnewpwd,
+		cdpath != NULL ? cdpath : (char *[]) { "", NULL },
+		is_directory);
 	if (path != NULL) {
 	    if (strcmp(mbsnewpwd, path) != 0)
 		printnewdir = true;
