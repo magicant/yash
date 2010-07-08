@@ -52,7 +52,7 @@ enable_ulimit="true"
 ctags_args=""
 etags_args=""
 term_lib='tinfo curses ncurses ncursesw'
-unset prefix eprefix bindir datarootdir htmldir
+unset prefix eprefix bindir datarootdir datadir
 unset checkresult
 unset MAKEFLAGS
 umask u=rwx
@@ -111,7 +111,8 @@ do
 	    bindir="${i#--bindir=}" ;;
 	--datarootdir=*)
 	    datarootdir="${i#--datarootdir=}" ;;
-	# TODO datadir
+	--datadir=*)
+	    datadir="${i#--datadir=}" ;;
 	--enable-*|--disable-*)
 	    parseenable "$i" ;;
 	--with-term-lib=*)
@@ -148,6 +149,7 @@ Installation options:
                          [PREFIX]
   --bindir=DIR           install executable in DIR [EPREFIX/bin]
   --datarootdir=DIR      architecture-independent data root [PREFIX/share]
+  --datadir=DIR          architecture-independent data [DATAROOTDIR]
 
 Optional features:
   --enable-FEATURE[=ARG]  enable or disable FEATURE [ARG=yes]
@@ -1494,6 +1496,11 @@ case "${DATAROOTDIR}" in
     / ) DATAROOTDIR=  ;;
     //) DATAROOTDIR=/ ;;
 esac
+DATADIR="${datadir-\$\(DATAROOTDIR\)}"
+case "${DATADIR}" in
+    / ) DATADIR=  ;;
+    //) DATADIR=/ ;;
+esac
 
 sed_subst_cmd="
 s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
@@ -1520,6 +1527,7 @@ s!@PREFIX@!${PREFIX}!g
 s!@EPREFIX@!${EPREFIX}!g
 s!@BINDIR@!${BINDIR}!g
 s!@DATAROOTDIR@!${DATAROOTDIR}!g
+s!@DATADIR@!${DATADIR}!g
 "
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
 

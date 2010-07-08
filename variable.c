@@ -331,6 +331,10 @@ void init_variables(void)
 	random_active = false;
     }
 
+    /* set $YASH_COMPPATH */
+    set_variable(L VAR_YASH_COMPPATH, xwcsdup(L YASH_DATADIR "/completion"),
+	    SCOPE_GLOBAL, false);
+
     /* set $YASH_VERSION */
     set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
 	    SCOPE_GLOBAL, false);

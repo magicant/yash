@@ -37,6 +37,14 @@ VERSION = @VERSION@
 COPYRIGHT = @COPYRIGHT@
 BYPRODUCTS = makesignum.o makesignum signum.h configm.h *.dSYM
 
+DESTDIR =
+PREFIX = @PREFIX@
+EPREFIX = @EPREFIX@
+BINDIR = @BINDIR@
+DATAROOTDIR = @DATAROOTDIR@
+DATADIR = @DATADIR@
+YASHDATADIR = $(DATADIR)/yash
+
 all: $(TARGET)
 
 .c:
@@ -62,26 +70,38 @@ configm.h: Makefile
 		printf '#define YASH_CONFIGM_H\n'; \
 		printf '#define PACKAGE_VERSION "$(VERSION)"\n'; \
 		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
+		printf '#define YASH_DATADIR "$(YASHDATADIR)"\n'; \
 		printf '#endif\n'; \
 		} >$@
 
 test tests check: _PHONY
 	@+(cd tests && $(MAKE))
 
-DESTDIR =
-PREFIX = @PREFIX@
-EPREFIX = @EPREFIX@
-BINDIR = @BINDIR@
-install: install-binary
-install-strip:
+INSTALLDIRS = $(DESTDIR)$(BINDIR) $(DESTDIR)$(YASHDATADIR) $(DESTDIR)$(YASHDATADIR)/completion
+install: install-binary install-data
+install-strip: install-data
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
 install-binary: $(TARGET) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
-installdirs: $(DESTDIR)$(BINDIR)
-$(DESTDIR)$(BINDIR):
+install-data: $(DESTDIR)$(YASHDATADIR)/completion
+	@for file in share/completion/*; do \
+		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion || true; \
+		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion; \
+	done
+installdirs: $(INSTALLDIRS)
+$(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
-uninstall:
+uninstall: uninstall-binary uninstall-data
+uninstall-binary:
 	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
+uninstall-data:
+	@(cd share/completion && \
+	for file in *; do \
+		echo rm -f $(DESTDIR)$(YASHDATADIR)/completion/$$file || true; \
+		rm -f $(DESTDIR)$(YASHDATADIR)/completion/$$file; \
+	done)
+	-rmdir $(DESTDIR)$(YASHDATADIR)/completion
+	-rmdir $(DESTDIR)$(YASHDATADIR)
 
 DISTDIR = yash-$(VERSION)
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
@@ -171,7 +191,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check install install-strip install-binary install-data installdirs uninstall uninstall-binary uninstall-data dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d

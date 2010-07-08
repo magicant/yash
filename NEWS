@@ -8,6 +8,14 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.22
+
+  +  New "test" builtin operators: -G, -O, -N
+  +  Completion settings are now autoloaded from $YASH_COMPPATH.
+  *  Fix a bug that was causing a signal received by a just-created
+     subshell to be wrongly ignored.
+
+----------------------------------------------------------------------
 Yash 2.21
 
   +  Command line completion

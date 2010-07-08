@@ -1,0 +1,238 @@
+# completion settings for the ls command
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+case "$(ls --version 2>/dev/null)" in
+	*'GNU coreutils'*)
+		typeset gnu=true
+		complete -C ls -X
+		;;
+	*)
+		typeset gnu=
+esac
+
+complete -C ls -f
+
+complete -C ls -O 1 \
+	-D "print files line by line"
+complete -C ls -O A ${gnu:+-O --almost-all} \
+	-D "print all files except . and .."
+complete -C ls -O a ${gnu:+-O --all} \
+	-D "print all files"
+complete -C ls -O C \
+	-D "arrange filenames vertically"
+complete -C ls -O c \
+	-D "print or sort by last status-changed time"
+complete -C ls -O d ${gnu:+-O --directory} \
+	-D "print directory itself, not its contents"
+complete -C ls -O F ${gnu:+-O --classify} \
+	-D "append symbols indicating file type"
+complete -C ls -O f \
+	-D "print all files without sorting"
+complete -C ls -O g \
+	-D "like -l but don't print owner"
+complete -C ls -O H ${gnu:+-O --dereference-command-line} \
+	-D "follow symbolic links in operands"
+complete -C ls -O i ${gnu:+-O --inode} \
+	-D "print file serial number (inode)"
+complete -C ls -O k \
+	-D "print file size in kilobytes"
+complete -C ls -O L ${gnu:+-O --dereference} \
+	-D "follow all symbolic links"
+complete -C ls -O l \
+	-D "print in long format"
+complete -C ls -O m \
+	-D "print in stream output format"
+complete -C ls -O n ${gnu:+-O --numeric-uid-gid} \
+	-D "like -l but print owner in numbers"
+complete -C ls -O o \
+	-D "like -l but don't print group"
+complete -C ls -O p \
+	-D "append / indicating directory"
+complete -C ls -O q ${gnu:+-O --hide-control-chars} \
+	-D "print unprintable characters as ?"
+complete -C ls -O R ${gnu:+-O --recursive} \
+	-D "print subdirectories recursively"
+complete -C ls -O r ${gnu:+-O --reverse} \
+	-D "sort in reverse order"
+complete -C ls -O S \
+	-D "sort by file size"
+complete -C ls -O s ${gnu:+-O --size} \
+	-D "print block size used by file"
+complete -C ls -O t \
+	-D "sort by last-modified time"
+complete -C ls -O u \
+	-D "print or sort by last-accessed time"
+complete -C ls -O x \
+	-D "arrange filenames horizontally"
+if [ "$gnu" ]; then
+	complete -C ls -O --author \
+		-D "print file authors (with -l)"
+	complete -C ls -O b -O --escape \
+		-D "escape special characters like C string"
+	complete -C ls -O --block-size \
+		-D "specify block size"
+	complete -C ls -O --block-size K \
+		-D "1024 bytes"
+	complete -C ls -O --block-size KB \
+		-D "1000 bytes"
+	complete -C ls -O --block-size M \
+		-D "1024^2 bytes"
+	complete -C ls -O --block-size MB \
+		-D "1000^2 bytes"
+	complete -C ls -O --block-size G \
+		-D "1024^3 bytes"
+	complete -C ls -O --block-size GB \
+		-D "1000^3 bytes"
+	complete -C ls -O --block-size T \
+		-D "1024^4 bytes"
+	complete -C ls -O --block-size TB \
+		-D "1000^4 bytes"
+	complete -C ls -O --block-size P \
+		-D "1024^5 bytes"
+	complete -C ls -O --block-size PB \
+		-D "1000^5 bytes"
+	complete -C ls -O --block-size E \
+		-D "1024^6 bytes"
+	complete -C ls -O --block-size EB \
+		-D "1000^6 bytes"
+	complete -C ls -O --block-size Z \
+		-D "1024^7 bytes"
+	complete -C ls -O --block-size ZB \
+		-D "1000^7 bytes"
+	complete -C ls -O --block-size Y \
+		-D "1024^8 bytes"
+	complete -C ls -O --block-size YB \
+		-D "1000^8 bytes"
+	complete -C ls -O B -O --ignore-backups \
+		-D "don't print filenames ending with ~"
+	complete -C ls -O --color \
+		-D "print filenames in color"
+	complete -C ls -O --color yes always force \
+		-D "always print in color"
+	complete -C ls -O --color auto tty if-tty \
+		-D "print in color if output is terminal"
+	complete -C ls -O --color no never none \
+		-D "don't print in color"
+	complete -C ls -O D -O --dired \
+		-D "print in emacs dired format"
+	complete -C ls -O --file-type \
+		-D "like -F but don't append *"
+	complete -C ls -O --format \
+		-D "specify output format"
+	complete -C ls -O --format single-column \
+		-D "-1: print files line by line"
+	complete -C ls -O --format vertical \
+		-D "-C: arrange filenames vertically"
+	complete -C ls -O --format long verbose \
+		-D "-l: print permission, owner, file size, etc."
+	complete -C ls -O --format commas \
+		-D "-m: separate filenames by commas"
+	complete -C ls -O --format horizontal across \
+		-D "-x: arrange filenames horizontally"
+	complete -C ls -O --format context \
+		-D "print security context of files"
+	complete -C ls -O --full-time \
+		-D "like -l --time-style=full-iso"
+	complete -C ls -O --group-directories-first \
+		-D "print directories before other files"
+	complete -C ls -O G -O --no-group \
+		-D "don't print group when used with -l"
+	complete -C ls -O h -O --human-readable \
+		-D "print file size using K, M, etc. for 1024^n"
+	complete -C ls -O --si \
+		-D "print file size using k, M, etc. for 1000^n"
+	complete -C ls -O --dereference-command-line-symlink-to-dir \
+		-D "follow symbolic links to directory in operands"
+	complete -C ls -O --hide -f \
+		-D "specify pattern to exclude from listing"
+	complete -C ls -O --indicator-style \
+		-D "append symbols indicating file type"
+	complete -C ls -O --indicator-style none \
+		-D "don't append symbols indicating file type"
+	complete -C ls -O --indicator-style slash \
+		-D "-p: append / to directories"
+	complete -C ls -O --indicator-style file-type \
+		-D "--file-type: enable all indicators but *"
+	complete -C ls -O --indicator-style classify \
+		-D "-F: enable all indicators"
+	complete -C ls -O I -O --ignore -f \
+		-D "specify pattern to exclude from listing"
+	complete -C ls -O N -O --literal \
+		-D "don't escape unprintable characters"
+	complete -C ls -O --show-control-chars \
+		-D "don't escape unprintable characters"
+	complete -C ls -O Q -O --quote-name \
+		-D "print filenames in double-quotes"
+	complete -C ls -O --quoting-style \
+		-D "specify how to quote filenames"
+	complete -C ls -O --quoting-style literal \
+		-D "quote or escape nothing"
+	complete -C ls -O --quoting-style shell \
+		-D "quote in format suitable for shell input"
+	complete -C ls -O --quoting-style shell-always \
+		-D "quote all filenames in format suitable for shell input"
+	complete -C ls -O --quoting-style c \
+		-D "-Q: quote and escape like C string"
+	complete -C ls -O --quoting-style escape \
+		-D "-b: escape like C string"
+	complete -C ls -O --quoting-style locale \
+		-D "locale-dependent quoting and escaping"
+	complete -C ls -O --quoting-style clocale \
+		-D "locale-dependent quoting and escaping"
+	complete -C ls -O --sort \
+		-D "specify sort key"
+	complete -C ls -O --sort none \
+		-D "-U: don't sort"
+	complete -C ls -O --sort extension \
+		-D "-X: sort by filename extension"
+	complete -C ls -O --sort size \
+		-D "-S: sort by file size"
+	complete -C ls -O --sort time \
+		-D "-t: sort by last-modified time"
+	complete -C ls -O --sort version \
+		-D "-v: sort by filename regarding as version number"
+	complete -C ls -O --time \
+		-D "specify which time to print and sort by"
+	complete -C ls -O --time atime access use \
+		-D "-u: last-accessed time"
+	complete -C ls -O --time ctime status \
+		-D "-c: last-status-changed time"
+	complete -C ls -O --time-style \
+		-D "specify format to print time in"
+	complete -C ls -O --time-style full-iso \
+		-D "e.g. 2000-01-01 01:23:45.678901234 +0900"
+	complete -C ls -O --time-style long-iso \
+		-D "e.g. 2010-06-29 00:37"
+	complete -C ls -O --time-style iso \
+		-D "e.g. 01-23 01:23 or 2000-01-23"
+	complete -C ls -O --time-style locale posix-locale \
+		-D "locale-dependent time style"
+	complete -C ls -O --time-style posix-full-iso \
+		-D "like full-iso, but only when not in POSIX locale"
+	complete -C ls -O --time-style posix-long-iso \
+		-D "like long-iso, but only when not in POSIX locale"
+	complete -C ls -O --time-style posix-iso \
+		-D "like iso, but only when not in POSIX locale"
+	complete -C ls -O T -O --tabsize \
+		-D "specify how many spaces a tab stands for"
+	complete -C ls -O T -O --tabsize 2 4 8
+	complete -C ls -O U \
+		-D "don't sort"
+	complete -C ls -O v \
+		-D "sort by filename regarding as version number"
+	complete -C ls -O w -O --width \
+		-D "specify screen width"
+	complete -C ls -O w -O --width 80 132
+	complete -C ls -O X \
+		-D "sort by filename extension"
+	complete -C ls -O --lcontext \
+		-D "print in long format with security context"
+	complete -C ls -O Z -O --context \
+		-D "print in simplified long format with security context"
+	complete -C ls -O --scontext \
+		-D "print security context of files"
+	complete -C ls -O --help \
+		-D "print help"
+	complete -C ls -O --version \
+		-D "print version information"
+fi
