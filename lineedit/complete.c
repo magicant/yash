@@ -634,6 +634,8 @@ const struct candgen_T *get_candgen_cmdarg(void)
 
     /* parse the source word to find how we should complete an option */
     /* first check for long options */
+    const struct optcandgen_T *match = NULL;
+    size_t skiplen = 0;
     for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 	const wchar_t *ss = ctxt->src, *longopt = ocg->longopt;
 	if (longopt == NULL)
@@ -646,12 +648,23 @@ const struct candgen_T *get_candgen_cmdarg(void)
 	    ss++, longopt++;
 	    if (*ss == L'\0')
 		return get_candgen_option();
-	    if (ocg->requiresargument && *ss == L'='
-		    && (*longopt == L'\0' || ctxt->src[1] == L'-')) {
-		skip_prefix(ss - ctxt->src + 1);
-		return &ocg->candgen;
-	    }
 	} while (*ss == *longopt);
+
+	if (*ss == L'=' && ocg->requiresargument) {
+	    if (*longopt == L'\0') {  /* exact match */
+		match = ocg, skiplen = ss - ctxt->src + 1;
+		break;
+	    }
+	    if (ctxt->src[1] != L'-')
+		continue;  /* single-hyphened option must match exactly */
+	    match = ocg, skiplen = ss - ctxt->src + 1;
+	}
+    }
+    if (match != NULL) {
+	assert(match->requiresargument);
+	assert(skiplen > 0);
+	skip_prefix(skiplen);
+	return &match->candgen;
     }
 
     /* next check for short options */
@@ -750,6 +763,8 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	}
 
 	/* first check if the word is a long option */
+	const struct optcandgen_T *match = NULL;
+	wchar_t matchend = L'\0';
 	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 	    const wchar_t *ss = s, *longopt = ocg->longopt;
 	    if (longopt == NULL)
@@ -757,17 +772,30 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	    assert(ss[0] == L'-');
 	    assert(longopt[0] == L'-');
 
-	    /* compare `ss' and `longopt' */
-	    do
+	    do  /* compare `ss' and `longopt' */
 		ss++, longopt++;
-	    while (*ss != L'\0' && *ss != L'=' && *ss == *longopt);
-	    if ((*ss == L'\0' || *ss == L'=')
-		    && (*longopt == L'\0' || s[1] == L'-')) {
-		if (ocg->requiresargument && *ss == L'\0')
-		    if (++i == ctxt->pwordc)
-			return &ocg->candgen;
-		goto next_word;
+	    while (*ss != L'\0' && *ss == *longopt);
+
+	    if (*ss == L'\0' || (*ss == L'=' && ocg->requiresargument)) {
+		if (*longopt == L'\0') {  /* exact match */
+		    match = ocg, matchend = *ss;
+		    break;
+		}
+		if (s[1] != L'-')
+		    continue;  /* single-hyphened option must match exactly */
+		if (match == NULL)
+		    match = ocg, matchend = *ss;
+		else
+		    goto next_word;  /* ambiguous match */
 	    }
+	}
+	if (match != NULL) {
+	    if (matchend == L'\0' && match->requiresargument) {
+		i++;  /* option argument is in the next word */
+		if (i == ctxt->pwordc)
+		    return &match->candgen;
+	    }
+	    goto next_word;
 	}
 
 	/* next check for short options */
