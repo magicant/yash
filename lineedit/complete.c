@@ -727,7 +727,7 @@ void autoload_completion(const wchar_t *cmdname)
 	bool save_posixly_correct = posixly_correct;
 	posixly_correct = false;
 	open_new_environment(false);
-	set_positional_parameters((void *[]) { NULL, });
+	set_positional_parameters((void *[]) { (void *) cmdname, NULL, });
 	set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
 
 	le_compdebug("autoload: start executing `%s'", path);
