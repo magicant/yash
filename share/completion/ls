@@ -1,19 +1,25 @@
 # completion settings for the ls command
+# written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
 case "$("$1" --version 2>/dev/null)" in
 	*'GNU coreutils'*)
 		typeset gnu=true
 		complete -C "$1" -X
+		# options may come after operands in GNU ls
 		;;
 	*)
 		typeset gnu=
+		# not GNU ls.
+		# We explicitly define the "gnu" variable empty to override
+		# the variable that is possibly already defined by the user.
 esac
 
 complete -C "$1" -f
 
 complete -C "$1" -O 1 \
 	-D "print files line by line"
+# long options are completable only when supported by the command
 complete -C "$1" -O A ${gnu:+-O --almost-all} \
 	-D "print all files except . and .."
 complete -C "$1" -O a ${gnu:+-O --all} \
