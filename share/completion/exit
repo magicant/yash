@@ -1,0 +1,8 @@
+# completion settings for the exit builtin
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -F comp/
+
+complete -C "$1" -O f -O --force \
+	-D "suppress warning about stopped jobs"

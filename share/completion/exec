@@ -1,0 +1,32 @@
+# completion settings for the exec builtin
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -F comp/exec
+
+complete -C "$1" -O a -O --as -c \
+	-D "specify a name to execute the command as"
+complete -C "$1" -O c -O --clear \
+	-D "don't export variables from the shell"
+complete -C "$1" -O f -O --force \
+	-D "suppress warning about stopped jobs"
+
+function 'comp/exec' {
+	# skip options
+	shift
+	while true; do
+		case "$1" in
+			--)       shift;   break;;
+			--a*=*)   shift;   continue;;
+			--a*|-*a) shift 2; continue;;
+			-*)       shift;   continue;;
+			*)                 break;
+		esac
+	done
+
+	if [ $# -le 1 ]; then
+		complete --external-command
+	else
+		complete -G -- "$@"
+	fi
+} 2>/dev/null
