@@ -10,6 +10,7 @@ complete -C "$1" -O c -O --clear \
 	-D "don't export variables from the shell"
 complete -C "$1" -O f -O --force \
 	-D "suppress warning about stopped jobs"
+complete -C "$1" -O --help
 
 function 'comp/exec' {
 	# skip options

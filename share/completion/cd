@@ -10,3 +10,4 @@ complete -C "$1" -O P -O --physical \
 	-D "resolve symbolic links in the \$PWD variable"
 complete -C "$1" -O --default-directory -d \
 	-D "specify the default directory to change to"
+complete -C "$1" -O --help
