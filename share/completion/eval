@@ -1,0 +1,28 @@
+# completion settings for the eval builtin
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -F comp/eval
+complete -C "$1" -O i -O --iteration \
+	-D "perform iterative execution on each operand"
+complete -C "$1" -O --help
+
+function comp/eval {
+	# skip options
+	shift
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--)   shift; break;;
+
+	# when the -i option is specified, complete any operand as a command
+			-*i*) complete -G -- "${@[-1]}"; return;;
+
+			-?*)  shift; continue;;
+			*)    break;
+		esac
+	done
+
+	# when the -i option is not specified, complete the whole operands
+	# as a command line
+	complete -G -- "$@"
+}

@@ -2,7 +2,7 @@
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
-complete -C "$1" -F comp/
+complete -C "$1" -X -F comp/
 
 complete -C "$1" -O L -O --logical \
 	-D "print symbolic links in the path as is"
