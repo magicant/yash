@@ -44,12 +44,12 @@ testee:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
-DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(TEST_SOURCES) Makefile.in run-test.sh
+DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
 # "distcontents" depends on object files to ensure all *.d files up-to-date
 distcontents: $(DISTCONTENTS) invoke resetsig
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
-	cp $(DISTCONTENTS) $(DISTTARGETDIR)
+	cp $(DISTCONTENTS) $(TEST_SOURCES) $(DISTTARGETDIR)
 
 clean:
 	rm -fr $(BYPRODUCTS)

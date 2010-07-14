@@ -93,14 +93,9 @@ $(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
 uninstall: uninstall-binary uninstall-data
 uninstall-binary:
-	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
+	-rm $(DESTDIR)$(BINDIR)/$(TARGET)
 uninstall-data:
-	@(cd share/completion && \
-	for file in *; do \
-		echo rm -f $(DESTDIR)$(YASHDATADIR)/completion/$$file || true; \
-		rm -f $(DESTDIR)$(YASHDATADIR)/completion/$$file; \
-	done)
-	-rmdir $(DESTDIR)$(YASHDATADIR)/completion
+	-rm -r $(DESTDIR)$(YASHDATADIR)/completion
 	-rmdir $(DESTDIR)$(YASHDATADIR)
 
 DISTDIR = yash-$(VERSION)
@@ -108,7 +103,7 @@ DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz
 DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
 # "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
 distcontents: $(DISTCONTENTS) $(OBJS)
-$(DISTDIR):
+$(DISTDIR): _PHONY
 	rm -fr $@
 	mkdir -m 755 $@
 	@+base=$$PWD; umask 022; \
