@@ -111,6 +111,10 @@ $(DISTDIR): _PHONY
 		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents) || \
 		exit; \
 	done
+	mkdir -m 755 $@/share
+	mkdir -m 755 $@/share/completion
+	umask 022; \
+	for file in share/completion/*; do cp $$file $@/share/completion; done
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
 	cp $(DISTCONTENTS) $(DISTTARGETDIR)
