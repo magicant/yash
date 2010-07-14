@@ -753,7 +753,7 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 
     for (int i = 1; i < ctxt->pwordc; i++) {
 	const wchar_t *s = ctxt->pwords[i];
-	if (s[0] != L'-') {
+	if (s[0] != L'-' || s[1] == L'\0') {
 	    if (ccg->intermixed)
 		continue;
 	    else
