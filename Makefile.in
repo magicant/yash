@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# NOTE: In this Makefile it is assumed that the make implementation allows the
+# use of hyphens in target names. This means that there may be a strictly
+# POSIX-conforming implementation of make that rejects this Makefile. I have
+# never seen such an implementation but if you know of one please let me know.
+
 .POSIX:
 .SUFFIXES: .c .h .d .o .a
 
