@@ -1,0 +1,28 @@
+# completion settings for the typeset/export/readonly builtin
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -Xv
+# TODO: fix completion of operands
+
+if [ x"$1" != x"export" ]; then
+	complete -C "$1" -O f -O --functions \
+		-D "define or print functions, not variables"
+fi
+if [ x"$1" = x"typeset" ]; then
+	complete -C "$1" -O g -O --global \
+		-D "define global variables"
+fi
+complete -C "$1" -O p -O --print \
+	-D "print specified variables or functions"
+if [ x"$1" != x"readonly" ]; then
+	complete -C "$1" -O r -O --readonly \
+		-D "define or print read-only variables or functions"
+fi
+if [ x"$1" != x"export" ]; then
+	complete -C "$1" -O x -O --export \
+		-D "export variables or print exported variables"
+fi
+complete -C "$1" -O X -O --unexport \
+	-D "cancel exportation of variables"
+complete -C "$1" -O --help

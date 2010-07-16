@@ -88,11 +88,15 @@ install-strip: install-data
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
 install-binary: $(TARGET) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
-install-data: $(DESTDIR)$(YASHDATADIR)/completion
+install-data: $(DESTDIR)$(YASHDATADIR)/completion share/links
 	@for file in share/completion/*; do \
 		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion || true; \
 		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion; \
 	done
+	@umask 022; while read target dest; do \
+		echo ln -fs $$target $(DESTDIR)$(YASHDATADIR)/$$dest || true; \
+		ln -fs $$target $(DESTDIR)$(YASHDATADIR)/$$dest; \
+	done < share/links
 installdirs: $(INSTALLDIRS)
 $(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
@@ -117,6 +121,7 @@ $(DISTDIR): _PHONY
 		exit; \
 	done
 	mkdir -m 755 $@/share
+	umask 022; cp share/links $@/share/links
 	mkdir -m 755 $@/share/completion
 	umask 022; \
 	for file in share/completion/*; do cp $$file $@/share/completion; done
