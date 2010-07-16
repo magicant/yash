@@ -846,7 +846,6 @@ const struct candgen_T *get_candgen_operands(const struct candgen_T *candgen)
 void skip_prefix(size_t len)
 {
     assert(len <= wcslen(ctxt->src));
-    assert(ctxt->src == ctxt->origsrc);
 
     ctxt->src += len;
 
@@ -1582,6 +1581,8 @@ static int complete_builtin_set(
 static void copy_candgen(
 	struct candgen_T *restrict dest, const struct candgen_T *restrict src)
     __attribute__((nonnull));
+static bool complete_builtin_change_src(const wchar_t *newsrc)
+    __attribute__((nonnull));
 static int complete_builtin_delegate(int wordc, void **words)
     __attribute__((nonnull));
 
@@ -1620,6 +1621,7 @@ int complete_builtin(int argc, void **argv)
 	{ L"username",             xno_argument,       L'u', },
 	{ L"scalar-variable",      xno_argument,       L'V', },
 	{ L"variable",             xno_argument,       L'v', },
+	{ L"word",                 xrequired_argument, L'W', },
 	{ L"intermixed",           xno_argument,       L'X', },
 	{ L"finished-job",         xno_argument,       L'Y', },
 	{ L"stopped-job",          xno_argument,       L'Z', },
@@ -1631,6 +1633,7 @@ int complete_builtin(int argc, void **argv)
 
     const wchar_t *command = NULL, *longopt = NULL;
     const wchar_t *function = NULL, *description = NULL;
+    const wchar_t *newsrc = NULL;
     wchar_t shortopt = L'\0';
     le_candgentype_T cgtype = 0;
     bool intermixed = false;
@@ -1639,7 +1642,7 @@ int complete_builtin(int argc, void **argv)
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"C:D:F:O:GPRXabcdfghjkuv", long_options, NULL))) {
+		    argv, L"C:D:F:O:GPRW:Xabcdfghjkuv", long_options, NULL))) {
 	switch (opt) {
 	    case L'A':  cgtype |= CGT_ARRAY;       break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
@@ -1701,6 +1704,11 @@ int complete_builtin(int argc, void **argv)
 	    case L'u':  cgtype |= CGT_LOGNAME;     break;
 	    case L'V':  cgtype |= CGT_SCALAR;      break;
 	    case L'v':  cgtype |= CGT_VARIABLE;    break;
+	    case L'W':
+		if (newsrc != NULL)
+		    goto dupopterror;
+		newsrc = xoptarg;
+		break;
 	    case L'X':  intermixed = true;         break;
 	    case L'Y':  cgtype |= CGT_DONE;        break;
 	    case L'Z':  cgtype |= CGT_STOPPED;     break;
@@ -1732,6 +1740,9 @@ dupopterror:
     } else if (print + remove + delegate > 1) {
 	xerror(0, Ngt("more than one of -P, -R, -G option specified"));
 	goto print_usage;
+    } else if ((print || remove) && newsrc != NULL) {
+	xerror(0, Ngt("-W option cannot be used with -P or -R option"));
+	goto print_usage;
     } else if ((print || remove || delegate)
 	    && (function != NULL || description != NULL
 		|| cgtype != 0 || intermixed)) {
@@ -1748,7 +1759,13 @@ dupopterror:
     } else if (remove) {
 	complete_builtin_remove(command, shortopt, longopt);
 	return Exit_SUCCESS;
-    } else if (delegate) {
+    }
+
+    if (newsrc != NULL) {
+	if (!complete_builtin_change_src(newsrc))
+	    return Exit_FAILURE;
+    }
+    if (delegate) {
 	argc -= xoptind;
 	argv += xoptind;
 	if (argc == 0) {
@@ -2277,6 +2294,28 @@ next:;
     }
 }
 
+/* Changes `ctxt->src' to `newsrc', which should be a postfix of `ctxt->src'. */
+bool complete_builtin_change_src(const wchar_t *newsrc)
+{
+    if (ctxt == NULL) {
+	xerror(0, Ngt("-W option cannot be used "
+		    "when not in candidate generator function"));
+	return false;
+    }
+
+    size_t srclen = wcslen(ctxt->src);
+    size_t newsrclen = wcslen(newsrc);
+    if (srclen < newsrclen ||
+	    wcscmp(ctxt->src + srclen - newsrclen, newsrc) != 0) {
+	xerror(0, Ngt("the current target word "
+		    "does not end with the specified word `%ls'"), newsrc);
+	return false;
+    }
+
+    skip_prefix(srclen - newsrclen);
+    return true;
+}
+
 /* Generates candidates using the specified words as `pwords' and `src'. */
 int complete_builtin_delegate(int wordc, void **words)
 {
@@ -2334,11 +2373,11 @@ int complete_builtin_delegate(int wordc, void **words)
 
 #if YASH_ENABLE_HELP
 const char complete_help[] = Ngt(
-"complete - edit completion style\n"
-"\tcomplete [-C command] [-O option] [-D description] \\\n"
+"complete - edit completion style or generate completion candidates\n"
+"\tcomplete [-C command] [-O option] [-D description] [-W word] \\\n"
 "\t         [-F function] [-Xabcdfghjkuv] [words...]\n"
 "\tcomplete -P|-R [-C command] [-O option]\n"
-"\tcomplete [-G] words...\n"
+"\tcomplete -G [-W word] words...\n"
 "The \"complete\" builtin specifies how to complete command-line words.\n"
 "You can specify possible options and operands for each command, and possible\n"
 "arguments for each argument-requiring option as well.\n"
@@ -2403,6 +2442,8 @@ const char complete_help[] = Ngt(
 "In this case, the -C and -O option must not be specified.\n"
 "If the -G (--delegate) option is specified, candidates are generated as if\n"
 "the currently completed command/arguments are <words>.\n"
+"In a candidate generator function, the -W (--word) option can be used to\n"
+"change the target word to its substring.\n"
 );
 #endif /* YASH_ENABLE_HELP */
 

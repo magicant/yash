@@ -69,3 +69,9 @@ When you write a completion file, please follow these guidelines:
    completion, specify "comp/" as a dummy completion function:
 
       complete -C pwd -F comp/
+
+ * See the completion file for the "typeset" command to find how the -W option
+   of the complete command is used.
+
+ * See the completion file for the "exec" command to find how the -G option of
+   the complete command is used.

@@ -26,8 +26,11 @@ function 'comp/exec' {
 	done
 
 	if [ $# -le 1 ]; then
+		# complete an external command name
 		complete --external-command
 	else
+		# complete an argument to a command that is in turn an argument
+		# to the exec command
 		complete -G -- "$@"
 	fi
 } 2>/dev/null
