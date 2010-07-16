@@ -1447,7 +1447,12 @@ int generate_candidates_using_function(
     args[context->pwordc + 1] = NULL;
 
     int savelaststatus = laststatus, resultstatus;
+    bool saveposix = posixly_correct;
+    posixly_correct = false;
+
     exec_function_body(function, args, false);
+
+    posixly_correct = saveposix;
     resultstatus = laststatus;
     laststatus = savelaststatus;
 
