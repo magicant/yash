@@ -1,4 +1,4 @@
-# completion settings for the . builtin
+# completion settings for the . built-in
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
