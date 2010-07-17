@@ -29,8 +29,8 @@ function 'comp/exec' {
 		# complete an external command name
 		complete --external-command
 	else
-		# complete an argument to a command that is in turn an argument
-		# to the exec command
+		# complete an argument to the command that is in turn an
+		# argument to the exec command
 		complete -G -- "$@"
 	fi
-} 2>/dev/null
+}

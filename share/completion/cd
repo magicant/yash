@@ -16,6 +16,7 @@ if [ x"$1" = x"pushd" ]; then
 fi
 complete -C "$1" -O --help
 
+# Note: this function is also used for completion of the dirs and popd commands
 function comp/cd
 	# complete directory stack item numbers
 	if [ "${DIRSTACK+set}" ]; then

@@ -27,7 +27,25 @@ complete -C "$1" -O X -O --unexport \
 complete -C "$1" -O --help
 
 function comp/typeset {
+	typeset func=false
+
+	# parse options
+	shift
+	while [ $# -gt 1 ]; do
+		case "$1" in
+		--)   shift; break;;
+		--f*) shift; func=true;;
+		--*)  shift;;
+		-*f*) shift; func=true;;
+		*)    shift;;
+		esac
+	done
+
 	typeset word="${@[-1]}"
+	if $func; then
+		complete --function
+		return
+	fi
 	case "$word" in
 	*=*)
 		# remove until the last colon after the first '=' and complete
