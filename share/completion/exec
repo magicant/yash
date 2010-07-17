@@ -15,13 +15,13 @@ complete -C "$1" -O --help
 function 'comp/exec' {
 	# skip options
 	shift
-	while [ $# -ge 2 ]; do
+	while [ $# -gt 1 ]; do
 		case "$1" in
-			--)       shift;   break;;
-			--a*=*)   shift;   continue;;
-			--a*|-*a) shift 2; continue;;
-			-?*)      shift;   continue;;
-			*)                 break;
+			--)       shift; break;;
+			--a*=*)   shift;;
+			--a*|-*a) shift 2;;
+			-?*)      shift;;
+			*)        break;;
 		esac
 	done
 
