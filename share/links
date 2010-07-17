@@ -1,5 +1,6 @@
 fg completion/bg
 typeset completion/export
+cd completion/pushd
 typeset completion/readonly
 return completion/shift
 return completion/times
