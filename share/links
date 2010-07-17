@@ -1,3 +1,4 @@
+fg completion/bg
 typeset completion/export
 typeset completion/readonly
 return completion/shift
