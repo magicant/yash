@@ -48,6 +48,7 @@
 #include "../plist.h"
 #include "../redir.h"
 #include "../sig.h"
+#include "../strbuf.h"
 #include "../util.h"
 #include "../variable.h"
 #include "../xfnmatch.h"
