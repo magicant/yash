@@ -1,0 +1,6 @@
+# completion settings for the return/shift/times builtin
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X
+complete -C "$1" -O --help

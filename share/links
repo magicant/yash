@@ -1,2 +1,4 @@
 typeset completion/export
 typeset completion/readonly
+return completion/shift
+return completion/times
