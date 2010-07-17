@@ -711,7 +711,14 @@ void autoload_completion(const wchar_t *cmdname)
     if (slash != NULL)
 	cmdname = slash + 1;
 
-    char *mbscmdname = malloc_wcstombs(cmdname);
+    char *mbscmdname;
+    /* If `cmdname' is L"." or L"..", use "_." or "_.." for the filename */
+    if (wcscmp(cmdname, L".") == 0)
+	mbscmdname = xstrdup("_.");
+    else if (wcscmp(cmdname, L"..") == 0)
+	mbscmdname = xstrdup("_..");
+    else
+	mbscmdname = malloc_wcstombs(cmdname);
     if (mbscmdname == NULL)
 	return;
 
