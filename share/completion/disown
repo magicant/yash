@@ -1,0 +1,9 @@
+# completion settings for the disown builtin
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -Xj
+
+complete -C "$1" -O a -O --all \
+	-D "disown all jobs"
+complete -C "$1" -O --help

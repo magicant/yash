@@ -1,0 +1,17 @@
+# completion settings for the dirs/popd builtin
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -Xd -F comp/dirs
+
+if [ x"$1" = x"dirs" ]; then
+	complete -C "$1" -O c -O --clear \
+		-D "clear the whole directory stack"
+	complete -C "$1" -O v -O --verbose \
+		-D "print stack entries with their indices"
+fi
+complete -C "$1" -O --help
+
+function comp/dirs {
+	complete -G -- cd -- "${@[-1]}"
+}
