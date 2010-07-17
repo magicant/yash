@@ -973,15 +973,16 @@ void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
 void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name)
 {
     if (xfnm_wmatch(pat, name->contents).start != (size_t) -1) {
-	wchar_t *desc = NULL;
+	xwcsbuf_T desc;
+	wb_init(&desc);
 #if HAVE_STRSIGNAL
 	char *mbsdesc = strsignal(num);
 	if (mbsdesc != NULL)
-	    desc = malloc_mbstowcs(mbsdesc);
-#else
-	(void) num;
+	    wb_wprintf(&desc, L"%d: %s", num, mbsdesc);
+	else
 #endif
-	le_new_candidate(CT_SIG, wb_towcs(name), desc);
+	    wb_wprintf(&desc, L"%d", num);
+	le_new_candidate(CT_SIG, wb_towcs(name), wb_towcs(&desc));
 	wb_init(name);
     } else {
 	wb_clear(name);
