@@ -1,0 +1,63 @@
+# completion settings for the umask built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/umask
+
+complete -C "$1" -O S -O --symbolic \
+	-D "produce a symbolic output"
+complete -C "$1" -O --help
+
+function comp/umask {
+	typeset word="${@[-1]}"
+
+	# we don't complete a numeric umask value
+	case "$word" in ([[:digit:]]*)
+		return
+	esac
+
+	word="${word##*,}"
+	complete -W ""
+	case "$word" in (*[-+=]*)
+		case "$word" in
+		*[-+=]*[ugo])
+			return;;
+		*[-+=])
+			complete u \
+				-D "copy from the user part of permission"
+			complete g \
+				-D "copy from the group part of permission"
+			complete o \
+				-D "copy from the other part of permission"
+		esac
+		complete r \
+			-D "read permission"
+		complete w \
+			-D "write permission"
+		complete x \
+			-D "execute permission"
+		complete X \
+			-D "execute permission (only when there's already one)"
+		complete s \
+			-D "set-user/group-ID"
+		return
+	esac
+
+	complete u \
+		-D "affect the user part of permission"
+	complete g \
+		-D "affect the group part of permission"
+	complete o \
+		-D "affect the other part of permission"
+	complete a \
+		-D "affect all parts of permission"
+	complete \
+		-D "add the specified permission" \
+		-- +
+	complete \
+		-D "remove the specified permission" \
+		-- -
+	complete \
+		-D "set the permission to the specified one" \
+		-- =
+}

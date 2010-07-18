@@ -1,0 +1,23 @@
+# completion settings for the wait built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/wait
+
+complete -C "$1" -O --help
+
+function comp/wait {
+	typeset word="${@[-1]}"
+	case "$word" in
+	%*|'')
+		# complete a job name
+		complete -j;;
+	*)
+		# complete a job's process ID
+		typeset pid status
+		while read pid status; do
+			complete -D "$(ps -p $pid -o args=)" -- $pid
+		done 2>/dev/null <(jobs -l |
+			sed -e 's/^\[[[:digit:]]*\][[:blank:]]*[-+]//')
+	esac
+}
