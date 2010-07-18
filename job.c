@@ -932,7 +932,7 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 	    continue;
 
 	wchar_t *cand;
-	if (context->src[0] != L'%')
+	if (context->src[0] != L'\0' && context->src[0] != L'%')
 	    cand = xwcsdup(jobname);
 	else
 	    cand = malloc_wprintf(L"%%%ls", jobname);
