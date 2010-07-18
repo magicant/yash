@@ -73,7 +73,7 @@ END
 echo ===== option =====
 echo ===== option ===== >&2
 
-set --no
+set --cu
 echo ambiguous option $?
 set -o nolog +o nolog -o
 echo missing argument $?
