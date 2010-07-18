@@ -927,16 +927,18 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 	    case JS_DONE:     if (!(type & CGT_DONE))    continue;  break;
 	}
 
-	const wchar_t *jobname = job->j_procs[0].pr_name;
-	if (xfnm_wmatch(xfnm, jobname).start == (size_t) -1)
-	    continue;
+	wchar_t *jobname = get_job_name(job);
+	if (xfnm_wmatch(xfnm, jobname).start != (size_t) -1) {
+	    wchar_t *cand;
+	    if (context->src[0] != L'\0' && context->src[0] != L'%')
+		cand = xwcsdup(jobname);
+	    else
+		cand = malloc_wprintf(L"%%%ls", jobname);
+	    le_new_candidate(CT_JOB, cand, malloc_wprintf(L"%%%zu", i));
+	}
 
-	wchar_t *cand;
-	if (context->src[0] != L'\0' && context->src[0] != L'%')
-	    cand = xwcsdup(jobname);
-	else
-	    cand = malloc_wprintf(L"%%%ls", jobname);
-	le_new_candidate(CT_JOB, cand, malloc_wprintf(L"%%%zu", i));
+	if (jobname != job->j_procs[0].pr_name)
+	    free(jobname);
     }
     xfnm_free(xfnm);
 }
