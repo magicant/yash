@@ -43,6 +43,7 @@
 #include "builtin.h"
 #include "exec.h"
 #include "expand.h"
+#include "history.h"
 #include "input.h"
 #include "job.h"
 #include "option.h"
@@ -862,7 +863,7 @@ done:
  *   t_tstp: SIGTSTP is ignored if the parent is job-controlling
  *   t_leave: Don't clear traps and shellfds. Restore the signal mask for
  *          SIGCHLD. This option must be used iff the shell is going to `exec'
- *          to an extenal program.
+ *          to an external program.
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
@@ -908,6 +909,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (!(sigtype & t_leave)) {
 	    clear_traps();
 	    neglect_all_jobs();
+	    close_history_file();
 	}
 	restore_signals(sigtype & t_leave);  /* signal mask is restored here */
 	clear_shellfds(sigtype & t_leave);

@@ -910,7 +910,8 @@ refresh:
     }
 }
 
-/* If the history file is open, close it. */
+/* Closes the history file after writing info on the shell process that is
+ * exiting. */
 void finalize_history(void)
 {
     if (!is_interactive_now || !histfile)
@@ -929,6 +930,16 @@ void finalize_history(void)
 	fclose(histfile);
 	histfile = NULL;
     }
+}
+
+/* Closes the history file if open. */
+void close_history_file(void)
+{
+    hist_lock = false;
+    if (histfile == NULL)
+	return;
+    fclose(histfile);
+    histfile = NULL;
 }
 
 /* Adds the specified `line' to the history.

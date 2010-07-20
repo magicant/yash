@@ -63,6 +63,7 @@ extern unsigned hist_next_number;
 
 extern void maybe_init_history(void);
 extern void finalize_history(void);
+extern void close_history_file(void);
 extern void add_history(const wchar_t *line)
     __attribute__((nonnull));
 const histentry_T *get_history_entry(unsigned number)
