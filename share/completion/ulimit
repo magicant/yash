@@ -1,0 +1,75 @@
+# completion settings for the ulimit built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X unlimited
+
+complete -C "$1" -O H -O --hard \
+	-D "set or print the hard limit"
+complete -C "$1" -O S -O --soft \
+	-D "set or print the soft limit"
+complete -C "$1" -O a -O --all \
+	-D "print all resource types with the current limits"
+complete -C "$1" -O --help
+
+typeset limits="$(ulimit -a)"
+case "$limits" in (*'-c: '*)
+	complete -C "$1" -O c -O --core \
+		-D "maximum size of core files in 512-byte blocks"
+esac
+case "$limits" in (*'-d: '*)
+	complete -C "$1" -O d -O --data \
+		-D "maximum size of a process's data segment in kilobytes"
+esac
+case "$limits" in (*'-e: '*)
+	complete -C "$1" -O e -O --nice \
+		-D "maximum scheduling priority (nice value)"
+esac
+case "$limits" in (*'-f: '*)
+	complete -C "$1" -O f -O --fsize \
+	-D "maximum size of files created by a process in 512-byte blocks"
+esac
+case "$limits" in (*'-i: '*)
+	complete -C "$1" -O i -O --sigpending \
+		-D "maximum number of pending signals"
+esac
+case "$limits" in (*'-l: '*)
+	complete -C "$1" -O l -O --memlock \
+	-D "maximum memory size that can be locked into RAM (in kilobytes)"
+esac
+case "$limits" in (*'-m: '*)
+	complete -C "$1" -O m -O --rss \
+		-D "maximum size of a process's resident set (in kilobytes)"
+esac
+case "$limits" in (*'-n: '*)
+	complete -C "$1" -O n -O --nofile \
+		-D "maximum file descriptor + 1"
+esac
+case "$limits" in (*'-q: '*)
+	complete -C "$1" -O q -O --msgqueue \
+		-D "maximum size of POSIX message queues (in bytes)"
+esac
+case "$limits" in (*'-r: '*)
+	complete -C "$1" -O r -O --rtprio \
+		-D "maximum real-time scheduling priority"
+esac
+case "$limits" in (*'-s: '*)
+	complete -C "$1" -O s -O --stack \
+		-D "maximum stack size (in kilobytes)"
+esac
+case "$limits" in (*'-t: '*)
+	complete -C "$1" -O t -O --cpu \
+		-D "CPU time that can be used by a process (in seconds)"
+esac
+case "$limits" in (*'-u: '*)
+	complete -C "$1" -O u -O --nproc \
+		-D "maximum number of processes for a user"
+esac
+case "$limits" in (*'-v: '*)
+	complete -C "$1" -O v -O --as \
+		-D "maximum size of memory used by a process (in kilobytes)"
+esac
+case "$limits" in (*'-x: '*)
+	complete -C "$1" -O x -O --locks \
+		-D "maximum number of file locks"
+esac
