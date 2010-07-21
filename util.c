@@ -618,8 +618,7 @@ shift1l:
 
 ambiguous_match:
     if (xopterr) {
-	fprintf(stderr, gt("%ls: --%ls: ambiguous option\n"),
-		(wchar_t *) argv[0], arg);
+	xerror(0, Ngt("%ls: ambiguous option"), (wchar_t *) argv[xoptind]);
 #if 1
 	for (int i = 0; longopts[i].name; i++)
 	    if (matchwcsprefix(longopts[i].name, arg))
@@ -629,18 +628,16 @@ ambiguous_match:
     return L'?';
 no_such_option:
     if (xopterr)
-	fprintf(stderr, gt("%ls: %ls: invalid option\n"),
-		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+	xerror(0, Ngt("%ls: invalid option"), (wchar_t *) argv[xoptind]);
     return L'?';
 argument_missing:
     if (xopterr)
-	fprintf(stderr, gt("%ls: %ls: argument missing\n"),
-		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+	xerror(0, Ngt("%ls: argument missing"), (wchar_t *) argv[xoptind]);
     return L'?';
 invalid_option_argument:
     if (xopterr)
-	fprintf(stderr, gt("%ls: %ls: this option doesn't allow an argument\n"),
-		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+	xerror(0, Ngt("%ls: this option doesn't allow an argument"),
+		(wchar_t *) argv[xoptind]);
     return L'?';
 }
 
