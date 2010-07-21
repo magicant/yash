@@ -14,6 +14,14 @@ set: --cu: ambiguous option
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 set: -o: argument missing
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounse=1: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounse=: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounset=1: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounset=: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 ===== set =====
 set: --no-such-option: invalid option
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]

@@ -77,6 +77,14 @@ set --cu
 echo ambiguous option $?
 set -o nolog +o nolog -o
 echo missing argument $?
+set --nounse=1
+echo invalid option argument 1 $?
+set --nounse=
+echo invalid option argument 2 $?
+set --nounset=1
+echo invalid option argument 3 $?
+set --nounset=
+echo invalid option argument 4 $?
 
 echo ===== set =====
 echo ===== set ===== >&2

@@ -580,12 +580,12 @@ try_parse_long_option:
     if (matchindex < 0)
 	goto no_such_option;
 
-    /* a valid long option is found */
+    /* a long option was identified */
     if (longindex)
 	*longindex = matchindex;
     xoptopt = L'-';
+    wchar_t *eq = wcschr(arg2, L'=');
     if (longopts[matchindex].has_arg != xno_argument) {
-	wchar_t *eq = wcschr(arg2, L'=');
 	if (eq == NULL) {
 	    if (longopts[matchindex].has_arg == xoptional_argument)
 		goto shift1l;  /* the optional argument is not given */
@@ -606,9 +606,13 @@ try_parse_long_option:
 	}
     } else {
 	/* the option doesn't take an argument */
+	if (eq == NULL) {
 shift1l:
-	argshift(argv, xoptind, initind);
-	xoptind = initind + 1;
+	    argshift(argv, xoptind, initind);
+	    xoptind = initind + 1;
+	} else {
+	    goto invalid_option_argument;
+	}
     }
     return longopts[matchindex].val;
 
@@ -631,6 +635,11 @@ no_such_option:
 argument_missing:
     if (xopterr)
 	fprintf(stderr, gt("%ls: %ls: argument missing\n"),
+		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+    return L'?';
+invalid_option_argument:
+    if (xopterr)
+	fprintf(stderr, gt("%ls: %ls: this option doesn't allow an argument\n"),
 		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
     return L'?';
 }

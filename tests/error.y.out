@@ -12,6 +12,10 @@ command not found error 127
 ===== option =====
 ambiguous option 2
 missing argument 2
+invalid option argument 1 2
+invalid option argument 2 2
+invalid option argument 3 2
+invalid option argument 4 2
 ===== set =====
 set no-such-option 2
 set output error 1
