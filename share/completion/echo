@@ -1,0 +1,38 @@
+# completion settings for the echo built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -F comp/echo
+
+function comp/echo {
+	typeset options
+	case ${ECHO_STYLE-} in
+		[BbDd]*) options=n;;
+		[GgZz]*) options=neE;;
+		*)       options=;;
+	esac
+
+	shift
+	if [ $# -eq 1 ]; then
+		case $1 in (-*)
+			case $options in (?*)
+				complete -W ""
+				case $options in (*n*)
+					complete n \
+					-D "don't print the last newline"
+				esac
+				case $options in (*e*)
+					complete e \
+						-D "enable escape sequences"
+				esac
+				case $options in (*E*)
+					complete E \
+						-D "disable escape sequences"
+				esac
+				return
+			esac
+		esac
+	fi
+
+	complete -f
+}

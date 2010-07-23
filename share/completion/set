@@ -29,11 +29,11 @@ while [ $# -gt 1 ]; do
 done
 
 case "$1" in
-[-+]*o*)
-	complete -W "${1#*o}";;
 --*)
 	complete -W "${1#--}"
 	complete help;;
+[-+]*o*)
+	complete -W "${1#*o}";;
 [-+]*)
 	complete -W ""
 	complete a \
