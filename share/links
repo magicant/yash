@@ -1,3 +1,4 @@
+test completion/[
 fg completion/bg
 typeset completion/export
 dirs completion/popd
