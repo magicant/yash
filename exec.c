@@ -43,7 +43,9 @@
 #include "builtin.h"
 #include "exec.h"
 #include "expand.h"
-#include "history.h"
+#if YASH_ENABLE_HISTORY
+# include "history.h"
+#endif
 #include "input.h"
 #include "job.h"
 #include "option.h"
@@ -909,7 +911,9 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (!(sigtype & t_leave)) {
 	    clear_traps();
 	    neglect_all_jobs();
+#if YASH_ENABLE_HISTORY
 	    close_history_file();
+#endif
 	}
 	restore_signals(sigtype & t_leave);  /* signal mask is restored here */
 	clear_shellfds(sigtype & t_leave);
