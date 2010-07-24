@@ -12,7 +12,7 @@ complete -C "$1" -O a -O --all \
 	-D "print all resource types with the current limits"
 complete -C "$1" -O --help
 
-typeset limits="$(ulimit -a)"
+typeset limits="$(command -b ulimit -a 2>/dev/null)"
 case "$limits" in (*'-c: '*)
 	complete -C "$1" -O c -O --core \
 		-D "maximum size of core files in 512-byte blocks"
