@@ -602,7 +602,10 @@ void handle_sigchld(void)
         sigchld_received = false;
         do_wait();
 #if YASH_ENABLE_LINEEDIT
-	if ((shopt_notify || shopt_notifyle) && le_state == LE_STATE_ACTIVE) {
+	if (le_completing) {
+	    /* do nothing */
+	} else if ((shopt_notify || shopt_notifyle) &&
+		le_state == LE_STATE_ACTIVE) {
 	    le_suspend_readline();
 	    print_job_status_all();
 	    le_resume_readline();

@@ -173,6 +173,7 @@ typedef enum le_candgentype_T {
 typedef void le_compresult_T(void);
 
 
+extern _Bool le_completing;
 extern plist_T le_candidates;
 extern size_t le_selected_candidate_index;
 

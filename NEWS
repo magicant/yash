@@ -8,6 +8,15 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.23
+
+  *  Fixed segmentation fault during completion. When the notify
+     option is enabled, the shell was wrongly trying to notify the job
+     status while executing a candidate generator function.
+  *  The "-o verbose" option is now disabled during completion to
+     suppress the auto-loaded script being printed.
+
+----------------------------------------------------------------------
 Yash 2.22
 
   +  New "test" builtin operators: -G, -O, -N
