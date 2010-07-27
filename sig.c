@@ -633,7 +633,11 @@ int handle_traps(void)
     /* Signal handler execution is not reentrant because the value of
      * `savelaststatus' would be lost. But the EXIT is the only exception:
      * The EXIT trap may be executed inside another trap. */
-    if (!any_trap_set || !any_signal_received || handled_signal >= 0)
+    if (!any_trap_set || !any_signal_received || handled_signal >= 0
+#if YASH_ENABLE_LINEEDIT
+	    || le_completing
+#endif
+	    )
 	return 0;
 
     int signum = 0;
