@@ -211,8 +211,11 @@ void le_complete(le_compresult_T lecr)
     } else {
 	assert(le_state == LE_STATE_ACTIVE_COMPLETING);
 	le_allow_terminal_signal(false);
-	if (is_interrupted())
-	    le_display_clear(false);  /* redraw if interrupted */
+
+	/* the terminal size may have been changed during completion, so we
+	 * re-check the terminal state here. */
+	le_display_clear(false);
+	le_setupterm(true);
     }
     le_state = LE_STATE_ACTIVE;
 }
