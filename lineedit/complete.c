@@ -206,7 +206,7 @@ void le_complete(le_compresult_T lecr)
 
     if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
 	le_compdebug("completion end");
-	le_setupterm(false);
+	le_setupterm(true);
 	le_set_terminal();
     } else {
 	assert(le_state == LE_STATE_ACTIVE_COMPLETING);
