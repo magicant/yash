@@ -1170,6 +1170,7 @@ void print_xtrace(void *const *argv)
     if (shopt_xtrace && (tracevars || argv != NULL)
 #if YASH_ENABLE_LINEEDIT
 	    && le_state != LE_STATE_ACTIVE
+	    && le_state != LE_STATE_ACTIVE_COMPLETING
 #endif
 	    ) {
 	bool first = true;

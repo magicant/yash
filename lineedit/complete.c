@@ -185,6 +185,7 @@ void le_complete(le_compresult_T lecr)
 	le_state = LE_STATE_SUSPENDED_COMPDEBUG;
 	le_compdebug("completion start");
     } else {
+	le_state = LE_STATE_ACTIVE_COMPLETING;
 	le_allow_terminal_signal(true);
     }
 
@@ -207,12 +208,13 @@ void le_complete(le_compresult_T lecr)
 	le_compdebug("completion end");
 	le_setupterm(false);
 	le_set_terminal();
-	le_state = LE_STATE_ACTIVE;
     } else {
+	assert(le_state == LE_STATE_ACTIVE_COMPLETING);
 	le_allow_terminal_signal(false);
 	if (is_interrupted())
 	    le_display_clear(false);  /* redraw if interrupted */
     }
+    le_state = LE_STATE_ACTIVE;
 }
 
 /* An `le_compresult_T' function that does nothing. */

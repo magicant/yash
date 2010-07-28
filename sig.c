@@ -601,7 +601,11 @@ void handle_sigchld(void)
     if (sigchld_received) {
         sigchld_received = false;
         do_wait();
+
+	/* print job status if the notify option is set */
 #if YASH_ENABLE_LINEEDIT
+	if (le_state == LE_STATE_ACTIVE_COMPLETING)
+	    return;
 	if ((shopt_notify || shopt_notifyle) && le_state == LE_STATE_ACTIVE) {
 	    le_suspend_readline();
 	    print_job_status_all();
