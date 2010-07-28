@@ -151,10 +151,6 @@ static void quote(xwcsbuf_T *restrict buf,
 	const wchar_t *restrict s, le_quote_T quotetype)
     __attribute__((nonnull));
 
-
-/* True during completion. */
-bool le_completing = false;
-
 /* The current completion context. */
 static le_context_T *ctxt = NULL;
 
@@ -177,9 +173,6 @@ static size_t common_prefix_length;
  * `lecr' is called after candidate generation. */
 void le_complete(le_compresult_T lecr)
 {
-    assert(!le_completing);
-    le_completing = true;
-
     if (shopt_le_compdebug) {
 	/* If the `le-compdebug' option is set, the command line is temporarily
 	 * cleared during completion.
@@ -220,8 +213,6 @@ void le_complete(le_compresult_T lecr)
 	if (is_interrupted())
 	    le_display_clear(false);  /* redraw if interrupted */
     }
-
-    le_completing = false;
 }
 
 /* An `le_compresult_T' function that does nothing. */
@@ -748,8 +739,7 @@ void autoload_completion(const wchar_t *cmdname)
 	set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
 
 	le_compdebug("autoload: start executing `%s'", path);
-	bool verbose = (le_state == LE_STATE_SUSPENDED_COMPDEBUG);
-	exec_input(fd, path, false, verbose, false, false);
+	exec_input(fd, path, false, false, false);
 	le_compdebug("autoload: finished executing `%s'", path);
 	if (laststatus != Exit_SUCCESS)
 	    le_compdebug("          with exit status of %d", laststatus);

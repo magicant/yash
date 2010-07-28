@@ -1477,7 +1477,7 @@ error1:
 	fc_read_history(f, quiet);
 	lseek(fd, 0, SEEK_SET);
 	laststatus = savelaststatus;
-	exec_input(fd, "fc", false, true, true, false);
+	exec_input(fd, "fc", false, true, false);
 	remove_shellfd(fd);
 	fclose(f);
 	return laststatus;

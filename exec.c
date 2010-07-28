@@ -1784,7 +1784,7 @@ int dot_builtin(int argc, void **argv)
 	return Exit_FAILURE;
     }
 
-    exec_input(fd, mbsfilename, false, true, enable_alias, false);
+    exec_input(fd, mbsfilename, false, enable_alias, false);
     remove_shellfd(fd);
     xclose(fd);
     free(mbsfilename);

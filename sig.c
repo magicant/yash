@@ -602,10 +602,7 @@ void handle_sigchld(void)
         sigchld_received = false;
         do_wait();
 #if YASH_ENABLE_LINEEDIT
-	if (le_completing) {
-	    /* do nothing */
-	} else if ((shopt_notify || shopt_notifyle) &&
-		le_state == LE_STATE_ACTIVE) {
+	if ((shopt_notify || shopt_notifyle) && le_state == LE_STATE_ACTIVE) {
 	    le_suspend_readline();
 	    print_job_status_all();
 	    le_resume_readline();
@@ -633,11 +630,7 @@ int handle_traps(void)
     /* Signal handler execution is not reentrant because the value of
      * `savelaststatus' would be lost. But the EXIT is the only exception:
      * The EXIT trap may be executed inside another trap. */
-    if (!any_trap_set || !any_signal_received || handled_signal >= 0
-#if YASH_ENABLE_LINEEDIT
-	    || le_completing
-#endif
-	    )
+    if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return 0;
 
     int signum = 0;
