@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.23
 
+  *  Traps are no longer handled during completion to avoid messing up
+     the display.
   *  Fixed segmentation fault during completion. When the notify
      option is enabled, the shell was wrongly trying to notify the job
      status while executing a candidate generator function.

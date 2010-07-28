@@ -637,6 +637,13 @@ int handle_traps(void)
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return 0;
 
+#if YASH_ENABLE_LINEEDIT
+    /* Don't handle traps during command line completion. Otherwise, the command
+     * line would be messed up! */
+    if (le_state == LE_STATE_ACTIVE_COMPLETING)
+	return 0;
+#endif
+
     int signum = 0;
     bool save_sigint_received = sigint_received;
     struct parsestate_T *state = NULL;
