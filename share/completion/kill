@@ -33,7 +33,12 @@ function comp/kill {
 		esac
 	elif [ $# -eq 2 ]; then
 		case "$1" in
-			-[ns])
+			-[ns]|-[lv]*)
+				signame=true;
+		esac
+	elif [ $# -ge 2 ]; then
+		case "$1" in
+			-[lv]*)
 				signame=true;
 		esac
 	fi
