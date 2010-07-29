@@ -309,7 +309,7 @@ int main(int argc, char **argv)
     if (shopt_read_arg) {
 	exec_wcs(input.command, inputname, true);
     } else {
-	exec_input(input.fd, inputname, is_interactive, true, true, true);
+	exec_input(input.fd, inputname, is_interactive, true, true);
     }
     assert(false);
 }
@@ -334,7 +334,7 @@ static void execute_profile(void)
 	if (path != NULL) {
 	    int fd = move_to_shellfd(open(path, O_RDONLY));
 	    if (fd >= 0) {
-		exec_input(fd, path, false, true, true, false);
+		exec_input(fd, path, false, true, false);
 		remove_shellfd(fd);
 		xclose(fd);
 	    }
@@ -374,7 +374,7 @@ static void execute_rcfile(const wchar_t *rcfile)
 
     int fd = move_to_shellfd(open(path, O_RDONLY));
     if (fd >= 0) {
-	exec_input(fd, path, false, true, true, false);
+	exec_input(fd, path, false, true, false);
 	remove_shellfd(fd);
 	xclose(fd);
     }
@@ -511,12 +511,12 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
  * If `name' is non-NULL, it is printed in an error message on syntax error.
  * If `intrinput' is true, the input is considered interactive.
  * If there are no commands in the input, `laststatus' is set to zero. */
-void exec_input(int fd, const char *name, bool intrinput,
-	bool enable_verbose, bool enable_alias, bool finally_exit)
+void exec_input(int fd, const char *name,
+	bool intrinput, bool enable_alias, bool finally_exit)
 {
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
-	.enable_verbose = enable_verbose,
+	.enable_verbose = true,
 #if YASH_ENABLE_ALIAS
 	.enable_alias = enable_alias,
 #endif

@@ -744,8 +744,7 @@ void autoload_completion(const wchar_t *cmdname)
 	set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
 
 	le_compdebug("autoload: start executing `%s'", path);
-	exec_input(fd, path, false,
-		le_state == LE_STATE_SUSPENDED_COMPDEBUG, false, false);
+	exec_input(fd, path, false, false, false);
 	le_compdebug("autoload: finished executing `%s'", path);
 	if (laststatus != Exit_SUCCESS)
 	    le_compdebug("          with exit status of %d", laststatus);
