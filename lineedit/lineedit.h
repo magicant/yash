@@ -24,12 +24,14 @@
 
 
 enum le_state_T {
-    LE_STATE_INACTIVE,
-    LE_STATE_ACTIVE,
-    LE_STATE_ACTIVE_COMPLETING,
-    LE_STATE_SUSPENDED,
-    LE_STATE_SUSPENDED_COMPDEBUG,
+    LE_STATE_INACTIVE            = (0 << 1) | 0,
+    LE_STATE_SUSPENDED           = (1 << 1) | 0,
+    LE_STATE_SUSPENDED_COMPDEBUG = (2 << 1) | 0,
+    LE_STATE_ACTIVE              = (0 << 1) | 1,
+    LE_STATE_ACTIVE_COMPLETING   = (1 << 1) | 1,
 };
+#define le_state_is_active (le_state & 1)
+
 enum le_editstate_T {
     LE_EDITSTATE_EDITING,     // editing is on-going
     LE_EDITSTATE_DONE,        // `le_readline' should return (successful)

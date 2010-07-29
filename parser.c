@@ -636,8 +636,7 @@ inputresult_T read_more_input(void)
 
 	if (cinfo->enable_verbose && shopt_verbose)
 #if YASH_ENABLE_LINEEDIT
-	    if (le_state != LE_STATE_ACTIVE
-		    && le_state != LE_STATE_ACTIVE_COMPLETING)
+	    if (!le_state_is_active)
 #endif
 		fprintf(stderr, "%ls", cbuf.contents + savelength);
     }
