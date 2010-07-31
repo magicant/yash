@@ -77,9 +77,9 @@ bg --no-such-option
 echo bg no-such-option $?
 while kill -0 $$; do sleep 1; done 2>/dev/null&
 bg >&- 2>/dev/null
+echo bg output error $?
 kill %1
 END
-echo bg output error $?
 set -m
 bg %100
 echo bg no-such-job 1 $?
