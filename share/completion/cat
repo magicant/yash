@@ -43,8 +43,8 @@ if [ "$ext" ]; then
 		complete -C "$1" -O --version
 	elif [ "$("$1" -r 2>/dev/null <<<"
 
-")" = "
-" ]; then
+x")" = "
+x" ]; then
 		# HP-UX cat supports the -r option
 		complete -C "$1" -O e \
 			-D "like -v and print \$ at end of each line"
@@ -56,8 +56,8 @@ if [ "$ext" ]; then
 			-D "like -v and print tabs/form-feeds as ^I/^L"
 	elif [ "$("$1" -s 2>/dev/null <<<"
 
-")" = "
-" ]; then
+x")" = "
+x" ]; then
 		# BSD cat's -s option squeezes empty lines
 		complete -C "$1" -O e \
 			-D "like -v and print \$ at end of each line"
