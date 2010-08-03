@@ -1027,8 +1027,9 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
 		col->descwidth = cand->rawdesc.width;
 	}
 
-	if (col->valuewidth > 0) col->valuewidth += 2;
-	if (col->descwidth  > 0) col->descwidth  += 4;
+	col->valuewidth += 2;
+	if (col->descwidth > 0)
+	    col->descwidth += 4;
 	col->width = col->valuewidth + col->descwidth;
 	totalwidth += col->width;
 	pl_add(&candcols, col);

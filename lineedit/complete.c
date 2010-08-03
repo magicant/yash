@@ -1398,7 +1398,10 @@ void update_main_buffer(bool subst, bool finish)
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
 	assert(srclen <= wcslen(cand->origvalue));
-	quote(&buf, cand->origvalue + srclen, quotetype);
+	if (cand->origvalue[0] == L'\0' && quotetype == QUOTE_NORMAL)
+	    wb_cat(&buf, L"\"\"");
+	else
+	    quote(&buf, cand->origvalue + srclen, quotetype);
     }
     assert(le_main_index >= substindex);
     wb_replace_force(&le_main_buffer,
