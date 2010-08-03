@@ -13,6 +13,7 @@ case "$("$1" --version 2>/dev/null)" in
 		# not GNU ls.
 		# We explicitly define the "gnu" variable empty to override
 		# the variable that is possibly already defined by the user.
+		;;
 esac
 
 complete -C "$1" -f
@@ -237,8 +238,6 @@ if [ "$gnu" ]; then
 		-D "print in simplified long format with security context"
 	complete -C "$1" -O --scontext \
 		-D "print security context of files"
-	complete -C "$1" -O --help \
-		-D "print help"
-	complete -C "$1" -O --version \
-		-D "print version information"
+	complete -C "$1" -O --help
+	complete -C "$1" -O --version
 fi

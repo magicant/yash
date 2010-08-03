@@ -1,0 +1,42 @@
+# completion settings for the cat command (POSIX; GNU coreutils 8.4)
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+# TODO: other non-POSIX extensions
+case "$("$1" --version 2>/dev/null)" in
+	*'GNU coreutils'*)
+		typeset gnu=true
+		complete -C "$1" -X
+		;;
+	*)
+		typeset gnu=
+		;;
+esac
+
+complete -C "$1" -f -- -
+
+complete -C "$1" -O u \
+	-D "disable buffering"
+
+if [ "$gnu" ]; then
+	complete -C "$1" -O A -O --show-all \
+		-D "-vET: make everything visible"
+	complete -C "$1" -O b -O --number-nonblank \
+		-D "print line number for each non-empty line"
+	complete -C "$1" -O E -O --show-ends \
+		-D "print $ at end of each line"
+	complete -C "$1" -O e \
+		-D "-vE: make everything visible but tabs"
+	complete -C "$1" -O n -O --number \
+		-D "print line number for each line"
+	complete -C "$1" -O s -O --squeeze-blank \
+		-D "squeeze continuous empty lines into one"
+	complete -C "$1" -O T -O --show-tabs \
+		-D "print each tag as ^I"
+	complete -C "$1" -O t \
+		-D "-vT: make everything visible but newlines"
+	complete -C "$1" -O v -O --show-nonprinting \
+		-D "use ^-notation for each unprintable character"
+	complete -C "$1" -O --help
+	complete -C "$1" -O --version
+fi
