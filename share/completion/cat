@@ -24,7 +24,7 @@ if [ "$gnu" ]; then
 	complete -C "$1" -O b -O --number-nonblank \
 		-D "print line number for each non-empty line"
 	complete -C "$1" -O E -O --show-ends \
-		-D "print $ at end of each line"
+		-D "print \$ at end of each line"
 	complete -C "$1" -O e \
 		-D "-vE: make everything visible but tabs"
 	complete -C "$1" -O n -O --number \
