@@ -2216,7 +2216,7 @@ void print_command_absolute_path(
     char *pwd = NULL;
     if (wpwd) {
 	pwd = malloc_wcstombs(wpwd);
-	if (!is_same_file(pwd, ".")) {
+	if (pwd && !is_same_file(pwd, ".")) {
 	    free(pwd);
 	    pwd = NULL;
 	}
