@@ -2203,7 +2203,7 @@ error:
 void print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
 {
-    if (path[0] == L'/') {
+    if (path[0] == '/') {
 	/* the path is already absolute */
 	if (humanfriendly)
 	    printf(gt("%s: external command at %s\n"), name, path);
