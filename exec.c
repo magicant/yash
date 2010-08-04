@@ -2072,7 +2072,7 @@ print_usage:
 	fprintf(stderr, gt("Usage:  type command...\n"));
     else if (posixly_correct)
 	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
-			   "        command -v|-V [-p] command...\n"));
+			   "        command -v|-V [-p] command\n"));
     else
 	fprintf(stderr, gt("Usage:  command [-bBp] command [arg...]\n"
 			   "        command -v|-V [-bBp] command...\n"));
