@@ -2088,8 +2088,11 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     commandinfo_T ci;
     bool finally_exit = false;
 
-    if (!argv0)
-	argv0 = xstrdup("");
+    if (argv0 == NULL) {
+	xerror(EILSEQ, Ngt("invalid command name"));
+	return Exit_NOTFOUND;
+    }
+
     search_command(argv0, argv[0], &ci, type);
     if (ci.type == externalprogram) {
 	pid_t cpid = fork_and_reset(0, true, t_leave);
