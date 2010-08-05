@@ -32,10 +32,14 @@ complete -C "$1" -O d -O --directory \
 	-D "complete as a directory name"
 complete -C "$1" -O --executable-file \
 	-D "complete as an executable filename"
+complete -C "$1" -O --external-command \
+	-D "complete as an external command name"
 complete -C "$1" -O f -O --file \
 	-D "complete as a filename"
 complete -C "$1" -O --finished-job \
 	-D "complete as a finished job name"
+complete -C "$1" -O --function \
+	-D "complete as a function name"
 complete -C "$1" -O --global-alias \
 	-D "complete as a global alias name"
 complete -C "$1" -O g -O --group \
