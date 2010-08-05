@@ -111,7 +111,6 @@ if command -vb alias >/dev/null 2>&1; then
     command -va echo || echo $?
 else
     echo "cd: alias for \`cd_alias'"
-    echo "cd: function"
     echo "alias cd='cd_alias'"
     echo 1
 fi
@@ -121,6 +120,16 @@ echo =2=
 type -k if
 type -k cd 2>&1
 )
+
+function slash/function () {
+    echo slash "$@"
+    return 7
+}
+command -f slash/function a b "C   C"
+echo $?
+unset -f slash/function
+command -bef slash/function 2>/dev/null
+echo $?
 
 
 echo ===== exec =====

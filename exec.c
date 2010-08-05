@@ -80,14 +80,14 @@ typedef struct pipeinfo_T {
 } pipeinfo_T;
 #define PIPEINFO_INIT { -1, { -1, -1 }, }
 
-/* values used to specify the way of command search. */
+/* values used to specify the behavior of command search. */
 enum srchcmdtype_T {
-    sct_external = 1 << 0,  /* search external commands */
-    sct_builtin  = 1 << 1,  /* search builtins */
-    sct_function = 1 << 2,  /* search functions */
-    sct_defpath  = 1 << 3,  /* search the default PATH */
-    sct_rbpath   = 1 << 4,  /* return path of regular builtin */
-    sct_noslash  = 1 << 5,  /* don't check if name contains slash */
+    SCT_EXTERNAL = 1 << 0,  /* search for an external command */
+    SCT_BUILTIN  = 1 << 1,  /* search for a built-in */
+    SCT_FUNCTION = 1 << 2,  /* search for a function */
+    SCT_ALL      = 1 << 3,  /* search all */
+    SCT_STDPATH  = 1 << 4,  /* search the standard PATH */
+    SCT_NOSLASH  = 1 << 5,  /* assume command name contains no slash */
 };
 
 /* info about a simple command to execute */
@@ -772,9 +772,9 @@ pid_t exec_process(
     commandinfo_T cmdinfo;
     bool temp;
 
-    /* First, we check if the command is a special builtin or a function
+    /* First, we check if the command is a special built-in or a function
      * and determine whether we have to open a temporary environment. */
-    search_command(argv0, argv[0], &cmdinfo, sct_builtin | sct_function);
+    search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
     special_builtin_executed = (cmdinfo.type == specialbuiltin);
     temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
     if (temp)
@@ -796,7 +796,7 @@ pid_t exec_process(
     if (cmdinfo.type == externalprogram) {
 	if (posixly_correct) {
 	    search_command(argv0, argv[0], &cmdinfo,
-		    sct_external | sct_builtin);
+		    SCT_EXTERNAL | SCT_BUILTIN);
 	} else {
 	    if (wcschr(argv[0], L'/')) {
 		cmdinfo.ci_path = argv0;
@@ -805,7 +805,7 @@ pid_t exec_process(
 			goto done3;
 	    } else {
 		search_command(argv0, argv[0], &cmdinfo,
-			sct_external | sct_builtin | sct_noslash);
+			SCT_EXTERNAL | SCT_BUILTIN | SCT_NOSLASH);
 		if (cmdinfo.type == externalprogram && cmdinfo.ci_path == NULL)
 		    if (command_not_found_handler(argv))
 			goto done3;
@@ -922,72 +922,78 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
     return cpid;
 }
 
-/* Searches and determines the command to execute.
+/* Searches for a command.
  * The result is assigned to `*ci'.
  * If the command is not found, `ci->type' is set to `externalprogram' and
  * `ci->ci_path' is set to NULL.
- * `name' and `wname' must contain the same string value. */
-/* When the result type `ci->type' is `regularbuiltin', the result value is
- * either a function pointer to the builtin (if the `sct_rbpath' flag is not
- * specified in `type') or the path of the corresponding external command
- * (otherwise). */
-/* In the POSIXly correct mode, you need the sct_external flag to find a regular
- * builtin. */
+ * `name' and `wname' must contain the same string value.
+ * If the SCT_ALL flag is not set:
+ *   *  a function whose name contains a slash cannot be found
+ *   *  a regular built-in cannot be found in the POSIXly correct mode if the
+ *      SCT_EXTERNAL flag is not set either. */
 void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
 {
+    bool slash = !(type & SCT_NOSLASH) && wcschr(wname, L'/');
+
     const builtin_T *bi;
-    command_T *funcbody;
-
-    if (!(type & sct_noslash) && wcschr(wname, L'/')) {
-	if (!(type & sct_external))
-	    goto notfound;
-	ci->type = externalprogram;
-	ci->ci_path = name;
-	return;
-    }
-
-    /* search builtins and functions. */
-    bi = (type & sct_builtin) ? get_builtin(name) : NULL;
+    if (!slash && (type & SCT_BUILTIN))
+	bi = get_builtin(name);
+    else
+	bi = NULL;
     if (bi && bi->type == BI_SPECIAL) {
 	ci->type = specialbuiltin;
 	ci->ci_builtin = bi->body;
 	return;
     }
-    funcbody = (type & sct_function) ? get_function(wname) : NULL;
-    if (funcbody) {
-	ci->type = function;
-	ci->ci_function = funcbody;
-	return;
-    } else if (bi && bi->type == BI_SEMISPECIAL) {
-	ci->type = semispecialbuiltin;
-	ci->ci_builtin = bi->body;
-	return;
-    } else if (bi && !posixly_correct && !(type & sct_rbpath)) {
-	ci->type = regularbuiltin;
-	ci->ci_builtin = bi->body;
-	return;
+
+    if ((type & SCT_FUNCTION) && (!slash || (type & SCT_ALL))) {
+	command_T *funcbody = get_function(wname);
+	if (funcbody) {
+	    ci->type = function;
+	    ci->ci_function = funcbody;
+	    return;
+	}
     }
 
-    if (!(type & (sct_external | sct_rbpath)))
-	goto notfound;
-
-    ci->ci_path = (type & sct_defpath)
-	? get_command_path_default(name) : get_command_path(name, false);
-    if (bi && (ci->ci_path || !posixly_correct)) {
-	assert(bi->type == BI_REGULAR);
-	ci->type = regularbuiltin;
-	if (!(type & sct_rbpath))
+    if (bi) {
+	if (bi->type == BI_SEMISPECIAL) {
+	    ci->type = semispecialbuiltin;
 	    ci->ci_builtin = bi->body;
-    } else {
-	ci->type = externalprogram;
-	if (!(type & sct_external))
-	    ci->ci_path = NULL;
+	    return;
+	} else if (!posixly_correct) {
+	    goto regular_builtin;
+	}
     }
-    return;
 
-notfound:
+    if (slash) {
+	ci->type = externalprogram;
+	ci->ci_path = name;
+	return;
+    }
+
+    if ((type & SCT_EXTERNAL) || (bi && (type & SCT_ALL))) {
+	const char *cmdpath;
+	if (type & SCT_STDPATH)
+	    cmdpath = get_command_path_default(name);
+	else
+	    cmdpath = get_command_path(name, false);
+	if (cmdpath) {
+	    if (bi) {
+regular_builtin:
+		assert(bi->type == BI_REGULAR);
+		ci->type = regularbuiltin;
+		ci->ci_builtin = bi->body;
+	    } else {
+		ci->type = externalprogram;
+		ci->ci_path = cmdpath;
+	    }
+	    return;
+	}
+    }
+
+    /* command not found... */
     ci->type = externalprogram;
     ci->ci_path = NULL;
     return;
@@ -2021,9 +2027,9 @@ int command_builtin(int argc, void **argv)
 		    long_options, NULL))) {
 	switch (opt) {
 	    case L'a':  aliases = true;        break;
-	    case L'b':  type |= sct_builtin;   break;
-	    case L'e':  type |= sct_external;  break;
-	    case L'f':  type |= sct_function;  break;
+	    case L'b':  type |= SCT_BUILTIN;   break;
+	    case L'e':  type |= SCT_EXTERNAL;  break;
+	    case L'f':  type |= SCT_FUNCTION;  break;
 	    case L'k':  keywords = true;       break;
 	    case L'p':  defpath = true;        break;
 	    case L'v':  printinfo = true;  humanfriendly = false;  break;
@@ -2047,20 +2053,24 @@ int command_builtin(int argc, void **argv)
 		return Exit_SUCCESS;
 	}
 	if (!type)
-	    type = sct_external | sct_builtin;
+	    type = SCT_EXTERNAL | SCT_BUILTIN;
+	else
+	    type |= SCT_ALL;
 	if (defpath)
-	    type |= sct_defpath;
+	    type |= SCT_STDPATH;
 	return command_builtin_execute(
 		argc - xoptind, argv + xoptind, type);
     } else {
 	if (!argv0istype && posixly_correct && argc - xoptind != 1)
 	    goto print_usage;
 	if (!type && !aliases && !keywords) {
-	    type = sct_external | sct_builtin | sct_function;
+	    type = SCT_EXTERNAL | SCT_BUILTIN | SCT_FUNCTION;
 	    aliases = keywords = true;
+	} else {
+	    type |= SCT_ALL;
 	}
 	if (defpath)
-	    type |= sct_defpath;
+	    type |= SCT_STDPATH;
 
 	bool ok = true;
 	clearerr(stdout);
@@ -2136,17 +2146,13 @@ bool print_command_info(
 	msgfmt = humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n";
 	if (printf(msgfmt, commandname) < 0)
 	    goto ioerror;
-	if (!humanfriendly)
-	    return true;
-	found = true;
+	return true;
     }
 
 #if YASH_ENABLE_ALIAS
     if (aliases) {
 	if (print_alias_if_defined(commandname, humanfriendly)) {
-	    if (!humanfriendly)
-		return true;
-	    found = true;
+	    return true;
 	} else {
 	    if (ferror(stdout))
 		return false;
@@ -2161,7 +2167,7 @@ bool print_command_info(
 	return false;
 
     commandinfo_T ci;
-    search_command(name, commandname, &ci, type | sct_rbpath);
+    search_command(name, commandname, &ci, type);
     switch (ci.type) {
 	case externalprogram:
 	    if (ci.ci_path && is_executable_regular(ci.ci_path)) {
@@ -2183,25 +2189,22 @@ bool print_command_info(
 		goto ioerror;
 	    found = true;
 	    break;
-	case regularbuiltin:
-	    if (ci.ci_path) {
-		if (humanfriendly) {
-		    msgfmt = gt("%s: regular builtin at %s\n");
-		    if (printf(msgfmt, name, ci.ci_path) < 0)
-			goto ioerror;
-		} else {
-		    if (puts(ci.ci_path) < 0)
-			goto ioerror;
-		}
-	    } else {
-		if (humanfriendly) {
+	case regularbuiltin:;
+	    const char *cmdpath;
+	    if (type & SCT_STDPATH)
+		cmdpath = get_command_path_default(name);
+	    else
+		cmdpath = get_command_path(name, false);
+	    if (humanfriendly) {
+		if (cmdpath == NULL)
 		    msgfmt = gt("%s: regular builtin (not found in $PATH)\n");
-		    if (printf(msgfmt, name) < 0)
-			goto ioerror;
-		} else {
-		    if (puts(name) < 0)
-			goto ioerror;
-		}
+		else
+		    msgfmt = gt("%s: regular builtin at %s\n");
+		if (printf(msgfmt, name, cmdpath) < 0)
+		    goto ioerror;
+	    } else {
+		if (puts(cmdpath == NULL ? name : cmdpath) < 0)
+		    goto ioerror;
 	    }
 	    found = true;
 	    break;
