@@ -1482,9 +1482,9 @@ static int command_builtin_execute(
 	int argc, void **argv, enum srchcmdtype_T type)
     __attribute__((nonnull));
 static bool print_command_info(const wchar_t *commandname,
-	enum srchcmdtype_T type, bool keywordalias, bool humanfriendly)
+	enum srchcmdtype_T type, bool alias, bool keyword, bool humanfriendly)
     __attribute__((nonnull));
-static void print_command_absolute_path(
+static bool print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
     __attribute__((nonnull));
 
@@ -1984,16 +1984,22 @@ const char exec_help[] = Ngt(
 #endif
 
 /* The "command"/"type" builtin, which accepts the following options:
+ *  -a: search aliases
  *  -b: search builtins
- *  -B: search external commands
+ *  -e: search external commands
+ *  -f: search functions
+ *  -k: search keywords
  *  -p: use the default path to find the command
  *  -v: print info about the command
  *  -V: print info about the command in a human-friendly format */
 int command_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"builtin-only",     xno_argument, L'b', },
-	{ L"external-only",    xno_argument, L'B', },
+	{ L"alias",            xno_argument, L'a', },
+	{ L"builtin-command",  xno_argument, L'b', },
+	{ L"external-command", xno_argument, L'e', },
+	{ L"function",         xno_argument, L'f', },
+	{ L"keyword",          xno_argument, L'k', },
 	{ L"standard-path",    xno_argument, L'p', },
 	{ L"identify",         xno_argument, L'v', },
 	{ L"verbose-identify", xno_argument, L'V', },
@@ -2005,17 +2011,21 @@ int command_builtin(int argc, void **argv)
 
     bool argv0istype = wcscmp(ARGV(0), L"type") == 0;
     bool printinfo = argv0istype, humanfriendly = argv0istype;
-    bool builtin = false, external = false, defpath = false;
+    enum srchcmdtype_T type = 0;
+    bool aliases = false, keywords = false, defpath = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"+pvV" : L"+bBpvV",
+		    posixly_correct ? L"+pvV" : L"+abefkpvV",
 		    long_options, NULL))) {
 	switch (opt) {
-	    case L'b':  builtin   = true;  break;
-	    case L'B':  external  = true;  break;
-	    case L'p':  defpath   = true;  break;
+	    case L'a':  aliases = true;        break;
+	    case L'b':  type |= sct_builtin;   break;
+	    case L'e':  type |= sct_external;  break;
+	    case L'f':  type |= sct_function;  break;
+	    case L'k':  keywords = true;       break;
+	    case L'p':  defpath = true;        break;
 	    case L'v':  printinfo = true;  humanfriendly = false;  break;
 	    case L'V':  printinfo = true;  humanfriendly = true;   break;
 #if YASH_ENABLE_HELP
@@ -2027,42 +2037,38 @@ int command_builtin(int argc, void **argv)
 	}
     }
 
-    if (xoptind == argc) {
-	if (posixly_correct)
-	    goto print_usage;
-	else
-	    return Exit_SUCCESS;
-    } else if (posixly_correct && (builtin || external)) {
-	goto print_usage;
-    }
-
-    enum srchcmdtype_T type = 0;
-    if (builtin)
-	type |= sct_builtin;
-    if (external)
-	type |= sct_external;
-    if (!builtin && !external)
-	type |= sct_builtin | sct_external;
-    if (defpath)
-	type |= sct_defpath;
-
     if (!printinfo) {
+	if (aliases || keywords)
+	    goto print_usage;
+	if (xoptind == argc) {
+	    if (posixly_correct)
+		goto print_usage;
+	    else
+		return Exit_SUCCESS;
+	}
+	if (!type)
+	    type = sct_external | sct_builtin;
+	if (defpath)
+	    type |= sct_defpath;
 	return command_builtin_execute(
 		argc - xoptind, argv + xoptind, type);
     } else {
-	bool keywordalias = false;
-	if (!builtin && !external)
-	    type |= sct_function, keywordalias = true;
+	if (!argv0istype && posixly_correct && argc - xoptind != 1)
+	    goto print_usage;
+	if (!type && !aliases && !keywords) {
+	    type = sct_external | sct_builtin | sct_function;
+	    aliases = keywords = true;
+	}
+	if (defpath)
+	    type |= sct_defpath;
 
 	bool ok = true;
 	clearerr(stdout);
 	for (int i = xoptind; i < argc; i++) {
 	    ok &= print_command_info(
-		    ARGV(i), type, keywordalias, humanfriendly);
-	    if (ferror(stdout)) {
-		xerror(0, Ngt("cannot print to standard output"));
-		return Exit_FAILURE;
-	    }
+		    ARGV(i), type, aliases, keywords, humanfriendly);
+	    if (ferror(stdout))
+		break;
 	}
 	return ok ? Exit_SUCCESS : Exit_FAILURE;
     }
@@ -2074,8 +2080,8 @@ print_usage:
 	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
 			   "        command -v|-V [-p] command\n"));
     else
-	fprintf(stderr, gt("Usage:  command [-bBp] command [arg...]\n"
-			   "        command -v|-V [-bBp] command...\n"));
+	fprintf(stderr, gt("Usage:  command [-befp] command [arg...]\n"
+			   "        command -v|-V [-abefkp] command...\n"));
     return Exit_ERROR;
 }
 
@@ -2117,30 +2123,41 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 }
 
 /* Prints info about the specified command.
- * If the command is not found, returns false.
- * The shell keywords and aliases are printed only when `keywordalias' is true.
- */
+ * If the command is not found, returns false. */
 bool print_command_info(
 	const wchar_t *commandname, enum srchcmdtype_T type,
-	bool keywordalias, bool humanfriendly)
+	bool aliases, bool keywords, bool humanfriendly)
 {
-    bool found;
+    const char *msgfmt;
+    char *name = NULL;
+    bool found = false;
 
-    if (keywordalias && is_keyword(commandname)) {
-	printf(humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n",
-		commandname);
-	return true;
+    if (keywords && is_keyword(commandname)) {
+	msgfmt = humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n";
+	if (printf(msgfmt, commandname) < 0)
+	    goto ioerror;
+	if (!humanfriendly)
+	    return true;
+	found = true;
     }
+
 #if YASH_ENABLE_ALIAS
-    found = keywordalias && print_alias_if_defined(commandname, humanfriendly);
-    if (found && !humanfriendly)
-	return true;
+    if (aliases) {
+	if (print_alias_if_defined(commandname, humanfriendly)) {
+	    if (!humanfriendly)
+		return true;
+	    found = true;
+	} else {
+	    if (ferror(stdout))
+		return false;
+	}
+    }
 #else
-    found = false;
+    (void) aliases;
 #endif
 
-    char *name = malloc_wcstombs(commandname);
-    if (!name)
+    name = malloc_wcstombs(commandname);
+    if (name == NULL)
 	return false;
 
     commandinfo_T ci;
@@ -2148,68 +2165,76 @@ bool print_command_info(
     switch (ci.type) {
 	case externalprogram:
 	    if (ci.ci_path && is_executable_regular(ci.ci_path)) {
-		print_command_absolute_path(name, ci.ci_path, humanfriendly);
-		goto ok;
-	    } else if (found) {
-		goto ok;
-	    } else {
-		if (humanfriendly)
-		    xerror(0, gt("%s: no such command or function"), name);
-		goto error;
+		if (!print_command_absolute_path(
+			    name, ci.ci_path, humanfriendly))
+		    goto ioerror;
+		found = true;
 	    }
+	    break;
 	case specialbuiltin:
-	    if (humanfriendly)
-		printf(gt("%s: special builtin\n"), name);
-	    else
-		puts(name);
-	    goto ok;
+	    msgfmt = humanfriendly ? gt("%s: special builtin\n") : "%s\n";
+	    if (printf(msgfmt, name) < 0)
+		goto ioerror;
+	    found = true;
+	    break;
 	case semispecialbuiltin:
-	    if (humanfriendly)
-		printf(gt("%s: semi-special builtin\n"), name);
-	    else
-		puts(name);
-	    goto ok;
+	    msgfmt = humanfriendly ? gt("%s: semi-special builtin\n") : "%s\n";
+	    if (printf(msgfmt, name) < 0)
+		goto ioerror;
+	    found = true;
+	    break;
 	case regularbuiltin:
 	    if (ci.ci_path) {
-		if (humanfriendly)
-		    printf(gt("%s: regular builtin at %s\n"), name, ci.ci_path);
-		else
-		    puts(ci.ci_path);
+		if (humanfriendly) {
+		    msgfmt = gt("%s: regular builtin at %s\n");
+		    if (printf(msgfmt, name, ci.ci_path) < 0)
+			goto ioerror;
+		} else {
+		    if (puts(ci.ci_path) < 0)
+			goto ioerror;
+		}
 	    } else {
-		if (humanfriendly)
-		    printf(gt("%s: regular builtin (not found in $PATH)\n"),
-			    name);
-		else
-		    puts(name);
+		if (humanfriendly) {
+		    msgfmt = gt("%s: regular builtin (not found in $PATH)\n");
+		    if (printf(msgfmt, name) < 0)
+			goto ioerror;
+		} else {
+		    if (puts(name) < 0)
+			goto ioerror;
+		}
 	    }
-	    goto ok;
+	    found = true;
+	    break;
 	case function:
-	    if (humanfriendly)
-		printf(gt("%s: function\n"), name);
-	    else
-		puts(name);
-	    goto ok;
+	    msgfmt = humanfriendly ? gt("%s: function\n") : "%s\n";
+	    if (printf(msgfmt, name) < 0)
+		goto ioerror;
+	    found = true;
+	    break;
     }
 
-ok:
+    if (!found && humanfriendly)
+	xerror(0, Ngt("%s: no such command or function"), name);
     free(name);
-    return true;
-error:
+    return found;
+
+ioerror:
+    xerror(errno, Ngt("cannot print to standard output"));
     free(name);
     return false;
 }
 
-/* Prints the absolute path of the specified command. */
-void print_command_absolute_path(
+/* Prints the absolute path of the specified command.
+ * Returns false on error (errno is set). */
+bool print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
 {
     if (path[0] == '/') {
 	/* the path is already absolute */
 	if (humanfriendly)
-	    printf(gt("%s: external command at %s\n"), name, path);
+	    return printf(gt("%s: external command at %s\n"), name, path) >= 0;
 	else
-	    puts(path);
-	return;
+	    return puts(path) >= 0;
     }
 
     const wchar_t *wpwd = getvar(L VAR_PWD);
@@ -2227,37 +2252,44 @@ void print_command_absolute_path(
 	    pwd = xstrdup(".");  /* last resort */
     }
 
+    int r, saveerrno;
     if (humanfriendly)
-	printf(gt("%s: external command at %s/%s\n"), name, pwd, path);
+	r = printf(gt("%s: external command at %s/%s\n"), name, pwd, path);
     else
-	printf("%s/%s\n", pwd, path);
+	r = printf("%s/%s\n", pwd, path);
+    saveerrno = errno;
     free(pwd);
-    return;
+    errno = saveerrno;
+    return r >= 0;
 }
 
 #if YASH_ENABLE_HELP
 
 const char command_help[] = Ngt(
 "command - execute or identify command\n"
-"\tcommand [-bBp] command [argument...]\n"
-"\tcommand -v|-V [-bBp] command...\n"
+"\tcommand [-befp] command [argument...]\n"
+"\tcommand -v|-V [-abefkp] command...\n"
 "Executes or identifies the specified command.\n"
-"Without the -v or -V option, <command> is executed with given <argument>s if\n"
-"any. <command> is treated as a builtin or external command, but not a\n"
-"function or an alias. If the -p (--standard-path) option is given, the\n"
-"system's default PATH is searched for the command instead of the current\n"
-"$PATH. If the -b (--builtin-only) option (but not -B) is given, <command> is\n"
-"treated as a builtin only: the external command is ignored. The -B\n"
-"(--external-only) option does the opposite: an external command is executed\n"
-"ignoring the builtin.\n"
-"With the -v (--identify) option, identifies <command>. If the command is\n"
-"found in $PATH, its full path is printed. If it is a builtin or a function,\n"
+"Without the -v or -V option, <command> is executed with <argument>s given.\n"
+"<command> is treated as a built-in or external command or a function\n"
+"according to the options specified. If the -p (--standard-path) option is\n"
+"given, the system's default PATH is searched for the command instead of the\n"
+"current $PATH.\n"
+"With the -v (--identify) option, <command> is identified. If the command is\n"
+"found in $PATH, its full path is printed. If it is a built-in or a function,\n"
 "the command name is simply printed. If it is an alias, it is printed in the\n"
 "form like \"alias ll='ls -l'\". If the command is not found, nothing is\n"
 "printed and the exit status is non-zero.\n"
 "With the -V (--verbose-identify) option, the command is identified in the\n"
 "same way but the result is printed verbosely in a human-readable form.\n"
-"In the POSIXly correct mode, the -b and -B options are not available.\n"
+"The following options specify the command type:\n"
+"  -a --alias\n"
+"  -b --builtin-command\n"
+"  -e --external-command\n"
+"  -f --function\n"
+"  -k --keyword\n"
+"When none of these are specified, they default to -be (without -v or -V) or\n"
+"-abefk (with -v or -V)\n"
 );
 
 const char type_help[] = Ngt(

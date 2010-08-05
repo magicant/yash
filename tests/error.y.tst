@@ -365,6 +365,8 @@ echo ===== command ===== >&2
 
 command --no-such-option
 echo command no-such-option $?
+command -a foo
+echo command invalid-option $?
 (command -v command >&- 2>/dev/null)
 echo command output error $?
 (PATH=; command no_such_command)

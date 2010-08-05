@@ -125,8 +125,10 @@ exec: --no-such-option: invalid option
 Usage:  exec [-cf] [-a name] [command [arg...]]
 ===== command =====
 command: --no-such-option: invalid option
-Usage:  command [-bBp] command [arg...]
-        command -v|-V [-bBp] command...
+Usage:  command [-befp] command [arg...]
+        command -v|-V [-abefkp] command...
+Usage:  command [-befp] command [arg...]
+        command -v|-V [-abefkp] command...
 command: no_such_command: no such command or function
 =1=
 =2=

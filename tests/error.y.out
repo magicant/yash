@@ -113,6 +113,7 @@ exec no-such-option 2
 exec command not found 127
 ===== command =====
 command no-such-option 2
+command invalid-option 2
 command output error 1
 command no-such-command 1 127
 command no-such-command 2 1
