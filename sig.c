@@ -605,12 +605,12 @@ void handle_sigchld(void)
 	/* print job status if the notify option is set */
 #if YASH_ENABLE_LINEEDIT
 	if (le_state & LE_STATE_ACTIVE) {
-	    if (le_state & LE_STATE_COMPLETING)
-		return;
-	    if (shopt_notify || shopt_notifyle) {
-		le_suspend_readline();
-		print_job_status_all();
-		le_resume_readline();
+	    if (!(le_state & LE_STATE_COMPLETING)) {
+		if (shopt_notify || shopt_notifyle) {
+		    le_suspend_readline();
+		    print_job_status_all();
+		    le_resume_readline();
+		}
 	    }
 	} else
 #endif
