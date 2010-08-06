@@ -677,8 +677,13 @@ void exec_commands(command_T *c, exec_T type)
     }
 
     handle_signals();
-    if (shopt_errexit && !supresserrexit && laststatus != Exit_SUCCESS
-	    && lasttype == CT_SIMPLE)
+
+    if (shopt_errexit && !supresserrexit
+	    && laststatus != Exit_SUCCESS && lasttype == CT_SIMPLE
+#if YASH_ENABLE_LINEEDIT
+	    && !(le_state & LE_STATE_COMPLETING)
+#endif
+	    )
 	exit_shell_with_status(laststatus);
 }
 
