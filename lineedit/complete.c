@@ -182,10 +182,10 @@ void le_complete(le_compresult_T lecr)
 	 * candidate generator code. */
 	le_display_finalize();
 	le_restore_terminal();
-	le_state = LE_STATE_SUSPENDED_COMPDEBUG;
+	le_state = LE_STATE_SUSPENDED | LE_STATE_COMPLETING;
 	le_compdebug("completion start");
     } else {
-	le_state = LE_STATE_ACTIVE_COMPLETING;
+	le_state |= LE_STATE_COMPLETING;
 	le_allow_terminal_signal(true);
     }
 
@@ -194,7 +194,7 @@ void le_complete(le_compresult_T lecr)
     common_prefix_length = (size_t) -1;
 
     ctxt = le_get_context();
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG)
+    if (le_state_is_compdebug)
 	print_context_info(ctxt);
 
     generate_candidates(get_candgen());
@@ -204,12 +204,13 @@ void le_complete(le_compresult_T lecr)
     /* display the results */
     lecr();
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	le_compdebug("completion end");
 	le_setupterm(true);
 	le_set_terminal();
     } else {
-	assert(le_state == LE_STATE_ACTIVE_COMPLETING);
+	assert((le_state & (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
+			== (LE_STATE_ACTIVE | LE_STATE_COMPLETING));
 	le_allow_terminal_signal(false);
 
 	/* the terminal size may have been changed during completion, so we
@@ -441,7 +442,7 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
  * The string is preceded by "[compdebug] " and followed by a newline. */
 void le_compdebug(const char *format, ...)
 {
-    if (le_state != LE_STATE_SUSPENDED_COMPDEBUG)
+    if (!le_state_is_compdebug)
 	return;
 
     fputs("[compdebug] ", stderr);
@@ -970,7 +971,7 @@ void le_add_candidate(le_candidate_T *cand)
 	cand->value = cand->origvalue + prefixlen;
     }
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	const char *typestr = NULL;
 	switch (cand->type) {
 	    case CT_WORD:      typestr = "word";                       break;
@@ -1345,7 +1346,7 @@ size_t get_common_prefix_length(void)
     }
     common_prefix_length = cpl;
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	wchar_t value[common_prefix_length + 1];
 	cand = le_candidates.contents[0];
 	wcsncpy(value, cand->origvalue, common_prefix_length);
@@ -2371,7 +2372,7 @@ int complete_builtin_delegate(int wordc, void **words)
     }
     newctxt.origpattern = newctxt.pattern;
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	le_compdebug("delegation start (complete -G)");
 	print_context_info(&newctxt);
     }

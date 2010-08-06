@@ -604,12 +604,14 @@ void handle_sigchld(void)
 
 	/* print job status if the notify option is set */
 #if YASH_ENABLE_LINEEDIT
-	if (le_state == LE_STATE_ACTIVE_COMPLETING)
-	    return;
-	if ((shopt_notify || shopt_notifyle) && le_state == LE_STATE_ACTIVE) {
-	    le_suspend_readline();
-	    print_job_status_all();
-	    le_resume_readline();
+	if (le_state & LE_STATE_ACTIVE) {
+	    if (le_state & LE_STATE_COMPLETING)
+		return;
+	    if (shopt_notify || shopt_notifyle) {
+		le_suspend_readline();
+		print_job_status_all();
+		le_resume_readline();
+	    }
 	} else
 #endif
 	if (shopt_notify) {
@@ -640,7 +642,8 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
     /* Don't handle traps during command line completion. Otherwise, the command
      * line would be messed up! */
-    if (le_state == LE_STATE_ACTIVE_COMPLETING)
+    if ((le_state & (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
+		 == (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
 	return 0;
 #endif
 
@@ -707,7 +710,7 @@ int handle_traps(void)
     if (state)
 	restore_parse_state(state);
 #if YASH_ENABLE_LINEEDIT
-    if (shopt_notifyle && le_state == LE_STATE_SUSPENDED)
+    if (shopt_notifyle && (le_state & LE_STATE_SUSPENDED))
 	print_job_status_all();
     le_resume_readline();
 #endif
