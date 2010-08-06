@@ -6,3 +6,4 @@ cd completion/pushd
 typeset completion/readonly
 return completion/shift
 return completion/times
+command completion/type
