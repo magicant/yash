@@ -3,7 +3,7 @@
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
 case "$("$1" --version 2>/dev/null)" in
-	*'GNU coreutils'*)
+	*'coreutils'*)
 		typeset gnu=true
 		complete -C "$1" -X
 		# options may come after operands in GNU ls

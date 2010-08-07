@@ -15,8 +15,8 @@ complete -C "$1" -O u \
 
 if [ "$ext" ]; then
 	case "$("$1" --version 2>/dev/null)" in
-		*'GNU coreutils'*) typeset gnu=true ;;
-		*                ) typeset gnu=     ;;
+		*'coreutils'*) typeset gnu=true ;;
+		*            ) typeset gnu=     ;;
 	esac
 
 	complete -C "$1" -O b ${gnu:+-O --number-nonblank} \
