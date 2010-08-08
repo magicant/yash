@@ -1,0 +1,31 @@
+# completion settings for the cmp command (POSIX; GNU diffutils 2.8.1)
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+case "$("$1" --version 2>/dev/null)" in
+	*'diffutils'*)
+		typeset gnu=true
+		;;
+	*)
+		typeset gnu=
+		;;
+esac
+
+complete -C "$1" -f
+
+complete -C "$1" -O l ${gnu:+-O --verbose} \
+	-D "print all differing byte values"
+complete -C "$1" -O s ${gnu:+-O --silent} \
+	-D "print nothing"
+if [ "$gnu" ]; then
+	complete -C "$1" -O b -O --print-bytes \
+		-D "print differing byte values in ^-notation"
+	complete -C "$1" -O i -O --ignore-initial -F comp/ \
+		-D "specify number of bytes to skip"
+	complete -C "$1" -O n -O --bytes -F comp/ \
+		-D "specify number of bytes to compare at most"
+	complete -C "$1" -O --quiet \
+		-D "print nothing"
+	complete -C "$1" -O --help
+	complete -C "$1" -O v -O --version
+fi

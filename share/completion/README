@@ -53,7 +53,10 @@ When you write a completion file, please follow these guidelines:
 
  * Descriptions should be brief and specific as much as possible.
    Currently, we provide descriptions for options, operands, and option
-   arguments, but not for commands.
+   arguments, but not for commands. (Descriptions for commands are shown when
+   the shell completes a command name, but completion files haven't been read
+   then. So, specifying descriptions for commands in completion files is
+   useless.)
    Descriptions of the "--help" and "--version" options are normally not
    provided because their usage is obvious.
    (This guideline may be changed in the future.)
