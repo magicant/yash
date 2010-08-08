@@ -1035,7 +1035,8 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 	wchar_t *name = list.contents[i];
 	char *mbsname = malloc_wcstombs(name);
 	struct stat st;
-	if (mbsname != NULL && stat(mbsname, &st) >= 0) {
+	if (mbsname != NULL &&
+		(stat(mbsname, &st) >= 0 || lstat(mbsname, &st) >= 0)) {
 	    bool executable = S_ISREG(st.st_mode) && is_executable(mbsname);
 	    if ((type & CGT_FILE)
 		    || ((type & CGT_DIRECTORY) && S_ISDIR(st.st_mode))
