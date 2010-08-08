@@ -1,4 +1,4 @@
-# completion settings for the basename command (POSIX; GNU coreutils 8.4)
+# completion settings for the basename command (POSIX 2008; GNU coreutils 8.4)
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
