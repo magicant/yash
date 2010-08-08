@@ -1,0 +1,80 @@
+# completion settings for the chown command (POSIX; GNU coreutils 8.4)
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+case "$("$1" --version 2>/dev/null)" in
+	*'coreutils'*)
+		typeset gnu=true
+		complete -C "$1" -X
+		;;
+	*)
+		typeset gnu=
+		;;
+esac
+
+complete -C "$1" -F comp/chown
+
+complete -C "$1" -O h ${gnu:+-O --no-dereference} \
+	-D "change the owner of symbolic links"
+complete -C "$1" -O H \
+	-D "with -R, follow symbolic links to directories in operands"
+complete -C "$1" -O L \
+	-D "with -R, follow all symbolic links to directories"
+complete -C "$1" -O P \
+	-D "with -R, don't follow any symbolic links"
+complete -C "$1" -O R ${gnu:+-O --recursive} \
+	-D "recursively change the owner of files in a directory"
+if [ "$gnu" ]; then
+	complete -C "$1" -O c -O --changes \
+		-D "print a message when a change has been made"
+	complete -C "$1" -O --dereference \
+		-D "change the owner of files referred to by symbolic links"
+	complete -C "$1" -O --from -F comp/chown/op \
+		-D "specify an owner:group only from which changes are made"
+	complete -C "$1" -O --no-preserve-root \
+		-D "cancel the --preserve-root option"
+	complete -C "$1" -O --preserve-root \
+		-D "don't recursively change the owner of the root directory"
+	complete -C "$1" -O f -O --silent \
+		-D "ignore errors"
+	complete -C "$1" -O --quiet \
+		-D "ignore errors"
+	complete -C "$1" -O --reference -f \
+		-D "specify a file to whose owner changes are made"
+	complete -C "$1" -O v -O --verbose \
+		-D "print a message for each file processed"
+	complete -C "$1" -O --help
+	complete -C "$1" -O --version
+fi
+
+function comp/chown {
+	shift
+	while [ $# -gt 1 ]; do
+		case "$1" in
+			--)
+				if [ $# -eq 2 ]; then
+					break
+				else
+					complete -f
+				fi
+				return ;;
+			--ref*)
+				complete -f
+				return ;;
+			-?*)
+				shift ;;
+			*)
+				complete -f
+				return ;;
+		esac
+	done
+	command -f comp/chown/op "$@"
+}
+
+function comp/chown/op {
+	typeset word="${@[-1]}"
+	case "$word" in
+		*:*) complete -W "${word#*:}" -g ;;
+		*  ) complete                 -u ;;
+	esac
+}

@@ -1,26 +1,87 @@
-# completion settings for the umask built-in
+# completion settings for the umask built-in and the chmod command (POSIX;
+# GNU coreutils 8.4)
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
-complete -C "$1" -X -F comp/umask
 
-complete -C "$1" -O S -O --symbolic \
+## umask settings
+complete -C umask -X -F comp/chmod
+
+complete -C umask -O S -O --symbolic \
 	-D "produce a symbolic output"
-complete -C "$1" -O --help
+complete -C umask -O --help
 
-function comp/umask {
-	typeset word="${@[-1]}"
 
-	# we don't complete a numeric umask value
+## chmod settings
+case "$(chmod --version 2>/dev/null)" in
+	*'coreutils'*)
+		typeset gnu=true
+		complete -C chmod -X
+		;;
+	*)
+		typeset gnu=
+		;;
+esac
+
+complete -C chmod -F comp/chmod
+
+complete -C chmod -O R ${gnu:+-O --recursive} \
+	-D "recursively change the permission of files in a directory"
+if [ "$gnu" ]; then
+	complete -C chmod -O c -O --changes \
+		-D "print a message when a change has been made"
+	complete -C chmod -O --no-preserve-root \
+		-D "cancel the --preserve-root option"
+	complete -C chmod -O --preserve-root \
+	-D "don't recursively change the permission of the root directory"
+	complete -C chmod -O f -O --silent \
+		-D "ignore errors"
+	complete -C chmod -O --quiet \
+		-D "ignore errors"
+	complete -C chmod -O --reference -f \
+		-D "specify a file to whose permission changes are made"
+	complete -C chmod -O v -O --verbose \
+		-D "print a message for each file processed"
+	complete -C chmod -O --help
+	complete -C chmod -O --version
+fi
+
+
+## common candidate generator function
+function comp/chmod {
+	typeset cmd="$1" word="${@[-1]}"
+
+	shift
+	while [ $# -gt 1 ]; do
+		case "$1" in
+			--)
+				if [ $# -eq 2 ]; then
+					break
+				else
+					complete -f
+				fi
+				return ;;
+			--ref*)
+				complete -f
+				return ;;
+			-?*)
+				shift ;;
+			*)
+				complete -f
+				return ;;
+		esac
+	done
+
+	# we don't complete a numeric mode value
 	case "$word" in ([[:digit:]]*)
 		return
 	esac
 
-	word="${word##*,}"
+	word=${word##*,}
 	complete -W ""
 	case "$word" in (*[-+=]*)
 		case "$word" in
-		*[-+=]*[ugo])
+		*[-+=]*[ugo]*)
 			return;;
 		*[-+=])
 			complete u \
@@ -40,6 +101,10 @@ function comp/umask {
 			-D "execute permission (only when there's already one)"
 		complete s \
 			-D "set-user/group-ID"
+		if [ "$cmd" = chmod ]; then
+			complete t \
+				-D "sticky bit"
+		fi
 		return
 	esac
 
