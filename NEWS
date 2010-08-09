@@ -12,7 +12,12 @@ Yash 2.24
 
   +  New options in the "command" built-in: -a, -f, -k
   -  Removed the -B option in the "command" built-in.
-  *  Minor fixes in command completion.
+  =  Fixed configuration process so that the shell can handle all
+     kinds of signals on FreeBSD.
+  =  Short options now come before long options in a completion
+     candidate list.
+  *  Symbolic links to non-existent files can now be completed.
+  *  Other fixes in command completion.
 
 ----------------------------------------------------------------------
 Yash 2.23
