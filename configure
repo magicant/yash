@@ -302,7 +302,6 @@ else
     checked "no"
     posixver=""
 fi
-posix=${posixver}
 
 checking 'SUS conformance'
 xopenver=$(getconf _XOPEN_VERSION 2>/dev/null)
@@ -313,7 +312,20 @@ else
     checked "no"
     xopenver=""
 fi
-xopen=${xopenver}
+
+case "${ostype}" in
+    freebsd)
+	# FreeBSD doesn't have a feature test macro to enable non-POSIX
+	# extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
+	# non-POSIX extensions are available.
+	posix=
+	xopen=
+	;;
+    *)
+	posix=${posixver}
+	xopen=${xopenver}
+	;;
+esac
 
 
 # check if gcc is available if the debug option is enabled
