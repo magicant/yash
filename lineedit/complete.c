@@ -433,7 +433,21 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
 {
     const le_candidate_T *cand1 = *(const le_candidate_T **) cp1;
     const le_candidate_T *cand2 = *(const le_candidate_T **) cp2;
-    return wcscoll(cand1->origvalue, cand2->origvalue);
+    const wchar_t *v1 = cand1->origvalue;
+    const wchar_t *v2 = cand2->origvalue;
+
+    /* sort candidates that start with hyphens in a special order so that short
+     * options come before long options */
+    if (v1[0] == L'-' || v2[0] == L'-') {
+	while (*v1 == L'-' && *v2 == L'-')
+	    v1++, v2++;
+	if (*v1 == L'-')
+	    return 1;
+	if (*v2 == L'-')
+	    return -1;
+    }
+
+    return wcscoll(v1, v2);
     // XXX case-sensitive
 }
 
