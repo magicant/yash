@@ -598,16 +598,22 @@ bool wait_for_input(int fd, bool trap, int timeout)
 /* Handles SIGCHLD if caught. */
 void handle_sigchld(void)
 {
+    static bool print_status = false;
+
     if (sigchld_received) {
         sigchld_received = false;
         do_wait();
+	print_status = true;
+    }
 
+    if (print_status) {
 	/* print job status if the notify option is set */
 #if YASH_ENABLE_LINEEDIT
 	if (le_state & LE_STATE_ACTIVE) {
 	    if (!(le_state & LE_STATE_COMPLETING)) {
 		if (shopt_notify || shopt_notifyle) {
 		    le_suspend_readline();
+		    print_status = false;
 		    print_job_status_all();
 		    le_resume_readline();
 		}
@@ -620,6 +626,7 @@ void handle_sigchld(void)
 	    sigaddset(&ss, SIGTTOU);
 	    sigemptyset(&savess);
 	    sigprocmask(SIG_BLOCK, &ss, &savess);
+	    print_status = false;
 	    print_job_status_all();
 	    sigprocmask(SIG_SETMASK, &savess, NULL);
 	}
