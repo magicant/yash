@@ -649,8 +649,7 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
     /* Don't handle traps during command line completion. Otherwise, the command
      * line would be messed up! */
-    if ((le_state & (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
-		 == (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
+    if (le_state & LE_STATE_COMPLETING)
 	return 0;
 #endif
 
