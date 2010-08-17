@@ -32,7 +32,7 @@ if [ "$gnu" ]; then
 		-D "same as -PR --preserve=all"
 	complete -C "$1" -O b \
 		-D "same as --backup=existing"
-	complete -C "$1" -O --backup \
+	complete -C "$1" -O --backup -A \
 		-D "specify how to make a backup"
 	complete -C "$1" -O --backup none off \
 		-D "don't make backups"
@@ -52,13 +52,13 @@ if [ "$gnu" ]; then
 		-D "don't overwrite existing files"
 	complete -C "$1" -O p \
 		-D "same as --preserve=mode,ownership,timestamps"
-	complete -C "$1" -O --preserve -F comp/cp/preserve \
+	complete -C "$1" -O --preserve -A -F comp/cp/preserve \
 		-D "specify file attributes to preserve"
 	complete -C "$1" -O --no-preserve -F comp/cp/preserve \
 		-D "specify file attributes not to preserve"
 	complete -C "$1" -O --parents \
 		-D "mirror parent directories in source to destination"
-	complete -C "$1" -O --reflink \
+	complete -C "$1" -O --reflink -A \
 		-D "lightweight (copy-on-write) copy"
 	complete -C "$1" -O --reflink always \
 		-D "print a message when failed to do copy-on-write copy"

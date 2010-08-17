@@ -112,7 +112,7 @@ if [ "$gnu" ]; then
 		-D "1000^8 bytes"
 	complete -C "$1" -O B -O --ignore-backups \
 		-D "don't print filenames ending with ~"
-	complete -C "$1" -O --color \
+	complete -C "$1" -O --color -A \
 		-D "print filenames in color"
 	complete -C "$1" -O --color yes always force \
 		-D "always print in color"
