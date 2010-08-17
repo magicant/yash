@@ -380,12 +380,12 @@ static const char *get_command_name(le_command_func_T *command)
 int bindkey_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"vi-insert",  xno_argument, L'v', },
-	{ L"vi-command", xno_argument, L'a', },
-	{ L"emacs",      xno_argument, L'e', },
-	{ L"list",       xno_argument, L'l', },
+	{ L"vi-insert",  OPTARG_NONE, L'v', },
+	{ L"vi-command", OPTARG_NONE, L'a', },
+	{ L"emacs",      OPTARG_NONE, L'e', },
+	{ L"list",       OPTARG_NONE, L'l', },
 #if YASH_ENABLE_HELP
-	{ L"help",       xno_argument, L'-', },
+	{ L"help",       OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

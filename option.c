@@ -190,52 +190,52 @@ typedef enum shopt_index_T {
 
 /* Long options for the shell and set builtin */
 static const struct xoption long_options[] = {
-    [SHOPT_INTERACTIVE]    = { L"interactive",    xno_argument, L'i', },
-    [SHOPT_LOGIN]          = { L"login",          xno_argument, L'l', },
-    [SHOPT_NOPROFILE]      = { L"noprofile",      xno_argument, L'(', },
-    [SHOPT_NORCFILE]       = { L"norcfile",       xno_argument, L')', },
-    [SHOPT_RCFILE]         = { L"rcfile",         xrequired_argument, L'!', },
-    [SHOPT_VERSION]        = { L"version",        xno_argument, L'V', },
+    [SHOPT_INTERACTIVE]    = { L"interactive",    OPTARG_NONE, L'i', },
+    [SHOPT_LOGIN]          = { L"login",          OPTARG_NONE, L'l', },
+    [SHOPT_NOPROFILE]      = { L"noprofile",      OPTARG_NONE, L'(', },
+    [SHOPT_NORCFILE]       = { L"norcfile",       OPTARG_NONE, L')', },
+    [SHOPT_RCFILE]         = { L"rcfile",         OPTARG_REQUIRED, L'!', },
+    [SHOPT_VERSION]        = { L"version",        OPTARG_NONE, L'V', },
     /* Above options cannot be used thru the "set" builtin */
-    [SHOPT_ALLEXPORT]      = { L"allexport",      xno_argument, L'L', },
-    [SHOPT_HASHONDEF]      = { L"hashondef",      xno_argument, L'L', },
-    [SHOPT_NOCLOBBER]      = { L"noclobber",      xno_argument, L'L', },
-    [SHOPT_NOGLOB]         = { L"noglob",         xno_argument, L'L', },
-    [SHOPT_NOCASEGLOB]     = { L"nocaseglob",     xno_argument, L'L', },
-    [SHOPT_DOTGLOB]        = { L"dotglob",        xno_argument, L'L', },
-    [SHOPT_MARKDIRS]       = { L"markdirs",       xno_argument, L'L', },
-    [SHOPT_EXTENDEDGLOB]   = { L"extendedglob",   xno_argument, L'L', },
-    [SHOPT_NULLGLOB]       = { L"nullglob",       xno_argument, L'L', },
-    [SHOPT_BRACEEXPAND]    = { L"braceexpand",    xno_argument, L'L', },
-    [SHOPT_CURASYNC]       = { L"curasync",       xno_argument, L'L', },
-    [SHOPT_CURBG]          = { L"curbg",          xno_argument, L'L', },
-    [SHOPT_CURSTOP]        = { L"curstop",        xno_argument, L'L', },
-    [SHOPT_ERREXIT]        = { L"errexit",        xno_argument, L'L', },
-    [SHOPT_NOUNSET]        = { L"nounset",        xno_argument, L'L', },
-    [SHOPT_NOEXEC]         = { L"noexec",         xno_argument, L'L', },
-    [SHOPT_IGNOREEOF]      = { L"ignoreeof",      xno_argument, L'L', },
-    [SHOPT_VERBOSE]        = { L"verbose",        xno_argument, L'L', },
-    [SHOPT_XTRACE]         = { L"xtrace",         xno_argument, L'L', },
-    [SHOPT_HISTSPACE]      = { L"histspace",      xno_argument, L'L', },
-    [SHOPT_NOLOG]          = { L"nolog",          xno_argument, L'L', },
-    [SHOPT_MONITOR]        = { L"monitor",        xno_argument, L'm', },
-    [SHOPT_NOTIFY]         = { L"notify",         xno_argument, L'L', },
+    [SHOPT_ALLEXPORT]      = { L"allexport",      OPTARG_NONE, L'L', },
+    [SHOPT_HASHONDEF]      = { L"hashondef",      OPTARG_NONE, L'L', },
+    [SHOPT_NOCLOBBER]      = { L"noclobber",      OPTARG_NONE, L'L', },
+    [SHOPT_NOGLOB]         = { L"noglob",         OPTARG_NONE, L'L', },
+    [SHOPT_NOCASEGLOB]     = { L"nocaseglob",     OPTARG_NONE, L'L', },
+    [SHOPT_DOTGLOB]        = { L"dotglob",        OPTARG_NONE, L'L', },
+    [SHOPT_MARKDIRS]       = { L"markdirs",       OPTARG_NONE, L'L', },
+    [SHOPT_EXTENDEDGLOB]   = { L"extendedglob",   OPTARG_NONE, L'L', },
+    [SHOPT_NULLGLOB]       = { L"nullglob",       OPTARG_NONE, L'L', },
+    [SHOPT_BRACEEXPAND]    = { L"braceexpand",    OPTARG_NONE, L'L', },
+    [SHOPT_CURASYNC]       = { L"curasync",       OPTARG_NONE, L'L', },
+    [SHOPT_CURBG]          = { L"curbg",          OPTARG_NONE, L'L', },
+    [SHOPT_CURSTOP]        = { L"curstop",        OPTARG_NONE, L'L', },
+    [SHOPT_ERREXIT]        = { L"errexit",        OPTARG_NONE, L'L', },
+    [SHOPT_NOUNSET]        = { L"nounset",        OPTARG_NONE, L'L', },
+    [SHOPT_NOEXEC]         = { L"noexec",         OPTARG_NONE, L'L', },
+    [SHOPT_IGNOREEOF]      = { L"ignoreeof",      OPTARG_NONE, L'L', },
+    [SHOPT_VERBOSE]        = { L"verbose",        OPTARG_NONE, L'L', },
+    [SHOPT_XTRACE]         = { L"xtrace",         OPTARG_NONE, L'L', },
+    [SHOPT_HISTSPACE]      = { L"histspace",      OPTARG_NONE, L'L', },
+    [SHOPT_NOLOG]          = { L"nolog",          OPTARG_NONE, L'L', },
+    [SHOPT_MONITOR]        = { L"monitor",        OPTARG_NONE, L'm', },
+    [SHOPT_NOTIFY]         = { L"notify",         OPTARG_NONE, L'L', },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_NOTIFYLE]       = { L"notifyle",       xno_argument, L'L', },
+    [SHOPT_NOTIFYLE]       = { L"notifyle",       OPTARG_NONE, L'L', },
 #endif
-    [SHOPT_POSIX]          = { L"posix",          xno_argument, L'L', },
+    [SHOPT_POSIX]          = { L"posix",          OPTARG_NONE, L'L', },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_VI]             = { L"vi",             xno_argument, L'L', },
-    [SHOPT_EMACS]          = { L"emacs",          xno_argument, L'L', },
-    [SHOPT_LE_CONVMETA]    = { L"le-convmeta",    xno_argument, L'L', },
-    [SHOPT_LE_NOCONVMETA]  = { L"le-noconvmeta",  xno_argument, L'L', },
-    [SHOPT_LE_VISIBLEBELL] = { L"le-visiblebell", xno_argument, L'L', },
-    [SHOPT_LE_PROMPTSP]    = { L"le-promptsp",    xno_argument, L'L', },
-    [SHOPT_LE_ALWAYSRP]    = { L"le-alwaysrp",    xno_argument, L'L', },
-    [SHOPT_LE_COMPDEBUG]   = { L"le-compdebug",   xno_argument, L'L', },
+    [SHOPT_VI]             = { L"vi",             OPTARG_NONE, L'L', },
+    [SHOPT_EMACS]          = { L"emacs",          OPTARG_NONE, L'L', },
+    [SHOPT_LE_CONVMETA]    = { L"le-convmeta",    OPTARG_NONE, L'L', },
+    [SHOPT_LE_NOCONVMETA]  = { L"le-noconvmeta",  OPTARG_NONE, L'L', },
+    [SHOPT_LE_VISIBLEBELL] = { L"le-visiblebell", OPTARG_NONE, L'L', },
+    [SHOPT_LE_PROMPTSP]    = { L"le-promptsp",    OPTARG_NONE, L'L', },
+    [SHOPT_LE_ALWAYSRP]    = { L"le-alwaysrp",    OPTARG_NONE, L'L', },
+    [SHOPT_LE_COMPDEBUG]   = { L"le-compdebug",   OPTARG_NONE, L'L', },
 #endif
 #if YASH_ENABLE_HELP
-    [SHOPT_HELP]           = { L"help",         xno_argument, L'-', },
+    [SHOPT_HELP]           = { L"help",           OPTARG_NONE, L'-', },
 #endif
     [SHOPT_end]            = { NULL, 0, 0, },
 };
@@ -285,9 +285,9 @@ static const struct setoptinfo_T setoptinfo[] = {
 };
 
 static const struct xoption all_help_options[] = {
-    { L"all",  xno_argument, L'a', },
+    { L"all",  OPTARG_NONE, L'a', },
 #if YASH_ENABLE_HELP
-    { L"help", xno_argument, L'-', }, /* must be next to "all" */
+    { L"help", OPTARG_NONE, L'-', }, /* must be next to "all" */
 #endif
     { NULL, 0, 0, },
 };
@@ -337,7 +337,7 @@ bool set_long_option(const wchar_t *s)
 {
     for (const struct xoption *optp = set_long_options; optp->name; optp++) {
 	if (wcscmp(s, optp->name) == 0) {
-	    if (optp->has_arg == xno_argument) {
+	    if (optp->arg == OPTARG_NONE) {
 		setoptindex = optp - long_options;
 		set_option();
 		return true;

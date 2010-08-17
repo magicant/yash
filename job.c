@@ -958,13 +958,13 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 int jobs_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"verbose",      xno_argument, L'l', },
-	{ L"new",          xno_argument, L'n', },
-	{ L"pgid-only",    xno_argument, L'p', },
-	{ L"running-only", xno_argument, L'r', },
-	{ L"stopped-only", xno_argument, L's', },
+	{ L"verbose",      OPTARG_NONE, L'l', },
+	{ L"new",          OPTARG_NONE, L'n', },
+	{ L"pgid-only",    OPTARG_NONE, L'p', },
+	{ L"running-only", OPTARG_NONE, L'r', },
+	{ L"stopped-only", OPTARG_NONE, L's', },
 #if YASH_ENABLE_HELP
-	{ L"help",         xno_argument, L'-', },
+	{ L"help",         OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

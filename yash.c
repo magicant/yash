@@ -635,9 +635,9 @@ bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 /********** Builtins **********/
 
 static const struct xoption force_help_options[] = {
-    { L"force", xno_argument, L'f', },
+    { L"force", OPTARG_NONE, L'f', },
 #if YASH_ENABLE_HELP
-    { L"help",  xno_argument, L'-', },
+    { L"help",  OPTARG_NONE, L'-', },
 #endif
     { NULL, 0, 0, },
 };

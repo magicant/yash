@@ -1395,11 +1395,11 @@ const char pwd_help[] = Ngt(
 int hash_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"all",       xno_argument, L'a', },
-	{ L"directory", xno_argument, L'd', },
-	{ L"remove",    xno_argument, L'r', },
+	{ L"all",       OPTARG_NONE, L'a', },
+	{ L"directory", OPTARG_NONE, L'd', },
+	{ L"remove",    OPTARG_NONE, L'r', },
 #if YASH_ENABLE_HELP
-	{ L"help",      xno_argument, L'-', },
+	{ L"help",      OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -1548,9 +1548,9 @@ const char hash_help[] = Ngt(
 int umask_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"symbolic", xno_argument, L'S', },
+	{ L"symbolic", OPTARG_NONE, L'S', },
 #if YASH_ENABLE_HELP
-	{ L"help",     xno_argument, L'-', },
+	{ L"help",     OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

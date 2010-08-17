@@ -1501,9 +1501,9 @@ static bool print_command_absolute_path(
 
 /* Options for the "break", "continue" and "eval" builtins. */
 static const struct xoption iter_options[] = {
-    { L"iteration", xno_argument, L'i', },
+    { L"iteration", OPTARG_NONE, L'i', },
 #if YASH_ENABLE_HELP
-    { L"help",      xno_argument, L'-', },
+    { L"help",      OPTARG_NONE, L'-', },
 #endif
     { NULL, 0, 0, },
 };
@@ -1716,9 +1716,9 @@ const char eval_help[] = Ngt(
 int dot_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"no-alias", xno_argument, L'A', },
+	{ L"no-alias", OPTARG_NONE, L'A', },
 #if YASH_ENABLE_HELP
-	{ L"help",     xno_argument, L'-', },
+	{ L"help",     OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -1831,11 +1831,11 @@ const char dot_help[] = Ngt(
 int exec_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"as",    xrequired_argument, L'a', },
-	{ L"clear", xno_argument,       L'c', },
-	{ L"force", xno_argument,       L'f', },
+	{ L"as",    OPTARG_REQUIRED, L'a', },
+	{ L"clear", OPTARG_NONE,     L'c', },
+	{ L"force", OPTARG_NONE,     L'f', },
 #if YASH_ENABLE_HELP
-	{ L"help",  xno_argument,       L'-', },
+	{ L"help",  OPTARG_NONE,     L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -2006,16 +2006,16 @@ const char exec_help[] = Ngt(
 int command_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"alias",            xno_argument, L'a', },
-	{ L"builtin-command",  xno_argument, L'b', },
-	{ L"external-command", xno_argument, L'e', },
-	{ L"function",         xno_argument, L'f', },
-	{ L"keyword",          xno_argument, L'k', },
-	{ L"standard-path",    xno_argument, L'p', },
-	{ L"identify",         xno_argument, L'v', },
-	{ L"verbose-identify", xno_argument, L'V', },
+	{ L"alias",            OPTARG_NONE, L'a', },
+	{ L"builtin-command",  OPTARG_NONE, L'b', },
+	{ L"external-command", OPTARG_NONE, L'e', },
+	{ L"function",         OPTARG_NONE, L'f', },
+	{ L"keyword",          OPTARG_NONE, L'k', },
+	{ L"standard-path",    OPTARG_NONE, L'p', },
+	{ L"identify",         OPTARG_NONE, L'v', },
+	{ L"verbose-identify", OPTARG_NONE, L'V', },
 #if YASH_ENABLE_HELP
-	{ L"help",             xno_argument, L'-', },
+	{ L"help",             OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

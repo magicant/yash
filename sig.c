@@ -1025,9 +1025,9 @@ static void signal_job(int signum, const wchar_t *jobname)
 int trap_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"print", xno_argument, L'p', },
+	{ L"print", OPTARG_NONE, L'p', },
 #if YASH_ENABLE_HELP
-	{ L"help",  xno_argument, L'-', },
+	{ L"help",  OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

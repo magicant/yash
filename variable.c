@@ -1463,14 +1463,14 @@ static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 int typeset_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"functions", xno_argument, L'f', },
-	{ L"global",    xno_argument, L'g', },
-	{ L"print",     xno_argument, L'p', },
-	{ L"readonly",  xno_argument, L'r', },
-	{ L"export",    xno_argument, L'x', },
-	{ L"unexport",  xno_argument, L'X', },
+	{ L"functions", OPTARG_NONE, L'f', },
+	{ L"global",    OPTARG_NONE, L'g', },
+	{ L"print",     OPTARG_NONE, L'p', },
+	{ L"readonly",  OPTARG_NONE, L'r', },
+	{ L"export",    OPTARG_NONE, L'x', },
+	{ L"unexport",  OPTARG_NONE, L'X', },
 #if YASH_ENABLE_HELP
-	{ L"help",      xno_argument, L'-', },
+	{ L"help",      OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -1802,11 +1802,11 @@ const char typeset_help[] = Ngt(
 int array_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"delete", xno_argument, L'd', },
-	{ L"insert", xno_argument, L'i', },
-	{ L"set",    xno_argument, L's', },
+	{ L"delete", OPTARG_NONE, L'd', },
+	{ L"insert", OPTARG_NONE, L'i', },
+	{ L"set",    OPTARG_NONE, L's', },
 #if YASH_ENABLE_HELP
-	{ L"help",   xno_argument, L'-', },
+	{ L"help",   OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -2074,10 +2074,10 @@ const char array_help[] = Ngt(
 int unset_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"functions", xno_argument, L'f', },
-	{ L"variables", xno_argument, L'v', },
+	{ L"functions", OPTARG_NONE, L'f', },
+	{ L"variables", OPTARG_NONE, L'v', },
 #if YASH_ENABLE_HELP
-	{ L"help",      xno_argument, L'-', },
+	{ L"help",      OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -2482,10 +2482,10 @@ const char getopts_help[] = Ngt(
 int read_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"array",    xno_argument, L'A', },
-	{ L"raw-mode", xno_argument, L'r', },
+	{ L"array",    OPTARG_NONE, L'A', },
+	{ L"raw-mode", OPTARG_NONE, L'r', },
 #if YASH_ENABLE_HELP
-	{ L"help",     xno_argument, L'-', },
+	{ L"help",     OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -2702,11 +2702,11 @@ const char read_help[] = Ngt(
 
 /* options for the "pushd" builtins */
 static const struct xoption pushd_options[] = {
-    { L"default-directory", xrequired_argument, L'd', },
-    { L"logical",           xno_argument,       L'L', },
-    { L"physical",          xno_argument,       L'P', },
+    { L"default-directory", OPTARG_REQUIRED, L'd', },
+    { L"logical",           OPTARG_NONE,     L'L', },
+    { L"physical",          OPTARG_NONE,     L'P', },
 #if YASH_ENABLE_HELP
-    { L"help",              xno_argument,       L'-', },
+    { L"help",              OPTARG_NONE,     L'-', },
 #endif
     { NULL, 0, 0, },
 };
@@ -2719,12 +2719,12 @@ const struct xoption *const pwd_options = pushd_options + 1;
 
 /* options for the "pushd" builtins */
 static const struct xoption pushd_options[] = {
-    { L"remove-duplicates", xno_argument,       L'D', },
-    { L"default-directory", xrequired_argument, L'd', },
-    { L"logical",           xno_argument,       L'L', },
-    { L"physical",          xno_argument,       L'P', },
+    { L"remove-duplicates", OPTARG_NONE,     L'D', },
+    { L"default-directory", OPTARG_REQUIRED, L'd', },
+    { L"logical",           OPTARG_NONE,     L'L', },
+    { L"physical",          OPTARG_NONE,     L'P', },
 #if YASH_ENABLE_HELP
-    { L"help",              xno_argument,       L'-', },
+    { L"help",              OPTARG_NONE,     L'-', },
 #endif
     { NULL, 0, 0, },
 };
@@ -2981,10 +2981,10 @@ const char popd_help[] = Ngt(
 int dirs_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"clear",   xno_argument, L'c', },
-	{ L"verbose", xno_argument, L'v', },
+	{ L"clear",   OPTARG_NONE, L'c', },
+	{ L"verbose", OPTARG_NONE, L'v', },
 #if YASH_ENABLE_HELP
-	{ L"help",    xno_argument, L'-', },
+	{ L"help",    OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

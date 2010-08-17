@@ -122,42 +122,42 @@ int ulimit_builtin(int argc, void **argv)
 	;
 
     static const struct xoption long_options[] = {
-	{ L"hard", xno_argument, L'H', },
-	{ L"soft", xno_argument, L'S', },
-	{ L"all",  xno_argument, L'a', },
-	{ L"core", xno_argument, L'c', },
-	{ L"data", xno_argument, L'd', },
+	{ L"hard", OPTARG_NONE, L'H', },
+	{ L"soft", OPTARG_NONE, L'S', },
+	{ L"all",  OPTARG_NONE, L'a', },
+	{ L"core", OPTARG_NONE, L'c', },
+	{ L"data", OPTARG_NONE, L'd', },
 #if HAVE_RLIMIT_NICE
-	{ L"nice", xno_argument, L'e', },
+	{ L"nice", OPTARG_NONE, L'e', },
 #endif
-	{ L"fsize", xno_argument, L'f', },
+	{ L"fsize", OPTARG_NONE, L'f', },
 #if HAVE_RLIMIT_SIGPENDING
-	{ L"sigpending", xno_argument, L'i', },
+	{ L"sigpending", OPTARG_NONE, L'i', },
 #endif
 #if HAVE_RLIMIT_MEMLOCK
-	{ L"memlock", xno_argument, L'l', },
+	{ L"memlock", OPTARG_NONE, L'l', },
 #endif
 #if HAVE_RLIMIT_RSS
-	{ L"rss", xno_argument, L'm', },
+	{ L"rss", OPTARG_NONE, L'm', },
 #endif
-	{ L"nofile", xno_argument, L'n', },
+	{ L"nofile", OPTARG_NONE, L'n', },
 #if HAVE_RLIMIT_MSGQUEUE
-	{ L"msgqueue", xno_argument, L'q', },
+	{ L"msgqueue", OPTARG_NONE, L'q', },
 #endif
 #if HAVE_RLIMIT_RTPRIO
-	{ L"rtprio", xno_argument, L'r', },
+	{ L"rtprio", OPTARG_NONE, L'r', },
 #endif
-	{ L"stack", xno_argument, L's', },
-	{ L"cpu", xno_argument, L't', },
+	{ L"stack", OPTARG_NONE, L's', },
+	{ L"cpu", OPTARG_NONE, L't', },
 #if HAVE_RLIMIT_NPROC
-	{ L"nproc", xno_argument, L'u', },
+	{ L"nproc", OPTARG_NONE, L'u', },
 #endif
-	{ L"as", xno_argument, L'v', },
+	{ L"as", OPTARG_NONE, L'v', },
 #if HAVE_RLIMIT_LOCKS
-	{ L"locks", xno_argument, L'x', },
+	{ L"locks", OPTARG_NONE, L'x', },
 #endif
 #if YASH_ENABLE_HELP
-	{ L"help", xno_argument, L'-', },
+	{ L"help", OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

@@ -1109,15 +1109,15 @@ static void history_refresh_file(void);
 int fc_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"editor",     xrequired_argument, L'e', },
-	{ L"list",       xno_argument,       L'l', },
-	{ L"no-numbers", xno_argument,       L'n', },
-	{ L"quiet",      xno_argument,       L'q', },
-	{ L"reverse",    xno_argument,       L'r', },
-	{ L"silent",     xno_argument,       L's', },
-	{ L"verbose",    xno_argument,       L'v', },
+	{ L"editor",     OPTARG_REQUIRED, L'e', },
+	{ L"list",       OPTARG_NONE,     L'l', },
+	{ L"no-numbers", OPTARG_NONE,     L'n', },
+	{ L"quiet",      OPTARG_NONE,     L'q', },
+	{ L"reverse",    OPTARG_NONE,     L'r', },
+	{ L"silent",     OPTARG_NONE,     L's', },
+	{ L"verbose",    OPTARG_NONE,     L'v', },
 #if YASH_ENABLE_HELP
-	{ L"help",       xno_argument,       L'-', },
+	{ L"help",       OPTARG_NONE,     L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -1570,14 +1570,14 @@ const char fc_help[] = Ngt(
 int history_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"clear",      xno_argument,       L'c', },
-	{ L"delete",     xrequired_argument, L'd', },
-	{ L"read",       xrequired_argument, L'r', },
-	{ L"set",        xrequired_argument, L's', },
-	{ L"write",      xrequired_argument, L'w', },
-	{ L"flush-file", xno_argument,       L'F', },
+	{ L"clear",      OPTARG_NONE,     L'c', },
+	{ L"delete",     OPTARG_REQUIRED, L'd', },
+	{ L"read",       OPTARG_REQUIRED, L'r', },
+	{ L"set",        OPTARG_REQUIRED, L's', },
+	{ L"write",      OPTARG_REQUIRED, L'w', },
+	{ L"flush-file", OPTARG_NONE,     L'F', },
 #if YASH_ENABLE_HELP
-	{ L"help",       xno_argument,       L'-', },
+	{ L"help",       OPTARG_NONE,     L'-', },
 #endif
         { NULL, 0, 0, },
     };

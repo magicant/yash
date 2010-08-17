@@ -446,10 +446,10 @@ void generate_alias_candidates(le_candgentype_T type, le_context_T *context)
 int alias_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"global", xno_argument, L'g', },
-	{ L"prefix", xno_argument, L'p', },
+	{ L"global", OPTARG_NONE, L'g', },
+	{ L"prefix", OPTARG_NONE, L'p', },
 #if YASH_ENABLE_HELP
-	{ L"help",   xno_argument, L'-', },
+	{ L"help",   OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

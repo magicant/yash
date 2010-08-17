@@ -418,8 +418,7 @@ void argshift(void **argv, int from, int to /* <= from */)
  * An "xoption" structure contains the following members:
  *  name:      Name of the long option (without preceding "--"),
  *             which should consist only of alphanumeric characters and hyphens.
- *  has_arg:   One of `xno_argument', `xrequired_argument' and
- *             `xoptional_argument'.
+ *  has_arg:   One of `OPTARG_NONE', `OPTARG_REQUIRED' and `OPTARG_OPTIONAL'.
  *             An option's argument is specified in the form of "--opt=arg".
  *             A required argument may be in the form of "--opt arg" instead.
  *  val:       When a long option is recognized, `val' is returned by this
@@ -585,9 +584,9 @@ try_parse_long_option:
 	*longindex = matchindex;
     xoptopt = L'-';
     wchar_t *eq = wcschr(arg2, L'=');
-    if (longopts[matchindex].has_arg != xno_argument) {
+    if (longopts[matchindex].arg != OPTARG_NONE) {
 	if (eq == NULL) {
-	    if (longopts[matchindex].has_arg == xoptional_argument)
+	    if (longopts[matchindex].arg == OPTARG_OPTIONAL)
 		goto shift1l;  /* the optional argument is not given */
 
 	    /* the argument is split from option like "--option argument" */
