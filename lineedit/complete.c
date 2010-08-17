@@ -534,15 +534,14 @@ struct candgen_T {
  * The `longopt' member is the name of this option as a long option, starting
  * with at least one hyphen.
  * Either the `shortoptchar' or `longopt' member (but not both) may be null.
- * The `requiresargument' member is true iff this option requires an argument.
- * The value of the `candgen' member is valid only when `requiresargument' is
- * true. */
+ * The `arg' member specifies if this option requires an argument.
+ * The `candgen' member is valid only when `arg' is not OPTARG_NONE. */
 struct optcandgen_T {
     struct optcandgen_T *next;
     wchar_t *description;
     wchar_t shortoptchar;
     wchar_t *longopt;
-    bool requiresargument;
+    enum optarg_T arg;
     struct candgen_T candgen;
 };
 
@@ -671,7 +670,7 @@ const struct candgen_T *get_candgen_cmdarg(void)
 		return get_candgen_option();
 	} while (*ss == *longopt);
 
-	if (*ss == L'=' && ocg->requiresargument) {
+	if (*ss == L'=' && ocg->arg != OPTARG_NONE) {
 	    if (*longopt == L'\0') {  /* exact match */
 		match = ocg, skiplen = ss - ctxt->src + 1;
 		break;
@@ -682,7 +681,7 @@ const struct candgen_T *get_candgen_cmdarg(void)
 	}
     }
     if (match != NULL) {
-	assert(match->requiresargument);
+	assert(match->arg != OPTARG_NONE);
 	assert(skiplen > 0);
 	skip_prefix(skiplen);
 	return &match->candgen;
@@ -695,7 +694,7 @@ const struct candgen_T *get_candgen_cmdarg(void)
     while (*++ss != L'\0') {
 	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 	    if (*ss == ocg->shortoptchar) {
-		if (ocg->requiresargument) {
+		if (ocg->arg != OPTARG_NONE) {
 		    skip_prefix(ss - ctxt->src + 1);
 		    return &ocg->candgen;
 		} else {
@@ -804,7 +803,7 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 		ss++, longopt++;
 	    while (*ss != L'\0' && *ss == *longopt);
 
-	    if (*ss == L'\0' || (*ss == L'=' && ocg->requiresargument)) {
+	    if (*ss == L'\0' || (*ss == L'=' && ocg->arg != OPTARG_NONE)) {
 		if (*longopt == L'\0') {  /* exact match */
 		    match = ocg, matchend = *ss;
 		    break;
@@ -818,7 +817,7 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	    }
 	}
 	if (match != NULL) {
-	    if (matchend == L'\0' && match->requiresargument) {
+	    if (matchend == L'\0' && match->arg == OPTARG_REQUIRED) {
 		i++;  /* option argument is in the next word */
 		if (i == ctxt->pwordc)
 		    return &match->candgen;
@@ -831,16 +830,22 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	    for (const wchar_t *ss = s + 1; *ss != L'\0'; ss++) {
 		for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 		    if (*ss == ocg->shortoptchar) {
-			if (ocg->requiresargument) {
-			    if (*(ss + 1) == L'\0')
-				if (++i == ctxt->pwordc)
-				    return &ocg->candgen;
-			    goto next_word;
-			} else {
-			    break;
+			switch (ocg->arg) {
+			    case OPTARG_NONE:
+				goto next_char;
+			    case OPTARG_REQUIRED:
+				if (*(ss + 1) == L'\0') {
+				    i++;
+				    if (i == ctxt->pwordc)
+					return &ocg->candgen;
+				}
+				goto next_word;
+			    case OPTARG_OPTIONAL:
+				goto next_word;
 			}
 		    }
 		}
+next_char:;
 	    }
 	}
 next_word:;
@@ -1188,7 +1193,7 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 		    goto desc;
 	    } else {
 		assert(ocg->longopt[0] == L'-');
-		if (ocg->longopt[1] == L'-' && ocg->requiresargument)
+		if (ocg->longopt[1] == L'-' && ocg->arg != OPTARG_NONE)
 		    cand->type = CT_OPTIONA;
 		cand->value = xwcsdup(ocg->longopt);
 		if (ocg->shortoptchar != L'\0')
@@ -1591,7 +1596,7 @@ static int compare_wcs(const void *p1, const void *p2)
     __attribute__((nonnull));
 static int print_candgen(
 	const wchar_t *command, wchar_t shortoptchar, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
     __attribute__((nonnull(1)));
 static bool quote_print(const wchar_t *word)
@@ -1607,9 +1612,9 @@ static void free_candgen_contents(const struct candgen_T *candgen)
     __attribute__((nonnull));
 static int complete_builtin_set(
 	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
-    __attribute__((nonnull(1,6)));
+    __attribute__((nonnull(1,7)));
 static void copy_candgen(
 	struct candgen_T *restrict dest, const struct candgen_T *restrict src)
     __attribute__((nonnull));
@@ -1622,7 +1627,7 @@ static int complete_builtin_delegate(int wordc, void **words)
 int complete_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"array-variable",       OPTARG_NONE,     L'A', },
+	{ L"optional-argument",    OPTARG_NONE,     L'A', },
 	{ L"alias",                OPTARG_NONE,     L'a', },
 	{ L"bindkey",              OPTARG_NONE,     L'B', },
 	{ L"builtin",              OPTARG_NONE,     L'b', },
@@ -1656,6 +1661,7 @@ int complete_builtin(int argc, void **argv)
 	{ L"word",                 OPTARG_REQUIRED, L'W', },
 	{ L"intermixed",           OPTARG_NONE,     L'X', },
 	{ L"finished-job",         OPTARG_NONE,     L'Y', },
+	{ L"array-variable",       OPTARG_NONE,     L'y', },
 	{ L"stopped-job",          OPTARG_NONE,     L'Z', },
 #if YASH_ENABLE_HELP
 	{ L"help",                 OPTARG_NONE,     L'-', },
@@ -1668,15 +1674,15 @@ int complete_builtin(int argc, void **argv)
     const wchar_t *newsrc = NULL;
     wchar_t shortopt = L'\0';
     le_candgentype_T cgtype = 0;
-    bool intermixed = false;
+    bool intermixed = false, argopt = false;
     bool print = false, remove = false, delegate = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"C:D:F:O:GPRW:Xabcdfghjkuv", long_options, NULL))) {
+		    argv, L"AC:D:F:O:GPRW:Xabcdfghjkuv", long_options, NULL))) {
 	switch (opt) {
-	    case L'A':  cgtype |= CGT_ARRAY;       break;
+	    case L'A':  argopt = true;             break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
 	    case L'B':  cgtype |= CGT_BINDKEY;     break;
 	    case L'b':  cgtype |= CGT_BUILTIN;     break;
@@ -1743,6 +1749,7 @@ int complete_builtin(int argc, void **argv)
 		break;
 	    case L'X':  intermixed = true;         break;
 	    case L'Y':  cgtype |= CGT_DONE;        break;
+	    case L'y':  cgtype |= CGT_ARRAY;       break;
 	    case L'Z':  cgtype |= CGT_STOPPED;     break;
 #if YASH_ENABLE_HELP
 	    case L'-':
@@ -1777,10 +1784,13 @@ dupopterror:
 	goto print_usage;
     } else if ((print || remove || delegate)
 	    && (function != NULL || description != NULL
-		|| cgtype != 0 || intermixed)) {
+		|| cgtype != 0 || intermixed || argopt)) {
 	xerror(0, Ngt("-%lc option cannot be used with style specification"),
 		print ? (wint_t) L'P' : remove ? (wint_t) L'R' : (wint_t) L'G');
 	goto print_usage;
+    } else if (argopt && (shortopt == L'\0' && longopt == NULL)) {
+	xerror(0, Ngt("-A option specified without -O option"));
+	return Exit_ERROR;
     } else if (delegate && command != NULL) {
 	xerror(0, Ngt("-G option cannot be used with -C option"));
 	goto print_usage;
@@ -1832,14 +1842,14 @@ dupopterror:
 	free_candgen_contents(&candgen);
 	return exitstatus;
     } else {
-	return complete_builtin_set(
-		command, shortopt, longopt, description, intermixed, &candgen);
+	return complete_builtin_set(command, shortopt, longopt, description,
+		intermixed, argopt, &candgen);
     }
 
 print_usage:
     fprintf(stderr,
 	gt("Usage:  complete [-C command] [-O option] [-D description] \\\n"
-	   "                 [-F function] [-Xabcdfghjkouv] [words...]\n"
+	   "                 [-F function] [-AXabcdfghjkouv] [words...]\n"
 	   "        complete -P|-R [-C command] [-O option]\n"
 	   "        complete -G words...\n"));
     return Exit_ERROR;
@@ -1886,7 +1896,7 @@ int print_cmdcandgen(
     if (shortopt == L'\0' && longopt == NULL) {
 	/* print command */
 	int exitstatus = print_candgen(command, L'\0', NULL,
-		ccg->description, ccg->intermixed, &ccg->operands);
+		ccg->description, ccg->intermixed, false, &ccg->operands);
 	if (exitstatus != Exit_SUCCESS)
 	    return exitstatus;
 
@@ -1896,7 +1906,8 @@ int print_cmdcandgen(
 		ocg = ocg->next) {
 	    exitstatus = print_candgen(command,
 		    ocg->shortoptchar, ocg->longopt, ocg->description, false,
-		    ocg->requiresargument ? &ocg->candgen : NULL);
+		    ocg->arg == OPTARG_OPTIONAL,
+		    ocg->arg != OPTARG_NONE ? &ocg->candgen : NULL);
 	    if (exitstatus != Exit_SUCCESS)
 		return exitstatus;
 	}
@@ -1909,7 +1920,8 @@ int print_cmdcandgen(
 	return Exit_FAILURE;
     return print_candgen(command,
 	    ocg->shortoptchar, ocg->longopt, ocg->description, false,
-	    ocg->requiresargument ? &ocg->candgen : NULL);
+	    ocg->arg == OPTARG_OPTIONAL,
+	    ocg->arg != OPTARG_NONE ? &ocg->candgen : NULL);
 }
 
 /* Searches `ccg->options' for the specified options.
@@ -1957,7 +1969,7 @@ struct optcandgen_T *get_optcandgen(const struct cmdcandgen_T *ccg,
  * Returns Exit_SUCCESS iff successful. */
 int print_candgen(
 	const wchar_t *command, wchar_t shortoptchar, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
 {
 #define TRY(cond)      do if (!(cond)) goto ioerror; while (0)
@@ -1982,6 +1994,8 @@ int print_candgen(
 	TRYPRINT(" -O %ls", shortopt);
     if (longopt != NULL)
 	TRYPRINT(" -O %ls", longopt);
+    if (argopt)
+	TRYPRINT(" -A");
     if (description != NULL) {
 	TRYPRINT(" -D");
 	TRY(quote_print(description));
@@ -2232,7 +2246,7 @@ void free_candgen_contents(const struct candgen_T *candgen)
  * The contents of `candgen' is freed in this function. */
 int complete_builtin_set(
 	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
 {
     if (candgens.capacity == 0)
@@ -2281,9 +2295,12 @@ int complete_builtin_set(
 	ocg->shortoptchar = shortopt;
     if (ocg->longopt == NULL && longopt != NULL)
 	ocg->longopt = xwcsdup(longopt);
+    if (argopt)
+	ocg->arg = OPTARG_OPTIONAL;
     if (candgen->type != 0 || candgen->words != NULL
 	    || candgen->function != NULL) {
-	ocg->requiresargument = true;
+	if (ocg->arg == OPTARG_NONE)
+	    ocg->arg = OPTARG_REQUIRED;
 	copy_candgen(&ocg->candgen, candgen);
 //  } else {
 //	free_candgen_contents(candgen);
@@ -2407,7 +2424,7 @@ int complete_builtin_delegate(int wordc, void **words)
 const char complete_help[] = Ngt(
 "complete - edit completion style or generate completion candidates\n"
 "\tcomplete [-C command] [-O option] [-D description] [-W word] \\\n"
-"\t         [-F function] [-Xabcdfghjkuv] [words...]\n"
+"\t         [-F function] [-AXabcdfghjkuv] [words...]\n"
 "\tcomplete -P|-R [-C command] [-O option]\n"
 "\tcomplete -G [-W word] words...\n"
 "The \"complete\" builtin specifies how to complete command-line words.\n"
@@ -2455,8 +2472,10 @@ const char complete_help[] = Ngt(
 "Moreover, arbitrary words can be given as operands to the \"complete\"\n"
 "builtin as possible operands to the completed command.\n"
 "If the options and operands described above are specified with the -O\n"
-"option, it is considered an argument-requiring option where the argument is\n"
-"completed according to the specified style.\n"
+"option, the option specified by the -O option is assumed to take an\n"
+"argument, which is completed according to the specified style.\n"
+"If the -A (--optional-argument) option is also specified, the option\n"
+"argument is considered optional.\n"
 "You can attach a description of the target command, option, or candidate\n"
 "words as the argument to the -D (--description) option.\n"
 "\n"

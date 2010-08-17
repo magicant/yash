@@ -530,7 +530,9 @@ complete --target-command=comptest --target-option=--description \
 complete -C comptest -O --generator-function --generator-function=func
 complete -P -C comptest | sort
 complete -C comptest2 -X
+complete -C comptest2 -O x -A
 complete -C comptest3 --intermixed
+complete -C comptest3 -O --opt --optional-argument 1
 complete -P -C comptest2
 complete -P -C comptest3
 complete -R

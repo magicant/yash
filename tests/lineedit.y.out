@@ -94,7 +94,10 @@ complete -C comptest -O u --username
 complete -C comptest -O v --variable
 complete -C comptest -X
 complete -C comptest2 -X
+complete -C comptest2 -O x -A
 complete -C comptest3 -X
+complete -C comptest3 -O --opt -A
+complete -C comptest3 -O --opt 1
 =====
 complete -C x -F func
 complete -C x -O y -O --y-long --file --builtin -F xyfunc

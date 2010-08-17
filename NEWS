@@ -10,8 +10,9 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.24
 
-  +  New options in the "command" built-in: -a, -f, -k
-  -  Removed the -B option in the "command" built-in.
+  +  New option for the "complete" built-in: -A
+  +  New options for the "command" built-in: -a, -f, -k
+  -  Removed the -B option for the "command" built-in.
   =  Fixed configuration process so that the shell can handle all
      kinds of signals on FreeBSD.
   =  Short options now come before long options in a completion
