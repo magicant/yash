@@ -8,7 +8,7 @@ case "$(LC_ALL=C "$1" -vt <<<"	" 2>/dev/null)" in
 	*   ) typeset ext=     ;;
 esac
 
-complete -C "$1" -f -- -
+complete -C "$1" -f
 
 complete -C "$1" -O u \
 	-D "disable buffering"
