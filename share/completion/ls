@@ -76,40 +76,8 @@ if [ "$gnu" ]; then
 		-D "print file authors (with -l)"
 	complete -C "$1" -O b -O --escape \
 		-D "escape special characters like C string"
-	complete -C "$1" -O --block-size \
+	complete -C "$1" -O --block-size -F comp/ls/blocksize \
 		-D "specify block size"
-	complete -C "$1" -O --block-size K \
-		-D "1024 bytes"
-	complete -C "$1" -O --block-size KB \
-		-D "1000 bytes"
-	complete -C "$1" -O --block-size M \
-		-D "1024^2 bytes"
-	complete -C "$1" -O --block-size MB \
-		-D "1000^2 bytes"
-	complete -C "$1" -O --block-size G \
-		-D "1024^3 bytes"
-	complete -C "$1" -O --block-size GB \
-		-D "1000^3 bytes"
-	complete -C "$1" -O --block-size T \
-		-D "1024^4 bytes"
-	complete -C "$1" -O --block-size TB \
-		-D "1000^4 bytes"
-	complete -C "$1" -O --block-size P \
-		-D "1024^5 bytes"
-	complete -C "$1" -O --block-size PB \
-		-D "1000^5 bytes"
-	complete -C "$1" -O --block-size E \
-		-D "1024^6 bytes"
-	complete -C "$1" -O --block-size EB \
-		-D "1000^6 bytes"
-	complete -C "$1" -O --block-size Z \
-		-D "1024^7 bytes"
-	complete -C "$1" -O --block-size ZB \
-		-D "1000^7 bytes"
-	complete -C "$1" -O --block-size Y \
-		-D "1024^8 bytes"
-	complete -C "$1" -O --block-size YB \
-		-D "1000^8 bytes"
 	complete -C "$1" -O B -O --ignore-backups \
 		-D "don't print filenames ending with ~"
 	complete -C "$1" -O --color -A \
@@ -145,9 +113,9 @@ if [ "$gnu" ]; then
 	complete -C "$1" -O G -O --no-group \
 		-D "don't print group when used with -l"
 	complete -C "$1" -O h -O --human-readable \
-		-D "print file size using K, M, etc. for 1024^n"
+		-D "print size using K, M, etc. for 1024^n"
 	complete -C "$1" -O --si \
-		-D "print file size using k, M, etc. for 1000^n"
+		-D "print size using k, M, etc. for 1000^n"
 	complete -C "$1" -O --dereference-command-line-symlink-to-dir \
 		-D "follow symbolic links to directory in operands"
 	complete -C "$1" -O --hide -f \
@@ -204,7 +172,7 @@ if [ "$gnu" ]; then
 		-D "-u: last-accessed time"
 	complete -C "$1" -O --time ctime status \
 		-D "-c: last-status-changed time"
-	complete -C "$1" -O --time-style \
+	complete -C "$1" -O --time-style -F comp/ls/timestyle \
 		-D "specify format to print time in"
 	complete -C "$1" -O --time-style full-iso \
 		-D "e.g. 2000-01-01 01:23:45.678901234 +0900"
@@ -240,4 +208,11 @@ if [ "$gnu" ]; then
 		-D "print security context of files"
 	complete -C "$1" -O --help
 	complete -C "$1" -O --version
+	function comp/ls/blocksize {
+		complete -G -- df "${@[2,-1]}"
+	}
+	function comp/ls/timestyle
+	case "${@[-1]}" in (+*)
+		complete -G -- date "${@[-1]}"
+	esac
 fi
