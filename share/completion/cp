@@ -1,5 +1,5 @@
 # completion settings for the cp command (POSIX 2008; GNU coreutils 8.4;
-# FreeBSD 8.1; SunOS 5.10; HP-UX 11i)
+# FreeBSD 8.1; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10; HP-UX 11i)
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
@@ -137,6 +137,22 @@ else
 			-D "same as -PpR"
 		complete -C "$1" -O l \
 			-D "make hard links instead of copying"
+		complete -C "$1" -O n \
+			-D "don't overwrite existing files"
+		complete -C "$1" -O v \
+			-D "print a message for each file processed"
+		complete -C "$1" -O x \
+			-D "skip subdirectories on different file systems"
+		;;
+	NetBSD)
+		complete -C "$1" -O N \
+			-D "don't copy file flags (with -p)"
+		complete -C "$1" -O v \
+			-D "print a message for each file processed"
+		;;
+	Darwin)
+		complete -C "$1" -O a \
+			-D "same as -PpR"
 		complete -C "$1" -O n \
 			-D "don't overwrite existing files"
 		complete -C "$1" -O v \

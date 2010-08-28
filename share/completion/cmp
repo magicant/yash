@@ -1,4 +1,5 @@
-# completion settings for the cmp command (POSIX 2008; GNU diffutils 2.8.1)
+# completion settings for the cmp command (POSIX 2008; GNU diffutils 2.8.1
+# FreeBSD 8.1; OpenBSD 4.8; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10; HP-UX 11i)
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
@@ -28,4 +29,15 @@ if [ "$gnu" ]; then
 		-D "print nothing"
 	complete -C "$1" -O --help
 	complete -C "$1" -O v -O --version
+else
+	case $(uname) in
+		FreeBSD)
+			complete -C "$1" -O h \
+				-D "don't follow symbolic links"
+			complete -C "$1" -O x \
+			-D "print all differing byte values in hexadecimal"
+			complete -C "$1" -O z \
+				-D "first compare by size"
+			;;
+	esac
 fi
