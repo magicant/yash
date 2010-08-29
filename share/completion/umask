@@ -1,4 +1,5 @@
 # completion settings for the umask built-in and the chmod command (POSIX 2008;
+# FreeBSD 8.1; OpenBSD 4.8; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10; HP-UX 11i;
 # GNU coreutils 8.4)
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
@@ -13,20 +14,45 @@ complete -C umask -O --help
 
 
 ## chmod settings
+typeset gnu= bsd= freebsd= openbsd= netbsd= darwin= sunos= hpux=
 case "$(chmod --version 2>/dev/null)" in
 	*'coreutils'*)
-		typeset gnu=true
+		gnu=true
 		complete -C chmod -X
 		;;
 	*)
-		typeset gnu=
+		case $(uname) in
+			FreeBSD) bsd=true   freebsd=true ;;
+			OpenBSD) bsd=true   openbsd=true ;;
+			NetBSD)  bsd=true   netbsd=true  ;;
+			Darwin)  bsd=true   darwin=true  ;;
+			*BSD)    bsd=true   ;;
+			SunOS)   sunos=true ;;
+			HP-UX)   hpux=true  ;;
+		esac
 		;;
 esac
 
 complete -C chmod -F comp/chmod
 
+if [ "$hpux" ]; then
+	complete -C chmod -O A \
+		-D "preserve access control list entries"
+fi
+if [ "$sunos$netbsd$freebsd$darwin$gnu" ]; then
+	complete -C chmod -O f ${gnu:+-O --silent} \
+		-D "ignore errors"
+fi
+if [ "$netbsd$freebsd$darwin" ]; then
+	complete -C chmod -O h \
+		-D "change the mode of symbolic links"
+fi
 complete -C chmod -O R ${gnu:+-O --recursive} \
 	-D "recursively change the permission of files in a directory"
+if [ "$freebsd$darwin$gnu" ]; then
+	complete -C chmod -O v ${gnu:+-O --verbose} \
+		-D "print a message for each file processed"
+fi
 if [ "$gnu" ]; then
 	complete -C chmod -O c -O --changes \
 		-D "print a message when a change has been made"
@@ -34,16 +60,20 @@ if [ "$gnu" ]; then
 		-D "cancel the --preserve-root option"
 	complete -C chmod -O --preserve-root \
 	-D "don't recursively change the permission of the root directory"
-	complete -C chmod -O f -O --silent \
-		-D "ignore errors"
 	complete -C chmod -O --quiet \
 		-D "ignore errors"
 	complete -C chmod -O --reference -f \
 		-D "specify a file to whose permission changes are made"
-	complete -C chmod -O v -O --verbose \
-		-D "print a message for each file processed"
 	complete -C chmod -O --help
 	complete -C chmod -O --version
+fi
+if [ "$bsd" ]; then
+	complete -C chmod -O H \
+		-D "follow symbolic links in operands (with -R)"
+	complete -C chmod -O L \
+		-D "follow all symbolic links (with -R)"
+	complete -C chmod -O P \
+		-D "don't follow symbolic links (with -R)"
 fi
 
 

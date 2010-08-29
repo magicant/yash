@@ -1,18 +1,28 @@
-# completion settings for the ls command (POSIX 2008; GNU coreutils 8.4)
+# completion settings for the ls command (POSIX 2008; GNU coreutils 8.4
+# FreeBSD 8.1; OpenBSD 4.8; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10; HP-UX 11i)
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
+# These variables are set to "true" according to the environment type.
+# We first set the variables empty to override existing variables.
+typeset gnu= bsd= freebsd= openbsd= netbsd= darwin= sunos= hpux=
+
 case "$("$1" --version 2>/dev/null)" in
 	*'coreutils'*)
-		typeset gnu=true
+		gnu=true
 		complete -C "$1" -X
 		# options may come after operands in GNU ls
 		;;
 	*)
-		typeset gnu=
-		# not GNU ls.
-		# We explicitly define the "gnu" variable empty to override
-		# the variable that is possibly already defined by the user.
+		case $(uname) in
+			FreeBSD) bsd=true   freebsd=true ;;
+			OpenBSD) bsd=true   openbsd=true ;;
+			NetBSD)  bsd=true   netbsd=true  ;;
+			Darwin)  bsd=true   darwin=true  ;;
+			*BSD)    bsd=true   ;;
+			SunOS)   sunos=true ;;
+			HP-UX)   hpux=true  ;;
+		esac
 		;;
 esac
 
@@ -25,6 +35,14 @@ complete -C "$1" -O A ${gnu:+-O --almost-all} \
 	-D "print all files except . and .."
 complete -C "$1" -O a ${gnu:+-O --all} \
 	-D "print all files"
+if [ "$sunos$hpux$netbsd$freebsd$darwin$gnu" ]; then
+	complete -C "$1" -O b ${gnu:+-O --escape} \
+		-D "escape special characters like C string"
+	if [ "$netbsd$freebsd$darwin" ]; then
+		complete -C "$1" -O B \
+		-D "escape special characters as backslashed octal value"
+	fi
+fi
 complete -C "$1" -O C \
 	-D "arrange filenames vertically"
 complete -C "$1" -O c \
@@ -35,8 +53,16 @@ complete -C "$1" -O F ${gnu:+-O --classify} \
 	-D "append symbols indicating file type"
 complete -C "$1" -O f \
 	-D "print all files without sorting"
+if [ "$freebsd$darwin" ]; then
+	complete -C "$1" -O G \
+		-D "print filenames in color"
+fi
 complete -C "$1" -O g \
 	-D "like -l but don't print owner"
+if [ "$sunos$bsd$gnu" ]; then
+	complete -C "$1" -O h ${gnu:+-O --human-readable} \
+		-D "print size using K, M, etc. for 1024^n"
+fi
 complete -C "$1" -O H ${gnu:+-O --dereference-command-line} \
 	-D "follow symbolic links in operands"
 complete -C "$1" -O i ${gnu:+-O --inode} \
@@ -53,6 +79,10 @@ complete -C "$1" -O n ${gnu:+-O --numeric-uid-gid} \
 	-D "like -l but print owner in numbers"
 complete -C "$1" -O o \
 	-D "like -l but don't print group"
+if [ "$freebsd$darwin" ]; then
+	complete -C "$1" -O P \
+		-D "don't follow symbolic links"
+fi
 complete -C "$1" -O p \
 	-D "append / indicating directory"
 complete -C "$1" -O q ${gnu:+-O --hide-control-chars} \
@@ -65,17 +95,35 @@ complete -C "$1" -O S \
 	-D "sort by file size"
 complete -C "$1" -O s ${gnu:+-O --size} \
 	-D "print block size used by file"
+if [ "$bsd" ]; then
+	complete -C "$1" -O T \
+		-D "print time in full (with -l)"
+fi
 complete -C "$1" -O t \
 	-D "sort by last-modified time"
+if [ "$freebsd$darwin" ]; then
+	complete -C "$1" -O U \
+		-D "print or sort by file creation time"
+fi
 complete -C "$1" -O u \
 	-D "print or sort by last-accessed time"
+if [ "$netbsd$freebsd$darwin" ]; then
+	complete -C "$1" -O W \
+		-D "show whiteouts when scanning directories"
+	complete -C "$1" -O w \
+		-D "don't escape unprintable characters"
+fi
+if [ "$sunos" ]; then
+	complete -C "$1" -O V \
+		-D "like -l, with compact access control list info"
+	complete -C "$1" -O v \
+		-D "like -l, with verbose access control list info"
+fi
 complete -C "$1" -O x \
 	-D "arrange filenames horizontally"
 if [ "$gnu" ]; then
 	complete -C "$1" -O --author \
 		-D "print file authors (with -l)"
-	complete -C "$1" -O b -O --escape \
-		-D "escape special characters like C string"
 	complete -C "$1" -O --block-size -F comp/ls/blocksize \
 		-D "specify block size"
 	complete -C "$1" -O B -O --ignore-backups \
@@ -112,8 +160,6 @@ if [ "$gnu" ]; then
 		-D "print directories before other files"
 	complete -C "$1" -O G -O --no-group \
 		-D "don't print group when used with -l"
-	complete -C "$1" -O h -O --human-readable \
-		-D "print size using K, M, etc. for 1024^n"
 	complete -C "$1" -O --si \
 		-D "print size using k, M, etc. for 1000^n"
 	complete -C "$1" -O --dereference-command-line-symlink-to-dir \
@@ -215,4 +261,27 @@ if [ "$gnu" ]; then
 	case "${@[-1]}" in (+*)
 		complete -G -- date "${@[-1]}"
 	esac  # TODO need fix for the (--time-*=+*) pattern
+elif [ "$freebsd" ]; then
+	complete -C "$1" -O D -F comp/ls/timestyle \
+		-D "specify format to print time in"
+	complete -C "$1" -O I \
+		-D "don't assume -A for superuser"
+	complete -C "$1" -O Z \
+		-D "print MAC labels"
+	function comp/ls/timestyle {
+		complete -G -- date +"${@[-1]}"
+	}
+elif [ "$darwin" ]; then
+	complete -C "$1" -O e \
+		-D "print access control list"
+	complete -C "$1" -O O \
+		-D "print file flags (with -l)"
+elif [ "$sunos" ]; then
+	complete -C "$1" -O E \
+		-D "like -l, with time in ISO 8601 format"
+	complete -C "$1" -O e \
+		-D "like -l, with time like Dec 31 13:34:56 1999"
+elif [ "$hpux" ]; then
+	complete -C "$1" -O e \
+		-D "print extent attributes (with -l)"
 fi

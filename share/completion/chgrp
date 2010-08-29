@@ -1,19 +1,33 @@
-# completion settings for the chgrp command (POSIX 2008; GNU coreutils 8.4)
+# completion settings for the chgrp command (POSIX 2008; GNU coreutils 8.4
+# FreeBSD 8.1; OpenBSD 4.8; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10)
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
+typeset gnu= bsd= freebsd= openbsd= netbsd= darwin= sunos= hpux=
 case "$("$1" --version 2>/dev/null)" in
 	*'coreutils'*)
-		typeset gnu=true
+		gnu=true
 		complete -C "$1" -X
 		;;
 	*)
-		typeset gnu=
+		case $(uname) in
+			FreeBSD) bsd=true   freebsd=true ;;
+			OpenBSD) bsd=true   openbsd=true ;;
+			NetBSD)  bsd=true   netbsd=true  ;;
+			Darwin)  bsd=true   darwin=true  ;;
+			*BSD)    bsd=true   ;;
+			SunOS)   sunos=true ;;
+			HP-UX)   hpux=true  ;;
+		esac
 		;;
 esac
 
 complete -C "$1" -F comp/chgrp
 
+if [ "$sunos$bsd$gnu" ]; then
+	complete -C "$1" -O f ${gnu:+-O --silent} \
+		-D "ignore errors"
+fi
 complete -C "$1" -O h ${gnu:+-O --no-dereference} \
 	-D "change the group of symbolic links"
 complete -C "$1" -O H \
@@ -24,6 +38,14 @@ complete -C "$1" -O P \
 	-D "with -R, don't follow any symbolic links"
 complete -C "$1" -O R ${gnu:+-O --recursive} \
 	-D "recursively change the group of files in a directory"
+if [ "$netbsd$freebsd$darwin$gnu" ]; then
+	complete -C "$1" -O v ${gnu:+-O --verbose} \
+		-D "print a message for each file processed"
+fi
+if [ "$freebsd" ]; then
+	complete -C "$1" -O x \
+		-D "stop recursion when reaching a different file system"
+fi
 if [ "$gnu" ]; then
 	complete -C "$1" -O c -O --changes \
 		-D "print a message when a change has been made"
@@ -33,14 +55,10 @@ if [ "$gnu" ]; then
 		-D "cancel the --preserve-root option"
 	complete -C "$1" -O --preserve-root \
 		-D "don't recursively change the group of the root directory"
-	complete -C "$1" -O f -O --silent \
-		-D "ignore errors"
 	complete -C "$1" -O --quiet \
 		-D "ignore errors"
 	complete -C "$1" -O --reference -f \
 		-D "specify a file to whose group changes are made"
-	complete -C "$1" -O v -O --verbose \
-		-D "print a message for each file processed"
 	complete -C "$1" -O --help
 	complete -C "$1" -O --version
 fi
