@@ -3,6 +3,7 @@
 # written by magicant
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
 
+typeset gnu= bsd= freebsd= openbsd= netbsd= darwin= sunos= hpux=
 case "$("$1" --version 2>/dev/null)" in
 	*'coreutils'*)
 		gnu=true
