@@ -31,11 +31,11 @@ fi
 complete -C "$1" -O h ${gnu:+-O --no-dereference} \
 	-D "change the owner of symbolic links"
 complete -C "$1" -O H \
-	-D "with -R, follow symbolic links to directories in operands"
+	-D "follow symbolic links to directories in operands (with -R)"
 complete -C "$1" -O L \
-	-D "with -R, follow all symbolic links to directories"
+	-D "follow all symbolic links to directories (with -R)"
 complete -C "$1" -O P \
-	-D "with -R, don't follow any symbolic links"
+	-D "don't follow any symbolic links (with -R)"
 complete -C "$1" -O R ${gnu:+-O --recursive} \
 	-D "recursively change the owner of files in a directory"
 if [ "$netbsd$freebsd$darwin$gnu" ]; then
