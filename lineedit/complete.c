@@ -61,6 +61,9 @@
 #include "terminfo.h"
 
 #if HAVE_GETPWENT
+# ifndef setpwent
+extern void setpwent(void);
+# endif
 # ifndef getpwent
 extern struct passwd *getpwent(void);
 # endif
@@ -69,6 +72,9 @@ extern void endpwent(void);
 # endif
 #endif
 #if HAVE_GETGRENT
+# ifndef setgrent
+extern void setgrent(void);
+# endif
 # ifndef getgrent
 extern struct group *getgrent(void);
 # endif
@@ -77,6 +83,9 @@ extern void endgrent(void);
 # endif
 #endif
 #if HAVE_GETHOSTENT
+# ifndef sethostent
+extern void sethostent(int);
+# endif
 # ifndef gethostent
 extern struct hostent *gethostent(void);
 # endif
@@ -1251,6 +1260,7 @@ void generate_logname_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     struct passwd *pwd;
+    setpwent();
     while ((pwd = getpwent()) != NULL)
 	if (xfnm_match(context->cpattern, pwd->pw_name) == 0)
 	    le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
@@ -1278,6 +1288,7 @@ void generate_group_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     struct group *grp;
+    setgrent();
     while ((grp = getgrent()) != NULL)
 	if (xfnm_match(context->cpattern, grp->gr_name) == 0)
 	    le_new_candidate(CT_GRP, malloc_mbstowcs(grp->gr_name), NULL);
