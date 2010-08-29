@@ -72,7 +72,7 @@ extern void endpwent(void);
 # endif
 #endif
 #if HAVE_GETGRENT
-# ifndef setgrent
+# if 0 /* avoid conflict on BSD */
 extern void setgrent(void);
 # endif
 # ifndef getgrent

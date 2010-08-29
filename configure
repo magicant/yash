@@ -1103,11 +1103,14 @@ then
     defconfigh "HAVE_STRSIGNAL"
 fi
 
-# check for getpwent & endpwent
-checking 'for getpwent/endpwent'
+# check for setpwent & getpwent & endpwent
+checking 'for setpwent/getpwent/endpwent'
 cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <pwd.h>
+#ifndef setpwent
+void setpwent(void);
+#endif
 #ifndef getpwent
 struct passwd *getpwent(void);
 #endif
@@ -1115,7 +1118,7 @@ struct passwd *getpwent(void);
 void endpwent(void);
 #endif
 struct passwd *p;
-int main() { p = getpwent(); endpwent(); }
+int main() { setpwent(); p = getpwent(); endpwent(); }
 END
 trymake
 checked
@@ -1140,11 +1143,12 @@ END
     fi
 fi
 
-# check for getgrent & endgrent
-checking 'for getgrent/endgrent'
+# check for setgrent & getgrent & endgrent
+checking 'for setgrent/getgrent/endgrent'
 cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <grp.h>
+/* don't declare setgrent to avoid conflict on BSD */
 #ifndef getgrent
 struct group *getgrent(void);
 #endif
@@ -1152,7 +1156,7 @@ struct group *getgrent(void);
 void endgrent(void);
 #endif
 struct group *g;
-int main() { g = getgrent(); endgrent(); }
+int main() { setgrent(); g = getgrent(); endgrent(); }
 END
 trymake
 checked
