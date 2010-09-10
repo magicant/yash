@@ -735,6 +735,7 @@ const struct cmdcandgen_T *get_cmdcandgen(const wchar_t *cmdname)
  * for the specified command. */
 void autoload_completion(const wchar_t *cmdname)
 {
+#if 0
     const wchar_t *slash = wcsrchr(cmdname, L'/');
     if (slash != NULL)
 	cmdname = slash + 1;
@@ -780,6 +781,8 @@ void autoload_completion(const wchar_t *cmdname)
 	xclose(fd);
     }
     free(path);
+#endif
+    /* FIXME */
 }
 
 /* Parses `ctxt->pwords'. */

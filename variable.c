@@ -60,9 +60,7 @@
 static const wchar_t *const path_variables[PA_count] = {
     [PA_PATH]     = L VAR_PATH,
     [PA_CDPATH]   = L VAR_CDPATH,
-#if YASH_ENABLE_LINEEDIT
-    [PA_COMPPATH] = L VAR_YASH_COMPPATH,
-#endif
+    [PA_LOADPATH] = L VAR_YASH_LOADPATH,
 };
 
 
@@ -84,7 +82,7 @@ typedef struct environ_T {
 /* An environment whose `is_temporary' is true is used for temporary variables. 
  * Temporary variables may be exported but cannot be readonly.
  * The elements of `paths' are arrays of the pathnames contained in the
- * $PATH, $CDPATH and $YASH_COMPPATH variables. They are NULL if the
+ * $PATH, $CDPATH and $YASH_LOADPATH variables. They are NULL if the
  * corresponding variables are not set. */
 #define VAR_positional "="
 
@@ -331,8 +329,8 @@ void init_variables(void)
 	random_active = false;
     }
 
-    /* set $YASH_COMPPATH */
-    set_variable(L VAR_YASH_COMPPATH, xwcsdup(L YASH_DATADIR "/completion"),
+    /* set $YASH_LOADPATH */
+    set_variable(L VAR_YASH_LOADPATH, xwcsdup(L YASH_DATADIR),
 	    SCOPE_GLOBAL, false);
 
     /* set $YASH_VERSION */
@@ -1043,8 +1041,8 @@ void variable_set(const wchar_t *name, variable_T *var)
 	    le_need_term_update = true;
 	break;
     case L'Y':
-	if (wcscmp(name, L VAR_YASH_COMPPATH) == 0)
-	    reset_path(PA_COMPPATH, var);
+	if (wcscmp(name, L VAR_YASH_LOADPATH) == 0)
+	    reset_path(PA_LOADPATH, var);
 	break;
 #endif /* YASH_ENABLE_LINEEDIT */
     }

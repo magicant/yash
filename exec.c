@@ -1712,27 +1712,32 @@ const char eval_help[] = Ngt(
 #endif
 
 /* The "." builtin, which accepts the following option:
- *  -A: disable aliases */
+ *  -A: disable aliases
+ *  -L: autoload */
 int dot_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"no-alias", OPTARG_NONE, L'A', },
+	{ L"autoload", OPTARG_NONE, L'L', },
 #if YASH_ENABLE_HELP
 	{ L"help",     OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
 
-    bool enable_alias = true;
+    bool enable_alias = true, autoload = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"+" : L"+A",
+		    posixly_correct ? L"+" : L"+AL",
 		    long_options, NULL))) {
 	switch (opt) {
 	    case L'A':
 		enable_alias = false;
+		break;
+	    case L'L':
+		autoload = true;
 		break;
 #if YASH_ENABLE_HELP
 	    case L'-':
@@ -1741,7 +1746,7 @@ int dot_builtin(int argc, void **argv)
 	    default:  print_usage:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  . file\n")
-			    : Ngt("Usage:  . [-A] file [arg...]\n")));
+			    : Ngt("Usage:  . [-AL] file [arg...]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1762,7 +1767,17 @@ int dot_builtin(int argc, void **argv)
     }
 
     char *path;
-    if (!wcschr(filename, L'/')) {
+    if (autoload) {
+	path = which(mbsfilename, get_path_array(PA_LOADPATH),
+		is_readable_regular);
+	if (path == NULL) {
+	    xerror(0, Ngt("%s: not found in $YASH_LOADPATH"), mbsfilename);
+	    free(mbsfilename);
+	    if (!is_interactive)
+		exit_shell_with_status(Exit_FAILURE);
+	    return Exit_FAILURE;
+	}
+    } else if (!wcschr(filename, L'/')) {
 	path = which(mbsfilename, get_path_array(PA_PATH), is_readable_regular);
 	if (!path) {
 	    if (!posixly_correct) {
@@ -1810,16 +1825,19 @@ int dot_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 const char dot_help[] = Ngt(
 "dot - read file and execute commands\n"
-"\t. [-A] file [arg...]\n"
+"\t. [-AL] file [arg...]\n"
 "Reads the specified <file> and executes commands in it.\n"
 "If <arg>s are specified, they are used as the positional parameters.\n"
 "Otherwise, the positional parameters are not changed.\n"
 "If <file> does not contain any slashes, the shell searches $PATH for a\n"
 "readable shell script file whose name is <file>. To ensure that the file in\n"
 "the current working directory is used, start <file> with \"./\".\n"
+"If the -L (--autoload) option is specified, the shell searches\n"
+"$YASH_LOADPATH instead of $PATH, regardless of whether <file> contains\n"
+"slashes.\n"
 "If the -A (--no-alias) option is specified, alias substitution is not\n"
 "performed during processing the file.\n"
-"In POSIXly correct mode, the -A option cannot be used and <arg>s must not be\n"
+"In POSIXly correct mode, options cannot be used and <arg>s must not be\n"
 "given.\n"
 );
 #endif
