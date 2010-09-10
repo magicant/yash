@@ -353,7 +353,7 @@ bool le_complete_fix_candidate(int index)
     if (!subst) {
 	const le_candidate_T *cand =
 	    le_candidates.contents[le_selected_candidate_index];
-	subst = !matchwcsprefix(cand->origvalue, ctxt->origsrc);
+	subst = !matchwcsprefix(cand->origvalue, ctxt->src);
     }
     update_main_buffer(subst, true);
     le_complete_cleanup();
@@ -389,9 +389,8 @@ void free_context(le_context_T *ctxt)
 {
     if (ctxt != NULL) {
 	recfree(ctxt->pwords, free);
-	free(ctxt->origsrc);
-	free(ctxt->origpattern);
-	xfnm_free(ctxt->cpattern);
+	free(ctxt->src);
+	free(ctxt->pattern);
 	free(ctxt);
     }
 }
@@ -614,9 +613,10 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
 /* Adds the specified candidate to the candidate list.
  * The le_candidate_T structure must have been properly initialized, except for
  * the `origvalue' member, which is initialized in this function as the value
- * with the ignored prefixed prepended. */
+ * with the ignored prefix prepended. */
 void le_add_candidate(le_candidate_T *cand)
 {
+#if 0
     if (ctxt->origsrc == ctxt->src) {
 	cand->origvalue = cand->value;
     } else {
@@ -627,6 +627,7 @@ void le_add_candidate(le_candidate_T *cand)
 	cand->origvalue = wb_towcs(&buf);
 	cand->value = cand->origvalue + prefixlen;
     }
+#endif // TODO FIXME
 
     if (le_state_is_compdebug) {
 	const char *typestr = NULL;
@@ -736,7 +737,7 @@ void generate_external_command_candidates(
 	    sb_ccat(&path, '/');
 	dirpathlen = path.length;
 	while ((de = readdir(dir)) != NULL) {
-	    if (xfnm_match(context->cpattern, de->d_name) != 0)
+	    if (xfnm_match(NULL /* FIXME */, de->d_name) != 0)
 		continue;
 	    sb_cat(&path, de->d_name);
 	    if (is_executable_regular(path.contents))
@@ -767,7 +768,7 @@ void generate_keyword_candidates(le_candgentype_T type, le_context_T *context)
     };
 
     for (const wchar_t **k = keywords; *k != NULL; k++)
-	if (WMATCH(context->cpattern, *k))
+	if (WMATCH(NULL /* FIXME */, *k))
 	    le_new_command_candidate(xwcsdup(*k));
 }
 
@@ -787,7 +788,7 @@ void generate_logname_candidates(le_candgentype_T type, le_context_T *context)
     struct passwd *pwd;
     setpwent();
     while ((pwd = getpwent()) != NULL)
-	if (xfnm_match(context->cpattern, pwd->pw_name) == 0)
+	if (xfnm_match(NULL /* FIXME */, pwd->pw_name) == 0)
 	    le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
 # if HAVE_PW_GECOS
 		    (pwd->pw_gecos != NULL) ? malloc_mbstowcs(pwd->pw_gecos) :
@@ -815,7 +816,7 @@ void generate_group_candidates(le_candgentype_T type, le_context_T *context)
     struct group *grp;
     setgrent();
     while ((grp = getgrent()) != NULL)
-	if (xfnm_match(context->cpattern, grp->gr_name) == 0)
+	if (xfnm_match(NULL /* FIXME */, grp->gr_name) == 0)
 	    le_new_candidate(CT_GRP, malloc_mbstowcs(grp->gr_name), NULL);
     endgrent();
 #else
@@ -839,11 +840,11 @@ void generate_host_candidates(le_candgentype_T type, le_context_T *context)
     struct hostent *host;
     sethostent(true);
     while ((host = gethostent()) != NULL) {
-	if (xfnm_match(context->cpattern, host->h_name) == 0)
+	if (xfnm_match(NULL /* FIXME */, host->h_name) == 0)
 	    le_new_candidate(CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL);
 	if (host->h_aliases != NULL)
 	    for (char *const *a = host->h_aliases; *a != NULL; a++)
-		if (xfnm_match(context->cpattern, *a) == 0)
+		if (xfnm_match(NULL /* FIXME */, *a) == 0)
 		    le_new_candidate(CT_HOSTNAME, malloc_mbstowcs(*a), NULL);
     }
     endhostent();
@@ -866,7 +867,7 @@ void generate_candidates_from_words(void *const *words, le_context_T *context)
 
     for (; *words != NULL; words++) {
 	wchar_t *word = *words;
-	if (WMATCH(context->cpattern, word)) {
+	if (WMATCH(NULL /* FIXME */, word)) {
 	    const wchar_t *desc = word + wcslen(word) + 1;
 	    le_new_candidate(CT_WORD, xwcsdup(word),
 		    (desc[0] == L'\0') ? NULL : xwcsdup(desc));
@@ -938,7 +939,7 @@ void update_main_buffer(bool subst, bool finish)
 	substindex = ctxt->srcindex;
 	quotetype = QUOTE_NORMAL;
     } else {
-	srclen = wcslen(ctxt->origsrc);
+	srclen = wcslen(ctxt->src);
 	substindex = ctxt->origindex;
 	quotetype = ctxt->quote;
     }
@@ -1041,7 +1042,7 @@ bool need_subst(void)
 {
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T *cand = le_candidates.contents[i];
-	if (!matchwcsprefix(cand->origvalue, ctxt->origsrc))
+	if (!matchwcsprefix(cand->origvalue, ctxt->src))
 	    return true;
     }
     return false;
@@ -1373,11 +1374,11 @@ int complete_builtin_delegate(int wordc, void **words)
     newctxt.quote     = savecontext->quote;
     newctxt.pwordc    = wordc - 1;
     newctxt.pwords    = pwords;
-    newctxt.cpattern  = NULL;
     newctxt.srcindex  = savecontext->srcindex;
     newctxt.origindex = savecontext->origindex;
     newctxt.substsrc  = false;
 
+#if 0
     if ((savecontext->type & CTXT_MASK) == CTXT_NORMAL
 	    && newctxt.pwordc == 0) {
 	newctxt.type = CTXT_COMMAND | (savecontext->type & ~CTXT_MASK);
@@ -1385,7 +1386,7 @@ int complete_builtin_delegate(int wordc, void **words)
 	newctxt.type = savecontext->type;
     }
 
-    newctxt.origsrc = newctxt.src = words[wordc - 1];
+    newctxt.src = newctxt.src = words[wordc - 1];
     if (wcscmp(savecontext->origsrc, words[wordc - 1]) == 0) {
 	newctxt.pattern = xwcsdup(savecontext->origpattern);
     } else {
@@ -1394,6 +1395,7 @@ int complete_builtin_delegate(int wordc, void **words)
 	newctxt.pattern = wb_towcs(wb_wccat(&buf, L'*'));
     }
     newctxt.origpattern = newctxt.pattern;
+#endif // FIXME
 
     if (le_state_is_compdebug) {
 	le_compdebug("delegation start (complete -G)");
@@ -1404,8 +1406,7 @@ int complete_builtin_delegate(int wordc, void **words)
     exitstatus = 0; // FIXME generate_candidates(get_candgen());
     ctxt = savecontext;
 
-    free(newctxt.origpattern);
-    xfnm_free(newctxt.cpattern);
+    free(newctxt.pattern);
 
     le_compdebug("delegation end (complete -G)");
     return exitstatus;

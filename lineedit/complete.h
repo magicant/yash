@@ -91,27 +91,19 @@ typedef struct le_context_T {
     void **pwords;          // words preceding the source word
     wchar_t *src;           // source word
     wchar_t *pattern;       // source word as a matching pattern
-    wchar_t *origsrc;       // original `src'
-    wchar_t *origpattern;   // original `pattern'
-    struct xfnmatch_T *cpattern;
     size_t srcindex;        // start index of source word
     size_t origindex;       // original `le_main_index'
     _Bool substsrc;         // substitute source word with candidates?
 } le_context_T;
 /* The `pwords' member is an array of pointers to wide strings containing the
  * expanded words preceding the source word.
- * The `src' (`origsrc') member is the source word expanded by the four
- * expansions, brace expansion, word splitting, and quote removal.
+ * The `src' member is the source word expanded by the four expansions, brace
+ * expansion, word splitting, and quote removal.
  * The `pattern' member is like `src', but differs in that it may contain
  * backslash escapes and that it may have an additional asterisk at the end
  * to make it a pattern.
- * At first, `src' and `origsrc' are the same pointers (and the same for
- * `pattern' and `origpattern'). If an prefix that is ignored in candidate
- * generation is found in the source word, `src' and `pattern' are increased so
- * that they point to just after the prefix. (see examples below)
- * The `cpattern' is the compiled version of `pattern'.
  * The `srcindex' member designates where the source word starts in the edit
- * line. The `original' member is the value of `le_main_index' before starting
+ * line. The `origindex' member is the value of `le_main_index' before starting
  * completion.
  * The `substsrc' member designates whether the source word should be
  * substituted with obtained candidates. The value is true if and only if the
@@ -123,21 +115,16 @@ typedef struct le_context_T {
 /* Examples:
  *   For the command line of "foo --bar='x", the completion parser function
  *   `le_get_context' returns:
- *     `quote'                  = QUOTE_SINGLE
- *     `type'                   = CTXT_NORMAL
- *     `pwordc'                 = 1
- *     `pwords'                 = { L"foo" }
- *     `src', `origsrc'         = L"--bar=x"
- *     `pattern', `origpattern' = L"--bar=\\x"
- *     `srcindex'               = 4
- *     `origindex'              = 12
- *     `substsrc'               = false
- *
- *   Command options are parsed in the `get_candgen' function, which updates
- *   `src' and `pattern':
- *     `src'    = L"x"
- *     `pattern = L"\\x"
- *   But `srcindex' is not updated (though it should)... */
+ *     `quote'     = QUOTE_SINGLE
+ *     `type'      = CTXT_NORMAL
+ *     `pwordc'    = 1
+ *     `pwords'    = { L"foo" }
+ *     `src',      = L"--bar=x"
+ *     `pattern',  = L"--bar=\\x"
+ *     `srcindex'  = 4
+ *     `origindex' = 12
+ *     `substsrc'  = false
+ */
 
 
 typedef enum le_candgentype_T {
