@@ -65,10 +65,9 @@ extern int faccessat(int fd, const char *path, int amode, int flags)
 extern int eaccess(const char *path, int amode)
     __attribute__((nonnull));
 # endif
-#else
-static bool check_access(const char *path, mode_t mode)
-    __attribute__((nonnull));
 #endif
+static bool check_access(const char *path, mode_t mode, int amode)
+    __attribute__((nonnull));
 static inline bool not_dotdot(const wchar_t *p)
     __attribute__((nonnull,pure));
 
@@ -97,44 +96,40 @@ bool is_irregular_file(const char *path)
 /* Checks if `path' is a readable file. */
 bool is_readable(const char *path)
 {
-#if HAVE_FACCESSAT
-    return faccessat(AT_FDCWD, path, R_OK, AT_EACCESS) == 0;
-#elif HAVE_EACCESS
-    return eaccess(path, R_OK) == 0;
-#else
-    return check_access(path, S_IRUSR | S_IRGRP | S_IROTH);
-#endif
+    return check_access(path, S_IRUSR | S_IRGRP | S_IROTH, R_OK);
 }
 
 /* Checks if `path' is a writable file. */
 bool is_writable(const char *path)
 {
-#if HAVE_FACCESSAT
-    return faccessat(AT_FDCWD, path, W_OK, AT_EACCESS) == 0;
-#elif HAVE_EACCESS
-    return eaccess(path, W_OK) == 0;
-#else
-    return check_access(path, S_IWUSR | S_IWGRP | S_IWOTH);
-#endif
+    return check_access(path, S_IWUSR | S_IWGRP | S_IWOTH, W_OK);
 }
 
 /* Checks if `path' is an executable file (or a searchable directory). */
 bool is_executable(const char *path)
 {
-#if HAVE_FACCESSAT
-    return faccessat(AT_FDCWD, path, X_OK, AT_EACCESS) == 0;
-#elif HAVE_EACCESS
-    return eaccess(path, X_OK) == 0;
-#else
-    return check_access(path, S_IXUSR | S_IXGRP | S_IXOTH);
-#endif
+    return check_access(path, S_IXUSR | S_IXGRP | S_IXOTH, X_OK);
 }
 
-#if !HAVE_FACCESSAT && !HAVE_EACCESS
 /* Checks if this process has a proper permission to access the specified file.
  * Returns false if the file does not exist. */
-bool check_access(const char *path, mode_t mode)
+bool check_access(const char *path, mode_t mode, int amode)
 {
+    /* Even if the faccessat/eaccess function was considered available by
+     * `configure', the OS kernel may not support it. We fall back on our own
+     * checking function if faccessat/eaccess was rejected. */
+#if HAVE_FACCESSAT
+    int result = faccessat(AT_FDCWD, path, amode, AT_EACCESS);
+    if (result == 0 || (errno != ENOSYS && errno != EINVAL))
+	return result == 0;
+#elif HAVE_EACCESS
+    int result = eaccess(path, amode);
+    if (result == 0 || (errno != ENOSYS && errno != EINVAL))
+	return result == 0;
+#else
+    (void) amode;
+#endif
+
     /* The algorithm below is not 100% valid for all POSIX systems. */
     struct stat st;
     uid_t uid;
@@ -174,7 +169,6 @@ bool check_access(const char *path, mode_t mode)
 
     return st.st_mode & S_IRWXO;
 }
-#endif /* !HAVE_FACCESSAT && !HAVE_EACCESS */
 
 /* Checks if `path' is a readable regular file. */
 bool is_readable_regular(const char *path)
@@ -337,7 +331,7 @@ char *xgetcwd(void)
  *         If `name' is an absolute path, a copy of it is simply returned.
  * dirs:   a NULL-terminated array of strings that are the names of
  *         directories to search. An empty string is treated as the current
- *         directory. If `dirs' is NULL, only the current directory is searched.
+ *         directory. If `dirs' is NULL, no directory is searched.
  * cond:   the function that determines the specified pathname satisfies a
  *         certain condition.
  * For each directory in `dirs', in order, the directory name and "/" and
@@ -352,14 +346,12 @@ char *which(
 	char *const *restrict dirs,
 	bool cond(const char *path))
 {
-    static char *const null[] = { "", NULL, };
-
     if (!name[0])
 	return NULL;
-    if (!dirs)
-	dirs = null;
     if (name[0] == '/')
 	return xstrdup(name);
+    if (!dirs)
+	return NULL;
 
     size_t namelen = strlen(name);
     const char *dir;
@@ -476,75 +468,6 @@ const char *get_command_path(const char *name, bool forcelookup)
     }
     return path;
 }
-
-#if 0 && YASH_ENABLE_LINEEDIT
-
-/* Fills the command hashtable, searching PATH for all commands whose name
- * starts with the specified prefix.
- * If PATH is not set, this function does nothing.
- * Relative pathnames in PATH are ignored.
- * If `prefix' is NULL or empty, all the commands in PATH is entered.
- * This function never prints error messages.
- * If `ignorecase' is true, search is done case-insensitively, though
- * multibyte characters are not handled properly to search quickly. */
-void fill_cmdhash(const char *prefix, bool ignorecase)
-{
-    char *const *pa = get_path_array(PA_PATH);
-    if (!pa)
-	return;
-
-    if (!prefix)
-	prefix = "";
-    size_t plen = strlen(prefix);
-    char pfx[plen + 1];
-    if (ignorecase) {
-	for (size_t i = 0; i < plen; i++)
-	    pfx[i] = tolower(prefix[i]);
-	pfx[plen] = '\0';
-    }
-
-    /* We search PATH in reverse order, and ones that are found later
-     * (= placed at lower indeces in PATH) survive. */
-    for (size_t i = plcount((void **) pa); i-- > 0; ) {
-	const char *dirpath = pa[i];
-	if (dirpath[0] != '/')
-	    continue;  /* ignore relative path */
-
-	DIR *dir = opendir(dirpath);
-	if (!dir)
-	    continue;
-
-	size_t dirpathlen = strlen(dirpath);
-	struct dirent *de;
-	while ((de = readdir(dir))) {
-	    /* go to next if `prefix' doesn't match */
-	    if (!ignorecase) {
-		if (strncmp(prefix, de->d_name, plen) != 0)
-		    continue;
-	    } else {
-		for (size_t j = 0; j < plen; j++)
-		    if (tolower(de->d_name[j]) != pfx[j])
-			continue;
-	    }
-
-	    /* produce a full path */
-	    char *path = xmalloc(dirpathlen + strlen(de->d_name) + 2);
-	    strncpy(path, dirpath, dirpathlen);
-	    path[dirpathlen] = '/';
-	    strcpy(path + dirpathlen + 1, de->d_name);
-
-	    /* enter to hashtable if it is executable */
-	    if (is_executable_regular(path))
-		vfree(ht_set(&cmdhash, path + dirpathlen + 1, path));
-	    else
-		free(path);
-	}
-
-	closedir(dir);
-    }
-}
-
-#endif /* YASH_ENABLE_LINEEDIT */
 
 /* Removes the specified command from the command hashtable. */
 void forget_command_path(const char *command)
@@ -1240,7 +1163,10 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	    xerror(EILSEQ, Ngt("unexpected error"));
 	    return Exit_ERROR;
 	}
-	char *path = which(mbsnewpwd, get_path_array(PA_CDPATH), is_directory);
+	char *const *cdpath = get_path_array(PA_CDPATH);
+	char *path = which(mbsnewpwd,
+		cdpath != NULL ? cdpath : (char *[]) { "", NULL },
+		is_directory);
 	if (path != NULL) {
 	    if (strcmp(mbsnewpwd, path) != 0)
 		printnewdir = true;
@@ -1469,11 +1395,11 @@ const char pwd_help[] = Ngt(
 int hash_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"all",       xno_argument, L'a', },
-	{ L"directory", xno_argument, L'd', },
-	{ L"remove",    xno_argument, L'r', },
+	{ L"all",       OPTARG_NONE, L'a', },
+	{ L"directory", OPTARG_NONE, L'd', },
+	{ L"remove",    OPTARG_NONE, L'r', },
 #if YASH_ENABLE_HELP
-	{ L"help",      xno_argument, L'-', },
+	{ L"help",      OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -1622,9 +1548,9 @@ const char hash_help[] = Ngt(
 int umask_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"symbolic", xno_argument, L'S', },
+	{ L"symbolic", OPTARG_NONE, L'S', },
 #if YASH_ENABLE_HELP
-	{ L"help",     xno_argument, L'-', },
+	{ L"help",     OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

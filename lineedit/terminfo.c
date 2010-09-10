@@ -893,7 +893,7 @@ _Bool le_set_terminal(void)
     le_erase_char     = normchar(term.c_cc[VERASE]);
 
     /* set attributes */
-    to_raw_mode(&term, false);
+    to_raw_mode(&term, 0);
     if (xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
 	goto fail;
 

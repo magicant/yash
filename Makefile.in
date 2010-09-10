@@ -14,9 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# NOTE: In this Makefile it is assumed that the make implementation allows the
+# use of hyphens in target names. This means that there may be a strictly
+# POSIX-conforming implementation of make that rejects this Makefile. I have
+# never seen such an implementation but if you know of one please let me know.
+
 .POSIX:
 .SUFFIXES: .c .h .d .o .a
 
+@MAKE_SHELL@
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -32,7 +38,17 @@ BUILTINS_ARCHIVE = builtins/builtins.a
 LINEEDIT_ARCHIVE = lineedit/lineedit.a
 OBJS = @OBJS@
 TARGET = yash
-BYPRODUCTS = makesignum.o makesignum signum.h *.dSYM
+VERSION = @VERSION@
+COPYRIGHT = @COPYRIGHT@
+BYPRODUCTS = makesignum.o makesignum signum.h configm.h *.dSYM
+
+DESTDIR =
+PREFIX = @PREFIX@
+EPREFIX = @EPREFIX@
+BINDIR = @BINDIR@
+DATAROOTDIR = @DATAROOTDIR@
+DATADIR = @DATADIR@
+YASHDATADIR = $(DATADIR)/yash
 
 all: $(TARGET)
 
@@ -45,43 +61,58 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 $(BUILTINS_ARCHIVE): _PHONY
-	@+cd builtins && $(MAKE)
+	@+(cd builtins && $(MAKE))
 $(LINEEDIT_ARCHIVE): _PHONY
-	@+cd lineedit && $(MAKE)
+	@+(cd lineedit && $(MAKE))
+sig.o: signum.h
 signum.h: makesignum
 	./makesignum > $@
-sig.o: signum.h
+variable.o yash.o: configm.h
+configm.h: Makefile
+	-@echo creating $@...
+	@{ printf '/* $@: created by Makefile */\n'; \
+		printf '#ifndef YASH_CONFIGM_H\n'; \
+		printf '#define YASH_CONFIGM_H\n'; \
+		printf '#define PACKAGE_VERSION "$(VERSION)"\n'; \
+		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
+		printf '#define YASH_DATADIR "$(YASHDATADIR)"\n'; \
+		printf '#endif\n'; \
+		} >$@
 
 test tests check: _PHONY
-	@+cd tests && $(MAKE)
+	@+(cd tests && $(MAKE))
 
-DESTDIR =
-PREFIX = @PREFIX@
-EPREFIX = @EPREFIX@
-BINDIR = @BINDIR@
-install: install-binary install-doc
-install-strip:
+INSTALLDIRS = $(DESTDIR)$(BINDIR) $(DESTDIR)$(YASHDATADIR) $(DESTDIR)$(YASHDATADIR)/completion
+install: install-binary install-data
+install-strip: install-data
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
-	@+$(MAKE) install-doc
 install-binary: $(TARGET) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
-install-doc:
-	@+cd doc && $(MAKE) install
-installdirs: $(DESTDIR)$(BINDIR)
-	@+cd doc && $(MAKE) installdirs
-$(DESTDIR)$(BINDIR):
+install-data: $(DESTDIR)$(YASHDATADIR)/completion share/links
+	@for file in share/completion/*; do \
+		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion || true; \
+		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion; \
+	done
+	@umask 022; while read target dest; do \
+		echo ln -fs $$target $(DESTDIR)$(YASHDATADIR)/$$dest || true; \
+		ln -fs $$target $(DESTDIR)$(YASHDATADIR)/$$dest; \
+	done < share/links
+installdirs: $(INSTALLDIRS)
+$(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
-uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
-	@+cd doc && $(MAKE) uninstall
+uninstall: uninstall-binary uninstall-data
+uninstall-binary:
+	-rm $(DESTDIR)$(BINDIR)/$(TARGET)
+uninstall-data:
+	-rm -r $(DESTDIR)$(YASHDATADIR)/completion
+	-rmdir $(DESTDIR)$(YASHDATADIR)
 
-VERSION = @VERSION@
 DISTDIR = yash-$(VERSION)
 DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
 DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
 # "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
 distcontents: $(DISTCONTENTS) $(OBJS)
-$(DISTDIR):
+$(DISTDIR): _PHONY
 	rm -fr $@
 	mkdir -m 755 $@
 	@+base=$$PWD; umask 022; \
@@ -89,6 +120,11 @@ $(DISTDIR):
 		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents) || \
 		exit; \
 	done
+	mkdir -m 755 $@/share
+	umask 022; cp share/links $@/share/links
+	mkdir -m 755 $@/share/completion
+	umask 022; \
+	for file in share/completion/*; do cp $$file $@/share/completion; done
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
 	cp $(DISTCONTENTS) $(DISTTARGETDIR)
@@ -132,41 +168,39 @@ cscope.out: $(SOURCES) $(HEADERS)
 	$(CSCOPE) $(CSCOPEARGS)
 
 mostlyclean: _mostlyclean
-	-@+cd builtins && $(MAKE) mostlyclean
-	-@+cd lineedit && $(MAKE) mostlyclean
+	-@+(cd builtins && $(MAKE) mostlyclean)
+	-@+(cd lineedit && $(MAKE) mostlyclean)
 _mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
-	-@+cd tests && $(MAKE) clean
+	-@+(cd tests && $(MAKE) clean)
 clean: _clean
-	-@+cd builtins && $(MAKE) clean
-	-@+cd lineedit && $(MAKE) clean
+	-@+(cd builtins && $(MAKE) clean)
+	-@+(cd lineedit && $(MAKE) clean)
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean
-	-@+cd builtins && $(MAKE) distclean
-	-@+cd lineedit && $(MAKE) distclean
-	-@+cd tests    && $(MAKE) distclean
-	-@+cd doc      && $(MAKE) distclean
+	-@+(cd builtins && $(MAKE) distclean)
+	-@+(cd lineedit && $(MAKE) distclean)
+	-@+(cd tests    && $(MAKE) distclean)
 _distclean: _clean
-	-rm -rf Makefile config.log config.status config.h version.h \
-		tags TAGS cscope.out
+	-rm -rf Makefile config.log config.status config.h tags TAGS cscope.out
 maintainer-clean:
-	@echo 'This command is intended for maintainers to use;'
-	@echo 'it deletes files that may need special tools to rebuild.'
-	@+$(MAKE) _distclean
-	-@+cd builtins && $(MAKE) maintainer-clean
-	-@+cd lineedit && $(MAKE) maintainer-clean
-	-@+cd tests    && $(MAKE) maintainer-clean
+	-@echo 'This command is intended for maintainers to use;'
+	-@echo 'it deletes files that may need special tools to rebuild.'
+	-@+$(MAKE) _distclean
+	-@+(cd builtins && $(MAKE) maintainer-clean)
+	-@+(cd lineedit && $(MAKE) maintainer-clean)
+	-@+(cd tests    && $(MAKE) maintainer-clean)
 	-rm -rf $(SOURCES:.c=.d)
 
-config.h version.h: config.status
+config.h: config.status
 	$(SHELL) config.status
 Makefile: Makefile.in config.status
 	$(SHELL) config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary install-doc installdirs uninstall dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check install install-strip install-binary install-data installdirs uninstall uninstall-binary uninstall-data dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d

@@ -35,6 +35,7 @@
 # include <libintl.h>
 #endif
 #include "builtin.h"
+#include "configm.h"
 #include "exec.h"
 #include "expand.h"
 #include "hashtable.h"
@@ -47,7 +48,6 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "version.h"
 #include "xfnmatch.h"
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT
@@ -60,7 +60,9 @@
 static const wchar_t *const path_variables[PA_count] = {
     [PA_PATH]     = L VAR_PATH,
     [PA_CDPATH]   = L VAR_CDPATH,
-    [PA_MAILPATH] = L VAR_MAILPATH,
+#if YASH_ENABLE_LINEEDIT
+    [PA_COMPPATH] = L VAR_YASH_COMPPATH,
+#endif
 };
 
 
@@ -82,8 +84,8 @@ typedef struct environ_T {
 /* An environment whose `is_temporary' is true is used for temporary variables. 
  * Temporary variables may be exported but cannot be readonly.
  * The elements of `paths' are arrays of the pathnames contained in the
- * $PATH, $CDPATH and $MAILPATH variables. They are NULL if the corresponding
- * variables are not set. */
+ * $PATH, $CDPATH and $YASH_COMPPATH variables. They are NULL if the
+ * corresponding variables are not set. */
 #define VAR_positional "="
 
 /* flags for variable attributes */
@@ -167,6 +169,10 @@ static unsigned next_random(void);
 static void variable_set(const wchar_t *name, variable_T *var)
     __attribute__((nonnull(1)));
 
+static char **convert_path_array(void **ary)
+    __attribute__((malloc,warn_unused_result));
+static void add_to_list_no_dup(plist_T *list, char *s)
+    __attribute__((nonnull(1)));
 static void reset_path(path_T name, variable_T *var);
 
 static void funcfree(function_T *f);
@@ -239,8 +245,8 @@ void init_variables(void)
     current_env->parent = NULL;
     current_env->is_temporary = false;
     ht_init(&current_env->contents, hashwcs, htwcscmp);
-    for (size_t i = 0; i < PA_count; i++)
-	current_env->paths[i] = NULL;
+//    for (size_t i = 0; i < PA_count; i++)
+//	current_env->paths[i] = NULL;
 
     ht_init(&functions, hashwcs, htwcscmp);
 
@@ -261,6 +267,10 @@ void init_variables(void)
 	}
 	varkvfree(ht_set(&current_env->contents, we, v));
     }
+
+    /* initialize path according to $PATH etc. */
+    for (size_t i = 0; i < PA_count; i++)
+	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
 
     /* set $IFS */
     set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_GLOBAL, false);
@@ -321,13 +331,13 @@ void init_variables(void)
 	random_active = false;
     }
 
+    /* set $YASH_COMPPATH */
+    set_variable(L VAR_YASH_COMPPATH, xwcsdup(L YASH_DATADIR "/completion"),
+	    SCOPE_GLOBAL, false);
+
     /* set $YASH_VERSION */
     set_variable(L VAR_YASH_VERSION, xwcsdup(L PACKAGE_VERSION),
 	    SCOPE_GLOBAL, false);
-
-    /* initialize path according to $PATH/CDPATH */
-    for (size_t i = 0; i < PA_count; i++)
-	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
 }
 
 /* Reset the value of $PWD if
@@ -1008,10 +1018,6 @@ void variable_set(const wchar_t *name, variable_T *var)
 	    le_need_term_update = true;
 #endif
 	break;
-    case L'M':
-	if (wcscmp(name, L VAR_MAILPATH) == 0)
-	    reset_path(PA_MAILPATH, var);
-	break;
     case L'P':
 	if (wcscmp(name, L VAR_PATH) == 0) {
 	    clear_cmdhash();
@@ -1036,6 +1042,10 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (wcscmp(name, L VAR_TERM) == 0)
 	    le_need_term_update = true;
 	break;
+    case L'Y':
+	if (wcscmp(name, L VAR_YASH_COMPPATH) == 0)
+	    reset_path(PA_COMPPATH, var);
+	break;
 #endif /* YASH_ENABLE_LINEEDIT */
     }
 }
@@ -1052,36 +1062,51 @@ char **decompose_paths(const wchar_t *paths)
     if (!paths)
 	return NULL;
 
-    wchar_t wpath[wcslen(paths) + 1];
-    wcscpy(wpath, paths);
+    plist_T list;
+    pl_init(&list);
+
+    const wchar_t *colon;
+    while ((colon = wcschr(paths, L':')) != NULL) {
+	add_to_list_no_dup(&list, malloc_wcsntombs(paths, colon - paths));
+	paths = colon + 1;
+    }
+    add_to_list_no_dup(&list, malloc_wcstombs(paths));
+
+    return (char **) pl_toary(&list);
+}
+
+/* Converts an array of wide strings into an newly-malloced array of multibyte
+ * strings.
+ * If `paths' is NULL, NULL is returned. */
+char **convert_path_array(void **ary)
+{
+    if (!ary)
+	return NULL;
 
     plist_T list;
     pl_init(&list);
 
-    /* add each element to `list', replacing each L':' with L'\0' in `wpath'. */
-    pl_add(&list, wpath);
-    for (wchar_t *w = wpath; *w; w++) {
-	if (*w == L':') {
-	    *w = L'\0';
-	    pl_add(&list, w + 1);
-	}
-    }
-
-    /* remove duplicates */
-    for (size_t i = 0; i < list.length; i++)
-	for (size_t j = list.length; --j > i; )
-	    if (wcscmp(list.contents[i], list.contents[j]) == 0)
-		pl_remove(&list, j, 1);
-
-    /* convert each element back to multibyte string */
-    for (size_t i = 0; i < list.length; i++) {
-	list.contents[i] = malloc_wcstombs(list.contents[i]);
-	/* We actually assert this conversion always succeeds, but... */
-	if (!list.contents[i])
-	    list.contents[i] = xstrdup("");
+    while (*ary) {
+	add_to_list_no_dup(&list, malloc_wcstombs(*ary));
+	ary++;
     }
 
     return (char **) pl_toary(&list);
+}
+
+/* If `s' is non-NULL and not contained in `list', add `s' to list.
+ * Otherwise, frees `s'. */
+void add_to_list_no_dup(plist_T *list, char *s)
+{
+    if (s) {
+	for (size_t i = 0; i < list->length; i++) {
+	    if (strcmp(s, list->contents[i]) == 0) {
+		free(s);
+		return;
+	    }
+	}
+	pl_add(list, s);
+    }
 }
 
 /* Reconstructs the path array of the specified variable in the environment.
@@ -1093,20 +1118,12 @@ void reset_path(path_T name, variable_T *var)
 
 	variable_T *v = ht_get(&env->contents, path_variables[name]).value;
 	if (v) {
-	    plist_T list;
 	    switch (v->v_type & VF_MASK) {
 		case VF_SCALAR:
 		    env->paths[name] = decompose_paths(v->v_value);
 		    break;
 		case VF_ARRAY:
-		    pl_initwithmax(&list, v->v_valc);
-		    for (size_t i = 0; i < v->v_valc; i++) {
-			char *p = malloc_wcstombs(v->v_vals[i]);
-			if (!p)
-			    p = xstrdup("");
-			pl_add(&list, p);
-		    }
-		    env->paths[name] = (char **) pl_toary(&list);
+		    env->paths[name] = convert_path_array(v->v_vals);
 		    break;
 	    }
 	    if (v == var)
@@ -1446,14 +1463,14 @@ static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 int typeset_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"functions", xno_argument, L'f', },
-	{ L"global",    xno_argument, L'g', },
-	{ L"print",     xno_argument, L'p', },
-	{ L"readonly",  xno_argument, L'r', },
-	{ L"export",    xno_argument, L'x', },
-	{ L"unexport",  xno_argument, L'X', },
+	{ L"functions", OPTARG_NONE, L'f', },
+	{ L"global",    OPTARG_NONE, L'g', },
+	{ L"print",     OPTARG_NONE, L'p', },
+	{ L"readonly",  OPTARG_NONE, L'r', },
+	{ L"export",    OPTARG_NONE, L'x', },
+	{ L"unexport",  OPTARG_NONE, L'X', },
 #if YASH_ENABLE_HELP
-	{ L"help",      xno_argument, L'-', },
+	{ L"help",      OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -1785,11 +1802,11 @@ const char typeset_help[] = Ngt(
 int array_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"delete", xno_argument, L'd', },
-	{ L"insert", xno_argument, L'i', },
-	{ L"set",    xno_argument, L's', },
+	{ L"delete", OPTARG_NONE, L'd', },
+	{ L"insert", OPTARG_NONE, L'i', },
+	{ L"set",    OPTARG_NONE, L's', },
 #if YASH_ENABLE_HELP
-	{ L"help",   xno_argument, L'-', },
+	{ L"help",   OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -2057,10 +2074,10 @@ const char array_help[] = Ngt(
 int unset_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"functions", xno_argument, L'f', },
-	{ L"variables", xno_argument, L'v', },
+	{ L"functions", OPTARG_NONE, L'f', },
+	{ L"variables", OPTARG_NONE, L'v', },
 #if YASH_ENABLE_HELP
-	{ L"help",      xno_argument, L'-', },
+	{ L"help",      OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -2465,10 +2482,10 @@ const char getopts_help[] = Ngt(
 int read_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"array",    xno_argument, L'A', },
-	{ L"raw-mode", xno_argument, L'r', },
+	{ L"array",    OPTARG_NONE, L'A', },
+	{ L"raw-mode", OPTARG_NONE, L'r', },
 #if YASH_ENABLE_HELP
-	{ L"help",     xno_argument, L'-', },
+	{ L"help",     OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
@@ -2685,11 +2702,11 @@ const char read_help[] = Ngt(
 
 /* options for the "pushd" builtins */
 static const struct xoption pushd_options[] = {
-    { L"default-directory", xrequired_argument, L'd', },
-    { L"logical",           xno_argument,       L'L', },
-    { L"physical",          xno_argument,       L'P', },
+    { L"default-directory", OPTARG_REQUIRED, L'd', },
+    { L"logical",           OPTARG_NONE,     L'L', },
+    { L"physical",          OPTARG_NONE,     L'P', },
 #if YASH_ENABLE_HELP
-    { L"help",              xno_argument,       L'-', },
+    { L"help",              OPTARG_NONE,     L'-', },
 #endif
     { NULL, 0, 0, },
 };
@@ -2702,12 +2719,12 @@ const struct xoption *const pwd_options = pushd_options + 1;
 
 /* options for the "pushd" builtins */
 static const struct xoption pushd_options[] = {
-    { L"remove-duplicates", xno_argument,       L'D', },
-    { L"default-directory", xrequired_argument, L'd', },
-    { L"logical",           xno_argument,       L'L', },
-    { L"physical",          xno_argument,       L'P', },
+    { L"remove-duplicates", OPTARG_NONE,     L'D', },
+    { L"default-directory", OPTARG_REQUIRED, L'd', },
+    { L"logical",           OPTARG_NONE,     L'L', },
+    { L"physical",          OPTARG_NONE,     L'P', },
 #if YASH_ENABLE_HELP
-    { L"help",              xno_argument,       L'-', },
+    { L"help",              OPTARG_NONE,     L'-', },
 #endif
     { NULL, 0, 0, },
 };
@@ -2964,10 +2981,10 @@ const char popd_help[] = Ngt(
 int dirs_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"clear",   xno_argument, L'c', },
-	{ L"verbose", xno_argument, L'v', },
+	{ L"clear",   OPTARG_NONE, L'c', },
+	{ L"verbose", OPTARG_NONE, L'v', },
 #if YASH_ENABLE_HELP
-	{ L"help",    xno_argument, L'-', },
+	{ L"help",    OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

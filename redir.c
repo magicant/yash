@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.c: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,7 +78,8 @@ int xclose(int fd)
  * `xclose' is called before `dup2'. */
 int xdup2(int oldfd, int newfd)
 {
-    xclose(newfd);
+    if (oldfd != newfd)
+	xclose(newfd);
     while (dup2(oldfd, newfd) < 0) {
 	switch (errno) {
 	case EINTR:
@@ -218,17 +219,29 @@ void clear_shellfds(bool leavefds)
  * On error, `errno' is set and -1 is returned. */
 int copy_as_shellfd(int fd)
 {
+    int newfd;
+
 #ifdef F_DUPFD_CLOEXEC
-    int newfd = fcntl(fd, F_DUPFD_CLOEXEC, shellfdmin);
-#else
-    int newfd = fcntl(fd, F_DUPFD, shellfdmin);
-#endif
-    if (newfd >= 0) {
-#ifndef F_DUPFD_CLOEXEC
-	fcntl(newfd, F_SETFD, FD_CLOEXEC);
-#endif
-	add_shellfd(newfd);
+    /* Even if the F_DUPFD_CLOEXEC flag is defined in the <fcntl.h> header, the
+     * OS kernel may not support it. We fall back on the normal F_DUPFD-F_SETFD
+     * sequence if the F_DUPFD_CLOEXEC flag is rejected. */
+    static bool dupfd_cloexec_ok = true;
+    if (dupfd_cloexec_ok) {
+	newfd = fcntl(fd, F_DUPFD_CLOEXEC, shellfdmin);
+	if (newfd >= 0 || errno != EINVAL)
+	    goto finish;
+	dupfd_cloexec_ok = false;
     }
+#endif
+
+    newfd = fcntl(fd, F_DUPFD, shellfdmin);
+    if (newfd >= 0)
+	fcntl(newfd, F_SETFD, FD_CLOEXEC);
+#ifdef F_DUPFD_CLOEXEC
+finish:
+#endif
+    if (newfd >= 0)
+	add_shellfd(newfd);
     return newfd;
 }
 
@@ -863,7 +876,7 @@ void maybe_redirect_stdin_to_devnull(void)
 
     xclose(STDIN_FILENO);
     fd = open("/dev/null", O_RDONLY);
-    if (fd > 0) {
+    if (fd >= 0 && fd != STDIN_FILENO) {  // shouldn't happen, but just in case
 	xdup2(fd, STDIN_FILENO);
 	xclose(fd);
     }

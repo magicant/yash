@@ -1,6 +1,8 @@
 # option.p.tst: test of shell options for any POSIX-compliant shell
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
+# XXX: test of the -m and -b options are not supported
+
 tmp="${TESTTMP}/option.p.tmp"
 
 echo ===== -a =====
@@ -27,10 +29,6 @@ set -f
 echo "$-" | grep -Fq f || echo 'no f in $-' >&2
 echo /*
 set +o noglob
-
-echo ===== -m =====
-echo ===== -b =====
-# TODO option: -mb
 
 echo ===== -n =====
 $INVOKE $TESTEE -n <<END

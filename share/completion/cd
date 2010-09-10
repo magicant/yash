@@ -1,0 +1,41 @@
+# completion settings for the cd/pushd built-ins
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -Xd -F comp/cd
+
+complete -C "$1" -O L -O --logical \
+	-D "keep symbolic links in the \$PWD variable as is"
+complete -C "$1" -O P -O --physical \
+	-D "resolve symbolic links in the \$PWD variable"
+complete -C "$1" -O --default-directory -d \
+	-D "specify the default directory to change to"
+if [ x"$1" = x"pushd" ]; then
+	complete -C "$1" -O --remove-duplicates \
+		-D "remove duplicates in the directory stack"
+fi
+complete -C "$1" -O --help
+
+# Note: this function is also used for completion of the dirs and popd commands
+function comp/cd
+	# complete directory stack item numbers
+	if [ "${DIRSTACK+set}" ]; then
+		typeset word ds i
+		word="${@[-1]}" ds=("$DIRSTACK") i=1
+		case "$word" in
+		-*)
+			while [ $i -le ${ds[#]} ]; do
+				complete -D "${ds[i]}" -- "-$((i-1))"
+				i=$((i+1))
+			done
+			complete -D "$PWD" -- "-${ds[#]}"
+			;;
+		+*)
+			while [ $i -le ${ds[#]} ]; do
+				complete -D "${ds[-i]}" -- "+$i"
+				i=$((i+1))
+			done
+			complete -D "$PWD" -- "+0"
+			;;
+		esac
+	fi

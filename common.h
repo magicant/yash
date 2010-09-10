@@ -21,9 +21,7 @@
 #ifndef YASH_COMMON_H
 #define YASH_COMMON_H
 
-#if HAVE_CONFIG_H
-# include "config.h"
-#endif
+#include "config.h"
 
 #ifndef __GNUC__
 # define __attribute__(ignore)

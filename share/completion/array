@@ -1,0 +1,52 @@
+# completion settings for the array built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/array
+
+complete -C "$1" -O d -O --delete \
+	-D "remove elements from an array"
+complete -C "$1" -O i -O --insert \
+	-D "insert elements to an array"
+complete -C "$1" -O s -O --set \
+	-D "replace an element of an array"
+complete -C "$1" -O --help
+
+function comp/array {
+	typeset type= i=1 args
+	shift
+	args=("$@")
+
+	# parse arguments
+	while [ $i -lt ${args[#]} ]; do
+		case ${args[i]} in
+		-d|--d*)
+			args=("${args[1,i-1]}" "${args[i+1,-1]}")
+			if [ ${args[#]} -le 1 ]; then
+				complete --array
+			else
+				# TODO complete array index
+			fi
+			return
+			;;
+		-i|--i*|-s|--s*)
+			args=("${args[1,i-1]}" "${args[i+1,-1]}")
+			if [ ${args[#]} -le 1 ]; then
+				complete --array
+			elif [ ${args[#]} -eq 2 ]; then
+				# TODO complete array index
+			else
+				complete -f
+			fi
+			return
+			;;
+		esac
+		i=$((i+1))
+	done
+
+	if [ ${args[#]} -le 1 ]; then
+		complete --array
+	else
+		complete -f
+	fi
+}

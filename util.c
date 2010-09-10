@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.c: miscellaneous utility functions */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -418,8 +418,7 @@ void argshift(void **argv, int from, int to /* <= from */)
  * An "xoption" structure contains the following members:
  *  name:      Name of the long option (without preceding "--"),
  *             which should consist only of alphanumeric characters and hyphens.
- *  has_arg:   One of `xno_argument', `xrequired_argument' and
- *             `xoptional_argument'.
+ *  has_arg:   One of `OPTARG_NONE', `OPTARG_REQUIRED' and `OPTARG_OPTIONAL'.
  *             An option's argument is specified in the form of "--opt=arg".
  *             A required argument may be in the form of "--opt arg" instead.
  *  val:       When a long option is recognized, `val' is returned by this
@@ -580,14 +579,14 @@ try_parse_long_option:
     if (matchindex < 0)
 	goto no_such_option;
 
-    /* a valid long option is found */
+    /* a long option was identified */
     if (longindex)
 	*longindex = matchindex;
     xoptopt = L'-';
-    if (longopts[matchindex].has_arg != xno_argument) {
-	wchar_t *eq = wcschr(arg2, L'=');
+    wchar_t *eq = wcschr(arg2, L'=');
+    if (longopts[matchindex].arg != OPTARG_NONE) {
 	if (eq == NULL) {
-	    if (longopts[matchindex].has_arg == xoptional_argument)
+	    if (longopts[matchindex].arg == OPTARG_OPTIONAL)
 		goto shift1l;  /* the optional argument is not given */
 
 	    /* the argument is split from option like "--option argument" */
@@ -606,32 +605,38 @@ try_parse_long_option:
 	}
     } else {
 	/* the option doesn't take an argument */
+	if (eq == NULL) {
 shift1l:
-	argshift(argv, xoptind, initind);
-	xoptind = initind + 1;
+	    argshift(argv, xoptind, initind);
+	    xoptind = initind + 1;
+	} else {
+	    goto invalid_option_argument;
+	}
     }
     return longopts[matchindex].val;
 
 ambiguous_match:
     if (xopterr) {
-	fprintf(stderr, gt("%ls: --%ls: ambiguous option\n"),
-		(wchar_t *) argv[0], arg);
-#if 0
+	xerror(0, Ngt("%ls: ambiguous option"), (wchar_t *) argv[xoptind]);
+#if 1
 	for (int i = 0; longopts[i].name; i++)
-	    if (matchstrprefix(longopts[i].name, arg))
-		fprintf(stderr, "\t--%s\n", longopts[i].name);
+	    if (matchwcsprefix(longopts[i].name, arg))
+		fprintf(stderr, "\t--%ls\n", longopts[i].name);
 #endif
     }
     return L'?';
 no_such_option:
     if (xopterr)
-	fprintf(stderr, gt("%ls: %ls: invalid option\n"),
-		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+	xerror(0, Ngt("%ls: invalid option"), (wchar_t *) argv[xoptind]);
     return L'?';
 argument_missing:
     if (xopterr)
-	fprintf(stderr, gt("%ls: %ls: argument missing\n"),
-		(wchar_t *) argv[0], (wchar_t *) argv[xoptind]);
+	xerror(0, Ngt("%ls: argument missing"), (wchar_t *) argv[xoptind]);
+    return L'?';
+invalid_option_argument:
+    if (xopterr)
+	xerror(0, Ngt("%ls: this option doesn't allow an argument"),
+		(wchar_t *) argv[xoptind]);
     return L'?';
 }
 

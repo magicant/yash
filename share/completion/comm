@@ -1,0 +1,44 @@
+# completion settings for the comm command (POSIX 2008; OpenBSD 4.8; NetBSD 5.0;
+# FreeBSD 8.1; Mac OS X 10.6.3; GNU coreutils 8.4)
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+case "$("$1" --version 2>/dev/null)" in
+	*'coreutils'*)
+		typeset gnu=true
+		complete -C "$1" -X
+		;;
+	*)
+		typeset gnu=
+		;;
+esac
+
+complete -C "$1" -f
+
+complete -C "$1" -O 1 \
+	-D "don't print column of lines unique to file 1"
+complete -C "$1" -O 2 \
+	-D "don't print column of lines unique to file 2"
+complete -C "$1" -O 3 \
+	-D "don't print column of lines common to both files"
+if [ "$gnu" ]; then
+	complete -C "$1" -O --check-order \
+		-D "check if files are correctly sorted"
+	complete -C "$1" -O --nocheck-order \
+		-D "don't check if files are correctly sorted"
+	complete -C "$1" -O --output-delimiter -F comp/ \
+		-D "specify a delimiter to separate columns"
+	complete -C "$1" -O --help
+	complete -C "$1" -O --version
+else
+	case $(uname) in
+		OpenBSD|NetBSD)
+			complete -C "$1" -O f \
+				-D "case-insensitive comparison"
+			;;
+		FreeBSD|Darwin)
+			complete -C "$1" -O i \
+				-D "case-insensitive comparison"
+			;;
+	esac
+fi

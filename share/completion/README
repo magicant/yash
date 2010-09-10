@@ -1,0 +1,80 @@
+return
+### This "return" line prevents this file from being executed as a script
+
+
+COMPLETION FILES README
+
+This directory contains files that are automatically loaded by yash to set
+completion options. When yash is completing an argument to a command and no
+options are set for that command, the file with the matching name is loaded.
+The file must be in a directory listed in the $YASH_COMPPATH variable.
+
+Completion files that come with the yash distribution do not cover all
+commands. If you wrote a completion file for a command, please send me at
+magicant.starmen (at) nifty.com and I will add it to the distribution.
+
+When you write a completion file, please follow these guidelines:
+
+ * Use tabs, not spaces, for indenting. This saves file size. 
+
+ * Only use ASCII printable characters in completion files to make them most
+   portable.
+
+ * Do not change any shell options, variables, etc. nor assume specific option
+   settings. Variables used in a completion file must be marked as local using
+   the "typeset" command.
+
+ * When a completion file is loaded, it must not print anything to the
+   terminal, or the terminal display will be messed up.
+
+ * If the command's syntax is defined by some standard (such as POSIX),
+   specify completion options according to the standard. And, if some
+   implementation of the command provides non-standardized extensions, check
+   if the extensions are available before specifying options for the
+   extensions. See the completion file for the "ls" command to see how options
+   are specified according to whether the GNU extensions are available.
+
+ * Do not check if a shell's option is enabled to decide whether to define
+   candidates that are available only when the option is enabled. The
+   completion file is loaded only once, but the option may be changed later by
+   the user.
+
+ * The candidate description must be specified as the first words of a line
+   using the short "-D" option (rather than the long "--description=..."
+   version). This is required for the "xgettext" utility to find translatable
+   descriptions from the script file. Use line continuation to make the
+   description the first words of a line:
+
+      complete -C foo -O x \
+          -D 'blah blah blah'
+
+   The description itself must be separated from the word "-D", which may be
+   preceded by white spaces.
+
+ * Descriptions should be brief and specific as much as possible.
+   Currently, we provide descriptions for options, operands, and option
+   arguments, but not for commands. (Descriptions for commands are shown when
+   the shell completes a command name, but completion files haven't been read
+   then. So, specifying descriptions for commands in completion files is
+   useless.)
+   Descriptions of the "--help" and "--version" options are normally not
+   provided because their usage is obvious.
+   (This guideline may be changed in the future.)
+
+ * Obsolete (or deprecated) features should not be included as candidate.
+
+ * When defining a function used for completion, it should be named with the
+   "comp/" prefix. For example, function for the make command should be named
+   "comp/make". If you have to define more functions for the command, use
+   names such as "comp/make/foo".
+
+ * If you want the shell to give no candidates, disabling the default filename
+   completion, specify "comp/" as a dummy completion function:
+
+      complete -C pwd -F comp/
+
+ * See the completion file for the "typeset" command to find how the -W option
+   of the complete command is used.
+
+ * See the completion file for the "exec" command to find how the -G option of
+   the complete command is used.

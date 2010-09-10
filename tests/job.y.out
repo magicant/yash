@@ -1,0 +1,140 @@
+===== fg bg suspend =====
+[1] sleep $(echo  0)
+[1]   Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 1'
+[2] - Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 2'
+[3] + Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 3'
+[2] ${INVOKE} ${TESTEE} -c 'suspend; echo 2'
+2
+[3] ${INVOKE} ${TESTEE} -c 'suspend; echo 3'
+3
+[1] ${INVOKE} ${TESTEE} -c 'suspend; echo 1'
+1
+[1] + Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 4'
+[1] ${INVOKE} ${TESTEE} -c 'suspend; echo 4'
+4
+[1] ${INVOKE} ${TESTEE} -c 'suspend'
+[2] ${INVOKE} ${TESTEE} -c 'suspend'
+[3] ${INVOKE} ${TESTEE} -c 'suspend; echo 7'
+7
+1
+STOP
+TTOU
+2
+===== test =====
+test 1 0
+test 2 0
+test 3 1
+test 4 1
+===== error =====
+fg no-such-option 2
+fg output error 100
+fg no-such-job 1 1
+fg no-such-job 2 1
+fg too many args 2
+fg +m 1
+bg no-such-option 2
+bg output error 0
+bg no-such-job 1 1
+bg no-such-job 2 1
+bg +m 1
+===== signals =====
+INT ignored
+TERM ignored
+QUIT ignored
+INT
+TERM
+QUIT
+TSTP ignored
+TTOU
+TSTP
+1
+2
+===== signals +i -m F =====
+ABRT
+ALRM
+BUS
+FPE
+HUP
+ILL
+INT
+KILL
+PIPE
+QUIT
+SEGV
+TERM
+USR1
+USR2
+CHLD 0
+URG 0
+===== signals -i -m F =====
+ABRT
+ALRM
+BUS
+FPE
+HUP
+ILL
+KILL
+PIPE
+SEGV
+USR1
+USR2
+CHLD 0
+URG 0
+===== signals +i -m T =====
+ABRT
+ALRM
+BUS
+FPE
+HUP
+ILL
+INT
+KILL
+PIPE
+QUIT
+SEGV
+TERM
+USR1
+USR2
+CHLD 0
+URG 0
+TSTP
+TSTP!
+TSTP 0
+TTIN
+TTIN!
+TTIN 0
+TTOU
+TTOU!
+TTOU 0
+STOP
+STOP!
+STOP 0
+===== signals -i -m T =====
+ABRT
+ALRM
+BUS
+FPE
+HUP
+ILL
+KILL
+PIPE
+QUIT
+SEGV
+TERM
+USR1
+USR2
+CHLD 0
+URG 0
+INT
+TSTP
+TSTP!
+TSTP 0
+TTIN
+TTIN!
+TTIN 0
+TTOU
+TTOU!
+TTOU 0
+STOP
+STOP!
+STOP 0

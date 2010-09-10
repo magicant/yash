@@ -1,0 +1,81 @@
+# completion settings for the command/type built-ins
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -F comp/command
+
+complete -C "$1" -O a -O --alias \
+	-D "find an alias"
+complete -C "$1" -O b -O --builtin-command \
+	-D "execute or find a built-in command"
+complete -C "$1" -O e -O --external-command \
+	-D "execute or find an external command"
+complete -C "$1" -O f -O --function \
+	-D "execute or find a function"
+complete -C "$1" -O k -O --keyword \
+	-D "find a shell keyword"
+complete -C "$1" -O p -O --standard-path \
+	-D "use the standard path in searching for a command"
+if [ "$1" = "command" ]; then
+	complete -C "$1" -O v -O --identify \
+		-D "print the full path of a command"
+	complete -C "$1" -O V -O --verbose-identify \
+		-D "describe how a command is interpreted"
+fi
+complete -C "$1" -O --help
+
+function comp/command {
+	typeset opt=
+	if [ "$1" = "type" ]; then
+		opt=v
+	fi
+	shift
+	while [ $# -gt 1 ]; do
+		case "$1" in
+			--)      shift; break;;
+			--a*)    opt=${opt}a;;
+			--b*)    opt=${opt}b;;
+			--e*)    opt=${opt}e;;
+			--f*)    opt=${opt}f;;
+			--k*)    opt=${opt}k;;
+			--[vV]*) opt=${opt}v;;
+			-?*)     opt=${opt}${1#-};;
+			*)       break;;
+		esac
+		shift
+	done
+
+	case $opt in
+		*[vV]*)
+			opt=${opt//[vV]}
+			if ! [ "$opt" ]; then
+				opt=abefk
+			fi
+			;;
+		*)
+			if [ $# -gt 1 ]; then
+				complete -G -- "$@"
+				return
+			fi
+			if ! [ "$opt" ]; then
+				opt=be
+			fi
+			;;
+	esac
+
+	case $opt in (*a*)
+		complete --alias
+	esac
+	case $opt in (*b*)
+		complete --builtin
+	esac
+	case $opt in (*e*)
+		complete --external
+	esac
+	case $opt in (*f*)
+		complete --function
+	esac
+	case $opt in (*k*)
+		complete --keyword
+	esac
+}

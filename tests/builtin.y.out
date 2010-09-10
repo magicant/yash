@@ -80,40 +80,27 @@ umask: semi-special builtin
 wait: semi-special builtin
 command: sh: no such command or function
 ok
+echo
+command -b echo = 0
 command -b cat = 127
-command -B exit 127 = 127
+command -e ls = 0
+command -e exit 50 = 127
 command exit 10 = 10
+command -f testreg = 1
+command -f echo = 127
 command -vb cat = 1
-command -vB exit = 1
-cd: alias for `cd'
-cd: function
+command -ve exit = 1
+cd: alias for `cd_alias'
+alias cd='cd_alias'
+1
 =1=
 cd: semi-special builtin
 =2=
+if: shell keyword
 type: cd: no such command or function
-===== suspend =====
-1
-STOP
-TTOU
-2
-===== fg bg =====
-[1] sleep $(echo  0)
-[1]   Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 1'
-[2] - Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 2'
-[3] + Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 3'
-[2] ${INVOKE} ${TESTEE} -c 'suspend; echo 2'
-2
-[3] ${INVOKE} ${TESTEE} -c 'suspend; echo 3'
-3
-[1] ${INVOKE} ${TESTEE} -c 'suspend; echo 1'
-1
-[1] + Stopped(SIGSTOP)     ${INVOKE} ${TESTEE} -c 'suspend; echo 4'
-[1] ${INVOKE} ${TESTEE} -c 'suspend; echo 4'
-4
-[1] ${INVOKE} ${TESTEE} -c 'suspend'
-[2] ${INVOKE} ${TESTEE} -c 'suspend'
-[3] ${INVOKE} ${TESTEE} -c 'suspend; echo 7'
+slash a b C   C
 7
+127
 ===== exec =====
 sh
 sh

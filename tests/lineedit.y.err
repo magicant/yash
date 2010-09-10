@@ -20,27 +20,27 @@ complete: more than one -F option specified
 complete: -O option specified without -C option
 complete: more than one of -P, -R, -G option specified
 Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-Xabcdfghjkouv] [words...]
+                 [-F function] [-AXabcdfghjkouv] [words...]
         complete -P|-R [-C command] [-O option]
         complete -G words...
 complete: -P option cannot be used with style specification
 Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-Xabcdfghjkouv] [words...]
+                 [-F function] [-AXabcdfghjkouv] [words...]
         complete -P|-R [-C command] [-O option]
         complete -G words...
 complete: -R option cannot be used with style specification
 Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-Xabcdfghjkouv] [words...]
+                 [-F function] [-AXabcdfghjkouv] [words...]
         complete -P|-R [-C command] [-O option]
         complete -G words...
 complete: -G option cannot be used with style specification
 Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-Xabcdfghjkouv] [words...]
+                 [-F function] [-AXabcdfghjkouv] [words...]
         complete -P|-R [-C command] [-O option]
         complete -G words...
 complete: -G option cannot be used with -C option
 Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-Xabcdfghjkouv] [words...]
+                 [-F function] [-AXabcdfghjkouv] [words...]
         complete -P|-R [-C command] [-O option]
         complete -G words...
 complete: not in candidate generator function, but -C, -P, -R option not specified

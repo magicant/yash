@@ -1,0 +1,11 @@
+# completion settings for the read built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -Xv
+
+complete -C "$1" -O A -O --array \
+	-D "assign words to an array"
+complete -C "$1" -O r -O --raw-mode \
+	-D "don't treat backslashes as escapes"
+complete -C "$1" -O --help

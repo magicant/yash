@@ -1,0 +1,76 @@
+# completion settings for the complete built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X
+
+complete -C "$1" -O C -O --target-command -c \
+	-D "specify a command whose arguments are completed"
+complete -C "$1" -O D -O --description -F comp/ \
+	-D "specify a description of the candidate"
+complete -C "$1" -O F -O --generator-function --function \
+	-D "specify a function called in completion"
+complete -C "$1" -O O -O --target-option -F comp/ \
+	-D "specify an option to complete"
+complete -C "$1" -O P -O --print \
+	-D "print current completion settings"
+complete -C "$1" -O R -O --remove \
+	-D "remove completion settings"
+complete -C "$1" -O X -O --intermixed \
+	-D "complete an option after operands for the command specified by -C"
+complete -C "$1" -O a -O --alias \
+	-D "complete as an alias name"
+complete -C "$1" -O --array-variable \
+	-D "complete as an array name"
+complete -C "$1" -O --bindkey \
+	-D "complete as a line-editing command name"
+complete -C "$1" -O b -O --builtin \
+	-D "complete as a built-in command name"
+complete -C "$1" -O c -O --command \
+	-D "complete as a command name"
+complete -C "$1" -O d -O --directory \
+	-D "complete as a directory name"
+complete -C "$1" -O --executable-file \
+	-D "complete as an executable filename"
+complete -C "$1" -O --external-command \
+	-D "complete as an external command name"
+complete -C "$1" -O f -O --file \
+	-D "complete as a filename"
+complete -C "$1" -O --finished-job \
+	-D "complete as a finished job name"
+complete -C "$1" -O --function \
+	-D "complete as a function name"
+complete -C "$1" -O --global-alias \
+	-D "complete as a global alias name"
+complete -C "$1" -O g -O --group \
+	-D "complete as a group name"
+complete -C "$1" -O h -O --hostname \
+	-D "complete as a host name"
+complete -C "$1" -O j -O --job \
+	-D "complete as a job name"
+complete -C "$1" -O k -O --keyword \
+	-D "complete as a shell keyword name"
+complete -C "$1" -O --normal-alias \
+	-D "complete as a normal alias name"
+complete -C "$1" -O --regular-builtin \
+	-D "complete as a regular built-in command name"
+complete -C "$1" -O --running-job \
+	-D "complete as a running job name"
+complete -C "$1" -O --scalar-variable \
+	-D "complete as a scalar (normal) variable name"
+complete -C "$1" -O --semi-special-builtin \
+	-D "complete as a semi-special built-in command name"
+complete -C "$1" -O --signal \
+	-D "complete as a signal name"
+complete -C "$1" -O --special-builtin \
+	-D "complete as a special built-in command name"
+complete -C "$1" -O --stopped-job \
+	-D "complete as a stopped job name"
+complete -C "$1" -O u -O --username \
+	-D "complete as a user name"
+complete -C "$1" -O v -O --variable \
+	-D "complete as a variable name"
+complete -C "$1" -O --help
+# We don't complete the -G (--delegate) and -W (--word) options because it is
+# useless when using the complete command directly from the command line.
+# (It is only useful when used from a candidate generator function.)

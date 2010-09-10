@@ -240,8 +240,7 @@ echo "\"command -v\" not idempotent" >&2
 if command -V echo >/dev/null 2>&1; then
     # output from "command -V echo" must include path for "echo"
     case "$(command -V echo)" in
-	"echo: regular builtin at $(command -v echo)" | \
-	"echo: external command at $(command -v echo)" ) ;;
+	*$(command -v echo)*) ;;
 	*) echo "\$(command -V echo) = $(command -V echo)" ;;
     esac
 fi

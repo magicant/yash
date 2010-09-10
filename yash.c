@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
 # include "alias.h"
 #endif
 #include "builtin.h"
+#include "configm.h"
 #include "exec.h"
 #include "expand.h"
 #if YASH_ENABLE_HISTORY
@@ -49,7 +50,6 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "version.h"
 #include "yash.h"
 
 
@@ -635,9 +635,9 @@ bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 /********** Builtins **********/
 
 static const struct xoption force_help_options[] = {
-    { L"force", xno_argument, L'f', },
+    { L"force", OPTARG_NONE, L'f', },
 #if YASH_ENABLE_HELP
-    { L"help",  xno_argument, L'-', },
+    { L"help",  OPTARG_NONE, L'-', },
 #endif
     { NULL, 0, 0, },
 };

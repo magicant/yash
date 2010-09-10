@@ -19,16 +19,15 @@ makefilein="Makefile.in"
 configlog="config.log"
 configstatus="config.status"
 configh="config.h"
-versionh="version.h"
 tempsrc=".temp.c"
 tempo=".temp.o"
 tempd=".temp.d"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
-dirs=". builtins doc lineedit tests"
+dirs=". builtins lineedit tests"
 
-version="2.20"
-copyrightyear="2007-2010"
+version="2.22"
+copyright="Copyright (C) 2007-2010 magicant"
 
 # object files to be linked as `yash'
 objs='$(MAIN_OBJS)'
@@ -53,7 +52,7 @@ enable_ulimit="true"
 ctags_args=""
 etags_args=""
 term_lib='tinfo curses ncurses ncursesw'
-unset prefix eprefix bindir datarootdir docdir htmldir
+unset prefix eprefix bindir datarootdir datadir
 unset checkresult
 unset MAKEFLAGS
 umask u=rwx
@@ -112,11 +111,8 @@ do
 	    bindir="${i#--bindir=}" ;;
 	--datarootdir=*)
 	    datarootdir="${i#--datarootdir=}" ;;
-	# TODO datadir
-	--docdir=*)  # TODO to be removed
-	    docdir="${i#--docdir=}" ;;
-	--htmldir=*)  # TODO to be removed
-	    htmldir="${i#--htmldir=}" ;;
+	--datadir=*)
+	    datadir="${i#--datadir=}" ;;
 	--enable-*|--disable-*)
 	    parseenable "$i" ;;
 	--with-term-lib=*)
@@ -153,8 +149,7 @@ Installation options:
                          [PREFIX]
   --bindir=DIR           install executable in DIR [EPREFIX/bin]
   --datarootdir=DIR      architecture-independent data root [PREFIX/share]
-  --docdir=DIR           documentation root [DATAROOTDIR/doc/yash]
-  --htmldir=DIR          HTML documentation [DOCDIR]
+  --datadir=DIR          architecture-independent data [DATAROOTDIR]
 
 Optional features:
   --enable-FEATURE[=ARG]  enable or disable FEATURE [ARG=yes]
@@ -307,7 +302,6 @@ else
     checked "no"
     posixver=""
 fi
-posix=${posixver}
 
 checking 'SUS conformance'
 xopenver=$(getconf _XOPEN_VERSION 2>/dev/null)
@@ -318,7 +312,20 @@ else
     checked "no"
     xopenver=""
 fi
-xopen=${xopenver}
+
+case "${ostype}" in
+    freebsd)
+	# FreeBSD doesn't have a feature test macro to enable non-POSIX
+	# extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
+	# non-POSIX extensions are available.
+	posix=
+	xopen=
+	;;
+    *)
+	posix=${posixver}
+	xopen=${xopenver}
+	;;
+esac
 
 
 # check if gcc is available if the debug option is enabled
@@ -326,11 +333,11 @@ if ${debug}
 then
     if
 	checking 'whether GCC is available'
-	checkby eval "${CC:-gcc} --version | grep -i gcc"
+	checkby eval "${CC-gcc -std=c99} --version | grep -i gcc"
     then
 	checked "yes"
-	cc="${CC:-gcc}"
-	cflags="-std=c99 -pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb"
+	cc="${CC-gcc -std=c99}"
+	cflags="-pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb"
     else
 	checked "no"
 	echo "--debug option specified but GCC is not available" >&2
@@ -362,12 +369,12 @@ then
     checked "yes (using gcc -std=c99)"
 else
     checked "no"
-    printf 'Compiler "%s" not found or not working.\n' "${cc}" >&2
+    printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
     fail
 fi
 
 # check if the compiler accepts the -O2 option if we are not debugging
-if ! ${debug}
+if ! ${debug} && [ x"${CFLAGS+set}" != x"set" ]
 then
     if
 	checking 'whether the compiler accepts -O2 flag'
@@ -393,7 +400,7 @@ if
 _TEST_:
 	@echo >/dev/null
 END
-    checkby eval "${MAKE:-make} -f - _TEST_ <<END
+    checkby eval "${MAKE-make} -f - _TEST_ <<END
 .POSIX:
 include ${temptxt}
 END
@@ -406,6 +413,21 @@ else
     make_supports_include=false make_include='# include'
 fi
 
+# check if make sets the $SHELL macro
+checking 'whether make sets $SHELL macro'
+checkby eval "SHELL=false ${MAKE-make} -f - <<END
+.POSIX:
+_TEST_:
+	\\\$(SHELL) -c :
+END
+"
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    make_shell='# SHELL = sh'
+else
+    make_shell='SHELL = sh'
+fi
 
 # check if defining _POSIX_C_SOURCE and _XOPEN_SOURCE as values larger than
 # _POSIX_VERSION and _XOPEN_VERSION is accepted.
@@ -467,19 +489,22 @@ fi
 
 
 # check if we need -lm
-checking 'if loader flag -lm can be omitted'
-cat >"${tempsrc}" <<END
+if [ x"${LDLIBS+set}" != x"set" ]
+then
+    checking 'if loader flag -lm can be omitted'
+    cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <math.h>
 int main(int argc, char **argv) {
     return fmod(argc, 1.1) == trunc(argc) || argv == 0;
 }
 END
-trymake
-checked
-if [ x"${checkresult}" = x"no" ]
-then
-    ldlibs="${ldlibs} -lm"
+    trymake
+    checked
+    if [ x"${checkresult}" = x"no" ]
+    then
+	ldlibs="${ldlibs} -lm"
+    fi
 fi
 
 # enable/disable socket redirection
@@ -864,6 +889,79 @@ then
     defconfigh "HAVE_S_ISVTX"
 fi
 
+# check if the "st_atim"/"st_atimespec"/"st_atimensec"/"__st_atimensec" member
+# of the "stat" structure is available
+if ${enable_test}
+then
+    if
+	checking 'for st_atim'
+	cat >"${tempsrc}" <<END
+	${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.st_atim = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
+struct timespec ts = st.st_atim;
+return ts.tv_nsec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_ST_ATIM"
+    elif
+	checking 'for st_atimespec'
+	cat >"${tempsrc}" <<END
+${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.st_atimespec = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
+struct timespec ts = st.st_atimespec;
+return ts.tv_nsec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_ST_ATIMESPEC"
+    elif
+	checking 'for st_atimensec'
+	cat >"${tempsrc}" <<END
+${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.st_atimensec = 0;
+return st.st_atimensec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_ST_ATIMENSEC"
+    elif
+	checking 'for __st_atimensec'
+	cat >"${tempsrc}" <<END
+${confighdefs}
+#include <sys/stat.h>
+int main() {
+struct stat st;
+st.__st_atimensec = 0;
+return st.__st_atimensec != 0;
+}
+END
+	trymake
+	checked
+	[ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE___ST_ATIMENSEC"
+    fi
+fi
+
 # check if the "st_mtim"/"st_mtimespec"/"st_mtimensec"/"__st_mtimensec" member
 # of the "stat" structure is available
 if
@@ -1005,18 +1103,22 @@ then
     defconfigh "HAVE_STRSIGNAL"
 fi
 
-# check for getpwent & endpwent
-checking 'for getpwent/endpwent'
+# check for setpwent & getpwent & endpwent
+checking 'for setpwent/getpwent/endpwent'
 cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <pwd.h>
+#ifndef setpwent
+void setpwent(void);
+#endif
 #ifndef getpwent
 struct passwd *getpwent(void);
 #endif
 #ifndef endpwent
 void endpwent(void);
 #endif
-int main() { struct passwd *p = getpwent(); endpwent(); }
+struct passwd *p;
+int main() { setpwent(); p = getpwent(); endpwent(); }
 END
 trymake
 checked
@@ -1027,13 +1129,11 @@ then
     # check for pw_gecos
     checking 'for pw_gecos'
     cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <pwd.h>
-int main() {
+const char *s;
 struct passwd pwd;
-pwd.pw_gecos = "";
-const char *s = pwd.pw_gecos;
-}
+int main() { pwd.pw_gecos = ""; s = pwd.pw_gecos; }
 END
     trycompile
     checked
@@ -1043,18 +1143,20 @@ END
     fi
 fi
 
-# check for getgrent & endgrent
-checking 'for getgrent/endgrent'
+# check for setgrent & getgrent & endgrent
+checking 'for setgrent/getgrent/endgrent'
 cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <grp.h>
+/* don't declare setgrent to avoid conflict on BSD */
 #ifndef getgrent
 struct group *getgrent(void);
 #endif
 #ifndef endgrent
 void endgrent(void);
 #endif
-int main() { struct group *g = getgrent(); endgrent(); }
+struct group *g;
+int main() { setgrent(); g = getgrent(); endgrent(); }
 END
 trymake
 checked
@@ -1068,7 +1170,7 @@ fi
 #   because the -lxnet compiler option is not specified.
 checking 'for sethostent/gethostent/endhostent'
 cat >"${tempsrc}" <<END
-#include "${configh}"
+${confighdefs}
 #include <netdb.h>
 #ifndef sethostent
 void sethostent(int);
@@ -1079,7 +1181,8 @@ struct hostent *gethostent(void);
 #ifndef endhostent
 void endhostent(void);
 #endif
-int main() { sethostent(1); struct hostent *h = gethostent(); endhostent(); }
+struct hostent *h;
+int main() { sethostent(1); h = gethostent(); endhostent(); }
 END
 trymake
 checked
@@ -1372,9 +1475,8 @@ then
     objs="${objs} "'$(LINEEDIT_ARCHIVE)'
 fi
 
-cflags="${cflags} -D HAVE_CONFIG_H"
-
 MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
+MAKE_SHELL="${MAKE_SHELL-${make_shell}}"
 CC="${CC-${cc}}"
 CFLAGS="${CFLAGS-${cflags}} ${CADDS-${null}}"
 LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS-${null}}"
@@ -1388,6 +1490,7 @@ DIRS="${dirs}"
 OBJS="${objs}"
 BUILTIN_OBJS="${builtin_objs}"
 VERSION="${version}"
+COPYRIGHT="${copyright}"
 INSTALL_PROGRAM="${INSTALL_PROGRAM-./install-sh}"
 PREFIX="${prefix-/usr/local}"
 case "${PREFIX}" in
@@ -1409,19 +1512,15 @@ case "${DATAROOTDIR}" in
     / ) DATAROOTDIR=  ;;
     //) DATAROOTDIR=/ ;;
 esac
-DOCDIR="${docdir-\$\(DATAROOTDIR\)/doc/yash}"
-case "${DOCDIR}" in
-    / ) DOCDIR=  ;;
-    //) DOCDIR=/ ;;
-esac
-HTMLDIR="${htmldir-\$\(DOCDIR\)}"
-case "${HTMLDIR}" in
-    / ) HTMLDIR=  ;;
-    //) HTMLDIR=/ ;;
+DATADIR="${datadir-\$\(DATAROOTDIR\)}"
+case "${DATADIR}" in
+    / ) DATADIR=  ;;
+    //) DATADIR=/ ;;
 esac
 
 sed_subst_cmd="
 s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
+s!@MAKE_SHELL@!${MAKE_SHELL}!g
 s!@CC@!${CC}!g
 s!@CFLAGS@!${CFLAGS}!g
 s!@LDFLAGS@!${LDFLAGS}!g
@@ -1438,13 +1537,13 @@ s!@DIRS@!${DIRS}!g
 s!@OBJS@!${OBJS}!g
 s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
 s!@VERSION@!${VERSION}!g
+s!@COPYRIGHT@!${COPYRIGHT}!g
 s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g
 s!@PREFIX@!${PREFIX}!g
 s!@EPREFIX@!${EPREFIX}!g
 s!@BINDIR@!${BINDIR}!g
 s!@DATAROOTDIR@!${DATAROOTDIR}!g
-s!@DOCDIR@!${DOCDIR}!g
-s!@HTMLDIR@!${HTMLDIR}!g
+s!@DATADIR@!${DATADIR}!g
 "
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
 
@@ -1480,7 +1579,7 @@ help=false
 recheck=false
 dirs='${dirs}'
 
-targets='${configh} ${versionh}'
+targets='${configh}'
 for i in \${dirs}
 do
     targets="\${targets} \${i}/${makefile}"
@@ -1544,16 +1643,6 @@ do
 #ifndef YASH_CONFIG_H
 #define YASH_CONFIG_H
 ${confighdefs}
-#endif
-END
-	    ;;
-	'${versionh}')
-	    cat >'${versionh}' <<END
-/* ${versionh##*/}: generated by \${0##*/} */
-#ifndef YASH_VERSION_H
-#define YASH_VERSION_H
-#define PACKAGE_VERSION "${VERSION}"
-#define PACKAGE_COPYRIGHT "Copyright (C) ${copyrightyear} magicant"
 #endif
 END
 	    ;;

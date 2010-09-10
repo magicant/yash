@@ -9,6 +9,13 @@ non-special builtin assignment error 2
 special builtin expansion error 2
 non-special builtin expansion error 2
 command not found error 127
+===== option =====
+ambiguous option 2
+missing argument 2
+invalid option argument 1 2
+invalid option argument 2 2
+invalid option argument 3 2
+invalid option argument 4 2
 ===== set =====
 set no-such-option 2
 set output error 1
@@ -70,24 +77,11 @@ kill no-such-signal 1
 kill no-such-job 1
 kill output error 1 1
 kill output error 2 1
-===== jobs =====
+===== jobs kill =====
 jobs no-such-option 2
 jobs output error 1
 jobs no-such-job 1 1
 jobs no-such-job 2 1
-===== fg =====
-fg no-such-option 2
-fg output error 100
-fg no-such-job 1 1
-fg no-such-job 2 1
-fg too many args 2
-fg +m 1
-===== bg =====
-bg no-such-option 2
-bg output error 0
-bg no-such-job 1 1
-bg no-such-job 2 1
-bg +m 1
 ===== wait =====
 wait no-such-option 2
 wait no-such-job 1 127
@@ -119,6 +113,7 @@ exec no-such-option 2
 exec command not found 127
 ===== command =====
 command no-such-option 2
+command invalid-option 2
 command output error 1
 command no-such-command 1 127
 command no-such-command 2 1

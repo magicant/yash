@@ -6,6 +6,22 @@ Usage:  getopts options var [arg...]
 ../yash: ro: readonly
 ../yash: var: parameter not set
 ../yash: var: parameter not set
+===== option =====
+set: --cu: ambiguous option
+	--curasync
+	--curbg
+	--curstop
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: -o: argument missing
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounse=1: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounse=: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounset=1: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: --nounset=: this option doesn't allow an argument
+Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 ===== set =====
 set: --no-such-option: invalid option
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
@@ -66,25 +82,12 @@ Usage:  kill [-s signal | -n signum] process...
         kill -l [-v] [number...]
 kill: 0: no such signal
 kill: %100: no such job
-===== jobs =====
+===== jobs kill =====
 jobs: --no-such-option: invalid option
 Usage:  jobs [-lnprs] [job...]
 jobs: %100: no such job
 jobs: %no_such_job: no such job
-===== fg =====
-fg: --no-such-option: invalid option
-Usage:  fg [job]
-fg: %100: no such job
-fg: %no_such_job: no such job
-fg: too many operands
-Usage:  fg [job]
-fg: job control disabled
-===== bg =====
-bg: --no-such-option: invalid option
-Usage:  bg [job...]
-bg: %100: no such job
-bg: %no_such_job: no such job
-bg: job control disabled
+kill: %while: not job-controlled job
 ===== wait =====
 wait: --no-such-option: invalid option
 Usage:  wait [job or pid...]
@@ -122,8 +125,10 @@ exec: --no-such-option: invalid option
 Usage:  exec [-cf] [-a name] [command [arg...]]
 ===== command =====
 command: --no-such-option: invalid option
-Usage:  command [-bBp] command [arg...]
-        command -v|-V [-bBp] command...
+Usage:  command [-befp] command [arg...]
+        command -v|-V [-abefkp] command...
+Usage:  command [-befp] command [arg...]
+        command -v|-V [-abefkp] command...
 command: no_such_command: no such command or function
 =1=
 =2=

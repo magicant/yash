@@ -12,6 +12,7 @@ Yash also has its own features beyond POSIX, such as:
   * random numbers
   * socket redirections and other special redirections
   * right prompt
+  * command completion
 
 
 Yash is free software distributed under the terms of GNU General

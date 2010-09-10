@@ -1,0 +1,36 @@
+# completion settings for the unset built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/unset
+
+complete -C "$1" -O f -O --functions \
+	-D "remove functions"
+complete -C "$1" -O v -O --variables \
+	-D "remove variables"
+complete -C "$1" -O --help
+
+function comp/unset {
+	typeset func=false
+
+	# parse options
+	shift
+	while [ $# -gt 1 ]; do
+		case "$1" in
+		--)   shift; break;;
+		--f*) shift; func=true;;
+		--v*) shift; func=false;;
+		--*)  shift;;
+		-*f)  shift; func=true;;
+		-*v)  shift; func=false;;
+		*)    shift;;
+		esac
+	done
+
+	# complete a variable or a function according to the option
+	if $func; then
+		complete --function
+	else
+		complete -v
+	fi
+}

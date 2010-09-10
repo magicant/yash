@@ -339,19 +339,31 @@ void do_wait(void)
 {
     pid_t pid;
     int status;
+#if HAVE_WCONTINUED
+    static int waitpidoption = WUNTRACED | WCONTINUED | WNOHANG;
+#else
+    const int waitpidoption = WUNTRACED | WNOHANG;
+#endif
 
 start:
-#ifdef HAVE_WCONTINUED
-    pid = waitpid(-1, &status, WUNTRACED | WCONTINUED | WNOHANG);
-#else
-    pid = waitpid(-1, &status, WUNTRACED | WNOHANG);
-#endif
+    pid = waitpid(-1, &status, waitpidoption);
     if (pid < 0) {
 	switch (errno) {
 	    case EINTR:
 		goto start;  /* try again */
 	    case ECHILD:
 		return;      /* there are no child processes */
+#if HAVE_WCONTINUED
+	    /* Even when the WCONTINUED flag is defined in the <sys/wait.h>
+	     * header, the OS kernel may not support it. We try again without
+	     * the flag if it is rejected. */
+	    case EINVAL:
+		if (waitpidoption & WCONTINUED) {
+		    waitpidoption &= ~WCONTINUED;
+		    goto start;
+		}
+		/* falls thru! */
+#endif
 	    default:
 		xerror(errno, "waitpid");
 		return;
@@ -573,14 +585,16 @@ int calc_status(int status)
 {
     if (WIFEXITED(status))
 	return WEXITSTATUS(status);
+#ifdef WIFCONTINUED
+    if (WIFCONTINUED(status))
+	return Exit_SUCCESS;
+    /* On FreeBSD, when WIFCONTINUED is true, WIFSIGNALED is also true. We must
+     * be careful about the order of these checks. */
+#endif
     if (WIFSIGNALED(status))
 	return WTERMSIG(status) + TERMSIGOFFSET;
     if (WIFSTOPPED(status))
 	return WSTOPSIG(status) + TERMSIGOFFSET;
-#ifdef WIFCONTINUED
-    if (WIFCONTINUED(status))
-	return Exit_SUCCESS;
-#endif
     assert(false);
 }
 
@@ -913,16 +927,18 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 	    case JS_DONE:     if (!(type & CGT_DONE))    continue;  break;
 	}
 
-	const wchar_t *jobname = job->j_procs[0].pr_name;
-	if (xfnm_wmatch(xfnm, jobname).start == (size_t) -1)
-	    continue;
+	wchar_t *jobname = get_job_name(job);
+	if (xfnm_wmatch(xfnm, jobname).start != (size_t) -1) {
+	    wchar_t *cand;
+	    if (context->src[0] != L'\0' && context->src[0] != L'%')
+		cand = xwcsdup(jobname);
+	    else
+		cand = malloc_wprintf(L"%%%ls", jobname);
+	    le_new_candidate(CT_JOB, cand, malloc_wprintf(L"%%%zu", i));
+	}
 
-	wchar_t *cand;
-	if (context->src[0] != L'%')
-	    cand = xwcsdup(jobname);
-	else
-	    cand = malloc_wprintf(L"%%%ls", jobname);
-	le_new_candidate(CT_JOB, cand, malloc_wprintf(L"%%%zu", i));
+	if (jobname != job->j_procs[0].pr_name)
+	    free(jobname);
     }
     xfnm_free(xfnm);
 }
@@ -942,13 +958,13 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 int jobs_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"verbose",      xno_argument, L'l', },
-	{ L"new",          xno_argument, L'n', },
-	{ L"pgid-only",    xno_argument, L'p', },
-	{ L"running-only", xno_argument, L'r', },
-	{ L"stopped-only", xno_argument, L's', },
+	{ L"verbose",      OPTARG_NONE, L'l', },
+	{ L"new",          OPTARG_NONE, L'n', },
+	{ L"pgid-only",    OPTARG_NONE, L'p', },
+	{ L"running-only", OPTARG_NONE, L'r', },
+	{ L"stopped-only", OPTARG_NONE, L's', },
 #if YASH_ENABLE_HELP
-	{ L"help",         xno_argument, L'-', },
+	{ L"help",         OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

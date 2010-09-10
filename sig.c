@@ -598,14 +598,26 @@ bool wait_for_input(int fd, bool trap, int timeout)
 /* Handles SIGCHLD if caught. */
 void handle_sigchld(void)
 {
+    static bool print_status = false;
+
     if (sigchld_received) {
         sigchld_received = false;
         do_wait();
+	print_status = true;
+    }
+
+    if (print_status) {
+	/* print job status if the notify option is set */
 #if YASH_ENABLE_LINEEDIT
-	if ((shopt_notify || shopt_notifyle) && le_state == LE_STATE_ACTIVE) {
-	    le_suspend_readline();
-	    print_job_status_all();
-	    le_resume_readline();
+	if (le_state & LE_STATE_ACTIVE) {
+	    if (!(le_state & LE_STATE_COMPLETING)) {
+		if (shopt_notify || shopt_notifyle) {
+		    le_suspend_readline();
+		    print_status = false;
+		    print_job_status_all();
+		    le_resume_readline();
+		}
+	    }
 	} else
 #endif
 	if (shopt_notify) {
@@ -614,6 +626,7 @@ void handle_sigchld(void)
 	    sigaddset(&ss, SIGTTOU);
 	    sigemptyset(&savess);
 	    sigprocmask(SIG_BLOCK, &ss, &savess);
+	    print_status = false;
 	    print_job_status_all();
 	    sigprocmask(SIG_SETMASK, &savess, NULL);
 	}
@@ -632,6 +645,13 @@ int handle_traps(void)
      * The EXIT trap may be executed inside another trap. */
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return 0;
+
+#if YASH_ENABLE_LINEEDIT
+    /* Don't handle traps during command line completion. Otherwise, the command
+     * line would be messed up! */
+    if (le_state & LE_STATE_COMPLETING)
+	return 0;
+#endif
 
     int signum = 0;
     bool save_sigint_received = sigint_received;
@@ -656,10 +676,10 @@ int handle_traps(void)
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = s->no;
+		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
+		    free(command);
 		    laststatus = savelaststatus;
-		    if (command != trap_command[i])
-			free(command);
 		}
 	    }
 	}
@@ -680,10 +700,10 @@ int handle_traps(void)
 		    if (!state)
 			state = save_parse_state();
 		    signum = handled_signal = sigrtmin + i;
+		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
+		    free(command);
 		    laststatus = savelaststatus;
-		    if (command != rttrap_command[i])
-			free(command);
 		}
 	    }
 	}
@@ -696,7 +716,7 @@ int handle_traps(void)
     if (state)
 	restore_parse_state(state);
 #if YASH_ENABLE_LINEEDIT
-    if (shopt_notifyle && le_state == LE_STATE_SUSPENDED)
+    if (shopt_notifyle && (le_state & LE_STATE_SUSPENDED))
 	print_job_status_all();
     le_resume_readline();
 #endif
@@ -712,12 +732,10 @@ void execute_exit_trap(void)
 	assert(!exit_handled);
 	exit_handled = true;
 	savelaststatus = laststatus;
+	command = xwcsdup(command);
 	exec_wcs(command, "EXIT trap", false);
+	free(command);
 	savelaststatus = -1;
-#ifndef NDEBUG
-	if (command != trap_command[sigindex(0)])
-	    free(command);
-#endif
     }
 }
 
@@ -765,9 +783,7 @@ void set_trap(int signum, const wchar_t *command)
 	return;
     }
 
-    /* If `*commandp' is currently executed, we must not free it. */
-    if (signum != handled_signal && (signum != 0 || !exit_handled))
-	free(*commandp);
+    free(*commandp);
     if (command) {
 	if (command[0] != L'\0')
 	    any_trap_set = true;
@@ -977,15 +993,16 @@ void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
 void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name)
 {
     if (xfnm_wmatch(pat, name->contents).start != (size_t) -1) {
-	wchar_t *desc = NULL;
+	xwcsbuf_T desc;
+	wb_init(&desc);
 #if HAVE_STRSIGNAL
 	char *mbsdesc = strsignal(num);
 	if (mbsdesc != NULL)
-	    desc = malloc_mbstowcs(mbsdesc);
-#else
-	(void) num;
+	    wb_wprintf(&desc, L"%d: %s", num, mbsdesc);
+	else
 #endif
-	le_new_candidate(CT_SIG, wb_towcs(name), desc);
+	    wb_wprintf(&desc, L"%d", num);
+	le_new_candidate(CT_SIG, wb_towcs(name), wb_towcs(&desc));
 	wb_init(name);
     } else {
 	wb_clear(name);
@@ -1008,9 +1025,9 @@ static void signal_job(int signum, const wchar_t *jobname)
 int trap_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"print", xno_argument, L'p', },
+	{ L"print", OPTARG_NONE, L'p', },
 #if YASH_ENABLE_HELP
-	{ L"help",  xno_argument, L'-', },
+	{ L"help",  OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };

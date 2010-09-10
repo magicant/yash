@@ -70,6 +70,22 @@ echo command not found error $?
 END
 
 
+echo ===== option =====
+echo ===== option ===== >&2
+
+set --cu
+echo ambiguous option $?
+set -o nolog +o nolog -o
+echo missing argument $?
+set --nounse=1
+echo invalid option argument 1 $?
+set --nounse=
+echo invalid option argument 2 $?
+set --nounset=1
+echo invalid option argument 3 $?
+set --nounset=
+echo invalid option argument 4 $?
+
 echo ===== set =====
 echo ===== set ===== >&2
 
@@ -223,13 +239,12 @@ echo kill output error 1 $?
 (kill -l HUP >&- 2>/dev/null)
 echo kill output error 2 $?
 
-echo ===== jobs =====
-echo ===== jobs ===== >&2
+echo ===== jobs kill =====
+echo ===== jobs kill ===== >&2
 
-$INVOKE $TESTEE -m <<\END
 jobs --no-such-option
 echo jobs no-such-option $?
-while kill -0 $$; do sleep 1; done &
+while kill -0 $$; do sleep 1; done 2>/dev/null&
 (jobs >&- 2>/dev/null)
 echo jobs output error $?
 jobs %100
@@ -237,50 +252,6 @@ echo jobs no-such-job 1 $?
 jobs %no_such_job
 echo jobs no-such-job 2 $?
 kill %while
-END
-
-echo ===== fg =====
-echo ===== fg ===== >&2
-
-$INVOKE $TESTEE -m <<\END
-fg --no-such-option
-echo fg no-such-option $?
-exit 100 &
-fg >&- 2>/dev/null
-END
-echo fg output error $?
-$INVOKE $TESTEE -m <<\END
-fg %100
-echo fg no-such-job 1 $?
-fg %no_such_job
-echo fg no-such-job 2 $?
-set --posix
-exit 101 & exit 102 &
-fg %1 %2
-echo fg too many args $?
-END
-fg
-echo fg +m $?
-
-echo ===== bg =====
-echo ===== bg ===== >&2
-
-$INVOKE $TESTEE -m <<\END
-bg --no-such-option
-echo bg no-such-option $?
-while kill -0 $$; do sleep 1; done &
-bg >&- 2>/dev/null
-kill %1
-END
-echo bg output error $?
-set -m
-bg %100
-echo bg no-such-job 1 $?
-bg %no_such_job
-echo bg no-such-job 2 $?
-set +m
-bg
-echo bg +m $?
 
 echo ===== wait =====
 echo ===== wait ===== >&2
@@ -394,6 +365,8 @@ echo ===== command ===== >&2
 
 command --no-such-option
 echo command no-such-option $?
+command -a foo
+echo command invalid-option $?
 (command -v command >&- 2>/dev/null)
 echo command output error $?
 (PATH=; command no_such_command)

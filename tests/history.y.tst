@@ -12,7 +12,7 @@ command -V fc
 command -V history | grep -q regular && echo history: regular builtin
 
 unset FCEDIT
-$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
 echo 1
 echo 2
 echo 3
@@ -61,7 +61,7 @@ fc -e fcedit 38 36       #47-50
 fc -e fcedit -rq 38 36   #51-54
 fc -l -2
 echo =====
-$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF2
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF2
 echo inner shell; fc -l 53
 EOF2
 echo =====
@@ -71,7 +71,7 @@ EOF
 
 echo ===== 1 =====
 
-$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
 echo 31
 echo 32
 echo 33
@@ -80,7 +80,7 @@ EOF
 
 echo ===== 2 =====
 
-$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
 echo 31
 history 5
 history -d -2 -d 33
@@ -107,7 +107,7 @@ EOF
 echo ===== histspace =====
 
 >"$TMPHIST"
-$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
 echo a
  echo b
  set --histspace

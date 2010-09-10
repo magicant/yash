@@ -80,71 +80,56 @@ testreg type
 
 command -Vb sh 2>&1 || PATH= command -vp sh >/dev/null && echo ok
 
-command -b cat /dev/null 2>/dev/null
+command -b echo echo
+echo command -b echo = $?
+command --builtin-command cat /dev/null 2>/dev/null
 echo command -b cat = $?
-PATH= command -B exit 127 2>/dev/null
-echo command -B exit 127 = $?
+command -e ls >/dev/null
+echo command -e ls = $?
+PATH= command --external-command exit 50 2>/dev/null
+echo command -e exit 50 = $?
 (command exit 10; echo not reached)
 echo command exit 10 = $?
+command -f testreg type
+echo command -f testreg = $?
+command --function echo 2>/dev/null
+echo command -f echo = $?
 
 type type | grep -v "^type: regular builtin"
 
 command -vb cat
 echo command -vb cat = $?
-PATH= command -vB exit
-echo command -vB exit = $?
+PATH= command -ve exit
+echo command -ve exit = $?
 
 (
 cd() { command cd "$@"; }
-if (PATH=; alias) >/dev/null 2>&1; then
-    alias cd=cd
+if command -vb alias >/dev/null 2>&1; then
+    alias cd=cd_alias
     type cd
+    command -va cd
+    command -va echo || echo $?
 else
-    echo "cd: alias for \`cd'"
-    echo "cd: function"
+    echo "cd: alias for \`cd_alias'"
+    echo "alias cd='cd_alias'"
+    echo 1
 fi
 echo =1=
 type -b cd
 echo =2=
-PATH= type -B cd 2>&1
+type -k if
+type -k cd 2>&1
 )
 
-
-echo ===== suspend =====
-
-set -m
-$INVOKE $TESTEE -imc --norc 'echo 1; suspend; echo 2'
-kill -l $?
-bg >/dev/null
-wait %1
-kill -l $?
-fg >/dev/null
-set +m
-
-
-echo ===== fg bg =====
-
-set -m +o curstop
-sleep   `echo  0`&
-fg
-$INVOKE $TESTEE -c 'suspend; echo 1'
-$INVOKE $TESTEE -c 'suspend; echo 2'
-$INVOKE $TESTEE -c 'suspend; echo 3'
-jobs
-fg %2 3 '%? echo 1'
-
-$INVOKE $TESTEE -c 'suspend; echo 4'
-jobs %%
-bg
-wait %%
-$INVOKE $TESTEE -c 'suspend'
-$INVOKE $TESTEE -c 'suspend'
-$INVOKE $TESTEE -c 'suspend; echo 7'
-bg %1 %2 
-wait
-bg '${'
-fg '? echo 7' >/dev/null
-set +m
+function slash/function () {
+    echo slash "$@"
+    return 7
+}
+command -f slash/function a b "C   C"
+echo $?
+unset -f slash/function
+command -bef slash/function 2>/dev/null
+echo $?
 
 
 echo ===== exec =====

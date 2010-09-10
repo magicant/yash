@@ -1,0 +1,13 @@
+===== error =====
+fg: --no-such-option: invalid option
+Usage:  fg [job]
+fg: %100: no such job
+fg: %no_such_job: no such job
+fg: too many operands
+Usage:  fg [job]
+fg: job control disabled
+bg: --no-such-option: invalid option
+Usage:  bg [job...]
+bg: %100: no such job
+bg: %no_such_job: no such job
+bg: job control disabled

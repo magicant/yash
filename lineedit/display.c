@@ -342,6 +342,8 @@ static void go_to_index(size_t index);
 static void go_to_after_editline(void);
 static void fillip_cursor(void);
 
+static void print_candidate_rawvalue(const le_candidate_T *cand)
+    __attribute__((nonnull));
 static void update_candidates(void);
 static void make_pages_and_columns(void);
 static bool arrange_candidates(size_t cand_per_col, int totalwidthlimit);
@@ -888,26 +890,10 @@ void le_display_make_rawvalues(void)
     for (size_t i = 0; i < le_candidates.length; i++) {
 	le_candidate_T *cand = le_candidates.contents[i];
 
-	const wchar_t *s = cand->value;
 	assert(cand->rawvalue.raw == NULL);
 	lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 
-	if (cand->type == CT_FILE) {
-	    /* skip directory components for a file candidate */
-	    const wchar_t *ss = wcsrchr(s, L'/');
-	    if (ss != NULL)
-		s = ss + 1;
-	} else if (cand->type == CT_OPTION) {
-	    /* prepend a hyphen if none */
-	    if (cand->value[0] != L'-')
-		lebuf_putwchar(L'-', false);
-	}
-
-	lebuf_putws_trunc(s);
-
-	/* append a slash for a directory candidate */
-	if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode))
-	    lebuf_putwchar(L'/', false);
+	print_candidate_rawvalue(cand);
 
 	cand->rawvalue.raw = sb_tostr(&lebuf.buf);
 	cand->rawvalue.width = lebuf.pos.column;
@@ -922,6 +908,30 @@ void le_display_make_rawvalues(void)
 	    cand->rawdesc.width = lebuf.pos.column;
 	}
     }
+}
+
+/* Prints the "raw value" of the specified candidate to the print buffer.
+ * The output is truncated when the cursor reaches the end of the line. */
+void print_candidate_rawvalue(const le_candidate_T *cand)
+{
+    const wchar_t *s = cand->value;
+
+    if (cand->type == CT_FILE) {
+	/* skip directory components for a file candidate */
+	const wchar_t *ss = wcsrchr(s, L'/');
+	if (ss != NULL)
+	    s = ss + 1;
+    } else if (cand->type == CT_OPTION) {
+	/* prepend a hyphen if none */
+	if (cand->value[0] != L'-')
+	    lebuf_putwchar_trunc(L'-');
+    }
+
+    lebuf_putws_trunc(s);
+
+    /* append a slash for a directory candidate */
+    if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode))
+	lebuf_putwchar_trunc(L'/');
 }
 
 /* Updates the candidate area.
@@ -1027,8 +1037,9 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
 		col->descwidth = cand->rawdesc.width;
 	}
 
-	if (col->valuewidth > 0) col->valuewidth += 2;
-	if (col->descwidth  > 0) col->descwidth  += 4;
+	col->valuewidth += 2;
+	if (col->descwidth > 0)
+	    col->descwidth += 4;
 	col->width = col->valuewidth + col->descwidth;
 	totalwidth += col->width;
 	pl_add(&candcols, col);
@@ -1265,27 +1276,26 @@ void print_candidate(
 {
     int line = lebuf.pos.line;
 
-    if (highlight)
-	lebuf_print_bold();
-
     /* print value */
     if (true /* cand->value != NULL */) {
 	int base = lebuf.pos.column;
+	if (highlight)
+	    lebuf_print_bold();
 	lebuf_putchar1_trunc(highlight ? '[' : ' ');
 	if (lebuf.pos.column + cand->rawvalue.width < lebuf.maxcolumn) {
 	    lebuf.pos.column += cand->rawvalue.width;
 	    sb_cat(&lebuf.buf, cand->rawvalue.raw);
 	} else {
-	    lebuf_putws_trunc(cand->value);
+	    print_candidate_rawvalue(cand);
 	}
-	if (highlight)
-	    lebuf_print_sgr0(), lebuf_print_bold();
 	while (lebuf.pos.column + 2 < lebuf.maxcolumn
 		&& lebuf.pos.column - base < col->valuewidth - 1)
 	    lebuf_putchar1_trunc(' ');
+	if (highlight)
+	    lebuf_print_sgr0(), lebuf_print_bold();
 	lebuf_putchar1_trunc(highlight ? ']' : ' ');
 	if (highlight)
-	    lebuf_print_sgr0(), highlight = false;
+	    lebuf_print_sgr0();
     }
 
     /* print description */

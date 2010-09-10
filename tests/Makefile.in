@@ -17,6 +17,7 @@
 .POSIX:
 .SUFFIXES: .c .h .d .o
 
+@MAKE_SHELL@
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -35,7 +36,7 @@ test-yash:
 	@$(MAKE) TEST_ITEMS='*.y.tst' test
 
 testee:
-	@+if [ x'$(TESTEE)' = x'../yash' ]; then cd .. && $(MAKE) yash; fi
+	@+if [ x'$(TESTEE)' = x'../yash' ]; then (cd .. && $(MAKE) yash); fi
 
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
@@ -43,12 +44,12 @@ testee:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
-DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(TEST_SOURCES) Makefile.in run-test.sh
+DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
 # "distcontents" depends on object files to ensure all *.d files up-to-date
 distcontents: $(DISTCONTENTS) invoke resetsig
 copy-distcontents: distcontents
 	mkdir -p $(DISTTARGETDIR)
-	cp $(DISTCONTENTS) $(DISTTARGETDIR)
+	cp $(DISTCONTENTS) $(TEST_SOURCES) $(DISTTARGETDIR)
 
 clean:
 	rm -fr $(BYPRODUCTS)

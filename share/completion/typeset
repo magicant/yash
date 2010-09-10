@@ -1,0 +1,61 @@
+# completion settings for the typeset/export/readonly built-ins
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/typeset
+
+if [ x"$1" != x"export" ]; then
+	complete -C "$1" -O f -O --functions \
+		-D "define or print functions, not variables"
+fi
+if [ x"$1" = x"typeset" ]; then
+	complete -C "$1" -O g -O --global \
+		-D "define global variables"
+fi
+complete -C "$1" -O p -O --print \
+	-D "print specified variables or functions"
+if [ x"$1" != x"readonly" ]; then
+	complete -C "$1" -O r -O --readonly \
+		-D "define or print read-only variables or functions"
+fi
+if [ x"$1" != x"export" ]; then
+	complete -C "$1" -O x -O --export \
+		-D "export variables or print exported variables"
+fi
+complete -C "$1" -O X -O --unexport \
+	-D "cancel exportation of variables"
+complete -C "$1" -O --help
+
+function comp/typeset {
+	typeset func=false
+
+	# parse options
+	shift
+	while [ $# -gt 1 ]; do
+		case "$1" in
+		--)   shift; break;;
+		--f*) shift; func=true;;
+		--*)  shift;;
+		-*f*) shift; func=true;;
+		*)    shift;;
+		esac
+	done
+
+	typeset word="${@[-1]}"
+	if $func; then
+		complete --function
+		return
+	fi
+	case "$word" in
+	*=*)
+		# remove until the last colon after the first '=' and complete
+		# as a filename. If $word is PATH=/bin:/usr/bin:/u for example,
+		# we complete the filename /u
+		complete -W "${${word#*=}##*:}" -f
+		;;
+	*)
+		# complete a variable name
+		complete -v
+		;;
+	esac
+}

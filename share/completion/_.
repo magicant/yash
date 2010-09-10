@@ -1,0 +1,35 @@
+# completion settings for the . built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -F comp/.
+
+complete -C "$1" -O A -O --no-alias \
+	-D "disable alias substitution while executing the file"
+complete -C "$1" -O --help
+
+function comp/. {
+	# skip options
+	shift
+	while [ $# -gt 1 ]; do
+		case "$1" in
+			--)  shift; break;;
+			-?*) shift;;
+			*)   break;;
+		esac
+	done
+
+	if [ $# -le 1 ]; then
+		# complete a script file name
+		case "$1" in
+		*/*)
+			complete -f ;;
+		*)
+			complete --external-command ;;
+		esac
+	else
+		# complete an argument to the script that is in turn an
+		# argument to the . command
+		complete -G -- "$@"
+	fi
+}

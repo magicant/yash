@@ -32,6 +32,7 @@
 #include "hashtable.h"
 #include "mail.h"
 #include "parser.h"
+#include "plist.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
@@ -55,7 +56,9 @@ static void activate(void);
 static void inactivate(void);
 static bool is_time_to_check_mail(void);
 static void check_mail_and_print_message(void);
-static char *get_path_and_message(const char *pathmsg, wchar_t **msgp)
+static void handle_mailpath(wchar_t *paths)
+    __attribute__((nonnull));
+static void handle_mailpath_element(const wchar_t *s)
     __attribute__((nonnull));
 static bool is_update(const char *path)
     __attribute__((nonnull));
@@ -129,74 +132,106 @@ bool is_time_to_check_mail(void)
 /* Checks if the mail file is updated and prints a message if so. */
 void check_mail_and_print_message(void)
 {
-    char *const *mailpath = get_path_array(PA_MAILPATH);
-
-    if (!mailpath) {
-	const wchar_t *mail = getvar(L VAR_MAIL);
-	if (mail) {
+    struct get_variable mailpath = get_variable(L VAR_MAILPATH);
+    switch (mailpath.type) {
+	case GV_NOTFOUND:
+	    break;
+	case GV_SCALAR:
 	    activate();
+	    handle_mailpath(mailpath.values[0]);
+	    recfree(mailpath.values, free);
+	    return;
+	case GV_ARRAY:
+	case GV_ARRAY_CONCAT:
+	    activate();
+	    for (size_t i = 0; i < mailpath.count; i++)
+		handle_mailpath_element(mailpath.values[i]);
+	    return;
+    }
 
-	    char *path = malloc_wcstombs(mail);
-	    if (path) {
-		if (is_update(path))
-		    fprintf(stderr, "%s\n", gt("You have mail."));
-		free(path);
-	    }
-	} else {
-	    inactivate();
+    const wchar_t *mail = getvar(L VAR_MAIL);
+    if (mail) {
+	activate();
+
+	char *path = malloc_wcstombs(mail);
+	if (path) {
+	    if (is_update(path))
+		fprintf(stderr, "%s\n", gt("You have mail."));
+	    free(path);
 	}
     } else {
-	activate();
-	for (; *mailpath; mailpath++) {
-	    char *path;
-	    wchar_t *msg;
+	inactivate();
+    }
+}
 
-	    path = get_path_and_message(*mailpath, &msg);
-	    if (path && msg) {
-		if (is_update(path))
-		    print_message(msg);
-	    }
-	    free(path);
-	    free(msg);
+/* Splits the specified string at colons and calls `handle_mailpath_element' for
+ * each component.
+ * This function directly modifies the string. */
+void handle_mailpath(wchar_t *paths)
+{
+    const wchar_t *start;
+
+next:
+    start = paths;
+    for (;;) {
+	switch (*paths) {
+	    case L'\0':
+		handle_mailpath_element(start);
+		return;
+	    case L':':
+		*paths = L'\0';
+		handle_mailpath_element(start);
+		paths++;
+		goto next;
+	    case L'\\':
+		paths++;
+		if (*paths == L'\0') {
+		    handle_mailpath_element(start);
+		    return;
+		}
+		/* falls thru! */
+	    default:
+		paths++;
+		continue;
 	}
     }
 }
 
-/* Decomposes the specified mailpath element to the pathname and the message.
- * The pathname is returned as the return value and the message is assigned to
- * `*msgp'. If there is no message, the default message is assigned.
- * Both the pathname and the message should be freed by the caller.
- * On error, NULL may be returned or assigned. */
-char *get_path_and_message(const char *pathmsg, wchar_t **msgp)
+/* Parses the specified MAILPATH component and checks for update. */
+void handle_mailpath_element(const wchar_t *s)
 {
-    *msgp = NULL;
+    xstrbuf_T path;
+    mbstate_t state;
 
-    wchar_t *wpathmsg = malloc_mbstowcs(pathmsg);
-    if (!wpathmsg)
-	return NULL;
-
-    xwcsbuf_T pathbuf;
-    wb_init(&pathbuf);
-    for (const wchar_t *w = wpathmsg; *w; w++) {
-	if (*w == L'\\') {
-	    w++;
-	    if (*w)
-		wb_wccat(&pathbuf, *w);
-	    else
-		break;
-	} else if (*w == L'%') {
-	    w++;
-	    *msgp = xwcsdup(w);
-	    break;
-	} else {
-	    wb_wccat(&pathbuf, *w);
+    sb_init(&path);
+    memset(&state, 0, sizeof state);
+    for (;;) {
+	switch (*s) {
+	    case L'\0':
+		goto check;
+	    case L'%':
+		s++;
+		goto check;
+	    case L'\\':
+		s++;
+		if (*s == L'\0')
+		    goto check;
+		/* falls thru! */
+	    default:
+		sb_wccat(&path, *s, &state);
+		s++;
+		continue;
 	}
     }
-
-    free(wpathmsg);
-    if (*msgp == NULL)
-	*msgp = malloc_mbstowcs(gt("You have mail."));
-    return realloc_wcstombs(wb_towcs(&pathbuf));
+check:
+    sb_wccat(&path, L'\0', &state);
+    if (is_update(path.contents)) {
+	if (*s == L'\0')
+	    fprintf(stderr, "%s\n", gt("You have mail."));
+	else
+	    print_message(s);
+    }
+    sb_destroy(&path);
 }
 
 /* Checks if the specified file is updated. */

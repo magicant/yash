@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #if HAVE_GETGRENT
 # include <grp.h>
 #endif
@@ -42,12 +43,16 @@
 #include "../expand.h"
 #include "../hashtable.h"
 #include "../option.h"
+#include "../parser.h"
 #include "../path.h"
 #include "../plist.h"
+#include "../redir.h"
 #include "../sig.h"
+#include "../strbuf.h"
 #include "../util.h"
 #include "../variable.h"
 #include "../xfnmatch.h"
+#include "../yash.h"
 #include "complete.h"
 #include "compparse.h"
 #include "display.h"
@@ -56,6 +61,9 @@
 #include "terminfo.h"
 
 #if HAVE_GETPWENT
+# ifndef setpwent
+extern void setpwent(void);
+# endif
 # ifndef getpwent
 extern struct passwd *getpwent(void);
 # endif
@@ -64,6 +72,9 @@ extern void endpwent(void);
 # endif
 #endif
 #if HAVE_GETGRENT
+# if 0 /* avoid conflict on BSD */
+extern void setgrent(void);
+# endif
 # ifndef getgrent
 extern struct group *getgrent(void);
 # endif
@@ -72,6 +83,9 @@ extern void endgrent(void);
 # endif
 #endif
 #if HAVE_GETHOSTENT
+# ifndef sethostent
+extern void sethostent(int);
+# endif
 # ifndef gethostent
 extern struct hostent *gethostent(void);
 # endif
@@ -95,6 +109,8 @@ static const struct candgen_T *get_candgen(void);
 static const struct candgen_T *get_candgen_cmdarg(void);
 static const struct cmdcandgen_T *get_cmdcandgen(const wchar_t *cmdname)
     __attribute__((nonnull,pure));
+static void autoload_completion(const wchar_t *cmdname)
+    __attribute__((nonnull));
 static const struct candgen_T *get_candgen_parse_pwords(
 	const struct cmdcandgen_T *ccg)
     __attribute__((nonnull));
@@ -175,9 +191,10 @@ void le_complete(le_compresult_T lecr)
 	 * candidate generator code. */
 	le_display_finalize();
 	le_restore_terminal();
-	le_state = LE_STATE_SUSPENDED_COMPDEBUG;
+	le_state = LE_STATE_SUSPENDED | LE_STATE_COMPLETING;
 	le_compdebug("completion start");
     } else {
+	le_state |= LE_STATE_COMPLETING;
 	le_allow_terminal_signal(true);
     }
 
@@ -186,7 +203,7 @@ void le_complete(le_compresult_T lecr)
     common_prefix_length = (size_t) -1;
 
     ctxt = le_get_context();
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG)
+    if (le_state_is_compdebug)
 	print_context_info(ctxt);
 
     generate_candidates(get_candgen());
@@ -196,16 +213,21 @@ void le_complete(le_compresult_T lecr)
     /* display the results */
     lecr();
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	le_compdebug("completion end");
-	le_setupterm(false);
+	le_setupterm(true);
 	le_set_terminal();
-	le_state = LE_STATE_ACTIVE;
     } else {
+	assert((le_state & (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
+			== (LE_STATE_ACTIVE | LE_STATE_COMPLETING));
 	le_allow_terminal_signal(false);
-	if (is_interrupted())
-	    le_display_clear(false);  /* redraw if interrupted */
+
+	/* the terminal size may have been changed during completion, so we
+	 * re-check the terminal state here. */
+	le_display_clear(false);
+	le_setupterm(true);
     }
+    le_state = LE_STATE_ACTIVE;
 }
 
 /* An `le_compresult_T' function that does nothing. */
@@ -420,7 +442,21 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
 {
     const le_candidate_T *cand1 = *(const le_candidate_T **) cp1;
     const le_candidate_T *cand2 = *(const le_candidate_T **) cp2;
-    return wcscoll(cand1->origvalue, cand2->origvalue);
+    const wchar_t *v1 = cand1->origvalue;
+    const wchar_t *v2 = cand2->origvalue;
+
+    /* sort candidates that start with hyphens in a special order so that short
+     * options come before long options */
+    if (v1[0] == L'-' || v2[0] == L'-') {
+	while (*v1 == L'-' && *v2 == L'-')
+	    v1++, v2++;
+	if (*v1 == L'-')
+	    return 1;
+	if (*v2 == L'-')
+	    return -1;
+    }
+
+    return wcscoll(v1, v2);
     // XXX case-sensitive
 }
 
@@ -429,7 +465,7 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
  * The string is preceded by "[compdebug] " and followed by a newline. */
 void le_compdebug(const char *format, ...)
 {
-    if (le_state != LE_STATE_SUSPENDED_COMPDEBUG)
+    if (!le_state_is_compdebug)
 	return;
 
     fputs("[compdebug] ", stderr);
@@ -507,15 +543,14 @@ struct candgen_T {
  * The `longopt' member is the name of this option as a long option, starting
  * with at least one hyphen.
  * Either the `shortoptchar' or `longopt' member (but not both) may be null.
- * The `requiresargument' member is true iff this option requires an argument.
- * The value of the `candgen' member is valid only when `requiresargument' is
- * true. */
+ * The `arg' member specifies if this option requires an argument.
+ * The `candgen' member is valid only when `arg' is not OPTARG_NONE. */
 struct optcandgen_T {
     struct optcandgen_T *next;
     wchar_t *description;
     wchar_t shortoptchar;
     wchar_t *longopt;
-    bool requiresargument;
+    enum optarg_T arg;
     struct candgen_T candgen;
 };
 
@@ -608,11 +643,13 @@ const struct candgen_T *get_candgen_cmdarg(void)
 {
     const struct cmdcandgen_T *ccg;
     const struct optcandgen_T *ocg;
-    if (candgens.capacity == 0)
-	return get_candgen_default();
-    ccg = get_cmdcandgen(ctxt->pwords[0]);
-    if (ccg == NULL)
-	return get_candgen_default();
+    if (candgens.capacity == 0
+	    || (ccg = get_cmdcandgen(ctxt->pwords[0])) == NULL) {
+	autoload_completion(ctxt->pwords[0]);
+	if (candgens.capacity == 0
+		|| (ccg = get_cmdcandgen(ctxt->pwords[0])) == NULL)
+	    return get_candgen_default();
+    }
 
     const struct candgen_T *result = get_candgen_parse_pwords(ccg);
     if (result != NULL)
@@ -626,6 +663,8 @@ const struct candgen_T *get_candgen_cmdarg(void)
 
     /* parse the source word to find how we should complete an option */
     /* first check for long options */
+    const struct optcandgen_T *match = NULL;
+    size_t skiplen = 0;
     for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 	const wchar_t *ss = ctxt->src, *longopt = ocg->longopt;
 	if (longopt == NULL)
@@ -638,12 +677,23 @@ const struct candgen_T *get_candgen_cmdarg(void)
 	    ss++, longopt++;
 	    if (*ss == L'\0')
 		return get_candgen_option();
-	    if (ocg->requiresargument && *ss == L'='
-		    && (*longopt == L'\0' || ctxt->src[1] == L'-')) {
-		skip_prefix(ss - ctxt->src + 1);
-		return &ocg->candgen;
-	    }
 	} while (*ss == *longopt);
+
+	if (*ss == L'=' && ocg->arg != OPTARG_NONE) {
+	    if (*longopt == L'\0') {  /* exact match */
+		match = ocg, skiplen = ss - ctxt->src + 1;
+		break;
+	    }
+	    if (ctxt->src[1] != L'-')
+		continue;  /* single-hyphened option must match exactly */
+	    match = ocg, skiplen = ss - ctxt->src + 1;
+	}
+    }
+    if (match != NULL) {
+	assert(match->arg != OPTARG_NONE);
+	assert(skiplen > 0);
+	skip_prefix(skiplen);
+	return &match->candgen;
     }
 
     /* next check for short options */
@@ -653,7 +703,7 @@ const struct candgen_T *get_candgen_cmdarg(void)
     while (*++ss != L'\0') {
 	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 	    if (*ss == ocg->shortoptchar) {
-		if (ocg->requiresargument) {
+		if (ocg->arg != OPTARG_NONE) {
 		    skip_prefix(ss - ctxt->src + 1);
 		    return &ocg->candgen;
 		} else {
@@ -681,6 +731,57 @@ const struct cmdcandgen_T *get_cmdcandgen(const wchar_t *cmdname)
     return result;
 }
 
+/* Executes the file in $YASH_COMPPATH to load completion configuration
+ * for the specified command. */
+void autoload_completion(const wchar_t *cmdname)
+{
+    const wchar_t *slash = wcsrchr(cmdname, L'/');
+    if (slash != NULL)
+	cmdname = slash + 1;
+
+    char *mbscmdname;
+    /* If `cmdname' is L"." or L"..", use "_." or "_.." for the filename */
+    if (wcscmp(cmdname, L".") == 0)
+	mbscmdname = xstrdup("_.");
+    else if (wcscmp(cmdname, L"..") == 0)
+	mbscmdname = xstrdup("_..");
+    else
+	mbscmdname = malloc_wcstombs(cmdname);
+    if (mbscmdname == NULL)
+	return;
+
+    char *path = which(mbscmdname,
+	    get_path_array(PA_COMPPATH), is_readable_regular);
+    free(mbscmdname);
+    if (path == NULL)
+	return;
+
+    int fd = move_to_shellfd(open(path, O_RDONLY));
+    if (fd >= 0) {
+	struct parsestate_T *state = save_parse_state();
+	int savelaststatus = laststatus;
+	bool save_posixly_correct = posixly_correct;
+	posixly_correct = false;
+	open_new_environment(false);
+	set_positional_parameters((void *[]) { (void *) cmdname, NULL, });
+	set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
+
+	le_compdebug("autoload: start executing `%s'", path);
+	exec_input(fd, path, false, false, false);
+	le_compdebug("autoload: finished executing `%s'", path);
+	if (laststatus != Exit_SUCCESS)
+	    le_compdebug("          with exit status of %d", laststatus);
+
+	close_current_environment();
+	laststatus = savelaststatus;
+	posixly_correct = save_posixly_correct;
+	restore_parse_state(state);
+	remove_shellfd(fd);
+	xclose(fd);
+    }
+    free(path);
+}
+
 /* Parses `ctxt->pwords'. */
 const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 {
@@ -688,7 +789,7 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 
     for (int i = 1; i < ctxt->pwordc; i++) {
 	const wchar_t *s = ctxt->pwords[i];
-	if (s[0] != L'-') {
+	if (s[0] != L'-' || s[1] == L'\0') {
 	    if (ccg->intermixed)
 		continue;
 	    else
@@ -698,6 +799,8 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	}
 
 	/* first check if the word is a long option */
+	const struct optcandgen_T *match = NULL;
+	wchar_t matchend = L'\0';
 	for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 	    const wchar_t *ss = s, *longopt = ocg->longopt;
 	    if (longopt == NULL)
@@ -705,17 +808,30 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	    assert(ss[0] == L'-');
 	    assert(longopt[0] == L'-');
 
-	    /* compare `ss' and `longopt' */
-	    do
+	    do  /* compare `ss' and `longopt' */
 		ss++, longopt++;
-	    while (*ss != L'\0' && *ss != L'=' && *ss == *longopt);
-	    if ((*ss == L'\0' || *ss == L'=')
-		    && (*longopt == L'\0' || s[1] == L'-')) {
-		if (ocg->requiresargument && *ss == L'\0')
-		    if (++i == ctxt->pwordc)
-			return &ocg->candgen;
-		goto next_word;
+	    while (*ss != L'\0' && *ss == *longopt);
+
+	    if (*ss == L'\0' || (*ss == L'=' && ocg->arg != OPTARG_NONE)) {
+		if (*longopt == L'\0') {  /* exact match */
+		    match = ocg, matchend = *ss;
+		    break;
+		}
+		if (s[1] != L'-')
+		    continue;  /* single-hyphened option must match exactly */
+		if (match == NULL)
+		    match = ocg, matchend = *ss;
+		else
+		    goto next_word;  /* ambiguous match */
 	    }
+	}
+	if (match != NULL) {
+	    if (matchend == L'\0' && match->arg == OPTARG_REQUIRED) {
+		i++;  /* option argument is in the next word */
+		if (i == ctxt->pwordc)
+		    return &match->candgen;
+	    }
+	    goto next_word;
 	}
 
 	/* next check for short options */
@@ -723,16 +839,22 @@ const struct candgen_T *get_candgen_parse_pwords(const struct cmdcandgen_T *ccg)
 	    for (const wchar_t *ss = s + 1; *ss != L'\0'; ss++) {
 		for (ocg = ccg->options; ocg != NULL; ocg = ocg->next) {
 		    if (*ss == ocg->shortoptchar) {
-			if (ocg->requiresargument) {
-			    if (*(ss + 1) == L'\0')
-				if (++i == ctxt->pwordc)
-				    return &ocg->candgen;
-			    goto next_word;
-			} else {
-			    break;
+			switch (ocg->arg) {
+			    case OPTARG_NONE:
+				goto next_char;
+			    case OPTARG_REQUIRED:
+				if (*(ss + 1) == L'\0') {
+				    i++;
+				    if (i == ctxt->pwordc)
+					return &ocg->candgen;
+				}
+				goto next_word;
+			    case OPTARG_OPTIONAL:
+				goto next_word;
 			}
 		    }
 		}
+next_char:;
 	    }
 	}
 next_word:;
@@ -766,7 +888,6 @@ const struct candgen_T *get_candgen_operands(const struct candgen_T *candgen)
 void skip_prefix(size_t len)
 {
     assert(len <= wcslen(ctxt->src));
-    assert(ctxt->src == ctxt->origsrc);
 
     ctxt->src += len;
 
@@ -878,7 +999,7 @@ void le_add_candidate(le_candidate_T *cand)
 	cand->value = cand->origvalue + prefixlen;
     }
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	const char *typestr = NULL;
 	switch (cand->type) {
 	    case CT_WORD:      typestr = "word";                       break;
@@ -942,7 +1063,8 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 	wchar_t *name = list.contents[i];
 	char *mbsname = malloc_wcstombs(name);
 	struct stat st;
-	if (mbsname != NULL && stat(mbsname, &st) >= 0) {
+	if (mbsname != NULL &&
+		(stat(mbsname, &st) >= 0 || lstat(mbsname, &st) >= 0)) {
 	    bool executable = S_ISREG(st.st_mode) && is_executable(mbsname);
 	    if ((type & CGT_FILE)
 		    || ((type & CGT_DIRECTORY) && S_ISDIR(st.st_mode))
@@ -1080,7 +1202,7 @@ void generate_option_candidates(le_candgentype_T type, le_context_T *context)
 		    goto desc;
 	    } else {
 		assert(ocg->longopt[0] == L'-');
-		if (ocg->longopt[1] == L'-' && ocg->requiresargument)
+		if (ocg->longopt[1] == L'-' && ocg->arg != OPTARG_NONE)
 		    cand->type = CT_OPTIONA;
 		cand->value = xwcsdup(ocg->longopt);
 		if (ocg->shortoptchar != L'\0')
@@ -1138,6 +1260,7 @@ void generate_logname_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     struct passwd *pwd;
+    setpwent();
     while ((pwd = getpwent()) != NULL)
 	if (xfnm_match(context->cpattern, pwd->pw_name) == 0)
 	    le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
@@ -1165,6 +1288,7 @@ void generate_group_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     struct group *grp;
+    setgrent();
     while ((grp = getgrent()) != NULL)
 	if (xfnm_match(context->cpattern, grp->gr_name) == 0)
 	    le_new_candidate(CT_GRP, malloc_mbstowcs(grp->gr_name), NULL);
@@ -1188,7 +1312,7 @@ void generate_host_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     struct hostent *host;
-    sethostent(1);
+    sethostent(true);
     while ((host = gethostent()) != NULL) {
 	if (xfnm_match(context->cpattern, host->h_name) == 0)
 	    le_new_candidate(CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL);
@@ -1253,7 +1377,7 @@ size_t get_common_prefix_length(void)
     }
     common_prefix_length = cpl;
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	wchar_t value[common_prefix_length + 1];
 	cand = le_candidates.contents[0];
 	wcsncpy(value, cand->origvalue, common_prefix_length);
@@ -1306,7 +1430,10 @@ void update_main_buffer(bool subst, bool finish)
     } else {
 	cand = le_candidates.contents[le_selected_candidate_index];
 	assert(srclen <= wcslen(cand->origvalue));
-	quote(&buf, cand->origvalue + srclen, quotetype);
+	if (cand->origvalue[0] == L'\0' && quotetype == QUOTE_NORMAL)
+	    wb_cat(&buf, L"\"\"");
+	else
+	    quote(&buf, cand->origvalue + srclen, quotetype);
     }
     assert(le_main_index >= substindex);
     wb_replace_force(&le_main_buffer,
@@ -1480,7 +1607,7 @@ static int compare_wcs(const void *p1, const void *p2)
     __attribute__((nonnull));
 static int print_candgen(
 	const wchar_t *command, wchar_t shortoptchar, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
     __attribute__((nonnull(1)));
 static bool quote_print(const wchar_t *word)
@@ -1496,11 +1623,13 @@ static void free_candgen_contents(const struct candgen_T *candgen)
     __attribute__((nonnull));
 static int complete_builtin_set(
 	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
-    __attribute__((nonnull(1,6)));
+    __attribute__((nonnull(1,7)));
 static void copy_candgen(
 	struct candgen_T *restrict dest, const struct candgen_T *restrict src)
+    __attribute__((nonnull));
+static bool complete_builtin_change_src(const wchar_t *newsrc)
     __attribute__((nonnull));
 static int complete_builtin_delegate(int wordc, void **words)
     __attribute__((nonnull));
@@ -1509,59 +1638,62 @@ static int complete_builtin_delegate(int wordc, void **words)
 int complete_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"array-variable",       xno_argument,       L'A', },
-	{ L"alias",                xno_argument,       L'a', },
-	{ L"bindkey",              xno_argument,       L'B', },
-	{ L"builtin",              xno_argument,       L'b', },
-	{ L"target-command",       xrequired_argument, L'C', },
-	{ L"command",              xno_argument,       L'c', },
-	{ L"description",          xrequired_argument, L'D', },
-	{ L"directory",            xno_argument,       L'd', },
-	{ L"executable-file",      xno_argument,       L'E', },
-	{ L"external-command",     xno_argument,       L'e', },
-	{ L"generator-function",   xrequired_argument, L'F', },
-	{ L"file",                 xno_argument,       L'f', },
-	{ L"delegate",             xno_argument,       L'G', },
-	{ L"group",                xno_argument,       L'g', },
-	{ L"hostname",             xno_argument,       L'h', },
-	{ L"signal",               xno_argument,       L'I', },
-	{ L"running-job",          xno_argument,       L'J', },
-	{ L"job",                  xno_argument,       L'j', },
-	{ L"keyword",              xno_argument,       L'k', },
-	{ L"global-alias",         xno_argument,       L'L', },
-	{ L"normal-alias",         xno_argument,       L'N', },
-	{ L"function",             xno_argument,       L'n', },
-	{ L"target-option",        xrequired_argument, L'O', },
-	{ L"print",                xno_argument,       L'P', },
-	{ L"remove",               xno_argument,       L'R', },
-	{ L"regular-builtin",      xno_argument,       L'r', },
-	{ L"semi-special-builtin", xno_argument,       L'S', },
-	{ L"special-builtin",      xno_argument,       L's', },
-	{ L"username",             xno_argument,       L'u', },
-	{ L"scalar-variable",      xno_argument,       L'V', },
-	{ L"variable",             xno_argument,       L'v', },
-	{ L"intermixed",           xno_argument,       L'X', },
-	{ L"finished-job",         xno_argument,       L'Y', },
-	{ L"stopped-job",          xno_argument,       L'Z', },
+	{ L"optional-argument",    OPTARG_NONE,     L'A', },
+	{ L"alias",                OPTARG_NONE,     L'a', },
+	{ L"bindkey",              OPTARG_NONE,     L'B', },
+	{ L"builtin",              OPTARG_NONE,     L'b', },
+	{ L"target-command",       OPTARG_REQUIRED, L'C', },
+	{ L"command",              OPTARG_NONE,     L'c', },
+	{ L"description",          OPTARG_REQUIRED, L'D', },
+	{ L"directory",            OPTARG_NONE,     L'd', },
+	{ L"executable-file",      OPTARG_NONE,     L'E', },
+	{ L"external-command",     OPTARG_NONE,     L'e', },
+	{ L"generator-function",   OPTARG_REQUIRED, L'F', },
+	{ L"file",                 OPTARG_NONE,     L'f', },
+	{ L"delegate",             OPTARG_NONE,     L'G', },
+	{ L"group",                OPTARG_NONE,     L'g', },
+	{ L"hostname",             OPTARG_NONE,     L'h', },
+	{ L"signal",               OPTARG_NONE,     L'I', },
+	{ L"running-job",          OPTARG_NONE,     L'J', },
+	{ L"job",                  OPTARG_NONE,     L'j', },
+	{ L"keyword",              OPTARG_NONE,     L'k', },
+	{ L"global-alias",         OPTARG_NONE,     L'L', },
+	{ L"normal-alias",         OPTARG_NONE,     L'N', },
+	{ L"function",             OPTARG_NONE,     L'n', },
+	{ L"target-option",        OPTARG_REQUIRED, L'O', },
+	{ L"print",                OPTARG_NONE,     L'P', },
+	{ L"remove",               OPTARG_NONE,     L'R', },
+	{ L"regular-builtin",      OPTARG_NONE,     L'r', },
+	{ L"semi-special-builtin", OPTARG_NONE,     L'S', },
+	{ L"special-builtin",      OPTARG_NONE,     L's', },
+	{ L"username",             OPTARG_NONE,     L'u', },
+	{ L"scalar-variable",      OPTARG_NONE,     L'V', },
+	{ L"variable",             OPTARG_NONE,     L'v', },
+	{ L"word",                 OPTARG_REQUIRED, L'W', },
+	{ L"intermixed",           OPTARG_NONE,     L'X', },
+	{ L"finished-job",         OPTARG_NONE,     L'Y', },
+	{ L"array-variable",       OPTARG_NONE,     L'y', },
+	{ L"stopped-job",          OPTARG_NONE,     L'Z', },
 #if YASH_ENABLE_HELP
-	{ L"help",                 xno_argument,       L'-', },
+	{ L"help",                 OPTARG_NONE,     L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
 
     const wchar_t *command = NULL, *longopt = NULL;
     const wchar_t *function = NULL, *description = NULL;
+    const wchar_t *newsrc = NULL;
     wchar_t shortopt = L'\0';
     le_candgentype_T cgtype = 0;
-    bool intermixed = false;
+    bool intermixed = false, argopt = false;
     bool print = false, remove = false, delegate = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"C:D:F:O:GPRXabcdfghjkuv", long_options, NULL))) {
+		    argv, L"AC:D:F:O:GPRW:Xabcdfghjkuv", long_options, NULL))) {
 	switch (opt) {
-	    case L'A':  cgtype |= CGT_ARRAY;       break;
+	    case L'A':  argopt = true;             break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
 	    case L'B':  cgtype |= CGT_BINDKEY;     break;
 	    case L'b':  cgtype |= CGT_BUILTIN;     break;
@@ -1621,8 +1753,14 @@ int complete_builtin(int argc, void **argv)
 	    case L'u':  cgtype |= CGT_LOGNAME;     break;
 	    case L'V':  cgtype |= CGT_SCALAR;      break;
 	    case L'v':  cgtype |= CGT_VARIABLE;    break;
+	    case L'W':
+		if (newsrc != NULL)
+		    goto dupopterror;
+		newsrc = xoptarg;
+		break;
 	    case L'X':  intermixed = true;         break;
 	    case L'Y':  cgtype |= CGT_DONE;        break;
+	    case L'y':  cgtype |= CGT_ARRAY;       break;
 	    case L'Z':  cgtype |= CGT_STOPPED;     break;
 #if YASH_ENABLE_HELP
 	    case L'-':
@@ -1652,12 +1790,18 @@ dupopterror:
     } else if (print + remove + delegate > 1) {
 	xerror(0, Ngt("more than one of -P, -R, -G option specified"));
 	goto print_usage;
+    } else if ((print || remove) && newsrc != NULL) {
+	xerror(0, Ngt("-W option cannot be used with -P or -R option"));
+	goto print_usage;
     } else if ((print || remove || delegate)
 	    && (function != NULL || description != NULL
-		|| cgtype != 0 || intermixed)) {
+		|| cgtype != 0 || intermixed || argopt)) {
 	xerror(0, Ngt("-%lc option cannot be used with style specification"),
 		print ? (wint_t) L'P' : remove ? (wint_t) L'R' : (wint_t) L'G');
 	goto print_usage;
+    } else if (argopt && (shortopt == L'\0' && longopt == NULL)) {
+	xerror(0, Ngt("-A option specified without -O option"));
+	return Exit_ERROR;
     } else if (delegate && command != NULL) {
 	xerror(0, Ngt("-G option cannot be used with -C option"));
 	goto print_usage;
@@ -1668,7 +1812,13 @@ dupopterror:
     } else if (remove) {
 	complete_builtin_remove(command, shortopt, longopt);
 	return Exit_SUCCESS;
-    } else if (delegate) {
+    }
+
+    if (newsrc != NULL) {
+	if (!complete_builtin_change_src(newsrc))
+	    return Exit_FAILURE;
+    }
+    if (delegate) {
 	argc -= xoptind;
 	argv += xoptind;
 	if (argc == 0) {
@@ -1703,14 +1853,14 @@ dupopterror:
 	free_candgen_contents(&candgen);
 	return exitstatus;
     } else {
-	return complete_builtin_set(
-		command, shortopt, longopt, description, intermixed, &candgen);
+	return complete_builtin_set(command, shortopt, longopt, description,
+		intermixed, argopt, &candgen);
     }
 
 print_usage:
     fprintf(stderr,
 	gt("Usage:  complete [-C command] [-O option] [-D description] \\\n"
-	   "                 [-F function] [-Xabcdfghjkouv] [words...]\n"
+	   "                 [-F function] [-AXabcdfghjkouv] [words...]\n"
 	   "        complete -P|-R [-C command] [-O option]\n"
 	   "        complete -G words...\n"));
     return Exit_ERROR;
@@ -1757,7 +1907,7 @@ int print_cmdcandgen(
     if (shortopt == L'\0' && longopt == NULL) {
 	/* print command */
 	int exitstatus = print_candgen(command, L'\0', NULL,
-		ccg->description, ccg->intermixed, &ccg->operands);
+		ccg->description, ccg->intermixed, false, &ccg->operands);
 	if (exitstatus != Exit_SUCCESS)
 	    return exitstatus;
 
@@ -1767,7 +1917,8 @@ int print_cmdcandgen(
 		ocg = ocg->next) {
 	    exitstatus = print_candgen(command,
 		    ocg->shortoptchar, ocg->longopt, ocg->description, false,
-		    ocg->requiresargument ? &ocg->candgen : NULL);
+		    ocg->arg == OPTARG_OPTIONAL,
+		    ocg->arg != OPTARG_NONE ? &ocg->candgen : NULL);
 	    if (exitstatus != Exit_SUCCESS)
 		return exitstatus;
 	}
@@ -1780,7 +1931,8 @@ int print_cmdcandgen(
 	return Exit_FAILURE;
     return print_candgen(command,
 	    ocg->shortoptchar, ocg->longopt, ocg->description, false,
-	    ocg->requiresargument ? &ocg->candgen : NULL);
+	    ocg->arg == OPTARG_OPTIONAL,
+	    ocg->arg != OPTARG_NONE ? &ocg->candgen : NULL);
 }
 
 /* Searches `ccg->options' for the specified options.
@@ -1828,7 +1980,7 @@ struct optcandgen_T *get_optcandgen(const struct cmdcandgen_T *ccg,
  * Returns Exit_SUCCESS iff successful. */
 int print_candgen(
 	const wchar_t *command, wchar_t shortoptchar, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
 {
 #define TRY(cond)      do if (!(cond)) goto ioerror; while (0)
@@ -1853,6 +2005,8 @@ int print_candgen(
 	TRYPRINT(" -O %ls", shortopt);
     if (longopt != NULL)
 	TRYPRINT(" -O %ls", longopt);
+    if (argopt)
+	TRYPRINT(" -A");
     if (description != NULL) {
 	TRYPRINT(" -D");
 	TRY(quote_print(description));
@@ -2103,7 +2257,7 @@ void free_candgen_contents(const struct candgen_T *candgen)
  * The contents of `candgen' is freed in this function. */
 int complete_builtin_set(
 	const wchar_t *command, wchar_t shortopt, const wchar_t *longopt,
-	const wchar_t *description, bool intermixed,
+	const wchar_t *description, bool intermixed, bool argopt,
 	const struct candgen_T *candgen)
 {
     if (candgens.capacity == 0)
@@ -2152,9 +2306,12 @@ int complete_builtin_set(
 	ocg->shortoptchar = shortopt;
     if (ocg->longopt == NULL && longopt != NULL)
 	ocg->longopt = xwcsdup(longopt);
+    if (argopt)
+	ocg->arg = OPTARG_OPTIONAL;
     if (candgen->type != 0 || candgen->words != NULL
 	    || candgen->function != NULL) {
-	ocg->requiresargument = true;
+	if (ocg->arg == OPTARG_NONE)
+	    ocg->arg = OPTARG_REQUIRED;
 	copy_candgen(&ocg->candgen, candgen);
 //  } else {
 //	free_candgen_contents(candgen);
@@ -2197,6 +2354,28 @@ next:;
     }
 }
 
+/* Changes `ctxt->src' to `newsrc', which should be a postfix of `ctxt->src'. */
+bool complete_builtin_change_src(const wchar_t *newsrc)
+{
+    if (ctxt == NULL) {
+	xerror(0, Ngt("-W option cannot be used "
+		    "when not in candidate generator function"));
+	return false;
+    }
+
+    size_t srclen = wcslen(ctxt->src);
+    size_t newsrclen = wcslen(newsrc);
+    if (srclen < newsrclen ||
+	    wcscmp(ctxt->src + srclen - newsrclen, newsrc) != 0) {
+	xerror(0, Ngt("the current target word "
+		    "does not end with the specified word `%ls'"), newsrc);
+	return false;
+    }
+
+    skip_prefix(srclen - newsrclen);
+    return true;
+}
+
 /* Generates candidates using the specified words as `pwords' and `src'. */
 int complete_builtin_delegate(int wordc, void **words)
 {
@@ -2236,7 +2415,7 @@ int complete_builtin_delegate(int wordc, void **words)
     }
     newctxt.origpattern = newctxt.pattern;
 
-    if (le_state == LE_STATE_SUSPENDED_COMPDEBUG) {
+    if (le_state_is_compdebug) {
 	le_compdebug("delegation start (complete -G)");
 	print_context_info(&newctxt);
     }
@@ -2254,11 +2433,11 @@ int complete_builtin_delegate(int wordc, void **words)
 
 #if YASH_ENABLE_HELP
 const char complete_help[] = Ngt(
-"complete - edit completion style\n"
-"\tcomplete [-C command] [-O option] [-D description] \\\n"
-"\t         [-F function] [-Xabcdfghjkuv] [words...]\n"
+"complete - edit completion style or generate completion candidates\n"
+"\tcomplete [-C command] [-O option] [-D description] [-W word] \\\n"
+"\t         [-F function] [-AXabcdfghjkuv] [words...]\n"
 "\tcomplete -P|-R [-C command] [-O option]\n"
-"\tcomplete [-G] words...\n"
+"\tcomplete -G [-W word] words...\n"
 "The \"complete\" builtin specifies how to complete command-line words.\n"
 "You can specify possible options and operands for each command, and possible\n"
 "arguments for each argument-requiring option as well.\n"
@@ -2304,8 +2483,10 @@ const char complete_help[] = Ngt(
 "Moreover, arbitrary words can be given as operands to the \"complete\"\n"
 "builtin as possible operands to the completed command.\n"
 "If the options and operands described above are specified with the -O\n"
-"option, it is considered an argument-requiring option where the argument is\n"
-"completed according to the specified style.\n"
+"option, the option specified by the -O option is assumed to take an\n"
+"argument, which is completed according to the specified style.\n"
+"If the -A (--optional-argument) option is also specified, the option\n"
+"argument is considered optional.\n"
 "You can attach a description of the target command, option, or candidate\n"
 "words as the argument to the -D (--description) option.\n"
 "\n"
@@ -2323,6 +2504,8 @@ const char complete_help[] = Ngt(
 "In this case, the -C and -O option must not be specified.\n"
 "If the -G (--delegate) option is specified, candidates are generated as if\n"
 "the currently completed command/arguments are <words>.\n"
+"In a candidate generator function, the -W (--word) option can be used to\n"
+"change the target word to its substring.\n"
 );
 #endif /* YASH_ENABLE_HELP */
 

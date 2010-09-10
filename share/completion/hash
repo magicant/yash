@@ -1,0 +1,13 @@
+# completion settings for the hash built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/hash
+
+complete -C "$1" -O a -O --all \
+	-D "don't exclude built-ins when printing cached paths"
+complete -C "$1" -O d -O --directory \
+	-D "manipulate caches for home directory paths"
+complete -C "$1" -O r -O --remove \
+	-D "remove cached paths"
+complete -C "$1" -O --help

@@ -16,7 +16,9 @@ A normal way to build and install yash is:
 
   5. Type `make install' to install yash at the location specified in
      the configuration. The default location is /usr/local/bin/yash.
-     You may need to be a superuser (or "root") for installation.
+     The auxiliary files are also installed (at /usr/local/share/yash
+     by default). You may need to be a superuser (or "root") for
+     installation.
 
 Type `make uninstall' to uninstall the program.
 Type `make clean' to delete object files and executables that are

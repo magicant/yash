@@ -1,0 +1,11 @@
+# completion settings for the pwd built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/
+
+complete -C "$1" -O L -O --logical \
+	-D "print symbolic links in the path as is"
+complete -C "$1" -O P -O --physical \
+	-D "resolve symbolic links in the path"
+complete -C "$1" -O --help

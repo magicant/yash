@@ -1,0 +1,34 @@
+# completion settings for the cut command (POSIX 2008; GNU coreutils 8.4)
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+case "$("$1" --version 2>/dev/null)" in
+	*'coreutils'*)
+		typeset gnu=true
+		complete -C "$1" -X
+		;;
+	*)
+		typeset gnu=
+		;;
+esac
+
+complete -C "$1" -f
+
+complete -C "$1" -O b ${gnu:+-O --bytes} -F comp/ \
+	-D "specify the positions of bytes to print"
+complete -C "$1" -O c ${gnu:+-O --characters} -F comp/ \
+	-D "specify the positions of characters to print"
+complete -C "$1" -O d ${gnu:+-O --delimiter} -F comp/ \
+	-D "specify a field delimiter (with -f)"
+complete -C "$1" -O f ${gnu:+-O --fields} -F comp/ \
+	-D "specify the positions of fields to print"
+complete -C "$1" -O n \
+	-D "don't split multibyte characters (with -b)"
+complete -C "$1" -O s ${gnu:+-O --only-delimited} \
+	-D "don't print lines containing no delimiters (with -f)"
+if [ "$gnu" ]; then
+	complete -C "$1" -O --complement \
+		-D "print fields not specified by -b/-c/-f option"
+	complete -C "$1" -O --help
+	complete -C "$1" -O --version
+fi

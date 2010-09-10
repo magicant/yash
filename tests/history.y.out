@@ -108,7 +108,7 @@ inner shell
 54	echo ok
 55	fc -l -2
 56	echo =====
-57	$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF2
+57	$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF2
 58	echo inner shell; fc -l 53
 59	EOF2
 60	echo inner shell; fc -l 53
@@ -123,7 +123,7 @@ inner shell
 22	echo ok
 23	fc -l -2
 24	echo =====
-25	$INVOKE $TESTEE -i --rcfile="$RC" <<\EOF2
+25	$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF2
 26	echo inner shell; fc -l 53
 27	EOF2
 28	echo inner shell; fc -l 53

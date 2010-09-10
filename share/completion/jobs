@@ -1,0 +1,17 @@
+# completion settings for the jobs built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -Xj
+
+complete -C "$1" -O l -O --verbose \
+	-D "print process IDs of processes"
+complete -C "$1" -O n -O --new \
+	-D "print only jobs whose status change is not yet reported"
+complete -C "$1" -O p -O --pgid-only \
+	-D "print process group IDs only"
+complete -C "$1" -O r -O --running-only \
+	-D "print running jobs only"
+complete -C "$1" -O s -O --stopped-only \
+	-D "print stopped jobs only"
+complete -C "$1" -O --help

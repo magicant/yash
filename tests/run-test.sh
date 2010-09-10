@@ -75,12 +75,21 @@ case "$1" in
 	$INVOKE $TESTEE -c 'type pushd' 2>/dev/null | \
 	    grep '^pushd: regular builtin' >/dev/null
 	;;
+    job.y)
+	# ensure that /dev/tty is available and that we're in foreground
+	{ <>/dev/tty; } 2>/dev/null &&
+	$INVOKE $TESTEE 2>/dev/null <<\END
+	trap 'kill $!; kill -s CONT 0' TTOU
+	$INVOKE $TESTEE -m -c ''&
+	wait
+END
+	;;
     help.y)
 	$INVOKE $TESTEE -c 'type help' 2>/dev/null | \
 	    grep '^help: regular builtin' >/dev/null
 	;;
     history.y)
-	HISTFILE= $INVOKE $TESTEE -i --norcfile -c 'PATH=; fc -l' \
+	HISTFILE= $INVOKE $TESTEE -i +m --norcfile -c 'PATH=; fc -l' \
 	    >/dev/null 2>&1
 	;;
     lineedit.y)

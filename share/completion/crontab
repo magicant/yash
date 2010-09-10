@@ -1,0 +1,20 @@
+# completion settings for the crontab command (POSIX 2008; FreeBSD 8.1)
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -f
+
+complete -C "$1" -O e -u \
+	-D "edit crontab with an editor"
+complete -C "$1" -O l -u \
+	-D "print the current crontab setting"
+complete -C "$1" -O r -u \
+	-D "remove crontab setting"
+
+# We should check if the crontab command supports the -u option, but there's no
+# reliable way to do so. We just always complete the -u option.
+complete -C "$1" -O u -u \
+	-D "specify a user whose crontab is set, removed, or shown"
+
+# TODO -i, -s (cronie)
+# How can we find that the crontab command is the cronie version?

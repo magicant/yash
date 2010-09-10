@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* lineedit.h: command line editing */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,11 +24,15 @@
 
 
 enum le_state_T {
-    LE_STATE_INACTIVE,
-    LE_STATE_ACTIVE,
-    LE_STATE_SUSPENDED,
-    LE_STATE_SUSPENDED_COMPDEBUG,
+    LE_STATE_INACTIVE   = 0,
+    LE_STATE_ACTIVE     = 1 << 0,
+    LE_STATE_SUSPENDED  = 1 << 1,
+    LE_STATE_COMPLETING = 1 << 2,
 };
+#define le_state_is_compdebug \
+    ((le_state & (LE_STATE_SUSPENDED | LE_STATE_COMPLETING)) \
+              == (LE_STATE_SUSPENDED | LE_STATE_COMPLETING))
+
 enum le_editstate_T {
     LE_EDITSTATE_EDITING,     // editing is on-going
     LE_EDITSTATE_DONE,        // `le_readline' should return (successful)

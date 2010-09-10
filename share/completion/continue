@@ -1,0 +1,8 @@
+# completion settings for the continue built-in
+# written by magicant
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+
+complete -C "$1" -X -F comp/
+complete -C "$1" -O i -O --iteration \
+	-D "continue iterative execution"
+complete -C "$1" -O --help

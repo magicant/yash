@@ -184,9 +184,12 @@ extern int xoptind;
 extern wchar_t xoptopt;
 extern _Bool xopterr;
 
+enum optarg_T {
+    OPTARG_NONE, OPTARG_REQUIRED, OPTARG_OPTIONAL,
+};
 struct xoption {
     const wchar_t *name;
-    enum { xno_argument, xrequired_argument, xoptional_argument, } has_arg;
+    enum optarg_T arg;
     wchar_t val;
 };
 

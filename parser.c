@@ -41,6 +41,9 @@
 #include "plist.h"
 #include "strbuf.h"
 #include "util.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/lineedit.h"
+#endif
 
 
 /********** Functions That Free Parse Trees **********/
@@ -630,8 +633,12 @@ inputresult_T read_more_input(void)
     if (cinfo->lastinputresult == INPUT_OK) {
 	size_t savelength = cbuf.length;
 	cinfo->lastinputresult = cinfo->input(&cbuf, cinfo->inputinfo);
+
 	if (cinfo->enable_verbose && shopt_verbose)
-	    fprintf(stderr, "%ls", cbuf.contents + savelength);
+#if YASH_ENABLE_LINEEDIT
+	    if (!(le_state & LE_STATE_ACTIVE))
+#endif
+		fprintf(stderr, "%ls", cbuf.contents + savelength);
     }
     return cinfo->lastinputresult;
 }

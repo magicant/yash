@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* lineedit.c: command line editing */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -177,7 +177,7 @@ void reader_finalize(void)
  * May return without doing anything if a signal was caught, if the shell was
  * interrupted, etc.
  * The caller must check `le_state' after this function returned. This function
- * should be called repeatedly while `le_state' is LE_STATE_EDITING. */
+ * should be called repeatedly while `le_editstate' is LE_STATE_EDITING. */
 void read_next(void)
 {
     static bool incomplete_wchar = false;
