@@ -410,28 +410,27 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates candidates to complete an alias matching the pattern in the
- * specified context. */
+/* Generates candidates to complete an alias matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_alias_candidates(le_candgentype_T type, le_context_T *context)
+void generate_alias_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_ALIAS))
+    if (!(compopt->type & CGT_ALIAS))
 	return;
 
-    le_compdebug("adding aliases matching pattern \"%ls\"", context->pattern);
-    if (true /* FIXME !le_compile_cpattern(context) */)
+    le_compdebug("adding aliases matching pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     size_t i = 0;
     kvpair_T kv;
     while ((kv = ht_next(&aliases, &i)).key != NULL) {
 	const alias_T *alias = kv.value;
-	if ((alias->flags & AF_GLOBAL)
-		? (type & CGT_GALIAS) : (type & CGT_NALIAS)) {
-	    if (xfnm_wmatch(NULL /* FIXME */, kv.key).start != (size_t) -1) {
-		le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL);
-	    }
-	}
+	le_candgentype_T type =
+	    (alias->flags & AF_GLOBAL) ? CGT_GALIAS : CGT_NALIAS;
+
+	if (compopt->type & type)
+	    if (xfnm_wmatch(compopt->cpattern, kv.key).start != (size_t) -1)
+		le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL, compopt);
     }
 }
 

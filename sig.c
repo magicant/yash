@@ -922,7 +922,8 @@ void reset_sigint(void)
 
 #if YASH_ENABLE_LINEEDIT
 
-static void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name)
+static void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name,
+	const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 #ifdef SIGWINCH
@@ -945,26 +946,25 @@ void reset_sigwinch(void)
 #endif
 }
 
-/* Generates completion candidates for signal names that match the glob pattern
- * in the specified context. */
+/* Generates completion candidates for signal names matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
+void generate_signal_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_SIGNAL))
+    if (!(compopt->type & CGT_SIGNAL))
 	return;
 
-    le_compdebug("adding signals for pattern \"%ls\"", context->pattern);
-    if (true /* FIXME !le_compile_cpattern(context) */)
+    le_compdebug("adding signals for pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
-    bool prefix = matchwcsprefix(context->src, L"SIG");
+    bool prefix = matchwcsprefix(compopt->src, L"SIG");
     xwcsbuf_T buf;
     wb_init(&buf);
     for (const signal_T *s = signals; s->no; s++) {
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, s->name);
-	sig_new_candidate(NULL /* FIXME */, s->no, &buf);
+	sig_new_candidate(compopt->cpattern, s->no, &buf, compopt);
     }
 #if defined SIGRTMIN && defined SIGRTMAX
     int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
@@ -974,23 +974,23 @@ void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
 	wb_cat(&buf, L"RTMIN");
 	if (s != sigrtmin)
 	    wb_wprintf(&buf, L"+%d", s - sigrtmin);
-	sig_new_candidate(NULL /* FIXME */, s, &buf);
+	sig_new_candidate(compopt->cpattern, s, &buf, compopt);
 
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, L"RTMAX");
 	if (s != sigrtmax)
 	    wb_wprintf(&buf, L"-%d", sigrtmax - s);
-	sig_new_candidate(NULL /* FIXME */, s, &buf);
+	sig_new_candidate(compopt->cpattern, s, &buf, compopt);
     }
 #endif
     wb_destroy(&buf);
 }
 
-/* If the specified pattern matches the specified name, adds a new completion
- * candidate with the specified name and the description for the specified
- * signal. */
-void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name)
+/* If the specified pattern matches the specified signal name, adds a new
+ * completion candidate with the name and the description for the signal. */
+void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name,
+	const le_compopt_T *compopt)
 {
     if (xfnm_wmatch(pat, name->contents).start != (size_t) -1) {
 	xwcsbuf_T desc;
@@ -1002,7 +1002,7 @@ void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name)
 	else
 #endif
 	    wb_wprintf(&desc, L"%d", num);
-	le_new_candidate(CT_SIG, wb_towcs(name), wb_towcs(&desc));
+	le_new_candidate(CT_SIG, wb_towcs(name), wb_towcs(&desc), compopt);
 	wb_init(name);
     } else {
 	wb_clear(name);

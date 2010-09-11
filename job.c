@@ -898,14 +898,14 @@ found:
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates completion candidates for job names that match the glob pattern
- * in the specified context. */
+/* Generates completion candidates for job names matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_job_candidates(le_candgentype_T type, le_context_T *context)
+void generate_job_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_JOB))
+    if (!(compopt->type & CGT_JOB))
 	return;
 
+#if 0
     const wchar_t *pattern = context->pattern;
     if (pattern[0] == L'%')
 	pattern += 1;
@@ -941,6 +941,7 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 	    free(jobname);
     }
     xfnm_free(xfnm);
+#endif // FIXME
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */

@@ -136,30 +136,30 @@ typedef enum le_candgentype_T {
     CGT_FUNCTION   = 1 << 7, // function
     CGT_COMMAND    = CGT_BUILTIN | CGT_EXTCOMMAND | CGT_FUNCTION,
     CGT_KEYWORD    = 1 << 8, // shell keyword
-    CGT_OPTION	   = 1 << 9, // command option
-    CGT_NALIAS     = 1 << 10, // non-global alias
-    CGT_GALIAS     = 1 << 11, // global alias
+    CGT_NALIAS     = 1 << 9, // non-global alias
+    CGT_GALIAS     = 1 << 10, // global alias
     CGT_ALIAS      = CGT_NALIAS | CGT_GALIAS,
-    CGT_SCALAR     = 1 << 12, // scalar variable
-    CGT_ARRAY      = 1 << 13, // array variable
+    CGT_SCALAR     = 1 << 11, // scalar variable
+    CGT_ARRAY      = 1 << 12, // array variable
     CGT_VARIABLE   = CGT_SCALAR | CGT_ARRAY,
-    CGT_RUNNING    = 1 << 14, // running job
-    CGT_STOPPED    = 1 << 15, // stopped job
-    CGT_DONE       = 1 << 16, // finished job
+    CGT_RUNNING    = 1 << 13, // running job
+    CGT_STOPPED    = 1 << 14, // stopped job
+    CGT_DONE       = 1 << 15, // finished job
     CGT_JOB        = CGT_RUNNING | CGT_STOPPED | CGT_DONE,
-    CGT_SIGNAL     = 1 << 17, // signal name
-    CGT_LOGNAME    = 1 << 18, // login user name
-    CGT_GROUP      = 1 << 19, // group name
-    CGT_HOSTNAME   = 1 << 20, // host name
-    CGT_BINDKEY    = 1 << 21, // line-editing command name
+    CGT_SIGNAL     = 1 << 16, // signal name
+    CGT_LOGNAME    = 1 << 17, // login user name
+    CGT_GROUP      = 1 << 18, // group name
+    CGT_HOSTNAME   = 1 << 19, // host name
+    CGT_BINDKEY    = 1 << 20, // line-editing command name
 } le_candgentype_T;
 typedef struct le_compopt_T {
-    const le_context_T *ctxt;  // completion context
-    le_candgentype_T type;     // type of generated candidates
-    const wchar_t *src;        // `ctxt->src' + wcslen(ignored prefix)
-    const wchar_t *pattern;    // `ctxt->pattern' + wcslen(ignored prefix)
-    wchar_t *suffix;           // string appended to candidate values
-    _Bool terminate;           // whether completed word should be terminated
+    const le_context_T *ctxt;    // completion context
+    le_candgentype_T type;       // type of generated candidates
+    const wchar_t *src;          // `ctxt->src' + wcslen(ignored prefix)
+    const wchar_t *pattern;      // `ctxt->pattern' + wcslen(ignored prefix)
+    struct xfnmatch_T *cpattern; // compiled `pattern'
+    const wchar_t *suffix;       // string appended to candidate values
+    _Bool terminate;             // whether completed word should be terminated
 } le_compopt_T;
 
 typedef void le_compresult_T(void);
@@ -184,10 +184,12 @@ extern void le_compdebug(const char *format, ...)
 extern void le_new_command_candidate(wchar_t *cmdname)
     __attribute__((nonnull));
 extern void le_new_candidate(le_candtype_T type,
-	wchar_t *restrict value, wchar_t *restrict desc);
-extern void le_add_candidate(le_candidate_T *cand)
+	wchar_t *restrict value, wchar_t *restrict desc,
+	const le_compopt_T *compopt)
+    __attribute__((nonnull(4)));
+extern void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     __attribute__((nonnull));
-extern _Bool le_compile_cpattern(le_context_T *context)
+extern _Bool le_compile_cpattern(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 extern int complete_builtin(int argc, void **argv)
@@ -196,36 +198,29 @@ extern const char complete_help[];
 
 
 /* This function is defined in "../alias.c". */
-extern void generate_alias_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_alias_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "../builtin.c". */
-extern void generate_builtin_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_builtin_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "../job.c". */
-extern void generate_job_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_job_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "../sig.c". */
-extern void generate_signal_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_signal_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* These functions are defined in "../variable.c". */
-extern void generate_variable_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_variable_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
-extern void generate_function_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_function_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "keymap.c". */
-extern void generate_bindkey_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_bindkey_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 

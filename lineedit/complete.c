@@ -104,30 +104,22 @@ static int sort_candidates_cmp(const void *cp1, const void *cp2)
 static void print_context_info(const le_context_T *ctxt)
     __attribute__((nonnull));
 
-struct candgen_T;
-static int generate_candidates(const struct candgen_T *candgen)
+static void generate_file_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
-static void generate_file_candidates(
-	le_candgentype_T type, const wchar_t *pattern)
+static void generate_external_command_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
-static void generate_external_command_candidates(
-	le_candgentype_T type, le_context_T *context)
+static void generate_keyword_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
-static void generate_keyword_candidates(
-	le_candgentype_T type, le_context_T *context)
+static void generate_logname_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
-static void generate_logname_candidates(
-        le_candgentype_T type, le_context_T *context)
+static void generate_group_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
-static void generate_group_candidates(
-        le_candgentype_T type, le_context_T *context)
-    __attribute__((nonnull));
-static void generate_host_candidates(
-        le_candgentype_T type, le_context_T *context)
+static void generate_host_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 static void generate_candidates_from_words(
-	void *const *words, le_context_T *context)
-    __attribute__((nonnull(2)));
+	le_candtype_T type, void *const *words, const wchar_t *description,
+	const le_compopt_T *compopt)
+    __attribute__((nonnull));
 
 static size_t get_common_prefix_length(void)
     __attribute__((pure));
@@ -496,88 +488,9 @@ void print_context_info(const le_context_T *ctxt)
 }
 
 
-/********** Completion Style Determination **********/
-
-#define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
-
-/* This structure specifies how to generate completion candidates.
- * The `type' member is bitwise OR of CGT_* values.
- * The `words' member is a pointer to an array of pointers to wide strings that
- * are added as candidates. These strings, after their terminating null
- * character, are immediately followed by a description of the candidate.
- * The `function' member is the name of the function that is called to generate
- * candidates.
- * The `words' and `function' members may be NULL. */
-struct candgen_T {
-    le_candgentype_T type;
-    void **words;
-    wchar_t *function;
-};
-
-/* This structure specifies the completion style for an option of a command.
- * The `description' member is a description of the option (may be NULL).
- * The `shortoptchar' member is the short-option character.
- * The `longopt' member is the name of this option as a long option, starting
- * with at least one hyphen.
- * Either the `shortoptchar' or `longopt' member (but not both) may be null.
- * The `arg' member specifies if this option requires an argument.
- * The `candgen' member is valid only when `arg' is not OPTARG_NONE. */
-struct optcandgen_T {
-    struct optcandgen_T *next;
-    wchar_t *description;
-    wchar_t shortoptchar;
-    wchar_t *longopt;
-    enum optarg_T arg;
-    struct candgen_T candgen;
-};
-
-/* This structure specifies the completion style for a command.
- * The `description' member is a description of the command (may be NULL).
- * The `operands' member is used for completing a operand for the command.
- *
- * The `options' member is a pointer to a linked list of `optcandgen_T'
- * structures specifying the options for the command and the completion styles
- * for their arguments.
- * If the command has no options, `options' is NULL.
- *
- * The `intermixed' member specifies whether options can appear after
- * operands or not. If this member is false, all arguments after the first
- * operand are considered as operands. */
-struct cmdcandgen_T {
-    wchar_t *description;
-    struct candgen_T operands;
-    struct optcandgen_T *options;
-    bool intermixed;
-};
-
-
 /********** Completion Candidate Generation **********/
 
-/* Generates completion candidates according to the specified completion style.
- * The candidate list must have been initialized when this function is called.
- * Returns the exit status of the candidate generator function. */
-int generate_candidates(const struct candgen_T *candgen)
-{
-    generate_file_candidates(candgen->type, ctxt->pattern);
-    generate_builtin_candidates(candgen->type, ctxt);
-    generate_external_command_candidates(candgen->type, ctxt);
-    generate_function_candidates(candgen->type, ctxt);
-    generate_keyword_candidates(candgen->type, ctxt);
-#if YASH_ENABLE_ALIAS
-    generate_alias_candidates(candgen->type, ctxt);
-#endif
-    generate_variable_candidates(candgen->type, ctxt);
-    generate_job_candidates(candgen->type, ctxt);
-    generate_signal_candidates(candgen->type, ctxt);
-    generate_logname_candidates(candgen->type, ctxt);
-    generate_group_candidates(candgen->type, ctxt);
-    generate_host_candidates(candgen->type, ctxt);
-    generate_bindkey_candidates(candgen->type, ctxt);
-    generate_candidates_from_words(candgen->words, ctxt);
-    return generate_candidates_using_function(candgen->function, ctxt);
-    /* `generate_candidates_using_function' must be last because the function
-     * execution may modify `candgen'. */
-}
+#define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
 
 /* Adds the specified value as a completion candidate to the candidate list.
  * The ignored prefix in `ctxt->origsrc' is prepended to the candidate value.
@@ -585,9 +498,10 @@ int generate_candidates(const struct candgen_T *candgen)
  * when no description is provided.
  * Arguments `value' and `desc' must be a freeable string, which is used as the
  * candidate value/description.
- * This function must NOT be used for a CT_FILE/CT_OPTION/CT_OPTIONA candidate.
+ * This function must NOT be used for a CT_FILE candidate.
  * If `value' is NULL, this function does nothing (except freeing `desc'). */
-void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
+void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc,
+	const le_compopt_T *compopt)
 {
     if (value == NULL) {
 	free(desc);
@@ -607,27 +521,32 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
     cand->desc = desc;
     cand->rawdesc.raw = NULL;
     cand->rawdesc.width = 0;
-    le_add_candidate(cand);
+    le_add_candidate(cand, compopt);
 }
 
 /* Adds the specified candidate to the candidate list.
  * The le_candidate_T structure must have been properly initialized, except for
- * the `origvalue' member, which is initialized in this function as the value
- * with the ignored prefix prepended. */
-void le_add_candidate(le_candidate_T *cand)
+ * the `origvalue' and `terminate' members, which are initialized in this
+ * function.
+ * This function treats the prefix and suffix specified in the "complete"
+ * built-in invocation. */
+void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
 {
-#if 0
-    if (ctxt->origsrc == ctxt->src) {
-	cand->origvalue = cand->value;
-    } else {
-	size_t prefixlen = ctxt->src - ctxt->origsrc;
-	xwcsbuf_T buf;
-	wb_initwith(&buf, cand->value);
-	wb_ninsert_force(&buf, 0, ctxt->origsrc, prefixlen);
-	cand->origvalue = wb_towcs(&buf);
-	cand->value = cand->origvalue + prefixlen;
-    }
-#endif // TODO FIXME
+    xwcsbuf_T buf;
+    wb_initwith(&buf, cand->value);
+
+    /* prepend prefix */
+    const wchar_t *origsrc = compopt->ctxt->src;
+    size_t prefixlength = compopt->src - origsrc;
+    if (prefixlength != 0)
+	wb_ninsert_force(&buf, 0, origsrc, prefixlength);
+
+    /* append suffix */
+    if (compopt->suffix != NULL)
+	wb_cat(&buf, compopt->suffix);
+
+    cand->origvalue = wb_towcs(&buf);
+    cand->terminate = compopt->terminate;
 
     if (le_state_is_compdebug) {
 	const char *typestr = NULL;
@@ -648,20 +567,39 @@ void le_add_candidate(le_candidate_T *cand)
 	le_compdebug("new %s candidate \"%ls\"", typestr, cand->origvalue);
 	if (cand->desc != NULL)
 	    le_compdebug("  (desc: %ls)", cand->desc);
+	if (!cand->terminate)
+	    le_compdebug("  (no termination)");
     }
 
     pl_add(&le_candidates, cand);
 }
 
-/* Generates file name candidates that match the specified glob pattern.
+/* Compiles the pattern `compopt->pattern' into `compopt->cpattern'
+ * if not yet compiled. Returns true iff successful. */
+bool le_compile_cpattern(const le_compopt_T *compopt)
+{
+    if (compopt->cpattern != NULL)
+	return true;
+
+    le_compopt_T *co = (le_compopt_T *) compopt;
+    co->cpattern = xfnm_compile(
+	    co->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+    if (co->cpattern != NULL)
+	return true;
+
+    le_compdebug("failed to compile pattern \"%ls\"", co->pattern);
+    return false;
+}
+
+/* Generates file name candidates.
  * The CGT_FILE, CGT_DIRECTORY, and CGT_EXECUTABLE flags specify what candidate
  * to generate. The other flags are ignored. */
-void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
+void generate_file_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & (CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE)))
+    if (!(compopt->type & (CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE)))
 	return;
 
-    le_compdebug("adding filenames for pattern \"%ls\"", pattern);
+    le_compdebug("adding filenames for pattern \"%ls\"", compopt->pattern);
 
     enum wglbflags flags = WGLB_NOSORT;
     // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
@@ -669,7 +607,7 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
 
     plist_T list;
-    wglob(pattern, flags, pl_init(&list));
+    wglob(compopt->pattern, flags, pl_init(&list));
 
     for (size_t i = 0; i < list.length; i++) {
 	wchar_t *name = list.contents[i];
@@ -678,12 +616,12 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 	if (mbsname != NULL &&
 		(stat(mbsname, &st) >= 0 || lstat(mbsname, &st) >= 0)) {
 	    bool executable = S_ISREG(st.st_mode) && is_executable(mbsname);
-	    if ((type & CGT_FILE)
-		    || ((type & CGT_DIRECTORY) && S_ISDIR(st.st_mode))
-		    || ((type & CGT_EXECUTABLE) && executable)) {
+	    if ((compopt->type & CGT_FILE)
+		    || ((compopt->type & CGT_DIRECTORY) && S_ISDIR(st.st_mode))
+		    || ((compopt->type & CGT_EXECUTABLE) && executable)) {
 		le_candidate_T *cand = xmalloc(sizeof *cand);
 		cand->type = CT_FILE;
-		cand->value = list.contents[i];
+		cand->value = name;
 		cand->rawvalue.raw = NULL;
 		cand->rawvalue.width = 0;
 		cand->desc = NULL;
@@ -693,7 +631,7 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 		cand->appendage.filestat.mode = st.st_mode;
 		cand->appendage.filestat.nlink = st.st_nlink;
 		cand->appendage.filestat.size = st.st_size;
-		le_add_candidate(cand);
+		le_add_candidate(cand, compopt);
 		name = NULL;
 	    }
 	}
@@ -704,17 +642,16 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 }
 
 /* Generates candidates that are the names of external commands matching the
- * pattern in the specified context.
- * If CGT_EXECUTABLE is not in `type', this function does nothing. */
-void generate_external_command_candidates(
-	le_candgentype_T type, le_context_T *context)
+ * pattern.
+ * If CGT_EXTCOMMAND is not in `type', this function does nothing. */
+void generate_external_command_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_EXTCOMMAND))
+    if (!(compopt->type & CGT_EXTCOMMAND))
 	return;
 
     le_compdebug("adding external command names for pattern \"%ls\"",
-	    context->pattern);
-    if (!le_compile_cpattern(context))
+	    compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     char *const *paths = get_path_array(PA_PATH);
@@ -735,11 +672,12 @@ void generate_external_command_candidates(
 	    sb_ccat(&path, '/');
 	dirpathlen = path.length;
 	while ((de = readdir(dir)) != NULL) {
-	    if (xfnm_match(NULL /* FIXME */, de->d_name) != 0)
+	    if (xfnm_match(compopt->cpattern, de->d_name) != 0)
 		continue;
 	    sb_cat(&path, de->d_name);
 	    if (is_executable_regular(path.contents))
-		le_new_command_candidate(malloc_mbstowcs(de->d_name));
+		le_new_candidate(CT_COMMAND,
+			malloc_mbstowcs(de->d_name), NULL, compopt);
 	    sb_truncate(&path, dirpathlen);
 	}
 	sb_clear(&path);
@@ -748,15 +686,14 @@ void generate_external_command_candidates(
     sb_destroy(&path);
 }
 
-/* Generates candidates that are keywords matching the pattern in the specified
- * context. */
-void generate_keyword_candidates(le_candgentype_T type, le_context_T *context)
+/* Generates candidates that are keywords matching the pattern. */
+void generate_keyword_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_KEYWORD))
+    if (!(compopt->type & CGT_KEYWORD))
 	return;
 
-    le_compdebug("adding keywords matching pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    le_compdebug("adding keywords matching pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     static const wchar_t *keywords[] = {
@@ -766,84 +703,85 @@ void generate_keyword_candidates(le_candgentype_T type, le_context_T *context)
     };
 
     for (const wchar_t **k = keywords; *k != NULL; k++)
-	if (WMATCH(NULL /* FIXME */, *k))
-	    le_new_command_candidate(xwcsdup(*k));
+	if (WMATCH(compopt->cpattern, *k))
+	    le_new_candidate(CT_COMMAND, xwcsdup(*k), NULL, compopt);
 }
 
-/* Generates candidates to complete a user name matching the pattern in the
- * specified context. */
-void generate_logname_candidates(le_candgentype_T type, le_context_T *context)
+/* Generates candidates to complete a user name matching the pattern. */
+void generate_logname_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_LOGNAME))
+    if (!(compopt->type & CGT_LOGNAME))
 	return;
 
-    le_compdebug("adding users matching pattern \"%ls\"", context->pattern);
+    le_compdebug("adding users matching pattern \"%ls\"", compopt->pattern);
 
 #if HAVE_GETPWENT
-    if (!le_compile_cpattern(context))
+    if (!le_compile_cpattern(compopt))
 	return;
 
     struct passwd *pwd;
     setpwent();
     while ((pwd = getpwent()) != NULL)
-	if (xfnm_match(NULL /* FIXME */, pwd->pw_name) == 0)
+	if (xfnm_match(compopt->cpattern, pwd->pw_name) == 0)
 	    le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
 # if HAVE_PW_GECOS
 		    (pwd->pw_gecos != NULL) ? malloc_mbstowcs(pwd->pw_gecos) :
 # endif
-		    NULL);
+		    NULL,
+		    compopt);
     endpwent();
 #else
     le_compdebug("  getpwent not supported on this system");
 #endif
 }
 
-/* Generates candidates to complete a group name matching the pattern in the
- * specified context. */
-void generate_group_candidates(le_candgentype_T type, le_context_T *context)
+/* Generates candidates to complete a group name matching the pattern. */
+void generate_group_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_GROUP))
+    if (!(compopt->type & CGT_GROUP))
 	return;
 
-    le_compdebug("adding groups matching pattern \"%ls\"", context->pattern);
+    le_compdebug("adding groups matching pattern \"%ls\"", compopt->pattern);
 
 #if HAVE_GETGRENT
-    if (!le_compile_cpattern(context))
+    if (!le_compile_cpattern(compopt))
 	return;
 
     struct group *grp;
     setgrent();
     while ((grp = getgrent()) != NULL)
-	if (xfnm_match(NULL /* FIXME */, grp->gr_name) == 0)
-	    le_new_candidate(CT_GRP, malloc_mbstowcs(grp->gr_name), NULL);
+	if (xfnm_match(compopt->cpattern, grp->gr_name) == 0)
+	    le_new_candidate(
+		    CT_GRP, malloc_mbstowcs(grp->gr_name), NULL, compopt);
     endgrent();
 #else
     le_compdebug("  getgrent not supported on this system");
 #endif
 }
 
-/* Generates candidates to complete a host name matching the pattern in the
- * specified context. */
-void generate_host_candidates(le_candgentype_T type, le_context_T *context)
+/* Generates candidates to complete a host name matching the pattern. */
+void generate_host_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_HOSTNAME))
+    if (!(compopt->type & CGT_HOSTNAME))
 	return;
 
-    le_compdebug("adding hosts matching pattern \"%ls\"", context->pattern);
+    le_compdebug("adding hosts matching pattern \"%ls\"", compopt->pattern);
 
 #if HAVE_GETHOSTENT
-    if (!le_compile_cpattern(context))
+    if (!le_compile_cpattern(compopt))
 	return;
 
     struct hostent *host;
     sethostent(true);
     while ((host = gethostent()) != NULL) {
-	if (xfnm_match(NULL /* FIXME */, host->h_name) == 0)
-	    le_new_candidate(CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL);
+	if (xfnm_match(compopt->cpattern, host->h_name) == 0)
+	    le_new_candidate(
+		    CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL, compopt);
 	if (host->h_aliases != NULL)
 	    for (char *const *a = host->h_aliases; *a != NULL; a++)
-		if (xfnm_match(NULL /* FIXME */, *a) == 0)
-		    le_new_candidate(CT_HOSTNAME, malloc_mbstowcs(*a), NULL);
+		if (xfnm_match(compopt->cpattern, *a) == 0)
+		    le_new_candidate(
+			    CT_HOSTNAME, malloc_mbstowcs(*a), NULL, compopt);
     }
     endhostent();
 #else
@@ -851,25 +789,24 @@ void generate_host_candidates(le_candgentype_T type, le_context_T *context)
 #endif
 }
 
-/* Generates candidates from words that match the pattern in the specified
- * context. */
-void generate_candidates_from_words(void *const *words, le_context_T *context)
+/* Generates candidates from words that match the pattern. */
+void generate_candidates_from_words(
+	le_candtype_T type, void *const *words, const wchar_t *description,
+	const le_compopt_T *compopt)
 {
-    if (words == NULL)
+    if (words[0] == NULL)
 	return;
 
-    le_compdebug("adding predefined words for pattern \"%ls\"",
-	    context->pattern);
-    if (!le_compile_cpattern(context))
+    le_compdebug("adding words matching pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     for (; *words != NULL; words++) {
 	wchar_t *word = *words;
-	if (WMATCH(NULL /* FIXME */, word)) {
-	    const wchar_t *desc = word + wcslen(word) + 1;
-	    le_new_candidate(CT_WORD, xwcsdup(word),
-		    (desc[0] == L'\0') ? NULL : xwcsdup(desc));
-	}
+	if (WMATCH(compopt->cpattern, word))
+	    le_new_candidate(type, xwcsdup(word),
+		    (description == NULL) ? NULL : xwcsdup(description),
+		    compopt);
     }
 }
 
@@ -1121,7 +1058,7 @@ void quote(xwcsbuf_T *restrict buf,
 /********** Builtins **********/
 
 /* The "complete" builtin. */
-int complete_builtin(int argc, void **argv)
+int complete_builtin(int argc __attribute__((unused)), void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"array-variable",       OPTARG_NONE,     L'A', },
@@ -1209,6 +1146,7 @@ int complete_builtin(int argc, void **argv)
 		suffix = xoptarg;
 		break;
 	    case L's':  cgtype |= CGT_SBUILTIN;    break;
+	    case L'T':  terminate = false;         break;
 	    case L'u':  cgtype |= CGT_LOGNAME;     break;
 	    case L'V':  cgtype |= CGT_SCALAR;      break;
 	    case L'v':  cgtype |= CGT_VARIABLE;    break;
@@ -1232,10 +1170,63 @@ dupopterror:
 
     if (ctxt == NULL) {
 	xerror(0, Ngt("can only be used during command line completion"));
-	return Exit_FAILURE;
+	return Exit_ERROR;
     }
 
-    return Exit_FAILURE; // FIXME not implemented
+    void *const *words = argv + xoptind;
+
+    /* treat `prefix' */
+    const wchar_t *src = ctxt->src, *pattern = ctxt->pattern;
+    if (prefix != NULL) {
+	src = matchwcsprefix(src, prefix);
+	if (src == NULL) {
+	    xerror(0, Ngt("the specified prefix `%ls' doesn't match "
+			"the target word `%ls'"), prefix, ctxt->src);
+	    return Exit_ERROR;
+	}
+	while (*prefix != L'\0') {
+	    if (*pattern == L'\\')
+		pattern++;
+	    assert(*pattern != L'\0');
+	    pattern++;
+	    prefix++;
+	}
+    }
+
+    le_compopt_T compopt = {
+	.ctxt = ctxt,
+	.type = cgtype,
+	.src = src,
+	.pattern = pattern,
+	.cpattern = NULL,
+	.suffix = suffix,
+	.terminate = terminate,
+    };
+    //FIXME compdebug here?
+
+    size_t oldcount = le_candidates.length;
+
+    generate_file_candidates(&compopt);
+    generate_builtin_candidates(&compopt);
+    generate_external_command_candidates(&compopt);
+    generate_function_candidates(&compopt);
+    generate_keyword_candidates(&compopt);
+#if YASH_ENABLE_ALIAS
+    generate_alias_candidates(&compopt);
+#endif
+    generate_variable_candidates(&compopt);
+    generate_job_candidates(&compopt);
+    generate_signal_candidates(&compopt);
+    generate_logname_candidates(&compopt);
+    generate_group_candidates(&compopt);
+    generate_host_candidates(&compopt);
+    generate_bindkey_candidates(&compopt);
+    generate_candidates_from_words(candtype, words, description, &compopt);
+
+    xfnm_free(compopt.cpattern);
+
+    size_t newcount = le_candidates.length;
+    return oldcount != newcount ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP

@@ -1271,16 +1271,15 @@ void tryhash_word_as_command(const wordunit_T *w)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates completion candidates for variable names that match the glob
- * pattern in the specified context. */
+/* Generates completion candidates for variable names matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_variable_candidates(le_candgentype_T type, le_context_T *context)
+void generate_variable_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_VARIABLE))
+    if (!(compopt->type & CGT_VARIABLE))
 	return;
 
-    le_compdebug("adding variables for pattern \"%ls\"", context->pattern);
-    if (true /* FIXME !le_compile_cpattern(context) */)
+    le_compdebug("adding variables for pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     size_t i = 0;
@@ -1289,32 +1288,37 @@ void generate_variable_candidates(le_candgentype_T type, le_context_T *context)
 	const wchar_t *name = kv.key;
 	const variable_T *var = kv.value;
 	switch (var->v_type & VF_MASK) {
-	    case VF_SCALAR:  if (!(type & CGT_SCALAR)) continue;  break;
-	    case VF_ARRAY:   if (!(type & CGT_ARRAY))  continue;  break;
+	    case VF_SCALAR:
+		if (!(compopt->type & CGT_SCALAR))
+		    continue;
+		break;
+	    case VF_ARRAY:
+		if (!(compopt->type & CGT_ARRAY))
+		    continue;
+		break;
 	}
 	if (name[0] != L'='
-		&& xfnm_wmatch(NULL /* FIXME */, name).start != (size_t) -1)
-	    le_new_candidate(CT_VAR, xwcsdup(name), NULL);
+		&& xfnm_wmatch(compopt->cpattern, name).start != (size_t) -1)
+	    le_new_candidate(CT_VAR, xwcsdup(name), NULL, compopt);
     }
 }
 
-/* Generates completion candidates for function names that match the glob
- * pattern in the specified context. */
+/* Generates completion candidates for function names matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_function_candidates(le_candgentype_T type, le_context_T *context)
+void generate_function_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_FUNCTION))
+    if (!(compopt->type & CGT_FUNCTION))
 	return;
 
-    le_compdebug("adding functions for pattern \"%ls\"", context->pattern);
-    if (true /* FIXME !le_compile_cpattern(context) */)
+    le_compdebug("adding functions for pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     size_t i = 0;
     const wchar_t *name;
     while ((name = ht_next(&functions, &i).key) != NULL)
-	if (xfnm_wmatch(NULL /* FIXME */, name).start != (size_t) -1)
-	    ; // FIXME le_new_command_candidate(xwcsdup(name));
+	if (xfnm_wmatch(compopt->cpattern, name).start != (size_t) -1)
+	    le_new_candidate(CT_COMMAND, xwcsdup(name), NULL, compopt);
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
