@@ -32,7 +32,6 @@ typedef enum le_candtype_T {
     CT_OPTION,     // command option
     CT_VAR,        // variable name
     CT_JOB,        // job name
-    CT_FD,         // file descriptor
     CT_SIG,        // signal name
     CT_LOGNAME,    // user name
     CT_GRP,        // group name

@@ -639,7 +639,6 @@ void le_add_candidate(le_candidate_T *cand)
 	    case CT_OPTION:    typestr = "option";                     break;
 	    case CT_VAR:       typestr = "variable";                   break;
 	    case CT_JOB:       typestr = "job";                        break;
-	    case CT_FD:        typestr = "file descriptor";            break;
 	    case CT_SIG:       typestr = "signal";                     break;
 	    case CT_LOGNAME:   typestr = "user name";                  break;
 	    case CT_GRP:       typestr = "group name";                 break;
