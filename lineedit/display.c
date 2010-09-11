@@ -928,10 +928,6 @@ void print_candidate_rawvalue(const le_candidate_T *cand)
     }
 
     lebuf_putws_trunc(s);
-
-    /* append a slash for a directory candidate */
-    if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode))
-	lebuf_putwchar_trunc(L'/');
 }
 
 /* Updates the candidate area.

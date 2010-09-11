@@ -532,6 +532,9 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc,
  * built-in invocation. */
 void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
 {
+    bool isdir = (cand->type == CT_FILE) &&
+	S_ISDIR(cand->appendage.filestat.mode);
+
     xwcsbuf_T buf;
     wb_initwith(&buf, cand->value);
 
@@ -544,9 +547,13 @@ void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     /* append suffix */
     if (compopt->suffix != NULL)
 	wb_cat(&buf, compopt->suffix);
+    else if (isdir && buf.length > 0 && buf.contents[buf.length - 1] != L'/')
+	wb_wccat(&buf, L'/');
 
     cand->origvalue = wb_towcs(&buf);
-    cand->terminate = compopt->terminate;
+    cand->value = cand->origvalue + prefixlength;
+    cand->terminate = compopt->terminate &&
+	(cand->type != CT_FILE || !S_ISDIR(cand->appendage.filestat.mode));
 
     if (le_state_is_compdebug) {
 	const char *typestr = NULL;
@@ -856,8 +863,8 @@ size_t get_common_prefix_length(void)
  * If `subst' is true, the whole source word is replaced with the candidate
  * value. Otherwise, the source word is appended (in which case the word must
  * have a valid common prefix).
- * If `finish' is true, the word is closed so that the next word can just be
- * entered directly.
+ * If `finish' is true and if the completed candidate's `terminate' member is
+ * true, the word is closed so that the next word can just be entered directly.
  * If either `subst' or `finish' is true, the completion state must be cleaned
  * up after this function. */
 void update_main_buffer(bool subst, bool finish)
@@ -906,67 +913,55 @@ void update_main_buffer(bool subst, bool finish)
     if (le_selected_candidate_index >= le_candidates.length)
 	return;
 
-    if (cand->type == CT_FILE && S_ISDIR(cand->appendage.filestat.mode)) {
-	size_t len = wcslen(cand->value);
-	if (len > 0 && cand->value[len - 1] != L'/') {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
-	    le_main_index += 1;
-	}
-#if 0
-    } else if (cand->type == CT_OPTIONA) {
-	if (cand->value[0] == L'-') {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L"=", 1);
-	    le_main_index += 1;
-	}
-#endif // FIXME
-    } else {
-	switch (quotetype) {
-	    case QUOTE_NONE:
-	    case QUOTE_NORMAL:
-		break;
-	    case QUOTE_SINGLE:
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
-		le_main_index += 1;
-		break;
-	    case QUOTE_DOUBLE:
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
-		le_main_index += 1;
-		break;
-	}
+    if (!cand->terminate)
+	return;
 
-	if (finish) {
-	    if (ctxt->type & CTXT_VBRACED) {
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
-		le_main_index += 1;
-	    } else if (ctxt->type & CTXT_EBRACED) {
-		wb_ninsert_force(&le_main_buffer, le_main_index, L",", 1);
-		le_main_index += 1;
-	    }
-	    if (ctxt->type & CTXT_QUOTED) {
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
-		le_main_index += 1;
-	    }
-	    switch (ctxt->type & CTXT_MASK) {
-		case CTXT_NORMAL:
-		case CTXT_COMMAND:
-		case CTXT_VAR:
-		case CTXT_ARITH:
-		case CTXT_ASSIGN:
-		case CTXT_REDIR:
-		case CTXT_REDIR_FD:
-		case CTXT_FOR_IN:
-		case CTXT_FOR_DO:
-		case CTXT_CASE_IN:
-		    if (ctxt->type & (CTXT_EBRACED | CTXT_VBRACED))
-			break;
-		    wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
-		    le_main_index += 1;
+    switch (quotetype) {
+	case QUOTE_NONE:
+	case QUOTE_NORMAL:
+	    break;
+	case QUOTE_SINGLE:
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
+	    le_main_index += 1;
+	    break;
+	case QUOTE_DOUBLE:
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
+	    le_main_index += 1;
+	    break;
+    }
+
+    if (finish) {
+	if (ctxt->type & CTXT_VBRACED) {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
+	    le_main_index += 1;
+	} else if (ctxt->type & CTXT_EBRACED) {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L",", 1);
+	    le_main_index += 1;
+	}
+	if (ctxt->type & CTXT_QUOTED) {
+	    wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
+	    le_main_index += 1;
+	}
+	switch (ctxt->type & CTXT_MASK) {
+	    case CTXT_NORMAL:
+	    case CTXT_COMMAND:
+	    case CTXT_VAR:
+	    case CTXT_ARITH:
+	    case CTXT_ASSIGN:
+	    case CTXT_REDIR:
+	    case CTXT_REDIR_FD:
+	    case CTXT_FOR_IN:
+	    case CTXT_FOR_DO:
+	    case CTXT_CASE_IN:
+		if (ctxt->type & (CTXT_EBRACED | CTXT_VBRACED))
 		    break;
-		case CTXT_TILDE:
-		    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
-		    le_main_index += 1;
-		    break;
-	    }
+		wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
+		le_main_index += 1;
+		break;
+	    case CTXT_TILDE:
+		wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
+		le_main_index += 1;
+		break;
 	}
     }
 }
