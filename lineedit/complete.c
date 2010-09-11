@@ -104,6 +104,13 @@ static int sort_candidates_cmp(const void *cp1, const void *cp2)
 static void print_context_info(const le_context_T *ctxt)
     __attribute__((nonnull));
 
+static void execute_completion_function(void);
+static bool autoload_completion_function(void);
+static bool call_standard_completion_function(void);
+
+static void simple_completion(le_candgentype_T type);
+static void generate_candidates(const le_compopt_T *compopt)
+    __attribute__((nonnull));
 static void generate_file_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 static void generate_external_command_candidates(const le_compopt_T *compopt)
@@ -119,6 +126,8 @@ static void generate_host_candidates(const le_compopt_T *compopt)
 static void generate_candidates_from_words(
 	le_candtype_T type, void *const *words, const wchar_t *description,
 	const le_compopt_T *compopt)
+    __attribute__((nonnull));
+static void word_completion(size_t count, ...)
     __attribute__((nonnull));
 
 static size_t get_common_prefix_length(void)
@@ -176,7 +185,7 @@ void le_complete(le_compresult_T lecr)
     if (le_state_is_compdebug)
 	print_context_info(ctxt);
 
-    // FIXME generate_candidates(get_candgen());
+    execute_completion_function();
     sort_candidates();
     le_compdebug("total of %zu candidate(s)", le_candidates.length);
 
@@ -488,9 +497,147 @@ void print_context_info(const le_context_T *ctxt)
 }
 
 
+/********** Completion Function Execution **********/
+
+/* default completion function name */
+#define DEFAULT_COMPFUNC "completion//default"
+
+/* Loads and executes completion function to generate candidates. */
+void execute_completion_function(void)
+{
+    switch (ctxt->type & CTXT_MASK) {
+	case CTXT_COMMAND:
+	    if (!call_completion_function(L"" DEFAULT_COMPFUNC)) {
+		le_candgentype_T type;
+		if (wcschr(ctxt->src, L'/')) {
+		    type = CGT_DIRECTORY | CGT_EXECUTABLE;
+		} else {
+		    type = CGT_DIRECTORY | CGT_COMMAND;
+		    if (ctxt->quote == QUOTE_NORMAL
+			    && !wcschr(ctxt->pattern, L'\\'))
+			type |= CGT_KEYWORD | CGT_NALIAS;
+		}
+		simple_completion(type);
+	    }
+	    break;
+	case CTXT_NORMAL:
+	    if (!call_standard_completion_function()) {
+		if (autoload_completion_function())
+		    call_standard_completion_function();
+		else if (!call_completion_function(L"" DEFAULT_COMPFUNC))
+		    simple_completion(CGT_FILE);
+	    }
+	    break;
+	case CTXT_TILDE:
+	    simple_completion(CGT_LOGNAME);
+	    break;
+	case CTXT_VAR:
+	    simple_completion(CGT_VARIABLE);
+	    break;
+	case CTXT_ARITH:
+	    simple_completion(CGT_SCALAR);
+	    break;
+	case CTXT_ASSIGN:
+	case CTXT_REDIR:
+	    simple_completion(CGT_FILE);
+	    break;
+	case CTXT_REDIR_FD:
+	    break;
+	case CTXT_FOR_IN:
+	    word_completion(2, L"in", L"do");
+	    break;
+	case CTXT_FOR_DO:
+	    word_completion(1, L"do");
+	    break;
+	case CTXT_CASE_IN:
+	    word_completion(1, L"in");
+	    break;
+    }
+
+}
+
+/* Define the completion function by autoloading "completion/<ctxt->pwords[0]>".
+ * Returns true if a file is autoloaded. */
+bool autoload_completion_function(void)
+{
+    return false; //FIXME
+}
+
+/* Calls standard completion function to generate candidates.
+ * If a function whose name is "completion/<ctxt->pwords[0]>" has been defined,
+ * that function is called with no arguments.
+ * Returns false if the function has not been defined. */
+bool call_standard_completion_function(void)
+{
+    const wchar_t *cmdname = ctxt->pwords[0];
+    if (cmdname == NULL)
+	/* We're completing the command name so there's no standard function */
+	return false;
+
+    xwcsbuf_T funcname;
+    wb_init(&funcname);
+    wb_cat(&funcname, L"completion/");
+    wb_cat(&funcname, cmdname);
+
+    bool ok = call_completion_function(funcname.contents);
+
+    wb_destroy(&funcname);
+
+    return ok;
+}
+
+/* Sets special local variables $WORDS and $TARGETWORD in the current variable
+ * environment. */
+void set_completion_variables(void)
+{
+    set_array(L VAR_WORDS, ctxt->pwordc, duparray(ctxt->pwords, copyaswcs),
+	    SCOPE_LOCAL);
+    set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src),
+	    SCOPE_LOCAL, false);
+}
+
+
 /********** Completion Candidate Generation **********/
 
 #define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
+
+/* Perform completion for the specified candidate type(s). */
+void simple_completion(le_candgentype_T type)
+{
+    le_compopt_T compopt = {
+	.ctxt = ctxt,
+	.type = type,
+	.src = ctxt->src,
+	.pattern = ctxt->pattern,
+	.cpattern = NULL,
+	.suffix = NULL,
+	.terminate = true,
+    };
+
+    generate_candidates(&compopt);
+}
+
+/* Calls all candidate generation functions.
+ * `compopt->cpattern' is freed in this function but is NOT set to NULL. */
+void generate_candidates(const le_compopt_T *compopt)
+{
+    generate_file_candidates(compopt);
+    generate_builtin_candidates(compopt);
+    generate_external_command_candidates(compopt);
+    generate_function_candidates(compopt);
+    generate_keyword_candidates(compopt);
+#if YASH_ENABLE_ALIAS
+    generate_alias_candidates(compopt);
+#endif
+    generate_variable_candidates(compopt);
+    generate_job_candidates(compopt);
+    generate_signal_candidates(compopt);
+    generate_logname_candidates(compopt);
+    generate_group_candidates(compopt);
+    generate_host_candidates(compopt);
+    generate_bindkey_candidates(compopt);
+    xfnm_free(compopt->cpattern);
+}
 
 /* Adds the specified value as a completion candidate to the candidate list.
  * The ignored prefix in `ctxt->origsrc' is prepended to the candidate value.
@@ -815,6 +962,31 @@ void generate_candidates_from_words(
 		    (description == NULL) ? NULL : xwcsdup(description),
 		    compopt);
     }
+}
+
+/* Generates candidates with the specified word values.
+ * The words must be given as (const wchar_t *).
+ * The first argument `count' is the number of the words. */
+void word_completion(size_t count, ...)
+{
+    va_list ap;
+    le_compopt_T compopt = {
+	.ctxt = ctxt,
+	.type = 0,
+	.src = ctxt->src,
+	.pattern = ctxt->pattern,
+	.cpattern = NULL,
+	.suffix = NULL,
+	.terminate = true,
+    };
+
+    va_start(ap, count);
+    for (size_t i = 0; i < count; i++) {
+	const wchar_t *word = va_arg(ap, const wchar_t *);
+	if (matchwcsprefix(word, compopt.src))
+	    le_new_candidate(CT_WORD, xwcsdup(word), NULL, &compopt);
+    }
+    va_end(ap);
 }
 
 
@@ -1197,30 +1369,12 @@ dupopterror:
 	.suffix = suffix,
 	.terminate = terminate,
     };
-    //FIXME compdebug here?
 
     size_t oldcount = le_candidates.length;
-
-    generate_file_candidates(&compopt);
-    generate_builtin_candidates(&compopt);
-    generate_external_command_candidates(&compopt);
-    generate_function_candidates(&compopt);
-    generate_keyword_candidates(&compopt);
-#if YASH_ENABLE_ALIAS
-    generate_alias_candidates(&compopt);
-#endif
-    generate_variable_candidates(&compopt);
-    generate_job_candidates(&compopt);
-    generate_signal_candidates(&compopt);
-    generate_logname_candidates(&compopt);
-    generate_group_candidates(&compopt);
-    generate_host_candidates(&compopt);
-    generate_bindkey_candidates(&compopt);
     generate_candidates_from_words(candtype, words, description, &compopt);
-
-    xfnm_free(compopt.cpattern);
-
+    generate_candidates(&compopt);
     size_t newcount = le_candidates.length;
+
     return oldcount != newcount ? Exit_SUCCESS : Exit_FAILURE;
 }
 

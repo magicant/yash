@@ -1437,6 +1437,52 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
     return result;
 }
 
+#if YASH_ENABLE_LINEEDIT
+
+/* Calls the function whose name is `funcname' as a completion function.
+ * Returns false if no such function has been defined. */
+bool call_completion_function(const wchar_t *funcname)
+{
+    command_T *func = get_function(funcname);
+    if (func == NULL) {
+	le_compdebug("completion function \"%ls\" is not defined", funcname);
+	return false;
+    }
+
+    struct parsestate_T *state = save_parse_state();
+    int savelaststatus = laststatus;
+    bool saveposix = posixly_correct;
+    posixly_correct = false;
+
+    le_compdebug("executing completion function \"%ls\"", funcname);
+
+    /* don't use `exec_function_body': We have to prepare special local
+     * variables $WORDS and $TARGETWORD. */
+    savefd_T *savefd;
+    open_new_environment(false);
+    set_positional_parameters((void *[]) { NULL });
+    set_completion_variables();
+    if (open_redirections(func->c_redirs, &savefd)) {
+	exec_nonsimple_command(func, false);
+	if (execinfo.exception == ee_return)
+	    execinfo.exception = ee_none;
+    }
+    undo_redirections(savefd);
+    close_current_environment();
+
+    le_compdebug("finished executing completion function \"%ls\"", funcname);
+    if (laststatus != Exit_SUCCESS)
+	le_compdebug("function returned exit status of %d", laststatus);
+
+    posixly_correct = saveposix;
+    laststatus = savelaststatus;
+    restore_parse_state(state);
+
+    return true;
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
+
 
 /********** Builtins **********/
 

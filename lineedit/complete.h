@@ -181,6 +181,8 @@ extern void le_complete_cleanup(void);
 extern void le_compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
+extern void set_completion_variables(void);
+
 extern void le_new_command_candidate(wchar_t *cmdname)
     __attribute__((nonnull));
 extern void le_new_candidate(le_candtype_T type,
