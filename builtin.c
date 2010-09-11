@@ -237,7 +237,7 @@ void generate_builtin_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     le_compdebug("adding builtins for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    if (true /* FIXME !le_compile_cpattern(context) */)
 	return;
 
     size_t i = 0;
@@ -257,8 +257,8 @@ void generate_builtin_candidates(le_candgentype_T type, le_context_T *context)
 		    continue;
 		break;
 	}
-	if (xfnm_match(context->cpattern, kv.key) == 0)
-	    le_new_command_candidate(malloc_mbstowcs(kv.key));
+	if (xfnm_match(NULL /* FIXME */, kv.key) == 0)
+	    ; // FIXME le_new_command_candidate(malloc_mbstowcs(kv.key));
     }
 }
 

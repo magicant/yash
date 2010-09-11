@@ -1280,7 +1280,7 @@ void generate_variable_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     le_compdebug("adding variables for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    if (true /* FIXME !le_compile_cpattern(context) */)
 	return;
 
     size_t i = 0;
@@ -1293,7 +1293,7 @@ void generate_variable_candidates(le_candgentype_T type, le_context_T *context)
 	    case VF_ARRAY:   if (!(type & CGT_ARRAY))  continue;  break;
 	}
 	if (name[0] != L'='
-		&& xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
+		&& xfnm_wmatch(NULL /* FIXME */, name).start != (size_t) -1)
 	    le_new_candidate(CT_VAR, xwcsdup(name), NULL);
     }
 }
@@ -1307,14 +1307,14 @@ void generate_function_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     le_compdebug("adding functions for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    if (true /* FIXME !le_compile_cpattern(context) */)
 	return;
 
     size_t i = 0;
     const wchar_t *name;
     while ((name = ht_next(&functions, &i).key) != NULL)
-	if (xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
-	    le_new_command_candidate(xwcsdup(name));
+	if (xfnm_wmatch(NULL /* FIXME */, name).start != (size_t) -1)
+	    ; // FIXME le_new_command_candidate(xwcsdup(name));
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */

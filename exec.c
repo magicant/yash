@@ -1437,53 +1437,6 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
     return result;
 }
 
-#if YASH_ENABLE_LINEEDIT
-
-/* Generates completion candidates by executing the specified function.
- * Returns the exit status of the function. */
-/* The prototype of this function is declared in "lineedit/complete.h". */
-int generate_candidates_using_function(
-	const wchar_t *funcname, le_context_T *context)
-{
-    if (funcname == NULL)
-	return Exit_SUCCESS;
-
-    le_compdebug("executing candidate generator function \"%ls\"", funcname);
-
-    command_T *function = get_function(funcname);
-    if (function == NULL) {
-	le_compdebug("  -- no such function");
-	return Exit_NOTFOUND;
-    }
-
-    struct parsestate_T *state = save_parse_state();
-
-    void *args[context->pwordc + 2];
-    memcpy(args, context->pwords, context->pwordc * sizeof *args);
-    args[context->pwordc] = context->origsrc;
-    args[context->pwordc + 1] = NULL;
-
-    int savelaststatus = laststatus, resultstatus;
-    bool saveposix = posixly_correct;
-    posixly_correct = false;
-
-    exec_function_body(function, args, false);
-
-    posixly_correct = saveposix;
-    resultstatus = laststatus;
-    laststatus = savelaststatus;
-
-    le_compdebug("finished executing function \"%ls\"", funcname);
-    if (resultstatus != Exit_SUCCESS)
-	le_compdebug("function returned exit status of %d", resultstatus);
-
-    restore_parse_state(state);
-
-    return resultstatus;
-}
-
-#endif /* YASH_ENABLE_LINEEDIT */
-
 
 /********** Builtins **********/
 

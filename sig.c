@@ -954,7 +954,7 @@ void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     le_compdebug("adding signals for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    if (true /* FIXME !le_compile_cpattern(context) */)
 	return;
 
     bool prefix = matchwcsprefix(context->src, L"SIG");
@@ -964,7 +964,7 @@ void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, s->name);
-	sig_new_candidate(context->cpattern, s->no, &buf);
+	sig_new_candidate(NULL /* FIXME */, s->no, &buf);
     }
 #if defined SIGRTMIN && defined SIGRTMAX
     int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
@@ -974,14 +974,14 @@ void generate_signal_candidates(le_candgentype_T type, le_context_T *context)
 	wb_cat(&buf, L"RTMIN");
 	if (s != sigrtmin)
 	    wb_wprintf(&buf, L"+%d", s - sigrtmin);
-	sig_new_candidate(context->cpattern, s, &buf);
+	sig_new_candidate(NULL /* FIXME */, s, &buf);
 
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, L"RTMAX");
 	if (s != sigrtmax)
 	    wb_wprintf(&buf, L"-%d", sigrtmax - s);
-	sig_new_candidate(context->cpattern, s, &buf);
+	sig_new_candidate(NULL /* FIXME */, s, &buf);
     }
 #endif
     wb_destroy(&buf);

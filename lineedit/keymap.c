@@ -344,11 +344,11 @@ void generate_bindkey_candidates(le_candgentype_T type, le_context_T *context)
 
     le_compdebug("adding lineedit commands for pattern \"%ls\"",
 	    context->pattern);
-    if (!le_compile_cpattern(context))
+    if (true /* FIXME !le_compile_cpattern(context) */)
 	return;
 
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
-	if (xfnm_match(context->cpattern, commands[i].name) == 0)
+	if (xfnm_match(NULL /* FIXME */, commands[i].name) == 0)
 	    le_new_candidate(
 		    CT_BINDKEY, malloc_mbstowcs(commands[i].name), NULL);
 }

@@ -419,7 +419,7 @@ void generate_alias_candidates(le_candgentype_T type, le_context_T *context)
 	return;
 
     le_compdebug("adding aliases matching pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    if (true /* FIXME !le_compile_cpattern(context) */)
 	return;
 
     size_t i = 0;
@@ -428,7 +428,7 @@ void generate_alias_candidates(le_candgentype_T type, le_context_T *context)
 	const alias_T *alias = kv.value;
 	if ((alias->flags & AF_GLOBAL)
 		? (type & CGT_GALIAS) : (type & CGT_NALIAS)) {
-	    if (xfnm_wmatch(context->cpattern, kv.key).start != (size_t) -1) {
+	    if (xfnm_wmatch(NULL /* FIXME */, kv.key).start != (size_t) -1) {
 		le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL);
 	    }
 	}
