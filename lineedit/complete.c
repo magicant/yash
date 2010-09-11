@@ -637,7 +637,6 @@ void le_add_candidate(le_candidate_T *cand)
 	    case CT_COMMAND:   typestr = "command";                    break;
 	    case CT_ALIAS:     typestr = "alias";                      break;
 	    case CT_OPTION:    typestr = "option";                     break;
-	    case CT_OPTIONA:   typestr = "argument-requiring option";  break;
 	    case CT_VAR:       typestr = "variable";                   break;
 	    case CT_JOB:       typestr = "job";                        break;
 	    case CT_FD:        typestr = "file descriptor";            break;
@@ -977,11 +976,13 @@ void update_main_buffer(bool subst, bool finish)
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
 	    le_main_index += 1;
 	}
+#if 0
     } else if (cand->type == CT_OPTIONA) {
 	if (cand->value[0] == L'-') {
 	    wb_ninsert_force(&le_main_buffer, le_main_index, L"=", 1);
 	    le_main_index += 1;
 	}
+#endif // FIXME
     } else {
 	switch (quotetype) {
 	    case QUOTE_NONE:

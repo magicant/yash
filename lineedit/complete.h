@@ -29,8 +29,7 @@ typedef enum le_candtype_T {
     CT_FILE,       // file name
     CT_COMMAND,    // command name
     CT_ALIAS,      // alias name
-    CT_OPTION,     // normal command option
-    CT_OPTIONA,    // command option that takes an argument
+    CT_OPTION,     // command option
     CT_VAR,        // variable name
     CT_JOB,        // job name
     CT_FD,         // file descriptor
@@ -51,6 +50,7 @@ typedef struct le_candidate_T {
     le_rawvalue_T rawvalue;
     wchar_t *desc;                // candidate description
     le_rawvalue_T rawdesc;
+    _Bool terminate;              // if completed word should be terminated
     union {
 	struct {
 	    _Bool is_executable;
@@ -111,7 +111,6 @@ typedef struct le_context_T {
  * asterisk is appended to the source word to make it a pattern. */
 /* If the source word is field-split into more than one word, the words but the
  * last are included in `pwords'. */
-
 /* Examples:
  *   For the command line of "foo --bar='x", the completion parser function
  *   `le_get_context' returns:
@@ -125,7 +124,6 @@ typedef struct le_context_T {
  *     `origindex' = 12
  *     `substsrc'  = false
  */
-
 
 typedef enum le_candgentype_T {
     CGT_FILE       = 1 << 0, // file of any kind
@@ -156,6 +154,14 @@ typedef enum le_candgentype_T {
     CGT_HOSTNAME   = 1 << 20, // host name
     CGT_BINDKEY    = 1 << 21, // line-editing command name
 } le_candgentype_T;
+typedef struct le_compopt_T {
+    const le_context_T *ctxt;  // completion context
+    le_candgentype_T type;     // type of generated candidates
+    const wchar_t *src;        // `ctxt->src' + wcslen(ignored prefix)
+    const wchar_t *pattern;    // `ctxt->pattern' + wcslen(ignored prefix)
+    wchar_t *suffix;           // string appended to candidate values
+    _Bool terminate;           // whether completed word should be terminated
+} le_compopt_T;
 
 typedef void le_compresult_T(void);
 
