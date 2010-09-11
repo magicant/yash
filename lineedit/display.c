@@ -918,9 +918,12 @@ void print_candidate_rawvalue(const le_candidate_T *cand)
 
     if (cand->type == CT_FILE) {
 	/* skip directory components for a file candidate */
-	const wchar_t *ss = wcsrchr(s, L'/');
-	if (ss != NULL)
-	    s = ss + 1;
+	for (;;) {
+	    const wchar_t *ss = wcschr(s, L'/');
+	    if (ss == NULL || *++ss == L'\0')
+		break;
+	    s = ss;
+	}
     } else if (cand->type == CT_OPTION) {
 	/* prepend a hyphen if none */
 	if (cand->value[0] != L'-')
