@@ -1,6 +1,0 @@
-# completion settings for the help built-in
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
-
-complete -C "$1" -Xb
-complete -C "$1" -O --help

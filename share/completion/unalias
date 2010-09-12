@@ -1,9 +1,0 @@
-# completion settings for the unalias built-in
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
-
-complete -C "$1" -Xa
-
-complete -C "$1" -O a -O --all \
-	-D "remove all aliases"
-complete -C "$1" -O --help
