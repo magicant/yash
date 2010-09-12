@@ -499,12 +499,21 @@ void print_context_info(const le_context_T *ctxt)
 
 /********** Completion Function Execution **********/
 
+/* name of the file that is autoloaded in the first completion */
+#define INIT_COMPFILE "completion/INIT"
+
 /* default completion function name */
 #define DEFAULT_COMPFUNC "completion//default"
 
 /* Loads and executes completion function to generate candidates. */
 void execute_completion_function(void)
 {
+    static bool once = false;
+    if (!once) {
+	once = true;
+	autoload_completion_function_file(L"" INIT_COMPFILE, NULL);
+    }
+
     switch (ctxt->type & CTXT_MASK) {
 	case CTXT_NORMAL:
 	    if (!call_standard_completion_function()) {

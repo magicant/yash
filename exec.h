@@ -66,7 +66,7 @@ extern int exec_variable_as_commands(
 
 extern _Bool autoload_completion_function_file(
 	const wchar_t *filename, const wchar_t *cmdname)
-    __attribute__((nonnull));
+    __attribute__((nonnull(1)));
 extern _Bool call_completion_function(const wchar_t *funcname)
     __attribute__((nonnull));
 
