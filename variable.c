@@ -1040,11 +1040,11 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (wcscmp(name, L VAR_TERM) == 0)
 	    le_need_term_update = true;
 	break;
+#endif /* YASH_ENABLE_LINEEDIT */
     case L'Y':
 	if (wcscmp(name, L VAR_YASH_LOADPATH) == 0)
 	    reset_path(PA_LOADPATH, var);
 	break;
-#endif /* YASH_ENABLE_LINEEDIT */
     }
 }
 
