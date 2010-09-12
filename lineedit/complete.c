@@ -580,6 +580,16 @@ bool call_standard_completion_function(void)
     wb_cat(&funcname, cmdname);
 
     bool ok = call_completion_function(funcname.contents);
+    if (!ok) {
+	/* try the function name without the directory components */
+	cmdname = wcsrchr(cmdname, L'/');
+	if (cmdname != NULL && *++cmdname != L'\0') {
+	    wb_clear(&funcname);
+	    wb_cat(&funcname, L"completion/");
+	    wb_cat(&funcname, cmdname);
+	    ok = call_completion_function(funcname.contents);
+	}
+    }
 
     wb_destroy(&funcname);
 
