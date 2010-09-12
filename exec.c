@@ -1439,6 +1439,53 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 
 #if YASH_ENABLE_LINEEDIT
 
+/* Autoloads the specified file to load a completion function definition.
+ * Returns true if a file was autoloaded. */
+bool autoload_completion_function_file(
+	const wchar_t *filename, const wchar_t *cmdname)
+{
+    char *mbsfilename = malloc_wcstombs(filename);
+    if (mbsfilename == NULL)
+	return false;
+
+    char *path = which(mbsfilename, get_path_array(PA_LOADPATH),
+	    is_readable_regular);
+    if (path == NULL) {
+	le_compdebug("file \"%s\" was not found in $YASH_LOADPATH",
+		mbsfilename);
+	free(mbsfilename);
+	return false;
+    }
+
+    int fd = move_to_shellfd(open(path, O_RDONLY));
+    if (fd < 0) {
+	le_compdebug("cannot open the file \"%s\"", path);
+	free(path);
+	return false;
+    }
+
+    struct parsestate_T *state = save_parse_state();
+    int savelaststatus = laststatus;
+    bool saveposix = posixly_correct;
+    posixly_correct = false;
+    open_new_environment(false);
+    set_positional_parameters((void *[]) { (void *) cmdname, NULL });
+
+    le_compdebug("executing file \"%s\" (autoload)", path);
+    exec_input(fd, mbsfilename, false, false, false);
+    le_compdebug("finished executing file \"%s\"", path);
+
+    close_current_environment();
+    posixly_correct = saveposix;
+    laststatus = savelaststatus;
+    restore_parse_state(state);
+    remove_shellfd(fd);
+    xclose(fd);
+    free(path);
+    free(mbsfilename);
+    return true;
+}
+
 /* Calls the function whose name is `funcname' as a completion function.
  * Returns false if no such function has been defined. */
 bool call_completion_function(const wchar_t *funcname)

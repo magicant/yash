@@ -560,7 +560,31 @@ void execute_completion_function(void)
  * Returns true if a file is autoloaded. */
 bool autoload_completion_function(void)
 {
-    return false; //FIXME
+    const wchar_t *cmdname = ctxt->pwords[0];
+    if (cmdname == NULL)
+	/* We're completing the command name so there's nothing to autoload */
+	return false;
+
+    xwcsbuf_T filename;
+    wb_init(&filename);
+    wb_cat(&filename, L"completion/");
+    wb_cat(&filename, cmdname);
+
+    bool ok = autoload_completion_function_file(filename.contents, cmdname);
+    if (!ok) {
+	/* try the filename without the directory components */
+	const wchar_t *newcmdname = wcsrchr(cmdname, L'/');
+	if (newcmdname != NULL && *++newcmdname != L'\0') {
+	    wb_clear(&filename);
+	    wb_cat(&filename, L"completion/");
+	    wb_cat(&filename, newcmdname);
+	    ok = autoload_completion_function_file(filename.contents, cmdname);
+	}
+    }
+
+    wb_destroy(&filename);
+
+    return ok;
 }
 
 /* Calls standard completion function to generate candidates.
