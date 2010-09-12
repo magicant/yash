@@ -1471,8 +1471,7 @@ bool call_completion_function(const wchar_t *funcname)
     close_current_environment();
 
     le_compdebug("finished executing completion function \"%ls\"", funcname);
-    if (laststatus != Exit_SUCCESS)
-	le_compdebug("function returned exit status of %d", laststatus);
+    le_compdebug("  with the exit status of %d", laststatus);
 
     posixly_correct = saveposix;
     laststatus = savelaststatus;
