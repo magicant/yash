@@ -1440,6 +1440,8 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 #if YASH_ENABLE_LINEEDIT
 
 /* Autoloads the specified file to load a completion function definition.
+ * String `cmdname', which may be NULL, is used as the only positional parameter
+ * during script execution.
  * Returns true if a file was autoloaded. */
 bool autoload_completion_function_file(
 	const wchar_t *filename, const wchar_t *cmdname)
