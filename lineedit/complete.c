@@ -506,6 +506,14 @@ void print_context_info(const le_context_T *ctxt)
 void execute_completion_function(void)
 {
     switch (ctxt->type & CTXT_MASK) {
+	case CTXT_NORMAL:
+	    if (!call_standard_completion_function()) {
+		if (autoload_completion_function())
+		    call_standard_completion_function();
+		else if (!call_completion_function(L"" DEFAULT_COMPFUNC))
+		    simple_completion(CGT_FILE);
+	    }
+	    break;
 	case CTXT_COMMAND:
 	    if (!call_completion_function(L"" DEFAULT_COMPFUNC)) {
 		le_candgentype_T type;
@@ -518,14 +526,6 @@ void execute_completion_function(void)
 			type |= CGT_KEYWORD | CGT_NALIAS;
 		}
 		simple_completion(type);
-	    }
-	    break;
-	case CTXT_NORMAL:
-	    if (!call_standard_completion_function()) {
-		if (autoload_completion_function())
-		    call_standard_completion_function();
-		else if (!call_completion_function(L"" DEFAULT_COMPFUNC))
-		    simple_completion(CGT_FILE);
 	    }
 	    break;
 	case CTXT_TILDE:
