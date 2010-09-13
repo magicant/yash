@@ -279,7 +279,7 @@ function completion//parseoptions {
 				opt=${matches[1]}
 				case $opt in (*:) # option argument allowed
 					ARGOPT=${${opt%:}%:}
-					PREFIX=${TARGETWORD#*=}
+					PREFIX=${TARGETWORD%%=*}=
 				esac
 			fi
 			;;
