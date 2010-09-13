@@ -111,7 +111,7 @@ typedef struct le_context_T {
  * that they point to just after the prefix. (see examples below)
  * The `cpattern' is the compiled version of `pattern'.
  * The `srcindex' member designates where the source word starts in the edit
- * line. The `original' member is the value of `le_main_index' before starting
+ * line. The `origindex' member is the value of `le_main_index' before starting
  * completion.
  * The `substsrc' member designates whether the source word should be
  * substituted with obtained candidates. The value is true if and only if the

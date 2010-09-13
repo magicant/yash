@@ -985,7 +985,7 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc)
 /* Adds the specified candidate to the candidate list.
  * The le_candidate_T structure must have been properly initialized, except for
  * the `origvalue' member, which is initialized in this function as the value
- * with the ignored prefixed prepended. */
+ * with the ignored prefix prepended. */
 void le_add_candidate(le_candidate_T *cand)
 {
     if (ctxt->origsrc == ctxt->src) {
@@ -1071,7 +1071,7 @@ void generate_file_candidates(le_candgentype_T type, const wchar_t *pattern)
 		    || ((type & CGT_EXECUTABLE) && executable)) {
 		le_candidate_T *cand = xmalloc(sizeof *cand);
 		cand->type = CT_FILE;
-		cand->value = list.contents[i];
+		cand->value = name;
 		cand->rawvalue.raw = NULL;
 		cand->rawvalue.width = 0;
 		cand->desc = NULL;
