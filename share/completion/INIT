@@ -477,4 +477,53 @@ function completion//completeoptions {
 }
 
 
+# This function re-executes the completion function according to the current
+# $WORDS.
+function completion//reexecute {
+
+	if [ ${WORDS[#]} -le 0 ]; then
+		if command -vf completion//default >/dev/null 2>&1; then
+			command -f completion//default
+		else
+			case $TARGETWORD in
+				*/*) complete -d --executable-file ;;
+				*  ) complete -cd ;;
+			esac
+		fi
+		return
+	fi
+
+	typeset cmd="${WORDS[1]}"
+
+	# load the function if not yet loaded
+	if command -vf "completion/$cmd" >/dev/null 2>&1; then
+		command -f "completion/$cmd"
+	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
+		command -f "completion/${cmd##*/}"
+	elif . -AL "completion/$cmd" 2>/dev/null
+			command -vf "completion/$cmd" >/dev/null 2>&1; then
+		command -f "completion/$cmd"
+	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
+		command -f "completion/${cmd##*/}"
+	elif . -AL "completion/${cmd##*/}" 2>/dev/null
+			command -vf "completion/$cmd" >/dev/null 2>&1; then
+		command -f "completion/$cmd"
+	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
+		command -f "completion/${cmd##*/}"
+	elif command -vf completion//default >/dev/null 2>&1; then
+		command -f completion//default
+	else
+		complete -f
+	fi
+
+}
+
+
+# The completion function for the "." built-in
+function completion/. {
+	# load the "_dot" file and call the "completion/." function in it
+	. -AL completion/_dot && command -f completion/. "$@"
+}
+
+
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
