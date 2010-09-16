@@ -1,0 +1,54 @@
+# (C) 2010 magicant
+
+# Completion script for the "array" built-in command.
+
+function completion/array {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"d --delete; remove elements from an array"
+	"i --insert; insert elements to an array"
+	"s --set; replace an element of an array"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(*)
+			typeset i=1 type=
+			while [ $i -le ${WORDS[#]} ]; do
+				case ${WORDS[i++]} in
+					(-d|--delete) type=d ;;
+					(-i|--insert) type=i ;;
+					(-s|--set   ) type=s ;;
+					(--)          break  ;;
+				esac
+			done
+			if [ $i -gt ${WORDS[#]} ]; then
+				complete --array
+			else
+				case $type in
+				(d)
+					;; # TODO: complete array index
+				(i|s)
+					if [ $i -eq ${WORDS[#]} ]; then
+						# TODO: complete array index
+					else
+						complete -f
+					fi
+					;;
+				(*)
+					complete -f
+					;;
+				esac
+			fi
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

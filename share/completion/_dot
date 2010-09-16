@@ -8,6 +8,7 @@ function completion/. {
 	OPTIONS=( #>#
 	"A --no-alias; disable alias substitution while executing the script"
 	"L --autoload; load script from \$YASH_LOADPATH"
+	"--help"
 	) #<#
 
 	command -f completion//parseoptions
