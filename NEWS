@@ -19,6 +19,8 @@ Yash 2.24
      candidate list.
   *  Symbolic links to non-existent files can now be completed.
   *  Other fixes in command completion.
+  *  Fixed invalid memory access on parameter expansion failure in
+     redirection.
 
 ----------------------------------------------------------------------
 Yash 2.23

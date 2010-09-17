@@ -267,6 +267,9 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
     wchar_t *exp = expand_single(arg, tilde);
     char *result;
 
+    if (exp == NULL)
+	return NULL;
+
     /* glob */
     if (shopt_noglob || !is_pathname_matching_pattern(exp)) {
 noglob:
