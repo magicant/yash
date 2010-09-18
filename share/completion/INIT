@@ -477,9 +477,49 @@ function completion//completeoptions {
 }
 
 
-# This function re-executes the completion function according to the current
-# $WORDS.
+# This function removes one or more elements from the $WORDS array.
+# When this function is called, the array is supposed to contain the following
+# elements (in this order):
+#  * a command name word
+#  * any number of options that start with a hyphen
+#  * a "--" separator (optional)
+#  * any number of operands
+# This function removes any words other than operands.
+function completion//getoperands {
+
+	typeset i=2
+	while [ $i -le ${WORDS[#]} ]; do
+		case ${WORDS[i]} in
+		(--)
+			i=$((i+1))
+			break
+			;;
+		(-?*)
+			i=$((i+1))
+			;;
+		(*)
+			break
+			;;
+		esac
+	done
+	WORDS=("${WORDS[i,-1]}")
+
+}
+
+
+# This function re-executes the completion function using the specified
+# arguments as the new $WORDS. If no arguments are specified, this function
+# uses the current $WORDS.
 function completion//reexecute {
+
+	if [ $# -eq 0 ]; then
+		if [ -z "${WORDS+set}" ]; then
+			return 1
+		fi
+	else
+		typeset WORDS
+		WORDS=("$@")
+	fi
 
 	if [ ${WORDS[#]} -le 0 ]; then
 		if command -vf completion//default >/dev/null 2>&1; then

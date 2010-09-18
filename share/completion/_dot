@@ -17,16 +17,7 @@ function completion/. {
 			command -f completion//completeoptions
 			;;
 		(*)
-			# remove options from $WORDS
-			while [ ${WORDS[#]} -gt 0 ]; do
-				if [ "${WORDS[1]}" = "--" ]; then
-					WORDS=("${WORDS[2,-1]}")
-					break
-				else
-					WORDS=("${WORDS[2,-1]}")
-				fi
-			done
-
+			command -f completion//getoperands
 			if [ ${WORDS[#]} -le 0 ]; then
 				# complete as a script file name
 				case $TARGETWORD in
