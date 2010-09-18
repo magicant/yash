@@ -1,0 +1,23 @@
+# (C) 2010 magicant
+
+# Completion script for the "break" built-in command.
+
+function completion/break {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"i --iteration; break iterative execution"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
