@@ -1,0 +1,66 @@
+# (C) 2010 magicant
+
+# Completion script for the "comm" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i.
+
+function completion/comm {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"1; don't print column of lines unique to file 1"
+	"2; don't print column of lines unique to file 2"
+	"3; don't print column of lines common to both files"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"--check-order; check if files are correctly sorted"
+		"--nocheck-order; don't check if files are correctly sorted"
+		"--output-delimiter:; specify a delimiter to separate columns"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(OpenBSD|NetBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"f; case-insensitive comparison"
+		) #<#
+		;;
+	(FreeBSD|Darwin)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"i; case-insensitive comparison"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--output-delimiter)
+			;;
+		(*)
+			complete -f
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -48,7 +48,9 @@
 #   -n  Without -n, array $WORDS is updated to reflect the parse result.
 #       Multiple single-character options after one hyphen are separated and
 #       separate option arguments are combined with the options so that the
-#       option and its argument are in the same command line word.
+#       option and its argument are in the same command line word. When -s is
+#       specified or -e is not specified, options and operands in $WORDS are
+#       separated by "--".
 #       With -n, $WORDS is left intact.
 #   -s  Only meaningful when with -e and without -n.
 #       Without -s, words in $WORDS are not reordered.
