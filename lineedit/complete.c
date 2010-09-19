@@ -1274,7 +1274,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 	{ L"array-variable",       OPTARG_NONE,     L'A', },
 	{ L"alias",                OPTARG_NONE,     L'a', },
 	{ L"bindkey",              OPTARG_NONE,     L'B', },
-	{ L"builtin",              OPTARG_NONE,     L'b', },
+	{ L"builtin-command",      OPTARG_NONE,     L'b', },
 	{ L"command",              OPTARG_NONE,     L'c', },
 	{ L"description",          OPTARG_REQUIRED, L'D', },
 	{ L"directory",            OPTARG_NONE,     L'd', },
@@ -1433,7 +1433,7 @@ const char complete_help[] = Ngt(
 " -a --alias                 aliases (global and non-global)\n"
 "    --array-variable        array variables\n"
 "    --bindkey               command names for line-editing key bindings\n"
-" -b --builtin               built-in commands\n"
+" -b --builtin-command       built-in commands\n"
 " -c --command               commands and shell keywords\n"
 " -d --directory             directories\n"
 "    --executable-file       executable regular files\n"
