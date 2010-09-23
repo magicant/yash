@@ -234,7 +234,7 @@ function completion/ls {
 		complete -P "$PREFIX" 80 132 ${COLUMNS:+"$COLUMNS"}
 		;;
 	(*)
-		complete -f
+		complete -P "$PREFIX" -f
 		;;
 	esac
 
