@@ -153,10 +153,16 @@ function completion/ls {
 			command -f completion//completeoptions
 			;;
 		(D)
-		#FIXME
+			if command -vf completion//completestrftime >/dev/null 2>&1 ||
+					. -AL completion/date; then
+				command -f completion//completestrftime
+			fi
 			;;
 		(--block-size)
-		#FIXME
+			if command -vf completion//completeblocksize >/dev/null 2>&1 ||
+					. -AL completion/_blocksize; then
+				command -f completion//completeblocksize
+			fi
 			;;
 		(--color) #>>#
 			complete -P "$PREFIX" -D "always print in color" yes always force
@@ -205,7 +211,11 @@ function completion/ls {
 		(--time-style)
 			case $TARGETWORD in
 			("$PREFIX+"*)
-				;; #FIXME
+				if command -vf completion//completestrftime >/dev/null 2>&1 ||
+						. -AL completion/date; then
+					command -f completion//completestrftime
+				fi
+				;;
 			(*) #>>#
 				complete -P "$PREFIX" -D "e.g. 2000-01-01 01:23:45.678901234 +0900" full-iso
 				complete -P "$PREFIX" -D "e.g. 2010-06-29 00:37" long-iso

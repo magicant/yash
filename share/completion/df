@@ -1,0 +1,163 @@
+# (C) 2010 magicant
+
+# Completion script for the "df" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i.
+
+function completion/df {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"k; print figures in kilobytes (1024-byte units)"
+	"P ${long:+--portability}; print in the portable format defined by POSIX"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|*BSD|Darwin|SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"l ${long:+--local}; print info about local file systems only"
+		) #<#
+		case $type in (GNU|*BSD|Darwin|SunOS)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"h ${long:+--human-readable}; print size using K, M, etc. for 1024^n"
+			) #<#
+			case $type in (GNU|FreeBSD|NetBSD|Darwin|SunOS)
+				ADDOPTIONS=("$ADDOPTIONS" #>#
+				"a ${long:+--all}; print all file systems"
+				) #<#
+				case $type in (GNU|FreeBSD|NetBSD|Darwin)
+					ADDOPTIONS=("$ADDOPTIONS" #>#
+					"m; print figures in megabytes (1048576-byte units)"
+					) #<#
+					case $type in (GNU|FreeBSD|Darwin)
+						ADDOPTIONS=("$ADDOPTIONS" #>#
+						"H ${long:+--si}; print size using k, M, etc. for 1000^n"
+						) #<#
+						case $type in (GNU|FreeBSD)
+							ADDOPTIONS=("$ADDOPTIONS" #>#
+							"T ${long:+--print-type}; print file system types"
+							) #<#
+						esac
+					esac
+					case $type in (FreeBSD|NetBSD|Darwin)
+						ADDOPTIONS=("$ADDOPTIONS" #>#
+						"g; print figures in gigabytes (1073741824-byte units)"
+						) #<#
+						case $type in (FreeBSD|Darwin)
+							ADDOPTIONS=("$ADDOPTIONS" #>#
+							"b; print figures in 512-byte units"
+							) #<#
+						esac
+					esac
+				esac
+			esac
+			case $type in (*BSD|Darwin)
+				ADDOPTIONS=("$ADDOPTIONS" #>#
+				"n; allow printing cached data that may be out of date"
+				) #<#
+			esac
+		esac
+		case $type in (GNU|*BSD|Darwin|HP-UX)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"i ${long:+--inodes}; print inode information"
+			) #<#
+		esac
+		case $type in (SunOS|HP-UX)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"b; print the size of free area in kilobytes"
+			"e; print the number of files free"
+			"F:; specify a file system type to print"
+			"g; print all the results of the statvfs function"
+			"n; print file system types"
+			"o:; specify options specific to file systems"
+			"v; print block counts"
+			"V; print full command lines"
+			) #<#
+		esac
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"B: ${long:+--block-size:}; specify the block size unit to print figures in"
+		"${long:+--total}; print the grand total after the normal output"
+		"${long:+--no-sync}; allow printing cached data that may be out of date"
+		"${long:+--sync}; don't use cached data that may be out of date"
+		"x: ${long:+--exclude-type:}; specify a file system type not to print"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(FreeBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"c; print the grand total"
+		) #<#
+		;;
+	(NetBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"G; print all the results of the statvfs function"
+		) #<#
+		;;
+	(Darwin)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"T:; specify a file system type to print"
+		) #<#
+		;;
+	(SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"Z; print file systems in all zones"
+		) #<#
+		;;
+	(HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"f; print the number of blocks in the free list"
+		"s; don't sync the file system data on the disk"
+		) #<#
+		;;
+	esac
+	case $type in
+	(GNU|*BSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"t: ${long:+--type:}; specify a file system type to print"
+		) #<#
+		;;
+	(*)
+		POSIXOPTIONS=("$POSIXOPTIONS" #>#
+		"t; include total counts in the output"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(B|--block-size)
+			if command -vf completion//completeblocksize >/dev/null 2>&1 ||
+					. -AL completion/_blocksize; then
+				command -f completion//completeblocksize
+			fi
+			;;
+		(?|-?*)
+			;;
+		(*)
+			complete -f
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

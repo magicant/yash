@@ -1,0 +1,46 @@
+# (C) 2010 magicant
+
+# This file contains a function that completes the argument to the --block-size
+# option of the df, du, and ls commands.
+
+
+function completion//completeblocksize {
+	typeset word="${TARGETWORD#"$PREFIX"}"
+	word=${word#\'}
+	case $word in
+	([[:digit:]]*)
+		while [ "${word#[[:digit:]]}" != "$word" ]; do
+			word=${word#[[:digit:]]}
+		done
+		PREFIX=${TARGETWORD%"$word"}
+		;;
+	(*)
+		PREFIX=${TARGETWORD%"$word"}
+		#>>#
+		complete -P "$PREFIX" -D "print size using K, M, etc. for 1024^n" human-readable
+		complete -P "$PREFIX" -D "print size using k, M, etc. for 1000^n" si
+		#<<#
+		;;
+	esac
+	#>>#
+	complete -P "$PREFIX" -D "1024 bytes"   K 	       
+	complete -P "$PREFIX" -D "1000 bytes"   KB 	       
+	complete -P "$PREFIX" -D "1024^2 bytes" M 	       
+	complete -P "$PREFIX" -D "1000^2 bytes" MB 	       
+	complete -P "$PREFIX" -D "1024^3 bytes" G 	       
+	complete -P "$PREFIX" -D "1000^3 bytes" GB 	       
+	complete -P "$PREFIX" -D "1024^4 bytes" T 	       
+	complete -P "$PREFIX" -D "1000^4 bytes" TB 	       
+	complete -P "$PREFIX" -D "1024^5 bytes" P 	       
+	complete -P "$PREFIX" -D "1000^5 bytes" PB 	       
+	complete -P "$PREFIX" -D "1024^6 bytes" E 	       
+	complete -P "$PREFIX" -D "1000^6 bytes" EB 	       
+	complete -P "$PREFIX" -D "1024^7 bytes" Z 	       
+	complete -P "$PREFIX" -D "1000^7 bytes" ZB 	       
+	complete -P "$PREFIX" -D "1024^8 bytes" Y 	       
+	complete -P "$PREFIX" -D "1000^8 bytes" YB 	       
+	#<<#
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

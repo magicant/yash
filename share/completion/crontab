@@ -1,0 +1,53 @@
+# (C) 2010 magicant
+
+# Completion script for the "crontab" command.
+# Supports POSIX 2008, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0, Mac OS X 10.6.3,
+# SunOS 5.10, HP-UX 11i.
+
+function completion/crontab {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=()
+	case $type in
+	(SunOS|HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"e:; edit crontab with an editor"
+		"l:; print the current crontab setting"
+		"r:; remove crontab setting"
+		) #<#
+		;;
+	(*)
+		OPTIONS=("$OPTIONS" #>#
+		"e; edit crontab with an editor"
+		"l; print the current crontab setting"
+		"r; remove crontab setting"
+		"u:; specify a user whose crontab is set, removed, or shown"
+		) #<#
+		# We should check if crontab supports the -u option, but
+		# there's no reliable way to do so. We just always complete the
+		# -u option.
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(?)
+			complete -u
+			;;
+		(*)
+			complete -f
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
