@@ -1,22 +1,35 @@
 # (C) 2010 magicant
 
 # Completion script for the "cd" built-in command.
-# Completion function "completion/cd" is used for the "pushd" built-in as well.
+# Completion function "completion/cd" is used for the "dirs", "pushd", "popd"
+# built-ins as well.
 
 function completion/cd {
 
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
-	"L --logical; keep symbolic links in the \$PWD variable as is"
-	"P --physical; resolve symbolic links in the \$PWD variable"
-	"--default-directory:; specify the default directory to change to"
 	"--help"
 	) #<#
-	if [ "${WORDS[1]}" = "pushd" ]; then
+	case ${WORDS[1]} in
+	(cd|pushd)
 		OPTIONS=("$OPTIONS" #>#
-		"--remove-duplicates; remove duplicates in the directory stack"
+		"L --logical; keep symbolic links in the \$PWD variable as is"
+		"P --physical; resolve symbolic links in the \$PWD variable"
+		"--default-directory:; specify the default directory to change to"
 		) #<#
-	fi
+		if [ "${WORDS[1]}" = "pushd" ]; then
+			OPTIONS=("$OPTIONS" #>#
+			"--remove-duplicates; remove duplicates in the directory stack"
+			) #<#
+		fi
+		;;
+	(dirs)
+		OPTIONS=("$OPTIONS" #>#
+		"c --clear; clear the directory stack completely"
+		"v --verbose; print stack entries with their indices"
+		) #<#
+		;;
+	esac
 
 	typeset dirstack=false
 	command -f completion//parseoptions -es
@@ -35,16 +48,20 @@ function completion/cd {
 			complete -P "$PREFIX" -d
 			;;
 		(*)
-			complete -d
+			case ${WORDS[1]} in (cd|pushd)
+				complete -d
+			esac
 			dirstack=true
 			;;
 	esac
 
-	if $dirstack && [ "${WORDS[1]}" = "pushd" ]; then
-		if command -vf completion//completedirstack >/dev/null 2>&1 ||
-			. -AL completion/_dirstack; then
-			command -f completion//completedirstack
-		fi
+	if $dirstack; then
+		case ${WORDS[1]} in (dirs|pushd|popd)
+			if command -vf completion//completedirstack >/dev/null 2>&1 ||
+				. -AL completion/_dirstack; then
+				command -f completion//completedirstack
+			fi
+		esac
 	fi
 
 }
