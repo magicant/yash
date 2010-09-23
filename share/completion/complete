@@ -11,9 +11,9 @@ function completion/complete {
 
 	command -f completion//parseoptions -es
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
 	esac
 
 }

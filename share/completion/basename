@@ -24,23 +24,23 @@ function completion/basename {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		command -f completion//getoperands
+		case ${WORDS[#]} in
+		(0)
+			complete -f
 			;;
-		(*)
-			command -f completion//getoperands
-			case ${WORDS[#]} in
-			(0)
-				complete -f
-				;;
-			(1)
-				typeset word="$(sed -e 's;/*$;;' -e 's;^.*/;;' <<<"${WORDS[1]}")"
-				while word=${word#?}; [ "$word" ]; do
-					complete -- "$word"
-				done
-				;;
-			esac
+		(1)
+			typeset word="$(sed -e 's;/*$;;' -e 's;^.*/;;' <<<"${WORDS[1]}")"
+			while word=${word#?}; [ "$word" ]; do
+				complete -- "$word"
+			done
 			;;
+		esac
+		;;
 	esac
 
 }

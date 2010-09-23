@@ -13,22 +13,22 @@ function completion/. {
 
 	command -f completion//parseoptions
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(*)
-			command -f completion//getoperands
-			if [ ${WORDS[#]} -le 0 ]; then
-				# complete as a script file name
-				case $TARGETWORD in
-					*/*) complete -f ;;
-					*  ) complete --external-command ;;
-				esac
-			else
-				# complete an argument to the script
-				command -f completion//reexecute
-			fi
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -le 0 ]; then
+			# complete as a script file name
+			case $TARGETWORD in
+				*/*) complete -f ;;
+				*  ) complete --external-command ;;
+			esac
+		else
+			# complete an argument to the script
+			command -f completion//reexecute
+		fi
+		;;
 	esac
 
 }

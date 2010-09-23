@@ -59,20 +59,20 @@ function completion/chgrp {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--reference)
-			complete -P "$PREFIX" -f
-			;;
-		(*)
-			command -f completion//getoperands
-			if [ ${WORDS[#]} -eq 0 ]; then
-				complete -g
-			else
-				complete -f
-			fi
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--reference)
+		complete -P "$PREFIX" -f
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -eq 0 ]; then
+			complete -g
+		else
+			complete -f
+		fi
+		;;
 	esac
 
 }

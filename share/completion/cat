@@ -98,12 +98,12 @@ function completion/cat {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(*)
-			complete -f
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -f
+		;;
 	esac
 
 }

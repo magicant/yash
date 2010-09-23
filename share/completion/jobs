@@ -29,15 +29,15 @@ function completion/jobs {
 
 	command -f completion//parseoptions -es
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(*)
-			case $TARGETWORD in (%*)
-				PREFIX=%
-			esac
-			complete -P "$PREFIX" -j
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		case $TARGETWORD in (%*)
+			PREFIX=%
+		esac
+		complete -P "$PREFIX" -j
+		;;
 	esac
 
 }

@@ -44,55 +44,55 @@ function completion/command {
 	done
 	WORDS=("${WORDS[i,-1]}")
 	case $ARGOPT in
-		(-)
-			case $options in
-			(*[vV]*)
-				OPTIONS=("$COMMONOPTIONS" "$VOPTIONS")
-				;;
-			(*)
-				OPTIONS=("$COMMONOPTIONS" "$NOVOPTIONS")
-				;;
-			esac
-			command -f completion//completeoptions
+	(-)
+		case $options in
+		(*[vV]*)
+			OPTIONS=("$COMMONOPTIONS" "$VOPTIONS")
 			;;
 		(*)
-			if
-				case $options in
-				(*[vV]*)
-					if [ -z "${options//[pvV]}" ]; then
-						options=${options}abefk
-					fi
-					true
-					;;
-				(*)
-					if [ -z "${options//p}" ]; then
-						options=${options}be
-					fi
-					[ ${WORDS[#]} -eq 0 ]
-					;;
-				esac
-			then
-				# complete command name
-				case $options in (*a*)
-					complete --alias
-				esac
-				case $options in (*b*)
-					complete --builtin-command
-				esac
-				case $options in (*e*)
-					complete --external-command
-				esac
-				case $options in (*f*)
-					complete --function
-				esac
-				case $options in (*k*)
-					complete --keyword
-				esac
-			else
-				# complete command argument
-				command -f completion//reexecute
-			fi
+			OPTIONS=("$COMMONOPTIONS" "$NOVOPTIONS")
 			;;
+		esac
+		command -f completion//completeoptions
+		;;
+	(*)
+		if
+			case $options in
+			(*[vV]*)
+				if [ -z "${options//[pvV]}" ]; then
+					options=${options}abefk
+				fi
+				true
+				;;
+			(*)
+				if [ -z "${options//p}" ]; then
+					options=${options}be
+				fi
+				[ ${WORDS[#]} -eq 0 ]
+				;;
+			esac
+		then
+			# complete command name
+			case $options in (*a*)
+				complete --alias
+			esac
+			case $options in (*b*)
+				complete --builtin-command
+			esac
+			case $options in (*e*)
+				complete --external-command
+			esac
+			case $options in (*f*)
+				complete --function
+			esac
+			case $options in (*k*)
+				complete --keyword
+			esac
+		else
+			# complete command argument
+			command -f completion//reexecute
+		fi
+		;;
 	esac
 
 }

@@ -50,14 +50,14 @@ function completion/comm {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--output-delimiter)
-			;;
-		(*)
-			complete -f
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--output-delimiter)
+		;;
+	(*)
+		complete -f
+		;;
 	esac
 
 }

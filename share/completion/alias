@@ -13,12 +13,12 @@ function completion/alias {
 
 	command -f completion//parseoptions -es
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(*)
-			complete -a
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -a
+		;;
 	esac
 
 }

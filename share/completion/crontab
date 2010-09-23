@@ -36,15 +36,15 @@ function completion/crontab {
 
 	command -f completion//parseoptions
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(?)
-			complete -u
-			;;
-		(*)
-			complete -f
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(?)
+		complete -u
+		;;
+	(*)
+		complete -f
+		;;
 	esac
 
 }

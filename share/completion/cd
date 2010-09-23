@@ -34,25 +34,25 @@ function completion/cd {
 	typeset dirstack=false
 	command -f completion//parseoptions -es
 	case $ARGOPT in
-		(-)
-			case $TARGETWORD in
-			(-*[[:digit:]]*)
-				;;
-			(*)
-				command -f completion//completeoptions
-				;;
-			esac
-			dirstack=true
-			;;
-		(--default-directory)
-			complete -P "$PREFIX" -d
+	(-)
+		case $TARGETWORD in
+		(-*[[:digit:]]*)
 			;;
 		(*)
-			case ${WORDS[1]} in (cd|pushd)
-				complete -d
-			esac
-			dirstack=true
+			command -f completion//completeoptions
 			;;
+		esac
+		dirstack=true
+		;;
+	(--default-directory)
+		complete -P "$PREFIX" -d
+		;;
+	(*)
+		case ${WORDS[1]} in (cd|pushd)
+			complete -d
+		esac
+		dirstack=true
+		;;
 	esac
 
 	if $dirstack; then

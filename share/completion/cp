@@ -104,53 +104,53 @@ function completion/cp {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--backup) #>>#
-			complete -P "$PREFIX" -D "don't make backups" none off
-			complete -P "$PREFIX" -D "make numbered backups" numbered t
-			complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
-			complete -P "$PREFIX" -D "make simple backups" simple never
-			;; #<<#
-		(e) #>>#
-			complete -P "$PREFIX" -D "print a message when failed to copy an extent attribute" warn
-			complete -P "$PREFIX" -D "don't copy extent attributes" ignore
-			complete -P "$PREFIX" -D "don't copy a file when cannot copy the extent attribute" force
-			;; #<<#
-		(--preserve|--no-preserve)
-			typeset word
-			word=${TARGETWORD#"$PREFIX"}
-			word=${word##*,}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -T -P "$PREFIX" -S , -D "file permission bits" mode
-			complete -T -P "$PREFIX" -S , -D "owner and group" ownership
-			complete -T -P "$PREFIX" -S , -D "last access/modification time" timestamps
-			complete -T -P "$PREFIX" -S , -D "hard links" links
-			complete -T -P "$PREFIX" -S , -D "SELinux security context" context
-			complete -T -P "$PREFIX" -S , -D "extended attributes" xattr
-			complete -P "$PREFIX" -D "all attributes" all
-			;; #<<#
-		(--reflink) #>>#
-			complete -P "$PREFIX" -D "print a message when failed to do copy-on-write copy" always
-			complete -P "$PREFIX" -D "fall back to normal copy when failed to do copy-on-write copy" auto
-			;; #<<#
-		(--sparse) #>>#
-			complete -P "$PREFIX" -D "make destination sparse if source is sparse" auto
-			complete -P "$PREFIX" -D "always try to make sparse copies" always
-			complete -P "$PREFIX" -D "never make sparse copies" never
-			;; #<<#
-		(S|--suffix)
-			;;
-		(t|--target-directory)
-			complete -P "$PREFIX" -d
-			;;
-		(Z|--context)
-			# TODO
-			;;
-		(*)
-			complete -f
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--backup) #>>#
+		complete -P "$PREFIX" -D "don't make backups" none off
+		complete -P "$PREFIX" -D "make numbered backups" numbered t
+		complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
+		complete -P "$PREFIX" -D "make simple backups" simple never
+		;; #<<#
+	(e) #>>#
+		complete -P "$PREFIX" -D "print a message when failed to copy an extent attribute" warn
+		complete -P "$PREFIX" -D "don't copy extent attributes" ignore
+		complete -P "$PREFIX" -D "don't copy a file when cannot copy the extent attribute" force
+		;; #<<#
+	(--preserve|--no-preserve)
+		typeset word
+		word=${TARGETWORD#"$PREFIX"}
+		word=${word##*,}
+		PREFIX=${TARGETWORD%"$word"} #>>#
+		complete -T -P "$PREFIX" -S , -D "file permission bits" mode
+		complete -T -P "$PREFIX" -S , -D "owner and group" ownership
+		complete -T -P "$PREFIX" -S , -D "last access/modification time" timestamps
+		complete -T -P "$PREFIX" -S , -D "hard links" links
+		complete -T -P "$PREFIX" -S , -D "SELinux security context" context
+		complete -T -P "$PREFIX" -S , -D "extended attributes" xattr
+		complete -P "$PREFIX" -D "all attributes" all
+		;; #<<#
+	(--reflink) #>>#
+		complete -P "$PREFIX" -D "print a message when failed to do copy-on-write copy" always
+		complete -P "$PREFIX" -D "fall back to normal copy when failed to do copy-on-write copy" auto
+		;; #<<#
+	(--sparse) #>>#
+		complete -P "$PREFIX" -D "make destination sparse if source is sparse" auto
+		complete -P "$PREFIX" -D "always try to make sparse copies" always
+		complete -P "$PREFIX" -D "never make sparse copies" never
+		;; #<<#
+	(S|--suffix)
+		;;
+	(t|--target-directory)
+		complete -P "$PREFIX" -d
+		;;
+	(Z|--context)
+		# TODO
+		;;
+	(*)
+		complete -f
+		;;
 	esac
 
 }

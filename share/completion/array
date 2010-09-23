@@ -14,38 +14,38 @@ function completion/array {
 
 	command -f completion//parseoptions -es
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(*)
-			typeset i=1 type=
-			while [ $i -le ${WORDS[#]} ]; do
-				case ${WORDS[i++]} in
-					(-d|--delete) type=d ;;
-					(-i|--insert) type=i ;;
-					(-s|--set   ) type=s ;;
-					(--)          break  ;;
-				esac
-			done
-			if [ $i -gt ${WORDS[#]} ]; then
-				complete --array
-			else
-				case $type in
-				(d)
-					;; # TODO: complete array index
-				(i|s)
-					if [ $i -eq ${WORDS[#]} ]; then
-						# TODO: complete array index
-					else
-						complete -f
-					fi
-					;;
-				(*)
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		typeset i=1 type=
+		while [ $i -le ${WORDS[#]} ]; do
+			case ${WORDS[i++]} in
+				(-d|--delete) type=d ;;
+				(-i|--insert) type=i ;;
+				(-s|--set   ) type=s ;;
+				(--)          break  ;;
+			esac
+		done
+		if [ $i -gt ${WORDS[#]} ]; then
+			complete --array
+		else
+			case $type in
+			(d)
+				;; # TODO: complete array index
+			(i|s)
+				if [ $i -eq ${WORDS[#]} ]; then
+					# TODO: complete array index
+				else
 					complete -f
-					;;
-				esac
-			fi
-			;;
+				fi
+				;;
+			(*)
+				complete -f
+				;;
+			esac
+		fi
+		;;
 	esac
 
 }

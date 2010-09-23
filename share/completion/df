@@ -141,20 +141,20 @@ function completion/df {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(B|--block-size)
-			if command -vf completion//completeblocksize >/dev/null 2>&1 ||
-					. -AL completion/_blocksize; then
-				command -f completion//completeblocksize
-			fi
-			;;
-		(?|-?*)
-			;;
-		(*)
-			complete -f
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(B|--block-size)
+		if command -vf completion//completeblocksize >/dev/null 2>&1 ||
+				. -AL completion/_blocksize; then
+			command -f completion//completeblocksize
+		fi
+		;;
+	(?|-?*)
+		;;
+	(*)
+		complete -f
+		;;
 	esac
 
 }

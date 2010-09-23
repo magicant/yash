@@ -72,27 +72,27 @@ function completion/date {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(f|--file|r|--reference)
-			case $type in (GNU)
-				complete -P "$PREFIX" -f
-			esac
-			;;
-		(--rfc-3339) #>>#
-			complete -P "$PREFIX" -D "e.g. 1999-12-31" date
-			complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56+05:30" seconds
-			complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56.123456789+05:30" ns
-			;; #<<#
-		(v)
-			# FIXME
-			;;
-		(?|--?*)
-			;;
-		(*)
-			command -f completion//completestrftime
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(f|--file|r|--reference)
+		case $type in (GNU)
+			complete -P "$PREFIX" -f
+		esac
+		;;
+	(--rfc-3339) #>>#
+		complete -P "$PREFIX" -D "e.g. 1999-12-31" date
+		complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56+05:30" seconds
+		complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56.123456789+05:30" ns
+		;; #<<#
+	(v)
+		# FIXME
+		;;
+	(?|--?*)
+		;;
+	(*)
+		command -f completion//completestrftime
+		;;
 	esac
 
 }

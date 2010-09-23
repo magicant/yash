@@ -46,19 +46,19 @@ function completion/cmp {
 
 	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(i|--ignore-initial)
-			;;
-		(n|--bytes)
-			;;
-		(*)
-			command -f completion//getoperands
-			if [ ${WORDS[#]} -lt 2 ]; then
-				complete -f
-			fi
-			;;
+	(-)
+		command -f completion//completeoptions
+		;;
+	(i|--ignore-initial)
+		;;
+	(n|--bytes)
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -lt 2 ]; then
+			complete -f
+		fi
+		;;
 	esac
 
 }
