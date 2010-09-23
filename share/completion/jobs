@@ -1,0 +1,46 @@
+# (C) 2010 magicant
+
+# Completion script for the "jobs" built-in command.
+# Completion function "completion/jobs" is used for the "fg", "bg", "disown"
+# built-ins as well.
+
+function completion/jobs {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--help"
+	) #<#
+	case ${WORDS[1]} in
+	(disown)
+		OPTIONS=("$OPTIONS" #>#
+		"a --all; disown all jobs"
+		) #<#
+		;;
+	(jobs)
+		OPTIONS=("$OPTIONS" #>#
+		"l --verbose; print process IDs of processes"
+		"n --new; print only jobs whose status change is not yet reported"
+		"p --pgid-only; print process group IDs only"
+		"r --running-only; print running jobs only"
+		"s --stopped-only; print stopped jobs only"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(*)
+			case $TARGETWORD in (%*)
+				PREFIX=%
+			esac
+			complete -P "$PREFIX" -j
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

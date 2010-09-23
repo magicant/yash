@@ -1,0 +1,10 @@
+# (C) 2010 magicant
+
+# Completion script for the "disown" built-in command.
+
+function completion/disown {
+	command -f completion//reexecute jobs
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
