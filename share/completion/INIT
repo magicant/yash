@@ -509,19 +509,11 @@ function completion//getoperands {
 }
 
 
-# This function re-executes the completion function using the specified
-# arguments as the new $WORDS. If no arguments are specified, this function
-# uses the current $WORDS.
+# This function re-executes the completion function using the current $WORDS.
+# If an argument is given to this function, it is used as the command name
+# instead of ${WORDS[1]}.
+# This function does not change $WORDS (but the completion function may do).
 function completion//reexecute {
-
-	if [ $# -eq 0 ]; then
-		if [ -z "${WORDS+set}" ]; then
-			return 1
-		fi
-	else
-		typeset WORDS
-		WORDS=("$@")
-	fi
 
 	if [ ${WORDS[#]} -le 0 ]; then
 		if command -vf completion//default >/dev/null 2>&1; then
@@ -535,7 +527,7 @@ function completion//reexecute {
 		return
 	fi
 
-	typeset cmd="${WORDS[1]}"
+	typeset cmd="${1-${WORDS[1]}}"
 
 	# load the function if not yet loaded
 	if command -vf "completion/$cmd" >/dev/null 2>&1; then

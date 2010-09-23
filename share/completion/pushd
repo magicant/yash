@@ -3,7 +3,7 @@
 # Completion script for the "pushd" built-in command.
 
 function completion/pushd {
-	command -f completion//reexecute pushd "${WORDS[2,-1]}"
+	command -f completion//reexecute cd
 }
 
 
