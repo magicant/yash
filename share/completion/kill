@@ -1,0 +1,85 @@
+# (C) 2010 magicant
+
+# Completion script for the "kill" built-in command.
+
+function completion/kill {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"s: n:; specify a signal to send"
+	"l; print signal names"
+	"v; print signal names and description"
+	"--help"
+	) #<#
+
+	typeset signame=false SAVEWORDS
+	SAVEWORDS=("$WORDS")
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		case $TARGETWORD in
+		(-[[:upper:]]*)
+			signame=true PREFIX=-
+			;;
+		(-[[:digit:]]*)
+			typeset signame=true word
+			for word in "${WORDS[2,-1]}" "${SAVEWORDS[2,-1]}"; do
+				case $word in (-[ns[:upper:][:digit:]]*)
+					signame=false
+				esac
+			done
+			if $signame; then
+				PREFIX=-
+			fi
+			;;
+		(*)
+			command -f completion//completeoptions
+			return
+			;;
+		esac
+		;;
+	([ns])
+		signame=true
+		;;
+	(*)
+		typeset word
+		for word in "${WORDS[2,-1]}"; do
+			case $word in (-[lv])
+				signame=true
+			esac
+		done
+		;;
+	esac
+
+	if $signame; then
+		complete -P "$PREFIX" --signal
+	else
+		typeset pid args
+		case $TARGETWORD in
+		(%*)
+			# complete a job name
+			complete -P % -j
+			;;
+		(-*)
+			# complete a process group ID
+			while read -r pid args; do
+				if kill -n 0 -$pid; then
+					complete -D "$args" -- "-$pid"
+				fi
+			done 2>/dev/null <(ps -A -o pgid= -o args=)
+			;;
+		(*)
+			# complete a process ID
+			while read -r pid args; do
+				if kill -n 0 $pid; then
+					complete -D "$args" -- "$pid"
+				fi
+			done 2>/dev/null <(ps -A -o pid= -o args=)
+			;;
+		esac
+	fi
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -1,0 +1,24 @@
+# (C) 2010 magicant
+
+# Completion script for the "pwd" built-in command.
+
+function completion/pwd {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"L --logical; keep symbolic links in the \$PWD variable as is"
+	"P --physical; print path without symbolic links"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
