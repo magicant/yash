@@ -86,7 +86,45 @@ function completion/date {
 		complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56.123456789+05:30" ns
 		;; #<<#
 	(v)
-		# FIXME
+		typeset word="${TARGETWORD#"$PREFIX"}"
+		word=${word#[+-]}
+		case $word in
+		([[:digit:]]*)
+			while [ "${word#[[:digit:]]}" != "$word" ]; do
+				word=${word#[[:digit:]]}
+			done
+			PREFIX=${TARGETWORD%"$word"} #>>#
+			complete -P "$PREFIX" -D "year"         y
+			complete -P "$PREFIX" -D "month"        m
+			complete -P "$PREFIX" -D "day of week"  w
+			complete -P "$PREFIX" -D "day of month" d
+			complete -P "$PREFIX" -D "hour"         H
+			complete -P "$PREFIX" -D "minute"       M
+			complete -P "$PREFIX" -D "second"       S
+			;; #<<#
+		(*)
+			PREFIX=${TARGETWORD%"$word"} #>>#
+			complete -P "$PREFIX" -D "Sunday"    Sunday
+			complete -P "$PREFIX" -D "Monday"    Monday
+			complete -P "$PREFIX" -D "Tuesday"   Tuesday
+			complete -P "$PREFIX" -D "Wednesday" Wednesday
+			complete -P "$PREFIX" -D "Thursday"  Thursday
+			complete -P "$PREFIX" -D "Friday"    Friday
+			complete -P "$PREFIX" -D "Saturday"  Saturday
+			complete -P "$PREFIX" -D "January"   January
+			complete -P "$PREFIX" -D "February"  February
+			complete -P "$PREFIX" -D "March"     March
+			complete -P "$PREFIX" -D "April"     April
+			complete -P "$PREFIX" -D "May"       May
+			complete -P "$PREFIX" -D "June"      June
+			complete -P "$PREFIX" -D "July"      July
+			complete -P "$PREFIX" -D "August"    August
+			complete -P "$PREFIX" -D "September" September
+			complete -P "$PREFIX" -D "October"   October
+			complete -P "$PREFIX" -D "November"  November
+			complete -P "$PREFIX" -D "December"  December
+			;; #<<#
+		esac
 		;;
 	(?|--?*)
 		;;
