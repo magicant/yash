@@ -1,0 +1,25 @@
+# (C) 2010 magicant
+
+# Completion script for the "help" built-in command.
+
+function completion/help {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -b
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

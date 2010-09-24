@@ -1,0 +1,38 @@
+# (C) 2010 magicant
+
+# Completion script for the "fc" built-in command.
+
+function completion/fc {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"e: --editor:; specify an editor to edit the command"
+	"l --list; just print command history"
+	"n --no-numbers; don't print history numbers in listing"
+	"q --quiet; don't print the command before re-executing"
+	"r --reverse; reverse the order of commands"
+	"s --silent; re-execute the command without editing"
+	"v --verbose; print history in detail (with -l)"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(e|--editor)
+		complete -P "$PREFIX" -c
+		;;
+	(*)
+		typeset num cmd
+		while read -r num cmd; do
+			complete -D "$num" -- "$cmd"
+		done <(fc -l 1)
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

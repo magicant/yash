@@ -1,0 +1,25 @@
+# (C) 2010 magicant
+
+# Completion script for the "exit" built-in command.
+
+function completion/exit {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"f --force; suppress warning about stopped jobs"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

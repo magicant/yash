@@ -1,0 +1,30 @@
+# (C) 2010 magicant
+
+# Completion script for the "getopts" built-in command.
+
+function completion/getopts {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -eq 1 ]; then
+			complete -v
+		elif [ ${WORDS[#]} -gt 1 ]; then
+			complete -f
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

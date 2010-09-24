@@ -1,0 +1,39 @@
+# (C) 2010 magicant
+
+# Completion script for the "history" built-in command.
+
+function completion/history {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"c --clear; clear the history completely"
+	"d: --delete:; clear the specified history item"
+	"F --flush-file; refresh the history file"
+	"r: --read:; read history from the specified file"
+	"s: --set:; replace the last history item with the specified command"
+	"w: --write:; write history to the specified file"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(d|--delete|s|--set)
+		typeset num cmd
+		while read -r num cmd; do
+			complete -P "$PREFIX" -D "$num" -- "$cmd"
+		done <(fc -l 1)
+		;;
+	(r|--read|w|--write)
+		complete -P "$PREFIX" -f
+		;;
+	(*)
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

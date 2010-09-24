@@ -1,0 +1,43 @@
+# (C) 2010 magicant
+
+# Completion script for the "hash" built-in command.
+
+function completion/hash {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a --all; don't exclude built-ins when printing cached paths"
+	"d --directory; manipulate caches for home directory paths"
+	"r --remove; remove cached paths"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		typeset directory=false word
+		for word in "${WORDS[2,-1]}"; do
+			case $word in
+			(-d|--directory)
+				directory=true
+				;;
+			(--)
+				break
+				;;
+			esac
+		done
+		if $directory; then
+			complete -u
+		else
+			complete --external-command
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
