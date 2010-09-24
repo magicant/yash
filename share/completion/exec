@@ -1,0 +1,36 @@
+# (C) 2010 magicant
+
+# Completion script for the "exec" built-in command.
+
+function completion/exec {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a: --as:; specify a name to execute the command as"
+	"c --clear; don't export variables from the shell"
+	"f --force; suppress warning about stopped jobs"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(a|--as)
+		complete -P "$PREFIX" -c
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -eq 0 ]; then
+			complete --external-command
+		else
+			command -f completion//reexecute
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -1,0 +1,42 @@
+# (C) 2010 magicant
+
+# Completion script for the "eval" built-in command.
+
+function completion/eval {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"i --iteration; perform iterative execution on each operand"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		typeset iteration=false word
+		for word in "${WORDS[2,-1]}"; do
+			case $word in
+			(-i|--iteration)
+				iteration=true
+				;;
+			(--)
+				break
+				;;
+			esac
+		done
+		if $iteration; then
+			complete -c
+		else
+			command -f completion//getoperands
+			command -f completion//reexecute
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
