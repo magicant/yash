@@ -1,0 +1,101 @@
+# (C) 2010 magicant
+
+# Completion script for the "echo" built-in command.
+
+function completion/echo {
+	command -f completion/echo::option ||
+	command -f completion/echo::operand
+}
+
+function completion/echo::option {
+
+	case ${ECHO_STYLE-} in
+	([BbDd]*)
+		typeset options=n
+		;;
+	([GgZz]*)
+		typeset options=neE
+		;;
+	(*)
+		return 1
+		;;
+	esac
+
+	typeset word
+	for word in "${WORDS[2,-1]}"; do
+		case $word in
+		(-?*)
+			case ${word#-} in (*[!$options]*)
+				return 1
+			esac
+			;;
+		(*)
+			return 1
+			;;
+		esac
+	done
+	case $TARGETWORD in (-*)
+		case ${TARGETWORD#-} in (*[!$options]*)
+			return 1
+		esac
+
+		# option completion
+		case $options in (*n*) #>>#
+			complete -P "$TARGETWORD" -D "don't print the last newline" -O n
+		esac #<<#
+		case $options in (*e*) #>>#
+			complete -P "$TARGETWORD" -D "enable escape sequences" -O e
+		esac #<<#
+		case $options in (*E*) #>>#
+			complete -P "$TARGETWORD" -D "disable escape sequences" -O E
+		esac #<<#
+		return 0
+	esac
+
+	return 1
+
+}
+
+function completion/echo::operand {
+
+	typeset options escape
+	case ${ECHO_STYLE-} in
+		([Bb]*) options=n   escape=false ;;
+		([Dd]*) options=n   escape=true  ;;
+		([Gg]*) options=neE escape=false ;;
+		([Zz]*) options=neE escape=true  ;;
+		([Rr]*) options=    escape=false ;;
+		(*)     options=    escape=true  ;;
+	esac
+
+	typeset word
+	for word in "${WORDS[2,-1]}"; do
+		case $word in
+		(-?*)
+			case ${word#-} in (*[!$options]*)
+				break
+			esac
+			case ${word//n} in
+				(*E) escape=false ;;
+				(*e) escape=true  ;;
+			esac
+			;;
+		(*)
+			break
+			;;
+		esac
+	done
+
+	if $escape; then
+		if command -vf completion/printf::backslash >/dev/null 2>&1 ||
+				. -AL completion/printf; then
+			command -f completion/printf::backslash echo
+		fi
+	fi
+
+	complete -f
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

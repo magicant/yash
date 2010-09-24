@@ -1,0 +1,91 @@
+# (C) 2010 magicant
+
+# Completion script for the "printf" built-in command.
+
+function completion/printf {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -eq 0 ]; then
+			command -f completion/printf::backslash printf ||
+			command -f completion/printf::percent
+		else
+			complete -f
+		fi
+		;;
+	esac
+
+}
+
+function completion/printf::backslash {
+
+	typeset word="$TARGETWORD"
+	word=${word//\\\\}
+	case $word in (*\\)
+		PREFIX=${TARGETWORD%\\} #>>#
+		complete -T -P "$PREFIX" -D "alert (bell)"    '\a'
+		complete -T -P "$PREFIX" -D "backspace"       '\b'
+		complete -T -P "$PREFIX" -D "form feed"       '\f'
+		complete -T -P "$PREFIX" -D "newline"         '\n'
+		complete -T -P "$PREFIX" -D "carriage return" '\r'
+		complete -T -P "$PREFIX" -D "tab"             '\t'
+		complete -T -P "$PREFIX" -D "vertical tab"    '\v'
+		complete -T -P "$PREFIX" -D "backslash"       '\\'
+		#<<#
+		case ${1-} in
+		(printf) #>>#
+			complete -T -P "$PREFIX" -D "double-quote" '\"'
+			complete -T -P "$PREFIX" -D "single-quote" '\'"'" 
+			;; #<<#
+		(echo) #>>#
+			complete -T -P "$PREFIX" -D "stop printing" '\c'
+			;; #<<#
+		esac
+		return 0
+	esac
+
+	return 1
+
+}
+
+function completion/printf::percent {
+
+	typeset word="$TARGETWORD"
+	word=${word//%%}
+	case $word in (*%)
+		PREFIX=${TARGETWORD%\%} #>>#
+		complete -T -P "$PREFIX" -D "signed decimal integer" '%d'
+		complete -T -P "$PREFIX" -D "signed decimal integer" '%i'
+		complete -T -P "$PREFIX" -D "unsigned decimal integer" '%u'
+		complete -T -P "$PREFIX" -D "unsigned octal integer" '%o'
+		complete -T -P "$PREFIX" -D "unsigned hexadecimal integer (lowercase)" '%x'
+		complete -T -P "$PREFIX" -D "unsigned hexadecimal integer (uppercase)" '%X'
+		complete -T -P "$PREFIX" -D "floating-point number (lowercase)" '%f'
+		complete -T -P "$PREFIX" -D "floating-point number (uppercase)" '%F'
+		complete -T -P "$PREFIX" -D "floating-point number with exponent (lowercase)" '%e'
+		complete -T -P "$PREFIX" -D "floating-point number with exponent (uppercase)" '%E'
+		complete -T -P "$PREFIX" -D "%f or %e (automatically selected)" '%g'
+		complete -T -P "$PREFIX" -D "%F or %E (automatically selected)" '%G'
+		complete -T -P "$PREFIX" -D "first character of a string" '%c'
+		complete -T -P "$PREFIX" -D "string" '%s'
+		complete -T -P "$PREFIX" -D "string (escape sequences allowed)" '%b'
+		complete -T -P "$PREFIX" -D "%" '%%'
+		return 0 #<<#
+	esac
+
+	return 1
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
