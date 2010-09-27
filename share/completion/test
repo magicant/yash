@@ -1,0 +1,67 @@
+# (C) 2010 magicant
+
+# Completion script for the "test" built-in command.
+# Completion function "completion/test" is used for the "[" built-in as well.
+
+function completion/test {
+
+	WORDS=('(' "${WORDS[2,-1]}")
+
+	# complete unary operator
+	case ${WORDS[-1]} in ('('|!|-[ao])
+		complete -D "check if a file is a block special file" -- -b
+		complete -D "check if a file is a character special file" -- -c
+		complete -D "check if a file is a directory" -- -d
+		complete -D "check if a file exists" -- -e
+		complete -D "check if a file is a regular file" -- -f
+		complete -D "check if a file is owned by the current group" -- -G
+		complete -D "check if a file's set-group-ID flag is set" -- -g
+		complete -D "check if a file is a symbolic link" -- -h
+		complete -D "check if a file's sticky bit is set" -- -k
+		complete -D "check if a file is a symbolic link" -- -L
+		complete -D "check if a file hasn't been accessed since last modified" -- -N
+		complete -D "check if a file is owned by the current user" -- -O
+		complete -D "check if a file is a FIFO (named pipe)" -- -p
+		complete -D "check if a file is readable" -- -r
+		complete -D "check if a file is a socket" -- -S
+		complete -D "check if a file is not empty" -- -s
+		complete -D "check if a file's set-user-ID flag is set" -- -u
+		complete -D "check if a file is writable" -- -w
+		complete -D "check if a file is executable" -- -x
+		complete -D "check if a file descriptor is a terminal" -- -t
+		complete -D "check if a string is not empty" -- -n
+		complete -D "check if a string is empty" -- -z
+	esac
+
+	# complete binary operator
+	case ${WORDS[-2]} in ('('|!|-[ao])
+		complete -D "check if a file is newer than another" -- -nt
+		complete -D "check if a file is older than another" -- -ot
+		complete -D "check if a file is a hard link to another" -- -ef
+		complete -D "check if a string is the same as another" -- =
+		complete -D "check if a string is the same as another" -- ==
+		complete -D "check if a string is different from another" -- !=
+		complete -D "check if a string is the same as another according to the current locale" -- ===
+		complete -D "check if a string is different from another according to the current locale" -- !==
+		complete -D "compare two strings in the alphabetical order" -- '<' '<=' '>' '>='
+		complete -D "check if an integer is equal to another" -- -eq
+		complete -D "check if an integer is unequal to another" -- -ne
+		complete -D "check if an integer is greater than another" -- -gt
+		complete -D "check if an integer is greater than or equal to another" -- -ge
+		complete -D "check if an integer is less than another" -- -lt
+		complete -D "check if an integer is less than or equal to another" -- -le
+		complete -D "check if a version number is equal to another" -- -veq
+		complete -D "check if a version number is unequal to another" -- -vne
+		complete -D "check if a version number is greater than another" -- -vgt
+		complete -D "check if a version number is greater than or equal to another" -- -vge
+		complete -D "check if a version number is less than another" -- -vlt
+		complete -D "check if a version number is less than or equal to another" -- -vle
+	esac
+
+	# complete operand
+	complete -f
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

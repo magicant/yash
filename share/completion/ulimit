@@ -1,0 +1,105 @@
+# (C) 2010 magicant
+
+# Completion script for the "ulimit" built-in command.
+
+function completion/ulimit {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"H --hard; set or print the hard limit"
+	"S --soft; set or print the soft limit"
+	"a --all; print all resource types with the current limits"
+	"--help"
+	) #<#
+
+	typeset limits="$(command -b ulimit -a 2>/dev/null)"
+	case $limits in (*'-c: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"c --core; maximum size of core files in 512-byte blocks"
+		) #<#
+	esac
+	case $limits in (*'-d: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"d --data; maximum size of a process's data segment in kilobytes"
+		) #<#
+	esac
+	case $limits in (*'-e: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"e --nice; maximum scheduling priority (nice value)"
+		) #<#
+	esac
+	case $limits in (*'-f: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"f --fsize; maximum size of files created by a process in 512-byte blocks"
+		) #<#
+	esac
+	case $limits in (*'-i: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"i --sigpending; maximum number of pending signals"
+		) #<#
+	esac
+	case $limits in (*'-l: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"l --memlock; maximum memory size that can be locked into RAM (in kilobytes)"
+		) #<#
+	esac
+	case $limits in (*'-m: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"m --rss; maximum size of a process's resident set (in kilobytes)"
+		) #<#
+	esac
+	case $limits in (*'-n: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"n --nofile; maximum file descriptor + 1"
+		) #<#
+	esac
+	case $limits in (*'-q: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"q --msgqueue; maximum size of POSIX message queues (in bytes)"
+		) #<#
+	esac
+	case $limits in (*'-r: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"r --rtprio; maximum real-time scheduling priority"
+		) #<#
+	esac
+	case $limits in (*'-s: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"s --stack; maximum stack size (in kilobytes)"
+		) #<#
+	esac
+	case $limits in (*'-t: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"t --cpu; CPU time that can be used by a process (in seconds)"
+		) #<#
+	esac
+	case $limits in (*'-u: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"u --nproc; maximum number of processes for a user"
+		) #<#
+	esac
+	case $limits in (*'-v: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"v --as; maximum size of memory used by a process (in kilobytes)"
+		) #<#
+	esac
+	case $limits in (*'-x: '*)
+		OPTIONS=("$OPTIONS" #>#
+		"x --locks; maximum number of file locks"
+		) #<#
+	esac
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete unlimited
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
