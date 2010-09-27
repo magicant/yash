@@ -8,7 +8,7 @@ function completion/test {
 	WORDS=('(' "${WORDS[2,-1]}")
 
 	# complete unary operator
-	case ${WORDS[-1]} in ('('|!|-[ao])
+	case ${WORDS[-1]} in ('('|!|-[ao]) #>>#
 		complete -D "check if a file is a block special file" -- -b
 		complete -D "check if a file is a character special file" -- -c
 		complete -D "check if a file is a directory" -- -d
@@ -31,10 +31,10 @@ function completion/test {
 		complete -D "check if a file descriptor is a terminal" -- -t
 		complete -D "check if a string is not empty" -- -n
 		complete -D "check if a string is empty" -- -z
-	esac
+	esac #<<#
 
 	# complete binary operator
-	case ${WORDS[-2]} in ('('|!|-[ao])
+	case ${WORDS[-2]} in ('('|!|-[ao]) #>>#
 		complete -D "check if a file is newer than another" -- -nt
 		complete -D "check if a file is older than another" -- -ot
 		complete -D "check if a file is a hard link to another" -- -ef
@@ -56,7 +56,7 @@ function completion/test {
 		complete -D "check if a version number is greater than or equal to another" -- -vge
 		complete -D "check if a version number is less than another" -- -vlt
 		complete -D "check if a version number is less than or equal to another" -- -vle
-	esac
+	esac #<<#
 
 	# complete operand
 	complete -f

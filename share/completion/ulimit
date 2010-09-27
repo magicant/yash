@@ -94,9 +94,9 @@ function completion/ulimit {
 	(-)
 		command -f completion//completeoptions
 		;;
-	(*)
+	(*) #>>#
 		complete unlimited
-		;;
+		;; #<<#
 	esac
 
 }
