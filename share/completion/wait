@@ -1,0 +1,38 @@
+# (C) 2010 magicant
+
+# Completion script for the "wait" built-in command.
+
+function completion/wait {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		case $TARGETWORD in
+		(%*)
+			# complete job name
+			complete -P % -j
+			;;
+		(*)
+			# complete job process ID
+			typeset pid status
+			while read -r pid status; do
+				complete -D "$(ps -p $pid -o args=)" -- $pid
+			done 2>/dev/null <(jobs -l |
+				sed -e 's/^\[[[:digit:]]*\][[:blank:]]*[-+]//')
+			;;
+		esac
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

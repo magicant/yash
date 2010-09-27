@@ -1,0 +1,39 @@
+# (C) 2010 magicant
+
+# Completion script for the "unset" built-in command.
+
+function completion/unset {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"f --functions; remove functions"
+	"v --variables; remove variables"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		typeset i=1 func=false
+		while [ $i -le ${WORDS[#]} ]; do
+			case ${WORDS[i++]} in
+				(-f|--functions) func=true  ;;
+				(-v|--variables) func=false ;;
+				(--)             break ;;
+			esac
+		done
+		if $func; then
+			complete --function
+		else
+			complete -v
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
