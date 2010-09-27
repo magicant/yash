@@ -722,9 +722,6 @@ void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc,
  * built-in invocation. */
 void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
 {
-    bool isdir = (cand->type == CT_FILE) &&
-	S_ISDIR(cand->appendage.filestat.mode);
-
     xwcsbuf_T buf;
     wb_initwith(&buf, cand->value);
 
@@ -735,15 +732,18 @@ void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
 	wb_ninsert_force(&buf, 0, origsrc, prefixlength);
 
     /* append suffix */
-    if (compopt->suffix != NULL)
-	wb_cat(&buf, compopt->suffix);
-    else if (isdir && buf.length > 0 && buf.contents[buf.length - 1] != L'/')
+    bool allowterminate = true;
+    if ((cand->type == CT_FILE) && S_ISDIR(cand->appendage.filestat.mode) &&
+	    !(compopt->type & CGT_DIRECTORY)) {
 	wb_wccat(&buf, L'/');
+	allowterminate = false;
+    } else if (compopt->suffix != NULL) {
+	wb_cat(&buf, compopt->suffix);
+    }
 
     cand->origvalue = wb_towcs(&buf);
     cand->value = cand->origvalue + prefixlength;
-    cand->terminate = compopt->terminate &&
-	(cand->type != CT_FILE || !S_ISDIR(cand->appendage.filestat.mode));
+    cand->terminate = compopt->terminate && allowterminate;
 
     if (le_state_is_compdebug) {
 	const char *typestr = NULL;
