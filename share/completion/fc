@@ -22,7 +22,7 @@ function completion/fc {
 		command -f completion//completeoptions
 		;;
 	(e|--editor)
-		complete -P "$PREFIX" -c
+		complete -P "$PREFIX" -c --normal-alias
 		;;
 	(*)
 		typeset num cmd

@@ -521,7 +521,7 @@ function completion//reexecute {
 		else
 			case $TARGETWORD in
 				*/*) complete -d --executable-file ;;
-				*  ) complete -cd ;;
+				*  ) complete -cdk ;;
 			esac
 		fi
 		return

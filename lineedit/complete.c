@@ -1434,7 +1434,7 @@ const char complete_help[] = Ngt(
 "    --array-variable        array variables\n"
 "    --bindkey               command names for line-editing key bindings\n"
 " -b --builtin-command       built-in commands\n"
-" -c --command               commands and shell keywords\n"
+" -c --command               commands and functions\n"
 " -d --directory             directories\n"
 "    --executable-file       executable regular files\n"
 "    --external-command      external commands\n"
