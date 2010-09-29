@@ -80,8 +80,8 @@ testreg type
 
 command -Vb sh 2>&1 || PATH= command -vp sh >/dev/null && echo ok
 
-command -b echo echo
-echo command -b echo = $?
+command -b eval echo echo
+echo command -b eval = $?
 command --builtin-command cat /dev/null 2>/dev/null
 echo command -b cat = $?
 command -e ls >/dev/null

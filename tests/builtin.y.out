@@ -81,7 +81,7 @@ wait: semi-special builtin
 command: sh: no such command or function
 ok
 echo
-command -b echo = 0
+command -b eval = 0
 command -b cat = 127
 command -e ls = 0
 command -e exit 50 = 127
