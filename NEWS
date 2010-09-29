@@ -11,11 +11,12 @@ History of Yash
 Yash 2.24
 
   +  New option for the "." built-in: -L
-  +  New option for the "complete" built-in: -A
   +  New options for the "command" built-in: -a, -f, -k
   -  Removed the -B option for the "command" built-in.
   =  Fixed configuration process so that the shell can handle all
      kinds of signals on FreeBSD.
+  =  New command completion mechanism. (Changed the usage of the
+     "complete" built-in)
   =  Short options now come before long options in a completion
      candidate list.
   *  Symbolic links to non-existent files can now be completed.
