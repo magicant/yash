@@ -1368,7 +1368,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 #endif
 	    default:
 		fprintf(stderr,
-		    gt("Usage:  complete [-T] [-P prefix] [-S suffix] \\"
+		    gt("Usage:  complete [-T] [-P prefix] [-S suffix] \\\n"
 			"        [-abcdfghjkuv] [[-O] [-D desc] words...]\n"));
 		return Exit_ERROR;
 dupopterror:

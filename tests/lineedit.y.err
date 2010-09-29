@@ -7,43 +7,7 @@ Usage:  bindkey -aev [keyseq [command]]
 bindkey: no-such-command: no such command
 bindkey: cannot bind empty sequence
 bindkey: ~~~: unbound sequence
-complete: invalid option specification: -O 
-complete: invalid option specification: -O xx
-complete: invalid option specification: -O xxxxxxx
-complete: invalid option specification: -O -
-complete: invalid option specification: -O --
-complete: too many -O options specified
-complete: too many -O options specified
-complete: more than one -C option specified
-complete: more than one -D option specified
-complete: more than one -F option specified
-complete: -O option specified without -C option
-complete: more than one of -P, -R, -G option specified
-Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-AXabcdfghjkouv] [words...]
-        complete -P|-R [-C command] [-O option]
-        complete -G words...
-complete: -P option cannot be used with style specification
-Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-AXabcdfghjkouv] [words...]
-        complete -P|-R [-C command] [-O option]
-        complete -G words...
-complete: -R option cannot be used with style specification
-Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-AXabcdfghjkouv] [words...]
-        complete -P|-R [-C command] [-O option]
-        complete -G words...
-complete: -G option cannot be used with style specification
-Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-AXabcdfghjkouv] [words...]
-        complete -P|-R [-C command] [-O option]
-        complete -G words...
-complete: -G option cannot be used with -C option
-Usage:  complete [-C command] [-O option] [-D description] \
-                 [-F function] [-AXabcdfghjkouv] [words...]
-        complete -P|-R [-C command] [-O option]
-        complete -G words...
-complete: not in candidate generator function, but -C, -P, -R option not specified
-complete: -C foo -O a -O --error: specified short and long options don't match with ones already registered
-complete: -C foo -O A -O --all: specified short and long options don't match with ones already registered
-complete: -C foo -O b -O --binary: specified short and long options don't match with ones already registered
+complete: --no-such-option: invalid option
+Usage:  complete [-T] [-P prefix] [-S suffix] \
+        [-abcdfghjkuv] [[-O] [-D desc] words...]
+complete: can only be used during command line completion
