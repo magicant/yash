@@ -648,11 +648,9 @@ void complete_command_default(void)
 	compopt.type = CGT_DIRECTORY | CGT_EXECUTABLE;
     } else {
 	compopt.type = CGT_DIRECTORY | CGT_COMMAND;
-	if (ctxt->quote == QUOTE_NORMAL
-		&& !wcschr(ctxt->pattern, L'\\'))
+	if (ctxt->quote == QUOTE_NORMAL && !wcschr(ctxt->pattern, L'\\'))
 	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
     }
-
     generate_candidates(&compopt);
 }
 
