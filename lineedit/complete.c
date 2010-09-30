@@ -635,19 +635,24 @@ void set_completion_variables(void)
 /* Performs command name completion in the default settings. */
 void complete_command_default(void)
 {
-    le_compopt_T compopt = {
-	.ctxt = ctxt,
-	.src = ctxt->src,
-	.pattern = ctxt->pattern,
-	.cpattern = NULL,
-	.suffix = NULL,
-	.terminate = true,
-    };
+    le_compopt_T compopt;
 
+    compopt.ctxt = ctxt;
+    compopt.src = ctxt->src;
+    compopt.pattern = ctxt->pattern;
+    compopt.cpattern = NULL;
+
+    compopt.type = CGT_DIRECTORY;
+    compopt.suffix = L"/";
+    compopt.terminate = false;
+    generate_file_candidates(&compopt);
+
+    compopt.suffix = NULL;
+    compopt.terminate = true;
     if (wcschr(ctxt->src, L'/')) {
-	compopt.type = CGT_DIRECTORY | CGT_EXECUTABLE;
+	compopt.type = CGT_EXECUTABLE;
     } else {
-	compopt.type = CGT_DIRECTORY | CGT_COMMAND;
+	compopt.type = CGT_COMMAND;
 	if (ctxt->quote == QUOTE_NORMAL && !wcschr(ctxt->pattern, L'\\'))
 	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
     }
