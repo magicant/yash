@@ -107,6 +107,7 @@ static void print_context_info(const le_context_T *ctxt)
 static void execute_completion_function(void);
 static bool autoload_completion_function(void);
 static bool call_standard_completion_function(void);
+static void complete_command_default(void);
 
 static void simple_completion(le_candgentype_T type);
 static void generate_candidates(const le_compopt_T *compopt)
@@ -522,18 +523,8 @@ void execute_completion_function(void)
 	    simple_completion(CGT_FILE);
 	    break;
 	case CTXT_COMMAND:
-	    if (!call_completion_function(L"" DEFAULT_COMPFUNC)) {
-		le_candgentype_T type;
-		if (wcschr(ctxt->src, L'/')) {
-		    type = CGT_DIRECTORY | CGT_EXECUTABLE;
-		} else {
-		    type = CGT_DIRECTORY | CGT_COMMAND;
-		    if (ctxt->quote == QUOTE_NORMAL
-			    && !wcschr(ctxt->pattern, L'\\'))
-			type |= CGT_KEYWORD | CGT_NALIAS;
-		}
-		simple_completion(type);
-	    }
+	    if (!call_completion_function(L"" DEFAULT_COMPFUNC))
+		complete_command_default();
 	    break;
 	case CTXT_ARGUMENT:
 	    if (!call_standard_completion_function()) {
@@ -639,6 +630,30 @@ void set_completion_variables(void)
 	    SCOPE_LOCAL);
     set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src),
 	    SCOPE_LOCAL, false);
+}
+
+/* Performs command name completion in the default settings. */
+void complete_command_default(void)
+{
+    le_compopt_T compopt = {
+	.ctxt = ctxt,
+	.src = ctxt->src,
+	.pattern = ctxt->pattern,
+	.cpattern = NULL,
+	.suffix = NULL,
+	.terminate = true,
+    };
+
+    if (wcschr(ctxt->src, L'/')) {
+	compopt.type = CGT_DIRECTORY | CGT_EXECUTABLE;
+    } else {
+	compopt.type = CGT_DIRECTORY | CGT_COMMAND;
+	if (ctxt->quote == QUOTE_NORMAL
+		&& !wcschr(ctxt->pattern, L'\\'))
+	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
+    }
+
+    generate_candidates(&compopt);
 }
 
 
