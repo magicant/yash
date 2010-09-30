@@ -1,10 +1,27 @@
-# completion settings for the alias built-in
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-complete -C "$1" -Xa
-complete -C "$1" -O g -O --global \
-	-D "define global aliases"
-complete -C "$1" -O p -O --prefix \
-	-D "print aliases as reusable shell commands"
-complete -C "$1" -O --help
+# Completion script for the "alias" built-in command.
+
+function completion/alias {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"g --global; define global aliases"
+	"p --prefix; print aliases as reusable shell commands"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -a
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

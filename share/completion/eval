@@ -1,28 +1,42 @@
-# completion settings for the eval built-in
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-complete -C "$1" -F comp/eval
-complete -C "$1" -O i -O --iteration \
-	-D "perform iterative execution on each operand"
-complete -C "$1" -O --help
+# Completion script for the "eval" built-in command.
 
-function comp/eval {
-	# skip options
-	shift
-	while [ $# -gt 0 ]; do
-		case "$1" in
-			--)   shift; break;;
+function completion/eval {
 
-	# when the -i option is specified, complete any operand as a command
-			-*i*) complete -G -- "${@[-1]}"; return;;
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"i --iteration; perform iterative execution on each operand"
+	"--help"
+	) #<#
 
-			-?*)  shift; continue;;
-			*)    break;
-		esac
-	done
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		typeset iteration=false word
+		for word in "${WORDS[2,-1]}"; do
+			case $word in
+			(-i|--iteration)
+				iteration=true
+				;;
+			(--)
+				break
+				;;
+			esac
+		done
+		if $iteration; then
+			complete -c
+		else
+			command -f completion//getoperands
+			command -f completion//reexecute
+		fi
+		;;
+	esac
 
-	# when the -i option is not specified, complete the whole operands
-	# as a command line
-	complete -G -- "$@"
 }
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

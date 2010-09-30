@@ -1,98 +1,97 @@
-# completion settings for the chown command (POSIX 2008; GNU coreutils 8.4
-# FreeBSD 8.1; OpenBSD 4.8; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10)
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-typeset gnu= bsd= freebsd= openbsd= netbsd= darwin= sunos= hpux=
-case "$("$1" --version 2>/dev/null)" in
-	*'coreutils'*)
-		gnu=true
-		complete -C "$1" -X
-		;;
-	*)
-		case $(uname) in
-			FreeBSD) bsd=true   freebsd=true ;;
-			OpenBSD) bsd=true   openbsd=true ;;
-			NetBSD)  bsd=true   netbsd=true  ;;
-			Darwin)  bsd=true   darwin=true  ;;
-			*BSD)    bsd=true   ;;
-			SunOS)   sunos=true ;;
-			HP-UX)   hpux=true  ;;
-		esac
-		;;
-esac
+# Completion script for the "chown" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i.
 
-complete -C "$1" -F comp/chown
+function completion/chown {
 
-if [ "$sunos$bsd$gnu" ]; then
-	complete -C "$1" -O f ${gnu:+-O --silent} \
-		-D "ignore errors"
-fi
-complete -C "$1" -O h ${gnu:+-O --no-dereference} \
-	-D "change the owner of symbolic links"
-complete -C "$1" -O H \
-	-D "follow symbolic links to directories in operands (with -R)"
-complete -C "$1" -O L \
-	-D "follow all symbolic links to directories (with -R)"
-complete -C "$1" -O P \
-	-D "don't follow any symbolic links (with -R)"
-complete -C "$1" -O R ${gnu:+-O --recursive} \
-	-D "recursively change the owner of files in a directory"
-if [ "$netbsd$freebsd$darwin$gnu" ]; then
-	complete -C "$1" -O v ${gnu:+-O --verbose} \
-		-D "print a message for each file processed"
-fi
-if [ "$freebsd" ]; then
-	complete -C "$1" -O x \
-		-D "stop recursion when reaching a different file system"
-fi
-if [ "$gnu" ]; then
-	complete -C "$1" -O c -O --changes \
-		-D "print a message when a change has been made"
-	complete -C "$1" -O --dereference \
-		-D "change the owner of files referred to by symbolic links"
-	complete -C "$1" -O --from -F comp/chown/op \
-		-D "specify an owner:group only from which changes are made"
-	complete -C "$1" -O --no-preserve-root \
-		-D "cancel the --preserve-root option"
-	complete -C "$1" -O --preserve-root \
-		-D "don't recursively change the owner of the root directory"
-	complete -C "$1" -O --quiet \
-		-D "ignore errors"
-	complete -C "$1" -O --reference -f \
-		-D "specify a file to whose owner changes are made"
-	complete -C "$1" -O --help
-	complete -C "$1" -O --version
-fi
-
-function comp/chown {
-	shift
-	while [ $# -gt 1 ]; do
-		case "$1" in
-			--)
-				if [ $# -eq 2 ]; then
-					break
-				else
-					complete -f
-				fi
-				return ;;
-			--ref*)
-				complete -f
-				return ;;
-			-?*)
-				shift ;;
-			*)
-				complete -f
-				return ;;
-		esac
-	done
-	command -f comp/chown/op "$@"
-}
-
-function comp/chown/op {
-	typeset word="${@[-1]}"
-	case "$word" in
-		*:*) complete -W "${word#*:}" -g ;;
-		*  ) complete                 -u ;;
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
 	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"h ${long:+--no-dereference}; change the owner of symbolic links"
+	"H; follow symbolic links to directories in operands (with -R)"
+	"L; follow all symbolic links to directories (with -R)"
+	"P; don't follow any symbolic links (with -R)"
+	"R ${long:+--recursive}; recursively change the owner of files in a directory"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|*BSD|Darwin|SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"f ${long:+--silent --quiet}; suppress error messages"
+		) #<#
+		case $type in (GNU|NetBSD|FreeBSD|Darwin)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"v ${long:+--verbose}; print a message for each file processed"
+			) #<#
+		esac
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"c ${long:+--changes}; print a message when a change has been made"
+		"--dereference; change the owner of files referred to by symbolic links"
+		"--from:; specify an owner:group only from which changes are made"
+		"--no-preserve-root; cancel the --preserve-root option"
+		"--preserve-root; don't recursively change the owner of the root directory"
+		"--reference:; specify a file to whose owner changes are made"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(FreeBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"x; stop recursion when reaching a different file system"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	typeset ownergroup=false
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--reference)
+		complete -P "$PREFIX" -f
+		;;
+	(--from)
+		ownergroup=true
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -eq 0 ]; then
+			ownergroup=true
+		else
+			complete -f
+		fi
+		;;
+	esac
+	if $ownergroup; then
+		case ${TARGETWORD#"$PREFIX"} in
+		(*:*)
+			PREFIX=$PREFIX${${TARGETWORD#"$PREFIX"}%%:*}:
+			complete -P "$PREFIX" -g
+			;;
+		(*)
+			complete -T -P "$PREFIX" -S : -u
+			;;
+		esac
+	fi
+
 }
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

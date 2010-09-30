@@ -226,18 +226,18 @@ int print_builtin_help(const wchar_t *name)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates completion candidates for builtin command names that match the glob
- * pattern in the specified context. The CGT_SBUILTIN, CGT_SSBUILTIN, and
- * CGT_RBUILTIN flags in `type' specify what candidate to generate. The other
- * flags are ignored. */
+/* Generates completion candidates for built-in command names matching the
+ * pattern. The CGT_SBUILTIN, CGT_SSBUILTIN, and CGT_RBUILTIN flags in
+ * `compopt->type' specify what candidate to generate. The other flags are
+ * ignored. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_builtin_candidates(le_candgentype_T type, le_context_T *context)
+void generate_builtin_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_BUILTIN))
+    if (!(compopt->type & CGT_BUILTIN))
 	return;
 
-    le_compdebug("adding builtins for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    le_compdebug("adding builtins for pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     size_t i = 0;
@@ -245,20 +245,21 @@ void generate_builtin_candidates(le_candgentype_T type, le_context_T *context)
     while ((kv = ht_next(&builtins, &i)).key != NULL) {
 	switch (((const builtin_T *) kv.value)->type) {
 	    case BI_SPECIAL:
-		if (!(type & CGT_SBUILTIN))
+		if (!(compopt->type & CGT_SBUILTIN))
 		    continue;
 		break;
 	    case BI_SEMISPECIAL:
-		if (!(type & CGT_SSBUILTIN))
+		if (!(compopt->type & CGT_SSBUILTIN))
 		    continue;
 		break;
 	    case BI_REGULAR:
-		if (!(type & CGT_RBUILTIN))
+		if (!(compopt->type & CGT_RBUILTIN))
 		    continue;
 		break;
 	}
-	if (xfnm_match(context->cpattern, kv.key) == 0)
-	    le_new_command_candidate(malloc_mbstowcs(kv.key));
+	if (xfnm_match(compopt->cpattern, kv.key) == 0)
+	    le_new_candidate(CT_COMMAND,
+		    malloc_mbstowcs(kv.key), NULL, compopt);
     }
 }
 

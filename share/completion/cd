@@ -1,41 +1,70 @@
-# completion settings for the cd/pushd built-ins
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-complete -C "$1" -Xd -F comp/cd
+# Completion script for the "cd" built-in command.
+# Completion function "completion/cd" is used for the "dirs", "pushd", "popd"
+# built-ins as well.
 
-complete -C "$1" -O L -O --logical \
-	-D "keep symbolic links in the \$PWD variable as is"
-complete -C "$1" -O P -O --physical \
-	-D "resolve symbolic links in the \$PWD variable"
-complete -C "$1" -O --default-directory -d \
-	-D "specify the default directory to change to"
-if [ x"$1" = x"pushd" ]; then
-	complete -C "$1" -O --remove-duplicates \
-		-D "remove duplicates in the directory stack"
-fi
-complete -C "$1" -O --help
+function completion/cd {
 
-# Note: this function is also used for completion of the dirs and popd commands
-function comp/cd
-	# complete directory stack item numbers
-	if [ "${DIRSTACK+set}" ]; then
-		typeset word ds i
-		word="${@[-1]}" ds=("$DIRSTACK") i=1
-		case "$word" in
-		-*)
-			while [ $i -le ${ds[#]} ]; do
-				complete -D "${ds[i]}" -- "-$((i-1))"
-				i=$((i+1))
-			done
-			complete -D "$PWD" -- "-${ds[#]}"
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--help"
+	) #<#
+	case ${WORDS[1]} in
+	(cd|pushd)
+		OPTIONS=("$OPTIONS" #>#
+		"L --logical; keep symbolic links in the \$PWD variable as is"
+		"P --physical; resolve symbolic links in the \$PWD variable"
+		"--default-directory:; specify the default directory to change to"
+		) #<#
+		if [ "${WORDS[1]}" = "pushd" ]; then
+			OPTIONS=("$OPTIONS" #>#
+			"--remove-duplicates; remove duplicates in the directory stack"
+			) #<#
+		fi
+		;;
+	(dirs)
+		OPTIONS=("$OPTIONS" #>#
+		"c --clear; clear the directory stack completely"
+		"v --verbose; print stack entries with their indices"
+		) #<#
+		;;
+	esac
+
+	typeset dirstack=false
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		case $TARGETWORD in
+		(-*[[:digit:]]*)
 			;;
-		+*)
-			while [ $i -le ${ds[#]} ]; do
-				complete -D "${ds[-i]}" -- "+$i"
-				i=$((i+1))
-			done
-			complete -D "$PWD" -- "+0"
+		(*)
+			command -f completion//completeoptions
 			;;
 		esac
+		dirstack=true
+		;;
+	(--default-directory)
+		complete -P "$PREFIX" -d
+		;;
+	(*)
+		case ${WORDS[1]} in (cd|pushd)
+			complete -d
+		esac
+		dirstack=true
+		;;
+	esac
+
+	if $dirstack; then
+		case ${WORDS[1]} in (dirs|pushd|popd)
+			if command -vf completion//completedirstack >/dev/null 2>&1 ||
+				. -AL completion/_dirstack; then
+				command -f completion//completedirstack
+			fi
+		esac
 	fi
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

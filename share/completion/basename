@@ -1,40 +1,49 @@
-# completion settings for the basename command (POSIX 2008; GNU coreutils 8.4)
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-case "$("$1" --version 2>/dev/null)" in
-	*'coreutils'*)
-		typeset gnu=true
+# Completion script for the "basename" command.
+# Supports POSIX 2008, GNU coreutils 8.4.
+
+function completion/basename {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type= ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=()
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" "--help" "--version")
 		;;
-	*)
-		typeset gnu=
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
 		;;
-esac
-
-complete -C "$1" -F comp/basename
-
-if [ "$gnu" ]; then
-	complete -C "$1" -O --help
-	complete -C "$1" -O --version
-fi
-
-function comp/basename {
-	shift
-	while [ $# -gt 0 ]; do
-		case "$1" in
-			--)  shift; break;;
-			-?*) shift; continue;;
-			*)          break;;
-		esac
-	done
-	if [ $# -eq 1 ]; then
-		complete -f
-	elif [ $# -eq 2 ]; then
-		typeset word="$(sed -e 's;/*$;;' -e 's;^.*/;;' <<<"$1")"
-		if [ "$word" ]; then
+	(*)
+		command -f completion//getoperands
+		case ${WORDS[#]} in
+		(0)
+			complete -f
+			;;
+		(1)
+			typeset word="$(sed -e 's;/*$;;' -e 's;^.*/;;' <<<"${WORDS[1]}")"
 			while word=${word#?}; [ "$word" ]; do
 				complete -- "$word"
 			done
-		fi
-	fi
+			;;
+		esac
+		;;
+	esac
+
 }
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

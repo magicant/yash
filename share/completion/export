@@ -1,0 +1,10 @@
+# (C) 2010 magicant
+
+# Completion script for the "export" built-in command.
+
+function completion/export {
+	command -f completion//reexecute typeset
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

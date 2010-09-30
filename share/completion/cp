@@ -1,164 +1,159 @@
-# completion settings for the cp command (POSIX 2008; GNU coreutils 8.4;
-# FreeBSD 8.1; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10; HP-UX 11i)
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-case "$("$1" --version 2>/dev/null)" in
-	*'coreutils'*)
-		typeset gnu=true
-		complete -C "$1" -X
-		;;
-	*)
-		typeset gnu=
-		;;
-esac
+# Completion script for the "cp" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i.
 
-complete -C "$1" -f
+function completion/cp {
 
-complete -C "$1" -O f ${gnu:+-O --force} \
-	-D "remove unwritable destination files before copying"
-complete -C "$1" -O H \
-	-D "follow symbolic links in source operands"
-complete -C "$1" -O i ${gnu:+-O --interactive} \
-	-D "ask before overwriting existing files"
-complete -C "$1" -O L ${gnu:+-O --dereference} \
-	-D "follow all symbolic links in source files"
-complete -C "$1" -O P ${gnu:+-O --no-dereference} \
-	-D "copy symbolic links as symbolic links"
-complete -C "$1" -O R ${gnu:+-O --recursive} \
-	-D "recursively copy directories"
-if [ "$gnu" ]; then
-	complete -C "$1" -O a -O --archive \
-		-D "same as -PR --preserve=all"
-	complete -C "$1" -O b \
-		-D "same as --backup=existing"
-	complete -C "$1" -O --backup -A \
-		-D "specify how to make a backup"
-	complete -C "$1" -O --backup none off \
-		-D "don't make backups"
-	complete -C "$1" -O --backup numbered t \
-		-D "make numbered backups"
-	complete -C "$1" -O --backup existing nil \
-		-D "make backups according to existing ones"
-	complete -C "$1" -O --backup simple never \
-		-D "make simple backups"
-	complete -C "$1" -O --copy-contents \
-		-D "treat special files as regular files in recursion"
-	complete -C "$1" -O d \
-		-D "same as -P --preserve=links"
-	complete -C "$1" -O l -O --link \
-		-D "make hard links instead of copying"
-	complete -C "$1" -O n -O --no-clobber \
-		-D "don't overwrite existing files"
-	complete -C "$1" -O p \
-		-D "same as --preserve=mode,ownership,timestamps"
-	complete -C "$1" -O --preserve -A -F comp/cp/preserve \
-		-D "specify file attributes to preserve"
-	complete -C "$1" -O --no-preserve -F comp/cp/preserve \
-		-D "specify file attributes not to preserve"
-	complete -C "$1" -O --parents \
-		-D "mirror parent directories in source to destination"
-	complete -C "$1" -O --reflink -A \
-		-D "lightweight (copy-on-write) copy"
-	complete -C "$1" -O --reflink always \
-		-D "print a message when failed to do copy-on-write copy"
-	complete -C "$1" -O --reflink auto \
-	-D "fall back to normal copy when failed to do copy-on-write copy"
-	complete -C "$1" -O --remove-destination \
-		-D "remove existing destination files before copying"
-	complete -C "$1" -O --sparse \
-		-D "specify when to make sparse copies"
-	complete -C "$1" -O --sparse auto \
-		-D "make destination sparse if source is sparse"
-	complete -C "$1" -O --sparse always \
-		-D "always try to make sparse copies"
-	complete -C "$1" -O --sparse never \
-		-D "never make sparse copies"
-	complete -C "$1" -O --strip-trailing-slashes \
-		-D "remove trailing slashes from source operands"
-	complete -C "$1" -O s -O --symbolic-link \
-		-D "make symbolic links instead of copying"
-	complete -C "$1" -O S -O --suffix -F comp/ \
-		-D "specify a suffix to be appended to backup file names"
-	complete -C "$1" -O t -O --target-directory -d \
-		-D "specify a destination directory"
-	complete -C "$1" -O T -O --no-target-directory \
-		-D "always treat the destination as a regular file"
-	complete -C "$1" -O u -O --update \
-		-D "don't copy if destination is newer than source"
-	complete -C "$1" -O v -O --verbose \
-		-D "print a message for each file processed"
-	complete -C "$1" -O x -O --one-file-system \
-		-D "skip subdirectories on different file systems"
-	complete -C "$1" -O --help
-	complete -C "$1" -O --version
-	function comp/cp/preserve {
-		typeset word="${@[-1]}"
-		word=${word#--*=}
-		word=${word##*,}
-		complete -W "$word"
-		complete mode \
-			-D "file permission bits"
-		complete ownership \
-			-D "owner and group"
-		complete timestamps \
-			-D "last access/modification time"
-		complete links \
-			-D "hard links"
-		complete context \
-			-D "SELinux security context"
-		complete xattr \
-			-D "extended attributes"
-		complete all \
-			-D "all attributes"
-	}
-else
-	complete -C "$1" -O p \
-		-D "preserve file attributes"
-	case $(uname) in
-	HP-UX)
-		complete -C "$1" -O e \
-			-D "specify extent attributes treatment"
-		complete -C "$1" -O e warn \
-		-D "print a message when failed to copy an extent attribute"
-		complete -C "$1" -O e ignore \
-			-D "don't copy extent attributes"
-		complete -C "$1" -O e force \
-		-D "don't copy a file when cannot copy the extent attribute"
-		complete -C "$1" -O S \
-			-D "safe mode"
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"f ${long:+--force}; remove unwritable destination files before copying"
+	"H; follow symbolic links in source operands"
+	"i ${long:+--interactive}; ask before overwriting existing files"
+	"L ${long:+--dereference}; follow all symbolic links in source files"
+	"P ${long:+--no-dereference}; copy symbolic links as symbolic links"
+	"R ${long:+--recursive}; recursively copy directories"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|FreeBSD|NetBSD|Darwin)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"v ${long:+--verbose}; print a message for each file processed"
+		) #<#
+		case $type in (GNU|FreeBSD|Darwin)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"n ${long:+--no-clobber}; don't overwrite existing files"
+			"x ${long:+--one-file-system}; skip subdirectories on different file systems"
+			) #<#
+			case $type in (GNU|FreeBSD)
+				ADDOPTIONS=("$ADDOPTIONS" #>#
+				"l ${long:+--link}; make hard links instead of copying"
+				) #<#
+			esac
+			case $type in (FreeBSD|Darwin)
+				ADDOPTIONS=("$ADDOPTIONS" #>#
+				"a; like -PpR"
+				) #<#
+			esac
+		esac
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"a ${long:+--archive}; like -PR --preserve=all"
+		"b; like --backup=existing"
+		"${long:+--backup::}; specify how to make a backup"
+		"c; like --preserve=context"
+		"${long:+--copy-contents}; treat special files as regular files in recursion"
+		"d; like -P --preserve=links"
+		"p; like --preserve=mode,ownership,timestamps"
+		"${long:+--preserve::}; specify file attributes to preserve"
+		"${long:+--no-preserve:}; specify file attributes not to preserve"
+		"${long:+--parents}; mirror parent directories in source to destination"
+		"${long:+--reflink::}; lightweight (copy-on-write) copy"
+		"${long:+--remove-destination}; remove existing destination files before copying"
+		"${long:+--sparse:}; specify when to make sparse copies"
+		"${long:+--strip-trailing-slashes}; remove trailing slashes from source operands"
+		"s ${long:+--symbolic-link}; make symbolic links instead of copying"
+		"S: ${long:+--suffix:}; specify a suffix to append to backup file names"
+		"t: ${long:+--target-directory:}; specify a destination directory"
+		"T ${long:+--no-target-directory}; always treat the destination as a regular file"
+		"u ${long:+--update}; don't copy if destination is newer than source"
+		"Z: ${long:+--context:}; specify security context of copies"
+		"--help"
+		"--version"
+		) #<#
 		;;
-	SunOS)
-		complete -C "$1" -O @ \
-			-D "preserve extended attributes"
-		;;
-	FreeBSD)
-		complete -C "$1" -O a \
-			-D "same as -PpR"
-		complete -C "$1" -O l \
-			-D "make hard links instead of copying"
-		complete -C "$1" -O n \
-			-D "don't overwrite existing files"
-		complete -C "$1" -O v \
-			-D "print a message for each file processed"
-		complete -C "$1" -O x \
-			-D "skip subdirectories on different file systems"
-		;;
-	NetBSD)
-		complete -C "$1" -O N \
-			-D "don't copy file flags (with -p)"
-		complete -C "$1" -O v \
-			-D "print a message for each file processed"
-		;;
-	Darwin)
-		complete -C "$1" -O a \
-			-D "same as -PpR"
-		complete -C "$1" -O n \
-			-D "don't overwrite existing files"
-		complete -C "$1" -O v \
-			-D "print a message for each file processed"
-		complete -C "$1" -O x \
-			-D "skip subdirectories on different file systems"
+	(*BSD|Darwin|SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"p; preserve file attributes"
+		) #<#
+		case $type in
+		(NetBSD)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"N; don't copy file flags (with -p)"
+			) #<#
+			;;
+		(SunOS)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"@; preserve extended attributes"
+			) #<#
+			;;
+		(HP-UX)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"e:; specify extent attributes treatment"
+			"S; safe mode"
+			) #<#
+			;;
+		esac
 		;;
 	esac
-fi
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--backup) #>>#
+		complete -P "$PREFIX" -D "don't make backups" none off
+		complete -P "$PREFIX" -D "make numbered backups" numbered t
+		complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
+		complete -P "$PREFIX" -D "make simple backups" simple never
+		;; #<<#
+	(e) #>>#
+		complete -P "$PREFIX" -D "print a message when failed to copy an extent attribute" warn
+		complete -P "$PREFIX" -D "don't copy extent attributes" ignore
+		complete -P "$PREFIX" -D "don't copy a file when cannot copy the extent attribute" force
+		;; #<<#
+	(--preserve|--no-preserve)
+		typeset word
+		word=${TARGETWORD#"$PREFIX"}
+		word=${word##*,}
+		PREFIX=${TARGETWORD%"$word"} #>>#
+		complete -T -P "$PREFIX" -S , -D "file permission bits" mode
+		complete -T -P "$PREFIX" -S , -D "owner and group" ownership
+		complete -T -P "$PREFIX" -S , -D "last access/modification time" timestamps
+		complete -T -P "$PREFIX" -S , -D "hard links" links
+		complete -T -P "$PREFIX" -S , -D "SELinux security context" context
+		complete -T -P "$PREFIX" -S , -D "extended attributes" xattr
+		complete -P "$PREFIX" -D "all attributes" all
+		;; #<<#
+	(--reflink) #>>#
+		complete -P "$PREFIX" -D "print a message when failed to do copy-on-write copy" always
+		complete -P "$PREFIX" -D "fall back to normal copy when failed to do copy-on-write copy" auto
+		;; #<<#
+	(--sparse) #>>#
+		complete -P "$PREFIX" -D "make destination sparse if source is sparse" auto
+		complete -P "$PREFIX" -D "always try to make sparse copies" always
+		complete -P "$PREFIX" -D "never make sparse copies" never
+		;; #<<#
+	(S|--suffix)
+		;;
+	(t|--target-directory)
+		complete -P "$PREFIX" -d
+		;;
+	(Z|--context)
+		# TODO
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

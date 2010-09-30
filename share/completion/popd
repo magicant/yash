@@ -1,8 +1,8 @@
 # (C) 2010 magicant
 
-# Completion script for the "dirs" built-in command.
+# Completion script for the "popd" built-in command.
 
-function completion/dirs {
+function completion/popd {
 	command -f completion//reexecute cd
 }
 

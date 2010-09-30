@@ -1,135 +1,152 @@
-# completion settings for the set built-in
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-complete -C "$1" -F comp/set
+# Completion script for the "set" built-in command.
 
-function comp/set {
+function completion/set {
 
-typeset option=false
-shift
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a --allexport; export all variables when assigned"
+	"b --notify; print job status immediately when done"
+	"--notifyle; print job status immediately when done while line-editing"
+	"e --errexit; exit immediately when a command's exit status is non-zero"
+	"f --noglob; disable pathname expansion (globbing)"
+	"--nocaseglob; make pathname expansion case-insensitive"
+	"--dotglob; don't treat a period at the beginning of a filename specially"
+	"--markdirs; append a slash to directory names after pathname expansion"
+	"--extendedglob; enable recursive pathname expansion"
+	"--nullglob; remove words that matched nothing in pathname expansion"
+	"h --hashondef; cache full paths of commands in a function when defined"
+	"m --monitor; enable job control"
+	"n --noexec; don't execute any commands"
+	"u --nounset; disallow expansion of undefined variables"
+	"v --verbose; echo commands entered to the shell"
+	"x --xtrace; print a command line before executing it"
+	"C --noclobber; disallow >-redirection to overwrite an existing file"
+	"--ignoreeof; don't exit when an end-of-file is entered"
+	"--braceexpand; enable brace expansion"
+	"--curasync; a newly-executed background job becomes the current job"
+	"--curbg; a background job becomes the current job when resumed"
+	"--curstop; a background job becomes the current job when stopped"
+	"--histspace; don't save a command starting with a space in the history"
+	"--posix; force strict POSIX conformance"
+	"--vi; vi-like line-editing"
+	"--emacs; emacs-like line-editing"
+	"--le-convmeta; always treat meta-key flags in line-editing"
+	"--le-noconvmeta; never treat meta-key flags in line-editing"
+	"--le-visiblebell; alert with a flash, not a bell"
+	"--le-promptsp; ensure the prompt is printed at the beginning of a line"
+	"--le-alwaysrp; always show the right prompt during line-editing"
+	"--le-compdebug; print debugging info during command line completion"
+	"o:; specify an option"
+	"--help"
+	) #<#
 
-while [ $# -gt 1 ]; do
-	case "$1" in
-	--)
-		complete -f; return;;
-	--*)
-		shift;;
-	[-+]*o)
-		if [ $# -gt 2 ]; then
-			shift 2
-		else
-			shift 1; option=true
-		fi ;;
-	[-+]?*)
-		shift;;
-	*)
-		complete -f; return;;
+	# convert plus-prefixed options into hyphen-prefixed options
+	typeset i=2
+	while [ $i -le ${WORDS[#]} ]; do
+		case ${WORDS[i]} in
+		(-|--)
+			break
+			;;
+		([+-]?*)
+			;;
+		(*)
+			break
+			;;
+		esac
+		i=$((i+1))
+	done
+	WORDS=("${WORDS[1]}" "${WORDS[2,i-1]/#+/-}" "${WORDS[i,-1]}")
+
+	# the same for $TARGETWORD
+	typeset SAVETARGETWORD="$TARGETWORD"
+	if [ $i -gt ${WORDS[#]} ]; then
+		TARGETWORD=${TARGETWORD/#+/-}
+	fi
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		case $SAVETARGETWORD in
+		(-*)
+			command -f completion//completeoptions
+			;;
+		(+*)
+			TARGETWORD=$SAVETARGETWORD
+			command -f completion/set::option short
+			;;
+		esac
+		;;
+	(o)
+		PREFIX=${SAVETARGETWORD%"${TARGETWORD#"$PREFIX"}"}
+		TARGETWORD=$SAVETARGETWORD
+		command -f completion/set::option long
+		;;
+	(*)
+		complete -f
+		;;
 	esac
-done
-
-case "$1" in
---*)
-	complete -W "${1#--}"
-	complete help;;
-[-+]*o*)
-	complete -W "${1#*o}";;
-[-+]*)
-	complete -W ""
-	complete a \
-		-D "--allexport: export all variables when assigned"
-	complete b \
-		-D "--notify: print job status immediately when done"
-	complete e \
-		-D "--errexit: exit immediately when a command's exit status is non-zero"
-	complete f \
-		-D "--noglob: disable pathname expansion (globbing)"
-	complete h \
-		-D "--hashondef: cache full paths of commands in a function when defined"
-	complete m \
-		-D "--monitor: enable job control"
-	complete n \
-		-D "--noexec: don't execute any commands"
-	complete u \
-		-D "--nounset: disallow expansion of undefined variables"
-	complete v \
-		-D "--verbose: echo commands entered to the shell"
-	complete x \
-		-D "--xtrace: print a command line before executing it"
-	complete C \
-		-D "--noclobber: disallow >-redirection to overwrite an existing file"
-	complete o \
-		-D "specify option by name"
-	return;;
-*)
-	if ! $option; then
-		complete -f; return
-	fi ;;
-esac
-
-complete allexport \
-	-D "-a: export all variables when assigned"
-complete notify \
-	-D "-b: print job status immediately when done"
-complete notifyle \
-	-D "print job status immediately when done while line-editing"
-complete errexit \
-	-D "-e: exit immediately when a command's exit status is non-zero"
-complete noglob \
-	-D "-f: disable pathname expansion (globbing)"
-complete nocaseglob \
-	-D "make pathname expansion case-insensitive"
-complete dotglob \
-	-D "don't treat a period at the beginning of a filename specially"
-complete markdirs \
-	-D "append a slash to directory names after pathname expansion"
-complete extendedglob \
-	-D "enable recursive pathname expansion"
-complete nullglob \
-	-D "remove words that matched nothing in pathname expansion"
-complete hashondef \
-	-D "-h: cache full paths of commands in a function when defined"
-complete monitor \
-	-D "-m: enable job control"
-complete noexec \
-	-D "-n: don't execute any commands"
-complete nounset \
-	-D "-u: disallow expansion of undefined variables"
-complete verbose \
-	-D "-v: echo commands entered to the shell"
-complete xtrace \
-	-D "-x: print a command line before executing it"
-complete noclobber \
-	-D "-C: disallow >-redirection to overwrite an existing file"
-complete ignoreeof \
-	-D "don't exit when an end-of-file is entered"
-complete braceexpand \
-	-D "enable brace expansion"
-complete curasync \
-	-D "a newly-executed background job becomes the current job"
-complete curbg \
-	-D "a background job becomes the current job when resumed"
-complete curstop \
-	-D "a background job becomes the current job when stopped"
-complete histspace \
-	-D "don't save a command starting with a space in the history"
-complete posix \
-	-D "force strict POSIX conformance"
-complete vi \
-	-D "vi-like line-editing"
-complete emacs \
-	-D "emacs-like line-editing"
-complete le-convmeta \
-	-D "always treat meta-key flags in line-editing"
-complete le-noconvmeta \
-	-D "never treat meta-key flags in line-editing"
-complete le-visiblebell \
-	-D "alert with a flash, not a bell"
-complete le-promptsp \
-	-D "ensure the prompt is printed at the beginning of a line"
-complete le-alwaysrp \
-	-D "always show the right prompt during line-editing"
-complete le-compdebug \
-	-D "print debugging info during command line completion"
 
 }
+
+function completion/set::option {
+
+	if [ "${1-}" != long ]; then
+		typeset single=true
+	else
+		typeset single=false
+	fi
+
+	typeset opts desc
+	typeset generated=false
+	for opts in "$OPTIONS"; do
+
+		# get description
+		case $opts in
+		(*\;*)
+			desc=${opts#*;}
+			while true; do  # trim surrounding spaces
+				case $desc in
+				([[:space:]]*) desc=${desc#[[:space:]]} ;;
+				(*[[:space:]]) desc=${desc%[[:space:]]} ;;
+				(*)            break ;;
+				esac
+			done
+			;;
+		(*)
+			desc=
+			;;
+		esac
+
+		if $single; then
+			# generate single-character option
+			for opt in ${opts%%;*}; do
+				case $opt in ([[:alnum:]]|[[:alnum:]]:)
+					complete -O -P "$TARGETWORD" \
+					${desc:+-D "$desc"} "${opt%:}" &&
+					generated=true
+					break
+				esac
+			done
+		else
+			# generate candidate for first match
+			for opt in ${opts%%;*}; do
+				case $opt in (--*)
+					complete -P "$PREFIX" \
+						${desc:+-D "$desc"} \
+						-- "${opt#--}" &&
+					generated=true &&
+					break
+				esac
+			done
+		fi
+
+	done
+
+	$generated
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -1,0 +1,563 @@
+# (C) 2010 magicant
+
+# This file is autoloaded when completion is first performed by the shell.
+# This file contains utility functions that are commonly used by many
+# completion functions.
+
+
+# This function parses array $WORDS and variable $TARGETWORD according to array
+# $OPTIONS and modifies $WORDS so that the caller can easily parse $WORDS.
+#
+# $WORDS is an array containing command line words that have been already
+# entered by the user before the word being completed. The first word of $WORDS
+# is considered the command name and ignored. The other words are considered
+# arguments to the command and parsed.
+#
+# $TARGETWORD is a variable containing the word being completed.
+#
+# $OPTIONS is an array containing data about parsed options. The value of each
+# element must follow the following syntax.
+#   element     := optionlist
+#                | optionlist ";" description
+#   optionlist  := option
+#                | optionlist " " option
+#   option      := optionvalue
+#                | optionvalue ":"
+#                | optionvalue "::"
+#   optionvalue := character
+#                | "-" characters
+# An element value consists of an option list that is possibly followed by a
+# description of the options. The option list and the description is separated
+# by a semicolon and the description may contain any characters.
+# The option list consists of any number of options separated by whitespaces.
+# An option is an option value possibly followed by one or two colons.
+# An option that takes no, mandatory, and optional argument should be specified
+# with zero, one, and two colons, respectively.
+# The option value may be either a single character or a character string
+# preceded by one or more hyphens. Note that a single-character option must be
+# specified without a hyphen though it is preceded by a hyphen on the command
+# line. Also note that multiple single-character options can be combined
+# together after one hyphen on the command line. Long options, on the other
+# hand, must be specified including its preceding hyphen(s).
+#
+# The following options can be specified to this function:
+#   -e  Without -e, options are parsed only before the first operand word in
+#       $WORDS. Words after the first operand word are all considered operands.
+#       With -e, options are parsed for any words in $WORDS (except after
+#       "--"). Options and operands can be intermixed.
+#   -n  Without -n, array $WORDS is updated to reflect the parse result.
+#       Multiple single-character options after one hyphen are separated and
+#       separate option arguments are combined with the options so that the
+#       option and its argument are in the same command line word. When -s is
+#       specified or -e is not specified, options and operands in $WORDS are
+#       separated by "--".
+#       With -n, $WORDS is left intact.
+#   -s  Only meaningful when with -e and without -n.
+#       Without -s, words in $WORDS are not reordered.
+#       With -s, words in $WORDS are reordered so that all options come
+#       before operands.
+#
+# After words in $WORDS are parsed, $TARGETWORD is parsed as well and it is
+# determined how $TARGETWORD should be completed. The results are returned as
+# two variables $ARGOPT and $PREFIX.
+# If $TARGETWORD is an operand to the command, $ARGOPT and $PREFIX are empty
+# strings. If $TARGETWORD is one or more single-character option, $ARGOPT is
+# "-" and $PREFIX is $TARGETWORD. If $TARGETWORD is a long option or "-",
+# $ARGOPT is "-" and $PREFIX is an empty string. If $TARGETWORD is an option
+# followed by an argument to that option or a separate option argument (in
+# which case $TARGETWORD should be completed as an option argument), $ARGOPT
+# is the name of that option (as specified by "optionvalue" in the syntax
+# above) and $PREFIX is the part of $TARGETWORD that is not the argument.
+#
+# Note:
+# Single-hyphened long options cannot be abbreviated.
+# Optional option arguments are not supported for single-hyphened long options.
+# Ambiguous options, invalid options, etc. are silently ignored.
+function completion//parseoptions {
+
+	# use default $IFS
+	typeset IFS=" ""	""
+"
+
+	# parse options to this function itself
+	typeset opt= OPTIND=1
+	typeset extension=false update=true sort=false
+	while getopts :ens opt; do
+		case $opt in
+			(e) extension=true;;
+			(n) update=false;;
+			(s) sort=true;;
+		esac
+	done
+
+	if [ "${WORDS+set}" != "set" ] ||
+			[ ${WORDS[#]} -le 0 ] ||
+			[ "${OPTIONS+set}" != "set" ] ||
+			[ "${TARGETWORD+set}" != "set" ]; then
+		return 1
+	fi
+
+	# results
+	typeset result options operands
+	result=() options=() operands=()
+
+	# parse $WORDS
+	typeset index=1 nomoreoptions=false
+	typeset matches
+	ARGOPT= PREFIX=
+	while index=$((index+1)); [ $index -le ${WORDS[#]} ]; do
+		typeset word="${WORDS[index]}"
+		case $word in
+		(--)
+			result=("$result" "${WORDS[index,-1]}")
+			operands=("$operands" "${WORDS[index+1,-1]}")
+			nomoreoptions=true
+			break
+			;;
+		(--?*=*) # double-hyphened long option with argument
+			matches=()
+			for opt in ${OPTIONS%%;*}; do
+				case ${${opt%:}%:} in
+				("${word%%=*}")
+					matches=("$opt")
+					break
+					;;
+				("${word%%=*}"*)
+					matches=("$matches" "$opt")
+					;;
+				esac
+			done
+			if [ ${matches[#]} -eq 1 ]; then
+				opt=${matches[1]}
+				case $opt in (*:) # option argument allowed
+					opt=${${opt%:}%:} word=${word#*=}
+					result=("$result" "$opt=$word")
+					options=("$options" "$opt=$word")
+				esac
+			fi
+			;;
+		(--?*) # double-hyphened long option without argument
+			matches=()
+			for opt in ${OPTIONS%%;*}; do
+				case ${${opt%:}%:} in
+				("$word")
+					matches=("$opt")
+					break
+					;;
+				("$word"*)
+					matches=("$matches" "$opt")
+					;;
+				esac
+			done
+			if [ ${matches[#]} -eq 1 ]; then
+				opt=${matches[1]}
+				case $opt in
+				(*[!:]:) # option argument required
+					if [ $index -eq ${WORDS[#]} ]; then
+						# $TARGETWORD is argument
+						ARGOPT=${opt%:} # PREFIX=
+						break
+					else
+						index=$((index+1))
+						# ${WORDS[index]} is argument
+						result=("$result" "${opt%:}=${WORDS[index]}")
+						options=("$options" "${opt%:}=${WORDS[index]}")
+					fi
+					;;
+				(*) # no option argument
+					result=("$result" "${opt%::}")
+					options=("$options" "${opt%::}")
+					;;
+				esac
+			fi
+			;;
+		(-?*) # single-hyphened option
+			# first check for single-hyphened long option
+			for opt in ${OPTIONS%%;*}; do
+				case ${${opt%:}%:} in ("${word%%=*}")
+					case $opt in
+					(*::) # optional argument not supported
+						;;
+					(*:) # requires option argument
+						case $word in
+						(*=*)
+							result=("$result" "$word")
+							options=("$options" "$word")
+							;;
+						(*) # argument is next word
+							if [ $index -eq ${WORDS[#]} ]; then
+								# $TARGETWORD is argument
+								ARGOPT=${opt%:} # PREFIX=
+								break 2
+							else
+								index=$((index+1))
+								# ${WORDS[index]} is argument
+								result=("$result" "${opt%:}=${WORDS[index]}")
+								options=("$options" "${opt%:}=${WORDS[index]}")
+							fi
+							;;
+						esac
+						;;
+					(*) # no option argument
+						case $word in
+						(*=*) # Bad!
+							;;
+						(*) # OK!
+							result=("$result" "$opt")
+							options=("$options" "$opt")
+							;;
+						esac
+						;;
+					esac
+					continue 2
+				esac
+			done
+			# Next, check for single-character options
+			while word=${word#?}; [ "$word" ]; do
+				for opt in ${OPTIONS%%;*}; do
+					case $opt in
+					("${word[1]}") # no option argument
+						result=("$result" "-$opt")
+						options=("$options" "-$opt")
+						;;
+					("${word[1]}":) # requires option argument
+						if [ "${word#?}" ]; then
+							# rest of $word is argument
+							result=("$result" "-$word")
+							options=("$options" "-$word")
+						elif [ $index -eq ${WORDS[#]} ]; then
+							# $TARGETWORD is argument
+							ARGOPT=${opt%:} # PREFIX
+							break 3
+						else
+							index=$((index+1))
+							# ${WORDS[index]} is argument
+							result=("$result" "-${opt%:}${WORDS[index]}")
+							options=("$options" "-${opt%:}${WORDS[index]}")
+						fi
+						break 2
+						;;
+					("${word[1]}"::) # optional option argument
+						result=("$result" "-$word")
+						options=("$options" "-$word")
+						break 2
+						;;
+					esac
+				done
+			done
+			;;
+		(*) # operand
+			if $extension; then
+				result=("$result" "$word")
+				operands=("$operands" "$word")
+			else
+				result=("$result" "${WORDS[index,-1]}")
+				operands=("$operands" "${WORDS[index,-1]}")
+				nomoreoptions=true
+				break
+			fi
+			;;
+		esac
+	done
+
+	# determine if $TARGETWORD should be completed as an option
+	if ! $nomoreoptions && [ -z "$ARGOPT" ]; then
+		case $TARGETWORD in
+		(--*=*)
+			matches=()
+			for opt in ${OPTIONS%%;*}; do
+				case ${${opt%:}%:} in
+				("${TARGETWORD%%=*}")
+					matches=("$opt")
+					break
+					;;
+				("${TARGETWORD%%=*}"*)
+					matches=("$matches" "$opt")
+					;;
+				esac
+			done
+			if [ ${matches[#]} -eq 1 ]; then
+				opt=${matches[1]}
+				case $opt in (*:) # option argument allowed
+					ARGOPT=${${opt%:}%:}
+					PREFIX=${TARGETWORD%%=*}=
+				esac
+			fi
+			;;
+		(-|--*)
+			ARGOPT=- # PREFIX=
+			;;
+		(-*)
+			ARGOPT=- # PREFIX=
+			# first check for single-hyphened long option
+			typeset long=false
+			for opt in ${OPTIONS%%;*}; do
+				case ${opt%:} in ("${TARGETWORD%%=*}"*)
+					long=true
+					case $TARGETWORD in (*=*)
+						if [ "${TARGETWORD%%=*}" = "${opt%:}" ]; then
+							ARGOPT=${opt%:}
+							PREFIX=${TARGETWORD%%=*}=
+							break
+						fi
+					esac
+				esac
+			done
+			# Next, check for single-character options
+			if ! $long; then
+				typeset word=$TARGETWORD
+				while word=${word#?}; [ "$word" ]; do
+					for opt in ${OPTIONS%%;*}; do
+						case $opt in
+						("${word[1]}")
+							result=("$result" "-$opt")
+							options=("$options" "-$opt")
+							;;
+						("${word[1]}":|"${word[1]}"::)
+							ARGOPT=${${opt%:}%:}
+							PREFIX=${TARGETWORD%${word#?}}
+							break 2
+							;;
+						esac
+					done
+				done
+				if [ -z "$word" ]; then
+					PREFIX=$TARGETWORD
+				fi
+			fi
+			;;
+		esac
+	fi
+
+	# update $WORDS
+	if $update; then
+		if ! $extension || $sort; then
+			WORDS=("${WORDS[1]}" "$options" -- "$operands")
+		else
+			WORDS=("${WORDS[1]}" "$result")
+		fi
+	fi
+
+}
+
+
+# This function calls the "complete" built-in to generate candidates to
+# complete $TARGETWORD as an option. Candidates are generated according to
+# array $OPTIONS specifying options in the same syntax as the
+# "completion//parseoptions" function above. If more than one option matches
+# $TARGETWORD, only the first match is used to generate the candidate.
+#
+# This function accepts two options: -s and -S. With -s, this function
+# completes single-character options only (in which case $TARGETWORD may have
+# other single-character options already entered). With -S, $TARGETWORD is
+# completed as a single option. These options are mutually exclusive. If
+# specified both, the last specified one is effective. If specified neither,
+# it defaults to whether $PREFIX is empty or not.
+#
+# The exit status of this function is 0 if at least one candidate was
+# generated. Otherwise, the exit status is 1.
+#
+# If variable $ARGOPT is defined but its value is not "-" or if $TARGETWORD
+# does not start with a hyphen, this function does nothing but returning the
+# exit status of 2.
+function completion//completeoptions {
+
+	# use default $IFS
+	typeset IFS=" ""	""
+"
+
+	# check $PREFIX
+	if [ "${PREFIX-}" ]; then
+		typeset single=true
+	else
+		typeset single=false
+	fi
+
+	# parse options to this function itself
+	typeset opt= OPTIND=1
+	while getopts :sS opt; do
+		case $opt in
+			(s) single=true;;
+			(S) single=false;;
+		esac
+	done
+
+	if [ "${OPTIONS+set}" != "set" ] ||
+			[ "${TARGETWORD+set}" != "set" ] ||
+			[ "${ARGOPT--}" != "-" ]; then
+		return 2
+	fi
+	case $TARGETWORD in
+		(-*) ;;
+		(*)  return 2 ;;
+	esac
+
+	# generate candidates
+	typeset opts desc
+	typeset generated=false
+	for opts in "$OPTIONS"; do
+
+		# get description
+		case $opts in
+		(*\;*)
+			desc=${opts#*;}
+			while true; do  # trim surrounding spaces
+				case $desc in
+				([[:space:]]*) desc=${desc#[[:space:]]} ;;
+				(*[[:space:]]) desc=${desc%[[:space:]]} ;;
+				(*)            break ;;
+				esac
+			done
+			;;
+		(*)
+			desc=
+			;;
+		esac
+
+		if $single; then
+			# generate single-character option
+			for opt in ${opts%%;*}; do
+				case $opt in
+				([!-]|[!-]:)
+					complete -O -P "$TARGETWORD" \
+					${desc:+-D "$desc"} "${opt%:}" &&
+					generated=true
+					break
+					;;
+				([!-]::)
+					complete -OT -P "$TARGETWORD" \
+					${desc:+-D "$desc"} "${opt%::}" &&
+					generated=true
+					break
+					;;
+				esac
+			done
+		else
+			# generate candidate for first match
+			for opt in ${opts%%;*}; do
+				case $opt in
+				(-*:) # long option that takes argument
+					case ${${opt%:}%:} in ("$TARGETWORD"*)
+						complete ${desc:+-D "$desc"} \
+						-OT -- "${${opt%:}%:}=" &&
+						generated=true
+						break
+					esac
+					;;
+				(-*) # long option that does not take argument
+					case $opt in ("$TARGETWORD"*)
+						complete ${desc:+-D "$desc"} \
+							-O -- "$opt" &&
+						generated=true
+						break
+					esac
+					;;
+				(?::) # single-char option w/ optional argument
+					if [ "$TARGETWORD" = "-" ]; then
+						complete ${desc:+-D "$desc"} \
+							-OT -- "-${opt%::}" &&
+						generated=true
+						break
+					fi
+					;;
+				(?|?:) # other single-char option
+					if [ "$TARGETWORD" = "-" ]; then
+						complete ${desc:+-D "$desc"} \
+							-O -- "-${opt%:}" &&
+						generated=true
+						break
+					fi
+					;;
+				esac
+			done
+		fi
+	done
+
+	# return 0 if at least one candidate was generated
+	$generated
+
+}
+
+
+# This function removes one or more elements from the $WORDS array.
+# When this function is called, the array is supposed to contain the following
+# elements (in this order):
+#  * a command name word
+#  * any number of options that start with a hyphen
+#  * a "--" separator (optional)
+#  * any number of operands
+# This function removes any words other than operands.
+function completion//getoperands {
+
+	typeset i=2
+	while [ $i -le ${WORDS[#]} ]; do
+		case ${WORDS[i]} in
+		(--)
+			i=$((i+1))
+			break
+			;;
+		(-?*)
+			i=$((i+1))
+			;;
+		(*)
+			break
+			;;
+		esac
+	done
+	WORDS=("${WORDS[i,-1]}")
+
+}
+
+
+# This function re-executes the completion function using the current $WORDS.
+# If an argument is given to this function, it is used as the command name
+# instead of ${WORDS[1]}.
+# This function does not change $WORDS (but the completion function may do).
+function completion//reexecute {
+
+	if [ ${WORDS[#]} -le 0 ]; then
+		if command -vf completion//default >/dev/null 2>&1; then
+			command -f completion//default
+		else
+			case $TARGETWORD in
+				*/*) complete -d --executable-file ;;
+				*  ) complete -cdk ;;
+			esac
+		fi
+		return
+	fi
+
+	typeset cmd="${1-${WORDS[1]}}"
+
+	# load the function if not yet loaded
+	if command -vf "completion/$cmd" >/dev/null 2>&1; then
+		command -f "completion/$cmd"
+	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
+		command -f "completion/${cmd##*/}"
+	elif . -AL "completion/$cmd" 2>/dev/null
+			command -vf "completion/$cmd" >/dev/null 2>&1; then
+		command -f "completion/$cmd"
+	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
+		command -f "completion/${cmd##*/}"
+	elif . -AL "completion/${cmd##*/}" 2>/dev/null
+			command -vf "completion/$cmd" >/dev/null 2>&1; then
+		command -f "completion/$cmd"
+	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
+		command -f "completion/${cmd##*/}"
+	elif command -vf completion//default >/dev/null 2>&1; then
+		command -f completion//default
+	else
+		complete -f
+	fi
+
+}
+
+
+# The completion function for the "." built-in
+function completion/. {
+	# load the "_dot" file and call the "completion/." function in it
+	. -AL completion/_dot && command -f completion/. "$@"
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

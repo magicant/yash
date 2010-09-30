@@ -63,18 +63,17 @@ extern char **environ;
 #define VAR_PS4                       "PS4"
 #define VAR_PWD                       "PWD"
 #define VAR_RANDOM                    "RANDOM"
+#define VAR_TARGETWORD                "TARGETWORD"
 #define VAR_TERM                      "TERM"
+#define VAR_WORDS                     "WORDS"
 #define VAR_YASH_AFTER_CD             "YASH_AFTER_CD"
-#define VAR_YASH_COMPPATH             "YASH_COMPPATH"
 #define VAR_YASH_LE_TIMEOUT           "YASH_LE_TIMEOUT"
+#define VAR_YASH_LOADPATH             "YASH_LOADPATH"
 #define VAR_YASH_VERSION              "YASH_VERSION"
 #define L                             L""
 
 typedef enum path_T {
-    PA_PATH, PA_CDPATH,
-#if YASH_ENABLE_LINEEDIT
-    PA_COMPPATH,
-#endif
+    PA_PATH, PA_CDPATH, PA_LOADPATH,
     PA_count,
 } path_T;
 

@@ -1,8 +1,8 @@
 # (C) 2010 magicant
 
-# Completion script for the "dirs" built-in command.
+# Completion script for the "pushd" built-in command.
 
-function completion/dirs {
+function completion/pushd {
 	command -f completion//reexecute cd
 }
 

@@ -898,23 +898,15 @@ found:
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates completion candidates for job names that match the glob pattern
- * in the specified context. */
+/* Generates completion candidates for job names matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_job_candidates(le_candgentype_T type, le_context_T *context)
+void generate_job_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_JOB))
+    if (!(compopt->type & CGT_JOB))
 	return;
 
-    const wchar_t *pattern = context->pattern;
-    if (pattern[0] == L'%')
-	pattern += 1;
-    else if (pattern[0] == L'\\' && pattern[1] == L'%')
-	pattern += 2;
-    le_compdebug("adding jobs for pattern \"%ls\"", pattern);
-
-    xfnmatch_T *xfnm = xfnm_compile(pattern, XFNM_HEADONLY | XFNM_TAILONLY);
-    if (xfnm == NULL)
+    le_compdebug("adding jobs for pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     for (size_t i = 1; i < joblist.length; i++) {
@@ -922,25 +914,31 @@ void generate_job_candidates(le_candgentype_T type, le_context_T *context)
 	if (job == NULL)
 	    continue;
 	switch (job->j_status) {
-	    case JS_RUNNING:  if (!(type & CGT_RUNNING)) continue;  break;
-	    case JS_STOPPED:  if (!(type & CGT_STOPPED)) continue;  break;
-	    case JS_DONE:     if (!(type & CGT_DONE))    continue;  break;
+	    case JS_RUNNING:
+		if (!(compopt->type & CGT_RUNNING))
+		    continue;
+		break;
+	    case JS_STOPPED:
+		if (!(compopt->type & CGT_STOPPED))
+		    continue;
+		break;
+	    case JS_DONE:
+		if (!(compopt->type & CGT_DONE))
+		    continue;
+		break;
 	}
 
 	wchar_t *jobname = get_job_name(job);
-	if (xfnm_wmatch(xfnm, jobname).start != (size_t) -1) {
+	if (xfnm_wmatch(compopt->cpattern, jobname).start != (size_t) -1) {
 	    wchar_t *cand;
-	    if (context->src[0] != L'\0' && context->src[0] != L'%')
 		cand = xwcsdup(jobname);
-	    else
-		cand = malloc_wprintf(L"%%%ls", jobname);
-	    le_new_candidate(CT_JOB, cand, malloc_wprintf(L"%%%zu", i));
+	    le_new_candidate(CT_JOB, xwcsdup(jobname),
+		    malloc_wprintf(L"%%%zu", i), compopt);
 	}
 
 	if (jobname != job->j_procs[0].pr_name)
 	    free(jobname);
     }
-    xfnm_free(xfnm);
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */

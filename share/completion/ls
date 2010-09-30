@@ -1,287 +1,244 @@
-# completion settings for the ls command (POSIX 2008; GNU coreutils 8.4
-# FreeBSD 8.1; OpenBSD 4.8; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10; HP-UX 11i)
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-# These variables are set to "true" according to the environment type.
-# We first set the variables empty to override existing variables.
-typeset gnu= bsd= freebsd= openbsd= netbsd= darwin= sunos= hpux=
+# Completion script for the "ls" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i.
 
-case "$("$1" --version 2>/dev/null)" in
-	*'coreutils'*)
-		gnu=true
-		complete -C "$1" -X
-		# options may come after operands in GNU ls
+function completion/ls {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"1; print files line by line"
+	"A ${long:+--almost-all}; print all files but . and .."
+	"a ${long:+--all}; print all files"
+	"C; arrange filenames vertically"
+	"c; print or sort by last status change time"
+	"d ${long:+--directory}; print directory itself, not its contents"
+	"F ${long:+--classify}; append symbols indicating file type"
+	"f; print all files without sorting"
+	"g; like -l but don't print owners"
+	"H ${long:+--dereference-command-line}; follow symbolic links in operands"
+	"i ${long:+--inode}; print file serial number (inode)"
+	"k; print file size in kilobytes"
+	"L ${long:+--dereference}; follow all symbolic links"
+	"l; print in long format"
+	"m; print in stream output format"
+	"n ${long:+--numeric-uid-gid}; like -l but print owners and groups in numbers"
+	"o; like -l but don't print group"
+	"p; append slash to directory names"
+	"q ${long:+--hide-control-chars}; print unprintable characters as ?"
+	"R ${long:+--recursive}; print subdirectories recursively"
+	"r ${long:+--reverse}; sort in reverse order"
+	"S; sort by file size"
+	"s ${long:+--size}; print block sizes occupied by files"
+	"t; sort by last modified time"
+	"u; print or sort by last access time"
+	"x; arrange filenames horizontally"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|NetBSD|FreeBSD|Darwin|SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"b ${long:+--escape}; escape special characters like C string"
+		) #<#
+		case $type in (NetBSD|FreeBSD|Darwin)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"B; escape special characters as backslashed octal value"
+			) #<#
+		esac
+	esac
+	case $type in (GNU|*BSD|Darwin|SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"h ${long:+--human-readable}; print size using K, M, etc. for 1024^n"
+		) #<#
+	esac
+	case $type in (*BSD|Darwin)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"T; print time in full (with -l)"
+		) #<#
+		case $type in (NetBSD|FreeBSD|Darwin)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"W; show whiteouts when scanning directories"
+			"w; don't escape unprintable characters"
+			) #<#
+			case $type in (FreeBSD|Darwin)
+				ADDOPTIONS=("$ADDOPTIONS" #>#
+				"G; print filenames in color"
+				"P; don't follow symbolic links"
+				"U; print or sort by file creation time"
+				) #<#
+			esac
+		esac
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"--author; print file authors (with -l)"
+		"--block-size:; specify block size"
+		"B --ignore-backups; don't print filenames ending with ~"
+		"--color::; print filenames in color"
+		"D --dired; print in emacs dired format"
+		"--file-type; like -F but don't append * to executables"
+		"--format:; specify output format"
+		"--full-time; like -l --time-style=full-iso"
+		"--group-directories-first; print directories before other files"
+		"G --no-group; don't print group (with -l)"
+		"--si; print size using k, M, etc. for 1000^n"
+		"--dereference-command-line-symlink-to-dir; follow symbolic links to directory in operands"
+		"--hide:; specify pattern to exclude from listing"
+		"--indicator-style:; append symbols indicating file type"
+		"I: --ignore:; specify filename pattern to exclude from listing"
+		"N --literal; don't quote filenames"
+		"Q --quote-name; print filenames in double-quotes"
+		"--quoting-style:; specify how to quote filenames"
+		"--show-control-chars; print non-graphic characters as is"
+		"--sort:; specify sort key"
+		"--time:; specify which time to print and sort by"
+		"--time-style:; specify format to print time in"
+		"T: --tabsize:; specify how many spaces a tab stands for"
+		"U; don't sort"
+		"v; sort by filename regarding as version number"
+		"w: --width:; specify screen width"
+		"X; sort by filename extension"
+		"--lcontext; print in long format with security context"
+		"Z --context; print in simplified long format with security context"
+		"--scontext; print security context of files"
+		"--help"
+		"--version"
+		) #<#
 		;;
-	*)
-		case $(uname) in
-			FreeBSD) bsd=true   freebsd=true ;;
-			OpenBSD) bsd=true   openbsd=true ;;
-			NetBSD)  bsd=true   netbsd=true  ;;
-			Darwin)  bsd=true   darwin=true  ;;
-			*BSD)    bsd=true   ;;
-			SunOS)   sunos=true ;;
-			HP-UX)   hpux=true  ;;
+	(FreeBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"D:; specify format to print time in"
+		"I; don't assume -A for superuser"
+		"Z; print MAC labels"
+		) #<#
+		;;
+	(Darwin)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"e; print access control list"
+		"O; print file flags (with -l)"
+		) #<#
+		;;
+	(SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"E; like -l, with time in ISO 8601 format"
+		"e; like -l, with time like Dec 31 13:34:56 1999"
+		"V; like -l, with compact access control list info"
+		"v; like -l, with verbose access control list info"
+		) #<#
+		;;
+	(HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"e; print extent attributes (with -l)"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(D)
+		if command -vf completion//completestrftime >/dev/null 2>&1 ||
+				. -AL completion/date; then
+			command -f completion//completestrftime
+		fi
+		;;
+	(--block-size)
+		if command -vf completion//completeblocksize >/dev/null 2>&1 ||
+				. -AL completion/_blocksize; then
+			command -f completion//completeblocksize
+		fi
+		;;
+	(--color) #>>#
+		complete -P "$PREFIX" -D "always print in color" yes always force
+		complete -P "$PREFIX" -D "print in color if output is terminal" auto tty if-tty
+		complete -P "$PREFIX" -D "don't print in color" no never none
+		;; #<<#
+	(--format) #>>#
+		complete -P "$PREFIX" -D "print files line by line" single-column
+		complete -P "$PREFIX" -D "arrange filenames vertically" vertical
+		complete -P "$PREFIX" -D "print permission, owner, file size, etc." long verbose
+		complete -P "$PREFIX" -D "separate filenames by commas" commas
+		complete -P "$PREFIX" -D "arrange filenames horizontally" horizontal across
+		complete -P "$PREFIX" -D "print security context of files" context
+		;; #<<#
+	#(--hide)  -- complete as filename as usual
+	#	;;
+	(--indicator-style) #>>#
+		complete -P "$PREFIX" -D "don't append symbols indicating file type" none
+		complete -P "$PREFIX" -D "append slash to directory names" slash
+		complete -P "$PREFIX" -D "enable all indicators but *" file-type
+		complete -P "$PREFIX" -D "enable all indicators" classify
+		;; #<<#
+	#(I|--ignore)  -- complete as filename as usual
+	#	;;
+	(--quoting-style) #>>#
+		complete -P "$PREFIX" -D "quote or escape nothing" literal
+		complete -P "$PREFIX" -D "quote in format suitable for shell input" shell
+		complete -P "$PREFIX" -D "quote all filenames in format suitable for shell input" shell-always
+		complete -P "$PREFIX" -D "quote and escape like C string" c
+		complete -P "$PREFIX" -D "quote and escape like C string if necessary" c-maybe
+		complete -P "$PREFIX" -D "escape like C string" escape
+		complete -P "$PREFIX" -D "locale-dependent quoting and escaping" locale
+		complete -P "$PREFIX" -D "locale-dependent quoting and escaping" clocale
+		;; #<<#
+	(--sort) #>>#
+		complete -P "$PREFIX" -D "don't sort" none
+		complete -P "$PREFIX" -D "sort by filename extension" extension
+		complete -P "$PREFIX" -D "sort by file size" size
+		complete -P "$PREFIX" -D "sort by last modified time"
+		complete -P "$PREFIX" -D "sort by filename regarding as version number" version
+		;; #<<#
+	(--time) #>>#
+		complete -P "$PREFIX" -D "print or sort by last access time" atime access use
+		complete -P "$PREFIX" -D "print or sort by last status change time" ctime status
+		;; #<<#
+	(--time-style)
+		case $TARGETWORD in
+		("$PREFIX+"*)
+			if command -vf completion//completestrftime >/dev/null 2>&1 ||
+					. -AL completion/date; then
+				command -f completion//completestrftime
+			fi
+			;;
+		(*) #>>#
+			complete -P "$PREFIX" -D "e.g. 2000-01-01 01:23:45.678901234 +0900" full-iso
+			complete -P "$PREFIX" -D "e.g. 2010-06-29 00:37" long-iso
+			complete -P "$PREFIX" -D "e.g. 01-23 01:23 or 2000-01-23" iso
+			complete -P "$PREFIX" -D "locale-dependent time style" locale posix-locale
+			complete -P "$PREFIX" -D "like full-iso, but only when not in POSIX locale" posix-full-iso
+			complete -P "$PREFIX" -D "like long-iso, but only when not in POSIX locale" posix-long-iso
+			complete -P "$PREFIX" -D "like iso, but only when not in POSIX locale" posix-iso
+			complete -T -P "$PREFIX" -D "specify time format after +" +
+			;; #<<#
 		esac
 		;;
-esac
+	(--tabsize)
+		;;
+	(w|--width)
+		complete -P "$PREFIX" 80 132 ${COLUMNS:+"$COLUMNS"}
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
 
-complete -C "$1" -f
+}
 
-complete -C "$1" -O 1 \
-	-D "print files line by line"
-# long options are completable only when supported by the command
-complete -C "$1" -O A ${gnu:+-O --almost-all} \
-	-D "print all files except . and .."
-complete -C "$1" -O a ${gnu:+-O --all} \
-	-D "print all files"
-if [ "$sunos$hpux$netbsd$freebsd$darwin$gnu" ]; then
-	complete -C "$1" -O b ${gnu:+-O --escape} \
-		-D "escape special characters like C string"
-	if [ "$netbsd$freebsd$darwin" ]; then
-		complete -C "$1" -O B \
-		-D "escape special characters as backslashed octal value"
-	fi
-fi
-complete -C "$1" -O C \
-	-D "arrange filenames vertically"
-complete -C "$1" -O c \
-	-D "print or sort by last status-changed time"
-complete -C "$1" -O d ${gnu:+-O --directory} \
-	-D "print directory itself, not its contents"
-complete -C "$1" -O F ${gnu:+-O --classify} \
-	-D "append symbols indicating file type"
-complete -C "$1" -O f \
-	-D "print all files without sorting"
-if [ "$freebsd$darwin" ]; then
-	complete -C "$1" -O G \
-		-D "print filenames in color"
-fi
-complete -C "$1" -O g \
-	-D "like -l but don't print owner"
-if [ "$sunos$bsd$gnu" ]; then
-	complete -C "$1" -O h ${gnu:+-O --human-readable} \
-		-D "print size using K, M, etc. for 1024^n"
-fi
-complete -C "$1" -O H ${gnu:+-O --dereference-command-line} \
-	-D "follow symbolic links in operands"
-complete -C "$1" -O i ${gnu:+-O --inode} \
-	-D "print file serial number (inode)"
-complete -C "$1" -O k \
-	-D "print file size in kilobytes"
-complete -C "$1" -O L ${gnu:+-O --dereference} \
-	-D "follow all symbolic links"
-complete -C "$1" -O l \
-	-D "print in long format"
-complete -C "$1" -O m \
-	-D "print in stream output format"
-complete -C "$1" -O n ${gnu:+-O --numeric-uid-gid} \
-	-D "like -l but print owner in numbers"
-complete -C "$1" -O o \
-	-D "like -l but don't print group"
-if [ "$freebsd$darwin" ]; then
-	complete -C "$1" -O P \
-		-D "don't follow symbolic links"
-fi
-complete -C "$1" -O p \
-	-D "append / indicating directory"
-complete -C "$1" -O q ${gnu:+-O --hide-control-chars} \
-	-D "print unprintable characters as ?"
-complete -C "$1" -O R ${gnu:+-O --recursive} \
-	-D "print subdirectories recursively"
-complete -C "$1" -O r ${gnu:+-O --reverse} \
-	-D "sort in reverse order"
-complete -C "$1" -O S \
-	-D "sort by file size"
-complete -C "$1" -O s ${gnu:+-O --size} \
-	-D "print block size used by file"
-if [ "$bsd" ]; then
-	complete -C "$1" -O T \
-		-D "print time in full (with -l)"
-fi
-complete -C "$1" -O t \
-	-D "sort by last-modified time"
-if [ "$freebsd$darwin" ]; then
-	complete -C "$1" -O U \
-		-D "print or sort by file creation time"
-fi
-complete -C "$1" -O u \
-	-D "print or sort by last-accessed time"
-if [ "$netbsd$freebsd$darwin" ]; then
-	complete -C "$1" -O W \
-		-D "show whiteouts when scanning directories"
-	complete -C "$1" -O w \
-		-D "don't escape unprintable characters"
-fi
-if [ "$sunos" ]; then
-	complete -C "$1" -O V \
-		-D "like -l, with compact access control list info"
-	complete -C "$1" -O v \
-		-D "like -l, with verbose access control list info"
-fi
-complete -C "$1" -O x \
-	-D "arrange filenames horizontally"
-if [ "$gnu" ]; then
-	complete -C "$1" -O --author \
-		-D "print file authors (with -l)"
-	complete -C "$1" -O --block-size -F comp/ls/blocksize \
-		-D "specify block size"
-	complete -C "$1" -O B -O --ignore-backups \
-		-D "don't print filenames ending with ~"
-	complete -C "$1" -O --color -A \
-		-D "print filenames in color"
-	complete -C "$1" -O --color yes always force \
-		-D "always print in color"
-	complete -C "$1" -O --color auto tty if-tty \
-		-D "print in color if output is terminal"
-	complete -C "$1" -O --color no never none \
-		-D "don't print in color"
-	complete -C "$1" -O D -O --dired \
-		-D "print in emacs dired format"
-	complete -C "$1" -O --file-type \
-		-D "like -F but don't append *"
-	complete -C "$1" -O --format \
-		-D "specify output format"
-	complete -C "$1" -O --format single-column \
-		-D "-1: print files line by line"
-	complete -C "$1" -O --format vertical \
-		-D "-C: arrange filenames vertically"
-	complete -C "$1" -O --format long verbose \
-		-D "-l: print permission, owner, file size, etc."
-	complete -C "$1" -O --format commas \
-		-D "-m: separate filenames by commas"
-	complete -C "$1" -O --format horizontal across \
-		-D "-x: arrange filenames horizontally"
-	complete -C "$1" -O --format context \
-		-D "print security context of files"
-	complete -C "$1" -O --full-time \
-		-D "like -l --time-style=full-iso"
-	complete -C "$1" -O --group-directories-first \
-		-D "print directories before other files"
-	complete -C "$1" -O G -O --no-group \
-		-D "don't print group when used with -l"
-	complete -C "$1" -O --si \
-		-D "print size using k, M, etc. for 1000^n"
-	complete -C "$1" -O --dereference-command-line-symlink-to-dir \
-		-D "follow symbolic links to directory in operands"
-	complete -C "$1" -O --hide -f \
-		-D "specify pattern to exclude from listing"
-	complete -C "$1" -O --indicator-style \
-		-D "append symbols indicating file type"
-	complete -C "$1" -O --indicator-style none \
-		-D "don't append symbols indicating file type"
-	complete -C "$1" -O --indicator-style slash \
-		-D "-p: append / to directories"
-	complete -C "$1" -O --indicator-style file-type \
-		-D "--file-type: enable all indicators but *"
-	complete -C "$1" -O --indicator-style classify \
-		-D "-F: enable all indicators"
-	complete -C "$1" -O I -O --ignore -f \
-		-D "specify pattern to exclude from listing"
-	complete -C "$1" -O N -O --literal \
-		-D "don't escape unprintable characters"
-	complete -C "$1" -O --show-control-chars \
-		-D "don't escape unprintable characters"
-	complete -C "$1" -O Q -O --quote-name \
-		-D "print filenames in double-quotes"
-	complete -C "$1" -O --quoting-style \
-		-D "specify how to quote filenames"
-	complete -C "$1" -O --quoting-style literal \
-		-D "quote or escape nothing"
-	complete -C "$1" -O --quoting-style shell \
-		-D "quote in format suitable for shell input"
-	complete -C "$1" -O --quoting-style shell-always \
-		-D "quote all filenames in format suitable for shell input"
-	complete -C "$1" -O --quoting-style c \
-		-D "-Q: quote and escape like C string"
-	complete -C "$1" -O --quoting-style escape \
-		-D "-b: escape like C string"
-	complete -C "$1" -O --quoting-style locale \
-		-D "locale-dependent quoting and escaping"
-	complete -C "$1" -O --quoting-style clocale \
-		-D "locale-dependent quoting and escaping"
-	complete -C "$1" -O --sort \
-		-D "specify sort key"
-	complete -C "$1" -O --sort none \
-		-D "-U: don't sort"
-	complete -C "$1" -O --sort extension \
-		-D "-X: sort by filename extension"
-	complete -C "$1" -O --sort size \
-		-D "-S: sort by file size"
-	complete -C "$1" -O --sort time \
-		-D "-t: sort by last-modified time"
-	complete -C "$1" -O --sort version \
-		-D "-v: sort by filename regarding as version number"
-	complete -C "$1" -O --time \
-		-D "specify which time to print and sort by"
-	complete -C "$1" -O --time atime access use \
-		-D "-u: last-accessed time"
-	complete -C "$1" -O --time ctime status \
-		-D "-c: last-status-changed time"
-	complete -C "$1" -O --time-style -F comp/ls/timestyle \
-		-D "specify format to print time in"
-	complete -C "$1" -O --time-style full-iso \
-		-D "e.g. 2000-01-01 01:23:45.678901234 +0900"
-	complete -C "$1" -O --time-style long-iso \
-		-D "e.g. 2010-06-29 00:37"
-	complete -C "$1" -O --time-style iso \
-		-D "e.g. 01-23 01:23 or 2000-01-23"
-	complete -C "$1" -O --time-style locale posix-locale \
-		-D "locale-dependent time style"
-	complete -C "$1" -O --time-style posix-full-iso \
-		-D "like full-iso, but only when not in POSIX locale"
-	complete -C "$1" -O --time-style posix-long-iso \
-		-D "like long-iso, but only when not in POSIX locale"
-	complete -C "$1" -O --time-style posix-iso \
-		-D "like iso, but only when not in POSIX locale"
-	complete -C "$1" -O T -O --tabsize \
-		-D "specify how many spaces a tab stands for"
-	complete -C "$1" -O T -O --tabsize 2 4 8
-	complete -C "$1" -O U \
-		-D "don't sort"
-	complete -C "$1" -O v \
-		-D "sort by filename regarding as version number"
-	complete -C "$1" -O w -O --width \
-		-D "specify screen width"
-	complete -C "$1" -O w -O --width 80 132
-	complete -C "$1" -O X \
-		-D "sort by filename extension"
-	complete -C "$1" -O --lcontext \
-		-D "print in long format with security context"
-	complete -C "$1" -O Z -O --context \
-		-D "print in simplified long format with security context"
-	complete -C "$1" -O --scontext \
-		-D "print security context of files"
-	complete -C "$1" -O --help
-	complete -C "$1" -O --version
-	function comp/ls/blocksize {
-		complete -G -- df "${@[2,-1]}"
-	}
-	function comp/ls/timestyle
-	case "${@[-1]}" in (+*)
-		complete -G -- date "${@[-1]}"
-	esac  # TODO need fix for the (--time-*=+*) pattern
-elif [ "$freebsd" ]; then
-	complete -C "$1" -O D -F comp/ls/timestyle \
-		-D "specify format to print time in"
-	complete -C "$1" -O I \
-		-D "don't assume -A for superuser"
-	complete -C "$1" -O Z \
-		-D "print MAC labels"
-	function comp/ls/timestyle {
-		complete -G -- date +"${@[-1]}"
-	}
-elif [ "$darwin" ]; then
-	complete -C "$1" -O e \
-		-D "print access control list"
-	complete -C "$1" -O O \
-		-D "print file flags (with -l)"
-elif [ "$sunos" ]; then
-	complete -C "$1" -O E \
-		-D "like -l, with time in ISO 8601 format"
-	complete -C "$1" -O e \
-		-D "like -l, with time like Dec 31 13:34:56 1999"
-elif [ "$hpux" ]; then
-	complete -C "$1" -O e \
-		-D "print extent attributes (with -l)"
-fi
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

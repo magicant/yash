@@ -60,9 +60,7 @@
 static const wchar_t *const path_variables[PA_count] = {
     [PA_PATH]     = L VAR_PATH,
     [PA_CDPATH]   = L VAR_CDPATH,
-#if YASH_ENABLE_LINEEDIT
-    [PA_COMPPATH] = L VAR_YASH_COMPPATH,
-#endif
+    [PA_LOADPATH] = L VAR_YASH_LOADPATH,
 };
 
 
@@ -84,7 +82,7 @@ typedef struct environ_T {
 /* An environment whose `is_temporary' is true is used for temporary variables. 
  * Temporary variables may be exported but cannot be readonly.
  * The elements of `paths' are arrays of the pathnames contained in the
- * $PATH, $CDPATH and $YASH_COMPPATH variables. They are NULL if the
+ * $PATH, $CDPATH and $YASH_LOADPATH variables. They are NULL if the
  * corresponding variables are not set. */
 #define VAR_positional "="
 
@@ -331,8 +329,8 @@ void init_variables(void)
 	random_active = false;
     }
 
-    /* set $YASH_COMPPATH */
-    set_variable(L VAR_YASH_COMPPATH, xwcsdup(L YASH_DATADIR "/completion"),
+    /* set $YASH_LOADPATH */
+    set_variable(L VAR_YASH_LOADPATH, xwcsdup(L YASH_DATADIR),
 	    SCOPE_GLOBAL, false);
 
     /* set $YASH_VERSION */
@@ -1042,11 +1040,11 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (wcscmp(name, L VAR_TERM) == 0)
 	    le_need_term_update = true;
 	break;
-    case L'Y':
-	if (wcscmp(name, L VAR_YASH_COMPPATH) == 0)
-	    reset_path(PA_COMPPATH, var);
-	break;
 #endif /* YASH_ENABLE_LINEEDIT */
+    case L'Y':
+	if (wcscmp(name, L VAR_YASH_LOADPATH) == 0)
+	    reset_path(PA_LOADPATH, var);
+	break;
     }
 }
 
@@ -1273,16 +1271,15 @@ void tryhash_word_as_command(const wordunit_T *w)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates completion candidates for variable names that match the glob
- * pattern in the specified context. */
+/* Generates completion candidates for variable names matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_variable_candidates(le_candgentype_T type, le_context_T *context)
+void generate_variable_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_VARIABLE))
+    if (!(compopt->type & CGT_VARIABLE))
 	return;
 
-    le_compdebug("adding variables for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    le_compdebug("adding variables for pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     size_t i = 0;
@@ -1291,32 +1288,37 @@ void generate_variable_candidates(le_candgentype_T type, le_context_T *context)
 	const wchar_t *name = kv.key;
 	const variable_T *var = kv.value;
 	switch (var->v_type & VF_MASK) {
-	    case VF_SCALAR:  if (!(type & CGT_SCALAR)) continue;  break;
-	    case VF_ARRAY:   if (!(type & CGT_ARRAY))  continue;  break;
+	    case VF_SCALAR:
+		if (!(compopt->type & CGT_SCALAR))
+		    continue;
+		break;
+	    case VF_ARRAY:
+		if (!(compopt->type & CGT_ARRAY))
+		    continue;
+		break;
 	}
 	if (name[0] != L'='
-		&& xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
-	    le_new_candidate(CT_VAR, xwcsdup(name), NULL);
+		&& xfnm_wmatch(compopt->cpattern, name).start != (size_t) -1)
+	    le_new_candidate(CT_VAR, xwcsdup(name), NULL, compopt);
     }
 }
 
-/* Generates completion candidates for function names that match the glob
- * pattern in the specified context. */
+/* Generates completion candidates for function names matching the pattern. */
 /* The prototype of this function is declared in "lineedit/complete.h". */
-void generate_function_candidates(le_candgentype_T type, le_context_T *context)
+void generate_function_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_FUNCTION))
+    if (!(compopt->type & CGT_FUNCTION))
 	return;
 
-    le_compdebug("adding functions for pattern \"%ls\"", context->pattern);
-    if (!le_compile_cpattern(context))
+    le_compdebug("adding functions for pattern \"%ls\"", compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     size_t i = 0;
     const wchar_t *name;
     while ((name = ht_next(&functions, &i).key) != NULL)
-	if (xfnm_wmatch(context->cpattern, name).start != (size_t) -1)
-	    le_new_command_candidate(xwcsdup(name));
+	if (xfnm_wmatch(compopt->cpattern, name).start != (size_t) -1)
+	    le_new_candidate(CT_COMMAND, xwcsdup(name), NULL, compopt);
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */

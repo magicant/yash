@@ -1,8 +1,8 @@
 # (C) 2010 magicant
 
-# Completion script for the "fg" built-in command.
+# Completion script for the "bg" built-in command.
 
-function completion/fg {
+function completion/bg {
 	command -f completion//reexecute jobs
 }
 

@@ -1439,47 +1439,94 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Generates completion candidates by executing the specified function.
- * Returns the exit status of the function. */
-/* The prototype of this function is declared in "lineedit/complete.h". */
-int generate_candidates_using_function(
-	const wchar_t *funcname, le_context_T *context)
+/* Autoloads the specified file to load a completion function definition.
+ * String `cmdname', which may be NULL, is used as the only positional parameter
+ * during script execution.
+ * Returns true if a file was autoloaded. */
+bool autoload_completion_function_file(
+	const wchar_t *filename, const wchar_t *cmdname)
 {
-    if (funcname == NULL)
-	return Exit_SUCCESS;
+    char *mbsfilename = malloc_wcstombs(filename);
+    if (mbsfilename == NULL)
+	return false;
 
-    le_compdebug("executing candidate generator function \"%ls\"", funcname);
+    char *path = which(mbsfilename, get_path_array(PA_LOADPATH),
+	    is_readable_regular);
+    if (path == NULL) {
+	le_compdebug("file \"%s\" was not found in $YASH_LOADPATH",
+		mbsfilename);
+	free(mbsfilename);
+	return false;
+    }
 
-    command_T *function = get_function(funcname);
-    if (function == NULL) {
-	le_compdebug("  -- no such function");
-	return Exit_NOTFOUND;
+    int fd = move_to_shellfd(open(path, O_RDONLY));
+    if (fd < 0) {
+	le_compdebug("cannot open the file \"%s\"", path);
+	free(path);
+	return false;
     }
 
     struct parsestate_T *state = save_parse_state();
+    int savelaststatus = laststatus;
+    bool saveposix = posixly_correct;
+    posixly_correct = false;
+    open_new_environment(false);
+    set_positional_parameters((void *[]) { (void *) cmdname, NULL });
 
-    void *args[context->pwordc + 2];
-    memcpy(args, context->pwords, context->pwordc * sizeof *args);
-    args[context->pwordc] = context->origsrc;
-    args[context->pwordc + 1] = NULL;
+    le_compdebug("executing file \"%s\" (autoload)", path);
+    exec_input(fd, mbsfilename, false, false, false);
+    le_compdebug("finished executing file \"%s\"", path);
 
-    int savelaststatus = laststatus, resultstatus;
+    close_current_environment();
+    posixly_correct = saveposix;
+    laststatus = savelaststatus;
+    restore_parse_state(state);
+    remove_shellfd(fd);
+    xclose(fd);
+    free(path);
+    free(mbsfilename);
+    return true;
+}
+
+/* Calls the function whose name is `funcname' as a completion function.
+ * Returns false if no such function has been defined. */
+bool call_completion_function(const wchar_t *funcname)
+{
+    command_T *func = get_function(funcname);
+    if (func == NULL) {
+	le_compdebug("completion function \"%ls\" is not defined", funcname);
+	return false;
+    }
+
+    struct parsestate_T *state = save_parse_state();
+    int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
     posixly_correct = false;
 
-    exec_function_body(function, args, false);
+    le_compdebug("executing completion function \"%ls\"", funcname);
+
+    /* don't use `exec_function_body': We have to prepare special local
+     * variables $WORDS and $TARGETWORD. */
+    savefd_T *savefd;
+    open_new_environment(false);
+    set_positional_parameters((void *[]) { NULL });
+    set_completion_variables();
+    if (open_redirections(func->c_redirs, &savefd)) {
+	exec_nonsimple_command(func, false);
+	if (execinfo.exception == ee_return)
+	    execinfo.exception = ee_none;
+    }
+    undo_redirections(savefd);
+    close_current_environment();
+
+    le_compdebug("finished executing completion function \"%ls\"", funcname);
+    le_compdebug("  with the exit status of %d", laststatus);
 
     posixly_correct = saveposix;
-    resultstatus = laststatus;
     laststatus = savelaststatus;
-
-    le_compdebug("finished executing function \"%ls\"", funcname);
-    if (resultstatus != Exit_SUCCESS)
-	le_compdebug("function returned exit status of %d", resultstatus);
-
     restore_parse_state(state);
 
-    return resultstatus;
+    return true;
 }
 
 #endif /* YASH_ENABLE_LINEEDIT */
@@ -1712,27 +1759,32 @@ const char eval_help[] = Ngt(
 #endif
 
 /* The "." builtin, which accepts the following option:
- *  -A: disable aliases */
+ *  -A: disable aliases
+ *  -L: autoload */
 int dot_builtin(int argc, void **argv)
 {
     static const struct xoption long_options[] = {
 	{ L"no-alias", OPTARG_NONE, L'A', },
+	{ L"autoload", OPTARG_NONE, L'L', },
 #if YASH_ENABLE_HELP
 	{ L"help",     OPTARG_NONE, L'-', },
 #endif
 	{ NULL, 0, 0, },
     };
 
-    bool enable_alias = true;
+    bool enable_alias = true, autoload = false;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"+" : L"+A",
+		    posixly_correct ? L"+" : L"+AL",
 		    long_options, NULL))) {
 	switch (opt) {
 	    case L'A':
 		enable_alias = false;
+		break;
+	    case L'L':
+		autoload = true;
 		break;
 #if YASH_ENABLE_HELP
 	    case L'-':
@@ -1741,7 +1793,7 @@ int dot_builtin(int argc, void **argv)
 	    default:  print_usage:
 		fprintf(stderr, gt(posixly_correct
 			    ? Ngt("Usage:  . file\n")
-			    : Ngt("Usage:  . [-A] file [arg...]\n")));
+			    : Ngt("Usage:  . [-AL] file [arg...]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1762,7 +1814,17 @@ int dot_builtin(int argc, void **argv)
     }
 
     char *path;
-    if (!wcschr(filename, L'/')) {
+    if (autoload) {
+	path = which(mbsfilename, get_path_array(PA_LOADPATH),
+		is_readable_regular);
+	if (path == NULL) {
+	    xerror(0, Ngt("%s: not found in $YASH_LOADPATH"), mbsfilename);
+	    free(mbsfilename);
+	    if (!is_interactive)
+		exit_shell_with_status(Exit_FAILURE);
+	    return Exit_FAILURE;
+	}
+    } else if (!wcschr(filename, L'/')) {
 	path = which(mbsfilename, get_path_array(PA_PATH), is_readable_regular);
 	if (!path) {
 	    if (!posixly_correct) {
@@ -1810,16 +1872,19 @@ int dot_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 const char dot_help[] = Ngt(
 "dot - read file and execute commands\n"
-"\t. [-A] file [arg...]\n"
+"\t. [-AL] file [arg...]\n"
 "Reads the specified <file> and executes commands in it.\n"
 "If <arg>s are specified, they are used as the positional parameters.\n"
 "Otherwise, the positional parameters are not changed.\n"
 "If <file> does not contain any slashes, the shell searches $PATH for a\n"
 "readable shell script file whose name is <file>. To ensure that the file in\n"
 "the current working directory is used, start <file> with \"./\".\n"
+"If the -L (--autoload) option is specified, the shell searches\n"
+"$YASH_LOADPATH instead of $PATH, regardless of whether <file> contains\n"
+"slashes.\n"
 "If the -A (--no-alias) option is specified, alias substitution is not\n"
 "performed during processing the file.\n"
-"In POSIXly correct mode, the -A option cannot be used and <arg>s must not be\n"
+"In POSIXly correct mode, options cannot be used and <arg>s must not be\n"
 "given.\n"
 );
 #endif

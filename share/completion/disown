@@ -1,9 +1,10 @@
-# completion settings for the disown built-in
-# written by magicant
+# (C) 2010 magicant
+
+# Completion script for the "disown" built-in command.
+
+function completion/disown {
+	command -f completion//reexecute jobs
+}
+
+
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
-
-complete -C "$1" -Xj
-
-complete -C "$1" -O a -O --all \
-	-D "disown all jobs"
-complete -C "$1" -O --help

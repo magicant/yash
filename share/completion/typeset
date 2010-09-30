@@ -1,61 +1,73 @@
-# completion settings for the typeset/export/readonly built-ins
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-complete -C "$1" -X -F comp/typeset
+# Completion script for the "typeset" built-in command.
+# Completion function "completion/typeset" is used for the "export" and
+# "readonly" built-ins as well.
 
-if [ x"$1" != x"export" ]; then
-	complete -C "$1" -O f -O --functions \
-		-D "define or print functions, not variables"
-fi
-if [ x"$1" = x"typeset" ]; then
-	complete -C "$1" -O g -O --global \
-		-D "define global variables"
-fi
-complete -C "$1" -O p -O --print \
-	-D "print specified variables or functions"
-if [ x"$1" != x"readonly" ]; then
-	complete -C "$1" -O r -O --readonly \
-		-D "define or print read-only variables or functions"
-fi
-if [ x"$1" != x"export" ]; then
-	complete -C "$1" -O x -O --export \
-		-D "export variables or print exported variables"
-fi
-complete -C "$1" -O X -O --unexport \
-	-D "cancel exportation of variables"
-complete -C "$1" -O --help
+function completion/typeset {
 
-function comp/typeset {
-	typeset func=false
-
-	# parse options
-	shift
-	while [ $# -gt 1 ]; do
-		case "$1" in
-		--)   shift; break;;
-		--f*) shift; func=true;;
-		--*)  shift;;
-		-*f*) shift; func=true;;
-		*)    shift;;
-		esac
-	done
-
-	typeset word="${@[-1]}"
-	if $func; then
-		complete --function
-		return
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"p --print; print specified variables or functions"
+	"X --unexport; cancel exportation of variables"
+	"--help"
+	) #<#
+	if [ "${WORDS[1]}" = "typeset" ]; then
+		OPTIONS=("$OPTIONS" #>#
+		"g --global; define global variables"
+		) #<#
 	fi
-	case "$word" in
-	*=*)
-		# remove until the last colon after the first '=' and complete
-		# as a filename. If $word is PATH=/bin:/usr/bin:/u for example,
-		# we complete the filename /u
-		complete -W "${${word#*=}##*:}" -f
+	if [ "${WORDS[1]}" != "export" ]; then
+		OPTIONS=("$OPTIONS" #>#
+		"f --functions; define or print functions rather than variables"
+		"x --export; export variables or print exported variables"
+		) #<#
+	fi
+	if [ "${WORDS[1]}" != "readonly" ]; then
+		OPTIONS=("$OPTIONS" #>#
+		"r --readonly; define or print read-only variables or functions"
+		) #<#
+	fi
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
 		;;
-	*)
-		# complete a variable name
-		complete -v
+	(*)
+		typeset i=1 func=false
+		while [ $i -le ${WORDS[#]} ]; do
+			case ${WORDS[i++]} in
+				(-f|--functions) func=true ;;
+				(--)             break ;;
+			esac
+		done
+		if $func; then
+			complete --function
+		else
+			case $TARGETWORD in
+			(*=*:*)
+			# remove until the last colon after the first '=' and
+			# complete as a filename. If $word is
+			# PATH=/bin:/usr/bin:/u for example, we complete the
+			# filename /u
+				PREFIX=${TARGETWORD%"${${TARGETWORD#*=}##*:}"}
+				complete -T -P "$PREFIX" -S : -f
+				;;
+			(*=*)
+			# remove until '=' and complete as a filename.
+				PREFIX=${TARGETWORD%"${TARGETWORD#*=}"}
+				complete -P "$PREFIX" -f
+				;;
+			(*)
+				complete -T -S = -v
+				;;
+			esac
+		fi
 		;;
 	esac
+
 }
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

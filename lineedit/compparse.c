@@ -116,8 +116,7 @@ static bool remove_braceexpand_inner(wchar_t **s)
 /* Parses the contents of the edit buffer (`le_main_buffer') from the beginning
  * up to the current cursor position (`le_main_index') and determines the
  * current completion context.
- * The results are returned as a newly malloced `le_context_T' data, but the
- * `cpattern' member is left NULL. */
+ * The results are returned as a newly malloced `le_context_T' data. */
 le_context_T *le_get_context(void)
 {
     assert(wcslen(le_main_buffer.contents) == le_main_buffer.length);
@@ -148,7 +147,7 @@ le_context_T *le_get_context(void)
     if (shopt_braceexpand)
 	if (remove_braceexpand(ctxt->pattern))
 	    ctxt->type |= CTXT_EBRACED;
-    ctxt->src = ctxt->origsrc = unescape(ctxt->pattern);
+    ctxt->src = unescape(ctxt->pattern);
     if (is_pathname_matching_pattern(ctxt->pattern)) {
 	ctxt->substsrc = true;
     } else {
@@ -157,8 +156,6 @@ le_context_T *le_get_context(void)
 	ctxt->pattern =
 	    wb_towcs(wb_wccat(wb_initwith(&buf, ctxt->pattern), L'*'));
     }
-    ctxt->origpattern = ctxt->pattern;
-    ctxt->cpattern = NULL;
     ctxt->origindex = le_main_index;
 
     return ctxt;

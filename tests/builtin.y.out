@@ -30,6 +30,9 @@ returning --
 returning --
 0
 -a b c-
+script1
+dir/script1
+dir/script2
 ===== command =====
 if: shell keyword
 then: shell keyword

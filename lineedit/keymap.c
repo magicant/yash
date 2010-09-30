@@ -334,23 +334,23 @@ void le_set_mode(le_mode_id_T id)
     le_current_mode = le_id_to_mode(id);
 }
 
-/* Generates completion candidates for editing command names that match the glob
- * pattern in the specified context. */
+/* Generates completion candidates for editing command names matching the
+ * pattern. */
 /* The prototype of this function is declared in "complete.h". */
-void generate_bindkey_candidates(le_candgentype_T type, le_context_T *context)
+void generate_bindkey_candidates(const le_compopt_T *compopt)
 {
-    if (!(type & CGT_BINDKEY))
+    if (!(compopt->type & CGT_BINDKEY))
 	return;
 
     le_compdebug("adding lineedit commands for pattern \"%ls\"",
-	    context->pattern);
-    if (!le_compile_cpattern(context))
+	    compopt->pattern);
+    if (!le_compile_cpattern(compopt))
 	return;
 
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
-	if (xfnm_match(context->cpattern, commands[i].name) == 0)
-	    le_new_candidate(
-		    CT_BINDKEY, malloc_mbstowcs(commands[i].name), NULL);
+	if (xfnm_match(compopt->cpattern, commands[i].name) == 0)
+	    le_new_candidate(CT_BINDKEY,
+		    malloc_mbstowcs(commands[i].name), NULL, compopt);
 }
 
 

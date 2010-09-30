@@ -1,146 +1,173 @@
-# completion settings for the du command (POSIX 2008; GNU coreutils 8.4;
-# FreeBSD 8.1; OpenBSD 4.8; NetBSD 5.0; Mac OS X 10.6.3; SunOS 5.10; HP-UX 11i)
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-typeset gnu= bsd= freebsd= openbsd= netbsd= darwin= sunos= hpux=
-case "$("$1" --version 2>/dev/null)" in
-	*'coreutils'*)
-		typeset gnu=true
-		complete -C "$1" -X
+# Completion script for the "du" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i.
+
+function completion/du {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"a ${long:+--all}; print size for all files including non-directories"
+	"H ${long:+--dereference-args}; follow symbolic links in operands"
+	"k; print figures in kilobytes (1024-byte units)"
+	"L ${long:+--dereference}; follow all symbolic links"
+	"s ${long:+--summarize}; don't print subdirectory sizes"
+	"x ${long:+--one-file-system}; count disk usage only in the same file system"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|*BSD|Darwin|SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"h ${long:+--human-readable}; print size using K, M, etc. for 1024^n"
+		) #<#
+		case $type in (GNU|*BSD|Darwin)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"c ${long:+--total}; print the grand total after the normal output"
+			"P ${long:+--no-dereference}; don't follow symbolic links"
+			) #<#
+			case $type in (GNU|FreeBSD|NetBSD|Darwin)
+				ADDOPTIONS=("$ADDOPTIONS" #>#
+				"m; print figures in megabytes (1048576-byte units)"
+				) #<#
+				case $type in (GNU|FreeBSD)
+					ADDOPTIONS=("$ADDOPTIONS" #>#
+					"l ${long:+--count-links}; count size as many times as the file's hard links"
+					) #<#
+				esac
+				case $type in (FreeBSD|NetBSD|Darwin)
+					ADDOPTIONS=("$ADDOPTIONS" #>#
+					"d:; specify directory depth to limit printing"
+					) #<#
+					case $type in (FreeBSD|NetBSD)
+						ADDOPTIONS=("$ADDOPTIONS" #>#
+						"n; ignore files with the nodump flag"
+						) #<#
+					esac
+					case $type in (FreeBSD|Darwin)
+						ADDOPTIONS=("$ADDOPTIONS" #>#
+						"I:; specify a glob pattern for files to ignore"
+						) #<#
+					esac
+					case $type in (NetBSD|Darwin)
+						ADDOPTIONS=("$ADDOPTIONS" #>#
+						"g; print figures in gigabytes (1073741824-byte units)"
+						) #<#
+					esac
+				esac
+			esac
+		esac
+	esac
+	case $type in (*BSD|Darwin|SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"r; warn about unreadable directories and unaccessible files"
+		) #<#
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"0 ${long:+--null}; separate output lines with null byte rather than newline"
+		"B: ${long:+--block-size:}; specify the block size unit to print figures in"
+		"b ${long:+--bytes}; like -B 1 --apparent-size"
+		"S ${long:+--separate-dirs}; don't include subdirectories' size in the parent's size"
+		"X: ${long:+--exclude-from:}; specify a file containing glob patterns for files to ignore"
+		"${long:+--apparent-size}; print apparent file sizes rather than actual disk usage"
+		"${long:+--exclude:}; specify a glob pattern for files to ignore"
+		"${long:+--files0-from:}; specify a file containing null-separated file names to count size"
+		"${long:+--max-depth:}; specify directory depth to limit printing"
+		"${long:+--si:}; print size using k, M, etc. for 1000^n"
+		"${long:+--time:}; specify which time to print"
+		"${long:+--time-style:}; specify format to print time in"
+		"--help"
+		"--version"
+		) #<#
 		;;
-	*)
-		case $(uname) in
-			FreeBSD) bsd=true   freebsd=true ;;
-			OpenBSD) bsd=true   openbsd=true ;;
-			NetBSD)  bsd=true   netbsd=true  ;;
-			Darwin)  bsd=true   darwin=true  ;;
-			*BSD)    bsd=true   ;;
-			SunOS)   sunos=true ;;
-			HP-UX)   hpux=true  ;;
+	(FreeBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"A; print apparent file sizes rather than actual disk usage"
+		"B:; specify block size assumed in disk usage estimation"
+		) #<#
+		;;
+	(SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"d; count disk usage only in the same file system"
+		"o; don't include subdirectories' size in the parent's size"
+		) #<#
+		;;
+	(HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"b; print the number of blocks used by swap"
+		"t:; specify a file system type to print"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(B|--block-size)
+		case $type in
+		(GNU)
+			if command -vf completion//completeblocksize >/dev/null 2>&1 ||
+					. -AL completion/_blocksize; then
+				command -f completion//completeblocksize
+			fi
+			;;
 		esac
 		;;
-esac
+	(d)
+		;;
+	#(I)  -- complete as filename as usual
+	#	;;
+	(t)
+		;;
+	#(X|--exclude-from|--exclude|--files0-from)  -- complete as filename as usual
+	#	;;
+	(--max-depth)
+		;;
+	(--time) #>>#
+		complete -P "$PREFIX" -D "print or sort by last access time" atime access use
+		complete -P "$PREFIX" -D "print or sort by last status change time" ctime status
+		;; #<<#
+	(--time-style)
+		case $TARGETWORD in
+		("$PREFIX+"*)
+			if command -vf completion//completestrftime >/dev/null 2>&1 ||
+					. -AL completion/date; then
+				command -f completion//completestrftime
+			fi
+			;;
+		(*) #>>#
+			complete -P "$PREFIX" -D "e.g. 2000-01-01 01:23:45.678901234 +0900" full-iso
+			complete -P "$PREFIX" -D "e.g. 2010-06-29 00:37" long-iso
+			complete -P "$PREFIX" -D "e.g. 01-23 01:23 or 2000-01-23" iso
+			complete -P "$PREFIX" -D "locale-dependent time style" locale posix-locale
+			complete -P "$PREFIX" -D "like full-iso, but only when not in POSIX locale" posix-full-iso
+			complete -P "$PREFIX" -D "like long-iso, but only when not in POSIX locale" posix-long-iso
+			complete -P "$PREFIX" -D "like iso, but only when not in POSIX locale" posix-iso
+			complete -T -P "$PREFIX" -D "specify time format after +" +
+			;; #<<#
+		esac
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+}
 
-complete -C "$1" -f
 
-if [ "$freebsd" ]; then
-	complete -C "$1" -O A \
-		-D "print apparent file sizes rather than actual disk usage"
-fi
-complete -C "$1" -O a ${gnu:+-O --all} \
-	-D "print size for all files including non-directories"
-if [ "$freebsd" ]; then
-	complete -C "$1" -O B -F comp/ \
-		-D "specify block size assumed in disk usage estimation"
-fi
-if [ "$hpux" ]; then
-	complete -C "$1" -O b \
-		-D "print the number of blocks used by swap"
-fi
-if [ "$bsd$gnu" ]; then
-	complete -C "$1" -O c ${gnu:+-O --total} \
-		-D "print the grand total after the normal output"
-fi
-if [ "$sunos" ]; then
-	complete -C "$1" -O d \
-		-D "count disk usage only in the same file system"
-elif [ "$netbsd$freebsd$darwin" ]; then
-	complete -C "$1" -O d -F comp/ \
-		-D "specify directory depth to limit printing"
-fi
-if [ "$netbsd$darwin" ]; then
-	complete -C "$1" -O g \
-		-D "print figures in gigabytes (1073741824-byte units)"
-fi
-if [ "$sunos$netbsd$freebsd$darwin$gnu" ]; then
-	complete -C "$1" -O h ${gnu:+-O --human-readable} \
-		-D "print size using K, M, etc. for 1024^n"
-fi
-complete -C "$1" -O H ${gnu:+-O --dereference-args} \
-	-D "follow symbolic links in operands"
-if [ "$freebsd$darwin" ]; then
-	complete -C "$1" -O I -f \
-		-D "specify a glob pattern for files to ignore"
-fi
-complete -C "$1" -O k \
-	-D "print figures in kilobytes (1024-byte units)"
-complete -C "$1" -O L ${gnu:+-O --dereference} \
-	-D "follow all symbolic links"
-if [ "$freebsd$gnu" ]; then
-	complete -C "$1" -O l ${gnu:+-O --count-links} \
-		-D "count size as many times as the file's hard links"
-fi
-if [ "$netbsd$freebsd$darwin$gnu" ]; then
-	complete -C "$1" -O m \
-		-D "print figures in megabytes (1048576-byte units)"
-fi
-if [ "$netbsd$freebsd" ]; then
-	complete -C "$1" -O n \
-		-D "ignore files with the nodump flag"
-fi
-if [ "$sunos" ]; then
-	complete -C "$1" -O o \
-		-D "don't include subdirectories' size in the parent's size"
-fi
-if [ "$bsd$gnu" ]; then
-	complete -C "$1" -O P ${gnu:+-O --no-dereference} \
-		-D "don't follow symbolic links"
-fi
-if [ "$sunos$hpux$bsd" ]; then
-	complete -C "$1" -O r \
-		-D "warn about unreadable directories and unaccessable files"
-fi
-complete -C "$1" -O s ${gnu:+-O --summarize} \
-	-D "don't print subdirectory sizes"
-if [ "$hpux" ]; then
-	complete -C "$1" -O t -F comp/ \
-		-D "specify a file system type to print"
-fi
-complete -C "$1" -O x ${gnu:+-O --one-file-system} \
-	-D "count disk usage only in the same file system"
-if [ "$gnu" ]; then
-	complete -C "$1" -O 0 -O --null \
-		-D "separate output lines with null byte rather than newline"
-	complete -C "$1" -O B -O --block-size -F comp/du/blocksize \
-		-D "specify the block size unit to print figures in"
-	complete -C "$1" -O b -O --bytes \
-		-D "same as -B 1 --apparent-size"
-	complete -C "$1" -O S -O --separate-dirs \
-		-D "don't include subdirectories' size in the parent's size"
-	complete -C "$1" -O X -O --exclude-from -f \
-		-D "specify a file containing glob patterns for files to ignore"
-	complete -C "$1" -O --apparent-size \
-		-D "print apparent file sizes rather than actual disk usage"
-	complete -C "$1" -O --exclude -f \
-		-D "specify a glob pattern for files to ignore"
-	complete -C "$1" -O --files0-from -f \
-	-D "specify a file containing null-separated file names to count size"
-	complete -C "$1" -O --max-depth -F comp/ \
-		-D "specify directory depth to limit printing"
-	complete -C "$1" -O --si \
-		-D "print size using k, M, etc. for 1000^n"
-	complete -C "$1" -O --time -A \
-		-D "specify which time to print"
-	complete -C "$1" -O --time atime access use \
-		-D "last-accessed time"
-	complete -C "$1" -O --time ctime status \
-		-D "last-status-changed time"
-	complete -C "$1" -O --time-style -F comp/du/timestyle \
-		-D "specify format to print time in"
-	complete -C "$1" -O --time-style full-iso \
-		-D "e.g. 2000-01-01 01:23:45.678901234 +0900"
-	complete -C "$1" -O --time-style long-iso \
-		-D "e.g. 2010-06-29 00:37"
-	complete -C "$1" -O --time-style iso \
-		-D "e.g. 01-23 01:23 or 2000-01-23"
-	complete -C "$1" -O --help
-	complete -C "$1" -O --version
-	function comp/du/blocksize {
-		complete -G -- df "${@[2,-1]}"
-	}
-	function comp/du/timestyle
-	case "${@[-1]}" in (+*)
-		complete -G -- date "${@[-1]}"
-	esac  # TODO need fix for the (--time-*=+*) pattern
-fi
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

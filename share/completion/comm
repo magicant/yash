@@ -1,44 +1,66 @@
-# completion settings for the comm command (POSIX 2008; OpenBSD 4.8; NetBSD 5.0;
-# FreeBSD 8.1; Mac OS X 10.6.3; GNU coreutils 8.4)
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-case "$("$1" --version 2>/dev/null)" in
-	*'coreutils'*)
-		typeset gnu=true
-		complete -C "$1" -X
-		;;
-	*)
-		typeset gnu=
-		;;
-esac
+# Completion script for the "comm" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i.
 
-complete -C "$1" -f
+function completion/comm {
 
-complete -C "$1" -O 1 \
-	-D "don't print column of lines unique to file 1"
-complete -C "$1" -O 2 \
-	-D "don't print column of lines unique to file 2"
-complete -C "$1" -O 3 \
-	-D "don't print column of lines common to both files"
-if [ "$gnu" ]; then
-	complete -C "$1" -O --check-order \
-		-D "check if files are correctly sorted"
-	complete -C "$1" -O --nocheck-order \
-		-D "don't check if files are correctly sorted"
-	complete -C "$1" -O --output-delimiter -F comp/ \
-		-D "specify a delimiter to separate columns"
-	complete -C "$1" -O --help
-	complete -C "$1" -O --version
-else
-	case $(uname) in
-		OpenBSD|NetBSD)
-			complete -C "$1" -O f \
-				-D "case-insensitive comparison"
-			;;
-		FreeBSD|Darwin)
-			complete -C "$1" -O i \
-				-D "case-insensitive comparison"
-			;;
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
 	esac
-fi
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"1; don't print column of lines unique to file 1"
+	"2; don't print column of lines unique to file 2"
+	"3; don't print column of lines common to both files"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"--check-order; check if files are correctly sorted"
+		"--nocheck-order; don't check if files are correctly sorted"
+		"--output-delimiter:; specify a delimiter to separate columns"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(OpenBSD|NetBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"f; case-insensitive comparison"
+		) #<#
+		;;
+	(FreeBSD|Darwin)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"i; case-insensitive comparison"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--output-delimiter)
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

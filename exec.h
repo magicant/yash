@@ -64,6 +64,12 @@ extern int exec_variable_as_commands(
 	const wchar_t *varname, const char *codename)
     __attribute__((nonnull));
 
+extern _Bool autoload_completion_function_file(
+	const wchar_t *filename, const wchar_t *cmdname)
+    __attribute__((nonnull(1)));
+extern _Bool call_completion_function(const wchar_t *funcname)
+    __attribute__((nonnull));
+
 extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int break_builtin(int argc, void **argv)

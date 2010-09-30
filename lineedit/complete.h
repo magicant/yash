@@ -29,11 +29,9 @@ typedef enum le_candtype_T {
     CT_FILE,       // file name
     CT_COMMAND,    // command name
     CT_ALIAS,      // alias name
-    CT_OPTION,     // normal command option
-    CT_OPTIONA,    // command option that takes an argument
+    CT_OPTION,     // command option
     CT_VAR,        // variable name
     CT_JOB,        // job name
-    CT_FD,         // file descriptor
     CT_SIG,        // signal name
     CT_LOGNAME,    // user name
     CT_GRP,        // group name
@@ -51,6 +49,7 @@ typedef struct le_candidate_T {
     le_rawvalue_T rawvalue;
     wchar_t *desc;                // candidate description
     le_rawvalue_T rawdesc;
+    _Bool terminate;              // if completed word should be terminated
     union {
 	struct {
 	    _Bool is_executable;
@@ -91,25 +90,17 @@ typedef struct le_context_T {
     void **pwords;          // words preceding the source word
     wchar_t *src;           // source word
     wchar_t *pattern;       // source word as a matching pattern
-    wchar_t *origsrc;       // original `src'
-    wchar_t *origpattern;   // original `pattern'
-    struct xfnmatch_T *cpattern;
     size_t srcindex;        // start index of source word
     size_t origindex;       // original `le_main_index'
     _Bool substsrc;         // substitute source word with candidates?
 } le_context_T;
 /* The `pwords' member is an array of pointers to wide strings containing the
  * expanded words preceding the source word.
- * The `src' (`origsrc') member is the source word expanded by the four
- * expansions, brace expansion, word splitting, and quote removal.
+ * The `src' member is the source word expanded by the four expansions, brace
+ * expansion, word splitting, and quote removal.
  * The `pattern' member is like `src', but differs in that it may contain
  * backslash escapes and that it may have an additional asterisk at the end
  * to make it a pattern.
- * At first, `src' and `origsrc' are the same pointers (and the same for
- * `pattern' and `origpattern'). If an prefix that is ignored in candidate
- * generation is found in the source word, `src' and `pattern' are increased so
- * that they point to just after the prefix. (see examples below)
- * The `cpattern' is the compiled version of `pattern'.
  * The `srcindex' member designates where the source word starts in the edit
  * line. The `origindex' member is the value of `le_main_index' before starting
  * completion.
@@ -119,26 +110,19 @@ typedef struct le_context_T {
  * asterisk is appended to the source word to make it a pattern. */
 /* If the source word is field-split into more than one word, the words but the
  * last are included in `pwords'. */
-
 /* Examples:
  *   For the command line of "foo --bar='x", the completion parser function
  *   `le_get_context' returns:
- *     `quote'                  = QUOTE_SINGLE
- *     `type'                   = CTXT_NORMAL
- *     `pwordc'                 = 1
- *     `pwords'                 = { L"foo" }
- *     `src', `origsrc'         = L"--bar=x"
- *     `pattern', `origpattern' = L"--bar=\\x"
- *     `srcindex'               = 4
- *     `origindex'              = 12
- *     `substsrc'               = false
- *
- *   Command options are parsed in the `get_candgen' function, which updates
- *   `src' and `pattern':
- *     `src'    = L"x"
- *     `pattern = L"\\x"
- *   But `srcindex' is not updated (though it should)... */
-
+ *     `quote'     = QUOTE_SINGLE
+ *     `type'      = CTXT_NORMAL
+ *     `pwordc'    = 1
+ *     `pwords'    = { L"foo" }
+ *     `src',      = L"--bar=x"
+ *     `pattern',  = L"--bar=\\x"
+ *     `srcindex'  = 4
+ *     `origindex' = 12
+ *     `substsrc'  = false
+ */
 
 typedef enum le_candgentype_T {
     CGT_FILE       = 1 << 0, // file of any kind
@@ -152,23 +136,31 @@ typedef enum le_candgentype_T {
     CGT_FUNCTION   = 1 << 7, // function
     CGT_COMMAND    = CGT_BUILTIN | CGT_EXTCOMMAND | CGT_FUNCTION,
     CGT_KEYWORD    = 1 << 8, // shell keyword
-    CGT_OPTION	   = 1 << 9, // command option
-    CGT_NALIAS     = 1 << 10, // non-global alias
-    CGT_GALIAS     = 1 << 11, // global alias
+    CGT_NALIAS     = 1 << 9, // non-global alias
+    CGT_GALIAS     = 1 << 10, // global alias
     CGT_ALIAS      = CGT_NALIAS | CGT_GALIAS,
-    CGT_SCALAR     = 1 << 12, // scalar variable
-    CGT_ARRAY      = 1 << 13, // array variable
+    CGT_SCALAR     = 1 << 11, // scalar variable
+    CGT_ARRAY      = 1 << 12, // array variable
     CGT_VARIABLE   = CGT_SCALAR | CGT_ARRAY,
-    CGT_RUNNING    = 1 << 14, // running job
-    CGT_STOPPED    = 1 << 15, // stopped job
-    CGT_DONE       = 1 << 16, // finished job
+    CGT_RUNNING    = 1 << 13, // running job
+    CGT_STOPPED    = 1 << 14, // stopped job
+    CGT_DONE       = 1 << 15, // finished job
     CGT_JOB        = CGT_RUNNING | CGT_STOPPED | CGT_DONE,
-    CGT_SIGNAL     = 1 << 17, // signal name
-    CGT_LOGNAME    = 1 << 18, // login user name
-    CGT_GROUP      = 1 << 19, // group name
-    CGT_HOSTNAME   = 1 << 20, // host name
-    CGT_BINDKEY    = 1 << 21, // line-editing command name
+    CGT_SIGNAL     = 1 << 16, // signal name
+    CGT_LOGNAME    = 1 << 17, // login user name
+    CGT_GROUP      = 1 << 18, // group name
+    CGT_HOSTNAME   = 1 << 19, // host name
+    CGT_BINDKEY    = 1 << 20, // line-editing command name
 } le_candgentype_T;
+typedef struct le_compopt_T {
+    const le_context_T *ctxt;    // completion context
+    le_candgentype_T type;       // type of generated candidates
+    const wchar_t *src;          // `ctxt->src' + wcslen(ignored prefix)
+    const wchar_t *pattern;      // `ctxt->pattern' + wcslen(ignored prefix)
+    struct xfnmatch_T *cpattern; // compiled `pattern'
+    const wchar_t *suffix;       // string appended to candidate values
+    _Bool terminate;             // whether completed word should be terminated
+} le_compopt_T;
 
 typedef void le_compresult_T(void);
 
@@ -189,13 +181,17 @@ extern void le_complete_cleanup(void);
 extern void le_compdebug(const char *format, ...)
     __attribute__((nonnull,format(printf,1,2)));
 
+extern void set_completion_variables(void);
+
 extern void le_new_command_candidate(wchar_t *cmdname)
     __attribute__((nonnull));
 extern void le_new_candidate(le_candtype_T type,
-	wchar_t *restrict value, wchar_t *restrict desc);
-extern void le_add_candidate(le_candidate_T *cand)
+	wchar_t *restrict value, wchar_t *restrict desc,
+	const le_compopt_T *compopt)
+    __attribute__((nonnull(4)));
+extern void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     __attribute__((nonnull));
-extern _Bool le_compile_cpattern(le_context_T *context)
+extern _Bool le_compile_cpattern(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 extern int complete_builtin(int argc, void **argv)
@@ -204,41 +200,29 @@ extern const char complete_help[];
 
 
 /* This function is defined in "../alias.c". */
-extern void generate_alias_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_alias_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "../builtin.c". */
-extern void generate_builtin_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_builtin_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
-/* This function is defined in "../exec.c". */
-extern int generate_candidates_using_function(
-	const wchar_t *funcname, le_context_T *context)
-    __attribute__((nonnull(2)));
-
 /* This function is defined in "../job.c". */
-extern void generate_job_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_job_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "../sig.c". */
-extern void generate_signal_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_signal_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* These functions are defined in "../variable.c". */
-extern void generate_variable_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_variable_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
-extern void generate_function_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_function_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "keymap.c". */
-extern void generate_bindkey_candidates(
-	le_candgentype_T type, le_context_T *context)
+extern void generate_bindkey_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 

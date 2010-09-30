@@ -1,0 +1,28 @@
+# (C) 2010 magicant
+
+# This file contains a function that completes a directory stack number.
+
+
+# This function generates candidates to complete a directory stack number.
+# $TARGETWORD should start with a '-' or '+'. Otherwise, this function does
+# nothing.
+function completion//completedirstack
+	case $TARGETWORD in ([+-]*)
+		typeset ds i=1
+		if [ "${DIRSTACK+set}" ]; then
+			ds=("$DIRSTACK") # copy $DIRSTACK as an array
+		else
+			ds=()
+		fi
+		while [ $i -le ${ds[#]} ]; do
+			complete -D "${ds[i]}" -- \
+				"+$((${ds[#]} - i + 1))" "-$((i - 1))"
+			i=$((i+1))
+		done
+		if [ "${PWD+set}" ]; then
+			complete -D "$PWD" -- +0 "-$((i - 1))"
+		fi
+	esac
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

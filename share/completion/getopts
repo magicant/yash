@@ -1,20 +1,30 @@
-# completion settings for the getopts built-in
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-complete -C "$1" -F comp/getopts
-complete -C "$1" -O --help
+# Completion script for the "getopts" built-in command.
 
-function comp/getopts {
-	shift
-	while [ $# -gt 0 ]; do
-		case "$1" in
-			--)  shift; break;;
-			-?*) shift; continue;;
-			*)          break;;
-		esac
-	done
-	if [ $# -eq 2 ]; then
-		complete -v
-	fi
+function completion/getopts {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -eq 1 ]; then
+			complete -v
+		elif [ ${WORDS[#]} -gt 1 ]; then
+			complete -f
+		fi
+		;;
+	esac
+
 }
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

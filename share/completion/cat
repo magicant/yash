@@ -1,77 +1,112 @@
-# completion settings for the cat command (POSIX 2008; GNU coreutils 8.4;
-# FreeBSD 8.1; SunOS 5.10; HP-UX 11i)
-# written by magicant
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# (C) 2010 magicant
 
-case "$(LC_ALL=C "$1" -vt <<<"	" 2>/dev/null)" in
-	'^I') typeset ext=true ;;
-	*   ) typeset ext=     ;;
-esac
+# Completion script for the "cat" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i.
 
-complete -C "$1" -f
+function completion/cat {
 
-complete -C "$1" -O u \
-	-D "disable buffering"
-
-if [ "$ext" ]; then
-	case "$("$1" --version 2>/dev/null)" in
-		*'coreutils'*) typeset gnu=true ;;
-		*            ) typeset gnu=     ;;
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
 	esac
 
-	complete -C "$1" -O b ${gnu:+-O --number-nonblank} \
-		-D "print line number for each non-empty line"
-	complete -C "$1" -O n ${gnu:+-O --number} \
-		-D "print line number for each line"
-	complete -C "$1" -O v ${gnu:+-O --show-nonprinting} \
-		-D "print unprintable characters like ^I or M-C"
-	if [ "$gnu" ]; then
-		complete -C "$1" -X
-		complete -C "$1" -O A -O --show-all \
-			-D "-vET: make everything visible"
-		complete -C "$1" -O E -O --show-ends \
-			-D "print \$ at end of each line"
-		complete -C "$1" -O e \
-			-D "-vE: make everything visible but tabs"
-		complete -C "$1" -O s -O --squeeze-blank \
-			-D "squeeze adjacent empty lines into one"
-		complete -C "$1" -O T -O --show-tabs \
-			-D "print tabs as ^I"
-		complete -C "$1" -O t \
-			-D "-vT: make everything visible but newlines"
-		complete -C "$1" -O --help
-		complete -C "$1" -O --version
-	elif [ "$("$1" -r 2>/dev/null <<<"
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"u; disable buffering"
+	) #<#
 
-x")" = "
-x" ]; then
-		# HP-UX cat supports the -r option
-		complete -C "$1" -O e \
-			-D "like -v and print \$ at end of each line"
-		complete -C "$1" -O r \
-			-D "squeeze adjacent empty lines into one"
-		complete -C "$1" -O s \
-			-D "suppress error messages about non-existent files"
-		complete -C "$1" -O t \
-			-D "like -v and print tabs/form-feeds as ^I/^L"
-	elif [ "$("$1" -s 2>/dev/null <<<"
+	ADDOPTIONS=()
+	case $type in (GNU|*BSD|Darwin|SunOS|HP-UX)
+		ADDOPTIONS=( #>#
+		"b ${long:+--number-nonblank}; print line number for each non-empty line"
+		"n ${long:+--number}; print line number for each line"
+		"v ${long:+--show-nonprinting}; print unprintable characters like ^I or M-C"
+		) #<#
 
-x")" = "
-x" ]; then
-		# BSD cat's -s option squeezes empty lines
-		complete -C "$1" -O e \
-			-D "like -v and print \$ at end of each line"
-		complete -C "$1" -O s \
-			-D "squeeze adjacent empty lines into one"
-		complete -C "$1" -O t \
-			-D "like -v and print tabs as ^I"
-	else
-		# SunOS cat's -s option suppresses error messages
-		complete -C "$1" -O e \
-			-D "print \$ at end of each line (with -v)"
-		complete -C "$1" -O s \
-			-D "suppress error messages about non-existent files"
-		complete -C "$1" -O t \
-			-D "print tabs and form-feeds as ^I and ^L (with -v)"
-	fi
-fi
+		case $type in
+		(GNU)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"A ${long:+--show-all}; make everything visible"
+			"E ${long:+--show-ends}; print \$ at end of each line"
+			"e; like -vE: make everything visible but tabs"
+			"T ${long:+--show-tabs}; print tabs as ^I"
+			"t; like -vT: make everything visible but newlines"
+			) #<#
+			;;
+		(SunOS)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"e; print \$ at end of each line (with -v)"
+			"t; print tabs and form-feeds as ^I and ^L (with -v)"
+			) #<#
+			;;
+		(HP-UX)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"e; like -v and print \$ at end of each line"
+			"t; like -v and print tabs and form-feeds as ^I and ^L"
+			) #<#
+			;;
+		(*)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"e; like -v and print \$ at end of each line"
+			"t; like -v and print tabs as ^I"
+			) #<#
+			;;
+		esac
+
+		case $type in
+		(SunOS)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"s; suppress error messages"
+			) #<#
+			;;
+		(HP-UX)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"r; squeeze adjacent empty lines into one"
+			"s; suppress error messages"
+			) #<#
+			;;
+		(*)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"s; squeeze adjacent empty lines into one"
+			) #<#
+			;;
+		esac
+
+		case $type in
+		(GNU)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"--help"
+			"--version"
+			) #<#
+			;;
+		(NetBSD)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"f; print regular files only"
+			"l; acquire lock on the standard output while printing"
+			) #<#
+			;;
+		esac
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
