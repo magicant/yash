@@ -309,7 +309,7 @@ cparse_simple_command:
 	}
 
 	wordunit_T *w = cparse_word(is_token_delimiter_char, tt_single,
-		pwords.length == 0 ? CTXT_COMMAND : CTXT_NORMAL);
+		pwords.length == 0 ? CTXT_COMMAND : CTXT_ARGUMENT);
 	if (w == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
 		pi->ctxt->pwordc = pwords.length;

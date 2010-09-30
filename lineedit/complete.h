@@ -69,6 +69,7 @@ typedef enum le_quote_T {
 typedef enum le_contexttype_T {
     CTXT_NORMAL,             // normal word
     CTXT_COMMAND,            // command word
+    CTXT_ARGUMENT,           // command argument word
     CTXT_TILDE,              // tilde expansion
     CTXT_VAR,                // variable name
     CTXT_ARITH,              // arithmetic expansion

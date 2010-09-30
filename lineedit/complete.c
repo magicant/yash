@@ -475,6 +475,7 @@ void print_context_info(const le_context_T *ctxt)
     switch (ctxt->type & CTXT_MASK) {
 	case CTXT_NORMAL:        s = "normal";                   break;
 	case CTXT_COMMAND:       s = "command";                  break;
+	case CTXT_ARGUMENT:      s = "argument";                 break;
 	case CTXT_TILDE:         s = "tilde";                    break;
 	case CTXT_VAR:           s = "variable";                 break;
 	case CTXT_ARITH:         s = "arithmetic";               break;
@@ -516,12 +517,9 @@ void execute_completion_function(void)
 
     switch (ctxt->type & CTXT_MASK) {
 	case CTXT_NORMAL:
-	    if (!call_standard_completion_function()) {
-		if (autoload_completion_function())
-		    call_standard_completion_function();
-		else if (!call_completion_function(L"" DEFAULT_COMPFUNC))
-		    simple_completion(CGT_FILE);
-	    }
+	case CTXT_ASSIGN:
+	case CTXT_REDIR:
+	    simple_completion(CGT_FILE);
 	    break;
 	case CTXT_COMMAND:
 	    if (!call_completion_function(L"" DEFAULT_COMPFUNC)) {
@@ -537,6 +535,14 @@ void execute_completion_function(void)
 		simple_completion(type);
 	    }
 	    break;
+	case CTXT_ARGUMENT:
+	    if (!call_standard_completion_function()) {
+		if (autoload_completion_function())
+		    call_standard_completion_function();
+		else if (!call_completion_function(L"" DEFAULT_COMPFUNC))
+		    simple_completion(CGT_FILE);
+	    }
+	    break;
 	case CTXT_TILDE:
 	    simple_completion(CGT_LOGNAME);
 	    break;
@@ -545,10 +551,6 @@ void execute_completion_function(void)
 	    break;
 	case CTXT_ARITH:
 	    simple_completion(CGT_SCALAR);
-	    break;
-	case CTXT_ASSIGN:
-	case CTXT_REDIR:
-	    simple_completion(CGT_FILE);
 	    break;
 	case CTXT_REDIR_FD:
 	    break;
@@ -1160,6 +1162,7 @@ void update_main_buffer(bool subst, bool finish)
 	switch (ctxt->type & CTXT_MASK) {
 	    case CTXT_NORMAL:
 	    case CTXT_COMMAND:
+	    case CTXT_ARGUMENT:
 	    case CTXT_VAR:
 	    case CTXT_ARITH:
 	    case CTXT_ASSIGN:
