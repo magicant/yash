@@ -1248,6 +1248,9 @@ void substitute_source_word_all(void)
 void quote(xwcsbuf_T *restrict buf,
 	const wchar_t *restrict s, le_quote_T quotetype)
 {
+    const wchar_t *quotechars = (ctxt->type == CTXT_COMMAND)
+	? L"=|&;<>()$`\\\"'*?[]#~{}" : L"|&;<>()$`\\\"'*?[]#~{}";
+
     switch (quotetype) {
 	case QUOTE_NONE:
 	    wb_cat(buf, s);
@@ -1257,7 +1260,7 @@ void quote(xwcsbuf_T *restrict buf,
 		if (*s == L'\n') {
 		    wb_ncat_force(buf, L"'\n'", 3);
 		} else {
-		    if (wcschr(L"|&;<>()$`\\\"'*?[]#~={}", *s) || iswspace(*s))
+		    if (wcschr(quotechars, *s) || iswspace(*s))
 			wb_wccat(buf, L'\\');
 		    wb_wccat(buf, *s);
 		}
