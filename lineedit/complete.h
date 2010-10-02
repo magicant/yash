@@ -167,6 +167,9 @@ typedef struct le_compopt_T {
     const wchar_t *suffix;       // string appended to candidate values
     _Bool terminate;             // whether completed word should be terminated
 } le_compopt_T;
+/* The `patterns' member of the `le_compopt_T' structure must not be NULL and
+ * the first element of the `le_comppattern_T' linked list must be of type
+ * CPT_ACCEPT. */
 
 typedef void le_compresult_T(void);
 

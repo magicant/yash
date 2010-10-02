@@ -32,6 +32,7 @@
 #endif
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -874,57 +875,54 @@ void generate_file_candidates(const le_compopt_T *compopt)
 
     le_compdebug("adding filename candidates");
 
-    enum wglbflags flags = WGLB_NOSORT;
+    enum wglbflags flags = 0;
     // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
 
+    const le_comppattern_T *p = compopt->patterns;
+    assert(p->type == CPT_ACCEPT);
+
     /* generate candidates by wglob */
-    plist_T accept, reject;
-    pl_init(&accept);
-    pl_init(&reject);
-    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
-#ifdef NDEBUG
-	plist_T *list;
-#else
-	plist_T *list = list;
-#endif
-	switch (p->type) {
-	    case CPT_ACCEPT:  list = &accept;  break;
-	    case CPT_REJECT:  list = &reject;  break;
-	}
-	wglob(p->pattern, flags, list);
-    }
+    plist_T list, list2;
+    wglob(p->pattern, flags, pl_init(&list));
+    while ((p = p->next) != NULL) {
+	wglob(p->pattern, flags, pl_init(&list2));
 
-    /* normalize the lists */
-    sort_uniq(&accept, 0, accept.length);
-    sort_uniq(&reject, 0, reject.length);
-
-    /* remove rejects from accepts */
-    for (size_t ai = 0, ri = 0; ri < reject.length; ri++) {
-	wchar_t *r = reject.contents[ri];
-	while (ai < accept.length) {
-	    wchar_t *a = accept.contents[ai];
-	    int cmp = wcscoll(a, r);
-	    if (cmp == 0) {
-		free(a);
-		accept.contents[ai] = NULL;
+	/* compare `list' and `list2' */
+	size_t i = 0, i2 = 0;
+	while (i2 < list2.length) {
+	    wchar_t *v2 = list2.contents[i2];
+	    while (i < list.length) {
+		wchar_t *v = list.contents[i];
+		int cmp = wcscoll(v, v2);
+		if (cmp > 0)
+		    break;
+		if ((p->type == CPT_ACCEPT && cmp < 0)
+			|| (p->type == CPT_REJECT && cmp == 0)) {
+		    free(v);
+		    pl_remove(&list, i, 1);
+		    continue;
+		}
+		i++;
 	    }
-	    if (cmp <= 0)
-		ai++;
-	    else
-		break;
+	    free(v2);
+	    i2++;
 	}
-	free(r);
+
+	/* remove unmatched candidates */
+	if (p->type == CPT_ACCEPT) {
+	    for (size_t j = i; j < list.length; j++)
+		free(list.contents[j]);
+	    pl_remove(&list, i, SIZE_MAX);
+	}
+
+	pl_destroy(&list2);
     }
-    pl_destroy(&reject);
 
-    /* check pathnames in accept and add them to the candidate list */
-    for (size_t i = 0; i < accept.length; i++) {
-	wchar_t *name = accept.contents[i];
-	if (name == NULL)
-	    continue;
-
+    /* check pathnames in `list' and add them to the candidate list */
+    for (size_t i = 0; i < list.length; i++) {
+	wchar_t *name = list.contents[i];
 	char *mbsname = malloc_wcstombs(name);
 	struct stat st;
 	if (mbsname != NULL &&
@@ -949,12 +947,11 @@ void generate_file_candidates(const le_compopt_T *compopt)
 		name = NULL;
 	    }
 	}
-
 	free(name);
 	free(mbsname);
     }
 
-    pl_destroy(&accept);
+    pl_destroy(&list);
 }
 
 /* Generates candidates that are the names of external commands matching the
