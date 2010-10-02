@@ -656,12 +656,13 @@ void complete_command_default(void)
     compopt.terminate = false;
     generate_file_candidates(&compopt);
 
-    pattern1.next = &pattern2;
     compopt.suffix = NULL;
     compopt.terminate = true;
     if (wcschr(ctxt->src, L'/')) {
+	// pattern1.next = NULL;
 	compopt.type = CGT_EXECUTABLE;
     } else {
+	pattern1.next = &pattern2;
 	compopt.type = CGT_COMMAND;
 	if (ctxt->quote == QUOTE_NORMAL && !wcschr(ctxt->pattern, L'\\'))
 	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
