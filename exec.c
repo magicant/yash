@@ -972,7 +972,7 @@ void search_command(
 	}
     }
 
-    if (slash) {
+    if (slash && (type & SCT_EXTERNAL)) {
 	ci->type = externalprogram;
 	ci->ci_path = name;
 	return;
