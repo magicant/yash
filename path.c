@@ -644,8 +644,6 @@ static struct wglob_pattern *wglob_parse_pattern_part(
 	wchar_t *pat, enum wglbflags flags)
     __attribute__((malloc,warn_unused_result,nonnull));
 static void wglob_free_pattern(struct wglob_pattern *p);
-static int wglob_sortcmp(const void *v1, const void *v2)
-    __attribute__((pure,nonnull));
 static void wglob_search(
 	const struct wglob_pattern *restrict pattern,
 	enum wglbflags flags,
@@ -678,6 +676,8 @@ static void wglob_search_recsearch(
 static bool is_reentry(
 	const struct stat *st, const struct wglob_dirstack *dirstack)
     __attribute__((nonnull(1)));
+static int wglob_sortcmp(const void *v1, const void *v2)
+    __attribute__((pure,nonnull));
 
 /* A wide string version of `glob'.
  * Adds all pathnames that matches the specified pattern to the specified list.
@@ -720,27 +720,6 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	sort_uniq(list, listbase, list->length - listbase);
 
     return !is_interrupted();
-}
-
-/* Sorts the specified list of wide strings and removes duplicates.
- * Only `n' elements of the list starting at the index of `i' are sorted and
- * uniqed. */
-void sort_uniq(plist_T *list, size_t i, size_t n)
-{
-    assert(i + n <= list->length);
-    if (n == 0)
-	return;
-
-    /* sort */
-    qsort(list->contents + i, n, sizeof *list->contents, wglob_sortcmp);
-
-    /* remove duplicates */
-    for (size_t j = i + n; --j > i; ) {
-	if (wcscmp(list->contents[j], list->contents[j - 1]) == 0) {
-	    free(list->contents[j]);
-	    pl_remove(list, j, 1);
-	}
-    }
 }
 
 /* Parses the specified pattern.
@@ -849,11 +828,6 @@ void wglob_free_pattern(struct wglob_pattern *p)
 	free(p);
 	p = next;
     }
-}
-
-int wglob_sortcmp(const void *v1, const void *v2)
-{
-    return wcscoll(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
 }
 
 /* Searches the directory designated in `path' and add matching pathnames to
@@ -1028,6 +1002,32 @@ bool is_reentry(const struct stat *st, const struct wglob_dirstack *dirstack)
 	dirstack = dirstack->prev;
     }
     return false;
+}
+
+/* Sorts the specified list of wide strings and removes duplicates.
+ * Only `n' elements of the list starting at the index of `i' are sorted and
+ * uniqed. */
+void sort_uniq(plist_T *list, size_t i, size_t n)
+{
+    assert(i + n <= list->length);
+    if (n == 0)
+	return;
+
+    /* sort */
+    qsort(list->contents + i, n, sizeof *list->contents, wglob_sortcmp);
+
+    /* remove duplicates */
+    for (size_t j = i + n; --j > i; ) {
+	if (wcscmp(list->contents[j], list->contents[j - 1]) == 0) {
+	    free(list->contents[j]);
+	    pl_remove(list, j, 1);
+	}
+    }
+}
+
+int wglob_sortcmp(const void *v1, const void *v2)
+{
+    return wcscoll(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
 }
 
 
