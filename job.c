@@ -929,12 +929,9 @@ void generate_job_candidates(const le_compopt_T *compopt)
 	}
 
 	wchar_t *jobname = get_job_name(job);
-	if (le_wmatch_comppatterns(compopt, jobname)) {
-	    wchar_t *cand;
-		cand = xwcsdup(jobname);
+	if (le_wmatch_comppatterns(compopt, jobname))
 	    le_new_candidate(CT_JOB, xwcsdup(jobname),
 		    malloc_wprintf(L"%%%zu", i), compopt);
-	}
 
 	if (jobname != job->j_procs[0].pr_name)
 	    free(jobname);
