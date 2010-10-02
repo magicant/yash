@@ -104,6 +104,8 @@ static int sort_candidates_cmp(const void *cp1, const void *cp2)
     __attribute__((nonnull));
 static void print_context_info(const le_context_T *ctxt)
     __attribute__((nonnull));
+static void print_compopt_info(const le_compopt_T *compopt)
+    __attribute__((nonnull));
 
 static void execute_completion_function(void);
 static bool autoload_completion_function(void);
@@ -495,8 +497,31 @@ void print_context_info(const le_context_T *ctxt)
     for (int i = 0; i < ctxt->pwordc; i++)
 	le_compdebug("preceding word %d: \"%ls\"",
 		i + 1, (const wchar_t *) ctxt->pwords[i]);
-    le_compdebug("source word: \"%ls\"", ctxt->src);
+    le_compdebug("target word: \"%ls\"", ctxt->src);
     le_compdebug(" as pattern: \"%ls\"", ctxt->pattern);
+}
+
+/* Prints information on the specified `compopt' if the `compdebug' option is
+ * enabled. */
+void print_compopt_info(const le_compopt_T *compopt)
+{
+#ifdef NDEBUG
+    const char *s;
+#else
+    const char *s = s;
+#endif
+    le_compdebug("target word without prefix: \"%ls\"", compopt->src);
+    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
+	switch (p->type) {
+	    case CPT_ACCEPT:  s = "accept";  break;
+	    case CPT_REJECT:  s = "reject";  break;
+	}
+	le_compdebug("pattern: \"%ls\" (%s)", p->pattern, s);
+    }
+    if (compopt->suffix != NULL)
+	le_compdebug("suffix: \"%ls\"", compopt->suffix);
+    if (!compopt->terminate)
+	le_compdebug("completed word will not be terminated");
 }
 
 
@@ -654,6 +679,7 @@ void complete_command_default(void)
     compopt.type = CGT_DIRECTORY;
     compopt.suffix = L"/";
     compopt.terminate = false;
+    print_compopt_info(&compopt);
     generate_file_candidates(&compopt);
 
     compopt.suffix = NULL;
@@ -667,6 +693,7 @@ void complete_command_default(void)
 	if (ctxt->quote == QUOTE_NORMAL && !wcschr(ctxt->pattern, L'\\'))
 	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
     }
+    print_compopt_info(&compopt);
     generate_candidates(&compopt);
 }
 
@@ -689,6 +716,7 @@ void simple_completion(le_candgentype_T type)
 	.terminate = true,
     };
 
+    print_compopt_info(&compopt);
     generate_candidates(&compopt);
 }
 
@@ -1142,6 +1170,8 @@ void word_completion(size_t count, ...)
 	.terminate = true,
     };
 
+    print_compopt_info(&compopt);
+
     va_start(ap, count);
     for (size_t i = 0; i < count; i++) {
 	const wchar_t *word = va_arg(ap, const wchar_t *);
@@ -1562,6 +1592,8 @@ dupopterror:
 	.suffix = suffix,
 	.terminate = terminate,
     };
+
+    print_compopt_info(&compopt);
 
     size_t oldcount = le_candidates.length;
     generate_candidates_from_words(candtype, words, description, &compopt);
