@@ -80,7 +80,11 @@ function completion/command {
 				complete --builtin-command
 			esac
 			case $options in (*e*)
-				complete --external-command
+				complete -T -S / -d
+				case $TARGETWORD in
+					(*/*) complete --executable-file ;;
+					(*  ) complete --external-command ;;
+				esac
 			esac
 			case $options in (*f*)
 				complete --function

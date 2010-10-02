@@ -519,9 +519,10 @@ function completion//reexecute {
 		if command -vf completion//default >/dev/null 2>&1; then
 			command -f completion//default
 		else
+			complete -T -S / -d
 			case $TARGETWORD in
-				*/*) complete -d --executable-file ;;
-				*  ) complete -cdk ;;
+				(*/*) complete --executable-file ;;
+				(*  ) complete -R '*/*' -ck --normal-alias ;;
 			esac
 		fi
 		return
