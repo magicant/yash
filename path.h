@@ -97,8 +97,6 @@ struct plist_T;
 extern _Bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
 	struct plist_T *restrict list)
     __attribute__((nonnull));
-extern void sort_uniq(struct plist_T *list, size_t i, size_t n)
-    __attribute__((nonnull));
 
 
 /********** Builtins **********/
