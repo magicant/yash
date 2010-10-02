@@ -635,12 +635,17 @@ void set_completion_variables(void)
 /* Performs command name completion in the default settings. */
 void complete_command_default(void)
 {
+    le_comppattern_T pattern;
     le_compopt_T compopt;
+
+    pattern.next = NULL;
+    pattern.type = CPT_ACCEPT;
+    pattern.pattern = ctxt->pattern;
+    pattern.cpattern = NULL;
 
     compopt.ctxt = ctxt;
     compopt.src = ctxt->src;
-    compopt.pattern = ctxt->pattern;
-    compopt.cpattern = NULL;
+    compopt.patterns = &pattern;
 
     compopt.type = CGT_DIRECTORY;
     compopt.suffix = L"/";
@@ -662,17 +667,18 @@ void complete_command_default(void)
 
 /********** Completion Candidate Generation **********/
 
-#define WMATCH(pattern, s) (xfnm_wmatch(pattern, s).start != (size_t) -1)
-
 /* Perform completion for the specified candidate type(s). */
 void simple_completion(le_candgentype_T type)
 {
+    le_comppattern_T pattern = {
+	.type = CPT_ACCEPT,
+	.pattern = ctxt->pattern,
+    };
     le_compopt_T compopt = {
 	.ctxt = ctxt,
 	.type = type,
 	.src = ctxt->src,
-	.pattern = ctxt->pattern,
-	.cpattern = NULL,
+	.patterns = &pattern,
 	.suffix = NULL,
 	.terminate = true,
     };
@@ -681,7 +687,8 @@ void simple_completion(le_candgentype_T type)
 }
 
 /* Calls all candidate generation functions.
- * `compopt->cpattern' is freed in this function but is NOT set to NULL. */
+ * `cpattern's in `compopt->patterns' are freed in this function but are NOT
+ * set to NULL. */
 void generate_candidates(const le_compopt_T *compopt)
 {
     generate_file_candidates(compopt);
@@ -699,7 +706,9 @@ void generate_candidates(const le_compopt_T *compopt)
     generate_group_candidates(compopt);
     generate_host_candidates(compopt);
     generate_bindkey_candidates(compopt);
-    xfnm_free(compopt->cpattern);
+
+    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next)
+	xfnm_free(p->cpattern);
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
@@ -791,21 +800,64 @@ void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     pl_add(&le_candidates, cand);
 }
 
-/* Compiles the pattern `compopt->pattern' into `compopt->cpattern'
- * if not yet compiled. Returns true iff successful. */
-bool le_compile_cpattern(const le_compopt_T *compopt)
+/* Compiles `pattern's in `compopt->patterns' into `cpattern's if not yet
+ * compiled. Returns true iff successful. */
+bool le_compile_cpatterns(const le_compopt_T *compopt)
 {
-    if (compopt->cpattern != NULL)
-	return true;
+    for (le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next) {
+	if (p->cpattern != NULL)
+	    continue;
 
-    le_compopt_T *co = (le_compopt_T *) compopt;
-    co->cpattern = xfnm_compile(
-	    co->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
-    if (co->cpattern != NULL)
-	return true;
+	p->cpattern = xfnm_compile(p->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+	if (p->cpattern == NULL) {
+	    le_compdebug("failed to compile pattern \"%ls\"", p->pattern);
+	    return false;
+	}
+    }
 
-    le_compdebug("failed to compile pattern \"%ls\"", co->pattern);
-    return false;
+    return true;
+}
+
+/* Perform pattern matching for multibyte string `s' using patterns in
+ * `compopt->patterns'. The patterns must have been compiled.
+ * Returns true iff successful. */
+bool le_match_comppatterns(const le_compopt_T *compopt, const char *s)
+{
+    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
+	bool match = (xfnm_match(p->cpattern, s) == 0);
+	switch (p->type) {
+	    case CPT_ACCEPT:
+		if (!match)
+		    return false;
+		break;
+	    case CPT_REJECT:
+		if (match)
+		    return false;
+		break;
+	}
+    }
+    return true;
+}
+
+/* Perform pattern matching for wide string `s' using patterns in
+ * `compopt->patterns'. The patterns must have been compiled.
+ * Returns true iff successful. */
+bool le_wmatch_comppatterns(const le_compopt_T *compopt, const wchar_t *s)
+{
+    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
+	bool match = (xfnm_wmatch(p->cpattern, s).start != (size_t) -1);
+	switch (p->type) {
+	    case CPT_ACCEPT:
+		if (!match)
+		    return false;
+		break;
+	    case CPT_REJECT:
+		if (match)
+		    return false;
+		break;
+	}
+    }
+    return true;
 }
 
 /* Generates file name candidates.
@@ -816,18 +868,59 @@ void generate_file_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & (CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE)))
 	return;
 
-    le_compdebug("adding filenames for pattern \"%ls\"", compopt->pattern);
+    le_compdebug("adding filename candidates");
 
     enum wglbflags flags = WGLB_NOSORT;
     // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;
 
-    plist_T list;
-    wglob(compopt->pattern, flags, pl_init(&list));
+    /* generate candidates by wglob */
+    plist_T accept, reject;
+    pl_init(&accept);
+    pl_init(&reject);
+    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
+#ifdef NDEBUG
+	plist_T *list;
+#else
+	plist_T *list = list;
+#endif
+	switch (p->type) {
+	    case CPT_ACCEPT:  list = &accept;  break;
+	    case CPT_REJECT:  list = &reject;  break;
+	}
+	wglob(p->pattern, flags, list);
+    }
 
-    for (size_t i = 0; i < list.length; i++) {
-	wchar_t *name = list.contents[i];
+    /* normalize the lists */
+    sort_uniq(&accept, 0, accept.length);
+    sort_uniq(&reject, 0, reject.length);
+
+    /* remove rejects from accepts */
+    for (size_t ai = 0, ri = 0; ri < reject.length; ri++) {
+	wchar_t *r = reject.contents[ri];
+	while (ai < accept.length) {
+	    wchar_t *a = accept.contents[ai];
+	    int cmp = wcscoll(a, r);
+	    if (cmp == 0) {
+		free(a);
+		accept.contents[ai] = NULL;
+	    }
+	    if (cmp <= 0)
+		ai++;
+	    else
+		break;
+	}
+	free(r);
+    }
+    pl_destroy(&reject);
+
+    /* check pathnames in accept and add them to the candidate list */
+    for (size_t i = 0; i < accept.length; i++) {
+	wchar_t *name = accept.contents[i];
+	if (name == NULL)
+	    continue;
+
 	char *mbsname = malloc_wcstombs(name);
 	struct stat st;
 	if (mbsname != NULL &&
@@ -852,10 +945,12 @@ void generate_file_candidates(const le_compopt_T *compopt)
 		name = NULL;
 	    }
 	}
+
 	free(name);
 	free(mbsname);
     }
-    pl_destroy(&list);
+
+    pl_destroy(&accept);
 }
 
 /* Generates candidates that are the names of external commands matching the
@@ -866,9 +961,8 @@ void generate_external_command_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_EXTCOMMAND))
 	return;
 
-    le_compdebug("adding external command names for pattern \"%ls\"",
-	    compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding external command name candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     char *const *paths = get_path_array(PA_PATH);
@@ -889,7 +983,7 @@ void generate_external_command_candidates(const le_compopt_T *compopt)
 	    sb_ccat(&path, '/');
 	dirpathlen = path.length;
 	while ((de = readdir(dir)) != NULL) {
-	    if (xfnm_match(compopt->cpattern, de->d_name) != 0)
+	    if (!le_match_comppatterns(compopt, de->d_name))
 		continue;
 	    sb_cat(&path, de->d_name);
 	    if (is_executable_regular(path.contents))
@@ -909,8 +1003,8 @@ void generate_keyword_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_KEYWORD))
 	return;
 
-    le_compdebug("adding keywords matching pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding keyword candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     static const wchar_t *keywords[] = {
@@ -920,7 +1014,7 @@ void generate_keyword_candidates(const le_compopt_T *compopt)
     };
 
     for (const wchar_t **k = keywords; *k != NULL; k++)
-	if (WMATCH(compopt->cpattern, *k))
+	if (le_wmatch_comppatterns(compopt, *k))
 	    le_new_candidate(CT_COMMAND, xwcsdup(*k), NULL, compopt);
 }
 
@@ -930,16 +1024,16 @@ void generate_logname_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_LOGNAME))
 	return;
 
-    le_compdebug("adding users matching pattern \"%ls\"", compopt->pattern);
+    le_compdebug("adding user name candidates");
 
 #if HAVE_GETPWENT
-    if (!le_compile_cpattern(compopt))
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     struct passwd *pwd;
     setpwent();
     while ((pwd = getpwent()) != NULL)
-	if (xfnm_match(compopt->cpattern, pwd->pw_name) == 0)
+	if (le_match_comppatterns(compopt, pwd->pw_name))
 	    le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
 # if HAVE_PW_GECOS
 		    (pwd->pw_gecos != NULL) ? malloc_mbstowcs(pwd->pw_gecos) :
@@ -958,16 +1052,16 @@ void generate_group_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_GROUP))
 	return;
 
-    le_compdebug("adding groups matching pattern \"%ls\"", compopt->pattern);
+    le_compdebug("adding group name candidates");
 
 #if HAVE_GETGRENT
-    if (!le_compile_cpattern(compopt))
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     struct group *grp;
     setgrent();
     while ((grp = getgrent()) != NULL)
-	if (xfnm_match(compopt->cpattern, grp->gr_name) == 0)
+	if (le_match_comppatterns(compopt, grp->gr_name))
 	    le_new_candidate(
 		    CT_GRP, malloc_mbstowcs(grp->gr_name), NULL, compopt);
     endgrent();
@@ -982,21 +1076,21 @@ void generate_host_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_HOSTNAME))
 	return;
 
-    le_compdebug("adding hosts matching pattern \"%ls\"", compopt->pattern);
+    le_compdebug("adding host name candidates");
 
 #if HAVE_GETHOSTENT
-    if (!le_compile_cpattern(compopt))
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     struct hostent *host;
     sethostent(true);
     while ((host = gethostent()) != NULL) {
-	if (xfnm_match(compopt->cpattern, host->h_name) == 0)
+	if (le_match_comppatterns(compopt, host->h_name))
 	    le_new_candidate(
 		    CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL, compopt);
 	if (host->h_aliases != NULL)
 	    for (char *const *a = host->h_aliases; *a != NULL; a++)
-		if (xfnm_match(compopt->cpattern, *a) == 0)
+		if (le_match_comppatterns(compopt, *a))
 		    le_new_candidate(
 			    CT_HOSTNAME, malloc_mbstowcs(*a), NULL, compopt);
     }
@@ -1014,13 +1108,13 @@ void generate_candidates_from_words(
     if (words[0] == NULL)
 	return;
 
-    le_compdebug("adding words matching pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding specified words");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     for (; *words != NULL; words++) {
 	wchar_t *word = *words;
-	if (WMATCH(compopt->cpattern, word))
+	if (le_wmatch_comppatterns(compopt, word))
 	    le_new_candidate(type, xwcsdup(word),
 		    (description == NULL) ? NULL : xwcsdup(description),
 		    compopt);
@@ -1033,12 +1127,15 @@ void generate_candidates_from_words(
 void word_completion(size_t count, ...)
 {
     va_list ap;
+    le_comppattern_T pattern = {
+	.type = CPT_ACCEPT,
+	.pattern = ctxt->pattern,
+    };
     le_compopt_T compopt = {
 	.ctxt = ctxt,
 	.type = 0,
 	.src = ctxt->src,
-	.pattern = ctxt->pattern,
-	.cpattern = NULL,
+	.patterns = &pattern,
 	.suffix = NULL,
 	.terminate = true,
     };
@@ -1427,12 +1524,15 @@ dupopterror:
 	}
     }
 
+    le_comppattern_T patterns = {
+	.type = CPT_ACCEPT,
+	.pattern = pattern,
+    };
     le_compopt_T compopt = {
 	.ctxt = ctxt,
 	.type = cgtype,
 	.src = src,
-	.pattern = pattern,
-	.cpattern = NULL,
+	.patterns = &patterns,
 	.suffix = suffix,
 	.terminate = terminate,
     };

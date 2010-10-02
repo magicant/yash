@@ -417,8 +417,8 @@ void generate_alias_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_ALIAS))
 	return;
 
-    le_compdebug("adding aliases matching pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding alias name candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     size_t i = 0;
@@ -429,7 +429,7 @@ void generate_alias_candidates(const le_compopt_T *compopt)
 	    (alias->flags & AF_GLOBAL) ? CGT_GALIAS : CGT_NALIAS;
 
 	if (compopt->type & type)
-	    if (xfnm_wmatch(compopt->cpattern, kv.key).start != (size_t) -1)
+	    if (le_wmatch_comppatterns(compopt, kv.key))
 		le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL, compopt);
     }
 }

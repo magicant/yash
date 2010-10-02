@@ -342,13 +342,12 @@ void generate_bindkey_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_BINDKEY))
 	return;
 
-    le_compdebug("adding lineedit commands for pattern \"%ls\"",
-	    compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding lineedit command name candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
-	if (xfnm_match(compopt->cpattern, commands[i].name) == 0)
+	if (le_match_comppatterns(compopt, commands[i].name))
 	    le_new_candidate(CT_BINDKEY,
 		    malloc_mbstowcs(commands[i].name), NULL, compopt);
 }

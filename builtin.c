@@ -236,8 +236,8 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_BUILTIN))
 	return;
 
-    le_compdebug("adding builtins for pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding built-in command name candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     size_t i = 0;
@@ -257,7 +257,7 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
 		    continue;
 		break;
 	}
-	if (xfnm_match(compopt->cpattern, kv.key) == 0)
+	if (le_match_comppatterns(compopt, kv.key))
 	    le_new_candidate(CT_COMMAND,
 		    malloc_mbstowcs(kv.key), NULL, compopt);
     }

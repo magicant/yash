@@ -153,12 +153,17 @@ typedef enum le_candgentype_T {
     CGT_HOSTNAME   = 1 << 19, // host name
     CGT_BINDKEY    = 1 << 20, // line-editing command name
 } le_candgentype_T;
+typedef struct le_comppattern_T {
+    struct le_comppattern_T *next;
+    enum { CPT_ACCEPT, CPT_REJECT, } type;
+    const wchar_t *pattern;       // pattern (not including ignored prefix)
+    struct xfnmatch_T *cpattern;  // compiled pattern
+} le_comppattern_T;
 typedef struct le_compopt_T {
     const le_context_T *ctxt;    // completion context
     le_candgentype_T type;       // type of generated candidates
     const wchar_t *src;          // `ctxt->src' + wcslen(ignored prefix)
-    const wchar_t *pattern;      // `ctxt->pattern' + wcslen(ignored prefix)
-    struct xfnmatch_T *cpattern; // compiled `pattern'
+    le_comppattern_T *patterns;  // patterns to be matched to candidates
     const wchar_t *suffix;       // string appended to candidate values
     _Bool terminate;             // whether completed word should be terminated
 } le_compopt_T;
@@ -192,7 +197,12 @@ extern void le_new_candidate(le_candtype_T type,
     __attribute__((nonnull(4)));
 extern void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     __attribute__((nonnull));
-extern _Bool le_compile_cpattern(const le_compopt_T *compopt)
+extern _Bool le_compile_cpatterns(const le_compopt_T *compopt)
+    __attribute__((nonnull));
+extern _Bool le_match_comppatterns(const le_compopt_T *compopt, const char *s)
+    __attribute__((nonnull));
+extern _Bool le_wmatch_comppatterns(
+	const le_compopt_T *compopt, const wchar_t *s)
     __attribute__((nonnull));
 
 extern int complete_builtin(int argc, void **argv)

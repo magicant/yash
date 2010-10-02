@@ -922,8 +922,8 @@ void reset_sigint(void)
 
 #if YASH_ENABLE_LINEEDIT
 
-static void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name,
-	const le_compopt_T *compopt)
+static void sig_new_candidate(
+	const le_compopt_T *compopt, int num, xwcsbuf_T *name)
     __attribute__((nonnull));
 
 #ifdef SIGWINCH
@@ -953,8 +953,8 @@ void generate_signal_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_SIGNAL))
 	return;
 
-    le_compdebug("adding signals for pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding signal name candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     bool prefix = matchwcsprefix(compopt->src, L"SIG");
@@ -964,7 +964,7 @@ void generate_signal_candidates(const le_compopt_T *compopt)
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, s->name);
-	sig_new_candidate(compopt->cpattern, s->no, &buf, compopt);
+	sig_new_candidate(compopt, s->no, &buf);
     }
 #if defined SIGRTMIN && defined SIGRTMAX
     int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
@@ -974,25 +974,24 @@ void generate_signal_candidates(const le_compopt_T *compopt)
 	wb_cat(&buf, L"RTMIN");
 	if (s != sigrtmin)
 	    wb_wprintf(&buf, L"+%d", s - sigrtmin);
-	sig_new_candidate(compopt->cpattern, s, &buf, compopt);
+	sig_new_candidate(compopt, s, &buf);
 
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, L"RTMAX");
 	if (s != sigrtmax)
 	    wb_wprintf(&buf, L"-%d", sigrtmax - s);
-	sig_new_candidate(compopt->cpattern, s, &buf, compopt);
+	sig_new_candidate(compopt, s, &buf);
     }
 #endif
     wb_destroy(&buf);
 }
 
-/* If the specified pattern matches the specified signal name, adds a new
+/* If the pattern in `compopt' matches the specified signal name, adds a new
  * completion candidate with the name and the description for the signal. */
-void sig_new_candidate(const xfnmatch_T *pat, int num, xwcsbuf_T *name,
-	const le_compopt_T *compopt)
+void sig_new_candidate(const le_compopt_T *compopt, int num, xwcsbuf_T *name)
 {
-    if (xfnm_wmatch(pat, name->contents).start != (size_t) -1) {
+    if (le_wmatch_comppatterns(compopt, name->contents)) {
 	xwcsbuf_T desc;
 	wb_init(&desc);
 #if HAVE_STRSIGNAL

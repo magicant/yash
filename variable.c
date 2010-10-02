@@ -1278,8 +1278,8 @@ void generate_variable_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_VARIABLE))
 	return;
 
-    le_compdebug("adding variables for pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding variable name candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     size_t i = 0;
@@ -1297,8 +1297,7 @@ void generate_variable_candidates(const le_compopt_T *compopt)
 		    continue;
 		break;
 	}
-	if (name[0] != L'='
-		&& xfnm_wmatch(compopt->cpattern, name).start != (size_t) -1)
+	if (name[0] != L'=' && le_wmatch_comppatterns(compopt, name))
 	    le_new_candidate(CT_VAR, xwcsdup(name), NULL, compopt);
     }
 }
@@ -1310,14 +1309,14 @@ void generate_function_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_FUNCTION))
 	return;
 
-    le_compdebug("adding functions for pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding function name candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     size_t i = 0;
     const wchar_t *name;
     while ((name = ht_next(&functions, &i).key) != NULL)
-	if (xfnm_wmatch(compopt->cpattern, name).start != (size_t) -1)
+	if (le_wmatch_comppatterns(compopt, name))
 	    le_new_candidate(CT_COMMAND, xwcsdup(name), NULL, compopt);
 }
 

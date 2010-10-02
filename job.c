@@ -905,8 +905,8 @@ void generate_job_candidates(const le_compopt_T *compopt)
     if (!(compopt->type & CGT_JOB))
 	return;
 
-    le_compdebug("adding jobs for pattern \"%ls\"", compopt->pattern);
-    if (!le_compile_cpattern(compopt))
+    le_compdebug("adding job candidates");
+    if (!le_compile_cpatterns(compopt))
 	return;
 
     for (size_t i = 1; i < joblist.length; i++) {
@@ -929,7 +929,7 @@ void generate_job_candidates(const le_compopt_T *compopt)
 	}
 
 	wchar_t *jobname = get_job_name(job);
-	if (xfnm_wmatch(compopt->cpattern, jobname).start != (size_t) -1) {
+	if (le_wmatch_comppatterns(compopt, jobname)) {
 	    wchar_t *cand;
 		cand = xwcsdup(jobname);
 	    le_new_candidate(CT_JOB, xwcsdup(jobname),
