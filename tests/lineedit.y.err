@@ -8,6 +8,6 @@ bindkey: no-such-command: no such command
 bindkey: cannot bind empty sequence
 bindkey: ~~~: unbound sequence
 complete: --no-such-option: invalid option
-Usage:  complete [-T] [-P prefix] [-S suffix] \
-        [-abcdfghjkuv] [[-O] [-D desc] words...]
+Usage:  complete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \
+        [-abcdfghjkuv] [[-O] [-D description] words...]
 complete: can only be used during command line completion

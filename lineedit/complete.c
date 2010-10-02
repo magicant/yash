@@ -1392,7 +1392,7 @@ void quote(xwcsbuf_T *restrict buf,
 int complete_builtin(int argc __attribute__((unused)), void **argv)
 {
     static const struct xoption long_options[] = {
-	{ L"array-variable",       OPTARG_NONE,     L'A', },
+	{ L"accept",               OPTARG_REQUIRED, L'A', },
 	{ L"alias",                OPTARG_NONE,     L'a', },
 	{ L"bindkey",              OPTARG_NONE,     L'B', },
 	{ L"builtin-command",      OPTARG_NONE,     L'b', },
@@ -1414,6 +1414,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 	{ L"option",               OPTARG_NONE,     L'O', },
 	{ L"prefix",               OPTARG_REQUIRED, L'P', },
 	{ L"semi-special-builtin", OPTARG_NONE,     L'q', },
+	{ L"reject",               OPTARG_REQUIRED, L'R', },
 	{ L"regular-builtin",      OPTARG_NONE,     L'r', },
 	{ L"suffix",               OPTARG_REQUIRED, L'S', },
 	{ L"special-builtin",      OPTARG_NONE,     L's', },
@@ -1421,6 +1422,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 	{ L"username",             OPTARG_NONE,     L'u', },
 	{ L"scalar-variable",      OPTARG_NONE,     L'V', },
 	{ L"variable",             OPTARG_NONE,     L'v', },
+	{ L"array-variable",       OPTARG_NONE,     L'y', },
 	{ L"finished-job",         OPTARG_NONE,     L'Y', },
 	{ L"stopped-job",          OPTARG_NONE,     L'Z', },
 #if YASH_ENABLE_HELP
@@ -1433,14 +1435,26 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
     const wchar_t *description = NULL;
     le_candgentype_T cgtype = 0;
     le_candtype_T candtype = CT_WORD;
+    le_comppattern_T *patterns = NULL;
     bool terminate = true;
+
+#define NEWPATTERN(typ) \
+    do {                                                            \
+	le_comppattern_T *newpattern = xmalloc(sizeof *newpattern); \
+	*newpattern = (le_comppattern_T) {                          \
+	    .next = patterns, .type = typ, .pattern = xoptarg,      \
+	};                                                          \
+	patterns = newpattern;                                      \
+    } while (0)
+
+    int exitstatus;
 
     wchar_t opt;
     xoptind = 0, xopterr = true;
     while ((opt = xgetopt_long(
-		    argv, L"D:OP:S:Tabcdfghjkuv", long_options, NULL))) {
+		    argv, L"A:D:OP:R:S:Tabcdfghjkuv", long_options, NULL))) {
 	switch (opt) {
-	    case L'A':  cgtype |= CGT_ARRAY;       break;
+	    case L'A':  NEWPATTERN(CPT_ACCEPT);    break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
 	    case L'B':  cgtype |= CGT_BINDKEY;     break;
 	    case L'b':  cgtype |= CGT_BUILTIN;     break;
@@ -1470,6 +1484,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 		prefix = xoptarg;
 		break;
 	    case L'q':  cgtype |= CGT_SSBUILTIN;   break;
+	    case L'R':  NEWPATTERN(CPT_REJECT);    break;
 	    case L'r':  cgtype |= CGT_RBUILTIN;    break;
 	    case L'S':
 		if (suffix != NULL)
@@ -1481,27 +1496,34 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'u':  cgtype |= CGT_LOGNAME;     break;
 	    case L'V':  cgtype |= CGT_SCALAR;      break;
 	    case L'v':  cgtype |= CGT_VARIABLE;    break;
+	    case L'y':  cgtype |= CGT_ARRAY;       break;
 	    case L'Y':  cgtype |= CGT_DONE;        break;
 	    case L'Z':  cgtype |= CGT_STOPPED;     break;
 #if YASH_ENABLE_HELP
 	    case L'-':
-		return print_builtin_help(ARGV(0));
+		exitstatus = print_builtin_help(ARGV(0));
+		goto finish;
 #endif
 	    default:
-		fprintf(stderr,
-		    gt("Usage:  complete [-T] [-P prefix] [-S suffix] \\\n"
-			"        [-abcdfghjkuv] [[-O] [-D desc] words...]\n"));
-		return Exit_ERROR;
+		fprintf(stderr, gt(
+"Usage:  complete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \\\n"
+"        [-abcdfghjkuv] [[-O] [-D description] words...]\n"));
+		exitstatus = Exit_ERROR;
+		goto finish;
 dupopterror:
 		xerror(0, Ngt("more than one -%lc option specified"),
 			(wint_t) opt);
-		return Exit_ERROR;
+		exitstatus = Exit_ERROR;
+		goto finish;
 	}
     }
 
+#undef NEWPATTERN
+
     if (ctxt == NULL) {
 	xerror(0, Ngt("can only be used during command line completion"));
-	return Exit_ERROR;
+	exitstatus = Exit_ERROR;
+	goto finish;
     }
 
     void *const *words = argv + xoptind;
@@ -1513,7 +1535,8 @@ dupopterror:
 	if (src == NULL) {
 	    xerror(0, Ngt("the specified prefix `%ls' doesn't match "
 			"the target word `%ls'"), prefix, ctxt->src);
-	    return Exit_ERROR;
+	    exitstatus = Exit_ERROR;
+	    goto finish;
 	}
 	while (*prefix != L'\0') {
 	    if (*pattern == L'\\')
@@ -1524,7 +1547,8 @@ dupopterror:
 	}
     }
 
-    le_comppattern_T patterns = {
+    le_comppattern_T comppatterns = {
+	.next = patterns,
 	.type = CPT_ACCEPT,
 	.pattern = pattern,
     };
@@ -1532,7 +1556,7 @@ dupopterror:
 	.ctxt = ctxt,
 	.type = cgtype,
 	.src = src,
-	.patterns = &patterns,
+	.patterns = &comppatterns,
 	.suffix = suffix,
 	.terminate = terminate,
     };
@@ -1542,7 +1566,15 @@ dupopterror:
     generate_candidates(&compopt);
     size_t newcount = le_candidates.length;
 
-    return oldcount != newcount ? Exit_SUCCESS : Exit_FAILURE;
+    exitstatus = (oldcount != newcount) ? Exit_SUCCESS : Exit_FAILURE;
+
+finish:
+    while (patterns != NULL) {
+	le_comppattern_T *next = patterns->next;
+	free(patterns);
+	patterns = next;
+    }
+    return exitstatus;
 }
 
 #if YASH_ENABLE_HELP
@@ -1591,6 +1623,10 @@ const char complete_help[] = Ngt(
 "\n"
 "The followed options can be used for candidate generation both by options\n"
 "and by operands.\n"
+" -A ...  --accept=...\n"
+"\tAccept candidates only that match the pattern specified by this option.\n"
+" -R ...  --reject=...\n"
+"\tReject candidates that match the pattern specified by this option.\n"
 " -T  --no-termination\n"
 "\tWhen the command line word is completed using a candidate that is\n"
 "\tgenerated with this option, a space is not appended to the completed\n"
