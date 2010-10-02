@@ -716,23 +716,31 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
     wb_destroy(&wpath);
     wglob_free_pattern(p);
 
-    if (!(flags & WGLB_NOSORT)) {
-	size_t count = list->length - listbase;  /* # of resulting items */
-	if (count > 0) {
-	    /* sort the items */
-	    qsort(list->contents + listbase, count, sizeof (void *),
-		    wglob_sortcmp);
+    if (!(flags & WGLB_NOSORT))
+	sort_uniq(list, listbase, list->length - listbase);
 
-	    /* remove duplicates */
-	    for (size_t i = list->length; --i > listbase; ) {
-		if (wcscmp(list->contents[i], list->contents[i-1]) == 0) {
-		    free(list->contents[i]);
-		    pl_remove(list, i, 1);
-		}
-	    }
+    return !is_interrupted();
+}
+
+/* Sorts the specified list of wide strings and removes duplicates.
+ * Only `n' elements of the list starting at the index of `i' are sorted and
+ * uniqed. */
+void sort_uniq(plist_T *list, size_t i, size_t n)
+{
+    assert(i + n <= list->length);
+    if (n == 0)
+	return;
+
+    /* sort */
+    qsort(list->contents + i, n, sizeof *list->contents, wglob_sortcmp);
+
+    /* remove duplicates */
+    for (size_t j = i + n; --j > i; ) {
+	if (wcscmp(list->contents[j], list->contents[j - 1]) == 0) {
+	    free(list->contents[j]);
+	    pl_remove(list, j, 1);
 	}
     }
-    return !is_interrupted();
 }
 
 /* Parses the specified pattern.
