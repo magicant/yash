@@ -635,23 +635,27 @@ void set_completion_variables(void)
 /* Performs command name completion in the default settings. */
 void complete_command_default(void)
 {
-    le_comppattern_T pattern;
+    le_comppattern_T pattern1, pattern2;
     le_compopt_T compopt;
 
-    pattern.next = NULL;
-    pattern.type = CPT_ACCEPT;
-    pattern.pattern = ctxt->pattern;
-    pattern.cpattern = NULL;
-
+    pattern1.type = CPT_ACCEPT;
+    pattern1.pattern = ctxt->pattern;
+    pattern1.cpattern = NULL;
+    pattern2.next = NULL;
+    pattern2.type = CPT_REJECT;
+    pattern2.pattern = L"*/*";
+    pattern2.cpattern = NULL;
     compopt.ctxt = ctxt;
     compopt.src = ctxt->src;
-    compopt.patterns = &pattern;
+    compopt.patterns = &pattern1;
 
+    pattern1.next = NULL;
     compopt.type = CGT_DIRECTORY;
     compopt.suffix = L"/";
     compopt.terminate = false;
     generate_file_candidates(&compopt);
 
+    pattern1.next = &pattern2;
     compopt.suffix = NULL;
     compopt.terminate = true;
     if (wcschr(ctxt->src, L'/')) {
