@@ -26,7 +26,7 @@ tempout="./.temp.out"
 temptxt="./.temp.txt"
 dirs=". builtins lineedit tests"
 
-version="2.22"
+version="2.24"
 copyright="Copyright (C) 2007-2010 magicant"
 
 # object files to be linked as `yash'
