@@ -477,18 +477,19 @@ void print_context_info(const le_context_T *ctxt)
     }
     le_compdebug("quote type: %s", s);
     switch (ctxt->type & CTXT_MASK) {
-	case CTXT_NORMAL:        s = "normal";                   break;
-	case CTXT_COMMAND:       s = "command";                  break;
-	case CTXT_ARGUMENT:      s = "argument";                 break;
-	case CTXT_TILDE:         s = "tilde";                    break;
-	case CTXT_VAR:           s = "variable";                 break;
-	case CTXT_ARITH:         s = "arithmetic";               break;
-	case CTXT_ASSIGN:        s = "assignment";               break;
-	case CTXT_REDIR:         s = "redirection";              break;
-	case CTXT_REDIR_FD:      s = "redirection (fd)";         break;
-	case CTXT_FOR_IN:        s = "\"in\" or \"do\"";         break;
-	case CTXT_FOR_DO:        s = "\"do\"";                   break;
-	case CTXT_CASE_IN:       s = "\"in\"";                   break;
+	case CTXT_NORMAL:    s = "normal";            break;
+	case CTXT_COMMAND:   s = "command";           break;
+	case CTXT_ARGUMENT:  s = "argument";          break;
+	case CTXT_TILDE:     s = "tilde";             break;
+	case CTXT_VAR:       s = "variable";          break;
+	case CTXT_ARITH:     s = "arithmetic";        break;
+	case CTXT_ASSIGN:    s = "assignment";        break;
+	case CTXT_REDIR:     s = "redirection";       break;
+	case CTXT_REDIR_FD:  s = "redirection (fd)";  break;
+	case CTXT_FOR_IN:    s = "\"in\" or \"do\"";  break;
+	case CTXT_FOR_DO:    s = "\"do\"";            break;
+	case CTXT_CASE_IN:   s = "\"in\"";            break;
+	case CTXT_FUNCTION:  s = "function name";     break;
     }
     le_compdebug("context type: %s%s%s%s", s,
 	    ctxt->type & CTXT_EBRACED ? " (in brace expn)" : "",
@@ -579,6 +580,9 @@ void execute_completion_function(void)
 	    break;
 	case CTXT_CASE_IN:
 	    word_completion(1, L"in");
+	    break;
+	case CTXT_FUNCTION:
+	    simple_completion(CGT_FUNCTION);
 	    break;
     }
 
@@ -1318,6 +1322,7 @@ void update_main_buffer(bool subst, bool finish)
 	    case CTXT_FOR_IN:
 	    case CTXT_FOR_DO:
 	    case CTXT_CASE_IN:
+	    case CTXT_FUNCTION:
 		if (ctxt->type & (CTXT_EBRACED | CTXT_VBRACED))
 		    break;
 		wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);

@@ -80,6 +80,7 @@ static bool ctryparse_assignment(void);
 static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
+static bool cparse_function_definition(void);
 static wchar_t *cparse_and_expand_word(
 	tildetype_T tilde, le_contexttype_T ctxttype)
     __attribute__((malloc,warn_unused_result));
@@ -262,6 +263,8 @@ bool cparse_command(void)
 	return cparse_for_command();
     } else if (token_at_current(L"case")) {
 	return cparse_case_command();
+    } else if (!posixly_correct && token_at_current(L"function")) {
+	return cparse_function_definition();
     } else {
 	return cparse_simple_command();
     }
@@ -580,6 +583,26 @@ bool cparse_case_command(void)
     wordfree(w);
 
     /* syntax error */
+    return false;
+}
+
+/* Parses a function definition command.
+ * There must be the "function" keyword at the current position. */
+bool cparse_function_definition(void)
+{
+    assert(wcsncmp(BUF + INDEX, L"function", 8) == 0);
+    INDEX += 8;
+    skip_blanks();
+
+    /* parse the function name */
+    wordunit_T *w =
+	cparse_word(is_token_delimiter_char, tt_none, CTXT_FUNCTION);
+    if (w == NULL) {
+	empty_pwords();
+	return true;
+    }
+    wordfree(w);
+
     return false;
 }
 

@@ -79,6 +79,7 @@ typedef enum le_contexttype_T {
     CTXT_FOR_IN,             // where keyword "in" or "do" is expected
     CTXT_FOR_DO,             // where keyword "do" is expected
     CTXT_CASE_IN,            // where keyword "in" is expected
+    CTXT_FUNCTION,           // where a function name is expected
     CTXT_MASK     = ((1 << 4) - 1),
     CTXT_EBRACED  = 1 << 4,  // completion occurs in brace expansion
     CTXT_VBRACED  = 1 << 5,  // completion occurs in variable expansion
