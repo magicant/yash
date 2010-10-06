@@ -51,7 +51,7 @@ function completion/env {
 		typeset targetword="${TARGETWORD#"$PREFIX"}"
 		targetword=${targetword##*:}
 		PREFIX=${TARGETWORD%"$targetword"}
-		complete -P "$PREFIX" -d
+		complete -T -P "$PREFIX" -S / -d
 		;;
 	(S)
 		;;

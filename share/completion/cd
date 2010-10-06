@@ -45,11 +45,11 @@ function completion/cd {
 		dirstack=true
 		;;
 	(--default-directory)
-		complete -P "$PREFIX" -d
+		complete -T -P "$PREFIX" -S / -d
 		;;
 	(*)
 		case ${WORDS[1]} in (cd|pushd)
-			complete -d
+			complete -T -S / -d
 		esac
 		dirstack=true
 		;;
