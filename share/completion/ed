@@ -1,0 +1,70 @@
+# (C) 2010 magicant
+
+# Completion script for the "ed" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i.
+
+function completion/ed {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'GNU'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"p: ${long:+--prompt:}; specify a prompt string"
+	"s ${long:+--silent --quiet}; suppress diagnostic messages"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (*BSD|SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"x; enable encryption"
+		) #<#
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"G ${long:+--traditional}; enable compatibility mode"
+		"l ${long:+--loose-exit-status}; always exit with 0 status"
+		"v ${long:+--verbose}; print detailed error messages"
+		"h ${long:+--help}; print help"
+		"V ${long:+--version}; print version info"
+		) #<#
+		;;
+	(NetBSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"E; use extended regular expression"
+		) #<#
+		;;
+	(SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"C; enable encryption and assume all text has been encrypted"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(p|--prompt)
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

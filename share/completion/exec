@@ -23,7 +23,11 @@ function completion/exec {
 	(*)
 		command -f completion//getoperands
 		if [ ${WORDS[#]} -eq 0 ]; then
-			complete --external-command
+			complete -T -S / -d
+			case $TARGETWORD in
+				(*/*) complete --executable-file ;;
+				(*  ) complete --external-command ;;
+			esac
 		else
 			command -f completion//reexecute
 		fi
