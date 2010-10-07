@@ -1,0 +1,100 @@
+# (C) 2010 magicant
+
+# Completion script for the "ex" command.
+# Supports POSIX 2008, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0, SunOS 5.10,
+# HP-UX 11i.
+
+function completion/ex {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in (VIM*)
+		command -f completion//reexecute vim
+		return
+	esac
+	typeset type=$(uname 2>/dev/null)
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"c:; specify a command to be executed after starting up"
+	"R; read-only mode"
+	"r; recover unsaved files"
+	"t:; specify an identifier to jump"
+	"w:; specify the value of the window option"
+	) #<#
+	case ${WORDS[1]} in (e*)
+		POSIXOPTIONS=("$POSIXOPTIONS" #>#
+		"s; non-interactive batch processing mode"
+		"v; operate as the vi editor"
+		) #<#
+	esac
+
+	ADDOPTIONS=()
+	case $type in (*BSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"F; don't copy the entire file when opening it"
+		"S; enable the secure option"
+		) #<#
+		case ${WORDS[1]} in (v*)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"e; operate as the ex editor"
+			) #<#
+		esac
+		case $type in (FreeBSD|NetBSD)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"G; enable the gtagsmode option"
+			) #<#
+		esac
+	esac
+	case $type in (SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"C; enable encryption and assume all text has been encrypted"
+		"l; enable the lisp option"
+		"x; enable encryption"
+		) #<#
+	esac
+	case $type in
+	(SunOS)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"L; print list of recoverable files"
+		"V; echo input commands to the standard error"
+		) #<#
+		case ${WORDS[1]} in (v*)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"S; don't assume the tags file is sorted"
+			) #<#
+		esac
+		;;
+	(HP-UX)
+		case ${WORDS[1]} in (v*)
+			ADDOPTIONS=("$ADDOPTIONS" #>#
+			"V; echo input commands when sourcing a file"
+			) #<#
+		esac
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(c)
+		;;
+	(t)
+		if [ -r tags ]; then
+			complete -P "$PREFIX" -R "!_TAG_*" -- $(cut -f 1 tags)
+		fi
+		;;
+	(w)
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
