@@ -347,12 +347,16 @@ function completion//parseoptions {
 # "completion//parseoptions" function above. If more than one option matches
 # $TARGETWORD, only the first match is used to generate the candidate.
 #
-# This function accepts two options: -s and -S. With -s, this function
+# This function accepts either of the -s and -S options. With -s, this function
 # completes single-character options only (in which case $TARGETWORD may have
 # other single-character options already entered). With -S, $TARGETWORD is
 # completed as a single option. These options are mutually exclusive. If
 # specified both, the last specified one is effective. If specified neither,
 # it defaults to whether $PREFIX is empty or not.
+#
+# Normally, a long option that takes an argument is completed with an `=' sign.
+# But if you specify the -e option, the option is completed with a space like a
+# normal word.
 #
 # The exit status of this function is 0 if at least one candidate was
 # generated. Otherwise, the exit status is 1.
@@ -374,9 +378,10 @@ function completion//completeoptions {
 	fi
 
 	# parse options to this function itself
-	typeset opt= OPTIND=1
-	while getopts :sS opt; do
+	typeset opt= OPTIND=1 longargeq=true
+	while getopts :esS opt; do
 		case $opt in
+			(e) longargeq=;;
 			(s) single=true;;
 			(S) single=false;;
 		esac
@@ -419,14 +424,12 @@ function completion//completeoptions {
 			for opt in ${opts%%;*}; do
 				case $opt in
 				([!-]|[!-]:)
-					complete -O -P "$TARGETWORD" \
-					${desc:+-D "$desc"} "${opt%:}" &&
+					complete -O -P "$TARGETWORD" ${desc:+-D "$desc"} "${opt%:}" &&
 					generated=true
 					break
 					;;
 				([!-]::)
-					complete -OT -P "$TARGETWORD" \
-					${desc:+-D "$desc"} "${opt%::}" &&
+					complete -OT -P "$TARGETWORD" ${desc:+-D "$desc"} "${opt%::}" &&
 					generated=true
 					break
 					;;
@@ -438,32 +441,28 @@ function completion//completeoptions {
 				case $opt in
 				(-*:) # long option that takes argument
 					case ${${opt%:}%:} in ("$TARGETWORD"*)
-						complete ${desc:+-D "$desc"} \
-						-OT -- "${${opt%:}%:}=" &&
+						complete ${desc:+-D "$desc"} ${longargeq:+-T -S =} -O -- "${${opt%:}%:}" &&
 						generated=true
 						break
 					esac
 					;;
 				(-*) # long option that does not take argument
 					case $opt in ("$TARGETWORD"*)
-						complete ${desc:+-D "$desc"} \
-							-O -- "$opt" &&
+						complete ${desc:+-D "$desc"} -O -- "$opt" &&
 						generated=true
 						break
 					esac
 					;;
 				(?::) # single-char option w/ optional argument
 					if [ "$TARGETWORD" = "-" ]; then
-						complete ${desc:+-D "$desc"} \
-							-OT -- "-${opt%::}" &&
+						complete ${desc:+-D "$desc"} -OT -- "-${opt%::}" &&
 						generated=true
 						break
 					fi
 					;;
 				(?|?:) # other single-char option
 					if [ "$TARGETWORD" = "-" ]; then
-						complete ${desc:+-D "$desc"} \
-							-O -- "-${opt%:}" &&
+						complete ${desc:+-D "$desc"} -O -- "-${opt%:}" &&
 						generated=true
 						break
 					fi

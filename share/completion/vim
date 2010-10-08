@@ -1,0 +1,120 @@
+# (C) 2010 magicant
+
+# Completion script for the "vim" command.
+# Supports Vim 7.3.
+
+function completion/vim {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"A; Arabic mode"
+	"b; binary mode"
+	"C; enable the compatible option"
+	"c:; specify a command to be executed after starting up"
+	"D; debug mode"
+	"d; diff mode"
+	"E; operate as the ex editor (improved Ex mode)"
+	"e; operate as the ex editor"
+	"F; Farsi mode"
+	"f --nofork; don't start a new process to execute the GUI"
+	"g; operate in GUI mode"
+	"H; Hebrew mode"
+	"h --help; print help"
+	"i:; specify the viminfo filename"
+	"l; lisp mode"
+	"M; disable the modifiable and write options"
+	"m; disable the write option"
+	"N; disable the compatible option"
+	"n; don't use any swap files"
+	"O::; specify the number of windows to open (vertical split)"
+	"o::; specify the number of windows to open"
+	"p::; specify the number of tab pages to open"
+	"q:; specify a quickfix error file to read"
+	"R; read-only mode"
+	"r L; recover unsaved files"
+	"S:; specify a file to be sourced after starting up"
+	"T:; specify the terminal type"
+	"t:; specify an identifier to jump"
+	"U:; specify the gvimrc filename"
+	"u:; specify the vimrc filename"
+	"V::; specify the value of the verbose option"
+	"v; operate as the vi editor"
+	"w:; specify the value of the window option"
+	"X; don't connect to the X server"
+	"x; enable encryption"
+	"y; easy mode"
+	"Z; restricted mode"
+	"--cmd:; specify a command to be executed before processing vimrc"
+	"--echo-wid; print GTK+ GUI window ID"
+	"--literal; don't expand wild card characters in filename arguments"
+	"--noplugin; don't load plug-ins"
+	"--remote; open files in the remote Vim server"
+	"--remote-silent; like --remote, but don't complain if there is no server"
+	"--remote-wait; like --remote, but wait for the editing to be finished"
+	"--remote-wait-silent; like --remote-wait and --remote-silent"
+	"--remote-tab; like --remote, but open each file in a new tab page"
+	"--remote-tab-silent; like --remote-tab and --remote-silent"
+	"--remote-tab-wait; like --remote-tab and --remote-wait"
+	"--remote-tab-wait-silent; like --remote-tab and --remote-wait-silent"
+	"--remote-expr:; specify an expression to be evaluated on the remote server"
+	"--remote-send:; specify a key sequence to send to the remote server"
+	"--role:; specify a role for GTK+ 2 GUI"
+	"--serverlist; print list of servers"
+	"--servername:; specify a server name to operate as or connect to"
+	"--startuptime:; specify a file to write timing messages while starting up"
+	"--version"
+	) #<#
+	case ${WORDS[1]} in
+	(*ex*)
+		OPTIONS=("$OPTIONS" #>#
+		"s; non-interactive batch processing mode"
+		) #<#
+		;;
+	(*)
+		OPTIONS=("$OPTIONS" #>#
+		"s:; specify a file to be source!ed after starting up"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions -e
+		;;
+#	([cOopVw]|--cmd|--remote-expr|--remote-send|--role|--servername)
+#		;;
+	([iSsUu]|--startuptime)
+		if [ "$PREFIX" ]; then
+			complete -P "$PREFIX" ""
+		else
+			complete -f
+		fi
+		;;
+	(q)
+		complete -P "$PREFIX" -f
+		;;
+	(T)
+		if [ "$PREFIX" ]; then
+			complete -P "$PREFIX" ""
+		else
+			typeset term desc
+			while read -r term desc; do
+				complete -D "$desc" -- "$term"
+			done 2>/dev/null <(toe -a || toe)
+		fi
+		;;
+	(t)
+		if [ -r tags ]; then
+			complete -P "$PREFIX" -R "!_TAG_*" -- $(cut -f 1 tags)
+		fi
+		;;
+	('')
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

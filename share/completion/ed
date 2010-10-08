@@ -1,7 +1,7 @@
 # (C) 2010 magicant
 
 # Completion script for the "ed" command.
-# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Supports POSIX 2008, GNU 1.1, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
 # Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i.
 
 function completion/ed {
