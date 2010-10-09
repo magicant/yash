@@ -1,0 +1,12 @@
+# (C) 2010 magicant
+
+# Completion script for the "view" command.
+# Supports POSIX 2008, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0, SunOS 5.10,
+# HP-UX 11i.
+
+function completion/view {
+	command -f completion//reexecute ex
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
