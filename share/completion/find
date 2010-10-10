@@ -1,0 +1,304 @@
+# (C) 2010 magicant
+
+# Completion script for the "find" command.
+# Supports POSIX 2008, GNU findutils 4.4.2, FreeBSD 8.1, OpenBSD 4.8,
+# NetBSD 5.0, Darwin 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/find {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'findutils'*) typeset type=GNU ;;
+		(*)             typeset type=$(uname 2>/dev/null) ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"H; follow symbolic links in operands"
+	"L; follow all symbolic links"
+	) #<#
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"D:; specify debug options"
+		"O::; specify optimization level"
+		"P; don't follow symbolic links"
+		"${long:+--help}"
+		"${long:+--version}"
+		) #<#
+		;;
+	(*BSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"d; do post-order traversal rather than pre-order"
+		"f:; specify a directory to search"
+		"X; warn about filenames incompatible with xargs"
+		"x; don't search in different file systems"
+		) #<#
+		case $type in (FreeBSD|NetBSD|Darwin)
+			OPTIONS=("$OPTIONS" #>#
+			"E; use extended regular expression"
+			"P; don't follow symbolic links"
+			"s; sort filenames within each directory"
+			) #<#
+		esac
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(D)
+		if [ "$PREFIX" ]; then
+			complete -P "$PREFIX" ""
+		else
+			typeset targetword="${TARGETWORD##*,}"
+			PREFIX=${TARGETWORD%"$targetword"}
+			#>>#
+			complete -P "$PREFIX" -D "print help about the -D option" help
+			complete -P "$PREFIX" -D "print the syntax tree of the expression" tree
+			complete -P "$PREFIX" -D "print info during directory tree search" search
+			complete -P "$PREFIX" -D "trace calls to the stat function" stat
+			complete -P "$PREFIX" -D "print success rate for each predicate" rates
+			complete -P "$PREFIX" -D "print debug info about optimization" opt
+			complete -P "$PREFIX" -D "print debug info about execution of external commands" exec
+			#<<#
+		fi
+		;;
+	(f)
+		complete -P "$PREFIX" -S / -T -d
+		;;
+	(O)
+		;;
+	(*)
+		typeset path=false expr=false i=2
+		while [ $i -le ${WORDS[#]} ]; do
+			case ${WORDS[i++]} in
+			(--)
+				break
+				;;
+			(-f*)
+				path=true
+				;;
+			esac
+		done
+		while [ $i -le ${WORDS[#]} ]; do
+			case ${WORDS[i]} in
+			(\(|!|-*)
+				expr=true
+				break
+				;;
+			(*)
+				path=true
+				;;
+			esac
+			i=$((i+1))
+		done
+		if ! $expr; then
+			complete -S / -T -d
+		fi
+		if $path || [ "$type" = GNU ]; then
+			command -f completion/find::expr
+		fi
+		;;
+	esac
+
+}
+
+# This function depends on variables $i, $type.
+function completion/find::expr {
+
+	while [ $i -le ${WORDS[#]} ]; do
+		case ${WORDS[i]} in
+		(-acl|-aclv)
+			case $type in
+			(HP-UX)
+				if [ $i -eq ${WORDS[#]} ]; then #>>#
+					complete -D "optional access control list entries" opt
+				fi #<<#
+				i=$((i+2))
+				;;
+			(*)
+				i=$((i+1))
+				;;
+			esac
+			;;
+		(-[acmB]newer|-fls|-fprint|-ilname|-iname|-ipath|-iwholename|-linkedto|-lname|-name|-newer*|-path|-samefile|-wholename)
+			if [ $i -eq ${WORDS[#]} ]; then
+				complete -f
+			fi
+			i=$((i+2))
+			;;
+		(-[acmB]time)
+			if [ $i -eq ${WORDS[#]} ]; then
+				case $type in (FreeBSD|Darwin)
+					case $TARGETWORD in (*[[:digit:]]*)
+						PREFIX=${TARGETWORD%"${TARGETWORD##*[[:digit:]]}"}
+						#>>#
+						complete -P "$PREFIX" -D "second" s
+						complete -P "$PREFIX" -D "minute" m
+						complete -P "$PREFIX" -D "hour" h
+						complete -P "$PREFIX" -D "day" d
+						complete -P "$PREFIX" -D "week" w
+						#<<#
+					esac
+				esac
+			fi
+			i=$((i+2))
+			;;
+		(-exec|-execdir|-ok|-okdir)
+			i=$((i+1))
+			typeset j=$i
+			while [ $j -le ${WORDS[#]} ]; do
+				if [ "${WORDS[j]}" = ";" ]; then
+					i=$((j+1)); break
+				elif [ "${WORDS[j]} ${WORDS[j+1]}" = "{} +" ]; then
+					i=$((j+2)); break
+				fi
+				j=$((j+1))
+			done
+			if [ $i -le $j ]; then
+				WORDS=("${WORDS[i,-1]}")
+				command -f completion//reexecute # TODO
+				return
+			fi
+			;;
+		(-flags)
+			if [ $i -eq ${WORDS[#]} ]; then
+				# TODO
+			fi
+			i=$((i+2))
+			;;
+		(-fprintf)
+			if [ $i -eq ${WORDS[#]} ]; then
+				complete -f
+			elif [ $((i+1)) -eq ${WORDS[#]} ]; then
+				command -f completion/find::printf
+			fi
+			i=$((i+3))
+			;;
+		(-group)
+			if [ $i -eq ${WORDS[#]} ]; then
+				complete -g
+			fi
+			i=$((i+2))
+			;;
+		(-perm)
+			if [ $i -eq ${WORDS[#]} ]; then
+				if command -vf completion/chmod::mode >/dev/null 2>&1 ||
+						. -AL completion/chmod; then
+					command -f completion/chmod::mode chmod
+				fi
+			fi
+			i=$((i+2))
+			;;
+		(-printf)
+			if [ $i -eq ${WORDS[#]} ]; then
+				command -f completion/find::printf
+			fi
+			i=$((i+2))
+			;;
+		(-regextype)
+			if [ $i -eq ${WORDS[#]} ]; then
+				complete emacs posix-awk posix-basic posix-egrep posix-extended
+			fi
+			i=$((i+2))
+			;;
+		(-size)
+			if [ $i -eq ${WORDS[#]} ]; then
+				case $TARGETWORD in (*[[:digit:]]*)
+					PREFIX=${TARGETWORD%"${TARGETWORD##*[[:digit:]]}"}
+					#>>#
+					complete -P "$PREFIX" -D "byte" c
+					#<<#
+					case $type in (GNU|FreeBSD|Darwin)
+						#>>#
+						complete -P "$PREFIX" -D "kilobyte (2^10 bytes)" k
+						complete -P "$PREFIX" -D "megabyte (2^20 bytes)" M
+						complete -P "$PREFIX" -D "gigabyte (2^30 bytes)" G
+						#<<#
+						case $type in
+						(GNU) #>>#
+							complete -P "$PREFIX" -D "block (2^9 bytes)" b
+							complete -P "$PREFIX" -D "word (2 bytes)" w
+							;; #<<#
+						(FreeBSD|Darwin) #>>#
+							complete -P "$PREFIX" -D "terabyte (2^40 bytes)" T
+							complete -P "$PREFIX" -D "petabyte (2^50 bytes)" P
+							;; #<<#
+						esac
+					esac
+				esac
+			fi
+			i=$((i+2))
+			;;
+		(-type|-xtype)
+			if [ $i -eq ${WORDS[#]} ]; then #>>#
+				complete -D "block special file" b
+				complete -D "character special file" c
+				complete -D "directory" d
+				complete -D "regular file" f
+				complete -D "symbolic link" l
+				complete -D "FIFO" p
+				complete -D "socket" s
+			fi #<<#
+			case $(uname) in (SunOS) #>>#
+				complete -D "door" D
+			esac #<<#
+			case $type in
+			(NetBSD) #>>#
+				complete -D "whiteout" w
+				;; #<<#
+			(HP-UX) #>>#
+				complete -D "mount point" M
+				complete -D "network special file" n
+				;; #<<#
+			esac
+			i=$((i+2))
+			;;
+		(-user)
+			if [ $i -eq ${WORDS[#]} ]; then
+				complete -u
+			fi
+			i=$((i+2))
+			;;
+		(-[acmB]min|-context|-cpio|-fsonly|-fstype|-[gu]id|-inum|-iregex|-links|-maxdepth|-mindepth|-ncpio|-regex|-used)
+			i=$((i+2))
+			;;
+		(*)
+			i=$((i+1))
+			;;
+		esac
+	done
+
+	if [ $i -eq $((${WORDS[#]}+1)) ]; then case $TARGETWORD in (-*) #>>#
+	esac fi #<<#
+	return
+
+	case $TARGETWORD in (-*)
+		ARGOPT=-
+		OPTIONS=( #>#
+		"-a; logical conjunction (and)"
+		"-atime; true if the last access time is n days ago"
+		"-ctime; true if the last status change time is n days ago"
+		"-mtime; true if the last modified time is n days ago"
+		) #<#
+		command -f completion//completeoptions
+	esac
+
+	case ${WORDS[-1]} in
+	esac
+
+}
+
+function completion/find::printf {
+#TODO
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

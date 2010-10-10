@@ -87,7 +87,7 @@ function completion/chmod {
 function completion/chmod::mode {
 
 	# we don't complete a numeric mode value
-	case $TARGETWORD in ([[:digit:]]*)
+	case $TARGETWORD in (*[[:digit:]]*)
 		return
 	esac
 

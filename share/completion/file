@@ -1,0 +1,89 @@
+# (C) 2010 magicant
+
+# Completion script for the "file" command.
+# Supports POSIX 2008, Fine Free File 5.04, SunOS 5.10, HP-UX 11i.
+
+function completion/file {
+
+	if "${WORDS[1]}" --help >/dev/null 2>&1; then
+		typeset type=FFF
+	else
+		typeset type=$(uname 2>/dev/null)
+	fi
+	case $type in
+		(FFF) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"h ${long:+--no-dereference}; don't follow symbolic links"
+	"m: ${long:+--magic-file:}; specify magic files"
+	) #<#
+
+	case $type in (FFF|SunOS|HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"c ${long:+--checking-printout}; check the format of the magic file"
+		"f: ${long:+--files-from:}; specify a file containing filenames to examine"
+		) #<#
+	esac
+	case $type in
+	(FFF)
+		OPTIONS=("$OPTIONS" #>#
+		"0 ${long:+--print0}; separate output lines with null byte rather than newline"
+		"b ${long:+--brief}; don't print the filename before each file type description"
+		"C ${long:+--compile}; compile a magic file"
+		"d ${long:+--debug}; print debugging messages"
+		"e: ${long:+--exclude:}; specify a type of test to skip"
+		"F: ${long:+--separator:}; specify a separator shown between filenames and file types"
+		"i ${long:+--mime}; print mime types/encodings rather than human-readable results"
+		"k ${long:+--keep-going}; print all matching file types"
+		"L ${long:+--dereference}; follow symbolic links"
+		"N ${long:+--no-pad}; don't align output"
+		"n ${long:+--no-buffer}; don't buffer output"
+		"p ${long:+--preserve-date}; restore the access time of examined files"
+		"r ${long:+--raw}; don't escape unprintable characters"
+		"s ${long:+--special-files}; read and examine non-regular files"
+		"v ${long:+--version}; print version info"
+		"z ${long:+--uncompress}; examine contents of compressed files"
+		"${long:+--apple}; print Apple creator/type"
+		"${long:+--help}"
+		"${long:+--mime-type}; print mime types only"
+		"${long:+--mime-encoding}; print mime encoding names only"
+		) #<#
+		;;
+	(*) # POSIX options
+		OPTIONS=("$OPTIONS" #>#
+		"d; do position/context-sensitive default system tests"
+		"i; don't examine the contents of regular files"
+		"M:; specify a file containing position-sensitive tests"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(e|--exclude) #>>#
+		complete -P "$PREFIX" -D "EMX application type" apptype
+		complete -P "$PREFIX" -D "text encoding" encoding
+		complete -P "$PREFIX" -D "text tokens" tokens
+		complete -P "$PREFIX" -D "Compound Document Files details" cdf
+		complete -P "$PREFIX" -D "contents of compressed files" compress
+		complete -P "$PREFIX" -D "ELF file details" elf
+		complete -P "$PREFIX" -D "magic file test" soft
+		complete -P "$PREFIX" -D "contents of tar files" tar
+		;; #<<#
+	(F|--separator)
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
