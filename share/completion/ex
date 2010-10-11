@@ -10,7 +10,7 @@ function completion/ex {
 		command -f completion//reexecute vim
 		return
 	esac
-	typeset type=$(uname 2>/dev/null)
+	typeset type="$(uname 2>/dev/null)"
 
 	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
 	POSIXOPTIONS=( #>#

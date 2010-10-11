@@ -8,7 +8,7 @@ function completion/cp {
 
 	case $("${WORDS[1]}" --version 2>/dev/null) in
 		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type=$(uname 2>/dev/null) ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
 	esac
 	case $type in
 		(GNU) typeset long=true ;;

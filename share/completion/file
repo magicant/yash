@@ -8,7 +8,7 @@ function completion/file {
 	if "${WORDS[1]}" --help >/dev/null 2>&1; then
 		typeset type=FFF
 	else
-		typeset type=$(uname 2>/dev/null)
+		typeset type="$(uname 2>/dev/null)"
 	fi
 	case $type in
 		(FFF) typeset long=true ;;
