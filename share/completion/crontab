@@ -2,7 +2,7 @@
 
 # Completion script for the "crontab" command.
 # Supports POSIX 2008, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0, Mac OS X 10.6.3,
-# SunOS 5.10, HP-UX 11i.
+# SunOS 5.10, HP-UX 11i v3.
 
 function completion/crontab {
 

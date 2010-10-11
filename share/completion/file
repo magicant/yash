@@ -1,7 +1,7 @@
 # (C) 2010 magicant
 
 # Completion script for the "file" command.
-# Supports POSIX 2008, Fine Free File 5.04, SunOS 5.10, HP-UX 11i.
+# Supports POSIX 2008, Fine Free File 5.04, SunOS 5.10, HP-UX 11i v3.
 
 function completion/file {
 

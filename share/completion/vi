@@ -2,7 +2,7 @@
 
 # Completion script for the "vi" command.
 # Supports POSIX 2008, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0, SunOS 5.10,
-# HP-UX 11i.
+# HP-UX 11i v3.
 
 function completion/vi {
 	command -f completion//reexecute ex
