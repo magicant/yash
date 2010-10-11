@@ -25,9 +25,9 @@ function completion/cmp {
 	case $type in
 	(GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"b ${long:+--print-bytes}; print differing byte values in ^-notation"
-		"i: ${long:+--ignore-initial:}; specify number of bytes to skip"
-		"n: ${long:+--bytes:}; specify number of bytes to compare at most"
+		"b --print-bytes; print differing byte values in ^-notation"
+		"i: --ignore-initial:; specify number of bytes to skip"
+		"n: --bytes:; specify number of bytes to compare at most"
 		"--help"
 		"--version"
 		) #<#

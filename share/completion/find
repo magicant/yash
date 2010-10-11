@@ -27,8 +27,8 @@ function completion/find {
 		"D:; specify debug options"
 		"O::; specify optimization level"
 		"P; don't follow symbolic links"
-		"${long:+--help}"
-		"${long:+--version}"
+		"--help"
+		"--version"
 		) #<#
 		;;
 	(*BSD|Darwin)

@@ -23,7 +23,7 @@ function completion/expand {
 	case $type in
 	(GNU)
 		OPTIONS=("$OPTIONS" #>#
-		"i ${long:+--initial}; only expand first tabs on each line"
+		"i --initial; only expand first tabs on each line"
 		"--help"
 		"--version"
 		) #<#

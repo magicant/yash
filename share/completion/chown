@@ -38,7 +38,7 @@ function completion/chown {
 	case $type in
 	(GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"c ${long:+--changes}; print a message when a change has been made"
+		"c --changes; print a message when a change has been made"
 		"--dereference; change the owner of files referred to by symbolic links"
 		"--from:; specify an owner:group only from which changes are made"
 		"--no-preserve-root; cancel the --preserve-root option"

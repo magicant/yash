@@ -57,11 +57,11 @@ function completion/date {
 	esac
 	case $type in (GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"f: ${long:+--file:}; specify a file containing date/time data to print"
-		"R ${long:+--rfc-2822}; print in the RFC 2822 format"
-		"r: ${long:+--reference:}; specify a file whose last modified time is printed"
-		"${long:+--rfc-3339:}; specify the type of the RFC 3339 format to print in"
-		"s: ${long:+--set:}; specify a date and time to set the system time to"
+		"f: --file:; specify a file containing date/time data to print"
+		"R --rfc-2822; print in the RFC 2822 format"
+		"r: --reference:; specify a file whose last modified time is printed"
+		"--rfc-3339:; specify the type of the RFC 3339 format to print in"
+		"s: --set:; specify a date and time to set the system time to"
 		"--help"
 		"--version"
 		) #<#

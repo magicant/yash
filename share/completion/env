@@ -28,7 +28,7 @@ function completion/env {
 	case $type in
 	(GNU)
 		OPTIONS=("$OPTIONS" #>#
-		"0 ${long:+--null}; separate variables by null bytes in printing"
+		"0 --null; separate variables by null bytes in printing"
 		"--help"
 		"--version"
 		) #<#

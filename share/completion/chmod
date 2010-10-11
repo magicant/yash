@@ -46,10 +46,10 @@ function completion/chmod {
 	case $type in
 	(GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"c ${long:+--changes}; print a message when a change has been made"
-		"${long:+--no-preserve-root}; cancel the --preserve-root option"
-		"${long:+--preserve-root}; don't recursively change the permission of the root directory"
-		"${long:+--reference:}; specify a file to whose permission changes are made"
+		"c --changes; print a message when a change has been made"
+		"--no-preserve-root; cancel the --preserve-root option"
+		"--preserve-root; don't recursively change the permission of the root directory"
+		"--reference:; specify a file to whose permission changes are made"
 		"--help"
 		"--version"
 		) #<#

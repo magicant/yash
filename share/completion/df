@@ -87,11 +87,11 @@ function completion/df {
 	case $type in
 	(GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"B: ${long:+--block-size:}; specify the block size unit to print figures in"
-		"${long:+--total}; print the grand total after the normal output"
-		"${long:+--no-sync}; allow printing cached data that may be out of date"
-		"${long:+--sync}; don't use cached data that may be out of date"
-		"x: ${long:+--exclude-type:}; specify a file system type not to print"
+		"B: --block-size:; specify the block size unit to print figures in"
+		"--total; print the grand total after the normal output"
+		"--no-sync; allow printing cached data that may be out of date"
+		"--sync; don't use cached data that may be out of date"
+		"x: --exclude-type:; specify a file system type not to print"
 		"--help"
 		"--version"
 		) #<#

@@ -31,10 +31,10 @@ function completion/cat {
 		case $type in
 		(GNU)
 			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"A ${long:+--show-all}; make everything visible"
-			"E ${long:+--show-ends}; print \$ at end of each line"
+			"A --show-all; make everything visible"
+			"E --show-ends; print \$ at end of each line"
 			"e; like -vE: make everything visible but tabs"
-			"T ${long:+--show-tabs}; print tabs as ^I"
+			"T --show-tabs; print tabs as ^I"
 			"t; like -vT: make everything visible but newlines"
 			) #<#
 			;;

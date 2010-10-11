@@ -30,11 +30,11 @@ function completion/ed {
 	case $type in
 	(GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"G ${long:+--traditional}; enable compatibility mode"
-		"l ${long:+--loose-exit-status}; always exit with 0 status"
-		"v ${long:+--verbose}; print detailed error messages"
-		"h ${long:+--help}; print help"
-		"V ${long:+--version}; print version info"
+		"G --traditional; enable compatibility mode"
+		"l --loose-exit-status; always exit with 0 status"
+		"v --verbose; print detailed error messages"
+		"h --help; print help"
+		"V --version; print version info"
 		) #<#
 		;;
 	(NetBSD)

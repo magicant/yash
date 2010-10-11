@@ -38,7 +38,7 @@ function completion/chgrp {
 	case $type in
 	(GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"c ${long:+--changes}; print a message when a change has been made"
+		"c --changes; print a message when a change has been made"
 		"--dereference; change the group of files referred to by symbolic links"
 		"--no-preserve-root; cancel the --preserve-root option"
 		"--preserve-root; don't recursively change the group of the root directory"

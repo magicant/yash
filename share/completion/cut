@@ -29,7 +29,7 @@ function completion/cut {
 	case $type in
 	(GNU)
 		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"${long:+--complement}; print fields not specified by -b/-c/-f option"
+		"--complement; print fields not specified by -b/-c/-f option"
 		"--help"
 		"--version"
 		) #<#
