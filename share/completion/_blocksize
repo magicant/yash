@@ -23,22 +23,22 @@ function completion//completeblocksize {
 		;;
 	esac
 	#>>#
-	complete -P "$PREFIX" -D "1024 bytes"   K 	       
-	complete -P "$PREFIX" -D "1000 bytes"   KB 	       
-	complete -P "$PREFIX" -D "1024^2 bytes" M 	       
-	complete -P "$PREFIX" -D "1000^2 bytes" MB 	       
-	complete -P "$PREFIX" -D "1024^3 bytes" G 	       
-	complete -P "$PREFIX" -D "1000^3 bytes" GB 	       
-	complete -P "$PREFIX" -D "1024^4 bytes" T 	       
-	complete -P "$PREFIX" -D "1000^4 bytes" TB 	       
-	complete -P "$PREFIX" -D "1024^5 bytes" P 	       
-	complete -P "$PREFIX" -D "1000^5 bytes" PB 	       
-	complete -P "$PREFIX" -D "1024^6 bytes" E 	       
-	complete -P "$PREFIX" -D "1000^6 bytes" EB 	       
-	complete -P "$PREFIX" -D "1024^7 bytes" Z 	       
-	complete -P "$PREFIX" -D "1000^7 bytes" ZB 	       
-	complete -P "$PREFIX" -D "1024^8 bytes" Y 	       
-	complete -P "$PREFIX" -D "1000^8 bytes" YB 	       
+	complete -P "$PREFIX" -D "1024 bytes"   K
+	complete -P "$PREFIX" -D "1000 bytes"   KB
+	complete -P "$PREFIX" -D "1024^2 bytes" M
+	complete -P "$PREFIX" -D "1000^2 bytes" MB
+	complete -P "$PREFIX" -D "1024^3 bytes" G
+	complete -P "$PREFIX" -D "1000^3 bytes" GB
+	complete -P "$PREFIX" -D "1024^4 bytes" T
+	complete -P "$PREFIX" -D "1000^4 bytes" TB
+	complete -P "$PREFIX" -D "1024^5 bytes" P
+	complete -P "$PREFIX" -D "1000^5 bytes" PB
+	complete -P "$PREFIX" -D "1024^6 bytes" E
+	complete -P "$PREFIX" -D "1000^6 bytes" EB
+	complete -P "$PREFIX" -D "1024^7 bytes" Z
+	complete -P "$PREFIX" -D "1000^7 bytes" ZB
+	complete -P "$PREFIX" -D "1024^8 bytes" Y
+	complete -P "$PREFIX" -D "1000^8 bytes" YB
 	#<<#
 }
 

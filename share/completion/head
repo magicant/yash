@@ -1,0 +1,89 @@
+# (C) 2010 magicant
+
+# Completion script for the "head" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/head {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"n: ${long:+--lines:}; specify the number of lines to print"
+	) #<#
+
+	case $type in
+	(GNU|FreeBSD|NetBSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"c: ${long:+--bytes:}; specify the number of bytes to print"
+		) #<#
+		case $type in (GNU|NetBSD)
+			OPTIONS=("$OPTIONS" #>#
+			"q ${long:+--quiet --silent}; never print filename headers"
+			"v ${long:+--verbose}; always print filename headers"
+			) #<#
+			case $type in (GNU)
+				OPTIONS=("$OPTIONS" #>#
+				"--help"
+				"--version"
+				) #<#
+			esac
+		esac
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"c; count text in bytes rather than lines"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([cn]|--bytes|--lines)
+		case $type in (GNU)
+			typeset word="${TARGETWORD#"$PREFIX"}"
+			case $word in (*[[:digit:]]*)
+				word=${word##*[[:digit:]]}
+				PREFIX=${TARGETWORD%"$word"}
+				#>>#
+				complete -P "$PREFIX" -D "512 bytes"    b
+				complete -P "$PREFIX" -D "1024 bytes"   K
+				complete -P "$PREFIX" -D "1000 bytes"   KB
+				complete -P "$PREFIX" -D "1024^2 bytes" M
+				complete -P "$PREFIX" -D "1000^2 bytes" MB
+				complete -P "$PREFIX" -D "1024^3 bytes" G
+				complete -P "$PREFIX" -D "1000^3 bytes" GB
+				complete -P "$PREFIX" -D "1024^4 bytes" T
+				complete -P "$PREFIX" -D "1000^4 bytes" TB
+				complete -P "$PREFIX" -D "1024^5 bytes" P
+				complete -P "$PREFIX" -D "1000^5 bytes" PB
+				complete -P "$PREFIX" -D "1024^6 bytes" E
+				complete -P "$PREFIX" -D "1000^6 bytes" EB
+				complete -P "$PREFIX" -D "1024^7 bytes" Z
+				complete -P "$PREFIX" -D "1000^7 bytes" ZB
+				complete -P "$PREFIX" -D "1024^8 bytes" Y
+				complete -P "$PREFIX" -D "1000^8 bytes" YB
+				#<<#
+			esac
+		esac
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

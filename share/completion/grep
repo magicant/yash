@@ -1,0 +1,119 @@
+# (C) 2010 magicant
+
+# Completion script for the "grep" command.
+# Supports POSIX 2008, GNU grep 2.6.3, SunOS 5.10, HP-UX 11i v3.
+
+function completion/grep {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'GNU grep'*) typeset type=GNU ;;
+		(*)            typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"c ${long:+--count}; print only the count of selected lines"
+	"E ${long:+--extended-regexp}; use extended regular expression"
+	"e: ${long:+--regexp:}; specify a pattern to match"
+	"F ${long:+--fixed-strings}; perform simple string matching rather than regular expression"
+	"f: ${long:+--file:}; specify a file containing patterns to match"
+	"i ${long:+--ignore-case}; case insensitive matching"
+	"l ${long:+--files-with-matches}; print filenames only"
+	"n ${long:+--line-number}; print line numbers"
+	"q ${long:+--quiet --silent}; don't print anything to the standard output"
+	"s ${long:+--no-messages}; suppress error messages"
+	"v ${long:+--invert-match}; select non-matching lines"
+	"x ${long:+--line-regexp}; force the pattern to match whole lines only"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"h ${long:+--no-filename}; never print filenames in results"
+		"w ${long:+--word-regexp}; force the pattern to match whole words only"
+		) #<#
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"A: --after-context:; print specified number of lines after each line printed"
+		"a --text; treat binary files as test files"
+		"B: --before-context:; print specified number of lines before each line printed"
+		"b --byte-offset; print byte offset for each line printed"
+		"C: --context:; print specified number of lines before and after each line printed"
+		"D: --devices:; specify how to handle special files"
+		"d: --directories:; specify how to handle directories"
+		"G --basic-regexp; use basic regular expression"
+		"H --with-filename; always print the filename for each line printed"
+		"I; assume binary files don't match anything"
+		"L --files-without-match; print only the names of files containing no selected lines"
+		"m: --max-count:; specify the count to match at most"
+		"o --only-matching; print only the matching part of line"
+		"P --perl-regexp; use Perl's regular expression"
+		"R r --recursive; recursively search directories"
+		"T --initial-tab; align result lines"
+		"U --binary; don't convert CR-LF into LF"
+		"u --unix-byte-offsets; report offsets ignoring carriage returns"
+		"V --version; print version info"
+		"Z --null; print a null byte after each filename"
+		"z --null-data; separate lines by null bytes in results"
+		"--binary-files:; specify how to handle binary files"
+		"--color:: --colour::; specify when to print colored output"
+		"--exclude:; skip files whose names match the specified pattern"
+		"--exclude-dir:; skip directories whose names match the specified pattern"
+		"--exclude-from:; skip files whose names match the pattern in the specified file"
+		"--include:; search only files whose names match the specified pattern"
+		"--label:; specify a filename for the standard output"
+		"--line-buffered; print results as soon as possible"
+		"--help"
+		) #<#
+		;;
+	(SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"b; print 512-block offset for each line printed"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([ABCm]|--*context|--max-count)
+		;;
+	(--binary-files) #>>#
+		complete -P "$PREFIX" -D "report but don't print the contents of binary files" binary
+		complete -P "$PREFIX" -D "assume binary files don't match anything" without-match
+		complete -P "$PREFIX" -D "treat binary files as test files" text
+		;; #<<#
+	(--color|--colour) #>>#
+		complete -P "$PREFIX" -D "always print in color" yes always force
+		complete -P "$PREFIX" -D "print in color if output is terminal" auto tty if-tty
+		complete -P "$PREFIX" -D "don't print in color" no never none
+		;; #<<#
+	(D|--devices) #>>#
+		complete -P "$PREFIX" -D "treat special files as regular files" read
+		complete -P "$PREFIX" -D "skip special files" skip
+		;; #<<#
+	(d|--directories) #>>#
+		complete -P "$PREFIX" -D "treat directories as regular files" read
+		complete -P "$PREFIX" -D "recursively search directories" recurse
+		complete -P "$PREFIX" -D "skip directories" skip
+		;; #<<#
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
