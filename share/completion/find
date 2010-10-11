@@ -168,7 +168,7 @@ function completion/find::expr {
 			done
 			if [ $i -le $j ]; then
 				WORDS=("${WORDS[i,-1]}")
-				command -f completion//reexecute # TODO
+				command -f completion//reexecute -e
 				return
 			fi
 			;;

@@ -83,7 +83,8 @@ function completion/env {
 			;;
 		(*)
 			complete -T -S = -v
-			complete --external-command
+			WORDS=()
+			command -f completion//reexecute -e
 			;;
 		esac
 		;;

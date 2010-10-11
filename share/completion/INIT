@@ -509,27 +509,50 @@ function completion//getoperands {
 
 
 # This function re-executes the completion function using the current $WORDS.
-# If an argument is given to this function, it is used as the command name
+# If the -e option is specified, only external commands are completed as the
+# command name.
+# If an operand is given to this function, it is used as the command name
 # instead of ${WORDS[1]}.
 # This function does not change $WORDS (but the completion function may do).
 function completion//reexecute {
 
+	# parse options
+	typeset opt= OPTIND=1 extonly=false
+	while getopts :e opt; do
+		case $opt in
+			(e) extonly=true;;
+		esac
+	done
+
+	# if there's no words, complete the command name
 	if [ ${WORDS[#]} -le 0 ]; then
 		if command -vf completion//default >/dev/null 2>&1; then
 			command -f completion//default
 		else
 			complete -T -S / -d
 			case $TARGETWORD in
-				(*/*) complete --executable-file ;;
-				(*  ) complete -R '*/*' -ck --normal-alias ;;
+			(*/*)
+				complete --executable-file
+				;;
+			(*)
+				if $extonly; then
+					complete --external-command
+				else
+					complete -R '*/*' -ck --normal-alias
+				fi
+				;;
 			esac
 		fi
 		return
 	fi
 
-	typeset cmd="${1-${WORDS[1]}}"
+	if [ $OPTIND -le $# ]; then
+		typeset cmd="${@[OPTIND]}"
+	else
+		typeset cmd="${WORDS[1]}"
+	fi
 
-	# load the function if not yet loaded
+	# load the function if not yet loaded, and call the function
 	if command -vf "completion/$cmd" >/dev/null 2>&1; then
 		command -f "completion/$cmd"
 	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
