@@ -5,6 +5,10 @@
 
 function completion/vim {
 
+	# use default $IFS
+	typeset IFS=" ""	""
+"
+
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
 	"A; Arabic mode"
