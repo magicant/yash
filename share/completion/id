@@ -1,0 +1,72 @@
+# (C) 2010 magicant
+
+# Completion script for the "id" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/id {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"G ${long:+--groups}; print all group IDs"
+	"g ${long:+--group}; print the group ID only"
+	"n ${long:+--name}; print the user/group name rather than number"
+	"r ${long:+--real}; print the real ID rather than the effective ID"
+	"u ${long:+--user}; print the user ID only"
+	) #<#
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"Z --context; print the security context only"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(*BSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"p; print in a human-readable form"
+		) #<#
+		case $type in (FreeBSD|Darwin)
+			OPTIONS=("$OPTIONS" #>#
+			"A; print process audit properties"
+			"M; print the MAC label"
+			"P; print in the passwd file format"
+			) #<#
+		esac
+		;;
+	(SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"p; print project membership"
+		) #<#
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"P; print the process resource group ID"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -u
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

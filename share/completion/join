@@ -1,0 +1,59 @@
+# (C) 2010 magicant
+
+# Completion script for the "join" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/join {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"1:; join on the nth field of the first file"
+	"2:; join on the nth field of the second file"
+	"a:; print unpairable lines from the nth file"
+	"e:; specify a string to replace missing fields with"
+	"o:; specify the output format"
+	"t:; specify the field separator character"
+	"v:; only print unpairable lines from the nth file"
+	) #<#
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"i --ignore-case; case insensitive comparison"
+		"--check-order; accept correctly sorted input only"
+		"--nocheck-order; don't check that the input is correctly sorted"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([12jot])
+		;;
+	([av])
+		complete -P "$PREFIX" 1 2
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
