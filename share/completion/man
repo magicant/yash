@@ -1,0 +1,106 @@
+# (C) 2010 magicant
+
+# Completion script for the "man" command.
+# Supports POSIX 2008, and other conventional syntaxes.
+
+function completion/man {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a; show all manual pages for the keyword"
+	"f; print brief description"
+	"k; search manual database and print brief description"
+	"M:; specify directories containing manual pages"
+	"s:; specify manual sections"
+	) #<#
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(M)
+		typeset targetword="${TARGETWORD#"$PREFIX"}"
+		targetword=${targetword##*:}
+		PREFIX=${TARGETWORD%"$targetword"}
+		complete -P "$PREFIX" -S / -T -d
+		;;
+	('')
+		case $TARGETWORD in
+		(*/*)
+			complete -f
+			;;
+		(*)
+			command -f completion/man::operand
+			;;
+		esac
+		;;
+	esac
+
+}
+
+function completion/man::operand {
+
+	typeset i=1 sections= manpath=
+	while [ $i -le ${WORDS[#]} ]; do
+		case ${WORDS[i]} in
+		(--)
+			if [ $((i+1)) -le ${WORDS[#]} ]; then
+				case ${WORDS[i+1]} in ([[:digit:]]*)
+					sections=${WORDS[i+1]}
+				esac
+			fi
+			break
+			;;
+		(-M*)
+			manpath=${WORDS[i]#-M}
+			;;
+		(-s*)
+			sections=${WORDS[i]#-s}
+			;;
+		esac
+		i=$((i+1))
+	done
+	typeset IFS=':,'
+	sections=($sections)
+
+	[ "$manpath" ] ||
+	manpath=$(manpath 2>/dev/null) ||
+	manpath=${MANPATH:-/usr/man:/usr/share/man:/usr/local/man:/usr/local/share/man}
+	IFS=:
+	manpath=($manpath)
+	IFS=
+
+	typeset saveopts=$(set +o)
+	set +o noglob -o nullglob +o nocaseglob
+
+	typeset mandir section
+	for mandir in "$manpath"; do
+		if [ ${sections[#]} -gt 0 ]; then
+			for section in "$sections"; do
+				command -f completion/man::operand::search "${mandir}/man${section}"
+				command -f completion/man::operand::search "${mandir}/sman${section}"
+				command -f completion/man::operand::search "${mandir}/man${section}.Z"
+			done
+		else
+			for mandir in "$mandir"/man* "$mandir"/sman*; do
+				command -f completion/man::operand::search "${mandir}"
+			done
+		fi
+	done
+
+	eval "$saveopts"
+
+}
+
+function completion/man::operand::search {
+
+	typeset files
+	files=("$1"/*)
+	files=("${${${${${${files##*/}%.[gx]z}%.bz2}%.lzma}%.Z}%.*}")
+	complete -R '' -- "$files"
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
