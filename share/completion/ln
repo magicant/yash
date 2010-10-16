@@ -72,12 +72,12 @@ function completion/ln {
 	(-)
 		command -f completion//completeoptions
 		;;
-	(--backup) #>>#
-		complete -P "$PREFIX" -D "don't make backups" none off
-		complete -P "$PREFIX" -D "make numbered backups" numbered t
-		complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
-		complete -P "$PREFIX" -D "make simple backups" simple never
-		;; #<<#
+	(--backup)
+		if command -vf completion//completebackup >/dev/null 2>&1 ||
+				. -AL completion/_backup; then
+			command -f completion//completebackup
+		fi
+		;;
 	(S|--suffix)
 		;;
 	(t|--target-directory)

@@ -1,0 +1,15 @@
+# (C) 2010 magicant
+
+# This file contains a function that completes the argument to the --backup
+# option of the cp, ln, and mv commands.
+
+
+function completion//completebackup { #>>#
+	complete -P "$PREFIX" -D "don't make backups" none off
+	complete -P "$PREFIX" -D "make numbered backups" numbered t
+	complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
+	complete -P "$PREFIX" -D "make simple backups" simple never
+} #<<#
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

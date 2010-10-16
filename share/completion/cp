@@ -107,12 +107,12 @@ function completion/cp {
 	(-)
 		command -f completion//completeoptions
 		;;
-	(--backup) #>>#
-		complete -P "$PREFIX" -D "don't make backups" none off
-		complete -P "$PREFIX" -D "make numbered backups" numbered t
-		complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
-		complete -P "$PREFIX" -D "make simple backups" simple never
-		;; #<<#
+	(--backup)
+		if command -vf completion//completebackup >/dev/null 2>&1 ||
+				. -AL completion/_backup; then
+			command -f completion//completebackup
+		fi
+		;;
 	(e) #>>#
 		complete -P "$PREFIX" -D "print a message when failed to copy an extent attribute" warn
 		complete -P "$PREFIX" -D "don't copy extent attributes" ignore
