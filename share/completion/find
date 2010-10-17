@@ -196,7 +196,7 @@ function completion/find::expr {
 			if [ $i -eq ${WORDS[#]} ]; then
 				if command -vf completion/chmod::mode >/dev/null 2>&1 ||
 						. -AL completion/chmod; then
-					command -f completion/chmod::mode chmod
+					command -f completion/chmod::mode find
 				fi
 			fi
 			i=$((i+2))

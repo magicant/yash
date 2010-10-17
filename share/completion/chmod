@@ -86,12 +86,13 @@ function completion/chmod {
 
 function completion/chmod::mode {
 
+	typeset word="${TARGETWORD#"$PREFIX"}"
+
 	# we don't complete a numeric mode value
-	case $TARGETWORD in (*[[:digit:]]*)
+	case $word in (*[[:digit:]]*)
 		return
 	esac
 
-	typeset word="$TARGETWORD"
 	word=${word##*,}
 	case $word in (*[-+=]*)
 		case $word in
@@ -111,9 +112,9 @@ function completion/chmod::mode {
 		complete -P "$TARGETWORD" -D "execute permission (only when there's already one)" X
 		complete -P "$TARGETWORD" -D "set-user/group-ID" s
 		#<<#
-		if [ "${1-}" = chmod ]; then #>>#
+		case ${1-} in (chmod|find|mkdir) #>>#
 			complete -P "$TARGETWORD" -D "sticky bit" t
-		fi #<<#
+		esac #<<#
 		return
 	esac
 

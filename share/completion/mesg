@@ -1,0 +1,13 @@
+# (C) 2010 magicant
+
+# Completion script for the "mesg" command.
+# Supports POSIX 2008.
+
+function completion/mesg
+	if [ ${WORDS[#]} -eq 1 ]; then #>>#
+		complete -D "allow messages from other uses" y
+		complete -D "deny messages from other uses" n
+	fi #<<#
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
