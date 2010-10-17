@@ -21,7 +21,7 @@ function completion/grep {
 	"e: ${long:+--regexp:}; specify a pattern to match"
 	"F ${long:+--fixed-strings}; perform simple string matching rather than regular expression"
 	"f: ${long:+--file:}; specify a file containing patterns to match"
-	"i ${long:+--ignore-case}; case insensitive matching"
+	"i ${long:+--ignore-case}; case-insensitive matching"
 	"l ${long:+--files-with-matches}; print filenames only"
 	"n ${long:+--line-number}; print line numbers"
 	"q ${long:+--quiet --silent}; don't print anything to the standard output"

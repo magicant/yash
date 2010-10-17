@@ -29,7 +29,7 @@ function completion/join {
 	case $type in
 	(GNU)
 		OPTIONS=("$OPTIONS" #>#
-		"i --ignore-case; case insensitive comparison"
+		"i --ignore-case; case-insensitive comparison"
 		"--check-order; accept correctly sorted input only"
 		"--nocheck-order; don't check that the input is correctly sorted"
 		"--help"
