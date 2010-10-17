@@ -113,7 +113,7 @@ function completion/man::operand {
 		esac
 		i=$((i+1))
 	done
-	typeset IFS=':,'
+	IFS=':,'
 	sections=($sections)
 
 	[ "$manpath" ] ||

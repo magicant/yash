@@ -6,10 +6,6 @@
 
 function completion/ex {
 
-	# use default $IFS
-	typeset IFS=" ""	""
-"
-
 	case $("${WORDS[1]}" --version 2>/dev/null) in (VIM*)
 		command -f completion//reexecute vim
 		return

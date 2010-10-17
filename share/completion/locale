@@ -37,7 +37,7 @@ function completion/locale {
 		command -f completion//completeoptions
 		;;
 	(*)
-		typeset IFS="
+		IFS="
 "
 		typeset category keywords
 		for category in $(locale 2>/dev/null); do

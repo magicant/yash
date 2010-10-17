@@ -75,10 +75,6 @@
 # Ambiguous options, invalid options, etc. are silently ignored.
 function completion//parseoptions {
 
-	# use default $IFS
-	typeset IFS=" ""	""
-"
-
 	# parse options to this function itself
 	typeset opt= OPTIND=1
 	typeset extension=false update=true sort=false
@@ -365,10 +361,6 @@ function completion//parseoptions {
 # does not start with a hyphen, this function does nothing but returning the
 # exit status of 2.
 function completion//completeoptions {
-
-	# use default $IFS
-	typeset IFS=" ""	""
-"
 
 	# check $PREFIX
 	if [ "${PREFIX-}" ]; then
