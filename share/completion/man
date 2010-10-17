@@ -1,25 +1,77 @@
 # (C) 2010 magicant
 
 # Completion script for the "man" command.
-# Supports POSIX 2008, and other conventional syntaxes.
+# Supports POSIX 2008, man-db 2.5.7, and other conventional syntaxes.
 
 function completion/man {
 
+	if "${WORDS[1]}" --where man >/dev/null 2>&1; then
+		typeset type=man-db
+	else
+		typeset type=POSIX
+	fi
+	case $type in
+		(man-db) typeset long=true ;;
+		(*)      typeset long= ;;
+	esac
+
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
-	"a; show all manual pages for the keyword"
-	"f; print brief description"
-	"k; search manual database and print brief description"
-	"M:; specify directories containing manual pages"
-	"s:; specify manual sections"
+	"a ${long:+--all}; show all manual pages, not only the first found one"
+	"f ${long:+--whatis}; only print brief description"
+	"k ${long:+--apropos}; search manual database and print brief description"
+	"M: ${long:+--manpath:}; specify directories containing manual pages"
+	"s: ${long:+--sections:}; specify manual sections"
 	) #<#
 
-	command -f completion//parseoptions ${long:+-es}
+	case $type in (man-db)
+		OPTIONS=("$OPTIONS" #>#
+		"7 --ascii; display ASCII translation of certain Latin-1 characters"
+		"C: --config-file:; specify a pathname of the config file"
+		"D --default; reset options (possibly set by \$MANOPT)"
+		"e: --extension:; only search sections with the specified suffix"
+		"H:: --html::; view the manual as HTML with the specified browser"
+		"h --help; print help"
+		"I --match-case; case sensitive search"
+		"i --ignore-case; case insensitive search"
+		"K --global-apropos; search for text in all manual pages"
+		"L: --locale:; specify locale"
+		"l --local-file; treat operands as manual page filenames"
+		"m: --systems:; specify system names to show the manual for"
+		"P: --pager:; specify a pager to show the manual"
+		"p: --preprocessor:; specify a preprocessor sequence"
+		"R: --recode:; specify an encoding to convert the manual page to"
+		"r: --prompt:; specify a prompt string used in the less pager"
+		"T:: --troff-device::; use groff with the specified device"
+		"t --troff; use groff -mandoc to format pages"
+		"u --update; check cache consistency"
+		"V --version; print version info"
+		"w --where --location; print the pathname of the manual page"
+		"W --where-cat --location-cat; print the pathname of the cat file"
+		"X:: --gxditview::; view the manual using gxditview with the specified DPI"
+		"Z --ditroff; force groff to produce ditroff"
+		"--names-only; match page names only (with --regex or --wildcard)"
+		"--no-justification --nj; disable justification of text"
+		"--no-hyphenation --nh; disable automatic hyphenation"
+		"--no-subpages; don't try subpages like git-diff for \`git-diff'"
+		"--regex; use regular expression in searching"
+		"--warnings::; specify groff warning types to enable"
+		"--wildcard; use shell-like pattern matching in searching"
+		) #<#
+	esac
+
+	command -f completion//parseoptions
 	case $ARGOPT in
 	(-)
 		command -f completion//completeoptions
 		;;
-	(M)
+	(C|--config-file)
+		complete -P "$PREFIX" -f
+		;;
+	(H|--html)
+		complete -P "$PREFIX" --external-command
+		;;
+	(M|--manpath)
 		typeset targetword="${TARGETWORD#"$PREFIX"}"
 		targetword=${targetword##*:}
 		PREFIX=${TARGETWORD%"$targetword"}
