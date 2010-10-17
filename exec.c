@@ -1505,8 +1505,8 @@ bool call_completion_function(const wchar_t *funcname)
 
     le_compdebug("executing completion function \"%ls\"", funcname);
 
-    /* don't use `exec_function_body': We have to prepare special local
-     * variables $WORDS and $TARGETWORD. */
+    /* don't use `exec_function_body': We have to prepare some special local
+     * variables. */
     savefd_T *savefd;
     open_new_environment(false);
     set_positional_parameters((void *[]) { NULL });

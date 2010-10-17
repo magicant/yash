@@ -653,13 +653,13 @@ bool call_standard_completion_function(void)
 }
 
 /* Sets special local variables $WORDS and $TARGETWORD in the current variable
- * environment. */
+ * environment. Also sets the $IFS variable to the default value. */
 void set_completion_variables(void)
 {
     set_array(L VAR_WORDS, ctxt->pwordc, duparray(ctxt->pwords, copyaswcs),
 	    SCOPE_LOCAL);
-    set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src),
-	    SCOPE_LOCAL, false);
+    set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src), SCOPE_LOCAL, false);
+    set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
 }
 
 /* Performs command name completion in the default settings. */

@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.25
+
+  =  While executing a completion function, the $IFS is reset to the
+     default value.
+
+----------------------------------------------------------------------
 Yash 2.24
 
   +  New option for the "." built-in: -L
