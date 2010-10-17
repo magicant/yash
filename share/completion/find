@@ -354,7 +354,7 @@ function completion/find::expr {
 			complete -D "true if the last status change time is later than last modified time of the specified file" -- -cnewer
 			complete -D "true if the file is empty" -- -empty
 			complete -D "execute the specified command line in the directory containing the file" -- -execdir
-			complete -D "true if the filename matches the specified pattern (case insensitive)" -- -iname
+			complete -D "true if the filename matches the specified pattern (case-insensitive)" -- -iname
 			complete -D "search directories of at most the specified depth only" -- -maxdepth
 			complete -D "search directories of at least the specified depth only" -- -mindepth
 			complete -D "true if the last modified time is n minutes ago" -- -mmin
@@ -368,14 +368,14 @@ function completion/find::expr {
 				#>>#
 				complete -D "remove the file" -- -delete
 				complete -D "false" -- -false
-				complete -D "true if the pathname matches the specified regular expression (case insensitive)" -- -iregex
+				complete -D "true if the pathname matches the specified regular expression (case-insensitive)" -- -iregex
 				complete -D "true if the pathname matches the specified regular expression" -- -regex
 				complete -D "true if the file is a hard link to the specified" -- -samefile
 				#<<#
 				case $type in (GNU|FreeBSD|Darwin) #>>#
 					complete -D "true if the file's group ID is the specified" -- -gid
-					complete -D "true if the symbolic link's target matches the specified pattern (case insensitive)" -- -ilname
-					complete -D "true if the pathname matches the specified pattern (case insensitive)" -- -ipath -iwholename
+					complete -D "true if the symbolic link's target matches the specified pattern (case-insensitive)" -- -ilname
+					complete -D "true if the pathname matches the specified pattern (case-insensitive)" -- -ipath -iwholename
 					complete -D "true if the symbolic link's target matches the specified pattern" -- -lname
 					complete -D "true" -- -true
 					complete -D "true if the file owner's user ID is the specified" -- -uid

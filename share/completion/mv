@@ -1,0 +1,83 @@
+# (C) 2010 magicant
+
+# Completion script for the "mv" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i v3.
+
+function completion/mv {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"f ${long:+--force}; overwrite existing files without prompt"
+	"i ${long:+--interactive}; ask before overwriting existing files"
+	) #<#
+
+	case $type in
+	(GNU|FreeBSD|NetBSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"v ${long:+--verbose}; print a message for each file processed"
+		) #<#
+		case $type in (GNU|FreeBSD|Darwin)
+			OPTIONS=("$OPTIONS" #>#
+			"n ${long:+--no-clobber}; don't overwrite existing files"
+			) #<#
+			case $type in (GNU)
+				OPTIONS=("$OPTIONS" #>#
+				"b; like --backup=existing"
+				"--backup::; specify how to make a backup"
+				"--strip-trailing-slashes; remove trailing slashes from source operands"
+				"S: --suffix:; specify a suffix to append to backup file names"
+				"t: --target-directory:; specify a destination directory"
+				"u --update; don't move if destination is newer than source"
+				"--help"
+				"--version"
+				) #<#
+			esac
+		esac
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"e:; specify extent attributes treatment"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--backup)
+		if command -vf completion//completebackup >/dev/null 2>&1 ||
+				. -AL completion/_backup; then
+			command -f completion//completebackup
+		fi
+		;;
+	(e) #>>#
+		complete -P "$PREFIX" -D "print a message when failed to preserve an extent attribute" warn
+		complete -P "$PREFIX" -D "don't preserve extent attributes" ignore
+		complete -P "$PREFIX" -D "don't move a file when cannot preserve the extent attribute" force
+		;; #<<#
+	(S|--suffix)
+		;;
+	(t|--target-directory)
+		complete -T -P "$PREFIX" -S / -d
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
