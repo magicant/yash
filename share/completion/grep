@@ -65,7 +65,7 @@ function completion/grep {
 		"--color:: --colour::; specify when to print colored output"
 		"--exclude:; skip files whose names match the specified pattern"
 		"--exclude-dir:; skip directories whose names match the specified pattern"
-		"--exclude-from:; skip files whose names match the pattern in the specified file"
+		"--exclude-from:; skip files whose names match a pattern in the specified file"
 		"--include:; search only files whose names match the specified pattern"
 		"--label:; specify a filename for the standard output"
 		"--line-buffered; print results as soon as possible"

@@ -1,0 +1,64 @@
+# (C) 2010 magicant
+
+# Completion script for the "nl" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/nl {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"b: ${long:+--body-numbering:}; specify the numbering style of body lines"
+	"d: ${long:+--section-delimiter:}; specify section delimiter characters"
+	"f: ${long:+--footer-numbering:}; specify the numbering style of footer lines"
+	"h: ${long:+--header-numbering:}; specify the numbering style of header lines"
+	"i: ${long:+--line-increment:}; specify the line number increment"
+	"l: ${long:+--join-blank-lines:}; consider n adjacent empty lines as one"
+	"n: ${long:+--number-format:}; specify the line numbering format"
+	"p  ${long:+--no-renumber}; don't reset the line number at the beginning of pages"
+	"s: ${long:+--number-separator:}; specify the separator between the line number and the text"
+	"v: ${long:+--starting-line-number:}; specify the initial line number"
+	"w: ${long:+--number-width:}; specify the number of characters for the line number"
+	) #<#
+
+	case $type in (GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"--help"
+		"--version"
+		) #<#
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([bfh]|--body-numbering|--footer-numbering|--header-numbering) #>>#
+		complete -P "$PREFIX" -D "number all lines" a
+		complete -P "$PREFIX" -D "number nonempty lines" t
+		complete -P "$PREFIX" -D "number no lines" n
+		complete -P "$PREFIX" -D "number lines matching the following regular expression" -T p
+		;; #<<#
+	(n|--number-format) #>>#
+		complete -P "$PREFIX" -D "left justified, leading zeros suppressed" ln
+		complete -P "$PREFIX" -D "right justified, leading zeros suppressed" rn
+		complete -P "$PREFIX" -D "right justified, leading zeros kept" rz
+		;; #<<#
+	('')
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

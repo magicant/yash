@@ -1,0 +1,184 @@
+# (C) 2010 magicant
+
+# Completion script for the "diff" command.
+# Supports POSIX 2008, GNU diffutils 3.0, OpenBSD 4.8, SunOS 5.10, HP-UX 11i v3.
+
+function completion/diff {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'diffutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"b ${long:+--ignore-space-change}; ignore changes in amount of white spaces only"
+	"C: ${long:+--context::}; output in copied context format with the specified number of context lines"
+	"c; like -C 3"
+	"e ${long:+--ed}; output in ed script format"
+	"f ${long:+--forward-ed}; output in forward ed format"
+	"r ${long:+--recursive}; recursively compare directories"
+	"U: ${long:+--unified::}; output in unified context format with the specified number of context lines"
+	"u; like -U 3"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|*BSD|SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"D: ${long:+--ifdef:}; output in merged #ifdef format with the specified conditional macro name"
+		"i ${long:+--ignore-case}; case-insensitive comparison"
+		"l ${long:+--paginate}; output in long format thru the pr command"
+		"n ${long:+--rcs}; output in rcsdiff format"
+		"S: ${long:+--starting-file:}; restart directory comparison from the specified file"
+		"s ${long:+--report-identical-files}; explicitly report identical files"
+		"t ${long:+--expand-tabs}; expand tabs in output"
+		"w ${long:+--ignore-all-space}; ignore white spaces in comparison"
+		"X: ${long:+--exclude-from:}; skip files whose names match a pattern in the specified file"
+		"x: ${long:+--exclude:}; skip files whose names match the specified pattern"
+		) #<#
+	esac
+	case $type in (GNU|*BSD)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"a ${long:+--text}; assume all files are text"
+		"d ${long:+--minimal}; make the output as small as possible"
+		"I: ${long:+--ignore-matching-lines:}; don't output changes matching the specified regular expression"
+		"L: ${long:+--label:}; specify the label used instead of the filename"
+		"N ${long:+--new-file}; treat absent files as empty"
+		"P ${long:+--unidirectional-new-file}; treat absent from-files as empty"
+		"p ${long:+--show-c-function}; print the name of C function containing changes"
+		"q ${long:+--brief}; just print the names of differing files"
+		"T ${long:+--initial-tab}; prepend a tab to each output line to align text"
+		) #<#
+	esac
+	case $type in (GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"B --ignore-blank-lines; ignore insertion/deletion of empty lines"
+		"--binary; don't convert CR-LF into LF"
+		"--changed-group-format:; specify the format of differing lines"
+		"E --ignore-tab-expansion; ignore changes due to tab expansion"
+		"F: --show-function-line:; specify a regular expression to find the name of the function containing the change"
+		"--from-file:; specify a file to compare with each operand"
+		"--horizon-lines:; don't discard the specified number of lines in the common prefix/suffix"
+		"--ignore-file-name-case; case-insensitive filename comparison"
+		"--left-column; print only the left column of two common lines (with -y)"
+		"--line-format:; specify the --{old,new,unchanged}-line-format options at once"
+		"--new-group-format:; specify the format of lines only in the second file"
+		"--new-line-format:; specify the format of a line only in the second file"
+		"--no-ignore-file-name-case; case-sensitive filename comparison"
+		"--normal; output in normal format"
+		"--old-group-format:; specify the format of lines only in the first file"
+		"--old-line-format:; specify the format of a line only in the first file"
+		"--speed-large-files; fast, half-hearted comparison"
+		"--strip-trailing-cr; ignore carriage returns at the end of lines"
+		"--suppress-blank-empty; don't end a line with a space unless there was one in the text"
+		"--suppress-common-lines; don't print common lines (with -y)"
+		"--tabsize:; specify how many spaces a tab stands for"
+		"--to-file:; specify a file to compare each operand with"
+		"--unchanged-group-format:; specify the format of lines common to the both files"
+		"--unchanged-line-format:; specify the format of a line common to the both files"
+		"v --version; print version info"
+		"W: --width:; specify the max output width (with -y)"
+		"y --side-by-side; output in side-by-side format"
+		"--help"
+		) #<#
+	esac
+	case $type in (SunOS|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"h; fast, half-hearted comparison"
+		) #<#
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([CUW]|--context|--unified|--horizon-lines|--tabsize|--width)
+		;;
+	(D|--ifdef)
+		if [ -r tags ]; then
+			complete -P "$PREFIX" -R "!_TAG_*" -- $(cut -f 1 tags)
+		fi
+		;;
+	(--*line-format)
+		command -f completion/diff::line
+		;;
+	(--*group-format)
+		command -f completion/diff::group
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+function completion/diff::line {
+
+	typeset word="${TARGETWORD#"$PREFIX"}"
+	word=${word//%%}
+	case $word in (*%|*%[doxX])
+		PREFIX=${TARGETWORD%\%*} #>>#
+		complete -T -P "$PREFIX" -D "line contents, without newline" '%l'
+		complete -T -P "$PREFIX" -D "line contents, with newline" '%L'
+		complete -T -P "$PREFIX" -D "escape a following character enclosed in single-quotes" '%c'
+		complete -T -P "$PREFIX" -D "line number in decimal" '%dn'
+		complete -T -P "$PREFIX" -D "line number in octal" '%on'
+		complete -T -P "$PREFIX" -D "line number in hexadecimal, lowercase" '%xn'
+		complete -T -P "$PREFIX" -D "line number in hexadecimal, uppercase" '%Xn'
+		complete -T -P "$PREFIX" -D "%" '%%'
+		return 0 #<<#
+		;;
+	esac
+
+}
+
+function completion/diff::group {
+
+	typeset word="${TARGETWORD#"$PREFIX"}"
+	word=${word//%%}
+	case $word in
+	(*%[doxX])
+		PREFIX=${TARGETWORD%\%?}
+		word=${TARGETWORD#"$PREFIX"} #>>#
+		complete -T -P "$PREFIX" -D "line number just before the group in the first file" "${word}e"
+		complete -T -P "$PREFIX" -D "line number just before the group in the second file" "${word}E"
+		complete -T -P "$PREFIX" -D "line number of the first line in the group in the first file" "${word}f"
+		complete -T -P "$PREFIX" -D "line number of the first line in the group in the second file" "${word}F"
+		complete -T -P "$PREFIX" -D "line number of the last line in the group in the first file" "${word}l"
+		complete -T -P "$PREFIX" -D "line number of the last line in the group in the second file" "${word}L"
+		complete -T -P "$PREFIX" -D "line number just after the group in the first file" "${word}m"
+		complete -T -P "$PREFIX" -D "line number just after the group in the second file" "${word}M"
+		complete -T -P "$PREFIX" -D "number of lines in the group in the first file" "${word}n"
+		complete -T -P "$PREFIX" -D "number of lines in the group in the second file" "${word}N"
+		return 0 #<<#
+		;;
+	(*%)
+		PREFIX=${TARGETWORD%\%} #>>#
+		complete -T -P "$PREFIX" -D "lines from the first file" '%<'
+		complete -T -P "$PREFIX" -D "lines from the second file" '%>'
+		complete -T -P "$PREFIX" -D "lines common to the both files" '%='
+		complete -T -P "$PREFIX" -D "escape a following character enclosed in single-quotes" '%c'
+		complete -T -P "$PREFIX" -D "format a decimal number" '%d'
+		complete -T -P "$PREFIX" -D "format an octal number" '%o'
+		complete -T -P "$PREFIX" -D "format a hexadecimal number in lowercase" '%x'
+		complete -T -P "$PREFIX" -D "format a hexadecimal number in uppercase" '%X'
+		complete -T -P "$PREFIX" -D "conditional expression" '%('
+		complete -T -P "$PREFIX" -D "%" '%%'
+		return 0 #<<#
+		;;
+	esac
+
+	return 1
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
