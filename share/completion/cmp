@@ -1,8 +1,8 @@
 # (C) 2010 magicant
 
 # Completion script for the "cmp" command.
-# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
-# Mac OS X 10.6.3, SunOS 5.10, HP-UX 11i v3.
+# Supports POSIX 2008, GNU diffutils 3.0, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# SunOS 5.10, HP-UX 11i v3.
 
 function completion/cmp {
 
@@ -29,7 +29,7 @@ function completion/cmp {
 		"i: --ignore-initial:; specify number of bytes to skip"
 		"n: --bytes:; specify number of bytes to compare at most"
 		"--help"
-		"--version"
+		"v --version; print version info"
 		) #<#
 		;;
 	(FreeBSD)
