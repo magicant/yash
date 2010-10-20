@@ -201,7 +201,7 @@ function completion/ls {
 		complete -P "$PREFIX" -D "don't sort" none
 		complete -P "$PREFIX" -D "sort by filename extension" extension
 		complete -P "$PREFIX" -D "sort by file size" size
-		complete -P "$PREFIX" -D "sort by last modified time"
+		complete -P "$PREFIX" -D "sort by last modified time" time
 		complete -P "$PREFIX" -D "sort by filename regarding as version number" version
 		;; #<<#
 	(--time) #>>#
