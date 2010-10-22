@@ -1,0 +1,78 @@
+# (C) 2010 magicant
+
+# Completion script for the "nohup" command.
+# Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/nohup {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=()
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"a; override signal handlers set by the target processes themselves"
+		"F; grab control of target processes controlled by another process"
+		"g; make running process groups immune to SIGHUP"
+		"p; make running processes immune to SIGHUP"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	('')
+		typeset word pid args
+		for word in "${WORDS[2,-1]}"; do
+			case $word in
+			(-p)
+				# complete a process ID
+				while read -r pid args; do
+					if kill -n 0 $pid; then
+						complete -D "$args" -- "$pid"
+					fi
+				done 2>/dev/null <(ps -a -o pid= -o args=)
+				break
+				;;
+			(-g)
+				# complete a process group ID
+				while read -r pid args; do
+					if kill -n 0 -$pid; then
+						complete -D "$args" -- "$pid"
+					fi
+				done 2>/dev/null <(ps -a -o pgid= -o args=)
+				break
+				;;
+			(--)
+				command -f completion//getoperands
+				command -f completion//reexecute -e
+				break
+				;;
+			esac
+		done
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
