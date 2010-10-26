@@ -159,6 +159,7 @@ function completion/less {
 		for word in "${WORDS[2,-1]}"; do
 			case $word in
 				(--tag-file=*) tagfile=${word#--tag-file=} ;;
+				(-T*)          tagfile=${word#-T} ;;
 				(-*)           ;;
 				(*)            break ;;
 			esac
