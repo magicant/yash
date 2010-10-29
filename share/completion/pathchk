@@ -1,0 +1,44 @@
+# (C) 2010 magicant
+
+# Completion script for the "pathchk" command.
+# Supports POSIX 2008, GNU coreutils 8.4.
+
+function completion/pathchk {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type=POSIX;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"P; check for empty pathnames and leading hyphens"
+	"p; check pathname length limits and character sets"
+	) #<#
+
+	case $type in (GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"--portability; like -Pp: full check"
+		"--help"
+		"--version"
+		) #<#
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

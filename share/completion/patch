@@ -1,0 +1,139 @@
+# (C) 2010 magicant
+
+# Completion script for the "patch" command.
+# Supports POSIX 2008, GNU patch 2.6.1, SunOS 5.10, HP-UX 11i v3.
+
+function completion/patch {
+
+	if "${WORDS[1]}" --version >/dev/null 2>&1; then
+		typeset type=GNU
+	else
+		typeset type="$(uname 2>/dev/null)"
+	fi
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+	POSIXOPTIONS=( #>#
+	"b ${long:+--backup}; back up files before patching"
+	"c ${long:+--context}; assume copied context format"
+	"D: ${long:+--ifdef:}; output in merged #ifdef format with the specified conditional macro name"
+	"d: ${long:+--directory:}; specify a directory to work in"
+	"e ${long:+--ed}; assume ed script format"
+	"i: ${long:+--input:}; specify the patch file"
+	"l ${long:+--ignore-whitespace}; tolerate white space mismatches"
+	"N ${long:+--forward}; ignore patches that seem reversed or already applied"
+	"n ${long:+--normal}; assume normal diff format"
+	"o: ${long:+--output:}; specify the result file name"
+	"p: ${long:+--strip:}; specify the number of pathname components to strip from file names"
+	"R ${long:+--reverse}; patch in reverse"
+	"r: ${long:+-reject-file:}; specify the reject file name"
+	"u ${long:+--unified}; assume unified context format"
+	) #<#
+
+	ADDOPTIONS=()
+	case $type in (GNU|HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"F: ${long:+--fuzz:}; specify the number of lines in context that may mismatch"
+		"f ${long:+--force}; don't ask anything to the user"
+		"s ${long:+--silent --quiet}; suppress informative messages"
+		"v ${long:+--version}; print version info"
+		) #<#
+	esac
+	case $type in
+	(GNU)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"--backup-if-mismatch; back up a file if the patch doesn't match the file exactly"
+		"--no-backup-if-mismatch; don't back up a file even if the patch doesn't match the file exactly"
+		"B: --prefix:; specify a backup file pathname prefix"
+		"--binary; don't convert CR-LF into LF"
+		"--dry-run; don't modify files actually but print messages as usual"
+		"E --remove-empty-files; remove empty result files"
+		"g: --get:; specify what to do when a file is missing or read-only"
+		"--merge::; leave conflicts in the result file like diff3 and merge"
+		"--posix; disable non-POSIX extensions"
+		"--quoting-style:; specify the quoting style for output names"
+		"--reject-format:; specify the reject file format"
+		"T --set-time; set the time stamp of result files using local time"
+		"t --batch; don't ask anything to the user"
+		"V: --version-control:; specify how to make a backup"
+		"--verbose; print extra informative messages"
+		"Y: --basename-prefix:; make backups in subdirectories with the specified name"
+		"Z --set-utc; set the time stamp of result files using UTC"
+		"z: --suffix:; make backups in the same directory with the specified suffix"
+		"--help"
+		) #<#
+		;;
+	(HP-UX)
+		ADDOPTIONS=("$ADDOPTIONS" #>#
+		"S; ignore this patch and process the next patch"
+		) #<#
+		;;
+	esac
+
+	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+	unset POSIXOPTIONS ADDOPTIONS
+
+	case $type in (HP-UX)
+		typeset i="${WORDS[#]}"
+		while [ $i -gt 1 ]; do
+			if [ "${WORDS[i]}" = "+" ]; then
+				WORDS=("${WORDS[1]}" "${WORDS[i+1,-1]}")
+				break
+			fi
+			i=$((i-1))
+		done
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(D|--ifdef)
+		if [ -r tags ]; then
+			complete -P "$PREFIX" -R "!_TAG_*" -- $(cut -f 1 tags)
+		fi
+		;;
+	(d|--directory)
+		complete -T -P "$PREFIX" -S / -d
+		;;
+	(g|--get) #>>#
+		complete -P "$PREFIX" -D "check out the missing file" 1
+		complete -P "$PREFIX" -D "do nothing" 0
+		complete -P "$PREFIX" -D "ask whether to check out the file" -- -1
+		;; #<<#
+	(--merge) #>>#
+		complete -P "$PREFIX" -D "contains original lines from the patch" diff3
+		complete -P "$PREFIX" -D "doesn't contain original lines from the patch" merge
+		;; #<<#
+	(--quoting-style) #>>#
+		complete -P "$PREFIX" -D "no quotation" literal
+		complete -P "$PREFIX" -D "quotation suitable for the shell" shell
+		complete -P "$PREFIX" -D "always quote in the shell style" shell-always
+		complete -P "$PREFIX" -D "C string literal" c
+		complete -P "$PREFIX" -D "C string literal without surrounding double-quotes" escape
+		;; #<<#
+	(--reject-format) #>>#
+		complete -P "$PREFIX" -D "copied context format" context
+		complete -P "$PREFIX" -D "unified context format" unified
+		;; #<<#
+	(V|--version-control)
+		if command -vf completion//completebackup >/dev/null 2>&1 ||
+				. -AL completion/_backup; then
+			command -f completion//completebackup
+		fi
+		;;
+	([Fp]|--fuzz|--strip)
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
