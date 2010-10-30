@@ -166,7 +166,7 @@ function completion/less {
 		done
 		if [ -r "${tagfile:-tags}" ]; then
 			complete -P "$PREFIX" -R "!_TAG_*" -- \
-				$(cut -f 1 "${tagfile:-tags}")
+				$(cut -f 1 "${tagfile:-tags}" 2>/dev/null)
 		fi
 		;;
 	(*)

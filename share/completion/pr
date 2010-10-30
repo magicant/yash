@@ -86,7 +86,7 @@ function completion/pr {
 	(L)
 		IFS="
 "
-		complete -P "$PREFIX" -- $(locale -a)
+		complete -P "$PREFIX" -- $(locale -a 2>/dev/null)
 		;;
 	([ceilNnosWw]|--expand-tabs|--output-tabs|--first-line-number|--length|--number-lines|--indent|--separator|--width|--page-width)
 		;;

@@ -84,7 +84,8 @@ function completion/ex {
 		;;
 	(t)
 		if [ -r tags ]; then
-			complete -P "$PREFIX" -R "!_TAG_*" -- $(cut -f 1 tags)
+			complete -P "$PREFIX" -R "!_TAG_*" -- \
+				$(cut -f 1 tags 2>/dev/null)
 		fi
 		;;
 	(w)
