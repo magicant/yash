@@ -38,7 +38,7 @@
 # specified without a hyphen though it is preceded by a hyphen on the command
 # line. Also note that multiple single-character options can be combined
 # together after one hyphen on the command line. Long options, on the other
-# hand, must be specified including its preceding hyphen(s).
+# hand, must be specified including their preceding hyphen(s).
 #
 # The following options can be specified to this function:
 #   -e  Without -e, options are parsed only before the first operand word in

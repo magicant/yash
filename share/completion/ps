@@ -1,0 +1,287 @@
+# (C) 2010 magicant
+
+# Completion script for the "ps" command.
+# Supports POSIX 2008, procps 3.2.8, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/ps {
+
+	typeset -x PS_PERSONALITY=posix
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'procps'*) typeset type=procps ;;
+		(*)          typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(procps) typeset long=true ;;
+		(*)      typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"A; print all processes"
+	"a; print all processes with terminals"
+	"G: ${long:+--Group:}; specify real group IDs of processes to print"
+	"o: ${long:+--format:}; specify format items to print"
+	"p: ${long:+--pid:}; specify process IDs of processes to print"
+	"t: ${long:+--tty:}; specify terminals of processes to print"
+	"U: ${long:+--User:}; specify real user IDs of processes to print"
+	) #<#
+
+	case $type in (procps|*BSD|Darwin|SunOS|HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"j; print job info"
+		"l; print in the long format"
+		) #<#
+		case $type in (procps|Darwin|SunOS|HP-UX)
+			OPTIONS=("$OPTIONS" #>#
+			"d; print all processes but session leaders"
+			"e; print all processes"
+			"f; print in the full format"
+			"u: ${long:+--user:}; specify effective user IDs of processes to print"
+			) #<#
+			case $type in
+			(procps)
+				OPTIONS=("$OPTIONS" #>#
+				"g:; specify session IDs or effective group IDs of processes to print"
+				"--group:; specify effective group IDs of processes to print"
+				) #<#
+				;;
+			(*)
+				OPTIONS=("$OPTIONS" #>#
+				"g:; specify process group IDs of processes to print"
+				) #<#
+				;;
+			esac
+		esac
+	esac
+	case $type in (procps)
+		OPTIONS=("$OPTIONS" #>#
+		"F; print in the extra full format"
+		"m; print threads after each process"
+		"N --deselect; print processes not selected by other options"
+		"n:; specify the name list file"
+		"T; print threads rather than processes"
+		"Z M --context; print security contexts"
+		"V --version; print version info"
+		"--columns: --cols: --width:; specify the screen width"
+		"--cumulative; include child processes' CPU time in their parent's"
+		"--headers; print a header line for each screen page"
+		"--info; print debugging info"
+		"--lines: --rows:; specify the screen height"
+		"--no-headers; don't print the header line"
+		"--ppid:; specify parent process IDs of processes to print"
+		"--sort:; specify sort keys"
+		"--help"
+		) #<#
+	esac
+	case $type in (procps|*BSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"O:; specify format items to print in addition to the default ones"
+		"w; wide format"
+		) #<#
+		case $type in (*BSD|Darwin)
+			OPTIONS=("$OPTIONS" #>#
+			"C; use the raw CPU percentage"
+			"c; print only the command name for the command column"
+			"L; print available format items"
+			"m; sort by memory usage"
+			"N:; specify the name list file"
+			"r; sort by current CPU usage"
+			"S; include child processes' CPU time in their parent's"
+			"T; print processes associated with the current terminal"
+			"v; print in the virtual memory format"
+			"x; print processes with terminals as well"
+			) #<#
+			case $type in
+			(FreeBSD)
+				OPTIONS=("$OPTIONS" #>#
+				"d; print process family trees"
+				"f; print data even for swapped-out processes"
+				"H; print thread info"
+				"X; don't print processes with terminals"
+				"Z; print MAC labels as well"
+				) #<#
+				;;
+			(OpenBSD)
+				OPTIONS=("$OPTIONS" #>#
+				"k; print thread info"
+				"W:; specify a file to extract swap info from"
+				) #<#
+				;;
+			(NetBSD)
+				OPTIONS=("$OPTIONS" #>#
+				"k:; specify sort keys"
+				"s; print threads rather than processes"
+				"W:; specify a file to extract swap info from"
+				) #<#
+				;;
+			esac
+			case $type in
+			(Darwin)
+				OPTIONS=("$OPTIONS" #>#
+				"E; print environment variables as well"
+				"M; print thread info"
+				"X; don't print processes with terminals"
+				) #<#
+				;;
+			(*)
+				OPTIONS=("$OPTIONS" #>#
+				"e; print environment variables as well"
+				"M:; specify a core file to print"
+				"u; print in the user-oriented format"
+				) #<#
+				;;
+			esac
+		esac
+	esac
+	case $type in (procps|SunOS|HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"s: ${long:+--sid:}; specify session IDs of processes to print"
+		) #<#
+		case $type in (procps|SunOS)
+			OPTIONS=("$OPTIONS" #>#
+			"L; print thread info"
+			"P; print running processor numbers (PSR) as well"
+			"y; print RSS instead of F and ADDR (with -l)"
+			) #<#
+			case $type in (SunOS)
+				OPTIONS=("$OPTIONS" #>#
+				"Z; print zone info as well"
+				"z:; specify zones of processes to print"
+				) #<#
+			esac
+		esac
+		case $type in (procps|HP-UX)
+			OPTIONS=("$OPTIONS" #>#
+			"C:; specify the name of process to print"
+			"H ${long:+--forest}; print process family trees"
+			"P; print process resource manager (PRM) info as well"
+			) #<#
+			case $type in (HP-UX)
+				OPTIONS=("$OPTIONS" #>#
+				"R:; specify PRM process group IDs of processes to print"
+				"x; print in the extended format"
+				"Z:; specify processor set IDs of processes to print"
+				) #<#
+			esac
+		esac
+	esac
+
+	command -f completion//parseoptions -e
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(C)
+		typeset word="${TARGETWORD#"$PREFIX"}"
+		PREFIX=${TARGETWORD%"${word##*[ ,]}"}
+		complete -P "$PREFIX" -- $(ps -A -o comm= 2>/dev/null)
+		;;
+	(G|--[Gg]roup)
+		complete -P "$PREFIX" -g
+		;;
+	(g)
+		typeset word="${TARGETWORD#"$PREFIX"}"
+		PREFIX=${TARGETWORD%"${word##*[ ,]}"}
+		case $type in
+		(procps)
+			case $word in
+			(*[![:digit:]\ ,]*)
+				;;
+			(*)
+				# complete a session ID
+				typeset sid tty
+				while read -r sid tty; do
+					complete -P "$PREFIX" -R 0 -D "$tty" -- "$sid"
+				done 2>/dev/null <(ps -A -o sid= -o tty= | sort -u)
+				;;
+			esac
+			complete -P "$PREFIX" -g
+			;;
+		(*)
+			;;
+		esac
+		;;
+	([MNnW])
+		complete -P "$PREFIX" -f
+		;;
+	([kOo]|--format|--sort)
+		# complete a format item
+		typeset word="${TARGETWORD#"$PREFIX"}"
+		PREFIX=${TARGETWORD%"${word##*[ ,+-]}"}
+		case $type in
+		(procps)
+			typeset key name
+			while read -r key name; do
+				complete -P "$PREFIX" -- "$key"
+			done <(ps L)
+			;;
+		(*BSD|Darwin)
+			complete -P "$PREFIX" -- $(ps -L 2>/dev/null)
+			;;
+		(*)
+			case $type in
+			(SunOS)
+				complete -P "$PREFIX" -- addr class ctid gid f \
+					fname lwp nlwp osz pmem pri project \
+					projid pset psr rgid rss ruid s sid \
+					stime taskid uid wchan zone zoneid
+				;;
+			(HP-UX)
+				complete -P "$PREFIX" -- addr cls cpu flags \
+					gid pri prmgrp prmid pset rgid ruid \
+					sid state stime sz uid wchan
+				;;
+			esac
+			complete -P "$PREFIX" -- args comm etime group nice \
+				pcpu pgid pid ppid rgroup ruser time tty user vsz
+			;;
+		esac
+		;;
+	(p|--pid|--ppid)
+		# complete a process ID
+		typeset pid args
+		while read -r pid args; do
+			complete -P "$PREFIX" -D "$args" -- "$pid"
+		done <(ps -A -o pid= -o args= 2>/dev/null)
+		;;
+	(R)
+		#TODO
+		;;
+	(s|--sid)
+		# complete a session ID
+		typeset sid tty
+		while read -r sid tty; do
+			complete -P "$PREFIX" -R 0 -D "$tty" -- "$sid"
+		done 2>/dev/null <(ps -A -o sid= -o tty= | sort -u)
+		;;
+	(t|--tty)
+		typeset ttys
+		ttys=($(ps -A -o tty=))
+		complete -P "$PREFIX" -A '*[[:alnum:]]*' -- "$ttys" "${ttys#tty}"
+		;;
+	([Uu]|--[Uu]ser)
+		complete -P "$PREFIX" -u
+		;;
+	(Z)
+		#TODO
+		;;
+	(z)
+		#TODO
+		;;
+	(--columns|--cols|--width|--lines|--rows)
+		;;
+	(*)
+		command -f completion/ps::bsd
+		;;
+	esac
+
+}
+
+# parse BSD style options
+function completion/ps::bsd {
+#TODO
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
