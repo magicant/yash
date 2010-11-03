@@ -543,10 +543,6 @@ END
 		break
 	    fi
 	done
-	if [ x"${checkresult}" = x"no" ]
-	then
-	    checked
-	fi
     fi
     case "${checkresult}" in
     yes)
@@ -558,6 +554,7 @@ END
 	defconfigh "YASH_ENABLE_SOCKET"
 	;;
     no)
+	checked "no"
 	printf 'The socket library is unavailable!\n' >&2
 	printf 'Add the "--disable-socket" option and try again.\n' >&2
 	fail
@@ -758,10 +755,6 @@ END
 		    break
 		fi
 	    done
-	    if [ x"${checkresult}" = x"no" ]
-	    then
-		checked
-	    fi
 	fi
     fi
     case "${checkresult}" in
@@ -774,6 +767,7 @@ END
 	defconfigh "YASH_ENABLE_LINEEDIT"
 	;;
     no)
+	checked "no"
 	printf 'The terminfo (curses) library is unavailable!\n' >&2
 	printf 'Add the "--disable-lineedit" option and try again.\n' >&2
 	fail
