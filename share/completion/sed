@@ -1,0 +1,81 @@
+# (C) 2010 magicant
+
+# Completion script for the "sed" command.
+# Supports POSIX 2008, GNU sed 4.2.1, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/sed {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'GNU sed'*) typeset type=GNU ;;
+		(*)           typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"e: ${long:+--expression:}; specify a sed script directly"
+	"f: ${long:+--file:}; specify a file containing sed script"
+	"n ${long:+--quiet --silent}; suppress default output"
+	) #<#
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"b --binary; don't convert CR-LF into LF"
+		"i:: --in-place::; modify files in-place, making backups with the specified filename suffixes"
+		"l: --line-length:; specify the line length for the l command"
+		"r --regexp-extended; use extended regular expression"
+		"s --separate; treat each operand file separately"
+		"u --unbuffered; disable input/output buffering"
+		"--follow-symlinks; follow symbolic links in operands (with -i)"
+		"--posix; disable non-POSIX extensions"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(*BSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"a; open files for the w command only when needed"
+		"E; use extended regular expression"
+		) #<#
+		case $type in
+		(FreeBSD|Darwin)
+			OPTIONS=("$OPTIONS" #>#
+			"i:; modify files in-place, making backups with the specified filename suffixes"
+			"l; disable output buffering"
+			) #<#
+			case $type in (FreeBSD)
+				OPTIONS=("$OPTIONS" #>#
+				"I:; like -i, but don't treat input files separately"
+				) #<#
+			esac
+			;;
+		(OpenBSD)
+			OPTIONS=("$OPTIONS" #>#
+			"u; disable output buffering"
+			) #<#
+			;;
+		esac
+		;;
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(e|--expression)
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

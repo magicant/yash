@@ -49,13 +49,16 @@ function completion/set {
 		(-|--)
 			break
 			;;
+		([+-]*o)
+			i=$((i+2))
+			;;
 		([+-]?*)
+			i=$((i+1))
 			;;
 		(*)
 			break
 			;;
 		esac
-		i=$((i+1))
 	done
 	WORDS=("${WORDS[1]}" "${WORDS[2,i-1]/#+/-}" "${WORDS[i,-1]}")
 
