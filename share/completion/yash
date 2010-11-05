@@ -1,0 +1,10 @@
+# (C) 2010 magicant
+
+# Completion script for the "yash" command.
+
+function completion/yash {
+	command -f completion//reexecute set
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
