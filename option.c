@@ -279,7 +279,7 @@ static const struct setoptinfo_T setoptinfo[] = {
     [SHOPT_LE_COMPDEBUG]   = { set_bool_option, &shopt_le_compdebug, },
 #endif
 #if YASH_ENABLE_HELP
-    //[SHOPT_HELP]
+    [SHOPT_HELP] = { 0, NULL, },
 #endif
     { 0, NULL, },
 };
@@ -303,10 +303,13 @@ int setoptindex;
 
 
 /* Sets the option specified by `setoptindex'. */
-void set_option(void)
+bool set_option(void)
 {
     const struct setoptinfo_T *info = &setoptinfo[setoptindex];
+    if (info->func == (setoptfunc_T *) 0)
+	return false;
     info->func(info->argp);
+    return true;
 }
 
 /* Sets the option specified by character `c'.
@@ -339,8 +342,7 @@ bool set_long_option(const wchar_t *s)
 	if (wcscmp(s, optp->name) == 0) {
 	    if (optp->arg == OPTARG_NONE) {
 		setoptindex = optp - long_options;
-		set_option();
-		return true;
+		return set_option();
 	    } else {
 		return false;
 	    }

@@ -59,7 +59,7 @@ extern const struct xoption
     *const all_option, *const help_option;
 extern int setoptindex;
 
-extern void set_option(void);
+extern _Bool set_option(void);
 extern void set_single_option(wchar_t c);
 extern _Bool set_long_option(const wchar_t *s)
     __attribute__((nonnull));
