@@ -87,7 +87,7 @@ function completion/od {
 		complete -P "$PREFIX" -D "hexadecimal" x
 		complete -P "$PREFIX" -D "none" n
 		;; #<<#
-	(J|--skip-bytes)
+	(j|--skip-bytes)
 		typeset word hex
 		command -f completion/od::size && {
 			#>>#
