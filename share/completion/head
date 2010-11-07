@@ -52,30 +52,12 @@ function completion/head {
 		;;
 	([cn]|--bytes|--lines)
 		case $type in (GNU)
-			typeset word="${TARGETWORD#"$PREFIX"}"
-			case $word in (*[[:digit:]]*)
-				word=${word##*[[:digit:]]}
-				PREFIX=${TARGETWORD%"$word"}
-				#>>#
-				complete -P "$PREFIX" -D "512 bytes"    b
-				complete -P "$PREFIX" -D "1024 bytes"   K
-				complete -P "$PREFIX" -D "1000 bytes"   KB
-				complete -P "$PREFIX" -D "1024^2 bytes" M
-				complete -P "$PREFIX" -D "1000^2 bytes" MB
-				complete -P "$PREFIX" -D "1024^3 bytes" G
-				complete -P "$PREFIX" -D "1000^3 bytes" GB
-				complete -P "$PREFIX" -D "1024^4 bytes" T
-				complete -P "$PREFIX" -D "1000^4 bytes" TB
-				complete -P "$PREFIX" -D "1024^5 bytes" P
-				complete -P "$PREFIX" -D "1000^5 bytes" PB
-				complete -P "$PREFIX" -D "1024^6 bytes" E
-				complete -P "$PREFIX" -D "1000^6 bytes" EB
-				complete -P "$PREFIX" -D "1024^7 bytes" Z
-				complete -P "$PREFIX" -D "1000^7 bytes" ZB
-				complete -P "$PREFIX" -D "1024^8 bytes" Y
-				complete -P "$PREFIX" -D "1000^8 bytes" YB
-				#<<#
-			esac
+			if command -vf completion//prefixdigits >/dev/null 2>&1 ||
+					. -AL completion/_blocksize; then
+				if command -f completion//prefixdigits; then
+					command -f completion//completesizesuffix b GNU
+				fi
+			fi
 		esac
 		;;
 	(*)

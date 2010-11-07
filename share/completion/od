@@ -90,13 +90,10 @@ function completion/od {
 	(j|--skip-bytes)
 		typeset word hex
 		command -f completion/od::size && {
-			#>>#
-			complete -P "$PREFIX" -D "1024 bytes" k
-			complete -P "$PREFIX" -D "1024^2 bytes" m
-			#<<#
-			if ! $hex; then #>>#
-				complete -P "$PREFIX" -D "512 bytes" b
-			fi #<<#
+			if command -vf completion//completesizesuffix >/dev/null 2>&1 ||
+					. -AL completion/_blocksize; then
+				command -f completion//completesizesuffix k m ${hex:-b}
+			fi
 		}
 		;;
 	([NS]|--read-bytes|--strings)
@@ -145,33 +142,18 @@ function completion/od::size {
 	word="${TARGETWORD#"$PREFIX"}"
 	case $word in
 		(0[Xx]*) hex=true ;;
-		(*)      hex=false ;;
+		(*)      hex= ;;
 	esac
 	case $word in ([[:digit:]]*)
 		while [ "${word#[[:digit:]AaBbCcDdEeFfXx]}" != "$word" ]; do
 			word=${word#[[:digit:]AaBbCcDdEeFfXx]}
 		done
 		PREFIX=${TARGETWORD%"$word"}
-		case $type in (GNU) #>>#
-			complete -P "$PREFIX" -D "1024 bytes"   K
-			complete -P "$PREFIX" -D "1000 bytes"   KB
-			complete -P "$PREFIX" -D "1024^2 bytes" M
-			complete -P "$PREFIX" -D "1000^2 bytes" MB
-			complete -P "$PREFIX" -D "1024^3 bytes" G
-			complete -P "$PREFIX" -D "1000^3 bytes" GB
-			complete -P "$PREFIX" -D "1024^4 bytes" T
-			complete -P "$PREFIX" -D "1000^4 bytes" TB
-			complete -P "$PREFIX" -D "1024^5 bytes" P
-			complete -P "$PREFIX" -D "1000^5 bytes" PB
-			complete -P "$PREFIX" -D "1024^7 bytes" Z
-			complete -P "$PREFIX" -D "1000^7 bytes" ZB
-			complete -P "$PREFIX" -D "1024^8 bytes" Y
-			complete -P "$PREFIX" -D "1000^8 bytes" YB
-			#<<#
-			if ! $hex; then #>>#
-				complete -P "$PREFIX" -D "1024^6 bytes" E
-				complete -P "$PREFIX" -D "1000^6 bytes" EB
-			fi #<<#
+		case $type in (GNU)
+			if command -vf completion//completesizesuffix >/dev/null 2>&1 ||
+					. -AL completion/_blocksize; then
+				command -f completion//completesizesuffix GNU${hex:+-E}
+			fi
 		esac
 		return 0
 	esac

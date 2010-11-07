@@ -50,17 +50,20 @@ function completion/split {
 	([alnp]|--suffix-length|--lines)
 		;;
 	([bC]|--bytes|--line-bytes)
-		typeset word="${TARGETWORD#"$PREFIX"}"
-		case $word in ([[:digit:]]*)
-			while [ "${word#[[:digit:]]}" != "$word" ]; do
-				word=${word#[[:digit:]]}
-			done
-			PREFIX=${TARGETWORD%"$word"}
-			#>>#
-			complete -P "$PREFIX" -D "1024 bytes" k
-			complete -P "$PREFIX" -D "1024^2 bytes" m
-			#<<#
-		esac
+		if command -vf completion//prefixdigits >/dev/null 2>&1 ||
+				. -AL completion/_blocksize; then
+			if command -f completion//prefixdigits; then
+				command -f completion//completesizesuffix k m
+				case $type in
+				(GNU)
+					command -f completion//completesizesuffix GNU b
+					;;
+				(FreeBSD)
+					command -f completion//completesizesuffix g
+					;;
+				esac
+			fi
+		fi
 		;;
 	(*)
 		complete -f
