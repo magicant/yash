@@ -1,0 +1,73 @@
+# (C) 2010 magicant
+
+# Completion script for the "split" command.
+# Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/split {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a: ${long:+--suffix-length:}; specify the suffix length for output files"
+	"b: ${long:+--bytes:}; specify the output file size in bytes"
+	"l: ${long:+--lines:}; specify the number of lines in each output file"
+	) #<#
+
+	case $type in (GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"C: --line-bytes:; like -b, but split at line breaks"
+		"d --numeric-suffixes; use numeric suffixes rather than lowercase letters"
+		"--verbose; print a message for each output file processed"
+		"--help"
+		"--version"
+		) #<#
+	esac
+	case $type in (FreeBSD|NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"n:; specify the number of output files"
+		) #<#
+	esac
+	case $type in (Darwin|FreeBSD|OpenBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"p:; split at lines matching the specified extended regular expression"
+		) #<#
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([alnp]|--suffix-length|--lines)
+		;;
+	([bC]|--bytes|--line-bytes)
+		typeset word="${TARGETWORD#"$PREFIX"}"
+		case $word in ([[:digit:]]*)
+			while [ "${word#[[:digit:]]}" != "$word" ]; do
+				word=${word#[[:digit:]]}
+			done
+			PREFIX=${TARGETWORD%"$word"}
+			#>>#
+			complete -P "$PREFIX" -D "1024 bytes" k
+			complete -P "$PREFIX" -D "1024^2 bytes" m
+			#<<#
+		esac
+		;;
+	(*)
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
