@@ -1,0 +1,265 @@
+# (C) 2010 magicant
+
+# Completion script for the "stty" command.
+# Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/stty {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a ${long:+--all}; print all the current settings"
+	"g ${long:+--save}; print all the current settings in a reusable format"
+	) #<#
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"F: --file:; specify the terminal device file"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(*BSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"e; print all the current settings in the traditional BSD format"
+		"f:; specify the terminal device file"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		case $PREFIX in ('')
+			command -f completion//completeoptions
+		esac
+		;;
+	([Ff]|--file)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+	case ${WORDS[-1]} in
+	(eof|eol|eol2|erase|intr|kill|lnext|quit|start|status|stop|swtch|werase) #>>#
+		complete -T -D "control character" ^
+		complete -D "undefined" undef
+		;; #<<#
+
+	(cols|columns|[io]speed|line|min|rows|time|[xy]pixels)
+		;;
+
+	(*)
+		case $TARGETWORD in
+			(-*) typeset neg=- ;;
+			(*)  typeset neg= ;;
+		esac
+
+		# POSIX operands  #>>#
+		complete -D "signal INTR on break" -- ${neg}brkint
+		complete -D "backspace delay style" -- bs0 bs1
+		complete -D "assume a line with modem control" -- ${neg}clocal
+		complete -D "disable raw mode settings" -- ${neg}cooked
+		complete -D "carriage return delay style" -- cr0 cr1 cr2 cr3
+		complete -D "enable input receiver" -- ${neg}cread
+		complete -D "number of bits transmitted per byte" -- cs5 cs6 cs7 cs8
+		complete -D "use two stop bits" -- ${neg}cstopb
+		complete -D "echo typed characters" -- ${neg}echo
+		complete -D "make ERASE visually erase a character" -- ${neg}echoe
+		complete -D "echo a newline after KILL" -- ${neg}echok
+		complete -D "always echo newline" -- ${neg}echonl
+		complete -D "reset ERASE and KILL to the default" -- ek
+		complete -D "specify the end of file character" -- eof
+		complete -D "specify the end of line character" -- eol
+		complete -D "specify the erase character" -- erase
+		complete -D "enable even parity mode settings" -- ${neg}evenp ${neg}parity
+		complete -D "form feed delay style" -- ff0 ff1
+		complete -D "hang up the connection on last close" -- ${neg}hup ${neg}hupcl
+		complete -D "canonical input mode" -- ${neg}icanon
+		complete -D "translate input carriage return to newline" -- ${neg}icrnl
+		complete -D "enable extended functions" -- ${neg}iexten
+		complete -D "ignore input break" -- ${neg}ignbrk
+		complete -D "ignore input carriage return" -- ${neg}igncr
+		complete -D "ignore characters with parity errors" -- ${neg}ignpar
+		complete -D "translate input newline to carriage return" -- ${neg}inlcr
+		complete -D "enable input parity checking" -- ${neg}inpck
+		complete -D "specify the interrupt character" -- intr
+		complete -D "enable INTR, QUIT, SUSP special characters" -- ${neg}isig
+		complete -D "specify input baud rate" -- ispeed
+		complete -D "clear 8th bit of input characters" -- ${neg}istrip
+		complete -D "restart output on any input" -- ${neg}ixany
+		complete -D "send STOP when input buffer is almost full" -- ${neg}ixoff
+		complete -D "enable START/STOP special characters" -- ${neg}ixon
+		complete -D "specify the kill character" -- kill
+		complete -D "specify the MIN value" -- min
+		complete -D "use newline rather than carriage return as line break" -- ${neg}nl
+		complete -D "newline delay style" -- nl0 nl1
+		complete -D "don't flush after INTR, QUIT, SUSP" -- ${neg}noflsh
+		complete -D "translate output carriage return to newline" -- ${neg}ocrnl
+		complete -D "enable odd parity mode settings" -- ${neg}oddp
+		complete -D "use DEL rather than NUL for fill" -- ${neg}ofdel
+		complete -D "use fill instead of timing for delays" -- ${neg}ofill
+		complete -D "newline works as carriage return on terminal" -- ${neg}onlret
+		complete -D "don't print carriage returns at the first column" -- ${neg}onocr
+		complete -D "enable output post-processing" -- ${neg}opost
+		complete -D "specify output baud rate" -- ospeed
+		complete -D "enable parity handling" -- ${neg}parenb
+		complete -D "mark parity errors" -- ${neg}parmrk
+		complete -D "select odd parity" -- ${neg}parodd
+		complete -D "specify the quit character" -- quit
+		complete -D "enable raw mode settings" -- ${neg}raw
+		complete -D "reset all settings to the normal" -- sane
+		complete -D "specify the start character" -- start
+		complete -D "specify the stop character" -- stop
+		complete -D "specify the suspend character" -- susp
+		complete -D "horizontal tab delay style" -- tab0 tab1 tab2 tab3
+		complete -D "like tab0" -- tabs
+		complete -D "specify the TIME value" -- time
+		complete -D "send SIGTTOU for background output" -- ${neg}tostop
+		complete -D "vertical tab delay style" -- vt0 vt1
+		#<<#
+		if [ "$neg" ]; then
+			complete -D "like tab3" -- -tabs
+		fi
+
+		case $type in (GNU|*BSD|Darwin|SunOS|HP-UX) #>>#
+			complete -D "specify screen width" -- columns cols
+			complete -D "specify the delayed suspend character" -- dsusp
+			complete -D "echo control characters in ^-notation" -- ${neg}echoctl
+			complete -D "make KILL visually erase a line" -- ${neg}echoke
+			complete -D "echo erased characters backwards" -- ${neg}echoprt
+			complete -D "specify alternative end of line character" -- eol2
+			complete -D "specify the literal-next character" -- lnext
+			complete -D "translate output newline to carriage return" -- ${neg}onlcr
+			complete -D "specify screen height" -- rows
+			complete -D "specify the word erase character" -- werase
+		esac #<<#
+		case $type in (GNU|*BSD|Darwin|SunOS) #>>#
+			complete -D "enable RTS/CTS flow control" -- ${neg}crtscts
+		esac
+		case $type in (GNU|*BSD|Darwin|HP-UX) #>>#
+			complete -D "print screen size" -- size
+		esac #<<#
+		case $type in (GNU|*BSD|Darwin) #>>#
+			complete -D "enable cbreak mode settings" -- cbreak
+			complete -D "make ERASE visually erase a character" -- ${neg}crterase
+			complete -D "make KILL visually erase a line" -- ${neg}crtkill
+			complete -D "echo control characters in ^-notation" -- ${neg}ctlecho
+			complete -D "set modes for DEC terminal" -- dec
+			complete -D "like -ixany" -- ${neg}decctlq
+			complete -D "specify the discard character" -- flush
+			complete -D "set modes for literal output" -- ${neg}litout
+			complete -D "set modes for 8-bit characters" -- ${neg}pass8
+			complete -D "echo erased characters backwards" -- ${neg}prterase
+			complete -D "specify the reprint character" -- rprnt
+			complete -D "send STOP when input buffer is almost full" -- ${neg}tandem
+		esac #<<#
+		case $type in (*BSD|Darwin|SunOS|HP-UX) #>>#
+			complete -D "assume output is discarded" -- ${neg}flusho
+			complete -D "keep pending input characters after mode change" -- ${neg}pendin
+		esac
+		case $type in (*BSD|Darwin|SunOS) #>>#
+			complete -D "specify the discard character" -- discard
+			complete -D "specify the reprint character" -- reprint
+		esac
+		case $type in (*BSD|Darwin) #>>#
+			complete -D "print all the current settings in the traditional BSD format" -- all everything
+			complete -D "use alternative word erase algorithm" -- ${neg}altwerase
+			complete -D "specify the end of line character" -- brk
+			complete -D "set modes for a CRT" -- ${neg}crt ${neg}newcrt
+			complete -D "make ERASE visually erase a character" -- ${neg}crtbs
+			complete -- ${neg}extproc
+			complete -D "enable STATUS special character" -- ${neg}kerninfo
+			complete -D "enable CD hardware flow control on output" -- ${neg}mdmbuf
+			complete -D "translate output tabs to spaces" -- ${neg}oxtabs
+			complete -D "specify baud rate" -- speed
+			complete -D "specify the status character" -- status
+			complete -D "use the standard line discipline" -- tty new old
+		esac #<<#
+		case $type in (GNU|Darwin) #>>#
+			complete -D "assume input is in UTF-8" -- ${neg}iutf8
+		esac #<<#
+		case $type in (FreeBSD|Darwin) #>>#
+			complete -D "specify alternative erase character" -- erase2
+		esac #<<#
+		case $type in (OpenBSD|NetBSD) #>>#
+			complete -D "start output" -- ostart
+			complete -D "stop output" -- ostop
+		esac #<<#
+		case $type in (GNU|OpenBSD|SunOS|HP-UX) #>>#
+			complete -D "translate input uppercase letters to lowercase" -- ${neg}iuclc
+			complete -D "set modes for uppercase-only terminal" -- ${neg}lcase
+			complete -D "translate output lowercase letters to uppercase" -- ${neg}olcuc
+			complete -D "use canonical upper-/lowercase presentation" -- ${neg}xcase
+		esac #<<#
+		case $type in (GNU|SunOS|HP-UX) #>>#
+			complete -D "specify line discipline" -- line
+			complete -D "specify the switch character" -- swtch
+		esac #<<#
+		case $type in (SunOS|HP-UX) #>>#
+			complete -D "enable CTS hardware flow control on output" -- ${neg}ctsxon
+			complete -D "enable RTS hardware flow control on input" -- ${neg}rtsxoff
+			complete -D "set modes for TEK terminal" -- tek
+			complete -D "set modes for TI700 terminal" -- ti700
+			complete -D "set modes for TN300 terminal" -- tn300
+			complete -- tty33
+			complete -- tty37
+			complete -- vt05
+		esac #<<#
+		case $type in
+		(GNU) #>>#
+			complete -D "like echoe echoctl echoke" -- crt
+			complete -D "print baud rate" -- speed
+			;; #<<#
+		(OpenBSD) #>>#
+			complete -D "discard output end-of-file characters" -- ${neg}onoeot
+			;; #<<#
+		(NetBSD) #>>#
+			complete -D "enable DTR/CTS flow control" -- ${neg}cdtrcts
+			complete -D "set all modes to random values" -- insane
+			;; #<<#
+		(SunOS) #>>#
+			complete -D "set normal asynchronous communication settings" -- async
+			complete -D "enable CD hardware flow control on output" -- ${neg}cdxon
+			complete -D "enable input hardware flow control" -- ${neg}crtsxoff
+			complete -- ctab
+			complete -D "set character widths for the current locale" -- ${neg}defeucw
+			complete -D "enable DTR hardware flow control on input" -- ${neg}dtrxoff
+			complete -D "enable isochronous hardware flow control on input" -- ${neg}isxoff
+			complete -D "set modes for mark parity" -- ${neg}markp
+			complete -D "enable extended parity handling" -- ${neg}parext
+			complete -D "get receive clock from internal baud rate generator" -- rcibrg
+			complete -D "receiver signal element timing clock not provided" -- rsetcoff
+			complete -D "set modes for space parity" -- ${neg}spacep
+			complete -D "use application mode on a synchronous line" -- ${neg}stappl
+			complete -D "flush after every write on a synchronous line" -- ${neg}stflush
+			complete -D "wrap long lines on a synchronous line" -- ${neg}stwrap
+			complete -D "transmitter signal element timing clock not provided" -- tsetcoff
+			complete -D "get transmit clock from internal baud rate generator" -- xcibrg
+			complete -D "specify horizontal screen size" -- xpixels
+			complete -D "specify vertical screen size" -- ypixels
+			;; #<<#
+		(HP-UX) #>>#
+			complete -D "enable request-to-send" -- ${neg}crts
+			complete -D "set modes for HP terminal" -- hp
+			complete -D "enable ENQ-ACK handshaking" -- ${neg}ienqak
+			complete -D "block output from non-current layer" -- ${neg}loblk
+			;; #<<#
+		esac
+
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
