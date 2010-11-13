@@ -1,0 +1,92 @@
+# (C) 2010 magicant
+
+# Completion script for the "tail" command.
+# Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/tail {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"c: ${long:+--bytes:}; specify the number of bytes to print"
+	"f; keep watching the file for more data"
+	"n: ${long:+--lines:}; specify the number of lines to print"
+	) #<#
+
+	case $type in (*BSD|Darwin|SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"r; print lines in reverse order"
+		) #<#
+	esac
+	case $type in (*BSD|Darwin|HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"b:; specify the number of 512-byte blocks to print"
+		) #<#
+	esac
+	case $type in (FreeBSD|NetBSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"F; like -f, but reopen the file if renamed"
+		) #<#
+	esac
+	case $type in (GNU|FreeBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"q ${long:+--quiet --silent}; never print filename headers"
+		) #<#
+	esac
+	case $type in (GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"--follow::; specify how to watch the file for more data"
+		"F; like --follow=name --retry"
+		"--max-unchanged-stats:; recheck file status every n checks"
+		"--pid:; specify the ID of a process to follow"
+		"--retry; try to reopen the file if removed"
+		"--sleep-interval:; specify the number of seconds to wait between checks for more data"
+		"v --verbose; always print filename headers"
+		"--help"
+		"--version"
+		) #<#
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([bcn]|--bytes|--lines)
+		case $type in (GNU)
+			if command -vf completion//prefixdigits >/dev/null 2>&1 ||
+					. -AL completion/_blocksize; then
+				if command -f completion//prefixdigits; then
+					command -f completion//completesizesuffix b GNU
+				fi
+			fi
+		esac
+		;;
+	(--follow) #>>#
+		complete -P "$PREFIX" -D "never reopen the file" descriptor
+		complete -P "$PREFIX" -D "reopen the file when renamed/removed" name
+		;; #<<#
+	(--pid)
+		typeset pid args
+		while read -r pid args; do
+			complete -P "$PREFIX" -D "$args" -- "$pid"
+		done <(ps -A -o pid= -o args= 2>/dev/null)
+		;;
+	('')
+		complete -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

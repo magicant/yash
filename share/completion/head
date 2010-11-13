@@ -45,7 +45,7 @@ function completion/head {
 		;;
 	esac
 
-	command -f completion//parseoptions
+	command -f completion//parseoptions ${long:+-es}
 	case $ARGOPT in
 	(-)
 		command -f completion//completeoptions
