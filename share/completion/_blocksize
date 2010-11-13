@@ -7,7 +7,7 @@
 # If $TARGETWORD does not start with a digit, a non-zero status is returned.
 function completion//prefixdigits {
 	typeset word="${TARGETWORD#"$PREFIX"}"
-	word=${word#\'}
+	word=${word#[\'+-]}
 	case $word in
 	([[:digit:]]*)
 		while [ "${word#[[:digit:]]}" != "$word" ]; do
