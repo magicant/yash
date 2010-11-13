@@ -1,0 +1,109 @@
+# (C) 2010 magicant
+
+# Completion script for the "time" command.
+# Supports POSIX 2008, GNU time 1.7, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/time {
+
+	case $("${WORDS[1]}" --version 2>&1) in
+		(*'GNU'*) typeset type=GNU ;;
+		(*)       typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"p ${long:+--portability}; use the POSIX format"
+	) #<#
+
+	case $type in (GNU|FreeBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"a ${long:+--append}; append to the output file; don't overwrite the file"
+		"o: ${long:+--output:}; specify the file to print time to"
+		) #<#
+	esac
+	case $type in (*BSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"l; print the rusage values as well"
+		) #<#
+	esac
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"f: --format:; specify the output format"
+		"V --version; print version info"
+		"v --verbose; print detailed time info"
+		"--help"
+		) #<#
+		;;
+	(FreeBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"h; use a human-friendly format"
+		) #<#
+		;;
+	(NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"c; use the csh format"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(f|--format)
+		command -f completion/time::format
+		;;
+	(o|--output)
+		complete -P "$PREFIX" -f
+		;;
+	(*)
+		command -f completion//getoperands
+		command -f completion//reexecute -e
+		;;
+	esac
+
+}
+
+function completion/time::format {
+	typeset word="${TARGETWORD#"$PREFIX"}"
+	word=${word//%%}
+	case $word in (*%)
+		PREFIX=${TARGETWORD%\%} #>>#
+		complete -T -P "$PREFIX" -D "command name and arguments" '%C'
+		complete -T -P "$PREFIX" -D "preemptive context switch count" '%c'
+		complete -T -P "$PREFIX" -D "average unshared data size in kilobytes" '%D'
+		complete -T -P "$PREFIX" -D "elapsed real time ([H:]MM:SS.ss)" '%E'
+		complete -T -P "$PREFIX" -D "elapsed real time in seconds" '%e'
+		complete -T -P "$PREFIX" -D "major fault count" '%F'
+		complete -T -P "$PREFIX" -D "file read count" '%I'
+		complete -T -P "$PREFIX" -D "average total used memory in kilobytes" '%K'
+		complete -T -P "$PREFIX" -D "number of signals the process received" '%k'
+		complete -T -P "$PREFIX" -D "max resident set size in kilobytes" '%M'
+		complete -T -P "$PREFIX" -D "file write count" '%O'
+		complete -T -P "$PREFIX" -D "percentage of CPU time" '%P'
+		complete -T -P "$PREFIX" -D "average unshared stack size in kilobytes" '%p'
+		complete -T -P "$PREFIX" -D "minor fault count" '%R'
+		complete -T -P "$PREFIX" -D "socket receive count" '%r'
+		complete -T -P "$PREFIX" -D "kernel CPU time in seconds" '%S'
+		complete -T -P "$PREFIX" -D "socket send count" '%s'
+		complete -T -P "$PREFIX" -D "average resident set size in kilobytes" '%t'
+		complete -T -P "$PREFIX" -D "swap-out count" '%W'
+		complete -T -P "$PREFIX" -D "non-preemptive context switch count" '%w'
+		complete -T -P "$PREFIX" -D "average shared text area size in kilobytes" '%X'
+		complete -T -P "$PREFIX" -D "exit status of the process" '%x'
+		complete -T -P "$PREFIX" -D "page size" '%Z'
+		complete -T -P "$PREFIX" -D "%" '%%'
+		return 0 #<<#
+	esac
+	return 1
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
