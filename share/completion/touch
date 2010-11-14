@@ -1,0 +1,74 @@
+# (C) 2010 magicant
+
+# Completion script for the "touch" command.
+# Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/touch {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a; change the last access time only"
+	"c ${long:+--no-create}; don't create files if missing; ignore missing files"
+	"d: ${long:+--date:}; specify the time to change to (new syntax)"
+	"m; change the last modified time only"
+	"r: ${long:+--reference:}; change to the time of the specified file"
+	"t:; specify the time to change to (traditional syntax)"
+	) #<#
+
+	case $type in (FreeBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"A:; specify the time to change to (don't change date)"
+		) #<#
+	esac
+	case $type in (Darwin|FreeBSD|NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"f; try to change times regardless of permissions"
+		) #<#
+	esac
+	case $type in (GNU|FreeBSD|NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"h ${long:+--no-dereference}; change the time of a symbolic link itself"
+		) #<#
+	esac
+	case $type in (GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"--time:; specify the type of time to change"
+		"--help"
+		"--version"
+		) #<#
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(A)
+		;;
+	(d|--date)
+		;;
+	(t)
+		;;
+	(--time) #>>#
+		complete -P "$PREFIX" -D "change the last access time only" atime access use
+		complete -P "$PREFIX" -D "change the last modified time only" mtime modify
+		;; #<<#
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
