@@ -60,7 +60,7 @@ function completion/grep {
 		"u --unix-byte-offsets; report offsets ignoring carriage returns"
 		"V --version; print version info"
 		"Z --null; print a null byte after each filename"
-		"z --null-data; separate lines by null bytes in results"
+		"z --null-data; separate output lines with null byte rather than newline"
 		"--binary-files:; specify how to handle binary files"
 		"--color:: --colour::; specify when to print colored output"
 		"--exclude:; skip files whose names match the specified pattern"

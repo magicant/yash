@@ -1,0 +1,88 @@
+# (C) 2010 magicant
+
+# Completion script for the "tr" command.
+# Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/tr {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"C; complement the set of characters in the first operand"
+	"c ${long:+--complement}; complement the set of bytes in the first operand"
+	"d ${long:+--delete}; delete characters in the first operand"
+	"s ${long:+--squeeze-repeats}; squeeze repeated characters in the last operand into one"
+	) #<#
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"t --truncate-set1; truncate the first operand to the length of the last operand"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(FreeBSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"u; disable output buffering"
+		) #<#
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"A; don't handle multibyte characters"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		command -f completion/tr::class ||
+		if command -vf completion/printf::backslash >/dev/null 2>&1 ||
+				. -AL completion/printf; then
+			command -f completion/printf::backslash tr
+		fi
+		;;
+	esac
+
+}
+
+function completion/tr::class {
+
+	typeset word="$TARGETWORD"
+	case $word in (*\[:*)
+		PREFIX=${TARGETWORD%\[:*} #>>#
+		complete -T -P "$PREFIX" -D "alpha + digit" '[:alnum:]'
+		complete -T -P "$PREFIX" -D "letters" '[:alpha:]'
+		complete -T -P "$PREFIX" -D "space and tab" '[:blank:]'
+		complete -T -P "$PREFIX" -D "control characters" '[:cntrl:]'
+		complete -T -P "$PREFIX" -D "digits" '[:digit:]'
+		complete -T -P "$PREFIX" -D "printable characters, not including space" '[:graph:]'
+		complete -T -P "$PREFIX" -D "lowercase letters" '[:lower:]'
+		complete -T -P "$PREFIX" -D "printable characters, including space" '[:print:]'
+		complete -T -P "$PREFIX" -D "punctuations, not including space" '[:punct:]'
+		complete -T -P "$PREFIX" -D "whitespaces, including blank and newline" '[:space:]'
+		complete -T -P "$PREFIX" -D "uppercase letters" '[:upper:]'
+		complete -T -P "$PREFIX" -D "hexadecimal digits" '[:xdigit:]'
+		#<<#
+		return 0
+	esac
+
+	return 1
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

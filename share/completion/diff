@@ -16,7 +16,7 @@ function completion/diff {
 
 	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
 	POSIXOPTIONS=( #>#
-	"b ${long:+--ignore-space-change}; ignore changes in amount of white spaces only"
+	"b ${long:+--ignore-space-change}; ignore changes in amount of whitespaces only"
 	"C: ${long:+--context::}; output in copied context format with the specified number of context lines"
 	"c; like -C 3"
 	"e ${long:+--ed}; output in ed script format"
@@ -36,7 +36,7 @@ function completion/diff {
 		"S: ${long:+--starting-file:}; restart directory comparison from the specified file"
 		"s ${long:+--report-identical-files}; explicitly report identical files"
 		"t ${long:+--expand-tabs}; expand tabs in output"
-		"w ${long:+--ignore-all-space}; ignore white spaces in comparison"
+		"w ${long:+--ignore-all-space}; ignore whitespaces in comparison"
 		"X: ${long:+--exclude-from:}; skip files whose names match a pattern in the specified file"
 		"x: ${long:+--exclude:}; skip files whose names match the specified pattern"
 		) #<#

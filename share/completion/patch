@@ -23,7 +23,7 @@ function completion/patch {
 	"d: ${long:+--directory:}; specify a directory to work in"
 	"e ${long:+--ed}; assume ed script format"
 	"i: ${long:+--input:}; specify the patch file"
-	"l ${long:+--ignore-whitespace}; tolerate white space mismatches"
+	"l ${long:+--ignore-whitespace}; tolerate whitespace mismatches"
 	"N ${long:+--forward}; ignore patches that seem reversed or already applied"
 	"n ${long:+--normal}; assume normal diff format"
 	"o: ${long:+--output:}; specify the result file name"

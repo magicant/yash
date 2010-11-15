@@ -1,0 +1,78 @@
+# (C) 2010 magicant
+
+# Completion script for the "uname" command.
+# Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/uname {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a ${long:+--all}; print all information"
+	"m ${long:+--machine}; print the hardware type"
+	"n ${long:+--nodename}; print the network host name"
+	"r ${long:+--kernel-release}; print the OS release level"
+	"s ${long:+--kernel-name}; print the operating system name"
+	"v ${long:+--kernel-version}; print the OS version"
+	) #<#
+
+	case $type in
+	(GNU|SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"i ${long:+--hardware-platform}; print the hardware platform name"
+		) #<#
+		case $type in
+		(GNU)
+			OPTIONS=("$OPTIONS" #>#
+			"o --operating-system; print the operating system name"
+			"--help"
+			"--version"
+			) #<#
+			;;
+		(SunOS)
+			OPTIONS=("$OPTIONS" #>#
+			"X; print expanded system information"
+			) #<#
+			;;
+		esac
+		;;
+	(FreeBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"i; print the OS kernel ident"
+		) #<#
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"i; print the machine identification number"
+		"l; print the OS license level"
+		) #<#
+		;;
+	esac
+	case $type in (GNU|*BSD|Darwin|SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"p ${long:+--processor}; print the processor architecture type"
+		) #<#
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
