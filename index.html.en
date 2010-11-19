@@ -29,7 +29,7 @@ It was originally written as a work on a university course assignment but
 the code has been re-written from scratch to meet the requirement of POSIX.
 Yash is intended to be the most POSIX-compliant shell in the world.
 <p>Yash can be modified/redistributed under the terms of the <a
-href="//www.gnu.org/licenses/gpl.html">GNU General Public License</a>
+href="http://www.gnu.org/licenses/gpl.html">GNU General Public License</a>
 (Version 2) but the use of this program is
 <strong>without any warranty</strong>.
 <p><a href="http://sourceforge.jp/"><img id="sfbanner"

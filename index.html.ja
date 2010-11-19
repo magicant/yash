@@ -25,7 +25,7 @@ Unix 系 OS 用コマンドライン端末シェルです。
 日常の使用に堪えうるものとするために一から再開発中です。
 <p>このシェルは POSIX.1-2008 に (ほぼ) 準拠しています。POSIX
 準拠を謳っている他のシェル (bash や zsh) よりも精確な POSIX 準拠を目指しています。
-<p>このプログラムは <a href="//www.gnu.org/licenses/gpl.html">GNU General
+<p>このプログラムは <a href="http://www.gnu.org/licenses/gpl.html">GNU General
 Public License</a> (Version 2) の元で自由に再配布・変更などができます。
 <strong>その代わり、プログラムの利用は全て各自の自己責任の下で行っていただくことに
 なります。作者はプログラムの瑕疵に対して一切責任を取りません。</strong>
@@ -50,20 +50,21 @@ var sfjp_widget_width = '300px'
 var sfjp_widget_customcss = true
 </script>
 <script src="http://sourceforge.jp/projects/yash/releases/compact.js" type="text/javascript" charset="utf-8"></script>
-<p>プログラムは現在ソースコードのみ公開しており、<a href="http://sourceforge.jp/projects/yash/releases/">リリースページ</a> (または<a href="releases">リリース一覧</a>) からダウンロード可能です。プログラムを実行したい人は各自ビルドしてください。
+<p>プログラムのソースコードは<a href="http://sourceforge.jp/projects/yash/releases/">リリースページ</a> (または<a href="releases">リリース一覧</a>) からダウンロード可能です。<a href="http://sourceforge.jp/projects/yash/howto/install">Yash のインストール方法</a>もご覧下さい。</p>
 <p><a href="doc/ja/">マニュアル</a>はオンラインでも参照できます。
 <!--p>yash の旧いバージョンが欲しいという酔狂な人は<a href="http://homepage2.nifty.com/magicant/author.html"
 >作者</a>にメール等で連絡してください。</p-->
 
 <h2 id="others">関連情報</h2>
-<p>作者のブログ「<a href="//magicant.txt-nifty.com/main/">まじかんと雑記</a>」の
-<a href="//magicant.txt-nifty.com/main/yash/">Yash
+<p>誰でも編集できる <a href="http://sourceforge.jp/projects/yash/wiki/FrontPage">Yash Wiki</a> を公開中です。</p>
+<p>作者のブログ「<a href="http://magicant.txt-nifty.com/main/">まじかんと雑記</a>」の
+<a href="http://magicant.txt-nifty.com/main/yash/">Yash
 カテゴリ</a>もご覧下さい。</p>
 
 
 <address id="about_this_document">
 © 2007-2010 <a href="http://homepage2.nifty.com/magicant/author.html"
->Magicant</a> / 最終更新 2010-07-01
+>Magicant</a> / 最終更新 2010-11-20
 </address>
 
 </body>
