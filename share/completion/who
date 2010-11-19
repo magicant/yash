@@ -1,0 +1,84 @@
+# (C) 2010 magicant
+
+# Completion script for the "who" command.
+# Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/who {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'coreutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"H ${long:+--heading}; print the header line"
+	"m; print info about the current user only"
+	"q ${long:+--count}; print the number of users on the system with their names"
+	"T ${long:+w --message --mesg --writable}; print if each terminal accepts write messages"
+	"u; print how long the user has been idle"
+	) #<#
+
+	case $type in (GNU|Darwin|NetBSD|SunOS|HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"a ${long:+--all}; print all information"
+		"b ${long:+--boot}; print last system boot time"
+		"d ${long:+--dead}; print info about dead processes"
+		"l ${long:+--login}; print terminals not used by users"
+		"p ${long:+--process}; print active processes spawned by init"
+		"r ${long:+--runlevel}; print runlevel"
+		"s ${long:+--short}; print name, line, and time fields"
+		"t ${long:+--time}; print last system clock change time"
+		) #<#
+	esac
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"--lookup; canonicalize host names via DNS lookup"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"v; print more info (with -u)"
+		) #<#
+		;;
+	(SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"n:; specify the number of users to print per line"
+		) #<#
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"A; print when accounting system was turned on/off"
+		"R; print host name"
+		"W; use /var/adm/wtmps"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	('')
+		command -f completion//getoperands
+		if [ ${WORDS[#]} -eq 1 ] && [ "${WORDS[1]}" = am ]; then
+			complete i
+		elif [ ${WORDS[#]} -eq 0 ]; then
+			complete -f am
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

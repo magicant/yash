@@ -1,0 +1,85 @@
+# (C) 2010 magicant
+
+# Completion script for the "xargs" command.
+# Supports POSIX 2008, GNU findutils 4.5.9, FreeBSD 8.1, OpenBSD 4.8,
+# NetBSD 5.0, Darwin 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/xargs {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'findutils'*) typeset type=GNU ;;
+		(*)             typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+	case $type in
+		(GNU|SunOS|HP-UX) typeset short=true ;;
+		(*)               typeset short= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"E: ${short:+e::} ${long:+--eof::}; specify a string to treat as end of input"
+	"I: ${short:+i::} ${long:+--replace::}; specify a string replaced by input words"
+	"L: ${short:+l::} ${long:+--max-lines::}; specify the max number of input lines to use at once"
+	"n: ${long:+--max-args:}; specify the max number of input words to use at once"
+	"p ${long:+--interactive}; confirm before each command invocation"
+	"s: ${long:+--max-chars:}; specify the max length of executed command lines in bytes"
+	"t ${long:+--verbose}; print each executed command line before execution"
+	"x ${long:+--exit}; abort when executed command line length exceeds the limit"
+	) #<#
+
+	case $type in (GNU|*BSD|Darwin)
+		OPTIONS=("$OPTIONS" #>#
+		"0 ${long:+--null}; assume input words are separated by null bytes"
+		"P: ${long:+--max-procs:}; specify the max number of commands executed at once"
+		) #<#
+		case $type in (GNU)
+			OPTIONS=("$OPTIONS" #>#
+			"a: --arg-file:; specify the file to read words from"
+			"d: --delimiter:; specify the delimiter that separates words"
+			"--help"
+			"--version"
+			) #<#
+		esac
+		case $type in (*BSD|Darwin)
+			OPTIONS=("$OPTIONS" #>#
+			"J:; like -I, but replace the first exact match only"
+			"o; reopen standard input as /dev/tty when executing commands"
+			"R:; specify the max number of operands replaced in -I"
+			) #<#
+			case $type in (FreeBSD|NetBSD)
+				OPTIONS=("$OPTIONS" #>#
+				"S:; specify how long the command line can grow in -I"
+				) #<#
+			esac
+		esac
+		case $type in (GNU|OpenBSD)
+			OPTIONS=("$OPTIONS" #>#
+			"r ${long:+--no-run-if-empty}; don't execute the command at all if input is empty"
+			) #<#
+		esac
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([dEeIiJLlnPRSs]|--delimiter|--eof|--replace|--max-*)
+		;;
+	(a|--arg-file)
+		complete -P "$PREFIX" -f
+		;;
+	('')
+		command -f completion//getoperands
+		command -f completion//reexecute -e
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

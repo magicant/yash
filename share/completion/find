@@ -1,18 +1,17 @@
 # (C) 2010 magicant
 
 # Completion script for the "find" command.
-# Supports POSIX 2008, GNU findutils 4.4.2, FreeBSD 8.1, OpenBSD 4.8,
+# Supports POSIX 2008, GNU findutils 4.5.9, FreeBSD 8.1, OpenBSD 4.8,
 # NetBSD 5.0, Darwin 10.6.4, SunOS 5.10, HP-UX 11i v3.
 
 function completion/find {
 
+	typeset SAVEWORDS
+	SAVEWORDS=("$WORDS")
+
 	case $("${WORDS[1]}" --version 2>/dev/null) in
 		(*'findutils'*) typeset type=GNU ;;
 		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
 	esac
 
 	typeset OPTIONS ARGOPT PREFIX
@@ -51,7 +50,9 @@ function completion/find {
 	command -f completion//parseoptions
 	case $ARGOPT in
 	(-)
-		command -f completion//completeoptions
+		case $TARGETWORD in (-|--*)
+			command -f completion//completeoptions
+		esac
 		if [ "$type" = GNU ]; then
 			typeset i=2
 			command -f completion/find::expr
@@ -81,15 +82,35 @@ function completion/find {
 		;;
 	(*)
 		typeset path=false expr=false i=2
+		WORDS=("$SAVEWORDS")
+		if [ "$type" = GNU ]; then
+			path=true
+		fi
 		while [ $i -le ${WORDS[#]} ]; do
-			case ${WORDS[i++]} in
-			(--)
+			if [ "${WORDS[i]}" = -- ]; then
+				i=$((i+1))
 				break
+			fi
+			case $type in
+			(GNU)
+				case ${WORDS[i]} in (-[!DHLOP-]*)
+					break
+				esac
 				;;
-			(-f*)
-				path=true
+			(*BSD|Darwin)
+				case ${WORDS[i]} in (-f*)
+					path=true
+				esac
 				;;
 			esac
+			case ${WORDS[i]} in
+			(-?*)
+				;;
+			(*)
+				break
+				;;
+			esac
+			i=$((i+1))
 		done
 		while [ $i -le ${WORDS[#]} ]; do
 			case ${WORDS[i]} in
@@ -132,7 +153,7 @@ function completion/find::expr {
 				;;
 			esac
 			;;
-		(-[acmB]newer|-fls|-fprint|-ilname|-iname|-ipath|-iwholename|-linkedto|-lname|-name|-newer*|-path|-samefile|-wholename)
+		(-[acmB]newer|-fls|-fprint|-fprint0|-ilname|-iname|-ipath|-iwholename|-linkedto|-lname|-name|-newer*|-path|-samefile|-wholename)
 			if [ $i -eq ${WORDS[#]} ]; then
 				complete -f
 			fi
@@ -383,7 +404,7 @@ function completion/find::expr {
 				esac #<<#
 			esac
 			case $type in (GNU|NetBSD) #>>#
-				complete -D "print the filename to the specified file" -- -fprint
+				complete -D "print the pathname to the specified file" -- -fprint
 			esac #<<#
 			case $type in (*BSD|Darwin)
 				#>>#
@@ -412,6 +433,7 @@ function completion/find::expr {
 			complete -D "measure time from the beginning of today" -- -daystart
 			complete -D "true if the file is executable" -- -executable
 			complete -D "write file info to the specified file" -- -fls
+			complete -D "print the null-terminated pathname to the specified file" -- -fprint0
 			complete -D "print the specified formatted string to the specified file" -- -fprintf
 			complete -D "ignore files removed during traversal" -- -ignore_readdir_race
 			complete -D "disable warning messages" -- -nowarn

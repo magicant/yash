@@ -1,10 +1,10 @@
 # (C) 2010 magicant
 
-# Completion script for the "rmdir" command.
+# Completion script for the "wc" command.
 # Supports POSIX 2008, GNU coreutils 8.6, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
 # Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
 
-function completion/rmdir {
+function completion/wc {
 
 	case $("${WORDS[1]}" --version 2>/dev/null) in
 		(*'coreutils'*) typeset type=GNU ;;
@@ -17,31 +17,28 @@ function completion/rmdir {
 
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
-	"p ${long:+--parents}; remove parent directories as well"
+	"c ${long:+--bytes}; print byte counts"
+	"l ${long:+--lines}; print line counts"
+	"m ${long:+--chars}; print character counts"
+	"w ${long:+--words}; print word counts"
 	) #<#
 
-	case $type in (GNU|FreeBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"v ${long:+--verbose}; print a message for each directory processed"
-		) #<#
-	esac
 	case $type in
-	(GNU)
+	(GNU|FreeBSD|NetBSD)
 		OPTIONS=("$OPTIONS" #>#
-		"--ignore-fail-on-non-empty; suppress error messages about non-empty directories"
-		"--help"
-		"--version"
+		"L ${long:+--max-line-length}; print longest line lengths"
 		) #<#
+		case $type in (GNU)
+			OPTIONS=("$OPTIONS" #>#
+			"--files0-from:; specify a file containing null-separated file names to count size"
+			"--help"
+			"--version"
+			) #<#
+		esac
 		;;
-	(SunOS)
+	(OpenBSD)
 		OPTIONS=("$OPTIONS" #>#
-		"s; suppress error messages (with -p)"
-		) #<#
-		;;
-	(HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"f; remove directories without confirmation"
-		"i; confirm before removing each directory"
+		"h; print size using K, M, etc. for 1024^n"
 		) #<#
 		;;
 	esac
@@ -52,7 +49,7 @@ function completion/rmdir {
 		command -f completion//completeoptions
 		;;
 	(*)
-		complete -T -S / -d
+		complete -P "$PREFIX" -f
 		;;
 	esac
 

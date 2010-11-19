@@ -17,8 +17,8 @@ function completion/rm {
 
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
-	"f ${long:+--force}; remove files without conformation"
-	"i; conform before removing each file"
+	"f ${long:+--force}; remove files without confirmation"
+	"i; confirm before removing each file"
 	"R r ${long:+--recursive}; recursively remove directories"
 	) #<#
 
@@ -28,7 +28,7 @@ function completion/rm {
 		) #<#
 		case $type in (GNU|FreeBSD)
 			OPTIONS=("$OPTIONS" #>#
-			"I; conform before removing many files"
+			"I; confirm before removing many files"
 			) #<#
 		esac
 		case $type in (*BSD|Darwin)
@@ -65,8 +65,8 @@ function completion/rm {
 		;;
 	(--interactive) #>>#
 		complete -P "$PREFIX" -D "don't confirm removal" never
-		complete -P "$PREFIX" -D "conform before removing many files" once
-		complete -P "$PREFIX" -D "conform before removing each file" always
+		complete -P "$PREFIX" -D "confirm before removing many files" once
+		complete -P "$PREFIX" -D "confirm before removing each file" always
 		;; #<<#
 	(*)
 		complete -f
