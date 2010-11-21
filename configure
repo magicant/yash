@@ -835,6 +835,23 @@ then
     defconfigh "HAVE_WCSNLEN"
 fi
 
+# check for wcscasecmp
+checking 'for wcscasecmp'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <wchar.h>
+#ifndef wcscasecmp
+int wcscasecmp(const wchar_t*, const wchar_t*);
+#endif
+int main() { return wcscasecmp(L"1a2b3c", L"1A2B3C") != 0; }
+END
+trymake && tryexec
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_WCSCASECMP"
+fi
+
 # check for wcstold
 checking 'for wcstold'
 cat >"${tempsrc}" <<END

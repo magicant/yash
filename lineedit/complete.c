@@ -61,6 +61,12 @@
 #include "lineedit.h"
 #include "terminfo.h"
 
+#if HAVE_WCSCASECMP
+# ifndef wcscasecmp
+extern int wcscasecmp(const wchar_t *s1, const wchar_t *s2)
+    __attribute__((nonnull));
+# endif
+#endif
 #if HAVE_GETPWENT
 # ifndef setpwent
 extern void setpwent(void);
@@ -427,8 +433,9 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
     const wchar_t *v1 = cand1->origvalue;
     const wchar_t *v2 = cand2->origvalue;
 
-    /* sort candidates that start with hyphens in a special order so that short
-     * options come before long options */
+    /* Candidates that start with hyphens are sorted in a special order so that
+     * short options come before long options. Such candidates are sorted case-
+     * insensitively. */
     if (v1[0] == L'-' || v2[0] == L'-') {
 	while (*v1 == L'-' && *v2 == L'-')
 	    v1++, v2++;
@@ -436,6 +443,11 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
 	    return 1;
 	if (*v2 == L'-')
 	    return -1;
+#if HAVE_WCSCASECMP
+	int cmp = wcscasecmp(v1, v2);
+	if (cmp != 0)
+	    return cmp;
+#endif
     }
 
     return wcscoll(v1, v2);

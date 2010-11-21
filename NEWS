@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.25
 
+  =  In the completion candidate list, options are now sorted case-
+     insensitively.
   =  While executing a completion function, the $IFS is reset to the
      default value.
 
@@ -21,8 +23,9 @@ Yash 2.24
   -  Removed the -B option for the "command" built-in.
   =  Fixed configuration process so that the shell can handle all
      kinds of signals on FreeBSD.
-  =  New command completion mechanism. (Changed the usage of the
-     "complete" built-in)
+  =  [line-editing] New command completion mechanism. The "complete"
+     built-in now has new syntax and semantics. Completion settings
+     are now autoloaded from $YASH_LOADPATH.
   =  Short options now come before long options in a completion
      candidate list.
   *  Symbolic links to non-existent files can now be completed.
@@ -35,7 +38,7 @@ Yash 2.23
 
   *  Traps are no longer handled during completion to avoid messing up
      the display.
-  *  Fixed segmentation fault during completion. When the notify
+  *  Fixed invalid memory access during completion. When the notify
      option is enabled, the shell was wrongly trying to notify the job
      status while executing a candidate generator function.
   *  The "-o verbose" option is now disabled during completion to
