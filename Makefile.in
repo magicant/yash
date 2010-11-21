@@ -98,9 +98,13 @@ $(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
 uninstall: uninstall-binary uninstall-data
 uninstall-binary:
-	-rm $(DESTDIR)$(BINDIR)/$(TARGET)
+	rm $(DESTDIR)$(BINDIR)/$(TARGET)
 uninstall-data:
-	-rm -r $(DESTDIR)$(YASHDATADIR)/completion
+	@(cd share && for file in completion/*; do \
+		echo rm $(DESTDIR)$(YASHDATADIR)/$$file || true; \
+		rm $(DESTDIR)$(YASHDATADIR)/$$file; \
+	done)
+	-rmdir $(DESTDIR)$(YASHDATADIR)/completion
 	-rmdir $(DESTDIR)$(YASHDATADIR)
 
 DISTDIR = yash-$(VERSION)
