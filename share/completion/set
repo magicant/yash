@@ -8,6 +8,7 @@
 function completion/set {
 
 	typeset compoptopts=
+	typeset prog="${WORDS[1]##*/}"
 
 	typeset OPTIONS FOPTIONS OOPTIONS ARGOPT PREFIX
 	FOPTIONS=( #>#
@@ -27,7 +28,7 @@ function completion/set {
 	"--ignoreeof; don't exit when an end-of-file is entered"
 	"--vi; vi-like line-editing"
 	) #<#
-	case ${WORDS[1]} in
+	case $prog in
 	(set|yash)
 		OOPTIONS=("$OOPTIONS" #>#
 		"h --hashondef; cache full paths of commands in a function when defined"
@@ -50,11 +51,11 @@ function completion/set {
 		;;
 	esac
 
-	case ${WORDS[1]} in (*sh)
+	case $prog in (*sh)
 		FOPTIONS=("$FOPTIONS" #>#
 		"c; execute the first operand as a shell script"
 		) #<#
-		case ${WORDS[1]} in
+		case $prog in
 		(ksh|yash)
 			FOPTIONS=("$FOPTIONS" #>#
 			"i --interactive; work in the interactive mode"
@@ -66,7 +67,7 @@ function completion/set {
 			) #<#
 			;;
 		esac
-		case ${WORDS[1]} in
+		case $prog in
 		(mksh)
 			OOPTIONS=("$OOPTIONS" #>#
 			"s --stdin; read commands from the standard input"
@@ -79,11 +80,11 @@ function completion/set {
 			;;
 		esac
 	esac
-	case ${WORDS[1]} in (set|[bdy]ash|ksh|mksh)
+	case $prog in (set|[bdy]ash|ksh|mksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"--emacs; emacs-like line-editing"
 		) #<#
-		case ${WORDS[1]} in
+		case $prog in
 		([by]ash|ksh)
 			FOPTIONS=("$FOPTIONS" #>#
 			"l --login; work as a login shell"
@@ -101,37 +102,37 @@ function completion/set {
 			;;
 		esac
 	esac
-	case ${WORDS[1]} in (set|[by]ash|ksh)
+	case $prog in (set|[by]ash|ksh)
 		FOPTIONS=("$FOPTIONS" #>#
 		"--help"
 		) #<#
-		case ${WORDS[1]} in ([by]ash|ksh)
+		case $prog in ([by]ash|ksh)
 			FOPTIONS=("$FOPTIONS" #>#
 			"--version"
 			) #<#
 		esac
 	esac
-	case ${WORDS[1]} in ([by]ash|mksh)
+	case $prog in ([by]ash|mksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"--posix; force strict POSIX conformance"
 		) #<#
 	esac
-	case ${WORDS[1]} in ([by]ash)
+	case $prog in ([by]ash)
 		FOPTIONS=("$FOPTIONS" #>#
 		"--noprofile; don't read profile file"
 		) #<#
 	esac
-	case ${WORDS[1]} in (set|yash|ksh|mksh)
+	case $prog in (set|yash|ksh|mksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"--braceexpand; enable brace expansion"
 		) #<#
 	esac
-	case ${WORDS[1]} in (set|yash|ksh)
+	case $prog in (set|yash|ksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"--markdirs; append a slash to directory names after pathname expansion"
 		) #<#
 	esac
-	case ${WORDS[1]} in (set|yash)
+	case $prog in (set|yash)
 		OOPTIONS=("$OOPTIONS" #>#
 		"--notifyle; print job status immediately when done while line-editing"
 		"--nocaseglob; make pathname expansion case-insensitive"
@@ -149,31 +150,31 @@ function completion/set {
 		"--le-alwaysrp; always show the right prompt during line-editing"
 		"--le-compdebug; print debugging info during command line completion"
 		) #<#
-		case ${WORDS[1]} in (yash)
+		case $prog in (yash)
 			FOPTIONS=("$FOPTIONS" #>#
 			"--norcfile; don't read rc file"
 			"--rcfile:; specify the rc file"
 			) #<#
 		esac
 	esac
-	case ${WORDS[1]} in (bash|ksh|mksh)
+	case $prog in (bash|ksh|mksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"p --privileged; work in the privileged mode"
 		) #<#
 	esac
-	case ${WORDS[1]} in (bash|ksh)
+	case $prog in (bash|ksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"H --histexpand; enable !-expansion on the command line"
 		"k --keyword; allow assignments in the middle of command arguments"
 		"--pipefail; return last non-zero exit status of commands in a pipe"
 		) #<#
 	esac
-	case ${WORDS[1]} in (bash|mksh)
+	case $prog in (bash|mksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"P --physical; make the -P option the default in the cd commands etc."
 		) #<#
 	esac
-	case ${WORDS[1]} in (bash)
+	case $prog in (bash)
 		compoptopts="$compoptopts -e"
 		FOPTIONS=("$FOPTIONS" #>#
 		"--debugger; enable extended debugging mode"
@@ -194,14 +195,14 @@ function completion/set {
 		"--history; enable command history"
 		) #<#
 	esac
-	case ${WORDS[1]} in (ksh|mksh)
+	case $prog in (ksh|mksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"r --restricted; work in the restricted mode"
 		"--bgnice; run background jobs at lower priorities"
 		"--gmacs; gmacs-like line-editing"
 		) #<#
 	esac
-	case ${WORDS[1]} in (ksh)
+	case $prog in (ksh)
 		FOPTIONS=("$FOPTIONS" #>#
 		"D --dump-strings; extract translatable strings"
 		"E; read the rc file"
@@ -215,7 +216,7 @@ function completion/set {
 		"--viraw; vi-like line-editing without canonical input handling"
 		) #<#
 	esac
-	case ${WORDS[1]} in (mksh)
+	case $prog in (mksh)
 		OOPTIONS=("$OOPTIONS" #>#
 		"U --utf8-mode; enable UTF-8 support"
 		"X --markdirs; append a slash to directory names after pathname expansion"
@@ -258,7 +259,7 @@ function completion/set {
 	command -f completion//parseoptions
 	case $ARGOPT in
 	(-)
-		case ${WORDS[1]} in
+		case $prog in
 		(set|yash|ksh)
 			;;
 		(*)

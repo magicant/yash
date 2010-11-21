@@ -64,7 +64,7 @@ function completion/vim {
 	"--startuptime:; specify a file to write timing messages while starting up"
 	"--version"
 	) #<#
-	case ${WORDS[1]} in
+	case ${WORDS[1]##*/} in
 	(*ex*)
 		OPTIONS=("$OPTIONS" #>#
 		"s; non-interactive batch processing mode"
