@@ -35,8 +35,6 @@ BYPRODUCTS = *.dSYM
 
 all: $(TARGET)
 
-.c:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<

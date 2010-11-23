@@ -52,8 +52,6 @@ YASHDATADIR = $(DATADIR)/yash
 
 all: $(TARGET)
 
-.c:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
@@ -64,6 +62,8 @@ $(BUILTINS_ARCHIVE): _PHONY
 	@+(cd builtins && $(MAKE))
 $(LINEEDIT_ARCHIVE): _PHONY
 	@+(cd lineedit && $(MAKE))
+makesignum:
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
 sig.o: signum.h
 signum.h: makesignum
 	./makesignum > $@

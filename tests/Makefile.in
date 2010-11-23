@@ -35,11 +35,11 @@ test-posix:
 test-yash:
 	@$(MAKE) TEST_ITEMS='*.y.tst' test
 
+invoke resetsig:
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
 testee:
 	@+if [ x'$(TESTEE)' = x'../yash' ]; then (cd .. && $(MAKE) yash); fi
 
-.c:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 .c.o:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
