@@ -3,6 +3,8 @@
 
 # all tests that use /dev/tty must be in this test
 
+command -b ulimit -c 0 2>/dev/null
+
 
 echo ===== fg bg suspend =====
 
