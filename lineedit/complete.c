@@ -90,13 +90,13 @@ extern void endgrent(void);
 # endif
 #endif
 #if HAVE_GETHOSTENT
-# ifndef sethostent
+# if 0 /* avoid conflict on SunOS */
 extern void sethostent(int);
 # endif
 # ifndef gethostent
 extern struct hostent *gethostent(void);
 # endif
-# ifndef endhostent
+# if 0 /* avoid conflict on SunOS */
 extern void endhostent(void);
 # endif
 #endif

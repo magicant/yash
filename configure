@@ -1184,14 +1184,9 @@ checking 'for sethostent/gethostent/endhostent'
 cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <netdb.h>
-#ifndef sethostent
-void sethostent(int);
-#endif
+/* don't declare sethostent and endhostent to avoid conflict on SunOS */
 #ifndef gethostent
 struct hostent *gethostent(void);
-#endif
-#ifndef endhostent
-void endhostent(void);
 #endif
 struct hostent *h;
 int main() { sethostent(1); h = gethostent(); endhostent(); }
