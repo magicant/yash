@@ -208,6 +208,7 @@ exec 5>"${configlog}"
     printf '# uname -r = %s\n' "$(uname -r 2>/dev/null || echo \?)"
     printf '# uname -s = %s\n' "$(uname -s 2>/dev/null || echo \?)"
     printf '# uname -v = %s\n' "$(uname -v 2>/dev/null || echo \?)"
+    printf '# uname -a = %s\n' "$(uname -a 2>/dev/null || echo \?)"
     echo
     printf '# PATH=%s\n' "$PATH"
     echo
