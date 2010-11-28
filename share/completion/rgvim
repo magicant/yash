@@ -1,0 +1,11 @@
+# (C) 2010 magicant
+
+# Completion script for the "rgvim" command.
+# Supports Vim 7.3.
+
+function completion/rgvim {
+	command -f completion//reexecute vim
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
