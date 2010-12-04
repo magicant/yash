@@ -49,6 +49,7 @@ BINDIR = @BINDIR@
 DATAROOTDIR = @DATAROOTDIR@
 DATADIR = @DATADIR@
 YASHDATADIR = $(DATADIR)/yash
+LOCALEDIR = @LOCALEDIR@
 
 all: $(TARGET)
 
@@ -76,6 +77,7 @@ configm.h: Makefile
 		printf '#define PACKAGE_VERSION "$(VERSION)"\n'; \
 		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
 		printf '#define YASH_DATADIR "$(YASHDATADIR)"\n'; \
+		printf '#define LOCALEDIR "$(LOCALEDIR)"\n'; \
 		printf '#endif\n'; \
 		} >$@
 

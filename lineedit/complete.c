@@ -39,6 +39,9 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <sys/stat.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "../builtin.h"
 #include "../exec.h"
 #include "../expand.h"
