@@ -594,6 +594,8 @@ END
 ${confighdefs}
 #include <libintl.h>
 int main() { 
+    bindtextdomain("", "");
+    textdomain("");
     const char *s = gettext("");
 #if HAVE_NGETTEXT
     s = ngettext("", "", 0);
