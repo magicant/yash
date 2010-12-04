@@ -590,8 +590,7 @@ END
     fi
 
     checking 'for gettext library'
-    if
-	cat >"${tempsrc}" <<END
+    cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <libintl.h>
 int main() { 
@@ -602,6 +601,7 @@ int main() {
     return s == 0;
 }
 END
+    if
 	trycompile
     then
 	saveldlibs="${ldlibs}"
@@ -621,13 +621,9 @@ END
 	fi
     fi
     case "${checkresult}" in
-    yes)
-	ldlibs="${saveldlibs}"
+    yes|with*)
 	defconfigh "HAVE_GETTEXT"
-	;;
-    with*)
-	ldlibs="${saveldlibs} ${checkresult#with }"
-	defconfigh "HAVE_GETTEXT"
+	unset saveldlibs
 	;;
     no)
 	checked "no"
