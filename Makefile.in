@@ -40,7 +40,7 @@ HISTORY_OBJS = history.o
 BUILTINS_ARCHIVE = builtins/builtins.a
 LINEEDIT_ARCHIVE = lineedit/lineedit.a
 OBJS = @OBJS@
-TARGET = yash
+TARGET = @TARGET@
 VERSION = @VERSION@
 COPYRIGHT = @COPYRIGHT@
 BYPRODUCTS = makesignum.o makesignum signum.h configm.h *.dSYM
@@ -51,7 +51,7 @@ EPREFIX = @EPREFIX@
 BINDIR = @BINDIR@
 DATAROOTDIR = @DATAROOTDIR@
 DATADIR = @DATADIR@
-YASHDATADIR = $(DATADIR)/yash
+YASHDATADIR = $(DATADIR)/$(TARGET)
 
 all: $(TARGET)
 
@@ -111,7 +111,7 @@ uninstall-data:
 	-rmdir $(DESTDIR)$(YASHDATADIR)/completion
 	-rmdir $(DESTDIR)$(YASHDATADIR)
 
-DISTDIR = yash-$(VERSION)
+DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
 DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
 distfiles: $(DISTFILES)
