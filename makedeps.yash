@@ -1,0 +1,76 @@
+# This script updates *.d files.
+# (C) 2007-2010 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+if [ -z "${YASH_VERSION-}" ]
+then
+    printf '%s: This script must be executed by yash.\n' "$0" >&2
+    exit 126
+fi
+
+check () {
+    if ! [ -f "$1.d" ] || ! [ -s "$1.d" ] || [ "$1.c" -nt "$1.d" ]
+    then
+	return 1
+    fi
+
+    for dep in $(sed -e 's/^.*\.o://' -e 's/\\$//' "$1.d")
+    do
+	if ! [ -f "$dep" ]
+	then
+	    printf '%s: "%s" depends on non-existent file "%s".\n' \
+		"$0" "$1.d" "$dep" >&2
+	    exit 1
+	fi
+	if [ "$dep" -nt "$1.d" ]
+	then
+	    return 1
+	fi
+    done
+
+    return 0
+}
+
+for file do
+    case $file in
+    (*.c)
+	if ! [ -f "$file" ]
+	then
+	    printf '%s: "%s" is not a regular file.\n' "$0" "$file" >&2
+	    exit 1
+	fi
+
+	file=${file%.c}
+	if ! check "$file"
+	then
+	    printf 'gcc -std=c99 -MM "%s.c" >|"%s.d"\n' "$file" "$file"
+	    if ! gcc -std=c99 -MM "${file}.c" >|"${file}.d"
+	    then
+		exitstatus=$?
+		printf '%s: cannot update "%s".\n' "$0" "${file}.d" >&2
+		exit "$exitstatus"
+	    fi
+	fi
+	;;
+    (*)
+	printf '%s: "%s" is not a C source file.\n' "$0" "$file" >&2
+	exit 1
+	;;
+    esac
+done
+
+
+# vim: set ft=sh ts=8 sts=4 sw=4 noet tw=80:

@@ -49,10 +49,13 @@ testee:
 	$(CC) $(CFLAGS) -c $<
 
 DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
-distfiles: $(DISTFILES)
+distfiles: makedeps $(DISTFILES)
 copy-distfiles: distfiles
 	mkdir -p $(topdir)/$(DISTTARGETDIR)
 	cp $(DISTFILES) $(TEST_SOURCES) $(topdir)/$(DISTTARGETDIR)
+makedeps: _PHONY
+	@(cd $(topdir) && $(MAKE) $(TARGET))
+	$(topdir)/$(TARGET) $(topdir)/makedeps.yash $(SOURCES)
 
 clean:
 	rm -fr $(BYPRODUCTS)
@@ -61,7 +64,8 @@ distclean: clean
 maintainer-clean: distclean
 	rm -fr $(SOURCES:.c=.d)
 
-.PHONY: test test-all test-posix test-yash testee distfiles copy-distfiles clean distclean maintainer-clean
+.PHONY: test test-all test-posix test-yash testee distfiles copy-distfiles makedeps clean distclean maintainer-clean
+_PHONY:
 
 @MAKE_INCLUDE@ invoke.d
 @MAKE_INCLUDE@ resetsig.d

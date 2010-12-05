@@ -113,8 +113,6 @@ uninstall-data:
 
 DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
-distfiles: $(DISTFILES)
 $(DISTDIR): _PHONY
 	rm -fr $@
 	mkdir -m 755 $@
@@ -126,9 +124,6 @@ $(DISTDIR): _PHONY
 	mkdir -m 755 $@/share/completion
 	umask 022; \
 	for file in share/completion/*; do cp $$file $@/share/completion; done
-copy-distfiles: distfiles
-	mkdir -p $(topdir)/$(DISTTARGETDIR)
-	cp $(DISTFILES) $(topdir)/$(DISTTARGETDIR)
 # Only pax and compress conform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	-rm -rf $(DISTDIR) $(DISTDIR).tar
@@ -156,6 +151,14 @@ $(DISTDIR).shar.gz: $(DISTDIR)
 $(DISTDIR).zip: $(DISTDIR)
 	rm -rf $@
 	zip -rq $@ $(DISTDIR)
+
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh makedeps.yash
+distfiles: makedeps $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(topdir)/$(DISTTARGETDIR)
+makedeps: _PHONY $(TARGET)
+	$(topdir)/$(TARGET) $(topdir)/makedeps.yash $(SOURCES)
 
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGS = @CTAGS@
@@ -205,7 +208,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary install-binary-strip install-data installdirs uninstall uninstall-binary uninstall-data dist distfiles copy-distfiles dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check install install-strip install-binary install-binary-strip install-data installdirs uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d
