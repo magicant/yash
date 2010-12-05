@@ -101,8 +101,8 @@ int main(int argc, char **argv)
 
     setlocale(LC_ALL, "");
 #if HAVE_GETTEXT
-    bindtextdomain("yash", LOCALEDIR);
-    textdomain("yash");
+    bindtextdomain(PACKAGE_NAME, LOCALEDIR);
+    textdomain(PACKAGE_NAME);
 #endif
 
     /* convert arguments into wide strings */

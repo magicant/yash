@@ -77,6 +77,7 @@ configm.h: Makefile
 	@{ printf '/* $@: created by Makefile */\n'; \
 		printf '#ifndef YASH_CONFIGM_H\n'; \
 		printf '#define YASH_CONFIGM_H\n'; \
+		printf '#define PACKAGE_NAME "$(TARGET)"\n'; \
 		printf '#define PACKAGE_VERSION "$(VERSION)"\n'; \
 		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
 		printf '#define YASH_DATADIR "$(YASHDATADIR)"\n'; \
