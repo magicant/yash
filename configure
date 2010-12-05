@@ -26,6 +26,7 @@ tempout="./.temp.out"
 temptxt="./.temp.txt"
 dirs=". builtins lineedit tests"
 
+target="yash"
 version="2.25"
 copyright="Copyright (C) 2007-2010 magicant"
 
@@ -179,8 +180,8 @@ Optional packages:
   --with-term-lib=LIBS    search space-separated LIBS for terminal handling
 
 Influential environment variables:
-  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, INSTALL_PROGRAM,
-  CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
+  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER,
+  INSTALL_PROGRAM, CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
     exit
 fi
@@ -342,8 +343,8 @@ esac
 # check if gcc is available if the debug option is enabled
 if ${debug}
 then
+    checking 'whether GCC is available'
     if
-	checking 'whether GCC is available'
 	checkby eval "${CC-gcc -std=c99} --version | grep -i gcc"
     then
 	checked "yes"
@@ -360,24 +361,22 @@ fi
 
 
 # check if the compiler works
-if
-    checking 'whether the compiler works'
-    cat >"${tempsrc}" <<END
+checking 'whether the compiler works'
+cat >"${tempsrc}" <<END
 int main() { return 0; }
 END
+if
     trymake && tryexec
 then
     checked "yes"
 elif
-    if [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ]
-    then
+    [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
 	cc='gcc -std=c99'
 	trymake && tryexec
-    else
-	false
-    fi
+    )
 then
     checked "yes (using gcc -std=c99)"
+    cc='gcc -std=c99'
 else
     checked "no"
     printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
@@ -387,13 +386,13 @@ fi
 # check if the compiler accepts the -O2 option if we are not debugging
 if ! ${debug} && [ x"${CFLAGS+set}" != x"set" ]
 then
-    if
-	checking 'whether the compiler accepts -O2 flag'
-	savecflags=${cflags}
-	cflags="-O2 -g"
-	cat >"${tempsrc}" <<END
+    checking 'whether the compiler accepts -O2 flag'
+    savecflags=${cflags}
+    cflags="-O2 -g"
+    cat >"${tempsrc}" <<END
 int main() { return 0; }
 END
+    if
 	trycompile
     then
 	checked "yes"
@@ -439,6 +438,37 @@ then
 else
     make_shell='SHELL = sh'
 fi
+
+# check if the pax command is available
+if [ x"${ARCHIVER+set}" != x"set" ]
+then
+    checking 'for the pax command'
+    >|"${tempsrc}"
+    checkby pax -w -x ustar -f "${tempout}" "${tempsrc}"
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	archiver='pax -w -x ustar -f'
+    else
+	archiver='tar cf'
+    fi
+fi
+
+# check if the install command is available
+if [ x"${INSTALL_PROGRAM+set}" != x"set" ]
+then
+    checking 'for the install command'
+    >|"${tempsrc}"
+    checkby install -c -m 644 "${tempsrc}" "${tempout}"
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	install_program='install'
+    else
+	install_program='$(topdir)/install-sh'
+    fi
+fi
+
 
 # check if defining _POSIX_C_SOURCE and _XOPEN_SOURCE as values larger than
 # _POSIX_VERSION and _XOPEN_VERSION is accepted.
@@ -522,9 +552,7 @@ fi
 if ${enable_socket}
 then
     checking 'for socket library'
-    saveldlibs="${ldlibs}"
-    if
-	cat >"${tempsrc}" <<END
+    cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <netdb.h>
 #include <sys/socket.h>
@@ -541,6 +569,8 @@ int main() {
     freeaddrinfo(&ai);
 }
 END
+    saveldlibs="${ldlibs}"
+    if
 	trymake
     then
 	checked "yes"
@@ -556,13 +586,9 @@ END
 	done
     fi
     case "${checkresult}" in
-    yes)
-	ldlibs="${saveldlibs}"
+    yes|with*)
 	defconfigh "YASH_ENABLE_SOCKET"
-	;;
-    with*)
-	ldlibs="${saveldlibs} ${checkresult#with }"
-	defconfigh "YASH_ENABLE_SOCKET"
+	unset saveldlibs
 	;;
     no)
 	checked "no"
@@ -639,58 +665,29 @@ fi
 # check if terminfo is available
 if ${enable_lineedit}
 then
-    if
-	checking 'for curses.h'
+    for i in curses.h:CURSES_H ncurses.h:NCURSES_H \
+	ncurses/ncurses.h:NCURSES_NCURSES_H \
+	ncursesw/ncurses.h:NCURSESW_NCURSES_H
+    do
+	checking "for ${i%:*}"
 	cat >"${tempsrc}" <<END
 ${confighdefs}
-#include <curses.h>
+#include <${i%:*}>
 int main() { return ERR; }
 END
 	trycompile
 	checked
-	[ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "HAVE_CURSES_H"
-    elif
-	checking 'for ncurses.h'
-	cat >"${tempsrc}" <<END
-${confighdefs}
-#include <ncurses.h>
-int main() { return ERR; }
-END
-	trycompile
-	checked
-	[ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "HAVE_NCURSES_H"
-    elif
-	checking 'for ncurses/ncurses.h'
-	cat >"${tempsrc}" <<END
-${confighdefs}
-#include <ncurses/ncurses.h>
-int main() { return ERR; }
-END
-	trycompile
-	checked
-	[ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "HAVE_NCURSES_NCURSES_H"
-    elif
-	checking 'for ncursesw/ncurses.h'
-	cat >"${tempsrc}" <<END
-${confighdefs}
-#include <ncursesw/ncurses.h>
-int main() { return ERR; }
-END
-	trycompile
-	checked
-	[ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "HAVE_NCURSESW_NCURSES_H"
-    fi
+	if [ x"${checkresult}" = x"yes" ]
+	then
+	    defconfigh "HAVE_${i#*:}"
+	    break
+	fi
+    done
 
-    if
-	checking 'for term.h'
+    for i in term.h:TERM_H ncurses/term.h:NCURSES_TERM_H \
+	ncursesw/term.h:NCURSESW_TERM_H
+    do
+	checking "for ${i%:*}"
 	cat >"${tempsrc}" <<END
 ${confighdefs}
 #if HAVE_CURSES_H
@@ -702,7 +699,7 @@ ${confighdefs}
 #elif HAVE_NCURSESW_NCURSES_H
 #include <ncursesw/ncurses.h>
 #endif
-#include <term.h>
+#include <${i%:*}>
 int main() {
     int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
     int (*f2)(char *) = tigetflag; f2("");
@@ -716,75 +713,15 @@ int main() {
 END
 	trycompile
 	checked
-	[ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "HAVE_TERM_H"
-    elif
-	checking 'for ncurses/term.h'
-	cat >"${tempsrc}" <<END
-${confighdefs}
-#if HAVE_CURSES_H
-#include <curses.h>
-#elif HAVE_NCURSES_H
-#include <ncurses.h>
-#elif HAVE_NCURSES_NCURSES_H
-#include <ncurses/ncurses.h>
-#elif HAVE_NCURSESW_NCURSES_H
-#include <ncursesw/ncurses.h>
-#endif
-#include <ncurses/term.h>
-int main() {
-    int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
-    int (*f2)(char *) = tigetflag; f2("");
-    int (*f3)(char *) = tigetnum; f3("");
-    char *(*f4)(char *) = tigetstr; f4("");
-    int (*f5)(const char *, int, int (*)(int)) = tputs; f5("", 0, 0);
-/*  char *(*f6)(char *, long,long,long,long,long,long,long,long,long) = tparm;
-    f6("", 0, 0, 0, 0, 0, 0, 0, 0, 0); */
-    int (*f7)(TERMINAL *) = del_curterm; f7(cur_term);
-}
-END
-	trycompile
-	checked
-	[ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "HAVE_NCURSES_TERM_H"
-    elif
-	checking 'for ncursesw/term.h'
-	cat >"${tempsrc}" <<END
-${confighdefs}
-#if HAVE_CURSES_H
-#include <curses.h>
-#elif HAVE_NCURSES_H
-#include <ncurses.h>
-#elif HAVE_NCURSES_NCURSES_H
-#include <ncurses/ncurses.h>
-#elif HAVE_NCURSESW_NCURSES_H
-#include <ncursesw/ncurses.h>
-#endif
-#include <ncursesw/term.h>
-int main() {
-    int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
-    int (*f2)(char *) = tigetflag; f2("");
-    int (*f3)(char *) = tigetnum; f3("");
-    char *(*f4)(char *) = tigetstr; f4("");
-    int (*f5)(const char *, int, int (*)(int)) = tputs; f5("", 0, 0);
-/*  char *(*f6)(char *, long,long,long,long,long,long,long,long,long) = tparm;
-    f6("", 0, 0, 0, 0, 0, 0, 0, 0, 0); */
-    int (*f7)(TERMINAL *) = del_curterm; f7(cur_term);
-}
-END
-	trycompile
-	checked
-	[ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "HAVE_NCURSESW_TERM_H"
-    fi
+	if [ x"${checkresult}" = x"yes" ]
+	then
+	    defconfigh "HAVE_${i#*:}"
+	    break
+	fi
+    done
 
     checking 'for terminfo library'
-    saveldlibs="${ldlibs}"
-    if
-	cat >"${tempsrc}" <<END
+    cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdio.h>
 #if HAVE_CURSES_H
@@ -814,8 +751,10 @@ del_curterm(cur_term);
 return i4;
 }
 END
+    if
 	trycompile
     then
+	saveldlibs="${ldlibs}"
 	if trylink
 	then
 	    checked "yes"
@@ -832,13 +771,9 @@ END
 	fi
     fi
     case "${checkresult}" in
-    yes)
-	ldlibs="${saveldlibs}"
+    yes|with*)
 	defconfigh "YASH_ENABLE_LINEEDIT"
-	;;
-    with*)
-	ldlibs="${saveldlibs} ${checkresult#with }"
-	defconfigh "YASH_ENABLE_LINEEDIT"
+	unset saveldlibs
 	;;
     no)
 	checked "no"
@@ -1563,15 +1498,17 @@ LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS-${null}}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
 ARFLAGS="${ARFLAGS-${arflags}}"
+ARCHIVER="${ARCHIVER-${archiver}}"
 CTAGS="${CTAGS-${ctags}}"
 ETAGS="${ETAGS-${etags}}"
 CSCOPE="${CSCOPE-${cscope}}"
 DIRS="${dirs}"
 OBJS="${objs}"
 BUILTIN_OBJS="${builtin_objs}"
+TARGET="${target}"
 VERSION="${version}"
 COPYRIGHT="${copyright}"
-INSTALL_PROGRAM="${INSTALL_PROGRAM-./install-sh}"
+INSTALL_PROGRAM="${INSTALL_PROGRAM-${install_program}}"
 PREFIX="${prefix-/usr/local}"
 case "${PREFIX}" in
     / ) PREFIX=  ;;
@@ -1612,6 +1549,7 @@ s!@LDFLAGS@!${LDFLAGS}!g
 s!@LDLIBS@!${LDLIBS}!g
 s!@AR@!${AR}!g
 s!@ARFLAGS@!${ARFLAGS}!g
+s!@ARCHIVER@!${ARCHIVER}!g
 s!@CTAGS@!${CTAGS}!g
 s!@CTAGSARGS@!${CTAGSARGS}!g
 s!@ETAGS@!${ETAGS}!g
@@ -1621,6 +1559,7 @@ s!@CSCOPEARGS@!${CSCOPEARGS}!g
 s!@DIRS@!${DIRS}!g
 s!@OBJS@!${OBJS}!g
 s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
+s!@TARGET@!${TARGET}!g
 s!@VERSION@!${VERSION}!g
 s!@COPYRIGHT@!${COPYRIGHT}!g
 s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g

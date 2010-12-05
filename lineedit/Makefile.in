@@ -18,6 +18,8 @@
 .SUFFIXES: .c .h .d .o .a
 
 @MAKE_SHELL@
+topdir = ..
+
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -28,6 +30,7 @@ SOURCES = complete.c compparse.c display.c editing.c keymap.c lineedit.c terminf
 HEADERS = complete.h compparse.h display.h editing.h key.h keymap.h lineedit.h terminfo.h trie.h
 OBJS = complete.o compparse.o display.o editing.o keymap.o lineedit.o terminfo.o trie.o
 TARGET = lineedit.a
+YASH = @TARGET@
 BYPRODUCTS = commands.in *.dSYM
 
 all: $(TARGET)
@@ -47,12 +50,14 @@ commands.in: editing.h
 	LC_COLLATE=C sort -k 1 | \
 	sed -e 's/ /", cmd_/' -e 's/^/{ "/' -e 's/$$/, },/' > $@
 
-DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
-# "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
-distcontents: $(DISTCONTENTS) $(OBJS)
-copy-distcontents: distcontents
-	mkdir -p $(DISTTARGETDIR)
-	cp $(DISTCONTENTS) $(DISTTARGETDIR)
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
+distfiles: makedeps $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(topdir)/$(DISTTARGETDIR)
+makedeps: _PHONY
+	@(cd $(topdir) && $(MAKE) $(YASH))
+	$(topdir)/$(YASH) $(topdir)/makedeps.yash $(SOURCES)
 
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGS = @CTAGS@
@@ -78,7 +83,8 @@ distclean: clean
 maintainer-clean: distclean
 	-rm -rf $(SOURCES:.c=.d)
 
-.PHONY: all distcontents copy-distcontents cscope mostlyclean clean distclean maintainer-clean
+.PHONY: all distfiles copy-distfiles makedeps cscope mostlyclean clean distclean maintainer-clean
+_PHONY:
 
 @MAKE_INCLUDE@ complete.d
 @MAKE_INCLUDE@ compparse.d

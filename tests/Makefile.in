@@ -18,14 +18,16 @@
 .SUFFIXES: .c .h .d .o
 
 @MAKE_SHELL@
+topdir = ..
+
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 SOURCES = invoke.c resetsig.c
 TEST_SOURCES = *.tst *.out *.err *.oux *.erx *.t
-
-TESTEE = ../yash
+TARGET = @TARGET@
+TESTEE = $(topdir)/$(TARGET)
 BYPRODUCTS = invoke.o invoke resetsig.o resetsig test.log *.dSYM
 
 test test-all: invoke resetsig testee
@@ -38,18 +40,22 @@ test-yash:
 invoke resetsig:
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
 testee:
-	@+if [ x'$(TESTEE)' = x'../yash' ]; then (cd .. && $(MAKE) yash); fi
+	@+if [ x'$(TESTEE)' = x'$(topdir)/$(TARGET)' ]; then \
+		(cd $(topdir) && $(MAKE) $(TARGET)); \
+	fi
 
 .c.o:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
-DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
-# "distcontents" depends on object files to ensure all *.d files up-to-date
-distcontents: $(DISTCONTENTS) invoke resetsig
-copy-distcontents: distcontents
-	mkdir -p $(DISTTARGETDIR)
-	cp $(DISTCONTENTS) $(TEST_SOURCES) $(DISTTARGETDIR)
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
+distfiles: makedeps $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(TEST_SOURCES) $(topdir)/$(DISTTARGETDIR)
+makedeps: _PHONY
+	@(cd $(topdir) && $(MAKE) $(TARGET))
+	$(topdir)/$(TARGET) $(topdir)/makedeps.yash $(SOURCES)
 
 clean:
 	rm -fr $(BYPRODUCTS)
@@ -58,7 +64,8 @@ distclean: clean
 maintainer-clean: distclean
 	rm -fr $(SOURCES:.c=.d)
 
-.PHONY: test test-all test-posix test-yash testee distcontents copy-distcontents clean distclean maintainer-clean
+.PHONY: test test-all test-posix test-yash testee distfiles copy-distfiles makedeps clean distclean maintainer-clean
+_PHONY:
 
 @MAKE_INCLUDE@ invoke.d
 @MAKE_INCLUDE@ resetsig.d
