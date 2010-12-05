@@ -23,11 +23,14 @@
 .SUFFIXES: .c .h .d .o .a
 
 @MAKE_SHELL@
+topdir = .
+
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ARCHIVER = @ARCHIVER@
 DIRS = @DIRS@
 SOURCES = alias.c arith.c builtin.c exec.c expand.c hashtable.c history.c input.c job.c mail.c makesignum.c option.c parser.c path.c plist.c redir.c sig.c strbuf.c util.c variable.c xfnmatch.c yash.c
 HEADERS = alias.h arith.h builtin.h common.h exec.h expand.h hashtable.h history.h input.h job.h mail.h option.h parser.h path.h plist.h redir.h sig.h siglist.h strbuf.h util.h variable.h xfnmatch.h yash.h
@@ -108,47 +111,49 @@ uninstall-data:
 	-rmdir $(DESTDIR)$(YASHDATADIR)
 
 DISTDIR = yash-$(VERSION)
-DISTS = $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
-DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
-# "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
-distcontents: $(DISTCONTENTS) $(OBJS)
+DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh
+distfiles: $(DISTFILES)
 $(DISTDIR): _PHONY
 	rm -fr $@
 	mkdir -m 755 $@
-	@+base=$$PWD; umask 022; \
+	@+umask 022; \
 	for d in $(DIRS); do \
-		(cd $$d && $(MAKE) DISTTARGETDIR=$$base/$@/$$d copy-distcontents) || \
-		exit; \
+		(cd $$d && $(MAKE) DISTTARGETDIR=$@/$$d copy-distfiles) || exit; \
 	done
 	mkdir -m 755 $@/share
 	mkdir -m 755 $@/share/completion
 	umask 022; \
 	for file in share/completion/*; do cp $$file $@/share/completion; done
-copy-distcontents: distcontents
-	mkdir -p $(DISTTARGETDIR)
-	cp $(DISTCONTENTS) $(DISTTARGETDIR)
-# Only pax and compress comform to POSIX.
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(topdir)/$(DISTTARGETDIR)
+# Only pax and compress conform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
-	-rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR) $(DISTDIR).tar
 dist dist-gzip: $(DISTDIR).tar.gz
-	-rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR) $(DISTDIR).tar
 dist-bzip2: $(DISTDIR).tar.bz2
-	-rm -rf $(DISTDIR)
+	-rm -rf $(DISTDIR) $(DISTDIR).tar
 dist-shar: $(DISTDIR).shar.gz
 	-rm -rf $(DISTDIR)
 dist-zip: $(DISTDIR).zip
 	-rm -rf $(DISTDIR)
-dist-all: $(DISTS)
-	-rm -rf $(DISTDIR)
-$(DISTDIR).tar.Z: $(DISTDIR)
-	pax -w -x ustar $(DISTDIR) | compress -c > $@
-$(DISTDIR).tar.gz: $(DISTDIR)
-	tar -c -f - $(DISTDIR) | gzip -c > $@
-$(DISTDIR).tar.bz2: $(DISTDIR)
-	tar -c -f - $(DISTDIR) | bzip2 -9 -c > $@
+$(DISTDIR).tar: $(DISTDIR)
+	$(ARCHIVER) $@ $(DISTDIR)
+$(DISTDIR).tar.Z: $(DISTDIR).tar
+	rm -rf $@
+	compress $(DISTDIR).tar
+$(DISTDIR).tar.gz: $(DISTDIR).tar
+	rm -rf $@
+	gzip -9 $(DISTDIR).tar
+$(DISTDIR).tar.bz2: $(DISTDIR).tar
+	rm -rf $@
+	bzip2 -9 $(DISTDIR).tar
 $(DISTDIR).shar.gz: $(DISTDIR)
 	shar $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
+	rm -rf $@
 	zip -rq $@ $(DISTDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
@@ -199,7 +204,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary install-data installdirs uninstall uninstall-binary uninstall-data dist distcontents copy-distcontents dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check install install-strip install-binary install-data installdirs uninstall uninstall-binary uninstall-data dist distfiles copy-distfiles dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d

@@ -18,6 +18,8 @@
 .SUFFIXES: .c .h .d .o
 
 @MAKE_SHELL@
+topdir = ..
+
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -44,12 +46,11 @@ testee:
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
-DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
-# "distcontents" depends on object files to ensure all *.d files up-to-date
-distcontents: $(DISTCONTENTS) invoke resetsig
-copy-distcontents: distcontents
-	mkdir -p $(DISTTARGETDIR)
-	cp $(DISTCONTENTS) $(TEST_SOURCES) $(DISTTARGETDIR)
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
+distfiles: $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(TEST_SOURCES) $(topdir)/$(DISTTARGETDIR)
 
 clean:
 	rm -fr $(BYPRODUCTS)
@@ -58,7 +59,7 @@ distclean: clean
 maintainer-clean: distclean
 	rm -fr $(SOURCES:.c=.d)
 
-.PHONY: test test-all test-posix test-yash testee distcontents copy-distcontents clean distclean maintainer-clean
+.PHONY: test test-all test-posix test-yash testee distfiles copy-distfiles clean distclean maintainer-clean
 
 @MAKE_INCLUDE@ invoke.d
 @MAKE_INCLUDE@ resetsig.d

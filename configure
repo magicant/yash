@@ -169,8 +169,8 @@ Optional packages:
   --with-term-lib=LIBS    search space-separated LIBS for terminal handling
 
 Influential environment variables:
-  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, INSTALL_PROGRAM,
-  CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
+  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER,
+  INSTALL_PROGRAM, CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
     exit
 fi
@@ -427,6 +427,22 @@ then
 else
     make_shell='SHELL = sh'
 fi
+
+# check if the pax command is available
+if [ x"${ARCHIVER+set}" != x"set" ]
+then
+    checking 'for the pax command'
+    >|"${tempsrc}"
+    checkby pax -w -x ustar -f "${tempout}" "${tempsrc}"
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	archiver='pax -w -x ustar -f'
+    else
+	archiver='tar cf'
+    fi
+fi
+
 
 # check if defining _POSIX_C_SOURCE and _XOPEN_SOURCE as values larger than
 # _POSIX_VERSION and _XOPEN_VERSION is accepted.
@@ -1393,6 +1409,7 @@ LDFLAGS="${LDFLAGS-${ldflags}} ${LDADDS-${null}}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
 ARFLAGS="${ARFLAGS-${arflags}}"
+ARCHIVER="${ARCHIVER-${archiver}}"
 CTAGS="${CTAGS-${ctags}}"
 ETAGS="${ETAGS-${etags}}"
 CSCOPE="${CSCOPE-${cscope}}"
@@ -1437,6 +1454,7 @@ s!@LDFLAGS@!${LDFLAGS}!g
 s!@LDLIBS@!${LDLIBS}!g
 s!@AR@!${AR}!g
 s!@ARFLAGS@!${ARFLAGS}!g
+s!@ARCHIVER@!${ARCHIVER}!g
 s!@CTAGS@!${CTAGS}!g
 s!@CTAGSARGS@!${CTAGSARGS}!g
 s!@ETAGS@!${ETAGS}!g

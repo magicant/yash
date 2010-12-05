@@ -18,6 +18,8 @@
 .SUFFIXES: .c .h .d .o .a
 
 @MAKE_SHELL@
+topdir = ..
+
 CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -47,12 +49,11 @@ commands.in: editing.h
 	LC_COLLATE=C sort -k 1 | \
 	sed -e 's/ /", cmd_/' -e 's/^/{ "/' -e 's/$$/, },/' > $@
 
-DISTCONTENTS = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
-# "distcontents" depends on "$(OBJS)" to ensure all *.d files up-to-date
-distcontents: $(DISTCONTENTS) $(OBJS)
-copy-distcontents: distcontents
-	mkdir -p $(DISTTARGETDIR)
-	cp $(DISTCONTENTS) $(DISTTARGETDIR)
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
+distfiles: $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(topdir)/$(DISTTARGETDIR)
 
 # ctags conforms to POSIX, but etags and cscope do not.
 CTAGS = @CTAGS@
@@ -78,7 +79,7 @@ distclean: clean
 maintainer-clean: distclean
 	-rm -rf $(SOURCES:.c=.d)
 
-.PHONY: all distcontents copy-distcontents cscope mostlyclean clean distclean maintainer-clean
+.PHONY: all distfiles copy-distfiles cscope mostlyclean clean distclean maintainer-clean
 
 @MAKE_INCLUDE@ complete.d
 @MAKE_INCLUDE@ compparse.d
