@@ -671,8 +671,7 @@ int exit_builtin(int argc, void **argv)
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
 	fprintf(stderr,
-		ngt("You have %zu stopped job(s)!",
-		    "You have a stopped job!",
+		ngt("You have a stopped job!",
 		    "You have %zu stopped jobs!",
 		    sjc),
 		sjc);

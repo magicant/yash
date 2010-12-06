@@ -1938,8 +1938,7 @@ int exec_builtin(int argc, void **argv)
 	size_t sjc = stopped_job_count();
 	if (sjc > 0) {
 	    fprintf(stderr,
-		    ngt("You have %zu stopped job(s)!",
-			"You have a stopped job!",
+		    ngt("You have a stopped job!",
 			"You have %zu stopped jobs!",
 			sjc),
 		    sjc);
