@@ -27,7 +27,7 @@ check () {
 	return 1
     fi
 
-    for dep in $(sed -e 's/^.*\.o://' -e 's/\\$//' "$1.d")
+    for dep in $(sed -e '1s/^.*://' -e 's/\\$//' "$1.d")
     do
 	if ! [ -f "$dep" ]
 	then
