@@ -1,0 +1,117 @@
+# Makefile.in for PO files of yash
+# (C) 2007-2010 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# NOTE: In this Makefile it is assumed that the make implementation allows the
+# use of hyphens in target names. This means that there may be a strictly
+# POSIX-conforming implementation of make that rejects this Makefile. I have
+# never seen such an implementation but if you know of one please let me know.
+
+.POSIX:
+.SUFFIXES: .po .mo
+
+@MAKE_SHELL@
+topdir = ..
+
+XGETTEXT = @XGETTEXT@
+XGETTEXTFLAGS = @XGETTEXTFLAGS@
+MSGFMT = @MSGFMT@
+MSGFMTFLAGS = @MSGFMTFLAGS@
+MSGMERGE = @MSGMERGE@
+MSGMERGEFLAGS = @MSGMERGEFLAGS@
+POFILES = 
+MOFILES = $(POFILES:.po=.mo)
+DOMAIN = @TARGET@
+VERSION = @VERSION@
+COPYRIGHT_HOLDER = Magicant
+
+LOCALEDIR = @LOCALEDIR@
+
+# stamp-po is a timestamp denoting the last time at which the $(MOFILES) have
+# been loosely updated. Its purpose is that when a developer or translator
+# checks out the package via VCS, "make" will update the $(DOMAIN).pot and the
+# $(MOFILES), but subsequent invocations of "make" will do nothing. This
+# timestamp would not be necessary if updating the $(MOFILES) would always
+# touch them; however, the rule for $(POFILES) has been designed to not touch
+# files that don't need to be changed.
+stamp-po: $(DOMAIN).pot $(MOFILES)
+	touch $@
+
+# This rule has no dependencies: we don't need to update $(DOMAIN).pot at
+# every "make" invocation, only create it when it is missing.
+# Only "make $(DOMAIN).pot-update", "make update-po" or "make dist" will force
+# an update.
+$(DOMAIN).pot: 
+	@+$(MAKE) $(DOMAIN).pot-update
+
+# This target rebuilds $(DOMAIN).pot; it is an expensive operation.
+$(DOMAIN).pot-update:
+	(cd $(topdir) && find . -name '*.[ch]') | \
+	$(XGETTEXT) -d $(DOMAIN) -D $(topdir) -cTRANSLATORS: -f - \
+		--package-name=$(DOMAIN) --package-version=$(VERSION) \
+		--msgid-bugs-address=http://sourceforge.jp/projects/yash/forums/ \
+		--copyright-holder='$(COPYRIGHT_HOLDER)' $(XGETTEXTFLAGS)
+	mv $(DOMAIN).po $(DOMAIN).pot
+
+# This target rebuilds a PO file if $(DOMAIN).pot has changed.
+# # Note that a PO file is not touched if it doesn't need to be changed.
+$(POFILES): $(DOMAIN).pot
+	$(MSGMERGE) -U $(MSGMERGEFLAGS) $@ $(DOMAIN).pot
+
+# This target updates all PO files as well as $(DOMAIN).pot.
+update-po: $(DOMAIN).pot-update
+	@+$(MAKE) $(POFILES)
+
+.po.mo:
+	$(MSGFMT) $(MSGFMTFLAGS) -o t-$@ $<
+	mv -f t-$@ $@
+
+install: install-data
+install-data: installdirs-data
+	@for lang in $(MOFILES:.mo=); do \
+		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
+		echo $(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
+		$(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo; \
+	done
+installdirs: installdirs-data
+installdirs-data:
+	@for lang in $(MOFILES:.mo=); do \
+		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
+		echo $(INSTALL_PROGRAM) -d $(DESTDIR)$$dir || true; \
+		$(INSTALL_PROGRAM) -d $(DESTDIR)$$dir; \
+	done
+uninstall: uninstall-data
+uninstall-data:
+	@for lang in $(MOFILES:.mo=); do \
+		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
+		echo rm -f $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
+		rm -f $(DESTDIR)$$dir/$(DOMAIN).mo; \
+	done
+
+DISTFILES = $(DOMAIN).pot stamp-po $(POFILES) $(MOFILES) Makefile.in normpot.sed
+distfiles: $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(TEST_SOURCES) $(topdir)/$(DISTTARGETDIR)
+
+mostlyclean:
+	rm -fr $(DOMAIN).po
+clean: mostlyclean
+distclean: clean
+	rm -fr Makefile
+maintainer-clean: distclean
+	rm -fr $(DOMAIN).pot stamp-po $(MOFILES)
+
+.PHONY: $(DOMAIN).pot-update update-po install install-data installdirs installdirs-data uninstall uninstall-data distfiles copy-distfiles mostlyclean clean distclean maintainer-clean
