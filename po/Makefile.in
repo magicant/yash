@@ -100,7 +100,7 @@ uninstall-data:
 		rm -f $(DESTDIR)$$dir/$(DOMAIN).mo; \
 	done
 
-DISTFILES = $(DOMAIN).pot stamp-po $(POFILES) $(MOFILES) Makefile.in normpot.sed
+DISTFILES = $(DOMAIN).pot stamp-po $(POFILES) $(MOFILES) Makefile.in
 distfiles: $(DISTFILES)
 copy-distfiles: distfiles
 	mkdir -p $(topdir)/$(DISTTARGETDIR)
