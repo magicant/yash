@@ -301,7 +301,7 @@ function completion//parseoptions {
 			done
 			# Next, check for single-character options
 			if ! $long; then
-				typeset word=$TARGETWORD
+				typeset word="$TARGETWORD"
 				while word=${word#?}; [ "$word" ]; do
 					for opt in ${OPTIONS%%;*}; do
 						case $opt in
