@@ -287,8 +287,8 @@ const char colon_help[] = Ngt(
 "\t: [arg...]\n"
 "The colon built-in does nothing. Any arguments are ignored.\n"
 "Note that arguments are expanded and redirections are performed as usual.\n"
-"This built-in has the same effect as the true built-in, but `:' is a special\n"
-"built-in while \"true\" is a semi-special.\n"
+"The colon and true built-ins have the same effect, but colon is a special\n"
+"built-in while true is a semi-special.\n"
 );
 
 const char true_help[] = Ngt(
@@ -297,7 +297,7 @@ const char true_help[] = Ngt(
 "The true built-in does nothing successfully.\n"
 "Any arguments are ignored and the exit status is always zero.\n"
 "Note that arguments are expanded and redirections are performed as usual.\n"
-"This built-in has the same effect as the `:' built-in, but `:' is a special\n"
+"The colon and true built-ins have the same effect, but colon is a special\n"
 "built-in while true is a semi-special.\n"
 );
 
