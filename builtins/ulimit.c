@@ -314,7 +314,7 @@ const char ulimit_help[] = Ngt(
 "The resource limits will affect the current shell process and all commands\n"
 "invoked from the shell.\n"
 "If <limit> is not specified, the current limit is printed.\n"
-"Available options:\n"
+"Available options are:\n"
 " -H --hard\n"
 "\tSet or print the hard limit only.\n"
 " -S --soft\n"

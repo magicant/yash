@@ -1069,7 +1069,7 @@ const char jobs_help[] = Ngt(
 "environment.\n"
 "If <job>s are specified, the specified jobs are printed.\n"
 "If none is specified, all jobs are printed.\n"
-"Available options:\n"
+"Available options are:\n"
 " -l --verbose\n"
 "\tprint info for each process in the job, including the process ID\n"
 " -n --new\n"
