@@ -1563,7 +1563,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 		exitstatus = Exit_ERROR;
 		goto finish;
 dupopterror:
-		xerror(0, Ngt("more than one -%lc option specified"),
+		xerror(0, Ngt("more than one -%lc option is specified"),
 			(wint_t) opt);
 		exitstatus = Exit_ERROR;
 		goto finish;
@@ -1573,7 +1573,8 @@ dupopterror:
 #undef NEWPATTERN
 
     if (ctxt == NULL) {
-	xerror(0, Ngt("can only be used during command line completion"));
+	xerror(0, Ngt("the complete built-in can be used "
+		    "during command line completion only"));
 	exitstatus = Exit_ERROR;
 	goto finish;
     }
@@ -1585,7 +1586,7 @@ dupopterror:
     if (prefix != NULL) {
 	src = matchwcsprefix(src, prefix);
 	if (src == NULL) {
-	    xerror(0, Ngt("the specified prefix `%ls' doesn't match "
+	    xerror(0, Ngt("the specified prefix `%ls' does not match "
 			"the target word `%ls'"), prefix, ctxt->src);
 	    exitstatus = Exit_ERROR;
 	    goto finish;
@@ -1636,7 +1637,7 @@ const char complete_help[] = Ngt(
 "complete - generate completion candidates\n"
 "\tcomplete [-T] [-P prefix] [-S suffix] \\\n"
 "\t         [-abcdfghjkuv] [[-O] [-D description] words...]\n"
-"The \"complete\" built-in is called from completion functions and generates\n"
+"The complete built-in is called from completion functions and generates\n"
 "completion candidates according to the given arguments.\n"
 "\n"
 "The following options specify types of candidates to generate:\n"
@@ -1666,7 +1667,7 @@ const char complete_help[] = Ngt(
 "    --stopped-job           stopped job names\n"
 " -u --username              user names\n"
 " -v --variable              variable names\n"
-"Any operands to the \"complete\" built-in are treated as candidates.\n"
+"Any operands to the complete built-in are treated as candidates.\n"
 "The following options can be used to add attributes to candidates generated\n"
 "in this way:\n"
 " -O  --option\n"

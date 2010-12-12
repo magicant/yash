@@ -8,6 +8,10 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+
+  =  Error messages have been revised.
+
+----------------------------------------------------------------------
 Yash 2.25
 
   =  In the completion candidate list, options are now sorted case-

@@ -59,7 +59,7 @@ $(DOMAIN).pot:
 # This target rebuilds $(DOMAIN).pot; it is an expensive operation.
 $(DOMAIN).pot-update:
 	(cd $(topdir) && find . -name '*.[ch]') | \
-	$(XGETTEXT) -d $(DOMAIN) -D $(topdir) -cTRANSLATORS: -f - \
+	$(XGETTEXT) -d $(DOMAIN) -D $(topdir) -cTRANSLATORS: -f - --no-wrap \
 		--package-name=$(DOMAIN) --package-version=$(VERSION) \
 		--msgid-bugs-address=http://sourceforge.jp/projects/yash/forums/ \
 		--copyright-holder='$(COPYRIGHT_HOLDER)' $(XGETTEXTFLAGS)

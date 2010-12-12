@@ -69,11 +69,11 @@ case "$1" in
 	;;
     array.y)
 	$INVOKE $TESTEE -c 'type array' 2>/dev/null | \
-	    grep '^array: regular builtin' >/dev/null
+	    grep '^array: a regular built-in' >/dev/null
 	;;
     dirstack.y)
 	$INVOKE $TESTEE -c 'type pushd' 2>/dev/null | \
-	    grep '^pushd: regular builtin' >/dev/null
+	    grep '^pushd: a regular built-in' >/dev/null
 	;;
     job.y)
 	# ensure that /dev/tty is available and that we're in foreground
@@ -86,7 +86,7 @@ END
 	;;
     help.y)
 	$INVOKE $TESTEE -c 'type help' 2>/dev/null | \
-	    grep '^help: regular builtin' >/dev/null
+	    grep '^help: a regular built-in' >/dev/null
 	;;
     history.y)
 	HISTFILE= $INVOKE $TESTEE -i +m --norcfile -c 'PATH=; fc -l' \
@@ -94,15 +94,15 @@ END
 	;;
     lineedit.y)
 	$INVOKE $TESTEE -c 'type bindkey' 2>/dev/null | \
-	    grep '^bindkey: regular builtin' >/dev/null
+	    grep '^bindkey: a regular built-in' >/dev/null
 	;;
     printf.y)
 	$INVOKE $TESTEE -c 'type printf' 2>/dev/null | \
-	    grep '^printf: regular builtin' >/dev/null
+	    grep '^printf: a regular built-in' >/dev/null
 	;;
     test.y)
 	$INVOKE $TESTEE -c 'type test' 2>/dev/null | \
-	    grep '^test: regular builtin' >/dev/null
+	    grep '^test: a regular built-in' >/dev/null
 	;;
 esac
 

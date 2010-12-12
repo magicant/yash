@@ -260,24 +260,25 @@ print_char:
 const char echo_help[] = Ngt(
 "echo - prints arguments\n"
 "\techo [string...]\n"
-"Prints <string>s followed by a newline. The <string>s are each separated by\n"
-"a space. This command does not recognize any options except described below.\n"
+"The echo built-in prints <string>s followed by a newline to the standard\n"
+"output. The <string>s are each separated by a space. This built-in does not\n"
+"recognize any options except described below.\n"
 "\n"
-"The behavior of \"echo\" depends on the value of $ECHO_STYLE variable:\n"
-"  \"SYSV\" or \"XSI\" (default)\n"
+"The behavior of the echo built-in depends on the value of $ECHO_STYLE:\n"
+"  `SYSV' or `XSI' (default)\n"
 "    always recognize escape sequences but not any options.\n"
-"  \"BSD\"\n"
+"  `BSD'\n"
 "    recognize the -n option only.\n"
-"  \"GNU\"\n"
+"  `GNU'\n"
 "    recognize the -n, -e, -E options. Escape sequences are recognized if\n"
 "    enabled by the -e option.\n"
-"  \"ZSH\"\n"
+"  `ZSH'\n"
 "    recognize the -n, -e, -E options. Escape sequences are recognized unless\n"
 "    disabled by the -E option.\n"
-"  \"DASH\"\n"
+"  `DASH'\n"
 "    recognize the -n option and escape sequences. Escape sequences cannot be\n"
 "    disabled.\n"
-"  \"RAW\"\n"
+"  `RAW'\n"
 "    do not recognize any options nor escape sequences.\n"
 "\n"
 "Options:\n"
@@ -537,11 +538,11 @@ parse_width:
 	    type = ft_none;
 	    break;
 	case L'\0':
-	    xerror(0, Ngt("conversion specifier missing"));
+	    xerror(0, Ngt("the conversion specifier is missing"));
 	    sb_destroy(&buf);
 	    return NULL;
 	default:  conv_error:
-	    xerror(0, Ngt("`%lc': invalid conversion specifier"),
+	    xerror(0, Ngt("`%lc' is not a valid conversion specifier"),
 		    (wint_t) *format);
 	    sb_destroy(&buf);
 	    return NULL;
@@ -792,8 +793,8 @@ void freeformat(struct format_T *f)
 const char printf_help[] = Ngt(
 "printf - print a formatted string\n"
 "\tprintf format [argument...]\n"
-"Prints a string formatted by <format>.\n"
-"This command is very similar to the C programming language's \"printf\"\n"
+"The printf built-in prints a string formatted by <format>.\n"
+"This built-in is very similar to the C programming language's `printf'\n"
 "function. Each conversion specification starting with `%' in <format> is\n"
 "substituted with the value of the corresponding <argument>. Escape sequences\n"
 "starting with `\\' are also recognized.\n"
@@ -817,7 +818,7 @@ const char printf_help[] = Ngt(
 "  %G    %F or %E, automatically selected\n"
 "  %c    first character of string\n"
 "  %s    string\n"
-"  %b    string (escape sequences recognized like the \"echo\" builtin)\n"
+"  %b    string (escape sequences are recognized like by the echo built-in)\n"
 "  %%    %\n"
 "\n"
 "Flags, field width, and precision can be specified in this order between\n"

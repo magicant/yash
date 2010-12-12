@@ -51,7 +51,7 @@ static const struct resource {
     const char *description;
 } resource_types[] = {
     { L'c', RLIMIT_CORE, 512, Ngt("core file size (blocks)"), },
-    { L'd', RLIMIT_DATA, 1024, Ngt("data seg size (kbytes)"), },
+    { L'd', RLIMIT_DATA, 1024, Ngt("data segment size (kbytes)"), },
 #if HAVE_RLIMIT_NICE
     { L'e', RLIMIT_NICE, 1, Ngt("max nice"), },
 #endif
@@ -198,7 +198,7 @@ opt_ok:
 	clearerr(stdout);
 	for (resource = resource_types; resource->option; resource++) {
 	    if (getrlimit(resource->type, &rlimit) < 0) {
-		xerror(errno, Ngt("cannot get current limit"));
+		xerror(errno, Ngt("cannot get the current limit"));
 		return Exit_FAILURE;
 	    }
 	    rlim_t value = (type & soft) ? rlimit.rlim_cur : rlimit.rlim_max;
@@ -228,7 +228,7 @@ opt_ok:
     }
     assert(resource != NULL);
     if (getrlimit(resource->type, &rlimit) < 0) {
-	xerror(errno, Ngt("cannot get current limit"));
+	xerror(errno, Ngt("cannot get the current limit"));
 	return Exit_FAILURE;
     }
     if (xoptind == argc) {
@@ -280,12 +280,12 @@ opt_ok:
 		    || (rlimit.rlim_cur != RLIM_SAVED_MAX
 			&& rlimit.rlim_cur != RLIM_SAVED_CUR
 			&& rlimit.rlim_cur > rlimit.rlim_max))) {
-	    xerror(0, Ngt("soft limit cannot exceed hard limit"));
+	    xerror(0, Ngt("the soft limit cannot exceed the hard limit"));
 	    return Exit_FAILURE;
 	}
 
 	if (setrlimit(resource->type, &rlimit) < 0) {
-	    xerror(errno, Ngt("cannot set limit"));
+	    xerror(errno, Ngt("failed to set the limit"));
 	    return Exit_FAILURE;
 	} else {
 	    return Exit_SUCCESS;
@@ -304,15 +304,15 @@ print_usage:
 const char ulimit_help[] = Ngt(
 "ulimit - set or print resource limitation\n"
 "\tulimit [-HSaefilnqrstuvx] [limit]\n"
-"Sets a resource limit to <limit>. The resource type can be specified by the\n"
-"options listed below.\n"
-"For each resource type, there are two limit values: the hard limit and the\n"
-"soft limit. You can change a soft limit freely as long as it does not exceed\n"
-"the hard limit. You can decrease a hard limit but cannot increase it without\n"
-"a proper permission. <limit> must be a non-negative integer or one of\n"
-"\"hard\", \"soft\" and \"unlimited\".\n"
-"The resource limits will affect the current shell process and all\n"
-"succeedingly invoked commands.\n"
+"The ulimit built-in sets a resource limit to <limit>. The resource type can\n"
+"be specified by the options listed below.\n"
+"Each resource type has two limit values: the hard limit and the soft limit.\n"
+"You can change a soft limit freely as long as it does not exceed the hard\n"
+"limit. You can decrease a hard limit but cannot increase it without a proper\n"
+"permission. <limit> must be a non-negative integer or one of `hard', `soft',\n"
+"and `unlimited'.\n"
+"The resource limits will affect the current shell process and all commands\n"
+"invoked from the shell.\n"
 "If <limit> is not specified, the current limit is printed.\n"
 "Available options:\n"
 " -H --hard\n"
@@ -327,7 +327,7 @@ const char ulimit_help[] = Ngt(
 "The following options can be used to specify the resource type:\n"
 " -c --core:       The maximum size of core files created (B)\n"
 " -d --data:       The maximum size of a process's data segment (K)\n"
-" -e --nice:       The maximum scheduling priority (\"nice\")\n"
+" -e --nice:       The maximum scheduling priority (`nice')\n"
 " -f --fsize:      The maximum size of files created by a process (B)\n"
 " -i --sigpending: The maximum number of pending signals\n"
 " -l --memlock:    The maximum memory size that can be locked into RAM (K)\n"
@@ -340,8 +340,8 @@ const char ulimit_help[] = Ngt(
 " -u --nproc:      The maximum number of processes for a user\n"
 " -v --as:         The maximum size of memory used by a process (K)\n"
 " -x --locks:      The maximum number of file locks\n"
-"For resource types marked with (B), (K) and (S), the limits are set and\n"
-"printed in 512-byte blocks, kilobytes and seconds respectively.\n"
+"For resource types marked with (B), (K), and (S), the limits are set and\n"
+"printed in 512-byte blocks, kilobytes, and seconds, respectively.\n"
 "Available resource types vary depending on your system.\n"
 );
 #endif /* YASH_ENABLE_HELP */

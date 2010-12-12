@@ -253,8 +253,8 @@ void open_ttyfd(void)
     if (ttyfd < 0) {
 	ttyfd = move_to_shellfd(open("/dev/tty", O_RDWR));
 	if (ttyfd < 0) {
-	    xerror(errno, Ngt("cannot open `%s'"), "/dev/tty");
-	    xerror(0, Ngt("job control disabled"));
+	    xerror(errno, Ngt("cannot open file `%s'"), "/dev/tty");
+	    xerror(0, Ngt("disabling job control"));
 	    do_job_control = false;
 	}
     }
@@ -302,7 +302,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 
     while (r) {
 	if (r->rd_fd < 0 || is_shellfd(r->rd_fd)) {
-	    xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+	    xerror(0, Ngt("redirection: file descriptor %d is unavailable"),
 		    r->rd_fd);
 	    return false;
 	}
@@ -354,7 +354,8 @@ openwithflags:
 	    keepopen = false;
 	    fd = open_file(filename, flags);
 	    if (fd < 0) {
-		xerror(errno, Ngt("redirection: cannot open `%s'"), filename);
+		xerror(errno, Ngt("redirection: cannot open file `%s'"),
+			filename);
 		free(filename);
 		return false;
 	    }
@@ -535,7 +536,8 @@ int open_socket(const char *hostandport, int socktype)
     free(hostname);
     free(port);
     if (err != 0) {
-	xerror(0, Ngt("socket redirection: cannot resolve address of %s: %s"),
+	xerror(0, Ngt("socket redirection: "
+		    "cannot resolve the address of `%s': %s"),
 		hostandport, gai_strerror(err));
 	set_interruptible_by_sigint(false);
 	errno = saveerrno;
@@ -583,7 +585,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
     }
 
     if (is_shellfd(fd)) {
-	xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+	xerror(0, Ngt("redirection: file descriptor %d is unavailable"),
 		fd);
 	fd = -2;
 	goto end;
@@ -593,7 +595,7 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 	/* check the read/write permission */
 	int flags = fcntl(fd, F_GETFL);
 	if (flags < 0) {
-	    xerror(errno, Ngt("redirection: %d"), fd);
+	    xerror(errno, Ngt("redirection: %s"), num);
 	    fd = -2;
 	} else if (type == RT_DUPIN) {
 	    switch (flags & O_ACCMODE) {
@@ -601,7 +603,8 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 		    /* ok */
 		    break;
 		default:
-		    xerror(0, Ngt("redirection: %d: not readable"), fd);
+		    xerror(0, Ngt("redirection: "
+				"file descriptor %d is not readable"), fd);
 		    fd = -2;
 		    break;
 	    }
@@ -612,7 +615,8 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 		    /* ok */
 		    break;
 		default:
-		    xerror(0, Ngt("redirection: %d: not writable"), fd);
+		    xerror(0, Ngt("redirection: "
+				"file descriptor %d is not writable"), fd);
 		    fd = -2;
 		    break;
 	    }
@@ -650,11 +654,11 @@ int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 	fd = -1;
     } else if (outputfd == inputfd) {
 	xerror(0, Ngt("redirection: %d>>|%d: "
-		    "same input and output file descriptors"),
+		    "the input and output file descriptors are same"),
 		outputfd, inputfd);
 	fd = -1;
     } else if (is_shellfd(inputfd)) {
-	xerror(0, Ngt("redirection: file descriptor %d unavailable"),
+	xerror(0, Ngt("redirection: file descriptor %d is unavailable"),
 		inputfd);
 	fd = -1;
     } else {
@@ -708,7 +712,8 @@ int open_heredocument(const wordunit_T *contents)
 
     char *mcontents = realloc_wcstombs(wcontents);
     if (!mcontents) {
-	xerror(EILSEQ, Ngt("cannot write here-document contents"));
+	xerror(EILSEQ, Ngt("cannot write the here-document contents "
+		    "to the temporary file"));
 	return -1;
     }
 
@@ -747,7 +752,8 @@ int open_herestring(char *s, bool appendnewline)
 	    /* It is guaranteed that all the contents is written to the pipe
 	     * at once, so we don't have to use `write_all' here. */
 	    if (write(pipefd[PIDX_OUT], s, len) < 0)
-		xerror(errno, Ngt("cannot write here-document contents"));
+		xerror(errno, Ngt("cannot write the here-document contents "
+			    "to the temporary file"));
 	    xclose(pipefd[PIDX_OUT]);
 	    free(s);
 	    return pipefd[PIDX_IN];
@@ -758,7 +764,8 @@ int open_herestring(char *s, bool appendnewline)
     char *tempfile;
     fd = create_temporary_file(&tempfile, 0);
     if (fd < 0) {
-	xerror(errno, Ngt("cannot create temporary file for here-document"));
+	xerror(errno,
+		Ngt("cannot create a temporary file for the here-document"));
 	free(s);
 	return -1;
     }
@@ -766,10 +773,12 @@ int open_herestring(char *s, bool appendnewline)
 	xerror(errno, Ngt("failed to remove temporary file `%s'"), tempfile);
     free(tempfile);
     if (!write_all(fd, s, len))
-	xerror(errno, Ngt("cannot write here-document contents"));
+	xerror(errno, Ngt("cannot write the here-document contents "
+		    "to the temporary file"));
     free(s);
     if (lseek(fd, 0, SEEK_SET) != 0)
-	xerror(errno, Ngt("cannot seek temporary file for here-document"));
+	xerror(errno,
+		Ngt("cannot seek the temporary file for the here-document"));
     return fd;
 }
 
@@ -783,8 +792,8 @@ int open_process_redirection(const embedcmd_T *command, redirtype_T type)
 
     assert(type == RT_PROCIN || type == RT_PROCOUT);
     if (pipe(pipefd) < 0) {
-	xerror(errno,
-		Ngt("redirection: cannot open pipe for command redirection"));
+	xerror(errno, Ngt("redirection: cannot open a pipe "
+		    "for the command redirection"));
 	return -1;
     }
     cpid = fork_and_reset(-1, false, 0);

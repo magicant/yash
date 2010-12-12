@@ -212,12 +212,12 @@ int print_builtin_help(const wchar_t *name)
     free(mbsname);
     if (bi) {
 	if (fputs(gt(bi->help), stdout) == EOF) {
-	    xerror(errno, Ngt("cannot print help of `%ls'"), name);
+	    xerror(errno, Ngt("cannot print to standard output"));
 	    return Exit_FAILURE;
 	}
 	return Exit_SUCCESS;
     } else {
-	xerror(0, Ngt("%ls: no such builtin"), name);
+	xerror(0, Ngt("no such built-in `%ls'"), name);
 	return Exit_FAILURE;
     }
 }
@@ -285,28 +285,27 @@ int false_builtin(
 const char colon_help[] = Ngt(
 ": - null utility\n"
 "\t: [arg...]\n"
-"Does nothing. Any arguments are ignored.\n"
+"The colon built-in does nothing. Any arguments are ignored.\n"
 "Note that arguments are expanded and redirections are performed as usual.\n"
-"This command has the same effect as the \"true\" command, but \":\" is a\n"
-"special builtin while \"true\" is a semi-special.\n"
+"This built-in has the same effect as the true built-in, but `:' is a special\n"
+"built-in while \"true\" is a semi-special.\n"
 );
 
 const char true_help[] = Ngt(
 "true - return true value\n"
 "\ttrue\n"
-"Does nothing successfully.\n"
+"The true built-in does nothing successfully.\n"
 "Any arguments are ignored and the exit status is always zero.\n"
-"This command has the same effect as the \":\" command, but \":\" is a\n"
-"special builtin while \"true\" is a semi-special.\n"
-"Naturally, the opposite of this command is the \"false\" command.\n"
+"Note that arguments are expanded and redirections are performed as usual.\n"
+"This built-in has the same effect as the `:' built-in, but `:' is a special\n"
+"built-in while true is a semi-special.\n"
 );
 
 const char false_help[] = Ngt(
 "false - return false value\n"
 "\tfalse\n"
-"Does nothing unsuccessfully.\n"
+"The false built-in does nothing unsuccessfully.\n"
 "Any arguments are ignored and the exit status is always non-zero.\n"
-"Naturally, the opposite of this command is the \"true\" command.\n"
 );
 
 
@@ -335,9 +334,9 @@ int help_builtin(int argc, void **argv)
 }
 
 const char help_help[] = Ngt(
-"help - print usage of builtin\n"
+"help - print usage of built-ins\n"
 "\thelp command...\n"
-"Prints a description of <command>s.\n"
+"The help built-in prints a description of the specified built-in <command>s.\n"
 );
 
 #endif /* YASH_ENABLE_HELP */

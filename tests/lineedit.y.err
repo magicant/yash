@@ -1,13 +1,13 @@
-bindkey: --no-such-option: invalid option
+bindkey: `--no-such-option' is not a valid option
 Usage:  bindkey -aev [keyseq [command]]
         bindkey -l
-bindkey: option not specified
+bindkey: no option is specified
 Usage:  bindkey -aev [keyseq [command]]
         bindkey -l
-bindkey: no-such-command: no such command
-bindkey: cannot bind empty sequence
-bindkey: ~~~: unbound sequence
-complete: --no-such-option: invalid option
+bindkey: no such command `no-such-command'
+bindkey: cannot bind an empty key sequence
+bindkey: key sequence `~~~' is not bound
+complete: `--no-such-option' is not a valid option
 Usage:  complete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \
         [-abcdfghjkuv] [[-O] [-D description] words...]
-complete: can only be used during command line completion
+complete: the complete built-in can be used during command line completion only

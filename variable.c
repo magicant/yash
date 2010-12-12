@@ -358,12 +358,12 @@ void init_pwd(void)
 set:
     newpwd = xgetcwd();
     if (!newpwd) {
-	xerror(errno, Ngt("cannot set $PWD"));
+	xerror(errno, Ngt("failed to set $PWD"));
 	return;
     }
     wnewpwd = realloc_mbstowcs(newpwd);
     if (!wnewpwd) {
-	xerror(0, Ngt("cannot set $PWD"));
+	xerror(0, Ngt("failed to set $PWD"));
 	return;
     }
     set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, true);
@@ -387,10 +387,10 @@ variable_T *search_array_and_check_if_changeable(const wchar_t *name)
 {
     variable_T *array = search_variable(name);
     if (!array || (array->v_type & VF_MASK) != VF_ARRAY) {
-	xerror(0, Ngt("%ls: no such array"), name);
+	xerror(0, Ngt("no such array $%ls"), name);
 	return NULL;
     } else if (array->v_type & VF_READONLY) {
-	xerror(0, Ngt("%ls: readonly"), name);
+	xerror(0, Ngt("$%ls is read-only"), name);
 	return NULL;
     }
     return array;
@@ -421,18 +421,18 @@ void update_environment(const wchar_t *name)
 	    }
 	    if (value) {
 		if (setenv(mname, value, true) < 0)
-		    xerror(errno, Ngt("cannot set environment variable `%s'"),
+		    xerror(errno, Ngt("failed to set environment variable $%s"),
 			    mname);
 		free(value);
 	    } else {
-		xerror(EILSEQ, Ngt("cannot set environment variable `%s'"),
+		xerror(EILSEQ, Ngt("failed to set environment variable $%s"),
 			mname);
 	    }
 	    goto done;
 	}
     }
     if (unsetenv(mname) < 0)
-	xerror(errno, Ngt("cannot unset environment variable `%s'"), mname);
+	xerror(errno, Ngt("failed to unset environment variable $%s"), mname);
 done:
     free(mname);
 }
@@ -587,7 +587,7 @@ variable_T *new_variable(const wchar_t *name, scope_T scope)
 	default:            assert(false);
     }
     if (var->v_type & VF_READONLY) {
-	xerror(0, Ngt("%ls: readonly"), name);
+	xerror(0, Ngt("$%ls is read-only"), name);
 	return NULL;
     } else {
 	varvaluefree(var);
@@ -676,7 +676,8 @@ bool set_array_element(const wchar_t *name, size_t index, wchar_t *value)
 
 invalid_index:
     xerror(0,
-	    Ngt("%zu: index out of range (actual size of array `%ls' is %zu)"),
+	    Ngt("index %zu is out of range "
+		"(the actual size of array $%ls is %zu)"),
 	    index + 1, name, array->v_valc);
 fail:
     free(value);
@@ -1175,7 +1176,8 @@ bool define_function(const wchar_t *name, command_T *body)
 {
     function_T *f = ht_get(&functions, name).value;
     if (f != NULL && (f->f_type & VF_READONLY)) {
-	xerror(0, Ngt("cannot re-define readonly function `%ls'"), name);
+	xerror(0, Ngt("function `%ls' cannot be redefined "
+		    "because it is read-only"), name);
 	return false;
     }
 
@@ -1354,7 +1356,7 @@ bool parse_dirstack_index(
 	if (num == 0)
 	    goto return_pwd;
 	if (printerror)
-	    xerror(0, Ngt("directory stack is empty"));
+	    xerror(0, Ngt("the directory stack is empty"));
 	return false;
     }
 #if LONG_MAX > SIZE_MAX
@@ -1392,7 +1394,7 @@ return_pwd:
     pwd = getvar(L VAR_PWD);
     if (!pwd) {
 	if (printerror)
-	    xerror(0, Ngt("$PWD not set"));
+	    xerror(0, Ngt("$PWD is not set"));
 	return false;
     }
     *entryp = pwd;
@@ -1404,7 +1406,7 @@ not_index:
     return true;
 out_of_range:
     if (printerror)
-	xerror(0, Ngt("%ls: index out of range"), indexstr);
+	xerror(0, Ngt("index %ls is out of range"), indexstr);
     return false;
 }
 
@@ -1516,11 +1518,11 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (funcs && (export || unexport)) {
-	xerror(0, Ngt("functions cannot be exported"));
+	xerror(0, Ngt("the -f option cannot be used with the -x or -X option"));
 	SPECIAL_BI_ERROR;
 	return Exit_ERROR;
     } else if (export && unexport) {
-	xerror(0, Ngt("-x and -X cannot be used at a time"));
+	xerror(0, Ngt("the -x and -X options cannot be used both at once"));
 	SPECIAL_BI_ERROR;
 	return Exit_ERROR;
     }
@@ -1571,7 +1573,7 @@ int typeset_builtin(int argc, void **argv)
 		    if (print)
 			print_function(arg, f, ARGV(0), readonly);
 		} else {
-		    xerror(0, Ngt("%ls: no such function"), arg);
+		    xerror(0, Ngt("no such function `%ls'"), arg);
 		}
 	    } else if (wequal || !print) {
 		/* create/assign variable */
@@ -1579,7 +1581,7 @@ int typeset_builtin(int argc, void **argv)
 		vartype_T saveexport = var->v_type & VF_EXPORT;
 		if (wequal) {
 		    if (var->v_type & VF_READONLY) {
-			xerror(0, Ngt("%ls: readonly"), arg);
+			xerror(0, Ngt("$%ls is read-only"), arg);
 		    } else {
 			varvaluefree(var);
 			var->v_type = VF_SCALAR | (var->v_type & ~VF_MASK);
@@ -1603,7 +1605,7 @@ int typeset_builtin(int argc, void **argv)
 		if (var) {
 		    print_variable(arg, var, ARGV(0), readonly, export);
 		} else {
-		    xerror(0, Ngt("%ls: no such variable"), arg);
+		    xerror(0, Ngt("no such variable $%ls"), arg);
 		}
 	    }
 	} while (++xoptind < argc);
@@ -1769,28 +1771,28 @@ const char typeset_help[] = Ngt(
 "\ttypeset  [-fgprxX] [name[=value]...]\n"
 "\texport   [-prX]    [name[=value]...]\n"
 "\treadonly [-fpxX]   [name[=value]...]\n"
-"For each operands of the form <name>, the variable of the specified name is\n"
+"For each operand of the form <name>, the variable of the specified name is\n"
 "created if not yet created, without assigning any value. If the -p (--print)\n"
-"option is specified, the current value and attributes of the variable is\n"
-"printed instead of creating the variable.\n"
-"For each operands of the form <name=value>, the value is assigned to the\n"
-"specified variable. The variable is created if necessary.\n"
-"If no operands are given, all variables are printed. (Without the -g\n"
-"(--global) option, only local variables are printed.)\n"
+"option is specified, the current value and the attributes of the variable\n"
+"are printed instead of creating the variable.\n"
+"For each operand of the form <name=value>, the value is assigned to the\n"
+"specified variable. The variable is created if not yet created.\n"
+"If no operands are given, all existing variables are printed.\n"
 "\n"
-"By default, the \"typeset\" builtin affects local variables. To declare\n"
-"global variables inside functions, the -g (--global) option can be used.\n"
-"The -r (--readonly) option makes the specified variables/functions readonly.\n"
+"By default, the typeset built-in affects local variables only. To create a\n"
+"global variable inside a function, the -g (--global) option can be used.\n"
+"The -r (--readonly) option makes the specified variables/functions read-\n"
+"only.\n"
 "The -x (--export) option makes the variables exported to external commands.\n"
 "The -X (--unexport) option undoes the exportation.\n"
-"The -f (--functions) option can be used to specify functions instead of\n"
-"variables. Functions cannot be assigned or exported with these builtins: the\n"
-"-f option can only be used together with the -r or -p option to make\n"
-"functions readonly or print them. Functions cannot be exported.\n"
+"The -f (--functions) option can be used to affect functions instead of\n"
+"variables. Functions cannot be assigned or exported with the typeset\n"
+"built-in: the -f option can be used only together with the -r or -p option\n"
+"to make functions read-only or print them.\n"
 "\n"
-"\"export\" is equivalent to \"typeset -gx\".\n"
-"\"readonly\" is equivalent to \"typeset -gr\".\n"
-"Note that the typeset builtin is unavailable in the POSIXly correct mode.\n"
+"`export' is equivalent to `typeset -gx'.\n"
+"`readonly' is equivalent to `typeset -gr'.\n"
+"Note that the typeset built-in is unavailable in the POSIXly correct mode.\n"
 );
 #endif /* YASH_ENABLE_HELP */
 
@@ -1838,7 +1840,7 @@ int array_builtin(int argc, void **argv)
 	}
     }
     if (options && (options & (options - 1))) {
-	xerror(0, Ngt("more than one option cannot be used at a time"));
+	xerror(0, Ngt("more than one option cannot be used at once"));
 	return Exit_ERROR;
     }
 
@@ -1862,7 +1864,7 @@ int array_builtin(int argc, void **argv)
     } else {
 	const wchar_t *name = ARGV(xoptind++);
 	if (wcschr(name, L'=')) {
-	    xerror(0, Ngt("`%ls': invalid name"), name);
+	    xerror(0, Ngt("`%ls' is not a valid array name"), name);
 	    return Exit_FAILURE;
 	}
 
@@ -2041,29 +2043,29 @@ void array_set_element(const wchar_t *name, variable_T *array,
     return;
 
 invalid_index:
-    xerror(0,
-	    Ngt("%ls: index out of range (actual size of array `%ls' is %zu)"),
+    xerror(0, Ngt("index %ls is out of range "
+		"(the actual size of array $%ls is %zu)"),
 	    indexword, name, array->v_valc);
 }
 
 #if YASH_ENABLE_HELP
 const char array_help[] = Ngt(
-"array - manipulate array\n"
+"array - manipulate an array\n"
 "\tarray\n"
 "\tarray name [value...]\n"
 "\tarray -d name [index...]\n"
 "\tarray -i name index [value...]\n"
 "\tarray -s name index value\n"
 "The first form (without arguments) prints all existing arrays.\n"
-"The second form sets the values of the array. This is equivalent to an\n"
-"assignment of the form \"name=(values)\".\n"
-"The third form (with the -d (--delete) option) removes the elements\n"
-"specified by <index>es from the array.\n"
+"The second form sets the values of the array of the specified <name>. This\n"
+"is equivalent to an assignment of the form `name=(values)'.\n"
+"The third form (with the -d (--delete) option) removes the elements of the\n"
+"specified <index>es from the array.\n"
 "The fourth form (with the -i (--insert) option) inserts elements after the\n"
-"element specified by <index> in the array. An index of zero makes the\n"
-"elements inserted at the head of the array.\n"
+"element of the specified <index> in the array. If the index is zero, the\n"
+"elements are inserted at the head of the array.\n"
 "The fifth form (with the -s (--set) option) sets the value of the specified\n"
-"element of the array.\n"
+"single element.\n"
 );
 #endif /* YASH_ENABLE_HELP */
 
@@ -2105,7 +2107,7 @@ int unset_builtin(int argc, void **argv)
     for (; xoptind < argc; xoptind++) {
 	const wchar_t *name = ARGV(xoptind);
 	if (wcschr(name, L'=')) {
-	    xerror(0, Ngt("`%ls': invalid name"), name);
+	    xerror(0, Ngt("`%ls' is not a valid variable name"), name);
 	    continue;
 	}
 	if (funcs)
@@ -2128,7 +2130,7 @@ bool unset_function(const wchar_t *name)
 	if (!(f->f_type & VF_NODELETE)) {
 	    funckvfree(kv);
 	} else {
-	    xerror(0, Ngt("%ls: readonly"), name);
+	    xerror(0, Ngt("function `%ls' is read-only"), name);
 	    ht_set(&functions, kv.key, kv.value);
 	    return true;
 	}
@@ -2153,7 +2155,7 @@ bool unset_variable(const wchar_t *name)
 		    update_environment(name);
 		return false;
 	    } else {
-		xerror(0, Ngt("%ls: readonly"), name);
+		xerror(0, Ngt("$%ls is read-only"), name);
 		ht_set(&env->contents, kv.key, kv.value);
 		return true;
 	    }
@@ -2166,11 +2168,11 @@ bool unset_variable(const wchar_t *name)
 const char unset_help[] = Ngt(
 "unset - remove variables or functions\n"
 "\tunset [-fv] <name>...\n"
-"Removes the specified variables or functions.\n"
-"When the -f (--functions) options is specified, this command removes\n"
-"functions. When the -v (--variables) option is specified, this command\n"
+"The unset built-in removes the specified variables or functions.\n"
+"When the -f (--functions) option is specified, this built-in removes\n"
+"functions. When the -v (--variables) option is specified, this built-in\n"
 "removes variables.\n"
-"-f and -v are mutually exclusive: the last specified one is used.\n"
+"-f and -v are mutually exclusive: only the last specified one is effective.\n"
 "If neither is specified, -v is the default.\n"
 );
 #endif
@@ -2204,7 +2206,8 @@ int shift_builtin(int argc, void **argv)
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	} else if (count < 0) {
-	    xerror(0, Ngt("%ls: value must not be negative"), ARGV(xoptind));
+	    xerror(0, Ngt("%ls: the operand value must not be negative"),
+		    ARGV(xoptind));
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	}
@@ -2236,7 +2239,7 @@ int shift_builtin(int argc, void **argv)
 const char shift_help[] = Ngt(
 "shift - remove some positional parameters\n"
 "\tshift [n]\n"
-"Removes the first <n> positional parameters.\n"
+"The shift built-in removes the first <n> positional parameters.\n"
 "If <n> is not specified, it defaults to 1.\n"
 "<n> must be a non-negative integer that is not greater than $#.\n"
 );
@@ -2268,10 +2271,10 @@ int getopts_builtin(int argc, void **argv)
     wchar_t optchar;
 
     if (wcschr(varname, L'=')) {
-	xerror(0, Ngt("`%ls': invalid name"), varname);
+	xerror(0, Ngt("`%ls' is not a valid variable name"), varname);
 	return Exit_FAILURE;
     } else if (!check_options(options)) {
-	xerror(0, Ngt("`%ls': invalid option specification"), options);
+	xerror(0, Ngt("`%ls' is not a valid option specification"), options);
 	return Exit_FAILURE;
     }
 
@@ -2329,7 +2332,7 @@ parse_arg:
 	if (options[0] == L':') {
 	    TRY(set_optarg((wchar_t []) { optchar, L'\0' }));
 	} else {
-	    fprintf(stderr, gt("%ls: -%lc: invalid option\n"),
+	    fprintf(stderr, gt("%ls: `-%lc' is not a valid option\n"),
 		    command_name, (wint_t) optchar);
 	    TRY(!unset_variable(L VAR_OPTARG));
 	}
@@ -2351,8 +2354,9 @@ parse_arg:
 			TRY(set_to(varname, L':'));
 			TRY(set_optarg((wchar_t []) { optchar, L'\0' }));
 		    } else {
-			fprintf(stderr, gt("%ls: -%lc: argument missing\n"),
-				command_name, (wint_t) optchar);
+			fprintf(stderr,
+			    gt("%ls: the -%lc option's argument is missing\n"),
+			    command_name, (wint_t) optchar);
 			TRY(set_to(varname, L'?'));
 			TRY(!unset_variable(L VAR_OPTARG));
 		    }
@@ -2377,7 +2381,7 @@ no_more_options:
     unset_variable(L VAR_OPTARG);
     return Exit_FAILURE;
 optind_invalid:
-    xerror(0, Ngt("$OPTIND not valid"));
+    xerror(0, Ngt("$OPTIND has an invalid value"));
     return Exit_FAILURE;
 print_usage:
     fprintf(stderr, gt("Usage:  getopts options var [arg...]\n"));
@@ -2437,42 +2441,41 @@ bool set_to(const wchar_t *varname, wchar_t value)
 const char getopts_help[] = Ngt(
 "getopts - parse command options\n"
 "\tgetopts options var [arg...]\n"
-"Parses <options> that appear in <arg>s. Each time this command is invoked,\n"
-"one option is parsed and the option character is assigned to variable <var>.\n"
-"$OPTIND is updated to indicate the next argument to parse.\n"
+"The getopts built-in parses <options> that appear in <arg>s. Each time\n"
+"getopts is invoked, one option is parsed and the option character is\n"
+"assigned to variable <var>.\n"
 "String <options> is a list of option characters that can be accepted by the\n"
-"parser. In <options>, an option that takes an argument can be specified by a\n"
-"colon following the character.\n"
+"parser. In <options>, an option that takes an argument can be specified as\n"
+"a character followed by a colon.\n"
 "For example, if you want the -a, -b and -c options to be parsed and the -b\n"
-"option takes an argument, then <options> should be \"ab:c\".\n"
+"option takes an argument, then <options> should be `ab:c'.\n"
 "Argument <var> is the name of a variable to which the parsed option\n"
-"character is assigned: When an option specified in <options> is parsed, the\n"
-"option character is assigned to variable <var>. Otherwise, \"?\" is\n"
-"assigned to <var>.\n"
+"character is assigned. When an option specified in <options> is parsed, the\n"
+"option character is assigned to variable <var>. Otherwise, `?' is assigned\n"
+"to <var>.\n"
 "Arguments <arg>s are the strings to parse. If no <arg>s are given, the\n"
 "current positional parameters are parsed.\n"
 "\n"
 "When an option that takes an argument is parsed, the option's argument is\n"
 "assigned to $OPTARG.\n"
-"The behavior depends on the first character of <options> when an option not\n"
-"specified in <options> is found or when an option's argument is missing:\n"
-"If <options> starts with a colon, the option character is assigned to\n"
-"$OPTARG and variable <var> is set to \"?\" (when the option is not in\n"
-"<options>) or \":\" (when the option's argument is missing).\n"
-"Otherwise, variable <var> is set to \"?\", $OPTARG is unset and an error\n"
-"message is printed.\n"
+"When an option that is not specified in <options> is found or when an\n"
+"option's argument is missing, the result depends on the first character of\n"
+"<options>: If <options> starts with a colon, the option character is\n"
+"assigned to $OPTARG and variable <var> is set to `?' (when the option is not\n"
+"in <options>) or `:' (when the option's argument is missing). Otherwise,\n"
+"variable <var> is set to `?', $OPTARG is unset, and an error message is\n"
+"printed.\n"
 "\n"
 "If an option is found, whether or not it is specified in <options>, the exit\n"
 "status is zero. If there is no more option to parse, the exit status is\n"
 "non-zero and $OPTIND is updated so that the $OPTIND'th argument of <arg>s is\n"
 "the first operand (non-option argument). If there are no operands, $OPTIND\n"
 "will be the number of <arg>s plus one.\n"
-"When this command is invoked for the first time, $OPTIND must be \"1\",\n"
-"which is the default value of the $OPTIND variable. Until all the options\n"
-"are parsed, you must not change the value of $OPTIND and the getopts command\n"
-"must be invoked with the same arguments.\n"
-"Reset $OPTIND to \"1\" and then this command can be used with another set of\n"
-"<options>, <var> and <arg>s.\n"
+"When this command is invoked for the first time, $OPTIND must be `1', which\n"
+"is the default value of $OPTIND. Until all the options are parsed, you must\n"
+"not change the value of $OPTIND and the getopts built-in must be invoked\n"
+"with the same arguments. Reset $OPTIND to `1' and then getopts can be used\n"
+"with another set of <options>, <var> and <arg>s.\n"
 );
 #endif /* YASH_ENABLE_HELP */
 
@@ -2515,7 +2518,7 @@ int read_builtin(int argc, void **argv)
     /* check if the identifiers are valid */
     for (int i = xoptind; i < argc; i++) {
 	if (wcschr(ARGV(i), L'=')) {
-	    xerror(0, Ngt("`%ls': invalid name"), ARGV(i));
+	    xerror(0, Ngt("`%ls' is not a valid variable name"), ARGV(i));
 	    return Exit_FAILURE;
 	}
     }
@@ -2683,19 +2686,19 @@ void split_and_assign_array(const wchar_t *name, wchar_t *values,
 
 #if YASH_ENABLE_HELP
 const char read_help[] = Ngt(
-"read - read a line from standard input\n"
+"read - read a line from the standard input\n"
 "\tread [-Ar] var...\n"
-"Reads a line from the standard input and splits it into words using $IFS as\n"
-"separators. The words are assigned to the variables whose names are <var>s:\n"
+"The read built-in reads a line from the standard input and splits it into\n"
+"words using $IFS as separators. The words are assigned to variables <var>s:\n"
 "the first word is assigned to the first <var>, the second word to the second\n"
 "<var>, and so on. If <var>s are fewer than the words, the leftover words are\n"
 "not split and assigned to the last <var> at once. If the words are fewer\n"
-"than <var>s, the leftover <var>s are set to an empty string.\n"
+"than <var>s, the leftover <var>s are set to empty strings.\n"
 "If the -r (--raw-mode) option is not specified, backslashes in the input are\n"
 "considered to be an escape character.\n"
 "If the -A (--array) option is specified, the leftover words are assigned to\n"
 "the array whose name is the last <var>.\n"
-"The -A option is not available in the POSIXly-correct mode.\n"
+"The -A option is not available in the POSIXly correct mode.\n"
 );
 #endif
 
@@ -2773,7 +2776,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 
     const wchar_t *oldpwd = getvar(L VAR_PWD);
     if (oldpwd == NULL) {
-	xerror(0, Ngt("$PWD not set"));
+	xerror(0, Ngt("$PWD is not set"));
 	return Exit_FAILURE;
     }
 
@@ -2784,7 +2787,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	    if (wcscmp(ARGV(xoptind), L"-") == 0) {
 		newpwd = getvar(L VAR_OLDPWD);
 		if (newpwd == NULL || newpwd[0] == L'\0') {
-		    xerror(0, Ngt("$OLDPWD not set"));
+		    xerror(0, Ngt("$OLDPWD is not set"));
 		    return Exit_FAILURE;
 		}
 		printnewdir = true;
@@ -2840,7 +2843,7 @@ variable_T *get_dirstack(void)
 	    xerror(0, Ngt("$DIRSTACK is not an array"));
 	    return NULL;
 	} else if (var->v_type & VF_READONLY) {
-	    xerror(0, Ngt("%ls: readonly"), L VAR_DIRSTACK);
+	    xerror(0, Ngt("$%ls is read-only"), L VAR_DIRSTACK);
 	    return NULL;
 	}
 	return var;
@@ -2890,17 +2893,17 @@ void remove_dirstack_dups(variable_T *var)
 
 #if YASH_ENABLE_HELP
 const char pushd_help[] = Ngt(
-"pushd - push directory into directory stack\n"
+"pushd - push a directory into the directory stack\n"
 "\tpushd [-L|-P] [dir]\n"
-"Changes the working directory to <dir> and appends it to the directory\n"
-"stack. Options that can be used in the \"cd\" builtin can also be used in\n"
-"the \"pushd\" builtin (-L, -P, and --default-directory=...).\n"
+"The pushd built-in changes the working directory to <dir> and appends it to\n"
+"the directory stack. Options that can be used for the cd built-in can also\n"
+"be used for the pushd built-in: -L, -P, and --default-directory=...\n"
 "If <dir> is an integer with the plus or minus sign, it is considered a\n"
 "specific entry of the stack, which is removed from the stack and appended\n"
 "again. An integer with the plus sign specifies the nth newest entry, and\n"
 "a one with the minus sign specifies the nth oldest entry.\n"
 "If neither of <dir> and the --default-directory=... option is specified,\n"
-"\"+1\" is assumed for <dir>.\n"
+"`+1' is assumed for <dir>.\n"
 "If the --remove-duplicates option is specified, entries that are the same as\n"
 "the new working directory are removed from the stack.\n"
 );
@@ -2927,7 +2930,7 @@ int popd_builtin(int argc, void **argv)
     if (var == NULL)
 	return Exit_FAILURE;
     if (var->v_valc == 0) {
-	xerror(0, Ngt("directory stack is empty"));
+	xerror(0, Ngt("the directory stack is empty"));
 	return Exit_FAILURE;
     }
 
@@ -2966,10 +2969,10 @@ int popd_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 const char popd_help[] = Ngt(
-"popd - pop directory from directory stack\n"
+"popd - pop a directory from the directory stack\n"
 "\tpopd [index]\n"
-"Removes the last entry of the directory stack, returning to the previous\n"
-"directory.\n"
+"The popd built-in removes the last entry from the directory stack, returning\n"
+"to the previous directory.\n"
 "If <index> is given, the entry specified by <index> is removed instead of\n"
 "the last one. An integer with the plus sign specifies the nth newest entry\n"
 "and a one with the minus sign specifies the nth oldest entry.\n"
@@ -3040,7 +3043,7 @@ int dirs_builtin(int argc, void **argv)
 	/* print all */
 	dir = getvar(L VAR_PWD);
 	if (dir == NULL) {
-	    xerror(0, Ngt("$PWD not set"));
+	    xerror(0, Ngt("$PWD is not set"));
 	} else {
 	    int r;
 	    if (verbose)
@@ -3072,11 +3075,11 @@ int dirs_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 const char dirs_help[] = Ngt(
-"dirs - print directory stack\n"
+"dirs - print the directory stack\n"
 "\tdirs [-cv] [index...]\n"
-"With no arguments, prints the contents of the directory stack.\n"
-"If <index> is specified, only the specified entry is printed.\n"
-"The -v (--verbose) option makes the entries preceded by indices.\n"
+"With no arguments, the dirs built-in prints the entries of the directory\n"
+"stack. If <index> is specified, only the specified entry is printed.\n"
+"The -v (--verbose) option prints the index before each entry.\n"
 "The -c (--clear) option clears the stack.\n"
 );
 #endif

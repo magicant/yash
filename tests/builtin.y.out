@@ -34,54 +34,54 @@ script1
 dir/script1
 dir/script2
 ===== command =====
-if: shell keyword
-then: shell keyword
-else: shell keyword
-elif: shell keyword
-fi: shell keyword
-do: shell keyword
-done: shell keyword
-case: shell keyword
-esac: shell keyword
-while: shell keyword
-until: shell keyword
-for: shell keyword
-function: shell keyword
-{: shell keyword
-}: shell keyword
-!: shell keyword
-in: shell keyword
-command: _no_such_command_: no such command or function
+if: a shell keyword
+then: a shell keyword
+else: a shell keyword
+elif: a shell keyword
+fi: a shell keyword
+do: a shell keyword
+done: a shell keyword
+case: a shell keyword
+esac: a shell keyword
+while: a shell keyword
+until: a shell keyword
+for: a shell keyword
+function: a shell keyword
+{: a shell keyword
+}: a shell keyword
+!: a shell keyword
+in: a shell keyword
+command: no such command `_no_such_command_'
 1
-:: special builtin
-.: special builtin
-break: special builtin
-continue: special builtin
-eval: special builtin
-exec: special builtin
-exit: special builtin
-export: special builtin
-readonly: special builtin
-return: special builtin
-set: special builtin
-shift: special builtin
-times: special builtin
-trap: special builtin
-unset: special builtin
-bg: semi-special builtin
-cd: semi-special builtin
-command: semi-special builtin
-false: semi-special builtin
-fg: semi-special builtin
-getopts: semi-special builtin
-jobs: semi-special builtin
-kill: semi-special builtin
-pwd: semi-special builtin
-read: semi-special builtin
-true: semi-special builtin
-umask: semi-special builtin
-wait: semi-special builtin
-command: sh: no such command or function
+:: a special built-in
+.: a special built-in
+break: a special built-in
+continue: a special built-in
+eval: a special built-in
+exec: a special built-in
+exit: a special built-in
+export: a special built-in
+readonly: a special built-in
+return: a special built-in
+set: a special built-in
+shift: a special built-in
+times: a special built-in
+trap: a special built-in
+unset: a special built-in
+bg: a semi-special built-in
+cd: a semi-special built-in
+command: a semi-special built-in
+false: a semi-special built-in
+fg: a semi-special built-in
+getopts: a semi-special built-in
+jobs: a semi-special built-in
+kill: a semi-special built-in
+pwd: a semi-special built-in
+read: a semi-special built-in
+true: a semi-special built-in
+umask: a semi-special built-in
+wait: a semi-special built-in
+command: no such command `sh'
 ok
 echo
 command -b eval = 0
@@ -93,14 +93,14 @@ command -f testreg = 1
 command -f echo = 127
 command -vb cat = 1
 command -ve exit = 1
-cd: alias for `cd_alias'
+cd: an alias for `cd_alias'
 alias cd='cd_alias'
 1
 =1=
-cd: semi-special builtin
+cd: a semi-special built-in
 =2=
-if: shell keyword
-type: cd: no such command or function
+if: a shell keyword
+type: no such command `cd'
 slash a b C   C
 7
 127

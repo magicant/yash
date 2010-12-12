@@ -91,7 +91,7 @@ command -V : . break continue eval exec exit export readonly return set shift \
 command -V bg cd command false fg getopts jobs kill pwd read true umask wait
 
 testreg() {
-    command -V $1 | grep -v "^$1: regular builtin "
+    command -V $1 | grep -v "^$1: a regular built-in "
 }
 testreg typeset
 testreg disown
@@ -114,7 +114,7 @@ echo command -f testreg = $?
 command --function echo 2>/dev/null
 echo command -f echo = $?
 
-type type | grep -v "^type: regular builtin"
+type type | grep -v "^type: a regular built-in "
 
 command -vb cat
 echo command -vb cat = $?

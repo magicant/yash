@@ -395,7 +395,7 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 	if (!user_friendly) {
 	    return print_alias(aliasname, alias, true);
 	} else {
-	    if (printf(gt("%ls: alias for `%ls'\n"),
+	    if (printf(gt("%ls: an alias for `%ls'\n"),
 			aliasname, alias->value) >= 0) {
 		return true;
 	    } else {
@@ -498,7 +498,9 @@ int alias_builtin(int argc, void **argv)
 		if (!wcschr(nameend + 1, L'\n'))
 		    define_alias(arg, nameend, global);
 		else
-		    xerror(0, Ngt("`%ls': alias cannot contain newlines"), arg);
+		    xerror(0,
+			Ngt("`%ls': an alias value cannot contain newlines"),
+			arg);
 	    } else if (nameend != arg && *nameend == L'\0') {
 		/* print alias */
 		const alias_T *alias = ht_get(&aliases, arg).value;
@@ -506,10 +508,10 @@ int alias_builtin(int argc, void **argv)
 		    if (!print_alias(arg, alias, prefix))
 			break;
 		} else {
-		    xerror(0, Ngt("%ls: no such alias"), arg);
+		    xerror(0, Ngt("no such alias `%ls'"), arg);
 		}
 	    } else {
-		xerror(0, Ngt("`%ls': invalid alias name"), arg);
+		xerror(0, Ngt("`%ls' is not a valid alias name"), arg);
 	    }
 	} while (++xoptind < argc);
     }
@@ -520,15 +522,15 @@ int alias_builtin(int argc, void **argv)
 const char alias_help[] = Ngt(
 "alias - define or print aliases\n"
 "\talias [-gp] [name[=value]...]\n"
-"Defines and/or prints aliases.\n"
-"For each operands of the form <name=value>, an alias is (re)defined.\n"
+"The alias built-in defines and/or prints aliases.\n"
+"For each operand of the form <name=value>, an alias is (re)defined.\n"
 "If the -g (--global) option is specified, it is defined as a global alias,\n"
 "which is substituted even if it is not a command word.\n"
-"For each operands of the form <name>, the alias definition is printed.\n"
+"For each operand of the form <name>, the alias definition is printed.\n"
 "If the -p (--prefix) option is specified, the output format is suitable for\n"
 "re-input to the shell.\n"
 "If no operands are given, all alias definitions are printed.\n"
-"No options are available in POSIXly correct mode.\n"
+"No options are available in the POSIXly correct mode.\n"
 );
 #endif
 
@@ -562,7 +564,7 @@ int unalias_builtin(int argc, void **argv)
 	do {
 	    const wchar_t *arg = ARGV(xoptind);
 	    if (!remove_alias(arg))
-		xerror(0, Ngt("%ls: no such alias"), arg);
+		xerror(0, Ngt("no such alias `%ls'"), arg);
 	} while (++xoptind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
@@ -578,7 +580,7 @@ const char unalias_help[] = Ngt(
 "unalias - undefine aliases\n"
 "\tunalias name...\n"
 "\tunalias -a\n"
-"Removes the specified alias definitions.\n"
+"The unalias built-in removes the specified alias definitions.\n"
 "If the -a (--all) option is specified, all definitions are removed.\n"
 );
 #endif

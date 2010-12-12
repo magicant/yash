@@ -77,7 +77,7 @@ int test_builtin(int argc, void **argv)
     if (wcscmp(ARGV(0), L"[") == 0) {
 	argc--;
 	if (wcscmp(ARGV(argc), L"]") != 0) {
-	    xerror(0, Ngt("`%ls' missing"), L"]");
+	    xerror(0, Ngt("`%ls' is missing"), L"]");
 	    return Exit_TESTERROR;
 	}
     }
@@ -108,7 +108,7 @@ int test_builtin(int argc, void **argv)
 	    state.index = 0;
 	    result = test_long_or(&state);
 	    if (yash_error_message_count == 0 && state.index < state.argc)
-		xerror(0, Ngt("%ls: invalid operator"),
+		xerror(0, Ngt("`%ls' is not a valid operator"),
 			(const wchar_t *) state.args[state.index]);
 	    break;
     }
@@ -133,7 +133,7 @@ bool test_double(void *args[static 2])
     if (wcscmp(op, L"!") == 0)
 	return !test_single(args + 1);
     if (!is_unary_primary(op)) {
-	xerror(0, Ngt("%ls: not a unary operator"), op);
+	xerror(0, Ngt("`%ls' is not a unary operator"), op);
 	return 0;
     }
 
@@ -349,7 +349,7 @@ not_binary:
     if (wcscmp(left, L"(") == 0 && wcscmp(right, L")") == 0)
 	return test_single(args + 1);
 
-    xerror(0, Ngt("%ls: not a binary operator"), op);
+    xerror(0, Ngt("`%ls' is not a binary operator"), op);
     return 0;
 }
 
@@ -401,7 +401,7 @@ bool test_long_term(struct test_state *state)
     }
     if (state->index >= state->argc) {
 	assert(state->argc > 0);
-	xerror(0, Ngt("expression missing after `%ls'"),
+	xerror(0, Ngt("an expression is missing after `%ls'"),
 		(const wchar_t *) state->args[state->index - 1]);
 	return 0;
     }
@@ -410,7 +410,7 @@ bool test_long_term(struct test_state *state)
 	result = test_long_or(state);
 	if (state->index >= state->argc
 		|| wcscmp(state->args[state->index], L")") != 0) {
-	    xerror(0, Ngt("`%ls' missing"), L")");
+	    xerror(0, Ngt("`%ls' is missing"), L")");
 	    return 0;
 	}
 	state->index++;
@@ -670,8 +670,9 @@ const char test_help[] = Ngt(
 "test, [ - evaluate conditional expression\n"
 "\ttest expression\n"
 "\t[ expression ]\n"
-"Evaluates <expression> as a conditional expression described below. The exit\n"
-"status is 0 if the condition is true, or 1 otherwise.\n"
+"The test built-in evaluates <expression> as a conditional expression\n"
+"described below. The exit status is 0 if the condition is true, or 1\n"
+"otherwise.\n"
 "\n"
 "Unary operators to test a file:\n"
 "  -b file    <file> is a block special file\n"

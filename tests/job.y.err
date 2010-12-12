@@ -1,13 +1,13 @@
 ===== error =====
-fg: --no-such-option: invalid option
+fg: `--no-such-option' is not a valid option
 Usage:  fg [job]
-fg: %100: no such job
-fg: %no_such_job: no such job
-fg: too many operands
+fg: no such job `%100'
+fg: no such job `%no_such_job'
+fg: too many operands are specified
 Usage:  fg [job]
-fg: job control disabled
-bg: --no-such-option: invalid option
+fg: job control is disabled
+bg: `--no-such-option' is not a valid option
 Usage:  bg [job...]
-bg: %100: no such job
-bg: %no_such_job: no such job
-bg: job control disabled
+bg: no such job `%100'
+bg: no such job `%no_such_job'
+bg: job control is disabled

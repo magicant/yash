@@ -515,8 +515,8 @@ int set_builtin_print_current_settings(void)
 {
     bool err = false;
     const char *vals[] = {
-	[true]  = gt("yes"),
-	[false] = gt("no"),
+	[true]  = gt("on"),
+	[false] = gt("off"),
     };
 #define PRINTSETTING(name,value) \
     (err |= printf("%-15ls %s\n", L"" #name, vals[(bool) (value)]) < 0)
@@ -642,15 +642,14 @@ const char set_help[] = Ngt(
 "The first form enables or disables the specified shell options and/or sets\n"
 "positional parameters to <arg>s. If no <arg>s are given, the positional\n"
 "parameters are not changed.\n"
-"If no options or <arg>s are given at all, a list of all variables currently\n"
-"defined in the shell is printed. To clear all positional parameters, use\n"
-"`set --'.\n"
+"If no options or <arg>s are given at all, a list of all existing variables\n"
+"is printed. To clear all positional parameters, use `set --'.\n"
 "The second form prints the current settings of the shell options in a human-\n"
 "readable form.\n"
 "The third form prints commands that can be used to restore the current\n"
 "option settings later.\n"
 "\n"
-"Below are the available options:\n"
+"Available options are:\n"
 " -a --allexport\n"
 "\tAny variable is exported when assigned.\n"
 " -b --notify\n"
@@ -666,11 +665,10 @@ const char set_help[] = Ngt(
 " --nocaseglob\n"
 "\tPerform pathname expansion case-insensitively.\n"
 " --dotglob\n"
-"\tIn pathname expansion, '*' and '?' match a '.' at the beginning of\n"
+"\tIn pathname expansion, `*' and `?' match a `.' at the beginning of\n"
 "\tthe filename.\n"
 " --markdirs\n"
-"\tIn pathname expansion, pathnames expanded to directories have a '/'\n"
-"\tat the end of the name.\n"
+"\tIn pathname expansion, directory pathnames have a `/' at the ends.\n"
 " --extendedglob\n"
 "\tEnable extended pathname expansion.\n"
 " --nullglob\n"
@@ -696,7 +694,7 @@ const char set_help[] = Ngt(
 "\tAfter each command line is expanded, the expanded line is printed\n"
 "\tto the standard error.\n"
 " -C --noclobber\n"
-"\tPrevent existent files from being overridden by the \">\" redirection.\n"
+"\tPrevent existent files from being overridden by the `>' redirection.\n"
 " --ignoreeof\n"
 "\tDo not exit when an EOF is entered.\n"
 "\tThis option is effective in an interactive shell only.\n"
@@ -705,7 +703,7 @@ const char set_help[] = Ngt(
 " --curasync, --curbg, --curstop\n"
 "\tA background job becomes the current job when\n"
 "\t   (curasync)  invoked as an asynchronous command\n"
-"\t   (curbg)     resumed by the \"bg\" command\n"
+"\t   (curbg)     resumed by the bg built-in\n"
 "\t   (curstop)   stopped.\n"
 "\t(These options are enabled by default)\n"
 " --histspace\n"
@@ -730,7 +728,7 @@ const char set_help[] = Ngt(
 " --le-compdebug\n"
 "\tPrint debugging information during command line completion.\n"
 "\n"
-"To disable options, put '+' before the option characters instead of '-'.\n"
+"To disable options, put `+' before the option characters instead of `-'.\n"
 "Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
 "Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"
 );

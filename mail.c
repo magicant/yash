@@ -156,7 +156,7 @@ void check_mail_and_print_message(void)
 	char *path = malloc_wcstombs(mail);
 	if (path) {
 	    if (is_update(path))
-		fprintf(stderr, "%s\n", gt("You have mail."));
+		fprintf(stderr, "%s\n", gt("You have new mail."));
 	    free(path);
 	}
     } else {
@@ -227,7 +227,7 @@ check:
     sb_wccat(&path, L'\0', &state);
     if (is_update(path.contents)) {
 	if (*s == L'\0')
-	    fprintf(stderr, "%s\n", gt("You have mail."));
+	    fprintf(stderr, "%s\n", gt("You have new mail."));
 	else
 	    print_message(s);
     }

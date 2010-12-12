@@ -747,7 +747,7 @@ void execute_exit_trap(void)
 void set_trap(int signum, const wchar_t *command)
 {
     if (signum == SIGKILL || signum == SIGSTOP) {
-	xerror(0, Ngt("SIG%ls: cannot be trapped"),
+	xerror(0, Ngt("SIG%ls cannot be trapped"),
 		signum == SIGKILL ? L"KILL" : L"STOP");
 	return;
     }
@@ -762,7 +762,7 @@ void set_trap(int signum, const wchar_t *command)
 	    commandp = &rttrap_command[index];
 	    receivedp = &rtsignal_received[index];
 	} else {
-	    xerror(0, Ngt("SIG%ls: unsupported real-time signal"),
+	    xerror(0, Ngt("real-time signal SIG%ls is not supported"),
 		    get_signal_name(signum));
 	    return;
 	}
@@ -778,7 +778,7 @@ void set_trap(int signum, const wchar_t *command)
 	/* Signals that were ignored on entry to a non-interactive shell cannot
 	 * be trapped or reset. (POSIX) */
 #if FIXED_SIGNAL_AS_ERROR
-	xerror(0, Ngt("SIG%ls: cannot be reset"), get_signal_name(signum));
+	xerror(0, Ngt("SIG%ls cannot be reset"), get_signal_name(signum));
 #endif
 	return;
     }
@@ -1084,7 +1084,7 @@ int trap_builtin(int argc, void **argv)
 	    wchar_t *name = ARGV(xoptind);
 	    int signum = get_signal_number_toupper(name);
 	    if (signum < 0) {
-		xerror(0, Ngt("%ls: no such signal"), name);
+		xerror(0, Ngt("no such signal `%ls'"), name);
 	    } else {
 #if defined SIGRTMIN && defined SIGRTMAX
 		if (sigrtmin <= signum && signum <= sigrtmax) {
@@ -1127,7 +1127,7 @@ set_traps:
 	if (signum >= 0)
 	    set_trap(signum, command);
 	else
-	    xerror(0, Ngt("%ls: no such signal"), name);
+	    xerror(0, Ngt("no such signal `%ls'"), name);
     } while (++xoptind < argc);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
@@ -1171,16 +1171,17 @@ const char trap_help[] = Ngt(
 "\ttrap [action signal...]\n"
 "\ttrap signum [signal...]\n"
 "\ttrap -p [signal...]\n"
-"Sets the signal handler of the specified <signal>s to <action>.\n"
-"When the shell receives the signal, the corresponding action is executed as\n"
-"if by the \"eval\" command.\n"
+"The trap built-in sets the signal handler of the specified <signal>s to\n"
+"<action>. When the shell receives the signal, the corresponding action is\n"
+"executed as if by the eval built-in.\n"
 "If <action> is an empty string, no actions are taken and the signal is\n"
-"silently ignored when the signal is received.\n"
-"If <action> is \"-\", the signal handler is reset to the default.\n"
+"silently ignored when received.\n"
+"If <action> is `-', the signal handler is reset to the default.\n"
 "If the first operand is a non-negative integer, the operand is considered as\n"
-"a signal specification and <action> is assumed to be \"-\".\n"
+"a signal specification and <action> is assumed to be `-'.\n"
 "If the -p (--print) option is specified, the actions for the specified\n"
-"<signal>s are printed. This option is not available in POSIXly correct mode.\n"
+"<signal>s are printed. This option is not available in the POSIXly correct\n"
+"mode.\n"
 "Without any operands, all signal handlers currently set are printed.\n"
 );
 #endif
@@ -1211,13 +1212,13 @@ int kill_builtin(int argc, void **argv)
 		if (list)
 		    goto print_usage;
 		if (posixly_correct && wcsncmp(xoptarg, L"SIG", 3) == 0) {
-		    xerror(0, Ngt("%ls: signal name must be specified "
+		    xerror(0, Ngt("%ls: the signal name must be specified "
 				"without `SIG'"), xoptarg);
 		    return Exit_ERROR;
 		}
 		signum = get_signal_number_toupper(xoptarg);
 		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {
-		    xerror(0, Ngt("%ls: no such signal"), xoptarg);
+		    xerror(0, Ngt("no such signal `%ls'"), xoptarg);
 		    return Exit_FAILURE;
 		}
 		goto no_more_options;
@@ -1270,7 +1271,7 @@ main:
 		}
 		signame = get_signal_name(signum);
 		if (signum <= 0 || signame[0] == L'\0')
-		    xerror(0, Ngt("%ls: no such signal"), ARGV(xoptind));
+		    xerror(0, Ngt("no such signal `%ls'"), ARGV(xoptind));
 		else if (!print_signal(signum, signame, verbose))
 		    return Exit_FAILURE;
 	    } while (++xoptind < argc);
@@ -1359,13 +1360,13 @@ const char kill_help[] = Ngt(
 "The first form sends a signal to the specified processes. The signal to send\n"
 "can be specified by the name or by the number, which defaults to SIGTERM if\n"
 "not specified. The processes can be specified by the process ID or in the\n"
-"job specification format like \"%1\".\n"
-"If the process ID is negative, the signal is sent to the process group.\n"
+"job specification format like `%1'. If the process ID is negative, the\n"
+"signal is sent to the process group.\n"
 "The second form prints info about signals. For each <number> given, the name\n"
 "of the corresponding signal is printed. The <number> must be a valid signal\n"
 "number or the exit status of a process kill by a signal. If no <number>s are\n"
-"given, a list of available signals is printed.\n"
-"With the -v option, verbose info is printed.\n"
+"given, a list of available signals is printed. With the -v option, the\n"
+"signal numbers and descriptions of signals are printed as well.\n"
 );
 #endif
 

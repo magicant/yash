@@ -24,8 +24,8 @@ posix unparsed ok
 dummy 0
 pipe
 0
-alias: semi-special builtin
-unalias: semi-special builtin
+alias: a semi-special built-in
+unalias: a semi-special built-in
 alias no-such-option 2
 alias no-such-alias 1
 alias output error 1 1
