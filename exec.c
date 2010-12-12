@@ -2044,7 +2044,7 @@ err:
 
 #if YASH_ENABLE_HELP
 const char exec_help[] = Ngt(
-"exec - execute command in the shell process\n"
+"exec - execute a command in the shell process\n"
 "\texec [-cf] [-a name] [command [args...]]\n"
 "The exec built-in replaces the shell process with the specified command.\n"
 "The shell process is `changed' into the new command's process. No child\n"
