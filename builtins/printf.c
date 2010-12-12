@@ -258,7 +258,7 @@ print_char:
 
 #if YASH_ENABLE_HELP
 const char echo_help[] = Ngt(
-"echo - prints arguments\n"
+"echo - print arguments\n"
 "\techo [string...]\n"
 "The echo built-in prints <string>s followed by a newline to the standard\n"
 "output. The <string>s are each separated by a space. This built-in does not\n"

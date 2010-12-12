@@ -1303,7 +1303,7 @@ bool starts_with_root_parent(const wchar_t *path)
 
 #if YASH_ENABLE_HELP
 const char cd_help[] = Ngt(
-"cd - change directory\n"
+"cd - change the working directory\n"
 "\tcd [-L|-P] [dir]\n"
 "The cd built-in changes the working directory to <dir>.\n"
 "If <dir> is `-', the working directory is changed to $OLDPWD.\n"
@@ -1376,7 +1376,7 @@ print:
 
 #if YASH_ENABLE_HELP
 const char pwd_help[] = Ngt(
-"pwd - print working directory\n"
+"pwd - print the working directory\n"
 "\tpwd [-L|-P]\n"
 "The pwd built-in prints the absolute pathname of the current working\n"
 "directory.\n"
@@ -1753,7 +1753,7 @@ mode_t copy_other_mask(mode_t mode)
 
 #if YASH_ENABLE_HELP
 const char umask_help[] = Ngt(
-"umask - print or set file creation mask\n"
+"umask - print or set the file creation mask\n"
 "\tumask mode\n"
 "\tumask [-S]\n"
 "The umask built-in sets the file mode creation mask of the shell to <mode>.\n"

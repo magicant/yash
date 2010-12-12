@@ -302,7 +302,7 @@ print_usage:
 
 #if YASH_ENABLE_HELP
 const char ulimit_help[] = Ngt(
-"ulimit - set or print resource limitation\n"
+"ulimit - set or print a resource limitation\n"
 "\tulimit [-HSaefilnqrstuvx] [limit]\n"
 "The ulimit built-in sets a resource limit to <limit>. The resource type can\n"
 "be specified by the options listed below.\n"

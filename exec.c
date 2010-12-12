@@ -1596,7 +1596,7 @@ int return_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 const char return_help[] = Ngt(
-"return - return from function\n"
+"return - return from a function or script\n"
 "\treturn [n]\n"
 "The return built-in exits the currently executing function or script file\n"
 "with the exit status of <n>. If <n> is not specified, it defaults to the\n"
@@ -1690,7 +1690,7 @@ int break_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 
 const char break_help[] = Ngt(
-"break - exit loop\n"
+"break - exit a loop\n"
 "\tbreak [n]\n"
 "\tbreak -i\n"
 "The first form exits the currently executing for/while/until loop.\n"
@@ -1700,7 +1700,7 @@ const char break_help[] = Ngt(
 );
 
 const char continue_help[] = Ngt(
-"continue - continue loop\n"
+"continue - continue a loop\n"
 "\tcontinue [n]\n"
 "\tcontinue -i\n"
 "The first form ends the current iteration of a for/while/until loop and\n"
@@ -1750,7 +1750,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 
 #if YASH_ENABLE_HELP
 const char eval_help[] = Ngt(
-"eval - evaluate arguments as command\n"
+"eval - evaluate arguments as a command\n"
 "\teval [-i] [arg...]\n"
 "The eval built-in parses and executes the specified <arg>s as commands in\n"
 "the current shell environment. Without the -i (--iteration) option, all the\n"
@@ -1875,7 +1875,7 @@ int dot_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 const char dot_help[] = Ngt(
-"dot - read file and execute commands\n"
+"dot - read a file and execute commands\n"
 "\t. [-AL] file [arg...]\n"
 "The dot built-in reads the specified <file> and executes commands in it.\n"
 "If <arg>s are specified, they are used as the positional parameters.\n"
@@ -2345,7 +2345,7 @@ bool print_command_absolute_path(
 #if YASH_ENABLE_HELP
 
 const char command_help[] = Ngt(
-"command - execute or identify command\n"
+"command - execute or identify a command\n"
 "\tcommand [-befp] command [argument...]\n"
 "\tcommand -v|-V [-abefkp] command...\n"
 "The command built-in executes or identifies the specified command.\n"
@@ -2372,7 +2372,7 @@ const char command_help[] = Ngt(
 );
 
 const char type_help[] = Ngt(
-"type - identify command\n"
+"type - identify a command\n"
 "\ttype command...\n"
 "The type built-in prints the type of <command>s.\n"
 "Same as `command -V <command>...'.\n"

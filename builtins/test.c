@@ -667,7 +667,7 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 
 #if YASH_ENABLE_HELP
 const char test_help[] = Ngt(
-"test, [ - evaluate conditional expression\n"
+"test, [ - evaluate a conditional expression\n"
 "\ttest expression\n"
 "\t[ expression ]\n"
 "The test built-in evaluates <expression> as a conditional expression\n"

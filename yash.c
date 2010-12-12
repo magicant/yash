@@ -701,7 +701,7 @@ int exit_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 const char exit_help[] = Ngt(
-"exit - exit shell\n"
+"exit - exit the shell\n"
 "\texit [-f] [n]\n"
 "The exit built-in makes the shell terminate with the exit status of <n>.\n"
 "If <n> is not specified, it defaults to the exit status of the last executed\n"
@@ -752,7 +752,7 @@ int suspend_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 const char suspend_help[] = Ngt(
-"suspend - suspend shell\n"
+"suspend - suspend the shell\n"
 "\tsuspend [-f]\n"
 "The suspend built-in suspends the shell until it receives SIGCONT.\n"
 "If the shell is interactive and is a session leader, this command refuses to\n"

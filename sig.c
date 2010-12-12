@@ -1167,7 +1167,7 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
 
 #if YASH_ENABLE_HELP
 const char trap_help[] = Ngt(
-"trap - set signal handler\n"
+"trap - set or print signal handlers\n"
 "\ttrap [action signal...]\n"
 "\ttrap signum [signal...]\n"
 "\ttrap -p [signal...]\n"
