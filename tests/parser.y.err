@@ -43,8 +43,8 @@ yash -c:1: syntax error: the redirection target is missing
 yash -c:1: syntax error: the redirection target is missing
 yash -c:2: syntax error: the redirection target is missing
 yash -c:1: syntax error: the redirection target is missing
-syntax error: the here-document delimiter is missing
-syntax error: the here-document delimiter is missing
+syntax error: the end-of-here-document indicator is missing
+syntax error: the end-of-here-document indicator is missing
 syntax error: the redirection target is missing
 yash -c:1: syntax error: the double quotation is not closed
 yash -c:1: syntax error: the double quotation is not closed

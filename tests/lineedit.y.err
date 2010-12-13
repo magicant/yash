@@ -4,7 +4,7 @@ Usage:  bindkey -aev [keyseq [command]]
 bindkey: no option is specified
 Usage:  bindkey -aev [keyseq [command]]
         bindkey -l
-bindkey: no such command `no-such-command'
+bindkey: no such editing command `no-such-command'
 bindkey: cannot bind an empty key sequence
 bindkey: key sequence `~~~' is not bound
 complete: `--no-such-option' is not a valid option
