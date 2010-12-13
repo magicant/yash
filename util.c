@@ -338,6 +338,23 @@ void xerror(int errno_, const char *restrict format, ...)
     fflush(stderr);
 }
 
+/* Prints a formatted string like `printf', but if it failed to write to the
+ * standard output, writes an error message to the standard error. */
+/* The `format' string is not passed to `gettext'. */
+int xprintf(const char *restrict format, ...)
+{
+    va_list ap;
+    int result;
+
+    va_start(ap, format);
+    result = vprintf(format, ap);
+    va_end(ap);
+
+    if (result < 0)
+	xerror(errno, Ngt("cannot print to standard output"));
+    return result;
+}
+
 
 /********** xgetopt **********/
 
