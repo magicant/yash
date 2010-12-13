@@ -192,7 +192,7 @@ int echo_builtin(int argc, void **argv)
     return Exit_SUCCESS;
 
 ioerror:
-    xerror(errno, Ngt("cannot print to standard output"));
+    xerror(errno, Ngt("cannot print to the standard output"));
     return Exit_FAILURE;
 }
 
@@ -340,7 +340,7 @@ int printf_builtin(int argc, void **argv)
 
 end:
     if (fflush(stdout) < 0)
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
     freeformat(format);
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
@@ -706,7 +706,7 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
     }
 
 ioerror:
-    xerror(errno, Ngt("cannot print to standard output"));
+    xerror(errno, Ngt("cannot print to the standard output"));
     return true;
 }
 

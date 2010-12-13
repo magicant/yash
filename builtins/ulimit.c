@@ -212,7 +212,7 @@ opt_ok:
 	if (!ferror(stdout)) {
 	    return Exit_SUCCESS;
 	} else {
-	    xerror(0, Ngt("cannot print to standard output"));
+	    xerror(0, Ngt("cannot print to the standard output"));
 	    return Exit_FAILURE;
 	}
     }
@@ -241,7 +241,7 @@ opt_ok:
 	if (!ferror(stdout)) {
 	    return Exit_SUCCESS;
 	} else {
-	    xerror(errno, Ngt("cannot print to standard output"));
+	    xerror(errno, Ngt("cannot print to the standard output"));
 	    return Exit_FAILURE;
 	}
     } else {

@@ -569,7 +569,7 @@ int set_builtin_print_current_settings(void)
     if (!err) {
 	return Exit_SUCCESS;
     } else {
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
 	return Exit_FAILURE;
     }
 }
@@ -628,7 +628,7 @@ int set_builtin_print_restoring_commands(void)
     if (!err) {
 	return Exit_SUCCESS;
     } else {
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
 	return Exit_FAILURE;
     }
 }

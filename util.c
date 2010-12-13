@@ -351,7 +351,7 @@ int xprintf(const char *restrict format, ...)
     va_end(ap);
 
     if (result < 0)
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
     return result;
 }
 

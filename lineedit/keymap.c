@@ -445,7 +445,7 @@ int print_all_commands(void)
 {
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++) {
 	if (puts(commands[i].name) == EOF) {
-	    xerror(errno, Ngt("cannot print to standard output"));
+	    xerror(errno, Ngt("cannot print to the standard output"));
 	    return Exit_FAILURE;
 	}
     }
@@ -550,7 +550,7 @@ int print_binding_main(
     commandname = get_command_name(cmd);
     r = printf(format, modechar, keyseqquote, commandname);
     if (r < 0)
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
     free(keyseqquote);
     return r >= 0 ? Exit_SUCCESS : Exit_FAILURE;
 }

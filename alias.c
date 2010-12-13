@@ -380,7 +380,7 @@ bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 	    format = "alias %ls=%ls\n";
     success = (printf(format, name, qvalue) >= 0);
     if (!success)
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
     free(qvalue);
     return success;
 }
@@ -399,7 +399,7 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 			aliasname, alias->value) >= 0) {
 		return true;
 	    } else {
-		xerror(errno, Ngt("cannot print to standard output"));
+		xerror(errno, Ngt("cannot print to the standard output"));
 		return false;
 	    }
 	}

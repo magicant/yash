@@ -1646,7 +1646,7 @@ print_variable:;
 	    assert(wcscmp(argv0, L"set") == 0);
 	    if (!qname && qvalue)
 		if (printf("%ls=%ls\n", name, qvalue) < 0)
-		    xerror(errno, Ngt("cannot print to standard output"));
+		    xerror(errno, Ngt("cannot print to the standard output"));
 	    break;
 	case L'e':
 	case L'r':
@@ -1654,7 +1654,7 @@ print_variable:;
 		    || wcscmp(argv0, L"readonly") == 0);
 	    format = qvalue ? "%ls %ls=%ls\n" : "%ls %ls\n";
 	    if (printf(format, argv0, name, qvalue) < 0)
-		xerror(errno, Ngt("cannot print to standard output"));
+		xerror(errno, Ngt("cannot print to the standard output"));
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
@@ -1667,7 +1667,7 @@ print_variable:;
 		sb_insert(&opts, 0, " -");
 	    format = qvalue ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n";
 	    if (printf(format, argv0, opts.contents, name, qvalue) < 0)
-		xerror(errno, Ngt("cannot print to standard output"));
+		xerror(errno, Ngt("cannot print to the standard output"));
 	    sb_destroy(&opts);
 	    break;
 	default:
@@ -1718,7 +1718,7 @@ print_array:
     }
     free(qname);
     if (ferror(stdout))
-	xerror(0, Ngt("cannot print to standard output"));
+	xerror(0, Ngt("cannot print to the standard output"));
 }
 
 /* Prints the specified function to the standard output.
@@ -1760,7 +1760,7 @@ void print_function(
     }
     free(qname);
     if (ferror(stdout))
-	xerror(0, Ngt("cannot print to standard output"));
+	xerror(0, Ngt("cannot print to the standard output"));
 }
 
 #if YASH_ENABLE_HELP
@@ -3032,7 +3032,7 @@ int dirs_builtin(int argc, void **argv)
 	    else
 		r = printf("%ls\n", dir);
 	    if (r < 0) {
-		xerror(errno, Ngt("cannot print to standard output"));
+		xerror(errno, Ngt("cannot print to the standard output"));
 		break;
 	    }
 	} while (++xoptind < argc);
@@ -3048,7 +3048,7 @@ int dirs_builtin(int argc, void **argv)
 	    else
 		r = printf("%ls\n", dir);
 	    if (r < 0)
-		xerror(errno, Ngt("cannot print to standard output"));
+		xerror(errno, Ngt("cannot print to the standard output"));
 	}
 
 	if (dirvalid && yash_error_message_count == 0) {
@@ -3060,7 +3060,7 @@ int dirs_builtin(int argc, void **argv)
 		else
 		    r = printf("%ls\n", dir);
 		if (r < 0) {
-		    xerror(errno, Ngt("cannot print to standard output"));
+		    xerror(errno, Ngt("cannot print to the standard output"));
 		    break;
 		}
 	    }

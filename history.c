@@ -1352,7 +1352,7 @@ int fc_print_entries(
 		assert(false);
 	}
 	if (r < 0) {
-	    xerror(errno, Ngt("cannot print to standard output"));
+	    xerror(errno, Ngt("cannot print to the standard output"));
 	    return Exit_FAILURE;
 	}
 	if (e == end)
