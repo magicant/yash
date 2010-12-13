@@ -1157,7 +1157,7 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
 	wchar_t *q = quote_sq(command);
 	int r = printf("trap -- %ls %ls\n", q, signame);
 	if (r < 0)
-	    xerror(errno, Ngt("cannot print to standard output"));
+	    xerror(errno, Ngt("cannot print to the standard output"));
 	free(q);
 	if (r < 0)
 	    return false;
@@ -1340,7 +1340,7 @@ bool print_signal(int signum, const wchar_t *name, bool verbose)
     if (r >= 0) {
 	return true;
     } else {
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
 	return false;
     }
 }

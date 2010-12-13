@@ -1378,7 +1378,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
     }
 print:
     if (printf("%s\n", mbspwd) < 0)
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
     free(mbspwd);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
@@ -1514,7 +1514,7 @@ void print_command_paths(bool all)
     while ((kv = ht_next(&cmdhash, &index)).key) {
 	if (all || !get_builtin(kv.key)) {
 	    if (printf("%s\n", (char *) kv.value) < 0) {
-		xerror(errno, Ngt("cannot print to standard output"));
+		xerror(errno, Ngt("cannot print to the standard output"));
 		break;
 	    }
 	}
@@ -1532,7 +1532,7 @@ void print_home_directories(void)
     while ((kv = ht_next(&homedirhash, &index)).key) {
 	const wchar_t *key = kv.key, *value = kv.value;
 	if (printf("~%ls=%ls\n", key, value) < 0) {
-	    xerror(errno, Ngt("cannot print to standard output"));
+	    xerror(errno, Ngt("cannot print to the standard output"));
 	    break;
 	}
     }
@@ -1619,7 +1619,7 @@ bool print_umask_octal(mode_t mode)
     if (printf("0%.3jo\n", (uintmax_t) mode) >= 0) {
 	return Exit_SUCCESS;
     } else {
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
 	return Exit_FAILURE;
     }
 }
@@ -1650,7 +1650,7 @@ bool print_umask_symbolic(mode_t mode)
     if (!ferror(stdout)) {
 	return Exit_SUCCESS;
     } else {
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
 	return Exit_FAILURE;
     }
 }

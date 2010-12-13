@@ -2318,7 +2318,7 @@ bool print_command_info(
     return found;
 
 ioerror:
-    xerror(errno, Ngt("cannot print to standard output"));
+    xerror(errno, Ngt("cannot print to the standard output"));
     free(name);
     return false;
 }
@@ -2454,7 +2454,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 	    sum, sus, ssm, sss, cum, cus, csm, css) >= 0) {
 	return Exit_SUCCESS;
     } else {
-	xerror(errno, Ngt("cannot print to standard output"));
+	xerror(errno, Ngt("cannot print to the standard output"));
 	return Exit_FAILURE;
     }
 #undef format_time

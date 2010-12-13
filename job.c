@@ -1054,7 +1054,7 @@ bool jobs_builtin_print_job(size_t jobnumber,
 	err = print_job_status(jobnumber, changedonly, verbose, stdout);
     }
     if (err != 0) {
-	xerror(err, Ngt("cannot print to standard output"));
+	xerror(err, Ngt("cannot print to the standard output"));
 	return false;
     } else {
 	return true;
