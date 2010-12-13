@@ -1302,26 +1302,33 @@ bool starts_with_root_parent(const wchar_t *path)
 }
 
 #if YASH_ENABLE_HELP
-const char cd_help[] = Ngt(
+const char *cd_help[] = { Ngt(
 "cd - change the working directory\n"
+), Ngt(
 "\tcd [-L|-P] [dir]\n"
+), Ngt(
 "The cd built-in changes the working directory to <dir>.\n"
 "If <dir> is `-', the working directory is changed to $OLDPWD.\n"
 "If <dir> is a relative path that does not start with `.' or `..',\n"
 "paths in $CDPATH are searched to find a new directory.\n"
 "If the working directory is successfully changed, $PWD is set to the new\n"
 "directory and $OLDPWD is set to the previous $PWD.\n"
+), (
 "\n"
+), Ngt(
 "When the -L (--logical) option is specified, symbolic links in $PWD are left\n"
 "unchanged. When the -P (--physical) option is specified, symbolic links are\n"
 "resolved so that $PWD does not contain any symbolic links.\n"
+), Ngt(
 "-L and -P are mutually exclusive: the last specified one is effective.\n"
 "If neither is specified, -L is the default.\n"
+), (
 "\n"
+), Ngt(
 "If <dir> is not specified, the working directory is changed to the directory\n"
 "specified by the --default-directory=... option. If this option is not\n"
 "specified either, the default is $HOME.\n"
-);
+), NULL };
 #endif
 
 /* The "pwd" builtin, which accepts the following options:
@@ -1377,19 +1384,24 @@ print:
 }
 
 #if YASH_ENABLE_HELP
-const char pwd_help[] = Ngt(
+const char *pwd_help[] = { Ngt(
 "pwd - print the working directory\n"
+), Ngt(
 "\tpwd [-L|-P]\n"
+), Ngt(
 "The pwd built-in prints the absolute pathname of the current working\n"
 "directory.\n"
+), (
 "\n"
+), Ngt(
 "When the -L (--logical) option is specified, $PWD is printed if it is\n"
 "correct. It may contain symbolic links.\n"
 "When the -P (--physical) option is specified, the printed pathname does not\n"
 "contain any symbolic links.\n"
+), Ngt(
 "-L and -P are mutually exclusive: the last specified one is effective.\n"
 "If neither is specified, -L is the default.\n"
-);
+), NULL };
 #endif
 
 /* The "hash" builtin, which accepts the following options:
@@ -1527,25 +1539,31 @@ void print_home_directories(void)
 }
 
 #if YASH_ENABLE_HELP
-const char hash_help[] = Ngt(
+const char *hash_help[] = { Ngt(
 "hash - remember, forget, or report command locations\n"
+), Ngt(
 "\thash command...\n"
 "\thash -r [command...]\n"
 "\thash [-a]\n"
 "\thash -d user...\n"
 "\thash -d -r [user...]\n"
 "\thash -d\n"
+), Ngt(
 "The first form immediately performs command path search and caches\n"
 "<command>s' full paths.\n"
+), Ngt(
 "The second form, using the -r (--remove) option, removes the paths of\n"
 "<command>s (or all the paths if none specified) from the cache. Note that\n"
 "assignment to $PATH also removes all paths from the cache.\n"
+), Ngt(
 "The third form prints the currently cached paths. Without the -a (--all)\n"
 "option, paths for built-in commands are not printed.\n"
+), Ngt(
 "With the -d (--directory) option, this command does the same things to the\n"
 "home directory cache, rather than the command path cache.\n"
+), Ngt(
 "In the POSIXly correct mode, the -r option is the only available option.\n"
-);
+), NULL };
 #endif
 
 /* The "umask" builtin, which accepts the following option:
@@ -1755,15 +1773,17 @@ mode_t copy_other_mask(mode_t mode)
 }
 
 #if YASH_ENABLE_HELP
-const char umask_help[] = Ngt(
+const char *umask_help[] = { Ngt(
 "umask - print or set the file creation mask\n"
+), Ngt(
 "\tumask mode\n"
 "\tumask [-S]\n"
+), Ngt(
 "The umask built-in sets the file mode creation mask of the shell to <mode>.\n"
 "The mask will be inherited by commands invoked by the shell.\n"
 "If <mode> is not specified, the current setting of the mask is printed.\n"
 "The -S (--symbolic) option makes a symbolic output.\n"
-);
+), NULL };
 #endif
 
 

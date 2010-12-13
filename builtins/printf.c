@@ -257,47 +257,74 @@ print_char:
 }
 
 #if YASH_ENABLE_HELP
-const char echo_help[] = Ngt(
+const char *echo_help[] = { Ngt(
 "echo - print arguments\n"
+), Ngt(
 "\techo [string...]\n"
+), Ngt(
 "The echo built-in prints <string>s followed by a newline to the standard\n"
 "output. The <string>s are each separated by a space. This built-in does not\n"
 "recognize any options except described below.\n"
+), (
 "\n"
+), Ngt(
 "The behavior of the echo built-in depends on the value of $ECHO_STYLE:\n"
+), Ngt(
 "  `SYSV' or `XSI' (default)\n"
 "    always recognize escape sequences but not any options.\n"
+), Ngt(
 "  `BSD'\n"
 "    recognize the -n option only.\n"
+), Ngt(
 "  `GNU'\n"
 "    recognize the -n, -e, -E options. Escape sequences are recognized if\n"
 "    enabled by the -e option.\n"
+), Ngt(
 "  `ZSH'\n"
 "    recognize the -n, -e, -E options. Escape sequences are recognized unless\n"
 "    disabled by the -E option.\n"
+), Ngt(
 "  `DASH'\n"
 "    recognize the -n option and escape sequences. Escape sequences cannot be\n"
 "    disabled.\n"
+), Ngt(
 "  `RAW'\n"
 "    do not recognize any options nor escape sequences.\n"
+), (
 "\n"
+), Ngt(
 "Options:\n"
+), Ngt(
 "  -n     do not print the last newline.\n"
+), Ngt(
 "  -e     enable escape sequences.\n"
+), Ngt(
 "  -E     disable escape sequences.\n"
+), (
 "\n"
+), Ngt(
 "Escape sequences:\n"
+), Ngt(
 "  \\a     alert (bell)\n"
+), Ngt(
 "  \\b     backspace\n"
+), Ngt(
 "  \\c     print nothing more\n"
+), Ngt(
 "  \\f     form feed\n"
+), Ngt(
 "  \\n     newline\n"
+), Ngt(
 "  \\r     carriage return\n"
+), Ngt(
 "  \\t     tab\n"
+), Ngt(
 "  \\v     vertical tab\n"
+), Ngt(
 "  \\\\     backslash\n"
+), Ngt(
 "  \\0nnn  8-bit value of the octal number <nnn>.\n"
-);
+), NULL };
 #endif /* YASH_ENABLE_HELP */
 
 
@@ -790,55 +817,91 @@ void freeformat(struct format_T *f)
 }
 
 #if YASH_ENABLE_HELP
-const char printf_help[] = Ngt(
+const char *printf_help[] = { Ngt(
 "printf - print a formatted string\n"
+), Ngt(
 "\tprintf format [argument...]\n"
+), Ngt(
 "The printf built-in prints a string formatted by <format>.\n"
 "This built-in is very similar to the C programming language's `printf'\n"
 "function. Each conversion specification starting with `%' in <format> is\n"
 "substituted with the value of the corresponding <argument>. Escape sequences\n"
 "starting with `\\' are also recognized.\n"
+), Ngt(
 "If there are more <argument>s than specified in <format>, formatted strings\n"
 "are repeatedly printed until all <argument>s are consumed. If there are\n"
 "insufficient <argument>s, an empty string or a value of zero is assumed for\n"
 "the missing arguments.\n"
+), (
 "\n"
+), Ngt(
 "Conversion specifications:\n"
+), Ngt(
 "  %d    signed decimal integer\n"
+), Ngt(
 "  %i    signed decimal integer\n"
+), Ngt(
 "  %u    unsigned decimal integer\n"
+), Ngt(
 "  %o    unsigned octal integer\n"
+), Ngt(
 "  %x    unsigned hexadecimal integer (lowercase)\n"
+), Ngt(
 "  %X    unsigned hexadecimal integer (uppercase)\n"
+), Ngt(
 "  %f    floating point number (lowercase)\n"
+), Ngt(
 "  %F    floating point number (uppercase)\n"
+), Ngt(
 "  %e    floating point number with exponent (lowercase)\n"
+), Ngt(
 "  %E    floating point number with exponent (uppercase)\n"
+), Ngt(
 "  %g    %f or %e, automatically selected\n"
+), Ngt(
 "  %G    %F or %E, automatically selected\n"
+), Ngt(
 "  %c    first character of string\n"
+), Ngt(
 "  %s    string\n"
+), Ngt(
 "  %b    string (escape sequences are recognized like by the echo built-in)\n"
+), Ngt(
 "  %%    %\n"
+), (
 "\n"
+), Ngt(
 "Flags, field width, and precision can be specified in this order between\n"
 "`%' and the conversion specifier. For example, `%08.3f' is a specifier for a\n"
 "floating point number with the `0' flag, the field width of 8, and the\n"
 "precision of 3.\n"
+), (
 "\n"
+), Ngt(
 "Escape sequences:\n"
+), Ngt(
 "  \\a     alert (bell)\n"
+), Ngt(
 "  \\b     backspace\n"
+), Ngt(
 "  \\f     form feed\n"
+), Ngt(
 "  \\n     newline\n"
+), Ngt(
 "  \\r     carriage return\n"
+), Ngt(
 "  \\t     tab\n"
+), Ngt(
 "  \\v     vertical tab\n"
+), Ngt(
 "  \\\\     backslash\n"
+), Ngt(
 "  \\\"     double-quote\n"
+), Ngt(
 "  \\'     single-quote\n"
+), Ngt(
 "  \\nnn   8-bit value of the octal number <nnn>.\n"
-);
+), NULL };
 #endif /* YASH_ENABLE_HELP */
 
 

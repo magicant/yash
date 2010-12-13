@@ -75,7 +75,7 @@ extern int fc_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int history_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char fc_help[], history_help[];
+extern const char *fc_help[], *history_help[];
 
 
 #endif /* YASH_HISTORY_H */

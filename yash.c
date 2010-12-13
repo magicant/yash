@@ -700,16 +700,19 @@ int exit_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char exit_help[] = Ngt(
+const char *exit_help[] = { Ngt(
 "exit - exit the shell\n"
+), Ngt(
 "\texit [-f] [n]\n"
+), Ngt(
 "The exit built-in makes the shell terminate with the exit status of <n>.\n"
 "If <n> is not specified, it defaults to the exit status of the last executed\n"
 "command. <n> should be between 0 and 255 inclusive.\n"
+), Ngt(
 "If the shell is interactive and you have any stopped jobs, the shell prints\n"
 "a warning message and does not exit. Use the -f (--force) option or use\n"
 "`exit' twice in a row to avoid the warning and really exit.\n"
-);
+), NULL };
 #endif
 
 /* The "suspend" builtin, which accepts the following options:
@@ -751,14 +754,17 @@ int suspend_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char suspend_help[] = Ngt(
+const char *suspend_help[] = { Ngt(
 "suspend - suspend the shell\n"
+), Ngt(
 "\tsuspend [-f]\n"
+), Ngt(
 "The suspend built-in suspends the shell until it receives SIGCONT.\n"
+), Ngt(
 "If the shell is interactive and is a session leader, this command refuses to\n"
 "suspend it in order to avoid a possible deadlock. You can use the -f option\n"
 "to force the shell to suspend anyway.\n"
-);
+), NULL };
 #endif
 
 

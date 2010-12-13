@@ -1595,14 +1595,16 @@ int return_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char return_help[] = Ngt(
+const char *return_help[] = { Ngt(
 "return - return from a function or script\n"
+), Ngt(
 "\treturn [n]\n"
+), Ngt(
 "The return built-in exits the currently executing function or script file\n"
 "with the exit status of <n>. If <n> is not specified, it defaults to the\n"
 "exit status of the last executed command. <n> should be between 0 and 255\n"
 "inclusive.\n"
-);
+), NULL };
 #endif
 
 /* The "break"/"continue" builtin, which accepts the following option:
@@ -1689,26 +1691,32 @@ int break_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 
-const char break_help[] = Ngt(
+const char *break_help[] = { Ngt(
 "break - exit a loop\n"
+), Ngt(
 "\tbreak [n]\n"
 "\tbreak -i\n"
+), Ngt(
 "The first form exits the currently executing for/while/until loop.\n"
 "If <n> is specified, exits the <n>th outer loop.\n"
+), Ngt(
 "The second form, with the -i (--iteration) option, exits the current\n"
 "iterative execution.\n"
-);
+), NULL };
 
-const char continue_help[] = Ngt(
+const char *continue_help[] = { Ngt(
 "continue - continue a loop\n"
+), Ngt(
 "\tcontinue [n]\n"
 "\tcontinue -i\n"
+), Ngt(
 "The first form ends the current iteration of a for/while/until loop and\n"
 "resumes the next iteration. If <n> is specified, ends the iteration of the\n"
 "<n>th outer loop.\n"
+), Ngt(
 "The second form, with the -i (--iteration) option, ends the execution of\n"
 "commands and resumes the next iteration of the current iterative execution.\n"
-);
+), NULL };
 
 #endif /* YASH_ENABLE_HELP */
 
@@ -1749,16 +1757,18 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char eval_help[] = Ngt(
+const char *eval_help[] = { Ngt(
 "eval - evaluate arguments as a command\n"
+), Ngt(
 "\teval [-i] [arg...]\n"
+), Ngt(
 "The eval built-in parses and executes the specified <arg>s as commands in\n"
 "the current shell environment. Without the -i (--iteration) option, all the\n"
 "<arg>s are joined with a space inserted between each <arg> and the whole\n"
 "resultant string is parsed at a time. With the -i option, <arg>s are parsed\n"
 "and executed one by one (iterative execution).\n"
 "In the POSIXly correct mode, the -i option cannot be used.\n"
-);
+), NULL };
 #endif
 
 /* The "." builtin, which accepts the following option:
@@ -1874,23 +1884,28 @@ int dot_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char dot_help[] = Ngt(
+const char *dot_help[] = { Ngt(
 "dot - read a file and execute commands\n"
+), Ngt(
 "\t. [-AL] file [arg...]\n"
+), Ngt(
 "The dot built-in reads the specified <file> and executes commands in it.\n"
 "If <arg>s are specified, they are used as the positional parameters.\n"
 "Otherwise, the positional parameters are not changed.\n"
 "If <file> does not contain any slashes, the shell searches $PATH for a\n"
 "readable shell script file whose name is <file>. To ensure that the file in\n"
 "the current working directory is used, start <file> with `./'.\n"
+), Ngt(
 "If the -L (--autoload) option is specified, the shell searches\n"
 "$YASH_LOADPATH instead of $PATH, regardless of whether <file> contains\n"
 "slashes.\n"
+), Ngt(
 "If the -A (--no-alias) option is specified, alias substitution is not\n"
 "performed while processing the file.\n"
+), Ngt(
 "In the POSIXly correct mode, options cannot be used and <arg>s must not be\n"
 "given.\n"
-);
+), NULL };
 #endif
 
 /* The "exec" builtin, which accepts the following options:
@@ -2043,23 +2058,29 @@ err:
 }
 
 #if YASH_ENABLE_HELP
-const char exec_help[] = Ngt(
+const char *exec_help[] = { Ngt(
 "exec - execute a command in the shell process\n"
+), Ngt(
 "\texec [-cf] [-a name] [command [args...]]\n"
+), Ngt(
 "The exec built-in replaces the shell process with the specified command.\n"
 "The shell process is `changed' into the new command's process. No child\n"
 "process is created. When an interactive shell has stopped jobs, the -f\n"
 "(--force) option is required to perform exec.\n"
+), Ngt(
 "If the -c (--clear) option is specified, the command is executed only with\n"
 "the environment variables assigned for this command.\n"
+), Ngt(
 "If the -a <name> (--as=<name>) option is specified, <name> is passed to the\n"
 "command instead of <command> as the zeroth argument.\n"
+), Ngt(
 "If no <command> is given, the shell does nothing. As a special result,\n"
 "the effects of redirections associated with the exec built-in remain\n"
 "after the command.\n"
+), Ngt(
 "In the POSIXly correct mode, none of these options are available and the -f\n"
 "option is always assumed.\n"
-);
+), NULL };
 #endif
 
 /* The "command"/"type" builtin, which accepts the following options:
@@ -2344,16 +2365,20 @@ bool print_command_absolute_path(
 
 #if YASH_ENABLE_HELP
 
-const char command_help[] = Ngt(
+const char *command_help[] = { Ngt(
 "command - execute or identify a command\n"
+), Ngt(
 "\tcommand [-befp] command [argument...]\n"
 "\tcommand -v|-V [-abefkp] command...\n"
+), Ngt(
 "The command built-in executes or identifies the specified command.\n"
+), Ngt(
 "Without the -v or -V option, <command> is executed with <argument>s given.\n"
 "<command> is treated as a built-in or external command or a function\n"
 "according to the options specified. If the -p (--standard-path) option is\n"
 "given, the system's default PATH is searched for the command instead of the\n"
 "current $PATH.\n"
+), Ngt(
 "With the -v (--identify) option, <command> is identified. If the command is\n"
 "found in $PATH, its full path is printed. If it is a built-in or a function,\n"
 "the command name is simply printed. If it is an alias, it is printed in the\n"
@@ -2361,6 +2386,7 @@ const char command_help[] = Ngt(
 "printed and the exit status is non-zero.\n"
 "With the -V (--verbose-identify) option, the command is identified in the\n"
 "same way but the result is printed verbosely in a human-readable form.\n"
+), Ngt(
 "The following options specify the command type:\n"
 "  -a --alias\n"
 "  -b --builtin-command\n"
@@ -2369,14 +2395,16 @@ const char command_help[] = Ngt(
 "  -k --keyword\n"
 "When none of these are specified, they default to -be (without -v or -V) or\n"
 "-abefk (with -v or -V)\n"
-);
+), NULL };
 
-const char type_help[] = Ngt(
+const char *type_help[] = { Ngt(
 "type - identify a command\n"
+), Ngt(
 "\ttype command...\n"
+), Ngt(
 "The type built-in prints the type of <command>s.\n"
 "Same as `command -V <command>...'.\n"
-);
+), NULL };
 
 #endif /* YASH_ENABLE_HELP */
 
@@ -2433,15 +2461,17 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char times_help[] = Ngt(
+const char *times_help[] = { Ngt(
 "times - print process times\n"
+), Ngt(
 "\ttimes\n"
+), Ngt(
 "The times built-in prints the accumulated user and system times consumed by\n"
 "the shell process and all of its child processes.\n"
 "The first output line is for the shell process, and the second the child\n"
 "processes. For each line, the user time is printed followed by the system\n"
 "time.\n"
-);
+), NULL };
 #endif
 
 

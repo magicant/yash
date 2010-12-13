@@ -519,19 +519,27 @@ int alias_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char alias_help[] = Ngt(
+const char *alias_help[] = { Ngt(
 "alias - define or print aliases\n"
+), Ngt(
 "\talias [-gp] [name[=value]...]\n"
+), Ngt(
 "The alias built-in defines and/or prints aliases.\n"
+), Ngt(
 "For each operand of the form <name=value>, an alias is (re)defined.\n"
+), Ngt(
 "If the -g (--global) option is specified, it is defined as a global alias,\n"
 "which is substituted even if it is not a command word.\n"
+), Ngt(
 "For each operand of the form <name>, the alias definition is printed.\n"
+), Ngt(
 "If the -p (--prefix) option is specified, the output format is suitable for\n"
 "re-input to the shell.\n"
+), Ngt(
 "If no operands are given, all alias definitions are printed.\n"
+), Ngt(
 "No options are available in the POSIXly correct mode.\n"
-);
+), NULL };
 #endif
 
 /* The "unalias" builtin, which accepts the following option:
@@ -576,13 +584,16 @@ print_usage:
 }
 
 #if YASH_ENABLE_HELP
-const char unalias_help[] = Ngt(
+const char *unalias_help[] = { Ngt(
 "unalias - undefine aliases\n"
+), Ngt(
 "\tunalias name...\n"
 "\tunalias -a\n"
+), Ngt(
 "The unalias built-in removes the specified alias definitions.\n"
+), Ngt(
 "If the -a (--all) option is specified, all definitions are removed.\n"
-);
+), NULL };
 #endif
 
 
