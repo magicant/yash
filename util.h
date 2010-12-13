@@ -176,7 +176,7 @@ extern unsigned yash_error_message_count;
 extern void xerror(int errno_, const char *restrict format, ...)
     __attribute__((format(printf,2,3)));
 
-extern int xprintf(const char *restrict format, ...)
+extern _Bool xprintf(const char *restrict format, ...)
     __attribute__((format(printf,1,2)));
 
 

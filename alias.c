@@ -389,7 +389,7 @@ bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 	else
 	    format = "alias %ls=%ls\n";
 
-    success = (xprintf(format, name, qvalue) >= 0);
+    success = xprintf(format, name, qvalue);
     free(qvalue);
     return success;
 }
@@ -407,8 +407,7 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
     if (!user_friendly)
 	return print_alias(aliasname, alias, true);
     else
-	return xprintf(gt("%ls: alias for `%ls'\n"), aliasname, alias->value)
-		>= 0;
+	return xprintf(gt("%ls: alias for `%ls'\n"), aliasname, alias->value);
 }
 
 #if YASH_ENABLE_LINEEDIT

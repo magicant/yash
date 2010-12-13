@@ -339,9 +339,10 @@ void xerror(int errno_, const char *restrict format, ...)
 }
 
 /* Prints a formatted string like `printf', but if it failed to write to the
- * standard output, writes an error message to the standard error. */
+ * standard output, writes an error message to the standard error.
+ * Returns true iff successful. */
 /* The `format' string is not passed to `gettext'. */
-int xprintf(const char *restrict format, ...)
+bool xprintf(const char *restrict format, ...)
 {
     va_list ap;
     int result;
@@ -350,9 +351,12 @@ int xprintf(const char *restrict format, ...)
     result = vprintf(format, ap);
     va_end(ap);
 
-    if (result < 0)
+    if (result >= 0) {
+	return true;
+    } else {
 	xerror(errno, Ngt("cannot print to the standard output"));
-    return result;
+	return false;
+    }
 }
 
 
