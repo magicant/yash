@@ -213,7 +213,7 @@ int print_builtin_help(const wchar_t *name)
     if (bi != NULL) {
 	for (const char **help = bi->help; *help != NULL; help++) {
 	    if (printf("%s", gt(*help)) < 0) {
-		xerror(errno, Ngt("cannot print to standard output"));
+		xerror(errno, Ngt("cannot print to the standard output"));
 		return Exit_FAILURE;
 	    }
 	}
@@ -285,7 +285,7 @@ int false_builtin(
 #if YASH_ENABLE_HELP
 
 const char *colon_help[] = { Ngt(
-": - null utility\n"
+"colon - null utility\n"
 ), Ngt(
 "\t: [arg...]\n"
 ), Ngt(

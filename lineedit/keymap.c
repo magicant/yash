@@ -486,7 +486,7 @@ int set_key_binding(
 	    t = trie_setw(t, keyseq, (trievalue_T) { .cmdfunc = cmd });
 	    le_modes[mode].keymap = t;
 	} else {
-	    xerror(0, Ngt("no such command `%ls'"), commandname);
+	    xerror(0, Ngt("no such editing command `%ls'"), commandname);
 	    return Exit_FAILURE;
 	}
     }

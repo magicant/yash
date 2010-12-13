@@ -1320,7 +1320,7 @@ const char *cd_help[] = { Ngt(
 "unchanged. When the -P (--physical) option is specified, symbolic links are\n"
 "resolved so that $PWD does not contain any symbolic links.\n"
 ), Ngt(
-"-L and -P are mutually exclusive: the last specified one is effective.\n"
+"-L and -P are mutually exclusive: only the last specified one is effective.\n"
 "If neither is specified, -L is the default.\n"
 ), (
 "\n"
@@ -1399,7 +1399,7 @@ const char *pwd_help[] = { Ngt(
 "When the -P (--physical) option is specified, the printed pathname does not\n"
 "contain any symbolic links.\n"
 ), Ngt(
-"-L and -P are mutually exclusive: the last specified one is effective.\n"
+"-L and -P are mutually exclusive: only the last specified one is effective.\n"
 "If neither is specified, -L is the default.\n"
 ), NULL };
 #endif

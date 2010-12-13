@@ -1464,7 +1464,7 @@ error1:
 	} else {
 	    fd = move_to_shellfd(open(temp, O_RDONLY));
 	    if (fd < 0)
-		xerror(errno, Ngt("cannot read command from file `%s'"), temp);
+		xerror(errno, Ngt("cannot read commands from file `%s'"), temp);
 	}
 	if (unlink(temp) < 0)
 	    xerror(errno, Ngt("failed to remove temporary file `%s'"), temp);
@@ -1555,7 +1555,7 @@ const char *fc_help[] = { Ngt(
 "The -r (--reverse) option reverses the order of commands to be edited or\n"
 "printed.\n"
 ), Ngt(
-"The -v (--verbose) option makes the listing more detailed.\n"
+"The -v (--verbose) option prints command dates in the listing.\n"
 ), (
 "\n"
 ), Ngt(

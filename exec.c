@@ -2384,6 +2384,7 @@ const char *command_help[] = { Ngt(
 "the command name is simply printed. If it is an alias, it is printed in the\n"
 "form like \"alias ll='ls -l'\". If the command is not found, nothing is\n"
 "printed and the exit status is non-zero.\n"
+), Ngt(
 "With the -V (--verbose-identify) option, the command is identified in the\n"
 "same way but the result is printed verbosely in a human-readable form.\n"
 ), Ngt(

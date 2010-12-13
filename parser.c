@@ -1377,7 +1377,7 @@ reparse:
     } else {
 	wchar_t *endofheredoc = parse_word_as_wcs();
 	if (endofheredoc[0] == L'\0') {
-	    serror(Ngt("the here-document delimiter is missing"));
+	    serror(Ngt("the end-of-here-document indicator is missing"));
 	    free(endofheredoc);
 	    free(result);
 	    return NULL;
