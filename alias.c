@@ -113,8 +113,11 @@ inline bool is_alias_name_char(wchar_t c)
  * frees it. This function does nothing if `alias' is a null pointer. */
 void free_alias(alias_T *alias)
 {
-    if (alias != NULL && --alias->refcount == 0)
-	free(alias);
+    if (alias != NULL) {
+	alias->refcount--;
+	if (alias->refcount == 0)
+	    free(alias);
+    }
 }
 
 /* Applies `free_alias' to the value of key-value pair `kv'. */
@@ -269,10 +272,12 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
 bool substitute_alias(xwcsbuf_T *restrict buf, size_t i, size_t len,
 	aliaslist_T **restrict list, substaliasflags_T flags)
 {
-    bool subst = false;
-
+    if (aliases.count == 0)
+	return false;
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
-	return subst;
+	return false;
+
+    bool subst = false;
 
 substitute_alias:
     *list = remove_expired_aliases(*list, i);
@@ -417,6 +422,7 @@ void generate_alias_candidates(const le_compopt_T *compopt)
 
     size_t i = 0;
     kvpair_T kv;
+
     while ((kv = ht_next(&aliases, &i)).key != NULL) {
 	const alias_T *alias = kv.value;
 	le_candgentype_T type =
