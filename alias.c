@@ -57,21 +57,16 @@ typedef struct alias_T {
     wchar_t value[];
 } alias_T;
 
-#ifndef ALIAS_LIST_MAX
-#define ALIAS_LIST_MAX 30
-#endif
 typedef struct aliaslist_T {
-    size_t count;
-    struct {
-	size_t limitindex;
-	alias_T *alias;
-    } list[ALIAS_LIST_MAX];
+    struct aliaslist_T *next;
+    alias_T *alias;
+    size_t limitindex;
 } aliaslist_T;
-/* The `aliaslist_T' structure is used to prevent infinite recursive
- * substitution of an alias. When an alias is substituted, the alias and the end
- * index of the substituted string are saved in the list. Substitution of the
- * same alias is not performed before the saved index, thus preventing recursive
- * substitution. */
+/* An alias list created of the `aliaslist_T' structure is used to prevent
+ * infinite recursive substitution of an alias. When an alias is substituted,
+ * the alias and the end index of the substituted string are saved in the list.
+ * Substitution of the same alias is not performed before the saved index,
+ * thus preventing recursive substitution. */
 
 static void free_alias(alias_T *alias);
 static inline void vfreealias(kvpair_T kv);
@@ -82,14 +77,14 @@ static bool remove_alias(const wchar_t *name)
     __attribute__((nonnull));
 static void remove_all_aliases(void);
 static aliaslist_T *clone_aliaslist(const aliaslist_T *list)
-    __attribute__((nonnull));
+    __attribute__((malloc,warn_unused_result));
 static bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
     __attribute__((nonnull(1),pure));
-static bool add_to_aliaslist(
-	aliaslist_T *list, alias_T *alias, size_t limitindex)
+static void add_to_aliaslist(
+	aliaslist_T **list, alias_T *alias, size_t limitindex)
     __attribute__((nonnull));
-static void remove_expired_aliases(aliaslist_T *list, size_t index)
-    __attribute__((nonnull));
+static aliaslist_T *remove_expired_aliases(aliaslist_T *list, size_t index)
+    __attribute__((warn_unused_result));
 static void shift_index(aliaslist_T *list, ptrdiff_t inc)
     __attribute__((nonnull));
 static bool is_redir_fd(const wchar_t *s)
@@ -189,85 +184,78 @@ const wchar_t *get_alias_value(const wchar_t *aliasname)
 	return NULL;
 }
 
-/* Creates a new `aliaslist_T' object. */
-aliaslist_T *new_aliaslist(void)
-{
-    aliaslist_T *list = xmalloc(sizeof *list);
-    list->count = 0;
-    return list;
-}
-
 /* Creates a copy of the specified alias list. */
 aliaslist_T *clone_aliaslist(const aliaslist_T *list)
 {
-    aliaslist_T *new = xmalloc(sizeof *new);
-    *new = *list;
-    for (size_t i = list->count; i > 0; ) {
-	i--;
-	list->list[i].alias->refcount++;
+    aliaslist_T  *result = NULL;
+    aliaslist_T **lastp  = &result;
+
+    while (list != NULL) {
+	aliaslist_T *copy = xmalloc(sizeof *copy);
+
+	copy->next = NULL;
+	copy->alias = list->alias;
+	copy->alias->refcount++;
+	copy->limitindex = list->limitindex;
+
+	*lastp = copy;
+	lastp = &copy->next;
+	list = list->next;
     }
-    return new;
+    return result;
 }
 
 /* Frees the specified alias list and its contents. */
-void destroy_aliaslist(struct aliaslist_T *list)
+void destroy_aliaslist(aliaslist_T *list)
 {
-    for (size_t i = list->count; i > 0; ) {
-	i--;
-	free_alias(list->list[i].alias);
-    }
-    free(list);
+    list = remove_expired_aliases(list, SIZE_MAX);
+    assert(list == NULL);
 }
-
 
 /* Checks if the specified alias list contains the specified alias. */
 bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
 {
-    for (size_t i = list->count; i > 0; ) {
-	i--;
-	if (list->list[i].alias == alias)
+    while (list != NULL) {
+	if (list->alias == alias)
 	    return true;
+	list = list->next;
     }
     return false;
 }
 
-/* Adds `alias' to `list' with the specified limit index.
- * Returns true iff successful. */
-bool add_to_aliaslist(aliaslist_T *list, alias_T *alias, size_t limitindex)
+/* Adds an alias to an alias list with the specified limit index. */
+void add_to_aliaslist(aliaslist_T **list, alias_T *alias, size_t limitindex)
 {
-    if (list->count < ALIAS_LIST_MAX) {
-	list->list[list->count].limitindex = limitindex;
-	list->list[list->count].alias = alias;
-	list->count++;
-	alias->refcount++;
-	return true;
-    } else {
-	return false;
-    }
+    aliaslist_T *oldhead = *list;
+    aliaslist_T *newelem = xmalloc(sizeof *newelem);
+
+    assert(oldhead == NULL || limitindex <= oldhead->limitindex);
+    newelem->next = oldhead;
+    newelem->alias = alias;
+    newelem->alias->refcount++;
+    newelem->limitindex = limitindex;
+    *list = newelem;
 }
 
 /* Removes items whose `limitindex' is less than or equal to `index'. */
-void remove_expired_aliases(aliaslist_T *list, size_t index)
+aliaslist_T *remove_expired_aliases(aliaslist_T *list, size_t index)
 {
-    for (size_t i = list->count; i > 0; ) {
-	i--;
-	if (list->list[i].limitindex <= index) {
-	    free_alias(list->list[i].alias);
-	    list->count = i;
-	} else {
-	    break;
-	    /* List items are ordered by index, so we don't have to check all
-	     * the items. */
-	}
+    /* List items are ordered by index; we don't have to check all the items. */
+    while (list != NULL && list->limitindex <= index) {
+	aliaslist_T *next = list->next;
+	free_alias(list->alias);
+	free(list);
+	list = next;
     }
+    return list;
 }
 
 /* Increases the index of each item in the specified list by `inc'. */
 void shift_index(aliaslist_T *list, ptrdiff_t inc)
 {
-    for (size_t i = list->count; i > 0; ) {
-	i--;
-	list->list[i].limitindex += inc;
+    while (list != NULL) {
+	list->limitindex += inc;
+	list = list->next;
     }
 }
 
@@ -278,15 +266,16 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
  * If AF_NORECUR is not in `flags', substitution is repeated until there is
  * no more alias applicable.
  * Returns true iff any alias was substituted. */
-bool substitute_alias(xwcsbuf_T *buf, size_t i, size_t len,
-	aliaslist_T *list, substaliasflags_T flags)
+bool substitute_alias(xwcsbuf_T *restrict buf, size_t i, size_t len,
+	aliaslist_T **restrict list, substaliasflags_T flags)
 {
     bool subst = false;
+
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
 	return subst;
 
 substitute_alias:
-    remove_expired_aliases(list, i);
+    *list = remove_expired_aliases(*list, i);
 
     /* count the length of the alias name */
     size_t j = i + len;
@@ -318,27 +307,30 @@ substitute_alias:
 	/* check if we should do substitution */
 	if (alias != NULL
 		&& ((flags & AF_NONGLOBAL) | (alias->flags & AF_GLOBAL))
-		&& !contained_in_list(list, alias)) {
+		&& !contained_in_list(*list, alias)) {
 
 	    /* do substitution */
 	    wb_replace_force(buf, i, j - i, alias->value, alias->valuelen);
-	    shift_index(list, (ptrdiff_t) alias->valuelen - (ptrdiff_t)(j - i));
+	    shift_index(*list,
+		    (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
 	    subst = true;
 
 	    /* substitute the following word if AF_BLANKEND is set */
 	    /* see note below */
 	    if ((alias->flags & AF_BLANKEND) && !(alias->flags & AF_GLOBAL)) {
 		size_t ii = i + alias->valuelen;
-		aliaslist_T *savelist = clone_aliaslist(list);
+		aliaslist_T *savelist = clone_aliaslist(*list);
 		while (iswblank(buf->contents[ii]))
 		    ii++;
-		substitute_alias(buf, ii, 0, savelist, flags);
+		substitute_alias(buf, ii, 0, &savelist, flags);
 		destroy_aliaslist(savelist);
 	    }
 
+	    /* add the alias to the list to track recursion */
+	    add_to_aliaslist(list, alias, i + alias->valuelen);
+
 	    /* recursively substitute alias */
-	    if (add_to_aliaslist(list, alias, i + alias->valuelen)
-		    && !(flags & AF_NORECUR)) {
+	    if (!(flags & AF_NORECUR)) {
 		while (iswblank(buf->contents[i]))
 		    i++;
 		len = 0;
