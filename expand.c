@@ -788,7 +788,8 @@ subst:
 	if (unset) {
 	    recfree(list, free);
 	    if (p->pe_type & PT_NEST) {
-		xerror(0, Ngt("invalid assignment in parameter expansion"));
+		xerror(0,
+		    Ngt("a nested parameter expansion cannot be assigned"));
 		return false;
 	    } else if (!is_name(p->pe_name)) {
 		xerror(0, Ngt("cannot assign to parameter `%ls' "
@@ -797,8 +798,8 @@ subst:
 		return false;
 	    } else if ((v.type == GV_ARRAY_CONCAT)
 		    || (v.type == GV_ARRAY && startindex + 1 != endindex)) {
-                xerror(0, Ngt("cannot assign to elements of array `%ls' "
-                            "in parameter expansion"),
+                xerror(0, Ngt("the specified index does not support assignment "
+			    "in the parameter expansion of array `%ls'"),
 			p->pe_name);
 		return false;
 	    }

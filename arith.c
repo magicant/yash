@@ -276,6 +276,8 @@ void parse_assignment(evalinfo_T *info, value_T *result)
 		    if (!do_assignment(&saveword, result))
 			info->error = true, result->type = VT_INVALID;
 		} else if (result->type != VT_INVALID) {
+		    /* TRANSLATORS: This error message is shown when the target
+		     * of an assignment is not a variable. */
 		    xerror(0, Ngt("arithmetic: cannot assign to a number"));
 		    info->error = true;
 		    result->type = VT_INVALID;
@@ -832,6 +834,8 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 		if (!do_assignment(&saveword, result))
 		    info->error = true, result->type = VT_INVALID;
 	    } else if (result->type != VT_INVALID) {
+		/* TRANSLATORS: This error message is shown when the operand of
+		 * the "++" or "--" operator is not a variable. */
 		xerror(0, Ngt("arithmetic: operator `%ls' requires a variable"),
 			(info->token.type == TT_PLUSPLUS) ? L"++" : L"--");
 		info->error = true;

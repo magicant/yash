@@ -78,7 +78,7 @@ echo 39
 39
 echo 39
 39
-fc: editor returned non-zero status
+fc: the editor returned a non-zero exit status
 echo 36
 echo 37
 echo 38

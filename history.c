@@ -1459,7 +1459,7 @@ error1:
 
 	int fd;
 	if (laststatus != Exit_SUCCESS) {
-	    xerror(0, Ngt("editor returned non-zero status"));
+	    xerror(0, Ngt("the editor returned a non-zero exit status"));
 	    fd = -1;
 	} else {
 	    fd = move_to_shellfd(open(temp, O_RDONLY));
