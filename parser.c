@@ -2290,6 +2290,12 @@ void **parse_case_patterns(void)
     if (cbuf.contents[cindex] == L'(') {  /* ignore the first '(' */
 	cindex++;
 	skip_blanks_and_comment();
+	if (posixly_correct) {
+	    ensure_buffer(5);
+	    if (is_token_at(L"esac", cindex))
+		serror(Ngt(
+		    "an unquoted `esac' cannot be the first case pattern"));
+	}
     }
     do {
 	if (is_token_delimiter_char(cbuf.contents[cindex])) {

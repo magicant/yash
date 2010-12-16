@@ -191,6 +191,7 @@ yash -c:1: syntax error: invalid character `>' in case pattern
 yash -c:1: syntax error: `esac' missing
 yash -c:1: syntax error: `)' missing
 yash -c:1: syntax error: `)' missing
+sh -c:1: syntax error: an unquoted `esac' cannot be the first case pattern
 sh -c:1: syntax error: invalid keyword `function'
 syntax error: no word after `function'
 yash -c:1: syntax error: function body must be compound command

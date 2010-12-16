@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.26
+
+  =  "case foo in (esac) bar; esac" is now rejected in the POSIXly
+     correct mode.
+
+----------------------------------------------------------------------
 Yash 2.25
 
   =  In the completion candidate list, options are now sorted case-

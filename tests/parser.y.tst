@@ -409,6 +409,7 @@ END
 $INVOKE $TESTEE -c 'case "" in >/dev/null'
 $INVOKE $TESTEE -c 'case "" in "" esac'
 $INVOKE $TESTEE -c 'case "" in "" | "" esac'
+$INVOKE $TESTEE --posix -c 'case "" in (esac) :; esac'
 
 $INVOKE $TESTEE --posix -c 'function f() { echo posix function; }'
 $INVOKE $TESTEE <<\END
