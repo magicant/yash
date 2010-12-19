@@ -206,18 +206,28 @@ readonly -p ary
 typeset -p ary
 echo $ary
 
-echo ===== function typeset =====
+echo ===== function typeset/unset =====
 
 func () {
     echo ok $?
 }
+function x=1 {
+    echo equal
+}
 typeset -fp func
+typeset -fp x=1
 typeset -fp
 
 readonly -f func
 {
     func () { echo invalid re-definition; }
 } 2>/dev/null
+func
+unset -f func 2>/dev/null
+func
+
+unset -f x=1
+typeset -fp x=1 2>/dev/null
 func
 
 echo ===== read =====
