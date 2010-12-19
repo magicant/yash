@@ -4,7 +4,16 @@
 tmp="${TESTTMP}/test.y.tmp"
 mkdir "$tmp"
 
-echo ===== break continue =====
+echo ===== return break continue =====
+
+returnfunc ()
+while do
+    return -n
+    return
+done
+return --no-return 10
+returnfunc
+echo return $?
 
 breakfunc ()
 while true; do

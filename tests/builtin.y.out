@@ -1,4 +1,5 @@
-===== break continue =====
+===== return break continue =====
+return 10
 break ok 2
 break ok
 continue 1

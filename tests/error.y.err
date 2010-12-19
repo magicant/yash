@@ -93,10 +93,10 @@ wait: --no-such-option: invalid option
 Usage:  wait [job or pid...]
 ===== return =====
 return: --no-such-option: invalid option
-Usage:  return [n]
+Usage:  return [-n] [n]
 return: `foo' is not a valid integer
 return: `-3' is not a valid integer
-Usage:  return [n]
+Usage:  return [-n] [n]
 ===== break =====
 break: --no-such-option: invalid option
 Usage:  break [n]
