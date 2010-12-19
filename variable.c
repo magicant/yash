@@ -2243,8 +2243,13 @@ int shift_builtin(int argc, void **argv)
     variable_T *var = search_variable(L VAR_positional);
     assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
     if (scount > var->v_valc) {
-	xerror(0, Ngt("%zu: cannot shift so many ($# = %zu)"),
-		scount, var->v_valc);
+	xerror(0,
+	    ngt("%zu: cannot shift so many "
+		"(there is only one positional parameter)",
+		"%zu: cannot shift so many "
+		"(there are only %zu positional parameters)",
+		var->v_valc),
+	    scount, var->v_valc);
 	return Exit_FAILURE;
     }
     for (size_t i = 0; i < scount; i++)
