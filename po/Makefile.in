@@ -34,6 +34,7 @@ MSGMERGEFLAGS = @MSGMERGEFLAGS@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 POFILES = ja.po
 MOFILES = $(POFILES:.po=.mo)
+CATALOGS = @CATALOGS@
 DOMAIN = @TARGET@
 VERSION = @VERSION@
 COPYRIGHT_HOLDER = Magicant
@@ -47,14 +48,14 @@ DATADIR = @DATADIR@
 YASHDATADIR = $(DATADIR)/$(TARGET)
 LOCALEDIR = @LOCALEDIR@
 
-# stamp-po is a timestamp denoting the last time at which the $(MOFILES) have
+# stamp-po is a timestamp denoting the last time at which the $(CATALOGS) have
 # been loosely updated. Its purpose is that when a developer or translator
 # checks out the package via VCS, "make" will update the $(DOMAIN).pot and the
-# $(MOFILES), but subsequent invocations of "make" will do nothing. This
-# timestamp would not be necessary if updating the $(MOFILES) would always
+# $(CATALOGS), but subsequent invocations of "make" will do nothing. This
+# timestamp would not be necessary if updating the $(CATALOGS) would always
 # touch them; however, the rule for $(POFILES) has been designed to not touch
 # files that don't need to be changed.
-stamp-po: $(DOMAIN).pot $(MOFILES)
+stamp-po: $(DOMAIN).pot $(CATALOGS)
 	touch $@
 
 # This rule has no dependencies: we don't need to update $(DOMAIN).pot at
@@ -74,7 +75,7 @@ $(DOMAIN).pot-update:
 	mv $(DOMAIN).po $(DOMAIN).pot
 
 # This target rebuilds a PO file if $(DOMAIN).pot has changed.
-# # Note that a PO file is not touched if it doesn't need to be changed.
+# Note that a PO file is not touched if it doesn't need to be changed.
 $(POFILES): $(DOMAIN).pot
 	$(MSGMERGE) -U $(MSGMERGEFLAGS) $@ $(DOMAIN).pot
 
@@ -88,21 +89,21 @@ update-po: $(DOMAIN).pot-update
 
 install: install-data
 install-data: installdirs-data
-	@for lang in $(MOFILES:.mo=); do \
+	@for lang in $(CATALOGS:.mo=); do \
 		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
 		echo $(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
 		$(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo; \
 	done
 installdirs: installdirs-data
 installdirs-data:
-	@for lang in $(MOFILES:.mo=); do \
+	@for lang in $(CATALOGS:.mo=); do \
 		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
 		echo $(INSTALL_PROGRAM) -d $(DESTDIR)$$dir || true; \
 		$(INSTALL_PROGRAM) -d $(DESTDIR)$$dir; \
 	done
 uninstall: uninstall-data
 uninstall-data:
-	@for lang in $(MOFILES:.mo=); do \
+	@for lang in $(CATALOGS:.mo=); do \
 		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
 		echo rm -f $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
 		rm -f $(DESTDIR)$$dir/$(DOMAIN).mo; \

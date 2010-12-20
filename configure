@@ -180,7 +180,7 @@ Optional packages:
   --with-term-lib=LIBS    search space-separated LIBS for terminal handling
 
 Influential environment variables:
-  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER,
+  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER, LINGUAS,
   XGETTEXT, XGETTEXTFLAGS, MSGFMT, MSGFMTFLAGS, MSGMERGE, MSGMERGEFLAGS,
   INSTALL_PROGRAM, CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
@@ -1501,6 +1501,17 @@ then
     objs="${objs} "'$(LINEEDIT_ARCHIVE)'
 fi
 
+if [ x"${LINGUAS+set}" = x"set" ]
+then
+    CATALOGS=''
+    for i in ${LINGUAS}
+    do
+	CATALOGS="${CATALOGS} ${i}.mo"
+    done
+else
+    CATALOGS='$(MOFILES)'
+fi
+
 MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
 MAKE_SHELL="${MAKE_SHELL-${make_shell}}"
 CC="${CC-${cc}}"
@@ -1573,6 +1584,7 @@ s!@MSGFMT@!${MSGFMT}!g
 s!@MSGFMTFLAGS@!${MSGFMTFLAGS}!g
 s!@MSGMERGE@!${MSGMERGE}!g
 s!@MSGMERGEFLAGS@!${MSGMERGEFLAGS}!g
+s!@CATALOGS@!${CATALOGS}!g
 s!@CTAGS@!${CTAGS}!g
 s!@CTAGSARGS@!${CTAGSARGS}!g
 s!@ETAGS@!${ETAGS}!g
