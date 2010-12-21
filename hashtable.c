@@ -56,10 +56,7 @@
  * which stores entries in linked lists, is spatial locality: entries can be
  * quickly referenced because they are collected in one array. Another advantage
  * is that we don't have to call `malloc' or `free' each time an entry is added
- * or removed.
- *
- * The size of the bucket array (`indices') is (2 * capacity - 1). We make the
- * bucket array larger than the entry array (`entries') to reduce collisions. */
+ * or removed. */
 
 
 //#define DEBUG_HASH 1
@@ -102,11 +99,11 @@ hashtable_T *ht_initwithcapacity(
     ht->keycmp = keycmp;
     ht->emptyindex = NOTHING;
     ht->tailindex = 0;
-    ht->indices = xmalloc(2 * capacity * sizeof *ht->indices);
-    ht->entries = xmalloc(    capacity * sizeof *ht->entries);
+    ht->indices = xmalloc(capacity * sizeof *ht->indices);
+    ht->entries = xmalloc(capacity * sizeof *ht->entries);
 
     for (size_t i = 0; i < capacity; i++) {
-	ht->indices[i] = ht->indices[i + capacity] = NOTHING;
+	ht->indices[i] = NOTHING;
 	ht->entries[i].kv.key = NULL;
     }
 
@@ -128,13 +125,13 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
 
     size_t oldcapacity = ht->capacity;
     size_t *oldindices = ht->indices;
-    size_t *newindices = xmalloc(2 * newcapacity * sizeof *ht->indices);
+    size_t *newindices = xmalloc(newcapacity * sizeof *ht->indices);
     struct hash_entry *oldentries = ht->entries;
     struct hash_entry *newentries = xmalloc(newcapacity * sizeof *ht->entries);
     size_t tail = 0;
 
     for (size_t i = 0; i < newcapacity; i++) {
-	newindices[i] = newindices[i + newcapacity] = NOTHING;
+	newindices[i] = NOTHING;
 	newentries[i].kv.key = NULL;
     }
 
@@ -143,7 +140,7 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
 	void *key = oldentries[i].kv.key;
 	if (key) {
 	    hashval_T hash = oldentries[i].hash;
-	    size_t newindex = (size_t) hash % (2 * newcapacity - 1);
+	    size_t newindex = (size_t) hash % newcapacity;
 	    newentries[tail] = (struct hash_entry) {
 		.next = newindices[newindex],
 		.hash = hash,
@@ -192,7 +189,7 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 	return ht;
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
-	indices[i] = indices[i + cap] = NOTHING;
+	indices[i] = NOTHING;
 	if (entries[i].kv.key) {
 	    if (freer)
 		freer(entries[i].kv);
@@ -212,7 +209,7 @@ kvpair_T ht_get(const hashtable_T *ht, const void *key)
 {
     if (key) {
 	hashval_T hash = ht->hashfunc(key);
-	size_t index = ht->indices[(size_t) hash % (2 * ht->capacity - 1)];
+	size_t index = ht->indices[(size_t) hash % ht->capacity];
 	while (index != NOTHING) {
 	    struct hash_entry *entry = &ht->entries[index];
 	    if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0)
@@ -233,7 +230,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 
     /* if there is an entry with the specified key, simply replace the value */
     hashval_T hash = ht->hashfunc(key);
-    size_t mhash = (size_t) hash % (2 * ht->capacity - 1);
+    size_t mhash = (size_t) hash % ht->capacity;
     size_t index = ht->indices[mhash];
     struct hash_entry *entry;
     while (index != NOTHING) {
@@ -256,7 +253,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
     } else {
 	/* if there is no empty entry, use a tail entry */
 	ht_ensurecapacity(ht, ht->count + 1);
-	mhash = (size_t) hash % (2 * ht->capacity - 1);
+	mhash = (size_t) hash % ht->capacity;
 	index = ht->tailindex++;
 	entry = &ht->entries[index];
     }
@@ -277,7 +274,7 @@ kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
     if (key) {
 	hashval_T hash = ht->hashfunc(key);
-	size_t *indexp = &ht->indices[(size_t) hash % (2 * ht->capacity - 1)];
+	size_t *indexp = &ht->indices[(size_t) hash % ht->capacity];
 	while (*indexp != NOTHING) {
 	    size_t index = *indexp;
 	    struct hash_entry *entry = &ht->entries[index];
