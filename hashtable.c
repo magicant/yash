@@ -121,7 +121,7 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
     if (newcapacity == 0)
 	newcapacity = 1;
     if (newcapacity < ht->count)
-	return ht;
+	newcapacity = ht->count;
 
     size_t oldcapacity = ht->capacity;
     size_t *oldindices = ht->indices;
