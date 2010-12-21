@@ -31,7 +31,11 @@ static inline void *xcalloc(size_t nmemb, size_t size)
     __attribute__((malloc,warn_unused_result));
 static inline void *xmalloc(size_t size)
     __attribute__((malloc,warn_unused_result));
+static inline void *xmallocn(size_t count, size_t elemsize)
+    __attribute__((malloc,warn_unused_result));
 static inline void *xrealloc(void *ptr, size_t size)
+    __attribute__((malloc,warn_unused_result));
+static inline void *xreallocn(void *ptr, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
 extern void alloc_failed(void)
     __attribute__((noreturn));
@@ -54,6 +58,16 @@ void *xmalloc(size_t size)
     return result;
 }
 
+/* Like `xmalloc(count * elemsize)', but aborts the program if the size is too
+ * large. `elemsize' must not be zero. */
+void *xmallocn(size_t count, size_t elemsize)
+{
+    size_t size = count * elemsize;
+    if (size / elemsize != count)
+	alloc_failed();
+    return xmalloc(size);
+}
+
 /* Attempts `realloc' and abort the program on failure. */
 void *xrealloc(void *ptr, size_t size)
 {
@@ -61,6 +75,16 @@ void *xrealloc(void *ptr, size_t size)
     if (!result)
 	alloc_failed();
     return result;
+}
+
+/* Like `xrealloc(ptr, count * elemsize)', but aborts the program if the size is
+ * too large. `elemsize' must not be zero. */
+void *xreallocn(void *ptr, size_t count, size_t elemsize)
+{
+    size_t size = count * elemsize;
+    if (size / elemsize != count)
+	alloc_failed();
+    return xrealloc(ptr, size);
 }
 
 

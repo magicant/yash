@@ -99,8 +99,8 @@ hashtable_T *ht_initwithcapacity(
     ht->keycmp = keycmp;
     ht->emptyindex = NOTHING;
     ht->tailindex = 0;
-    ht->indices = xmalloc(capacity * sizeof *ht->indices);
-    ht->entries = xmalloc(capacity * sizeof *ht->entries);
+    ht->indices = xmallocn(capacity, sizeof *ht->indices);
+    ht->entries = xmallocn(capacity, sizeof *ht->entries);
 
     for (size_t i = 0; i < capacity; i++) {
 	ht->indices[i] = NOTHING;
@@ -125,9 +125,9 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
 
     size_t oldcapacity = ht->capacity;
     size_t *oldindices = ht->indices;
-    size_t *newindices = xmalloc(newcapacity * sizeof *ht->indices);
+    size_t *newindices = xmallocn(newcapacity, sizeof *ht->indices);
     struct hash_entry *oldentries = ht->entries;
-    struct hash_entry *newentries = xmalloc(newcapacity * sizeof *ht->entries);
+    struct hash_entry *newentries = xmallocn(newcapacity, sizeof *ht->entries);
     size_t tail = 0;
 
     for (size_t i = 0; i < newcapacity; i++) {
@@ -342,7 +342,7 @@ kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
  * The returned array is terminated by the { NULL, NULL } element. */
 kvpair_T *ht_tokvarray(const hashtable_T *ht)
 {
-    kvpair_T *array = xmalloc(sizeof *array * (ht->count + 1));
+    kvpair_T *array = xmallocn(ht->count + 1, sizeof *array);
     size_t index = 0;
     for (size_t i = 0; i < ht->capacity; i++) {
 	if (ht->entries[i].kv.key) {
