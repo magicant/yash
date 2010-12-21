@@ -93,8 +93,8 @@ hashtable_T *ht_initwithcapacity(
     if (capacity == 0)
 	capacity = 1;
 
-    ht->count = 0;
     ht->capacity = capacity;
+    ht->count = 0;
     ht->hashfunc = hashfunc;
     ht->keycmp = keycmp;
     ht->emptyindex = NOTHING;
@@ -113,7 +113,7 @@ hashtable_T *ht_initwithcapacity(
 /* Changes the capacity of the specified hashtable.
  * If the specified new capacity is smaller than the number of the entries in
  * the hashtable, the capacity is not changed.
- * Note that the capacity must not be zero. If `newcapacity' is zero, it is
+ * Note that the capacity cannot be zero. If `newcapacity' is zero, it is
  * assumed to be one. */
 /* Capacity should be an odd integer, especially a prime number. */
 hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
@@ -138,7 +138,7 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
     /* move the data from oldentries to newentries */
     for (size_t i = 0; i < oldcapacity; i++) {
 	void *key = oldentries[i].kv.key;
-	if (key) {
+	if (key != NULL) {
 	    hashval_T hash = oldentries[i].hash;
 	    size_t newindex = (size_t) hash % newcapacity;
 	    newentries[tail] = (struct hash_entry) {
@@ -190,7 +190,7 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
 	indices[i] = NOTHING;
-	if (entries[i].kv.key) {
+	if (entries[i].kv.key != NULL) {
 	    if (freer)
 		freer(entries[i].kv);
 	    entries[i].kv.key = NULL;
@@ -207,7 +207,7 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
  * or { NULL, NULL } if `key' is NULL or there is no such entry. */
 kvpair_T ht_get(const hashtable_T *ht, const void *key)
 {
-    if (key) {
+    if (key != NULL) {
 	hashval_T hash = ht->hashfunc(key);
 	size_t index = ht->indices[(size_t) hash % ht->capacity];
 	while (index != NOTHING) {
@@ -244,10 +244,10 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	index = entry->next;
     }
 
-    /* No entry with the specified key was found. So, add a new entry. */
+    /* No entry with the specified key was found; we add a new entry. */
     index = ht->emptyindex;
     if (index != NOTHING) {
-	/* if there is a empty entry, use it */
+	/* if there is an empty entry, use it */
 	entry = &ht->entries[index];
 	ht->emptyindex = entry->next;
     } else {
@@ -272,7 +272,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
  * If `key' is NULL or there is no such entry, { NULL, NULL } is returned. */
 kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
-    if (key) {
+    if (key != NULL) {
 	hashval_T hash = ht->hashfunc(key);
 	size_t *indexp = &ht->indices[(size_t) hash % ht->capacity];
 	while (*indexp != NOTHING) {
@@ -307,9 +307,9 @@ int ht_each(const hashtable_T *ht, int f(kvpair_T kv))
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
 	kvpair_T kv = entries[i].kv;
-	if (kv.key) {
+	if (kv.key != NULL) {
 	    int r = f(kv);
-	    if (r)
+	    if (r != 0)
 		return r;
 	}
     }
@@ -331,7 +331,7 @@ kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
     while (*indexp < ht->capacity) {
 	kvpair_T kv = ht->entries[*indexp].kv;
 	(*indexp)++;
-	if (kv.key)
+	if (kv.key != NULL)
 	    return kv;
     }
     return (kvpair_T) { NULL, NULL, };
@@ -344,12 +344,12 @@ kvpair_T *ht_tokvarray(const hashtable_T *ht)
 {
     kvpair_T *array = xmallocn(ht->count + 1, sizeof *array);
     size_t index = 0;
+
     for (size_t i = 0; i < ht->capacity; i++) {
-	if (ht->entries[i].kv.key) {
-	    assert(index < ht->count);
+	if (ht->entries[i].kv.key != NULL)
 	    array[index++] = ht->entries[i].kv;
-	}
     }
+
     assert(index == ht->count);
     array[index] = (kvpair_T) { NULL, NULL, };
     return array;
@@ -365,7 +365,7 @@ hashval_T hashstr(const void *s)
      * Cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
     const unsigned char *c = s;
     hashval_T h = 0;
-    while (*c)
+    while (*c != '\0')
 	h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }
@@ -379,7 +379,7 @@ hashval_T hashwcs(const void *s)
      * Cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
     const wchar_t *c = s;
     hashval_T h = 0;
-    while (*c)
+    while (*c != L'\0')
 	h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }
