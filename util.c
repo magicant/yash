@@ -23,7 +23,6 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +44,7 @@
 void alloc_failed(void)
 {
     xerror(ENOMEM, NULL);
-    exit(Exit_ERROR);
+    abort();
 }
 
 
@@ -56,7 +55,8 @@ void alloc_failed(void)
 size_t xstrnlen(const char *s, size_t maxlen)
 {
     size_t result = 0;
-    while (result < maxlen && s[result]) result++;
+    while (result < maxlen && s[result] != '\0')
+	result++;
     return result;
 }
 #endif
@@ -79,7 +79,8 @@ char *xstrndup(const char *s, size_t len)
 size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 {
     size_t result = 0;
-    while (result < maxlen && s[result]) result++;
+    while (result < maxlen && s[result] != L'\0')
+	result++;
     return result;
 }
 #endif
@@ -92,17 +93,18 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
 {
     len = xwcsnlen(s, len);
 
-    wchar_t *result = xmalloc((len + 1) * sizeof (wchar_t));
+    wchar_t *result = xmallocn(len + 1, sizeof (wchar_t));
     result[len] = L'\0';
     return wmemcpy(result, s, len);
 }
 
-/* Converts the specified multi-byte string into an integer value.
- * The conversion result is stored in `*resultp'.
- * Returns true iff successful. On error, the value of `*resultp' is undefined.
- * The conversion is considered successful if the string is not empry, `errno'
- * is zero and there is no remaining character after the value.
- * `errno' is non-zero iff this function returns false.
+/* Converts the specified multibyte string into an integer value.
+ * If successful, stores the integer value in `*resultp', sets `errno' to zero,
+ * and returns true. Otherwise, sets `errno' to a non-zero error value and
+ * returns false (the value of `*resultp' is undefined).
+ * The conversion is considered successful if the string is not empty, the
+ * `strtol' function does not set `errno' to non-zero, and there is no remaining
+ * character after the value.
  * Spaces at the beginning of the string are ignored. */
 bool xstrtoi(const char *s, int base, int *resultp)
 {
@@ -129,11 +131,12 @@ bool xstrtoi(const char *s, int base, int *resultp)
 }
 
 /* Converts the specified wide string into an integer value.
- * The conversion result is stored in `*resultp'.
- * Returns true iff successful. On error, the value of `*resultp' is undefined.
- * The conversion is considered successful if the string is not empry, `errno'
- * is zero and there is no remaining character after the value.
- * `errno' is non-zero iff this function returns false.
+ * If successful, stores the integer value in `*resultp', sets `errno' to zero,
+ * and returns true. Otherwise, sets `errno' to a non-zero error value and
+ * returns false (the value of `*resultp' is undefined).
+ * The conversion is considered successful if the string is not empty, the
+ * `wcstol' function does not set `errno' to non-zero, and there is no remaining
+ * character after the value.
  * Spaces at the beginning of the string are ignored. */
 bool xwcstoi(const wchar_t *s, int base, int *resultp)
 {
@@ -196,14 +199,14 @@ bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
 /* `xstrdup' and `copyaswcs' are suitable for `copy'. */
 void **duparrayn(void *const *array, size_t count, void *copy(const void *p))
 {
-    if (!array)
+    if (array == NULL)
 	return NULL;
 
     size_t realcount = 0;
     while (array[realcount] != NULL && realcount < count)
 	realcount++;
 
-    void **result = xmalloc((realcount + 1) * sizeof *result);
+    void **result = xmallocn(realcount + 1, sizeof *result);
     for (size_t i = 0; i < realcount; i++)
 	result[i] = copy(array[i]);
     result[realcount] = NULL;
@@ -250,8 +253,7 @@ char *matchstrprefix(const char *s, const char *prefix)
     while (*prefix != '\0') {
 	if (*prefix != *s)
 	    return NULL;
-	prefix++;
-	s++;
+	prefix++, s++;
     }
     return (char *) s;
 }
@@ -264,30 +266,16 @@ wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
     while (*prefix != L'\0') {
 	if (*prefix != *s)
 	    return NULL;
-	prefix++;
-	s++;
+	prefix++, s++;
     }
     return (wchar_t *) s;
 }
 
-/* Same as `xwcsdup', except that the argument and the return value are cast to
+/* Same as `xwcsdup', except that the argument and the return value are of type
  * (void *). */
 void *copyaswcs(const void *p)
 {
     return xwcsdup(p);
-}
-
-/* Comparison function used in `sort_mbs_array'. */
-static int compare_mbs(const void *p1, const void *p2)
-{
-    return strcoll(*(const char *const *) p1, *(const char *const *) p2);
-}
-
-/* Sorts the specified NULL-terminated array of multibyte strings
- * according to the current locale. */
-void sort_mbs_array(void **array)
-{
-    qsort(array, plcount(array), sizeof *array, compare_mbs);
 }
 
 
@@ -298,10 +286,10 @@ void sort_mbs_array(void **array)
 const wchar_t *yash_program_invocation_name;
 /* The basename of `yash_program_invocation_name'. */
 const wchar_t *yash_program_invocation_short_name;
-/* The name of the currently executed builtin. */
+/* The name of the currently executed built-in. */
 const wchar_t *current_builtin_name = NULL;
 /* The number of calls to the `xerror' function. */
-/* This value is reset each time before a builtin is invoked. */
+/* This value is reset each time before a built-in is invoked. */
 unsigned yash_error_message_count = 0;
 
 /* Prints the specified error message to the standard error.
@@ -313,34 +301,31 @@ unsigned yash_error_message_count = 0;
  */
 void xerror(int errno_, const char *restrict format, ...)
 {
-    va_list ap;
-
     yash_error_message_count++;
     fprintf(stderr, "%ls: ",
-	    current_builtin_name
+	    current_builtin_name != NULL
 	    ? current_builtin_name
 	    : yash_program_invocation_name);
-    if (format) {
+    if (format == NULL && errno_ == 0)
+	format = Ngt("unknown error");
+    if (format != NULL) {
+	va_list ap;
 	va_start(ap, format);
 	vfprintf(stderr, gt(format), ap);
 	va_end(ap);
     }
-    if (errno_) {
-	if (format)
-	    fputs(": ", stderr);
-	fputs(strerror(errno_), stderr);
+    if (errno_ != 0) {
+	fprintf(stderr,
+		(format == NULL) ? "%s" : ": %s",
+		strerror(errno_));
     }
-    if (format || errno_) {
-	fputc('\n', stderr);
-    } else {
-	fputs(gt("unknown error\n"), stderr);
-    }
-    fflush(stderr);
+    fputc('\n', stderr);
 }
 
-/* Prints a formatted string like `printf', but if it failed to write to the
+/* Prints a formatted string like `printf', but if failed to write to the
  * standard output, writes an error message to the standard error.
- * Returns true iff successful. */
+ * Returns true iff successful. When this function returns, the value of `errno'
+ * may not be the one set by the `printf' function. */
 /* The `format' string is not passed to `gettext'. */
 bool xprintf(const char *restrict format, ...)
 {
