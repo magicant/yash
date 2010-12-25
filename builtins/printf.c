@@ -821,7 +821,7 @@ const char *printf_help[] = { Ngt(
 "printf - print a formatted string\n"
 ), Ngt(
 "\tprintf format [argument...]\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "The printf built-in prints a string formatted by <format>.\n"
 "This built-in is very similar to the C programming language's `printf'\n"
 "function. Each conversion specification starting with `%' in <format> is\n"
@@ -836,41 +836,41 @@ const char *printf_help[] = { Ngt(
 "\n"
 ), Ngt(
 "Conversion specifications:\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %d    signed decimal integer\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %i    signed decimal integer\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %u    unsigned decimal integer\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %o    unsigned octal integer\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %x    unsigned hexadecimal integer (lowercase)\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %X    unsigned hexadecimal integer (uppercase)\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %f    floating point number (lowercase)\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %F    floating point number (uppercase)\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %e    floating point number with exponent (lowercase)\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %E    floating point number with exponent (uppercase)\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %g    %f or %e, automatically selected\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %G    %F or %E, automatically selected\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %c    first character of string\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %s    string\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %b    string (escape sequences are recognized like by the echo built-in)\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "  %%    %\n"
 ), (
 "\n"
-), Ngt(
+), /* xgettext:no-c-format */ Ngt(
 "Flags, field width, and precision can be specified in this order between\n"
 "`%' and the conversion specifier. For example, `%08.3f' is a specifier for a\n"
 "floating point number with the `0' flag, the field width of 8, and the\n"
