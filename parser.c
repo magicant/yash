@@ -570,7 +570,7 @@ parseresult_T read_and_parse(
 #if YASH_ENABLE_ALIAS
     enable_alias = cinfo->enable_alias;
     reparse_alias = false;
-    caliases = new_aliaslist();
+    caliases = NULL;
 #endif
 
     and_or_T *r = parse_command_list();
@@ -1111,7 +1111,7 @@ command_T *parse_command(void)
     if (enable_alias) {
 	size_t len = count_name_length(is_alias_name_char);
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
-	if (substitute_alias(&cbuf, cindex, len, caliases, flags)) {
+	if (substitute_alias(&cbuf, cindex, len, &caliases, flags)) {
 	    reparse_alias = true;
 	    return NULL;
 	}
@@ -1168,7 +1168,7 @@ redir_T **parse_assignments_and_redirects(command_T *c)
 #if YASH_ENABLE_ALIAS
 	if (enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, caliases, AF_NONGLOBAL);
+	    substitute_alias(&cbuf, cindex, len, &caliases, AF_NONGLOBAL);
 	    skip_blanks_and_comment();
 	}
 #endif
@@ -1194,7 +1194,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 #if YASH_ENABLE_ALIAS
 	if (!first && enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, caliases, 0);
+	    substitute_alias(&cbuf, cindex, len, &caliases, 0);
 	    skip_blanks_and_comment();
 	}
 #endif
@@ -1221,7 +1221,7 @@ void parse_redirect_list(redir_T **lastp)
 #if YASH_ENABLE_ALIAS
 	if (!posixly_correct && enable_alias) {
 	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, caliases, 0);
+	    substitute_alias(&cbuf, cindex, len, &caliases, 0);
 	}
 #endif
 
@@ -1412,7 +1412,7 @@ wordunit_T *parse_word(aliastype_T type)
 	case anyalias:;
 	    size_t len = count_name_length(is_alias_name_char);
 	    substaliasflags_T flags = type == globalonly ? 0 : AF_NONGLOBAL;
-	    substitute_alias(&cbuf, cindex, len, caliases, flags);
+	    substitute_alias(&cbuf, cindex, len, &caliases, flags);
 	    skip_blanks_and_comment();
 	    break;
 	}
@@ -2295,6 +2295,12 @@ void **parse_case_patterns(void)
     if (cbuf.contents[cindex] == L'(') {  /* ignore the first '(' */
 	cindex++;
 	skip_blanks_and_comment();
+	if (posixly_correct) {
+	    ensure_buffer(5);
+	    if (is_token_at(L"esac", cindex))
+		serror(Ngt(
+		    "an unquoted `esac' cannot be the first case pattern"));
+	}
     }
     do {
 	if (is_token_delimiter_char(cbuf.contents[cindex])) {

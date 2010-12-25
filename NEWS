@@ -8,8 +8,15 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.26
 
+  +  New option for the "return" built-in: -n (--no-return)
   =  Error messages have been revised.
+  =  "case foo in (esac) bar; esac" is now rejected in the POSIXly
+     correct mode.
+  *  Function names containing the '=' sign can now be specified as
+     arguments to the typeset and unset built-ins (with the -f
+     option).
 
 ----------------------------------------------------------------------
 Yash 2.25

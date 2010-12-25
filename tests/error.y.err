@@ -55,7 +55,7 @@ unset: function `func' is read-only
 ===== shift =====
 shift: `--no-such-option' is not a valid option
 Usage:  shift [n]
-shift: 10000: cannot shift so many ($# = 0)
+shift: 10000: cannot shift so many (there are only 0 positional parameters)
 ===== getopts =====
 getopts: `--no-such-option' is not a valid option
 Usage:  getopts options var [arg...]
@@ -93,10 +93,10 @@ wait: `--no-such-option' is not a valid option
 Usage:  wait [job or pid...]
 ===== return =====
 return: `--no-such-option' is not a valid option
-Usage:  return [n]
+Usage:  return [-n] [n]
 return: `foo' is not a valid integer
 return: `-3' is not a valid integer
-Usage:  return [n]
+Usage:  return [-n] [n]
 ===== break =====
 break: `--no-such-option' is not a valid option
 Usage:  break [n]

@@ -1556,16 +1556,8 @@ int typeset_builtin(int argc, void **argv)
     } else {
 	do {
 	    wchar_t *arg = ARGV(xoptind);
-	    wchar_t *wequal = wcschr(arg, L'=');
-	    if (wequal)
-		*wequal = L'\0';
 	    if (funcs) {
 		/* treat function */
-		if (wequal) {
-		    xerror(0, Ngt("cannot assign function"));
-		    continue;
-		}
-
 		function_T *f = ht_get(&functions, arg).value;
 		if (f) {
 		    if (readonly)
@@ -1575,37 +1567,42 @@ int typeset_builtin(int argc, void **argv)
 		} else {
 		    xerror(0, Ngt("no such function `%ls'"), arg);
 		}
-	    } else if (wequal || !print) {
-		/* create/assign variable */
-		variable_T *var = global ? new_global(arg) : new_local(arg);
-		vartype_T saveexport = var->v_type & VF_EXPORT;
-		if (wequal) {
-		    if (var->v_type & VF_READONLY) {
-			xerror(0, Ngt("$%ls is read-only"), arg);
-		    } else {
-			varvaluefree(var);
-			var->v_type = VF_SCALAR | (var->v_type & ~VF_MASK);
-			var->v_value = xwcsdup(wequal + 1);
-			var->v_getter = NULL;
-		    }
-		}
-		if (readonly)
-		    var->v_type |= VF_READONLY | VF_NODELETE;
-		if (export)
-		    var->v_type |= VF_EXPORT;
-		else if (unexport)
-		    var->v_type &= ~VF_EXPORT;
-		variable_set(arg, var);
-		if (saveexport != (var->v_type & VF_EXPORT)
-			|| (wequal && (var->v_type & VF_EXPORT)))
-		    update_environment(arg);
 	    } else {
-		/* print the variable */
-		variable_T *var = search_variable(arg);
-		if (var) {
-		    print_variable(arg, var, ARGV(0), readonly, export);
+		wchar_t *wequal = wcschr(arg, L'=');
+		if (wequal)
+		    *wequal = L'\0';
+		if (wequal || !print) {
+		    /* create/assign variable */
+		    variable_T *var = global ? new_global(arg) : new_local(arg);
+		    vartype_T saveexport = var->v_type & VF_EXPORT;
+		    if (wequal) {
+			if (var->v_type & VF_READONLY) {
+			    xerror(0, Ngt("$%ls is read-only"), arg);
+			} else {
+			    varvaluefree(var);
+			    var->v_type = VF_SCALAR | (var->v_type & ~VF_MASK);
+			    var->v_value = xwcsdup(wequal + 1);
+			    var->v_getter = NULL;
+			}
+		    }
+		    if (readonly)
+			var->v_type |= VF_READONLY | VF_NODELETE;
+		    if (export)
+			var->v_type |= VF_EXPORT;
+		    else if (unexport)
+			var->v_type &= ~VF_EXPORT;
+		    variable_set(arg, var);
+		    if (saveexport != (var->v_type & VF_EXPORT)
+			    || (wequal && (var->v_type & VF_EXPORT)))
+			update_environment(arg);
 		} else {
-		    xerror(0, Ngt("no such variable $%ls"), arg);
+		    /* print the variable */
+		    variable_T *var = search_variable(arg);
+		    if (var) {
+			print_variable(arg, var, ARGV(0), readonly, export);
+		    } else {
+			xerror(0, Ngt("no such variable $%ls"), arg);
+		    }
 		}
 	    }
 	} while (++xoptind < argc);
@@ -2123,14 +2120,15 @@ int unset_builtin(int argc, void **argv)
 
     for (; xoptind < argc; xoptind++) {
 	const wchar_t *name = ARGV(xoptind);
-	if (wcschr(name, L'=')) {
-	    xerror(0, Ngt("`%ls' is not a valid variable name"), name);
-	    continue;
-	}
-	if (funcs)
+	if (funcs) {
 	    unset_function(name);
-	else
+	} else {
+	    if (wcschr(name, L'=')) {
+		xerror(0, Ngt("`%ls' is not a valid variable name"), name);
+		continue;
+	    }
 	    unset_variable(name);
+	}
     }
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;

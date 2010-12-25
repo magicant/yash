@@ -22,6 +22,7 @@
 #include <stddef.h>
 
 struct xwcsbuf_T;
+struct aliaslist_T;
 
 typedef enum {
     AF_NONGLOBAL = 1 << 0,
@@ -33,11 +34,10 @@ extern _Bool is_alias_name_char(wchar_t c)
     __attribute__((pure));
 extern const wchar_t *get_alias_value(const wchar_t *aliasname)
     __attribute__((nonnull,pure));
-extern struct aliaslist_T *new_aliaslist(void)
-    __attribute__((malloc,warn_unused_result));
 extern void destroy_aliaslist(struct aliaslist_T *list);
-extern _Bool substitute_alias(struct xwcsbuf_T *buf, size_t i, size_t len,
-	struct aliaslist_T *list, substaliasflags_T flags)
+extern _Bool substitute_alias(
+	struct xwcsbuf_T *restrict buf, size_t i, size_t len,
+	struct aliaslist_T **restrict list, substaliasflags_T flags)
     __attribute__((nonnull));
 extern _Bool print_alias_if_defined(
 	const wchar_t *aliasname, _Bool user_friendly)

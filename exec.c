@@ -1560,17 +1560,34 @@ static const struct xoption iter_options[] = {
 /* The "return" builtin */
 int return_builtin(int argc, void **argv)
 {
+    static const struct xoption long_options[] = {
+	{ L"no-return", OPTARG_NONE, L'n', },
+#if YASH_ENABLE_HELP
+	{ L"help",      OPTARG_NONE, L'-', },
+#endif
+	{ NULL, 0, 0, },
+    };
+
+    bool noreturn = false;
     wchar_t opt;
 
     xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
+    while ((opt = xgetopt_long(argv,
+		    posixly_correct ? L"" : L"n",
+		    long_options, NULL))) {
 	switch (opt) {
+	    case L'n':
+		noreturn = true;
+		break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  %ls [n]\n"), ARGV(0));
+		fprintf(stderr,
+			gt(posixly_correct ? Ngt("Usage:  %ls [n]\n")
+			                   : Ngt("Usage:  %ls [-n] [n]\n")),
+			ARGV(0));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1590,7 +1607,8 @@ int return_builtin(int argc, void **argv)
     } else {
 	status = (savelaststatus >= 0) ? savelaststatus : laststatus;
     }
-    execinfo.exception = ee_return;
+    if (!noreturn)
+	execinfo.exception = ee_return;
     return status;
 }
 
@@ -1598,12 +1616,16 @@ int return_builtin(int argc, void **argv)
 const char *return_help[] = { Ngt(
 "return - return from a function or script\n"
 ), Ngt(
-"\treturn [n]\n"
+"\treturn [-n] [n]\n"
 ), Ngt(
 "The return built-in exits the currently executing function or script file\n"
 "with the exit status of <n>. If <n> is not specified, it defaults to the\n"
 "exit status of the last executed command. <n> should be between 0 and 255\n"
 "inclusive.\n"
+), Ngt(
+"If the -n (--no-return) option is specified, this built-in does not return\n"
+"from a function or script; simply returns the specified exit status.\n"
+"The -n option cannot be used in the POSIXly correct mode.\n"
 ), NULL };
 #endif
 

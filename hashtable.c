@@ -56,10 +56,7 @@
  * which stores entries in linked lists, is spatial locality: entries can be
  * quickly referenced because they are collected in one array. Another advantage
  * is that we don't have to call `malloc' or `free' each time an entry is added
- * or removed.
- *
- * The size of the bucket array (`indices') is (2 * capacity - 1). We make the
- * bucket array larger than the entry array (`entries') to reduce collisions. */
+ * or removed. */
 
 
 //#define DEBUG_HASH 1
@@ -96,17 +93,17 @@ hashtable_T *ht_initwithcapacity(
     if (capacity == 0)
 	capacity = 1;
 
-    ht->count = 0;
     ht->capacity = capacity;
+    ht->count = 0;
     ht->hashfunc = hashfunc;
     ht->keycmp = keycmp;
     ht->emptyindex = NOTHING;
     ht->tailindex = 0;
-    ht->indices = xmalloc(2 * capacity * sizeof *ht->indices);
-    ht->entries = xmalloc(    capacity * sizeof *ht->entries);
+    ht->indices = xmallocn(capacity, sizeof *ht->indices);
+    ht->entries = xmallocn(capacity, sizeof *ht->entries);
 
     for (size_t i = 0; i < capacity; i++) {
-	ht->indices[i] = ht->indices[i + capacity] = NOTHING;
+	ht->indices[i] = NOTHING;
 	ht->entries[i].kv.key = NULL;
     }
 
@@ -116,7 +113,7 @@ hashtable_T *ht_initwithcapacity(
 /* Changes the capacity of the specified hashtable.
  * If the specified new capacity is smaller than the number of the entries in
  * the hashtable, the capacity is not changed.
- * Note that the capacity must not be zero. If `newcapacity' is zero, it is
+ * Note that the capacity cannot be zero. If `newcapacity' is zero, it is
  * assumed to be one. */
 /* Capacity should be an odd integer, especially a prime number. */
 hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
@@ -124,26 +121,26 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
     if (newcapacity == 0)
 	newcapacity = 1;
     if (newcapacity < ht->count)
-	return ht;
+	newcapacity = ht->count;
 
     size_t oldcapacity = ht->capacity;
     size_t *oldindices = ht->indices;
-    size_t *newindices = xmalloc(2 * newcapacity * sizeof *ht->indices);
+    size_t *newindices = xmallocn(newcapacity, sizeof *ht->indices);
     struct hash_entry *oldentries = ht->entries;
-    struct hash_entry *newentries = xmalloc(newcapacity * sizeof *ht->entries);
+    struct hash_entry *newentries = xmallocn(newcapacity, sizeof *ht->entries);
     size_t tail = 0;
 
     for (size_t i = 0; i < newcapacity; i++) {
-	newindices[i] = newindices[i + newcapacity] = NOTHING;
+	newindices[i] = NOTHING;
 	newentries[i].kv.key = NULL;
     }
 
     /* move the data from oldentries to newentries */
     for (size_t i = 0; i < oldcapacity; i++) {
 	void *key = oldentries[i].kv.key;
-	if (key) {
+	if (key != NULL) {
 	    hashval_T hash = oldentries[i].hash;
-	    size_t newindex = (size_t) hash % (2 * newcapacity - 1);
+	    size_t newindex = (size_t) hash % newcapacity;
 	    newentries[tail] = (struct hash_entry) {
 		.next = newindices[newindex],
 		.hash = hash,
@@ -192,8 +189,8 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 	return ht;
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
-	indices[i] = indices[i + cap] = NOTHING;
-	if (entries[i].kv.key) {
+	indices[i] = NOTHING;
+	if (entries[i].kv.key != NULL) {
 	    if (freer)
 		freer(entries[i].kv);
 	    entries[i].kv.key = NULL;
@@ -210,9 +207,9 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
  * or { NULL, NULL } if `key' is NULL or there is no such entry. */
 kvpair_T ht_get(const hashtable_T *ht, const void *key)
 {
-    if (key) {
+    if (key != NULL) {
 	hashval_T hash = ht->hashfunc(key);
-	size_t index = ht->indices[(size_t) hash % (2 * ht->capacity - 1)];
+	size_t index = ht->indices[(size_t) hash % ht->capacity];
 	while (index != NOTHING) {
 	    struct hash_entry *entry = &ht->entries[index];
 	    if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0)
@@ -233,7 +230,7 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 
     /* if there is an entry with the specified key, simply replace the value */
     hashval_T hash = ht->hashfunc(key);
-    size_t mhash = (size_t) hash % (2 * ht->capacity - 1);
+    size_t mhash = (size_t) hash % ht->capacity;
     size_t index = ht->indices[mhash];
     struct hash_entry *entry;
     while (index != NOTHING) {
@@ -247,16 +244,16 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 	index = entry->next;
     }
 
-    /* No entry with the specified key was found. So, add a new entry. */
+    /* No entry with the specified key was found; we add a new entry. */
     index = ht->emptyindex;
     if (index != NOTHING) {
-	/* if there is a empty entry, use it */
+	/* if there is an empty entry, use it */
 	entry = &ht->entries[index];
 	ht->emptyindex = entry->next;
     } else {
 	/* if there is no empty entry, use a tail entry */
 	ht_ensurecapacity(ht, ht->count + 1);
-	mhash = (size_t) hash % (2 * ht->capacity - 1);
+	mhash = (size_t) hash % ht->capacity;
 	index = ht->tailindex++;
 	entry = &ht->entries[index];
     }
@@ -275,9 +272,9 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
  * If `key' is NULL or there is no such entry, { NULL, NULL } is returned. */
 kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
-    if (key) {
+    if (key != NULL) {
 	hashval_T hash = ht->hashfunc(key);
-	size_t *indexp = &ht->indices[(size_t) hash % (2 * ht->capacity - 1)];
+	size_t *indexp = &ht->indices[(size_t) hash % ht->capacity];
 	while (*indexp != NOTHING) {
 	    size_t index = *indexp;
 	    struct hash_entry *entry = &ht->entries[index];
@@ -310,9 +307,9 @@ int ht_each(const hashtable_T *ht, int f(kvpair_T kv))
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
 	kvpair_T kv = entries[i].kv;
-	if (kv.key) {
+	if (kv.key != NULL) {
 	    int r = f(kv);
-	    if (r)
+	    if (r != 0)
 		return r;
 	}
     }
@@ -334,7 +331,7 @@ kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
     while (*indexp < ht->capacity) {
 	kvpair_T kv = ht->entries[*indexp].kv;
 	(*indexp)++;
-	if (kv.key)
+	if (kv.key != NULL)
 	    return kv;
     }
     return (kvpair_T) { NULL, NULL, };
@@ -345,14 +342,14 @@ kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
  * The returned array is terminated by the { NULL, NULL } element. */
 kvpair_T *ht_tokvarray(const hashtable_T *ht)
 {
-    kvpair_T *array = xmalloc(sizeof *array * (ht->count + 1));
+    kvpair_T *array = xmallocn(ht->count + 1, sizeof *array);
     size_t index = 0;
+
     for (size_t i = 0; i < ht->capacity; i++) {
-	if (ht->entries[i].kv.key) {
-	    assert(index < ht->count);
+	if (ht->entries[i].kv.key != NULL)
 	    array[index++] = ht->entries[i].kv;
-	}
     }
+
     assert(index == ht->count);
     array[index] = (kvpair_T) { NULL, NULL, };
     return array;
@@ -368,7 +365,7 @@ hashval_T hashstr(const void *s)
      * Cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
     const unsigned char *c = s;
     hashval_T h = 0;
-    while (*c)
+    while (*c != '\0')
 	h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }
@@ -382,7 +379,7 @@ hashval_T hashwcs(const void *s)
      * Cf. http://www.isthe.com/chongo/tech/comp/fnv/ */
     const wchar_t *c = s;
     hashval_T h = 0;
-    while (*c)
+    while (*c != L'\0')
 	h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }

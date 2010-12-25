@@ -91,10 +91,14 @@ readonly ary
 ary=('test' 'of' 'array')
 typeset -xr ary
 test of array
-===== function typeset =====
+===== function typeset/unset =====
 func()
 {
    echo ok ${?}
+}
+function 'x=1'()
+{
+   echo equal
 }
 echol()
 {
@@ -115,7 +119,13 @@ func2()
 {
    echo re-defined func2
 }
+function 'x=1'()
+{
+   echo equal
+}
 ok 2
+ok 1
+ok 1
 ===== read =====
 1 12
 1 12\

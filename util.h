@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.h: miscellaneous utility functions */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2010 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #ifndef YASH_UTIL_H
 #define YASH_UTIL_H
 
-#include <stdint.h>
 #include <stdlib.h>
 
 #define Size_max ((size_t) -1)  // = SIZE_MAX
@@ -31,7 +30,11 @@ static inline void *xcalloc(size_t nmemb, size_t size)
     __attribute__((malloc,warn_unused_result));
 static inline void *xmalloc(size_t size)
     __attribute__((malloc,warn_unused_result));
+static inline void *xmallocn(size_t count, size_t elemsize)
+    __attribute__((malloc,warn_unused_result));
 static inline void *xrealloc(void *ptr, size_t size)
+    __attribute__((malloc,warn_unused_result));
+static inline void *xreallocn(void *ptr, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
 extern void alloc_failed(void)
     __attribute__((noreturn));
@@ -40,7 +43,7 @@ extern void alloc_failed(void)
 void *xcalloc(size_t nmemb, size_t size)
 {
     void *result = calloc(nmemb, size);
-    if (!result)
+    if (result == NULL)
 	alloc_failed();
     return result;
 }
@@ -49,18 +52,38 @@ void *xcalloc(size_t nmemb, size_t size)
 void *xmalloc(size_t size)
 {
     void *result = malloc(size);
-    if (!result)
+    if (result == NULL)
 	alloc_failed();
     return result;
+}
+
+/* Like `xmalloc(count * elemsize)', but aborts the program if the size is too
+ * large. `elemsize' must not be zero. */
+void *xmallocn(size_t count, size_t elemsize)
+{
+    size_t size = count * elemsize;
+    if (size / elemsize != count)
+	alloc_failed();
+    return xmalloc(size);
 }
 
 /* Attempts `realloc' and abort the program on failure. */
 void *xrealloc(void *ptr, size_t size)
 {
     void *result = realloc(ptr, size);
-    if (!result)
+    if (result == NULL)
 	alloc_failed();
     return result;
+}
+
+/* Like `xrealloc(ptr, count * elemsize)', but aborts the program if the size is
+ * too large. `elemsize' must not be zero. */
+void *xreallocn(void *ptr, size_t count, size_t elemsize)
+{
+    size_t size = count * elemsize;
+    if (size / elemsize != count)
+	alloc_failed();
+    return xrealloc(ptr, size);
 }
 
 
@@ -91,20 +114,14 @@ static inline void **duparray(void *const *array, void *copy(const void *p))
 extern void **duparrayn(
 	void *const *array, size_t count, void *copy(const void *p))
     __attribute__((malloc,warn_unused_result,nonnull(3)));
-extern char *joinstrarray(char *const *array, const char *padding)
-    __attribute__((malloc,warn_unused_result,nonnull));
 extern wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern char *matchstrprefix(const char *s, const char *prefix)
     __attribute__((pure,nonnull));
 extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
     __attribute__((pure,nonnull));
-
 extern void *copyaswcs(const void *p)
-    __attribute__((malloc,warn_unused_result));
-
-extern void sort_mbs_array(void **array)
-    __attribute__((nonnull));
+    __attribute__((malloc,warn_unused_result,nonnull));
 
 #if HAVE_STRNLEN
 # ifndef strnlen
@@ -145,7 +162,7 @@ void **duparray(void *const *array, void *copy(const void *p))
 
 
 /* These macros are used to cast the argument properly.
- * We don't need such macros for wide strings. */
+ * We don't need such macros for wide characters. */
 #define xisalnum(c)  (isalnum((unsigned char) (c)))
 #define xisalpha(c)  (isalpha((unsigned char) (c)))
 #define xisblank(c)  (isblank((unsigned char) (c)))
@@ -176,7 +193,7 @@ extern unsigned yash_error_message_count;
 extern void xerror(int errno_, const char *restrict format, ...)
     __attribute__((format(printf,2,3)));
 
-extern int xprintf(const char *restrict format, ...)
+extern _Bool xprintf(const char *restrict format, ...)
     __attribute__((format(printf,1,2)));
 
 
@@ -202,16 +219,6 @@ extern wchar_t xgetopt_long(
 	const struct xoption *restrict longopts,
 	int *restrict longindex)
     __attribute__((nonnull(1,2)));
-static inline wchar_t xgetopt(
-	void **restrict argv,
-	const wchar_t *restrict optstring)
-    __attribute__((nonnull(1,2)));
-
-/* `xgetopt_long' without long options. */
-wchar_t xgetopt(void **restrict argv, const wchar_t *restrict optstring)
-{
-    return xgetopt_long(argv, optstring, NULL, NULL);
-}
 
 
 #undef Size_max

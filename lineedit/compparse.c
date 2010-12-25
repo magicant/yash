@@ -129,7 +129,7 @@ le_context_T *le_get_context(void)
     wb_ncat_force(&parseinfo.buf, le_main_buffer.contents, le_main_index);
     parseinfo.bufindex = 0;
 #if YASH_ENABLE_ALIAS
-    parseinfo.aliaslist = new_aliaslist();
+    parseinfo.aliaslist = NULL;
 #endif
     parseinfo.ctxt = ctxt;
 
@@ -222,7 +222,7 @@ bool csubstitute_alias(substaliasflags_T flags)
 	len++;
     if (len == 0 || BUF[INDEX + len] == L'\0')
 	return false;
-    return substitute_alias(&pi->buf, INDEX, len, pi->aliaslist, flags);
+    return substitute_alias(&pi->buf, INDEX, len, &pi->aliaslist, flags);
 }
 
 #endif
