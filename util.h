@@ -114,8 +114,6 @@ static inline void **duparray(void *const *array, void *copy(const void *p))
 extern void **duparrayn(
 	void *const *array, size_t count, void *copy(const void *p))
     __attribute__((malloc,warn_unused_result,nonnull(3)));
-extern wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
-    __attribute__((malloc,warn_unused_result,nonnull));
 extern char *matchstrprefix(const char *s, const char *prefix)
     __attribute__((pure,nonnull));
 extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)

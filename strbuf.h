@@ -181,6 +181,9 @@ static inline wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
 extern wchar_t *malloc_wprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
+extern wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
+    __attribute__((malloc,warn_unused_result,nonnull));
+
 
 /* Frees the specified multibyte string buffer. The contents are lost. */
 void sb_destroy(xstrbuf_T *buf)

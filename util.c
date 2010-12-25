@@ -213,38 +213,6 @@ void **duparrayn(void *const *array, size_t count, void *copy(const void *p))
     return result;
 }
 
-/* Joins the wide-character strings in the specified NULL-terminated array. The
- * array elements are considered pointers to wide strings.
- * If `padding' is non-NULL, `padding' is padded between each joined element.
- * Returns a newly malloced string. */
-wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
-{
-    size_t elemcount, ccount = 0;
-
-    /* count the full length of the resulting string */
-    for (elemcount = 0; array[elemcount] != NULL; elemcount++)
-	ccount += wcslen(array[elemcount]);
-    if (padding != NULL && elemcount > 0)
-	ccount += wcslen(padding) * (elemcount - 1);
-
-    /* do copying */
-    wchar_t *result = xmalloc((ccount + 1) * sizeof *result);
-    wchar_t *s = result;
-    for (size_t i = 0; i < elemcount; i++) {
-	wchar_t *elem = array[i];
-	while (*elem != L'\0')
-	    *s++ = *elem++;
-	if (i + 1 < elemcount) {
-	    const wchar_t *pad = padding;
-	    while (*pad)
-		*s++ = *pad++;
-	}
-    }
-    *s = L'\0';
-
-    return result;
-}
-
 /* If string `s' starts with `prefix', returns a pointer to the byte right after
  * the prefix in `s'. Otherwise, returns NULL.
  * This function does not change the value of `errno'. */
