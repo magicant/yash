@@ -1092,11 +1092,11 @@ void divide_candidates_pages(size_t cand_per_col)
 void le_display_complete_cleanup(void)
 {
     if (candpages.contents != NULL) {
-	recfree(pl_toary(&candpages), free_candpage);
+	plfree(pl_toary(&candpages), free_candpage);
 	candpages.contents = NULL;
 
 	assert(candcols.contents != NULL);
-	recfree(pl_toary(&candcols), free_candcol);
+	plfree(pl_toary(&candcols), free_candcol);
 	candcols.contents = NULL;
     }
     candhighlight = NOHIGHLIGHT;

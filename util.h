@@ -109,11 +109,6 @@ extern _Bool xwcstol(const wchar_t *s, int base, long *resultp)
     __attribute__((warn_unused_result,nonnull));
 extern _Bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
     __attribute__((warn_unused_result,nonnull));
-static inline void **duparray(void *const *array, void *copy(const void *p))
-    __attribute__((malloc,warn_unused_result,nonnull(2)));
-extern void **duparrayn(
-	void *const *array, size_t count, void *copy(const void *p))
-    __attribute__((malloc,warn_unused_result,nonnull(3)));
 extern char *matchstrprefix(const char *s, const char *prefix)
     __attribute__((pure,nonnull));
 extern wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
@@ -146,16 +141,6 @@ char *xstrdup(const char *s)
 wchar_t *xwcsdup(const wchar_t *s)
 {
     return xwcsndup(s, Size_max);
-}
-
-/* Clones the specified NULL-terminated array of pointers.
- * Each pointer element is passed to function `copy' and the return value is
- * assigned to the new array element.
- * If `array' is NULL, simply returns NULL. */
-/* `xstrdup' and `copyaswcs' are suitable for `copy'. */
-void **duparray(void *const *array, void *copy(const void *p))
-{
-    return duparrayn(array, Size_max, copy);
 }
 
 

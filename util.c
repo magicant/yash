@@ -189,30 +189,6 @@ bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
     return true;
 }
 
-/* Clones the specified NULL-terminated array of pointers.
- * Each pointer element is passed to function `copy' and the return value is
- * assigned to the new array element.
- * If the array contains more than `count' elements, only the first `count'
- * elements are copied. If the array contains elements fewer than `count', the
- * whole array is copied.
- * If `array' is NULL, simply returns NULL. */
-/* `xstrdup' and `copyaswcs' are suitable for `copy'. */
-void **duparrayn(void *const *array, size_t count, void *copy(const void *p))
-{
-    if (array == NULL)
-	return NULL;
-
-    size_t realcount = 0;
-    while (array[realcount] != NULL && realcount < count)
-	realcount++;
-
-    void **result = xmallocn(realcount + 1, sizeof *result);
-    for (size_t i = 0; i < realcount; i++)
-	result[i] = copy(array[i]);
-    result[realcount] = NULL;
-    return result;
-}
-
 /* If string `s' starts with `prefix', returns a pointer to the byte right after
  * the prefix in `s'. Otherwise, returns NULL.
  * This function does not change the value of `errno'. */

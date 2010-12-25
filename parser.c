@@ -85,7 +85,7 @@ void comsfree(command_T *c)
 	switch (c->c_type) {
 	    case CT_SIMPLE:
 		assignsfree(c->c_assigns);
-		recfree(c->c_words, wordfree_vp);
+		plfree(c->c_words, wordfree_vp);
 		break;
 	    case CT_GROUP:
 	    case CT_SUBSHELL:
@@ -96,7 +96,7 @@ void comsfree(command_T *c)
 		break;
 	    case CT_FOR:
 		free(c->c_forname);
-		recfree(c->c_forwords, wordfree_vp);
+		plfree(c->c_forwords, wordfree_vp);
 		andorsfree(c->c_forcmds);
 		break;
 	    case CT_WHILE:
@@ -134,7 +134,7 @@ void ifcmdsfree(ifcommand_T *i)
 void caseitemsfree(caseitem_T *i)
 {
     while (i) {
-	recfree(i->ci_patterns, wordfree_vp);
+	plfree(i->ci_patterns, wordfree_vp);
 	andorsfree(i->ci_commands);
 
 	caseitem_T *next = i->next;
@@ -192,8 +192,8 @@ void assignsfree(assign_T *a)
     while (a) {
 	free(a->a_name);
 	switch (a->a_type) {
-	    case A_SCALAR:  wordfree(a->a_scalar);             break;
-	    case A_ARRAY:   recfree(a->a_array, wordfree_vp);  break;
+	    case A_SCALAR:  wordfree(a->a_scalar);            break;
+	    case A_ARRAY:   plfree(a->a_array, wordfree_vp);  break;
 	}
 
 	assign_T *next = a->next;

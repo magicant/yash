@@ -143,7 +143,7 @@ bool expand_line(void *const *restrict args,
 
     while (*args) {
 	if (!expand_multiple(*args, &list)) {
-	    recfree(pl_toary(&list), free);
+	    plfree(pl_toary(&list), free);
 	    return false;
 	}
 	args++;
@@ -167,7 +167,7 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     if (!expand_word_and_split(w, pl_init(&templist))) {
 	if (!is_interactive)
 	    exit_shell_with_status(Exit_EXPERROR);
-	recfree(pl_toary(&templist), free);
+	plfree(pl_toary(&templist), free);
 	return false;
     }
 
@@ -197,8 +197,8 @@ bool expand_word_and_split(const wordunit_T *restrict w, plist_T *restrict list)
 
     /* four expansions (w -> list1) */
     if (!expand_word(w, tt_single, false, &valuelist1, &splitlist1)) {
-	recfree(pl_toary(&valuelist1), free);
-	recfree(pl_toary(&splitlist1), free);
+	plfree(pl_toary(&valuelist1), free);
+	plfree(pl_toary(&splitlist1), free);
 	return false;
     }
 
@@ -236,7 +236,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     if (!expand_word(arg, tilde, false, &list, NULL)) {
 	if (!is_interactive)
 	    exit_shell_with_status(Exit_EXPERROR);
-	recfree(pl_toary(&list), free);
+	plfree(pl_toary(&list), free);
 	return NULL;
     }
     if (list.length != 1) {
@@ -244,7 +244,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 	const wchar_t *ifs = getvar(L VAR_IFS);
 	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	result = joinwcsarray(list.contents, padding);
-	recfree(pl_toary(&list), free);
+	plfree(pl_toary(&list), free);
     } else {
 	result = list.contents[0];
 	pl_destroy(&list);
@@ -286,7 +286,7 @@ noglob:
 	set_interruptible_by_sigint(false);
 	if (!ok) {
 	    free(exp);
-	    recfree(pl_toary(&list), free);
+	    plfree(pl_toary(&list), free);
 	    xerror(EINTR, Ngt("redirection"));
 	    result = NULL;
 	} else if (list.length == 1) {
@@ -296,7 +296,7 @@ noglob:
 		xerror(EILSEQ, Ngt("redirection"));
 	    pl_destroy(&list);
 	} else {
-	    recfree(pl_toary(&list), free);
+	    plfree(pl_toary(&list), free);
 	    if (posixly_correct) {
 		goto noglob;
 	    } else {
@@ -663,7 +663,7 @@ bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 	plist_T plist;
 	pl_init(&plist);
 	if (!expand_word(p->pe_nest, tt_none, true, &plist, NULL)) {
-	    recfree(pl_toary(&plist), free);
+	    plfree(pl_toary(&plist), free);
 	    return false;
 	}
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
@@ -743,14 +743,14 @@ treat_array:
 #endif
 		assert(0 <= startindex && startindex <= endindex);
 		if (save)
-		    list = duparrayn(v.values + startindex,
+		    list = plndup(v.values + startindex,
 			    endindex - startindex, copyaswcs);
 		else
 		    list = trim_array(v.values, startindex, endindex);
 		break;
 	    case idx_number:
 		if (!save)
-		    recfree(v.values, free);
+		    plfree(v.values, free);
 		list = xmalloc(2 * sizeof *list);
 		list[0] = malloc_wprintf(L"%zu", v.count);
 		list[1] = NULL;
@@ -779,13 +779,13 @@ treat_array:
     case PT_MINUS:
 	if (unset) {
 subst:
-	    recfree(list, free);
+	    plfree(list, free);
 	    return expand_word_inner(p->pe_subst, tt_single, indq, true, e);
 	}
 	break;
     case PT_ASSIGN:
 	if (unset) {
-	    recfree(list, free);
+	    plfree(list, free);
 	    if (p->pe_type & PT_NEST) {
 		xerror(0, Ngt("invalid assignment in parameter expansion"));
 		return false;
@@ -826,7 +826,7 @@ subst:
 	break;
     case PT_ERROR:
 	if (unset) {
-	    recfree(list, free);
+	    plfree(list, free);
 	    print_subst_as_error(p);
 	    return false;
 	}
@@ -834,7 +834,7 @@ subst:
     }
 
     if (shopt_nounset && unset) {
-	recfree(list, free);
+	plfree(list, free);
 	xerror(0, Ngt("%ls: parameter not set"), p->pe_name);
 	return false;
     }
@@ -844,7 +844,7 @@ subst:
     case PT_MATCH:
 	match = expand_single(p->pe_match, tt_single);
 	if (!match) {
-	    recfree(list, free);
+	    plfree(list, free);
 	    return false;
 	}
 	match_each(list, match, p->pe_type);
@@ -856,7 +856,7 @@ subst:
 	if (!match || !subst) {
 	    free(match);
 	    free(subst);
-	    recfree(list, free);
+	    plfree(list, free);
 	    return false;
 	}
 	subst = unescapefree(subst);
@@ -871,7 +871,7 @@ subst:
 	const wchar_t *ifs = getvar(L VAR_IFS);
 	wchar_t padding[] = { ifs ? ifs[0] : L' ', L'\0' };
 	wchar_t *chain = joinwcsarray(list, padding);
-	recfree(list, free);
+	plfree(list, free);
 	list = xmalloc(2 * sizeof *list);
 	list[0] = chain;
 	list[1] = NULL;
@@ -953,7 +953,7 @@ wchar_t *expand_param_simple(const paramexp_T *p)
 
     void **results = pl_toary(expand.valuelist);
     wchar_t *result = ok ? joinwcsarray(results, L" ") : NULL;
-    recfree(results, free);
+    plfree(results, free);
     return result;
 }
 
@@ -1434,7 +1434,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 /* Performs field splitting.
  * `valuelist' is a NULL-terminated array of pointers to wide strings to split.
  * `splitlist' is an array of pointers to corresponding splittability strings.
- * `valuelist' and `splitlist' are `recfree'ed in this function.
+ * `valuelist' and `splitlist' are `plfree'ed in this function.
  * The results are added to `dest'. */
 void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
 	plist_T *restrict dest)
@@ -1696,7 +1696,7 @@ enum wglbflags get_wglbflags(void)
 
 /* Performs file name expansion to the specified patterns.
  * `patterns' is a NULL-terminated array of pointers to `free'able wide strings
- * cast to (void *). `patterns' is `recfree'd in this function.
+ * cast to (void *). `patterns' is `plfree'd in this function.
  * The results are added to `list' as newly-malloced wide strings. */
 void glob_all(void **restrict patterns, plist_T *restrict list)
 {

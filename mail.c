@@ -139,7 +139,7 @@ void check_mail_and_print_message(void)
 	case GV_SCALAR:
 	    activate();
 	    handle_mailpath(mailpath.values[0]);
-	    recfree(mailpath.values, free);
+	    plfree(mailpath.values, free);
 	    return;
 	case GV_ARRAY:
 	case GV_ARRAY_CONCAT:

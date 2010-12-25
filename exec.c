@@ -384,7 +384,7 @@ void exec_for(const command_T *c, bool finally_exit)
 	/* no "in" keyword in the for command: use the positional parameters */
 	struct get_variable v = get_variable(L"@");
 	assert(v.type == GV_ARRAY && v.values != NULL);
-	words = duparray(v.values, copyaswcs);
+	words = pldup(v.values, copyaswcs);
 	count = (int) v.count;
     }
 
@@ -726,7 +726,7 @@ pid_t exec_process(
 	    goto done;
 	}
 	if (is_interrupted()) {
-	    recfree(argv, free);
+	    plfree(argv, free);
 	    goto done;
 	}
 	if (argc == 0) {
@@ -844,7 +844,7 @@ done3:
 	close_current_environment();
 done2:
     if (c->c_type == CT_SIMPLE)
-	recfree(argv, free), free(argv0);
+	plfree(argv, free), free(argv0);
 done1:
     undo_redirections(savefd);
 done:
@@ -1423,7 +1423,7 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 	    break;
 	case GV_ARRAY:
 	    /* copy the array values in case they are unset during execution */
-	    array = duparrayn(gv.values, gv.count, copyaswcs);
+	    array = plndup(gv.values, gv.count, copyaswcs);
 	    break;
 	case GV_ARRAY_CONCAT:
 	    /* should execute the concatenated value, but is not supported now*/
@@ -1433,7 +1433,7 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
     }
 
     int result = exec_iteration(array, codename);
-    recfree(array, free);
+    plfree(array, free);
     return result;
 }
 
@@ -2049,7 +2049,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     err = Exit_NOEXEC;
 
     if (envs != environ)
-	recfree((void **) envs, free);
+	plfree((void **) envs, free);
 
 err:
     for (int i = 0; i < argc; i++)

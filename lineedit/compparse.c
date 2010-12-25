@@ -307,7 +307,7 @@ cparse_simple_command:
 	switch (BUF[INDEX]) {
 	    case L'\n':  case L';':  case L'&':  case L'|':
 	    case L'(':  case L')':
-		recfree(pl_toary(&pwords), free);
+		plfree(pl_toary(&pwords), free);
 		return false;
 	}
 
@@ -318,7 +318,7 @@ cparse_simple_command:
 		pi->ctxt->pwordc = pwords.length;
 		pi->ctxt->pwords = pl_toary(&pwords);
 	    } else {
-		recfree(pl_toary(&pwords), free);
+		plfree(pl_toary(&pwords), free);
 	    }
 	    return true;
 	} else {
@@ -330,7 +330,7 @@ cparse_simple_command:
 	if (csubstitute_alias(0))
 	    skip_blanks();
 	if (ctryparse_redirect()) {
-	    recfree(pl_toary(&pwords), free);
+	    plfree(pl_toary(&pwords), free);
 	    return true;
 	}
 	skip_blanks();
@@ -388,7 +388,7 @@ bool ctryparse_assignment(void)
 	    if (BUF[INDEX] != L'\0' && is_token_delimiter_char(BUF[INDEX])) {
 		if (BUF[INDEX] == L')')
 		    INDEX++;
-		recfree(pl_toary(&pwords), free);
+		plfree(pl_toary(&pwords), free);
 		return false;
 	    }
 
@@ -399,7 +399,7 @@ bool ctryparse_assignment(void)
 		    pi->ctxt->pwordc = pwords.length;
 		    pi->ctxt->pwords = pl_toary(&pwords);
 		} else {
-		    recfree(pl_toary(&pwords), free);
+		    plfree(pl_toary(&pwords), free);
 		}
 		return true;
 	    } else {
@@ -503,12 +503,12 @@ bool cparse_for_command(void)
 		skip_blanks();
 
 	    if (BUF[INDEX] == L';' || BUF[INDEX] == L'\n') {
-		recfree(pl_toary(&pwords), free);
+		plfree(pl_toary(&pwords), free);
 		INDEX++;
 		break;
 	    }
 	    if (BUF[INDEX] != L'\0' && is_token_delimiter_char(BUF[INDEX])) {
-		recfree(pl_toary(&pwords), free);
+		plfree(pl_toary(&pwords), free);
 		return false;
 	    }
 
@@ -518,7 +518,7 @@ bool cparse_for_command(void)
 		    pi->ctxt->pwordc = 0;
 		    pi->ctxt->pwords = pl_toary(&pwords);
 		} else {
-		    recfree(pl_toary(&pwords), free);
+		    plfree(pl_toary(&pwords), free);
 		}
 		return true;
 	    } else {

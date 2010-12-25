@@ -24,7 +24,7 @@
 #include "util.h"
 
 
-/********** Utilities about Pointers **********/
+/********** Utilities about Pointer Arrays **********/
 
 /* Counts the number of the elements in the NULL-terminated pointer array.
  * The NULL element at the end of the array is not counted. */
@@ -36,10 +36,34 @@ size_t plcount(void *const *list)
     return count;
 }
 
+/* Clones the specified NULL-terminated array of pointers.
+ * Each pointer element is passed to function `copy' and the return value is
+ * assigned to the new array element.
+ * If the array contains more than `count' elements, only the first `count'
+ * elements are copied. If the array contains elements fewer than `count', the
+ * whole array is copied.
+ * If `array' is NULL, simply returns NULL. */
+/* `xstrdup' and `copyaswcs' are suitable for `copy'. */
+void **plndup(void *const *array, size_t count, void *copy(const void *p))
+{
+    if (array == NULL)
+	return NULL;
+
+    size_t realcount = 0;
+    while (array[realcount] != NULL && realcount < count)
+	realcount++;
+
+    void **result = xmallocn(realcount + 1, sizeof *result);
+    for (size_t i = 0; i < realcount; i++)
+	result[i] = copy(array[i]);
+    result[realcount] = NULL;
+    return result;
+}
+
 /* Frees the NULL-terminated array of pointers and its elements.
  * `freer' is called for each array element and finally the array is `free'd.
  * If `ary' is NULL, this function does nothing. */
-void recfree(void **ary, void freer(void *elem))
+void plfree(void **ary, void freer(void *elem))
 {
     if (ary) {
 	for (void **a = ary; *a; a++)

@@ -376,7 +376,7 @@ void le_complete_cleanup(void)
 {
     le_display_complete_cleanup();
     if (le_candidates.contents != NULL) {
-	recfree(pl_toary(&le_candidates), free_candidate);
+	plfree(pl_toary(&le_candidates), free_candidate);
 	le_candidates.contents = NULL;
     }
     free_context(ctxt);
@@ -399,7 +399,7 @@ void free_candidate(void *c)
 void free_context(le_context_T *ctxt)
 {
     if (ctxt != NULL) {
-	recfree(ctxt->pwords, free);
+	plfree(ctxt->pwords, free);
 	free(ctxt->src);
 	free(ctxt->pattern);
 	free(ctxt);
@@ -668,7 +668,7 @@ bool call_standard_completion_function(void)
  * environment. Also sets the $IFS variable to the default value. */
 void set_completion_variables(void)
 {
-    set_array(L VAR_WORDS, ctxt->pwordc, duparray(ctxt->pwords, copyaswcs),
+    set_array(L VAR_WORDS, ctxt->pwordc, pldup(ctxt->pwords, copyaswcs),
 	    SCOPE_LOCAL);
     set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src), SCOPE_LOCAL, false);
     set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);

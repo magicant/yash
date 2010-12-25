@@ -204,7 +204,7 @@ void varvaluefree(variable_T *v)
 	    free(v->v_value);
 	    break;
 	case VF_ARRAY:
-	    recfree(v->v_vals, free);
+	    plfree(v->v_vals, free);
 	    break;
     }
 }
@@ -638,7 +638,7 @@ variable_T *set_array(
 {
     variable_T *var = new_variable(name, scope);
     if (!var) {
-	recfree(values, free);
+	plfree(values, free);
 	return NULL;
     }
 
@@ -691,7 +691,7 @@ fail:
  * at least once before the environment is used by the user. */
 void set_positional_parameters(void *const *values)
 {
-    set_array(L VAR_positional, 0, duparray(values, copyaswcs), SCOPE_LOCAL);
+    set_array(L VAR_positional, 0, pldup(values, copyaswcs), SCOPE_LOCAL);
 }
 
 /* Performs the specified assignments.
@@ -933,7 +933,7 @@ void close_current_environment(void)
     ht_clear(&oldenv->contents, varkvfree_reexport);
     ht_destroy(&oldenv->contents);
     for (size_t i = 0; i < PA_count; i++)
-	recfree((void **) oldenv->paths[i], free);
+	plfree((void **) oldenv->paths[i], free);
     free(oldenv);
 }
 
@@ -1112,7 +1112,7 @@ void add_to_list_no_dup(plist_T *list, char *s)
 void reset_path(path_T name, variable_T *var)
 {
     for (environ_T *env = current_env; env; env = env->parent) {
-	recfree((void **) env->paths[name], free);
+	plfree((void **) env->paths[name], free);
 
 	variable_T *v = ht_get(&env->contents, path_variables[name]).value;
 	if (v) {
@@ -1865,7 +1865,7 @@ int array_builtin(int argc, void **argv)
 
 	if (options == 0) {
 	    set_array(name, argc - xoptind,
-		    duparray(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
+		    pldup(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
 	} else {
 	    variable_T *array = search_array_and_check_if_changeable(name);
 	    if (!array)

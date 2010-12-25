@@ -336,7 +336,7 @@ wchar_t *le_editing_finalize(void)
 {
     assert(le_search_buffer.contents == NULL);
 
-    recfree(pl_toary(&undo_history), free);
+    plfree(pl_toary(&undo_history), free);
 
     le_complete_cleanup();
 

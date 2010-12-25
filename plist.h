@@ -31,7 +31,12 @@ typedef struct plist_T {
 
 extern size_t plcount(void *const *list)
     __attribute__((pure,nonnull));
-extern void recfree(void **ary, void freer(void *elem));
+static inline void **pldup(void *const *array, void *copy(const void *p))
+    __attribute__((malloc,warn_unused_result,nonnull(2)));
+extern void **plndup(
+	void *const *array, size_t count, void *copy(const void *p))
+    __attribute__((malloc,warn_unused_result,nonnull(3)));
+extern void plfree(void **ary, void freer(void *elem));
 
 static inline plist_T *pl_init(plist_T *list)
     __attribute__((nonnull));
@@ -72,6 +77,17 @@ extern plist_T *pl_add(plist_T *list, const void *p)
 
 
 #define PLIST_DEFAULT_MAX 7
+
+
+/* Clones the specified NULL-terminated array of pointers.
+ * Each pointer element is passed to function `copy' and the return value is
+ * assigned to the new array element.
+ * If `array' is NULL, simply returns NULL. */
+/* `xstrdup' and `copyaswcs' are suitable for `copy'. */
+void **pldup(void *const *array, void *copy(const void *p))
+{
+    return plndup(array, Size_max, copy);
+}
 
 
 /* Initializes the specified pointer list as a new empty list. */
