@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.25\n"
 "Report-Msgid-Bugs-To: http://sourceforge.jp/projects/yash/forums/\n"
-"POT-Creation-Date: 2010-12-16 00:48+0900\n"
-"PO-Revision-Date: 2010-12-14 23:52+0900\n"
+"POT-Creation-Date: 2010-12-25 14:35+0900\n"
+"PO-Revision-Date: 2010-12-25 15:54+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.sourceforge.jp>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: variable.c:361 variable.c:366
 msgid "failed to set $PWD"
-msgstr ""
+msgstr "$PWD の設定に失敗しました"
 
 #: variable.c:390
 #, c-format
@@ -28,7 +28,7 @@ msgid "no such array $%ls"
 msgstr "$%ls というような配列はありません"
 
 #: variable.c:393 variable.c:590 variable.c:1584 variable.c:2175
-#: variable.c:2883
+#: variable.c:2888
 #, c-format
 msgid "$%ls is read-only"
 msgstr "$%ls は読み込み専用です"
@@ -36,12 +36,12 @@ msgstr "$%ls は読み込み専用です"
 #: variable.c:424 variable.c:428
 #, c-format
 msgid "failed to set environment variable $%s"
-msgstr ""
+msgstr "環境変数 $%s の設定に失敗しました"
 
 #: variable.c:435
 #, c-format
 msgid "failed to unset environment variable $%s"
-msgstr ""
+msgstr "環境変数 $%s の削除に失敗しました"
 
 #: variable.c:679
 #, c-format
@@ -53,13 +53,13 @@ msgstr "インデックス %zu は範囲外です (配列 $%ls のサイズは %
 msgid "function `%ls' cannot be redefined because it is read-only"
 msgstr "関数「%ls」は読み込み専用なので再定義できません"
 
-#: variable.c:1359 variable.c:2975
+#: variable.c:1359 variable.c:2980
 msgid "the directory stack is empty"
 msgstr "ディレクトリスタックは空です"
 
-#: variable.c:1397 variable.c:2816 variable.c:3091
+#: variable.c:1397 variable.c:2821 variable.c:3096
 msgid "$PWD is not set"
-msgstr ""
+msgstr "$PWD が設定されていません"
 
 #: variable.c:1409
 #, c-format
@@ -78,11 +78,11 @@ msgstr ""
 
 #: variable.c:1521
 msgid "the -f option cannot be used with the -x or -X option"
-msgstr ""
+msgstr "-f オプションは -x または -X とは一緒に使えません"
 
 #: variable.c:1525
 msgid "the -x and -X options cannot be used both at once"
-msgstr ""
+msgstr "-x および -X オプションは同時に使えません"
 
 #: variable.c:1565
 msgid "cannot assign function"
@@ -99,7 +99,7 @@ msgid "no such variable $%ls"
 msgstr "$%ls というような変数はありません"
 
 #: variable.c:1651 variable.c:1659 variable.c:1672 variable.c:1723
-#: variable.c:1765 variable.c:3083 variable.c:3099 variable.c:3111
+#: variable.c:1765 variable.c:3088 variable.c:3104 variable.c:3116
 #: option.c:572 option.c:631 builtin.c:216 builtins/printf.c:195
 #: builtins/printf.c:371 builtins/printf.c:737 builtins/ulimit.c:215
 #: builtins/ulimit.c:244 util.c:354 alias.c:383 alias.c:402
@@ -248,7 +248,7 @@ msgstr ""
 msgid "Usage:  unset [-fv] name...\n"
 msgstr ""
 
-#: variable.c:2127 variable.c:2296 variable.c:2554
+#: variable.c:2127 variable.c:2301 variable.c:2559
 #, c-format
 msgid "`%ls' is not a valid variable name"
 msgstr "「%ls」は有効な変数名ではありません"
@@ -289,65 +289,68 @@ msgstr ""
 msgid "%ls: the operand value must not be negative"
 msgstr "%ls: 負でないオペランドの値を指定してください"
 
-#: variable.c:2246
+#: variable.c:2247
 #, c-format
-msgid "%zu: cannot shift so many ($# = %zu)"
-msgstr ""
+msgid "%zu: cannot shift so many (there is only one positional parameter)"
+msgid_plural ""
+"%zu: cannot shift so many (there are only %zu positional parameters)"
+msgstr[0] ""
+"%zu: シフトする数が多すぎます (位置パラメータは %zu 個しかありません)"
 
-#: variable.c:2260
+#: variable.c:2265
 msgid "shift - remove some positional parameters\n"
 msgstr ""
 
-#: variable.c:2262
+#: variable.c:2267
 msgid "\tshift [n]\n"
 msgstr ""
 
-#: variable.c:2264
+#: variable.c:2269
 msgid ""
 "The shift built-in removes the first <n> positional parameters.\n"
 "If <n> is not specified, it defaults to 1.\n"
 "<n> must be a non-negative integer that is not greater than $#.\n"
 msgstr ""
 
-#: variable.c:2299
+#: variable.c:2304
 #, c-format
 msgid "`%ls' is not a valid option specification"
 msgstr "「%ls」は有効なオプション指定文字列ではありません"
 
-#: variable.c:2357
+#: variable.c:2362
 #, c-format
 msgid "%ls: `-%lc' is not a valid option\n"
 msgstr "%ls: 「%lc」は有効なオプションではありません\n"
 
-#: variable.c:2380
+#: variable.c:2385
 #, c-format
 msgid "%ls: the -%lc option's argument is missing\n"
 msgstr "%ls: -%lc オプションの引数が抜けています\n"
 
-#: variable.c:2406
+#: variable.c:2411
 msgid "$OPTIND has an invalid value"
-msgstr ""
+msgstr "$OPTIND の値が正しくありません"
 
-#: variable.c:2409
+#: variable.c:2414
 msgid "Usage:  getopts options var [arg...]\n"
 msgstr ""
 
-#: variable.c:2464
+#: variable.c:2469
 msgid "getopts - parse command options\n"
 msgstr ""
 
-#: variable.c:2466
+#: variable.c:2471
 msgid "\tgetopts options var [arg...]\n"
 msgstr ""
 
-#: variable.c:2468
+#: variable.c:2473
 msgid ""
 "The getopts built-in parses <options> that appear in <arg>s. Each time\n"
 "getopts is invoked, one option is parsed and the option character is\n"
 "assigned to variable <var>.\n"
 msgstr ""
 
-#: variable.c:2472
+#: variable.c:2477
 msgid ""
 "String <options> is a list of option characters that can be accepted by the\n"
 "parser. In <options>, an option that takes an argument can be specified as\n"
@@ -356,7 +359,7 @@ msgid ""
 "option takes an argument, then <options> should be `ab:c'.\n"
 msgstr ""
 
-#: variable.c:2478
+#: variable.c:2483
 msgid ""
 "Argument <var> is the name of a variable to which the parsed option\n"
 "character is assigned. When an option specified in <options> is parsed, the\n"
@@ -364,19 +367,19 @@ msgid ""
 "to <var>.\n"
 msgstr ""
 
-#: variable.c:2483
+#: variable.c:2488
 msgid ""
 "Arguments <arg>s are the strings to parse. If no <arg>s are given, the\n"
 "current positional parameters are parsed.\n"
 msgstr ""
 
-#: variable.c:2488
+#: variable.c:2493
 msgid ""
 "When an option that takes an argument is parsed, the option's argument is\n"
 "assigned to $OPTARG.\n"
 msgstr ""
 
-#: variable.c:2491
+#: variable.c:2496
 msgid ""
 "When an option that is not specified in <options> is found or when an\n"
 "option's argument is missing, the result depends on the first character of\n"
@@ -388,7 +391,7 @@ msgid ""
 "printed.\n"
 msgstr ""
 
-#: variable.c:2501
+#: variable.c:2506
 msgid ""
 "If an option is found, whether or not it is specified in <options>, the "
 "exit\n"
@@ -399,7 +402,7 @@ msgid ""
 "will be the number of <arg>s plus one.\n"
 msgstr ""
 
-#: variable.c:2507
+#: variable.c:2512
 msgid ""
 "When this command is invoked for the first time, $OPTIND must be `1', which\n"
 "is the default value of $OPTIND. Until all the options are parsed, you must\n"
@@ -408,23 +411,23 @@ msgid ""
 "with another set of <options>, <var> and <arg>s.\n"
 msgstr ""
 
-#: variable.c:2604
+#: variable.c:2609
 msgid "Usage:  read [-r] var...\n"
 msgstr ""
 
-#: variable.c:2606
+#: variable.c:2611
 msgid "Usage:  read [-Ar] var...\n"
 msgstr ""
 
-#: variable.c:2722
+#: variable.c:2727
 msgid "read - read a line from the standard input\n"
 msgstr ""
 
-#: variable.c:2724
+#: variable.c:2729
 msgid "\tread [-Ar] var...\n"
 msgstr ""
 
-#: variable.c:2726
+#: variable.c:2731
 msgid ""
 "The read built-in reads a line from the standard input and splits it into\n"
 "words using $IFS as separators. The words are assigned to variables <var>s:\n"
@@ -436,49 +439,49 @@ msgid ""
 "than <var>s, the leftover <var>s are set to empty strings.\n"
 msgstr ""
 
-#: variable.c:2733
+#: variable.c:2738
 msgid ""
 "If the -r (--raw-mode) option is not specified, backslashes in the input "
 "are\n"
 "considered to be an escape character.\n"
 msgstr ""
 
-#: variable.c:2736
+#: variable.c:2741
 msgid ""
 "If the -A (--array) option is specified, the leftover words are assigned to\n"
 "the array whose name is the last <var>.\n"
 "The -A option is not available in the POSIXly correct mode.\n"
 msgstr ""
 
-#: variable.c:2809 path.c:1067
+#: variable.c:2814 path.c:1067
 #, c-format
 msgid "Usage:  %ls [-L|-P] [dir]\n"
 msgstr ""
 
-#: variable.c:2827 path.c:1087
+#: variable.c:2832 path.c:1087
 msgid "$OLDPWD is not set"
 msgstr ""
 
-#: variable.c:2880
+#: variable.c:2885
 msgid "$DIRSTACK is not an array"
 msgstr "$DIRSTACK は配列ではありません"
 
-#: variable.c:2933
+#: variable.c:2938
 msgid "pushd - push a directory into the directory stack\n"
 msgstr ""
 
-#: variable.c:2935
+#: variable.c:2940
 msgid "\tpushd [-L|-P] [dir]\n"
 msgstr ""
 
-#: variable.c:2937
+#: variable.c:2942
 msgid ""
 "The pushd built-in changes the working directory to <dir> and appends it to\n"
 "the directory stack. Options that can be used for the cd built-in can also\n"
 "be used for the pushd built-in: -L, -P, and --default-directory=...\n"
 msgstr ""
 
-#: variable.c:2941
+#: variable.c:2946
 msgid ""
 "If <dir> is an integer with the plus or minus sign, it is considered a\n"
 "specific entry of the stack, which is removed from the stack and appended\n"
@@ -486,73 +489,73 @@ msgid ""
 "a one with the minus sign specifies the nth oldest entry.\n"
 msgstr ""
 
-#: variable.c:2946
+#: variable.c:2951
 msgid ""
 "If neither of <dir> and the --default-directory=... option is specified,\n"
 "`+1' is assumed for <dir>.\n"
 msgstr ""
 
-#: variable.c:2949
+#: variable.c:2954
 msgid ""
 "If the --remove-duplicates option is specified, entries that are the same "
 "as\n"
 "the new working directory are removed from the stack.\n"
 msgstr ""
 
-#: variable.c:2966
+#: variable.c:2971
 msgid "Usage:  popd [index]\n"
 msgstr ""
 
-#: variable.c:2991 variable.c:3073
+#: variable.c:2996 variable.c:3078
 #, c-format
 msgid "`%ls' is not a valid index"
 msgstr "「%ls」は有効なインデックスではありません"
 
-#: variable.c:3014
+#: variable.c:3019
 msgid "popd - pop a directory from the directory stack\n"
 msgstr ""
 
-#: variable.c:3016
+#: variable.c:3021
 msgid "\tpopd [index]\n"
 msgstr ""
 
-#: variable.c:3018
+#: variable.c:3023
 msgid ""
 "The popd built-in removes the last entry from the directory stack, "
 "returning\n"
 "to the previous directory.\n"
 msgstr ""
 
-#: variable.c:3021
+#: variable.c:3026
 msgid ""
 "If <index> is given, the entry specified by <index> is removed instead of\n"
 "the last one. An integer with the plus sign specifies the nth newest entry\n"
 "and a one with the minus sign specifies the nth oldest entry.\n"
 msgstr ""
 
-#: variable.c:3054
+#: variable.c:3059
 msgid "Usage:  dirs [-cv] [index...]\n"
 msgstr ""
 
-#: variable.c:3123
+#: variable.c:3128
 msgid "dirs - print the directory stack\n"
 msgstr ""
 
-#: variable.c:3125
+#: variable.c:3130
 msgid "\tdirs [-cv] [index...]\n"
 msgstr ""
 
-#: variable.c:3127
+#: variable.c:3132
 msgid ""
 "With no arguments, the dirs built-in prints the entries of the directory\n"
 "stack. If <index> is specified, only the specified entry is printed.\n"
 msgstr ""
 
-#: variable.c:3130
+#: variable.c:3135
 msgid "The -v (--verbose) option prints the index before each entry.\n"
 msgstr ""
 
-#: variable.c:3132
+#: variable.c:3137
 msgid "The -c (--clear) option clears the stack.\n"
 msgstr ""
 
@@ -1039,7 +1042,7 @@ msgid "\tprintf format [argument...]\n"
 msgstr ""
 
 #: builtins/printf.c:825
-#, c-format
+#, no-c-format
 msgid ""
 "The printf built-in prints a string formatted by <format>.\n"
 "This built-in is very similar to the C programming language's `printf'\n"
@@ -1062,86 +1065,88 @@ msgid "Conversion specifications:\n"
 msgstr ""
 
 #: builtins/printf.c:840
-#, c-format
+#, no-c-format
 msgid "  %d    signed decimal integer\n"
 msgstr ""
 
 #: builtins/printf.c:842
-#, c-format
+#, no-c-format
 msgid "  %i    signed decimal integer\n"
 msgstr ""
 
 #: builtins/printf.c:844
-#, c-format
+#, no-c-format
 msgid "  %u    unsigned decimal integer\n"
 msgstr ""
 
 #: builtins/printf.c:846
-#, c-format
+#, no-c-format
 msgid "  %o    unsigned octal integer\n"
 msgstr ""
 
 #: builtins/printf.c:848
-#, c-format
+#, no-c-format
 msgid "  %x    unsigned hexadecimal integer (lowercase)\n"
 msgstr ""
 
 #: builtins/printf.c:850
-#, c-format
+#, no-c-format
 msgid "  %X    unsigned hexadecimal integer (uppercase)\n"
 msgstr ""
 
 #: builtins/printf.c:852
-#, c-format
+#, no-c-format
 msgid "  %f    floating point number (lowercase)\n"
 msgstr ""
 
 #: builtins/printf.c:854
-#, c-format
+#, no-c-format
 msgid "  %F    floating point number (uppercase)\n"
 msgstr ""
 
 #: builtins/printf.c:856
-#, c-format
+#, no-c-format
 msgid "  %e    floating point number with exponent (lowercase)\n"
 msgstr ""
 
 #: builtins/printf.c:858
-#, c-format
+#, no-c-format
 msgid "  %E    floating point number with exponent (uppercase)\n"
 msgstr ""
 
 #: builtins/printf.c:860
-#, c-format
+#, no-c-format
 msgid "  %g    %f or %e, automatically selected\n"
 msgstr ""
 
 #: builtins/printf.c:862
-#, c-format
+#, no-c-format
 msgid "  %G    %F or %E, automatically selected\n"
 msgstr ""
 
 #: builtins/printf.c:864
-#, c-format
+#, no-c-format
 msgid "  %c    first character of string\n"
 msgstr ""
 
 #: builtins/printf.c:866
-#, c-format
+#, no-c-format
 msgid "  %s    string\n"
 msgstr ""
 
 #: builtins/printf.c:868
+#, no-c-format
 msgid ""
 "  %b    string (escape sequences are recognized like by the echo built-in)\n"
 msgstr ""
 
 #: builtins/printf.c:870
+#, no-c-format
 msgid "  %%    %\n"
 msgstr ""
 
 #: builtins/printf.c:874
-#, c-format
+#, no-c-format
 msgid ""
 "Flags, field width, and precision can be specified in this order between\n"
 "`%' and the conversion specifier. For example, `%08.3f' is a specifier for "
