@@ -182,6 +182,7 @@ Optional packages:
 Influential environment variables:
   CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER, LINGUAS,
   XGETTEXT, XGETTEXTFLAGS, MSGFMT, MSGFMTFLAGS, MSGMERGE, MSGMERGEFLAGS,
+  MSGINIT, MSGCONV, MSGFILTER,
   INSTALL_PROGRAM, CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
     exit
@@ -290,10 +291,13 @@ xgettextflags="${XGETTEXTFLAGS--kgt -kNgt -kngt:1,2 \
 --flag=malloc_vprintf:1:c-format --flag=malloc_printf:1:c-format \
 --flag=xerror:1:c-format --flag=serror:1:c-format \
 --flag=le_compdebug:1:c-format}"
+msginit="${MSGINIT-msginit}"
 msgfmt="${MSGFMT-msgfmt}"
 msgfmtflags="${MSGFMTFLAGS--c}"
 msgmerge="${MSGMERGE-msgmerge}"
 msgmergeflags="${MSGMERGEFLAGS-${null}}"
+msgconv="${MSGCONV-msgconv}"
+msgfilter="${MSGFILTER-msgfilter}"
 ctags="${CTAGS-ctags}"
 etags="${ETAGS-etags}"
 cscope="${CSCOPE-cscope}"
@@ -1523,10 +1527,13 @@ ARFLAGS="${ARFLAGS-${arflags}}"
 ARCHIVER="${ARCHIVER-${archiver}}"
 XGETTEXT="${XGETTEXT-${xgettext}}"
 XGETTEXTFLAGS="${XGETTEXTFLAGS-${xgettextflags}}"
+MSGINIT="${MSGINIT-${msginit}}"
 MSGFMT="${MSGFMT-${msgfmt}}"
 MSGFMTFLAGS="${MSGFMTFLAGS-${msgfmtflags}}"
 MSGMERGE="${MSGMERGE-${msgmerge}}"
 MSGMERGEFLAGS="${MSGMERGEFLAGS-${msgmergeflags}}"
+MSGCONV="${MSGCONV-${msgconv}}"
+MSGFILTER="${MSGFILTER-${msgfilter}}"
 CTAGS="${CTAGS-${ctags}}"
 ETAGS="${ETAGS-${etags}}"
 CSCOPE="${CSCOPE-${cscope}}"
@@ -1580,10 +1587,13 @@ s!@ARFLAGS@!${ARFLAGS}!g
 s!@ARCHIVER@!${ARCHIVER}!g
 s!@XGETTEXT@!${XGETTEXT}!g
 s!@XGETTEXTFLAGS@!${XGETTEXTFLAGS}!g
+s!@MSGINIT@!${MSGINIT}!g
 s!@MSGFMT@!${MSGFMT}!g
 s!@MSGFMTFLAGS@!${MSGFMTFLAGS}!g
 s!@MSGMERGE@!${MSGMERGE}!g
 s!@MSGMERGEFLAGS@!${MSGMERGEFLAGS}!g
+s!@MSGCONV@!${MSGCONV}!g
+s!@MSGFILTER@!${MSGFILTER}!g
 s!@CATALOGS@!${CATALOGS}!g
 s!@CTAGS@!${CTAGS}!g
 s!@CTAGSARGS@!${CTAGSARGS}!g
