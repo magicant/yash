@@ -19,6 +19,7 @@ function completion/less {
 	"f --force; open non-regular files"
 	"g --hilite-search; highlight matches for the last search only"
 	"G --HILITE-SEARCH; don't highlight any matches for searches"
+	"--old-bot; use the old bottom-of-screen behavior"
 	"h: --max-back-scroll:; specify the max number of lines to scroll backward"
 	"I --IGNORE-CASE; case-insensitive search"
 	"i --ignore-case; case-insensitive search if the pattern is in all lowercase"
