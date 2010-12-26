@@ -99,7 +99,7 @@ install-binary: $(TARGET) installdirs-binary
 	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
 install-binary-strip: installdirs-binary
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
-install-data: installdirs-data
+install-data: installdirs-data-main
 	@for file in share/completion/*; do \
 		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion || true; \
 		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion; \
@@ -107,8 +107,9 @@ install-data: installdirs-data
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 installdirs: installdirs-binary installdirs-data
 installdirs-binary: $(INSTALLBINDIRS)
-installdirs-data: $(INSTALLDATADIRS)
+installdirs-data: installdirs-data-main
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
+installdirs-data-main: $(INSTALLDATADIRS)
 $(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
 uninstall: uninstall-binary uninstall-data
@@ -225,7 +226,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary install-binary-strip install-data installdirs installdirs-binary installdirs-data uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check install install-strip install-binary install-binary-strip install-data installdirs installdirs-binary installdirs-data installdirs-data-main uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d
