@@ -1170,7 +1170,7 @@ int fc_builtin(int argc, void **argv)
 	if (list) {
 	    return Exit_SUCCESS;
 	} else {
-	    xerror(0, Ngt("history is empty"));
+	    xerror(0, Ngt("the command history is empty"));
 	    return Exit_FAILURE;
 	}
     }
@@ -1237,7 +1237,7 @@ int fc_builtin(int argc, void **argv)
 	}
 	if (efirst == Histlist) {
 	    assert(vfirst != NULL);
-	    xerror(0, Ngt("%ls: no such entry"), vfirst);
+	    xerror(0, Ngt("no such history entry `%ls'"), vfirst);
 	    return Exit_FAILURE;
 	}
     }
@@ -1250,7 +1250,7 @@ int fc_builtin(int argc, void **argv)
 	    elast = get_nth_newest_entry(-last);
 	if (elast == Histlist) {
 	    assert(vlast != NULL);
-	    xerror(0, Ngt("%ls: no such entry"), vlast);
+	    xerror(0, Ngt("no such history entry `%ls'"), vlast);
 	    return Exit_FAILURE;
 	}
     }
@@ -1316,7 +1316,7 @@ histentry_T *fc_search_entry(const wchar_t *prefix)
 	e = search_entry(s, false);
     free(s);
     if (e == Histlist)
-	xerror(0, Ngt("no such entry beginning with `%ls'"), prefix);
+	xerror(0, Ngt("no such history entry beginning with `%ls'"), prefix);
     return e;
 }
 
@@ -1424,12 +1424,12 @@ int fc_edit_and_exec_entries(
 
     fd = create_temporary_file(&temp, S_IRUSR | S_IWUSR);
     if (fd < 0) {
-	xerror(errno, Ngt("cannot create temporary file to edit history"));
+	xerror(errno, Ngt("cannot create a temporary file to edit history"));
 	goto error1;
     }
     f = fdopen(fd, "w");
     if (!f) {
-	xerror(errno, Ngt("cannot open temporary file to edit history"));
+	xerror(errno, Ngt("cannot open temporary file `%s'"), temp);
 	xclose(fd);
 	goto error2;
     }
@@ -1437,10 +1437,10 @@ int fc_edit_and_exec_entries(
     savelaststatus = laststatus;
     cpid = fork_and_reset(0, true, 0);
     if (cpid < 0) {  // fork failed
-	xerror(0, Ngt("cannot invoke editor to edit history"));
+	xerror(0, Ngt("cannot invoke the editor to edit history"));
 	fclose(f);
 	if (unlink(temp) < 0)
-	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
+	    xerror(errno, Ngt("failed to remove temporary file `%s'"), temp);
 error2:
 	free(temp);
 error1:
@@ -1459,15 +1459,15 @@ error1:
 
 	int fd;
 	if (laststatus != Exit_SUCCESS) {
-	    xerror(0, Ngt("editor returned non-zero status"));
+	    xerror(0, Ngt("the editor returned a non-zero exit status"));
 	    fd = -1;
 	} else {
 	    fd = move_to_shellfd(open(temp, O_RDONLY));
 	    if (fd < 0)
-		xerror(errno, Ngt("cannot read command from `%s'"), temp);
+		xerror(errno, Ngt("cannot read commands from file `%s'"), temp);
 	}
 	if (unlink(temp) < 0)
-	    xerror(errno, Ngt("cannot remove temporary file `%s'"), temp);
+	    xerror(errno, Ngt("failed to remove temporary file `%s'"), temp);
 	free(temp);
 
 	if (fd < 0)
@@ -1524,29 +1524,41 @@ void fc_read_history(FILE *f, bool quiet)
 }
 
 #if YASH_ENABLE_HELP
-const char fc_help[] = Ngt(
+const char *fc_help[] = { Ngt(
 "fc - list or re-execute command history\n"
+), Ngt(
 "\tfc [-qr] [-e editor] [first [last]]\n"
 "\tfc -s [-q] [old=new] [first]\n"
 "\tfc -l [-nrv] [first [last]]\n"
+), Ngt(
 "The first form invokes an editor to edit a temporary file containing the\n"
 "command history and, after the editor exited, executes commands in the file.\n"
+), Ngt(
 "The second form, with the -s (--silent) option, re-executes commands in the\n"
-"history without invoking an editor. If <old=new> is given, <old> in the\n"
-"command is replaced with <new> before execution.\n"
+"history without invoking an editor. If <old=new> is given, string <old> in\n"
+"the command is replaced with <new> before execution.\n"
+), Ngt(
 "The third form, with the -l (--list) option, prints the command history. In\n"
 "this form commands are not re-executed.\n"
+), (
 "\n"
+), Ngt(
 "The -e (--editor) option can be used to specify the editor. If this option\n"
 "is not given, the value of $FCEDIT is used as the default editor. If $FCEDIT\n"
-"is not set either, \"ed\" is the last resort.\n"
+"is not set either, `ed' is the last resort.\n"
+), Ngt(
 "The -n (--no-numbers) option suppresses command numbers, which would\n"
 "otherwise be printed preceding each command.\n"
+), Ngt(
 "The -q (--quiet) option suppresses echoing the executed command.\n"
+), Ngt(
 "The -r (--reverse) option reverses the order of commands to be edited or\n"
 "printed.\n"
-"The -v (--verbose) option makes the listing more detailed.\n"
+), Ngt(
+"The -v (--verbose) option prints command dates in the listing.\n"
+), (
 "\n"
+), Ngt(
 "The range of command history to be edited or printed can be specified by\n"
 "parameters <first> and <last>. If the value of <first> or <last> is an\n"
 "integer, it is considered a history number. If it is negative, the command\n"
@@ -1555,9 +1567,11 @@ const char fc_help[] = Ngt(
 "command: it indicates the most recent command beginning with it.\n"
 "If <first> is omitted, it defaults to -16 (with -l) or -1 (without -l).\n"
 "If <last> is omitted, it defaults to -1 (with -l) or <first> (without -l).\n"
+), (
 "\n"
-"In POSIXly correct mode, the -q and -v options are not available.\n"
-);
+), Ngt(
+"In the POSIXly correct mode, the -q and -v options are not available.\n"
+), NULL };
 #endif /* YASH_ENABLE_HELP */
 
 /* The "history" builtin, which accepts the following options:
@@ -1639,7 +1653,7 @@ int history_builtin(int argc, void **argv)
     /* print history */
     if (xoptind < argc) {
 	if (xoptind + 1 != argc) {
-	    xerror(0, Ngt("too many arguments"));
+	    xerror(0, Ngt("too many operands are specified"));
 	    goto print_usage;
 	}
 
@@ -1713,7 +1727,7 @@ int history_delete(const wchar_t *s)
 		e = get_nth_newest_entry((unsigned) n);
 	}
 	if (e == Histlist)
-	    xerror(0, Ngt("%ls: no such entry"), s);
+	    xerror(0, Ngt("no such history entry `%ls'"), s);
     }
 
     if (e != Histlist) {
@@ -1759,7 +1773,7 @@ int history_read(const wchar_t *s)
     return Exit_SUCCESS;
 
 error:
-    xerror(errno, Ngt("cannot read history from `%ls'"), s);
+    xerror(errno, Ngt("cannot read history from file `%ls'"), s);
     return Exit_FAILURE;
 }
 
@@ -1791,7 +1805,7 @@ int history_write(const wchar_t *s)
     return Exit_SUCCESS;
 
 error:
-    xerror(errno, Ngt("cannot write history to `%ls'"), s);
+    xerror(errno, Ngt("cannot write history to file `%ls'"), s);
     return Exit_FAILURE;
 }
 
@@ -1811,20 +1825,28 @@ void history_refresh_file(void)
 }
 
 #if YASH_ENABLE_HELP
-const char history_help[] = Ngt(
+const char *history_help[] = { Ngt(
 "history - manage command history\n"
+), Ngt(
 "\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [n]\n"
-"Without options, prints the command history. The number of entries to print\n"
-"can be specified as the argument <n>.\n"
+), Ngt(
+"Without options, the history built-in prints the command history. The number\n"
+"of entries to print can be specified by argument <n>.\n"
+), Ngt(
 "The -c (--clear) option clears the command history completely.\n"
+), Ngt(
 "The -d (--delete) option deletes the specified <entry>. You can specify\n"
 "<entry> by the number or by the prefix.\n"
+), Ngt(
 "The -s (--set) option replaces the last history entry with <command>.\n"
+), Ngt(
 "The -r (--read) option reads history entries from <file>.\n"
+), Ngt(
 "The -w (--write) option writes all the history entries into <file>.\n"
+), Ngt(
 "The -F (--flush-file) option rebuilds the history file, removing unused old\n"
 "data.\n"
-);
+), NULL };
 #endif
 
 

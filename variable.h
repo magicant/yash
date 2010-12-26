@@ -150,8 +150,8 @@ extern int popd_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int dirs_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char typeset_help[], array_help[], unset_help[], shift_help[],
-       getopts_help[], read_help[], pushd_help[], popd_help[], dirs_help[];
+extern const char *typeset_help[], *array_help[], *unset_help[], *shift_help[],
+       *getopts_help[], *read_help[], *pushd_help[], *popd_help[], *dirs_help[];
 
 
 #endif /* YASH_VARIABLE_H */

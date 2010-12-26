@@ -100,7 +100,8 @@ extern int wait_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int disown_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char jobs_help[], fg_help[], bg_help[], wait_help[], disown_help[];
+extern const char *jobs_help[], *fg_help[], *bg_help[], *wait_help[],
+       *disown_help[];
 
 
 #endif /* YASH_JOB_H */

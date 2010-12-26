@@ -24,7 +24,7 @@ tempo=".temp.o"
 tempd=".temp.d"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
-dirs=". builtins lineedit tests"
+dirs=". builtins lineedit po tests"
 
 target="yash"
 version="2.25"
@@ -43,6 +43,7 @@ debug="false"
 enable_alias="true"
 enable_array="true"
 enable_dirstack="true"
+enable_nls="true"
 enable_help="true"
 enable_history="true"
 enable_lineedit="true"
@@ -52,8 +53,9 @@ enable_test="true"
 enable_ulimit="true"
 ctags_args=""
 etags_args=""
+intl_lib='intl'
 term_lib='tinfo curses ncurses ncursesw'
-unset prefix eprefix bindir datarootdir datadir
+unset prefix eprefix bindir datarootdir datadir localedir
 unset checkresult
 unset MAKEFLAGS
 umask u=rwx
@@ -86,6 +88,7 @@ parseenable() {
 	help)         enable_help=$val ;;
 	history)      enable_history=$val ;;
 	lineedit)     enable_lineedit=$val ;;
+	nls)          enable_nls=$val ;;
 	printf)       enable_printf=$val ;;
 	socket)       enable_socket=$val ;;
 	test)         enable_test=$val ;;
@@ -114,8 +117,12 @@ do
 	    datarootdir="${i#--datarootdir=}" ;;
 	--datadir=*)
 	    datadir="${i#--datadir=}" ;;
+	--localedir=*)
+	    localedir="${i#--localedir=}" ;;
 	--enable-*|--disable-*)
 	    parseenable "$i" ;;
+	--with-intl-lib=*)
+	    intl_lib="${i#--with-intl-lib=}" ;;
 	--with-term-lib=*)
 	    term_lib="${i#--with-term-lib=}" ;;
 	?*=*)
@@ -151,6 +158,7 @@ Installation options:
   --bindir=DIR           install executable in DIR [EPREFIX/bin]
   --datarootdir=DIR      architecture-independent data root [PREFIX/share]
   --datadir=DIR          architecture-independent data [DATAROOTDIR]
+  --localedir=DIR        localization data [DATAROOTDIR/locale]
 
 Optional features:
   --enable-FEATURE[=ARG]  enable or disable FEATURE [ARG=yes]
@@ -161,16 +169,20 @@ Optional features:
   --enable-help           enable the help builtin
   --enable-history        enable history
   --enable-lineedit       enable command line editing
+  --enable-nls            enable native language support
   --enable-printf         enable the echo/printf builtins
   --enable-socket         enable socket redirection by /dev/tcp, /dev/udp
   --enable-test           enable the test builtin
   --enable-ulimit         enable the ulimit builtin
 
 Optional packages:
+  --with-intl-lib=LIBS    search space-separated LIBS for NLS
   --with-term-lib=LIBS    search space-separated LIBS for terminal handling
 
 Influential environment variables:
-  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER,
+  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER, LINGUAS,
+  XGETTEXT, XGETTEXTFLAGS, MSGFMT, MSGFMTFLAGS, MSGMERGE, MSGMERGEFLAGS,
+  MSGINIT, MSGCONV, MSGFILTER,
   INSTALL_PROGRAM, CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
     exit
@@ -273,6 +285,19 @@ ldflags="${LDFLAGS-${null}}"
 ldlibs="${LDLIBS-${null}}"
 ar="${AR-ar}"
 arflags="${ARFLAGS--rc}"
+xgettext="${XGETTEXT-xgettext}"
+xgettextflags="${XGETTEXTFLAGS--kgt -kNgt -kngt:1,2 \
+--flag=sb_vprintf:1:c-format --flag=sb_printf:1:c-format \
+--flag=malloc_vprintf:1:c-format --flag=malloc_printf:1:c-format \
+--flag=xerror:1:c-format --flag=serror:1:c-format \
+--flag=le_compdebug:1:c-format}"
+msginit="${MSGINIT-msginit}"
+msgfmt="${MSGFMT-msgfmt}"
+msgfmtflags="${MSGFMTFLAGS--c}"
+msgmerge="${MSGMERGE-msgmerge}"
+msgmergeflags="${MSGMERGEFLAGS-${null}}"
+msgconv="${MSGCONV-msgconv}"
+msgfilter="${MSGFILTER-msgfilter}"
 ctags="${CTAGS-ctags}"
 etags="${ETAGS-etags}"
 cscope="${CSCOPE-cscope}"
@@ -584,6 +609,69 @@ END
 	checked "no"
 	printf 'The socket library is unavailable!\n' >&2
 	printf 'Add the "--disable-socket" option and try again.\n' >&2
+	fail
+	;;
+    esac
+fi
+
+# check if gettext is available
+if ${enable_nls}
+then
+    checking 'for ngettext'
+    cat >"${tempsrc}" <<END
+${confighdefs}
+#include <libintl.h>
+int main() { const char *s = ngettext("foo", "bar", 1); return s == 0; }
+END
+    trycompile
+    checked
+    if [ x"${checkresult}" = x"yes" ]
+    then
+	defconfigh "HAVE_NGETTEXT"
+    fi
+
+    checking 'for gettext library'
+    cat >"${tempsrc}" <<END
+${confighdefs}
+#include <libintl.h>
+int main() { 
+    bindtextdomain("", "");
+    textdomain("");
+    const char *s = gettext("");
+#if HAVE_NGETTEXT
+    s = ngettext("", "", 0);
+#endif
+    return s == 0;
+}
+END
+    if
+	trycompile
+    then
+	saveldlibs="${ldlibs}"
+	if trylink
+	then
+	    checked "yes"
+	else
+	    for lib in ${intl_lib}
+	    do
+		ldlibs="${saveldlibs} -l${lib}"
+		if trylink
+		then
+		    checked "with -l${lib}"
+		    break
+		fi
+	    done
+	fi
+    fi
+    case "${checkresult}" in
+    yes|with*)
+	defconfigh "HAVE_GETTEXT"
+	unset saveldlibs
+	;;
+    no)
+	checked "no"
+	printf 'The gettext library is unavailable!\n' >&2
+	printf 'Add the "--disable-nls" option and try again.\n' >&2
 	fail
 	;;
     esac
@@ -1417,6 +1505,17 @@ then
     objs="${objs} "'$(LINEEDIT_ARCHIVE)'
 fi
 
+if [ x"${LINGUAS+set}" = x"set" ]
+then
+    CATALOGS=''
+    for i in ${LINGUAS}
+    do
+	CATALOGS="${CATALOGS} ${i}.mo"
+    done
+else
+    CATALOGS='$(MOFILES)'
+fi
+
 MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
 MAKE_SHELL="${MAKE_SHELL-${make_shell}}"
 CC="${CC-${cc}}"
@@ -1426,6 +1525,15 @@ LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
 ARFLAGS="${ARFLAGS-${arflags}}"
 ARCHIVER="${ARCHIVER-${archiver}}"
+XGETTEXT="${XGETTEXT-${xgettext}}"
+XGETTEXTFLAGS="${XGETTEXTFLAGS-${xgettextflags}}"
+MSGINIT="${MSGINIT-${msginit}}"
+MSGFMT="${MSGFMT-${msgfmt}}"
+MSGFMTFLAGS="${MSGFMTFLAGS-${msgfmtflags}}"
+MSGMERGE="${MSGMERGE-${msgmerge}}"
+MSGMERGEFLAGS="${MSGMERGEFLAGS-${msgmergeflags}}"
+MSGCONV="${MSGCONV-${msgconv}}"
+MSGFILTER="${MSGFILTER-${msgfilter}}"
 CTAGS="${CTAGS-${ctags}}"
 ETAGS="${ETAGS-${etags}}"
 CSCOPE="${CSCOPE-${cscope}}"
@@ -1461,6 +1569,11 @@ case "${DATADIR}" in
     / ) DATADIR=  ;;
     //) DATADIR=/ ;;
 esac
+LOCALEDIR="${localedir-\$\(DATAROOTDIR\)/locale}"
+case "${LOCALEDIR}" in
+    / ) LOCALEDIR=  ;;
+    //) LOCALEDIR=/ ;;
+esac
 
 sed_subst_cmd="
 s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
@@ -1472,6 +1585,16 @@ s!@LDLIBS@!${LDLIBS}!g
 s!@AR@!${AR}!g
 s!@ARFLAGS@!${ARFLAGS}!g
 s!@ARCHIVER@!${ARCHIVER}!g
+s!@XGETTEXT@!${XGETTEXT}!g
+s!@XGETTEXTFLAGS@!${XGETTEXTFLAGS}!g
+s!@MSGINIT@!${MSGINIT}!g
+s!@MSGFMT@!${MSGFMT}!g
+s!@MSGFMTFLAGS@!${MSGFMTFLAGS}!g
+s!@MSGMERGE@!${MSGMERGE}!g
+s!@MSGMERGEFLAGS@!${MSGMERGEFLAGS}!g
+s!@MSGCONV@!${MSGCONV}!g
+s!@MSGFILTER@!${MSGFILTER}!g
+s!@CATALOGS@!${CATALOGS}!g
 s!@CTAGS@!${CTAGS}!g
 s!@CTAGSARGS@!${CTAGSARGS}!g
 s!@ETAGS@!${ETAGS}!g
@@ -1490,6 +1613,8 @@ s!@EPREFIX@!${EPREFIX}!g
 s!@BINDIR@!${BINDIR}!g
 s!@DATAROOTDIR@!${DATAROOTDIR}!g
 s!@DATADIR@!${DATADIR}!g
+s!@LOCALEDIR@!${LOCALEDIR}!g
+s!@enable_nls@!${enable_nls}!g
 "
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
 

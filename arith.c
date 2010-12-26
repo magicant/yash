@@ -227,7 +227,7 @@ bool evaluate_index(wchar_t *exp, ssize_t *valuep)
 		*valuep = (ssize_t) result.v_long;
 	    ok = true;
 	} else {
-	    xerror(0, Ngt("index: not an integer"));
+	    xerror(0, Ngt("the index is not an integer"));
 	    ok = false;
 	}
     } else {
@@ -276,7 +276,9 @@ void parse_assignment(evalinfo_T *info, value_T *result)
 		    if (!do_assignment(&saveword, result))
 			info->error = true, result->type = VT_INVALID;
 		} else if (result->type != VT_INVALID) {
-		    xerror(0, Ngt("arithmetic: cannot assign to number"));
+		    /* TRANSLATORS: This error message is shown when the target
+		     * of an assignment is not a variable. */
+		    xerror(0, Ngt("arithmetic: cannot assign to a number"));
 		    info->error = true;
 		    result->type = VT_INVALID;
 		}
@@ -438,7 +440,7 @@ start:
 		parse_conditional(info, &dummy);
 		info->parseonly = saveparseonly;
 	    } else {
-		xerror(0, Ngt("arithmetic: `%ls' missing"), L":");
+		xerror(0, Ngt("arithmetic: `%ls' is missing"), L":");
 		info->error = true;
 		result->type = VT_INVALID;
 	    }
@@ -450,7 +452,7 @@ start:
 		next_token(info);
 		goto start;
 	    } else {
-		xerror(0, Ngt("arithmetic: `%ls' missing"), L":");
+		xerror(0, Ngt("arithmetic: `%ls' is missing"), L":");
 		info->error = true;
 		result->type = VT_INVALID;
 	    }
@@ -832,7 +834,9 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 		if (!do_assignment(&saveword, result))
 		    info->error = true, result->type = VT_INVALID;
 	    } else if (result->type != VT_INVALID) {
-		xerror(0, Ngt("arithmetic: `%ls' operator requires a variable"),
+		/* TRANSLATORS: This error message is shown when the operand of
+		 * the "++" or "--" operator is not a variable. */
+		xerror(0, Ngt("arithmetic: operator `%ls' requires a variable"),
 			(info->token.type == TT_PLUSPLUS) ? L"++" : L"--");
 		info->error = true;
 		result->type = VT_INVALID;
@@ -902,7 +906,7 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 			info->error = true, result->type = VT_INVALID;
 		} else if (result->type != VT_INVALID) {
 		    xerror(0, Ngt("arithmetic: "
-				"`%ls' operator requires a variable"),
+				"operator `%ls' requires a variable"),
 			    (info->token.type == TT_PLUSPLUS) ? L"++" : L"--");
 		    info->error = true;
 		    result->type = VT_INVALID;
@@ -948,7 +952,7 @@ void parse_primary(evalinfo_T *info, value_T *result)
 	    if (info->token.type == TT_RPAREN) {
 		next_token(info);
 	    } else {
-		xerror(0, Ngt("arithmetic: `%ls' missing"), L")");
+		xerror(0, Ngt("arithmetic: `%ls' is missing"), L")");
 		info->error = true;
 		result->type = VT_INVALID;
 	    }
@@ -965,7 +969,7 @@ void parse_primary(evalinfo_T *info, value_T *result)
 	    next_token(info);
 	    break;
 	default:
-	    xerror(0, Ngt("arithmetic: value not given"));
+	    xerror(0, Ngt("arithmetic: a value is missing"));
 	    info->error = true;
 	    result->type = VT_INVALID;
 	    break;
@@ -1002,7 +1006,7 @@ void parse_as_number(evalinfo_T *info, value_T *result)
 	    return;
 	}
     }
-    xerror(0, Ngt("arithmetic: `%ls': not a valid number"), w);
+    xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), w);
     result->type = VT_INVALID;
 }
 
@@ -1044,7 +1048,7 @@ void coerce_number(evalinfo_T *info, value_T *value)
 	    return;
 	}
     }
-    xerror(0, Ngt("arithmetic: `%ls': not a valid number"), v);
+    xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), v);
     info->error = true;
     value->type = VT_INVALID;
     return;
@@ -1314,8 +1318,8 @@ parse_identifier:;
 		info->token.word.contents = &info->exp[startindex];
 		info->token.word.length = info->index - startindex;
 	    } else {
-		xerror(0, Ngt("arithmetic: invalid character `%lc'"),
-			(wint_t) c);
+		xerror(0, Ngt("arithmetic: `%lc' is not "
+			    "a valid number or operator"), (wint_t) c);
 		info->error = true;
 		info->token.type = TT_INVALID;
 	    }

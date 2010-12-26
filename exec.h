@@ -84,9 +84,8 @@ extern int command_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int times_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char return_help[], break_help[], continue_help[],
-       eval_help[], dot_help[], exec_help[], command_help[], type_help[],
-       times_help[];
+extern const char *return_help[], *break_help[], *continue_help[], *eval_help[],
+       *dot_help[], *exec_help[], *command_help[], *type_help[], *times_help[];
 
 
 #endif /* YASH_EXEC_H */

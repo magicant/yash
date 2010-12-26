@@ -859,7 +859,7 @@ and_or_T *parse_command_list(void)
 	    next_line();
 	    break;
 	} else if (!separator) {
-	    serror(Ngt("`;' or `&' missing"));
+	    serror(Ngt("`;' or `&' is missing"));
 	    break;
 	}
 
@@ -1096,9 +1096,9 @@ command_T *parse_command(void)
 	return parse_compound_command(L"(");
     } else if (is_command_delimiter_char(cbuf.contents[cindex])) {
 	if (cbuf.contents[cindex] == L'\0' || cbuf.contents[cindex] == L'\n')
-	    serror(Ngt("command missing at end of input"));
+	    serror(Ngt("a command is missing at the end of input"));
 	else
-	    serror(Ngt("command missing before `%lc'"),
+	    serror(Ngt("a command is missing before `%lc'"),
 		    (wint_t) cbuf.contents[cindex]);
 	return NULL;
     }
@@ -1261,7 +1261,7 @@ assign_T *tryparse_assignment(void)
 	if (cbuf.contents[cindex] == L')')
 	    cindex++;
 	else
-	    serror(Ngt("`%ls' missing"), L")");
+	    serror(Ngt("`%ls' is missing"), L")");
     }
     skip_blanks_and_comment();
     return result;
@@ -1370,14 +1370,14 @@ reparse:
     if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
 	result->rd_filename = parse_word(globalonly);
 	if (!result->rd_filename) {
-	    serror(Ngt("redirection target missing"));
+	    serror(Ngt("the redirection target is missing"));
 	    free(result);
 	    return NULL;
 	}
     } else {
 	wchar_t *endofheredoc = parse_word_as_wcs();
 	if (endofheredoc[0] == L'\0') {
-	    serror(Ngt("here-document delimiter missing"));
+	    serror(Ngt("the end-of-here-document indicator is missing"));
 	    free(endofheredoc);
 	    free(result);
 	    return NULL;
@@ -1501,7 +1501,7 @@ wordunit_T *parse_word_to(bool testfunc(wchar_t c))
     MAKE_WORDUNIT_STRING;
 
     if (indq)
-	serror(Ngt("double-quote not closed"));
+	serror(Ngt("the double quotation is not closed"));
 
     return first;
 }
@@ -1518,7 +1518,7 @@ void skip_to_next_single_quote(void)
 	    return;
 	case L'\0':
 	    if (read_more_input() != 0) {
-		serror(Ngt("single-quote not closed"));
+		serror(Ngt("the single quotation is not closed"));
 		return;
 	    }
 	    continue;
@@ -1663,7 +1663,7 @@ parse_name:;
 	while (ensure_buffer(1), is_name_char(cbuf.contents[cindex]))
 	    cindex++;
 	if (namestartindex == cindex) {
-	    serror(Ngt("parameter name missing or invalid"));
+	    serror(Ngt("the parameter name is missing or invalid"));
 	    goto end;
 	}
 make_name:
@@ -1677,17 +1677,17 @@ make_name:
 	cindex++;
 	pe->pe_start = parse_word_to(is_comma_or_closing_bracket);
 	if (!pe->pe_start)
-	    serror(Ngt("index missing"));
+	    serror(Ngt("the index is missing"));
 	if (cbuf.contents[cindex] == L',') {
 	    cindex++;
 	    pe->pe_end = parse_word_to(is_comma_or_closing_bracket);
 	    if (!pe->pe_end)
-		serror(Ngt("index missing"));
+		serror(Ngt("the index is missing"));
 	}
 	if (cbuf.contents[cindex] == L']')
 	    cindex++;
 	else
-	    serror(Ngt("`%ls' missing"), L"]");
+	    serror(Ngt("`%ls' is missing"), L"]");
 	ensure_buffer(3);
     }
 
@@ -1764,7 +1764,7 @@ check_closing_brace:
     if (cbuf.contents[cindex] == L'}')
 	cindex++;
     else
-	serror(Ngt("`%ls' missing"), L"}");
+	serror(Ngt("`%ls' is missing"), L"}");
     if ((pe->pe_type & PT_NUMBER) && (pe->pe_type & PT_MASK) != PT_NONE)
 	serror(Ngt("invalid use of `%lc' in parameter expansion"),
 		(wint_t) L'#');
@@ -1791,7 +1791,7 @@ wordunit_T *parse_cmdsubst_in_paren(void)
     if (cbuf.contents[cindex] == L')')
 	cindex++;
     else
-	serror(Ngt("`%ls' missing"), L")");
+	serror(Ngt("`%ls' is missing"), L")");
     return result;
 }
 
@@ -1867,7 +1867,8 @@ wordunit_T *parse_cmdsubst_in_backquote(void)
 	    goto end;
 	case L'\0':
 	    if (read_more_input() != 0) {
-		serror(Ngt("backquoted command substitution not closed"));
+		serror(
+		    Ngt("the backquoted command substitution is not closed"));
 		goto end;
 	    }
 	    break;
@@ -2054,7 +2055,7 @@ command_T *parse_group(commandtype_T type)
     result->c_redirs = NULL;
     result->c_subcmds = parse_compound_list();
     if (posixly_correct && !result->c_subcmds)
-	serror(Ngt("no commands between `%ls' and `%ls'"), start, end);
+	serror(Ngt("commands are missing between `%ls' and `%ls'"), start, end);
     if (cbuf.contents[cindex] == end[0])
 	cindex++;
     else
@@ -2085,7 +2086,7 @@ command_T *parse_if(void)
 	if (!els) {
 	    ic->ic_condition = parse_compound_list();
 	    if (posixly_correct && !ic->ic_condition)
-		serror(Ngt("no commands between `%ls' and `%ls'"),
+		serror(Ngt("commands are missing between `%ls' and `%ls'"),
 			(first->next == NULL) ? L"if" : L"elif", L"then");
 	    ensure_buffer(5);
 	    if (is_token_at(L"then", cindex))
@@ -2097,7 +2098,8 @@ command_T *parse_if(void)
 	}
 	ic->ic_commands = parse_compound_list();
 	if (posixly_correct && !ic->ic_commands)
-	    serror(Ngt("no commands after `%ls'"), els ? L"else" : L"then");
+	    serror(Ngt("commands are missing after `%ls'"),
+		    els ? L"else" : L"then");
 	ensure_buffer(5);
 	if (!els) {
 	    if (is_token_at(L"else", cindex)) {
@@ -2139,9 +2141,9 @@ command_T *parse_for(void)
 
     wchar_t *name = parse_word_as_wcs();
     if (name[0] == L'\0')
-	serror(Ngt("no identifier after `for'"));
+	serror(Ngt("an identifier is required after `for'"));
     else if (*skip_name(name) != L'\0')
-	serror(Ngt("`%ls' is not valid identifier"), name);
+	serror(Ngt("`%ls' is not a valid identifier"), name);
     result->c_forname = name;
 
     skip_to_next_token();
@@ -2152,7 +2154,7 @@ command_T *parse_for(void)
 	skip_blanks_and_comment();
 	result->c_forwords = parse_words_and_redirects(&redirs, false);
 	if (redirs) {
-	    serror(Ngt("redirection not allowed after `in'"));
+	    serror(Ngt("redirections are not allowed after `in'"));
 	    redirsfree(redirs);
 	}
 	if (cbuf.contents[cindex] == L';')
@@ -2162,8 +2164,8 @@ command_T *parse_for(void)
 	if (cbuf.contents[cindex] == L';') {
 	    cindex++;
 	    if (posixly_correct)
-		serror(Ngt("`;' not allowed "
-			    "just after identifier in for loop"));
+		serror(Ngt("`;' is not allowed "
+			    "just after the identifier in a for loop"));
 	}
     }
     skip_to_next_token();
@@ -2171,11 +2173,12 @@ command_T *parse_for(void)
     if (is_token_at(L"do", cindex))
 	cindex += 2;
     else
-	serror(Ngt("`%ls' missing"), L"do");
+	serror(Ngt("`%ls' is missing"), L"do");
 	// print_errmsg_token_missing(L"do");
     result->c_forcmds = parse_compound_list();
     if (posixly_correct && !result->c_forcmds)
-	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
+	serror(Ngt("commands are missing between `%ls' and `%ls'"),
+		L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))
 	cindex += 4;
@@ -2199,7 +2202,8 @@ command_T *parse_while(bool whltype)
     result->c_whltype = whltype;
     result->c_whlcond = parse_compound_list();
     if (posixly_correct && !result->c_whlcond)
-	serror(Ngt("no commands after `%ls'"), whltype ? L"while" : L"until");
+	serror(Ngt("commands are missing after `%ls'"),
+		whltype ? L"while" : L"until");
     ensure_buffer(3);
     if (is_token_at(L"do", cindex))
 	cindex += 2;
@@ -2207,7 +2211,8 @@ command_T *parse_while(bool whltype)
 	print_errmsg_token_missing(L"do");
     result->c_whlcmds = parse_compound_list();
     if (posixly_correct && !result->c_whlcmds)
-	serror(Ngt("no commands between `%ls' and `%ls'"), L"do", L"done");
+	serror(Ngt("commands are missing between `%ls' and `%ls'"),
+		L"do", L"done");
     ensure_buffer(5);
     if (is_token_at(L"done", cindex))
 	cindex += 4;
@@ -2231,14 +2236,14 @@ command_T *parse_case(void)
     result->c_redirs = NULL;
     result->c_casword = parse_word(globalonly);
     if (!result->c_casword)
-	serror(Ngt("no word after `%ls'"), L"case");
+	serror(Ngt("a word is required after `%ls'"), L"case");
     skip_to_next_token();
     ensure_buffer(3);
     if (is_token_at(L"in", cindex)) {
 	cindex += 2;
 	result->c_casitems = parse_case_list();
     } else {
-	serror(Ngt("`%ls' missing"), L"in");
+	serror(Ngt("`%ls' is missing"), L"in");
 	// print_errmsg_token_missing(L"in");
 	result->c_casitems = NULL;
     }
@@ -2301,9 +2306,10 @@ void **parse_case_patterns(void)
 	if (is_token_delimiter_char(cbuf.contents[cindex])) {
 	    if (cbuf.contents[cindex] != L'\0') {
 		if (cbuf.contents[cindex] == L'\n')
-		    serror(Ngt("no word after `%ls'"), L"(");
+		    serror(Ngt("a word is required after `%ls'"), L"(");
 		else
-		    serror(Ngt("invalid character `%lc' in case pattern"),
+		    serror(Ngt("encountered an invalid character `%lc' "
+				"in the case pattern"),
 			    (wint_t) cbuf.contents[cindex]);
 	    }
 	    break;
@@ -2317,7 +2323,7 @@ void **parse_case_patterns(void)
 	    cindex++;
 	    break;
 	} else {
-	    serror(Ngt("`%ls' missing"), L")");
+	    serror(Ngt("`%ls' is missing"), L")");
 	    break;
 	}
 	skip_blanks_and_comment();
@@ -2329,7 +2335,7 @@ void **parse_case_patterns(void)
 command_T *parse_function(void)
 {
     if (posixly_correct)
-	serror(Ngt("invalid keyword `%ls'"), L"function");
+	serror(Ngt("`%ls' cannot be used as a command name"), L"function");
 
     assert(is_token_at(L"function", cindex));
     cindex += 8;
@@ -2343,7 +2349,7 @@ command_T *parse_function(void)
     result->c_redirs = NULL;
     result->c_funcname = parse_word(globalonly);
     if (result->c_funcname == NULL)
-	serror(Ngt("no word after `%ls'"), L"function");
+	serror(Ngt("a word is required after `%ls'"), L"function");
     skip_blanks_and_comment();
 
     /* parse parentheses */
@@ -2361,7 +2367,7 @@ command_T *parse_function(void)
     /* parse function body */
     const wchar_t *t = check_opening_token();
     if (t == NULL) {
-	serror(Ngt("function body must be compound command"));
+	serror(Ngt("a function body must be a compound command"));
 	result->c_funcbody = NULL;
     } else {
 	result->c_funcbody = parse_compound_command(t);
@@ -2392,7 +2398,7 @@ command_T *tryparse_function(void)
     cindex++;
     skip_blanks_and_comment();
     if (cbuf.contents[cindex] != L')') {
-	serror(Ngt("`(' must be followed by `)' in function definition"));
+	serror(Ngt("`(' must be followed by `)' in a function definition"));
 	return NULL;
     }
     cindex++;
@@ -2401,7 +2407,7 @@ command_T *tryparse_function(void)
     /* parse function body */
     const wchar_t *t = check_opening_token();
     if (!t) {
-	serror(Ngt("function body must be compound command"));
+	serror(Ngt("a function body must be a compound command"));
 	return NULL;
     }
     command_T *body = parse_compound_command(t);
@@ -2428,7 +2434,7 @@ fail:
 void read_heredoc_contents(redir_T *r)
 {
     if (wcschr(r->rd_hereend, L'\n')) {
-	serror(Ngt("end-of-heredoc indicator containing newline"));
+	serror(Ngt("the end-of-here-document indicator contains a newline"));
 	return;
     }
 
@@ -2624,41 +2630,44 @@ const char *get_errmsg_unexpected_token(const wchar_t *t)
     switch (t[0]) {
 	case L')':
 	    assert(wcscmp(t, L")") == 0);
-	    return Ngt("`%ls' without matching `('");
+	    return Ngt("encountered `%ls' without a matching `('");
 	case L'}':
 	    assert(wcscmp(t, L"}") == 0);
-	    return Ngt("`%ls' without matching `{'");
+	    return Ngt("encountered `%ls' without a matching `{'");
 	case L';':
 	    assert(wcscmp(t, L";;") == 0);
-	    return Ngt("`%ls' used outside `case'");
+	    return Ngt("`%ls' is used outside `case'");
 	case L'!':
 	    assert(wcscmp(t, L"!") == 0);
-	    return Ngt("`%ls' cannot be used as command name");
+	    return Ngt("`%ls' cannot be used as a command name");
 	case L'i':
 	    assert(wcscmp(t, L"in") == 0);
-	    return Ngt("`%ls' cannot be used as command name");
+	    return Ngt("`%ls' cannot be used as a command name");
 	case L'f':
 	    assert(wcscmp(t, L"fi") == 0);
-	    return Ngt("`%ls' without matching `if' and/or `then'");
+	    return Ngt("encountered `%ls' "
+		    "without a matching `if' and/or `then'");
 	case L't':
 	    assert(wcscmp(t, L"then") == 0);
-	    return Ngt("`%ls' used without `if' or `elif'");
+	    return Ngt("encountered `%ls' without a matching `if' or `elif'");
 	case L'd':
 	    assert(t[1] == L'o');
 	    if (t[2] == L'\0') {
 		assert(wcscmp(t, L"do") == 0);
-		return Ngt("`%ls' used without `for', `while', or `until'");
+		return Ngt("encountered `%ls' "
+			"without a matching `for', `while', or `until'");
 	    } else {
 		assert(wcscmp(t, L"done") == 0);
-		return Ngt("`%ls' without matching `do'");
+		return Ngt("encountered `%ls' without a matching `do'");
 	    }
 	case L'e':
 	    if (t[1] == L's') {
 		assert(wcscmp(t, L"esac") == 0);
-		return Ngt("`%ls' without matching `case'");
+		return Ngt("encountered `%ls' without a matching `case'");
 	    } else {
 		assert(wcscmp(t, L"else") == 0 || wcscmp(t, L"elif") == 0);
-		return Ngt("`%ls' used without `if' and/or `then'");
+		return Ngt("encountered `%ls' "
+			"without a matching `if' and/or `then'");
 	    }
 	default:
 	    assert(false);
@@ -2672,7 +2681,7 @@ void print_errmsg_token_missing(const wchar_t *t)
 	serror(get_errmsg_unexpected_token(atoken), atoken);
 	serror(Ngt("(maybe you missed `%ls'?)"), t);
     } else {
-	serror(Ngt("`%ls' missing"), t);
+	serror(Ngt("`%ls' is missing"), t);
     }
 }
 

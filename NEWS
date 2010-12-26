@@ -11,6 +11,7 @@ History of Yash
 Yash 2.26
 
   +  New option for the "return" built-in: -n (--no-return)
+  =  Error messages have been revised.
   =  "case foo in (esac) bar; esac" is now rejected in the POSIXly
      correct mode.
   *  Function names containing the '=' sign can now be specified as

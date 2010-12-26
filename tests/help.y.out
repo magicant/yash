@@ -1,13 +1,13 @@
-help - print usage of builtin
+help - print usage of built-ins
 	help command...
-Prints a description of <command>s.
+The help built-in prints a description of the specified built-in <command>s.
 ===== 1 0
-help - print usage of builtin
+help - print usage of built-ins
 	help command...
-Prints a description of <command>s.
-help - print usage of builtin
+The help built-in prints a description of the specified built-in <command>s.
+help - print usage of built-ins
 	help command...
-Prints a description of <command>s.
+The help built-in prints a description of the specified built-in <command>s.
 ===== 2 0
 ===== 3 0
 ===== 4 0

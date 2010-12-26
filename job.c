@@ -511,15 +511,15 @@ pid_t get_job_pgid(const wchar_t *jobname)
     const job_T *job;
 
     if (jobnumber >= joblist.length) {
-	xerror(0, Ngt("%ls: ambiguous job specification"), jobname);
+	xerror(0, Ngt("job specification `%ls' is ambiguous"), jobname);
 	return -1;
     } else if (jobnumber == 0
 	    || (job = joblist.contents[jobnumber]) == NULL
 	    || job->j_pgid < 0) {
-	xerror(0, Ngt("%ls: no such job"), jobname);
+	xerror(0, Ngt("no such job `%ls'"), jobname);
 	return -1;
     } else if (job->j_pgid == 0) {
-	xerror(0, Ngt("%ls: not job-controlled job"), jobname);
+	xerror(0, Ngt("`%ls' is not a job-controlled job"), jobname);
 	return -1;
     } else {
 	return job->j_pgid;
@@ -818,10 +818,10 @@ void notify_signaled_job(size_t jobnumber)
 	    break;
 	default:
 #if HAVE_STRSIGNAL
-	    fprintf(stderr, gt("Process killed by SIG%ls: %s\n"),
+	    fprintf(stderr, gt("The process was killed by SIG%ls: %s\n"),
 		    get_signal_name(sig), strsignal(sig));
 #else
-	    fprintf(stderr, gt("Process killed by SIG%ls\n"),
+	    fprintf(stderr, gt("The process was killed by SIG%ls\n"),
 		    get_signal_name(sig));
 #endif
 	    break;
@@ -1000,15 +1000,16 @@ int jobs_builtin(int argc, void **argv)
 	    if (jobspec[0] == L'%') {
 		jobspec++;
 	    } else if (posixly_correct) {
-		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
+		xerror(0, Ngt("`%ls' is not a valid job specification"),
+			ARGV(xoptind));
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: ambiguous job specification"),
+		xerror(0, Ngt("job specification `%ls' is ambiguous"),
 			ARGV(xoptind));
 	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
-		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
+		xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
 	    } else {
 		if (!jobs_builtin_print_job(jobnumber, verbose,
 			changedonly, pgidonly, runningonly, stoppedonly))
@@ -1061,25 +1062,35 @@ bool jobs_builtin_print_job(size_t jobnumber,
 }
 
 #if YASH_ENABLE_HELP
-const char jobs_help[] = Ngt(
+const char *jobs_help[] = { Ngt(
 "jobs - print info about jobs\n"
+), Ngt(
 "\tjobs [-lnprs] [job...]\n"
-"Prints the status of jobs in the current shell execution environment.\n"
-"If the <job> is specified, the specified job is printed.\n"
+), Ngt(
+"The jobs built-in prints the status of jobs in the current shell execution\n"
+"environment.\n"
+"If <job>s are specified, the specified jobs are printed.\n"
 "If none is specified, all jobs are printed.\n"
-"Available options:\n"
+), Ngt(
+"Available options are:\n"
+), Ngt(
 " -l --verbose\n"
-"\tprint info for each process in the job, including process ID\n"
+"\tprint info for each process in the job, including the process ID\n"
+), Ngt(
 " -n --new\n"
 "\tonly print jobs whose status have changed\n"
+), Ngt(
 " -p --pgid-only\n"
 "\tprint process group IDs only\n"
+), Ngt(
 " -r --running-only\n"
 "\tprint running jobs only\n"
+), Ngt(
 " -s --stopped-only\n"
 "\tprint stopped jobs only\n"
-"In POSIXly correct mode, only the -l and -p options are available.\n"
-);
+), Ngt(
+"In the POSIXly correct mode, only the -l and -p options are available.\n"
+), NULL };
 #endif
 
 /* The "fg"/"bg" builtin */
@@ -1103,7 +1114,7 @@ int fg_builtin(int argc, void **argv)
     }
 
     if (!doing_job_control_now) {
-	xerror(0, Ngt("job control disabled"));
+	xerror(0, Ngt("job control is disabled"));
 	return Exit_FAILURE;
     }
 
@@ -1112,7 +1123,7 @@ int fg_builtin(int argc, void **argv)
 
     if (xoptind < argc) {
 	if (fg && posixly_correct && argc - xoptind > 1) {
-	    xerror(0, Ngt("too many operands"));
+	    xerror(0, Ngt("too many operands are specified"));
 	    goto print_usage;
 	}
 	do {
@@ -1120,19 +1131,21 @@ int fg_builtin(int argc, void **argv)
 	    if (jobspec[0] == L'%') {
 		jobspec++;
 	    } else if (posixly_correct) {
-		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
+		xerror(0, Ngt("`%ls' is not a valid job specification"),
+			ARGV(xoptind));
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: ambiguous job specification"),
+		xerror(0, Ngt("job specification `%ls' is ambiguous"),
 			ARGV(xoptind));
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
 		    || job->j_pgid < 0) {
-		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
+		xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
 	    } else if (job->j_pgid == 0) {
-		xerror(0, Ngt("%ls: not job-controlled job"), ARGV(xoptind));
+		xerror(0, Ngt("`%ls' is not a job-controlled job"),
+			ARGV(xoptind));
 	    } else {
 		status = continue_job(jobnumber, job, fg);
 	    }
@@ -1140,7 +1153,7 @@ int fg_builtin(int argc, void **argv)
     } else {
 	if (current_jobnumber == 0 ||
 		(job = joblist.contents[current_jobnumber])->j_pgid <= 0) {
-	    xerror(0, Ngt("no current job"));
+	    xerror(0, Ngt("there is no current job"));
 	} else {
 	    status = continue_job(current_jobnumber, job, fg);
 	}
@@ -1223,21 +1236,27 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 
 #if YASH_ENABLE_HELP
 
-const char fg_help[] = Ngt(
+const char *fg_help[] = { Ngt(
 "fg - run jobs in the foreground\n"
+), Ngt(
 "\tfg [job...]\n"
-"Continues execution of the specified jobs in the foreground.\n"
-"In POSIXly correct mode, you can specify at most one job. Otherwise, more\n"
-"than one jobs can be specified, which are in turn continued.\n"
+), Ngt(
+"The fg built-in continues execution of the specified jobs in the foreground.\n"
+"If you specify more than one job, the jobs are continued in turn.\n"
+"But in the POSIXly correct mode, you can specify at most one job.\n"
+), Ngt(
 "If no job is specified, the current job is continued.\n"
-);
+), NULL };
 
-const char bg_help[] = Ngt(
+const char *bg_help[] = { Ngt(
 "bg - run jobs in the background\n"
+), Ngt(
 "\tbg [job...]\n"
-"Continues execution of the specified jobs in the background.\n"
+), Ngt(
+"The bg built-in continues execution of the specified jobs in the background.\n"
+), Ngt(
 "If no job is specified, the current job is continued.\n"
-);
+), NULL };
 
 #endif /* YASH_ENABLE_HELP */
 
@@ -1272,14 +1291,15 @@ int wait_builtin(int argc, void **argv)
 	    } else {
 		long pid;
 		if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
-		    xerror(0, Ngt("%ls: invalid job specification"), jobspec);
+		    xerror(0, Ngt("`%ls' is not a valid job specification"),
+			    jobspec);
 		    continue;
 		}
 		jobnumber = get_jobnumber_from_pid((pid_t) pid);
 		// XXX This cast might not be safe
 	    }
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: ambiguous job specification"),
+		xerror(0, Ngt("job specification `%ls' is ambiguous"),
 			ARGV(xoptind));
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
@@ -1345,13 +1365,17 @@ bool wait_has_job(bool jobcontrol)
 }
 
 #if YASH_ENABLE_HELP
-const char wait_help[] = Ngt(
+const char *wait_help[] = { Ngt(
 "wait - wait for jobs to terminate\n"
+), Ngt(
 "\twait [job or pid...]\n"
-"Waits for the specified jobs, or all jobs if none specified, to terminate.\n"
-"Jobs can be specified in the usual job specification form such as \"%2\" or\n"
-"by the process ID of a process belonging to the job.\n"
-);
+), Ngt(
+"The wait built-in waits for the specified jobs, or all jobs if none\n"
+"specified, to terminate.\n"
+), Ngt(
+"Jobs can be specified in the usual job specification form such as `%2' or by\n"
+"the process ID of a process belonging to the job.\n"
+), NULL };
 #endif
 
 /* The "disown" builtin, which accepts the following option:
@@ -1383,22 +1407,23 @@ int disown_builtin(int argc, void **argv)
 	    if (jobspec[0] == L'%') {
 		jobspec++;
 	    } else if (posixly_correct) {
-		xerror(0, Ngt("%ls: invalid job specification"), ARGV(xoptind));
+		xerror(0, Ngt("`%ls' is not a valid job specification"),
+			ARGV(xoptind));
 		continue;
 	    }
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("%ls: ambiguous job specification"),
+		xerror(0, Ngt("job specification `%ls' is ambiguous"),
 			ARGV(xoptind));
 	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
-		xerror(0, Ngt("%ls: no such job"), ARGV(xoptind));
+		xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
 	    } else {
 		remove_job(jobnumber);
 	    }
 	} while (++xoptind < argc);
     } else {
 	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL)
-	    xerror(0, Ngt("no current job"));
+	    xerror(0, Ngt("there is no current job"));
 	else
 	    remove_job(current_jobnumber);
     }
@@ -1407,17 +1432,20 @@ int disown_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char disown_help[] = Ngt(
+const char *disown_help[] = { Ngt(
 "disown - disown jobs\n"
+), Ngt(
 "\tdisown [job...]\n"
 "\tdisown -a\n"
-"Removes the specified jobs from the job list.\n"
+), Ngt(
+"The disown built-in removes the specified jobs from the job list.\n"
 "The status of the disowned jobs is no longer reported and the jobs can no\n"
-"longer be put back in the foreground.\n"
+"longer be put back into the foreground.\n"
+), Ngt(
 "If the -a (--all) option is specified, all existing jobs are disowned.\n"
 "Otherwise, the specified jobs are disowned. If none is specified, the\n"
 "current job is disowned.\n"
-);
+), NULL };
 #endif
 
 

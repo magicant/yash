@@ -45,7 +45,7 @@ extern int exit_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int suspend_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char exit_help[], suspend_help[];
+extern const char *exit_help[], *suspend_help[];
 
 
 /* Exits the shell with the current exit status.

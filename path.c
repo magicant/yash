@@ -1075,7 +1075,7 @@ int cd_builtin(int argc, void **argv)
 	    if (newpwd == NULL) {
 		newpwd = getvar(L VAR_HOME);
 		if (newpwd == NULL || newpwd[0] == L'\0') {
-		    xerror(0, Ngt("$HOME not set"));
+		    xerror(0, Ngt("$HOME is not set"));
 		    return Exit_FAILURE;
 		}
 	    }
@@ -1084,7 +1084,7 @@ int cd_builtin(int argc, void **argv)
 	    if (wcscmp(ARGV(xoptind), L"-") == 0) {
 		newpwd = getvar(L VAR_OLDPWD);
 		if (newpwd == NULL || newpwd[0] == L'\0') {
-		    xerror(0, Ngt("$OLDPWD not set"));
+		    xerror(0, Ngt("$OLDPWD is not set"));
 		    return Exit_FAILURE;
 		}
 		printnewdir = true;
@@ -1114,7 +1114,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
     oldpwd = getvar(L VAR_PWD);
     if (oldpwd == NULL || oldpwd[0] != L'/') {
 	if (oldpwd == newpwd) {
-	    xerror(0, Ngt("invalid $PWD value"));
+	    xerror(0, Ngt("$PWD has an invalid value"));
 	    return Exit_FAILURE;
 	}
 	/* we have to assure `oldpwd != newpwd' because we're going to
@@ -1123,7 +1123,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	char *pwd = xgetcwd();
 	if (pwd == NULL) {
 	    if (logical) {
-		xerror(errno, Ngt("cannot determine current directory"));
+		xerror(errno, Ngt("cannot determine the current directory"));
 		return Exit_FAILURE;
 	    }
 	} else {
@@ -1302,24 +1302,33 @@ bool starts_with_root_parent(const wchar_t *path)
 }
 
 #if YASH_ENABLE_HELP
-const char cd_help[] = Ngt(
-"cd - change directory\n"
+const char *cd_help[] = { Ngt(
+"cd - change the working directory\n"
+), Ngt(
 "\tcd [-L|-P] [dir]\n"
-"Changes the working directory to <dir>.\n"
-"If <dir> is \"-\", the working directory is changed to $OLDPWD.\n"
-"If <dir> is a relative path which does not start with \".\" or \"..\",\n"
+), Ngt(
+"The cd built-in changes the working directory to <dir>.\n"
+"If <dir> is `-', the working directory is changed to $OLDPWD.\n"
+"If <dir> is a relative path that does not start with `.' or `..',\n"
 "paths in $CDPATH are searched to find a new directory.\n"
 "If the working directory is successfully changed, $PWD is set to the new\n"
 "directory and $OLDPWD is set to the previous $PWD.\n"
+), (
+"\n"
+), Ngt(
 "When the -L (--logical) option is specified, symbolic links in $PWD are left\n"
 "unchanged. When the -P (--physical) option is specified, symbolic links are\n"
 "resolved so that $PWD does not contain any symbolic links.\n"
-"-L and -P are mutually exclusive: the last specified one is used.\n"
+), Ngt(
+"-L and -P are mutually exclusive: only the last specified one is effective.\n"
 "If neither is specified, -L is the default.\n"
+), (
+"\n"
+), Ngt(
 "If <dir> is not specified, the working directory is changed to the directory\n"
 "specified by the --default-directory=... option. If this option is not\n"
 "specified either, the default is $HOME.\n"
-);
+), NULL };
 #endif
 
 /* The "pwd" builtin, which accepts the following options:
@@ -1364,7 +1373,7 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 
     mbspwd = xgetcwd();
     if (mbspwd == NULL) {
-	xerror(errno, Ngt("cannot determine current directory"));
+	xerror(errno, Ngt("cannot determine the current directory"));
 	return Exit_FAILURE;
     }
 print:
@@ -1375,17 +1384,24 @@ print:
 }
 
 #if YASH_ENABLE_HELP
-const char pwd_help[] = Ngt(
-"pwd - print working directory\n"
+const char *pwd_help[] = { Ngt(
+"pwd - print the working directory\n"
+), Ngt(
 "\tpwd [-L|-P]\n"
-"Prints the absolute pathname of the current working directory.\n"
+), Ngt(
+"The pwd built-in prints the absolute pathname of the current working\n"
+"directory.\n"
+), (
+"\n"
+), Ngt(
 "When the -L (--logical) option is specified, $PWD is printed if it is\n"
-"correct. It may contain symbolic links in the pathname.\n"
+"correct. It may contain symbolic links.\n"
 "When the -P (--physical) option is specified, the printed pathname does not\n"
 "contain any symbolic links.\n"
-"-L and -P are mutually exclusive: the last specified one is used.\n"
+), Ngt(
+"-L and -P are mutually exclusive: only the last specified one is effective.\n"
 "If neither is specified, -L is the default.\n"
-);
+), NULL };
 #endif
 
 /* The "hash" builtin, which accepts the following options:
@@ -1439,7 +1455,7 @@ int hash_builtin(int argc, void **argv)
 	    } else {                // remember the specified
 		for (int i = xoptind; i < argc; i++)
 		    if (!get_home_directory(ARGV(i), true))
-			xerror(0, Ngt("%ls: no such user"), ARGV(i));
+			xerror(0, Ngt("no such user `%ls'"), ARGV(i));
 	    }
 	}
     } else {
@@ -1461,15 +1477,16 @@ int hash_builtin(int argc, void **argv)
 	    } else {                // remember the specified
 		for (int i = xoptind; i < argc; i++) {
 		    if (wcschr(ARGV(i), L'/')) {
-			xerror(0, Ngt("%ls: command name must not contain `/'"),
-				ARGV(i));
+			xerror(0, Ngt("`%ls': a command name must not contain "
+				    "`/'"), ARGV(i));
 			continue;
 		    }
 
 		    char *cmd = malloc_wcstombs(ARGV(i));
 		    if (cmd) {
 			if (!get_command_path(cmd, true))
-			    xerror(0, Ngt("%s: not found in $PATH"), cmd);
+			    xerror(0, Ngt("command `%s' was not found "
+					"in $PATH"), cmd);
 			free(cmd);
 		    }
 		}
@@ -1522,25 +1539,31 @@ void print_home_directories(void)
 }
 
 #if YASH_ENABLE_HELP
-const char hash_help[] = Ngt(
-"hash - remember, forget or report command locations\n"
+const char *hash_help[] = { Ngt(
+"hash - remember, forget, or report command locations\n"
+), Ngt(
 "\thash command...\n"
 "\thash -r [command...]\n"
 "\thash [-a]\n"
 "\thash -d user...\n"
 "\thash -d -r [user...]\n"
 "\thash -d\n"
+), Ngt(
 "The first form immediately performs command path search and caches\n"
-"<command>s' fullpaths.\n"
+"<command>s' full paths.\n"
+), Ngt(
 "The second form, using the -r (--remove) option, removes the paths of\n"
 "<command>s (or all the paths if none specified) from the cache. Note that\n"
 "assignment to $PATH also removes all paths from the cache.\n"
+), Ngt(
 "The third form prints the currently cached paths. Without the -a (--all)\n"
-"option, paths for builtin commands are not printed.\n"
+"option, paths for built-in commands are not printed.\n"
+), Ngt(
 "With the -d (--directory) option, this command does the same things to the\n"
 "home directory cache, rather than the command path cache.\n"
+), Ngt(
 "In the POSIXly correct mode, the -r option is the only available option.\n"
-);
+), NULL };
 #endif
 
 /* The "umask" builtin, which accepts the following option:
@@ -1642,7 +1665,7 @@ int set_umask(const wchar_t *maskstr)
 	errno = 0;
 	mask = wcstoumax(maskstr, &end, 8);
 	if (errno || *end) {
-	    xerror(0, Ngt("`%ls': invalid mask"), maskstr);
+	    xerror(0, Ngt("`%ls' is not a valid mask specification"), maskstr);
 	    return Exit_ERROR;
 	}
 	umask((mode_t) (mask & (S_IRWXU | S_IRWXG | S_IRWXO)));
@@ -1724,7 +1747,7 @@ parse_end:
 
 err:
     umask(~origmask);
-    xerror(0, Ngt("`%ls': invalid mask"), savemaskstr);
+    xerror(0, Ngt("`%ls' is not a valid mask specification"), savemaskstr);
     return Exit_ERROR;
 }
 
@@ -1750,15 +1773,17 @@ mode_t copy_other_mask(mode_t mode)
 }
 
 #if YASH_ENABLE_HELP
-const char umask_help[] = Ngt(
-"umask - print or set file creation mask\n"
+const char *umask_help[] = { Ngt(
+"umask - print or set the file creation mask\n"
+), Ngt(
 "\tumask mode\n"
 "\tumask [-S]\n"
-"Sets the file mode creation mask of the shell to <mode>. The mask will be\n"
-"inherited by succeedingly invoked commands.\n"
+), Ngt(
+"The umask built-in sets the file mode creation mask of the shell to <mode>.\n"
+"The mask will be inherited by commands invoked by the shell.\n"
 "If <mode> is not specified, the current setting of the mask is printed.\n"
 "The -S (--symbolic) option makes a symbolic output.\n"
-);
+), NULL };
 #endif
 
 

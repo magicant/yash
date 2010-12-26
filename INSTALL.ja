@@ -58,6 +58,8 @@ configure スクリプトの起動時にコマンドライン引数または環�
 	アーカイバ
   ARFLAGS
 	アーカイバオプション
+  LINGUAS
+    メッセージカタログをインストールするロケール
   INSTALL_PROGRAM
 	インストーラ
 

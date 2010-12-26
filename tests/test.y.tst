@@ -6,8 +6,8 @@ tmp="${TESTTMP}/test.y.tmp"
 mkdir "$tmp" || exit
 cd "$tmp" || exit
 umask u=rwx,go=
-command -V test | grep -v "^test: regular builtin "
-command -V [ | grep -v "^\[: regular builtin "
+command -V test | grep -v "^test: a regular built-in "
+command -V [ | grep -v "^\[: a regular built-in "
 
 tt () {
     printf "%s: " "$*"

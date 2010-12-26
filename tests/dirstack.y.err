@@ -1,19 +1,19 @@
 ===== 9 =====
-popd: directory stack is empty
+popd: the directory stack is empty
 ===== 10 =====
 pushd: $DIRSTACK is not an array
 popd: $DIRSTACK is not an array
-dirs: DIRSTACK: readonly
-pushd: DIRSTACK: readonly
-popd: DIRSTACK: readonly
-dirs: DIRSTACK: readonly
-pushd: --no-such-option: invalid option
+dirs: $DIRSTACK is read-only
+pushd: $DIRSTACK is read-only
+popd: $DIRSTACK is read-only
+dirs: $DIRSTACK is read-only
+pushd: `--no-such-option' is not a valid option
 Usage:  pushd [-L|-P] [dir]
-pushd: +5: index out of range
-popd: --no-such-option: invalid option
+pushd: index +5 is out of range
+popd: `--no-such-option' is not a valid option
 Usage:  popd [index]
-popd: +5: index out of range
-popd: directory stack is empty
-dirs: --no-such-option: invalid option
+popd: index +5 is out of range
+popd: the directory stack is empty
+dirs: `--no-such-option' is not a valid option
 Usage:  dirs [-cv] [index...]
-dirs: +5: index out of range
+dirs: index +5 is out of range

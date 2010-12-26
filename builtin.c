@@ -210,14 +210,16 @@ int print_builtin_help(const wchar_t *name)
     char *mbsname = malloc_wcstombs(name);
     const builtin_T *bi = get_builtin(mbsname);
     free(mbsname);
-    if (bi) {
-	if (fputs(gt(bi->help), stdout) == EOF) {
-	    xerror(errno, Ngt("cannot print help of `%ls'"), name);
-	    return Exit_FAILURE;
+    if (bi != NULL) {
+	for (const char **help = bi->help; *help != NULL; help++) {
+	    if (printf("%s", gt(*help)) < 0) {
+		xerror(errno, Ngt("cannot print to the standard output"));
+		return Exit_FAILURE;
+	    }
 	}
 	return Exit_SUCCESS;
     } else {
-	xerror(0, Ngt("%ls: no such builtin"), name);
+	xerror(0, Ngt("no such built-in `%ls'"), name);
 	return Exit_FAILURE;
     }
 }
@@ -282,32 +284,39 @@ int false_builtin(
 
 #if YASH_ENABLE_HELP
 
-const char colon_help[] = Ngt(
-": - null utility\n"
+const char *colon_help[] = { Ngt(
+"colon - null utility\n"
+), Ngt(
 "\t: [arg...]\n"
-"Does nothing. Any arguments are ignored.\n"
+), Ngt(
+"The colon built-in does nothing. Any arguments are ignored.\n"
+), Ngt(
 "Note that arguments are expanded and redirections are performed as usual.\n"
-"This command has the same effect as the \"true\" command, but \":\" is a\n"
-"special builtin while \"true\" is a semi-special.\n"
-);
+"The colon and true built-ins have the same effect, but colon is a special\n"
+"built-in while true is a semi-special.\n"
+), NULL };
 
-const char true_help[] = Ngt(
+const char *true_help[] = { Ngt(
 "true - return true value\n"
+), Ngt(
 "\ttrue\n"
-"Does nothing successfully.\n"
+), Ngt(
+"The true built-in does nothing successfully.\n"
 "Any arguments are ignored and the exit status is always zero.\n"
-"This command has the same effect as the \":\" command, but \":\" is a\n"
-"special builtin while \"true\" is a semi-special.\n"
-"Naturally, the opposite of this command is the \"false\" command.\n"
-);
+), Ngt(
+"Note that arguments are expanded and redirections are performed as usual.\n"
+"The colon and true built-ins have the same effect, but colon is a special\n"
+"built-in while true is a semi-special.\n"
+), NULL };
 
-const char false_help[] = Ngt(
+const char *false_help[] = { Ngt(
 "false - return false value\n"
+), Ngt(
 "\tfalse\n"
-"Does nothing unsuccessfully.\n"
+), Ngt(
+"The false built-in does nothing unsuccessfully.\n"
 "Any arguments are ignored and the exit status is always non-zero.\n"
-"Naturally, the opposite of this command is the \"true\" command.\n"
-);
+), NULL };
 
 
 /* The "help" builtin. */
@@ -334,11 +343,13 @@ int help_builtin(int argc, void **argv)
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
-const char help_help[] = Ngt(
-"help - print usage of builtin\n"
+const char *help_help[] = { Ngt(
+"help - print usage of built-ins\n"
+), Ngt(
 "\thelp command...\n"
-"Prints a description of <command>s.\n"
-);
+), Ngt(
+"The help built-in prints a description of the specified built-in <command>s.\n"
+), NULL };
 
 #endif /* YASH_ENABLE_HELP */
 

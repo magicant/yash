@@ -301,7 +301,8 @@ noglob:
 		goto noglob;
 	    } else {
 		exp = unescapefree(exp);
-		xerror(0, Ngt("%ls: not single file"), exp);
+		xerror(0, Ngt("filename `%ls' matches more than one file"),
+			exp);
 		free(exp);
 		result = NULL;
 	    }
@@ -635,7 +636,7 @@ bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 	    startindex = 0, endindex = SSIZE_MAX;
 	    free(start);
 	    if (p->pe_end) {
-		xerror(0, Ngt("invalid parameter index"));
+		xerror(0, Ngt("the parameter index is invalid"));
 		return false;
 	    }
 	} else if (!evaluate_index(start, &startindex)) {
@@ -787,16 +788,18 @@ subst:
 	if (unset) {
 	    plfree(list, free);
 	    if (p->pe_type & PT_NEST) {
-		xerror(0, Ngt("invalid assignment in parameter expansion"));
+		xerror(0,
+		    Ngt("a nested parameter expansion cannot be assigned"));
 		return false;
 	    } else if (!is_name(p->pe_name)) {
-		xerror(0, Ngt("cannot assign to `%ls' in parameter expansion"),
+		xerror(0, Ngt("cannot assign to parameter `%ls' "
+			    "in parameter expansion"),
 			p->pe_name);
 		return false;
 	    } else if ((v.type == GV_ARRAY_CONCAT)
 		    || (v.type == GV_ARRAY && startindex + 1 != endindex)) {
-                xerror(0, Ngt("cannot assign to an element of array `%ls' "
-                            "in parameter expansion: invalid index"),
+                xerror(0, Ngt("the specified index does not support assignment "
+			    "in the parameter expansion of array `%ls'"),
 			p->pe_name);
 		return false;
 	    }
@@ -835,7 +838,7 @@ subst:
 
     if (shopt_nounset && unset) {
 	plfree(list, free);
-	xerror(0, Ngt("%ls: parameter not set"), p->pe_name);
+	xerror(0, Ngt("parameter `%ls' is not set"), p->pe_name);
 	return false;
     }
 
@@ -1054,11 +1057,11 @@ void print_subst_as_error(const paramexp_T *p)
     } else {
 	/* use the default error message */
 	if (p->pe_type & PT_NEST)
-	    xerror(0, Ngt("parameter null"));
+	    xerror(0, Ngt("the parameter value is empty"));
 	else
 	    xerror(0, (p->pe_type & PT_COLON)
-		    ? Ngt("%ls: parameter null or not set")
-		    : Ngt("%ls: parameter not set"),
+		    ? Ngt("parameter `%ls' is not set or has an empty value")
+		    : Ngt("parameter `%ls' is not set"),
 		    p->pe_name);
     }
 }

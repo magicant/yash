@@ -22,6 +22,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include "../builtin.h"
 #include "../exec.h"
 #include "../expand.h"
@@ -416,14 +419,14 @@ int bindkey_builtin(int argc, void **argv)
 
     if (list) {
 	if (mode != LE_MODE_N) {
-	    xerror(0, Ngt("invalid combination of options"));
+	    xerror(0, Ngt("option combination is invalid"));
 	    goto print_usage;
 	}
 	return print_all_commands();
     }
 
     if (mode == LE_MODE_N) {
-	xerror(0, Ngt("option not specified"));
+	xerror(0, Ngt("no option is specified"));
 	goto print_usage;
     }
 
@@ -459,7 +462,7 @@ int set_key_binding(
 	le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
 {
     if (keyseq[0] == L'\0') {
-	xerror(0, Ngt("cannot bind empty sequence"));
+	xerror(0, Ngt("cannot bind an empty key sequence"));
 	return Exit_FAILURE;
     }
 
@@ -483,7 +486,7 @@ int set_key_binding(
 	    t = trie_setw(t, keyseq, (trievalue_T) { .cmdfunc = cmd });
 	    le_modes[mode].keymap = t;
 	} else {
-	    xerror(0, Ngt("%ls: no such command"), commandname);
+	    xerror(0, Ngt("no such editing command `%ls'"), commandname);
 	    return Exit_FAILURE;
 	}
     }
@@ -517,7 +520,7 @@ int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
 	return print_binding_main(
 		le_id_to_mode(mode), keyseq, tg.value.cmdfunc);
     } else {
-	xerror(0, Ngt("%ls: unbound sequence"), keyseq);
+	xerror(0, Ngt("key sequence `%ls' is not bound"), keyseq);
 	return Exit_FAILURE;
     }
 }
@@ -565,24 +568,32 @@ const char *get_command_name(le_command_func_T *command)
 }
 
 #if YASH_ENABLE_HELP
-const char bindkey_help[] = Ngt(
+const char *bindkey_help[] = { Ngt(
 "bindkey - set or print key bindings for line-editing\n"
+), Ngt(
 "\tbindkey -aev [keyseq [command]]\n"
 "\tbindkey -l\n"
-"The first form, without <keyseq> or <command>, prints all the current key\n"
-"bindings. With <keyseq> without <command>, prints the binding for <keyseq>.\n"
-"With <keyseq> and <command>, binds <keyseq> to <command>. If <command> is\n"
-"a hyphen ('-'), <keyseq> is unbound.\n"
+), Ngt(
+"The first form prints all key binding currently defined (without <keyseq>\n"
+"or <command>), prints the binding for <keyseq> (with <keyseq> without\n"
+"<command>), or binds <keyseq> to <command> (with <keyseq> and <command>).\n"
+"If <command> is a hyphen (`-'), <keyseq> is unbound.\n"
+), Ngt(
 "The second form, with the -l (--list) option, prints all available commands.\n"
+), (
 "\n"
+), Ngt(
 "One of the following options must be given in the first form:\n"
+), Ngt(
 " -v --vi-insert\n"
-"\tSpecifies the \"vi insert\" mode.\n"
+"\tSpecifies the `vi insert' mode.\n"
+), Ngt(
 " -a --vi-command\n"
-"\tSpecifies the \"vi command\" mode.\n"
+"\tSpecifies the `vi command' mode.\n"
+), Ngt(
 " -e --emacs\n"
-"\tSpecifies the \"emacs\" mode.\n"
-);
+"\tSpecifies the `emacs' mode.\n"
+), NULL };
 #endif
 
 

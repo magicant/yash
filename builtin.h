@@ -33,7 +33,7 @@ typedef struct builtin_T {
     main_T *body;
     builtintype_T type;
 #if YASH_ENABLE_HELP
-    const char *help;
+    const char **help;
 #endif
 } builtin_T;
 
@@ -50,7 +50,7 @@ extern int false_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int help_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char colon_help[], true_help[], false_help[], help_help[];
+extern const char *colon_help[], *true_help[], *false_help[], *help_help[];
 
 
 #define SPECIAL_BI_ERROR                                                    \

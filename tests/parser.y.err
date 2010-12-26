@@ -1,78 +1,78 @@
-syntax error: `;' or `&' missing
-syntax error: `)' without matching `('
-syntax error: `}' without matching `{'
-syntax error: `;;' used outside `case'
-syntax error: `then' used without `if' or `elif'
-syntax error: `then' used without `if' or `elif'
+syntax error: `;' or `&' is missing
+syntax error: encountered `)' without a matching `('
+syntax error: encountered `}' without a matching `{'
+syntax error: `;;' is used outside `case'
+syntax error: encountered `then' without a matching `if' or `elif'
+syntax error: encountered `then' without a matching `if' or `elif'
 syntax error: (maybe you missed `fi'?)
-syntax error: `else' used without `if' and/or `then'
-syntax error: `else' used without `if' and/or `then'
+syntax error: encountered `else' without a matching `if' and/or `then'
+syntax error: encountered `else' without a matching `if' and/or `then'
 syntax error: (maybe you missed `then'?)
-syntax error: `elif' used without `if' and/or `then'
-syntax error: `elif' used without `if' and/or `then'
+syntax error: encountered `elif' without a matching `if' and/or `then'
+syntax error: encountered `elif' without a matching `if' and/or `then'
 syntax error: (maybe you missed `then'?)
-syntax error: `fi' without matching `if' and/or `then'
-syntax error: `fi' without matching `if' and/or `then'
+syntax error: encountered `fi' without a matching `if' and/or `then'
+syntax error: encountered `fi' without a matching `if' and/or `then'
 syntax error: (maybe you missed `then'?)
-syntax error: `fi' without matching `if' and/or `then'
+syntax error: encountered `fi' without a matching `if' and/or `then'
 syntax error: (maybe you missed `then'?)
-syntax error: `do' used without `for', `while', or `until'
-syntax error: `done' without matching `do'
-syntax error: `done' without matching `do'
+syntax error: encountered `do' without a matching `for', `while', or `until'
+syntax error: encountered `done' without a matching `do'
+syntax error: encountered `done' without a matching `do'
 syntax error: (maybe you missed `do'?)
-syntax error: `esac' without matching `case'
-syntax error: `!' cannot be used as command name
-syntax error: `!' cannot be used as command name
-syntax error: `in' cannot be used as command name
-syntax error: command missing at end of input
-yash -c:1: syntax error: command missing before `;'
-yash -c:1: syntax error: command missing before `&'
-yash -c:1: syntax error: command missing before `|'
-yash -c:1: syntax error: command missing before `;'
-yash -c:1: syntax error: command missing before `&'
-yash -c:1: syntax error: command missing before `|'
+syntax error: encountered `esac' without a matching `case'
+syntax error: `!' cannot be used as a command name
+syntax error: `!' cannot be used as a command name
+syntax error: `in' cannot be used as a command name
+syntax error: a command is missing at the end of input
+yash -c:1: syntax error: a command is missing before `;'
+yash -c:1: syntax error: a command is missing before `&'
+yash -c:1: syntax error: a command is missing before `|'
+yash -c:1: syntax error: a command is missing before `;'
+yash -c:1: syntax error: a command is missing before `&'
+yash -c:1: syntax error: a command is missing before `|'
 yash -c:3: syntax error: invalid use of `('
 yash -c:1: syntax error: invalid use of `('
-yash -c:3: syntax error: `)' missing
-yash -c:1: syntax error: `)' missing
-yash -c:1: syntax error: redirection target missing
-yash -c:1: syntax error: redirection target missing
-yash -c:1: syntax error: redirection target missing
-yash -c:1: syntax error: redirection target missing
-yash -c:1: syntax error: redirection target missing
-yash -c:1: syntax error: redirection target missing
-yash -c:2: syntax error: redirection target missing
-yash -c:1: syntax error: redirection target missing
-syntax error: here-document delimiter missing
-syntax error: here-document delimiter missing
-syntax error: redirection target missing
-yash -c:1: syntax error: double-quote not closed
-yash -c:1: syntax error: double-quote not closed
-yash -c:1: syntax error: `}' missing
-yash -c:3: syntax error: single-quote not closed
-yash -c:1: syntax error: parameter name missing or invalid
-yash -c:1: syntax error: parameter name missing or invalid
-yash -c:1: syntax error: parameter name missing or invalid
-yash -c:1: syntax error: index missing
-yash -c:1: syntax error: index missing
-yash -c:1: syntax error: index missing
-yash -c:1: syntax error: `]' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `]' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `]' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `}' missing
+yash -c:3: syntax error: `)' is missing
+yash -c:1: syntax error: `)' is missing
+yash -c:1: syntax error: the redirection target is missing
+yash -c:1: syntax error: the redirection target is missing
+yash -c:1: syntax error: the redirection target is missing
+yash -c:1: syntax error: the redirection target is missing
+yash -c:1: syntax error: the redirection target is missing
+yash -c:1: syntax error: the redirection target is missing
+yash -c:2: syntax error: the redirection target is missing
+yash -c:1: syntax error: the redirection target is missing
+syntax error: the end-of-here-document indicator is missing
+syntax error: the end-of-here-document indicator is missing
+syntax error: the redirection target is missing
+yash -c:1: syntax error: the double quotation is not closed
+yash -c:1: syntax error: the double quotation is not closed
+yash -c:1: syntax error: `}' is missing
+yash -c:3: syntax error: the single quotation is not closed
+yash -c:1: syntax error: the parameter name is missing or invalid
+yash -c:1: syntax error: the parameter name is missing or invalid
+yash -c:1: syntax error: the parameter name is missing or invalid
+yash -c:1: syntax error: the index is missing
+yash -c:1: syntax error: the index is missing
+yash -c:1: syntax error: the index is missing
+yash -c:1: syntax error: `]' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `]' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `]' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `}' is missing
 yash -c:1: syntax error: invalid use of `:' in parameter expansion
 yash -c:1: syntax error: invalid use of `:' in parameter expansion
-yash -c:1: syntax error: `}' missing
+yash -c:1: syntax error: `}' is missing
 yash -c:1: syntax error: invalid character `!' in parameter expansion
 yash -c:1: syntax error: invalid use of `:' in parameter expansion
 yash -c:1: syntax error: invalid use of `:' in parameter expansion
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `}' missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `}' is missing
 yash -c:1: syntax error: invalid use of `#' in parameter expansion
 yash -c:1: syntax error: invalid use of `#' in parameter expansion
 yash -c:1: syntax error: invalid use of `#' in parameter expansion
@@ -81,120 +81,120 @@ yash -c:1: syntax error: invalid use of `#' in parameter expansion
 yash -c:1: syntax error: invalid use of `#' in parameter expansion
 yash -c:1: syntax error: invalid use of `#' in parameter expansion
 yash -c:1: syntax error: invalid use of `#' in parameter expansion
-yash -c:2: syntax error: `)' missing
-yash -c:2: syntax error: backquoted command substitution not closed
-yash -c:2: syntax error: backquoted command substitution not closed
-command substitution:1: syntax error: double-quote not closed
-command substitution:2: syntax error: backquoted command substitution not closed
-yash -c:1: syntax error: `)' missing
-yash -c:1: syntax error: `)' missing
+yash -c:2: syntax error: `)' is missing
+yash -c:2: syntax error: the backquoted command substitution is not closed
+yash -c:2: syntax error: the backquoted command substitution is not closed
+command substitution:1: syntax error: the double quotation is not closed
+command substitution:2: syntax error: the backquoted command substitution is not closed
+yash -c:1: syntax error: `)' is missing
+yash -c:1: syntax error: `)' is missing
 =
-yash -c:1: syntax error: `)' missing
-syntax error: no commands between `(' and `)'
-syntax error: no commands between `(' and `)'
-syntax error: no commands between `{' and `}'
-syntax error: no commands between `{' and `}'
-yash -c:1: syntax error: `)' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: `)' is missing
+syntax error: commands are missing between `(' and `)'
+syntax error: commands are missing between `(' and `)'
+syntax error: commands are missing between `{' and `}'
+syntax error: commands are missing between `{' and `}'
+yash -c:1: syntax error: `)' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `)'?)
-yash -c:1: syntax error: `)' without matching `('
+yash -c:1: syntax error: encountered `)' without a matching `('
 yash -c:1: syntax error: (maybe you missed `}'?)
-syntax error: no commands between `if' and `then'
-syntax error: no commands after `then'
-syntax error: no commands between `elif' and `then'
-syntax error: no commands after `then'
-syntax error: no commands after `else'
-yash -c:1: syntax error: `then' missing
-yash -c:1: syntax error: `fi' missing
-yash -c:1: syntax error: `then' missing
-yash -c:1: syntax error: `fi' missing
-yash -c:1: syntax error: `fi' missing
-yash -c:1: syntax error: `fi' missing
-yash -c:1: syntax error: `}' without matching `{'
+syntax error: commands are missing between `if' and `then'
+syntax error: commands are missing after `then'
+syntax error: commands are missing between `elif' and `then'
+syntax error: commands are missing after `then'
+syntax error: commands are missing after `else'
+yash -c:1: syntax error: `then' is missing
+yash -c:1: syntax error: `fi' is missing
+yash -c:1: syntax error: `then' is missing
+yash -c:1: syntax error: `fi' is missing
+yash -c:1: syntax error: `fi' is missing
+yash -c:1: syntax error: `fi' is missing
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `then'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `fi'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `then'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `fi'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `fi'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `fi'?)
-syntax error: no identifier after `for'
-yash -c:1: syntax error: `=' is not valid identifier
-yash -c:1: syntax error: redirection not allowed after `in'
-sh -c:1: syntax error: `;' not allowed just after identifier in for loop
-yash -c:1: syntax error: `do' missing
-syntax error: no commands between `do' and `done'
-syntax error: no commands between `do' and `done'
-yash -c:1: syntax error: `done' missing
-yash -c:1: syntax error: `}' is not valid identifier
-yash -c:1: syntax error: `do' missing
-yash -c:1: syntax error: `done' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `do' missing
-yash -c:1: syntax error: `}' without matching `{'
+syntax error: an identifier is required after `for'
+yash -c:1: syntax error: `=' is not a valid identifier
+yash -c:1: syntax error: redirections are not allowed after `in'
+sh -c:1: syntax error: `;' is not allowed just after the identifier in a for loop
+yash -c:1: syntax error: `do' is missing
+syntax error: commands are missing between `do' and `done'
+syntax error: commands are missing between `do' and `done'
+yash -c:1: syntax error: `done' is missing
+yash -c:1: syntax error: `}' is not a valid identifier
+yash -c:1: syntax error: `do' is missing
+yash -c:1: syntax error: `done' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `do' is missing
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-yash -c:1: syntax error: `do' missing
-yash -c:1: syntax error: `done' missing
-yash -c:1: syntax error: `}' missing
-yash -c:1: syntax error: `do' missing
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: `do' is missing
+yash -c:1: syntax error: `done' is missing
+yash -c:1: syntax error: `}' is missing
+yash -c:1: syntax error: `do' is missing
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-syntax error: no commands after `while'
-syntax error: no commands after `until'
-syntax error: no commands between `do' and `done'
-syntax error: no commands between `do' and `done'
-yash -c:1: syntax error: `do' missing
-yash -c:1: syntax error: `done' missing
-yash -c:1: syntax error: `done' missing
-yash -c:1: syntax error: `do' missing
-yash -c:1: syntax error: `done' missing
-yash -c:1: syntax error: `done' missing
-yash -c:1: syntax error: `}' without matching `{'
+syntax error: commands are missing after `while'
+syntax error: commands are missing after `until'
+syntax error: commands are missing between `do' and `done'
+syntax error: commands are missing between `do' and `done'
+yash -c:1: syntax error: `do' is missing
+yash -c:1: syntax error: `done' is missing
+yash -c:1: syntax error: `done' is missing
+yash -c:1: syntax error: `do' is missing
+yash -c:1: syntax error: `done' is missing
+yash -c:1: syntax error: `done' is missing
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `do'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `do'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `done'?)
-syntax error: no word after `case'
-yash -c:1: syntax error: no word after `case'
-yash -c:1: syntax error: `in' missing
-yash -c:1: syntax error: `esac' missing
-yash -c:1: syntax error: `in' missing
-yash -c:1: syntax error: `esac' missing
-yash -c:1: syntax error: `esac' missing
-yash -c:1: syntax error: no word after `case'
-yash -c:1: syntax error: `in' missing
-yash -c:1: syntax error: `esac' missing
-yash -c:1: syntax error: `in' missing
-yash -c:1: syntax error: `}' without matching `{'
+syntax error: a word is required after `case'
+yash -c:1: syntax error: a word is required after `case'
+yash -c:1: syntax error: `in' is missing
+yash -c:1: syntax error: `esac' is missing
+yash -c:1: syntax error: `in' is missing
+yash -c:1: syntax error: `esac' is missing
+yash -c:1: syntax error: `esac' is missing
+yash -c:1: syntax error: a word is required after `case'
+yash -c:1: syntax error: `in' is missing
+yash -c:1: syntax error: `esac' is missing
+yash -c:1: syntax error: `in' is missing
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `esac'?)
-yash -c:1: syntax error: `}' without matching `{'
+yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `esac'?)
-syntax error: no word after `('
-syntax error: `esac' missing
-yash -c:1: syntax error: invalid character `>' in case pattern
-yash -c:1: syntax error: `esac' missing
-yash -c:1: syntax error: `)' missing
-yash -c:1: syntax error: `)' missing
+syntax error: a word is required after `('
+syntax error: `esac' is missing
+yash -c:1: syntax error: encountered an invalid character `>' in the case pattern
+yash -c:1: syntax error: `esac' is missing
+yash -c:1: syntax error: `)' is missing
+yash -c:1: syntax error: `)' is missing
 sh -c:1: syntax error: an unquoted `esac' cannot be the first case pattern
-sh -c:1: syntax error: invalid keyword `function'
-syntax error: no word after `function'
-yash -c:1: syntax error: function body must be compound command
-yash -c:1: syntax error: `(' must be followed by `)' in function definition
-yash -c:1: syntax error: function body must be compound command
-syntax error: end-of-heredoc indicator containing newline
+sh -c:1: syntax error: `function' cannot be used as a command name
+syntax error: a word is required after `function'
+yash -c:1: syntax error: a function body must be a compound command
+yash -c:1: syntax error: `(' must be followed by `)' in a function definition
+yash -c:1: syntax error: a function body must be a compound command
+syntax error: the end-of-here-document indicator contains a newline

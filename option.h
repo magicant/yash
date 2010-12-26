@@ -71,7 +71,7 @@ extern wchar_t *get_hyphen_parameter(void)
 
 extern int set_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char set_help[];
+extern const char *set_help[];
 
 
 #endif /* YASH_OPTION_H */

@@ -110,9 +110,12 @@ int main(int argc, char **argv)
 	wargv[i] = malloc_mbstowcs(argv[i]);
 	if (wargv[i] == NULL) {
 	    fprintf(stderr,
-		    gt("%s: cannot convert the argument `%s' into wide-"
-			"character string: replaced with empty string\n"),
+		    gt("%s: cannot convert the argument `%s' "
+			"into a wide character string\n"),
 		    argv[0], argv[i]);
+	    fprintf(stderr,
+		    gt("%s: the argument is replaced with an empty string\n"),
+		    argv[0]);
 	    wargv[i] = xwcsdup(L"");
 	}
     }
@@ -242,13 +245,14 @@ int main(int argc, char **argv)
     const char *inputname;
 
     if (shopt_read_arg && shopt_read_stdin) {
-	xerror(0, Ngt("both of -c and -s options cannot be used at once"));
+	xerror(0, Ngt("the -c and -s options cannot be used both at once"));
 	exit(Exit_ERROR);
     }
     if (shopt_read_arg) {
 	input.command = wargv[xoptind++];
 	if (input.command == NULL) {
-	    xerror(0, Ngt("-c option specified but no command given"));
+	    xerror(0, Ngt("the -c option is specified "
+			"but no command is given"));
 	    exit(Exit_ERROR);
 	}
 	if (xoptind < argc) {
@@ -274,7 +278,7 @@ int main(int argc, char **argv)
 	    input.fd = move_to_shellfd(open(inputname, O_RDONLY));
 	    if (input.fd < 0) {
 		int errno_ = errno;
-		xerror(errno_, Ngt("cannot open `%s'"), inputname);
+		xerror(errno_, Ngt("cannot open file `%s'"), inputname);
 		exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
 	    }
 	}
@@ -440,7 +444,7 @@ void print_version(void)
 	    "You can modify and redistribute it, but there is NO WARRANTY.\n"));
 
     if (shopt_verbose) {
-	printf(gt("\nCompiled %s %s\nEnabled features:\n"), __DATE__, __TIME__);
+	printf(gt("\nEnabled features:\n"));
 	printf(""
 #ifndef NDEBUG
 		" * DEBUG\n"
@@ -567,7 +571,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
 	    if (!is_interrupted() && return_pending()) {
-		xerror(0, Ngt("return: not in function or sourced file"));
+		xerror(0, Ngt("return: not in a function or sourced file"));
 		laststatus = Exit_FAILURE;
 	    }
 	    reset_execinfo();
@@ -671,8 +675,7 @@ int exit_builtin(int argc, void **argv)
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
 	fprintf(stderr,
-		ngt("You have %zu stopped job(s)!",
-		    "You have a stopped job!",
+		ngt("You have a stopped job!",
 		    "You have %zu stopped jobs!",
 		    sjc),
 		sjc);
@@ -697,16 +700,19 @@ int exit_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char exit_help[] = Ngt(
-"exit - exit shell\n"
+const char *exit_help[] = { Ngt(
+"exit - exit the shell\n"
+), Ngt(
 "\texit [-f] [n]\n"
-"Exits the shell with the exit status of <n>.\n"
+), Ngt(
+"The exit built-in makes the shell terminate with the exit status of <n>.\n"
 "If <n> is not specified, it defaults to the exit status of the last executed\n"
 "command. <n> should be between 0 and 255 inclusive.\n"
+), Ngt(
 "If the shell is interactive and you have any stopped jobs, the shell prints\n"
 "a warning message and does not exit. Use the -f (--force) option or use\n"
 "`exit' twice in a row to avoid the warning and really exit.\n"
-);
+), NULL };
 #endif
 
 /* The "suspend" builtin, which accepts the following options:
@@ -734,7 +740,7 @@ int suspend_builtin(int argc, void **argv)
     if (argc != xoptind)
 	goto print_usage;
     if (!force && is_interactive_now && getsid(0) == shell_pgid) {
-	xerror(0, Ngt("refusing to suspend because of possible deadlock.\n"
+	xerror(0, Ngt("refusing to suspend because of a possible deadlock.\n"
 		    "Use the -f option to suspend anyway."));
 	return Exit_FAILURE;
     }
@@ -748,14 +754,17 @@ int suspend_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char suspend_help[] = Ngt(
-"suspend - suspend shell\n"
+const char *suspend_help[] = { Ngt(
+"suspend - suspend the shell\n"
+), Ngt(
 "\tsuspend [-f]\n"
-"Suspends the shell until it receives SIGCONT.\n"
+), Ngt(
+"The suspend built-in suspends the shell until it receives SIGCONT.\n"
+), Ngt(
 "If the shell is interactive and is a session leader, this command refuses to\n"
 "suspend it in order to avoid a possible deadlock. You can use the -f option\n"
 "to force the shell to suspend anyway.\n"
-);
+), NULL };
 #endif
 
 

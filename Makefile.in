@@ -52,6 +52,9 @@ BINDIR = @BINDIR@
 DATAROOTDIR = @DATAROOTDIR@
 DATADIR = @DATADIR@
 YASHDATADIR = $(DATADIR)/$(TARGET)
+LOCALEDIR = @LOCALEDIR@
+
+enable_nls = @enable_nls@
 
 all: $(TARGET)
 
@@ -76,9 +79,11 @@ configm.h: Makefile
 	@{ printf '/* $@: created by Makefile */\n'; \
 		printf '#ifndef YASH_CONFIGM_H\n'; \
 		printf '#define YASH_CONFIGM_H\n'; \
+		printf '#define PACKAGE_NAME "$(TARGET)"\n'; \
 		printf '#define PACKAGE_VERSION "$(VERSION)"\n'; \
 		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
 		printf '#define YASH_DATADIR "$(YASHDATADIR)"\n'; \
+		printf '#define LOCALEDIR "$(LOCALEDIR)"\n'; \
 		printf '#endif\n'; \
 		} >$@
 
@@ -94,14 +99,17 @@ install-binary: $(TARGET) installdirs-binary
 	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
 install-binary-strip: installdirs-binary
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
-install-data: installdirs-data
+install-data: installdirs-data-main
 	@for file in share/completion/*; do \
 		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion || true; \
 		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion; \
 	done
+	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 installdirs: installdirs-binary installdirs-data
 installdirs-binary: $(INSTALLBINDIRS)
-installdirs-data: $(INSTALLDATADIRS)
+installdirs-data: installdirs-data-main
+	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
+installdirs-data-main: $(INSTALLDATADIRS)
 $(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
 uninstall: uninstall-binary uninstall-data
@@ -114,10 +122,12 @@ uninstall-data:
 	done)
 	-rmdir $(DESTDIR)$(YASHDATADIR)/completion
 	-rmdir $(DESTDIR)$(YASHDATADIR)
+	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 
 DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
 $(DISTDIR): _PHONY
+	@+(cd po && $(MAKE) update-po)  # must be done first
 	rm -fr $@
 	mkdir -m 755 $@
 	@+umask 022; \
@@ -182,17 +192,20 @@ cscope.out: $(SOURCES) $(HEADERS)
 mostlyclean: _mostlyclean
 	-@+(cd builtins && $(MAKE) mostlyclean)
 	-@+(cd lineedit && $(MAKE) mostlyclean)
+	-@+(cd po       && $(MAKE) mostlyclean)
 _mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
 	-@+(cd tests && $(MAKE) clean)
 clean: _clean
 	-@+(cd builtins && $(MAKE) clean)
 	-@+(cd lineedit && $(MAKE) clean)
+	-@+(cd po       && $(MAKE) clean)
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean
 	-@+(cd builtins && $(MAKE) distclean)
 	-@+(cd lineedit && $(MAKE) distclean)
+	-@+(cd po       && $(MAKE) distclean)
 	-@+(cd tests    && $(MAKE) distclean)
 _distclean: _clean
 	-rm -rf Makefile config.log config.status config.h tags TAGS cscope.out
@@ -202,6 +215,7 @@ maintainer-clean:
 	-@+$(MAKE) _distclean
 	-@+(cd builtins && $(MAKE) maintainer-clean)
 	-@+(cd lineedit && $(MAKE) maintainer-clean)
+	-@+(cd po       && $(MAKE) maintainer-clean)
 	-@+(cd tests    && $(MAKE) maintainer-clean)
 	-rm -rf $(SOURCES:.c=.d)
 
@@ -212,7 +226,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary install-binary-strip install-data installdirs installdirs-binary installdirs-data uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check install install-strip install-binary install-binary-strip install-data installdirs installdirs-binary installdirs-data installdirs-data-main uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d

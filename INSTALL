@@ -61,6 +61,8 @@ environment variables).
 	The archiver
   ARFLAGS
 	Options for the archiver
+  LINGUAS
+    Locales for which message catalogs are installed
   INSTALL_PROGRAM
 	The installer
 

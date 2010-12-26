@@ -578,7 +578,7 @@ void next_pipe(pipeinfo_T *pi, bool next)
 
 fail:
     pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
-    xerror(errno, Ngt("cannot open pipe"));
+    xerror(errno, Ngt("cannot open a pipe"));
 }
 
 /* Connects the pipe(s) and closes the pipes left. */
@@ -888,7 +888,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
     if (cpid != 0) {
 	if (cpid < 0) {
 	    /* fork failure */
-	    xerror(errno, Ngt("fork: cannot make child process"));
+	    xerror(errno, Ngt("cannot make a child process"));
 	} else {
 	    /* parent process */
 	    if (doing_job_control_now && pgid >= 0)
@@ -1113,7 +1113,7 @@ void exec_simple_command(
     switch (ci->type) {
     case externalprogram:
 	if (ci->ci_path == NULL) {
-	    xerror(0, Ngt("%s: no such command or function"), argv0);
+	    xerror(0, Ngt("no such command `%s'"), argv0);
 	    laststatus = Exit_NOTFOUND;
 	} else {
 	    assert(finally_exit);
@@ -1134,9 +1134,9 @@ void exec_simple_command(
 		if (errno_ == EACCES && is_directory(ci->ci_path))
 		    errno_ = EISDIR;
 		if (strcmp(mbsargv[0], ci->ci_path) == 0)
-		    xerror(errno_, Ngt("cannot execute `%s'"), argv0);
+		    xerror(errno_, Ngt("cannot execute command `%s'"), argv0);
 		else
-		    xerror(errno_, Ngt("cannot execute `%s' (%s)"),
+		    xerror(errno_, Ngt("cannot execute command `%s' (%s)"),
 			    argv0, ci->ci_path);
 	    } else if (errno_ != ENOENT) {
 		exec_fall_back_on_sh(argc, mbsargv, environ, ci->ci_path);
@@ -1252,7 +1252,8 @@ void exec_fall_back_on_sh(
 	xexecve(shpath, args, envp);
     else
 	errno = ENOENT;
-    xerror(errno, Ngt("cannot invoke new shell to execute `%s'"), argv[0]);
+    xerror(errno, Ngt("cannot invoke a new shell to execute script `%s'"),
+	    argv[0]);
 }
 
 /* Executes the specified command as a function.
@@ -1307,7 +1308,7 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 
     /* open a pipe to receive output from the command */
     if (pipe(pipefd) < 0) {
-	xerror(errno, Ngt("cannot open pipe for command substitution"));
+	xerror(errno, Ngt("cannot open a pipe for the command substitution"));
 	return NULL;
     }
 
@@ -1328,7 +1329,8 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 	xclose(pipefd[PIDX_OUT]);
 	f = fdopen(pipefd[PIDX_IN], "r");
 	if (!f) {
-	    xerror(errno, Ngt("cannot open pipe for command substitution"));
+	    xerror(errno,
+		    Ngt("cannot open a pipe for the command substitution"));
 	    xclose(pipefd[PIDX_IN]);
 	    lastcmdsubstatus = Exit_NOEXEC;
 	    return NULL;
@@ -1611,16 +1613,20 @@ int return_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char return_help[] = Ngt(
-"return - return from function\n"
+const char *return_help[] = { Ngt(
+"return - return from a function or script\n"
+), Ngt(
 "\treturn [-n] [n]\n"
-"Exits the currently executing function or script file with the exit status\n"
-"of <n>. If <n> is not specified, it defaults to the exit status of the last\n"
-"executed command. <n> should be between 0 and 255 inclusive.\n"
+), Ngt(
+"The return built-in exits the currently executing function or script file\n"
+"with the exit status of <n>. If <n> is not specified, it defaults to the\n"
+"exit status of the last executed command. <n> should be between 0 and 255\n"
+"inclusive.\n"
+), Ngt(
 "If the -n (--no-return) option is specified, this built-in does not return\n"
 "from a function or script; simply returns the specified exit status.\n"
 "The -n option cannot be used in the POSIXly correct mode.\n"
-);
+), NULL };
 #endif
 
 /* The "break"/"continue" builtin, which accepts the following option:
@@ -1654,7 +1660,7 @@ int break_builtin(int argc, void **argv)
     if (iter) {
 	/* break/continue iteration */
 	if (!iterinfo.iterating) {
-	    xerror(0, Ngt("not in iteration"));
+	    xerror(0, Ngt("not in a iteration"));
 	    return Exit_ERROR;
 	}
 	if (wcscmp(ARGV(0), L"break") == 0) {
@@ -1677,7 +1683,7 @@ int break_builtin(int argc, void **argv)
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	    } else if (countl == 0) {
-		xerror(0, Ngt("%u: not a positive integer"), 0u);
+		xerror(0, Ngt("%u is not a positive integer"), 0u);
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	    } else if (countl > UINT_MAX) {
@@ -1688,7 +1694,7 @@ int break_builtin(int argc, void **argv)
 	}
 	assert(count > 0);
 	if (execinfo.loopnest == 0) {
-	    xerror(0, Ngt("not in loop"));
+	    xerror(0, Ngt("not in a loop"));
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	}
@@ -1707,26 +1713,32 @@ int break_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 
-const char break_help[] = Ngt(
-"break - exit loop\n"
+const char *break_help[] = { Ngt(
+"break - exit a loop\n"
+), Ngt(
 "\tbreak [n]\n"
 "\tbreak -i\n"
+), Ngt(
 "The first form exits the currently executing for/while/until loop.\n"
 "If <n> is specified, exits the <n>th outer loop.\n"
+), Ngt(
 "The second form, with the -i (--iteration) option, exits the current\n"
 "iterative execution.\n"
-);
+), NULL };
 
-const char continue_help[] = Ngt(
-"continue - continue loop\n"
+const char *continue_help[] = { Ngt(
+"continue - continue a loop\n"
+), Ngt(
 "\tcontinue [n]\n"
 "\tcontinue -i\n"
+), Ngt(
 "The first form ends the current iteration of a for/while/until loop and\n"
 "resumes the next iteration. If <n> is specified, ends the iteration of the\n"
 "<n>th outer loop.\n"
+), Ngt(
 "The second form, with the -i (--iteration) option, ends the execution of\n"
 "commands and resumes the next iteration of the current iterative execution.\n"
-);
+), NULL };
 
 #endif /* YASH_ENABLE_HELP */
 
@@ -1767,16 +1779,18 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char eval_help[] = Ngt(
-"eval - evaluate arguments as command\n"
+const char *eval_help[] = { Ngt(
+"eval - evaluate arguments as a command\n"
+), Ngt(
 "\teval [-i] [arg...]\n"
-"Parses and executes the specified <arg>s as commands in the current shell\n"
-"environment. Without the -i (--iteration) option, all the <arg>s are joined\n"
-"with a space inserted between each <arg> and the whole resultant string is\n"
-"parsed at a time. With the -i option, <arg>s are parsed and executed one by\n"
-"one (iterative execution).\n"
-"In POSIXly correct mode, the -i option cannot be used.\n"
-);
+), Ngt(
+"The eval built-in parses and executes the specified <arg>s as commands in\n"
+"the current shell environment. Without the -i (--iteration) option, all the\n"
+"<arg>s are joined with a space inserted between each <arg> and the whole\n"
+"resultant string is parsed at a time. With the -i option, <arg>s are parsed\n"
+"and executed one by one (iterative execution).\n"
+"In the POSIXly correct mode, the -i option cannot be used.\n"
+), NULL };
 #endif
 
 /* The "." builtin, which accepts the following option:
@@ -1839,7 +1853,8 @@ int dot_builtin(int argc, void **argv)
 	path = which(mbsfilename, get_path_array(PA_LOADPATH),
 		is_readable_regular);
 	if (path == NULL) {
-	    xerror(0, Ngt("%s: not found in $YASH_LOADPATH"), mbsfilename);
+	    xerror(0, Ngt("file `%s' was not found in $YASH_LOADPATH"),
+		    mbsfilename);
 	    free(mbsfilename);
 	    if (!is_interactive)
 		exit_shell_with_status(Exit_FAILURE);
@@ -1851,7 +1866,7 @@ int dot_builtin(int argc, void **argv)
 	    if (!posixly_correct) {
 		path = mbsfilename;
 	    } else {
-		xerror(0, Ngt("%s: not found in $PATH"), mbsfilename);
+		xerror(0, Ngt("file `%s' was not found in $PATH"), mbsfilename);
 		free(mbsfilename);
 		if (!is_interactive)
 		    exit_shell_with_status(Exit_FAILURE);
@@ -1871,7 +1886,7 @@ int dot_builtin(int argc, void **argv)
     if (path != mbsfilename)
 	free(path);
     if (fd < 0) {
-	xerror(errno, Ngt("cannot open `%s'"), mbsfilename);
+	xerror(errno, Ngt("cannot open file `%s'"), mbsfilename);
 	free(mbsfilename);
 	if (!is_interactive)
 	    exit_shell_with_status(Exit_FAILURE);
@@ -1891,23 +1906,28 @@ int dot_builtin(int argc, void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char dot_help[] = Ngt(
-"dot - read file and execute commands\n"
+const char *dot_help[] = { Ngt(
+"dot - read a file and execute commands\n"
+), Ngt(
 "\t. [-AL] file [arg...]\n"
-"Reads the specified <file> and executes commands in it.\n"
+), Ngt(
+"The dot built-in reads the specified <file> and executes commands in it.\n"
 "If <arg>s are specified, they are used as the positional parameters.\n"
 "Otherwise, the positional parameters are not changed.\n"
 "If <file> does not contain any slashes, the shell searches $PATH for a\n"
 "readable shell script file whose name is <file>. To ensure that the file in\n"
-"the current working directory is used, start <file> with \"./\".\n"
+"the current working directory is used, start <file> with `./'.\n"
+), Ngt(
 "If the -L (--autoload) option is specified, the shell searches\n"
 "$YASH_LOADPATH instead of $PATH, regardless of whether <file> contains\n"
 "slashes.\n"
+), Ngt(
 "If the -A (--no-alias) option is specified, alias substitution is not\n"
-"performed during processing the file.\n"
-"In POSIXly correct mode, options cannot be used and <arg>s must not be\n"
+"performed while processing the file.\n"
+), Ngt(
+"In the POSIXly correct mode, options cannot be used and <arg>s must not be\n"
 "given.\n"
-);
+), NULL };
 #endif
 
 /* The "exec" builtin, which accepts the following options:
@@ -1959,12 +1979,11 @@ int exec_builtin(int argc, void **argv)
 	size_t sjc = stopped_job_count();
 	if (sjc > 0) {
 	    fprintf(stderr,
-		    ngt("You have %zu stopped job(s)!",
-			"You have a stopped job!",
+		    ngt("You have a stopped job!",
 			"You have %zu stopped jobs!",
 			sjc),
 		    sjc);
-	    fprintf(stderr, gt("  Use `-f' option to exec anyway.\n"));
+	    fprintf(stderr, gt("  Use the -f option to exec anyway.\n"));
 	    return Exit_FAILURE;
 	}
     }
@@ -1997,7 +2016,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     } else {
 	commandpath = get_command_path(args[0], false);
 	if (!commandpath) {
-	    xerror(0, Ngt("%s: no such command"), args[0]);
+	    xerror(0, Ngt("no such command `%s'"), args[0]);
 	    err = Exit_NOTFOUND;
 	    goto err;
 	}
@@ -2036,9 +2055,9 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	if (errno == EACCES && is_directory(commandpath))
 	    errno = EISDIR;
 	if (strcmp(args[0], commandpath) == 0)
-	    xerror(errno, Ngt("cannot execute `%s'"), args[0]);
+	    xerror(errno, Ngt("cannot execute command `%s'"), args[0]);
 	else
-	    xerror(errno, Ngt("cannot execute `%s' (%s)"),
+	    xerror(errno, Ngt("cannot execute command `%s' (%s)"),
 		    args[0], commandpath);
     } else {
 	exec_fall_back_on_sh(argc, args, envs, commandpath);
@@ -2061,23 +2080,29 @@ err:
 }
 
 #if YASH_ENABLE_HELP
-const char exec_help[] = Ngt(
-"exec - execute command in the shell process\n"
+const char *exec_help[] = { Ngt(
+"exec - execute a command in the shell process\n"
+), Ngt(
 "\texec [-cf] [-a name] [command [args...]]\n"
-"Replaces the shell process with the specified command. The shell process is\n"
-"`changed' into the new command's process. No child process is created.\n"
-"When an interactive shell has stopped jobs, the -f (--force) option is\n"
-"required to really do exec.\n"
+), Ngt(
+"The exec built-in replaces the shell process with the specified command.\n"
+"The shell process is `changed' into the new command's process. No child\n"
+"process is created. When an interactive shell has stopped jobs, the -f\n"
+"(--force) option is required to perform exec.\n"
+), Ngt(
 "If the -c (--clear) option is specified, the command is executed only with\n"
 "the environment variables assigned for this command.\n"
+), Ngt(
 "If the -a <name> (--as=<name>) option is specified, <name> is passed to the\n"
 "command instead of <command> as the zeroth argument.\n"
+), Ngt(
 "If no <command> is given, the shell does nothing. As a special result,\n"
-"the effects of redirections associated with the \"exec\" command remain\n"
+"the effects of redirections associated with the exec built-in remain\n"
 "after the command.\n"
+), Ngt(
 "In the POSIXly correct mode, none of these options are available and the -f\n"
 "option is always assumed.\n"
-);
+), NULL };
 #endif
 
 /* The "command"/"type" builtin, which accepts the following options:
@@ -2196,7 +2221,7 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     bool finally_exit = false;
 
     if (argv0 == NULL) {
-	xerror(EILSEQ, Ngt("invalid command name"));
+	xerror(EILSEQ, NULL);
 	return Exit_NOTFOUND;
     }
 
@@ -2234,7 +2259,7 @@ bool print_command_info(
     bool found = false;
 
     if (keywords && is_keyword(commandname)) {
-	msgfmt = humanfriendly ? gt("%ls: shell keyword\n") : "%ls\n";
+	msgfmt = humanfriendly ? gt("%ls: a shell keyword\n") : "%ls\n";
 	if (printf(msgfmt, commandname) < 0)
 	    goto ioerror;
 	return true;
@@ -2269,13 +2294,14 @@ bool print_command_info(
 	    }
 	    break;
 	case specialbuiltin:
-	    msgfmt = humanfriendly ? gt("%s: special builtin\n") : "%s\n";
+	    msgfmt = humanfriendly ? gt("%s: a special built-in\n") : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
 	    found = true;
 	    break;
 	case semispecialbuiltin:
-	    msgfmt = humanfriendly ? gt("%s: semi-special builtin\n") : "%s\n";
+	    msgfmt = humanfriendly ? gt("%s: a semi-special built-in\n")
+		                   : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
 	    found = true;
@@ -2288,10 +2314,11 @@ bool print_command_info(
 		cmdpath = get_command_path(name, false);
 	    if (humanfriendly) {
 		if (cmdpath == NULL)
-		    msgfmt = gt("%s: regular builtin (not found in $PATH)\n");
+		    msgfmt =
+			Ngt("%s: a regular built-in (not found in $PATH)\n");
 		else
-		    msgfmt = gt("%s: regular builtin at %s\n");
-		if (printf(msgfmt, name, cmdpath) < 0)
+		    msgfmt = Ngt("%s: a regular built-in at %s\n");
+		if (printf(gt(msgfmt), name, cmdpath) < 0)
 		    goto ioerror;
 	    } else {
 		if (puts(cmdpath == NULL ? name : cmdpath) < 0)
@@ -2300,7 +2327,7 @@ bool print_command_info(
 	    found = true;
 	    break;
 	case function:
-	    msgfmt = humanfriendly ? gt("%s: function\n") : "%s\n";
+	    msgfmt = humanfriendly ? gt("%s: a function\n") : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
 	    found = true;
@@ -2308,7 +2335,7 @@ bool print_command_info(
     }
 
     if (!found && humanfriendly)
-	xerror(0, Ngt("%s: no such command or function"), name);
+	xerror(0, Ngt("no such command `%s'"), name);
     free(name);
     return found;
 
@@ -2326,7 +2353,8 @@ bool print_command_absolute_path(
     if (path[0] == '/') {
 	/* the path is already absolute */
 	if (humanfriendly)
-	    return printf(gt("%s: external command at %s\n"), name, path) >= 0;
+	    return printf(gt("%s: an external command at %s\n"), name, path)
+		>= 0;
 	else
 	    return puts(path) >= 0;
     }
@@ -2348,7 +2376,7 @@ bool print_command_absolute_path(
 
     int r, saveerrno;
     if (humanfriendly)
-	r = printf(gt("%s: external command at %s/%s\n"), name, pwd, path);
+	r = printf(gt("%s: an external command at %s/%s\n"), name, pwd, path);
     else
 	r = printf("%s/%s\n", pwd, path);
     saveerrno = errno;
@@ -2359,23 +2387,29 @@ bool print_command_absolute_path(
 
 #if YASH_ENABLE_HELP
 
-const char command_help[] = Ngt(
-"command - execute or identify command\n"
+const char *command_help[] = { Ngt(
+"command - execute or identify a command\n"
+), Ngt(
 "\tcommand [-befp] command [argument...]\n"
 "\tcommand -v|-V [-abefkp] command...\n"
-"Executes or identifies the specified command.\n"
+), Ngt(
+"The command built-in executes or identifies the specified command.\n"
+), Ngt(
 "Without the -v or -V option, <command> is executed with <argument>s given.\n"
 "<command> is treated as a built-in or external command or a function\n"
 "according to the options specified. If the -p (--standard-path) option is\n"
 "given, the system's default PATH is searched for the command instead of the\n"
 "current $PATH.\n"
+), Ngt(
 "With the -v (--identify) option, <command> is identified. If the command is\n"
 "found in $PATH, its full path is printed. If it is a built-in or a function,\n"
 "the command name is simply printed. If it is an alias, it is printed in the\n"
 "form like \"alias ll='ls -l'\". If the command is not found, nothing is\n"
 "printed and the exit status is non-zero.\n"
+), Ngt(
 "With the -V (--verbose-identify) option, the command is identified in the\n"
 "same way but the result is printed verbosely in a human-readable form.\n"
+), Ngt(
 "The following options specify the command type:\n"
 "  -a --alias\n"
 "  -b --builtin-command\n"
@@ -2384,13 +2418,16 @@ const char command_help[] = Ngt(
 "  -k --keyword\n"
 "When none of these are specified, they default to -be (without -v or -V) or\n"
 "-abefk (with -v or -V)\n"
-);
+), NULL };
 
-const char type_help[] = Ngt(
-"type - identify command\n"
+const char *type_help[] = { Ngt(
+"type - identify a command\n"
+), Ngt(
 "\ttype command...\n"
-"Prints the type of <command>s. Same as \"command -V <command>...\".\n"
-);
+), Ngt(
+"The type built-in prints the type of <command>s.\n"
+"Same as `command -V <command>...'.\n"
+), NULL };
 
 #endif /* YASH_ENABLE_HELP */
 
@@ -2429,7 +2466,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 
     clock = sysconf(_SC_CLK_TCK);
     if (times(&tms) == (clock_t) -1) {
-	xerror(errno, Ngt("cannot get time data"));
+	xerror(errno, Ngt("cannot get the time data"));
 	return Exit_FAILURE;
     }
     format_time(tms.tms_utime, sum, sus);
@@ -2447,15 +2484,17 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 }
 
 #if YASH_ENABLE_HELP
-const char times_help[] = Ngt(
+const char *times_help[] = { Ngt(
 "times - print process times\n"
+), Ngt(
 "\ttimes\n"
-"Prints the accumulated user and system times consumed by the shell process\n"
-"and all of its child processes.\n"
+), Ngt(
+"The times built-in prints the accumulated user and system times consumed by\n"
+"the shell process and all of its child processes.\n"
 "The first output line is for the shell process, and the second the child\n"
-"processes. For each line, the user time is printed, followed by the system\n"
+"processes. For each line, the user time is printed followed by the system\n"
 "time.\n"
-);
+), NULL };
 #endif
 
 

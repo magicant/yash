@@ -109,7 +109,7 @@ extern int hash_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int umask_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char cd_help[], pwd_help[], hash_help[], umask_help[];
+extern const char *cd_help[], *pwd_help[], *hash_help[], *umask_help[];
 
 extern int change_directory(
 	const wchar_t *newpwd, _Bool printnewdir, _Bool logical)

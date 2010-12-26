@@ -9,7 +9,7 @@ PS1='' PS2='' HISTFILE="$TMPHIST" HISTSIZE=30
 END
 
 command -V fc
-command -V history | grep -q regular && echo history: regular builtin
+command -V history | grep -v "^history: a regular built-in "
 
 unset FCEDIT
 $INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF

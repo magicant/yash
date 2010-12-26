@@ -77,7 +77,7 @@ int test_builtin(int argc, void **argv)
     if (wcscmp(ARGV(0), L"[") == 0) {
 	argc--;
 	if (wcscmp(ARGV(argc), L"]") != 0) {
-	    xerror(0, Ngt("`%ls' missing"), L"]");
+	    xerror(0, Ngt("`%ls' is missing"), L"]");
 	    return Exit_TESTERROR;
 	}
     }
@@ -108,7 +108,7 @@ int test_builtin(int argc, void **argv)
 	    state.index = 0;
 	    result = test_long_or(&state);
 	    if (yash_error_message_count == 0 && state.index < state.argc)
-		xerror(0, Ngt("%ls: invalid operator"),
+		xerror(0, Ngt("`%ls' is not a valid operator"),
 			(const wchar_t *) state.args[state.index]);
 	    break;
     }
@@ -133,7 +133,7 @@ bool test_double(void *args[static 2])
     if (wcscmp(op, L"!") == 0)
 	return !test_single(args + 1);
     if (!is_unary_primary(op)) {
-	xerror(0, Ngt("%ls: not a unary operator"), op);
+	xerror(0, Ngt("`%ls' is not a unary operator"), op);
 	return 0;
     }
 
@@ -349,7 +349,7 @@ not_binary:
     if (wcscmp(left, L"(") == 0 && wcscmp(right, L")") == 0)
 	return test_single(args + 1);
 
-    xerror(0, Ngt("%ls: not a binary operator"), op);
+    xerror(0, Ngt("`%ls' is not a binary operator"), op);
     return 0;
 }
 
@@ -401,7 +401,7 @@ bool test_long_term(struct test_state *state)
     }
     if (state->index >= state->argc) {
 	assert(state->argc > 0);
-	xerror(0, Ngt("expression missing after `%ls'"),
+	xerror(0, Ngt("an expression is missing after `%ls'"),
 		(const wchar_t *) state->args[state->index - 1]);
 	return 0;
     }
@@ -410,7 +410,7 @@ bool test_long_term(struct test_state *state)
 	result = test_long_or(state);
 	if (state->index >= state->argc
 		|| wcscmp(state->args[state->index], L")") != 0) {
-	    xerror(0, Ngt("`%ls' missing"), L")");
+	    xerror(0, Ngt("`%ls' is missing"), L")");
 	    return 0;
 	}
 	state->index++;
@@ -666,79 +666,146 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 }
 
 #if YASH_ENABLE_HELP
-const char test_help[] = Ngt(
-"test, [ - evaluate conditional expression\n"
+const char *test_help[] = { Ngt(
+"test - evaluate a conditional expression\n"
+), Ngt(
 "\ttest expression\n"
 "\t[ expression ]\n"
-"Evaluates <expression> as a conditional expression described below. The exit\n"
-"status is 0 if the condition is true, or 1 otherwise.\n"
+), Ngt(
+"The test built-in evaluates <expression> as a conditional expression\n"
+"described below. The exit status is 0 if the condition is true, or 1\n"
+"otherwise.\n"
+), (
 "\n"
+), Ngt(
 "Unary operators to test a file:\n"
+), Ngt(
 "  -b file    <file> is a block special file\n"
+), Ngt(
 "  -c file    <file> is a character special file\n"
+), Ngt(
 "  -d file    <file> is a directory\n"
+), Ngt(
 "  -e file    <file> exists\n"
+), Ngt(
 "  -f file    <file> is a regular file\n"
+), Ngt(
 "  -G file    <file>'s group ID is same as the shell's group ID\n"
+), Ngt(
 "  -g file    <file>'s set-group-ID flag is set\n"
+), Ngt(
 "  -h file    same as -L\n"
+), Ngt(
 "  -k file    <file>'s sticky bit is set\n"
+), Ngt(
 "  -L file    <file> is a symbolic link\n"
+), Ngt(
 "  -N file    <file> has not been accessed since last modified\n"
+), Ngt(
 "  -O file    <file>'s user ID is same as the shell's user ID\n"
+), Ngt(
 "  -p file    <file> is a FIFO (named pipe)\n"
+), Ngt(
 "  -r file    <file> is readable\n"
+), Ngt(
 "  -S file    <file> is a socket\n"
+), Ngt(
 "  -s file    <file> is not empty\n"
+), Ngt(
 "  -u file    <file>'s set-user-ID flag is set\n"
+), Ngt(
 "  -w file    <file> is writable\n"
+), Ngt(
 "  -x file    <file> is executable\n"
+), Ngt(
 "Unary operator to test a file descriptor:\n"
+), Ngt(
 "  -t fd      <fd> is associated with a terminal\n"
+), Ngt(
 "Unary operators to test a string:\n"
+), Ngt(
 "  -n string    <string> is not empty\n"
+), Ngt(
 "  -z string    <string> is empty\n"
+), (
 "\n"
+), Ngt(
 "Binary operators to compare files:\n"
+), Ngt(
 "  file1 -nt file2       <file1> is newer than <file2>\n"
+), Ngt(
 "  file1 -ot file2       <file1> is older than <file2>\n"
+), Ngt(
 "  file1 -ef file2       <file1> is a hard link to <file2>\n"
+), Ngt(
 "Binary operators to compare strings:\n"
+), Ngt(
 "  string1 = string2     <string1> is the same string as <string2>\n"
+), Ngt(
 "  string1 != string2    <string1> is not the same string as <string2>\n"
+), Ngt(
 "Binary operators to compare strings according to the current locale:\n"
+), Ngt(
 "  string1 === string2   <string1> is equal to <string2>\n"
+), Ngt(
 "  string1 !== string2   <string1> is not equal to <string2>\n"
+), Ngt(
 "  string1 < string2     <string1> is less than <string2>\n"
+), Ngt(
 "  string1 <= string2    <string1> is less then or equal to <string2>\n"
+), Ngt(
 "  string1 > string2     <string1> is greater than <string2>\n"
+), Ngt(
 "  string1 >= string2    <string1> is greater then or equal to <string2>\n"
+), Ngt(
 "Binary operators to compare integers:\n"
+), Ngt(
 "  v1 -eq v2    <v1> is equal to <v2>\n"
+), Ngt(
 "  v1 -ne v2    <v1> is not equal to <v2>\n"
+), Ngt(
 "  v1 -gt v2    <v1> is greater than <v2>\n"
+), Ngt(
 "  v1 -ge v2    <v1> is greater than or equal to <v2>\n"
+), Ngt(
 "  v1 -lt v2    <v1> is less than <v2>\n"
+), Ngt(
 "  v1 -le v2    <v1> is less than or equal to <v2>\n"
+), Ngt(
 "Binary operators to compare version numbers:\n"
+), Ngt(
 "  v1 -veq v2    <v1> is equal to <v2>\n"
+), Ngt(
 "  v1 -vne v2    <v1> is not equal to <v2>\n"
+), Ngt(
 "  v1 -vgt v2    <v1> is greater than <v2>\n"
+), Ngt(
 "  v1 -vge v2    <v1> is greater than or equal to <v2>\n"
+), Ngt(
 "  v1 -vlt v2    <v1> is less than <v2>\n"
+), Ngt(
 "  v1 -vle v2    <v1> is less than or equal to <v2>\n"
+), (
 "\n"
+), Ngt(
 "Operators to make complex expressions:\n"
+), Ngt(
 "  ! exp           negate (reverse) the result\n"
+), Ngt(
 "  ( exp )         change operator precedence\n"
+), Ngt(
 "  exp1 -a exp2    logical conjunction (and)\n"
+), Ngt(
 "  exp1 -o exp2    logical disjunction (or)\n"
+), Ngt(
 "Using these operators may cause confusion and should be avoided. Use the\n"
 "shell's compound commands.\n"
+), (
 "\n"
+), Ngt(
 "If the expression is a single word without operators, the -n operator is\n"
 "assumed. An empty expression evaluates to false.\n"
-);
+), NULL };
 #endif /* YASH_ENABLE_HELP */
 
 

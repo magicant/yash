@@ -1,150 +1,150 @@
 ===== consequences of shell errors =====
-syntax error: `fi' without matching `if' and/or `then'
+syntax error: encountered `fi' without a matching `if' and/or `then'
 Usage:  . [-AL] file [arg...]
 Usage:  getopts options var [arg...]
-../yash: ro: readonly
-../yash: ro: readonly
-../yash: var: parameter not set
-../yash: var: parameter not set
+../yash: $ro is read-only
+../yash: $ro is read-only
+../yash: parameter `var' is not set
+../yash: parameter `var' is not set
 ===== option =====
-set: --cu: ambiguous option
+set: option `--cu' is ambiguous
 	--curasync
 	--curbg
 	--curstop
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 set: -o: argument missing
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounse=1: this option doesn't allow an argument
+set: --nounse=1: this option does not take an argument
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounse=: this option doesn't allow an argument
+set: --nounse=: this option does not take an argument
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounset=1: this option doesn't allow an argument
+set: --nounset=1: this option does not take an argument
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounset=: this option doesn't allow an argument
+set: --nounset=: this option does not take an argument
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 ===== set =====
-set: --no-such-option: invalid option
+set: `--no-such-option' is not a valid option
 Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 ===== cd =====
-cd: --no-such-option: invalid option
+cd: `--no-such-option' is not a valid option
 Usage:  cd [-L|-P] [dir]
-cd: $OLDPWD not set
-cd: $HOME not set
+cd: $OLDPWD is not set
+cd: $HOME is not set
 ===== pwd =====
-pwd: --no-such-option: invalid option
+pwd: `--no-such-option' is not a valid option
 Usage:  pwd [-L|-P]
 Usage:  pwd [-L|-P]
 ===== hash =====
-hash: --no-such-option: invalid option
+hash: `--no-such-option' is not a valid option
 Usage:  hash [-dr] [command/username...]
         hash [-adr]
-hash: ./no/such/command: command name must not contain `/'
-hash: no_such_command: not found in $PATH
+hash: `./no/such/command': a command name must not contain `/'
+hash: command `no_such_command' was not found in $PATH
 ===== umask =====
-umask: --no-such-option: invalid option
+umask: `--no-such-option' is not a valid option
 Usage:  umask [-S] [mask]
 ===== typeset =====
-typeset: --no-such-option: invalid option
+typeset: `--no-such-option' is not a valid option
 Usage:  typeset [-fgprxX] [name[=value]...]
-typeset: readonly: readonly
+typeset: $readonly is read-only
 ===== unset =====
-unset: --no-such-option: invalid option
+unset: `--no-such-option' is not a valid option
 Usage:  unset [-fv] name...
-unset: readonly: readonly
-unset: func: readonly
+unset: $readonly is read-only
+unset: function `func' is read-only
 ===== shift =====
-shift: --no-such-option: invalid option
+shift: `--no-such-option' is not a valid option
 Usage:  shift [n]
-shift: 10000: cannot shift so many ($# = 0)
+shift: 10000: cannot shift so many (there are only 0 positional parameters)
 ===== getopts =====
-getopts: --no-such-option: invalid option
+getopts: `--no-such-option' is not a valid option
 Usage:  getopts options var [arg...]
 Usage:  getopts options var [arg...]
 Usage:  getopts options var [arg...]
 ===== read =====
-read: --no-such-option: invalid option
+read: `--no-such-option' is not a valid option
 Usage:  read [-Ar] var...
 Usage:  read [-Ar] var...
 ===== trap =====
-trap: --no-such-option: invalid option
+trap: `--no-such-option' is not a valid option
 Usage:  trap [action signal...]
         trap signum [signal...]
         trap -p [signal...]
 Usage:  trap [action signal...]
         trap signum [signal...]
         trap -p [signal...]
-trap: SIGKILL: cannot be trapped
-trap: SIGSTOP: cannot be trapped
-trap: NO-SUCH-SIGNAL: no such signal
+trap: SIGKILL cannot be trapped
+trap: SIGSTOP cannot be trapped
+trap: no such signal `NO-SUCH-SIGNAL'
 ===== kill =====
-kill: -NO-SUCH-OPTION: no such signal
+kill: no such signal `-NO-SUCH-OPTION'
 Usage:  kill [-s signal | -n signum] process...
         kill -l [-v] [number...]
-kill: 0: no such signal
-kill: %100: no such job
+kill: no such signal `0'
+kill: no such job `%100'
 ===== jobs kill =====
-jobs: --no-such-option: invalid option
+jobs: `--no-such-option' is not a valid option
 Usage:  jobs [-lnprs] [job...]
-jobs: %100: no such job
-jobs: %no_such_job: no such job
-kill: %while: not job-controlled job
+jobs: no such job `%100'
+jobs: no such job `%no_such_job'
+kill: `%while' is not a job-controlled job
 ===== wait =====
-wait: --no-such-option: invalid option
+wait: `--no-such-option' is not a valid option
 Usage:  wait [job or pid...]
 ===== return =====
-return: --no-such-option: invalid option
+return: `--no-such-option' is not a valid option
 Usage:  return [-n] [n]
 return: `foo' is not a valid integer
 return: `-3' is not a valid integer
 Usage:  return [-n] [n]
 ===== break =====
-break: --no-such-option: invalid option
+break: `--no-such-option' is not a valid option
 Usage:  break [n]
         break -i
-break: not in loop
-break: not in iteration
+break: not in a loop
+break: not in a iteration
 Usage:  break [n]
         break -i
 ===== continue =====
-continue: --no-such-option: invalid option
+continue: `--no-such-option' is not a valid option
 Usage:  continue [n]
         continue -i
-continue: not in loop
-continue: not in iteration
+continue: not in a loop
+continue: not in a iteration
 Usage:  continue [n]
         continue -i
 ===== eval =====
-eval: --no-such-option: invalid option
+eval: `--no-such-option' is not a valid option
 Usage:  eval [-i] [arg...]
 ===== dot =====
-.: --no-such-option: invalid option
+.: `--no-such-option' is not a valid option
 Usage:  . [-AL] file [arg...]
 Usage:  . [-AL] file [arg...]
 ===== exec =====
-exec: --no-such-option: invalid option
+exec: `--no-such-option' is not a valid option
 Usage:  exec [-cf] [-a name] [command [arg...]]
 ===== command =====
-command: --no-such-option: invalid option
+command: `--no-such-option' is not a valid option
 Usage:  command [-befp] command [arg...]
         command -v|-V [-abefkp] command...
 Usage:  command [-befp] command [arg...]
         command -v|-V [-abefkp] command...
-command: no_such_command: no such command or function
+command: no such command `no_such_command'
 =1=
 =2=
-command: no_such_command: no such command or function
+command: no such command `no_such_command'
 ===== times =====
-times: --no-such-option: invalid option
+times: `--no-such-option' is not a valid option
 Usage:  times
 Usage:  times
 ===== exit =====
-exit: --no-such-option: invalid option
+exit: `--no-such-option' is not a valid option
 Usage:  exit [-f] [n]
 exit: `foo' is not a valid integer
 exit: `-3' is not a valid integer
 Usage:  exit [-f] [n]
 ===== suspend =====
-suspend: --no-such-option: invalid option
+suspend: `--no-such-option' is not a valid option
 Usage:  suspend [-f]
 Usage:  suspend [-f]
 ===== ulimit =====
