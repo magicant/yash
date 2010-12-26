@@ -1,0 +1,140 @@
+# (C) 2010 magicant
+
+# Completion script for the "ssh" command.
+# Supports OpenSSH 5.6.
+
+function completion/ssh {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"1; use the protocol version 1 only"
+	"2; use the protocol version 2 only"
+	"4; use IPv4 addresses only"
+	"6; use IPv6 addresses only"
+	"A; enable authentication agent forwarding"
+	"a; disable authentication agent forwarding"
+	"b:; specify the local IP address to connect from"
+	"C; enable data compression"
+	"c:; specify the encryption algorithm"
+	"D:; specify a port for local dynamic application-level port forwarding"
+	"e:; specify the escape character"
+	"F:; specify the configuration file"
+	"f; run in the background after authentication"
+	"g; allow remote hosts to connect to local forwarded ports"
+	"I:; specify the PKCS#11 shared library"
+	"i:; specify the private key (identity) file"
+	"K; enable GSSAPI-based authentication and forwarding"
+	"k; disable GSSAPI-based authentication and forwarding"
+	"L:; specify a local port and a remote host/port to forward"
+	"l:; specify the user name to log in as"
+	"M; run in the master mode for connection sharing"
+	"m:; specify MACs (message authentication codes)"
+	"N; don't run any remote command"
+	"n; redirect the standard input of the remote command to /dev/null"
+	"O:; specify a command to control the master process"
+	"o:; specify an option in the configuration file format"
+	"p:; specify the port to connect to"
+	"q; suppress warning and diagnostic messages"
+	"R:; specify a remote port and a local host/port to forward"
+	"S:; specify the control socket for connection sharing"
+	"s; run the command as the SSH2 subsystem"
+	"T; run the command without a pseudo-terminal"
+	"t; run the command in a pseudo-terminal"
+	"V; print version info"
+	"v; print debugging messages"
+	"W:; specify a remote host/port to directly connect to"
+	"w:; specify the tunnel device to forward"
+	"X; enable X11 forwarding"
+	"x; disable X11 forwarding"
+	"Y; enable trusted X11 forwarding"
+	"y; use syslog for logging"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([bDp])
+		;;
+	([FiS])
+		complete -P "$PREFIX" -f
+		;;
+	(c)
+		#TODO
+		;;
+	(e)
+		complete -P "$PREFIX" '~'
+		complete -P "$PREFIX" -D "none" none
+		;;
+	(I)
+		#TODO
+		;;
+	(L)
+		#TODO
+		;;
+	(l)
+		complete -P "$PREFIX" -u
+		;;
+	(m)
+		#TODO
+		;;
+	(O)
+		complete -D "check that the master process is running" check
+		complete -D "request the master process to exit" exit
+		complete -D "request forwarding without command execution" forward
+		;;
+	(o)
+		#TODO
+		;;
+	(R)
+		#TODO
+		;;
+	(W)
+		#TODO
+		;;
+	(w)
+		#TODO
+		;;
+	('')
+		typeset config="${HOME-}/.ssh/config"
+		typeset i=2
+		while [ $i -le ${WORDS[#]} ]; do
+			case ${WORDS[i]} in
+				(-F*) config=${WORDS[i]#-F} ;;
+				(--)  i=$((i+1)); break ;;
+				(-*)  ;;
+				(*)   break ;;
+			esac
+			i=$((i+1))
+		done
+		WORDS=("${WORDS[i,-1]}")
+		if [ ${WORDS[#]} -gt 0 ]; then
+			# complete the command
+			WORDS=("${WORDS[2,-1]}")
+			command -f completion//reexecute
+		else
+			# complete the host name
+			PREFIX=${TARGETWORD%${TARGETWORD#*@}}
+			typeset key value
+			while read key value; do
+				case $key in ([Hh][Oo][Ss][Tt])
+					complete -P "$PREFIX" -R '\*' $value
+				esac
+			done <(sed -e 's/#.*//' -e 's/[Hh][Oo][Ss][Tt][[:blank:]]*=/host /' "$config" 2>/dev/null)
+			# currently, we always read known-hosts files from the default location
+			while read key value; do
+				case $key in
+				(\|*) ;;
+				(*)
+					complete -P "$PREFIX" ${key//,/ }
+				esac
+			done <(cat /etc/ssh/ssh_known_hosts ~/.ssh/known_hosts 2>/dev/null)
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
