@@ -24,11 +24,6 @@
 #define Size_max ((size_t) -1)  // = SIZE_MAX
 
 
-typedef struct plist_T {
-    void **contents;
-    size_t length, maxlength;
-} plist_T;
-
 extern size_t plcount(void *const *list)
     __attribute__((pure,nonnull));
 static inline void **pldup(void *const *array, void *copy(const void *p))
@@ -37,6 +32,12 @@ extern void **plndup(
 	void *const *array, size_t count, void *copy(const void *p))
     __attribute__((malloc,warn_unused_result,nonnull(3)));
 extern void plfree(void **ary, void freer(void *elem));
+
+
+typedef struct plist_T {
+    void **contents;
+    size_t length, maxlength;
+} plist_T;
 
 static inline plist_T *pl_init(plist_T *list)
     __attribute__((nonnull));
@@ -76,12 +77,14 @@ extern plist_T *pl_add(plist_T *list, const void *p)
     __attribute__((nonnull(1)));
 
 
+#ifndef PLIST_DEFAULT_MAX
 #define PLIST_DEFAULT_MAX 7
+#endif
 
 
 /* Clones the specified NULL-terminated array of pointers.
  * Each pointer element is passed to function `copy' and the return value is
- * assigned to the new array element.
+ * assigned to a new array element.
  * If `array' is NULL, simply returns NULL. */
 /* `xstrdup' and `copyaswcs' are suitable for `copy'. */
 void **pldup(void *const *array, void *copy(const void *p))

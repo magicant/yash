@@ -28,8 +28,12 @@
 #include "strbuf.h"
 #include "util.h"
 
+#ifndef XSTRBUF_INITSIZE
 #define XSTRBUF_INITSIZE 15
+#endif
+#ifndef XWCSBUF_INITSIZE
 #define XWCSBUF_INITSIZE 15
+#endif
 
 
 /* If the type of the return value of the functions below is string buffer,

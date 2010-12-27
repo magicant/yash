@@ -40,8 +40,8 @@ size_t plcount(void *const *list)
  * Each pointer element is passed to function `copy' and the return value is
  * assigned to the new array element.
  * If the array contains more than `count' elements, only the first `count'
- * elements are copied. If the array contains elements fewer than `count', the
- * whole array is copied.
+ * elements are copied. If the array elements are fewer than `count', the whole
+ * array is copied.
  * If `array' is NULL, simply returns NULL. */
 /* `xstrdup' and `copyaswcs' are suitable for `copy'. */
 void **plndup(void *const *array, size_t count, void *copy(const void *p))
@@ -65,8 +65,8 @@ void **plndup(void *const *array, size_t count, void *copy(const void *p))
  * If `ary' is NULL, this function does nothing. */
 void plfree(void **ary, void freer(void *elem))
 {
-    if (ary) {
-	for (void **a = ary; *a; a++)
+    if (ary != NULL) {
+	for (void **a = ary; *a != NULL; a++)
 	    freer(*a);
 	free(ary);
     }
@@ -90,7 +90,7 @@ void plfree(void **ary, void freer(void *elem))
  * capacity. */
 plist_T *pl_initwithmax(plist_T *list, size_t max)
 {
-    list->contents = xmalloc((max + 1) * sizeof (void *));
+    list->contents = xmallocn(max + 1, sizeof (void *));
     list->contents[0] = NULL;
     list->length = 0;
     list->maxlength = max;
@@ -102,7 +102,7 @@ plist_T *pl_initwithmax(plist_T *list, size_t max)
  * the pointer list is truncated. */
 plist_T *pl_setmax(plist_T *list, size_t newmax)
 {
-    list->contents = xrealloc(list->contents, (newmax + 1) * sizeof (void *));
+    list->contents = xreallocn(list->contents, newmax + 1, sizeof (void *));
     list->maxlength = newmax;
     list->contents[newmax] = NULL;
     if (newmax < list->length)

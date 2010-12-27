@@ -95,7 +95,9 @@ extern void vfree(kvpair_T kv);
 extern void kvfree(kvpair_T kv);
 
 
+#ifndef HASHTABLE_DEFAULT_INIT_CAPACITY
 #define HASHTABLE_DEFAULT_INIT_CAPACITY 5
+#endif
 
 /* Initializes the specified hashtable with the default capacity.
  * `hashfunc' is the hash function to hash keys.

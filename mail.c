@@ -68,7 +68,7 @@ static void print_message(const wchar_t *message)
 
 /* A hashtable that contains `mailfile_T' objects.
  * The keys are pointers to the `mf_filename' member of `mailfile_T' objects,
- * and the values are pointers to the `mailfile_T' objects themselves.
+ * and the values are pointers to the `mailfile_T' objects.
  * When mail checking is not activated, the capacity of the hashtable is set to
  * zero. */
 static hashtable_T mailfiles;
@@ -77,7 +77,7 @@ static hashtable_T mailfiles;
 static time_t lastchecktime = 0;
 
 
-/* If it is time to check mail, Checks if the mail file is updated, and if so
+/* If it is time to check mail, checks if the mail file is updated, and if so
  * prints a message. The parsing state must be saved with `save_parse_state'
  * before calling this function. */
 void check_mail(void)
@@ -110,7 +110,7 @@ void inactivate(void)
 bool is_time_to_check_mail(void)
 {
     const wchar_t *mailcheck = getvar(L VAR_MAILCHECK);
-    if (!mailcheck || !mailcheck[0]) {
+    if (mailcheck == NULL || mailcheck[0] == L'\0') {
 	inactivate();
 	return false;
     }
@@ -132,6 +132,7 @@ bool is_time_to_check_mail(void)
 /* Checks if the mail file is updated and prints a message if so. */
 void check_mail_and_print_message(void)
 {
+    /* Firstly, check the $MAILPATH variable */
     struct get_variable mailpath = get_variable(L VAR_MAILPATH);
     switch (mailpath.type) {
 	case GV_NOTFOUND:
@@ -149,19 +150,22 @@ void check_mail_and_print_message(void)
 	    return;
     }
 
+    /* Next, check the $MAIL variable */
     const wchar_t *mail = getvar(L VAR_MAIL);
-    if (mail) {
+    if (mail != NULL) {
 	activate();
 
 	char *path = malloc_wcstombs(mail);
-	if (path) {
+	if (path != NULL) {
 	    if (is_update(path))
 		fprintf(stderr, "%s\n", gt("You have new mail."));
 	    free(path);
 	}
-    } else {
-	inactivate();
+	return;
     }
+
+    /* disable mail check since the variables are not set */
+    inactivate();
 }
 
 /* Splits the specified string at colons and calls `handle_mailpath_element' for
@@ -197,7 +201,7 @@ next:
     }
 }
 
-/* Parses the specified MAILPATH component and checks for update. */
+/* Parses the specified $MAILPATH component and checks for update. */
 void handle_mailpath_element(const wchar_t *s)
 {
     xstrbuf_T path;
@@ -255,7 +259,7 @@ bool is_update(const char *path)
     mailfile_T *mf = ht_get(&mailfiles, path).value;
 
     if (mf != NULL) {
-	result = st.st_mtime != 0 && (st.st_mtime != mf->mf_mtime
+	result = (st.st_mtime != 0) && (st.st_mtime != mf->mf_mtime
 #if HAVE_ST_MTIM
 	    || st.st_mtim.tv_nsec != mf->mf_mtim.tv_nsec
 #elif HAVE_ST_MTIMESPEC
@@ -293,7 +297,7 @@ void print_message(const wchar_t *message)
 {
     /* assuming the parse state is saved */
     wchar_t *msg = parse_and_expand_string(message, NULL, true);
-    if (msg) {
+    if (msg != NULL) {
 	fprintf(stderr, "%ls\n", msg);
 	free(msg);
     }
