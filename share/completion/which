@@ -1,0 +1,63 @@
+# (C) 2010 magicant
+
+# Completion script for the "which" command.
+# Supports GNU which 2.20, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.10, HP-UX 11i v3.
+
+function completion/which {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'GNU'*) typeset type=GNU ;;
+		(*)       typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	) #<#
+
+	case $type in (GNU|Darwin|*BSD)
+		OPTIONS=("$OPTIONS" #>#
+		"a ${long:+--all}; print all matches, not just the first one"
+		) #<#
+		case $type in (Darwin|FreeBSD)
+			OPTIONS=("$OPTIONS" #>#
+			"s; print nothing"
+			) #<#
+		esac
+		;;
+	esac
+	case $type in (GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"i --read-alias; read alias definitions from the standard input"
+		"--skip-alias; cancel the --read-alias option"
+		"--read-functions; read function definitions from the standard input"
+		"--skip-functions; cancel the --read-functions option"
+		"--skip-dot; ignore directory names that start with a dot"
+		"--skip-tilde; ignore directories under \$HOME"
+		"--show-dot; print \"./program\" for programs in a dot directory"
+		"--show-tilde; use ~ for programs under \$HOME"
+		"V v --version; print version info"
+		"--help"
+		) #<#
+		# --tty-only is not completed since it's meaningless in an
+		# interactive shell session
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(*)
+		complete -P "$PREFIX" --external-command
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
