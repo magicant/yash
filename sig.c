@@ -1198,59 +1198,76 @@ const char *trap_help[] = { Ngt(
  *  -v: prints signal info verbosely */
 int kill_builtin(int argc, void **argv)
 {
-#if YASH_ENABLE_HELP
-    if (!posixly_correct && argc == 2 && wcscmp(ARGV(1), L"--help") == 0)
-	return print_builtin_help(ARGV(0));
-#endif
-
-    wchar_t opt;
     int signum = SIGTERM;
     bool list = false, verbose = false;
 
-    xoptind = 0, xopterr = false;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"ls:" : L"+ln:s:v",
-		    NULL, NULL))) {
-	switch (opt) {
-	    /* we don't make any differences between -n and -s options */
-	    case L'n':  case L's':  parse_signal:
-		if (list)
-		    goto print_usage;
-		if (posixly_correct && wcsncmp(xoptarg, L"SIG", 3) == 0) {
-		    xerror(0, Ngt("%ls: the signal name must be specified "
-				"without `SIG'"), xoptarg);
-		    return Exit_ERROR;
-		}
-		signum = get_signal_number_toupper(xoptarg);
-		if (signum < 0 || (signum == 0 && !iswdigit(xoptarg[0]))) {
-		    xerror(0, Ngt("no such signal `%ls'"), xoptarg);
-		    return Exit_FAILURE;
-		}
-		goto no_more_options;
-	    case L'l':
-		list = true;
-		break;
-	    case L'v':
-		list = verbose = true;
-		break;
-	    default:
-		if (ARGV(xoptind)[0] == L'-' && ARGV(xoptind)[1] == xoptopt) {
+    /* We don't use the xgetopt function to parse options because the kill
+     * built-in has non-standard syntax. */
+    int optind;
+    for (optind = 1; optind < argc; optind++) {
+	wchar_t *arg = ARGV(optind);
+	if (arg[0] != L'-' || arg[1] == L'\0')
+	    break;
+	for (size_t i = 1; arg[i] != L'\0'; i++) {
+	    switch (arg[i]) {
+		case L'n':  case L's':
+		/* we don't make any differences between -n and -s options */
 		    if (list)
-			goto no_more_options;
-		    xoptarg = &ARGV(xoptind++)[1];
-		    goto parse_signal;
-		}
-		goto print_usage;
-	    no_more_options:
-		if (xoptind < argc && wcscmp(ARGV(xoptind), L"--") == 0)
-		    xoptind++;
-		goto main;
+			goto print_usage;
+		    arg = &arg[i + 1];
+		    if (*arg == L'\0') {
+			arg = ARGV(++optind);
+			if (arg == NULL) {
+			    xerror(0, Ngt("the signal name is not specified"));
+			    goto print_usage;
+			}
+		    }
+parse_signal_name:
+		    if (posixly_correct && matchwcsprefix(arg, L"SIG")) {
+			xerror(0, Ngt("%ls: the signal name must be specified "
+				    "without `SIG'"), arg);
+			return Exit_ERROR;
+		    }
+		    signum = get_signal_number_toupper(arg);
+		    if (signum < 0 || (signum == 0 && !iswdigit(*arg))) {
+			xerror(0, Ngt("no such signal `%ls'"), arg);
+			return Exit_FAILURE;
+		    }
+		    optind++;
+		    if (optind < argc && wcscmp(ARGV(optind), L"--") == 0)
+			optind++;
+		    goto main;
+		case L'l':
+		    list = true;
+		    break;
+		case L'v':
+		    list = verbose = true;
+		    break;
+		case L'-':
+		    if (i == 1) {
+			if (arg[2] == L'\0') {  /* `arg' is "--" */
+			    optind++;
+			    goto main;
+			}
+			if (!posixly_correct && matchwcsprefix(L"--help", arg))
+			    return print_builtin_help(ARGV(0));
+		    }
+		    /* falls thru! */
+		default:
+		    if (i == 1 && !list) {
+			arg = &arg[i];
+			goto parse_signal_name;
+		    } else {
+			xerror(0, Ngt("`%ls' is not a valid option"), arg);
+			goto print_usage;
+		    }
+	    }
 	}
     }
 
 main:
     if (list) {
-	if (xoptind == argc) {
+	if (optind == argc) {
 	    /* print info of all signals */
 	    for (const signal_T *s = signals; s->no; s++)
 		if (!print_signal(s->no, s->name, verbose))
@@ -1266,27 +1283,27 @@ main:
 		int signum;
 		const wchar_t *signame;
 
-		if (xwcstoi(ARGV(xoptind), 10, &signum) && signum >= 0) {
+		if (xwcstoi(ARGV(optind), 10, &signum) && signum >= 0) {
 		    if (signum >= TERMSIGOFFSET)
 			signum -= TERMSIGOFFSET;
 		    else if (signum >= (TERMSIGOFFSET & 0xFF))
 			signum -= (TERMSIGOFFSET & 0xFF);
 		} else {
-		    signum = get_signal_number_toupper(ARGV(xoptind));
+		    signum = get_signal_number_toupper(ARGV(optind));
 		}
 		signame = get_signal_name(signum);
 		if (signum <= 0 || signame[0] == L'\0')
-		    xerror(0, Ngt("no such signal `%ls'"), ARGV(xoptind));
+		    xerror(0, Ngt("no such signal `%ls'"), ARGV(optind));
 		else if (!print_signal(signum, signame, verbose))
 		    return Exit_FAILURE;
-	    } while (++xoptind < argc);
+	    } while (++optind < argc);
 	}
     } else {
 	/* send signal */
-	if (xoptind == argc)
+	if (optind == argc)
 	    goto print_usage;
 	do {
-	    wchar_t *proc = ARGV(xoptind);
+	    wchar_t *proc = ARGV(optind);
 	    if (proc[0] == L'%') {
 		signal_job(signum, proc);
 	    } else {
@@ -1302,7 +1319,7 @@ main:
 		    continue;
 		}
 	    }
-	} while (++xoptind < argc);
+	} while (++optind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
