@@ -187,6 +187,10 @@ extern int xoptind;
 extern wchar_t xoptopt;
 extern _Bool xopterr;
 
+enum xgetoptopt_T {
+    XGETOPT_POSIX = 1 << 0,
+    XGETOPT_DIGIT = 1 << 1,
+};
 enum optarg_T {
     OPTARG_NONE, OPTARG_REQUIRED, OPTARG_OPTIONAL,
 };
@@ -195,6 +199,12 @@ struct xoption {
     enum optarg_T arg;
     wchar_t val;
 };
+struct xgetopt_T {
+    wchar_t shortopt;
+    const wchar_t *longopt;
+    enum optarg_T optarg;
+    void *ptr;
+};
 
 extern wchar_t xgetopt_long(
 	void **restrict argv,
@@ -202,6 +212,12 @@ extern wchar_t xgetopt_long(
 	const struct xoption *restrict longopts,
 	int *restrict longindex)
     __attribute__((nonnull(1,2)));
+
+extern struct xgetopt_T *xgetopt(
+	void **restrict argv,
+	const struct xgetopt_T *restrict opts,
+	enum xgetoptopt_T opt)
+    __attribute__((nonnull));
 
 
 #undef Size_max
