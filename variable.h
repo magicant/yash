@@ -80,6 +80,7 @@ typedef enum path_T {
 
 extern unsigned long current_lineno;
 
+extern void init_environment(void);
 extern void init_variables(void);
 
 typedef enum scope_T {

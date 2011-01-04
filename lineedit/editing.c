@@ -309,8 +309,8 @@ void le_editing_init(void)
     main_history_value = xwcsdup(L"");
 
     switch (shopt_lineedit) {
-	case shopt_vi:     le_set_mode(LE_MODE_VI_INSERT);  break;
-	case shopt_emacs:  le_set_mode(LE_MODE_EMACS);      break;
+	case SHOPT_VI:     le_set_mode(LE_MODE_VI_INSERT);  break;
+	case SHOPT_EMACS:  le_set_mode(LE_MODE_EMACS);      break;
 	default:           assert(false);
     }
 

@@ -236,7 +236,7 @@ void varkvfree_reexport(kvpair_T kv)
 }
 
 /* Initializes the top-level environment. */
-void init_variables(void)
+void init_environment(void)
 {
     assert(first_env == NULL && current_env == NULL);
     first_env = current_env = xmalloc(sizeof *current_env);
@@ -269,7 +269,12 @@ void init_variables(void)
     /* initialize path according to $PATH etc. */
     for (size_t i = 0; i < PA_count; i++)
 	current_env->paths[i] = decompose_paths(getvar(path_variables[i]));
+}
 
+/* Initializes the default variables.
+ * This function must be called after the shell options have been set. */
+void init_variables(void)
+{
     /* set $IFS */
     set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_GLOBAL, false);
 
@@ -2198,11 +2203,10 @@ const char *unset_help[] = { Ngt(
 /* The "shift" builtin */
 int shift_builtin(int argc, void **argv)
 {
-    wchar_t opt;
-
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
+	switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -2273,10 +2277,10 @@ const char *shift_help[] = { Ngt(
 /* The "getopts" builtin */
 int getopts_builtin(int argc, void **argv)
 {
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, help_option, XGETOPT_POSIX)) != NULL) {
+	switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -2634,7 +2638,7 @@ read_input:
 	}
 
 #if YASH_ENABLE_LINEEDIT
-	if (shopt_lineedit != shopt_nolineedit) {
+	if (shopt_lineedit != SHOPT_NOLINEEDIT) {
 	    wchar_t *line;
 	    inputresult_T result = le_readline(prompt, &line);
 
@@ -2957,10 +2961,10 @@ const char *pushd_help[] = { Ngt(
 /* The "popd" builtin. */
 int popd_builtin(int argc, void **argv)
 {
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-", help_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, help_option, XGETOPT_DIGIT)) != NULL) {
+	switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));

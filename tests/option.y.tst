@@ -15,9 +15,9 @@ echo $(hash | grep /cat\$ | wc -l)
 set +h
 
 echo ===== nocaseglob =====
-set --nocaseglob
+set --no=caseglob
 echo O[OPQ]T*ON.y.tst OPTION.y.tst
-set +o nocaseglob
+set +o no_caseglob
 echo O[OPQ]T*ON.y.tst OPTION.y.tst
 
 cd "$tmp"
@@ -33,7 +33,7 @@ echo ===== markdirs =====
 mkdir dir
 set --markdirs
 echo di*
-set +o markdirs
+set +o mark\ dirs
 echo di*
 
 echo ===== extendedglob =====
@@ -43,20 +43,20 @@ mkdir anotherdir
 touch anotherdir/file
 ln -s ../../anotherdir dir/dir2/link
 ln -s ../dir anotherdir/loop
-set --extendedglob
+set --extended-glob
 echo **/file
 echo ***/file
-set +o extendedglob
+set +o extended-glob
 echo **/file
 echo ***/file
 
 mv dir/dir2 dir/.dir2
-set --extendedglob
+set -o extended_glob
 echo dir/**/file
 echo dir/***/file
 echo dir/.**/file
 echo dir/.***/file
-set +o extendedglob
+set ++extended_glob
 echo dir/**/file
 echo dir/***/file
 echo dir/.**/file

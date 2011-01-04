@@ -23,51 +23,54 @@
 
 
 enum shopt_lineedit_T {
-    shopt_nolineedit,
-    shopt_vi,
-    shopt_emacs,
+    SHOPT_NOLINEEDIT,
+    SHOPT_VI,
+    SHOPT_EMACS,
 };
 enum shopt_yesnoauto_T {
-    shopt_yes,
-    shopt_no,
-    shopt_auto,
+    SHOPT_YES,
+    SHOPT_NO,
+    SHOPT_AUTO,
 };
 
+extern const wchar_t *command_name;
 extern _Bool posixly_correct;
 extern _Bool is_login_shell;
 extern _Bool is_interactive, is_interactive_now;
-extern _Bool do_job_control, shopt_notify, shopt_notifyle;
-extern _Bool shopt_read_arg, shopt_read_stdin;
-extern const wchar_t *command_name;
+extern _Bool shopt_cmdline, shopt_stdin;
+extern _Bool do_job_control, shopt_notify, shopt_notifyle,
+       shopt_curasync, shopt_curbg, shopt_curstop;
 extern _Bool shopt_allexport, shopt_hashondef;
-extern _Bool shopt_errexit, shopt_nounset, shopt_noexec, shopt_ignoreeof,
-       shopt_verbose, shopt_xtrace, shopt_curasync, shopt_curbg, shopt_curstop,
-       shopt_histspace;
-extern _Bool shopt_noglob, shopt_nocaseglob, shopt_dotglob, shopt_markdirs,
+extern _Bool shopt_errexit, shopt_unset, shopt_exec, shopt_ignoreeof,
+       shopt_verbose, shopt_xtrace;
+extern _Bool shopt_histspace;
+extern _Bool shopt_glob, shopt_caseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern _Bool shopt_braceexpand;
-extern _Bool shopt_noclobber;
+extern _Bool shopt_clobber;
 extern enum shopt_lineedit_T shopt_lineedit;
 extern enum shopt_yesnoauto_T shopt_le_convmeta;
 extern _Bool shopt_le_visiblebell, shopt_le_promptsp, shopt_le_alwaysrp,
        shopt_le_compdebug;
 
-#define SHELLSET_OPTIONS L"abefhmnuvxC"
+/* Whether or not this shell process is doing job control right now. */
+#define doing_job_control_now  (do_job_control && ttyfd >= 0)
 
-extern const struct xoption
-    *const shell_long_options, *const set_long_options,
-    *const all_option, *const help_option;
-extern int setoptindex;
+struct shell_invocation_T {
+    _Bool help, version;
+    _Bool noprofile, norcfile;
+    const wchar_t *profile, *rcfile;
+    _Bool is_interactive_set, do_job_control_set, lineedit_set;
+};
 
-extern _Bool set_option(void);
-extern void set_single_option(wchar_t c);
-extern _Bool set_long_option(const wchar_t *s)
-    __attribute__((nonnull));
+extern int parse_shell_options(int argc, void *const *argv,
+	struct shell_invocation_T *shell_invocation)
+    __attribute__((nonnull(2),warn_unused_result));
+extern void set_lineedit_option(enum shopt_lineedit_T v);
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
 
-/* Whether or not this shell process is doing job control right now. */
-#define doing_job_control_now  (do_job_control && ttyfd >= 0)
+extern const struct xgetopt_T *const all_option, *const help_option;
 
 extern int set_builtin(int argc, void **argv)
     __attribute__((nonnull));

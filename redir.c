@@ -337,7 +337,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    flags = O_RDONLY;
 	    goto openwithflags;
 	case RT_OUTPUT:
-	    if (shopt_noclobber && !is_irregular_file(filename)) {
+	    if (!shopt_clobber && !is_irregular_file(filename)) {
 		flags = O_WRONLY | O_CREAT | O_EXCL;
 	    } else {
 	case RT_CLOBBER:

@@ -382,11 +382,11 @@ char pop_prebuffer(void)
 bool has_meta_bit(char c)
 {
     switch (shopt_le_convmeta) {
-	case shopt_yes:
+	case SHOPT_YES:
 	    break;
-	case shopt_no:
+	case SHOPT_NO:
 	    return false;
-	case shopt_auto:
+	case SHOPT_AUTO:
 	    if (le_meta_bit8)
 		break;
 	    else

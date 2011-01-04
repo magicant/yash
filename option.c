@@ -18,12 +18,11 @@
 
 #include "common.h"
 #include <assert.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
@@ -31,397 +30,712 @@
 #include "exec.h"
 #include "job.h"
 #include "option.h"
+#include "plist.h"
 #include "redir.h"
 #include "sig.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "yash.h"
-#if YASH_ENABLE_LINEEDIT
-# include "xfnmatch.h"
-# include "lineedit/complete.h"
-#endif
 
 
-typedef void setoptfunc_T(void *argp);
-struct setoptinfo_T {
-    setoptfunc_T *func;
-    void *argp;
-};
-
-static void set_ignore_option(void *argp);
-static void set_bool_option(void *argp);
-static void set_monitor_option(void *argp);
-#if YASH_ENABLE_LINEEDIT
-static void set_lineedit_option(void *argp);
-static void set_le_convmeta_option(void *argp);
-static void set_le_noconvmeta_option(void *argp);
-#endif
-
-
-/* If set, the shell behaves strictly as defined in POSIX.
- * Corresponds to the --posix option. */
-bool posixly_correct;
-
-/* If set, this shell is a login shell.
- * Corresponds to the --login option. */
-bool is_login_shell;
-
-/* If set, this shell is interactive.
- * `is_interactive_now' is set false in subshells while `is_interactive'
- * remains unchanged.
- * Once initialized, `is_interactive' cannot be reset.
- * Correspond to the -i/--interactive option. */
-bool is_interactive, is_interactive_now;
-
-/* If set, the shell performs job control.
- * Corresponds to the -m/--monitor option. */
-bool do_job_control;
-/* If set, the shell immediately notifies on change of job status.
- * Corresponds to the -b/--notify option. */
-bool shopt_notify;
-#if YASH_ENABLE_LINEEDIT
-/* If set, the shell immediately notifies on change of job status during line-
- * editing. Ignored if `shopt_notify' is set. Corresponds to the --notifyle
- * option. */
-bool shopt_notifyle;
-#endif
-
-/* Set if commands are read from argument and stdin respectively.
- * Correspond to the -c and -s options respectively. */
-bool shopt_read_arg, shopt_read_stdin;
+/********** Option Definitions **********/
 
 /* The value of special parameter $0. */
 const wchar_t *command_name;
 
-/* If set, any variable is exported when assigned.
- * Corresponds to the -a/--allexport option. */
-bool shopt_allexport;
-/* If set, when a function is defined, all the commands in the function
- * are hashed. Corresponds to the -h/--hashondef option. */
-bool shopt_hashondef;
+/* If set, the shell behaves strictly as defined in POSIX.
+ * Corresponds to the --posix option. */
+bool posixly_correct = false;
 
-/* If set, when a command returns a non-zero status, the shell exits.
- * Corresponds to the -e/--errexit option. */
-bool shopt_errexit;
-/* If set, treat expansion of an undefined parameter as an error.
- * Corresponds to the -u/--nounset option. */
-bool shopt_nounset;
-/* If set, don't execute any command; just do syntax checking.
- * Corresponds to the -n/--noexec option. */
-bool shopt_noexec;
-/* If set, don't exit when EOF is entered (if the input is from a terminal).
- * Corresponds to the --ignoreeof option. */
-bool shopt_ignoreeof;
-/* If set, echo the input to the shell.
- * Corresponds to the -v/--verbose option. */
-bool shopt_verbose;
-/* If set, print the trace of command execution and variable assignment.
- * Corresponds to the -x/--xtrace option. */
-bool shopt_xtrace;
+/* If set, this shell is a login shell.
+ * Corresponds to the --login option. */
+bool is_login_shell = false;
+
+/* If set, this shell is interactive.
+ * In subshells, `is_interactive_now' is set to false while `is_interactive'
+ * remains unchanged.
+ * Correspond to the -i/--interactive option. */
+bool is_interactive = false, is_interactive_now = false;
+
+/* `shopt_cmdline' is set if the shell is executing a command in the command-
+ * line argument to the shell. `shopt_stdin' is set if the shell is reading
+ * commands to execute from the standard input.
+ * Correspond to the -c and -s options respectively. */
+bool shopt_cmdline = false, shopt_stdin = false;
+
+/* If set, the shell performs job control.
+ * Corresponds to the -m/--monitor option. */
+bool do_job_control = false;
+/* If set, the shell immediately notifies on change of job status.
+ * Corresponds to the -b/--notify option. */
+bool shopt_notify = false;
+#if YASH_ENABLE_LINEEDIT
+/* If set, the shell immediately notifies on change of job status during line-
+ * editing. Ignored if `shopt_notify' is set. Corresponds to the --notifyle
+ * option. */
+bool shopt_notifyle = false;
+#endif
 /* If set, a background job is set to the current job when:
  *  - invoked as an asynchronous command
  *  - resumed in the background by the "bg" command
  *  - stopped
- * respectively. */
+ * respectively.
+ * Correspond to the --curasync, --curbg, --curstop options. */
 bool shopt_curasync = true, shopt_curbg = true, shopt_curstop = true;
-/* If set, lines that start with a space are not saved in the history. */
-bool shopt_histspace;
 
-/* If set, don't perform filename expansion.
- * Corresponds to the -f/--noglob option. */
-bool shopt_noglob;
-/* Correspond to WGLB_CASEFOLD, WGLB_PERIOD, WGLB_MARK, WGLB_RECDIR resp. */
-bool shopt_nocaseglob, shopt_dotglob, shopt_markdirs, shopt_extendedglob;
+/* If set, any variable is exported when assigned.
+ * Corresponds to the -a/--allexport option. */
+bool shopt_allexport = false;
+/* If set, when a function is defined, all the commands in the function
+ * are hashed. Corresponds to the -h/--hashondef option. */
+bool shopt_hashondef = false;
+
+/* If set, when a command returns a non-zero status, the shell exits.
+ * Corresponds to the -e/--errexit option. */
+bool shopt_errexit = false;
+/* If set, undefined variables are expanded to an empty string.
+ * Corresponds to the +u/--unset option. */
+bool shopt_unset = true;
+/* If set, commands are actually executed.
+ * Corresponds to the +n/--exec option. */
+bool shopt_exec = true;
+/* If set, the shell doesn't exit when EOF is entered (from a terminal).
+ * Corresponds to the --ignoreeof option. */
+bool shopt_ignoreeof = false;
+/* If set, the shell echos the input to the shell.
+ * Corresponds to the -v/--verbose option. */
+bool shopt_verbose = false;
+/* If set, the shell prints the trace of command execution and assignment.
+ * Corresponds to the -x/--xtrace option. */
+bool shopt_xtrace = false;
+
+/* If set, lines that start with a space are not saved in the history.
+ * Corresponds to the --histspace option. */
+bool shopt_histspace = false;
+/* Function definition commands are saved in the history only when this option
+ * is set.
+ * Corresponds to the --log option.
+ * THIS OPTION IS NOT SUPPORTED. */
+static bool shopt_log = true;
+
+/* If set, the shell performs filename expansion.
+ * Corresponds to the +f/--glob option. */
+bool shopt_glob = true;
+/* If set, filename expansion is case-sensitive.
+ * Corresponds to the --caseglob option. */
+bool shopt_caseglob = true;
+/* If set, in filename expansion, a wildcard character matches a dot at the
+ * beginning of a filename.
+ * Corresponds to the --dotglob option. */
+bool shopt_dotglob = false;
+/* If set, in filename expansion, a directory name is expanded with a slash
+ * appended.
+ * Corresponds to the --markdirs option. */
+bool shopt_markdirs = false;
+/* If set, extended features in filename expansion are enabled.
+ * Corresponds to the --extendedglob option. */
+bool shopt_extendedglob = false;
 /* If set, a glob pattern is removed from the command line rather than left
  * intact when there are no matches for it.
  * Corresponds to the --nullglob option. */
-bool shopt_nullglob;
-/* If set, perform brace expansion.
- * Corresponds to the --brace option.*/
-bool shopt_braceexpand;
-/* If set, prevent redirections from overwriting existent file.
- * Corresponds to the -C/--noclobber option. */
-bool shopt_noclobber;
+bool shopt_nullglob = false;
+
+/* If set, brace expansion is enabled.
+ * Corresponds to the --braceexpand option. */
+bool shopt_braceexpand = false;
+
+/* If set, it is allowed to overwrite existing files by redirections.
+ * Corresponds to the +C/--clobber option. */
+bool shopt_clobber = true;
 
 #if YASH_ENABLE_LINEEDIT
-/* Type of line editing keybind. */
-enum shopt_lineedit_T shopt_lineedit = shopt_nolineedit;
-/* Defines treatment of the 8th bit of input characters. */
-enum shopt_yesnoauto_T shopt_le_convmeta = shopt_auto;
+/* When line-editing is disabled, `shopt_lineedit' is SHOPT_NOLINEEDIT.
+ * When line-editing is enabled, `shopt_lineedit' is set to another value that
+ * specifies the type of key bindings.
+ * `shopt_vi' and `shopt_emacs' correspond to the --vi and --emacs options,
+ * respectively. `shopt_lineedit' is set according to the values of them. */
+enum shopt_lineedit_T shopt_lineedit = SHOPT_NOLINEEDIT;
+static bool shopt_vi = false, shopt_emacs = false;
+/* `shopt_le_convmeta' defines treatment of the 8th bit of input characters in
+ * line-editing. The value of `shopt_le_convmeta' is set according to those of
+ * `shopt_le_yesconvmeta' and `shopt_le_noconvmeta', which correspond to the
+ * --le-convmeta and --le-noconvmeta options, respectively. */
+enum shopt_yesnoauto_T shopt_le_convmeta = SHOPT_AUTO;
+static bool shopt_le_yesconvmeta = false, shopt_le_noconvmeta = false;
 /* If set, line-editing uses a flash (instead of a bell) to alert the user. */
 bool shopt_le_visiblebell = false;
 /* If set, a special character sequence is printed when starting line-editing
  * to make sure the prompt starts at the beginning of line. */
 bool shopt_le_promptsp = true;
 /* If set, the right prompt is always visible on the screen. */
-bool shopt_le_alwaysrp;
-/* If set, debugging information is printed during completion. */
-bool shopt_le_compdebug;
+bool shopt_le_alwaysrp = false;
+/* If set, debugging information is printed during command completion. */
+bool shopt_le_compdebug = false;
 #endif
 
 
-typedef enum shopt_index_T {
-    SHOPT_INTERACTIVE, SHOPT_LOGIN, SHOPT_NOPROFILE, SHOPT_NORCFILE,
-    SHOPT_RCFILE, SHOPT_VERSION,
-    SHOPT_ALLEXPORT, SHOPT_HASHONDEF, SHOPT_NOCLOBBER, SHOPT_NOGLOB,
-    SHOPT_NOCASEGLOB, SHOPT_DOTGLOB, SHOPT_MARKDIRS, SHOPT_EXTENDEDGLOB,
-    SHOPT_NULLGLOB, SHOPT_BRACEEXPAND, SHOPT_CURASYNC, SHOPT_CURBG,
-    SHOPT_CURSTOP,
-    SHOPT_ERREXIT, SHOPT_NOUNSET, SHOPT_NOEXEC, SHOPT_IGNOREEOF, SHOPT_VERBOSE,
-    SHOPT_XTRACE, SHOPT_HISTSPACE, SHOPT_NOLOG, SHOPT_MONITOR, SHOPT_NOTIFY,
-#if YASH_ENABLE_LINEEDIT
-    SHOPT_NOTIFYLE,
-#endif
-    SHOPT_POSIX,
-#if YASH_ENABLE_LINEEDIT
-    SHOPT_VI, SHOPT_EMACS,
-    SHOPT_LE_CONVMETA, SHOPT_LE_NOCONVMETA,
-    SHOPT_LE_VISIBLEBELL, SHOPT_LE_PROMPTSP, SHOPT_LE_ALWAYSRP,
-    SHOPT_LE_COMPDEBUG,
-#endif
-#if YASH_ENABLE_HELP
-    SHOPT_HELP,
-#endif
-    SHOPT_end,
-    SHOPT_setopt = SHOPT_ALLEXPORT,
-} shopt_index_T;
-
-
-/* Long options for the shell and set builtin */
-static const struct xoption long_options[] = {
-    [SHOPT_INTERACTIVE]    = { L"interactive",    OPTARG_NONE, L'i', },
-    [SHOPT_LOGIN]          = { L"login",          OPTARG_NONE, L'l', },
-    [SHOPT_NOPROFILE]      = { L"noprofile",      OPTARG_NONE, L'(', },
-    [SHOPT_NORCFILE]       = { L"norcfile",       OPTARG_NONE, L')', },
-    [SHOPT_RCFILE]         = { L"rcfile",         OPTARG_REQUIRED, L'!', },
-    [SHOPT_VERSION]        = { L"version",        OPTARG_NONE, L'V', },
-    /* Above options cannot be used thru the "set" builtin */
-    [SHOPT_ALLEXPORT]      = { L"allexport",      OPTARG_NONE, L'L', },
-    [SHOPT_HASHONDEF]      = { L"hashondef",      OPTARG_NONE, L'L', },
-    [SHOPT_NOCLOBBER]      = { L"noclobber",      OPTARG_NONE, L'L', },
-    [SHOPT_NOGLOB]         = { L"noglob",         OPTARG_NONE, L'L', },
-    [SHOPT_NOCASEGLOB]     = { L"nocaseglob",     OPTARG_NONE, L'L', },
-    [SHOPT_DOTGLOB]        = { L"dotglob",        OPTARG_NONE, L'L', },
-    [SHOPT_MARKDIRS]       = { L"markdirs",       OPTARG_NONE, L'L', },
-    [SHOPT_EXTENDEDGLOB]   = { L"extendedglob",   OPTARG_NONE, L'L', },
-    [SHOPT_NULLGLOB]       = { L"nullglob",       OPTARG_NONE, L'L', },
-    [SHOPT_BRACEEXPAND]    = { L"braceexpand",    OPTARG_NONE, L'L', },
-    [SHOPT_CURASYNC]       = { L"curasync",       OPTARG_NONE, L'L', },
-    [SHOPT_CURBG]          = { L"curbg",          OPTARG_NONE, L'L', },
-    [SHOPT_CURSTOP]        = { L"curstop",        OPTARG_NONE, L'L', },
-    [SHOPT_ERREXIT]        = { L"errexit",        OPTARG_NONE, L'L', },
-    [SHOPT_NOUNSET]        = { L"nounset",        OPTARG_NONE, L'L', },
-    [SHOPT_NOEXEC]         = { L"noexec",         OPTARG_NONE, L'L', },
-    [SHOPT_IGNOREEOF]      = { L"ignoreeof",      OPTARG_NONE, L'L', },
-    [SHOPT_VERBOSE]        = { L"verbose",        OPTARG_NONE, L'L', },
-    [SHOPT_XTRACE]         = { L"xtrace",         OPTARG_NONE, L'L', },
-    [SHOPT_HISTSPACE]      = { L"histspace",      OPTARG_NONE, L'L', },
-    [SHOPT_NOLOG]          = { L"nolog",          OPTARG_NONE, L'L', },
-    [SHOPT_MONITOR]        = { L"monitor",        OPTARG_NONE, L'm', },
-    [SHOPT_NOTIFY]         = { L"notify",         OPTARG_NONE, L'L', },
-#if YASH_ENABLE_LINEEDIT
-    [SHOPT_NOTIFYLE]       = { L"notifyle",       OPTARG_NONE, L'L', },
-#endif
-    [SHOPT_POSIX]          = { L"posix",          OPTARG_NONE, L'L', },
-#if YASH_ENABLE_LINEEDIT
-    [SHOPT_VI]             = { L"vi",             OPTARG_NONE, L'L', },
-    [SHOPT_EMACS]          = { L"emacs",          OPTARG_NONE, L'L', },
-    [SHOPT_LE_CONVMETA]    = { L"le-convmeta",    OPTARG_NONE, L'L', },
-    [SHOPT_LE_NOCONVMETA]  = { L"le-noconvmeta",  OPTARG_NONE, L'L', },
-    [SHOPT_LE_VISIBLEBELL] = { L"le-visiblebell", OPTARG_NONE, L'L', },
-    [SHOPT_LE_PROMPTSP]    = { L"le-promptsp",    OPTARG_NONE, L'L', },
-    [SHOPT_LE_ALWAYSRP]    = { L"le-alwaysrp",    OPTARG_NONE, L'L', },
-    [SHOPT_LE_COMPDEBUG]   = { L"le-compdebug",   OPTARG_NONE, L'L', },
-#endif
-#if YASH_ENABLE_HELP
-    [SHOPT_HELP]           = { L"help",           OPTARG_NONE, L'-', },
-#endif
-    [SHOPT_end]            = { NULL, 0, 0, },
+struct option_T {
+    wchar_t shortopt_enable, shortopt_disable;
+    const wchar_t *longopt;
+    bool *optp;
+    bool resettable;
 };
 
-static const struct setoptinfo_T setoptinfo[] = {
-    [SHOPT_ALLEXPORT]      = { set_bool_option, &shopt_allexport, },
-    [SHOPT_HASHONDEF]      = { set_bool_option, &shopt_hashondef, },
-    [SHOPT_NOCLOBBER]      = { set_bool_option, &shopt_noclobber, },
-    [SHOPT_NOGLOB]         = { set_bool_option, &shopt_noglob, },
-    [SHOPT_NOCASEGLOB]     = { set_bool_option, &shopt_nocaseglob, },
-    [SHOPT_DOTGLOB]        = { set_bool_option, &shopt_dotglob, },
-    [SHOPT_MARKDIRS]       = { set_bool_option, &shopt_markdirs, },
-    [SHOPT_EXTENDEDGLOB]   = { set_bool_option, &shopt_extendedglob, },
-    [SHOPT_NULLGLOB]       = { set_bool_option, &shopt_nullglob, },
-    [SHOPT_BRACEEXPAND]    = { set_bool_option, &shopt_braceexpand, },
-    [SHOPT_CURASYNC]       = { set_bool_option, &shopt_curasync, },
-    [SHOPT_CURBG]          = { set_bool_option, &shopt_curbg, },
-    [SHOPT_CURSTOP]        = { set_bool_option, &shopt_curstop, },
-    [SHOPT_ERREXIT]        = { set_bool_option, &shopt_errexit, },
-    [SHOPT_NOUNSET]        = { set_bool_option, &shopt_nounset, },
-    [SHOPT_NOEXEC]         = { set_bool_option, &shopt_noexec, },
-    [SHOPT_IGNOREEOF]      = { set_bool_option, &shopt_ignoreeof, },
-    [SHOPT_VERBOSE]        = { set_bool_option, &shopt_verbose, },
-    [SHOPT_XTRACE]         = { set_bool_option, &shopt_xtrace, },
-    [SHOPT_HISTSPACE]      = { set_bool_option, &shopt_histspace, },
-    [SHOPT_NOLOG]          = { set_ignore_option, NULL, },
-    [SHOPT_MONITOR]        = { set_monitor_option, NULL, },
-    [SHOPT_NOTIFY]         = { set_bool_option, &shopt_notify, },
+/* List of the shell options. */
+static const struct option_T shell_options[] = {
+    { L'a', 0,    L"allexport",     &shopt_allexport,      true, },
+    { 0,    0,    L"braceexpand",   &shopt_braceexpand,    true, },
+    { 0,    0,    L"caseglob",      &shopt_caseglob,       true, },
+    { 0,    L'C', L"clobber",       &shopt_clobber,        true, },
+    { L'c', 0,    L"cmdline",       &shopt_cmdline,        false, },
+    { 0,    0,    L"curasync",      &shopt_curasync,       true, },
+    { 0,    0,    L"curbg",         &shopt_curbg,          true, },
+    { 0,    0,    L"curstop",       &shopt_curstop,        true, },
+    { 0,    0,    L"dotglob",       &shopt_dotglob,        true, },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_NOTIFYLE]       = { set_bool_option, &shopt_notifyle, },
+    { 0,    0,    L"emacs",         &shopt_emacs,          true, },
 #endif
-    [SHOPT_POSIX]          = { set_bool_option, &posixly_correct, },
+    { L'e', 0,    L"errexit",       &shopt_errexit,        true, },
+    { 0,    L'n', L"exec",          &shopt_exec,           true, },
+    { 0,    0,    L"extendedglob",  &shopt_extendedglob,   true, },
+    { 0,    L'f', L"glob",          &shopt_glob,           true, },
+    { L'h', 0,    L"hashondef",     &shopt_hashondef,      true, },
+    { 0,    0,    L"histspace",     &shopt_histspace,      true, },
+    { 0,    0,    L"ignoreeof",     &shopt_ignoreeof,      true, },
+    { L'i', 0,    L"interactive",   &is_interactive,       false, },
 #if YASH_ENABLE_LINEEDIT
-    [SHOPT_VI]             = { set_lineedit_option, NULL, },
-    [SHOPT_EMACS]          = { set_lineedit_option, NULL, },
-    [SHOPT_LE_CONVMETA]    = { set_le_convmeta_option, NULL, },
-    [SHOPT_LE_NOCONVMETA]  = { set_le_noconvmeta_option, NULL, },
-    [SHOPT_LE_VISIBLEBELL] = { set_bool_option, &shopt_le_visiblebell, },
-    [SHOPT_LE_PROMPTSP]    = { set_bool_option, &shopt_le_promptsp, },
-    [SHOPT_LE_ALWAYSRP]    = { set_bool_option, &shopt_le_alwaysrp, },
-    [SHOPT_LE_COMPDEBUG]   = { set_bool_option, &shopt_le_compdebug, },
+    { 0,    0,    L"lealwaysrp",    &shopt_le_alwaysrp,    true, },
+    { 0,    0,    L"lecompdebug",   &shopt_le_compdebug,   true, },
+    { 0,    0,    L"leconvmeta",    &shopt_le_yesconvmeta, true, },
+    { 0,    0,    L"lenoconvmeta",  &shopt_le_noconvmeta,  true, },
+    { 0,    0,    L"lepromptsp",    &shopt_le_promptsp,    true, },
+    { 0,    0,    L"levisiblebell", &shopt_le_visiblebell, true, },
 #endif
-#if YASH_ENABLE_HELP
-    [SHOPT_HELP] = { 0, NULL, },
+    { 0,    0,    L"log",           &shopt_log,            true, },
+    { L'l', 0,    L"login",         &is_login_shell,       false, },
+    { 0,    0,    L"markdirs",      &shopt_markdirs,       true, },
+    { L'm', 0,    L"monitor",       &do_job_control,       true, },
+    { L'b', 0,    L"notify",        &shopt_notify,         true, },
+#if YASH_ENABLE_LINEEDIT
+    { 0,    0,    L"notifyle",      &shopt_notifyle,       true, },
 #endif
-    { 0, NULL, },
+    { 0,    0,    L"nullglob",      &shopt_nullglob,       true, },
+    { 0,    0,    L"posix",         &posixly_correct,      true, },
+    { L's', 0,    L"stdin",         &shopt_stdin,          false, },
+    { 0,    L'u', L"unset",         &shopt_unset,          true, },
+    { L'v', 0,    L"verbose",       &shopt_verbose,        true, },
+#if YASH_ENABLE_LINEEDIT
+    { 0,    0,    L"vi",            &shopt_vi,             true, },
+#endif
+    { L'x', 0,    L"xtrace",        &shopt_xtrace,         true, },
+    { 0, 0, NULL, NULL, false, },
 };
 
-static const struct xoption all_help_options[] = {
-    { L"all",  OPTARG_NONE, L'a', },
-#if YASH_ENABLE_HELP
-    { L"help", OPTARG_NONE, L'-', }, /* must be next to "all" */
-#endif
-    { NULL, 0, 0, },
+enum normal_option_index_T {
+    NOI_HELP,
+    NOI_VERSION,
+    NOI_NOPROFILE,
+    NOI_NORCFILE,
+    NOI_PROFILE,
+    NOI_RCFILE,
+    NOI_N,
 };
 
-const struct xoption *const shell_long_options = long_options;
-const struct xoption *const set_long_options   = long_options + SHOPT_setopt;
-const struct xoption *const all_option         = all_help_options;
-const struct xoption *const help_option        = all_help_options + 1;
+/* List of the normal options.
+ * The normal options are the options that can be used on the shell invocation
+ * but that are not shell options. */
+/* A non-NULL `ptr' member indicates that the option can be used for the "set"
+ * built-in. */
+static const struct xgetopt_T normal_options[] = {
+    [NOI_HELP]      = { L'-', L"help",      OPTARG_NONE,     &normal_options, },
+    [NOI_VERSION]   = { L'V', L"version",   OPTARG_NONE,     NULL, },
+    [NOI_NOPROFILE] = { L'-', L"noprofile", OPTARG_NONE,     NULL, },
+    [NOI_NORCFILE]  = { L'-', L"norcfile",  OPTARG_NONE,     NULL, },
+    [NOI_PROFILE]   = { L'-', L"profile",   OPTARG_REQUIRED, NULL, },
+    [NOI_RCFILE]    = { L'-', L"rcfile",    OPTARG_REQUIRED, NULL, },
+    [NOI_N]         = { L'\0', NULL, 0, NULL, },
+};
 
-/* The index of the currently parsing option in the `long_options' and
- * `setoptinfo' arrays. */
-int setoptindex;
 
 
-/* Sets the option specified by `setoptindex'. */
-bool set_option(void)
+/********** Functions **********/
+
+static wchar_t *normalize_option_name(const wchar_t *optname)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static int parse_short_option(void *const *argv, bool enable,
+	struct shell_invocation_T *shell_invocation)
+    __attribute__((nonnull(1)));
+static int parse_option_character(
+	wchar_t opt, bool enable, struct shell_invocation_T *shell_invocation);
+static int parse_long_option(void *const *argv, bool enable,
+	struct shell_invocation_T *shell_invocation)
+    __attribute__((nonnull(1)));
+static void search_shell_options(const wchar_t *optname, plist_T *resultlist)
+    __attribute__((nonnull));
+static void search_normal_options(const wchar_t *optname, plist_T *resultlist,
+	const struct shell_invocation_T *shell_invocation)
+    __attribute__((nonnull(1,2)));
+static int handle_search_result(plist_T *options, void *const *argv,
+	bool enable, size_t shelloptindex, size_t noshelloptindex,
+	struct shell_invocation_T *shell_invocation)
+    __attribute__((nonnull));
+static int set_shell_option(const struct option_T *option, bool enable,
+	struct shell_invocation_T *shell_invocation)
+    __attribute__((nonnull(1)));
+#if YASH_ENABLE_LINEEDIT
+static void update_lineedit_option(void);
+static void update_le_convmeta_option(void);
+#endif
+static int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
+	struct shell_invocation_T *shell_invocation)
+    __attribute__((nonnull(1)));
+
+/* Parses the specified command line arguments and accordingly sets the shell
+ * options and positional parameters.
+ * When this function is called from the `main' function of the shell,
+ * `shell_invocation' must be a pointer to a structure to which parse result is
+ * stored. Otherwise, that is, when called from the set built-in,
+ * `shell_invocation' must be NULL.
+ * Positional parameters are set only when `shell_invocation' is NULL.
+ * `xoptind' is set to the index of the first operand.
+ * Returns Exit_SUCCESS if successful. Otherwise, returns Exit_FAILURE or
+ * Exit_ERROR after printing an error message. */
+int parse_shell_options(int argc, void *const *argv,
+	struct shell_invocation_T *shell_invocation)
 {
-    const struct setoptinfo_T *info = &setoptinfo[setoptindex];
-    if (info->func == (setoptfunc_T *) 0)
-	return false;
-    info->func(info->argp);
-    return true;
-}
+    /* We don't use the xgetopt function because of the non-standard syntax. */
+    for (xoptind = 1; xoptind < argc; xoptind++) {
+	const wchar_t *arg = ARGV(xoptind);
+	bool enable;
+	switch (arg[0]) {
+	    case L'-':  enable = true;   break;
+	    case L'+':  enable = false;  break;
+	    default:    goto main;
+	}
 
-/* Sets the option specified by character `c'.
- * An unrecognized character is ignored. */
-void set_single_option(wchar_t c)
-{
-    switch (c) {
-	case L'a':  setoptindex = SHOPT_ALLEXPORT;  break;
-	case L'h':  setoptindex = SHOPT_HASHONDEF;  break;
-	case L'C':  setoptindex = SHOPT_NOCLOBBER;  break;
-	case L'f':  setoptindex = SHOPT_NOGLOB;     break;
-	case L'e':  setoptindex = SHOPT_ERREXIT;    break;
-	case L'u':  setoptindex = SHOPT_NOUNSET;    break;
-	case L'n':  setoptindex = SHOPT_NOEXEC;     break;
-	case L'v':  setoptindex = SHOPT_VERBOSE;    break;
-	case L'x':  setoptindex = SHOPT_XTRACE;     break;
-	case L'm':  setoptindex = SHOPT_MONITOR;    break;
-	case L'b':  setoptindex = SHOPT_NOTIFY;     break;
-	default:    return;
+	if (arg[1] == L'\0') {
+	    if (enable && shell_invocation != NULL)  /* ignore first "-" */
+		xoptind++;
+	    goto main;
+	}
+
+	int result;
+	if (arg[0] == arg[1]) {
+	    if (arg[2] == L'\0') {
+		if (enable)  /* `arg' is L"--" */
+		    xoptind++;
+		goto set_positional_parameters;
+	    }
+
+	    /* parse a long option */
+	    result = parse_long_option(argv, enable, shell_invocation);
+	} else {
+	    /* parse short options */
+	    result = parse_short_option(argv, enable, shell_invocation);
+	}
+	if (result != Exit_SUCCESS)
+	    return result;
     }
-    set_option();
+
+main:
+    if (xoptind < argc) {
+set_positional_parameters:
+	assert(xoptind <= argc);
+	if (shell_invocation == NULL)
+	    set_positional_parameters(&argv[xoptind]);
+    }
+
+    return Exit_SUCCESS;
 }
 
-/* Switches the setting of the specified long option.
- * Options that can only be used in shell initialization are ignored.
- * Returns true if successful, false for invalid options. */
-bool set_long_option(const wchar_t *s)
+/* Returns a newly malloced string containing the same string as the argument
+ * string except that the returned string does not contain non-alphanumeric
+ * characters. */
+wchar_t *normalize_option_name(const wchar_t *optname)
 {
-    for (const struct xoption *optp = set_long_options; optp->name; optp++) {
-	if (wcscmp(s, optp->name) == 0) {
-	    if (optp->arg == OPTARG_NONE) {
-		setoptindex = optp - long_options;
-		return set_option();
+    xwcsbuf_T result;
+    wb_init(&result);
+    for (const wchar_t *s = optname; *s != L'\0'; s++)
+	if (iswalnum(*s))
+	    wb_wccat(&result, *s);
+    return wb_towcs(&result);
+}
+
+/* Parses the single-character option at `xoptind' in the specified arguments
+ * and enables/disables the option.
+ * Returns Exit_SUCCESS iff successful. Prints an error message on error. */
+int parse_short_option(void *const *argv, bool enable,
+	struct shell_invocation_T *shell_invocation)
+{
+    const wchar_t *optstr = ARGV(xoptind);
+    int result = Exit_SUCCESS;
+
+    assert(optstr[0] != L'\0');
+    for (size_t i = 1; result == Exit_SUCCESS && optstr[i] != L'\0'; i++) {
+	if (optstr[i] == L'o') {
+	    const wchar_t *optname = &optstr[i + 1];
+	    if (*optname == L'\0') {
+		optname = ARGV(++xoptind);;
+		if (optname == NULL) {
+		    xerror(0, Ngt("the -%lc option requires an argument"),
+			    (wint_t) L'o');
+		    return Exit_ERROR;
+		}
+	    }
+
+	    plist_T options;
+	    size_t shelloptindex;
+
+	    wchar_t *normoptname = normalize_option_name(optname);
+	    pl_init(&options);
+	    search_shell_options(normoptname, &options);
+	    shelloptindex = options.length;
+	    if (matchwcsprefix(normoptname, L"no"))
+		search_shell_options(&normoptname[2], &options);
+	    free(normoptname);
+
+	    result = handle_search_result(&options, argv, enable,
+		    shelloptindex, options.length, shell_invocation);
+	} else {
+	    result = parse_option_character(
+		    optstr[i], enable, shell_invocation);
+	}
+    }
+    return result;
+}
+
+/* Parses the specified single-character option and enables/disables the option.
+ * Returns Exit_SUCCESS iff successful. Prints an error message on error. */
+int parse_option_character(
+	wchar_t opt, bool enable, struct shell_invocation_T *shell_invocation)
+{
+    assert(opt != L'\0');
+    for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
+	if (opt == o->shortopt_enable)
+	    return set_shell_option(o, enable, shell_invocation);
+	else if (opt == o->shortopt_disable)
+	    return set_shell_option(o, !enable, shell_invocation);
+    }
+    if (opt != L'-') {
+	const struct xgetopt_T *o;
+	for (o = normal_options; o->shortopt != L'\0'; o++) {
+	    if (opt == o->shortopt &&
+		    (shell_invocation != NULL || o->ptr != NULL))
+		return set_normal_option(o, NULL, shell_invocation);
+	}
+    }
+
+    xerror(0, Ngt("`%ls' is not a valid option"), (wchar_t[]) { opt, L'\0' });
+    return Exit_ERROR;
+}
+
+/* Parses the long option at `xoptind' in the specified arguments and
+ * enables/disables the option.
+ * Returns Exit_SUCCESS iff successful. Prints an error message on error. */
+int parse_long_option(void *const *argv, bool enable,
+	struct shell_invocation_T *shell_invocation)
+{
+    const wchar_t *optstr = ARGV(xoptind);
+    plist_T options;
+    size_t shelloptindex, noshelloptindex;
+
+    pl_init(&options);
+
+    /* No long options are available in the POSIXly correct mode. */
+    if (posixly_correct) {
+	shelloptindex = noshelloptindex = 0;
+	goto end;
+    }
+
+    wchar_t *optname = normalize_option_name(optstr);
+
+    search_shell_options(optname, &options);
+    shelloptindex = options.length;
+
+    if (matchwcsprefix(optname, L"no"))
+	search_shell_options(&optname[2], &options);
+    noshelloptindex = options.length;
+
+    free(optname);
+
+    if (enable) {
+	assert(matchwcsprefix(optstr, L"--"));
+	search_normal_options(&optstr[2], &options, shell_invocation);
+    }
+
+end:
+    return handle_search_result(&options, argv, enable,
+	    shelloptindex, noshelloptindex, shell_invocation);
+}
+
+/* Adds pointers to shell options (struct option_T) whose names match `optname'
+ * to the specified list.
+ * If `optname' exactly matches one of the shell option names, `resultlist' is
+ * cleared and only a pointer to that option is added. */
+void search_shell_options(const wchar_t *optname, plist_T *resultlist)
+{
+    for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
+	const wchar_t *s = matchwcsprefix(o->longopt, optname);
+	if (s != NULL) {
+	    if (*s == L'\0') {
+		/* exact match! */
+		pl_clear(resultlist, 0);
+		pl_add(resultlist, o);
+		break;
 	    } else {
-		return false;
+		/* partial match */
+		pl_add(resultlist, o);
 	    }
 	}
     }
-    return false;
 }
 
-/* This function does nothing. */
-void set_ignore_option(void *argp __attribute__((unused))) { }
-
-/* Changes the setting of a boolean option according to the current `xoptopt'.
- * `argp' must be a pointer to a boolean value. */
-void set_bool_option(void *argp)
+/* Adds to `resultlist' pointers to shell options (struct option_T) whose names
+ * match `optname'.
+ * If `optname' exactly matches one of shell option names, `resultlist' is
+ * cleared and only a pointer to that option is added. */
+void search_normal_options(const wchar_t *optname, plist_T *resultlist,
+	const struct shell_invocation_T *shell_invocation)
 {
-    bool *optp = argp;
-    *optp = (xoptopt == L'-');
+    size_t namelen = wcscspn(optname, L"=");
+    for (const struct xgetopt_T *o = normal_options; o->longopt != NULL; o++) {
+	if (wcsncmp(o->longopt, optname, namelen) == 0 &&
+		(shell_invocation != NULL || o->ptr != NULL)) {
+	    if (o->longopt[namelen] == L'\0') {
+		/* exact match! */
+		pl_clear(resultlist, 0);
+		pl_add(resultlist, o);
+		break;
+	    } else {
+		/* partial match */
+		pl_add(resultlist, o);
+	    }
+	}
+    }
 }
 
-/* Changes the setting of the `-m' (--monitor) option.
- * This function's behavior depends on the value of `shell_pgid'. */
-void set_monitor_option(void *argp __attribute__((unused)))
+/* Handles the result of option search.
+ * List `options' must contain pointers to options (struct option_T/xgetopt_T)
+ * that match the currently parsed option name. List members with indices less
+ * than `noshelloptindex' are pointers to shell options (struct option_T) and
+ * the others to normal options (struct xgetopt_T). Inverting shell options,
+ * which have the "no" prefix in their names, must have indices no less than
+ * `shelloptindex'. The list is destroyed in this function. */
+int handle_search_result(plist_T *options, void *const *argv, bool enable,
+	size_t shelloptindex, size_t noshelloptindex,
+	struct shell_invocation_T *shell_invocation)
 {
-    do_job_control = (xoptopt == L'-');
-    if (shell_pgid != 0) {
+    assert(shelloptindex <= noshelloptindex);
+    assert(noshelloptindex <= options->length);
+
+    const wchar_t *optstr = ARGV(xoptind);
+
+    switch (options->length) {
+	case 0:
+	    pl_destroy(options);
+	    xerror(0, Ngt("`%ls' is not a valid option"), optstr);
+	    return Exit_ERROR;
+	case 1:
+	    if (noshelloptindex > 0) {
+		const struct option_T *opt = options->contents[0];
+		pl_destroy(options);
+		if (shelloptindex == 0)
+		    enable = !enable;
+		return set_shell_option(opt, enable, shell_invocation);
+	    } else {
+		const struct xgetopt_T *opt = options->contents[0];
+		const wchar_t *eq = wcschr(optstr, L'=');
+		const wchar_t *optarg;
+		pl_destroy(options);
+		if (opt->optarg != OPTARG_NONE) {
+		    if (eq == NULL) {
+			switch (opt->optarg) {
+			    case OPTARG_OPTIONAL:
+				optarg = NULL;
+				break;
+			    case OPTARG_REQUIRED:
+				optarg = ARGV(++xoptind);
+				if (optarg == NULL) {
+				    xerror(0, Ngt("the --%ls option requires "
+						"an argument"), opt->longopt);
+				    return Exit_ERROR;
+				}
+				break;
+			    default:
+				assert(false);
+			}
+		    } else {
+			optarg = &eq[1];
+		    }
+		} else {
+		    if (eq != NULL) {
+			xerror(0, Ngt("%ls: the --%ls option does not take "
+				    "an argument"), optstr, opt->longopt);
+			return Exit_ERROR;
+		    }
+		    optarg = NULL;
+		}
+		return set_normal_option(opt, optarg, shell_invocation);
+	    }
+	default:
+	    xerror(0, Ngt("option `%ls' is ambiguous"), optstr);
+#if 1
+	    size_t i = 0;
+	    for (; i < shelloptindex; i++)
+		fprintf(stderr, "\t--%ls\n",
+		    ((const struct option_T *) options->contents[i])->longopt);
+	    for (; i < noshelloptindex; i++)
+		fprintf(stderr, "\t--no%ls\n",
+		    ((const struct option_T *) options->contents[i])->longopt);
+	    for (; i < options->length; i++)
+		fprintf(stderr, "\t--%ls\n",
+		    ((const struct xgetopt_T *) options->contents[i])->longopt);
+#endif
+	    pl_destroy(options);
+	    return Exit_ERROR;
+    }
+}
+
+/* Sets the specified shell option.
+ * Returns Exit_SUCCESS iff successful. Print an error message on error. */
+int set_shell_option(const struct option_T *option, bool enable,
+	struct shell_invocation_T *shell_invocation)
+{
+    if (shell_invocation == NULL && !option->resettable) {
+	xerror(0, Ngt("the %ls option cannot be changed "
+		    "once the shell has been initialized"),
+		option->longopt);
+	return Exit_ERROR;
+    }
+
+    *option->optp = enable;
+
+    if (shell_invocation != NULL) {
+	if (option->optp == &is_interactive)
+	    shell_invocation->is_interactive_set = true;
+	else if (option->optp == &do_job_control)
+	    shell_invocation->do_job_control_set = true;
+    }
+    if (shell_invocation == NULL && option->optp == &do_job_control) {
 	if (do_job_control && ttyfd < 0)
 	    open_ttyfd();
-	reset_job_signals();
 	if (do_job_control)
 	    ensure_foreground();
+	reset_job_signals();
     }
-    /* When `shell_pgid' is zero, the shell is under initialization;
-     * `open_ttyfd' and other functions are called later in the `main'
-     * function. */
+#if YASH_ENABLE_LINEEDIT
+    if (option->optp == &shopt_vi) {
+	if (enable)
+	    shopt_emacs = false;
+	update_lineedit_option();
+	if (shell_invocation != NULL)
+	    shell_invocation->lineedit_set = true;
+    } else if (option->optp == &shopt_emacs) {
+	if (enable)
+	    shopt_vi = false;
+	update_lineedit_option();
+	if (shell_invocation != NULL)
+	    shell_invocation->lineedit_set = true;
+    } else if (option->optp == &shopt_le_yesconvmeta) {
+	if (enable)
+	    shopt_le_noconvmeta = false;
+	update_le_convmeta_option();
+    } else if (option->optp == &shopt_le_noconvmeta) {
+	if (enable)
+	    shopt_le_yesconvmeta = false;
+	update_le_convmeta_option();
+    }
+#endif
+
+    return (*option->optp == enable) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_LINEEDIT
 
-/* Changes the setting of the vi/emacs option. */
-void set_lineedit_option(void *argp __attribute__((unused)))
+/* Updates the value of `shopt_lineedit' according to the values of `shopt_vi'
+ * and `shopt_emacs'. */
+void update_lineedit_option(void)
 {
-    enum shopt_lineedit_T opt;
+    if (shopt_vi)
+	shopt_lineedit = SHOPT_VI;
+    else if (shopt_emacs)
+	shopt_lineedit = SHOPT_EMACS;
+    else
+	shopt_lineedit = SHOPT_NOLINEEDIT;
+}
 
-    switch (setoptindex) {
-	case SHOPT_VI:     opt = shopt_vi;     break;
-	case SHOPT_EMACS:  opt = shopt_emacs;  break;
-	default:           return;
-    }
-    if (xoptopt == L'-') {
-	shopt_lineedit = opt;
-	/* turn on line editing */
+/* Updates the value of `shopt_le_convmeta' according to the values of
+ * `shopt_le_yesconvmeta' and `shopt_le_noconvmeta'. */
+void update_le_convmeta_option(void)
+{
+    if (shopt_le_yesconvmeta)
+	shopt_le_convmeta = SHOPT_YES;
+    else if (shopt_le_noconvmeta)
+	shopt_le_convmeta = SHOPT_NO;
+    else
+	shopt_le_convmeta = SHOPT_AUTO;
+}
+
+#endif
+
+/* Sets the specified normal option.
+ * Returns Exit_SUCCESS iff successful. Print an error message on error. */
+int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
+	struct shell_invocation_T *shell_invocation)
+{
+    enum normal_option_index_T index = opt - normal_options;
+
+    if (shell_invocation == NULL) {
+	switch (index) {
+	    case NOI_HELP:
+		return print_builtin_help(L"set");
+	    default:
+		assert(false);
+	}
     } else {
-	/* turn off line editing */
-	if (shopt_lineedit == opt)
-	    shopt_lineedit = shopt_nolineedit;
+	switch (index) {
+	    case NOI_HELP:
+		shell_invocation->help = true;
+		break;
+	    case NOI_VERSION:
+		shell_invocation->version = true;
+		break;
+	    case NOI_NOPROFILE:
+		shell_invocation->noprofile = true;
+		break;
+	    case NOI_NORCFILE:
+		shell_invocation->norcfile = true;
+		break;
+	    case NOI_PROFILE:
+		assert(arg != NULL);
+		shell_invocation->profile = arg;
+		break;
+	    case NOI_RCFILE:
+		assert(arg != NULL);
+		shell_invocation->rcfile = arg;
+		break;
+	    case NOI_N:
+		assert(false);
+	}
+    }
+    return Exit_SUCCESS;
+}
+
+#if YASH_ENABLE_LINEEDIT
+
+/* Sets the line-editing option to the specified value. */
+void set_lineedit_option(enum shopt_lineedit_T v)
+{
+    shopt_vi = shopt_emacs = false;
+    shopt_lineedit = v;
+    switch (v) {
+	case SHOPT_VI:          shopt_vi    = true;  break;
+	case SHOPT_EMACS:       shopt_emacs = true;  break;
+	case SHOPT_NOLINEEDIT:  break;
     }
 }
 
-/* Changes the setting of the le-convmeta option. */
-void set_le_convmeta_option(void *argp __attribute__((unused)))
-{
-    bool value = (xoptopt == L'-');
-    if (value)
-	shopt_le_convmeta = shopt_yes;
-    else if (shopt_le_convmeta == shopt_yes)
-	shopt_le_convmeta = shopt_auto;
-}
-
-/* Changes the setting of the le-noconvmeta option. */
-void set_le_noconvmeta_option(void *argp __attribute__((unused)))
-{
-    bool value = (xoptopt == L'-');
-    if (value)
-	shopt_le_convmeta = shopt_no;
-    else if (shopt_le_convmeta == shopt_no)
-	shopt_le_convmeta = shopt_auto;
-}
-
-#endif /* YASH_ENABLE_LINEEDIT */
+#endif
 
 /* Returns the current value of special parameter $- as a newly malloced string.
  */
@@ -430,36 +744,35 @@ wchar_t *get_hyphen_parameter(void)
     xwcsbuf_T buf;
     wb_init(&buf);
 
-    if (shopt_allexport)   wb_wccat(&buf, L'a');
-    if (shopt_notify)      wb_wccat(&buf, L'b');
-    if (shopt_read_arg)    wb_wccat(&buf, L'c');
-    if (shopt_errexit)     wb_wccat(&buf, L'e');
-    if (shopt_noglob)      wb_wccat(&buf, L'f');
-    if (shopt_hashondef)   wb_wccat(&buf, L'h');
-    if (is_interactive)    wb_wccat(&buf, L'i');
-    if (is_login_shell)    wb_wccat(&buf, L'l');
-    if (do_job_control)    wb_wccat(&buf, L'm');
-    if (shopt_noexec)      wb_wccat(&buf, L'n');
-    if (shopt_read_stdin)  wb_wccat(&buf, L's');
-    if (shopt_nounset)     wb_wccat(&buf, L'u');
-    if (shopt_verbose)     wb_wccat(&buf, L'v');
-    if (shopt_xtrace)      wb_wccat(&buf, L'x');
-    if (shopt_noclobber)   wb_wccat(&buf, L'C');
+    for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
+	if (o->shortopt_enable != L'\0' && *o->optp)
+	    wb_wccat(&buf, o->shortopt_enable);
+	if (o->shortopt_disable != L'\0' && !*o->optp)
+	    wb_wccat(&buf, o->shortopt_disable);
+    }
 
     return wb_towcs(&buf);
 }
 
 
-/********** Builtin **********/
+/********** Built-in **********/
+
+static const struct xgetopt_T all_help_options[] = {
+    { L'a', L"all",  OPTARG_NONE, NULL, },
+    { L'-', L"help", OPTARG_NONE, NULL, },
+    { L'\0', NULL, 0, NULL, },
+};
+
+const struct xgetopt_T *const all_option  = &all_help_options[0];
+const struct xgetopt_T *const help_option = &all_help_options[1];
+
 
 static int set_builtin_print_current_settings(void);
 static int set_builtin_print_restoring_commands(void);
 
-/* The "set" builtin. */
+/* The "set" built-in. */
 int set_builtin(int argc, void **argv)
 {
-    wchar_t opt;
-
     if (argc <= 1) {
 	return typeset_builtin(argc, argv);
     } else if (argc == 2) {
@@ -469,168 +782,33 @@ int set_builtin(int argc, void **argv)
 	    return set_builtin_print_restoring_commands();
     }
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    L"+*o:" SHELLSET_OPTIONS,
-		    set_long_options,
-		    &setoptindex)))
-    {
-	switch (opt) {
-	    case L'L':
-		setoptindex += SHOPT_setopt;
-		set_option();
-		break;
-	    case L'o':
-		if (!set_long_option(xoptarg)) {
-		    xerror(0, Ngt("%lco %ls: invalid option"),
-			    (wint_t) xoptopt, xoptarg);
-		    goto optionerror;
-		}
-		break;
-#if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
-#endif
-	    case L'?':  optionerror:
-		fprintf(stderr,
-		    gt("Usage:  set [-abefhmnuvxC] [-o option] [+o option] "
-			"[arg...]\n"));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
-	    default:
-		set_single_option(opt);
-		break;
-	}
-    }
-
-    /* set positional parameters */
-    if (xoptind < argc ||
-	    (xoptind == argc && wcscmp(ARGV(xoptind - 1), L"--") == 0))
-	set_positional_parameters(argv + xoptind);
-
-    return Exit_SUCCESS;
+    return parse_shell_options(argc, argv, NULL);
 }
 
 int set_builtin_print_current_settings(void)
 {
-    bool err = false;
     const char *vals[] = {
 	[true]  = gt("on"),
 	[false] = gt("off"),
     };
-#define PRINTSETTING(name,value) \
-    (err |= printf("%-15ls %s\n", L"" #name, vals[(bool) (value)]) < 0)
 
-    PRINTSETTING(allexport, shopt_allexport);
-    PRINTSETTING(braceexpand, shopt_braceexpand);
-    PRINTSETTING(curasync, shopt_curasync);
-    PRINTSETTING(curbg, shopt_curbg);
-    PRINTSETTING(curstop, shopt_curstop);
-    PRINTSETTING(dotglob, shopt_dotglob);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
-#endif
-    PRINTSETTING(errexit, shopt_errexit);
-    PRINTSETTING(extendedglob, shopt_extendedglob);
-    PRINTSETTING(hashondef, shopt_hashondef);
-    PRINTSETTING(histspace, shopt_histspace);
-    PRINTSETTING(ignoreeof, shopt_ignoreeof);
-    PRINTSETTING(interactive, is_interactive);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(le-alwaysrp, shopt_le_alwaysrp);
-    PRINTSETTING(le-compdebug, shopt_le_compdebug);
-    PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
-    PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
-    PRINTSETTING(le-promptsp, shopt_le_promptsp);
-    PRINTSETTING(le-visiblebell, shopt_le_visiblebell);
-#endif
-    PRINTSETTING(login, is_login_shell);
-    PRINTSETTING(markdirs, shopt_markdirs);
-    PRINTSETTING(monitor, do_job_control);
-    PRINTSETTING(nocaseglob, shopt_nocaseglob);
-    PRINTSETTING(noclobber, shopt_noclobber);
-    PRINTSETTING(noexec, shopt_noexec);
-    PRINTSETTING(noglob, shopt_noglob);
-    //PRINTSETTING(nolog, shopt_nolog);
-    PRINTSETTING(notify, shopt_notify);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(notifyle, shopt_notifyle);
-#endif
-    PRINTSETTING(nounset, shopt_nounset);
-    PRINTSETTING(nullglob, shopt_nullglob);
-    PRINTSETTING(posix, posixly_correct);
-    PRINTSETTING(verbose, shopt_verbose);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(vi, shopt_lineedit == shopt_vi);
-#endif
-    PRINTSETTING(xtrace, shopt_xtrace);
-#undef PRINTSETTING
-
-    if (!err) {
-	return Exit_SUCCESS;
-    } else {
-	xerror(errno, Ngt("cannot print to the standard output"));
-	return Exit_FAILURE;
+    for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
+	if (!xprintf("%-15ls %s\n", o->longopt, vals[(bool) *o->optp]))
+	    return Exit_FAILURE;
     }
+
+    return Exit_SUCCESS;
 }
 
 int set_builtin_print_restoring_commands(void)
 {
-    bool err = false;
-#define PRINTSETTING(name,value) \
-    (err |= printf("set %co %ls\n", (value) ? '-' : '+', L"" #name) < 0)
-
-    PRINTSETTING(allexport, shopt_allexport);
-    PRINTSETTING(braceexpand, shopt_braceexpand);
-    PRINTSETTING(curasync, shopt_curasync);
-    PRINTSETTING(curbg, shopt_curbg);
-    PRINTSETTING(curstop, shopt_curstop);
-    PRINTSETTING(dotglob, shopt_dotglob);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(emacs, shopt_lineedit == shopt_emacs);
-#endif
-    PRINTSETTING(errexit, shopt_errexit);
-    PRINTSETTING(extendedglob, shopt_extendedglob);
-    PRINTSETTING(hashondef, shopt_hashondef);
-    PRINTSETTING(histspace, shopt_histspace);
-    PRINTSETTING(ignoreeof, shopt_ignoreeof);
-    //PRINTSETTING(interactive, is_interactive);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(le-alwaysrp, shopt_le_alwaysrp);
-    PRINTSETTING(le-compdebug, shopt_le_compdebug);
-    PRINTSETTING(le-convmeta, shopt_le_convmeta == shopt_yes);
-    PRINTSETTING(le-noconvmeta, shopt_le_convmeta == shopt_no);
-    PRINTSETTING(le-promptsp, shopt_le_promptsp);
-    PRINTSETTING(le-visiblebell, shopt_le_visiblebell);
-#endif
-    //PRINTSETTING(login, is_login_shell);
-    PRINTSETTING(markdirs, shopt_markdirs);
-    PRINTSETTING(monitor, do_job_control);
-    PRINTSETTING(nocaseglob, shopt_nocaseglob);
-    PRINTSETTING(noclobber, shopt_noclobber);
-    PRINTSETTING(noexec, shopt_noexec);
-    PRINTSETTING(noglob, shopt_noglob);
-    //PRINTSETTING(nolog, shopt_nolog);
-    PRINTSETTING(notify, shopt_notify);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(notifyle, shopt_notifyle);
-#endif
-    PRINTSETTING(nounset, shopt_nounset);
-    PRINTSETTING(nullglob, shopt_nullglob);
-    PRINTSETTING(posix, posixly_correct);
-    PRINTSETTING(verbose, shopt_verbose);
-#if YASH_ENABLE_LINEEDIT
-    PRINTSETTING(vi, shopt_lineedit == shopt_vi);
-#endif
-    PRINTSETTING(xtrace, shopt_xtrace);
-#undef PRINTSETTING
-
-    if (!err) {
-	return Exit_SUCCESS;
-    } else {
-	xerror(errno, Ngt("cannot print to the standard output"));
-	return Exit_FAILURE;
+    for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
+	if (o->resettable)
+	    if (!xprintf("set %co %ls\n", *o->optp ? '-' : '+', o->longopt))
+		return Exit_FAILURE;
     }
+
+    return Exit_SUCCESS;
 }
 
 #if YASH_ENABLE_HELP
@@ -669,11 +847,11 @@ const char *set_help[] = { Ngt(
 "\tExit the shell immediately when any simple command returns a\n"
 "\tnon-zero status.\n"
 ), Ngt(
-" -f --noglob\n"
-"\tDisable pathname expansion (globbing).\n"
+" +f --glob\n"
+"\tPerform pathname expansion (globbing).\n"
 ), Ngt(
-" --nocaseglob\n"
-"\tPerform pathname expansion case-insensitively.\n"
+" --caseglob\n"
+"\tPerform pathname expansion case-sensitively.\n"
 ), Ngt(
 " --dotglob\n"
 "\tIn pathname expansion, `*' and `?' match a `.' at the beginning of\n"
@@ -699,13 +877,11 @@ const char *set_help[] = { Ngt(
 "\tthe next prompt. This option is enabled by default for an interactive\n"
 "\tshell.\n"
 ), Ngt(
-" -n --noexec\n"
-"\tCommands are parsed, but not executed.\n"
-"\tUseful for syntax checking of a shell script file.\n"
+" +n --exec\n"
+"\tExecute commands.\n"
 ), Ngt(
-" -u --nounset\n"
-"\tExpanding an undefined variable causes an error rather than\n"
-"\texpanding to an empty string.\n"
+" +u --unset\n"
+"\tExpand an undefined variable to an empty string.\n"
 ), Ngt(
 " -v --verbose\n"
 "\tEcho each command to the standard error before execution.\n"
@@ -714,8 +890,8 @@ const char *set_help[] = { Ngt(
 "\tAfter each command line is expanded, the expanded line is printed\n"
 "\tto the standard error.\n"
 ), Ngt(
-" -C --noclobber\n"
-"\tPrevent existent files from being overridden by the `>' redirection.\n"
+" +C --clobber\n"
+"\tAllow redirections to overwrite existing files.\n"
 ), Ngt(
 " --ignoreeof\n"
 "\tDo not exit when an EOF is entered.\n"
@@ -764,9 +940,10 @@ const char *set_help[] = { Ngt(
 ), (
 "\n"
 ), Ngt(
-"To disable options, put `+' before the option characters instead of `-'.\n"
-"Long options in the form of `--xxx' are equivalent to `-o xxx'.\n"
-"Use `+o xxx' to turn off a long option. You cannot use `+-xxx' or `++xxx'.\n"
+"Options can be disabled by using `+' instead of `-'. For example, `set +a'\n"
+"or `set ++allexport' disables the allexport option.\n"
+"Prefixing `no' to a long option also disables the option. For example,\n"
+"`set --nounset' disables the unset option.\n"
 ), NULL };
 #endif /* YASH_ENABLE_HELP */
 

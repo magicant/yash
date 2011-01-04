@@ -57,7 +57,7 @@ extern int main(int argc, char **argv)
     __attribute__((nonnull));
 static struct input_file_info *new_input_file_info(int fd, size_t bufsize)
     __attribute__((malloc,warn_unused_result));
-static void execute_profile(void);
+static void execute_profile(const wchar_t *profile);
 static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
 static void print_version(void);
@@ -88,13 +88,7 @@ struct input_file_info *stdin_input_file_info;
 int main(int argc, char **argv)
 {
     void *wargv[argc + 1];
-    bool help = false, version = false;
-    bool do_job_control_set = false, is_interactive_set = false;
-    bool noprofile = false, norcfile = false;
-    bool option_error = false;
-    wchar_t opt;
     const wchar_t *shortest_name;
-    const wchar_t *rcfile = NULL;
 
     setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
     setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
@@ -137,99 +131,12 @@ int main(int argc, char **argv)
     if (wcscmp(shortest_name, L"sh") == 0)
 	posixly_correct = true;
 
-    /* parse options */
-    xoptind = 0;
-    xopterr = true;
-    while (!option_error &&
-	    (opt = xgetopt_long(wargv,
-		    L"+*cilo:sV" SHELLSET_OPTIONS,
-		    shell_long_options,
-		    &setoptindex))) {
-	switch (opt) {
-	case L'c':
-	    if (xoptopt != L'-') {
-		xerror(0, Ngt("%lc%lc: invalid option"),
-			(wint_t) xoptopt, (wint_t) L'c');
-		option_error = true;
-	    }
-	    shopt_read_arg = true;
-	    break;
-	case L'i':
-	    is_interactive = (xoptopt == L'-');
-	    is_interactive_set = true;
-	    break;
-	case L'l':
-	    is_login_shell = (xoptopt == L'-');
-	    break;
-	case L'L':
-	    set_option();
-	    break;
-	case L'o':
-	    do_job_control_set |= wcscmp(xoptarg, L"monitor") == 0;
-	    if (!set_long_option(xoptarg)) {
-		xerror(0, Ngt("%lco %ls: invalid option"),
-			(wint_t) xoptopt, xoptarg);
-		option_error = true;
-	    }
-	    break;
-	case L's':
-	    if (xoptopt != L'-') {
-		xerror(0, Ngt("%lc%lc: invalid option"),
-			(wint_t) xoptopt, (wint_t) L's');
-		option_error = true;
-	    }
-	    shopt_read_stdin = true;
-	    break;
-	case L'V':
-	    version = true;
-	    break;
-	case L'(':
-	    noprofile = true;
-	    break;
-	case L')':
-	    norcfile = true;
-	    break;
-	case L'!':
-	    rcfile = xoptarg;
-	    break;
-	case L'-':
-	    help = true;
-	    break;
-	case L'?':
-	    option_error = true;
-	    break;
-	case L'm':
-	    do_job_control_set = true;
-	    /* falls thru! */
-	default:
-	    set_single_option(opt);
-	    break;
-	}
-    }
-
-    if (option_error) {
-	print_help();
-	exit(Exit_ERROR);
-    }
-    if (version)
-	print_version();
-    if (help)
-	print_help();
-    if (version || help)
-	exit(Exit_SUCCESS);
-
-    /* ignore "-" if it's the first argument */
-    if (wargv[xoptind] && wcscmp(wargv[xoptind], L"-") == 0)
-	xoptind++;
-
-    /* `shell_pgid' must be initialized after the options have been parsed.
-     * This is required for the `set_monitor_option' function to work. */
     shell_pid = getpid();
     shell_pgid = getpgrp();
     stdin_input_file_info = new_input_file_info(STDIN_FILENO, 1);
     init_cmdhash();
     init_homedirhash();
-    init_variables();
+    init_environment();
     init_signal();
     init_shellfds();
     init_job();
@@ -238,17 +145,33 @@ int main(int argc, char **argv)
     init_alias();
 #endif
 
+    struct shell_invocation_T options = {
+	.profile = NULL, .rcfile = NULL,
+    };
+
+    int optresult = parse_shell_options(argc, wargv, &options);
+    if (optresult != Exit_SUCCESS)
+	exit(optresult);
+    if (options.version)
+	print_version();
+    if (options.help)
+	print_help();
+    if (options.version || options.help)
+	exit(yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE);
+
+    init_variables();
+
     union {
 	wchar_t *command;
 	int fd;
     } input;
     const char *inputname;
 
-    if (shopt_read_arg && shopt_read_stdin) {
+    if (shopt_cmdline && shopt_stdin) {
 	xerror(0, Ngt("the -c and -s options cannot be used both at once"));
 	exit(Exit_ERROR);
     }
-    if (shopt_read_arg) {
+    if (shopt_cmdline) {
 	input.command = wargv[xoptind++];
 	if (input.command == NULL) {
 	    xerror(0, Ngt("the -c option is specified "
@@ -263,11 +186,11 @@ int main(int argc, char **argv)
 	}
     } else {
 	if (argc == xoptind)
-	    shopt_read_stdin = true;
-	if (shopt_read_stdin) {
+	    shopt_stdin = true;
+	if (shopt_stdin) {
 	    input.fd = STDIN_FILENO;
 	    inputname = NULL;
-	    if (!is_interactive_set && argc == xoptind
+	    if (!options.is_interactive_set && argc == xoptind
 		    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
 		is_interactive = true;
 	    unset_nonblocking(STDIN_FILENO);
@@ -286,14 +209,13 @@ int main(int argc, char **argv)
 
 #if YASH_ENABLE_LINEEDIT
     /* enable lineedit if interactive and connected to a terminal */
-    if (is_interactive && shopt_lineedit == shopt_nolineedit)
-	if (!is_interactive_set
-		|| (isatty(STDIN_FILENO) && isatty(STDERR_FILENO)))
-	    shopt_lineedit = shopt_vi;
+    if (!options.lineedit_set && shopt_lineedit == SHOPT_NOLINEEDIT)
+	if (is_interactive && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
+	    set_lineedit_option(SHOPT_VI);
 #endif
 
     is_interactive_now = is_interactive;
-    if (!do_job_control_set)
+    if (!options.do_job_control_set)
 	do_job_control = is_interactive;
     if (do_job_control) {
 	open_ttyfd();
@@ -303,14 +225,14 @@ int main(int argc, char **argv)
     set_signals();
     set_positional_parameters(wargv + xoptind);
 
-    if (is_login_shell && !posixly_correct && !noprofile)
+    if (is_login_shell && !posixly_correct && !options.noprofile)
 	if (getuid() == geteuid() && getgid() == getegid())
-	    execute_profile();
-    if (is_interactive && !norcfile)
+	    execute_profile(options.profile);
+    if (is_interactive && !options.norcfile)
 	if (getuid() == geteuid() && getgid() == getegid())
-	    execute_rcfile(rcfile);
+	    execute_rcfile(options.rcfile);
 
-    if (shopt_read_arg) {
+    if (shopt_cmdline) {
 	exec_wcs(input.command, inputname, true);
     } else {
 	exec_input(input.fd, inputname, is_interactive, true, true);
@@ -329,28 +251,35 @@ struct input_file_info *new_input_file_info(int fd, size_t bufsize)
 }
 
 /* Executes "$HOME/.yash_profile". */
-static void execute_profile(void)
+void execute_profile(const wchar_t *profile)
 {
-    wchar_t *wpath =
-	parse_and_expand_string(L"$HOME/.yash_profile", NULL, false);
-    if (wpath != NULL) {
-	char *path = realloc_wcstombs(wpath);
-	if (path != NULL) {
-	    int fd = move_to_shellfd(open(path, O_RDONLY));
-	    if (fd >= 0) {
-		exec_input(fd, path, false, true, false);
-		remove_shellfd(fd);
-		xclose(fd);
-	    }
-	    free(path);
-	}
+    char *path;
+
+    if (profile != NULL) {
+	path = malloc_wcstombs(profile);
+    } else {
+	wchar_t *wpath =
+	    parse_and_expand_string(L"$HOME/.yash_profile", NULL, false);
+	if (wpath == NULL)
+	    return;
+	path = realloc_wcstombs(wpath);
     }
+    if (path == NULL)
+	return;
+
+    int fd = move_to_shellfd(open(path, O_RDONLY));
+    if (fd >= 0) {
+	exec_input(fd, path, false, true, false);
+	remove_shellfd(fd);
+	xclose(fd);
+    }
+    free(path);
 }
 
 /* Executes the initialization file.
  * `rcfile' is the filename to source.
  * If `rcfile' is NULL, it defaults to "$HOME/.yashrc" or "$ENV". */
-static void execute_rcfile(const wchar_t *rcfile)
+void execute_rcfile(const wchar_t *rcfile)
 {
     char *path;
 
@@ -419,19 +348,15 @@ void print_help(void)
 	printf(gt("Usage:  sh [options] [filename [args...]]\n"
 		  "        sh [options] -c command [command_name [args...]]\n"
 		  "        sh [options] -s [args...]\n"));
-	printf(gt("Options: -il%ls\n"), SHELLSET_OPTIONS);
+	printf(gt("Options: -abCefhilmnuvx\n"));
     } else {
 	printf(gt("Usage:  yash [options] [filename [args...]]\n"
 		  "        yash [options] -c command [command_name [args...]]\n"
 		  "        yash [options] -s [args...]\n"));
-	printf(gt("Options: -il%lsV\n"
-	          "         --interactive --login --noprofile "
-		  "--norcfile --rcfile=filename\n"),
-		SHELLSET_OPTIONS);
+	printf(gt("Options: -abCefhilmnuVvx\n"
+	          "         --interactive --login --noprofile --norcfile \n"
+		  "         --profile=filename --rcfile=filename\n"));
 	printf(gt("Type `set --help' in the shell for other options.\n"));
-//	printf(gt("Long options:\n"));
-//	for (size_t i = 0; shell_long_options[i].name; i++)
-//	    printf("\t--%ls\n", shell_long_options[i].name);
     }
 }
 
@@ -585,7 +510,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	switch (read_and_parse(pinfo, &commands)) {
 	    case PR_OK:
 		if (commands) {
-		    if (!shopt_noexec) {
+		    if (shopt_exec) {
 			exec_and_or_lists(commands,
 				finally_exit && !pinfo->intrinput &&
 				pinfo->lastinputresult == INPUT_EOF);

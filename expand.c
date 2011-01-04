@@ -172,12 +172,12 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     }
 
     /* glob */
-    if (shopt_noglob) {
+    if (shopt_glob) {
+	glob_all(pl_toary(&templist), list);
+    } else {
 	for (size_t i = 0; i < templist.length; i++)
 	    pl_add(list, unescapefree(templist.contents[i]));
 	pl_destroy(&templist);
-    } else {
-	glob_all(pl_toary(&templist), list);
     }
 
     return true;
@@ -271,12 +271,7 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 	return NULL;
 
     /* glob */
-    if (shopt_noglob || !is_pathname_matching_pattern(exp)) {
-noglob:
-	result = realloc_wcstombs(unescapefree(exp));
-	if (!result)
-	    xerror(EILSEQ, Ngt("redirection"));
-    } else {
+    if (shopt_glob && is_pathname_matching_pattern(exp)) {
 	plist_T list;
 	bool ok;
 
@@ -307,6 +302,11 @@ noglob:
 		result = NULL;
 	    }
 	}
+    } else {
+noglob:
+	result = realloc_wcstombs(unescapefree(exp));
+	if (!result)
+	    xerror(EILSEQ, Ngt("redirection"));
     }
     return result;
 }
@@ -836,7 +836,7 @@ subst:
 	break;
     }
 
-    if (shopt_nounset && unset) {
+    if (unset && !shopt_unset) {
 	plfree(list, free);
 	xerror(0, Ngt("parameter `%ls' is not set"), p->pe_name);
 	return false;
@@ -1690,7 +1690,7 @@ wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
 enum wglbflags get_wglbflags(void)
 {
     enum wglbflags flags = 0;
-    if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;
+    if (!shopt_caseglob)    flags |= WGLB_CASEFOLD;
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_markdirs)     flags |= WGLB_MARK;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;

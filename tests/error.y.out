@@ -9,14 +9,40 @@ non-special builtin assignment error 2
 special builtin expansion error 2
 non-special builtin expansion error 2
 command not found error 127
-===== option =====
+===== invocation =====
+-c 2
+-c and -s 1 2
+-c and -s 2 2
+-c and -s 3 2
+-c and -s 4 2
+this is not an error
+-c and -s 5 0
+invalid option argument 1 2
+missing argument profile 2
+missing argument rcfile 2
 ambiguous option 2
+===== option =====
+ambiguous option 1 2
+ambiguous option 2 2
 missing argument 2
+invalid option 1 2
+invalid option 2 2
+invalid option 3 2
 invalid option argument 1 2
 invalid option argument 2 2
 invalid option argument 3 2
 invalid option argument 4 2
 ===== set =====
+set -c 2
+set -i 2
+set -l 2
+set -s 2
+set -V 2
+set --cmdline 2
+set --interactive 2
+set --login 2
+set --stdin 2
+set --version 2
 set no-such-option 2
 set output error 1
 ===== cd =====

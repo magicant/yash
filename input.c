@@ -208,7 +208,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 #if YASH_ENABLE_LINEEDIT
     /* read a line using line editing */
     if (info->fileinfo->fd == STDIN_FILENO
-	    && shopt_lineedit != shopt_nolineedit) {
+	    && shopt_lineedit != SHOPT_NOLINEEDIT) {
 	wchar_t *line;
 	inputresult_T result;
 

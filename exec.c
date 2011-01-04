@@ -2434,10 +2434,10 @@ const char *type_help[] = { Ngt(
 /* The "times" builtin */
 int times_builtin(int argc __attribute__((unused)), void **argv)
 {
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
+	switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));

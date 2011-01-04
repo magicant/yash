@@ -549,11 +549,11 @@ const char *alias_help[] = { Ngt(
 int unalias_builtin(int argc, void **argv)
 {
     bool all = false;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"a", all_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, all_option, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'a':  all = true;  break;
 #if YASH_ENABLE_HELP
 	    case L'-':

@@ -1097,11 +1097,11 @@ const char *jobs_help[] = { Ngt(
 int fg_builtin(int argc, void **argv)
 {
     bool fg = wcscmp(argv[0], L"fg") == 0;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
+	switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -1265,11 +1265,11 @@ int wait_builtin(int argc, void **argv)
 {
     bool jobcontrol = doing_job_control_now;
     int status = Exit_SUCCESS;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"", help_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
+	switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -1383,11 +1383,11 @@ const char *wait_help[] = { Ngt(
 int disown_builtin(int argc, void **argv)
 {
     bool all = false;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"a", all_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, all_option, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'a':  all = true;  break;
 #if YASH_ENABLE_HELP
 	    case L'-':

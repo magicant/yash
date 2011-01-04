@@ -331,11 +331,10 @@ const char *echo_help[] = { Ngt(
 /* The "printf" builtin */
 int printf_builtin(int argc, void **argv)
 {
-    wchar_t opt;
-
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"+", help_option, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, help_option, XGETOPT_POSIX)) != NULL) {
+	switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));

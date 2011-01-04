@@ -70,25 +70,79 @@ echo command not found error $?
 END
 
 
+echo ===== invocation =====
+echo ===== invocation ===== >&2
+
+$INVOKE $TESTEE -c
+echo -c $?
+$INVOKE $TESTEE -c -s
+echo -c and -s 1 $?
+$INVOKE $TESTEE -cs
+echo -c and -s 2 $?
+$INVOKE $TESTEE --cmdlin --stdi
+echo -c and -s 3 $?
+$INVOKE $TESTEE -o cmdlin -o stdi
+echo -c and -s 4 $?
+$INVOKE $TESTEE -c ++cmd-lin -o std_i <<\END
+echo this is not an error
+END
+echo -c and -s 5 $?
+$INVOKE $TESTEE --norc=file
+echo invalid option argument 1 $?
+$INVOKE $TESTEE --profile
+echo missing argument profile $?
+$INVOKE $TESTEE --rcfile
+echo missing argument rcfile $?
+$INVOKE $TESTEE --p
+echo ambiguous option $?
+
 echo ===== option =====
 echo ===== option ===== >&2
 
 set --cu
-echo ambiguous option $?
+echo ambiguous option 1 $?
+set --noh
+echo ambiguous option 2 $?
 set -o nolog +o nolog -o
 echo missing argument $?
-set --nounse=1
+set -C-
+echo invalid option 1 $?
+set -aXb
+echo invalid option 2 $?
+set -o no-such-option
+echo invalid option 3 $?
+set --hel=1
 echo invalid option argument 1 $?
-set --nounse=
+set --hel=
 echo invalid option argument 2 $?
-set --nounset=1
+set --help=1
 echo invalid option argument 3 $?
-set --nounset=
+set --help=
 echo invalid option argument 4 $?
 
 echo ===== set =====
 echo ===== set ===== >&2
 
+set -c
+echo set -c $?
+set -i
+echo set -i $?
+set -l
+echo set -l $?
+set -s
+echo set -s $?
+set -V
+echo set -V $?
+set --cmdl
+echo set --cmdline $?
+set --interactive
+echo set --interactive $?
+set -o log-in
+echo set --login $?
+set --stdin
+echo set --stdin $?
+set --version
+echo set --version $?
 set --no-such-option
 echo set no-such-option $?
 (set >&- 2>/dev/null)

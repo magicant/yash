@@ -6,25 +6,46 @@ Usage:  getopts options var [arg...]
 ../yash: $ro is read-only
 ../yash: parameter `var' is not set
 ../yash: parameter `var' is not set
+===== invocation =====
+../yash: the -c option is specified but no command is given
+../yash: the -c and -s options cannot be used both at once
+../yash: the -c and -s options cannot be used both at once
+../yash: the -c and -s options cannot be used both at once
+../yash: the -c and -s options cannot be used both at once
+../yash: --norc=file: the --norcfile option does not take an argument
+../yash: the --profile option requires an argument
+../yash: the --rcfile option requires an argument
+../yash: option `--p' is ambiguous
+	--posix
+	--profile
 ===== option =====
 set: option `--cu' is ambiguous
 	--curasync
 	--curbg
 	--curstop
-Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: -o: argument missing
-Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounse=1: this option does not take an argument
-Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounse=: this option does not take an argument
-Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounset=1: this option does not take an argument
-Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
-set: --nounset=: this option does not take an argument
-Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
+set: option `--noh' is ambiguous
+	--nohashondef
+	--nohistspace
+set: the -o option requires an argument
+set: `-' is not a valid option
+set: `X' is not a valid option
+set: `no-such-option' is not a valid option
+set: --hel=1: the --help option does not take an argument
+set: --hel=: the --help option does not take an argument
+set: --help=1: the --help option does not take an argument
+set: --help=: the --help option does not take an argument
 ===== set =====
+set: the cmdline option cannot be changed once the shell has been initialized
+set: the interactive option cannot be changed once the shell has been initialized
+set: the login option cannot be changed once the shell has been initialized
+set: the stdin option cannot be changed once the shell has been initialized
+set: `V' is not a valid option
+set: the cmdline option cannot be changed once the shell has been initialized
+set: the interactive option cannot be changed once the shell has been initialized
+set: the login option cannot be changed once the shell has been initialized
+set: the stdin option cannot be changed once the shell has been initialized
+set: `--version' is not a valid option
 set: `--no-such-option' is not a valid option
-Usage:  set [-abefhmnuvxC] [-o option] [+o option] [arg...]
 ===== cd =====
 cd: `--no-such-option' is not a valid option
 Usage:  cd [-L|-P] [dir]
