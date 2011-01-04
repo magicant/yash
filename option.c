@@ -357,7 +357,7 @@ wchar_t *normalize_option_name(const wchar_t *optname)
     wb_init(&result);
     for (const wchar_t *s = optname; *s != L'\0'; s++)
 	if (iswalnum(*s))
-	    wb_wccat(&result, *s);
+	    wb_wccat(&result, towlower(*s));
     return wb_towcs(&result);
 }
 
