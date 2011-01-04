@@ -655,7 +655,7 @@ struct xgetopt_T *xgetopt(
 	if (arg[0] == L'-') {
 	    if (arg[1] == L'-')  /* `arg' starts with "--" */
 		goto parse_long_option;
-	    if (arg[1] != L'\0' && ((opt & XGETOPT_DIGIT) || iswdigit(arg[1])))
+	    if (arg[1] != L'\0' && !((opt & XGETOPT_DIGIT) && iswdigit(arg[1])))
 		goto parse_short_option;
 	}
 
