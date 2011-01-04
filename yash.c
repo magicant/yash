@@ -345,32 +345,35 @@ void exit_shell_with_status(int status)
 void print_help(void)
 {
     if (posixly_correct) {
-	printf(gt("Usage:  sh [options] [filename [args...]]\n"
-		  "        sh [options] -c command [command_name [args...]]\n"
-		  "        sh [options] -s [args...]\n"));
-	printf(gt("Options: -abCefhilmnuvx\n"));
+	xprintf(gt(
+	    "Usage:  sh [options] [filename [args...]]\n"
+	    "        sh [options] -c command [command_name [args...]]\n"
+	    "        sh [options] -s [args...]\n"));
+	xprintf(gt("Options: -abCefhilmnuvx\n"));
     } else {
-	printf(gt("Usage:  yash [options] [filename [args...]]\n"
-		  "        yash [options] -c command [command_name [args...]]\n"
-		  "        yash [options] -s [args...]\n"));
-	printf(gt("Options: -abCefhilmnuVvx\n"
-	          "         --interactive --login --noprofile --norcfile \n"
-		  "         --profile=filename --rcfile=filename\n"));
-	printf(gt("Type `set --help' in the shell for other options.\n"));
+	xprintf(gt(
+	    "Usage:  yash [options] [filename [args...]]\n"
+	    "        yash [options] -c command [command_name [args...]]\n"
+	    "        yash [options] -s [args...]\n"));
+	xprintf(gt(
+	    "Options: -abCefhilmnuVvx\n"
+	    "         --interactive --login --noprofile --norcfile \n"
+	    "         --profile=filename --rcfile=filename\n"));
+	xprintf(gt("Type `set --help' in the shell for other options.\n"));
     }
 }
 
 /* Prints the version info to the standard output. */
 void print_version(void)
 {
-    printf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
-    printf(PACKAGE_COPYRIGHT "\n");
-    printf(gt("This is free software licensed under GNU GPL version 2.\n"
+    xprintf(gt("Yet another shell, version %s\n"), PACKAGE_VERSION);
+    xprintf(PACKAGE_COPYRIGHT "\n");
+    xprintf(gt("This is free software licensed under GNU GPL version 2.\n"
 	    "You can modify and redistribute it, but there is NO WARRANTY.\n"));
 
     if (shopt_verbose) {
-	printf(gt("\nEnabled features:\n"));
-	printf(""
+	xprintf(gt("\nEnabled features:\n"));
+	xprintf(""
 #ifndef NDEBUG
 		" * DEBUG\n"
 #endif
