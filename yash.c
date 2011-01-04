@@ -484,11 +484,7 @@ void exec_input(int fd, const char *name,
  * If no commands were executed, `laststatus' is set to zero. */
 void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
-#ifdef NDEBUG
-    struct execinfo *ei;
-#else
-    struct execinfo *ei = ei;
-#endif
+    struct execinfo *INIT(ei);
     if (!finally_exit)
 	ei = save_execinfo();
 

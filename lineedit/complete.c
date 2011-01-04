@@ -479,11 +479,7 @@ void le_compdebug(const char *format, ...)
  * enabled. */
 void print_context_info(const le_context_T *ctxt)
 {
-#ifdef NDEBUG
-    const char *s;
-#else
-    const char *s = s;
-#endif
+    const char *INIT(s);
     switch (ctxt->quote) {
 	case QUOTE_NONE:    s = "none";    break;
 	case QUOTE_NORMAL:  s = "normal";  break;
@@ -521,11 +517,7 @@ void print_context_info(const le_context_T *ctxt)
  * enabled. */
 void print_compopt_info(const le_compopt_T *compopt)
 {
-#ifdef NDEBUG
-    const char *s;
-#else
-    const char *s = s;
-#endif
+    const char *INIT(s);
     le_compdebug("target word without prefix: \"%ls\"", compopt->src);
     for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
 	switch (p->type) {

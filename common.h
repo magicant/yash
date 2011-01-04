@@ -45,6 +45,12 @@
 # define ngt(MSGS,MSGP,N) MSGP
 #endif
 
+#ifdef NDEBUG
+# define INIT(x) x
+#else
+# define INIT(x) x = x
+#endif
+
 #define ARGV(i) ((wchar_t *) argv[i])
 
 #endif /* YASH_COMMON_H */
