@@ -368,10 +368,9 @@ int parse_short_option(void *const *argv, bool enable,
 	struct shell_invocation_T *shell_invocation)
 {
     const wchar_t *optstr = ARGV(xoptind);
-    int result = Exit_SUCCESS;
 
     assert(optstr[0] != L'\0');
-    for (size_t i = 1; result == Exit_SUCCESS && optstr[i] != L'\0'; i++) {
+    for (size_t i = 1; optstr[i] != L'\0'; i++) {
 	if (optstr[i] == L'o') {
 	    const wchar_t *optname = &optstr[i + 1];
 	    if (*optname == L'\0') {
@@ -394,14 +393,16 @@ int parse_short_option(void *const *argv, bool enable,
 		search_shell_options(&normoptname[2], &options);
 	    free(normoptname);
 
-	    result = handle_search_result(&options, argv, enable,
+	    return handle_search_result(&options, argv, enable,
 		    shelloptindex, options.length, shell_invocation);
 	} else {
-	    result = parse_option_character(
+	    int result = parse_option_character(
 		    optstr[i], enable, shell_invocation);
+	    if (result != Exit_SUCCESS)
+		return result;
 	}
     }
-    return result;
+    return Exit_SUCCESS;
 }
 
 /* Parses the specified single-character option and enables/disables the option.

@@ -46,7 +46,7 @@ ln -s ../dir anotherdir/loop
 set --extended-glob
 echo **/file
 echo ***/file
-set +o extended-glob
+set +oextended-glob
 echo **/file
 echo ***/file
 
@@ -77,3 +77,12 @@ $INVOKE $TESTEE         -c 'echo "$PS1"'
 $INVOKE $TESTEE --posix -c 'echo "$PS1"'
 
 rm -fr "$tmp"
+
+echo ===== -o +o =====
+set -aoerrexit -u
+set -o > "$tmp"
+saveset=$(set +o)
+set +aeu
+eval "$saveset"
+set -o | diff "$tmp" - && echo ok
+rm -f "$tmp"
