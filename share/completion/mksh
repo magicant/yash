@@ -1,9 +1,9 @@
-# (C) 2010 magicant
+# (C) 2010-2011 magicant
 
 # Completion script for the "mksh" command.
 
 function completion/mksh {
-	command -f completion//reexecute set
+	command -f completion//reexecute sh
 }
 
 

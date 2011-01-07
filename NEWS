@@ -12,6 +12,10 @@ Yash 2.26
 
   +  New option for the "return" built-in: -n (--no-return)
   =  Error messages have been revised.
+  =  Shell option names have been generalized: Option names are now
+     case-insensitive. Non-alphanumeric characters are ignored when
+     specifying options. Options can be inverted by prefixing "no" to
+     their names.
   =  "case foo in (esac) bar; esac" is now rejected in the POSIXly
      correct mode.
   *  Function names containing the '=' sign can now be specified as
