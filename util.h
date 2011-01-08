@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.h: miscellaneous utility functions */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -184,8 +184,6 @@ extern _Bool xprintf(const char *restrict format, ...)
 
 extern wchar_t *xoptarg;
 extern int xoptind;
-extern wchar_t xoptopt;
-extern _Bool xopterr;
 
 enum xgetoptopt_T {
     XGETOPT_POSIX = 1 << 0,
@@ -194,11 +192,6 @@ enum xgetoptopt_T {
 enum optarg_T {
     OPTARG_NONE, OPTARG_REQUIRED, OPTARG_OPTIONAL,
 };
-struct xoption {
-    const wchar_t *name;
-    enum optarg_T arg;
-    wchar_t val;
-};
 struct xgetopt_T {
     wchar_t shortopt;
     const wchar_t *longopt;
@@ -206,13 +199,6 @@ struct xgetopt_T {
     _Bool posix;
     void *ptr;
 };
-
-extern wchar_t xgetopt_long(
-	void **restrict argv,
-	const wchar_t *restrict optstring,
-	const struct xoption *restrict longopts,
-	int *restrict longindex)
-    __attribute__((nonnull(1,2)));
 
 extern struct xgetopt_T *xgetopt(
 	void **restrict argv,
