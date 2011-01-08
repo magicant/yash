@@ -17,14 +17,14 @@ set +h
 echo ===== nocaseglob =====
 set --no=caseglob
 echo O[OPQ]T*ON.y.tst OPTION.y.tst
-set +o no_caseglob
+set +o no_casegl
 echo O[OPQ]T*ON.y.tst OPTION.y.tst
 
 cd "$tmp"
 
 echo ===== dotglob =====
 touch .dotfile
-set --dotglob
+set --dotglo
 echo *
 set +o dotglob
 echo *
@@ -86,3 +86,6 @@ set +aeu
 eval "$saveset"
 set -o | diff "$tmp" - && echo ok
 rm -f "$tmp"
+
+echo ===== abbr ====
+typeset --ex >/dev/null

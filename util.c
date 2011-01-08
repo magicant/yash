@@ -746,6 +746,7 @@ parse_long_option:
     }
     if (match == NULL)
 	goto no_such_option;
+    opts = match;
 
     /* a long option was identified */
     const wchar_t *eq = &arg[2 + namelen];
