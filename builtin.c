@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: builtin commands */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
