@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1020,25 +1020,23 @@ static bool print_signal(int signum, const wchar_t *name, bool verbose)
 static void signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
-/* The "trap" builtin */
+/* The "trap" built-in. */
 int trap_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"print", OPTARG_NONE, L'p', },
+    static const struct xgetopt_T options[] = {
+	{ L'p', L"print", OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",  OPTARG_NONE, L'-', },
+	{ L'-', L"help",  OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    wchar_t opt;
     bool print = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"" : L"p",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'p':
 		print = true;
 		break;

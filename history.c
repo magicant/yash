@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1099,7 +1099,7 @@ static int history_write(const wchar_t *s)
     __attribute__((nonnull));
 static void history_refresh_file(void);
 
-/* The "fc" builtin, which accepts the following options:
+/* The "fc" built-in, which accepts the following options:
  *  -e: specify the editor to edit history
  *  -l: list history
  *  -n: don't print entry numbers
@@ -1108,30 +1108,28 @@ static void history_refresh_file(void);
  *  -v: print time for each entry */
 int fc_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"editor",     OPTARG_REQUIRED, L'e', },
-	{ L"list",       OPTARG_NONE,     L'l', },
-	{ L"no-numbers", OPTARG_NONE,     L'n', },
-	{ L"quiet",      OPTARG_NONE,     L'q', },
-	{ L"reverse",    OPTARG_NONE,     L'r', },
-	{ L"silent",     OPTARG_NONE,     L's', },
-	{ L"verbose",    OPTARG_NONE,     L'v', },
+    static const struct xgetopt_T options[] = {
+	{ L'e', L"editor",     OPTARG_REQUIRED, true,  NULL, },
+	{ L'l', L"list",       OPTARG_NONE,     true,  NULL, },
+	{ L'n', L"no-numbers", OPTARG_NONE,     true,  NULL, },
+	{ L'q', L"quiet",      OPTARG_NONE,     false, NULL, },
+	{ L'r', L"reverse",    OPTARG_NONE,     true,  NULL, },
+	{ L's', L"silent",     OPTARG_NONE,     true,  NULL, },
+	{ L'v', L"verbose",    OPTARG_NONE,     false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",       OPTARG_NONE,     L'-', },
+	{ L'-', L"help",       OPTARG_NONE,     false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     const wchar_t *editor = NULL;
     bool list = false, quiet = false, rev = false, silent = false;
     enum fcprinttype_T ptype = FC_NUMBERED;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"-e:lnrs" : L"-e:lnqrsv",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, XGETOPT_DIGIT))) {
+	switch (opt->shortopt) {
 	    case L'e':  editor = xoptarg;        break;
 	    case L'l':  list   = true;           break;
 	    case L'n':  ptype  = FC_UNNUMBERED;  break;
@@ -1574,7 +1572,7 @@ const char *fc_help[] = { Ngt(
 ), NULL };
 #endif /* YASH_ENABLE_HELP */
 
-/* The "history" builtin, which accepts the following options:
+/* The "history" built-in, which accepts the following options:
  *  -c: clear whole history
  *  -d: remove history entry
  *  -r: read history from a file
@@ -1583,17 +1581,17 @@ const char *fc_help[] = { Ngt(
  *  -F: flush history file */
 int history_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"clear",      OPTARG_NONE,     L'c', },
-	{ L"delete",     OPTARG_REQUIRED, L'd', },
-	{ L"read",       OPTARG_REQUIRED, L'r', },
-	{ L"set",        OPTARG_REQUIRED, L's', },
-	{ L"write",      OPTARG_REQUIRED, L'w', },
-	{ L"flush-file", OPTARG_NONE,     L'F', },
+    static const struct xgetopt_T options[] = {
+	{ L'c', L"clear",      OPTARG_NONE,     true,  NULL, },
+	{ L'd', L"delete",     OPTARG_REQUIRED, true,  NULL, },
+	{ L'r', L"read",       OPTARG_REQUIRED, true,  NULL, },
+	{ L's', L"set",        OPTARG_REQUIRED, true,  NULL, },
+	{ L'w', L"write",      OPTARG_REQUIRED, true,  NULL, },
+	{ L'F', L"flush-file", OPTARG_NONE,     true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",       OPTARG_NONE,     L'-', },
+	{ L'-', L"help",       OPTARG_NONE,     false, NULL, },
 #endif
-        { NULL, 0, 0, },
+        { L'\0', NULL, 0, false, NULL, },
     };
 
     if (hist_lock) {
@@ -1603,12 +1601,13 @@ int history_builtin(int argc, void **argv)
     maybe_init_history();
 
     bool hasoption = false, removedthis = false;
-    wchar_t opt;
     int result;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"cd:r:s:w:F", long_options, NULL))) {
+
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
 	hasoption = true;
-	switch (opt) {
+	switch (opt->shortopt) {
 	    case L'c':
 		history_clear_all();
 		break;

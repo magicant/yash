@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -560,26 +560,25 @@ bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 }
 
 
-/********** Builtins **********/
+/********** Built-ins **********/
 
-static const struct xoption force_help_options[] = {
-    { L"force", OPTARG_NONE, L'f', },
+static const struct xgetopt_T force_help_options[] = {
+    { L'f', L"force", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-    { L"help",  OPTARG_NONE, L'-', },
+    { L'-', L"help",  OPTARG_NONE, false, NULL, },
 #endif
-    { NULL, 0, 0, },
+    { L'\0', NULL, 0, false, NULL, },
 };
 
-/* The "exit" builtin.
+/* The "exit" built-in.
  * If the shell is interactive, there are stopped jobs and the -f flag is not
  * specified, then prints a warning message and does not exit. */
 int exit_builtin(int argc, void **argv)
 {
-    wchar_t opt;
-
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"f", force_help_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, force_help_options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'f':
 		forceexit = true;
 		break;
@@ -639,16 +638,16 @@ const char *exit_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "suspend" builtin, which accepts the following options:
+/* The "suspend" built-in, which accepts the following options:
  *  -f: suspend even if it may cause a deadlock. */
 int suspend_builtin(int argc, void **argv)
 {
     bool force = false;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"f", force_help_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, force_help_options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'f':
 		force = true;
 		break;

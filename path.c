@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.c: filename-related utilities */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1042,9 +1042,9 @@ static inline mode_t copy_group_mask(mode_t mode)
 static inline mode_t copy_other_mask(mode_t mode)
     __attribute__((const));
 
-/* The "cd" builtin, which accepts the following options:
- *  -L: don't resolve symlinks (default)
- *  -P: resolve symlinks
+/* The "cd" built-in, which accepts the following options:
+ *  -L: don't resolve symbolic links (default)
+ *  -P: resolve symbolic links
  *  --default-directory=<dir>: go to <dir> when the operand is missing
  * -L and -P are mutually exclusive: the one specified last is used. */
 int cd_builtin(int argc, void **argv)
@@ -1052,10 +1052,10 @@ int cd_builtin(int argc, void **argv)
     bool logical = true;
     const wchar_t *newpwd = NULL;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-LP", cd_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, cd_options, XGETOPT_DIGIT)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'L':  logical = true;    break;
 	    case L'P':  logical = false;   break;
 	    case L'd':  newpwd = xoptarg;  break;
@@ -1331,19 +1331,19 @@ const char *cd_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "pwd" builtin, which accepts the following options:
- *  -L: don't resolve symlinks (default)
- *  -P: resolve symlinks
+/* The "pwd" built-in, which accepts the following options:
+ *  -L: don't resolve symbolic links (default)
+ *  -P: resolve symbolic links
  * -L and -P are mutually exclusive: the one specified last is used. */
 int pwd_builtin(int argc __attribute__((unused)), void **argv)
 {
     bool logical = true;
     char *mbspwd;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-LP", pwd_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, pwd_options, XGETOPT_DIGIT)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'L':  logical = true;   break;
 	    case L'P':  logical = false;  break;
 #if YASH_ENABLE_HELP
@@ -1404,29 +1404,28 @@ const char *pwd_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "hash" builtin, which accepts the following options:
+/* The "hash" built-in, which accepts the following options:
  *  -a: print all entries
  *  -d: use the directory cache
  *  -r: remove cache entries */
 int hash_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"all",       OPTARG_NONE, L'a', },
-	{ L"directory", OPTARG_NONE, L'd', },
-	{ L"remove",    OPTARG_NONE, L'r', },
+    static const struct xgetopt_T options[] = {
+	{ L'a', L"all",       OPTARG_NONE, false, NULL, },
+	{ L'd', L"directory", OPTARG_NONE, false, NULL, },
+	{ L'r', L"remove",    OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",      OPTARG_NONE, L'-', },
+	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     bool remove = false, all = false, dir = false;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, posixly_correct ? L"r" : L"adr",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'a':  all    = true;  break;
 	    case L'd':  dir    = true;  break;
 	    case L'r':  remove = true;  break;
@@ -1566,24 +1565,24 @@ const char *hash_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "umask" builtin, which accepts the following option:
+/* The "umask" built-in, which accepts the following option:
  *  -S: symbolic output */
 int umask_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"symbolic", OPTARG_NONE, L'S', },
+    static const struct xgetopt_T options[] = {
+	{ L'S', L"symbolic", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",     OPTARG_NONE, L'-', },
+	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    wchar_t opt;
     bool symbolic = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"S", long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'S':
 		symbolic = true;
 		break;

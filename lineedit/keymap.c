@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.c: mappings from keys to functions */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -374,31 +374,31 @@ static int print_binding_main(
 static const char *get_command_name(le_command_func_T *command)
     __attribute__((nonnull,const));
 
-/* The "bindkey" builtin, which accepts the following options:
+/* The "bindkey" built-in, which accepts the following options:
  *  -v: select the "vi-insert" mode
  *  -a: select the "vi-command" mode
  *  -e: select the "emacs" mode
  *  -l: list names of available commands */
 int bindkey_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"vi-insert",  OPTARG_NONE, L'v', },
-	{ L"vi-command", OPTARG_NONE, L'a', },
-	{ L"emacs",      OPTARG_NONE, L'e', },
-	{ L"list",       OPTARG_NONE, L'l', },
+    static const struct xgetopt_T options[] = {
+	{ L'v', L"vi-insert",  OPTARG_NONE, false, NULL, },
+	{ L'a', L"vi-command", OPTARG_NONE, false, NULL, },
+	{ L'e', L"emacs",      OPTARG_NONE, false, NULL, },
+	{ L'l', L"list",       OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",       OPTARG_NONE, L'-', },
+	{ L'-', L"help",       OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    wchar_t opt;
     bool list = false;
     le_mode_id_T mode = LE_MODE_N;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"aelv", long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'a':  mode = LE_MODE_VI_COMMAND;  break;
 	    case L'e':  mode = LE_MODE_EMACS;       break;
 	    case L'v':  mode = LE_MODE_VI_INSERT;   break;

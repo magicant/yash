@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1548,34 +1548,32 @@ static bool print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
     __attribute__((nonnull));
 
-/* Options for the "break", "continue" and "eval" builtins. */
-static const struct xoption iter_options[] = {
-    { L"iteration", OPTARG_NONE, L'i', },
+/* Options for the "break", "continue" and "eval" built-ins. */
+static const struct xgetopt_T iter_options[] = {
+    { L'i', L"iteration", OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
-    { L"help",      OPTARG_NONE, L'-', },
+    { L'-', L"help",      OPTARG_NONE, false, NULL, },
 #endif
-    { NULL, 0, 0, },
+    { L'\0', NULL, 0, false, NULL, },
 };
 
-/* The "return" builtin */
+/* The "return" built-in. */
 int return_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"no-return", OPTARG_NONE, L'n', },
+    static const struct xgetopt_T options[] = {
+	{ L'n', L"no-return", OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",      OPTARG_NONE, L'-', },
+	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     bool noreturn = false;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"" : L"n",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'n':
 		noreturn = true;
 		break;
@@ -1629,16 +1627,16 @@ const char *return_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "break"/"continue" builtin, which accepts the following option:
+/* The "break"/"continue" built-in, which accepts the following option:
  *  -i: iterative execution */
 int break_builtin(int argc, void **argv)
 {
-    wchar_t opt;
     bool iter = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"i", iter_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, iter_options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'i':
 		iter = true;
 		break;
@@ -1742,16 +1740,16 @@ const char *continue_help[] = { Ngt(
 
 #endif /* YASH_ENABLE_HELP */
 
-/* The "eval" builtin, which accepts the following option:
+/* The "eval" built-in, which accepts the following option:
  *  -i: iterative execution */
 int eval_builtin(int argc __attribute__((unused)), void **argv)
 {
     bool iter = false;
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"+" : L"+i", iter_options, NULL))) {
-	switch (opt) {
+
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, iter_options, XGETOPT_POSIX)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'i':
 		iter = true;
 		break;
@@ -1793,28 +1791,26 @@ const char *eval_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "." builtin, which accepts the following option:
+/* The "." built-in, which accepts the following option:
  *  -A: disable aliases
  *  -L: autoload */
 int dot_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"no-alias", OPTARG_NONE, L'A', },
-	{ L"autoload", OPTARG_NONE, L'L', },
+    static const struct xgetopt_T options[] = {
+	{ L'A', L"no-alias", OPTARG_NONE, false, NULL, },
+	{ L'L', L"autoload", OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",     OPTARG_NONE, L'-', },
+	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     bool enable_alias = true, autoload = false;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"+" : L"+AL",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'A':
 		enable_alias = false;
 		break;
@@ -1930,31 +1926,29 @@ const char *dot_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "exec" builtin, which accepts the following options:
+/* The "exec" built-in, which accepts the following options:
  *  -a name: give <name> as argv[0] to the command
  *  -c: don't pass environment variables to the command
  *  -f: suppress error when we have stopped jobs */
 int exec_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"as",    OPTARG_REQUIRED, L'a', },
-	{ L"clear", OPTARG_NONE,     L'c', },
-	{ L"force", OPTARG_NONE,     L'f', },
+    static const struct xgetopt_T options[] = {
+	{ L'a', L"as",    OPTARG_REQUIRED, false, NULL, },
+	{ L'c', L"clear", OPTARG_NONE,     false, NULL, },
+	{ L'f', L"force", OPTARG_NONE,     false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",  OPTARG_NONE,     L'-', },
+	{ L'-', L"help",  OPTARG_NONE,     false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    wchar_t opt;
     const wchar_t *as = NULL;
     bool clear = false, force = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"+" : L"+a:cf",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'a':  as = xoptarg;  break;
 	    case L'c':  clear = true;  break;
 	    case L'f':  force = true;  break;
@@ -2105,7 +2099,7 @@ const char *exec_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "command"/"type" builtin, which accepts the following options:
+/* The "command"/"type" built-in, which accepts the following options:
  *  -a: search aliases
  *  -b: search builtins
  *  -e: search external commands
@@ -2116,19 +2110,19 @@ const char *exec_help[] = { Ngt(
  *  -V: print info about the command in a human-friendly format */
 int command_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"alias",            OPTARG_NONE, L'a', },
-	{ L"builtin-command",  OPTARG_NONE, L'b', },
-	{ L"external-command", OPTARG_NONE, L'e', },
-	{ L"function",         OPTARG_NONE, L'f', },
-	{ L"keyword",          OPTARG_NONE, L'k', },
-	{ L"standard-path",    OPTARG_NONE, L'p', },
-	{ L"identify",         OPTARG_NONE, L'v', },
-	{ L"verbose-identify", OPTARG_NONE, L'V', },
+    static const struct xgetopt_T options[] = {
+	{ L'a', L"alias",            OPTARG_NONE, false, NULL, },
+	{ L'b', L"builtin-command",  OPTARG_NONE, false, NULL, },
+	{ L'e', L"external-command", OPTARG_NONE, false, NULL, },
+	{ L'f', L"function",         OPTARG_NONE, false, NULL, },
+	{ L'k', L"keyword",          OPTARG_NONE, false, NULL, },
+	{ L'p', L"standard-path",    OPTARG_NONE, true,  NULL, },
+	{ L'v', L"identify",         OPTARG_NONE, true,  NULL, },
+	{ L'V', L"verbose-identify", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",             OPTARG_NONE, L'-', },
+	{ L'-', L"help",             OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     bool argv0istype = wcscmp(ARGV(0), L"type") == 0;
@@ -2136,12 +2130,10 @@ int command_builtin(int argc, void **argv)
     enum srchcmdtype_T type = 0;
     bool aliases = false, keywords = false, defpath = false;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"+pvV" : L"+abefkpvV",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'a':  aliases = true;        break;
 	    case L'b':  type |= SCT_BUILTIN;   break;
 	    case L'e':  type |= SCT_EXTERNAL;  break;

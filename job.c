@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -943,7 +943,7 @@ void generate_job_candidates(const le_compopt_T *compopt)
 
 /********** Builtins **********/
 
-/* The "jobs" builtin, which accepts the following options:
+/* The "jobs" built-in, which accepts the following options:
  *  -l: be verbose
  *  -n: print the jobs only whose status have changed
  *  -p: print the process ID only
@@ -952,27 +952,25 @@ void generate_job_candidates(const le_compopt_T *compopt)
  * In the POSIXly correct mode, only -l and -p are available. */
 int jobs_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"verbose",      OPTARG_NONE, L'l', },
-	{ L"new",          OPTARG_NONE, L'n', },
-	{ L"pgid-only",    OPTARG_NONE, L'p', },
-	{ L"running-only", OPTARG_NONE, L'r', },
-	{ L"stopped-only", OPTARG_NONE, L's', },
+    static const struct xgetopt_T options[] = {
+	{ L'l', L"verbose",      OPTARG_NONE, true,  NULL, },
+	{ L'n', L"new",          OPTARG_NONE, false, NULL, },
+	{ L'p', L"pgid-only",    OPTARG_NONE, true,  NULL, },
+	{ L'r', L"running-only", OPTARG_NONE, false, NULL, },
+	{ L's', L"stopped-only", OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",         OPTARG_NONE, L'-', },
+	{ L'-', L"help",         OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     bool verbose = false, changedonly = false, pgidonly = false;
     bool runningonly = false, stoppedonly = false;
-    wchar_t opt;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"lp" : L"lnprs",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'l':  verbose     = true;  break;
 	    case L'n':  changedonly = true;  break;
 	    case L'p':  pgidonly    = true;  break;

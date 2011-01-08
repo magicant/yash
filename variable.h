@@ -130,8 +130,8 @@ extern _Bool parse_dirstack_index(
 	const wchar_t **restrict entryp, _Bool printerror)
     __attribute__((nonnull));
 
-extern const struct xoption *const cd_options;
-extern const struct xoption *const pwd_options;
+extern const struct xgetopt_T *const cd_options;
+extern const struct xgetopt_T *const pwd_options;
 
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1457,40 +1457,39 @@ static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
     __attribute__((nonnull));
 
-/* The "typeset" builtin, which accepts the following options:
+/* The "typeset" built-in, which accepts the following options:
  *  -f: affect functions rather than variables
  *  -g: global
  *  -p: print variables
  *  -r: make variables readonly
  *  -x: export variables
  *  -X: cancel exportation of variables
- * Equivalent builtins:
+ * Equivalent built-ins:
  *  export:   typeset -gx
  *  readonly: typeset -gr
- * The "set" builtin without any arguments is redirected to this builtin. */
+ * The "set" built-in without any arguments is redirected to this built-in. */
 int typeset_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"functions", OPTARG_NONE, L'f', },
-	{ L"global",    OPTARG_NONE, L'g', },
-	{ L"print",     OPTARG_NONE, L'p', },
-	{ L"readonly",  OPTARG_NONE, L'r', },
-	{ L"export",    OPTARG_NONE, L'x', },
-	{ L"unexport",  OPTARG_NONE, L'X', },
+    static const struct xgetopt_T options[] = {
+	{ L'f', L"functions", OPTARG_NONE, false, NULL, },
+	{ L'g', L"global",    OPTARG_NONE, false, NULL, },
+	{ L'p', L"print",     OPTARG_NONE, true,  NULL, },
+	{ L'r', L"readonly",  OPTARG_NONE, false, NULL, },
+	{ L'x', L"export",    OPTARG_NONE, false, NULL, },
+	{ L'X', L"unexport",  OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",      OPTARG_NONE, L'-', },
+	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    wchar_t opt;
     bool funcs = false, global = false, print = false;
     bool readonly = false, export = false, unexport = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, posixly_correct ? L"p" : L"fgprxX",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'f':  funcs    = true;  break;
 	    case L'g':  global   = true;  break;
 	    case L'p':  print    = true;  break;
@@ -1811,20 +1810,20 @@ const char *typeset_help[] = { Ngt(
 
 #if YASH_ENABLE_ARRAY
 
-/* The "array" builtin, which accepts the following options:
+/* The "array" built-in, which accepts the following options:
  *  -d: delete an array element
  *  -i: insert an array element
  *  -s: set an array element value */
 int array_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"delete", OPTARG_NONE, L'd', },
-	{ L"insert", OPTARG_NONE, L'i', },
-	{ L"set",    OPTARG_NONE, L's', },
+    static const struct xgetopt_T cmdoptions[] = {
+	{ L'd', L"delete", OPTARG_NONE, true,  NULL, },
+	{ L'i', L"insert", OPTARG_NONE, true,  NULL, },
+	{ L's', L"set",    OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",   OPTARG_NONE, L'-', },
+	{ L'-', L"help",   OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     enum {
@@ -1833,10 +1832,10 @@ int array_builtin(int argc, void **argv)
 	set    = 1 << 2,
     } options = 0;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-dis", long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, cmdoptions, XGETOPT_DIGIT)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'd':  options |= delete;  break;
 	    case L'i':  options |= insert;  break;
 	    case L's':  options |= set;     break;
@@ -2090,26 +2089,26 @@ const char *array_help[] = { Ngt(
 
 #endif /* YASH_ENABLE_ARRAY */
 
-/* The "unset" builtin, which accepts the following options:
+/* The "unset" built-in, which accepts the following options:
  *  -f: deletes functions
  *  -v: deletes variables (default) */
 int unset_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"functions", OPTARG_NONE, L'f', },
-	{ L"variables", OPTARG_NONE, L'v', },
+    static const struct xgetopt_T options[] = {
+	{ L'f', L"functions", OPTARG_NONE, true,  NULL, },
+	{ L'v', L"variables", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",      OPTARG_NONE, L'-', },
+	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    wchar_t opt;
     bool funcs = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"fv", long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'f':  funcs = true;   break;
 	    case L'v':  funcs = false;  break;
 #if YASH_ENABLE_HELP
@@ -2519,29 +2518,27 @@ const char *getopts_help[] = { Ngt(
 ), NULL };
 #endif /* YASH_ENABLE_HELP */
 
-/* The "read" builtin, which accepts the following options:
+/* The "read" built-in, which accepts the following options:
  *  -A: assign values to array
  *  -r: don't treat backslashes specially
  */
 int read_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"array",    OPTARG_NONE, L'A', },
-	{ L"raw-mode", OPTARG_NONE, L'r', },
+    static const struct xgetopt_T options[] = {
+	{ L'A', L"array",    OPTARG_NONE, false, NULL, },
+	{ L'r', L"raw-mode", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",     OPTARG_NONE, L'-', },
+	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    wchar_t opt;
     bool array = false, raw = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv,
-		    posixly_correct ? L"r" : L"Ar",
-		    long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'A':  array = true;  break;
 	    case L'r':  raw   = true;  break;
 #if YASH_ENABLE_HELP
@@ -2746,40 +2743,31 @@ const char *read_help[] = { Ngt(
 ), NULL };
 #endif
 
-#if !YASH_ENABLE_DIRSTACK
-
-/* options for the "pushd" builtins */
-static const struct xoption pushd_options[] = {
-    { L"default-directory", OPTARG_REQUIRED, L'd', },
-    { L"logical",           OPTARG_NONE,     L'L', },
-    { L"physical",          OPTARG_NONE,     L'P', },
-#if YASH_ENABLE_HELP
-    { L"help",              OPTARG_NONE,     L'-', },
+/* options for the "pushd" built-in */
+static const struct xgetopt_T pushd_options[] = {
+#if YASH_ENABLE_DIRSTACK
+    { L'D', L"remove-duplicates", OPTARG_NONE,     true,  NULL, },
 #endif
-    { NULL, 0, 0, },
+    { L'd', L"default-directory", OPTARG_REQUIRED, false, NULL, },
+    { L'L', L"logical",           OPTARG_NONE,     true,  NULL, },
+    { L'P', L"physical",          OPTARG_NONE,     true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",              OPTARG_NONE,     false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
 };
 
+#if !YASH_ENABLE_DIRSTACK
+
 /* options for the "cd" and "pwd" builtins */
-const struct xoption *const cd_options  = pushd_options;
-const struct xoption *const pwd_options = pushd_options + 1;
+const struct xgetopt_T *const cd_options  = pushd_options;
+const struct xgetopt_T *const pwd_options = pushd_options + 1;
 
 #else /* YASH_ENABLE_DIRSTACK */
 
-/* options for the "pushd" builtins */
-static const struct xoption pushd_options[] = {
-    { L"remove-duplicates", OPTARG_NONE,     L'D', },
-    { L"default-directory", OPTARG_REQUIRED, L'd', },
-    { L"logical",           OPTARG_NONE,     L'L', },
-    { L"physical",          OPTARG_NONE,     L'P', },
-#if YASH_ENABLE_HELP
-    { L"help",              OPTARG_NONE,     L'-', },
-#endif
-    { NULL, 0, 0, },
-};
-
 /* options for the "cd" and "pwd" builtins */
-const struct xoption *const cd_options  = pushd_options + 1;
-const struct xoption *const pwd_options = pushd_options + 2;
+const struct xgetopt_T *const cd_options  = pushd_options + 1;
+const struct xgetopt_T *const pwd_options = pushd_options + 2;
 
 static variable_T *get_dirstack(void);
 static void push_dirstack(variable_T *var, wchar_t *value)
@@ -2789,7 +2777,7 @@ static void remove_dirstack_entry_at(variable_T *var, size_t index)
 static void remove_dirstack_dups(variable_T *var)
     __attribute__((nonnull));
 
-/* The "pushd" builtin.
+/* The "pushd" built-in.
  *  -L: don't resolve symlinks (default)
  *  -P: resolve symlinks
  *  --default-directory=<dir>: go to <dir> when the operand is missing
@@ -2800,10 +2788,10 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     bool logical = true, remove_dups = false;
     const wchar_t *newpwd = L"+1";
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-LP", pushd_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, pushd_options, XGETOPT_DIGIT)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'L':  logical = true;       break;
 	    case L'P':  logical = false;      break;
 	    case L'd':  newpwd = xoptarg;     break;
@@ -3031,26 +3019,26 @@ const char *popd_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "dirs" builtin, which accepts the following options:
+/* The "dirs" built-in, which accepts the following options:
  *  -c: clear the stack
  *  -v: verbose */
 int dirs_builtin(int argc, void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"clear",   OPTARG_NONE, L'c', },
-	{ L"verbose", OPTARG_NONE, L'v', },
+    static const struct xgetopt_T options[] = {
+	{ L'c', L"clear",   OPTARG_NONE, true,  NULL, },
+	{ L'v', L"verbose", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",    OPTARG_NONE, L'-', },
+	{ L'-', L"help",    OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     bool clear = false, verbose = false;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, L"-cv", long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, XGETOPT_DIGIT)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'c':  clear   = true;  break;
 	    case L'v':  verbose = true;  break;
 #if YASH_ENABLE_HELP

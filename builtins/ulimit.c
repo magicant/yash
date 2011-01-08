@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* ulimit.c: ulimit builtin */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,132 +44,85 @@
 #endif
 
 
-static const struct resource {
-    wchar_t option;
+struct resource {
     int type;
     rlim_t factor;
     const char *description;
-} resource_types[] = {
-    { L'c', RLIMIT_CORE, 512, Ngt("core file size (blocks)"), },
-    { L'd', RLIMIT_DATA, 1024, Ngt("data segment size (kbytes)"), },
-#if HAVE_RLIMIT_NICE
-    { L'e', RLIMIT_NICE, 1, Ngt("max nice"), },
-#endif
-    { L'f', RLIMIT_FSIZE, 512, Ngt("file size (blocks)"), },
-#if HAVE_RLIMIT_SIGPENDING
-    { L'i', RLIMIT_SIGPENDING, 1, Ngt("pending signals"), },
-#endif
-#if HAVE_RLIMIT_MEMLOCK
-    { L'l', RLIMIT_MEMLOCK, 1024, Ngt("locked memory (kbytes)"), },
-#endif
-#if HAVE_RLIMIT_RSS
-    { L'm', RLIMIT_RSS, 1024, Ngt("resident set size (kbytes)"), },
-#endif
-    { L'n', RLIMIT_NOFILE, 1, Ngt("open files"), },
-#if HAVE_RLIMIT_MSGQUEUE
-    { L'q', RLIMIT_MSGQUEUE, 1, Ngt("message queue size (bytes)"), },
-#endif
-#if HAVE_RLIMIT_RTPRIO
-    { L'r', RLIMIT_RTPRIO, 1, Ngt("real-time priority"), },
-#endif
-    { L's', RLIMIT_STACK, 1024, Ngt("stack size (kbytes)"), },
-    { L't', RLIMIT_CPU, 1, Ngt("CPU time (seconds)"), },
-#if HAVE_RLIMIT_NPROC
-    { L'u', RLIMIT_NPROC, 1, Ngt("user processes"), },
-#endif
-    { L'v', RLIMIT_AS, 1024, Ngt("memory (kbytes)"), },
-#if HAVE_RLIMIT_LOCKS
-    { L'x', RLIMIT_LOCKS, 1, Ngt("file locks"), },
-#endif
-    { 0, 0, 0, NULL, },
 };
 
-/* The "ulimit" builtin */
-int ulimit_builtin(int argc, void **argv)
-{
-    const wchar_t *short_options = L"HSa"
-	"c"
-	"d"
-#if HAVE_RLIMIT_NICE
-	"e"
-#endif
-	"f"
-#if HAVE_RLIMIT_SIGPENDING
-	"i"
-#endif
-#if HAVE_RLIMIT_MEMLOCK
-	"l"
-#endif
-#if HAVE_RLIMIT_RSS
-	"m"
-#endif
-	"n"
-#if HAVE_RLIMIT_MSGQUEUE
-	"q"
-#endif
-#if HAVE_RLIMIT_RTPRIO
-	"r"
-#endif
-	"s"
-	"t"
-#if HAVE_RLIMIT_NPROC
-	"u"
-#endif
-	"v"
-#if HAVE_RLIMIT_LOCKS
-	"x"
-#endif
-	;
+#define RES(type,factor,desc) \
+    (struct resource) { type, factor, desc, }
 
-    static const struct xoption long_options[] = {
-	{ L"hard", OPTARG_NONE, L'H', },
-	{ L"soft", OPTARG_NONE, L'S', },
-	{ L"all",  OPTARG_NONE, L'a', },
-	{ L"core", OPTARG_NONE, L'c', },
-	{ L"data", OPTARG_NONE, L'd', },
+static const struct resource res_fsize = {
+    RLIMIT_FSIZE, 512, Ngt("file size (blocks)")
+};
+
+static const struct xgetopt_T ulimit_options[] = {
+    { L'H', L"hard", OPTARG_NONE, true, NULL, },
+    { L'S', L"soft", OPTARG_NONE, true, NULL, },
+    { L'a', L"all",  OPTARG_NONE, true, NULL, },
+    { L'c', L"core", OPTARG_NONE, true,
+	&RES(RLIMIT_CORE, 512, Ngt("core file size (blocks)")), },
+    { L'd', L"data", OPTARG_NONE, true,
+	&RES(RLIMIT_DATA, 1024, Ngt("data segment size (kbytes)")), },
 #if HAVE_RLIMIT_NICE
-	{ L"nice", OPTARG_NONE, L'e', },
+    { L'e', L"nice", OPTARG_NONE, true,
+	&RES(RLIMIT_NICE, 1, Ngt("max nice")), },
 #endif
-	{ L"fsize", OPTARG_NONE, L'f', },
+    { L'f', L"fsize", OPTARG_NONE, true, (void *) &res_fsize, },
 #if HAVE_RLIMIT_SIGPENDING
-	{ L"sigpending", OPTARG_NONE, L'i', },
+    { L'i', L"sigpending", OPTARG_NONE, true,
+	&RES(RLIMIT_SIGPENDING, 1, Ngt("pending signals")), },
 #endif
 #if HAVE_RLIMIT_MEMLOCK
-	{ L"memlock", OPTARG_NONE, L'l', },
+    { L'l', L"memlock", OPTARG_NONE, true,
+	&RES(RLIMIT_MEMLOCK, 1024, Ngt("locked memory (kbytes)")), },
 #endif
 #if HAVE_RLIMIT_RSS
-	{ L"rss", OPTARG_NONE, L'm', },
+    { L'm', L"rss", OPTARG_NONE, true,
+	&RES(RLIMIT_RSS, 1024, Ngt("resident set size (kbytes)")), },
 #endif
-	{ L"nofile", OPTARG_NONE, L'n', },
+    { L'n', L"nofile", OPTARG_NONE, true,
+	&RES(RLIMIT_NOFILE, 1, Ngt("open files")), },
 #if HAVE_RLIMIT_MSGQUEUE
-	{ L"msgqueue", OPTARG_NONE, L'q', },
+    { L'q', L"msgqueue", OPTARG_NONE, true,
+	&RES(RLIMIT_MSGQUEUE, 1, Ngt("message queue size (bytes)")), },
 #endif
 #if HAVE_RLIMIT_RTPRIO
-	{ L"rtprio", OPTARG_NONE, L'r', },
+    { L'r', L"rtprio", OPTARG_NONE, true,
+	&RES(RLIMIT_RTPRIO, 1, Ngt("real-time priority")), },
 #endif
-	{ L"stack", OPTARG_NONE, L's', },
-	{ L"cpu", OPTARG_NONE, L't', },
+    { L's', L"stack", OPTARG_NONE, true,
+	&RES(RLIMIT_STACK, 1024, Ngt("stack size (kbytes)")), },
+    { L't', L"cpu", OPTARG_NONE, true,
+	&RES(RLIMIT_CPU, 1, Ngt("CPU time (seconds)")), },
 #if HAVE_RLIMIT_NPROC
-	{ L"nproc", OPTARG_NONE, L'u', },
+    { L'u', L"nproc", OPTARG_NONE, true,
+	&RES(RLIMIT_NPROC, 1, Ngt("user processes")), },
 #endif
-	{ L"as", OPTARG_NONE, L'v', },
+    { L'v', L"as", OPTARG_NONE, true,
+	&RES(RLIMIT_AS, 1024, Ngt("memory (kbytes)")), },
 #if HAVE_RLIMIT_LOCKS
-	{ L"locks", OPTARG_NONE, L'x', },
+    { L'x', L"locks", OPTARG_NONE, true,
+	&RES(RLIMIT_LOCKS, 1, Ngt("file locks")), },
 #endif
 #if YASH_ENABLE_HELP
-	{ L"help", OPTARG_NONE, L'-', },
+    { L'-', L"help", OPTARG_NONE, false, NULL, },
 #endif
-	{ NULL, 0, 0, },
-    };
+    { L'\0', NULL, 0, false, NULL, },
+};
 
-    wchar_t opt;
+/* The "ulimit" built-in. */
+int ulimit_builtin(int argc, void **argv)
+{
     enum { hard = 1 << 0, soft = 1 << 1, } type = hard | soft;
-    wchar_t rtype = L'f';
+    const struct resource *resource = &res_fsize;
     bool print_all = false;
 
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(argv, short_options, long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, ulimit_options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'H':  type = hard;       break;
 	    case L'S':  type = soft;       break;
 	    case L'a':  print_all = true;  break;
@@ -178,72 +131,59 @@ int ulimit_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		for (const struct resource *r = resource_types; r->option; r++){
-		    if (r->option == opt) {
-			rtype = opt;
-			goto opt_ok;
-		    }
+		if (opt->ptr != NULL) {
+		    resource = opt->ptr;
+		    break;
+		} else {
+		    goto print_usage;
 		}
-		goto print_usage;
-opt_ok:
-		break;
 	}
     }
 
-    const struct resource *resource = NULL;
     struct rlimit rlimit;
 
     assert(type & (hard | soft));
     if (print_all) {
-	clearerr(stdout);
-	for (resource = resource_types; resource->option; resource++) {
+	for (opt = ulimit_options; opt->shortopt != L'\0'; opt++) {
+	    resource = opt->ptr;
+	    if (resource == NULL)
+		continue;
+
 	    if (getrlimit(resource->type, &rlimit) < 0) {
-		xerror(errno, Ngt("cannot get the current limit"));
-		return Exit_FAILURE;
+		xerror(errno, Ngt("cannot get the current limit "
+				"for the resource type of `%s'"),
+				gt(resource->description));
+		continue;
 	    }
+
 	    rlim_t value = (type & soft) ? rlimit.rlim_cur : rlimit.rlim_max;
-	    printf(gt("-%lc: %-30s "),
-		    (wint_t) resource->option, gt(resource->description));
+	    xprintf(gt("-%lc: %-30s "),
+		    (wint_t) opt->shortopt, gt(resource->description));
 	    if (value == RLIM_INFINITY)
-		puts(gt("unlimited"));
+		xprintf("%s\n", gt("unlimited"));
 	    else
-		printf("%ju\n", (uintmax_t) (value / resource->factor));
+		xprintf("%ju\n", (uintmax_t) (value / resource->factor));
 	}
-	if (!ferror(stdout)) {
-	    return Exit_SUCCESS;
-	} else {
-	    xerror(0, Ngt("cannot print to the standard output"));
-	    return Exit_FAILURE;
-	}
+	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
     }
 
     if (xoptind + 1 < argc)
 	goto print_usage;
 
-    for (const struct resource *r = resource_types; r->option; r++) {
-	if (r->option == rtype) {
-	    resource = r;
-	    break;
-	}
-    }
-    assert(resource != NULL);
     if (getrlimit(resource->type, &rlimit) < 0) {
-	xerror(errno, Ngt("cannot get the current limit"));
+	xerror(errno, Ngt("cannot get the current limit "
+			"for the resource type of `%s'"),
+			gt(resource->description));
 	return Exit_FAILURE;
     }
     if (xoptind == argc) {
 	/* print value */
 	rlim_t value = (type & soft) ? rlimit.rlim_cur : rlimit.rlim_max;
 	if (value == RLIM_INFINITY)
-	    puts(gt("unlimited"));
+	    xprintf("%s\n", gt("unlimited"));
 	else
-	    printf("%ju\n", (uintmax_t) (value / resource->factor));
-	if (!ferror(stdout)) {
-	    return Exit_SUCCESS;
-	} else {
-	    xerror(errno, Ngt("cannot print to the standard output"));
-	    return Exit_FAILURE;
-	}
+	    xprintf("%ju\n", (uintmax_t) (value / resource->factor));
+	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
     } else {
 	/* set value */
 	rlim_t value;
@@ -287,16 +227,22 @@ opt_ok:
 	if (setrlimit(resource->type, &rlimit) < 0) {
 	    xerror(errno, Ngt("failed to set the limit"));
 	    return Exit_FAILURE;
-	} else {
-	    return Exit_SUCCESS;
 	}
+
+	return Exit_SUCCESS;
     }
 
 err_format:
     xerror(0, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
     return Exit_ERROR;
 print_usage:
-    fprintf(stderr, gt("Usage:  ulimit [-%ls] [limit]\n"), short_options);
+    fprintf(stderr, gt("Usage:  ulimit [option] [limit]\n"));
+    fprintf(stderr, gt("Available options: "));
+    fprintf(stderr, "-");
+    for (opt = ulimit_options; opt->shortopt != L'\0'; opt++)
+	if (opt->shortopt != L'-')
+	    fprintf(stderr, "%lc", (wint_t) opt->shortopt);
+    fprintf(stderr, "\n");
     return Exit_ERROR;
 }
 
