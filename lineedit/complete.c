@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1430,49 +1430,49 @@ void quote(xwcsbuf_T *restrict buf,
 }
 
 
-/********** Builtins **********/
+/********** Built-ins **********/
 
-/* The "complete" builtin. */
+/* The "complete" built-in. */
 int complete_builtin(int argc __attribute__((unused)), void **argv)
 {
-    static const struct xoption long_options[] = {
-	{ L"accept",               OPTARG_REQUIRED, L'A', },
-	{ L"alias",                OPTARG_NONE,     L'a', },
-	{ L"bindkey",              OPTARG_NONE,     L'B', },
-	{ L"builtin-command",      OPTARG_NONE,     L'b', },
-	{ L"command",              OPTARG_NONE,     L'c', },
-	{ L"description",          OPTARG_REQUIRED, L'D', },
-	{ L"directory",            OPTARG_NONE,     L'd', },
-	{ L"executable-file",      OPTARG_NONE,     L'E', },
-	{ L"external-command",     OPTARG_NONE,     L'e', },
-	{ L"file",                 OPTARG_NONE,     L'f', },
-	{ L"group",                OPTARG_NONE,     L'g', },
-	{ L"hostname",             OPTARG_NONE,     L'h', },
-	{ L"signal",               OPTARG_NONE,     L'I', },
-	{ L"running-job",          OPTARG_NONE,     L'J', },
-	{ L"job",                  OPTARG_NONE,     L'j', },
-	{ L"keyword",              OPTARG_NONE,     L'k', },
-	{ L"global-alias",         OPTARG_NONE,     L'L', },
-	{ L"normal-alias",         OPTARG_NONE,     L'N', },
-	{ L"function",             OPTARG_NONE,     L'n', },
-	{ L"option",               OPTARG_NONE,     L'O', },
-	{ L"prefix",               OPTARG_REQUIRED, L'P', },
-	{ L"semi-special-builtin", OPTARG_NONE,     L'q', },
-	{ L"reject",               OPTARG_REQUIRED, L'R', },
-	{ L"regular-builtin",      OPTARG_NONE,     L'r', },
-	{ L"suffix",               OPTARG_REQUIRED, L'S', },
-	{ L"special-builtin",      OPTARG_NONE,     L's', },
-	{ L"no-termination",       OPTARG_NONE,     L'T', },
-	{ L"username",             OPTARG_NONE,     L'u', },
-	{ L"scalar-variable",      OPTARG_NONE,     L'V', },
-	{ L"variable",             OPTARG_NONE,     L'v', },
-	{ L"array-variable",       OPTARG_NONE,     L'y', },
-	{ L"finished-job",         OPTARG_NONE,     L'Y', },
-	{ L"stopped-job",          OPTARG_NONE,     L'Z', },
+    static const struct xgetopt_T options[] = {
+	{ L'A', L"accept",               OPTARG_REQUIRED, true,  NULL, },
+	{ L'a', L"alias",                OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"array-variable",       OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"bindkey",              OPTARG_NONE,     true,  NULL, },
+	{ L'b', L"builtin-command",      OPTARG_NONE,     true,  NULL, },
+	{ L'c', L"command",              OPTARG_NONE,     true,  NULL, },
+	{ L'D', L"description",          OPTARG_REQUIRED, true,  NULL, },
+	{ L'd', L"directory",            OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"executable-file",      OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"external-command",     OPTARG_NONE,     true,  NULL, },
+	{ L'f', L"file",                 OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"finished-job",         OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"function",             OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"global-alias",         OPTARG_NONE,     true,  NULL, },
+	{ L'g', L"group",                OPTARG_NONE,     true,  NULL, },
 #if YASH_ENABLE_HELP
-	{ L"help",                 OPTARG_NONE,     L'-', },
+	{ L'-', L"help",                 OPTARG_NONE,     false, NULL, },
 #endif
-	{ NULL, 0, 0, },
+	{ L'h', L"hostname",             OPTARG_NONE,     true,  NULL, },
+	{ L'j', L"job",                  OPTARG_NONE,     true,  NULL, },
+	{ L'k', L"keyword",              OPTARG_NONE,     true,  NULL, },
+	{ L'T', L"no-termination",       OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"normal-alias",         OPTARG_NONE,     true,  NULL, },
+	{ L'O', L"option",               OPTARG_NONE,     true,  NULL, },
+	{ L'P', L"prefix",               OPTARG_REQUIRED, true,  NULL, },
+	{ L'-', L"regular-builtin",      OPTARG_NONE,     true,  NULL, },
+	{ L'R', L"reject",               OPTARG_REQUIRED, true,  NULL, },
+	{ L'-', L"running-job",          OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"scalar-variable",      OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"semi-special-builtin", OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"signal",               OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"special-builtin",      OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"stopped-job",          OPTARG_NONE,     true,  NULL, },
+	{ L'S', L"suffix",               OPTARG_REQUIRED, true,  NULL, },
+	{ L'u', L"username",             OPTARG_NONE,     true,  NULL, },
+	{ L'v', L"variable",             OPTARG_NONE,     true,  NULL, },
+	{ L'\0', NULL, 0, false, NULL, },
     };
 
     const wchar_t *prefix = NULL, *suffix = NULL;
@@ -1493,14 +1493,12 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 
     int exitstatus;
 
-    wchar_t opt;
-    xoptind = 0, xopterr = true;
-    while ((opt = xgetopt_long(
-		    argv, L"A:D:OP:R:S:Tabcdfghjkuv", long_options, NULL))) {
-	switch (opt) {
+    const struct xgetopt_T *opt;
+    xoptind = 0;
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+	switch (opt->shortopt) {
 	    case L'A':  NEWPATTERN(CPT_ACCEPT);    break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
-	    case L'B':  cgtype |= CGT_BINDKEY;     break;
 	    case L'b':  cgtype |= CGT_BUILTIN;     break;
 	    case L'c':  cgtype |= CGT_COMMAND;     break;
 	    case L'D':
@@ -1509,45 +1507,73 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 		description = xoptarg;
 		break;
 	    case L'd':  cgtype |= CGT_DIRECTORY;   break;
-	    case L'E':  cgtype |= CGT_EXECUTABLE;  break;
-	    case L'e':  cgtype |= CGT_EXTCOMMAND;  break;
 	    case L'f':  cgtype |= CGT_FILE;        break;
 	    case L'g':  cgtype |= CGT_GROUP;       break;
 	    case L'h':  cgtype |= CGT_HOSTNAME;    break;
-	    case L'I':  cgtype |= CGT_SIGNAL;      break;
-	    case L'J':  cgtype |= CGT_RUNNING;     break;
 	    case L'j':  cgtype |= CGT_JOB;         break;
 	    case L'k':  cgtype |= CGT_KEYWORD;     break;
-	    case L'L':  cgtype |= CGT_GALIAS;      break;
-	    case L'N':  cgtype |= CGT_NALIAS;      break;
-	    case L'n':  cgtype |= CGT_FUNCTION;    break;
 	    case L'O':  candtype = CT_OPTION;      break;
 	    case L'P':
 		if (prefix != NULL)
 		    goto dupopterror;
 		prefix = xoptarg;
 		break;
-	    case L'q':  cgtype |= CGT_SSBUILTIN;   break;
 	    case L'R':  NEWPATTERN(CPT_REJECT);    break;
-	    case L'r':  cgtype |= CGT_RBUILTIN;    break;
 	    case L'S':
 		if (suffix != NULL)
 		    goto dupopterror;
 		suffix = xoptarg;
 		break;
-	    case L's':  cgtype |= CGT_SBUILTIN;    break;
 	    case L'T':  terminate = false;         break;
 	    case L'u':  cgtype |= CGT_LOGNAME;     break;
-	    case L'V':  cgtype |= CGT_SCALAR;      break;
 	    case L'v':  cgtype |= CGT_VARIABLE;    break;
-	    case L'y':  cgtype |= CGT_ARRAY;       break;
-	    case L'Y':  cgtype |= CGT_DONE;        break;
-	    case L'Z':  cgtype |= CGT_STOPPED;     break;
-#if YASH_ENABLE_HELP
 	    case L'-':
-		exitstatus = print_builtin_help(ARGV(0));
-		goto finish;
+		switch (opt->longopt[0]) {
+		    case L'a':  cgtype |= CGT_ARRAY;  break;
+		    case L'b':  cgtype |= CGT_BINDKEY;  break;
+		    case L'e':
+			assert(opt->longopt[1] == L'x');
+			switch (opt->longopt[2]) {
+			    case L'e':  cgtype |= CGT_EXECUTABLE;  break;
+			    case L't':  cgtype |= CGT_EXTCOMMAND;  break;
+			    default:    assert(false);
+			}
+			break;
+		    case L'f':
+			switch (opt->longopt[1]) {
+			    case L'i':  cgtype |= CGT_DONE;      break;
+			    case L'u':  cgtype |= CGT_FUNCTION;  break;
+			    default:    assert(false);
+			}
+			break;
+		    case L'g':  cgtype |= CGT_GALIAS;  break;
+#if YASH_ENABLE_HELP
+		    case L'h':
+			exitstatus = print_builtin_help(ARGV(0));
+			goto finish;
 #endif
+		    case L'n':  cgtype |= CGT_NALIAS;  break;
+		    case L'r':
+			switch (opt->longopt[1]) {
+			    case L'e':  cgtype |= CGT_RBUILTIN;  break;
+			    case L'u':  cgtype |= CGT_RUNNING;   break;
+			    default:    assert(false);
+			}
+			break;
+		    case L's':
+			switch (opt->longopt[1]) {
+			    case L'c':  cgtype |= CGT_SCALAR;     break;
+			    case L'e':  cgtype |= CGT_SSBUILTIN;  break;
+			    case L'i':  cgtype |= CGT_SIGNAL;     break;
+			    case L'p':  cgtype |= CGT_SBUILTIN;   break;
+			    case L't':  cgtype |= CGT_STOPPED;    break;
+			    default:    assert(false);
+			}
+			break;
+		    default:
+			assert(false);
+		}
+		break;
 	    default:
 		fprintf(stderr, gt(
 "Usage:  complete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \\\n"
