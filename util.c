@@ -724,7 +724,7 @@ parse_long_option:
 	xoptind = saveoptind + 1;
 	return NULL;
     }
-    if (opt & XGETOPT_POSIX)
+    if (posixly_correct)
 	goto no_such_option;
 
     /* identify the long option */
