@@ -203,6 +203,7 @@ struct xgetopt_T {
     wchar_t shortopt;
     const wchar_t *longopt;
     enum optarg_T optarg;
+    _Bool posix;
     void *ptr;
 };
 

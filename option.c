@@ -247,13 +247,14 @@ enum normal_option_index_T {
 /* A non-NULL `ptr' member indicates that the option can be used for the "set"
  * built-in. */
 static const struct xgetopt_T normal_options[] = {
-    [NOI_HELP]      = { L'-', L"help",      OPTARG_NONE,     &normal_options, },
-    [NOI_VERSION]   = { L'V', L"version",   OPTARG_NONE,     NULL, },
-    [NOI_NOPROFILE] = { L'-', L"noprofile", OPTARG_NONE,     NULL, },
-    [NOI_NORCFILE]  = { L'-', L"norcfile",  OPTARG_NONE,     NULL, },
-    [NOI_PROFILE]   = { L'-', L"profile",   OPTARG_REQUIRED, NULL, },
-    [NOI_RCFILE]    = { L'-', L"rcfile",    OPTARG_REQUIRED, NULL, },
-    [NOI_N]         = { L'\0', NULL, 0, NULL, },
+    [NOI_HELP]      = { L'-', L"help",      OPTARG_NONE,     false,
+			&normal_options, },
+    [NOI_VERSION]   = { L'V', L"version",   OPTARG_NONE,     false, NULL, },
+    [NOI_NOPROFILE] = { L'-', L"noprofile", OPTARG_NONE,     false, NULL, },
+    [NOI_NORCFILE]  = { L'-', L"norcfile",  OPTARG_NONE,     false, NULL, },
+    [NOI_PROFILE]   = { L'-', L"profile",   OPTARG_REQUIRED, false, NULL, },
+    [NOI_RCFILE]    = { L'-', L"rcfile",    OPTARG_REQUIRED, false, NULL, },
+    [NOI_N]         = { L'\0', NULL, 0, false, NULL, },
 };
 
 
@@ -420,6 +421,8 @@ int parse_option_character(
     if (opt != L'-') {
 	const struct xgetopt_T *o;
 	for (o = normal_options; o->shortopt != L'\0'; o++) {
+	    if (!o->posix && posixly_correct)
+		continue;
 	    if (opt == o->shortopt &&
 		    (shell_invocation != NULL || o->ptr != NULL))
 		return set_normal_option(o, NULL, shell_invocation);
@@ -500,6 +503,8 @@ void search_normal_options(const wchar_t *optname, plist_T *resultlist,
 {
     size_t namelen = wcscspn(optname, L"=");
     for (const struct xgetopt_T *o = normal_options; o->longopt != NULL; o++) {
+	if (!o->posix && posixly_correct)
+	    continue;
 	if (wcsncmp(o->longopt, optname, namelen) == 0 &&
 		(shell_invocation != NULL || o->ptr != NULL)) {
 	    if (o->longopt[namelen] == L'\0') {
@@ -759,9 +764,9 @@ wchar_t *get_hyphen_parameter(void)
 /********** Built-in **********/
 
 static const struct xgetopt_T all_help_options[] = {
-    { L'a', L"all",  OPTARG_NONE, NULL, },
-    { L'-', L"help", OPTARG_NONE, NULL, },
-    { L'\0', NULL, 0, NULL, },
+    { L'a', L"all",  OPTARG_NONE, true,  NULL, },
+    { L'-', L"help", OPTARG_NONE, false, NULL, },
+    { L'\0', NULL, 0, false, NULL, },
 };
 
 const struct xgetopt_T *const all_option  = &all_help_options[0];

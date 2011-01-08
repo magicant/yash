@@ -632,8 +632,11 @@ invalid_option_argument:
  *    longopt:  A pointer to a string representing a long option (not including
  *              the preceding "--"). If `longopt' is a NULL pointer, it is not
  *              parsed as a long option.
- *    arg:      One of the optarg_T values, which specify if the option takes an
- *              argument. */
+ *    optarg:   One of the optarg_T values, which specify if the option takes an
+ *              argument.
+ *    posix:    In the POSIXly correct mode, this flag must be true for the
+ *              option to be accepted.
+ *    ptr:      Not used in the `xgetopt' function. */
 struct xgetopt_T *xgetopt(
 	void **restrict argv,
 	const struct xgetopt_T *restrict opts,
@@ -674,8 +677,9 @@ parse_short_option:
     assert((size_t) secondindex < wcslen(arg));
     if (arg[secondindex] != L'-')
 	for (; opts->shortopt != L'\0'; opts++)
-	    if (opts->shortopt == arg[secondindex])
-		goto short_option_found;
+	    if (opts->posix || !posixly_correct)
+		if (opts->shortopt == arg[secondindex])
+		    goto short_option_found;
     goto no_such_option;
 
 short_option_found:
@@ -727,6 +731,8 @@ parse_long_option:
     const struct xgetopt_T *match = NULL;
     size_t namelen = wcscspn(&arg[2], L"=");
     for (; opts->shortopt != L'\0'; opts++) {
+	if (!opts->posix && posixly_correct)
+	    continue;
 	if (opts->longopt != NULL
 		&& wcsncmp(opts->longopt, &arg[2], namelen) == 0) {
 	    if (opts->longopt[namelen] == L'\0') {
