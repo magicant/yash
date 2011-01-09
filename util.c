@@ -513,7 +513,7 @@ argument_missing:
     goto error;
 ambiguous_long_option:
     xerror(0, Ngt("option `%ls' is ambiguous"), ARGV(xoptind));
-#if 1
+#if LIST_AMBIGUOUS_OPTIONS
     fprintf(stderr, "\t--%ls\n", match->longopt);
     for (; opts->shortopt != L'\0'; opts++)
 	if (opts->longopt != NULL

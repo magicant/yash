@@ -205,3 +205,8 @@ has finished. Setting this macro to non-zero disables this workaround.
 This macro specifies the interval at which the shell rebuilds the
 history file. The file is rebuilt every time the shell executes as
 many commands as this number.
+
+#define LIST_AMBIGUOUS_OPTIONS 1  /* on-off option */
+When an option specified in invocation of the shell or a built-in
+command is ambiguous, a list of option names that match the specified
+ambiguous name is printed if this macro is set to a non-zero value.

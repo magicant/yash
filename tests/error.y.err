@@ -15,17 +15,7 @@ Usage:  getopts options var [arg...]
 ../yash: --norc=file: the --norcfile option does not take an argument
 ../yash: the --profile option requires an argument
 ../yash: the --rcfile option requires an argument
-../yash: option `--p' is ambiguous
-	--posix
-	--profile
 ===== option =====
-set: option `--cu' is ambiguous
-	--curasync
-	--curbg
-	--curstop
-set: option `--noh' is ambiguous
-	--nohashondef
-	--nohistspace
 set: the -o option requires an argument
 set: `-' is not a valid option
 set: `X' is not a valid option

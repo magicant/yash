@@ -93,15 +93,15 @@ $INVOKE $TESTEE --profile
 echo missing argument profile $?
 $INVOKE $TESTEE --rcfile
 echo missing argument rcfile $?
-$INVOKE $TESTEE --p
+$INVOKE $TESTEE --p 2>/dev/null
 echo ambiguous option $?
 
 echo ===== option =====
 echo ===== option ===== >&2
 
-set --cu
+set --cu 2>/dev/null
 echo ambiguous option 1 $?
-set --noh
+set --noh 2>/dev/null
 echo ambiguous option 2 $?
 set -o nolog +o nolog -o
 echo missing argument $?

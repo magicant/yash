@@ -585,7 +585,7 @@ int handle_search_result(plist_T *options, void *const *argv, bool enable,
 	    }
 	default:
 	    xerror(0, Ngt("option `%ls' is ambiguous"), optstr);
-#if 1
+#if LIST_AMBIGUOUS_OPTIONS
 	    size_t i = 0;
 	    for (; i < shelloptindex; i++)
 		fprintf(stderr, "\t--%ls\n",
