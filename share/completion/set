@@ -344,14 +344,16 @@ function completion/set::completelongoption {
 		done
 	esac
 
+	part=${TARGETWORD#"$PREFIX"}
+	case $prog in
+		(set|yash) normpart=$(tr -Cd \[:alnum:] <<<$part 2>/dev/null) ;;
+		(ksh)      normpart=$(tr -d  _-         <<<$part 2>/dev/null) ;;
+		(*)        normpart=$part ;;
+	esac
+
 	for opt in "$LOPTIONS"; do
 		command -f completion/set::getdesc
-		opt=${opt%%;*} part=${TARGETWORD#"$PREFIX"}
-		case $prog in
-			(set|yash) normpart=$(tr -Cd \[:alnum:] <<<$part 2>/dev/null) ;;
-			(ksh)      normpart=$(tr -d  _-         <<<$part 2>/dev/null) ;;
-			(*)        normpart=$part ;;
-		esac
+		opt=${opt%%;*}
 		for opt in $opt no$opt; do
 			case $opt in ("$normpart"*)
 				complete -P "$PREFIX" ${desc:+-D "$desc"} -- "$part${opt#"$normpart"}"
