@@ -3,9 +3,9 @@ http://yash.sourceforge.jp/
 =======================
 
 
-Yash is a command line shell that conforms to the POSIX.1 (IEEE Std
-1003.1, 2008 Edition) standard for the most part. Actually, it is much
-more POSIX-compliant than other shell like bash and zsh.
+Yash is a command line shell that conforms to the POSIX.1 standard
+(IEEE Std 1003.1, 2008 Edition) for the most part. Actually, it is
+much more POSIX-compliant than other shell like bash and zsh.
 
 Yash also has its own features beyond POSIX, such as:
   * global aliases
@@ -18,24 +18,24 @@ Yash also has its own features beyond POSIX, such as:
 Yash is free software distributed under the terms of GNU General
 Public License (GPL) version 2. You can copy, modify, use, and/or
 distribute this software as long as you obey the terms of GPL, but
-note that there is NO WARRANTY. See the file named COPYING for the
-full text of GPL.
+note that there is NO WARRANTY. See the "COPYING" file for the full
+text of GPL.
 
-See the file named INSTALL to see how to build and install yash.
+See the "INSTALL" file to see how to build and install yash.
 
-Currently, a manual for yash is available only in Japanese. Sorry.
+The manual for yash is available only in Japanese for now. Sorry.
 
 
 ===== Implementation Notes =====
 
- * In C, a null character represents the end of string. If input from
-   a file or a string in itself contains a null character, the
-   following characters will be neglected.
+ * In C, a null character represents the end of a string. If input to
+   the shell itself contains a null character, characters following
+   the null character will be ignored.
  * We assume that an overflow in signed integer arithmetic or type
-   conversion silently yields an implementation-defined integer
+   conversion silently yields an implementation-defined integer value
    rather than resulting in an error.
  * The GCC extension keyword `__attribute__' is used in the source
-   codes. When not compiled with GCC, this keyword is removed by
+   code. When not compiled with GCC, this keyword is removed by the
    preprocessor, so generally there is no harm. But if your compiler
    uses this keyword for any other purpose, compilation may fail.
    Additionally, some other identifiers starting with '_' may cause
@@ -47,15 +47,15 @@ Currently, a manual for yash is available only in Japanese. Sorry.
      0400=user read    0200=user write   0100=user execute
      0040=group read   0020=group write  0010=group execute
      0004=other read   0002=other write  0001=other execute
- * The character categorization in locales other than the POSIX
-   locale is assumed upward compatible with the POSIX locale.
- * When -e (-o errexit) option is set, failure of the last command of
-   an and/or list makes the shell exit. This behavior is not strictly
-   POSIX-compliant, but most existing shells behave this way.
- * The "nolog" option is not supported: it is silently ignored.
- * According to POSIX, the variable 'PS1' is subject to parameter
-   expansion. Yash also performs command substitution and arithmetic
-   expansion on 'PS1'.
+ * The character categorization in locales other than the POSIX locale
+   is assumed upward compatible with the POSIX locale.
+ * When the -e (-o errexit) option is set, failure of the last command
+   of an and/or list makes the shell exit. This behavior is not
+   strictly POSIX-compliant, but most existing shells behave this way.
+ * The -o nolog option is not supported: it is silently ignored.
+ * According to POSIX, the value of variable `PS1' is subject to
+   parameter expansion. Yash performs command substitution and
+   arithmetic expansion as well on the `PS1' value.
  * Aliases containing newlines are not supported.
 
 
