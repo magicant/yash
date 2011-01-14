@@ -44,7 +44,7 @@
 const wchar_t *command_name;
 
 /* If set, the shell behaves strictly as defined in POSIX.
- * Corresponds to the --posix option. */
+ * Corresponds to the --posixly-correct option. */
 bool posixly_correct = false;
 
 /* If set, this shell is a login shell.
@@ -183,51 +183,51 @@ struct option_T {
 
 /* List of the shell options. */
 static const struct option_T shell_options[] = {
-    { L'a', 0,    L"allexport",     &shopt_allexport,      true, },
-    { 0,    0,    L"braceexpand",   &shopt_braceexpand,    true, },
-    { 0,    0,    L"caseglob",      &shopt_caseglob,       true, },
-    { 0,    L'C', L"clobber",       &shopt_clobber,        true, },
-    { L'c', 0,    L"cmdline",       &shopt_cmdline,        false, },
-    { 0,    0,    L"curasync",      &shopt_curasync,       true, },
-    { 0,    0,    L"curbg",         &shopt_curbg,          true, },
-    { 0,    0,    L"curstop",       &shopt_curstop,        true, },
-    { 0,    0,    L"dotglob",       &shopt_dotglob,        true, },
+    { L'a', 0,    L"allexport",      &shopt_allexport,      true, },
+    { 0,    0,    L"braceexpand",    &shopt_braceexpand,    true, },
+    { 0,    0,    L"caseglob",       &shopt_caseglob,       true, },
+    { 0,    L'C', L"clobber",        &shopt_clobber,        true, },
+    { L'c', 0,    L"cmdline",        &shopt_cmdline,        false, },
+    { 0,    0,    L"curasync",       &shopt_curasync,       true, },
+    { 0,    0,    L"curbg",          &shopt_curbg,          true, },
+    { 0,    0,    L"curstop",        &shopt_curstop,        true, },
+    { 0,    0,    L"dotglob",        &shopt_dotglob,        true, },
 #if YASH_ENABLE_LINEEDIT
-    { 0,    0,    L"emacs",         &shopt_emacs,          true, },
+    { 0,    0,    L"emacs",          &shopt_emacs,          true, },
 #endif
-    { L'e', 0,    L"errexit",       &shopt_errexit,        true, },
-    { 0,    L'n', L"exec",          &shopt_exec,           true, },
-    { 0,    0,    L"extendedglob",  &shopt_extendedglob,   true, },
-    { 0,    L'f', L"glob",          &shopt_glob,           true, },
-    { L'h', 0,    L"hashondef",     &shopt_hashondef,      true, },
-    { 0,    0,    L"histspace",     &shopt_histspace,      true, },
-    { 0,    0,    L"ignoreeof",     &shopt_ignoreeof,      true, },
-    { L'i', 0,    L"interactive",   &is_interactive,       false, },
+    { L'e', 0,    L"errexit",        &shopt_errexit,        true, },
+    { 0,    L'n', L"exec",           &shopt_exec,           true, },
+    { 0,    0,    L"extendedglob",   &shopt_extendedglob,   true, },
+    { 0,    L'f', L"glob",           &shopt_glob,           true, },
+    { L'h', 0,    L"hashondef",      &shopt_hashondef,      true, },
+    { 0,    0,    L"histspace",      &shopt_histspace,      true, },
+    { 0,    0,    L"ignoreeof",      &shopt_ignoreeof,      true, },
+    { L'i', 0,    L"interactive",    &is_interactive,       false, },
 #if YASH_ENABLE_LINEEDIT
-    { 0,    0,    L"lealwaysrp",    &shopt_le_alwaysrp,    true, },
-    { 0,    0,    L"lecompdebug",   &shopt_le_compdebug,   true, },
-    { 0,    0,    L"leconvmeta",    &shopt_le_yesconvmeta, true, },
-    { 0,    0,    L"lenoconvmeta",  &shopt_le_noconvmeta,  true, },
-    { 0,    0,    L"lepromptsp",    &shopt_le_promptsp,    true, },
-    { 0,    0,    L"levisiblebell", &shopt_le_visiblebell, true, },
+    { 0,    0,    L"lealwaysrp",     &shopt_le_alwaysrp,    true, },
+    { 0,    0,    L"lecompdebug",    &shopt_le_compdebug,   true, },
+    { 0,    0,    L"leconvmeta",     &shopt_le_yesconvmeta, true, },
+    { 0,    0,    L"lenoconvmeta",   &shopt_le_noconvmeta,  true, },
+    { 0,    0,    L"lepromptsp",     &shopt_le_promptsp,    true, },
+    { 0,    0,    L"levisiblebell",  &shopt_le_visiblebell, true, },
 #endif
-    { 0,    0,    L"log",           &shopt_log,            true, },
-    { L'l', 0,    L"login",         &is_login_shell,       false, },
-    { 0,    0,    L"markdirs",      &shopt_markdirs,       true, },
-    { L'm', 0,    L"monitor",       &do_job_control,       true, },
-    { L'b', 0,    L"notify",        &shopt_notify,         true, },
+    { 0,    0,    L"log",            &shopt_log,            true, },
+    { L'l', 0,    L"login",          &is_login_shell,       false, },
+    { 0,    0,    L"markdirs",       &shopt_markdirs,       true, },
+    { L'm', 0,    L"monitor",        &do_job_control,       true, },
+    { L'b', 0,    L"notify",         &shopt_notify,         true, },
 #if YASH_ENABLE_LINEEDIT
-    { 0,    0,    L"notifyle",      &shopt_notifyle,       true, },
+    { 0,    0,    L"notifyle",       &shopt_notifyle,       true, },
 #endif
-    { 0,    0,    L"nullglob",      &shopt_nullglob,       true, },
-    { 0,    0,    L"posix",         &posixly_correct,      true, },
-    { L's', 0,    L"stdin",         &shopt_stdin,          false, },
-    { 0,    L'u', L"unset",         &shopt_unset,          true, },
-    { L'v', 0,    L"verbose",       &shopt_verbose,        true, },
+    { 0,    0,    L"nullglob",       &shopt_nullglob,       true, },
+    { 0,    0,    L"posixlycorrect", &posixly_correct,      true, },
+    { L's', 0,    L"stdin",          &shopt_stdin,          false, },
+    { 0,    L'u', L"unset",          &shopt_unset,          true, },
+    { L'v', 0,    L"verbose",        &shopt_verbose,        true, },
 #if YASH_ENABLE_LINEEDIT
-    { 0,    0,    L"vi",            &shopt_vi,             true, },
+    { 0,    0,    L"vi",             &shopt_vi,             true, },
 #endif
-    { L'x', 0,    L"xtrace",        &shopt_xtrace,         true, },
+    { L'x', 0,    L"xtrace",         &shopt_xtrace,         true, },
     { 0, 0, NULL, NULL, false, },
 };
 
@@ -916,7 +916,7 @@ const char *set_help[] = { Ngt(
 " --histspace\n"
 "\tDo not save lines that start with a space in the history.\n"
 ), Ngt(
-" --posix\n"
+" --posixly-correct\n"
 "\tMake the shell behave as the POSIX shell.\n"
 ), Ngt(
 " --vi\n"

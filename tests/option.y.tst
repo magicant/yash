@@ -73,8 +73,8 @@ echo n*ll f[o/b]r f?o/b*r 2
 cd - >/dev/null
 
 echo ===== posix =====
-$INVOKE $TESTEE         -c 'echo "$PS1"'
-$INVOKE $TESTEE --posix -c 'echo "$PS1"'
+$INVOKE $TESTEE                   -c 'echo "$PS1"'
+$INVOKE $TESTEE --posixly-correct -c 'echo "$PS1"'
 
 rm -fr "$tmp"
 
