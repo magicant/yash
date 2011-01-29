@@ -378,7 +378,7 @@ fi
 # check if the compiler works
 checking 'whether the compiler works'
 cat >"${tempsrc}" <<END
-int main() { return 0; }
+int main(void) { return 0; }
 END
 if
     trymake && tryexec
@@ -405,7 +405,7 @@ then
     savecflags=${cflags}
     cflags="-O2 -g"
     cat >"${tempsrc}" <<END
-int main() { return 0; }
+int main(void) { return 0; }
 END
     if
 	trycompile
@@ -495,7 +495,7 @@ then
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700
 #include <unistd.h>
-int main() { fork(); return 0; }
+int main(void) { fork(); return 0; }
 END
 	trycompile
     then
@@ -506,7 +506,7 @@ END
 #define _POSIX_C_SOURCE 200112L
 #define _XOPEN_SOURCE 600
 #include <unistd.h>
-int main() { fork(); return 0; }
+int main(void) { fork(); return 0; }
 END
 	trycompile
     then
@@ -533,7 +533,7 @@ then
 ${confighdefs}
 #define _XOPEN_SOURCE_EXTENDED 1
 #include <unistd.h>
-int main() { fork(); return 0; }
+int main(void) { fork(); return 0; }
 END
     trycompile
     checked
@@ -571,7 +571,7 @@ then
 ${confighdefs}
 #include <netdb.h>
 #include <sys/socket.h>
-int main() {
+int main(void) {
     struct addrinfo ai = {
 	.ai_flags = 0, .ai_family = AF_UNSPEC, .ai_protocol = 0,
 	.ai_socktype = 1 ? SOCK_STREAM : SOCK_DGRAM,
@@ -621,7 +621,7 @@ then
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <libintl.h>
-int main() { const char *s = ngettext("foo", "bar", 1); return s == 0; }
+int main(void) { const char *s = ngettext("foo", "bar", 1); return s == 0; }
 END
     trycompile
     checked
@@ -634,7 +634,7 @@ END
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <libintl.h>
-int main() { 
+int main(void) { 
     bindtextdomain("", "");
     textdomain("");
     const char *s = gettext("");
@@ -688,7 +688,7 @@ then
 	cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <${i%:*}>
-int main() { return ERR; }
+int main(void) { return ERR; }
 END
 	trycompile
 	checked
@@ -715,7 +715,7 @@ ${confighdefs}
 #include <ncursesw/ncurses.h>
 #endif
 #include <${i%:*}>
-int main() {
+int main(void) {
     int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
     int (*f2)(char *) = tigetflag; f2("");
     int (*f3)(char *) = tigetnum; f3("");
@@ -755,7 +755,7 @@ ${confighdefs}
 #elif HAVE_NCURSESW_TERM_H
 #include <ncursesw/term.h>
 #endif
-int main() {
+int main(void) {
 int i1 = setupterm((char*)0, 1, (int*)0);
 int i2 = tigetflag("");
 int i3 = tigetnum("");
@@ -833,7 +833,7 @@ ${confighdefs}
 #ifndef strnlen
 size_t strnlen(const char*, size_t);
 #endif
-int main() { return strnlen("12345", 3) != 3; }
+int main(void) { return strnlen("12345", 3) != 3; }
 END
 trymake && tryexec
 checked
@@ -850,7 +850,7 @@ ${confighdefs}
 #ifndef wcsnlen
 size_t wcsnlen(const wchar_t*, size_t);
 #endif
-int main() { return wcsnlen(L"12345", 3) != 3; }
+int main(void) { return wcsnlen(L"12345", 3) != 3; }
 END
 trymake && tryexec
 checked
@@ -867,7 +867,7 @@ ${confighdefs}
 #ifndef wcscasecmp
 int wcscasecmp(const wchar_t*, const wchar_t*);
 #endif
-int main() { return wcscasecmp(L"1a2b3c", L"1A2B3C") != 0; }
+int main(void) { return wcscasecmp(L"1a2b3c", L"1A2B3C") != 0; }
 END
 trymake && tryexec
 checked
@@ -884,7 +884,7 @@ ${confighdefs}
 #ifndef wcstold
 long double wcstold(const wchar_t *restrict, wchar_t **restrict);
 #endif
-int main() { return wcstold(L"10.0", (wchar_t **) 0) != 10.0; }
+int main(void) { return wcstold(L"10.0", (wchar_t **) 0) != 10.0; }
 END
 trymake && tryexec
 checked
@@ -901,7 +901,7 @@ ${confighdefs}
 #ifndef wcwidth
 int wcwidth(wchar_t);
 #endif
-int main() { return wcwidth(L'\0'); }
+int main(void) { return wcwidth(L'\0'); }
 END
 trymake && tryexec
 checked
@@ -915,7 +915,7 @@ checking 'if <sys/stat.h> defines S_ISVTX'
 cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
-int main() { return S_ISVTX & 0; }
+int main(void) { return S_ISVTX & 0; }
 END
 trymake
 checked
@@ -933,7 +933,7 @@ then
 	cat >"${tempsrc}" <<END
 	${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.st_atim = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
 struct timespec ts = st.st_atim;
@@ -950,7 +950,7 @@ END
 	cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.st_atimespec = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
 struct timespec ts = st.st_atimespec;
@@ -967,7 +967,7 @@ END
 	cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.st_atimensec = 0;
 return st.st_atimensec != 0;
@@ -983,7 +983,7 @@ END
 	cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.__st_atimensec = 0;
 return st.__st_atimensec != 0;
@@ -1004,7 +1004,7 @@ if
     cat >"${tempsrc}" <<END
     ${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.st_mtim = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
 struct timespec ts = st.st_mtim;
@@ -1021,7 +1021,7 @@ elif
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.st_mtimespec = (struct timespec) { .tv_sec = 0, .tv_nsec = 0 };
 struct timespec ts = st.st_mtimespec;
@@ -1038,7 +1038,7 @@ elif
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.st_mtimensec = 0;
 return st.st_mtimensec != 0;
@@ -1054,7 +1054,7 @@ elif
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
-int main() {
+int main(void) {
 struct stat st;
 st.__st_mtimensec = 0;
 return st.__st_mtimensec != 0;
@@ -1074,7 +1074,7 @@ ${confighdefs}
 #include <errno.h>
 #include <sys/wait.h>
 static int s;
-int main() {
+int main(void) {
 if (WIFCONTINUED(s)) { }
 return waitpid(-1, &s, WNOHANG|WCONTINUED) < 0 && errno == EINVAL;
 }
@@ -1096,7 +1096,9 @@ ${confighdefs}
 #ifndef faccessat
 extern int faccessat(int, const char *, int, int);
 #endif
-int main() { faccessat(AT_FDCWD, ".", F_OK | R_OK | W_OK | X_OK, AT_EACCESS); }
+int main(void) {
+faccessat(AT_FDCWD, ".", F_OK | R_OK | W_OK | X_OK, AT_EACCESS);
+}
 END
     trymake
     checked
@@ -1111,7 +1113,7 @@ ${confighdefs}
 #ifndef eaccess
 extern int eaccess(const char *, int);
 #endif
-int main() { eaccess(".", F_OK | R_OK | W_OK | X_OK); }
+int main(void) { eaccess(".", F_OK | R_OK | W_OK | X_OK); }
 END
     trymake
     checked
@@ -1129,7 +1131,7 @@ ${confighdefs}
 #ifndef strsignal
 char *strsignal(int);
 #endif
-int main() { (void) strsignal(SIGKILL); }
+int main(void) { (void) strsignal(SIGKILL); }
 END
 trymake
 checked
@@ -1153,7 +1155,7 @@ struct passwd *getpwent(void);
 void endpwent(void);
 #endif
 struct passwd *p;
-int main() { setpwent(); p = getpwent(); endpwent(); }
+int main(void) { setpwent(); p = getpwent(); endpwent(); }
 END
 trymake
 checked
@@ -1168,7 +1170,7 @@ ${confighdefs}
 #include <pwd.h>
 const char *s;
 struct passwd pwd;
-int main() { pwd.pw_gecos = ""; s = pwd.pw_gecos; }
+int main(void) { pwd.pw_gecos = ""; s = pwd.pw_gecos; }
 END
     trycompile
     checked
@@ -1191,7 +1193,7 @@ struct group *getgrent(void);
 void endgrent(void);
 #endif
 struct group *g;
-int main() { setgrent(); g = getgrent(); endgrent(); }
+int main(void) { setgrent(); g = getgrent(); endgrent(); }
 END
 trymake
 checked
@@ -1212,7 +1214,7 @@ ${confighdefs}
 struct hostent *gethostent(void);
 #endif
 struct hostent *h;
-int main() { sethostent(1); h = gethostent(); endhostent(); }
+int main(void) { sethostent(1); h = gethostent(); endhostent(); }
 END
 trymake
 checked
@@ -1227,7 +1229,7 @@ cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <paths.h>
 #include <stdio.h>
-int main() { printf("%s\n", _PATH_BSHELL); }
+int main(void) { printf("%s\n", _PATH_BSHELL); }
 END
 trycompile
 checked
@@ -1284,7 +1286,7 @@ then
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/ioctl.h>
-int main() {
+int main(void) {
     struct winsize ws;
     ioctl(0, TIOCGWINSZ, &ws);
     (void) ws.ws_row, (void) ws.ws_col;
@@ -1407,7 +1409,7 @@ then
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/resource.h>
-int main() {
+int main(void) {
 struct rlimit l = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY };
 getrlimit(RLIMIT_FSIZE, &l);
 setrlimit(RLIMIT_FSIZE, &l);
@@ -1433,7 +1435,7 @@ END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/resource.h>
-int main() {
+int main(void) {
 struct rlimit l = { .rlim_cur = RLIM_SAVED_${i}, .rlim_max = RLIM_SAVED_${i} };
 return l.rlim_cur == l.rlim_max;
 }
@@ -1454,7 +1456,7 @@ END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/resource.h>
-int main() { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
+int main(void) { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
 END
 	trymake && tryexec
 	checked
