@@ -359,7 +359,7 @@ function completion//parseoptions {
 #
 # If variable $ARGOPT is defined but its value is not "-" or if $TARGETWORD
 # does not start with a hyphen, this function does nothing but returning the
-# exit status of 2.
+# exit status of 2 unless the -f option is specified.
 function completion//completeoptions {
 
 	# check $PREFIX
@@ -370,24 +370,27 @@ function completion//completeoptions {
 	fi
 
 	# parse options to this function itself
-	typeset opt= OPTIND=1 longargeq=true
-	while getopts :esS opt; do
+	typeset opt= OPTIND=1 longargeq=true force=false
+	while getopts :efsS opt; do
 		case $opt in
 			(e) longargeq=;;
+			(f) force=true;;
 			(s) single=true;;
 			(S) single=false;;
 		esac
 	done
 
-	if [ "${OPTIONS+set}" != "set" ] ||
-			[ "${TARGETWORD+set}" != "set" ] ||
-			[ "${ARGOPT--}" != "-" ]; then
-		return 2
+	if ! $force; then
+		if [ "${OPTIONS+set}" != "set" ] ||
+				[ "${TARGETWORD+set}" != "set" ] ||
+				[ "${ARGOPT--}" != "-" ]; then
+			return 2
+		fi
+		case $TARGETWORD in
+			(-*) ;;
+			(*)  return 2 ;;
+		esac
 	fi
-	case $TARGETWORD in
-		(-*) ;;
-		(*)  return 2 ;;
-	esac
 
 	# generate candidates
 	typeset opts desc

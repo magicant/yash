@@ -1,0 +1,493 @@
+# (C) 2011 magicant
+
+# Completion script for the "tar" command.
+# Supports SUSv2, GNU tar 1.25, BSD tar 2.8, OpenBSD 4.8, NetBSD 5.1,
+# SunOS 5.11, HP-UX 11i v3.
+
+function completion/tar {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'GNU '*)   typeset type=GNU ;;
+		(*'bsdtar'*) typeset type=BSD ;;
+		(*)          typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	typeset long= gnubsd= gnu= bsd= openbsd= netbsd= sunos= hpux=
+	case $type in (GNU)
+		long=true gnubsd=true gnu=true
+	esac
+	case $type in (BSD)
+		long=true gnubsd=true bsd=true
+	esac
+	case $type in (OpenBSD)
+		openbsd=true
+	esac
+	case $type in (NetBSD)
+		long=true netbsd=true
+	esac
+	case $type in (SunOS)
+		sunos=true
+	esac
+	case $type in (HP-UX)
+		hpux=true
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"${sunos:+@}; include extended attributes in the archive"
+	"${sunos:+/}; include extended system attributes in the archive"
+	"${gnu:+? }${gnubsd:+--help}; print help"
+	"${gnu:+A --catenate --concatenate}; append archives to another archive"
+	"${sunos:+A}; suppress warnings about ACL"
+	"${gnu:+a --auto-compress}; compress the archive according to the filename suffix"
+	"${gnu:+B --read-full-records}${bsd:+B --read-full-blocks}${netbsd:+B --read-full-blocks}${sunos:+B}; keep reading until data are fully read"
+	"b: ${gnu:+--blocking-factor:}${bsd:+--block-size:}${netbsd:+--blocking-factor:}; specify the blocking factor"
+	"${long:+C: --directory: ${bsd:+--cd:}}${openbsd:+C:}${sunos:+C:}; specify a directory to operate in"
+	"c ${long:+--create}; create a new archive"
+	"${sunos:+D}; warn when a file is modified while being read by tar"
+	"${gnu:+d --diff --compare}; compare archive contents to files in the file system"
+	"${sunos:+E}; write extended headers"
+	"${openbsd:+e}${netbsd:+e}${sunos:+e}; abort on any error"
+	"${hpux:+e}; fail if the extent attributes are present in the files archived"
+	"${gnu:+F: --info-script: --new-volume-script:}; specify a script run at the end of each tape"
+	"${sunos:+F}; exclude directories named SCCS and RCS"
+	"f: ${long:+--file:}; specify the archive file to operate on"
+	"${gnu:+G --incremental}; do old GNU-style incremental backup"
+	"${gnu:+g: --listed-incremental:}; specify a snapshot file to do new GNU-style incremental backup with"
+	"${gnu:+H: --format:}${bsd:+--format:}; specify the archive format"
+	"${bsd:+H}${openbsd:+H}${netbsd:+H}; follow symbolic links in operands"
+	"${long:+h --dereference ${bsd:+L}}${openbsd:+h L}${sunos:+h}${hpux:+h}; follow all symbolic links"
+	"${long:+${gnu:+I: }--use-compress-program:}; specify a program to (de)compress the archive"
+	"${sunos:+i}; ignore directory checksum errors"
+	"${gnubsd:+J --xz}; use xz to (de)compress the archive"
+	"${long:+j ${bsd:+y} --bzip2 ${netbsd:+--bunzip2}}${openbsd:+j}${sunos:+j}; use bzip2 to (de)compress the archive"
+	"${gnu:+K: --starting-file:}; specify a file in the archive to start extraction from"
+	"${long:+k --keep-old-files}; don't overwrite existing files in extraction"
+	"${gnu:+L: --tape-length:}; specify the tape length"
+	"${gnu:+M --multi-volume}; operate on a multi-volume archive"
+	"m ${gnu:+--touch}${bsd:+--modification-time}${netbsd:+--modification-time}; don't restore modification times when extracting"
+	"${gnu:+N: --newer: --after-date:}; only add files newer than the specified date or file"
+	"${openbsd:+N}${gnubsd:+--numeric-owner}; use numeric user/group IDs only"
+	"${hpux:+N}; create a POSIX format archive"
+	"${gnu:+n --seek}${sunos:+n}; assume the archive is random-accessible"
+	"${bsd:+n}${long:+ --no-recursion}${bsd:+ --norecurse}; don't recursively operate on directories"
+	"${gnu:+P --absolute-names}${bsd:+P --absolute-paths --insecure}${openbsd:+P}${netbsd:+P --absolute-paths}${sunos:+P}; preserve absolute pathnames in the archive"
+	"${gnu:+p --preserve-permissions --same-permissions}; preserve file permissions"
+	"${bsd:+p --preserve-permissions --same-permissions}${openbsd:+p}${sunos:+p}${hpux:+p}; preserve file ownerships and permissions"
+	"${bsd:+q --fast-read}${openbsd:+q}${netbsd:+q --fast-read}; extract only the first matching file in the archive"
+	"${gnu:+R --block-number}; include block numbers in error messages"
+	"r ${long:+--append}; append files to an existing archive"
+	"${gnu:+S --sparse}${bsd:+S}${netbsd:+S --sparse}; treat sparse files efficiently"
+	"${gnu:+s --preserve-order --same-order}; assume file operands are sorted according to the archive contents"
+	"${gnu:+--transform: --xform:}${bsd:+s:}${openbsd:+s:}${netbsd:+s:}; specify a regular expression to modify filenames"
+	"${long:+T: --files-from: ${bsd:+I:}}${openbsd:+I:}; specify a file containing the names of files to archive/extract"
+	"${sunos:+T}; store/check sensitivity label of files in the archive"
+	"t ${long:+--list}; list files in an existing archive"
+	"${gnubsd:+U --unlink-first}; remove existing files before extraction"
+	"u ${long:+--update}; update files in an archive"
+	"${gnu:+V: --label:}; specify a file label"
+	"${hpux:+V}; print file types (only when listing)"
+	"v ${gnubsd:+--verbose}; print files being processed"
+	"${gnu:+W --verify}; verify the archive was correctly written"
+	"${bsd:+W:}"
+	"w ${long:+--interactive --confirmation}; confirm before processing each file"
+	"${long:+X: --exclude-from:}${sunos:+X:}; specify a file containing the names of files not to be archived"
+	"${openbsd:+X}${gnubsd:+--one-file-system}${netbsd:+l --one-file-system}; archive files only in the same file system"
+	"${long:+Z --compress --uncompress}${openbsd:+Z}${sunos:+Z}; use compress to (de)compress the archive"
+	"${long:+z --gzip --gunzip ${gnu:+--ungzip}}${openbsd:+z}${sunos:+z}; use gzip to (de)compress the archive"
+	"x ${long:+--extract ${gnu:+--get}${netbsd:+--get}}; extract files from an existing archive"
+	"${gnu:+--anchored}; force patterns to match only the beginning of filename components"
+	"${gnu:+--atime-preserve::}${netbsd:+--atime-preserve}; read files without updating access time"
+	"${gnu:+--backup:}; specify how to make a backup before overwriting files"
+	"${gnu:+--check-device}; check device numbers in incremental archiving"
+	"${gnu:+--checkpoint::}; print periodic checkpoint messages"
+	"${gnu:+--checkpoint-action:}; specify the action to take on each checkpoint"
+	"${bsd:+--chroot}${netbsd:+--chroot}; chroot to the current directory before extraction"
+	"${gnu:+--delay-directory-restore}; delay restoring directory permissions until all files are extracted"
+	"${gnu:+--delete}; delete files from an archive"
+	"${gnubsd:+--exclude:}; skip files whose names match the specified pattern"
+	"${gnu:+--exclude-backups}; exclude backup and lock files"
+	"${gnu:+--exclude-caches}; exclude cache directory contents except the tag files"
+	"${gnu:+--exclude-caches-under}; exclude cache directory contents and tag files"
+	"${gnu:+--exclude-caches-all}; exclude cache directories"
+	"${gnu:+--exclude-tag:}; exclude contents of directories containing the specified file except the file"
+	"${gnu:+--exclude-tag-under:}; exclude contents of directories containing the specified file"
+	"${gnu:+--exclude-tag-all:}; exclude directories containing the specified file"
+	"${gnu:+--exclude-vcs}; exclude internal files used by version control systems"
+	"${gnu:+--force-local}; always treat filenames as local pathnames"
+	"${gnu:+--full-time}; show timestamps in full resolution"
+	"${gnu:+--group:}; specify the group ID of archived files"
+	"${gnu:+--hard-dereference}; treat hard links to the same file separately"
+	"${gnu:+--ignore-case}; case-insensitive pattern matching"
+	"${gnu:+--ignore-command-error}; ignore errors in subprocesses"
+	"${gnu:+--ignore-failed-read}; ignore unreadable files"
+	"${gnu:+--ignore-zeros}; ignore zeroed blocks in the archive"
+	"${bsd:+--include:}; archive only files whose names match the specified pattern"
+	"${gnu:+--index-file:}; specify a file where verbose output go"
+	"${netbsd:+--insecure}; accept pathnames containing .."
+	"${gnubsd:+--keep-newer-files}; don't overwrite existing files newer than archive contents"
+	"${gnu:+--level:}; specify the level of incremental backup"
+	"${gnu:+--lzip}; use lzip to (de)compress the archive"
+	"${gnubsd:+--lzma}; use lzma to (de)compress the archive"
+	"${gnu:+--lzop}; use lzop to (de)compress the archive"
+	"${gnu:+--mode:}; specify the permission of archived files"
+	"${gnu:+--mtime:}; specify the modification time of archived files"
+	"${bsd:+--newer-ctime:}; only add files newer than the specified date"
+	"${bsd:+--newer-ctime-than: --newer-than:}; only add files newer than the specified file"
+	"${bsd:+--newer-mtime:}; only add files newer than the specified date"
+	"${bsd:+--newer-mtime-than:}; only add files newer than the specified file"
+	"${gnu:+--no-anchored}; allow patterns to match any part of filename components"
+	"${gnu:+--no-auto-compress}; don't automatically compress the archive according to the filename suffix"
+	"${gnu:+--no-check-device}; don't check device numbers in incremental archiving"
+	"${gnu:+--no-delay-directory-restore}; cancel the --delay-directory-restore option"
+	"${bsd:+--nodump}; skip files with the nodump flag"
+	"${gnu:+--no-ignore-case}; case-sensitive pattern matching"
+	"${gnu:+--no-ignore-command-error}; warn about errors in subprocesses"
+	"${gnu:+--no-null}; cancel the --null option"
+	"${gnu:+--no-overwrite-dir}; preserve metadata of existing directories when extracting"
+	"${gnu:+--no-quote-chars:}; specify characters to be removed from the list of quoted characters"
+	"${gnubsd:+--no-same-permissions}; don't restore file permissions when extracting"
+	"${gnu:+--no-seek}; assume the archive media doesn't support random access"
+	"${gnu:+--no-unquote}; don't interpret escape characters"
+	"${gnu:+--no-wildcards}; don't use wildcards"
+	"${gnu:+--no-wildcards-match-slash}; wildcards don't match slashes"
+	"${gnubsd:+--null}; use null-separated list of pathnames"
+	"${gnubsd:+--numeric-owner}; use numeric user/group IDs"
+	"${gnu:+--occurrence::}; process the nth occurrence of each file in the archive"
+	"${bsd:+--options:}; specify options for internal modules"
+	"${gnu:+--overwrite}; overwrite existing files when extracting"
+	"${gnu:+--overwrite-dir}; overwrite directory metadata when extracting"
+	"${gnu:+--owner:}; specify the owner of files in the created archive"
+	"${gnu:+--pax-option:}; create a pax archive with the specified options"
+	"${gnu:+--posix}; like --format=posix"
+	"${gnu:+--preserve}; like --preserve-permissions --preserve-order"
+	"${gnu:+--quote-chars:}; specify characters to always quote"
+	"${gnu:+--quoting-style:}; specify how to quote filenames"
+	"${gnu:+--record-size:}; specify the record size"
+	"${gnu:+--recursion}; recursively operate on directories"
+	"${gnu:+--recursive-unlink}; remove entire existing directories before extracting directories"
+	"${gnu:+--remove-files}; remove original files after archiving them"
+	"${gnu:+--restrict}; disallow some potentially harmful options"
+	"${gnu:+--rmt-command:}; specify the rmt command"
+	"${gnu:+--rsh-command:}; specify the rsh command"
+	"${gnu:+--same-owner}; preserve file owners when extracting"
+	"${gnu:+--show-defaults}; print the default option settings"
+	"${gnu:+--show-omitted-dirs}; print unprocessed directories"
+	"${gnu:+--show-transformed-names --show-stored-names}; print names of processed files in the archive"
+	"${gnu:+--sparse-version:}; specify the format version used for sparse files"
+	"${netbsd:+--strict}; disable GNU extensions"
+	"${gnubsd:+--strip-components:}; specify the number of leading pathname components to remove in extraction"
+	"${gnu:+--suffix:}; specify a suffix to append to backup file names"
+	"${gnu:+--test-label}; only print the volume label"
+	"${gnu:+--to-command:}; specify a command that receives extracted file contents"
+	"${gnubsd:+--totals${gnu:+::}}; print total byte count"
+	"${gnu:+--unquote}; unquote input pathnames"
+	"${gnu:+--utc}; print dates in Coordinated Universal Time (UTC)"
+	"${gnubsd:+--version}; print version info"
+	"${gnu:+--volno-file:}; specify a file to keep track of volumes with"
+	"${gnu:+--warning:}; specify a warning category to enable or disable"
+	"${gnu:+--wildcards}; enable wildcards"
+	"${gnu:+--wildcards-match-slash}; wildcards match slashes"
+	) #<#
+
+	case $type in
+	(OpenBSD|NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"0; use /dev/rst0"
+		"1; use /dev/rst1"
+		"4; use /dev/rst4"
+		"5; use /dev/rst5"
+		"7; use /dev/rst7"
+		"8; use /dev/rst8"
+		) #<#
+		;;
+	(SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"0; use the default tape drive"
+		"1; use alternate tape drive 1"
+		"2; use alternate tape drive 2"
+		"3; use alternate tape drive 3"
+		"4; use alternate tape drive 4"
+		"5; use alternate tape drive 5"
+		"6; use alternate tape drive 6"
+		"7; use alternate tape drive 7"
+		) #<#
+		;;
+	esac
+	case $type in
+	(NetBSD)
+		;;
+	(*)
+		OPTIONS=("$OPTIONS" #>#
+		"l ${gnu:+--check-links}${bsd:+--check-links}; warn unless all hard links to each file are archived"
+		) #<#
+		;;
+	esac
+
+	# parse old-style options
+	typeset SAVEWORDS
+	SAVEWORDS=("$WORDS")
+	set -- "${WORDS[2,-1]}"
+	if [ $# -eq 0 ]; then
+		set -- "$TARGETWORD"
+	fi
+	case $1 in
+	(-*)
+		typeset oldopt=false
+		;;
+	(*)
+		typeset oldopt="$1" oldopt1 opt
+		WORDS=("${WORDS[1]}")
+		shift
+		while [ "$oldopt" ]; do
+			oldopt1=${oldopt[1]}
+			for opt in ${OPTIONS%%;*}; do
+				case $opt in
+					(${oldopt1})
+						WORDS=("$WORDS" -$oldopt1)
+						;;
+					(${oldopt1}:)
+						if [ $# -gt 0 ]; then
+							WORDS=("$WORDS" -$oldopt1 "$1")
+							shift
+						else
+							WORDS=("$WORDS" -$oldopt1)
+							break 2
+						fi
+						;;
+				esac
+			done
+			oldopt=${oldopt#?}
+		done
+		WORDS=("$WORDS" "$@")
+		oldopt=true
+		;;
+	esac
+
+	command -f completion//parseoptions -es
+
+	# add other options
+	typeset word
+	for word in "$WORDS"; do
+		case $word in
+			(-[cru]|--append|--create|--update)
+				OPTIONS=("$OPTIONS" #>#
+				"${openbsd:+O}${netbsd:+O}${hpux:+O}; use old non-POSIX archive format"
+				"${long:+o${gnu:+ --old-archive}${netbsd:+ --old-archive --portability}}${openbsd:+o}${hpux:+o}; use V7-compatible archive format"
+				) #<#
+				;;
+			(-t|--list)
+				OPTIONS=("$OPTIONS" #>#
+				"${bsd:+O --to-stdout}; print file list to the standard error"
+				) #<#
+				;;
+			(-x|--extract|--get)
+				OPTIONS=("$OPTIONS" #>#
+				"${long:+O ${gnubsd:+--to-stdout}}; extract files to the standard output"
+				"o ${gnubsd:+--no-same-owner}; don't restore owners of extracted files"
+				) #<#
+				;;
+		esac
+	done
+
+	if $oldopt && [ ${SAVEWORDS[#]} -le 1 ]; then
+		command -f completion//completeoptions -fs
+	else
+		case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(b|--blocking-factor|--block-size|--record-size)
+			;;
+		(C|--cd|--directory)
+			complete -P "$PREFIX" -S / -T -d
+			;;
+#		(F|--info-script|--new-volume-script)
+#			complete -P "$PREFIX" -f
+#			;;
+		(f|--file)
+			complete -P "$PREFIX" -S / -T -d
+			{
+				typeset generated=false ext
+				for ext in .tar .tar.gz .tar.bz2 .tar.z .tar.Z .tar.lzma .tar.xz .tgz .tbz .taz .tlz .txz; do
+					if complete -P "$PREFIX" -A "*$ext" -f; then
+						generated=true
+					fi
+				done
+				$generated
+			} ||
+			complete -P "$PREFIX" -f
+			;;
+#		(g|--listed-incremental)
+#			complete -P "$PREFIX" -f
+#			;;
+		(H|--format)
+			complete -P "$PREFIX" -D "Unix V7" v7
+			complete -P "$PREFIX" -D "GNU tar 1.12 or earlier" oldgnu
+			complete -P "$PREFIX" -D "GNU tar 1.13" gnu
+			complete -P "$PREFIX" -D "POSIX.1-1988" ustar
+			complete -P "$PREFIX" -D "POSIX.1-2001" posix
+			;;
+		(I|--use-compress-program)
+			command -f completion/tar::completecommand
+			;;
+#		(K|--starting-file)
+#			;;
+#		(L|--tape-length)
+#			;;
+#		(N|--newer|--after-date)
+#			complete -P "$PREFIX" -f
+#			;;
+#		([IT]|--files-from)
+#			complete -P "$PREFIX" -f
+#			;;
+#		(V|--label)
+#			complete -P "$PREFIX" -f
+#			;;
+#		(W)
+#			# not supported
+#			;;
+#		(X|--exclude-from)
+#			complete -P "$PREFIX" -f
+#			;;
+		(--atime-preserve)
+			complete -P "$PREFIX" -D "remember timestamp and restore it after reading file" replace
+			complete -P "$PREFIX" -D "use a special reading method to keep timestamp" system
+			;;
+		(--backup)
+			if command -vf completion//completebackup >/dev/null 2>&1 ||
+					. -AL completion/_backup; then
+				command -f completion//completebackup
+			fi
+			;;
+		(--checkpoint)
+			;;
+		(--checkpoint-action)
+			case ${TARGETWORD#"$PREFIX"} in
+			(exec=*)
+				PREFIX=${PREFIX}exec=
+				command -f completion/tar::completecommand
+				;;
+			(*)
+				complete -P "$PREFIX" -D "ring a bell on the terminal" bell
+				complete -P "$PREFIX" -D "print a dot" dot .
+				complete -P "$PREFIX" -D "print the specified text to the standard error" -S = -T echo
+				complete -P "$PREFIX" -D "execute the specified command" -S = -T exec
+				complete -P "$PREFIX" -D "wait for the specified seconds" -S = -T sleep
+				complete -P "$PREFIX" -D "print the specified text to the terminal" -S = -T ttyout
+				;;
+			esac
+			;;
+#		(--exclude)
+#			complete -P "$PREFIX" -f
+#			;;
+#		(--exclude-tag*)
+#			complete -P "$PREFIX" -f
+#			;;
+		(--group)
+			complete -P "$PREFIX" -g
+			;;
+#		(--include)
+#			complete -P "$PREFIX" -f
+#			;;
+#		(--index-file)
+#			complete -P "$PREFIX" -f
+#			;;
+		(--level)
+			complete -P "$PREFIX" 0
+			;;
+		(--mode)
+			if command -vf completion/chmod::mode >/dev/null 2>&1 ||
+					. -AL completion/chmod; then
+				command -f completion/chmod::mode tar
+			fi
+			;;
+#		(--mtime)
+#			;;
+#		(--newer-[cm]time)
+#			;;
+#		(--newer-[cm]time-than|--newer-than)
+#			complete -P "$PREFIX" -f
+#			;;
+		(--occurrence)
+			;;
+		(--options)
+			;;
+		(--owner)
+			complete -P "$PREFIX" -u
+			;;
+		(--pax-option)
+			# TODO: not yet supported
+			# This option is equivalent to pax's -o option
+			;;
+		(--quote-chars|--no-quote-chars)
+			;;
+		(--rmt-command|--rsh-command)
+			command -f completion/tar::completecommand
+			;;
+		(--sparse-vertion)
+			# TODO: description
+			complete -P "$PREFIX" 0.0
+			complete -P "$PREFIX" 0.1
+			complete -P "$PREFIX" 1.0
+			;;
+		(--strip-components)
+			;;
+		(--to-command)
+			command -f completion/tar::completecommand
+			;;
+		(--totals)
+			case ${TARGETWORD#"$PREFIX"} in (SIG*)
+				PREFIX=${PREFIX}SIG
+			esac
+			complete -P "$PREFIX" HUP QUIT INT USR1 USR2
+			;;
+#		(--volno-file)
+#			complete -P "$PREFIX" -f
+#			;;
+		(--warning)
+			complete -P "$PREFIX" -D "enable all warning messages" all
+			complete -P "$PREFIX" -D "disable all warning messages" none
+			# TODO: description
+			complete -P "$PREFIX" alone-zero-block
+			complete -P "$PREFIX" bad-dumpdir
+			complete -P "$PREFIX" cachedir
+			complete -P "$PREFIX" contiguous-cast
+			complete -P "$PREFIX" decompress-program
+			complete -P "$PREFIX" file-changed
+			complete -P "$PREFIX" file-ignored
+			complete -P "$PREFIX" file-removed
+			complete -P "$PREFIX" file-shrank
+			complete -P "$PREFIX" file-unchanged
+			complete -P "$PREFIX" filename-with-nuls
+			complete -P "$PREFIX" ignore-archive
+			complete -P "$PREFIX" ignore-newer
+			complete -P "$PREFIX" new-directory
+			complete -P "$PREFIX" rename-directory
+			complete -P "$PREFIX" symlink-cast
+			complete -P "$PREFIX" timestamp
+			complete -P "$PREFIX" unknown-cast
+			complete -P "$PREFIX" unknown-keyword
+			complete -P "$PREFIX" xdev
+			;;
+		(*)
+			complete -P "$PREFIX" -f
+			;;
+		esac
+	fi
+
+}
+
+function completion/tar::completecommand {
+	case ${TARGETWORD#"$PREFIX"} in
+		(*/*)
+			complete -P "$PREFIX" -S / -T -d
+			complete -P "$PREFIX" --executable-file
+			;;
+		(*)
+			complete -P "$PREFIX" --external-command
+			;;
+	esac
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

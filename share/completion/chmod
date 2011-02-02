@@ -111,10 +111,10 @@ function completion/chmod::mode {
 		complete -P "$TARGETWORD" -D "execute permission" x
 		complete -P "$TARGETWORD" -D "execute permission (only when there's already one)" X
 		#<<#
-		case ${1-} in (chmod|find|mkdir|umask) #>>#
+		case ${1-} in (chmod|find|mkdir|tar|umask) #>>#
 			complete -P "$TARGETWORD" -D "set-user/group-ID" s
 		esac #<<#
-		case ${1-} in (chmod|find|mkdir) #>>#
+		case ${1-} in (chmod|find|mkdir|tar) #>>#
 			complete -P "$TARGETWORD" -D "sticky bit" t
 		esac #<<#
 		return
