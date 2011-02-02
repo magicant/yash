@@ -109,7 +109,7 @@ update-po: $(DOMAIN).pot-update
 	mv -f t-$@ $@
 
 install: install-data
-install-data: installdirs-data
+install-data: installdirs-data stamp-po
 	@for lang in $(CATALOGS:.mo=); do \
 		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
 		echo $(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
