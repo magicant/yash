@@ -16,7 +16,6 @@ function completion/umask {
 		command -f completion//completeoptions
 		;;
 	(*)
-		command -f completion//getoperands
 		if command -vf completion/chmod::mode >/dev/null 2>&1 ||
 				. -AL completion/chmod; then
 			command -f completion/chmod::mode umask
