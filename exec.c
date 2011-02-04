@@ -1396,7 +1396,7 @@ int exec_iteration(void *const *commands, const char *codename)
 	exec_wcs(*c, codename, false);
 	commandstatus = laststatus;
 	laststatus = savelaststatus;
-	if (iterinfo.exception == ie_break)
+	if (iterinfo.exception == ie_break || is_interrupted())
 	    break;
     }
     iterinfo = saveiterinfo;
