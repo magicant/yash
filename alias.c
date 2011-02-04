@@ -578,7 +578,7 @@ int unalias_builtin(int argc, void **argv)
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
 print_usage:
-    fprintf(stderr, gt("Usage:  unalias name[...]\n"
+    fprintf(stderr, gt("Usage:  unalias name...\n"
                        "        unalias -a\n"));
     return Exit_ERROR;
 }

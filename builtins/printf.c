@@ -819,7 +819,7 @@ void freeformat(struct format_T *f)
 const char *printf_help[] = { Ngt(
 "printf - print a formatted string\n"
 ), Ngt(
-"\tprintf format [argument...]\n"
+"\tprintf format [value...]\n"
 ), /* xgettext:no-c-format */ Ngt(
 "The printf built-in prints a string formatted by <format>.\n"
 "This built-in is very similar to the C programming language's `printf'\n"

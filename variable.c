@@ -2187,7 +2187,7 @@ bool unset_variable(const wchar_t *name)
 const char *unset_help[] = { Ngt(
 "unset - remove variables or functions\n"
 ), Ngt(
-"\tunset [-fv] <name>...\n"
+"\tunset [-fv] name...\n"
 ), Ngt(
 "The unset built-in removes the specified variables or functions.\n"
 "When the -f (--functions) option is specified, this built-in removes\n"
@@ -2801,7 +2801,8 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"pushd");
+		fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"),
+			L"pushd");
 		return Exit_ERROR;
 	}
     }
@@ -2927,7 +2928,7 @@ void remove_dirstack_dups(variable_T *var)
 const char *pushd_help[] = { Ngt(
 "pushd - push a directory into the directory stack\n"
 ), Ngt(
-"\tpushd [-L|-P] [dir]\n"
+"\tpushd [-L|-P] [directory]\n"
 ), Ngt(
 "The pushd built-in changes the working directory to <dir> and appends it to\n"
 "the directory stack. Options that can be used for the cd built-in can also\n"

@@ -1064,7 +1064,7 @@ int cd_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  %ls [-L|-P] [dir]\n"), L"cd");
+		fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"), L"cd");
 		return Exit_ERROR;
 	}
     }
@@ -1305,7 +1305,7 @@ bool starts_with_root_parent(const wchar_t *path)
 const char *cd_help[] = { Ngt(
 "cd - change the working directory\n"
 ), Ngt(
-"\tcd [-L|-P] [dir]\n"
+"\tcd [-L|-P] [directory]\n"
 ), Ngt(
 "The cd built-in changes the working directory to <dir>.\n"
 "If <dir> is `-', the working directory is changed to $OLDPWD.\n"
