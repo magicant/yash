@@ -1,5 +1,7 @@
 ===== -h =====
 1
+===== exec =====
+printed
 ===== nocaseglob =====
 option.y.tst OPTION.y.tst
 O[OPQ]T*ON.y.tst OPTION.y.tst

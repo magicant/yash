@@ -509,7 +509,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	switch (read_and_parse(pinfo, &commands)) {
 	    case PR_OK:
 		if (commands) {
-		    if (shopt_exec) {
+		    if (shopt_exec || is_interactive) {
 			exec_and_or_lists(commands,
 				finally_exit && !pinfo->intrinput &&
 				pinfo->lastinputresult == INPUT_EOF);

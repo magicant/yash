@@ -885,6 +885,7 @@ const char *set_help[] = { Ngt(
 ), Ngt(
 " +n --exec\n"
 "\tExecute commands.\n"
+"\tThis option cannot be disabled in an interactive shell.\n"
 ), Ngt(
 " +u --unset\n"
 "\tExpand an undefined variable to an empty string.\n"

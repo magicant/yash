@@ -14,6 +14,10 @@ hoptiontest () {
 echo $(hash | grep /cat\$ | wc -l)
 set +h
 
+echo ===== exec =====
+# the noexec option is ineffective in an interactive shell
+$INVOKE $TESTEE -cin 'echo printed; exit; echo not printed'
+
 echo ===== nocaseglob =====
 set --no=caseglob
 echo O[OPQ]T*ON.y.tst OPTION.y.tst
