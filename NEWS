@@ -18,6 +18,7 @@ Yash 2.26
      their names.
   =  "case foo in (esac) bar; esac" is now rejected in the POSIXly
      correct mode.
+  =  The "-o noexec" option is now ignored in an interactive shell.
   *  Function names containing an '=' sign can now be specified as
      arguments to the typeset and unset built-ins (with the -f
      option).
