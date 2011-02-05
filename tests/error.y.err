@@ -38,7 +38,7 @@ set: `--version' is not a valid option
 set: `--no-such-option' is not a valid option
 ===== cd =====
 cd: `--no-such-option' is not a valid option
-Usage:  cd [-L|-P] [dir]
+Usage:  cd [-L|-P] [directory]
 cd: $OLDPWD is not set
 cd: $HOME is not set
 ===== pwd =====
