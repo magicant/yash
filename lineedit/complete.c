@@ -1582,7 +1582,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 		goto finish;
 dupopterror:
 		xerror(0, Ngt("more than one -%lc option is specified"),
-			(wint_t) opt);
+			(wint_t) opt->shortopt);
 		exitstatus = Exit_ERROR;
 		goto finish;
 	}
