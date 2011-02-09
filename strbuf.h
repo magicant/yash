@@ -163,8 +163,6 @@ extern char *malloc_wcstombs(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline char *realloc_wcstombs(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern wchar_t *malloc_mbsntowcs(const char *s, size_t n)
-    __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *malloc_mbstowcs(const char *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t *realloc_mbstowcs(char *s)

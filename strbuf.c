@@ -458,22 +458,6 @@ char *malloc_wcstombs(const wchar_t *s)
 }
 
 /* Converts the specified multibyte string into a newly malloced wide string.
- * Only the first `n' bytes of `s' is converted at most.
- * Returns NULL on error.
- * The multibyte string is assumed to start in the initial shift state. */
-wchar_t *malloc_mbsntowcs(const char *s, size_t n)
-{
-    size_t nn = xstrnlen(s, n);
-    if (s[nn] == '\0')
-	return malloc_mbstowcs(s);
-
-    char ss[nn + 1];
-    strncpy(ss, s, nn);
-    ss[nn] = '\0';
-    return malloc_mbstowcs(ss);
-}
-
-/* Converts the specified multibyte string into a newly malloced wide string.
  * Returns NULL on error. */
 wchar_t *malloc_mbstowcs(const char *s)
 {
