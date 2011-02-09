@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* strbuf.h: modifiable string buffer */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -147,8 +147,6 @@ static inline xwcsbuf_T *wb_catfree(
 static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
-    __attribute__((nonnull));
-extern xwcsbuf_T *wb_wccat_repeat(xwcsbuf_T *buf, wchar_t c, size_t n)
     __attribute__((nonnull));
 extern char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
     __attribute__((nonnull));

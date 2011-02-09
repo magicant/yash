@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* strbuf.c: modifiable string buffer */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,8 @@
 /* Initializes the specified string buffer as an empty string. */
 xstrbuf_T *sb_init(xstrbuf_T *buf)
 {
-    buf->contents = xmalloc((XSTRBUF_INITSIZE + 1) * sizeof (char));
+    // buf->contents = xmallocn(XSTRBUF_INITSIZE + 1, sizeof (char));
+    buf->contents = xmalloc(XSTRBUF_INITSIZE + 1);
     buf->contents[0] = '\0';
     buf->length = 0;
     buf->maxlength = XSTRBUF_INITSIZE;
@@ -63,12 +64,13 @@ xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
     return buf;
 }
 
-/* Changes the max length of the specified buffer.
+/* Changes the maximum length of the specified buffer.
  * If `newmax' is less than the current length of the buffer, the end of
  * the buffer contents is truncated. */
 xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
 {
-    buf->contents = xrealloc(buf->contents, (newmax + 1) * sizeof (char));
+    // buf->contents = xreallocn(buf->contents, newmax + 1, sizeof (char));
+    buf->contents = xrealloc(buf->contents, newmax + 1);
     buf->maxlength = newmax;
     buf->contents[newmax] = '\0';
     if (newmax < buf->length)
@@ -167,15 +169,16 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     assert(0 < count && count <= buf->maxlength - buf->length);
     buf->length += count;
     if (c == L'\0')
-	buf->length--, assert(buf->contents[buf->length] == '\0');
+	buf->length--;
     else
 	buf->contents[buf->length] = '\0';
+    assert(buf->contents[buf->length] == '\0');
     return true;
 }
 
 /* Converts wide string `s' to a multibyte string and appends it to buffer
  * `buf'. Shift state `ps' is used for the conversion. After successful
- * conversion, `ps' will be the initial shift state.
+ * conversion, `ps' will be in the initial shift state.
  * Returns NULL if the whole string is converted and appended successfully,
  * otherwise a pointer to the character in `s' that caused the error.
  * A partial result may be left in the buffer on error. */
@@ -249,7 +252,7 @@ int sb_printf(xstrbuf_T *restrict buf, const char *restrict format, ...)
 /* Initializes the specified wide string buffer as an empty string. */
 xwcsbuf_T *wb_init(xwcsbuf_T *buf)
 {
-    buf->contents = xmalloc((XWCSBUF_INITSIZE + 1) * sizeof (wchar_t));
+    buf->contents = xmallocn(XWCSBUF_INITSIZE + 1, sizeof (wchar_t));
     buf->contents[0] = L'\0';
     buf->length = 0;
     buf->maxlength = XWCSBUF_INITSIZE;
@@ -267,12 +270,12 @@ xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
     return buf;
 }
 
-/* Changes the max length of the specified buffer.
+/* Changes the maximum length of the specified buffer.
  * If `newmax' is less than the current length of the buffer, the end of
  * the buffer contents is truncated. */
 xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 {
-    buf->contents = xrealloc(buf->contents, (newmax + 1) * sizeof (wchar_t));
+    buf->contents = xreallocn(buf->contents, newmax + 1, sizeof (wchar_t));
     buf->maxlength = newmax;
     buf->contents[newmax] = L'\0';
     if (newmax < buf->length)
@@ -338,17 +341,6 @@ xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
 {
     wb_ensuremax(buf, buf->length + 1);
     buf->contents[buf->length++] = c;
-    buf->contents[buf->length] = L'\0';
-    return buf;
-}
-
-/* Appends `n' characters of `c' to the end of buffer `buf'.
- * The characters are appended even if `c' is a null wide character. */
-xwcsbuf_T *wb_wccat_repeat(xwcsbuf_T *buf, wchar_t c, size_t n)
-{
-    wb_ensuremax(buf, buf->length + n);
-    wmemset(buf->contents + buf->length, c, n);
-    buf->length += n;
     buf->contents[buf->length] = L'\0';
     return buf;
 }
