@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* mail.c: mail checking */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "expand.h"
 #include "hashtable.h"
 #include "mail.h"
+#include "option.h"
 #include "parser.h"
 #include "plist.h"
 #include "strbuf.h"
@@ -259,7 +260,8 @@ bool is_update(const char *path)
     mailfile_T *mf = ht_get(&mailfiles, path).value;
 
     if (mf != NULL) {
-	result = (st.st_mtime != 0) && (st.st_mtime != mf->mf_mtime
+	result = (st.st_size > 0 || posixly_correct) &&
+	    (st.st_mtime != 0) && (st.st_mtime != mf->mf_mtime
 #if HAVE_ST_MTIM
 	    || st.st_mtim.tv_nsec != mf->mf_mtim.tv_nsec
 #elif HAVE_ST_MTIMESPEC
