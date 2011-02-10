@@ -1,5 +1,5 @@
 # Makefile.in for test of yash
-# (C) 2007-2010 magicant
+# (C) 2007-2011 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,13 +22,13 @@ CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
-SOURCES = invoke.c resetsig.c
+SOURCES = checkfg.c invoke.c resetsig.c
 TEST_SOURCES = *.tst *.out *.err *.oux *.erx *.t
 
 TESTEE = ../yash
-BYPRODUCTS = invoke.o invoke resetsig.o resetsig test.log *.dSYM
+BYPRODUCTS = checkfg.o checkfg invoke.o invoke resetsig.o resetsig test.log *.dSYM
 
-test test-all: invoke resetsig testee
+test test-all: checkfg invoke resetsig testee
 	@./resetsig $(SHELL) ./run-test.sh
 test-posix:
 	@$(MAKE) TEST_ITEMS='*.p.tst' test
@@ -60,5 +60,6 @@ maintainer-clean: distclean
 
 .PHONY: test test-all test-posix test-yash testee distcontents copy-distcontents clean distclean maintainer-clean
 
+@MAKE_INCLUDE@ checkfg.d
 @MAKE_INCLUDE@ invoke.d
 @MAKE_INCLUDE@ resetsig.d
