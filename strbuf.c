@@ -197,7 +197,7 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 	buf->length += count;
 	if (s == NULL)
 	    break;
-	sb_ensuremax(buf, buf->maxlength + 1);
+	sb_ensuremax(buf, buf->maxlength + MB_CUR_MAX);
     }
     assert(buf->contents[buf->length] == '\0');
     return (wchar_t *) s;
