@@ -196,7 +196,7 @@ wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
 	const wchar_t *saves = s;
 	size_t count = wcsnrtombs(buf->contents + buf->length,
 		(const wchar_t **) &s, n,
-		buf->maxlength - buf->length + 1, ps);
+		buf->maxlength - buf->length, ps);
 	if (count == (size_t) -1) {
 	    buf->contents[buf->length] = '\0';
 	    break;
@@ -240,7 +240,7 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
     for (;;) {
 	size_t count = wcsrtombs(buf->contents + buf->length,
 		(const wchar_t **) &s,
-		buf->maxlength - buf->length + 1,
+		buf->maxlength - buf->length,
 		ps);
 	if (count == (size_t) -1) {
 	    buf->contents[buf->length] = '\0';
