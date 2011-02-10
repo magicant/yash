@@ -16,7 +16,7 @@ set +h
 
 echo ===== exec =====
 # the noexec option is ineffective in an interactive shell
-$INVOKE $TESTEE -cin 'echo printed; exit; echo not printed'
+$INVOKE $TESTEE -cin +m 'echo printed; exit; echo not printed'
 
 echo ===== nocaseglob =====
 set --no=caseglob
