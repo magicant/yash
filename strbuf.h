@@ -89,7 +89,15 @@ extern xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
 extern _Bool sb_wccat(
 	xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     __attribute__((nonnull));
-extern wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
+extern wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
+	const wchar_t *restrict s, size_t n, mbstate_t *restrict ps)
+    __attribute__((nonnull));
+#if HAVE_WCSNRTOMBS
+static inline
+#else
+extern
+#endif
+wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 	const wchar_t *restrict s, mbstate_t *restrict ps)
     __attribute__((nonnull));
 extern int sb_vprintf(
@@ -159,7 +167,12 @@ extern int wb_wprintf(
 
 extern char *malloc_wcsntombs(const wchar_t *s, size_t n)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern char *malloc_wcstombs(const wchar_t *s)
+#if HAVE_WCSNRTOMBS
+static inline
+#else
+extern
+#endif
+char *malloc_wcstombs(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline char *realloc_wcstombs(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -284,6 +297,14 @@ xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
     return sb_replace(buf, i, n, "", 0);
 }
 
+#if HAVE_WCSNRTOMBS
+wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
+	const wchar_t *restrict s, mbstate_t *restrict ps)
+{
+    return sb_wcsncat(buf, s, Size_max, ps);
+}
+#endif
+
 /* Frees the specified wide string buffer. The contents are lost. */
 void wb_destroy(xwcsbuf_T *buf)
 {
@@ -387,6 +408,13 @@ xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
 {
     return wb_replace(buf, i, n, L"", 0);
 }
+
+#if HAVE_WCSNRTOMBS
+char *malloc_wcstombs(const wchar_t *s)
+{
+    return malloc_wcsntombs(s, Size_max);
+}
+#endif
 
 /* Converts the specified wide string into a newly malloced multibyte string and
  * frees the original wide string.

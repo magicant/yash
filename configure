@@ -1,5 +1,5 @@
 # Manually written configuration script for yash
-# (C) 2007-2010 magicant
+# (C) 2007-2011 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -874,6 +874,38 @@ checked
 if [ x"${checkresult}" = x"yes" ]
 then
     defconfigh "HAVE_WCSCASECMP"
+fi
+
+# check for wcsnrtombs
+checking 'for wcsnrtombs'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
+#ifndef wcsnrtombs
+size_t wcsnrtombs(char *restrict, const wchar_t **restrict, size_t, size_t,
+    mbstate_t *restrict);
+#endif
+int main(void) {
+mbstate_t s;
+char out[10];
+const wchar_t w[] = L"abcde";
+const wchar_t *in = w;
+memset(&s, 0, sizeof s);
+return wcsnrtombs(out, &in, SIZE_MAX, sizeof out, &s) != 5 ||
+    in != NULL ||
+    strcmp(out, "abcde") != 0 ||
+    wcsnrtombs(out, (in = &w[1], &in), 3, sizeof out, &s) != 3 ||
+    in != &w[4] ||
+    strncmp(out, "bcd", 3) != 0;
+}
+END
+trymake && tryexec
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_WCSNRTOMBS"
 fi
 
 # check for wcstold

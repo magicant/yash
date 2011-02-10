@@ -28,6 +28,11 @@
 #include "strbuf.h"
 #include "util.h"
 
+#ifndef wcsnrtombs
+size_t wcsnrtombs(char *restrict dst, const wchar_t **restrict src, size_t nwc,
+	size_t len, mbstate_t *restrict ps);
+#endif
+
 #ifndef XSTRBUF_INITSIZE
 #define XSTRBUF_INITSIZE 15
 #endif
@@ -176,12 +181,59 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     return true;
 }
 
-/* Converts wide string `s' to a multibyte string and appends it to buffer
- * `buf'. Shift state `ps' is used for the conversion. After successful
- * conversion, `ps' will be in the initial shift state.
+/* Appends first `n' characters of wide string `s' to multibyte buffer `buf'.
+ * The wide string is converted to multibyte string using shift state `ps'.
+ * If `n' is larger than the length of `s', the whole string is appended and
+ * the shift state is reset to the initial shift state.
+ * Returns NULL if the string is converted and appended successfully,
+ * otherwise a pointer to the character in `s' that caused the error.
+ * A partial result may be left in the buffer on error. */
+wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
+	const wchar_t *restrict s, size_t n, mbstate_t *restrict ps)
+{
+#if HAVE_WCSNRTOMBS
+    for (;;) {
+	const wchar_t *saves = s;
+	size_t count = wcsnrtombs(buf->contents + buf->length,
+		(const wchar_t **) &s, n,
+		buf->maxlength - buf->length + 1, ps);
+	if (count == (size_t) -1) {
+	    buf->contents[buf->length] = '\0';
+	    break;
+	}
+	buf->length += count;
+	if (s == NULL)
+	    break;
+	assert((size_t) (s - saves) <= n);
+	n -= s - saves;
+	if (n == 0) {
+	    buf->contents[buf->length] = '\0';
+	    s = NULL;
+	    break;
+	}
+	sb_ensuremax(buf, buf->maxlength + MB_CUR_MAX);
+    }
+    assert(buf->contents[buf->length] == '\0');
+    return (wchar_t *) s;
+#else
+    while (n > 0) {
+	if (!sb_wccat(buf, *s, ps))
+	    return (wchar_t *) s;
+	if (*s == L'\0')
+	    return NULL;
+	s++, n--;
+    }
+    return NULL;
+#endif
+}
+
+/* Appends wide string `s' to multibyte buffer `buf'. The wide string is
+ * converted to multibyte string using shift state `ps'. After successful
+ * conversion, the shift state is reset to the initial shift state.
  * Returns NULL if the whole string is converted and appended successfully,
  * otherwise a pointer to the character in `s' that caused the error.
  * A partial result may be left in the buffer on error. */
+#if !HAVE_WCSNRTOMBS
 wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 	const wchar_t *restrict s, mbstate_t *restrict ps)
 {
@@ -202,6 +254,7 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
     assert(buf->contents[buf->length] == '\0');
     return (wchar_t *) s;
 }
+#endif
 
 /* Appends the result of `vsprintf' to the specified buffer.
  * `format' and the following arguments must not be part of `buf->contents'.
@@ -429,19 +482,23 @@ int wb_wprintf(xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
  * The resulting string starts and ends in the initial shift state.*/
 char *malloc_wcsntombs(const wchar_t *s, size_t n)
 {
-    size_t nn = xwcsnlen(s, n);
-    if (s[nn] == L'\0')
-	return malloc_wcstombs(s);
+    xstrbuf_T buf;
+    mbstate_t state;
 
-    wchar_t ss[nn + 1];
-    wcsncpy(ss, s, nn);
-    ss[nn] = L'\0';
-    return malloc_wcstombs(ss);
+    sb_init(&buf);
+    memset(&state, 0, sizeof state);  // initialize as the initial shift state
+    if (sb_wcsncat(&buf, s, n, &state) == NULL) {
+	return sb_tostr(&buf);
+    } else {
+	sb_destroy(&buf);
+	return NULL;
+    }
 }
 
 /* Converts the specified wide string into a newly malloced multibyte string.
  * Returns NULL on error.
  * The resulting string starts and ends in the initial shift state.*/
+#if !HAVE_WCSNRTOMBS
 char *malloc_wcstombs(const wchar_t *s)
 {
     xstrbuf_T buf;
@@ -456,6 +513,7 @@ char *malloc_wcstombs(const wchar_t *s)
 	return NULL;
     }
 }
+#endif
 
 /* Converts the specified multibyte string into a newly malloced wide string.
  * Returns NULL on error. */
