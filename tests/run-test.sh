@@ -1,5 +1,5 @@
 # run-test.sh: runs tests specified by $TESTEE and $TEST_ITEMS
-# (C) 2007-2010 magicant
+# (C) 2007-2011 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -77,12 +77,7 @@ case "$1" in
 	;;
     job.y)
 	# ensure that /dev/tty is available and that we're in foreground
-	{ <>/dev/tty; } 2>/dev/null &&
-	$INVOKE $TESTEE 2>/dev/null <<\END
-	trap 'kill $!; kill -s CONT 0' TTOU
-	$INVOKE $TESTEE -m -c ''&
-	wait
-END
+	./checkfg
 	;;
     help.y)
 	$INVOKE $TESTEE -c 'type help' 2>/dev/null | \
