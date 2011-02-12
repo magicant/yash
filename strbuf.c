@@ -534,7 +534,8 @@ wchar_t *malloc_mbstowcs(const char *s)
 
 /********** Formatting Utilities **********/
 
-/* Returns the result of `vsprintf' as a newly malloced string. */
+/* Returns the result of `vsprintf' as a newly malloced string.
+ * An error message is printed on error. The return value is non-NULL anyway. */
 char *malloc_vprintf(const char *format, va_list ap)
 {
     xstrbuf_T buf;
@@ -544,7 +545,8 @@ char *malloc_vprintf(const char *format, va_list ap)
     return sb_tostr(&buf);
 }
 
-/* Returns the result of `sprintf' as a newly malloced string. */
+/* Returns the result of `sprintf' as a newly malloced string.
+ * An error message is printed on error. The return value is non-NULL anyway. */
 char *malloc_printf(const char *format, ...)
 {
     va_list ap;
@@ -555,7 +557,8 @@ char *malloc_printf(const char *format, ...)
     return result;
 }
 
-/* Returns the result of `vswprintf' as a newly malloced string. */
+/* Returns the result of `vswprintf' as a newly malloced string.
+ * An error message is printed on error. The return value is non-NULL anyway. */
 wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
 {
     xwcsbuf_T buf;
@@ -565,7 +568,8 @@ wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
     return wb_towcs(&buf);
 }
 
-/* Returns the result of `swprintf' as a newly malloced string. */
+/* Returns the result of `swprintf' as a newly malloced string.
+ * An error message is printed on error. The return value is non-NULL anyway. */
 wchar_t *malloc_wprintf(const wchar_t *format, ...)
 {
     va_list ap;
