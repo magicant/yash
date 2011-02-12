@@ -181,11 +181,11 @@ extern wchar_t *malloc_mbstowcs(const char *s)
 static inline wchar_t *realloc_mbstowcs(char *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 
-static inline char *malloc_vprintf(const char *format, va_list ap)
+extern char *malloc_vprintf(const char *format, va_list ap)
     __attribute__((nonnull(1),malloc,warn_unused_result,format(printf,1,0)));
 extern char *malloc_printf(const char *format, ...)
     __attribute__((nonnull(1),malloc,warn_unused_result,format(printf,1,2)));
-static inline wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
+extern wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 extern wchar_t *malloc_wprintf(const wchar_t *format, ...)
     __attribute__((nonnull(1),malloc,warn_unused_result));
@@ -435,24 +435,6 @@ wchar_t *realloc_mbstowcs(char *s)
     wchar_t *result = malloc_mbstowcs(s);
     free(s);
     return result;
-}
-
-/* Returns the result of `vsprintf' as a newly malloced string. */
-char *malloc_vprintf(const char *format, va_list ap)
-{
-    xstrbuf_T buf;
-    sb_init(&buf);
-    sb_vprintf(&buf, format, ap);
-    return sb_tostr(&buf);
-}
-
-/* Returns the result of `vswprintf' as a newly malloced string. */
-wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
-{
-    xwcsbuf_T buf;
-    wb_init(&buf);
-    wb_vwprintf(&buf, format, ap);
-    return wb_towcs(&buf);
 }
 
 

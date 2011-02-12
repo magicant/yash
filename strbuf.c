@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -533,6 +534,16 @@ wchar_t *malloc_mbstowcs(const char *s)
 
 /********** Formatting Utilities **********/
 
+/* Returns the result of `vsprintf' as a newly malloced string. */
+char *malloc_vprintf(const char *format, va_list ap)
+{
+    xstrbuf_T buf;
+    sb_init(&buf);
+    if (sb_vprintf(&buf, format, ap) < 0)
+	xerror(errno, Ngt("unexpected error"));
+    return sb_tostr(&buf);
+}
+
 /* Returns the result of `sprintf' as a newly malloced string. */
 char *malloc_printf(const char *format, ...)
 {
@@ -542,6 +553,16 @@ char *malloc_printf(const char *format, ...)
     result = malloc_vprintf(format, ap);
     va_end(ap);
     return result;
+}
+
+/* Returns the result of `vswprintf' as a newly malloced string. */
+wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    if (wb_vwprintf(&buf, format, ap) < 0)
+	xerror(errno, Ngt("unexpected error"));
+    return wb_towcs(&buf);
 }
 
 /* Returns the result of `swprintf' as a newly malloced string. */
