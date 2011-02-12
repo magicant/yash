@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* builtin.c: builtin commands */
+/* builtin.c: built-in commands */
 /* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -59,17 +59,17 @@
 #endif
 
 
-/* Rules about builtin commands:
- * - `argc' passed to a builtin is at least one; The command name is given in
+/* Rules about built-in commands:
+ * - `argc' passed to a built-in is at least one; The command name is given in
  *   `argv[0]'.
  * - `argv' may be rearranged and the values of the argument strings may be
- *   changed in the builtin. However, the argument strings may not be `free'd or
- *   `realloc'ed.
- * - Builtins may sleep or wait, but cannot be stopped. */
+ *   changed in the built-in. However, the argument strings may not be `free'd
+ *   or `realloc'ed.
+ * - Built-ins may sleep or wait, but cannot be stopped. */
 
 
-/* A hashtable from names of builtins (const char *) to builtin info structures
- * (const builtin_T *). */
+/* A hashtable from names of built-ins (const char *) to built-in info
+ * structures (const builtin_T *). */
 static hashtable_T builtins;
 
 /* Initializes `builtins' */
@@ -194,7 +194,7 @@ void init_builtin(void)
 #undef DEFBUILTIN
 }
 
-/* Returns the builtin command of the specified name or NULL if not found. */
+/* Returns the built-in command of the specified name or NULL if not found. */
 const builtin_T *get_builtin(const char *name)
 {
     return ht_get(&builtins, name).value;
@@ -202,21 +202,18 @@ const builtin_T *get_builtin(const char *name)
 
 #if YASH_ENABLE_HELP
 
-/* Prints description of the specified builtin to stdout.
- * Returns Exit_SUCCESS if the builtin was found and the help was printed.
- * Returns Exit_FAILURE if the builtin was not found or an error occurred. */
+/* Prints description of the specified built-in to the standard output.
+ * Returns Exit_SUCCESS if the built-in was found and the help was printed.
+ * Returns Exit_FAILURE if the built-in was not found or an error occurred. */
 int print_builtin_help(const wchar_t *name)
 {
     char *mbsname = malloc_wcstombs(name);
     const builtin_T *bi = get_builtin(mbsname);
     free(mbsname);
     if (bi != NULL) {
-	for (const char **help = bi->help; *help != NULL; help++) {
-	    if (printf("%s", gt(*help)) < 0) {
-		xerror(errno, Ngt("cannot print to the standard output"));
+	for (const char **help = bi->help; *help != NULL; help++)
+	    if (!xprintf("%s", gt(*help)))
 		return Exit_FAILURE;
-	    }
-	}
 	return Exit_SUCCESS;
     } else {
 	xerror(0, Ngt("no such built-in `%ls'"), name);
@@ -245,20 +242,16 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
     size_t i = 0;
     kvpair_T kv;
     while ((kv = ht_next(&builtins, &i)).key != NULL) {
+	le_candgentype_T type;
 	switch (((const builtin_T *) kv.value)->type) {
-	    case BI_SPECIAL:
-		if (!(compopt->type & CGT_SBUILTIN))
-		    continue;
-		break;
-	    case BI_SEMISPECIAL:
-		if (!(compopt->type & CGT_SSBUILTIN))
-		    continue;
-		break;
-	    case BI_REGULAR:
-		if (!(compopt->type & CGT_RBUILTIN))
-		    continue;
-		break;
+	    case BI_SPECIAL:      type = CGT_SBUILTIN;   break;
+	    case BI_SEMISPECIAL:  type = CGT_SSBUILTIN;  break;
+	    case BI_REGULAR:      type = CGT_RBUILTIN;   break;
+	    default:          assert(false);
 	}
+	if (!(compopt->type & type))
+	    continue;
+
 	if (le_match_comppatterns(compopt, kv.key))
 	    le_new_candidate(CT_COMMAND,
 		    malloc_mbstowcs(kv.key), NULL, compopt);
@@ -268,14 +261,14 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
 #endif /* YASH_ENABLE_LINEEDIT */
 
 
-/* The ":"/"true" builtin */
+/* The ":"/"true" built-in. */
 int true_builtin(
 	int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
     return EXIT_SUCCESS;
 }
 
-/* The "false" builtin */
+/* The "false" built-in. */
 int false_builtin(
 	int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
@@ -319,15 +312,15 @@ const char *false_help[] = { Ngt(
 ), NULL };
 
 
-/* The "help" builtin. */
+/* The "help" built-in. */
 int help_builtin(int argc, void **argv)
 {
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
 	switch (opt->shortopt) {
-	    case L'-':  print_help:
-		return print_builtin_help(ARGV(0));
+	    case L'-':
+		goto print_help;
 	    default:
 		fprintf(stderr, gt("Usage:  help command...\n"));
 		return Exit_ERROR;
@@ -335,7 +328,8 @@ int help_builtin(int argc, void **argv)
     }
 
     if (xoptind == argc)
-	goto print_help;
+print_help:
+	return print_builtin_help(ARGV(0));
 
     while (xoptind < argc)
 	print_builtin_help(ARGV(xoptind++));
