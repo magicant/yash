@@ -650,7 +650,7 @@ xfnmresult_T wmatch_longest(
 	const regex_t *restrict regex, const wchar_t *restrict s)
 {
     regmatch_t match[1];
-    char *mbs = malloc_wcstombs(s);
+    char *mbs = malloc_wcstombs(s); //TODO return value null check
     int r = regexec(regex, mbs, 1, match, 0);
 
     if (r != 0) {

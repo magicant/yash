@@ -210,15 +210,15 @@ int print_builtin_help(const wchar_t *name)
     char *mbsname = malloc_wcstombs(name);
     const builtin_T *bi = get_builtin(mbsname);
     free(mbsname);
-    if (bi != NULL) {
-	for (const char **help = bi->help; *help != NULL; help++)
-	    if (!xprintf("%s", gt(*help)))
-		return Exit_FAILURE;
-	return Exit_SUCCESS;
-    } else {
+    if (bi == NULL) {
 	xerror(0, Ngt("no such built-in `%ls'"), name);
 	return Exit_FAILURE;
     }
+
+    for (const char **help = bi->help; *help != NULL; help++)
+	if (!xprintf("%s", gt(*help)))
+	    return Exit_FAILURE;
+    return Exit_SUCCESS;
 }
 
 #endif /* YASH_ENABLE_HELP */

@@ -510,7 +510,7 @@ int open_socket(const char *hostandport, int socktype)
 	wport = wcschr(whostandport, L'/');
 	if (wport) {
 	    hostname = malloc_wcsntombs(whostandport, wport - whostandport);
-	    port = malloc_wcstombs(wport + 1);
+	    port = malloc_wcstombs(wport + 1); // TODO return value null check
 	} else {
 	    hostname = xstrdup(hostandport);
 	    port = NULL;
