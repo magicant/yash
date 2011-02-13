@@ -1,5 +1,5 @@
 /* Yash: yet another shell */
-/* printf.c: the echo/printf builtins */
+/* printf.c: the echo/printf built-ins */
 /* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -43,11 +43,12 @@ extern long double wcstold(const wchar_t *restrict s, wchar_t **restrict endp)
     __attribute__((nonnull(1)));
 #endif
 
-/* type of format data used in the "printf" builtin */
+
+/* type of format data used in the "printf" built-in */
 struct format_T {
     struct format_T *next;
     enum formattype_T {
-	ft_none, ft_raw, ft_string, ft_char, ft_int, ft_uint, ft_float, ft_echo,
+	FT_NONE, FT_RAW, FT_STRING, FT_CHAR, FT_INT, FT_UINT, FT_FLOAT, FT_ECHO,
     } type;
     union {
 	struct {
@@ -61,19 +62,21 @@ struct format_T {
 	} echo;
     } value;
 };
-/* The `ft_none' format type corresponds to the "%%" conversion specification.
- * The `ft_raw' format type is used for literal strings that are not conversion
- * specifications. The format types of `ft_string', `ft_char', `ft_int',
- * `ft_uint', and `ft_float' are used for various types of conversion
- * specifications (`convspec') that require a value of the corresponding type.
- * The `ft_echo' format type is used for the "b" conversion specification. */
-/* ft_string  -> wchar_t *
- * ft_char    -> wint_t
- * ft_int     -> intmax_t
- * ft_uint    -> uintmax_t
- * ft_float   -> long double */
+/* The FT_NONE format type corresponds to the "%%" conversion specification.
+ * The FT_RAW format type is used for literal strings that are not conversion
+ * specifications. The format types of FT_STRING, FT_CHAR, FT_INT, FT_UINT, and
+ * FT_FLOAT are used for various types of conversion specifications (`convspec')
+ * that require a value of the corresponding type.
+ * The FT_ECHO format type is used for the "b" conversion specification. */
+/* FT_STRING  -> wchar_t *
+ * FT_CHAR    -> wint_t
+ * FT_INT     -> intmax_t
+ * FT_UINT    -> uintmax_t
+ * FT_FLOAT   -> long double */
 
-static bool echo_print_escape(const wchar_t *s, xstrbuf_T *buf)
+enum printf_result_T { PR_OK, PR_OK_END, PR_ERROR, };
+static enum printf_result_T echo_parse_escape(const wchar_t *restrict s,
+	xstrbuf_T *restrict buf, mbstate_t *restrict st)
     __attribute__((nonnull));
 static bool printf_parse_format(
 	const wchar_t *format, struct format_T **resultp)
@@ -83,18 +86,17 @@ static struct format_T **printf_parse_percent(
     __attribute__((nonnull,warn_unused_result));
 static struct format_T *printf_parse_percent_b(xstrbuf_T *convspec)
     __attribute__((nonnull,malloc,warn_unused_result));
-static bool printf_printf(const struct format_T *format, const wchar_t *arg)
-    __attribute__((nonnull(1)));
-static inline bool printf_print_raw(const struct format_T *format)
-    __attribute__((nonnull));
+static enum printf_result_T printf_printf(
+	const struct format_T *format, const wchar_t *arg, xstrbuf_T *buf)
+    __attribute__((nonnull(1,3)));
 static uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed);
-static bool printf_print_escape(
+static enum printf_result_T printf_print_escape(
 	const struct format_T *format, const wchar_t *arg, xstrbuf_T *buf)
     __attribute__((nonnull));
 static void freeformat(struct format_T *f);
 
 
-/* The "echo" builtin */
+/* The "echo" built-in. */
 int echo_builtin(int argc, void **argv)
 {
     bool nonewline, escape, noption, eoption;
@@ -106,7 +108,7 @@ int echo_builtin(int argc, void **argv)
      * But we only care about the first character of it. */
     nonewline = false;
     echo_style = getvar(L VAR_ECHO_STYLE);
-    switch (echo_style ? echo_style[0] : L'\0') {
+    switch ((echo_style != NULL) ? echo_style[0] : L'\0') {
 	case L'S':  case L's':  case L'X':  case L'x':  default:
 	    escape = true, noption = false, eoption = false;
 	    break;
@@ -134,9 +136,9 @@ int echo_builtin(int argc, void **argv)
 	for (index = 1; index < argc; index++) {
 	    if (ARGV(index)[0] != L'-')
 		break;
-	    if (ARGV(index)[wcsspn(ARGV(index) + 1, L"neE") + 1] != L'\0')
+	    if (ARGV(index)[wcsspn(&ARGV(index)[1], L"neE") + 1] != L'\0')
 		break;
-	    for (const wchar_t *opt = ARGV(index) + 1; *opt; opt++) {
+	    for (const wchar_t *opt = &ARGV(index)[1]; *opt != L'\0'; opt++) {
 		switch (*opt) {
 		    case L'n':  nonewline = true;   break;
 		    case L'e':  escape    = true;   break;
@@ -152,97 +154,102 @@ int echo_builtin(int argc, void **argv)
 	}
     }
 
-    /* print arguments */
-    clearerr(stdout);
+    /* parse arguments */
+    xstrbuf_T buf;
+    mbstate_t state;
+
+    sb_init(&buf);
+    memset(&state, 0, sizeof state); // initialize as the initial shift state
+
     if (index < argc) {
 	for (;;) {
 	    if (escape) {
-		xstrbuf_T buf;
-		bool ok, end;
-		size_t count;
-
-		sb_init(&buf);
-		nonewline |= end = echo_print_escape(ARGV(index), &buf);
-		count = fwrite(buf.contents, sizeof (char), buf.length, stdout);
-		ok = (count == buf.length);
-		sb_destroy(&buf);
-		if (!ok)
-		    goto ioerror;
-		if (end)
-		    break;
+		switch (echo_parse_escape(ARGV(index), &buf, &state)) {
+		    case PR_OK:      break;
+		    case PR_OK_END:  nonewline = true;  goto print;
+		    case PR_ERROR:   goto error;
+		}
 	    } else {
-		if (printf("%ls", ARGV(index)) < 0)
-		    goto ioerror;
+		if (sb_wcscat(&buf, ARGV(index), &state) != NULL) {
+		    errno = EILSEQ;
+		    goto error;
+		}
 	    }
 
 	    index++;
 	    if (index >= argc)
 		break;
 
-	    if (fputc(' ', stdout) < 0)
-		goto ioerror;
+	    if (!sb_wccat(&buf, L' ', &state))
+		goto error;
 	}
     }
 
-    /* print trailing newline and flush the buffer
-     * (printing a newline automatically flushes the buffer) */
-    if ((nonewline ? fflush(stdout) : putchar('\n')) < 0)
-	goto ioerror;
+    if (!nonewline)
+	if (!sb_wccat(&buf, L'\n', &state))
+	    goto error;
 
+    /* print to the standard output */
+print:
+    clearerr(stdout);
+    fwrite(buf.contents, sizeof *buf.contents, buf.length, stdout);
+    if (ferror(stdout))
+	goto error;
+
+    if (fflush(stdout) != 0)
+	goto error;
+
+    sb_destroy(&buf);
     return Exit_SUCCESS;
 
-ioerror:
+error:
     xerror(errno, Ngt("cannot print to the standard output"));
+    sb_destroy(&buf);
     return Exit_FAILURE;
 }
 
-/* Prints the specified string that may include escape sequences.
- * Returns true iff "\c" sequence is found. */
-bool echo_print_escape(const wchar_t *s, xstrbuf_T *buf)
+/* Parses string `s' that may include escape sequences.
+ * The result is appended to string buffer `buf'.
+ * Shift state `st' is used to convert wide characters into multibyte
+ * characters.
+ * On error, `errno' is set and PR_ERROR is returned. */
+enum printf_result_T echo_parse_escape(const wchar_t *restrict s,
+	xstrbuf_T *restrict buf, mbstate_t *restrict st)
 {
-    mbstate_t state;
-
-    memset(&state, 0, sizeof state);  // initialize as a initial state
-    while (*s) {
+    while (*s != L'\0') {
 	if (*s != L'\\') {
 normal:
-	    sb_wccat(buf, *s, &state);
+	    if (!sb_wccat(buf, *s, st))
+		return PR_ERROR;
 	    s++;
 	} else {
-	    switch (*(s + 1)) {
-		char c;
-		case L'a':   c = '\a';  goto print_char;
-		case L'b':   c = '\b';  goto print_char;
-		case L'c':   return true;
-		case L'f':   c = '\f';  goto print_char;
-		case L'n':   c = '\n';  goto print_char;
-		case L'r':   c = '\r';  goto print_char;
-		case L't':   c = '\t';  goto print_char;
-		case L'v':   c = '\v';  goto print_char;
-		case L'\\':  c = '\\';  goto print_char;
+	    switch (s[1]) {
+		wchar_t c;
+		case L'a':   c = L'\a';  goto print_char;
+		case L'b':   c = L'\b';  goto print_char;
+		case L'c':   return PR_OK_END;
+		case L'f':   c = L'\f';  goto print_char;
+		case L'n':   c = L'\n';  goto print_char;
+		case L'r':   c = L'\r';  goto print_char;
+		case L't':   c = L'\t';  goto print_char;
+		case L'v':   c = L'\v';  goto print_char;
+		case L'\\':  c = L'\\';  goto print_char;
 print_char:
-		    sb_ccat(buf, c);
+		    if (!sb_wccat(buf, c, st))
+			return PR_ERROR;
 		    s += 2;
 		    break;
 
 		/* At most three digits are recognized in an octal escape
-		 * except for the first zero. */
+		 * excluding the first zero. */
 		case L'0':
 		    {
 			int value = 0;
 			s += 2;
-			if (L'0' <= *s && *s <= L'7') {
+			for (int i = 0;
+				i < 3 && L'0' <= *s && *s <= L'7';
+				i++, s++)
 			    value = value * 8 + (*s - L'0');
-			    s++;
-			    if (L'0' <= *s && *s <= L'7') {
-				value = value * 8 + (*s - L'0');
-				s++;
-				if (L'0' <= *s && *s <= L'7') {
-				    value = value * 8 + (*s - L'0');
-				    s++;
-				}
-			    }
-			}
 			sb_ccat(buf, TO_CHAR(value));
 			break;
 		    }
@@ -252,8 +259,7 @@ print_char:
 	    }
 	}
     }
-    sb_wccat(buf, L'\0', &state);
-    return false;
+    return PR_OK;
 }
 
 #if YASH_ENABLE_HELP
@@ -328,7 +334,7 @@ const char *echo_help[] = { Ngt(
 #endif /* YASH_ENABLE_HELP */
 
 
-/* The "printf" builtin */
+/* The "printf" built-in. */
 int printf_builtin(int argc, void **argv)
 {
     const struct xgetopt_T *opt;
@@ -347,6 +353,7 @@ int printf_builtin(int argc, void **argv)
     if (xoptind == argc)
 	goto print_usage;
 
+    /* parse the format string */
     struct format_T *format = NULL;
     if (!printf_parse_format(ARGV(xoptind), &format)) {
 	freeformat(format);
@@ -354,26 +361,43 @@ int printf_builtin(int argc, void **argv)
     }
     xoptind++;
 
+    /* format the operands */
     int oldoptind;
+    xstrbuf_T buf;
+    sb_init(&buf);
     do {
 	oldoptind = xoptind;
-	struct format_T *f = format;
-	while (f) {
-	    if (printf_printf(f, ARGV(xoptind)))
-		goto end;
-	    f = f->next;
+	for (struct format_T *f = format; f != NULL; f = f->next) {
+	    switch (printf_printf(f, ARGV(xoptind), &buf)) {
+		case PR_OK:      break;
+		case PR_OK_END:  goto print;
+		case PR_ERROR:   goto error;
+	    }
 	}
     } while (xoptind < argc && xoptind != oldoptind);
 
-end:
-    if (fflush(stdout) < 0)
-	xerror(errno, Ngt("cannot print to the standard output"));
+print:
     freeformat(format);
 
+    /* print the result to the standard output */
+    clearerr(stdout);
+    fwrite(buf.contents, sizeof *buf.contents, buf.length, stdout);
+    if (ferror(stdout))
+	goto error;
+
+    if (fflush(stdout) != 0)
+	goto error;
+
+    sb_destroy(&buf);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+
+error:
+    xerror(errno, Ngt("cannot print to the standard output"));
+    sb_destroy(&buf);
+    return Exit_FAILURE;
 }
 
-/* Parses the format for the "printf" builtin.
+/* Parses the format for the "printf" built-in.
  * If successful, a pointer to the result is assigned to `*resultp' and true is
  * returned.
  * If unsuccessful, an error message is printed and false is returned. A pointer
@@ -386,7 +410,7 @@ bool printf_parse_format(const wchar_t *format, struct format_T **resultp)
 	    struct format_T *f = xmalloc(sizeof *f); \
 	    sb_wccat(&buf, L'\0', &state);           \
 	    f->next = NULL;                          \
-	    f->type = ft_raw;                        \
+	    f->type = FT_RAW;                        \
 	    f->value.raw.length = buf.length;        \
 	    f->value.raw.value = sb_tostr(&buf);     \
 	    *resultp = f;                            \
@@ -400,17 +424,17 @@ bool printf_parse_format(const wchar_t *format, struct format_T **resultp)
 
     sb_init(&buf);
     memset(&state, 0, sizeof state);
-    while (*format) {
+    while (*format != L'\0') {
 	switch (*format) {
 	case L'%':
 	    MAKE_STRING;
 	    resultp = printf_parse_percent(&format, resultp);
-	    if (!resultp)
+	    if (resultp == NULL)
 		return false;
 	    sb_init(&buf);
 	    break;
 	case L'\\':
-	    switch (*(format + 1)) {
+	    switch (format[1]) {
 		char c;
 		case L'a':   c = '\a';  goto put_char;
 		case L'b':   c = '\b';  goto put_char;
@@ -430,22 +454,14 @@ put_char:
 		/* At most three digits are recognized in an octal escape */
 		case L'0':  case L'1':  case L'2':  case L'3':
 		case L'4':  case L'5':  case L'6':  case L'7':
-		    format++;
 		    {
 			int value = 0;
-			if (L'0' <= *format && *format <= L'7') {
+			format++;
+			for (int i = 0;
+				i < 3 && L'0' <= *format && *format <= L'7';
+				i++, format++)
 			    value = value * 8 + (*format - L'0');
-			    format++;
-			    if (L'0' <= *format && *format <= L'7') {
-				value = value * 8 + (*format - L'0');
-				format++;
-				if (L'0' <= *format && *format <= L'7') {
-				    value = value * 8 + (*format - L'0');
-				    format++;
-				}
-			    }
-			}
-			sb_ccat(&buf, (unsigned char) value);
+			sb_ccat(&buf, TO_CHAR(value));
 			break;
 		    }
 		default:
@@ -455,7 +471,7 @@ put_char:
 	default:  normal:
 	    {
 		if (!sb_wccat(&buf, *format, &state)) {
-		    xerror(EILSEQ, Ngt("unexpected error"));
+		    xerror(errno, Ngt("cannot parse the format"));
 		    sb_destroy(&buf);
 		    return false;
 		}
@@ -530,28 +546,28 @@ parse_width:
     switch (*format) {
 	case L'd':  case L'i':
 	    if (hashflag) goto flag_error;
-	    type = ft_int;
+	    type = FT_INT;
 	    sb_ccat(&buf, 'j');
 	    break;
 	case L'u':
 	    if (hashflag) goto flag_error;
 	    /* falls thru! */
 	case L'o':  case L'x':  case L'X':
-	    type = ft_uint;
+	    type = FT_UINT;
 	    sb_ccat(&buf, 'j');
 	    break;
 	case L'f':  case L'F': case L'e':  case L'E':  case L'g':  case L'G':
-	    type = ft_float;
+	    type = FT_FLOAT;
 	    sb_ccat(&buf, 'L');
 	    break;
 	case L'c':
 	    if (hashflag || zeroflag) goto flag_error;
-	    type = ft_char;
+	    type = FT_CHAR;
 	    sb_ccat(&buf, 'l');
 	    break;
 	case L's':
 	    if (hashflag || zeroflag) goto flag_error;
-	    type = ft_string;
+	    type = FT_STRING;
 	    sb_ccat(&buf, 'l');
 	    break;
 	case L'b':
@@ -560,14 +576,14 @@ parse_width:
 	    result = printf_parse_percent_b(&buf);
 	    goto end;
 	case L'%':
-	    if (buf.length != 1) goto conv_error;
-	    type = ft_none;
+	    if (buf.length != 1) goto flag_error;
+	    type = FT_NONE;
 	    break;
 	case L'\0':
 	    xerror(0, Ngt("the conversion specifier is missing"));
 	    sb_destroy(&buf);
 	    return NULL;
-	default:  conv_error:
+	default:
 	    xerror(0, Ngt("`%lc' is not a valid conversion specifier"),
 		    (wint_t) *format);
 	    sb_destroy(&buf);
@@ -584,11 +600,11 @@ flag_error:
     result->next = NULL;
     result->type = type;
     switch (type) {
-	case ft_none:
+	case FT_NONE:
 	    sb_destroy(&buf);
 	    break;
-	case ft_raw:
-	case ft_echo:
+	case FT_RAW:
+	case FT_ECHO:
 	    assert(false);
 	default:
 	    result->value.convspec = sb_tostr(&buf);
@@ -612,13 +628,13 @@ struct format_T *printf_parse_percent_b(xstrbuf_T *convspec)
     struct format_T *result = xmalloc(sizeof *result);
 
     result->next = NULL;
-    result->type = ft_echo;
+    result->type = FT_ECHO;
     result->value.echo.left = false;
 
     assert(convspec->contents[index] == '%');
-    index++;
 
-    for (;; index++) {
+    for (;;) {
+	index++;
 	switch (convspec->contents[index]) {
 	    case '#':  case '0':  case '+':  case ' ':
 		break;
@@ -648,46 +664,45 @@ parse_width:
     return result;
 }
 
-/* Formats the specified string and prints it.
- * Increases `xoptind' if `arg' is used. Otherwise, `arg' is ignored.
- * Returns true iff no more characters should be written. */
-bool printf_printf(const struct format_T *format, const wchar_t *arg)
+/* Formats the specified string. The result is appended to buffer `buf'.
+ * Increases `xoptind' if `arg' is used. Otherwise, `arg' is ignored. */
+enum printf_result_T printf_printf(
+	const struct format_T *format, const wchar_t *arg, xstrbuf_T *buf)
 {
     switch (format->type) {
-	case ft_none:
-	    if (putchar('%') < 0)
-		goto ioerror;
-	    return false;
-	case ft_raw:
-	    if (!printf_print_raw(format))
-		goto ioerror;
-	    return false;
-	case ft_string:
+	case FT_NONE:
+	    sb_ccat(buf, '%');
+	    return PR_OK;
+	case FT_RAW:
+	    sb_ncat_force(buf,
+		    format->value.raw.value, format->value.raw.length);
+	    return PR_OK;
+	case FT_STRING:
 	    if (arg != NULL)
 		xoptind++;
 	    else
 		arg = L"";
-	    if (printf(format->value.convspec, arg) < 0)
-		goto ioerror;
-	    return false;
-	case ft_char:
-	    if (arg) {
+	    if (sb_printf(buf, format->value.convspec, arg) < 0)
+		return PR_ERROR;
+	    return PR_OK;
+	case FT_CHAR:
+	    if (arg != NULL) {
 		xoptind++;
-		if (printf(format->value.convspec, (wint_t) arg[0]) < 0)
-		    goto ioerror;
+		if (sb_printf(buf, format->value.convspec, (wint_t) arg[0]) < 0)
+		    return PR_ERROR;
 	    }
-	    return false;
-	case ft_int:
-	    if (printf(format->value.convspec,
+	    return PR_OK;
+	case FT_INT:
+	    if (sb_printf(buf, format->value.convspec,
 			printf_parse_integer(arg, true)) < 0)
-		goto ioerror;
-	    return false;
-	case ft_uint:
-	    if (printf(format->value.convspec,
+		return PR_ERROR;
+	    return PR_OK;
+	case FT_UINT:
+	    if (sb_printf(buf, format->value.convspec,
 			printf_parse_integer(arg, false)) < 0)
-		goto ioerror;
-	    return false;
-	case ft_float:
+		return PR_ERROR;
+	    return PR_OK;
+	case FT_FLOAT:
 	    {
 		long double value;
 		wchar_t *end;
@@ -705,43 +720,19 @@ bool printf_printf(const struct format_T *format, const wchar_t *arg)
 		    value = wcstod(arg, &end);
 		if (errno || arg[0] == L'\0' || *end != L'\0')
 		    xerror(errno, Ngt("`%ls' is not a valid number"), arg);
-		if (printf(format->value.convspec, value) < 0)
-		    goto ioerror;
-		return false;
+		if (sb_printf(buf, format->value.convspec, value) < 0)
+		    return PR_ERROR;
+		return PR_OK;
 	    }
-	case ft_echo:
-	    {
-		xstrbuf_T buf;
-		bool ok, end;
-		size_t count;
-
-		if (arg != NULL)
-		    xoptind++;
-		else
-		    arg = L"";
-		sb_init(&buf);
-		end = printf_print_escape(format, arg, &buf);
-		count = fwrite(buf.contents, sizeof (char), buf.length, stdout);
-		ok = (count == buf.length);
-		sb_destroy(&buf);
-		if (!ok)
-		    goto ioerror;
-		return end;
-	    }
+	case FT_ECHO:
+	    if (arg != NULL)
+		xoptind++;
+	    else
+		arg = L"";
+	    return printf_print_escape(format, arg, buf);
 	default:
 	    assert(false);
     }
-
-ioerror:
-    xerror(errno, Ngt("cannot print to the standard output"));
-    return true;
-}
-
-bool printf_print_raw(const struct format_T *format)
-{
-    size_t count = fwrite(format->value.raw.value, sizeof (char),
-	    format->value.raw.length, stdout);
-    return count == format->value.raw.length;
 }
 
 /* Parses the specified string as an integer. */
@@ -769,42 +760,53 @@ uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
 }
 
 /* Prints the specified string that may include escape sequences and formats it
- * in the specified format.
- * Returns true iff "\c" sequence is found. */
-bool printf_print_escape(
+ * in the specified format. */
+enum printf_result_T printf_print_escape(
 	const struct format_T *format, const wchar_t *s, xstrbuf_T *buf)
 {
-    bool end = echo_print_escape(s, buf);
+    xstrbuf_T subbuf;
+    mbstate_t state;
 
-    if (format->value.echo.max < buf->length) {
-	sb_truncate(buf, format->value.echo.max);
-    }
-    if (buf->length < format->value.echo.width) {
-	size_t increment = format->value.echo.width - buf->length;
+    sb_init(&subbuf);
+    memset(&state, 0, sizeof state);
+
+    enum printf_result_T result = echo_parse_escape(s, &subbuf, &state);
+
+    if (result == PR_OK)
+	sb_wccat(&subbuf, L'\0', &state);
+
+    if (format->value.echo.max < subbuf.length)
+	sb_truncate(&subbuf, format->value.echo.max);
+
+    if (format->value.echo.width <= subbuf.length) {
+	sb_ncat_force(buf, subbuf.contents, subbuf.length);
+    } else {
+	size_t increment = format->value.echo.width - subbuf.length;
 	if (format->value.echo.left) {
+	    sb_ncat_force(buf, subbuf.contents, subbuf.length);
 	    sb_ccat_repeat(buf, ' ', increment);
 	} else {
-	    sb_ensuremax(buf, buf->length + increment);
-	    memmove(buf->contents + increment, buf->contents, buf->length + 1);
-	    buf->length += increment;
-	    memset(buf->contents, ' ', increment);
+	    sb_ccat_repeat(buf, ' ', increment);
+	    sb_ncat_force(buf, subbuf.contents, subbuf.length);
 	}
     }
-    return end;
+
+    sb_destroy(&subbuf);
+    return result;
 }
 
 /* Frees the specified format data. */
 void freeformat(struct format_T *f)
 {
-    while (f) {
+    while (f != NULL) {
 	struct format_T *next = f->next;
 	switch (f->type) {
-	    case ft_none:
+	    case FT_NONE:
 		break;
-	    case ft_raw:
+	    case FT_RAW:
 		free(f->value.raw.value);
 		break;
-	    case ft_echo:
+	    case FT_ECHO:
 		break;
 	    default:
 		free(f->value.convspec);

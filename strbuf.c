@@ -29,7 +29,7 @@
 #include "strbuf.h"
 #include "util.h"
 
-#ifndef wcsnrtombs
+#if HAVE_WCSNRTOMBS && !defined(wcsnrtombs)
 size_t wcsnrtombs(char *restrict dst, const wchar_t **restrict src, size_t nwc,
 	size_t len, mbstate_t *restrict ps);
 #endif
@@ -159,9 +159,10 @@ xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
 
 /* Converts wide character `c' into a multibyte string and appends it to buffer
  * `buf'. Shift state `ps' is used for the conversion.
- * Returns true iff successful.
  * If `c' is a null character, the shift state is reset to the initial state but
- * the null character is not appended to the buffer. */
+ * the null character is not appended to the buffer.
+ * Returns true iff successful. On error, `errno' is set to EILSEQ and the state
+ * is left undefined. */
 bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
 {
     size_t count;

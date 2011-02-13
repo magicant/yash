@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
-/* printf.h: echo/printf builtins */
-/* (C) 2007-2009 magicant */
+/* printf.h: echo/printf built-ins */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
