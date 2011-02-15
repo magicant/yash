@@ -111,14 +111,29 @@ set -aXb
 echo invalid option 2 $?
 set -o no-such-option
 echo invalid option 3 $?
-set --hel=1
-echo invalid option argument 1 $?
-set --hel=
-echo invalid option argument 2 $?
-set --help=1
-echo invalid option argument 3 $?
-set --help=
-echo invalid option argument 4 $?
+if command -vb help >/dev/null 2>&1; then
+    set --hel=1
+    echo invalid option argument 1 $?
+    set --hel=
+    echo invalid option argument 2 $?
+    set --help=1
+    echo invalid option argument 3 $?
+    set --help=
+    echo invalid option argument 4 $?
+else
+    cat <<\END
+invalid option argument 1 2
+invalid option argument 2 2
+invalid option argument 3 2
+invalid option argument 4 2
+END
+    cat >&2 <<\END
+set: --hel=1: the --help option does not take an argument
+set: --hel=: the --help option does not take an argument
+set: --help=1: the --help option does not take an argument
+set: --help=: the --help option does not take an argument
+END
+fi
 
 echo ===== set =====
 echo ===== set ===== >&2

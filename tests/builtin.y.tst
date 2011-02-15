@@ -138,7 +138,7 @@ if command -vb alias >/dev/null 2>&1; then
     command -va cd
     command -va echo || echo $?
 else
-    echo "cd: alias for \`cd_alias'"
+    echo "cd: an alias for \`cd_alias'"
     echo "alias cd='cd_alias'"
     echo 1
 fi

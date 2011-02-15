@@ -232,7 +232,9 @@ static const struct option_T shell_options[] = {
 };
 
 enum normal_option_index_T {
+#if YASH_ENABLE_HELP
     NOI_HELP,
+#endif
     NOI_VERSION,
     NOI_NOPROFILE,
     NOI_NORCFILE,
@@ -247,8 +249,10 @@ enum normal_option_index_T {
 /* A non-NULL `ptr' member indicates that the option can be used for the "set"
  * built-in. */
 static const struct xgetopt_T normal_options[] = {
+#if YASH_ENABLE_HELP
     [NOI_HELP]      = { L'-', L"help",      OPTARG_NONE,     false,
 			&normal_options, },
+#endif
     [NOI_VERSION]   = { L'V', L"version",   OPTARG_NONE,     false, NULL, },
     [NOI_NOPROFILE] = { L'-', L"noprofile", OPTARG_NONE,     false, NULL, },
     [NOI_NORCFILE]  = { L'-', L"norcfile",  OPTARG_NONE,     false, NULL, },
@@ -693,16 +697,20 @@ int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
 
     if (shell_invocation == NULL) {
 	switch (index) {
+#if YASH_ENABLE_HELP
 	    case NOI_HELP:
 		return print_builtin_help(L"set");
+#endif
 	    default:
 		assert(false);
 	}
     } else {
 	switch (index) {
+#if YASH_ENABLE_HELP
 	    case NOI_HELP:
 		shell_invocation->help = true;
 		break;
+#endif
 	    case NOI_VERSION:
 		shell_invocation->version = true;
 		break;

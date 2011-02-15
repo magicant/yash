@@ -1247,8 +1247,10 @@ parse_signal_name:
 			    optind++;
 			    goto main;
 			}
+#if YASH_ENABLE_HELP
 			if (!posixly_correct && matchwcsprefix(L"--help", arg))
 			    return print_builtin_help(ARGV(0));
+#endif
 		    }
 		    /* falls thru! */
 		default:
