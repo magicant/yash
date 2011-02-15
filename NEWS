@@ -22,6 +22,10 @@ Yash 2.26
   =  New mail notification is now printed only when the mailbox file
      is not empty.
   =  "printf %c ''" now prints nothing as "printf %c" do.
+  =  In an invocation of the "complete" built-in with the -A or -R
+     option, the pattern is now matched against the last component of
+     the pathname when generating pathname candidates with the -f
+     option.
   *  Function names containing an '=' sign can now be specified as
      arguments to the typeset and unset built-ins (with the -f
      option).

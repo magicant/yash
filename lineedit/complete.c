@@ -124,6 +124,10 @@ static void complete_command_default(void);
 static void simple_completion(le_candgentype_T type);
 static void generate_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
+static bool le_match_patterns(const le_comppattern_T *ps, const char *s)
+    __attribute__((nonnull(2)));
+static bool le_wmatch_patterns(const le_comppattern_T *ps, const wchar_t *s)
+    __attribute__((nonnull(2)));
 static void generate_file_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 static void generate_external_command_candidates(const le_compopt_T *compopt)
@@ -863,14 +867,41 @@ bool le_compile_cpatterns(const le_compopt_T *compopt)
     return true;
 }
 
+/* Perform pattern matching for multibyte string `s' using patterns `ps'.
+ * The patterns must have been compiled. Returns true iff successful. */
+bool le_match_patterns(const le_comppattern_T *ps, const char *s)
+{
+    for (; ps != NULL; ps = ps->next){
+	bool match = (xfnm_match(ps->cpattern, s) == 0);
+	switch (ps->type) {
+	    case CPT_ACCEPT:
+		if (!match)
+		    return false;
+		break;
+	    case CPT_REJECT:
+		if (match)
+		    return false;
+		break;
+	}
+    }
+    return true;
+}
+
 /* Perform pattern matching for multibyte string `s' using patterns in
  * `compopt->patterns'. The patterns must have been compiled.
  * Returns true iff successful. */
 bool le_match_comppatterns(const le_compopt_T *compopt, const char *s)
 {
-    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
-	bool match = (xfnm_match(p->cpattern, s) == 0);
-	switch (p->type) {
+    return le_match_patterns(compopt->patterns, s);
+}
+
+/* Perform pattern matching for wide string `s' using patterns `ps'.
+ * The patterns must have been compiled. Returns true iff successful. */
+bool le_wmatch_patterns(const le_comppattern_T *ps, const wchar_t *s)
+{
+    for (; ps != NULL; ps = ps->next) {
+	bool match = (xfnm_wmatch(ps->cpattern, s).start != (size_t) -1);
+	switch (ps->type) {
 	    case CPT_ACCEPT:
 		if (!match)
 		    return false;
@@ -889,20 +920,7 @@ bool le_match_comppatterns(const le_compopt_T *compopt, const char *s)
  * Returns true iff successful. */
 bool le_wmatch_comppatterns(const le_compopt_T *compopt, const wchar_t *s)
 {
-    for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
-	bool match = (xfnm_wmatch(p->cpattern, s).start != (size_t) -1);
-	switch (p->type) {
-	    case CPT_ACCEPT:
-		if (!match)
-		    return false;
-		break;
-	    case CPT_REJECT:
-		if (match)
-		    return false;
-		break;
-	}
-    }
-    return true;
+    return le_wmatch_patterns(compopt->patterns, s);
 }
 
 /* Generates file name candidates.
@@ -914,6 +932,8 @@ void generate_file_candidates(const le_compopt_T *compopt)
 	return;
 
     le_compdebug("adding filename candidates");
+    if (!le_compile_cpatterns(compopt))
+	return;
 
     enum wglbflags flags = 0;
     // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
@@ -924,45 +944,23 @@ void generate_file_candidates(const le_compopt_T *compopt)
     assert(p->type == CPT_ACCEPT);
 
     /* generate candidates by wglob */
-    plist_T list, list2;
+    plist_T list;
     wglob(p->pattern, flags, pl_init(&list));
-    while ((p = p->next) != NULL) {
-	wglob(p->pattern, flags, pl_init(&list2));
-
-	/* compare `list' and `list2' */
-	size_t i = 0, i2 = 0;
-	while (i2 < list2.length) {
-	    wchar_t *v2 = list2.contents[i2];
-	    while (i < list.length) {
-		wchar_t *v = list.contents[i];
-		int cmp = wcscoll(v, v2);
-		if (cmp > 0)
-		    break;
-		if ((p->type == CPT_ACCEPT && cmp < 0)
-			|| (p->type == CPT_REJECT && cmp == 0)) {
-		    free(v);
-		    pl_remove(&list, i, 1);
-		    continue;
-		}
-		i++;
-	    }
-	    free(v2);
-	    i2++;
-	}
-
-	/* remove unmatched candidates */
-	if (p->type == CPT_ACCEPT) {
-	    for (size_t j = i; j < list.length; j++)
-		free(list.contents[j]);
-	    pl_remove(&list, i, SIZE_MAX);
-	}
-
-	pl_destroy(&list2);
-    }
+    p = p->next;
 
     /* check pathnames in `list' and add them to the candidate list */
     for (size_t i = 0; i < list.length; i++) {
 	wchar_t *name = list.contents[i];
+	if (p != NULL) {
+	    const wchar_t *basename = wcsrchr(name, L'/');
+	    if (basename == NULL)
+		basename = name;
+	    if (!le_wmatch_patterns(p, basename)) {
+		free(name);
+		continue;
+	    }
+	}
+
 	char *mbsname = malloc_wcstombs(name);
 	struct stat st;
 	if (mbsname != NULL &&
