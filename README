@@ -56,6 +56,9 @@ The manual for yash is available only in Japanese for now. Sorry.
  * According to POSIX, the value of variable `PS1' is subject to
    parameter expansion. Yash performs command substitution and
    arithmetic expansion as well on the `PS1' value.
+ * According to POSIX, the command `printf %c foo' should print the
+   first byte of string `foo'. Yash prints the first character of
+   `foo', which may be more than one byte.
  * Aliases containing newlines are not supported.
 
 

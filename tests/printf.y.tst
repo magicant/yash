@@ -246,6 +246,7 @@ printf '%+#15.3G ' 1 1.25 -1000.0 0.000025; echo 10
 echo ===== %c
 
 printf '%c\n'
+printf '%c\n' ''
 printf '%c\n' a
 printf '%c\n' long arguments
 printf '%3c\n' b

@@ -686,7 +686,7 @@ enum printf_result_T printf_printf(
 		return PR_ERROR;
 	    return PR_OK;
 	case FT_CHAR:
-	    if (arg != NULL) {
+	    if (arg != NULL && arg[0] != L'\0') {
 		xoptind++;
 		if (sb_printf(buf, format->value.convspec, (wint_t) arg[0]) < 0)
 		    return PR_ERROR;
