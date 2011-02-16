@@ -79,14 +79,13 @@ static void remove_all_aliases(void);
 static aliaslist_T *clone_aliaslist(const aliaslist_T *list)
     __attribute__((malloc,warn_unused_result));
 static bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
-    __attribute__((nonnull(1),pure));
+    __attribute__((pure));
 static void add_to_aliaslist(
 	aliaslist_T **list, alias_T *alias, size_t limitindex)
     __attribute__((nonnull));
 static aliaslist_T *remove_expired_aliases(aliaslist_T *list, size_t index)
     __attribute__((warn_unused_result));
-static void shift_index(aliaslist_T *list, ptrdiff_t inc)
-    __attribute__((nonnull));
+static void shift_index(aliaslist_T *list, ptrdiff_t inc);
 static bool is_redir_fd(const wchar_t *s)
     __attribute__((nonnull,pure));
 static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
