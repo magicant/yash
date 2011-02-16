@@ -27,8 +27,8 @@ temptxt="./.temp.txt"
 dirs=". builtins lineedit po tests"
 
 target="yash"
-version="2.25"
-copyright="Copyright (C) 2007-2010 magicant"
+version="2.26"
+copyright="Copyright (C) 2007-2011 magicant"
 
 # object files to be linked as `yash'
 objs='$(MAIN_OBJS)'
