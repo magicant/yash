@@ -138,6 +138,7 @@ $(DISTDIR): _PHONY
 	mkdir -m 755 $@/share/completion
 	umask 022; \
 	for file in share/completion/*; do cp $$file $@/share/completion; done
+	find $@ | xargs touch -c -r $@
 # Only pax and compress conform to POSIX.
 dist-tarZ: $(DISTDIR).tar.Z
 	-rm -rf $(DISTDIR) $(DISTDIR).tar

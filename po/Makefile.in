@@ -60,7 +60,8 @@ LOCALEDIR = @LOCALEDIR@
 # timestamp would not be necessary if updating the $(CATALOGS) would always
 # touch them; however, the rule for $(POFILES) has been designed to not touch
 # files that don't need to be changed.
-stamp-po: $(DOMAIN).pot $(CATALOGS)
+stamp-po: $(DOMAIN).pot
+	@+[ -z "$(CATALOGS)" ] || $(MAKE) $(CATALOGS)
 	touch $@
 
 # This rule has no dependencies: we don't need to update $(DOMAIN).pot at
