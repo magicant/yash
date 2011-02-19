@@ -46,7 +46,7 @@ extern size_t addmul(size_t mainsize, size_t count, size_t elemsize)
 extern void alloc_failed(void)
     __attribute__((noreturn));
 
-/* Attempts `calloc' and abort the program on failure. */
+/* Attempts `calloc' and aborts the program on failure. */
 void *xcalloc(size_t nmemb, size_t size)
 {
     void *result = calloc(nmemb, size);
@@ -55,7 +55,7 @@ void *xcalloc(size_t nmemb, size_t size)
     return result;
 }
 
-/* Attempts `malloc' and abort the program on failure. */
+/* Attempts `malloc' and aborts the program on failure. */
 void *xmalloc(size_t size)
 {
     void *result = malloc(size);
@@ -78,7 +78,7 @@ void *xmallocs(size_t mainsize, size_t count, size_t elemsize)
     return xmalloc(addmul(mainsize, count, elemsize));
 }
 
-/* Attempts `realloc' and abort the program on failure. */
+/* Attempts `realloc' and aborts the program on failure. */
 void *xrealloc(void *ptr, size_t size)
 {
     void *result = realloc(ptr, size);
