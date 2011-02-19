@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2011 magicant
 
 # Completion script for the "ssh" command.
 # Supports OpenSSH 5.6.
@@ -117,13 +117,13 @@ function completion/ssh {
 			# complete the host name
 			PREFIX=${TARGETWORD%${TARGETWORD#*@}}
 			typeset key value
-			while read key value; do
+			while read -Ar key value; do
 				case $key in ([Hh][Oo][Ss][Tt])
-					complete -P "$PREFIX" -R '\*' $value
+					complete -P "$PREFIX" -R '\*' "$value"
 				esac
 			done <(sed -e 's/#.*//' -e 's/[Hh][Oo][Ss][Tt][[:blank:]]*=/host /' "$config" 2>/dev/null)
 			# currently, we always read known-hosts files from the default location
-			while read key value; do
+			while read -r key value; do
 				case $key in
 				(\|*) ;;
 				(*)
