@@ -273,7 +273,7 @@ bool is_update(const char *path)
 #endif
 	    );
     } else {
-	mf = xmalloc(sizeof *mf + strlen(path) + 1);
+	mf = xmallocs(sizeof *mf, strlen(path) + 1, sizeof *mf->mf_filename);
 	strcpy(mf->mf_filename, path);
 	ht_set(&mailfiles, mf->mf_filename, mf);
 	result = false;

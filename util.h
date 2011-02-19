@@ -32,10 +32,17 @@ static inline void *xmalloc(size_t size)
     __attribute__((malloc,warn_unused_result));
 static inline void *xmallocn(size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
+static inline void *xmallocs(size_t mainsize, size_t count, size_t elemsize)
+    __attribute__((malloc,warn_unused_result));
 static inline void *xrealloc(void *ptr, size_t size)
     __attribute__((malloc,warn_unused_result));
 static inline void *xreallocn(void *ptr, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
+static inline void *xreallocs(void *ptr,
+	size_t mainsize, size_t count, size_t elemsize)
+    __attribute__((malloc,warn_unused_result));
+extern size_t addmul(size_t mainsize, size_t count, size_t elemsize)
+    __attribute__((pure));
 extern void alloc_failed(void)
     __attribute__((noreturn));
 
@@ -61,10 +68,14 @@ void *xmalloc(size_t size)
  * large. `elemsize' must not be zero. */
 void *xmallocn(size_t count, size_t elemsize)
 {
-    size_t size = count * elemsize;
-    if (size / elemsize != count)
-	alloc_failed();
-    return xmalloc(size);
+    return xmallocs(0, count, elemsize);
+}
+
+/* Like `xmalloc(mainsize + count * elemsize)', but aborts the program if the
+ * size is too large. `elemsize' must not be zero. */
+void *xmallocs(size_t mainsize, size_t count, size_t elemsize)
+{
+    return xmalloc(addmul(mainsize, count, elemsize));
 }
 
 /* Attempts `realloc' and abort the program on failure. */
@@ -80,10 +91,14 @@ void *xrealloc(void *ptr, size_t size)
  * too large. `elemsize' must not be zero. */
 void *xreallocn(void *ptr, size_t count, size_t elemsize)
 {
-    size_t size = count * elemsize;
-    if (size / elemsize != count)
-	alloc_failed();
-    return xrealloc(ptr, size);
+    return xreallocs(ptr, 0, count, elemsize);
+}
+
+/* Like `xrealloc(mainsize + count * elemsize)', but aborts the program if the
+ * size is too large. `elemsize' must not be zero. */
+void *xreallocs(void *ptr, size_t mainsize, size_t count, size_t elemsize)
+{
+    return xrealloc(ptr, addmul(mainsize, count, elemsize));
 }
 
 

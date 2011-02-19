@@ -39,6 +39,19 @@
 
 /********** General functions **********/
 
+/* Computes `xmalloc(mainsize + count * elemsize)', but aborts the program if
+ * the size is too large. `elemsize' must not be zero. */
+size_t addmul(size_t mainsize, size_t count, size_t elemsize)
+{
+    assert(elemsize > 0);
+
+    size_t arraysize = count * elemsize;
+    size_t totalsize = mainsize + arraysize;
+    if (arraysize / elemsize != count || totalsize < mainsize)
+	alloc_failed();
+    return totalsize;
+}
+
 /* This function is called on memory allocation failure and
  * aborts the program after printing an error message. */
 void alloc_failed(void)
