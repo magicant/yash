@@ -244,6 +244,7 @@ bool is_update(const char *path)
 {
     struct stat st;
     if (stat(path, &st) < 0) {
+	st.st_size = 0;
 	st.st_mtime = 0;
 #if HAVE_ST_MTIM
 	st.st_mtim.tv_nsec = 0;
