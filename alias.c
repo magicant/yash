@@ -262,13 +262,11 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
 }
 
 /* Performs alias substitution at index `i' in buffer `buf'.
- * If the length of the substituted word is known, it should be given as `len'.
- * Otherwise, `len' must be 0.
  * If AF_NONGLOBAL is not in `flags', only global aliases are substituted.
  * If AF_NORECUR is not in `flags', substitution is repeated until there is
  * no more alias applicable.
  * Returns true iff any alias was substituted. */
-bool substitute_alias(xwcsbuf_T *restrict buf, size_t i, size_t len,
+bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
 	aliaslist_T **restrict list, substaliasflags_T flags)
 {
     if (aliases.count == 0)
@@ -282,17 +280,9 @@ substitute_alias:
     *list = remove_expired_aliases(*list, i);
 
     /* count the length of the alias name */
-    size_t j = i + len;
-    if (len == 0) {
-	while (is_alias_name_char(buf->contents[j]))
-	    j++;
-    } else {
-#ifndef NDEBUG
-	for (size_t k = i; k < j; k++)
-	    assert(is_alias_name_char(buf->contents[k]));
-	assert(!is_alias_name_char(buf->contents[j]));
-#endif
-    }
+    size_t j = i;
+    while (is_alias_name_char(buf->contents[j]))
+	j++;
     /* `i' is the starting index of the alias name and `j' is the ending index*/
 
     /* check if there is an alias name */
@@ -326,7 +316,7 @@ substitute_alias:
 		aliaslist_T *savelist = clone_aliaslist(*list);
 		while (iswblank(buf->contents[ii]))
 		    ii++;
-		substitute_alias(buf, ii, 0, &savelist, flags);
+		substitute_alias(buf, ii, &savelist, flags);
 		destroy_aliaslist(savelist);
 	    }
 
@@ -337,7 +327,6 @@ substitute_alias:
 	    if (!(flags & AF_NORECUR)) {
 		while (iswblank(buf->contents[i]))
 		    i++;
-		len = 0;
 		goto substitute_alias;
 	    }
 	}

@@ -1108,10 +1108,9 @@ command_T *parse_command(void)
 	return parse_compound_command(t);
 
 #if YASH_ENABLE_ALIAS
-    if (enable_alias) {
-	size_t len = count_name_length(is_alias_name_char);
+    if (enable_alias && count_name_length(is_alias_name_char) > 0) {
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
-	if (substitute_alias(&cbuf, cindex, len, &caliases, flags)) {
+	if (substitute_alias(&cbuf, cindex, &caliases, flags)) {
 	    reparse_alias = true;
 	    return NULL;
 	}
@@ -1166,9 +1165,8 @@ redir_T **parse_assignments_and_redirects(command_T *c)
 	    break;
 	}
 #if YASH_ENABLE_ALIAS
-	if (enable_alias) {
-	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, &caliases, AF_NONGLOBAL);
+	if (enable_alias && count_name_length(is_alias_name_char) > 0) {
+	    substitute_alias(&cbuf, cindex, &caliases, AF_NONGLOBAL);
 	    skip_blanks_and_comment();
 	}
 #endif
@@ -1192,10 +1190,11 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
     while (ensure_buffer(1),
 	    !is_command_delimiter_char(cbuf.contents[cindex])) {
 #if YASH_ENABLE_ALIAS
-	if (!first && enable_alias) {
-	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, &caliases, 0);
-	    skip_blanks_and_comment();
+	if (!first) {
+	    if (enable_alias && count_name_length(is_alias_name_char) > 0) {
+		substitute_alias(&cbuf, cindex, &caliases, 0);
+		skip_blanks_and_comment();
+	    }
 	}
 #endif
 	if ((redir = tryparse_redirect())) {
@@ -1219,10 +1218,9 @@ void parse_redirect_list(redir_T **lastp)
 {
     for (;;) {
 #if YASH_ENABLE_ALIAS
-	if (!posixly_correct && enable_alias) {
-	    size_t len = count_name_length(is_alias_name_char);
-	    substitute_alias(&cbuf, cindex, len, &caliases, 0);
-	}
+	if (!posixly_correct)
+	    if (enable_alias && count_name_length(is_alias_name_char) > 0)
+		substitute_alias(&cbuf, cindex, &caliases, 0);
 #endif
 
 	redir_T *redir = tryparse_redirect();
@@ -1409,10 +1407,11 @@ wordunit_T *parse_word(aliastype_T type)
 	case noalias:
 	    break;
 	case globalonly:
-	case anyalias:;
-	    size_t len = count_name_length(is_alias_name_char);
-	    substaliasflags_T flags = type == globalonly ? 0 : AF_NONGLOBAL;
-	    substitute_alias(&cbuf, cindex, len, &caliases, flags);
+	case anyalias:
+	    if (count_name_length(is_alias_name_char) > 0) {
+		substaliasflags_T flags = type == globalonly ? 0 : AF_NONGLOBAL;
+		substitute_alias(&cbuf, cindex, &caliases, flags);
+	    }
 	    skip_blanks_and_comment();
 	    break;
 	}

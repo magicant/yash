@@ -222,7 +222,7 @@ bool csubstitute_alias(substaliasflags_T flags)
 	len++;
     if (len == 0 || BUF[INDEX + len] == L'\0')
 	return false;
-    return substitute_alias(&pi->buf, INDEX, len, &pi->aliaslist, flags);
+    return substitute_alias(&pi->buf, INDEX, &pi->aliaslist, flags);
 }
 
 #endif
