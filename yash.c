@@ -395,6 +395,9 @@ void print_version(void)
 #if YASH_ENABLE_LINEEDIT
 		" * lineedit\n"
 #endif
+#if HAVE_GETTEXT
+		" * nls\n"
+#endif
 #if YASH_ENABLE_PRINTF
 		" * printf/echo\n"
 #endif
