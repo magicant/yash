@@ -55,7 +55,12 @@ ctags_args=""
 etags_args=""
 intl_lib='intl'
 term_lib='tinfo curses ncurses ncursesw'
-unset prefix eprefix bindir datarootdir datadir localedir
+prefix='/usr/local'
+exec_prefix='$(prefix)'
+bindir='$(exec_prefix)/bin'
+datarootdir='$(prefix)/share'
+datadir='$(datarootdir)'
+localedir='$(datarootdir)/locale'
 unset checkresult
 unset MAKEFLAGS
 umask u=rwx
@@ -110,7 +115,7 @@ do
 	--prefix=*)
 	    prefix="${i#--prefix=}" ;;
 	--exec-prefix=*)
-	    eprefix="${i#--exec-prefix=}" ;;
+	    exec_prefix="${i#--exec-prefix=}" ;;
 	--bindir=*)
 	    bindir="${i#--bindir=}" ;;
 	--datarootdir=*)
@@ -1578,35 +1583,29 @@ TARGET="${target}"
 VERSION="${version}"
 COPYRIGHT="${copyright}"
 INSTALL_PROGRAM="${INSTALL_PROGRAM-${install_program}}"
-PREFIX="${prefix-/usr/local}"
-case "${PREFIX}" in
-    / ) PREFIX=  ;;
-    //) PREFIX=/ ;;
+case "${prefix}" in
+    / ) prefix=  ;;
+    //) prefix=/ ;;
 esac
-EPREFIX="${eprefix-\$\(PREFIX\)}"
-case "${EPREFIX}" in
-    / ) EPREFIX=  ;;
-    //) EPREFIX=/ ;;
+case "${exec_prefix}" in
+    / ) exec_prefix=  ;;
+    //) exec_prefix=/ ;;
 esac
-BINDIR="${bindir-\$\(EPREFIX\)/bin}"
-case "${BINDIR}" in
-    / ) BINDIR=  ;;
-    //) BINDIR=/ ;;
+case "${bindir}" in
+    / ) bindir=  ;;
+    //) bindir=/ ;;
 esac
-DATAROOTDIR="${datarootdir-\$\(PREFIX\)/share}"
-case "${DATAROOTDIR}" in
-    / ) DATAROOTDIR=  ;;
-    //) DATAROOTDIR=/ ;;
+case "${datarootdir}" in
+    / ) datarootdir=  ;;
+    //) datarootdir=/ ;;
 esac
-DATADIR="${datadir-\$\(DATAROOTDIR\)}"
-case "${DATADIR}" in
-    / ) DATADIR=  ;;
-    //) DATADIR=/ ;;
+case "${datadir}" in
+    / ) datadir=  ;;
+    //) datadir=/ ;;
 esac
-LOCALEDIR="${localedir-\$\(DATAROOTDIR\)/locale}"
-case "${LOCALEDIR}" in
-    / ) LOCALEDIR=  ;;
-    //) LOCALEDIR=/ ;;
+case "${localedir}" in
+    / ) localedir=  ;;
+    //) localedir=/ ;;
 esac
 
 sed_subst_cmd="
@@ -1642,12 +1641,12 @@ s!@TARGET@!${TARGET}!g
 s!@VERSION@!${VERSION}!g
 s!@COPYRIGHT@!${COPYRIGHT}!g
 s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g
-s!@PREFIX@!${PREFIX}!g
-s!@EPREFIX@!${EPREFIX}!g
-s!@BINDIR@!${BINDIR}!g
-s!@DATAROOTDIR@!${DATAROOTDIR}!g
-s!@DATADIR@!${DATADIR}!g
-s!@LOCALEDIR@!${LOCALEDIR}!g
+s!@prefix@!${prefix}!g
+s!@exec_prefix@!${exec_prefix}!g
+s!@bindir@!${bindir}!g
+s!@datarootdir@!${datarootdir}!g
+s!@datadir@!${datadir}!g
+s!@localedir@!${localedir}!g
 s!@enable_nls@!${enable_nls}!g
 "
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5

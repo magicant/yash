@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2010 magicant
+# (C) 2007-2011 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,13 +46,13 @@ COPYRIGHT = @COPYRIGHT@
 BYPRODUCTS = makesignum.o makesignum signum.h configm.h *.dSYM
 
 DESTDIR =
-PREFIX = @PREFIX@
-EPREFIX = @EPREFIX@
-BINDIR = @BINDIR@
-DATAROOTDIR = @DATAROOTDIR@
-DATADIR = @DATADIR@
-YASHDATADIR = $(DATADIR)/$(TARGET)
-LOCALEDIR = @LOCALEDIR@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+datarootdir = @datarootdir@
+datadir = @datadir@
+yashdatadir = $(datadir)/$(TARGET)
+localedir = @localedir@
 
 enable_nls = @enable_nls@
 
@@ -82,27 +82,27 @@ configm.h: Makefile
 		printf '#define PACKAGE_NAME "$(TARGET)"\n'; \
 		printf '#define PACKAGE_VERSION "$(VERSION)"\n'; \
 		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
-		printf '#define YASH_DATADIR "$(YASHDATADIR)"\n'; \
-		printf '#define LOCALEDIR "$(LOCALEDIR)"\n'; \
+		printf '#define YASH_DATADIR "$(yashdatadir)"\n'; \
+		printf '#define LOCALEDIR "$(localedir)"\n'; \
 		printf '#endif\n'; \
 		} >$@
 
 test tests check: _PHONY
 	@+(cd tests && $(MAKE))
 
-INSTALLBINDIRS = $(DESTDIR)$(BINDIR)
-INSTALLDATADIRS = $(DESTDIR)$(YASHDATADIR) $(DESTDIR)$(YASHDATADIR)/completion
+INSTALLBINDIRS = $(DESTDIR)$(bindir)
+INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion
 INSTALLDIRS = $(INSTALLBINDIRS) $(INSTALLDATADIRS)
 install: install-binary install-data
 install-strip: install-binary-strip install-data
 install-binary: $(TARGET) installdirs-binary
-	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
+	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(bindir)/$(TARGET)
 install-binary-strip: installdirs-binary
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
 install-data: installdirs-data-main
 	@for file in share/completion/*; do \
-		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion || true; \
-		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(YASHDATADIR)/completion; \
+		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(yashdatadir)/completion || true; \
+		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(yashdatadir)/completion; \
 	done
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 installdirs: installdirs-binary installdirs-data
@@ -114,14 +114,14 @@ $(INSTALLDIRS):
 	$(INSTALL_PROGRAM) -d $@
 uninstall: uninstall-binary uninstall-data
 uninstall-binary:
-	rm $(DESTDIR)$(BINDIR)/$(TARGET)
+	rm $(DESTDIR)$(bindir)/$(TARGET)
 uninstall-data:
 	@(cd share && for file in completion/*; do \
-		echo rm $(DESTDIR)$(YASHDATADIR)/$$file || true; \
-		rm $(DESTDIR)$(YASHDATADIR)/$$file; \
+		echo rm $(DESTDIR)$(yashdatadir)/$$file || true; \
+		rm $(DESTDIR)$(yashdatadir)/$$file; \
 	done)
-	-rmdir $(DESTDIR)$(YASHDATADIR)/completion
-	-rmdir $(DESTDIR)$(YASHDATADIR)
+	-rmdir $(DESTDIR)$(yashdatadir)/completion
+	-rmdir $(DESTDIR)$(yashdatadir)
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 
 DISTDIR = $(TARGET)-$(VERSION)

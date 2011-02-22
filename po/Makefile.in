@@ -45,13 +45,13 @@ VERSION = @VERSION@
 COPYRIGHT_HOLDER = Magicant
 
 DESTDIR =
-PREFIX = @PREFIX@
-EPREFIX = @EPREFIX@
-BINDIR = @BINDIR@
-DATAROOTDIR = @DATAROOTDIR@
-DATADIR = @DATADIR@
-YASHDATADIR = $(DATADIR)/$(TARGET)
-LOCALEDIR = @LOCALEDIR@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+datarootdir = @datarootdir@
+datadir = @datadir@
+yashdatadir = $(datadir)/$(TARGET)
+localedir = @localedir@
 
 # stamp-po is a timestamp denoting the last time at which the $(CATALOGS) have
 # been loosely updated. Its purpose is that when a developer or translator
@@ -112,21 +112,21 @@ update-po: $(DOMAIN).pot-update
 install: install-data
 install-data: installdirs-data stamp-po
 	@for lang in $(CATALOGS:.mo=); do \
-		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
+		dir=$(localedir)/$$lang/LC_MESSAGES; \
 		echo $(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
 		$(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo; \
 	done
 installdirs: installdirs-data
 installdirs-data:
 	@for lang in $(CATALOGS:.mo=); do \
-		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
+		dir=$(localedir)/$$lang/LC_MESSAGES; \
 		echo $(INSTALL_PROGRAM) -d $(DESTDIR)$$dir || true; \
 		$(INSTALL_PROGRAM) -d $(DESTDIR)$$dir; \
 	done
 uninstall: uninstall-data
 uninstall-data:
 	@for lang in $(CATALOGS:.mo=); do \
-		dir=$(LOCALEDIR)/$$lang/LC_MESSAGES; \
+		dir=$(localedir)/$$lang/LC_MESSAGES; \
 		echo rm -f $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
 		rm -f $(DESTDIR)$$dir/$(DOMAIN).mo; \
 	done
