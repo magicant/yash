@@ -335,7 +335,7 @@ void init_variables(void)
     }
 
     /* set $YASH_LOADPATH */
-    set_variable(L VAR_YASH_LOADPATH, xwcsdup(L YASH_DATADIR),
+    set_variable(L VAR_YASH_LOADPATH, xwcsdup(L DEFAULT_LOADPATH),
 	    SCOPE_GLOBAL, false);
 
     /* set $YASH_VERSION */

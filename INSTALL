@@ -112,6 +112,13 @@ features of yash. By default, yash is built with all features enabled.
     enable this feature, your system must support the `getrlimit' and
     `setrlimit' functions in the standard C library.
 
+The following option specifies the behavior of yash:
+
+  --default-loadpath=...
+    When yash is invoked, the $YASH_LOADPATH variable is initialized
+    to this value.
+    (default: <datadir>/yash)
+
 The following options specify where files are installed:
 
   --prefix=...

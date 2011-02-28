@@ -54,6 +54,7 @@ datadir = @datadir@
 yashdatadir = $(datadir)/$(TARGET)
 localedir = @localedir@
 
+default_loadpath = @default_loadpath@
 enable_nls = @enable_nls@
 
 all: $(TARGET)
@@ -84,6 +85,7 @@ configm.h: Makefile
 		printf '#define PACKAGE_COPYRIGHT "$(COPYRIGHT)"\n'; \
 		printf '#define YASH_DATADIR "$(yashdatadir)"\n'; \
 		printf '#define LOCALEDIR "$(localedir)"\n'; \
+		printf '#define DEFAULT_LOADPATH "$(default_loadpath)"\n'; \
 		printf '#endif\n'; \
 		} >$@
 

@@ -107,6 +107,12 @@ Yash はコマンドライン編集機能を実現するために `curses' ラ�
     には、お使いのシステムの標準 C ライブラリが `getrlimit' および
     `setrlimit' 関数をサポートしている必要があります。
 
+以下のオプションは yash の動作を指定します:
+
+  --default-loadpath=...
+    Yash を起動したとき、$YASH_LOADPATH 変数をこの値に初期化します。
+    (デフォルト: <datadir>/yash)
+
 以下のオプションはファイルのインストール先を指定します:
 
   --prefix=...

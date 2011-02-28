@@ -51,6 +51,7 @@ enable_printf="true"
 enable_socket="true"
 enable_test="true"
 enable_ulimit="true"
+default_loadpath='$(yashdatadir)'
 ctags_args=""
 etags_args=""
 intl_lib='intl'
@@ -126,6 +127,8 @@ do
 	    localedir="${i#--localedir=}" ;;
 	--enable-*|--disable-*)
 	    parseenable "$i" ;;
+	--default-loadpath=*)
+	    default_loadpath="${i#--default-loadpath=}" ;;
 	--with-intl-lib=*)
 	    intl_lib="${i#--with-intl-lib=}" ;;
 	--with-term-lib=*)
@@ -179,6 +182,7 @@ Optional features:
   --enable-socket         enable socket redirection by /dev/tcp, /dev/udp
   --enable-test           enable the test builtin
   --enable-ulimit         enable the ulimit builtin
+  --default-loadpath=DIR  specify the default \$YASH_LOADPATH value
 
 Optional packages:
   --with-intl-lib=LIBS    search space-separated LIBS for NLS
@@ -1647,6 +1651,7 @@ s!@bindir@!${bindir}!g
 s!@datarootdir@!${datarootdir}!g
 s!@datadir@!${datadir}!g
 s!@localedir@!${localedir}!g
+s!@default_loadpath@!${default_loadpath}!g
 s!@enable_nls@!${enable_nls}!g
 "
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
