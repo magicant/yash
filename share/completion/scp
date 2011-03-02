@@ -1,0 +1,10 @@
+# (C) 2011 magicant
+
+# Completion script for the "scp" command.
+
+function completion/scp {
+	command -f completion//reexecute ssh
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
