@@ -1,0 +1,82 @@
+# (C) 2011 magicant
+
+# Completion script for the "ssh-keygen" command.
+# Supports OpenSSH 5.6.
+
+function completion/ssh-keygen {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"a:; specify the number of primality tests performed (with -T)"
+	"B; print the bubblebabble digest"
+	"b:; specify the number of bits of the key being created"
+	"C:; specify the comment of the key"
+	"c; change the comment of RSA1 private/public keys"
+	"D:; download the RSA public keys from the specified PKCS#11 library"
+	"e; print the key in the portable format"
+	"F:; specify the host name to search the known hosts file for"
+	"f:; specify the key file to operate on"
+	"G:; specify the file to save candidate primes"
+	"g; use generic DNS format (with -r)"
+	"H; hash the known hosts file"
+	"h; create a host certificate when signing a key"
+	"I:; specify the key identity used when signing a key"
+	"i; print the key in the non-portable format"
+	"L; print the contents of a certificate"
+	"l; print the fingerprint of the public key file"
+	"M:; specify the memory size in megabytes used when generating candidate moduli"
+	"m:; specify the key format (with -e or -i)"
+	"N:; specify the new passphrase"
+	"n:; specify principals included in a certificate when signing a key"
+	"O:; specify a certificate option when signing a key"
+	"P:; specify the (current) passphrase"
+	"p; change the passphrase of the private key"
+	"q; make ssh-keygen quiet"
+	"R:; specify the host name to remove from the known hosts file"
+	"r:; print the SSHFP fingerprint resource record of the specified host name"
+	"S:; specify the start point for generating candidate moduli"
+	"s:; specify the CA key file to sign the public key with"
+	"T:; test DH group exchange candidate primes"
+	"t:; specify the key type"
+	"V:; specify the validity interval of the signed certificate"
+	"v; print debugging messages"
+	"W:; specify the DH generator"
+	"y; extract the public key from the private key"
+	"z:; specify the serial number of the certificate"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([abMSVz])
+		;;
+	([FR])
+		complete -P "$PREFIX" -h
+		;;
+	(m)
+		complete -P "$PREFIX" -D 'SSH2 public or private key' RFC4716
+		complete -P "$PREFIX" -D 'PEM PKCS8 public key' PKCS8
+		complete -P "$PREFIX" -D 'PEM public key' PEM
+		;;
+	(O)
+		#TODO
+		;;
+	(t)
+		complete -P "$PREFIX" -D 'RSA, protocol version 1' rsa1
+		complete -P "$PREFIX" -D 'RSA, protocol version 2' rsa
+		complete -P "$PREFIX" -D 'DSA, protocol version 2' Dsa
+		;;
+	(W)
+		complete 2 3 5
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
