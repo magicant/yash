@@ -1,7 +1,8 @@
 # (C) 2010-2011 magicant
 
 # Completion script for the "ssh" command.
-# Completion function "completion/ssh" is used for the "scp" command as well.
+# Completion function "completion/ssh" is used for the "scp" and "sftp" commands
+# as well.
 # Supports OpenSSH 5.6.
 
 function completion/ssh {
@@ -60,16 +61,29 @@ function completion/ssh {
 		OPTIONS=("$OPTIONS" #>#
 		"B; batch mode: don't ask for passwords/phrases"
 		"l:; specify the max bandwidth in Kbps"
+		) #<#
+		;;
+	(sftp)
+		OPTIONS=("$OPTIONS" #>#
+		"B:; specify the buffer size in bytes"
+		"b:; batch mode: specify the file to read commands from"
+		"D:; specify the path of local sftp server to connect to"
+		"R:; specify the max number of outstanding requests"
+		"s:; specify the SSH2 subsystem or the path for the remote sftp server"
+		) #<#
+		;;
+	(*)
+		return 1
+		;;
+	esac
+	case ${WORDS[1]} in (scp|sftp)
+		OPTIONS=("$OPTIONS" #>#
 		"P:; specify the port to connect to"
 		"p; preserve file attributes"
 		"q; suppress progress bar and warning and diagnostic messages"
 		"r; recursively copy directories"
 		"S:; specify the connection program used instead of ssh"
 		) #<#
-		;;
-	(*)
-		return 1
-		;;
 	esac
 
 	command -f completion//parseoptions
@@ -77,7 +91,14 @@ function completion/ssh {
 	(-)
 		command -f completion//completeoptions
 		;;
-	([bDPp])
+	([BDPp])
+		;;
+	(b)
+		case ${WORDS[1]} in
+		(sftp)
+			complete -P "$PREFIX" -f
+			;;
+		esac
 		;;
 	([Fi])
 		complete -P "$PREFIX" -f
@@ -99,7 +120,7 @@ function completion/ssh {
 		case ${WORDS[1]} in
 		(ssh)
 			complete -P "$PREFIX" -u
-				;;
+			;;
 		esac
 		;;
 	(m)
@@ -121,7 +142,7 @@ function completion/ssh {
 		(ssh)
 			complete -P "$PREFIX" -f
 			;;
-		(scp)
+		(scp|sftp)
 			complete -P "$PREFIX" --external-command
 			;;
 		esac
@@ -185,11 +206,17 @@ function completion/scp::operand {
 		esac
 	esac
 	command -f completion/ssh::completehostname -T -S :
-	typeset slash=false
-	case $TARGETWORD in (*/*)
-		slash=
-	esac
-	complete ${slash:+-R '*:*'} -f
+	if [ "${1-}" != nolocalfile ]; then
+		typeset slash=false
+		case $TARGETWORD in (*/*)
+			slash=
+		esac
+		complete ${slash:+-R '*:*'} -f
+	fi
+}
+
+function completion/sftp::operand {
+	command -f completion/scp::operand nolocalfile
 }
 
 function completion/ssh::parseconfig {

@@ -66,7 +66,7 @@ function completion/ssh-keygen {
 	(t)
 		complete -P "$PREFIX" -D 'RSA, protocol version 1' rsa1
 		complete -P "$PREFIX" -D 'RSA, protocol version 2' rsa
-		complete -P "$PREFIX" -D 'DSA, protocol version 2' Dsa
+		complete -P "$PREFIX" -D 'DSA, protocol version 2' dsa
 		;;
 	(W)
 		complete 2 3 5
