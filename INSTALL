@@ -278,6 +278,20 @@ This macro must be defined as a non-negative integer.
 This macro specifies the number of spaces used to indent commands that
 are formated and printed by the shell.
 
+#define MAX_HISTSIZE 1000000
+This macro specifies the maximum size of history.
+The value must not over (INT_MAX / 10).
+
+#define HISTORY_MIN_MAX_NUMBER 100000
+This macro specifies the number of history entry at which the number
+wraps back to 1. (If there are very many history entries, the entry
+number may wrap at a number larger than this value.)
+The value must be a power of 10 that is not less than 32768.
+
+#define DEFAULT_HISTSIZE 500
+This macro specifies the default history size.
+The value must be 128 or larger.
+
 #define HISTORY_REFRESH_INTERVAL 100
 This macro must be defined as a positive integer.
 This macro specifies the interval at which the shell rebuilds the

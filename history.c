@@ -50,14 +50,36 @@
 
 
 /* The maximum size of history list (<= INT_MAX / 10) */
+#ifndef MAX_HISTSIZE
 #define MAX_HISTSIZE     1000000
+#endif
+#if MAX_HISTSIZE > INT_MAX / 10
+#error MAX_HISTSIZE is too large
+#endif
 /* The minimum value of `max_number',
  * which must be at least 32768 according to POSIX. */
 /* Must be a power of 10. */
-#define MIN_MAX_NUMBER   100000
+#ifndef HISTORY_MIN_MAX_NUMBER
+#define HISTORY_MIN_MAX_NUMBER   100000
+#endif
+#if HISTORY_MIN_MAX_NUMBER < 32768
+#error HISTORY_MIN_MAX_NUMBER is too small
+#endif
 /* The default size of the history list,
  * which must be at least 128 according to POSIX. */
+#ifndef DEFAULT_HISTSIZE
 #define DEFAULT_HISTSIZE 500
+#endif
+#if DEFAULT_HISTSIZE < 128
+#error DEFAULT_HISTSIZE is too small
+#endif
+/* history file recreation interval */
+#ifndef HISTORY_REFRESH_INTERVAL
+#define HISTORY_REFRESH_INTERVAL 100
+#endif
+#if HISTORY_REFRESH_INTERVAL <= 0
+#error HISTORY_REFRESH_INTERVAL is not positive
+#endif
 
 
 /* The main history list. */
@@ -73,9 +95,9 @@ histlist_T histlist = {
 /* The number of the next new history entry. Must be positive. */
 unsigned hist_next_number = 1;
 /* The maximum limit of the number of an entry.
- * Must always be no less than `histsize' or `MIN_MAX_NUMBER'.
+ * Must always be no less than `histsize' or `HISTORY_MIN_MAX_NUMBER'.
  * The number of any entry is not greater than this value. */
-static unsigned max_number = MIN_MAX_NUMBER;
+static unsigned max_number = HISTORY_MIN_MAX_NUMBER;
 /* The size limit of the history list. */
 static unsigned histsize = DEFAULT_HISTSIZE;
 /* When a new entry is added, if there are entries that has the same value as
@@ -207,7 +229,7 @@ void set_histsize(unsigned newsize)
 	newsize = 1;
     histsize = newsize;
 
-    max_number = MIN_MAX_NUMBER;
+    max_number = HISTORY_MIN_MAX_NUMBER;
     while (max_number < 2 * histsize)
 	max_number *= 10;
     /* `max_number' is the smallest power of 10 that is not less than
@@ -705,12 +727,6 @@ void update_history(bool refresh)
  * `histfile' must not be NULL. */
 void maybe_refresh_file(void)
 {
-#ifndef HISTORY_REFRESH_INTERVAL
-#define HISTORY_REFRESH_INTERVAL 100
-#endif
-#if HISTORY_REFRESH_INTERVAL <= 0
-#error invalid HISTORY_REFRESH_INTERVAL
-#endif
     assert(histfile != NULL);
     if (hist_next_number % HISTORY_REFRESH_INTERVAL == 0) {
 	check_histfile_pid();
