@@ -1,0 +1,58 @@
+# (C) 2011 magicant
+
+# Completion script for the "chsh" command.
+# Supports util-linux 2.18, FreeBSD 8.1, OpenBSD 4.9, NetBSD 5.0,
+# Mac OS X 10.6.4, HP-UX 11i v3.
+
+function completion/chsh {
+
+	case $(uname 2>/dev/null) in
+	(Linux)
+		typeset OPTIONS ARGOPT PREFIX
+		OPTIONS=( #>#
+		"s: --shell:; specify the new shell"
+		"l --list-shells; print available shells"
+		"u --help; print help"
+		"v --version; print version into"
+		) #<#
+		;;
+	(*BSD|Darwin)
+		command -f completion//reexecute chpass
+		return
+		;;
+	(HP-UX)
+		typeset OPTIONS ARGOPT PREFIX
+		OPTIONS=( #>#
+		"r:; specify the repository to operate on"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(r)
+		complete -P "$PREFIX" dce files nis
+		;;
+	(s|--shell)
+		complete -P "$PREFIX" -- $(grep -v ^# /etc/shells 2>/dev/null)
+		;;
+	(*)
+		command -f completion//getoperands
+		case ${WORDS[#]} in
+		(0)
+			complete -u
+			;;
+		(*)
+			complete -P "$PREFIX" -- $(grep -v ^# /etc/shells 2>/dev/null)
+			;;
+		esac
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
