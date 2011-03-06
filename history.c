@@ -109,8 +109,6 @@ static FILE *histfile = NULL;
 /* The revision number of the history file. A valid revision number is
  * non-negative. */
 static long histfilerev = -1;
-/* The process IDs of processes that share the history file. */
-static struct pidlist_T *histfilepids = NULL;
 
 /* The current time returned by `time' */
 static time_t now = (time_t) -1;
@@ -168,7 +166,6 @@ static void refresh_file(FILE *f)
 static void add_histfile_pid(pid_t pid);
 static void remove_histfile_pid(pid_t pid);
 static void clear_histfile_pids(void);
-static void check_histfile_pid(void);
 static void write_histfile_pids(FILE *f)
     __attribute__((nonnull));
 
@@ -729,7 +726,7 @@ void maybe_refresh_file(void)
 {
     assert(histfile != NULL);
     if (hist_next_number % HISTORY_REFRESH_INTERVAL == 0) {
-	check_histfile_pid();
+	remove_histfile_pid(0);
 	refresh_file(histfile);
     }
 }
@@ -780,79 +777,51 @@ void refresh_file(FILE *f)
 
 /********** Process ID list **********/
 
-/* The process ID list is sorted in the ascending order. */
-
 struct pidlist_T {
-    struct pidlist_T *next;
-    pid_t pid;
+    size_t count;
+    pid_t *pids;
 };
+
+/* The process IDs of processes that share the history file.
+ * The `pids' member may be null when the `count' member is zero. */
+static struct pidlist_T histfilepids = { 0, NULL, };
 
 /* Adds `pid' to `histfilepids'. `pid' must be positive. */
 void add_histfile_pid(pid_t pid)
 {
-    struct pidlist_T **last, *list, *new;
+    for (size_t i = 0; i < histfilepids.count; i++)
+	if (histfilepids.pids[i] == pid)
+	    return;  /* don't add if already added */
 
-    assert(pid > 0);
-    last = &histfilepids, list = histfilepids;
-    while (list != NULL)
-	if (list->pid < pid)
-	    last = &list->next, list = list->next;
-	else if (list->pid == pid)
-	    return;
-	else
-	    break;
-    new = xmalloc(sizeof *new);
-    new->next = list;
-    new->pid = pid;
-    *last = new;
+    histfilepids.pids = xreallocn(histfilepids.pids,
+	    histfilepids.count + 1, sizeof *histfilepids.pids);
+    histfilepids.pids[histfilepids.count++] = pid;
 }
 
-/* Removes `pid' from `histfilepids'. */
+/* If `pid' is non-zero, removes `pid' from `histfilepids'.
+ * If `pid' is zero, removes process IDs of non-existent processes from
+ * `histfilepids'. */
 void remove_histfile_pid(pid_t pid)
 {
-    struct pidlist_T **last, *list;
-
-    last = &histfilepids, list = histfilepids;
-    for (;;)
-	if (list == NULL || list->pid > pid)
-	    return;
-	else if (list->pid < pid)
-	    last = &list->next, list = list->next;
-	else
-	    break;
-    *last = list->next;
-    free(list);
+    for (size_t i = 0; i < histfilepids.count; ) {
+	if (pid != 0 ? histfilepids.pids[i] == pid
+	             : !process_exists(histfilepids.pids[i])) {
+	    memmove(&histfilepids.pids[i], &histfilepids.pids[i + 1],
+		    (histfilepids.count - i - 1) * sizeof *histfilepids.pids);
+	    histfilepids.count--;
+	    histfilepids.pids = xreallocn(histfilepids.pids,
+		    histfilepids.count, sizeof *histfilepids.pids);
+	} else {
+	    i++;
+	}
+    }
 }
 
 /* Clears `histfilepids'. */
 void clear_histfile_pids(void)
 {
-    struct pidlist_T *list = histfilepids;
-    while (list != NULL) {
-	struct pidlist_T *next = list->next;
-	free(list);
-	list = next;
-    }
-    histfilepids = NULL;
-}
-
-/* Checks the process IDs in `histfilepids'.
- * Process IDs of non-existent process are removed from the list. */
-void check_histfile_pid(void)
-{
-    struct pidlist_T **last, *list;
-
-    last = &histfilepids, list = histfilepids;
-    while (list != NULL) {
-	assert(list->pid > 0);
-	if (!process_exists(list->pid)) {
-	    *last = list->next;
-	    free(list);
-	    list = *last;
-	} else {
-	    last = &list->next, list = list->next;
-	}
-    }
+    free(histfilepids.pids);
+    histfilepids = (struct pidlist_T) { 0, NULL, };
 }
 
 /* Writes process IDs in `histfilepids' to the file `f'. */
@@ -860,8 +829,8 @@ void check_histfile_pid(void)
  * `ferror' for the file. */
 void write_histfile_pids(FILE *f)
 {
-    for (struct pidlist_T *list = histfilepids; list != NULL; list = list->next)
-	fwprintf(f, L"p%jd\n", (intmax_t) list->pid);
+    for (size_t i = 0; i < histfilepids.count; i++)
+	fwprintf(f, L"p%jd\n", (intmax_t) histfilepids.pids[i]);
 }
 
 
@@ -912,8 +881,8 @@ void maybe_init_history(void)
 	    fclose(histfile);
 	    histfile = NULL;
 	} else {
-	    check_histfile_pid();
-	    if (!histfilepids) {
+	    remove_histfile_pid(0);
+	    if (histfilepids.count == 0) {
 		renumber_all_entries();
 refresh:
 		refresh_file(histfile);
@@ -1832,7 +1801,7 @@ void history_refresh_file(void)
 	update_time();
 	update_history(false);
 	if (histfile) {
-	    check_histfile_pid();
+	    remove_histfile_pid(0);
 	    refresh_file(histfile);
 	    lock_file(fileno(histfile), F_UNLCK);
 	}
