@@ -59,7 +59,7 @@ void *xcalloc(size_t nmemb, size_t size)
 void *xmalloc(size_t size)
 {
     void *result = malloc(size);
-    if (result == NULL)
+    if (result == NULL && size > 0)
 	alloc_failed();
     return result;
 }
