@@ -1,0 +1,109 @@
+# (C) 2011 magicant
+
+# Completion script for the "su" command.
+# Supports GNU coreutils 8.10, FreeBSD 8.2, OpenBSD 4.9, NetBSD 5.0,
+# Mac OS X 10.6.4, SunOS 5.11, HP-UX 11i v3.
+
+function completion/su {
+
+	case $("${WORDS[1]}" --version 2>/dev/null) in
+		(*'GNU coreutils'*) typeset type=GNU ;;
+		(*)                 typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset gnu=true ;;
+		(*)   typeset gnu= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=()
+
+	case $type in (GNU|Darwin|*BSD)
+		OPTIONS=("$OPTIONS" #>#
+		"f ${gnu:+--fast}; pass the -f option to the shell"
+		"l ${gnu:+--login}; invoke the command as a login shell"
+		"m ${gnu:+p --preserve-environment}; preserve all environment variables"
+		) #<#
+		case $type in (GNU|OpenBSD)
+			OPTIONS=("$OPTIONS" #>#
+			"s: ${gnu:+--shell:}; specify the shell to be run"
+			) #<#
+		esac
+	esac
+	case $type in (*BSD)
+		OPTIONS=("$OPTIONS" #>#
+		"c:; specify the login class"
+		) #<#
+	esac
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"c: --command:; specify the command run instead of the shell"
+		"--help"
+		"--version"
+		) #<#
+		;;
+	(FreeBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"s; set the MAC label to the default"
+		) #<#
+		;;
+	(OpenBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"a:; specify the authentication method"
+		"L; loop till a successful authentication"
+		) #<#
+		;;
+	(NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"d; like -l, but preserve the working directory"
+		"K; don't use Kerberos"
+		) #<#
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"d; use distributed computing environment (DCE)"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(a)
+		complete -P "$PREFIX" activ chpass crypto krb5 krb5-or-pwd lchpass passwd radius reject rpasswd skey snk token # TODO description
+		;;
+	(c)
+		case $type in
+			(GNU)
+				complete -P "$PREFIX" -c
+				;;
+			(*BSD)
+				#TODO login class
+				;;
+		esac
+		;;
+	(s)
+		WORDS=()
+		command -f completion//reexecute -e
+		;;
+	(*)
+		command -f completion//getoperands
+		if [ "${WORDS[1]-}" = - ]; then
+			WORDS=("${WORDS[2,-1]}")
+		fi
+		if [ "${WORDS[#]}" -le 0 ]; then
+			complete -P "$PREFIX" -u
+		else
+			WORDS=(sh "${WORDS[2,-1]}") #XXX assume POSIX shell
+			command -f completion//reexecute
+		fi
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
