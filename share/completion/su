@@ -31,9 +31,11 @@ function completion/su {
 		esac
 	esac
 	case $type in (*BSD)
-		OPTIONS=("$OPTIONS" #>#
-		"c:; specify the login class"
-		) #<#
+		if [ "$(id -u 2>/dev/null)" -eq 0 ] 2>/dev/null; then
+			OPTIONS=("$OPTIONS" #>#
+			"c:; specify the login class"
+			) #<#
+		fi
 	esac
 	case $type in
 	(GNU)
@@ -81,7 +83,28 @@ function completion/su {
 				complete -P "$PREFIX" -c
 				;;
 			(*BSD)
-				#TODO login class
+				typeset classes
+				while IFS='|' read -rA classes; do
+					case ${classes[#]} in
+					(0)
+						;;
+					(1)
+						complete -P "$PREFIX" -- "${classes[1]}"
+						;;
+					(*)
+						complete -P "$PREFIX" -D "${classes[-1]}" -- "${classes[1,-2]}"
+						;;
+					esac
+				done <(sed -e '
+/^#/ d
+:b
+/\\$/ {
+N
+bb
+}
+s/\\\n//g
+s/[:].*$//
+				' /etc/login.conf 2>/dev/null)
 				;;
 		esac
 		;;
