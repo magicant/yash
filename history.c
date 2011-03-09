@@ -170,7 +170,7 @@ static void write_histfile_pids(void);
 
 static void add_history_line(const wchar_t *line, size_t maxlen)
     __attribute__((nonnull));
-static void remove_dups(const char *line)
+static void remove_duplicates(const char *line)
     __attribute__((nonnull));
 
 
@@ -520,7 +520,7 @@ bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
  * Otherwise:
  *   - the file position is undefined,
  *   - the return value is negative. */
-/* The file `f' should be locked. */
+/* The history file should be locked. */
 long read_signature(void)
 {
     xwcsbuf_T buf;
@@ -679,7 +679,7 @@ void parse_process_id(const wchar_t *numstr)
     /* XXX: this cast and negation may be unsafe */
 }
 
-/* Re-read history from the history file.
+/* Re-reads history from the history file.
  * Changes that have been made to the file by other shell processes are brought
  * into this shell's history. The current data in this shell's history may be
  * changed.
@@ -997,7 +997,7 @@ void add_history_line(const wchar_t *line, size_t maxlen)
     if (mbsline != NULL) {
 	histentry_T *entry;
 
-	remove_dups(mbsline);
+	remove_duplicates(mbsline);
 	entry = new_entry(hist_next_number, now, mbsline);
 	if (histfile != NULL)
 	    write_history_entry(entry);
@@ -1008,7 +1008,7 @@ void add_history_line(const wchar_t *line, size_t maxlen)
 /* Removes entries whose value is the same as `line' in the `histrmdup' newest
  * entries.
  * `histfile' must be locked and `update_history' must have been called. */
-void remove_dups(const char *line)
+void remove_duplicates(const char *line)
 {
     histlink_T *l = histlist.Newest;
     for (unsigned i = histrmdup; i > 0 && l != Histlist; i--) {
