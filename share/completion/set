@@ -294,7 +294,11 @@ function completion/set::checklongoption {
 					fi
 					;;
 				(*)
-					ARGOPT=f PREFIX=
+					if $2; then
+						ARGOPT=o PREFIX=
+					else
+						ARGOPT=f PREFIX=
+					fi
 					return
 					;;
 			esac
