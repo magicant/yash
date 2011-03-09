@@ -1037,17 +1037,11 @@ void remove_duplicates(const char *line)
     }
 }
 
-/* Returns the history entry that has the specified `number', or NULL if there
- * is no such entry. */
-const histentry_T *get_history_entry(unsigned number)
+/* Returns the history entry that has the specified `number', or `Histlist' if
+ * there is no such entry. */
+const histlink_T *get_history_entry(unsigned number)
 {
-    const histlink_T *l = find_entry(number, FED_HISTLIST);
-    if (l == Histlist)
-	return NULL;
-
-    const histentry_T *e = ashistentry(l);
-    assert(e->number == number);
-    return e;
+    return find_entry(number, FED_HISTLIST);
 }
 
 #if YASH_ENABLE_LINEEDIT

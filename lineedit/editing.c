@@ -2594,10 +2594,10 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	int num = get_count(0);
 	if (num < 0)
 	    goto error0;
-	const histentry_T *e = get_history_entry((unsigned) num);
-	if (e == NULL)
+	const histlink_T *l = get_history_entry((unsigned) num);
+	if (l == Histlist)
 	    goto error0;
-	go_to_history(&e->link, SEARCH_VI);
+	go_to_history(l, SEARCH_VI);
     }
     le_complete_cleanup();
     le_suspend_readline();
@@ -3085,10 +3085,9 @@ void go_to_history_absolute(const histlink_T *l, enum le_search_type curpos)
 	int num = get_count(0);
 	if (num <= 0)
 	    goto alert;
-	const histentry_T *e = get_history_entry((unsigned) num);
-	if (e == NULL)
+	l = get_history_entry((unsigned) num);
+	if (l == Histlist)
 	    goto alert;
-	l = &e->link;
     }
     go_to_history(l, curpos);
     reset_state();
