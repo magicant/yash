@@ -35,7 +35,7 @@ enum le_search_type { SEARCH_PREFIX, SEARCH_VI, SEARCH_EMACS, };
 extern enum le_search_direction le_search_direction;
 extern enum le_search_type le_search_type;
 extern xwcsbuf_T le_search_buffer;
-extern const struct histentry_T *le_search_result;
+extern const struct histlink_T *le_search_result;
 
 extern void le_editing_init(void);
 extern wchar_t *le_editing_finalize(void)

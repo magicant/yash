@@ -777,7 +777,7 @@ void print_search(void)
     update_styler();
 
     if (le_search_result != Histlist)
-	lebuf_wprintf(true, L"%s", le_search_result->value);
+	lebuf_wprintf(true, L"%s", ashistentry(le_search_result)->value);
     if (!le_ti_msgr)
 	lebuf_print_sgr0(), styler_active = false;
     lebuf_print_nel();

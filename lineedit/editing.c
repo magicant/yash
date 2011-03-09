@@ -70,9 +70,8 @@ xwcsbuf_T le_main_buffer;
 size_t le_main_index;
 
 /* The history entry that is being edited in the main buffer now.
- * When we're editing no history entry, `main_history_entry' is a pointer to
- * `histlist'. */
-static const histentry_T *main_history_entry;
+ * When we're editing no history entry, `main_history_entry' is `Histlist'. */
+static const histlink_T *main_history_entry;
 /* The original value of `main_history_entry', converted into a wide string. */
 static wchar_t *main_history_value;
 
@@ -85,7 +84,7 @@ enum le_search_type le_search_type;
 xwcsbuf_T le_search_buffer;
 /* The search result for the current value of `le_search_buffer'.
  * If there is no match, `le_search_result' is `Histlist'. */
-const histentry_T *le_search_result;
+const histlink_T *le_search_result;
 /* The search string and the direction of the last search. */
 static struct {
     enum le_search_direction direction;
@@ -157,7 +156,7 @@ static plist_T undo_history;
  * If the current state is the newest, the index is `undo_history.length'. */
 static size_t undo_index;
 /* The history entry that is saved in the undo history. */
-static const histentry_T *undo_history_entry;
+static const histlink_T *undo_history_entry;
 /* The index that is to be the value of the `index' member of the next undo
  * history entry. */
 static size_t undo_save_index;
@@ -277,10 +276,10 @@ static void replace_horizontal_space(bool deleteafter, const wchar_t *s)
     __attribute__((nonnull));
 
 static void go_to_history_absolute(
-	const histentry_T *e, enum le_search_type curpos)
+	const histlink_T *l, enum le_search_type curpos)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, enum le_search_type curpos);
-static void go_to_history(const histentry_T *e, enum le_search_type curpos)
+static void go_to_history(const histlink_T *l, enum le_search_type curpos)
     __attribute__((nonnull));
 
 static bool need_update_last_search_value(void)
@@ -2467,7 +2466,7 @@ void cmd_vi_append_last_bigword(wchar_t c __attribute__((unused)))
 	goto fail;
 
     struct xwcsrange range;
-    lastcmd = malloc_mbstowcs(histlist.Newest->value);
+    lastcmd = malloc_mbstowcs(ashistentry(histlist.Newest)->value);
     if (lastcmd == NULL)
 	goto fail;
     if (count >= 0) {
@@ -2598,7 +2597,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	const histentry_T *e = get_history_entry((unsigned) num);
 	if (e == NULL)
 	    goto error0;
-	go_to_history(e, SEARCH_VI);
+	go_to_history(&e->link, SEARCH_VI);
     }
     le_complete_cleanup();
     le_suspend_readline();
@@ -3075,7 +3074,7 @@ void cmd_return_history_eol(wchar_t c __attribute__((unused)))
  * If the count is specified, goes to the history entry whose number is count.
  * If the specified entry is not found, the terminal is alerted.
  * See `go_to_history' for the meaning of `curpos'. */
-void go_to_history_absolute(const histentry_T *e, enum le_search_type curpos)
+void go_to_history_absolute(const histlink_T *l, enum le_search_type curpos)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -3086,11 +3085,12 @@ void go_to_history_absolute(const histentry_T *e, enum le_search_type curpos)
 	int num = get_count(0);
 	if (num <= 0)
 	    goto alert;
-	e = get_history_entry((unsigned) num);
+	const histentry_T *e = get_history_entry((unsigned) num);
 	if (e == NULL)
 	    goto alert;
+	l = &e->link;
     }
-    go_to_history(e, curpos);
+    go_to_history(l, curpos);
     reset_state();
     return;
 
@@ -3151,21 +3151,21 @@ void cmd_prev_history_eol(wchar_t c __attribute__((unused)))
  * See `go_to_history' for the meaning of `curpos'. */
 void go_to_history_relative(int offset, enum le_search_type curpos)
 {
-    const histentry_T *e = main_history_entry;
+    const histlink_T *l = main_history_entry;
     if (offset > 0) {
 	do {
-	    if (e == Histlist)
+	    if (l == Histlist)
 		goto alert;
-	    e = e->Next;
+	    l = l->next;
 	} while (--offset > 0);
     } else if (offset < 0) {
 	do {
-	    e = e->Prev;
-	    if (e == Histlist)
+	    l = l->prev;
+	    if (l == Histlist)
 		goto alert;
 	} while (++offset < 0);
     }
-    go_to_history(e, curpos);
+    go_to_history(l, curpos);
     reset_state();
     return;
 
@@ -3179,20 +3179,20 @@ alert:
  *  SEARCH_PREFIX: the current position (unless it exceeds the buffer length)
  *  SEARCH_VI:     the beginning of the buffer
  *  SEARCH_EMACS:  the end of the buffer */
-void go_to_history(const histentry_T *e, enum le_search_type curpos)
+void go_to_history(const histlink_T *l, enum le_search_type curpos)
 {
     maybe_save_undo_history();
 
     free(main_history_value);
     wb_clear(&le_main_buffer);
-    if (e == undo_history_entry && undo_index < undo_history.length) {
+    if (l == undo_history_entry && undo_index < undo_history.length) {
 	struct undo_history *h = undo_history.contents[undo_index];
 	wb_cat(&le_main_buffer, h->contents);
 	assert(h->index <= le_main_buffer.length);
 	le_main_index = h->index;
     } else {
-	if (e != Histlist)
-	    wb_mbscat(&le_main_buffer, e->value);
+	if (l != Histlist)
+	    wb_mbscat(&le_main_buffer, ashistentry(l)->value);
 	switch (curpos) {
 	    case SEARCH_PREFIX:
 		if (le_main_index > le_main_buffer.length)
@@ -3206,7 +3206,7 @@ void go_to_history(const histentry_T *e, enum le_search_type curpos)
 		break;
 	}
     }
-    main_history_entry = e;
+    main_history_entry = l;
     main_history_value = xwcsdup(le_main_buffer.contents);
     undo_save_index = le_main_index;
 }
@@ -3385,10 +3385,10 @@ done:
 void perform_search(const wchar_t *pattern,
 	enum le_search_direction dir, enum le_search_type type)
 {
-    const histentry_T *e = main_history_entry;
+    const histlink_T *l = main_history_entry;
     xfnmatch_T *xfnm;
 
-    if (dir == FORWARD && e == Histlist)
+    if (dir == FORWARD && l == Histlist)
 	goto done;
 
     switch (type) {
@@ -3404,7 +3404,7 @@ void perform_search(const wchar_t *pattern,
 		flags |= XFNM_HEADONLY;
 		pattern++;
 		if (pattern[0] == L'\0') {
-		    e = Histlist;
+		    l = Histlist;
 		    goto done;
 		}
 	    }
@@ -3421,23 +3421,23 @@ void perform_search(const wchar_t *pattern,
 	    assert(false);
     }
     if (xfnm == NULL) {
-	e = Histlist;
+	l = Histlist;
 	goto done;
     }
 
     for (;;) {
 	switch (dir) {
-	    case FORWARD:   e = e->Next;  break;
-	    case BACKWARD:  e = e->Prev;  break;
+	    case FORWARD:   l = l->next;  break;
+	    case BACKWARD:  l = l->prev;  break;
 	}
-	if (e == Histlist)
+	if (l == Histlist)
 	    break;
-	if (xfnm_match(xfnm, e->value) == 0)
+	if (xfnm_match(xfnm, ashistentry(l)->value) == 0)
 	    break;
     }
     xfnm_free(xfnm);
 done:
-    le_search_result = e;
+    le_search_result = l;
 }
 
 /* Redoes the last search. */

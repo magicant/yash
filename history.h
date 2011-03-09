@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.h: command history management */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 
 /* The structure type of doubly-linked list node. */
 typedef struct histlink_T {
-    struct histentry_T *prev, *next;
+    struct histlink_T *prev, *next;
 } histlink_T;
 /* `prev' and `next' are always non-NULL: the newest entry's `next' and the
  * oldest entry's `prev' point to `histlist'. */
@@ -48,18 +48,27 @@ typedef struct histentry_T {
  * numbers anyway. */
 /* When the time is unknown, `time' is -1. */
 
-#define Histlist ((histentry_T *) &histlist)
-#define Newest link.prev
-#define Oldest link.next
 /* The structure type of the history list. */
 typedef struct histlist_T {
     histlink_T link;
     unsigned count;
 } histlist_T;
+#define Newest link.prev
+#define Oldest link.next
 
 extern histlist_T histlist;
+#define Histlist (&histlist.link)
 
 extern unsigned hist_next_number;
+
+/* Casts a pointer to `histlink_T' into a pointer to `histentry_T'. */
+static inline histentry_T *ashistentry(const histlink_T *link)
+{
+#ifdef assert
+    assert(link != &histlist.link);
+#endif
+    return (histentry_T *) link;
+}
 
 extern void maybe_init_history(void);
 extern void finalize_history(void);
