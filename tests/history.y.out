@@ -143,7 +143,7 @@ inner shell
 29	echo 33
 30	fc -l
 31	echo 31
-34	history 5
+32	history 5
 1
 2
 3

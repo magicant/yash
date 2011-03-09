@@ -223,7 +223,8 @@ void lebuf_print_prompt(const wchar_t *s)
 	    case L'r':   lebuf_putwchar(L'\r',   false);  break;
 	    case L'$':   lebuf_putwchar(geteuid() ? L'$' : L'#', false);  break;
 	    case L'j':   lebuf_wprintf(false, L"%zu", job_count());       break;
-	    case L'!':   lebuf_wprintf(false, L"%u",  hist_next_number);  break;
+	    case L'!':   lebuf_wprintf(false, L"%u",  next_history_number());
+			                                                  break;
 	    case L'[':   save_pos = lebuf.pos;    break;
 	    case L']':   lebuf.pos = save_pos;    break;
 	    case L'f':   s = print_color_seq(s);  continue;

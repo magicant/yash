@@ -59,8 +59,6 @@ typedef struct histlist_T {
 extern histlist_T histlist;
 #define Histlist (&histlist.link)
 
-extern unsigned hist_next_number;
-
 /* Casts a pointer to `histlink_T' into a pointer to `histentry_T'. */
 static inline histentry_T *ashistentry(const histlink_T *link)
 {
@@ -70,6 +68,8 @@ static inline histentry_T *ashistentry(const histlink_T *link)
     return (histentry_T *) link;
 }
 
+extern unsigned next_history_number(void)
+    __attribute__((pure));
 extern void maybe_init_history(void);
 extern void finalize_history(void);
 extern void close_history_file(void);

@@ -95,8 +95,6 @@ histlist_T histlist = {
  * (`link.next') member points to the oldest entry. When there's no entries,
  * `Newest' and `Oldest' point to `histlist' itself. */
 
-/* The number of the next new history entry. Must be positive. */
-unsigned hist_next_number = 1;
 /* The maximum limit of the number of an entry.
  * Must always be no less than `histsize' or `HISTORY_MIN_MAX_NUMBER'.
  * The number of any entry is not greater than this value. */
@@ -203,7 +201,6 @@ void set_histsize(unsigned newsize)
 }
 
 /* Adds a new history entry to the end of `histlist'.
- * `hist_next_number' is updated in this function.
  * Some oldest entries may be removed in this function if they conflict with the
  * new one or the list is full. */
 histentry_T *new_entry(unsigned number, time_t time, const char *line)
@@ -227,7 +224,6 @@ histentry_T *new_entry(unsigned number, time_t time, const char *line)
     histlist.count++;
     assert(histlist.count <= histsize);
     histmodcount++;
-    hist_next_number = (number == max_number) ? 1 : number + 1;
 
     return new;
 }
@@ -259,14 +255,11 @@ void remove_entry(histentry_T *entry)
     free(entry);
 }
 
-/* Removes the newest entry and decreases `hist_next_number'. */
+/* Removes the newest entry. */
 void remove_last_entry(void)
 {
-    if (histlist.count > 0) {
-	histentry_T *e = ashistentry(histlist.Newest);
-	hist_next_number = e->number;
-	remove_entry(e);
-    }
+    if (histlist.count > 0)
+	remove_entry(ashistentry(histlist.Newest));
 }
 
 /* Renumbers all the entries in `histlist', starting from 1. */
@@ -279,11 +272,6 @@ void renumber_all_entries(void)
 	for (histlink_T *l = histlist.Oldest; l != Histlist; l = l->next)
 	    ashistentry(l)->number = ++num;
 	assert(num == histlist.count);
-	hist_next_number = num + 1;
-	if (hist_next_number > max_number)
-	    hist_next_number = 1;
-    } else {
-	hist_next_number = 1;
     }
 }
 
@@ -300,7 +288,6 @@ void clear_all_entries(void)
     }
     histlist.Oldest = histlist.Newest = Histlist;
     histlist.count = 0;
-    hist_next_number = 1;
 }
 
 /* Returns the entry that has the specified `number'.
@@ -566,7 +553,7 @@ void read_history_raw(void)
     while (read_line(histfile, &buf)) {
 	char *line = malloc_wcstombs(buf.contents);
 	if (line != NULL) {
-	    new_entry(hist_next_number, -1, line);
+	    new_entry(next_history_number(), -1, line);
 	    free(line);
 	}
 	wb_clear(&buf);
@@ -953,6 +940,20 @@ void close_history_file(void)
     histfile = NULL;
 }
 
+/* Calculates the number of the next new entry. */
+unsigned next_history_number(void)
+{
+    unsigned number;
+    if (histlist.count == 0) {
+	number = 1;
+    } else {
+	number = ashistentry(histlist.Newest)->number + 1;
+	if (number > max_number)
+	    number = 1;
+    }
+    return number;
+}
+
 /* Adds the specified `line' to the history.
  * Must not be called while the history is locked.
  * If `line' contains newlines, `line' is separated into multiple entries.
@@ -1011,7 +1012,7 @@ void add_history_line(const wchar_t *line, size_t maxlen)
 	histentry_T *entry;
 
 	remove_duplicates(mbsline);
-	entry = new_entry(hist_next_number, now, mbsline);
+	entry = new_entry(next_history_number(), now, mbsline);
 	if (histfile != NULL)
 	    write_history_entry(entry);
 	free(mbsline);
