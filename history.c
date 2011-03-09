@@ -76,7 +76,7 @@
 #if DEFAULT_HISTSIZE > HISTORY_MIN_MAX_NUMBER
 #error DEFAULT_HISTSIZE cannot be larger than HISTORY_MIN_MAX_NUMBER
 #endif
-/* history file recreation interval */
+/* history file refresh interval */
 #ifndef HISTORY_REFRESH_INTERVAL
 #define HISTORY_REFRESH_INTERVAL 100
 #endif
@@ -112,6 +112,11 @@ static FILE *histfile = NULL;
 /* The revision number of the history file. A valid revision number is
  * non-negative. */
 static long histfilerev = -1;
+/* The number of modifications in the history since the history file was last
+ * refreshed. This number is incremented each time an entry is added to or
+ * removed from the history. When this number reaches HISTORY_REFRESH_INTERVAL,
+ * the history file is refreshed and the number is reset to zero. */
+static unsigned histmodcount = 0;
 
 /* The current time returned by `time' */
 static time_t now = (time_t) -1;
@@ -221,6 +226,7 @@ histentry_T *new_entry(unsigned number, time_t time, const char *line)
 
     histlist.count++;
     assert(histlist.count <= histsize);
+    histmodcount++;
     hist_next_number = (number == max_number) ? 1 : number + 1;
 
     return new;
@@ -249,6 +255,7 @@ void remove_entry(histentry_T *entry)
     entry->Prev->next = entry->Next;
     entry->Next->prev = entry->Prev;
     histlist.count--;
+    histmodcount++;
     free(entry);
 }
 
@@ -718,6 +725,7 @@ void update_history(bool refresh)
 	clear_histfile_pids();
 	add_histfile_pid(shell_pid);
 	histfilerev = rev;
+	histmodcount = 0;
     }
     read_history();
     if (ferror(histfile) || !feof(histfile))
@@ -736,8 +744,7 @@ error:
 void maybe_refresh_file(void) //XXX when this function should be called?
 {
     assert(histfile != NULL);
-    // XXX shouldn't use hist_next_number
-    if (hist_next_number % HISTORY_REFRESH_INTERVAL == 0) {
+    if (histmodcount >= HISTORY_REFRESH_INTERVAL) {
 	remove_histfile_pid(0);
 	refresh_file();
     }
@@ -786,6 +793,8 @@ void refresh_file(void)
     write_histfile_pids();
     for (const histlink_T *l = histlist.Oldest; l != Histlist; l = l->next)
 	write_history_entry(ashistentry(l));
+
+    histmodcount = 0;
 }
 
 
@@ -810,6 +819,8 @@ void add_histfile_pid(pid_t pid)
     histfilepids.pids = xreallocn(histfilepids.pids,
 	    histfilepids.count + 1, sizeof *histfilepids.pids);
     histfilepids.pids[histfilepids.count++] = pid;
+
+    histmodcount++;
 }
 
 /* If `pid' is non-zero, removes `pid' from `histfilepids'.
@@ -829,6 +840,8 @@ void remove_histfile_pid(pid_t pid)
 	    i++;
 	}
     }
+
+    histmodcount++;
 }
 
 /* Clears `histfilepids'. */
