@@ -1527,14 +1527,13 @@ void fc_read_history(FILE *f, bool quiet)
     while (read_line(f, &buf)) {
 	if (!quiet)
 	    printf("%ls\n", buf.contents);
-	if (histfile != NULL)
-	    maybe_refresh_file();
 	add_history_line(buf.contents, buf.length);
 	wb_clear(&buf);
     }
     wb_destroy(&buf);
 
     if (histfile != NULL) {
+	maybe_refresh_file();
 	fflush(histfile);
 	lock_histfile(F_UNLCK);
     }
