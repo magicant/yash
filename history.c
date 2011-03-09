@@ -741,7 +741,7 @@ error:
 
 /* Refreshes the history file if it is time to do that.
  * `histfile' must not be NULL. */
-void maybe_refresh_file(void) //XXX when this function should be called?
+void maybe_refresh_file(void)
 {
     assert(histfile != NULL);
     if (histmodcount >= HISTORY_REFRESH_INTERVAL) {
