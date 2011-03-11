@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,6 +115,8 @@ static long histfilerev = -1;
  * removed from the history. When this number reaches HISTORY_REFRESH_INTERVAL,
  * the history file is refreshed and the number is reset to zero. */
 static unsigned histmodcount = 0;
+/* Indicates if the history file should be flushed before it is unlocked. */
+static bool histneedflush = false;
 
 /* The current time returned by `time' */
 static time_t now = (time_t) -1;
@@ -160,6 +163,8 @@ static void parse_process_id(const wchar_t *numstr)
     __attribute__((nonnull));
 static void update_history(bool refresh);
 static void maybe_refresh_file(void);
+static int wprintf_histfile(const wchar_t *format, ...)
+    __attribute__((nonnull));
 static void write_signature(void);
 static void write_history_entry(const histentry_T *entry)
     __attribute__((nonnull));
@@ -462,11 +467,22 @@ FILE *open_histfile(void)
 
 /* Locks the history file, which must have been open.
  * `type' must be one of `F_RDLCK', `F_WRLCK' and `F_UNLCK'.
+ * If `type' is `F_UNLCK', the buffer for the history file is flushed before
+ * unlocking the file.
  * When another process is holding a lock for the file, this process will be
  * blocked until the lock is freed.
  * Returns true iff successful. */
 bool lock_histfile(short type)
 {
+    if (type == F_UNLCK && histneedflush) {
+	histneedflush = false;
+	fflush(histfile);
+	/* We only flush the history file after writing. POSIX doesn't define
+	 * the behavior of flush without writing. We don't use fseek instead of
+	 * fflush because fseek is less reliable than fflush. In some
+	 * implementations (including glibc), fseek doesn't flush the file. */
+    }
+
     struct flock flock = {
 	.l_type   = type,
 	.l_whence = SEEK_SET,
@@ -736,6 +752,20 @@ void maybe_refresh_file(void)
     }
 }
 
+/* Like `fwprintf(histfile, format, ...)', but the `histneedflush' flag is set.
+ */
+int wprintf_histfile(const wchar_t *format, ...)
+{
+    va_list ap;
+    int result;
+
+    histneedflush = true;
+    va_start(ap, format);
+    result = vfwprintf(histfile, format, ap);
+    va_end(ap);
+    return result;
+}
+
 /* Writes the signature with an incremented revision number, after emptying the
  * file. */
 /* This function does not return any error status. The caller should check
@@ -750,7 +780,7 @@ void write_signature(void)
 	histfilerev = 0;
     else
 	histfilerev++;
-    fwprintf(histfile, L"#$# yash history v0 r%ld\n", histfilerev);
+    wprintf_histfile(L"#$# yash history v0 r%ld\n", histfilerev);
 }
 
 /* Writes the specified entry to the history file. */
@@ -761,10 +791,10 @@ void write_history_entry(const histentry_T *entry)
 {
     assert(histfile != NULL);
     if (entry->time >= 0)
-	fwprintf(histfile, L"%X:%lX %s\n",
+	wprintf_histfile(L"%X:%lX %s\n",
 		entry->number, (unsigned long) entry->time, entry->value);
     else
-	fwprintf(histfile, L"%X %s\n",
+	wprintf_histfile(L"%X %s\n",
 		entry->number, entry->value);
 }
 
@@ -844,7 +874,7 @@ void write_histfile_pids(void)
 {
     assert(histfile != NULL);
     for (size_t i = 0; i < histfilepids.count; i++)
-	fwprintf(histfile, L"p%jd\n", (intmax_t) histfilepids.pids[i]);
+	wprintf_histfile(L"p%jd\n", (intmax_t) histfilepids.pids[i]);
 }
 
 
@@ -900,8 +930,7 @@ refresh:
 	    refresh_file();
 	}
 	add_histfile_pid(shell_pid);
-	fwprintf(histfile, L"p%jd\n", (intmax_t) shell_pid);
-	fflush(histfile);
+	wprintf_histfile(L"p%jd\n", (intmax_t) shell_pid);
 	lock_histfile(F_UNLCK);
     }
 }
@@ -919,7 +948,7 @@ void finalize_history(void)
     update_history(true);
     remove_histfile_pid(shell_pid);
     if (histfile) {
-	fwprintf(histfile, L"p%jd\n", (intmax_t) -shell_pid);
+	wprintf_histfile(L"p%jd\n", (intmax_t) -shell_pid);
 	close_history_file();
     }
 }
@@ -981,10 +1010,8 @@ void add_history(const wchar_t *line)
 	line++;
     }
 
-    if (histfile != NULL) {
-	fflush(histfile);
+    if (histfile != NULL)
 	lock_histfile(F_UNLCK);
-    }
 }
 
 /* Adds the specified `line' to the history.
@@ -1029,7 +1056,7 @@ void remove_duplicates(const char *line)
 	histentry_T *e = ashistentry(l);
 	if (strcmp(e->value, line) == 0) {
 	    if (histfile != NULL)
-		fwprintf(histfile, L"d%X\n", e->number);
+		wprintf_histfile(L"d%X\n", e->number);
 	    remove_entry(e);
 	}
 	l = prev;
@@ -1309,8 +1336,7 @@ void fc_remove_last_entry(void)
 	update_history(false);
 	remove_last_entry();
 	if (histfile != NULL) {
-	    fwprintf(histfile, L"c\n");
-	    fflush(histfile);
+	    wprintf_histfile(L"c\n");
 	    lock_histfile(F_UNLCK);
 	}
     } else {
@@ -1528,7 +1554,6 @@ void fc_read_history(FILE *f, bool quiet)
 
     if (histfile != NULL) {
 	maybe_refresh_file();
-	fflush(histfile);
 	lock_histfile(F_UNLCK);
     }
 }
@@ -1737,7 +1762,7 @@ int history_delete(const wchar_t *s)
     if (l != Histlist) {
 	histentry_T *e = ashistentry(l);
 	if (histfile != NULL)
-	    fwprintf(histfile, L"d%X\n", e->number);
+	    wprintf_histfile(L"d%X\n", e->number);
 	remove_entry(e);
     }
 
