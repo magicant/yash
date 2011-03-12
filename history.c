@@ -128,6 +128,9 @@ static bool hist_lock = false;
 enum find_entry_default_T {
     FED_NEAREST_OLDER, FED_NEAREST_NEWER, FED_HISTLIST,
 };
+struct search_result_T {
+    histlink_T *prev, *next;
+};
 
 static void update_time(void);
 static void set_histsize(unsigned newsize);
@@ -141,9 +144,11 @@ static void remove_last_entry(void);
 static void clear_all_entries(void);
 static histlink_T *find_entry(unsigned number, enum find_entry_default_T fed)
     __attribute__((pure));
+static struct search_result_T search_entry_by_number(unsigned number)
+    __attribute__((pure));
 static histlink_T *get_nth_newest_entry(unsigned n)
     __attribute__((pure));
-static histlink_T *search_entry(const char *s)
+static histlink_T *search_entry_by_prefix(const char *prefix)
     __attribute__((nonnull,pure));
 static bool is_newer(const histentry_T *e1, const histentry_T *e2)
     __attribute__((nonnull,pure));
@@ -302,23 +307,52 @@ void clear_all_entries(void)
  * If there is no neighbor either, the pointer to `histlist' is returned. */
 histlink_T *find_entry(unsigned number, enum find_entry_default_T fed)
 {
-    if (histlist.count == 0)
-	return Histlist;
+    struct search_result_T sr = search_entry_by_number(number);
+    if (sr.prev == sr.next)
+	return sr.prev;
+    switch (fed) {
+	case FED_NEAREST_OLDER:
+	    return sr.prev;
+	case FED_NEAREST_NEWER:
+	    return sr.next;
+	case FED_HISTLIST:
+	    return Histlist;
+    }
+    assert(false);
+}
 
-    unsigned oldestnum, nnewestnum, nnumber;
-    oldestnum = ashistentry(histlist.Oldest)->number;
-    nnewestnum = ashistentry(histlist.Newest)->number;
-    nnumber = number;
+/* Searches for the entry that has the specified `number'.
+ * If there is such an entry in the history, the both members of the returned
+ * `search_result_T' structure will be pointers to the entry. Otherwise, the
+ * returned structure will contain pointers to the nearest neighbor entries.
+ * (If there is not the neighbor in either direction, the pointer will be
+ * `Histlist'.) */
+struct search_result_T search_entry_by_number(unsigned number)
+{
+    struct search_result_T result;
+
+    if (histlist.count == 0) {
+	result.prev = result.next = Histlist;
+	return result;
+    }
+
+    unsigned oldestnum = ashistentry(histlist.Oldest)->number;
+    unsigned nnewestnum = ashistentry(histlist.Newest)->number;
+    unsigned nnumber = number;
     if (nnewestnum < oldestnum) {
 	if (nnumber <= nnewestnum)
 	    nnumber += max_number;
 	nnewestnum += max_number;
     }
-
-    if (nnumber < oldestnum)
-	return (fed == FED_NEAREST_NEWER) ? histlist.Oldest : Histlist;
-    if (nnumber > nnewestnum)
-	return (fed == FED_NEAREST_OLDER) ? histlist.Newest : Histlist;
+    if (nnumber < oldestnum) {
+	result.prev = Histlist;
+	result.next = histlist.Newest;
+	return result;
+    } else if (nnumber > nnewestnum) {
+	result.prev = histlist.Oldest;
+	result.next = Histlist;
+	return result;
+    }
 
     histlink_T *l;
     if (2 * (nnumber - oldestnum) < nnewestnum - oldestnum) {
@@ -328,13 +362,10 @@ histlink_T *find_entry(unsigned number, enum find_entry_default_T fed)
 	    l = l->next;
 	while (number > ashistentry(l)->number)
 	    l = l->next;
-	if (number != ashistentry(l)->number) {
-	    switch (fed) {
-		case FED_NEAREST_OLDER:  l = l->prev;   break;
-		case FED_NEAREST_NEWER:                 break;
-		case FED_HISTLIST:       l = Histlist;  break;
-	    }
-	}
+	result.next = l;
+	if (number != ashistentry(l)->number)
+	    l = l->prev;
+	result.prev = l;
     } else {
 	/* search from the newest */
 	l = histlist.Newest;
@@ -342,15 +373,12 @@ histlink_T *find_entry(unsigned number, enum find_entry_default_T fed)
 	    l = l->prev;
 	while (number < ashistentry(l)->number)
 	    l = l->prev;
-	if (number != ashistentry(l)->number) {
-	    switch (fed) {
-		case FED_NEAREST_OLDER:                 break;
-		case FED_NEAREST_NEWER:  l = l->next;   break;
-		case FED_HISTLIST:       l = Histlist;  break;
-	    }
-	}
+	result.prev = l;
+	if (number != ashistentry(l)->number)
+	    l = l->next;
+	result.next = l;
     }
-    return l;
+    return result;
 }
 
 /* Returns the nth newest entry (or the oldest entry if `n' is too big).
@@ -366,13 +394,13 @@ histlink_T *get_nth_newest_entry(unsigned n)
     return l;
 }
 
-/* Searches for the newest entry whose value begins with `s'.
+/* Searches for the newest entry whose value begins with the specified `prefix'.
  * Returns `Histlist' if not found. */
-histlink_T *search_entry(const char *s)
+histlink_T *search_entry_by_prefix(const char *prefix)
 {
     histlink_T *l;
     for (l = histlist.Newest; l != Histlist; l = l->prev)
-	if (matchstrprefix(ashistentry(l)->value, s) != NULL)
+	if (matchstrprefix(ashistentry(l)->value, prefix) != NULL)
 	    break;
     return l;
 }
@@ -654,6 +682,8 @@ void parse_removed_entry(const wchar_t *numstr)
     unsigned long num;
     wchar_t *end;
 
+    if (histlist.count == 0)
+	return;
     if (numstr[0] == L'\0')
 	return;
 
@@ -661,12 +691,12 @@ void parse_removed_entry(const wchar_t *numstr)
     num = wcstoul(numstr, &end, 0x10);
     if (errno || (*end != L'\0' && !iswspace(*end)))
 	return;
+    if (num > max_number)
+	return;
 
-    if (num <= max_number) {
-	histlink_T *l = find_entry((unsigned) num, FED_HISTLIST);
-	if (l != Histlist)
-	    remove_entry(ashistentry(l));
-    }
+    histlink_T *l = find_entry((unsigned) num, FED_HISTLIST);
+    if (l != Histlist)
+	remove_entry(ashistentry(l));
 }
 
 void parse_process_id(const wchar_t *numstr)
@@ -1352,7 +1382,7 @@ histlink_T *fc_search_entry(const wchar_t *prefix)
     if (s == NULL)
 	return Histlist;
 
-    histlink_T *l = search_entry(s);
+    histlink_T *l = search_entry_by_prefix(s);
     free(s);
     if (l == Histlist)
 	xerror(0, Ngt("no such history entry beginning with `%ls'"), prefix);
