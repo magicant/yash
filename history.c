@@ -694,9 +694,9 @@ void parse_removed_entry(const wchar_t *numstr)
     if (num > max_number)
 	return;
 
-    histlink_T *l = find_entry((unsigned) num, FED_HISTLIST);
-    if (l != Histlist)
-	remove_entry(ashistentry(l));
+    struct search_result_T sr = search_entry_by_number((unsigned) num);
+    if (sr.prev == sr.next)
+	remove_entry(ashistentry(sr.prev));
 }
 
 void parse_process_id(const wchar_t *numstr)
@@ -1097,7 +1097,8 @@ void remove_duplicates(const char *line)
  * there is no such entry. */
 const histlink_T *get_history_entry(unsigned number)
 {
-    return find_entry(number, FED_HISTLIST);
+    struct search_result_T sr = search_entry_by_number((unsigned) number);
+    return (sr.prev == sr.next) ? sr.prev : Histlist;
 }
 
 #if YASH_ENABLE_LINEEDIT
