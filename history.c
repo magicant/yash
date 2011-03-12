@@ -150,7 +150,10 @@ static histlink_T *get_nth_newest_entry(unsigned n)
     __attribute__((pure));
 static histlink_T *search_entry_by_prefix(const char *prefix)
     __attribute__((nonnull,pure));
-static bool is_newer(const histentry_T *e1, const histentry_T *e2)
+static bool search_result_is_newer(
+	struct search_result_T sr1, struct search_result_T sr2)
+    __attribute__((pure));
+static bool entry_is_newer(const histentry_T *e1, const histentry_T *e2)
     __attribute__((nonnull,pure));
 
 static FILE *open_histfile(void);
@@ -346,10 +349,10 @@ struct search_result_T search_entry_by_number(unsigned number)
     }
     if (nnumber < oldestnum) {
 	result.prev = Histlist;
-	result.next = histlist.Newest;
+	result.next = histlist.Oldest;
 	return result;
     } else if (nnumber > nnewestnum) {
-	result.prev = histlist.Oldest;
+	result.prev = histlist.Newest;
 	result.next = Histlist;
 	return result;
     }
@@ -405,8 +408,23 @@ histlink_T *search_entry_by_prefix(const char *prefix)
     return l;
 }
 
+/* Returns true iff `sr1' is newer than `sr2'.
+ * For each search_result_T structure, the `prev' and `next' members must not be
+ * both `Histlist'. */
+bool search_result_is_newer(
+	struct search_result_T sr1, struct search_result_T sr2)
+{
+    if (sr1.prev == Histlist || sr2.next == Histlist)
+	return false;
+    if (sr1.next == Histlist || sr2.prev == Histlist)
+	return true;
+
+    return entry_is_newer(ashistentry(sr1.prev), ashistentry(sr2.prev))
+	|| entry_is_newer(ashistentry(sr1.next), ashistentry(sr2.next));
+}
+
 /* Returns true iff `e1' is newer than `e2'. */
-bool is_newer(const histentry_T *e1, const histentry_T *e2)
+bool entry_is_newer(const histentry_T *e1, const histentry_T *e2)
 {
     assert(histlist.count > 0);
 
@@ -1135,10 +1153,12 @@ enum fcprinttype_T {
     FC_FULL, FC_NUMBERED, FC_UNNUMBERED, FC_RAW,
 };
 
+static struct search_result_T fc_search_entry(const wchar_t *name, int number)
+    __attribute__((nonnull));
 static int fc_builtin_error(void);
 static void fc_update_history(void);
 static void fc_remove_last_entry(void);
-static histlink_T *fc_search_entry(const wchar_t *prefix)
+static histlink_T *fc_search_entry_by_prefix(const wchar_t *prefix)
     __attribute__((nonnull));
 static int fc_print_entries(
 	FILE *f, const histentry_T *first, const histentry_T *last,
@@ -1251,88 +1271,87 @@ int fc_builtin(int argc, void **argv)
 	}
     }
 
-    /* parse <first> and <last> */
+    /* parse <first> */
     const wchar_t *vfirst = (xoptind < argc) ? ARGV(xoptind++) : NULL;
-    const wchar_t *vlast  = (xoptind < argc) ? ARGV(xoptind++) : NULL;
-    long first, last;
-    const histlink_T *lfirst = NULL, *llast = NULL;
-    if (silent && vlast != NULL)
-	return fc_builtin_error();
+    int nfirst;
+    struct search_result_T lfirst;
     if (vfirst != NULL) {
-	if (xwcstol(vfirst, 10, &first) && first != 0) {
-	    if (first > INT_MAX)
-		first = INT_MAX;
-	    else if (first < INT_MIN + 1)
-		first = INT_MIN + 1;
-	} else {
-	    lfirst = fc_search_entry(vfirst);
-	    if (lfirst == Histlist)
-		return Exit_FAILURE;
-	}
+	if (!xwcstoi(vfirst, 10, &nfirst) /* || nfirst == 0 */)
+	    nfirst = 0;
     } else {
-	first = list ? -16 : -1;
+	nfirst = list ? -16 : -1;
     }
-    if (vlast != NULL) {
-	if (xwcstol(vlast, 10, &last) && last != 0) {
-	    if (last > INT_MAX)
-		last = INT_MAX;
-	    else if (last < INT_MIN + 1)
-		last = INT_MIN + 1;
-	} else {
-	    llast = fc_search_entry(vlast);
-	    if (llast == Histlist)
-		return Exit_FAILURE;
-	}
-    } else {
-	last = list ? -1 : 0;
-    }
+    lfirst = fc_search_entry(vfirst, nfirst);
+    if (lfirst.prev == Histlist && lfirst.next == Histlist)
+	return Exit_FAILURE;
 
-    /* find the first and the last entries */
-    if (lfirst == NULL) {
-	if (first >= 0) {
-	    lfirst = find_entry(first,
-		    silent ? FED_HISTLIST : FED_NEAREST_NEWER);//XXX
-	} else {
-	    if (silent && (unsigned) -first > histlist.count)
-		lfirst = Histlist;
-	    else
-		lfirst = get_nth_newest_entry(-first);
-	}
-	if (lfirst == Histlist) {
+    /* main part of our work with the -s flag */
+    if (silent) {
+	if (xoptind < argc) {
+	    return fc_builtin_error();
+	} else if (lfirst.prev != lfirst.next) {
 	    assert(vfirst != NULL);
 	    xerror(0, Ngt("no such history entry `%ls'"), vfirst);
 	    return Exit_FAILURE;
 	}
-    }
-    if (llast == NULL) {
-	if (last == 0)
-	    llast = lfirst;
-	else if (last >= 0)
-	    llast = find_entry(last, FED_NEAREST_OLDER);//XXX
-	else
-	    llast = get_nth_newest_entry(-last);
-	if (llast == Histlist) {
-	    assert(vlast != NULL);
-	    xerror(0, Ngt("no such history entry `%ls'"), vlast);
-	    return Exit_FAILURE;
-	}
+	return fc_exec_entry(ashistentry(lfirst.prev), old, new, quiet);
     }
 
-    const histentry_T *efirst = ashistentry(lfirst);
-    const histentry_T *elast  = ashistentry(llast);
-    if (is_newer(efirst, elast)) {
-	const histentry_T *temp = efirst;  efirst = elast;  elast = temp;
+    /* parse <last> */
+    const wchar_t *vlast = (xoptind < argc) ? ARGV(xoptind++) : NULL;
+    int nlast;
+    struct search_result_T llast;
+    if (vlast != NULL) {
+	if (!xwcstoi(vlast, 10, &nlast) /* || nlast == 0 */)
+	    nlast = 0;
+    } else if (list) {
+	nlast = -1;
+    } else {
+	llast = lfirst;
+	goto check_rev;
+    }
+    llast = fc_search_entry(vlast, nlast);
+    if (llast.prev == Histlist && llast.next == Histlist)
+	return Exit_FAILURE;
+
+check_rev:
+    if (search_result_is_newer(lfirst, llast)) {
+	struct search_result_T temp = lfirst;  lfirst = llast;  llast = temp;
 	rev = !rev;
     }
-    assert(efirst != NULL);
-    assert(elast  != NULL);
+    assert(lfirst.next != Histlist);
+    assert(llast.prev  != Histlist);
 
+    const histentry_T *efirst = ashistentry(lfirst.next);
+    const histentry_T *elast  = ashistentry(llast.prev);
     if (list)
 	return fc_print_entries(stdout, efirst, elast, rev, ptype);
-    else if (silent)
-	return fc_exec_entry(efirst, old, new, quiet);
     else
 	return fc_edit_and_exec_entries(efirst, elast, rev, editor, quiet);
+}
+
+/* Searches for the specified entry.
+ * The `prev' and `next' members of the returned structure will be `Histlist'
+ * if the prefix search fails. */
+struct search_result_T fc_search_entry(const wchar_t *name, int number)
+{
+    struct search_result_T result;
+
+    if (number == 0) {
+	result.prev = result.next = fc_search_entry_by_prefix(name);
+    } else if (number > 0) {
+	result = search_entry_by_number((unsigned) number);
+	assert(result.prev != Histlist || result.next != Histlist);
+    } else {
+	number = -number;
+	result.next = get_nth_newest_entry((unsigned) number);
+	if ((unsigned) number > histlist.count)
+	    result.prev = Histlist;
+	else
+	    result.prev = result.next;
+	assert(result.prev != Histlist || result.next != Histlist);
+    }
+    return result;
 }
 
 int fc_builtin_error(void)
@@ -1377,7 +1396,7 @@ void fc_remove_last_entry(void)
 
 /* Finds the newest entry that begins with the specified prefix.
  * Prints an error message and returns `Histlist' if not found. */
-histlink_T *fc_search_entry(const wchar_t *prefix)
+histlink_T *fc_search_entry_by_prefix(const wchar_t *prefix)
 {
     char *s = malloc_wcstombs(prefix);
     if (s == NULL)
@@ -1774,7 +1793,7 @@ int history_delete(const wchar_t *s)
     }
 
     if (!xwcstol(s, 10, &n) || n == 0) {
-	l = fc_search_entry(s);
+	l = fc_search_entry_by_prefix(s);
     } else {
 	if (n >= 0) {
 	    if (n > INT_MAX)
