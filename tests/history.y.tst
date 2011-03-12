@@ -6,6 +6,7 @@ export RC="${TESTTMP}/history.y.rc"
 
 cat >"$RC" <<\END
 PS1='' PS2='' HISTFILE="$TMPHIST" HISTSIZE=30
+unset HISTRMDUP
 END
 
 command -V fc
