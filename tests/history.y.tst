@@ -142,6 +142,56 @@ $INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
 history -c; fc -l  # should print nothing with no error
 EOF
 
+echo ===== 5 =====
+
+# test of $HISTRMDUP
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
+echo 1
+echo 1
+echo 1
+echo 2
+echo 1
+echo 2
+echo 1
+echo 2
+echo 3
+echo 1
+echo 2
+echo 3
+echo 1
+echo 2
+echo 3
+echo 4
+echo 1
+echo 2
+echo 3
+echo 4
+echo 1
+echo 2
+echo 3
+echo 4
+echo 5
+echo 4
+echo 3
+echo 2
+echo 1
+fc -ln
+EOF
+
+echo ===== 6 =====
+
+>"$TMPHIST"
+(
+i=32767  # < HISTORY_MIN_MAX_NUMBER
+while [ $i -gt 0 ]; do
+    echo : $i
+    : $(( i-- ))
+done
+echo "fc -l"
+echo "fc -l 1 -15"
+) |
+$INVOKE $TESTEE -i +m --rcfile="$RC"
+
 echo ===== histspace =====
 
 >"$TMPHIST"
