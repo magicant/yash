@@ -1235,7 +1235,8 @@ int fc_builtin(int argc, void **argv)
 	    || (list && (quiet || silent))
 	    || (rev && silent)
 	    || (ptype != FC_NUMBERED && !list)
-	    || (argc - xoptind > 2))
+	    || (argc - xoptind > 2)
+	    || (silent && argc - xoptind > 1))
 	return fc_builtin_error();
     if (hist_lock) {
 	xerror(0, Ngt("cannot be used during line-editing"));
@@ -1287,9 +1288,7 @@ int fc_builtin(int argc, void **argv)
 
     /* main part of our work with the -s flag */
     if (silent) {
-	if (xoptind < argc) {
-	    return fc_builtin_error();
-	} else if (lfirst.prev != lfirst.next) {
+	if (lfirst.prev != lfirst.next) {
 	    assert(vfirst != NULL);
 	    xerror(0, Ngt("no such history entry `%ls'"), vfirst);
 	    return Exit_FAILURE;

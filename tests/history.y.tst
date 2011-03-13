@@ -105,6 +105,43 @@ history
 rm -f "${TESTTMP}/history2"
 EOF
 
+echo ===== 3 =====
+
+cat >"$RC" <<\END
+PS1='' PS2='' HISTFILE="$TMPHIST" HISTSIZE=30 HISTRMDUP=3 FCEDIT=true
+END
+
+>"$TMPHIST"
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
+echo 1
+echo 2
+echo 3
+echo 4
+echo 5
+echo 6
+echo 7
+history -d 2 -d 6; fc -l
+fc -l  2 6
+fc -lr 2 6
+fc -l  6 2
+fc -lr 6 2
+fc    2 6
+fc -r 2 6
+fc    6 2
+fc -r 6 2
+fc -l  -- -10000 3
+fc -lr -- -10000 3
+fc -l  -- 3 -10000
+fc -lr -- 3 -10000
+EOF
+
+echo ===== 4 =====
+
+>"$TMPHIST"
+$INVOKE $TESTEE -i +m --rcfile="$RC" <<\EOF
+history -c; fc -l  # should print nothing with no error
+EOF
+
 echo ===== histspace =====
 
 >"$TMPHIST"
@@ -125,19 +162,35 @@ echo ===== error =====
 
 fc --no-such-option
 echo fc no-such-option $?
+#fc -l
+#echo fc history-empty 1 $?
 fc
-echo fc history-empty 1 $?
-fc -s
 echo fc history-empty 2 $?
-history -s 'entry' -s 'dummy 1' -s 'dummy 2'
+fc -s
+echo fc history-empty 3 $?
+#fc -l foo
+#echo fc history-empty 4 $?
+fc foo
+echo fc history-empty 5 $?
+fc -s foo
+echo fc history-empty 6 $?
+history -s 'entry' -s 'dummy 1' -s 'dummy 2' -s 'dummy 3' -s 'dummy 4'
 fc -l foo
 echo fc no-such-entry 1 $?
 fc foo
 echo fc no-such-entry 2 $?
 fc -s foo
 echo fc no-such-entry 3 $?
+fc -l entry dummy dummy
+echo fc too-many-operands 1 $?
+fc entry dummy dummy
+echo fc too-many-operands 2 $?
+fc -s entry dummy
+echo fc too-many-operands 3 $?
 history --no-such-option
 echo history no-such-option $?
+history 1 2
+echo history too-many-operands $?
 (history >&- 2>/dev/null)
 echo history output error $?
 history -d foo
