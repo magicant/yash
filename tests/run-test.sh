@@ -127,8 +127,8 @@ diffresult() {
 }
 
 echo
-echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}"
-echo "Testing ${TESTEE:=../yash} for ${TEST_ITEMS:=*.tst}" >&3
+printf 'Testing %s for %s\n' "${TESTEE:=../yash}" "${TEST_ITEMS:=*.tst}"
+printf 'Testing %s for %s\n' "${TESTEE:=../yash}" "${TEST_ITEMS:=*.tst}" >&3
 
 failed=0
 for x in $TEST_ITEMS
@@ -192,11 +192,12 @@ echo
 
 if [ 0 -eq $failed ]
 then
-    echo "All test(s) completed successfully."
-    echo "All test(s) completed successfully." >&3
+    printf '%s passed all of %s.\n' "${TESTEE}" "${TEST_ITEMS}"
+    printf '%s passed all of %s.\n' "${TESTEE}" "${TEST_ITEMS}" >&3
 else
-    echo "${failed} test(s) failed."
-    echo "${failed} test(s) failed. See test.log for more info." >&3
+    printf '%s failed %d of %s.\n' "${TESTEE}" "${failed}" "${TEST_ITEMS}"
+    printf '%s failed %d of %s.  See test.log for more info.\n' \
+	"${TESTEE}" "${failed}" "${TEST_ITEMS}" >&3
     false
 fi
 
