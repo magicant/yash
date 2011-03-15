@@ -1782,7 +1782,7 @@ void history_clear_all(void)
 /* Deletes a history entry specified by the argument string. */
 int history_delete(const wchar_t *s)
 {
-    long n;
+    int n;
     histlink_T *l;
 
     if (histfile != NULL) {
@@ -1791,17 +1791,16 @@ int history_delete(const wchar_t *s)
 	update_history(true);
     }
 
-    if (!xwcstol(s, 10, &n) || n == 0) {
+    if (!xwcstoi(s, 10, &n) || n == 0) {
 	l = fc_search_entry_by_prefix(s);
     } else {
 	if (n >= 0) {
-	    if (n > INT_MAX)
-		n = INT_MAX;
 	    l = find_entry((unsigned) n, FED_HISTLIST);
 	} else {
-	    if (n < INT_MIN + 1)
-		n = INT_MIN + 1;
-	    n = -n;
+	    if (n != INT_MIN)
+		n = -n;
+	    else
+		n = INT_MAX;
 	    l = get_nth_newest_entry((unsigned) n);
 	}
 	if (l == Histlist)
