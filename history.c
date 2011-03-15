@@ -125,9 +125,6 @@ static time_t now = (time_t) -1;
 static bool hist_lock = false;
 
 
-enum find_entry_default_T {
-    FED_NEAREST_OLDER, FED_NEAREST_NEWER, FED_HISTLIST,
-};
 struct search_result_T {
     histlink_T *prev, *next;
 };
@@ -142,8 +139,6 @@ static void remove_entry(histentry_T *e)
     __attribute__((nonnull));
 static void remove_last_entry(void);
 static void clear_all_entries(void);
-static histlink_T *find_entry(unsigned number, enum find_entry_default_T fed)
-    __attribute__((pure));
 static struct search_result_T search_entry_by_number(unsigned number)
     __attribute__((pure));
 static histlink_T *get_nth_newest_entry(unsigned n)
@@ -300,28 +295,6 @@ void clear_all_entries(void)
     }
     histlist.Oldest = histlist.Newest = Histlist;
     histlist.count = 0;
-}
-
-/* Returns the entry that has the specified `number'.
- * If not found, one of the following is returned according to `fed':
- *   - the nearest neighbor older than the target (FED_NEAREST_OLDER)
- *   - the nearest neighbor newer than the target (FED_NEAREST_NEWER)
- *   - the pointer to `histlist' (FED_HISTLIST)
- * If there is no neighbor either, the pointer to `histlist' is returned. */
-histlink_T *find_entry(unsigned number, enum find_entry_default_T fed)
-{
-    struct search_result_T sr = search_entry_by_number(number);
-    if (sr.prev == sr.next)
-	return sr.prev;
-    switch (fed) {
-	case FED_NEAREST_OLDER:
-	    return sr.prev;
-	case FED_NEAREST_NEWER:
-	    return sr.next;
-	case FED_HISTLIST:
-	    return Histlist;
-    }
-    assert(false);
 }
 
 /* Searches for the entry that has the specified `number'.
@@ -1795,7 +1768,8 @@ int history_delete(const wchar_t *s)
 	l = fc_search_entry_by_prefix(s);
     } else {
 	if (n >= 0) {
-	    l = find_entry((unsigned) n, FED_HISTLIST);
+	    struct search_result_T sr = search_entry_by_number((unsigned) n);
+	    l = (sr.prev == sr.next) ? sr.prev : Histlist;
 	} else {
 	    if (n != INT_MIN)
 		n = -n;
