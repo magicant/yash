@@ -62,6 +62,22 @@ kill -l -- 3 9 15
 echo kill 27 $?
 kill -lv -- 3 9 15 >/dev/null
 echo kill 28 $?
+kill -s chld $$ $$
+echo kill 29 $?
+kill -schld $$ $$
+echo kill 30 $?
+kill -s SIGCHLD $$ $$
+echo kill 31 $?
+kill -sSIGCHLD $$ $$
+echo kill 32 $?
+kill -s sigchld $$ $$
+echo kill 33 $?
+kill -ssigchld $$ $$
+echo kill 34 $?
+kill -SIGCHLD $$ $$
+echo kill 35 $?
+kill -SiGcHlD $$ $$
+echo kill 36 $?
 
 echo ===== trap =====
 

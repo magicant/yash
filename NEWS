@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.27
+
+  =  The "kill" built-in now accepts signal names with the "SIG"
+     prefix in the POSIXly correct mode.
+  *  Minor bug fixes.
+
+----------------------------------------------------------------------
 Yash 2.26
 
   +  New option for the "return" built-in: -n (--no-return)
@@ -157,7 +164,7 @@ Yash 2.17
      invoked without the -g option or operands.
   =  The "typeset" built-in now prints function definitions in a
      pretty format.
-  =  When not in posixly-correct mode, commands in command substitu-
+  =  When not in POSIXly-correct mode, commands in command substitu-
      tion are now parsed when the command containing the substitution
      is parsed.
   *  Fixed the parse error on parameter expansion "${#}".
@@ -224,7 +231,7 @@ Yash 2.14
   =  The "pwd" and "times" built-ins now fail when an operand is
      given.
   =  The shell no longer exits when an assignment for a special
-     built-in failed if not in posixly-correct mode.
+     built-in failed if not in POSIXly-correct mode.
   *  "cd //" was failing if the current directory is "/".
   *  Invoking the "bindkey" built-in in the yashrc file was causing an
      invalid memory access.
@@ -234,7 +241,7 @@ Yash 2.14
      argument.
   *  The -c and -d options are wrongly rejected by the "ulimit"
      built-in.
-  *  The "fg" built-in now refuses more than one operands in posixly-
+  *  The "fg" built-in now refuses more than one operands in POSIXly-
      correct mode, as described in the help.
 
 ----------------------------------------------------------------------
@@ -338,7 +345,7 @@ Yash 2.8
        an error when the directory "foo" does not exist.
     .  The "command" built-in's -p option now can be used with the -v
        and -V options.
-    .  In posixly-correct mode, all asynchronous commands now ignore
+    .  In POSIXly-correct mode, all asynchronous commands now ignore
        SIGINT and SIGQUIT (even when job control is active).
   *  When executing commands edited by the "fc" built-in, the $?
      variable was incorrectly assigned the exit status of the editor
@@ -374,7 +381,7 @@ Yash 2.6
   +  Added the -q option to the fc built-in.
   +  Compound commands may now contain no commands inside.
   *  "alias -p" now prints commands with proper escape.
-  *  In posixly-correct mode, a semicolon followed by the identifier
+  *  In POSIXly-correct mode, a semicolon followed by the identifier
      followed by "for" is now treated as an error.
   *  Global aliases are now allowed after compound commands.
   *  The "fg" and "wait" built-ins were causing invalid memory access
@@ -411,7 +418,7 @@ Yash 2.4
 Yash 2.3
 
   =  Now changing LC_CTYPE immediately takes effect if the shell is
-     interactive and not in the posixly-correct mode.
+     interactive and not in the POSIXly-correct mode.
   *  Fixed parameter expansion: empty words are now expanded properly.
   *  Fixed a race condition, which was causing some signals ignored.
   *  Assignments using the typeset/readonly/export built-ins failed to
@@ -452,7 +459,7 @@ Yash 2.0
 
   +  "history" built-in
   +  Command redirection
-  *  A posixly-correct non-interactive shell exits when a paticular
+  *  A POSIXly-correct non-interactive shell exits when a paticular
      error occurred on a special built-in according to POSIX.
   *  Alias substitution routines were improved.
   *  Other bug fixes
@@ -517,7 +524,7 @@ Yash 2.0 alpha2
 Yash 2.0 alpha1
 
   +  New options implemented: -x, -h, -a
-  =  The default value of 'PS3' is not set in posixly-correct mode.
+  =  The default value of 'PS3' is not set in POSIXly-correct mode.
   +  'configure' accepts new '--no-undefined' option
   +  ":", "true", "false", "cd" built-ins
   *  Command hashtable is now cleared when PATH is assigned.

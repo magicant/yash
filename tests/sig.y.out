@@ -30,6 +30,14 @@ KILL
 TERM
 kill 27 0
 kill 28 0
+kill 29 0
+kill 30 0
+kill 31 0
+kill 32 0
+kill 33 0
+kill 34 0
+kill 35 0
+kill 36 0
 ===== trap =====
 trap 1 0
 trap 2 0
