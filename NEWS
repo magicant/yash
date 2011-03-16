@@ -10,8 +10,6 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.27
 
-  =  The "kill" built-in now accepts signal names with the "SIG"
-     prefix in the POSIXly correct mode.
   *  Minor bug fixes.
 
 ----------------------------------------------------------------------

@@ -1238,6 +1238,11 @@ int kill_builtin(int argc, void **argv)
 			}
 		    }
 parse_signal_name:
+		    if (posixly_correct && matchwcsprefix(arg, L"SIG")) {
+			xerror(0, Ngt("%ls: the signal name must be specified "
+				    "without `SIG'"), arg);
+			return Exit_ERROR;
+		    }
 		    signum = get_signal_number_toupper(arg);
 		    if (signum < 0 || (signum == 0 && !iswdigit(arg[0]))) {
 			xerror(0, Ngt("no such signal `%ls'"), arg);
