@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.h: signal handling */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ extern void reset_job_signals(void);
 extern void set_interruptible_by_sigint(_Bool onoff);
 extern void ignore_sigquit_and_sigint(void);
 extern void ignore_sigtstp(void);
-extern _Bool send_sigstop_to_myself(void);
+extern void stop_myself(void);
 
 extern void handle_signals(void);
 extern int wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);

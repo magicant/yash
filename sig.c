@@ -78,6 +78,9 @@
  * All signals are blocked to avoid race conditions when the shell forks. */
 
 
+static int parse_signal_number(const wchar_t *number)
+    __attribute__((pure));
+
 static void set_special_handler(int signum, void (*handler)(int signum));
 static void reset_special_handler(
 	int signum, void (*handler)(int signum), bool leave);
@@ -85,16 +88,25 @@ static void sig_handler(int signum);
 static void handle_sigchld(void);
 static void set_trap(int signum, const wchar_t *command);
 static bool is_ignored(int signum);
-#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+#if YASH_ENABLE_LINEEDIT
+# ifdef SIGWINCH
 static inline void handle_sigwinch(void);
+# endif
+static void sig_new_candidate(
+	const le_compopt_T *restrict compopt, int num, xwcsbuf_T *restrict name)
+    __attribute__((nonnull));
 #endif
 
 
-/* Checks if there exists a process with the specified process ID, which should
+/********** Auxiliary Functions **********/
+
+/* Checks if there exists a process with the specified process ID, which must
  * be positive. */
 bool process_exists(pid_t pid)
 {
+    assert(pid > 0);
     return kill(pid, 0) >= 0 || errno != ESRCH;
+    /* send a dummy signal to check if the process exists. */
 }
 
 /* Returns the name of the signal with the specified number.
@@ -122,7 +134,7 @@ const wchar_t *get_signal_name(int signum)
 	return name;
     }
 #endif
-    for (const signal_T *s = signals; s->no; s++)
+    for (const signal_T *s = signals; s->no != 0; s++)
 	if (s->no == signum)
 	    return s->name;
     return L"";
@@ -136,29 +148,14 @@ const wchar_t *get_signal_name(int signum)
  * `name' should be all in uppercase. */
 int get_signal_number(const wchar_t *name)
 {
-    if (iswdigit(name[0])) {  /* parse a decimal integer */
-	int signum;
-	if (!xwcstoi(name, 10, &signum) || signum < 0)
-	    return -1;
-
-	/* check if `signum' is a valid signal */
-	if (signum == 0)
-	    return 0;
-#if defined SIGRTMIN && defined SIGRTMAX
-	if (SIGRTMIN <= signum && signum <= SIGRTMAX)
-	    return signum;
-#endif
-	for (const signal_T *s = signals; s->no; s++)
-	    if (s->no == signum)
-		return signum;
-	return -1;
-    }
+    if (iswdigit(name[0]))
+	return parse_signal_number(name);
 
     if (wcscmp(name, L"EXIT") == 0)
 	return 0;
     if (wcsncmp(name, L"SIG", 3) == 0)
 	name += 3;
-    for (const signal_T *s = signals; s->no; s++)
+    for (const signal_T *s = signals; s->no != 0; s++)
 	if (wcscmp(name, s->name) == 0)
 	    return s->no;
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -193,6 +190,29 @@ int get_signal_number(const wchar_t *name)
     return -1;
 }
 
+/* Parses the specified string as non-negative integer and returns the integer
+ * if it is zero or a valid signal number. Returns -1 otherwise. */
+int parse_signal_number(const wchar_t *number)
+{
+    int signum;
+
+    /* parse `number' */
+    if (!xwcstoi(number, 10, &signum) || signum < 0)
+	return -1;
+
+    /* check if `signum' is a valid signal */
+    if (signum == 0)
+	return 0;
+#if defined SIGRTMIN && defined SIGRTMAX
+    if (SIGRTMIN <= signum && signum <= SIGRTMAX)
+	return signum;
+#endif
+    for (const signal_T *s = signals; s->no != 0; s++)
+	if (s->no == signum)
+	    return signum;
+    return -1;
+}
+
 /* Returns the number of the signal whose name is `name'.
  * `name' may have the "SIG"-prefix.
  * If `name' is an integer that is a valid signal number, the number is
@@ -201,13 +221,15 @@ int get_signal_number(const wchar_t *name)
  * The given string is converted into uppercase. */
 int get_signal_number_toupper(wchar_t *name)
 {
-    for (wchar_t *n = name; *n; n++)
+    for (wchar_t *n = name; *n != L'\0'; n++)
 	*n = towupper(*n);
     return get_signal_number(name);
 }
 
 
-/* set to true when any trap other than ignore is set */
+/********** Signal Handler Management */
+
+/* set to true when any trap other than "ignore" is set */
 bool any_trap_set = false;
 
 /* flag to indicate a signal is caught. */
@@ -237,10 +259,10 @@ static wchar_t *rttrap_command[RTSIZE];
  * This mask is inherited by commands the shell invokes.
  * When a signal's trap is set, the signal is removed from this mask. */
 static sigset_t original_sigmask;
-/* Set of signals whose handler was SIG_IGN when the shell was invoked but
+/* Set of signals whose handler was "ignore" when the shell was invoked but
  * currently is substituted with the shell's handler.
- * The handler of these signals must be reset to SIG_IGN before the shell
- * invokes another command so that the command inherits SIG_IGN as the handler.
+ * The handler of these signals must be reset to "ignore" before the shell
+ * invokes another command so that the command inherits "ignore" as the handler.
  * A signal is added to this set also when its trap handler is set to "ignore".
  */
 static sigset_t ignored_signals;
@@ -366,7 +388,7 @@ void set_special_handler(int signum, void (*handler)(int signum))
 {
     const wchar_t *trap = trap_command[sigindex(signum)];
     if (trap != NULL && trap[0] != L'\0')
-	return;  /* The signal handler must have been set. */
+	return;  /* The signal handler has already been set. */
 
     struct sigaction action, oldaction;
     action.sa_flags = 0;
@@ -388,7 +410,7 @@ void reset_special_handler(int signum, void (*handler)(int signum), bool leave)
     struct sigaction action;
     if (sigismember(&ignored_signals, signum))
 	action.sa_handler = SIG_IGN;
-    else if (trap_command[sigindex(signum)])
+    else if (sigismember(&trapped_signals, signum))
 	return;
     else
 	action.sa_handler = SIG_DFL;
@@ -453,10 +475,11 @@ void ignore_sigtstp(void)
 
 /* Sends SIGSTOP to the shell process (and the processes in the same process
  * group).
- * Returns true iff successful. `errno' is set on failure. */
-bool send_sigstop_to_myself(void)
+ * On error, an error message is printed to the standard error. */
+void stop_myself(void)
 {
-    return kill(0, SIGSTOP) == 0;
+    if (kill(0, SIGSTOP) < 0)
+	xerror(errno, Ngt("cannot send SIGSTOP signal"));
 }
 
 /* the general signal handler */
@@ -558,7 +581,7 @@ bool wait_for_input(int fd, bool trap, int timeout)
     sigdelset(&ss, SIGCHLD);
     if (interactive_handlers_set) {
 	sigdelset(&ss, SIGINT);
-#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+#if YASH_ENABLE_LINEEDIT && defined SIGWINCH
 	sigdelset(&ss, SIGWINCH);
 #endif
     }
@@ -575,7 +598,7 @@ bool wait_for_input(int fd, bool trap, int timeout)
 	handle_sigchld();
 	if (trap)
 	    handle_traps();
-#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+#if YASH_ENABLE_LINEEDIT && defined SIGWINCH
 	handle_sigwinch();
 #endif
 
@@ -645,7 +668,6 @@ int handle_traps(void)
      * The EXIT trap may be executed inside another trap. */
     if (!any_trap_set || !any_signal_received || handled_signal >= 0)
 	return 0;
-
 #if YASH_ENABLE_LINEEDIT
     /* Don't handle traps during command line completion. Otherwise, the command
      * line would be messed up! */
@@ -662,18 +684,18 @@ int handle_traps(void)
 	/* we reset this before executing signal handlers to avoid race */
 	any_signal_received = false;
 
-	for (const signal_T *s = signals; s->no; s++) {
+	for (const signal_T *s = signals; s->no != 0; s++) {
 	    size_t i = sigindex(s->no);
 	    if (signal_received[i]) {
 		signal_received[i] = false;
 		wchar_t *command = trap_command[i];
-		if (command && command[0]) {
+		if (command != NULL && command[0] != L'\0') {
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
 		    save_sigint_received |= sigint_received;
 		    sigint_received = false;
-		    if (!state)
+		    if (state == NULL)
 			state = save_parse_state();
 		    signum = handled_signal = s->no;
 		    command = xwcsdup(command);
@@ -691,13 +713,13 @@ int handle_traps(void)
 	    if (rtsignal_received[i]) {
 		rtsignal_received[i] = false;
 		wchar_t *command = rttrap_command[i];
-		if (command && command[0]) {
+		if (command != NULL && command[0] != L'\0') {
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
 		    save_sigint_received |= sigint_received;
 		    sigint_received = false;
-		    if (!state)
+		    if (state == NULL)
 			state = save_parse_state();
 		    signum = handled_signal = sigrtmin + i;
 		    command = xwcsdup(command);
@@ -713,7 +735,7 @@ int handle_traps(void)
     sigint_received |= save_sigint_received;
     savelaststatus = -1;
     handled_signal = -1;
-    if (state)
+    if (state != NULL)
 	restore_parse_state(state);
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && (le_state & LE_STATE_SUSPENDED))
@@ -728,7 +750,7 @@ int handle_traps(void)
 void execute_exit_trap(void)
 {
     wchar_t *command = trap_command[sigindex(0)];
-    if (command) {
+    if (command != NULL) {
 	assert(!exit_handled);
 	exit_handled = true;
 	savelaststatus = laststatus;
@@ -784,7 +806,7 @@ void set_trap(int signum, const wchar_t *command)
     }
 
     free(*commandp);
-    if (command) {
+    if (command != NULL) {
 	if (command[0] != L'\0')
 	    any_trap_set = true;
 	*commandp = xwcsdup(command);
@@ -821,7 +843,7 @@ void set_trap(int signum, const wchar_t *command)
 	    /* SIGCHLD's signal handler is always `sig_handler' */
 	    return;
 	case SIGINT:
-#if YASH_ENABLE_LINEEDIT && defined(SIGWINCH)
+#if YASH_ENABLE_LINEEDIT && defined SIGWINCH
 	case SIGWINCH:
 #endif
 	    /* SIGINT and SIGWINCH's signal handler is always `sig_handler'
@@ -879,21 +901,21 @@ void clear_traps(void)
     {
 	size_t index = sigindex(0);
 	wchar_t *command = trap_command[index];
-	if (command && command[0])
+	if (command != NULL && command[0] != L'\0')
 	    set_trap(0, NULL);
 	signal_received[index] = false;
     }
-    for (const signal_T *s = signals; s->no; s++) {
+    for (const signal_T *s = signals; s->no != 0; s++) {
 	size_t index = sigindex(s->no);
 	wchar_t *command = trap_command[index];
-	if (command && command[0])
+	if (command != NULL && command[0] != L'\0')
 	    set_trap(s->no, NULL);
 	signal_received[index] = false;
     }
 #if defined SIGRTMIN && defined SIGRTMAX
     for (int sigrtmin = SIGRTMIN, i = 0; i < RTSIZE; i++) {
 	wchar_t *command = rttrap_command[i];
-	if (command && command[0])
+	if (command != NULL && command[0] != L'\0')
 	    set_trap(sigrtmin + i, NULL);
 	rtsignal_received[i] = false;
     }
@@ -922,10 +944,6 @@ void reset_sigint(void)
 
 #if YASH_ENABLE_LINEEDIT
 
-static void sig_new_candidate(
-	const le_compopt_T *compopt, int num, xwcsbuf_T *name)
-    __attribute__((nonnull));
-
 #ifdef SIGWINCH
 
 /* If SIGWINCH has been caught and line-editing is currently active, cause
@@ -936,7 +954,7 @@ void handle_sigwinch(void)
 	le_display_size_changed();
 }
 
-#endif /* defined(SIGWINCH) */
+#endif /* defined SIGWINCH */
 
 /* Resets the `sigwinch_received' flag. */
 void reset_sigwinch(void)
@@ -960,7 +978,7 @@ void generate_signal_candidates(const le_compopt_T *compopt)
     bool prefix = matchwcsprefix(compopt->src, L"SIG");
     xwcsbuf_T buf;
     wb_init(&buf);
-    for (const signal_T *s = signals; s->no; s++) {
+    for (const signal_T *s = signals; s->no != 0; s++) {
 	if (prefix)
 	    wb_cat(&buf, L"SIG");
 	wb_cat(&buf, s->name);
@@ -989,7 +1007,8 @@ void generate_signal_candidates(const le_compopt_T *compopt)
 
 /* If the pattern in `compopt' matches the specified signal name, adds a new
  * completion candidate with the name and the description for the signal. */
-void sig_new_candidate(const le_compopt_T *compopt, int num, xwcsbuf_T *name)
+void sig_new_candidate(
+	const le_compopt_T *restrict compopt, int num, xwcsbuf_T *restrict name)
 {
     if (le_wmatch_comppatterns(compopt, name->contents)) {
 	xwcsbuf_T desc;
@@ -1011,7 +1030,7 @@ void sig_new_candidate(const le_compopt_T *compopt, int num, xwcsbuf_T *name)
 #endif /* YASH_ENABLE_LINEEDIT */
 
 
-/********** Builtin **********/
+/********** Built-in **********/
 
 static bool print_trap(const wchar_t *signame, const wchar_t *command)
     __attribute__((nonnull(1)));
@@ -1051,13 +1070,13 @@ int trap_builtin(int argc, void **argv)
 
     if (xoptind == argc) {
 	/* print all traps */
-	sigset_t ss;
-	sigemptyset(&ss);
+	sigset_t printed;
+	sigemptyset(&printed);
 	if (!print_trap(L"EXIT", trap_command[sigindex(0)]))
 	    return Exit_FAILURE;
-	for (const signal_T *s = signals; s->no; s++) {
-	    if (!sigismember(&ss, s->no)) {
-		sigaddset(&ss, s->no);
+	for (const signal_T *s = signals; s->no != 0; s++) {
+	    if (!sigismember(&printed, s->no)) {
+		sigaddset(&printed, s->no);
 		if (!print_trap(s->name, trap_command[sigindex(s->no)]))
 		    return Exit_FAILURE;
 	    }
@@ -1071,62 +1090,61 @@ int trap_builtin(int argc, void **argv)
 		return Exit_FAILURE;
 	}
 #endif
-	return Exit_SUCCESS;
     } else if (print) {
 	/* print specified traps */
 #if defined SIGRTMIN && defined SIGRTMAX
 	int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
 #endif
-	clearerr(stdout);
 	do {
 	    wchar_t *name = ARGV(xoptind);
 	    int signum = get_signal_number_toupper(name);
 	    if (signum < 0) {
 		xerror(0, Ngt("no such signal `%ls'"), name);
-	    } else {
-#if defined SIGRTMIN && defined SIGRTMAX
-		if (sigrtmin <= signum && signum <= sigrtmax) {
-		    int index = signum - sigrtmin;
-		    if (index < RTSIZE)
-			print_trap(get_signal_name(signum),
-				rttrap_command[index]);
-		} else
-#endif
-		{
-		    print_trap(name, trap_command[sigindex(signum)]);
-		}
+		continue;
 	    }
-	} while (!ferror(stdout) && ++xoptind < argc);
 
-	return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-    }
-
-    const wchar_t *command;
-
-    /* check if the first operand is an integer */
-    wchar_t *end;
-    errno = 0;
-    wcstoul(ARGV(xoptind), &end, 10);
-    if (ARGV(xoptind)[0] != L'\0' && *end == L'\0') {
-	command = NULL;
-	goto set_traps;
+#if defined SIGRTMIN && defined SIGRTMAX
+	    if (sigrtmin <= signum && signum <= sigrtmax) {
+		int index = signum - sigrtmin;
+		if (index < RTSIZE)
+		    if (!print_trap(name, rttrap_command[index]))
+			return Exit_FAILURE;
+	    } else
+#endif
+	    {
+		if (!print_trap(name, trap_command[sigindex(signum)]))
+		    return Exit_FAILURE;
+	    }
+	} while (++xoptind < argc);
     } else {
-	command = ARGV(xoptind++);
-	if (xoptind == argc)
-	    goto print_usage;
-	if (wcscmp(command, L"-") == 0)
+	const wchar_t *command;
+
+	/* check if the first operand is an integer */
+	wchar_t *end;
+	errno = 0;
+	wcstoul(ARGV(xoptind), &end, 10);
+	if (ARGV(xoptind)[0] != L'\0' && *end == L'\0') {
 	    command = NULL;
+	} else {
+	    command = ARGV(xoptind++);
+	    if (xoptind == argc)
+		goto print_usage;
+	    if (wcscmp(command, L"-") == 0)
+		command = NULL;
+	}
+
+	/* set traps */
+	do {
+	    wchar_t *name = ARGV(xoptind);
+	    int signum = get_signal_number_toupper(name);
+	    if (signum < 0) {
+		xerror(0, Ngt("no such signal `%ls'"), name);
+		continue;
+	    }
+	    set_trap(signum, command);
+	} while (++xoptind < argc);
     }
 
-set_traps:
-    do {
-	wchar_t *name = ARGV(xoptind);
-	int signum = get_signal_number_toupper(name);
-	if (signum >= 0)
-	    set_trap(signum, command);
-	else
-	    xerror(0, Ngt("no such signal `%ls'"), name);
-    } while (++xoptind < argc);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 
 print_usage:
@@ -1151,16 +1169,15 @@ print_usage:
  * to the standard error. */
 bool print_trap(const wchar_t *signame, const wchar_t *command)
 {
-    if (command != NULL) {
-	wchar_t *q = quote_sq(command);
-	int r = printf("trap -- %ls %ls\n", q, signame);
-	if (r < 0)
-	    xerror(errno, Ngt("cannot print to the standard output"));
-	free(q);
-	if (r < 0)
-	    return false;
-    }
-    return true;
+    if (command == NULL)
+	return true;
+
+    wchar_t *q = quote_sq(command);
+    bool ok = printf("trap -- %ls %ls\n", q, signame) >= 0;
+    if (!ok)
+	xerror(errno, Ngt("cannot print to the standard output"));
+    free(q);
+    return ok;
 }
 
 #if YASH_ENABLE_HELP
@@ -1189,8 +1206,8 @@ const char *trap_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "kill" builtin, which accepts the following options:
- *  -s SIG: specifies the signal to send
+/* The "kill" built-in, which accepts the following options:
+ *  -s sig: specifies the signal to send
  *  -n num: specifies the signal to send by number
  *  -l: prints signal info
  *  -v: prints signal info verbosely */
@@ -1213,7 +1230,7 @@ int kill_builtin(int argc, void **argv)
 		    if (list)
 			goto print_usage;
 		    arg = &arg[i + 1];
-		    if (*arg == L'\0') {
+		    if (arg[0] == L'\0') {
 			arg = ARGV(++optind);
 			if (arg == NULL) {
 			    xerror(0, Ngt("the signal name is not specified"));
@@ -1227,7 +1244,7 @@ parse_signal_name:
 			return Exit_ERROR;
 		    }
 		    signum = get_signal_number_toupper(arg);
-		    if (signum < 0 || (signum == 0 && !iswdigit(*arg))) {
+		    if (signum < 0 || (signum == 0 && !iswdigit(arg[0]))) {
 			xerror(0, Ngt("no such signal `%ls'"), arg);
 			return Exit_FAILURE;
 		    }
@@ -1269,7 +1286,7 @@ main:
     if (list) {
 	if (optind == argc) {
 	    /* print info of all signals */
-	    for (const signal_T *s = signals; s->no; s++)
+	    for (const signal_T *s = signals; s->no != 0; s++)
 		if (!print_signal(s->no, s->name, verbose))
 		    return Exit_FAILURE;
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -1292,9 +1309,12 @@ main:
 		    signum = get_signal_number_toupper(ARGV(optind));
 		}
 		signame = get_signal_name(signum);
-		if (signum <= 0 || signame[0] == L'\0')
+		if (signum <= 0 || signame[0] == L'\0') {
 		    xerror(0, Ngt("no such signal `%ls'"), ARGV(optind));
-		else if (!print_signal(signum, signame, verbose))
+		    continue;
+		}
+
+		if (!print_signal(signum, signame, verbose))
 		    return Exit_FAILURE;
 	    } while (++optind < argc);
 	}
@@ -1370,6 +1390,7 @@ void signal_job(int signum, const wchar_t *jobspec)
     pid_t jobpgid = get_job_pgid(jobspec);
     if (jobpgid <= 0)
 	return;
+
     if (kill(-jobpgid, signum) < 0)
 	xerror(errno, "%ls", jobspec);
 }

@@ -671,12 +671,11 @@ int suspend_builtin(int argc, void **argv)
 	return Exit_FAILURE;
     }
 
-    bool ok = send_sigstop_to_myself();
-    if (!ok)
-	xerror(errno, Ngt("cannot send SIGSTOP signal"));
+    stop_myself();
+
     if (doing_job_control_now)
 	ensure_foreground();
-    return ok ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP

@@ -59,7 +59,7 @@ typedef struct job_T {
 
 /* When a process is stopped/terminated by a signal, this value is added to the
  * signal number to make the value of the exit status.
- * 128 in bash/zsh/dash, 256 in ksh. */
+ * 128 in bash/zsh/dash/pdksh/mksh/posh, 256 in ksh. */
 #define TERMSIGOFFSET 384
 
 extern void init_job(void);

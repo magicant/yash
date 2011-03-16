@@ -849,6 +849,8 @@ static struct pidlist_T histfilepids = { 0, NULL, };
 /* Adds `pid' to `histfilepids'. `pid' must be positive. */
 void add_histfile_pid(pid_t pid)
 {
+    assert(pid > 0);
+
     for (size_t i = 0; i < histfilepids.count; i++)
 	if (histfilepids.pids[i] == pid)
 	    return;  /* don't add if already added */
