@@ -1122,8 +1122,8 @@ int trap_builtin(int argc, void **argv)
 	/* check if the first operand is an integer */
 	wchar_t *end;
 	errno = 0;
-	wcstoul(ARGV(xoptind), &end, 10);
-	if (ARGV(xoptind)[0] != L'\0' && *end == L'\0') {
+	if (iswdigit(ARGV(xoptind)[0])
+		&& (wcstoul(ARGV(xoptind), &end, 10), *end == L'\0')) {
 	    command = NULL;
 	} else {
 	    command = ARGV(xoptind++);
