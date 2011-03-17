@@ -935,7 +935,7 @@ void generate_file_candidates(const le_compopt_T *compopt)
     if (!le_compile_cpatterns(compopt))
 	return;
 
-    enum wglbflags flags = 0;
+    enum wglobflags_T flags = 0;
     // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_extendedglob) flags |= WGLB_RECDIR;

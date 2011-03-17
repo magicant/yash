@@ -635,39 +635,39 @@ struct wglob_dirstack {
 };
 
 static struct wglob_pattern *wglob_parse_pattern(
-	wchar_t *pat, enum wglbflags flags)
+	wchar_t *pat, enum wglobflags_T flags)
     __attribute__((malloc,warn_unused_result,nonnull));
 static struct wglob_pattern *wglob_create_recsearch_pattern(
 	bool followlink, bool allowperiod)
     __attribute__((malloc,warn_unused_result));
 static struct wglob_pattern *wglob_parse_pattern_part(
-	wchar_t *pat, enum wglbflags flags)
+	wchar_t *pat, enum wglobflags_T flags)
     __attribute__((malloc,warn_unused_result,nonnull));
 static void wglob_free_pattern(struct wglob_pattern *p);
 static void wglob_search(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
     __attribute__((nonnull));
 static void wglob_search_literal(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
     __attribute__((nonnull));
 static void wglob_search_match(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
     __attribute__((nonnull));
 static void wglob_search_recsearch(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list,
@@ -696,7 +696,7 @@ static int wglob_sortcmp(const void *v1, const void *v2)
  * If the shell is interactive and SIGINT is not blocked, this function can be
  * interrupted, in which case false is returned.
  * Minor errors such as permission errors are ignored. */
-bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
+bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
 	plist_T *restrict list)
 {
     size_t listbase = list->length;
@@ -739,7 +739,7 @@ bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
  * Pattern `pat' may be modified in this function and must be unchanged until
  * the return value is freed by `wglob_free_pattern'.
  * WGLB_CASEFOLD, WGLB_PERIOD and WGLB_RECDIR in `flags' affect the results. */
-struct wglob_pattern *wglob_parse_pattern(wchar_t *pat, enum wglbflags flags)
+struct wglob_pattern *wglob_parse_pattern(wchar_t *pat, enum wglobflags_T flags)
 {
     struct wglob_pattern *result = NULL, **lastp = &result;
     struct wglob_pattern *p;
@@ -792,7 +792,7 @@ struct wglob_pattern *wglob_create_recsearch_pattern(
 /* Parses the specified pattern that contains one pathname component.
  * `pat' must not contain a slash. */
 struct wglob_pattern *wglob_parse_pattern_part(
-	wchar_t *pat, enum wglbflags flags)
+	wchar_t *pat, enum wglobflags_T flags)
 {
     struct wglob_pattern *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -852,7 +852,7 @@ void wglob_free_pattern(struct wglob_pattern *p)
  * Only the WGLB_MARK flag in `flags' affects the results. */
 void wglob_search(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
@@ -875,7 +875,7 @@ void wglob_search(
 /* Searches for the pathname component that does not require pattern matching.*/
 void wglob_search_literal(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
@@ -908,7 +908,7 @@ void wglob_search_literal(
 /* Searches the directory for files that match with the specified pattern. */
 void wglob_search_match(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list)
@@ -953,7 +953,7 @@ next:
  * pattern. */
 void wglob_search_recsearch(
 	const struct wglob_pattern *restrict pattern,
-	enum wglbflags flags,
+	enum wglobflags_T flags,
 	xstrbuf_T *restrict path,
 	xwcsbuf_T *restrict wpath,
 	plist_T *restrict list,

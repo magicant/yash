@@ -119,7 +119,7 @@ static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
 
 static void glob_all(void **restrict patterns, plist_T *restrict list)
     __attribute__((nonnull));
-static enum wglbflags get_wglbflags(void)
+static enum wglobflags_T get_wglobflags(void)
     __attribute__((pure));
 
 
@@ -277,7 +277,7 @@ char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 
 	pl_init(&list);
 	set_interruptible_by_sigint(true);
-	ok = wglob(exp, get_wglbflags(), &list);
+	ok = wglob(exp, get_wglobflags(), &list);
 	set_interruptible_by_sigint(false);
 	if (!ok) {
 	    free(exp);
@@ -1687,9 +1687,9 @@ wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
 /********** File Name Expansion (Glob) **********/
 
 /* Makes a option value from the current shell settings. */
-enum wglbflags get_wglbflags(void)
+enum wglobflags_T get_wglobflags(void)
 {
-    enum wglbflags flags = 0;
+    enum wglobflags_T flags = 0;
     if (!shopt_caseglob)    flags |= WGLB_CASEFOLD;
     if (shopt_dotglob)      flags |= WGLB_PERIOD;
     if (shopt_markdirs)     flags |= WGLB_MARK;
@@ -1704,7 +1704,7 @@ enum wglbflags get_wglbflags(void)
 void glob_all(void **restrict patterns, plist_T *restrict list)
 {
     void **const savepatterns = patterns;
-    enum wglbflags flags = get_wglbflags();
+    enum wglobflags_T flags = get_wglobflags();
     bool unblock = false;
 
     while (*patterns) {

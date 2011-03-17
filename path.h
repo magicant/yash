@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.h: filename-related utilities */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ extern const wchar_t *get_home_directory(
 
 /********** wglob **********/
 
-enum wglbflags {
+enum wglobflags_T {
     WGLB_MARK     = 1 << 0,
     WGLB_CASEFOLD = 1 << 1,
     WGLB_PERIOD   = 1 << 2,
@@ -94,12 +94,12 @@ enum wglbflags {
 
 struct plist_T;
 
-extern _Bool wglob(const wchar_t *restrict pattern, enum wglbflags flags,
+extern _Bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
 	struct plist_T *restrict list)
     __attribute__((nonnull));
 
 
-/********** Builtins **********/
+/********** Built-ins **********/
 
 extern int cd_builtin(int argc, void **argv)
     __attribute__((nonnull));
