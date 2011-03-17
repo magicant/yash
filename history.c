@@ -737,20 +737,21 @@ void update_history(bool refresh)
     posfail = fgetpos(histfile, &pos);
 #endif
     rev = read_signature();
-    if (rev < 0) {
+    if (rev < 0)
 	goto error;
-    } else if (!posfail && rev == histfilerev) {
+    if (!posfail && rev == histfilerev) {
 	/* The revision has not been changed. Just read new entries. */
 	fsetpos(histfile, &pos);
+	read_history();
     } else {
 	/* The revision has been changed. Re-read everything. */
 	clear_all_entries();
 	clear_histfile_pids();
 	add_histfile_pid(shell_pid);
 	histfilerev = rev;
+	read_history();
 	histmodcount = 0;
     }
-    read_history();
     if (ferror(histfile) || !feof(histfile))
 	goto error;
 
@@ -951,6 +952,8 @@ void maybe_init_history(void)
 	    renumber_all_entries();
 refresh:
 	    refresh_file();
+	} else {
+	    histmodcount = 0;
 	}
 	add_histfile_pid(shell_pid);
 	wprintf_histfile(L"p%jd\n", (intmax_t) shell_pid);
