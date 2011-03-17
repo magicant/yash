@@ -680,6 +680,8 @@ int handle_traps(void)
     struct parsestate_T *state = NULL;
     savelaststatus = laststatus;
 
+    sigint_received = false;
+
     do {
 	/* we reset this before executing signal handlers to avoid race */
 	any_signal_received = false;
@@ -693,8 +695,6 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    save_sigint_received |= sigint_received;
-		    sigint_received = false;
 		    if (state == NULL)
 			state = save_parse_state();
 		    signum = handled_signal = s->no;
@@ -717,8 +717,6 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    save_sigint_received |= sigint_received;
-		    sigint_received = false;
 		    if (state == NULL)
 			state = save_parse_state();
 		    signum = handled_signal = sigrtmin + i;
