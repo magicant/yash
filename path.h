@@ -22,6 +22,8 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+struct stat;
+
 
 extern _Bool is_file(const char *path)
     __attribute__((nonnull));
@@ -42,6 +44,9 @@ extern _Bool is_executable_regular(const char *path)
 extern _Bool is_directory(const char *path)
     __attribute__((nonnull));
 
+extern _Bool stat_result_same_file(
+	const struct stat *stat1, const struct stat *stat2)
+    __attribute__((nonnull,pure));
 extern _Bool is_same_file(const char *path1, const char *path2)
     __attribute__((nonnull));
 

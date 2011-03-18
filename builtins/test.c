@@ -634,7 +634,7 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     else if (!sr_ok)
 	return FC_NEWER;
 
-    if (sl.st_dev == sr.st_dev && sl.st_ino == sr.st_ino)
+    if (stat_result_same_file(&sl, &sr))
 	return FC_ID;
     else if (sl.st_mtime < sr.st_mtime)
 	return FC_OLDER;

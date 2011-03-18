@@ -66,6 +66,7 @@ extern int eaccess(const char *path, int amode)
     __attribute__((nonnull));
 # endif
 #endif
+
 static bool check_access(const char *path, mode_t mode, int amode)
     __attribute__((nonnull));
 static inline bool not_dotdot(const wchar_t *p)
@@ -119,13 +120,15 @@ bool check_access(const char *path, mode_t mode, int amode)
      * `configure', the OS kernel may not support it. We fall back on our own
      * checking function if faccessat/eaccess was rejected. */
 #if HAVE_FACCESSAT
-    int result = faccessat(AT_FDCWD, path, amode, AT_EACCESS);
-    if (result == 0 || (errno != ENOSYS && errno != EINVAL))
-	return result == 0;
+    if (faccessat(AT_FDCWD, path, amode, AT_EACCESS) == 0)
+	return true;
+    if (errno != ENOSYS && errno != EINVAL)
+	return false;
 #elif HAVE_EACCESS
-    int result = eaccess(path, amode);
-    if (result == 0 || (errno != ENOSYS && errno != EINVAL))
-	return result == 0;
+    if (eaccess(path, amode) == 0)
+	return true;
+    if (errno != ENOSYS && errno != EINVAL)
+	return false;
 #else
     (void) amode;
 #endif
@@ -189,12 +192,20 @@ bool is_directory(const char *path)
     return (stat(path, &st) == 0) && S_ISDIR(st.st_mode);
 }
 
+/* Checks if two stat results name the same file. */
+inline bool stat_result_same_file(
+	const struct stat *stat1, const struct stat *stat2)
+{
+    return stat1->st_dev == stat2->st_dev
+	&& stat1->st_ino == stat2->st_ino;
+}
+
 /* Checks if two files are the same file. */
 bool is_same_file(const char *path1, const char *path2)
 {
     struct stat stat1, stat2;
     return stat(path1, &stat1) == 0 && stat(path2, &stat2) == 0
-	&& stat1.st_dev == stat2.st_dev && stat1.st_ino == stat2.st_ino;
+	&& stat_result_same_file(&stat1, &stat2);
 }
 
 /* Canonicalizes a pathname.
@@ -207,27 +218,27 @@ bool is_same_file(const char *path1, const char *path2)
  * error. */
 wchar_t *canonicalize_path(const wchar_t *path)
 {
-    wchar_t *const canon = xmalloc((wcslen(path) + 1) * sizeof *canon);
-    size_t len = 0;
+    wchar_t *const result = xmallocn(wcslen(path) + 1, sizeof *result);
+    wchar_t *rp = result;
     plist_T clist;
 
     pl_init(&clist);
 
     if (*path == L'/') {  /* first slash */
 	path++;
-	canon[len++] = '/';
+	*rp++ = '/';
 	if (*path == L'/') {  /* second slash */
 	    path++;
 	    if (*path != L'/')  /* third slash */
-		canon[len++] = '/';
+		*rp++ = '/';
 	}
     }
 
     for (;;) {
-	canon[len] = L'\0';
+	*rp = L'\0';
 	while (*path == L'/')
 	    path++;
-	if (path[0] == L'\0')
+	if (*path == L'\0')
 	    break;
 	if (path[0] == L'.') {
 	    if (path[1] == L'\0') {
@@ -240,21 +251,21 @@ wchar_t *canonicalize_path(const wchar_t *path)
 	    } else if (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/')
 		    && clist.length > 0) {
 		/* dot-dot component */
-		wchar_t *prec = clist.contents[clist.length - 1];
-		if (not_dotdot(prec)) {
-		    char *mbsprec = malloc_wcstombs(canon);
-		    bool isdir = mbsprec != NULL && is_directory(mbsprec);
-		    free(mbsprec);
+		wchar_t *prev = clist.contents[clist.length - 1];
+		if (not_dotdot(prev)) {
+		    char *mbsresult = malloc_wcstombs(result);
+		    bool isdir = (mbsresult != NULL) && is_directory(mbsresult);
+		    free(mbsresult);
 		    if (isdir) {
-			len = prec - canon;
-			/* canon[len] = L'\0'; */
+			rp = prev;
+			/* result[index] = L'\0'; */
 			pl_remove(&clist, clist.length - 1, 1);
 			path += 2;
 			continue;
 		    } else {
 			/* error */
 			pl_destroy(&clist);
-			free(canon);
+			free(result);
 			return NULL;
 		    }
 		}
@@ -262,15 +273,15 @@ wchar_t *canonicalize_path(const wchar_t *path)
 	}
 
 	/* others */
-	pl_add(&clist, canon + len);
+	pl_add(&clist, rp);
 	if (clist.length > 1)
-	    canon[len++] = L'/';
+	    *rp++ = L'/';
 	while (*path != L'\0' && *path != L'/')  /* copy next component */
-	    canon[len++] = *path++;
+	    *rp++ = *path++;
     }
     pl_destroy(&clist);
-    assert(canon[len] == L'\0');
-    return canon;
+    assert(*rp == L'\0');
+    return result;
 }
 
 bool not_dotdot(const wchar_t *p)
@@ -291,7 +302,7 @@ bool is_normalized_path(const wchar_t *path)
 		 (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/'))))
 	    return false;
 	path = wcschr(path, L'/');
-	if (!path)
+	if (path == NULL)
 	    break;
 	path++;
     }
@@ -304,7 +315,7 @@ char *xgetcwd(void)
 {
 #if GETCWD_AUTO_MALLOC
     char *pwd = getcwd(NULL, 0);
-    return pwd ? xrealloc(pwd, strlen(pwd) + 1) : NULL;
+    return (pwd != NULL) ? xrealloc(pwd, strlen(pwd) + 1) : NULL;
 #else
     size_t pwdlen = 40;
     char *pwd = xmalloc(pwdlen);
@@ -325,8 +336,8 @@ char *xgetcwd(void)
 }
 
 
-/* Searches the specified directories `dirs' for a file named `name' that
- * satisfies the specified condition.
+/* Searches directories `dirs' for a file named `name' that satisfies predicate
+ * `cond'.
  * name:   the pathname of the file to be searched for.
  *         If `name' is an absolute path, a copy of it is simply returned.
  * dirs:   a NULL-terminated array of strings that are the names of
@@ -339,23 +350,24 @@ char *xgetcwd(void)
  * the pathname. If `cond' returns true, search is complete and the pathname
  * is returned as a newly malloced string. If `cond' returns false to all the
  * produced pathnames, NULL is returned.
- * `name' and all the directory names in `dirs' must start and end in a initial
- * shift state. */
+ * If `name' starts with a slash, a copy of `name' is simply returned. If `name'
+ * is an empty string or `dirs' is NULL, NULL is returned.
+ * `name' and all the directory names in `dirs' must start and end in the
+ * initial shift state. */
 char *which(
 	const char *restrict name,
 	char *const *restrict dirs,
 	bool cond(const char *path))
 {
-    if (!name[0])
+    if (name[0] == L'\0')
 	return NULL;
     if (name[0] == '/')
 	return xstrdup(name);
-    if (!dirs)
+    if (dirs == NULL)
 	return NULL;
 
     size_t namelen = strlen(name);
-    const char *dir;
-    while ((dir = *dirs++)) {
+    for (const char *dir; (dir = *dirs) != NULL; dirs++) {
 	size_t dirlen = strlen(dir);
 	char path[dirlen + namelen + 3];
 	if (dirlen > 0) {
@@ -380,17 +392,17 @@ char *which(
  * readable and writeable regardless of `mode', and a pointer to a string
  * containing the filename is assigned to `*filename', which should be freed by
  * the caller. The filename consists only of portable filename characters.
- * On failure, -1 is returned with `**filename' left unchanged and errno is set
- * to the error value. */
+ * On failure, -1 is returned with `**filename' left unchanged and `errno' is
+ * set to the error value. */
 int create_temporary_file(char **filename, mode_t mode)
 {
-    static uintmax_t num;
+    static uintmax_t num = 0;
     uintmax_t n;
     int fd;
     xstrbuf_T buf;
 
     n = (uintmax_t) shell_pid * 272229637312669;
-    if (!num)
+    if (num == 0)
 	num = (uintmax_t) time(NULL) * 5131212142718371 << 1 | 1;
     sb_init(&buf);
     for (int i = 0; i < 100; i++) {
@@ -426,7 +438,7 @@ static wchar_t *get_default_path(void)
  * Keys are pointers to a multibyte string containing a command name and
  * values are pointers to a multibyte string containing the commands' full path.
  * For each entry, the key string is part of the value, that is, the last
- * pathname component of it. */
+ * pathname component of the value. */
 static hashtable_T cmdhash;
 
 /* Initializes the command hashtable. */
@@ -445,7 +457,7 @@ void clear_cmdhash(void)
 /* Searches PATH for the specified command and returns its full pathname.
  * If `forcelookup' is false and the command is already entered in the command
  * hashtable, the value in the hashtable is returned. Otherwise, `which' is
- * called to search for the command, the result is entered into the hashtable
+ * called to search for the command, the result is entered into the hashtable,
  * and then it is returned. If no command is found, NULL is returned. */
 const char *get_command_path(const char *name, bool forcelookup)
 {
@@ -453,16 +465,16 @@ const char *get_command_path(const char *name, bool forcelookup)
 
     if (!forcelookup) {
 	path = ht_get(&cmdhash, name).value;
-	if (path && is_executable_regular(path))
+	if (path != NULL && is_executable_regular(path))
 	    return path;
     }
 
     path = which(name, get_path_array(PA_PATH), is_executable_regular);
-    if (path && path[0] == '/') {
+    if (path != NULL && path[0] == '/') {
 	size_t namelen = strlen(name), pathlen = strlen(path);
-	const char *pathname = path + pathlen - namelen;
-	assert(strcmp(name, pathname) == 0);
-	vfree(ht_set(&cmdhash, pathname, path));
+	const char *nameinpath = path + pathlen - namelen;
+	assert(strcmp(name, nameinpath) == 0);
+	vfree(ht_set(&cmdhash, nameinpath, path));
     } else {
 	forget_command_path(name);
     }
@@ -476,9 +488,9 @@ void forget_command_path(const char *command)
 }
 
 /* Last result of `get_command_path_default'. */
-static char *gcpd_value;
+static char *gcpd_value = NULL;
 /* Paths for `get_command_path_default'. */
-static char **default_path;
+static char **default_path = NULL;
 
 /* Searches for the specified command using the system's default PATH.
  * The full path of the command is returned if found, NULL otherwise.
@@ -488,14 +500,17 @@ const char *get_command_path_default(const char *name)
     assert(name != gcpd_value);
     free(gcpd_value);
 
-    if (!default_path) {
+    if (default_path == NULL) {
 	wchar_t *defpath = get_default_path();
-	if (!defpath)
-	    return gcpd_value = NULL;
+	if (defpath == NULL) {
+	    gcpd_value = NULL;
+	    return gcpd_value;
+	}
 	default_path = decompose_paths(defpath);
 	free(defpath);
     }
-    return gcpd_value = which(name, default_path, is_executable_regular);
+    gcpd_value = which(name, default_path, is_executable_regular);
+    return gcpd_value;
 }
 
 /* Returns the system's default PATH as a newly malloced string.
@@ -538,15 +553,15 @@ struct passwd *xgetpwnam(const char *name)
     do {
 	errno = 0;
 	pw = getpwnam(name);
-    } while (!pw && errno == EINTR);
+    } while (pw == NULL && errno == EINTR);
     return pw;
 }
 
 /* A hashtable from users' names to their home directory paths.
  * Keys are pointers to a wide string containing a user's login name and
  * values are pointers to a wide string containing their home directory name.
- * A memory block for the key/value string must be allocated at once;
- * When the value is `free'd, the key is `free'd as well. */
+ * A memory block for the key/value string must be allocated at once so that,
+ * when the value is `free'd, the key is `free'd as well. */
 static hashtable_T homedirhash;
 
 /* Initializes the home directory hashtable. */
@@ -573,17 +588,17 @@ const wchar_t *get_home_directory(const wchar_t *username, bool forcelookup)
 
     if (!forcelookup) {
 	path = ht_get(&homedirhash, username).value;
-	if (path)
+	if (path != NULL)
 	    return path;
     }
 
     char *mbsusername = malloc_wcstombs(username);
-    if (!mbsusername)
+    if (mbsusername == NULL)
 	return NULL;
 
     struct passwd *pw = xgetpwnam(mbsusername);
     free(mbsusername);
-    if (!pw)
+    if (pw == NULL)
 	return NULL;
 
     xwcsbuf_T dir;
@@ -685,7 +700,7 @@ static int wglob_sortcmp(const void *v1, const void *v2)
  * flags:   a bitwise OR of the following flags:
  *          WGLB_MARK:     directory items have '/' appended to their name
  *          WGLB_CASEFOLD: do matching case-insensitively
- *          WGLB_PERIOD:   L'*' and L'?' match L'.' at the head
+ *          WGLB_PERIOD:   L'*' and L'?' match L'.' at the beginning
  *          WGLB_NOSORT:   don't sort resulting items
  *          WGLB_RECDIR:   allow recursive search with L"**"
  * list:    a list of pointers to wide strings to which resulting items are
@@ -736,7 +751,7 @@ bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
 }
 
 /* Parses the specified pattern.
- * Pattern `pat' may be modified in this function and must be unchanged until
+ * Pattern `pat' may be modified in this function and must not be changed until
  * the return value is freed by `wglob_free_pattern'.
  * WGLB_CASEFOLD, WGLB_PERIOD and WGLB_RECDIR in `flags' affect the results. */
 struct wglob_pattern *wglob_parse_pattern(wchar_t *pat, enum wglobflags_T flags)
@@ -747,7 +762,7 @@ struct wglob_pattern *wglob_parse_pattern(wchar_t *pat, enum wglobflags_T flags)
     for (;;) {
 	wchar_t *slash = wcschr(pat, L'/');
 	if (slash != NULL) {
-	    *slash = L'\0';
+	    slash[0] = L'\0';
 	    if (!(flags & WGLB_RECDIR))
 		goto normal;
 	    if (wcscmp(pat, L"**") == 0)
@@ -770,7 +785,7 @@ normal:
 	lastp = &p->next;
 	if (slash == NULL)
 	    return result;
-	pat = slash + 1;
+	pat = &slash[1];
     }
 
 fail:
@@ -806,7 +821,7 @@ struct wglob_pattern *wglob_parse_pattern_part(
 	    xflags |= XFNM_PERIOD;
 	result->type = WGLOB_MATCH;
 	result->value.match.pattern = xfnm_compile(pat, xflags);
-	if (!result->value.match.pattern)
+	if (result->value.match.pattern == NULL)
 	    goto fail;
     } else {
 	wchar_t *value = unescape(pat);
@@ -814,7 +829,7 @@ struct wglob_pattern *wglob_parse_pattern_part(
 	result->type = WGLOB_LITERAL;
 	result->value.literal.wname = wcscpy(pat, value);
 	result->value.literal.name = realloc_wcstombs(value);
-	if (!result->value.literal.name)
+	if (result->value.literal.name == NULL)
 	    goto fail;
     }
     return result;
@@ -826,7 +841,7 @@ fail:
 
 void wglob_free_pattern(struct wglob_pattern *p)
 {
-    while (p) {
+    while (p != NULL) {
 	struct wglob_pattern *next = p->next;
 	switch (p->type) {
 	    case WGLOB_LITERAL:
@@ -919,13 +934,13 @@ void wglob_search_match(
 	return;
 
     DIR *dir = opendir((path->length == 0) ? "." : path->contents);
-    if (!dir)
+    if (dir == NULL)
 	return;
 
     const size_t savepathlen = path->length;
     const size_t savewpathlen = wpath->length;
     struct dirent *de;
-    while ((de = readdir(dir))) {
+    while ((de = readdir(dir)) != NULL) {
 	if (xfnm_match(pattern->value.match.pattern, de->d_name) == 0) {
 	    if (wb_mbscat(wpath, de->d_name) != NULL)
 		goto next;
@@ -970,7 +985,7 @@ void wglob_search_recsearch(
 
     /* Step 2: search the subdirectories of `path' recursively */
     DIR *dir = opendir((path->length == 0) ? "." : path->contents);
-    if (!dir)
+    if (dir == NULL)
 	return;
 
     const size_t savepathlen = path->length;
@@ -978,7 +993,7 @@ void wglob_search_recsearch(
     struct dirent *de;
     int (*statfunc)(const char *path, struct stat *st) =
 	pattern->value.recsearch.followlink ? stat : lstat;
-    while ((de = readdir(dir))) {
+    while ((de = readdir(dir)) != NULL) {
 	if (pattern->value.recsearch.allowperiod
 		? strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0
 		: de->d_name[0] == '.')
@@ -992,8 +1007,8 @@ void wglob_search_recsearch(
 
 	    if (wb_mbscat(wpath, de->d_name) != NULL)
 		goto next;
-	    wb_wccat(wpath, L'/');
 	    sb_ccat(path, '/');
+	    wb_wccat(wpath, L'/');
 	    newstack.prev = dirstack;
 	    wglob_search_recsearch(
 		    pattern, flags, path, wpath, list, &newstack);
@@ -1008,12 +1023,9 @@ next:
 /* Returns true iff the file designated by `st' is contained in `dirstack'. */
 bool is_reentry(const struct stat *st, const struct wglob_dirstack *dirstack)
 {
-    while (dirstack) {
-	if (st->st_dev == dirstack->st.st_dev
-		&& st->st_ino == dirstack->st.st_ino)
+    for (; dirstack != NULL; dirstack = dirstack->prev)
+	if (stat_result_same_file(st, &dirstack->st))
 	    return true;
-	dirstack = dirstack->prev;
-    }
     return false;
 }
 
@@ -1023,7 +1035,7 @@ int wglob_sortcmp(const void *v1, const void *v2)
 }
 
 
-/********** Builtins **********/
+/********** Built-ins **********/
 
 static void canonicalize_path_ex(xwcsbuf_T *buf)
     __attribute__((nonnull));
@@ -1063,9 +1075,8 @@ int cd_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"), L"cd");
-		return Exit_ERROR;
+	    default:
+		goto print_usage;
 	}
     }
 
@@ -1096,28 +1107,32 @@ int cd_builtin(int argc, void **argv)
 	    goto print_usage;
     }
     return change_directory(newpwd, printnewdir, logical);
+
+print_usage:
+    fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"), L"cd");
+    return Exit_ERROR;
 }
 
 /* Changes the working directory to `newpwd'.
- * This function implements the almost whole part of the "cd" builtin.
+ * This function implements the almost all part of the "cd" built-in.
  * $PWD and $OLDPWD are set in this function.
  * If `printnewdir' is true or the new directory is found from $CDPATH, the new
- * directory is printed to stdout.
+ * directory is printed to the standard output.
  * Returns Exit_SUCCESS, Exit_FAILURE or Exit_ERROR. */
 int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 {
-    const wchar_t *oldpwd;
+    const wchar_t *origpwd;
     xwcsbuf_T curpath;
     size_t curpathoffset = 0;
 
-    /* get the current value of $PWD as `oldpwd' */
-    oldpwd = getvar(L VAR_PWD);
-    if (oldpwd == NULL || oldpwd[0] != L'/') {
-	if (oldpwd == newpwd) {
+    /* get the current value of $PWD as `origpwd' */
+    origpwd = getvar(L VAR_PWD);
+    if (origpwd == NULL || origpwd[0] != L'/') {
+	if (origpwd == newpwd) {
 	    xerror(0, Ngt("$PWD has an invalid value"));
 	    return Exit_FAILURE;
 	}
-	/* we have to assure `oldpwd != newpwd' because we're going to
+	/* we have to assure `origpwd != newpwd' because we're going to
 	 * re-assign $PWD */
 
 	char *pwd = xgetcwd();
@@ -1130,17 +1145,17 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	    wchar_t *wpwd = realloc_mbstowcs(pwd);
 	    if (wpwd != NULL) {
 		if (set_variable(L VAR_PWD, wpwd, SCOPE_GLOBAL, false))
-		    oldpwd = getvar(L VAR_PWD);
+		    origpwd = getvar(L VAR_PWD);
 		else
-		    logical = false, oldpwd = NULL;
+		    logical = false, origpwd = NULL;
 	    } else {
-		xerror(EILSEQ, Ngt("unexpected error"));
+		xerror(EILSEQ, Ngt("cannot determine the current directory"));
 		return Exit_ERROR;
 	    }
 	}
     }
-    assert(!logical || oldpwd != NULL);
-    assert(oldpwd == NULL || oldpwd[0] == L'/');
+    assert(!logical || origpwd != NULL);
+    assert(origpwd == NULL || origpwd[0] == L'/');
 
     wb_init(&curpath);
     
@@ -1165,7 +1180,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 	}
 	char *const *cdpath = get_path_array(PA_CDPATH);
 	char *path = which(mbsnewpwd,
-		cdpath != NULL ? cdpath : (char *[]) { "", NULL },
+		(cdpath != NULL) ? cdpath : (char *[]) { "", NULL },
 		is_directory);
 	if (path != NULL) {
 	    if (strcmp(mbsnewpwd, path) != 0)
@@ -1182,7 +1197,7 @@ step6:  /* set the value of `curpath' */
     assert(newpwd[0] != L'/');
     assert(curpath.length == 0);
     if (logical) {
-	wb_cat(&curpath, oldpwd);
+	wb_cat(&curpath, origpwd);
 	if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
 	    wb_wccat(&curpath, L'/');
     }
@@ -1194,7 +1209,7 @@ step7:  /* ensure the value of `curpath' is an absolute path */
     if (curpath.contents[0] != L'/') {
 	wchar_t *oldcurpath = wb_towcs(&curpath);
 	wb_init(&curpath);
-	wb_cat(&curpath, oldpwd);
+	wb_cat(&curpath, origpwd);
 	if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
 	    wb_wccat(&curpath, L'/');
 	wb_catfree(&curpath, oldcurpath);
@@ -1203,11 +1218,10 @@ step7:  /* ensure the value of `curpath' is an absolute path */
     /* step 8: canonicalization */
     assert(logical);
     {
-	wchar_t *oldcurpath = wb_towcs(&curpath);
-	wchar_t *canon = canonicalize_path(oldcurpath);
-	free(oldcurpath);
+	wchar_t *canon = canonicalize_path(curpath.contents);
+	wb_destroy(&curpath);
 	if (canon == NULL) {
-	    xerror(ENOTDIR, "%ls", newpwd);
+	    xerror(ENOTDIR, Ngt("`%ls'"), newpwd);
 	    return Exit_FAILURE;
 	}
 	wb_initwith(&curpath, canon);
@@ -1215,16 +1229,15 @@ step7:  /* ensure the value of `curpath' is an absolute path */
 
     /* step 9: determine `curpathoffset' */
     assert(logical);
-    if (oldpwd[wcsspn(oldpwd, L"/")] != L'\0') {
-	/* If `oldpwd' contains a character other than '/' and if the head of
-	 * `curpath' is equal to `oldpwd', then a relative path to the new
-	 * working directory can be obtained by removing the matching head of
-	 * `curpath'. */
-	wchar_t *s = matchwcsprefix(curpath.contents, oldpwd);
+    /* If `origpwd' contains a character other than '/' and if `curpath' starts
+     * with `origpwd', then a relative path to the new working directory can be
+     * obtained by removing the matching prefix of `curpath'. */
+    if (origpwd[wcsspn(origpwd, L"/")] != L'\0') {
+	wchar_t *s = matchwcsprefix(curpath.contents, origpwd);
 	if (s != NULL && (s[-1] == L'/' || s[0] == L'/')) {
-	    if (*s == L'/')
+	    if (s[0] == L'/')
 		s++;
-	    assert(*s != L'/');
+	    assert(s[0] != L'/');
 	    curpathoffset = s - curpath.contents;
 	}
     }
@@ -1254,8 +1267,8 @@ step10:  /* do chdir */
 #endif
 
     /* set $OLDPWD and $PWD */
-    if (oldpwd != NULL)
-	set_variable(L VAR_OLDPWD, xwcsdup(oldpwd), SCOPE_GLOBAL, false);
+    if (origpwd != NULL)
+	set_variable(L VAR_OLDPWD, xwcsdup(origpwd), SCOPE_GLOBAL, false);
     if (logical) {
 	if (!posixly_correct)
 	    canonicalize_path_ex(&curpath);
@@ -1286,9 +1299,9 @@ step10:  /* do chdir */
 void canonicalize_path_ex(xwcsbuf_T *buf)
 {
     if (starts_with_root_parent(buf->contents) && is_same_file("/", "/..")) {
-	do {
+	do
 	    wb_remove(buf, 0, 3);
-	} while (starts_with_root_parent(buf->contents));
+	while (starts_with_root_parent(buf->contents));
 	if (buf->length == 0)
 	    wb_wccat(buf, L'/');
     }
@@ -1338,7 +1351,6 @@ const char *cd_help[] = { Ngt(
 int pwd_builtin(int argc __attribute__((unused)), void **argv)
 {
     bool logical = true;
-    char *mbspwd;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
@@ -1350,14 +1362,15 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
-		return Exit_ERROR;
+	    default:
+		goto print_usage;
 	}
     }
 
     if (xoptind != argc)
 	goto print_usage;
+
+    char *mbspwd;
 
     if (logical) {
 	const wchar_t *pwd = getvar(L VAR_PWD);
@@ -1381,6 +1394,10 @@ print:
 	xerror(errno, Ngt("cannot print to the standard output"));
     free(mbspwd);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+
+print_usage:
+    fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
+    return Exit_ERROR;
 }
 
 #if YASH_ENABLE_HELP
@@ -1464,7 +1481,7 @@ int hash_builtin(int argc, void **argv)
 	    } else {                // forget the specified
 		for (int i = xoptind; i < argc; i++) {
 		    char *cmd = malloc_wcstombs(ARGV(i));
-		    if (cmd) {
+		    if (cmd != NULL) {
 			forget_command_path(cmd);
 			free(cmd);
 		    }
@@ -1475,14 +1492,14 @@ int hash_builtin(int argc, void **argv)
 		print_command_paths(all);
 	    } else {                // remember the specified
 		for (int i = xoptind; i < argc; i++) {
-		    if (wcschr(ARGV(i), L'/')) {
+		    if (wcschr(ARGV(i), L'/') != NULL) {
 			xerror(0, Ngt("`%ls': a command name must not contain "
 				    "`/'"), ARGV(i));
 			continue;
 		    }
 
 		    char *cmd = malloc_wcstombs(ARGV(i));
-		    if (cmd) {
+		    if (cmd != NULL) {
 			if (!get_command_path(cmd, true))
 			    xerror(0, Ngt("command `%s' was not found "
 					"in $PATH"), cmd);
@@ -1510,8 +1527,8 @@ void print_command_paths(bool all)
     kvpair_T kv;
     size_t index = 0;
 
-    while ((kv = ht_next(&cmdhash, &index)).key) {
-	if (all || !get_builtin(kv.key)) {
+    while ((kv = ht_next(&cmdhash, &index)).key != NULL) {
+	if (all || get_builtin(kv.key) == NULL) {
 	    if (printf("%s\n", (char *) kv.value) < 0) {
 		xerror(errno, Ngt("cannot print to the standard output"));
 		break;
@@ -1528,7 +1545,7 @@ void print_home_directories(void)
     kvpair_T kv;
     size_t index = 0;
 
-    while ((kv = ht_next(&homedirhash, &index)).key) {
+    while ((kv = ht_next(&homedirhash, &index)).key != NULL) {
 	const wchar_t *key = kv.key, *value = kv.value;
 	if (printf("~%ls=%ls\n", key, value) < 0) {
 	    xerror(errno, Ngt("cannot print to the standard output"));
@@ -1604,9 +1621,8 @@ int umask_builtin(int argc, void **argv)
 	    return print_umask_octal(mode);
     } else if (xoptind + 1 == argc) {
 	return set_umask(ARGV(xoptind));
-    } else {
-	goto print_usage;
     }
+    /* falls thru! */
 
 print_usage:
     fprintf(stderr, gt("Usage:  umask [-S] [mask]\n"));
@@ -1663,7 +1679,7 @@ int set_umask(const wchar_t *maskstr)
 
 	errno = 0;
 	mask = wcstoumax(maskstr, &end, 8);
-	if (errno || *end) {
+	if (errno || *end != L'\0') {
 	    xerror(0, Ngt("`%ls' is not a valid mask specification"), maskstr);
 	    return Exit_ERROR;
 	}
@@ -1674,9 +1690,9 @@ int set_umask(const wchar_t *maskstr)
     /* otherwise parse as a symbolic mode specification */
     mode_t origmask = ~umask(0);
     mode_t newmask = origmask;
-    const wchar_t *savemaskstr = maskstr;
+    const wchar_t *const savemaskstr = maskstr;
 
-    do {
+    for (;;) {
 	mode_t who, perm;
 	char op;  /* '+', '-' or '=' */
 
@@ -1695,13 +1711,14 @@ who_end:
 
 	/* parse 'op' */
 op_start:
-	op = *maskstr++;
+	op = *maskstr;
 	switch (op) {
 	    case L'+':  case L'-':  case L'=':
 		break;
 	    default:
 		goto err;
 	}
+	maskstr++;
 
 	/* parse 'perm' */
 	switch (*maskstr) {
@@ -1739,7 +1756,7 @@ perm_end:
 	    default:     goto op_start;
 	}
 	maskstr++;
-    } while (1);
+    }
 parse_end:
     umask(~newmask);
     return Exit_SUCCESS;
