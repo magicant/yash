@@ -997,10 +997,10 @@ void wglob_search_recsearch(
 	    newstack.prev = dirstack;
 	    wglob_search_recsearch(
 		    pattern, flags, path, wpath, list, &newstack);
-	    wb_truncate(wpath, savewpathlen);
 	}
 next:
 	sb_truncate(path, savepathlen);
+	wb_truncate(wpath, savewpathlen);
     }
     closedir(dir);
 }
