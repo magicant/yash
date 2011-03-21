@@ -1360,7 +1360,7 @@ void fc_remove_last_entry(void)
     if (histfile != NULL) {
 	lock_histfile(F_WRLCK);
 	update_time();
-	update_history(false);
+	update_history(true);
 	remove_last_entry();
 	if (histfile != NULL) {
 	    wprintf_histfile(L"c\n");
