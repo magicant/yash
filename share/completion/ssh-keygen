@@ -55,19 +55,19 @@ function completion/ssh-keygen {
 	([FR])
 		complete -P "$PREFIX" -h
 		;;
-	(m)
+	(m) #>>#
 		complete -P "$PREFIX" -D 'SSH2 public or private key' RFC4716
 		complete -P "$PREFIX" -D 'PEM PKCS8 public key' PKCS8
 		complete -P "$PREFIX" -D 'PEM public key' PEM
-		;;
+		;; #<<#
 	(O)
 		#TODO
 		;;
-	(t)
+	(t) #>>#
 		complete -P "$PREFIX" -D 'RSA, protocol version 1' rsa1
 		complete -P "$PREFIX" -D 'RSA, protocol version 2' rsa
 		complete -P "$PREFIX" -D 'DSA, protocol version 2' dsa
-		;;
+		;; #<<#
 	(W)
 		complete 2 3 5
 		;;

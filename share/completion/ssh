@@ -106,10 +106,10 @@ function completion/ssh {
 	(c)
 		#TODO
 		;;
-	(e)
+	(e) #>>#
 		complete -P "$PREFIX" '~'
 		complete -P "$PREFIX" -D "none" none
-		;;
+		;; #<<#
 	(I)
 		#TODO
 		;;
@@ -126,11 +126,11 @@ function completion/ssh {
 	(m)
 		#TODO
 		;;
-	(O)
+	(O) #>>#
 		complete -D "check that the master process is running" check
 		complete -D "request the master process to exit" exit
 		complete -D "request forwarding without command execution" forward
-		;;
+		;; #<<#
 	(o)
 		#TODO
 		;;

@@ -320,13 +320,13 @@ function completion/tar {
 #		(g|--listed-incremental)
 #			complete -P "$PREFIX" -f
 #			;;
-		(H|--format)
+		(H|--format) #>>#
 			complete -P "$PREFIX" -D "Unix V7" v7
 			complete -P "$PREFIX" -D "GNU tar 1.12 or earlier" oldgnu
 			complete -P "$PREFIX" -D "GNU tar 1.13" gnu
 			complete -P "$PREFIX" -D "POSIX.1-1988" ustar
 			complete -P "$PREFIX" -D "POSIX.1-2001" posix
-			;;
+			;; #<<#
 		(I|--use-compress-program)
 			command -f completion/tar::completecommand
 			;;
@@ -349,10 +349,10 @@ function completion/tar {
 #		(X|--exclude-from)
 #			complete -P "$PREFIX" -f
 #			;;
-		(--atime-preserve)
+		(--atime-preserve) #>>#
 			complete -P "$PREFIX" -D "remember timestamp and restore it after reading file" replace
 			complete -P "$PREFIX" -D "use a special reading method to keep timestamp" system
-			;;
+			;; #<<#
 		(--backup)
 			if command -vf completion//completebackup >/dev/null 2>&1 ||
 					. -AL completion/_backup; then
@@ -367,14 +367,14 @@ function completion/tar {
 				PREFIX=${PREFIX}exec=
 				command -f completion/tar::completecommand
 				;;
-			(*)
+			(*) #>>#
 				complete -P "$PREFIX" -D "ring a bell on the terminal" bell
 				complete -P "$PREFIX" -D "print a dot" dot .
 				complete -P "$PREFIX" -D "print the specified text to the standard error" -S = -T echo
 				complete -P "$PREFIX" -D "execute the specified command" -S = -T exec
 				complete -P "$PREFIX" -D "wait for the specified seconds" -S = -T sleep
 				complete -P "$PREFIX" -D "print the specified text to the terminal" -S = -T ttyout
-				;;
+				;; #<<#
 			esac
 			;;
 #		(--exclude)
@@ -424,12 +424,12 @@ function completion/tar {
 		(--rmt-command|--rsh-command)
 			command -f completion/tar::completecommand
 			;;
-		(--sparse-vertion)
+		(--sparse-vertion) #>>#
 			# TODO: description
 			complete -P "$PREFIX" 0.0
 			complete -P "$PREFIX" 0.1
 			complete -P "$PREFIX" 1.0
-			;;
+			;; #<<#
 		(--strip-components)
 			;;
 		(--to-command)
@@ -444,7 +444,7 @@ function completion/tar {
 #		(--volno-file)
 #			complete -P "$PREFIX" -f
 #			;;
-		(--warning)
+		(--warning) #>>#
 			complete -P "$PREFIX" -D "enable all warning messages" all
 			complete -P "$PREFIX" -D "disable all warning messages" none
 			# TODO: description
@@ -468,7 +468,7 @@ function completion/tar {
 			complete -P "$PREFIX" unknown-cast
 			complete -P "$PREFIX" unknown-keyword
 			complete -P "$PREFIX" xdev
-			;;
+			;; #<<#
 		(*)
 			complete -P "$PREFIX" -f
 			;;
