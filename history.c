@@ -76,13 +76,6 @@
 #if DEFAULT_HISTSIZE > HISTORY_MIN_MAX_NUMBER
 #error DEFAULT_HISTSIZE cannot be larger than HISTORY_MIN_MAX_NUMBER
 #endif
-/* history file refresh interval */
-#ifndef HISTORY_REFRESH_INTERVAL
-#define HISTORY_REFRESH_INTERVAL 100
-#endif
-#if HISTORY_REFRESH_INTERVAL <= 0
-#error HISTORY_REFRESH_INTERVAL is not positive
-#endif
 
 
 /* The main history list. */
@@ -110,11 +103,9 @@ static FILE *histfile = NULL;
 /* The revision number of the history file. A valid revision number is
  * non-negative. */
 static long histfilerev = -1;
-/* The number of modifications in the history since the history file was last
- * refreshed. This number is incremented each time an entry is added to or
- * removed from the history. When this number reaches HISTORY_REFRESH_INTERVAL,
- * the history file is refreshed and the number is reset to zero. */
-static unsigned histmodcount = 0;
+/* The number of lines in the history file, not including the signature.
+ * When this number reaches the threshold, the history file is refreshed. */
+static size_t histfilelines = 0;
 /* Indicates if the history file should be flushed before it is unlocked. */
 static bool histneedflush = false;
 
@@ -230,7 +221,6 @@ histentry_T *new_entry(unsigned number, time_t time, const char *line)
 
     histlist.count++;
     assert(histlist.count <= histsize);
-    histmodcount++;
 
     return new;
 }
@@ -258,7 +248,6 @@ void remove_entry(histentry_T *entry)
     entry->Prev->next = entry->Next;
     entry->Next->prev = entry->Prev;
     histlist.count--;
-    histmodcount++;
     free(entry);
 }
 
@@ -434,8 +423,6 @@ void add_histfile_pid(pid_t pid)
     histfilepids.pids = xreallocn(histfilepids.pids,
 	    histfilepids.count + 1, sizeof *histfilepids.pids);
     histfilepids.pids[histfilepids.count++] = pid;
-
-    histmodcount++;
 }
 
 /* If `pid' is non-zero, removes `pid' from `histfilepids'.
@@ -455,8 +442,6 @@ void remove_histfile_pid(pid_t pid)
 	    i++;
 	}
     }
-
-    histmodcount++;
 }
 
 /* Clears `histfilepids'. */
@@ -474,6 +459,7 @@ void write_histfile_pids(void)
     assert(histfile != NULL);
     for (size_t i = 0; i < histfilepids.count; i++)
 	wprintf_histfile(L"p%jd\n", (intmax_t) histfilepids.pids[i]);
+    histfilelines += histfilepids.count;
 }
 
 
@@ -675,6 +661,7 @@ void read_history(void)
     assert(histfile != NULL);
     wb_init(&buf);
     while (read_line(histfile, &buf)) {
+	histfilelines++;
 	switch (buf.contents[0]) {
 	    case L'0': case L'1': case L'2': case L'3': case L'4':
 	    case L'5': case L'6': case L'7': case L'8': case L'9':
@@ -815,8 +802,8 @@ void update_history(bool refresh)
 	clear_histfile_pids();
 	add_histfile_pid(shell_pid);
 	histfilerev = rev;
+	histfilelines = 0;
 	read_history();
-	histmodcount = 0;
     }
     if (ferror(histfile) || !feof(histfile))
 	goto error;
@@ -834,7 +821,8 @@ error:
 void maybe_refresh_file(void)
 {
     assert(histfile != NULL);
-    if (histmodcount >= HISTORY_REFRESH_INTERVAL) {
+    if (histfilelines > 20
+	    && histfilelines / 2 >= histlist.count + histfilepids.count) {
 	remove_histfile_pid(0);
 	refresh_file();
     }
@@ -869,6 +857,7 @@ void write_signature(void)
     else
 	histfilerev++;
     wprintf_histfile(L"#$# yash history v0 r%ld\n", histfilerev);
+    histfilelines = 0;
 }
 
 /* Writes the specified entry to the history file. */
@@ -884,6 +873,7 @@ void write_history_entry(const histentry_T *entry)
     else
 	wprintf_histfile(L"%X %s\n",
 		entry->number, entry->value);
+    histfilelines++;
 }
 
 /* Clears and rewrites the contents of the history file.
@@ -897,8 +887,6 @@ void refresh_file(void)
     write_histfile_pids();
     for (const histlink_T *l = histlist.Oldest; l != Histlist; l = l->next)
 	write_history_entry(ashistentry(l));
-
-    histmodcount = 0;
 }
 
 
@@ -947,16 +935,20 @@ void maybe_init_history(void)
 	    close_history_file();
 	    return;
 	}
+
 	remove_histfile_pid(0);
 	if (histfilepids.count == 0) {
 	    renumber_all_entries();
 refresh:
 	    refresh_file();
 	} else {
-	    histmodcount = 0;
+	    maybe_refresh_file();
 	}
+
 	add_histfile_pid(shell_pid);
 	wprintf_histfile(L"p%jd\n", (intmax_t) shell_pid);
+	histfilelines++;
+
 	lock_histfile(F_UNLCK);
     }
 }
@@ -974,6 +966,7 @@ void finalize_history(void)
     update_history(true);
     if (histfile != NULL) {
 	wprintf_histfile(L"p%jd\n", (intmax_t) -shell_pid);
+	// histfilelines++;
 	close_history_file();
     }
 }
@@ -1080,8 +1073,10 @@ void remove_duplicates(const char *line)
 	histlink_T *prev = l->prev;
 	histentry_T *e = ashistentry(l);
 	if (strcmp(e->value, line) == 0) {
-	    if (histfile != NULL)
+	    if (histfile != NULL) {
 		wprintf_histfile(L"d%X\n", e->number);
+		histfilelines++;
+	    }
 	    remove_entry(e);
 	}
 	l = prev;
@@ -1363,6 +1358,7 @@ void fc_remove_last_entry(void)
 	remove_last_entry();
 	if (histfile != NULL) {
 	    wprintf_histfile(L"c\n");
+	    histfilelines++;
 	    lock_histfile(F_UNLCK);
 	}
     } else {
@@ -1787,8 +1783,10 @@ int history_delete(const wchar_t *s)
 
     if (l != Histlist) {
 	histentry_T *e = ashistentry(l);
-	if (histfile != NULL)
+	if (histfile != NULL) {
 	    wprintf_histfile(L"d%X\n", e->number);
+	    histfilelines++;
+	}
 	remove_entry(e);
     }
 

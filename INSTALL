@@ -292,12 +292,6 @@ The value must be a power of 10 that is not less than 32768.
 This macro specifies the default history size.
 The value must be 128 or larger.
 
-#define HISTORY_REFRESH_INTERVAL 100
-This macro must be defined as a positive integer.
-This macro specifies the interval at which the shell rebuilds the
-history file. The file is rebuilt every time the shell executes as
-many commands as this number.
-
 #define LIST_AMBIGUOUS_OPTIONS 1  /* Boolean option */
 When an option specified in invocation of the shell or a built-in
 command is ambiguous, a list of option names that match the specified
