@@ -439,7 +439,11 @@ function completion/tar {
 			case ${TARGETWORD#"$PREFIX"} in (SIG*)
 				PREFIX=${PREFIX}SIG
 			esac
-			complete -P "$PREFIX" HUP QUIT INT USR1 USR2
+			complete -P "$PREFIX" -A HUP  --signal
+			complete -P "$PREFIX" -A QUIT --signal
+			complete -P "$PREFIX" -A INT  --signal
+			complete -P "$PREFIX" -A USR1 --signal
+			complete -P "$PREFIX" -A USR2 --signal
 			;;
 #		(--volno-file)
 #			complete -P "$PREFIX" -f
