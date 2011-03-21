@@ -75,7 +75,10 @@ function completion/su {
 		command -f completion//completeoptions
 		;;
 	(a)
-		complete -P "$PREFIX" activ chpass crypto krb5 krb5-or-pwd lchpass passwd radius reject rpasswd skey snk token # TODO description
+		if command -vf completion//bsd::completeauthmethod >/dev/null 2>&1 ||
+				. -AL completion/_bsd; then
+			command -f completion//bsd::completeauthmethod
+		fi
 		;;
 	(c)
 		case $type in
@@ -83,28 +86,10 @@ function completion/su {
 				complete -P "$PREFIX" -c
 				;;
 			(*BSD)
-				typeset classes
-				while IFS='|' read -rA classes; do
-					case ${classes[#]} in
-					(0)
-						;;
-					(1)
-						complete -P "$PREFIX" -- "${classes[1]}"
-						;;
-					(*)
-						complete -P "$PREFIX" -D "${classes[-1]}" -- "${classes[1,-2]}"
-						;;
-					esac
-				done <(sed -e '
-/^#/ d
-:b
-/\\$/ {
-N
-bb
-}
-s/\\\n//g
-s/[:].*$//
-				' /etc/login.conf 2>/dev/null)
+				if command -vf completion//bsd::completeauthclass >/dev/null 2>&1 ||
+						. -AL completion/_bsd; then
+					command -f completion//bsd::completeauthclass
+				fi
 				;;
 		esac
 		;;

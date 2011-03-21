@@ -1,0 +1,53 @@
+# (C) 2011 magicant
+
+# This file contains auxiliary functions that handle BSD-specific features.
+
+
+# This function completes authentication methods
+function completion//bsd::completeauthmethod {
+	# TODO description
+	#>>#
+	complete -P "$PREFIX" activ
+	complete -P "$PREFIX" chpass
+	complete -P "$PREFIX" crypto
+	complete -P "$PREFIX" krb5
+	complete -P "$PREFIX" krb5-or-pwd
+	complete -P "$PREFIX" lchpass
+	complete -P "$PREFIX" passwd
+	complete -P "$PREFIX" radius
+	complete -P "$PREFIX" reject
+	complete -P "$PREFIX" rpasswd
+	complete -P "$PREFIX" skey
+	complete -P "$PREFIX" snk
+	complete -P "$PREFIX" token
+	#<<#
+}
+
+# This function completes authentication classes
+function completion//bsd::completeauthclass {
+	typeset classes
+	while IFS='|' read -rA classes; do
+		case ${classes[#]} in
+		(0)
+			;;
+		(1)
+			complete -P "$PREFIX" -- "${classes[1]}"
+			;;
+		(*)
+			complete -P "$PREFIX" -D "${classes[-1]}" -- "${classes[1,-2]}"
+			;;
+		esac
+	done <(sed -e '
+/^#/ d
+:b
+/\\$/ {
+N
+bb
+}
+s/\\\n//g
+s/[:].*$//
+	' /etc/login.conf 2>/dev/null)
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

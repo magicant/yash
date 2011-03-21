@@ -1,0 +1,112 @@
+# (C) 2011 magicant
+
+# Completion script for the "sudo" command.
+# Supports sudo 1.8.0.
+
+function completion/sudo {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"A; use a GUI program for password prompt"
+	"a:; specify the authentication method"
+	"b; run in the background"
+	"C:; specify the file descriptor to be closed"
+	"c:; specify the login class"
+	"D:; specify the debugging level"
+	"E; preserve environment variables"
+	"e; edit operand files"
+	"g:; specify the group to run the command as"
+	"H; set \$HOME to target user's home directory"
+	"h; print help"
+	"i; run the command as a login shell"
+	"K; remove cached credentials entirely"
+	"k; remove cached credentials or don't cache credentials"
+	"l; list commands allowed for the user"
+	"n; never prompt for the password"
+	"P; preserve supplementary group IDs"
+	"p:; specify the prompt string"
+	"r:; specify the new security context's role"
+	"S; read the password from the standard input rather than the terminal"
+	"s; run \$SHELL"
+	"t:; specify the new security context's type"
+	"U:; specify the user to change from (with -l)"
+	"u:; specify the user to change to"
+	"V; print version info"
+	"v; cache credentials without running a command"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(a)
+		if command -vf completion//bsd::completeauthmethod >/dev/null 2>&1 ||
+				. -AL completion/_bsd; then
+			command -f completion//bsd::completeauthmethod
+		fi
+		;;
+	([CD])
+		;;
+	(c)
+		if command -vf completion//bsd::completeauthclass >/dev/null 2>&1 ||
+				. -AL completion/_bsd; then
+			command -f completion//bsd::completeauthclass
+		fi
+		;;
+	(g)
+		complete -P "$PREFIX" -g
+		;;
+	(p)
+		command -f completion/sudo::prompt
+		;;
+	(r)
+		#TODO security context's role
+		;;
+	(t)
+		#TODO security context's type
+		;;
+	([Uu])
+		complete -P "$PREFIX" -u
+		;;
+	('')
+		typeset i=2 edit=false
+		while [ $i -le ${WORDS[#]} ]; do
+			case ${WORDS[i]} in
+				(--) break;;
+				(-e) edit=true;;
+			esac
+			i=$((i+1))
+		done
+		if $edit; then
+			complete -P "$PREFIX" -f
+		else
+			command -f completion//getoperands
+			command -f completion//reexecute
+		fi
+		;;
+	esac
+
+}
+
+function completion/sudo::prompt {
+
+	typeset word="$TARGETWORD"
+	word=${word//%%}
+	case $word in (*%)
+		PREFIX=${TARGETWORD%\%} #>>#
+		complete -T -P "$PREFIX" -D "fully qualified domain name" '%H'
+		complete -T -P "$PREFIX" -D "host name" '%h'
+		complete -T -P "$PREFIX" -D "name of the user whose password is requested" '%p'
+		complete -T -P "$PREFIX" -D "name of the user to run the command as" '%U'
+		complete -T -P "$PREFIX" -D "name of the user invoking sudo" '%u'
+		complete -T -P "$PREFIX" -D "%" '%%'
+		return 0 #<<#
+	esac
+
+	return 1
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

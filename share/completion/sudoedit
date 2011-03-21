@@ -1,0 +1,12 @@
+# (C) 2011 magicant
+
+# Completion script for the "sudoedit" command.
+# Supports sudo 1.8.0.
+
+function completion/sudoedit {
+	WORDS=(sudo -e "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
