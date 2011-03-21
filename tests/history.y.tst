@@ -184,8 +184,7 @@ echo ===== 6 =====
 (
 i=32767  # < HISTORY_MIN_MAX_NUMBER
 while [ $i -gt 0 ]; do
-    echo : $i
-    : $(( i-- ))
+    echo : $(( i-- ))
 done
 echo "fc -l"
 echo "fc -l 1 -15"

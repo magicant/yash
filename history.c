@@ -972,8 +972,7 @@ void finalize_history(void)
     lock_histfile(F_WRLCK);
     update_time();
     update_history(true);
-    remove_histfile_pid(shell_pid);
-    if (histfile) {
+    if (histfile != NULL) {
 	wprintf_histfile(L"p%jd\n", (intmax_t) -shell_pid);
 	close_history_file();
     }
