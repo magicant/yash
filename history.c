@@ -151,6 +151,11 @@ static bool search_result_is_newer(
 static bool entry_is_newer(const histentry_T *e1, const histentry_T *e2)
     __attribute__((nonnull,pure));
 
+static void add_histfile_pid(pid_t pid);
+static void remove_histfile_pid(pid_t pid);
+static void clear_histfile_pids(void);
+static void write_histfile_pids(void);
+
 static FILE *open_histfile(void);
 static bool lock_histfile(short type);
 static bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
@@ -172,11 +177,6 @@ static void write_signature(void);
 static void write_history_entry(const histentry_T *entry)
     __attribute__((nonnull));
 static void refresh_file(void);
-
-static void add_histfile_pid(pid_t pid);
-static void remove_histfile_pid(pid_t pid);
-static void clear_histfile_pids(void);
-static void write_histfile_pids(void);
 
 static void add_history_line(const wchar_t *line, size_t maxlen)
     __attribute__((nonnull));
@@ -408,6 +408,72 @@ bool entry_is_newer(const histentry_T *e1, const histentry_T *e2)
 
     return (n1 <= newest && newest < oldest && oldest <= n2)
 	|| (n2 <= n1 && (oldest <= n2 || n1 <= newest));
+}
+
+
+/********** Process ID list **********/
+
+struct pidlist_T {
+    size_t count;
+    pid_t *pids;
+};
+
+/* The process IDs of processes that share the history file.
+ * The `pids' member may be null when the `count' member is zero. */
+static struct pidlist_T histfilepids = { 0, NULL, };
+
+/* Adds `pid' to `histfilepids'. `pid' must be positive. */
+void add_histfile_pid(pid_t pid)
+{
+    assert(pid > 0);
+
+    for (size_t i = 0; i < histfilepids.count; i++)
+	if (histfilepids.pids[i] == pid)
+	    return;  /* don't add if already added */
+
+    histfilepids.pids = xreallocn(histfilepids.pids,
+	    histfilepids.count + 1, sizeof *histfilepids.pids);
+    histfilepids.pids[histfilepids.count++] = pid;
+
+    histmodcount++;
+}
+
+/* If `pid' is non-zero, removes `pid' from `histfilepids'.
+ * If `pid' is zero, removes process IDs of non-existent processes from
+ * `histfilepids'. */
+void remove_histfile_pid(pid_t pid)
+{
+    for (size_t i = 0; i < histfilepids.count; ) {
+	if (pid != 0 ? histfilepids.pids[i] == pid
+	             : !process_exists(histfilepids.pids[i])) {
+	    memmove(&histfilepids.pids[i], &histfilepids.pids[i + 1],
+		    (histfilepids.count - i - 1) * sizeof *histfilepids.pids);
+	    histfilepids.count--;
+	    histfilepids.pids = xreallocn(histfilepids.pids,
+		    histfilepids.count, sizeof *histfilepids.pids);
+	} else {
+	    i++;
+	}
+    }
+
+    histmodcount++;
+}
+
+/* Clears `histfilepids'. */
+void clear_histfile_pids(void)
+{
+    free(histfilepids.pids);
+    histfilepids = (struct pidlist_T) { 0, NULL, };
+}
+
+/* Writes process IDs in `histfilepids' to the history file. */
+/* This function does not return any error status. The caller should check
+ * `ferror' for the file. */
+void write_histfile_pids(void)
+{
+    assert(histfile != NULL);
+    for (size_t i = 0; i < histfilepids.count; i++)
+	wprintf_histfile(L"p%jd\n", (intmax_t) histfilepids.pids[i]);
 }
 
 
@@ -833,72 +899,6 @@ void refresh_file(void)
 	write_history_entry(ashistentry(l));
 
     histmodcount = 0;
-}
-
-
-/********** Process ID list **********/
-
-struct pidlist_T {
-    size_t count;
-    pid_t *pids;
-};
-
-/* The process IDs of processes that share the history file.
- * The `pids' member may be null when the `count' member is zero. */
-static struct pidlist_T histfilepids = { 0, NULL, };
-
-/* Adds `pid' to `histfilepids'. `pid' must be positive. */
-void add_histfile_pid(pid_t pid)
-{
-    assert(pid > 0);
-
-    for (size_t i = 0; i < histfilepids.count; i++)
-	if (histfilepids.pids[i] == pid)
-	    return;  /* don't add if already added */
-
-    histfilepids.pids = xreallocn(histfilepids.pids,
-	    histfilepids.count + 1, sizeof *histfilepids.pids);
-    histfilepids.pids[histfilepids.count++] = pid;
-
-    histmodcount++;
-}
-
-/* If `pid' is non-zero, removes `pid' from `histfilepids'.
- * If `pid' is zero, removes process IDs of non-existent processes from
- * `histfilepids'. */
-void remove_histfile_pid(pid_t pid)
-{
-    for (size_t i = 0; i < histfilepids.count; ) {
-	if (pid != 0 ? histfilepids.pids[i] == pid
-	             : !process_exists(histfilepids.pids[i])) {
-	    memmove(&histfilepids.pids[i], &histfilepids.pids[i + 1],
-		    (histfilepids.count - i - 1) * sizeof *histfilepids.pids);
-	    histfilepids.count--;
-	    histfilepids.pids = xreallocn(histfilepids.pids,
-		    histfilepids.count, sizeof *histfilepids.pids);
-	} else {
-	    i++;
-	}
-    }
-
-    histmodcount++;
-}
-
-/* Clears `histfilepids'. */
-void clear_histfile_pids(void)
-{
-    free(histfilepids.pids);
-    histfilepids = (struct pidlist_T) { 0, NULL, };
-}
-
-/* Writes process IDs in `histfilepids' to the history file. */
-/* This function does not return any error status. The caller should check
- * `ferror' for the file. */
-void write_histfile_pids(void)
-{
-    assert(histfile != NULL);
-    for (size_t i = 0; i < histfilepids.count; i++)
-	wprintf_histfile(L"p%jd\n", (intmax_t) histfilepids.pids[i]);
 }
 
 
