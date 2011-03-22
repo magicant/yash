@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.h: job control */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +29,10 @@ typedef enum jobstatus_T {
 
 /* info about a process in a job */
 typedef struct process_T {
-    pid_t             pr_pid;          /* process ID */
-    enum jobstatus_T  pr_status;
-    int               pr_statuscode;
-    wchar_t          *pr_name;         /* process name made from command line */
+    pid_t        pr_pid;          /* process ID */
+    jobstatus_T  pr_status;
+    int          pr_statuscode;
+    wchar_t     *pr_name;         /* process name made from command line */
 } process_T;
 /* If `pr_pid' is 0, the process was finished without `fork'ing from the shell.
  * In this case, `pr_status' is JS_DONE and `pr_statuscode' is the exit status.
@@ -41,12 +41,12 @@ typedef struct process_T {
 
 /* info about a job */
 typedef struct job_T {
-    pid_t             j_pgid;          /* process group ID */
-    enum jobstatus_T  j_status;
-    _Bool             j_statuschanged; /* job's status not yet reported? */
-    _Bool             j_nonotify;      /* supress printing job status? */
-    size_t            j_pcount;        /* # of processes in `j_procs' */
-    struct process_T  j_procs[];       /* info about processes */
+    pid_t       j_pgid;          /* process group ID */
+    jobstatus_T j_status;
+    _Bool       j_statuschanged; /* job's status not yet reported? */
+    _Bool       j_nonotify;      /* suppress printing job status? */
+    size_t      j_pcount;        /* # of processes in `j_procs' */
+    process_T   j_procs[];       /* info about processes */
 } job_T;
 /* When job control is off, `j_pgid' is 0 since the job shares the process group
  * ID with the shell.
@@ -60,7 +60,9 @@ typedef struct job_T {
 /* When a process is stopped/terminated by a signal, this value is added to the
  * signal number to make the value of the exit status.
  * 128 in bash/zsh/dash/pdksh/mksh/posh, 256 in ksh. */
+#ifndef TERMSIGOFFSET
 #define TERMSIGOFFSET 384
+#endif
 
 extern void init_job(void);
 

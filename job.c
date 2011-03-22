@@ -44,7 +44,7 @@
 #if YASH_ENABLE_LINEEDIT
 # include "xfnmatch.h"
 # include "lineedit/complete.h"
-# if !defined(FG_DONT_SAVE_TERMINAL)
+# ifndef FG_DONT_SAVE_TERMINAL
 #  include "lineedit/terminfo.h"
 # endif
 #endif
@@ -70,7 +70,7 @@ static int print_job_status(
     __attribute__((nonnull));
 static size_t get_jobnumber_from_name(const wchar_t *name)
     __attribute__((nonnull,pure));
-static size_t get_jobnumber_from_pid(pid_t pid)
+static size_t get_jobnumber_from_pid(long pid)
     __attribute__((pure));
 
 static bool jobs_builtin_print_job(size_t jobnumber,
@@ -78,12 +78,13 @@ static bool jobs_builtin_print_job(size_t jobnumber,
 	bool runningonly, bool stoppedonly);
 static int continue_job(size_t jobnumber, job_T *job, bool fg)
     __attribute__((nonnull));
-static bool wait_has_job(bool jobcontrol);
+static bool wait_builtin_has_job(bool jobcontrol);
 
 
 /* The list of jobs.
  * `joblist.contents[ACTIVE_JOBNO]' is a special job that is called "active
- * job": the job that is currently being executed. */
+ * job", the job that is currently being executed.
+ * The list length is always non-zero. */
 static plist_T joblist;
 
 /* number of the current/previous jobs. 0 if none. */
@@ -100,6 +101,7 @@ void init_job(void)
 /* Sets the active job. */
 void set_active_job(job_T *job)
 {
+    assert(ACTIVE_JOBNO < joblist.length);
     assert(joblist.contents[ACTIVE_JOBNO] == NULL);
     joblist.contents[ACTIVE_JOBNO] = job;
 }
@@ -166,34 +168,35 @@ void remove_all_jobs(void)
 /* Frees the specified job. */
 void free_job(job_T *job)
 {
-    if (job) {
+    if (job != NULL) {
 	for (size_t i = 0; i < job->j_pcount; i++)
 	    free(job->j_procs[i].pr_name);
 	free(job);
     }
 }
 
-/* Removes unused elements in `joblist'. */
+/* Shrink the job list, removing unused elements. */
 void trim_joblist(void)
 {
-    size_t tail = joblist.length;
+    if (joblist.maxlength > 20 && joblist.maxlength / 2 > joblist.length) {
+	pl_setmax(&joblist, joblist.length * 2);
+    } else {
+	size_t tail = joblist.length;
 
-    while (tail > 0 && joblist.contents[--tail] == NULL);
-    tail++;
-    assert(tail > 0 && joblist.contents[tail] == NULL);
-    if (joblist.maxlength > 20 && joblist.maxlength / 2 > joblist.length)
-	pl_setmax(&joblist, tail);
-    else
+	while (tail > 1 && joblist.contents[tail - 1] == NULL)
+	    tail--;
+	assert(tail > 0);
 	pl_remove(&joblist, tail, SIZE_MAX);
+    }
 }
 
 /* Negate the `j_pgid' member of all jobs.
- * All the jobs are no longer taken care of by job control. */
+ * All the jobs will be no longer job-controlled. */
 void neglect_all_jobs(void)
 {
     for (size_t i = 0; i < joblist.length; i++) {
 	job_T *job = joblist.contents[i];
-	if (job && job->j_pgid >= 0)
+	if (job != NULL && job->j_pgid >= 0)
 	    job->j_pgid = (job->j_pgid > 0) ? -job->j_pgid : -1;
     }
     current_jobnumber = previous_jobnumber = 0;
@@ -239,7 +242,7 @@ void set_current_jobnumber(size_t jobnumber)
 	    newcurrent = get_job(jobnumber);
 	    if (newcurrent == NULL
 		    || (stopcount > 0 && newcurrent->j_status != JS_STOPPED))
-		jobnumber = find_next_job(0);
+		jobnumber = find_next_job(ACTIVE_JOBNO);
 	}
     }
 
@@ -302,8 +305,9 @@ void apply_curstop(void)
     if (shopt_curstop) {
 	for (size_t i = 0; i < joblist.length; i++) {
 	    job_T *job = joblist.contents[i];
-	    if (job && job->j_status == JS_STOPPED && job->j_statuschanged)
-		set_current_jobnumber(i);
+	    if (job != NULL)
+		if (job->j_status == JS_STOPPED && job->j_statuschanged)
+		    set_current_jobnumber(i);
 	}
     }
     set_current_jobnumber(current_jobnumber);
@@ -314,7 +318,7 @@ size_t job_count(void)
 {
     size_t count = 0;
     for (size_t i = 0; i < joblist.length; i++)
-	if (joblist.contents[i])
+	if (joblist.contents[i] != NULL)
 	    count++;
     return count;
 }
@@ -325,7 +329,7 @@ size_t stopped_job_count(void)
     size_t count = 0;
     for (size_t i = 0; i < joblist.length; i++) {
 	job_T *job = joblist.contents[i];
-	if (job && job->j_status == JS_STOPPED)
+	if (job != NULL && job->j_status == JS_STOPPED)
 	    count++;
     }
     return count;
@@ -378,12 +382,12 @@ start:
 
     /* determine `jobnumber', `job' and `pr' from `pid' */
     for (jobnumber = 0; jobnumber < joblist.length; jobnumber++)
-	if ((job = joblist.contents[jobnumber]))
+	if ((job = joblist.contents[jobnumber]) != NULL)
 	    for (pnumber = 0; pnumber < job->j_pcount; pnumber++)
 		if ((pr = &job->j_procs[pnumber])->pr_pid == pid)
 		    goto found;
 
-    /* If `pid' is not found in the job list, we simply ignore it. This may
+    /* If `pid' was not found in the job list, we simply ignore it. This may
      * happen on some occasions: e.g. the job has been "disown"ed. */
     goto start;
 
@@ -468,11 +472,11 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
  * Traps are not handled in this function.
  * There must be no active job when this function is called.
  * If `return_on_stop' is true and the child is stopped, this function returns
- * a pointer to a pointer to a wide string. The caller may assign a pointer to
+ * a pointer to a pointer to a wide string. The caller must assign a pointer to
  * a newly malloced wide string to the variable the return value points to.
  * This string is used as the name of the new stopped job.
  * If the child exited, this function returns NULL.
- * The exit status is assigned to `laststatus' anyway. */
+ * The exit status is assigned to `laststatus' in any case. */
 wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
 {
     job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
@@ -506,7 +510,7 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
 pid_t get_job_pgid(const wchar_t *jobname)
 {
     size_t jobnumber = get_jobnumber_from_name(
-	    jobname[0] == L'%' ? jobname + 1 : jobname);
+	    (jobname[0] == L'%') ? &jobname[1] : jobname);
     const job_T *job;
 
     if (jobnumber >= joblist.length) {
@@ -603,7 +607,7 @@ int calc_status_of_job(const job_T *job)
 {
     switch (job->j_status) {
     case JS_DONE:
-	if (job->j_procs[job->j_pcount - 1].pr_pid)
+	if (job->j_procs[job->j_pcount - 1].pr_pid != 0)
 	    return calc_status(job->j_procs[job->j_pcount - 1].pr_statuscode);
 	else
 	    return job->j_procs[job->j_pcount - 1].pr_statuscode;
@@ -718,7 +722,9 @@ int print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     int result = 0;
 
     job_T *job = get_job(jobnumber);
-    if (!job || (changedonly && !job->j_statuschanged) || job->j_nonotify)
+    if (job == NULL
+	    || (changedonly && !job->j_statuschanged)
+	    || job->j_nonotify)
 	return result;
 
     char current;
@@ -790,16 +796,16 @@ void print_job_status_all(void)
 }
 
 /* If the shell is interactive and the specified job has been killed by a
- * signal other than SIGPIPE, prints a notification to stderr.
- * If the signal is SIGINT, only a single newline is printed to stderr and the
- * shell is flagged as interrupted. */
+ * signal other than SIGPIPE, prints a notification to the standard error.
+ * If the signal is SIGINT, only a single newline is printed to the standard
+ * error and the shell is flagged as interrupted. */
 void notify_signaled_job(size_t jobnumber)
 {
     if (!is_interactive_now)
 	return;
 
     job_T *job = get_job(jobnumber);
-    if (!job || job->j_status != JS_DONE)
+    if (job == NULL || job->j_status != JS_DONE)
 	return;
 
     process_T *p = &job->j_procs[job->j_pcount - 1];
@@ -847,7 +853,7 @@ size_t get_jobnumber_from_name(const wchar_t *name)
     if (iswdigit(name[0])) {
 	unsigned long num;
 	if (xwcstoul(name, 10, &num))
-	    return (num <= SIZE_MAX && get_job(num)) ? num : 0;
+	    return (num <= SIZE_MAX && get_job(num) != NULL) ? num : 0;
     }
 
     bool contain;
@@ -860,9 +866,11 @@ size_t get_jobnumber_from_name(const wchar_t *name)
     }
     for (size_t i = 1; i < joblist.length; i++) {
 	job_T *job = joblist.contents[i];
-	if (job) {
+	if (job != NULL) {
 	    wchar_t *jobname = get_job_name(job);
-	    bool match = (contain ? wcsstr : matchwcsprefix)(jobname, name);
+	    bool match = contain
+		? wcsstr(jobname, name) != NULL
+		: matchwcsprefix(jobname, name) != NULL;
 	    if (jobname != job->j_procs[0].pr_name)
 		free(jobname);
 	    if (match) {
@@ -878,14 +886,14 @@ size_t get_jobnumber_from_name(const wchar_t *name)
 
 /* Returns the number of job that contains a process whose process ID is `pid'.
  * If not found, 0 is returned. */
-size_t get_jobnumber_from_pid(pid_t pid)
+size_t get_jobnumber_from_pid(long pid)
 {
     size_t jobnumber;
     if (pid == 0)
 	return 0;
     for (jobnumber = joblist.length; --jobnumber > 0; ) {
 	job_T *job = joblist.contents[jobnumber];
-	if (job) {
+	if (job != NULL) {
 	    for (size_t i = 0; i < job->j_pcount; i++)
 		if (job->j_procs[i].pr_pid == pid)
 		    goto found;
@@ -940,7 +948,7 @@ void generate_job_candidates(const le_compopt_T *compopt)
 #endif /* YASH_ENABLE_LINEEDIT */
 
 
-/********** Builtins **********/
+/********** Built-ins **********/
 
 /* The "jobs" built-in, which accepts the following options:
  *  -l: be verbose
@@ -1001,6 +1009,7 @@ int jobs_builtin(int argc, void **argv)
 			ARGV(xoptind));
 		continue;
 	    }
+
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("job specification `%ls' is ambiguous"),
@@ -1090,10 +1099,10 @@ const char *jobs_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "fg"/"bg" builtin */
+/* The "fg"/"bg" built-in */
 int fg_builtin(int argc, void **argv)
 {
-    bool fg = wcscmp(argv[0], L"fg") == 0;
+    bool fg = (wcscmp(argv[0], L"fg") == 0);
 
     const struct xgetopt_T *opt;
     xoptind = 0;
@@ -1132,6 +1141,7 @@ int fg_builtin(int argc, void **argv)
 			ARGV(xoptind));
 		continue;
 	    }
+
 	    size_t jobnumber = get_jobnumber_from_name(jobspec);
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("job specification `%ls' is ambiguous"),
@@ -1257,7 +1267,7 @@ const char *bg_help[] = { Ngt(
 
 #endif /* YASH_ENABLE_HELP */
 
-/* The "wait" builtin */
+/* The "wait" built-in */
 int wait_builtin(int argc, void **argv)
 {
     bool jobcontrol = doing_job_control_now;
@@ -1284,7 +1294,7 @@ int wait_builtin(int argc, void **argv)
 	    const wchar_t *jobspec = ARGV(xoptind);
 	    size_t jobnumber;
 	    if (jobspec[0] == L'%') {
-		jobnumber = get_jobnumber_from_name(jobspec + 1);
+		jobnumber = get_jobnumber_from_name(&jobspec[1]);
 	    } else {
 		long pid;
 		if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
@@ -1292,8 +1302,7 @@ int wait_builtin(int argc, void **argv)
 			    jobspec);
 		    continue;
 		}
-		jobnumber = get_jobnumber_from_pid((pid_t) pid);
-		// XXX This cast might not be safe
+		jobnumber = get_jobnumber_from_pid(pid);
 	    }
 	    if (jobnumber >= joblist.length) {
 		xerror(0, Ngt("job specification `%ls' is ambiguous"),
@@ -1321,7 +1330,7 @@ int wait_builtin(int argc, void **argv)
 	} while (++xoptind < argc);
     } else {
 	/* wait for all jobs */
-	while (wait_has_job(jobcontrol)) {
+	while (wait_builtin_has_job(jobcontrol)) {
 	    status = wait_for_sigchld(jobcontrol, true);
 	    if (status) {
 		assert(TERMSIGOFFSET >= 128);
@@ -1339,7 +1348,7 @@ int wait_builtin(int argc, void **argv)
 }
 
 /* Checks if the shell has any job to wait for. */
-bool wait_has_job(bool jobcontrol)
+bool wait_builtin_has_job(bool jobcontrol)
 {
     /* print/remove already-finished jobs */
     if (jobcontrol && is_interactive_now && !posixly_correct) {
@@ -1375,7 +1384,7 @@ const char *wait_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "disown" builtin, which accepts the following option:
+/* The "disown" built-in, which accepts the following option:
  *  -a: disown all jobs */
 int disown_builtin(int argc, void **argv)
 {
@@ -1385,7 +1394,9 @@ int disown_builtin(int argc, void **argv)
     xoptind = 0;
     while ((opt = xgetopt(argv, all_option, 0)) != NULL) {
 	switch (opt->shortopt) {
-	    case L'a':  all = true;  break;
+	    case L'a':
+		all = true;
+		break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
