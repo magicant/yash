@@ -19,9 +19,9 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
-#include <inttypes.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -190,14 +190,14 @@ void trim_joblist(void)
     }
 }
 
-/* Negate the `j_pgid' member of all jobs.
+/* Sets the `j_legacy' flags of all jobs.
  * All the jobs will be no longer job-controlled. */
 void neglect_all_jobs(void)
 {
     for (size_t i = 0; i < joblist.length; i++) {
 	job_T *job = joblist.contents[i];
-	if (job != NULL && job->j_pgid >= 0)
-	    job->j_pgid = (job->j_pgid > 0) ? -job->j_pgid : -1;
+	if (job != NULL)
+	    job->j_legacy = true;
     }
     current_jobnumber = previous_jobnumber = 0;
 }
@@ -445,7 +445,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
     int signum = 0;
     job_T *job = joblist.contents[jobnumber];
 
-    if (job->j_pgid >= 0) {
+    if (!job->j_legacy) {
 	bool savenonotify = job->j_nonotify;
 	job->j_nonotify = true;
 	for (;;) {
@@ -483,6 +483,7 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
     job->j_pgid = cpgid;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = false;
+    job->j_legacy = false;
     job->j_nonotify = false;
     job->j_pcount = 1;
     job->j_procs[0].pr_pid = cpid;
@@ -518,7 +519,7 @@ pid_t get_job_pgid(const wchar_t *jobname)
 	return -1;
     } else if (jobnumber == 0
 	    || (job = joblist.contents[jobnumber]) == NULL
-	    || job->j_pgid < 0) {
+	    || job->j_legacy) {
 	xerror(0, Ngt("no such job `%ls'"), jobname);
 	return -1;
     } else if (job->j_pgid == 0) {
@@ -1054,7 +1055,7 @@ bool jobs_builtin_print_job(size_t jobnumber,
     if (pgidonly) {
 	if (changedonly && !job->j_statuschanged)
 	    return true;
-	int result = printf("%jd\n", imaxabs(job->j_pgid));
+	int result = printf("%jd\n", (intmax_t) job->j_pgid);
 	err = (result >= 0) ? 0 : errno;
     } else {
 	err = print_job_status(jobnumber, changedonly, verbose, stdout);
@@ -1148,7 +1149,7 @@ int fg_builtin(int argc, void **argv)
 			ARGV(xoptind));
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
-		    || job->j_pgid < 0) {
+		    || job->j_legacy) {
 		xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
 	    } else if (job->j_pgid == 0) {
 		xerror(0, Ngt("`%ls' is not a job-controlled job"),
@@ -1159,7 +1160,7 @@ int fg_builtin(int argc, void **argv)
 	} while (++xoptind < argc);
     } else {
 	if (current_jobnumber == 0 ||
-		(job = joblist.contents[current_jobnumber])->j_pgid <= 0) {
+		(job = joblist.contents[current_jobnumber])->j_legacy) {
 	    xerror(0, Ngt("there is no current job"));
 	} else {
 	    status = continue_job(current_jobnumber, job, fg);
@@ -1178,6 +1179,7 @@ int fg_builtin(int argc, void **argv)
 int continue_job(size_t jobnumber, job_T *job, bool fg)
 {
     assert(job->j_pgid > 0);
+    assert(!job->j_legacy);
 
     wchar_t *name = get_job_name(job);
     if (fg && posixly_correct)
@@ -1309,7 +1311,7 @@ int wait_builtin(int argc, void **argv)
 			ARGV(xoptind));
 	    } else if (jobnumber == 0
 		    || (job = joblist.contents[jobnumber]) == NULL
-		    || job->j_pgid < 0) {
+		    || job->j_legacy) {
 		status = Exit_NOTFOUND;
 	    } else {
 		status = wait_for_job(jobnumber, jobcontrol, jobcontrol, true);
@@ -1357,7 +1359,7 @@ bool wait_builtin_has_job(bool jobcontrol)
     } else {
 	for (size_t i = 1; i < joblist.length; i++) {
 	    job_T *job = joblist.contents[i];
-	    if (job != NULL && (job->j_pgid < 0 || job->j_status == JS_DONE))
+	    if (job != NULL && (job->j_legacy || job->j_status == JS_DONE))
 		remove_job(i);
 	}
     }

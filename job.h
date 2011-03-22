@@ -44,14 +44,15 @@ typedef struct job_T {
     pid_t       j_pgid;          /* process group ID */
     jobstatus_T j_status;
     _Bool       j_statuschanged; /* job's status not yet reported? */
+    _Bool       j_legacy;        /* not a true child of the shell? */
     _Bool       j_nonotify;      /* suppress printing job status? */
     size_t      j_pcount;        /* # of processes in `j_procs' */
     process_T   j_procs[];       /* info about processes */
 } job_T;
 /* When job control is off, `j_pgid' is 0 since the job shares the process group
  * ID with the shell.
- * In subshells, `j_pgid' is negated to indicate that the job is not a direct
- * child of the current shell process. */
+ * In subshells, the `j_legacy' flag is set to indicate that the job is not
+ * a direct child of the current shell process. */
 
 
 /* job number of the active job */

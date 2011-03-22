@@ -312,6 +312,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	    job->j_pgid = doing_job_control_now ? cpid : 0;
 	    job->j_status = JS_RUNNING;
 	    job->j_statuschanged = true;
+	    job->j_legacy = false;
 	    job->j_nonotify = false;
 	    job->j_pcount = 1;
 
@@ -653,6 +654,7 @@ void exec_commands(command_T *c, exec_T type)
 	job->j_pgid = doing_job_control_now ? pgid : 0;
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = true;
+	job->j_legacy = false;
 	job->j_nonotify = false;
 	job->j_pcount = count;
 	set_active_job(job);
