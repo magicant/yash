@@ -664,32 +664,32 @@ int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 	    goto error;
 
 	/* move the output side from what is to be the input side. */
-	if (pipefd[PIDX_OUT] == inputfd) {
-	    int newfd = dup(pipefd[PIDX_OUT]);
+	if (pipefd[PIPE_OUT] == inputfd) {
+	    int newfd = dup(pipefd[PIPE_OUT]);
 	    if (newfd < 0)
 		goto error2;
-	    xclose(pipefd[PIDX_OUT]);
-	    pipefd[PIDX_OUT] = newfd;
+	    xclose(pipefd[PIPE_OUT]);
+	    pipefd[PIPE_OUT] = newfd;
 	}
 
 	/* move the input side to where it should be. */
-	if (pipefd[PIDX_IN] != inputfd) {
-	    if (xdup2(pipefd[PIDX_IN], inputfd) < 0)
+	if (pipefd[PIPE_IN] != inputfd) {
+	    if (xdup2(pipefd[PIPE_IN], inputfd) < 0)
 		goto error2;
-	    xclose(pipefd[PIDX_IN]);
-	    // pipefd[PIDX_IN] = inputfd;
+	    xclose(pipefd[PIPE_IN]);
+	    // pipefd[PIPE_IN] = inputfd;
 	}
 
 	/* The output side is not moved in this function. */
-	fd = pipefd[PIDX_OUT];
+	fd = pipefd[PIPE_OUT];
     }
 end:
     free(num);
     return fd;
 
 error2:
-    xclose(pipefd[PIDX_IN]);
-    xclose(pipefd[PIDX_OUT]);
+    xclose(pipefd[PIPE_IN]);
+    xclose(pipefd[PIPE_OUT]);
 error:
     xerror(errno, Ngt("redirection: %d>>|%d"), outputfd, inputfd);
     fd = -1;
@@ -747,12 +747,12 @@ int open_herestring(char *s, bool appendnewline)
 	if (pipe(pipefd) >= 0) {
 	    /* It is guaranteed that all the contents is written to the pipe
 	     * at once, so we don't have to use `write_all' here. */
-	    if (write(pipefd[PIDX_OUT], s, len) < 0)
+	    if (write(pipefd[PIPE_OUT], s, len) < 0)
 		xerror(errno, Ngt("cannot write the here-document contents "
 			    "to the temporary file"));
-	    xclose(pipefd[PIDX_OUT]);
+	    xclose(pipefd[PIPE_OUT]);
 	    free(s);
-	    return pipefd[PIDX_IN];
+	    return pipefd[PIPE_IN];
 	}
     }
 #endif /* defined(PIPE_BUF) */
@@ -795,33 +795,33 @@ int open_process_redirection(const embedcmd_T *command, redirtype_T type)
     cpid = fork_and_reset(-1, false, 0);
     if (cpid < 0) {
 	/* fork failure */
-	xclose(pipefd[PIDX_IN]);
-	xclose(pipefd[PIDX_OUT]);
+	xclose(pipefd[PIPE_IN]);
+	xclose(pipefd[PIPE_OUT]);
 	return -1;
     } else if (cpid) {
 	/* parent process */
 	if (type == RT_PROCIN) {
-	    xclose(pipefd[PIDX_OUT]);
-	    return pipefd[PIDX_IN];
+	    xclose(pipefd[PIPE_OUT]);
+	    return pipefd[PIPE_IN];
 	} else {
-	    xclose(pipefd[PIDX_IN]);
-	    return pipefd[PIDX_OUT];
+	    xclose(pipefd[PIPE_IN]);
+	    return pipefd[PIPE_OUT];
 	}
     } else {
 	/* child process */
 	if (type == RT_PROCIN) {
-	    xclose(pipefd[PIDX_IN]);
-	    if (pipefd[PIDX_OUT] != STDOUT_FILENO) {
-		if (xdup2(pipefd[PIDX_OUT], STDOUT_FILENO) < 0)
+	    xclose(pipefd[PIPE_IN]);
+	    if (pipefd[PIPE_OUT] != STDOUT_FILENO) {
+		if (xdup2(pipefd[PIPE_OUT], STDOUT_FILENO) < 0)
 		    exit(Exit_NOEXEC);
-		xclose(pipefd[PIDX_OUT]);
+		xclose(pipefd[PIPE_OUT]);
 	    }
 	} else {
-	    xclose(pipefd[PIDX_OUT]);
-	    if (pipefd[PIDX_IN] != STDIN_FILENO) {
-		if (xdup2(pipefd[PIDX_IN], STDIN_FILENO) < 0)
+	    xclose(pipefd[PIPE_OUT]);
+	    if (pipefd[PIPE_IN] != STDIN_FILENO) {
+		if (xdup2(pipefd[PIPE_IN], STDIN_FILENO) < 0)
 		    exit(Exit_NOEXEC);
-		xclose(pipefd[PIDX_IN]);
+		xclose(pipefd[PIPE_IN]);
 	    }
 	}
 	if (command->is_preparsed)

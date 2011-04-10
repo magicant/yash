@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.h: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,6 @@
 
 #ifndef YASH_REDIR_H
 #define YASH_REDIR_H
-
-#include <stdio.h>
 
 
 extern int xclose(int fd);
@@ -43,13 +41,13 @@ extern int get_ttyfd(void) __attribute__((pure));
 typedef struct savefd_T savefd_T;
 struct redir_T;
 
-extern _Bool open_redirections(const struct redir_T *r, struct savefd_T **save);
+extern _Bool open_redirections(const struct redir_T *r, savefd_T **save);
 extern void undo_redirections(savefd_T *save);
 extern void clear_savefd(savefd_T *save);
 extern void maybe_redirect_stdin_to_devnull(void);
 
-#define PIDX_IN  0   /* index of the reading end of a pipe */
-#define PIDX_OUT 1   /* index of the writing end of a pipe */
+#define PIPE_IN  0   /* index of the reading end of a pipe */
+#define PIPE_OUT 1   /* index of the writing end of a pipe */
 
 
 /* Moves the specified file descriptor (FD) to a shell FD.

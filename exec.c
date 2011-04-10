@@ -533,8 +533,8 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 }
 
 /* Updates the contents of the `pipeinfo_T' to proceed to the next process
- * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIDX_OUT]' are closed,
- * `pi->pi_tonextfds[PIDX_IN]' is moved to `pi->pi_fromprevfd', and,
+ * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIPE_OUT]' are closed,
+ * `pi->pi_tonextfds[PIPE_IN]' is moved to `pi->pi_fromprevfd', and,
  * if `next' is true, a new pipe is opened in `pi->pi_tonextfds' or,
  * if `next' is false, `pi->pi_tonextfds' is assigned -1.
  * Returns true iff successful. */
@@ -542,9 +542,9 @@ void next_pipe(pipeinfo_T *pi, bool next)
 {
     if (pi->pi_fromprevfd >= 0)
 	xclose(pi->pi_fromprevfd);
-    if (pi->pi_tonextfds[PIDX_OUT] >= 0)
-	xclose(pi->pi_tonextfds[PIDX_OUT]);
-    pi->pi_fromprevfd = pi->pi_tonextfds[PIDX_IN];
+    if (pi->pi_tonextfds[PIPE_OUT] >= 0)
+	xclose(pi->pi_tonextfds[PIPE_OUT]);
+    pi->pi_fromprevfd = pi->pi_tonextfds[PIPE_IN];
     if (next) {
 	if (pipe(pi->pi_tonextfds) < 0)
 	    goto fail;
@@ -552,33 +552,33 @@ void next_pipe(pipeinfo_T *pi, bool next)
 	/* The pipe's FDs must not be 0 or 1, or they may be overridden by each
 	 * other when we connect the pipe later. If they are 0 or 1, move them
 	 * to bigger numbers. */
-	int origin  = pi->pi_tonextfds[PIDX_IN];
-	int origout = pi->pi_tonextfds[PIDX_OUT];
+	int origin  = pi->pi_tonextfds[PIPE_IN];
+	int origout = pi->pi_tonextfds[PIPE_OUT];
 	if (origin < 2 || origout < 2) {
 	    if (origin < 2)
-		pi->pi_tonextfds[PIDX_IN] = dup(origin);
+		pi->pi_tonextfds[PIPE_IN] = dup(origin);
 	    if (origout < 2)
-		pi->pi_tonextfds[PIDX_OUT] = dup(origout);
+		pi->pi_tonextfds[PIPE_OUT] = dup(origout);
 	    if (origin < 2)
 		xclose(origin);
 	    if (origout < 2)
 		xclose(origout);
-	    if (pi->pi_tonextfds[PIDX_IN] < 0) {
-		xclose(pi->pi_tonextfds[PIDX_OUT]);
+	    if (pi->pi_tonextfds[PIPE_IN] < 0) {
+		xclose(pi->pi_tonextfds[PIPE_OUT]);
 		goto fail;
 	    }
-	    if (pi->pi_tonextfds[PIDX_OUT] < 0) {
-		xclose(pi->pi_tonextfds[PIDX_IN]);
+	    if (pi->pi_tonextfds[PIPE_OUT] < 0) {
+		xclose(pi->pi_tonextfds[PIPE_IN]);
 		goto fail;
 	    }
 	}
     } else {
-	pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
+	pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
     }
     return;
 
 fail:
-    pi->pi_tonextfds[PIDX_IN] = pi->pi_tonextfds[PIDX_OUT] = -1;
+    pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
     xerror(errno, Ngt("cannot open a pipe"));
 }
 
@@ -589,12 +589,12 @@ void connect_pipes(pipeinfo_T *pi)
 	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
 	xclose(pi->pi_fromprevfd);
     }
-    if (pi->pi_tonextfds[PIDX_OUT] >= 0) {
-	xdup2(pi->pi_tonextfds[PIDX_OUT], STDOUT_FILENO);
-	xclose(pi->pi_tonextfds[PIDX_OUT]);
+    if (pi->pi_tonextfds[PIPE_OUT] >= 0) {
+	xdup2(pi->pi_tonextfds[PIPE_OUT], STDOUT_FILENO);
+	xclose(pi->pi_tonextfds[PIPE_OUT]);
     }
-    if (pi->pi_tonextfds[PIDX_IN] >= 0)
-	xclose(pi->pi_tonextfds[PIDX_IN]);
+    if (pi->pi_tonextfds[PIPE_IN] >= 0)
+	xclose(pi->pi_tonextfds[PIPE_IN]);
 }
 
 /* Executes the commands in a pipeline. */
@@ -642,8 +642,8 @@ void exec_commands(command_T *c, exec_T type)
 	cc = cc->next, pp++;
     } while (cc != NULL);
     assert(type != execself); /* `exec_process' doesn't return for `execself' */
-    assert(pinfo.pi_tonextfds[PIDX_IN] < 0);
-    assert(pinfo.pi_tonextfds[PIDX_OUT] < 0);
+    assert(pinfo.pi_tonextfds[PIPE_IN] < 0);
+    assert(pinfo.pi_tonextfds[PIPE_OUT] < 0);
     if (pinfo.pi_fromprevfd >= 0)
 	xclose(pinfo.pi_fromprevfd);           /* close leftover pipes */
 
@@ -712,7 +712,7 @@ pid_t exec_process(
      * or there is a pipe. */
     early_fork = (type != execself)
 	&& (type == execasync || c->c_type == CT_SUBSHELL
-		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIDX_OUT] >= 0);
+		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0);
     finally_exit = (type == execself);
     if (early_fork) {
 	sigtype_T sigtype = (type == execasync) ? t_quitint : 0;
@@ -1320,20 +1320,20 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
     cpid = fork_and_reset(-1, false, t_tstp);
     if (cpid < 0) {
 	/* fork failure */
-	xclose(pipefd[PIDX_IN]);
-	xclose(pipefd[PIDX_OUT]);
+	xclose(pipefd[PIPE_IN]);
+	xclose(pipefd[PIPE_OUT]);
 	lastcmdsubstatus = Exit_NOEXEC;
 	return NULL;
     } else if (cpid) {
 	/* parent process */
 	FILE *f;
 
-	xclose(pipefd[PIDX_OUT]);
-	f = fdopen(pipefd[PIDX_IN], "r");
+	xclose(pipefd[PIPE_OUT]);
+	f = fdopen(pipefd[PIPE_IN], "r");
 	if (!f) {
 	    xerror(errno,
 		    Ngt("cannot open a pipe for the command substitution"));
-	    xclose(pipefd[PIDX_IN]);
+	    xclose(pipefd[PIPE_IN]);
 	    lastcmdsubstatus = Exit_NOEXEC;
 	    return NULL;
 	}
@@ -1365,11 +1365,11 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 	return wb_towcs(wb_truncate(&buf, len));
     } else {
 	/* child process */
-	xclose(pipefd[PIDX_IN]);
-	if (pipefd[PIDX_OUT] != STDOUT_FILENO) {  /* connect the pipe */
-	    if (xdup2(pipefd[PIDX_OUT], STDOUT_FILENO) < 0)
+	xclose(pipefd[PIPE_IN]);
+	if (pipefd[PIPE_OUT] != STDOUT_FILENO) {  /* connect the pipe */
+	    if (xdup2(pipefd[PIPE_OUT], STDOUT_FILENO) < 0)
 		exit(Exit_NOEXEC);
-	    xclose(pipefd[PIDX_OUT]);
+	    xclose(pipefd[PIPE_OUT]);
 	}
 
 	if (cmdsub->is_preparsed)
