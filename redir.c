@@ -245,6 +245,23 @@ finish:
     return newfd;
 }
 
+/* Moves the specified file descriptor (FD) to a shell FD.
+ * The original FD is closed (whether successful or not).
+ * If `fd' is negative, this function simply returns `fd' (without changing
+ * `errno'). If `fd' is non-negative and the FD cannot be copied, `errno' is set
+ * to indicate the error. */
+int move_to_shellfd(int fd)
+{
+    if (fd < 0)
+	return fd;
+
+    int newfd = copy_as_shellfd(fd);
+    int saveerrno = errno;
+    xclose(fd);
+    errno = saveerrno;
+    return newfd;
+}
+
 /* Opens `ttyfd'.
  * On failure, an error message is printed and `do_job_control' is set to false.
  */

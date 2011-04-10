@@ -34,7 +34,7 @@ extern _Bool is_shellfd(int fd)
     __attribute__((pure));
 extern void clear_shellfds(_Bool leavefds);
 extern int copy_as_shellfd(int fd);
-static inline int move_to_shellfd(int fd);
+extern int move_to_shellfd(int fd);
 extern void open_ttyfd(void);
 extern int get_ttyfd(void) __attribute__((pure));
 
@@ -48,21 +48,6 @@ extern void maybe_redirect_stdin_to_devnull(void);
 
 #define PIPE_IN  0   /* index of the reading end of a pipe */
 #define PIPE_OUT 1   /* index of the writing end of a pipe */
-
-
-/* Moves the specified file descriptor (FD) to a shell FD.
- * The original FD is closed (whether successful or not).
- * If `fd' is negative, this function simply returns `fd' (without changing
- * `errno'). */
-int move_to_shellfd(int fd)
-{
-    if (fd < 0)
-	return fd;
-
-    int newfd = copy_as_shellfd(fd);
-    xclose(fd);
-    return newfd;
-}
 
 
 #endif /* YASH_REDIR_H */
