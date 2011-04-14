@@ -109,30 +109,32 @@ bool write_all(int fd, const void *data, size_t size)
     return true;
 }
 
-/********** Shell FD **********/
+
+/********** Shell FDs **********/
 
 static void reset_shellfdmin(void);
 
 
-/* true iff stdin is redirected */
+/* True iff the standard input is redirected */
 static bool is_stdin_redirected = false;
 
-/* set of file descriptors used by the shell.
+/* Set of file descriptors used by the shell.
  * These file descriptors cannot be used by the user. */
 static fd_set shellfds;
-/* the minimum file descriptor that can be used for shell FD. */
+/* The minimum file descriptor that can be used for shell FD. */
 static int shellfdmin;
-/* the maximum file descriptor in `shellfds'.
- * `shellfdmax' is -1 if `shellfds' is empty. */
-static int shellfdmax;
+/* The maximum file descriptor in `shellfds'.
+ * `shellfdmax' is -1 when `shellfds' is empty. */
+static int shellfdmax = -1;
 
 #ifndef SHELLFDMINMAX
 #define SHELLFDMINMAX 100  /* maximum for `shellfdmin' */
-#elif SHELLFDMINMAX < 10
+#endif
+#if SHELLFDMINMAX < 10
 #error SHELLFDMINMAX too little
 #endif
 
-/* file descriptor associated with the controlling terminal */
+/* File descriptor associated with the controlling terminal */
 int ttyfd = -1;
 
 
@@ -147,7 +149,7 @@ void init_shellfds(void)
 
     FD_ZERO(&shellfds);
     reset_shellfdmin();
-    shellfdmax = -1;
+    assert(shellfdmax == -1);  // shellfdmax = -1;
 }
 
 /* Recomputes `shellfdmin'. */
@@ -155,7 +157,7 @@ void reset_shellfdmin(void)
 {
     errno = 0;
     shellfdmin = sysconf(_SC_OPEN_MAX);
-    if (shellfdmin == -1) {
+    if (shellfdmin < 0) {
 	if (errno)
 	    shellfdmin = 10;
 	else
@@ -186,9 +188,9 @@ void remove_shellfd(int fd)
     if (0 <= fd && fd < FD_SETSIZE)
 	FD_CLR(fd, &shellfds);
     if (fd == shellfdmax) {
-	shellfdmax = fd - 1;
-	while (shellfdmax >= 0 && !FD_ISSET(shellfdmax, &shellfds))
+	do
 	    shellfdmax--;
+	while (shellfdmax >= 0 && !FD_ISSET(shellfdmax, &shellfds));
     }
 }
 /* The argument to `FD_CLR' must be a valid (open) file descriptor. This is why
@@ -314,10 +316,10 @@ static int open_process_redirection(const embedcmd_T *command, redirtype_T type)
  * Returns true iff successful. */
 bool open_redirections(const redir_T *r, savefd_T **save)
 {
-    if (save)
+    if (save != NULL)
 	*save = NULL;
 
-    while (r) {
+    while (r != NULL) {
 	if (r->rd_fd < 0 || is_shellfd(r->rd_fd)) {
 	    xerror(0, Ngt("redirection: file descriptor %d is unavailable"),
 		    r->rd_fd);
@@ -331,7 +333,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
 	    case RT_HERESTR:
 		filename = expand_redir_filename(r->rd_filename);
-		if (!filename)
+		if (filename == NULL)
 		    return false;
 		break;
 	    default:
@@ -442,7 +444,7 @@ char *expand_redir_filename(const struct wordunit_T *filename)
 	if (result == NULL)
 	    return NULL;
 	char *mbsresult = realloc_wcstombs(unescapefree(result));
-	if (!mbsresult)
+	if (mbsresult == NULL)
 	    xerror(EILSEQ, Ngt("redirection"));
 	return mbsresult;
     }
@@ -452,7 +454,7 @@ char *expand_redir_filename(const struct wordunit_T *filename)
 void save_fd(int fd, savefd_T **save)
 {
     assert(fd >= 0);
-    if (!save)
+    if (save == NULL)
 	return;
 
     int copyfd = copy_as_shellfd(fd);
@@ -479,19 +481,17 @@ void save_fd(int fd, savefd_T **save)
  * -1 is returned. */
 int open_file(const char *path, int oflag)
 {
-    int fd;
-
-    fd = open(path, oflag,
+    int fd = open(path, oflag,
 	    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 #if YASH_ENABLE_SOCKET
     if (fd < 0) {
 	const char *hostandport = matchstrprefix(path, "/dev/tcp/");
-	if (hostandport)
+	if (hostandport != NULL)
 	    fd = open_socket(hostandport, SOCK_STREAM);
     }
     if (fd < 0) {
 	const char *hostandport = matchstrprefix(path, "/dev/udp/");
-	if (hostandport)
+	if (hostandport != NULL)
 	    fd = open_socket(hostandport, SOCK_DGRAM);
     }
 #endif /* YASH_ENABLE_SOCKET */
@@ -520,14 +520,14 @@ int open_socket(const char *hostandport, int socktype)
 	const wchar_t *wport;
 
 	whostandport = malloc_mbstowcs(hostandport);
-	if (!whostandport) {
+	if (whostandport == NULL) {
 	    errno = saveerrno;
 	    return -1;
 	}
 	wport = wcschr(whostandport, L'/');
-	if (wport) {
+	if (wport != NULL) {
 	    hostname = malloc_wcsntombs(whostandport, wport - whostandport);
-	    port = malloc_wcstombs(wport + 1); // TODO return value null check
+	    port = malloc_wcstombs(wport + 1); // XXX error ignored
 	} else {
 	    hostname = xstrdup(hostandport);
 	    port = NULL;
@@ -589,17 +589,17 @@ int parse_and_check_dup(char *const num, redirtype_T type)
 
     if (!xisxdigit(num[0]))
 	errno = EINVAL;
-    else if (xstrtoi(num, 10, &fd) && fd < 0)
-	errno = ERANGE;
-    if (errno) {
+    else if (xstrtoi(num, 10, &fd))
+	if (fd < 0)
+	    errno = ERANGE;
+    if (errno != 0) {
 	xerror(errno, Ngt("redirection: %s"), num);
 	fd = -2;
 	goto end;
     }
 
     if (is_shellfd(fd)) {
-	xerror(0, Ngt("redirection: file descriptor %d is unavailable"),
-		fd);
+	xerror(0, Ngt("redirection: file descriptor %d is unavailable"), fd);
 	fd = -2;
 	goto end;
     }
@@ -662,7 +662,7 @@ int parse_and_exec_pipe(int outputfd, char *num, savefd_T **save)
 	if (xstrtoi(num, 10, &inputfd) && inputfd < 0)
 	    errno = ERANGE;
     }
-    if (errno) {
+    if (errno != 0) {
 	xerror(errno, Ngt("redirection: %s"), num);
 	fd = -1;
     } else if (outputfd == inputfd) {
@@ -704,9 +704,11 @@ end:
     free(num);
     return fd;
 
-error2:
+error2:;
+    int saveerrno = errno;
     xclose(pipefd[PIPE_IN]);
     xclose(pipefd[PIPE_OUT]);
+    errno = saveerrno;
 error:
     xerror(errno, Ngt("redirection: %d>>|%d"), outputfd, inputfd);
     fd = -1;
@@ -720,11 +722,11 @@ error:
 int open_heredocument(const wordunit_T *contents)
 {
     wchar_t *wcontents = expand_string(contents, true);
-    if (!wcontents)
+    if (wcontents == NULL)
 	return -1;
 
     char *mcontents = realloc_wcstombs(wcontents);
-    if (!mcontents) {
+    if (mcontents == NULL) {
 	xerror(EILSEQ, Ngt("cannot write the here-document contents "
 		    "to the temporary file"));
 	return -1;
@@ -852,7 +854,7 @@ int open_process_redirection(const embedcmd_T *command, redirtype_T type)
 /* Restores the saved file descriptor and frees `save'. */
 void undo_redirections(savefd_T *save)
 {
-    while (save) {
+    while (save != NULL) {
 	if (save->sf_copyfd >= 0) {
 	    remove_shellfd(save->sf_copyfd);
 	    xdup2(save->sf_copyfd, save->sf_origfd);
@@ -872,7 +874,7 @@ void undo_redirections(savefd_T *save)
  * The copied FDs are closed. */
 void clear_savefd(savefd_T *save)
 {
-    while (save) {
+    while (save != NULL) {
 	if (save->sf_copyfd >= 0) {
 	    remove_shellfd(save->sf_copyfd);
 	    xclose(save->sf_copyfd);
@@ -896,11 +898,14 @@ void maybe_redirect_stdin_to_devnull(void)
 	    || is_stdin_redirected)
 	return;
 
-    xclose(STDIN_FILENO);
+    if (xclose(STDIN_FILENO) < 0)
+	return;
+
     fd = open("/dev/null", O_RDONLY);
-    if (fd >= 0 && fd != STDIN_FILENO) {  // shouldn't happen, but just in case
-	xdup2(fd, STDIN_FILENO);
-	xclose(fd);
+    if (fd < 0) {
+	//xerror(errno, Ngt("cannot redirect the standard input to /dev/null"));
+    } else {
+	assert(fd == STDIN_FILENO);
     }
     is_stdin_redirected = true;
 }
