@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* xfnmatch.c: regex matching wrapper as a replacement for fnmatch */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,8 +49,8 @@ struct xfnmatch_T {
 #define XFNM_HEADTAIL (XFNM_HEADONLY | XFNM_TAILONLY)
 #define MISMATCH ((xfnmresult_T) { (size_t) -1, (size_t) -1, })
 
-static wchar_t *skip_bracket(const wchar_t *pat)
-    __attribute__((nonnull));
+static bool is_matching_pattern_bracket(const wchar_t *pat)
+    __attribute__((nonnull,pure));
 static xfnmatch_T *try_compile_literal(const wchar_t *pat, xfnmflags_T flags)
     __attribute__((malloc,warn_unused_result,nonnull));
 static xfnmatch_T *try_compile_regex(const wchar_t *pat, xfnmflags_T flags)
@@ -97,14 +97,14 @@ bool is_matching_pattern(const wchar_t *pat)
 		return false;
 	    case L'\\':
 		pat++;
-		if (!*pat)
+		if (*pat == L'\0')
 		    return false;
 		pat++;
 		break;
 	    case L'*':  case L'?':
 		return true;
 	    case L'[':
-		if (skip_bracket(pat) != pat)
+		if (is_matching_pattern_bracket(pat))
 		    return true;
 		/* falls thru! */
 	    default:
@@ -114,47 +114,45 @@ bool is_matching_pattern(const wchar_t *pat)
     }
 }
 
-/* Skips the bracket expression that starts with L'[' pointed to by `pat' and
- * returns a pointer to the closing L']'. If no corresponding L']' is found,
- * returns `pat'. Backslash escapes are recognized in the bracket expression. */
-wchar_t *skip_bracket(const wchar_t *pat)
+/* Checks if the specified string is a syntactically valid bracket expression.
+ * The string must start with L'['.
+ * Backslash escapes are recognized in the bracket expression. */
+bool is_matching_pattern_bracket(const wchar_t *pat)
 {
-    const wchar_t *savepat = pat;
     assert(*pat == L'[');
     pat++;
+
+    const wchar_t *const savepat = pat;
 
     for (;;) {
 	switch (*pat) {
 	    case L'\0':
-		goto fail;
+		return false;
 	    case L'[':
 		pat++;
 		const wchar_t *p;
 		switch (*pat) {
-		    case L'.':  p = wcsstr(pat + 1, L".]");  break;
-		    case L':':  p = wcsstr(pat + 1, L":]");  break;
-		    case L'=':  p = wcsstr(pat + 1, L"=]");  break;
+		    case L'.':  p = wcsstr(&pat[1], L".]");  break;
+		    case L':':  p = wcsstr(&pat[1], L":]");  break;
+		    case L'=':  p = wcsstr(&pat[1], L"=]");  break;
 		    default:    continue;
 		}
-		if (!p)
-		    goto fail;
-		pat = p + 2;
+		if (p == NULL)
+		    return false;
+		pat = &p[2];
 		continue;
 	    case L']':
-		if (pat > savepat + 1)
-		    return (wchar_t *) pat;
+		if (pat > savepat)
+		    return true;
 		break;
 	    case L'\\':
 		pat++;
 		if (*pat == L'\0')
-		    goto fail;
+		    return false;
 		break;
 	}
 	pat++;
     }
-
-fail:
-    return (wchar_t *) savepat;
 }
 
 /* Checks if there is L'*' or L'?' or a bracket expression in the pattern.
@@ -165,13 +163,13 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
 {
     const wchar_t *p;
 
-    while ((p = wcschr(pat, L'/'))) {
+    while ((p = wcschr(pat, L'/')) != NULL) {
 	wchar_t buf[p - pat + 1];
 	wmemcpy(buf, pat, p - pat);
 	buf[p - pat] = L'\0';
 	if (is_matching_pattern(buf))
 	    return true;
-	pat = p + 1;
+	pat = &p[1];
     }
     return is_matching_pattern(pat);
 }
@@ -205,13 +203,15 @@ xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
 
     if (!(flags & XFNM_CASEFOLD)) {
 	xfnmatch_T *result = try_compile_literal(pat, flags);
-	if (result)
+	if (result != NULL)
 	    return result;
     }
 
     return try_compile_regex(pat, flags);
 }
 
+/* Checks if the specified pattern is a literal pattern and if so compiles it.
+ * If not a literal pattern, NULL is returned. */
 xfnmatch_T *try_compile_literal(const wchar_t *pat, xfnmflags_T flags)
 {
     xfnmflags_T oldflags = flags;
@@ -271,6 +271,8 @@ fail:
     return NULL;
 }
 
+/* Compiles the specified pattern.
+ * Returns NULL on error. */
 xfnmatch_T *try_compile_regex(const wchar_t *pat, xfnmflags_T flags)
 {
     xstrbuf_T buf;
@@ -294,7 +296,7 @@ xfnmatch_T *try_compile_regex(const wchar_t *pat, xfnmflags_T flags)
     int err = regcomp(&xfnm->value.regex, buf.contents, regexflags);
 
     sb_destroy(&buf);
-    if (err) {
+    if (err != 0) {
 	free(xfnm);
 	xfnm = NULL;
     }
@@ -356,9 +358,9 @@ void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
 const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
 	xstrbuf_T *restrict buf, mbstate_t *restrict state)
 {
-    const wchar_t *savepat = pat;
-    size_t savelength = buf->length;
-    mbstate_t savestate = *state;
+    const wchar_t *const savepat = pat;
+    size_t const savelength = buf->length;
+    mbstate_t const savestate = *state;
 
     assert(*pat == L'[');
     sb_wccat(buf, L'[', state);
@@ -419,17 +421,18 @@ fail:
 const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
 	xstrbuf_T *restrict buf, mbstate_t *restrict state)
 {
-    const wchar_t *savepat = pat;
     const wchar_t *p;
 
     assert(*pat == L'[');
-    switch (*(pat + 1)) {
-	case L'.':  p = wcsstr(pat + 2, L".]");  break;
-	case L':':  p = wcsstr(pat + 2, L":]");  break;
-	case L'=':  p = wcsstr(pat + 2, L"=]");  break;
-	default:    goto not_a_pattern;
+    switch (pat[1]) {
+	case L'.':  p = wcsstr(&pat[2], L".]");  break;
+	case L':':  p = wcsstr(&pat[2], L":]");  break;
+	case L'=':  p = wcsstr(&pat[2], L"=]");  break;
+	default:  /* not a valid bracket pattern */
+	    sb_wccat(buf, L'[', state);
+	    return pat;
     }
-    if (!p)
+    if (p == NULL)
 	return NULL;
     for (;;) {
 	if (*pat == L'\\')
@@ -441,10 +444,6 @@ const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
     }
     assert(*pat == L']');
     return pat;
-
-not_a_pattern:
-    sb_wccat(buf, L'[', state);
-    return savepat;
 }
 
 void append_as_collating_symbol(wchar_t c,
@@ -458,7 +457,7 @@ void append_as_collating_symbol(wchar_t c,
 }
 
 /* Performs matching on string `s' using pre-compiled pattern `xfnm'.
- * Returns zero on successful match. On mismatch, an error number that was
+ * Returns zero on successful match. On mismatch, the error number that was
  * returned by `regexec' is returned.
  * This function does not support the XFNM_SHORTEST flag. The given pattern must
  * have been compiled without the XFNM_SHORTEST flag. */
@@ -474,7 +473,7 @@ int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
 	return regexec(&xfnm->value.regex, s, 0, NULL, 0);
     } else {
 	wchar_t *ws = malloc_mbstowcs(s);
-	if (ws) {
+	if (ws != NULL) {
 	    xfnmresult_T result = xfnm_wmatch(xfnm, ws);
 	    free(ws);
 	    if (result.start != (size_t) -1)
@@ -517,6 +516,8 @@ xfnmresult_T xfnm_wmatch(
     }
 }
 
+/* Performs matching on string `s' using pre-compiled literal pattern `xfnm'.
+ * See the `xfnm_wmatch' function. */
 xfnmresult_T wmatch_literal(
 	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
 {
@@ -532,7 +533,7 @@ xfnmresult_T wmatch_literal(
 	if (slen < xfnm->value.literal.length)
 	    return MISMATCH;
 	size_t index = slen - xfnm->value.literal.length;
-	if (wcscmp(s + index, xfnm->value.literal.contents) != 0)
+	if (wcscmp(&s[index], xfnm->value.literal.contents) != 0)
 	    return MISMATCH;
 	return (xfnmresult_T) { .start = index, .end = slen };
     } else {
@@ -546,7 +547,7 @@ xfnmresult_T wmatch_literal(
 		ss = wcsstr(s, xfnm->value.literal.contents);
 		break;
 	}
-	if (!ss)
+	if (ss == NULL)
 	    return MISMATCH;
 
 	xfnmresult_T result;
@@ -557,26 +558,24 @@ xfnmresult_T wmatch_literal(
 	if (xfnm->flags & XFNM_tailstar)
 	    result.end = wcslen(s);
 	else
-	    result.end = ss - s + xfnm->value.literal.length;
+	    result.end = (size_t) (ss - s) + xfnm->value.literal.length;
 	return result;
     }
 }
 
+/* Returns a pointer to the substring of `s' where `sub' last appears in `s'. */
 wchar_t *last_wcsstr(const wchar_t *restrict s, const wchar_t *restrict sub)
 {
-    size_t slen = wcslen(s), sublen = wcslen(sub);
-    wchar_t *lastresult = NULL;
+    if (sub[0] == L'\0')
+	return (wchar_t *) s + wcslen(s);
 
-    if (sublen == 0)
-	return (wchar_t *) s + slen;
-    while (slen >= sublen) {
+    wchar_t *lastresult = NULL;
+    for (;;) {
 	wchar_t *result = wcsstr(s, sub);
 	if (result == NULL)
 	    break;
 	lastresult = result;
-	slen -= result + 1 - s;
-	s = result + 1;
-	assert(wcslen(s) == slen);
+	s = &result[1];
     }
     return lastresult;
 }
@@ -633,7 +632,7 @@ xfnmresult_T wmatch_shortest_tail(
     xfnmresult_T result = MISMATCH;
 
     for (;;) {
-	xfnmresult_T newresult = wmatch_longest(regex, s + i);
+	xfnmresult_T newresult = wmatch_longest(regex, &s[i]);
 	if (newresult.start == (size_t) -1)
 	    break;
 	newresult.start += i;
@@ -649,10 +648,12 @@ xfnmresult_T wmatch_shortest_tail(
 xfnmresult_T wmatch_longest(
 	const regex_t *restrict regex, const wchar_t *restrict s)
 {
-    regmatch_t match[1];
-    char *mbs = malloc_wcstombs(s); //TODO return value null check
-    int r = regexec(regex, mbs, 1, match, 0);
+    char *mbs = malloc_wcstombs(s);
+    if (mbs == NULL)
+	return MISMATCH;
 
+    regmatch_t match[1];
+    int r = regexec(regex, mbs, 1, match, 0);
     if (r != 0) {
 	free(mbs);
 	return MISMATCH;
@@ -704,14 +705,14 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
 
     wb_init(&buf);
     do {
-	xfnmresult_T result = xfnm_wmatch(xfnm, s + i);
+	xfnmresult_T result = xfnm_wmatch(xfnm, &s[i]);
 	if (result.start == (size_t) -1 || result.start >= result.end)
 	    break;
-	wb_ncat(&buf, s + i, result.start);
+	wb_ncat(&buf, &s[i], result.start);
 	wb_cat(&buf, repl);
 	i += result.end;
     } while (substall);
-    return wb_towcs(wb_cat(&buf, s + i));
+    return wb_towcs(wb_cat(&buf, &s[i]));
 }
 
 /* Frees the specified compiled pattern. */
