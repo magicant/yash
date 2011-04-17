@@ -1,0 +1,88 @@
+# (C) 2011 magicant
+
+# Completion script for the "awk" command.
+# Supports POSIX 2008, GNU awk 3.1.8, OpenBSD 4.9, NetBSD 5.0.
+
+function completion/awk {
+
+	case $("${WORDS[1]}" --version <>/dev/null 2>&0) in
+		(*'GNU Awk'*) typeset type=GNU ;;
+		(*)           typeset type="$(uname 2>/dev/null)" ;;
+	esac
+	case $type in
+		(GNU) typeset long=true ;;
+		(*)   typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"F: ${long:+--field-separator:}; specify the input field separator"
+	"f: ${long:+--file:}; specify an AWK source file to execute"
+	) #<#
+
+	if "${WORDS[1]}" -v foo=bar '' <>/dev/null >&0 2>&1; then
+		OPTIONS=("$OPTIONS" #>#
+		"v: ${long:+--assign:}; specify an assignment to be done during startup"
+		) #<#
+	fi
+
+	case $type in
+	(GNU)
+		OPTIONS=("$OPTIONS" #>#
+		"O --optimize; enable optimization"
+		"W:"
+		"--copyright --copyleft; print copyright info"
+		"--dump-variables::; print variables to the specified file"
+		"--exec:; specify an AWK source file to execute last"
+		"--gen-po; generate PO file"
+		"--lint-old; print warnings about non-portable new constructs"
+		"--lint::; print warnings about dubious or non-portable constructs"
+		"--non-decimal-data; allow octal and hexadecimal numbers"
+		"--posix; allow POSIX-compatible constructs only"
+		"--profile::; write profiling data to the specified file"
+		"--re-interval; allow intervals in regular expressions"
+		"--source:; specify AWK source code to execute"
+		"--traditional --compat; disable GNU extensions"
+		"--use-lc-numeric; use locale's decimal point character"
+		"--help --usage"
+		"--version"
+		) #<#
+		;;
+	(OpenBSD|NetBSD)
+		OPTIONS=("$OPTIONS" #>#
+		"d::; debug mode"
+		"-safe; disable file output, process creation, and accessing environment variables"
+		"V; print version info"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(d)
+		;;
+	(F)
+		;;
+	(v|--assign)
+		;;
+	(W)
+		#TODO: -W long option
+		;;
+	(--lint) #>>#
+		complete -D "treat warnings as errors" fatal
+		complete -D "warn about invalid constructs only" invalid
+		;; #<<#
+	(--source)
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -1,0 +1,10 @@
+# (C) 2010-2011 magicant
+
+# Completion script for the "pgawk" command.
+
+function completion/pgawk {
+	command -f completion//reexecute awk
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
