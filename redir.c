@@ -158,7 +158,7 @@ void reset_shellfdmin(void)
     errno = 0;
     shellfdmin = sysconf(_SC_OPEN_MAX);
     if (shellfdmin < 0) {
-	if (errno)
+	if (errno != 0)
 	    shellfdmin = 10;
 	else
 	    shellfdmin = SHELLFDMINMAX;
