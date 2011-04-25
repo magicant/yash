@@ -29,6 +29,7 @@
 
 #ifdef __CYGWIN__
 # undef __STRICT_ANSI__
+# define FD_SETSIZE 256
 #endif
 
 #if HAVE_GETTEXT
