@@ -163,6 +163,8 @@ void reset_shellfdmin(void)
 	else
 	    shellfdmin = SHELLFDMINMAX;
     } else {
+	if (shellfdmin > FD_SETSIZE)
+	    shellfdmin = FD_SETSIZE;
 	shellfdmin /= 2;
 	if (shellfdmin > SHELLFDMINMAX)
 	    shellfdmin = SHELLFDMINMAX;
