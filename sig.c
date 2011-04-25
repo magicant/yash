@@ -577,6 +577,12 @@ bool wait_for_input(int fd, bool trap, int timeout)
     struct timespec to;
     struct timespec *top;
 
+    assert(fd >= 0);
+    if (fd >= FD_SETSIZE) {
+	xerror(0, Ngt("too many files are opened for yash to handle"));
+	return false;
+    }
+
     ss = accept_sigmask;
     sigdelset(&ss, SIGCHLD);
     if (interactive_handlers_set) {
