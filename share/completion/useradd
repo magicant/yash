@@ -1,0 +1,181 @@
+# (C) 2011 magicant
+
+# Completion script for the "useradd" command.
+# Supports shadow tool suite 4.1.4.2, OpenBSD 4.9, NetBSD 5.0, SunOS 5.11,
+# HP-UX 11i v3.
+
+function completion/useradd {
+
+	typeset type="$(uname 2>/dev/null)"
+	case $type in
+		(Linux) typeset long=true ;;
+		(*)     typeset long= ;;
+	esac
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"b: ${long:+--base-dir:}; specify the directory the home directory is created in"
+	"c: ${long:+--comment:}; specify a comment (typically the user's full name)"
+	"d: ${long:+--home:}; specify the home directory"
+	"D ${long:+--defaults}; print or show the default settings"
+	"e: ${long:+--expiredate:}; specify the date the account expires on"
+	"f: ${long:+--inactive:}; specify the date the password expires on"
+	"G: ${long:+--groups:}; specify supplementary groups"
+	"g: ${long:+--group:}; specify the group"
+	"k: ${long:+--skel:}; specify the skeleton directory"
+	"m ${long:+--create-home}; create the home directory"
+	"o ${long:+--non-unique}; allow assigning one user ID to more than one user name"
+	"s: ${long:+--shell:}; specify the login shell"
+	"u: ${long:+--uid:}; specify the user ID number"
+	) #<#
+
+	case $type in
+	(Linux|SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"K: ${long:+--key:}; specify an option to override the default"
+		) #<#
+		;;
+	esac
+	case $type in
+	(SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"p:; specify a project"
+		) #<#
+		;;
+	(*)
+		OPTIONS=("$OPTIONS" #>#
+		"p: ${long:+--password:}; specify the encrypted password"
+		) #<#
+		;;
+	esac
+	case $type in
+	(Linux)
+		OPTIONS=("$OPTIONS" #>#
+		"h --help; print help"
+		"l --no-log-init; don't add the user to the lastlog and faillog databases"
+		"M; don't create the home directory"
+		"N --no-user-group; don't create the user's own group"
+		"r --system; create a system account"
+		"U --user-group; create the user's own group"
+		"Z: --selinux-user:; specify the SELinux user"
+		) #<#
+		;;
+	(*BSD)
+		OPTIONS=("$OPTIONS" #>#
+		"L:; specify the login class"
+		"v; print operations that are executed"
+		) #<#
+		case $type in
+		(OpenBSD)
+			OPTIONS=("$OPTIONS" #>#
+			"r:; specify the integer range from which the new user ID is chosen"
+			) #<#
+			;;
+		(NetBSD)
+			OPTIONS=("$OPTIONS" #>#
+			"F; force the user to change the password on next login"
+			"M:; specify the permission of the home directory"
+			"S; allow samba user names with a trailing dollar sign to be added to the system"
+			) #<#
+			;;
+		esac
+		;;
+	(SunOS)
+		OPTIONS=("$OPTIONS" #>#
+		"A:; specify authorizations"
+		"P:; specify execution profiles"
+		"R:; specify execution roles"
+		) #<#
+		;;
+	(HP-UX)
+		OPTIONS=("$OPTIONS" #>#
+		"i; inherit the existing home directory"
+		"O:; specify if the -o option is enabled by default"
+		"r:; specify if the existing home directory's permission is reset"
+		"S:; specify the alternate password file of NIS"
+		"t:; specify the template file containing default settings"
+		) #<#
+		;;
+	esac
+
+	command -f completion//parseoptions ${long:+-es}
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([bdk]|--base-dir|--home|--skel)
+		complete -T -P "$PREFIX" -S / -d
+		;;
+	(A)
+		# TODO
+		;;
+#	(c|--comment)
+#		;;
+	(e|--expiredate)
+		#TODO
+	(f|--inactive)
+		#TODO
+		;;
+	(G|--groups)
+		PREFIX="${TARGETWORD%"${${TARGETWORD#"$PREFIX"}##*,}"}"
+		complete -T -P "$PREFIX" -S , -g
+		;;
+	(g|--group)
+		complete -P "$PREFIX" -g
+		;;
+	(K|--key)
+		# TODO
+		;;
+	(L)
+		# TODO
+		;;
+#	(M)
+#		;;
+	(O)
+		complete -P "$PREFIX" -D "yes" yes
+		complete -P "$PREFIX" -D "no" yes
+		;;
+	(P)
+		# TODO
+		;;
+	(p)
+		# TODO
+		;;
+	(R)
+		# TODO
+		;;
+	(r)
+		case $type in
+		(HP-UX)
+			complete -P "$PREFIX" -D "yes" yes
+			complete -P "$PREFIX" -D "no" yes
+			;;
+		esac
+		;;
+	(S)
+		# TODO
+		;;
+	(s|--shell)
+		complete -P "$PREFIX" -- $(sed -e 's/#.*//' /etc/shells 2>/dev/null) ||
+		{
+			complete -T -P "$PREFIX" -S / -d
+			complete -P "$PREFIX" --executable-file
+		}
+		;;
+	(t)
+		complete -P "$PREFIX" -f
+		;;
+#	(u|--uid)
+#		;;
+	(Z|--selinux-user)
+		# TODO
+		;;
+	('')
+		complete -u
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
