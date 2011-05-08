@@ -575,9 +575,9 @@ bool lock_histfile(short type)
  * If there is no more line in the file, false is returned. */
 bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
 {
-    while (fgetws(buf->contents + buf->length,
+    while (fgetws(&buf->contents[buf->length],
 		buf->maxlength - buf->length + 1, f)) {
-	size_t len = wcslen(buf->contents + buf->length);
+	size_t len = wcslen(&buf->contents[buf->length]);
 	if (len == 0)
 	    return false;
 	buf->length += len;

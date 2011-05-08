@@ -151,7 +151,7 @@ xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
 xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
 {
     sb_ensuremax(buf, buf->length + n);
-    memset(buf->contents + buf->length, c, n);
+    memset(&buf->contents[buf->length], c, n);
     buf->length += n;
     buf->contents[buf->length] = '\0';
     return buf;
@@ -168,7 +168,7 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     size_t count;
 
     sb_ensuremax(buf, buf->length + MB_CUR_MAX);
-    count = wcrtomb(buf->contents + buf->length, c, ps);
+    count = wcrtomb(&buf->contents[buf->length], c, ps);
     if (count == (size_t) -1) {
 	buf->contents[buf->length] = '\0';
 	return false;
@@ -196,7 +196,7 @@ wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
 #if HAVE_WCSNRTOMBS
     for (;;) {
 	const wchar_t *saves = s;
-	size_t count = wcsnrtombs(buf->contents + buf->length,
+	size_t count = wcsnrtombs(&buf->contents[buf->length],
 		(const wchar_t **) &s, n,
 		buf->maxlength - buf->length, ps);
 	if (count == (size_t) -1) {
@@ -240,7 +240,7 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 	const wchar_t *restrict s, mbstate_t *restrict ps)
 {
     for (;;) {
-	size_t count = wcsrtombs(buf->contents + buf->length,
+	size_t count = wcsrtombs(&buf->contents[buf->length],
 		(const wchar_t **) &s,
 		buf->maxlength - buf->length,
 		ps);
@@ -268,13 +268,13 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
     va_copy(copyap, ap);
 
     int rest = buf->maxlength - buf->length + 1;
-    int result = vsnprintf(buf->contents + buf->length, rest, format, ap);
+    int result = vsnprintf(&buf->contents[buf->length], rest, format, ap);
 
     if (result >= rest) {
 	/* If the buffer is too small... */
 	sb_ensuremax(buf, buf->length + result);
 	rest = buf->maxlength - buf->length + 1;
-	result = vsnprintf(buf->contents + buf->length, rest, format, copyap);
+	result = vsnprintf(&buf->contents[buf->length], rest, format, copyap);
     }
     assert(result < rest);
     if (result >= 0)
@@ -413,7 +413,7 @@ char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
     memset(&state, 0, sizeof state);  // initialize as the initial shift state
 
     for (;;) {
-	count = mbsrtowcs(buf->contents + buf->length, (const char **) &s,
+	count = mbsrtowcs(&buf->contents[buf->length], (const char **) &s,
 		buf->maxlength - buf->length + 1, &state);
 	if (count == (size_t) -1)
 	    break;
@@ -440,7 +440,7 @@ int wb_vwprintf(
     for (int i = 0; i < 20; i++) {
 	va_copy(copyap, ap);
 	rest = buf->maxlength - buf->length + 1;
-	result = vswprintf(buf->contents + buf->length, rest, format, copyap);
+	result = vswprintf(&buf->contents[buf->length], rest, format, copyap);
 	va_end(copyap);
 
 	if (0 <= result && result < rest)
