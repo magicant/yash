@@ -272,8 +272,6 @@ echo ===== special builtins =====
 echo ===== exec =====
 
 $INVOKE $TESTEE -c 'exec echo exec'
-$INVOKE $TESTEE -c 'exec /dev/null' 2>/dev/null
-echo $?
 $INVOKE $TESTEE -c '(exec echo 1); exec echo 2'
 
 exec echo exec echo
