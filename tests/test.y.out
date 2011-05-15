@@ -20,7 +20,6 @@
 -f fifolink: 1 1
 -f .: 1 1
 -f no_such_file: 1 1
--G .: 0 0
 -g gid: 0 0
 -g uid: 1 1
 -h fifolink: 0 0

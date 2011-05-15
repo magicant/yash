@@ -67,7 +67,7 @@ touch -t 200101010000 newer
 touch -a -t 200101010000 old; touch -m -t 200001010000 old
 touch -a -t 200001010000 new; touch -m -t 200101010000 new
 
-# check of the -b, -c and -S operators are skipped
+# check of the -b, -c, -G and -S operators are skipped
 # check of the -t operator is in job.y.tst
 tt -d .
 tt -d fifolink
@@ -79,7 +79,6 @@ tt -f reglink
 tt -f fifolink
 tt -f .
 tt -f no_such_file
-tt -G .
 tt -g gid
 tt -g uid
 tt -h fifolink
