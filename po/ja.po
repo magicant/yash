@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: yash 2.27\n"
 "Report-Msgid-Bugs-To: http://sourceforge.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2011-05-16 22:30+0900\n"
-"PO-Revision-Date: 2010-12-27 00:14+0900\n"
+"PO-Revision-Date: 2011-05-16 22:58+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.sourceforge.jp>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -466,7 +466,7 @@ msgstr "使い方: %ls [-L|-P] [ディレクトリ]\n"
 
 #: variable.c:2823 path.c:1098
 msgid "$OLDPWD is not set"
-msgstr ""
+msgstr "$OLDPWD が設定されていません"
 
 #: variable.c:2876
 msgid "$DIRSTACK is not an array"
@@ -1812,7 +1812,7 @@ msgstr "「%ls」の後には単語が必要です"
 
 #: parser.c:2301
 msgid "an unquoted `esac' cannot be the first case pattern"
-msgstr ""
+msgstr "クォートしていない「esac」を最初のパターンにすることはできません"
 
 #: parser.c:2310
 #, c-format
@@ -2899,7 +2899,7 @@ msgstr "SIGSTOP シグナルを送信できません"
 
 #: sig.c:582
 msgid "too many files are opened for yash to handle"
-msgstr ""
+msgstr "開いたファイルの数が多すぎて処理しきれません"
 
 #: sig.c:776
 #, c-format
@@ -3079,7 +3079,7 @@ msgstr "「%ls」で始まるような履歴項目はありません"
 
 #: history.c:1522
 msgid "the editor returned a non-zero exit status"
-msgstr ""
+msgstr "エディタが 0 以外の終了ステータスを返しました"
 
 #: history.c:1527
 #, c-format
@@ -3666,7 +3666,7 @@ msgstr "現在の作業ディレクトリが分かりません"
 #: path.c:1224
 #, c-format
 msgid "`%ls'"
-msgstr ""
+msgstr "「%ls」"
 
 #: path.c:1255
 #, c-format
