@@ -6,9 +6,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: yash 2.26\n"
+"Project-Id-Version: yash 2.27\n"
 "Report-Msgid-Bugs-To: http://sourceforge.jp/projects/yash/forums/\n"
-"POT-Creation-Date: 2011-02-16 23:32+0900\n"
+"POT-Creation-Date: 2011-05-16 22:30+0900\n"
 "PO-Revision-Date: 2010-12-27 00:14+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.sourceforge.jp>\n"
 "Language-Team: Japanese\n"
@@ -96,10 +96,10 @@ msgstr "$%ls というような変数はありません"
 
 #: variable.c:1652 variable.c:1660 variable.c:1673 variable.c:1724
 #: variable.c:1766 variable.c:3079 variable.c:3095 variable.c:3107
-#: builtins/printf.c:206 builtins/printf.c:395 util.c:286
-#: lineedit/keymap.c:451 lineedit/keymap.c:556 exec.c:2335 exec.c:2472
-#: sig.c:1158 sig.c:1360 history.c:1353 job.c:1055 path.c:1381 path.c:1516
-#: path.c:1534 path.c:1621 path.c:1652
+#: builtins/printf.c:206 builtins/printf.c:395 util.c:299
+#: lineedit/keymap.c:451 lineedit/keymap.c:556 exec.c:2337 exec.c:2474
+#: sig.c:1182 sig.c:1384 history.c:1417 job.c:1064 path.c:1394 path.c:1533
+#: path.c:1551 path.c:1637 path.c:1668
 msgid "cannot print to the standard output"
 msgstr "標準出力に出力できません"
 
@@ -192,8 +192,8 @@ msgstr "「%ls」は有効な配列名ではありません"
 
 #: variable.c:1940 variable.c:2000 variable.c:2034 variable.c:2226
 #: builtins/printf.c:757 builtins/ulimit.c:236 builtins/test.c:544
-#: builtins/test.c:550 yash.c:614 exec.c:1600 exec.c:1680 sig.c:1313
-#: history.c:1661
+#: builtins/test.c:550 yash.c:617 exec.c:1602 exec.c:1682 sig.c:1337
+#: history.c:1714
 #, c-format
 msgid "`%ls' is not a valid integer"
 msgstr "「%ls」は有効な整数ではありません"
@@ -459,12 +459,12 @@ msgid ""
 "The -A option is not available in the POSIXly correct mode.\n"
 msgstr ""
 
-#: variable.c:2804 path.c:1067
+#: variable.c:2804 path.c:1112
 #, c-format
 msgid "Usage:  %ls [-L|-P] [directory]\n"
 msgstr "使い方: %ls [-L|-P] [ディレクトリ]\n"
 
-#: variable.c:2823 path.c:1087
+#: variable.c:2823 path.c:1098
 msgid "$OLDPWD is not set"
 msgstr ""
 
@@ -565,27 +565,27 @@ msgstr ""
 msgid "The -c (--clear) option clears the stack.\n"
 msgstr ""
 
-#: option.c:384 util.c:508
+#: option.c:384 util.c:521
 #, c-format
 msgid "the -%lc option requires an argument"
 msgstr "-%lc オプションの引数が抜けています"
 
-#: option.c:436 option.c:546 util.c:504 sig.c:1261
+#: option.c:436 option.c:546 util.c:517 sig.c:1282
 #, c-format
 msgid "`%ls' is not a valid option"
 msgstr "「%ls」は有効なオプションではありません"
 
-#: option.c:569 util.c:511
+#: option.c:569 util.c:524
 #, c-format
 msgid "the --%ls option requires an argument"
 msgstr "--%ls オプションは引数を取りません"
 
-#: option.c:582 util.c:525
+#: option.c:582 util.c:538
 #, c-format
 msgid "%ls: the --%ls option does not take an argument"
 msgstr "%ls: --%ls オプションは引数を取りません"
 
-#: option.c:591 util.c:515
+#: option.c:591 util.c:528
 #, c-format
 msgid "option `%ls' is ambiguous"
 msgstr "オプション「%ls」は曖昧です"
@@ -631,7 +631,7 @@ msgid ""
 "option settings later.\n"
 msgstr ""
 
-#: option.c:848 builtins/ulimit.c:269 job.c:1073
+#: option.c:848 builtins/ulimit.c:269 job.c:1082
 msgid "Available options are:\n"
 msgstr "利用可能なオプション:\n"
 
@@ -1417,9 +1417,9 @@ msgid ""
 "Available resource types vary depending on your system.\n"
 msgstr ""
 
-#: builtins/test.c:80 builtins/test.c:413 parser.c:1264 parser.c:1690
-#: parser.c:1767 parser.c:1794 parser.c:2176 parser.c:2246 parser.c:2326
-#: parser.c:2684
+#: builtins/test.c:80 builtins/test.c:413 parser.c:1262 parser.c:1689
+#: parser.c:1766 parser.c:1793 parser.c:2175 parser.c:2245 parser.c:2325
+#: parser.c:2683
 #, c-format
 msgid "`%ls' is missing"
 msgstr "「%ls」が抜けています"
@@ -1435,8 +1435,8 @@ msgid "`%ls' is not a unary operator"
 msgstr "「%ls」は単項演算子ではありません"
 
 #: builtins/test.c:152 builtins/test.c:615 builtins/test.c:623
-#: lineedit/keymap.c:478 exec.c:1843 history.c:1388 strbuf.c:545 strbuf.c:568
-#: path.c:1137 path.c:1163 path.c:1237
+#: lineedit/keymap.c:478 exec.c:1845 history.c:1451 strbuf.c:545 strbuf.c:568
+#: path.c:1178 path.c:1250
 msgid "unexpected error"
 msgstr "想定外のエラーです"
 
@@ -1714,7 +1714,7 @@ msgid ""
 "assumed. An empty expression evaluates to false.\n"
 msgstr ""
 
-#: util.c:254
+#: util.c:267
 msgid "unknown error"
 msgstr "不明なエラー"
 
@@ -1735,221 +1735,221 @@ msgstr "入力の最後でコマンドが抜けています"
 msgid "a command is missing before `%lc'"
 msgstr "「%lc」の前にコマンドがありません"
 
-#: parser.c:1138
+#: parser.c:1137
 #, c-format
 msgid "invalid use of `%lc'"
 msgstr "「%lc」の使い方が正しくありません"
 
-#: parser.c:1373
+#: parser.c:1371
 msgid "the redirection target is missing"
 msgstr "リダイレクトの対象が抜けています"
 
-#: parser.c:1380
+#: parser.c:1378
 msgid "the end-of-here-document indicator is missing"
 msgstr "ヒアドキュメントの終端子が抜けています"
 
-#: parser.c:1504
+#: parser.c:1503
 msgid "the double quotation is not closed"
 msgstr "二重引用符が閉じられていません"
 
-#: parser.c:1521
+#: parser.c:1520
 msgid "the single quotation is not closed"
 msgstr "単一引用符が閉じられていません"
 
-#: parser.c:1666
+#: parser.c:1665
 msgid "the parameter name is missing or invalid"
 msgstr "パラメータ名が抜けているか不正です"
 
-#: parser.c:1680 parser.c:1685
+#: parser.c:1679 parser.c:1684
 msgid "the index is missing"
 msgstr "インデックスが抜けています"
 
-#: parser.c:1712 parser.c:1726 parser.c:1769
+#: parser.c:1711 parser.c:1725 parser.c:1768
 #, c-format
 msgid "invalid use of `%lc' in parameter expansion"
 msgstr "パラメータ展開において「%lc」の使い方が正しくありません"
 
-#: parser.c:1716
+#: parser.c:1715
 #, c-format
 msgid "invalid character `%lc' in parameter expansion"
 msgstr "パラメータ展開に無効な文字「%lc」が混じっています"
 
-#: parser.c:1871
+#: parser.c:1870
 msgid "the backquoted command substitution is not closed"
 msgstr "「`」によるコマンド置換が閉じられていません"
 
-#: parser.c:2058 parser.c:2089 parser.c:2180 parser.c:2214
+#: parser.c:2057 parser.c:2088 parser.c:2179 parser.c:2213
 #, c-format
 msgid "commands are missing between `%ls' and `%ls'"
 msgstr "「%ls」と「%ls」の間にコマンドがありません"
 
-#: parser.c:2101 parser.c:2205
+#: parser.c:2100 parser.c:2204
 #, c-format
 msgid "commands are missing after `%ls'"
 msgstr "「%ls」の後にコマンドがありません"
 
-#: parser.c:2144
+#: parser.c:2143
 msgid "an identifier is required after `for'"
 msgstr "「for」の後には識別子が必要です"
 
-#: parser.c:2146
+#: parser.c:2145
 #, c-format
 msgid "`%ls' is not a valid identifier"
 msgstr "「%ls」は有効な識別子ではありません"
 
-#: parser.c:2157
+#: parser.c:2156
 msgid "redirections are not allowed after `in'"
 msgstr "「in」の後にリダイレクトは書けません"
 
-#: parser.c:2167
+#: parser.c:2166
 msgid "`;' is not allowed just after the identifier in a for loop"
 msgstr "for ループの識別子の直後に「;」を置いてはいけません"
 
-#: parser.c:2239 parser.c:2309 parser.c:2352
+#: parser.c:2238 parser.c:2308 parser.c:2351
 #, c-format
 msgid "a word is required after `%ls'"
 msgstr "「%ls」の後には単語が必要です"
 
-#: parser.c:2302
+#: parser.c:2301
 msgid "an unquoted `esac' cannot be the first case pattern"
 msgstr ""
 
-#: parser.c:2311
+#: parser.c:2310
 #, c-format
 msgid "encountered an invalid character `%lc' in the case pattern"
 msgstr "case のパターン内に不正な文字「%lc」があります"
 
-#: parser.c:2338 parser.c:2642 parser.c:2645
+#: parser.c:2337 parser.c:2641 parser.c:2644
 #, c-format
 msgid "`%ls' cannot be used as a command name"
 msgstr "「%ls」はコマンド名として使えません"
 
-#: parser.c:2370 parser.c:2410
+#: parser.c:2369 parser.c:2409
 msgid "a function body must be a compound command"
 msgstr "関数の本体は複合コマンドでなければなりません"
 
-#: parser.c:2401
+#: parser.c:2400
 msgid "`(' must be followed by `)' in a function definition"
 msgstr "関数定義では「(」の直後に「)」が必要です"
 
-#: parser.c:2437
+#: parser.c:2436
 msgid "the end-of-here-document indicator contains a newline"
 msgstr "ヒアドキュメントの終端子に改行が入っています"
 
-#: parser.c:2633
+#: parser.c:2632
 #, c-format
 msgid "encountered `%ls' without a matching `('"
 msgstr "「%ls」に対応する「(」がありません"
 
-#: parser.c:2636
+#: parser.c:2635
 #, c-format
 msgid "encountered `%ls' without a matching `{'"
 msgstr "「%ls」に対応する「{」がありません"
 
-#: parser.c:2639
+#: parser.c:2638
 #, c-format
 msgid "`%ls' is used outside `case'"
 msgstr "「%ls」が case コマンドの外で使われています"
 
-#: parser.c:2648 parser.c:2669
+#: parser.c:2647 parser.c:2668
 #, c-format
 msgid "encountered `%ls' without a matching `if' and/or `then'"
 msgstr "「%ls」に対応する「if」または「then」がありません"
 
-#: parser.c:2652
+#: parser.c:2651
 #, c-format
 msgid "encountered `%ls' without a matching `if' or `elif'"
 msgstr "「%ls」に対応する「if」または「elif」がありません"
 
-#: parser.c:2657
+#: parser.c:2656
 #, c-format
 msgid "encountered `%ls' without a matching `for', `while', or `until'"
 msgstr "「%ls」に対応する「for」「while」または「until」がありません"
 
-#: parser.c:2661
+#: parser.c:2660
 #, c-format
 msgid "encountered `%ls' without a matching `do'"
 msgstr "「%ls」に対応する「do」がありません"
 
-#: parser.c:2666
+#: parser.c:2665
 #, c-format
 msgid "encountered `%ls' without a matching `case'"
 msgstr "「%ls」に対応する「case」がありません"
 
-#: parser.c:2682
+#: parser.c:2681
 #, c-format
 msgid "(maybe you missed `%ls'?)"
 msgstr "(「%ls」を忘れていませんか?)"
 
-#: alias.c:406
+#: alias.c:395
 #, c-format
 msgid "%ls: an alias for `%ls'\n"
 msgstr "%ls: 「%ls」へのエイリアス\n"
 
-#: alias.c:470
+#: alias.c:459
 msgid "Usage:  alias [name[=value]...]\n"
 msgstr "使い方: alias [名前[=値]...]\n"
 
-#: alias.c:471
+#: alias.c:460
 msgid "Usage:  alias [-gp] [name[=value]...]\n"
 msgstr "使い方: alias [-gp] [名前[=値]...]\n"
 
-#: alias.c:501
+#: alias.c:490
 #, c-format
 msgid "`%ls': an alias value cannot contain newlines"
 msgstr "「%ls」: エイリアスの値に改行は入れられません"
 
-#: alias.c:510 alias.c:574
+#: alias.c:499 alias.c:563
 #, c-format
 msgid "no such alias `%ls'"
 msgstr "「%ls」というエイリアスはありません"
 
-#: alias.c:513
+#: alias.c:502
 #, c-format
 msgid "`%ls' is not a valid alias name"
 msgstr "「%ls」は有効なエイリアス名ではありません"
 
-#: alias.c:522
+#: alias.c:511
 msgid "alias - define or print aliases\n"
 msgstr "alias - エイリアスを定義・表示する\n"
 
-#: alias.c:524
+#: alias.c:513
 msgid "\talias [-gp] [name[=value]...]\n"
 msgstr "\talias [-gp] [名前[=値]...]\n"
 
-#: alias.c:526
+#: alias.c:515
 msgid "The alias built-in defines and/or prints aliases.\n"
 msgstr ""
 
-#: alias.c:528
+#: alias.c:517
 msgid "For each operand of the form <name=value>, an alias is (re)defined.\n"
 msgstr ""
 
-#: alias.c:530
+#: alias.c:519
 msgid ""
 "If the -g (--global) option is specified, it is defined as a global alias,\n"
 "which is substituted even if it is not a command word.\n"
 msgstr ""
 
-#: alias.c:533
+#: alias.c:522
 msgid "For each operand of the form <name>, the alias definition is printed.\n"
 msgstr ""
 
-#: alias.c:535
+#: alias.c:524
 msgid ""
 "If the -p (--prefix) option is specified, the output format is suitable for\n"
 "re-input to the shell.\n"
 msgstr ""
 
-#: alias.c:538
+#: alias.c:527
 msgid "If no operands are given, all alias definitions are printed.\n"
 msgstr ""
 
-#: alias.c:540
+#: alias.c:529
 msgid "No options are available in the POSIXly correct mode.\n"
 msgstr ""
 
-#: alias.c:580
+#: alias.c:569
 msgid ""
 "Usage:  unalias name...\n"
 "        unalias -a\n"
@@ -1957,11 +1957,11 @@ msgstr ""
 "Usage:  unalias 名前...\n"
 "        unalias -a\n"
 
-#: alias.c:587
+#: alias.c:576
 msgid "unalias - undefine aliases\n"
 msgstr "unalias - エイリアスを削除する\n"
 
-#: alias.c:589
+#: alias.c:578
 msgid ""
 "\tunalias name...\n"
 "\tunalias -a\n"
@@ -1969,11 +1969,11 @@ msgstr ""
 "\tunalias 名前...\n"
 "\tunalias -a\n"
 
-#: alias.c:592
+#: alias.c:581
 msgid "The unalias built-in removes the specified alias definitions.\n"
 msgstr ""
 
-#: alias.c:594
+#: alias.c:583
 msgid "If the -a (--all) option is specified, all definitions are removed.\n"
 msgstr ""
 
@@ -2187,25 +2187,25 @@ msgid ""
 "\tthis option is added to each candidate generated.\n"
 msgstr ""
 
-#: lineedit/editing.c:2608 history.c:1425
+#: lineedit/editing.c:2607 history.c:1488
 msgid "cannot create a temporary file to edit history"
 msgstr "履歴を編集するための一時ファイルを作成できません"
 
-#: lineedit/editing.c:2613 history.c:1430
+#: lineedit/editing.c:2612 history.c:1493
 #, c-format
 msgid "cannot open temporary file `%s'"
 msgstr "一時ファイル「%s」が開けません"
 
-#: lineedit/editing.c:2621 history.c:1438
+#: lineedit/editing.c:2620 history.c:1501
 msgid "cannot invoke the editor to edit history"
 msgstr "履歴を編集するためのエディタを起動できません"
 
-#: lineedit/editing.c:2624 history.c:1441 history.c:1468 redir.c:769
+#: lineedit/editing.c:2623 history.c:1504 history.c:1530 redir.c:790
 #, c-format
 msgid "failed to remove temporary file `%s'"
 msgstr "一時ファイル「%s」を削除できませんでした"
 
-#: lineedit/editing.c:2678
+#: lineedit/editing.c:2677
 msgid "lineedit"
 msgstr "行編集"
 
@@ -2287,12 +2287,12 @@ msgid ""
 "\tSpecifies the `emacs' mode.\n"
 msgstr ""
 
-#: lineedit/display.c:1326
+#: lineedit/display.c:1327
 #, c-format
 msgid "Candidate %zu of %zu; Page %zu of %zu"
 msgstr "候補 %zu/%zu、ページ %zu/%zu"
 
-#: lineedit/display.c:1342
+#: lineedit/display.c:1343
 msgid "No candidates"
 msgstr "候補なし"
 
@@ -2318,7 +2318,7 @@ msgstr "-c オプションと -s オプションは同時に使えません"
 msgid "the -c option is specified but no command is given"
 msgstr "-c オプションが指定されていますがコマンドが与えられていません"
 
-#: yash.c:204 exec.c:1885 redir.c:256
+#: yash.c:204 exec.c:1887 redir.c:277
 #, c-format
 msgid "cannot open file `%s'"
 msgstr "ファイル「%s」を開けません"
@@ -2384,37 +2384,37 @@ msgstr ""
 "\n"
 "有効な機能:\n"
 
-#: yash.c:498
+#: yash.c:501
 msgid "return: not in a function or sourced file"
 msgstr "return: 関数の外では使えません"
 
-#: yash.c:523
+#: yash.c:526
 msgid "Use `exit' to leave the shell.\n"
 msgstr "シェルを終了するには「exit」コマンドを実行してください。\n"
 
-#: yash.c:590
+#: yash.c:593
 msgid "Usage:  exit [-f] [n]\n"
 msgstr "使い方: exit [-f] [n]\n"
 
-#: yash.c:601 exec.c:1976
+#: yash.c:604 exec.c:1978
 #, c-format
 msgid "You have a stopped job!"
 msgid_plural "You have %zu stopped jobs!"
 msgstr[0] "停止中のジョブが %zu 個あります!"
 
-#: yash.c:605
+#: yash.c:608
 msgid "  Use `exit' again to exit anyway.\n"
 msgstr " それでも終了するにはもう一度「exit」してください。\n"
 
-#: yash.c:627
+#: yash.c:630
 msgid "exit - exit the shell\n"
 msgstr "exit - シェルを終了する\n"
 
-#: yash.c:629
+#: yash.c:632
 msgid "\texit [-f] [n]\n"
 msgstr "\texit [-f] [n]\n"
 
-#: yash.c:631
+#: yash.c:634
 msgid ""
 "The exit built-in makes the shell terminate with the exit status of <n>.\n"
 "If <n> is not specified, it defaults to the exit status of the last "
@@ -2422,18 +2422,18 @@ msgid ""
 "command. <n> should be between 0 and 255 inclusive.\n"
 msgstr ""
 
-#: yash.c:635
+#: yash.c:638
 msgid ""
 "If the shell is interactive and you have any stopped jobs, the shell prints\n"
 "a warning message and does not exit. Use the -f (--force) option or use\n"
 "`exit' twice in a row to avoid the warning and really exit.\n"
 msgstr ""
 
-#: yash.c:659
+#: yash.c:662
 msgid "Usage:  suspend [-f]\n"
 msgstr "使い方: suspend [-f]\n"
 
-#: yash.c:666
+#: yash.c:669
 msgid ""
 "refusing to suspend because of a possible deadlock.\n"
 "Use the -f option to suspend anyway."
@@ -2441,23 +2441,19 @@ msgstr ""
 "デッドロックの恐れがあるためサスペンドしませんでした。\n"
 "本当にサスペンドするには -f オプションを付けてください。"
 
-#: yash.c:673
-msgid "cannot send SIGSTOP signal"
-msgstr "SIGSTOP シグナルを送信できません"
-
-#: yash.c:681
+#: yash.c:683
 msgid "suspend - suspend the shell\n"
 msgstr "suspend - シェルをサスペンドする\n"
 
-#: yash.c:683
+#: yash.c:685
 msgid "\tsuspend [-f]\n"
 msgstr "\tsuspend [-f]\n"
 
-#: yash.c:685
+#: yash.c:687
 msgid "The suspend built-in suspends the shell until it receives SIGCONT.\n"
 msgstr ""
 
-#: yash.c:687
+#: yash.c:689
 msgid ""
 "If the shell is interactive and is a session leader, this command refuses "
 "to\n"
@@ -2465,61 +2461,61 @@ msgid ""
 "to force the shell to suspend anyway.\n"
 msgstr ""
 
-#: exec.c:581
+#: exec.c:582
 msgid "cannot open a pipe"
 msgstr "パイプを開けません"
 
-#: exec.c:891
+#: exec.c:893
 msgid "cannot make a child process"
 msgstr "子プロセスを生成できません"
 
-#: exec.c:1116 exec.c:2013 exec.c:2330
+#: exec.c:1118 exec.c:2015 exec.c:2332
 #, c-format
 msgid "no such command `%s'"
 msgstr "「%s」というようなコマンドはありません"
 
-#: exec.c:1137 exec.c:2052
+#: exec.c:1139 exec.c:2054
 #, c-format
 msgid "cannot execute command `%s'"
 msgstr "コマンド「%s」を実行できません"
 
-#: exec.c:1139 exec.c:2054
+#: exec.c:1141 exec.c:2056
 #, c-format
 msgid "cannot execute command `%s' (%s)"
 msgstr "コマンド「%s」(%s) を実行できません"
 
-#: exec.c:1255
+#: exec.c:1257
 #, c-format
 msgid "cannot invoke a new shell to execute script `%s'"
 msgstr "スクリプト「%s」を実行するための新しいシェルを起動できません"
 
-#: exec.c:1311 exec.c:1333
+#: exec.c:1313 exec.c:1335
 msgid "cannot open a pipe for the command substitution"
 msgstr "コマンド置換のためのパイプを開けません"
 
-#: exec.c:1376
+#: exec.c:1378
 msgid "command substitution"
 msgstr "コマンド置換"
 
-#: exec.c:1586
+#: exec.c:1588
 #, c-format
 msgid "Usage:  %ls [n]\n"
 msgstr "使い方: %ls [n]\n"
 
-#: exec.c:1587
+#: exec.c:1589
 #, c-format
 msgid "Usage:  %ls [-n] [n]\n"
 msgstr "使い方: %ls [-n] [n]\n"
 
-#: exec.c:1615
+#: exec.c:1617
 msgid "return - return from a function or script\n"
 msgstr "return - 関数やスクリプトから返る\n"
 
-#: exec.c:1617
+#: exec.c:1619
 msgid "\treturn [-n] [n]\n"
 msgstr "\treturn [-n] [n]\n"
 
-#: exec.c:1619
+#: exec.c:1621
 msgid ""
 "The return built-in exits the currently executing function or script file\n"
 "with the exit status of <n>. If <n> is not specified, it defaults to the\n"
@@ -2527,14 +2523,14 @@ msgid ""
 "inclusive.\n"
 msgstr ""
 
-#: exec.c:1624
+#: exec.c:1626
 msgid ""
 "If the -n (--no-return) option is specified, this built-in does not return\n"
 "from a function or script; simply returns the specified exit status.\n"
 "The -n option cannot be used in the POSIXly correct mode.\n"
 msgstr ""
 
-#: exec.c:1649
+#: exec.c:1651
 #, c-format
 msgid ""
 "Usage:  %ls [n]\n"
@@ -2543,24 +2539,24 @@ msgstr ""
 "使い方: %ls [n]\n"
 "        %ls -i\n"
 
-#: exec.c:1661
+#: exec.c:1663
 msgid "not in a iteration"
 msgstr "反復実行の途中ではありません"
 
-#: exec.c:1684
+#: exec.c:1686
 #, c-format
 msgid "%u is not a positive integer"
 msgstr "%u は正の整数ではありません"
 
-#: exec.c:1695
+#: exec.c:1697
 msgid "not in a loop"
 msgstr "ループの途中ではありません"
 
-#: exec.c:1715
+#: exec.c:1717
 msgid "break - exit a loop\n"
 msgstr "break - ループから脱出する\n"
 
-#: exec.c:1717
+#: exec.c:1719
 msgid ""
 "\tbreak [n]\n"
 "\tbreak -i\n"
@@ -2568,23 +2564,23 @@ msgstr ""
 "\tbreak [n]\n"
 "\tbreak -i\n"
 
-#: exec.c:1720
+#: exec.c:1722
 msgid ""
 "The first form exits the currently executing for/while/until loop.\n"
 "If <n> is specified, exits the <n>th outer loop.\n"
 msgstr ""
 
-#: exec.c:1723
+#: exec.c:1725
 msgid ""
 "The second form, with the -i (--iteration) option, exits the current\n"
 "iterative execution.\n"
 msgstr ""
 
-#: exec.c:1728
+#: exec.c:1730
 msgid "continue - continue a loop\n"
 msgstr "continue - ループを継続する\n"
 
-#: exec.c:1730
+#: exec.c:1732
 msgid ""
 "\tcontinue [n]\n"
 "\tcontinue -i\n"
@@ -2592,36 +2588,36 @@ msgstr ""
 "\tcontinue [n]\n"
 "\tcontinue -i\n"
 
-#: exec.c:1733
+#: exec.c:1735
 msgid ""
 "The first form ends the current iteration of a for/while/until loop and\n"
 "resumes the next iteration. If <n> is specified, ends the iteration of the\n"
 "<n>th outer loop.\n"
 msgstr ""
 
-#: exec.c:1737
+#: exec.c:1739
 msgid ""
 "The second form, with the -i (--iteration) option, ends the execution of\n"
 "commands and resumes the next iteration of the current iterative execution.\n"
 msgstr ""
 
-#: exec.c:1762
+#: exec.c:1764
 msgid "Usage:  eval [arg...]\n"
 msgstr "使い方: eval [引数...]\n"
 
-#: exec.c:1763
+#: exec.c:1765
 msgid "Usage:  eval [-i] [arg...]\n"
 msgstr "使い方: eval [-i] [引数...]\n"
 
-#: exec.c:1781
+#: exec.c:1783
 msgid "eval - evaluate arguments as a command\n"
 msgstr "eval - 引数をコマンドとして評価する\n"
 
-#: exec.c:1783
+#: exec.c:1785
 msgid "\teval [-i] [arg...]\n"
 msgstr "\teval [-i] [引数...]\n"
 
-#: exec.c:1785
+#: exec.c:1787
 msgid ""
 "The eval built-in parses and executes the specified <arg>s as commands in\n"
 "the current shell environment. Without the -i (--iteration) option, all the\n"
@@ -2631,33 +2627,33 @@ msgid ""
 "In the POSIXly correct mode, the -i option cannot be used.\n"
 msgstr ""
 
-#: exec.c:1826
+#: exec.c:1828
 msgid "Usage:  . file\n"
 msgstr "使い方: . ファイル\n"
 
-#: exec.c:1827
+#: exec.c:1829
 msgid "Usage:  . [-AL] file [arg...]\n"
 msgstr "使い方: . [-AL] ファイル [引数...]\n"
 
-#: exec.c:1852
+#: exec.c:1854
 #, c-format
 msgid "file `%s' was not found in $YASH_LOADPATH"
 msgstr "ファイル「%s」は $YASH_LOADPATH 内に見つかりませんでした"
 
-#: exec.c:1865
+#: exec.c:1867
 #, c-format
 msgid "file `%s' was not found in $PATH"
 msgstr "ファイル「%s」は $PATH 内に見つかりませんでした"
 
-#: exec.c:1906
+#: exec.c:1908
 msgid "dot - read a file and execute commands\n"
 msgstr "ドット - ファイルを読み込みコマンドを実行する\n"
 
-#: exec.c:1908
+#: exec.c:1910
 msgid "\t. [-AL] file [arg...]\n"
 msgstr "\t. [-AL] ファイル [引数...]\n"
 
-#: exec.c:1910
+#: exec.c:1912
 msgid ""
 "The dot built-in reads the specified <file> and executes commands in it.\n"
 "If <arg>s are specified, they are used as the positional parameters.\n"
@@ -2667,52 +2663,52 @@ msgid ""
 "the current working directory is used, start <file> with `./'.\n"
 msgstr ""
 
-#: exec.c:1917
+#: exec.c:1919
 msgid ""
 "If the -L (--autoload) option is specified, the shell searches\n"
 "$YASH_LOADPATH instead of $PATH, regardless of whether <file> contains\n"
 "slashes.\n"
 msgstr ""
 
-#: exec.c:1921
+#: exec.c:1923
 msgid ""
 "If the -A (--no-alias) option is specified, alias substitution is not\n"
 "performed while processing the file.\n"
 msgstr ""
 
-#: exec.c:1924
+#: exec.c:1926
 msgid ""
 "In the POSIXly correct mode, options cannot be used and <arg>s must not be\n"
 "given.\n"
 msgstr ""
 
-#: exec.c:1961
+#: exec.c:1963
 msgid "Usage:  exec [command [arg...]]\n"
 msgstr "使い方: exec [コマンド [引数...]]\n"
 
-#: exec.c:1962
+#: exec.c:1964
 msgid "Usage:  exec [-cf] [-a name] [command [arg...]]\n"
 msgstr "使い方: exec [-cf] [-a 名前] [コマンド [引数...]]\n"
 
-#: exec.c:1980
+#: exec.c:1982
 msgid "  Use the -f option to exec anyway.\n"
 msgstr "  それでも exec するには -f オプションを付けてください。\n"
 
-#: exec.c:2000 exec.c:2040
+#: exec.c:2002 exec.c:2042
 msgid ""
 "cannot convert wide characters into multibyte characters: replaced with "
 "empty string"
 msgstr ""
 
-#: exec.c:2078
+#: exec.c:2080
 msgid "exec - execute a command in the shell process\n"
 msgstr "exec - シェルプロセスでコマンドを実行する\n"
 
-#: exec.c:2080
+#: exec.c:2082
 msgid "\texec [-cf] [-a name] [command [args...]]\n"
 msgstr "\texec [-cf] [-a 名前] [コマンド [引数...]]\n"
 
-#: exec.c:2082
+#: exec.c:2084
 msgid ""
 "The exec built-in replaces the shell process with the specified command.\n"
 "The shell process is `changed' into the new command's process. No child\n"
@@ -2720,36 +2716,36 @@ msgid ""
 "(--force) option is required to perform exec.\n"
 msgstr ""
 
-#: exec.c:2087
+#: exec.c:2089
 msgid ""
 "If the -c (--clear) option is specified, the command is executed only with\n"
 "the environment variables assigned for this command.\n"
 msgstr ""
 
-#: exec.c:2090
+#: exec.c:2092
 msgid ""
 "If the -a <name> (--as=<name>) option is specified, <name> is passed to the\n"
 "command instead of <command> as the zeroth argument.\n"
 msgstr ""
 
-#: exec.c:2093
+#: exec.c:2095
 msgid ""
 "If no <command> is given, the shell does nothing. As a special result,\n"
 "the effects of redirections associated with the exec built-in remain\n"
 "after the command.\n"
 msgstr ""
 
-#: exec.c:2097
+#: exec.c:2099
 msgid ""
 "In the POSIXly correct mode, none of these options are available and the -f\n"
 "option is always assumed.\n"
 msgstr ""
 
-#: exec.c:2196
+#: exec.c:2198
 msgid "Usage:  type command...\n"
 msgstr "使い方: type コマンド...\n"
 
-#: exec.c:2198
+#: exec.c:2200
 msgid ""
 "Usage:  command [-p] command [arg...]\n"
 "        command -v|-V [-p] command\n"
@@ -2757,7 +2753,7 @@ msgstr ""
 "Usage:  command [-p] コマンド [引数...]\n"
 "        command -v|-V [-p] コマンド\n"
 
-#: exec.c:2201
+#: exec.c:2203
 msgid ""
 "Usage:  command [-befp] command [arg...]\n"
 "        command -v|-V [-abefkp] command...\n"
@@ -2765,51 +2761,51 @@ msgstr ""
 "Usage:  command [-befp] コマンド [引数...]\n"
 "        command -v|-V [-abefkp] コマンド...\n"
 
-#: exec.c:2254
+#: exec.c:2256
 #, c-format
 msgid "%ls: a shell keyword\n"
 msgstr "%ls: シェルの予約語\n"
 
-#: exec.c:2289
+#: exec.c:2291
 #, c-format
 msgid "%s: a special built-in\n"
 msgstr "%s: 特殊組込みコマンド\n"
 
-#: exec.c:2295
+#: exec.c:2297
 #, c-format
 msgid "%s: a semi-special built-in\n"
 msgstr "%s: 準特殊組込みコマンド\n"
 
-#: exec.c:2310
+#: exec.c:2312
 #, c-format
 msgid "%s: a regular built-in (not found in $PATH)\n"
 msgstr "%s: 通常の組込みコマンド ($PATH 内に存在せず)\n"
 
-#: exec.c:2312
+#: exec.c:2314
 #, c-format
 msgid "%s: a regular built-in at %s\n"
 msgstr "%s: 通常の組込みコマンド (%s)\n"
 
-#: exec.c:2322
+#: exec.c:2324
 #, c-format
 msgid "%s: a function\n"
 msgstr "%s: 関数\n"
 
-#: exec.c:2348
+#: exec.c:2350
 #, c-format
 msgid "%s: an external command at %s\n"
 msgstr "%s: 外部コマンド (%s)\n"
 
-#: exec.c:2371
+#: exec.c:2373
 #, c-format
 msgid "%s: an external command at %s/%s\n"
 msgstr "%s: 外部コマンド (%s/%s)\n"
 
-#: exec.c:2383
+#: exec.c:2385
 msgid "command - execute or identify a command\n"
 msgstr "command - コマンドを実行または同定する\n"
 
-#: exec.c:2385
+#: exec.c:2387
 msgid ""
 "\tcommand [-befp] command [argument...]\n"
 "\tcommand -v|-V [-abefkp] command...\n"
@@ -2817,11 +2813,11 @@ msgstr ""
 "\tcommand [-befp] コマンド [引数...]\n"
 "\tcommand -v|-V [-abefkp] コマンド...\n"
 
-#: exec.c:2388
+#: exec.c:2390
 msgid "The command built-in executes or identifies the specified command.\n"
 msgstr ""
 
-#: exec.c:2390
+#: exec.c:2392
 msgid ""
 "Without the -v or -V option, <command> is executed with <argument>s given.\n"
 "<command> is treated as a built-in or external command or a function\n"
@@ -2830,7 +2826,7 @@ msgid ""
 "current $PATH.\n"
 msgstr ""
 
-#: exec.c:2396
+#: exec.c:2398
 msgid ""
 "With the -v (--identify) option, <command> is identified. If the command is\n"
 "found in $PATH, its full path is printed. If it is a built-in or a "
@@ -2840,13 +2836,13 @@ msgid ""
 "printed and the exit status is non-zero.\n"
 msgstr ""
 
-#: exec.c:2402
+#: exec.c:2404
 msgid ""
 "With the -V (--verbose-identify) option, the command is identified in the\n"
 "same way but the result is printed verbosely in a human-readable form.\n"
 msgstr ""
 
-#: exec.c:2405
+#: exec.c:2407
 msgid ""
 "The following options specify the command type:\n"
 "  -a --alias\n"
@@ -2858,37 +2854,37 @@ msgid ""
 "-abefk (with -v or -V)\n"
 msgstr ""
 
-#: exec.c:2416
+#: exec.c:2418
 msgid "type - identify a command\n"
 msgstr "type - コマンドを同定する\n"
 
-#: exec.c:2418
+#: exec.c:2420
 msgid "\ttype command...\n"
 msgstr "\ttype コマンド...\n"
 
-#: exec.c:2420
+#: exec.c:2422
 msgid ""
 "The type built-in prints the type of <command>s.\n"
 "Same as `command -V <command>...'.\n"
 msgstr ""
 
-#: exec.c:2438
+#: exec.c:2440
 msgid "Usage:  times\n"
 msgstr "使い方: times\n"
 
-#: exec.c:2461
+#: exec.c:2463
 msgid "cannot get the time data"
 msgstr "時間情報を取得できません"
 
-#: exec.c:2480
+#: exec.c:2482
 msgid "times - print process times\n"
 msgstr "times - プロセス時間を出力する\n"
 
-#: exec.c:2482
+#: exec.c:2484
 msgid "\ttimes\n"
 msgstr "\ttimes\n"
 
-#: exec.c:2484
+#: exec.c:2486
 msgid ""
 "The times built-in prints the accumulated user and system times consumed by\n"
 "the shell process and all of its child processes.\n"
@@ -2897,27 +2893,35 @@ msgid ""
 "time.\n"
 msgstr ""
 
-#: sig.c:750
+#: sig.c:482
+msgid "cannot send SIGSTOP signal"
+msgstr "SIGSTOP シグナルを送信できません"
+
+#: sig.c:582
+msgid "too many files are opened for yash to handle"
+msgstr ""
+
+#: sig.c:776
 #, c-format
 msgid "SIG%ls cannot be trapped"
 msgstr "SIG%ls はトラップできません"
 
-#: sig.c:765
+#: sig.c:791
 #, c-format
 msgid "real-time signal SIG%ls is not supported"
 msgstr "リアルタイムシグナル SIG%ls には対応していません"
 
-#: sig.c:781
+#: sig.c:807
 #, c-format
 msgid "SIG%ls cannot be reset"
 msgstr "SIG%ls はリセットできません"
 
-#: sig.c:1085 sig.c:1128 sig.c:1231 sig.c:1296
+#: sig.c:1106 sig.c:1145 sig.c:1252 sig.c:1317
 #, c-format
 msgid "no such signal `%ls'"
 msgstr "「%ls」というようなシグナルはありません"
 
-#: sig.c:1135
+#: sig.c:1157
 msgid ""
 "Usage:  trap [action signal...]\n"
 "        trap signum [signal...]\n"
@@ -2925,7 +2929,7 @@ msgstr ""
 "Usage:  trap [動作 シグナル...]\n"
 "        trap シグナル番号 [シグナル...]\n"
 
-#: sig.c:1139
+#: sig.c:1161
 msgid ""
 "Usage:  trap [action signal...]\n"
 "        trap signum [signal...]\n"
@@ -2935,11 +2939,11 @@ msgstr ""
 "        trap シグナル番号 [シグナル...]\n"
 "        trap -p [シグナル...]\n"
 
-#: sig.c:1168
+#: sig.c:1189
 msgid "trap - set or print signal handlers\n"
 msgstr "trap - シグナルハンドラを設定・表示する\n"
 
-#: sig.c:1170
+#: sig.c:1191
 msgid ""
 "\ttrap [action signal...]\n"
 "\ttrap signum [signal...]\n"
@@ -2949,14 +2953,14 @@ msgstr ""
 "\ttrap シグナル番号 [シグナル...]\n"
 "\ttrap -p [シグナル...]\n"
 
-#: sig.c:1174
+#: sig.c:1195
 msgid ""
 "The trap built-in sets the signal handler of the specified <signal>s to\n"
 "<action>. When the shell receives the signal, the corresponding action is\n"
 "executed as if by the eval built-in.\n"
 msgstr ""
 
-#: sig.c:1178
+#: sig.c:1199
 msgid ""
 "If <action> is an empty string, no actions are taken and the signal is\n"
 "silently ignored when received.\n"
@@ -2966,27 +2970,27 @@ msgid ""
 "a signal specification and <action> is assumed to be `-'.\n"
 msgstr ""
 
-#: sig.c:1184
+#: sig.c:1205
 msgid ""
 "If the -p (--print) option is specified, the actions for the specified\n"
 "<signal>s are printed. This option is not available in the POSIXly correct\n"
 "mode.\n"
 msgstr ""
 
-#: sig.c:1188
+#: sig.c:1209
 msgid "Without any operands, all signal handlers currently set are printed.\n"
 msgstr ""
 
-#: sig.c:1219
+#: sig.c:1240
 msgid "the signal name is not specified"
 msgstr "シグナル名が指定されていません"
 
-#: sig.c:1225
+#: sig.c:1246
 #, c-format
 msgid "%ls: the signal name must be specified without `SIG'"
 msgstr "%ls: シグナル名は「SIG」を付けずに指定する必要があります"
 
-#: sig.c:1329
+#: sig.c:1353
 msgid ""
 "Usage:  kill [-s signal] process...\n"
 "        kill -l [number...]\n"
@@ -2994,7 +2998,7 @@ msgstr ""
 "Usage:  kill [-s シグナル] プロセス...\n"
 "        kill -l [数...]\n"
 
-#: sig.c:1333
+#: sig.c:1357
 msgid ""
 "Usage:  kill [-s signal | -n signum] process...\n"
 "        kill -l [-v] [number...]\n"
@@ -3002,11 +3006,11 @@ msgstr ""
 "使い方: kill [-s シグナル | -n シグナル番号] プロセス...\n"
 "        kill -l [-v] [数...]\n"
 
-#: sig.c:1379
+#: sig.c:1404
 msgid "kill - send a signal to processes\n"
 msgstr "kill - プロセスにシグナルを送る\n"
 
-#: sig.c:1381
+#: sig.c:1406
 msgid ""
 "\tkill [-signal|-s signal|-n number] process...\n"
 "\tkill -l [-v] [number...]\n"
@@ -3014,7 +3018,7 @@ msgstr ""
 "\tkill [-シグナル|-s シグナル|-n シグナル番号] プロセス...\n"
 "\tkill -l [-v] [数...]\n"
 
-#: sig.c:1384
+#: sig.c:1409
 msgid ""
 "The first form sends a signal to the specified processes. The signal to "
 "send\n"
@@ -3024,7 +3028,7 @@ msgid ""
 "signal is sent to the process group.\n"
 msgstr ""
 
-#: sig.c:1390
+#: sig.c:1415
 msgid ""
 "The second form prints info about signals. For each <number> given, the "
 "name\n"
@@ -3035,20 +3039,20 @@ msgid ""
 "signal numbers and descriptions of signals are printed as well.\n"
 msgstr ""
 
-#: history.c:1155 history.c:1598
+#: history.c:1214 history.c:1657
 msgid "cannot be used during line-editing"
 msgstr "行編集中には使えません"
 
-#: history.c:1171
+#: history.c:1230
 msgid "the command history is empty"
 msgstr "コマンド履歴は空です"
 
-#: history.c:1238 history.c:1251 history.c:1729
+#: history.c:1265 history.c:1781
 #, c-format
 msgid "no such history entry `%ls'"
 msgstr "「%ls」というような履歴項目はありません"
 
-#: history.c:1271
+#: history.c:1331
 msgid ""
 "Usage:  fc [-r] [-e editor] [first [last]]\n"
 "        fc -s [old=new] [first]\n"
@@ -3058,7 +3062,7 @@ msgstr ""
 "        fc -s [元=先] [始点]\n"
 "        fc -l [-nr] [始点 [終点]]\n"
 
-#: history.c:1275
+#: history.c:1335
 msgid ""
 "Usage:  fc [-qr] [-e editor] [first [last]]\n"
 "        fc -s [-q] [old=new] [first]\n"
@@ -3068,25 +3072,25 @@ msgstr ""
 "        fc -s [-q] [元=先] [始点]\n"
 "        fc -l [-nrv] [始点 [終点]]\n"
 
-#: history.c:1317
+#: history.c:1380
 #, c-format
 msgid "no such history entry beginning with `%ls'"
 msgstr "「%ls」で始まるような履歴項目はありません"
 
-#: history.c:1460
+#: history.c:1522
 msgid "the editor returned a non-zero exit status"
 msgstr ""
 
-#: history.c:1465
+#: history.c:1527
 #, c-format
 msgid "cannot read commands from file `%s'"
 msgstr "ファイル「%s」からコマンドを読み込めません"
 
-#: history.c:1526
+#: history.c:1585
 msgid "fc - list or re-execute command history\n"
 msgstr "fc - コマンド履歴を表示または再実行する\n"
 
-#: history.c:1528
+#: history.c:1587
 msgid ""
 "\tfc [-qr] [-e editor] [first [last]]\n"
 "\tfc -s [-q] [old=new] [first]\n"
@@ -3096,27 +3100,27 @@ msgstr ""
 "\tfc -s [-q] [元=先] [始点]\n"
 "\tfc -l [-nrv] [始点 [終点]]\n"
 
-#: history.c:1532
+#: history.c:1591
 msgid ""
 "The first form invokes an editor to edit a temporary file containing the\n"
 "command history and, after the editor exited, executes commands in the "
 "file.\n"
 msgstr ""
 
-#: history.c:1535
+#: history.c:1594
 msgid ""
 "The second form, with the -s (--silent) option, re-executes commands in the\n"
 "history without invoking an editor. If <old=new> is given, string <old> in\n"
 "the command is replaced with <new> before execution.\n"
 msgstr ""
 
-#: history.c:1539
+#: history.c:1598
 msgid ""
 "The third form, with the -l (--list) option, prints the command history. In\n"
 "this form commands are not re-executed.\n"
 msgstr ""
 
-#: history.c:1544
+#: history.c:1603
 msgid ""
 "The -e (--editor) option can be used to specify the editor. If this option\n"
 "is not given, the value of $FCEDIT is used as the default editor. If "
@@ -3124,27 +3128,27 @@ msgid ""
 "is not set either, `ed' is the last resort.\n"
 msgstr ""
 
-#: history.c:1548
+#: history.c:1607
 msgid ""
 "The -n (--no-numbers) option suppresses command numbers, which would\n"
 "otherwise be printed preceding each command.\n"
 msgstr ""
 
-#: history.c:1551
+#: history.c:1610
 msgid "The -q (--quiet) option suppresses echoing the executed command.\n"
 msgstr ""
 
-#: history.c:1553
+#: history.c:1612
 msgid ""
 "The -r (--reverse) option reverses the order of commands to be edited or\n"
 "printed.\n"
 msgstr ""
 
-#: history.c:1556
+#: history.c:1615
 msgid "The -v (--verbose) option prints command dates in the listing.\n"
 msgstr ""
 
-#: history.c:1560
+#: history.c:1619
 msgid ""
 "The range of command history to be edited or printed can be specified by\n"
 "parameters <first> and <last>. If the value of <first> or <last> is an\n"
@@ -3157,113 +3161,113 @@ msgid ""
 "If <last> is omitted, it defaults to -1 (with -l) or <first> (without -l).\n"
 msgstr ""
 
-#: history.c:1571
+#: history.c:1630
 msgid "In the POSIXly correct mode, the -q and -v options are not available.\n"
 msgstr ""
 
-#: history.c:1646
+#: history.c:1709 job.c:1133
+msgid "too many operands are specified"
+msgstr "オペランドの数が多すぎます"
+
+#: history.c:1736
 msgid "Usage:  history [-cF] [-d entry] [-s command] [-r file] [-w file] [n]\n"
 msgstr ""
 "使い方: history [-cF] [-d 項目] [-s コマンド] [-r ファイル] [-w ファイル] "
 "[n]\n"
 
-#: history.c:1655 job.c:1124
-msgid "too many operands are specified"
-msgstr "オペランドの数が多すぎます"
-
-#: history.c:1775
+#: history.c:1827
 #, c-format
 msgid "cannot read history from file `%ls'"
 msgstr "ファイル「%ls」から履歴を読み込めません"
 
-#: history.c:1807
+#: history.c:1861
 #, c-format
 msgid "cannot write history to file `%ls'"
 msgstr "ファイル「%ls」に履歴を書き込めません"
 
-#: history.c:1828
+#: history.c:1882
 msgid "history - manage command history\n"
 msgstr "history - コマンド履歴を管理する\n"
 
-#: history.c:1830
+#: history.c:1884
 msgid "\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [n]\n"
 msgstr ""
 "\thistory [-cF] [-d 項目] [-s コマンド] [-r ファイル] [-w ファイル] [n]\n"
 
-#: history.c:1832
+#: history.c:1886
 msgid ""
 "Without options, the history built-in prints the command history. The "
 "number\n"
 "of entries to print can be specified by argument <n>.\n"
 msgstr ""
 
-#: history.c:1835
+#: history.c:1889
 msgid "The -c (--clear) option clears the command history completely.\n"
 msgstr ""
 
-#: history.c:1837
+#: history.c:1891
 msgid ""
 "The -d (--delete) option deletes the specified <entry>. You can specify\n"
 "<entry> by the number or by the prefix.\n"
 msgstr ""
 
-#: history.c:1840
+#: history.c:1894
 msgid "The -s (--set) option replaces the last history entry with <command>.\n"
 msgstr ""
 
-#: history.c:1842
+#: history.c:1896
 msgid "The -r (--read) option reads history entries from <file>.\n"
 msgstr ""
 
-#: history.c:1844
+#: history.c:1898
 msgid "The -w (--write) option writes all the history entries into <file>.\n"
 msgstr ""
 
-#: history.c:1846
+#: history.c:1900
 msgid ""
 "The -F (--flush-file) option rebuilds the history file, removing unused old\n"
 "data.\n"
 msgstr ""
 
-#: job.c:514 job.c:1007 job.c:1138 job.c:1300 job.c:1414
+#: job.c:518 job.c:1016 job.c:1148 job.c:1310 job.c:1426
 #, c-format
 msgid "job specification `%ls' is ambiguous"
 msgstr "ジョブ指定「%ls」は曖昧です"
 
-#: job.c:519 job.c:1010 job.c:1143 job.c:1417
+#: job.c:523 job.c:1019 job.c:1153 job.c:1429
 #, c-format
 msgid "no such job `%ls'"
 msgstr "「%ls」に該当するジョブはありません"
 
-#: job.c:522 job.c:1145
+#: job.c:526 job.c:1155
 #, c-format
 msgid "`%ls' is not a job-controlled job"
 msgstr "「%ls」はジョブ制御の対象となっているジョブではありません"
 
-#: job.c:652 job.c:695
+#: job.c:656 job.c:699
 msgid "Running"
 msgstr "実行中"
 
-#: job.c:655
+#: job.c:659
 #, c-format
 msgid "Stopped(SIG%ls)"
 msgstr "停止中(SIG%ls)"
 
-#: job.c:666
+#: job.c:670
 msgid "Done"
 msgstr "完了　"
 
-#: job.c:669
+#: job.c:673
 #, c-format
 msgid "Done(%d)"
 msgstr "完了(%d)　"
 
-#: job.c:677
+#: job.c:681
 #, c-format
 msgid "Killed (SIG%ls: core dumped)"
 msgstr "中止　(SIG%ls: コアダンプ)"
 
-#: job.c:680
+#: job.c:684
 #, c-format
 msgid "Killed (SIG%ls)"
 msgstr "中止　(SIG%ls)"
@@ -3271,7 +3275,7 @@ msgstr "中止　(SIG%ls)"
 #. TRANSLATORS: the translated format string can be different
 #. * from the original only in the number of spaces. This is required
 #. * for POSIX compliance.
-#: job.c:738
+#: job.c:744
 #, c-format
 msgid "[%zu] %c %-20s %ls\n"
 msgstr "[%zu] %c %-25s %ls\n"
@@ -3279,7 +3283,7 @@ msgstr "[%zu] %c %-25s %ls\n"
 #. TRANSLATORS: the translated format string can be different
 #. * from the original only in the number of spaces. This is required
 #. * for POSIX compliance.
-#: job.c:757
+#: job.c:763
 #, c-format
 msgid "[%zu] %c %5jd %-20s   %ls\n"
 msgstr "[%zu] %c %5jd %-25s   %ls\n"
@@ -3287,43 +3291,43 @@ msgstr "[%zu] %c %5jd %-25s   %ls\n"
 #. TRANSLATORS: the translated format string can be different
 #. * from the original only in the number of spaces. This is required
 #. * for POSIX compliance.
-#: job.c:771
+#: job.c:777
 #, c-format
 msgid "      %5jd %-20s | %ls\n"
 msgstr "      %5jd %-25s | %ls\n"
 
-#: job.c:821
+#: job.c:827
 #, c-format
 msgid "The process was killed by SIG%ls: %s\n"
 msgstr "プロセスは SIG%ls により強制終了しました (%s)\n"
 
-#: job.c:824
+#: job.c:830
 #, c-format
 msgid "The process was killed by SIG%ls\n"
 msgstr "プロセスは SIG%ls により強制終了しました\n"
 
-#: job.c:985
+#: job.c:993
 msgid "Usage:  jobs [-lp] [job...]\n"
 msgstr "使い方: jobs [-lp] [ジョブ...]\n"
 
-#: job.c:986
+#: job.c:994
 msgid "Usage:  jobs [-lnprs] [job...]\n"
 msgstr "使い方: jobs [-lnprs] [ジョブ...]\n"
 
-#: job.c:1001 job.c:1132 job.c:1292 job.c:1408
+#: job.c:1009 job.c:1141 job.c:1303 job.c:1420
 #, c-format
 msgid "`%ls' is not a valid job specification"
 msgstr "「%ls」は有効なジョブ ID ではありません"
 
-#: job.c:1064
+#: job.c:1073
 msgid "jobs - print info about jobs\n"
 msgstr "jobs - ジョブの情報を表示する\n"
 
-#: job.c:1066
+#: job.c:1075
 msgid "\tjobs [-lnprs] [job...]\n"
 msgstr "\tjobs [-lnprs] [ジョブ...]\n"
 
-#: job.c:1068
+#: job.c:1077
 msgid ""
 "The jobs built-in prints the status of jobs in the current shell execution\n"
 "environment.\n"
@@ -3331,71 +3335,71 @@ msgid ""
 "If none is specified, all jobs are printed.\n"
 msgstr ""
 
-#: job.c:1075
+#: job.c:1084
 msgid ""
 " -l --verbose\n"
 "\tprint info for each process in the job, including the process ID\n"
 msgstr ""
 
-#: job.c:1078
+#: job.c:1087
 msgid ""
 " -n --new\n"
 "\tonly print jobs whose status have changed\n"
 msgstr ""
 
-#: job.c:1081
+#: job.c:1090
 msgid ""
 " -p --pgid-only\n"
 "\tprint process group IDs only\n"
 msgstr ""
 
-#: job.c:1084
+#: job.c:1093
 msgid ""
 " -r --running-only\n"
 "\tprint running jobs only\n"
 msgstr ""
 
-#: job.c:1087
+#: job.c:1096
 msgid ""
 " -s --stopped-only\n"
 "\tprint stopped jobs only\n"
 msgstr ""
 
-#: job.c:1090
+#: job.c:1099
 msgid ""
 "In the POSIXly correct mode, only the -l and -p options are available.\n"
 msgstr ""
 
-#: job.c:1108
+#: job.c:1117
 msgid "Usage:  fg [job]\n"
 msgstr "使い方: fg [ジョブ]\n"
 
-#: job.c:1109
+#: job.c:1118
 msgid "Usage:  bg [job...]\n"
 msgstr "使い方: bg [ジョブ...]\n"
 
-#: job.c:1115
+#: job.c:1124
 msgid "job control is disabled"
 msgstr "ジョブコントロールは無効です"
 
-#: job.c:1154 job.c:1424
+#: job.c:1164 job.c:1436
 msgid "there is no current job"
 msgstr "現在のジョブはありません"
 
-#: job.c:1192
+#: job.c:1203
 #, c-format
 msgid "job %%%zu has already terminated"
 msgstr "ジョブ %%%zu は既に終了しています"
 
-#: job.c:1238
+#: job.c:1249
 msgid "fg - run jobs in the foreground\n"
 msgstr "fg - ジョブをフォアグラウンドで実行する\n"
 
-#: job.c:1240
+#: job.c:1251
 msgid "\tfg [job...]\n"
 msgstr "\tfg [ジョブ...]\n"
 
-#: job.c:1242
+#: job.c:1253
 msgid ""
 "The fg built-in continues execution of the specified jobs in the "
 "foreground.\n"
@@ -3403,58 +3407,58 @@ msgid ""
 "But in the POSIXly correct mode, you can specify at most one job.\n"
 msgstr ""
 
-#: job.c:1246 job.c:1256
+#: job.c:1257 job.c:1267
 msgid "If no job is specified, the current job is continued.\n"
 msgstr ""
 
-#: job.c:1250
+#: job.c:1261
 msgid "bg - run jobs in the background\n"
 msgstr "bg - ジョブをバックグラウンドで実行する\n"
 
-#: job.c:1252
+#: job.c:1263
 msgid "\tbg [job...]\n"
 msgstr "\tbg [ジョブ...]\n"
 
-#: job.c:1254
+#: job.c:1265
 msgid ""
 "The bg built-in continues execution of the specified jobs in the "
 "background.\n"
 msgstr ""
 
-#: job.c:1276
+#: job.c:1287
 msgid "Usage:  wait [job or pid...]\n"
 msgstr "使い方: wait [ジョブまたはプロセス番号...]\n"
 
-#: job.c:1367
+#: job.c:1377
 msgid "wait - wait for jobs to terminate\n"
 msgstr "wait - ジョブの終了を待つ\n"
 
-#: job.c:1369
+#: job.c:1379
 msgid "\twait [job or pid...]\n"
 msgstr "\twait [ジョブまたはプロセス番号...]\n"
 
-#: job.c:1371
+#: job.c:1381
 msgid ""
 "The wait built-in waits for the specified jobs, or all jobs if none\n"
 "specified, to terminate.\n"
 msgstr ""
 
-#: job.c:1374
+#: job.c:1384
 msgid ""
 "Jobs can be specified in the usual job specification form such as `%2' or "
 "by\n"
 "the process ID of a process belonging to the job.\n"
 msgstr ""
 
-#: job.c:1395
+#: job.c:1407
 msgid "Usage:  disown [-a] [job...]\n"
 msgstr "使い方: disown [-a] [ジョブ...]\n"
 
-#: job.c:1434
+#: job.c:1446
 msgid "disown - disown jobs\n"
 msgstr "disown - ジョブを放棄する\n"
 
-#: job.c:1436
+#: job.c:1448
 msgid ""
 "\tdisown [job...]\n"
 "\tdisown -a\n"
@@ -3462,14 +3466,14 @@ msgstr ""
 "\tdisown [ジョブ...]\n"
 "\tdisown -a\n"
 
-#: job.c:1439
+#: job.c:1451
 msgid ""
 "The disown built-in removes the specified jobs from the job list.\n"
 "The status of the disowned jobs is no longer reported and the jobs can no\n"
 "longer be put back into the foreground.\n"
 msgstr ""
 
-#: job.c:1443
+#: job.c:1455
 msgid ""
 "If the -a (--all) option is specified, all existing jobs are disowned.\n"
 "Otherwise, the specified jobs are disowned. If none is specified, the\n"
@@ -3486,76 +3490,76 @@ msgstr "ファイル記述子 %d を閉じる際にエラー"
 msgid "cannot copy file descriptor %d to %d"
 msgstr "ファイル記述子 %d を %d にコピーできません"
 
-#: redir.c:257
+#: redir.c:278
 msgid "disabling job control"
 msgstr "ジョブ制御は無効になります"
 
-#: redir.c:305 redir.c:584 redir.c:657
+#: redir.c:326 redir.c:604 redir.c:676
 #, c-format
 msgid "redirection: file descriptor %d is unavailable"
 msgstr "リダイレクト: ファイル記述子 %d は使えません"
 
-#: redir.c:353
+#: redir.c:374
 #, c-format
 msgid "redirection: cannot open file `%s'"
 msgstr "リダイレクト: ファイル「%s」を開けません"
 
-#: redir.c:429 expand.c:285 expand.c:291 expand.c:309
+#: redir.c:450 expand.c:285 expand.c:291 expand.c:309
 msgid "redirection"
 msgstr "リダイレクト"
 
-#: redir.c:443
+#: redir.c:464
 #, c-format
 msgid "cannot save file descriptor %d"
 msgstr "ファイル記述子 %d を保存できません"
 
-#: redir.c:535
+#: redir.c:554
 #, c-format
 msgid "socket redirection: cannot resolve the address of `%s': %s"
 msgstr "ソケットリダイレクト:「%s」のアドレスを解決できません: %s"
 
-#: redir.c:578 redir.c:594 redir.c:649
+#: redir.c:598 redir.c:613 redir.c:668
 #, c-format
 msgid "redirection: %s"
 msgstr "リダイレクト: %s"
 
-#: redir.c:602
+#: redir.c:621
 #, c-format
 msgid "redirection: file descriptor %d is not readable"
 msgstr "リダイレクト: ファイル記述子 %d は読み込み可能ではありません"
 
-#: redir.c:614
+#: redir.c:633
 #, c-format
 msgid "redirection: file descriptor %d is not writable"
 msgstr "リダイレクト: ファイル記述子 %d は書き込み可能ではありません"
 
-#: redir.c:652
+#: redir.c:671
 #, c-format
 msgid "redirection: %d>>|%d: the input and output file descriptors are same"
 msgstr "リダイレクト: %d>>|%d: 入力側と出力側のファイル記述子が同じです"
 
-#: redir.c:694
+#: redir.c:715
 #, c-format
 msgid "redirection: %d>>|%d"
 msgstr "リダイレクト: %d>>|%d"
 
-#: redir.c:711 redir.c:751 redir.c:772
+#: redir.c:732 redir.c:772 redir.c:793
 msgid "cannot write the here-document contents to the temporary file"
 msgstr "ヒアドキュメントの内容を一時ファイルに書き出せません"
 
-#: redir.c:764
+#: redir.c:785
 msgid "cannot create a temporary file for the here-document"
 msgstr "ヒアドキュメント用の一時ファイルを作成できません"
 
-#: redir.c:777
+#: redir.c:798
 msgid "cannot seek the temporary file for the here-document"
 msgstr "ヒアドキュメント用の一時ファイルのシークができません"
 
-#: redir.c:791
+#: redir.c:812
 msgid "redirection: cannot open a pipe for the command redirection"
 msgstr "リダイレクト: コマンド置換用のパイプを開けません"
 
-#: redir.c:830
+#: redir.c:851
 msgid "command redirection"
 msgstr "コマンド置換"
 
@@ -3647,32 +3651,37 @@ msgstr "パラメータ「%ls」は存在しないか値が空です"
 msgid "prompt"
 msgstr "プロンプト"
 
-#: path.c:1078
+#: path.c:1089
 msgid "$HOME is not set"
 msgstr "$HOME が設定されていません"
 
-#: path.c:1117
+#: path.c:1132
 msgid "$PWD has an invalid value"
 msgstr "$PWD の値が正しくありません"
 
-#: path.c:1126 path.c:1376
+#: path.c:1141 path.c:1152 path.c:1389
 msgid "cannot determine the current directory"
 msgstr "現在の作業ディレクトリが分かりません"
 
-#: path.c:1242
+#: path.c:1224
+#, c-format
+msgid "`%ls'"
+msgstr ""
+
+#: path.c:1255
 #, c-format
 msgid "`%s'"
 msgstr "「%s」"
 
-#: path.c:1306
+#: path.c:1319
 msgid "cd - change the working directory\n"
 msgstr "cd - 作業ディレクトリを変更する\n"
 
-#: path.c:1308
+#: path.c:1321
 msgid "\tcd [-L|-P] [directory]\n"
 msgstr "\tcd [-L|-P] [ディレクトリ]\n"
 
-#: path.c:1310
+#: path.c:1323
 msgid ""
 "The cd built-in changes the working directory to <dir>.\n"
 "If <dir> is `-', the working directory is changed to $OLDPWD.\n"
@@ -3682,7 +3691,7 @@ msgid ""
 "directory and $OLDPWD is set to the previous $PWD.\n"
 msgstr ""
 
-#: path.c:1319
+#: path.c:1332
 msgid ""
 "When the -L (--logical) option is specified, symbolic links in $PWD are "
 "left\n"
@@ -3690,13 +3699,13 @@ msgid ""
 "resolved so that $PWD does not contain any symbolic links.\n"
 msgstr ""
 
-#: path.c:1323 path.c:1402
+#: path.c:1336 path.c:1419
 msgid ""
 "-L and -P are mutually exclusive: only the last specified one is effective.\n"
 "If neither is specified, -L is the default.\n"
 msgstr ""
 
-#: path.c:1328
+#: path.c:1341
 msgid ""
 "If <dir> is not specified, the working directory is changed to the "
 "directory\n"
@@ -3704,25 +3713,25 @@ msgid ""
 "specified either, the default is $HOME.\n"
 msgstr ""
 
-#: path.c:1354
+#: path.c:1399
 msgid "Usage:  pwd [-L|-P]\n"
 msgstr "使い方: pwd [-L|-P]\n"
 
-#: path.c:1388
+#: path.c:1405
 msgid "pwd - print the working directory\n"
 msgstr "pwd - 作業ディレクトリを表示する\n"
 
-#: path.c:1390
+#: path.c:1407
 msgid "\tpwd [-L|-P]\n"
 msgstr "\tpwd [-L|-P]\n"
 
-#: path.c:1392
+#: path.c:1409
 msgid ""
 "The pwd built-in prints the absolute pathname of the current working\n"
 "directory.\n"
 msgstr ""
 
-#: path.c:1397
+#: path.c:1414
 msgid ""
 "When the -L (--logical) option is specified, $PWD is printed if it is\n"
 "correct. It may contain symbolic links.\n"
@@ -3730,26 +3739,26 @@ msgid ""
 "contain any symbolic links.\n"
 msgstr ""
 
-#: path.c:1457
+#: path.c:1474
 #, c-format
 msgid "no such user `%ls'"
 msgstr "「%ls」というユーザは存在しません"
 
-#: path.c:1479
+#: path.c:1496
 #, c-format
 msgid "`%ls': a command name must not contain `/'"
 msgstr "「%ls」: コマンド名に / を含めることはできません"
 
-#: path.c:1487
+#: path.c:1504
 #, c-format
 msgid "command `%s' was not found in $PATH"
 msgstr "コマンド「%s」は $PATH の中に見つかりませんでした"
 
-#: path.c:1499
+#: path.c:1516
 msgid "Usage:  hash [-r] [command...]\n"
 msgstr "使い方: hash [-r] [コマンド...]\n"
 
-#: path.c:1500
+#: path.c:1517
 msgid ""
 "Usage:  hash [-dr] [command/username...]\n"
 "        hash [-adr]\n"
@@ -3757,11 +3766,11 @@ msgstr ""
 "Usage:  hash [-dr] [コマンド/ユーザ名...]\n"
 "        hash [-adr]\n"
 
-#: path.c:1542
+#: path.c:1559
 msgid "hash - remember, forget, or report command locations\n"
 msgstr "hash - コマンドの場所を記憶・消去・表示する\n"
 
-#: path.c:1544
+#: path.c:1561
 msgid ""
 "\thash command...\n"
 "\thash -r [command...]\n"
@@ -3777,50 +3786,50 @@ msgstr ""
 "\thash -d -r [ユーザ...]\n"
 "\thash -d\n"
 
-#: path.c:1551
+#: path.c:1568
 msgid ""
 "The first form immediately performs command path search and caches\n"
 "<command>s' full paths.\n"
 msgstr ""
 
-#: path.c:1554
+#: path.c:1571
 msgid ""
 "The second form, using the -r (--remove) option, removes the paths of\n"
 "<command>s (or all the paths if none specified) from the cache. Note that\n"
 "assignment to $PATH also removes all paths from the cache.\n"
 msgstr ""
 
-#: path.c:1558
+#: path.c:1575
 msgid ""
 "The third form prints the currently cached paths. Without the -a (--all)\n"
 "option, paths for built-in commands are not printed.\n"
 msgstr ""
 
-#: path.c:1561
+#: path.c:1578
 msgid ""
 "With the -d (--directory) option, this command does the same things to the\n"
 "home directory cache, rather than the command path cache.\n"
 msgstr ""
 
-#: path.c:1564
+#: path.c:1581
 msgid ""
 "In the POSIXly correct mode, the -r option is the only available option.\n"
 msgstr ""
 
-#: path.c:1612
+#: path.c:1628
 msgid "Usage:  umask [-S] [mask]\n"
 msgstr "使い方: umask [-S] [マスク]\n"
 
-#: path.c:1667 path.c:1749
+#: path.c:1683 path.c:1766
 #, c-format
 msgid "`%ls' is not a valid mask specification"
 msgstr "「%ls」は有効なマスク設定ではありません"
 
-#: path.c:1776
+#: path.c:1793
 msgid "umask - print or set the file creation mask\n"
 msgstr "umask - ファイル作成マスクを表示・設定する\n"
 
-#: path.c:1778
+#: path.c:1795
 msgid ""
 "\tumask mode\n"
 "\tumask [-S]\n"
@@ -3828,7 +3837,7 @@ msgstr ""
 "\tumask モード\n"
 "\tumask [-S]\n"
 
-#: path.c:1781
+#: path.c:1798
 msgid ""
 "The umask built-in sets the file mode creation mask of the shell to <mode>.\n"
 "The mask will be inherited by commands invoked by the shell.\n"
