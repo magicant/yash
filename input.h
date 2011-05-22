@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.h: functions for input of command line */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #ifndef YASH_INPUT_H
 #define YASH_INPUT_H
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
 
