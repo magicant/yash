@@ -88,7 +88,7 @@ struct input_file_info {
     size_t bufpos, bufmax, bufsize;
     char buf[];
 };
-/* `bufsize' is the size of `buf', which must be at least one byte long. */
+/* `bufsize' is the size of `buf', which must be at least one byte. */
 
 /* to be used as `inputinfo' for `input_interactive' */
 struct input_interactive_info {

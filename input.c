@@ -45,8 +45,10 @@
 #include "util.h"
 #include "variable.h"
 #include "yash.h"
-#include "lineedit/display.h"
-#include "lineedit/lineedit.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/display.h"
+# include "lineedit/lineedit.h"
+#endif
 
 
 /********** Input Functions **********/
