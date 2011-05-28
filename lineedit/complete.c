@@ -24,6 +24,9 @@
 #if HAVE_GETGRENT
 # include <grp.h>
 #endif
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #if HAVE_GETHOSTENT
 # include <netdb.h>
 #endif
@@ -39,9 +42,6 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <sys/stat.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "../builtin.h"
 #include "../exec.h"
 #include "../expand.h"

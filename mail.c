@@ -18,6 +18,9 @@
 
 #include "common.h"
 #include <errno.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,9 +28,6 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <wchar.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "expand.h"
 #include "hashtable.h"
 #include "mail.h"

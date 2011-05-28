@@ -19,12 +19,12 @@
 #include "../common.h"
 #include <assert.h>
 #include <errno.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 #include "../builtin.h"
 #include "../exec.h"
 #include "../expand.h"

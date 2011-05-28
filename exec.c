@@ -20,8 +20,14 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <limits.h>
 #include <math.h>
+#if HAVE_PATHS_H
+# include <paths.h>
+#endif
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,12 +37,6 @@
 #include <sys/times.h>
 #include <unistd.h>
 #include <wchar.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
-#if HAVE_PATHS_H
-# include <paths.h>
-#endif
 #if YASH_ENABLE_ALIAS
 # include "alias.h"
 #endif

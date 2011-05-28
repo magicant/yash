@@ -19,6 +19,9 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -26,9 +29,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "alias.h"
 #include "builtin.h"
 #include "exec.h"

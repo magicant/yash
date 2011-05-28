@@ -21,6 +21,9 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <limits.h>
 #include <locale.h>
 #include <stdbool.h>
@@ -31,9 +34,6 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "builtin.h"
 #include "configm.h"
 #include "exec.h"

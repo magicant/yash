@@ -18,14 +18,14 @@
 
 #include "common.h"
 #include <assert.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "builtin.h"
 #include "exec.h"
 #include "job.h"

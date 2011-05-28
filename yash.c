@@ -20,6 +20,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -27,9 +30,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #if YASH_ENABLE_ALIAS
 # include "alias.h"
 #endif

@@ -20,6 +20,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,9 +30,6 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "exec.h"
 #include "expand.h"
 #if YASH_ENABLE_HISTORY

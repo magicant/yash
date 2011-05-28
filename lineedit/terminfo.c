@@ -32,6 +32,9 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#if HAVE_TIOCGWINSZ
+# include <sys/ioctl.h>
+#endif
 #if HAVE_TERM_H
 # include <term.h>
 #elif HAVE_NCURSES_TERM_H
@@ -41,9 +44,6 @@
 #endif
 #include <termios.h>
 #include <unistd.h>
-#if HAVE_TIOCGWINSZ
-# include <sys/ioctl.h>
-#endif
 #include "../option.h"
 #include "../sig.h"
 #include "../util.h"

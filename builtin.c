@@ -19,13 +19,13 @@
 #include "common.h"
 #include <assert.h>
 #include <errno.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #if YASH_ENABLE_ALIAS
 # include "alias.h"
 #endif

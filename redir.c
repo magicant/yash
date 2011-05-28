@@ -21,21 +21,23 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <limits.h>
+#if YASH_ENABLE_SOCKET
+# include <netdb.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #if YASH_ENABLE_SOCKET
-# include <netdb.h>
 # include <sys/socket.h>
 #endif
+#include <sys/stat.h>
+#include <unistd.h>
 #include "exec.h"
 #include "expand.h"
 #include "input.h"

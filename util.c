@@ -20,6 +20,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -28,9 +31,6 @@
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "exec.h"
 #include "option.h"
 #include "plist.h"

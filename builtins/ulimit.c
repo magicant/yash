@@ -20,15 +20,15 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#ifdef HAVE_GETTEXT
+# include <libintl.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/resource.h>
 #include <wchar.h>
 #include <wctype.h>
-#ifdef HAVE_GETTEXT
-# include <libintl.h>
-#endif
 #include "../builtin.h"
 #include "../exec.h"
 #include "../util.h"

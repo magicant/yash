@@ -23,6 +23,12 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#if HAVE_GETTEXT
+# include <libintl.h>
+#endif
+#if HAVE_PATHS_H
+# include <paths.h>
+#endif
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -33,12 +39,6 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#if HAVE_GETTEXT
-# include <libintl.h>
-#endif
-#if HAVE_PATHS_H
-# include <paths.h>
-#endif
 #include "builtin.h"
 #include "exec.h"
 #include "expand.h"
