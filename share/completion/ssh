@@ -188,7 +188,7 @@ function completion/scp::operand {
 				(*/*) dir=${path%/*}/ ;;
 				(*)   dir= ;;
 			esac
-			typeset filter name="${path##*/}"
+			typeset filter flags= name="${path##*/}"
 			filter=()
 			case $name in # TODO check if --dotglob option is set
 				(.*) filter=(-A '.*') ;;
@@ -196,10 +196,11 @@ function completion/scp::operand {
 			esac
 			typeset f
 			while read -r f; do
-				case $f in (*/)
-					filter=("$filter" -T)
+				case $f in
+					(*/) flags='-T' ;;
+					(*)  flags=     ;;
 				esac
-				complete -P "$PREFIX$dir" "$filter" -- "$f"
+				complete -P "$PREFIX$dir" "$filter" $flags -- "$f"
 			done <("$ssh" "$sshopts" -o BatchMode=yes -- "$host" "ls -ap -- '${${dir:-.}//\'/\'\\\'\'}'" <>/dev/null 2>&0)
 			return
 			;;
