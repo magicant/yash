@@ -94,6 +94,9 @@ struct input_file_info {
 struct input_interactive_info {
     struct input_file_info *fileinfo;
     int prompttype;
+#if YASH_ENABLE_LINEEDIT
+    wchar_t *linebuffer;
+#endif
 };
 
 

@@ -178,19 +178,19 @@ end:
  * If `inputinfo->type' is 1, this function changes it to 2. */
 inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 {
+    struct input_interactive_info *info = inputinfo;
+
 #if YASH_ENABLE_LINEEDIT
     /* An input function must not return more than one line at a time.
      * If line editing returns more than one line, this function returns only
      * the first line, saving the rest in this buffer. */
-    static wchar_t *linebuffer = NULL;
-    if (linebuffer) {
-	linebuffer = forward_line(linebuffer, buf);
+    if (info->linebuffer) {
+	info->linebuffer = forward_line(info->linebuffer, buf);
 	return INPUT_OK;
     }
 #endif
 
     struct parsestate_T *state = save_parse_state();
-    struct input_interactive_info *info = inputinfo;
     struct promptset_T prompt;
 
     if (info->prompttype == 1)
@@ -223,7 +223,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 #if YASH_ENABLE_HISTORY
 		add_history(line);
 #endif
-		linebuffer = forward_line(line, buf);
+		info->linebuffer = forward_line(line, buf);
 	    }
 	    return result;
 	}
