@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.28
+
+  =  In an interactive shell, mail check is now done before job status
+     report.
+
+----------------------------------------------------------------------
 Yash 2.27
 
   *  Minor bug fixes.

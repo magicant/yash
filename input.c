@@ -196,11 +196,11 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     if (info->prompttype == 1)
 	if (!posixly_correct)
 	    exec_variable_as_commands(L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
+    if (info->prompttype == 1)
+	check_mail();
     prompt = get_prompt(info->prompttype);
     if (do_job_control)
 	print_job_status_all();
-    if (info->prompttype == 1)
-	check_mail();
     restore_parse_state(state);
     /* Note: no commands must be executed between `print_job_status_all' here
      * and `le_readline', or the "notifyle" option won't work. More precisely,
