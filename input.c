@@ -51,28 +51,28 @@
 #endif
 
 
-/********** Input Functions **********/
-
 #if YASH_ENABLE_LINEEDIT
 static wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
     __attribute__((nonnull,malloc,warn_unused_result));
 #endif
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t get_euid_marker(void)
+    __attribute__((pure));
 
 /* An input function that inputs from a wide string.
- * `inputinfo' is a pointer to a `struct input_wcs_info'.
+ * `inputinfo' must be a pointer to a `struct input_wcs_info'.
  * Reads one line from `inputinfo->src' and appends it to the buffer `buf'.
- * If more string is available after reading one line, `inputinfo->src' is
- * updated to point to the character to read next. If no more is available,
- * `inputinfo->src' is assigned NULL. */
+ * If more string is available after reading the line, `inputinfo->src' is
+ * updated so that it points to the character that should be read next. If no
+ * more is available, `inputinfo->src' is assigned NULL. */
 inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_wcs_info *info = inputinfo;
     const wchar_t *src = info->src;
     size_t count = 0;
 
-    if (!src)
+    if (src == NULL)
 	return INPUT_EOF;
 
     while (src[count] != L'\0' && src[count++] != L'\n');
@@ -82,7 +82,7 @@ inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 	return INPUT_EOF;
     } else {
 	wb_ncat(buf, src, count);
-	info->src = src + count;
+	info->src = &src[count];
 	return INPUT_OK;
     }
 }
@@ -100,7 +100,7 @@ inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
  * flag is cleared when this function returns.
  * Returns:
  *   INPUT_OK    if at least one character was appended
- *   INPUT_EOF   if reached end of file without reading any characters
+ *   INPUT_EOF   if reached the end of file without reading any characters
  *   INPUT_ERROR if an error occurred before reading any characters */
 inputresult_T read_input(
 	xwcsbuf_T *buf, struct input_file_info *info, bool trap)
@@ -116,7 +116,8 @@ inputresult_T read_input(
     for (;;) {
 	if (info->bufpos >= info->bufmax) {
 read_input:  /* if there's nothing in the buffer, read the next input */
-	    if (!(ok = wait_for_input(info->fd, trap, -1)))
+	    ok = wait_for_input(info->fd, trap, -1);
+	    if (!ok)
 		goto end;
 
 	    ssize_t readcount = read(info->fd, info->buf, info->bufsize);
@@ -140,8 +141,8 @@ read_input:  /* if there's nothing in the buffer, read the next input */
 	 * append it to `buf' */
 	wb_ensuremax(buf, buf->length + 1);
 	assert(info->bufpos < info->bufmax);
-	size_t convcount = mbrtowc(buf->contents + buf->length,
-		info->buf + info->bufpos, info->bufmax - info->bufpos,
+	size_t convcount = mbrtowc(&buf->contents[buf->length],
+		&info->buf[info->bufpos], info->bufmax - info->bufpos,
 		&info->state);
 	switch (convcount) {
 	    case 0:            /* read null character */
@@ -173,9 +174,11 @@ end:
 
 /* An input function that prints a prompt and reads input.
  * `inputinfo' is a pointer to a `struct input_interactive_info'.
- * `inputinfo->type' must be 1 or 2, specifying the type of the prompt.
+ * `inputinfo->type' must be either 1 or 2, which specifies the prompt type.
  * For example, $PS1 is printed if `inputinfo->type' is 1.
- * If `inputinfo->type' is 1, this function changes it to 2. */
+ * If `inputinfo->type' is 1, this function changes it to 2 after a successful
+ * read.
+ * The line is added to the history. */
 inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_interactive_info *info = inputinfo;
@@ -184,7 +187,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     /* An input function must not return more than one line at a time.
      * If line editing returns more than one line, this function returns only
      * the first line, saving the rest in this buffer. */
-    if (info->linebuffer) {
+    if (info->linebuffer != NULL) {
 	info->linebuffer = forward_line(info->linebuffer, buf);
 	return INPUT_OK;
     }
@@ -246,8 +249,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     free_prompt(prompt);
 
 #if YASH_ENABLE_HISTORY
-    if (info->prompttype == 2)
-	add_history(buf->contents + oldlen);
+    add_history(buf->contents + oldlen);
 #endif
     return result;
 }
@@ -340,27 +342,27 @@ struct promptset_T get_prompt(int type)
  * "\\". */
 wchar_t *expand_ps1_posix(wchar_t *s)
 {
-    wchar_t *const saves = s;
     xwcsbuf_T buf;
 
     wb_init(&buf);
-    while (*s != L'\0') {
-	if (*s == L'\\') {
-	    wb_wccat(wb_wccat(&buf, L'\\'), L'\\');
-	} else if (*s == L'!') {
-	    if (*(s + 1) == L'!') {
+    for (size_t i = 0; s[i] != L'\0'; i++) {
+	if (s[i] == L'\\') {
+	    wb_wccat(&buf, L'\\');
+	    wb_wccat(&buf, L'\\');
+	} else if (s[i] == L'!') {
+	    if (s[i + 1] == L'!') {
 		wb_wccat(&buf, L'!');
-		s++;
+		i++;
 	    } else {
-		wb_wccat(wb_wccat(&buf, L'\\'), L'!');
+		wb_wccat(&buf, L'\\');
+		wb_wccat(&buf, L'!');
 	    }
 	} else {
-	    wb_wccat(&buf, *s);
+	    wb_wccat(&buf, s[i]);
 	}
-	s++;
     }
 
-    free(saves);
+    free(s);
     return wb_towcs(&buf);
 }
 
@@ -375,14 +377,14 @@ wchar_t *expand_ps1_posix(wchar_t *s)
  *   \n    newline: L'\n'
  *   \r    carriage return: L'\r'
  *   \!    next history number
- *   \$    L'#' if the effective uid is 0, L'$' otherwise
+ *   \$    L'#' if the effective user ID is 0, L'$' otherwise
  *   \\    a backslash
  *
  * If line-editing is enabled, the followings are also available:
  *   \fX   change color
  *   \[    start of substring not to be counted as printable characters
  *   \]    end of substring not to be counted as printable characters
- * "X" in "\fX" is any number of flags from the following:
+ * "X" in "\fX" can be any number of flags from the following:
  *   (foreground color)
  *     k (black)    r (red)        g (green)    y (yellow)
  *     b (blue)     m (magenta)    c (cyan)     w (white)
@@ -421,8 +423,8 @@ void print_prompt(const wchar_t *s)
 	    case L'e':   wb_wccat(&buf, L'\033');  break;
 	    case L'n':   wb_wccat(&buf, L'\n');    break;
 	    case L'r':   wb_wccat(&buf, L'\r');    break;
-	    case L'$':   wb_wccat(&buf, geteuid() ? L'$' : L'#');  break;
-	    case L'j':   wb_wprintf(&buf, L"%zu", job_count());    break;
+	    case L'$':   wb_wccat(&buf, get_euid_marker());      break;
+	    case L'j':   wb_wprintf(&buf, L"%zu", job_count());  break;
 #if YASH_ENABLE_HISTORY
 	    case L'!':   wb_wprintf(&buf, L"%u", next_history_number());  break;
 #endif
@@ -443,9 +445,14 @@ done:
     wb_destroy(&buf);
 }
 
+wchar_t get_euid_marker(void)
+{
+    return geteuid() == 0 ? L'#' : L'$';
+}
+
 /* Unsets O_NONBLOCK flag of the specified file descriptor.
  * If `fd' is negative, does nothing.
- * Returns true if successful, or false otherwise, with `errno' set. */
+ * Returns true if successful. On error, `errno' is set and false is returned.*/
 bool unset_nonblocking(int fd)
 {
     if (fd >= 0) {
