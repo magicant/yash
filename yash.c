@@ -442,7 +442,8 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 }
 
 /* Parses the input from the specified file descriptor and executes commands.
- * The file descriptor must be either STDIN_FILENO or a shell FD.
+ * The file descriptor must be either STDIN_FILENO or a shell FD. If the file
+ * descriptor is STDIN_FILENO, `finally_exit' must be true.
  * If `name' is non-NULL, it is printed in an error message on syntax error.
  * If `intrinput' is true, the input is considered interactive.
  * If there are no commands in the input, `laststatus' is set to zero. */
@@ -460,14 +461,15 @@ void exec_input(int fd, const char *name,
 	.intrinput = intrinput,
     };
     struct input_interactive_info intrinfo;
+    struct input_file_info *inputinfo;
 
-    struct input_file_info *info =
-	(fd == STDIN_FILENO)
-	? stdin_input_file_info
-	: new_input_file_info(fd, BUFSIZ);
+    if (fd == STDIN_FILENO)
+	inputinfo = stdin_input_file_info;
+    else
+	inputinfo = new_input_file_info(fd, BUFSIZ);
 
     if (intrinput) {
-	intrinfo.fileinfo = info;
+	intrinfo.fileinfo = inputinfo;
 	intrinfo.prompttype = 1;
 #if YASH_ENABLE_LINEEDIT
 	intrinfo.linebuffer = NULL;
@@ -476,10 +478,12 @@ void exec_input(int fd, const char *name,
 	pinfo.inputinfo = &intrinfo;
     } else {
 	pinfo.input = input_file;
-	pinfo.inputinfo = info;
+	pinfo.inputinfo = inputinfo;
     }
     parse_and_exec(&pinfo, finally_exit);
-    free(info);
+
+    assert(inputinfo != stdin_input_file_info);
+    free(inputinfo);
 
 #if !YASH_ENABLE_ALIAS
     (void) enable_alias;  // suppress compiler warning
