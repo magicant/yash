@@ -95,6 +95,9 @@ typedef struct evalinfo_T {
     char *savelocale;    /* original LC_NUMERIC locale */
 } evalinfo_T;
 
+static void evaluate(
+	const wchar_t *exp, value_T *result, evalinfo_T *info, bool coerce)
+    __attribute__((nonnull));
 static void parse_assignment(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static bool do_assignment(const word_T *word, const value_T *value)
@@ -153,25 +156,14 @@ static void next_token(evalinfo_T *info)
 /* Evaluates the specified string as an arithmetic expression.
  * The argument string is freed in this function.
  * The result is converted into a string and returned as a newly-malloced
- * string. On error, an error message is printed to stderr and NULL is
- * returned. */
+ * string. On error, an error message is printed to the standard error and NULL
+ * is returned. */
 wchar_t *evaluate_arithmetic(wchar_t *exp)
 {
     value_T result;
     evalinfo_T info;
 
-    info.exp = exp;
-    info.index = 0;
-    info.parseonly = false;
-    info.error = false;
-    info.savelocale = xstrdup(setlocale(LC_NUMERIC, NULL));
-
-    next_token(&info);
-    parse_assignment(&info, &result);
-    if (posixly_correct)
-	coerce_number(&info, &result);
-
-    free(info.savelocale);
+    evaluate(exp, &result, &info, posixly_correct);
 
     wchar_t *resultstr;
     if (info.error) {
@@ -197,17 +189,7 @@ bool evaluate_index(wchar_t *exp, ssize_t *valuep)
     value_T result;
     evalinfo_T info;
 
-    info.exp = exp;
-    info.index = 0;
-    info.parseonly = false;
-    info.error = false;
-    info.savelocale = xstrdup(setlocale(LC_NUMERIC, NULL));
-
-    next_token(&info);
-    parse_assignment(&info, &result);
-    coerce_number(&info, &result);
-
-    free(info.savelocale);
+    evaluate(exp, &result, &info, true);
 
     bool ok;
     if (info.error) {
@@ -237,6 +219,23 @@ bool evaluate_index(wchar_t *exp, ssize_t *valuep)
     }
     free(exp);
     return ok;
+}
+
+void evaluate(
+	const wchar_t *exp, value_T *result, evalinfo_T *info, bool coerce)
+{
+    info->exp = exp;
+    info->index = 0;
+    info->parseonly = false;
+    info->error = false;
+    info->savelocale = xstrdup(setlocale(LC_NUMERIC, NULL));
+
+    next_token(info);
+    parse_assignment(info, result);
+    if (coerce)
+	coerce_number(info, result);
+
+    free(info->savelocale);
 }
 
 /* Parses an assignment expression.
@@ -294,7 +293,7 @@ void parse_assignment(evalinfo_T *info, value_T *result)
 bool do_assignment(const word_T *word, const value_T *value)
 {
     wchar_t *vstr = value_to_string(value);
-    if (!vstr)
+    if (vstr == NULL)
 	return false;
 
     wchar_t name[word->length + 1];
@@ -320,11 +319,10 @@ wchar_t *value_to_string(const value_T *value)
 		wmemcpy(name, value->v_var.contents, value->v_var.length);
 		name[value->v_var.length] = L'\0';
 		const wchar_t *var = getvar(name);
-		return var ? xwcsdup(var) : NULL;
+		return (var != NULL) ? xwcsdup(var) : NULL;
 	    }
-	default:
-	    assert(false);
     }
+    assert(false);
 }
 
 /* Does unary or binary long calculation according to the specified operator
@@ -467,25 +465,23 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
     bool saveparseonly = info->parseonly;
     parse_logical_and(info, result);
     while (info->token.type == TT_PIPEPIPE) {
-	bool lhs, INIT(value), valid = true;
+	bool value, valid = true;
 	coerce_number(info, result);
 	next_token(info);
 	switch (result->type) {
-	    case VT_INVALID: valid = false, lhs = true;  break;
-	    case VT_LONG:    lhs = result->v_long;       break;
-	    case VT_DOUBLE:  lhs = result->v_double;     break;
+	    case VT_INVALID: valid = false, value = true;  break;
+	    case VT_LONG:    value = result->v_long;       break;
+	    case VT_DOUBLE:  value = result->v_double;     break;
 	    default:         assert(false);
 	}
-	info->parseonly |= lhs;
+	info->parseonly |= value;
 	parse_logical_and(info, result);
 	coerce_number(info, result);
-	if (!lhs) switch (result->type) {
+	if (!value) switch (result->type) {
 	    case VT_INVALID: valid = false;             break;
 	    case VT_LONG:    value = result->v_long;    break;
 	    case VT_DOUBLE:  value = result->v_double;  break;
 	    default:         assert(false);
-	} else {
-	    value = true;
 	}
 	if (valid)
 	    result->type = VT_LONG, result->v_long = value;
@@ -502,25 +498,23 @@ void parse_logical_and(evalinfo_T *info, value_T *result)
     bool saveparseonly = info->parseonly;
     parse_inclusive_or(info, result);
     while (info->token.type == TT_AMPAMP) {
-	bool lhs, INIT(value), valid = true;
+	bool value, valid = true;
 	coerce_number(info, result);
 	next_token(info);
 	switch (result->type) {
-	    case VT_INVALID: valid = false, lhs = false;  break;
-	    case VT_LONG:    lhs = result->v_long;        break;
-	    case VT_DOUBLE:  lhs = result->v_double;      break;
+	    case VT_INVALID: valid = false, value = false;  break;
+	    case VT_LONG:    value = result->v_long;        break;
+	    case VT_DOUBLE:  value = result->v_double;      break;
 	    default:         assert(false);
 	}
-	info->parseonly |= !lhs;
+	info->parseonly |= !value;
 	parse_inclusive_or(info, result);
 	coerce_number(info, result);
-	if (lhs) switch (result->type) {
+	if (value) switch (result->type) {
 	    case VT_INVALID: valid = false;             break;
 	    case VT_LONG:    value = result->v_long;    break;
 	    case VT_DOUBLE:  value = result->v_double;  break;
 	    default:         assert(false);
-	} else {
-	    value = false;
 	}
 	if (valid)
 	    result->type = VT_LONG, result->v_long = value;
