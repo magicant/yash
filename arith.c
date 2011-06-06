@@ -416,46 +416,46 @@ long do_double_comparison(tokentype_T ttype, double v1, double v2)
 void parse_conditional(evalinfo_T *info, value_T *result)
 {
     bool saveparseonly = info->parseonly;
-start:
-    parse_logical_or(info, result);
-    if (info->token.type == TT_QUESTION) {
-	bool cond, valid = true;
-	value_T dummy;
 
-	coerce_number(info, result);
+    for (;;) {
+	value_T dummy;
+	value_T *result2;
+
+	result2 = info->parseonly ? &dummy : result;
+	parse_logical_or(info, result2);
+	if (info->token.type != TT_QUESTION)
+	    break;
+
+	bool cond, valid = true;
+
+	coerce_number(info, result2);
 	next_token(info);
-	switch (result->type) {
-	    case VT_INVALID:  valid = false, cond = true;  break;
-	    case VT_LONG:     cond = result->v_long;       break;
-	    case VT_DOUBLE:   cond = result->v_double;     break;
+	switch (result2->type) {
+	    case VT_INVALID:  valid = false, cond = true;   break;
+	    case VT_LONG:     cond = result2->v_long;       break;
+	    case VT_DOUBLE:   cond = result2->v_double;     break;
 	    default:          assert(false);
 	}
-	if (cond) {
-	    parse_assignment(info, result);
-	    if (info->token.type == TT_COLON) {
-		next_token(info);
-		info->parseonly = true;
-		parse_conditional(info, &dummy);
-		info->parseonly = saveparseonly;
-	    } else {
-		xerror(0, Ngt("arithmetic: `%ls' is missing"), L":");
-		info->error = true;
-		result->type = VT_INVALID;
-	    }
-	} else {
-	    info->parseonly = true;
-	    parse_assignment(info, &dummy);
-	    info->parseonly = saveparseonly;
-	    if (info->token.type == TT_COLON) {
-		next_token(info);
-		goto start;
-	    } else {
-		xerror(0, Ngt("arithmetic: `%ls' is missing"), L":");
-		info->error = true;
-		result->type = VT_INVALID;
-	    }
+
+	bool saveparseonly2 = info->parseonly || !valid;
+	info->parseonly = saveparseonly2 || !cond;
+
+	result2 = info->parseonly ? &dummy : result;
+	parse_assignment(info, result2);
+	if (info->token.type != TT_COLON) {
+	    xerror(0, Ngt("arithmetic: `%ls' is missing"), L":");
+	    info->error = true;
+	    result->type = VT_INVALID;
+	    break;
 	}
+
+	next_token(info);
+	info->parseonly = saveparseonly2 || cond;
     }
+
+    info->parseonly = saveparseonly;
+    if (info->parseonly)
+	result->type = VT_INVALID;
 }
 
 /* Parses a logical OR expression.

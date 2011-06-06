@@ -12,6 +12,8 @@ Yash 2.28
 
   =  In an interactive shell, mail check is now done before job status
      report.
+  *  Fixed arithmetic expansion evaluating some expressions that
+     should not be evaluated.
 
 ----------------------------------------------------------------------
 Yash 2.27
