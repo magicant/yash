@@ -463,9 +463,11 @@ void parse_conditional(evalinfo_T *info, value_T *result)
 void parse_logical_or(evalinfo_T *info, value_T *result)
 {
     bool saveparseonly = info->parseonly;
+
     parse_logical_and(info, result);
     while (info->token.type == TT_PIPEPIPE) {
 	bool value, valid = true;
+
 	coerce_number(info, result);
 	next_token(info);
 	switch (result->type) {
@@ -474,6 +476,7 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
 	    case VT_DOUBLE:  value = result->v_double;     break;
 	    default:         assert(false);
 	}
+
 	info->parseonly |= value;
 	parse_logical_and(info, result);
 	coerce_number(info, result);
@@ -496,9 +499,11 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
 void parse_logical_and(evalinfo_T *info, value_T *result)
 {
     bool saveparseonly = info->parseonly;
+
     parse_inclusive_or(info, result);
     while (info->token.type == TT_AMPAMP) {
 	bool value, valid = true;
+
 	coerce_number(info, result);
 	next_token(info);
 	switch (result->type) {
@@ -507,6 +512,7 @@ void parse_logical_and(evalinfo_T *info, value_T *result)
 	    case VT_DOUBLE:  value = result->v_double;      break;
 	    default:         assert(false);
 	}
+
 	info->parseonly |= !value;
 	parse_inclusive_or(info, result);
 	coerce_number(info, result);
@@ -633,7 +639,8 @@ void parse_equality(evalinfo_T *info, value_T *result)
 		    case VT_INVALID:
 			result->type = VT_INVALID;
 			break;
-		    case VT_VAR:     assert(false);
+		    case VT_VAR:
+			assert(false);
 		}
 		break;
 	    default:
@@ -712,7 +719,7 @@ void parse_shift(evalinfo_T *info, value_T *result)
     }
 }
 
-/* Parses a additive expression.
+/* Parses an additive expression.
  *   AdditiveExp := MultiplicativeExp
  *                | AdditiveExp "+" MultiplicativeExp
  *                | AdditiveExp "-" MultiplicativeExp */
@@ -739,7 +746,8 @@ void parse_additive(evalinfo_T *info, value_T *result)
 		    case VT_INVALID:
 			result->type = VT_INVALID;
 			break;
-		    case VT_VAR:     assert(false);
+		    case VT_VAR:
+			assert(false);
 		}
 		break;
 	    default:
@@ -791,7 +799,8 @@ void parse_multiplicative(evalinfo_T *info, value_T *result)
 		    case VT_INVALID:
 			result->type = VT_INVALID;
 			break;
-		    case VT_VAR:     assert(false);
+		    case VT_VAR:
+			assert(false);
 		}
 		break;
 	    default:
@@ -888,8 +897,10 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 		    coerce_number(info, result);
 		    value_T value = *result;
 		    do_increment_or_decrement(info->token.type, &value);
-		    if (!do_assignment(&saveword, &value))
-			info->error = true, result->type = VT_INVALID;
+		    if (!do_assignment(&saveword, &value)) {
+			info->error = true;
+			result->type = VT_INVALID;
+		    }
 		} else if (result->type != VT_INVALID) {
 		    xerror(0, Ngt("arithmetic: "
 				"operator `%ls' requires a variable"),
@@ -945,8 +956,6 @@ void parse_primary(evalinfo_T *info, value_T *result)
 	    break;
 	case TT_NUMBER:
 	    parse_as_number(info, result);
-	    if (result->type == VT_INVALID)
-		info->error = true;
 	    next_token(info);
 	    break;
 	case TT_IDENTIFIER:
@@ -968,12 +977,12 @@ void parse_primary(evalinfo_T *info, value_T *result)
 void parse_as_number(evalinfo_T *info, value_T *result)
 {
     word_T *word = &info->token.word;
-    wchar_t w[word->length + 1];
-    wcsncpy(w, word->contents, word->length);
-    w[word->length] = L'\0';
+    wchar_t wordstr[word->length + 1];
+    wcsncpy(wordstr, word->contents, word->length);
+    wordstr[word->length] = L'\0';
 
     long longresult;
-    if (xwcstol(w, 0, &longresult)) {
+    if (xwcstol(wordstr, 0, &longresult)) {
 	result->type = VT_LONG;
 	result->v_long = longresult;
 	return;
@@ -983,8 +992,8 @@ void parse_as_number(evalinfo_T *info, value_T *result)
 	wchar_t *end;
 	setlocale(LC_NUMERIC, "C");
 	errno = 0;
-	doubleresult = wcstod(w, &end);
-	bool ok = !errno && !*end;
+	doubleresult = wcstod(wordstr, &end);
+	bool ok = (errno == 0 && *end == L'\0');
 	setlocale(LC_NUMERIC, info->savelocale);
 	if (ok) {
 	    result->type = VT_DOUBLE;
@@ -992,7 +1001,8 @@ void parse_as_number(evalinfo_T *info, value_T *result)
 	    return;
 	}
     }
-    xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), w);
+    xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), wordstr);
+    info->error = true;
     result->type = VT_INVALID;
 }
 
@@ -1004,21 +1014,22 @@ void coerce_number(evalinfo_T *info, value_T *value)
     if (value->type != VT_VAR)
 	return;
 
-    const wchar_t *v;
+    const wchar_t *varvalue;
     {
-	wchar_t name[value->v_var.length + 1];
-	wmemcpy(name, value->v_var.contents, value->v_var.length);
-	name[value->v_var.length] = L'\0';
-	v = getvar(name);
+	word_T *name = &value->v_var;
+	wchar_t namestr[name->length + 1];
+	wmemcpy(namestr, name->contents, name->length);
+	namestr[name->length] = L'\0';
+	varvalue = getvar(namestr);
     }
-    if (!v || !v[0]) {
+    if (varvalue == NULL || varvalue[0] == L'\0') {
 	value->type = VT_LONG;
 	value->v_long = 0;
 	return;
     }
 
     long longresult;
-    if (xwcstol(v, 0, &longresult)) {
+    if (xwcstol(varvalue, 0, &longresult)) {
 	value->type = VT_LONG;
 	value->v_long = longresult;
 	return;
@@ -1027,14 +1038,14 @@ void coerce_number(evalinfo_T *info, value_T *value)
 	double doubleresult;
 	wchar_t *end;
 	errno = 0;
-	doubleresult = wcstod(v, &end);
-	if (!errno && !*end) {
+	doubleresult = wcstod(varvalue, &end);
+	if (errno == 0 && *end == L'\0') {
 	    value->type = VT_DOUBLE;
 	    value->v_double = doubleresult;
 	    return;
 	}
     }
-    xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), v);
+    xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), varvalue);
     info->error = true;
     value->type = VT_INVALID;
     return;
@@ -1052,9 +1063,9 @@ void coerce_integer(evalinfo_T *info, value_T *value)
 }
 
 /* Unifies the types of the numeric values.
- * If a given value is VT_VAR, it is `coerce_number'ed.
- * Then, if one of the specified values is of VT_LONG and the other is of
- * VT_DOUBLE, the VT_LONG value is converted into VT_DOUBLE.
+ * First, the given values are `coerce_number'ed.
+ * Then, if one of the values is of VT_LONG and the other is of VT_DOUBLE, the
+ * VT_LONG value is converted into VT_DOUBLE.
  * If the both values are of VT_LONG, VT_LONG is returned without conversion.
  * If either value is of VT_DOUBLE and the other is not VT_INVALID, VT_DOUBLE
  * is returned after conversion. If either value is VT_INVALID, the return
@@ -1070,9 +1081,9 @@ valuetype_T coerce_type(evalinfo_T *info, value_T *value1, value_T *value2)
     assert(value1->type == VT_LONG || value1->type == VT_DOUBLE);
     assert(value2->type == VT_LONG || value2->type == VT_DOUBLE);
 
-    value_T *value = (value1->type == VT_LONG) ? value1 : value2;
-    value->type = VT_DOUBLE;
-    value->v_double = (double) value->v_long;
+    value_T *value_to_coerce = (value1->type == VT_LONG) ? value1 : value2;
+    value_to_coerce->type = VT_DOUBLE;
+    value_to_coerce->v_double = (double) value_to_coerce->v_long;
     return VT_DOUBLE;
 }
 
