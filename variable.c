@@ -1365,7 +1365,7 @@ bool parse_dirstack_index(
 	return false;
     }
 #if LONG_MAX > SIZE_MAX
-    if (num > SIZE_MAX)
+    if (num > SIZE_MAX || num < -(long) SIZE_MAX)
 	goto out_of_range;
 #endif
     if (indexstr[0] == L'+' && num >= 0) {
