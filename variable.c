@@ -74,13 +74,12 @@ typedef struct environ_T {
 } environ_T;
 /* `contents' is a hashtable from (wchar_t *) to (variable_T *).
  * A variable name may contain any characters except L'\0' and L'=', though
- * assignment syntax allows only limited characters.
+ * assignment syntax disallows other characters.
  * Variable names starting with L'=' are used for special purposes.
  * The positional parameter is treated as an array whose name is L"=".
  * Note that the number of positional parameters is offset by 1 against the
- * array index. */
-/* An environment whose `is_temporary' is true is used for temporary variables. 
- * Temporary variables may be exported but cannot be readonly.
+ * array index.
+ * An environment whose `is_temporary' is true is used for temporary variables. 
  * The elements of `paths' are arrays of the pathnames contained in the
  * $PATH, $CDPATH and $YASH_LOADPATH variables. They are NULL if the
  * corresponding variables are not set. */
@@ -95,7 +94,7 @@ typedef enum vartype_T {
     VF_NODELETE = 1 << 4,
 } vartype_T;
 #define VF_MASK ((1 << 2) - 1)
-/* For all variables, the variable type is either VF_SCALAR or VF_ARRAY,
+/* For any variable, the variable type is either VF_SCALAR or VF_ARRAY,
  * possibly OR'ed with other flags. */
 
 /* type of variables */
@@ -212,7 +211,7 @@ void varvaluefree(variable_T *v)
 /* Frees the specified variable. */
 void varfree(variable_T *v)
 {
-    if (v) {
+    if (v != NULL) {
 	varvaluefree(v);
 	free(v);
     }
@@ -249,19 +248,19 @@ void init_environment(void)
     ht_init(&functions, hashwcs, htwcscmp);
 
     /* add all the existing environment variables to the variable environment */
-    for (char **e = environ; *e; e++) {
+    for (char **e = environ; *e != NULL; e++) {
 	wchar_t *we = malloc_mbstowcs(*e);
-	if (!we)
+	if (we == NULL)
 	    continue;
 
 	wchar_t *eqp = wcschr(we, L'=');
 	variable_T *v = xmalloc(sizeof *v);
 	v->v_type = VF_SCALAR | VF_EXPORT;
-	v->v_value = eqp ? xwcsdup(eqp + 1) : NULL;
+	v->v_value = (eqp != NULL) ? xwcsdup(&eqp[1]) : NULL;
 	v->v_getter = NULL;
-	if (eqp) {
+	if (eqp != NULL) {
 	    *eqp = L'\0';
-	    we = xrealloc(we, sizeof *we * (eqp - we + 1));
+	    we = xreallocn(we, eqp - we + 1, sizeof *we);
 	}
 	varkvfree(ht_set(&current_env->contents, we, v));
     }
@@ -280,7 +279,7 @@ void init_variables(void)
 
     /* set $LINENO */
     {
-	variable_T *v = new_variable(L VAR_LINENO, false);
+	variable_T *v = new_variable(L VAR_LINENO, SCOPE_GLOBAL);
 	assert(v != NULL);
 	v->v_type = VF_SCALAR | (v->v_type & VF_EXPORT);
 	v->v_value = NULL;
@@ -291,7 +290,7 @@ void init_variables(void)
     }
 
     /* set $MAILCHECK */
-    if (!getvar(L VAR_MAILCHECK))
+    if (getvar(L VAR_MAILCHECK) == NULL)
 	set_variable(L VAR_MAILCHECK, xwcsdup(L"600"), SCOPE_GLOBAL, false);
 
     /* set $PS1~4 */
@@ -323,7 +322,7 @@ void init_variables(void)
 
     /* set $RANDOM */
     if (!posixly_correct && !getvar(L VAR_RANDOM)) {
-	variable_T *v = new_variable(L VAR_RANDOM, false);
+	variable_T *v = new_variable(L VAR_RANDOM, SCOPE_GLOBAL);
 	assert(v != NULL);
 	v->v_type = VF_SCALAR;
 	v->v_value = NULL;
@@ -344,17 +343,17 @@ void init_variables(void)
 }
 
 /* Reset the value of $PWD if
- *  - $PWD doesn't exist, or
+ *  - $PWD is not set, or
  *  - the value of $PWD isn't an absolute path, or
  *  - the value of $PWD isn't the actual current directory, or
  *  - the value of $PWD isn't canonicalized. */
 void init_pwd(void)
 {
     const char *pwd = getenv(VAR_PWD);
-    if (!pwd || pwd[0] != '/' || !is_same_file(pwd, "."))
+    if (pwd == NULL || pwd[0] != '/' || !is_same_file(pwd, "."))
 	goto set;
     const wchar_t *wpwd = getvar(L VAR_PWD);
-    if (!wpwd || !is_normalized_path(wpwd))
+    if (wpwd == NULL || !is_normalized_path(wpwd))
 	goto set;
     return;
 
@@ -362,12 +361,12 @@ void init_pwd(void)
     wchar_t *wnewpwd;
 set:
     newpwd = xgetcwd();
-    if (!newpwd) {
+    if (newpwd == NULL) {
 	xerror(errno, Ngt("failed to set $PWD"));
 	return;
     }
     wnewpwd = realloc_mbstowcs(newpwd);
-    if (!wnewpwd) {
+    if (wnewpwd == NULL) {
 	xerror(0, Ngt("failed to set $PWD"));
 	return;
     }
@@ -378,9 +377,9 @@ set:
  * Returns NULL if none was found. */
 variable_T *search_variable(const wchar_t *name)
 {
-    for (environ_T *env = current_env; env; env = env->parent) {
+    for (environ_T *env = current_env; env != NULL; env = env->parent) {
 	variable_T *var = ht_get(&env->contents, name).value;
-	if (var)
+	if (var != NULL)
 	    return var;
     }
     return NULL;
@@ -391,7 +390,7 @@ variable_T *search_variable(const wchar_t *name)
 variable_T *search_array_and_check_if_changeable(const wchar_t *name)
 {
     variable_T *array = search_variable(name);
-    if (!array || (array->v_type & VF_MASK) != VF_ARRAY) {
+    if (array == NULL || (array->v_type & VF_MASK) != VF_ARRAY) {
 	xerror(0, Ngt("no such array $%ls"), name);
 	return NULL;
     } else if (array->v_type & VF_READONLY) {
@@ -406,15 +405,15 @@ variable_T *search_array_and_check_if_changeable(const wchar_t *name)
 void update_environment(const wchar_t *name)
 {
     char *mname = malloc_wcstombs(name);
-    if (!mname)
+    if (mname == NULL)
 	return;
-    for (environ_T *env = current_env; env; env = env->parent) {
+    for (environ_T *env = current_env; env != NULL; env = env->parent) {
 	variable_T *var = ht_get(&env->contents, name).value;
-	if (var && (var->v_type & VF_EXPORT)) {
+	if (var != NULL && (var->v_type & VF_EXPORT)) {
 	    char *value;
 	    switch (var->v_type & VF_MASK) {
 		case VF_SCALAR:
-		    if (!var->v_value)
+		    if (var->v_value == NULL)
 			continue;
 		    value = malloc_wcstombs(var->v_value);
 		    break;
@@ -424,7 +423,7 @@ void update_environment(const wchar_t *name)
 		default:
 		    assert(false);
 	    }
-	    if (value) {
+	    if (value != NULL) {
 		if (setenv(mname, value, true) < 0)
 		    xerror(errno, Ngt("failed to set environment variable $%s"),
 			    mname);
@@ -482,19 +481,19 @@ reset_locale_all:
  * `name' must be one of the `LC_*' constants except LC_ALL. */
 void reset_locale_category(const wchar_t *name, int category)
 {
-    const wchar_t *v = getvar(L VAR_LC_ALL);
-    if (!v) {
-	v = getvar(name);
-	if (!v) {
-	    v = getvar(L VAR_LANG);
-	    if (!v)
-		v = L"";
+    const wchar_t *locale = getvar(L VAR_LC_ALL);
+    if (locale == NULL) {
+	locale = getvar(name);
+	if (locale == NULL) {
+	    locale = getvar(L VAR_LANG);
+	    if (locale == NULL)
+		locale = L"";
 	}
     }
-    char *sv = malloc_wcstombs(v);
-    if (sv) {
-	setlocale(category, sv);
-	free(sv);
+    char *wlocale = malloc_wcstombs(locale);
+    if (wlocale != NULL) {
+	setlocale(category, wlocale);
+	free(wlocale);
     }
 }
 
@@ -505,10 +504,11 @@ void reset_locale_category(const wchar_t *name, int category)
 variable_T *new_global(const wchar_t *name)
 {
     variable_T *var;
-    for (environ_T *env = current_env; env; env = env->parent) {
+    for (environ_T *env = current_env; env != NULL; env = env->parent) {
 	var = ht_get(&env->contents, name).value;
-	if (var) {
+	if (var != NULL) {
 	    if (env->is_temporary) {
+		assert(!(var->v_type & VF_NODELETE));
 		varkvfree_reexport(ht_remove(&env->contents, name));
 		continue;
 	    }
@@ -535,7 +535,7 @@ variable_T *new_local(const wchar_t *name)
 	env = env->parent;
     }
     variable_T *var = ht_get(&env->contents, name).value;
-    if (var)
+    if (var != NULL)
 	return var;
     var = xmalloc(sizeof *var);
     var->v_type = VF_SCALAR;
@@ -549,20 +549,20 @@ variable_T *new_local(const wchar_t *name)
  * If the variable already exists, it is returned without change. So the return
  * value may be an array variable or it may be a scalar variable with a value.
  * The current environment must be a temporary environment.
- * If there is a readonly non-temporary variable with the specified name, it is
+ * If there is a read-only non-temporary variable with the specified name, it is
  * returned (no new temporary variable is created). */
 variable_T *new_temporary(const wchar_t *name)
 {
     environ_T *env = current_env;
     assert(env->is_temporary);
 
-    /* check if readonly */
+    /* check if read-only */
     variable_T *var = search_variable(name);
-    if (var && (var->v_type & VF_READONLY))
+    if (var != NULL && (var->v_type & VF_READONLY))
 	return var;
 
     var = ht_get(&env->contents, name).value;
-    if (var)
+    if (var != NULL)
 	return var;
     var = xmalloc(sizeof *var);
     var->v_type = VF_SCALAR;
@@ -576,11 +576,11 @@ variable_T *new_temporary(const wchar_t *name)
  * If the variable already exists, it is cleared and returned.
  *
  * On error, an error message is printed to the standard error and NULL is
- * returned. Otherwise, a (new) variable is returned.
- * `v_type' is the only valid member of the variable and the all members
- * (including `v_type') must be initialized by the caller. If `v_type' of the
- * return value has the VF_EXPORT flag set, the caller must call
- * `update_environment'. */
+ * returned. Otherwise, the (new) variable is returned.
+ * `v_type' is the only valid member of the returned variable and all the
+ * members of the variable (including `v_type') must be initialized by the
+ * caller. If `v_type' of the return value includes the VF_EXPORT flag, the
+ * caller must call `update_environment'. */
 variable_T *new_variable(const wchar_t *name, scope_T scope)
 {
     variable_T *var;
@@ -612,7 +612,7 @@ bool set_variable(
 	const wchar_t *name, wchar_t *value, scope_T scope, bool export)
 {
     variable_T *var = new_variable(name, scope);
-    if (!var) {
+    if (var == NULL) {
 	free(value);
 	return false;
     }
@@ -642,14 +642,14 @@ variable_T *set_array(
 	const wchar_t *name, size_t count, void **values, scope_T scope)
 {
     variable_T *var = new_variable(name, scope);
-    if (!var) {
+    if (var == NULL) {
 	plfree(values, free);
 	return NULL;
     }
 
     var->v_type = VF_ARRAY | (var->v_type & (VF_EXPORT | VF_NODELETE));
     var->v_vals = values;
-    var->v_valc = count ? count : plcount(var->v_vals);
+    var->v_valc = (count != 0) ? count : plcount(var->v_vals);
     var->v_getter = NULL;
 
     variable_set(name, var);
@@ -668,7 +668,7 @@ variable_T *set_array(
 bool set_array_element(const wchar_t *name, size_t index, wchar_t *value)
 {
     variable_T *array = search_array_and_check_if_changeable(name);
-    if (!array)
+    if (array == NULL)
 	goto fail;
     if (array->v_valc <= index)
 	goto invalid_index;
@@ -705,8 +705,8 @@ void set_positional_parameters(void *const *values)
  * If `temp' is true, the variables are assigned in the current environment,
  * which must be a temporary environment. Otherwise, they are assigned globally.
  * If `export' is true, the variables are exported (i.e., the VF_EXPORT flag is
- * set to the variables). But this function does not reset an existing VF_EXPORT
- * flag if `export' is false.
+ * set to the variables). But this function does not reset any existing
+ * VF_EXPORT flag if `export' is false.
  * Returns true iff successful. On error, already-assigned variables are not
  * restored to the previous values. */
 bool do_assignments(const assign_T *assign, bool temp, bool export)
@@ -715,7 +715,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 	assert(current_env->is_temporary);
 
     scope_T scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
-    while (assign) {
+    while (assign != NULL) {
 	wchar_t *value;
 	int count;
 	void **values;
@@ -723,7 +723,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 	switch (assign->a_type) {
 	    case A_SCALAR:
 		value = expand_single(assign->a_scalar, tt_multi);
-		if (!value)
+		if (value == NULL)
 		    return false;
 		value = unescapefree(value);
 		if (shopt_xtrace)
@@ -759,11 +759,11 @@ void xtrace_array(const wchar_t *name, void *const *values)
     xwcsbuf_T *buf = get_xtrace_buffer();
 
     wb_wprintf(buf, L" %ls=(", name);
-    if (*values) {
+    if (*values != NULL) {
 	for (;;) {
 	    wb_cat(buf, *values);
 	    values++;
-	    if (!*values)
+	    if (*values == NULL)
 		break;
 	    wb_wccat(buf, L' ');
 	}
@@ -779,7 +779,7 @@ void xtrace_array(const wchar_t *name, void *const *values)
 const wchar_t *getvar(const wchar_t *name)
 {
     variable_T *var = search_variable(name);
-    if (var && (var->v_type & VF_MASK) == VF_SCALAR) {
+    if (var != NULL && (var->v_type & VF_MASK) == VF_SCALAR) {
 	if (var->v_getter) {
 	    var->v_getter(var);
 	    if ((var->v_type & VF_MASK) != VF_SCALAR)
@@ -791,7 +791,7 @@ const wchar_t *getvar(const wchar_t *name)
 }
 
 /* Returns the value(s) of the specified variable/array as an array.
- * The return value's type is `struct get_variable'. It has three members:
+ * The return value's type is `struct get_variable_T'. It has three members:
  * `type', `count' and `values'.
  * `type' is the type of the result:
  *    GV_NOTFOUND:     no such variable/array
@@ -802,12 +802,12 @@ const wchar_t *getvar(const wchar_t *name)
  * A scalar value (GV_SCALAR) is returned as a newly-malloced array containing
  * exactly one newly-malloced wide string. An array (GV_ARRAY*) is returned as
  * a NULL-terminated array of pointers to wide strings, which must not be
- * changed or freed.  If no such variable is found (GV_NOTFOUND), `values' is
- * NULL.
+ * changed or freed by the caller. If no such variable is found (GV_NOTFOUND),
+ * `values' is NULL.
  * `count' is the number of elements in `values'. */
-struct get_variable get_variable(const wchar_t *name)
+struct get_variable_T get_variable(const wchar_t *name)
 {
-    struct get_variable result = {
+    struct get_variable_T result = {
 	.type = GV_NOTFOUND, .count = 0, .values = NULL, };
     wchar_t *value;
     variable_T *var;
@@ -856,7 +856,7 @@ positional_parameters:
 	wchar_t *nameend;
 	errno = 0;
 	uintmax_t v = wcstoumax(name, &nameend, 10);
-	if (errno || *nameend != L'\0')
+	if (errno != 0 || *nameend != L'\0')
 	    return result;  /* not a number or overflow */
 	var = search_variable(L VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
@@ -868,7 +868,7 @@ positional_parameters:
 
     /* now it should be a normal variable */
     var = search_variable(name);
-    if (var) {
+    if (var != NULL) {
 	if (var->v_getter)
 	    var->v_getter(var);
 	switch (var->v_type & VF_MASK) {
@@ -885,30 +885,31 @@ positional_parameters:
     return result;
 
 return_single:  /* return a scalar as a one-element array */
-    if (!value)
-	return result;
-    result.type = GV_SCALAR;
-    result.count = 1;
-    result.values = xmalloc(2 * sizeof *result.values);
-    result.values[0] = value;
-    result.values[1] = NULL;
+    if (value != NULL) {
+	result.type = GV_SCALAR;
+	result.count = 1;
+	result.values = xmallocn(2, sizeof *result.values);
+	result.values[0] = value;
+	result.values[1] = NULL;
+    }
     return result;
 }
 
 /* Gathers all variables in the specified environment and adds them to the
  * specified hashtable.
- * If `global' is true, variables in the all ancestor environments are also
+ * If `global' is true, variables in all the ancestor environments are also
  * included (except the ones hidden by local variables).
- * Keys and values added to the hashtable must not be modified or freed. */
+ * Keys and values added to the hashtable must not be modified or freed by the
+ * caller. */
 void get_all_variables_rec(hashtable_T *table, environ_T *env, bool global)
 {
-    if (env->parent && (global || env->is_temporary))
+    if (env->parent != NULL && (global || env->is_temporary))
 	get_all_variables_rec(table, env->parent, global);
 
     size_t i = 0;
     kvpair_T kv;
 
-    while ((kv = ht_next(&env->contents, &i)).key)
+    while ((kv = ht_next(&env->contents, &i)).key != NULL)
 	ht_set(table, kv.key, kv.value);
 }
 
@@ -1008,7 +1009,7 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (wcscmp(name, L VAR_CDPATH) == 0)
 	    reset_path(PA_CDPATH, var);
 #if YASH_ENABLE_LINEEDIT
-	if (wcscmp(name, L VAR_COLUMNS) == 0)
+	else if (wcscmp(name, L VAR_COLUMNS) == 0)
 	    le_need_term_update = true;
 #endif
 	break;
@@ -1016,7 +1017,7 @@ void variable_set(const wchar_t *name, variable_T *var)
 	if (wcscmp(name, L VAR_LANG) == 0 || wcsncmp(name, L"LC_", 3) == 0)
 	    reset_locale(name);
 #if YASH_ENABLE_LINEEDIT
-	if (wcscmp(name, L VAR_LINES) == 0)
+	else if (wcscmp(name, L VAR_LINES) == 0)
 	    le_need_term_update = true;
 #endif
 	break;
@@ -1029,7 +1030,9 @@ void variable_set(const wchar_t *name, variable_T *var)
     case L'R':
 	if (random_active && wcscmp(name, L VAR_RANDOM) == 0) {
 	    random_active = false;
-	    if (var && (var->v_type & VF_MASK) == VF_SCALAR && var->v_value) {
+	    if (var != NULL
+		    && (var->v_type & VF_MASK) == VF_SCALAR
+		    && var->v_value != NULL) {
 		unsigned long seed;
 		if (xwcstoul(var->v_value, 0, &seed)) {
 		    srand((unsigned) seed);
@@ -1061,7 +1064,7 @@ void variable_set(const wchar_t *name, variable_T *var)
  * If `paths' is NULL, NULL is returned. */
 char **decompose_paths(const wchar_t *paths)
 {
-    if (!paths)
+    if (paths == NULL)
 	return NULL;
 
     plist_T list;
@@ -1070,7 +1073,7 @@ char **decompose_paths(const wchar_t *paths)
     const wchar_t *colon;
     while ((colon = wcschr(paths, L':')) != NULL) {
 	add_to_list_no_dup(&list, malloc_wcsntombs(paths, colon - paths));
-	paths = colon + 1;
+	paths = &colon[1];
     }
     add_to_list_no_dup(&list, malloc_wcstombs(paths));
 
@@ -1082,13 +1085,13 @@ char **decompose_paths(const wchar_t *paths)
  * If `paths' is NULL, NULL is returned. */
 char **convert_path_array(void **ary)
 {
-    if (!ary)
+    if (ary == NULL)
 	return NULL;
 
     plist_T list;
     pl_init(&list);
 
-    while (*ary) {
+    while (*ary != NULL) {
 	add_to_list_no_dup(&list, malloc_wcstombs(*ary));
 	ary++;
     }
@@ -1096,11 +1099,11 @@ char **convert_path_array(void **ary)
     return (char **) pl_toary(&list);
 }
 
-/* If `s' is non-NULL and not contained in `list', add `s' to list.
+/* If `s' is non-NULL and not contained in `list', adds `s' to list.
  * Otherwise, frees `s'. */
 void add_to_list_no_dup(plist_T *list, char *s)
 {
-    if (s) {
+    if (s != NULL) {
 	for (size_t i = 0; i < list->length; i++) {
 	    if (strcmp(s, list->contents[i]) == 0) {
 		free(s);
@@ -1115,11 +1118,11 @@ void add_to_list_no_dup(plist_T *list, char *s)
  * `var' may be NULL. */
 void reset_path(path_T name, variable_T *var)
 {
-    for (environ_T *env = current_env; env; env = env->parent) {
+    for (environ_T *env = current_env; env != NULL; env = env->parent) {
 	plfree((void **) env->paths[name], free);
 
 	variable_T *v = ht_get(&env->contents, path_variables[name]).value;
-	if (v) {
+	if (v != NULL) {
 	    switch (v->v_type & VF_MASK) {
 		case VF_SCALAR:
 		    env->paths[name] = decompose_paths(v->v_value);
@@ -1141,8 +1144,8 @@ void reset_path(path_T name, variable_T *var)
  * The caller must not make any change to the returned array. */
 char *const *get_path_array(path_T name)
 {
-    for (environ_T *env = current_env; env; env = env->parent)
-	if (env->paths[name])
+    for (environ_T *env = current_env; env != NULL; env = env->parent)
+	if (env->paths[name] != NULL)
 	    return env->paths[name];
     return NULL;
 }
@@ -1159,7 +1162,7 @@ struct function_T {
 /* Frees the specified function. */
 void funcfree(function_T *f)
 {
-    if (f) {
+    if (f != NULL) {
 	comsfree(f->f_body);
 	free(f);
     }
@@ -1173,7 +1176,7 @@ void funckvfree(kvpair_T kv)
 }
 
 /* Defines function `name' as command `body'.
- * It is an error to re-define a readonly function.
+ * It is an error to re-define a read-only function.
  * Returns true iff successful. */
 bool define_function(const wchar_t *name, command_T *body)
 {
@@ -1198,7 +1201,7 @@ bool define_function(const wchar_t *name, command_T *body)
 command_T *get_function(const wchar_t *name)
 {
     function_T *f = ht_get(&functions, name).value;
-    if (f)
+    if (f != NULL)
 	return f->f_body;
     else
 	return NULL;
@@ -1208,7 +1211,7 @@ command_T *get_function(const wchar_t *name)
 /* Registers all the commands in the argument to the command hashtable. */
 void hash_all_commands_recursively(const command_T *c)
 {
-    for (; c; c = c->next) {
+    for (; c != NULL; c = c->next) {
 	switch (c->c_type) {
 	    case CT_SIMPLE:
 		if (c->c_words)
@@ -1239,8 +1242,8 @@ void hash_all_commands_recursively(const command_T *c)
 
 void hash_all_commands_in_and_or(const and_or_T *ao)
 {
-    for (; ao; ao = ao->next) {
-	for (pipeline_T *p = ao->ao_pipelines; p; p = p->next) {
+    for (; ao != NULL; ao = ao->next) {
+	for (pipeline_T *p = ao->ao_pipelines; p != NULL; p = p->next) {
 	    hash_all_commands_recursively(p->pl_commands);
 	}
     }
@@ -1248,7 +1251,7 @@ void hash_all_commands_in_and_or(const and_or_T *ao)
 
 void hash_all_commands_in_if(const ifcommand_T *ic)
 {
-    for (; ic; ic = ic->next) {
+    for (; ic != NULL; ic = ic->next) {
 	hash_all_commands_in_and_or(ic->ic_condition);
 	hash_all_commands_in_and_or(ic->ic_commands);
     }
@@ -1256,14 +1259,14 @@ void hash_all_commands_in_if(const ifcommand_T *ic)
 
 void hash_all_commands_in_case(const caseitem_T *ci)
 {
-    for (; ci; ci = ci->next) {
+    for (; ci != NULL; ci = ci->next) {
 	hash_all_commands_in_and_or(ci->ci_commands);
     }
 }
 
 void tryhash_word_as_command(const wordunit_T *w)
 {
-    if (w && !w->next && w->wu_type == WT_STRING) {
+    if (w != NULL && w->next == NULL && w->wu_type == WT_STRING) {
 	wchar_t *cmdname = unquote(w->wu_string);
 	if (wcschr(cmdname, L'/') == NULL) {
 	    char *mbsname = malloc_wcstombs(cmdname);
@@ -1355,7 +1358,7 @@ bool parse_dirstack_index(
 	goto not_index;
 
     variable_T *var = search_variable(L VAR_DIRSTACK);
-    if (!var || ((var->v_type & VF_MASK) != VF_ARRAY)) {
+    if (var == NULL || ((var->v_type & VF_MASK) != VF_ARRAY)) {
 	if (num == 0)
 	    goto return_pwd;
 	if (printerror)
@@ -1395,7 +1398,7 @@ bool parse_dirstack_index(
     const wchar_t *pwd;
 return_pwd:
     pwd = getvar(L VAR_PWD);
-    if (!pwd) {
+    if (pwd == NULL) {
 	if (printerror)
 	    xerror(0, Ngt("$PWD is not set"));
 	return false;
@@ -1416,11 +1419,17 @@ out_of_range:
 #endif /* YASH_ENABLE_DIRSTACK */
 
 
-/********** Builtins **********/
+/********** Built-ins **********/
 
 static void print_variable(
 	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
+    __attribute__((nonnull));
+static void print_scalar(const wchar_t *name, bool namequote,
+	const variable_T *var, const wchar_t *argv0)
+    __attribute__((nonnull));
+static void print_array(
+	const wchar_t *name, const variable_T *var, const wchar_t *argv0)
     __attribute__((nonnull));
 static void print_function(
 	const wchar_t *name, const function_T *func,
@@ -1447,7 +1456,7 @@ static bool check_options(const wchar_t *options)
     __attribute__((nonnull,pure));
 static bool set_optind(unsigned long optind, unsigned long optsubind);
 static inline bool set_optarg(const wchar_t *value);
-static bool set_to(const wchar_t *varname, wchar_t value)
+static bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
 static bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
     __attribute__((nonnull));
@@ -1481,14 +1490,14 @@ int typeset_builtin(int argc, void **argv)
 	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    bool funcs = false, global = false, print = false;
+    bool function = false, global = false, print = false;
     bool readonly = false, export = false, unexport = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, options, 0)) != NULL) {
 	switch (opt->shortopt) {
-	    case L'f':  funcs    = true;  break;
+	    case L'f':  function = true;  break;
 	    case L'g':  global   = true;  break;
 	    case L'p':  print    = true;  break;
 	    case L'r':  readonly = true;  break;
@@ -1519,7 +1528,7 @@ int typeset_builtin(int argc, void **argv)
 	    || wcscmp(ARGV(0), L"set") == 0);
     }
 
-    if (funcs && (export || unexport)) {
+    if (function && (export || unexport)) {
 	xerror(0, Ngt("the -f option cannot be used with the -x or -X option"));
 	SPECIAL_BI_ERROR;
 	return Exit_ERROR;
@@ -1533,7 +1542,7 @@ int typeset_builtin(int argc, void **argv)
 	kvpair_T *kvs;
 	size_t count;
 
-	if (!funcs) {
+	if (!function) {
 	    /* print all variables */
 	    hashtable_T table;
 
@@ -1558,32 +1567,21 @@ int typeset_builtin(int argc, void **argv)
     } else {
 	do {
 	    wchar_t *arg = ARGV(xoptind);
-	    if (funcs) {
-		/* treat function */
-		function_T *f = ht_get(&functions, arg).value;
-		if (f) {
-		    if (readonly)
-			f->f_type |= VF_READONLY | VF_NODELETE;
-		    if (print)
-			print_function(arg, f, ARGV(0), readonly);
-		} else {
-		    xerror(0, Ngt("no such function `%ls'"), arg);
-		}
-	    } else {
+	    if (!function) {
 		wchar_t *wequal = wcschr(arg, L'=');
-		if (wequal)
+		if (wequal != NULL)
 		    *wequal = L'\0';
-		if (wequal || !print) {
+		if (wequal != NULL || !print) {
 		    /* create/assign variable */
 		    variable_T *var = global ? new_global(arg) : new_local(arg);
 		    vartype_T saveexport = var->v_type & VF_EXPORT;
-		    if (wequal) {
+		    if (wequal != NULL) {
 			if (var->v_type & VF_READONLY) {
 			    xerror(0, Ngt("$%ls is read-only"), arg);
 			} else {
 			    varvaluefree(var);
 			    var->v_type = VF_SCALAR | (var->v_type & ~VF_MASK);
-			    var->v_value = xwcsdup(wequal + 1);
+			    var->v_value = xwcsdup(&wequal[1]);
 			    var->v_getter = NULL;
 			}
 		    }
@@ -1595,16 +1593,27 @@ int typeset_builtin(int argc, void **argv)
 			var->v_type &= ~VF_EXPORT;
 		    variable_set(arg, var);
 		    if (saveexport != (var->v_type & VF_EXPORT)
-			    || (wequal && (var->v_type & VF_EXPORT)))
+			    || (wequal != NULL && (var->v_type & VF_EXPORT)))
 			update_environment(arg);
 		} else {
 		    /* print the variable */
 		    variable_T *var = search_variable(arg);
-		    if (var) {
+		    if (var != NULL) {
 			print_variable(arg, var, ARGV(0), readonly, export);
 		    } else {
 			xerror(0, Ngt("no such variable $%ls"), arg);
 		    }
+		}
+	    } else {
+		/* treat function */
+		function_T *f = ht_get(&functions, arg).value;
+		if (f != NULL) {
+		    if (readonly)
+			f->f_type |= VF_READONLY | VF_NODELETE;
+		    if (print)
+			print_function(arg, f, ARGV(0), readonly);
+		} else {
+		    xerror(0, Ngt("no such function `%ls'"), arg);
 		}
 	    }
 	} while (++xoptind < argc);
@@ -1615,8 +1624,9 @@ int typeset_builtin(int argc, void **argv)
 
 /* Prints the specified variable to the standard output.
  * This function does not print special variables whose name begins with an '='.
- * If `readonly'/`export' is true, the variable is printed only if it is
- * readonly/exported. The `name' is quoted if `is_name(name)' is not true.
+ * If `readonly' or `export' is true, the variable is printed only if it is
+ * read-only or exported, respectively. The `name' is quoted if `is_name(name)'
+ * is not true.
  * An error message is printed to the standard error on error. */
 void print_variable(
 	const wchar_t *name, const variable_T *var,
@@ -1633,29 +1643,46 @@ void print_variable(
 
     if (!is_name(name))
 	name = qname = quote_sq(name);
+
     switch (var->v_type & VF_MASK) {
-	case VF_SCALAR:  goto print_variable;
-	case VF_ARRAY:   goto print_array;
+	case VF_SCALAR:
+	    print_scalar(name, qname != NULL, var, argv0);
+	    break;
+	case VF_ARRAY:
+	    print_array(name, var, argv0);
+	    break;
     }
 
-print_variable:;
-    wchar_t *qvalue = var->v_value ? quote_sq(var->v_value) : NULL;
+    free(qname);
+}
+
+/* Prints the specified scalar variable to the standard output.
+ * If `is_name(name)' is not true, the quoted name must be given as `qname';
+ * otherwise, `qname' must be NULL.
+ * An error message is printed to the standard error on error. */
+void print_scalar(const wchar_t *name, bool namequote,
+	const variable_T *var, const wchar_t *argv0)
+{
+    wchar_t *quotedvalue;
     const char *format;
     xstrbuf_T opts;
+
+    if (var->v_value != NULL)
+	quotedvalue = quote_sq(var->v_value);
+    else
+	quotedvalue = NULL;
     switch (argv0[0]) {
 	case L's':
 	    assert(wcscmp(argv0, L"set") == 0);
-	    if (!qname && qvalue)
-		if (printf("%ls=%ls\n", name, qvalue) < 0)
-		    xerror(errno, Ngt("cannot print to the standard output"));
+	    if (!namequote && quotedvalue != NULL)
+		xprintf("%ls=%ls\n", name, quotedvalue);
 	    break;
 	case L'e':
 	case L'r':
 	    assert(wcscmp(argv0, L"export") == 0
 		    || wcscmp(argv0, L"readonly") == 0);
-	    format = qvalue ? "%ls %ls=%ls\n" : "%ls %ls\n";
-	    if (printf(format, argv0, name, qvalue) < 0)
-		xerror(errno, Ngt("cannot print to the standard output"));
+	    format = (quotedvalue != NULL) ? "%ls %ls=%ls\n" : "%ls %ls\n";
+	    xprintf(format, argv0, name, quotedvalue);
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
@@ -1666,29 +1693,39 @@ print_variable:;
 		sb_ccat(&opts, 'r');
 	    if (opts.length > 0)
 		sb_insert(&opts, 0, " -");
-	    format = qvalue ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n";
-	    if (printf(format, argv0, opts.contents, name, qvalue) < 0)
-		xerror(errno, Ngt("cannot print to the standard output"));
+	    format = (quotedvalue != NULL) ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n";
+	    xprintf(format, argv0, opts.contents, name, quotedvalue);
 	    sb_destroy(&opts);
 	    break;
 	default:
 	    assert(false);
     }
-    free(qvalue);
-    free(qname);
-    return;
+    free(quotedvalue);
+}
 
-print_array:
-    clearerr(stdout);
-    printf("%ls=(", name);
-    for (void **values = var->v_vals; *values; values++) {
+/* Prints the specified array variable to the standard output.
+ * An error message is printed to the standard error on error. */
+void print_array(
+	const wchar_t *name, const variable_T *var, const wchar_t *argv0)
+{
+    xstrbuf_T opts;
+
+    if (!xprintf("%ls=(", name))
+	return;
+    for (void **values = var->v_vals; ; ) {
 	wchar_t *qvalue = quote_sq(*values);
-	printf("%ls", qvalue);
+	bool ok = xprintf("%ls", qvalue);
 	free(qvalue);
-	if (*(values + 1))
-	    printf(" ");
+	if (!ok)
+	    return;
+	values++;
+	if (*values == NULL)
+	    break;
+	if (!xprintf(" "))
+	    return;
     }
-    printf(")\n");
+    if (!xprintf(")\n"))
+	return;
     switch (argv0[0]) {
 	case L'a':
 	    assert(wcscmp(argv0, L"array") == 0);
@@ -1700,7 +1737,7 @@ print_array:
 	case L'r':
 	    assert(wcscmp(argv0, L"export") == 0
 		    || wcscmp(argv0, L"readonly") == 0);
-	    printf("%ls %ls\n", argv0, name);
+	    xprintf("%ls %ls\n", argv0, name);
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
@@ -1711,19 +1748,16 @@ print_array:
 		sb_ccat(&opts, 'r');
 	    if (opts.length > 0)
 		sb_insert(&opts, 0, " -");
-	    printf("%ls%s %ls\n", argv0, opts.contents, name);
+	    xprintf("%ls%s %ls\n", argv0, opts.contents, name);
 	    sb_destroy(&opts);
 	    break;
 	default:
 	    assert(false);
     }
-    free(qname);
-    if (ferror(stdout))
-	xerror(0, Ngt("cannot print to the standard output"));
 }
 
 /* Prints the specified function to the standard output.
- * If `readonly' is true, the function is printed only if it is readonly.
+ * If `readonly' is true, the function is printed only if it is read-only.
  * An error message is printed to the standard error if failed to print to the
  * standard output. */
 void print_function(
@@ -1738,30 +1772,29 @@ void print_function(
 	name = qname = quote_sq(name);
 
     wchar_t *value = command_to_wcs(func->f_body, true);
-    clearerr(stdout);
-    if (qname == NULL)
-	printf("%ls()\n%ls", name, value);
-    else
-	printf("function %ls()\n%ls", name, value);
+    const char *format = (qname == NULL) ? "%ls()\n%ls" : "function %ls()\n%ls";
+    bool ok = xprintf(format, name, value);
     free(value);
+    if (!ok)
+	goto end;
 
     switch (argv0[0]) {
 	case L'r':
 	    assert(wcscmp(argv0, L"readonly") == 0);
 	    if (func->f_type & VF_READONLY)
-		printf("%ls -f %ls\n", argv0, name);
+		xprintf("%ls -f %ls\n", argv0, name);
 	    break;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
 	    if (func->f_type & VF_READONLY)
-		printf("%ls -fr %ls\n", argv0, name);
+		xprintf("%ls -fr %ls\n", argv0, name);
 	    break;
 	default:
 	    assert(false);
     }
+
+end:
     free(qname);
-    if (ferror(stdout))
-	xerror(0, Ngt("cannot print to the standard output"));
 }
 
 #if YASH_ENABLE_HELP
@@ -1825,18 +1858,18 @@ int array_builtin(int argc, void **argv)
     };
 
     enum {
-	delete = 1 << 0,
-	insert = 1 << 1,
-	set    = 1 << 2,
+	DELETE = 1 << 0,
+	INSERT = 1 << 1,
+	SET    = 1 << 2,
     } options = 0;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, cmdoptions, XGETOPT_DIGIT)) != NULL) {
 	switch (opt->shortopt) {
-	    case L'd':  options |= delete;  break;
-	    case L'i':  options |= insert;  break;
-	    case L's':  options |= set;     break;
+	    case L'd':  options |= DELETE;  break;
+	    case L'i':  options |= INSERT;  break;
+	    case L's':  options |= SET;     break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -1849,7 +1882,7 @@ int array_builtin(int argc, void **argv)
 		return Exit_ERROR;
 	}
     }
-    if (options && (options & (options - 1))) {
+    if (options != 0 && (options & (options - 1)) != 0) {
 	xerror(0, Ngt("more than one option cannot be used at once"));
 	return Exit_ERROR;
     }
@@ -1867,36 +1900,38 @@ int array_builtin(int argc, void **argv)
 	size_t count = table.count;
 	ht_destroy(&table);
 	qsort(kvs, count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; yash_error_message_count == 0 && i < count; i++)
-	    if ((((variable_T *) kvs[i].value)->v_type & VF_MASK) == VF_ARRAY)
-		print_variable(kvs[i].key, kvs[i].value, ARGV(0), false, false);
+	for (size_t i = 0; yash_error_message_count == 0 && i < count; i++) {
+	    variable_T *var = kvs[i].value;
+	    if ((var->v_type & VF_MASK) == VF_ARRAY)
+		print_variable(kvs[i].key, var, ARGV(0), false, false);
+	}
 	free(kvs);
     } else {
 	const wchar_t *name = ARGV(xoptind++);
-	if (wcschr(name, L'=')) {
+	if (wcschr(name, L'=') != NULL) {
 	    xerror(0, Ngt("`%ls' is not a valid array name"), name);
 	    return Exit_FAILURE;
 	}
 
 	if (options == 0) {
 	    set_array(name, argc - xoptind,
-		    pldup(argv + xoptind, copyaswcs), SCOPE_GLOBAL);
+		    pldup(&argv[xoptind], copyaswcs), SCOPE_GLOBAL);
 	} else {
 	    variable_T *array = search_array_and_check_if_changeable(name);
-	    if (!array)
+	    if (array == NULL)
 		return Exit_FAILURE;
 	    switch (options) {
-		case delete:
+		case DELETE:
 		    array_remove_elements(
-			    array, argc - xoptind, argv + xoptind);
+			    array, argc - xoptind, &argv[xoptind]);
 		    break;
-		case insert:
+		case INSERT:
 		    if (xoptind == argc)
 			goto print_usage;
 		    array_insert_elements(
-			    array, argc - xoptind, argv + xoptind);
+			    array, argc - xoptind, &argv[xoptind]);
 		    break;
-		case set:
+		case SET:
 		    if (xoptind + 2 != argc)
 			goto print_usage;
 		    array_set_element(
@@ -1926,8 +1961,7 @@ int array_builtin(int argc, void **argv)
 void array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
 {
-    long indices[count], lastindex;
-    plist_T list;
+    long indices[count];
 
     assert((array->v_type & VF_MASK) == VF_ARRAY);
 
@@ -1940,13 +1974,14 @@ void array_remove_elements(
 	}
     }
 
-    /* sort all the indices and remove elements in descending order so that
-     * an earlier removal does not affect the indices for later removals. */
-    if (count > 1)
-	qsort(indices, count, sizeof *indices, compare_long);
+    /* sort all the indices. */
+    qsort(indices, count, sizeof *indices, compare_long);
 
+    /* remove elements in descending order so that an earlier removal does not
+     * affect the indices for later removals. */
+    plist_T list;
+    long lastindex = LONG_MIN;
     pl_initwith(&list, array->v_vals, array->v_valc);
-    lastindex = LONG_MIN;
     for (size_t i = count; i-- != 0; ) {
 	long index = indices[i];
 	if (index == lastindex)
@@ -1987,7 +2022,6 @@ void array_insert_elements(
 	variable_T *array, size_t count, void *const *values)
 {
     long index;
-    plist_T list;
 
     assert((array->v_type & VF_MASK) == VF_ARRAY);
     assert(count > 0);
@@ -2002,14 +2036,19 @@ void array_insert_elements(
     count--, values++;
     assert(plcount(values) == count);
 
-    size_t uindex;
     if (index < 0) {
 	index += array->v_valc + 1;
 	if (index < 0)
 	    index = 0;
     }
-    uindex = LONG_LT_SIZE(index, array->v_valc) ? (size_t)index : array->v_valc;
 
+    size_t uindex;
+    if (LONG_LT_SIZE(index, array->v_valc))
+	uindex = (size_t) index;
+    else
+	uindex = array->v_valc;
+
+    plist_T list;
     pl_initwith(&list, array->v_vals, array->v_valc);
     pl_insert(&list, uindex, values);
     for (size_t i = 0; i < count; i++)
@@ -2101,14 +2140,14 @@ int unset_builtin(int argc, void **argv)
 	{ L'\0', NULL, 0, false, NULL, },
     };
 
-    bool funcs = false;
+    bool function = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, options, 0)) != NULL) {
 	switch (opt->shortopt) {
-	    case L'f':  funcs = true;   break;
-	    case L'v':  funcs = false;  break;
+	    case L'f':  function = true;   break;
+	    case L'v':  function = false;  break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -2122,7 +2161,7 @@ int unset_builtin(int argc, void **argv)
 
     for (; xoptind < argc; xoptind++) {
 	const wchar_t *name = ARGV(xoptind);
-	if (funcs) {
+	if (function) {
 	    unset_function(name);
 	} else {
 	    if (wcschr(name, L'=')) {
@@ -2143,7 +2182,7 @@ bool unset_function(const wchar_t *name)
 {
     kvpair_T kv = ht_remove(&functions, name);
     function_T *f = kv.value;
-    if (f) {
+    if (f != NULL) {
 	if (!(f->f_type & VF_NODELETE)) {
 	    funckvfree(kv);
 	} else {
@@ -2160,15 +2199,15 @@ bool unset_function(const wchar_t *name)
  * returned. */
 bool unset_variable(const wchar_t *name)
 {
-    for (environ_T *env = current_env; env; env = env->parent) {
+    for (environ_T *env = current_env; env != NULL; env = env->parent) {
 	kvpair_T kv = ht_remove(&env->contents, name);
 	variable_T *var = kv.value;
-	if (var) {
+	if (var != NULL) {
 	    if (!(var->v_type & VF_NODELETE)) {
-		bool ue = var->v_type & VF_EXPORT;
+		bool exported = var->v_type & VF_EXPORT;
 		varkvfree(kv);
 		variable_set(name, NULL);
-		if (ue)
+		if (exported)
 		    update_environment(name);
 		return false;
 	    } else {
@@ -2197,7 +2236,7 @@ const char *unset_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "shift" builtin */
+/* The "shift" built-in */
 int shift_builtin(int argc, void **argv)
 {
     const struct xgetopt_T *opt;
@@ -2230,11 +2269,12 @@ int shift_builtin(int argc, void **argv)
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	}
-#if LONG_MAX <= SIZE_MAX
-	scount = (size_t) count;
-#else
-	scount = (count > (long) SIZE_MAX) ? SIZE_MAX : (size_t) count;
+#if LONG_MAX > SIZE_MAX
+	if (count > (long) SIZE_MAX)
+	    scount = SIZE_MAX;
+	else
 #endif
+	    scount = (size_t) count;
     } else {
 	scount = 1;
     }
@@ -2251,11 +2291,15 @@ int shift_builtin(int argc, void **argv)
 	    scount, var->v_valc);
 	return Exit_FAILURE;
     }
+
+    plist_T list;
+    pl_initwith(&list, var->v_vals, var->v_valc);
     for (size_t i = 0; i < scount; i++)
-	free(var->v_vals[i]);
-    var->v_valc -= scount;
-    memmove(var->v_vals, var->v_vals + scount,
-	    (var->v_valc + 1) * sizeof *var->v_vals);
+	free(list.contents[i]);
+    pl_remove(&list, 0, scount);
+    var->v_valc = list.length;
+    var->v_vals = pl_toary(&list);
+
     return Exit_SUCCESS;
 }
 
@@ -2271,7 +2315,7 @@ const char *shift_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "getopts" builtin */
+/* The "getopts" built-in */
 int getopts_builtin(int argc, void **argv)
 {
     const struct xgetopt_T *opt;
@@ -2308,11 +2352,11 @@ int getopts_builtin(int argc, void **argv)
     {
 	const wchar_t *varoptind = getvar(L VAR_OPTIND);
 	wchar_t *endp;
-	if (!varoptind || !varoptind[0])
+	if (varoptind == NULL || varoptind[0] == L'\0')
 	    goto optind_invalid;
 	errno = 0;
 	optind = wcstoul(varoptind, &endp, 10);
-	if (errno || varoptind == endp)
+	if (errno != 0 || varoptind == endp)
 	    goto optind_invalid;
 	optind -= 1;
 
@@ -2328,7 +2372,7 @@ int getopts_builtin(int argc, void **argv)
     if (xoptind < argc) {
 	if (optind >= (unsigned long) (argc - xoptind))
 	    goto no_more_options;
-	args = argv + xoptind;
+	args = &argv[xoptind];
     } else {
 	variable_T *var = search_variable(L VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
@@ -2352,11 +2396,11 @@ parse_arg:
 
     optchar = arg[optsubind++];
     assert(optchar != L'\0');
-    if (optchar == L':' || !(optp = wcschr(options, optchar))) {
+    if (optchar == L':' || (optp = wcschr(options, optchar)) == NULL) {
 	/* invalid option */
-	TRY(set_to(varname, L'?'));
+	TRY(set_variable_single_char(varname, L'?'));
 	if (options[0] == L':') {
-	    TRY(set_optarg((wchar_t []) { optchar, L'\0' }));
+	    TRY(set_variable_single_char(L VAR_OPTARG, optchar));
 	} else {
 	    fprintf(stderr, gt("%ls: `-%lc' is not a valid option\n"),
 		    command_name, (wint_t) optchar);
@@ -2364,37 +2408,34 @@ parse_arg:
 	}
     } else {
 	/* valid option */
-	if (optp[1] == L':') {
+	if (optp[1] != L':') {
+	    /* option without an argument */
+	    TRY(!unset_variable(L VAR_OPTARG));
+	} else {
 	    /* option with an argument */
-	    const wchar_t *optarg = arg + optsubind;
+	    const wchar_t *optarg = &arg[optsubind];
 	    optsubind = 1;
-	    if (optarg[0] != L'\0') {
-		optind++;
-	    } else {
-		optind++;
-		optarg = args[optind];
-		optind++;
+	    optind++;
+	    if (optarg[0] == L'\0') {
+		optarg = args[optind++];
 		if (optarg == NULL) {
 		    /* argument is missing */
 		    if (options[0] == L':') {
-			TRY(set_to(varname, L':'));
-			TRY(set_optarg((wchar_t []) { optchar, L'\0' }));
+			TRY(set_variable_single_char(varname, L':'));
+			TRY(set_variable_single_char(L VAR_OPTARG, optchar));
 		    } else {
 			fprintf(stderr,
 			    gt("%ls: the -%lc option's argument is missing\n"),
 			    command_name, (wint_t) optchar);
-			TRY(set_to(varname, L'?'));
+			TRY(set_variable_single_char(varname, L'?'));
 			TRY(!unset_variable(L VAR_OPTARG));
 		    }
 		    goto finish;
 		}
 	    }
 	    TRY(set_optarg(optarg));
-	} else {
-	    /* option without an argument */
-	    TRY(!unset_variable(L VAR_OPTARG));
 	}
-	TRY(set_to(varname, optchar));
+	TRY(set_variable_single_char(varname, optchar));
     }
 finish:
     TRY(set_optind(optind, optsubind));
@@ -2403,7 +2444,7 @@ finish:
 
 no_more_options:
     set_optind(optind, 0);
-    set_to(varname, L'?');
+    set_variable_single_char(varname, L'?');
     unset_variable(L VAR_OPTARG);
     return Exit_FAILURE;
 optind_invalid:
@@ -2414,10 +2455,10 @@ print_usage:
     return Exit_ERROR;
 }
 
-/* Checks if the `options' is valid. Returns true iff ok. */
+/* Checks if the `options' is valid. Returns true iff OK. */
 bool check_options(const wchar_t *options)
 {
-    if (*options == L':')
+    if (options[0] == L':')
 	options++;
     for (;;) switch (*options) {
 	case L'\0':
@@ -2455,9 +2496,9 @@ bool set_optarg(const wchar_t *value)
 }
 
 /* Sets the specified variable to the single character `value'. */
-bool set_to(const wchar_t *varname, wchar_t value)
+bool set_variable_single_char(const wchar_t *varname, wchar_t value)
 {
-    wchar_t *v = xmalloc(sizeof *v * 2);
+    wchar_t *v = xmallocn(2, sizeof *v);
     v[0] = value;
     v[1] = L'\0';
     return set_variable(varname, v, SCOPE_GLOBAL, shopt_allexport);
@@ -2552,13 +2593,13 @@ int read_builtin(int argc, void **argv)
 
     /* check if the identifiers are valid */
     for (int i = xoptind; i < argc; i++) {
-	if (wcschr(ARGV(i), L'=')) {
+	if (wcschr(ARGV(i), L'=') != NULL) {
 	    xerror(0, Ngt("`%ls' is not a valid variable name"), ARGV(i));
 	    return Exit_FAILURE;
 	}
     }
 
-    bool eof = false;
+    bool eof;
     xwcsbuf_T buf;
 
     /* read input and remove trailing newline */
@@ -2568,7 +2609,8 @@ int read_builtin(int argc, void **argv)
 	return Exit_FAILURE;
     }
     if (buf.length > 0 && buf.contents[buf.length - 1] == L'\n') {
-	wb_remove(&buf, buf.length - 1, 1);
+	wb_truncate(&buf, buf.length - 1);
+	eof = false;
     } else {
 	/* no newline means the EOF was encountered */
 	eof = true;
@@ -2590,11 +2632,11 @@ int read_builtin(int argc, void **argv)
     for (size_t i = 0; i < list.length; i++) {
 	const wchar_t *name = ARGV(xoptind + i);
 	if (i + 1 == list.length)
-	    trim_trailing_ifsws(list.contents[i], ifs);
-	if (!array || i + 1 < list.length)
-	    set_variable(name, list.contents[i], SCOPE_GLOBAL, shopt_allexport);
-	else
+	    trim_trailing_spaces(list.contents[i], ifs);
+	if (array && i + 1 == list.length)
 	    split_and_assign_array(name, list.contents[i], ifs, raw);
+	else
+	    set_variable(name, list.contents[i], SCOPE_GLOBAL, shopt_allexport);
     }
 
     pl_destroy(&list);
@@ -2616,14 +2658,12 @@ bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
 {
     bool first = true;
     size_t index;
+    bool use_prompt = is_interactive_now && isatty(STDIN_FILENO);
+    struct promptset_T prompt;
 
 read_input:
     index = buf->length;
-    if (is_interactive_now && isatty(STDIN_FILENO)) {
-	/* if the shell is interactive and the input is from the terminal,
-	 * then print a prompt and try to use line-editing. */
-
-	struct promptset_T prompt;
+    if (use_prompt) {
 	if (first) {
 	    prompt.main   = xwcsdup(L"");
 	    prompt.right  = xwcsdup(L"");
@@ -2655,18 +2695,18 @@ read_input:
 	}
 #endif /* YASH_ENABLE_LINEEDIT */
 
-	inputresult_T result2;
 	print_prompt(prompt.main);
 	print_prompt(prompt.styler);
-	result2 = read_input(buf, stdin_input_file_info, false);
+    }
+
+    inputresult_T result2 = read_input(buf, stdin_input_file_info, false);
+
+    if (use_prompt) {
 	print_prompt(PROMPT_RESET);
 	free_prompt(prompt);
-	if (result2 == INPUT_ERROR)
-	    return false;
-    } else {
-	if (read_input(buf, stdin_input_file_info, false) == INPUT_ERROR)
-	    return false;
     }
+    if (result2 == INPUT_ERROR)
+	return false;
 
 #if YASH_ENABLE_LINEEDIT
 done:
@@ -2757,13 +2797,13 @@ static const struct xgetopt_T pushd_options[] = {
 
 #if !YASH_ENABLE_DIRSTACK
 
-/* options for the "cd" and "pwd" builtins */
+/* options for the "cd" and "pwd" built-ins */
 const struct xgetopt_T *const cd_options  = pushd_options;
 const struct xgetopt_T *const pwd_options = pushd_options + 1;
 
 #else /* YASH_ENABLE_DIRSTACK */
 
-/* options for the "cd" and "pwd" builtins */
+/* options for the "cd" and "pwd" built-ins */
 const struct xgetopt_T *const cd_options  = pushd_options + 1;
 const struct xgetopt_T *const pwd_options = pushd_options + 2;
 
@@ -2774,10 +2814,13 @@ static void remove_dirstack_entry_at(variable_T *var, size_t index)
     __attribute__((nonnull));
 static void remove_dirstack_dups(variable_T *var)
     __attribute__((nonnull));
+static bool print_dirstack_entry(
+	bool verbose, size_t plusindex, size_t minusindex, const wchar_t *dir)
+    __attribute__((nonnull));
 
 /* The "pushd" built-in.
- *  -L: don't resolve symlinks (default)
- *  -P: resolve symlinks
+ *  -L: don't resolve symbolic links (default)
+ *  -P: resolve symbolic links
  *  --default-directory=<dir>: go to <dir> when the operand is missing
  *  --remove-duplicates: remove duplicate entries in the directory stack.
  * -L and -P are mutually exclusive: the one specified last is used. */
@@ -2824,9 +2867,8 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 		printnewdir = true;
 		stackindex = SIZE_MAX;
 		break;
-	    } else {
-		newpwd = ARGV(xoptind);
 	    }
+	    newpwd = ARGV(xoptind);
 	    /* falls thru! */
 	case 0:
 	    if (!parse_dirstack_index(newpwd, &stackindex, &newpwd, true))
@@ -2864,7 +2906,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 /* Returns the directory stack.
  * If the stack is not yet created, it is initialized as an empty stack and
  * returned.
- * Fails if a non-array variable or a readonly array already exists, in which
+ * Fails if a non-array variable or a read-only array already exists, in which
  * case NULL is returned. */
 variable_T *get_dirstack(void)
 {
@@ -2880,18 +2922,20 @@ variable_T *get_dirstack(void)
 	return var;
     }
 
-    void **ary = xmalloc(1 * sizeof *ary);
+    // void **ary = xmallocn(1, sizeof *ary);
+    void **ary = xmalloc(sizeof *ary);
     ary[0] = NULL;
     return set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL);
 }
 
 /* Adds the specified value to the directory stack ($DIRSTACK).
  * `var' must be the return value of a `get_dirstack' call.
- * `value' is (virtually) freed in this function. */
+ * `value' is used as an element of the $DIRSTACK array, so the caller must not
+ * modify or free `value' after calling this function. */
 void push_dirstack(variable_T *var, wchar_t *value)
 {
     size_t index = var->v_valc++;
-    var->v_vals = xrealloc(var->v_vals, (index + 2) * sizeof *var->v_vals);
+    var->v_vals = xreallocn(var->v_vals, index + 2, sizeof *var->v_vals);
     var->v_vals[index] = value;
     var->v_vals[index + 1] = NULL;
 }
@@ -2945,7 +2989,7 @@ const char *pushd_help[] = { Ngt(
 ), NULL };
 #endif
 
-/* The "popd" builtin. */
+/* The "popd" built-in. */
 int popd_builtin(int argc, void **argv)
 {
     const struct xgetopt_T *opt;
@@ -3068,15 +3112,8 @@ int dirs_builtin(int argc, void **argv)
 		continue;
 	    }
 
-	    int r;
-	    if (verbose)
-		r = printf("+%zu\t-%zu\t%ls\n", size - index, index, dir);
-	    else
-		r = printf("%ls\n", dir);
-	    if (r < 0) {
-		xerror(errno, Ngt("cannot print to the standard output"));
+	    if (!print_dirstack_entry(verbose, size - index, index, dir))
 		break;
-	    }
 	} while (++xoptind < argc);
     } else {
 	/* print all */
@@ -3084,32 +3121,27 @@ int dirs_builtin(int argc, void **argv)
 	if (dir == NULL) {
 	    xerror(0, Ngt("$PWD is not set"));
 	} else {
-	    int r;
-	    if (verbose)
-		r = printf("+%zu\t-%zu\t%ls\n", (size_t) 0, size, dir);
-	    else
-		r = printf("%ls\n", dir);
-	    if (r < 0)
-		xerror(errno, Ngt("cannot print to the standard output"));
+	    print_dirstack_entry(verbose, 0, size, dir);
 	}
 
 	if (dirvalid && yash_error_message_count == 0) {
 	    for (size_t i = var->v_valc; i-- > 0; ) {
-		int r;
-		dir = var->v_vals[i];
-		if (verbose)
-		    r = printf("+%zu\t-%zu\t%ls\n", size - i, i, dir);
-		else
-		    r = printf("%ls\n", dir);
-		if (r < 0) {
-		    xerror(errno, Ngt("cannot print to the standard output"));
+		if (!print_dirstack_entry(verbose, size - i, i, var->v_vals[i]))
 		    break;
-		}
 	    }
 	}
     }
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+}
+
+bool print_dirstack_entry(
+	bool verbose, size_t plusindex, size_t minusindex, const wchar_t *dir)
+{
+    if (verbose)
+	return xprintf("+%zu\t-%zu\t%ls\n", plusindex, minusindex, dir);
+    else
+	return xprintf("%ls\n", dir);
 }
 
 #if YASH_ENABLE_HELP

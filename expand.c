@@ -615,7 +615,7 @@ finish:
  * Returns true iff successful. */
 bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
 {
-    struct get_variable v;
+    struct get_variable_T v;
     void **list;  /* array of (wchar_t *) cast to (void *) */
     bool save;    /* need to copy the array? */
     bool concat;  /* concatenate? */
@@ -1508,7 +1508,7 @@ end:
 
 /* Removes IFS white spaces at the end of the string `s' by replacing them with
  * null characters. The default IFS is used if `ifs' is NULL. */
-void trim_trailing_ifsws(wchar_t *s, const wchar_t *ifs)
+void trim_trailing_spaces(wchar_t *s, const wchar_t *ifs)
 {
     wchar_t *const base = s;
 

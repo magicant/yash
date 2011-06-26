@@ -134,7 +134,7 @@ bool is_time_to_check_mail(void)
 void check_mail_and_print_message(void)
 {
     /* Firstly, check the $MAILPATH variable */
-    struct get_variable mailpath = get_variable(L VAR_MAILPATH);
+    struct get_variable_T mailpath = get_variable(L VAR_MAILPATH);
     switch (mailpath.type) {
 	case GV_NOTFOUND:
 	    break;

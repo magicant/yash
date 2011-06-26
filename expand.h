@@ -54,7 +54,7 @@ extern wchar_t *expand_string(const struct wordunit_T *w, _Bool esc)
 extern wchar_t *split_next_field(
 	const wchar_t **sp, const wchar_t *ifs, _Bool noescape)
     __attribute__((nonnull(1),malloc,warn_unused_result));
-extern void trim_trailing_ifsws(wchar_t *s, const wchar_t *ifs)
+extern void trim_trailing_spaces(wchar_t *s, const wchar_t *ifs)
     __attribute__((nonnull(1)));
 
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)

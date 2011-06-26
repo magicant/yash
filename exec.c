@@ -383,7 +383,7 @@ void exec_for(const command_T *c, bool finally_exit)
 	}
     } else {
 	/* no "in" keyword in the for command: use the positional parameters */
-	struct get_variable v = get_variable(L"@");
+	struct get_variable_T v = get_variable(L"@");
 	assert(v.type == GV_ARRAY && v.values != NULL);
 	words = pldup(v.values, copyaswcs);
 	count = (int) v.count;
@@ -1416,7 +1416,7 @@ int exec_iteration(void *const *commands, const char *codename)
  * When this function returns, `laststatus' is restored to the original value.*/
 int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 {
-    struct get_variable gv = get_variable(varname);
+    struct get_variable_T gv = get_variable(varname);
     void **array;
 
     switch (gv.type) {

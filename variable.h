@@ -72,11 +72,14 @@ extern char **environ;
 #define VAR_YASH_VERSION              "YASH_VERSION"
 #define L                             L""
 
+struct variable_T;
+struct assign_T;
+struct command_T;
+
 typedef enum path_T {
     PA_PATH, PA_CDPATH, PA_LOADPATH,
     PA_count,
 } path_T;
-
 
 extern unsigned long current_lineno;
 
@@ -89,7 +92,6 @@ typedef enum scope_T {
 extern _Bool set_variable(
 	const wchar_t *name, wchar_t *value, scope_T scope, _Bool export)
     __attribute__((nonnull(1)));
-struct variable_T;
 extern struct variable_T *set_array(
 	const wchar_t *name, size_t count, void **values, scope_T scope)
     __attribute__((nonnull));
@@ -98,18 +100,17 @@ extern _Bool set_array_element(
     __attribute__((nonnull));
 extern void set_positional_parameters(void *const *values)
     __attribute__((nonnull));
-struct assign_T;
 extern _Bool do_assignments(
 	const struct assign_T *assigns, _Bool temp, _Bool export);
 
-struct get_variable {
+struct get_variable_T {
     enum { GV_NOTFOUND, GV_SCALAR, GV_ARRAY, GV_ARRAY_CONCAT, } type;
     size_t count;
     void **values;
 };
 extern const wchar_t *getvar(const wchar_t *name)
     __attribute__((pure,nonnull));
-extern struct get_variable get_variable(const wchar_t *name)
+extern struct get_variable_T get_variable(const wchar_t *name)
     __attribute__((nonnull,warn_unused_result));
 
 extern void open_new_environment(_Bool temp);
@@ -119,7 +120,6 @@ extern char **decompose_paths(const wchar_t *paths)
     __attribute__((malloc,warn_unused_result));
 extern char *const *get_path_array(path_T name);
 
-struct command_T;
 extern _Bool define_function(const wchar_t *name, struct command_T *body)
     __attribute__((nonnull));
 extern struct command_T *get_function(const wchar_t *name)
