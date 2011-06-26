@@ -983,18 +983,16 @@ unsigned next_random(void)
 #elif RAND_MAX == 4294967295
     return (unsigned) rand() >> 17;
 #else
-    unsigned max, value;
-    do {
-	max   = RAND_MAX;
-	value = rand();
-	while (max > 65535) {
-	    max   >>= 1;
-	    value >>= 1;
-	}
-	if (max == 65535)
-	    return value >> 1;
-    } while (value > 32767);
-    return value;
+    unsigned rem = RAND_MAX % 32768 + 1;
+    if (rem == 32768) {
+	return (unsigned) rand() & 32767;
+    } else {
+	unsigned value;
+	do
+	    value = rand();
+	while (value > RAND_MAX - rem);
+	return value;
+    }
 #endif
 }
 
