@@ -153,6 +153,8 @@ static void xtrace_variable(const wchar_t *name, const wchar_t *value)
     __attribute__((nonnull));
 static void xtrace_array(const wchar_t *name, void *const *values)
     __attribute__((nonnull));
+static size_t make_array_of_all_variables(bool global, kvpair_T **resultp)
+    __attribute__((nonnull));
 static void get_all_variables_rec(
 	hashtable_T *table, environ_T *env, bool global)
     __attribute__((nonnull));
@@ -895,6 +897,31 @@ return_single:  /* return a scalar as a one-element array */
     return result;
 }
 
+/* Makes a new array that contains all the variables in the current environment.
+ * The elements of the array are key-value pairs of names (const wchar_t *) and
+ * values (const variable_T *).
+ * If `global' is true, variables in all the ancestor environments are also
+ * included (except the ones hidden by local variables).
+ * The resultant array is assigned to `*resultp' and the number of the key-value
+ * pairs is returned. The array contents must not be modified or freed. */
+size_t make_array_of_all_variables(bool global, kvpair_T **resultp)
+{
+    if (current_env->parent == NULL || (!global && current_env->is_temporary)) {
+	*resultp = ht_tokvarray(&current_env->contents);
+	return current_env->contents.count;
+    } else {
+	hashtable_T variables;
+	size_t count;
+
+	ht_init(&variables, hashwcs, htwcscmp);
+	get_all_variables_rec(&variables, current_env, global);
+	*resultp = ht_tokvarray(&variables);
+	count = variables.count;
+	ht_destroy(&variables);
+	return count;
+    }
+}
+
 /* Gathers all variables in the specified environment and adds them to the
  * specified hashtable.
  * If `global' is true, variables in all the ancestor environments are also
@@ -1544,13 +1571,7 @@ int typeset_builtin(int argc, void **argv)
 
 	if (!function) {
 	    /* print all variables */
-	    hashtable_T table;
-
-	    ht_init(&table, hashwcs, htwcscmp);
-	    get_all_variables_rec(&table, current_env, global);
-	    kvs = ht_tokvarray(&table);
-	    count = table.count;
-	    ht_destroy(&table);
+	    count = make_array_of_all_variables(global, &kvs);
 	    qsort(kvs, count, sizeof *kvs, keywcscoll);
 	    for (size_t i = 0; yash_error_message_count == 0 && i < count; i++)
 		print_variable(
@@ -1892,13 +1913,8 @@ int array_builtin(int argc, void **argv)
 	if (options != 0)
 	    goto print_usage;
 
-	hashtable_T table;
-	ht_init(&table, hashwcs, htwcscmp);
-	get_all_variables_rec(&table, current_env, true);
-
-	kvpair_T *kvs = ht_tokvarray(&table);
-	size_t count = table.count;
-	ht_destroy(&table);
+	kvpair_T *kvs;
+	size_t count = make_array_of_all_variables(true, &kvs);
 	qsort(kvs, count, sizeof *kvs, keywcscoll);
 	for (size_t i = 0; yash_error_message_count == 0 && i < count; i++) {
 	    variable_T *var = kvs[i].value;
