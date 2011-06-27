@@ -1988,6 +1988,15 @@ void array_remove_elements(
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), indexwcs);
 	    return;
 	}
+
+	if (indices[i] >= 0) {
+	    indices[i] -= 1;
+	} else {
+#if LONG_MAX < SIZE_MAX
+	    if (!LONG_LT_SIZE(LONG_MAX, array->v_valc))
+#endif
+		indices[i] += array->v_valc;
+	}
     }
 
     /* sort all the indices. */
@@ -2002,18 +2011,9 @@ void array_remove_elements(
 	long index = indices[i];
 	if (index == lastindex)
 	    continue;
-	if (index > 0) {
-	    if (LONG_LT_SIZE(index - 1, list.length)) {
-		free(list.contents[index - 1]);
-		pl_remove(&list, index - 1, 1);
-	    }
-	} else if (index < 0) {
-	    index += array->v_valc;
-	    if (index >= 0) {
-		assert(LONG_LT_SIZE(index, list.length));
-		free(list.contents[index]);
-		pl_remove(&list, index, 1);
-	    }
+	if (0 <= index && LONG_LT_SIZE(index, list.length)) {
+	    free(list.contents[index]);
+	    pl_remove(&list, index, 1);
 	}
 	lastindex = index;
     }

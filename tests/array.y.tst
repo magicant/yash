@@ -8,9 +8,9 @@ array
 echo 2 $?
 array aaa 1 2 3 4 5 6 7 8 9
 echo 3 $? $aaa
-array -d aaa 6 2 10 2 8
+array -d aaa
 echo 4 $? $aaa
-array -d aaa -1 -5 -20 0
+array -d aaa -1 6 90 2 -7 -20 8 0
 echo 5 $? $aaa
 array -i aaa 0 0
 echo 6 $? $aaa
