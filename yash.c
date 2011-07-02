@@ -62,7 +62,7 @@ static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
 static void print_version(void);
 
-static void parse_and_exec(struct parseinfo_T *pinfo, _Bool finally_exit)
+static void parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
     __attribute__((nonnull(1)));
 static bool input_is_interactive_terminal(const parseinfo_T *pinfo)
     __attribute__((nonnull));
@@ -74,7 +74,7 @@ pid_t shell_pid;
  * In a job-controlled subshell, this value is set to the subshell's pgid. */
 pid_t shell_pgid;
 
-/* If this flag is true when the "exit" builtin is invoked, the -f option is
+/* If this flag is true when the "exit" built-in is invoked, the -f option is
  * assumed to be specified. */
 static bool forceexit;
 /* The next value of `forceexit'. */
@@ -116,10 +116,10 @@ int main(int argc, char **argv)
     wargv[argc] = NULL;
 
     /* parse argv[0] */
-    yash_program_invocation_name = wargv[0] ? wargv[0] : L"";
+    yash_program_invocation_name = wargv[0];
     yash_program_invocation_short_name
 	= wcsrchr(yash_program_invocation_name, L'/');
-    if (yash_program_invocation_short_name)
+    if (yash_program_invocation_short_name != NULL)
 	yash_program_invocation_short_name++;
     else
 	yash_program_invocation_short_name = yash_program_invocation_name;
@@ -151,13 +151,13 @@ int main(int argc, char **argv)
 
     int optresult = parse_shell_options(argc, wargv, &options);
     if (optresult != Exit_SUCCESS)
-	exit(optresult);
+	return optresult;
     if (options.version)
 	print_version();
     if (options.help)
 	print_help();
     if (options.version || options.help)
-	exit(yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE);
+	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
 
     init_variables();
 
@@ -169,14 +169,14 @@ int main(int argc, char **argv)
 
     if (shopt_cmdline && shopt_stdin) {
 	xerror(0, Ngt("the -c and -s options cannot be used both at once"));
-	exit(Exit_ERROR);
+	return Exit_ERROR;
     }
     if (shopt_cmdline) {
 	input.command = wargv[xoptind++];
 	if (input.command == NULL) {
 	    xerror(0, Ngt("the -c option is specified "
 			"but no command is given"));
-	    exit(Exit_ERROR);
+	    return Exit_ERROR;
 	}
 	if (xoptind < argc) {
 	    inputname = argv[xoptind];
@@ -202,13 +202,13 @@ int main(int argc, char **argv)
 	    if (input.fd < 0) {
 		int errno_ = errno;
 		xerror(errno_, Ngt("cannot open file `%s'"), inputname);
-		exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
+		return (errno_ == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
 	    }
 	}
     }
 
 #if YASH_ENABLE_LINEEDIT
-    /* enable lineedit if interactive and connected to a terminal */
+    /* enable line editing if interactive and connected to a terminal */
     if (!options.lineedit_set && shopt_lineedit == SHOPT_NOLINEEDIT)
 	if (is_interactive && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
 	    set_lineedit_option(SHOPT_VI);
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 	    ensure_foreground();
     }
     set_signals();
-    set_positional_parameters(wargv + xoptind);
+    set_positional_parameters(&wargv[xoptind]);
 
     if (is_login_shell && !posixly_correct && !options.noprofile)
 	if (getuid() == geteuid() && getgid() == getegid())
@@ -242,11 +242,12 @@ int main(int argc, char **argv)
 
 struct input_file_info *new_input_file_info(int fd, size_t bufsize)
 {
-    struct input_file_info *info = xmalloc(sizeof *info + bufsize);
+    struct input_file_info *info
+	= xmallocs(sizeof *info, bufsize, sizeof *info->buf);
     info->fd = fd;
     info->bufpos = info->bufmax = 0;
     info->bufsize = bufsize;
-    memset(&info->state, 0, sizeof info->state);
+    memset(&info->state, 0, sizeof info->state);  // initial shift state
     return info;
 }
 
