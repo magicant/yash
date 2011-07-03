@@ -183,16 +183,15 @@ pid_t lastasyncpid;
 static bool supresserrexit = false;
 
 /* state of currently executed loop */
-static struct execinfo {
+static struct execstate_T {
     unsigned loopnest;    /* level of nested loops */
     unsigned breakcount;  /* # of loops to break (<= loopnest) */
     enum { ee_none, ee_continue, ee_return
     } exception;          /* exceptional jump to be done */
-} execinfo;
+} execstate;
 /* Note that n continues are equivalent to (n-1) breaks followed by one
  * continue. When `exception' is set to `ee_return', `breakcount' must be 0. */
-/* Note that `execinfo' is not reset when a subshell forks. */
-#define INIT_EXECINFO { 0, 0, ee_none }  /* used to initialize `execinfo' */
+/* Note that `execstate' is not reset when a subshell forks. */
 
 /* state of currently executed iteration. */
 static struct iterinfo {
@@ -213,43 +212,43 @@ static assign_T *last_assign;
 static xwcsbuf_T xtrace_buffer;
 
 
-/* Resets `execinfo' to the initial state. */
-void reset_execinfo(void)
+/* Resets `execstate' to the initial state. */
+void reset_execstate(void)
 {
-    execinfo = (struct execinfo) {
+    execstate = (struct execstate_T) {
 	.loopnest = 0,
 	.breakcount = 0,
 	.exception = ee_none,
     };
 }
 
-/* Saves the current `execinfo' and returns it.
- * `execinfo' is re-initialized. */
-struct execinfo *save_execinfo(void)
+/* Saves the current `execstate' and returns it.
+ * `execstate' is re-initialized. */
+struct execstate_T *save_execstate(void)
 {
-    struct execinfo *save = xmalloc(sizeof execinfo);
-    *save = execinfo;
-    reset_execinfo();
+    struct execstate_T *save = xmalloc(sizeof execstate);
+    *save = execstate;
+    reset_execstate();
     return save;
 }
 
-/* Restores `execinfo' to `save' and frees `save'. */
-void load_execinfo(struct execinfo *save)
+/* Restores `execstate' to `save' and frees `save'. */
+void restore_execstate(struct execstate_T *save)
 {
-    execinfo = *save;
+    execstate = *save;
     free(save);
 }
 
 /* Returns true iff `parse_and_exec' should quit execution. */
 inline bool return_pending(void)
 {
-    return execinfo.exception != ee_none || iterinfo.exception != ie_none;
+    return execstate.exception != ee_none || iterinfo.exception != ie_none;
 }
 
 /* Returns true iff we're breaking/continuing/returning now. */
 bool need_break(void)
 {
-    return execinfo.breakcount > 0 || return_pending() || is_interrupted();
+    return execstate.breakcount > 0 || return_pending() || is_interrupted();
 }
 
 
@@ -370,7 +369,7 @@ bool exec_condition(const and_or_T *c)
 void exec_for(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_FOR);
-    execinfo.loopnest++;
+    execstate.loopnest++;
 
     int count;
     void **words;
@@ -390,13 +389,13 @@ void exec_for(const command_T *c, bool finally_exit)
     }
 
 #define CHECK_LOOP                                   \
-    if (execinfo.breakcount > 0) {                   \
-	execinfo.breakcount--;                       \
+    if (execstate.breakcount > 0) {                  \
+	execstate.breakcount--;                      \
 	goto done;                                   \
-    } else if (execinfo.exception == ee_continue) {  \
-	execinfo.exception = ee_none;                \
+    } else if (execstate.exception == ee_continue) { \
+	execstate.exception = ee_none;               \
 	continue;                                    \
-    } else if (execinfo.exception != ee_none) {      \
+    } else if (execstate.exception != ee_none) {     \
 	goto done;                                   \
     } else if (is_interrupted()) {                   \
 	goto done;                                   \
@@ -421,7 +420,7 @@ done:
     if (count == 0 && c->c_forcmds)
 	laststatus = Exit_SUCCESS;
 finish:
-    execinfo.loopnest--;
+    execstate.loopnest--;
     if (finally_exit)
 	exit_shell();
 }
@@ -433,7 +432,7 @@ finish:
 void exec_while(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_WHILE);
-    execinfo.loopnest++;
+    execstate.loopnest++;
 
     int status = Exit_SUCCESS;
     for (;;) {
@@ -457,7 +456,7 @@ void exec_while(const command_T *c, bool finally_exit)
 
     laststatus = status;
 done:
-    execinfo.loopnest--;
+    execstate.loopnest--;
     if (finally_exit)
 	exit_shell();
 }
@@ -1269,8 +1268,8 @@ void exec_function_body(command_T *body, void *const *args, bool finally_exit)
 	open_new_environment(false);
 	set_positional_parameters(args);
 	exec_nonsimple_command(body, finally_exit);
-	if (execinfo.exception == ee_return)
-	    execinfo.exception = ee_none;
+	if (execstate.exception == ee_return)
+	    execstate.exception = ee_none;
 	close_current_environment();
     }
     undo_redirections(savefd);
@@ -1517,8 +1516,8 @@ bool call_completion_function(const wchar_t *funcname)
     set_completion_variables();
     if (open_redirections(func->c_redirs, &savefd)) {
 	exec_nonsimple_command(func, false);
-	if (execinfo.exception == ee_return)
-	    execinfo.exception = ee_none;
+	if (execstate.exception == ee_return)
+	    execstate.exception = ee_none;
     }
     undo_redirections(savefd);
     close_current_environment();
@@ -1608,7 +1607,7 @@ int return_builtin(int argc, void **argv)
 	status = (savelaststatus >= 0) ? savelaststatus : laststatus;
     }
     if (!noreturn)
-	execinfo.exception = ee_return;
+	execstate.exception = ee_return;
     return status;
 }
 
@@ -1669,7 +1668,7 @@ int break_builtin(int argc, void **argv)
 	    assert(wcscmp(ARGV(0), L"continue") == 0);
 	    iterinfo.exception = ie_continue;
 	}
-	execinfo.breakcount = execinfo.loopnest;
+	execstate.breakcount = execstate.loopnest;
 	return laststatus;
     } else {
 	unsigned count;
@@ -1693,19 +1692,19 @@ int break_builtin(int argc, void **argv)
 	    }
 	}
 	assert(count > 0);
-	if (execinfo.loopnest == 0) {
+	if (execstate.loopnest == 0) {
 	    xerror(0, Ngt("not in a loop"));
 	    SPECIAL_BI_ERROR;
 	    return Exit_ERROR;
 	}
-	if (count > execinfo.loopnest)
-	    count = execinfo.loopnest;
+	if (count > execstate.loopnest)
+	    count = execstate.loopnest;
 	if (wcscmp(ARGV(0), L"break") == 0) {
-	    execinfo.breakcount = count;
+	    execstate.breakcount = count;
 	} else {
 	    assert(wcscmp(ARGV(0), L"continue") == 0);
-	    execinfo.breakcount = count - 1;
-	    execinfo.exception = ee_continue;
+	    execstate.breakcount = count - 1;
+	    execstate.exception = ee_continue;
 	}
 	return Exit_SUCCESS;
     }

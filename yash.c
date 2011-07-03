@@ -495,9 +495,9 @@ void exec_input(int fd, const char *name,
  * If no commands were executed, `laststatus' is set to zero. */
 void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
-    struct execinfo *INIT(ei);
+    struct execstate_T *INIT(ei);
     if (!finally_exit)
-	ei = save_execinfo();
+	ei = save_execstate();
 
     bool executed = false;
 
@@ -509,7 +509,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		xerror(0, Ngt("return: not in a function or sourced file"));
 		laststatus = Exit_FAILURE;
 	    }
-	    reset_execinfo();
+	    reset_execstate();
 	    pinfo->lineno = 1;
 	} else {
 	    if (return_pending())
@@ -558,7 +558,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 out:
     if (finally_exit)
 	exit_shell();
-    load_execinfo(ei);
+    restore_execstate(ei);
 }
 
 bool input_is_interactive_terminal(const parseinfo_T *pinfo)

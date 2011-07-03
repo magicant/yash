@@ -44,11 +44,11 @@ extern int laststatus, savelaststatus;
 extern pid_t lastasyncpid;
 extern _Bool special_builtin_executed;
 
-struct execinfo;
-extern void reset_execinfo(void);
-extern struct execinfo *save_execinfo(void)
+struct execstate_T;
+extern void reset_execstate(void);
+extern struct execstate_T *save_execstate(void)
     __attribute__((malloc,warn_unused_result));
-extern void load_execinfo(struct execinfo *save)
+extern void restore_execstate(struct execstate_T *save)
     __attribute__((nonnull));
 extern _Bool return_pending(void)
     __attribute__((pure));
