@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2011 magicant
 
 # Completion script for the "trap" built-in command.
 
@@ -25,6 +25,7 @@ function completion/trap {
 		done
 		if $print || [ $i -le ${WORDS[#]} ]; then
 			complete --signal
+			complete -P "$PREFIX" EXIT
 		else
 			complete -T -c
 		fi
