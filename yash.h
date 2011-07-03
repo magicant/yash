@@ -30,13 +30,13 @@ extern void exit_shell_with_status(int status)
     __attribute__((noreturn));
 
 
-extern struct input_file_info *stdin_input_file_info;
+extern struct input_file_info_T *stdin_input_file_info;
 
 struct parseinfo_T;
 extern void exec_wcs(const wchar_t *code, const char *name, _Bool finally_exit)
     __attribute__((nonnull(1)));
 extern void exec_input(int fd, const char *name,
-	_Bool intrinput, _Bool enable_alias, _Bool finally_exit);
+	_Bool interactive, _Bool enable_alias, _Bool finally_exit);
 
 
 extern _Bool nextforceexit;
@@ -48,7 +48,7 @@ extern int suspend_builtin(int argc, void **argv)
 extern const char *exit_help[], *suspend_help[];
 
 
-/* Exits the shell with the current exit status.
+/* Exits the shell with the last exit status.
  * This function executes the EXIT trap.
  * This function never returns.
  * This function is reentrant and exits immediately if reentered. */

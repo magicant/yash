@@ -1746,7 +1746,7 @@ addpattern:
  * this function is called during another parse. */
 wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 {
-    struct input_wcs_info winfo = {
+    struct input_wcs_info_T winfo = {
 	.src = s,
     };
     parseinfo_T info = {
@@ -1759,7 +1759,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 	.lineno = 1,
 	.input = input_wcs,
 	.inputinfo = &winfo,
-	.intrinput = false,
+	.interactive = false,
     };
     wordunit_T *word;
     wchar_t *result;

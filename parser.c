@@ -546,8 +546,8 @@ parseresult_T read_and_parse(
     cindex = 0;
     wb_init(&cbuf);
 
-    if (info->intrinput) {
-	struct input_interactive_info *intrinfo = info->inputinfo;
+    if (info->interactive) {
+	struct input_interactive_info_T *intrinfo = info->inputinfo;
 	intrinfo->prompttype = 1;
     }
 
@@ -628,7 +628,7 @@ void serror(const char *restrict format, ...)
  * INPUT_INTERRUPTED. */
 inputresult_T read_more_input(void)
 {
-    if (cerror && cinfo->intrinput)
+    if (cerror && cinfo->interactive)
 	return INPUT_INTERRUPTED;
     if (cinfo->lastinputresult == INPUT_OK) {
 	size_t savelength = cbuf.length;
@@ -900,7 +900,7 @@ and_or_T *parse_compound_list(void)
     /* To parse a command after another, there must be "&", ";" or one or more
      * newlines as the separator. */
 
-    if (!cinfo->intrinput)
+    if (!cinfo->interactive)
 	cerror = false;
     while (!cerror) {
 	separator |= skip_to_next_token();

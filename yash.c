@@ -55,7 +55,7 @@
 
 extern int main(int argc, char **argv)
     __attribute__((nonnull));
-static struct input_file_info *new_input_file_info(int fd, size_t bufsize)
+static struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
     __attribute__((malloc,warn_unused_result));
 static void execute_profile(const wchar_t *profile);
 static void execute_rcfile(const wchar_t *rcfile);
@@ -80,8 +80,8 @@ static bool forceexit;
 /* The next value of `forceexit'. */
 bool nextforceexit;
 
-/* The `input_file_info' structure for reading from the standard input. */
-struct input_file_info *stdin_input_file_info;
+/* The `input_file_info_T' structure for reading from the standard input. */
+struct input_file_info_T *stdin_input_file_info;
 
 
 /* The "main" function. The execution of the shell starts here. */
@@ -240,9 +240,9 @@ int main(int argc, char **argv)
     assert(false);
 }
 
-struct input_file_info *new_input_file_info(int fd, size_t bufsize)
+struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
 {
-    struct input_file_info *info
+    struct input_file_info_T *info
 	= xmallocs(sizeof *info, bufsize, sizeof *info->buf);
     info->fd = fd;
     info->bufpos = info->bufmax = 0;
@@ -423,7 +423,7 @@ void print_version(void)
  * If there are no commands in `code', `laststatus' is set to zero. */
 void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 {
-    struct input_wcs_info iinfo = {
+    struct input_wcs_info_T iinfo = {
 	.src = code,
     };
     struct parseinfo_T pinfo = {
@@ -436,7 +436,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 	.lineno = 1,
 	.input = input_wcs,
 	.inputinfo = &iinfo,
-	.intrinput = false,
+	.interactive = false,
     };
 
     parse_and_exec(&pinfo, finally_exit);
@@ -446,10 +446,10 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
  * The file descriptor must be either STDIN_FILENO or a shell FD. If the file
  * descriptor is STDIN_FILENO, `finally_exit' must be true.
  * If `name' is non-NULL, it is printed in an error message on syntax error.
- * If `intrinput' is true, the input is considered interactive.
+ * If `interactive' is true, the input is considered interactive.
  * If there are no commands in the input, `laststatus' is set to zero. */
 void exec_input(int fd, const char *name,
-	bool intrinput, bool enable_alias, bool finally_exit)
+	bool interactive, bool enable_alias, bool finally_exit)
 {
     struct parseinfo_T pinfo = {
 	.print_errmsg = true,
@@ -459,17 +459,17 @@ void exec_input(int fd, const char *name,
 #endif
 	.filename = name,
 	.lineno = 1,
-	.intrinput = intrinput,
+	.interactive = interactive,
     };
-    struct input_interactive_info intrinfo;
-    struct input_file_info *inputinfo;
+    struct input_interactive_info_T intrinfo;
+    struct input_file_info_T *inputinfo;
 
     if (fd == STDIN_FILENO)
 	inputinfo = stdin_input_file_info;
     else
 	inputinfo = new_input_file_info(fd, BUFSIZ);
 
-    if (intrinput) {
+    if (interactive) {
 	intrinfo.fileinfo = inputinfo;
 	intrinfo.prompttype = 1;
 #if YASH_ENABLE_LINEEDIT
@@ -502,7 +502,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
     bool executed = false;
 
     for (;;) {
-	if (pinfo->intrinput) {
+	if (pinfo->interactive) {
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
 	    if (!is_interrupted() && return_pending()) {
@@ -522,7 +522,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (commands) {
 		    if (shopt_exec || is_interactive) {
 			exec_and_or_lists(commands,
-				finally_exit && !pinfo->intrinput &&
+				finally_exit && !pinfo->interactive &&
 				pinfo->lastinputresult == INPUT_EOF);
 			executed = true;
 		    }
@@ -545,7 +545,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	    case PR_SYNTAX_ERROR:
 		if (!is_interactive_now)
 		    exit_shell_with_status(Exit_SYNERROR);
-		if (!pinfo->intrinput) {
+		if (!pinfo->interactive) {
 		    laststatus = Exit_SYNERROR;
 		    goto out;
 		}
@@ -563,10 +563,10 @@ out:
 
 bool input_is_interactive_terminal(const parseinfo_T *pinfo)
 {
-    if (!pinfo->intrinput)
+    if (!pinfo->interactive)
 	return false;
 
-    struct input_interactive_info *ir = pinfo->inputinfo;
+    struct input_interactive_info_T *ir = pinfo->inputinfo;
     return isatty(ir->fileinfo->fd);
 }
 

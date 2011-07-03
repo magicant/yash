@@ -61,14 +61,14 @@ static inline wchar_t get_euid_marker(void)
     __attribute__((pure));
 
 /* An input function that inputs from a wide string.
- * `inputinfo' must be a pointer to a `struct input_wcs_info'.
+ * `inputinfo' must be a pointer to a `struct input_wcs_info_T'.
  * Reads one line from `inputinfo->src' and appends it to the buffer `buf'.
  * If more string is available after reading the line, `inputinfo->src' is
  * updated so that it points to the character that should be read next. If no
  * more is available, `inputinfo->src' is assigned NULL. */
 inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 {
-    struct input_wcs_info *info = inputinfo;
+    struct input_wcs_info_T *info = inputinfo;
     const wchar_t *src = info->src;
     size_t count = 0;
 
@@ -88,7 +88,7 @@ inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 }
 
 /* An input function that reads input from a file stream.
- * `inputinfo' is a pointer to a `struct input_file_info'.
+ * `inputinfo' is a pointer to a `struct input_file_info_T'.
  * Reads one line from `inputinfo->fd' and appends it to the buffer. */
 inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
 {
@@ -103,7 +103,7 @@ inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
  *   INPUT_EOF   if reached the end of file without reading any characters
  *   INPUT_ERROR if an error occurred before reading any characters */
 inputresult_T read_input(
-	xwcsbuf_T *buf, struct input_file_info *info, bool trap)
+	xwcsbuf_T *buf, struct input_file_info_T *info, bool trap)
 {
     size_t initlen = buf->length;
     bool ok = true;
@@ -181,7 +181,7 @@ end:
  * The line is added to the history. */
 inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 {
-    struct input_interactive_info *info = inputinfo;
+    struct input_interactive_info_T *info = inputinfo;
 
 #if YASH_ENABLE_LINEEDIT
     /* An input function must not return more than one line at a time.

@@ -54,9 +54,9 @@ typedef enum inputresult_T {
 } inputresult_T;
 
 struct xwcsbuf_T;
-struct input_file_info;
+struct input_file_info_T;
 extern inputresult_T read_input(
-	struct xwcsbuf_T *buf, struct input_file_info *info, _Bool trap)
+	struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
     __attribute__((nonnull));
 
 /* The type of input functions.
@@ -77,12 +77,12 @@ extern inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 
 /* to be used as `inputinfo' for `input_wcs' */
-struct input_wcs_info {
+struct input_wcs_info_T {
     const wchar_t *src;  /* the input source code */
 };
 
 /* to be used as `inputinfo' for `input_file' */
-struct input_file_info {
+struct input_file_info_T {
     int fd;
     mbstate_t state;
     size_t bufpos, bufmax, bufsize;
@@ -91,8 +91,8 @@ struct input_file_info {
 /* `bufsize' is the size of `buf', which must be at least one byte. */
 
 /* to be used as `inputinfo' for `input_interactive' */
-struct input_interactive_info {
-    struct input_file_info *fileinfo;
+struct input_interactive_info_T {
+    struct input_file_info_T *fileinfo;
     int prompttype;
 #if YASH_ENABLE_LINEEDIT
     wchar_t *linebuffer;

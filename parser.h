@@ -306,12 +306,12 @@ typedef struct parseinfo_T {
     unsigned long lineno; /* line number, which should be initialized to 1 */
     inputfunc_T *input;   /* input function */
     void *inputinfo;      /* pointer passed to the input function */
-    _Bool intrinput;      /* input is interactive? */
+    _Bool interactive;    /* input is interactive? */
     inputresult_T lastinputresult;  /* last return value of input function */
 } parseinfo_T;
-/* If `intrinput' is true, `input' is `input_interactive' and `inputinfo' is a
- * pointer to a `struct input_interactive_info' object.
- * Note that input may not be from a terminal even if `intrinput' is true. */
+/* If `interactive' is true, `input' is `input_interactive' and `inputinfo' is a
+ * pointer to a `struct input_interactive_info_T' object.
+ * Note that input may not be from a terminal even if `interactive' is true. */
 
 typedef enum parseresult_T {
     PR_OK, PR_EOF, PR_SYNTAX_ERROR, PR_INPUT_ERROR,
