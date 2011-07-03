@@ -188,6 +188,7 @@ static struct execstate_T {
     unsigned breakcount;  /* # of loops to break (<= loopnest) */
     enum { ee_none, ee_continue, ee_return
     } exception;          /* exceptional jump to be done */
+    bool noreturn;        /* true when the "return" built-in is not allowed */
 } execstate;
 /* Note that n continues are equivalent to (n-1) breaks followed by one
  * continue. When `exception' is set to `ee_return', `breakcount' must be 0. */
@@ -212,13 +213,15 @@ static assign_T *last_assign;
 static xwcsbuf_T xtrace_buffer;
 
 
-/* Resets `execstate' to the initial state. */
-void reset_execstate(void)
+/* Resets `execstate' to the initial state.
+ * If `noreturn' is true, the "return" built-in is disallow in the new state. */
+void reset_execstate(bool noreturn)
 {
     execstate = (struct execstate_T) {
 	.loopnest = 0,
 	.breakcount = 0,
 	.exception = ee_none,
+	.noreturn = noreturn,
     };
 }
 
@@ -228,7 +231,7 @@ struct execstate_T *save_execstate(void)
 {
     struct execstate_T *save = xmalloc(sizeof execstate);
     *save = execstate;
-    reset_execstate();
+    reset_execstate(false);
     return save;
 }
 
@@ -1262,8 +1265,10 @@ void exec_fall_back_on_sh(
  * (void *). */
 void exec_function_body(command_T *body, void *const *args, bool finally_exit)
 {
+    bool save_noreturn = execstate.noreturn;
     savefd_T *savefd;
 
+    execstate.noreturn = false;
     if (open_redirections(body->c_redirs, &savefd)) {
 	open_new_environment(false);
 	set_positional_parameters(args);
@@ -1273,6 +1278,7 @@ void exec_function_body(command_T *body, void *const *args, bool finally_exit)
 	close_current_environment();
     }
     undo_redirections(savefd);
+    execstate.noreturn = save_noreturn;
 }
 
 /* Calls `execv' until it doesn't return EINTR. */
@@ -1606,8 +1612,13 @@ int return_builtin(int argc, void **argv)
     } else {
 	status = (savelaststatus >= 0) ? savelaststatus : laststatus;
     }
-    if (!noreturn)
+    if (!noreturn) {
+	if (execstate.noreturn && is_interactive_now) {
+	    xerror(0, Ngt("cannot be used in the interactive mode"));
+	    return Exit_FAILURE;
+	}
 	execstate.exception = ee_return;
+    }
     return status;
 }
 

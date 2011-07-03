@@ -505,11 +505,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	if (pinfo->interactive) {
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
-	    if (!is_interrupted() && return_pending()) {
-		xerror(0, Ngt("return: not in a function or sourced file"));
-		laststatus = Exit_FAILURE;
-	    }
-	    reset_execstate();
+	    reset_execstate(true);
 	    pinfo->lineno = 1;
 	} else {
 	    if (return_pending())

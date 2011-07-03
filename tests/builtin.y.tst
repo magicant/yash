@@ -14,6 +14,11 @@ done
 return --no-return 10
 returnfunc
 echo return $?
+$INVOKE $TESTEE <<\END
+return 11
+echo not reached
+END
+echo return $?
 
 breakfunc ()
 while true; do
@@ -63,6 +68,23 @@ eval -i 'echo 1' 'while true; do echo 2; breakfunc2; echo 3; done' 'echo 4'
 eval -i 'echo 1' 'while true; do echo 2; contfunc2; echo 3; done' 'echo 4'
 eval -i '(exit 2)' 'echo status1=$?; (exit 3); break -i'
 echo status2=$?
+
+eval 'echo 1; returnfunc; echo $?'
+eval -i 'echo 2' 'returnfunc' 'echo $?'
+eval 'echo 3; return; echo not reached'
+eval -i 'echo 4' 'return; echo not reached' 'echo $?'
+
+$INVOKE $TESTEE -i +m --norcfile 2>/dev/null <<\END
+returnfunc ()
+while do
+    return -n
+    return
+done
+eval 'echo 5; returnfunc; echo $?'
+eval -i 'echo 6' 'returnfunc' 'echo $?'
+eval 'echo 7; return; echo not reached'
+eval -i 'echo 8' 'return; echo not reached' 'echo $?'
+END
 
 
 echo ===== . =====

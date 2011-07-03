@@ -108,6 +108,7 @@ Usage:  return [-n] [n]
 return: `foo' is not a valid integer
 return: `-3' is not a valid integer
 Usage:  return [-n] [n]
+$ return: cannot be used in the interactive mode
 ===== break =====
 break: `--no-such-option' is not a valid option
 Usage:  break [n]

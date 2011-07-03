@@ -354,6 +354,12 @@ return 1 2
 echo return too many operands $?
 )
 
+$INVOKE $TESTEE -i +m --norcfile <<\END
+PS1=
+return
+echo return reached
+END
+
 echo ===== break =====
 echo ===== break ===== >&2
 

@@ -117,6 +117,7 @@ return no-such-option 2
 return invalid operand 1 2
 return invalid operand 2 2
 return too many operands 2
+return reached
 ===== break =====
 break no-such-option 2
 break not in loop 2

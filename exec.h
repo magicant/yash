@@ -45,7 +45,7 @@ extern pid_t lastasyncpid;
 extern _Bool special_builtin_executed;
 
 struct execstate_T;
-extern void reset_execstate(void);
+extern void reset_execstate(_Bool noreturn);
 extern struct execstate_T *save_execstate(void)
     __attribute__((malloc,warn_unused_result));
 extern void restore_execstate(struct execstate_T *save)
