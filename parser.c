@@ -858,6 +858,9 @@ and_or_T *parse_command_list(void)
 	} else if (cbuf.contents[cindex] == L'\n') {
 	    next_line();
 	    break;
+	} else if (cbuf.contents[cindex] == L')') {
+	    serror(Ngt(get_errmsg_unexpected_token(L")")), L")");
+	    break;
 	} else if (!separator) {
 	    serror(Ngt("`;' or `&' is missing"));
 	    break;
