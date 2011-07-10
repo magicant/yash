@@ -852,12 +852,12 @@ done2:
 done1:
     undo_redirections(savefd);
 done:
-    if (finally_exit)
-	exit_shell();
     if (cpid < 0) {
 	laststatus = Exit_NOEXEC;
 	cpid = 0;
     }
+    if (finally_exit)
+	exit_shell();
     return cpid;
 }
 
