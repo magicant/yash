@@ -91,6 +91,7 @@ typedef enum srchcmdtype_T {
 } srchcmdtype_T;
 
 typedef enum cmdtype_T {
+    CT_NONE,
     CT_EXTERNALPROGRAM,
     CT_SPECIALBUILTIN,
     CT_SEMISPECIALBUILTIN,
@@ -178,6 +179,9 @@ static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const commandinfo_T *ci,
 	int argc, char *argv0, void **argv, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_external_program(
+	const char *path, int argc, char *argv0, void **argv)
     __attribute__((nonnull));
 static void print_xtrace(void *const *argv);
 static void exec_fall_back_on_sh(
@@ -828,12 +832,13 @@ pid_t exec_process(
     print_xtrace(argv);
 
     /* find command path */
-    if (cmdinfo.type == CT_EXTERNALPROGRAM) {
+    if (cmdinfo.type == CT_NONE) {
 	if (posixly_correct) {
 	    search_command(argv0, argv[0], &cmdinfo,
 		    SCT_EXTERNAL | SCT_BUILTIN);
 	} else {
 	    if (wcschr(argv[0], L'/')) {
+		cmdinfo.type = CT_EXTERNALPROGRAM;
 		cmdinfo.ci_path = argv0;
 		if (!is_executable_regular(argv0))
 		    if (command_not_found_handler(argv))
@@ -841,8 +846,7 @@ pid_t exec_process(
 	    } else {
 		search_command(argv0, argv[0], &cmdinfo,
 			SCT_EXTERNAL | SCT_BUILTIN | SCT_NOSLASH);
-		if (cmdinfo.type == CT_EXTERNALPROGRAM
-			&& cmdinfo.ci_path == NULL)
+		if (cmdinfo.type == CT_NONE)
 		    if (command_not_found_handler(argv))
 			goto done3;
 	    }
@@ -961,8 +965,6 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 
 /* Searches for a command.
  * The result is assigned to `*ci'.
- * If the command is not found, `ci->type' is set to `CT_EXTERNALPROGRAM' and
- * `ci->ci_path' is set to NULL.
  * `name' and `wname' must contain the same string value.
  * If the SCT_ALL flag is not set:
  *   *  a function whose name contains a slash cannot be found
@@ -1031,7 +1033,7 @@ regular_builtin:
     }
 
     /* command not found... */
-    ci->type = CT_EXTERNALPROGRAM;
+    ci->type = CT_NONE;
     ci->ci_path = NULL;
     return;
 }
@@ -1050,6 +1052,7 @@ bool assignment_is_temporary(enum cmdtype_T type)
 	case CT_SPECIALBUILTIN:
 	case CT_FUNCTION:
 	    return false;
+	case CT_NONE:
 	case CT_SEMISPECIALBUILTIN:
 	case CT_REGULARBUILTIN:
 	case CT_EXTERNALPROGRAM:
@@ -1143,41 +1146,13 @@ void exec_simple_command(
     assert(plcount(argv) == (size_t) argc);
 
     switch (ci->type) {
+    case CT_NONE:
+	xerror(0, Ngt("no such command `%s'"), argv0);
+	laststatus = Exit_NOTFOUND;
+	break;
     case CT_EXTERNALPROGRAM:
-	if (ci->ci_path == NULL) {
-	    xerror(0, Ngt("no such command `%s'"), argv0);
-	    laststatus = Exit_NOTFOUND;
-	} else {
-	    assert(finally_exit);
-
-	    char *mbsargv[argc + 1];
-	    mbsargv[0] = argv0;
-	    for (int i = 1; i < argc; i++) {
-		mbsargv[i] = malloc_wcstombs(argv[i]);
-		if (!mbsargv[i])
-		    mbsargv[i] = xstrdup("");
-	    }
-	    mbsargv[argc] = NULL;
-
-	    restore_signals(true);
-	    xexecv(ci->ci_path, mbsargv);
-	    int errno_ = errno;
-	    if (errno_ != ENOEXEC) {
-		if (errno_ == EACCES && is_directory(ci->ci_path))
-		    errno_ = EISDIR;
-		if (strcmp(mbsargv[0], ci->ci_path) == 0)
-		    xerror(errno_, Ngt("cannot execute command `%s'"), argv0);
-		else
-		    xerror(errno_, Ngt("cannot execute command `%s' (%s)"),
-			    argv0, ci->ci_path);
-	    } else if (errno_ != ENOENT) {
-		exec_fall_back_on_sh(argc, mbsargv, environ, ci->ci_path);
-	    }
-	    for (int i = 1; i < argc; i++)
-		free(mbsargv[i]);
-	    laststatus = (errno_ == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
-	    set_signals();
-	}
+	assert(finally_exit);
+	exec_external_program(ci->ci_path, argc, argv0, argv);
 	break;
     case CT_SPECIALBUILTIN:
     case CT_SEMISPECIALBUILTIN:
@@ -1193,6 +1168,43 @@ void exec_simple_command(
     }
     if (finally_exit)
 	exit_shell();
+}
+
+/* Executes the external program.
+ *  path:  path to the program to be executed
+ *  argc:  number of strings in `argv'
+ *  argv0: multibyte version of `argv[0]'
+ *  argv:  pointer to an array of pointers to wide strings that are passed to
+ *         the program */
+void exec_external_program(const char *path, int argc, char *argv0, void **argv)
+{
+    char *mbsargv[argc + 1];
+    mbsargv[0] = argv0;
+    for (int i = 1; i < argc; i++) {
+	mbsargv[i] = malloc_wcstombs(argv[i]);
+	if (mbsargv[i] == NULL)
+	    mbsargv[i] = xstrdup("");
+    }
+    mbsargv[argc] = NULL;
+
+    restore_signals(true);
+    xexecv(path, mbsargv);
+    int saveerrno = errno;
+    if (saveerrno != ENOEXEC) {
+	if (saveerrno == EACCES && is_directory(path))
+	    saveerrno = EISDIR;
+	xerror(saveerrno,
+		strcmp(mbsargv[0], path) == 0
+		    ? Ngt("cannot execute command `%s'")
+		    : Ngt("cannot execute command `%s' (%s)"),
+		argv0, path);
+    } else if (saveerrno != ENOENT) {
+	exec_fall_back_on_sh(argc, mbsargv, environ, path);
+    }
+    for (int i = 1; i < argc; i++)
+	free(mbsargv[i]);
+    laststatus = (saveerrno == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
+    set_signals();
 }
 
 /* Returns a pointer to the xtrace buffer.
@@ -2288,7 +2300,6 @@ bool print_command_info(
 {
     const char *msgfmt;
     char *name = NULL;
-    bool found = false;
 
     if (keywords && is_keyword(commandname)) {
 	msgfmt = humanfriendly ? gt("%ls: a shell keyword\n") : "%ls\n";
@@ -2317,26 +2328,27 @@ bool print_command_info(
     commandinfo_T ci;
     search_command(name, commandname, &ci, type);
     switch (ci.type) {
+	case CT_NONE:
+	    if (humanfriendly)
+		xerror(0, Ngt("no such command `%s'"), name);
+	    break;
 	case CT_EXTERNALPROGRAM:
-	    if (ci.ci_path && is_executable_regular(ci.ci_path)) {
+	    if (is_executable_regular(ci.ci_path)) {
 		if (!print_command_absolute_path(
 			    name, ci.ci_path, humanfriendly))
 		    goto ioerror;
-		found = true;
 	    }
 	    break;
 	case CT_SPECIALBUILTIN:
 	    msgfmt = humanfriendly ? gt("%s: a special built-in\n") : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
-	    found = true;
 	    break;
 	case CT_SEMISPECIALBUILTIN:
 	    msgfmt = humanfriendly ? gt("%s: a semi-special built-in\n")
 		                   : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
-	    found = true;
 	    break;
 	case CT_REGULARBUILTIN:;
 	    const char *cmdpath;
@@ -2356,20 +2368,16 @@ bool print_command_info(
 		if (puts(cmdpath == NULL ? name : cmdpath) < 0)
 		    goto ioerror;
 	    }
-	    found = true;
 	    break;
 	case CT_FUNCTION:
 	    msgfmt = humanfriendly ? gt("%s: a function\n") : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
-	    found = true;
 	    break;
     }
 
-    if (!found && humanfriendly)
-	xerror(0, Ngt("no such command `%s'"), name);
     free(name);
-    return found;
+    return ci.type != CT_NONE;
 
 ioerror:
     xerror(errno, Ngt("cannot print to the standard output"));
