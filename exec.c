@@ -65,7 +65,7 @@
 #endif
 
 
-/* way of command execution */
+/* type of command execution */
 typedef enum {
     execnormal,  /* normal execution */
     execasync,   /* asynchronous execution */
@@ -81,24 +81,26 @@ typedef struct pipeinfo_T {
 #define PIPEINFO_INIT { -1, { -1, -1 }, }
 
 /* values used to specify the behavior of command search. */
-enum srchcmdtype_T {
+typedef enum srchcmdtype_T {
     SCT_EXTERNAL = 1 << 0,  /* search for an external command */
     SCT_BUILTIN  = 1 << 1,  /* search for a built-in */
     SCT_FUNCTION = 1 << 2,  /* search for a function */
     SCT_ALL      = 1 << 3,  /* search all */
     SCT_STDPATH  = 1 << 4,  /* search the standard PATH */
     SCT_NOSLASH  = 1 << 5,  /* assume command name contains no slash */
-};
+} srchcmdtype_T;
+
+typedef enum cmdtype_T {
+    CT_EXTERNALPROGRAM,
+    CT_SPECIALBUILTIN,
+    CT_SEMISPECIALBUILTIN,
+    CT_REGULARBUILTIN,
+    CT_FUNCTION,
+} cmdtype_T;
 
 /* info about a simple command to execute */
 typedef struct commandinfo_T {
-    enum cmdtype_T {        /* type of command */
-	externalprogram,
-	specialbuiltin,
-	semispecialbuiltin,
-	regularbuiltin,
-	function,
-    } type;
+    cmdtype_T type;           /* type of command */
     union {
 	const char *path;     /* command path (for external program) */
 	main_T *builtin;      /* body of built-in */
@@ -108,6 +110,32 @@ typedef struct commandinfo_T {
 #define ci_path     value.path
 #define ci_builtin  value.builtin
 #define ci_function value.function
+
+typedef enum exception_T {
+    E_NONE,
+    E_CONTINUE,
+    E_RETURN,
+} exception_T;
+typedef enum iterexception_T {
+    IE_NONE,
+    IE_CONTINUE,
+    IE_BREAK,
+} iterexception_T;
+
+/* state of currently executed loop */
+typedef struct execstate_T {
+    unsigned loopnest;      /* level of nested loops */
+    unsigned breakcount;    /* # of loops to break (<= loopnest) */
+    exception_T exception;  /* exceptional jump to be done */
+    bool noreturn;          /* true when the "return" built-in is not allowed */
+} execstate_T;
+/* Note that n continues are equivalent to (n-1) breaks followed by one
+ * continue. When `exception' is set to `E_RETURN', `breakcount' must be 0. */
+
+typedef struct iterinfo_T {
+    bool iterating;
+    iterexception_T exception;
+} iterinfo_T;
 
 static inline bool need_break(void)
     __attribute__((pure));
@@ -183,34 +211,23 @@ pid_t lastasyncpid;
 static bool supresserrexit = false;
 
 /* state of currently executed loop */
-static struct execstate_T {
-    unsigned loopnest;    /* level of nested loops */
-    unsigned breakcount;  /* # of loops to break (<= loopnest) */
-    enum { ee_none, ee_continue, ee_return
-    } exception;          /* exceptional jump to be done */
-    bool noreturn;        /* true when the "return" built-in is not allowed */
-} execstate;
-/* Note that n continues are equivalent to (n-1) breaks followed by one
- * continue. When `exception' is set to `ee_return', `breakcount' must be 0. */
+static execstate_T execstate;
 /* Note that `execstate' is not reset when a subshell forks. */
 
 /* state of currently executed iteration. */
-static struct iterinfo {
-    bool iterating;
-    enum { ie_none, ie_continue, ie_break } exception;
-} iterinfo;
+static iterinfo_T iterinfo;
 
-/* This flag is set when a special builtin is executed as such. */
+/* This flag is set when a special built-in is executed as such. */
 bool special_builtin_executed;
 
-/* This flag is set while the "exec" builtin is executed. */
+/* This flag is set while the "exec" built-in is executed. */
 static bool exec_builtin_executed = false;
 
 /* the last assignment. */
 static assign_T *last_assign;
 
 /* a buffer for xtrace. */
-static xwcsbuf_T xtrace_buffer;
+static xwcsbuf_T xtrace_buffer = { .contents = NULL };
 
 
 /* Resets `execstate' to the initial state.
@@ -220,7 +237,7 @@ void reset_execstate(bool noreturn)
     execstate = (struct execstate_T) {
 	.loopnest = 0,
 	.breakcount = 0,
-	.exception = ee_none,
+	.exception = E_NONE,
 	.noreturn = noreturn,
     };
 }
@@ -245,7 +262,7 @@ void restore_execstate(struct execstate_T *save)
 /* Returns true iff `parse_and_exec' should quit execution. */
 inline bool return_pending(void)
 {
-    return execstate.exception != ee_none || iterinfo.exception != ie_none;
+    return execstate.exception != E_NONE || iterinfo.exception != IE_NONE;
 }
 
 /* Returns true iff we're breaking/continuing/returning now. */
@@ -259,7 +276,7 @@ bool need_break(void)
  * If `finally_exit' is true, the shell exits after execution. */
 void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 {
-    while (a && !need_break()) {
+    while (a != NULL && !need_break()) {
 	if (!a->ao_async)
 	    exec_pipelines(a->ao_pipelines, finally_exit && !a->next);
 	else
@@ -274,18 +291,24 @@ void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 /* Executes the pipelines. */
 void exec_pipelines(const pipeline_T *p, bool finally_exit)
 {
-    for (bool first = true; p && !need_break(); p = p->next, first = false) {
-	if (!first && p->pl_cond == !!laststatus)
+    for (bool first = true;
+	    p != NULL && !need_break();
+	    p = p->next, first = false) {
+	if (!first && p->pl_cond == (laststatus != Exit_SUCCESS))
 	    continue;
 
 	bool savesee = supresserrexit;
-	supresserrexit |= p->pl_neg || p->next;
+	supresserrexit |= p->pl_neg || p->next != NULL;
 
 	bool self = finally_exit && !doing_job_control_now
 	    && !p->next && !p->pl_neg && !any_trap_set;
 	exec_commands(p->pl_commands, self ? execself : execnormal);
-	if (p->pl_neg)
-	    laststatus = !laststatus;
+	if (p->pl_neg) {
+	    if (laststatus == Exit_SUCCESS)
+		laststatus = Exit_FAILURE;
+	    else
+		laststatus = Exit_SUCCESS;
+	}
 
 	supresserrexit = savesee;
     }
@@ -296,41 +319,42 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 /* Executes the pipelines asynchronously. */
 void exec_pipelines_async(const pipeline_T *p)
 {
-    if (!p->next && !p->pl_neg) {
+    if (p->next == NULL && !p->pl_neg) {
 	exec_commands(p->pl_commands, execasync);
+	return;
+    }
+
+    pid_t cpid = fork_and_reset(0, false, t_quitint);
+    
+    if (cpid > 0) {
+	/* parent process: add a new job */
+	job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+	process_T *ps = job->j_procs;
+
+	ps->pr_pid = cpid;
+	ps->pr_status = JS_RUNNING;
+	ps->pr_statuscode = 0;
+	ps->pr_name = pipelines_to_wcs(p);
+
+	job->j_pgid = doing_job_control_now ? cpid : 0;
+	job->j_status = JS_RUNNING;
+	job->j_statuschanged = true;
+	job->j_legacy = false;
+	job->j_nonotify = false;
+	job->j_pcount = 1;
+
+	set_active_job(job);
+	add_job(shopt_curasync);
+	laststatus = Exit_SUCCESS;
+	lastasyncpid = cpid;
+    } else if (cpid == 0) {
+	/* child process: execute the commands and then exit */
+	maybe_redirect_stdin_to_devnull();
+	exec_pipelines(p, true);
+	assert(false);
     } else {
-	pid_t cpid = fork_and_reset(0, false, t_quitint);
-	
-	if (cpid > 0) {
-	    /* parent process: add a new job */
-	    job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
-	    process_T *ps = job->j_procs;
-
-	    ps->pr_pid = cpid;
-	    ps->pr_status = JS_RUNNING;
-	    ps->pr_statuscode = 0;
-	    ps->pr_name = pipelines_to_wcs(p);
-
-	    job->j_pgid = doing_job_control_now ? cpid : 0;
-	    job->j_status = JS_RUNNING;
-	    job->j_statuschanged = true;
-	    job->j_legacy = false;
-	    job->j_nonotify = false;
-	    job->j_pcount = 1;
-
-	    set_active_job(job);
-	    add_job(shopt_curasync);
-	    laststatus = Exit_SUCCESS;
-	    lastasyncpid = cpid;
-	} else if (cpid == 0) {
-	    /* child process: execute the commands and then exit */
-	    maybe_redirect_stdin_to_devnull();
-	    exec_pipelines(p, true);
-	    assert(false);
-	} else {
-	    /* fork failure */
-	    laststatus = Exit_NOEXEC;
-	}
+	/* fork failure */
+	laststatus = Exit_NOEXEC;
     }
 }
 
@@ -339,7 +363,9 @@ void exec_if(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_IF);
 
-    for (const ifcommand_T *cmds = c->c_ifcmds; cmds; cmds = cmds->next) {
+    for (const ifcommand_T *cmds = c->c_ifcmds;
+	    cmds != NULL;
+	    cmds = cmds->next) {
 	if (need_break())
 	    goto done;
 	if (exec_condition(cmds->ic_condition)) {
@@ -357,15 +383,14 @@ done:
 /* Executes the condition of an if/while/until command. */
 bool exec_condition(const and_or_T *c)
 {
-    if (c) {
-	bool savesee = supresserrexit;
-	supresserrexit = true;
-	exec_and_or_lists(c, false);
-	supresserrexit = savesee;
-	return laststatus == Exit_SUCCESS;
-    } else {
+    if (c == NULL)
 	return true;
-    }
+
+    bool savesee = supresserrexit;
+    supresserrexit = true;
+    exec_and_or_lists(c, false);
+    supresserrexit = savesee;
+    return laststatus == Exit_SUCCESS;
 }
 
 /* Executes the for command. */
@@ -377,7 +402,7 @@ void exec_for(const command_T *c, bool finally_exit)
     int count;
     void **words;
 
-    if (c->c_forwords) {
+    if (c->c_forwords != NULL) {
 	/* expand the words between "in" and "do" of the for command. */
 	if (!expand_line(c->c_forwords, &count, &words)) {
 	    laststatus = Exit_EXPERROR;
@@ -391,17 +416,17 @@ void exec_for(const command_T *c, bool finally_exit)
 	count = (int) v.count;
     }
 
-#define CHECK_LOOP                                   \
-    if (execstate.breakcount > 0) {                  \
-	execstate.breakcount--;                      \
-	goto done;                                   \
-    } else if (execstate.exception == ee_continue) { \
-	execstate.exception = ee_none;               \
-	continue;                                    \
-    } else if (execstate.exception != ee_none) {     \
-	goto done;                                   \
-    } else if (is_interrupted()) {                   \
-	goto done;                                   \
+#define CHECK_LOOP                                  \
+    if (execstate.breakcount > 0) {                 \
+	execstate.breakcount--;                     \
+	goto done;                                  \
+    } else if (execstate.exception == E_CONTINUE) { \
+	execstate.exception = E_NONE;               \
+	continue;                                   \
+    } else if (execstate.exception != E_NONE) {     \
+	goto done;                                  \
+    } else if (is_interrupted()) {                  \
+	goto done;                                  \
     } else (void) 0
 
     int i;
@@ -411,7 +436,7 @@ void exec_for(const command_T *c, bool finally_exit)
 	    goto done;
 	exec_and_or_lists(c->c_forcmds, finally_exit && i + 1 == count);
 
-	if (!c->c_forcmds)
+	if (c->c_forcmds == NULL)
 	    handle_signals();
 	CHECK_LOOP;
     }
@@ -420,7 +445,7 @@ done:
     while (++i < count)  /* free unused words */
 	free(words[i]);
     free(words);
-    if (count == 0 && c->c_forcmds)
+    if (count == 0 && c->c_forcmds != NULL)
 	laststatus = Exit_SUCCESS;
 finish:
     execstate.loopnest--;
@@ -441,18 +466,18 @@ void exec_while(const command_T *c, bool finally_exit)
     for (;;) {
 	bool cond = exec_condition(c->c_whlcond);
 
-	if (!c->c_whlcond)
+	if (c->c_whlcond == NULL)
 	    handle_signals();
 	CHECK_LOOP;
 
 	if (cond != c->c_whltype)
 	    break;
-	if (c->c_whlcmds) {
+	if (c->c_whlcmds != NULL) {
 	    exec_and_or_lists(c->c_whlcmds, false);
 	    status = laststatus;
 	}
 
-	if (!c->c_whlcmds)
+	if (c->c_whlcmds == NULL)
 	    handle_signals();
 	CHECK_LOOP;
     }
@@ -471,26 +496,26 @@ void exec_case(const command_T *c, bool finally_exit)
     assert(c->c_type == CT_CASE);
 
     wchar_t *word = expand_single(c->c_casword, tt_single);
-    if (!word)
+    if (word == NULL)
 	goto fail;
     word = unescapefree(word);
 
-    for (caseitem_T *ci = c->c_casitems; ci; ci = ci->next) {
-	for (void **pats = ci->ci_patterns; *pats; pats++) {
+    for (const caseitem_T *ci = c->c_casitems; ci != NULL; ci = ci->next) {
+	for (void **pats = ci->ci_patterns; *pats != NULL; pats++) {
 	    wchar_t *pattern = expand_single(*pats, tt_single);
-	    if (!pattern)
+	    if (pattern == NULL)
 		goto fail;
 
 	    xfnmatch_T *xfnm = xfnm_compile(
 		    pattern, XFNM_HEADONLY | XFNM_TAILONLY);
 	    free(pattern);
-	    if (!xfnm)
+	    if (xfnm == NULL)
 		continue;
 
 	    bool match = (xfnm_wmatch(xfnm, word).start != (size_t) -1);
 	    xfnm_free(xfnm);
 	    if (match) {
-		if (ci->ci_commands) {
+		if (ci->ci_commands != NULL) {
 		    exec_and_or_lists(ci->ci_commands, finally_exit);
 		    goto done;
 		} else {
@@ -502,9 +527,9 @@ void exec_case(const command_T *c, bool finally_exit)
 success:
     laststatus = Exit_SUCCESS;
 done:
+    free(word);
     if (finally_exit)
 	exit_shell();
-    free(word);
     return;
 
 fail:
@@ -537,8 +562,8 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 /* Updates the contents of the `pipeinfo_T' to proceed to the next process
  * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIPE_OUT]' are closed,
  * `pi->pi_tonextfds[PIPE_IN]' is moved to `pi->pi_fromprevfd', and,
- * if `next' is true, a new pipe is opened in `pi->pi_tonextfds' or,
- * if `next' is false, `pi->pi_tonextfds' is assigned -1.
+ * if `next' is true, a new pipe is opened in `pi->pi_tonextfds'; otherwise,
+ * `pi->pi_tonextfds' is assigned -1.
  * Returns true iff successful. */
 void next_pipe(pipeinfo_T *pi, bool next)
 {
@@ -552,8 +577,8 @@ void next_pipe(pipeinfo_T *pi, bool next)
 	    goto fail;
 
 	/* The pipe's FDs must not be 0 or 1, or they may be overridden by each
-	 * other when we connect the pipe later. If they are 0 or 1, move them
-	 * to bigger numbers. */
+	 * other when we move the pipe to the standard input/output later. So,
+	 * if they are 0 or 1, we move them to bigger numbers. */
 	int origin  = pi->pi_tonextfds[PIPE_IN];
 	int origout = pi->pi_tonextfds[PIPE_OUT];
 	if (origin < 2 || origout < 2) {
@@ -612,11 +637,11 @@ void exec_commands(command_T *c, exec_T type)
 
     /* count the number of the commands */
     count = 0;
-    for (cc = c; cc; cc = cc->next)
+    for (cc = c; cc != NULL; cc = cc->next)
 	count++;
     assert(count > 0);
 
-    job = xmalloc(sizeof *job + count * sizeof *job->j_procs);
+    job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
     ps = job->j_procs;
 
     /* execute the commands */
@@ -631,7 +656,7 @@ void exec_commands(command_T *c, exec_T type)
 		&pinfo,
 		pgid);
 	pp->pr_pid = pid;
-	if (pid) {
+	if (pid != 0) {
 	    pp->pr_status = JS_RUNNING;
 	    pp->pr_statuscode = 0;
 	} else {
@@ -647,7 +672,7 @@ void exec_commands(command_T *c, exec_T type)
     assert(pinfo.pi_tonextfds[PIPE_IN] < 0);
     assert(pinfo.pi_tonextfds[PIPE_OUT] < 0);
     if (pinfo.pi_fromprevfd >= 0)
-	xclose(pinfo.pi_fromprevfd);           /* close leftover pipes */
+	xclose(pinfo.pi_fromprevfd);           /* close leftover pipe */
 
     if (pgid == 0) {
 	/* nothing more to do if we didn't fork */
@@ -693,10 +718,11 @@ void exec_commands(command_T *c, exec_T type)
 
 /* Executes the command.
  * If job control is active, the child process's process group ID is set to
- * `pgid'. If `pgid' is 0, set to the child process's process ID.
- * If a child process forked successfully, its process ID is returned.
- * If the command was executed without forking, `laststatus' is set and
- * 0 is returned.
+ * `pgid'. If `pgid' is 0, the child process's process ID is used as the process
+ * group ID.
+ * If the child process forked successfully, its process ID is returned.
+ * If the command was executed without forking, `laststatus' is set to the exit
+ * status of the command and 0 is returned.
  * if `type' is `execself', this function never returns. */
 pid_t exec_process(
 	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
@@ -710,7 +736,7 @@ pid_t exec_process(
 
     current_lineno = c->c_lineno;
 
-    /* do early fork if `type' is `execasync', the command type is subshell,
+    /* fork first if `type' is `execasync', the command type is subshell,
      * or there is a pipe. */
     early_fork = (type != execself)
 	&& (type == execasync || c->c_type == CT_SUBSHELL
@@ -737,7 +763,7 @@ pid_t exec_process(
 	    argv0 = NULL;
 	} else {
 	    argv0 = malloc_wcstombs(argv[0]);
-	    if (!argv0)
+	    if (argv0 == NULL)
 		argv0 = xstrdup("");
 	}
     }
@@ -781,11 +807,11 @@ pid_t exec_process(
     commandinfo_T cmdinfo;
     bool temp;
 
-    /* First, we check if the command is a special built-in or a function
-     * and determine whether we have to open a temporary environment. */
+    /* check if the command is a special built-in or a function and determine
+     * whether we have to open a temporary environment. */
     search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
-    special_builtin_executed = (cmdinfo.type == specialbuiltin);
-    temp = c->c_assigns && assignment_is_temporary(cmdinfo.type);
+    special_builtin_executed = (cmdinfo.type == CT_SPECIALBUILTIN);
+    temp = c->c_assigns != NULL && assignment_is_temporary(cmdinfo.type);
     if (temp)
 	open_new_environment(true);
 
@@ -795,14 +821,14 @@ pid_t exec_process(
 	print_xtrace(NULL);
 	laststatus = Exit_ASSGNERR;
 	if (posixly_correct && !is_interactive &&
-		cmdinfo.type == specialbuiltin)
+		cmdinfo.type == CT_SPECIALBUILTIN)
 	    finally_exit = true;
 	goto done3;
     }
     print_xtrace(argv);
 
     /* find command path */
-    if (cmdinfo.type == externalprogram) {
+    if (cmdinfo.type == CT_EXTERNALPROGRAM) {
 	if (posixly_correct) {
 	    search_command(argv0, argv[0], &cmdinfo,
 		    SCT_EXTERNAL | SCT_BUILTIN);
@@ -815,7 +841,8 @@ pid_t exec_process(
 	    } else {
 		search_command(argv0, argv[0], &cmdinfo,
 			SCT_EXTERNAL | SCT_BUILTIN | SCT_NOSLASH);
-		if (cmdinfo.type == externalprogram && cmdinfo.ci_path == NULL)
+		if (cmdinfo.type == CT_EXTERNALPROGRAM
+			&& cmdinfo.ci_path == NULL)
 		    if (command_not_found_handler(argv))
 			goto done3;
 	    }
@@ -825,7 +852,7 @@ pid_t exec_process(
     }
 
     /* create a child process to execute the external command */
-    if (cmdinfo.type == externalprogram && !finally_exit) {
+    if (cmdinfo.type == CT_EXTERNALPROGRAM && !finally_exit) {
 	cpid = fork_and_reset(pgid, type == execnormal, t_leave);
 	if (cpid != 0)
 	    goto done3;
@@ -863,7 +890,8 @@ done:
 
 /* Forks a subshell and does some settings.
  * If job control is active, the child process's process group ID is set to
- * `pgid'. If `pgid' is 0, set to the child process's process ID.
+ * `pgid'. If `pgid' is 0, the child process's process ID is used as the process
+ * group ID..
  * If `pgid' is negative or job control is inactive, the process group ID is not
  * changed.
  * If job control is active and `fg' is true, the child process becomes a
@@ -872,7 +900,7 @@ done:
  * `sigtype' is a bitwise OR of the followings:
  *   t_quitint: SIGQUIT & SIGINT are ignored if the parent's job control is off
  *   t_tstp: SIGTSTP is ignored if the parent is job-controlling
- *   t_leave: Don't clear traps and shellfds. Restore the signal mask for
+ *   t_leave: Don't clear traps and shell FDs. Restore the signal mask for
  *          SIGCHLD. This option must be used iff the shell is going to `exec'
  *          to an external program.
  * Returns the return value of `fork'. */
@@ -933,7 +961,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 
 /* Searches for a command.
  * The result is assigned to `*ci'.
- * If the command is not found, `ci->type' is set to `externalprogram' and
+ * If the command is not found, `ci->type' is set to `CT_EXTERNALPROGRAM' and
  * `ci->ci_path' is set to NULL.
  * `name' and `wname' must contain the same string value.
  * If the SCT_ALL flag is not set:
@@ -944,31 +972,31 @@ void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
 {
-    bool slash = !(type & SCT_NOSLASH) && wcschr(wname, L'/');
+    bool slash = !(type & SCT_NOSLASH) && wcschr(wname, L'/') != NULL;
 
     const builtin_T *bi;
     if (!slash && (type & SCT_BUILTIN))
 	bi = get_builtin(name);
     else
 	bi = NULL;
-    if (bi && bi->type == BI_SPECIAL) {
-	ci->type = specialbuiltin;
+    if (bi != NULL && bi->type == BI_SPECIAL) {
+	ci->type = CT_SPECIALBUILTIN;
 	ci->ci_builtin = bi->body;
 	return;
     }
 
     if ((type & SCT_FUNCTION) && (!slash || (type & SCT_ALL))) {
 	command_T *funcbody = get_function(wname);
-	if (funcbody) {
-	    ci->type = function;
+	if (funcbody != NULL) {
+	    ci->type = CT_FUNCTION;
 	    ci->ci_function = funcbody;
 	    return;
 	}
     }
 
-    if (bi) {
+    if (bi != NULL) {
 	if (bi->type == BI_SEMISPECIAL) {
-	    ci->type = semispecialbuiltin;
+	    ci->type = CT_SEMISPECIALBUILTIN;
 	    ci->ci_builtin = bi->body;
 	    return;
 	} else if (!posixly_correct) {
@@ -977,25 +1005,25 @@ void search_command(
     }
 
     if (slash && (type & SCT_EXTERNAL)) {
-	ci->type = externalprogram;
+	ci->type = CT_EXTERNALPROGRAM;
 	ci->ci_path = name;
 	return;
     }
 
-    if ((type & SCT_EXTERNAL) || (bi && (type & SCT_ALL))) {
+    if ((type & SCT_EXTERNAL) || (bi != NULL && (type & SCT_ALL))) {
 	const char *cmdpath;
 	if (type & SCT_STDPATH)
 	    cmdpath = get_command_path_default(name);
 	else
 	    cmdpath = get_command_path(name, false);
-	if (cmdpath) {
-	    if (bi) {
+	if (cmdpath != NULL) {
+	    if (bi != NULL) {
 regular_builtin:
 		assert(bi->type == BI_REGULAR);
-		ci->type = regularbuiltin;
+		ci->type = CT_REGULARBUILTIN;
 		ci->ci_builtin = bi->body;
 	    } else {
-		ci->type = externalprogram;
+		ci->type = CT_EXTERNALPROGRAM;
 		ci->ci_path = cmdpath;
 	    }
 	    return;
@@ -1003,7 +1031,7 @@ regular_builtin:
     }
 
     /* command not found... */
-    ci->type = externalprogram;
+    ci->type = CT_EXTERNALPROGRAM;
     ci->ci_path = NULL;
     return;
 }
@@ -1019,12 +1047,12 @@ bool is_special_builtin(const char *cmdname)
 bool assignment_is_temporary(enum cmdtype_T type)
 {
     switch (type) {
-	case specialbuiltin:
-	case function:
+	case CT_SPECIALBUILTIN:
+	case CT_FUNCTION:
 	    return false;
-	case semispecialbuiltin:
-	case regularbuiltin:
-	case externalprogram:
+	case CT_SEMISPECIALBUILTIN:
+	case CT_REGULARBUILTIN:
+	case CT_EXTERNALPROGRAM:
 	    return true;
 	default:
 	    assert(false);
@@ -1115,7 +1143,7 @@ void exec_simple_command(
     assert(plcount(argv) == (size_t) argc);
 
     switch (ci->type) {
-    case externalprogram:
+    case CT_EXTERNALPROGRAM:
 	if (ci->ci_path == NULL) {
 	    xerror(0, Ngt("no such command `%s'"), argv0);
 	    laststatus = Exit_NOTFOUND;
@@ -1151,15 +1179,15 @@ void exec_simple_command(
 	    set_signals();
 	}
 	break;
-    case specialbuiltin:
-    case semispecialbuiltin:
-    case regularbuiltin:
+    case CT_SPECIALBUILTIN:
+    case CT_SEMISPECIALBUILTIN:
+    case CT_REGULARBUILTIN:
 	yash_error_message_count = 0;
 	current_builtin_name = argv[0];  // XXX not reentrant
 	laststatus = ci->ci_builtin(argc, argv);
 	current_builtin_name = NULL;
 	break;
-    case function:
+    case CT_FUNCTION:
 	exec_function_body(ci->ci_function, argv + 1, finally_exit);
 	break;
     }
@@ -1273,8 +1301,8 @@ void exec_function_body(command_T *body, void *const *args, bool finally_exit)
 	open_new_environment(false);
 	set_positional_parameters(args);
 	exec_nonsimple_command(body, finally_exit);
-	if (execstate.exception == ee_return)
-	    execstate.exception = ee_none;
+	if (execstate.exception == E_RETURN)
+	    execstate.exception = E_NONE;
 	close_current_environment();
     }
     undo_redirections(savefd);
@@ -1395,15 +1423,15 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 int exec_iteration(void *const *commands, const char *codename)
 {
     int savelaststatus = laststatus, commandstatus = Exit_SUCCESS;
-    struct iterinfo saveiterinfo = iterinfo;
+    struct iterinfo_T saveiterinfo = iterinfo;
 
     for (void *const *c = commands; *c; c++) {
 	iterinfo.iterating = true;
-	iterinfo.exception = ie_none;
+	iterinfo.exception = IE_NONE;
 	exec_wcs(*c, codename, false);
 	commandstatus = laststatus;
 	laststatus = savelaststatus;
-	if (iterinfo.exception == ie_break || is_interrupted())
+	if (iterinfo.exception == IE_BREAK || is_interrupted())
 	    break;
     }
     iterinfo = saveiterinfo;
@@ -1522,8 +1550,8 @@ bool call_completion_function(const wchar_t *funcname)
     set_completion_variables();
     if (open_redirections(func->c_redirs, &savefd)) {
 	exec_nonsimple_command(func, false);
-	if (execstate.exception == ee_return)
-	    execstate.exception = ee_none;
+	if (execstate.exception == E_RETURN)
+	    execstate.exception = E_NONE;
     }
     undo_redirections(savefd);
     close_current_environment();
@@ -1617,7 +1645,7 @@ int return_builtin(int argc, void **argv)
 	    xerror(0, Ngt("cannot be used in the interactive mode"));
 	    return Exit_FAILURE;
 	}
-	execstate.exception = ee_return;
+	execstate.exception = E_RETURN;
     }
     return status;
 }
@@ -1674,10 +1702,10 @@ int break_builtin(int argc, void **argv)
 	    return Exit_ERROR;
 	}
 	if (wcscmp(ARGV(0), L"break") == 0) {
-	    iterinfo.exception = ie_break;
+	    iterinfo.exception = IE_BREAK;
 	} else {
 	    assert(wcscmp(ARGV(0), L"continue") == 0);
-	    iterinfo.exception = ie_continue;
+	    iterinfo.exception = IE_CONTINUE;
 	}
 	execstate.breakcount = execstate.loopnest;
 	return laststatus;
@@ -1715,7 +1743,7 @@ int break_builtin(int argc, void **argv)
 	} else {
 	    assert(wcscmp(ARGV(0), L"continue") == 0);
 	    execstate.breakcount = count - 1;
-	    execstate.exception = ee_continue;
+	    execstate.exception = E_CONTINUE;
 	}
 	return Exit_SUCCESS;
     }
@@ -2230,7 +2258,7 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     }
 
     search_command(argv0, argv[0], &ci, type);
-    if (ci.type == externalprogram) {
+    if (ci.type == CT_EXTERNALPROGRAM) {
 	pid_t cpid = fork_and_reset(0, true, t_leave);
 	if (cpid < 0) {
 	    free(argv0);
@@ -2289,7 +2317,7 @@ bool print_command_info(
     commandinfo_T ci;
     search_command(name, commandname, &ci, type);
     switch (ci.type) {
-	case externalprogram:
+	case CT_EXTERNALPROGRAM:
 	    if (ci.ci_path && is_executable_regular(ci.ci_path)) {
 		if (!print_command_absolute_path(
 			    name, ci.ci_path, humanfriendly))
@@ -2297,20 +2325,20 @@ bool print_command_info(
 		found = true;
 	    }
 	    break;
-	case specialbuiltin:
+	case CT_SPECIALBUILTIN:
 	    msgfmt = humanfriendly ? gt("%s: a special built-in\n") : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
 	    found = true;
 	    break;
-	case semispecialbuiltin:
+	case CT_SEMISPECIALBUILTIN:
 	    msgfmt = humanfriendly ? gt("%s: a semi-special built-in\n")
 		                   : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
 	    found = true;
 	    break;
-	case regularbuiltin:;
+	case CT_REGULARBUILTIN:;
 	    const char *cmdpath;
 	    if (type & SCT_STDPATH)
 		cmdpath = get_command_path_default(name);
@@ -2330,7 +2358,7 @@ bool print_command_info(
 	    }
 	    found = true;
 	    break;
-	case function:
+	case CT_FUNCTION:
 	    msgfmt = humanfriendly ? gt("%s: a function\n") : "%s\n";
 	    if (printf(msgfmt, name) < 0)
 		goto ioerror;
