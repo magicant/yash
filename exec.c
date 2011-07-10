@@ -87,7 +87,7 @@ typedef enum srchcmdtype_T {
     SCT_FUNCTION = 1 << 2,  /* search for a function */
     SCT_ALL      = 1 << 3,  /* search all */
     SCT_STDPATH  = 1 << 4,  /* search the standard PATH */
-    SCT_NOSLASH  = 1 << 5,  /* assume command name contains no slash */
+    SCT_CHECK    = 1 << 5,  /* check command existence */
 } srchcmdtype_T;
 
 typedef enum cmdtype_T {
@@ -833,25 +833,15 @@ pid_t exec_process(
 
     /* find command path */
     if (cmdinfo.type == CT_NONE) {
-	if (posixly_correct) {
-	    search_command(argv0, argv[0], &cmdinfo,
-		    SCT_EXTERNAL | SCT_BUILTIN);
-	} else {
-	    if (wcschr(argv[0], L'/')) {
+	search_command(argv0, argv[0], &cmdinfo,
+		SCT_EXTERNAL | SCT_BUILTIN | SCT_CHECK);
+	if (cmdinfo.type == CT_NONE) {
+	    if (!posixly_correct && command_not_found_handler(argv))
+		goto done3;
+	    if (wcschr(argv[0], L'/') != NULL) {
 		cmdinfo.type = CT_EXTERNALPROGRAM;
 		cmdinfo.ci_path = argv0;
-		if (!is_executable_regular(argv0))
-		    if (command_not_found_handler(argv))
-			goto done3;
-	    } else {
-		search_command(argv0, argv[0], &cmdinfo,
-			SCT_EXTERNAL | SCT_BUILTIN | SCT_NOSLASH);
-		if (cmdinfo.type == CT_NONE)
-		    if (command_not_found_handler(argv))
-			goto done3;
 	    }
-	    /* If the command was not found and the shell is not in the POSIXly
-	     * correct mode, the not-found handler is called. */
 	}
     }
 
@@ -969,12 +959,15 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
  * If the SCT_ALL flag is not set:
  *   *  a function whose name contains a slash cannot be found
  *   *  a regular built-in cannot be found in the POSIXly correct mode if the
- *      SCT_EXTERNAL flag is not set either. */
+ *      SCT_EXTERNAL flag is not set either.
+ * If the SCT_EXTERNAL flag is set, the SCT_CHECK flag is not set, and `name'
+ * contains a slash, the external command of the given `name' is always found.
+ */
 void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
 {
-    bool slash = !(type & SCT_NOSLASH) && wcschr(wname, L'/') != NULL;
+    bool slash = wcschr(wname, L'/') != NULL;
 
     const builtin_T *bi;
     if (!slash && (type & SCT_BUILTIN))
@@ -1006,29 +999,33 @@ void search_command(
 	}
     }
 
-    if (slash && (type & SCT_EXTERNAL)) {
-	ci->type = CT_EXTERNALPROGRAM;
-	ci->ci_path = name;
-	return;
-    }
-
-    if ((type & SCT_EXTERNAL) || (bi != NULL && (type & SCT_ALL))) {
-	const char *cmdpath;
-	if (type & SCT_STDPATH)
-	    cmdpath = get_command_path_default(name);
-	else
-	    cmdpath = get_command_path(name, false);
-	if (cmdpath != NULL) {
-	    if (bi != NULL) {
-regular_builtin:
-		assert(bi->type == BI_REGULAR);
-		ci->type = CT_REGULARBUILTIN;
-		ci->ci_builtin = bi->body;
-	    } else {
+    if (slash) {
+	if (type & SCT_EXTERNAL) {
+	    if (!(type & SCT_CHECK) || is_executable_regular(name)) {
 		ci->type = CT_EXTERNALPROGRAM;
-		ci->ci_path = cmdpath;
+		ci->ci_path = name;
+		return;
 	    }
-	    return;
+	}
+    } else {
+	if ((type & SCT_EXTERNAL) || (bi != NULL && (type & SCT_ALL))) {
+	    const char *cmdpath;
+	    if (type & SCT_STDPATH)
+		cmdpath = get_command_path_default(name);
+	    else
+		cmdpath = get_command_path(name, false);
+	    if (cmdpath != NULL) {
+		if (bi != NULL) {
+regular_builtin:
+		    assert(bi->type == BI_REGULAR);
+		    ci->type = CT_REGULARBUILTIN;
+		    ci->ci_builtin = bi->body;
+		} else {
+		    ci->type = CT_EXTERNALPROGRAM;
+		    ci->ci_path = cmdpath;
+		}
+		return;
+	    }
 	}
     }
 
@@ -2231,6 +2228,7 @@ int command_builtin(int argc, void **argv)
 	}
 	if (defpath)
 	    type |= SCT_STDPATH;
+	type |= SCT_CHECK;
 
 	bool ok = true;
 	clearerr(stdout);
@@ -2333,11 +2331,8 @@ bool print_command_info(
 		xerror(0, Ngt("no such command `%s'"), name);
 	    break;
 	case CT_EXTERNALPROGRAM:
-	    if (is_executable_regular(ci.ci_path)) {
-		if (!print_command_absolute_path(
-			    name, ci.ci_path, humanfriendly))
-		    goto ioerror;
-	    }
+	    if (!print_command_absolute_path(name, ci.ci_path, humanfriendly))
+		goto ioerror;
 	    break;
 	case CT_SPECIALBUILTIN:
 	    msgfmt = humanfriendly ? gt("%s: a special built-in\n") : "%s\n";
