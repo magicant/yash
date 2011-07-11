@@ -1155,9 +1155,13 @@ void exec_simple_command(
     case CT_SEMISPECIALBUILTIN:
     case CT_REGULARBUILTIN:
 	yash_error_message_count = 0;
-	current_builtin_name = argv[0];  // XXX not reentrant
+
+	const wchar_t *savecbn = current_builtin_name;
+	current_builtin_name = argv[0];
+
 	laststatus = ci->ci_builtin(argc, argv);
-	current_builtin_name = NULL;
+
+	current_builtin_name = savecbn;
 	break;
     case CT_FUNCTION:
 	exec_function_body(ci->ci_function, argv + 1, finally_exit);
