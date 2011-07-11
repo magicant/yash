@@ -36,6 +36,7 @@ function completion/mv {
 				"--backup::; specify how to make a backup"
 				"--strip-trailing-slashes; remove trailing slashes from source operands"
 				"S: --suffix:; specify a suffix to append to backup file names"
+				"T --no-target-directory; always treat the destination as a regular file"
 				"t: --target-directory:; specify a destination directory"
 				"u --update; don't move if destination is newer than source"
 				"--help"
