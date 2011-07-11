@@ -42,6 +42,7 @@ function completion/ln {
 		"d F --directory; make a hard link to a directory"
 		"n --no-dereference; don't follow symbolic links"
 		"S: --suffix:; specify a suffix to append to backup file names"
+		"T --no-target-directory; always treat the destination as a regular file"
 		"t: --target-directory:; specify a destination directory"
 		"--help"
 		"--version"
