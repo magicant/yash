@@ -1548,7 +1548,6 @@ bool call_completion_function(const wchar_t *funcname)
 	return false;
     }
 
-    struct parsestate_T *state = save_parse_state();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
     posixly_correct = false;
@@ -1574,7 +1573,6 @@ bool call_completion_function(const wchar_t *funcname)
 
     posixly_correct = saveposix;
     laststatus = savelaststatus;
-    restore_parse_state(state);
 
     return true;
 }
