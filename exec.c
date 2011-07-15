@@ -186,12 +186,10 @@ static void exec_external_program(
 static void print_xtrace(void *const *argv);
 static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
-    __attribute__((nonnull(2,4)));
+    __attribute__((nonnull(2,3,4)));
 static void exec_function_body(
 	command_T *body, void *const *args, bool finally_exit)
     __attribute__((nonnull));
-static inline int xexecv(const char *path, char *const *argv)
-    __attribute__((nonnull(1)));
 static inline int xexecve(
 	const char *path, char *const *argv, char *const *envp)
     __attribute__((nonnull(1)));
@@ -228,7 +226,7 @@ bool special_builtin_executed;
 static bool exec_builtin_executed = false;
 
 /* the last assignment. */
-static assign_T *last_assign;
+static const assign_T *last_assign;
 
 /* a buffer for xtrace. */
 static xwcsbuf_T xtrace_buffer = { .contents = NULL };
@@ -1035,11 +1033,11 @@ regular_builtin:
     return;
 }
 
-/* Returns true iff the specified command is a special builtin. */
+/* Returns true iff the specified command is a special built-in. */
 bool is_special_builtin(const char *cmdname)
 {
     const builtin_T *bi = get_builtin(cmdname);
-    return bi && bi->type == BI_SPECIAL;
+    return bi != NULL && bi->type == BI_SPECIAL;
 }
 
 /* Determines whether the assignments should be temporary according to `type'.*/
@@ -1164,7 +1162,7 @@ void exec_simple_command(
 	current_builtin_name = savecbn;
 	break;
     case CT_FUNCTION:
-	exec_function_body(ci->ci_function, argv + 1, finally_exit);
+	exec_function_body(ci->ci_function, &argv[1], finally_exit);
 	break;
     }
     if (finally_exit)
@@ -1189,7 +1187,8 @@ void exec_external_program(const char *path, int argc, char *argv0, void **argv)
     mbsargv[argc] = NULL;
 
     restore_signals(true);
-    xexecv(path, mbsargv);
+
+    xexecve(path, mbsargv, environ);
     int saveerrno = errno;
     if (saveerrno != ENOEXEC) {
 	if (saveerrno == EACCES && is_directory(path))
@@ -1202,10 +1201,12 @@ void exec_external_program(const char *path, int argc, char *argv0, void **argv)
     } else if (saveerrno != ENOENT) {
 	exec_fall_back_on_sh(argc, mbsargv, environ, path);
     }
+    laststatus = (saveerrno == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
+
+    set_signals();
+
     for (int i = 1; i < argc; i++)
 	free(mbsargv[i]);
-    laststatus = (saveerrno == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
-    set_signals();
 }
 
 /* Returns a pointer to the xtrace buffer.
@@ -1251,7 +1252,7 @@ void print_xtrace(void *const *argv)
 	print_prompt(PROMPT_RESET);
 	free_prompt(prompt);
     }
-    if (xtrace_buffer.contents) {
+    if (xtrace_buffer.contents != NULL) {
 	wb_destroy(&xtrace_buffer);
 	xtrace_buffer.contents = NULL;
     }
@@ -1263,11 +1264,7 @@ void print_xtrace(void *const *argv)
 void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *envp, const char *path)
 {
-    static char *const null[] = { NULL, };
-
     assert(argv[argc] == NULL);
-    if (!envp)
-	envp = null;
 
     char *args[argc + 3];
     size_t index = 0;
@@ -1293,7 +1290,7 @@ void exec_fall_back_on_sh(
     xexecve(_PATH_BSHELL, args, envp);
 #endif
     const char *shpath = get_command_path("sh", false);
-    if (shpath)
+    if (shpath != NULL)
 	xexecve(shpath, args, envp);
     else
 	errno = ENOENT;
@@ -1306,10 +1303,12 @@ void exec_fall_back_on_sh(
  * (void *). */
 void exec_function_body(command_T *body, void *const *args, bool finally_exit)
 {
-    bool save_noreturn = execstate.noreturn;
+    bool save_noreturn;
     savefd_T *savefd;
 
+    save_noreturn = execstate.noreturn;
     execstate.noreturn = false;
+
     if (open_redirections(body->c_redirs, &savefd)) {
 	open_new_environment(false);
 	set_positional_parameters(args);
@@ -1319,16 +1318,8 @@ void exec_function_body(command_T *body, void *const *args, bool finally_exit)
 	close_current_environment();
     }
     undo_redirections(savefd);
-    execstate.noreturn = save_noreturn;
-}
 
-/* Calls `execv' until it doesn't return EINTR. */
-int xexecv(const char *path, char *const *argv)
-{
-    do
-	execv(path, argv);
-    while (errno == EINTR);
-    return -1;
+    execstate.noreturn = save_noreturn;
 }
 
 /* Calls `execve' until it doesn't return EINTR. */
@@ -1351,7 +1342,7 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 
     if (cmdsub->is_preparsed
 	    ? cmdsub->value.preparsed == NULL
-	    : cmdsub->value.unparsed[0] == L'\0')  /* command is empty? */
+	    : cmdsub->value.unparsed[0] == L'\0')  /* empty command */
 	return xwcsdup(L"");
 
     /* open a pipe to receive output from the command */
@@ -1361,8 +1352,8 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
     }
 
     /* If the child is stopped by SIGTSTP, it can never be resumed and
-     * the shell will be stuck. So we make the child unstoppable by SIGTSTP.
-     * The `t_tstp' flag designates this behavior. */
+     * the shell will be stuck. So we specify the `t_tstp' flag to prevent the
+     * child from being stopped by SIGTSTP. */
     cpid = fork_and_reset(-1, false, t_tstp);
     if (cpid < 0) {
 	/* fork failure */
@@ -1370,13 +1361,13 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 	xclose(pipefd[PIPE_OUT]);
 	lastcmdsubstatus = Exit_NOEXEC;
 	return NULL;
-    } else if (cpid) {
+    } else if (cpid > 0) {
 	/* parent process */
 	FILE *f;
 
 	xclose(pipefd[PIPE_OUT]);
 	f = fdopen(pipefd[PIPE_IN], "r");
-	if (!f) {
+	if (f == NULL) {
 	    xerror(errno,
 		    Ngt("cannot open a pipe for the command substitution"));
 	    xclose(pipefd[PIPE_IN]);
@@ -1386,16 +1377,10 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 
 	/* read output from the command */
 	xwcsbuf_T buf;
+	wint_t c;
 	wb_init(&buf);
-	for (;;) {
-	    wint_t c = fgetwc(f);
-	    if (c == WEOF) {
-		if (feof(f) || errno != EINTR)
-		    break;
-	    } else {
-		wb_wccat(&buf, c);
-	    }
-	}
+	while ((c = fgetwc(f)) != WEOF)
+	    wb_wccat(&buf, c);
 	fclose(f);
 
 	/* wait for the child to finish */
@@ -1492,7 +1477,7 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 /* Autoloads the specified file to load a completion function definition.
  * String `cmdname', which may be NULL, is used as the only positional parameter
  * during script execution.
- * Returns true if a file was autoloaded. */
+ * Returns true iff a file was autoloaded. */
 bool autoload_completion_function_file(
 	const wchar_t *filename, const wchar_t *cmdname)
 {
@@ -1511,7 +1496,7 @@ bool autoload_completion_function_file(
 
     int fd = move_to_shellfd(open(path, O_RDONLY));
     if (fd < 0) {
-	le_compdebug("cannot open the file \"%s\"", path);
+	le_compdebug("cannot open file \"%s\"", path);
 	free(path);
 	return false;
     }
@@ -1583,7 +1568,7 @@ bool call_completion_function(const wchar_t *funcname)
 #endif /* YASH_ENABLE_LINEEDIT */
 
 
-/********** Builtins **********/
+/********** Built-ins **********/
 
 static int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     __attribute__((nonnull(2)));
@@ -1593,7 +1578,7 @@ static int command_builtin_execute(
 static bool print_command_info(const wchar_t *commandname,
 	enum srchcmdtype_T type, bool alias, bool keyword, bool humanfriendly)
     __attribute__((nonnull));
-static bool print_command_absolute_path(
+static void print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
     __attribute__((nonnull));
 
@@ -1606,7 +1591,8 @@ static const struct xgetopt_T iter_options[] = {
     { L'\0', NULL, 0, false, NULL, },
 };
 
-/* The "return" built-in. */
+/* The "return" built-in, which accepts the following option:
+ *  -n: don't return from a function. */
 int return_builtin(int argc, void **argv)
 {
     static const struct xgetopt_T options[] = {
@@ -1630,13 +1616,8 @@ int return_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr,
-			gt(posixly_correct ? Ngt("Usage:  %ls [n]\n")
-			                   : Ngt("Usage:  %ls [-n] [n]\n")),
-			ARGV(0));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+	    default:
+		goto print_usage;
 	}
     }
     if (argc - xoptind > 1)
@@ -1662,6 +1643,14 @@ int return_builtin(int argc, void **argv)
 	execstate.exception = E_RETURN;
     }
     return status;
+
+print_usage:
+    fprintf(stderr,
+	    gt(posixly_correct ? Ngt("Usage:  %ls [n]\n")
+		: Ngt("Usage:  %ls [-n] [n]\n")),
+	    ARGV(0));
+    SPECIAL_BI_ERROR;
+    return Exit_ERROR;
 }
 
 #if YASH_ENABLE_HELP
@@ -1712,7 +1701,7 @@ int break_builtin(int argc, void **argv)
     if (iter) {
 	/* break/continue iteration */
 	if (!iterinfo.iterating) {
-	    xerror(0, Ngt("not in a iteration"));
+	    xerror(0, Ngt("not in an iteration"));
 	    return Exit_ERROR;
 	}
 	if (wcscmp(ARGV(0), L"break") == 0) {
@@ -1821,9 +1810,9 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
     }
 
     if (iter) {
-	return exec_iteration(argv + xoptind, "eval");
+	return exec_iteration(&argv[xoptind], "eval");
     } else {
-	wchar_t *args = joinwcsarray(argv + xoptind, L" ");
+	wchar_t *args = joinwcsarray(&argv[xoptind], L" ");
 	exec_wcs(args, "eval", false);
 	free(args);
 	return laststatus;
@@ -1885,7 +1874,7 @@ int dot_builtin(int argc, void **argv)
     }
 
     const wchar_t *filename = ARGV(xoptind++);
-    if (!filename)
+    if (filename == NULL)
 	goto print_usage;
 
     bool has_args = xoptind < argc;
@@ -1893,7 +1882,7 @@ int dot_builtin(int argc, void **argv)
 	goto print_usage;
 
     char *mbsfilename = malloc_wcstombs(filename);
-    if (!mbsfilename) {
+    if (mbsfilename == NULL) {
 	xerror(EILSEQ, Ngt("unexpected error"));
 	return Exit_ERROR;
     }
@@ -1905,22 +1894,16 @@ int dot_builtin(int argc, void **argv)
 	if (path == NULL) {
 	    xerror(0, Ngt("file `%s' was not found in $YASH_LOADPATH"),
 		    mbsfilename);
-	    free(mbsfilename);
-	    if (!is_interactive)
-		exit_shell_with_status(Exit_FAILURE);
-	    return Exit_FAILURE;
+	    goto error;
 	}
-    } else if (!wcschr(filename, L'/')) {
+    } else if (wcschr(filename, L'/') == NULL) {
 	path = which(mbsfilename, get_path_array(PA_PATH), is_readable_regular);
-	if (!path) {
+	if (path == NULL) {
 	    if (!posixly_correct) {
 		path = mbsfilename;
 	    } else {
 		xerror(0, Ngt("file `%s' was not found in $PATH"), mbsfilename);
-		free(mbsfilename);
-		if (!is_interactive)
-		    exit_shell_with_status(Exit_FAILURE);
-		return Exit_FAILURE;
+		goto error;
 	    }
 	}
     } else {
@@ -1929,7 +1912,7 @@ int dot_builtin(int argc, void **argv)
 
     if (has_args) {
 	open_new_environment(false);
-	set_positional_parameters(argv + xoptind);
+	set_positional_parameters(&argv[xoptind]);
     }
 
     int fd = move_to_shellfd(open(path, O_RDONLY));
@@ -1937,10 +1920,7 @@ int dot_builtin(int argc, void **argv)
 	free(path);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot open file `%s'"), mbsfilename);
-	free(mbsfilename);
-	if (!is_interactive)
-	    exit_shell_with_status(Exit_FAILURE);
-	return Exit_FAILURE;
+	goto error;
     }
 
     exec_input(fd, mbsfilename, false, enable_alias, false);
@@ -1953,6 +1933,12 @@ int dot_builtin(int argc, void **argv)
     }
 
     return laststatus;
+
+error:
+    free(mbsfilename);
+    if (!is_interactive)
+	exit_shell_with_status(Exit_FAILURE);
+    return Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP
@@ -2036,11 +2022,11 @@ int exec_builtin(int argc, void **argv)
 	}
     }
 
-    return exec_builtin_2(argc - xoptind, argv + xoptind, as, clear);
+    return exec_builtin_2(argc - xoptind, &argv[xoptind], as, clear);
 }
 
-/* Implements the "exec" builtin.
- * argc, argv: the operands (not arguments) of the "exec" builtin.
+/* The main part of the "exec" built-in.
+ * argc, argv: the operands (not arguments) of the "exec" built-in.
  * as: value of the -a option or NULL
  * clear: true iff the -c option is specified */
 int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
@@ -2050,7 +2036,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     char *args[argc + 1];
     for (int i = 0; i < argc; i++) {
 	args[i] = malloc_wcstombs(ARGV(i));
-	if (!args[i]) {
+	if (args[i] == NULL) {
 	    xerror(EILSEQ, Ngt("cannot convert wide characters into "
 			"multibyte characters: replaced with empty string"));
 	    args[i] = xstrdup("");
@@ -2059,11 +2045,11 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     args[argc] = NULL;
 
     const char *commandpath;
-    if (wcschr(ARGV(0), L'/')) {
+    if (wcschr(ARGV(0), L'/') != NULL) {
 	commandpath = args[0];
     } else {
 	commandpath = get_command_path(args[0], false);
-	if (!commandpath) {
+	if (commandpath == NULL) {
 	    xerror(0, Ngt("no such command `%s'"), args[0]);
 	    err = Exit_NOTFOUND;
 	    goto err;
@@ -2073,24 +2059,27 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     char **envs;
     if (clear) {
 	/* use the environment that contains only the variables assigned by the
-	 * assignment for this `exec' builtin. */
+	 * assignment for this `exec' built-in. */
 	plist_T list;
 	
 	pl_init(&list);
-	for (assign_T *assign = last_assign; assign; assign = assign->next) {
+	for (const assign_T *assign = last_assign;
+		assign != NULL;
+		assign = assign->next) {
 	    const wchar_t *val = getvar(assign->a_name);
-	    pl_add(&list, malloc_printf(
-			"%ls=%ls", assign->a_name, val ? val : L""));
+	    if (val == NULL)
+		val = L"";
+	    pl_add(&list, malloc_printf("%ls=%ls", assign->a_name, val));
 	}
 	envs = (char **) pl_toary(&list);
     } else {
 	envs = environ;
     }
 
-    if (as) {
+    if (as != NULL) {
 	freelater = args[0];
 	args[0] = malloc_wcstombs(as);
-	if (!args[0]) {
+	if (args[0] == NULL) {
 	    xerror(EILSEQ, Ngt("cannot convert wide characters into "
 			"multibyte characters: replaced with empty string"));
 	    args[0] = xstrdup("");
@@ -2115,7 +2104,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     set_signals();
     err = Exit_NOEXEC;
 
-    if (envs != environ)
+    if (clear)
 	plfree((void **) envs, free);
 
 err:
@@ -2155,7 +2144,7 @@ const char *exec_help[] = { Ngt(
 
 /* The "command"/"type" built-in, which accepts the following options:
  *  -a: search aliases
- *  -b: search builtins
+ *  -b: search built-ins
  *  -e: search external commands
  *  -f: search functions
  *  -k: search keywords
@@ -2214,18 +2203,18 @@ int command_builtin(int argc, void **argv)
 	    else
 		return Exit_SUCCESS;
 	}
-	if (!type)
+	if (type == 0)
 	    type = SCT_EXTERNAL | SCT_BUILTIN;
 	else
 	    type |= SCT_ALL;
 	if (defpath)
 	    type |= SCT_STDPATH;
 	return command_builtin_execute(
-		argc - xoptind, argv + xoptind, type);
+		argc - xoptind, &argv[xoptind], type);
     } else {
 	if (!argv0istype && posixly_correct && argc - xoptind != 1)
 	    goto print_usage;
-	if (!type && !aliases && !keywords) {
+	if (type == 0 && !aliases && !keywords) {
 	    type = SCT_EXTERNAL | SCT_BUILTIN | SCT_FUNCTION;
 	    aliases = keywords = true;
 	} else {
@@ -2243,7 +2232,8 @@ int command_builtin(int argc, void **argv)
 	    if (ferror(stdout))
 		break;
 	}
-	return ok ? Exit_SUCCESS : Exit_FAILURE;
+	return ok && yash_error_message_count == 0
+	    ? Exit_SUCCESS : Exit_FAILURE;
     }
 
 print_usage:
@@ -2283,7 +2273,7 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 		    cpid,
 		    doing_job_control_now ? cpid : 0,
 		    doing_job_control_now);
-	    if (namep)
+	    if (namep != NULL)
 		*namep = joinwcsarray(argv, L" ");
 	    free(argv0);
 	    return laststatus;
@@ -2306,8 +2296,7 @@ bool print_command_info(
 
     if (keywords && is_keyword(commandname)) {
 	msgfmt = humanfriendly ? gt("%ls: a shell keyword\n") : "%ls\n";
-	if (printf(msgfmt, commandname) < 0)
-	    goto ioerror;
+	xprintf(msgfmt, commandname);
 	return true;
     }
 
@@ -2336,19 +2325,16 @@ bool print_command_info(
 		xerror(0, Ngt("no such command `%s'"), name);
 	    break;
 	case CT_EXTERNALPROGRAM:
-	    if (!print_command_absolute_path(name, ci.ci_path, humanfriendly))
-		goto ioerror;
+	    print_command_absolute_path(name, ci.ci_path, humanfriendly);
 	    break;
 	case CT_SPECIALBUILTIN:
 	    msgfmt = humanfriendly ? gt("%s: a special built-in\n") : "%s\n";
-	    if (printf(msgfmt, name) < 0)
-		goto ioerror;
+	    xprintf(msgfmt, name);
 	    break;
 	case CT_SEMISPECIALBUILTIN:
 	    msgfmt = humanfriendly ? gt("%s: a semi-special built-in\n")
 		                   : "%s\n";
-	    if (printf(msgfmt, name) < 0)
-		goto ioerror;
+	    xprintf(msgfmt, name);
 	    break;
 	case CT_REGULARBUILTIN:;
 	    const char *cmdpath;
@@ -2357,72 +2343,57 @@ bool print_command_info(
 	    else
 		cmdpath = get_command_path(name, false);
 	    if (humanfriendly) {
-		if (cmdpath == NULL)
-		    msgfmt =
-			Ngt("%s: a regular built-in (not found in $PATH)\n");
-		else
-		    msgfmt = Ngt("%s: a regular built-in at %s\n");
-		if (printf(gt(msgfmt), name, cmdpath) < 0)
-		    goto ioerror;
+		msgfmt = (cmdpath == NULL)
+		    ? Ngt("%s: a regular built-in (not found in $PATH)\n")
+		    : Ngt("%s: a regular built-in at %s\n");
+		xprintf(gt(msgfmt), name, cmdpath);
 	    } else {
-		if (puts(cmdpath == NULL ? name : cmdpath) < 0)
-		    goto ioerror;
+		xprintf("%s\n", (cmdpath == NULL) ? name : cmdpath);
 	    }
 	    break;
 	case CT_FUNCTION:
 	    msgfmt = humanfriendly ? gt("%s: a function\n") : "%s\n";
-	    if (printf(msgfmt, name) < 0)
-		goto ioerror;
+	    xprintf(msgfmt, name);
 	    break;
     }
 
     free(name);
     return ci.type != CT_NONE;
-
-ioerror:
-    xerror(errno, Ngt("cannot print to the standard output"));
-    free(name);
-    return false;
 }
 
-/* Prints the absolute path of the specified command.
- * Returns false on error (errno is set). */
-bool print_command_absolute_path(
+/* Prints the absolute path of the specified command. */
+void print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
 {
     if (path[0] == '/') {
 	/* the path is already absolute */
 	if (humanfriendly)
-	    return printf(gt("%s: an external command at %s\n"), name, path)
-		>= 0;
+	    xprintf(gt("%s: an external command at %s\n"), name, path);
 	else
-	    return puts(path) >= 0;
+	    xprintf("%s\n", path);
+	return;
     }
 
     const wchar_t *wpwd = getvar(L VAR_PWD);
     char *pwd = NULL;
-    if (wpwd) {
+    if (wpwd != NULL) {
 	pwd = malloc_wcstombs(wpwd);
-	if (pwd && !is_same_file(pwd, ".")) {
+	if (pwd != NULL && !is_same_file(pwd, ".")) {
 	    free(pwd);
 	    pwd = NULL;
 	}
     }
-    if (!pwd) {
+    if (pwd == NULL) {
 	pwd = xgetcwd();
-	if (!pwd)
+	if (pwd == NULL)
 	    pwd = xstrdup(".");  /* last resort */
     }
 
-    int r, saveerrno;
     if (humanfriendly)
-	r = printf(gt("%s: an external command at %s/%s\n"), name, pwd, path);
+	xprintf(gt("%s: an external command at %s/%s\n"), name, pwd, path);
     else
-	r = printf("%s/%s\n", pwd, path);
-    saveerrno = errno;
+	xprintf("%s/%s\n", pwd, path);
     free(pwd);
-    errno = saveerrno;
-    return r >= 0;
 }
 
 #if YASH_ENABLE_HELP
@@ -2471,7 +2442,7 @@ const char *type_help[] = { Ngt(
 
 #endif /* YASH_ENABLE_HELP */
 
-/* The "times" builtin */
+/* The "times" built-in. */
 int times_builtin(int argc __attribute__((unused)), void **argv)
 {
     const struct xgetopt_T *opt;
@@ -2482,10 +2453,8 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  times\n"));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+	    default:
+		goto print_usage;
 	}
     }
 
@@ -2513,14 +2482,16 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     format_time(tms.tms_stime, ssm, sss);
     format_time(tms.tms_cutime, cum, cus);
     format_time(tms.tms_cstime, csm, css);
-    if (printf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
-	    sum, sus, ssm, sss, cum, cus, csm, css) >= 0) {
-	return Exit_SUCCESS;
-    } else {
-	xerror(errno, Ngt("cannot print to the standard output"));
-	return Exit_FAILURE;
-    }
 #undef format_time
+
+    xprintf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
+	    sum, sus, ssm, sss, cum, cus, csm, css);
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+
+print_usage:
+    fprintf(stderr, gt("Usage:  times\n"));
+    SPECIAL_BI_ERROR;
+    return Exit_ERROR;
 }
 
 #if YASH_ENABLE_HELP

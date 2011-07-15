@@ -114,7 +114,7 @@ break: `--no-such-option' is not a valid option
 Usage:  break [n]
         break -i
 break: not in a loop
-break: not in a iteration
+break: not in an iteration
 Usage:  break [n]
         break -i
 ===== continue =====
@@ -122,7 +122,7 @@ continue: `--no-such-option' is not a valid option
 Usage:  continue [n]
         continue -i
 continue: not in a loop
-continue: not in a iteration
+continue: not in an iteration
 Usage:  continue [n]
         continue -i
 ===== eval =====

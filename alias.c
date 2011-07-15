@@ -381,7 +381,8 @@ bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 
 /* Prints an alias definition to the standard output if defined.
  * This function is used in the "command" built-in.
- * Returns true iff a non-global alias had been defined and was printed. */
+ * Returns true iff a non-global alias had been defined for the specified name.
+ */
 bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 {
     const alias_T *alias = ht_get(&aliases, aliasname).value;
@@ -390,10 +391,10 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 	return false;
 
     if (!user_friendly)
-	return print_alias(aliasname, alias, true);
+	print_alias(aliasname, alias, true);
     else
-	return xprintf(gt("%ls: an alias for `%ls'\n"),
-		aliasname, alias->value);
+	xprintf(gt("%ls: an alias for `%ls'\n"), aliasname, alias->value);
+    return true;
 }
 
 #if YASH_ENABLE_LINEEDIT
