@@ -252,20 +252,24 @@ function completion/ssh::parseconfig {
 
 function completion/ssh::completehostname {
 	PREFIX=${TARGETWORD%${TARGETWORD#*@}}
-	typeset key value
+	typeset key value i
 	while read -Ar key value; do
 		case $key in ([Hh][Oo][Ss][Tt])
 			complete -P "$PREFIX" -R '\*' "$@" -- "$value"
 		esac
 	done <(sed -e 's/#.*//' -e 's/[Hh][Oo][Ss][Tt][[:blank:]]*=/host /' "$config" 2>/dev/null)
 	# currently, we always read known-hosts files from the default location
-	while read -r key value; do
-		case $key in
-		(\|*) ;;
-		(*)
-			complete -P "$PREFIX" "$@" -- ${key//,/ }
-		esac
-	done <(cat /etc/ssh/ssh_known_hosts ~/.ssh/known_hosts 2>/dev/null)
+	for i in /etc/ssh/ssh_known_hosts ~/.ssh/known_hosts; do
+		if [ -r "$i" ]; then
+			while read -r key value; do
+				case $key in
+				(\|*) ;;
+				(*)
+					complete -P "$PREFIX" "$@" -- ${key//,/ }
+				esac
+			done <"$i"
+		fi
+	done
 }
 
 
