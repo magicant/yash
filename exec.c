@@ -156,14 +156,13 @@ static void exec_case(const command_T *c, bool finally_exit)
 static void exec_funcdef(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 
+static void exec_commands(command_T *c, exec_T type);
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
-static inline void connect_pipes(pipeinfo_T *pi)
-    __attribute__((nonnull));
-
-static void exec_commands(command_T *c, exec_T type);
 static pid_t exec_process(
 	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
+    __attribute__((nonnull));
+static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
@@ -561,71 +560,6 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 	exit_shell();
 }
 
-/* Updates the contents of the `pipeinfo_T' to proceed to the next process
- * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIPE_OUT]' are closed,
- * `pi->pi_tonextfds[PIPE_IN]' is moved to `pi->pi_fromprevfd', and,
- * if `next' is true, a new pipe is opened in `pi->pi_tonextfds'; otherwise,
- * `pi->pi_tonextfds' is assigned -1.
- * Returns true iff successful. */
-void next_pipe(pipeinfo_T *pi, bool next)
-{
-    if (pi->pi_fromprevfd >= 0)
-	xclose(pi->pi_fromprevfd);
-    if (pi->pi_tonextfds[PIPE_OUT] >= 0)
-	xclose(pi->pi_tonextfds[PIPE_OUT]);
-    pi->pi_fromprevfd = pi->pi_tonextfds[PIPE_IN];
-    if (next) {
-	if (pipe(pi->pi_tonextfds) < 0)
-	    goto fail;
-
-	/* The pipe's FDs must not be 0 or 1, or they may be overridden by each
-	 * other when we move the pipe to the standard input/output later. So,
-	 * if they are 0 or 1, we move them to bigger numbers. */
-	int origin  = pi->pi_tonextfds[PIPE_IN];
-	int origout = pi->pi_tonextfds[PIPE_OUT];
-	if (origin < 2 || origout < 2) {
-	    if (origin < 2)
-		pi->pi_tonextfds[PIPE_IN] = dup(origin);
-	    if (origout < 2)
-		pi->pi_tonextfds[PIPE_OUT] = dup(origout);
-	    if (origin < 2)
-		xclose(origin);
-	    if (origout < 2)
-		xclose(origout);
-	    if (pi->pi_tonextfds[PIPE_IN] < 0) {
-		xclose(pi->pi_tonextfds[PIPE_OUT]);
-		goto fail;
-	    }
-	    if (pi->pi_tonextfds[PIPE_OUT] < 0) {
-		xclose(pi->pi_tonextfds[PIPE_IN]);
-		goto fail;
-	    }
-	}
-    } else {
-	pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
-    }
-    return;
-
-fail:
-    pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
-    xerror(errno, Ngt("cannot open a pipe"));
-}
-
-/* Connects the pipe(s) and closes the pipes left. */
-void connect_pipes(pipeinfo_T *pi)
-{
-    if (pi->pi_fromprevfd >= 0) {
-	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
-	xclose(pi->pi_fromprevfd);
-    }
-    if (pi->pi_tonextfds[PIPE_OUT] >= 0) {
-	xdup2(pi->pi_tonextfds[PIPE_OUT], STDOUT_FILENO);
-	xclose(pi->pi_tonextfds[PIPE_OUT]);
-    }
-    if (pi->pi_tonextfds[PIPE_IN] >= 0)
-	xclose(pi->pi_tonextfds[PIPE_IN]);
-}
-
 /* Executes the commands in a pipeline. */
 void exec_commands(command_T *c, exec_T type)
 {
@@ -716,6 +650,56 @@ void exec_commands(command_T *c, exec_T type)
 #endif
 	    )
 	exit_shell_with_status(laststatus);
+}
+
+/* Updates the contents of the `pipeinfo_T' to proceed to the next process
+ * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIPE_OUT]' are closed,
+ * `pi->pi_tonextfds[PIPE_IN]' is moved to `pi->pi_fromprevfd', and,
+ * if `next' is true, a new pipe is opened in `pi->pi_tonextfds'; otherwise,
+ * `pi->pi_tonextfds' is assigned -1.
+ * Returns true iff successful. */
+void next_pipe(pipeinfo_T *pi, bool next)
+{
+    if (pi->pi_fromprevfd >= 0)
+	xclose(pi->pi_fromprevfd);
+    if (pi->pi_tonextfds[PIPE_OUT] >= 0)
+	xclose(pi->pi_tonextfds[PIPE_OUT]);
+    pi->pi_fromprevfd = pi->pi_tonextfds[PIPE_IN];
+    if (next) {
+	if (pipe(pi->pi_tonextfds) < 0)
+	    goto fail;
+
+	/* The pipe's FDs must not be 0 or 1, or they may be overridden by each
+	 * other when we move the pipe to the standard input/output later. So,
+	 * if they are 0 or 1, we move them to bigger numbers. */
+	int origin  = pi->pi_tonextfds[PIPE_IN];
+	int origout = pi->pi_tonextfds[PIPE_OUT];
+	if (origin < 2 || origout < 2) {
+	    if (origin < 2)
+		pi->pi_tonextfds[PIPE_IN] = dup(origin);
+	    if (origout < 2)
+		pi->pi_tonextfds[PIPE_OUT] = dup(origout);
+	    if (origin < 2)
+		xclose(origin);
+	    if (origout < 2)
+		xclose(origout);
+	    if (pi->pi_tonextfds[PIPE_IN] < 0) {
+		xclose(pi->pi_tonextfds[PIPE_OUT]);
+		goto fail;
+	    }
+	    if (pi->pi_tonextfds[PIPE_OUT] < 0) {
+		xclose(pi->pi_tonextfds[PIPE_IN]);
+		goto fail;
+	    }
+	}
+    } else {
+	pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
+    }
+    return;
+
+fail:
+    pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
+    xerror(errno, Ngt("cannot open a pipe"));
 }
 
 /* Executes the command.
@@ -878,6 +862,21 @@ done:
     if (finally_exit)
 	exit_shell();
     return cpid;
+}
+
+/* Connects the pipe(s) and closes the pipes left. */
+void connect_pipes(pipeinfo_T *pi)
+{
+    if (pi->pi_fromprevfd >= 0) {
+	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
+	xclose(pi->pi_fromprevfd);
+    }
+    if (pi->pi_tonextfds[PIPE_OUT] >= 0) {
+	xdup2(pi->pi_tonextfds[PIPE_OUT], STDOUT_FILENO);
+	xclose(pi->pi_tonextfds[PIPE_OUT]);
+    }
+    if (pi->pi_tonextfds[PIPE_IN] >= 0)
+	xclose(pi->pi_tonextfds[PIPE_IN]);
 }
 
 /* Forks a subshell and does some settings.
