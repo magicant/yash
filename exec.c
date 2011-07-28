@@ -67,9 +67,9 @@
 
 /* type of command execution */
 typedef enum {
-    execnormal,  /* normal execution */
-    execasync,   /* asynchronous execution */
-    execself,    /* execution in the shell's own process */
+    E_NORMAL,  /* normal execution */
+    E_ASYNC,   /* asynchronous execution */
+    E_SELF,    /* execution in the shell's own process */
 } exec_T;
 
 /* info about file descriptors of pipes */
@@ -131,7 +131,7 @@ typedef struct execstate_T {
     bool noreturn;          /* true when the "return" built-in is not allowed */
 } execstate_T;
 /* Note that n continues are equivalent to (n-1) breaks followed by one
- * continue. When `exception' is set to `E_RETURN', `breakcount' must be 0. */
+ * continue. When `exception' is set to E_RETURN, `breakcount' must be 0. */
 
 typedef struct iterinfo_T {
     bool iterating;
@@ -303,7 +303,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 
 	bool self = finally_exit && !doing_job_control_now
 	    && !p->next && !p->pl_neg && !any_trap_set;
-	exec_commands(p->pl_commands, self ? execself : execnormal);
+	exec_commands(p->pl_commands, self ? E_SELF : E_NORMAL);
 	if (p->pl_neg) {
 	    if (laststatus == Exit_SUCCESS)
 		laststatus = Exit_FAILURE;
@@ -321,7 +321,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 void exec_pipelines_async(const pipeline_T *p)
 {
     if (p->next == NULL && !p->pl_neg) {
-	exec_commands(p->pl_commands, execasync);
+	exec_commands(p->pl_commands, E_ASYNC);
 	return;
     }
 
@@ -588,7 +588,7 @@ void exec_commands(command_T *c, exec_T type)
 	lasttype = cc->c_type;
 	next_pipe(&pinfo, cc->next != NULL);
 	pid = exec_process(cc,
-		(type == execself && cc->next != NULL) ? execnormal : type,
+		(type == E_SELF && cc->next != NULL) ? E_NORMAL : type,
 		&pinfo,
 		pgid);
 	pp->pr_pid = pid;
@@ -604,7 +604,7 @@ void exec_commands(command_T *c, exec_T type)
 	    pgid = pid;
 	cc = cc->next, pp++;
     } while (cc != NULL);
-    assert(type != execself); /* `exec_process' doesn't return for `execself' */
+    assert(type != E_SELF); /* `exec_process' doesn't return for E_SELF */
     assert(pinfo.pi_tonextfds[PIPE_IN] < 0);
     assert(pinfo.pi_tonextfds[PIPE_OUT] < 0);
     if (pinfo.pi_fromprevfd >= 0)
@@ -621,20 +621,20 @@ void exec_commands(command_T *c, exec_T type)
 	job->j_nonotify = false;
 	job->j_pcount = count;
 	set_active_job(job);
-	if (type == execnormal) {
+	if (type == E_NORMAL) {
 	    wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
 	    if (doing_job_control_now)
 		put_foreground(shell_pgid);
 	    laststatus = calc_status_of_job(job);
 	} else {
-	    assert(type == execasync);
+	    assert(type == E_ASYNC);
 	    laststatus = Exit_SUCCESS;
 	    lastasyncpid = ps[count - 1].pr_pid;
 	}
 	if (job->j_status != JS_DONE) {
 	    for (cc = c, pp = ps; cc != NULL; cc = cc->next, pp++)
 		pp->pr_name = command_to_wcs(cc, false);
-	    add_job(type == execnormal || shopt_curasync);
+	    add_job(type == E_NORMAL || shopt_curasync);
 	} else {
 	    notify_signaled_job(ACTIVE_JOBNO);
 	    remove_job(ACTIVE_JOBNO);
@@ -709,7 +709,7 @@ fail:
  * If the child process forked successfully, its process ID is returned.
  * If the command was executed without forking, `laststatus' is set to the exit
  * status of the command and 0 is returned.
- * if `type' is `execself', this function never returns. */
+ * if `type' is E_SELF, this function never returns. */
 pid_t exec_process(
 	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
 {
@@ -722,15 +722,15 @@ pid_t exec_process(
 
     current_lineno = c->c_lineno;
 
-    /* fork first if `type' is `execasync', the command type is subshell,
+    /* fork first if `type' is E_ASYNC, the command type is subshell,
      * or there is a pipe. */
-    early_fork = (type != execself)
-	&& (type == execasync || c->c_type == CT_SUBSHELL
+    early_fork = (type != E_SELF)
+	&& (type == E_ASYNC || c->c_type == CT_SUBSHELL
 		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0);
-    finally_exit = (type == execself);
+    finally_exit = (type == E_SELF);
     if (early_fork) {
-	sigtype_T sigtype = (type == execasync) ? t_quitint : 0;
-	cpid = fork_and_reset(pgid, type == execnormal, sigtype);
+	sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
+	cpid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
 	if (cpid != 0)
 	    goto done;
 	finally_exit = true;
@@ -771,7 +771,7 @@ pid_t exec_process(
 	goto done2;
     }
     
-    if (type == execasync && pi->pi_fromprevfd < 0)
+    if (type == E_ASYNC && pi->pi_fromprevfd < 0)
 	maybe_redirect_stdin_to_devnull();
 
     if (c->c_type != CT_SIMPLE) {
@@ -829,7 +829,7 @@ pid_t exec_process(
 
     /* create a child process to execute the external command */
     if (cmdinfo.type == CT_EXTERNALPROGRAM && !finally_exit) {
-	cpid = fork_and_reset(pgid, type == execnormal, t_leave);
+	cpid = fork_and_reset(pgid, type == E_NORMAL, t_leave);
 	if (cpid != 0)
 	    goto done3;
 	finally_exit = true;
