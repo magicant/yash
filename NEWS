@@ -16,6 +16,8 @@ Yash 2.28
      should not be evaluated.
   *  Fixed the "array" built-in removing the wrong elements when
      positive and negative indices are intermixed with the -d option.
+  *  The EXIT trap is now executed with the correct redirection when
+     the last command had redirection.
 
 ----------------------------------------------------------------------
 Yash 2.27
