@@ -761,8 +761,8 @@ pid_t exec_process(
     connect_pipes(pi);
 
     /* open redirections */
-    savefd_T *savefd = NULL;
-    if (!open_redirections(c->c_redirs, finally_exit ? NULL : &savefd)) {
+    savefd_T *savefd;
+    if (!open_redirections(c->c_redirs, &savefd)) {
 	/* On redirection error, the command is not executed. */
 	laststatus = Exit_REDIRERR;
 	if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
@@ -775,7 +775,7 @@ pid_t exec_process(
 	maybe_redirect_stdin_to_devnull();
 
     if (c->c_type != CT_SIMPLE) {
-	exec_nonsimple_command(c, finally_exit);
+	exec_nonsimple_command(c, finally_exit && savefd == NULL);
 	goto done1;
     }
 
@@ -836,7 +836,19 @@ pid_t exec_process(
     }
 
     /* execute! */
-    exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit);
+    bool finally_exit2;
+    switch (cmdinfo.type) {
+	case CT_EXTERNALPROGRAM:
+	    finally_exit2 = true;
+	    break;
+	case CT_FUNCTION:
+	    finally_exit2 = (finally_exit && /* !temp && */ savefd == NULL);
+	    break;
+	default:
+	    finally_exit2 = false;
+	    break;
+    }
+    exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit2);
 
     /* Redirections are not undone after a successful "exec" command:
      * remove the saved data of file descriptors. */

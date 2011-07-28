@@ -41,7 +41,8 @@ extern int get_ttyfd(void) __attribute__((pure));
 typedef struct savefd_T savefd_T;
 struct redir_T;
 
-extern _Bool open_redirections(const struct redir_T *r, savefd_T **save);
+extern _Bool open_redirections(const struct redir_T *r, savefd_T **save)
+    __attribute__((nonnull(2)));
 extern void undo_redirections(savefd_T *save);
 extern void clear_savefd(savefd_T *save);
 extern void maybe_redirect_stdin_to_devnull(void);

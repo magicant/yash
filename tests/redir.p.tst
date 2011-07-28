@@ -42,10 +42,23 @@ exec 4<>/dev/null
 cat >&4 <&4 # prints nothing
 
 $INVOKE $TESTEE -c 'exec >&5; echo not printed' 2>/dev/null
-$INVOKE $TESTEE -c 'command exec >&5; echo printed' 2>/dev/null
+$INVOKE $TESTEE -c 'command exec >&5; echo printed 1' 2>/dev/null
 { exec 4>&1; } 5>&1
 echo exec in group >&4
 { echo error >&5; } 2>/dev/null || echo file descriptor closed
+
+$INVOKE $TESTEE -c 'var="printed 2"; trap "echo \$var" EXIT >/dev/null'
+$INVOKE $TESTEE -c '
+settrap() {
+    trap "echo printed 3" EXIT
+    echo not printed
+}
+settrap >/dev/null'
+$INVOKE $TESTEE -c '
+{
+    trap "echo printed 4" EXIT
+    echo not printed
+} >/dev/null'
 
 echo ===== 2 =====
 

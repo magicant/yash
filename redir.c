@@ -296,7 +296,8 @@ struct savefd_T {
 
 static char *expand_redir_filename(const struct wordunit_T *filename)
     __attribute__((malloc,warn_unused_result));
-static void save_fd(int oldfd, savefd_T **save);
+static void save_fd(int oldfd, savefd_T **save)
+    __attribute__((nonnull));
 static int open_file(const char *path, int oflag)
     __attribute__((nonnull));
 #if YASH_ENABLE_SOCKET
@@ -320,8 +321,7 @@ static int open_process_redirection(const embedcmd_T *command, redirtype_T type)
  * Returns true iff successful. */
 bool open_redirections(const redir_T *r, savefd_T **save)
 {
-    if (save != NULL)
-	*save = NULL;
+    *save = NULL;
 
     while (r != NULL) {
 	if (r->rd_fd < 0 || is_shellfd(r->rd_fd)) {
@@ -458,8 +458,6 @@ char *expand_redir_filename(const struct wordunit_T *filename)
 void save_fd(int fd, savefd_T **save)
 {
     assert(fd >= 0);
-    if (save == NULL)
-	return;
 
     int copyfd = copy_as_shellfd(fd);
     if (copyfd < 0 && errno != EBADF) {
