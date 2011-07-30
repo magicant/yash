@@ -409,38 +409,42 @@ void update_environment(const wchar_t *name)
     char *mname = malloc_wcstombs(name);
     if (mname == NULL)
 	return;
+
+    char *value = get_exported_value(name);
+    if (value == NULL) {
+	if (unsetenv(mname) < 0)
+	    xerror(errno, Ngt("failed to unset environment variable $%s"),
+		    mname);
+    } else {
+	if (setenv(mname, value, true) < 0)
+	    xerror(errno, Ngt("failed to set environment variable $%s"), mname);
+    }
+
+    free(mname);
+    free(value);
+}
+
+/* Returns the value of variable `name' that should be exported.
+ * If the variable is not exported or the variable value cannot be converted to
+ * a multibyte string, NULL is returned. */
+char *get_exported_value(const wchar_t *name)
+{
     for (environ_T *env = current_env; env != NULL; env = env->parent) {
-	variable_T *var = ht_get(&env->contents, name).value;
+	const variable_T *var = ht_get(&env->contents, name).value;
 	if (var != NULL && (var->v_type & VF_EXPORT)) {
-	    char *value;
 	    switch (var->v_type & VF_MASK) {
 		case VF_SCALAR:
 		    if (var->v_value == NULL)
 			continue;
-		    value = malloc_wcstombs(var->v_value);
-		    break;
+		    return malloc_wcstombs(var->v_value);
 		case VF_ARRAY:
-		    value = realloc_wcstombs(joinwcsarray(var->v_vals, L":"));
-		    break;
+		    return realloc_wcstombs(joinwcsarray(var->v_vals, L":"));
 		default:
 		    assert(false);
 	    }
-	    if (value != NULL) {
-		if (setenv(mname, value, true) < 0)
-		    xerror(errno, Ngt("failed to set environment variable $%s"),
-			    mname);
-		free(value);
-	    } else {
-		xerror(EILSEQ, Ngt("failed to set environment variable $%s"),
-			mname);
-	    }
-	    goto done;
 	}
     }
-    if (unsetenv(mname) < 0)
-	xerror(errno, Ngt("failed to unset environment variable $%s"), mname);
-done:
-    free(mname);
+    return NULL;
 }
 
 /* Resets the locate settings for the specified variable.
@@ -638,10 +642,13 @@ bool set_variable(
  * `values' and its elements must be `free'able.
  * `count' is the number of elements in `values'. If `count' is zero, the
  * number is counted in this function.
+ * If `export' is true, the variable is exported (i.e., the VF_EXPORT flag is
+ * set to the variable). But this function does not reset an existing VF_EXPORT
+ * flag if `export' is false.
  * Returns the set array iff successful. On error, an error message is printed
  * to the standard error and NULL is returned. */
-variable_T *set_array(
-	const wchar_t *name, size_t count, void **values, scope_T scope)
+variable_T *set_array(const wchar_t *name, size_t count, void **values,
+	scope_T scope, bool export)
 {
     variable_T *var = new_variable(name, scope);
     if (var == NULL) {
@@ -649,7 +656,9 @@ variable_T *set_array(
 	return NULL;
     }
 
-    var->v_type = VF_ARRAY | (var->v_type & (VF_EXPORT | VF_NODELETE));
+    var->v_type = VF_ARRAY
+	| (var->v_type & (VF_EXPORT | VF_NODELETE))
+	| (export ? VF_EXPORT : 0);
     var->v_vals = values;
     var->v_valc = (count != 0) ? count : plcount(var->v_vals);
     var->v_getter = NULL;
@@ -699,7 +708,8 @@ fail:
  * at least once before the environment is used by the user. */
 void set_positional_parameters(void *const *values)
 {
-    set_array(L VAR_positional, 0, pldup(values, copyaswcs), SCOPE_LOCAL);
+    set_array(L VAR_positional, 0, pldup(values, copyaswcs),
+	    SCOPE_LOCAL, false);
 }
 
 /* Performs the specified assignments.
@@ -739,7 +749,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 		assert(values != NULL);
 		if (shopt_xtrace)
 		    xtrace_array(assign->a_name, values);
-		if (!set_array(assign->a_name, count, values, scope))
+		if (!set_array(assign->a_name, count, values, scope, export))
 		    return false;
 		break;
 	}
@@ -1930,8 +1940,8 @@ int array_builtin(int argc, void **argv)
 	}
 
 	if (options == 0) {
-	    set_array(name, argc - xoptind,
-		    pldup(&argv[xoptind], copyaswcs), SCOPE_GLOBAL);
+	    set_array(name, argc - xoptind, pldup(&argv[xoptind], copyaswcs),
+		    SCOPE_GLOBAL, false);
 	} else {
 	    variable_T *array = search_array_and_check_if_changeable(name);
 	    if (array == NULL)
@@ -2770,7 +2780,7 @@ void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	}
     }
 
-    set_array(name, list.length, pl_toary(&list), SCOPE_GLOBAL);
+    set_array(name, list.length, pl_toary(&list), SCOPE_GLOBAL, false);
 
     free(values);
 }
@@ -2941,7 +2951,7 @@ variable_T *get_dirstack(void)
     // void **ary = xmallocn(1, sizeof *ary);
     void **ary = xmalloc(sizeof *ary);
     ary[0] = NULL;
-    return set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL);
+    return set_array(L VAR_DIRSTACK, 0, ary, SCOPE_GLOBAL, false);
 }
 
 /* Adds the specified value to the directory stack ($DIRSTACK).

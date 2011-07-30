@@ -189,5 +189,5 @@ echo ===== exec =====
 
 (exec -a sh $TESTEE -c 'echo $0')
 (exec --as=sh $TESTEE -c 'echo $0')
-(foo=123 bar=456 exec -c env | grep -v ^_ | sort)
-(foo=123 bar=456 exec --clear env | grep -v ^_ | sort)
+(foo=123 bar=456 baz=(7 8 9) exec -c env | grep -v ^_ | sort)
+(foo=123 bar=456 baz=(7 8 9) exec --clear env | grep -v ^_ | sort)

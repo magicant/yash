@@ -2077,10 +2077,9 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	for (const assign_T *assign = last_assign;
 		assign != NULL;
 		assign = assign->next) {
-	    const wchar_t *val = getvar(assign->a_name);
-	    if (val == NULL)
-		val = L"";
-	    pl_add(&list, malloc_printf("%ls=%ls", assign->a_name, val));
+	    char *value = get_exported_value(assign->a_name);
+	    if (value != NULL)
+		pl_add(&list, malloc_printf("%ls=%s", assign->a_name, value));
 	}
 	envs = (char **) pl_toary(&list);
     } else {

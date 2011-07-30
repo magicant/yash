@@ -86,6 +86,9 @@ extern unsigned long current_lineno;
 extern void init_environment(void);
 extern void init_variables(void);
 
+extern char *get_exported_value(const wchar_t *name)
+    __attribute__((nonnull,malloc,warn_unused_result));
+
 typedef enum scope_T {
     SCOPE_GLOBAL, SCOPE_LOCAL, SCOPE_TEMP,
 } scope_T;
@@ -93,7 +96,8 @@ extern _Bool set_variable(
 	const wchar_t *name, wchar_t *value, scope_T scope, _Bool export)
     __attribute__((nonnull(1)));
 extern struct variable_T *set_array(
-	const wchar_t *name, size_t count, void **values, scope_T scope)
+	const wchar_t *name, size_t count, void **values,
+	scope_T scope, _Bool export)
     __attribute__((nonnull));
 extern _Bool set_array_element(
 	const wchar_t *name, size_t index, wchar_t *value)

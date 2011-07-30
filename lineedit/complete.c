@@ -668,7 +668,7 @@ bool call_standard_completion_function(void)
 void set_completion_variables(void)
 {
     set_array(L VAR_WORDS, ctxt->pwordc, pldup(ctxt->pwords, copyaswcs),
-	    SCOPE_LOCAL);
+	    SCOPE_LOCAL, false);
     set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src), SCOPE_LOCAL, false);
     set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
 }

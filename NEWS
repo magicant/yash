@@ -18,6 +18,8 @@ Yash 2.28
      positive and negative indices are intermixed with the -d option.
   *  The EXIT trap is now executed with the correct redirection when
      the last command had redirection.
+  *  The "exec" built-in now correctly exports arrays that are just
+     assigned.
 
 ----------------------------------------------------------------------
 Yash 2.27
